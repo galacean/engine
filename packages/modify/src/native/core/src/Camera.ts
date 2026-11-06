@@ -19,7 +19,11 @@ import { DepthTextureMode } from "./enums/DepthTextureMode";
 import { Downsampling } from "./enums/Downsampling";
 import { MSAASamples } from "./enums/MSAASamples";
 import { ReplacementFailureStrategy } from "./enums/ReplacementFailureStrategy";
-import { ScreenSpaceReflection } from "./lighting/screenSpaceReflection";
+import {
+  ScreenSpaceReflection,
+  ScreenSpaceReflectionSettingsSource,
+  type ScreenSpaceReflectionSettingsData
+} from "./lighting/screenSpaceReflection";
 import { Shader } from "./shader/Shader";
 import { ShaderData } from "./shader/ShaderData";
 import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
@@ -63,6 +67,25 @@ export class Camera extends Component {
   /** Camera-owned screen-space reflection settings and consumer leases. */
   @ignoreClone
   readonly screenSpaceReflection: ScreenSpaceReflection;
+
+  /** Atomic serialization boundary; independent of JSON property ordering. */
+  get screenSpaceReflectionSettings(): {
+    settingsSource: ScreenSpaceReflectionSettingsSource;
+    overrideSettings?: ScreenSpaceReflectionSettingsData;
+  } {
+    return {
+      settingsSource: this.screenSpaceReflection.settingsSource,
+      overrideSettings: this.screenSpaceReflection._hasOverrideSettings
+        ? this.screenSpaceReflection.toJSON()
+        : undefined
+    };
+  }
+  set screenSpaceReflectionSettings(value: {
+    settingsSource: ScreenSpaceReflectionSettingsSource;
+    overrideSettings?: Partial<ScreenSpaceReflectionSettingsData>;
+  }) {
+    this.screenSpaceReflection.restoreSettings(value);
+  }
 
   /** Whether to enable frustum culling, it is enabled by default. */
   enableFrustumCulling: boolean = true;

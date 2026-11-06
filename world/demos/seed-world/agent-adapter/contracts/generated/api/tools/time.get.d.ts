@@ -7,6 +7,7 @@ declare global {
   namespace AgentTools {
     interface TimeApi {
       /**
+       * 调用入口：await tools.time.get()
        * 读取当前世界时间、季节和环境光状态。
        * @returns 当前时间、季节和环境光状态。
        */

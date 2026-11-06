@@ -1,12 +1,16 @@
+import { afterImageReclamation, ImageMemoryLimitError } from "./image-resources";
+import { isSnapshotPath } from "./agent-snapshots";
+import { nativeFileSchemas } from "./agent-native-files";
 import { classifyFailure, summarizeExecutions, describeTaskFailure } from "./agent-failure";
 import { MODEL_ROUND_TIMEOUT_MS, type ModelRecoveryEvent } from "./model-recovery";
 import { createAgentEditorFacade } from "./agent-editor-facade";
 import { createAgentProjectFiles, projectDeclarationModules } from "./agent-project-files";
-import { AgentOutputFiles } from "./agent-file-api";
+import { AgentArtifacts } from "./agent-artifacts";
 import { AgentNativeFiles, isParallelFileTool, nativeFileTraceInput } from "./agent-native-files";
 import { runToolBatch } from "./agent-tool-batch";
 import { fileToolStepResult, presentScriptOutput } from "./agent-output";
 import { AgentImageStore, AgentImageStorageLimitError } from "./agent-image-store";
+import { withoutReasoningContent } from "./agent-message-state";
 import {
   buildAgentMessages,
   buildAgentSystemPrompt,
@@ -56,6 +60,7 @@ import type {
 
 const DEFAULT_MAX_MODEL_ATTEMPTS = 3;
 const DEFAULT_MAX_SCRIPT_REPAIRS = 3;
+const DEFAULT_MAX_TOOL_FAILURE_ROUNDS = 3;
 const DEFAULT_MAX_CONSECUTIVE_NO_PROGRESS_SCRIPTS = 2;
 const DEFAULT_MAX_TOOL_CALLS_PER_SCRIPT = 50;
 const DEFAULT_MAX_TOOL_CALLS_PER_TASK = 256;
@@ -110,12 +115,13 @@ export class AgentLoop {
   readonly #scriptChecker: AgentScriptChecker;
   readonly #maxModelAttempts: number;
   readonly #maxScriptRepairs: number;
+  readonly #maxToolFailureRounds: number;
   readonly #maxConsecutiveNoProgressScripts: number;
   readonly #maxToolCallsPerScript: number;
   readonly #maxToolCallsPerTask: number;
   readonly #scriptTimeoutMs: number;
   readonly #listeners = new Set<AgentEventListener>();
-  readonly #outputFiles = new AgentOutputFiles();
+  readonly #outputFiles = new AgentArtifacts();
   readonly #fileObservations = new Map<string, string>();
   #activeTaskId: string | null = null;
   #controller: AbortController | null = null;
@@ -143,6 +149,10 @@ export class AgentLoop {
     this.#maxScriptRepairs = requirePositiveInteger(
       options.maxScriptRepairs ?? DEFAULT_MAX_SCRIPT_REPAIRS,
       "maxScriptRepairs"
+    );
+    this.#maxToolFailureRounds = requirePositiveInteger(
+      options.maxToolFailureRounds ?? DEFAULT_MAX_TOOL_FAILURE_ROUNDS,
+      "maxToolFailureRounds"
     );
     this.#maxConsecutiveNoProgressScripts = requirePositiveInteger(
       options.maxConsecutiveNoProgressScripts ?? DEFAULT_MAX_CONSECUTIVE_NO_PROGRESS_SCRIPTS,
@@ -195,6 +205,10 @@ export class AgentLoop {
   resetConversationImages(): void {
     this.#definition.imageResources?.resetConversation();
   }
+  dispose(): void {
+    this.cancel();
+    this.#outputFiles.dispose();
+  }
 
   async run(
     input: string,
@@ -232,17 +246,15 @@ export class AgentLoop {
       control?.continuation?.visualReferences ?? []
     );
     let imagesReleased = false;
-    const reportImages = (action: "captured" | "read" | "released", offloadedCount = 0, imageId?: string) => {
+    const reportImages = (action: "captured" | "read" | "released", offloadedCount = 0, imagePath?: string) => {
       if (options.debugMode)
         this.#emit({
           type: "image_resources",
           taskId,
           action,
-          imageId,
+          imagePath,
           storedCount: images.size,
           storedBytes: images.bytes,
-          pointerCount: images.pointerCount,
-          pointerBytes: images.pointerBytes,
           resources: this.#definition.imageResources?.diagnostics ?? toAgentValue(images.budget.stats),
           offloadedCount
         });
@@ -280,7 +292,7 @@ export class AgentLoop {
           }),
           image: saved.image
         });
-        reportImages("captured", transcript.offloadImages(), saved.reference.imageId);
+        reportImages("captured", transcript.offloadImages(), saved.reference.imagePath);
       }
       if (recorded.length && options.debugMode)
         this.#emit({ type: "input_attachments", taskId, inputId, images: recorded });
@@ -289,7 +301,6 @@ export class AgentLoop {
     const reportedRuntimeErrors = new Set<string>();
     const outputFiles = this.#outputFiles;
     if (!control?.continuation) {
-      outputFiles.clear();
       this.#fileObservations.clear();
     }
     let executeSource = "";
@@ -298,6 +309,7 @@ export class AgentLoop {
       createAgentProjectFiles(fileCatalog(), [
         ...providers,
         outputFiles.provider,
+        images.provider,
         {
           paths: () => ["editor/execute.js"],
           read: (path) => (path === "editor/execute.js" ? executeSource : undefined)
@@ -313,6 +325,7 @@ export class AgentLoop {
       (content) => outputFiles.save(`${taskId}:files:${++fileOutputOrdinal}`, content)
     );
     let consecutiveScriptFailures = 0;
+    let toolFailureRounds = 0;
     let consecutiveInvalidBatches = 0;
     let taskToolCalls = 0;
     let taskBudgetExceeded = false;
@@ -335,20 +348,20 @@ export class AgentLoop {
         content: JSON.stringify({
           contextKind: "task_continued",
           message:
-            "用户要求继续被中断的任务。已提交操作仍然有效；结合执行回执和当前状态完成剩余目标，不重复已提交的操作；未完成步骤可重新规划。历史图片引用仍保留；使用 read_image 读取尚未过期的图片，过期时重新观察。"
+            "用户要求继续被中断的任务。已提交操作仍然有效；结合执行回执和当前状态完成剩余目标，不重复已提交的操作；未完成步骤可重新规划。历史图片引用仍保留；使用 read 按路径读取尚未过期的快照，过期时重新观察。"
         })
       });
 
     try {
       if (!control?.continuation)
         visualReferences.push(...appendAttachments(options.attachments, control?.initialInputId));
-      modelTools = buildAgentToolDefinitions(this.#definition, images.size > 0);
+      modelTools = buildAgentToolDefinitions(this.#definition);
       for (let stepNumber = control?.continuation?.nextStep ?? 1; ; stepNumber += 1) {
         throwIfAborted(controller.signal);
         const additions = (await control?.takeInputs()) ?? [];
         for (const { attachments, ...addition } of additions) {
           if (attachments?.length) addition.visualReferences = appendAttachments(attachments, addition.id);
-          if (attachments?.length) modelTools = buildAgentToolDefinitions(this.#definition, images.size > 0);
+          if (attachments?.length) modelTools = buildAgentToolDefinitions(this.#definition);
           inputs.push(addition);
           appendTranscript({ role: "user", content: JSON.stringify({ contextKind: "user_input", ...addition }) });
           this.#emit({ type: "input_consumed", taskId, input: structuredClone(addition) });
@@ -356,7 +369,7 @@ export class AgentLoop {
         throwIfAborted(controller.signal);
         if (this.#refreshConfiguration()) {
           projectFiles = makeProjectFiles();
-          modelTools = buildAgentToolDefinitions(this.#definition, images.size > 0);
+          modelTools = buildAgentToolDefinitions(this.#definition);
           appendTranscript({
             role: "user",
             content: JSON.stringify({
@@ -367,6 +380,7 @@ export class AgentLoop {
           });
         }
         const worldThumbnail = await this.#provideWorldThumbnail();
+        const observedAt = new Date().toISOString();
         throwIfAborted(controller.signal);
         const availableTools = this.#tools;
         const availableApiNames = availableTools.map((tool) => tool.name);
@@ -394,6 +408,8 @@ export class AgentLoop {
             inputs,
             conversationHistory,
             worldThumbnail,
+            observedAt,
+            capabilityCatalog: projectFiles.read("editor/README.md"),
             transcript,
             images,
             contextCompaction,
@@ -426,6 +442,9 @@ export class AgentLoop {
         const messagesByCall: AgentMessage[][] = calls.map(() => []);
         // Model call IDs may repeat across turns; admission belongs to this batch slot.
         const startedCalls = new Set<number>();
+        let batchScriptFailure: string | undefined;
+        let batchToolFailure: string | undefined;
+        let batchScriptSucceeded = false;
         const executeCall = async (
           call: (typeof calls)[number],
           callIndex: number
@@ -469,7 +488,52 @@ export class AgentLoop {
             appendCallMessages(toolResultMessage(decisionResult.toolCallId!, result));
             return;
           }
-          if (decisionResult.decision.type === "file") {
+          if (decisionResult.decision.type === "native_read") {
+            if (taskToolCalls++ >= this.#maxToolCallsPerTask)
+              throw new AgentTaskToolLimitError(this.#maxToolCallsPerTask);
+            const { name, input } = decisionResult.decision;
+            const outcome = await this.#observeToolCall(
+              { taskId, step: stepNumber, call: 1, toolCallId: decisionResult.toolCallId, tool: name },
+              toAgentValue(input),
+              controller.signal,
+              async (): Promise<{ result: AgentToolResult }> => {
+                try {
+                  const tool = this.#definition.nativeReadTools?.find((tool) => tool.definition.function.name === name);
+                  if (!tool) throw new Error(`Native read tool is unavailable: ${name}`);
+                  throwIfAborted(controller.signal);
+                  const value = await tool.invoke(input, { signal: controller.signal });
+                  throwIfAborted(controller.signal);
+                  return { result: { ok: true, value: toAgentToolOutput(value) } };
+                } catch (error) {
+                  return {
+                    result: {
+                      ok: false,
+                      error: {
+                        code: controller.signal.aborted ? "CANCELLED" : "READ_TOOL_FAILED",
+                        message: getErrorMessage(error, "Read tool failed")
+                      }
+                    }
+                  };
+                }
+              }
+            );
+            const result = presentScriptOutput(fileToolStepResult(outcome), (content) =>
+              outputFiles.save(`${taskId}:native:${++fileOutputOrdinal}`, content)
+            );
+            appendCallMessages(toolResultMessage(decisionResult.toolCallId!, modelToolResultFromScript(result)));
+            stageResults.push(result);
+            step.scriptResult = structuredClone(result);
+            throwIfAborted(controller.signal);
+            return;
+          }
+          if (
+            decisionResult.decision.type === "file" &&
+            !(
+              decisionResult.decision.name === "read" &&
+              typeof decisionResult.decision.input.file_path === "string" &&
+              isSnapshotPath(decisionResult.decision.input.file_path)
+            )
+          ) {
             if (taskToolCalls >= this.#maxToolCallsPerTask)
               throw new AgentTaskToolLimitError(this.#maxToolCallsPerTask);
             taskToolCalls++;
@@ -490,31 +554,24 @@ export class AgentLoop {
             return;
           }
 
-          if (decisionResult.decision.type === "pointer") {
-            const { imageId, x, y } = decisionResult.decision;
+          if (decisionResult.decision.type === "pick") {
+            if (taskToolCalls++ >= this.#maxToolCallsPerTask)
+              throw new AgentTaskToolLimitError(this.#maxToolCallsPerTask);
+            const { input } = decisionResult.decision;
             const outcome = await this.#observeToolCall(
-              { taskId, step: stepNumber, call: 1, toolCallId: decisionResult.toolCallId, tool: "pointer" },
-              { imageId, x, y },
+              { taskId, step: stepNumber, call: 1, toolCallId: decisionResult.toolCallId, tool: "pick" },
+              toAgentValue(input),
               controller.signal,
               async (): Promise<{ result: AgentToolResult }> => {
                 try {
-                  if (!this.#definition.supportsViewPointer) throw new Error("Pointer observation is unavailable");
-                  return {
-                    result: {
-                      ok: true,
-                      value: { imageId, x, y, observation: toAgentValue(images.point(imageId, x, y)) }
-                    }
-                  };
+                  return { result: { ok: true, value: await afterImageReclamation(async () => images.pick(input)) } };
                 } catch (error) {
                   return {
                     result: {
                       ok: false,
                       error: {
-                        code:
-                          typeof (error as { code?: unknown })?.code === "string"
-                            ? (error as { code: string }).code
-                            : "POINTER_FAILED",
-                        message: getErrorMessage(error, "Pointer observation failed")
+                        code: (error as { code?: string }).code ?? "PICK_FAILED",
+                        message: getErrorMessage(error, "Snapshot query failed")
                       }
                     }
                   };
@@ -529,35 +586,42 @@ export class AgentLoop {
             );
             return;
           }
-          if (decisionResult.decision.type === "observe_view" || decisionResult.decision.type === "read_image") {
+          if (decisionResult.decision.type === "snapshot" || decisionResult.decision.type === "file") {
+            if (taskToolCalls++ >= this.#maxToolCallsPerTask)
+              throw new AgentTaskToolLimitError(this.#maxToolCallsPerTask);
             const decision = decisionResult.decision;
-            const capturing = decision.type === "observe_view";
+            const capturing = decision.type === "snapshot";
             let saved: ReturnType<AgentImageStore["read"]> | undefined;
             let fatalError: unknown;
             const outcome = await this.#observeToolCall(
-              { taskId, step: stepNumber, call: 1, toolCallId: decisionResult.toolCallId, tool: decision.type },
-              decision.type === "read_image" ? { imageId: decision.imageId } : {},
+              {
+                taskId,
+                step: stepNumber,
+                call: 1,
+                toolCallId: decisionResult.toolCallId,
+                tool: capturing ? "snapshot" : "read"
+              },
+              decision.type === "file" ? nativeFileTraceInput(decision.input) : {},
               controller.signal,
               async (): Promise<{ result: AgentToolResult }> => {
                 try {
-                  if (decision.type === "observe_view") {
-                    if (!this.#definition.observeView) throw new Error("Visual observation is unavailable");
-                    const observation = await this.#definition.observeView(controller.signal);
-                    if (controller.signal.aborted) observation.pointer?.dispose();
+                  if (decision.type === "snapshot") {
+                    if (!this.#definition.captureSnapshot) throw new Error("Visual observation is unavailable");
+                    const observation = await this.#definition.captureSnapshot(controller.signal);
                     throwIfAborted(controller.signal);
-                    let metadata: AgentValue;
-                    try {
-                      metadata = toAgentValue(observation.metadata);
-                    } catch (error) {
-                      observation.pointer?.dispose();
-                      throw error;
-                    }
+                    const metadata = toAgentValue(observation.metadata);
                     saved = images.save({ ...observation, metadata });
-                  } else saved = images.read(decision.imageId);
+                  } else {
+                    const input = nativeFileSchemas.read.parse(decision.input);
+                    if (input.offset != null || input.column != null || input.limit != null)
+                      throw new Error("Snapshot images do not have line offsets, columns or limits; pass null");
+                    saved = images.read(input.file_path);
+                  }
                   throwIfAborted(controller.signal);
                   return { result: { ok: true, value: toAgentValue(saved.reference) } };
                 } catch (error) {
-                  if (error instanceof AgentImageStorageLimitError) fatalError = error;
+                  if (error instanceof AgentImageStorageLimitError || error instanceof ImageMemoryLimitError)
+                    fatalError = error;
                   return {
                     result: {
                       ok: false,
@@ -566,9 +630,8 @@ export class AgentLoop {
                           ? "CANCELLED"
                           : error instanceof AgentImageStorageLimitError
                             ? "IMAGE_STORAGE_LIMIT"
-                            : capturing
-                              ? "VIEW_OBSERVATION_FAILED"
-                              : "IMAGE_READ_FAILED",
+                            : ((error as { code?: string }).code ??
+                              (capturing ? "VIEW_OBSERVATION_FAILED" : "IMAGE_READ_FAILED")),
                         message: controller.signal.aborted
                           ? "Image operation cancelled"
                           : getErrorMessage(error, "Image operation failed")
@@ -597,7 +660,7 @@ export class AgentLoop {
                 }),
                 image: saved.image
               });
-              reportImages(capturing ? "captured" : "read", transcript.offloadImages(), saved.reference.imageId);
+              reportImages(capturing ? "captured" : "read", transcript.offloadImages(), saved.reference.imagePath);
               if (options.debugMode)
                 this.#emit({
                   type: "view_observed",
@@ -607,7 +670,7 @@ export class AgentLoop {
                   image: { ...saved.image },
                   metadata: toAgentValue({ ...saved.reference, metadata: saved.metadata })
                 });
-              modelTools = buildAgentToolDefinitions(this.#definition, true);
+              modelTools = buildAgentToolDefinitions(this.#definition);
             }
             return;
           }
@@ -642,7 +705,7 @@ export class AgentLoop {
           if (decisionResult.decision.type !== "execute") throw new Error("Unsupported legacy tool decision");
           this.#refreshConfiguration();
           projectFiles = makeProjectFiles();
-          modelTools = buildAgentToolDefinitions(this.#definition, images.size > 0);
+          modelTools = buildAgentToolDefinitions(this.#definition);
           const availableTools = this.#tools;
           const availableRegistry = new ToolRegistry(availableTools);
           const script = decisionResult.decision;
@@ -756,9 +819,16 @@ export class AgentLoop {
             throw new AgentTaskToolLimitError(this.#maxToolCallsPerTask);
 
           if (scriptResult.ok === true) {
-            consecutiveScriptFailures = 0;
+            batchScriptSucceeded = true;
+          } else if (
+            scriptResult.error.phase === "tool" &&
+            !["INVALID_ARGUMENTS", "UNKNOWN_TOOL"].includes(scriptResult.error.code)
+          ) {
+            // Accepted calls can fail in the host. Editing the script cannot repair
+            // an invalid Tool result; these failures have their own bounded budget.
+            batchToolFailure = scriptResult.error.message;
           } else {
-            consecutiveScriptFailures += 1;
+            batchScriptFailure = scriptResult.error.message;
           }
 
           if (scriptResult.ok === true) {
@@ -774,7 +844,9 @@ export class AgentLoop {
         const decisionResultOriginal = decisionResult;
         const batch = await runToolBatch(
           calls,
-          (call) => call.decision.type === "file" && isParallelFileTool(call.decision.name),
+          (call) =>
+            call.decision.type === "native_read" ||
+            (call.decision.type === "file" && isParallelFileTool(call.decision.name)),
           executeCall,
           controller.signal
         );
@@ -802,11 +874,18 @@ export class AgentLoop {
         );
         transcript.offloadImages();
         if (batch.error) throw batch.error;
+        // All calls in this batch came from one model response. The model has not
+        // seen their results yet, so they represent at most one repair attempt.
+        if (batchScriptFailure !== undefined) consecutiveScriptFailures += 1;
+        else if (batchScriptSucceeded) consecutiveScriptFailures = 0;
+        if (batchToolFailure !== undefined) toolFailureRounds += 1;
+        if (toolFailureRounds >= this.#maxToolFailureRounds) {
+          throw new AgentToolFailureLimitError(this.#maxToolFailureRounds, batchToolFailure!);
+        }
         if (consecutiveScriptFailures >= this.#maxScriptRepairs) {
-          const lastFailure = stageResults.at(-1);
           throw new AgentScriptRepairLimitError(
             this.#maxScriptRepairs,
-            lastFailure && !lastFailure.ok ? lastFailure.error.message : "Repeated script failures"
+            batchScriptFailure ?? "Repeated script failures"
           );
         }
         if (consecutiveNoProgressScripts >= this.#maxConsecutiveNoProgressScripts) {
@@ -902,6 +981,8 @@ export class AgentLoop {
     inputSource: NonNullable<AgentRunOptions["inputSource"]>;
     conversationHistory: ConversationHistorySnapshot;
     worldThumbnail: AgentValue;
+    observedAt: string;
+    capabilityCatalog: string;
     taskContext?: AgentValue;
     inputs: AgentUserInput[];
     transcript: AgentContextTranscript;
@@ -921,6 +1002,9 @@ export class AgentLoop {
       if (input.signal.aborted) throw new AgentModelRequestFailure(new AgentCancelledError(), attempts);
       const messages = buildAgentMessages({
         systemPrompt: input.systemPrompt,
+        skills: this.#definition.scriptApi.skills,
+        capabilityCatalog: input.capabilityCatalog,
+        observedAt: input.observedAt,
         taskId: input.taskId,
         userInput: input.userInput,
         inputSource: input.inputSource,
@@ -941,7 +1025,8 @@ export class AgentLoop {
           step: input.step,
           attempt: attemptNumber,
           // The trace store interns images; attempt diagnostics remain lightweight.
-          messages: structuredClone(messages)
+          messages: structuredClone(messages.map(withoutReasoningContent)),
+          tools: structuredClone(input.tools)
         });
       }
       const startedAt = performance.now();
@@ -979,7 +1064,7 @@ export class AgentLoop {
           onRecovery,
           messages,
           imageBudget: input.images.budget,
-          contextCompaction: input.contextCompaction,
+          contextCompaction: { ...input.contextCompaction, protectedPrefixLength: contextRequest.prefixLength },
           model: input.model,
           tools: input.tools,
           toolChoice: "auto",
@@ -1053,7 +1138,12 @@ export class AgentLoop {
           const calls = result.toolCalls.map((toolCall) => {
             let decision: AgentDecision;
             try {
-              decision = parseAgentToolCall(toolCall);
+              decision = parseAgentToolCall(
+                toolCall,
+                (this.#definition.nativeReadTools ?? [])
+                  .map((tool) => tool.definition.function.name)
+                  .filter((name) => input.tools.some((tool) => tool.function.name === name))
+              );
             } catch (error) {
               decision = {
                 type: "invalid_tool",
@@ -1069,6 +1159,7 @@ export class AgentLoop {
             assistantMessage: {
               role: "assistant",
               content: result.content,
+              ...(result.reasoningContent !== undefined ? { reasoningContent: result.reasoningContent } : {}),
               toolCalls: structuredClone(result.toolCalls)
             },
             attempts: [...attempts, attempt]
@@ -1080,7 +1171,11 @@ export class AgentLoop {
         const message = parseAgentFinalMessage(result.content);
         return {
           decision: { type: "final", message },
-          assistantMessage: { role: "assistant", content: result.content },
+          assistantMessage: {
+            role: "assistant",
+            content: result.content,
+            ...(result.reasoningContent !== undefined ? { reasoningContent: result.reasoningContent } : {})
+          },
           attempts: [...attempts, attempt]
         };
       } catch (error) {
@@ -1261,8 +1356,18 @@ export class AgentCancelledError extends Error {
 
 export class AgentScriptRepairLimitError extends Error {
   constructor(maxRepairs: number, lastError: string) {
-    super(`Agent Script failed ${maxRepairs} consecutive times: ${lastError}`);
+    super(`Agent Script repair failed in ${maxRepairs} model response rounds: ${lastError}`);
     this.name = "AgentScriptRepairLimitError";
+  }
+}
+
+export class AgentToolFailureLimitError extends Error {
+  constructor(limit: number, lastError: string) {
+    super(
+      `TOOL_FAILURE_LIMIT: Tool execution or output failed in ${limit} model response rounds. ` +
+        `Stopped further calls; inspect execution receipts before retrying writes. Last Tool error: ${lastError}`
+    );
+    this.name = "AgentToolFailureLimitError";
   }
 }
 
@@ -1518,7 +1623,7 @@ function executionOutcomes(stages: readonly AgentScriptResult[]) {
 
 function redactMessageImages(messages: readonly AgentMessage[]): AgentMessage[] {
   return messages.map((message) => {
-    if (message.role !== "user" || !message.image) return structuredClone(message);
+    if (message.role !== "user" || !message.image) return structuredClone(withoutReasoningContent(message));
     return { role: "user", content: `${message.content}\n[Image omitted from trace payload]` };
   });
 }

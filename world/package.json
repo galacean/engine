@@ -58,7 +58,8 @@
     "@galacean/engine-project": "workspace:*",
     "@galacean/engine-runtime-editor": "workspace:*",
     "@galacean/engine-world-planning": "workspace:*",
-    "@galacean/engine-modify": "workspace:*"
+    "@galacean/engine-modify": "workspace:*",
+    "@galacean/engine-retrieval": "workspace:*"
   },
   "devDependencies": {
     "typescript": "5.6.3",

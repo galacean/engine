@@ -139,7 +139,7 @@ Editing, preview, import, undo, full publication and queued storage captures sha
 
 The script cache compares exact source/declaration keys and text values, retaining a private map snapshot only after a successful full compile. It does not serialize a giant cache key, use probabilistic hashes or rely on caller object identity. Module preparation reuses that compilation result and captures external bindings separately. Changed declarations, sources or external bindings still invalidate their appropriate layer. Analysis-only and failed/aborted builds do not populate the compiled cache. The simplified TSC, checking/execution Workers and compilation Worker remain in place.
 
-IndexedDB schema 3 adds a unique index over the existing storage revision, preserving all schema-2 projects. A save checks the expected revision via `index.getKey()` (or project existence via `store.getKey()`) and writes the package in the **same readwrite transaction**. This avoids deserializing a full project just to check its revision. Legacy records without a revision retain the full-read check until their first successful save. The older pre-v2 incompatible-format reset remains unchanged. Old tabs must close before an upgrade can finish; blocked upgrades report that requirement, and new connections close on version changes. The exported project version remains 5. IndexedDB still serializes the complete record on `put`; this change does not claim incremental persistence or eliminate binary copies.
+IndexedDB schema 3 adds a unique index over the existing storage revision, preserving all schema-2 projects. A save checks the expected revision via `index.getKey()` (or project existence via `store.getKey()`) and writes the package in the **same readwrite transaction**. This avoids deserializing a full project just to check its revision. Legacy records without a revision retain the full-read check until their first successful save. The older pre-v2 incompatible-format reset remains unchanged. Old tabs must close before an upgrade can finish; blocked upgrades report that requirement, and new connections close on version changes. The current exported project version is 6; earlier package versions reject without rewriting. IndexedDB still serializes the complete record on `put`; this change does not claim incremental persistence or eliminate binary copies.
 
 Real-scene before/after measurements use a fresh frozen copy that already contains the previous unchanged-masonry optimization. Chrome 146 / ANGLE Metal runs use the real Seed World scene, checking/execution Workers, durable transactions and projection. No LLM service call is needed for the deterministic scripts. Two frame trials per side include an untraced window; the final pair runs candidate before baseline. Allocation/retention runs are separate. The final candidate source also rejects invalid non-string/non-Uint8Array inputs; the preliminary frame run preceded only that guard, as recorded by the source hashes.
 
@@ -163,7 +163,7 @@ Validation: Runtime Editor core 122 tests, simplified checker/transaction 43 tes
 
 ### Incremental IndexedDB persistence, 2026-10-28
 
-Database schema 4 adds `projectFiles` while keeping project headers/revisions in `projects`. A file is keyed by `[projectId, kind, virtualPath]`, with separate asset/document kinds. Headers contain the manifest and lists of embedded paths, preserving unloaded asset entries and optional documents. The export package format remains version 5. Schema-2/3 whole-package records remain readable and are converted on the first successful save, atomically; merely opening the database does not bulk rewrite projects.
+Database schema 4 adds `projectFiles` while keeping project headers/revisions in `projects`. A file is keyed by `[projectId, kind, virtualPath]`, with separate asset/document kinds. Headers contain the manifest and lists of embedded paths, preserving unloaded asset entries and optional documents. The export package format is version 6. Earlier package versions reject; merely opening the database does not rewrite or delete those records.
 
 Every save captures an isolated package before queuing, then uses its last successfully loaded/committed private snapshot for exact text or byte comparison. Unchanged values are skipped even when maps or binary buffers have new identities. Only changed files are put and removed files are deleted. The header/revision is always put to retain the existing successful-save conflict semantics. Revision checking and **all** file/header writes use one `readwrite` transaction spanning both stores. Read reconstruction also spans both stores in one readonly transaction. Same-instance reads/writes are queued in invocation order, and neither failed transactions nor failed loads advance the private baseline. New/recreated project IDs clear only that project's orphan file keys in the same transaction. Missing stored files fail visibly rather than falling back to remote content.
 
@@ -203,3 +203,20 @@ Validation: 152 targeted tests passed with the pre-existing image-event assertio
 The model uses external `read/write/edit/delete/glob/grep` tools for project files and `execute` for editor/world APIs. `files.*` and `editor.document.*` are removed from scripts. File reads observe committed VFS state; each file mutation independently commits through host document operations. Existing write/edit targets require a current read; edit performs exact literal replacement. Registered assets still use `editor.asset.*`. Multiple calls in one model response retain separate IDs/results: safe reads may overlap, while mutations and execute are ordered exclusive barriers. The script checker, editor draft transaction, failure diagnostics, and Console/Return behavior are unchanged.
 
 Console and Return are separate result/debug channels. A 64 KiB display budget replaces the former 4 KiB return limit. Overflow is available through immutable task output files; output presentation cannot change transaction receipts. Simplified TSC, execution Workers, error locations and rollback rules remain in place. See [AI Chat](../ai-chat/README.md) for output resource/storage limits.
+
+
+## Agent Skills（2026-11-04）
+
+运行时 Skill 源码在 `world/gallery/skills/`，通过 AgentScriptApiCatalog.skills 注册。`createAgentProjectFiles` 将正文与参考文档挂载到 VFS 根目录 skills/<name>/，与 editor/ 并列；路径不可被项目资产或文档写入覆盖。`buildAgentMessages` 在 agent_task 上下文携带名称、用途与 SKILL.md 路径，不将全文加入 System Prompt。LLM 按需通过 read 读取正文和引用。
+
+当前注册 galacean-editor，资产使用参考文档沿用 Editor 的职责划分，并使用当前 runtime editor 的真实 API。Skill 前言与注册元数据保持一致，链接与只读边界由 runtime-native-knowledge、files-draft 和 agent-skills 测试覆盖。Skill 不增加 Worker 权限；资产导入仍由 RuntimeEditor 事务和格式校验负责。
+
+## Virtual roots
+
+- `editor/`: execute API declarations and editing knowledge.
+- `engine/`: Script Engine/host declarations and runtime guides.
+- `skills/<name>.md`: workflow instructions; frontmatter is the sole name/description source. Requests contain only metadata and path; bodies are read on demand.
+- `.ai/outputs/`: long text outputs retained for the session with a bounded LRU. No project persistence. Screenshots retain their task lifetime; the existing editor/execute.js view exposes only the current task’s latest source, without new history storage.
+- Project assets keep their virtual paths. Only registered assets expose `.meta`; project.json, folders and ordinary documents do not.
+
+`editor.asset.info({path})` reads metadata without downloading content. `editor.asset.read({path})` returns a discriminated result: text, structured JSON, PNG/JPEG image dimensions, or GLB static model-local structure and bounds. It rejects unsupported encodings instead of returning empty data. Raw VFS read remains text/binary-descriptor access.

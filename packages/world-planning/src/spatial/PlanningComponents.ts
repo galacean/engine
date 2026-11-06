@@ -11,7 +11,8 @@ import landscapeRules from "../planning-data/landscape-contexts.json";
 import { FLOWER_DEFAULTS } from "./ecology/FlowerRegions";
 import { FLOWER_ASSET_VARIANTS } from "../planning-data/FlowerAssetWeights";
 import { PLANT_MATERIAL_COMPONENT } from "./PlantMaterialParameters";
-import { GRASS_APPEARANCE_COMPONENT } from "./PlanningGrassAppearance";
+import { GRASS_APPEARANCE_COMPONENT, SURFACE_PALETTE_COMPONENT } from "./PlanningGrassAppearance";
+import { PLANNING_WEATHER_COMPONENT } from "./PlanningWeather";
 import { ROCK_FORMATION_COMPONENT, ROCK_OBB_COMPONENT } from "../integrations/terrain/rock-formation/Settings.ts";
 import { ROCK_GENERATION_COMPONENT } from "../integrations/terrain/rock-formation/GenerationProfile.ts";
 import { RELIEF_COMPONENT } from "./terrain/ReliefComponent";
@@ -20,6 +21,7 @@ import poiLayoutDefaults from "../planning-data/poi-layout.json";
 import roadProfile from "../planning-data/units/road.json";
 import { ComponentRegistry, type ComponentDefinition, type SpatialField } from "./SpatialDocument";
 import { SUBJECT_VIEW_COMPONENT } from "./PlanningSubjectView";
+import { WORLD_TEMPLATES } from "./WorldTemplateCatalog";
 import { PLANNING_FARMING_COMPONENT } from "./farming/PlanningFarmingComponent";
 import {
   PLANNING_LIGHT_SOURCE_FIELDS,
@@ -435,6 +437,32 @@ const network = [
   number("loopiness", "连接冗余", { unit: "%", step: 0.01, min: 0, max: 1 })
 ];
 export const PLANNING_COMPONENTS: PlanningComponentDefinition[] = [
+  {
+    type: "worldTemplate",
+    label: "世界风格",
+    version: 1,
+    tab: "world",
+    inspector: false,
+    fields: [
+      {
+        key: "id",
+        label: "风格模板",
+        type: "string",
+        default: "",
+        options: ["", ...WORLD_TEMPLATES.map((t) => t.id)],
+        optionLabels: Object.fromEntries([["", "原始 Seed World"], ...WORLD_TEMPLATES.map((t) => [t.id, t.name])])
+      },
+      number("centerX", "主体中心 X", {
+        unit: "m",
+        description: "参考构图的世界坐标锚点；主体和核心地貌使用同一坐标，不随周边 Seed 漂移。"
+      }),
+      number("centerZ", "主体中心 Z", {
+        unit: "m",
+        description: "参考构图的世界坐标锚点；重设风格时从固定基础地貌求得。"
+      })
+    ],
+    global: { id: "worldTemplate.id", centerX: "worldTemplate.centerX", centerZ: "worldTemplate.centerZ" }
+  },
   ROCK_GENERATION_COMPONENT,
   ROCK_FORMATION_COMPONENT,
   ROCK_OBB_COMPONENT,
@@ -444,6 +472,8 @@ export const PLANNING_COMPONENTS: PlanningComponentDefinition[] = [
   PLANT_MATERIAL_COMPONENT,
   SUBJECT_VIEW_COMPONENT,
   GRASS_APPEARANCE_COMPONENT,
+  PLANNING_WEATHER_COMPONENT,
+  SURFACE_PALETTE_COMPONENT,
   {
     type: "suspensionBridge",
     label: "木吊桥",
@@ -622,6 +652,15 @@ export const PLANNING_COMPONENTS: PlanningComponentDefinition[] = [
     tab: "world",
     sparseGlobal: true,
     fields: [
+      number("baseSeed", "地貌基础种子", {
+        unit: "",
+        step: 1,
+        integer: true,
+        min: 0,
+        max: 4294967295,
+        description:
+          "可选的海岸、底层起伏及隆起位置随机源；未设置时跟随世界 Seed。风格模板固定此值，仅在作者参数范围内微调地貌。"
+      }),
       number("count", "隆起带数量", { unit: "个", step: 1, min: 0, default: 2 }),
       number("directionDegrees", "主方向", { unit: "°", step: 1, min: 0, default: 45 }),
       number("lengthM", "隆起带长度", { unit: "m", step: 1, min: 0.001, default: 600 }),
@@ -629,6 +668,7 @@ export const PLANNING_COMPONENTS: PlanningComponentDefinition[] = [
       number("widthM", "两侧过渡宽度", { unit: "m", step: 1, min: 0.001, default: 160 })
     ],
     global: {
+      baseSeed: "landformSeed",
       count: "terrainSkeleton.count",
       directionDegrees: "terrainSkeleton.directionDegrees",
       lengthM: "terrainSkeleton.lengthM",

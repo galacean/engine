@@ -135,9 +135,11 @@ export interface SeedWorldTerrainInspectionTile {
   readonly tileZ: number;
 }
 
-/** Artist-facing road colour plus the grass field shared by Terrain and grass roots. */
+/** Independent bare-ground/road colours and the field shared by Terrain and grass roots. */
 export interface SeedWorldSurfaceColorTuning {
   readonly roadColor: readonly [red: number, green: number, blue: number];
+  /** Absent preserves the source non-grass layer colours, including on reset. */
+  readonly groundColor?: readonly [red: number, green: number, blue: number];
   readonly grass: SeedWorldGrassColorFieldTuning;
 }
 
@@ -147,6 +149,7 @@ interface SeedWorldTerrainMaterialState {
   readonly vistaFromDetail?: boolean;
   grassTuning: SeedWorldGrassColorFieldTuning;
   roadColor: readonly [red: number, green: number, blue: number];
+  groundColor?: readonly [red: number, green: number, blue: number];
   readonly farCompositeLod: number;
 }
 
@@ -258,23 +261,38 @@ export class SeedWorldTerrainRuntime {
   getSurfaceColorTuning(): SeedWorldSurfaceColorTuning {
     return Object.freeze({
       roadColor: freezeSeedWorldRoadColor(this._terrainMaterialState.roadColor),
+      ...(this._terrainMaterialState.groundColor
+        ? { groundColor: freezeSeedWorldRoadColor(this._terrainMaterialState.groundColor) }
+        : {}),
       grass: freezeSeedWorldGrassColorFieldTuning(this._terrainMaterialState.grassTuning)
     });
   }
 
   /**
    * Applies one complete artist-facing surface palette without rebuilding Terrain data.
-   * @param tuning Road colour plus the shared Terrain/grass-root colour field.
+   * @param tuning Bare-ground/road colours plus the shared Terrain/grass-root colour field.
    * @returns Nothing.
    */
   setSurfaceColorTuning(tuning: SeedWorldSurfaceColorTuning): void {
     const nextRoadColor = freezeSeedWorldRoadColor(tuning.roadColor);
+    const nextGroundColor = tuning.groundColor === undefined ? undefined : freezeSeedWorldRoadColor(tuning.groundColor);
     const nextGrass = freezeSeedWorldGrassColorFieldTuning(tuning.grass);
+    this.clipmap.setLayerDiffuseColors(
+      SEED_WORLD_SURFACE_LAYER_IDS.slice(1).map((layerId) => ({
+        regionId: SEED_WORLD_REGION_ID,
+        layerId,
+        color: nextGroundColor ? ([...nextGroundColor, 1] as const) : undefined
+      }))
+    );
     this._setGrassColorFieldTuning(nextGrass);
-    for (const material of this.clipmap.renderMaterials) bindTerrainRoadColor(material, nextRoadColor);
+    for (const material of this.clipmap.renderMaterials) {
+      bindTerrainGroundColor(material, nextGroundColor);
+      bindTerrainRoadColor(material, nextRoadColor);
+    }
     this.population.setGrassRoadColor(nextRoadColor);
     this.population.setGrassTerrainSurface(this.clipmap.renderMaterials[0]!);
     this._terrainMaterialState.roadColor = nextRoadColor;
+    this._terrainMaterialState.groundColor = nextGroundColor;
     for (const [material, brightness] of this._grassAppearanceMaterials)
       this._bindGrassAppearanceMaterial(material, brightness);
   }
@@ -1009,6 +1027,17 @@ function bindTerrainRoadColor(material: Material, color: readonly [number, numbe
   material.shaderData.setColor(MATERIAL_TERRAIN_ROAD_COLOR, new Color(...color, 1));
 }
 
+function bindTerrainGroundColor(material: Material, color?: readonly [number, number, number]): void {
+  material.shaderData.setColor(
+    MATERIAL_TERRAIN_SEED_LAYER_COLOR_1,
+    color ? new Color(...color, 1) : new Color(...SEED_WORLD_SURFACE_LAYER_PROFILES[1].color)
+  );
+  material.shaderData.setColor(
+    MATERIAL_TERRAIN_SEED_LAYER_COLOR_2,
+    color ? new Color(...color, 1) : new Color(...SEED_WORLD_SURFACE_LAYER_PROFILES[2].color)
+  );
+}
+
 /** Apply Seed's authored ground appearance to a terrain owned by another world planner.
  * @param material Terrain material instance owned by the caller.
  * @param field Shared grass colour field used by both ground and vegetation.
@@ -1032,14 +1061,7 @@ function bindSeedTerrainMaterialState(material: Material, state: SeedWorldTerrai
   });
   bindTerrainRoadColor(material, state.roadColor);
   material.shaderData.setFloat(MATERIAL_TERRAIN_FAR_COMPOSITE_LOD, state.farCompositeLod);
-  material.shaderData.setColor(
-    MATERIAL_TERRAIN_SEED_LAYER_COLOR_1,
-    new Color(...SEED_WORLD_SURFACE_LAYER_PROFILES[1].color)
-  );
-  material.shaderData.setColor(
-    MATERIAL_TERRAIN_SEED_LAYER_COLOR_2,
-    new Color(...SEED_WORLD_SURFACE_LAYER_PROFILES[2].color)
-  );
+  bindTerrainGroundColor(material, state.groundColor);
   material.shaderData.setVector4(
     MATERIAL_TERRAIN_SEED_LAYER_SNOW_RESPONSE,
     new Vector4(

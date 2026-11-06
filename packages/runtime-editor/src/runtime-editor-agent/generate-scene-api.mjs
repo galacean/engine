@@ -1,6 +1,7 @@
 import { fileURLToPath } from "node:url";
 import { resolve } from "node:path";
 import { contractProgram, apiMethods, writeGenerated, referencedDeclarations, assertDeclarationSyntax } from "@galacean/engine-project/api-contract/scripts/declarations.mjs";
+import { sceneComponentQuery } from "@galacean/engine-project/api-contract/scripts/component-query.mjs";
 const entry = fileURLToPath(new URL("./runtime-scene-api.ts", import.meta.url));
 const {program, checker} = contractProgram(entry);
 const methods = apiMethods(program, checker, entry, "runtimeSceneApi");
@@ -8,10 +9,11 @@ const namespaces = [...new Set(methods.map(method => method.name.split(".")[0]))
 const methodText = method => `/** ${method.description.replaceAll("*/", "* /")} */\n${JSON.stringify(method.name.split(".")[1])}(input: ${method.inputText}): Promise<${method.outputText}>;`;
 const declaration = `import "./source";\nexport {};\ndeclare global { namespace editor {\n${namespaces.map(namespace => {
   const entries = methods.filter(method => method.name.startsWith(namespace + "."));
-  // Component query participates in declaration merging with system-specific
-  // overloads. Other namespaces are objects, whose keys can include "delete".
+  // Component query merges a registry of proxy types, so both literal and union
+  // selectors retain their methods. Other namespaces can include "delete".
   if (namespace === "component") return `namespace component {\n${entries.map(method =>
-    `/** ${method.description.replaceAll("*/", "* /")} */\nfunction ${method.name.split(".")[1]}(input: ${method.inputText}): Promise<${method.outputText}>;`
+    method.name === "component.query" ? sceneComponentQuery(method) :
+      `/** ${method.description.replaceAll("*/", "* /")} */\nfunction ${method.name.split(".")[1]}(input: ${method.inputText}): Promise<${method.outputText}>;`
   ).join("\n")}\n}`;
   return `const ${namespace}: {\n${entries.map(methodText).join("\n")}\n};`;
 }).join("\n")}\n} }\n`;

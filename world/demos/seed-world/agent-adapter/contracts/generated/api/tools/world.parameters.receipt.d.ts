@@ -8,6 +8,7 @@ declare global {
     interface WorldApi { readonly parameters: WorldParametersApi; }
     interface WorldParametersApi {
       /**
+       * 调用入口：await tools.world.parameters.receipt(input)
        * 分页读取最近一次 apply 的详细诊断、变化 ID 或消息，不重复执行修改。hasMessage 为 true 时用 section=message 读取原因，消息按 Unicode 字符分页，items.join('') 得到本页文本。receiptId 必须来自本会话最近一次 apply，可在后续 execute 中读取；新的 apply（包括 rejected）会替换旧回执。它记录参数 apply 的诊断，不表示外层 execute 已提交；最终提交状态以 execute 回执为准。
        * @param input - 使用发现的组件、实体和字段；所有编辑由系统统一验证。
        * @returns 组件元数据、作者参数或事务结果；versionToken 用于拒绝过期编辑。完整记录供脚本计算，按 nextOffset 继续；maxBytes 可明确限制本页字节，避免完整页面直接返回时超预算。最终汇总仍须筛选并遵守 main() 总预算，不需要为每个字段单独请求模型。

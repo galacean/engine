@@ -100,6 +100,10 @@ void PBRFragment(Varyings varyings) {
 
   SurfaceData surfaceData = getSurfaceData(varyings, aoUV, gl_FrontFacing);
 
+  #ifdef SSR_CONTRIBUTION_CAPTURE
+    if (surfaceData.opacity <= 0.0001) discard;
+  #endif
+
   // Can modify surfaceData here
   initBSDFData(surfaceData, bsdfData);
 

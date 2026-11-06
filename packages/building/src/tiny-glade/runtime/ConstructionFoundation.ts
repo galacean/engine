@@ -1,10 +1,10 @@
 import { constructionWallOutlinePoint, type ConstructionWallEnvelope } from "./ConstructionWallEnvelope";
 import { supportShapeFrame } from "./ConstructionSupportFrame";
 import type { WallConnectionShape } from "./WallConnectionTypes";
-import { samplePublishedWallPath, type TerrainHeight } from "./PublishedWallProfile";
-import { constructionSupport, type SupportCell, type SupportFace } from "./PlacementSupport";
-import type { MaterialUnit } from "./MasonryDocument";
-import { unitFootprintScale, type MaterialFootprint } from "./MaterialFootprint";
+import { samplePublishedWallPath, type TerrainHeight } from "./PublishedWallProfile.ts";
+import { constructionSupport, type SupportCell, type SupportFace } from "./PlacementSupport.ts";
+import type { MaterialUnit } from "./UnitPlacementStyle";
+import { unitFootprintScale, type MaterialFootprint } from "./MaterialFootprint.ts";
 /** Host adaptation of native elevation supports: the placement-center ground is
  * the reference, not the highest perimeter point. Zero means continuous contact,
  * even on negative terrain. Positive values raise the lower boundary; individual
@@ -31,6 +31,7 @@ export type ConstructionFoundationContact = ReturnType<typeof resolveConstructio
 export interface ConstructionFoundationInput {
   wallEnvelope?: ConstructionWallEnvelope;
   id: string;
+  variationKey?: string;
   shape: WallConnectionShape;
   height: number;
   terrain: TerrainHeight;
@@ -152,6 +153,12 @@ export function buildConstructionFoundation(input: ConstructionFoundationInput) 
         cells.push({
           id: key,
           logical_id: key,
+          ...(input.variationKey !== undefined
+            ? {
+                seed_id: `${input.variationKey}/edge-${edge}/row-${row}/${col}`,
+                lod_seed_id: `${input.variationKey}/edge-${edge}/row-${row}/${col}`
+              }
+            : {}),
           surface_id: id,
           anchor_uv: [(lo + hi) / 2, (y0 + y1) / 2 - bottomY],
           center: [a[0] + (b[0] - a[0]) * t, (y0 + y1) / 2, a[2] + (b[2] - a[2]) * t],
@@ -246,6 +253,12 @@ function buildPillarFoundation(input: ConstructionFoundationInput, contact: Cons
         cells.push({
           id: cellId,
           logical_id: cellId,
+          ...(input.variationKey !== undefined
+            ? {
+                seed_id: `${input.variationKey}/${key}/${row}/${column}`,
+                lod_seed_id: `${input.variationKey}/${key}/${row}/${column}`
+              }
+            : {}),
           surface_id: id,
           anchor_uv: [u + cx, cy],
           center: a.map((v, i) => v + tangent[i] * cx + bitangent[i] * cy - normal[i] * 0.03),

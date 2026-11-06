@@ -892,7 +892,7 @@ function projectRecord(
             startedAtMilliseconds: at,
             durationMilliseconds: 0,
             isError: false,
-            searchText: searchTextOf("observe_view", "截图输入", message.content)
+            searchText: searchTextOf("snapshot", "截图输入", message.content)
           });
         }
       }
@@ -901,14 +901,16 @@ function projectRecord(
     }
 
     if (type === "view_observed" && step !== null && typeof event.toolCallId === "string") {
-      const target = directTools.find((pending) => pending.step === step && pending.cell.callId === event.toolCallId);
+      const target = cells.find(
+        (cell) => cell.step === step && cell.callId === event.toolCallId && cell.kind === "tool"
+      );
       if (target && isRecord(event.image)) {
         // New traces already have a receipt; enrich it without moving its completion time.
-        if (target.cell.status === "running") {
-          applyToolResult(target.cell, { ok: true, metadata: event.metadata, image: event.image }, at);
+        if (target.status === "running") {
+          applyToolResult(target, { ok: true, metadata: event.metadata, image: event.image }, at);
         }
-        target.cell.outputBlocks = [...(target.cell.outputBlocks ?? []), readImageSourceBlock(event.image)];
-        target.cell.result = `截图 ${event.image.width} × ${event.image.height}`;
+        target.outputBlocks = [...(target.outputBlocks ?? []), readImageSourceBlock(event.image)];
+        target.result = `截图 ${event.image.width} × ${event.image.height}`;
       }
       continue;
     }
@@ -986,9 +988,8 @@ function projectRecord(
         (decisionType === "read_tool" ||
           decisionType === "list_tool" ||
           decisionType === "search_tool" ||
-          decisionType === "observe_view" ||
-          decisionType === "read_image" ||
-          decisionType === "pointer")
+          decisionType === "snapshot" ||
+          decisionType === "pick")
       ) {
         const tool = projectDecisionTool({
           record,
@@ -1570,7 +1571,7 @@ function projectDecisionTool(input: {
   startedAt: number;
 }): CellDraft {
   const type = typeof input.decision.type === "string" ? input.decision.type : "tool";
-  const toolName = type === "observe_view" ? "observe_view" : type;
+  const toolName = type === "snapshot" ? "snapshot" : type;
   return {
     id: `${input.record.interactionId}:direct-tool:${input.step}`,
     turn: input.turnNumber,

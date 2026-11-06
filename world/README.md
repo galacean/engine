@@ -8,7 +8,7 @@
 packages/
   core/、loader/、rhi-webgl/、shader/…   原生 dev/2.0 源码保持不变
   terrain/ water/ animals/ building/ farming/ vegetation/ environment/
-  ai-chat/ project/ runtime-editor/ world-planning/
+  ai-chat/ project/ retrieval/ runtime-editor/ world-planning/
   modify/                             集中所有引擎魔改
 world/
   demos/<demo>/                       页面、私有业务、私有资产与配置
@@ -29,6 +29,7 @@ examples/                             原生 Engine 示例保持不变
 | `environment` | 昼夜、天气、风、云、GI、Probe 数据与环境接入 |
 | `ai-chat` | 聊天、模型调用、流式响应、通用 AI UI 与协议 |
 | `project` | VFS、项目资源、持久化、编辑事务、脚本编译和 API 契约工具 |
+| `retrieval` | 外部资产关键词检索、目录索引与 Worker 客户端 |
 | `runtime-editor` | 运行时编辑、选择与操作、属性编辑、组件扩展和编辑 Agent 接入 |
 | `world-planning` | 空间规划、语义模型、生成与多系统装配、共享场景初始化 |
 | `modify` | 显式启用的引擎替换实现、渲染扩展、拾取协议及 PhysX 运行资产 |
@@ -48,7 +49,8 @@ examples/                             原生 Engine 示例保持不变
 - `environment` → 无其他公共包
 - `ai-chat` → `project`
 - `project` → 无其他公共包
-- `runtime-editor` → `ai-chat`, `farming`, `project`, `modify`
+- `retrieval` → 无其他公共包
+- `runtime-editor` → `ai-chat`, `farming`, `project`, `retrieval`, `modify`
 - `world-planning` → `vegetation`, `water`, `building`, `ai-chat`, `terrain`, `environment`, `farming`, `modify`, `runtime-editor`, `project`, `animals`
 - `modify` → 无其他公共包
 

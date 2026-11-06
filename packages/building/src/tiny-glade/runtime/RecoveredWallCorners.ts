@@ -5,6 +5,7 @@ import { IDENTITY_UNIT_SCALE, type UnitFootprintScale } from "./MaterialFootprin
 import { resolveWallHole, wallIntersects } from "./RecoveredWallHoles";
 import type { WallRect, WallPiece, WallInstance } from "./WallTypes";
 export interface WallCornerInput {
+  variationKey?: string;
   unitScale?: UnitFootprintScale;
   id: string;
   slot: number;
@@ -191,6 +192,7 @@ export function generateWallCorners(q: WallCornerInput) {
         v.setUint32(92, Math.abs(sub(y, top)) < f32(0.75) ? 20 : 4, true);
         output.push({
           id: `${q.id}/corner/${output.length}`,
+          ...(q.variationKey !== undefined ? { seed_id: `${q.variationKey}/corner/${output.length}` } : {}),
           sourceId: serial,
           row,
           column: k,

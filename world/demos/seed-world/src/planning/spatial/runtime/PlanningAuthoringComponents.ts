@@ -55,6 +55,18 @@ export class PlanningLighting extends VisualParameterAuthoring {
   declare customSkyHorizonTint?: AuthoredColor;
   declare skyExposure?: number;
   declare skyTint?: AuthoredColor;
+  declare sunSize?: number;
+  declare atmosphereThickness?: number;
+  declare starIntensity?: number;
+  declare moonLightIntensity?: number;
+  declare moonColor?: AuthoredColor;
+  declare moonDiskIntensity?: number;
+  declare moonAtmosphereIntensityScale?: number;
+  declare twilightIntensity?: number;
+  declare airglowIntensity?: number;
+  declare fogRadianceIntensity?: number;
+  declare fogTint?: AuthoredColor;
+  declare groundTint?: AuthoredColor;
   declare direct?: boolean;
   declare environment?: boolean;
   declare shadows?: boolean;

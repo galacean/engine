@@ -185,7 +185,42 @@ export const PLANNING_SKY_FIELDS: SpatialField[] = [
     unit: "倍率",
     combine: "override",
     description: "世界天空材质自身曝光，同时影响环境 IBL；不是全画面后处理曝光。未设置继承当前日照曲线；重置恢复曲线。"
-  }
+  },
+  ...(
+    [
+      ["sunSize", "太阳盘尺寸", "原生太阳盘的角尺寸参数。"],
+      ["atmosphereThickness", "大气厚度", "原生散射光程；与天空渐变乘数分别控制。"],
+      ["starIntensity", "星光强度", "原生星空辐亮度；不改变星点分布。"],
+      ["moonLightIntensity", "月光强度", "原生月光能量，同时作用于夜间直射光和天空月光散射。"],
+      ["moonDiskIntensity", "月盘亮度", "仅月盘辐亮度；不替代天空环境能量。"],
+      ["moonAtmosphereIntensityScale", "月光散射倍率", "原生天空的月光散射能量；独立于白天天空渐变。"],
+      ["twilightIntensity", "暮光强度", "原生地平线暮光辐亮度。"],
+      ["airglowIntensity", "夜间气辉强度", "原生夜间气辉辐亮度。"],
+      ["fogRadianceIntensity", "雾辐亮度倍率", "真实天空环境进入距离雾的能量倍率，不改变雾密度。"]
+    ] as const
+  ).map(([key, label, description]) => ({
+    key,
+    label,
+    type: "number" as const,
+    min: 0,
+    step: 0.01,
+    unit: "原生参数",
+    combine: "override" as const,
+    description: description + " 未覆盖时继承所选光照资产；重置恢复资产。"
+  })),
+  ...(["moonColor", "fogTint", "groundTint"] as const).flatMap((slot) =>
+    (["R", "G", "B"] as const).map((channel) => ({
+      key: slot + channel,
+      label: `${slot === "moonColor" ? "月光颜色" : slot === "fogTint" ? "雾散射乘数" : "大气地面反照色"} · ${channel}`,
+      type: "number" as const,
+      min: 0,
+      step: 0.01,
+      unit: "线性 RGB",
+      combine: "override" as const,
+      description:
+        "原生光照资产的独立颜色通道，不读取物体主题色。月光颜色影响月光直射与散射；雾乘数作用于天空方向辐亮度。未覆盖时继承资产，重置恢复资产。"
+    }))
+  )
 ];
 
 /** Restore the source profile first so deleting an authored override resets both light and sky. */

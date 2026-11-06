@@ -8,6 +8,7 @@ declare global {
   namespace AgentTools {
     interface WorldApi {
       /**
+       * 调用入口：await tools.world.inspect(input)
        * 读取一个稳定世界资产引用的详细状态和关系。
        * @param input - 来自查询或修改结果的 Ref；先根据 ref.kind 对应的 Asset Type 读取 AssetCatalog 指向的 /assets 详情声明。
        * @returns 直接返回与 ref.kind 对应的具体资产。result.type 与 ref.kind 一致，result.ref.id 与输入 id 一致，类型专属字段位于 result.properties；不存在 item 包装层。

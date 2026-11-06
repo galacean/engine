@@ -23,7 +23,7 @@ export interface RuntimeProjectManifest {
 }
 
 /** Bump for incompatible saved-project changes, including embedded asset schemas. */
-export const RUNTIME_PROJECT_SAVE_VERSION = 5 as const;
+export const RUNTIME_PROJECT_SAVE_VERSION = 6 as const;
 
 /** Binary files remain binary; only authored/overridden content needs to be embedded. */
 export interface RuntimeProjectPackage {
@@ -120,7 +120,7 @@ export function validateRuntimeProject(value: RuntimeProjectPackage): void {
       if (!meta || typeof meta.summary !== "string" || (meta.usage !== undefined && typeof meta.usage !== "string"))
         throw new Error(`Invalid metadata '${path}'`);
       const target = path.slice(0, -5);
-      if (!filePaths.has(target) && !directories.has(target)) throw new Error(`Orphan metadata '${path}'`);
+      if (!paths.has(target)) throw new Error(`Orphan metadata '${path}'`);
     }
   }
   for (const path of directories) if (filePaths.has(path)) throw new ProjectPathConflictError(path, path, "file");
@@ -140,7 +140,7 @@ export function assertAssetPath(path: string): void {
     /^[A-Za-z][A-Za-z0-9+.-]*:/.test(path) ||
     path.includes("?") ||
     path.includes("#") ||
-    ["project.json", "editor", "remote"].some(
+    ["project.json", "editor", "engine", "skills", ".ai", "remote"].some(
       (reserved) => path === reserved || path === `${reserved}.meta` || path.startsWith(`${reserved}/`)
     ) ||
     path.split("/").some((part) => !part || part === "." || part === "..")
@@ -153,41 +153,19 @@ export function assetMetadata(path: string, type: string, description?: { summar
   return {
     name: path.slice(path.lastIndexOf("/") + 1),
     type,
-    summary: description?.summary ?? `${path} (${type})`,
-    usage: description?.usage ?? "通过虚拟路径读取和引用；使用说明见 README.md。"
+    summary: description?.summary ?? "",
+    usage: description?.usage ?? ""
   };
 }
 
 /** Enumerate metadata identities without serializing every description during directory discovery. */
 function projectMetadataTargets(pack: RuntimeProjectPackage): Map<string, string> {
-  const targets = new Map<string, string>();
-  const directories = new Set(pack.project.directories ?? []);
-  for (const file of pack.project.files) targets.set(file.virtualPath, file.type);
-  for (const path of Object.keys(pack.documents ?? {})) if (!path.endsWith(".meta")) targets.set(path, "Document");
-  for (const path of [
-    ...pack.project.files.map((file) => file.virtualPath),
-    ...Object.keys(pack.documents ?? {}),
-    ...directories
-  ]) {
-    for (const directory of parentDirectories(path)) directories.add(directory);
-  }
-  for (const directory of directories) targets.set(directory, "Folder");
-  return targets;
+  return new Map(pack.project.files.map((file) => [file.virtualPath, file.type]));
 }
 
 function projectMetadata(pack: RuntimeProjectPackage, path: string, type: string): string {
   const existing = pack.documents?.[`${path}.meta`];
-  return JSON.stringify(
-    assetMetadata(
-      path,
-      type,
-      existing === undefined
-        ? { summary: type === "Folder" ? `${path} 资产目录` : `${path} (${type})` }
-        : JSON.parse(existing)
-    ),
-    null,
-    2
-  );
+  return JSON.stringify(assetMetadata(path, type, existing === undefined ? undefined : JSON.parse(existing)), null, 2);
 }
 
 /** Identity fields are always derived from the current project path/type, never copied from a source name. */
@@ -206,7 +184,6 @@ export function runtimeProjectFiles(getPackage: () => RuntimeProjectPackage): Pr
     *paths() {
       const pack = getPackage();
       yield "project.json";
-      yield "project.json.meta";
       for (const file of pack.project.files) yield file.virtualPath;
       yield* new Set([
         ...Object.keys(pack.documents ?? {}),
@@ -216,26 +193,9 @@ export function runtimeProjectFiles(getPackage: () => RuntimeProjectPackage): Pr
     read(path) {
       const pack = getPackage();
       if (path === "project.json") return JSON.stringify(pack.project, null, 2);
-      if (path === "project.json.meta")
-        return JSON.stringify(
-          assetMetadata("project.json", "Project", {
-            summary: "项目清单，记录场景、资产虚拟路径与加载地址的映射，以及显式目录。",
-            usage:
-              "此清单只枚举资产，不是运行时对象清单。使用 read 读取资产的同名 .meta 了解数据含义，使用 list 浏览虚拟目录；空作者数据或空覆盖不能证明场景中没有对象，实例数量和运行状态应通过所属组件的查询接口核实。此清单由 Editor 管理，不直接写入；通过 editor.asset.create/import/delete 等 API 管理资产，通过对应的 Scene、Entity、Component API 编辑场景。"
-          }),
-          null,
-          2
-        );
       if (path.endsWith(".meta")) {
         const target = path.slice(0, -5);
-        const type =
-          pack.project.files.find((file) => file.virtualPath === target)?.type ??
-          (!target.endsWith(".meta") && Object.hasOwn(pack.documents ?? {}, target) ? "Document" : undefined) ??
-          (pack.project.directories?.some((dir) => dir === target || dir.startsWith(`${target}/`)) ||
-          pack.project.files.some((file) => file.virtualPath.startsWith(`${target}/`)) ||
-          Object.keys(pack.documents ?? {}).some((doc) => doc.startsWith(`${target}/`))
-            ? "Folder"
-            : undefined);
+        const type = pack.project.files.find((file) => file.virtualPath === target)?.type;
         if (type) return projectMetadata(pack, target, type);
       }
       if (Object.hasOwn(pack.documents ?? {}, path)) return pack.documents![path];

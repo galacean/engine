@@ -140,6 +140,8 @@ export interface PlanSight {
 }
 /** A small set of compositional parameters; no terrain-resolution or asset dependency. */
 export interface IslandPlanParameters {
+  worldTemplate?: { id: string; centerX?: number; centerZ?: number };
+  landformSeed?: number;
   regionElevation?: Partial<import("../spatial/terrain/PoiRegionElevation").PoiRegionElevationConfig>;
   worldElevation?: import("../spatial/terrain/WorldElevation").WorldElevation;
   terrainPatches?: import("../spatial/terrain/ReliefField").ReliefPatch[];
@@ -151,6 +153,9 @@ export interface IslandPlanParameters {
   riverWidth: number;
   mountainHeight: number;
   seed: number;
+}
+export interface IslandPlan {
+  worldTemplateSite?: import("../spatial/WorldTemplatePlanning").WorldTemplateSite;
 }
 /** Authored negative space and paired banks; the same structure drives assembly and relief. */
 export interface PlanLandformStructure {

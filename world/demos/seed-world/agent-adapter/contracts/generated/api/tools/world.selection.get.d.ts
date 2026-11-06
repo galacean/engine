@@ -9,6 +9,7 @@ declare global {
     interface WorldApi { readonly selection: WorldSelectionApi; }
     interface WorldSelectionApi {
       /**
+       * 调用入口：await tools.world.selection.get(input)
        * 读取当前会话的临时选择，或工程中明确命名保存的选择。
        * @param input - 保存名称或 selectionId。未命名选择只保留当前会话最近 64 次查询；刷新后需重新查询。
        * @returns 当前世界中仍可解析的选择结果。

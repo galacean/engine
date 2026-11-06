@@ -76,13 +76,17 @@ export class PlanningProjectStorage {
     const build = (pack: RuntimeProjectSession["projectPackage"]) => {
       const marker = `${pack.project.scene}.planning-source.json`;
       if (pack.documents?.[marker] !== undefined) {
-        if (JSON.parse(pack.documents[marker]).version !== 1) throw new Error("Unsupported planning Source migration");
-        return pack;
+        const version = JSON.parse(pack.documents[marker]).version;
+        if (version === 2) return pack;
+        if (version !== 1) throw new Error("Unsupported planning Source migration");
+        if (!planningSourceDocument(pack)) throw new Error("Imported project requires a PlanningProjectAuthoring owner");
       }
       const draft = new RuntimeProjectEdit(pack, new Map([...nativeAssetFormats(() => ({})), ...this.formats]));
-      writePlanningProjectSource(draft, pack.project.scene, document);
+      // Upgrade the accepted Source, including the vegetation and wind owners
+      // introduced after version 1, without replacing saved authoring with defaults.
+      writePlanningProjectSource(draft, pack.project.scene, planningSourceDocument(pack) ?? document);
       if (draft.list().some(file => file.virtualPath === PLANNING_PROJECT_PATH)) draft.delete(PLANNING_PROJECT_PATH);
-      draft.writeDocument(marker, JSON.stringify({ version: 1 }));
+      draft.writeDocument(marker, JSON.stringify({ version: 2 }));
       return draft.finish();
     };
     if (this.project.update) await this.project.update(build);

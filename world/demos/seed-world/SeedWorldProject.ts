@@ -1,6 +1,7 @@
+import "@galacean/engine-building/tiny-glade/parts/index";
+import "@galacean/engine-building/tiny-glade/parts/BuildingParts";
 import { registerBuildingAssetComponents } from "@galacean/engine-building/tiny-glade/resources/BuildingAssetKit";
 import { builtinBuildingPresetFiles } from "@galacean/engine-building/tiny-glade/resources/BuiltinBuildingPresets";
-import "@galacean/engine-building/tiny-glade/components/BuildingComponents";
 import "@galacean/engine-building/tiny-glade/components/BuildingGeneratorComponent";
 import { builtinBuildingAssetFiles } from "@galacean/engine-building/tiny-glade/resources/BuiltinBuildingAssets";
 import { Loader } from "@galacean/engine";
@@ -22,18 +23,30 @@ import { registerPlantProjectAssets } from "@galacean/engine-world-planning/inte
 import { nativeAssetFormats } from "@galacean/engine-runtime-editor/project/runtime-native-formats";
 import { registerNativeWater } from "@galacean/engine-water/water/native/index";
 
+/** Building author schemas are intentionally incompatible across these save versions.
+ * The storage key excludes older saves before any contents are loaded. */
+export const SEED_WORLD_BUILDING_SAVE_VERSION = 7;
+export function seedWorldProjectStorageId(seed: number, projectUrl: string): string {
+  return `seed-world:native-buildings-v${SEED_WORLD_BUILDING_SAVE_VERSION}-groups:${seed}:${projectUrl}`;
+}
+
 /** Open a project ready for authoring in both the runtime and the planning editor. */
-export async function openSeedWorldProject(pageUrl: URL, initial?: RuntimeProjectManifest): Promise<RuntimeProjectSession> {
+export async function openSeedWorldProject(
+  pageUrl: URL,
+  initial?: RuntimeProjectManifest
+): Promise<RuntimeProjectSession> {
   const projectUrl = new URL(SEED_WORLD_PRODUCTION_ASSET_CATALOG.projectUrl, location.href).href;
   const raw = pageUrl.searchParams.get("seed");
   const seed = raw !== null && /^\d+$/.test(raw) && Number(raw) <= 0xffffffff ? Number(raw) : SEMANTIC_DEFAULTS.seed;
   if (!initial) {
     const response = await fetch(projectUrl);
     if (!response.ok) throw new Error(`Project manifest read failed (${response.status})`);
-    initial = await response.json() as RuntimeProjectManifest;
+    initial = (await response.json()) as RuntimeProjectManifest;
   }
   initial = { ...initial, files: [...initial.files, ...builtinBuildingAssetFiles, ...builtinBuildingPresetFiles] };
-  const project = await RuntimeProjectSession.open(`seed-world:native-buildings-v6-assemblies:${seed}:${projectUrl}`, initial, projectUrl, {scriptModules: seedWorldScriptModules});
+  const project = await RuntimeProjectSession.open(seedWorldProjectStorageId(seed, projectUrl), initial, projectUrl, {
+    scriptModules: seedWorldScriptModules
+  });
   try {
     registerNativeFarming();
     registerNativeWater();
@@ -41,7 +54,7 @@ export async function openSeedWorldProject(pageUrl: URL, initial?: RuntimeProjec
     registerBuildingAssetComponents();
     registerPlantProjectAssets();
     project.registerAssetFormats(seedWorldProjectFormats);
-    await project.prepareEditableHierarchies(name => Boolean(Loader.getClass(name)));
+    await project.prepareEditableHierarchies((name) => Boolean(Loader.getClass(name)));
     await project.initializeDependencies();
     await migrateVegetationAssets(project, initial, projectUrl);
     await project.initializeDependencies();
@@ -63,7 +76,11 @@ async function migrateVegetationAssets(project: RuntimeProjectSession, initial: 
   const current = project.projectPackage;
   const contents: Record<string, string> = {}, retiredAliases = new Set<string>();
   let introduced: ReadonlySet<string> | undefined;
-  if (version === 1) {
+  // Version 1 also marked projects before native vegetation assets were imported.
+  // Only an existing namespace can be upgraded in place; otherwise import its
+  // native closure for the first time, preserving all other authored assets.
+  const hasNativeVegetation = current.project.files.some(file => file.virtualPath.startsWith(PLANT_PROJECT_ROOT));
+  if (version === 1 && hasNativeVegetation) {
     const provider = project.fileProvider();
     const read = async (path: string) => {
       await provider.prepare?.(path);

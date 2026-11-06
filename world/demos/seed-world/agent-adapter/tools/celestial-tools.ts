@@ -23,7 +23,7 @@ function nonEmptyPatch<Shape extends z.ZodRawShape>(shape: Shape, description: s
 
 const windSchema = nonEmptyPatch({
   speedMetresPerSecond: z.number().min(0).max(60).optional().describe("持续风速，单位为米每秒"),
-  directionDegrees: z.number().min(-180).max(180).optional().describe("相对世界前方的风向角，单位为度"),
+  directionDegrees: z.number().min(-180).max(180).optional().describe("风吹向的世界水平航向，度：0 为 -Z，90 为 +X，-90 为 -X；不是风的来向或内部偏转角。过渡完成后生效；不修改基础风向"),
   gustiness: normalized("阵风强度").optional(),
   turbulence: normalized("乱流程度").optional()
 }, "风通道局部修改");

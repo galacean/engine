@@ -4,7 +4,7 @@ import { ribbonOutline } from "../../semantic-study/WorldRibbon";
 import { segmentGap } from "../../semantic-study/WorldPlanningGeometry";
 
 /** Changing derived road geometry invalidates roads, never authored parameters or placed volumes. */
-export const ROAD_GEOMETRY_VERSION = 23;
+export const ROAD_GEOMETRY_VERSION = 24;
 type RoadIdentity = Pick<PlanRoute, "id" | "from" | "to" | "width"> &
   Partial<Pick<PlanRoute, "label" | "kind" | "keypoints" | "widths">>;
 interface RoadShapeOptions {

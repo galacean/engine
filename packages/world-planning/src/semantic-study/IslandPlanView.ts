@@ -1,4 +1,5 @@
 import { onlyLandscapeDrawingChanged } from "./PlanningDerivedPatch";
+import { worldTemplate } from "../spatial/WorldTemplateCatalog";
 import { poiMemberIds } from "./PoiContents";
 import { planningFocusBox } from "./PlanningFocus";
 import type { PresentationComponents } from "../spatial/PlanningPresentation";
@@ -270,6 +271,22 @@ export class IslandPlanView {
       const landscape = landscapeOnly && this.svg.querySelector('[data-plan-layer="landscape"]');
       if (landscape) landscape.outerHTML = drawPlanLandscape(plan);
       else this.svg.innerHTML = this.draw(plan);
+      this.svg.querySelector("[data-world-template-site]")?.remove();
+      const site = plan.worldTemplateSite,
+        template = worldTemplate(site?.templateId);
+      if (site && template) {
+        const group = document.createElementNS(NS, "g");
+        group.dataset.worldTemplateSite = template.id;
+        group.setAttribute("pointer-events", "none");
+        const outline = document.createElementNS(NS, "polygon");
+        outline.setAttribute("points", site.outline.map((p) => `${p.x},${p.z}`).join(" "));
+        outline.setAttribute("fill", template.colors[2]);
+        outline.setAttribute("fill-opacity", ".25");
+        outline.setAttribute("stroke", template.colors[3]);
+        outline.setAttribute("stroke-dasharray", "5 3");
+        group.append(outline);
+        this.svg.append(group);
+      }
     }
     if (!this.selectable)
       for (const node of this.svg.querySelectorAll<SVGElement>("[data-feature-id]")) {

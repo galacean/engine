@@ -1,8 +1,12 @@
-import type { MaterialUnit } from "./MasonryDocument";
+import type { MaterialUnit } from "./UnitPlacementStyle";
 
 export interface SupportCell {
   id: string;
   logical_id: string;
+  /** Material randomness identity; editing/picking still use id/logical_id. */
+  seed_id?: string;
+  /** Distance atlas may include a cut variant suffix unlike the source material. */
+  lod_seed_id?: string;
   surface_id: string;
   anchor_uv: number[];
   center: number[];

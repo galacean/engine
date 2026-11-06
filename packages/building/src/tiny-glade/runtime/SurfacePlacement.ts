@@ -1,6 +1,6 @@
 import { insetMaterialSpan } from "./ConstructionCell";
 import { unitFootprintScale, type MaterialFootprint } from "./MaterialFootprint";
-import type { MaterialUnit } from "./MasonryDocument";
+import type { MaterialUnit } from "./UnitPlacementStyle";
 import type { SupportCell } from "./PlacementSupport";
 export type SurfaceArrangement = "grid" | "staggered_rows" | "horizontal_rows" | "parallel_rows" | "overlap_rows";
 /** Metric chart and differential frame supplied by the geometry owner. Shape
@@ -21,6 +21,7 @@ export function placeSurfaceUnits(input: {
   geometry: RowPlacementGeometry;
   unit: { material: MaterialUnit; footprint?: MaterialFootprint };
   rule: SurfaceArrangement;
+  variationKey?: string;
 }): SupportCell[] {
   const { geometry, rule } = input;
   const { id, width, depth, outward, topY, point } = geometry;
@@ -60,6 +61,12 @@ export function placeSurfaceUnits(input: {
       cells.push({
         id: key,
         logical_id: key,
+        ...(input.variationKey !== undefined
+          ? {
+              seed_id: `${input.variationKey}/row-${row}/${col}`,
+              lod_seed_id: `${input.variationKey}/row-${row}/${col}`
+            }
+          : {}),
         surface_id: id,
         anchor_uv: [(x0 + x1 + width) / 2, (depth - z0 - z1) / 2],
         center: point((x0 + x1) / 2, topY - 0.04 * scale.depth, (z0 + z1) / 2),

@@ -1,6 +1,6 @@
 import { contains } from "./PlacementDocument.js";
 import { surfaceBoundary, surfaceArea } from "./SurfacePolygon";
-import type { MasonryOverride } from "./MasonryDocument";
+import type { UnitPlacementOverride as MasonryOverride } from "./UnitPlacement";
 
 export interface MasonrySurfaceInspection {
   bindingId: string;

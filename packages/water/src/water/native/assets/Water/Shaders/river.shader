@@ -299,6 +299,7 @@ material_Water_renderState_blendMode("material_Water_renderState_blendMode", Enu
 
   SubShader "Default" {
     Pass "Forward" {
+      Tags { pipelineStage = "Forward", screenSpaceReflectionTransparentSample = "SampleV1" }
       Bool depthWriteEnabled;
       BlendState customBlendState {
         Enabled = true;

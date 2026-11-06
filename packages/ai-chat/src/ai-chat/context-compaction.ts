@@ -1,16 +1,17 @@
 import type { AgentMessage } from "./agent-types";
+import { withoutReasoningContent } from "./agent-message-state";
 
 export type ContextCompactionBudget = { triggerTokens?: number; targetTokens?: number };
-export type ContextCompactionRequest = ContextCompactionBudget & { version: 1; protectedPrefixLength: 2 };
+export type ContextCompactionRequest = ContextCompactionBudget & { version: 2; protectedPrefixLength: number };
 export type ContextCompactionResult = {
-  version: 1;
+  version: 2;
   status: "not_needed" | "compacted" | "failed";
   strategy: "summary";
   beforeTokens: number;
   afterTokens: number;
   durationMs: number;
   reason?: string;
-  replacement?: { prefixLength: 2; cutIndex: number; summary: string };
+  replacement?: { prefixLength: number; cutIndex: number; summary: string };
 };
 
 export class ContextCompactionError extends Error {
@@ -35,14 +36,14 @@ export function createContextCompactionRequest(budget: ContextCompactionBudget =
     throw new ContextCompactionError("targetTokens must be below triggerTokens");
   }
   return {
-    version: 1,
+    version: 2,
     protectedPrefixLength: 2,
     ...(budget.triggerTokens !== undefined ? { triggerTokens: budget.triggerTokens } : {}),
     ...(budget.targetTokens !== undefined ? { targetTokens: budget.targetTokens } : {})
   };
 }
 
-/** Absence supports older servers; a present, malformed contract is fatal. */
+/** A present, malformed contract is fatal. */
 export function parseContextCompaction(value: unknown): ContextCompactionResult | undefined {
   if (value === undefined) return undefined;
   const item = record(value, [
@@ -56,7 +57,7 @@ export function parseContextCompaction(value: unknown): ContextCompactionResult 
     "replacement"
   ]);
   if (
-    item.version !== 1 ||
+    item.version !== 2 ||
     item.strategy !== "summary" ||
     !["not_needed", "compacted", "failed"].includes(item.status as string)
   ) {
@@ -72,7 +73,12 @@ export function parseContextCompaction(value: unknown): ContextCompactionResult 
   if (item.reason !== undefined && typeof item.reason !== "string") throw new ContextCompactionError("invalid reason");
   if (item.status === "compacted") {
     const patch = record(item.replacement, ["prefixLength", "cutIndex", "summary"]);
-    if (patch.prefixLength !== 2 || !Number.isSafeInteger(patch.cutIndex) || (patch.cutIndex as number) <= 0) {
+    if (
+      !Number.isSafeInteger(patch.prefixLength) ||
+      (patch.prefixLength as number) < 2 ||
+      !Number.isSafeInteger(patch.cutIndex) ||
+      (patch.cutIndex as number) <= 0
+    ) {
       throw new ContextCompactionError("invalid replacement range");
     }
     if (typeof patch.summary !== "string" || !patch.summary.trim()) throw new ContextCompactionError("empty summary");
@@ -87,6 +93,7 @@ export function parseContextCompaction(value: unknown): ContextCompactionResult 
 type ContextRequest = {
   messages: AgentMessage[];
   activeLength: number;
+  prefixLength: number;
   revision: number;
   consumed: boolean;
 };
@@ -125,7 +132,7 @@ export class AgentContextTranscript {
       if (remaining-- > 0) continue;
       this.#active[i] = {
         role: "user",
-        content: `${message.content}\n[Image offloaded from this request. Use read_image with the imageId to view the original screenshot.]`
+        content: `${message.content}\n[Image offloaded from this request. Use read with file_path set to imagePath to view the original screenshot.]`
       };
       offloaded++;
     }
@@ -144,7 +151,9 @@ export class AgentContextTranscript {
     this.#canonical.push(
       ...structuredClone(
         messages.map((message) =>
-          message.role === "user" && message.image ? { role: message.role, content: message.content } : message
+          message.role === "user" && message.image
+            ? { role: message.role, content: message.content }
+            : withoutReasoningContent(message)
         )
       )
     );
@@ -153,23 +162,41 @@ export class AgentContextTranscript {
   }
 
   captureRequest(messages: AgentMessage[]): ContextRequest {
-    if (messages[0]?.role !== "system" || messages[1]?.role !== "user")
-      throw new ContextCompactionError("invalid protected prefix");
-    let task: unknown;
-    try {
-      task = JSON.parse(messages[1].content);
-    } catch {
-      throw new ContextCompactionError("invalid task prefix");
+    if (messages[0]?.role !== "system") throw new ContextCompactionError("missing system rules");
+    // Host snapshots are separate from append-only execution evidence. Determine
+    // their boundary by kind, and bind every replacement to this request's boundary.
+    const kinds = new Set([
+      "host_environment",
+      "capability_catalog",
+      "agent_task",
+      "conversation_history",
+      "world_state"
+    ]);
+    const seen = new Set<string>();
+    let prefixLength = 1;
+    for (const message of messages.slice(1)) {
+      if (message.role !== "user" || message.image) break;
+      let kind: unknown;
+      try {
+        kind = JSON.parse(message.content).contextKind;
+      } catch {
+        break;
+      }
+      if (typeof kind !== "string" || !kinds.has(kind)) break;
+      if (seen.has(kind)) throw new ContextCompactionError("duplicate context section");
+      seen.add(kind);
+      prefixLength++;
     }
-    if (!task || typeof task !== "object" || (task as { contextKind?: unknown }).contextKind !== "agent_task") {
-      throw new ContextCompactionError("missing agent_task prefix");
-    }
-    if (JSON.stringify(messages.slice(2, 2 + this.#active.length)) !== JSON.stringify(this.#active)) {
+    if (!seen.has("agent_task")) throw new ContextCompactionError("missing agent_task prefix");
+    if (
+      JSON.stringify(messages.slice(prefixLength, prefixLength + this.#active.length)) !== JSON.stringify(this.#active)
+    ) {
       throw new ContextCompactionError("request does not match active transcript");
     }
     const request = {
       messages: structuredClone(messages),
       activeLength: this.#active.length,
+      prefixLength,
       revision: this.#revision,
       consumed: false
     };
@@ -191,6 +218,7 @@ export class AgentContextTranscript {
     const result = parseContextCompaction(value);
     if (!result?.replacement) return result;
     const { prefixLength, cutIndex, summary } = result.replacement;
+    if (prefixLength !== request.prefixLength) throw new ContextCompactionError("replacement changes protected prefix");
     const tail = request.messages.slice(prefixLength);
     if (cutIndex > tail.length) throw new ContextCompactionError("cut exceeds sent transcript");
     if (

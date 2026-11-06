@@ -18,44 +18,14 @@
     "owner": "animals"
   },
   {
-    "entry": "demos/building-components/extensions.html",
-    "title": "建筑主体与装饰组件",
-    "mode": "static",
-    "owner": "building"
-  },
-  {
-    "entry": "demos/building-components/generated.html",
-    "title": "默认建筑原生 Scene 验收",
-    "mode": "static",
-    "owner": "building"
-  },
-  {
-    "entry": "demos/building-components/groups.html",
-    "title": "连栋建筑组件验收",
-    "mode": "static",
-    "owner": "building"
-  },
-  {
     "entry": "demos/building-components/index.html",
     "title": "建筑组件编辑",
     "mode": "static",
     "owner": "building"
   },
   {
-    "entry": "demos/building-components/native-access.html",
-    "title": "建筑原生读取与移动验收",
-    "mode": "static",
-    "owner": "building"
-  },
-  {
-    "entry": "demos/building-components/presets.html",
-    "title": "原生建筑预设验收",
-    "mode": "static",
-    "owner": "building"
-  },
-  {
-    "entry": "demos/building-components/validation.html",
-    "title": "validation",
+    "entry": "demos/building-components/recursive.html",
+    "title": "建筑构件 · 欧式生成",
     "mode": "static",
     "owner": "building"
   },

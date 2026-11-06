@@ -21,7 +21,6 @@
     "./ai-chat/agent-extensions": "./src/ai-chat/agent-extensions.ts",
     "./ai-chat/agent-failure-statistics": "./src/ai-chat/agent-failure-statistics.ts",
     "./ai-chat/agent-failure": "./src/ai-chat/agent-failure.ts",
-    "./ai-chat/agent-file-api": "./src/ai-chat/agent-file-api.ts",
     "./ai-chat/agent-file-read": "./src/ai-chat/agent-file-read.ts",
     "./ai-chat/agent-image-store": "./src/ai-chat/agent-image-store.ts",
     "./ai-chat/agent-knowledge-paths": "./src/ai-chat/agent-knowledge-paths.ts",
@@ -60,7 +59,9 @@
     "./ai-chat/trajectory/trajectory-model": "./src/ai-chat/trajectory/trajectory-model.ts",
     "./ai-chat/vendor/deepseek-read/read-window": "./src/ai-chat/vendor/deepseek-read/read-window.ts",
     "./index": "./src/index.ts",
-    "./script-checking/typecheck-libraries": "./src/script-checking/typecheck-libraries.ts"
+    "./script-checking/typecheck-libraries": "./src/script-checking/typecheck-libraries.ts",
+    "./ai-chat/agent-skills": "./src/ai-chat/agent-skills.ts",
+    "./ai-chat/agent-snapshots": "./src/ai-chat/agent-snapshots.ts"
   },
   "scripts": {},
   "dependencies": {

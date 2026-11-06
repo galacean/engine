@@ -75,6 +75,8 @@ export interface TerrainWindRuntimeState {
 
 /** Detached diagnostics including the camera-centred GPU field. */
 export interface TerrainWindRuntimeSnapshot extends TerrainWindRuntimeState {
+  /** World-space baseline before the weather direction offset; derived from the wind entity, not the gust sample. */
+  readonly baseDirection: readonly [number, number, number];
   readonly renderingActive: boolean;
   /** True after an authored no-wind state has physically settled and suspended all render/simulation work. */
   readonly dormant: boolean;
@@ -254,6 +256,11 @@ export class TerrainWindRuntime extends Script {
     if (!this._config || !this._system) throw new Error("Terrain wind runtime has not been initialized");
     return {
       ...this._state,
+      baseDirection: [
+        this.entity.transform.worldForward.x,
+        this.entity.transform.worldForward.y,
+        this.entity.transform.worldForward.z
+      ],
       renderingActive: this._renderingActive,
       dormant: this._environmentDormant,
       activeGustCount: this._system.getActiveGustCount(),

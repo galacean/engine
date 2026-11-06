@@ -1,11 +1,11 @@
 import type { Camera, Engine, Entity } from "@galacean/engine";
-import type { prepareMasonry } from "./ConstructionRuntime";
+import type { EngineResidentScene } from "./EngineResidentScene";
 import { MASONRY_RESIDENCY, type MasonryLodProbe, type MasonryLod } from "./MasonryLodPolicy";
 import type { MasonryLodTransition } from "./MasonryLodTransition";
 
 /** Disposable display state. No author directory, plan, object IDs or persistence. */
 export interface MasonryResidencyEntry {
-  fine?: Awaited<ReturnType<typeof prepareMasonry>>;
+  fine?: { runtime: EngineResidentScene; destroy(): void };
   view: {
     root: Entity;
     readonly recentlyRendered: boolean;

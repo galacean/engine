@@ -42,14 +42,14 @@ export function createSeedWorldKnowledge(
     const hasApis = SEED_WORLD_API_CONTRACTS.some(api => api.domain === domain && available.has(api.name));
     if (relative !== "README.md" && !(relative === "runtime.md" && available.has("world.inspect")) && !hasApis && !systems.some(system => system.knowledgePath === relative)) return [];
     const index = SEED_WORLD_API_CONTRACTS.filter(api => api.domain === domain && available.has(api.name)).map(api =>
-      `- [${api.name}](../../../declare/world/tools/${api.name}.d.ts): ${api.description}`).join("\n");
+      `- [tools.${api.name}](../../../declare/world/tools/${api.name}.d.ts): ${api.description}`).join("\n");
     const types = SEED_WORLD_API_SEARCH_ENTRIES.filter(entry => moduleIds.has(entry.moduleId) && entry.moduleId.startsWith("assets/")).map(entry =>
       `- [${entry.name}](../../../declare/world/${entry.moduleId}): ${entry.description}`).join("\n");
     const componentKnowledge = systems.filter(system => system.knowledgePath === relative).map(system =>
       `### ${system.title}\n\nComponents: ${system.components.map(type => `\`${type}\``).join(", ")}\n\n${system.knowledge.join("\n\n")}`
     ).join("\n\n");
     return [{
-      path: "knowledge/world/" + relative,
+      path: relative === "runtime.md" ? "engine/knowledge/world.md" : "knowledge/world/" + relative,
       content: content
         .replace("<!-- API_INDEX: generated from executable contracts at load time. -->", index + (domain === "world" ? "\n\n### Asset Types\n\n" + types : ""))
         .replace("<!-- COMPONENT_KNOWLEDGE: provided by registered systems at load time. -->", componentKnowledge)
@@ -62,8 +62,10 @@ export function createSeedWorldKnowledge(
   }).join("\n");
   documents.find(doc => doc.path === "knowledge/world/README.md")!.content = catalog;
   return {
-    catalog: "# Runtime Project\n\n- [World editing](knowledge/world/README.md)\n" +
-      (available.has("world.inspect") ? "- [Engine runtime development](knowledge/runtime/README.md)\n- [World runtime access](knowledge/world/runtime.md)\n" : ""),
+    catalog: "# Runtime Project\n\n" +
+      "world_state.snapshot.viewer.atSubmission is the frozen pose and capture time for the active inputId, not the start of the chat; it is null when no input reference is active. viewer.current is sampled for this model request. The user can move or turn during execution. Resolve relative instructions from their submission reference; verify created objects by identity and intended placement. A screenshot uses its own metadata.viewer and capturedAt. An object outside the current image is not evidence of failed creation. Do not recreate it or move the user's camera merely to verify it.\n\n- [世界编辑总览](knowledge/world/README.md)\n" +
+      catalog.split("\n").filter(line => /^- \[/.test(line)).map(line => line.replace(/\]\(([^)]+)\)/g, "](knowledge/world/$1)")).join("\n") + "\n" +
+      (available.has("world.inspect") ? "- [Engine runtime development](../engine/knowledge/README.md)\n- [World runtime access](../engine/knowledge/world.md)\n" : ""),
     documents,
     ...api
   };

@@ -1,7 +1,7 @@
 import { FireflyPopulation } from "@galacean/engine-animals/gameplay/animal/FireflyPopulation";
 import { FireflyPresenter } from "@galacean/engine-animals/gameplay/animal/FireflyPresenter";
 import type { Camera } from "@galacean/engine";
-import { querySeedAnimalCatalog } from "./PlanningAnimalCatalog.ts";
+import { querySeedAnimalCatalog, seedAnimalSpeciesId } from "./PlanningAnimalCatalog.ts";
 import { PlanningAnimalSurfaceKind, type PlanningAnimalSurfaceData } from "./PlanningAnimalSurface.ts";
 import type { AnimalInstanceDocument } from "@galacean/engine-animals/gameplay/animal/AnimalInstanceDocument";
 import { PBRMaterial, type Entity, type Material } from "@galacean/engine";
@@ -868,6 +868,7 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
       animals: actors.slice(offset, offset + limit).map((a) => ({
         id: a.birth.id,
         typeId: a.birth.typeId,
+        speciesId: seedAnimalSpeciesId(a.birth.typeId),
         label: a.asset.config.name,
         loaded: a.state === "loaded",
         visible: !!a.animal?.visible,

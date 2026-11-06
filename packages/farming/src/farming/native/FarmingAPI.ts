@@ -1,3 +1,4 @@
+import { irrigationEffectSummary } from "../application/IrrigationEffectSummary";
 import { z } from "zod";
 import {
   FARM_ITEM_TYPES,
@@ -205,7 +206,8 @@ export class FarmingAPI {
             break;
           case "getTarget":
             if (!coordinator.presentation?.getTarget) throw new Error("NOT_SUPPORTED: 宿主未绑定目标查询");
-            value = coordinator.presentation.getTarget();
+            const target = coordinator.presentation.getTarget();
+            value = { ...target, targetStatus: target.plotId ? "plot" : target.ground ? "ground" : "no-hit" };
             break;
           case "queryPlots":
             value = service.queryPlots(command.input.query);
@@ -349,7 +351,11 @@ export class FarmingAPI {
             const retryRequest = { ...command, options: { ...options, commandId } };
             if (!result.receipt.ok)
               return failure(area!, result.receipt, result, retryRequest) as FarmingResult<FarmingOutputs[K]>;
-            value = { ...result, request: retryRequest };
+            value = {
+              ...result,
+              request: retryRequest,
+              ...(command.operation === "irrigate" ? { effectSummary: irrigationEffectSummary(result.receipt) } : {})
+            };
             break;
           }
         }
@@ -412,7 +418,7 @@ function describe(area: FarmingAreaComponent): FarmingAreaInfo {
 function capabilities(area: FarmingAreaComponent | undefined, system: FarmingSystem): FarmingCapabilities {
   const unavailableOperations: (keyof FarmingCommands)[] = [];
   const presentation = area?.initialized ? area.coordinator.presentation : undefined;
-  if (!presentation?.getTarget) unavailableOperations.push("getTarget");
+  if (area && !presentation?.getTarget) unavailableOperations.push("getTarget");
   if (
     !system.enabled ||
     !system.entity.isActiveInHierarchy ||
@@ -426,7 +432,10 @@ function capabilities(area: FarmingAreaComponent | undefined, system: FarmingSys
     unavailableOperations,
     unsupported,
     editablePlotFields: ["label", "preparation"],
-    presentation: Boolean(presentation)
+    scope: { kind: area ? "farm" : "system", farmId: area?.farmId ?? null },
+    interactionHostBound: area ? Boolean(presentation) : null,
+    targetQueryAvailable: area ? Boolean(presentation?.getTarget) : null,
+    presentation: area ? Boolean(presentation) : null
   };
 }
 function failure(

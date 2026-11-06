@@ -30,11 +30,12 @@ import {
 } from "./PaintedRockMaterial.ts";
 import { DEFAULT_ROCK_TEXTURE_SCALE } from "./Settings.ts";
 import { rockFormationPlacements } from "./Placement.ts";
-import { readRockColorBlend, type RockColorBlend } from "./ColorPalette.ts";
+import { readRockColorBlend, SMALL_ROCK_COLOR, type RockColorBlend } from "./ColorPalette.ts";
 import { setRockColorBlend } from "./ColorMaterial.ts";
 
 interface RockViewEntry {
   formation: RockFormationMesh;
+  smallRock: boolean;
   entity: Entity;
   mesh?: BufferMesh;
   buffer?: Buffer;
@@ -145,6 +146,7 @@ export class RockFormationView {
   readonly root: Entity;
   private entries = new Map<string, RockViewEntry>();
   private readonly materials = new Map<boolean, PBRMaterial>();
+  private readonly smallRockMaterials = new Map<boolean, PBRMaterial>();
   private readonly releaseAppearance: Array<() => void> = [];
   private disposed = false;
   private grassCoveragePreview = false;
@@ -167,18 +169,27 @@ export class RockFormationView {
     }
   }
 
-  private upload(formation: RockFormationMesh, disabled: ReadonlySet<string>, collisionKey: string): RockViewEntry {
+  private upload(
+    formation: RockFormationMesh,
+    disabled: ReadonlySet<string>,
+    collisionKey: string,
+    smallRock: boolean
+  ): RockViewEntry {
     const entity = this.root.createChild(`Rock surface · ${formation.id}`);
     entity.isActive = false;
-    const entry: RockViewEntry = { formation, entity, collisionKey };
+    const entry: RockViewEntry = { formation, entity, collisionKey, smallRock };
+    const materials = smallRock ? this.smallRockMaterials : this.materials;
     try {
       const surface = uploadRockFormationSurface(this.engine, entity, formation, (painted) => {
-        let material = this.materials.get(painted);
+        let material = materials.get(painted);
         if (!material) {
-          this.materials.set(
+          material = createRockFormationMaterial(
+            this.engine,
             painted,
-            (material = createRockFormationMaterial(this.engine, painted, this.textureScale, this.colorBlend))
+            this.textureScale,
+            smallRock ? SMALL_ROCK_COLOR : this.colorBlend
           );
+          materials.set(painted, material);
           if (this.grassCoveragePreview) material.shaderData.setFloat("material_RockGrassCoveragePreview", 1);
           if (this.registerGrassAppearance) {
             material.shaderData.enableMacro("MATERIAL_GRASS_SHARED_COLOR_FIELD");
@@ -208,13 +219,20 @@ export class RockFormationView {
       next = new Map<string, RockViewEntry>(),
       created: RockViewEntry[] = [];
     const disabled = disabledRockCollisionOwners(plan);
+    const smallRockIds = new Set(plan.landscapes?.filter((item) => item.kind === "rock").map((item) => item.id));
     try {
       for (const formation of formations) {
         const current = base.get(formation.id);
+        const smallRock = smallRockIds.has(formation.id);
         const collisionKey = JSON.stringify([...new Set(formation.owners.filter((id) => disabled.has(id)))].sort());
-        if (current?.formation === formation && current.collisionKey === collisionKey) next.set(formation.id, current);
+        if (
+          current?.formation === formation &&
+          current.collisionKey === collisionKey &&
+          current.smallRock === smallRock
+        )
+          next.set(formation.id, current);
         else {
-          const entry = this.upload(formation, disabled, collisionKey);
+          const entry = this.upload(formation, disabled, collisionKey, smallRock);
           created.push(entry);
           next.set(formation.id, entry);
         }
@@ -259,13 +277,17 @@ export class RockFormationView {
   get groups(): ReadonlyMap<string, Entity> {
     return new Map(Array.from(this.entries, ([id, entry]) => [id, entry.entity]));
   }
+  private *allMaterials() {
+    yield* this.materials.values();
+    yield* this.smallRockMaterials.values();
+  }
   setTextureScale(textureScale: number): void {
     this.textureScale = textureScale;
-    for (const material of this.materials.values()) setPaintedRockTextureScale(material, textureScale);
+    for (const material of this.allMaterials()) setPaintedRockTextureScale(material, textureScale);
   }
   setGrassCoveragePreview(enabled: boolean): void {
     this.grassCoveragePreview = enabled;
-    for (const material of this.materials.values())
+    for (const material of this.allMaterials())
       material.shaderData.setFloat("material_RockGrassCoveragePreview", Number(enabled));
   }
   setColorBlend(settings: RockColorBlend): void {
@@ -292,7 +314,8 @@ export class RockFormationView {
     this.root.destroy();
     for (const release of this.releaseAppearance) release();
     this.releaseAppearance.length = 0;
-    for (const material of this.materials.values()) material.destroy();
+    for (const material of this.allMaterials()) material.destroy();
     this.materials.clear();
+    this.smallRockMaterials.clear();
   }
 }

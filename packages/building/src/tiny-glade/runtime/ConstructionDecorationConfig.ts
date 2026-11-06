@@ -1,5 +1,8 @@
-import type { ConstructionDecorationSpec } from "./ConstructionDecorations";
-import { constructionDecorationDefinition, resolveConstructionDecorationType } from "./ConstructionDecorationCatalog";
+import type { ConstructionDecorationSpec } from "./ConstructionDecorations.ts";
+import {
+  constructionDecorationDefinition,
+  resolveConstructionDecorationType
+} from "./ConstructionDecorationCatalog.ts";
 
 /** Initial variation for generated attachments. Persist the result when assigning
  * a Scene identity: runtime geometry must not re-seed when that identity changes. */
@@ -34,6 +37,7 @@ const fields = {
   uv: "structure",
   rank: "structure",
   seed: "structure",
+  variationKey: "structure",
   bottom: "structure",
   width: "structure",
   height: "structure",

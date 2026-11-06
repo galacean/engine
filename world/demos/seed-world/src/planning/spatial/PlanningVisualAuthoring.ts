@@ -37,9 +37,13 @@ export const PLANNING_VISUAL_AUTHORING: readonly VisualAuthoringDescriptor[] = [
     "cellSize", "cellInset", "cellDepth", "cellDetail", "cellCoverage", "textureScale", ...ROCK_COLOR_FIELDS.map(field => field.key)) },
   { component: "lighting", type: "PlanningLighting", fields: {
     ...directFields("profileUrl", "timeHours", "sunIntensity", "ambientIntensity", "iblIntensity", "direct", "environment",
-      "shadows", "shadowStrength", "fog", "fogDensity", "customSkyTintStrength", "skyExposure"),
+      "shadows", "shadowStrength", "fog", "fogDensity", "customSkyTintStrength", "skyExposure", "sunSize", "atmosphereThickness",
+      "starIntensity", "moonLightIntensity", "moonDiskIntensity", "moonAtmosphereIntensityScale", "twilightIntensity",
+      "airglowIntensity", "fogRadianceIntensity"),
     sunColorR: "sunColor.r", sunColorG: "sunColor.g", sunColorB: "sunColor.b",
     skyTintR: "skyTint.r", skyTintG: "skyTint.g", skyTintB: "skyTint.b",
+    ...Object.fromEntries(["moonColor", "fogTint", "groundTint"].flatMap(slot => ["R", "G", "B"].map(channel =>
+      [slot + channel, `${slot}.${channel.toLowerCase()}`]))),
     ...Object.fromEntries(["Zenith", "Horizon"].flatMap(region => ["R", "G", "B"].map(channel =>
       [`customSky${region}${channel}`, `customSky${region}Tint.${channel.toLowerCase()}`])))
   } },

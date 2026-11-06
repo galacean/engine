@@ -6,6 +6,8 @@ export interface RockColorBlend {
   color: RockPaletteColor;
 }
 
+export const SMALL_ROCK_COLOR: RockColorBlend = { color: [1, 1, 1] };
+
 export function rockPaletteHexToLinear(hex: string): RockPaletteColor {
   if (!/^#[\da-f]{6}$/i.test(hex)) throw Error("Expected a six-digit rock color / 岩石颜色须为六位十六进制");
   return [1, 3, 5].map((offset) => {
@@ -27,7 +29,10 @@ export function rockPaletteLinearToHex(color: readonly number[]): string {
   );
 }
 
-export const ROCK_COLOR_FIELDS: SpatialField[] = (["r", "g", "b"] as const).map((channel) => ({
+// Least-squares fit of the original rocky_terrain RGB to the shipped gray texels in linear light.
+const sourceRockTint = { r: 0.306997107, g: 0.304610202, b: 0.193881688 } as const;
+const channels = ["r", "g", "b"] as const;
+export const ROCK_COLOR_FIELDS: SpatialField[] = channels.map((channel) => ({
   key: `color.${channel}`,
   label: `Rock Color / 岩石颜色 · ${channel.toUpperCase()}`,
   type: "number",
@@ -35,14 +40,15 @@ export const ROCK_COLOR_FIELDS: SpatialField[] = (["r", "g", "b"] as const).map(
   max: 1,
   step: 0.01,
   unit: "linear RGB",
-  default: 1,
+  default: sourceRockTint[channel],
   affectsLayout: false
 }));
 export const ROCK_COLOR_FIELD_KEYS = new Set(ROCK_COLOR_FIELDS.map((field) => field.key));
 
-/** White preserves the baked grayscale texture; black remains an explicit color. */
 export function readRockColorBlend(values: Record<string, unknown> = {}): RockColorBlend {
-  return { color: ["r", "g", "b"].map((channel) => Number(values[`color.${channel}`] ?? 1)) as RockPaletteColor };
+  return {
+    color: channels.map((channel) => Number(values[`color.${channel}`] ?? sourceRockTint[channel])) as RockPaletteColor
+  };
 }
 
 /** The retired pigment model must not recolor a grayscale project on import. */

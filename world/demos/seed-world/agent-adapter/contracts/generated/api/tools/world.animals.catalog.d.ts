@@ -7,11 +7,14 @@ declare global {
     interface WorldApi { readonly animals: WorldAnimalsApi; }
     interface WorldAnimalsApi {
       /**
+       * 调用入口：await tools.world.animals.catalog(input)
        * 分页搜索可召唤的动物素材目录，包括默认不展示的备选动物；按中文或英文名称/别名搜索。系统关闭时也可查询，不下载模型或启动模拟。需要新增动物时先选目录中的 typeId 和可选 appearanceId，再调用 spawn；URL 由运行时从配置解析，不允许传入任意 URL。
        * @param input - search 是名称/别名片段；pack 可限定 cute-zoo 或 low-poly-100。offset 默认 0，limit 默认 50，最大 100。
-       * @returns 匹配总数、分页、种类/外观身份、资源 URL 和物种分组 speciesId。目录存在不代表场景已经有该动物。
+       * @returns summary 是全部匹配目录统计，明确模型条目总数、物种数、外观数及本页长度；entries.length 只是本页。默认保留资源 URL；view=summary 省略资源 URL 用于轻量介绍和选择。目录存在不代表场景已经有该动物。
        */
       catalog(input: {
+        /** summary 省略资源 URL；resources（兼容默认值）包含 URL。两者统计范围一致。 */
+        view?: "summary" | "resources";
         /** 最少 1 个字符。 */
         search?: string;
         pack?: "cute-zoo" | "low-poly-100";
@@ -20,6 +23,15 @@ declare global {
         /** 取值范围：1 到 100。 */
         limit?: number;
       }): Promise<{
+        summary: {
+          scope: "all-matches";
+          unit: "model-type";
+          total: number;
+          speciesCount: number;
+          appearanceCount: number;
+          returned: number;
+          hasMore: boolean;
+        };
         entries: Array<{
             /** 非空稳定标识，不含控制字符，UTF-8 最多 128 字节。 */
             typeId: string;
@@ -28,12 +40,12 @@ declare global {
             pack: "cute-zoo" | "low-poly-100";
             /** 非空稳定标识，不含控制字符，UTF-8 最多 128 字节。 */
             speciesId: string;
-            modelUrl: string;
+            modelUrl?: string;
             appearances: Array<{
                 /** 非空稳定标识，不含控制字符，UTF-8 最多 128 字节。 */
                 id: string;
                 label: string;
-                modelUrl: string;
+                modelUrl?: string;
               }>;
           }>;
         matchedCount: number;

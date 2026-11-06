@@ -1,7 +1,7 @@
 import { wallRoofJointHeight, type ConstructionWallRoofJoint } from "./ConstructionWallRoofJoint";
 import { insetMaterialSpan } from "./ConstructionCell";
-import { unitFootprintScale } from "./MaterialFootprint";
-import { resolvedArrangement, type MasonryBinding } from "./MasonryDocument";
+import { unitFootprintScale } from "./MaterialFootprint.ts";
+import { resolvedArrangement, type UnitPlacementBinding as MasonryBinding } from "./UnitPlacement";
 import type { PublishedWallProfile } from "./PublishedWallProfile";
 import type { WallInstance } from "./WallTypes";
 import { finalizeWallConnectionHoles } from "./RecoveredWallConnectionHoles";
@@ -17,6 +17,7 @@ export function nativeWallCells(id: string, instances: WallInstance[], profile: 
     return {
       id: instance.id,
       logical_id: instance.id,
+      ...(instance.seed_id !== undefined ? { seed_id: instance.seed_id, lod_seed_id: instance.seed_id } : {}),
       surface_id: id,
       anchor_uv: [(d.getFloat32(84, true) + d.getFloat32(88, true)) / 2, center[1] - profile.minGround],
       center,
@@ -155,6 +156,12 @@ export function arrangedWallCells(
           cells.push({
             id,
             logical_id: id,
+            ...(binding.variationKey !== undefined
+              ? {
+                  seed_id: `${binding.variationKey}/${edge}/${row}/${col}/${n}`,
+                  lod_seed_id: `${binding.variationKey}/${edge}/${row}/${col}/${n}`
+                }
+              : {}),
             surface_id: binding.geometry_id,
             anchor_uv: [(q[0] + q[2]) / 2, (q[1] + q[3]) / 2 - p.minGround],
             center: [
@@ -239,6 +246,9 @@ export function arrangedSurfaceCells(binding: MasonryBinding, g: any) {
         cells.push({
           id,
           logical_id: id,
+          ...(binding.variationKey !== undefined
+            ? { seed_id: binding.variationKey + "/" + k, lod_seed_id: binding.variationKey + "/" + k }
+            : {}),
           surface_id: binding.geometry_id,
           surface_piece: piece,
           anchor_uv: [x, y],

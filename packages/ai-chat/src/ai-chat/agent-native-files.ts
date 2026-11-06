@@ -36,6 +36,7 @@ export const nativeFileSchemas = {
   read: z.strictObject({
     file_path: filePath,
     offset: z.number().int().positive().nullish(),
+    column: z.number().int().positive().nullish(),
     limit: z.number().int().min(1).max(2000).nullish()
   }),
   write: z.strictObject({ file_path: filePath, content: z.string() }),
@@ -50,9 +51,15 @@ export const nativeFileSchemas = {
   grep: z.strictObject({ pattern, path: rootPath.nullish(), include: z.string().min(1).max(120).nullish() })
 };
 const descriptions: Record<AgentFileToolName, string> = {
-  read: "Read a UTF-8 project file with line numbers. file_path is relative to the virtual project root. Host knowledge links under editor/ use project-root paths directly; do not prepend the current directory. offset is 1-based (default 1); limit defaults to 2000. Binary files return descriptors. Large results report the next line offset; page boundaries keep rows intact. Lines longer than 2000 characters are explicitly truncated. Read an existing document before write/edit; a changed document must be read again.",
+  read: [
+    "Read a virtual file. file_path is relative to the project root. Use host knowledge links directly, without a directory prefix.",
+    "Text results include line numbers. offset defaults to 1 and uses 1-based numbering. limit defaults to 2000. Large results report the next line offset. Page boundaries keep rows intact. Long lines return a partial line and next={offset,column}; column is a 1-based UTF-16 position. Follow next unchanged to read the remainder without losing text.",
+    "Read an existing document before write/edit. Read it again if it changes. Declaration imports identify type dependencies. Read the dependencies needed for the chosen call together, when they are absent from the current context.",
+    "Files under .ai/snapshots/ return the saved image and capture metadata. Pass null for offset, column and limit. User photos and snapshot results already include their images in context. Use read when you need to examine that image again. This returns the same image, without a new capture or more detail.",
+    "Other binary files return descriptors."
+  ].join("\n"),
   write:
-    "Create or completely replace a project-owned plain-text file. Provide file_path and full content. Existing files must have been read and remain unchanged. Registered assets use editor.asset in execute. editor/, execution-output/ and mounted libraries are read-only. .meta requires an existing target and JSON summary/optional usage. Each successful call commits independently and participates in save/undo.",
+    "Create or completely replace a project-owned plain-text file. Provide file_path and full content. Existing files must have been read and remain unchanged. Registered assets use editor.asset in execute. editor/, engine/, skills/, .ai/ and mounted libraries are read-only. .meta requires a registered asset target and JSON summary/optional usage. Each successful call commits independently and participates in save/undo.",
   edit: "Replace literal old_string with new_string in a project document. Defaults to one unique match; replace_all=true replaces every non-overlapping match. Empty new_string deletes matched text. Read the file first; stale or ambiguous edits fail without changing it. Same file boundaries and independent commit as write.",
   delete:
     "Delete one project-owned ordinary file and its metadata. Missing files fail. Does not recursively delete directories, registered assets, mounted libraries or editor knowledge. Registered assets use editor.asset.delete in execute. Commits independently and participates in save/undo.",
@@ -124,23 +131,30 @@ export class AgentNativeFiles {
         const files = this.files();
         const { result, observedContent } = await readAgentFile(
           files,
-          { file_path: input.file_path, offset: input.offset ?? 1, limit: input.limit ?? 2000 },
+          {
+            file_path: input.file_path,
+            offset: input.offset ?? 1,
+            column: input.column ?? 1,
+            limit: input.limit ?? 2000
+          },
           signal
         );
         // Stream-only knowledge and binary descriptors need no edit observation.
         try {
           const text = files.readContent(input.file_path);
-          if (observedContent !== undefined && text === observedContent)
+          if (!input.file_path.startsWith(".ai/") && observedContent !== undefined && text === observedContent)
             this.observed.set(input.file_path, observedContent);
           else this.observed.delete(input.file_path);
         } catch {
           this.observed.delete(input.file_path);
         }
         if (!("lines" in result)) return this.success(result, JSON.stringify(result));
-        // The external contract uses line windows. Extremely long lines are displayed
-        // with an explicit truncation notice rather than inventing a column parameter.
+        // Preserve the complete cursor in the model-facing text, including a
+        // same-line continuation. An offset alone would repeat a long line.
         const body = result.lines.map((line) => `${line.number}: ${line.text}`).join("\n");
-        const continuation = result.next ? `\n(Continue with read offset=${result.next.offset}.)` : "";
+        const continuation = result.next
+          ? `\n(Continue with read offset=${result.next.offset}${result.next.column === undefined ? "" : ` column=${result.next.column}`}.)`
+          : "";
         return this.success(
           result,
           `<path>${result.path}</path>\n<type>file</type>\n<content>\n${body}${continuation}\n</content>`

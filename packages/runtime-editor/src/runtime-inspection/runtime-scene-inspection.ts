@@ -5,6 +5,10 @@ export interface RuntimeSourceIdentity {
   entityId: string;
   componentId?: string;
 }
+export interface RuntimeAuthoringIdentity extends RuntimeSourceIdentity {
+  /** Exact input for editor.component.query; absent component ID means query this authored entity's components. */
+  componentQuery: { scene: string; entityId: string; id?: string };
+}
 export interface RuntimePickIdentity {
   entityId: number;
   componentId: number;
@@ -15,6 +19,8 @@ export interface RuntimePickIdentity {
   instanceKey?: string;
 }
 export interface RuntimeEntityRecord {
+  entityId: number;
+  /** @deprecated Use entityId. */
   id: number;
   name: string;
   parentId: number | null;
@@ -24,15 +30,17 @@ export interface RuntimeEntityRecord {
   position: number[];
   rotation: number[];
   scale: number[];
-  authoring?: RuntimeSourceIdentity;
+  authoring?: RuntimeAuthoringIdentity;
 }
 export interface RuntimeComponentRecord {
+  componentId: number;
+  /** @deprecated Use componentId. */
   id: number;
   entityId: number;
   type: string;
   enabled: boolean;
   properties: string[];
-  authoring?: RuntimeSourceIdentity;
+  authoring?: RuntimeAuthoringIdentity;
 }
 export type RuntimeValue = null | boolean | number | string | RuntimeValue[] | { [key: string]: RuntimeValue };
 
@@ -134,6 +142,7 @@ export class RuntimeSceneInspection {
     const t = entity.transform,
       v = (x: { x: number; y: number; z: number }) => [x.x, x.y, x.z];
     return {
+      entityId: this.id(entity),
       id: this.id(entity),
       name: entity.name,
       parentId: entity.parent ? this.id(entity.parent) : null,
@@ -148,18 +157,19 @@ export class RuntimeSceneInspection {
       position: v(t.position),
       rotation: v(t.rotation),
       scale: v(t.scale),
-      ...(authoring ? { authoring: { ...authoring } } : {})
+      ...(authoring ? { authoring: authoringIdentity(authoring) } : {})
     };
   }
   private componentRecord(component: Component): RuntimeComponentRecord {
     const authoring = this.source?.(component);
     return {
+      componentId: this.id(component),
       id: this.id(component),
       entityId: this.id(component.entity),
       type: componentType(component),
       enabled: component.enabled,
       properties: propertyNames(component),
-      ...(authoring ? { authoring: { ...authoring } } : {})
+      ...(authoring ? { authoring: authoringIdentity(authoring) } : {})
     };
   }
   private serialize(value: unknown, depth: number, seen: Set<object>): RuntimeValue {
@@ -206,6 +216,16 @@ export class RuntimeSceneInspection {
   dispose(): void {
     this.objects.clear();
   }
+}
+function authoringIdentity(source: RuntimeSourceIdentity): RuntimeAuthoringIdentity {
+  return {
+    ...source,
+    componentQuery: {
+      scene: source.scene,
+      entityId: source.entityId,
+      ...(source.componentId === undefined ? {} : { id: source.componentId })
+    }
+  };
 }
 function publicName(name: string): boolean {
   return !name.startsWith("_") && !["constructor", "__proto__", "prototype", "engine", "scene"].includes(name);

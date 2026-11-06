@@ -1,3 +1,4 @@
+import { buildingPartKnowledge } from "@galacean/engine-building/tiny-glade/parts/BuildingKnowledge";
 import presetRuntimeGuide from "../systems/runtime.md?raw";
 import { engineRuntimeFiles } from "@galacean/engine-runtime-editor/runtime-editor-agent/engine-runtime-files";
 import type { AgentApplicationDefinition } from "@galacean/engine-ai-chat/ai-chat/index";
@@ -32,8 +33,8 @@ export function createSeedWorldAgentDefinition(
 /** Application-owned composition of world and native editing declarations. */
 export function seedWorldNativeKnowledge(knowledge: typeof seedWorldKnowledge) {
   const catalog = withNativeEditingKnowledge(knowledge);
-  return { ...catalog, catalog: catalog.catalog + "\n- [Preset systems in Script assets](knowledge/runtime/preset-systems.md)\n",
-    documents: [...(catalog.documents ?? []), {path: "knowledge/runtime/preset-systems.md", content: presetRuntimeGuide}], modules: [...catalog.modules, {
+  return { ...catalog, catalog: catalog.catalog + "\n- [Preset systems in Script assets](../engine/knowledge/preset-systems.md)\n- [建筑构件：总—分—总与按需建造](knowledge/building/SKILL.md)\n",
+    documents: [...(catalog.documents ?? []), ...buildingPartKnowledge, {path: "engine/knowledge/preset-systems.md", content: presetRuntimeGuide}], modules: [...catalog.modules, {
     id: "declare/world/native.d.ts",
     source: 'import "../native/api"; export {};',
     imports: ["declare/native/api.d.ts"]

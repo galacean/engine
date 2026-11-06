@@ -113,7 +113,8 @@ export function findContainerPlacement(
   types: readonly StorageContainerDefinition[],
   containers: readonly StorageContainerState[],
   diagnostics?: ContainerPlacementDiagnostics,
-  maximumAttempts?: number
+  maximumAttempts?: number,
+  looseItemBounds: readonly GroundBounds[] = []
 ): Pick<StorageContainerState, "groundId" | "position" | "yaw"> | null {
   if (maximumAttempts !== undefined && (!Number.isSafeInteger(maximumAttempts) || maximumAttempts < 1))
     throw new Error("Invalid container placement attempt budget");
@@ -155,6 +156,10 @@ export function findContainerPlacement(
       }
       if (occupied.some((f) => boundsTooClose(bounds, f, layout.containerClearance))) {
         reject("CONTAINER_CLEARANCE");
+        continue;
+      }
+      if (looseItemBounds.some((item) => boundsTooClose(bounds, item, 0.1))) {
+        reject("ITEM_CLEARANCE");
         continue;
       }
       const inspection = inspectContainerGround(view, layout.groundId, bounds, grid.maximumSlopeDegrees);

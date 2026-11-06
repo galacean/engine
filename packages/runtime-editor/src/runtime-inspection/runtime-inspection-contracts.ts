@@ -10,10 +10,22 @@ export const runtimePickIdentitySchema = z.object({
 });
 const observation = z.literal("live");
 const status = z.enum(["found", "unavailable"]);
-const source = z.object({ scene: text, entityId: text, componentId: text.optional() });
+const source = z.object({
+  scene: text,
+  entityId: text,
+  componentId: text.optional(),
+  componentQuery: z
+    .strictObject({ scene: text, entityId: text, id: text.optional() })
+    .describe(
+      "可直接传给 editor.component.query 的作者身份选择器。含 id 时精确到该组件；不含 id 时查询此作者实体的组件。没有映射时不返回 authoring，不向父节点猜测。"
+    )
+});
 const vector = z.array(z.number()).length(3);
 const entity = z.object({
-  id,
+  entityId: id.describe(
+    "运行时实体 ID；直接用于 entity.inspect、entity.children 和 component.query 的 entityId 参数。"
+  ),
+  id: id.describe("@deprecated 兼容旧返回字段；与 entityId 相同，新调用使用 entityId。"),
   name: z.string(),
   parentId: id.nullable(),
   childCount: z.number().int(),
@@ -25,7 +37,8 @@ const entity = z.object({
   authoring: source.optional()
 });
 const component = z.object({
-  id,
+  componentId: id.describe("运行时组件 ID；直接用于 component.read 的 componentId 参数，不是所属实体的 entityId。"),
+  id: id.describe("@deprecated 兼容旧返回字段；与 componentId 相同，新调用使用 componentId。"),
   entityId: id,
   type: text,
   enabled: z.boolean(),
@@ -47,7 +60,13 @@ export const RUNTIME_INSPECTION_CONTRACTS = [
     name: "runtime.entity.inspect",
     description:
       "按 Engine instanceId 读取节点当前名称、父节点、组件 ID、局部变换及真实作者映射。截图只冻结像素身份，不保存历史节点结构；alive 表示原对象当前是否存活。父子关系不是业务所有权，修改前依据实际组件契约确认目标。",
-    input: z.strictObject({ id }),
+    input: z.union([
+      z.strictObject({ entityId: id, id: z.never().optional() }),
+      z.strictObject({
+        id: id.describe("@deprecated 使用 entityId；仅兼容旧调用，不能同时传 entityId。"),
+        entityId: z.never().optional()
+      })
+    ]),
     output: entityResult
   },
   {
@@ -81,7 +100,14 @@ export const RUNTIME_INSPECTION_CONTRACTS = [
     name: "runtime.component.read",
     description:
       "按字段读取当前运行时组件的公开属性；先 query 获取 properties，再指定 fields。始终读取当前状态，不冒充截图时字段。Entity/Component 值以身份引用返回；容器按深度及数量有界返回，truncated 标记表示未完整读取。公共 getter 仅在显式选择该字段时读取。此接口不调用方法、不修改状态，也不把任意运行时字段当成可编辑能力。",
-    input: z.strictObject({ id, fields: z.array(text).max(32) }),
+    input: z.union([
+      z.strictObject({ componentId: id, id: z.never().optional(), fields: z.array(text).max(32) }),
+      z.strictObject({
+        id: id.describe("@deprecated 使用 componentId；仅兼容旧调用，不能同时传 componentId。"),
+        componentId: z.never().optional(),
+        fields: z.array(text).max(32)
+      })
+    ]),
     output: z.object({ status, component: component.nullable(), values: z.record(z.string(), z.json()) })
   }
 ] as const;

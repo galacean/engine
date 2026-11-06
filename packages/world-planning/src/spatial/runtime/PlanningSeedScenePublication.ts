@@ -25,6 +25,7 @@ interface PlanningSeedSceneResources {
   readonly masonry?: import("../../masonry/NativeBuildingHost").NativeBuildingWorld;
   readonly heightTransition?: ReturnType<SeedWorldTerrainRuntime["prepareHeightTransition"]>;
   readonly vegetation?: import("./PlanningNaturalVegetationRuntime").PlanningNaturalVegetationRuntime;
+  readonly template?: import("./WorldTemplateRuntime").WorldTemplateRuntime;
   readonly data: PlanningSeedWorldData;
   readonly world: SeedWorldTerrainRuntime;
   readonly solids: Awaited<ReturnType<typeof createPlanningSeedSolids>>;
@@ -508,6 +509,7 @@ export class PlanningSeedScenePublication {
           solids: candidate.solids,
           masonry: candidate.masonry,
           vegetation: candidate.vegetation,
+          template: candidate.template,
           heightTransition: candidate.heightTransition,
           windExposure: candidate.windExposure,
           playerBookmark: candidate.playerState?.bookmark
@@ -739,6 +741,7 @@ export class PlanningSeedScenePublication {
             try {
               await candidate.masonry?.destroy();
             } finally {
+              candidate.template?.dispose();
               candidate.vegetation?.dispose();
             }
           } finally {

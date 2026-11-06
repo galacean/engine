@@ -84,6 +84,7 @@ export function planFlowerRegions(
     plan.routes,
     plan.plazas,
     plan.planning?.profiles,
+    plan.planning?.reservations.filter((area) => area.kind === "activity"),
     plan.poiDistribution.sites,
     plan.poiDistribution.domains,
     poiTerritoryWeights(plan.poiDistribution),
@@ -142,7 +143,8 @@ export function planFlowerRegions(
     ...(candidateRocks ?? (plan.landscapes ?? []).filter((p) => p.kind === "rock")),
     ...plan.waters,
     ...(plan.plazas ?? []),
-    ...plan.routes
+    ...plan.routes,
+    ...(plan.planning?.reservations.filter((area) => area.kind === "activity") ?? [])
   ]
     .filter((o) => o.outline?.length)
     .map((o) => ({ outline: o.outline!, query: createPlanningRingQuery(o.outline!) }));
@@ -159,7 +161,7 @@ export function planFlowerRegions(
     let sample = surface.samples.get(id);
     if (!sample) {
       const land = lands.find((l) => l.inside(p));
-      let mask = land ? Math.min(1, land.distance(p, 6) / 6) : -1;
+      const mask = land ? Math.min(1, land.distance(p, 6) / 6) : -1;
       sample = { mask };
       surface.samples.set(id, sample);
     }

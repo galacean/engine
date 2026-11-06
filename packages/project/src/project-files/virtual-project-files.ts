@@ -7,6 +7,8 @@ export type ProjectFileContent = string | Uint8Array;
 /** Read-only virtual file view. Providers own their content and loading lifetime. */
 export interface ProjectFileProvider {
   paths(): Iterable<string>;
+  /** Report expiry for a previously published path without enumerating tombstones. */
+  missing?(path: string): void;
   /** Explicit directory registrations, including empty directories. */
   directories?(): Iterable<string>;
   read(path: string): ProjectFileContent | undefined;
@@ -38,6 +40,9 @@ export function parentDirectories(path: string): string[] {
 export function mountProjectFiles(root: string, provider: ProjectFileProvider): ProjectFileProvider {
   assertProjectPath(root);
   return {
+    missing: (path) => {
+      if (path.startsWith(`${root}/`)) provider.missing?.(path.slice(root.length + 1));
+    },
     *paths() {
       for (const path of provider.paths()) yield `${root}/${path}`;
     },
@@ -74,15 +79,15 @@ export function configuredProjectFiles(config: {
   const directories = new Set(config.directories ?? []);
   for (const path of [...files.keys(), ...directories])
     for (const parent of parentDirectories(path)) directories.add(parent);
-  for (const path of [...directories, ...files.keys()].filter((path) => !path.endsWith(".meta"))) {
+  for (const path of [...files.keys()].filter(
+    (path) => !path.endsWith(".meta") && projectFileType(path, files.get(path)?.type) !== "Document"
+  )) {
     if (!files.has(`${path}.meta`))
       files.set(`${path}.meta`, {
         path: `${path}.meta`,
         content: JSON.stringify({
-          summary:
-            files.get(path)?.summary ??
-            `${path} (${directories.has(path) ? "Folder" : projectFileType(path, files.get(path)?.type)})`,
-          usage: files.get(path)?.usage ?? "读取 README.md 了解使用方式。"
+          summary: files.get(path)?.summary ?? "",
+          usage: files.get(path)?.usage ?? ""
         })
       });
   }
@@ -165,7 +170,7 @@ export class VirtualProjectFiles {
   }
 
   snapshot(): ProjectFileSnapshot {
-    return new ProjectFileSnapshot(this.index());
+    return new ProjectFileSnapshot(this.index(), this.providers);
   }
   /** Search streams the validated providers; it does not build another namespace or content index. */
   search(input: ProjectFileSearchInput, signal?: AbortSignal, includePath?: (path: string) => boolean) {
@@ -211,7 +216,15 @@ export class VirtualProjectFiles {
 
 /** An operation's namespace and provider ownership. File bytes still belong to their provider. */
 export class ProjectFileSnapshot {
-  constructor(private readonly nodes: ProjectNodes) {}
+  constructor(
+    private readonly nodes: ProjectNodes,
+    private readonly providers: readonly ProjectFileProvider[] = []
+  ) {}
+
+  private unknown(path: string): never {
+    for (const provider of this.providers) provider.missing?.(path);
+    throw new Error(`Unknown project path '${path}'`);
+  }
 
   directories(): string[] {
     return [...this.nodes]
@@ -245,7 +258,7 @@ export class ProjectFileSnapshot {
   private content(nodes: ProjectNodes, path: string): ProjectFileContent {
     assertProjectPath(path);
     const content = nodes.get(path)?.provider?.read(path);
-    if (content === undefined) throw new Error(`Unknown project path '${path}'`);
+    if (content === undefined) this.unknown(path);
     return content;
   }
 
@@ -264,7 +277,7 @@ export class ProjectFileSnapshot {
   open(path: string, signal?: AbortSignal): Promise<ProjectFileView> {
     assertProjectPath(path);
     const provider = this.nodes.get(path)?.provider;
-    if (!provider) throw new Error(`Unknown project path '${path}'`);
+    if (!provider) this.unknown(path);
     return openProjectFile(provider, path, signal);
   }
 
@@ -275,7 +288,7 @@ export class ProjectFileSnapshot {
       assertProjectPath(path);
       signal?.throwIfAborted();
       const provider = nodes.get(path)?.provider;
-      if (!provider) throw new Error(`Unknown project path '${path}'`);
+      if (!provider) this.unknown(path);
       await provider.prepare?.(path, signal);
     }
     signal?.throwIfAborted();

@@ -1,5 +1,5 @@
 import { masonryVertexTintTag } from "./MasonryAppearance";
-import type { ConstructionPreviewPart } from "./ConstructionPreview";
+import type { ConstructionPreviewPart } from "./ProfilePreview";
 import { packDecorationMaterial } from "./ConstructionDecorationMaterial";
 
 /** Immutable published attributes, in the same Float32 formats as ModelMesh's

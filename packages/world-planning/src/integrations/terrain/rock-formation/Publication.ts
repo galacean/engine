@@ -37,7 +37,6 @@ export function prepareRockMaterialPublication(
       current.solids.setRockTextureScale(settings.textureScale);
       current.vegetation?.setRockTextureScale(settings.textureScale);
       current.solids.setRockColorBlend(settings.colorBlend);
-      current.vegetation?.setRockColorBlend(settings.colorBlend);
       current.world.population.setRockGrassGround(settings);
       consumed = true;
     },

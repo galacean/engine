@@ -6,7 +6,7 @@ import type { Ref } from "./Ref";
 /** 空间关系所参照的世界锚点 */
 
 export type Anchor = {
-  /** 当前玩家视角；只读取 Pose，不改变玩家位置。 */
+  /** 以当前用户输入提交时的位置和朝向为锚点；任务期间不随玩家移动而改变。消费新的补充输入时更新。实时位置请调用 tools.spatial.viewer()；无活动输入时使用实时位姿。它不是图片拍摄位姿；图片选点使用 pick 返回的位置。只读取位姿，不移动玩家。 */
   kind: "viewer";
 } | {
   kind: "world-ref";

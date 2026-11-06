@@ -36,7 +36,8 @@
     "./runtime-editor/project/runtime-project": "./src/runtime-editor/project/runtime-project.ts",
     "./runtime-editor/scene/runtime-project-compiler": "./src/runtime-editor/scene/runtime-project-compiler.ts",
     "./runtime-editor/scene/runtime-source-components": "./src/runtime-editor/scene/runtime-source-components.ts",
-    "./runtime-editor/scripts/runtime-script-inputs": "./src/runtime-editor/scripts/runtime-script-inputs.ts"
+    "./runtime-editor/scripts/runtime-script-inputs": "./src/runtime-editor/scripts/runtime-script-inputs.ts",
+    "./runtime-editor/project/runtime-asset-read": "./src/runtime-editor/project/runtime-asset-read.ts"
   },
   "scripts": {},
   "dependencies": {

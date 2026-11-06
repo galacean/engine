@@ -16,9 +16,20 @@ export function querySeedAnimalCatalog(input: SeedWorldAnimalCatalogQuery = {}) 
   const offset = Math.max(0, input.offset ?? 0),
     limit = Math.min(100, Math.max(1, input.limit ?? 50));
   return {
+    summary: { scope: "all-matches" as const, unit: "model-type" as const, total: matches.length,
+      speciesCount: new Set(matches.map(e => e.speciesId)).size,
+      appearanceCount: matches.reduce((n, e) => n + e.appearances.length, 0),
+      returned: matches.slice(offset, offset + limit).length, hasMore: offset + limit < matches.length },
     entries: structuredClone(matches.slice(offset, offset + limit)),
     matchedCount: matches.length,
     offset,
     ...(offset + limit < matches.length ? { nextOffset: offset + limit } : {})
   };
+}
+
+/** Shared identity mapping; model variants do not define distinct biological species. */
+export function seedAnimalSpeciesId(typeId: string): string {
+  const entry = types.find(e => e.typeId === typeId);
+  if (!entry) throw new Error(`Unregistered animal type: ${typeId}`);
+  return entry.speciesId;
 }

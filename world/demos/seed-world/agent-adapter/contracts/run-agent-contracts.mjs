@@ -7,7 +7,8 @@ import { engineModify } from "../../../../../packages/modify/build/vite.mjs";
 // Use Vite's existing loader rather than interpreting those modules as CommonJS.
 const root = fileURLToPath(new URL("../../../../../", import.meta.url));
 process.env.WORLD_GALLERY_SOURCE_ROOT ??= root;
-const server = await createServer({ root, configFile: false, logLevel: "error",
+// Keep declaration generation separate from the running preview cache.
+const server = await createServer({ root, cacheDir: path.join(root, "node_modules/.vite-agent-contracts"), configFile: false, logLevel: "error",
   plugins: [{ name: "contract-source-paths", enforce: "pre", resolveId(source) {
     if (source.startsWith("/packages/")) return path.join(root, source);
   } }, engineModify()],

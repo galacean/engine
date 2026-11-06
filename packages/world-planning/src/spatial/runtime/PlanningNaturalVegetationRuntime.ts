@@ -85,6 +85,7 @@ import {
   companionRockGeometryKey,
   companionRockJob
 } from "../../integrations/terrain/rock-formation/CompanionRocks.ts";
+import { SMALL_ROCK_COLOR } from "../../integrations/terrain/rock-formation/ColorPalette.ts";
 import {
   ROCK_GENERATION_DEFAULTS,
   rockGenerationKind,
@@ -100,8 +101,6 @@ import {
   preparePaintedRockTexture,
   setPaintedRockTextureScale
 } from "../../integrations/terrain/rock-formation/PaintedRockMaterial.ts";
-import type { RockColorBlend } from "../../integrations/terrain/rock-formation/ColorPalette.ts";
-import { setRockColorBlend } from "../../integrations/terrain/rock-formation/ColorMaterial.ts";
 
 type PlantSource = ReturnType<ProceduralPlantLibraryRuntime["getPlacementSources"]>[number];
 type Source = Pick<PlantSource, "bounds" | "rendererBindings"> & {
@@ -370,7 +369,6 @@ export class PlanningNaturalVegetationRuntime {
           if (this.rockGenerationProfile.platformShare !== profile.platformShare) rebind(previous);
           this.rockGenerationProfile = profile;
           previous.setTextureScale(settings.textureScale);
-          previous.setColorBlend(settings.colorBlend);
         },
         discard: () => {
           consumed = true;
@@ -414,9 +412,6 @@ export class PlanningNaturalVegetationRuntime {
   /** Resident and subsequently streamed instances share the source material. */
   setRockTextureScale(textureScale: number): void {
     this.rockSources?.setTextureScale(textureScale);
-  }
-  setRockColorBlend(settings: RockColorBlend): void {
-    this.rockSources?.setColorBlend(settings);
   }
 
   /** Project a reveal or explicit instance edit onto resident trees.
@@ -1421,7 +1416,7 @@ async function createCompanionRockSources(
       parent.engine,
       settings.surfaceMode === "cellular-curvature",
       settings.textureScale,
-      settings.colorBlend
+      SMALL_ROCK_COLOR
     );
     if (registerGrassAppearance) {
       material.shaderData.enableMacro("MATERIAL_GRASS_SHARED_COLOR_FIELD");
@@ -1459,9 +1454,6 @@ async function createCompanionRockSources(
       ): Source | undefined {
         const family = families.get(instance.assetId);
         return family?.get(rockGenerationKind(seed, instance.id, profile));
-      },
-      setColorBlend(settings: RockColorBlend) {
-        setRockColorBlend(material!, settings);
       },
       setTextureScale(textureScale: number) {
         setPaintedRockTextureScale(material!, textureScale);

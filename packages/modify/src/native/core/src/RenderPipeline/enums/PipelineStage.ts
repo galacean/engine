@@ -8,6 +8,10 @@ export enum PipelineStage {
   ShadowCaster = "ShadowCaster",
   /** Screen-space reflection receiver surface stage. */
   ScreenSpaceReflectionSurface = "ScreenSpaceReflectionSurface",
+  /** Transparent contribution color using the material Forward depth and blend settings. */
+  ScreenSpaceReflectionContributionColor = "ScreenSpaceReflectionContributionColor",
+  /** Nearest nonzero-alpha transparent contribution depth. */
+  ScreenSpaceReflectionContributionDepth = "ScreenSpaceReflectionContributionDepth",
   /** Forward shading stage. */
   Forward = "Forward"
 }

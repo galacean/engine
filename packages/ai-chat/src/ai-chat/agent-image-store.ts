@@ -1,31 +1,29 @@
 import { toAgentValue } from "./agent-values";
-import type { AgentValue, AgentViewImage, AgentViewObservation, AgentViewPointer } from "./agent-types";
+import type { AgentValue, AgentViewImage, AgentViewObservation } from "./agent-types";
 import { ImageResourceBudget, validateImage, type ConversationImageResources } from "./image-resources";
+import { SNAPSHOT_DIRECTORY, isSnapshotPath, snapshotError, type SnapshotPickInput } from "./agent-snapshots";
+import type { ProjectFileProvider } from "@galacean/engine-project/project-files/virtual-project-files";
 
 export type AgentImageReference = {
-  imageId: string;
-  capturedAt: string;
+  imagePath: string;
+  capturedAt?: string;
   width: number;
   height: number;
   available?: boolean;
-  pointerState?: "available" | "released" | "over_budget";
 };
 export type SavedAgentImage = { reference: AgentImageReference; metadata: AgentValue; image: AgentViewImage };
-
-/** Validate the actual largest image-message envelope at the common admission boundary. */
 function imageMetadata(reference: AgentImageReference, metadata: AgentValue): AgentValue {
-  const envelope = toAgentValue({ contextKind: "user_visual_reference", ...reference, metadata }) as {
-    metadata: AgentValue;
-  };
-  return envelope.metadata;
+  return (toAgentValue({ contextKind: "user_visual_reference", ...reference, metadata }) as { metadata: AgentValue })
+    .metadata;
 }
 export class AgentImageStorageLimitError extends Error {
+  readonly code = "IMAGE_STORAGE_LIMIT";
   constructor() {
-    super("Image storage budget exhausted; retained screenshots have not been deleted");
+    super("Snapshot storage is full; resources in use were retained");
   }
 }
 
-/** Task-local observations and borrowed conversation images. Only resources actually read are leased. */
+/** Task leases on the host snapshot service. Blobs and identity textures have one owner. */
 export class AgentImageStore {
   readonly #images = new Map<
     string,
@@ -33,179 +31,97 @@ export class AgentImageStore {
   >();
   readonly #history = new Map<string, AgentImageReference>();
   #disposed = false;
-  readonly #pointers = new Map<string, { pointer: AgentViewPointer; release(): void }>();
   readonly budget: ImageResourceBudget;
   constructor(
     private readonly resources?: ConversationImageResources,
-    references: readonly AgentImageReference[] = [],
-    private readonly pointerOptions = { maxBytes: 32 * 1024 * 1024, maxCount: 3 }
+    references: readonly AgentImageReference[] = []
   ) {
     this.budget = resources?.budget ?? new ImageResourceBudget();
-    for (const reference of references) this.#history.set(reference.imageId, structuredClone(reference));
+    for (const reference of references) this.#history.set(reference.imagePath, structuredClone(reference));
   }
   get size(): number {
-    return new Set(
-      [...this.#images.keys(), ...this.#history.keys()].filter(
-        (id) => this.#images.has(id) || this.resources?.hasImage(id)
-      )
-    ).size;
-  }
-  get pointerBytes(): number {
-    return [...this.#pointers.values()].reduce((n, v) => n + v.pointer.byteLength, 0);
-  }
-  get pointerCount(): number {
-    return this.#pointers.size;
+    return this.references().filter((ref) => ref.available).length;
   }
   get bytes(): number {
-    return this.pointerBytes + [...this.#images.values()].reduce((n, v) => n + v.image.blob.size, 0);
+    return [...this.#images.values()].reduce((n, v) => n + v.image.blob.size, 0);
   }
   references(): AgentImageReference[] {
     const refs = new Map(this.#history);
     for (const [id, saved] of this.#images) refs.set(id, saved.reference);
     return [...refs.values()].map((ref) => ({
       ...structuredClone(ref),
-      available: this.#images.has(ref.imageId) || !!this.resources?.hasImage(ref.imageId)
+      available: this.#images.has(ref.imagePath) || !!this.resources?.hasImage(ref.imagePath)
     }));
   }
+  readonly provider: ProjectFileProvider = {
+    paths: () => new Set([...this.#images.keys(), ...(this.resources?.paths?.() ?? [])]),
+    directories: () => [SNAPSHOT_DIRECTORY],
+    read: () => undefined,
+    open: async (path) => {
+      if (!isSnapshotPath(path)) return undefined;
+      const saved = this.#images.get(path);
+      if (!saved && !this.resources?.hasImage(path)) this.read(path); // Preserve missing/expiry errors.
+      // File searches need only a descriptor; they must not acquire a lease or renew image age.
+      return { kind: "binary", ...(saved ? { byteLength: saved.image.blob.size } : {}) };
+    },
+    missing: (path) => {
+      if (isSnapshotPath(path)) this.read(path);
+    }
+  };
   save(observation: AgentViewObservation): SavedAgentImage {
-    let admitted = false;
-    try {
-      if (this.#disposed) throw new Error("Task image store has been released");
-      if (
-        observation.pointer &&
-        (!Number.isSafeInteger(observation.pointer.byteLength) || observation.pointer.byteLength < 0)
-      )
-        throw new Error("Invalid pointer storage size");
-      validateImage(observation.image);
-      const imageId = observation.imageId ?? crypto.randomUUID();
-      if (this.#images.has(imageId)) {
-        observation.pointer?.dispose();
-        admitted = true;
-        return this.read(imageId);
-      }
-      const reference: AgentImageReference = {
-        imageId,
-        capturedAt: new Date().toISOString(),
-        width: observation.image.width,
-        height: observation.image.height
-      };
-      const metadata = imageMetadata(reference, observation.metadata);
-      const borrowed =
-        observation.imageId && this.resources?.hasImage(imageId) ? this.resources.acquireImage(imageId) : undefined;
-      if (!borrowed) this.evictPointersFor(observation.image.blob.size);
-      let release: () => void;
-      try {
-        release = borrowed?.release ?? this.budget.reserve("image", observation.image.blob.size);
-      } catch {
-        borrowed?.release();
-        throw new AgentImageStorageLimitError();
-      }
-      // Blob is immutable. Preserve the shared binary allocation; copy only its small descriptor.
-      this.#images.set(imageId, { reference, metadata, image: { ...observation.image }, release });
-      admitted = true;
-      if (observation.pointer) this.savePointer(imageId, observation.pointer);
-      return this.read(imageId);
-    } catch (error) {
-      if (!admitted) observation.pointer?.dispose();
-      throw error;
-    }
-  }
-  read(imageId: string): SavedAgentImage {
     if (this.#disposed) throw new Error("Task image store has been released");
-    let saved = this.#images.get(imageId);
-    if (!saved && this.#history.has(imageId) && this.resources) {
-      const lease = this.resources.acquireImage(imageId);
-      const reference = this.#history.get(imageId)!;
-      try {
-        saved = {
-          reference,
-          metadata: imageMetadata(reference, lease.observation.metadata),
-          image: lease.observation.image,
-          release: lease.release
-        };
-        this.#images.set(imageId, saved);
-      } catch (error) {
-        lease.release();
-        throw error;
-      }
+    validateImage(observation.image);
+    const imagePath =
+      observation.imagePath ??
+      `${SNAPSHOT_DIRECTORY}/${crypto.randomUUID()}.${observation.image.blob.type === "image/png" ? "png" : "jpg"}`;
+    if (!isSnapshotPath(imagePath)) throw new Error("Snapshot images must use .ai/snapshots/ paths");
+    if (this.#images.has(imagePath)) return this.read(imagePath);
+    const capturedAt = (observation.metadata as { capturedAt?: unknown } | null)?.capturedAt;
+    const reference: AgentImageReference = {
+      imagePath,
+      ...(typeof capturedAt === "string" ? { capturedAt } : {}),
+      width: observation.image.width,
+      height: observation.image.height
+    };
+    const metadata = imageMetadata(reference, observation.metadata);
+    const borrowed = this.resources?.hasImage(imagePath) ? this.resources.acquireImage(imagePath) : undefined;
+    let release: () => void;
+    try {
+      release = borrowed?.release ?? this.budget.reserve("image", observation.image.blob.size);
+    } catch {
+      borrowed?.release();
+      throw new AgentImageStorageLimitError();
     }
-    if (!saved) throw new Error(`IMAGE_EXPIRED: Image '${imageId}' is no longer available`);
+    this.#images.set(imagePath, { reference, metadata, image: { ...observation.image }, release });
+    return this.read(imagePath);
+  }
+  read(imagePath: string): SavedAgentImage {
+    if (this.#disposed) throw new Error("Task image store has been released");
+    let saved = this.#images.get(imagePath);
+    if (!saved && this.resources) {
+      const lease = this.resources.acquireImage(imagePath);
+      try {
+        this.save(lease.observation);
+      } finally {
+        lease.release();
+      }
+      saved = this.#images.get(imagePath);
+    }
+    if (!saved) throw snapshotError("SNAPSHOT_UNAVAILABLE", `Snapshot is unavailable: '${imagePath}'`);
     return {
       reference: structuredClone(saved.reference),
       metadata: structuredClone(saved.metadata),
       image: { ...saved.image }
     };
   }
-  private releasePointer(imageId: string): void {
-    const saved = this.#pointers.get(imageId);
-    if (!saved) return;
-    this.#pointers.delete(imageId);
-    const reference = this.#images.get(imageId)?.reference;
-    if (reference) reference.pointerState = "released";
-    try {
-      saved.pointer.dispose();
-    } finally {
-      saved.release();
-    }
-  }
-  private evictPointersFor(bytes: number): void {
-    while (this.#pointers.size && this.budget.stats.total + bytes > this.budget.limit)
-      this.releasePointer(this.#pointers.keys().next().value!);
-  }
-  private savePointer(imageId: string, pointer: AgentViewPointer): void {
-    const reference = this.#images.get(imageId)!.reference;
-    if (pointer.byteLength <= this.pointerOptions.maxBytes) {
-      while (
-        this.#pointers.size &&
-        (this.pointerBytes + pointer.byteLength > this.pointerOptions.maxBytes ||
-          this.pointerCount >= this.pointerOptions.maxCount)
-      )
-        this.releasePointer(this.#pointers.keys().next().value!);
-      this.evictPointersFor(pointer.byteLength);
-      if (this.budget.stats.total + pointer.byteLength <= this.budget.limit) {
-        const release = this.budget.reserve("identity", pointer.byteLength);
-        this.#pointers.set(imageId, { pointer, release });
-        reference.pointerState = "available";
-        return;
-      }
-    }
-    reference.pointerState = "over_budget";
-    pointer.dispose();
-  }
-  point(imageId: string, x: number, y: number): AgentValue {
-    const saved = this.#images.get(imageId);
-    if (!saved)
-      throw Object.assign(new Error("Image is not available in this task; observe_view again"), {
-        code: "IMAGE_NOT_AVAILABLE"
-      });
-    if (
-      !Number.isSafeInteger(x) ||
-      !Number.isSafeInteger(y) ||
-      x < 0 ||
-      y < 0 ||
-      x >= saved.image.width ||
-      y >= saved.image.height
-    )
-      throw Object.assign(new Error("Pointer coordinates are outside the saved image"), {
-        code: "POINTER_OUT_OF_BOUNDS"
-      });
-    if (saved.reference.pointerState === "over_budget")
-      throw Object.assign(
-        new Error(
-          "Pointer snapshot exceeds the available image storage budget; release retained photos before recapturing"
-        ),
-        { code: "POINTER_STORAGE_LIMIT" }
-      );
-    const pointer = this.#pointers.get(imageId)?.pointer;
-    if (!pointer)
-      throw Object.assign(new Error("Pointer snapshot is unavailable or released; observe_view again"), {
-        code: "POINTER_SNAPSHOT_UNAVAILABLE"
-      });
-    return pointer.point(x, y);
+  pick(input: SnapshotPickInput): AgentValue {
+    this.read(input.file_path); // Pin the frame for this task before querying it.
+    if (!this.resources?.pick)
+      throw snapshotError("PICK_UNSUPPORTED", "This host does not support snapshot object queries");
+    return this.resources.pick(input);
   }
   dispose(): void {
     if (this.#disposed) return;
-    for (const id of this.#pointers.keys()) this.releasePointer(id);
     for (const image of this.#images.values()) image.release();
     this.#images.clear();
     this.#history.clear();

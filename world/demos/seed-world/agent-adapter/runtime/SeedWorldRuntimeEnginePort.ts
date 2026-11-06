@@ -220,7 +220,8 @@ export class SeedWorldRuntimeEnginePort implements SeedWorldEnginePort {
   private _projectEnvironmentEdit(state: SeedWorldLiveState, input: SeedWorldEnvironmentUpdateInput, current: WeatherState) {
     const { lighting, environment } = this._requireContext();
     if (input.waitForIbl) requireIblBaking(lighting);
-    const baseSpeed = environment.getSnapshot().wind.baseSpeedMps;
+    const windState = environment.getSnapshot().wind;
+    const baseSpeed = windState.baseSpeedMps;
     const weather = structuredClone(current);
     const channels: Partial<WeatherState> = {};
     const set = <K extends keyof WeatherState>(key: K, value: WeatherState[K]) => {
@@ -229,7 +230,7 @@ export class SeedWorldRuntimeEnginePort implements SeedWorldEnginePort {
     };
     // Run exactly the same channel setters as activation against detached data.
     applyEnvironmentChannels({
-      getSnapshot: () => ({ weather, wind: { baseSpeedMps: baseSpeed } }),
+      getSnapshot: () => ({ weather, wind: windState }),
       setSeason: season => {
         const defaults = TERRAIN_SEASON_DEFAULT_COMPOSITIONS[season];
         set("cloud", WeatherPresets.cloud[defaults.cloud]);
@@ -274,7 +275,7 @@ export class SeedWorldRuntimeEnginePort implements SeedWorldEnginePort {
         cloudCoverage: weather.cloud.cloudCoverage,
         fogIntensity: clamp01((weather.skyLighting.fogDensityMultiplier - 1) / 7),
         windSpeed: baseSpeed * weather.wind.forceMultiplier, windIntensity: clamp01(weather.wind.forceMultiplier / 2.4),
-        windDirectionDegrees: weather.wind.directionOffsetDegrees,
+        windDirectionDegrees: wrapWindHeading(windHeading(windState.baseDirection) - weather.wind.directionOffsetDegrees),
         windGustiness: clamp01(weather.wind.gustStrength / 0.6), windTurbulence: weather.wind.turbulence,
         lightningFrequency: clamp01(weather.lightning.frequency), lightningIntensity: clamp01(weather.lightning.strength / 4)
       }
@@ -445,7 +446,7 @@ export class SeedWorldRuntimeEnginePort implements SeedWorldEnginePort {
           environmentSnapshot.wind.baseSpeedMps * environmentSnapshot.weather.wind.forceMultiplier
         ),
         windIntensity: clamp01(environmentSnapshot.weather.wind.forceMultiplier / 2.4),
-        windDirectionDegrees: environmentSnapshot.weather.wind.directionOffsetDegrees,
+        windDirectionDegrees: windHeading(environmentSnapshot.wind.direction),
         windGustiness: clamp01(environmentSnapshot.weather.wind.gustStrength / 0.6),
         windTurbulence: clamp01(environmentSnapshot.weather.wind.turbulence),
         lightningFrequency: clamp01(environmentSnapshot.weather.lightning.frequency),
@@ -1488,7 +1489,7 @@ function resolveEnvironmentChannels(input: Readonly<SeedWorldEnvironmentUpdateIn
 
 type WeatherEditTarget = Pick<WorldEnvironmentRuntime,
   "setSeason" | "setWeatherState" | "setWind" | "setCloud" | "setSkyLighting" | "setPrecipitation" | "setLightning"> & {
-  getSnapshot(): { weather: WeatherState; wind: { baseSpeedMps: number } };
+  getSnapshot(): { weather: WeatherState; wind: { baseSpeedMps: number; baseDirection: readonly [number, number, number] } };
 };
 
 function applyEnvironmentChannels(environment: WeatherEditTarget, input: Readonly<SeedWorldEnvironmentUpdateInput>): void {
@@ -1522,6 +1523,15 @@ function applyEnvironmentChannels(environment: WeatherEditTarget, input: Readonl
   if (exact?.lightning) environment.setLightning(exact.lightning);
 }
 
+/** Clockwise heading of the direction the wind blows TOWARD: -Z=0, +X=90. */
+function windHeading(direction: readonly number[]): number {
+  return wrapWindHeading(Math.atan2(direction[0]!, -direction[2]!) * 180 / Math.PI);
+}
+function wrapWindHeading(degrees: number): number {
+  const result = ((degrees + 180) % 360 + 360) % 360 - 180;
+  return Object.is(result, -0) ? 0 : result;
+}
+
 function applyWind(
   environment: WeatherEditTarget,
   input: SeedWorldWindInput,
@@ -1541,7 +1551,8 @@ function applyWind(
   }
   environment.setWind({
     forceMultiplier,
-    directionOffsetDegrees: input.directionDegrees ?? fallback.directionOffsetDegrees,
+    directionOffsetDegrees: input.directionDegrees === undefined ? fallback.directionOffsetDegrees
+      : wrapWindHeading(windHeading(snapshot.wind.baseDirection) - input.directionDegrees),
     gustStrength: input.gustiness === undefined ? fallback.gustStrength : input.gustiness * 0.6,
     turbulence: input.turbulence ?? fallback.turbulence
   });

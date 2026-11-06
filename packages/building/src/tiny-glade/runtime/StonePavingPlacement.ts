@@ -1,4 +1,4 @@
-import type { MasonryBinding } from "./MasonryDocument";
+import type { UnitPlacementBinding as MasonryBinding } from "./UnitPlacement";
 import { unitFootprintScale } from "./MaterialFootprint";
 /** A baked irregular placement field is the native stone-floor rule's compact
  * representation. It uses a metric surface chart, independently of its shape.

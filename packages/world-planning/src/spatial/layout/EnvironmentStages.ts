@@ -1,4 +1,5 @@
 import { publishNaturalVegetation } from "../../planning-data/NaturalVegetationProfile";
+import { worldTemplateEcology } from "../WorldTemplateEcology";
 import { isGlobalRoadId } from "./RoadIdentity";
 import { createPlanningRingQuery } from "../../semantic-study/WorldPlanningTerrain";
 import { overlap } from "../../semantic-study/WorldPlanningGeometry";
@@ -75,7 +76,7 @@ export function updateSpatialEcology(
   const stageStarted = performance.now();
   const { plan, recipe, previous, compatible, terrainChanged } = context;
   const p = recipe.parameters,
-    config = p.poiLayout ?? defaultPoiLayout();
+    config = worldTemplateEcology(p.worldTemplate?.id, p.poiLayout ?? defaultPoiLayout());
   const initialFlowers = plan.flowerRegions;
   const oldVolumes = new Map(
     (previous?.plan.spatialLayout?.baselineGroups ?? previous?.plan.spatialLayout?.groups)?.flatMap((g) =>
@@ -201,7 +202,10 @@ export function revealSpatialEcology(context: EnvironmentContext): LandscapeBase
       ...(plan.landscapes ?? []).filter((p) => members.has(p.id) && p.role === "ambient")
     ]
   };
-  const config = recipe.parameters.poiLayout ?? defaultPoiLayout();
+  const config = worldTemplateEcology(
+    recipe.parameters.worldTemplate?.id,
+    recipe.parameters.poiLayout ?? defaultPoiLayout()
+  );
   plan.landscapes = revealLandscapeBasemap(plan, base, config.landscape, recipe.edits);
   return base;
 }

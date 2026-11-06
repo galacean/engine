@@ -122,28 +122,6 @@ for (const demo of demos) {
           demo.entry +
           (process.env.DEMO_QUERY || "");
     const result = { variant, url, errors, requests };
-    const action = {
-      "demos/building-components/native-access.html": {
-        button: "#run",
-        done: "nativeAccessDone",
-        error: "nativeAccessError",
-        result: "nativeAccessResults",
-        finite: true
-      },
-      "demos/building-components/validation.html": {
-        button: "#run",
-        done: "crDone",
-        error: "crError",
-        result: "crResults",
-        finite: true
-      },
-      "demos/building-components/presets.html": { button: "#verify", done: "presetResult", result: "presetResult" },
-      "demos/building-components/generated.html": {
-        button: "#verify",
-        done: "generatedBuildingResult",
-        result: "generatedBuildingResult"
-      }
-    }[demo.entry];
     const started = Date.now();
     console.log("START", demo.entry, variant);
     let deadline;
@@ -167,23 +145,6 @@ for (const demo of demos) {
             result.action = "Import the original deterministic offline Trace fixture (no LLM request)";
             result.functional = { rows: await page.locator("tr[data-record-index]").count() };
           }
-          if (action) {
-            await page.locator(action.button).click({ timeout: 120000 });
-            result.action = "Run the Demo's built-in acceptance checks";
-            await page.waitForFunction((a) => !!window[a.done] || (a.error && !!window[a.error]), action, {
-              timeout: 180000
-            });
-            result.functional = await page.evaluate(
-              (a) => ({
-                done: !!window[a.done],
-                error: a.error ? window[a.error] : window[a.result]?.error,
-                result: window[a.result]
-              }),
-              action
-            );
-            if (result.functional.error || result.functional.result?.ok === false)
-              errors.push("Built-in acceptance failed: " + (result.functional.error || "false result"));
-          }
           await page.waitForTimeout(10000);
           if (demo.entry === "demos/animals/roaming/index.html") {
             await page.waitForFunction(
@@ -195,7 +156,6 @@ for (const demo of demos) {
             result.functional = { loadedAnimals: 100, autonomousMotion: true };
           }
           if (
-            !action?.finite &&
             ![
               "demos/agent-trajectory/index.html",
               "demos/canyon-shape-study/index.html",
@@ -285,7 +245,7 @@ for (const demo of demos) {
             window.__acceptance.engineCpu = [];
           });
           result.windows = [];
-          for (let interval = 0; interval < (process.env.SMOKE_ONLY || action?.finite ? 0 : 3); interval++) {
+          for (let interval = 0; interval < (process.env.SMOKE_ONLY ? 0 : 3); interval++) {
             const sizes = await page.evaluate(() => ({
               frames: window.__acceptance.frames.length,
               cpu: window.__acceptance.engineCpu.length
@@ -352,7 +312,6 @@ for (const demo of demos) {
             };
           });
           if (
-            !action?.finite &&
             demo.entry !== "demos/seed-world/dev/loading-preview.html" &&
             result.metrics.totalDraws > 30 &&
             !result.metrics.canvases.some((canvas) => canvas.visible && canvas.cssWidth > 0 && canvas.cssHeight > 0)

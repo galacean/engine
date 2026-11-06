@@ -1,35 +1,35 @@
-import { constructionDecorationFrame } from "./ConstructionDecorationFrames";
+import type { PlannedDecorationAssembly } from "./DecorationAssemblyPlacement";
+import { profiledDormerRoofReservation, type PlannedProfiledDormerRoof } from "./ProfiledDormerSupport";
 import { requireDecorationCollision } from "./ConstructionDecorationCollisions";
-import { generateStoneHalfDormer } from "./StoneHalfDormerGenerator";
-import { constructionEaveAttachment } from "./ConstructionEaveAttachment";
-import { constructionDecorationAssembly } from "./ConstructionDecorationAssembly";
-import { decorationAssemblyGeometry } from "./ConstructionDecorationGeometry";
-import { cottageXzProjectiveRotation } from "./RecoveredCottageRoofSampler";
-import { closestWallCurveCoordinate, sampleWallArclength } from "./RecoveredWallSpace";
-import { sub, mul, type RoofCurve } from "./RecoveredRoofMath";
-import { roofBytes, roofBasis } from "./ConstructionRoof";
-import { decorationConvexOccupancy, decorationVolumesOverlap } from "./DecorationConvexOccupancy";
-import { decorationStoneBounds } from "./DecorationStoneBounds";
-import { decorationTransformPoints, type PitchedDecorationContext } from "./ConstructionPitchedDecorationContext";
-import type { ConstructionBuilding } from "./ConstructionSource";
+import { planStoneHalfDormerSupport } from "./StoneHalfDormerSupport";
+import { constructionEaveAttachment } from "./ConstructionEaveAttachment.ts";
+import { constructionDecorationAssembly } from "./ConstructionDecorationAssembly.ts";
+import { cottageXzProjectiveRotation } from "./RecoveredCottageRoofSampler.ts";
+import { sampleWallArclength } from "./RecoveredWallSpace.ts";
+import { sub, mul, type RoofCurve } from "./RecoveredRoofMath.ts";
+import { roofBasis } from "./ConstructionRoof.ts";
+import { decorationConvexOccupancy, decorationVolumesOverlap } from "./DecorationConvexOccupancy.ts";
+import { decorationStoneBounds } from "./DecorationStoneBounds.ts";
+import { decorationTransformPoints, type PitchedDecorationContext } from "./ConstructionPitchedDecorationContext.ts";
+import type { DecorationSurfaceOwner } from "./DecorationSurfaceOwner";
 import type {
   ResolvedConstructionDecorationSpec,
   CompiledConstructionDecorations,
   ConstructionDecorationStone
-} from "./ConstructionDecorations";
-import type { PublishedWallProfile } from "./PublishedWallProfile";
-import type { WallConnectionShape } from "./WallConnectionTypes";
-import type { MasonryBinding } from "./MasonryDocument";
-import { unitFootprintScale } from "./MaterialFootprint";
+} from "./ConstructionDecorations.ts";
+import type { PublishedWallProfile } from "./PublishedWallProfile.ts";
+import type { WallConnectionShape } from "./WallConnectionTypes.ts";
+import type { UnitPlacementBinding as MasonryBinding } from "./UnitPlacement";
+import { unitFootprintScale } from "./MaterialFootprint.ts";
 
 function box(min: readonly number[], max: readonly number[]) {
   return Array.from({ length: 8 }, (_, bits) => [0, 1, 2].map((i) => (bits & (1 << i) ? max[i] : min[i])));
 }
 
-/** Original stone half-dormer bodies, warped stone cap and roof strips form one
- * publication. Installation envelopes are editor policy, not native physics. */
-export function compileConstructionStoneHalf(
-  building: ConstructionBuilding,
+/** Solve the shared wall/roof aperture, body and cap mounts, and exact installation
+ * envelope. Registered algorithms generate the visible assembly and roof units. */
+export function planConstructionStoneHalf(
+  building: DecorationSurfaceOwner,
   shape: WallConnectionShape,
   profile: PublishedWallProfile,
   spec: ResolvedConstructionDecorationSpec,
@@ -45,10 +45,10 @@ export function compileConstructionStoneHalf(
   slot: number,
   binding: MasonryBinding | undefined,
   result: CompiledConstructionDecorations
-): boolean {
+): { mount: PlannedDecorationAssembly; roof: PlannedProfiledDormerRoof } | undefined {
   const reject = (code: "UNSUPPORTED_ATTACHMENT" | "INSUFFICIENT_SPACE", reason: string) => {
     result.diagnostics.push({ id: spec.id, code, reason });
-    return false;
+    return undefined;
   };
   const { curve, pivotU, pivotY, scale, seed } = placement;
   const mountCurve = placement.mountCurve ?? curve;
@@ -75,7 +75,7 @@ export function compileConstructionStoneHalf(
     return reject("INSUFFICIENT_SPACE", "The window is entirely above its supporting wall");
   if (shape.type === "circle" && mul(sub(ordinary.max[0], ordinary.min[0]), scale[0]) >= curve.length)
     return reject("INSUFFICIENT_SPACE", "Window collision span covers the entire closed wall");
-  const blueprint = generateStoneHalfDormer(
+  const blueprint = planStoneHalfDormerSupport(
     context.assets?.decorationCollisions,
     context.assets?.decorations,
     {
@@ -90,7 +90,7 @@ export function compileConstructionStoneHalf(
         pivotY,
         closed: true,
         circleRadius: shape.type === "circle" ? shape.radius : undefined,
-        wooden: building.material === 1,
+        wooden: building.wallMaterial === 1,
         halfTimber: false,
         foundationHeight: 0,
         baseY: profile.minGround,
@@ -106,11 +106,7 @@ export function compileConstructionStoneHalf(
         scale: [1, 1, 1]
       }
     },
-    {
-      ...context.roof,
-      tileScale: unitFootprintScale(binding?.footprint),
-      tileSeed: binding && binding.seed !== "source" ? BigInt(binding.seed) : undefined
-    }
+    context.roof
   );
   const body = blueprint.bodyTransform;
   const volumes = [
@@ -131,13 +127,23 @@ export function compileConstructionStoneHalf(
     const bounds = decorationStoneBounds(context.assets?.stoneGeometry, stone);
     volumes.push(decorationConvexOccupancy(spec.id, box(bounds.min, bounds.max)));
   }
-  for (const strip of blueprint.strips)
-    volumes.push(
-      decorationConvexOccupancy(
-        spec.id,
-        decorationTransformPoints(box([-0.5, -0.5, -0.5], [0.5, 0.5, 0.5]), strip.position, strip.rotation, strip.scale)
-      )
-    );
+  const plannedRoof: PlannedProfiledDormerRoof = {
+    decorationId: spec.id,
+    support: blueprint.roof,
+    placement: {
+      id: "stone-half/" + blueprint.id,
+      ...(building.variationKey !== undefined || spec.variationKey !== undefined
+        ? {
+            variationKey:
+              "stone-half/" + JSON.stringify([building.variationKey ?? building.id, spec.variationKey ?? spec.id])
+          }
+        : {}),
+      slot,
+      unitScale: unitFootprintScale(binding?.footprint),
+      seed: binding && binding.seed !== "source" ? BigInt(binding.seed) : undefined
+    }
+  };
+  volumes.push(...profiledDormerRoofReservation(spec.id, plannedRoof.support, plannedRoof.placement).volumes);
   const overlaps = context.occupied.filter((p) =>
     p.volumes.some((a) => volumes.some((b) => decorationVolumesOverlap(a, b)))
   );
@@ -148,58 +154,42 @@ export function compileConstructionStoneHalf(
       reason: "Eave-window installation intersects an existing roof attachment",
       relatedIds: overlaps.map((p) => p.id)
     });
-    return false;
+    return;
   }
   const assembly = constructionDecorationAssembly(context.assets?.decorations, spec.type!, rank)!;
   const transform = blueprint.bodyTransform;
-  const parts = assembly.parts.flatMap((source) => {
-    const axes = roofBasis(transform.rotation).map((axis, i) => axis.map((v) => v * transform.scale[i])) as [
-      number[],
-      number[],
-      number[]
-    ];
-    if (spec.frameMaterial === "wall" && source.binding.role === "frame") {
-      result.frames.push(
-        constructionDecorationFrame({
-          id: building.id + "/" + spec.id + "/" + source.suffix,
-          ownerId: building.id,
-          decorationId: spec.id,
-          mesh: source.name,
-          binding: source.binding,
-          origin: transform.translation,
-          axes,
-          ...blueprint.frameAttributes,
-          seed,
-          wallSlot: slot
-        })
-      );
-      return [];
-    }
-    return decorationAssemblyGeometry(building, spec, { bounds: assembly.bounds, parts: [source] }, "window", {
-      origin: transform.translation,
-      axes,
-      editUV: (_source, world) => {
-        const u = closestWallCurveCoordinate(curve, [world[0], world[2]]);
-        let wallU = curve.knots[u.index] * (1 - u.t) + curve.knots[u.index + 1] * u.t;
-        wallU += Math.round(spec.u! - wallU);
-        return [wallU, (world[1] - profile.minGround) / Math.max(0.01, profile.topY - profile.minGround)];
-      }
-    });
-  });
-  result.parts.push(...parts);
+  const axes = roofBasis(transform.rotation).map((axis, i) => axis.map((v) => v * transform.scale[i])) as [
+    number[],
+    number[],
+    number[]
+  ];
   result.windowCuts.push({ id: spec.id, cut: blueprint.windowCut });
-  if (blueprint.hat.visible) result.stones.push(stone);
   for (const hole of blueprint.wallHoles) result.holes.push({ ...hole, decorationId: spec.id });
   result.roofOpenings.push({ id: spec.id + "/0", raw48: blueprint.hole48.slice(), polygon: [] });
-  for (const strip of blueprint.strips)
-    result.roofUnits.push({
-      id: "stone-half/" + strip.id,
-      decorationId: spec.id,
-      position: strip.position.slice(),
-      rotation: strip.rotation.slice(),
-      scale: strip.scale.slice(),
-      initial64: roofBytes(strip.initial64_hex)
-    });
   context.occupied.push({ id: spec.id, volumes });
-  return true;
+  return {
+    mount: {
+      decorationId: spec.id,
+      mount: {
+        origin: transform.translation,
+        axes,
+        stones: blueprint.hat.visible ? [stone] : [],
+        chart: {
+          kind: "wall-curve",
+          points: curve.points.map((p) => [...p]),
+          referenceU: spec.u!,
+          minimumY: profile.minGround,
+          height: profile.topY - profile.minGround
+        }
+      },
+      placement: {
+        building: { id: building.id, woodColor: building.woodColor },
+        spec,
+        assembly,
+        kind: "window",
+        frameAttributes: { ...blueprint.frameAttributes, seed, wallSlot: slot }
+      }
+    },
+    roof: plannedRoof
+  };
 }

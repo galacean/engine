@@ -1,3 +1,4 @@
+import { readAssetJson } from "@galacean/engine-project/runtime-editor/project/runtime-asset-read";
 import {
   parseFarmingResourceFile,
   validateFarmingResourceFile
@@ -28,6 +29,7 @@ export const planningFarmingAssetFormats: ReadonlyMap<string, RuntimeAssetFormat
     "FarmingResource",
     {
       contentEncoding: "utf8",
+      read: readAssetJson,
       validate: (content: string | Uint8Array) => {
         validateFarmingResourceFile(resourceFile(content));
       },
@@ -53,6 +55,7 @@ export const planningFarmingAssetFormats: ReadonlyMap<string, RuntimeAssetFormat
     PLANNING_FARMING_PROJECT_TYPE,
     {
       contentEncoding: "utf8",
+      read: readAssetJson,
       referenceTypes: [],
       references: () => [],
       validateCreate: (content) => {

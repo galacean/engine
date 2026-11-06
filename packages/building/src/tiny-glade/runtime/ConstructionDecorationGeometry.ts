@@ -1,7 +1,8 @@
-import { DecorationMaterial as M } from "./ConstructionDecorationMaterial";
-import type { DecorationAssembly } from "./ConstructionDecorationAssembly";
-import type { ConstructionDecorationPart, ConstructionDecorationSpec } from "./ConstructionDecorations";
-import type { ConstructionBuilding } from "./ConstructionSource";
+import { decorationMountPosition } from "./DecorationMountGeometry";
+import { DecorationMaterial as M } from "./ConstructionDecorationMaterial.ts";
+import type { DecorationAssembly } from "./ConstructionDecorationAssembly.ts";
+import type { ConstructionDecorationPart, ConstructionDecorationSpec } from "./ConstructionDecorations.ts";
+import type { DecorationSurfaceOwner } from "./DecorationSurfaceOwner";
 
 export interface DecorationPlacementFrame {
   /** Original assembly origin and scaled, mutually orthogonal basis columns. */
@@ -16,16 +17,13 @@ export interface DecorationPlacementFrame {
  * Material UVs stay in model space; edit UVs belong to the host surface.
  */
 export function decorationAssemblyGeometry(
-  building: ConstructionBuilding,
+  building: Pick<DecorationSurfaceOwner, "id" | "woodColor">,
   spec: ConstructionDecorationSpec,
   assembly: DecorationAssembly,
   kind: string,
   frame: DecorationPlacementFrame
 ): ConstructionDecorationPart[] {
-  const transform = (p: readonly number[]) =>
-    frame.origin.map(
-      (v, axis) => v + frame.axes[0][axis] * p[0] + frame.axes[1][axis] * p[1] + frame.axes[2][axis] * p[2]
-    );
+  const transform = (p: readonly number[]) => decorationMountPosition(frame, p);
   const inverseNormals = frame.axes.map((axis) => {
     const length2 = axis.reduce((sum, v) => sum + v * v, 0);
     if (!(length2 > 0) || !Number.isFinite(length2)) throw Error("Invalid decoration placement basis");
@@ -82,7 +80,7 @@ export function decorationAssemblyGeometry(
       part.appearance!.kinds.push(surfaceKind);
       part.appearance!.colorIds.push(
         surfaceKind === M.frame || surfaceKind === M.doorWood
-          ? (spec.woodColor ?? building.wood_color ?? 0)
+          ? (spec.woodColor ?? building.woodColor ?? 0)
           : surfaceKind === M.lanternEmission
             ? (spec.lightColor ?? 0)
             : 0

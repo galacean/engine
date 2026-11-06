@@ -12,6 +12,7 @@ declare global {
     interface RuntimeApi {}
     interface SpatialApi {}
     interface TimeApi {}
+    interface BuildingApi {}
     interface AtmosphereApi {}
     interface TerrainApi {}
     interface VegetationApi {}
@@ -20,6 +21,7 @@ declare global {
       readonly runtime: RuntimeApi;
       readonly spatial: SpatialApi;
       readonly time: TimeApi;
+      readonly building: BuildingApi;
       readonly atmosphere: AtmosphereApi;
       readonly terrain: TerrainApi;
       readonly vegetation: VegetationApi;

@@ -1,3 +1,4 @@
+import type { IrrigationEffectSummary } from "../application/IrrigationEffectSummary";
 import { z } from "zod";
 import { FARM_ITEM_TYPES } from "../domain/FarmItems";
 import { mapApiMethods, type ApiOperation, type ApiInput } from "@galacean/engine-project/api-contract/api-method";
@@ -52,11 +53,18 @@ export interface FarmingAreaInfo {
   readonly error: string | null;
 }
 export interface FarmingCapabilities {
+  /** Omitted farmId queries system defaults, not the aggregate readiness of all farms. */
+  readonly scope: { readonly kind: "system" | "farm"; readonly farmId: string | null };
+  /** A farm interaction host is bound. null means no farm was selected; it is not an unavailable farm. This is NOT rendering/resource readiness. */
+  readonly interactionHostBound: boolean | null;
+  /** The bound interaction host supplies camera/point target lookup. */
+  readonly targetQueryAvailable: boolean | null;
   readonly operations: readonly (keyof FarmingCommands)[];
   readonly unavailableOperations: readonly (keyof FarmingCommands)[];
   readonly unsupported: readonly string[];
   readonly editablePlotFields: readonly string[];
-  readonly presentation: boolean;
+  /** @deprecated Use interactionHostBound. This legacy alias does not report rendering readiness. */
+  readonly presentation: boolean | null;
 }
 export interface FarmingCatalogView {
   readonly storage: FarmingStorageDefinitions;
@@ -70,7 +78,12 @@ export interface FarmingOutputs {
   capabilities: FarmingCapabilities;
   getDiagnostics: FarmingDiagnosticReport;
   getCatalog: FarmingCatalogView;
-  getTarget: { readonly plotId: string | null; readonly ground: GroundTarget | null };
+  getTarget: {
+    readonly plotId: string | null;
+    readonly ground: GroundTarget | null;
+    /** Reports a pointed plot, a ground hit, or no current hit. Never implies containment in the nearest farm. */
+    readonly targetStatus: "plot" | "ground" | "no-hit";
+  };
   queryPlots: readonly PlotView[];
   getPlot: PlotView | null;
   getEnvironment: FarmEnvironmentView;
@@ -91,7 +104,10 @@ export interface FarmingOutputs {
   updatePlot: { readonly receipt: CommandResult; readonly request: FarmingRequest<"updatePlot"> };
   deletePlot: CoordinatedFarmingAction & { readonly request: FarmingRequest<"deletePlot"> };
   plant: CoordinatedFarmingAction & { readonly request: FarmingRequest<"plant"> };
-  irrigate: CoordinatedFarmingAction & { readonly request: FarmingRequest<"irrigate"> };
+  irrigate: CoordinatedFarmingAction & {
+    readonly request: FarmingRequest<"irrigate">;
+    readonly effectSummary: IrrigationEffectSummary;
+  };
   harvest: CoordinatedFarmingAction & { readonly request: FarmingRequest<"harvest"> };
   hoe: CoordinatedFarmingAction & { readonly request: FarmingRequest<"hoe"> };
   getFieldValues: FieldValueResult;
@@ -202,7 +218,7 @@ export const farmingOperations = {
   getDiagnostics: {
     effect: "read",
     description:
-      "只读查询候选与当前发布农场的放置、道路接入、运行时和表现诊断。可省略 farmId 查询系统；区域未创建、初始化失败时仍可调用，不触发初始化。按 phase、planningRevision/publicationRevision 区分版本，state 为 pending/ready/blocked/failed。道路事实由宿主提供，access.evidence 的 ROAD_CONNECTION 记录入口 target 及实际公共节点、道路段和道路身份 relatedIds；Farming 不解释路网。正常剔除或距离隐藏不是资源失败。",
+      "只读查询当前农场状态。current/coverage 只描述发布就绪的 placement/access/runtime/presentation；agronomy 独立汇总当前地块可用性、作物健康和生长、土壤水分与库存数量，并给出真实 findings。no-issues-found 只覆盖该 evidence.checked 范围，不代表外观或未来状态；unavailable 不能当正常。空地和空库存本身不是故障。一般健康询问可依据这两组当前证据回答；有 finding 时按真实 plotId 查询详情，用户要求视觉检查时再取景。不用追查正常的历史候选。farms 保留候选与发布的分阶段证据，用于解释 current 中的问题。可省略 farmId 查询系统；区域未创建、初始化失败时仍可调用，不触发初始化。按 phase、planningRevision/publicationRevision 区分版本，state 为 pending/ready/blocked/failed。道路事实由宿主提供，access.evidence 的 ROAD_CONNECTION 记录入口 target 及实际公共节点、道路段和道路身份 relatedIds；Farming 不解释路网。正常剔除或距离隐藏不是资源失败。",
     input: z.object({ farmId: id.optional() }).strict()
   },
   list: {
@@ -220,7 +236,7 @@ export const farmingOperations = {
   capabilities: {
     effect: "read",
     description:
-      "查询当前可执行的操作与依赖；无 farmId 时读取系统通用能力，当前目标须由宿主绑定。 只读，指定未知区域 NOT_FOUND；operations 是当时的能力事实，执行前仍须校验，不能解锁未初始化或禁用区域。",
+      "查询当前可执行的操作与依赖；无 farmId 时读取系统通用能力，scope.kind=system；这时 interactionHostBound/targetQueryAvailable/presentation=null 表示未选择农场，不能推断任何农场不可用；用 list 得到 farmId 后再查区域能力。指定 farmId 才查询区域交互宿主，targetQueryAvailable 指示 getTarget 是否可用。presentation 是 interactionHostBound 的兼容别名，不等于诊断中的表现资源就绪。 只读，指定未知区域 NOT_FOUND；operations 是当时的能力事实，执行前仍须校验，不能解锁未初始化或禁用区域。",
     input: z.object({ farmId: id.optional() }).strict()
   },
   getCatalog: {
@@ -318,7 +334,7 @@ export const farmingOperations = {
   irrigate: {
     effect: "command",
     description:
-      "优先使用手上水壶，否则在目标旁生成或复用空闲水壶并换拿，不限制AI距离。按规则增加体积含水率百分点；余水分配到连通耕地，全部饱和后流失。回执包含 input/absorbed/distributed/lost，不会立即成熟。 输入 farmId/plotId，无用户可编辑的水量；ok 表示水分事务已提交到当前状态，后台保存状态由宿主管理，演出与落地同步。ACTION_UNAVAILABLE、地形/版本/提交错误拒绝；verify 后检查回执与相关地块含水率。",
+      "优先使用手上水壶，否则在目标旁生成或复用空闲水壶并换拿，不限制AI距离。按规则增加体积含水率百分点；余水分配到连通耕地，全部饱和后流失。回执包含 input/absorbed/distributed/lost，仅表示该次灌水的即时吸收、溢流分配和流失；distributed=0 不排除后续模拟的土壤扩散。effectSummary 分开列出即时灌水和回执中的模拟结算；后续状态须重新读取，不能把读数差异全部归因蒸发。不会立即成熟。 输入 farmId/plotId，无用户可编辑的水量；ok 表示水分事务已提交到当前状态，后台保存状态由宿主管理，演出与落地同步。ACTION_UNAVAILABLE、地形/版本/提交错误拒绝；verify 后检查回执与相关地块含水率。",
     input: z.object(plot).strict(),
     options: farmingWriteOptionsSchema
   },

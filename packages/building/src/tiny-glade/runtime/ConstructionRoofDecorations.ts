@@ -1,13 +1,13 @@
-import { decorationConstraintFact, type MeasuredDecorationConstraint } from "./ConstructionDecorationCatalog";
-import { recoveredRoofAttachmentForward } from "./RecoveredRoofAttachment";
-import { decodeDormer } from "./GothicClip";
-import { DecorationMaterial } from "./ConstructionDecorationMaterial";
-import { supportShapeFrame } from "./ConstructionSupportFrame";
-import { decorationAssemblyGeometry } from "./ConstructionDecorationGeometry";
-import type { DecorationAssembly } from "./ConstructionDecorationAssembly";
-import type { ConstructionBuilding } from "./ConstructionSource";
-import type { ConstructionDecorationSpec, CompiledConstructionDecorations } from "./ConstructionDecorations";
-import type { WallConnectionShape } from "./WallConnectionTypes";
+import { decorationConstraintFact, type MeasuredDecorationConstraint } from "./ConstructionDecorationCatalog.ts";
+import { recoveredRoofAttachmentForward } from "./RecoveredRoofAttachment.ts";
+import { decodeDormer } from "./GothicClip.ts";
+import { DecorationMaterial } from "./ConstructionDecorationMaterial.ts";
+import { supportShapeFrame } from "./ConstructionSupportFrame.ts";
+import type { PlannedDecorationAssembly } from "./DecorationAssemblyPlacement";
+import type { DecorationAssembly } from "./ConstructionDecorationAssembly.ts";
+import type { DecorationSurfaceOwner } from "./DecorationSurfaceOwner";
+import type { ConstructionDecorationSpec, CompiledConstructionDecorations } from "./ConstructionDecorations.ts";
+import type { WallConnectionShape } from "./WallConnectionTypes.ts";
 
 /** Roof openings use the same metre chart as the flat deck's geometry/cells. */
 export interface DecorationRoofOpening {
@@ -28,8 +28,8 @@ export interface RoofDecorationOccupancy {
  * model pivots are retained (a hatch extends below its mounting plane).
  * Width/height are source X/Y spans; depth follows width's uniform XZ scale.
  */
-export function compileFlatRoofDecoration(
-  building: ConstructionBuilding,
+export function planFlatRoofDecoration(
+  building: DecorationSurfaceOwner,
   shape: WallConnectionShape,
   deckY: number,
   spec: ConstructionDecorationSpec,
@@ -38,7 +38,7 @@ export function compileFlatRoofDecoration(
   occupied: RoofDecorationOccupancy[],
   result: CompiledConstructionDecorations,
   wallSlot: number
-) {
+): PlannedDecorationAssembly | undefined {
   const frame = supportShapeFrame(shape),
     b = assembly.bounds;
   const sx = spec.width / (b.max[0] - b.min[0]),
@@ -170,18 +170,41 @@ export function compileFlatRoofDecoration(
       ? assembly.parts.find((part) => part.material === DecorationMaterial.lanternEmission)?.emissionOrigin
       : undefined;
   if (type === "roof-lantern" && !filament) throw Error("Roof lamp Prefab requires an authored emission origin");
-  const parts = decorationAssemblyGeometry(building, spec, assembly, type === "roof-lantern" ? "lantern" : "hatch", {
-    origin: frame.point(x, deckY + spec.bottom, z),
-    axes,
-    lightPosition: filament
-      ? (frame.point(x + filament[0], deckY + spec.bottom + filament[1], z + filament[2]) as [number, number, number])
-      : undefined,
-    editUV: (source) => {
-      const [px, pz] = local(source[0], source[2]);
-      return [px + frame.width / 2, frame.depth / 2 - pz];
+  const plan: PlannedDecorationAssembly = {
+    decorationId: spec.id,
+    mount: {
+      origin: frame.point(x, deckY + spec.bottom, z),
+      axes,
+      stones: [],
+      ...(filament
+        ? {
+            lightPosition: frame.point(x + filament[0], deckY + spec.bottom + filament[1], z + filament[2]) as [
+              number,
+              number,
+              number
+            ]
+          }
+        : {}),
+      chart: {
+        kind: "flat-roof",
+        x,
+        z,
+        cosine: frame.c,
+        sine: frame.s,
+        normalX: nx,
+        normalZ: nz,
+        scale: sx,
+        width: frame.width,
+        depth: frame.depth
+      }
+    },
+    placement: {
+      building: { id: building.id, woodColor: building.woodColor },
+      spec,
+      assembly,
+      kind: type === "roof-lantern" ? "lantern" : "hatch"
     }
-  });
-  for (const part of parts) result.parts.push(part);
+  };
   if (type === "hatch-cottage" || type === "hatch-gothic") {
     // generate_trap_doors 0x1011b…: cottage SSBO full size is
     // [1.125,.375,1.125], not half extents. Native floor clipping admits
@@ -217,6 +240,7 @@ export function compileFlatRoofDecoration(
     }
     result.roofOpenings.push({ id: spec.id, polygon: section, raw48 });
   }
+  return plan;
 }
 
 /** Separating axes of both oriented boxes; AABB overlap is only a broad phase

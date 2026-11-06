@@ -1,7 +1,7 @@
 import { plasterLinearColor } from "./ConstructionPlasterPalette";
 import { masonryTintGLSL } from "./MasonryAppearance";
 import { constructionPlasterWarpGLSL } from "./ConstructionPlasterWarp";
-import type { ConstructionPreviewPart } from "./ConstructionPreview";
+import type { ConstructionPreviewPart } from "./ProfilePreview";
 import type { ConstructionRenderResult } from "./ConstructionDecorationRender";
 import { constructionPlasterGLSL, constructionPlasterFinishGLSL } from "./ConstructionPlasterShader";
 const program = (whiteBase: boolean) => ({

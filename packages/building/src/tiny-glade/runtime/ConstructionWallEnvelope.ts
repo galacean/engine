@@ -1,8 +1,8 @@
-import type { WallConnectionShape } from "./WallConnectionTypes";
-import type { MasonryBinding } from "./MasonryDocument";
-import { unitFootprintScale } from "./MaterialFootprint";
-import type { ConstructionBuilding } from "./ConstructionSource";
-import type { RoofCurve } from "./RecoveredRoofMath";
+import type { ProfileFootprint } from "./ProfileParameters";
+import type { MaterialFootprint } from "./MaterialFootprint";
+import type { WallConnectionShape } from "./WallConnectionTypes.ts";
+import { unitFootprintScale } from "./MaterialFootprint.ts";
+import type { RoofCurve } from "./RecoveredRoofMath.ts";
 
 /** Resolved geometry, not author state. The wall curve is the structural datum,
  * not the visible facade. Native producers have different depth conventions:
@@ -18,12 +18,12 @@ export interface ConstructionWallEnvelope {
   /** Preserve native attachment recess/projection relative to the nominal face. */
   readonly mountOffset: number;
 }
-export function constructionWallEnvelope(
-  building: ConstructionBuilding,
-  binding?: MasonryBinding
+export function profileWallEnvelope(
+  footprint: ProfileFootprint,
+  unitFootprint?: MaterialFootprint
 ): ConstructionWallEnvelope {
-  const scale = unitFootprintScale(binding?.footprint);
-  const radius = building.circle?.radius;
+  const scale = unitFootprintScale(unitFootprint);
+  const radius = footprint.circle?.radius;
   const factor =
     radius === undefined
       ? 1

@@ -34,8 +34,8 @@ export class SeedWorldSessionActivity {
   }
   private accept(event: AgentEvent): void {
     if (event.type === "input_queued" && this.pendingTrace) this.queuedTraces.set(event.input.id, this.pendingTrace);
-    if (event.type === "task_started") this.setViewer(event.context);
-    if (event.type === "input_consumed") this.setViewer(event.input.context);
+    if (event.type === "task_started") this.setViewer(event.context, event.inputId);
+    if (event.type === "input_consumed") this.setViewer(event.input.context, event.input.id);
     if (this.traceId) this.trace.captureAgentEvent(event);
   }
   private renderTrace(snapshot: AgentSessionSnapshot): void {
@@ -73,11 +73,11 @@ export class SeedWorldSessionActivity {
       this.unsubscribeEvents(); this.unsubscribeState?.();
     }
   }
-  private setViewer(context: AgentValue | undefined): void {
+  private setViewer(context: AgentValue | undefined, inputId?: string): void {
     this.releaseViewer?.();
     const viewer = context && typeof context === "object" && !Array.isArray(context) ? (context as Record<string, AgentValue>).viewer_at_submission : undefined;
     this.releaseViewer = this.application.captureTaskViewerSnapshot(
-      viewer as ReturnType<SeedWorldAgentApplication["getViewerSnapshot"]> | undefined);
+      viewer as ReturnType<SeedWorldAgentApplication["getViewerSnapshot"]> | undefined, inputId);
   }
 }
 export function readTraceWorldSnapshot(application: SeedWorldAgentApplication): unknown {

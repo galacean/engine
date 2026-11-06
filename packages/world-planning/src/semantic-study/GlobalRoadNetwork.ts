@@ -92,9 +92,10 @@ export function planGlobalRoadNetwork(
     outline: r.outline,
     ring: createPlanningRingQuery(r.outline)
   }));
-  const roadAvoidance = plan.regions
-    .filter((r) => r.roadExcluded)
-    .map((r) => ({ ...r, ring: createPlanningRingQuery(r.outline) }));
+  const roadAvoidance = [
+    ...plan.regions.filter((r) => r.roadExcluded),
+    ...(plan.planning?.reservations.filter((area) => area.kind === "activity") ?? [])
+  ].map((r) => ({ ...r, ring: createPlanningRingQuery(r.outline) }));
   const solidsAt = footprintBoundsLookup(solids, (s) => s.outline),
     watersAt = footprintBoundsLookup(waters, (w) => w.outline),
     villagesAt = footprintBoundsLookup(villages, (v) => v.outline),
@@ -135,6 +136,7 @@ export function planGlobalRoadNetwork(
     plan.planning?.profiles,
     solids.map((s) => [s.owner, s.outline]),
     plan.regions.filter((r) => r.kind === "village" || r.roadExcluded).map((r) => r.outline),
+    roadAvoidance.map((area) => area.outline),
     radius
   ]);
   for (const domain of plan.poiDistribution!.domains) {

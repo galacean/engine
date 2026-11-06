@@ -1,9 +1,9 @@
-import { add, div, f32, mul, randomSplits, RoofRandom, sub } from "./RecoveredRoofMath";
-import { constructionWallLowerBoundary } from "./ConstructionWallLowerBoundary";
-import { finalizeWallConnectionHoles } from "./RecoveredWallConnectionHoles";
-import { resolveWallHole, wallIntersects } from "./RecoveredWallHoles";
-import { unitFootprintScale } from "./MaterialFootprint";
-import { resolvedArrangement, type MasonryBinding } from "./MasonryDocument";
+import { add, div, f32, mul, randomSplits, RoofRandom, sub } from "./RecoveredRoofMath.ts";
+import { constructionWallLowerBoundary } from "./ConstructionWallLowerBoundary.ts";
+import { finalizeWallConnectionHoles } from "./RecoveredWallConnectionHoles.ts";
+import { resolveWallHole, wallIntersects } from "./RecoveredWallHoles.ts";
+import { unitFootprintScale } from "./MaterialFootprint.ts";
+import { resolvedArrangement, type UnitPlacementBinding as MasonryBinding } from "./UnitPlacement";
 import type { PublishedWallProfile } from "./PublishedWallProfile";
 import type { WallConnectionShape, WallConnectionWipHole } from "./WallConnectionTypes";
 import type { WallPiece, WallRect } from "./WallTypes";
@@ -191,6 +191,12 @@ export function buildConstructionFloors(input: {
           cells.push({
             id: key,
             logical_id: key,
+            ...(binding.variationKey !== undefined
+              ? {
+                  seed_id: `${binding.variationKey}/belt-${row}/segment-${segment}/${column}/${piece}`,
+                  lod_seed_id: `${binding.variationKey}/belt-${row}/segment-${segment}/${column}/${piece}`
+                }
+              : {}),
             surface_id: id,
             anchor_uv: [(u0 + u1) / 2, (y0 + y1) / 2 - profile.minGround],
             center: [(a[0] + b[0]) / 2, (y0 + y1) / 2, (a[1] + b[1]) / 2],
@@ -247,6 +253,12 @@ export function buildConstructionFloors(input: {
         appendSupport({
           id: key,
           logical_id: key,
+          ...(binding.variationKey !== undefined
+            ? {
+                seed_id: `${binding.variationKey}/belt-support-${row}/${edge}/${piece}`,
+                lod_seed_id: `${binding.variationKey}/belt-support-${row}/${edge}/${piece}`
+              }
+            : {}),
           surface_id: id,
           anchor_uv: [(u0 + u1) / 2, (y0 + y1) / 2 - profile.minGround],
           center: [(a[0] + b[0]) / 2, (y0 + y1) / 2, (a[1] + b[1]) / 2],

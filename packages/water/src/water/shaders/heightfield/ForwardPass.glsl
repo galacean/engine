@@ -389,5 +389,10 @@
           // matching material render-state binding, so B is not consumed again.
           fragmentAlpha = 1.0;
         }
-        {{VALUE_093_CREATEWATERSURFACEV2RESOLVEDOUTPUTSTATEMENT_VEC4_FRAGMEN}}
+        #ifdef SSR_CONTRIBUTION_CAPTURE
+          if (fragmentAlpha <= 0.0001) discard;
+        #endif
+        #ifndef SSR_CONTRIBUTION_DEPTH
+          {{VALUE_093_CREATEWATERSURFACEV2RESOLVEDOUTPUTSTATEMENT_VEC4_FRAGMEN}}
+        #endif
       }

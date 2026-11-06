@@ -1,5 +1,6 @@
 import { SUBJECT_VIEW_DECLARATION } from "@galacean/engine-world-planning/spatial/PlanningSubjectView";
 import { GRASS_APPEARANCE_DECLARATION } from "@galacean/engine-world-planning/spatial/PlanningGrassAppearance";
+import { PLANNING_WEATHER_DECLARATION } from "@galacean/engine-world-planning/spatial/PlanningWeather";
 import { PLANNING_LIGHTING_DECLARATION } from "@galacean/engine-world-planning/spatial/PlanningLightingParameters";
 import { PLANT_MATERIAL_DECLARATION } from "@galacean/engine-world-planning/spatial/PlantMaterialParameters";
 import { VEGETATION_SYSTEM_DECLARATION } from "../src/planning/spatial/ecology/VegetationSystemDeclaration.ts";
@@ -11,6 +12,7 @@ export const PLANNING_SYSTEM_DECLARATIONS: readonly PlanningSystemDeclaration[] 
   VEGETATION_SYSTEM_DECLARATION,
   PLANT_MATERIAL_DECLARATION,
   GRASS_APPEARANCE_DECLARATION,
+  PLANNING_WEATHER_DECLARATION,
   SUBJECT_VIEW_DECLARATION
 ];
 

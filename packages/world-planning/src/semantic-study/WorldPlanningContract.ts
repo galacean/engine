@@ -102,6 +102,10 @@ export interface PlanningData {
 }
 /** Relative authoring controls; counts and physical budgets remain internal. */
 export interface SemanticParameters {
+  worldTemplate?: { id: string; centerX?: number; centerZ?: number };
+  landformSeed?: number;
+}
+export interface SemanticParameters {
   farming?: Partial<import("../spatial/farming/PlanningFarmingComponent").PlanningFarmingOptions>;
   suspensionBridge?: import("@galacean/engine-water/bridges/SuspensionBridge").SuspensionBridgeOverrides;
   lakes?: Partial<import("../spatial/hydrology/LakeRegions").LakeParameters>;

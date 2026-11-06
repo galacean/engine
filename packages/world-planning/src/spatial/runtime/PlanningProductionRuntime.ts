@@ -7,10 +7,12 @@ import { warmupSeedWorldRendererVariants } from "../../world/SeedWorldShaderWarm
 import { PlanningPopulationRuntime } from "./PlanningPopulationRuntime";
 import { PlanningWaterRuntime } from "./PlanningWaterRuntime";
 import { PLANNING_RUNTIME_OPTIONS } from "./RuntimeOptions";
+import { WorldTemplateRuntime } from "./WorldTemplateRuntime";
 
 /** Production renderers for a published layout. This owner never invokes a world generator. */
 export class PlanningProductionRuntime {
   private population?: PlanningPopulationRuntime;
+  private template?: WorldTemplateRuntime;
   private constructor(
     private root: Entity,
     private readonly water: PlanningWaterRuntime
@@ -41,6 +43,7 @@ export class PlanningProductionRuntime {
         terrainMaterial: terrain.productionMaterial,
         grassColorField: terrain.grassColorField
       });
+      runtime.template = WorldTemplateRuntime.create(root, plan, (x, z) => planningHeightmap(plan).sample({ x, z }));
 
       if (PLANNING_RUNTIME_OPTIONS.precompileShaders) runtime.population.warmup();
       await warmupSeedWorldRendererVariants(engine, engine.sceneManager.activeScene!, camera, [parent], {
@@ -79,6 +82,7 @@ export class PlanningProductionRuntime {
   /** Release candidate population only; the view owns its one camera-bound Water host across replacements. */
   async dispose(): Promise<void> {
     this.population?.dispose();
+    this.template?.dispose();
     this.root.destroy();
   }
 }

@@ -10,7 +10,7 @@
   "evidence": "/Users/owen/Documents/blender/articles/tiny-glade-rock-study/texture-evidence.json",
   "decode": "BC7 base mip decoded to PNG with sRGB code values preserved; local preview generates its own mipmaps",
   "mapping": "Selective triplanar grayscale, 60 metres per repeat by default. Runtime samples grayscale directly and multiplies by material_RockColor in linear space.",
-  "material": "Shader Color is the only rock pigment and overall albedo control; white shows the normalized light grayscale texture, darker colors reduce its albedo. Native lighting, cavity shading and grass coverage remain independent.",
+  "material": "Default Rock Color fits the decoded original RGB from commit 98b8e60d4 to the shipped normalized grayscale. Per linear RGB channel, Color = sum(gray * original) / sum(gray * gray) over all base-mip texels. The inspector displays #96967a. White displays the normalized grayscale.",
   "processing": "Original RGB decoded from sRGB to linear; Rec.709 luminance (0.2126 R + 0.7152 G + 0.0722 B); divided by the measured source peak luminance so the brightest texel is white; encoded back to sRGB and stored as 8-bit grayscale + original alpha PNG. Uniform linear scaling preserves relative luminance without clipping, resampling or added contrast.",
   "normalization": {
     "method": "linear luminance / source peak luminance",

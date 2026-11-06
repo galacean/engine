@@ -1,3 +1,5 @@
+import retrievalCatalog from "@galacean/engine-retrieval/retrieval/catalog.json";
+import { createRetrievalIntegration } from "@galacean/engine-runtime-editor/retrieval-agent/index";
 import { buildingScenePreparation, initializeBuildingScene } from "./masonry/BuildingSceneInitialization.ts";
 import { buildingInitializationInputs } from "./masonry/BuildingInitializationInputs.ts";
 import { planningFarmInitializationRequest } from "@galacean/engine-world-planning/spatial/farming/PlanningFarmInitialization";
@@ -10,7 +12,6 @@ import { WaterBodyComponent } from "@galacean/engine-water/water/native/WaterBod
 import { PlanningEntityAuthoring } from "./src/planning/spatial/runtime/PlanningAuthoringComponents.ts";
 import { preparePlanningWaterSource } from "./src/planning/spatial/runtime/PlanningWaterInitialization.ts";
 import { effectivePlanningWaterId } from "./src/planning/spatial/PlanningWaterSource.ts";
-import { seedWorldViewPointer } from "./assistant/SeedWorldViewPointer.ts";
 import { RuntimePickPreparation } from "@galacean/engine-runtime-editor/runtime-inspection/runtime-pick-preparation";
 import { RuntimeMeshPickSource } from "@galacean/engine-runtime-editor/runtime-inspection/runtime-mesh-picking";
 import { mountProjectSaveControl } from "@galacean/engine-runtime-editor/project/project-save-control";
@@ -45,7 +46,11 @@ import type { IslandPlan } from "@galacean/engine-world-planning/semantic-study/
 import { PlanningLightingProfileRuntime } from "@galacean/engine-world-planning/spatial/runtime/PlanningLightingProfileRuntime";
 import { PlanningNaturalVegetationRuntime, planningNaturalGrassDensity } from "@galacean/engine-world-planning/spatial/runtime/PlanningNaturalVegetationRuntime";
 import { planningNaturalGroundPopulation } from "@galacean/engine-world-planning/spatial/runtime/PlanningNaturalVegetation";
-import { readGrassAppearance } from "@galacean/engine-world-planning/spatial/PlanningGrassAppearance";
+import {
+  readGrassAppearance,
+  readSurfacePalette
+} from "@galacean/engine-world-planning/spatial/PlanningGrassAppearance";
+import { applyPlanningWeather } from "@galacean/engine-world-planning/spatial/PlanningWeather";
 import { readPlantMaterialParameters } from "@galacean/engine-world-planning/spatial/PlantMaterialParameters";
 import { planningPresentedSolids } from "@galacean/engine-world-planning/spatial/runtime/PlanningPresentedSolids";
 import { planningSelectionRegion } from "./src/planning/spatial/runtime/PlanningSelectionRegion.ts";
@@ -93,8 +98,16 @@ import { TerrainNavigationRuntime } from "@galacean/engine-terrain/terrain/proje
 import { TerrainPostProcessRuntime } from "@galacean/engine-terrain/terrain/project/TerrainPostProcessRuntime";
 import { TerrainWindRuntime } from "@galacean/engine-terrain/terrain/project/TerrainWindRuntime";
 import { createIntegratedWorldLightingRuntime } from "@galacean/engine-world-planning/integrations/terrain/lighting/IntegratedWorldPresentation";
+import { WorldTemplateRuntime } from "@galacean/engine-world-planning/spatial/runtime/WorldTemplateRuntime";
+import {
+  resolveWorldTemplateScene,
+  resolveWorldTemplateView
+} from "@galacean/engine-world-planning/spatial/WorldTemplateView";
 import { INTEGRATED_WORLD_DAYLIGHT_REFERENCE_TIME_HOURS } from "@galacean/engine-world-planning/integrations/terrain/lighting/IntegratedWorldLightingPreset";
-import { SEED_WORLD_DEFAULT_FOG_VALUES, SEED_WORLD_DEFAULT_SHADOW_STRENGTH } from "@galacean/engine-environment/terrain/lighting/SeedWorldLightingPreset";
+import {
+  SEED_WORLD_DEFAULT_FOG_VALUES,
+  SEED_WORLD_DEFAULT_SHADOW_STRENGTH
+} from "@galacean/engine-environment/terrain/lighting/SeedWorldLightingPreset";
 import { TERRAIN_DEFAULT_CAMERA_CONFIGURATION } from "@galacean/engine-world-planning/integrations/terrain/lighting/TerrainLightingRuntime";
 import { WorldEnvironmentRuntime } from "@galacean/engine-world-planning/integrations/terrain/environment/WorldEnvironmentRuntime";
 import {
@@ -108,6 +121,7 @@ import {
 } from "@galacean/engine-terrain/terrain/debug/TerrainScreenSpaceReflectionPanel";
 import {
   SeedWorldTerrainRuntime,
+  SEED_WORLD_ROAD_COLOR_DEFAULT,
   SEED_WORLD_SURFACE_LOD_CROSS_FADE_DURATION_SECONDS
 } from "@galacean/engine-world-planning/runtime/SeedWorldTerrainRuntime";
 import { SeedWorldAudioRuntime } from "@galacean/engine-world-planning/world/SeedWorldAudioRuntime";
@@ -145,7 +159,8 @@ import { readRockFormationSettings, rockGeometrySettings } from "@galacean/engin
 /** Original Seed scene/HUD/gameplay host. The spatial planner supplies data, never its preview camera. */
 export async function mountSeedWorldDemo(
   handoff?: PlanningWorldHandoff,
-  options: { showAssistant?: boolean; persistPlayerState?: boolean; assetSources?: readonly ProjectFileProvider[] } = {}
+  options: { showAssistant?: boolean; persistPlayerState?: boolean; assetSources?: readonly ProjectFileProvider[];
+    retrievalManifestUrl?: string } = {}
 ): Promise<void> {
   const pageUrl = planningPageUrl().url;
   // Explicit diagnostic comparison only; never persists or changes shared defaults.
@@ -213,6 +228,8 @@ export async function mountSeedWorldDemo(
   let runtimeProject: RuntimeProjectSession | undefined;
   let unmountProjectSave: (() => void) | undefined;
   let nativeEditor: RuntimeNativeEditor | undefined;
+  const retrievalManifestUrl = options.retrievalManifestUrl ?? retrievalCatalog.manifestUrl;
+  const retrieval = retrievalManifestUrl ? createRetrievalIntegration(retrievalManifestUrl) : undefined;
   let worldPicker: SeedWorldPicker | undefined;
   let viewSnapshots: SeedWorldViewSnapshots | undefined;
   let lassoPanel: SeedWorldLassoPanel | undefined;
@@ -284,7 +301,7 @@ export async function mountSeedWorldDemo(
     ["玩家状态", () => playerState?.dispose()],
     ["编辑器", () => {
       lightingProfile?.dispose(); debugSidebar?.destroy(); disconnectEditorAssets?.(); tools?.dispose();
-      nativeBuildingPanel?.destroy(); nativeEditor?.dispose();
+      nativeBuildingPanel?.destroy(); nativeEditor?.dispose(); retrieval?.dispose();
     }],
     ["调试对象", () => obbDebug?.destroy()],
     ["音频", () => audio?.destroy()],
@@ -431,7 +448,7 @@ export async function mountSeedWorldDemo(
     if (disposed) throw new Error("Seed page disposed during startup");
     unmountProjectSave = mountProjectSaveControl(runtimeProject, scene!, canvas);
     source = await sourceTask!;
-    nativeEditor = new RuntimeNativeEditor(runtimeProject, scene!, seedWorldProjectFormats, options.assetSources);
+    nativeEditor = new RuntimeNativeEditor(runtimeProject, scene!, seedWorldProjectFormats, [...(options.assetSources ?? []), ...(retrieval ? [retrieval.source] : [])]);
     source.session.setFarmingStatePathReader(() => planningFarmingProjectStatePath(runtimeProject!));
     const camera = requiredComponent(scene!.rootEntities, Camera, "Camera");
     nativeBuildingHost = new NativeBuildingHost(runtimeProject, nativeEditor.editor, scene!, camera);
@@ -522,6 +539,10 @@ export async function mountSeedWorldDemo(
       lighting,
       wind
     );
+    applyPlanningWeather(
+      environment,
+      source!.session.inspect("world").components.find((c) => c.type === "weather")?.values
+    );
     audio = new SeedWorldAudioRuntime(camera, navigation, environment, wind);
     const windCenter = new Vector3();
     const driver = root.addComponent(SeedDemoFrame);
@@ -565,6 +586,16 @@ export async function mountSeedWorldDemo(
         debugSidebar?.update(); runtimeDebug?.refresh(); debugReadoutElapsed = 0;
         const current = publication?.current;
         if (current?.vegetation) canvas.dataset.vegetation = JSON.stringify(current.vegetation.getDiagnostics());
+        if (current?.template && pageUrl.searchParams.get("debug") === "1") {
+          const forward = camera.entity.transform.worldForward;
+          canvas.dataset.templateCamera = JSON.stringify({
+            eye: [position.x, position.y, position.z],
+            forward: [forward.x, forward.y, forward.z],
+            ground: sampleHeight(position.x, position.z),
+            eyeHeight: navigation.eyeHeight,
+            groundClearance: navigation.groundClearance
+          });
+        }
         if (current) canvas.dataset.grassHeight = JSON.stringify(current.world.population.grassHeightRangeMetres);
 
         if(publication?.current?.masonry)canvas.dataset.plannedMasonry=JSON.stringify(publication.current.masonry.metrics);
@@ -783,7 +814,6 @@ export async function mountSeedWorldDemo(
               current.solids.setRockTextureScale(textureScale);
               current.vegetation!.setRockTextureScale(textureScale);
               current.solids.setRockColorBlend(readRockFormationSettings(document).colorBlend);
-              current.vegetation!.setRockColorBlend(readRockFormationSettings(document).colorBlend);
               current.world.population.setRockGrassGround(readRockFormationSettings(document));
               metrics.commitMs = performance.now() - commitStarted;
             }, discard() { solids?.discard(); vegetation.discard(); grass?.discard(); } };
@@ -868,22 +898,56 @@ export async function mountSeedWorldDemo(
         }
         if (preparedPlayer?.bookmark) cameraPose = planningPlayerCameraPose(preparedPlayer.bookmark);
         const presentationPose = resolveSubjectView(readSubjectView(document), plan, camera.aspectRatio,
-          (x, z) => sampleSeedWorldHeight(candidateData.fields, x, z), navigation.eyeHeight);
-        if (presentationPose) {
-          const position = new Vector3(...presentationPose.eye), target = new Vector3(...presentationPose.target);
-          const matrix = new Matrix(); Matrix.lookAt(position, target, new Vector3(0, 1, 0), matrix); matrix.invert();
+            (x, z) => sampleSeedWorldHeight(candidateData.fields, x, z),
+            navigation.eyeHeight
+          );
+          const templateScene = resolveWorldTemplateScene(plan, (x, z) =>
+            sampleSeedWorldHeight(candidateData.fields, x, z)
+          );
+          const templateView =
+            templateScene &&
+            resolveWorldTemplateView(
+              templateScene,
+              camera.aspectRatio,
+              camera.fieldOfView,
+              navigation.eyeHeight,
+              (x, z) => sampleSeedWorldHeight(candidateData.fields, x, z)
+            );
+          if (presentationPose) {
+            const position = new Vector3(...presentationPose.eye),
+              target = new Vector3(...presentationPose.target);
+            const matrix = new Matrix();
+            Matrix.lookAt(position, target, new Vector3(0, 1, 0), matrix);
+            matrix.invert();
+            const rotation = new Quaternion();
+            matrix.getRotation(rotation);
+            cameraPose = { position, rotation, orbitTarget: target };
+          }
+          if (
+            !presentationPose &&
+            templateView &&
+            ((initial && !preparedPlayer?.bookmark) ||
+              context.previousDocument.entities.world.components.worldTemplate?.values.id !==
+                plan.parameters.worldTemplate?.id)
+          ) {
+            const position = new Vector3(...templateView.pose.eye),
+              target = new Vector3(...templateView.pose.target);
+            const matrix = new Matrix();
+            Matrix.lookAt(position, target, new Vector3(0, 1, 0), matrix);
+            matrix.invert();
           const rotation = new Quaternion(); matrix.getRotation(rotation);
           cameraPose = { position, rotation, orbitTarget: target };
         }
         progress(0.55, "创建 Seed 地形与植被");
         const runtimeFields = { ...candidateData.fields };
         let heightTransition: ReturnType<SeedWorldTerrainRuntime["prepareHeightTransition"]> | undefined;
-        let candidate: SeedWorldTerrainRuntime | undefined;
-        let candidateMasonry: NativeBuildingWorld | undefined;
-        let candidateVegetation: PlanningNaturalVegetationRuntime | undefined;
-        let candidateSolids: Awaited<ReturnType<typeof createPlanningSeedSolids>> | undefined;
-        let candidateWater: PreparedPlanningWater | undefined;
-        let candidateExposure: TerrainWindGpuExposureProvider | undefined;
+          let candidate: SeedWorldTerrainRuntime | undefined;
+          let candidateMasonry: NativeBuildingWorld | undefined;
+          let candidateVegetation: PlanningNaturalVegetationRuntime | undefined;
+          let candidateTemplate: WorldTemplateRuntime | undefined;
+          let candidateSolids: Awaited<ReturnType<typeof createPlanningSeedSolids>> | undefined;
+          let candidateWater: PreparedPlanningWater | undefined;
+          let candidateExposure: TerrainWindGpuExposureProvider | undefined;
         try {
           candidate = await SeedWorldTerrainRuntime.create(
             engine!,
@@ -946,16 +1010,32 @@ export async function mountSeedWorldDemo(
             candidateData.population, { client: rockFormations, settings: readRockFormationSettings(document), signal,
               generationProfile: readRockGenerationProfile(document) },
             readPlantMaterialParameters(document), candidate,
-            presentationPose ? subjectViewLandscape(presentationPose, plan, (x, z) => sampleSeedWorldHeight(candidateData.fields, x, z), camera.aspectRatio) : undefined,
-            heightTransition?.fields ?? candidateData.fields);
-          signal.throwIfAborted();
+            presentationPose ? subjectViewLandscape(presentationPose, plan,                     (x, z) => sampleSeedWorldHeight(candidateData.fields, x, z),
+                    camera.aspectRatio
+                  )
+                : templateView?.landscape,
+              heightTransition?.fields ?? candidateData.fields
+            );
+            signal.throwIfAborted();
           await candidate.population.applyAuthoringPopulationLayout(planningNaturalGroundPopulation(candidateData.population,
             planningNaturalGrassDensity(library), plan, candidateVegetation.plantAssets),
-            { minimumX: 0, minimumZ: 0, maximumX: plan.parameters.width, maximumZ: plan.parameters.depth });
-          candidate.setSurfaceColorTuning({ ...candidate.getSurfaceColorTuning(), grass: readGrassAppearance(document) });
-          if (!ready) progress(0.6, `生成真实建筑（${plan.buildings.length} 栋）`);
-          progress(0.68, "生成全部房屋与围合构件");
-          const buildingTerrain = masonryTerrainSource({ data: candidateData, revision: document.revision }, formationMeshes);
+              { minimumX: 0, minimumZ: 0, maximumX: plan.parameters.width, maximumZ: plan.parameters.depth }
+            );
+            candidate.setSurfaceColorTuning({
+              roadColor: readSurfacePalette(document, SEED_WORLD_ROAD_COLOR_DEFAULT),
+              groundColor: readSurfacePalette(document, SEED_WORLD_ROAD_COLOR_DEFAULT),
+              grass: readGrassAppearance(document)
+            });
+            candidateTemplate = WorldTemplateRuntime.create(
+              candidate.root,
+              plan,
+              (x, z) => sampleSeedWorldHeight(candidateData.fields, x, z),
+              templateScene
+            );
+            if (!ready) progress(0.6, `生成真实建筑（${plan.buildings.length} 栋）`);
+            progress(0.68, "生成全部房屋与围合构件");
+            const buildingTerrain = masonryTerrainSource(
+{ data: candidateData, revision: document.revision }, formationMeshes);
           // Startup has no outer project transaction. Later initialization is
           // contributed during editor preparation, never from runtime publication.
           if (!ready && !context.projectTransaction)
@@ -993,12 +1073,13 @@ export async function mountSeedWorldDemo(
           }
           return {
             authoringRevision: document.revision,
-            masonry: candidateMasonry,
-            assertCurrent: () => candidateMasonry!.assertCurrent(),
-            vegetation: candidateVegetation,
-            preparedWater: candidateWater,
-            data: candidateData,
-            heightTransition,
+              masonry: candidateMasonry,
+              assertCurrent: () => candidateMasonry!.assertCurrent(),
+              vegetation: candidateVegetation,
+              template: candidateTemplate,
+              preparedWater: candidateWater,
+              data: candidateData,
+              heightTransition,
             world: candidate,
             solids: candidateSolids,
             cameraPose,
@@ -1007,12 +1088,13 @@ export async function mountSeedWorldDemo(
           };
         } catch (error) {
           await candidateWater?.rollback();
-          heightTransition?.dispose();
-          await candidateMasonry?.destroy();
-          candidateVegetation?.dispose();
-          preparedPlayer?.rollback();
-          candidateExposure?.destroy();
-          try {
+            heightTransition?.dispose();
+            await candidateMasonry?.destroy();
+            candidateVegetation?.dispose();
+            candidateTemplate?.dispose();
+            preparedPlayer?.rollback();
+            candidateExposure?.destroy();
+            try {
             candidateSolids?.dispose();
           } finally {
             await candidate?.destroy();
@@ -1084,8 +1166,11 @@ export async function mountSeedWorldDemo(
       const accepted = publication!.current!;
       farmingHost?.runtime?.publish(accepted, source!.session.document.revision);
       const plan = accepted.plan;
-      animals!.synchronize(plan, readAnimalPopulationConfig(source!.session.document), accepted.navigation,
-        { surface: accepted.data.surfaceIntent });
+      accepted.template?.activate(canvas);
+      if (!accepted.template) delete canvas.dataset.worldTemplate;
+      animals!.synchronize(plan, readAnimalPopulationConfig(source!.session.document), accepted.navigation, {
+        surface: accepted.data.surfaceIntent
+      });
       if (publication!.current !== accepted || disposed) return;
       canvas.dataset.buildingPublicationRevision = String(accepted.revision);
       canvas.dataset.buildingPreparation = JSON.stringify(accepted.masonry?.metrics ?? null);
@@ -1111,7 +1196,15 @@ export async function mountSeedWorldDemo(
         if (publication!.current !== accepted || disposed) return;
         debugSidebar?.synchronize(plan);
         await applyPresentation(source!.session, lightingProfile!, post);
-        accepted.world.setSurfaceColorTuning({ ...accepted.world.getSurfaceColorTuning(), grass: readGrassAppearance(source!.session.document) });
+        applyPlanningWeather(
+          environment!,
+          source!.session.inspect("world").components.find((c) => c.type === "weather")?.values
+        );
+        accepted.world.setSurfaceColorTuning({
+          roadColor: readSurfacePalette(source!.session.document, SEED_WORLD_ROAD_COLOR_DEFAULT),
+          groundColor: readSurfacePalette(source!.session.document, SEED_WORLD_ROAD_COLOR_DEFAULT),
+          grass: readGrassAppearance(source!.session.document)
+        });
         canvas.dataset.grassAppearance = JSON.stringify(accepted.world.getSurfaceColorTuning().grass);
       const actualLight = lighting!.getSnapshot();
       const actualTuning = lighting!.getVisualTuning();
@@ -1163,18 +1256,11 @@ export async function mountSeedWorldDemo(
     const hudCreationAt = performance.now();
 
     tools = new PlanningSeedWorldSession({
-      observeViewWithPointer: async signal => {
-        await pickPreparation!.flush(signal);
-        const revision = tools!.application.observationRevision;
-        const { image, snapshot } = await worldPicker!.observePointer(visitCurrentPickBatches, signal,
-          viewSnapshots!.budget, () => pickPreparation!.ready);
-        return { image, metadata: { capturedAt: new Date().toISOString() },
-          pointer: seedWorldViewPointer(snapshot, tools!.application, revision) };
-      },
       nativeEditor,
       editorExtensions: [
         createNativeWaterAgentPackage(),
-        createFarmingComponentExtension(nativeEditor.projection)
+        createFarmingComponentExtension(nativeEditor.projection),
+        ...(retrieval ? [retrieval.extension] : [])
       ],
       animals,
       planning: source!.session,
@@ -1360,47 +1446,49 @@ export async function mountSeedWorldDemo(
       navigation.setInputEnabled(true);
     }
     navigation.setGroundCollision(true);
-    const captureMasonryView = () => {
-        if(!restoreMasonryView){
-          const position=camera.entity.transform.worldPosition.clone(),rotation=camera.entity.transform.worldRotationQuaternion.clone();
-          const orthographic=camera.isOrthographic,size=camera.orthographicSize;
-          restoreMasonryView=()=>{
-            orbit.enabled=false;camera.isOrthographic=orthographic;camera.orthographicSize=size;
-            camera.entity.transform.worldPosition=position;camera.entity.transform.worldRotationQuaternion=rotation;
-            debugSidebar?.restoreCameraMode("roam");navigation.enabled=ready&&!disposed;
-            navigation.setInputEnabled(ready&&!disposed);navigation.setGroundCollision(true);navigation.synchronizeView();
-          };
+    if (pageUrl.searchParams.get("debug") === "1") {
+      const captureMasonryView = () => {
+          if(!restoreMasonryView){
+            const position=camera.entity.transform.worldPosition.clone(),rotation=camera.entity.transform.worldRotationQuaternion.clone();
+            const orthographic=camera.isOrthographic,size=camera.orthographicSize;
+            restoreMasonryView=()=>{
+              orbit.enabled=false;camera.isOrthographic=orthographic;camera.orthographicSize=size;
+              camera.entity.transform.worldPosition=position;camera.entity.transform.worldRotationQuaternion=rotation;
+              debugSidebar?.restoreCameraMode("roam");navigation.enabled=ready&&!disposed;
+              navigation.setInputEnabled(ready&&!disposed);navigation.setGroundCollision(true);navigation.synchronizeView();
+            };
+          }
+      };
+      const buildingWaterSample=createWaterSurfaceSample();
+      nativeBuildingPanel = mountNativeBuildingPanel(runtimeProject, nativeEditor, (position, forward) => {
+        captureMasonryView();
+        navigation.enabled=false;navigation.setInputEnabled(false);navigation.setGroundCollision(false);
+        camera.isOrthographic=false;
+        if(forward) {
+          camera.entity.transform.setWorldPosition(position.x+forward.x*8,position.y+3,position.z+forward.z*8);
+          orbit.target.copyFrom(position);
+        } else {
+          camera.entity.transform.setWorldPosition(position.x+12,Math.max(position.y,sampleHeight(position.x,position.z)??0)+9,position.z+15);
+          orbit.target.set(position.x,Math.max(position.y,sampleHeight(position.x,position.z)??0)+3,position.z);
         }
-    };
-    const buildingWaterSample=createWaterSurfaceSample();
-    nativeBuildingPanel = mountNativeBuildingPanel(runtimeProject, nativeEditor, (position, forward) => {
-      captureMasonryView();
-      navigation.enabled=false;navigation.setInputEnabled(false);navigation.setGroundCollision(false);
-      camera.isOrthographic=false;
-      if(forward) {
-        camera.entity.transform.setWorldPosition(position.x+forward.x*8,position.y+3,position.z+forward.z*8);
-        orbit.target.copyFrom(position);
-      } else {
-        camera.entity.transform.setWorldPosition(position.x+12,Math.max(position.y,sampleHeight(position.x,position.z)??0)+9,position.z+15);
-        orbit.target.set(position.x,Math.max(position.y,sampleHeight(position.x,position.z)??0)+3,position.z);
-      }
-      camera.entity.transform.lookAt(orbit.target);debugSidebar?.restoreCameraMode("orbit");orbit.enabled=true;
-    }, returnFromMasonry, {
-      anchors: () => {
-        const current=publication?.current;if(!current)throw Error("Seed 地形尚未发布");
-        return masonryPlacementAnchors(current,camera.entity.transform.worldPosition);
-      },
-      land: {
-        sampleHeight: (x,z) => {
+        camera.entity.transform.lookAt(orbit.target);debugSidebar?.restoreCameraMode("orbit");orbit.enabled=true;
+      }, returnFromMasonry, {
+        anchors: () => {
           const current=publication?.current;if(!current)throw Error("Seed 地形尚未发布");
-          return sampleSeedWorldHeight(current.data.fields,x,z);
+          return masonryPlacementAnchors(current,camera.entity.transform.worldPosition);
         },
-        isWater: (x,z) => {
-          return !!water?.sampleSurface(x,z,buildingWaterSample)&&buildingWaterSample.waterDepth>0;
-        }
-      },
-      appearanceEngine: engine
-    });
+        land: {
+          sampleHeight: (x,z) => {
+            const current=publication?.current;if(!current)throw Error("Seed 地形尚未发布");
+            return sampleSeedWorldHeight(current.data.fields,x,z);
+          },
+          isWater: (x,z) => {
+            return !!water?.sampleSurface(x,z,buildingWaterSample)&&buildingWaterSample.waterDepth>0;
+          }
+        },
+        appearanceEngine: engine
+      });
+    }
     applySubjectView();
     worldPicker ??= new SeedWorldPicker(camera);
     const inspection = nativeEditor!.inspection;
@@ -1412,7 +1500,7 @@ export async function mountSeedWorldDemo(
     }, () => {
       const state = tools!.application.getViewState();
       return `${state.activeRevision}:${state.authoringStateHash}`;
-    }, { observe: (signal, budget) => worldPicker!.observe(signal, budget) });
+    });
     tools!.application.viewSnapshots = viewSnapshots;
     {
       lassoPanel = new SeedWorldLassoPanel(viewSnapshots, frozen => {

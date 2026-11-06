@@ -7,6 +7,7 @@ import { roofBasis, roofClipPlane } from "./ConstructionRoof";
  */
 export interface SettledRoofUnit {
   id: string;
+  variationKey?: string;
   /** Owning Scene attachment, independent of the host roof/material chart. */
   decorationId?: string;
   position: readonly number[];
@@ -21,7 +22,8 @@ export interface SettledRoofUnit {
 export function settledRoofCells(
   units: readonly SettledRoofUnit[],
   geometry: any,
-  preparedProjector?: SurfaceProjector
+  preparedProjector?: SurfaceProjector,
+  variationKey?: string
 ) {
   if (!units.length) return [];
   const projector = preparedProjector ?? new SurfaceProjector(geometry);
@@ -32,6 +34,12 @@ export function settledRoofCells(
     return {
       id,
       logical_id: id,
+      ...(variationKey !== undefined || unit.variationKey !== undefined
+        ? {
+            seed_id: (variationKey ?? geometry.id) + "/" + (unit.variationKey ?? unit.id),
+            lod_seed_id: (variationKey ?? geometry.id) + "/" + (unit.variationKey ?? unit.id)
+          }
+        : {}),
       surface_id: geometry.id,
       surface_piece: anchor.triangle,
       anchor_uv: uv.slice(),

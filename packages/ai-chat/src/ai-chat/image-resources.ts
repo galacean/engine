@@ -1,11 +1,20 @@
 import type { AgentViewImage, AgentViewObservation } from "./agent-types";
 
 export type ImageMemoryKind = "identity" | "display" | "image" | "temporary";
+export class ImageMemoryLimitError extends Error {
+  readonly code = "IMAGE_MEMORY_LIMIT";
+  constructor(readonly releasePending = false) {
+    super("IMAGE_MEMORY_LIMIT: Image resources in use exceed the available budget");
+  }
+}
 /** Logical allocated bytes; GPU driver padding and model-provider storage are outside this ledger. */
 export class ImageResourceBudget {
   private readonly used = { identity: 0, display: 0, image: 0, temporary: 0 };
   private peak = 0;
-  constructor(readonly limit = 64 * 1024 * 1024) {}
+  constructor(
+    readonly limit = 64 * 1024 * 1024,
+    private readonly reclaim?: (bytes: number) => boolean
+  ) {}
   get stats() {
     return {
       ...this.used,
@@ -16,10 +25,8 @@ export class ImageResourceBudget {
   }
   reserve(kind: ImageMemoryKind, bytes: number): () => void {
     if (!Number.isSafeInteger(bytes) || bytes < 0) throw new Error("Invalid image memory reservation");
-    if (this.stats.total + bytes > this.limit)
-      throw new Error(
-        "IMAGE_MEMORY_LIMIT: Release a photo or finish the current task before allocating more image resources"
-      );
+    const releasePending = this.stats.total + bytes > this.limit ? (this.reclaim?.(bytes) ?? false) : false;
+    if (this.stats.total + bytes > this.limit) throw new ImageMemoryLimitError(releasePending);
     this.used[kind] += bytes;
     this.peak = Math.max(this.peak, this.stats.total);
     let released = false;
@@ -32,14 +39,28 @@ export class ImageResourceBudget {
   }
 }
 
+/** One retry only when eviction has queued GPU-accounting release, never for pinned exhaustion. */
+export async function afterImageReclamation<T>(operation: () => Promise<T>): Promise<T> {
+  try {
+    return await operation();
+  } catch (error) {
+    if (!(error instanceof ImageMemoryLimitError) || !error.releasePending) throw error;
+    await Promise.resolve();
+    return operation();
+  }
+}
+
 /** Runtime resource ownership. Conversation order comes from ConversationHistory, not a second turn index. */
 export interface ConversationImageResources {
   readonly budget: ImageResourceBudget;
   readonly diagnostics: import("./agent-types").AgentValue;
   beginTurn(turn: number): void;
-  acquireImage(imageId: string): { observation: AgentViewObservation; release(): void };
-  hasImage(imageId: string): boolean;
+  acquireImage(imagePath: string): { observation: AgentViewObservation; release(): void };
+  hasImage(imagePath: string): boolean;
+  paths?(): Iterable<string>;
   resetConversation(): void;
+  /** Same immutable frames as capture/read; no second pick cache. */
+  pick?(input: import("./agent-snapshots").SnapshotPickInput): import("./agent-types").AgentValue;
 }
 
 export function validateImage(image: AgentViewImage): void {

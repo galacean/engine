@@ -10,6 +10,15 @@
   "types": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",
+    "./spatial/PlanningWeather": "./src/spatial/PlanningWeather.ts",
+    "./spatial/WorldTemplateArtDirection": "./src/spatial/WorldTemplateArtDirection.ts",
+    "./spatial/WorldTemplateAuthoring": "./src/spatial/WorldTemplateAuthoring.ts",
+    "./spatial/WorldTemplateCatalog": "./src/spatial/WorldTemplateCatalog.ts",
+    "./spatial/WorldTemplateEcology": "./src/spatial/WorldTemplateEcology.ts",
+    "./spatial/WorldTemplateGeometry": "./src/spatial/WorldTemplateGeometry.ts",
+    "./spatial/WorldTemplatePlanning": "./src/spatial/WorldTemplatePlanning.ts",
+    "./spatial/WorldTemplateView": "./src/spatial/WorldTemplateView.ts",
+    "./spatial/runtime/WorldTemplateRuntime": "./src/spatial/runtime/WorldTemplateRuntime.ts",
     "./*": "./src/*",
     "./agent-adapter/SeedWorldAssetManager": "./src/agent-adapter/SeedWorldAssetManager.ts",
     "./agent-adapter/SeedWorldEnvironmentChange": "./src/agent-adapter/SeedWorldEnvironmentChange.ts",
@@ -37,7 +46,6 @@
     "./geometry/V2WaterGeometry": "./src/geometry/V2WaterGeometry.ts",
     "./geometry/V2WhiteboxGeometry": "./src/geometry/V2WhiteboxGeometry.ts",
     "./index": "./src/index.ts",
-    "./integrations/building/InitialBuildingRecipe": "./src/integrations/building/InitialBuildingRecipe.ts",
     "./integrations/grasslands/GrasslandsLakeRiverIdentity": "./src/integrations/grasslands/GrasslandsLakeRiverIdentity.ts",
     "./integrations/grasslands/GrasslandsLakeRiverScenario": "./src/integrations/grasslands/GrasslandsLakeRiverScenario.ts",
     "./integrations/grasslands/GrasslandsRiverTerrainCoupling": "./src/integrations/grasslands/GrasslandsRiverTerrainCoupling.ts",
@@ -431,7 +439,6 @@
     "./world/SeedWorldPhotoPalette": "./src/world/SeedWorldPhotoPalette.ts",
     "./world/SeedWorldPhotoResources": "./src/world/SeedWorldPhotoResources.ts",
     "./world/SeedWorldPhotoWarmup": "./src/world/SeedWorldPhotoWarmup.ts",
-    "./world/SeedWorldPickSnapshot": "./src/world/SeedWorldPickSnapshot.ts",
     "./world/SeedWorldPicker": "./src/world/SeedWorldPicker.ts",
     "./world/SeedWorldPlanner": "./src/world/SeedWorldPlanner.ts",
     "./world/SeedWorldPlayerState": "./src/world/SeedWorldPlayerState.ts",
@@ -445,7 +452,8 @@
     "./world/SeedWorldShaderWarmup": "./src/world/SeedWorldShaderWarmup.ts",
     "./world/SeedWorldViewSnapshot": "./src/world/SeedWorldViewSnapshot.ts",
     "./world/SeedWorldWetland": "./src/world/SeedWorldWetland.ts",
-    "./world/SeedWorldWorldEdit": "./src/world/SeedWorldWorldEdit.ts"
+    "./world/SeedWorldWorldEdit": "./src/world/SeedWorldWorldEdit.ts",
+    "./masonry/BuildingInitialSource": "./src/masonry/BuildingInitialSource.ts"
   },
   "scripts": {},
   "dependencies": {

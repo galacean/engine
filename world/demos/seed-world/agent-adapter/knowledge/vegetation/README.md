@@ -2,24 +2,34 @@
 
 ## Usage Guide
 
-Choose individual plants or a distribution matching the user's requested count and scope. Tree appearance changes can affect a shared procedural variation; inspect the scope before editing. Use `../object-management/README.md` for finding and deleting existing plants, and `../spatial/README.md` for placement.
+Choose an operation from the available API index:
 
-## Reusing a queried plant reference
+- Create plants: use `vegetation.create`. Match the requested count and scope.
+- Move an authored plant: use `vegetation.update` with `patch.target`. Use the [placement guide](../spatial/README.md) to specify the destination.
+- Change a tree's appearance: read its current values and shared effect through `world.inspect`. Use the shared appearance operation in `vegetation.update`. This operation can affect other trees with the same effect.
+- Change regional vegetation or planning parameters: use the component workflow below.
+- Find or delete plants: use the [object guide](../object-management/README.md).
 
-`world.query` returns a heterogeneous Asset projection, even when a filter asks for one kind. It has `type`, `ref`, optional `position`, `bounds`, `tags` and `relations`; do not assume it has `name` or detailed `properties`. Read details with `world.inspect` when needed.
+## Choose the reference
 
-For an authored plant edit, keep the returned reference, narrow its kind and source, then pass it directly. A query filter is a runtime selector, not a TypeScript type assertion. A standalone object literal assigned to a variable can widen its strings; reusing the returned reference avoids rebuilding its identity or casting away checks.
+If history identifies the intended plant, reuse its `assetRef` from create/update. You can also reuse a query result's `ref`.
+If you need current details, call `world.inspect` with that reference. If the identity is unclear, use `world.query` to find it.
 
-```javascript
-const result = await tools.world.query({ kinds: ["tree"], sources: ["authored"], limit: 1 });
-const item = result.items[0];
-if (!item) throw new Error("No matching tree");
-const ref = item.ref;
-if (ref.kind !== "tree" || ref.source !== "authored") throw new Error("Expected an authored tree");
-await tools.vegetation.update({ ref, patch: { seed: 123 } });
-```
+`world.query` returns an Asset projection with `type`, `ref`, and optional `position`, `bounds`, `tags`, and `relations`.
+Read detailed properties with `world.inspect`. Query results do not guarantee a `name` field.
+Check `ref.kind` and `ref.source` before an operation that requires a particular kind or source.
+A query filter selects runtime results but does not narrow the declaration's union type.
+Preserve the returned reference instead of constructing a variable with widened string fields or using a type assertion.
 
-This example updates a seed; for a position edit, provide only `patch.target`. Natural trees support the separately declared shared appearance operation, not authored position/seed edits. Do not increase retry limits or use `any` to bypass these boundaries.
+Position and seed edits require authored vegetation. Natural trees support the declared shared appearance operation instead.
+Changing retry limits or using `any` does not change this boundary.
+
+## Check the result
+
+Return the update fields needed to assess the request, including `resolvedEffect` when it supplies the actual destination.
+Use the update result and final execute receipt to assess completion.
+Query the same `assetRef` if necessary evidence is missing or conflicts with the requested result.
+An object's absence from the current view does not prove that the update failed.
 
 ## Planning component authoring
 

@@ -137,6 +137,7 @@ material_Ocean_intersectionNoise("material_Ocean_intersectionNoise", Texture2D);
 
   SubShader "Default" {
     Pass "Forward" {
+      Tags { pipelineStage = "Forward", screenSpaceReflectionTransparentSample = "SampleV1" }
       VertexShader = vert;
       FragmentShader = frag;
       Bool material_DepthWriteEnabled;

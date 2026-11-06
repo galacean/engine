@@ -1,4 +1,5 @@
-import { FARM_ITEM_DIMENSIONS } from "../FarmItemDimensions";
+import { farmItemGroundBounds } from "../FarmItemFootprint";
+export { farmItemGroundBounds, farmItemGroundRadius } from "../FarmItemFootprint";
 import type { FarmCommand, FarmChange } from "../FarmCommands";
 import type { FarmingDefinitionSet } from "../FarmDefinitions";
 import type { FarmingGroundView } from "../FarmingGround";
@@ -20,27 +21,6 @@ import { containerQuantity } from "../../storage/StorageContents";
 import { rejectRule, updateRule, type FarmRuleResult } from "./FarmRule";
 import { requireStableId } from "../validationUtils";
 import { FarmSnapshotCompatibilityError } from "../FarmSnapshotCompatibilityError";
-
-/** Conservative ground clearance for the normalized, laid-down models. */
-export function farmItemGroundRadius(type: FarmItemType): number {
-  return FARM_ITEM_DIMENSIONS[type].groundRadius;
-}
-
-/** Conservative world-axis bounds for the rotated ground pose. */
-export function farmItemGroundBounds(type: FarmItemType, position: readonly number[], yaw = 0) {
-  const radius = farmItemGroundRadius(type);
-  const length = type === "hoe" ? FARM_ITEM_DIMENSIONS[type].metres / 2 + 0.03 : radius;
-  const width = type === "hoe" ? FARM_ITEM_DIMENSIONS[type].groundWidth / 2 + 0.03 : radius;
-  const angle = (yaw * Math.PI) / 180;
-  const halfX = type === "hoe" ? Math.abs(Math.cos(angle)) * length + Math.abs(Math.sin(angle)) * width : radius;
-  const halfZ = type === "hoe" ? Math.abs(Math.sin(angle)) * length + Math.abs(Math.cos(angle)) * width : radius;
-  return {
-    minimumX: position[0] - halfX,
-    maximumX: position[0] + halfX,
-    minimumZ: position[2] - halfZ,
-    maximumZ: position[2] + halfZ
-  };
-}
 
 /** Tools may rest on cultivated soil without changing plots or crops. */
 export function itemPlacement(

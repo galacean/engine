@@ -295,7 +295,7 @@ export function prepareLandscapeBasemap(
   ]);
   const cached = slotCache.get(key);
   if (cached) return cached;
-  let slots = createSlots(
+  const slots = createSlots(
     plan,
     step,
     (center, source) => {
@@ -500,6 +500,7 @@ function prepareStaticPlacement(plan: IslandPlan, step: number): StaticPlacement
     buildings = plan.buildings.map((building) => building.outline),
     obstacles = [
       ...buildings,
+      ...(plan.planning?.reservations.filter((area) => area.kind === "activity").map((area) => area.outline) ?? []),
       ...(plan.plazas ?? []).map((plaza) => plaza.outline),
       ...plan.rocks.map((rock) => rock.outline),
       ...plan.waters.map((water) => water.outline),
@@ -732,6 +733,7 @@ export function landscapeOccupancyValid(plan: IslandPlan, previous?: IslandPlan)
   const changed = (plan.landscapes ?? []).filter((item) => old.get(item.id) !== JSON.stringify(item.outline));
   if (!changed.length) return true;
   const obstacles = [
+    ...(plan.planning?.reservations.filter((area) => area.kind === "activity").map((area) => area.outline) ?? []),
     ...plan.routes.map((r) => r.outline!),
     ...plan.buildings.map((b) => b.outline),
     ...(plan.plazas ?? []).map((p) => p.outline),

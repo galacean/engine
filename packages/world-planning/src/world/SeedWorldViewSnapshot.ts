@@ -1,5 +1,12 @@
+import { snapshotPixelIdentity } from "./SnapshotSurfaceEncoding";
+import {
+  SNAPSHOT_DIRECTORY,
+  snapshotError,
+  type SnapshotPickInput
+} from "@galacean/engine-ai-chat/ai-chat/agent-snapshots";
 import type { PhotoImage } from "./SeedWorldPhotoImage";
 import {
+  afterImageReclamation,
   ImageResourceBudget,
   validateImage,
   type ConversationImageResources
@@ -7,7 +14,7 @@ import {
 import { SEED_WORLD_PHOTO_CONFIG } from "./SeedWorldPhotoConfig";
 import { DEFAULT_PHOTO_INK } from "./SeedWorldPhotoPalette";
 import { toAgentValue } from "@galacean/engine-ai-chat/ai-chat/agent-values";
-import type { AgentViewImage, AgentViewObservation } from "@galacean/engine-ai-chat/ai-chat/agent-types";
+import type { AgentValue, AgentViewImage, AgentViewObservation } from "@galacean/engine-ai-chat/ai-chat/agent-types";
 import type { RuntimePickIdentity } from "@galacean/engine-runtime-editor/runtime-inspection/runtime-scene-inspection";
 
 /** Session-scoped Engine identities, never authoring or business IDs. */
@@ -30,24 +37,32 @@ export interface ViewAnnotation {
 }
 export interface ViewHit {
   ref: ViewRef;
+  /** Frozen surface position, not a validated placement point. */
+  estimatedPosition?: [number, number, number];
 }
+export type ViewCaptureMetadata = {
+  capturedAt: string;
+  viewer: { position: number[]; forward: number[] };
+};
 export interface ViewFrame {
   image: PhotoImage;
+  /** Pose and time of the captured color frame, preserved across attachment exports. */
+  metadata?: ViewCaptureMetadata;
   width: number;
   height: number;
   /** Frozen GPU identity texture; no CPU full-image cache or historical scene graph. */
   identities: ViewIdentityBuffer;
 }
 export interface ViewIdentityBuffer {
+  readonly identityBits: number;
+  estimatedPosition(pixels: Uint8Array, offset: number, x: number, y: number): [number, number, number] | undefined;
   readonly byteLength: number;
   /** Engine RT pixels use the same top-left convention as the delivered photo. */
   read(x: number, y: number, width: number, height: number): Uint8Array;
   resolve(id: number): ViewRef | undefined;
   dispose(): void;
 }
-export function decodeViewIdentity(pixels: Uint8Array, offset: number): number {
-  return pixels[offset]! | (pixels[offset + 1]! << 8) | (pixels[offset + 2]! << 16);
-}
+export const decodeViewIdentity = snapshotPixelIdentity;
 
 export interface ViewFilter {
   componentTypes?: string[];
@@ -142,6 +157,7 @@ type SnapshotEntry = {
   frame: ViewFrame;
   state: string;
   pins: number;
+  lastAccess: number;
   lastUsedTurn: number | null;
   versions: Map<string, ImageVersion>;
   release(): void;
@@ -154,30 +170,50 @@ export class SeedWorldViewSnapshots implements ConversationImageResources {
   private readonly session = crypto.randomUUID();
   readonly budget: ImageResourceBudget;
   private turn = 0;
+  private access = 0;
   readonly maxPhotos: number;
-  private readonly attachments = new Map<string, { attachment: ViewAttachment; imageId: string }>();
+  private readonly attachments = new Map<string, { attachment: ViewAttachment; imagePath: string }>();
   constructor(
     private readonly captureFrame: (
       signal?: AbortSignal,
       budget?: ImageResourceBudget
     ) => ViewFrame | Promise<ViewFrame>,
     private readonly currentState: () => string,
-    private readonly options: {
-      maxPhotos?: number;
-      memoryLimit?: number;
-      observe?: (signal: AbortSignal, budget: ImageResourceBudget) => Promise<AgentViewImage>;
-    } = {}
+    private readonly options: { maxPhotos?: number; memoryLimit?: number } = {}
   ) {
     this.maxPhotos = options.maxPhotos ?? SEED_WORLD_PHOTO_CONFIG.maxPhotos;
     if (!Number.isSafeInteger(this.maxPhotos) || this.maxPhotos < 1 || this.maxPhotos > 32)
       throw new Error("maxPhotos must be an integer from 1 to 32");
-    this.budget = new ImageResourceBudget(options.memoryLimit);
+    this.budget = new ImageResourceBudget(options.memoryLimit, (bytes) => {
+      const candidates = [...this.frames].filter(
+        ([, entry]) => entry.pins === 0 && ![...entry.versions.values()].some((v) => v.pending || v.leases)
+      );
+      candidates.sort((a, b) => a[1].lastAccess - b[1].lastAccess);
+      let pendingIdentityBytes = 0;
+      for (const [id, entry] of candidates) {
+        if (this.budget.stats.total - pendingIdentityBytes + bytes <= this.budget.limit) break;
+        pendingIdentityBytes += entry.frame.identities.byteLength;
+        this.drop(id);
+      }
+      return pendingIdentityBytes > 0;
+    });
   }
 
-  async capture(signal?: AbortSignal): Promise<{ snapshotId: string; imageId: string; image: PhotoImage }> {
+  capture(signal?: AbortSignal): Promise<{ snapshotId: string; imagePath: string; image: PhotoImage }> {
+    return afterImageReclamation(() => this.captureOnce(signal));
+  }
+  private async captureOnce(
+    signal?: AbortSignal
+  ): Promise<{ snapshotId: string; imagePath: string; image: PhotoImage }> {
     signal?.throwIfAborted();
     if (this.disposed) throw new Error("Snapshot store is disposed");
     const frame = await this.captureFrame(signal, this.budget);
+    return this.retainFrame(frame, signal);
+  }
+  private retainFrame(
+    frame: ViewFrame,
+    signal?: AbortSignal
+  ): { snapshotId: string; imagePath: string; image: PhotoImage } {
     if (this.disposed || signal?.aborted) {
       frame.identities.dispose();
       frame.image.dispose();
@@ -193,27 +229,77 @@ export class SeedWorldViewSnapshots implements ConversationImageResources {
       frame.image.dispose();
       throw error;
     }
-    const imageId = `${snapshotId}/original`;
+    const imagePath = `${SNAPSHOT_DIRECTORY}/${snapshotId}/original.jpg`;
     const entry: SnapshotEntry = {
       frame,
       state: this.currentState(),
       pins: 0,
+      lastAccess: ++this.access,
       lastUsedTurn: null,
-      versions: new Map([[imageId, { key: "[]", annotations: [], used: false, leases: 0 }]]),
+      versions: new Map([[imagePath, { key: "[]", annotations: [], used: false, leases: 0 }]]),
       release
     };
     this.frames.set(snapshotId, entry);
     this.prune(snapshotId);
-    return { snapshotId, imageId, image: frame.image };
+    return { snapshotId, imagePath, image: frame.image };
   }
-  async observe(signal: AbortSignal): Promise<AgentViewObservation> {
-    if (!this.options.observe) throw new Error("Ordinary observation is unavailable");
-    const image = await this.options.observe(signal, this.budget);
-    signal.throwIfAborted();
-    return {
-      image,
-      metadata: { capturedAt: new Date().toISOString(), scope: "visual-only; no retained identity texture" }
-    };
+  async snapshot(signal: AbortSignal): Promise<AgentViewObservation> {
+    const shot = await this.capture(signal);
+    const entry = this.get(shot.snapshotId);
+    const version = entry.versions.get(shot.imagePath)!;
+    const release = this.pin(shot.snapshotId);
+    try {
+      const image = await this.exportVersion(entry, version);
+      signal.throwIfAborted();
+      version.used = true;
+      entry.lastUsedTurn = this.turn;
+      entry.lastAccess = ++this.access;
+      return {
+        imagePath: shot.imagePath,
+        image,
+        metadata: this.attachmentMetadata({ snapshotId: shot.snapshotId, annotations: [] }, false)
+      };
+    } finally {
+      release();
+    }
+  }
+  *paths(): Iterable<string> {
+    for (const entry of this.frames.values())
+      for (const [path, version] of entry.versions) if (version.image) yield path;
+  }
+  pick(input: SnapshotPickInput): AgentValue {
+    const { id, entry } = this.findImage(input.file_path);
+    const release = this.pin(id);
+    try {
+      const { snapshotId: _, ...result } = input.points
+        ? this.hitPoints(id, input.points)
+        : this.queryRegion(id, input.region!, undefined, input.offset ?? 0, input.limit ?? 50);
+      return toAgentValue({
+        file_path: input.file_path,
+        ...entry.frame.metadata,
+        capturedWorldState: entry.state,
+        queriedAt: new Date().toISOString(),
+        ...result
+      });
+    } finally {
+      release();
+    }
+  }
+  private findImage(path: string): { id: string; entry: SnapshotEntry; version: ImageVersion } {
+    for (const [id, entry] of this.frames) {
+      const version = entry.versions.get(path);
+      if (version?.image) return { id, entry, version };
+    }
+    const prefix = `${SNAPSHOT_DIRECTORY}/view-${this.session}-`;
+    const ordinal = path.startsWith(prefix) ? Number(path.slice(prefix.length).split("/")[0]) : NaN;
+    if (
+      Number.isSafeInteger(ordinal) &&
+      ordinal > 0 &&
+      ordinal <= this.serial &&
+      !this.frames.has(`view-${this.session}-${ordinal}`)
+    )
+      throw snapshotError("SNAPSHOT_EXPIRED", "临时快照已过期，请重新拍摄并根据新图重新定位。");
+    throw snapshotError("SNAPSHOT_NOT_FOUND", "找不到此快照路径，请使用 snapshot 或用户附图返回的完整路径。");
   }
   beginTurn(turn: number): void {
     this.turn = turn;
@@ -223,28 +309,25 @@ export class SeedWorldViewSnapshots implements ConversationImageResources {
     for (const entry of this.frames.values()) entry.lastUsedTurn = null;
     this.prune();
   }
-  hasImage(imageId: string): boolean {
-    return [...this.frames.values()].some((entry) => !!entry.versions.get(imageId)?.image);
+  hasImage(imagePath: string): boolean {
+    return [...this.frames.values()].some((entry) => !!entry.versions.get(imagePath)?.image);
   }
-  acquireImage(imageId: string): { observation: AgentViewObservation; release(): void } {
-    for (const [id, entry] of this.frames) {
-      const version = entry.versions.get(imageId);
-      if (!version?.image) continue;
-      entry.lastUsedTurn = this.turn;
-      version.used = true;
-      return {
-        observation: {
-          imageId,
-          image: { ...version.image },
-          metadata: this.attachmentMetadata(
-            { snapshotId: id, annotations: version.annotations },
-            version.annotations.length > 0
-          )
-        },
-        release: this.pin(id)
-      };
-    }
-    throw new Error(`IMAGE_EXPIRED: ${imageId}`);
+  acquireImage(imagePath: string): { observation: AgentViewObservation; release(): void } {
+    const { id, entry, version } = this.findImage(imagePath);
+    entry.lastUsedTurn = this.turn;
+    entry.lastAccess = ++this.access;
+    version.used = true;
+    return {
+      observation: {
+        imagePath,
+        image: { ...version.image! },
+        metadata: this.attachmentMetadata(
+          { snapshotId: id, annotations: version.annotations },
+          version.annotations.length > 0
+        )
+      },
+      release: this.pin(id)
+    };
   }
   get diagnostics() {
     return toAgentValue(this.resourceStats);
@@ -264,7 +347,14 @@ export class SeedWorldViewSnapshots implements ConversationImageResources {
   }
   private get(id: string) {
     const entry = this.frames.get(id);
-    if (!entry) throw new Error("SNAPSHOT_EXPIRED: Capture a new view; never reuse coordinates on another snapshot");
+    if (!entry) {
+      const ownId = id.startsWith(`view-${this.session}-`) && /^\d+$/.test(id.slice(`view-${this.session}-`.length));
+      const code = ownId ? "SNAPSHOT_EXPIRED" : "SNAPSHOT_UNKNOWN";
+      throw Object.assign(
+        new Error(`${code}: Snapshot is unavailable. Capture a new snapshot and use its image path and coordinates.`),
+        { code }
+      );
+    }
     return entry;
   }
   pin(id: string): () => void {
@@ -299,6 +389,7 @@ export class SeedWorldViewSnapshots implements ConversationImageResources {
   hitPoints(id: string, points: ViewPoint[]) {
     const entry = this.get(id);
     entry.lastUsedTurn = this.turn;
+    entry.lastAccess = ++this.access;
     const { frame, state } = entry;
     const releaseReadback = this.budget.reserve(
       "temporary",
@@ -329,11 +420,14 @@ export class SeedWorldViewSnapshots implements ConversationImageResources {
           tile = { pixels: frame.identities.read(tx, ty, width, height), x: tx, y: ty, width };
           tiles.set(key, tile);
         }
-        const identity = decodeViewIdentity(tile.pixels, ((y - tile.y) * tile.width + x - tile.x) * 4);
+        const offset = ((y - tile.y) * tile.width + x - tile.x) * 4;
+        const identity = decodeViewIdentity(tile.pixels, offset, frame.identities.identityBits);
         const ref = frame.identities.resolve(identity);
         return {
           status: ref ? ("hit" as const) : ("no-registered-hit" as const),
-          hit: ref ? { ref: { ...ref } } : null
+          hit: ref
+            ? { ref: { ...ref }, estimatedPosition: frame.identities.estimatedPosition(tile.pixels, offset, x, y) }
+            : null
         };
       });
       return { snapshotId: id, currentScene: state === this.currentState(), hits };
@@ -344,6 +438,7 @@ export class SeedWorldViewSnapshots implements ConversationImageResources {
   queryRegion(id: string, region: ViewRegion, filter?: ViewFilter, offset = 0, limit = 100) {
     const entry = this.get(id);
     entry.lastUsedTurn = this.turn;
+    entry.lastAccess = ++this.access;
     const { frame, state } = entry;
     const releaseReadback = this.budget.reserve("temporary", frame.width * frame.height * 5);
     try {
@@ -372,7 +467,7 @@ export class SeedWorldViewSnapshots implements ConversationImageResources {
         for (let y = y0; y < y1; y++)
           for (let x = x0; x < x1; x++) {
             if (!mask[y * frame.width + x]) continue;
-            const identity = decodeViewIdentity(pixels, ((y - y0) * width + x - x0) * 4);
+            const identity = decodeViewIdentity(pixels, ((y - y0) * width + x - x0) * 4, frame.identities.identityBits);
             if (!resolved.has(identity)) resolved.set(identity, frame.identities.resolve(identity));
             const ref = resolved.get(identity);
             if (!ref) {
@@ -435,10 +530,10 @@ export class SeedWorldViewSnapshots implements ConversationImageResources {
     const previous = this.attachments.get(id);
     const key = JSON.stringify(attachment.annotations);
     const same = [...entry.versions].find(([, version]) => version.key === key);
-    const imageId = same?.[0] ?? `${id}/image-${crypto.randomUUID()}`;
-    if (!same) entry.versions.set(imageId, { key, annotations: attachment.annotations, used: false, leases: 0 });
+    const imagePath = same?.[0] ?? `${SNAPSHOT_DIRECTORY}/${id}/image-${crypto.randomUUID()}.jpg`;
+    if (!same) entry.versions.set(imagePath, { key, annotations: attachment.annotations, used: false, leases: 0 });
     if (!previous) entry.pins++;
-    this.attachments.set(id, { attachment, imageId });
+    this.attachments.set(id, { attachment, imagePath });
     this.pruneVersions(id, entry);
     return structuredClone(attachment);
   }
@@ -456,67 +551,64 @@ export class SeedWorldViewSnapshots implements ConversationImageResources {
   private attachmentMetadata(a: ViewAttachment, annotated: boolean) {
     const entry = this.get(a.snapshotId);
     return toAgentValue({
-      snapshotId: a.snapshotId,
+      ...entry.frame.metadata,
       imageWidth: entry.frame.image.width,
       imageHeight: entry.frame.image.height,
-      queryApi: ["world.view.hitPoints"],
+      queryTool: "pick",
       queryDeclarations: [
-        "editor/declare/world/tools/world.view.hitPoints.d.ts",
         "editor/declare/world/tools/runtime.entity.inspect.d.ts",
         "editor/declare/world/tools/runtime.component.query.d.ts",
         "editor/declare/world/tools/runtime.component.read.d.ts"
       ],
-      pointerInput: "{ snapshotId, pointers: [{ x, y }, ...] }; x/y are pixels of this image, origin top-left",
+      queryInput: "Use this image path as pick.file_path. Provide points or region in image pixels, origin top-left.",
+      capturedWorldState: entry.state,
       coverage: "registered-visible-surfaces",
       coordinateSpace: "image-pixels-top-left",
-      currentScene: entry.state === this.currentState(),
       imageAnnotation: annotated ? "colored freehand marks; queries use original pixels, never the ink" : "none",
       scope:
-        "Marks are visual hints, not closed regions or selected objects. Interpret the screenshot, freehand marks and user text together; query world.view.hitPoints with pointers on the intended objects to obtain their captured identities. Targets may have moved; resolve returned references in the current world before editing. Never infer targets by treating every mark as a filled region."
+        "This image is already in context. Freehand marks are visual hints, not object selections. Interpret the image, marks and user text together to identify the intended location or object. A mark does not automatically define a filled region. Use pick according to its location or object workflow."
     });
   }
   private pruneVersions(id: string, entry: SnapshotEntry): void {
-    const current = this.attachments.get(id)?.imageId;
-    for (const [imageId, version] of entry.versions) {
-      if (imageId !== current && !version.used && !version.leases && !version.pending) {
+    const current = this.attachments.get(id)?.imagePath;
+    for (const [imagePath, version] of entry.versions) {
+      if (imagePath !== current && !version.used && !version.leases && !version.pending) {
         version.release?.();
-        entry.versions.delete(imageId);
+        entry.versions.delete(imagePath);
       }
     }
   }
   private async exportVersion(entry: SnapshotEntry, version: ImageVersion): Promise<AgentViewImage> {
     if (version.image) return version.image;
     if (!version.pending) {
-      version.pending = entry.frame.image
-        .export(version.annotations)
-        .then((image) => {
-          if (this.disposed) throw new Error("Snapshot store is disposed");
-          validateImage(image);
-          version.release = this.budget.reserve("image", image.blob.size);
-          version.image = image;
-          return image;
-        })
-        .finally(() => {
-          version.pending = undefined;
-        });
+      version.pending = afterImageReclamation(async () => {
+        const image = await entry.frame.image.export(version.annotations);
+        if (this.disposed) throw new Error("Snapshot store is disposed");
+        validateImage(image);
+        version.release = this.budget.reserve("image", image.blob.size);
+        version.image = image;
+        return image;
+      }).finally(() => {
+        version.pending = undefined;
+      });
     }
     return version.pending;
   }
   /** Freeze versions immediately; exporting is explicit and occurs only at the send boundary. */
   acquireAttachments():
     | {
-        references: { imageId: string; metadata: AgentViewObservation["metadata"] }[];
+        references: { imagePath: string; metadata: AgentViewObservation["metadata"] }[];
         export(): Promise<AgentViewObservation[]>;
         release(): void;
       }
     | undefined {
     if (!this.attachments.size) return;
     const selected = [...this.attachments.values()]
-      .map(({ attachment, imageId }) => {
+      .map(({ attachment, imagePath }) => {
         const entry = this.get(attachment.snapshotId),
-          version = entry.versions.get(imageId)!;
+          version = entry.versions.get(imagePath)!;
         const metadata = this.attachmentMetadata(attachment, version.annotations.length > 0);
-        return { entry, version, imageId, metadata, id: attachment.snapshotId };
+        return { entry, version, imagePath, metadata, id: attachment.snapshotId };
       })
       .map((item) => {
         // Validate every image before acquiring any task ownership.
@@ -525,7 +617,7 @@ export class SeedWorldViewSnapshots implements ConversationImageResources {
       });
     let released = false;
     return {
-      references: selected.map(({ imageId, metadata }) => ({ imageId, metadata })),
+      references: selected.map(({ imagePath, metadata }) => ({ imagePath, metadata })),
       export: async () => {
         if (released || this.disposed) throw new Error("Screenshot submission was released");
         // Each in-flight export keeps its snapshot alive even if its submission is cancelled.
@@ -536,7 +628,11 @@ export class SeedWorldViewSnapshots implements ConversationImageResources {
           for (const item of selected) {
             const image = await this.exportVersion(item.entry, item.version);
             if (released || this.disposed) throw new Error("Screenshot submission was released");
-            observations.push({ imageId: item.imageId, metadata: structuredClone(item.metadata), image: { ...image } });
+            observations.push({
+              imagePath: item.imagePath,
+              metadata: structuredClone(item.metadata),
+              image: { ...image }
+            });
           }
           return observations;
         } finally {

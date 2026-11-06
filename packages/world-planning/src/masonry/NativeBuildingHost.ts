@@ -2,8 +2,8 @@ import type { IslandPlan } from "../semantic-study/IslandPlanModel";
 import { type Camera, type Scene } from "@galacean/engine";
 import type { RuntimeEditor } from "@galacean/engine-runtime-editor/runtime-editor/runtime-editor";
 import type { RuntimeProjectSession } from "@galacean/engine-runtime-editor/project/runtime-project-session";
-import { BuildingSystem } from "@galacean/engine-building/tiny-glade/components/BuildingComponents";
-import type { ConstructionTerrainSource } from "@galacean/engine-building/tiny-glade/runtime/ConstructionTerrain";
+import { BuildingManager } from "@galacean/engine-building/tiny-glade/parts/architecture/BuildingManager";
+import type { ConstructionTerrainSource } from "@galacean/engine-building/tiny-glade/runtime/TerrainField";
 import type { PublishedPlanningSeedScene } from "../spatial/runtime/PlanningSeedScenePublication";
 import type { RockFormationMesh } from "@galacean/engine-terrain/rock-formation/types";
 import type { SeedWorldPickVisitor } from "@galacean/engine-modify/rendering/SeedWorldPickBatch";
@@ -12,7 +12,7 @@ import { masonryRockTerrainSource, masonryTerrainSource } from "./MasonryPlaceme
 /** Application lifecycle only. Source components own authoring; the Scene manager
  * owns every live/hidden mesh. Retiring a world must never destroy its buildings. */
 export class NativeBuildingHost {
-  readonly system: BuildingSystem;
+  readonly system: BuildingManager;
   private bound = false;
   private disposed = false;
   private current?: NativeBuildingWorld;
@@ -24,7 +24,7 @@ export class NativeBuildingHost {
     scene: Scene,
     private readonly camera: Camera
   ) {
-    this.system = BuildingSystem.forScene(scene);
+    this.system = BuildingManager.forScene(scene);
     this.unregister = project.registerRuntimeActivation({
       before: () => this.system.beginInputUpdate(),
       finish: () => this.system.endInputUpdate(),
@@ -57,17 +57,7 @@ export class NativeBuildingHost {
     // Bind to the current Scene projection; a saved consumer error must not prevent editor startup.
     if (!this.bound) {
       this.system.visible = false;
-      this.system.bind({
-        camera: this.camera,
-        terrain,
-        frame: (body) => body.entity.parent ?? body.entity,
-        identity: (component) => {
-          const id = this.editor.projection.identityOf(component)?.id;
-          if (!id) throw Error("Building component has no Source identity");
-          return id;
-        },
-        resolve: (id) => this.editor.projection.component(id)
-      });
+      this.system.bind({ camera: this.camera, terrain });
       this.bound = true;
       // The Scene owns the entrance clock, including startup with unavailable geometry.
       this.system.publishEntrance();
@@ -102,14 +92,14 @@ export class NativeBuildingHost {
   }
 }
 
-type Candidate = Awaited<ReturnType<BuildingSystem["prepareTerrain"]>>;
+type Candidate = Awaited<ReturnType<BuildingManager["prepareTerrain"]>>;
 /** A world publication handle, never a second building model or Scene owner. */
 export class NativeBuildingWorld {
   private accepted = false;
   private closed = false;
   private readonly wasVisible: boolean;
   constructor(
-    private readonly system: BuildingSystem,
+    private readonly system: BuildingManager,
     private prepared: Candidate | undefined,
     private readonly accept: () => void,
     private readonly isCurrent: () => boolean
@@ -161,10 +151,10 @@ export class NativeBuildingWorld {
   captureSurfaceQuery() {
     return this.accepted || !this.prepared ? this.system.captureSurfaceQuery() : this.prepared.captureSurfaceQuery();
   }
-  intersectSegment(...args: Parameters<BuildingSystem["intersectSegment"]>) {
+  intersectSegment(...args: Parameters<BuildingManager["intersectSegment"]>) {
     return this.system.intersectSegment(...args);
   }
-  intersectCapsule(...args: Parameters<BuildingSystem["intersectCapsule"]>) {
+  intersectCapsule(...args: Parameters<BuildingManager["intersectCapsule"]>) {
     return this.system.intersectCapsule(...args);
   }
   visitPickBatches(visitor: SeedWorldPickVisitor) {

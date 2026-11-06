@@ -81,6 +81,9 @@ export interface TerrainClipmapRenderBinding {
    */
   setLayerDetilingMask?(layerMask: number): void;
 
+  /** Overrides solid layer diffuse colours in the current residency. Omit colour to restore the source remap. */
+  setLayerDiffuseColors?(patches: readonly TerrainLayerDiffuseColorPatch[]): void;
+
   /**
    * Uploads one lossless local height rectangle into an existing Region residency slot.
    * @param patch Region-local R16 samples and rectangle coordinates.
@@ -117,6 +120,12 @@ export interface TerrainClipmapRenderBinding {
 
   /** Releases the Material clone and every derived residency texture. */
   destroy(): void;
+}
+
+export interface TerrainLayerDiffuseColorPatch {
+  readonly regionId: string;
+  readonly layerId: string;
+  readonly color?: readonly [number, number, number, number];
 }
 
 /** Stable GPU height-atlas view shared without coupling consumers to the Terrain Material clone. */
@@ -549,6 +558,73 @@ export function createTerrainClipmapMaterialBinding(
       }
       ownedMaterial.shaderData.setInt("material_TerrainDetilingLayerMask", layerMask);
       ownedFarMaterial?.shaderData.setInt("material_TerrainDetilingLayerMask", layerMask);
+    },
+    setLayerDiffuseColors(patches): void {
+      if (destroyed) throw Error("Terrain binding is destroyed");
+      if (!layerPacking || !ownedLayerResources) throw Error("Terrain has no layer residency");
+      const pixels = layerPacking.layerMetadataPixels,
+        next = pixels.slice();
+      const identities = new Set<string>();
+      for (const patch of patches) {
+        const key = JSON.stringify([patch.regionId, patch.layerId]);
+        if (identities.has(key)) throw Error("Duplicate Terrain layer colour override");
+        identities.add(key);
+        const layer = layerPacking.layers.find(
+          (layer) => layer.regionId === patch.regionId && layer.id === patch.layerId
+        );
+        if (!layer) throw Error("Terrain layer colour target is not resident: " + key);
+        if (
+          patch.color &&
+          (patch.color.length !== 4 || !patch.color.every((c) => Number.isFinite(c) && c >= 0 && c <= 1))
+        )
+          throw RangeError("Terrain diffuse colours must be finite linear RGBA in [0, 1]");
+        const offset = layer.index * layerPacking.layerMetadataWidth * 4;
+        next.set(patch.color ?? layer.diffuseRemapMin, offset + 4);
+        next.set(patch.color ?? layer.diffuseRemapMax, offset + 8);
+      }
+      if (next.every((value, i) => value === pixels[i])) return;
+      const texture = ownedLayerResources.layerMetadata as Texture2D;
+      try {
+        texture.setPixelBuffer(next);
+      } catch (error) {
+        texture.setPixelBuffer(pixels);
+        throw error;
+      }
+      // Keep the same backing array used by device-loss restoration.
+      pixels.set(next);
+      const indices = layerPacking.alphamaps[0]?.layerIndices;
+      if (indices) {
+        const colors = new Float32Array(16);
+        indices.forEach((index, channel) => {
+          if (index >= 0)
+            colors.set(
+              pixels.subarray(
+                index * layerPacking.layerMetadataWidth * 4 + 4,
+                index * layerPacking.layerMetadataWidth * 4 + 8
+              ),
+              channel * 4
+            );
+        });
+        // The simple single-map variants use uniforms instead of metadata fetches.
+        for (const material of [ownedMaterial, ownedFarMaterial])
+          if (material) {
+            material.shaderData.setFloatArray("material_TerrainSimpleColors", colors);
+            if (layerPacking.singleDiffuseTexture) {
+              const textured = layerPacking.layers.filter((layer) => layer.diffuseTextureIndex >= 0);
+              if (textured.length === 1) {
+                const offset = textured[0].index * layerPacking.layerMetadataWidth * 4;
+                material.shaderData.setVector4(
+                  "material_TerrainSimpleTextureMin",
+                  new Vector4(pixels[offset + 4], pixels[offset + 5], pixels[offset + 6], pixels[offset + 7])
+                );
+                material.shaderData.setVector4(
+                  "material_TerrainSimpleTextureMax",
+                  new Vector4(pixels[offset + 8], pixels[offset + 9], pixels[offset + 10], pixels[offset + 11])
+                );
+              }
+            }
+          }
+      }
     },
     updateHeightRegion(patch): void {
       this.updateHeightRegions([patch]);

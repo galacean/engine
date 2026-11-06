@@ -8,6 +8,7 @@ declare global {
     interface WorldApi { readonly parameters: WorldParametersApi; }
     interface WorldParametersApi {
       /**
+       * 调用入口：await tools.world.parameters.inspect(input)
        * 分页读取对象有效参数、继承来源和 versionToken。values 包含未被作者覆盖的原生资产采样值；local 仍只含作者明确覆盖，sources 是作者实体继承链，assetSources 按字段记录资产来源与采样条件。资源读取失败会报告错误，不将缺失值冒充有效值。时刻或资产引用变化后需重新读取，有效值会随原生曲线改变；读取不写入作者文档。componentTypes 是完整组件索引；components 只含当前页字段，matchedCount/offset 按字段计数。修改前用 component 及 fields（确切字段键）读取目标，或按 nextOffset 翻页，不能把本页未出现的值当成未配置。
        * @param input - 使用发现的组件、实体和字段；所有编辑由系统统一验证。
        * @returns 组件元数据、作者参数或事务结果；versionToken 用于拒绝过期编辑。完整记录供脚本计算，按 nextOffset 继续；maxBytes 可明确限制本页字节，避免完整页面直接返回时超预算。最终汇总仍须筛选并遵守 main() 总预算，不需要为每个字段单独请求模型。
