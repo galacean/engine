@@ -10,7 +10,7 @@ import {
   StencilOperation
 } from "@galacean/engine-core";
 import { ShaderCompiler as ShaderCompilerRelease } from "@galacean/engine-shader-compiler";
-import { ShaderPrecompiler } from "@galacean/engine-shader-compiler/offline";
+import { ShaderPrecompiler } from "@galacean/engine-shader-compiler/precompile";
 import { ShaderAnalyzer } from "@galacean/engine-shader-analyzer";
 import { ShaderSourceParser } from "@galacean/engine-shader-parser/internal";
 import { glslValidate } from "./ShaderValidate";

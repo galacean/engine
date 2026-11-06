@@ -10,12 +10,12 @@ import swc from "rollup-plugin-swc3";
 import { fileURLToPath } from "node:url";
 
 const bundlerExternal = [
-  // Pulled in dynamically by precompile.ts (`await import("../dist/offline.main.js")`);
+  // Pulled in dynamically by precompile.ts (`await import("../dist/precompile.main.js")`);
   // kept out of the bundler output so the runtime compiler is loaded at
   // runtime from the sibling `dist/` directory rather than re-bundled here.
   // Bundler files live at the package root (`<pkg>/bundler/`) so the CDN sync
   // (which recursively walks `dist/`) doesn't try to upload Node-only code.
-  "../dist/offline.main.js",
+  "../dist/precompile.main.js",
   "../.bootstrap/main.js",
   "@galacean/engine-shader-compiler",
   "@galacean/engine-shader/sources",
@@ -60,7 +60,7 @@ export default [
   // Repo-local bootstrap. Dependencies resolve from workspace source so the
   // first shader precompile does not depend on pre-existing package dist files.
   {
-    input: "src/offline.ts",
+    input: "src/precompile.ts",
     output: { file: ".bootstrap/main.js", format: "cjs", sourcemap: true },
     external: [],
     plugins: [
@@ -88,10 +88,10 @@ export default [
   // Node-only offline entry consumed by the CLI/bundler. Its analyzer parser
   // dependency is external and therefore never enters the runtime main files.
   {
-    input: "src/offline.ts",
+    input: "src/precompile.ts",
     output: [
-      { file: "dist/offline.main.js", format: "cjs", sourcemap: true },
-      { file: "dist/offline.module.js", format: "es", sourcemap: true }
+      { file: "dist/precompile.main.js", format: "cjs", sourcemap: true },
+      { file: "dist/precompile.module.js", format: "es", sourcemap: true }
     ],
     external: releaseRuntimeExternal,
     plugins: [

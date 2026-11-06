@@ -22,7 +22,7 @@ import {
  * Offline-only ShaderLab to `.shaderc` compiler with deterministic validation.
  *
  * This class is intentionally excluded from the runtime compiler entry. CLI and bundler adapters import
- * it from `@galacean/engine-shader-compiler/offline`.
+ * it from `@galacean/engine-shader-compiler/precompile`.
  */
 export class ShaderPrecompiler {
   private _includeMap: IncludeMap = Object.create(null);

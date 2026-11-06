@@ -1,6 +1,6 @@
 import { Logger, Shader, ShaderLanguage, WebGLEngine, WebGLMode } from "@galacean/engine";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
-import { ShaderPrecompiler } from "@galacean/engine-shader-compiler/offline";
+import { ShaderPrecompiler } from "@galacean/engine-shader-compiler/precompile";
 import { describe, expect, it } from "vitest";
 
 Logger.enable();

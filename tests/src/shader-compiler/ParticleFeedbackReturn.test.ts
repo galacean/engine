@@ -2,7 +2,7 @@ import { ShaderFactory, ShaderLanguage, ShaderMacro, ShaderMacroCollection, Shad
 import { ShaderMacroProcessor } from "@galacean/engine-core/src/shader/ShaderMacroProcessor";
 import type { IPrecompiledShader } from "@galacean/engine-design";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
-import { ShaderPrecompiler } from "@galacean/engine-shader-compiler/offline";
+import { ShaderPrecompiler } from "@galacean/engine-shader-compiler/precompile";
 import { WebGLEngine, WebGLMode } from "@galacean/engine";
 import { server } from "@vitest/browser/context";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";

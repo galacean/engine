@@ -144,13 +144,13 @@ new ShaderCompiler().generate(pass, ShaderLanguage.GLSLES100);
     ["node", "CommonJS"],
     ["Node16", "Node16"],
     ["Bundler", "ESNext"]
-  ])("resolves public offline and bundler entry types with %s resolution", (moduleResolution, module) => {
+  ])("resolves public precompile and bundler entry types with %s resolution", (moduleResolution, module) => {
     const sourceFile = join(consumerDirectory, "public-subpaths.ts");
     writeFileSync(
       sourceFile,
       `
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
-import { ShaderPrecompiler } from "@galacean/engine-shader-compiler/offline";
+import { ShaderPrecompiler } from "@galacean/engine-shader-compiler/precompile";
 import { shaderCompiler } from "@galacean/engine-shader-compiler/bundler/rollup";
 import { precompile } from "@galacean/engine-shader-compiler/bundler/precompile";
 import * as sources from "@galacean/engine-shader/sources";
@@ -260,14 +260,14 @@ void pass;
     expect(JSON.parse(result.stdout).diagnostics).toEqual([]);
   });
 
-  it("publishes the offline precompiler without adding it to the runtime entry", () => {
+  it("publishes the precompiler without adding it to the runtime entry", () => {
     for (const mode of ["require", "import"] as const) {
       const imports =
         mode === "require"
           ? `const runtime = require("@galacean/engine-shader-compiler");
-             const { ShaderPrecompiler } = require("@galacean/engine-shader-compiler/offline");`
+             const { ShaderPrecompiler } = require("@galacean/engine-shader-compiler/precompile");`
           : `const runtime = await import("@galacean/engine-shader-compiler");
-             const { ShaderPrecompiler } = await import("@galacean/engine-shader-compiler/offline");`;
+             const { ShaderPrecompiler } = await import("@galacean/engine-shader-compiler/precompile");`;
       const probe = runNode(
         `${imports}
          const precompiled = new ShaderPrecompiler().precompile(${JSON.stringify(shaderSource(undefined, "1.0"))}, 0);
@@ -339,7 +339,7 @@ void pass;
         const { ShaderLanguage, ShaderPass, ShaderData } = ${load("@galacean/engine-core")};
         const { ShaderAnalyzer } = ${load("@galacean/engine-shader-analyzer")};
         const { ShaderCompiler } = ${load("@galacean/engine-shader-compiler")};
-        const { ShaderPrecompiler } = ${load("@galacean/engine-shader-compiler/offline")};
+        const { ShaderPrecompiler } = ${load("@galacean/engine-shader-compiler/precompile")};
         ${body}
       `,
         mode === "import"

@@ -44,7 +44,9 @@ Authoring diagnostics are provided separately by `@galacean/engine-shader-analyz
 
 The asset loader supplies the current logical shader location internally. Moving a shader folder remains valid when the shader asset and its registered include keys move together. Disk paths do not define the logical root.
 
-## Offline precompile
+## Precompile
+
+Import `ShaderPrecompiler` from `@galacean/engine-shader-compiler/precompile` to generate `.shaderc` data in memory. The CLI writes this data to files.
 
 Compile a directory tree to `.shaderc` artifacts:
 

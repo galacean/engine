@@ -2,7 +2,7 @@ import { ShaderLanguage } from "@galacean/engine-core";
 import { ShaderMacroProcessor } from "@galacean/engine-core/src/shader/ShaderMacroProcessor";
 import { DiagnosticType, ShaderAnalyzer } from "@galacean/engine-shader-analyzer";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
-import { ShaderPrecompiler } from "@galacean/engine-shader-compiler/offline";
+import { ShaderPrecompiler } from "@galacean/engine-shader-compiler/precompile";
 import { afterAll, describe, expect, it } from "vitest";
 
 function shader(definitions: string, vertex: string, fragment = "gl_FragColor = vec4(1.0);"): string {

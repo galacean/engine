@@ -226,7 +226,7 @@ async function importBootstrapPrecompiler(): Promise<unknown> {
 
 async function importReleasePrecompiler(): Promise<unknown> {
   // @ts-expect-error generated Node-only runtime has no declaration file
-  return import("../dist/offline.main.js");
+  return import("../dist/precompile.main.js");
 }
 
 // Local .glsl come from inputDir; standard library comes from

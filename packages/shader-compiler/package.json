@@ -21,10 +21,10 @@
       "require": "./dist/main.js",
       "types": "./types/index.d.ts"
     },
-    "./offline": {
-      "import": "./dist/offline.module.js",
-      "require": "./dist/offline.main.js",
-      "types": "./types/offline.d.ts"
+    "./precompile": {
+      "import": "./dist/precompile.module.js",
+      "require": "./dist/precompile.main.js",
+      "types": "./types/precompile.d.ts"
     },
     "./bundler/rollup": {
       "import": "./bundler/rollup.js",
@@ -67,8 +67,8 @@
   },
   "typesVersions": {
     "*": {
-      "offline": [
-        "types/offline.d.ts"
+      "precompile": [
+        "types/precompile.d.ts"
       ],
       "bundler/rollup": [
         "types/bundler/rollup.d.ts"

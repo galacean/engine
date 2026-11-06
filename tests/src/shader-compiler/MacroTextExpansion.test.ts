@@ -3,7 +3,7 @@ import { ShaderMacroProcessor } from "@galacean/engine-core/src/shader/ShaderMac
 import { expandPreprocessorExpressionMacros, expandShaderMacros } from "@galacean/engine-design";
 import { ShaderAnalyzer } from "@galacean/engine-shader-analyzer";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
-import { ShaderPrecompiler } from "@galacean/engine-shader-compiler/offline";
+import { ShaderPrecompiler } from "@galacean/engine-shader-compiler/precompile";
 import { ShaderInstructionEncoder } from "../../../packages/shader-compiler/src/ShaderInstructionEncoder";
 import { ShaderSourceParser } from "@galacean/engine-shader-parser/internal";
 import { describe, expect, it } from "vitest";
