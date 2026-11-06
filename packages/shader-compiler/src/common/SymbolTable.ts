@@ -32,6 +32,14 @@ export class SymbolTable<T extends IBaseSymbol> {
     }
   }
 
+  /**
+   * Returns the table-owned declarations registered under a name.
+   * @param name - Symbol name
+   */
+  getSymbolsByName(name: string): readonly T[] | undefined {
+    return this._table.get(name);
+  }
+
   getSymbols(symbol: T, includeMacro = false, out: T[]): T[] {
     out.length = 0;
     this._getSymbols(symbol, includeMacro, out);

@@ -5,6 +5,7 @@ import {
   CompareFunction,
   CullMode,
   RenderStateElementKey,
+  ShaderFactory,
   ShaderLanguage,
   StencilOperation
 } from "@galacean/engine-core";
@@ -12,8 +13,18 @@ import { ShaderCompiler as ShaderCompilerRelease } from "@galacean/engine-shader
 import { ShaderCompiler as ShaderCompilerVerbose } from "@galacean/engine-shader-compiler/verbose";
 import { glslValidate } from "./ShaderValidate";
 
-import { Logger, WebGLEngine } from "@galacean/engine";
-import { describe, expect, it, vi } from "vitest";
+import {
+  Camera,
+  Logger,
+  Material,
+  MeshRenderer,
+  ModelMesh,
+  Shader,
+  Vector3,
+  WebGLEngine,
+  WebGLMode
+} from "@galacean/engine";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { server } from "@vitest/browser/context";
 
 const { readFile } = server.commands;
@@ -22,6 +33,14 @@ Logger.enable();
 
 const shaderCompilerVerbose = new ShaderCompilerVerbose();
 const shaderCompilerRelease = new ShaderCompilerRelease();
+
+// `_parseShaderPass` resolves `#include` through the compiler's include map. `glslValidate`
+// binds it as a side effect, which would leave every test that parses without linking
+// first silently dependent on a sibling test having run. Bind it up front instead.
+// @ts-ignore — runtime-only binding.
+shaderCompilerRelease._includeMap = ShaderFactory.includeMap;
+// @ts-ignore — runtime-only binding.
+shaderCompilerVerbose._includeMap = ShaderFactory.includeMap;
 
 describe("ShaderCompiler", async () => {
   const canvas = document.createElement("canvas");
@@ -32,6 +51,159 @@ describe("ShaderCompiler", async () => {
     expect(shaderCompilerVerbose).not.be.null;
     expect(shaderCompilerRelease).not.be.null;
   });
+
+  it.each([
+    ["release", ShaderLanguage.GLSLES100, shaderCompilerRelease],
+    ["release", ShaderLanguage.GLSLES300, shaderCompilerRelease],
+    ["verbose", ShaderLanguage.GLSLES100, shaderCompilerVerbose],
+    ["verbose", ShaderLanguage.GLSLES300, shaderCompilerVerbose]
+  ] as const)("preserves disabled bare fragment returns (%s, %s)", async (mode, language, compiler) => {
+    const fixtureEngine = await WebGLEngine.create({
+      canvas: document.createElement("canvas"),
+      shaderCompiler: compiler,
+      graphicDeviceOptions: {
+        webGLMode: language === ShaderLanguage.GLSLES100 ? WebGLMode.WebGL1 : WebGLMode.WebGL2
+      }
+    });
+    let shader: Shader | undefined;
+    try {
+      const source = `Shader "DisabledBareReturn${mode}${language}" {
+        SubShader "Default" { Pass "Forward" {
+          VertexShader = vert;
+          FragmentShader = frag;
+          void vert() { gl_Position = vec4(0.0); }
+          vec4 frag() {
+            #if 0
+              return;
+            #endif
+            return vec4(1.0);
+          }
+        } }
+      }`;
+      shader = Shader.create(source, language);
+      expect(shader.compileVariant(fixtureEngine, [])).to.be.true;
+      expect(compiler._precompile(source, language, "").subShaders[0].passes).to.have.length(1);
+    } finally {
+      shader?.destroy();
+      fixtureEngine.destroy();
+    }
+  });
+
+  it.each([ShaderLanguage.GLSLES100, ShaderLanguage.GLSLES300])(
+    "compiles conditional fragment helper macros without vertex dependencies (%s)",
+    async (language) => {
+      const fixtureEngine = await WebGLEngine.create({
+        canvas: document.createElement("canvas"),
+        shaderCompiler: shaderCompilerRelease,
+        graphicDeviceOptions: {
+          webGLMode: language === ShaderLanguage.GLSLES100 ? WebGLMode.WebGL1 : WebGLMode.WebGL2
+        }
+      });
+      const shader = Shader.create(
+        `Shader "FragmentHelperMacro${language}" {
+          SubShader "Default" { Pass "Forward" {
+            VertexShader = vertexMain;
+            FragmentShader = fragmentMain;
+            struct Attributes { vec4 POSITION; };
+            struct Varyings { vec2 uv; };
+            struct SurfaceData { vec3 color; };
+            vec3 shadeSurface(SurfaceData surface) { return surface.color; }
+            #ifdef MATERIAL_TEST_LIGHT
+              #define SURFACE_HOOK shadeSurface
+            #endif
+            Varyings vertexMain(Attributes attributes) {
+              Varyings output;
+              gl_Position = attributes.POSITION;
+              output.uv = attributes.POSITION.xy;
+              return output;
+            }
+            vec4 fragmentMain(Varyings input) {
+              #ifdef MATERIAL_TEST_LIGHT
+                SurfaceData surface;
+                surface.color = vec3(input.uv, 1.0);
+                return vec4(SURFACE_HOOK(surface), 1.0);
+              #else
+                return vec4(input.uv, 0.0, 1.0);
+              #endif
+            }
+          } }
+        }`,
+        language
+      );
+      try {
+        expect(shader.compileVariant(fixtureEngine, [])).to.be.true;
+        expect(shader.compileVariant(fixtureEngine, ["MATERIAL_TEST_LIGHT"])).to.be.true;
+      } finally {
+        shader.destroy();
+        fixtureEngine.destroy();
+      }
+    }
+  );
+
+  it.each([ShaderLanguage.GLSLES100, ShaderLanguage.GLSLES300])(
+    "preserves early fragment return colors (%s)",
+    async (language) => {
+      const canvas = document.createElement("canvas");
+      canvas.width = canvas.height = 32;
+      const fixtureEngine = await WebGLEngine.create({
+        canvas,
+        shaderCompiler: shaderCompilerRelease,
+        graphicDeviceOptions: {
+          webGLMode: language === ShaderLanguage.GLSLES100 ? WebGLMode.WebGL1 : WebGLMode.WebGL2,
+          preserveDrawingBuffer: true
+        }
+      });
+      const shader = Shader.create(
+        `Shader "FragmentReturnColors${language}" {
+          SubShader "Default" { Pass "Forward" {
+            VertexShader = vertexMain;
+            FragmentShader = fragmentMain;
+            float material_UseRed;
+            mat4 renderer_MVPMat;
+            struct Attributes { vec4 POSITION; };
+            void vertexMain(Attributes attributes) { gl_Position = renderer_MVPMat * attributes.POSITION; }
+            vec4 fragmentMain() {
+              if (material_UseRed > 0.5) return vec4(1.0, 0.0, 0.0, 1.0);
+              return vec4(0.0, 1.0, 0.0, 1.0);
+            }
+          } }
+        }`,
+        language
+      );
+      try {
+        const root = fixtureEngine.sceneManager.activeScene.createRootEntity();
+        const camera = root.createChild().addComponent(Camera);
+        camera.entity.transform.setPosition(0, 0, 3);
+        const mesh = new ModelMesh(fixtureEngine);
+        mesh.setPositions([new Vector3(-1, -1, 0), new Vector3(1, -1, 0), new Vector3(0, 1, 0)]);
+        mesh.setIndices(new Uint16Array([0, 1, 2]));
+        mesh.addSubMesh(0, 3);
+        mesh.bounds.min.set(-1, -1, 0);
+        mesh.bounds.max.set(1, 1, 0);
+        mesh.uploadData(false);
+        const renderer = root.createChild().addComponent(MeshRenderer);
+        renderer.mesh = mesh;
+        const material = new Material(fixtureEngine, shader);
+        renderer.setMaterial(material);
+        const gl = canvas.getContext(language === ShaderLanguage.GLSLES100 ? "webgl" : "webgl2") as
+          | WebGLRenderingContext
+          | WebGL2RenderingContext;
+        const pixel = new Uint8Array(4);
+        for (const [useRed, expected] of [
+          [0, [0, 255, 0, 255]],
+          [1, [255, 0, 0, 255]]
+        ] as const) {
+          material.shaderData.setFloat("material_UseRed", useRed);
+          fixtureEngine.update();
+          gl.readPixels(16, 16, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixel);
+          expect(Array.from(pixel)).to.deep.equal(expected);
+        }
+      } finally {
+        fixtureEngine.destroy();
+        shader.destroy();
+      }
+    }
+  );
 
   it("PBR", async () => {
     const shader = shaderCompilerVerbose._parseShaderSource(PBRSource);
@@ -648,5 +820,253 @@ describe("ShaderCompiler", async () => {
     )!;
     expect(fragment).to.contain("u_globalLightDir");
     expect(fragment).to.contain("normalize");
+  });
+
+  // Validate active declarations through runtime macro evaluation and native GLSL compilation
+  describe("stage-scope struct and macro emission", () => {
+    const builtInShaders = [
+      "PBR.shader",
+      "BlinnPhong.shader",
+      "Unlit.shader",
+      "2D/Sprite.shader",
+      "2D/Text.shader",
+      "2D/UIDefault.shader",
+      "2D/SpriteMask.shader",
+      "Blit/Blit.shader",
+      "Blit/BlitScreen.shader",
+      "Effect/Particle.shader",
+      "Effect/ParticleFeedback.shader",
+      "Effect/Trail.shader",
+      "Pipeline/ShadowCaster.shader",
+      "Pipeline/DepthOnly.shader",
+      "PostProcess/Bloom.shader",
+      "PostProcess/Uber.shader",
+      "PostProcess/FinalSRGB.shader",
+      "PostProcess/FinalAntiAliasing.shader",
+      "Sky/Skybox.shader",
+      "Sky/BackgroundTexture.shader",
+      "Sky/SkyProcedural.shader",
+      "Lighting/ScalableAmbientOcclusion.shader"
+    ];
+
+    it.each(builtInShaders)("%s links", async (fileName) => {
+      const source = await readFile(`../packages/shader/src/Shaders/${fileName}`);
+      // SSAO_QUALITY selects the sample count and spiral angle
+      glslValidate(engine, source, shaderCompilerRelease, [{ name: "SSAO_QUALITY", value: "1" }]);
+    });
+
+    const readShared = "Shared surface; surface.value = 1.0; return vec4(surface.value);";
+    const declarationCases = [
+      {
+        name: "mutually exclusive structs",
+        declarations: `
+          #ifdef FIRST
+            struct Shared { float value; };
+          #else
+            struct Shared { float value; };
+          #endif`,
+        body: readShared,
+        variants: [
+          { macros: [], valid: true },
+          { macros: ["FIRST"], valid: true }
+        ]
+      },
+      {
+        name: "independent struct branches",
+        declarations: `
+          #ifdef FIRST
+            struct Shared { float value; };
+          #endif
+          #ifdef SECOND
+            struct Shared { float value; };
+          #endif`,
+        body: readShared,
+        variants: [
+          { macros: ["FIRST"], valid: true },
+          { macros: ["SECOND"], valid: true },
+          { macros: ["FIRST", "SECOND"], valid: false }
+        ]
+      },
+      {
+        name: "custom return types",
+        declarations: `
+          struct BSDFData { float value; };
+          #ifdef FIRST
+            BSDFData shadeSurface(BSDFData data) { return data; }
+          #endif
+          #ifdef SECOND
+            BSDFData shadeSurface(BSDFData data) { return data; }
+          #endif`,
+        body: "BSDFData surface; surface.value = 1.0; return vec4(shadeSurface(surface).value);",
+        variants: [
+          { macros: ["FIRST"], valid: true },
+          { macros: ["SECOND"], valid: true },
+          { macros: ["FIRST", "SECOND"], valid: false }
+        ]
+      },
+      {
+        name: "function overloads",
+        declarations: `
+          float shade(float value) { return value; }
+          vec2 shade(vec2 value) { return value; }`,
+        body: "return vec4(shade(1.0), shade(vec2(1.0)), 1.0);",
+        variants: [{ macros: [], valid: true }]
+      },
+      {
+        name: "nested include guards",
+        declarations: `
+          #ifndef GUARD
+            #define GUARD
+            struct Shared { float value; };
+          #endif
+          #ifndef OUTER
+            #define OUTER
+            #ifndef GUARD
+              #define GUARD
+              struct Shared { float value; };
+            #endif
+          #endif`,
+        body: readShared,
+        variants: [{ macros: [], valid: true }]
+      },
+      {
+        name: "conditionally defined guards",
+        declarations: `
+          #ifndef GUARD
+            #ifdef ENABLE
+              #define GUARD
+            #endif
+            struct Shared { float value; };
+          #endif
+          #ifndef GUARD
+            struct Shared { float value; };
+          #endif`,
+        body: readShared,
+        variants: [
+          { macros: [], valid: false },
+          { macros: ["ENABLE"], valid: true }
+        ]
+      },
+      {
+        name: "else-arm guard definitions",
+        declarations: `
+          #ifndef GUARD
+            struct Shared { float value; };
+          #else
+            #define GUARD
+          #endif
+          #ifndef GUARD
+            struct Shared { float value; };
+          #endif`,
+        body: readShared,
+        variants: [{ macros: [], valid: false }]
+      },
+      ...["else", "elif defined(ENABLE)"].map((directive) => ({
+        name: `later guard ${directive} arms`,
+        declarations: `
+          #ifndef GUARD
+            #define GUARD
+            struct Shared { float value; };
+          #endif
+          #ifndef GUARD
+          #${directive}
+            struct Shared { float value; };
+          #endif`,
+        body: readShared,
+        variants: [
+          { macros: [], valid: directive !== "else" },
+          { macros: ["ENABLE"], valid: false }
+        ]
+      })),
+      {
+        name: "undefined guards",
+        declarations: `
+          #ifndef GUARD
+            #define GUARD
+            struct Shared { float value; };
+          #endif
+          #ifdef RESET_GUARD
+            #undef GUARD
+          #endif
+          #ifndef GUARD
+            #define GUARD
+            struct Shared { float value; };
+          #endif`,
+        body: readShared,
+        variants: [
+          { macros: [], valid: true },
+          { macros: ["RESET_GUARD"], valid: false }
+        ]
+      }
+    ];
+
+    for (const language of [ShaderLanguage.GLSLES100, ShaderLanguage.GLSLES300]) {
+      let fixtureEngine: WebGLEngine;
+      beforeAll(async () => {
+        fixtureEngine = await WebGLEngine.create({
+          canvas: document.createElement("canvas"),
+          shaderCompiler: shaderCompilerRelease,
+          graphicDeviceOptions: {
+            webGLMode: language === ShaderLanguage.GLSLES100 ? WebGLMode.WebGL1 : WebGLMode.WebGL2
+          }
+        });
+      });
+      afterAll(() => fixtureEngine.destroy());
+
+      it.each(declarationCases)(`checks $name (${language})`, ({ name, declarations, body, variants }) => {
+        const shader = Shader.create(
+          `Shader "DeclarationVariants${language}" {
+            SubShader "Default" { Pass "Forward" {
+              VertexShader = vert;
+              FragmentShader = frag;
+              ${declarations}
+              void vert() { gl_Position = vec4(0.0); }
+              vec4 frag() { ${body} }
+            } }
+          }`,
+          language
+        );
+        try {
+          for (const { macros, valid } of variants) {
+            expect(shader.compileVariant(fixtureEngine, macros), `${name}: ${macros.join(", ")}`).to.equal(valid);
+          }
+        } finally {
+          shader.destroy();
+        }
+      });
+    }
+
+    it("keeps helper functions referenced only from macro bodies", async () => {
+      // `INVERSE_MAT` expands to `inverseMat(mat)` on the WebGL1 path. The definition is
+      // reachable only through the macro, so macro-body codegen must register it.
+      const source = await readFile("../packages/shader/src/Shaders/PBR.shader");
+      const shaderSource = shaderCompilerRelease._parseShaderSource(source);
+      const passSource = shaderSource.subShaders[0].passes[2];
+      const parsed = shaderCompilerRelease._parseShaderPass(
+        passSource.contents,
+        passSource.vertexEntry,
+        passSource.fragmentEntry,
+        ShaderLanguage.GLSLES100
+      )!;
+
+      // Guard the guard: if the macro walk regressed far enough that no stage expands
+      // `INVERSE_MAT`, the per-stage assertion below would be skipped and pass vacuously.
+      const referencing = [parsed.vertex, parsed.fragment].filter((instructions) =>
+        instructions.includes("inverseMat(")
+      );
+      expect(referencing, "at least one stage must expand INVERSE_MAT").to.not.be.empty;
+      for (const instructions of referencing) {
+        expect(instructions, "macro-only helper must still be defined").to.contain("mat2 inverseMat");
+      }
+    });
+
+    it("declares structs named only by an emitted helper's signature", async () => {
+      // `shadeSurface` reaches the vertex stage through `#define SURFACE_HOOK` alone, and
+      // the local that would otherwise name `SurfaceData` exists only in the fragment
+      // branch. Without registering the parameter type, the vertex stage emits a
+      // signature referencing an undeclared struct and the program fails to link.
+      const shaderSource = await readFile("src/shader-compiler/shaders/helper-signature-struct.shader");
+      glslValidate(engine, shaderSource, shaderCompilerRelease);
+    });
   });
 });

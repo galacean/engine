@@ -16,12 +16,10 @@ import { StructRole, VisitorContext } from "./VisitorContext";
 export abstract class GLESVisitor extends CodeGenVisitor {
   private _globalCodeArray: ICodeSegment[] = [];
   private static _lookupSymbol: SymbolInfo = new SymbolInfo("", null);
-  private static _serializedGlobalKey = new Set();
 
   reset(): void {
     const { _globalCodeArray: globalCodeArray } = this;
     globalCodeArray.length = 0;
-    GLESVisitor._serializedGlobalKey.clear();
   }
 
   getOtherGlobal(data: ShaderData, out: ICodeSegment[]): void {
@@ -221,10 +219,8 @@ export abstract class GLESVisitor extends CodeGenVisitor {
     // Fragment varying info inherits from vertex stage (preserved across `context.reset(false)`).
     fnSymbols.forEach((fnSymbol) => {
       const fnNode = fnSymbol.astNode;
-      const { returnStatement } = fnNode;
-
-      if (returnStatement) {
-        returnStatement.isFragReturnStatement = true;
+      for (const returnStatement of fnNode.returnStatements) {
+        returnStatement.isFragReturnStatement = returnStatement.children[1] instanceof ASTNode.Expression;
       }
 
       const { type: returnDataType, location: returnLocation } = fnNode.protoType.returnType;
@@ -306,9 +302,12 @@ export abstract class GLESVisitor extends CodeGenVisitor {
   private _walkMacroDefineTokens(children: NodeChild[]): void {
     for (const child of children) {
       if (child instanceof ASTNode.MacroDefine) {
-        // Codegen the value once so the enclosed `visitPostfixExpression` calls
-        // register their struct-prop references. The returned string is discarded
-        // — the real emit happens later in `_getGlobalMacroDeclarations`.
+        // Codegen the value once. Its side effects are what this walk is for: the
+        // enclosed `visitPostfixExpression` calls register the IO struct props they
+        // touch, and `visitVariableIdentifier`/`visitFunctionCall` register the
+        // globals they name — `INVERSE_MAT` expands to `inverseMat`, which is
+        // reachable only through the macro body. The returned text is discarded;
+        // the real emit happens in `_getGlobalMacroDeclarations`.
         if (child.valueExpression) child.valueExpression.codeGen(this);
       } else if (child instanceof TreeNode) {
         this._walkMacroDefineTokens(child.children);
@@ -317,32 +316,15 @@ export abstract class GLESVisitor extends CodeGenVisitor {
   }
 
   private _getGlobalSymbol(out: ICodeSegment[]): void {
-    const context = VisitorContext.context;
-    const { _referencedGlobals } = context;
-    const lastLength = Object.keys(_referencedGlobals).length;
-    if (lastLength === 0) return;
-
-    for (const ident in _referencedGlobals) {
-      if (GLESVisitor._serializedGlobalKey.has(ident)) continue;
-      GLESVisitor._serializedGlobalKey.add(ident);
-
-      const symbols = _referencedGlobals[ident];
-      for (let i = 0, n = symbols.length; i < n; i++) {
-        const sm = symbols[i];
-        const codeGenResult = sm.astNode!.codeGen(this);
-        if (!codeGenResult) continue;
-        const text = codeGenResult + (sm.type === ESymbolType.VAR ? ";" : "");
-        if (!sm.isInMacroBranch) {
-          out.push({
-            text,
-            index: sm.astNode!.location.start.index
-          });
-        }
+    // Set iteration also visits dependencies discovered during code generation
+    for (const symbol of VisitorContext.context._referencedGlobals) {
+      const code = symbol.astNode!.codeGen(this);
+      if (code && !symbol.isInMacroBranch) {
+        out.push({
+          text: code + (symbol.type === ESymbolType.VAR ? ";" : ""),
+          index: symbol.astNode!.location.start.index
+        });
       }
-    }
-
-    if (Object.keys(_referencedGlobals).length !== lastLength) {
-      this._getGlobalSymbol(out);
     }
   }
 
@@ -362,11 +344,9 @@ export abstract class GLESVisitor extends CodeGenVisitor {
     const referencedGlobalMacroASTs = context._referencedGlobalMacroASTs;
     referencedGlobalMacroASTs.length = 0;
 
-    for (const symbols of Object.values(referencedGlobals)) {
-      for (const symbol of symbols) {
-        if (symbol.isInMacroBranch) {
-          referencedGlobalMacroASTs.push(symbol.astNode!);
-        }
+    for (const symbol of referencedGlobals) {
+      if (symbol.isInMacroBranch) {
+        referencedGlobalMacroASTs.push(symbol.astNode!);
       }
     }
 

@@ -34,6 +34,12 @@ you can use `Verbose` version by import:
 import { ShaderCompiler } from "@galacean/engine-shader-compiler/verbose";
 ```
 
+## Declaration dependencies
+
+After semantic analysis, `VisitorContext.referenceGlobal` collects a referenced declaration's type dependencies from its AST before code generation. Function signatures, local and global declarations, and struct fields use this same path; referenced struct declarations recursively contribute their own field types.
+
+IO structs retain their existing flattening path. Ordinary declarations are emitted at their source positions under their original macro conditions. Macro variant selection remains a runtime responsibility.
+
 ## CFG Grammar conflict detection
 
 The Galacean shader syntax is defined using Context-Free Grammar (CFG) and is documented within the `\*.y` file. When modifications to the shader syntax are required, it is recommended to make changes to the existing CFG syntax file, and employ [Bison](https://www.gnu.org/software/bison/manual/bison.html) to detect any potential grammar conflicts.
