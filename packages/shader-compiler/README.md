@@ -62,6 +62,12 @@ When static inheritance coverage remains unknown, the instruction stream selects
 
 `ShaderCompiler.generate()` returns these variant-selectable instruction streams alongside unselected `vertex` and `fragment` text for inspection. The text views alone do not contain deferred ownership and must not be re-encoded as a substitute for the returned instructions. Engine `ShaderPass` consumes the instructions to produce final GLSL. `.shaderc` preserves them as JSON; use matching compiler and engine versions when shipping artifacts. Existing instruction opcodes retain their numeric values.
 
+## Declaration dependencies
+
+The neutral parser records exact struct dependencies at each type occurrence, including possible macro replacement types. Macro-dependent types retain conservative semantic typing; their dependency identities do not select a runtime macro variant. GLES consumes these facts while generating reachable declarations, including helper signatures and nested struct fields, without a second declaration-tree scan.
+
+Global emission is deduplicated by declaration identity. Same-named structs, functions, and uniforms in different macro branches remain separate candidates, retain their original guards and positions, and can discover further dependencies during generation. Backend-owned return lowering preserves control flow by emitting a block when a single return becomes an output assignment followed by an exit.
+
 ## CFG Grammar conflict detection
 
 The Galacean shader syntax is defined using Context-Free Grammar (CFG) and is documented within the `\*.y` file. When modifications to the shader syntax are required, it is recommended to make changes to the existing CFG syntax file, and employ [Bison](https://www.gnu.org/software/bison/manual/bison.html) to detect any potential grammar conflicts.

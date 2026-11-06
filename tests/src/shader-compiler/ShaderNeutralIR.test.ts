@@ -60,6 +60,32 @@ function inspectNeutralIR(ir: ShaderClueIR, coreInfo: ShaderCoreInfo): NeutralBa
 }
 
 describe("neutral shader IR", () => {
+  it("records macro type dependencies without asserting a concrete semantic type", () => {
+    const parsed = parseShaderPass(
+      `
+      struct MaterialData { vec3 color; };
+      #define AS_TYPE(T) T
+      #define MATERIAL_TYPE AS_TYPE(MaterialData)
+      struct SurfaceData { MATERIAL_TYPE material; };
+      void vert() { gl_Position = vec4(0.0); }
+      void frag() { gl_FragColor = vec4(1.0); }
+    `,
+      {},
+      new Map()
+    );
+    expect(parsed.errors).toEqual([]);
+    const types: ASTNode.TypeSpecifier[] = [];
+    const visit = (node: TreeNode): void => {
+      if (node instanceof ASTNode.TypeSpecifier && node.lexeme === "MATERIAL_TYPE") types.push(node);
+      for (const child of node.children) if (child instanceof TreeNode) visit(child);
+    };
+    visit(parsed.ir!.program);
+    expect(types).toHaveLength(1);
+    expect(types[0].isCustom).toBe(false);
+    expect(types[0].structDeclarations).toEqual([]);
+    expect(types[0].structDependencies.map((declaration) => declaration.ident!.lexeme)).toEqual(["MaterialData"]);
+  });
+
   it("exposes include, conditional, entry, and IO facts without a GLES or analyzer dependency", () => {
     const source = `
 #include "common.glsl"

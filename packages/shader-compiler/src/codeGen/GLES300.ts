@@ -62,8 +62,9 @@ export class GLES300Visitor extends GLESVisitor {
   override visitFunctionIdentifier(node: ASTNode.FunctionIdentifier): string {
     const children = node.children;
     const typeSpecifier = children[0] as ASTNode.TypeSpecifier;
-    if (typeSpecifier.children.length !== 1) {
-      return this.defaultCodeGen(children);
+    if (typeSpecifier.children.length !== 1 || typeSpecifier.structDependencies.length) {
+      // Struct constructors still need the shared type-dependency visitor.
+      return super.visitFunctionIdentifier(node);
     }
     let ident = node.lexeme;
     switch (node.ident) {
@@ -124,7 +125,8 @@ export class GLES300Visitor extends GLESVisitor {
       this._registerFragColorVariable();
 
       const expression = node.children[1] as ASTNode.Expression;
-      return `${V3_GL_FragColor} = ${expression.codeGen(this)};${terminal ? "" : " return;"}`;
+      const assignment = `${V3_GL_FragColor} = ${expression.codeGen(this)};`;
+      return terminal ? assignment : `{ ${assignment} return; }`;
     }
     return super.visitJumpStatement(node);
   }

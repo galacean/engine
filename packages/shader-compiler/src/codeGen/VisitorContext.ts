@@ -28,7 +28,8 @@ export class VisitorContext {
   _referencedVaryingList: Record<string, StructProp[]>;
   _referencedMRTList: Record<string, StructProp[]>;
   _referencedGlobals: Record<string, SymbolInfo[]>;
-  readonly _referencedGlobalKeys: string[] = [];
+  readonly _referencedGlobalSymbols = new Set<SymbolInfo>();
+  private _globalSymbolQueries: Record<string, Partial<Record<ESymbolType, SymbolInfo[]>>>;
   _referencedGlobalMacroASTs: TreeNode[] = [];
   private readonly _structVariableRoles = new Map<VarSymbol, ShaderStructRole>();
 
@@ -67,7 +68,8 @@ export class VisitorContext {
     this._referencedVaryingList = Object.create(null);
     this._referencedMRTList = Object.create(null);
     this._referencedGlobals = Object.create(null);
-    this._referencedGlobalKeys.length = 0;
+    this._referencedGlobalSymbols.clear();
+    this._globalSymbolQueries = Object.create(null);
     this._referencedGlobalMacroASTs.length = 0;
     if (resetAll) {
       this._structVariableRoles.clear();
@@ -211,14 +213,21 @@ export class VisitorContext {
   }
 
   referenceGlobal(ident: string, type: ESymbolType): void {
-    if (!this._referencedGlobals[ident]) {
-      this._referencedGlobals[ident] = [];
-      this._referencedGlobalKeys.push(ident);
-      const lookupSymbol = this._lookupSymbol;
-      lookupSymbol.set(ident, type);
-      this._passSymbolTable!.getSymbols(lookupSymbol, true, this._referencedGlobals[ident]);
+    const queries = (this._globalSymbolQueries[ident] ??= Object.create(null));
+    let symbols = queries[type];
+    if (!symbols) {
+      this._lookupSymbol.set(ident, type);
+      symbols = queries[type] = this._passSymbolTable!.getSymbols(this._lookupSymbol, true, []);
+      const namedSymbols = (this._referencedGlobals[ident] ??= []);
+      for (const symbol of symbols) {
+        if (!this._referencedGlobalSymbols.has(symbol)) {
+          this._referencedGlobalSymbols.add(symbol);
+          namedSymbols.push(symbol);
+        }
+      }
     }
-    this.onReferenceGlobal?.(this._referencedGlobals[ident]);
+    // Repeated uses still establish edges from each declaration's owner.
+    this.onReferenceGlobal?.(symbols);
   }
 
   // Track which IO props are actually referenced (drives in/out emission). A missing member is no

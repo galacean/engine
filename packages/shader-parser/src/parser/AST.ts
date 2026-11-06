@@ -542,10 +542,13 @@ namespace ASTNodes {
     isCustom: boolean;
     /** Exact custom-struct declarations visible at this type occurrence. @internal */
     structDeclarations: readonly StructSpecifier[];
+    /** Emission dependencies, including possible macro types without asserting their semantic type. @internal */
+    structDependencies: readonly StructSpecifier[];
 
     override init(): void {
       this.arraySize = undefined;
       this.structDeclarations = EMPTY_STRUCT_DECLARATIONS;
+      this.structDependencies = EMPTY_STRUCT_DECLARATIONS;
     }
     get arraySpecifier(): ArraySpecifier {
       return this.children[1] as ArraySpecifier;
@@ -565,6 +568,19 @@ namespace ASTNodes {
         this.structDeclarations = structs.length
           ? structs.map((symbol) => (symbol as StructSymbol).astNode)
           : EMPTY_STRUCT_DECLARATIONS;
+        this.structDependencies = this.structDeclarations;
+      } else if (firstChild.children[0] instanceof MacroCallSymbol) {
+        const dependencies: StructSpecifier[] = [];
+        for (const reference of firstChild.children[0].referenceSymbols) {
+          if (!reference.name) continue;
+          sa.lookupSymbol.set(reference.name, ESymbolType.STRUCT);
+          const symbols = sa.symbolTableStack.lookupAll(sa.lookupSymbol, true, sa.structScratch, reference.branch);
+          for (const symbol of symbols) {
+            const declaration = (symbol as StructSymbol).astNode;
+            if (!dependencies.includes(declaration)) dependencies.push(declaration);
+          }
+        }
+        if (dependencies.length) this.structDependencies = dependencies;
       }
     }
     override codeGen(visitor: ICodeGenVisitor): string {

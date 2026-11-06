@@ -230,10 +230,6 @@ export abstract class CodeGenVisitor implements ICodeGenVisitor {
   }
 
   visitSingleDeclaration(node: ASTNode.SingleDeclaration): string {
-    const type = node.typeSpecifier!.type;
-    if (typeof type === "string") {
-      this.context.referenceGlobal(type, ESymbolType.STRUCT);
-    }
     return this.defaultCodeGen(node.children);
   }
 
@@ -320,7 +316,8 @@ export abstract class CodeGenVisitor implements ICodeGenVisitor {
             ? calledFunction.fnSymbol.astNode.protoType.returnType.typeSpecifier.structDeclarations
             : [];
         if (this.context.getStructRole(returnDeclarations) === ShaderStructRole.Varying) {
-          return `${expr.codeGen(this)};${this.context.isTerminalInterfaceReturn(node) ? "" : " return;"}`;
+          const call = `${expr.codeGen(this)};`;
+          return this.context.isTerminalInterfaceReturn(node) ? call : `{ ${call} return; }`;
         }
       }
     }

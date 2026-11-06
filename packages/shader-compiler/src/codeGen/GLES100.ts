@@ -52,7 +52,8 @@ export class GLES100Visitor extends GLESVisitor {
     if (mode === "mrt") return terminal ? "" : "return;";
     if (mode === "color") {
       const expression = node.children[1] as ASTNode.Expression;
-      return `gl_FragColor = ${expression.codeGen(this)};${terminal ? "" : " return;"}`;
+      const assignment = `gl_FragColor = ${expression.codeGen(this)};`;
+      return terminal ? assignment : `{ ${assignment} return; }`;
     }
     return super.visitJumpStatement(node);
   }

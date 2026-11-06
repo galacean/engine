@@ -315,25 +315,21 @@ export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBacken
 
   private _getGlobalSymbol(out: ICodeSegment[]): void {
     const context = this.context;
-    const { _referencedGlobals, _referencedGlobalKeys } = context;
-    for (let keyIndex = 0; keyIndex < _referencedGlobalKeys.length; keyIndex++) {
-      const symbols = _referencedGlobals[_referencedGlobalKeys[keyIndex]];
-      for (let i = 0, n = symbols.length; i < n; i++) {
-        const sm = symbols[i];
-        this._currentDeclaration = sm.astNode;
-        const codeGenResult = sm.astNode!.codeGen(this);
-        this._currentDeclaration = undefined;
-        if (!codeGenResult) continue;
-        const text = codeGenResult + (sm.type === ESymbolType.VAR ? ";" : "");
-        if (!sm.isInMacroBranch) {
-          const segment = {
-            text: this._declaration(text, sm.astNode!),
-            index: sm.astNode!.location.start.index
-          };
-          out.push(segment);
-          if (sm.astNode instanceof ASTNode.StructSpecifier) this._structCodeSegments.set(sm.astNode, segment);
-          if (sm.astNode instanceof ASTNode.VariableDeclaration) this._variableCodeSegments.set(sm.astNode, segment);
-        }
+    // Set iteration includes dependencies discovered while generating earlier declarations.
+    for (const sm of context._referencedGlobalSymbols) {
+      this._currentDeclaration = sm.astNode;
+      const codeGenResult = sm.astNode!.codeGen(this);
+      this._currentDeclaration = undefined;
+      if (!codeGenResult) continue;
+      const text = codeGenResult + (sm.type === ESymbolType.VAR ? ";" : "");
+      if (!sm.isInMacroBranch) {
+        const segment = {
+          text: this._declaration(text, sm.astNode!),
+          index: sm.astNode!.location.start.index
+        };
+        out.push(segment);
+        if (sm.astNode instanceof ASTNode.StructSpecifier) this._structCodeSegments.set(sm.astNode, segment);
+        if (sm.astNode instanceof ASTNode.VariableDeclaration) this._variableCodeSegments.set(sm.astNode, segment);
       }
     }
     this._getForwardDeclarations(out);
@@ -477,7 +473,9 @@ export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBacken
     const code = super.visitVariableIdentifier(node);
     for (const symbol of node.resolvedSymbols()) {
       if (!(symbol instanceof VarSymbol) || !symbol.isUniform) continue;
-      const candidates = this.context._referencedGlobals[symbol.ident];
+      const candidates = this.context._referencedGlobals[symbol.ident]?.filter(
+        (candidate): candidate is VarSymbol => candidate instanceof VarSymbol
+      );
       const owner = this._declarationOwners.get(symbol.astNode);
       if (!candidates || (!owner && candidates.includes(symbol))) continue;
       const preceding = candidates.filter(
@@ -588,8 +586,11 @@ export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBacken
   }
 
   override visitTypeSpecifier(node: ASTNode.TypeSpecifier): string {
-    if (!node.structDeclarations.length) return super.visitTypeSpecifier(node);
-    for (const type of node.structDeclarations) {
+    const call = node.parent instanceof ASTNode.FunctionIdentifier ? node.parent.parent : undefined;
+    if (call instanceof ASTNode.FunctionCallGeneric && call.fnSymbol instanceof FnSymbol) {
+      return super.visitTypeSpecifier(node);
+    }
+    for (const type of node.structDependencies) {
       if (!type.ident || this.context.getStructRole([type])) continue;
       // A function-local struct can shadow a global name without participating in inheritance.
       let parent = type.parent;
@@ -723,18 +724,11 @@ export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBacken
 
   private _getGlobalMacroDeclarations(macros: readonly ASTNode.GlobalDeclaration[], out: ICodeSegment[]): void {
     const context = this.context;
-    const referencedGlobals = context._referencedGlobals;
-    const referencedGlobalKeys = context._referencedGlobalKeys;
     const referencedGlobalMacroASTs = context._referencedGlobalMacroASTs;
     referencedGlobalMacroASTs.length = 0;
 
-    for (let keyIndex = 0; keyIndex < referencedGlobalKeys.length; keyIndex++) {
-      const symbols = referencedGlobals[referencedGlobalKeys[keyIndex]];
-      for (const symbol of symbols) {
-        if (symbol.isInMacroBranch) {
-          referencedGlobalMacroASTs.push(symbol.astNode!);
-        }
-      }
+    for (const symbol of context._referencedGlobalSymbols) {
+      if (symbol.isInMacroBranch) referencedGlobalMacroASTs.push(symbol.astNode!);
     }
 
     for (const macro of macros) {
