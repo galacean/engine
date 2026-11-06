@@ -8,6 +8,9 @@ import { seedWorldNativeKnowledge } from "../../demos/seed-world/agent-adapter/S
 import { createSeedWorldKnowledge } from "../../demos/seed-world/agent-adapter/SeedWorldKnowledge.ts";
 import { SEED_WORLD_API_NAMES } from "../../demos/seed-world/agent-adapter/contracts/SeedWorldContractRegistry.ts";
 
+import { AgentJavaScriptChecker } from "@galacean/engine-ai-chat/ai-chat/agent-script-checker";
+import { agentTypecheckLibraries } from "@galacean/engine-ai-chat/script-checking/typecheck-libraries";
+import buildingPlanning from "../../../packages/building/src/skills/building/references/planning.md?raw";
 import searchCloudSkill from "../../../packages/runtime-editor/src/retrieval-agent/search-cloud.md?raw";
 
 const base = seedWorldNativeKnowledge(createSeedWorldKnowledge([...SEED_WORLD_API_NAMES]));
@@ -141,6 +144,16 @@ describe("world state position", () => {
     expect(JSON.parse(messages.at(-1)!.content as string).contextKind).toBe("world_state");
     expect(messages.at(-2)).toEqual(step);
     expect(transcript.captureRequest(messages).prefixLength).toBe(5);
+  });
+});
+
+describe("building skill examples", () => {
+  it("pass the same check as execute", () => {
+    const checker = new AgentJavaScriptChecker(agentTypecheckLibraries);
+    const examples = [...buildingPlanning.matchAll(/```js\n([\s\S]*?)```/g)].map((match) => match[1]);
+    expect(examples).toHaveLength(2);
+    expect(checker.check(`const x = 0, z = 0;\n${examples[0]}`, catalog.modules)).toBeUndefined();
+    expect(checker.check(examples[1], catalog.modules)).toBeUndefined();
   });
 });
 

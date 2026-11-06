@@ -38,7 +38,8 @@ const scene = "<project.json 的 scene 字段>";
 const groups = await editor.component.query({ scene, type: "BuildingGroupComponent" });
 const { props } = await editor.component.read({ scene, id: groups[0].id });
 const library = props?.assetLibrary;
-if (!library || typeof library !== "object" || !("$ref" in library)) throw new Error("没有找到资产库");
+if (!library || typeof library !== "object" || !("$ref" in library) || typeof library.$ref !== "string")
+  throw new Error("没有找到资产库");
 
 const generated = await tools.building.generate({
   generator: "European.buildHouses",
