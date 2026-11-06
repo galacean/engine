@@ -571,6 +571,63 @@ VertexShader = vert; FragmentShader = frag;
     expect(program.fragment).not.toMatch(/0\.25\b/);
   });
 
+  it.each([
+    { kind: "calls", esm: false },
+    { kind: "calls", esm: true },
+    { kind: "returns", esm: false },
+    { kind: "returns", esm: true }
+  ])(
+    "diagnoses large conditional $kind in a cold process with a 256 MiB old-space limit, ESM: $esm",
+    ({ kind, esm }) => {
+      const calls = kind === "calls";
+      const count = calls ? 8192 : 1024;
+      const statements = Array.from(
+        { length: count },
+        (_, index) => `#ifdef OPTION${index}\n${calls ? "leaf();" : "return 1.0;"}\n#endif`
+      ).join("\n");
+      const helpers = calls ? "void leaf() { float value = dFdx(1.0); }" : `float pick() {\n${statements}\n}`;
+      const vertex = calls ? `${statements}\ngl_Position = vec4(0.0);` : "gl_Position = vec4(pick());";
+      const source = `Shader "conditional-memory" { SubShader "s" { Pass "p" {
+${helpers}
+void vert() {
+${vertex}
+}
+void frag() { gl_FragColor = vec4(1.0); }
+VertexShader = vert; FragmentShader = frag;
+} } }`;
+      const sourceFile = join(consumerDirectory, `conditional-${kind}.shader`);
+      // Keep large fixtures off the process command line, whose size limit varies by platform.
+      writeFileSync(sourceFile, source);
+      const imports = esm
+        ? `import { readFileSync } from "node:fs";
+         import { ShaderAnalyzer } from "@galacean/engine-shader-analyzer";`
+        : `const { readFileSync } = require("node:fs");
+         const { ShaderAnalyzer } = require("@galacean/engine-shader-analyzer");`;
+      const probe = spawnSync(
+        process.execPath,
+        [
+          "--max-old-space-size=256",
+          ...(esm ? ["--input-type=module"] : []),
+          "--eval",
+          `${imports}
+         const result = ShaderAnalyzer.analyze(readFileSync(${JSON.stringify(sourceFile)}, "utf8"));
+         process.stdout.write("CONDITIONAL_RESULT:" + JSON.stringify(result.diagnostics.map(diagnostic => ({
+           code: diagnostic.code, severity: diagnostic.severity
+         }))));`
+        ],
+        { cwd: consumerDirectory, encoding: "utf8", timeout: 30_000, maxBuffer: 1024 * 1024 }
+      );
+      expect(probe.error, probe.error?.message).toBeUndefined();
+      expect(probe.signal, probe.stderr).toBeNull();
+      expect(probe.status, probe.stderr || probe.stdout).toBe(0);
+      const marker = probe.stdout.lastIndexOf("CONDITIONAL_RESULT:");
+      expect(marker).toBeGreaterThanOrEqual(0);
+      expect(JSON.parse(probe.stdout.slice(marker + "CONDITIONAL_RESULT:".length))).toEqual([
+        { code: calls ? "DerivativeInVertexShader" : "MissingReturn", severity: "error" }
+      ]);
+    }
+  );
+
   it("does not retain request-owned parser state across analyzer-only or shared codegen calls", () => {
     const probe = spawnSync(
       process.execPath,

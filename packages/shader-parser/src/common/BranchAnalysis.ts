@@ -455,9 +455,15 @@ function removeSelfGuardingConstraints(branch: BranchSignature): BranchSignature
     : branch;
 }
 
+interface BranchCoverageMemo {
+  readonly constraints: Map<BranchConstraint, number>;
+  readonly results: Map<string, boolean>;
+}
+
 function canCandidateSetCoverCallsite(
   candidates: readonly BranchSignature[],
-  callSiteBranch: BranchSignature
+  callSiteBranch: BranchSignature,
+  memo?: BranchCoverageMemo
 ): boolean {
   if (!isBranchReachable(callSiteBranch)) return true;
   const compatible = candidates.filter((candidate) => canBranchesOverlap(candidate, callSiteBranch));
@@ -480,7 +486,14 @@ function canCandidateSetCoverCallsite(
     }
   }
 
-  for (const group of groups) {
+  if (!groups.size) return canComplementarySimpleCandidatesCoverCallsite(compatible, callSiteBranch);
+  memo ??= { constraints: new Map(), results: new Map() };
+  const key = coverageStateKey(compatible, callSiteBranch, memo.constraints);
+  const cached = memo.results.get(key);
+  if (cached !== undefined) return cached;
+
+  const commonGroup = findIndependentCommonGroup(compatible, callSiteBranch);
+  for (const group of commonGroup === undefined ? groups : [commonGroup]) {
     const callSiteConstraint = callSiteBranch.find((constraint) => constraint.conditionalGroup === group);
     if (callSiteConstraint?.conditionalArm !== undefined) {
       const inCurrentArm = compatible
@@ -492,8 +505,9 @@ function canCandidateSetCoverCallsite(
         .map((candidate) => removeConditionalGroup(candidate, group));
       if (
         inCurrentArm.length &&
-        canCandidateSetCoverCallsite(inCurrentArm, removeConditionalGroup(callSiteBranch, group))
+        canCandidateSetCoverCallsite(inCurrentArm, removeConditionalGroup(callSiteBranch, group), memo)
       ) {
+        memo.results.set(key, true);
         return true;
       }
       continue;
@@ -505,7 +519,8 @@ function canCandidateSetCoverCallsite(
     const armCount = representative?.conditionalArmCount;
     if (armCount === undefined) continue;
 
-    let everyArmCovered = true;
+    const candidatesByArm: BranchSignature[][] = [];
+    let everyArmHasCandidates = true;
     for (let arm = 0; arm < armCount; arm++) {
       const armReachable = representative?.conditionalReachableArms?.[arm] ?? true;
       if (!armReachable) continue;
@@ -514,16 +529,87 @@ function canCandidateSetCoverCallsite(
           (candidate) => candidate.find((constraint) => constraint.conditionalGroup === group)?.conditionalArm === arm
         )
         .map((candidate) => removeConditionalGroup(candidate, group));
-      if (!armCandidates.length || !canCandidateSetCoverCallsite(armCandidates, callSiteBranch)) {
-        everyArmCovered = false;
+      if (!armCandidates.length) {
+        everyArmHasCandidates = false;
         break;
       }
+      candidatesByArm.push(armCandidates);
     }
-    if (everyArmCovered) return true;
+    // A missing reachable arm disproves this group before exploring any nested group order.
+    if (
+      everyArmHasCandidates &&
+      candidatesByArm.every((armCandidates) => canCandidateSetCoverCallsite(armCandidates, callSiteBranch, memo))
+    ) {
+      memo.results.set(key, true);
+      return true;
+    }
   }
 
-  if (canComplementarySimpleCandidatesCoverCallsite(compatible, callSiteBranch)) return true;
-  return false;
+  const covered = canComplementarySimpleCandidatesCoverCallsite(compatible, callSiteBranch);
+  memo.results.set(key, covered);
+  return covered;
+}
+
+function coverageStateKey(
+  candidates: readonly BranchSignature[],
+  callSiteBranch: BranchSignature,
+  constraints: Map<BranchConstraint, number>
+): string {
+  // Object identity retains lexical groups, macro versions, and guard facts without conflating predicates.
+  return [callSiteBranch, ...candidates]
+    .map((branch) =>
+      branch
+        .map((constraint) => {
+          let id = constraints.get(constraint);
+          if (id === undefined) constraints.set(constraint, (id = constraints.size));
+          return id;
+        })
+        .join(",")
+    )
+    .join(";");
+}
+
+function findIndependentCommonGroup(
+  candidates: readonly BranchSignature[],
+  callSiteBranch: BranchSignature
+): number | undefined {
+  if (callSiteBranch.length) return;
+  const groups = new Map<number, { macro: string; condition: BranchCondition }>();
+  const macros = new Map<string, number>();
+  for (const candidate of candidates) {
+    for (const constraint of candidate) {
+      const group = constraint.conditionalGroup;
+      const conditions = getConstraintConditions(constraint);
+      const condition = conditions[0];
+      if (
+        group === undefined ||
+        !constraint.conditionalComplete ||
+        constraint.conditionalArmCount !== 2 ||
+        (constraint.conditionalArm !== 0 && constraint.conditionalArm !== 1) ||
+        constraint.conditionalReachableArms?.some((reachable) => !reachable) ||
+        conditions.length !== 1 ||
+        (condition.kind !== "defined" && condition.kind !== "comparison") ||
+        !hasExactIntegerValue(condition)
+      ) {
+        return;
+      }
+      const macro = `${condition.name}:${condition.version}`;
+      const arm0Condition = constraint.conditionalArm === 0 ? condition : negateCondition(condition);
+      const existing = groups.get(group);
+      if (
+        (existing && (existing.macro !== macro || !sameCondition(existing.condition, arm0Condition))) ||
+        (macros.has(macro) && macros.get(macro) !== group)
+      ) {
+        return;
+      }
+      groups.set(group, { macro, condition: arm0Condition });
+      macros.set(macro, group);
+    }
+  }
+  // Independent atomic predicates partition every candidate, so one shared split is sufficient.
+  return candidates[0]?.find((constraint) =>
+    candidates.every((candidate) => candidate.some((arm) => arm.conditionalGroup === constraint.conditionalGroup))
+  )?.conditionalGroup;
 }
 
 function canComplementarySimpleCandidatesCoverCallsite(

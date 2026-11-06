@@ -35,9 +35,11 @@ export class ParserSemanticValidation {
    */
   static collect(root: TreeNode): ParserSemanticIssue[] {
     const issues: ParserSemanticIssue[] = [];
-    const visit = (node: TreeNode): void => {
+    const pending = [root];
+    while (pending.length) {
+      const node = pending.pop()!;
       // Container flags inherit their first token; a leading define does not enclose later declarations.
-      if (!isBranchReachable(node._branch) || node instanceof ASTNode.MacroDefine) return;
+      if (!isBranchReachable(node._branch) || node instanceof ASTNode.MacroDefine) continue;
       if (node instanceof ASTNode.AssignmentExpression) {
         const targetIssue = this.assignmentTargetIssue(node);
         const typeIssue = this.assignmentTypeIssue(node);
@@ -63,11 +65,11 @@ export class ParserSemanticValidation {
         const issue = this.functionReturnTypeIssue(node);
         if (issue) issues.push(issue);
       }
-      for (const child of node.children) {
-        if (child instanceof TreeNode) visit(child);
+      for (let index = node.children.length - 1; index >= 0; index--) {
+        const child = node.children[index];
+        if (child instanceof TreeNode) pending.push(child);
       }
-    };
-    visit(root);
+    }
     return issues;
   }
 

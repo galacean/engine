@@ -5,8 +5,6 @@ import {
   canBranchesOverlap,
   EMPTY_BRANCH,
   FnSymbol,
-  getBranchCoverage,
-  getBranchReachability,
   isBranchReachable,
   Keyword,
   ParserUtils,
@@ -20,6 +18,7 @@ import {
   type ShaderEntryPointInfo,
   type ShaderRange
 } from "@galacean/engine-shader-parser/internal/analyzer";
+import { ShaderConditionDiagram } from "./ShaderConditionDiagram";
 import type { MacroExpansionSyntax } from "@galacean/engine-shader-parser/internal/analyzer";
 
 /**
@@ -39,14 +38,11 @@ export class ShaderAnalysisInfo {
   private readonly _indexedMacroReferences = new Set<number>();
   private readonly _indexedMacroArguments = new Map<TreeNode, BranchSignature[]>();
   private readonly _functionsByName = new Map<string, ASTNode.FunctionDefinition[]>();
-  private readonly _reachablePathsByEntry = new Map<
-    ShaderEntryPointInfo,
-    ReadonlyMap<ASTNode.FunctionDefinition, readonly BranchSignature[]>
-  >();
-  private readonly _reachablePathsByFunction = new Map<
-    FnSymbol,
-    ReadonlyMap<ASTNode.FunctionDefinition, readonly BranchSignature[]>
-  >();
+  private readonly _branches = new Set<BranchSignature>();
+  private readonly _conditions: ShaderConditionDiagram;
+  private readonly _reachableByEntry = new Map<ShaderEntryPointInfo, ReachableConditions>();
+  private readonly _reachableByFunction = new Map<FnSymbol, ReachableConditions>();
+  private readonly _writeReachableByFunction = new Map<FnSymbol, ReachableConditions>();
 
   /**
    * Builds analyzer-only facts without modifying the neutral IR or backend information.
@@ -59,6 +55,11 @@ export class ShaderAnalysisInfo {
   ) {
     this._indexFunctions(ir.program);
     this._indexFunctionBodies();
+    for (const entry of [coreInfo.vertexEntry, coreInfo.fragmentEntry]) {
+      for (const fn of entry.functions) this._branches.add(fn.branchSignature ?? fn.astNode.protoType.ident.branch);
+    }
+    this._conditions = new ShaderConditionDiagram(this._branches);
+    this._branches.clear();
   }
 
   /**
@@ -67,7 +68,7 @@ export class ShaderAnalysisInfo {
    * @returns Reachable function identities.
    */
   reachableFunctions(entry: ShaderEntryPointInfo): ReadonlySet<ASTNode.FunctionDefinition> {
-    return new Set(this._getReachablePaths(entry).keys());
+    return new Set(this._getReachableConditions(entry).keys());
   }
 
   /**
@@ -83,13 +84,10 @@ export class ShaderAnalysisInfo {
     functionNode: ASTNode.FunctionDefinition,
     branch: BranchSignature
   ): boolean {
-    const paths = this._getReachablePaths(entry).get(functionNode);
-    if (!paths) return false;
-    for (const path of paths) {
-      const sitePath = combineBranches(path, branch);
-      if (sitePath && getBranchReachability(sitePath) === "reachable") return true;
-    }
-    return false;
+    const reachable = this._getReachableConditions(entry).get(functionNode) ?? ShaderConditionDiagram.FALSE;
+    return (
+      this._conditions.reachability(this._conditions.and(reachable, this._conditions.branch(branch))) === "reachable"
+    );
   }
 
   /**
@@ -100,22 +98,45 @@ export class ShaderAnalysisInfo {
    */
   getReachableWriteCoverage(entry: ShaderEntryPointInfo, target: string | ShaderBuiltinSemantic): BranchCoverage {
     if (!entry.functions.length) return "unknown";
+    const diagram = this._conditions;
     let result: BranchCoverage = "covered";
     for (const entryFunction of entry.functions) {
-      const writePaths: BranchSignature[] = [];
-      const budget = { remaining: MAX_CALL_PATH_STATES, exhausted: false, unknownEffects: false };
-      this._collectWritePaths(entryFunction.astNode, EMPTY_BRANCH, target, new Set(), writePaths, budget);
-      if (budget.exhausted) return "unknown";
-      if (!writePaths.length) {
-        if (!budget.unknownEffects) return "uncovered";
-        result = "unknown";
-        continue;
+      const writes: number[] = [];
+      const unknownEffects: number[] = [];
+      for (const [functionNode, reachable] of this._getFunctionReachableConditions(entryFunction, true)) {
+        for (const effect of this._unknownEffects.get(functionNode) ?? []) {
+          unknownEffects.push(diagram.and(reachable, diagram.branch(effect, true)));
+        }
+        for (const write of this._writes.get(functionNode) ?? []) {
+          if (write.target !== target) continue;
+          writes.push(diagram.and(reachable, diagram.branch(write.branch, true)));
+        }
       }
-      const coverage = getBranchCoverage(writePaths, entryFunction.branchSignature ?? EMPTY_BRANCH);
-      if (coverage === "uncovered" && !budget.unknownEffects) return coverage;
-      if (coverage !== "covered") result = "unknown";
+      const entryCondition = diagram.branch(
+        entryFunction.branchSignature ?? entryFunction.astNode.protoType.ident.branch,
+        true
+      );
+      const missing = diagram.and(entryCondition, diagram.not(diagram.orAll(writes)));
+      if (missing === ShaderConditionDiagram.FALSE) continue;
+      if (diagram.reachability(diagram.and(missing, diagram.not(diagram.orAll(unknownEffects)))) === "reachable") {
+        return "uncovered";
+      }
+      result = "unknown";
     }
     return result;
+  }
+
+  /**
+   * Classifies whether a function returns under every macro configuration reaching its declaration.
+   * @param functionNode - Function whose body is inspected.
+   * @returns Proven return coverage, a missing-return configuration, or unresolved coverage.
+   */
+  getReturnCoverage(functionNode: ASTNode.FunctionDefinition): BranchCoverage {
+    const returns = this._returnCondition(functionNode.statements);
+    // A body with no possible return is invalid whenever its declaration is selected.
+    return returns === ShaderConditionDiagram.FALSE
+      ? "uncovered"
+      : this._conditions.coverage(returns, this._conditions.branch(functionNode.protoType.ident.branch, true));
   }
 
   /**
@@ -139,24 +160,19 @@ export class ShaderAnalysisInfo {
    * @returns Source ranges proven reachable under the entry declaration's macro constraints.
    */
   reachableFragmentOutput0ReferencesFrom(entryFunction: FnSymbol): readonly ShaderRange[] {
-    let paths = this._reachablePathsByFunction.get(entryFunction);
-    if (!paths) {
-      paths = this._buildReachablePaths([entryFunction]);
-      this._reachablePathsByFunction.set(entryFunction, paths);
-    }
-    const locations: ShaderRange[] = [];
-    for (const reference of this._glFragColorReferences) {
-      const functionPaths = paths.get(reference.functionNode);
-      if (!functionPaths) continue;
-      for (const path of functionPaths) {
-        const sitePath = combineBranches(path, reference.branch);
-        if (sitePath && getBranchReachability(sitePath) === "reachable") {
-          locations.push(reference.location);
-          break;
-        }
-      }
-    }
-    return locations;
+    const reachable = this._getFunctionReachableConditions(entryFunction);
+    const diagram = this._conditions;
+    return this._glFragColorReferences
+      .filter(
+        (reference) =>
+          diagram.reachability(
+            diagram.and(
+              reachable.get(reference.functionNode) ?? ShaderConditionDiagram.FALSE,
+              diagram.branch(reference.branch)
+            )
+          ) === "reachable"
+      )
+      .map((reference) => reference.location);
   }
 
   /**
@@ -167,28 +183,19 @@ export class ShaderAnalysisInfo {
   coexistingLegacyFragmentOutputsFrom(
     entryFunction: FnSymbol
   ): { output0: ShaderRange; outputArray: ShaderRange } | undefined {
-    let paths = this._reachablePathsByFunction.get(entryFunction);
-    if (!paths) {
-      paths = this._buildReachablePaths([entryFunction]);
-      this._reachablePathsByFunction.set(entryFunction, paths);
-    }
+    const reachable = this._getFunctionReachableConditions(entryFunction);
+    const diagram = this._conditions;
+    const at = (reference: ConditionalReference) =>
+      diagram.and(
+        reachable.get(reference.functionNode) ?? ShaderConditionDiagram.FALSE,
+        diagram.branch(reference.branch)
+      );
     for (const output0 of this._glFragColorReferences) {
-      const output0Paths = paths.get(output0.functionNode);
-      if (!output0Paths) continue;
+      const output0Condition = at(output0);
+      if (output0Condition === ShaderConditionDiagram.FALSE) continue;
       for (const outputArray of this._glFragDataConditionalReferences) {
-        const outputArrayPaths = paths.get(outputArray.functionNode);
-        if (!outputArrayPaths) continue;
-        for (const output0Path of output0Paths) {
-          const output0Site = combineBranches(output0Path, output0.branch);
-          if (!output0Site) continue;
-          for (const outputArrayPath of outputArrayPaths) {
-            const outputArraySite = combineBranches(outputArrayPath, outputArray.branch);
-            if (!outputArraySite) continue;
-            const combined = combineBranches(output0Site, outputArraySite);
-            if (combined && getBranchReachability(combined) === "reachable") {
-              return { output0: output0.location, outputArray: outputArray.location };
-            }
-          }
+        if (diagram.reachability(diagram.and(output0Condition, at(outputArray))) === "reachable") {
+          return { output0: output0.location, outputArray: outputArray.location };
         }
       }
     }
@@ -206,33 +213,76 @@ export class ShaderAnalysisInfo {
   }
 
   /**
-   * Finds mutually recursive call cycles that are satisfiable under one consistent macro
-   * configuration. Unknown branch relations stay silent rather than becoming false diagnostics.
-   * @returns Proven cycles of at least two distinct functions.
+   * Finds satisfiable mutual recursion without enumerating conditional call paths or all simple cycles.
+   * @returns One witness per canonical minimum participant; an opaque-dependent cycle has no fixed chain.
    */
-  mutualRecursionCycles(): readonly (readonly ASTNode.FunctionDefinition[])[] {
-    const cycles: ASTNode.FunctionDefinition[][] = [];
-    const cycleKeys = new Set<string>();
-    const budget = { remaining: MAX_CALL_PATH_STATES };
-    for (const start of this.functions()) {
-      if (budget.remaining <= 0) break;
-      const startBranch = start.protoType.ident.branch;
-      if (getBranchReachability(startBranch) !== "reachable") continue;
-      this._collectMutualRecursionCycles(start, startBranch, [], new Set(), cycles, cycleKeys, budget);
+  mutualRecursionWitnesses(): readonly {
+    marker: ASTNode.FunctionDefinition;
+    cycle?: readonly ASTNode.FunctionDefinition[];
+  }[] {
+    const witnesses: { marker: ASTNode.FunctionDefinition; cycle?: readonly ASTNode.FunctionDefinition[] }[] = [];
+    const functions = this.functions();
+    const order = new Map(functions.map((fn, index) => [fn, index]));
+    const diagram = this._conditions;
+    for (const component of this._cyclicComponents()) {
+      const members = functions.filter((fn) => component.has(fn));
+      const simple = members.every(
+        (fn) =>
+          new Set(
+            (this._callFacts.get(fn) ?? [])
+              .filter((call) => call.callee !== fn && component.has(call.callee))
+              .map((call) => call.callee)
+          ).size === 1
+      );
+      const minimum = members.reduce((left, right) =>
+        right.protoType.ident.lexeme < left.protoType.ident.lexeme ? right : left
+      );
+      // A simple component has only one non-self cycle, regardless of its conditional edge alternatives.
+      for (const marker of simple ? [minimum] : members) {
+        const name = marker.protoType.ident.lexeme;
+        const allowed = new Set(
+          Array.from(component).filter(
+            (fn) =>
+              fn.protoType.ident.lexeme > name ||
+              (fn.protoType.ident.lexeme === name && order.get(fn)! >= order.get(marker)!)
+          )
+        );
+        if (allowed.size < 2) continue;
+        const declaration = diagram.branch(marker.protoType.ident.branch);
+        const seeds: [ASTNode.FunctionDefinition, number][] = [];
+        for (const call of this._callFacts.get(marker) ?? []) {
+          if (call.callee === marker || !allowed.has(call.callee)) continue;
+          seeds.push([call.callee, diagram.and(declaration, this._callCondition(call, false))]);
+        }
+        const cycleCondition =
+          this._propagateConditions(seeds, false, allowed, marker).get(marker) ?? ShaderConditionDiagram.FALSE;
+        if (diagram.reachability(cycleCondition) !== "reachable") continue;
+        const witness = diagram.knownWitness(cycleCondition);
+        witnesses.push({ marker, cycle: this._findCycleWitness(marker, allowed, witness) });
+      }
     }
-    return cycles;
+    return witnesses;
   }
 
-  private _indexFunctions(node: TreeNode): void {
-    if (node instanceof ASTNode.FunctionDefinition) {
-      const name = node.protoType.ident.lexeme;
-      const functions = this._functionsByName.get(name) ?? [];
-      functions.push(node);
-      this._functionsByName.set(name, functions);
-      return;
-    }
-    for (const child of node.children) {
-      if (child instanceof TreeNode) this._indexFunctions(child);
+  private _indexFunctions(root: TreeNode): void {
+    const pending: (TreeNode | BaseToken)[] = [root];
+    while (pending.length) {
+      const node = pending.pop()!;
+      if (node instanceof BaseToken) {
+        this._branches.add(node.branch);
+        continue;
+      }
+      this._branches.add(node._branch);
+      if (node instanceof ASTNode.FunctionDefinition) {
+        const name = node.protoType.ident.lexeme;
+        const functions = this._functionsByName.get(name) ?? [];
+        functions.push(node);
+        this._functionsByName.set(name, functions);
+      }
+      for (let index = node.children.length - 1; index >= 0; index--) {
+        const child = node.children[index];
+        if (child instanceof TreeNode || child instanceof BaseToken) pending.push(child);
+      }
     }
   }
 
@@ -240,12 +290,25 @@ export class ShaderAnalysisInfo {
     this._functionsByName.forEach((functions) => {
       for (const functionNode of functions) this._walkFunction(functionNode, functionNode.statements);
     });
+    for (const [caller, calls] of this._callFacts) {
+      const unique: ConditionalCall[] = [];
+      const branchesByCallee = new Map<ASTNode.FunctionDefinition, BranchSignature[]>();
+      for (const call of calls) {
+        const branches = branchesByCallee.get(call.callee) ?? [];
+        if (branches.some((branch) => sameBranch(branch, call.branch))) continue;
+        branches.push(call.branch);
+        branchesByCallee.set(call.callee, branches);
+        unique.push(call);
+      }
+      this._callFacts.set(caller, unique);
+    }
   }
 
   private _walkFunction(functionNode: ASTNode.FunctionDefinition, node: TreeNode): void {
     walkEffectiveShaderSyntax(
       node,
       (node, branch, location) => {
+        this._branches.add(branch);
         if (node instanceof ASTNode.PostfixExpression && node.children.length === 4) {
           const base = node.children[0];
           if (base instanceof TreeNode) {
@@ -276,6 +339,7 @@ export class ShaderAnalysisInfo {
         }
       },
       (syntax, branch, location) => {
+        this._branches.add(branch);
         const indexedAlias = this._indexedMacroReferences.has(location.start.index);
         if (indexedAlias && syntax.valueTarget instanceof TreeNode) {
           const argument = assignmentTargetBase(syntax.valueTarget);
@@ -310,6 +374,7 @@ export class ShaderAnalysisInfo {
       EMPTY_BRANCH,
       undefined,
       (branch) => {
+        this._branches.add(branch);
         const effects = this._unknownEffects.get(functionNode) ?? [];
         effects.push(branch);
         this._unknownEffects.set(functionNode, effects);
@@ -332,79 +397,204 @@ export class ShaderAnalysisInfo {
     this._callFacts.set(caller, facts);
   }
 
-  private _getReachablePaths(
-    entry: ShaderEntryPointInfo
-  ): ReadonlyMap<ASTNode.FunctionDefinition, readonly BranchSignature[]> {
-    const cached = this._reachablePathsByEntry.get(entry);
-    if (cached) return cached;
-
-    const paths = this._buildReachablePaths(entry.functions);
-    this._reachablePathsByEntry.set(entry, paths);
-    return paths;
-  }
-
-  private _buildReachablePaths(
-    entryFunctions: readonly FnSymbol[]
-  ): ReadonlyMap<ASTNode.FunctionDefinition, readonly BranchSignature[]> {
-    const paths = new Map<ASTNode.FunctionDefinition, BranchSignature[]>();
-    const pending: ReachabilityState[] = [];
-    for (const symbol of entryFunctions) {
-      const branch = symbol.branchSignature ?? symbol.astNode.protoType.ident.branch;
-      if (getBranchReachability(branch) === "reachable") pending.push({ functionNode: symbol.astNode, branch });
-    }
-
-    let remainingStates = MAX_CALL_PATH_STATES;
-    while (pending.length && remainingStates-- > 0) {
-      const state = pending.pop()!;
-      const existingPaths = paths.get(state.functionNode) ?? [];
-      if (existingPaths.some((existing) => sameBranch(existing, state.branch))) continue;
-      existingPaths.push(state.branch);
-      paths.set(state.functionNode, existingPaths);
-
-      for (const call of this._callFacts.get(state.functionNode) ?? []) {
-        const callPath = combineBranches(state.branch, call.branch);
-        if (!callPath) continue;
-        const calleePath = combineBranches(callPath, call.callee.protoType.ident.branch);
-        if (calleePath && getBranchReachability(calleePath) === "reachable") {
-          pending.push({ functionNode: call.callee, branch: calleePath });
-        }
-      }
-    }
-    return paths;
-  }
-
-  private _collectMutualRecursionCycles(
-    functionNode: ASTNode.FunctionDefinition,
-    incomingBranch: BranchSignature,
-    stack: ASTNode.FunctionDefinition[],
-    activeFunctions: Set<ASTNode.FunctionDefinition>,
-    out: ASTNode.FunctionDefinition[][],
-    cycleKeys: Set<string>,
-    budget: { remaining: number }
-  ): void {
-    if (--budget.remaining < 0) return;
-    stack.push(functionNode);
-    activeFunctions.add(functionNode);
-    for (const call of this._callFacts.get(functionNode) ?? []) {
-      const callPath = combineBranches(incomingBranch, call.branch);
-      if (!callPath) continue;
-      const calleePath = combineBranches(callPath, call.callee.protoType.ident.branch);
-      if (!calleePath || getBranchReachability(calleePath) !== "reachable") continue;
-      if (activeFunctions.has(call.callee)) {
-        const cycleStart = stack.indexOf(call.callee);
-        const cycle = stack.slice(cycleStart);
-        if (cycle.length < 2) continue;
-        const key = canonicalCycleKey(cycle);
-        if (!cycleKeys.has(key)) {
-          cycleKeys.add(key);
-          out.push(cycle);
-        }
+  private _returnCondition(root: TreeNode): number {
+    type Visit = { node: TreeNode; returns: number[] } | { left: number[]; right: number[]; returns: number[] };
+    const diagram = this._conditions;
+    const returns: number[] = [];
+    const pending: Visit[] = [{ node: root, returns }];
+    while (pending.length) {
+      const current = pending.pop()!;
+      if ("left" in current) {
+        // A runtime if/else guarantees a return only where both arms terminate.
+        current.returns.push(diagram.and(diagram.orAll(current.left), diagram.orAll(current.right)));
         continue;
       }
-      this._collectMutualRecursionCycles(call.callee, calleePath, stack, activeFunctions, out, cycleKeys, budget);
+      const { node, returns } = current;
+      const branch = diagram.branch(node._branch, true);
+      if (branch === ShaderConditionDiagram.FALSE) continue;
+      if (node instanceof ASTNode.JumpStatement) {
+        const keyword = node.children[0];
+        if (keyword instanceof BaseToken && keyword.type === Keyword.RETURN) returns.push(branch);
+      } else if (node instanceof ASTNode.SelectionStatement) {
+        if (node.children.length !== 7) continue;
+        const left: number[] = [],
+          right: number[] = [];
+        pending.push({ left, right, returns });
+        pending.push({ node: node.children[6] as TreeNode, returns: right });
+        pending.push({ node: node.children[4] as TreeNode, returns: left });
+      } else if (
+        node instanceof ASTNode.Statement ||
+        node instanceof ASTNode.SimpleStatement ||
+        node instanceof ASTNode.CompoundStatement ||
+        node instanceof ASTNode.CompoundStatementNoScope ||
+        node instanceof ASTNode.StatementList ||
+        node instanceof ASTNode.MacroIfStatement ||
+        node instanceof ASTNode.MacroBranch
+      ) {
+        // Flatten sequential containers before unioning, including left-recursive statement lists.
+        for (let index = node.children.length - 1; index >= 0; index--) {
+          const child = node.children[index];
+          if (child instanceof TreeNode) pending.push({ node: child, returns });
+        }
+      }
+      // A loop may not execute, so its body cannot prove that the surrounding function returns.
     }
-    activeFunctions.delete(functionNode);
-    stack.pop();
+    return diagram.orAll(returns);
+  }
+
+  private _getReachableConditions(entry: ShaderEntryPointInfo): ReachableConditions {
+    const cached = this._reachableByEntry.get(entry);
+    if (cached) return cached;
+    const reachable =
+      entry.functions.length === 1
+        ? this._getFunctionReachableConditions(entry.functions[0])
+        : this._propagateConditions(
+            entry.functions.map((fn) => [
+              fn.astNode,
+              this._conditions.branch(fn.branchSignature ?? fn.astNode.protoType.ident.branch)
+            ]),
+            false
+          );
+    this._reachableByEntry.set(entry, reachable);
+    return reachable;
+  }
+
+  private _getFunctionReachableConditions(entry: FnSymbol, forWrites = false): ReachableConditions {
+    const cache = forWrites ? this._writeReachableByFunction : this._reachableByFunction;
+    const cached = cache.get(entry);
+    if (cached) return cached;
+    const reachable = this._propagateConditions(
+      [
+        [
+          entry.astNode,
+          this._conditions.branch(entry.branchSignature ?? entry.astNode.protoType.ident.branch, forWrites)
+        ]
+      ],
+      forWrites
+    );
+    cache.set(entry, reachable);
+    return reachable;
+  }
+
+  private _callCondition(call: ConditionalCall, forWrites: boolean): number {
+    return this._conditions.and(
+      this._conditions.branch(call.branch, forWrites),
+      this._conditions.branch(call.callee.protoType.ident.branch, forWrites)
+    );
+  }
+
+  private _propagateConditions(
+    seeds: readonly (readonly [ASTNode.FunctionDefinition, number])[],
+    forWrites: boolean,
+    allowed?: ReadonlySet<ASTNode.FunctionDefinition>,
+    terminal?: ASTNode.FunctionDefinition
+  ): ReachableConditions {
+    const diagram = this._conditions;
+    const reachable = new Map<ASTNode.FunctionDefinition, number>();
+    const queued = new Map<ASTNode.FunctionDefinition, number[]>();
+    const pending: ASTNode.FunctionDefinition[] = [];
+    const enqueue = (fn: ASTNode.FunctionDefinition, condition: number) => {
+      if (condition === ShaderConditionDiagram.FALSE || (allowed && !allowed.has(fn))) return;
+      const incoming = queued.get(fn);
+      if (incoming) {
+        incoming.push(condition);
+      } else {
+        queued.set(fn, [condition]);
+        pending.push(fn);
+      }
+    };
+    for (const [fn, condition] of seeds) enqueue(fn, condition);
+    for (let index = 0; index < pending.length; index++) {
+      const fn = pending[index];
+      const incoming = queued.get(fn)!;
+      queued.delete(fn);
+      const previous = reachable.get(fn) ?? ShaderConditionDiagram.FALSE;
+      incoming.push(previous);
+      // Batch incoming edges so high fan-in does not build every prefix of the same union.
+      const condition = diagram.orAll(incoming);
+      if (condition === previous) continue;
+      reachable.set(fn, condition);
+      if (fn === terminal) continue;
+      for (const call of this._callFacts.get(fn) ?? []) {
+        enqueue(call.callee, diagram.and(condition, this._callCondition(call, forWrites)));
+      }
+    }
+    return reachable;
+  }
+
+  private _cyclicComponents(): readonly ReadonlySet<ASTNode.FunctionDefinition>[] {
+    const functions = this.functions();
+    const reverse = new Map<ASTNode.FunctionDefinition, ASTNode.FunctionDefinition[]>();
+    for (const [caller, calls] of this._callFacts) {
+      for (const { callee } of calls) {
+        const incoming = reverse.get(callee) ?? [];
+        incoming.push(caller);
+        reverse.set(callee, incoming);
+      }
+    }
+    const visited = new Set<ASTNode.FunctionDefinition>();
+    const finished: ASTNode.FunctionDefinition[] = [];
+    for (const start of functions) {
+      if (visited.has(start)) continue;
+      const pending = [{ node: start, finish: false }];
+      while (pending.length) {
+        const { node, finish } = pending.pop()!;
+        if (finish) {
+          finished.push(node);
+          continue;
+        }
+        if (visited.has(node)) continue;
+        visited.add(node);
+        pending.push({ node, finish: true });
+        for (const { callee } of this._callFacts.get(node) ?? []) pending.push({ node: callee, finish: false });
+      }
+    }
+    visited.clear();
+    const components: Set<ASTNode.FunctionDefinition>[] = [];
+    while (finished.length) {
+      const start = finished.pop()!;
+      if (visited.has(start)) continue;
+      const component = new Set<ASTNode.FunctionDefinition>();
+      const pending = [start];
+      while (pending.length) {
+        const node = pending.pop()!;
+        if (visited.has(node)) continue;
+        visited.add(node);
+        component.add(node);
+        pending.push(...(reverse.get(node) ?? []));
+      }
+      if (component.size > 1) components.push(component);
+    }
+    return components;
+  }
+
+  private _findCycleWitness(
+    marker: ASTNode.FunctionDefinition,
+    allowed: ReadonlySet<ASTNode.FunctionDefinition>,
+    witness: number
+  ): readonly ASTNode.FunctionDefinition[] | undefined {
+    const visited = new Set<ASTNode.FunctionDefinition>([marker]);
+    const stack = [{ node: marker, next: 0 }];
+    while (stack.length) {
+      const frame = stack[stack.length - 1];
+      const calls = this._callFacts.get(frame.node) ?? [];
+      if (frame.next === calls.length) {
+        stack.pop();
+        continue;
+      }
+      const call = calls[frame.next++];
+      if (
+        !allowed.has(call.callee) ||
+        call.callee === frame.node ||
+        this._conditions.coverage(this._callCondition(call, false), witness) !== "covered"
+      )
+        continue;
+      if (call.callee === marker && stack.length > 1) return stack.map((item) => item.node);
+      if (!visited.has(call.callee)) {
+        visited.add(call.callee);
+        stack.push({ node: call.callee, next: 0 });
+      }
+    }
   }
 
   private _recordOutputParameterWrites(
@@ -459,42 +649,10 @@ export class ShaderAnalysisInfo {
     target: string | ShaderBuiltinSemantic,
     branch: BranchSignature
   ): void {
+    this._branches.add(branch);
     const writes = this._writes.get(functionNode) ?? [];
     writes.push({ target, branch });
     this._writes.set(functionNode, writes);
-  }
-
-  private _collectWritePaths(
-    functionNode: ASTNode.FunctionDefinition,
-    incomingBranch: BranchSignature,
-    target: string | ShaderBuiltinSemantic,
-    activeFunctions: Set<ASTNode.FunctionDefinition>,
-    out: BranchSignature[],
-    budget: { remaining: number; exhausted: boolean; unknownEffects: boolean }
-  ): void {
-    if (budget.remaining-- <= 0) {
-      budget.exhausted = true;
-      return;
-    }
-    const functionBranch = functionNode.protoType.ident.branch;
-    const reachableBranch = combineBranches(incomingBranch, functionBranch);
-    if (!reachableBranch || activeFunctions.has(functionNode)) return;
-    activeFunctions.add(functionNode);
-
-    for (const effectBranch of this._unknownEffects.get(functionNode) ?? []) {
-      if (combineBranches(reachableBranch, effectBranch)) budget.unknownEffects = true;
-    }
-
-    for (const write of this._writes.get(functionNode) ?? []) {
-      if (write.target !== target) continue;
-      const writeBranch = combineBranches(reachableBranch, write.branch);
-      if (writeBranch) out.push(writeBranch);
-    }
-    for (const call of this._callFacts.get(functionNode) ?? []) {
-      const callBranch = combineBranches(reachableBranch, call.branch);
-      if (callBranch) this._collectWritePaths(call.callee, callBranch, target, activeFunctions, out, budget);
-    }
-    activeFunctions.delete(functionNode);
   }
 }
 
@@ -516,38 +674,50 @@ export function walkEffectiveShaderSyntax(
   mappedLocation?: ShaderRange,
   visitUnknown?: (branch: BranchSignature) => void
 ): void {
-  const branch = combineBranches(incoming, node._branch);
-  if (!branch || !isBranchReachable(branch) || node instanceof ASTNode.MacroDefine) return;
-  const location = mappedLocation ?? node.location;
-  if (node instanceof ASTNode.MacroCallSymbol || node instanceof ASTNode.MacroCallFunction) {
-    if (!node.expandedSyntax?.length) visitUnknown?.(branch);
-    for (const syntax of node.expandedSyntax ?? []) {
-      const expandedBranch = combineBranches(branch, syntax.branch);
-      if (!expandedBranch) continue;
-      visitMacro(syntax, expandedBranch, location);
-      if (syntax.hasUnknownEffects) visitUnknown?.(expandedBranch);
-      for (const argument of syntax.arguments) {
-        walkEffectiveShaderSyntax(argument, visit, visitMacro, expandedBranch, location, visitUnknown);
+  type Visit =
+    | { node: TreeNode; incoming: BranchSignature; mappedLocation?: ShaderRange }
+    | { syntax: MacroExpansionSyntax; branch: BranchSignature; location: ShaderRange };
+  const pending: Visit[] = [{ node, incoming, mappedLocation }];
+  while (pending.length) {
+    const current = pending.pop()!;
+    if ("syntax" in current) {
+      const { syntax, branch, location } = current;
+      visitMacro(syntax, branch, location);
+      if (syntax.hasUnknownEffects) visitUnknown?.(branch);
+      for (let index = syntax.arguments.length - 1; index >= 0; index--) {
+        pending.push({ node: syntax.arguments[index], incoming: branch, mappedLocation: location });
+      }
+      continue;
+    }
+    const { node, incoming, mappedLocation } = current;
+    const branch = combineBranches(incoming, node._branch);
+    if (!branch || !isBranchReachable(branch) || node instanceof ASTNode.MacroDefine) continue;
+    const location = mappedLocation ?? node.location;
+    if (node instanceof ASTNode.MacroCallSymbol || node instanceof ASTNode.MacroCallFunction) {
+      if (!node.expandedSyntax?.length) visitUnknown?.(branch);
+      for (let index = (node.expandedSyntax?.length ?? 0) - 1; index >= 0; index--) {
+        const syntax = node.expandedSyntax![index];
+        const expandedBranch = combineBranches(branch, syntax.branch);
+        if (expandedBranch) pending.push({ syntax, branch: expandedBranch, location });
+      }
+      continue;
+    }
+    visit(node, branch, location);
+    if (node instanceof ASTNode.FunctionCallGeneric) {
+      const identifier = node.children[0] as ASTNode.FunctionIdentifier;
+      if (
+        !identifier.isBuiltin &&
+        !BuiltinFunction.isExist(identifier.lexeme) &&
+        !(node.fnSymbols?.length || node.fnSymbol instanceof FnSymbol)
+      ) {
+        visitUnknown?.(branch);
+        continue;
       }
     }
-    return;
-  }
-  visit(node, branch, location);
-  if (node instanceof ASTNode.FunctionCallGeneric) {
-    const identifier = node.children[0] as ASTNode.FunctionIdentifier;
-    if (
-      !identifier.isBuiltin &&
-      !BuiltinFunction.isExist(identifier.lexeme) &&
-      !(node.fnSymbols?.length || node.fnSymbol instanceof FnSymbol)
-    ) {
-      visitUnknown?.(branch);
-      return;
-    }
-  }
-  for (const child of node.children) {
-    // Container branches describe their first token, not every following sibling statement.
-    if (child instanceof TreeNode) {
-      walkEffectiveShaderSyntax(child, visit, visitMacro, incoming, mappedLocation, visitUnknown);
+    for (let index = node.children.length - 1; index >= 0; index--) {
+      const child = node.children[index];
+      // Container branches describe their first token, not every following sibling statement.
+      if (child instanceof TreeNode) pending.push({ node: child, incoming, mappedLocation });
     }
   }
 }
@@ -568,23 +738,7 @@ interface ConditionalReference {
   readonly branch: BranchSignature;
 }
 
-interface ReachabilityState {
-  readonly functionNode: ASTNode.FunctionDefinition;
-  readonly branch: BranchSignature;
-}
-
-// Each edge adds constraints, so a repeated state cannot reveal a more permissive path. Bound the
-// retained alternatives before adversarial macro graphs turn diagnostics into exponential work.
-const MAX_CALL_PATH_STATES = 256;
-
-function canonicalCycleKey(cycle: readonly ASTNode.FunctionDefinition[]): string {
-  const identities = cycle.map((fn) => `${fn.protoType.ident.lexeme}@${fn.protoType.ident.location.start.index}`);
-  let first = 0;
-  for (let i = 1; i < identities.length; i++) {
-    if (identities[i] < identities[first]) first = i;
-  }
-  return identities.slice(first).concat(identities.slice(0, first)).join("->");
-}
+type ReachableConditions = ReadonlyMap<ASTNode.FunctionDefinition, number>;
 
 function combineBranches(left: BranchSignature, right: BranchSignature): BranchSignature | undefined {
   if (!canBranchesOverlap(left, right)) return;

@@ -2,7 +2,6 @@ import {
   ASTNode,
   BaseToken,
   BuiltinVariable,
-  canBranchesOverlap,
   type BranchSignature,
   ESymbolType,
   EShaderStage,
@@ -90,68 +89,70 @@ export class ShaderValidator {
     this._shaderData = _analysis.ir.shaderData;
   }
 
-  private _walk(node: TreeNode, ctx: WalkContext): void {
-    if (!isBranchReachable(node._branch)) return;
-    if (node instanceof ASTNode.MacroDefine) return;
-    // A FunctionDefinition becomes the enclosing function for its subtree (GLSL has no nested
-    // functions, so it always replaces rather than nests); an iteration statement (for/while/do)
-    // raises the loop depth for its subtree.
-    let childCtx = ctx;
-    if (node instanceof ASTNode.FunctionDefinition) {
-      this._checkFunctionReturn(node);
-      childCtx = { currentFunction: node, loopDepth: ctx.loopDepth };
-    } else if (node instanceof ASTNode.IterationStatement) {
-      childCtx = {
-        currentFunction: ctx.currentFunction,
-        loopDepth: ctx.loopDepth + 1
-      };
-    } else if (node instanceof ASTNode.JumpStatement) {
-      this._checkJump(node, ctx);
-    } else if (node instanceof ASTNode.FunctionCallGeneric) {
-      this._checkRecursiveCall(node, ctx);
-      this._checkDerivativeCall(node);
-    } else if (node instanceof ASTNode.UnaryExpression) {
-      this._checkUnaryOperand(node);
-    } else if (node instanceof ASTNode.MultiplicativeExpression) {
-      if (!this._checkArithmeticOperation(node)) {
-        this._checkConstDivideByZero(node);
+  private _walk(root: TreeNode, context: WalkContext): void {
+    const pending = [{ node: root, ctx: context }];
+    while (pending.length) {
+      const { node, ctx } = pending.pop()!;
+      if (!isBranchReachable(node._branch)) continue;
+      if (node instanceof ASTNode.MacroDefine) continue;
+      // A FunctionDefinition becomes the enclosing function for its subtree (GLSL has no nested
+      // functions, so it always replaces rather than nests); an iteration statement (for/while/do)
+      // raises the loop depth for its subtree.
+      let childCtx = ctx;
+      if (node instanceof ASTNode.FunctionDefinition) {
+        this._checkFunctionReturn(node);
+        childCtx = { currentFunction: node, loopDepth: ctx.loopDepth };
+      } else if (node instanceof ASTNode.IterationStatement) {
+        childCtx = {
+          currentFunction: ctx.currentFunction,
+          loopDepth: ctx.loopDepth + 1
+        };
+      } else if (node instanceof ASTNode.JumpStatement) {
+        this._checkJump(node, ctx);
+      } else if (node instanceof ASTNode.FunctionCallGeneric) {
+        this._checkRecursiveCall(node, ctx);
+        this._checkDerivativeCall(node);
+      } else if (node instanceof ASTNode.UnaryExpression) {
+        this._checkUnaryOperand(node);
+      } else if (node instanceof ASTNode.MultiplicativeExpression) {
+        if (!this._checkArithmeticOperation(node)) {
+          this._checkConstDivideByZero(node);
+        }
+      } else if (node instanceof ASTNode.AdditiveExpression) {
+        this._checkArithmeticOperation(node);
+      } else if (node instanceof ASTNode.ShiftExpression) {
+        this._checkShiftRange(node);
+        this._checkIntegerBinaryOperands(node);
+      } else if (
+        node instanceof ASTNode.AndExpression ||
+        node instanceof ASTNode.ExclusiveOrExpression ||
+        node instanceof ASTNode.InclusiveOrExpression
+      ) {
+        this._checkIntegerBinaryOperands(node);
+      } else if (
+        node instanceof ASTNode.LogicalAndExpression ||
+        node instanceof ASTNode.LogicalXorExpression ||
+        node instanceof ASTNode.LogicalOrExpression
+      ) {
+        this._checkScalarBoolBinaryOperands(node);
+      } else if (node instanceof ASTNode.PostfixExpression) {
+        this._checkPostfix(node);
+      } else if (node instanceof ASTNode.FunctionProtoType) {
+        this._checkLocalFunctionPrototype(node, ctx);
+      } else if (node instanceof ASTNode.StructSpecifier) {
+        this._checkStructSpecifier(node);
+      } else if (node instanceof ASTNode.TypeSpecifier && !(node.parent instanceof ASTNode.FunctionIdentifier)) {
+        this._checkCustomTypeReference(node);
+      } else if (node instanceof ASTNode.SingleDeclaration || node instanceof ASTNode.VariableDeclaration) {
+        this._checkVariableDeclarator(node.declarator);
+      } else if (node instanceof ASTNode.InitDeclaratorList && node.declarator) {
+        this._checkVariableDeclarator(node.declarator);
+      } else if (node instanceof ASTNode.ArraySpecifier) {
+        this._checkArraySpecifier(node);
       }
-    } else if (node instanceof ASTNode.AdditiveExpression) {
-      this._checkArithmeticOperation(node);
-    } else if (node instanceof ASTNode.ShiftExpression) {
-      this._checkShiftRange(node);
-      this._checkIntegerBinaryOperands(node);
-    } else if (
-      node instanceof ASTNode.AndExpression ||
-      node instanceof ASTNode.ExclusiveOrExpression ||
-      node instanceof ASTNode.InclusiveOrExpression
-    ) {
-      this._checkIntegerBinaryOperands(node);
-    } else if (
-      node instanceof ASTNode.LogicalAndExpression ||
-      node instanceof ASTNode.LogicalXorExpression ||
-      node instanceof ASTNode.LogicalOrExpression
-    ) {
-      this._checkScalarBoolBinaryOperands(node);
-    } else if (node instanceof ASTNode.PostfixExpression) {
-      this._checkPostfix(node);
-    } else if (node instanceof ASTNode.FunctionProtoType) {
-      this._checkLocalFunctionPrototype(node, ctx);
-    } else if (node instanceof ASTNode.StructSpecifier) {
-      this._checkStructSpecifier(node);
-    } else if (node instanceof ASTNode.TypeSpecifier && !(node.parent instanceof ASTNode.FunctionIdentifier)) {
-      this._checkCustomTypeReference(node);
-    } else if (node instanceof ASTNode.SingleDeclaration || node instanceof ASTNode.VariableDeclaration) {
-      this._checkVariableDeclarator(node.declarator);
-    } else if (node instanceof ASTNode.InitDeclaratorList && node.declarator) {
-      this._checkVariableDeclarator(node.declarator);
-    } else if (node instanceof ASTNode.ArraySpecifier) {
-      this._checkArraySpecifier(node);
-    }
-    const children = node.children;
-    if (children) {
-      for (const child of children) {
-        if (child instanceof TreeNode) this._walk(child, childCtx);
+      for (let index = node.children.length - 1; index >= 0; index--) {
+        const child = node.children[index];
+        if (child instanceof TreeNode) pending.push({ node: child, ctx: childCtx });
       }
     }
   }
@@ -530,58 +531,9 @@ export class ShaderValidator {
   private _checkFunctionReturn(node: ASTNode.FunctionDefinition): void {
     const returnType = node.protoType.returnType;
     if (returnType.type === Keyword.VOID) return;
-    const paths: BranchSignature[] = [];
-    const complete = ShaderValidator._collectReturnPaths(node.statements, paths);
-    if (complete && (!paths.length || getBranchCoverage(paths, node.protoType.ident.branch) === "uncovered")) {
+    if (this._analysis.getReturnCoverage(node) === "uncovered") {
       this._push(`No return statement found.`, returnType.location, DiagnosticType.MissingReturn);
     }
-  }
-
-  /**
-   * Collects macro configurations that terminate a block, including returns before unreachable
-   * statements. A runtime if/else terminates only where both arms return; a loop may not execute.
-   * The bounded intersection prevents nested conditional code from causing exponential analysis.
-   */
-  private static _collectReturnPaths(node: TreeNode, paths: BranchSignature[]): boolean {
-    if (!isBranchReachable(node._branch)) return true;
-    if (node instanceof ASTNode.JumpStatement) {
-      const keyword = node.children[0];
-      if (keyword instanceof BaseToken && keyword.type === Keyword.RETURN) paths.push(node._branch);
-      return true;
-    }
-    if (node instanceof ASTNode.SelectionStatement) {
-      if (node.children.length !== 7) return true;
-      const left: BranchSignature[] = [];
-      const right: BranchSignature[] = [];
-      const leftComplete = ShaderValidator._collectReturnPaths(node.children[4] as TreeNode, left);
-      const rightComplete = ShaderValidator._collectReturnPaths(node.children[6] as TreeNode, right);
-      if (!leftComplete || !rightComplete || left.length * right.length > 256) return false;
-      for (const leftPath of left) {
-        for (const rightPath of right) {
-          if (canBranchesOverlap(leftPath, rightPath)) {
-            paths.push([...leftPath, ...rightPath.filter((constraint) => !leftPath.includes(constraint))]);
-          }
-        }
-      }
-      return true;
-    }
-    if (
-      node instanceof ASTNode.Statement ||
-      node instanceof ASTNode.SimpleStatement ||
-      node instanceof ASTNode.CompoundStatement ||
-      node instanceof ASTNode.CompoundStatementNoScope ||
-      node instanceof ASTNode.StatementList ||
-      node instanceof ASTNode.MacroIfStatement ||
-      node instanceof ASTNode.MacroBranch
-    ) {
-      let complete = true;
-      for (const child of node.children) {
-        if (child instanceof TreeNode && !ShaderValidator._collectReturnPaths(child, paths)) complete = false;
-        if (paths.length > 256) return false;
-      }
-      return complete;
-    }
-    return true;
   }
 
   /**
@@ -667,22 +619,17 @@ export class ShaderValidator {
   }
 
   /**
-   * After the walk, find call-graph cycles of length ≥ 2 (mutual recursion) and report each cycle
-   * on its lexicographically-first participant. Direct self-recursion is already reported at the
-   * call site by `_checkRecursiveCall`, so ignore length-1 cycles here.
+   * Reports one mutual-recursion witness per canonical participant. Direct self-recursion is
+   * already reported at the call site by `_checkRecursiveCall`.
    */
   private _reportMutualRecursion(): void {
-    const reported = new Set<ASTNode.FunctionDefinition>();
-    for (const cycle of this._analysis.mutualRecursionCycles()) {
-      const marker = cycle.reduce((first, candidate) =>
-        candidate.protoType.ident.lexeme < first.protoType.ident.lexeme ? candidate : first
-      );
-      if (reported.has(marker)) continue;
-      reported.add(marker);
+    for (const { marker, cycle } of this._analysis.mutualRecursionWitnesses()) {
       this._push(
-        `Mutual recursion detected in call chain: ${cycle
-          .map((fn) => fn.protoType.ident.lexeme)
-          .join(" → ")} → ${cycle[0].protoType.ident.lexeme} (GLSL forbids recursion).`,
+        cycle
+          ? `Mutual recursion detected in call chain: ${cycle
+              .map((fn) => fn.protoType.ident.lexeme)
+              .join(" → ")} → ${cycle[0].protoType.ident.lexeme} (GLSL forbids recursion).`
+          : `Mutual recursion detected involving function '${marker.protoType.ident.lexeme}' (GLSL forbids recursion).`,
         marker.protoType.ident.location,
         DiagnosticType.RecursiveFunction
       );
