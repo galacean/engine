@@ -1,9 +1,13 @@
+import { ScreenSpaceReflectionConfig } from "./ScreenSpaceReflectionConfig";
 import {
   ScreenSpaceReflectionSettings,
   ScreenSpaceReflectionSettingsSource,
   ScreenSpaceReflectionContent,
   type ScreenSpaceReflectionSettingsData
 } from "./ScreenSpaceReflectionSettings";
+import type { Engine } from "../../Engine";
+import { ContentRestorer } from "../../asset/ContentRestorer";
+import { Texture2D, TextureFormat } from "../../texture";
 import type { Camera } from "../../Camera";
 import { PipelineStage } from "../../RenderPipeline/enums/PipelineStage";
 import type { Material } from "../../material";
@@ -380,48 +384,9 @@ export class ScreenSpaceReflection {
   /** Optional, caller-owned instrumentation. Disabled by default and not copied with cameras. */
   profiler: ScreenSpaceReflectionProfiler | null = null;
 
-  private static readonly _presets: readonly Readonly<ScreenSpaceReflectionTraceSettings>[] = [
-    Object.freeze({
-      quality: ScreenSpaceReflectionQuality.Low,
-      resolutionScale: 0.25,
-      upsamplingMode: ScreenSpaceReflectionUpsamplingMode.Bilinear,
-      maxRayDistance: 20,
-      rayLengthFade: 1,
-      maxRaySteps: 16,
-      hitRefinementSteps: 2,
-      thickness: 0.2,
-      maxRoughness: 0.7,
-      edgeFade: 0.1
-    }),
-    Object.freeze({
-      quality: ScreenSpaceReflectionQuality.Medium,
-      resolutionScale: 0.5,
-      upsamplingMode: ScreenSpaceReflectionUpsamplingMode.Bilinear,
-      maxRayDistance: 30,
-      rayLengthFade: 1,
-      maxRaySteps: 32,
-      hitRefinementSteps: 3,
-      thickness: 0.2,
-      maxRoughness: 0.7,
-      edgeFade: 0.1
-    }),
-    Object.freeze({
-      quality: ScreenSpaceReflectionQuality.High,
-      resolutionScale: 1,
-      upsamplingMode: ScreenSpaceReflectionUpsamplingMode.GaussianBilateral,
-      maxRayDistance: 30,
-      rayLengthFade: 1,
-      maxRaySteps: 64,
-      hitRefinementSteps: 5,
-      thickness: 0.2,
-      maxRoughness: 0.7,
-      edgeFade: 0.1
-    })
-  ];
-
   /** Complete trace/reconstruction budget, also usable in consumer requests or phase overrides. */
   static getQualityPreset(quality: ScreenSpaceReflectionQuality): Readonly<ScreenSpaceReflectionTraceSettings> {
-    return ScreenSpaceReflection._presets[ScreenSpaceReflection._sanitizeQuality(quality)];
+    return ScreenSpaceReflectionConfig.getQualityPreset(quality);
   }
 
   /** Apply a complete manual budget without changing activation, consumers, phase overrides or intensity. */
@@ -443,6 +408,9 @@ export class ScreenSpaceReflection {
 
   /** Shader pass tag used to declare the versioned receiver output contract. */
   static readonly MATERIAL_RECEIVER_CONTRACT_TAG = "screenSpaceReflectionReceiver";
+  /** Active SubShader opt-in: Forward and Surface share the built-in Auto response model. */
+  static readonly MATERIAL_AUTO_RECEIVER_TAG = "screenSpaceReflectionAuto";
+  static readonly MATERIAL_AUTO_RECEIVER_CONTRACT = "PbrV1";
   /** Current MRT surface contract preserving a colored material response. */
   static readonly MATERIAL_RECEIVER_CONTRACT = "ColorResponseV2";
   /** Forward implements sampling of the published camera SSR texture. */
@@ -483,6 +451,9 @@ export class ScreenSpaceReflection {
   }
 
   /** @internal */
+  private static readonly _unpublishedMaxRoughness = -1;
+  private static readonly _emptyTextures = new WeakMap<Engine, Texture2D>();
+  static readonly _cameraMaxRoughnessProperty = ShaderProperty.getByName("camera_ScreenSpaceReflectionMaxRoughness");
   static readonly _cameraTextureProperty = ShaderProperty.getByName("camera_ScreenSpaceReflectionTexture");
   /** @internal */
   static readonly _cameraIntensityProperty = ShaderProperty.getByName("camera_ScreenSpaceReflectionIntensity");
@@ -506,6 +477,14 @@ export class ScreenSpaceReflection {
     ShaderMacro.getByName("MATERIAL_ENABLE_TRANSMISSION")
   ] as const;
   private static readonly _pipelineStageTag = ShaderTagKey.getByName("pipelineStage");
+  private static readonly _autoReceiverTag = ShaderTagKey.getByName(ScreenSpaceReflection.MATERIAL_AUTO_RECEIVER_TAG);
+  /** @internal Read only the active SubShader; surface capability is checked separately. */
+  static _supportsShaderAutoReceiver(shader: Material["shader"]): boolean {
+    return (
+      shader?.subShaders[0]?.getTagValue(ScreenSpaceReflection._autoReceiverTag) ===
+      ScreenSpaceReflection.MATERIAL_AUTO_RECEIVER_CONTRACT
+    );
+  }
   private static readonly _receiverContractTag = ShaderTagKey.getByName(
     ScreenSpaceReflection.MATERIAL_RECEIVER_CONTRACT_TAG
   );
@@ -865,6 +844,31 @@ export class ScreenSpaceReflection {
     return lease;
   }
 
+  private static readonly _supportedReceiverCapability: ScreenSpaceReflectionMaterialReceiverCapability = Object.freeze(
+    {
+      supported: true,
+      contract: ScreenSpaceReflection.MATERIAL_RECEIVER_CONTRACT,
+      unsupportedReason: null
+    }
+  );
+  private static readonly _unsupportedLobesCapability: ScreenSpaceReflectionMaterialReceiverCapability = Object.freeze({
+    supported: false,
+    contract: ScreenSpaceReflection.MATERIAL_RECEIVER_CONTRACT,
+    unsupportedReason: "unsupported-screen-space-reflection-material-lobes"
+  });
+  private static readonly _inactiveSubshaderCapability: ScreenSpaceReflectionMaterialReceiverCapability = Object.freeze(
+    {
+      supported: false,
+      contract: ScreenSpaceReflection.MATERIAL_RECEIVER_CONTRACT,
+      unsupportedReason: "screen-space-reflection-receiver-contract-not-in-active-subshader"
+    }
+  );
+  private static readonly _missingSurfaceCapability: ScreenSpaceReflectionMaterialReceiverCapability = Object.freeze({
+    supported: false,
+    contract: null,
+    unsupportedReason: "missing-screen-space-reflection-surface-pass"
+  });
+
   /** Query whether a material exposes the versioned SSR surface pass contract. */
   static getMaterialReceiverCapability(material: Material): ScreenSpaceReflectionMaterialReceiverCapability {
     const subShaders = material.shader?.subShaders;
@@ -894,18 +898,10 @@ export class ScreenSpaceReflection {
         const unsupportedLobeMacros = ScreenSpaceReflection._unsupportedLobeMacros;
         for (let i = 0, n = unsupportedLobeMacros.length; i < n; i++) {
           if (macroCollection.isEnable(unsupportedLobeMacros[i])) {
-            return {
-              supported: false,
-              contract: ScreenSpaceReflection.MATERIAL_RECEIVER_CONTRACT,
-              unsupportedReason: "unsupported-screen-space-reflection-material-lobes"
-            };
+            return ScreenSpaceReflection._unsupportedLobesCapability;
           }
         }
-        return {
-          supported: true,
-          contract: ScreenSpaceReflection.MATERIAL_RECEIVER_CONTRACT,
-          unsupportedReason: null
-        };
+        return ScreenSpaceReflection._supportedReceiverCapability;
       }
       return {
         supported: false,
@@ -926,21 +922,13 @@ export class ScreenSpaceReflection {
             pass.getTagValue(ScreenSpaceReflection._receiverContractTag) ===
               ScreenSpaceReflection.MATERIAL_RECEIVER_CONTRACT
           ) {
-            return {
-              supported: false,
-              contract: ScreenSpaceReflection.MATERIAL_RECEIVER_CONTRACT,
-              unsupportedReason: "screen-space-reflection-receiver-contract-not-in-active-subshader"
-            };
+            return ScreenSpaceReflection._inactiveSubshaderCapability;
           }
         }
       }
     }
 
-    return {
-      supported: false,
-      contract: null,
-      unsupportedReason: "missing-screen-space-reflection-surface-pass"
-    };
+    return ScreenSpaceReflection._missingSurfaceCapability;
   }
 
   /**
@@ -967,7 +955,8 @@ export class ScreenSpaceReflection {
       mode === ScreenSpaceReflectionReceiverMode.Disabled ||
       mode === ScreenSpaceReflectionReceiverMode.OpaqueComposite ||
       mode === ScreenSpaceReflectionReceiverMode.TransparentSampleOnly ||
-      (mode === ScreenSpaceReflectionReceiverMode.Auto && material.shader?.name === "PBR");
+      (mode === ScreenSpaceReflectionReceiverMode.Auto &&
+        ScreenSpaceReflection._supportsShaderAutoReceiver(material.shader));
     if (
       !capability.supported ||
       !validMode ||
@@ -1041,7 +1030,8 @@ export class ScreenSpaceReflection {
       (!author &&
         mode !== ScreenSpaceReflectionReceiverMode.Auto &&
         !material._screenSpaceReflectionReceiverRegistered) ||
-      (mode === ScreenSpaceReflectionReceiverMode.Auto && material.shader?.name !== "PBR") ||
+      (mode === ScreenSpaceReflectionReceiverMode.Auto &&
+        !ScreenSpaceReflection._supportsShaderAutoReceiver(material.shader)) ||
       !ScreenSpaceReflection.getMaterialReceiverCapability(material).supported ||
       (mode === ScreenSpaceReflectionReceiverMode.TransparentSampleOnly &&
         !ScreenSpaceReflection.supportsMaterialTransparentSampling(material))
@@ -1058,9 +1048,15 @@ export class ScreenSpaceReflection {
 
   /** @internal Resolve an explicit receiver or the camera-local standard PBR Auto policy. */
   _isMaterialReceiver(material: Material, renderQueueType: RenderQueueType): boolean {
-    const explicitMode = ScreenSpaceReflection._resolveMaterialReceiverMode(material, renderQueueType);
     const author = material._screenSpaceReflectionAuthorSettings;
-    if (author) ScreenSpaceReflection._applyMaterialReceiver(material, explicitMode, author.intensity);
+    const automatic = author
+      ? author.mode === "Auto"
+      : material.shaderData.getFloat(ScreenSpaceReflection._receiverModeProperty) ===
+        ScreenSpaceReflectionReceiverMode.Auto;
+    if (automatic && this._authorSettings.receiverPolicy !== ScreenSpaceReflectionReceiverPolicy.StandardPbrAuto) {
+      return false;
+    }
+    const explicitMode = ScreenSpaceReflection._resolveMaterialReceiverMode(material, renderQueueType);
     if (explicitMode === ScreenSpaceReflectionReceiverMode.OpaqueComposite) {
       return renderQueueType !== RenderQueueType.Transparent;
     }
@@ -1073,7 +1069,7 @@ export class ScreenSpaceReflection {
       explicitMode !== ScreenSpaceReflectionReceiverMode.Auto ||
       this._authorSettings.receiverPolicy !== ScreenSpaceReflectionReceiverPolicy.StandardPbrAuto ||
       renderQueueType === RenderQueueType.Transparent ||
-      material.shader?.name !== "PBR" ||
+      !ScreenSpaceReflection._supportsShaderAutoReceiver(material.shader) ||
       (shaderData.getFloat(ScreenSpaceReflection._receiverIntensityProperty) ?? 0) <= 0
     ) {
       return false;
@@ -1089,7 +1085,7 @@ export class ScreenSpaceReflection {
   /** @internal */
   constructor(private readonly _camera: Camera) {
     _camera.shaderData.setFloat(ScreenSpaceReflection._cameraIntensityProperty, this._resolvedSettingsState.intensity);
-    _camera.shaderData.setTexture(ScreenSpaceReflection._cameraTextureProperty, null);
+    this._unpublish();
     this._refreshState();
   }
 
@@ -1108,10 +1104,33 @@ export class ScreenSpaceReflection {
           ? "zero-intensity"
           : unsupportedReason;
     this._resetRenderStats();
-    if (!metrics.effective) {
-      this._camera.shaderData.setTexture(ScreenSpaceReflection._cameraTextureProperty, null);
-    }
+    this._unpublish();
     return metrics.effective;
+  }
+
+  /** @internal Invalidate this camera's current-frame publication, including shared-program uniforms. */
+  _unpublish(): void {
+    const engine = this._camera.engine;
+    let texture = ScreenSpaceReflection._emptyTextures.get(engine);
+    if (!texture) {
+      texture = new Texture2D(engine, 1, 1, TextureFormat.R8G8B8A8, false, false);
+      const pixel = new Uint8Array(4);
+      texture.setPixelBuffer(pixel);
+      texture.isGCIgnored = true;
+      engine.resourceManager.addContentRestorer(
+        new (class extends ContentRestorer<Texture2D> {
+          restoreContent(): void {
+            this.resource.setPixelBuffer(pixel);
+          }
+        })(texture)
+      );
+      ScreenSpaceReflection._emptyTextures.set(engine, texture);
+    }
+    this._camera.shaderData.setTexture(ScreenSpaceReflection._cameraTextureProperty, texture);
+    this._camera.shaderData.setFloat(
+      ScreenSpaceReflection._cameraMaxRoughnessProperty,
+      ScreenSpaceReflection._unpublishedMaxRoughness
+    );
   }
 
   /** @internal Contribution failure keeps opaque tracing available. */
@@ -1126,7 +1145,7 @@ export class ScreenSpaceReflection {
     metrics.unsupportedReason = reason;
     metrics.effective = false;
     metrics.inactiveReason = reason;
-    this._camera.shaderData.setTexture(ScreenSpaceReflection._cameraTextureProperty, null);
+    this._unpublish();
   }
 
   /** @internal */
@@ -1135,7 +1154,7 @@ export class ScreenSpaceReflection {
     metrics.effective = false;
     metrics.inactiveReason = inactiveReason;
     metrics.unsupportedReason = null;
-    this._camera.shaderData.setTexture(ScreenSpaceReflection._cameraTextureProperty, null);
+    this._unpublish();
     this._resetRenderStats();
   }
 
@@ -1200,7 +1219,7 @@ export class ScreenSpaceReflection {
     this._hasOverrideSettings = source._hasOverrideSettings;
     this._settingsSource = source.settingsSource;
     this._refreshState();
-    this._camera.shaderData.setTexture(ScreenSpaceReflection._cameraTextureProperty, null);
+    this._unpublish();
     this._metricsState.supported = false;
     this._metricsState.effective = false;
     this._metricsState.unsupportedReason = null;
@@ -1258,7 +1277,7 @@ export class ScreenSpaceReflection {
             ? "disabled-by-global-switch"
             : "not-requested";
       metrics.unsupportedReason = null;
-      this._camera.shaderData.setTexture(ScreenSpaceReflection._cameraTextureProperty, null);
+      this._unpublish();
       this._resetRenderStats();
     }
   }
@@ -1331,7 +1350,7 @@ export class ScreenSpaceReflection {
     if (resolved.intensity <= 0 && this._metricsState.requested) {
       this._metricsState.effective = false;
       this._metricsState.inactiveReason = "zero-intensity";
-      this._camera.shaderData.setTexture(ScreenSpaceReflection._cameraTextureProperty, null);
+      this._unpublish();
       this._resetRenderStats();
     }
   }
@@ -1426,19 +1445,7 @@ export class ScreenSpaceReflection {
     return Math.round(ScreenSpaceReflection._clampFinite(value, min, max, fallback));
   }
 
-  private static _qualityTuning(quality: ScreenSpaceReflectionQuality): {
-    readonly maxRaySteps: number;
-    readonly hitRefinementSteps: number;
-  } {
-    switch (quality) {
-      case ScreenSpaceReflectionQuality.Low:
-        return { maxRaySteps: 16, hitRefinementSteps: 2 };
-      case ScreenSpaceReflectionQuality.High:
-        return { maxRaySteps: 64, hitRefinementSteps: 5 };
-      default:
-        return { maxRaySteps: 32, hitRefinementSteps: 3 };
-    }
-  }
+  private static _qualityTuning = ScreenSpaceReflectionConfig.qualityTuning;
 
   private static _requireConsumerReceiverMode(
     value: ScreenSpaceReflectionConsumerReceiverMode
@@ -1462,142 +1469,11 @@ export class ScreenSpaceReflection {
     shaderData.disableMacro(ScreenSpaceReflection._legacyReceiverMacro);
   }
 
-  private static _sanitizeUpsamplingMode(
-    value: ScreenSpaceReflectionUpsamplingMode
-  ): ScreenSpaceReflectionUpsamplingMode {
-    return value === ScreenSpaceReflectionUpsamplingMode.Bilinear ||
-      value === ScreenSpaceReflectionUpsamplingMode.Bilateral
-      ? value
-      : ScreenSpaceReflectionUpsamplingMode.GaussianBilateral;
-  }
-
-  private static _sanitizeQuality(value: ScreenSpaceReflectionQuality): ScreenSpaceReflectionQuality {
-    switch (value) {
-      case ScreenSpaceReflectionQuality.Low:
-      case ScreenSpaceReflectionQuality.Medium:
-      case ScreenSpaceReflectionQuality.High:
-        return value;
-      default:
-        return ScreenSpaceReflectionQuality.Medium;
-    }
-  }
-
+  private static _sanitizeUpsamplingMode = ScreenSpaceReflectionConfig.sanitizeUpsamplingMode;
+  private static _sanitizeQuality = ScreenSpaceReflectionConfig.sanitizeQuality;
   /** @internal */
-  static _sanitizeConsumerRequest(
-    request?: Readonly<ScreenSpaceReflectionConsumerRequest>
-  ): ScreenSpaceReflectionConsumerRequest {
-    if (!request) return Object.freeze({});
-    const sanitized: {
-      priority?: number;
-      receiverMode?: ScreenSpaceReflectionConsumerReceiverMode;
-      quality?: ScreenSpaceReflectionQuality;
-      resolutionScale?: number;
-      upsamplingMode?: ScreenSpaceReflectionUpsamplingMode;
-      intensity?: number;
-      maxRayDistance?: number;
-      rayLengthFade?: number;
-      maxRaySteps?: number;
-      hitRefinementSteps?: number;
-      thickness?: number;
-      maxRoughness?: number;
-      edgeFade?: number;
-    } = {};
-    if (request.priority !== undefined) {
-      sanitized.priority = Number.isFinite(request.priority) ? request.priority : 0;
-    }
-    if (
-      request.receiverMode === ScreenSpaceReflectionReceiverMode.OpaqueComposite ||
-      request.receiverMode === ScreenSpaceReflectionReceiverMode.TransparentSampleOnly
-    ) {
-      sanitized.receiverMode = request.receiverMode;
-    }
-    if (request.quality !== undefined) {
-      sanitized.quality = ScreenSpaceReflection._sanitizeQuality(request.quality);
-    }
-    if (request.resolutionScale !== undefined) {
-      sanitized.resolutionScale = ScreenSpaceReflection._clampFinite(request.resolutionScale, 0.25, 1, 1);
-    }
-    if (request.upsamplingMode !== undefined) {
-      sanitized.upsamplingMode = ScreenSpaceReflection._sanitizeUpsamplingMode(request.upsamplingMode);
-    }
-    if (request.intensity !== undefined) {
-      sanitized.intensity = ScreenSpaceReflection._clampFinite(request.intensity, 0, 1, 1);
-    }
-    if (request.maxRayDistance !== undefined) {
-      sanitized.maxRayDistance = Math.max(
-        0.0001,
-        Number.isFinite(request.maxRayDistance) ? request.maxRayDistance : 20
-      );
-    }
-    if (request.rayLengthFade !== undefined) {
-      sanitized.rayLengthFade = Math.max(0, Number.isFinite(request.rayLengthFade) ? request.rayLengthFade : 1);
-    }
-    if (request.maxRaySteps !== undefined) {
-      sanitized.maxRaySteps = ScreenSpaceReflection._clampInteger(request.maxRaySteps, 1, 64, 32);
-    }
-    if (request.hitRefinementSteps !== undefined) {
-      sanitized.hitRefinementSteps = ScreenSpaceReflection._clampInteger(request.hitRefinementSteps, 0, 5, 3);
-    }
-    if (request.thickness !== undefined) {
-      sanitized.thickness = Math.max(0.0001, Number.isFinite(request.thickness) ? request.thickness : 0.2);
-    }
-    if (request.maxRoughness !== undefined) {
-      sanitized.maxRoughness = ScreenSpaceReflection._clampFinite(request.maxRoughness, 0, 1, 0.7);
-    }
-    if (request.edgeFade !== undefined) {
-      sanitized.edgeFade = ScreenSpaceReflection._clampFinite(request.edgeFade, 0, 0.5, 0.1);
-    }
-    return Object.freeze(sanitized);
-  }
-
-  private static _sanitizeTraceSettingsOverride(
-    settings: Readonly<Partial<ScreenSpaceReflectionTraceSettings>>
-  ): Readonly<Partial<ScreenSpaceReflectionTraceSettings>> {
-    const sanitized: {
-      quality?: ScreenSpaceReflectionQuality;
-      resolutionScale?: number;
-      upsamplingMode?: ScreenSpaceReflectionUpsamplingMode;
-      maxRayDistance?: number;
-      rayLengthFade?: number;
-      maxRaySteps?: number;
-      hitRefinementSteps?: number;
-      thickness?: number;
-      maxRoughness?: number;
-      edgeFade?: number;
-    } = {};
-    if (settings.quality !== undefined) sanitized.quality = ScreenSpaceReflection._sanitizeQuality(settings.quality);
-    if (settings.resolutionScale !== undefined) {
-      sanitized.resolutionScale = ScreenSpaceReflection._clampFinite(settings.resolutionScale, 0.25, 1, 1);
-    }
-    if (settings.upsamplingMode !== undefined) {
-      sanitized.upsamplingMode = ScreenSpaceReflection._sanitizeUpsamplingMode(settings.upsamplingMode);
-    }
-    if (settings.maxRayDistance !== undefined) {
-      sanitized.maxRayDistance = Math.max(
-        0.0001,
-        Number.isFinite(settings.maxRayDistance) ? settings.maxRayDistance : 20
-      );
-    }
-    if (settings.rayLengthFade !== undefined) {
-      sanitized.rayLengthFade = Math.max(0, Number.isFinite(settings.rayLengthFade) ? settings.rayLengthFade : 1);
-    }
-    if (settings.maxRaySteps !== undefined) {
-      sanitized.maxRaySteps = ScreenSpaceReflection._clampInteger(settings.maxRaySteps, 1, 64, 32);
-    }
-    if (settings.hitRefinementSteps !== undefined) {
-      sanitized.hitRefinementSteps = ScreenSpaceReflection._clampInteger(settings.hitRefinementSteps, 0, 5, 3);
-    }
-    if (settings.thickness !== undefined) {
-      sanitized.thickness = Math.max(0.0001, Number.isFinite(settings.thickness) ? settings.thickness : 0.2);
-    }
-    if (settings.maxRoughness !== undefined) {
-      sanitized.maxRoughness = ScreenSpaceReflection._clampFinite(settings.maxRoughness, 0, 1, 0.7);
-    }
-    if (settings.edgeFade !== undefined) {
-      sanitized.edgeFade = ScreenSpaceReflection._clampFinite(settings.edgeFade, 0, 0.5, 0.1);
-    }
-    return Object.freeze(sanitized);
-  }
+  static _sanitizeConsumerRequest = ScreenSpaceReflectionConfig.sanitizeConsumerRequest;
+  private static _sanitizeTraceSettingsOverride = ScreenSpaceReflectionConfig.sanitizeTraceSettingsOverride;
 
   private static _compareConsumerLeases(left: ScreenSpaceReflectionLease, right: ScreenSpaceReflectionLease): number {
     const priorityDifference = (right.request.priority ?? 0) - (left.request.priority ?? 0);

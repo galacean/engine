@@ -191,7 +191,7 @@ TerrainProjectScreenSpaceReflectionOutput TerrainScreenSpaceReflectionFragment(V
     fogVisibility = terrainProjectScreenSpaceReflectionFogVisibility(varyings.positionVS);
   #endif
   float waterRoughness;
-  vec3 responseColor = saturate(
+  vec3 reflectionResponse = saturate(
     terrainProjectWaterScreenSpaceReflectionResponse(substrate, waterFilm, waterRoughness) *
       material_ScreenSpaceReflectionIntensity *
       fogVisibility
@@ -200,7 +200,7 @@ TerrainProjectScreenSpaceReflectionOutput TerrainScreenSpaceReflectionFragment(V
   vec3 viewNormal = normalize(mat3(camera_ViewMat) * waterFilm.normal);
   TerrainProjectScreenSpaceReflectionOutput output;
   output.geometry = packScreenSpaceReflectionSurface(viewNormal, waterRoughness, waterCoverage);
-  output.responseColor = vec4(responseColor, saturate(scene_TerrainWaterCoverageParams.w));
+  output.responseColor = vec4(reflectionResponse, saturate(scene_TerrainWaterCoverageParams.w));
   return output;
 }
 
