@@ -1,3 +1,4 @@
+import { createPhysics } from "../../utils/physics";
 import {
   Engine,
   CharacterController,
@@ -14,8 +15,7 @@ import {
   ColliderShapeUpAxis
 } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine";
-import { PhysXPhysics } from "@galacean/engine-physics-physx";
-import { Quaternion, Vector3 } from "@galacean/engine-math";
+import { Quaternion, Ray, Vector3 } from "@galacean/engine-math";
 import { describe, beforeAll, beforeEach, expect, it } from "vitest";
 
 describe("CharacterController", function () {
@@ -82,7 +82,7 @@ describe("CharacterController", function () {
   }
 
   beforeAll(async function () {
-    engine = await WebGLEngine.create({ canvas: document.createElement("canvas"), physics: new PhysXPhysics() });
+    engine = await WebGLEngine.create({ canvas: document.createElement("canvas"), physics: createPhysics() });
 
     rootEntity = engine.sceneManager.activeScene.createRootEntity("root");
   });
@@ -145,6 +145,21 @@ describe("CharacterController", function () {
     const controller = roleEntity.getComponent(CharacterController);
     controller.move(new Vector3(0, 0, 1), 0.0001, 0.1);
     expect(roleEntity.transform.position.z).eq(1);
+  });
+
+  it.each([true, false])("scene-query participation %s preserves controller collisions", (enabled) => {
+    roleEntity.transform.setPosition(0, 2, 0);
+    const wall = addBox(new Vector3(10, 10, 1), StaticCollider, new Vector3(0, 2, 2));
+    wall.getComponent(StaticCollider).shapes[0].isSceneQuery = enabled;
+    const physics = engine.sceneManager.activeScene.physics;
+    physics._update(1 / 60);
+
+    const ray = new Ray(new Vector3(0, 5, 0), new Vector3(0, 0, 1));
+    expect(physics.raycastAll(ray)).eq(enabled);
+    const controller = roleEntity.getComponent(CharacterController);
+    const flags = controller.move(new Vector3(0, 0, 4), 0.0001, 1 / 60);
+    expect(flags & ControllerCollisionFlag.Sides).eq(ControllerCollisionFlag.Sides);
+    expect(roleEntity.transform.position.z).closeTo(0.98, 0.0001);
   });
 
   it("upDirection", () => {
