@@ -37,6 +37,21 @@ function opaque(expression = "UNKNOWN(1)", version = 0): BranchCondition {
 }
 
 describe("symbolic shader conditions", () => {
+  it("keeps incomplete proofs unknown without losing independently proven facts", () => {
+    const signature = branch(defined());
+    const diagram = new ShaderConditionDiagram([signature]);
+    const known = diagram.branch(signature);
+    const unknown = ShaderConditionDiagram.UNKNOWN;
+    expect(diagram.not(unknown)).toBe(unknown);
+    expect(diagram.reachability(diagram.and(unknown, diagram.not(unknown)))).toBe("unknown");
+    expect(diagram.coverage(diagram.or(unknown, diagram.not(unknown)))).toBe("unknown");
+    expect(diagram.knownWitness(unknown)).toBe(ShaderConditionDiagram.FALSE);
+    expect(diagram.reachability(diagram.or(known, unknown))).toBe("reachable");
+    expect(diagram.coverage(diagram.or(known, unknown), known)).toBe("covered");
+    expect(diagram.and(unknown, ShaderConditionDiagram.FALSE)).toBe(ShaderConditionDiagram.FALSE);
+    expect(diagram.or(unknown, ShaderConditionDiagram.TRUE)).toBe(ShaderConditionDiagram.TRUE);
+  });
+
   it("keeps undefined distinct from defined zero while evaluating both numerically as zero", () => {
     const zero = branch(comparison("==", 0));
     const nonzero = branch(comparison("!=", 0));

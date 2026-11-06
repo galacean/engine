@@ -25,6 +25,10 @@ interface DecisionNode {
 
 const INTEGER_MINIMUM = -0x80000000;
 const INTEGER_END = 0x80000000;
+const TERMINAL_NODE: DecisionNode = { variable: Infinity, ends: [], children: [] };
+// Let ordinary large shaders scale linearly without admitting exponential proof work
+const MIN_DIAGRAM_WORK = 65_536;
+const WORK_PER_CONSTRAINT = 128;
 
 /**
  * Request-owned symbolic macro conditions shared by call-graph reachability and coverage.
@@ -33,22 +37,23 @@ const INTEGER_END = 0x80000000;
 export class ShaderConditionDiagram {
   static readonly FALSE = 0;
   static readonly TRUE = 1;
+  // An unknown terminal must not correlate independent incomplete proofs
+  static readonly UNKNOWN = 2;
 
   private readonly _variables: Variable[] = [];
   private readonly _variableIds = new Map<string, number>();
-  private readonly _nodes: DecisionNode[] = [
-    { variable: Infinity, ends: [], children: [] },
-    { variable: Infinity, ends: [], children: [] }
-  ];
+  private readonly _nodes: DecisionNode[] = [TERMINAL_NODE, TERMINAL_NODE, TERMINAL_NODE];
   private readonly _unique = new Map<string, number>();
   private readonly _operations = new Map<string, number>();
   private readonly _negations = new Map<number, number>([
     [0, 1],
-    [1, 0]
+    [1, 0],
+    [2, 2]
   ]);
   private readonly _knownConditions = new Map<number, number>([
     [0, 0],
-    [1, 1]
+    [1, 1],
+    [2, 0]
   ]);
   private readonly _conditions = new WeakMap<BranchCondition, number>();
   private readonly _sources = new WeakMap<SourceCondition, number>();
@@ -58,6 +63,7 @@ export class ShaderConditionDiagram {
   private readonly _groups = new Map<number, Map<number, BranchConstraint>>();
   private readonly _groupRoots = new Map<number, ReadonlyMap<number, number>>();
   private readonly _branches = [new WeakMap<BranchSignature, number>(), new WeakMap<BranchSignature, number>()];
+  private _remainingWork: number;
 
   /**
    * Registers every condition before partitioning macro values into equivalent integer intervals.
@@ -126,6 +132,7 @@ export class ShaderConditionDiagram {
         size: domain.opaque ? 2 : points.length
       });
     }
+    this._remainingWork = Math.max(MIN_DIAGRAM_WORK, this._constraints.size * WORK_PER_CONSTRAINT);
   }
 
   /**
@@ -250,6 +257,7 @@ export class ShaderConditionDiagram {
         children.push(0);
       }
       cube = this._node(variable, ends, children);
+      if (cube === ShaderConditionDiagram.UNKNOWN) return ShaderConditionDiagram.FALSE;
     }
     return cube;
   }
@@ -402,6 +410,7 @@ export class ShaderConditionDiagram {
   }
 
   private _node(variable: number, ends: readonly number[], children: readonly number[]): number {
+    if ((this._remainingWork -= children.length) < 0) return ShaderConditionDiagram.UNKNOWN;
     const compactEnds: number[] = [],
       compactChildren: number[] = [];
     for (let index = 0; index < children.length; index++) {
@@ -428,6 +437,7 @@ export class ShaderConditionDiagram {
     if (cached !== undefined) return cached;
     const pending: [number, number][] = [[left, right]];
     while (pending.length) {
+      if (--this._remainingWork < 0) return ShaderConditionDiagram.UNKNOWN;
       const [left, right] = pending[pending.length - 1];
       if (this._operationResult(operator, left, right) !== undefined) {
         pending.pop();
@@ -441,6 +451,7 @@ export class ShaderConditionDiagram {
         aChildren = a.variable === variable ? a.children : [left];
       const bEnds = b.variable === variable ? b.ends : [size],
         bChildren = b.variable === variable ? b.children : [right];
+      if ((this._remainingWork -= aEnds.length + bEnds.length) < 0) return ShaderConditionDiagram.UNKNOWN;
       const ends: number[] = [],
         children: number[] = [];
       let ready = true,
@@ -491,6 +502,9 @@ export class ShaderConditionDiagram {
         continue;
       }
       const node = this._nodes[current];
+      if ((this._remainingWork -= node.children.length + 1) < 0) {
+        return mode === "known" ? ShaderConditionDiagram.FALSE : ShaderConditionDiagram.UNKNOWN;
+      }
       let ready = true;
       for (const child of node.children) {
         if (cache.has(child)) continue;
@@ -499,12 +513,14 @@ export class ShaderConditionDiagram {
       }
       if (!ready) continue;
       const children = node.children.map((child) => cache.get(child)!);
-      const result =
+      let result =
         mode === "known" && this._variables[node.variable].opaque
           ? children.reduce((left, right) => this.and(left, right), 1)
           : this._node(node.variable, node.ends, children);
+      // Only configurations proven true may survive the witness transform
+      if (mode === "known" && result === ShaderConditionDiagram.UNKNOWN) result = ShaderConditionDiagram.FALSE;
       cache.set(current, result);
-      if (mode === "not") cache.set(result, current);
+      if (mode === "not" && this._remainingWork >= 0) cache.set(result, current);
       pending.pop();
     }
     return cache.get(root)!;

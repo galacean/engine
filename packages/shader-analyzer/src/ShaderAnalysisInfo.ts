@@ -422,6 +422,9 @@ export class ShaderAnalysisInfo {
         pending.push({ left, right, returns });
         pending.push({ node: node.children[6] as TreeNode, returns: right });
         pending.push({ node: node.children[4] as TreeNode, returns: left });
+      } else if (node instanceof ASTNode.IterationStatement) {
+        // Loop termination is not proven here, so missing return coverage remains unknown
+        returns.push(diagram.and(branch, ShaderConditionDiagram.UNKNOWN));
       } else if (
         node instanceof ASTNode.Statement ||
         node instanceof ASTNode.SimpleStatement ||
@@ -437,7 +440,6 @@ export class ShaderAnalysisInfo {
           if (child instanceof TreeNode) pending.push({ node: child, returns });
         }
       }
-      // A loop may not execute, so its body cannot prove that the surrounding function returns.
     }
     return diagram.orAll(returns);
   }
@@ -573,6 +575,7 @@ export class ShaderAnalysisInfo {
     allowed: ReadonlySet<ASTNode.FunctionDefinition>,
     witness: number
   ): readonly ASTNode.FunctionDefinition[] | undefined {
+    if (witness === ShaderConditionDiagram.FALSE) return;
     const visited = new Set<ASTNode.FunctionDefinition>([marker]);
     const stack = [{ node: marker, next: 0 }];
     while (stack.length) {

@@ -628,6 +628,47 @@ VertexShader = vert; FragmentShader = frag;
     }
   );
 
+  it.each([false, true])("bounds correlated macro proofs regardless of declaration order: %s", (interleaved) => {
+    const count = 16;
+    const prime = (name: string, index: number) => `#ifdef ${name}${index}\nfloat unused${name}${index};\n#endif`;
+    const declarations = interleaved
+      ? Array.from({ length: count }, (_, index) => [prime("A", index), prime("B", index)]).flat()
+      : ["A", "B"].flatMap((name) => Array.from({ length: count }, (_, index) => prime(name, index)));
+    const condition = Array.from(
+      { length: count },
+      (_, index) => `((defined(A${index}) && defined(B${index})) || (!defined(A${index}) && !defined(B${index})))`
+    ).join(" && ");
+    const source = `Shader "correlated-macros" { SubShader "s" { Pass "p" {
+void vert() {
+${declarations.join("\n")}
+#if ${condition}
+gl_Position = vec4(1.0);
+#else
+gl_Position = vec4(0.0);
+#endif
+}
+void frag() { gl_FragColor = vec4(1.0); }
+VertexShader = vert; FragmentShader = frag;
+} } }`;
+    const invalid = source.replace("void vert() {", "void vert() { float invalid = dFdx(1.0);");
+    const probe = spawnSync(
+      process.execPath,
+      [
+        "--max-old-space-size=128",
+        "--eval",
+        `const { ShaderAnalyzer } = require("@galacean/engine-shader-analyzer");
+         const sources = ${JSON.stringify([source, invalid])};
+         process.stdout.write(JSON.stringify(sources.map(source =>
+           ShaderAnalyzer.analyze(source).diagnostics.map(diagnostic => diagnostic.code))));`
+      ],
+      { cwd: consumerDirectory, encoding: "utf8", timeout: 30_000, maxBuffer: 1024 * 1024 }
+    );
+    expect(probe.error, probe.error?.message).toBeUndefined();
+    expect(probe.signal, probe.stderr).toBeNull();
+    expect(probe.status, probe.stderr || probe.stdout).toBe(0);
+    expect(JSON.parse(probe.stdout)).toEqual([[], ["DerivativeInVertexShader"]]);
+  });
+
   it("does not retain request-owned parser state across analyzer-only or shared codegen calls", () => {
     const probe = spawnSync(
       process.execPath,
