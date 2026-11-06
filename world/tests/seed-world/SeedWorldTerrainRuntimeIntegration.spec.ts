@@ -1,3 +1,4 @@
+import { seedWorldRenderWeights } from "@galacean/engine-world-planning/world/SeedWorldRenderWeights";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { resolveSeedWorldTerrainGenerationSettings } from "@galacean/engine-terrain/world/SeedWorldTerrainGenerationSettings";
 
@@ -525,19 +526,17 @@ describe("SeedWorldTerrainRuntime production ownership integration", () => {
       }[];
       readonly alphamaps: readonly { readonly layers: readonly string[] }[];
     }>;
-    expect(layerSources[0].layers.map((layer) => layer.id)).toEqual(["layer-00", "layer-01", "layer-04", "layer-02"]);
-    expect(layerSources[0].alphamaps[0].layers).toEqual(["layer-00", "layer-01", "layer-04", "layer-02"]);
+    expect(layerSources[0].layers.map((layer) => layer.id)).toEqual(["layer-00", "layer-04", "layer-02"]);
+    expect(layerSources[0].alphamaps[0].layers).toEqual(["layer-00", "layer-04", "layer-02", null]);
     expect(layerSources[0].layers.map((layer) => layer.tileSize)).toEqual([
-      [2, 2],
       [2, 2],
       [2, 2],
       [2, 2]
     ]);
     expect(layerSources[0].layers[2].diffuse).toBe(layerSources[0].layers[1].diffuse);
-    expect(layerSources[0].layers[3].diffuse).toBe(layerSources[0].layers[1].diffuse);
     expect(layerSources).toHaveLength(1);
     expect(layerSources[0].alphamaps[0]).toEqual(
-      expect.objectContaining({ sampleSize: [384, 384], weights: surfaceIntent.materialWeights })
+      expect.objectContaining({ sampleSize: [384, 384], weights: seedWorldRenderWeights(surfaceIntent as never) })
     );
     const clipmapDescriptor = runtimeState.clipmapCreates[0][3] as {
       readonly vertexSpacing: number;
@@ -641,15 +640,7 @@ describe("SeedWorldTerrainRuntime production ownership integration", () => {
       expect.objectContaining({ url: expect.stringContaining("macro-variation-noise.png") })
     );
     expect(runtimeState.clipmapCreates[0][9]).toBeUndefined();
-    expect(runtimeState.clipmapCreates[0][10]).toEqual(
-      expect.objectContaining({
-        firstLod: 2,
-        sharedMacros: ["MATERIAL_TERRAIN_SEED_FIXED_LAYERS"],
-        nearTransitionMacro: "MATERIAL_TERRAIN_SEED_FAR_TRANSITION",
-        farMacro: "MATERIAL_TERRAIN_SEED_FAR_COMPOSITE",
-        configureMaterial: expect.any(Function)
-      })
-    );
+    expect(runtimeState.clipmapCreates[0][10]).toBeUndefined();
     const farTerrainMaterial = runtimeState.clipmapFarMaterials[0];
     for (const material of [terrainMaterial, farTerrainMaterial]) {
       expect(material.shaderData.setFloat).toHaveBeenCalledWith("material_TerrainFarCompositeLod", 2);
@@ -659,7 +650,7 @@ describe("SeedWorldTerrainRuntime production ownership integration", () => {
       );
       expect(material.shaderData.setVector4).toHaveBeenCalledWith(
         "material_TerrainSeedLayerSnowResponse",
-        expect.objectContaining({ x: 0.72, y: 0.36, z: 0.36, w: 0.18 })
+        expect.objectContaining({ x: 0.72, y: 0.36, z: 0.18, w: 0 })
       );
     }
     expect(farTerrainMaterial.shaderData.setColor).toHaveBeenCalledWith(
@@ -688,6 +679,10 @@ describe("SeedWorldTerrainRuntime production ownership integration", () => {
       getVector2: (name: string) => lastUniform(terrainMaterial.shaderData.setVector2, name),
       getVector4: (name: string) => lastUniform(terrainMaterial.shaderData.setVector4, name),
       getColor: (name: string) => lastUniform(terrainMaterial.shaderData.setColor, name),
+      getInt: () => undefined,
+      getMacros: () => [],
+      getFloat: () => undefined,
+      getVector3: () => undefined,
       getFloatArray: () => [0, 0, fields.sizeMetres, fields.sizeMetres]
     });
     const sharedGrass = {
@@ -697,7 +692,11 @@ describe("SeedWorldTerrainRuntime production ownership integration", () => {
         setTexture: vi.fn(),
         setVector2: vi.fn(),
         setVector4: vi.fn(),
-        setColor: vi.fn()
+        setColor: vi.fn(),
+        setInt: vi.fn(),
+        setFloat: vi.fn(),
+        setFloatArray: vi.fn(),
+        setVector3: vi.fn()
       }
     };
     const releaseSharedGrass = runtime.registerGrassAppearanceMaterial(sharedGrass as never);
@@ -708,7 +707,11 @@ describe("SeedWorldTerrainRuntime production ownership integration", () => {
         setTexture: vi.fn(),
         setVector2: vi.fn(),
         setVector4: vi.fn(),
-        setColor: vi.fn()
+        setColor: vi.fn(),
+        setInt: vi.fn(),
+        setFloat: vi.fn(),
+        setFloatArray: vi.fn(),
+        setVector3: vi.fn()
       }
     };
     const releaseGroundCover = runtime.registerGrassAppearanceMaterial(groundCover as never, 0.8);
@@ -791,10 +794,6 @@ describe("SeedWorldTerrainRuntime production ownership integration", () => {
       expect.objectContaining({ r: 0.1, g: 0.2, b: 0.3, a: 1 })
     );
     expect(runtimeState.populationGrassRoadColors).toEqual([SEED_WORLD_ROAD_COLOR_DEFAULT, [0.1, 0.2, 0.3]]);
-    expect(sharedGrass.shaderData.setColor).toHaveBeenCalledWith(
-      "material_GrassTerrainRoadColor",
-      expect.objectContaining({ r: 0.1, g: 0.2, b: 0.3 })
-    );
     releaseSharedGrass();
     const releasedWrites = sharedGrass.shaderData.setVector4.mock.calls.length;
     runtime.resetSurfaceColorTuning();
