@@ -8,6 +8,7 @@ import {
   Scene,
   ScreenSpaceReflectionActivationMode as Activation,
   ScreenSpaceReflectionReceiverPolicy as Policy,
+  ScreenSpaceReflectionUpsamplingMode as Upsampling,
   Texture2D,
   TextureFormat,
   Vector3,
@@ -27,14 +28,22 @@ beforeAll(async () => {
 afterAll(() => engine.destroy());
 
 /** Count occluder pixels whose colour changes when SSR is enabled; the occluder is not a receiver. */
-function countAlteredOccluderPixels(cubeCenterY: number, thickness: number): number {
+function countAlteredOccluderPixels(
+  cubeCenterY: number,
+  thickness: number,
+  resolutionScale = 1,
+  upsamplingMode = Upsampling.Bilinear,
+  depthFormat = TextureFormat.Depth24,
+  samples = 1
+): number {
   const scene = new Scene(engine);
   engine.sceneManager.activeScene = scene;
   scene.background.solidColor = new Color(0.6, 0.55, 0.65, 1);
   scene.screenSpaceReflection.apply({
     activationMode: Activation.ForceOn,
     receiverPolicy: Policy.ExplicitOnly,
-    resolutionScale: 1,
+    resolutionScale,
+    upsamplingMode,
     edgeFade: 0,
     thickness
   });
@@ -42,7 +51,7 @@ function countAlteredOccluderPixels(cubeCenterY: number, thickness: number): num
   camera.entity.transform.setPosition(3, 2.5, 6);
   camera.entity.transform.lookAt(new Vector3(0, 0.5, 0));
   const output = new Texture2D(engine, SIZE, SIZE, TextureFormat.R8G8B8A8, false, false);
-  camera.renderTarget = new RenderTarget(engine, SIZE, SIZE, output, TextureFormat.Depth24);
+  camera.renderTarget = new RenderTarget(engine, SIZE, SIZE, output, depthFormat, samples);
 
   const floor = scene.createRootEntity().addComponent(MeshRenderer);
   floor.mesh = PrimitiveMesh.createPlane(engine, 10, 10);
@@ -78,14 +87,24 @@ function countAlteredOccluderPixels(cubeCenterY: number, thickness: number): num
   const on = render();
 
   let altered = 0;
+  let reflected = 0;
   let occluderPixels = 0;
   for (let i = 0; i < SIZE * SIZE; i++) {
-    if (Math.abs(mask[i * 4] - mask[i * 4 + 2]) <= 40) continue;
-    occluderPixels++;
+    const isOccluder = Math.abs(mask[i * 4] - mask[i * 4 + 2]) > 40;
     const delta =
-      Math.abs(on[i * 4] - off[i * 4]) + Math.abs(on[i * 4 + 1] - off[i * 4 + 1]) + Math.abs(on[i * 4 + 2] - off[i * 4 + 2]);
-    if (delta > 6) altered++;
+      Math.abs(on[i * 4] - off[i * 4]) +
+      Math.abs(on[i * 4 + 1] - off[i * 4 + 1]) +
+      Math.abs(on[i * 4 + 2] - off[i * 4 + 2]);
+    if (isOccluder) {
+      occluderPixels++;
+      if (delta > 6) altered++;
+    } else if (delta > 20) reflected++;
   }
+  console.info(JSON.stringify({ resolutionScale, upsamplingMode, altered, reflected }));
+  expect(reflected).toBeGreaterThan(100);
+  expect(
+    (engine as unknown as { _hardwareRenderer: { gl: WebGL2RenderingContext } })._hardwareRenderer.gl.getError()
+  ).toBe(0);
   expect(occluderPixels).toBeGreaterThan(1000);
   scene.destroy();
   return altered;
@@ -100,3 +119,19 @@ it("does not composite a hidden receiver's reflection onto an occluder that touc
   // Floating occluder stays untouched.
   expect(countAlteredOccluderPixels(contactCenterY + 0.35, 0.2)).toBe(0);
 });
+
+for (const resolutionScale of [0.5, 0.25]) {
+  for (const upsamplingMode of [Upsampling.Bilinear, Upsampling.Bilateral]) {
+    it(`keeps occluders unchanged at scale ${resolutionScale}, reconstruction ${upsamplingMode}`, () => {
+      const altered = countAlteredOccluderPixels(CUBE_SIZE / 2, 0.2, resolutionScale, upsamplingMode);
+      console.info(JSON.stringify({ resolutionScale, upsamplingMode, altered }));
+      expect(altered).toBeLessThan(30);
+    });
+  }
+}
+
+for (const depthFormat of [TextureFormat.Depth24, TextureFormat.Depth24Stencil8]) {
+  it(`preserves reflection and occlusion with MSAA and depth format ${depthFormat}`, () => {
+    expect(countAlteredOccluderPixels(CUBE_SIZE / 2, 0.2, 0.5, Upsampling.Bilateral, depthFormat, 4)).toBeLessThan(30);
+  });
+}

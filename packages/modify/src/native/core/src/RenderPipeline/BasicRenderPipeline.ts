@@ -1,6 +1,7 @@
 import type { Plane } from "@galacean/engine-math";
 import { Vector2 } from "@galacean/engine-math";
 import { SpriteMaskInteraction } from "../2d/enums/SpriteMaskInteraction";
+import type { RenderStateElementMap } from "../BasicResources";
 import { Background } from "../Background";
 import { Camera } from "../Camera";
 import { BackgroundMode } from "../enums/BackgroundMode";
@@ -53,8 +54,31 @@ import { RenderQueueMaskType } from "./enums/RenderQueueMaskType";
  * Basic render pipeline.
  */
 export class BasicRenderPipeline {
+  private static readonly _screenSpaceReflectionSurfaceStates = {
+    [RenderStateElementKey.DepthStateEnabled]: true,
+    [RenderStateElementKey.DepthStateWriteEnabled]: true,
+    [RenderStateElementKey.DepthStateCompareFunction]: CompareFunction.LessEqual
+  } as RenderStateElementMap;
+
   /** @internal */
   _cullingResults: CullingResults;
+
+  private readonly _screenSpaceReflectionReceiverCache: Record<RenderQueueType, Map<Material, boolean>> = {
+    [RenderQueueType.Opaque]: new Map(),
+    [RenderQueueType.AlphaTest]: new Map(),
+    [RenderQueueType.Transparent]: new Map()
+  };
+
+  private _isScreenSpaceReflectionReceiver(material: Material, queue: RenderQueueType): boolean {
+    const cache = this._screenSpaceReflectionReceiverCache[queue];
+    let eligible = cache.get(material);
+    if (eligible === undefined) {
+      eligible = this._camera.screenSpaceReflection._isMaterialReceiver(material, queue);
+      ScreenSpaceReflection.resolveMaterialReceiver(material, queue);
+      cache.set(material, eligible);
+    }
+    return eligible;
+  }
 
   private _camera: Camera;
   private _lastCanvasSize = new Vector2();
@@ -126,6 +150,9 @@ export class BasicRenderPipeline {
       this._copyBackgroundTexture = null;
     }
 
+    this._screenSpaceReflectionReceiverCache[RenderQueueType.Opaque].clear();
+    this._screenSpaceReflectionReceiverCache[RenderQueueType.AlphaTest].clear();
+    this._screenSpaceReflectionReceiverCache[RenderQueueType.Transparent].clear();
     this._camera = null!;
   }
 
@@ -137,6 +164,9 @@ export class BasicRenderPipeline {
    * @param ignoreClear - Ignore clear flag
    */
   render(context: RenderContext, cubeFace?: TextureCubeFace, mipLevel?: number, ignoreClear?: CameraClearFlags) {
+    this._screenSpaceReflectionReceiverCache[RenderQueueType.Opaque].clear();
+    this._screenSpaceReflectionReceiverCache[RenderQueueType.AlphaTest].clear();
+    this._screenSpaceReflectionReceiverCache[RenderQueueType.Transparent].clear();
     this._cullingResults.setRenderUpdateFlagTrue(ContextRendererUpdateFlag.All);
 
     const camera = this._camera;
@@ -203,13 +233,12 @@ export class BasicRenderPipeline {
 
     if (screenSpaceReflectionEnabled) {
       const receiverStage = PipelineStage.ScreenSpaceReflectionSurface;
-      const screenSpaceReflection = camera.screenSpaceReflection;
       const opaqueRegistrationFilter = (material: Material) =>
-        screenSpaceReflection._isMaterialReceiver(material, RenderQueueType.Opaque);
+        this._isScreenSpaceReflectionReceiver(material, RenderQueueType.Opaque);
       const alphaTestRegistrationFilter = (material: Material) =>
-        screenSpaceReflection._isMaterialReceiver(material, RenderQueueType.AlphaTest);
+        this._isScreenSpaceReflectionReceiver(material, RenderQueueType.AlphaTest);
       const transparentRegistrationFilter = (material: Material) =>
-        screenSpaceReflection._isMaterialReceiver(material, RenderQueueType.Transparent);
+        this._isScreenSpaceReflectionReceiver(material, RenderQueueType.Transparent);
       const opaqueFilter = (material: Material, element: RenderElement) =>
         opaqueRegistrationFilter(material) &&
         this._isScreenSpaceReflectionElementMaskSafe(element, RenderQueueType.Opaque);
@@ -359,6 +388,9 @@ export class BasicRenderPipeline {
     }
 
     this._drawRenderPass(context, camera, finalClearFlags, forwardDepthResolveEnabled, cubeFace, mipLevel);
+    this._screenSpaceReflectionReceiverCache[RenderQueueType.Opaque].clear();
+    this._screenSpaceReflectionReceiverCache[RenderQueueType.AlphaTest].clear();
+    this._screenSpaceReflectionReceiverCache[RenderQueueType.Transparent].clear();
 
     // Return the per-frame leases so the next camera with matching shape can reuse them
     if (this._internalColorTarget) {
@@ -612,7 +644,8 @@ export class BasicRenderPipeline {
         try {
           screenSpaceReflectionCaptured = screenSpaceReflectionPass.beginSurface(
             context,
-            ScreenSpaceReflectionReceiverMode.OpaqueComposite
+            ScreenSpaceReflectionReceiverMode.OpaqueComposite,
+            internalColorTarget
           );
           if (screenSpaceReflectionCaptured) {
             let opaqueSurfaceDrawCount: number;
@@ -623,18 +656,20 @@ export class BasicRenderPipeline {
                   PipelineStage.ScreenSpaceReflectionSurface,
                   RenderQueueMaskType.No,
                   (material, element) =>
-                    camera.screenSpaceReflection._isMaterialReceiver(material, RenderQueueType.Opaque) &&
+                    this._isScreenSpaceReflectionReceiver(material, RenderQueueType.Opaque) &&
                     this._isScreenSpaceReflectionElementMaskSafe(element, RenderQueueType.Opaque),
-                  false
+                  false,
+                  BasicRenderPipeline._screenSpaceReflectionSurfaceStates
                 ) +
                 alphaTestQueue.render(
                   context,
                   PipelineStage.ScreenSpaceReflectionSurface,
                   RenderQueueMaskType.No,
                   (material, element) =>
-                    camera.screenSpaceReflection._isMaterialReceiver(material, RenderQueueType.AlphaTest) &&
+                    this._isScreenSpaceReflectionReceiver(material, RenderQueueType.AlphaTest) &&
                     this._isScreenSpaceReflectionElementMaskSafe(element, RenderQueueType.AlphaTest),
-                  false
+                  false,
+                  BasicRenderPipeline._screenSpaceReflectionSurfaceStates
                 );
             } finally {
               screenSpaceReflectionPass.endSurface();
@@ -698,7 +733,13 @@ export class BasicRenderPipeline {
 
     if (screenSpaceReflectionCaptured && screenSpaceReflectionPass.hasTransparentReceivers) {
       try {
-        if (screenSpaceReflectionPass.beginSurface(context, ScreenSpaceReflectionReceiverMode.TransparentSampleOnly)) {
+        if (
+          screenSpaceReflectionPass.beginSurface(
+            context,
+            ScreenSpaceReflectionReceiverMode.TransparentSampleOnly,
+            internalColorTarget!
+          )
+        ) {
           let transparentSurfaceDrawCount: number;
           try {
             transparentSurfaceDrawCount = transparentQueue.render(
@@ -706,9 +747,10 @@ export class BasicRenderPipeline {
               PipelineStage.ScreenSpaceReflectionSurface,
               RenderQueueMaskType.No,
               (material, element) =>
-                camera.screenSpaceReflection._isMaterialReceiver(material, RenderQueueType.Transparent) &&
+                this._isScreenSpaceReflectionReceiver(material, RenderQueueType.Transparent) &&
                 this._isScreenSpaceReflectionElementMaskSafe(element, RenderQueueType.Transparent),
-              false
+              false,
+              BasicRenderPipeline._screenSpaceReflectionSurfaceStates
             );
           } finally {
             screenSpaceReflectionPass.endSurface();
