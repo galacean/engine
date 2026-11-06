@@ -303,9 +303,10 @@ Shader "Lighting/ScreenSpaceReflection" {
             }
             if (hit) break;
             // A depth discontinuity can belong to a thin foreground object that the ray misses.
-            // Reject that crossing, then start a new bracket within the existing step budget.
+            // Keep the measured sign after rejecting it. A new bracket requires a real
+            // front-to-back crossing, not another sample behind the same foreground surface.
             previousScreenFraction = currentScreenFraction;
-            previousDifference = -receiverThickness;
+            previousDifference = difference;
             continue;
           }
 
