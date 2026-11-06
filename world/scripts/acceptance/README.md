@@ -44,10 +44,10 @@ pnpm --dir world exec vitest run --config scripts/acceptance/seed-world-fixes.co
 `node --test world/scripts/acceptance/WorkerAssetUrl.test.mjs` 构建并启动真实 classic Worker，验证主线程/Worker 的同一资源 URL、动态依赖文件及根路径/嵌套部署。
 
 
-2026-11-04 口径更正：只恢复 engine-next 与迁移版的差异。不要修来源既有算法，不修改原断言或夹具来获得通过。这条规则只约束从 `engine-next` 重新生成的本地来源一致性验收；已搬入各包的测试是当前行为的测试，随实现一起维护。历史续验中的额外行为修改已撤回，记录见 `world/migration/source-parity-2026-11-04.md`。
+2026-11-04 口径更正：只恢复 engine-next 与迁移版的差异。不要修来源既有算法，不修改原断言或夹具来获得通过。这条规则只约束从 `engine-next` 重新生成的本地来源一致性验收；已搬入各包的测试是当前行为的测试，随实现一起维护。
 
 - `audit-source-parity.mjs`：按全部迁移映射核对来源工作区、物化快照和目标；报告是差异定位证据，不等于渲染/性能证明。
 - `run-source-parity-unit.mjs <文件名...>`：以原断言逐文件串行运行来源和目标，保留独立日志、JSON、运行状态和未完成前最后用例；进程超时只记未完成。
 - `source-parity-*` 证据是撤回额外修复后的续验结果。此前的 `continuation-*` 不能直接用于声明当前版本通过。
 
-干净旧主线复核后，基准必须区分 `engine-next/dev/2.0@039cbdcf`（引擎 `bd34daa`）与实验工作区（引擎 `5cac8daa`）。共同失败不能直接证明旧主线已有缺陷。用户要求修复旧主线没有的新增问题；MaterialLoader 已按旧基线恢复忽略未知字段，仅在 modify 生效。后续来源一致性审计应显式保留这项有依据的差异。详见 `world/migration/source-baseline-failure-review-2026-11-04.md`。
+干净旧主线复核后，基准必须区分 `engine-next/dev/2.0@039cbdcf`（引擎 `bd34daa`）与实验工作区（引擎 `5cac8daa`）。共同失败不能直接证明旧主线已有缺陷。用户要求修复旧主线没有的新增问题；MaterialLoader 已按旧基线恢复忽略未知字段，仅在 modify 生效。后续来源一致性审计应显式保留这项有依据的差异。

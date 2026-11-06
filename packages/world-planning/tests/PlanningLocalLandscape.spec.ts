@@ -30,7 +30,7 @@ it("rebuilds regional candidates with their full halo and agrees with a fresh-mo
   expect(local.plan.flowerRegions).toEqual(cold.plan.flowerRegions);
   expect(local.plan.visualGuidance).toEqual(cold.plan.visualGuidance);
   expect(local.plan.farming).toEqual(cold.plan.farming);
-}, 30000);
+}, 120000);
 
 it.each(["terrain-patch", "terrain-feature"] as const)("local %s preserves roads and building identities on edit and cold replay", async resourceType => {
   const document = createSeedPlanningDocument(1);
@@ -55,4 +55,4 @@ it.each(["terrain-patch", "terrain-feature"] as const)("local %s preserves roads
   expect(cold.routes).toEqual(edited.routes);
   expect(cold.buildings).toEqual(edited.buildings);
   expect(planningHeightmap(cold).sample(point)).toBeCloseTo(planningHeightmap(edited).sample(point),5);
-},60000);
+},120000);

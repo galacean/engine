@@ -146,7 +146,6 @@ contracts/generated/api/
 7. 真实 Wrapper + ASAP + LLM 浏览器链路逐项验证资产 CRUD、时间、空间、天象和撤销；
 8. Agent Trace 证明每个任务始终使用同一组 `api_search / execute` 原生 Tool，按需加载声明、执行脚本并基于真实 Tool Result 收敛，没有重复成功操作或 Workflow 协议调用。
 
-固定的 25 种资产 CRUD 与时间、空间、天象自然语言 Smoke 基准见 [LLM_EDITABILITY_SMOKE_SPEC.md](./LLM_EDITABILITY_SMOKE_SPEC.md)。
 真实浏览器中的历史验收记录见 [AGENT_CRUD_SMOKE_REPORT.md](./AGENT_CRUD_SMOKE_REPORT.md)。
 验收报告必须同时区分 Agent Loop 的 `completed` 状态与用户意图是否真实完成，不能只用任务状态计算功能通过率。
 
