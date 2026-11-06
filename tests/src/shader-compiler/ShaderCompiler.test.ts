@@ -846,19 +846,8 @@ describe("ShaderCompiler", async () => {
     ];
 
     /**
-     * Walk the generated source tracking `#if/#ifdef/#ifndef … #else … #endif` nesting and
-     * record, for every top-level declaration, the guard it sits under.
-     *
-     * Two declarations of the same name only conflict when their guards can be active at the
-     * same time. Two rules make that decidable without running the preprocessor:
-     *
-     * - Guards are compared arm by arm, so mutually exclusive branches stay legal
-     *   (`TANGENT_BS0` under `#if defined(N)&&defined(T)` vs `#else` → `#ifdef T`) while an
-     *   unconditional declaration still collides with a conditional one. Comparing whole
-     *   guard strings would miss that collision — the redeclaration this guards against.
-     * - A `#ifndef M` block that defines `M` is an include guard, and it neutralises every
-     *   later `#ifndef M` in the file. The generator emits some headers twice, each copy
-     *   behind its own include guard; the second copy is unreachable, not a redeclaration.
+     * Reports possible duplicate declarations, accounting for mutually exclusive arms
+     * and include guards defined directly in their first arm.
      */
     const duplicatesUnderCompatibleGuards = (source: string) => {
       type Frame = { cond: string; branch: number; ifndef?: string; definesGuard: boolean };
@@ -879,9 +868,10 @@ describe("ShaderCompiler", async () => {
         }
         return !left.arms.some(
           (a) =>
+            a.branch === 0 &&
             a.frame.ifndef &&
             a.frame.definesGuard &&
-            right.arms.some((b) => b.frame !== a.frame && b.frame.ifndef === a.frame.ifndef)
+            right.arms.some((b) => b.branch === 0 && b.frame !== a.frame && b.frame.ifndef === a.frame.ifndef)
         );
       };
 
@@ -914,8 +904,9 @@ describe("ShaderCompiler", async () => {
 
         const defined = /^#\s*define\s+([A-Za-z_]\w*)/.exec(trimmed)?.[1];
         if (defined) {
-          for (const frame of stack) {
-            if (frame.ifndef === defined) frame.definesGuard = true;
+          const frame = stack[stack.length - 1];
+          if (frame?.ifndef === defined && frame.branch === 0) {
+            frame.definesGuard = true;
           }
         }
 
@@ -942,6 +933,77 @@ describe("ShaderCompiler", async () => {
       }
       return duplicates;
     };
+
+    const conditionalGuard = `
+      #ifndef GUARD
+        #ifdef ENABLE
+          #define GUARD
+        #endif
+        struct Shared { float value; };
+      #endif
+      #ifndef GUARD
+        struct Shared { float value; };
+      #endif`;
+
+    it("reports duplicate declarations when an include guard is only conditionally defined", () => {
+      expect(duplicatesUnderCompatibleGuards(conditionalGuard).map((duplicate) => duplicate.key)).to.deep.equal([
+        "Shared"
+      ]);
+    });
+
+    it("does not use an else-arm definition to guard the first arm", () => {
+      const source = `
+        #ifndef GUARD
+          struct Shared { float value; };
+        #else
+          #define GUARD
+        #endif
+        #ifndef GUARD
+          struct Shared { float value; };
+        #endif`;
+      expect(duplicatesUnderCompatibleGuards(source).map((duplicate) => duplicate.key)).to.deep.equal(["Shared"]);
+    });
+
+    it.each(["else", "elif defined(ENABLE)"])("does not skip a later guard's #%s arm", (directive) => {
+      const source = `
+        #ifndef GUARD
+          #define GUARD
+          struct Shared { float value; };
+        #endif
+        #ifndef GUARD
+        #${directive}
+          struct Shared { float value; };
+        #endif`;
+      expect(duplicatesUnderCompatibleGuards(source).map((duplicate) => duplicate.key)).to.deep.equal(["Shared"]);
+    });
+
+    it.each(["webgl", "webgl2"] as const)(
+      "%s rejects duplicate structs when the guard definition is inactive",
+      (api) => {
+        const canvas = document.createElement("canvas");
+        const gl = (api === "webgl2" ? canvas.getContext("webgl2") : canvas.getContext("webgl"))!;
+        expect(gl).not.to.be.null;
+        try {
+          for (const enabled of [false, true]) {
+            const shader = gl.createShader(gl.FRAGMENT_SHADER)!;
+            const prefix =
+              api === "webgl2" ? "#version 300 es\nprecision highp float;\nout vec4 color;" : "precision highp float;";
+            gl.shaderSource(
+              shader,
+              `${prefix}\n${enabled ? "#define ENABLE" : ""}\n${conditionalGuard}
+              void main() { ${api === "webgl2" ? "color" : "gl_FragColor"} = vec4(1.0); }`
+            );
+            gl.compileShader(shader);
+            expect(gl.getShaderParameter(shader, gl.COMPILE_STATUS), gl.getShaderInfoLog(shader) ?? "").to.equal(
+              enabled
+            );
+            gl.deleteShader(shader);
+          }
+        } finally {
+          gl.getExtension("WEBGL_lose_context")?.loseContext();
+        }
+      }
+    );
 
     it("scanner flags only declarations whose guards can be active together", () => {
       const unconditionalAndConditional = duplicatesUnderCompatibleGuards(
