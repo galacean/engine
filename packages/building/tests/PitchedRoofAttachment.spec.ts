@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { resolvePitchedRoofAttachment } from "../src/tiny-glade/runtime/ConstructionPitchedRoofAttachment";
-import { gothicHostSurface, type GothicSupportMesh } from "../src/tiny-glade/runtime/GothicHostSurface";
-import { gothicPlacement, gothicUVPosition } from "../src/tiny-glade/runtime/GothicPlacement";
-import type { RoofSurface, RoofFootprint } from "../src/tiny-glade/runtime/RecoveredRoofMath";
+import { resolvePitchedRoofAttachment } from "../src/building/runtime/ConstructionPitchedRoofAttachment";
+import { gothicHostSurface, type GothicSupportMesh } from "../src/building/runtime/GothicHostSurface";
+import { gothicPlacement, gothicUVPosition } from "../src/building/runtime/GothicPlacement";
+import type { RoofSurface, RoofFootprint } from "../src/building/runtime/RecoveredRoofMath";
 
 const surface: RoofSurface = {
   type: "native_rectangular_roof_profile",

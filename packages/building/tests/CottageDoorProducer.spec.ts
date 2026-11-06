@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { recoveredCottageDoorPlacement } from "../src/tiny-glade/runtime/RecoveredCottageWallPlacement";
-import { RoofCurve } from "../src/tiny-glade/runtime/RecoveredRoofMath";
+import { recoveredCottageDoorPlacement } from "../src/building/runtime/RecoveredCottageWallPlacement";
+import { RoofCurve } from "../src/building/runtime/RecoveredRoofMath";
 
 describe("Cottage door original chord placement and wood cuts", () => {
   it("uses the chord midpoint without window offsets, and owns the published pose", () => {

@@ -1,8 +1,8 @@
 import { constructionAssets } from "./fixtures/constructionAssets";
-import { buildingAssets } from "../src/tiny-glade/resources/BuildingAssetKit";
+import { buildingAssets } from "../src/building/resources/BuildingAssetKit";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Camera, Engine, Entity } from "@galacean/engine";
-import type { ConstructionDecorationStone } from "../src/tiny-glade/runtime/ConstructionDecorations";
+import type { ConstructionDecorationStone } from "../src/building/runtime/ConstructionDecorations";
 const mock = vi.hoisted(() => ({
   frame: vi.fn(),
   load: vi.fn(),
@@ -12,15 +12,15 @@ const mock = vi.hoisted(() => ({
   pillars: vi.fn(),
   scene: undefined as any
 }));
-vi.mock("../src/tiny-glade/runtime/ConstructionWoodArchRender", () => ({
+vi.mock("../src/building/runtime/ConstructionWoodArchRender", () => ({
   appendWoodArchRenderPackage: mock.appendWood,
   addWoodArchPillarDraws: mock.pillars
 }));
-vi.mock("../src/tiny-glade/runtime/BuildingGlobals", () => ({ buildingGlobals: () => ({}) }));
-vi.mock("../src/tiny-glade/runtime/DecorationStoneInstance", () => ({
+vi.mock("../src/building/runtime/BuildingGlobals", () => ({ buildingGlobals: () => ({}) }));
+vi.mock("../src/building/runtime/DecorationStoneInstance", () => ({
   packDecorationStoneInstances: () => new Uint8Array(128)
 }));
-vi.mock("../src/tiny-glade/runtime/ConstructionPackage", () => ({
+vi.mock("../src/building/runtime/ConstructionPackage", () => ({
   ConstructionPackageBuilder: class {
     constructor(private assets: unknown, ...args: unknown[]) { mock.builder(assets,...args); }
     addDraw() {}
@@ -29,7 +29,7 @@ vi.mock("../src/tiny-glade/runtime/ConstructionPackage", () => ({
     }
   }
 }));
-vi.mock("../src/tiny-glade/runtime/EngineResidentScene", () => ({
+vi.mock("../src/building/runtime/EngineResidentScene", () => ({
   EngineResidentScene: class {
     root = { isActive: true, isActiveInHierarchy: false };
     draws = new Map([
@@ -47,7 +47,7 @@ vi.mock("../src/tiny-glade/runtime/EngineResidentScene", () => ({
     }
   }
 }));
-import { createDecorationNativeView } from "../src/tiny-glade/runtime/DecorationNativeView";
+import { createDecorationNativeView } from "../src/building/runtime/DecorationNativeView";
 const assets = constructionAssets();
 const stone = {
   id: "hat",

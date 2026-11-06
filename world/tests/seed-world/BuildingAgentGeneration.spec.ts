@@ -5,8 +5,8 @@ vi.mock("@galacean/engine", async () => ({
   ...(await import("@galacean/engine-math"))
 }));
 import { createSeedWorldBuildingTools } from "../../demos/seed-world/agent-adapter/tools/building-tools";
-import { European } from "@galacean/engine-building/tiny-glade/parts/architecture/European.ts";
-import { buildingDraftSource } from "@galacean/engine-building/tiny-glade/parts/architecture/BuildingSource.ts";
+import { European } from "@galacean/engine-building/building/parts/architecture/European.ts";
+import { buildingDraftSource } from "@galacean/engine-building/building/parts/architecture/BuildingSource.ts";
 import { nativeAssetFormats } from "@galacean/engine-runtime-editor/project/runtime-native-formats.ts";
 import { RuntimeProjectEdit } from "@galacean/engine-project/runtime-editor/project/runtime-project-edit.ts";
 import {

@@ -3,9 +3,9 @@ import {
   placeBoundaryUnits,
   parseBoundaryArrangement,
   type BoundaryPlacementGeometry
-} from "../src/tiny-glade/runtime/BoundaryPlacement";
-import { buildConstructionFlatRoof } from "../src/tiny-glade/runtime/ConstructionFlatRoof";
-import type { WallConnectionShape } from "../src/tiny-glade/runtime/WallConnectionTypes";
+} from "../src/building/runtime/BoundaryPlacement";
+import { buildConstructionFlatRoof } from "../src/building/runtime/ConstructionFlatRoof";
+import type { WallConnectionShape } from "../src/building/runtime/WallConnectionTypes";
 
 const line: BoundaryPlacementGeometry = {
   id: "standalone-path",

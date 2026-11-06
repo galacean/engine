@@ -1,15 +1,15 @@
 import { describe, expect, it } from "vitest";
 import { createHash } from "node:crypto";
-import type { ConstructionDecorationSpec } from "../src/tiny-glade/runtime/ConstructionDecorations";
-import { planProfileDecorations } from "../src/tiny-glade/runtime/ProfileDecorations";
+import type { ConstructionDecorationSpec } from "../src/building/runtime/ConstructionDecorations";
+import { planProfileDecorations } from "../src/building/runtime/ProfileDecorations";
 import {
   profileShape,
   profileRoofGeometry,
   publishProfileWall
-} from "../src/tiny-glade/runtime/ProfileGeometry";
-import { profileWallEnvelope } from "../src/tiny-glade/runtime/ConstructionWallEnvelope";
-import { normalizeProfileFootprint, normalizeProfileRoof } from "../src/tiny-glade/runtime/ProfileParameters";
-import { constructionDecorationRecipe } from "../src/tiny-glade/runtime/ConstructionDecorationRecipe";
+} from "../src/building/runtime/ProfileGeometry";
+import { profileWallEnvelope } from "../src/building/runtime/ConstructionWallEnvelope";
+import { normalizeProfileFootprint, normalizeProfileRoof } from "../src/building/runtime/ProfileParameters";
+import { constructionDecorationRecipe } from "../src/building/runtime/ConstructionDecorationRecipe";
 import { constructionGeometry } from "./fixtures/constructionGeometry";
 
 const digest = (v: unknown) =>

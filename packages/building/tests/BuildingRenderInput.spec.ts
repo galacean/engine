@@ -6,11 +6,11 @@ vi.mock("@galacean/engine", async () => ({
 import { expect, it, vi } from "vitest";
 import { createHash } from "node:crypto";
 import { nativeAssets } from "./fixtures/constructionAssets";
-import { European } from "../src/tiny-glade/parts/architecture/European";
-import { designBuilding } from "../src/tiny-glade/parts/architecture/BuildingDesign";
-import { implementBuilding } from "../src/tiny-glade/parts/architecture/BuildingImplementation";
-import { buildBuildingRenderPackage } from "../src/tiny-glade/runtime/BuildingRenderPackage";
-import { buildingGlobals } from "../src/tiny-glade/runtime/BuildingGlobals";
+import { European } from "../src/building/parts/architecture/European";
+import { designBuilding } from "../src/building/parts/architecture/BuildingDesign";
+import { implementBuilding } from "../src/building/parts/architecture/BuildingImplementation";
+import { buildBuildingRenderPackage } from "../src/building/runtime/BuildingRenderPackage";
+import { buildingGlobals } from "../src/building/runtime/BuildingGlobals";
 const hash = (data: ArrayBuffer) => createHash("sha256").update(new Uint8Array(data)).digest("hex");
 it.each(["house", "flat", "foundation", "bands", "wall", "fence", "wood", "connected"])(
   "renders explicit part output independent of geometry naming: %s",

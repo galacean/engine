@@ -2,7 +2,7 @@ import { test } from "vitest";
 import assert from "node:assert/strict";
 import { masonryTerrainSource } from "../src/masonry/MasonryPlacement.ts";
 import { sampleSeedWorldHeight } from "../src/runtime/SeedWorldFields.ts";
-import { constructionTerrainHeight } from "@galacean/engine-building/tiny-glade/runtime/TerrainField.ts";
+import { constructionTerrainHeight } from "@galacean/engine-building/building/runtime/TerrainField.ts";
 
 test("adapter detaches canonical final R16 and matches Seed sampling at edges and interior", () => {
   for (const custom of [false, true]) {

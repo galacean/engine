@@ -1,5 +1,5 @@
 import { masonryTerrainSource } from "@galacean/engine-world-planning/masonry/MasonryPlacement.ts";
-import { constructionTerrainHeight } from "@galacean/engine-building/tiny-glade/runtime/TerrainField.ts";
+import { constructionTerrainHeight } from "@galacean/engine-building/building/runtime/TerrainField.ts";
 import { setImmediate as yieldToRunner } from "node:timers/promises";
 import { expect, it, vi } from "vitest";
 import { createSeedPlanningDocument } from "@galacean/engine-world-planning/spatial/PlanningInitialization.ts";

@@ -4,11 +4,11 @@ vi.mock("@galacean/engine", async () => ({
   ...(await import("@galacean/engine-loader")),
   ...(await import("@galacean/engine-math"))
 }));
-import { European } from "../src/tiny-glade/parts/architecture/European";
-import { designBuilding } from "../src/tiny-glade/parts/architecture/BuildingDesign";
-import { implementBuilding } from "../src/tiny-glade/parts/architecture/BuildingImplementation";
-import { prepareBuildingCpu } from "../src/tiny-glade/parts/architecture/BuildingCpu";
-import { resolveDocument } from "../src/tiny-glade/runtime/PlacementDocument.js";
+import { European } from "../src/building/parts/architecture/European";
+import { designBuilding } from "../src/building/parts/architecture/BuildingDesign";
+import { implementBuilding } from "../src/building/parts/architecture/BuildingImplementation";
+import { prepareBuildingCpu } from "../src/building/parts/architecture/BuildingCpu";
+import { resolveDocument } from "../src/building/runtime/PlacementDocument.js";
 import { constructionGeometry } from "./fixtures/constructionGeometry";
 const terrain = {
   samples: new Uint16Array(4),

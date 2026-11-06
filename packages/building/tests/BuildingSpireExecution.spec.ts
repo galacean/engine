@@ -1,25 +1,25 @@
 import {
   buildingAuthorKey,
   buildingDesignKey
-} from "../src/tiny-glade/parts/architecture/BuildingDesignIdentity";
+} from "../src/building/parts/architecture/BuildingDesignIdentity";
 import { describe, expect, it, vi } from "vitest";
 vi.mock("@galacean/engine", async () => ({
   ...(await import("@galacean/engine-core")),
   ...(await import("@galacean/engine-loader")),
   ...(await import("@galacean/engine-math"))
 }));
-import { European } from "../src/tiny-glade/parts/architecture/European";
-import { designBuilding } from "../src/tiny-glade/parts/architecture/BuildingDesign";
+import { European } from "../src/building/parts/architecture/European";
+import { designBuilding } from "../src/building/parts/architecture/BuildingDesign";
 import {
   prepareBuildingPublication,
   buildingPreviewInput
-} from "../src/tiny-glade/parts/architecture/BuildingPublication";
-import { implementBuilding } from "../src/tiny-glade/parts/architecture/BuildingImplementation";
-import { buildingPlacementAlgorithms } from "../src/tiny-glade/parts/BuildingAlgorithms";
-import { placeRoofSpire, roofSpireRecordFormat } from "../src/tiny-glade/parts/algorithms/RoofSpire";
-import { buildingPose } from "../src/tiny-glade/parts/BuildingLayout";
-import { profilePreview } from "../src/tiny-glade/runtime/ProfilePreview";
-import * as spireGeometry from "../src/tiny-glade/runtime/ProfileRoofSpire";
+} from "../src/building/parts/architecture/BuildingPublication";
+import { implementBuilding } from "../src/building/parts/architecture/BuildingImplementation";
+import { buildingPlacementAlgorithms } from "../src/building/parts/BuildingAlgorithms";
+import { placeRoofSpire, roofSpireRecordFormat } from "../src/building/parts/algorithms/RoofSpire";
+import { buildingPose } from "../src/building/parts/BuildingLayout";
+import { profilePreview } from "../src/building/runtime/ProfilePreview";
+import * as spireGeometry from "../src/building/runtime/ProfileRoofSpire";
 import { constructionGeometry } from "./fixtures/constructionGeometry";
 
 function fixture(circle = true, profile = 0.4, ridge = 0, height = 0.7) {

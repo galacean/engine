@@ -4,22 +4,22 @@ vi.mock("@galacean/engine", async () => ({
   ...(await import("@galacean/engine-loader")),
   ...(await import("@galacean/engine-math"))
 }));
-import { designBuilding } from "../src/tiny-glade/parts/architecture/BuildingDesign";
-import { implementBuilding } from "../src/tiny-glade/parts/architecture/BuildingImplementation";
-import { buildingConnectionRules } from "../src/tiny-glade/parts/architecture/BuildingDesignRules";
+import { designBuilding } from "../src/building/parts/architecture/BuildingDesign";
+import { implementBuilding } from "../src/building/parts/architecture/BuildingImplementation";
+import { buildingConnectionRules } from "../src/building/parts/architecture/BuildingDesignRules";
 import {
   buildingAuthorKey,
   buildingDesignKey,
   buildingSelectionKey
-} from "../src/tiny-glade/parts/architecture/BuildingDesignIdentity";
-import { buildingPartKey } from "../src/tiny-glade/runtime/BuildingObjectIdentity";
-import { European } from "../src/tiny-glade/parts/architecture/European";
-import { buildingDraftSource } from "../src/tiny-glade/parts/architecture/BuildingSource";
-import { copyBuildingPrefab } from "../src/tiny-glade/components/BuildingPrefab";
-import type { BuildingDraft } from "../src/tiny-glade/parts/architecture/BuildingDraft";
+} from "../src/building/parts/architecture/BuildingDesignIdentity";
+import { buildingPartKey } from "../src/building/runtime/BuildingObjectIdentity";
+import { European } from "../src/building/parts/architecture/European";
+import { buildingDraftSource } from "../src/building/parts/architecture/BuildingSource";
+import { copyBuildingPrefab } from "../src/building/components/BuildingPrefab";
+import type { BuildingDraft } from "../src/building/parts/architecture/BuildingDraft";
 import { constructionGeometry } from "./fixtures/constructionGeometry";
-import "../src/tiny-glade/parts/supports/PointSupport";
-import "../src/tiny-glade/parts/algorithms/PlaceAtPoint";
+import "../src/building/parts/supports/PointSupport";
+import "../src/building/parts/algorithms/PlaceAtPoint";
 const context = {
   cache: new Map(),
   entity: null as any,

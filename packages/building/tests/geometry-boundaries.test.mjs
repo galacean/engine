@@ -1,6 +1,6 @@
 import { test } from "vitest";
 import assert from "node:assert/strict";
-import { buildConstructionFlatRoof } from "../src/tiny-glade/runtime/ConstructionFlatRoof.ts";
+import { buildConstructionFlatRoof } from "../src/building/runtime/ConstructionFlatRoof.ts";
 
 test("thin flat-roof supports retain positive floor-unit height after joint inset", () => {
   for (const depth of [0.005, 0.4, 1]) {

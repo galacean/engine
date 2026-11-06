@@ -2,16 +2,16 @@ import { describe, expect, it, vi } from "vitest";
 const state = vi.hoisted(() => ({
   created: [] as any[]
 }));
-vi.mock("../src/tiny-glade/resources/BuildingTextures", () => ({
+vi.mock("../src/building/resources/BuildingTextures", () => ({
   leaseBuildingTexture: () => {
     const lease = { value: Promise.resolve({}), destroy: vi.fn() };
     state.created.push(lease);
     return lease;
   }
 }));
-import { leasePlasterTextures } from "../src/tiny-glade/runtime/ConstructionPlasterTextures";
-import { normalizeProfileFinish } from "../src/tiny-glade/runtime/ProfileParameters";
-import { parsePlasterHex } from "../src/tiny-glade/runtime/ConstructionPlasterPalette";
+import { leasePlasterTextures } from "../src/building/runtime/ConstructionPlasterTextures";
+import { normalizeProfileFinish } from "../src/building/runtime/ProfileParameters";
+import { parsePlasterHex } from "../src/building/runtime/ConstructionPlasterPalette";
 import { constructionAssets } from "./fixtures/constructionAssets";
 describe("plaster appearance resources", () => {
   it("does not create GPU leases when a discarded preview is destroyed before texture preparation starts", async () => {

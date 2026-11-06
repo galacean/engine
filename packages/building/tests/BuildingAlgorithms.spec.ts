@@ -8,13 +8,13 @@ import {
   buildingPlacementAlgorithms,
   buildingSupportAlgorithms,
   copyBuildingValue
-} from "../src/tiny-glade/parts/BuildingAlgorithms";
-import { pointSupport } from "../src/tiny-glade/parts/supports/PointSupport";
-import { pathSupport } from "../src/tiny-glade/parts/supports/PathSupport";
-import { alongPath } from "../src/tiny-glade/parts/algorithms/AlongPath";
-import { placeAtPoint } from "../src/tiny-glade/parts/algorithms/PlaceAtPoint";
-import { staggeredGrid } from "../src/tiny-glade/parts/algorithms/SurfaceGrid";
-import { BuildingMeshChart } from "../src/tiny-glade/parts/BuildingLayout";
+} from "../src/building/parts/BuildingAlgorithms";
+import { pointSupport } from "../src/building/parts/supports/PointSupport";
+import { pathSupport } from "../src/building/parts/supports/PathSupport";
+import { alongPath } from "../src/building/parts/algorithms/AlongPath";
+import { placeAtPoint } from "../src/building/parts/algorithms/PlaceAtPoint";
+import { staggeredGrid } from "../src/building/parts/algorithms/SurfaceGrid";
+import { BuildingMeshChart } from "../src/building/parts/BuildingLayout";
 
 // Pure algorithm contracts shared by flat parts and programmatic geometry.
 const context = {} as Parameters<typeof pointSupport>[1];
@@ -96,4 +96,4 @@ it("requires explicit Mesh references instead of guessing the generated output o
   expect(() => meshSurface({} as any, {} as any)).toThrow("explicit Mesh reference");
 });
 
-import { meshSurface } from "../src/tiny-glade/parts/supports/MeshSupport";
+import { meshSurface } from "../src/building/parts/supports/MeshSupport";

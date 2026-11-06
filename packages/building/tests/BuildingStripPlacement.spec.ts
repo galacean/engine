@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { placeStripUnits } from "../src/tiny-glade/runtime/StripPlacement";
-import type { ArrangementRule } from "../src/tiny-glade/runtime/UnitPlacementStyle";
+import { placeStripUnits } from "../src/building/runtime/StripPlacement";
+import type { ArrangementRule } from "../src/building/runtime/UnitPlacementStyle";
 const rules: Exclude<ArrangementRule, "auto">[] = [
   "grid",
   "staggered_rows",

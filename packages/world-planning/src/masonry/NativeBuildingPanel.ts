@@ -1,21 +1,21 @@
 import {
   planBuildingRemoval,
   removesBuildingGroup
-} from "@galacean/engine-building/tiny-glade/parts/architecture/BuildingRemoval";
-import { builtinBuildingPresets } from "@galacean/engine-building/tiny-glade/resources/BuiltinBuildingPresets";
-import { copyBuildingPrefab } from "@galacean/engine-building/tiny-glade/components/BuildingPrefab";
+} from "@galacean/engine-building/building/parts/architecture/BuildingRemoval";
+import { builtinBuildingPresets } from "@galacean/engine-building/building/resources/BuiltinBuildingPresets";
+import { copyBuildingPrefab } from "@galacean/engine-building/building/components/BuildingPrefab";
 import {
   placeBuildingOnLand,
   type BuildingLandQuery
-} from "@galacean/engine-building/tiny-glade/components/BuildingPlacement";
+} from "@galacean/engine-building/building/components/BuildingPlacement";
 import { mountMasonryAppearancePanel } from "./MasonryAppearancePanel";
 import { Vector3, type PrefabResource } from "@galacean/engine";
 import type { RuntimeNativeEditor } from "@galacean/engine-runtime-editor/runtime-editor-agent/runtime-native-editor";
 import type { RuntimeProjectSession } from "@galacean/engine-runtime-editor/project/runtime-project-session";
-import { BuildingManager } from "@galacean/engine-building/tiny-glade/parts/architecture/BuildingManager";
-import { partFrame } from "@galacean/engine-building/tiny-glade/parts/architecture/BuildingPartCollection";
-import { BuildingGroupComponent } from "@galacean/engine-building/tiny-glade/parts/architecture/BuildingGroupComponent";
-import { BuildingPartComponent } from "@galacean/engine-building/tiny-glade/parts/architecture/BuildingPartComponent";
+import { BuildingManager } from "@galacean/engine-building/building/parts/architecture/BuildingManager";
+import { partFrame } from "@galacean/engine-building/building/parts/architecture/BuildingPartCollection";
+import { BuildingGroupComponent } from "@galacean/engine-building/building/parts/architecture/BuildingGroupComponent";
+import { BuildingPartComponent } from "@galacean/engine-building/building/parts/architecture/BuildingPartComponent";
 /** Small native inspector; every command uses the same Scene transaction as Agent editing. */
 export function mountNativeBuildingPanel(
   project: RuntimeProjectSession,

@@ -1,8 +1,8 @@
 import { setFlagsFromString } from "node:v8";
 import { runInNewContext } from "node:vm";
 import { expect, it, vi } from "vitest";
-import { BuildingManager } from "@galacean/engine-building/tiny-glade/parts/architecture/BuildingManager.ts";
-import { validatePartCollection } from "@galacean/engine-building/tiny-glade/parts/architecture/BuildingPartCollection.ts";
+import { BuildingManager } from "@galacean/engine-building/building/parts/architecture/BuildingManager.ts";
+import { validatePartCollection } from "@galacean/engine-building/building/parts/architecture/BuildingPartCollection.ts";
 import { NativeBuildingWorld } from "../src/masonry/NativeBuildingHost";
 
 vi.hoisted(() => Object.defineProperty(globalThis, "window", { value: new EventTarget(), configurable: true }));

@@ -1,5 +1,5 @@
 import { initialBuildingDrafts } from "@galacean/engine-world-planning/masonry/BuildingInitialDraft.ts";
-import { prepareBuildingCpu } from "@galacean/engine-building/tiny-glade/parts/architecture/BuildingCpu.ts";
+import { prepareBuildingCpu } from "@galacean/engine-building/building/parts/architecture/BuildingCpu.ts";
 import { constructionGeometry } from "../../../packages/building/tests/fixtures/constructionGeometry";
 import { describe, expect, it } from "vitest";
 import {
@@ -7,7 +7,7 @@ import {
   type PlanningBuildingSurfaceOwner,
   type PlanningFarmingTerrain
 } from "../../demos/seed-world/src/planning/spatial/farming/PlanningPublishedFarmingGround";
-import { ConstructionSurfaceQuery } from "@galacean/engine-building/tiny-glade/runtime/ConstructionSurfaceQuery.ts";
+import { ConstructionSurfaceQuery } from "@galacean/engine-building/building/runtime/ConstructionSurfaceQuery.ts";
 import { PLANNING_FARMING_DEFAULTS } from "@galacean/engine-world-planning/spatial/farming/PlanningFarmingComponent.ts";
 import type { IslandPlan } from "@galacean/engine-world-planning/semantic-study/IslandPlanModel.ts";
 

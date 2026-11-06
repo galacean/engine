@@ -8,8 +8,8 @@ import { constructionGeometry } from "../../../packages/building/tests/fixtures/
 import { buildingGenerationPlan } from "../../demos/building-components/BuildingGenerationFixture";
 import { initialBuildingDrafts } from "@galacean/engine-world-planning/masonry/BuildingInitialDraft.ts";
 import { initialBuildingSource } from "@galacean/engine-world-planning/masonry/BuildingInitialSource.ts";
-import { designBuilding } from "@galacean/engine-building/tiny-glade/parts/architecture/BuildingDesign.ts";
-import type { BuildingBasePart } from "@galacean/engine-building/tiny-glade/parts/architecture/BuildingDraft.ts";
+import { designBuilding } from "@galacean/engine-building/building/parts/architecture/BuildingDesign.ts";
+import type { BuildingBasePart } from "@galacean/engine-building/building/parts/architecture/BuildingDraft.ts";
 
 it("keeps accepted facade installations when the initial plan is saved as native author Source", async () => {
   const plan = structuredClone(buildingGenerationPlan);

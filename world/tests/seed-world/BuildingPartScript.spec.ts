@@ -91,7 +91,7 @@ it("typechecks the instance-scoped example actually published in building knowle
     checkRuntimeScripts({ "Example.ts": example.replace("snapshot(frame)", "snapshot()") }, files, libraries)
   ).toThrow();
 });
-import { buildingPartSkill, buildingPartDocuments } from "@galacean/engine-building/tiny-glade/parts/BuildingKnowledge.ts";
+import { buildingPartSkill, buildingPartDocuments } from "@galacean/engine-building/building/parts/BuildingKnowledge.ts";
 const buildingPartKnowledge = [{ path: "skills/building/SKILL.md", content: buildingPartSkill }, ...buildingPartDocuments];
 
 it("publishes building knowledge links against the merged engine declaration mount", () => {

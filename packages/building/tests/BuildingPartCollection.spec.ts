@@ -1,26 +1,26 @@
-import { BuildingGroupComponent } from "../src/tiny-glade/parts/architecture/BuildingGroupComponent";
-import { buildingPartKey, buildingGroupKey } from "../src/tiny-glade/runtime/BuildingObjectIdentity";
+import { BuildingGroupComponent } from "../src/building/parts/architecture/BuildingGroupComponent";
+import { buildingPartKey, buildingGroupKey } from "../src/building/runtime/BuildingObjectIdentity";
 import { it, expect, vi } from "vitest";
 vi.mock("@galacean/engine", async () => ({
   ...(await import("@galacean/engine-core")),
   ...(await import("@galacean/engine-loader")),
   ...(await import("@galacean/engine-math"))
 }));
-import { buildingPlacementAlgorithms } from "../src/tiny-glade/parts/BuildingAlgorithms";
-import { buildingConnectionRules } from "../src/tiny-glade/parts/architecture/BuildingDesignRules";
-import { validateBuildingWorkerDraft } from "../src/tiny-glade/parts/architecture/BuildingCpu";
+import { buildingPlacementAlgorithms } from "../src/building/parts/BuildingAlgorithms";
+import { buildingConnectionRules } from "../src/building/parts/architecture/BuildingDesignRules";
+import { validateBuildingWorkerDraft } from "../src/building/parts/architecture/BuildingCpu";
 import { Matrix, Quaternion, Vector3 } from "@galacean/engine-math";
-import { BuildingPartComponent } from "../src/tiny-glade/parts/architecture/BuildingPartComponent";
-import { European } from "../src/tiny-glade/parts/architecture/European";
+import { BuildingPartComponent } from "../src/building/parts/architecture/BuildingPartComponent";
+import { European } from "../src/building/parts/architecture/European";
 import {
   collectBuildingParts,
   partFrameInverse,
   partFrameMatrix,
   validatePartCollection
-} from "../src/tiny-glade/parts/architecture/BuildingPartCollection";
-import { prepareBuildingCpu, compileBuildingCpu } from "../src/tiny-glade/parts/architecture/BuildingCpu";
+} from "../src/building/parts/architecture/BuildingPartCollection";
+import { prepareBuildingCpu, compileBuildingCpu } from "../src/building/parts/architecture/BuildingCpu";
 import { nativeAssets } from "./fixtures/constructionAssets";
-import type { BuildingDraft } from "../src/tiny-glade/parts/architecture/BuildingDraft";
+import type { BuildingDraft } from "../src/building/parts/architecture/BuildingDraft";
 import { createHash } from "node:crypto";
 
 function model(draft: BuildingDraft) {

@@ -1,13 +1,13 @@
 import { test } from "vitest";
 import assert from "node:assert/strict";
-import { buildConstructionFoundation } from "../src/tiny-glade/runtime/ConstructionFoundation.ts";
-import { buildConstructionFlatRoof } from "../src/tiny-glade/runtime/ConstructionFlatRoof.ts";
+import { buildConstructionFoundation } from "../src/building/runtime/ConstructionFoundation.ts";
+import { buildConstructionFlatRoof } from "../src/building/runtime/ConstructionFlatRoof.ts";
 import {
   arrangedWallCells,
   arrangedSurfaceCells,
   wallSurfaceGeometry
-} from "../src/tiny-glade/runtime/ConstructionArrangement.ts";
-import { publishLevelWallProfile } from "../src/tiny-glade/runtime/PublishedWallProfile.ts";
+} from "../src/building/runtime/ConstructionArrangement.ts";
+import { publishLevelWallProfile } from "../src/building/runtime/PublishedWallProfile.ts";
 
 test("support and parallel rules consume unit specifications without moving the support envelope", () => {
   const shape = { type: "rectangle", center: [0, 0], width: 4, depth: 3, orientation: [1, 0] };

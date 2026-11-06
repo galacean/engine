@@ -1,6 +1,6 @@
 import { constructionGeometry } from "./fixtures/constructionGeometry";
 import { describe, expect, it } from "vitest";
-import { constructionDecorationType } from "../src/tiny-glade/runtime/ConstructionDecorationCatalog";
+import { constructionDecorationType } from "../src/building/runtime/ConstructionDecorationCatalog";
 describe("Cottage native blueprint to shared roof/decoration render data", () => {
   it("publishes suggested unfolded sizes for the connected public producer", () => {
     const info = constructionDecorationType(constructionGeometry.decorations, "dormer-cottage")!;

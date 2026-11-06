@@ -8,8 +8,8 @@ vi.mock("@galacean/engine", async () => ({
   ...(await import("@galacean/engine-math"))
 }));
 import { Entity, Scene, type Engine } from "@galacean/engine";
-import { BuildingManager } from "@galacean/engine-building/tiny-glade/parts/architecture/BuildingManager.ts";
-import { BuildingPartComponent } from "@galacean/engine-building/tiny-glade/parts/architecture/BuildingPartComponent.ts";
+import { BuildingManager } from "@galacean/engine-building/building/parts/architecture/BuildingManager.ts";
+import { BuildingPartComponent } from "@galacean/engine-building/building/parts/architecture/BuildingPartComponent.ts";
 
 const scenes: Scene[] = [];
 const engine = {
@@ -43,7 +43,7 @@ afterEach(() => {
   for (const s of scenes.splice(0)) for (const root of [...s.rootEntities]) root.destroy();
 });
 
-import { European } from "@galacean/engine-building/tiny-glade/parts/architecture/European.ts";
+import { European } from "@galacean/engine-building/building/parts/architecture/European.ts";
 import { mountNativeBuildingPanel } from "../src/masonry/NativeBuildingPanel";
 it.each(
   ["window", "wall", "group"].flatMap((kind) =>

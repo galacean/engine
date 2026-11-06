@@ -1,6 +1,6 @@
-import "../src/tiny-glade/parts/supports/PointSupport";
-import "../src/tiny-glade/parts/algorithms/PlaceAtPoint";
-import { BuildingGroupComponent } from "../src/tiny-glade/parts/architecture/BuildingGroupComponent";
+import "../src/building/parts/supports/PointSupport";
+import "../src/building/parts/algorithms/PlaceAtPoint";
+import { BuildingGroupComponent } from "../src/building/parts/architecture/BuildingGroupComponent";
 import { afterEach, expect, it, vi } from "vitest";
 // Keep loader/core in one native module graph so PrefabResource and ReferResource share identity.
 vi.mock("@galacean/engine-core", async () => {
@@ -17,8 +17,8 @@ vi.mock("@galacean/engine", async () => {
   };
 });
 import { Matrix, Entity, Scene, MeshRenderer, type Engine } from "@galacean/engine";
-import { BuildingManager } from "../src/tiny-glade/parts/architecture/BuildingManager";
-import { BuildingPartComponent } from "../src/tiny-glade/parts/architecture/BuildingPartComponent";
+import { BuildingManager } from "../src/building/parts/architecture/BuildingManager";
+import { BuildingPartComponent } from "../src/building/parts/architecture/BuildingPartComponent";
 
 const scenes: Scene[] = [];
 const engine = {
@@ -91,13 +91,13 @@ function draft(unit: BuildingBasePart["unit"]): BuildingDraft {
 }
 
 import { PrefabResource } from "@galacean/engine";
-import { buildingConnectionRules } from "../src/tiny-glade/parts/architecture/BuildingDesignRules";
+import { buildingConnectionRules } from "../src/building/parts/architecture/BuildingDesignRules";
 
-import type { BuildingBasePart, BuildingDraft } from "../src/tiny-glade/parts/architecture/BuildingDraft";
-import { buildingPlacementAlgorithms } from "../src/tiny-glade/parts/BuildingAlgorithms";
-import { authoredBuildingMembers } from "../src/tiny-glade/parts/architecture/BuildingPartCollection";
-import { markGeneratedBuildingOutput } from "../src/tiny-glade/parts/BuildingGeneratedOutput";
-import { European } from "../src/tiny-glade/parts/architecture/European";
+import type { BuildingBasePart, BuildingDraft } from "../src/building/parts/architecture/BuildingDraft";
+import { buildingPlacementAlgorithms } from "../src/building/parts/BuildingAlgorithms";
+import { authoredBuildingMembers } from "../src/building/parts/architecture/BuildingPartCollection";
+import { markGeneratedBuildingOutput } from "../src/building/parts/BuildingGeneratedOutput";
+import { European } from "../src/building/parts/architecture/European";
 
 buildingConnectionRules.register("removal-link", () => {});
 function connected(unit: Entity) {

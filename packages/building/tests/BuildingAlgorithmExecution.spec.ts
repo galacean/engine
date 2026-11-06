@@ -1,21 +1,21 @@
 import {
   buildingAuthorKey,
   buildingDesignKey
-} from "../src/tiny-glade/parts/architecture/BuildingDesignIdentity";
+} from "../src/building/parts/architecture/BuildingDesignIdentity";
 import { describe, expect, it, vi } from "vitest";
 vi.mock("@galacean/engine", async () => ({
   ...(await import("@galacean/engine-core")),
   ...(await import("@galacean/engine-loader")),
   ...(await import("@galacean/engine-math"))
 }));
-import { European } from "../src/tiny-glade/parts/architecture/European";
-import { designBuilding } from "../src/tiny-glade/parts/architecture/BuildingDesign";
-import { implementBuilding } from "../src/tiny-glade/parts/architecture/BuildingImplementation";
+import { European } from "../src/building/parts/architecture/European";
+import { designBuilding } from "../src/building/parts/architecture/BuildingDesign";
+import { implementBuilding } from "../src/building/parts/architecture/BuildingImplementation";
 import {
   buildingConnectionRules,
   resolveBuildingConnections
-} from "../src/tiny-glade/parts/architecture/BuildingDesignRules";
-import { buildingPlacementAlgorithms } from "../src/tiny-glade/parts/BuildingAlgorithms";
+} from "../src/building/parts/architecture/BuildingDesignRules";
+import { buildingPlacementAlgorithms } from "../src/building/parts/BuildingAlgorithms";
 import { constructionGeometry } from "./fixtures/constructionGeometry";
 
 describe("part algorithms and resolved connection constraints", () => {

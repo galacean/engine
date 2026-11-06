@@ -1,17 +1,17 @@
-import { resolveDocument } from "../src/tiny-glade/runtime/PlacementDocument.js";
-import { constructionSupportHeight } from "../src/tiny-glade/runtime/TerrainField";
+import { resolveDocument } from "../src/building/runtime/PlacementDocument.js";
+import { constructionSupportHeight } from "../src/building/runtime/TerrainField";
 import { describe, expect, it, vi } from "vitest";
 import { createHash } from "node:crypto";
-vi.mock("../src/tiny-glade/runtime/ConstructionWallFrame", { spy: true });
-import { compileWallInFrame } from "../src/tiny-glade/runtime/ConstructionWallFrame";
-import { European } from "../src/tiny-glade/parts/architecture/European";
-import { prepareBuildingCpu, compileBuildingCpu } from "../src/tiny-glade/parts/architecture/BuildingCpu";
-import { designBuilding } from "../src/tiny-glade/parts/architecture/BuildingDesign";
-import { implementBuilding } from "../src/tiny-glade/parts/architecture/BuildingImplementation";
-import { prepareBuildingTerrain } from "../src/tiny-glade/parts/architecture/BuildingTerrain";
-import { profileSupportRegion } from "../src/tiny-glade/parts/architecture/BuildingProfileTerrain";
+vi.mock("../src/building/runtime/ConstructionWallFrame", { spy: true });
+import { compileWallInFrame } from "../src/building/runtime/ConstructionWallFrame";
+import { European } from "../src/building/parts/architecture/European";
+import { prepareBuildingCpu, compileBuildingCpu } from "../src/building/parts/architecture/BuildingCpu";
+import { designBuilding } from "../src/building/parts/architecture/BuildingDesign";
+import { implementBuilding } from "../src/building/parts/architecture/BuildingImplementation";
+import { prepareBuildingTerrain } from "../src/building/parts/architecture/BuildingTerrain";
+import { profileSupportRegion } from "../src/building/parts/architecture/BuildingProfileTerrain";
 import { constructionGeometry } from "./fixtures/constructionGeometry";
-import type { ConstructionTerrainGrid } from "../src/tiny-glade/runtime/TerrainField";
+import type { ConstructionTerrainGrid } from "../src/building/runtime/TerrainField";
 const terrain: ConstructionTerrainGrid = {
   samples: new Uint16Array(4),
   resolution: 2,

@@ -1,4 +1,4 @@
-import { buildConstructionFlatRoof } from "../src/tiny-glade/runtime/ConstructionFlatRoof";
+import { buildConstructionFlatRoof } from "../src/building/runtime/ConstructionFlatRoof";
 import { describe, it, expect } from "vitest";
 import {
   surfaceBoundary,
@@ -6,8 +6,8 @@ import {
   intersectSurfacePolygon,
   surfaceRegionBoundary,
   subtractSurfacePolygon
-} from "../src/tiny-glade/runtime/SurfacePolygon";
-import { plasterBoundaryDistance } from "../src/tiny-glade/runtime/ConstructionPlasterSupport";
+} from "../src/building/runtime/SurfacePolygon";
+import { plasterBoundaryDistance } from "../src/building/runtime/ConstructionPlasterSupport";
 
 const rect = (x: number, y: number, X: number, Y: number) =>
   surfaceBoundary([

@@ -1,8 +1,8 @@
-import { buildingPartKey, buildingGroupKey } from "../src/tiny-glade/runtime/BuildingObjectIdentity";
+import { buildingPartKey, buildingGroupKey } from "../src/building/runtime/BuildingObjectIdentity";
 import { nativeAssets } from "./fixtures/constructionAssets";
 import { describe, expect, it } from "vitest";
-import { appendDecorationRenderPackage } from "../src/tiny-glade/runtime/ConstructionDecorationRender";
-import type { ConstructionDecorationPart } from "../src/tiny-glade/runtime/ConstructionDecorations";
+import { appendDecorationRenderPackage } from "../src/building/runtime/ConstructionDecorationRender";
+import type { ConstructionDecorationPart } from "../src/building/runtime/ConstructionDecorations";
 
 function part(id: string, x: number): ConstructionDecorationPart {
   return {

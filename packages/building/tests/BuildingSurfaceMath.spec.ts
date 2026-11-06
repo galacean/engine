@@ -1,6 +1,6 @@
 import { test } from "vitest";
 import assert from "node:assert/strict";
-import { segmentTriangleDistanceSquared as distance } from "../src/tiny-glade/runtime/SurfaceQueryMath";
+import { segmentTriangleDistanceSquared as distance } from "../src/building/runtime/SurfaceQueryMath";
 type Vec3 = [number, number, number];
 
 const a: Vec3 = [-2, -2, 0],

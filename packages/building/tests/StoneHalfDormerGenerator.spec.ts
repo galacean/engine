@@ -1,10 +1,10 @@
 import { constructionGeometry } from "./fixtures/constructionGeometry";
 import { describe, it, expect } from "vitest";
-import { recoveredArrowWallPlacement } from "../src/tiny-glade/runtime/RecoveredArrowWallPlacement";
-import type { WallConnectionShape } from "../src/tiny-glade/runtime/WallConnectionTypes";
-import { shapeCurve } from "../src/tiny-glade/runtime/RecoveredWallConnectionHoles";
-import { cottageXzProjectiveRotation } from "../src/tiny-glade/runtime/RecoveredCottageRoofSampler";
-import { RoofCurve } from "../src/tiny-glade/runtime/RecoveredRoofMath";
+import { recoveredArrowWallPlacement } from "../src/building/runtime/RecoveredArrowWallPlacement";
+import type { WallConnectionShape } from "../src/building/runtime/WallConnectionTypes";
+import { shapeCurve } from "../src/building/runtime/RecoveredWallConnectionHoles";
+import { cottageXzProjectiveRotation } from "../src/building/runtime/RecoveredCottageRoofSampler";
+import { RoofCurve } from "../src/building/runtime/RecoveredRoofMath";
 
 function input(circle = false, wooden = false) {
   const shape: WallConnectionShape = circle

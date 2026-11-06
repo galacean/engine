@@ -1,7 +1,7 @@
 import { test } from "vitest";
 import assert from "node:assert/strict";
-import { generateWallPlaster } from "../src/tiny-glade/runtime/RecoveredWallPlaster.ts";
-import { publishLevelWallProfile } from "../src/tiny-glade/runtime/PublishedWallProfile.ts";
+import { generateWallPlaster } from "../src/building/runtime/RecoveredWallPlaster.ts";
+import { publishLevelWallProfile } from "../src/building/runtime/PublishedWallProfile.ts";
 const terrain = () => 0;
 test("flat roof plaster covers rim and rimless branches without exposing invalid grid data", () => {
   const shape = { type: "rectangle", center: [0, 0], width: 5, depth: 4, orientation: [1, 0] };

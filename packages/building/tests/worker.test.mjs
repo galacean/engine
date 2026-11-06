@@ -5,7 +5,7 @@ import {
   constructionResponse,
   constructionBytes,
   constructionJSON
-} from "../src/tiny-glade/runtime/ConstructionLoadError.ts";
+} from "../src/building/runtime/ConstructionLoadError.ts";
 
 test("resource unavailability retries, missing resources remain actionable errors", async () => {
   const original = globalThis.fetch;

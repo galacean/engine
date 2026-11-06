@@ -8,13 +8,13 @@ import {
   buildingSupportAlgorithms,
   buildingPlacementAlgorithms,
   type BuildingAlgorithmContext
-} from "../src/tiny-glade/parts/BuildingAlgorithms";
-import * as algorithms from "../src/tiny-glade/parts/BuildingAlgorithms";
-import { buildingPose } from "../src/tiny-glade/parts/BuildingLayout";
-import { European } from "../src/tiny-glade/parts/architecture/European";
-import { combineBuildingDrafts, type BuildingDraft } from "../src/tiny-glade/parts/architecture/BuildingDraft";
-import { designBuilding } from "../src/tiny-glade/parts/architecture/BuildingDesign";
-import { implementBuilding } from "../src/tiny-glade/parts/architecture/BuildingImplementation";
+} from "../src/building/parts/BuildingAlgorithms";
+import * as algorithms from "../src/building/parts/BuildingAlgorithms";
+import { buildingPose } from "../src/building/parts/BuildingLayout";
+import { European } from "../src/building/parts/architecture/European";
+import { combineBuildingDrafts, type BuildingDraft } from "../src/building/parts/architecture/BuildingDraft";
+import { designBuilding } from "../src/building/parts/architecture/BuildingDesign";
+import { implementBuilding } from "../src/building/parts/architecture/BuildingImplementation";
 import { constructionGeometry } from "./fixtures/constructionGeometry";
 
 // These algorithms are pure coordinate computations. Any attempted native object

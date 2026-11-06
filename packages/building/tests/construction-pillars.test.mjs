@@ -1,6 +1,6 @@
 import { test } from "vitest";
 import assert from "node:assert/strict";
-import { buildConstructionFoundation } from "../src/tiny-glade/runtime/ConstructionFoundation.ts";
+import { buildConstructionFoundation } from "../src/building/runtime/ConstructionFoundation.ts";
 const rectangle = { type: "rectangle", center: [0, 0], width: 8, depth: 6, orientation: [1, 0] };
 const circle = { type: "circle", center: [0, 0], radius: 3, phase: 0.3 };
 test("independent pillars keep open gaps, level bearing course and grounded feet on slopes", () => {
@@ -46,7 +46,7 @@ test("material substitution retains explicit rule and pillar topology; changing 
 });
 
 test("structural notifications ignore material/rule/footprint edits but retain actual support changes", async () => {
-  const { ConstructionSurfaceQuery } = await import("../src/tiny-glade/runtime/ConstructionSurfaceQuery.ts");
+  const { ConstructionSurfaceQuery } = await import("../src/building/runtime/ConstructionSurfaceQuery.ts");
   const input = { id: "base", shape: circle, height: 3, terrain: () => 0, rule: "grid" };
   const query = (p) => new ConstructionSurfaceQuery(p.previewParts, [0, 0, 0], () => "building");
   const original = query(buildConstructionFoundation(input));

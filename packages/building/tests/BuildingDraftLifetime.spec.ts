@@ -4,7 +4,7 @@ vi.mock("@galacean/engine", async () => ({
   ...(await import("@galacean/engine-math"))
 }));
 import { Component, Entity, ReferResource, type Engine, type Material } from "@galacean/engine-core";
-import { BuildingPartDraft } from "../src/tiny-glade/parts/BuildingParts";
+import { BuildingPartDraft } from "../src/building/parts/BuildingParts";
 
 class OwnedResource extends ReferResource {
   // Engine's internal reference operation is omitted from published typings.

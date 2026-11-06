@@ -1,5 +1,5 @@
 import { posix } from "node:path";
-import { buildingPartSkill } from "@galacean/engine-building/tiny-glade/parts/BuildingKnowledge.ts";
+import { buildingPartSkill } from "@galacean/engine-building/building/parts/BuildingKnowledge.ts";
 import {seedWorldNativeKnowledge} from "../../demos/seed-world/agent-adapter/SeedWorldAgentDefinition";
 import {AgentJavaScriptChecker} from "@galacean/engine-ai-chat/ai-chat/agent-script-checker.ts";
 import {agentTypecheckLibraries} from "@galacean/engine-ai-chat/script-checking/typecheck-libraries.ts";

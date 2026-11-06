@@ -1,4 +1,4 @@
-import { segmentTriangleDistanceSquared } from "@galacean/engine-building/tiny-glade/runtime/SurfaceQueryMath";
+import { segmentTriangleDistanceSquared } from "@galacean/engine-building/building/runtime/SurfaceQueryMath";
 import { sampleSeedWorldHeight, type SeedWorldFields } from "../../../runtime/SeedWorldFields.ts";
 import { sharedRockTransitionCoverage } from "@galacean/engine-terrain/rock-formation/TransitionCoverage";
 import type { RockGrassPlacement } from "@galacean/engine-terrain/rock-formation/GrassPatches";

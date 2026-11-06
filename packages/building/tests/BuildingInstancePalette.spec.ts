@@ -1,5 +1,5 @@
-import { packConstructionUnits } from "../src/tiny-glade/runtime/ConstructionUnitRender";
-import { European } from "../src/tiny-glade/parts/architecture/European";
+import { packConstructionUnits } from "../src/building/runtime/ConstructionUnitRender";
+import { European } from "../src/building/parts/architecture/European";
 vi.mock("@galacean/engine", async () => ({
   ...(await import("@galacean/engine-core")),
   ...(await import("@galacean/engine-loader")),
@@ -7,7 +7,7 @@ vi.mock("@galacean/engine", async () => ({
 }));
 const captures = vi.hoisted(() => [] as Record<string, number[]>[]);
 // Keep the real native asset decoding/packing; replace GPU upload only.
-vi.mock("../src/tiny-glade/runtime/EngineResidentScene", async () => {
+vi.mock("../src/building/runtime/EngineResidentScene", async () => {
   const { Entity } = await import("@galacean/engine");
   return {
     EngineResidentScene: class {
@@ -52,18 +52,18 @@ vi.mock("../src/tiny-glade/runtime/EngineResidentScene", async () => {
 import { expect, it, vi } from "vitest";
 import { Entity, type Engine } from "@galacean/engine";
 import { constructionAssets, nativeAssets } from "./fixtures/constructionAssets";
-import { designBuilding } from "../src/tiny-glade/parts/architecture/BuildingDesign";
-import { implementBuilding } from "../src/tiny-glade/parts/architecture/BuildingImplementation";
-import { BuildingPartDraft } from "../src/tiny-glade/parts/BuildingParts";
+import { designBuilding } from "../src/building/parts/architecture/BuildingDesign";
+import { implementBuilding } from "../src/building/parts/architecture/BuildingImplementation";
+import { BuildingPartDraft } from "../src/building/parts/BuildingParts";
 import {
   buildingAlgorithmContext,
   renderInstanceParts
-} from "../src/tiny-glade/parts/architecture/BuildingInstanceRender";
-import "../src/tiny-glade/parts/supports/PointSupport";
-import "../src/tiny-glade/parts/algorithms/PlaceAtPoint";
-import { buildingDraftSource } from "../src/tiny-glade/parts/architecture/BuildingSource";
-import { copyBuildingPrefab } from "../src/tiny-glade/components/BuildingPrefab";
-import type { BuildingDraft } from "../src/tiny-glade/parts/architecture/BuildingDraft";
+} from "../src/building/parts/architecture/BuildingInstanceRender";
+import "../src/building/parts/supports/PointSupport";
+import "../src/building/parts/algorithms/PlaceAtPoint";
+import { buildingDraftSource } from "../src/building/parts/architecture/BuildingSource";
+import { copyBuildingPrefab } from "../src/building/components/BuildingPrefab";
+import type { BuildingDraft } from "../src/building/parts/architecture/BuildingDraft";
 
 it.each([
   { unit: "brick" as const, roofColor: undefined },

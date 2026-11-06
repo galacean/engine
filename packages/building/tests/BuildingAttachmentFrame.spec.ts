@@ -5,11 +5,11 @@ vi.mock("@galacean/engine", async () => ({
   ...(await import("@galacean/engine-math"))
 }));
 import { Matrix, Quaternion, Vector3 } from "@galacean/engine-math";
-import { attachmentFrameDefinition } from "../src/tiny-glade/parts/architecture/BuildingAttachmentFrame";
-import { European } from "../src/tiny-glade/parts/architecture/European";
-import { attachmentSpecification } from "../src/tiny-glade/parts/architecture/BuildingGenerators";
-import { profileShape } from "../src/tiny-glade/runtime/ProfileGeometry";
-import { wallMountCurve, wallMountPoint, projectWallMount } from "../src/tiny-glade/runtime/WallMountGeometry";
+import { attachmentFrameDefinition } from "../src/building/parts/architecture/BuildingAttachmentFrame";
+import { European } from "../src/building/parts/architecture/European";
+import { attachmentSpecification } from "../src/building/parts/architecture/BuildingGenerators";
+import { profileShape } from "../src/building/runtime/ProfileGeometry";
+import { wallMountCurve, wallMountPoint, projectWallMount } from "../src/building/runtime/WallMountGeometry";
 
 function fixture() {
   const draft = European.buildHouses({

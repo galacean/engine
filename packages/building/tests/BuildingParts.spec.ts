@@ -6,7 +6,7 @@ import {
   pathArray,
   surfaceGrid,
   type BuildingMeshData
-} from "../src/tiny-glade/parts/BuildingLayout";
+} from "../src/building/parts/BuildingLayout";
 
 const plane: BuildingMeshData = {
   positions: [

@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import {
   constructionLodAppearance,
   constructionLodSurfaceCells
-} from "../src/tiny-glade/runtime/ConstructionLodAppearance";
+} from "../src/building/runtime/ConstructionLodAppearance";
 const digest = (x: Uint8Array) => createHash("sha256").update(x).digest("hex");
 
 it("bounds image storage and owns immutable derived bytes", () => {

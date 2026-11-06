@@ -3,8 +3,8 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { BufferMesh, Texture2D, Texture2DArray, TextureCube, MeshRenderer } from "@galacean/engine-core";
 import { PrefabResource, parseBufferMeshData, parseTexturePixelsData } from "@galacean/engine-loader";
-import { buildingAssets, BuildingAssetKitComponent, BuildingUnitComponent, BuildingAssemblyComponent } from "../../src/tiny-glade/resources/BuildingAssetKit";
-const root=process.env.BUILDING_TEST_ASSETS ?? fileURLToPath(new URL("../../src/tiny-glade/assets/native/", import.meta.url)),prefix="Building/Units/";
+import { buildingAssets, BuildingAssetKitComponent, BuildingUnitComponent, BuildingAssemblyComponent } from "../../src/building/resources/BuildingAssetKit";
+const root=process.env.BUILDING_TEST_ASSETS ?? fileURLToPath(new URL("../../src/building/assets/native/", import.meta.url)),prefix="Building/Units/";
 const json=(path:string)=>JSON.parse(readFileSync(root+path.slice(prefix.length),"utf8"));
 /** CPU tests replace GPU allocation only. Inputs and native decoding are the same
  * Prefab/Mesh/Material/Texture files loaded by the browser regression. */

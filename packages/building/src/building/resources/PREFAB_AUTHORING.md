@@ -38,7 +38,6 @@ VFS：`Building/Units/Prefabs/wall-lantern.prefab`。
 - `BuildingUnitComponent.attachment` 为 `body`（默认）、`frame` 或 `glass`，声明安装／材质切换能力，不依赖 Entity 的名称。Cottage 半窗的玻璃具有独立贴墙位姿；其他零件跟随主体。子节点可改名、分组、添加，算法遍历实际层级。
 - 可切换石材的窗框通过 `stoneFrame` 引用原生排列 Prefab。木框、石框均应用该节点的累计变换；共享石框资源仍使用相同排列单元，避免因组合路径不同拆出重复批次。
 - 拱洞没有固定模型组合，仍由开洞算法生成。环境相关石帽、屋顶瓦片、百叶和窗台继续按安装环境生成／重复；资产包只保留 16 个被这些算法实际引用的独立装饰／碰撞单元。
-- 原始捕获配方只保留在 `offline/CapturedDecorationRecipes.ts`，供独立回归对照，产品加载不引用它。
 - 离线导出保留已经编写的组合 Source，从 kit 引用读取资产选择并清理不可达资源，不通过 TS/Python 配方重新生成组合。
 
 现有专用排列单元仍有 Shader/顶点布局约束；当前实现不表示任意 Shader、动画或嵌套 Prefab 实例均已支持建筑合批。

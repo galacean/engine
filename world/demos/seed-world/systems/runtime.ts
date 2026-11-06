@@ -6,4 +6,4 @@ export {
 export { FarmingSystem } from "@galacean/engine-farming/farming/native/FarmingSystem";
 export { FarmingAreaComponent } from "@galacean/engine-farming/farming/native/FarmingAreaComponent";
 export { FarmingAPI } from "@galacean/engine-farming/farming/native/FarmingAPI";
-export * from "@galacean/engine-building/tiny-glade/parts/index";
+export * from "@galacean/engine-building/building/parts/index";

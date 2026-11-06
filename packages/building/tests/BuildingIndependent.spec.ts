@@ -8,11 +8,11 @@ import {
   BuildingMeshChart,
   type BuildingMeshData,
   type BuildingPoint
-} from "../src/tiny-glade/parts/BuildingLayout";
+} from "../src/building/parts/BuildingLayout";
 import {
   surfaceCourseCells,
   type SurfaceCourseParameters
-} from "../src/tiny-glade/parts/algorithms/SurfaceCourseCells";
+} from "../src/building/parts/algorithms/SurfaceCourseCells";
 function rectangles(rects: number[][]): BuildingMeshData {
   const positions: BuildingPoint[] = [],
     uvs: [number, number][] = [],

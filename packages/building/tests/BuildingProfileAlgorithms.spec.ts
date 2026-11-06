@@ -4,11 +4,11 @@ vi.mock("@galacean/engine", async () => ({
   ...(await import("@galacean/engine-loader")),
   ...(await import("@galacean/engine-math"))
 }));
-import { buildingPlacementAlgorithms } from "../src/tiny-glade/parts/BuildingAlgorithms";
-import { European } from "../src/tiny-glade/parts/architecture/European";
-import { designBuilding } from "../src/tiny-glade/parts/architecture/BuildingDesign";
-import { implementBuilding } from "../src/tiny-glade/parts/architecture/BuildingImplementation";
-import { validateBuildingWorkerDraft } from "../src/tiny-glade/parts/architecture/BuildingCpu";
+import { buildingPlacementAlgorithms } from "../src/building/parts/BuildingAlgorithms";
+import { European } from "../src/building/parts/architecture/European";
+import { designBuilding } from "../src/building/parts/architecture/BuildingDesign";
+import { implementBuilding } from "../src/building/parts/architecture/BuildingImplementation";
+import { validateBuildingWorkerDraft } from "../src/building/parts/architecture/BuildingCpu";
 import { constructionGeometry } from "./fixtures/constructionGeometry";
 
 const build = (draft: ReturnType<typeof European.buildHouses>) =>

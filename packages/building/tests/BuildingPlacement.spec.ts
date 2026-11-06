@@ -5,12 +5,12 @@ vi.mock("@galacean/engine", async () => ({
   ...(await import("@galacean/engine-math"))
 }));
 import { Entity, Vector3 } from "@galacean/engine";
-import { BuildingPartComponent } from "../src/tiny-glade/parts/architecture/BuildingPartComponent";
-import { European } from "../src/tiny-glade/parts/architecture/European";
+import { BuildingPartComponent } from "../src/building/parts/architecture/BuildingPartComponent";
+import { European } from "../src/building/parts/architecture/European";
 import {
   buildingPlacementFootprint,
   placeBuildingOnLand
-} from "../src/tiny-glade/components/BuildingPlacement";
+} from "../src/building/components/BuildingPlacement";
 
 // Detached native Entities need no renderer or Scene for transform/shape queries.
 function fixture() {

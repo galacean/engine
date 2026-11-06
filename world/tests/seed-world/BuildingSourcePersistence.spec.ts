@@ -1,5 +1,5 @@
-import { copyBuildingPrefab } from "@galacean/engine-building/tiny-glade/components/BuildingPrefab.ts";
-import { BuildingGroupComponent } from "@galacean/engine-building/tiny-glade/parts/architecture/BuildingGroupComponent.ts";
+import { copyBuildingPrefab } from "@galacean/engine-building/building/components/BuildingPrefab.ts";
+import { BuildingGroupComponent } from "@galacean/engine-building/building/parts/architecture/BuildingGroupComponent.ts";
 import { expect, it, vi } from "vitest";
 vi.mock("@galacean/engine", async () => ({
   ...(await import("@galacean/engine-core")),
@@ -9,18 +9,18 @@ vi.mock("@galacean/engine", async () => ({
 import { readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { Matrix, Quaternion, Vector3 } from "@galacean/engine-math";
-import { BuildingPartComponent } from "@galacean/engine-building/tiny-glade/parts/architecture/BuildingPartComponent.ts";
+import { BuildingPartComponent } from "@galacean/engine-building/building/parts/architecture/BuildingPartComponent.ts";
 import {
   collectBuildingParts,
   validatePartCollection
-} from "@galacean/engine-building/tiny-glade/parts/architecture/BuildingPartCollection.ts";
-import { designBuilding } from "@galacean/engine-building/tiny-glade/parts/architecture/BuildingDesign.ts";
-import { implementBuilding } from "@galacean/engine-building/tiny-glade/parts/architecture/BuildingImplementation.ts";
+} from "@galacean/engine-building/building/parts/architecture/BuildingPartCollection.ts";
+import { designBuilding } from "@galacean/engine-building/building/parts/architecture/BuildingDesign.ts";
+import { implementBuilding } from "@galacean/engine-building/building/parts/architecture/BuildingImplementation.ts";
 import { initialBuildingSource } from "@galacean/engine-world-planning/masonry/BuildingInitialSource.ts";
 import { buildingGenerationPlan } from "../../demos/building-components/BuildingGenerationFixture";
 import { nativeAssets } from "../../../packages/building/tests/fixtures/constructionAssets";
-import { buildBuildingRenderPackage } from "@galacean/engine-building/tiny-glade/runtime/BuildingRenderPackage.ts";
-import { buildingGlobals } from "@galacean/engine-building/tiny-glade/runtime/BuildingGlobals.ts";
+import { buildBuildingRenderPackage } from "@galacean/engine-building/building/runtime/BuildingRenderPackage.ts";
+import { buildingGlobals } from "@galacean/engine-building/building/runtime/BuildingGlobals.ts";
 
 const hash = (value: unknown) =>
   createHash("sha256")
@@ -128,7 +128,7 @@ it.each(["circle-circle", "gable-junction", "round-gothic"])(
   "current %s preset preserves render data through save/reload",
   async (name) => {
     const source = JSON.parse(
-      readFileSync(new URL(`../../../packages/building/src/tiny-glade/assets/prefabs/${name}.prefab`, import.meta.url), "utf8")
+      readFileSync(new URL(`../../../packages/building/src/building/assets/prefabs/${name}.prefab`, import.meta.url), "utf8")
     );
     await verifyCurrentSource(source);
   },
@@ -162,7 +162,7 @@ it.each(["disabled-group", "hidden-frame"])(
   "multi-instance Prefab preserves %s and visible render data through copy/save/reload",
   async (state) => {
     const original = JSON.parse(
-      readFileSync(new URL("../../../packages/building/src/tiny-glade/assets/prefabs/gable-junction.prefab", import.meta.url), "utf8")
+      readFileSync(new URL("../../../packages/building/src/building/assets/prefabs/gable-junction.prefab", import.meta.url), "utf8")
     );
     const a = copyBuildingPrefab(original, "a"),
       b = copyBuildingPrefab(original, "b");

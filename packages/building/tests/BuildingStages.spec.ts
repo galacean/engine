@@ -1,21 +1,21 @@
 import {
   buildingAuthorKey,
   buildingDesignKey
-} from "../src/tiny-glade/parts/architecture/BuildingDesignIdentity";
+} from "../src/building/parts/architecture/BuildingDesignIdentity";
 vi.mock("@galacean/engine", async () => ({
   ...(await import("@galacean/engine-core")),
   ...(await import("@galacean/engine-loader")),
   ...(await import("@galacean/engine-math"))
 }));
 import { describe, expect, it, vi } from "vitest";
-import { European } from "../src/tiny-glade/parts/architecture/European";
+import { European } from "../src/building/parts/architecture/European";
 import {
   combineBuildingDrafts,
   validateBuildingDraft
-} from "../src/tiny-glade/parts/architecture/BuildingDraft";
-import { designBuilding } from "../src/tiny-glade/parts/architecture/BuildingDesign";
-import { implementBuilding } from "../src/tiny-glade/parts/architecture/BuildingImplementation";
-import { buildingConnectionRules } from "../src/tiny-glade/parts/architecture/BuildingDesignRules";
+} from "../src/building/parts/architecture/BuildingDraft";
+import { designBuilding } from "../src/building/parts/architecture/BuildingDesign";
+import { implementBuilding } from "../src/building/parts/architecture/BuildingImplementation";
+import { buildingConnectionRules } from "../src/building/parts/architecture/BuildingDesignRules";
 import { constructionGeometry } from "./fixtures/constructionGeometry";
 describe("flat building generation, design and implementation", () => {
   it.each(["house", "tower", "connected", "window", "wall", "fence"])(

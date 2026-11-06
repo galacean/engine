@@ -1,7 +1,7 @@
-import "../src/tiny-glade/parts/supports/PointSupport";
-import "../src/tiny-glade/parts/algorithms/PlaceAtPoint";
-import { BuildingGroupComponent } from "../src/tiny-glade/parts/architecture/BuildingGroupComponent";
-import { buildingPartKey, buildingGroupKey } from "../src/tiny-glade/runtime/BuildingObjectIdentity";
+import "../src/building/parts/supports/PointSupport";
+import "../src/building/parts/algorithms/PlaceAtPoint";
+import { BuildingGroupComponent } from "../src/building/parts/architecture/BuildingGroupComponent";
+import { buildingPartKey, buildingGroupKey } from "../src/building/runtime/BuildingObjectIdentity";
 import { afterEach, expect, it, vi } from "vitest";
 vi.mock("@galacean/engine", async () => ({
   ...(await import("@galacean/engine-core")),
@@ -9,8 +9,8 @@ vi.mock("@galacean/engine", async () => ({
   ...(await import("@galacean/engine-math"))
 }));
 import { Matrix, Entity, Scene, ModelMesh, MeshRenderer, Vector2, Vector3, type Engine } from "@galacean/engine";
-import { BuildingManager } from "../src/tiny-glade/parts/architecture/BuildingManager";
-import { BuildingPartComponent } from "../src/tiny-glade/parts/architecture/BuildingPartComponent";
+import { BuildingManager } from "../src/building/parts/architecture/BuildingManager";
+import { BuildingPartComponent } from "../src/building/parts/architecture/BuildingPartComponent";
 import { RuntimeSceneInspection } from "@galacean/engine-runtime-editor/runtime-inspection/runtime-scene-inspection.ts";
 
 const scenes: Scene[] = [];
@@ -153,9 +153,9 @@ it("exposes live build status through the Agent's property-only runtime inspecti
 });
 
 import { PrefabResource } from "@galacean/engine";
-import { European } from "../src/tiny-glade/parts/architecture/European";
-import { validatePartCollection } from "../src/tiny-glade/parts/architecture/BuildingPartCollection";
-import { buildingInstanceKey } from "../src/tiny-glade/parts/architecture/BuildingRuntime";
+import { European } from "../src/building/parts/architecture/European";
+import { validatePartCollection } from "../src/building/parts/architecture/BuildingPartCollection";
+import { buildingInstanceKey } from "../src/building/parts/architecture/BuildingRuntime";
 
 it("scopes cloned prefab definitions, query handles and edits to their native frame", () => {
   const s = scene();
@@ -233,10 +233,10 @@ it("keeps local window names independent across houses and prefab instances", ()
   expect(manager.resolve(buildingInstanceKey(frame, buildingPartKey("window")))).toBeUndefined();
 });
 
-import { collectBuildingParts } from "../src/tiny-glade/parts/architecture/BuildingPartCollection";
-import { prepareBuilding } from "../src/tiny-glade/parts/architecture/BuildingPipeline";
-import "../src/tiny-glade/parts/supports/MeshSupport";
-import "../src/tiny-glade/parts/algorithms/SurfaceGrid";
+import { collectBuildingParts } from "../src/building/parts/architecture/BuildingPartCollection";
+import { prepareBuilding } from "../src/building/parts/architecture/BuildingPipeline";
+import "../src/building/parts/supports/MeshSupport";
+import "../src/building/parts/algorithms/SurfaceGrid";
 it("explicit mesh succeeds through actual collection and candidate pipeline", async () => {
   const e: any = {
     ...engine,
@@ -288,12 +288,12 @@ it("explicit mesh succeeds through actual collection and candidate pipeline", as
   }
 });
 
-import { designBuilding } from "../src/tiny-glade/parts/architecture/BuildingDesign";
-import { implementBuilding } from "../src/tiny-glade/parts/architecture/BuildingImplementation";
-import { buildingDraftSource } from "../src/tiny-glade/parts/architecture/BuildingSource";
+import { designBuilding } from "../src/building/parts/architecture/BuildingDesign";
+import { implementBuilding } from "../src/building/parts/architecture/BuildingImplementation";
+import { buildingDraftSource } from "../src/building/parts/architecture/BuildingSource";
 import { nativeAssets } from "./fixtures/constructionAssets";
-import { buildBuildingRenderPackage } from "../src/tiny-glade/runtime/BuildingRenderPackage";
-import { buildingGlobals } from "../src/tiny-glade/runtime/BuildingGlobals";
+import { buildBuildingRenderPackage } from "../src/building/runtime/BuildingRenderPackage";
+import { buildingGlobals } from "../src/building/runtime/BuildingGlobals";
 import { createHash } from "node:crypto";
 
 it("preserves every part binding and rendered bytes across all house part permutations", async () => {

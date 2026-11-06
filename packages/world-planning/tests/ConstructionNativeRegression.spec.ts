@@ -4,7 +4,7 @@ import { test } from "vitest";
 import type { Engine } from "@galacean/engine-core";
 import assert from "node:assert/strict";
 import { sameMasonryPlan } from "../src/masonry/MasonryPlanningOwnership";
-import { leaseResidentResource } from "@galacean/engine-building/tiny-glade/runtime/ResidentResourcePool.ts";
+import { leaseResidentResource } from "@galacean/engine-building/building/runtime/ResidentResourcePool.ts";
 const building = (id: string, x = 20) => ({
   id,
   regionId: "village",
@@ -48,7 +48,7 @@ test("shared immutable GPU leases survive one scene retirement and release only 
 });
 
 test("concave UV masks are partitioned without cutting the convex hull", async () => {
-  const { triangulateUVPolygon, area } = await import("@galacean/engine-building/tiny-glade/runtime/RecoveredRoofGeometry.ts");
+  const { triangulateUVPolygon, area } = await import("@galacean/engine-building/building/runtime/RecoveredRoofGeometry.ts");
   const p = [
       [0, 0],
       [3, 0],

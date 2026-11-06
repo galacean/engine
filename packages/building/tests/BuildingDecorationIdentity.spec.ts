@@ -1,10 +1,10 @@
 import {
   parseConstructionDecorations,
   type ConstructionDecorationSpec
-} from "../src/tiny-glade/runtime/ConstructionDecorations";
+} from "../src/building/runtime/ConstructionDecorations";
 import { describe, expect, it } from "vitest";
-import { validateBuildingDraft } from "../src/tiny-glade/parts/architecture/BuildingDraft";
-import { generatedDecorationSeed } from "../src/tiny-glade/runtime/ConstructionDecorationConfig";
+import { validateBuildingDraft } from "../src/building/parts/architecture/BuildingDraft";
+import { generatedDecorationSeed } from "../src/building/runtime/ConstructionDecorationConfig";
 const wallSpec: ConstructionDecorationSpec = {
   id: "window-0-0",
   kind: "window",

@@ -4,19 +4,19 @@ vi.mock("@galacean/engine", async () => ({
   ...(await import("@galacean/engine-loader")),
   ...(await import("@galacean/engine-math"))
 }));
-import { buildingDraftSource } from "../src/tiny-glade/parts/architecture/BuildingSource";
-import { European } from "../src/tiny-glade/parts/architecture/European";
-import { combineBuildingDrafts, type BuildingDraft } from "../src/tiny-glade/parts/architecture/BuildingDraft";
-import { copyBuildingPrefab } from "../src/tiny-glade/components/BuildingPrefab";
-import { designBuilding } from "../src/tiny-glade/parts/architecture/BuildingDesign";
-import { prepareBuildingPublication } from "../src/tiny-glade/parts/architecture/BuildingPublication";
-import { implementBuilding } from "../src/tiny-glade/parts/architecture/BuildingImplementation";
-import { constructionDecorationRecipe } from "../src/tiny-glade/runtime/ConstructionDecorationRecipe";
+import { buildingDraftSource } from "../src/building/parts/architecture/BuildingSource";
+import { European } from "../src/building/parts/architecture/European";
+import { combineBuildingDrafts, type BuildingDraft } from "../src/building/parts/architecture/BuildingDraft";
+import { copyBuildingPrefab } from "../src/building/components/BuildingPrefab";
+import { designBuilding } from "../src/building/parts/architecture/BuildingDesign";
+import { prepareBuildingPublication } from "../src/building/parts/architecture/BuildingPublication";
+import { implementBuilding } from "../src/building/parts/architecture/BuildingImplementation";
+import { constructionDecorationRecipe } from "../src/building/runtime/ConstructionDecorationRecipe";
 import { nativeAssets } from "./fixtures/constructionAssets";
 import { createHash } from "node:crypto";
-import { buildBuildingRenderPackage } from "../src/tiny-glade/runtime/BuildingRenderPackage";
-import { prepareBuildingCpu } from "../src/tiny-glade/parts/architecture/BuildingCpu";
-import { buildingGlobals } from "../src/tiny-glade/runtime/BuildingGlobals";
+import { buildBuildingRenderPackage } from "../src/building/runtime/BuildingRenderPackage";
+import { prepareBuildingCpu } from "../src/building/parts/architecture/BuildingCpu";
+import { buildingGlobals } from "../src/building/runtime/BuildingGlobals";
 
 const makeDraft = () =>
   European.buildHouses({

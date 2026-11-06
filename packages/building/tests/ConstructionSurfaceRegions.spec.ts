@@ -7,9 +7,9 @@ import {
   subtractSurfacePolygon,
   intersectSurfacePolygon,
   effectiveSurfaceRegions
-} from "../src/tiny-glade/runtime/SurfacePolygon";
-import { clean, intersect, subtractConvex } from "../src/tiny-glade/runtime/RecoveredRoofGeometry";
-import { clipPlasterSupport } from "../src/tiny-glade/runtime/ConstructionPlasterSupport";
+} from "../src/building/runtime/SurfacePolygon";
+import { clean, intersect, subtractConvex } from "../src/building/runtime/RecoveredRoofGeometry";
+import { clipPlasterSupport } from "../src/building/runtime/ConstructionPlasterSupport";
 
 describe("source clipping regions", () => {
   it.each([

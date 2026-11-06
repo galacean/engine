@@ -1,25 +1,25 @@
 import {
   buildingAuthorKey,
   buildingDesignKey
-} from "../src/tiny-glade/parts/architecture/BuildingDesignIdentity";
+} from "../src/building/parts/architecture/BuildingDesignIdentity";
 import { describe, expect, it, vi } from "vitest";
 vi.mock("@galacean/engine", async () => ({
   ...(await import("@galacean/engine-core")),
   ...(await import("@galacean/engine-loader")),
   ...(await import("@galacean/engine-math"))
 }));
-import { European } from "../src/tiny-glade/parts/architecture/European";
-import { designBuilding } from "../src/tiny-glade/parts/architecture/BuildingDesign";
-import { prepareBuildingPublication } from "../src/tiny-glade/parts/architecture/BuildingPublication";
-import { implementBuilding } from "../src/tiny-glade/parts/architecture/BuildingImplementation";
-import { buildingPlacementAlgorithms } from "../src/tiny-glade/parts/BuildingAlgorithms";
-import { mountAttachment } from "../src/tiny-glade/parts/algorithms/MountAttachment";
-import { constructionDecorationAssembly } from "../src/tiny-glade/runtime/ConstructionDecorationAssembly";
-import { constructionDecorationLights } from "../src/tiny-glade/runtime/ConstructionDecorationLightPolicy";
-import * as geometryProducer from "../src/tiny-glade/runtime/ConstructionDecorationGeometry";
-import { shapeCurve } from "../src/tiny-glade/runtime/RecoveredWallConnectionHoles";
-import { profileShape } from "../src/tiny-glade/runtime/ProfileGeometry";
-import { normalizeProfileFootprint } from "../src/tiny-glade/runtime/ProfileParameters";
+import { European } from "../src/building/parts/architecture/European";
+import { designBuilding } from "../src/building/parts/architecture/BuildingDesign";
+import { prepareBuildingPublication } from "../src/building/parts/architecture/BuildingPublication";
+import { implementBuilding } from "../src/building/parts/architecture/BuildingImplementation";
+import { buildingPlacementAlgorithms } from "../src/building/parts/BuildingAlgorithms";
+import { mountAttachment } from "../src/building/parts/algorithms/MountAttachment";
+import { constructionDecorationAssembly } from "../src/building/runtime/ConstructionDecorationAssembly";
+import { constructionDecorationLights } from "../src/building/runtime/ConstructionDecorationLightPolicy";
+import * as geometryProducer from "../src/building/runtime/ConstructionDecorationGeometry";
+import { shapeCurve } from "../src/building/runtime/RecoveredWallConnectionHoles";
+import { profileShape } from "../src/building/runtime/ProfileGeometry";
+import { normalizeProfileFootprint } from "../src/building/runtime/ProfileParameters";
 import { constructionGeometry } from "./fixtures/constructionGeometry";
 
 function fixture(type = "window-cottage", frameMaterial: "wood" | "wall" = "wood") {

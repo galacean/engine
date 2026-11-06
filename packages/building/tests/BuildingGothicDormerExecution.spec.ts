@@ -4,18 +4,18 @@ vi.mock("@galacean/engine", async () => ({
   ...(await import("@galacean/engine-loader")),
   ...(await import("@galacean/engine-math"))
 }));
-import { European } from "../src/tiny-glade/parts/architecture/European";
-import { designBuilding } from "../src/tiny-glade/parts/architecture/BuildingDesign";
-import { prepareBuildingPublication } from "../src/tiny-glade/parts/architecture/BuildingPublication";
-import { implementBuilding } from "../src/tiny-glade/parts/architecture/BuildingImplementation";
-import { buildingPlacementAlgorithms } from "../src/tiny-glade/parts/BuildingAlgorithms";
-import { profiledDormerCourses } from "../src/tiny-glade/parts/algorithms/ProfiledDormerCourses";
-import * as meshProducer from "../src/tiny-glade/runtime/ConstructionDecorationGeometry";
-import * as tileProducer from "../src/tiny-glade/runtime/GothicRoofTiles";
-import * as packer from "../src/tiny-glade/runtime/RecoveredRoofPlacement";
-import { constructionDecorationRecipe } from "../src/tiny-glade/runtime/ConstructionDecorationRecipe";
+import { European } from "../src/building/parts/architecture/European";
+import { designBuilding } from "../src/building/parts/architecture/BuildingDesign";
+import { prepareBuildingPublication } from "../src/building/parts/architecture/BuildingPublication";
+import { implementBuilding } from "../src/building/parts/architecture/BuildingImplementation";
+import { buildingPlacementAlgorithms } from "../src/building/parts/BuildingAlgorithms";
+import { profiledDormerCourses } from "../src/building/parts/algorithms/ProfiledDormerCourses";
+import * as meshProducer from "../src/building/runtime/ConstructionDecorationGeometry";
+import * as tileProducer from "../src/building/runtime/GothicRoofTiles";
+import * as packer from "../src/building/runtime/RecoveredRoofPlacement";
+import { constructionDecorationRecipe } from "../src/building/runtime/ConstructionDecorationRecipe";
 import { constructionGeometry } from "./fixtures/constructionGeometry";
-import type { ConstructionDecorationSpec } from "../src/tiny-glade/runtime/ConstructionDecorations";
+import type { ConstructionDecorationSpec } from "../src/building/runtime/ConstructionDecorations";
 
 function fixture(rank: 1 | 2 | 3 = 1, circle = false, stoneFrame = false, resized = false) {
   const recipe = constructionDecorationRecipe(constructionGeometry.decorations, "dormer-gothic", rank)!;

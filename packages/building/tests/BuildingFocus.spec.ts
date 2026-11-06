@@ -1,10 +1,10 @@
-import "../src/tiny-glade/parts/supports/PointSupport";
-import "../src/tiny-glade/parts/algorithms/PlaceAtPoint";
-import { BuildingGroupComponent } from "../src/tiny-glade/parts/architecture/BuildingGroupComponent";
+import "../src/building/parts/supports/PointSupport";
+import "../src/building/parts/algorithms/PlaceAtPoint";
+import { BuildingGroupComponent } from "../src/building/parts/architecture/BuildingGroupComponent";
 import { afterEach, expect, it, vi } from "vitest";
 import { Matrix, Entity, Scene, MeshRenderer, type Engine } from "@galacean/engine";
-import { BuildingManager } from "../src/tiny-glade/parts/architecture/BuildingManager";
-import { BuildingPartComponent } from "../src/tiny-glade/parts/architecture/BuildingPartComponent";
+import { BuildingManager } from "../src/building/parts/architecture/BuildingManager";
+import { BuildingPartComponent } from "../src/building/parts/architecture/BuildingPartComponent";
 
 const scenes: Scene[] = [];
 const engine = {
@@ -63,7 +63,7 @@ const upload = vi.hoisted(() => ({
   gate: undefined as Promise<void> | undefined,
   entered: undefined as (() => void) | undefined
 }));
-vi.mock("../src/tiny-glade/parts/architecture/BuildingRender", () => ({
+vi.mock("../src/building/parts/architecture/BuildingRender", () => ({
   renderBuilding: async (_input: unknown, options: any) => {
     const root = options.parent.createChild("native-render-output");
     upload.entered?.();
@@ -71,20 +71,20 @@ vi.mock("../src/tiny-glade/parts/architecture/BuildingRender", () => ({
     return { runtime: { root, draws: new Map() }, destroy: () => root.destroy() };
   }
 }));
-import { European } from "../src/tiny-glade/parts/architecture/European";
-import { designBuilding } from "../src/tiny-glade/parts/architecture/BuildingDesign";
+import { European } from "../src/building/parts/architecture/European";
+import { designBuilding } from "../src/building/parts/architecture/BuildingDesign";
 import {
   prepareBuildingPublication,
   buildingPreviewInput,
   buildingFocusPoses
-} from "../src/tiny-glade/parts/architecture/BuildingPublication";
-import { profilePreview } from "../src/tiny-glade/runtime/ProfilePreview";
-import { prepareBuildingCpu } from "../src/tiny-glade/parts/architecture/BuildingCpu";
+} from "../src/building/parts/architecture/BuildingPublication";
+import { profilePreview } from "../src/building/runtime/ProfilePreview";
+import { prepareBuildingCpu } from "../src/building/parts/architecture/BuildingCpu";
 import { constructionAssets, nativeAssets } from "./fixtures/constructionAssets";
-import { buildingDraftSource } from "../src/tiny-glade/parts/architecture/BuildingSource";
-import { copyBuildingPrefab } from "../src/tiny-glade/components/BuildingPrefab";
-import { buildingInstanceKey } from "../src/tiny-glade/parts/architecture/BuildingRuntime";
-import { buildingPartKey } from "../src/tiny-glade/runtime/BuildingObjectIdentity";
+import { buildingDraftSource } from "../src/building/parts/architecture/BuildingSource";
+import { copyBuildingPrefab } from "../src/building/components/BuildingPrefab";
+import { buildingInstanceKey } from "../src/building/parts/architecture/BuildingRuntime";
+import { buildingPartKey } from "../src/building/runtime/BuildingObjectIdentity";
 
 const house = (foundation = 0) =>
   European.buildHouses({
@@ -247,8 +247,8 @@ it("keeps focus with the accepted snapshot through failure, instance copy and re
   library.destroy();
 }, 30000);
 
-import { wallMountCurve, wallMountPoint } from "../src/tiny-glade/runtime/WallMountGeometry";
-import { profileShape } from "../src/tiny-glade/runtime/ProfileGeometry";
+import { wallMountCurve, wallMountPoint } from "../src/building/runtime/WallMountGeometry";
+import { profileShape } from "../src/building/runtime/ProfileGeometry";
 it("publishes translated Point-node mounts using the same solved installation as rendering", async () => {
   const { s, m } = setup(),
     library = constructionAssets();

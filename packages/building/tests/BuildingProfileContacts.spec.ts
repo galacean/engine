@@ -3,16 +3,16 @@ import {
   planProfileContacts,
   placeProfileContacts,
   type ProfileContactInputs
-} from "../src/tiny-glade/runtime/ProfileContacts";
-import { publishWallConnectionOwner } from "../src/tiny-glade/runtime/WallConnectionPipeline";
+} from "../src/building/runtime/ProfileContacts";
+import { publishWallConnectionOwner } from "../src/building/runtime/WallConnectionPipeline";
 import {
   profileShape,
   profileRoofGeometry,
   publishProfileWall
-} from "../src/tiny-glade/runtime/ProfileGeometry";
-import { normalizeProfileFootprint, normalizeProfileRoof } from "../src/tiny-glade/runtime/ProfileParameters";
-import { profileWallEnvelope } from "../src/tiny-glade/runtime/ConstructionWallEnvelope";
-import { isFlatRoofHeight } from "../src/tiny-glade/runtime/RoofMode";
+} from "../src/building/runtime/ProfileGeometry";
+import { normalizeProfileFootprint, normalizeProfileRoof } from "../src/building/runtime/ProfileParameters";
+import { profileWallEnvelope } from "../src/building/runtime/ConstructionWallEnvelope";
+import { isFlatRoofHeight } from "../src/building/runtime/RoofMode";
 
 const rectangle = (x: number, angle = 0) => ({ rectangle: { center: [x, 0], size: [8, 6], rotation: angle } });
 const cases = [

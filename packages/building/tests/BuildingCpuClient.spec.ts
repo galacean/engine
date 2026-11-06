@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { BuildingCpuClient } from "../src/tiny-glade/parts/architecture/BuildingCpuClient";
+import { BuildingCpuClient } from "../src/building/parts/architecture/BuildingCpuClient";
 class WorkerPort {
   static instances: WorkerPort[] = [];
   onmessage: ((event: any) => void) | null = null;

@@ -15,12 +15,12 @@ import {
   masonryFamilyTint,
   masonryTextureColors,
   masonryVertexTintTag
-} from "../src/tiny-glade/runtime/MasonryAppearance.ts";
-import { appendDecorationRenderPackage } from "../src/tiny-glade/runtime/ConstructionDecorationRender.ts";
-import { injectConstructionDecorationLighting } from "../src/tiny-glade/runtime/ConstructionDecorationLightShader.ts";
-import { masonrySourcePalette, masonryColorSeed } from "../src/tiny-glade/runtime/MasonryColorRules.ts";
-import { constructionPlasterFinishGLSL } from "../src/tiny-glade/runtime/ConstructionPlasterShader.ts";
-import { constructionDecorationGLSL } from "../src/tiny-glade/runtime/ConstructionDecorationShader.ts";
+} from "../src/building/runtime/MasonryAppearance.ts";
+import { appendDecorationRenderPackage } from "../src/building/runtime/ConstructionDecorationRender.ts";
+import { injectConstructionDecorationLighting } from "../src/building/runtime/ConstructionDecorationLightShader.ts";
+import { masonrySourcePalette, masonryColorSeed } from "../src/building/runtime/MasonryColorRules.ts";
+import { constructionPlasterFinishGLSL } from "../src/building/runtime/ConstructionPlasterShader.ts";
+import { constructionDecorationGLSL } from "../src/building/runtime/ConstructionDecorationShader.ts";
 
 test("white base preserves relative linear texture detail, layer white point and mip exposure", () => {
   const spec = { width: 2, height: 1, layers: 2, srgb: true };

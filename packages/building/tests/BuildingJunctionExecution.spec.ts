@@ -1,25 +1,25 @@
 import {
   buildingAuthorKey,
   buildingDesignKey
-} from "../src/tiny-glade/parts/architecture/BuildingDesignIdentity";
+} from "../src/building/parts/architecture/BuildingDesignIdentity";
 import { describe, expect, it, vi } from "vitest";
 vi.mock("@galacean/engine", async () => ({
   ...(await import("@galacean/engine-core")),
   ...(await import("@galacean/engine-loader")),
   ...(await import("@galacean/engine-math"))
 }));
-import { European } from "../src/tiny-glade/parts/architecture/European";
-import { designBuilding } from "../src/tiny-glade/parts/architecture/BuildingDesign";
-import { implementBuilding } from "../src/tiny-glade/parts/architecture/BuildingImplementation";
-import { prepareBuildingPublication } from "../src/tiny-glade/parts/architecture/BuildingPublication";
+import { European } from "../src/building/parts/architecture/European";
+import { designBuilding } from "../src/building/parts/architecture/BuildingDesign";
+import { implementBuilding } from "../src/building/parts/architecture/BuildingImplementation";
+import { prepareBuildingPublication } from "../src/building/parts/architecture/BuildingPublication";
 import {
   buildingPlacementAlgorithms,
   executeBuildingPlacement
-} from "../src/tiny-glade/parts/BuildingAlgorithms";
-import { BuildingPath } from "../src/tiny-glade/parts/BuildingLayout";
-import { roofMerlons } from "../src/tiny-glade/parts/algorithms/RoofMerlons";
-import { wallStitches } from "../src/tiny-glade/parts/algorithms/WallStitches";
-import { placeProfileContacts } from "../src/tiny-glade/runtime/ProfileContacts";
+} from "../src/building/parts/BuildingAlgorithms";
+import { BuildingPath } from "../src/building/parts/BuildingLayout";
+import { roofMerlons } from "../src/building/parts/algorithms/RoofMerlons";
+import { wallStitches } from "../src/building/parts/algorithms/WallStitches";
+import { placeProfileContacts } from "../src/building/runtime/ProfileContacts";
 import { constructionGeometry } from "./fixtures/constructionGeometry";
 
 function joined() {
