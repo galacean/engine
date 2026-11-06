@@ -6,7 +6,7 @@
 pnpm --dir world exec vitest run --config scripts/acceptance/seed-world-fixes.config.mjs
 ```
 
-该入口执行 `world/tests/seed-world` 的 6 个来源用例文件；仅调整迁移后的模块和资源地址，覆盖旧工程保存重开、植被闭包、主岩体与小石头调色隔离、颜色面板和项目关闭。它不替代下述全量迁移验收。
+该入口执行 `world/tests/seed-world` 的用例，其中依赖 Demo 的测试留在这里，其他测试放在对应包的 `packages/<name>/tests`。根目录 `vitest` 统一运行这些测试。这里原有的 6 个来源用例仅调整迁移后的模块和资源地址，覆盖旧工程保存重开、植被闭包、主岩体与小石头调色隔离、颜色面板和项目关闭。它不替代下述全量迁移验收。
 
 原项目默认位于相邻的 `engine-next`；原始源码为 `world/gallery`，可运行基线为 `world/.materialized/engine/world-gallery`。证据写入已忽略的 `world/.acceptance`，不发布到 Demo。
 
@@ -44,7 +44,7 @@ pnpm --dir world exec vitest run --config scripts/acceptance/seed-world-fixes.co
 `node --test world/scripts/acceptance/WorkerAssetUrl.test.mjs` 构建并启动真实 classic Worker，验证主线程/Worker 的同一资源 URL、动态依赖文件及根路径/嵌套部署。
 
 
-2026-11-04 口径更正：只恢复 engine-next 与迁移版的差异。不要修来源既有算法，不修改原断言或夹具来获得通过。历史续验中的额外行为修改已撤回，记录见 `world/migration/source-parity-2026-11-04.md`。
+2026-11-04 口径更正：只恢复 engine-next 与迁移版的差异。不要修来源既有算法，不修改原断言或夹具来获得通过。这条规则只约束从 `engine-next` 重新生成的本地来源一致性验收；已搬入各包的测试是当前行为的测试，随实现一起维护。历史续验中的额外行为修改已撤回，记录见 `world/migration/source-parity-2026-11-04.md`。
 
 - `audit-source-parity.mjs`：按全部迁移映射核对来源工作区、物化快照和目标；报告是差异定位证据，不等于渲染/性能证明。
 - `run-source-parity-unit.mjs <文件名...>`：以原断言逐文件串行运行来源和目标，保留独立日志、JSON、运行状态和未完成前最后用例；进程超时只记未完成。

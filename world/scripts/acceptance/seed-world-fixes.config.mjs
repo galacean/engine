@@ -8,8 +8,9 @@ export default {
   ...worldConfig,
   root: path.join(root, "world/tests/seed-world"),
   test: {
+    name: "@galacean/world-tests",
     environment: "node",
-    include: ["*.spec.ts"],
+    include: ["**/*.{spec,test}.{ts,mjs}"],
     setupFiles: [
       path.join(root, "world/scripts/acceptance/unit-setup.mjs"),
       path.join(root, "world/tests/seed-world/SeedWorldProjectTestSetup.ts")
