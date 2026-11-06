@@ -24,7 +24,7 @@ import {
   WebGLEngine,
   WebGLMode
 } from "@galacean/engine";
-import { describe, expect, it, vi } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { server } from "@vitest/browser/context";
 
 const { readFile } = server.commands;
@@ -50,6 +50,43 @@ describe("ShaderCompiler", async () => {
   it("create shaderCompiler", async () => {
     expect(shaderCompilerVerbose).not.be.null;
     expect(shaderCompilerRelease).not.be.null;
+  });
+
+  it.each([
+    ["release", ShaderLanguage.GLSLES100, shaderCompilerRelease],
+    ["release", ShaderLanguage.GLSLES300, shaderCompilerRelease],
+    ["verbose", ShaderLanguage.GLSLES100, shaderCompilerVerbose],
+    ["verbose", ShaderLanguage.GLSLES300, shaderCompilerVerbose]
+  ] as const)("preserves disabled bare fragment returns (%s, %s)", async (mode, language, compiler) => {
+    const fixtureEngine = await WebGLEngine.create({
+      canvas: document.createElement("canvas"),
+      shaderCompiler: compiler,
+      graphicDeviceOptions: {
+        webGLMode: language === ShaderLanguage.GLSLES100 ? WebGLMode.WebGL1 : WebGLMode.WebGL2
+      }
+    });
+    let shader: Shader | undefined;
+    try {
+      const source = `Shader "DisabledBareReturn${mode}${language}" {
+        SubShader "Default" { Pass "Forward" {
+          VertexShader = vert;
+          FragmentShader = frag;
+          void vert() { gl_Position = vec4(0.0); }
+          vec4 frag() {
+            #if 0
+              return;
+            #endif
+            return vec4(1.0);
+          }
+        } }
+      }`;
+      shader = Shader.create(source, language);
+      expect(shader.compileVariant(fixtureEngine, [])).to.be.true;
+      expect(compiler._precompile(source, language, "").subShaders[0].passes).to.have.length(1);
+    } finally {
+      shader?.destroy();
+      fixtureEngine.destroy();
+    }
   });
 
   it.each([ShaderLanguage.GLSLES100, ShaderLanguage.GLSLES300])(
@@ -785,17 +822,7 @@ describe("ShaderCompiler", async () => {
     expect(fragment).to.contain("normalize");
   });
 
-  /**
-   * Regression guard for the stage-scope fixes: hoisting helper structs must neither
-   * duplicate a top-level declaration nor drop a helper function.
-   *
-   * Two bugs motivated this:
-   *  - IO structs (Attributes/Varyings/MRT) were collected from function signatures and
-   *    re-emitted at the top of the stage, duplicating the declaration that
-   *    `_getCustomStruct` already emits. Duplicate `varying`/`attribute` is a GLSL error.
-   *  - `_walkMacroDefineTokens` stopped codegen-ing macro bodies, so globals referenced
-   *    only from a macro (e.g. `INVERSE_MAT` → `inverseMat`) were never emitted.
-   */
+  // Validate active declarations through runtime macro evaluation and native GLSL compilation
   describe("stage-scope struct and macro emission", () => {
     const builtInShaders = [
       "PBR.shader",
@@ -822,279 +849,192 @@ describe("ShaderCompiler", async () => {
       "Lighting/ScalableAmbientOcclusion.shader"
     ];
 
-    // The engine's own corpus must link in both stages. A struct emitted without the
-    // `#if` guards around its fields, or a helper emitted without its signature
-    // structs, surfaces here as an invalid shader program.
     it.each(builtInShaders)("%s links", async (fileName) => {
       const source = await readFile(`../packages/shader/src/Shaders/${fileName}`);
-      // `SSAO_QUALITY` selects the sample spiral; without it the AO fragment stage
-      // references `SAMPLE_COUNT`/`angleIncCosSin` from an inactive `#if` arm.
+      // SSAO_QUALITY selects the sample count and spiral angle
       glslValidate(engine, source, shaderCompilerRelease, [{ name: "SSAO_QUALITY", value: "1" }]);
     });
 
-    // GLSL allows function overloading, so a function's identity is its full signature
-    // (`inverseMat(mat2)` vs `inverseMat(mat3)` are distinct, legal declarations).
-    // Variables and structs are identified by name alone.
-    const DECLARATION_PATTERNS: [RegExp, (m: RegExpMatchArray) => string][] = [
-      [/attribute\s+\w+\s+(\w+)\s*;/g, (m) => m[1]],
-      [/varying\s+\w+\s+(\w+)\s*;/g, (m) => m[1]],
-      [/struct\s+(\w+)\s*\{/g, (m) => m[1]],
-      [
-        /\b(?:float|int|void|bool|vec[234]|mat[234]|ivec[234]|bvec[234])\s+(\w+)\s*\(([^)]*)\)\s*\{/g,
-        (m) => `${m[1]}(${m[2].replace(/\s+/g, " ").trim()})`
-      ]
+    const readShared = "Shared surface; surface.value = 1.0; return vec4(surface.value);";
+    const declarationCases = [
+      {
+        name: "mutually exclusive structs",
+        declarations: `
+          #ifdef FIRST
+            struct Shared { float value; };
+          #else
+            struct Shared { float value; };
+          #endif`,
+        body: readShared,
+        variants: [
+          { macros: [], valid: true },
+          { macros: ["FIRST"], valid: true }
+        ]
+      },
+      {
+        name: "independent struct branches",
+        declarations: `
+          #ifdef FIRST
+            struct Shared { float value; };
+          #endif
+          #ifdef SECOND
+            struct Shared { float value; };
+          #endif`,
+        body: readShared,
+        variants: [
+          { macros: ["FIRST"], valid: true },
+          { macros: ["SECOND"], valid: true },
+          { macros: ["FIRST", "SECOND"], valid: false }
+        ]
+      },
+      {
+        name: "custom return types",
+        declarations: `
+          struct BSDFData { float value; };
+          #ifdef FIRST
+            BSDFData shadeSurface(BSDFData data) { return data; }
+          #endif
+          #ifdef SECOND
+            BSDFData shadeSurface(BSDFData data) { return data; }
+          #endif`,
+        body: "BSDFData surface; surface.value = 1.0; return vec4(shadeSurface(surface).value);",
+        variants: [
+          { macros: ["FIRST"], valid: true },
+          { macros: ["SECOND"], valid: true },
+          { macros: ["FIRST", "SECOND"], valid: false }
+        ]
+      },
+      {
+        name: "function overloads",
+        declarations: `
+          float shade(float value) { return value; }
+          vec2 shade(vec2 value) { return value; }`,
+        body: "return vec4(shade(1.0), shade(vec2(1.0)), 1.0);",
+        variants: [{ macros: [], valid: true }]
+      },
+      {
+        name: "nested include guards",
+        declarations: `
+          #ifndef GUARD
+            #define GUARD
+            struct Shared { float value; };
+          #endif
+          #ifndef OUTER
+            #define OUTER
+            #ifndef GUARD
+              #define GUARD
+              struct Shared { float value; };
+            #endif
+          #endif`,
+        body: readShared,
+        variants: [{ macros: [], valid: true }]
+      },
+      {
+        name: "conditionally defined guards",
+        declarations: `
+          #ifndef GUARD
+            #ifdef ENABLE
+              #define GUARD
+            #endif
+            struct Shared { float value; };
+          #endif
+          #ifndef GUARD
+            struct Shared { float value; };
+          #endif`,
+        body: readShared,
+        variants: [
+          { macros: [], valid: false },
+          { macros: ["ENABLE"], valid: true }
+        ]
+      },
+      {
+        name: "else-arm guard definitions",
+        declarations: `
+          #ifndef GUARD
+            struct Shared { float value; };
+          #else
+            #define GUARD
+          #endif
+          #ifndef GUARD
+            struct Shared { float value; };
+          #endif`,
+        body: readShared,
+        variants: [{ macros: [], valid: false }]
+      },
+      ...["else", "elif defined(ENABLE)"].map((directive) => ({
+        name: `later guard ${directive} arms`,
+        declarations: `
+          #ifndef GUARD
+            #define GUARD
+            struct Shared { float value; };
+          #endif
+          #ifndef GUARD
+          #${directive}
+            struct Shared { float value; };
+          #endif`,
+        body: readShared,
+        variants: [
+          { macros: [], valid: directive !== "else" },
+          { macros: ["ENABLE"], valid: false }
+        ]
+      })),
+      {
+        name: "undefined guards",
+        declarations: `
+          #ifndef GUARD
+            #define GUARD
+            struct Shared { float value; };
+          #endif
+          #ifdef RESET_GUARD
+            #undef GUARD
+          #endif
+          #ifndef GUARD
+            #define GUARD
+            struct Shared { float value; };
+          #endif`,
+        body: readShared,
+        variants: [
+          { macros: [], valid: true },
+          { macros: ["RESET_GUARD"], valid: false }
+        ]
+      }
     ];
 
-    /**
-     * Reports possible duplicate declarations, accounting for mutually exclusive arms
-     * and include guards defined directly in their first arm.
-     */
-    const duplicatesUnderCompatibleGuards = (source: string) => {
-      type Frame = { cond: string; branch: number; ifndef?: string; definesGuard: boolean };
-      type Guard = { arms: { branch: number; frame: Frame }[]; label: string };
-
-      const stack: Frame[] = [];
-      const byName = new Map<string, Guard[]>();
-      const guard = (): Guard => ({
-        arms: stack.map((frame) => ({ branch: frame.branch, frame })),
-        label: stack.map((frame) => `${frame.cond}#${frame.branch}`).join(" && ") || "<unconditional>"
+    for (const language of [ShaderLanguage.GLSLES100, ShaderLanguage.GLSLES300]) {
+      let fixtureEngine: WebGLEngine;
+      beforeAll(async () => {
+        fixtureEngine = await WebGLEngine.create({
+          canvas: document.createElement("canvas"),
+          shaderCompiler: shaderCompilerRelease,
+          graphicDeviceOptions: {
+            webGLMode: language === ShaderLanguage.GLSLES100 ? WebGLMode.WebGL1 : WebGLMode.WebGL2
+          }
+        });
       });
-      const compatible = (left: Guard, right: Guard) => {
-        for (let i = 0, n = Math.min(left.arms.length, right.arms.length); i < n; i++) {
-          const a = left.arms[i];
-          const b = right.arms[i];
-          if (a.frame !== b.frame) break;
-          if (a.branch !== b.branch) return false;
-        }
-        return !left.arms.some(
-          (a) =>
-            a.branch === 0 &&
-            a.frame.ifndef &&
-            a.frame.definesGuard &&
-            right.arms.some((b) => b.branch === 0 && b.frame !== a.frame && b.frame.ifndef === a.frame.ifndef)
+      afterAll(() => fixtureEngine.destroy());
+
+      it.each(declarationCases)(`checks $name (${language})`, ({ name, declarations, body, variants }) => {
+        const shader = Shader.create(
+          `Shader "DeclarationVariants${language}" {
+            SubShader "Default" { Pass "Forward" {
+              VertexShader = vert;
+              FragmentShader = frag;
+              ${declarations}
+              void vert() { gl_Position = vec4(0.0); }
+              vec4 frag() { ${body} }
+            } }
+          }`,
+          language
         );
-      };
-
-      for (const line of source.split("\n")) {
-        const trimmed = line.trim();
-        if (/^#\s*if/.test(trimmed)) {
-          stack.push({
-            cond: trimmed,
-            branch: 0,
-            ifndef: /^#\s*ifndef\s+([A-Za-z_]\w*)/.exec(trimmed)?.[1],
-            definesGuard: false
-          });
-          continue;
-        }
-        if (/^#\s*elif/.test(trimmed)) {
-          if (stack.length) {
-            stack[stack.length - 1].branch++;
-            stack[stack.length - 1].cond += ` | ${trimmed}`;
-          }
-          continue;
-        }
-        if (/^#\s*else/.test(trimmed)) {
-          if (stack.length) stack[stack.length - 1].branch++;
-          continue;
-        }
-        if (/^#\s*endif/.test(trimmed)) {
-          stack.pop();
-          continue;
-        }
-
-        const defined = /^#\s*define\s+([A-Za-z_]\w*)/.exec(trimmed)?.[1];
-        if (defined) {
-          const frame = stack[stack.length - 1];
-          if (frame?.ifndef === defined && frame.branch === 0) {
-            frame.definesGuard = true;
-          }
-        }
-
-        for (const [pattern, key] of DECLARATION_PATTERNS) {
-          pattern.lastIndex = 0;
-          for (const match of line.matchAll(pattern)) {
-            const name = key(match);
-            let guards = byName.get(name);
-            if (!guards) byName.set(name, (guards = []));
-            guards.push(guard());
-          }
-        }
-      }
-
-      const duplicates: { key: string; left: string; right: string }[] = [];
-      for (const [key, guards] of byName) {
-        for (let i = 0; i < guards.length; i++) {
-          for (let j = i + 1; j < guards.length; j++) {
-            if (compatible(guards[i], guards[j])) {
-              duplicates.push({ key, left: guards[i].label, right: guards[j].label });
-            }
-          }
-        }
-      }
-      return duplicates;
-    };
-
-    const conditionalGuard = `
-      #ifndef GUARD
-        #ifdef ENABLE
-          #define GUARD
-        #endif
-        struct Shared { float value; };
-      #endif
-      #ifndef GUARD
-        struct Shared { float value; };
-      #endif`;
-
-    it("reports duplicate declarations when an include guard is only conditionally defined", () => {
-      expect(duplicatesUnderCompatibleGuards(conditionalGuard).map((duplicate) => duplicate.key)).to.deep.equal([
-        "Shared"
-      ]);
-    });
-
-    it("does not use an else-arm definition to guard the first arm", () => {
-      const source = `
-        #ifndef GUARD
-          struct Shared { float value; };
-        #else
-          #define GUARD
-        #endif
-        #ifndef GUARD
-          struct Shared { float value; };
-        #endif`;
-      expect(duplicatesUnderCompatibleGuards(source).map((duplicate) => duplicate.key)).to.deep.equal(["Shared"]);
-    });
-
-    it.each(["else", "elif defined(ENABLE)"])("does not skip a later guard's #%s arm", (directive) => {
-      const source = `
-        #ifndef GUARD
-          #define GUARD
-          struct Shared { float value; };
-        #endif
-        #ifndef GUARD
-        #${directive}
-          struct Shared { float value; };
-        #endif`;
-      expect(duplicatesUnderCompatibleGuards(source).map((duplicate) => duplicate.key)).to.deep.equal(["Shared"]);
-    });
-
-    it.each(["webgl", "webgl2"] as const)(
-      "%s rejects duplicate structs when the guard definition is inactive",
-      (api) => {
-        const canvas = document.createElement("canvas");
-        const gl = (api === "webgl2" ? canvas.getContext("webgl2") : canvas.getContext("webgl"))!;
-        expect(gl).not.to.be.null;
         try {
-          for (const enabled of [false, true]) {
-            const shader = gl.createShader(gl.FRAGMENT_SHADER)!;
-            const prefix =
-              api === "webgl2" ? "#version 300 es\nprecision highp float;\nout vec4 color;" : "precision highp float;";
-            gl.shaderSource(
-              shader,
-              `${prefix}\n${enabled ? "#define ENABLE" : ""}\n${conditionalGuard}
-              void main() { ${api === "webgl2" ? "color" : "gl_FragColor"} = vec4(1.0); }`
-            );
-            gl.compileShader(shader);
-            expect(gl.getShaderParameter(shader, gl.COMPILE_STATUS), gl.getShaderInfoLog(shader) ?? "").to.equal(
-              enabled
-            );
-            gl.deleteShader(shader);
+          for (const { macros, valid } of variants) {
+            expect(shader.compileVariant(fixtureEngine, macros), `${name}: ${macros.join(", ")}`).to.equal(valid);
           }
         } finally {
-          gl.getExtension("WEBGL_lose_context")?.loseContext();
+          shader.destroy();
         }
-      }
-    );
-
-    it("scanner flags only declarations whose guards can be active together", () => {
-      const unconditionalAndConditional = duplicatesUnderCompatibleGuards(
-        [
-          "struct SurfaceData { vec3 albedo; };",
-          "#ifdef NEED_TANGENT_SPACE",
-          "struct SurfaceData { vec3 tangent; };",
-          "#endif"
-        ].join("\n")
-      );
-      expect(unconditionalAndConditional.map((d) => d.key)).to.deep.equal(["SurfaceData"]);
-
-      const mutuallyExclusive = duplicatesUnderCompatibleGuards(
-        ["#ifdef A", "struct SurfaceData { vec3 a; };", "#else", "struct SurfaceData { vec3 b; };", "#endif"].join("\n")
-      );
-      expect(mutuallyExclusive).to.deep.equal([]);
-
-      const independentConditions = duplicatesUnderCompatibleGuards(
-        [
-          "#ifdef A",
-          "#else",
-          "struct SurfaceData { vec3 a; };",
-          "#endif",
-          "#ifdef B",
-          "struct SurfaceData { vec3 b; };",
-          "#endif"
-        ].join("\n")
-      );
-      expect(independentConditions.map((d) => d.key)).to.deep.equal(["SurfaceData"]);
-
-      const sameIncludeGuard = duplicatesUnderCompatibleGuards(
-        [
-          "#ifndef COMMON_INCLUDED",
-          "#define COMMON_INCLUDED",
-          "struct SurfaceData { vec3 a; };",
-          "struct SurfaceData { vec3 b; };",
-          "#endif"
-        ].join("\n")
-      );
-      expect(sameIncludeGuard.map((d) => d.key)).to.deep.equal(["SurfaceData"]);
-
-      // A header emitted twice, each copy behind its own include guard: the second copy is
-      // unreachable once the first defines the macro.
-      const includeGuarded = duplicatesUnderCompatibleGuards(
-        [
-          "#ifndef COMMON_INCLUDED",
-          "#define COMMON_INCLUDED",
-          "float sRGBToLinear ( float value ) { return value; }",
-          "#endif",
-          "#ifndef MOBILE_INCLUDED",
-          "#define MOBILE_INCLUDED",
-          "#ifndef COMMON_INCLUDED",
-          "#define COMMON_INCLUDED",
-          "float sRGBToLinear ( float value ) { return value; }",
-          "#endif",
-          "#endif"
-        ].join("\n")
-      );
-      expect(includeGuarded).to.deep.equal([]);
-    });
-
-    it.each(builtInShaders)("%s emits each top-level declaration once", async (fileName) => {
-      const source = await readFile(`../packages/shader/src/Shaders/${fileName}`);
-      const shaderSource = shaderCompilerRelease._parseShaderSource(source);
-
-      for (const subShader of shaderSource.subShaders) {
-        for (const passSource of subShader.passes) {
-          if (passSource.isUsePass) continue;
-          const parsed = shaderCompilerRelease._parseShaderPass(
-            passSource.contents,
-            passSource.vertexEntry,
-            passSource.fragmentEntry,
-            ShaderLanguage.GLSLES100
-          );
-          expect(parsed, `${fileName}: parse failed`).to.not.be.undefined;
-
-          for (const [stage, instructions] of [
-            ["vertex", parsed!.vertex],
-            ["fragment", parsed!.fragment]
-          ] as const) {
-            for (const duplicate of duplicatesUnderCompatibleGuards(instructions)) {
-              expect.fail(
-                `${fileName} ${subShader.name}.${passSource.name} ${stage}: ` +
-                  `"${duplicate.key}" declared twice under compatible guards ` +
-                  `(${duplicate.left}) and (${duplicate.right})`
-              );
-            }
-          }
-        }
-      }
-    });
+      });
+    }
 
     it("keeps helper functions referenced only from macro bodies", async () => {
       // `INVERSE_MAT` expands to `inverseMat(mat)` on the WebGL1 path. The definition is

@@ -220,7 +220,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
     fnSymbols.forEach((fnSymbol) => {
       const fnNode = fnSymbol.astNode;
       for (const returnStatement of fnNode.returnStatements) {
-        returnStatement.isFragReturnStatement = true;
+        returnStatement.isFragReturnStatement = returnStatement.children[1] instanceof ASTNode.Expression;
       }
 
       const { type: returnDataType, location: returnLocation } = fnNode.protoType.returnType;
