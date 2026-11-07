@@ -4,6 +4,42 @@ import { DEFAULT_ROCK } from "@galacean/engine-terrain/rock-formation/generator/
 // Only authoring parameters and world placements differ; no mesh templates.
 export const ROCK_SCENE_PRESETS = [
   {
+    id: "compound-cliff",
+    name: "双 OBB · 错层斜切岩壁",
+    range: "组合实验",
+    description: "移动第二个 OBB，观察岩肩、错台与共同外表面。两块均由同一个数学生成器生成。",
+    position: [35, 0, 20],
+    grass: { enabled: true, density: 2 },
+    parameters: {
+      ...DEFAULT_ROCK,
+      compound: true,
+      seed: 7841,
+      obbWidth: 12,
+      obbHeight: 18,
+      obbDepth: 9,
+      topScale: 0.96,
+      bottomScale: 1,
+      shoulderScale: 0.96,
+      shoulderHeight: 0.55,
+      topRoughness: 0.2,
+      topSlope: 12,
+      topDirection: 240,
+      wallStrength: 0.28,
+      wallProtrusion: 0.2,
+      wallCount: 10,
+      wallLength: 2.2,
+      blockWidth: 7,
+      blockHeight: 12,
+      blockDepth: 5.5,
+      blockX: 2.4,
+      blockY: -3,
+      blockZ: 3.8,
+      blockYaw: -9,
+      blockLean: -7,
+      planeCut: 0.18
+    }
+  },
+  {
     id: "near-boulder",
     name: "低矮圆肩石",
     range: "近景",

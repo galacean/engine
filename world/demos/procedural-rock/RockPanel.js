@@ -7,6 +7,15 @@ const storageKey = "procedural-rock-example-v1";
 const root = document.querySelector("#rock-lab"),
   statusLabel = document.querySelector("#status");
 const definitions = [
+  { key: "blockWidth", label: "第二块宽度", min: 1, max: 30, step: 0.1, group: "compound", unit: " m" },
+  { key: "blockHeight", label: "第二块高度", min: 1, max: 40, step: 0.1, group: "compound", unit: " m" },
+  { key: "blockDepth", label: "第二块深度", min: 1, max: 30, step: 0.1, group: "compound", unit: " m" },
+  { key: "blockX", label: "左右偏移", min: -20, max: 20, step: 0.1, group: "compound", unit: " m" },
+  { key: "blockY", label: "上下偏移", min: -20, max: 20, step: 0.1, group: "compound", unit: " m" },
+  { key: "blockZ", label: "前后偏移", min: -20, max: 20, step: 0.1, group: "compound", unit: " m" },
+  { key: "blockYaw", label: "第二块朝向", min: -180, max: 180, step: 1, group: "compound", unit: "°" },
+  { key: "blockLean", label: "第二块倾斜", min: -35, max: 35, step: 1, group: "compound", unit: "°" },
+  { key: "planeCut", label: "斜切面深度", min: 0, max: 0.35, step: 0.01, group: "compound", unit: "%" },
   { key: "obbWidth", label: "OBB 宽度", min: 1, max: 80, step: 0.1, group: "obb", unit: " m" },
   { key: "obbHeight", label: "OBB 高度", min: 1, max: 120, step: 0.1, group: "obb", unit: " m" },
   { key: "obbDepth", label: "OBB 深度", min: 1, max: 80, step: 0.1, group: "obb", unit: " m" },
@@ -229,12 +238,13 @@ function updateStatus() {
   document.querySelector("#scene-stats").textContent =
     `场景 ${complete}/${rocks.size} 块已就绪 · 岩石共 ${triangleCount.toLocaleString()} 三角形`;
   const readyMeshes = entries.filter((rock) => rock.mesh && rock.appliedId === rock.requestId && !rock.error);
-  const projected = readyMeshes.length
-    ? Math.ceil((readyMeshes.reduce((sum, rock) => sum + rock.mesh.stats.triangles, 0) / readyMeshes.length) * 100)
+  const readyOBBs = readyMeshes.reduce((sum, rock) => sum + (rock.mesh.stats.guides || 1), 0);
+  const projected = readyOBBs
+    ? Math.ceil((readyMeshes.reduce((sum, rock) => sum + rock.mesh.stats.triangles, 0) / readyOBBs) * 100)
     : 0;
   const budgetLabel = document.querySelector("#scene-budget");
   budgetLabel.textContent = readyMeshes.length
-    ? `按当前 ${readyMeshes.length} 块均值推算：100 块约 ${projected.toLocaleString()} / 100,000 三角形（仅岩石）`
+    ? `按当前 ${readyOBBs} 个 OBB 均值推算：100 个约 ${projected.toLocaleString()} / 100,000 三角形（仅岩石）`
     : "正在计算岩石预算…";
   budgetLabel.classList.toggle("limit-note", projected > 100000);
   budgetLabel.dataset.triangles = triangleCount;
@@ -379,6 +389,9 @@ function renderSelection() {
   inspection.bounds = mesh?.bounds || null;
   inspection.envelopeBounds = mesh?.envelopeBounds || null;
   inspection.composition = mesh?.composition || null;
+  document.querySelector("#compound-stats").textContent = mesh?.stats.guides
+    ? `${mesh.stats.guides} 个 OBB → ${mesh.stats.componentCount} 个连通体 · 并集 ${mesh.stats.unionMs.toFixed(1)} ms · 输入 ${mesh.stats.inputTriangles} 面 → ${mesh.stats.triangles} 面${mesh.stats.sharpEdges ? " · 交界仍有锐转折，待修正" : ""}`
+    : "";
   drawComposition();
   renderGrassStats();
   document.querySelector("#generated-stats").textContent = mesh
@@ -413,7 +426,7 @@ function renderSelection() {
 }
 const rockList = document.querySelector("#rock-list"),
   rockSelect = document.querySelector("#rock-select");
-for (const range of ["近景", "中景", "远景"]) {
+for (const range of new Set(ROCK_SCENE_PRESETS.map((preset) => preset.range))) {
   const group = document.createElement("div");
   group.className = "rock-group";
   const label = document.createElement("h3");
@@ -529,12 +542,14 @@ function syncInputs() {
     { parameters, surface, grass } = rock;
   for (const d of definitions) {
     const { input, output } = inputs.get(d.key);
+    if (d.group === "compound" && !parameters.compound) continue;
     input.value = parameters[d.key];
     output.value =
       d.unit === "%"
         ? `${Math.round(parameters[d.key] * 100)}%`
         : `${parameters[d.key].toFixed(d.step === 1 ? 0 : 2)}${d.unit || ""}`;
   }
+  document.querySelector("#compound-section").hidden = !parameters.compound;
   document.querySelector("#mesh-reduction").checked = rock.reduction.enabled;
   document.querySelector("#mesh-error").value = rock.reduction.error;
   document.querySelector("#mesh-error").disabled = !rock.reduction.enabled || rock.reduction.targetTriangles > 0;

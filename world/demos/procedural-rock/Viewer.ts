@@ -62,6 +62,7 @@ interface IncomingMesh {
   bounds: Bounds;
   envelopeBounds?: Bounds;
   surfaceRoles?: Float32Array | number[];
+  guideBoxes?: number[][][];
 }
 interface RockDescriptor {
   rockId: string;
@@ -94,6 +95,7 @@ interface RockState {
   surface?: GrassCoveredSurface;
   rock?: OwnedMesh;
   guide?: OwnedMesh;
+  guideBoxes?: number[][][];
   wire?: OwnedMesh;
 }
 interface OwnedMesh {
@@ -382,16 +384,25 @@ async function main(): Promise<void> {
           const [lo, hi] = envelope,
             positions: number[] = [],
             edges: number[] = [];
-          for (let top = 0; top < 2; top++)
-            for (const [x, z] of [
-              [lo[0], lo[2]],
-              [hi[0], lo[2]],
-              [hi[0], hi[2]],
-              [lo[0], hi[2]]
-            ]) {
-              positions.push(x, top ? hi[1] : lo[1], z);
+          if (rock.guideBoxes) {
+            for (const box of rock.guideBoxes) {
+              const base = positions.length / 3;
+              for (const point of box) positions.push(...point);
+              for (let i = 0; i < 8; i++)
+                for (const bit of [1, 2, 4]) if (!(i & bit)) edges.push(base + i, base + (i | bit));
             }
-          for (let i = 0; i < 4; i++) edges.push(i, (i + 1) % 4, i + 4, ((i + 1) % 4) + 4, i, i + 4);
+          } else {
+            for (let top = 0; top < 2; top++)
+              for (const [x, z] of [
+                [lo[0], lo[2]],
+                [hi[0], lo[2]],
+                [hi[0], hi[2]],
+                [lo[0], hi[2]]
+              ]) {
+                positions.push(x, top ? hi[1] : lo[1], z);
+              }
+            for (let i = 0; i < 4; i++) edges.push(i, (i + 1) % 4, i + 4, ((i + 1) % 4) + 4, i, i + 4);
+          }
           rock.guide = uploadLines(
             engine,
             root,
@@ -573,6 +584,13 @@ async function main(): Promise<void> {
           rock.guide = rock.wire = undefined;
           rock.surface = next;
           rock.envelope = next.envelopeBounds ?? next.bounds;
+          rock.guideBoxes = command.mesh.guideBoxes?.map((box) =>
+            box.map((point) => [
+              point[0] + rock.position[0],
+              point[1] - command.mesh.bounds[0][1] + rock.position[1],
+              point[2] + rock.position[2]
+            ])
+          );
           if (Number.isFinite(command.seed)) rock.seed = command.seed!;
           updateDisplay();
           updateGrass(rock, command.id);
