@@ -1323,9 +1323,11 @@ namespace ASTNodes {
           this.type = id.typeInfo ?? TypeAny;
         } else {
           switch ((<BaseToken>id).type) {
-            case ETokenType.INT_CONSTANT:
-              this._type = Keyword.INT;
+            case ETokenType.INT_CONSTANT: {
+              const literal = (<BaseToken>id).lexeme;
+              this._type = literal.endsWith("u") || literal.endsWith("U") ? Keyword.UINT : Keyword.INT;
               break;
+            }
             case ETokenType.FLOAT_CONSTANT:
               this.type = Keyword.FLOAT;
               break;
