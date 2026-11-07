@@ -1,4 +1,4 @@
-import { expect, it } from "vitest";
+import { expect, it, vi } from "vitest";
 import { createAgentProjectFiles } from "@galacean/engine-ai-chat/ai-chat/agent-project-files.ts";
 import { posix } from "node:path";
 import { withNativeEditingKnowledge } from "../src/runtime-editor-agent/runtime-native-knowledge";
@@ -8,6 +8,8 @@ import { engineRuntimeFiles } from "../src/runtime-editor-agent/engine-runtime-f
 import { AgentJavaScriptChecker } from "@galacean/engine-ai-chat/ai-chat/agent-script-checker.ts";
 import { agentTypecheckLibraries } from "@galacean/engine-ai-chat/script-checking/typecheck-libraries.ts";
 import { FARMING_SYSTEM_EDITOR_DECLARATION } from "@galacean/engine-farming/farming/native/FarmingAPIDeclarations.ts";
+import { composeAgentConfiguration } from "@galacean/engine-ai-chat/ai-chat/agent-extensions.ts";
+import { createRetrievalAgentExtension } from "../src/retrieval-agent";
 
 it("resolves native knowledge links and declaration imports in the unified project", () => {
   const catalog = withNativeEditingKnowledge({ hostNotes: "# Native", entries: [], modules: [{ id: "declare/tools.d.ts", source: "declare const tools: Readonly<Record<never, never>>;", imports: [] }] });
@@ -15,7 +17,6 @@ it("resolves native knowledge links and declaration imports in the unified proje
   for (const document of catalog.documents!.filter(doc => doc.path.endsWith(".md"))) {
     for (const match of document.content.matchAll(/\[[^\]]+\]\(([^)]+)\)/g)) {
       const target = match[1].split("#")[0];
-      if (target === "skills/assets/search-cloud/SKILL.md") continue;
       expect(paths.has(target) || paths.has(posix.normalize(posix.join(posix.dirname(document.path), target))), `${document.path} -> ${target}`).toBe(true);
     }
   }
@@ -90,7 +91,6 @@ it("publishes the editor skill with matching metadata, readable links and protec
   for (const [path, content] of agentSkillFiles(catalog.skills!)) {
     for (const match of content.matchAll(/\[[^\]]+\]\(([^)]+)\)/g)) {
       const link = match[1].split("#")[0];
-      if (link === "skills/assets/search-cloud/SKILL.md") continue;
       const target = paths.has(link) ? link : posix.normalize(posix.join(posix.dirname(path), link));
       expect(paths.has(target), `${path} -> ${target}`).toBe(true);
       expect(files.read(path)).toContain(target);
@@ -99,4 +99,17 @@ it("publishes the editor skill with matching metadata, readable links and protec
   for (const path of ["skills", "skills.meta", "skills/a/SKILL.md", "skills/a.mesh"]) {
     expect(() => assertAssetPath(path)).toThrow();
   }
+});
+
+it.each([true, false])("publishes the cloud asset route only when retrieval is mounted (%s)", (mounted) => {
+  const link = "skills/assets/search-cloud/SKILL.md";
+  const scriptApi = withNativeEditingKnowledge({ hostNotes: "# Editor", entries: [], modules: [] });
+  const retrieval = createRetrievalAgentExtension({ searchAssets: vi.fn(), readAssetDescriptions: vi.fn(), readText: vi.fn() });
+  const { definition } = composeAgentConfiguration({ tools: [], definition: { toolNames: [], scriptApi } }, mounted ? [retrieval] : []);
+  const files = createAgentProjectFiles(definition.scriptApi, [engineRuntimeFiles()]);
+  expect(definition.nativeReadTools!.some(tool => tool.definition.function.name === "search_assets")).toBe(mounted);
+  expect(definition.scriptApi.hostNotes!.includes(link)).toBe(mounted);
+  expect(files.kind(link) === "file").toBe(mounted);
+  // Only the host note may route to the document, so the generic guide stays valid without retrieval.
+  for (const [path, content] of agentSkillFiles(scriptApi.skills!)) expect(content, path).not.toContain(link);
 });

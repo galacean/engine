@@ -8,7 +8,7 @@
   },
   "scripts": {
     "preinstall": "npx only-allow pnpm",
-    "pretest": "vitest --version && playwright install --with-deps chromium",
+    "pretest": "vitest --version && playwright install --with-deps chromium && (node -e \"process.exit(require('fs').existsSync('packages/modify/.cache/sources.ts') ? 0 : 1)\" || pnpm --dir world prepare:engine)",
     "test": "vitest",
     "coverage": "cross-env HEADLESS=true vitest --coverage",
     "examples": "pnpm --filter @galacean/engine-examples dev",

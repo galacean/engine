@@ -11,6 +11,7 @@ import { FARMING_API_DECLARATION } from "../../src/farming/native/FarmingAPIDecl
 import { FARMING_METHOD_DOCS } from "../../src/farming/native/FarmingMethodDocs";
 import { FARMING_API_CONTRACT } from "../../src/farming/native/FarmingAPIContract";
 import { createFarmingAgentPackage } from "../../src/farming/native/FarmingAgent";
+import { createAgentProjectFiles } from "@galacean/engine-ai-chat/ai-chat/agent-project-files.ts";
 import { MemoryFarmRepository } from "../../src/farming/persistence/MemoryFarmRepository";
 import { TEST_FARMING_DEFINITIONS, TEST_GROUND_PROVIDER } from "../fixtures/fixtures";
 import { FARMING_INSTRUCTION_CASES, replayFarmingInstruction } from "./FarmingInstructionSuite";
@@ -121,6 +122,17 @@ describe("native farming contracts and state", () => {
         { signal: new AbortController().signal }
       )
     ).rejects.toMatchObject({ code: "CROP_NOT_FOUND", executed: false });
+  });
+
+  it("tells the Agent reading operations.md to use the area proxy instead of the system examples", async () => {
+    const f = await create();
+    const { documents } = createFarmingAgentPackage(f.api).definition.scriptApi;
+    const files = createAgentProjectFiles({ hostNotes: "", entries: [], modules: [], documents }, []);
+    const operations = files.read("skills/farming/references/operations.md");
+    expect(operations.startsWith("> 当前宿主通过 FarmingAreaComponent 操作农场。")).toBe(true);
+    const overview = "skills/farming/references/overview.md";
+    expect(operations).toContain(overview);
+    expect(files.read(overview)).toContain("FarmingAreaComponent");
   });
 
   it("rejects unknown fields and IDs, and distinguishes unsupported host capabilities", async () => {

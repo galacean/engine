@@ -46,7 +46,7 @@ describe("Seed World progressive knowledge", () => {
       const content = files.read(path);
       for (const match of content.matchAll(/\[[^\]]+\]\(<?([^)\s>]+)>?(?:\s+"[^"]*")?\)/g)) {
         const target = match[1];
-        if (/^(?:[a-z]+:|#)/i.test(target) || target === "skills/assets/search-cloud/SKILL.md") continue;
+        if (/^(?:[a-z]+:|#)/i.test(target)) continue;
         expect(files.kind(target), `${path} -> ${target}`).toBe("file");
         await expect(files.readFilesAsync([target]), `${path} -> ${target}`).resolves.toHaveLength(1);
         count++;
