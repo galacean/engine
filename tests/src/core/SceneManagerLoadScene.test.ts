@@ -27,6 +27,26 @@ describe("SceneManager.loadScene", () => {
     engine.destroy();
   });
 
+  it("reloads the same URL into a fresh usable runtime scene", async () => {
+    const request = vi
+      .spyOn(engine.resourceManager as any, "_request")
+      .mockReturnValue(AssetPromise.resolve(sceneFile) as any);
+
+    try {
+      const first = await engine.sceneManager.loadScene("main.scene");
+      const second = await engine.sceneManager.loadScene("main.scene");
+
+      expect(first).not.toBe(second);
+      expect(first.destroyed).toBe(true);
+      expect(second.destroyed).toBe(false);
+      expect(second.rootEntities).toHaveLength(1);
+      expect(second.rootEntities[0].name).toBe("root");
+      expect(engine.sceneManager.activeScene).toBe(second);
+    } finally {
+      request.mockRestore();
+    }
+  });
+
   it("loads overlapping same-URL requests into independent scenes", async () => {
     const resolves: ((value: SceneFile) => void)[] = [];
     const request = vi
