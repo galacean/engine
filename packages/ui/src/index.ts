@@ -72,7 +72,7 @@ ApplyMixins(Entity, [EntityExtension]);
  * Register GUI components for the editor.
  */
 export function registerGUI() {
-  for (let key in GUIComponent) {
+  for (const key in GUIComponent) {
     Loader.registerClass(key, GUIComponent[key]);
   }
   _getOrCreateUIShader();
