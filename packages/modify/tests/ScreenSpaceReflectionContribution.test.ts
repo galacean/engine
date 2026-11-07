@@ -10,6 +10,7 @@ import {
   Shader,
   ShaderLanguage,
   ScreenSpaceReflection as SSR,
+  type ScreenSpaceReflectionPass,
   ScreenSpaceReflectionContent as Content,
   Texture2D,
   TextureFormat,
@@ -17,6 +18,9 @@ import {
   WebGLEngine
 } from "@galacean/engine";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
+import type { HeightfieldWaterDescriptorV1 } from "../../water/src/water/authoring/heightfield/HeightfieldWaterDescriptor";
+import { WaterQualityTier } from "../../water/src/water/authoring/wave/enums/WaterQualityTier";
+import { WaterWaveModel } from "../../water/src/water/authoring/wave/enums/WaterWaveModel";
 import PBRSource from "../src/native/shader/src/Shaders/PBR.shader?raw";
 import { afterAll, beforeAll, expect, it, vi } from "vitest";
 let engine: WebGLEngine;
@@ -199,13 +203,23 @@ it("renders all receive/contribute combinations with correct alpha, opaque occlu
   blue.contributeScreenSpaceReflection = true;
   back.setMaterial(blue);
   const normalForward = render();
-  const pass = (camera as any)._renderPipeline._screenSpaceReflectionPass;
+  const pass = (
+    camera as unknown as {
+      _renderPipeline: {
+        _screenSpaceReflectionPass: Pick<ScreenSpaceReflectionPass, "captureContributions"> & {
+          _contributionTarget: RenderTarget | null;
+        };
+      };
+    }
+  )._renderPipeline._screenSpaceReflectionPass;
   const capture = pass.captureContributions;
   let captured: Uint8Array;
-  pass.captureContributions = function (...args: any[]) {
+  let capturedSRGB = false;
+  pass.captureContributions = function (...args: Parameters<typeof capture>) {
     capture.apply(this, args);
+    capturedSRGB = this._contributionTarget!.getColorTexture(0)!.isSRGBColorSpace;
     captured = new Uint8Array(256 * 256 * 4);
-    this._contributionTarget.getColorTexture(0).getPixelBuffer(0, 0, 256, 256, 0, captured);
+    (this._contributionTarget!.getColorTexture(0) as Texture2D).getPixelBuffer(0, 0, 256, 256, 0, captured);
   };
   scene.screenSpaceReflection.activationMode = 1;
   try {
@@ -213,7 +227,12 @@ it("renders all receive/contribute combinations with correct alpha, opaque occlu
   } finally {
     pass.captureContributions = capture;
   }
-  // One additional RGBA8 capture can round a channel by one byte (e.g. 0.3 -> 76/77).
+  // Compare linear values: the capture preserves source sRGB encoding, while this output is linear.
+  if (capturedSRGB) {
+    for (let i = 0; i < captured!.length; i++) {
+      if (i % 4 !== 3) captured![i] = Math.round(Color.gammaToLinearSpace(captured![i] / 255) * 255);
+    }
+  }
   const maximumError = captured!.reduce(
     (maximum, value, index) => Math.max(maximum, Math.abs(value - normalForward[index])),
     0
@@ -241,9 +260,9 @@ it("renders all receive/contribute combinations with correct alpha, opaque occlu
   green.destroy();
 
   // Contribution allocation failure retains the valid opaque reflection path.
-  const pool = (engine as any)._renderTargetPool;
+  const pool = engine._renderTargetPool;
   const allocate = pool.allocateRenderTarget;
-  pool.allocateRenderTarget = function (...args: any[]) {
+  pool.allocateRenderTarget = function (...args: Parameters<typeof allocate>) {
     if (args[4] && args[5]) throw new Error("injected contribution allocation failure");
     return allocate.apply(this, args);
   };
@@ -257,7 +276,7 @@ it("renders all receive/contribute combinations with correct alpha, opaque occlu
     "screen-space-reflection-contribution-unavailable"
   );
   expect(camera.screenSpaceReflection.metrics.tracePassCount).toBeGreaterThan(0);
-  expect((engine as any)._hardwareRenderer._gl.getError()).toBe(0);
+  expect(engine._hardwareRenderer.gl.getError()).toBe(0);
   rt.destroy();
   output.destroy();
   scene.destroy();
@@ -293,152 +312,201 @@ it("verifies Heightfield and River Auto rendering, contribution and lifecycle", 
     riverQualityPlanIdForQuality
   } = await import("../../water/src/water/authoring/river/RiverWaterBodyAuthoring");
   const { RiverQualityLevel } = await import("../../water/src/water/authoring/river/RiverAuthoringEnums");
-  for (const family of ["heightfield", "river"] as const) {
-    const scene = new Scene(engine);
-    engine.sceneManager.activeScene = scene;
-    const camera = scene.createRootEntity("water-camera").addComponent(Camera);
-    camera.entity.transform.setPosition(3, family === "river" ? 1.5 : 3, 6);
-    camera.entity.transform.lookAt(new Vector3(0, 0, 0));
-    const output = new Texture2D(engine, 256, 256, TextureFormat.R8G8B8A8, false, false);
-    const target = new RenderTarget(engine, 256, 256, output, TextureFormat.Depth24);
-    camera.renderTarget = target;
-    const cube = scene.createRootEntity("reflection-target").addComponent(MeshRenderer);
-    cube.mesh = PrimitiveMesh.createCuboid(engine, 1.5, 1.5, 1.5);
-    cube.entity.transform.setPosition(0, 1, 0);
-    const cubeMaterial = new PBRMaterial(engine);
-    cubeMaterial.emissiveColor.set(1, 0, 0, 1);
-    cube.setMaterial(cubeMaterial);
-    const renderPixels = () => {
-      engine.update();
-      const pixels = new Uint8Array(256 * 256 * 4);
-      output.getPixelBuffer(0, 0, 256, 256, 0, pixels);
-      return pixels;
-    };
-    const waterRoot = scene.createRootEntity("water");
-    const host = new WaterSceneRuntimeHost({
-      engine,
-      root: waterRoot,
-      camera,
-      reflection: { cullingMask: 0xffffffff }
-    });
-    const backend = family === "heightfield" ? new HeightfieldWaterBackend() : new RiverWaterBackend();
-    host.registerBackend(backend);
-    host.registerRuntimeResource(createLakeNormalResourceFactory(engine));
-    const descriptor: any = {
-      schemaVersion: 1,
-      id: "ssr-water",
-      grid: { originXZ: [-3.5, -3.5], cellSizeXZ: [1, 1], width: 8, height: 8 },
-      wetTexelIndices: Uint32Array.from({ length: 64 }, (_, i) => i),
-      surfaceHeights: new Float32Array(64),
-      bedHeights: new Float32Array(64).fill(-2),
-      quality: "high",
-      waveAsset: { schemaVersion: 1, model: "none" },
-      surfaceMotion: { waveStrength: 0, shoreDampingWidth: 1 },
-      spatialField: { signedDistanceRange: 8 }
-    };
-    const quality = createWaterQualityPlanV2({
-      id: "runtime-quality",
-      geometry: "high",
-      surfaceShading: "high",
-      sceneFields: "scene-color-depth",
-      reflectionBudget: { environment: true, screenSpace: true },
-      query: "off",
-      spatialField: createLakeSpatialFieldBudget(descriptor)
-    });
-    host.registerAuthoringOnce("water-look", "test-v1", (assets) => {
-      registerLakeWaterLook(assets);
-      assets.registerQualityPlan(quality);
-      registerRiverWaterBodyPresets(assets);
-    });
-    const representationData = createHeightfieldWaterRepresentationDataV1(descriptor);
-    const asset =
-      family === "river"
-        ? createRiverWaterBodyAsset(
-            createRiver({
-              id: "ssr-river",
-              width: 8,
-              depth: 2,
-              points: [
-                { id: "upstream", position: [0, 0, -4] },
-                { id: "downstream", position: [0, 0, 4] }
-              ]
-            })
-          )
-        : createWaterBodyAsset({
-            id: "ssr-water",
-            kind: "lake",
-            representation: { domain: "bounded-grid", macroSurface: "heightfield" },
-            source: {
-              schemaVersion: 1,
-              kind: "grid-mask",
-              descriptor: createHeightfieldWaterBodySourceDescriptorV1(descriptor),
-              capabilities: { localBathymetry: true, shoreSdf: true, current: false }
-            },
-            sourceHash: computeHeightfieldWaterPhysicalSourceHash(descriptor),
-            representationData,
-            representationDataHash: hashStableValue(representationData)
-          });
-    const transaction = host.beginBodySetTransaction();
-    transaction.stage({
-      bodyId: "water",
-      asset,
-      instance: createWaterBodyInstance({
-        id: "water",
-        assetId: asset.id,
-        lookPresetId: family === "river" ? RIVER_CANONICAL_LOOK_PRESET_ID : LAKE_WATER_LOOK_PRESET_ID,
-        qualityPlanId: family === "river" ? riverQualityPlanIdForQuality(RiverQualityLevel.High) : quality.id,
-        visible: true,
-        priority: 0,
-        transform: { position: [0, 0, 0], yawDegrees: 0, scaleXZ: [1, 1] },
-        interaction: { query: false, buoyancy: false, wake: false }
-      }),
-      createRuntimeContext: (root) => ({ engine, root, surfaceTimeOverride: 0 })
-    });
-    try {
-      await transaction.commit();
-      for (let i = 0; i < 3; i++) engine.update();
-      expect(camera.screenSpaceReflection.metrics.requestedByConsumers).toBe(true);
-      expect(camera.screenSpaceReflection.metrics.transparentSurfacePassDrawCount).toBeGreaterThan(0);
-      if (backend instanceof HeightfieldWaterBackend) backend.setRuntimeSurfaceTimeOverride("water", 0);
-      const on = renderPixels();
-      const autoSettings = { ...camera.screenSpaceReflection.metrics.transparentResolvedSettings };
-      scene.screenSpaceReflection.activationMode = 1;
-      renderPixels();
-      expect(camera.screenSpaceReflection.metrics.transparentResolvedSettings).toEqual(autoSettings);
-      scene.screenSpaceReflection.activationMode = 2;
-      const off = renderPixels();
-      // A changed fallback alone is not evidence of a reflected object. Require red chroma
-      // that is absent with SSR off; the unchanged red cube itself cannot satisfy this.
-      let reflectedPixels = 0;
-      for (let i = 0; i < on.length; i += 4) {
-        const redChroma = on[i] - on[i + 1];
-        if (redChroma > 5 && redChroma - (off[i] - off[i + 1]) > 10) reflectedPixels++;
-      }
-      expect(reflectedPixels, `${family} must visibly reflect the red object`).toBeGreaterThan(0);
-      expect(camera.screenSpaceReflection.metrics.activeConsumerLeaseCount).toBe(1);
-      scene.screenSpaceReflection.activationMode = 0;
-      scene.screenSpaceReflection.reflectionContent = 1;
-      const renderers: MeshRenderer[] = [];
-      waterRoot.getComponentsIncludeChildren(MeshRenderer, renderers);
-      const waterMaterial = renderers[0].getMaterial()!;
-      expect(SSR.supportsMaterialTransparentSampling(waterMaterial)).toBe(true);
-      expect(SSR.supportsMaterialContribution(waterMaterial)).toBe(true);
-      expect(waterMaterial._screenSpaceReflectionAuthorSettings).toBeNull();
-      waterMaterial.contributeScreenSpaceReflection = true;
-      for (let frame = 0; frame < 3; frame++) renderPixels();
-      expect(camera.screenSpaceReflection.metrics.contributionColorDrawCount).toBeGreaterThan(0);
-      expect(camera.screenSpaceReflection.metrics.contributionDepthDrawCount).toBeGreaterThan(0);
-      expect((engine as any)._hardwareRenderer._gl.getError()).toBe(0);
-      await host.destroy();
-      renderPixels();
-      expect(camera.screenSpaceReflection.metrics.activeConsumerLeaseCount).toBe(0);
-      expect(camera.screenSpaceReflection.metrics.requested).toBe(false);
-    } finally {
-      await host.destroy();
-      scene.destroy();
-      target.destroy();
-      output.destroy();
-      cubeMaterial.destroy();
+  const originalCreate = Shader.create;
+  const targetProbes = new Set<string>();
+  const shaderProbe = vi.spyOn(Shader, "create").mockImplementation((...args) => {
+    const shader = Reflect.apply(originalCreate, Shader, args) as Shader;
+    const source = args[0];
+    if (
+      typeof source === "string" &&
+      source.includes('Pass "ScreenSpaceReflectionSurface"') &&
+      source.includes('Shader "AIWorld/')
+    ) {
+      const name = shader.name + "Target300Probe";
+      const probe = Reflect.apply(originalCreate, Shader, [
+        source.replace(shader.name, name),
+        ShaderLanguage.GLSLES300
+      ]) as Shader;
+      expect(probe.compileVariant(engine, []), `${shader.name} GLSLES300`).toBe(true);
+      targetProbes.add(shader.name);
     }
+    return shader;
+  });
+  try {
+    for (const family of ["heightfield", "river"] as const) {
+      const scene = new Scene(engine);
+      engine.sceneManager.activeScene = scene;
+      const camera = scene.createRootEntity("water-camera").addComponent(Camera);
+      camera.entity.transform.setPosition(3, family === "river" ? 1.5 : 3, 6);
+      camera.entity.transform.lookAt(new Vector3(0, 0, 0));
+      const output = new Texture2D(engine, 256, 256, TextureFormat.R8G8B8A8, false, false);
+      const target = new RenderTarget(engine, 256, 256, output, TextureFormat.Depth24);
+      camera.renderTarget = target;
+      const cube = scene.createRootEntity("reflection-target").addComponent(MeshRenderer);
+      cube.mesh = PrimitiveMesh.createCuboid(engine, 1.5, 1.5, 1.5);
+      cube.entity.transform.setPosition(0, 1, 0);
+      const cubeMaterial = new PBRMaterial(engine);
+      cubeMaterial.emissiveColor.set(1, 0, 0, 1);
+      cube.setMaterial(cubeMaterial);
+      const renderPixels = () => {
+        engine.update();
+        const pixels = new Uint8Array(256 * 256 * 4);
+        output.getPixelBuffer(0, 0, 256, 256, 0, pixels);
+        return pixels;
+      };
+      const waterRoot = scene.createRootEntity("water");
+      const host = new WaterSceneRuntimeHost({
+        engine,
+        root: waterRoot,
+        camera,
+        reflection: { cullingMask: 0xffffffff }
+      });
+      const backend = family === "heightfield" ? new HeightfieldWaterBackend() : new RiverWaterBackend();
+      host.registerBackend(backend);
+      host.registerRuntimeResource(createLakeNormalResourceFactory(engine));
+      const descriptor: HeightfieldWaterDescriptorV1 = {
+        schemaVersion: 1,
+        id: "ssr-water",
+        grid: { originXZ: [-3.5, -3.5], cellSizeXZ: [1, 1], width: 8, height: 8 },
+        wetTexelIndices: Uint32Array.from({ length: 64 }, (_, i) => i),
+        surfaceHeights: new Float32Array(64),
+        bedHeights: new Float32Array(64).fill(-2),
+        quality: WaterQualityTier.High,
+        waveAsset: { schemaVersion: 1, model: WaterWaveModel.None },
+        surfaceMotion: { waveStrength: 0, shoreDampingWidth: 1 },
+        spatialField: { signedDistanceRange: 8 }
+      };
+      const quality = createWaterQualityPlanV2({
+        id: "runtime-quality",
+        geometry: "high",
+        surfaceShading: "high",
+        sceneFields: "scene-color-depth",
+        reflectionBudget: { environment: true, screenSpace: true },
+        query: "off",
+        spatialField: createLakeSpatialFieldBudget(descriptor)
+      });
+      host.registerAuthoringOnce("water-look", "test-v1", (assets) => {
+        registerLakeWaterLook(assets);
+        assets.registerQualityPlan(quality);
+        registerRiverWaterBodyPresets(assets);
+      });
+      const representationData = createHeightfieldWaterRepresentationDataV1(descriptor);
+      const asset =
+        family === "river"
+          ? createRiverWaterBodyAsset(
+              createRiver({
+                id: "ssr-river",
+                width: 8,
+                depth: 2,
+                points: [
+                  { id: "upstream", position: [0, 0, -4] },
+                  { id: "downstream", position: [0, 0, 4] }
+                ]
+              })
+            )
+          : createWaterBodyAsset({
+              id: "ssr-water",
+              kind: "lake",
+              representation: { domain: "bounded-grid", macroSurface: "heightfield" },
+              source: {
+                schemaVersion: 1,
+                kind: "grid-mask",
+                descriptor: createHeightfieldWaterBodySourceDescriptorV1(descriptor),
+                capabilities: { localBathymetry: true, shoreSdf: true, current: false }
+              },
+              sourceHash: computeHeightfieldWaterPhysicalSourceHash(descriptor),
+              representationData,
+              representationDataHash: hashStableValue(representationData)
+            });
+      const transaction = host.beginBodySetTransaction();
+      transaction.stage({
+        bodyId: "water",
+        asset,
+        instance: createWaterBodyInstance({
+          id: "water",
+          assetId: asset.id,
+          lookPresetId: family === "river" ? RIVER_CANONICAL_LOOK_PRESET_ID : LAKE_WATER_LOOK_PRESET_ID,
+          qualityPlanId: family === "river" ? riverQualityPlanIdForQuality(RiverQualityLevel.High) : quality.id,
+          visible: true,
+          priority: 0,
+          transform: { position: [0, 0, 0], yawDegrees: 0, scaleXZ: [1, 1] },
+          interaction: { query: false, buoyancy: false, wake: false }
+        }),
+        createRuntimeContext: (root) => ({ engine, root, surfaceTimeOverride: 0 })
+      });
+      try {
+        await transaction.commit();
+        for (let i = 0; i < 3; i++) engine.update();
+        expect(camera.screenSpaceReflection.metrics.requestedByConsumers).toBe(true);
+        expect(camera.screenSpaceReflection.metrics.transparentSurfacePassDrawCount).toBeGreaterThan(0);
+        if (backend instanceof HeightfieldWaterBackend) backend.setRuntimeSurfaceTimeOverride("water", 0);
+        const on = renderPixels();
+        const preview = scene.createRootEntity("disabled-ssr-preview").addComponent(Camera);
+        preview.entity.transform.setPosition(3, family === "river" ? 1.5 : 3, 6);
+        preview.entity.transform.lookAt(new Vector3(0, 0, 0));
+        preview.screenSpaceReflection.renderingEnabled = false;
+        const previewOutput = new Texture2D(engine, 256, 256, TextureFormat.R8G8B8A8, false, false);
+        const previewTarget = new RenderTarget(engine, 256, 256, previewOutput, TextureFormat.Depth24);
+        preview.renderTarget = previewTarget;
+        const readPreview = () => {
+          engine.update();
+          const pixels = new Uint8Array(256 * 256 * 4);
+          previewOutput.getPixelBuffer(0, 0, 256, 256, 0, pixels);
+          return pixels;
+        };
+        const unpublished = readPreview();
+        // Reference: explicitly prohibit sampling in the actual Water shader on this camera.
+        preview.shaderData.setFloat("camera_ScreenSpaceReflectionMaxRoughness", -1);
+        const fallback = readPreview();
+        const previewError = unpublished.reduce((sum, value, index) => sum + Math.abs(value - fallback[index]), 0);
+        console.info(JSON.stringify({ family, previewError }));
+        preview.entity.destroy();
+        previewTarget.destroy();
+        previewOutput.destroy();
+        expect(previewError, `${family}: unpublished preview must match Environment fallback`).toBe(0);
+        const autoSettings = { ...camera.screenSpaceReflection.metrics.transparentResolvedSettings };
+        scene.screenSpaceReflection.activationMode = 1;
+        renderPixels();
+        expect(camera.screenSpaceReflection.metrics.transparentResolvedSettings).toEqual(autoSettings);
+        scene.screenSpaceReflection.activationMode = 2;
+        const off = renderPixels();
+        // A changed fallback alone is not evidence of a reflected object. Require red chroma
+        // that is absent with SSR off; the unchanged red cube itself cannot satisfy this.
+        let reflectedPixels = 0;
+        for (let i = 0; i < on.length; i += 4) {
+          const redChroma = on[i] - on[i + 1];
+          if (redChroma > 5 && redChroma - (off[i] - off[i + 1]) > 10) reflectedPixels++;
+        }
+        expect(reflectedPixels, `${family} must visibly reflect the red object`).toBeGreaterThan(0);
+        expect(camera.screenSpaceReflection.metrics.activeConsumerLeaseCount).toBe(1);
+        scene.screenSpaceReflection.activationMode = 0;
+        scene.screenSpaceReflection.reflectionContent = 1;
+        const renderers: MeshRenderer[] = [];
+        waterRoot.getComponentsIncludeChildren(MeshRenderer, renderers);
+        const waterMaterial = renderers[0].getMaterial()!;
+        expect(SSR.supportsMaterialTransparentSampling(waterMaterial)).toBe(true);
+        expect(SSR.supportsMaterialContribution(waterMaterial)).toBe(true);
+        expect(waterMaterial._screenSpaceReflectionAuthorSettings).toBeNull();
+        waterMaterial.contributeScreenSpaceReflection = true;
+        for (let frame = 0; frame < 3; frame++) renderPixels();
+        expect(camera.screenSpaceReflection.metrics.contributionColorDrawCount).toBeGreaterThan(0);
+        expect(camera.screenSpaceReflection.metrics.contributionDepthDrawCount).toBeGreaterThan(0);
+        expect(engine._hardwareRenderer.gl.getError()).toBe(0);
+        await host.destroy();
+        renderPixels();
+        expect(camera.screenSpaceReflection.metrics.activeConsumerLeaseCount).toBe(0);
+        expect(camera.screenSpaceReflection.metrics.requested).toBe(false);
+      } finally {
+        await host.destroy();
+        scene.destroy();
+        target.destroy();
+        output.destroy();
+        cubeMaterial.destroy();
+      }
+    }
+  } finally {
+    shaderProbe.mockRestore();
   }
+  expect(targetProbes.size).toBeGreaterThanOrEqual(2);
+  console.info(JSON.stringify({ waterGLSLES300: [...targetProbes] }));
 });

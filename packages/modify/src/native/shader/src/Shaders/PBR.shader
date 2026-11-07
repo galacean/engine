@@ -135,6 +135,7 @@ Shader "PBR" {
   }
 
     SubShader "Default" {
+      Tags { screenSpaceReflectionAuto = "PbrV1" }
       UsePass "Pipeline/ShadowCaster/Default/ShadowCaster"
       UsePass "Pipeline/DepthOnly/Default/DepthOnly"
       UsePass "Pipeline/ScreenSpaceReflectionSurface/Default/ScreenSpaceReflectionSurface"
