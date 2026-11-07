@@ -44,7 +44,11 @@ export class RockFormationPanel {
     for (const field of ROCK_FORMATION_COMPONENT.fields) {
       if (ROCK_COLOR_FIELD_KEYS.has(field.key)) continue;
       const folder =
-        field.key === "textureScale" ? material : ["variation", "simplifyError"].includes(field.key) ? sampling : shape;
+        field.key === "textureScale"
+          ? material
+          : ["variation", "targetTriangles"].includes(field.key)
+            ? sampling
+            : shape;
       this.draft[field.key] = String(field.default ?? "");
       const controller = folder.add(this.draft, field.key).name(field.label);
       const input = controller.domElement.querySelector("input")!;
@@ -152,7 +156,7 @@ export class RockFormationPanel {
     return {
       ...settings.shape,
       variation: settings.variation,
-      simplifyError: settings.simplifyError,
+      targetTriangles: settings.targetTriangles,
       textureScale: settings.textureScale
     };
   }

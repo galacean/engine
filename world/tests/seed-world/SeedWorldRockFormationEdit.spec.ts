@@ -358,3 +358,18 @@ it("retires the old algorithm inputs in active and archived Seeds without losing
   }
   expect(upgradePlanningDocument(migrated)).toEqual(migrated);
 });
+
+
+it("persists the per-rock triangle budget through native scene replay and undo", async () => {
+  const f = await fixture();
+  expect(readRockFormationSettings(f.session.document).targetTriangles).toBe(1000);
+  const receipt = await f.session.dispatchParameters([
+    { op: "set", entity: "world", component: "rockFormation", values: { targetTriangles: 1500 } }
+  ]);
+  expect(receipt.status, receipt.message).toBe("accepted");
+  const saved = importPlanningScene(JSON.parse(JSON.stringify(exportPlanningScene(f.session.export()))));
+  expect(readRockFormationSettings(saved).targetTriangles).toBe(1500);
+  expect((await f.session.undo())?.status).toBe("accepted");
+  expect(readRockFormationSettings(f.session.document).targetTriangles).toBe(1000);
+  expect(f.execute).toHaveBeenCalledOnce();
+});

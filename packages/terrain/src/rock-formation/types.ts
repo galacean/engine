@@ -29,7 +29,14 @@ export interface RockFormationMesh {
   /** Worker-prepared final-surface grass eligibility and small spatial patches. */
   grass?: import("./GrassSurface").RockGrassSurface;
   textureScale?: number;
-  stats: { bodies: number; vertices: number; rawTriangles?: number; generationMs: number };
+  stats: {
+    bodies: number;
+    vertices: number;
+    rawTriangles?: number;
+    targetTriangles?: number;
+    overBudgetBodies?: number;
+    generationMs: number;
+  };
 }
 
 /** Final indexed surface in world-space metres. */

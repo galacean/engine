@@ -793,7 +793,9 @@ export async function mountSeedWorldDemo(
           summary = JSON.stringify({ formations: meshes.length,
             triangles: meshes.reduce((sum, f) => sum + f.mesh.indices.length / 3, 0),
               bodies: meshes.reduce((sum, f) => sum + f.stats.bodies, 0),
-              vertices: meshes.reduce((sum, f) => sum + f.stats.vertices, 0) });
+              vertices: meshes.reduce((sum, f) => sum + f.stats.vertices, 0),
+              targetTriangles: settings.targetTriangles,
+              overBudgetBodies: meshes.reduce((sum, f) => sum + (f.stats.overBudgetBodies ?? 0), 0) });
           return frame;
         }, context.signal);
         return { discard: () => staged.discard(), commit: () => {
@@ -949,7 +951,9 @@ export async function mountSeedWorldDemo(
           canvas.dataset.rockFormations = JSON.stringify({ formations: formationMeshes.length,
             triangles: formationMeshes.reduce((sum, f) => sum + f.mesh.indices.length / 3, 0),
               bodies: formationMeshes.reduce((sum, f) => sum + f.stats.bodies, 0),
-              vertices: formationMeshes.reduce((sum, f) => sum + f.stats.vertices, 0) });
+              vertices: formationMeshes.reduce((sum, f) => sum + f.stats.vertices, 0),
+              targetTriangles: readRockFormationSettings(document).targetTriangles,
+              overBudgetBodies: formationMeshes.reduce((sum, f) => sum + (f.stats.overBudgetBodies ?? 0), 0) });
           candidateVegetation = await PlanningNaturalVegetationRuntime.create(candidate.root, candidate.population.trees,
             candidate.population.details, camera, library, plan, planningHeightmap(plan), candidateData.fields,
             candidateData.population, { client: rockFormations, settings: readRockFormationSettings(document), signal,

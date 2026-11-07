@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { buildRock } from "../../demos/procedural-rock/generator/rock-body.js";
-import { simplifyRock, simplifierReady } from "../../demos/procedural-rock/generator/simplify-rock.js";
+import { simplifyRock, simplifierReady } from "../../../packages/terrain/src/rock-formation/generator/simplify-rock.js";
+import { ROCK_SCENE_PRESETS } from "../../demos/procedural-rock/presets.js";
+import { compareSilhouettes } from "./SilhouetteMeasurement.js";
 import { buildGrassCoverage } from "../../demos/procedural-rock/GrassCoverage";
 
 type RockMesh = { positions: Float32Array; normals: Float32Array; indices: Uint32Array; surfaceRoles?: Float32Array };
@@ -279,3 +281,73 @@ describe("rock render mesh reduction", () => {
 });
 
 await simplifierReady;
+
+describe("budgeted rock reduction", () => {
+  it("keeps 100 varied rocks within 100,000 triangles, without opening the surface or adding acute hinges", async () => {
+    await simplifierReady;
+    let total = 0;
+    for (let i = 0; i < 100; i++) {
+      const preset = ROCK_SCENE_PRESETS[i % ROCK_SCENE_PRESETS.length];
+      const parameters = { ...preset.parameters, seed: preset.parameters.seed + Math.floor(i / 9) * 997 };
+      if (i === 98)
+        Object.assign(parameters, { obbWidth: 1, obbHeight: 120, obbDepth: 1, bottomScale: 0, wallProtrusion: 1 });
+      if (i === 99)
+        Object.assign(parameters, { obbWidth: 80, obbHeight: 1, obbDepth: 80, bottomScale: 0, wallProtrusion: 1 });
+      const raw = buildRock(parameters),
+        mesh = simplifyRock(raw, { targetTriangles: 1000 });
+      const audit = auditGeometry(mesh),
+        source = auditGeometry(raw);
+      const context = `${preset.id} seed=${parameters.seed}`;
+      expect(mesh.stats.triangles, context).toBeLessThanOrEqual(1000);
+      expect(mesh.stats.budgetMet, context).toBe(true);
+      expect(mesh.stats.retainedRaw, context).toBe(false);
+      expect(audit.minDoubleArea, context).toBeGreaterThan(0);
+      expect(audit.maxFaceTurn, context).toBeLessThanOrEqual(90.1);
+      expect(audit.openOrNonManifoldEdges, context).toBe(0);
+      expect(audit.inconsistentEdges, context).toBe(0);
+      expect(audit.disconnectedVertexFans, context).toBe(0);
+      expect(audit.connectedFaces, context).toBe(mesh.indices.length / 3);
+      expect(audit.eulerCharacteristic, context).toBe(2);
+      expect(audit.min, context).toEqual(source.min);
+      expect(audit.max, context).toEqual(source.max);
+      total += mesh.stats.triangles;
+      if (i < 9) {
+        // 512px object framing, six axes plus four oblique views. The tolerance
+        // is visible/quantized, not an assertion of lossless surface geometry.
+        const quality = compareSilhouettes(raw, mesh).summary;
+        expect(quality.minIoU, context).toBeGreaterThan(0.98);
+        expect(quality.maxP95BoundaryDeviationPx, context).toBeLessThanOrEqual(3);
+        expect(quality.maxBoundaryDeviationPx, context).toBeLessThanOrEqual(8);
+        const coverage = buildGrassCoverage(mesh, mesh.surfaceRoles);
+        for (let v = 0; v < mesh.surfaceRoles.length; v++) if (mesh.surfaceRoles[v] === 1) expect(coverage[v]).toBe(1);
+      }
+    }
+    expect(total).toBeLessThanOrEqual(100000);
+  }, 60000);
+
+  it("changes budgets deterministically and retains the original buffers for comparison", async () => {
+    await simplifierReady;
+    const raw = buildRock(ROCK_SCENE_PRESETS[4].parameters),
+      before = raw.indices.slice();
+    const a = simplifyRock(raw, { targetTriangles: 1000 }),
+      b = simplifyRock(raw, { targetTriangles: 1000 });
+    const finer = simplifyRock(raw, { targetTriangles: 2000 });
+    expect(a.indices).toEqual(b.indices);
+    expect(a.positions).toEqual(b.positions);
+    expect(finer.stats.triangles).toBeGreaterThan(a.stats.triangles);
+    expect(finer.stats.triangles).toBeLessThanOrEqual(2000);
+    expect(raw.indices).toEqual(before);
+    expect(simplifyRock(raw, { enabled: false, targetTriangles: 1000 }).positions).toBe(raw.positions);
+  });
+
+  it("reports quality fallback rather than claiming an impossible triangle budget", async () => {
+    await simplifierReady;
+    const raw = buildRock(ROCK_SCENE_PRESETS[4].parameters),
+      mesh = simplifyRock(raw, { targetTriangles: 12 });
+    expect(mesh.stats.budgetMet).toBe(false);
+    expect(mesh.stats.triangles).toBeGreaterThan(12);
+    const audit = auditGeometry(mesh);
+    expect(audit.maxFaceTurn).toBeLessThanOrEqual(90.1);
+    expect(audit.openOrNonManifoldEdges).toBe(0);
+  });
+});

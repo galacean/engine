@@ -1,3 +1,4 @@
+import { simplifierReady } from "@galacean/engine-terrain/rock-formation/generator/simplify-rock.js";
 import { generateRockFormation } from "./Generate.ts";
 import { rockGrassBuffers } from "@galacean/engine-terrain/rock-formation/GrassSurface";
 import type { RockFormationSettings } from "./Settings.ts";
@@ -17,4 +18,8 @@ self.onmessage = ({ data }: MessageEvent<{ id: number; job: RockFormationJob; se
   }
 };
 // The shared simplifier finishes its WebAssembly initialization before accepting work.
-self.postMessage({ ready: true });
+simplifierReady
+  .then(() => self.postMessage({ ready: true }))
+  .catch((error) => {
+    throw error;
+  });

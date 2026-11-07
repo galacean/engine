@@ -49,7 +49,7 @@ export const PLANNING_VISUAL_AUTHORING: readonly VisualAuthoringDescriptor[] = [
       "wallStrength",
       "outlineIrregularity",
       "variation",
-      "simplifyError", ...ROCK_COLOR_FIELDS.map((field) => field.key)) },
+      "targetTriangles", ...ROCK_COLOR_FIELDS.map((field) => field.key)) },
   { component: "lighting", type: "PlanningLighting", fields: {
     ...directFields("profileUrl", "timeHours", "sunIntensity", "ambientIntensity", "iblIntensity", "direct", "environment",
       "shadows", "shadowStrength", "fog", "fogDensity", "customSkyTintStrength", "skyExposure", "sunSize", "atmosphereThickness",

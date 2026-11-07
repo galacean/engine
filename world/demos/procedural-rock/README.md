@@ -16,8 +16,8 @@ WORLD_DEMO=procedural-rock pnpm --dir world dev
 WORLD_DEMO=procedural-rock pnpm exec vitest run world/tests/procedural-rock --config world/vite.config.mjs
 ```
 
-生成器在 Worker 内运行，使用参数化包络、受角度约束的二维轮廓组合与网格减面；不加载参考 GLB 或轮廓模板。预览借用公共包中的 Seed 正午光照、后处理、地形和草，新增投影着色器注册在案例独立命名空间，不替换 Seed 世界里的岩石系统。
+生成器在 Worker 内运行，使用参数化包络、受角度约束的二维轮廓组合与网格减面；不加载参考 GLB 或轮廓模板。预览借用公共包中的 Seed 正午光照、后处理、地形和草，新增投影着色器注册在案例独立命名空间，与 Seed 世界里的岩石共用减面实现。
 
 所有岩石共享两张 1K 贴图，世界空间三向投影的平铺米数为 `max(OBB 宽, 高, 深) / 2`。来源为 Amal Kumar 的 [Marble Cliff 05](https://polyhaven.com/a/marble_cliff_05)，[CC0](https://polyhaven.com/license)。原始灰度 displacement 图作为 sRGB 底色图乘 Color 使用，不参与几何位移；OpenGL 法线从 EXR 归一化、转换为线性 RGB8 PNG。没有引入 Blender 场景、原 diffuse 或 roughness 贴图。
 
-网格简化使用 vendored meshoptimizer；授权保留在 `generator/vendor/meshoptimizer-LICENSE.md`。
+网格简化使用 vendored meshoptimizer；实现和授权统一保留在 `packages/terrain/src/rock-formation/generator/`。默认每块目标 1,000 三角面，约束无法满足时如实显示超预算。

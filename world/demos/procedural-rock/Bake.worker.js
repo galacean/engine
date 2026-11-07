@@ -1,5 +1,5 @@
 import { buildRock } from "./generator/rock-body.js";
-import { simplifyRock, simplifierReady } from "./generator/simplify-rock.js";
+import { simplifyRock, simplifierReady } from "@galacean/engine-terrain/rock-formation/generator/simplify-rock.js";
 self.onmessage = ({ data: { id, rockId, parameters, reduction } }) => {
   try {
     const mesh = simplifyRock(buildRock(parameters), reduction);

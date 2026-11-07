@@ -39,6 +39,7 @@
                 </div>
                 <div class="stats">
                   <div id="scene-stats" aria-live="polite">正在布置近中远岩石…</div>
+                  <div id="scene-budget" aria-live="polite"></div>
                   <div id="generated-stats" aria-live="polite">等待生成…</div>
                 </div>
               </section>
@@ -77,7 +78,16 @@
             <section class="control-section" aria-label="网格减面">
               <h3>选中岩石 · 网格</h3>
               <label class="check"><input id="mesh-reduction" type="checkbox" checked />自动减面</label>
-              <label class="select-parameter" for="mesh-error"
+              <label class="select-parameter" for="mesh-budget"
+                >每块三角面预算<select id="mesh-budget">
+                  <option value="500">500 面</option>
+                  <option value="1000" selected>1,000 面 · 100 块 / 10 万面</option>
+                  <option value="1500">1,500 面</option>
+                  <option value="2000">2,000 面</option>
+                  <option value="0">原误差档位</option>
+                </select></label
+              >
+              <label id="mesh-error-label" class="select-parameter" for="mesh-error" hidden
                 >减面精度<select id="mesh-error">
                   <option value="0.001">精细 · 0.1%</option>
                   <option value="0.004" selected>标准 · 0.4%</option>
@@ -87,7 +97,7 @@
               <p id="mesh-stats" class="surface-note" style="white-space: pre-line" aria-live="polite">等待网格…</p>
               <p id="mesh-safety" class="surface-note limit-note" role="status" hidden></p>
               <p class="surface-note">
-                关闭自动减面可看原始网格，配合「选中线框」比较。误差为相对最长边的综合估计；尖底、草地区域与面转角约束优先。
+                关闭自动减面可对比原始网格，配合「选中线框」观察。预算模式分别保护长、宽、高的轮廓，保留尖底与草顶，局部处理过陡折边；无法满足约束时会明确提示超预算。
               </p>
             </section>
             <section id="base-color-panel" class="base-color-panel" aria-label="Base Color 颜色面板">

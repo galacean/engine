@@ -23,7 +23,7 @@ export function rockParameters(obb: RockObb, seed: number, settings: RockFormati
     obbWidth: obb.size[0],
     obbHeight: obb.size[1],
     obbDepth: obb.size[2],
-    topScale: vary(shape.topScale, 0.6, 0.08),
+    topScale: vary(shape.topScale, 0.1, 0.08),
     bottomScale: shape.bottomScale === 0 ? 0 : vary(shape.bottomScale, 0.3, 0.08),
     shoulderScale: vary(shape.shoulderScale, 0.25, 0.08),
     shoulderHeight: vary(shape.shoulderHeight, 0.6, 0.15, 0.9),
@@ -61,12 +61,14 @@ export function placeRockInObb(source: RockSurface, obb: RockObb) {
 /** One generator and reduction path for both planned formations and streamed ground stones. */
 export function generateRockFormation(job: RockFormationJob, settings: RockFormationSettings): RockFormationMesh {
   const started = performance.now();
-  let rawTriangles = 0;
+  let rawTriangles = 0,
+    overBudgetBodies = 0;
   const surfaces = job.guides.map((guide) => {
     const source = simplifyRock(buildRock(rockParameters(guide, job.seed, settings)), {
-      error: settings.simplifyError
+      targetTriangles: settings.targetTriangles
     });
     rawTriangles += source.stats.rawTriangles;
+    if (!source.stats.budgetMet) overBudgetBodies++;
     const mesh = placeRockInObb(source, guide);
     return {
       guide,
@@ -97,7 +99,14 @@ export function generateRockFormation(job: RockFormationJob, settings: RockForma
     owners,
     mesh: { positions, normals, indices },
     textureScale: Math.max(...job.guides.flatMap((guide) => guide.size)) / 2,
-    stats: { bodies: job.guides.length, vertices: positions.length / 3, rawTriangles, generationMs: 0 }
+    stats: {
+      bodies: job.guides.length,
+      vertices: positions.length / 3,
+      rawTriangles,
+      targetTriangles: settings.targetTriangles,
+      overBudgetBodies,
+      generationMs: 0
+    }
   };
   if (job.surfaceGrass !== false) result.grass = buildRockGrassSurface(result, normals, coverage);
   result.stats.generationMs = performance.now() - started;

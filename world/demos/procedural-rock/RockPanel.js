@@ -1,7 +1,7 @@
 import { startViewer, sendCommand } from "./Viewer";
 import { DEFAULT_ROCK } from "./generator/rock-body.js";
 import { ROCK_SCENE_PRESETS } from "./presets.js";
-const DEFAULT_REDUCTION = { enabled: true, error: 0.004 };
+const DEFAULT_REDUCTION = { enabled: true, error: 0.004, targetTriangles: 1000 };
 const DEFAULT_SURFACE = { strength: 0.35, roughness: 1, detail: true, color: "#b8bcc2" };
 const storageKey = "procedural-rock-example-v1";
 const root = document.querySelector("#rock-lab"),
@@ -51,6 +51,8 @@ const rocks = new Map(
     const reduction = { ...DEFAULT_REDUCTION };
     if (typeof stored?.reduction?.enabled === "boolean") reduction.enabled = stored.reduction.enabled;
     if ([0.001, 0.004, 0.008].includes(stored?.reduction?.error)) reduction.error = stored.reduction.error;
+    if ([0, 500, 1000, 1500, 2000].includes(stored?.reduction?.targetTriangles))
+      reduction.targetTriangles = stored.reduction.targetTriangles;
     const grass = { enabled: true, density: 4, ...preset.grass };
     if (typeof stored?.grass?.enabled === "boolean") grass.enabled = stored.grass.enabled;
     if (Number.isFinite(stored?.grass?.density)) grass.density = Math.max(0, Math.min(12, stored.grass.density));
@@ -226,6 +228,17 @@ function updateStatus() {
   const triangleCount = entries.reduce((sum, rock) => sum + (rock.mesh?.indices.length / 3 || 0), 0);
   document.querySelector("#scene-stats").textContent =
     `场景 ${complete}/${rocks.size} 块已就绪 · 岩石共 ${triangleCount.toLocaleString()} 三角形`;
+  const readyMeshes = entries.filter((rock) => rock.mesh && rock.appliedId === rock.requestId && !rock.error);
+  const projected = readyMeshes.length
+    ? Math.ceil((readyMeshes.reduce((sum, rock) => sum + rock.mesh.stats.triangles, 0) / readyMeshes.length) * 100)
+    : 0;
+  const budgetLabel = document.querySelector("#scene-budget");
+  budgetLabel.textContent = readyMeshes.length
+    ? `按当前 ${readyMeshes.length} 块均值推算：100 块约 ${projected.toLocaleString()} / 100,000 三角形（仅岩石）`
+    : "正在计算岩石预算…";
+  budgetLabel.classList.toggle("limit-note", projected > 100000);
+  budgetLabel.dataset.triangles = triangleCount;
+  budgetLabel.dataset.projected = projected;
   statusLabel.textContent =
     inspection.error ||
     (ready
@@ -375,12 +388,19 @@ function renderSelection() {
   if (mesh) {
     const st = mesh.stats;
     meshStats.textContent = `${st.rawTriangles.toLocaleString()} → ${st.triangles.toLocaleString()} 三角形 · 减少 ${(st.reduction * 100).toFixed(1)}%\n几何缓冲 ${(st.rawBytes / 1024).toFixed(0)} → ${(st.meshBytes / 1024).toFixed(0)} KiB\n生成 ${st.bakeMs.toFixed(1)} ms + 减面 ${st.simplifyMs.toFixed(1)} ms`;
+    if (st.targetTriangles && st.simplificationMethod !== "disabled")
+      meshStats.textContent += `\n目标 ${st.targetTriangles.toLocaleString()} 面 · ${st.budgetMet ? "已达标" : "超预算，保留形状约束"}`;
+    meshStats.dataset.triangles = st.triangles;
+    meshStats.dataset.budget = st.targetTriangles || 0;
+    meshStats.dataset.budgetMet = String(st.budgetMet);
     const safety =
       st.simplificationMethod === "original-safety-fallback"
         ? "当前形状未找到满足约束的减面结果，保留原始网格。"
-        : st.acceptedError && st.acceptedError < st.requestedError
-          ? "为保留拓扑与转折约束，已自动收紧减面误差。"
-          : "";
+        : st.targetTriangles && !st.budgetMet && st.simplificationMethod !== "disabled"
+          ? "此形状在当前误差与转折约束下超过预算，未强行削掉轮廓。"
+          : !st.targetTriangles && st.acceptedError && st.acceptedError < st.requestedError
+            ? "为保留拓扑与转折约束，已自动收紧减面误差。"
+            : "";
     document.querySelector("#mesh-safety").textContent = safety;
     document.querySelector("#mesh-safety").hidden = !safety;
   } else meshStats.textContent = "等待网格…";
@@ -517,7 +537,10 @@ function syncInputs() {
   }
   document.querySelector("#mesh-reduction").checked = rock.reduction.enabled;
   document.querySelector("#mesh-error").value = rock.reduction.error;
-  document.querySelector("#mesh-error").disabled = !rock.reduction.enabled;
+  document.querySelector("#mesh-error").disabled = !rock.reduction.enabled || rock.reduction.targetTriangles > 0;
+  document.querySelector("#mesh-budget").value = rock.reduction.targetTriangles;
+  document.querySelector("#mesh-budget").disabled = !rock.reduction.enabled;
+  document.querySelector("#mesh-error-label").hidden = rock.reduction.targetTriangles > 0;
   document.querySelector("#seed").value = parameters.seed;
   document.querySelector("#resolution").value = parameters.resolution;
   const longest = Math.max(parameters.obbWidth, parameters.obbHeight, parameters.obbDepth),
@@ -577,12 +600,13 @@ document.querySelector("#next-seed").addEventListener("click", () => {
   remember();
   requestBuild(rock, true);
 });
-for (const id of ["mesh-reduction", "mesh-error"])
+for (const id of ["mesh-reduction", "mesh-error", "mesh-budget"])
   document.querySelector(`#${id}`).addEventListener("change", () => {
     const rock = currentRock();
     rock.reduction = {
       enabled: document.querySelector("#mesh-reduction").checked,
-      error: Number(document.querySelector("#mesh-error").value)
+      error: Number(document.querySelector("#mesh-error").value),
+      targetTriangles: Number(document.querySelector("#mesh-budget").value)
     };
     syncInputs();
     remember();

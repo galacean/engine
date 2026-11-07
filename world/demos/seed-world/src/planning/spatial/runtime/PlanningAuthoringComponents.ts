@@ -198,7 +198,7 @@ export class PlanningRockFormation extends VisualParameterAuthoring {
   declare wallStrength?: number;
   declare outlineIrregularity?: number;
   declare variation?: number;
-  declare simplifyError?: number;
+  declare targetTriangles?: number;
 }
 export class PlanningSeedArchiveAuthoring extends Script {
   declare metadata: PlanningSeedArchiveMetadata;

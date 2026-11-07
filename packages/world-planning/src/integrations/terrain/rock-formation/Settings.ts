@@ -6,7 +6,7 @@ import { readRockColorBlend, ROCK_COLOR_FIELDS, type RockColorBlend } from "./Co
 /** Zero selects a world-space repeat of half the longest published OBB dimension. */
 export const DEFAULT_ROCK_TEXTURE_SCALE = 0;
 export const ROCK_SHAPE_DEFAULTS = {
-  topScale: 0.7,
+  topScale: 1,
   bottomScale: 0.95,
   shoulderScale: 0.95,
   shoulderHeight: 0.5,
@@ -25,13 +25,13 @@ export interface RockFormationSettings {
   colorBlend: RockColorBlend;
   shape: typeof ROCK_SHAPE_DEFAULTS;
   variation: number;
-  simplifyError: number;
+  targetTriangles: number;
 }
 export const ROCK_FORMATION_DEFAULTS = {
   ...ROCK_SHAPE_DEFAULTS,
   textureScale: DEFAULT_ROCK_TEXTURE_SCALE,
   variation: 0.65,
-  simplifyError: 0.008
+  targetTriangles: 1000
 };
 const field = (
   key: keyof typeof ROCK_FORMATION_DEFAULTS,
@@ -65,7 +65,7 @@ export const ROCK_FORMATION_COMPONENT: PlanningComponentDefinition = {
     field("wallTilt", "Face inclination / 岩块倾斜", -35, 35, 1, "°"),
     field("wallStrength", "Cut strength / 切削强度", 0, 1, 0.01),
     field("variation", "Per-rock variation / 单石变化范围", 0, 1, 0.01),
-    field("simplifyError", "Mesh error / 减面误差比例", 0.001, 0.04, 0.001),
+    field("targetTriangles", "Triangles per rock / 单石目标面数", 500, 10000, 100),
     { ...field("textureScale", "Texture repeat / 纹理平铺米数（0 自动）", 0, 2048, 1, "m"), affectsLayout: false },
     ...ROCK_COLOR_FIELDS
   ]
@@ -98,7 +98,7 @@ export function readRockFormationSettings(document: PlanningDocument): RockForma
       Object.keys(ROCK_SHAPE_DEFAULTS).map((key) => [key, read(key as keyof typeof ROCK_SHAPE_DEFAULTS)])
     ) as typeof ROCK_SHAPE_DEFAULTS,
     variation: read("variation"),
-    simplifyError: read("simplifyError")
+    targetTriangles: read("targetTriangles")
   };
 }
 /** Material edits retain geometry, collision and worker caches. */
