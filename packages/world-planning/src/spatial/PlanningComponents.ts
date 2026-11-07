@@ -1193,7 +1193,7 @@ export const PLANNING_COMPONENTS: PlanningComponentDefinition[] = [
     label: "空间体量",
     description:
       "直接修改单体的位置、宽深高和水平朝向，允许重叠及移出原生成区域，不执行生成时的坡度、净空或避让求解，不自动移动邻居。建筑墙段与门窗使用建筑编辑能力。",
-    kinds: ["volume", "landscapeElement"],
+    kinds: ["volume", "landscapeElement", "rock"],
     version: 1,
     tab: "world",
     fields: [
@@ -1203,6 +1203,7 @@ export const PLANNING_COMPONENTS: PlanningComponentDefinition[] = [
       number("depth", "深度", { unit: "m", step: 0.5, min: 0.001, default: 8, editEffect: "instance" }),
       number("height", "高度", { unit: "m", step: 0.5, min: 0.001, default: 8, editEffect: "instance" }),
       number("yawDegrees", "朝向", { unit: "°", step: 1, default: 0, editEffect: "instance" }),
+      { ...number("elevation", "底部高程", { unit: "m", step: 1, editEffect: "instance" }), kinds: ["rock"] },
       {
         ...number("maxGroundSlopeDegrees", "占地坡度上限", { unit: "°", step: 1, min: 0, max: 90, hidden: true }),
         kinds: ["volume"]

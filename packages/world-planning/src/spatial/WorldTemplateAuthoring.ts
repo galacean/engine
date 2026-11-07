@@ -154,6 +154,8 @@ export function createTemplatePlanningDocument(
   const { anchor, resources } = templateCore(template);
   recipe.parameters.worldTemplate = { id, centerX: anchor.x, centerZ: anchor.z };
   const document = importPlanningDocument(recipe);
+  for (const entity of Object.values(initial.entities))
+    if (entity.origin === "authored") document.entities[entity.id] = structuredClone(entity);
   document.samplingVersion = initial.samplingVersion;
   document.waterAuthoringVersion = 1;
   const components = document.entities.world.components;

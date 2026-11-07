@@ -483,10 +483,13 @@ export class PlanningSession {
               ...field,
               worldWritable:
                 !field.readonly &&
-                (global ? !!global[field.key] : (!!definition.presentation && !kinds) || !!definition.runtime)
+                (global
+                  ? !!global[field.key]
+                  : (!!definition.presentation && (!kinds || kinds.includes("world"))) || !!definition.runtime)
             })),
           scopes: {
-            world: !!global || (!!definition.presentation && !kinds) || !!definition.runtime,
+            world:
+              !!global || (!!definition.presentation && (!kinds || kinds.includes("world"))) || !!definition.runtime,
             instances: kinds ?? []
           }
         })

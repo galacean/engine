@@ -23,7 +23,9 @@ export const ROCK_SHAPE_DEFAULTS = {
 export interface RockFormationSettings {
   textureScale: number;
   colorBlend: RockColorBlend;
-  shape: typeof ROCK_SHAPE_DEFAULTS;
+  shape: typeof ROCK_SHAPE_DEFAULTS & { topDirection?: number };
+  /** Sparse, independently authored shapes; resolved only for the requested rock. */
+  overrides?: Record<string, Partial<typeof ROCK_FORMATION_DEFAULTS> & { topDirection?: number }>;
   variation: number;
   targetTriangles: number;
 }
@@ -48,6 +50,7 @@ export const ROCK_FORMATION_COMPONENT: PlanningComponentDefinition = {
   tab: "world",
   sparseGlobal: true,
   presentation: true,
+  kinds: ["world", "rock", "rockObb"],
   description:
     "所有岩石共用受约束轮廓、连续岩肩与切削生成器。仅改变 OBB 内部造型，布局和尺寸不变；同种子及对象身份可重复生成。",
   fields: [
@@ -57,6 +60,16 @@ export const ROCK_FORMATION_COMPONENT: PlanningComponentDefinition = {
     field("shoulderHeight", "Shoulder height / 肩部高度", 0.15, 0.9, 0.01),
     field("topRoughness", "Top relief / 顶部起伏", 0, 1, 0.01),
     field("topSlope", "Top inclination / 顶部倾斜", 0, 75, 1, "°"),
+    {
+      key: "topDirection",
+      label: "Top direction / 顶部坡向",
+      type: "number",
+      min: 0,
+      max: 360,
+      step: 1,
+      unit: "°",
+      description: "未指定时按 Seed 生成坡向；指定后使用 OBB 内的固定方向。"
+    },
     field("outlineIrregularity", "Outline variation / 整体轮廓变化", 0, 1, 0.01),
     field("wallCount", "Wall contours / 岩壁组合轮廓数", 4, 28, 1),
     field("wallOverlap", "Face width / 岩块横向宽度", 0, 1, 0.01),
@@ -66,8 +79,12 @@ export const ROCK_FORMATION_COMPONENT: PlanningComponentDefinition = {
     field("wallStrength", "Cut strength / 切削强度", 0, 1, 0.01),
     field("variation", "Per-rock variation / 单石变化范围", 0, 1, 0.01),
     field("targetTriangles", "Triangles per rock / 单石目标面数", 500, 10000, 100),
-    { ...field("textureScale", "Texture repeat / 纹理平铺米数（0 自动）", 0, 2048, 1, "m"), affectsLayout: false },
-    ...ROCK_COLOR_FIELDS
+    {
+      ...field("textureScale", "Texture repeat / 纹理平铺米数（0 自动）", 0, 2048, 1, "m"),
+      affectsLayout: false,
+      kinds: ["world"]
+    },
+    ...ROCK_COLOR_FIELDS.map((field) => ({ ...field, kinds: ["world"] }))
   ]
 };
 export const ROCK_OBB_COMPONENT: PlanningComponentDefinition = {
@@ -94,9 +111,30 @@ export function readRockFormationSettings(document: PlanningDocument): RockForma
   return {
     textureScale: read("textureScale"),
     colorBlend: readRockColorBlend(values),
-    shape: Object.fromEntries(
-      Object.keys(ROCK_SHAPE_DEFAULTS).map((key) => [key, read(key as keyof typeof ROCK_SHAPE_DEFAULTS)])
-    ) as typeof ROCK_SHAPE_DEFAULTS,
+    shape: {
+      ...(Object.fromEntries(
+        Object.keys(ROCK_SHAPE_DEFAULTS).map((key) => [key, read(key as keyof typeof ROCK_SHAPE_DEFAULTS)])
+      ) as typeof ROCK_SHAPE_DEFAULTS),
+      ...(values.topDirection !== undefined ? { topDirection: Number(values.topDirection) } : {})
+    },
+    overrides: Object.fromEntries(
+      Object.values(document.entities).flatMap((entity) => {
+        if (entity.id === "world" || !entity.components.rockFormation) return [];
+        const resolved = resolveComponent(document, entity.id, "rockFormation", rockFormationRegistry);
+        return [
+          [
+            entity.id,
+            Object.fromEntries(
+              Object.entries(resolved.values).filter(
+                ([key]) =>
+                  resolved.sources[key]?.some((source) => source !== "world") &&
+                  (key in ROCK_SHAPE_DEFAULTS || ["topDirection", "variation", "targetTriangles"].includes(key))
+              )
+            )
+          ]
+        ];
+      })
+    ),
     variation: read("variation"),
     targetTriangles: read("targetTriangles")
   };
@@ -112,3 +150,18 @@ export function rockGeometrySettings(
 export const rockFormationRegistry = new ComponentRegistry();
 rockFormationRegistry.register(ROCK_FORMATION_COMPONENT);
 rockFormationRegistry.register(ROCK_OBB_COMPONENT);
+
+/** A job is one editable OBB. Local shape edits cannot invalidate its siblings' caches. */
+export function rockSettingsForJob(settings: RockFormationSettings, id: string): RockFormationSettings {
+  const ownerEnd = id.lastIndexOf(":obb:");
+  const owner = ownerEnd < 0 ? id : id.slice(0, ownerEnd);
+  const patch = { ...settings.overrides?.[owner], ...settings.overrides?.[id] };
+  const { variation, targetTriangles, ...shape } = patch;
+  const { overrides: _overrides, ...base } = settings;
+  return {
+    ...base,
+    shape: { ...base.shape, ...shape },
+    variation: variation ?? base.variation,
+    targetTriangles: targetTriangles ?? base.targetTriangles
+  };
+}

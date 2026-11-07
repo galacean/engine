@@ -1,3 +1,4 @@
+import { projectAuthoredRocks } from "./AuthoredRocks";
 import type { IslandPlan, PlanLandscape, PlanPoint, PlanRock } from "../../semantic-study/IslandPlanModel";
 import { envelope } from "../../semantic-study/IslandPlanAtoms";
 import { inheritPlanningHeightmap, planningGroundSurface } from "../../semantic-study/PlanningHeightmap";
@@ -278,6 +279,21 @@ function projectRockSizes(plan: IslandPlan, document: PlanningDocument, indices?
   const rocks = indices ? indices.map((index) => plan.rocks[index]) : plan.rocks;
   const projection = { ...plan, rocks };
   applyRockObbSizes(projection, document);
+  projection.rocks = projection.rocks.map((rock) => {
+    if (!document.entities[rock.id]?.components.solid) return rock;
+    const { elevation } = resolveComponent(document, rock.id, "solid", planningRegistry).values;
+    if (elevation === undefined || elevation === rock.baseHeight) return rock;
+    const ground = planningGroundSurface(plan);
+    const boxHeights = rock.boxes?.map((box) => box.elevation ?? ground.sample(box.center));
+    const baseHeight = Number(elevation),
+      previousHeight = rock.baseHeight ?? (boxHeights?.length ? Math.min(...boxHeights) : ground.sample(rock.center)),
+      offset = baseHeight - previousHeight;
+    return {
+      ...rock,
+      baseHeight,
+      boxes: rock.boxes?.map((box, index) => ({ ...box, elevation: boxHeights![index] + offset }))
+    };
+  });
   if (indices)
     indices.forEach((index, ordinal) => {
       plan.rocks[index] = projection.rocks[ordinal];
@@ -364,6 +380,7 @@ export function applySpatialSceneryEdits(
     Object.keys(edits).filter((id) => !members.has(id)),
     ground
   );
+  projectAuthoredRocks(plan, document, ground);
   projectRockSizes(plan, document);
 }
 

@@ -1,7 +1,7 @@
 import { planningHeightmap } from "../../../semantic-study/PlanningHeightmap.ts";
 import type { IslandPlan } from "../../../semantic-study/IslandPlanModel.ts";
 import { rockFormationJobs } from "./Jobs.ts";
-import { rockGeometrySettings, type RockFormationSettings } from "./Settings.ts";
+import { rockGeometrySettings, rockSettingsForJob, type RockFormationSettings } from "./Settings.ts";
 import type { RockFormationJob, RockFormationMesh } from "@galacean/engine-terrain/rock-formation/types";
 import { rockGrassBuffers } from "@galacean/engine-terrain/rock-formation/GrassSurface";
 
@@ -60,14 +60,15 @@ export class RockFormationClient {
     // Live scene ownership already retains these meshes. Reuse them even when the
     // optional history cache is full, without extending that cache's byte budget.
     const live = new Map(resident.map((result) => [this.resultKeys.get(result), result]));
-    const keys = jobs.map((job) =>
+    const jobSettings = jobs.map((job) => rockSettingsForJob(settings, job.id));
+    const keys = jobs.map((job, index) =>
         JSON.stringify([
           job.id,
           job.seed,
           job.origin,
           job.guides,
           job.surfaceGrass !== false,
-          rockGeometrySettings(settings)
+          rockGeometrySettings(jobSettings[index])
         ])
       ),
       requested = new Set(keys);
@@ -113,7 +114,7 @@ export class RockFormationClient {
             const send = () => {
               if (!this.pending.has(id) || this.worker !== worker) return;
               try {
-                worker.postMessage({ id, job, settings });
+                worker.postMessage({ id, job, settings: jobSettings[index] });
               } catch (error) {
                 this.pending.get(id)?.reject(error);
                 this.pending.delete(id);

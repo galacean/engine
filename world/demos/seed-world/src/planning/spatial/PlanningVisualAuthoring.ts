@@ -41,6 +41,7 @@ export const PLANNING_VISUAL_AUTHORING: readonly VisualAuthoringDescriptor[] = [
       "shoulderHeight",
       "topRoughness",
       "topSlope",
+      "topDirection",
       "wallCount",
       "wallOverlap",
       "wallProtrusion",

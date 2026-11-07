@@ -21,7 +21,19 @@
       "widthM": [3, 5],
       "bend": [0.35, 0.7],
       "loopiness": [0.1, 0.35]
-    }
+    },
+    "backdrop": [
+      {
+        "count": 6,
+        "gapM": 1600,
+        "phase": 0.12,
+        "width": [1700, 2300],
+        "depth": [300, 450],
+        "height": [450, 650],
+        "topScale": [0.08, 0.16],
+        "topSlope": [3, 8]
+      }
+    ]
   },
   "rules": {
     "connected": {

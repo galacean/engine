@@ -67,7 +67,7 @@ export class RockFormationPanel {
       const current = this.flatSettings(readRockFormationSettings(this.document));
       const values = Object.fromEntries(
         [...this.fields].flatMap(([key, { input }]) =>
-          Number(input.value) === current[key] ? [] : [[key, Number(input.value)]]
+          !input.value || Number(input.value) === current[key] ? [] : [[key, Number(input.value)]]
         )
       );
       if (Object.keys(values).length)
@@ -145,7 +145,7 @@ export class RockFormationPanel {
       values = this.flatSettings(settings);
     this.colors.synchronize(settings.colorBlend);
     for (const [key, { input, controller }] of this.fields) {
-      this.draft[key] = String(values[key]);
+      this.draft[key] = String(values[key] ?? "");
       controller.updateDisplay();
       input.value = this.draft[key];
     }

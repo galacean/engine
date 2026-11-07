@@ -29,7 +29,7 @@ export function rockParameters(obb: RockObb, seed: number, settings: RockFormati
     shoulderHeight: vary(shape.shoulderHeight, 0.6, 0.15, 0.9),
     topRoughness: clamp(shape.topRoughness + relief, 0, 1),
     topSlope: vary(shape.topSlope, 35, 0, 75),
-    topDirection: r() * 360,
+    topDirection: shape.topDirection ?? r() * 360,
     wallCount: Math.round(clamp(shape.wallCount * (1 + relief), 4, 28)),
     wallLength: clamp(shape.wallLength * (1 - broad * 0.2) + relief, 0.5, 3),
     wallOverlap: vary(shape.wallOverlap, 0.3),

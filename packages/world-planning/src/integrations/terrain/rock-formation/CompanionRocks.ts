@@ -1,6 +1,6 @@
 import { rockGenerationShape, type RockGenerationKind, type RockGenerationProfile } from "./GenerationProfile.ts";
 import { hashSeed } from "@galacean/engine-terrain/rock-formation/math";
-import { rockGeometrySettings, type RockFormationSettings } from "./Settings.ts";
+import { rockGeometrySettings, rockSettingsForJob, type RockFormationSettings } from "./Settings.ts";
 import type { RockFormationJob, RockObb } from "@galacean/engine-terrain/rock-formation/types";
 
 /** Supported shape families; stable instance IDs seed each independent specimen. */
@@ -9,7 +9,7 @@ export const COMPANION_ROCK_KINDS: readonly RockGenerationKind[] = ["platform", 
 /** Share/appearance edits only rebind resident instances or update their material. */
 export function companionRockGeometryKey(settings: RockFormationSettings, profile: RockGenerationProfile): string {
   return JSON.stringify([
-    rockGeometrySettings(settings),
+    rockGeometrySettings(rockSettingsForJob(settings, "")),
     ...COMPANION_ROCK_KINDS.map((kind) => rockGenerationShape(kind, profile))
   ]);
 }

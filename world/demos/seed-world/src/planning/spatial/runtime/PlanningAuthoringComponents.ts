@@ -190,6 +190,7 @@ export class PlanningRockFormation extends VisualParameterAuthoring {
   declare shoulderHeight?: number;
   declare topRoughness?: number;
   declare topSlope?: number;
+  declare topDirection?: number;
   declare wallCount?: number;
   declare wallOverlap?: number;
   declare wallProtrusion?: number;

@@ -10,6 +10,8 @@ export interface PlanPoint {
 export interface PlanRockBox extends V2Box {}
 /** A single rock envelope, independently selectable inside a mountain group. */
 export interface PlanRock {
+  /** Ordinary authored solid, projected independently of generated placement groups. */
+  authored?: boolean;
   /** Unedited generated boxes retained for sparse per-OBB reset and incremental replay. */
   rockObbSource?: { boxes: PlanRockBox[]; outline: PlanPoint[]; obb: PlanPoint[] };
   /** Resolved constituent volumes, in world metres; shared by both views. */

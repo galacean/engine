@@ -323,7 +323,7 @@ export function importPlanningDocument(recipe: SemanticRecipe, plan?: IslandPlan
     if (!Object.keys(oldSizes!).length) delete passthrough.parameters.poiLayout!.landscape.plantSizes;
   }
   for (const definition of PLANNING_COMPONENTS)
-    if ((definition.presentation && !definition.kinds) || definition.runtime)
+    if ((definition.presentation && (!definition.kinds || definition.kinds.includes("world"))) || definition.runtime)
       document.entities.world.components[definition.type] = { values: {} };
   for (const [id, edit] of Object.entries(recipe.edits)) {
     const kind = componentKind(id, edit, plan),
@@ -667,7 +667,11 @@ export function upgradePlanningDocument(input: PlanningDocument): PlanningDocume
   for (const key of ["buildingPolicy", "regionElevation", "worldElevation", "worldRivers"])
     delete (document.passthrough.parameters as any)[key];
   for (const definition of PLANNING_COMPONENTS)
-    if (definition.global || (definition.presentation && !definition.kinds) || definition.runtime)
+    if (
+      definition.global ||
+      (definition.presentation && (!definition.kinds || definition.kinds.includes("world"))) ||
+      definition.runtime
+    )
       document.entities.world.components[definition.type] ??= { values: {} };
   for (const scope of [document, ...Object.values(document.layoutOverrides ?? {})])
     if (scope.waterAuthoringVersion !== undefined && scope.waterAuthoringVersion !== 1)

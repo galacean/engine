@@ -49,10 +49,16 @@ export function editableEntity(document: PlanningDocument, scene: SceneEntity, p
     if (planningComponentAppliesTo(definition, scene) && !entity.components[definition.type])
       entity.components[definition.type] = {
         values: {},
-        ...(definition.global
+        ...(scene.id !== "world" &&
+        (definition.global || (definition.presentation && definition.kinds?.includes("world")))
           ? {
               base: {
-                entity: "world",
+                entity:
+                  definition.type === "rockFormation" &&
+                  scene.parent &&
+                  document.entities[scene.parent]?.components.rockFormation
+                    ? scene.parent
+                    : "world",
                 component: definition.type
               }
             }
