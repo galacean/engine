@@ -1,6 +1,6 @@
 import type { RockFormationMesh } from "@galacean/engine-terrain/rock-formation/types";
-import type { ConstructionTerrainSource } from "@galacean/engine-building/tiny-glade/runtime/TerrainField";
-import type { ConstructionGroundMesh } from "@galacean/engine-building/tiny-glade/runtime/ConstructionGroundSupports";
+import type { ConstructionTerrainSource } from "@galacean/engine-building/building/runtime/TerrainField";
+import type { ConstructionGroundMesh } from "@galacean/engine-building/building/runtime/ConstructionGroundSupports";
 import {
   SEED_WORLD_HEIGHT_RANGE,
   seedWorldOriginX,

@@ -46,7 +46,7 @@ export const PLANNING_LIGHTING_DECLARATION: PlanningSystemDeclaration = {
       facts: [{ path: "lighting-samples.md", content: LIGHTING_SAMPLES_FACT }],
       knowledge: [
         "profileUrl 引用原生 JSONAsset，其中含完整日照曲线和星月静态设置。只引用已查询到或用户明确提供的资源 URL，不能根据情绪或主题编造地址。资源仍要实际加载验证。显式光源字段覆盖资产的采样值。reset 删除覆盖，回到当前 profile 的曲线。",
-        "改时间的入口：用户只要求改当前时间时，用 tools.time.update。重新设计整套光照时，才通过本组件修改 timeHours。timeHours 是保存在规划组件里的时刻，世界重新发布时会重新应用。",
+        "改时间的入口：用户只要求改当前时间时，用 tools.time.update。重新设计整套光照时，才通过本组件修改 timeHours。timeHours 是保存在规划组件里的作者时刻。世界重新发布不会改动当前时钟，只有这个值变化时才会移动时钟。用 world.parameters.inspect 读作者参数，用 tools.time.get 读当前时钟。",
         "lighting 是当前世界的真实光照能力。timeHours 同时采样太阳方向、天空和云层色彩、大气与光源的原生日照曲线，不只是修改物体亮度。日落时刻会改变整片天空。明确设置的光源和天空字段覆盖相应曲线值，reset 恢复曲线。修改时刻不会自动删除这些历史覆盖，要一并检查它们是否适合新的时段。",
         "光照创作先构思视觉关系，再选参数。根据题材、风格、情绪和用户参考，综合评估时刻与光线方向、主光和补光的比例、受光面与阴影的层次、天空与实体的冷暖，以及空气清晰度。先从实际日照曲线选择支持这组关系的时段，再协调光源、天空覆盖和后处理。不要先固定旧时刻，再用更多光强、色温或渐变去抵消不合适的时段。timeHours 是首要的光照设计维度，当前值不是锁定条件。保留当前值也要符合构思。不能把情绪词绑定为固定时间、亮度或色彩配方。清晨、正午、黄昏和夜景都可用于创作，通透明亮不是所有情绪的默认目标。",
         "当前参数只是待修改的起点，不是创作目标或美术参考。已有的偏色、灰雾、过曝或暗沉要重新判断。如果选择热情、温暖而明快的表达，可以让暖色主体接受清晰日光，用较冷的天空和阴影衬托，光照充足、空气清澈、亮部保有材质细节、暗面有补光和体积。不要用黄昏底色加暖滤镜表达温暖。具体时刻仍要依据实际曲线的太阳方向和天空色关系决定，不能固定到某个小时。选择暮色或暗调时，采用相应的视觉关系。",
@@ -237,7 +237,8 @@ export function applyPlanningLightSources(
     "setTimeOfDayLightingProfile" | "setTuning" | "setVisibility" | "applyVisualTuning"
   >,
   values: Record<string, unknown>,
-  sourceProfile: readonly TerrainTimeOfDayLightingSample[]
+  sourceProfile: readonly TerrainTimeOfDayLightingSample[],
+  applyTime = true
 ): void {
   const visual: Partial<TerrainLightingVisualTuning> = {};
   const overrideKeys = [
@@ -254,12 +255,12 @@ export function applyPlanningLightSources(
     Object.assign(visual, { [key]: value });
   }
   lighting.setTimeOfDayLightingProfile(sourceProfile);
-  lighting.setTuning({ playing: false, timeHours: Number(values.timeHours) });
+  if (applyTime) lighting.setTuning({ playing: false, timeHours: Number(values.timeHours) });
   lighting.setVisibility({
     direct: Boolean(values.direct),
     environment: Boolean(values.environment),
     shadows: Boolean(values.shadows),
     fog: Boolean(values.fog)
   });
-  lighting.applyVisualTuning(visual);
+  lighting.applyVisualTuning(visual, Number(values.timeHours));
 }

@@ -1,4 +1,4 @@
-import { buildingPartDocuments, buildingPartSkill } from "@galacean/engine-building/tiny-glade/parts/BuildingKnowledge";
+import { buildingPartDocuments, buildingPartSkill } from "@galacean/engine-building/building/parts/BuildingKnowledge";
 import { parseAgentSkill } from "@galacean/engine-ai-chat/ai-chat/agent-skills";
 import presetSystemsGuide from "./skills/scripting/preset-systems.md?raw";
 import worldRuntimeGuide from "./skills/scripting/world-runtime.md?raw";

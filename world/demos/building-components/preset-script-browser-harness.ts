@@ -7,7 +7,7 @@ import {
 } from "@galacean/engine-project/runtime-editor/project/runtime-project";
 import { fixtureModules } from "./fixture-modules";
 import { FarmingSystem } from "@galacean/engine-farming/farming/native/FarmingSystem";
-import { BuildingPartComponent } from "@galacean/engine-building/tiny-glade/parts/architecture/BuildingPartComponent";
+import { BuildingPartComponent } from "@galacean/engine-building/building/parts/architecture/BuildingPartComponent";
 
 /** Compile in the real Worker, then execute a Script against native Engine instances. */
 export async function presetScriptBrowserFixture(id: string) {

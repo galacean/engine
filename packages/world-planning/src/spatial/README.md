@@ -479,7 +479,7 @@ POI 使用通用 `memberMin/memberMax` 指导自动成员数量；每个有效�
 规划页保留建筑体量白盒；旧建筑二维配置预览、Subject 编辑 API 和 Cozy Worker 已退役。
 
 Tiny-glade 负责开洞、几何编译、精细排列、批量渲染及表面查询。接地消费同一发布地形与岩石支持数据。
-固定装饰组合由 VFS Prefab 描述，源资产与运行集合的职责见 `shared/tiny-glade/components/README.md`。
+固定装饰组合由 VFS Prefab 描述，源资产与运行集合的职责见 [建筑组件 README](../../../building/src/building/components/README.md)。
 
 ### 主体展示相机
 

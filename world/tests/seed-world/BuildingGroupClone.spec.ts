@@ -1,6 +1,6 @@
 import { Entity, type Engine, ReferResource } from "@galacean/engine-core";
 import { PrefabResource } from "@galacean/engine-loader";
-import { BuildingGroupComponent } from "@galacean/engine-building/tiny-glade/parts/architecture/BuildingGroupComponent";
+import { BuildingGroupComponent } from "@galacean/engine-building/building/parts/architecture/BuildingGroupComponent";
 import { expect, it } from "vitest";
 
 const engine = {

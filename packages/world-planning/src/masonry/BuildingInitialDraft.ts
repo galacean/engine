@@ -1,26 +1,23 @@
-import type { BuildingUnitAssets } from "@galacean/engine-building/tiny-glade/runtime/BuildingUnitAssets";
-import { constructionDecorationRecipe } from "@galacean/engine-building/tiny-glade/runtime/ConstructionDecorationRecipe";
-import { gothicPlacement } from "@galacean/engine-building/tiny-glade/runtime/GothicPlacement";
-import { roofAttachmentUV } from "@galacean/engine-building/tiny-glade/runtime/RoofAttachmentUV";
+import type { BuildingUnitAssets } from "@galacean/engine-building/building/runtime/BuildingUnitAssets";
+import { constructionDecorationRecipe } from "@galacean/engine-building/building/runtime/ConstructionDecorationRecipe";
+import { gothicPlacement } from "@galacean/engine-building/building/runtime/GothicPlacement";
+import { roofAttachmentUV } from "@galacean/engine-building/building/runtime/RoofAttachmentUV";
 import type { IslandPlan } from "../semantic-study/IslandPlanModel";
-import {
-  European,
-  type EuropeanHouseParameters
-} from "@galacean/engine-building/tiny-glade/parts/architecture/European";
+import { European, type EuropeanHouseParameters } from "@galacean/engine-building/building/parts/architecture/European";
 import {
   combineBuildingDrafts,
   type BuildingDraft,
   type SurfaceStyle
-} from "@galacean/engine-building/tiny-glade/parts/architecture/BuildingDraft";
-import { profileRoofGeometry, profileShape } from "@galacean/engine-building/tiny-glade/runtime/ProfileGeometry";
-import { generatedDecorationSeed } from "@galacean/engine-building/tiny-glade/runtime/ConstructionDecorationConfig";
-import type { ProfileRoofParameters } from "@galacean/engine-building/tiny-glade/runtime/ProfileParameters";
+} from "@galacean/engine-building/building/parts/architecture/BuildingDraft";
+import { profileRoofGeometry, profileShape } from "@galacean/engine-building/building/runtime/ProfileGeometry";
+import { generatedDecorationSeed } from "@galacean/engine-building/building/runtime/ConstructionDecorationConfig";
+import type { ProfileRoofParameters } from "@galacean/engine-building/building/runtime/ProfileParameters";
 import {
   planFacadeDecorations,
   normalizeDecorationPlan
-} from "@galacean/engine-building/tiny-glade/runtime/DecorationPlan";
-import { isFlatRoofHeight } from "@galacean/engine-building/tiny-glade/runtime/RoofMode";
-import { roofHeight } from "@galacean/engine-building/tiny-glade/runtime/RecoveredRoofMath";
+} from "@galacean/engine-building/building/runtime/DecorationPlan";
+import { isFlatRoofHeight } from "@galacean/engine-building/building/runtime/RoofMode";
+import { roofHeight } from "@galacean/engine-building/building/runtime/RecoveredRoofMath";
 import { planningRemovedObjectIds } from "../spatial/PlanningResources";
 
 export interface InitialBuildingDraft {
