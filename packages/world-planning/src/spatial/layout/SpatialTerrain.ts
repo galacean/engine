@@ -16,6 +16,7 @@ export function createSpatialWorldBase(recipe: SemanticResult["recipe"]): Island
       seed: p.seed,
       landformSeed: p.landformSeed,
       worldTemplate: p.worldTemplate,
+      spatialComposition: p.spatialComposition,
       valleyWidth: 0,
       riverWidth: 0,
       mountainHeight: 0,

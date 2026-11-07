@@ -52,7 +52,7 @@ export const GRASS_APPEARANCE_DECLARATION: PlanningSystemDeclaration = {
       type: "surfacePalette",
       domain: "vegetation",
       knowledge: [
-        "surfacePalette 的 color.r/g/b 是裸地和道路材质的线性 RGB。草地关闭后仍使用这个颜色，例如冰雪地表和沙漠。它不改变照明、天空、草地或植物材质。"
+        "surfacePalette 的 color.r/g/b 是裸地材质的线性 RGB；road.r/g/b 可独立设置道路色，未覆盖的道路通道继承 color。草地关闭后仍消费裸地色。它不改变照明、天空、草地或植物材质。"
       ]
     }
   ]
@@ -67,29 +67,30 @@ export const SURFACE_PALETTE_COMPONENT: PlanningComponentDefinition = {
   version: 1,
   tab: "ecology",
   presentation: true,
-  fields: (["r", "g", "b"] as const).map((channel) => ({
-    key: "color." + channel,
-    label: "地表固有色 · " + channel.toUpperCase(),
-    type: "number" as const,
-    min: 0,
-    max: 1,
-    unit: "线性 RGB",
-    combine: "override" as const,
-    description: "现有 Terrain 裸地与道路材质颜色；不修改草地、光照、天空或地形。未覆盖时保留原素材颜色。"
-  }))
+  fields: (["color", "road"] as const).flatMap((slot) =>
+    (["r", "g", "b"] as const).map((channel) => ({
+      key: slot + "." + channel,
+      label: (slot === "road" ? "道路固有色 · " : "地表固有色 · ") + channel.toUpperCase(),
+      type: "number" as const,
+      min: 0,
+      max: 1,
+      unit: "线性 RGB",
+      combine: "override" as const,
+      description: "现有 Terrain 材质颜色；道路可独立覆盖，缺省继承地表色。不修改草地、光照、天空或地形。"
+    }))
+  )
 };
 registry.register(SURFACE_PALETTE_COMPONENT);
 export function readSurfacePalette(
   document: PlanningDocument,
-  inherited: readonly [number, number, number]
+  inherited: readonly [number, number, number],
+  slot: "color" | "road" = "color"
 ): readonly [number, number, number] {
   if (!document.entities.world?.components.surfacePalette) return inherited;
   const { values } = resolveComponent(document, "world", "surfacePalette", registry);
-  return (["r", "g", "b"] as const).map((channel, i) => Number(values["color." + channel] ?? inherited[i])) as [
-    number,
-    number,
-    number
-  ];
+  return (["r", "g", "b"] as const).map((channel, i) =>
+    Number(values[slot + "." + channel] ?? values["color." + channel] ?? inherited[i])
+  ) as [number, number, number];
 }
 export function readGrassAppearance(document: PlanningDocument): SeedWorldGrassColorFieldTuning {
   const resolved = document.entities.world?.components.grassAppearance
@@ -110,7 +111,9 @@ export function readGrassAppearance(document: PlanningDocument): SeedWorldGrassC
   const surface = document.entities.world?.components.surfacePalette
     ? resolveComponent(document, "world", "surfacePalette", registry)
     : undefined;
-  const authoredSurface = (["r", "g", "b"] as const).some((channel) => surface?.sources["color." + channel]?.length);
+  const authoredSurface = ["color", "road"].some((slot) =>
+    (["r", "g", "b"] as const).some((channel) => surface?.sources[slot + "." + channel]?.length)
+  );
   return freezeSeedWorldGrassColorFieldTuning({
     ...defaults,
     colorA: color("colorA"),

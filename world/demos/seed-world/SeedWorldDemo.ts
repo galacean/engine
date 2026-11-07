@@ -964,15 +964,16 @@ export async function mountSeedWorldDemo(
               { minimumX: 0, minimumZ: 0, maximumX: plan.parameters.width, maximumZ: plan.parameters.depth }
             );
             candidate.setSurfaceColorTuning({
-              roadColor: readSurfacePalette(document, SEED_WORLD_ROAD_COLOR_DEFAULT),
+              roadColor: readSurfacePalette(document, SEED_WORLD_ROAD_COLOR_DEFAULT, "road"),
               groundColor: readSurfacePalette(document, SEED_WORLD_ROAD_COLOR_DEFAULT),
               grass: readGrassAppearance(document)
             });
-            candidateTemplate = WorldTemplateRuntime.create(
+            candidateTemplate = await WorldTemplateRuntime.create(
               candidate.root,
               plan,
               (x, z) => sampleSeedWorldHeight(candidateData.fields, x, z),
-              templateScene
+              templateScene,
+              signal
             );
             if (!ready) progress(0.6, `生成真实建筑（${plan.buildings.length} 栋）`);
             progress(0.68, "生成全部房屋与围合构件");
@@ -1139,7 +1140,7 @@ export async function mountSeedWorldDemo(
           source!.session.inspect("world").components.find((c) => c.type === "weather")?.values
         );
         accepted.world.setSurfaceColorTuning({
-          roadColor: readSurfacePalette(source!.session.document, SEED_WORLD_ROAD_COLOR_DEFAULT),
+          roadColor: readSurfacePalette(source!.session.document, SEED_WORLD_ROAD_COLOR_DEFAULT, "road"),
           groundColor: readSurfacePalette(source!.session.document, SEED_WORLD_ROAD_COLOR_DEFAULT),
           grass: readGrassAppearance(source!.session.document)
         });

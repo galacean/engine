@@ -1,9 +1,10 @@
-import type { TemplateNode } from "./WorldTemplateGeometry";
+import type { TemplateNode, TemplateAssetSlot } from "./WorldTemplateGeometry";
+import type { SpatialCompositionParameters } from "./SpatialCompositionParameters";
 
 /** Authored scene measurements from the fifteen supplied reference images.
  * These are template inputs, not geometry guessed from a Seed or renderer output.
- * A model entry is a single unavailable asset envelope; it is never a primitive
- * reconstruction of the named asset. Camera fitting uses only the focus entries. */
+ * Each model entry defines an asset envelope, with a supplied model when available.
+ * Camera fitting uses only the focus entries. */
 export interface WorldTemplateArtDirection {
   reference: string;
   focus: string[];
@@ -11,10 +12,15 @@ export interface WorldTemplateArtDirection {
   azimuthDegrees: number;
   /** Composition aim relative to the focus envelope; a side subject stays at the side. */
   lookAtOffset?: [number, number, number];
-  models: TemplateNode[];
+  models: (TemplateNode | TemplateAssetSlot)[];
+  /** Scalar authoring only; roads, water, relief and populations are derived. */
+  generation?: Partial<SpatialCompositionParameters>;
   grass: [string, string];
   ground: string;
+  road?: string;
   foliage: string;
+  /** Leaf colours keyed by native species identity, independent of catalog order. */
+  treeFoliage?: Readonly<Record<string, string>>;
   bark: string;
   flowers: string;
   stone: string;
@@ -141,21 +147,57 @@ const plateau = (id: string, x: number, z: number, length: number, width: number
 
 export const WORLD_TEMPLATE_ART: Readonly<Record<string, WorldTemplateArtDirection>> = {
   "sakura-pearl": {
+    generation: {
+      enabled: true,
+      roadWidthM: 10,
+      roadBendM: 18,
+      roadWavelengthM: 220,
+      destinationId: "garden-pavilion",
+      forecourtDepthM: 30,
+      streamWidthM: 24,
+      bankWidthM: 7,
+      leftReliefM: 60,
+      rightReliefM: 70,
+      waterfallWidthM: 10,
+      treeSpacingM: 22,
+      treeBandWidthM: 65,
+      treeAssetId: "SM_BirchTree_01",
+      rockSpacingM: 28,
+      replacePopulation: true
+    },
     reference: "SeedWorld-01-sakura-pearl.png",
     focus: ["pearl-cherry-tree"],
     frameFraction: 0.8,
     azimuthDegrees: 0,
+    lookAtOffset: [0, -13, 0],
     models: [
-      model("pearl-cherry-tree", [0, 0, 15], [92, 82, 70]),
-      model("garden-pavilion", [67, 0, -4], [16, 18, 15]),
-      model("garden-tower", [82, 0, 20], [12, 27, 12])
+      {
+        id: "pearl-cherry-tree",
+        // Preserve the existing footprint; source proportions determine the height.
+        scale: [92, 43, 70],
+        grounded: true,
+        // Highest vertex of the source root rims, so all cut openings enter the soil.
+        assetGroundY: 1.0934512615203857,
+        assetYawDegrees: -155,
+        assetLeafMaterials: ["Foliage_PBR_512"],
+        assetUrl: new URL("../assets/pink-tree.glb", import.meta.url).href
+      },
+      { id: "garden-pavilion", scale: [16, 18, 15], grounded: true },
+      { id: "garden-tower", scale: [12, 27, 12], grounded: true }
     ],
-    grass: ["#c96398", "#f3b5d1"],
-    ground: "#f0d4e3",
-    foliage: "#f0a4c7",
+    grass: ["#e55959", "#ff899e"],
+    ground: "#f2dfe8",
+    road: "#c7b9ad",
+    foliage: "#f8b8cb",
+    treeFoliage: {
+      SM_BirchTree_01: "#ff8ea0",
+      SM_BirchTree_02: "#f78f95",
+      SM_BirchTree_07: "#ffa0c1",
+      "cartoon/tree/highlands-fir-3-candidate/v1": "#ffa0c1"
+    },
     bark: "#e4dce8",
     flowers: "#fff2fa",
-    stone: "#c9b6d1",
+    stone: "#c9bfd3",
     lighting: {
       ...lighting(9.5, 2.1, 1.25, 1.3, 0.00025, 0.55),
       ...atmosphere([0.765, 1.6, 1.6], [1.1, 1.15, 1.2]),
@@ -168,12 +210,7 @@ export const WORLD_TEMPLATE_ART: Readonly<Record<string, WorldTemplateArtDirecti
     },
     postProcess: post(8, 7),
     landscape: { treeHeightMinM: 8, treeHeightMaxM: 18 },
-    flowerCoverage: 0.65,
-    terrain: [plateau("west-cliffs", -190, 65, 330, 100, 58), plateau("east-cliffs", 180, 100, 330, 115, 65)],
-    water: [
-      { id: "west-garden-pool", x: -75, z: -80, radius: 32, depth: 2, color: [159, 193, 202] },
-      { id: "east-garden-pool", x: 72, z: -92, radius: 34, depth: 2, color: [159, 193, 202] }
-    ]
+    flowerCoverage: 0.65
   },
   "aurora-palace": {
     reference: "SeedWorld-02-aurora-ice-palace.png",

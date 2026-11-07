@@ -1,3 +1,4 @@
+import { SPATIAL_COMPOSITION_COMPONENT } from "./SpatialCompositionParameters";
 import { LAKE_DEFAULTS } from "./hydrology/LakeRegions";
 import { SUSPENSION_BRIDGE_DEFAULTS } from "@galacean/engine-water/bridges/SuspensionBridge";
 import { ANIMAL_POPULATION_COMPONENT } from "./AnimalPopulationComponent";
@@ -81,6 +82,16 @@ const localPaths = (fields: SpatialField[], prefix = "") =>
 const prefixPaths = (fields: SpatialField[], prefix: string) =>
   Object.fromEntries(fields.map((f) => [f.key, prefix + f.key]));
 const riverFields: SpatialField[] = [
+  {
+    key: "levelMode",
+    label: "河面高程来源",
+    type: "string",
+    kinds: ["water"],
+    combine: "override",
+    options: ["terrain", "minimum"],
+    optionLabels: { terrain: "沿地形流动", minimum: "按完整路径最低地面生成平水面" },
+    default: "terrain"
+  },
   {
     key: "points",
     label: "河流控制点（米）",
@@ -461,6 +472,7 @@ export const PLANNING_COMPONENTS: PlanningComponentDefinition[] = [
     ],
     global: { id: "worldTemplate.id", centerX: "worldTemplate.centerX", centerZ: "worldTemplate.centerZ" }
   },
+  SPATIAL_COMPOSITION_COMPONENT,
   {
     type: "population",
     label: "村庄规划",

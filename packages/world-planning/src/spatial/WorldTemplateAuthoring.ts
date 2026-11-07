@@ -9,12 +9,45 @@ import { PLANT_MATERIAL_SLOTS, plantMaterialField } from "./PlantMaterialParamet
 import { settlementRandom } from "../semantic-study/SettlementGeometry";
 import { templateBaseSeed, templateLinearColor, worldTemplate, type WorldTemplate } from "./WorldTemplateCatalog";
 import { WORLD_TEMPLATE_ART } from "./WorldTemplateArtDirection";
+import { spatialCompositionParameters } from "./SpatialCompositionParameters";
 import { createSpatialTerrainPlan } from "./layout/SpatialTerrain";
 import { createPlanningGroundSampler } from "../semantic-study/WorldPlanningTerrain";
 import { planWorldTemplateSite } from "./WorldTemplatePlanning";
 import { planningLakeSpillLevel } from "../semantic-study/PlanningLakeBasin";
 import type { PlanningResource } from "./PlanningResources";
 import { assertSeedWorldAuthoredBasinPublicParametersV1 } from "../runtime/SeedWorldAuthoredBasinWater";
+
+/** World material fields shared by first creation and palette-only authoring edits. */
+export function worldTemplatePaletteValues(id: string): Record<string, Record<string, number>> {
+  if (!worldTemplate(id)) throw new Error("未知世界风格：" + id);
+  const art = WORLD_TEMPLATE_ART[id];
+  const colorFields = (slot: string, hex: string) =>
+    Object.fromEntries(
+      (["r", "g", "b"] as const).map((channel, i) => [slot + "." + channel, templateLinearColor(hex)[i]])
+    );
+  return {
+    rockFormation: colorFields("color", art.stone),
+    grassAppearance: { ...colorFields("colorA", art.grass[0]), ...colorFields("colorB", art.grass[1]), saturation: 1 },
+    surfacePalette: { ...colorFields("color", art.ground), ...(art.road ? colorFields("road", art.road) : {}) },
+    plantMaterial: Object.fromEntries(
+      PLANT_MATERIAL_SLOTS.flatMap((slot) => {
+        const color = templateLinearColor(
+          slot.part === "bark"
+            ? art.bark
+            : ["petals", "cap"].includes(slot.part)
+              ? art.flowers
+              : slot.role === "leaf" && slot.layers.includes("trees")
+                ? (art.treeFoliage?.[slot.assetId] ?? art.foliage)
+                : art.foliage
+        );
+        return (["r", "g", "b"] as const).map((channel, i) => [
+          plantMaterialField(slot.assetId, slot.materialId, channel),
+          color[i]
+        ]);
+      })
+    )
+  };
+}
 
 /** The canonical physical recipe is common to every Seed variation. Retain only
  * its measured author inputs, never a generated world, raster or live object. */
@@ -27,6 +60,9 @@ function templateCore(template: WorldTemplate) {
   const canonical = exportPlanningRecipe(createSeedPlanningInputs(templateBaseSeed(id)));
   Object.assign(canonical.parameters, {
     worldTemplate: { id },
+    ...(art.generation
+      ? { spatialComposition: { ...art.generation, enabled: false, seed: templateBaseSeed(id) } }
+      : {}),
     landformSeed: templateBaseSeed(id),
     landCoverage: terrain.coverage,
     complexity: 0.6,
@@ -153,22 +189,19 @@ export function createTemplatePlanningDocument(
   });
   const { anchor, resources } = templateCore(template);
   recipe.parameters.worldTemplate = { id, centerX: anchor.x, centerZ: anchor.z };
+  if (art.generation)
+    recipe.parameters.spatialComposition = spatialCompositionParameters({
+      ...art.generation,
+      seed: templateBaseSeed(id),
+      centerX: anchor.x,
+      centerZ: anchor.z
+    });
   const document = importPlanningDocument(recipe);
   document.samplingVersion = initial.samplingVersion;
   document.waterAuthoringVersion = 1;
   const components = document.entities.world.components;
-  const colorFields = (slot: string, hex: string) =>
-    Object.fromEntries(
-      (["r", "g", "b"] as const).map((channel, i) => [slot + "." + channel, templateLinearColor(hex)[i]])
-    );
-  components.rockFormation = {
-    ...components.rockFormation,
-    values: { ...components.rockFormation?.values, ...colorFields("color", art.stone) }
-  };
-  components.grassAppearance = {
-    values: { ...colorFields("colorA", art.grass[0]), ...colorFields("colorB", art.grass[1]), saturation: 1 }
-  };
-  components.surfacePalette = { values: colorFields("color", art.ground) };
+  for (const [type, values] of Object.entries(worldTemplatePaletteValues(id)))
+    components[type] = { ...components[type], values: { ...components[type]?.values, ...values } };
   // The user explicitly authorized reference-specific lighting on 2026-11-05.
   // Time, light energy and material colour have independent artistic meanings.
   components.lighting = { values: { ...art.lighting } };
@@ -186,19 +219,6 @@ export function createTemplatePlanningDocument(
   Object.assign(components.landscape.values, art.landscape);
   if (art.flowerCoverage !== undefined) components.flowers.values.coverage = art.flowerCoverage;
   components.animals = { values: { enabled: false } };
-  components.plantMaterial = {
-    values: Object.fromEntries(
-      PLANT_MATERIAL_SLOTS.flatMap((slot) => {
-        const color = templateLinearColor(
-          slot.part === "bark" ? art.bark : ["petals", "cap"].includes(slot.part) ? art.flowers : art.foliage
-        );
-        return (["r", "g", "b"] as const).map((channel, i) => [
-          plantMaterialField(slot.assetId, slot.materialId, channel),
-          color[i]
-        ]);
-      })
-    )
-  };
   document.authoredResources = structuredClone(resources);
   return initializePlanningPopulation(document, options);
 }
@@ -210,6 +230,7 @@ export function createTemplatePlanningDocument(
  * @param seed New deterministic world identity.
  * @param id Template identity, or an empty string for the original procedural world.
  * @param options One-time initialization village target and global building upper bound.
+ * @param retainComposition Preserve the current template's edited composition when varying the Seed.
  * @returns New authoring whose population is controlled by editable per-POI profile and spacing values.
  * @throws For invalid initialization inputs or an unrealizable population request.
  */
@@ -217,7 +238,8 @@ export function createWorldStylePlanningDocument(
   source: PlanningDocument,
   seed: number,
   id: string,
-  options?: PlanningPopulationOptions
+  options?: PlanningPopulationOptions,
+  retainComposition = false
 ): PlanningDocument {
   const document = id ? createTemplatePlanningDocument(seed, id, options) : createSeedPlanningDocument(seed, options);
   const copied = new Set<string>();
@@ -237,6 +259,8 @@ export function createWorldStylePlanningDocument(
   };
   for (const type of [...(id ? [] : ["lighting", "postProcess"]), "landscape", "landscapePopulation", "flowers"])
     retain("world", type);
+  if (retainComposition && source.entities.world.components.worldTemplate?.values.id === id)
+    retain("world", "landscapeComposition");
   if (id) {
     const art = WORLD_TEMPLATE_ART[id],
       components = document.entities.world.components;

@@ -4,9 +4,14 @@ import { SEMANTIC_DEFAULTS } from "@galacean/engine-world-planning/semantic-stud
 /** Select a world style and Seed.
  * @param host Toolbar that owns the entry button.
  * @param apply Publish and persist the fully initialized document.
+ * @param applyPalette Update only material colours in the current project.
  * @returns Controls for synchronizing and disposing the picker.
  */
-export function mountWorldTemplatePicker(host: HTMLElement, apply: (id: string, seed: number) => Promise<void>) {
+export function mountWorldTemplatePicker(
+  host: HTMLElement,
+  apply: (id: string, seed: number) => Promise<void>,
+  applyPalette?: (id: string) => Promise<void>
+) {
   const entry = document.createElement("button");
   entry.type = "button";
   entry.dataset.action = "world-style";
@@ -18,9 +23,11 @@ export function mountWorldTemplatePicker(host: HTMLElement, apply: (id: string, 
   dialog.innerHTML = `<header><div><p>SEED WORLD / 世界风格</p><h2 id="world-template-title">选择你的世界</h2></div><button type="button" data-close aria-label="关闭风格选择">✕</button></header>
     <p class="sp-template-intro">保留主题布局，周边地貌随 Seed 小幅变化。同一风格与 Seed 可重建同一世界。</p>
     <div class="sp-template-grid" role="group" aria-label="世界风格"></div>
-    <footer><label>Seed <input aria-label="风格世界 Seed" type="number" min="0" max="4294967295" step="1" required></label><button type="button" data-random>随机 Seed</button><button type="button" data-apply>应用风格</button><p role="status" aria-live="polite"></p><small>应用后替换当前规划参数；原生场景中的手动建筑和农场仍保留。</small></footer>`;
+    <footer><label>Seed <input aria-label="风格世界 Seed" type="number" min="0" max="4294967295" step="1" required></label><button type="button" data-random>随机 Seed</button><button type="button" data-palette title="更新当前工程配色，保留布局、建筑、光照和后处理">仅应用配色</button><button type="button" data-apply>应用风格</button><p role="status" aria-live="polite"></p><small>应用风格会替换当前规划参数；仅应用配色保留现有布局与光照。</small></footer>`;
   const input = dialog.querySelector("input")!;
   const submit = dialog.querySelector<HTMLButtonElement>("[data-apply]")!;
+  const palette = dialog.querySelector<HTMLButtonElement>("[data-palette]")!;
+  palette.hidden = !applyPalette;
   const state = dialog.querySelector<HTMLElement>('[role="status"]')!;
   let selected = "",
     seed = SEMANTIC_DEFAULTS.seed,
@@ -64,6 +71,7 @@ export function mountWorldTemplatePicker(host: HTMLElement, apply: (id: string, 
     });
     submit.textContent = pending ? "正在生成规划…" : `应用「${worldTemplate(selected)?.name ?? "原始 Seed World"}」`;
     submit.disabled = pending;
+    palette.disabled = pending || !selected;
     input.disabled = pending;
     dialog.querySelector<HTMLButtonElement>("[data-random]")!.disabled = pending;
   }
@@ -78,16 +86,32 @@ export function mountWorldTemplatePicker(host: HTMLElement, apply: (id: string, 
     input.value = String(crypto.getRandomValues(new Uint32Array(1))[0]);
   };
   submit.onclick = async () => {
-    if (pending || (!input.reportValidity() || !Number.isSafeInteger(input.valueAsNumber))) return;
+    if (pending || !input.reportValidity() || !Number.isSafeInteger(input.valueAsNumber)) return;
     pending = true;
     refresh();
     state.textContent = "正在应用风格与 Seed…";
     try {
-      await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
       await apply(selected, input.valueAsNumber);
       dialog.close();
     } catch (error) {
       state.textContent = "应用失败：" + String(error);
+    } finally {
+      pending = false;
+      refresh();
+    }
+  };
+  palette.onclick = async () => {
+    if (pending || !selected || !applyPalette) return;
+    pending = true;
+    refresh();
+    state.textContent = "正在更新配色…";
+    try {
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+      await applyPalette(selected);
+      dialog.close();
+    } catch (error) {
+      state.textContent = "配色更新失败：" + String(error);
     } finally {
       pending = false;
       refresh();

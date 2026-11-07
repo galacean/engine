@@ -1,3 +1,4 @@
+import { compositionOutline } from "../spatial/SpatialCompositionGeometry";
 import { prepareLandscapeFalloff } from "../spatial/ecology/LandscapeFalloff";
 import { footprintLookup } from "../spatial/layout/FootprintLookup";
 import { boxGroundBottom } from "../spatial/layout/VolumeTerrain";
@@ -492,6 +493,9 @@ function prepareStaticPlacement(plan: IslandPlan, step: number): StaticPlacement
     buildings = plan.buildings.map((building) => building.outline),
     obstacles = [
       ...buildings,
+      ...(plan.parameters.spatialComposition?.enabled && plan.parameters.spatialComposition.replacePopulation
+        ? [compositionOutline(plan.parameters.spatialComposition)!]
+        : []),
       ...(plan.planning?.reservations.filter((area) => area.kind === "activity").map((area) => area.outline) ?? []),
       ...(plan.plazas ?? []).map((plaza) => plaza.outline),
       ...plan.rocks.map((rock) => rock.outline),

@@ -103,6 +103,7 @@ export interface PlanningData {
 /** Relative authoring controls; counts and physical budgets remain internal. */
 export interface SemanticParameters {
   worldTemplate?: { id: string; centerX?: number; centerZ?: number };
+  spatialComposition?: Partial<import("../spatial/SpatialCompositionParameters").SpatialCompositionParameters>;
   landformSeed?: number;
 }
 export interface SemanticParameters {
