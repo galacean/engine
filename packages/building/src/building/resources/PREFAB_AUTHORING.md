@@ -38,7 +38,7 @@ VFS：`Building/Units/Prefabs/wall-lantern.prefab`。
 - `BuildingUnitComponent.attachment` 为 `body`（默认）、`frame` 或 `glass`，声明安装／材质切换能力，不依赖 Entity 的名称。Cottage 半窗的玻璃具有独立贴墙位姿；其他零件跟随主体。子节点可改名、分组、添加，算法遍历实际层级。
 - 可切换石材的窗框通过 `stoneFrame` 引用原生排列 Prefab。木框、石框均应用该节点的累计变换；共享石框资源仍使用相同排列单元，避免因组合路径不同拆出重复批次。
 - 拱洞没有固定模型组合，仍由开洞算法生成。环境相关石帽、屋顶瓦片、百叶和窗台继续按安装环境生成／重复；资产包只保留 16 个被这些算法实际引用的独立装饰／碰撞单元。
-- 离线导出保留已经编写的组合 Source，从 kit 引用读取资产选择并清理不可达资源，不通过 TS/Python 配方重新生成组合。
+- 来源工程 `engine-next` 的离线导出器（`world/scripts/building-assets/export-native.py`）保留已经编写的组合 Source，从 kit 引用读取资产选择并清理不可达资源，不通过 TS/Python 配方重新生成组合。本仓库不包含这个导出器。
 
 现有专用排列单元仍有 Shader/顶点布局约束；当前实现不表示任意 Shader、动画或嵌套 Prefab 实例均已支持建筑合批。
 
@@ -64,7 +64,7 @@ float32舍入和包围盒重算。共享 Mesh 不变，颜色/UV/整数属性不
 4. 错误引用、重复路径、循环层级在通用准备阶段失败；建筑不支持的节点状态在 Apply 报错，作者数据仍可保存。
 5. 派生快照与资源生命周期正确；一个资产编辑不得修改旧快照或无关共享资产。
 
-离线捕获加载器只作为测试 oracle；其中的组合不参与产品运行，也不是兼容回退。
+包内测试通过 `packages/building/tests/fixtures/constructionAssets.ts` 读取产品原生资产。来源工程的一致性验收见 `world/scripts/acceptance/README.md`。
 
 
 ## 原生几何与 Worker 边界（2026-10-28）
