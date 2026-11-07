@@ -1,18 +1,17 @@
 import { AssetType, Loader, Script, type Entity, type JSONAsset } from "@galacean/engine";
-export { PlanningGroundWind } from "./PlanningGroundWind.ts";
+export { PlanningGroundWind } from "./PlanningGroundWind";
 import { exportPlanningAuthoring, type PlanningDocument } from "@galacean/engine-world-planning/spatial/PlanningDocument";
 import {
   PLANNING_ENTITY_COMPONENT, PLANNING_PROJECT_COMPONENT, PLANNING_SEED_ARCHIVE_COMPONENT,
   restorePlanningEntity, splitPlanningEntity,
   type PlanningProjectMetadata, type PlanningSeedArchiveMetadata, type PlanningEntityIdentity
-} from "../PlanningSceneAsset.ts";
+} from "../PlanningSceneAsset";
 import {
   PLANNING_VISUAL_AUTHORING, RETIRED_PLANNING_VISUAL_AUTHORING, visualAuthoringProperties,
   type AuthoredColor, type AuthoredPlantMaterialSlot, type ParameterBase
-} from "../PlanningVisualAuthoring.ts";
+} from "../PlanningVisualAuthoring";
 import type { PlanningParameterCommand, PlanningSession } from "@galacean/engine-world-planning/spatial/PlanningSession";
 import type { SpatialEntity } from "@galacean/engine-world-planning/spatial/SpatialDocument";
-import type { RockSurfaceMode } from "@galacean/engine-world-planning/integrations/terrain/rock-formation/Settings";
 
 /** Stable identity and only the remaining spatial adapter state. Visual fields live on sibling components. */
 export class PlanningEntityAuthoring extends Script implements PlanningEntityIdentity {
@@ -181,30 +180,25 @@ export class PlanningFlowerInfluence extends VisualParameterAuthoring {
   declare multiplier?: number;
   declare falloff?: number;
 }
-/** Sparse rock surface choice, ascent-mask noise and each surface's controls. */
+/** Native sparse authoring for the shared procedural rock generator. */
 export class PlanningRockFormation extends VisualParameterAuthoring {
-  declare surfaceMode?: RockSurfaceMode;
+  declare color?: AuthoredColor;
   declare textureScale?: number;
-  declare palette?: Partial<Record<"spring" | "summer" | "autumn" | "winter", { colorA?: AuthoredColor; colorB?: AuthoredColor }>>;
-  declare colorBalance?: number;
-  declare colorStrength?: number;
-  declare colorSaturation?: number;
-  declare noiseSeed?: number;
-  declare frequency?: number;
-  declare octaves?: number;
-  declare lacunarity?: number;
-  declare persistence?: number;
-  declare maskPower?: number;
-  declare slabSeed?: number;
-  declare slabSize?: number;
-  declare slabCoverage?: number;
-  declare slabDepth?: number;
-  declare slabVariation?: number;
-  declare cellSize?: number;
-  declare cellInset?: number;
-  declare cellDepth?: number;
-  declare cellDetail?: number;
-  declare cellCoverage?: number;
+  declare topScale?: number;
+  declare bottomScale?: number;
+  declare shoulderScale?: number;
+  declare shoulderHeight?: number;
+  declare topRoughness?: number;
+  declare topSlope?: number;
+  declare wallCount?: number;
+  declare wallOverlap?: number;
+  declare wallProtrusion?: number;
+  declare wallLength?: number;
+  declare wallTilt?: number;
+  declare wallStrength?: number;
+  declare outlineIrregularity?: number;
+  declare variation?: number;
+  declare simplifyError?: number;
 }
 export class PlanningSeedArchiveAuthoring extends Script {
   declare metadata: PlanningSeedArchiveMetadata;
@@ -215,7 +209,7 @@ const nativeVisualClasses = {
   PlanningLighting, PlanningPostProcess, PlanningFlowers, PlanningPlantMaterials, PlanningSubjectView, PlanningGrassAppearance,
   PlanningRockFormation
 };
-const visualRegistrations = PLANNING_VISUAL_AUTHORING.map(descriptor => ({ descriptor,
+const visualRegistrations = PLANNING_VISUAL_AUTHORING.map((descriptor) => ({ descriptor,
   Class: nativeVisualClasses[descriptor.type as keyof typeof nativeVisualClasses] as new (entity: Entity) => VisualParameterAuthoring
 }));
 
@@ -287,7 +281,7 @@ export class PlanningProjectAuthoring extends Script {
     }
     const lighting: PlanningLighting[] = [];
     this.entity.getComponentsIncludeChildren(PlanningLighting, lighting);
-    this.resourcesReady = Promise.all(lighting.map(component => component.resolveProfile())).then(() => undefined);
+    this.resourcesReady = Promise.all(lighting.map((component) => component.resolveProfile())).then(() => undefined);
     // Preserve a rejected readiness promise for the host without an unhandled rejection before it awaits.
     void this.resourcesReady.catch(() => undefined);
   }
@@ -302,7 +296,7 @@ function readEntities(parent: Entity): Record<string, SpatialEntity> {
     const visual = visualRegistrations.flatMap(({ descriptor, Class }) => {
       const component = child.getComponent(Class);
       if (!component) return [];
-      const props = Object.fromEntries(visualAuthoringProperties(descriptor).map(key =>
+      const props = Object.fromEntries(visualAuthoringProperties(descriptor).map((key) =>
         [key, (component as unknown as Record<string, unknown>)[key]]).filter(([, value]) => value !== undefined));
       return [{ type: descriptor.type, props }];
     });
@@ -324,7 +318,7 @@ function synchronizeEntities(parent: Entity, entities: Record<string, SpatialEnt
     component.spatialComponents = identity.spatialComponents;
     child.name = authoring.name;
     for (const { descriptor, Class } of visualRegistrations) {
-      const record = visual.find(record => record.type === descriptor.type);
+      const record = visual.find((record) => record.type === descriptor.type);
       const existing = child.getComponent(Class);
       if (!record) { existing?.destroy(); continue; }
       const native = (existing ?? child.addComponent(Class)) as unknown as Record<string, unknown>;

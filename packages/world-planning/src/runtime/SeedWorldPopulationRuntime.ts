@@ -8,7 +8,7 @@ import { seedWorldWaterDetailCellChanged } from "./SeedWorldPopulationWaterImpac
 import { updateWorldSelectionBatch } from "@galacean/engine-runtime-editor/selection/WorldSelection";
 import { RockGrassPatches, type RockGrassPlacement } from "@galacean/engine-terrain/rock-formation/GrassPatches";
 import type { RockGrassSampling } from "@galacean/engine-terrain/rock-formation/GrassSurface";
-import { bindRockGrassGroundMaterial } from "../integrations/terrain/rock-formation/PaintedRockMaterial.ts";
+import { bindRockGrassGroundMaterial } from "../integrations/terrain/rock-formation/RockMaterial";
 import type { RockFormationSettings } from "../integrations/terrain/rock-formation/Settings.ts";
 import {
   excludeSeedWorldGroundCover,
@@ -2742,7 +2742,7 @@ export class SeedWorldPopulationRuntime {
   private _compileRockSurfaceTrees(
     candidates: readonly SeedWorldPopulationInstance[]
   ): SeedWorldRockSurfaceTreeCompilation {
-    const rockSource = this._sourceLibrary.largeRockSurfaceFamilies.grass.variants.find((candidate) =>
+    const rockSource = this._sourceLibrary.largeRockSurfaceFamilies.grass?.variants.find((candidate) =>
       candidate.id.includes("/rock-clif-1/")
     );
     if (!rockSource?.lods[0]) throw new Error('Seed World rock-surface trees require "rock-clif-1" LOD0');
@@ -2931,7 +2931,7 @@ export class SeedWorldPopulationRuntime {
   }
 
   private _createRockSurfaceGrassCompiler(): SeedWorldRockSurfaceGrassCompiler {
-    const rockSource = this._sourceLibrary.largeRockSurfaceFamilies.grass.variants.find((candidate) =>
+    const rockSource = this._sourceLibrary.largeRockSurfaceFamilies.grass?.variants.find((candidate) =>
       candidate.id.includes("/rock-clif-1/")
     );
     if (!rockSource?.lods[0]) throw new Error('Seed World rock-surface grass requires "rock-clif-1" LOD0');

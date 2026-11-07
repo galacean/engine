@@ -10,6 +10,8 @@ const CACHE_BYTES = 64 * 1024 * 1024;
 /** One bounded worker and immutable CPU meshes shared by hidden publication candidates. */
 export class RockFormationClient {
   private worker?: Worker;
+  private workerReady?: Promise<void>;
+  private readyResolve?: () => void;
   private id = 0;
   private disposed = false;
   private readonly pending = new Map<
@@ -19,8 +21,6 @@ export class RockFormationClient {
   private readonly cache = new Map<string, { result: RockFormationMesh; bytes: number }>();
   private readonly requestedKeys = new Map<string, number>();
   private bytes = 0;
-  private readonly sourceIds = new WeakMap<object, number>();
-  private sourceSequence = 0;
   private readonly resultKeys = new WeakMap<RockFormationMesh, string>();
   preparationMetrics = { totalMs: 0, generated: 0, cached: 0, generationMs: 0 };
 
@@ -32,76 +32,22 @@ export class RockFormationClient {
   ): Promise<readonly RockFormationMesh[]> {
     signal.throwIfAborted();
     if (this.disposed) throw new Error("Rock formation client disposed");
-    const terrain = planningHeightmap(plan);
-    const terrainId = this.sourceIdentity(terrain.heights);
-    // Canonical terrain snapshots are immutable. Key their residency plus the
-    // crop inputs instead of stringifying every sample in all ground crops.
-    return this.runJobs(
-      rockFormationJobs(plan, terrain),
-      settings,
-      signal,
-      (job) =>
-        JSON.stringify([
-          "plan",
-          job.id,
-          job.seed,
-          job.origin,
-          job.guides,
-          job.domain,
-          job.surfaceGrass !== false,
-          terrainId,
-          terrain.resolution,
-          terrain.spacingX,
-          terrain.spacingZ,
-          rockGeometrySettings(settings)
-        ]),
-      resident
-    );
+    return this.runJobs(rockFormationJobs(plan, planningHeightmap(plan)), settings, signal, resident);
   }
 
-  /** Generate local rock sources through the same worker; ground arrays must be immutable snapshots. */
+  /** Local ground stones use the same generator and cache as published rocks. */
   async prepareJobs(
     jobs: readonly RockFormationJob[],
     settings: RockFormationSettings,
     signal: AbortSignal
   ): Promise<readonly RockFormationMesh[]> {
-    return this.runJobs(jobs, settings, signal, (job) => {
-      const ground = job.ground;
-      return JSON.stringify([
-        "job",
-        job.id,
-        job.seed,
-        job.origin,
-        job.guides,
-        job.domain,
-        job.surfaceGrass !== false,
-        this.sourceIdentity(ground.heights),
-        ground.minX,
-        ground.minZ,
-        ground.spacingX,
-        ground.spacingZ,
-        ground.columns,
-        ground.rows,
-        rockGeometrySettings(settings)
-      ]);
-    });
-  }
-
-  private sourceIdentity(source: object | undefined): number {
-    if (!source) return 0;
-    let id = this.sourceIds.get(source);
-    if (id === undefined) {
-      id = ++this.sourceSequence;
-      this.sourceIds.set(source, id);
-    }
-    return id;
+    return this.runJobs(jobs, settings, signal);
   }
 
   private async runJobs(
     jobs: readonly RockFormationJob[],
     settings: RockFormationSettings,
     signal: AbortSignal,
-    cacheKey: (job: RockFormationJob) => string,
     resident: readonly RockFormationMesh[] = []
   ): Promise<readonly RockFormationMesh[]> {
     signal.throwIfAborted();
@@ -114,7 +60,16 @@ export class RockFormationClient {
     // Live scene ownership already retains these meshes. Reuse them even when the
     // optional history cache is full, without extending that cache's byte budget.
     const live = new Map(resident.map((result) => [this.resultKeys.get(result), result]));
-    const keys = jobs.map(cacheKey),
+    const keys = jobs.map((job) =>
+        JSON.stringify([
+          job.id,
+          job.seed,
+          job.origin,
+          job.guides,
+          job.surfaceGrass !== false,
+          rockGeometrySettings(settings)
+        ])
+      ),
       requested = new Set(keys);
     for (const key of requested) this.requestedKeys.set(key, (this.requestedKeys.get(key) ?? 0) + 1);
     try {
@@ -155,12 +110,19 @@ export class RockFormationClient {
               }
             });
             signal.addEventListener("abort", abort, { once: true });
-            try {
-              worker.postMessage({ id, job, settings });
-            } catch (error) {
-              this.pending.get(id)?.reject(error);
-              this.pending.delete(id);
-            }
+            const send = () => {
+              if (!this.pending.has(id) || this.worker !== worker) return;
+              try {
+                worker.postMessage({ id, job, settings });
+              } catch (error) {
+                this.pending.get(id)?.reject(error);
+                this.pending.delete(id);
+              }
+            };
+            // Meshopt initializes through top-level await in the shared worker.
+            // Its handler must be installed before the first request is sent.
+            if (this.workerReady) void this.workerReady.then(send);
+            else send();
           });
           signal.throwIfAborted();
           generated++;
@@ -209,10 +171,20 @@ export class RockFormationClient {
   }
   private getWorker(): Worker {
     if (this.worker) return this.worker;
-    const worker = (this.worker = new Worker(new URL("./RockFormation.worker.ts", import.meta.url), {
+    const worker = (this.worker = new Worker(new URL("./RockFormation.worker", import.meta.url), {
       type: "module"
     }));
+    this.workerReady = new Promise((resolve) => {
+      this.readyResolve = resolve;
+    });
     worker.onmessage = ({ data }) => {
+      if (this.worker !== worker) return;
+      if (data.ready) {
+        this.readyResolve?.();
+        this.readyResolve = undefined;
+        this.workerReady = undefined;
+        return;
+      }
       const pending = this.pending.get(data.id);
       if (!pending) return;
       this.pending.delete(data.id);
@@ -221,13 +193,16 @@ export class RockFormationClient {
     };
     worker.onerror = (event) => {
       event.preventDefault();
-      this.resetWorker(new Error(event.message));
+      if (this.worker === worker) this.resetWorker(new Error(event.message));
     };
     return worker;
   }
   private resetWorker(error: unknown): void {
     this.worker?.terminate();
     this.worker = undefined;
+    this.readyResolve?.();
+    this.readyResolve = undefined;
+    this.workerReady = undefined;
     for (const pending of this.pending.values()) pending.reject(error);
     this.pending.clear();
   }
@@ -240,19 +215,10 @@ export class RockFormationClient {
 }
 /** Budget binary payload, 64-bit owner slots and UTF-16 metadata; not a VM-specific heap measurement. */
 function cacheEntryBytes(key: string, result: RockFormationMesh): number {
-  const paintedBytes = result.painted
-    ? Object.values(result.painted).reduce(
-        (sum, value) => sum + (value instanceof Float32Array ? value.byteLength : 0),
-        0
-      )
-    : 0;
   return (
     result.mesh.positions.byteLength +
     result.mesh.indices.byteLength +
     (result.mesh.normals?.byteLength ?? 0) +
-    (result.mesh.restPositions?.byteLength ?? 0) +
-    paintedBytes +
-    (result.triangleSurfaces?.byteLength ?? 0) +
     rockGrassBuffers(result.grass).reduce((sum, buffer) => sum + buffer.byteLength, 0) +
     result.owners.length * Float64Array.BYTES_PER_ELEMENT +
     2 * (key.length + JSON.stringify([result.id, result.origin, result.owners, result.stats]).length)

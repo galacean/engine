@@ -146,14 +146,15 @@ import type { PlanningSeedObbDebug } from "./src/planning/spatial/runtime/Planni
 import type { PlanningSeedRuntimeDebug } from "./src/planning/spatial/runtime/PlanningSeedRuntimeDebug.ts";
 import type { PlanningSeedDebugSidebar } from "./src/planning/spatial/runtime/PlanningSeedDebugSidebar.ts";
 import { RockFormationClient } from "@galacean/engine-world-planning/integrations/terrain/rock-formation/Client";
-import { preparePaintedRockTexture } from "@galacean/engine-world-planning/integrations/terrain/rock-formation/PaintedRockMaterial";
+import { prepareRockTextures } from "@galacean/engine-world-planning/integrations/terrain/rock-formation/RockMaterial.ts";
 import { readRockFormationSettings, rockGeometrySettings } from "@galacean/engine-world-planning/integrations/terrain/rock-formation/Settings";
 
 /** Original Seed scene/HUD/gameplay host. The spatial planner supplies data, never its preview camera. */
 export async function mountSeedWorldDemo(
   handoff?: PlanningWorldHandoff,
   options: { showAssistant?: boolean; persistPlayerState?: boolean; assetSources?: readonly ProjectFileProvider[];
-    retrievalManifestUrl?: string } = {}
+    retrievalManifestUrl?: string;
+  } = {}
 ): Promise<void> {
   const pageUrl = planningPageUrl().url;
   // Explicit diagnostic comparison only; never persists or changes shared defaults.
@@ -246,7 +247,7 @@ export async function mountSeedWorldDemo(
     }); };
     report();
     if (supported) {
-      buildingLongTasks = new PerformanceObserver(list => {
+      buildingLongTasks = new PerformanceObserver((list) => {
         for (const entry of list.getEntries()) entries.push({ startMs: entry.startTime, durationMs: entry.duration });
         if (entries.length > 128) entries.splice(0, entries.length - 128);
         report();
@@ -334,7 +335,7 @@ export async function mountSeedWorldDemo(
   window.addEventListener(
     "pagehide",
     () => {
-      void dispose().catch(error => console.error("Seed World close failed", error));
+      void dispose().catch((error) => console.error("Seed World close failed", error));
     },
     { once: true }
   );
@@ -412,7 +413,7 @@ export async function mountSeedWorldDemo(
       const slowEntries: CameraSubmissionWindow[] = [];
       const compileEntries: (CameraSubmissionWindow & { publicationRevision?: string })[] = [];
       probe.attach(camera);
-      probe.report = window => {
+      probe.report = (window) => {
         const { startMs, endMs } = window;
         if (window.shaderVariants?.length && compileEntries.length < 32) {
           compileEntries.push({ ...window, publicationRevision: canvas.dataset.buildingPublicationRevision });
@@ -618,7 +619,7 @@ export async function mountSeedWorldDemo(
       fireflies: { camera, activity: () => (environment?.summerWeight ?? 0) * (lighting?.system.state.nightFactor ?? 0) }
     });
     // GUI and Agent weather changes feed the same real lightning source as rendering/audio.
-    detachAnimalLightning = environment.subscribeLightningStrikes(strike => {
+    detachAnimalLightning = environment.subscribeLightningStrikes((strike) => {
       animals?.notify({ id: `lightning:${strike.id}`, type: "thunder",
         source: [strike.position.x, strike.position.z] });
     });
@@ -651,18 +652,18 @@ export async function mountSeedWorldDemo(
             parameters.seed, statePath, parameters.farming?.saveMode ?? "auto") : undefined;
         }
       }),
-      publish: runtime => {
+      publish: (runtime) => {
         if (publication?.current) runtime.publish(publication.current, source?.session.document.revision);
       }
     });
     const farmingSwitch = farmingHost.switch;
     const bindFarming = () => farmingSwitch.refresh();
     // Invalid farm assets leave the editor available; Apply reports the consumer failure.
-    await bindFarming().catch(error => console.warn("[seed-world-planner] farming activation failed", error));
+    await bindFarming().catch((error) => console.warn("[seed-world-planner] farming activation failed", error));
     unregisterFarmingActivation = runtimeProject.registerRuntimeActivation({
       before: async () => {},
       after: bindFarming,
-      diagnostics: () => farmingSwitch.diagnostic ? [farmingSwitch.diagnostic] : []
+      diagnostics: () => (farmingSwitch.diagnostic ? [farmingSwitch.diagnostic] : [])
     });
 
     const preparePublicationContent: NonNullable<PlanningSessionOptions["preparePublication"]> = async (document, result, context) => {
@@ -705,14 +706,14 @@ export async function mountSeedWorldDemo(
       const roadState = (p: typeof result.plan) => JSON.stringify([p.routes, p.roadGraph, p.roadNetwork, p.bridges, p.roadApproaches]);
       const roadGeometryUnchanged = !publication!.current || roadState(publication!.current.plan) === roadState(result.plan);
       const rockSupportChanged = publication!.current && JSON.stringify([
-        result.plan.rocks, result.plan.landscapes?.filter(x => x.kind === "rock"), rockGeometrySettings(readRockFormationSettings(document))
+        result.plan.rocks, result.plan.landscapes?.filter((x) => x.kind === "rock"), rockGeometrySettings(readRockFormationSettings(document))
       ]) !== JSON.stringify([
-        publication!.current.plan.rocks, publication!.current.plan.landscapes?.filter(x => x.kind === "rock"),
+        publication!.current.plan.rocks, publication!.current.plan.landscapes?.filter((x) => x.kind === "rock"),
         rockGeometrySettings(readRockFormationSettings(context.previousDocument))
       ]);
       if (!context.forceFull && roadGeometryUnchanged && !rockSupportChanged && canPublishRockFormationEdit(publication!.current, context.previousDocument, document, result.plan)) {
         const started = performance.now(), settings = readRockFormationSettings(document);
-        const staged = await publication!.prepareRocks(result.plan, async signal =>
+        const staged = await publication!.prepareRocks(result.plan, async (signal) =>
           prepareRockMaterialPublication(publication!.current!, settings, signal), context.signal);
         return { discard: () => staged.discard(), commit: () => {
           staged.commit();
@@ -726,18 +727,18 @@ export async function mountSeedWorldDemo(
         && !(rockSupportChanged && result.plan.buildings.length)) {
         const started = performance.now(), plan = result.plan;
         let metrics: Record<string, number> = {};
-        const staged = await publication!.prepareContent(plan, async signal => {
+        const staged = await publication!.prepareContent(plan, async (signal) => {
           const current = publication!.current!;
           const vegetation = await current.vegetation!.prepareTrees(plan, signal);
           const rockState = (p: typeof plan) => JSON.stringify([
-            p.rocks, p.landscapes?.filter(element => element.kind === "rock")
+            p.rocks, p.landscapes?.filter((element) => element.kind === "rock")
           ]);
           let solids: ReturnType<typeof current.solids.prepareRocks> | undefined;
           let grass: ReturnType<typeof current.world.population.prepareRockGrass> | undefined;
           try {
             if (rockState(plan) !== rockState(current.plan)) {
               const meshes = await rockFormations.prepare(plan, readRockFormationSettings(document), signal);
-              await preparePaintedRockTexture(engine!, meshes, signal);
+              await prepareRockTextures(engine!, signal);
               signal.throwIfAborted();
               solids = current.solids.prepareRocks(plan, planningPresentedSolids(plan,
                 current.heightTransition?.fields ?? current.data.fields, current.data.fields), meshes,
@@ -780,19 +781,19 @@ export async function mountSeedWorldDemo(
         const started = performance.now(), plan = result.plan;
         let metrics: Record<string, number> = {};
         let summary = "";
-        const staged = await publication!.prepareRocks(plan, async signal => {
+        const staged = await publication!.prepareRocks(plan, async (signal) => {
           const current = publication!.current!, settings = readRockFormationSettings(document);
           const meshes = await rockFormations.prepare(plan, settings, signal, current.solids.formations);
           const preparationMetrics = { ...rockFormations.preparationMetrics };
-          await preparePaintedRockTexture(engine!, meshes, signal);
+          await prepareRockTextures(engine!, signal);
           signal.throwIfAborted();
           const frame = await prepareRockFormationPublication(current, plan, meshes, rockFormations,
             settings, document.revision, signal, readRockGenerationProfile(document));
           metrics = { ...preparationMetrics, ...frame.metrics };
           summary = JSON.stringify({ formations: meshes.length,
             triangles: meshes.reduce((sum, f) => sum + f.mesh.indices.length / 3, 0),
-            slabs: meshes.reduce((sum, f) => sum + f.stats.slabs, 0),
-            deformedVertices: meshes.reduce((sum, f) => sum + f.stats.deformedVertices, 0) });
+              bodies: meshes.reduce((sum, f) => sum + f.stats.bodies, 0),
+              vertices: meshes.reduce((sum, f) => sum + f.stats.vertices, 0) });
           return frame;
         }, context.signal);
         return { discard: () => staged.discard(), commit: () => {
@@ -911,7 +912,9 @@ export async function mountSeedWorldDemo(
           signal.throwIfAborted();
           heightTransition = preparePlanningTerrainPresentation(candidate,
             publication!.current?.heightTransition?.fields ?? publication!.current?.data.fields,
-            candidateData.fields, runtimeFields, (plan.buildings.length || plan.fences?.length || plan.courtyards?.length) ? undefined : context.terrainTransitionDurationSeconds,
+            candidateData.fields, runtimeFields,
+              plan.buildings.length || plan.fences?.length || plan.courtyards?.length
+                ? undefined : context.terrainTransitionDurationSeconds,
             {
               prepare: async (fields, signal) => {
                 signal.throwIfAborted();
@@ -926,14 +929,14 @@ export async function mountSeedWorldDemo(
                     discard: () => { solidFrame.discard(); vegetationFrame.discard(); grassFrame.discard(); } };
                 } catch (error) { solidFrame.discard(); grassFrame.discard(); throw error; }
               },
-              onError: error => {
+              onError: (error) => {
                 canvas.dataset.terrainPresentationError = String(error);
                 console.error("[seed-world-planner] terrain/building presentation stopped", error);
               }
             });
           applyPlanningTreeVariations(candidate.population, plan.authoredResources ?? []);
           const formationMeshes = await rockFormations.prepare(plan, readRockFormationSettings(document), signal);
-          await preparePaintedRockTexture(engine!, formationMeshes, signal);
+          await prepareRockTextures(engine!, signal);
           signal.throwIfAborted();
           candidateSolids = await createPlanningSeedSolids(engine!, candidate.root,
             planningPresentedSolids(plan, heightTransition?.fields ?? candidateData.fields, candidateData.fields), {
@@ -941,12 +944,12 @@ export async function mountSeedWorldDemo(
               formations: formationMeshes, sourcePlan: plan,
               rockTextureScale: readRockFormationSettings(document).textureScale,
               rockColorBlend: readRockFormationSettings(document).colorBlend,
-              registerGrassAppearance: material => candidate!.registerGrassAppearanceMaterial(material)
+              registerGrassAppearance: (material) => candidate!.registerGrassAppearanceMaterial(material)
             });
           canvas.dataset.rockFormations = JSON.stringify({ formations: formationMeshes.length,
             triangles: formationMeshes.reduce((sum, f) => sum + f.mesh.indices.length / 3, 0),
-            slabs: formationMeshes.reduce((sum, f) => sum + f.stats.slabs, 0),
-            deformedVertices: formationMeshes.reduce((sum, f) => sum + f.stats.deformedVertices, 0) });
+              bodies: formationMeshes.reduce((sum, f) => sum + f.stats.bodies, 0),
+              vertices: formationMeshes.reduce((sum, f) => sum + f.stats.vertices, 0) });
           candidateVegetation = await PlanningNaturalVegetationRuntime.create(candidate.root, candidate.population.trees,
             candidate.population.details, camera, library, plan, planningHeightmap(plan), candidateData.fields,
             candidateData.population, { client: rockFormations, settings: readRockFormationSettings(document), signal,
@@ -997,7 +1000,7 @@ export async function mountSeedWorldDemo(
             postProcessState: post.getShaderWarmupState(),
             additionalBackgroundMaterials: environment!.shaderWarmupBackgroundMaterials,
             onVariants: pageUrl.searchParams.get("agentTrace") === "1"
-              ? variants => { canvas.dataset.buildingShaderWarmupVariants = JSON.stringify(variants); } : undefined
+              ? (variants) => { canvas.dataset.buildingShaderWarmupVariants = JSON.stringify(variants); } : undefined
           });
           if (pageUrl.searchParams.get("agentTrace") === "1") canvas.dataset.buildingShaderWarmup = JSON.stringify(shaderWarmup);
           signal.throwIfAborted();
@@ -1209,17 +1212,17 @@ export async function mountSeedWorldDemo(
       environment,
       water,
       readPublished,
-      querySubjectCapsules:capsules=>{
+      querySubjectCapsules: (capsules) =>{
         const scene=publication?.current, runtime=scene?.masonry;if(!runtime)return undefined;
         const hits=capsules.map(({start,end,radius})=>runtime.intersectCapsule(start,end,radius));
-        if(hits.some(hit=>hit===undefined))return undefined;
-        return {publicationRevision:scene!.authoringRevision,hits:hits as Exclude<typeof hits[number],undefined>[]};
+        if(hits.some((hit) =>hit===undefined))return undefined;
+        return {publicationRevision:scene!.authoringRevision,hits:hits as Exclude<(typeof hits)[number],undefined>[]};
       },
-      querySubjectSegments:segments=>{
+      querySubjectSegments: (segments) =>{
         const scene=publication?.current, runtime=scene?.masonry;if(!runtime)return undefined;
         const hits=segments.map(({start,end})=>runtime.intersectSegment(start,end));
-        if(hits.some(hit=>hit===undefined))return undefined;
-        return {publicationRevision:scene!.authoringRevision,hits:hits as Exclude<typeof hits[number],undefined>[]};
+        if(hits.some((hit) =>hit===undefined))return undefined;
+        return {publicationRevision:scene!.authoringRevision,hits:hits as Exclude<(typeof hits)[number],undefined>[]};
       },
       setWorldInputEnabled: (enabled) => {
         assistantInputEnabled = enabled;
@@ -1257,17 +1260,19 @@ export async function mountSeedWorldDemo(
         readPublished,
         rocks: {
           planning: source!.session,
-          apply: commands => tools!.dispatchParameters(commands),
+          apply: (commands) => tools!.dispatchParameters(commands),
           grass: {
-            preview: enabled => publication?.current?.solids.setRockGrassCoveragePreview(enabled),
+            preview: (enabled) => publication?.current?.solids.setRockGrassCoveragePreview(enabled),
             diagnostics: () => {
               const grass = readWorld()?.population.generatedRockGrassDiagnostics;
               if (!grass) return "Waiting / 等待生成";
               const { formations, ...summary } = grass;
               canvas.dataset.rockGrass = JSON.stringify(summary);
-              return grass.error ?? `${formations.reduce((n, f) => n + f.accepted, 0)} clumps / 草簇 · ` +
+              return (
+                grass.error ?? `${formations.reduce((n, f) => n + f.accepted, 0)} clumps / 草簇 · ` +
                 `${grass.pendingPatches} pending patches / 待生成分块 · ${grass.lastEdit.changed} changed / 已更新 · ` +
-                `${grass.lastEdit.retained} retained / 已保留 · CPU peak / CPU 峰值 ${grass.maxSliceMs.toFixed(1)} ms`;
+                `${grass.lastEdit.retained} retained / 已保留 · CPU peak / CPU 峰值 ${grass.maxSliceMs.toFixed(1)} ms`
+              );
             }
           }
         },
@@ -1278,7 +1283,7 @@ export async function mountSeedWorldDemo(
           get runtime() { return farmingHost?.runtime; },
           readEnabled: () => farmingSwitch.enabled,
           readSwitchError: () => farmingSwitch.error,
-          setEnabled: enabled => farmingSwitch.setEnabled(enabled),
+          setEnabled: (enabled) => farmingSwitch.setEnabled(enabled),
           readCurrent: () => publication?.current,
           isInputEnabled: () => ready && !disposed && !tools?.listening,
           beforeTravel: () => {
@@ -1287,10 +1292,10 @@ export async function mountSeedWorldDemo(
         },
         animals: {
           planning: source!.session,
-          apply: commands => tools!.dispatchParameters(commands),
-          inspect: evidence => animals!.inspect(evidence),
+          apply: (commands) => tools!.dispatchParameters(commands),
+          inspect: (evidence) => animals!.inspect(evidence),
           command: (id, skillId) => animals!.commandFromPanel(id, skillId),
-          focus: id => {
+          focus: (id) => {
             const position = animals!.position(id);
             const eye = animals!.observationPosition(id, navigation.groundClearance);
             if (!position || !eye) return;
@@ -1322,7 +1327,7 @@ export async function mountSeedWorldDemo(
       });
       debugSidebar = new PlanningSeedDebugSidebar({
         host: shell,
-        setWorldPickingEnabled: enabled => {
+        setWorldPickingEnabled: (enabled) => {
           worldPickingEnabled = enabled;
           if (!enabled) {
             selection?.clear();
@@ -1429,14 +1434,17 @@ export async function mountSeedWorldDemo(
     const snapshotPicks = new RuntimeMeshPickSource(camera, inspection, visitCurrentPickBatches);
     viewSnapshots = new SeedWorldViewSnapshots(async (signal, budget) => {
       await pickPreparation!.flush(signal);
-      return worldPicker!.capture(visitor => snapshotPicks.visit(visitor), batch => inspection.target(batch.renderer), signal, budget, () => pickPreparation!.ready);
+      return worldPicker!.capture(
+          (visitor) => snapshotPicks.visit(visitor),
+          (batch) => inspection.target(batch.renderer), signal, budget, () => pickPreparation!.ready);
     }, () => {
       const state = tools!.application.getViewState();
       return `${state.activeRevision}:${state.authoringStateHash}`;
     });
     tools!.application.viewSnapshots = viewSnapshots;
     {
-      lassoPanel = new SeedWorldLassoPanel(viewSnapshots, frozen => {
+      lassoPanel = new SeedWorldLassoPanel(viewSnapshots,
+        (frozen) => {
         lassoFrozen = frozen;
         if (frozen) { selection?.clear(); tools!.application.setUserSelection(undefined); }
         const enabled = ready && !disposed && assistantInputEnabled && !frozen;
@@ -1449,7 +1457,8 @@ export async function mountSeedWorldDemo(
     canvas.dataset.photoPreparation = "loading";
     await lassoPanel.prepare();
     await pickPreparation.flush(editorLifetime.signal);
-    await worldPicker.prepareSnapshot(visitor => snapshotPicks.visit(visitor), editorLifetime.signal, viewSnapshots.budget);
+    await worldPicker.prepareSnapshot(
+      (visitor) => snapshotPicks.visit(visitor), editorLifetime.signal, viewSnapshots.budget);
     await pickPreparation.flush(editorLifetime.signal);
     if (disposed) throw new Error("Seed page disposed during photo preparation");
     canvas.dataset.photoPreparationMs = String(performance.now() - photoPreparationStarted);
@@ -1459,7 +1468,8 @@ export async function mountSeedWorldDemo(
       if (!ready || disposed || lassoFrozen || runtimeDebug?.farmingPicking) return;
       const ray = new Ray();
       camera.screenPointToRay(new Vector2(x, y), ray);
-      if (animals?.shoo(ray, distance => rockNavigation?.raycastWorld(ray, distance) ?? root.scene!.physics.raycast(ray, distance))) return;
+      if (animals?.shoo(ray,
+          (distance) => rockNavigation?.raycastWorld(ray, distance) ?? root.scene!.physics.raycast(ray, distance))) return;
       if ((!worldPickingEnabled && !runtimeDebug) || farmingHost?.runtime?.consumesWorldClick(x, y)) return;
       const published = publication?.current;
       if (!published || !water) return;
@@ -1549,7 +1559,7 @@ async function applyPresentation(
 ): Promise<void> {
   const light = components.find((component) => component.type === "lighting")?.values;
   if (light) {
-    if (!await lightingProfile.apply(light)) return;
+    if (!(await lightingProfile.apply(light))) return;
   }
   const p = components.find((component) => component.type === "postProcess")?.values;
   if (p) {
@@ -1587,7 +1597,7 @@ class SeedCameraSubmissionProbe extends Script {
 
   attach(camera: Camera): void {
     this.camera = camera;
-    const original = this.originalRender = camera.render;
+    const original = (this.originalRender = camera.render);
     const probe = this;
     this.measuredRender = function (...args: Parameters<Camera["render"]>): void {
       const window = probe.window;
@@ -1601,12 +1611,14 @@ class SeedCameraSubmissionProbe extends Script {
     camera.render = this.measuredRender;
     // Runtime method names are verified against this engine checkout. Missing
     // methods simply omit the diagnostic; they never change rendering behavior.
-    const pipeline = (camera as unknown as Record<string, unknown>)._renderPipeline as Record<string, unknown> | undefined;
+    const pipeline = (camera as unknown as Record<string, unknown>)._renderPipeline as
+      | Record<string, unknown> | undefined;
     if (!pipeline) return;
     this.measureStage(ShaderPass.prototype, "_getShaderProgram", "shaderProgram");
     this.measureStage(ShaderPass.prototype, "_compileShaderProgram", "shaderCompile");
     this.measureStage(ShaderPass.prototype, "_compileShaderSource", "shaderSource");
-    const hardware = (camera.engine as unknown as Record<string, unknown>)._hardwareRenderer as Record<string, unknown> | undefined;
+    const hardware = (camera.engine as unknown as Record<string, unknown>)._hardwareRenderer as
+      | Record<string, unknown> | undefined;
     const gl = hardware?.gl;
     for (const method of ["compileShader", "linkProgram", "getShaderParameter", "getProgramParameter", "getActiveUniform", "getUniformLocation", "getActiveAttrib"]) {
       this.measureStage(gl, method, `gl.${method}`);
@@ -1631,15 +1643,15 @@ class SeedCameraSubmissionProbe extends Script {
       try {
         return original.apply(this, args);
       } finally {
-        const stages = window.stages ??= {};
-        const entry = stages[stage] ??= { calls: 0, ms: 0 };
+        const stages = (window.stages ??= {});
+        const entry = (stages[stage] ??= { calls: 0, ms: 0 });
         entry.calls++;
         entry.ms += performance.now() - start;
         if (stage === "shaderCompile") {
           try {
             const variant = probe.snapshotVariant(this as ShaderPass, args[1] as ShaderMacroCollection);
             if (variant) {
-              const variants = window.shaderVariants ??= [];
+              const variants = (window.shaderVariants ??= []);
               if (variants.length < 64) variants.push(variant);
             }
           } catch { /* Diagnostics cannot alter rendering success or errors. */ }

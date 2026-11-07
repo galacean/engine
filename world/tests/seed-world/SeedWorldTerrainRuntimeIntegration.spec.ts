@@ -498,9 +498,9 @@ describe("SeedWorldTerrainRuntime production ownership integration", () => {
     expect(runtimeState.populationCreates[0][10]).toEqual(SEED_WORLD_ROAD_COLOR_DEFAULT);
     expect(engineArg).toBeDefined();
     expect(runtimeState.smallRockCreates[0][3]).toBe(sourceLibrary.debrisSource);
-    expect(runtimeState.rockCreates).toHaveLength(2);
+    expect(runtimeState.rockCreates).toHaveLength(1);
     expect(runtimeState.rockCreates[0][5]).toEqual([{ category: "rock", id: "large-rock" }]);
-    expect(runtimeState.rockCreates[1][5]).toEqual([]);
+    expect(runtime.stones).toBeUndefined();
     expect(runtimeState.mushroomCreates).toHaveLength(1);
     expect(runtimeState.mushroomCreates[0][3]).toBe(sourceLibrary.mushroom);
     expect(runtime.observationAnchor).toEqual({ x: 64, y: 12, z: -96 });
@@ -835,7 +835,7 @@ describe("SeedWorldTerrainRuntime production ownership integration", () => {
     expect(runtimeState.populationDestroyCount).toBe(1);
     expect(runtimeState.reliefDisposeCount).toBe(1);
     expect(runtimeState.reliefBindCalls).toEqual([camera.shaderData]);
-    expect(runtimeState.rockDestroyCount).toBe(2);
+    expect(runtimeState.rockDestroyCount).toBe(1);
     expect(runtimeState.smallRockDestroyCount).toBe(1);
     expect(runtimeState.mushroomDestroyCount).toBe(1);
     expect(runtimeState.clipmapDestroyCount).toBe(1);

@@ -197,8 +197,8 @@ export class SeedWorldRuntimeEnginePort implements SeedWorldEnginePort {
         weather = projected.weather;
         return projected;
       },
-      teleport: input => this._previewTeleport(input),
-      restoreCamera: snapshot => {
+      teleport: (input) => this._previewTeleport(input),
+      restoreCamera: (snapshot) => {
         const { camera, navigation, orbit } = this._requireContext();
         const current = camera.entity.transform.worldPosition;
         const distance = Vector3.distance(current, orbit.target);
@@ -233,18 +233,18 @@ export class SeedWorldRuntimeEnginePort implements SeedWorldEnginePort {
     // Run exactly the same channel setters as activation against detached data.
     applyEnvironmentChannels({
       getSnapshot: () => ({ weather, wind: windState }),
-      setSeason: season => {
+      setSeason: (season) => {
         const defaults = TERRAIN_SEASON_DEFAULT_COMPOSITIONS[season];
         set("cloud", WeatherPresets.cloud[defaults.cloud]);
         set("skyLighting", WeatherPresets.skyLighting[defaults.skyLighting]);
         set("precipitation", WeatherPresets.precipitation[defaults.precipitation]);
       },
-      setWeatherState: value => {
+      setWeatherState: (value) => {
         for (const key of Object.keys(value) as (keyof WeatherState)[]) set(key, value[key]);
       },
-      setCloud: value => set("cloud", value), setSkyLighting: value => set("skyLighting", value),
-      setPrecipitation: value => set("precipitation", value), setWind: value => set("wind", value),
-      setLightning: value => set("lightning", value)
+      setCloud: (value) => set("cloud", value), setSkyLighting: (value) => set("skyLighting", value),
+      setPrecipitation: (value) => set("precipitation", value), setWind: (value) => set("wind", value),
+      setLightning: (value) => set("lightning", value)
     }, input);
     const previous = state.environment;
     const targetTime = input.timeHours === undefined ? undefined : lighting.system.profile.createState(input.timeHours / 24);
@@ -261,7 +261,7 @@ export class SeedWorldRuntimeEnginePort implements SeedWorldEnginePort {
       ...(targetTime ? { timeHours: state.lighting.timeHours } : {}),
       ...(input.season === undefined ? {} : { season: previous.season }),
       ...(skyColor === undefined ? {} : { atmosphere: { skyColorRgb: previous.skyColorRgb ?? null } }),
-      ...(channelNames.length ? { weatherChannels: Object.fromEntries(channelNames.map(key => [key, structuredClone(current[key])])) } : {})
+      ...(channelNames.length ? { weatherChannels: Object.fromEntries(channelNames.map((key) => [key, structuredClone(current[key])])) } : {})
     };
     const rainIntensity = weather.precipitation.rainRate, snowIntensity = weather.precipitation.snowRate;
     return { forward, previous: previousTargets, weather, state: {
@@ -314,7 +314,7 @@ export class SeedWorldRuntimeEnginePort implements SeedWorldEnginePort {
 
   projectTreeVariationObject(object: SeedWorldObject, controls: import("@galacean/engine-vegetation/world/SeedWorldTreeShapeControls").SeedWorldTreeShapePatch): SeedWorldObject {
     const context = this._requireContext();
-    const instance = context.world.population.getExactPopulationInstances().find(instance => instance.id === object.objectId);
+    const instance = context.world.population.getExactPopulationInstances().find((instance) => instance.id === object.objectId);
     if (!instance) throw new Error("Tree shape target has no published instance");
     const next = context.world.population.readProceduralTreeInstance(instance, object.position, controls);
     return { ...object, footprintMetres: treeQueryFootprint(next.bounds), properties: { ...object.properties, treeShape: next.treeShape, treeRecipeId: next.recipeId,
@@ -367,7 +367,7 @@ export class SeedWorldRuntimeEnginePort implements SeedWorldEnginePort {
     const update = async () => {
       const authoring = this._requireContext().water.colorAuthoring;
       let changed = false;
-      const current = new Map(authoring.snapshot().map(item => [item.bodyId, item.colorRgb]));
+      const current = new Map(authoring.snapshot().map((item) => [item.bodyId, item.colorRgb]));
       for (const bodyId of current.keys()) if (!desired.has(bodyId)) {
         await authoring.clear(bodyId, signal); changed = true;
       }
@@ -447,8 +447,8 @@ export class SeedWorldRuntimeEnginePort implements SeedWorldEnginePort {
         submittedCounts: { ...world.population.submittedCounts }
       },
       decorations: {
-        rocks: world.stones.placementCount,
-        smallRocks: world.smallRocks.placementCount,
+        rocks: world.stones?.placementCount ?? 0,
+        smallRocks: world.smallRocks?.placementCount ?? 0,
         mushrooms: world.mushrooms.placementCount,
         lotus: world.lotus.placementCount
       },
@@ -1075,7 +1075,8 @@ type CatalogAnchor = Readonly<{
 }>;
 
 /** Public occupancy is the current world-space envelope, not the producer's original placement dimensions. */
-function treeQueryFootprint(bounds: { minimum: readonly number[]; maximum: readonly number[] }): readonly [number, number] {
+function treeQueryFootprint(bounds: { minimum: readonly number[]; maximum: readonly number[];
+}): readonly [number, number] {
   return Object.freeze([bounds.maximum[0] - bounds.minimum[0], bounds.maximum[2] - bounds.minimum[2]]);
 }
 
@@ -1429,7 +1430,7 @@ function isWorseElevationCandidate(
 function encodeHeightBound(fields: SeedWorldFields, value: number | undefined, fallback: number): number {
   if (value === undefined) return fallback;
   const offset = fields.heightDecode?.offset ?? SEED_WORLD_HEIGHT_RANGE.minimum;
-  const scale = fields.heightDecode?.scale ?? (SEED_WORLD_HEIGHT_RANGE.maximum - SEED_WORLD_HEIGHT_RANGE.minimum);
+  const scale = fields.heightDecode?.scale ?? SEED_WORLD_HEIGHT_RANGE.maximum - SEED_WORLD_HEIGHT_RANGE.minimum;
   const normalized = (value - offset) / scale;
   return Math.round(normalized * 0xffff);
 }
@@ -1543,7 +1544,8 @@ function resolveEnvironmentChannels(input: Readonly<SeedWorldEnvironmentUpdateIn
 
 type WeatherEditTarget = Pick<WorldEnvironmentRuntime,
   "setSeason" | "setWeatherState" | "setWind" | "setCloud" | "setSkyLighting" | "setPrecipitation" | "setLightning"> & {
-  getSnapshot(): { weather: WeatherState; wind: { baseSpeedMps: number; baseDirection: readonly [number, number, number] } };
+  getSnapshot(): { weather: WeatherState; wind: { baseSpeedMps: number; baseDirection: readonly [number, number, number] };
+  };
 };
 
 function applyEnvironmentChannels(environment: WeatherEditTarget, input: Readonly<SeedWorldEnvironmentUpdateInput>): void {
@@ -1579,10 +1581,10 @@ function applyEnvironmentChannels(environment: WeatherEditTarget, input: Readonl
 
 /** Clockwise heading of the direction the wind blows TOWARD: -Z=0, +X=90. */
 function windHeading(direction: readonly number[]): number {
-  return wrapWindHeading(Math.atan2(direction[0]!, -direction[2]!) * 180 / Math.PI);
+  return wrapWindHeading((Math.atan2(direction[0]!, -direction[2]!) * 180) / Math.PI);
 }
 function wrapWindHeading(degrees: number): number {
-  const result = ((degrees + 180) % 360 + 360) % 360 - 180;
+  const result = ((((degrees + 180) % 360) + 360) % 360) - 180;
   return Object.is(result, -0) ? 0 : result;
 }
 

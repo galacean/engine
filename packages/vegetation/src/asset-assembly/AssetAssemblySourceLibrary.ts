@@ -12,6 +12,7 @@ import {
 export { validateManifest } from "./AssetAssemblyCatalog";
 import {
   AssetType,
+  BoundingBox,
   Engine,
   JSONAsset,
   Material,
@@ -164,6 +165,13 @@ export interface AtomicAssemblySource {
   readonly lodGroup?: ProductionLodGroupProfile;
 }
 
+/** Physical placement metadata independent of an authored rendering asset. */
+export interface AtomicAssemblyPlacement {
+  readonly id: string;
+  readonly bounds: { readonly min: readonly [number, number, number]; readonly max: readonly [number, number, number] };
+  readonly cullScreenHeight: number;
+}
+
 /** One authored atom family with a stable primary source and weighted source variants. */
 export interface AtomicAssemblySourceFamily {
   /** Backward-compatible primary source used by existing Asset Assembly controls. */
@@ -205,18 +213,20 @@ export interface AssetAssemblySourceLibrary {
   /** Authored flower atom variants, selected only from the Producer prototype rank. */
   readonly flowerFamily: AtomicAssemblySourceFamily;
   /** Accepted large-outcrop variants with the same Grass 2 or Mud 2 top-coverage semantics as the terrain below. */
-  readonly largeRockSurfaceFamilies: Readonly<Record<"grass" | "mud", AtomicAssemblySourceFamily>>;
+  readonly largeRockSurfaceFamilies: Readonly<Partial<Record<"grass" | "mud", AtomicAssemblySourceFamily>>>;
   /** Non-mountain parent-rock variants which retain rock PBR but deliberately omit top Coverage. */
-  readonly featureRockFamily: AtomicAssemblySourceFamily;
+  readonly featureRockFamily?: AtomicAssemblySourceFamily;
   /** Accepted neutral Stone 1–4 variants, all physically smaller than large outcrops. */
-  readonly stoneFamily: AtomicAssemblySourceFamily;
+  readonly stoneFamily?: AtomicAssemblySourceFamily;
+  /** Same source extents for procedural replacements, without loading the authored meshes. */
+  readonly stonePlacements: readonly AtomicAssemblyPlacement[];
   /** Accepted neutral four-pebble debris atom. */
-  readonly debrisSource: AtomicAssemblySource;
+  readonly debrisSource?: AtomicAssemblySource;
   /** Accepted Mushroom authored LOD source used by rock-edge clusters. */
   readonly mushroom: AtomicAssemblySource;
   /** Authorized Unity lotus variants with source-authored two-level geometry LODs. */
   readonly lotusFamily: AtomicAssemblySourceFamily;
-  readonly rock: AtomicAssemblySource;
+  readonly rock?: AtomicAssemblySource;
   readonly generatedGlbRequests: number;
   readonly generatedPrefabRequests: number;
   readonly originalSourceGlbRequests: 0;
@@ -234,6 +244,8 @@ export interface AssetAssemblySourceLibraryLoadOptions {
   readonly legacyRockMode?: "catalog" | "large-rock";
   /** Whether to request the catalog GLB tree billboard. Procedural-only worlds disable it. */
   readonly loadTreeImpostor?: boolean;
+  /** Procedural rock consumers retain placement metadata without loading any authored rock Prefabs. */
+  readonly loadRockGeometry?: boolean;
 }
 
 /** Tree renderer view over the production source library. */
@@ -311,7 +323,6 @@ export async function loadAssetAssemblySourceLibrary(
   ]);
   const manifest = validateManifest(manifestAsset.data, registration);
   if (!options.resourcesRegistered) registerGeneratedResources(engine, manifestUrl, manifest.generatedResources);
-  if (!options.resourcesRegistered) await configureGeneratedKtx2Textures(engine, manifest.generatedResources);
   const treeSpeciesIds = new Set<string>(TREE_SPECIES_CATALOG.map((entry) => entry.assetId));
   const requestedTreeSpeciesIds = options.treeRecipeIds
     ? new Set([...options.treeRecipeIds].filter((id) => treeSpeciesIds.has(id)))
@@ -374,14 +385,24 @@ export async function loadAssetAssemblySourceLibrary(
         ),
     loadAtomicSourceFamily(engine, manifest.grassVariants, "grass", ["Terrain/Grass"]),
     loadAtomicSourceFamily(engine, manifest.flowerVariants, "flower", ["Terrain/Vegetation"]),
-    loadAtomicLodSourceFamily(engine, manifest.largeRockGrassVariants, "large rock · grass", ["Terrain/Surface"]),
-    loadAtomicLodSourceFamily(engine, manifest.largeRockMudVariants, "large rock · mud", ["Terrain/Surface"]),
-    loadAtomicLodSourceFamily(engine, manifest.featureRockVariants, "feature rock", ["Terrain/Surface"]),
-    loadAtomicLodSourceFamily(engine, manifest.stoneVariants, "stone", ["Terrain/Surface"]),
-    loadAtomicLodSource(engine, manifest.debris, "debris", ["Terrain/Surface"]),
+    options.loadRockGeometry === false
+      ? Promise.resolve(undefined)
+      : loadAtomicLodSourceFamily(engine, manifest.largeRockGrassVariants, "large rock · grass", ["Terrain/Surface"]),
+    options.loadRockGeometry === false
+      ? Promise.resolve(undefined)
+      : loadAtomicLodSourceFamily(engine, manifest.largeRockMudVariants, "large rock · mud", ["Terrain/Surface"]),
+    options.loadRockGeometry === false
+      ? Promise.resolve(undefined)
+      : loadAtomicLodSourceFamily(engine, manifest.featureRockVariants, "feature rock", ["Terrain/Surface"]),
+    options.loadRockGeometry === false
+      ? Promise.resolve(undefined)
+      : loadAtomicLodSourceFamily(engine, manifest.stoneVariants, "stone", ["Terrain/Surface"]),
+    options.loadRockGeometry === false
+      ? Promise.resolve(undefined)
+      : loadAtomicLodSource(engine, manifest.debris, "debris", ["Terrain/Surface"]),
     loadAtomicLodSource(engine, manifest.mushroom, "mushroom", ["Terrain/Vegetation"]),
     loadAtomicLodSourceFamily(engine, manifest.lotusVariants, "lotus", ["Terrain/Vegetation"], "one-or-more"),
-    options.legacyRockMode === "large-rock"
+    options.loadRockGeometry === false || options.legacyRockMode === "large-rock"
       ? Promise.resolve(undefined)
       : Promise.all(
           manifest.rock.lods.map((lod, index) =>
@@ -393,6 +414,7 @@ export async function loadAssetAssemblySourceLibrary(
   ]);
 
   const runtimeTreeRecipes = Object.freeze([...(await treeSpeciesRecipesPromise), ...treeRecipes]);
+  configureLoadedKtx2Textures(engine, manifestUrl, manifest.generatedResources);
   const generatedGlbRequests = manifest.generatedResources.filter((resource) => resource.type === "GLTF").length;
   const generatedPrefabRequests = manifest.generatedResources.filter((resource) => resource.type === "Prefab").length;
   return {
@@ -421,25 +443,51 @@ export async function loadAssetAssemblySourceLibrary(
     largeRockSurfaceFamilies: Object.freeze({ grass: largeRockGrassFamily, mud: largeRockMudFamily }),
     featureRockFamily,
     stoneFamily,
+    stonePlacements: manifest.stoneVariants.map((entry) => {
+      let bounds = entry.geometryBounds;
+      if (!bounds) {
+        const source = stoneFamily?.variants.find((source) => source.id === entry.id);
+        if (!source) throw new Error(`Missing stone placement bounds: ${entry.id}`);
+        const box = new BoundingBox(),
+          partBounds = new BoundingBox();
+        box.min.set(Infinity, Infinity, Infinity);
+        box.max.set(-Infinity, -Infinity, -Infinity);
+        for (const part of source.lods[0].renderers) {
+          BoundingBox.transform(part.mesh.bounds, part.localMatrix, partBounds);
+          BoundingBox.merge(box, partBounds, box);
+        }
+        bounds = { min: [box.min.x, box.min.y, box.min.z], max: [box.max.x, box.max.y, box.max.z] };
+      }
+      if (
+        bounds.min.length !== 3 ||
+        bounds.max.length !== 3 ||
+        !bounds.min.every(Number.isFinite) ||
+        !bounds.max.every((value, axis) => Number.isFinite(value) && value > bounds!.min[axis])
+      )
+        throw new Error(`Invalid stone placement bounds: ${entry.id}`);
+      return { id: entry.id, bounds, cullScreenHeight: entry.lodGroup.screenRelativeTransitionHeights.at(-1)! };
+    }),
     debrisSource,
     mushroom,
     lotusFamily,
     rock:
-      options.legacyRockMode === "large-rock"
-        ? largeRockGrassFamily.primary
-        : {
-            id: manifest.rock.id,
-            label: manifest.rock.label,
-            selectionWeight: 1,
-            defaultColorRgb: manifest.rock.defaultColorRgb,
-            defaultLodProfile: detachLodProfile(manifest.rock.defaultLodProfile),
-            lods: catalogRockLods!,
-            lodGroup: {
-              localReferencePoint: [...manifest.rock.lodGroup.localReferencePoint],
-              size: manifest.rock.lodGroup.size,
-              screenRelativeTransitionHeights: [...manifest.rock.lodGroup.screenRelativeTransitionHeights]
-            }
-          },
+      options.loadRockGeometry === false
+        ? undefined
+        : options.legacyRockMode === "large-rock"
+          ? largeRockGrassFamily!.primary
+          : {
+              id: manifest.rock.id,
+              label: manifest.rock.label,
+              selectionWeight: 1,
+              defaultColorRgb: manifest.rock.defaultColorRgb,
+              defaultLodProfile: detachLodProfile(manifest.rock.defaultLodProfile),
+              lods: catalogRockLods!,
+              lodGroup: {
+                localReferencePoint: [...manifest.rock.lodGroup.localReferencePoint],
+                size: manifest.rock.lodGroup.size,
+                screenRelativeTransitionHeights: [...manifest.rock.lodGroup.screenRelativeTransitionHeights]
+              }
+            },
     generatedGlbRequests,
     generatedPrefabRequests,
     originalSourceGlbRequests: 0
@@ -469,6 +517,7 @@ export async function loadAssetAssemblyRockSource(
       loadPrefabAtom(engine, manifest.rock.id, `${manifest.rock.label} LOD${index}`, lod.prefabUrl, ["Terrain/Surface"])
     )
   );
+  configureLoadedKtx2Textures(engine, manifestUrl, manifest.generatedResources);
   return {
     id: manifest.rock.id,
     label: manifest.rock.label,
@@ -656,27 +705,21 @@ function registerGeneratedResources(
   engine.resourceManager.registerVirtualResources([...registeredResources, ...modelTextureAliases]);
 }
 
-async function configureGeneratedKtx2Textures(
+/** Configure only textures requested by the selected sources; unused families allocate nothing. */
+function configureLoadedKtx2Textures(
   engine: Engine,
+  manifestUrl: URL,
   resources: readonly GeneratedResourceManifest[]
-): Promise<void> {
-  await Promise.all(
-    resources
-      .filter((resource) => resource.type === "KTX2")
-      .map(async (resource) => {
-        const texture = await engine.resourceManager.load<Texture2D>({
-          type: AssetType.KTX2,
-          url: resource.virtualPath
-        });
-        if (!(texture instanceof Texture2D)) {
-          throw new Error(`Asset Assembly KTX2 resource did not resolve to Texture2D: ${resource.virtualPath}`);
-        }
-        texture.filterMode = TextureFilterMode.Trilinear;
-        texture.wrapModeU = TextureWrapMode.Repeat;
-        texture.wrapModeV = TextureWrapMode.Repeat;
-        texture.anisoLevel = 8;
-      })
-  );
+): void {
+  for (const resource of resources) {
+    if (resource.type !== "KTX2") continue;
+    const texture = engine.resourceManager.getFromCache<Texture2D>(new URL(resource.path, manifestUrl).href);
+    if (!texture) continue;
+    texture.filterMode = TextureFilterMode.Trilinear;
+    texture.wrapModeU = TextureWrapMode.Repeat;
+    texture.wrapModeV = TextureWrapMode.Repeat;
+    texture.anisoLevel = 8;
+  }
 }
 
 function selectTreeRecipes(

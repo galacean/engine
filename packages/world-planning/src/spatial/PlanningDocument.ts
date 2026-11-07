@@ -426,7 +426,43 @@ export function upgradePlanningDocument(input: PlanningDocument): PlanningDocume
   for (const scope of [document, ...Object.values(document.layoutOverrides ?? {})])
     for (const entity of Object.values(scope.entities)) {
       const rock = entity.components.rockFormation;
-      if (rock) retireRockPaletteFields(rock.values);
+      if (rock) {
+        retireRockPaletteFields(rock.values);
+        for (const key of [
+          "surfaceMode",
+          "noiseSeed",
+          "frequency",
+          "octaves",
+          "lacunarity",
+          "persistence",
+          "maskPower",
+          "slabSeed",
+          "slabSize",
+          "slabCoverage",
+          "slabDepth",
+          "slabVariation",
+          "cellSize",
+          "cellInset",
+          "cellDepth",
+          "cellDetail",
+          "cellCoverage"
+        ])
+          delete rock.values[key];
+      }
+      const obb = entity.components.rockObb;
+      if (obb)
+        for (const key of ["heightMode", "surfaceMode", "slopeMode", "slopeRate", "slopeVariation", "heightVariation"])
+          delete obb.values[key];
+      const generation = entity.components.rockGeneration;
+      if (generation)
+        for (const key of [
+          "platformSlopeRate",
+          "platformSlopeVariation",
+          "platformHeightVariation",
+          "peakSlopeVariation",
+          "peakHeightVariation"
+        ])
+          delete generation.values[key];
     }
   // POI depth has no unique metre conversion. Retire it only at the import boundary;
   // missing metre fields use the registered 120m/160m/160m defaults. Explicit metre

@@ -368,7 +368,8 @@ export class VegetationAssemblyRuntime extends Script {
       distanceCulling: this._distanceCulling,
       baseTexture: {
         source: this._customBaseTexture ? "custom" : "preset",
-        label: this._customBaseTexture?.label ?? this._sourceLibrary![this._token.category].label,
+        label:
+          this._customBaseTexture?.label ?? this._sourceLibrary![this._token.category]?.label ?? this._token.category,
         width: baseTexture?.width ?? 0,
         height: baseTexture?.height ?? 0
       },
@@ -549,11 +550,15 @@ export class VegetationAssemblyRuntime extends Script {
   }
 
   private _sourceAtoms(token: VegetationPopulationToken): readonly ProductionRenderAtom[] {
-    return this._sourceLibrary![token.category].lods;
+    const source = this._sourceLibrary![token.category];
+    if (!source) throw new Error(`No authored source loaded for ${token.category}`);
+    return source.lods;
   }
 
   private _sourceColor(token: VegetationPopulationToken): readonly [number, number, number] {
-    return this._sourceLibrary![token.category].defaultColorRgb;
+    const source = this._sourceLibrary![token.category];
+    if (!source) throw new Error(`No authored source loaded for ${token.category}`);
+    return source.defaultColorRgb;
   }
 
   private _validateSourceIdentity(token: VegetationPopulationToken): void {
@@ -562,7 +567,7 @@ export class VegetationAssemblyRuntime extends Script {
       if (token.assetId !== source.shrub.id) {
         throw new Error("Shrub Population Token does not resolve to the production catalog");
       }
-    } else if (token.assetId !== source[token.category].id) {
+    } else if (token.assetId !== source[token.category]?.id) {
       throw new Error(`${token.category} Population Token does not resolve to the production catalog`);
     }
   }
@@ -627,7 +632,7 @@ export class VegetationAssemblyRuntime extends Script {
     return this._token?.category === "shrub"
       ? this._sourceLibrary!.shrub.lodGroup
       : this._token?.category === "rock"
-        ? this._sourceLibrary!.rock.lodGroup!
+        ? (this._sourceLibrary!.rock?.lodGroup ?? null)
         : null;
   }
 
@@ -677,14 +682,15 @@ function createLodDefinition(
   sourceLibrary: AssetAssemblySourceLibrary,
   distanceCulling: boolean
 ): TerrainLodGroupRuntime {
-  const lodCount =
-    token.category === "shrub" ? sourceLibrary.shrub.lods.length : sourceLibrary[token.category].lods.length;
+  const source = sourceLibrary[token.category];
+  if (!source) throw new Error(`No authored source loaded for ${token.category}`);
+  const lodCount = source.lods.length;
   if (lodCount < 1) throw new RangeError("Vegetation Assembly requires at least one authored LOD");
   const sourceLodGroup =
     token.category === "shrub"
       ? sourceLibrary.shrub.lodGroup
       : token.category === "rock"
-        ? sourceLibrary.rock.lodGroup!
+        ? sourceLibrary.rock?.lodGroup
         : null;
   if (sourceLodGroup && sourceLodGroup.screenRelativeTransitionHeights.length !== lodCount) {
     throw new RangeError("Vegetation Assembly LODGroup thresholds must match its authored LODs");

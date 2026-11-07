@@ -1,21 +1,13 @@
 import type { PoiDistribution } from "./PoiDistribution";
 import type { ShapeRecipe } from "./ComposedShape";
 import type { V2Box } from "../spatial/V2Model.ts";
-import type { RockHeightMode, RockSlopeMode, RockSurfaceMode } from "@galacean/engine-terrain/rock-formation/types";
 /** Metres in the rectangular planning domain; X right, Z down on the map. */
 export interface PlanPoint {
   x: number;
   z: number;
 }
 /** Rock presentation settings do not change generic layout volume semantics. */
-export interface PlanRockBox extends V2Box {
-  heightMode?: RockHeightMode;
-  surfaceMode?: RockSurfaceMode;
-  slopeMode?: RockSlopeMode;
-  slopeRate?: number;
-  slopeVariation?: number;
-  heightVariation?: number;
-}
+export interface PlanRockBox extends V2Box {}
 /** A single rock envelope, independently selectable inside a mountain group. */
 export interface PlanRock {
   /** Unedited generated boxes retained for sparse per-OBB reset and incremental replay. */
@@ -326,10 +318,7 @@ export interface PlanSlope {
 /** Asset-independent landscape occupancy, separate from terrain-forming mountain rocks. */
 export interface PlanLandscape {
   /** Derived shared rock profile; source height prevents cumulative scaling on local edits. */
-  rockGeneration?: Pick<
-    PlanRockBox,
-    "heightMode" | "slopeMode" | "slopeRate" | "slopeVariation" | "heightVariation"
-  > & { sourceHeight: number };
+  rockGeneration?: { sourceHeight: number };
   assetId?: string;
   contextWeight?: number;
   treeShape?: { trunkWidthRatio: number; crownBaseRatio: number; crownTopRatio: number };

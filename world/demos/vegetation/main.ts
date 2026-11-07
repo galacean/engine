@@ -349,8 +349,8 @@ async function boot(): Promise<void> {
   populateCatalogStyles(selectedCatalog.id);
   let shrubRecipes: Awaited<ReturnType<typeof loadCatalogShrubSource>>[] = [];
   const acceptedSourceLibrary = await loadSeedWorldAssetSourceLibrary(engine, {
-    shrubSourceFactory: async engine => {
-      shrubRecipes = await Promise.all(PLANT_SPECIES_CATALOG.shrubRecipes.map(entry => loadCatalogShrubSource(engine, entry)));
+    shrubSourceFactory: async (engine) => {
+      shrubRecipes = await Promise.all(PLANT_SPECIES_CATALOG.shrubRecipes.map((entry) => loadCatalogShrubSource(engine, entry)));
       return shrubRecipes[0];
     },
     treeRecipeIds: new Set(),
@@ -434,11 +434,11 @@ async function boot(): Promise<void> {
       const right = new Vector3(back.z, 0, -back.x).normalize();
       const up = new Vector3();
       Vector3.cross(back, right, up);
-      const tanVertical = Math.tan(camera.fieldOfView * Math.PI / 360);
+      const tanVertical = Math.tan((camera.fieldOfView * Math.PI) / 360);
       const panelRect = document.querySelector<HTMLElement>(view === "landscape" ? ".landscape-panel" : view === "meadow" ? ".meadow-panel" : ".control-panel")!.getBoundingClientRect();
       const canvasRect = document.querySelector<HTMLCanvasElement>("#canvas")!.getBoundingClientRect();
       // Auto-resolution applies its backing-buffer size on the first engine frame, after this initial fit.
-      const tanHorizontal = tanVertical * canvasRect.width / canvasRect.height;
+      const tanHorizontal = (tanVertical * canvasRect.width) / canvasRect.height;
       const panelFraction = view === "atoms" ? 0 : Math.min(0.65, (canvasRect.right - panelRect.left) / canvasRect.width);
       let distance = camera.nearClipPlane;
       for (const x of [min[0], max[0]]) for (const y of [min[1], max[1]]) for (const z of [min[2], max[2]]) {
@@ -569,17 +569,17 @@ async function boot(): Promise<void> {
     landscapeGrass.value = landscape.grassMode;
     landscapePanel.querySelector<HTMLInputElement>("[data-landscape-seed]")!.value = String(request.seed);
     const selected = landscapeViews.value;
-    landscapeViews.replaceChildren(new Option("全景", "overview"), ...request.views.map(v => new Option(v.id, v.id)));
-    if ([...landscapeViews.options].some(option => option.value === selected)) landscapeViews.value = selected;
+    landscapeViews.replaceChildren(new Option("全景", "overview"), ...request.views.map((v) => new Option(v.id, v.id)));
+    if ([...landscapeViews.options].some((option) => option.value === selected)) landscapeViews.value = selected;
     else landscapeViews.value = request.views[0]?.id ?? "overview";
     landscapePanel.querySelector<HTMLOutputElement>("[data-landscape-summary]")!.textContent =
-      `植被 ${plan.instances.length} 株 · ${new Set(plan.instances.map(i => i.assetId)).size} 种素材\n` +
+      `植被 ${plan.instances.length} 株 · ${new Set(plan.instances.map((i) => i.assetId)).size} 种素材\n` +
       Object.entries(plan.diagnostics.layers).map(([id, count]) => `${id} ${count}`).join(" · ") + "\n" +
-      request.views.map(v => `${v.id}：近 / 中 / 远 ${plan.diagnostics.views[v.id].join(" / ")}`).join("\n");
+      request.views.map((v) => `${v.id}：近 / 中 / 远 ${plan.diagnostics.views[v.id].join(" / ")}`).join("\n");
     landscapeError.hidden = true;
   };
   const viewLandscape = () => {
-    const view = landscape.request?.views.find(v => v.id === landscapeViews.value);
+    const view = landscape.request?.views.find((v) => v.id === landscapeViews.value);
     if (view) {
       orbit.target.set(...view.lookAt);
       camera.entity.transform.setPosition(...view.eye);
@@ -625,9 +625,9 @@ async function boot(): Promise<void> {
   landscapePanel.querySelector("[data-scene-direction-reset]")!.addEventListener("click", () =>
     landscapeAction(() => { resetSceneDirection(); }));
   landscapeViews.addEventListener("change", viewLandscape);
-  landscapePanel.querySelector<HTMLInputElement>("[data-landscape-vegetation]")!.addEventListener("change", event =>
+  landscapePanel.querySelector<HTMLInputElement>("[data-landscape-vegetation]")!.addEventListener("change", (event) =>
     landscape.setVegetationVisible((event.target as HTMLInputElement).checked));
-  landscapePanel.querySelector("[data-landscape-collapse]")!.addEventListener("click", event => {
+  landscapePanel.querySelector("[data-landscape-collapse]")!.addEventListener("click", (event) => {
     const collapsed = landscapePanel.classList.toggle("is-collapsed");
     (event.currentTarget as HTMLButtonElement).textContent = collapsed ? "展开规则" : "收起规则";
   });
@@ -2207,6 +2207,7 @@ function lodPreviewDistances(
 ): readonly number[] {
   if (category !== "shrub" && category !== "rock") return LOD_PREVIEW_DISTANCES[category];
   const source = category === "shrub" ? sourceLibrary.shrub : sourceLibrary.rock;
+  if (!source) throw new Error("No loaded rock source");
   const profile = source.lodGroup!;
   const tangent = Math.tan((fieldOfViewDegrees * Math.PI) / 360);
   const transitions = profile.screenRelativeTransitionHeights.map((height) => profile.size / (2 * tangent * height));

@@ -612,7 +612,9 @@ export class VegetationLandscapePreview {
   }
 
   private _rock(owner: Entity, bounds: LandscapeBounds): void {
-    const sources = this._sourceLibrary.rock.lods[0].renderers;
+    const rock = this._sourceLibrary.rock;
+    if (!rock) throw new Error("Landscape rock preview requires authored rock sources");
+    const sources = rock.lods[0].renderers;
     const sourceBounds = this._rockSourceBounds();
     const size = [
       sourceBounds.max.x - sourceBounds.min.x,
@@ -640,7 +642,9 @@ export class VegetationLandscapePreview {
   }
 
   private _rockSourceBounds() {
-    const sources = this._sourceLibrary.rock.lods[0].renderers;
+    const rock = this._sourceLibrary.rock;
+    if (!rock) throw new Error("Landscape rock preview requires authored rock sources");
+    const sources = rock.lods[0].renderers;
     const bounds = sources[0].mesh.bounds.clone().transform(sources[0].localMatrix);
     for (const source of sources.slice(1)) {
       const part = source.mesh.bounds.clone().transform(source.localMatrix);

@@ -4,8 +4,10 @@ import { ROCK_COLOR_FIELDS } from "@galacean/engine-world-planning/integrations/
 import { PLANNING_COMPONENTS } from "@galacean/engine-world-planning/spatial/PlanningComponents";
 
 /** Sparse authored channels. An absent channel inherits; zero is an explicit authored value. */
-export interface AuthoredColor { r?: number; g?: number; b?: number }
-export interface AuthoredPlantMaterialSlot { assetId: string; part?: string; materialId: string; baseColor: AuthoredColor }
+export interface AuthoredColor { r?: number; g?: number; b?: number;
+}
+export interface AuthoredPlantMaterialSlot { assetId: string; part?: string; materialId: string; baseColor: AuthoredColor;
+}
 export type ParameterBase = SpatialComponent["base"];
 export interface VisualAuthoringDescriptor {
   component: string;
@@ -15,7 +17,7 @@ export interface VisualAuthoringDescriptor {
   collection?: "assetWeights" | "materialSlots";
 }
 
-const directFields = (...fields: string[]) => Object.fromEntries(fields.map(field => [field, field]));
+const directFields = (...fields: string[]) => Object.fromEntries(fields.map((field) => [field, field]));
 /** Read-only identities for authoring components removed from the product. */
 export const RETIRED_PLANNING_VISUAL_AUTHORING = [
   { component: "buildingAppearance", type: "PlanningBuildingAppearance" }
@@ -27,14 +29,27 @@ export const PLANNING_VISUAL_AUTHORING: readonly VisualAuthoringDescriptor[] = [
     ["landscapeInfluence", "PlanningVegetationInfluence"],
     ["flowerInfluence", "PlanningFlowerInfluence"]
   ].map(([component, type]) => ({ component, type, fields: directFields(
-    ...PLANNING_COMPONENTS.find(definition => definition.type === component)!.fields.map(field => field.key)),
+    ...PLANNING_COMPONENTS.find((definition) => definition.type === component)!.fields.map((field) => field.key)),
     ...(component === "flowerInfluence" ? { fields: {
       ...directFields("bandM", "multiplier", "falloff"), enabled: "influenceEnabled"
     } } : {}) })),
   { component: "rockFormation", type: "PlanningRockFormation", fields: directFields(
-    "noiseSeed", "frequency", "octaves", "lacunarity", "persistence", "maskPower",
-    "slabSeed", "slabSize", "slabCoverage", "slabDepth", "slabVariation", "surfaceMode",
-    "cellSize", "cellInset", "cellDepth", "cellDetail", "cellCoverage", "textureScale", ...ROCK_COLOR_FIELDS.map(field => field.key)) },
+      "textureScale",
+      "topScale",
+      "bottomScale",
+      "shoulderScale",
+      "shoulderHeight",
+      "topRoughness",
+      "topSlope",
+      "wallCount",
+      "wallOverlap",
+      "wallProtrusion",
+      "wallLength",
+      "wallTilt",
+      "wallStrength",
+      "outlineIrregularity",
+      "variation",
+      "simplifyError", ...ROCK_COLOR_FIELDS.map((field) => field.key)) },
   { component: "lighting", type: "PlanningLighting", fields: {
     ...directFields("profileUrl", "timeHours", "sunIntensity", "ambientIntensity", "iblIntensity", "direct", "environment",
       "shadows", "shadowStrength", "fog", "fogDensity", "customSkyTintStrength", "skyExposure", "sunSize", "atmosphereThickness",
@@ -42,9 +57,9 @@ export const PLANNING_VISUAL_AUTHORING: readonly VisualAuthoringDescriptor[] = [
       "airglowIntensity", "fogRadianceIntensity"),
     sunColorR: "sunColor.r", sunColorG: "sunColor.g", sunColorB: "sunColor.b",
     skyTintR: "skyTint.r", skyTintG: "skyTint.g", skyTintB: "skyTint.b",
-    ...Object.fromEntries(["moonColor", "fogTint", "groundTint"].flatMap(slot => ["R", "G", "B"].map(channel =>
+    ...Object.fromEntries(["moonColor", "fogTint", "groundTint"].flatMap((slot) => ["R", "G", "B"].map((channel) =>
       [slot + channel, `${slot}.${channel.toLowerCase()}`]))),
-    ...Object.fromEntries(["Zenith", "Horizon"].flatMap(region => ["R", "G", "B"].map(channel =>
+    ...Object.fromEntries(["Zenith", "Horizon"].flatMap((region) => ["R", "G", "B"].map((channel) =>
       [`customSky${region}${channel}`, `customSky${region}Tint.${channel.toLowerCase()}`])))
   } },
   { component: "postProcess", type: "PlanningPostProcess", fields: {
@@ -58,7 +73,7 @@ export const PLANNING_VISUAL_AUTHORING: readonly VisualAuthoringDescriptor[] = [
   { component: "subjectView", type: "PlanningSubjectView", fields: directFields("subjectId", "frameFraction", "fovDegrees", "azimuthDegrees", "distanceM") },
   { component: "grassAppearance", type: "PlanningGrassAppearance", fields: {
     ...directFields("saturation"),
-    ...Object.fromEntries(["colorA", "colorB"].flatMap(slot => ["r", "g", "b"].map(channel => [`${slot}.${channel}`, `${slot}.${channel}`])))
+    ...Object.fromEntries(["colorA", "colorB"].flatMap((slot) => ["r", "g", "b"].map((channel) => [`${slot}.${channel}`, `${slot}.${channel}`])))
   } },
   { component: "plantMaterial", type: "PlanningPlantMaterials", fields: {}, collection: "materialSlots" }
 ];
@@ -75,9 +90,9 @@ export function encodeVisualAuthoring(descriptor: VisualAuthoringDescriptor, sou
       const weights = (props.assetWeights ??= {}) as Record<string, unknown>;
       define(weights, field.slice("assetWeights.".length), value);
     } else if (descriptor.collection === "materialSlots") {
-      const path = field.split("/").map(part => decodeURIComponent(part));
+      const path = field.split("/").map((part) => decodeURIComponent(part));
       const property = /^baseColor\.([rgb])$/.exec(path.at(-1)!);
-      if (!property || (path.length !== 3 && path.length !== 4) || path.some(part => !part))
+      if (!property || (path.length !== 3 && path.length !== 4) || path.some((part) => !part))
         throw new Error(`Invalid plant material field: ${field}`);
       const assetId = path[0], part = path.length === 4 ? path[1] : undefined,
         materialId = path.at(-2)!, channel = property[1];
@@ -119,13 +134,13 @@ export function decodeVisualAuthoring(descriptor: VisualAuthoringDescriptor, pro
 }
 
 export function visualAuthoringProperties(descriptor: VisualAuthoringDescriptor): string[] {
-  return [...new Set(["parameterBase", ...Object.values(descriptor.fields).map(path => path.split(".")[0]),
+  return [...new Set(["parameterBase", ...Object.values(descriptor.fields).map((path) => path.split(".")[0]),
     ...(descriptor.collection ? [descriptor.collection] : [])])];
 }
 
 function getProperty(value: unknown, path: string): unknown {
-  return path.split(".").reduce((object, key) => object && typeof object === "object"
-    ? (object as Record<string, unknown>)[key] : undefined, value);
+  return path.split(".").reduce((object, key) => (object && typeof object === "object"
+    ? (object as Record<string, unknown>)[key] : undefined), value);
 }
 function setProperty(props: Record<string, unknown>, path: string, value: unknown): void {
   const keys = path.split(".");

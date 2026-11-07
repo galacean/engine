@@ -2,44 +2,19 @@ import type { PlanningComponentDefinition } from "../../../spatial/PlanningCompo
 import type { PlanningDocument } from "../../../spatial/PlanningDocument.ts";
 import { ComponentRegistry, resolveComponent } from "../../../spatial/SpatialDocument.ts";
 import { hashSeed, random } from "@galacean/engine-terrain/rock-formation/math";
-import type { RockObb } from "@galacean/engine-terrain/rock-formation/types";
 
 /** Authoring defaults, resolved into published OBBs before worker/cache inputs. */
 export const ROCK_GENERATION_DEFAULTS = {
   platformShare: 1,
   platformHeightScale: 1,
-  platformSlopeRate: 12,
-  platformSlopeVariation: 0.2,
-  platformHeightVariation: 0.05,
-  peakHeightScale: 1,
-  peakSlopeVariation: 0.8,
-  peakHeightVariation: 0.2
+  peakHeightScale: 1
 };
 export type RockGenerationProfile = typeof ROCK_GENERATION_DEFAULTS;
 export type RockGenerationKind = "platform" | "peak";
 
-/** Shared shape defaults for authored OBBs and instanced scenic-rock sources. */
-export function rockGenerationShape(
-  kind: RockGenerationKind,
-  profile: RockGenerationProfile
-): Required<Pick<RockObb, "heightMode" | "slopeMode" | "slopeVariation" | "heightVariation">> &
-  Pick<RockObb, "slopeRate"> & { heightScale: number } {
-  return kind === "platform"
-    ? {
-        heightScale: profile.platformHeightScale,
-        heightMode: "random-ascent",
-        slopeMode: "manual",
-        slopeRate: profile.platformSlopeRate,
-        slopeVariation: profile.platformSlopeVariation,
-        heightVariation: profile.platformHeightVariation
-      }
-    : {
-        heightScale: profile.peakHeightScale,
-        heightMode: "perlin-ascent",
-        slopeMode: "auto",
-        slopeVariation: profile.peakSlopeVariation,
-        heightVariation: profile.peakHeightVariation
-      };
+/** Retain authored height families when publishing dimensions; geometry uses one shared generator. */
+export function rockGenerationShape(kind: RockGenerationKind, profile: RockGenerationProfile): { heightScale: number } {
+  return { heightScale: kind === "platform" ? profile.platformHeightScale : profile.peakHeightScale };
 }
 
 const field = (key: keyof RockGenerationProfile, label: string, unit: string, step: number, max?: number) => ({
@@ -59,20 +34,14 @@ export const ROCK_GENERATION_COMPONENT: PlanningComponentDefinition = {
   tab: "world",
   sparseGlobal: true,
   presentation: true,
-  description:
-    "以世界 Seed 和稳定 OBB／景观石块实例 ID 独立选择钝顶平台或山峰。平台默认保留原始高度。平台比例是概率，不是数量配额；改变顺序或其他 OBB 不重新抽签。尺寸、模式和坡率的单体覆盖优先。高度倍率应用于原始规划或素材高度，不累积缩放；树脚伴生石共享两类网格，景观散布岩石发布到各自体量。",
+  description: "保留两组高度倍率的布局作者配置。所有岩石的表面和造型由同一个程序化生成器处理。单体尺寸覆盖优先。",
   fields: [
     field("platformShare", "Platform share / 平台比例 (0–1)", "", 0.05, 1),
     field("platformHeightScale", "Platform height scale / 平台高度倍率", "×", 0.05),
-    field("platformSlopeRate", "Platform base slope / 平台基础坡率", "m/m", 0.1),
-    field("platformSlopeVariation", "Platform slope variation / 平台坡率变化", "", 0.05, 1),
-    field("platformHeightVariation", "Platform top variation / 平台顶部高度变化", "", 0.01, 1),
-    field("peakHeightScale", "Peak height scale / 山峰高度倍率", "×", 0.05),
-    field("peakSlopeVariation", "Peak slope variation / 山峰坡率变化", "", 0.05, 1),
-    field("peakHeightVariation", "Peak top variation / 山峰顶部高度变化", "", 0.01, 1)
+    field("peakHeightScale", "Peak height scale / 山峰高度倍率", "×", 0.05)
   ],
   validate(values) {
-    for (const key of ["platformHeightScale", "peakHeightScale", "platformSlopeRate"] as const)
+    for (const key of ["platformHeightScale", "peakHeightScale"] as const)
       if (values[key] !== undefined && !(Number(values[key]) > 0))
         throw new Error(`Rock generation ${key} must be positive / 岩石生成倍率和坡率必须大于 0`);
   }

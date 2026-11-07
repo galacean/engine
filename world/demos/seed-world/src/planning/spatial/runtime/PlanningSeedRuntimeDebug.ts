@@ -1,6 +1,6 @@
-import { PlanningFarmingControls, type PlanningFarmingControlsOptions } from "../farming/PlanningFarmingControls.ts";
-import { PlanningFarmingPanel } from "../farming/PlanningFarmingPanel.ts";
-import { PlanningAnimalPanel, type PlanningAnimalPanelOptions } from "./PlanningAnimalPanel.ts";
+import { PlanningFarmingControls, type PlanningFarmingControlsOptions } from "../farming/PlanningFarmingControls";
+import { PlanningFarmingPanel } from "../farming/PlanningFarmingPanel";
+import { PlanningAnimalPanel, type PlanningAnimalPanelOptions } from "./PlanningAnimalPanel";
 import { RockFormationPanel } from "@galacean/engine-world-planning/integrations/terrain/rock-formation/Panel";
 import type { PlanningParameterCommand, PlanningSession } from "@galacean/engine-world-planning/spatial/PlanningSession";
 import type { Camera, Engine, Entity } from "@galacean/engine";
@@ -26,7 +26,7 @@ import type { TerrainPostProcessRuntime } from "@galacean/engine-terrain/terrain
 import { mountWaterDevTools } from "@galacean/engine-water/water/devtools/index";
 import { decodeSeedWorldHeight, seedWorldOriginX, seedWorldOriginZ } from "@galacean/engine-world-planning/runtime/SeedWorldFields";
 import { SEED_WORLD_SURFACE_PALETTE_PRESETS } from "@galacean/engine-vegetation/world/SeedWorldGrassColorField";
-import type { PlanningSeedWorldPublished } from "./PlanningSeedWorldSession.ts";
+import type { PlanningSeedWorldPublished } from "./PlanningSeedWorldSession";
 import type { PlanningWaterRuntime } from "@galacean/engine-world-planning/spatial/runtime/PlanningWaterRuntime";
 
 export interface PlanningSeedRuntimeDebugOptions {
@@ -401,13 +401,13 @@ export class PlanningSeedRuntimeDebug {
       worldHorizonQueryCacheHits: horizon.queryCacheHitCount,
       worldHorizonQueryEvaluationMilliseconds: horizon.queryEvaluationMilliseconds,
       prefabInstances:
-        world.stones.placementCount +
-        world.smallRocks.placementCount +
+        (world.stones?.placementCount ?? 0) +
+        (world.smallRocks?.placementCount ?? 0) +
         world.mushrooms.placementCount +
         world.lotus.placementCount,
       prefabLodGroups:
-        world.stones.placementCount +
-        world.smallRocks.placementCount +
+        (world.stones?.placementCount ?? 0) +
+        (world.smallRocks?.placementCount ?? 0) +
         world.mushrooms.placementCount +
         world.lotus.placementCount,
       exactSpatialMode: exact.mode,

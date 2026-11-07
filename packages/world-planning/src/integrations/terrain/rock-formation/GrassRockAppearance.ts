@@ -6,7 +6,7 @@ import type { V3 } from "@galacean/engine-terrain/rock-formation/types";
 
 const CELL = 8;
 export const GRASS_ROCK_APPEARANCE_STRIDE = 28;
-// Immutable CPU snapshot: corners/coverage (12), normals (9), offset (1), AABB (6).
+// Immutable CPU snapshot: corners/coverage (12), normals (9), tile size (1), AABB (6).
 // Float64 preserves the original JS-number world-coordinate calculations exactly.
 const FACE_STRIDE = 28;
 
@@ -26,18 +26,17 @@ export class GrassRockAppearance {
       const coverage = sharedRockTransitionCoverage(formation);
       for (let t = 0; t < indices.length / 3; t++) {
         const k = face++ * FACE_STRIDE;
-        const painted = !!formation.painted && (!formation.triangleSurfaces || formation.triangleSurfaces[t] === 1);
-        const data = painted ? formation.painted!.smoothNormals : normals!;
+        const data = normals!;
         for (let c = 0; c < 3; c++) {
           const v = indices[t * 3 + c],
-            n = painted ? t * 9 + c * 3 : v * 3;
+            n = v * 3;
           for (let axis = 0; axis < 3; axis++) {
             this.faces[k + c * 4 + axis] = positions[v * 3 + axis] + origin[axis];
             this.faces[k + 12 + c * 3 + axis] = data[n + axis];
           }
           this.faces[k + c * 4 + 3] = coverage[v];
         }
-        this.faces[k + 21] = painted ? formation.painted!.cells[t * 2 + 1] : 0;
+        this.faces[k + 21] = formation.textureScale ?? 0;
         for (let axis = 0; axis < 3; axis++) {
           this.faces[k + 22 + axis] = Math.min(
             this.faces[k + axis],
