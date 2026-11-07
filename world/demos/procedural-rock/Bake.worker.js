@@ -1,4 +1,4 @@
-import { buildRock } from "./generator/rock-body.js";
+import { buildRock } from "@galacean/engine-terrain/rock-formation/generator/rock-body.js";
 import { simplifyRock, simplifierReady } from "@galacean/engine-terrain/rock-formation/generator/simplify-rock.js";
 self.onmessage = ({ data: { id, rockId, parameters, reduction } }) => {
   try {

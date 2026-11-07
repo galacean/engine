@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { makeConstrainedRockOutline } from "../../demos/procedural-rock/generator/outline.js";
+import { makeConstrainedRockOutline } from "@galacean/engine-terrain/rock-formation/generator/outline.js";
 
 it.each([
   { seed: 1, aspect: 1, taper: 0.4, notches: 2, notchWidth: 0.038, notchDepth: 0.145 },

@@ -25,7 +25,7 @@ export const DEFAULT_ROCK = Object.freeze({
   topDirection: 0,
   outlineIrregularity: 0,
   aspect: 1,
-  resolution: 72
+  resolution: 32
 });
 const TAU = Math.PI * 2;
 const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
@@ -40,20 +40,23 @@ function random(seed, i) {
 
 function crossSection(seed, wear, irregularity) {
   const r = (i) => random(seed, i),
-    outline = makeConstrainedRockOutline({
-      seed,
-      aspect: 1,
-      taper: (r(1) - 0.5) * 0.12,
-      cut: 0.1 + 0.1 * r(2) + 0.28 * irregularity,
-      wave: 0.012 + 0.025 * wear + 0.035 * irregularity,
-      scale: 0.16 + 0.12 * r(3),
-      chip: 0.003 * wear,
-      fineScale: 0.04,
-      coverage: 1,
-      notches: 1 + Math.floor(r(4) * 2),
-      notchWidth: 0.045 + 0.05 * r(5),
-      notchDepth: 0.008 + 0.035 * wear
-    });
+    outline = makeConstrainedRockOutline(
+      {
+        seed,
+        aspect: 1,
+        taper: (r(1) - 0.5) * 0.12,
+        cut: 0.1 + 0.1 * r(2) + 0.28 * irregularity,
+        wave: 0.012 + 0.025 * wear + 0.035 * irregularity,
+        scale: 0.16 + 0.12 * r(3),
+        chip: 0.003 * wear,
+        fineScale: 0.04,
+        coverage: 1,
+        notches: 1 + Math.floor(r(4) * 2),
+        notchWidth: 0.045 + 0.05 * r(5),
+        notchDepth: 0.008 + 0.035 * wear
+      },
+      256
+    );
   const min = [Infinity, Infinity],
     max = [-Infinity, -Infinity];
   for (const point of outline.contour)
@@ -162,7 +165,7 @@ export function buildRock(parameters = {}) {
     )
   );
   p.seed = Math.round(finite(p.seed, 4659)) || 1;
-  p.resolution = Math.round(clamp(finite(p.resolution, 72), 48, 96));
+  p.resolution = Math.round(clamp(finite(p.resolution, 32), 24, 96));
   p.wear = clamp(finite(p.wear, 0.35));
   p.outlineIrregularity = clamp(finite(p.outlineIrregularity, 0));
   p.aspect = 1;

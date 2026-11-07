@@ -526,6 +526,7 @@ export async function mountSeedWorldDemo(
         debugSidebar?.update(); runtimeDebug?.refresh(); debugReadoutElapsed = 0;
         const current = publication?.current;
         if (current?.vegetation) canvas.dataset.vegetation = JSON.stringify(current.vegetation.getDiagnostics());
+        canvas.dataset.rockGeneration = JSON.stringify(rockFormations.generationMetrics);
         if (current?.template && pageUrl.searchParams.get("debug") === "1") {
           const forward = camera.entity.transform.worldForward;
           canvas.dataset.templateCamera = JSON.stringify({
@@ -801,6 +802,7 @@ export async function mountSeedWorldDemo(
         return { discard: () => staged.discard(), commit: () => {
           staged.commit();
           canvas.dataset.rockFormations = summary;
+          canvas.dataset.rockGeneration = JSON.stringify(rockFormations.generationMetrics);
           canvas.dataset.rockEdit = JSON.stringify({ ...metrics, publicationMs: performance.now() - started });
         }, afterCommit: () => publishContentEdit(context.projectTransaction) };
       }
@@ -966,6 +968,7 @@ export async function mountSeedWorldDemo(
               heightTransition?.fields ?? candidateData.fields
             );
             signal.throwIfAborted();
+          canvas.dataset.rockGeneration = JSON.stringify(rockFormations.generationMetrics);
           await candidate.population.applyAuthoringPopulationLayout(planningNaturalGroundPopulation(candidateData.population,
             planningNaturalGrassDensity(library), plan, candidateVegetation.plantAssets),
               { minimumX: 0, minimumZ: 0, maximumX: plan.parameters.width, maximumZ: plan.parameters.depth }

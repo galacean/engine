@@ -1,7 +1,7 @@
 /* Procedural 2D boundaries. No model, traced points, learned weights or stored silhouettes. */
-function createRockEnvelope(p) {
+function createRockEnvelope(p, samples = 1024) {
   const TAU = Math.PI * 2,
-    N = 1024,
+    N = samples,
     H = p.aspect,
     W = 1;
   function rand(i) {
@@ -115,7 +115,7 @@ function normalizeRockNotches(parameters) {
     notchDepth: bound(parameters.notchDepth, 0.005, 0.24)
   };
 }
-function makeConstrainedRockOutline(parameters = {}) {
+function makeConstrainedRockOutline(parameters = {}, samples = 1024) {
   const p = normalizeRockNotches({
     seed: 1,
     aspect: 1,
@@ -137,7 +137,7 @@ function makeConstrainedRockOutline(parameters = {}) {
   const angleWindow = parameters.angleWindow ?? 0.06;
   const measure = (points) => measureRockBoundaryAngles(points, angleWindow);
   const requestedCut = p.cut;
-  let e = raw({ ...p }),
+  let e = raw({ ...p }, samples),
     baseAngles = measure(e.base);
   // Taper may require more corner cutting; excessive cutting can remove a side.
   // Search both directions without changing the requested aspect or taper.
@@ -147,7 +147,7 @@ function makeConstrainedRockOutline(parameters = {}) {
     );
     for (const cut of candidates) {
       p.cut = cut;
-      e = raw({ ...p });
+      e = raw({ ...p }, samples);
       baseAngles = measure(e.base);
       if (baseAngles.passed) break;
     }

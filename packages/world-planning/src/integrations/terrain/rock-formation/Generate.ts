@@ -35,7 +35,7 @@ export function rockParameters(obb: RockObb, seed: number, settings: RockFormati
     wallOverlap: vary(shape.wallOverlap, 0.3),
     wallStrength: clamp(shape.wallStrength + relief * 0.2, 0, 1),
     wallTilt: shape.wallTilt * (r() < 0.5 ? -1 : 1),
-    resolution: 72
+    resolution: 32
   };
 }
 
@@ -62,12 +62,18 @@ export function placeRockInObb(source: RockSurface, obb: RockObb) {
 export function generateRockFormation(job: RockFormationJob, settings: RockFormationSettings): RockFormationMesh {
   const started = performance.now();
   let rawTriangles = 0,
-    overBudgetBodies = 0;
+    overBudgetBodies = 0,
+    buildMs = 0,
+    simplifyMs = 0,
+    simplifyAttempts = 0;
   const surfaces = job.guides.map((guide) => {
     const source = simplifyRock(buildRock(rockParameters(guide, job.seed, settings)), {
       targetTriangles: settings.targetTriangles
     });
     rawTriangles += source.stats.rawTriangles;
+    buildMs += source.stats.bakeMs;
+    simplifyMs += source.stats.simplifyMs;
+    simplifyAttempts += source.stats.attempts;
     if (!source.stats.budgetMet) overBudgetBodies++;
     const mesh = placeRockInObb(source, guide);
     return {
@@ -105,6 +111,9 @@ export function generateRockFormation(job: RockFormationJob, settings: RockForma
       rawTriangles,
       targetTriangles: settings.targetTriangles,
       overBudgetBodies,
+      buildMs,
+      simplifyMs,
+      simplifyAttempts,
       generationMs: 0
     }
   };

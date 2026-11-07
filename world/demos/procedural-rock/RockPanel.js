@@ -1,7 +1,7 @@
 import { startViewer, sendCommand } from "./Viewer";
-import { DEFAULT_ROCK } from "./generator/rock-body.js";
+import { DEFAULT_ROCK } from "@galacean/engine-terrain/rock-formation/generator/rock-body.js";
 import { ROCK_SCENE_PRESETS } from "./presets.js";
-const DEFAULT_REDUCTION = { enabled: true, error: 0.004, targetTriangles: 1000 };
+const DEFAULT_REDUCTION = { enabled: true, error: 0.008, targetTriangles: 1000 };
 const DEFAULT_SURFACE = { strength: 0.35, roughness: 1, detail: true, color: "#b8bcc2" };
 const storageKey = "procedural-rock-example-v1";
 const root = document.querySelector("#rock-lab"),
@@ -38,7 +38,7 @@ const rocks = new Map(
         parameters[def.key] = Math.max(def.min, Math.min(def.max, stored.parameters[def.key]));
     if (Number.isFinite(stored?.parameters?.seed))
       parameters.seed = Math.max(1, Math.min(999999, Math.floor(stored.parameters.seed)));
-    if ([48, 72, 96].includes(stored?.parameters?.resolution)) parameters.resolution = stored.parameters.resolution;
+    if ([32, 48, 72, 96].includes(stored?.parameters?.resolution)) parameters.resolution = stored.parameters.resolution;
     const surface = { ...DEFAULT_SURFACE };
     if (/^#[0-9a-f]{6}$/i.test(stored?.surface?.color || "")) surface.color = stored.surface.color;
     for (const [key, min, max] of [

@@ -1,22 +1,24 @@
+import { enforceMetricAngles } from "./loft-rock.js";
 import { MeshoptSimplifier } from "./vendor/meshopt_simplifier.js";
 
 export const simplifierReady = MeshoptSimplifier.ready;
 
 /**
  * Reduces a closed rock after its shape solve, preserving sampled shading normals,
- * roof identity and all six geometric extrema. Input buffers are never mutated.
+ * roof identity and all six geometric extrema. Local angle repairs may move a
+ * vertex by at most 0.8% of each OBB axis. Input buffers are never mutated.
  * @param {ReturnType<import("./rock-body.js").buildRock>} mesh Shared-index rock geometry and generation metadata.
- * @param {{ enabled?: boolean, error?: number, targetTriangles?: number }} options Optional triangle budget; zero uses the legacy error limit.
+ * @param {{ enabled?: boolean, error?: number, targetTriangles?: number }} options Optional triangle ceiling; zero uses only the requested error limit.
  * Budget mode measures geometry in OBB-normalized space so thin axes remain protected.
  * @returns Compact mesh, or the original surface if no safe reduction is found.
  * The error is meshoptimizer's estimate, not a guaranteed Hausdorff distance.
  */
-export function simplifyRock(mesh, { enabled = true, error = 0.004, targetTriangles = 0 } = {}) {
+export function simplifyRock(mesh, { enabled = true, error = 0.008, targetTriangles = 0 } = {}) {
   const start = performance.now();
   const rawTriangles = mesh.indices.length / 3;
   const rawBytes = bufferBytes(mesh);
   const budget = Number.isFinite(targetTriangles) ? Math.max(0, Math.floor(targetTriangles / 2) * 2) : 0;
-  const requestedError = Number.isFinite(error) ? Math.max(0.0001, Math.min(0.01, error)) : 0.004;
+  const requestedError = Number.isFinite(error) ? Math.max(0.0001, Math.min(0.01, error)) : 0.008;
   if (!enabled)
     return {
       ...mesh,
@@ -67,56 +69,69 @@ export function simplifyRock(mesh, { enabled = true, error = 0.004, targetTriang
     reportedError = 0,
     acceptedError = 0,
     attempts = 0;
-  let repairedEdges = 0;
-  const limits = budget ? [0.004, 0.008, 0.016, 0.024] : Array.from({ length: 7 }, (_, i) => requestedError / 2 ** i);
-  const neighbors = budget ? vertexNeighbors(mesh.indices, count) : null;
+  let repairedEdges = 0,
+    repairedPositions = mesh.positions,
+    angleAdjustments = 0;
   const extremaLocks = locks.slice();
-  for (const limit of limits) {
-    locks.set(extremaLocks);
-    for (let retry = 0; retry < (budget ? 10 : 2); retry++) {
-      if (budget && retry === 5) locks.set(extremaLocks);
-      attempts++;
-      let [candidate, estimate] = MeshoptSimplifier.simplifyWithAttributes(
-        mesh.indices,
-        metricPositions,
-        3,
-        attributes,
-        stride,
-        weights,
-        locks,
-        Math.min(mesh.indices.length, budget ? Math.max(12, budget) * 3 : 36),
-        limit,
-        (budget ? retry < 5 : retry === 0) ? ["RegularizeLight"] : []
-      );
-      let audit = inspectSurface(mesh.positions, candidate);
-      let flips = 0;
-      if (budget && audit.valid && audit.sharpEdges) {
-        const repaired = repairTurns(mesh.positions, metricPositions, candidate, audit);
-        candidate = repaired.indices;
-        audit = repaired.audit;
-        flips = repaired.flips;
-      }
-      if (!audit.valid) continue;
-      if (audit.sharpEdges) {
-        if (budget)
-          for (const vertex of audit.badVertices) {
-            locks[vertex] = 1;
-            for (const neighbor of neighbors[vertex]) locks[neighbor] = 1;
-          }
-        continue;
-      }
+  // First ask what the error tolerance needs, not how to spend every triangle.
+  // At most five solves; no ten-retry budget chase or tolerance doubling loop.
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const limit = attempt === 0 ? requestedError : budget ? Math.min(0.024, requestedError * 3) : requestedError / 2;
+    attempts++;
+    let [candidate, estimate] = MeshoptSimplifier.simplifyWithAttributes(
+      mesh.indices,
+      metricPositions,
+      3,
+      attributes,
+      stride,
+      weights,
+      locks,
+      attempt === 0 || !budget ? 36 : Math.min(mesh.indices.length, Math.max(12, budget) * 3),
+      limit,
+      attempt < 3 ? ["RegularizeLight"] : []
+    );
+    let audit = inspectSurface(mesh.positions, candidate);
+    let flips = 0;
+    if (audit.valid && audit.sharpEdges) {
+      const repaired = repairTurns(mesh.positions, metricPositions, candidate, audit);
+      candidate = repaired.indices;
+      audit = repaired.audit;
+      flips = repaired.flips;
+    }
+    let candidatePositions = mesh.positions,
+      corrections = 0;
+    if (budget && audit.valid && audit.sharpEdges) {
+      candidatePositions = mesh.positions.slice();
+      const limits = mesh.envelopeBounds[1];
+      const repair = enforceMetricAngles(candidatePositions, candidate, limits, {
+        locks: extremaLocks,
+        maxOffsets: limits.map((half) => half * 0.016),
+        bounds: mesh.bounds,
+        maxAdjustments: 512
+      });
+      corrections = repair.adjustments;
+      audit = inspectSurface(candidatePositions, candidate);
+    }
+    if (audit.valid && !audit.sharpEdges) {
       if (!measured || candidate.length < indices.length) {
         indices = candidate;
         measured = audit;
         reportedError = estimate;
         acceptedError = limit;
         repairedEdges = flips;
+        repairedPositions = candidatePositions;
+        angleAdjustments = corrections;
       }
       if (!budget || candidate.length / 3 <= budget) break;
-      if (retry < 5) retry = 4;
-      else break;
     }
-    if (measured && (!budget || indices.length / 3 <= budget)) break;
+    if (audit.valid && audit.sharpEdges) {
+      // Only protect the affected patch. A safe result may exceed the requested
+      // ceiling rather than erase a silhouette or enter an unbounded retry loop.
+      for (let i = 0; i < mesh.indices.length; i += 3) {
+        if ([0, 1, 2].some((j) => audit.badVertices.has(mesh.indices[i + j])))
+          for (let j = 0; j < 3; j++) locks[mesh.indices[i + j]] = 1;
+      }
+    }
   }
   const retainedRaw = !measured;
   let result = mesh;
@@ -128,7 +143,7 @@ export function simplifyRock(mesh, { enabled = true, error = 0.004, targetTriang
     for (let source = 0; source < remap.length; source++) {
       const destination = remap[source];
       if (destination === 0xffffffff) continue;
-      positions.set(mesh.positions.subarray(source * 3, source * 3 + 3), destination * 3);
+      positions.set(repairedPositions.subarray(source * 3, source * 3 + 3), destination * 3);
       normals.set(mesh.normals.subarray(source * 3, source * 3 + 3), destination * 3);
       if (surfaceRoles) surfaceRoles[destination] = mesh.surfaceRoles[source];
     }
@@ -144,6 +159,7 @@ export function simplifyRock(mesh, { enabled = true, error = 0.004, targetTriang
       targetTriangles: budget,
       budgetMet: budget > 0 && triangles <= budget,
       repairedEdges,
+      angleAdjustments,
       vertices: result.positions.length / 3,
       rawBytes,
       meshBytes: bufferBytes(result),
@@ -151,8 +167,8 @@ export function simplifyRock(mesh, { enabled = true, error = 0.004, targetTriang
       requestedError,
       acceptedError,
       error: reportedError,
-      // Meshoptimizer estimates collapse error only; connectivity repairs are
-      // validated separately by the silhouette regression suite.
+      // Meshoptimizer estimates collapse error only; edge and bounded position
+      // repairs are validated separately by the silhouette regression suite.
       errorEstimateMeters: reportedError * MeshoptSimplifier.getScale(mesh.positions, 3),
       errorMetric: budget ? "obb-normalized" : "longest-extent",
       maxFaceTurn: measured?.maxFaceTurn ?? mesh.stats.maxFaceTurn,
@@ -160,7 +176,7 @@ export function simplifyRock(mesh, { enabled = true, error = 0.004, targetTriang
       simplificationMethod: retainedRaw
         ? "original-safety-fallback"
         : budget
-          ? "budget-local-turns"
+          ? "error-first-bounded"
           : "attribute-aware",
       retainedRaw,
       attempts,
@@ -267,18 +283,6 @@ function normalizedPositions(positions) {
   return Float32Array.from(positions, (value, i) => (value - min[i % 3]) / Math.max(1e-12, max[i % 3] - min[i % 3]));
 }
 
-function vertexNeighbors(indices, count) {
-  const neighbors = Array.from({ length: count }, () => new Set());
-  for (let i = 0; i < indices.length; i += 3)
-    for (let j = 0; j < 3; j++) {
-      const a = indices[i + j],
-        b = indices[i + ((j + 1) % 3)];
-      neighbors[a].add(b);
-      neighbors[b].add(a);
-    }
-  return neighbors;
-}
-
 // Reconnect a few non-planar quads instead of retaining an entire dense mesh.
 // Vertices, normals, roof identity and extrema stay fixed. Every flip must lower
 // the local hinge penalty; an unresolved patch is protected in the next collapse.
@@ -300,7 +304,7 @@ function repairTurns(positions, metricPositions, source, initial) {
       length = Math.hypot(...n);
     return length > 1e-15 ? n.map((value) => value / length) : null;
   };
-  for (; flips < 64 && audit.valid && audit.sharpEdges; flips++) {
+  for (; flips < 32 && audit.valid && audit.sharpEdges; flips++) {
     let best = null,
       bestDelta = -1e-6;
     const key = (a, b) => Math.min(a, b) * count + Math.max(a, b);
@@ -338,11 +342,53 @@ function repairTurns(positions, metricPositions, source, initial) {
     }
     if (!best) break;
     const { f, g, a, b, c, d } = best;
+    // Update the two faces locally. Rebuilding every vertex fan after each
+    // diagonal flip made a tiny repair more expensive than the simplification.
+    for (const face of [f, g]) {
+      for (let j = 0; j < 3; j++) {
+        const edgeKey = key(indices[face * 3 + j], indices[face * 3 + ((j + 1) % 3)]);
+        const edge = audit.edges.get(edgeKey);
+        edge.faces.splice(edge.faces.indexOf(face), 1);
+        if (!edge.faces.length) audit.edges.delete(edgeKey);
+        else {
+          const other = edge.faces[0],
+            vertices = indices.subarray(other * 3, other * 3 + 3);
+          for (let k = 0; k < 3; k++)
+            if (key(vertices[k], vertices[(k + 1) % 3]) === edgeKey) {
+              edge.from = vertices[k];
+              edge.to = vertices[(k + 1) % 3];
+              edge.opposite = vertices[(k + 2) % 3];
+            }
+        }
+      }
+    }
     indices.set([c, d, b], f * 3);
     indices.set([d, c, a], g * 3);
-    audit = inspectSurface(positions, indices);
+    for (const face of [f, g]) {
+      const vertices = indices.subarray(face * 3, face * 3 + 3);
+      audit.normals[face] = normal(...vertices);
+      for (let j = 0; j < 3; j++) {
+        const from = vertices[j],
+          to = vertices[(j + 1) % 3],
+          edgeKey = key(from, to);
+        let edge = audit.edges.get(edgeKey);
+        if (!edge) {
+          edge = { from, to, opposite: vertices[(j + 2) % 3], faces: [] };
+          audit.edges.set(edgeKey, edge);
+        }
+        edge.faces.push(face);
+      }
+    }
+    audit.sharpEdges = 0;
+    audit.badVertices.clear();
+    for (const edge of audit.edges.values()) {
+      if (dot(audit.normals[edge.faces[0]], audit.normals[edge.faces[1]]) < Math.cos((90.1 * Math.PI) / 180)) {
+        audit.sharpEdges++;
+        for (const face of edge.faces) for (let j = 0; j < 3; j++) audit.badVertices.add(indices[face * 3 + j]);
+      }
+    }
   }
-  return { indices, audit, flips };
+  return { indices, audit: flips ? inspectSurface(positions, indices) : audit, flips };
 }
 
 // In the common convex projection, the difference between the two piecewise

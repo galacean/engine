@@ -22,6 +22,8 @@ export class RockFormationClient {
   private readonly requestedKeys = new Map<string, number>();
   private bytes = 0;
   private readonly resultKeys = new WeakMap<RockFormationMesh, string>();
+  /** Cumulative worker CPU work; cache hits do not add generation time. */
+  readonly generationMetrics = { bodies: 0, triangles: 0, generationMs: 0, buildMs: 0, simplifyMs: 0, maxJobMs: 0 };
   preparationMetrics = { totalMs: 0, generated: 0, cached: 0, generationMs: 0 };
 
   async prepare(
@@ -128,6 +130,13 @@ export class RockFormationClient {
           signal.throwIfAborted();
           generated++;
           generationMs += result.stats.generationMs;
+          const metrics = this.generationMetrics;
+          metrics.bodies += result.stats.bodies;
+          metrics.triangles += result.mesh.indices.length / 3;
+          metrics.generationMs += result.stats.generationMs;
+          metrics.buildMs += result.stats.buildMs ?? 0;
+          metrics.simplifyMs += result.stats.simplifyMs ?? 0;
+          metrics.maxJobMs = Math.max(metrics.maxJobMs, result.stats.generationMs);
           this.retain(key, result);
         }
         this.resultKeys.set(result, key);

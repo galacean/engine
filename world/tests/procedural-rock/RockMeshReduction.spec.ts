@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildRock } from "../../demos/procedural-rock/generator/rock-body.js";
+import { buildRock } from "@galacean/engine-terrain/rock-formation/generator/rock-body.js";
 import { simplifyRock, simplifierReady } from "../../../packages/terrain/src/rock-formation/generator/simplify-rock.js";
 import { ROCK_SCENE_PRESETS } from "../../demos/procedural-rock/presets.js";
 import { compareSilhouettes } from "./SilhouetteMeasurement.js";
@@ -300,6 +300,7 @@ describe("budgeted rock reduction", () => {
       const context = `${preset.id} seed=${parameters.seed}`;
       expect(mesh.stats.triangles, context).toBeLessThanOrEqual(1000);
       expect(mesh.stats.budgetMet, context).toBe(true);
+      expect(mesh.stats.attempts, context).toBeLessThanOrEqual(5);
       expect(mesh.stats.retainedRaw, context).toBe(false);
       expect(audit.minDoubleArea, context).toBeGreaterThan(0);
       expect(audit.maxFaceTurn, context).toBeLessThanOrEqual(90.1);
@@ -338,6 +339,14 @@ describe("budgeted rock reduction", () => {
     expect(finer.stats.triangles).toBeLessThanOrEqual(2000);
     expect(raw.indices).toEqual(before);
     expect(simplifyRock(raw, { enabled: false, targetTriangles: 1000 }).positions).toBe(raw.positions);
+  });
+
+  it("stops at the error tolerance instead of filling the triangle allowance", () => {
+    const raw = buildRock({ topRoughness: 0, topSlope: 0, wallProtrusion: 0, wallStrength: 0 });
+    const mesh = simplifyRock(raw, { targetTriangles: 1000 });
+    expect(mesh.stats.triangles).toBeLessThan(1000);
+    expect(mesh.stats.budgetMet).toBe(true);
+    expect(compareSilhouettes(raw, mesh).summary.minIoU).toBeGreaterThan(0.98);
   });
 
   it("reports quality fallback rather than claiming an impossible triangle budget", async () => {

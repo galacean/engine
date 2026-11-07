@@ -1,6 +1,6 @@
 import { expect, it } from "vitest";
-import { buildRock, DEFAULT_ROCK } from "../../demos/procedural-rock/generator/rock-body.js";
-import { createWallComposition } from "../../demos/procedural-rock/generator/wall-composition.js";
+import { buildRock, DEFAULT_ROCK } from "@galacean/engine-terrain/rock-formation/generator/rock-body.js";
+import { createWallComposition } from "@galacean/engine-terrain/rock-formation/generator/wall-composition.js";
 
 const basis = { ...DEFAULT_ROCK, topScale: 1, bottomScale: 1, topRoughness: 0, topSlope: 0, wallProtrusion: 0 };
 function meanMovement(a: Float32Array, b: Float32Array) {
@@ -98,7 +98,7 @@ it("reuses the original 2D angle window and gives every generated contour its ow
   const a = createWallComposition({ ...basis, wallCount: 28 }, 15, 4.2).composition;
   expect(a.shapes).toHaveLength(28);
   for (const shape of a.shapes) {
-    expect(shape.points).toHaveLength(1024);
+    expect(shape.points).toHaveLength(256);
     expect(shape.angles.windowLength).toBe(0.06);
     expect(shape.angles.passed).toBe(true);
   }
@@ -120,7 +120,7 @@ it("carving strength scales depth monotonically and preserves the selected conto
 });
 
 it("fills enclosed depressions but preserves a channel open across the periodic seam", async () => {
-  const { openRecesses } = await import("../../demos/procedural-rock/generator/open-recesses.js");
+  const { openRecesses } = await import("@galacean/engine-terrain/rock-formation/generator/open-recesses.js");
   const closed = new Float64Array(25).fill(0.1);
   closed[12] = 0.9;
   const result = openRecesses(closed, 5, 4);

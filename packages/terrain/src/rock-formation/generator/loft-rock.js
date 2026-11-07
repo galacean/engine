@@ -15,8 +15,14 @@ export function buildBoundedRockSurface(source, parameters) {
   const metric = source.metric || [1, 1, 1],
     sectionScale = source.sectionScale || ((t) => mix(parameters.bottomScale, parameters.topScale, t));
   const horizontalAspect = Math.max(metric[0], metric[2]) / Math.min(metric[0], metric[2]);
-  const columns = Math.max(Math.round(parameters.resolution / 4) * 8, Math.ceil(2 * Math.sqrt(horizontalAspect)) * 8);
-  const rows = Math.round(parameters.resolution * 0.75);
+  // Narrow crowns and feet change radius quickly. Retain extra samples there,
+  // while ordinary broad rocks do not pay for the laboratory's dense grid.
+  const resolution = Math.max(
+    parameters.resolution,
+    Math.min(parameters.topScale, parameters.bottomScale) < 0.25 ? 48 : 24
+  );
+  const columns = Math.max(Math.round(resolution / 4) * 8, Math.ceil(2 * Math.sqrt(horizontalAspect)) * 8);
+  const rows = Math.round(resolution * 0.75);
   const count = columns * (rows + 1),
     envelope = new Float64Array(columns);
   const recess = new Float64Array(count),
@@ -277,13 +283,15 @@ export function buildBoundedRockSurface(source, parameters) {
     let length = bottomBevel[i] * radialMetric[i];
     for (let n = 0; n < 6; n++) {
       const corner = bottomCorner(i, length);
-      length = Math.min(
+      const nextLength = Math.min(
         available,
         Math.max(
           length,
           0.02 * parameters.bottomScale * Math.min(radialMetric[i], metric[1]) * Math.tan(corner.turn / 2)
         )
       );
+      if (nextLength <= length + 1e-10) return corner;
+      length = nextLength;
     }
     return bottomCorner(i, length);
   });
@@ -324,10 +332,12 @@ export function buildBoundedRockSurface(source, parameters) {
     let length = topBevel[i];
     for (let n = 0; n < 6; n++) {
       const corner = topCorner(i, length);
-      length = Math.min(
+      const nextLength = Math.min(
         available,
         Math.max(length, 0.02 * parameters.topScale * Math.min(radialMetric[i], metric[1]) * Math.tan(corner.turn / 2))
       );
+      if (nextLength <= length + 1e-10) break;
+      length = nextLength;
     }
     cutbacks[i] = length;
   }
@@ -347,9 +357,10 @@ export function buildBoundedRockSurface(source, parameters) {
       roofHeight = source.crown(radius * angles[i][0], radius * angles[i][1]) + 2.1;
     return [radius, -2.1 + ((y + 2.1) * 4.2) / roofHeight];
   }
-  const capRows = 24,
-    bevelRows = 16;
-  if (!pointedBottom) for (let j = 1; j <= capRows; j++) addRing((i) => [(bottoms[i].a[0] * j) / capRows, -2.1]);
+  const capRows = Math.max(6, Math.round(resolution / 6)),
+    bevelRows = 4;
+  // The underside is planar: its boundary and centre represent it exactly.
+  if (!pointedBottom) addRing((i) => [bottoms[i].a[0], -2.1]);
   // Cut back the actual side/roof intersection. A fixed quarter-circle assumes
   // a vertical wall, and creates an acute kink when the envelope leans outward.
   if (!pointedBottom) for (let j = 1; j <= bevelRows; j++) addRing((i) => arc(bottoms[i], j / bevelRows, i));
@@ -627,7 +638,12 @@ export function buildBoundedRockSurface(source, parameters) {
 // Project only violating geometric hinges in metre space. A margin below the
 // ninety-degree limit absorbs final Float32 quantization; shading normals play
 // no part in this correction. Coordinate bounds keep every update in the OBB.
-function enforceMetricAngles(positions, indices, limits) {
+export function enforceMetricAngles(
+  positions,
+  indices,
+  limits,
+  { locks, maxOffsets, bounds, maxAdjustments = 200000 } = {}
+) {
   const P = positions,
     I = indices,
     N = P.length / 3,
@@ -697,7 +713,7 @@ function enforceMetricAngles(positions, indices, limits) {
     }
   };
   E.forEach((e, index) => enqueue(index));
-  while (adjustments < 200000) {
+  while (adjustments < maxAdjustments) {
     if (ptr >= q.length) {
       // Recheck the exact representation that will be returned. On a 120m
       // pillar, Float32's vertical spacing can be large relative to a tiny
@@ -723,6 +739,10 @@ function enforceMetricAngles(positions, indices, limits) {
     let sum = 0,
       maxGradient = 0;
     for (const id of ids) {
+      if (locks?.[id]) {
+        grads.push([0, 0, 0]);
+        continue;
+      }
       const ray = rays[id],
         at = id * 3,
         x = P[at],
@@ -756,6 +776,7 @@ function enforceMetricAngles(positions, indices, limits) {
     const touched = new Set();
     for (const id of ids) for (const f of incident[id]) touched.add(f);
     ids.forEach((id, j) => {
+      if (locks?.[id]) return;
       const ray = rays[id],
         radius = P[id * 3] * ray[0] + P[id * 3 + 2] * ray[1],
         gr = grads[j][0] * ray[0] + grads[j][2] * ray[1];
@@ -763,6 +784,15 @@ function enforceMetricAngles(positions, indices, limits) {
       P[id * 3] = next * ray[0];
       P[id * 3 + 2] = next * ray[1];
       P[id * 3 + 1] = Math.max(-limits[1], Math.min(limits[1], P[id * 3 + 1] - scale * grads[j][1]));
+      if (maxOffsets)
+        for (let axis = 0; axis < 3; axis++) {
+          const at = id * 3 + axis;
+          P[at] = Math.max(
+            bounds?.[0][axis] ?? -limits[axis],
+            original[at] - maxOffsets[axis],
+            Math.min(bounds?.[1][axis] ?? limits[axis], original[at] + maxOffsets[axis], P[at])
+          );
+        }
     });
     for (const f of touched) normals.set(normal(f), f * 3);
     for (const f of touched) for (let k = 0; k < 3; k++) enqueue(faceEdges[f * 3 + k]);

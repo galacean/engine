@@ -1,4 +1,7 @@
-import { makeConstrainedRockOutline, normalizeRockNotches } from "./generator/outline.js";
+import {
+  makeConstrainedRockOutline,
+  normalizeRockNotches
+} from "@galacean/engine-terrain/rock-formation/generator/outline.js";
 const root = document.getElementById("rock-outline-constraints"),
   q = (n) => root.querySelector("[data-" + n + "]"),
   canvas = root.querySelector("canvas"),

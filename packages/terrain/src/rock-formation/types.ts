@@ -35,6 +35,9 @@ export interface RockFormationMesh {
     rawTriangles?: number;
     targetTriangles?: number;
     overBudgetBodies?: number;
+    buildMs?: number;
+    simplifyMs?: number;
+    simplifyAttempts?: number;
     generationMs: number;
   };
 }

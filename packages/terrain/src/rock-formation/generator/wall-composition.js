@@ -53,7 +53,7 @@ export function createWallComposition(p, width, height) {
         notchWidth: 0.04 + 0.07 * rnd(9),
         notchDepth: 0.025 + 0.065 * rnd(10)
       };
-      let outline = makeConstrainedRockOutline(parameters);
+      let outline = makeConstrainedRockOutline(parameters, 256);
       const extent = (contour) => {
         const xs = contour.map((p) => p[0]),
           ys = contour.map((p) => p[1]);
@@ -66,7 +66,7 @@ export function createWallComposition(p, width, height) {
           next = clamp((parameters.aspect * targetAspect) / (h / w), 1, 3);
         if (Math.abs(next - parameters.aspect) < 0.01) break;
         parameters.aspect = next;
-        outline = makeConstrainedRockOutline(parameters);
+        outline = makeConstrainedRockOutline(parameters, 256);
       }
       const contour = outline.contour,
         [contourWidth, contourHeight] = extent(contour);

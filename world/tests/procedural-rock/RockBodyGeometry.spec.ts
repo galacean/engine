@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildRock } from "../../demos/procedural-rock/generator/rock-body.js";
+import { buildRock } from "@galacean/engine-terrain/rock-formation/generator/rock-body.js";
 
 type RockMesh = { positions: Float32Array; normals: Float32Array; indices: Uint32Array; surfaceRoles?: Float32Array };
 type Edge = { faces: number[]; orientation: number };
@@ -347,8 +347,8 @@ describe("procedural rock final geometry", () => {
       expect(mesh.positions[vertex * 3 + 1]).toBeGreaterThan(-8);
       if (mesh.normals[vertex * 3 + 1] < Math.cos((30 * Math.PI) / 180)) steepRoofVertices++;
     }
-    expect(roofVertices).toBeGreaterThan(1000);
-    expect(steepRoofVertices).toBeGreaterThan(100);
+    expect(roofVertices).toBeGreaterThan(0);
+    expect(steepRoofVertices / roofVertices).toBeGreaterThan(0.1);
   });
 
   it("produces identical geometry for zero and 360 degree directions", () => {
