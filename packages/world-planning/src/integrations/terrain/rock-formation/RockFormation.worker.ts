@@ -3,16 +3,24 @@ import { generateRockFormation } from "./Generate.ts";
 import { rockGrassBuffers } from "@galacean/engine-terrain/rock-formation/GrassSurface";
 import type { RockFormationSettings } from "./Settings.ts";
 import type { RockFormationJob } from "@galacean/engine-terrain/rock-formation/types";
-self.onmessage = ({ data }: MessageEvent<{ id: number; job: RockFormationJob; settings: RockFormationSettings }>) => {
+import { unionRockFormations } from "./Union.ts";
+import { loadSolidAPI } from "@galacean/engine-terrain/rock-formation/generator/solid-api.js";
+type Input = { job: RockFormationJob; settings: RockFormationSettings };
+self.onmessage = async ({ data }: MessageEvent<Input & { id: number; members?: Input[] }>) => {
   try {
-    const result = generateRockFormation(data.job, data.settings);
-    const buffers = [
+    const results = data.members
+      ? unionRockFormations(
+          data.members.map(({ job, settings }) => generateRockFormation(job, settings)),
+          await loadSolidAPI()
+        )
+      : [generateRockFormation(data.job, data.settings)];
+    const buffers = results.flatMap((result) => [
       result.mesh.positions.buffer,
       result.mesh.normals!.buffer,
       result.mesh.indices.buffer,
       ...rockGrassBuffers(result.grass)
-    ] as ArrayBuffer[];
-    self.postMessage({ id: data.id, result }, { transfer: buffers });
+    ]) as ArrayBuffer[];
+    self.postMessage({ id: data.id, results }, { transfer: buffers });
   } catch (error) {
     self.postMessage({ id: data.id, error: String(error) });
   }

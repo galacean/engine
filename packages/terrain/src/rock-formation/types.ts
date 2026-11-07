@@ -38,6 +38,9 @@ export interface RockFormationMesh {
     buildMs?: number;
     simplifyMs?: number;
     simplifyAttempts?: number;
+    /** Boolean work is charged once per group; input counts remain per owner. */
+    unionMs?: number;
+    unionInputTriangles?: number;
     generationMs: number;
   };
 }

@@ -33,7 +33,7 @@ class TestWorker {
     const result: RockFormationMesh = { id: "rock", origin: [0, 0, 0], owners: [],
       mesh: mesh ?? { positions: new Float32Array(0), indices: new Uint32Array(0), normals: new Float32Array(0) },
       stats: { bodies: 0, vertices: 0, generationMs: 0 } };
-    this.onmessage?.({ data: { id: this.requests[index].id, result } });
+    this.onmessage?.({ data: { id: this.requests[index].id, results: [result] } });
   }
 }
 const plan = (seed: number) => ({ parameters: { seed } }) as IslandPlan;
@@ -67,6 +67,22 @@ it("cancels a request before readiness without sending it to a terminated worker
   worker.onmessage?.({ data: { ready: true } });
   await Promise.resolve();
   expect(worker.terminated).toBe(true); expect(worker.requests).toHaveLength(0);
+  client.dispose();
+});
+
+it("keeps publication statistics when local stones stream afterward", async () => {
+  vi.stubGlobal("Worker", TestWorker);
+  const client = new RockFormationClient(), signal = new AbortController().signal;
+  const publication = client.prepare(plan(1), settings(), signal), worker = TestWorker.instances[0];
+  worker.complete(0, { positions: new Float32Array(9), indices: new Uint32Array([0, 1, 2]) });
+  await publication;
+  const snapshot = client.publicationMetrics;
+  const local = client.prepareJobs([localJob()], settings(), signal);
+  worker.complete(1);
+  await local;
+  expect(client.unionMetrics.outputTriangles).toBe(0);
+  expect(client.publicationMetrics).toBe(snapshot);
+  expect(snapshot.outputTriangles).toBe(1);
   client.dispose();
 });
 
@@ -311,4 +327,35 @@ it("keeps a stable retained subset when geometry payloads exceed the byte budget
   expect(after[2] === before[2]).toBe(false);
   expect(client.preparationMetrics).toMatchObject({ generated: 1, cached: 2 });
   client.dispose();
+});
+
+it("invalidates a whole intersecting group after separation and reuses unrelated rocks", async () => {
+  vi.stubGlobal("Worker", TestWorker);
+  const client = new RockFormationClient(true), signal = new AbortController().signal;
+  const a = localJob(), b = { ...localJob(), id: "neighbor", origin: [1,0,0] as [number,number,number] },
+    c = { ...localJob(), id: "far", origin: [30,0,0] as [number,number,number] };
+  const mesh = (job: RockFormationJob): RockFormationMesh => ({ id:job.id,origin:job.origin,owners:[],
+    mesh:{positions:new Float32Array(0),indices:new Uint32Array(0)},stats:{bodies:1,vertices:0,generationMs:1} });
+  try {
+    const first = client.prepareJobs([a,b,c],settings(),signal), worker = TestWorker.instances[0];
+    const request = worker.requests[0] as { id:number; members:{job:RockFormationJob}[] };
+    expect(request.members.map(m=>m.job.id)).toEqual([a.id,b.id]);
+    worker.onmessage?.({data:{id:request.id,results:[mesh(a),mesh(b)]}});
+    await Promise.resolve(); worker.complete(1);
+    const before = await first;
+    expect(client.unionMetrics).toMatchObject({enabled:true,groups:1,groupedBodies:2});
+    expect(await client.prepareJobs([a,b,c],settings(),signal)).toEqual(before);
+    expect(worker.requests).toHaveLength(2);
+    const separated = {...b,origin:[10,0,0] as [number,number,number]};
+    const changed = client.prepareJobs([a,separated,c],settings(),signal);
+    worker.complete(2); await Promise.resolve(); worker.complete(3);
+    const after = await changed;
+    expect(after[2]).toBe(before[2]);
+    expect(after[0]).not.toBe(before[0]);
+    expect(after[1]).not.toBe(before[1]);
+    expect(client.unionMetrics).toMatchObject({groups:0,groupedBodies:0});
+    expect(client.preparationMetrics).toMatchObject({generated:2,cached:1});
+    expect(await client.prepareJobs([a,b,c],settings(),signal)).toEqual(before);
+    expect(worker.requests).toHaveLength(4);
+  } finally { client.dispose(); }
 });

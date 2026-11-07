@@ -107,6 +107,7 @@
     "@galacean/engine-math": "workspace:*",
     "@galacean/engine-shader-compiler": "workspace:*",
     "dat.gui": "^0.7.9",
+    "manifold-3d": "3.5.4",
     "@galacean/engine-environment": "workspace:*",
     "@galacean/engine-animals": "workspace:*"
   }

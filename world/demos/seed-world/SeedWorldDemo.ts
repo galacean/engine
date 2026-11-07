@@ -256,7 +256,7 @@ export async function mountSeedWorldDemo(
     }
   }
   const raster = new PlanningRasterClient();
-  const rockFormations = new RockFormationClient();
+  const rockFormations = new RockFormationClient(pageUrl.searchParams.get("rockUnion") === "1");
   let rockNavigation: RockNavigation | undefined;
   const bootPhases: { phase: string; startMs: number }[] = [];
   const traceBootPhase = (phase: string) => {
@@ -527,6 +527,7 @@ export async function mountSeedWorldDemo(
         const current = publication?.current;
         if (current?.vegetation) canvas.dataset.vegetation = JSON.stringify(current.vegetation.getDiagnostics());
         canvas.dataset.rockGeneration = JSON.stringify(rockFormations.generationMetrics);
+        canvas.dataset.rockUnion = JSON.stringify(rockFormations.publicationMetrics);
         if (current?.template && pageUrl.searchParams.get("debug") === "1") {
           const forward = camera.entity.transform.worldForward;
           canvas.dataset.templateCamera = JSON.stringify({
@@ -803,6 +804,7 @@ export async function mountSeedWorldDemo(
           staged.commit();
           canvas.dataset.rockFormations = summary;
           canvas.dataset.rockGeneration = JSON.stringify(rockFormations.generationMetrics);
+          canvas.dataset.rockUnion = JSON.stringify(rockFormations.publicationMetrics);
           canvas.dataset.rockEdit = JSON.stringify({ ...metrics, publicationMs: performance.now() - started });
         }, afterCommit: () => publishContentEdit(context.projectTransaction) };
       }
@@ -969,6 +971,7 @@ export async function mountSeedWorldDemo(
             );
             signal.throwIfAborted();
           canvas.dataset.rockGeneration = JSON.stringify(rockFormations.generationMetrics);
+          canvas.dataset.rockUnion = JSON.stringify(rockFormations.publicationMetrics);
           await candidate.population.applyAuthoringPopulationLayout(planningNaturalGroundPopulation(candidateData.population,
             planningNaturalGrassDensity(library), plan, candidateVegetation.plantAssets),
               { minimumX: 0, minimumZ: 0, maximumX: plan.parameters.width, maximumZ: plan.parameters.depth }

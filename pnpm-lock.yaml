@@ -557,6 +557,9 @@ importers:
       dat.gui:
         specifier: ^0.7.9
         version: 0.7.9
+      manifold-3d:
+        specifier: 3.5.4
+        version: 3.5.4(@gltf-transform/core@4.5.1)(@gltf-transform/extensions@4.5.1)(@gltf-transform/functions@4.5.1(@types/node@18.19.64))(esbuild-wasm@0.25.8)
 
   packages/ui:
     devDependencies:
