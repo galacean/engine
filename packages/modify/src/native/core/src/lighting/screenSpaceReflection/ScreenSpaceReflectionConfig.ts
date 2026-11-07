@@ -72,6 +72,14 @@ export class ScreenSpaceReflectionConfig {
     })
   ];
 
+  /**
+   * Polygon offset for Surface depth tests against the resolved MSAA depth. A resolve picks a sub-sample
+   * of the pixel while the 1x Surface fragment is evaluated at the pixel centre, so on a sloped receiver
+   * the two differ by up to one pixel of depth slope. Only applied when the Forward target is multisampled.
+   */
+  static readonly msaaSurfaceSlopeScaledDepthBias = -1;
+  static readonly msaaSurfaceDepthBias = -1;
+
   private static readonly _numericFields = {
     resolutionScale: [0.25, 1, false],
     intensity: [0, 1, false],

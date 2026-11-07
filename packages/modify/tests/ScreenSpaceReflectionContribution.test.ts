@@ -10,6 +10,7 @@ import {
   Shader,
   ShaderLanguage,
   ScreenSpaceReflection as SSR,
+  type ScreenSpaceReflectionPass,
   ScreenSpaceReflectionContent as Content,
   Texture2D,
   TextureFormat,
@@ -17,6 +18,9 @@ import {
   WebGLEngine
 } from "@galacean/engine";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
+import type { HeightfieldWaterDescriptorV1 } from "../../water/src/water/authoring/heightfield/HeightfieldWaterDescriptor";
+import { WaterQualityTier } from "../../water/src/water/authoring/wave/enums/WaterQualityTier";
+import { WaterWaveModel } from "../../water/src/water/authoring/wave/enums/WaterWaveModel";
 import PBRSource from "../src/native/shader/src/Shaders/PBR.shader?raw";
 import { afterAll, beforeAll, expect, it, vi } from "vitest";
 let engine: WebGLEngine;
@@ -199,15 +203,23 @@ it("renders all receive/contribute combinations with correct alpha, opaque occlu
   blue.contributeScreenSpaceReflection = true;
   back.setMaterial(blue);
   const normalForward = render();
-  const pass = (camera as any)._renderPipeline._screenSpaceReflectionPass;
+  const pass = (
+    camera as unknown as {
+      _renderPipeline: {
+        _screenSpaceReflectionPass: Pick<ScreenSpaceReflectionPass, "captureContributions"> & {
+          _contributionTarget: RenderTarget | null;
+        };
+      };
+    }
+  )._renderPipeline._screenSpaceReflectionPass;
   const capture = pass.captureContributions;
   let captured: Uint8Array;
   let capturedSRGB = false;
-  pass.captureContributions = function (...args: any[]) {
+  pass.captureContributions = function (...args: Parameters<typeof capture>) {
     capture.apply(this, args);
-    capturedSRGB = this._contributionTarget.getColorTexture(0).isSRGBColorSpace;
+    capturedSRGB = this._contributionTarget!.getColorTexture(0)!.isSRGBColorSpace;
     captured = new Uint8Array(256 * 256 * 4);
-    this._contributionTarget.getColorTexture(0).getPixelBuffer(0, 0, 256, 256, 0, captured);
+    (this._contributionTarget!.getColorTexture(0) as Texture2D).getPixelBuffer(0, 0, 256, 256, 0, captured);
   };
   scene.screenSpaceReflection.activationMode = 1;
   try {
@@ -248,9 +260,9 @@ it("renders all receive/contribute combinations with correct alpha, opaque occlu
   green.destroy();
 
   // Contribution allocation failure retains the valid opaque reflection path.
-  const pool = (engine as any)._renderTargetPool;
+  const pool = engine._renderTargetPool;
   const allocate = pool.allocateRenderTarget;
-  pool.allocateRenderTarget = function (...args: any[]) {
+  pool.allocateRenderTarget = function (...args: Parameters<typeof allocate>) {
     if (args[4] && args[5]) throw new Error("injected contribution allocation failure");
     return allocate.apply(this, args);
   };
@@ -264,7 +276,7 @@ it("renders all receive/contribute combinations with correct alpha, opaque occlu
     "screen-space-reflection-contribution-unavailable"
   );
   expect(camera.screenSpaceReflection.metrics.tracePassCount).toBeGreaterThan(0);
-  expect((engine as any)._hardwareRenderer._gl.getError()).toBe(0);
+  expect(engine._hardwareRenderer.gl.getError()).toBe(0);
   rt.destroy();
   output.destroy();
   scene.destroy();
@@ -352,15 +364,15 @@ it("verifies Heightfield and River Auto rendering, contribution and lifecycle", 
       const backend = family === "heightfield" ? new HeightfieldWaterBackend() : new RiverWaterBackend();
       host.registerBackend(backend);
       host.registerRuntimeResource(createLakeNormalResourceFactory(engine));
-      const descriptor: any = {
+      const descriptor: HeightfieldWaterDescriptorV1 = {
         schemaVersion: 1,
         id: "ssr-water",
         grid: { originXZ: [-3.5, -3.5], cellSizeXZ: [1, 1], width: 8, height: 8 },
         wetTexelIndices: Uint32Array.from({ length: 64 }, (_, i) => i),
         surfaceHeights: new Float32Array(64),
         bedHeights: new Float32Array(64).fill(-2),
-        quality: "high",
-        waveAsset: { schemaVersion: 1, model: "none" },
+        quality: WaterQualityTier.High,
+        waveAsset: { schemaVersion: 1, model: WaterWaveModel.None },
         surfaceMotion: { waveStrength: 0, shoreDampingWidth: 1 },
         spatialField: { signedDistanceRange: 8 }
       };
@@ -479,7 +491,7 @@ it("verifies Heightfield and River Auto rendering, contribution and lifecycle", 
         for (let frame = 0; frame < 3; frame++) renderPixels();
         expect(camera.screenSpaceReflection.metrics.contributionColorDrawCount).toBeGreaterThan(0);
         expect(camera.screenSpaceReflection.metrics.contributionDepthDrawCount).toBeGreaterThan(0);
-        expect((engine as any)._hardwareRenderer._gl.getError()).toBe(0);
+        expect(engine._hardwareRenderer.gl.getError()).toBe(0);
         await host.destroy();
         renderPixels();
         expect(camera.screenSpaceReflection.metrics.activeConsumerLeaseCount).toBe(0);

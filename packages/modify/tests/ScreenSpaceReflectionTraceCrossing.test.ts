@@ -15,8 +15,11 @@ import {
   WebGLEngine
 } from "@galacean/engine";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
+import { readTraceTarget } from "./ScreenSpaceReflectionTraceReadback";
 import { expect, it } from "vitest";
 const SIZE = 128;
+const BYTE_MAX = 255;
+const HIT_CONFIDENCE_THRESHOLD = 20;
 it("continues to a valid distant hit after rejecting a thin foreground depth crossing", async () => {
   const canvas = document.createElement("canvas");
   canvas.width = canvas.height = SIZE;
@@ -63,10 +66,9 @@ it("continues to a valid distant hit after rejecting a thin foreground depth cro
     pass.trace = function () {
       this._material.shaderData.setTexture("material_SSRSceneDepthTexture", hitDepth);
       trace.call(this);
-      const pixels = new Uint8Array(SIZE * SIZE * 4);
-      (this._traceTarget.getColorTexture(0) as Texture2D).getPixelBuffer(0, 0, SIZE, SIZE, 0, pixels);
+      const pixels = readTraceTarget(this._traceTarget, SIZE);
       hits = 0;
-      for (let i = 3; i < pixels.length; i += 4) if (pixels[i] > 20) hits++;
+      for (let i = 3; i < pixels.length; i += 4) if (pixels[i] * BYTE_MAX > HIT_CONFIDENCE_THRESHOLD) hits++;
     };
     const measure = (strip: number) => {
       for (let y = 0; y < SIZE; y++)

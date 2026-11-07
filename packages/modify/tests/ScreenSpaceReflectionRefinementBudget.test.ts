@@ -17,6 +17,7 @@ import {
 } from "@galacean/engine";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
 import source from "../src/native/shader/src/Shaders/Lighting/ScreenSpaceReflection.shader?raw";
+import { readTraceTarget } from "./ScreenSpaceReflectionTraceReadback";
 import { expect, it } from "vitest";
 
 const SIZE = 128;
@@ -128,21 +129,20 @@ it.each([false, true])(
       )._renderPipeline._screenSpaceReflectionPass;
       const trace = pass.trace;
       let observe = false;
-      let pixels = new Uint8Array(SIZE * SIZE * 4);
+      let pixels = new Float32Array(SIZE * SIZE * 4);
       pass.trace = function () {
         const original = this._material.shader;
         try {
           if (observe) this._material.shader = diagnostic;
           trace.call(this);
-          pixels = new Uint8Array(SIZE * SIZE * 4);
-          (this._traceTarget.getColorTexture(0) as Texture2D).getPixelBuffer(0, 0, SIZE, SIZE, 0, pixels);
+          pixels = readTraceTarget(this._traceTarget, SIZE);
         } finally {
           this._material.shader = original;
         }
       };
       const countHits = () => {
         let hits = 0;
-        for (let i = 3; i < pixels.length; i += 4) if (pixels[i] > HIT_CONFIDENCE_THRESHOLD) hits++;
+        for (let i = 3; i < pixels.length; i += 4) if (pixels[i] * BYTE_MAX > HIT_CONFIDENCE_THRESHOLD) hits++;
         return hits;
       };
       const reports = [];
@@ -159,9 +159,9 @@ it.each([false, true])(
           invalid = 0,
           steps = 0;
         for (let i = 0; i < pixels.length; i += 4) {
-          searches += Math.round((pixels[i] * MAX_STEPS) / BYTE_MAX);
-          invalid += Math.round((pixels[i + 1] * MAX_STEPS) / BYTE_MAX);
-          steps += Math.round((pixels[i + 2] * MAX_STEPS) / BYTE_MAX);
+          searches += Math.round(pixels[i] * MAX_STEPS);
+          invalid += Math.round(pixels[i + 1] * MAX_STEPS);
+          steps += Math.round(pixels[i + 2] * MAX_STEPS);
         }
         reports.push({
           transparent,

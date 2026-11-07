@@ -750,5 +750,9 @@
   {
     "original": "packages/core/src/lighting/screenSpaceReflection/ScreenSpaceReflectionConfig.ts",
     "replacement": "packages/modify/src/native/core/src/lighting/screenSpaceReflection/ScreenSpaceReflectionConfig.ts"
+  },
+  {
+    "original": "packages/core/src/shader/state/RasterState.ts",
+    "replacement": "packages/modify/src/native/core/src/shader/state/RasterState.ts"
   }
 ]

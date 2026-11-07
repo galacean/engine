@@ -450,10 +450,11 @@ export class ScreenSpaceReflection {
     );
   }
 
-  /** @internal */
   private static readonly _unpublishedMaxRoughness = -1;
   private static readonly _emptyTextures = new WeakMap<Engine, Texture2D>();
+  /** @internal */
   static readonly _cameraMaxRoughnessProperty = ShaderProperty.getByName("camera_ScreenSpaceReflectionMaxRoughness");
+  /** @internal */
   static readonly _cameraTextureProperty = ShaderProperty.getByName("camera_ScreenSpaceReflectionTexture");
   /** @internal */
   static readonly _cameraIntensityProperty = ShaderProperty.getByName("camera_ScreenSpaceReflectionIntensity");
@@ -1441,10 +1442,6 @@ export class ScreenSpaceReflection {
     return Math.max(min, Math.min(max, Number.isFinite(value) ? value : fallback));
   }
 
-  private static _clampInteger(value: number, min: number, max: number, fallback: number): number {
-    return Math.round(ScreenSpaceReflection._clampFinite(value, min, max, fallback));
-  }
-
   private static _qualityTuning = ScreenSpaceReflectionConfig.qualityTuning;
 
   private static _requireConsumerReceiverMode(
@@ -1469,7 +1466,6 @@ export class ScreenSpaceReflection {
     shaderData.disableMacro(ScreenSpaceReflection._legacyReceiverMacro);
   }
 
-  private static _sanitizeUpsamplingMode = ScreenSpaceReflectionConfig.sanitizeUpsamplingMode;
   private static _sanitizeQuality = ScreenSpaceReflectionConfig.sanitizeQuality;
   /** @internal */
   static _sanitizeConsumerRequest = ScreenSpaceReflectionConfig.sanitizeConsumerRequest;
