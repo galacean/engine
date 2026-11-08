@@ -1,0 +1,58 @@
+packages/modify/src/native/core/src/lighting/screenSpaceReflection/ScreenSpaceReflectionPass.ts
+  s_59ab3c14091fa7::t_5687458fb1e5b2 253,624,635,676-686
+  s_59ab3c14091fa7::t_665e43cb3f21ce 687-688
+packages/terrain/src/data/seed-world/public/Shader/Terrain.shaderc
+  s_59ab3c14091fa7::t_5687458fb1e5b2 1
+packages/modify/tests/ScreenSpaceReflectionContribution.test.ts
+  s_59ab3c14091fa7::t_5687458fb1e5b2 13,21-23,206-214,218,220,222,263,265,279,367,374-375,494
+packages/modify/tests/ScreenSpaceReflectionTraceFormat.test.ts
+  s_59ab3c14091fa7::t_5687458fb1e5b2 1-168
+packages/modify/src/native/core/src/lighting/screenSpaceReflection/ScreenSpaceReflection.ts
+  s_59ab3c14091fa7::t_5687458fb1e5b2 455,457
+packages/modify/tests/ScreenSpaceReflectionMsaaReceiverCoverage.test.ts
+  s_59ab3c14091fa7::t_5687458fb1e5b2 1-278
+packages/modify/tests/ScreenSpaceReflectionContactOutline.test.ts
+  s_59ab3c14091fa7::t_5687458fb1e5b2 30-33,42,94,97-104,113-116,126,132,134,136,142,151-160
+packages/modify/src/native/core/src/shader/state/RasterState.ts
+  s_59ab3c14091fa7::t_5687458fb1e5b2 1-119
+packages/terrain/src/data/grasslands/source/public/Shader/Terrain.shaderc
+  s_59ab3c14091fa7::t_5687458fb1e5b2 1
+packages/modify/tests/ScreenSpaceReflectionTerrainDepth.test.ts
+  s_59ab3c14091fa7::t_5687458fb1e5b2 30-31,38-50,52-120,122-168,170-193,195-197,199-201
+packages/modify/tests/ScreenSpaceReflectionProfile.test.ts
+  s_59ab3c14091fa7::t_5687458fb1e5b2 99-103,105-106,110-160,162-209,211-219,221-223
+packages/modify/src/native/core/src/lighting/screenSpaceReflection/ScreenSpaceReflectionConfig.ts
+  s_59ab3c14091fa7::t_5687458fb1e5b2 75-82
+packages/farming/src/farming/procedural/runtime/preparePlantShaderPrograms.ts
+  s_59ab3c14091fa7::t_5687458fb1e5b2 51-52
+packages/terrain/src/data/grasslands/public/Shader/Terrain.shaderc
+  s_59ab3c14091fa7::t_5687458fb1e5b2 1
+packages/modify/tests/ScreenSpaceReflectionTraceCrossing.test.ts
+  s_59ab3c14091fa7::t_5687458fb1e5b2 18,21-22,69,71
+packages/modify/src/native/core/src/RenderPipeline/BasicRenderPipeline.ts
+  s_59ab3c14091fa7::t_5687458fb1e5b2 18,63-68,90-95,665,676,686,767,867
+packages/modify/tests/ScreenSpaceReflectionRefinementBudget.test.ts
+  s_59ab3c14091fa7::t_5687458fb1e5b2 20,132,138,145,162-164
+packages/modify/tests/ScreenSpaceReflectionAutoTag.test.ts
+  s_59ab3c14091fa7::t_5687458fb1e5b2 16,32,41,47-54
+packages/modify/native-overrides.json
+  s_59ab3c14091fa7::t_5687458fb1e5b2 753-756
+packages/modify/tests/ScreenSpaceReflectionTraceReadback.ts
+  s_59ab3c14091fa7::t_5687458fb1e5b2 1-34
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "89e4ac8b1a031de022445bba59bb8528da1c2926",
+  "prompts": {},
+  "sessions": {
+    "s_59ab3c14091fa7": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1badc-0893-73a3-a8ee-1e571f38b354",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "星翊 <sunmingming.smm@antgroup.com>"
+    }
+  }
+}
