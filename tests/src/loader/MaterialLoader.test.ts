@@ -103,6 +103,33 @@ describe("MaterialLoader", () => {
     expect(material.shaderData.getFloat("value")).toBe(1);
   });
 
+  it("deserializes each scalar, vector and color representation", async () => {
+    const material = await loadMaterial({
+      name: "typed-properties",
+      shader: materialShaderName,
+      shaderData: {
+        float: { type: "Float", value: 0.25 },
+        integer: { type: "Integer", value: 7 },
+        enabled: { type: "Boolean", value: true },
+        disabled: { type: "Boolean", value: false },
+        vector2: { type: "Vector2", value: { x: 1, y: 2 } },
+        vector3: { type: "Vector3", value: { x: 3, y: 4, z: 5 } },
+        vector4: { type: "Vector4", value: { x: 6, y: 7, z: 8, w: 9 } },
+        color: { type: "Color", value: { r: 0.1, g: 0.2, b: 0.3, a: 0.4 } }
+      },
+      macros: []
+    });
+
+    expect(material.shaderData.getFloat("float")).toBe(0.25);
+    expect(material.shaderData.getInt("integer")).toBe(7);
+    expect(material.shaderData.getInt("enabled")).toBe(1);
+    expect(material.shaderData.getInt("disabled")).toBe(0);
+    expect(material.shaderData.getVector2("vector2")).toMatchObject({ x: 1, y: 2 });
+    expect(material.shaderData.getVector3("vector3")).toMatchObject({ x: 3, y: 4, z: 5 });
+    expect(material.shaderData.getVector4("vector4")).toMatchObject({ x: 6, y: 7, z: 8, w: 9 });
+    expect(material.shaderData.getColor("color")).toMatchObject({ r: 0.1, g: 0.2, b: 0.3, a: 0.4 });
+  });
+
   it("loads a material from a valid shader reference", async () => {
     const shaderName = `MaterialLoaderRef-${Math.random()}`;
     const shaderPath = registerShaderResource(shaderName);

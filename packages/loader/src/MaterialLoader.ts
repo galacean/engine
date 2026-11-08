@@ -11,15 +11,7 @@ import {
   resourceLoader
 } from "@galacean/engine-core";
 import { Color, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
-import type { RefItem } from "./schema/CommonSchema";
-import {
-  MaterialLoaderType,
-  type IColor,
-  type IMaterialSchema,
-  type IVector2,
-  type IVector3,
-  type IVector4
-} from "./schema";
+import { MaterialLoaderType, type IMaterialSchema } from "./schema";
 
 const materialLoaderTypes = new Set(Object.values(MaterialLoaderType));
 
@@ -63,36 +55,25 @@ class MaterialLoader extends Loader<Material> {
 
       switch (type) {
         case MaterialLoaderType.Vector2:
-          materialShaderData.setVector2(key, new Vector2((<IVector2>value).x, (<IVector2>value).y));
+          materialShaderData.setVector2(key, new Vector2(value.x, value.y));
           break;
         case MaterialLoaderType.Vector3:
-          materialShaderData.setVector3(
-            key,
-            new Vector3((<IVector3>value).x, (<IVector3>value).y, (<IVector3>value).z)
-          );
+          materialShaderData.setVector3(key, new Vector3(value.x, value.y, value.z));
           break;
         case MaterialLoaderType.Vector4:
-          materialShaderData.setVector4(
-            key,
-            new Vector4((<IVector4>value).x, (<IVector4>value).y, (<IVector4>value).z, (<IVector4>value).w)
-          );
+          materialShaderData.setVector4(key, new Vector4(value.x, value.y, value.z, value.w));
           break;
         case MaterialLoaderType.Color:
-          materialShaderData.setColor(
-            key,
-            new Color((<IColor>value).r, (<IColor>value).g, (<IColor>value).b, (<IColor>value).a)
-          );
+          materialShaderData.setColor(key, new Color(value.r, value.g, value.b, value.a));
           break;
         case MaterialLoaderType.Float:
-          materialShaderData.setFloat(key, <number>value);
+          materialShaderData.setFloat(key, value);
           break;
         case MaterialLoaderType.Texture:
           texturePromises.push(
-            engine.resourceManager.getResourceByRef<Texture>(<RefItem>value).then((texture) => {
+            engine.resourceManager.getResourceByRef<Texture>(value).then((texture) => {
               if (!(texture instanceof Texture)) {
-                throw new Error(
-                  `MaterialLoader: texture reference "${(<RefItem>value).url}" did not resolve to a Texture.`
-                );
+                throw new Error(`MaterialLoader: texture reference "${value.url}" did not resolve to a Texture.`);
               }
               materialShaderData.setTexture(key, texture);
             })
