@@ -17,6 +17,7 @@ import {
   type BuildingEnvironment,
   type BuildingRegistry,
   type Frame,
+  type GeometryElement,
   type GeometryGenerator,
   type LayingAlgorithm,
   type LayingContext,
@@ -97,6 +98,8 @@ export interface HouseShared {
   readonly roof?: ProfileRoofParameters;
   /** Unit footprint of the wall material; it sets the wall's thickness. */
   readonly wallUnit?: MaterialFootprint;
+  /** Storey height of the floor bands, in metres. Default: 3.5. */
+  readonly floorInterval?: number;
 }
 
 /** Element "face": the wall chart. Its top follows the roof from the shared parameters. */
@@ -623,6 +626,142 @@ function crenelCuts(chart: WallChartParams, pitch: number, height: number): Rect
     );
   });
 }
+/** Storey levels above the wall base: the wall height rounds to whole storeys, half a storey
+ * up, and a band sits between every two storeys. */
+export function floorLevels(height: number, interval: number): number[] {
+  if (!(height >= 0) || !(interval > 0)) throw Error("Floor bands need a height and a positive interval");
+  const floors = Math.max(1, Math.round(height / interval));
+  return Array.from({ length: floors - 1 }, (_, i) => (i + 1) * interval);
+}
+/** Elements "level:k": one band chart around the whole house per storey level. A band is
+ * 0.2 m tall (scaled with the wall unit) and its bottom follows the ground where the ground
+ * rises above it. */
+export const houseFloorBandsGeometry: GeometryGenerator<HouseShared> = (p, context) => {
+  const whole = houseWallGeometry(p, context).elements.face;
+  if (whole.kind !== "surface") throw Error("Unexpected wall chart");
+  const wall = whole.surface.params as WallChartParams;
+  const base = Math.max(...wall.points.map((q) => q[1]));
+  const half = (0.2 * scaleOf(p.wallUnit ?? REFERENCE).height) / 2;
+  const elements: Record<string, GeometryElement> = {};
+  floorLevels(p.height, p.floorInterval ?? 3.5).forEach((level, k) => {
+    const y = base + level;
+    const band: WallChartParams = {
+      points: wall.points.map((q) => [q[0], Math.max(y - half, q[1]), q[2]]),
+      top: wall.points.map(() => y + half),
+      third: wall.points.map(() => 0),
+      minGround: y - half,
+      maxYGable: y + half,
+      topY: y + half,
+      nominalOuter: wall.nominalOuter,
+      finishOuter: wall.finishOuter,
+      depthScale: wall.depthScale
+    };
+    elements[`level:${k}`] = { kind: "surface", surface: { kind: "wallChart", params: band } };
+  });
+  return { elements };
+};
+type BeltParams = {
+  /** Mean brick length and joint jitter in metres, before scaling. Default: 0.69 and 0.32. */
+  pitch?: number;
+  jitter?: number;
+  /** Band depth through the wall in metres, before scaling. Default: 0.76. */
+  depth?: number;
+  /** Brick shader flags. Default: 4, irregular bricks. */
+  flags?: number;
+};
+interface BeltLayout {
+  /** Per element and run: first slot, joint count and run span. */
+  runs: { element: string; u: number; l: number; joints: number; offset: number }[];
+  pieces: number;
+}
+/** One row of long bricks along each band chart, split at random joints along every
+ * straight run and cut around removed areas. */
+export const beltCourses: LayingAlgorithm<BeltParams, BeltLayout> = {
+  info: {
+    accepts: ["surface"],
+    summary: "One row of long bricks along wall bands, split at random joints, cut around removed areas.",
+    params: {
+      pitch: "Mean brick length in metres before scaling. Default: 0.69.",
+      jitter: "Joint jitter in metres before scaling. Default: 0.32.",
+      depth: "Band depth through the wall in metres before scaling. Default: 0.76.",
+      flags: "Brick shader flags. Default: 4."
+    }
+  },
+  plan(context) {
+    const scale = scaleOf(masonryFootprint(context as LayingContext<MasonryParams>));
+    const pitch = (context.params.pitch ?? 0.69) * scale.width;
+    const out: BeltLayout = { runs: [], pieces: 1 };
+    let offset = 0;
+    for (const element of context.geometry.ids("surface")) {
+      const chart = chart_(context.geometry.original.elements[element]);
+      for (const run of runs(chart)) {
+        const joints = Math.max(2, Math.trunc(run.l / pitch) + 1);
+        out.runs.push({ element, u: run.u, l: run.l, joints, offset });
+        offset += joints - 1;
+      }
+    }
+    // Size the piece slots from the bricks themselves.
+    for (let i = 0; i < offset; i++) out.pieces = Math.max(out.pieces, beltPieces(context, out, i).length);
+    return { count: offset * out.pieces, data: out };
+  },
+  unitAt(context, d, index) {
+    const slot = Math.floor(index / d.pieces),
+      piece = beltPieces(context, d, slot)[index % d.pieces];
+    if (!piece) return;
+    const run = d.runs.find((r) => slot >= r.offset && slot < r.offset + r.joints - 1)!;
+    const chart = chart_(context.geometry.original.elements[run.element]);
+    const sample = sampler(chart);
+    const at0 = sample.at(piece.u0),
+      at1 = sample.at(piece.u1);
+    const bl = Math.max(at0.ground, piece.lo),
+      br = Math.max(at1.ground, piece.lo),
+      tl = Math.min(chart.topY, piece.hi),
+      tr = Math.min(chart.topY, piece.hi);
+    const scale = scaleOf(masonryFootprint(context as LayingContext<MasonryParams>));
+    // A piece shorter than 0.1 m is not laid.
+    if (Math.min(tl - bl, tr - br) < 0.1 * scale.height || piece.u1 - piece.u0 < 0.03) return;
+    const chord = Math.hypot(at1.x - at0.x, at1.z - at0.z) || 1;
+    return masonryUnit(
+      context.unit,
+      `${run.element}/${slot - slotStart(d, run)}/${index % d.pieces}`,
+      { x: (at0.x + at1.x) / 2, z: (at0.z + at1.z) / 2, tangent: [(at1.x - at0.x) / chord, (at1.z - at0.z) / chord] },
+      piece.u0,
+      piece.u1,
+      [bl, br, tl, tr],
+      (context.params.depth ?? 0.76) * scale.depth,
+      {
+        anchor_uv: [(piece.u0 + piece.u1) / 2, (bl + br + tl + tr) / 4 - chart.minGround],
+        flags: context.params.flags ?? 4,
+        gap: 0,
+        wallU: [(chart.uOffset ?? 0) + piece.u0, (chart.uOffset ?? 0) + piece.u1]
+      }
+    );
+  }
+};
+/** First slot of a run's element, so unit keys count bricks per element. */
+const slotStart = (d: BeltLayout, run: BeltLayout["runs"][number]) =>
+  d.runs.find((r) => r.element === run.element)!.offset;
+/** The pieces of belt brick `slot` after removed areas. */
+function beltPieces(context: LayingContext<BeltParams>, d: BeltLayout, slot: number): Piece[] {
+  const run = d.runs.find((r) => slot >= r.offset && slot < r.offset + r.joints - 1);
+  if (!run) return [];
+  const chart = chart_(context.geometry.original.elements[run.element]);
+  const scale = scaleOf(masonryFootprint(context as LayingContext<MasonryParams>));
+  const step = 1 / (run.joints - 1),
+    amplitude = Math.min(((context.params.jitter ?? 0.32) * scale.width) / run.l, step * 0.495);
+  const key = (j: number) => `${run.element}:${run.u.toFixed(6)}:${j}`;
+  const joint = (j: number) =>
+    run.u +
+    run.l *
+      (j === 0 || j === run.joints - 1
+        ? j * step
+        : j * step + (context.random(key(j), "joint").next() - 0.5) * amplitude);
+  const j = slot - run.offset;
+  let pieces: Piece[] = [{ u0: joint(j), u1: joint(j + 1), lo: chart.minGround, hi: chart.topY }];
+  for (const hole of context.geometry.surface(run.element).removed)
+    pieces = pieces.flatMap((q) => subtract(q, hole, chart.minGround, chart.topY));
+  return pieces;
+}
 /** Our own masonry: random courses with wavy joints along a wall chart. Every brick is
  * computed alone, from its row, its index in the row and its piece:
  * - course line k: nominal height plus a jitter and a wave, from line k's seed;
@@ -952,6 +1091,10 @@ export function registerHouseTypes(registry: BuildingRegistry): BuildingRegistry
   registry.algorithms.register("gridCourses", gridCourses);
   registry.algorithms.register("masonryCourses", masonryCourses);
   registry.algorithms.register("cornerStones", cornerStones);
+  registry.algorithms.register("beltCourses", beltCourses);
+  registry.geometry.register("houseFloorBands", houseFloorBandsGeometry);
+  registry.defaults.attach("floorBand", ["wall"], "none");
+  registry.defaults.attach("floorBand", ["wall", "wall", "wall", "wall"], "none");
   registry.geometry.register("houseWallSide", houseWallSideGeometry);
   registry.rules.register("wallCorner", wallCorner);
   registry.defaults.join("wall", "wall", "wallCorner");

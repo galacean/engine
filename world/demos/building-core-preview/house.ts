@@ -56,6 +56,17 @@ interface Case {
 const CASES: Case[] = [
   { id: "house", title: "默认房屋", house: { id: "a" }, ground: flat },
   { id: "tall", title: "高房屋 9 米", house: { id: "a", height: 9 }, ground: flat },
+  {
+    id: "floors",
+    title: "腰线 · 三层",
+    house: {
+      id: "a",
+      height: 9,
+      rectangle: { center: [0, 0], size: [9, 6], rotation: 0 },
+      floors: { enabled: true, interval: 3 }
+    },
+    ground: flat
+  },
   { id: "steep", title: "陡屋顶", house: { id: "a", roof: { height: 0.8, eave: 0.4 } }, ground: flat },
   { id: "gable", title: "山墙屋顶", house: { id: "a", roof: { ridge_length: 1 } }, ground: flat },
   {

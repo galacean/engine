@@ -7,6 +7,7 @@ import { authorPartKey, type BuildingCoreDraft, type BuildingUnit, type LaidUnit
 import { normalizeProfileFootprint, normalizeProfileHeight, normalizeProfileRoof } from "../runtime/ProfileParameters";
 import { unitFootprintScale, type MaterialFootprint } from "../runtime/MaterialFootprint";
 import { isFlatRoofHeight } from "../runtime/RoofMode";
+import { floorLevels } from "../partTypes/House";
 import type { UnitPlacementBinding } from "../runtime/UnitPlacement";
 import type { CoreRenderPlan, CoreStripDraw } from "../render/CoreRenderInput";
 
@@ -209,6 +210,8 @@ export interface CoreHouseParameters {
   footprint?: MaterialFootprint;
   /** Wall laying: our masonry (default) or regular grid courses. */
   walls?: "masonry" | "grid";
+  /** Floor bands between storeys. Default: none. */
+  floors?: { enabled?: boolean; interval?: number };
   /** Palette entries of the wall and wood materials. Default: 0. The roof color is `roof.color`. */
   wallColor?: number;
   woodColor?: number;
@@ -245,11 +248,24 @@ export function buildCoreHouse(p: CoreHouseParameters): BuildingCoreDraft {
       footprint,
       height: normalizeProfileHeight(p.height ?? 4),
       roof: normalizeProfileRoof(p.roof ?? {}),
-      wallUnit: unit
+      wallUnit: unit,
+      ...(p.floors?.interval !== undefined && { floorInterval: p.floors.interval })
     },
     brick,
     courses
   };
+  // Floor bands run around the house between storeys, laid with the wall's brick.
+  const floors =
+    p.floors && p.floors.enabled !== false && floorLevels(shared.house.height, p.floors.interval ?? 3.5).length
+      ? {
+          id: p.id + "-floors",
+          group: p.id,
+          type: "floorBand",
+          geometry: { generator: "houseFloorBands", params: { $shared: "house" } },
+          algorithm: { type: "beltCourses" },
+          unit: { $shared: "brick" }
+        }
+      : undefined;
   // A rectangle has one wall per side; the corners between them derive the corner stones.
   // A circle, or the grid courses kept for comparison with the online path, has one wall.
   const sides = grid || p.circle ? [undefined] : [0, 1, 2, 3];
@@ -374,7 +390,7 @@ export function buildCoreHouse(p: CoreHouseParameters): BuildingCoreDraft {
         }
       }
     ],
-    parts: [...walls, ...roofs.map((r) => r.part), ...(spire ? [spire.part] : [])],
+    parts: [...walls, ...roofs.map((r) => r.part), ...(spire ? [spire.part] : []), ...(floors ? [floors] : [])],
     connections: [
       ...roofs.map(({ part, hosts }) => ({
         kind: "attach" as const,
@@ -384,6 +400,16 @@ export function buildCoreHouse(p: CoreHouseParameters): BuildingCoreDraft {
       })),
       ...(spire
         ? [{ kind: "attach" as const, id: spire.part.id + "/on-roof", guest: spire.part.id, hosts: spire.hosts }]
+        : []),
+      ...(floors
+        ? [
+            {
+              kind: "attach" as const,
+              id: floors.id + "/on-wall",
+              guest: floors.id,
+              hosts: walls.map((w) => ({ part: w.id }))
+            }
+          ]
         : [])
     ]
   };

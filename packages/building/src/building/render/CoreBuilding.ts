@@ -49,6 +49,7 @@ type Family = "wall" | "parapet" | "roof" | "spire";
 const FAMILIES: Readonly<Record<string, Family>> = {
   wall: "wall",
   cornerStone: "wall",
+  floorBand: "wall",
   parapet: "parapet",
   roof: "roof",
   hipCap: "roof",
@@ -147,9 +148,12 @@ const chartBase = (binding: CoreBinding) =>
 
 /** Masonry cells. Their placement chart runs along the house perimeter, with height above
  * the lowest wall base. */
-function masonryCells(binding: CoreBinding): SupportCell[] {
-  const base = chartBase(binding);
-  return binding.parts.flatMap(({ part, units }) =>
+function masonryCells(
+  binding: CoreBinding,
+  parts: readonly LaidPart[] = binding.parts,
+  base = chartBase(binding)
+): SupportCell[] {
+  return parts.flatMap(({ part, units }) =>
     units.map((u) => {
       const id = `${binding.id}/${partId(part)}/${u.key}`;
       const span = u.params?.wallU as [number, number] | undefined;
@@ -303,7 +307,12 @@ function bindingDraws(binding: CoreBinding, slot: number) {
   const dependencies: { parent_cell_id: string; child_cell_id: string }[] = [];
   if (binding.family === "wall" || binding.family === "parapet") {
     const joint = binding.parts.map((p) => chartOf(p.part)?.joint).find(Boolean);
-    draws.push({ role: "wall", cells: masonryCells(binding), ...(joint && { wallRoofJoint: joint }) });
+    // Floor bands are masonry of the same binding, drawn as their own group.
+    const bands = binding.parts.filter((p) => p.part.type === "floorBand");
+    const body = binding.parts.filter((p) => p.part.type !== "floorBand");
+    const base = chartBase(binding);
+    draws.push({ role: "wall", cells: masonryCells(binding, body, base), ...(joint && { wallRoofJoint: joint }) });
+    if (bands.length) draws.push({ role: "floor-band", cells: masonryCells(binding, bands, base) });
   } else if (binding.family === "roof") {
     const deck = binding.parts.filter((p) => p.part.type === "roofDeck");
     if (deck.length) draws.push({ role: "platform", cells: plainCells({ ...binding, parts: deck }) });
@@ -557,8 +566,9 @@ function deckSurface(p: RoofDeckParams, offset: number) {
   }
   return { mesh, chart, width: W };
 }
-/** Six faces of a unit box, for solid units such as a parapet's merlons. */
-function unitBox(mesh: Mesh, u: LaidUnit) {
+/** Six faces of a unit box, for solid units such as a parapet's merlons. Each face is charted
+ * in metres around `anchor` when one is given, else from its own corner. */
+function unitBox(mesh: Mesh, u: LaidUnit, anchor?: number[]) {
   const axes = [u.frame.x, u.frame.y, u.frame.z],
     size = u.size ?? [1, 1, 1];
   const corner = (x: number, y: number, z: number) =>
@@ -573,17 +583,18 @@ function unitBox(mesh: Mesh, u: LaidUnit) {
     [1, 3, 7, 5],
     [2, 6, 7, 3],
     [0, 1, 5, 4]
-  ])
-    quad(
-      mesh,
-      face.map((i) => v[i]),
-      [
-        [0, 0],
-        [size[0], 0],
-        [size[0], size[1]],
-        [0, size[1]]
-      ]
-    );
+  ]) {
+    const corners = face.map((i) => v[i]);
+    const w = Math.hypot(...sub3(corners[1], corners[0])),
+      h = Math.hypot(...sub3(corners[3], corners[0]));
+    const [u0, v0] = anchor ? [anchor[0] - w / 2, anchor[1] - h / 2] : [0, 0];
+    quad(mesh, corners, [
+      [u0, v0],
+      [u0 + w, v0],
+      [u0 + w, v0 + h],
+      [u0, v0 + h]
+    ]);
+  }
 }
 
 export interface CoreBuildingViewOptions {
@@ -635,10 +646,12 @@ export function coreBuildingView(layout: CoreBuildingLayout, options: CoreBuildi
     for (const binding of owner.bindings) {
       if (binding.family === "wall") {
         const { mesh, perimeter, inset, finish } = wallSurface(binding);
+        const base = chartBase(binding);
         // Units that stand out of the finish face, such as corner stones, stay solid at a
         // distance.
         if (options.includeAppearance && finish) {
-          const cells = masonryCells(binding).filter((cell) => standsOut(cell, finish));
+          const body = binding.parts.filter((p) => p.part.type !== "floorBand");
+          const cells = masonryCells(binding, body).filter((cell) => standsOut(cell, finish));
           const joint = binding.parts.map((p) => chartOf(p.part)?.joint).find(Boolean);
           if (cells.length)
             retainedWallUnits.push({
@@ -649,7 +662,6 @@ export function coreBuildingView(layout: CoreBuildingLayout, options: CoreBuildi
               ...(joint && { wallRoofJoint: joint })
             });
         }
-        const base = chartBase(binding);
         add(owner, binding, mesh, {
           supportInset: inset,
           ...(options.includeAppearance && {
@@ -668,6 +680,27 @@ export function coreBuildingView(layout: CoreBuildingLayout, options: CoreBuildi
               perimeter
             )
           })
+        });
+        // Floor bands are long solid bricks: the view draws them as boxes whose faces keep the
+        // wall chart around each brick's anchor, textured with the bands' joints.
+        const bands = emptyMesh(),
+          bandCells: ConstructionLodCell[] = [];
+        for (const { part, units } of binding.parts)
+          if (part.type === "floorBand")
+            for (const u of units) {
+              const span = u.params!.wallU as number[];
+              const anchor = [(span[0] + span[1]) / 2, u.frame.origin[1] - base];
+              unitBox(bands, u, anchor);
+              bandCells.push({
+                id: `${partId(part)}/${u.key}`,
+                anchor_uv: anchor,
+                size: [span[1] - span[0], u.size![1]]
+              });
+            }
+        add(owner, binding, bands, {
+          backing: false,
+          ...(options.includeAppearance &&
+            bandCells.length && { lodAppearance: constructionLodAppearance(bands.uvs, bandCells, perimeter) })
         });
       } else if (binding.family === "parapet") {
         // Merlons are few and solid: the distance view draws them as boxes.

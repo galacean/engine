@@ -37,7 +37,16 @@ const HOUSES: [string, CoreHouseParameters][] = [
   ["gable roof", { id: "g", roof: { ridge_length: 1 } }],
   ["steep roof", { id: "s", roof: { height: 0.8 } }],
   ["rotated house", { id: "r", rectangle: { center: [1, 2], size: [10, 7], rotation: 0.6 } }],
-  ["flat roof", { id: "f", roof: { height: 0 } }]
+  ["flat roof", { id: "f", roof: { height: 0 } }],
+  [
+    "floor bands",
+    {
+      id: "b",
+      height: 8,
+      rectangle: { center: [0, 0], size: [9, 6], rotation: 0.4 },
+      floors: { enabled: true, interval: 3 }
+    }
+  ]
 ];
 const core = (p: CoreHouseParameters) => designBuildingCore(buildCoreHouse(p), registry, { environment });
 async function online(p: CoreHouseParameters) {
@@ -195,6 +204,50 @@ describe("Core render path against the online path", () => {
       const units = (input: typeof a) => input.groups.reduce((n, g) => n + g.cells.length, 0);
       expect(Math.abs(units(b) - units(a)) / units(a)).toBeLessThan(0.12);
       expect(b.backingParts.length).toBe(a.backingParts.length);
+    },
+    60000
+  );
+});
+
+describe("Floor bands against the online path", () => {
+  it.each([
+    ["rectangle", { id: "a", height: 8, floors: { enabled: true, interval: 3.5 } }],
+    [
+      "rotated",
+      {
+        id: "h",
+        height: 8,
+        rectangle: { center: [0, 0], size: [9, 6], rotation: 0.4 },
+        floors: { enabled: true, interval: 3 }
+      }
+    ],
+    [
+      "round",
+      {
+        id: "t",
+        height: 11,
+        circle: { center: [0, 0], radius: 3, phase: 0 },
+        roof: { height: 0 },
+        floors: { enabled: true, interval: 3.5 }
+      }
+    ]
+  ] as [string, CoreHouseParameters][])(
+    "%s: same band count, levels and section",
+    async (_name, p) => {
+      const a = (
+        await implementBuilding(designBuilding(European.buildHouses(p as never) as never, flat as never, nativeAssets))
+      ).renderInput;
+      const { renderInput: b } = await compileCoreBuilding(core(p), registry, { environment, assets: nativeAssets });
+      const bands = (input: typeof a) => input.groups.filter((g) => g.role === "floor-band").flatMap((g) => g.cells);
+      const [ba, bb] = [bands(a), bands(b)];
+      expect(bb.length).toBe(ba.length);
+      const levels = (cells: typeof ba) => [...new Set(cells.map((c) => c.center[1].toFixed(3)))].sort();
+      expect(levels(bb)).toEqual(levels(ba));
+      for (const c of bb) {
+        expect(c.size[1]).toBeCloseTo(ba[0].size[1], 6);
+        expect(c.size[2]).toBeCloseTo(ba[0].size[2], 6);
+        expect(c.brick_flags).toBe(4);
+      }
     },
     60000
   );
