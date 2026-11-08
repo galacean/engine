@@ -11,7 +11,15 @@ import {
   type GeometryElement,
   type SurfaceKind
 } from "./geometry";
-import { alongCurves, noLaying, placeAtPoints, surfaceGrid, type LayingAlgorithm, type LayingInfo } from "./algorithms";
+import {
+  alongCurves,
+  coverSurfaces,
+  noLaying,
+  placeAtPoints,
+  surfaceGrid,
+  type LayingAlgorithm,
+  type LayingInfo
+} from "./algorithms";
 import { RuleDefaults, type ConnectionRule, type JoinDetector, type ParticipantView } from "./connection";
 import { unitBox } from "./unit";
 
@@ -151,6 +159,7 @@ export function createBuildingRegistry(): BuildingRegistry {
   registry.algorithms.register("placeAtPoints", placeAtPoints);
   registry.algorithms.register("alongCurves", alongCurves);
   registry.algorithms.register("surfaceGrid", surfaceGrid);
+  registry.algorithms.register("coverSurfaces", coverSurfaces);
   registry.rules.register("none", noRule);
   registry.rules.register("voidUnderGuest", voidUnderGuest);
   return registry;

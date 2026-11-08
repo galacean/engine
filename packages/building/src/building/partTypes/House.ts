@@ -29,6 +29,7 @@ import { wallRoofJointHeight, type ConstructionWallRoofJoint } from "../runtime/
 import { unitFootprintScale, type MaterialFootprint } from "../runtime/MaterialFootprint";
 import type { ProfileFootprint, ProfileRoofParameters } from "../runtime/ProfileParameters";
 import { registerRoofTypes } from "./Roof";
+import { isFlatRoofHeight } from "../runtime/RoofMode";
 
 /** The wall chart: the perimeter unrolled along u, height along v. Plain JSON. */
 export interface WallChartParams {
@@ -46,6 +47,8 @@ export interface WallChartParams {
   readonly nominalOuter: number;
   /** Wall unit depth against the 0.1 m reference; it scales the wall thickness. */
   readonly depthScale?: number;
+  /** The chart runs around the whole house: u wraps at the perimeter length. */
+  readonly closed?: boolean;
   readonly finishOuter: number;
   /** Where this chart starts on the house perimeter, in metres. Lets the walls of one
    * house share continuous courses. Default: 0. */
@@ -74,7 +77,20 @@ export const wallChartSurface: SurfaceKind<WallChartParams> = {
   domain: (p) => {
     const e = edges(p),
       last = e[e.length - 1];
-    return { u: [0, last ? last.u + last.l : 0], v: [p.minGround, p.maxYGable + 0.12], closedU: false };
+    return { u: [0, last ? last.u + last.l : 0], v: [p.minGround, p.maxYGable + 0.12], closedU: p.closed === true };
+  },
+  // The wall itself: from the ground up to its top, which follows the roof joint.
+  region: (p) => {
+    const sample = sampler(p);
+    const us: number[] = [];
+    for (const e of edges(p)) {
+      const steps = Math.max(1, Math.ceil(e.l / 0.25));
+      for (let k = 0; k < steps; k++) us.push(e.u + (e.l * k) / steps);
+    }
+    us.push(sample.length);
+    const bottom = us.map((u): [number, number] => [u, sample.at(u).ground]);
+    const top = us.map((u): [number, number] => [u, sample.at(u).roof]).reverse();
+    return [...bottom, ...top];
   },
   frame: (p, u, v): Frame => {
     const all = edges(p);
@@ -595,7 +611,9 @@ function masonryWall(context: LayingContext<MasonryParams>): MasonryWall {
   if (!wall) {
     const element = context.params.element ?? "face";
     const chart = chart_(context.geometry.original.elements[element]);
-    wall = { chart, sample: sampler(chart), removed: context.geometry.surface(element).removed };
+    const surface = context.geometry.surface(element);
+    // Units give way both where the wall is gone and where other units occupy it.
+    wall = { chart, sample: sampler(chart), removed: [...surface.removed, ...surface.reserved] };
     masonryWalls.set(context, wall);
   }
   return wall;
@@ -626,6 +644,31 @@ function crenelCuts(chart: WallChartParams, pitch: number, height: number): Rect
     );
   });
 }
+/** Element "face": the finish over the house walls, one chart around the whole house. It
+ * continues the face of every host wall, so openings in the walls are openings in the finish;
+ * corner stones only reserve wall area and stay under the finish. */
+export const housePlasterGeometry: GeometryGenerator<HouseShared> = (p, context) => {
+  const whole = houseWallGeometry(p, context).elements.face;
+  if (whole.kind !== "surface") throw Error("Unexpected wall chart");
+  const inherit = context.hosts.flatMap((host, index) => {
+    const face = host.geometry.original.elements.face;
+    if (face?.kind !== "surface" || face.surface.kind !== "wallChart") return [];
+    const chart = face.surface.params as WallChartParams;
+    return [{ host: index, element: "face", offset: [chart.uOffset ?? 0, 0] as [number, number] }];
+  });
+  if (!inherit.length) throw Error("A finish attaches to house walls");
+  const wall = whole.surface.params as WallChartParams;
+  // Over a flat roof with a parapet, the finish runs up the parapet and stops below its
+  // battlements, one course under the roof base.
+  const parapet = p.roof && isFlatRoofHeight(p.roof.height) && p.roof.flat_rim === 0;
+  const top = wall.topY - 0.46 * scaleOf(p.wallUnit ?? REFERENCE).height;
+  const chart: WallChartParams = {
+    ...wall,
+    ...(parapet && { top: wall.top.map(() => top), maxYGable: Math.max(wall.maxYGable, top) }),
+    closed: true
+  };
+  return { elements: { face: { kind: "surface", surface: { kind: "wallChart", params: chart }, inherit } } };
+};
 /** Storey levels above the wall base: the wall height rounds to whole storeys, half a storey
  * up, and a band sits between every two storeys. */
 export function floorLevels(height: number, interval: number): number[] {
@@ -758,7 +801,8 @@ function beltPieces(context: LayingContext<BeltParams>, d: BeltLayout, slot: num
         : j * step + (context.random(key(j), "joint").next() - 0.5) * amplitude);
   const j = slot - run.offset;
   let pieces: Piece[] = [{ u0: joint(j), u1: joint(j + 1), lo: chart.minGround, hi: chart.topY }];
-  for (const hole of context.geometry.surface(run.element).removed)
+  const surface = context.geometry.surface(run.element);
+  for (const hole of [...surface.removed, ...surface.reserved])
     pieces = pieces.flatMap((q) => subtract(q, hole, chart.minGround, chart.topY));
   return pieces;
 }
@@ -1057,8 +1101,8 @@ export const wallCorner: ConnectionRule = ({ parts, seed, params }) => {
     // Even rows: the stone lies along the wall after the corner; its end shows on the wall before.
     const onAfter: Rect = [0, y0, row % 2 === 0 ? width - over : over, y1];
     const onBefore: Rect = [lengthBefore - (row % 2 === 0 ? over : width - over), y0, lengthBefore, y1];
-    modify.push({ part: after.key, modification: { element: "face", op: "removeArea" as const, rect: onAfter } });
-    modify.push({ part: before.key, modification: { element: "face", op: "removeArea" as const, rect: onBefore } });
+    modify.push({ part: after.key, modification: { element: "face", op: "reserveArea" as const, rect: onAfter } });
+    modify.push({ part: before.key, modification: { element: "face", op: "reserveArea" as const, rect: onBefore } });
   }
   const frame = {
     origin: [corner[0], bottom, corner[2]] as [number, number, number],
@@ -1093,6 +1137,9 @@ export function registerHouseTypes(registry: BuildingRegistry): BuildingRegistry
   registry.algorithms.register("cornerStones", cornerStones);
   registry.algorithms.register("beltCourses", beltCourses);
   registry.geometry.register("houseFloorBands", houseFloorBandsGeometry);
+  registry.geometry.register("housePlaster", housePlasterGeometry);
+  registry.defaults.attach("plaster", ["wall"], "none");
+  registry.defaults.attach("plaster", ["wall", "wall", "wall", "wall"], "none");
   registry.defaults.attach("floorBand", ["wall"], "none");
   registry.defaults.attach("floorBand", ["wall", "wall", "wall", "wall"], "none");
   registry.geometry.register("houseWallSide", houseWallSideGeometry);

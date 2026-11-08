@@ -174,6 +174,35 @@ export const placeAtPoints: LayingAlgorithm<
   })
 };
 
+/** One continuous unit per surface element, such as a surface finish: the unit covers
+ * the element's effective surface, and the renderer draws it from that surface. */
+export const coverSurfaces: LayingAlgorithm<
+  { elements?: string[]; unitParams?: Readonly<Record<string, unknown>> },
+  { ids: string[] }
+> = {
+  info: {
+    accepts: ["surface"],
+    summary: "One continuous unit covering each surface, drawn from the effective surface.",
+    params: {
+      elements: "Surface ids to cover. Default: all surfaces.",
+      unitParams: "Renderer values given to every unit, such as a finish colour. Default: none."
+    }
+  },
+  plan(context) {
+    const ids = select(context, "surface");
+    return { count: ids.length, data: { ids } };
+  },
+  unitAt(context, data, index) {
+    const id = data.ids[index];
+    const { u, v } = context.geometry.surface(id).domain;
+    return {
+      key: id,
+      frame: context.geometry.surface(id).frame((u[0] + u[1]) / 2, (v[0] + v[1]) / 2),
+      params: { ...context.params.unitParams, element: id }
+    };
+  }
+};
+
 interface CurveEntry {
   id: string;
   offset: number;

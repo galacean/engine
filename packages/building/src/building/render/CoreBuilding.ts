@@ -36,7 +36,13 @@ import {
 } from "../runtime/ProfilePreview";
 import { constructionLodAppearance, type ConstructionLodCell } from "../runtime/ConstructionLodAppearance";
 import { constructionSurfaceFrame, projectConstructionSurface } from "../runtime/ConstructionSurfaceFrame";
-import { surfaceBoundary } from "../runtime/SurfacePolygon";
+import {
+  effectiveSurfaceRegions,
+  subtractSurfacePolygon,
+  surfaceBoundary,
+  surfaceMaskTriangles
+} from "../runtime/SurfacePolygon";
+import { plasterPalette } from "../runtime/ConstructionPlasterPalette";
 import { packConstructionUnits } from "../runtime/ConstructionUnitRender";
 import { encodeCompleteConstructionDormerBins } from "../runtime/DormerBins";
 import { placeProfileRoofSpire } from "../runtime/ProfileRoofSpire";
@@ -45,7 +51,7 @@ import { f32BitsToHalf } from "../runtime/UnitPacking.js";
 import type { RetainedWallUnits } from "../runtime/ConstructionWallLod";
 
 /** How the renderer draws the units of each part type. */
-type Family = "wall" | "parapet" | "roof" | "spire";
+type Family = "wall" | "parapet" | "roof" | "spire" | "plaster";
 const FAMILIES: Readonly<Record<string, Family>> = {
   wall: "wall",
   cornerStone: "wall",
@@ -56,7 +62,8 @@ const FAMILIES: Readonly<Record<string, Family>> = {
   ridgeCap: "roof",
   rakeCap: "roof",
   roofDeck: "roof",
-  spire: "spire"
+  spire: "spire",
+  plaster: "plaster"
 };
 const MATERIALS = new Set<string>(["brick", "roof_tile", "wooden_plank"]);
 const NO_CLIP = [0, 1, 0, 65504];
@@ -114,7 +121,7 @@ export function coreBuildingLayout(
     const bindings = [...byFamily].map(([family, parts]): CoreBinding => {
       const unitSource = parts.find((p) => p.part.unit)?.part.unit?.source;
       const source = typeof unitSource === "string" ? unitSource : "";
-      if (family !== "spire" && !MATERIALS.has(source))
+      if (family !== "spire" && family !== "plaster" && !MATERIALS.has(source))
         throw Error(`Unsupported unit source ${JSON.stringify(unitSource)}`);
       return { id: `${group.id}-${family}`, owner: group.id, family, material: source as MaterialUnit, parts };
     });
@@ -485,6 +492,146 @@ function standsOut(cell: SupportCell, outline: readonly number[][]) {
   return false;
 }
 
+/** Mitred outline of a closed wall chart, `d` metres out from its points: position and outward
+ * normal at perimeter coordinate u. */
+function ringAt(chart: WallChartParams, d: number) {
+  const pts = chart.points.slice();
+  if (Math.hypot(pts[0][0] - pts.at(-1)![0], pts[0][2] - pts.at(-1)![2]) < 1e-9) pts.pop();
+  const n = pts.length;
+  const knots = [0];
+  for (let i = 0; i < n; i++) {
+    const a = pts[i],
+      b = pts[(i + 1) % n];
+    knots.push(knots[i] + Math.hypot(b[0] - a[0], b[2] - a[2]));
+  }
+  const length = knots[n];
+  const normal = (i: number) => {
+    const a = pts[((i % n) + n) % n],
+      b = pts[(((i + 1) % n) + n) % n],
+      l = Math.hypot(b[0] - a[0], b[2] - a[2]);
+    return [-(b[2] - a[2]) / l, (b[0] - a[0]) / l];
+  };
+  const corner = (i: number) => {
+    const [p, q] = [normal(i - 1), normal(i)];
+    const m = [p[0] + q[0], p[1] + q[1]],
+      k = 1 / Math.max(0.2, 1 + p[0] * q[0] + p[1] * q[1]);
+    return { x: pts[i % n][0] + m[0] * k * d, z: pts[i % n][2] + m[1] * k * d, n: [m[0] * k, m[1] * k] };
+  };
+  return {
+    length,
+    at(u: number) {
+      const w = ((u % length) + length) % length;
+      let i = 0;
+      while (i < n - 1 && knots[i + 1] <= w) i++;
+      const t = (w - knots[i]) / (knots[i + 1] - knots[i]);
+      const a = corner(i),
+        b = corner(i + 1);
+      const nx = a.n[0] + (b.n[0] - a.n[0]) * t,
+        nz = a.n[1] + (b.n[1] - a.n[1]) * t,
+        nl = Math.hypot(nx, nz) || 1;
+      return { x: a.x + (b.x - a.x) * t, z: a.z + (b.z - a.z) * t, normal: [nx / nl, 0, nz / nl] };
+    }
+  };
+}
+/** The finish over a wall chart as a preview part: the chart's region without removed areas,
+ * cut into triangles no longer than 0.4 m, lifted to the finish face. Each vertex keeps its
+ * distance to the finish's edge, where the shader wears it off. */
+function plasterPart(
+  layout: CoreBuildingLayout,
+  owner: CoreOwner,
+  binding: CoreBinding,
+  part: ResolvedPart,
+  unit: LaidUnit
+): ConstructionPreviewPart | undefined {
+  const id = unit.params!.element as string;
+  const element = part.original.elements[id];
+  if (element?.kind !== "surface" || element.surface.kind !== "wallChart") return;
+  const chart = element.surface.params as WallChartParams;
+  const surface = new EffectiveGeometry(part.original, part.modifications, layout.surfaces).surface(id);
+  const ring = ringAt(chart, chart.finishOuter);
+  const outline = surface.region();
+  const shifts = surface.domain.closedU ? [-ring.length, 0, ring.length] : [0];
+  const holes = surface.removed.flatMap((r) =>
+    shifts.map((k) =>
+      surfaceBoundary([
+        [r[0] + k, r[1]],
+        [r[2] + k, r[1]],
+        [r[2] + k, r[3]],
+        [r[0] + k, r[3]]
+      ])
+    )
+  );
+  // The region is a band over u: bottom along its first half, top back along its second.
+  const half = outline.length / 2;
+  const triangles: number[][][] = [];
+  for (let i = 0; i < half - 1; i++) {
+    const [b0, b1] = [outline[i], outline[i + 1]],
+      [t1, t0] = [outline[outline.length - 2 - i], outline[outline.length - 1 - i]];
+    let pieces = [surfaceBoundary([[...b0], [...b1], [...t1], [...t0]])];
+    for (const hole of holes) pieces = pieces.flatMap((q) => subtractSurfacePolygon(q, hole));
+    for (const piece of effectiveSurfaceRegions(pieces))
+      for (const tri of surfaceMaskTriangles(piece.points)) triangles.push(tri.points);
+  }
+  // Longest-edge subdivision keeps the shader's warp smooth.
+  const fine: number[][][] = [];
+  const queue = triangles.slice();
+  while (queue.length) {
+    const t = queue.pop()!;
+    const lengths = t.map((p, k) => Math.hypot(p[0] - t[(k + 1) % 3][0], p[1] - t[(k + 1) % 3][1]));
+    const e = lengths.indexOf(Math.max(...lengths));
+    if (lengths[e] <= 0.4) {
+      fine.push(t);
+      continue;
+    }
+    const [a, b, c] = [t[e], t[(e + 1) % 3], t[(e + 2) % 3]];
+    const m = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+    queue.push([a, m, c], [m, b, c]);
+  }
+  const positions: number[] = [],
+    normals: number[] = [],
+    uvs: number[][] = [],
+    indices: number[] = [],
+    distances: number[] = [];
+  const index = new Map<string, number>();
+  const vertex = ([u, v]: number[]) => {
+    const key = `${u.toFixed(6)}/${v.toFixed(6)}`;
+    let k = index.get(key);
+    if (k === undefined) {
+      const at = ring.at(u);
+      k = uvs.length;
+      positions.push(at.x, v, at.z);
+      normals.push(...at.normal);
+      uvs.push([u, v - chart.minGround]);
+      distances.push(surface.edgeDistance(u, v, 1));
+      index.set(key, k);
+    }
+    return k;
+  };
+  for (const t of fine) {
+    // Keep the face pointing out of the wall.
+    const area = (t[1][0] - t[0][0]) * (t[2][1] - t[0][1]) - (t[1][1] - t[0][1]) * (t[2][0] - t[0][0]);
+    const ordered = area >= 0 ? t : [t[0], t[2], t[1]];
+    indices.push(...ordered.map(vertex));
+  }
+  if (!indices.length) return;
+  const wear = (unit.params?.wear as number | undefined) ?? 0.3,
+    color = (unit.params?.color as number | undefined) ?? 0;
+  return {
+    owner: owner.group.id,
+    material: "brick",
+    bindingId: binding.id,
+    geometryId: binding.id,
+    positions,
+    normals,
+    indices,
+    uvs,
+    colors: Array(positions.length).fill(1),
+    emission: Array(positions.length / 3).fill(0),
+    color: plasterPalette[color % plasterPalette.length].slice(),
+    plaster: { wear, color, wallLength: ring.length, edgeDistances: distances }
+  };
+}
+
 /** A metric unrolling of a surface: rows along v at arc length t, and along each row the
  * signed distance s from the middle. Returns the mesh and the chart of any (u, v). */
 function unrolledSurface(surface: ReturnType<EffectiveGeometry["surface"]>, offset: number, nu: number, nv: number) {
@@ -751,6 +898,12 @@ export function coreBuildingView(layout: CoreBuildingLayout, options: CoreBuildi
           ...(options.includeAppearance &&
             mesh.uvs.length && { lodAppearance: constructionLodAppearance(mesh.uvs, cells) })
         });
+      } else if (binding.family === "plaster") {
+        for (const { part, units } of binding.parts)
+          for (const u of units) {
+            const finish = plasterPart(layout, owner, binding, part, u);
+            if (finish) parts.push(finish);
+          }
       } else if (binding.family === "spire") {
         const mesh = options.assets?.roofSpire;
         if (!mesh) throw Error("Missing roof spire mesh in building library");
@@ -908,7 +1061,8 @@ export async function coreBuildingRenderInput(
     bindings: unknown[] = [];
   for (const owner of layout.owners)
     for (const binding of owner.bindings) {
-      if (binding.family === "spire") continue;
+      // Prefabs and finishes are drawn from the view, not as unit groups.
+      if (binding.family === "spire" || binding.family === "plaster") continue;
       const { draws, dependencies } = bindingDraws(binding, owner.slot);
       for (const draw of draws)
         groups.push({
@@ -946,7 +1100,9 @@ export async function coreBuildingRenderInput(
     decorations: [],
     dormerBins: encodeCompleteConstructionDormerBins([]),
     colorOwners: palette.colorOwners.map(({ id, seed }) => ({ id, seed })),
-    backingParts: view.parts.filter((p) => p.placement !== "unit" && p.backing !== false && !p.decoration),
+    backingParts: view.parts.filter(
+      (p) => p.placement !== "unit" && p.backing !== false && !p.decoration && !p.plaster
+    ),
     surfaceParts: view.parts,
     placementDocument: { version: 2, geometries, bindings, overrides: [] },
     plans

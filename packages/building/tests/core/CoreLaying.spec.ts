@@ -102,7 +102,7 @@ describe("Laying algorithms, like easing functions", () => {
 
   it("lists every algorithm with what it lays and how", () => {
     const list = describeLaying(createBuildingRegistry());
-    expect(list.map((a) => a.name)).toEqual(["alongCurves", "none", "placeAtPoints", "surfaceGrid"]);
+    expect(list.map((a) => a.name)).toEqual(["alongCurves", "coverSurfaces", "none", "placeAtPoints", "surfaceGrid"]);
     for (const a of list) {
       expect(a.accepts?.length).toBeGreaterThan(0);
       expect(a.summary).toBeTruthy();

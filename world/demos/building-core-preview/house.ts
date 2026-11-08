@@ -67,6 +67,29 @@ const CASES: Case[] = [
     },
     ground: flat
   },
+  {
+    id: "plaster",
+    title: "抹灰 · 腰线",
+    house: {
+      id: "a",
+      height: 7,
+      plaster: { enabled: true, wear: 0.35, color: 3 },
+      floors: { enabled: true, interval: 3.5 }
+    },
+    ground: flat
+  },
+  {
+    id: "plaster-round",
+    title: "抹灰 · 圆形平屋顶",
+    house: {
+      id: "a",
+      height: 6,
+      circle: { center: [0, 0], radius: 3, phase: 0 },
+      roof: { height: 0 },
+      plaster: { enabled: true, wear: 0.5, color: 5 }
+    },
+    ground: flat
+  },
   { id: "steep", title: "陡屋顶", house: { id: "a", roof: { height: 0.8, eave: 0.4 } }, ground: flat },
   { id: "gable", title: "山墙屋顶", house: { id: "a", roof: { ridge_length: 1 } }, ground: flat },
   {

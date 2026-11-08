@@ -19,7 +19,7 @@
 | 组       | `BuildingGroupDef`      | 身份、随机根 `seed`、共享数据 `shared`、组级规则覆盖 `rules`                    |
 | 构件     | `BuildingPartDef`       | 几何 × 铺设算法 × 铺设单元，加上身份和类型名                                    |
 | 几何     | `BuildingGeometry`      | 同一个几何可以同时包含点、线、面；元素 id 在各种元素之间唯一                    |
-| 修改记录 | `GeometryModification`  | 规则对几何的修改：删除元素、删除或增加面上的区域、删除线上的区间、用平面裁剪单元 |
+| 修改记录 | `GeometryModification`  | 规则对几何的修改：删除元素、删除、增加或占用面上的区域、删除线上的区间、用平面裁剪单元 |
 | 有效几何 | `EffectiveGeometry`     | 原几何加修改记录，用到时计算，不保存                                            |
 | 单元原型 | `BuildingUnit`          | 资产引用、包围盒、pivot/position/rotation/scale/range、种子盐                   |
 | 铺设算法 | `LayingAlgorithm`       | 有效几何 + 单元原型 + 参数 → 铺设单元                                           |
@@ -132,6 +132,10 @@
   - 起伏地形：墙和栅栏通过环境接口 `ground(x, z)` 贴地，与线上一致。
 - **GPU 铺设原型：** `../render/GridUnitKernel.ts` 用 TransformFeedback（只支持 WebGL2）按槽位直接生成线上 64 字节砖块记录，CPU 只保留布局（约 260 字节）。`world/demos/building-core-preview/gpu.html` 在 8 米、100 米、1000 米三种墙上和 CPU 参考展开逐字节对比。目前只支持平地、无洞口的 `groundStrip` 立面上的 `surfaceGrid`，`draw.html` 把 GPU 生成的记录在显存内拷进砖块记录纹理，由线上砖块 shader 绘制，画面与 CPU 上传的结果相差在逐帧渲染噪声之内。砖块 LOD 仍读取 CPU 上的记录。
 - **未接入：** 房屋（墙 + 屋顶 + 台基 + 挂件）、Source 存档、Worker 调度、Mesh 曲面、UV 铺设。
+- **删除和占用：** `removeArea` 表示曲面在这里不存在（如开口）；`reserveArea` 表示曲面仍在，但被其他单元占用（如转角石），铺设的单元要避让。
+- **继承：** 曲面元素可以声明 `inherit: [{ host, element, offset }]`，表示它延续宿主的某个曲面：宿主元素上的删除、增加和占用按偏移量复制到这个元素上，排在它自己的修改之前。`host` 是依附连接的宿主序号。
+- **真实范围和到边缘距离：** 曲面类型可以提供 `region`，给出比定义域矩形更小的真实范围；`EffectiveSurface.edgeDistance(u, v, limit)` 返回到真实范围边界或删除区域边界的距离，闭合曲面的接缝不算边界。
+- **连续单元：** 内置铺设算法 `coverSurfaces` 为每个曲面元素放一个覆盖整个有效曲面的单元，渲染器按有效曲面画它，例如抹灰。
 - **裁剪平面：** `clip` 修改给元素加一个平面 `[nx, ny, nz, d]`（构件局部坐标，单位法向）。铺在该元素上的单元保留 `n·p + d ≥ 0` 的一侧，切割由渲染完成，元素本身形状不变。`EffectiveGeometry.clips(id)` 按修改顺序返回这些平面。屋顶斜脊用它把两侧瓦片切齐。
 - **待实现：** 引用元素（依附构件的几何引用宿主元素，继承宿主的修改记录，用于抹灰）；有效曲面的“到边界距离”查询（用于抹灰边缘侵蚀）；把删除区域作为裁剪区域交给渲染。
 - **已知近似：** 判断一个区域是否落在“原面加若干新增区域的并集”里时，只检查四个角和中心点；删除区域的判断是精确的。

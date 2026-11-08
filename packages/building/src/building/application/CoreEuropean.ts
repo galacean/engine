@@ -254,6 +254,21 @@ export function buildCoreHouse(p: CoreHouseParameters): BuildingCoreDraft {
     brick,
     courses
   };
+  // The finish covers the walls as one continuous unit; it wears off at its edges.
+  const plaster =
+    p.plaster && p.plaster.enabled !== false
+      ? {
+          id: p.id + "-plaster",
+          group: p.id,
+          type: "plaster",
+          geometry: { generator: "housePlaster", params: { $shared: "house" } },
+          algorithm: {
+            type: "coverSurfaces",
+            params: { unitParams: { wear: p.plaster.wear ?? 0.3, color: p.plaster.color ?? 0 } }
+          },
+          unit: { source: "plaster" }
+        }
+      : undefined;
   // Floor bands run around the house between storeys, laid with the wall's brick.
   const floors =
     p.floors && p.floors.enabled !== false && floorLevels(shared.house.height, p.floors.interval ?? 3.5).length
@@ -369,6 +384,7 @@ export function buildCoreHouse(p: CoreHouseParameters): BuildingCoreDraft {
           hosts: roofs.map((r) => ({ part: r.part.id }))
         }
       : undefined;
+  const onWalls = [...(floors ? [floors] : []), ...(plaster ? [plaster] : [])];
   return {
     groups: [
       {
@@ -390,7 +406,7 @@ export function buildCoreHouse(p: CoreHouseParameters): BuildingCoreDraft {
         }
       }
     ],
-    parts: [...walls, ...roofs.map((r) => r.part), ...(spire ? [spire.part] : []), ...(floors ? [floors] : [])],
+    parts: [...walls, ...roofs.map((r) => r.part), ...(spire ? [spire.part] : []), ...onWalls],
     connections: [
       ...roofs.map(({ part, hosts }) => ({
         kind: "attach" as const,
@@ -401,16 +417,13 @@ export function buildCoreHouse(p: CoreHouseParameters): BuildingCoreDraft {
       ...(spire
         ? [{ kind: "attach" as const, id: spire.part.id + "/on-roof", guest: spire.part.id, hosts: spire.hosts }]
         : []),
-      ...(floors
-        ? [
-            {
-              kind: "attach" as const,
-              id: floors.id + "/on-wall",
-              guest: floors.id,
-              hosts: walls.map((w) => ({ part: w.id }))
-            }
-          ]
-        : [])
+      // Floor bands and the finish follow every wall.
+      ...onWalls.map((part) => ({
+        kind: "attach" as const,
+        id: part.id + "/on-wall",
+        guest: part.id,
+        hosts: walls.map((w) => ({ part: w.id }))
+      }))
     ]
   };
 }

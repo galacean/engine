@@ -108,6 +108,8 @@ interface PartState {
   original?: BuildingGeometry;
   view?: EffectiveGeometry;
   guestOf?: string;
+  /** Hosts of the guest's attach connection, in connection order. */
+  hosts?: readonly string[];
   readonly modifications: { order: string; index: number; modification: GeometryModification }[];
 }
 interface Pending {
@@ -428,6 +430,7 @@ export function designBuildingCore(
           continue;
         }
         guest.guestOf = key;
+        guest.hosts = pending.hosts.map((h) => h.part);
       }
       next.push(pending);
     }
@@ -437,9 +440,34 @@ export function designBuildingCore(
   const parts: ResolvedPart[] = [];
   for (const state of [...states.values()].sort((a, b) => compareKeys(a.key, b.key))) {
     if (!state.original) continue;
-    const modifications = state.modifications
-      .sort((a, b) => compareKeys(a.order, b.order) || a.index - b.index)
-      .map((m) => m.modification);
+    // Surfaces that continue a host surface take the host element's modifications first.
+    const inherited: GeometryModification[] = [];
+    for (const [id, element] of Object.entries(state.original.elements).sort(([a], [b]) => compareKeys(a, b))) {
+      if (element.kind !== "surface") continue;
+      for (const source of element.inherit ?? []) {
+        const host = state.hosts?.[source.host] !== undefined ? states.get(state.hosts[source.host]) : undefined;
+        if (!host?.original) {
+          report(state.key, `Surface "${id}" inherits from host ${source.host}, which the part does not attach to`);
+          continue;
+        }
+        const [du, dv] = source.offset ?? [0, 0];
+        for (const { modification: m } of [...host.modifications].sort(
+          (a, b) => compareKeys(a.order, b.order) || a.index - b.index
+        ))
+          if (m.element === source.element && "rect" in m)
+            inherited.push({
+              ...m,
+              element: id,
+              rect: [m.rect[0] + du, m.rect[1] + dv, m.rect[2] + du, m.rect[3] + dv]
+            });
+      }
+    }
+    const modifications = [
+      ...inherited,
+      ...state.modifications
+        .sort((a, b) => compareKeys(a.order, b.order) || a.index - b.index)
+        .map((m) => m.modification)
+    ];
     const seed = deriveSeed(state.group.seed, state.key);
     // A part publishes a layout only when all of its units are valid.
     let layout: PartLayout | undefined;
@@ -523,6 +551,7 @@ function authorPending(
     else if (state.guestOf) report(key, "A part can be the guest of only one attach connection");
     else {
       state.guestOf = key;
+      state.hosts = hosts.map((h) => h.part);
       return { key, kind: "attach", guest, hosts, parts: [], rule: connection.rule, params };
     }
     return;

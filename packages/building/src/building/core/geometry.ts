@@ -29,7 +29,15 @@ export interface SurfaceLocation {
 export type GeometryElement =
   | { readonly kind: "point"; readonly frame: Frame; readonly on?: SurfaceLocation }
   | { readonly kind: "curve"; readonly curve: CurveData }
-  | { readonly kind: "surface"; readonly surface: SurfaceData };
+  | { readonly kind: "surface"; readonly surface: SurfaceData; readonly inherit?: readonly SurfaceInheritance[] };
+/** A guest surface that continues a host surface: the host element's modifications apply to
+ * this surface too, shifted by `offset` in surface coordinates. `host` indexes the hosts of
+ * the guest's attach connection. */
+export interface SurfaceInheritance {
+  readonly host: number;
+  readonly element: string;
+  readonly offset?: readonly [number, number];
+}
 /** One geometry holds any mix of points, curves and surfaces. Element ids are unique across kinds. */
 export interface BuildingGeometry {
   readonly elements: Readonly<Record<string, GeometryElement>>;
@@ -39,12 +47,14 @@ export type Rect = readonly [number, number, number, number];
 /** Plane [nx, ny, nz, d] in part-local metres, with a unit normal. Its kept side is n·p + d ≥ 0. */
 export type Plane = readonly [number, number, number, number];
 /** Edits produced by connection rules. Original geometry is never mutated.
+ * - `removeArea`: the surface is gone there, as at an opening.
+ * - `reserveArea`: the surface stays, but other units occupy it; laid units give way.
  * - `clip`: units laid on the element are cut by the plane and keep its positive side.
  *   The element itself keeps its shape; the renderer does the cut. */
 export type GeometryModification =
   | { readonly element: string; readonly op: "removeElement" }
   | { readonly element: string; readonly op: "clip"; readonly plane: Plane }
-  | { readonly element: string; readonly op: "removeArea" | "addArea"; readonly rect: Rect }
+  | { readonly element: string; readonly op: "removeArea" | "addArea" | "reserveArea"; readonly rect: Rect }
   | { readonly element: string; readonly op: "removeSpan"; readonly span: readonly [number, number] };
 
 export interface SurfaceDomain {
@@ -65,6 +75,9 @@ export interface BuildingEnvironment {
 export interface SurfaceKind<P = any> {
   domain(params: P, environment: BuildingEnvironment): SurfaceDomain;
   frame(params: P, u: number, v: number, environment: BuildingEnvironment): Frame;
+  /** The surface's actual extent as one polygon in (u, v), when it is smaller than the
+   * domain rectangle. Default: the domain rectangle. */
+  region?(params: P, environment: BuildingEnvironment): readonly (readonly [number, number])[];
 }
 export interface SurfaceKinds {
   get(kind: string): SurfaceKind | undefined;
@@ -73,6 +86,7 @@ export interface SurfaceKinds {
 export interface BoundSurfaceKind {
   domain(params: unknown): SurfaceDomain;
   frame(params: unknown, u: number, v: number): Frame;
+  region?(params: unknown): readonly (readonly [number, number])[];
 }
 export interface BoundSurfaces {
   get(kind: string): BoundSurfaceKind | undefined;
@@ -85,7 +99,8 @@ export function bindSurfaces(surfaces: SurfaceKinds, environment: BuildingEnviro
       return (
         kind && {
           domain: (params) => kind.domain(params, environment),
-          frame: (params, u, v) => kind.frame(params, u, v, environment)
+          frame: (params, u, v) => kind.frame(params, u, v, environment),
+          ...(kind.region && { region: (params: unknown) => kind.region!(params, environment) })
         }
       );
     }
@@ -242,6 +257,7 @@ export function modificationIssue(geometry: BuildingGeometry, modification: Geom
       return;
     case "removeArea":
     case "addArea":
+    case "reserveArea":
       if (element.kind !== "surface") return `${modification.op} needs a surface element`;
       return rectIssue(modification.rect);
     case "clip": {
@@ -276,7 +292,8 @@ export class EffectiveSurface {
     private readonly kind: BoundSurfaceKind,
     private readonly params: unknown,
     private readonly adds: readonly Rect[],
-    private readonly removes: readonly Rect[]
+    private readonly removes: readonly Rect[],
+    private readonly reserves: readonly Rect[] = []
   ) {
     this.domain = kind.domain(params);
     this.period = this.domain.u[1] - this.domain.u[0];
@@ -298,6 +315,56 @@ export class EffectiveSurface {
   /** Areas removed from this surface, in surface coordinates. */
   get removed(): readonly Rect[] {
     return this.removes;
+  }
+  /** Areas of this surface that other units occupy, in surface coordinates. */
+  get reserved(): readonly Rect[] {
+    return this.reserves;
+  }
+  /** The surface's actual extent before removed areas, as one polygon in (u, v). */
+  region(): readonly (readonly [number, number])[] {
+    if (this.kind.region) return this.kind.region(this.params);
+    const { u, v } = this.domain;
+    return [
+      [u[0], v[0]],
+      [u[1], v[0]],
+      [u[1], v[1]],
+      [u[0], v[1]]
+    ];
+  }
+  /** Distance in surface coordinates from (u, v) to the nearest edge of the effective
+   * surface: the region's outline or a removed area's outline. Capped at `limit`. A closed
+   * surface has no edge at its seam. */
+  edgeDistance(u: number, v: number, limit = 1): number {
+    let best = limit * limit;
+    const segment = (a: readonly number[], b: readonly number[]) => {
+      for (const s of this.shifts()) {
+        const ax = a[0] + s,
+          bx = b[0] + s;
+        const dx = bx - ax,
+          dy = b[1] - a[1],
+          l2 = dx * dx + dy * dy;
+        const t = l2 > 0 ? Math.max(0, Math.min(1, ((u - ax) * dx + (v - a[1]) * dy) / l2)) : 0;
+        best = Math.min(best, (u - ax - dx * t) ** 2 + (v - a[1] - dy * t) ** 2);
+      }
+    };
+    const outline = this.region();
+    for (let i = 0; i < outline.length; i++) {
+      const a = outline[i],
+        b = outline[(i + 1) % outline.length];
+      // The seam of a closed surface is not an edge.
+      if (this.domain.closedU && a[0] === b[0] && (a[0] === this.domain.u[0] || a[0] === this.domain.u[1])) continue;
+      segment(a, b);
+    }
+    for (const r of this.removes) {
+      const corners = [
+        [r[0], r[1]],
+        [r[2], r[1]],
+        [r[2], r[3]],
+        [r[0], r[3]]
+      ];
+      for (let i = 0; i < 4; i++) segment(corners[i], corners[(i + 1) % 4]);
+    }
+    return Math.sqrt(best);
   }
   private shifts(): number[] {
     return this.domain.closedU ? [-this.period, 0, this.period] : [0];
@@ -343,7 +410,7 @@ export class EffectiveSurface {
       [um, vm]
     ];
     if (!corners.every(([u, v]) => this.included(u, v))) return false;
-    return !this.removes.some((r) =>
+    return ![...this.removes, ...this.reserves].some((r) =>
       this.shifts().some((s) => r[0] + s < u1 && u0 < r[2] + s && r[1] < v1 && v0 < r[3])
     );
   }
@@ -379,7 +446,7 @@ export class EffectiveCurve {
 /** Original geometry plus modifications. Laying algorithms only see this view. */
 export class EffectiveGeometry {
   private readonly removed = new Set<string>();
-  private readonly areas = new Map<string, { adds: Rect[]; removes: Rect[] }>();
+  private readonly areas = new Map<string, { adds: Rect[]; removes: Rect[]; reserves: Rect[] }>();
   private readonly spans = new Map<string, [number, number][]>();
   private readonly planes = new Map<string, Plane[]>();
   constructor(
@@ -400,8 +467,13 @@ export class EffectiveGeometry {
         list.push([modification.span[0], modification.span[1]]);
         this.spans.set(modification.element, list);
       } else {
-        const entry = this.areas.get(modification.element) ?? { adds: [], removes: [] };
-        (modification.op === "addArea" ? entry.adds : entry.removes).push(modification.rect);
+        const entry = this.areas.get(modification.element) ?? { adds: [], removes: [], reserves: [] };
+        (modification.op === "addArea"
+          ? entry.adds
+          : modification.op === "reserveArea"
+            ? entry.reserves
+            : entry.removes
+        ).push(modification.rect);
         this.areas.set(modification.element, entry);
       }
     }
@@ -435,7 +507,7 @@ export class EffectiveGeometry {
     const data = this.element(id, "surface").surface;
     const kind = this.surfaces.get(data.kind);
     if (!kind) throw Error(`Unknown surface kind "${data.kind}"`);
-    const area = this.areas.get(id) ?? { adds: [], removes: [] };
-    return new EffectiveSurface(kind, data.params, area.adds, area.removes);
+    const area = this.areas.get(id) ?? { adds: [], removes: [], reserves: [] };
+    return new EffectiveSurface(kind, data.params, area.adds, area.removes, area.reserves);
   }
 }

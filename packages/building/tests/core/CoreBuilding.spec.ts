@@ -253,6 +253,56 @@ describe("Floor bands against the online path", () => {
   );
 });
 
+describe("Plaster against the online path", () => {
+  const area = (p: { positions: number[]; indices: number[] }) => {
+    let sum = 0;
+    for (let k = 0; k < p.indices.length; k += 3) {
+      const [a, b, c] = [0, 1, 2].map((j) => p.positions.slice(p.indices[k + j] * 3, p.indices[k + j] * 3 + 3));
+      const u = b.map((v, j) => v - a[j]),
+        w = c.map((v, j) => v - a[j]);
+      sum += Math.hypot(u[1] * w[2] - u[2] * w[1], u[2] * w[0] - u[0] * w[2], u[0] * w[1] - u[1] * w[0]) / 2;
+    }
+    return sum;
+  };
+  it.each([
+    ["hip roof", { id: "a", plaster: { enabled: true, wear: 0.35, color: 3 } }],
+    ["gable roof", { id: "g", roof: { ridge_length: 1 }, plaster: { enabled: true, wear: 0.2, color: 1 } }],
+    [
+      "round flat roof",
+      {
+        id: "t",
+        height: 6,
+        circle: { center: [0, 0], radius: 3, phase: 0 },
+        roof: { height: 0 },
+        plaster: { enabled: true, wear: 0.5, color: 5 }
+      }
+    ]
+  ] as [string, CoreHouseParameters][])(
+    "%s: a finish of the same area, wear and colour",
+    async (_name, p) => {
+      const a = (
+        await implementBuilding(designBuilding(European.buildHouses(p as never) as never, flat as never, nativeAssets))
+      ).renderInput;
+      const { renderInput: b } = await compileCoreBuilding(core(p), registry, { environment, assets: nativeAssets });
+      const pa = a.surfaceParts.filter((x) => x.plaster),
+        pb = b.surfaceParts.filter((x) => x.plaster);
+      expect(pb.length).toBeGreaterThan(0);
+      const [sa, sb] = [pa.reduce((n, x) => n + area(x), 0), pb.reduce((n, x) => n + area(x), 0)];
+      expect(Math.abs(sb - sa) / sa).toBeLessThan(0.05);
+      for (const x of pb) {
+        expect(x.plaster!.wear).toBeCloseTo(pa[0].plaster!.wear, 6);
+        expect(x.plaster!.color).toBe(pa[0].plaster!.color);
+        expect(x.plaster!.wallLength).toBeCloseTo(pa[0].plaster!.wallLength, 4);
+        expect(x.plaster!.edgeDistances.length).toBe(x.uvs.length);
+        expect(x.normals!.length).toBe(x.positions.length);
+      }
+      // The finish is drawn, not backed.
+      expect(b.backingParts.some((x) => x.plaster)).toBe(false);
+    },
+    60000
+  );
+});
+
 describe("Editing the core placement document", () => {
   it("hides the units whose anchors fall in a region and repaints others", async () => {
     const { renderInput } = await compileCoreBuilding(core({ id: "a" }), registry, {
