@@ -130,6 +130,36 @@ describe("MaterialLoader", () => {
     expect(material.shaderData.getColor("color")).toMatchObject({ r: 0.1, g: 0.2, b: 0.3, a: 0.4 });
   });
 
+  it("binds each loaded texture to its declared property", async () => {
+    const canvas = document.createElement("canvas");
+    canvas.width = canvas.height = 1;
+    const context = canvas.getContext("2d")!;
+    const properties = ["albedo", "emissive"].map((name) => `MaterialLoaderTexture-${name}-${Math.random()}`);
+    const paths = properties.map((name) => `Textures/${name}.png`);
+    const resources = ["red", "blue"].map((color, index) => {
+      context.fillStyle = color;
+      context.fillRect(0, 0, 1, 1);
+      return { virtualPath: paths[index], path: canvas.toDataURL(), type: AssetType.Texture };
+    });
+    engine.resourceManager.registerVirtualResources(resources);
+    const material = await loadMaterial({
+      name: "textured-material",
+      shader: materialShaderName,
+      shaderData: Object.fromEntries(
+        properties.map((name, index) => [name, { type: "Texture", value: { url: paths[index] } }])
+      ),
+      macros: []
+    });
+
+    try {
+      expect(material.shaderData.getTexture(properties[0])).toBe(engine.resourceManager.getFromCache(paths[0]));
+      expect(material.shaderData.getTexture(properties[1])).toBe(engine.resourceManager.getFromCache(paths[1]));
+      expect(material.shaderData.getTexture(properties[0])).not.toBe(material.shaderData.getTexture(properties[1]));
+    } finally {
+      material.destroy();
+    }
+  });
+
   it("loads a material from a valid shader reference", async () => {
     const shaderName = `MaterialLoaderRef-${Math.random()}`;
     const shaderPath = registerShaderResource(shaderName);
@@ -242,6 +272,31 @@ describe("MaterialLoader", () => {
       })
     ).rejects.toBeDefined();
     expect(engine.resourceManager.findResourcesByType(Material)).toHaveLength(materialCount);
+  });
+
+  it("releases a partially initialized material when a property type conflicts", async () => {
+    const propertyName = `MaterialLoaderPropertyConflict-${Math.random()}`;
+    const original = await loadMaterial({
+      name: "original-property-type",
+      shader: materialShaderName,
+      shaderData: { [propertyName]: { type: "Float", value: 1 } },
+      macros: []
+    });
+
+    try {
+      const materialCount = engine.resourceManager.findResourcesByType(Material).length;
+      await expect(
+        loadMaterial({
+          name: "conflicting-property-type",
+          shader: materialShaderName,
+          shaderData: { [propertyName]: { type: "Vector3", value: { x: 1, y: 2, z: 3 } } },
+          macros: []
+        })
+      ).rejects.toBe(`Shader property ${propertyName} has been used as Float type.`);
+      expect(engine.resourceManager.findResourcesByType(Material)).toHaveLength(materialCount);
+    } finally {
+      original.destroy();
+    }
   });
 
   it.each(["Matrix", "TextureArray"])("rejects unsupported %s shader data", async (type) => {
