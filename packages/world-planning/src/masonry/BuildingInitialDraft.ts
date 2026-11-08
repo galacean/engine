@@ -1,17 +1,15 @@
-import type { BuildingUnitAssets } from "@galacean/engine-building/building/runtime/BuildingUnitAssets";
-import { constructionDecorationRecipe } from "@galacean/engine-building/building/runtime/ConstructionDecorationRecipe";
-import { gothicPlacement } from "@galacean/engine-building/building/runtime/GothicPlacement";
-import { roofAttachmentUV } from "@galacean/engine-building/building/runtime/RoofAttachmentUV";
 import type { IslandPlan } from "../semantic-study/IslandPlanModel";
-import { European, type EuropeanHouseParameters } from "@galacean/engine-building/building/parts/architecture/European";
 import {
-  combineBuildingDrafts,
-  type BuildingDraft,
-  type SurfaceStyle
-} from "@galacean/engine-building/building/parts/architecture/BuildingDraft";
+  European,
+  type EuropeanHouseParameters,
+  type EuropeanSurfaceStyle
+} from "@galacean/engine-building/building/application/European";
+import type { BuildingCoreDraft } from "@galacean/engine-building/building/core/index";
 import { profileRoofGeometry, profileShape } from "@galacean/engine-building/building/runtime/ProfileGeometry";
-import { generatedDecorationSeed } from "@galacean/engine-building/building/runtime/ConstructionDecorationConfig";
-import type { ProfileRoofParameters } from "@galacean/engine-building/building/runtime/ProfileParameters";
+import type {
+  ProfileFootprint,
+  ProfileRoofParameters
+} from "@galacean/engine-building/building/runtime/ProfileParameters";
 import {
   planFacadeDecorations,
   normalizeDecorationPlan
@@ -24,7 +22,7 @@ export interface InitialBuildingDraft {
   id: string;
   ownerIds: string[];
   ownerIdByBuildingId: Readonly<Record<string, string>>;
-  draft: BuildingDraft;
+  draft: BuildingCoreDraft;
   position: [number, number, number];
 }
 type InitialMember = EuropeanHouseParameters & {
@@ -41,7 +39,7 @@ function stableBuildingSeed(text: string) {
 }
 
 /** Consumes published metre/yaw intent once. No random relocation, no Cozy adapter. */
-export function initialBuildingDrafts(plan: IslandPlan, assets: BuildingUnitAssets): InitialBuildingDraft[] {
+export function initialBuildingDrafts(plan: IslandPlan): InitialBuildingDraft[] {
   const removed = planningRemovedObjectIds(plan.authoredResources ?? []),
     members: { owner: string; b: InitialMember; radius: number }[] = [];
   for (const p of plan.buildings) {
@@ -79,7 +77,7 @@ export function initialBuildingDrafts(plan: IslandPlan, assets: BuildingUnitAsse
         color: (seed >>> 6) % 4
       }
     };
-    const r = profileRoofGeometry(profileShape(b), b.roof, 0);
+    const r = profileRoofGeometry(profileShape(b as ProfileFootprint), b.roof, 0);
     b.height = Math.max(
       0.5,
       p.height -
@@ -88,27 +86,6 @@ export function initialBuildingDrafts(plan: IslandPlan, assets: BuildingUnitAsse
         0.46
     );
     b.attachments = normalizeDecorationPlan(planFacadeDecorations(b), isFlatRoofHeight(b.roof.height));
-    if (!isFlatRoofHeight(b.roof.height) && p.width > 6 && p.depth > 6 && seed % 5 === 0) {
-      // Keep the initial recipe's original surface position, but author one
-      // public roof-window specification. The producer decides whether it fits.
-      const roof = profileRoofGeometry(profileShape(b), b.roof, b.height),
-        mount = gothicPlacement(roof.surface, roof.footprint, [0.45, 0.3]);
-      if (!mount) throw Error("Initial roof window has no surface mount");
-      const recipe = constructionDecorationRecipe(assets.decorations, "dormer-gothic", 1)!;
-      b.attachments!.push({
-        id: "gothic",
-        kind: "window",
-        type: "dormer-gothic",
-        host: "roof",
-        rank: 1,
-        uv: roofAttachmentUV(roof.footprint, mount.translation),
-        bottom: 0,
-        width: recipe.installationSize[0],
-        height: recipe.installationSize[1],
-        woodColor: 0,
-        lightIntensity: 0
-      });
-    }
     members.push({ owner: p.id, b, radius: Math.hypot(p.width, p.depth) / 2 + 0.5 });
   }
   const enclose = (owner: string, box: NonNullable<IslandPlan["fences"]>[number], kind: "wall" | "fence") => {
@@ -176,11 +153,9 @@ export function initialBuildingDrafts(plan: IslandPlan, assets: BuildingUnitAsse
       return b;
     });
     const drafts = buildings.map((b) => {
-      const style = (unit: "brick" | "roof_tile" | "wooden_plank"): SurfaceStyle => ({
+      const style = (unit: "brick" | "roof_tile" | "wooden_plank"): EuropeanSurfaceStyle => ({
         unit,
-        algorithm: { type: b.kind === "fence" ? "posts_and_rails" : "auto" },
-        footprint: { width: 0.5, height: 0.4375, depth: 0.1 },
-        seed: "source"
+        footprint: { width: 0.5, height: 0.4375, depth: 0.1 }
       });
       if (b.kind) {
         const r = b.rectangle!;
@@ -195,24 +170,24 @@ export function initialBuildingDrafts(plan: IslandPlan, assets: BuildingUnitAsse
           style: style(b.kind === "wall" ? "brick" : "wooden_plank")
         });
       }
+      const { kind: _kind, ...house } = b;
       const roofUnit = isFlatRoofHeight(b.roof.height) ? ((b.seed >>> 3) % 2 ? "wooden_plank" : "brick") : "roof_tile";
       return European.buildHouses({
-        ...b,
+        ...(house as EuropeanHouseParameters),
         wall: style("brick"),
         roofStyle: style(roofUnit),
-        foundationStyle: style("brick"),
-        attachments: b.attachments?.map((spec) => ({
-          ...spec,
-          id: b.id + ":decoration:" + spec.id,
-          ...(spec.host === "roof" ? {} : { seed: spec.seed ?? generatedDecorationSeed(b.seed, spec.id) })
-        }))
+        attachments: b.attachments?.map((spec) => ({ ...spec, id: "decoration:" + spec.id }))
       });
     });
     return {
       id: JSON.stringify(buildings.map((b) => b.id)),
       ownerIds: group.map((m) => m.owner),
       ownerIdByBuildingId: Object.fromEntries(group.map((m) => [m.b.id, m.owner])),
-      draft: combineBuildingDrafts(...drafts),
+      draft: {
+        groups: drafts.flatMap((d) => d.groups),
+        parts: drafts.flatMap((d) => d.parts),
+        connections: drafts.flatMap((d) => d.connections ?? [])
+      },
       position: [x, 0, z]
     };
   });

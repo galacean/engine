@@ -1,11 +1,6 @@
 import type {} from "@galacean/engine-runtime-editor/runtime-editor/generated/editor-source-schema";
-import {
-  validateBuildingDraft,
-  type BuildingBasePart,
-  type BuildingGroup,
-  type BuildingRelation,
-  type BuildingDraft
-} from "../parts/architecture/BuildingDraft";
+import type { BuildingGroupDef, BuildingPartDef, ConnectionDef } from "../core";
+import { validateBuildingDraft } from "../parts/architecture/BuildingCpu";
 
 /** Create an independent, editable copy of a native building preset. The Scene
  * owns the resulting objects; only resource references remain shared with VFS.
@@ -72,7 +67,10 @@ export function copyBuildingPrefab(prefab: GalaceanSourcePrefabFile, namespace: 
       parents.set(id, entity.id);
     }
   }
-  const frames = new Map<string, BuildingDraft>();
+  const frames = new Map<
+    string,
+    { groups: BuildingGroupDef[]; parts: BuildingPartDef[]; connections: ConnectionDef[] }
+  >();
   for (const component of copy.components) {
     if (!["BuildingPartComponent", "BuildingGroupComponent"].includes(component.type)) continue;
     const owner = owners.get(component.id);
@@ -87,13 +85,13 @@ export function copyBuildingPrefab(prefab: GalaceanSourcePrefabFile, namespace: 
       visited.add(ancestor);
       ancestor = parents.get(ancestor);
     }
-    const draft = frames.get(frame) ?? { groups: [], parts: [], relations: [] };
+    const draft = frames.get(frame) ?? { groups: [], parts: [], connections: [] };
     if (!component.props?.definition) throw Error("Building preset component requires a definition");
     if (component.type === "BuildingGroupComponent") {
-      draft.groups.push(component.props.definition as unknown as BuildingGroup);
+      draft.groups.push(component.props.definition as unknown as BuildingGroupDef);
     } else {
-      draft.parts.push(component.props.definition as unknown as BuildingBasePart);
-      draft.relations.push(...((component.props.relations ?? []) as unknown as BuildingRelation[]));
+      draft.parts.push(component.props.definition as unknown as BuildingPartDef);
+      draft.connections.push(...((component.props.connections ?? []) as unknown as ConnectionDef[]));
     }
     frames.set(frame, draft);
   }

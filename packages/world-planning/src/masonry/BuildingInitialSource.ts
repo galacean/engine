@@ -2,22 +2,25 @@ import type { IslandPlan } from "../semantic-study/IslandPlanModel";
 import type { ConstructionTerrainGrid } from "@galacean/engine-building/building/runtime/TerrainField";
 import type { BuildingUnitAssets } from "@galacean/engine-building/building/runtime/BuildingUnitAssets";
 import { initialBuildingDrafts } from "./BuildingInitialDraft";
-import { designBuilding } from "@galacean/engine-building/building/parts/architecture/BuildingDesign";
+import { designBuildingCore, expandUnits, type BuildingCoreDraft } from "@galacean/engine-building/building/core/index";
+import {
+  buildingFootprints,
+  createBuildingTypeRegistry,
+  placeBuildingGroup
+} from "@galacean/engine-building/building/partTypes/index";
+import { WALL_MOUNTS } from "@galacean/engine-building/building/partTypes/Openings";
+import { coreBuildingEnvironment } from "@galacean/engine-building/building/render/CoreBuilding";
 import {
   buildingDraftSource,
   type BuildingSourceOptions
 } from "@galacean/engine-building/building/parts/architecture/BuildingSource";
 import { prepareBuildingTerrain } from "@galacean/engine-building/building/parts/architecture/BuildingTerrain";
-import {
-  buildingPreviewInput,
-  prepareBuildingPublication
-} from "@galacean/engine-building/building/parts/architecture/BuildingPublication";
-import { profilePreview } from "@galacean/engine-building/building/runtime/ProfilePreview";
-import { profileShape } from "@galacean/engine-building/building/runtime/ProfileGeometry";
-import { wallMountCurve, wallMountPoint } from "@galacean/engine-building/building/runtime/WallMountGeometry";
 
-/** One-shot creation from published planning intent. Style builders publish
- * parts directly; rejected speculative attachments are never saved as objects. */
+const registry = createBuildingTypeRegistry();
+
+/** One-shot creation from published planning intent. Style builders publish parts
+ * directly; mounted parts that the design does not lay, such as a window inside a
+ * neighbouring house, are never saved as objects. */
 export async function initialBuildingSource(
   plan: IslandPlan,
   terrain: ConstructionTerrainGrid,
@@ -26,69 +29,64 @@ export async function initialBuildingSource(
   signal?: AbortSignal
 ) {
   const result: ReturnType<typeof buildingDraftSource> = { rootEntities: [], entities: [], components: [] };
-  for (const group of initialBuildingDrafts(plan, assets)) {
+  for (const group of initialBuildingDrafts(plan)) {
     signal?.throwIfAborted();
     const height = prepareBuildingTerrain(terrain, { position: group.position, rotationY: 0 }).height;
-    const design = designBuilding(group.draft, height, assets);
-    const publication = await prepareBuildingPublication(design, { signal });
-    const geometry = profilePreview(buildingPreviewInput(design, publication), height, {
-      assets,
-      includeAppearance: true,
-      retainDecorationParts: true
-    });
-    const accepted = new Set([
-      ...geometry.decorationParts.map((p) => p.decorationId),
-      ...geometry.stones.map((p) => p.decorationId),
-      ...geometry.frames.map((p) => p.decorationId),
-      ...geometry.archGroups.map((p) => p.decorationId),
-      ...geometry.retainedWallUnits.map((p) => p.pickId),
-      ...geometry.woodArchFrames.map((p) => p.decorationId),
-      ...geometry.woodArchPillars.map((p) => p.decorationId)
-    ]);
-    const parts = group.draft.parts.filter((p) => p.support.generator !== "attachmentMount" || accepted.has(p.id));
+    const environment = coreBuildingEnvironment(height, assets);
+    const design = designBuildingCore(group.draft, registry, { environment });
+    const mounts = new Set<string>(WALL_MOUNTS);
+    const rejected = new Set(
+      design.parts.flatMap((p) =>
+        p.identity.kind === "author" && mounts.has(p.type) && !expandUnits(p, registry, { environment }).length
+          ? [p.identity.id]
+          : []
+      )
+    );
+    const parts = group.draft.parts.filter((p) => !rejected.has(p.id));
     const ids = new Set(parts.map((p) => p.id));
-    const draft = {
+    const draft: BuildingCoreDraft = {
       ...group.draft,
       parts,
-      relations: group.draft.relations.filter((r) => ids.has(r.from.part) && ids.has(r.to.part))
+      connections: (group.draft.connections ?? []).filter((c) =>
+        (c.kind === "attach" ? [c.guest, ...c.hosts.map((h) => h.part)] : c.parts).every((id) => ids.has(id))
+      )
     };
-    // Scene nodes own position and orientation. Keep each support in its group's
+    // Scene nodes own position and orientation. Keep each group's footprints in its node's
     // local coordinates, exactly as when a user moves that group in the editor.
     const groupTransforms: NonNullable<BuildingSourceOptions["groupTransforms"]> = {};
-    for (const part of draft.parts) {
-      if (!["wallProfile", "wallStrip"].includes(part.support.generator)) continue;
-      const p = part.support.params;
-      const shape = p.rectangle ?? p.circle;
-      groupTransforms[part.group] = {
-        position: [shape.center[0], 0, shape.center[1]],
-        rotation: [0, (-(p.rectangle ? shape.rotation : shape.phase) * 180) / Math.PI, 0]
+    const local = {
+      groups: [] as BuildingCoreDraft["groups"][number][],
+      parts: [] as BuildingCoreDraft["parts"][number][],
+      connections: draft.connections
+    };
+    for (const g of draft.groups) {
+      const own = draft.parts.filter((p) => p.group === g.id);
+      const shape = buildingFootprints(g, own)[0];
+      const placed = shape?.rectangle ?? shape?.circle;
+      if (!placed) {
+        local.groups.push(g);
+        local.parts.push(...own);
+        continue;
+      }
+      const angle = shape!.rectangle ? shape!.rectangle.rotation : (shape!.circle!.phase ?? 0);
+      groupTransforms[g.id] = {
+        position: [placed.center[0], 0, placed.center[1]],
+        rotation: [0, (-angle * 180) / Math.PI, 0]
       };
-      shape.center = [0, 0];
-      if (p.rectangle) shape.rotation = 0;
-      else shape.phase = 0;
+      // The inverse of the node's transform brings the footprints to the node's origin.
+      const c = Math.cos(angle),
+        s = Math.sin(angle),
+        [x, z] = placed.center;
+      const inverse = [c, 0, -s, 0, 0, 1, 0, 0, s, 0, c, 0, -(c * x + s * z), 0, s * x - c * z, 1];
+      const moved = placeBuildingGroup(g, own, inverse);
+      local.groups.push(moved.group);
+      local.parts.push(...moved.parts);
     }
-    // The attachment node owns its physical Point. Keep the support offset at
-    // zero; design projects the node's position through the host wall chart.
-    const partTransforms: NonNullable<BuildingSourceOptions["partTransforms"]> = {};
-    for (const part of draft.parts) {
-      if (part.support.generator !== "attachmentMount") continue;
-      const host = draft.relations.find((r) => r.from.part === part.id)?.to.part;
-      const wall = draft.parts.find((p) => p.id === host && p.support.generator === "wallProfile");
-      if (!wall) continue;
-      const spec = part.support.params.spec;
-      partTransforms[part.id] = {
-        position: wallMountPoint(wallMountCurve(profileShape(wall.support.params)), spec.u, spec.bottom)
-      };
-      part.support.params.point = [0, 0, 0];
-      delete spec.u;
-      delete spec.bottom;
-    }
-    const source = buildingDraftSource(draft, {
+    const source = buildingDraftSource(local, {
       id: "building-group:" + group.id,
       name: "建筑组",
       position: group.position,
       groupTransforms,
-      partTransforms,
       assetLibrary: library
     });
     result.rootEntities.push(...source.rootEntities);

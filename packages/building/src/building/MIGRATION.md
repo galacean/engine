@@ -20,6 +20,24 @@
 | M4 | 相连的房屋：对等检测、避让、转角砖 | 已完成：多栋房屋放在一个草稿里（`buildCoreHouses`，每栋一个组）。墙与墙的对等检测同时找转角和相交（`wallsTouch`）；规则 `wallJoin` 在转角派生转角石，在两面墙外皮相交处派生一列接缝石（构件 `wallSeam`，铺设算法 `seamStones`，靠近墙角 0.2 m 以内的交点留给转角石）。两个平屋顶顶高相差不超过 2 m 时，女儿墙各自去掉伸进对方的部分（`parapetsJoin`）。挂点落在另一栋房屋外皮以内的挂件不铺设，并报告诊断（`mountHidden`；每面墙带 `outline` 曲线，离挂点最近的那面墙负责）。线上在平屋顶与坡屋顶交界处的垛口被坡屋顶盖住，看不到，不迁移 |
 | M5 | 门窗开洞、老虎窗、拱、尖顶、挂件 | 进行中：墙上的建筑预制件已迁移（Cottage 窗、Cottage 门、壁灯、Gothic 窗、Gothic 门、箭缝窗；构件 `window`、`door`、`lamp`，几何 `houseWallMount`，铺设算法 `placeAtPoints`，attach 规则 `wallOpening` 从所在墙面移除洞口，join 规则 `openingCutsBand` 让腰线避让洞口）。与线上对比：网格、颜色、UV、发光相同，位置偏差 < 3 cm，洞口位置和尺寸相同。转角窗、拱、老虎窗、屋顶舱门、屋顶灯未迁移 |
 
+## 产品切换
+
+产品代码已改用新架构：
+
+- **作者数据：** `BuildingGroupComponent.definition` 是核心组定义（身份、种子、共享值，如房屋轮廓和调色板）；`BuildingPartComponent.definition` 是核心构件定义，`connections` 是这个构件发起的作者连接（依附连接的被依附方、对等连接的第一方）。草案是纯 JSON。
+- **生成器：** `application/European.ts` 提供 `buildHouses`、`buildTower`、`buildWall`、`buildFence`、`buildSteps`，参数沿用原有名字。生成器不需要资源包：预制件的尺寸、洞口和沿墙成员在设计时由资源层查询（`environment.asset`）。
+- **运行时：** `BuildingCpu.ts` 用 `designBuildingCore` 设计，用 `render/CoreBuilding.ts` 准备远景和编译常驻细节；Worker 和主线程运行同一套函数（主线程只用于自定义地形函数和测试）。旧的主线程管线（`BuildingPipeline`）不再使用。
+- **组的放置：** 组节点相对编译框架的水平刚体变换由 `placeBuildingGroup` 套到房屋轮廓和围墙、栅栏的中心线上；构件节点不能单独移动。挂件节点单独移动的功能已取消。
+- **初始村子、面板、Agent 工具：** 已改用新生成器和 `connections`。
+- **测试：** 产品测试已改为新草案；只测试旧功能（通用 Entity/Prefab 单元、挂件节点移动、旧设计身份、构件上的 `regions`）的测试已删除。
+
+尚未完成：
+
+- 屋顶老虎窗、半老虎窗、屋顶舱门、屋顶灯、拱、转角窗、窗框用墙体石材、木墙、高度大于 0 的台基。生成器遇到这些参数时报错，说明尚不支持。初始村子原本给部分房屋加一个屋顶 Gothic 老虎窗，迁移完成前暂不生成。
+- 内置建筑预设（`assets/prefabs/*.prefab`）仍是旧格式，要用新生成器重新生成；`world/tests/seed-world/BuildingSourcePersistence.spec.ts` 依赖它们。
+- 运行时脚本的类型声明（`world/demos/seed-world/systems/runtime-declarations.json`）要按新的公开 API 重新生成。
+- 删除旧路径和对比测试的线上依赖（先冻结基准）。
+
 ## 旧路径（迁移完成后删除）
 
 已确认可由 M1 取代：

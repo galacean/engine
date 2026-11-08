@@ -98,8 +98,15 @@ export const houseWallMountGeometry: GeometryGenerator<WallMountParams> = (p, { 
     offset = chart.uOffset ?? 0,
     s = u - offset;
   const sample = wallChartSampler(chart);
-  const a = sample.at(Math.max(0, s - p.width / 2)),
-    b = sample.at(Math.min(sample.length, s + p.width / 2));
+  // A wall around the whole house wraps around; one side of a house ends at its corners, and
+  // nothing mounted on it may cross them.
+  const along = (v: number) => {
+    if (chart.closed) return sample.at(((v % sample.length) + sample.length) % sample.length);
+    if (v < -1e-6 || v > sample.length + 1e-6) throw Error("The installation crosses a corner of its wall");
+    return sample.at(Math.min(sample.length, Math.max(0, v)));
+  };
+  const a = along(s - p.width / 2),
+    b = along(s + p.width / 2);
   const chord = Math.hypot(b.x - a.x, b.z - a.z) || 1;
   const x: Vec3 = [(b.x - a.x) / chord, 0, (b.z - a.z) / chord];
   const center = sample.at(s).ground + p.bottom + p.height / 2;
@@ -145,9 +152,7 @@ export const houseWallMountGeometry: GeometryGenerator<WallMountParams> = (p, { 
   follows.forEach((follow, i) => {
     const steps = Math.max(2, Math.ceil((follow.to - follow.from) / 0.1));
     const points = Array.from({ length: steps + 1 }, (_, k): Vec3 => {
-      const at = sample.at(
-        Math.min(sample.length, Math.max(0, s + follow.from + ((follow.to - follow.from) * k) / steps))
-      );
+      const at = along(s + follow.from + ((follow.to - follow.from) * k) / steps);
       return [at.x, center + follow.height, at.z];
     });
     elements[`follow${i}`] = { kind: "curve", curve: { points } };
@@ -169,7 +174,7 @@ export const wallOpening: ConnectionRule = ({ guest, hosts }) => {
   const chart = wall && chartOf(wall);
   if (!chart) return { diagnostics: ["wallOpening needs the host wall's chart"] };
   const length = chartLength(chart);
-  if (openings.some((o) => o.rect[0] < -1e-6 || o.rect[2] > length + 1e-6))
+  if (!chart.closed && openings.some((o) => o.rect[0] < -1e-6 || o.rect[2] > length + 1e-6))
     return { diagnostics: [`${guest.key} crosses the end of its wall`] };
   return {
     modify: openings.map((o) => ({

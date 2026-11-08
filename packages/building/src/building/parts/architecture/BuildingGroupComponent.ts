@@ -2,19 +2,20 @@ import { isInGeneratedBuildingOutput } from "../BuildingGeneratedOutput";
 import { buildingAuthorMarker } from "./BuildingAuthorMarker";
 import { Component, Entity, Loader, PrefabResource } from "@galacean/engine";
 import { retainBuildingResource } from "../../resources/BuildingAssetKit";
-import type { BuildingGroup } from "./BuildingDraft";
+import type { BuildingGroupDef } from "../../core";
 import { BuildingManager } from "./BuildingManager";
 
-/** Independent author owner for a building group. Removing a part never removes its settings. */
+/** Independent author owner for a building group: a core group definition (identity, seed,
+ * shared values such as the house shape and palette). Removing a part never removes it. */
 export class BuildingGroupComponent extends Component {
   readonly [buildingAuthorMarker] = true;
-  private _definition: BuildingGroup | null = null;
+  private _definition: BuildingGroupDef | null = null;
   private _frame: Entity | null = null;
   private _assetLibrary: PrefabResource | null = null;
-  get definition(): BuildingGroup | null {
+  get definition(): BuildingGroupDef | null {
     return structuredClone(this._definition);
   }
-  set definition(value: BuildingGroup | null) {
+  set definition(value: BuildingGroupDef | null) {
     this._definition = structuredClone(value);
     this.changed();
   }

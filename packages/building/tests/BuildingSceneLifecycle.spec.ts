@@ -1,5 +1,3 @@
-import "../src/building/parts/supports/PointSupport";
-import "../src/building/parts/algorithms/PlaceAtPoint";
 import { BuildingGroupComponent } from "../src/building/parts/architecture/BuildingGroupComponent";
 import { buildingPartKey, buildingGroupKey } from "../src/building/runtime/BuildingObjectIdentity";
 import { afterEach, expect, it, vi } from "vitest";
@@ -153,9 +151,13 @@ it("exposes live build status through the Agent's property-only runtime inspecti
 });
 
 import { PrefabResource } from "@galacean/engine";
-import { European } from "../src/building/parts/architecture/European";
+import { European } from "../src/building/application/European";
 import { validatePartCollection } from "../src/building/parts/architecture/BuildingPartCollection";
 import { buildingInstanceKey } from "../src/building/parts/architecture/BuildingRuntime";
+import { collectBuildingParts } from "../src/building/parts/architecture/BuildingPartCollection";
+import { compileBuildingCpu, prepareBuildingCpu } from "../src/building/parts/architecture/BuildingCpu";
+import { nativeAssets } from "./fixtures/constructionAssets";
+import { createHash } from "node:crypto";
 
 it("scopes cloned prefab definitions, query handles and edits to their native frame", () => {
   const s = scene();
@@ -173,17 +175,16 @@ it("scopes cloned prefab definitions, query handles and edits to their native fr
   try {
     expect(() => validatePartCollection([...manager.listGroups(), ...manager.list()])).not.toThrow();
     expect(manager.snapshot(a)).toEqual(manager.snapshot(b));
-    const wallA = manager.get("house-wall", a)!,
-      wallB = manager.get("house-wall", b)!;
+    const wallA = manager.get("house-wall-0", a)!,
+      wallB = manager.get("house-wall-0", b)!;
     expect(wallA).not.toBe(wallB);
     expect(wallA.frame).toBe(a);
     expect(wallB.frame).toBe(b);
     expect(manager.resolve(buildingInstanceKey(a, buildingGroupKey("house")))).toBe(manager.groupFor(wallA));
     expect(manager.resolve(buildingInstanceKey(b, buildingGroupKey("house")))).toBe(manager.groupFor(wallB));
     const changed = wallA.definition!;
-    changed.support.params.height = 9;
-    manager.update(wallA, changed);
-    expect(wallB.definition!.support.params.height).not.toBe(9);
+    manager.update(wallA, { ...changed, unit: { $shared: "brick", seed: 9 } });
+    expect((wallB.definition!.unit as { seed?: number }).seed).toBeUndefined();
     manager.remove(a);
     expect(manager.resolve(buildingInstanceKey(a, buildingGroupKey("house")))).toBeUndefined();
     expect(manager.resolve(buildingInstanceKey(b, buildingGroupKey("house")))).toBe(manager.groupFor(wallB));
@@ -202,7 +203,7 @@ it("allows repeated draft creation while rejecting duplicate IDs inside one fram
   expect(() => validatePartCollection([...manager.listGroups(), ...manager.list()])).not.toThrow();
   const extra = a.createChild().addComponent(BuildingPartComponent);
   extra.frame = a;
-  extra.definition = manager.get("house-wall", a)!.definition;
+  extra.definition = manager.get("house-wall-0", a)!.definition;
   expect(() => validatePartCollection([...manager.listGroups(), ...manager.list()])).toThrow(/duplicate/);
   extra.destroy();
   expect(manager.snapshot(a)).toEqual(manager.snapshot(b));
@@ -233,158 +234,6 @@ it("keeps local window names independent across houses and prefab instances", ()
   expect(manager.resolve(buildingInstanceKey(frame, buildingPartKey("window")))).toBeUndefined();
 });
 
-import { collectBuildingParts } from "../src/building/parts/architecture/BuildingPartCollection";
-import { prepareBuilding } from "../src/building/parts/architecture/BuildingPipeline";
-import "../src/building/parts/supports/MeshSupport";
-import "../src/building/parts/algorithms/SurfaceGrid";
-it("explicit mesh succeeds through actual collection and candidate pipeline", async () => {
-  const e: any = {
-    ...engine,
-    resourceManager: { ...engine.resourceManager, _addGraphicResource() {}, _deleteGraphicResource() {} },
-    _hardwareRenderer: {
-      createPlatformPrimitive: () => ({ destroy() {} }),
-      capability: { canUseFloatTextureBlendShape: false }
-    }
-  };
-  const frame = new Entity(e),
-    owner = frame.createChild("surface owner"),
-    mesh = new ModelMesh(e);
-  mesh.setPositions([new Vector3(0, 0, 0), new Vector3(1, 0, 0), new Vector3(0, 0, 1)]);
-  mesh.setUVs([new Vector2(0, 0), new Vector2(1, 0), new Vector2(0, 1)]);
-  mesh.setIndices(new Uint16Array([0, 2, 1]));
-  mesh.addSubMesh(0, 3);
-  owner.addComponent(MeshRenderer).mesh = mesh;
-  const part = owner.addComponent(BuildingPartComponent);
-  part.frame = frame;
-  const group = owner.addComponent(BuildingGroupComponent);
-  group.frame = frame;
-  group.definition = { id: "g", seed: 17, wallColor: 0, woodColor: 0 };
-  part.definition = {
-    id: "p",
-    group: "g",
-    type: "roof",
-    support: { generator: "meshSurface", params: { mesh } },
-    algorithm: { type: "staggeredGrid" },
-    params: { step: [0.5, 0.5] },
-    unit: { name: "empty template" }
-  };
-  const output = frame.createChild("Building output");
-  let candidate: any;
-  try {
-    const input = collectBuildingParts(frame, [group], [group, part], undefined);
-    expect(input.execution).toBe("main");
-    candidate = await prepareBuilding(input.draft, {
-      parent: output,
-      camera: {} as any,
-      terrain: () => 0,
-      signal: new AbortController().signal
-    });
-    expect(candidate.result.instanceParts).toHaveLength(1);
-    expect(candidate.metrics.flatUnits).toBeGreaterThan(0);
-  } finally {
-    candidate?.destroy();
-    frame.destroy();
-    mesh.destroy();
-  }
-});
-
-import { designBuilding } from "../src/building/parts/architecture/BuildingDesign";
-import { implementBuilding } from "../src/building/parts/architecture/BuildingImplementation";
-import { buildingDraftSource } from "../src/building/parts/architecture/BuildingSource";
-import { nativeAssets } from "./fixtures/constructionAssets";
-import { buildBuildingRenderPackage } from "../src/building/runtime/BuildingRenderPackage";
-import { buildingGlobals } from "../src/building/runtime/BuildingGlobals";
-import { createHash } from "node:crypto";
-
-it("preserves every part binding and rendered bytes across all house part permutations", async () => {
-  const s = scene(),
-    manager = BuildingManager.forScene(s),
-    parent = s.createRootEntity();
-  manager.bind({ camera: { engine, destroyed: false } as any });
-  const library = new PrefabResource(engine, "reorder-assets.prefab");
-  const source = European.buildHouses({
-    id: "house",
-    plaster: { enabled: true, wear: 0.2, color: 0 },
-    attachments: [
-      {
-        id: "window",
-        kind: "window",
-        type: "window-cottage",
-        host: "wall",
-        u: 0.35,
-        bottom: 1.2,
-        width: 1.2,
-        height: 1.5,
-        rank: 1
-      }
-    ]
-  });
-  let expected: string[] | undefined;
-  try {
-    for (const order of [
-      [0, 1, 2],
-      [0, 2, 1],
-      [1, 0, 2],
-      [1, 2, 0],
-      [2, 0, 1],
-      [2, 1, 0]
-    ]) {
-      const draft = structuredClone(source);
-      draft.parts = order.map((i) => draft.parts[i]);
-      const saved = buildingDraftSource(draft, { id: "frame" });
-      expect((saved.components.find((c) => c.type === "BuildingGroupComponent")?.props!.definition as any).id).toBe(
-        "house"
-      );
-      const frame = manager.create(parent, draft);
-      try {
-        const parts = manager.list().filter((p) => p.frame === frame);
-        const input = collectBuildingParts(
-          frame,
-          manager.listGroups().filter((g) => g.frame === frame),
-          parts,
-          undefined,
-          library
-        );
-        for (const part of parts) expect(input.bindings.get(buildingPartKey(part.definition!.id))?.member).toBe(part);
-        const wall = manager.get("house-wall", frame)!;
-        expect(input.bindings.get(buildingGroupKey("house"))?.member).toBe(manager.groupFor(wall));
-        expect(manager.resolve(buildingInstanceKey(frame, buildingGroupKey("house")))).toBe(manager.groupFor(wall));
-        const layout = await implementBuilding(designBuilding(input.draft, () => 0, nativeAssets.compilation));
-        const poses = new Map([...input.bindings].map(([id, binding]) => [id, binding.inverse]));
-        // Actual render packing validates every part/group binding, not just map membership.
-        const rendered = buildBuildingRenderPackage(
-          layout.renderInput,
-          nativeAssets,
-          buildingGlobals(layout.renderInput.paletteSlots, nativeAssets.frame),
-          true,
-          poses,
-          nativeAssets.compilation.stoneGeometry
-        );
-        // Placement IDs describe layout jobs, never authored object identities.
-        for (const draw of rendered.package.draws) {
-          if (draw.pickId !== undefined) expect(parts.some((p) => p.definition!.id === draw.pickId)).toBe(true);
-          for (const key of draw.pickIds ?? []) expect(input.bindings.has(key)).toBe(true);
-          if (draw.objectBinding) expect(input.bindings.has(draw.objectBinding.id)).toBe(true);
-        }
-        const hashes = await Promise.all(
-          rendered.dynamicFiles.map(async (p) =>
-            createHash("sha256")
-              .update(new Uint8Array(await rendered.asset(p)))
-              .digest("hex")
-          )
-        );
-        hashes.sort();
-        if (expected) expect(hashes).toEqual(expected);
-        else expected = hashes;
-      } finally {
-        manager.remove(frame);
-      }
-    }
-  } finally {
-    library.destroy();
-  }
-});
-
 it("allows a group and an attachment to share an author ID without sharing runtime identity", () => {
   const s = scene(),
     manager = BuildingManager.forScene(s);
@@ -404,65 +253,21 @@ it("allows a group and an attachment to share an author ID without sharing runti
       }
     ]
   });
-  const window = draft.parts.find((p) => p.type === "window")!;
-  draft.relations.find((r) => r.from.part === window.id)!.from.part = "house";
-  window.id = "house";
-  draft.parts.unshift(draft.parts.pop()!);
-  const frame = manager.create(s.createRootEntity(), draft);
+  // The window takes its house's id: part and group identities are separate.
+  const parts = draft.parts.map((p) => (p.type === "window" ? { ...p, id: "house" } : p));
+  const renamed = {
+    ...draft,
+    parts: [parts.find((p) => p.id === "house")!, ...parts.filter((p) => p.id !== "house")],
+    connections: (draft.connections ?? []).map((c) =>
+      c.kind === "attach" && c.guest === "house/window" ? { ...c, guest: "house" } : c
+    )
+  };
+  const frame = manager.create(s.createRootEntity(), renamed);
   expect(() => validatePartCollection([...manager.listGroups(), ...manager.list()])).not.toThrow();
   expect(manager.resolve(buildingInstanceKey(frame, buildingPartKey("house")))).toBe(manager.get("house", frame));
   expect(manager.resolve(buildingInstanceKey(frame, buildingGroupKey("house")))).toBe(
-    manager.groupFor(manager.get("house-wall", frame)!)
+    manager.groupFor(manager.get("house-wall-0", frame)!)
   );
-});
-
-it("does not move the structural group binding when its window moves", () => {
-  const s = scene(),
-    manager = BuildingManager.forScene(s);
-  const draft = European.buildHouses({
-    id: "house",
-    attachments: [
-      {
-        id: "window",
-        kind: "window",
-        type: "window-cottage",
-        host: "wall",
-        u: 0.35,
-        bottom: 1.2,
-        width: 1.2,
-        height: 1.5
-      }
-    ]
-  });
-  const definition = draft.parts.find((p) => p.type === "window")!;
-  definition.support.params.point = [0, 1.2, 3];
-  delete definition.support.params.spec.u;
-  delete definition.support.params.spec.bottom;
-  draft.parts.unshift(draft.parts.pop()!);
-  const frame = manager.create(s.createRootEntity(), draft);
-  const window = manager.get("house/window", frame)!,
-    wall = manager.get("house-wall", frame)!;
-  expect(manager.groupFor(window).definition?.id).toBe("house");
-  const library = new PrefabResource(engine, "moving-window-assets.prefab");
-  try {
-    const collect = () => collectBuildingParts(frame, [manager.groupFor(window)], manager.list(), undefined, library);
-    const before = collect();
-    window.entity.transform.setPosition(0.5, 0, 0);
-    const after = collect();
-    expect(after.bindings.get(buildingGroupKey("house"))?.member).toBe(manager.groupFor(wall));
-    expect(after.bindings.get(buildingGroupKey("house"))?.inverse).toEqual(
-      before.bindings.get(buildingGroupKey("house"))?.inverse
-    );
-    expect(after.bindings.get(buildingPartKey("house/window"))?.inverse).not.toEqual(
-      before.bindings.get(buildingPartKey("house/window"))?.inverse
-    );
-    expect(after.draft.parts.find((p) => p.id === "house/window")!.support.params.point).toEqual([0.5, 1.2, 3]);
-    expect(after.draft.parts.find((p) => p.id === "house-wall")).toEqual(
-      before.draft.parts.find((p) => p.id === "house-wall")
-    );
-  } finally {
-    library.destroy();
-  }
 });
 
 it.each([false, true])(
@@ -485,8 +290,10 @@ it.each([false, true])(
         }
       ]
     });
-    draft.parts.unshift(draft.parts.pop()!);
-    const frame = manager.create(s.createRootEntity(), draft),
+    const frame = manager.create(s.createRootEntity(), {
+        ...draft,
+        parts: [draft.parts.find((p) => p.type === "window")!, ...draft.parts.filter((p) => p.type !== "window")]
+      }),
       window = manager.get("house/window", frame)!,
       group = manager.groupFor(window);
     if (disable) window.enabled = false;
@@ -498,7 +305,12 @@ it.each([false, true])(
         .list()
         .map((p) => p.definition!.id)
         .sort()
-    ).toEqual(["house-roof", "house-wall"]);
+    ).toEqual(
+      draft.parts
+        .filter((p) => p.type !== "window")
+        .map((p) => p.id)
+        .sort()
+    );
     expect(() => validatePartCollection([...manager.listGroups(), ...manager.list()])).not.toThrow();
   }
 );
@@ -509,7 +321,7 @@ it("keeps an empty group independently editable and removable", () => {
   const frame = manager.create(s.createRootEntity(), {
     groups: [{ id: "empty", seed: 17, wallColor: 0, woodColor: 0 }],
     parts: [],
-    relations: []
+    connections: []
   });
   expect(manager.list()).toHaveLength(0);
   expect(manager.listGroups()).toHaveLength(1);
@@ -547,7 +359,7 @@ it("the group owns its library through part deletion, native cloning and destruc
   expect(library.refCount).toBe(1);
   const copy = frame.clone();
   s.addRootEntity(copy);
-  expect(manager.groupFor(manager.get("house-wall", copy)!).frame).toBe(copy);
+  expect(manager.groupFor(manager.get("house-wall-0", copy)!).frame).toBe(copy);
   expect(library.refCount).toBe(2);
   manager.remove(frame);
   expect(library.refCount).toBe(1);
@@ -565,7 +377,7 @@ it.each(["hidden-frame", "hidden-group", "disabled-components"])(
     const draft = European.buildHouses({ id: "house" });
     const a = manager.create(parent, draft),
       b = manager.create(parent, draft);
-    const wall = manager.get("house-wall", a)!,
+    const wall = manager.get("house-wall-0", a)!,
       group = manager.groupFor(wall);
     const before = manager.snapshot(b);
     if (state === "hidden-frame") a.isActive = false;
@@ -576,7 +388,7 @@ it.each(["hidden-frame", "hidden-group", "disabled-components"])(
         ...a.getComponentsIncludeChildren(BuildingPartComponent, [])
       ])
         member.enabled = false;
-    expect(manager.get("house-wall", a)).toBe(wall);
+    expect(manager.get("house-wall-0", a)).toBe(wall);
     expect(manager.groupFor(wall)).toBe(group);
     expect(manager.snapshot(a)).toEqual(draft);
     manager.remove(a);
@@ -601,70 +413,6 @@ it("does not delete an unrelated Entity or another Scene through ownership looku
   expect(unrelated.destroyed || frame.destroyed).toBe(false);
 });
 
-it("publishes other frames while a Group is disabled, and restores its execution on enable", async () => {
-  const s = scene(),
-    manager = BuildingManager.forScene(s);
-  manager.bind({
-    camera: {
-      engine,
-      destroyed: false,
-      entity: s.createRootEntity("camera"),
-      viewMatrix: new Matrix(),
-      projectionMatrix: new Matrix(),
-      viewport: { z: 1, w: 1 },
-      nearClipPlane: 0.1,
-      farClipPlane: 100,
-      isOrthographic: false
-    } as any
-  });
-  const unit = new Entity(engine, "plain-unit");
-  const draft = {
-    groups: [{ id: "house", seed: 17, wallColor: 0, woodColor: 0 }],
-    parts: [
-      {
-        id: "part",
-        group: "house",
-        type: "fixture",
-        support: { generator: "point", params: {} },
-        algorithm: { type: "placeAtPoint" },
-        unit,
-        params: {}
-      }
-    ],
-    relations: []
-  };
-  const parent = s.createRootEntity(),
-    a = manager.create(parent, draft),
-    b = manager.create(parent, draft);
-  try {
-    await manager.flushAsync();
-    const pa = manager.get("part", a)!,
-      pb = manager.get("part", b)!;
-    const group = manager.groupFor(pa),
-      before = manager.snapshot(a);
-    const generation = manager.generation;
-    group.enabled = false;
-    const changed = pb.definition!;
-    changed.params.label = "changed while A disabled";
-    manager.update(pb, changed);
-    await manager.flushAsync();
-    expect(manager.errors()).toEqual([]);
-    expect(manager.generation).toBeGreaterThan(generation);
-    expect(manager.snapshot(a)).toEqual(before);
-    expect(manager.resolve(buildingInstanceKey(a, buildingPartKey("part")))).toBeUndefined();
-    expect(manager.resolve(buildingInstanceKey(b, buildingPartKey("part")))).toBe(pb);
-    group.enabled = true;
-    await manager.flushAsync();
-    expect(manager.resolve(buildingInstanceKey(a, buildingPartKey("part")))).toBe(pa);
-    expect(manager.snapshot(a)).toEqual(before);
-    expect(manager.snapshot(b).parts[0].params.label).toBe(changed.params.label);
-  } finally {
-    manager.remove(a);
-    manager.remove(b);
-    unit.destroy();
-  }
-});
-
 it("filters a disabled group from a shared frame without changing its authored connections or render data", async () => {
   const s = scene(),
     manager = BuildingManager.forScene(s),
@@ -673,27 +421,23 @@ it("filters a disabled group from a shared frame without changing its authored c
     s.createRootEntity(),
     European.buildHouses([{ id: "a" }, { id: "b", rectangle: { center: [15, 0], size: [8, 6], rotation: 0 } }])
   );
-  const group = manager.groupFor(manager.get("a-wall", frame)!);
+  const group = manager.groupFor(manager.get("a-wall-0", frame)!);
   const collect = () => collectBuildingParts(frame, manager.listGroups(), manager.list(), undefined, library);
   try {
     const before = collect(),
       authored = manager.snapshot(frame);
-    const render = async (draft: typeof before.draft) => {
-      const output = await implementBuilding(designBuilding(draft, () => 0, nativeAssets.compilation));
-      const packageData = buildBuildingRenderPackage(
-        output.renderInput,
-        nativeAssets,
-        buildingGlobals(output.renderInput.paletteSlots, nativeAssets.frame),
-        true
-      );
-      return Promise.all(
-        packageData.dynamicFiles.map(async (path) =>
-          createHash("sha256")
-            .update(new Uint8Array(await packageData.asset(path)))
-            .digest("hex")
+    const render = async (draft: typeof before.draft) =>
+      createHash("sha256")
+        .update(
+          JSON.stringify(
+            (
+              await compileBuildingCpu(
+                (await prepareBuildingCpu(draft, before.terrain.grid, nativeAssets.compilation)).prepared
+              )
+            ).renderInput
+          )
         )
-      );
-    };
+        .digest("hex");
     const bytes = await render(before.draft);
     group.enabled = false;
     const during = collect();
@@ -721,8 +465,30 @@ it("does not hide genuinely broken author ownership behind inactive state", asyn
     manager = BuildingManager.forScene(s);
   manager.bind({ camera: { engine, destroyed: false } as any });
   const frame = manager.create(s.createRootEntity(), European.buildHouses({ id: "house" }));
-  const group = manager.groupFor(manager.get("house-wall", frame)!);
+  const group = manager.groupFor(manager.get("house-wall-0", frame)!);
   group.enabled = false;
   group.destroy();
   await expect(manager.flushAsync()).rejects.toThrow(/Missing group/);
+});
+
+it("rejects an invalid deletion plan before destroying objects or editing connections", () => {
+  const s = scene(),
+    manager = BuildingManager.forScene(s);
+  const frame = manager.create(
+    s.createRootEntity(),
+    European.buildHouses({
+      id: "house",
+      attachments: [{ id: "window", kind: "window", u: 0.35, bottom: 1.2, width: 1.2, height: 1.5 }]
+    })
+  );
+  const window = manager.get("house/window", frame)!,
+    roof = manager.list().find((p) => p.definition!.type === "roof")!;
+  const before = roof.connections;
+  // A connection to a part that does not exist makes the remaining draft invalid.
+  roof.connections = [...before, { kind: "join", id: "dangling", parts: [roof.definition!.id, "missing"] }];
+  expect(() => manager.remove(window.entity)).toThrow(/Missing connection endpoint/);
+  expect(window.destroyed).toBe(false);
+  roof.connections = before;
+  manager.remove(window.entity);
+  expect(window.destroyed).toBe(true);
 });

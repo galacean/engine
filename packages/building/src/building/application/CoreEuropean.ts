@@ -107,6 +107,46 @@ export function buildCoreFence(p: CoreStripParameters): BuildingCoreDraft {
   };
 }
 
+/** A flight of steps: its foot on the ground, the direction it climbs and its steps. */
+export interface CoreStepsParameters {
+  id: string;
+  seed?: number;
+  width: number;
+  rise: number;
+  run: number;
+  count: number;
+  position?: [number, number, number];
+  rotation?: number;
+  color?: number;
+}
+/** A flight of solid brick steps. */
+export function buildCoreSteps(p: CoreStepsParameters): BuildingCoreDraft {
+  return {
+    groups: [{ id: p.id, seed: p.seed ?? 17, shared: { appearance: { wall: p.color ?? 0 } } }],
+    parts: [
+      {
+        id: `${p.id}-steps`,
+        group: p.id,
+        type: "steps",
+        geometry: {
+          generator: "stepFlight",
+          params: {
+            position: p.position ?? [0, 0, 0],
+            rotation: p.rotation ?? 0,
+            width: p.width,
+            rise: p.rise,
+            run: p.run,
+            count: p.count
+          }
+        },
+        algorithm: { type: "stepBlocks", params: { width: p.width, rise: p.rise, run: p.run, count: p.count } },
+        // A block takes the size of its step.
+        unit: { source: "brick", bounds: CUBE, range: { min: [0, 0, 0], max: [1e6, 1e6, 1e6] } }
+      }
+    ]
+  };
+}
+
 export interface CoreHouseParameters {
   id: string;
   seed?: number;
@@ -117,6 +157,10 @@ export interface CoreHouseParameters {
   footprint?: MaterialFootprint;
   /** Wall laying: our masonry (default) or regular grid courses. */
   walls?: "masonry" | "grid";
+  /** Course rule of grid walls. Default: staggered rows. */
+  wallRule?: "staggered_rows" | "overlap_rows" | "parallel_rows" | "horizontal_rows";
+  /** Unit the roof is laid with: tiles (default), or planks or bricks, as on a flat deck. */
+  roofUnit?: "roof_tile" | "wooden_plank" | "brick";
   /** Prefabs mounted on the walls: windows, doors and wall lamps. `u` is a fraction of the
    * perimeter, `bottom` the height above the wall's base, `width` and `height` the
    * installation size; the type defaults by kind. */
@@ -221,7 +265,7 @@ export function buildCoreHouse(p: CoreHouseParameters): BuildingCoreDraft {
   // Masonry scales against the brick prototype; one course seed for the whole house, so the
   // walls continue each other's courses.
   const courses = grid
-    ? { type: "gridCourses", params: { rule: "staggered_rows", footprint: unit } }
+    ? { type: "gridCourses", params: { rule: p.wallRule ?? "staggered_rows", footprint: unit } }
     : { type: "masonryCourses", params: { courseSeed: seed } };
   // Every part reads the house, the brick and the courses from the group, so the draft
   // stores each of them once.
@@ -378,7 +422,7 @@ export function buildCoreHouse(p: CoreHouseParameters): BuildingCoreDraft {
           // Palette entries the renderer colors the house with.
           appearance: { wall: p.wallColor ?? 0, roof: roofParams.color, wood: p.woodColor ?? 0 },
           tile: {
-            source: "roof_tile",
+            source: p.roofUnit ?? "roof_tile",
             bounds: CUBE,
             scale: [unit.width, unit.height, unit.depth],
             // Measured over 324 roofs: tiles narrow toward a hip top and run 1.1–2 units long;

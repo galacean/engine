@@ -230,7 +230,17 @@
     "./building/runtime/ProfileParameters": "./src/building/runtime/ProfileParameters.ts",
     "./building/runtime/ProfilePreview": "./src/building/runtime/ProfilePreview.ts",
     "./building/runtime/TerrainField": "./src/building/runtime/TerrainField.ts",
-    "./building/runtime/WallMountGeometry": "./src/building/runtime/WallMountGeometry.ts"
+    "./building/runtime/WallMountGeometry": "./src/building/runtime/WallMountGeometry.ts",
+    "./building/core/index": "./src/building/core/index.ts",
+    "./building/partTypes/index": "./src/building/partTypes/index.ts",
+    "./building/partTypes/House": "./src/building/partTypes/House.ts",
+    "./building/partTypes/Openings": "./src/building/partTypes/Openings.ts",
+    "./building/partTypes/Roof": "./src/building/partTypes/Roof.ts",
+    "./building/partTypes/Strip": "./src/building/partTypes/Strip.ts",
+    "./building/render/CoreBuilding": "./src/building/render/CoreBuilding.ts",
+    "./building/application/European": "./src/building/application/European.ts",
+    "./building/application/CoreEuropean": "./src/building/application/CoreEuropean.ts",
+    "./building/parts/architecture/BuildingCpu": "./src/building/parts/architecture/BuildingCpu.ts"
   },
   "scripts": {},
   "dependencies": {

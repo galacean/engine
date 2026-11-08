@@ -71,6 +71,7 @@ const FAMILIES: Readonly<Record<string, Family>> = {
   freeWall: "enclosure",
   fencePost: "enclosure",
   fenceRail: "enclosure",
+  steps: "enclosure",
   wall: "wall",
   cornerStone: "wall",
   wallSeam: "wall",
