@@ -15,6 +15,7 @@ import {
   ScreenSpaceReflectionPass,
   ScreenSpaceReflectionReceiverMode
 } from "../lighting/screenSpaceReflection";
+import { ScreenSpaceReflectionConfig } from "../lighting/screenSpaceReflection/ScreenSpaceReflectionConfig";
 import type { Material } from "../material";
 import { FinalPass } from "../postProcess";
 import { Shader } from "../shader/Shader";
@@ -59,6 +60,12 @@ export class BasicRenderPipeline {
     [RenderStateElementKey.DepthStateWriteEnabled]: true,
     [RenderStateElementKey.DepthStateCompareFunction]: CompareFunction.LessEqual
   } as RenderStateElementMap;
+  /** Multisampled Forward depth is resolved by sub-sample, so the pixel-centre receiver needs a slope tolerance. */
+  private static readonly _screenSpaceReflectionMsaaSurfaceStates = {
+    ...BasicRenderPipeline._screenSpaceReflectionSurfaceStates,
+    [RenderStateElementKey.RasterStateDepthBias]: ScreenSpaceReflectionConfig.msaaSurfaceDepthBias,
+    [RenderStateElementKey.RasterStateSlopeScaledDepthBias]: ScreenSpaceReflectionConfig.msaaSurfaceSlopeScaledDepthBias
+  } as RenderStateElementMap;
 
   /** @internal */
   _cullingResults: CullingResults;
@@ -78,6 +85,12 @@ export class BasicRenderPipeline {
       cache.set(material, eligible);
     }
     return eligible;
+  }
+
+  private static _getScreenSpaceReflectionSurfaceStates(forwardTarget: RenderTarget): RenderStateElementMap {
+    return forwardTarget.antiAliasing > 1
+      ? BasicRenderPipeline._screenSpaceReflectionMsaaSurfaceStates
+      : BasicRenderPipeline._screenSpaceReflectionSurfaceStates;
   }
 
   private _camera: Camera;
@@ -649,6 +662,7 @@ export class BasicRenderPipeline {
           );
           if (screenSpaceReflectionCaptured) {
             let opaqueSurfaceDrawCount: number;
+            const surfaceStates = BasicRenderPipeline._getScreenSpaceReflectionSurfaceStates(internalColorTarget);
             try {
               opaqueSurfaceDrawCount =
                 opaqueQueue.render(
@@ -659,7 +673,7 @@ export class BasicRenderPipeline {
                     this._isScreenSpaceReflectionReceiver(material, RenderQueueType.Opaque) &&
                     this._isScreenSpaceReflectionElementMaskSafe(element, RenderQueueType.Opaque),
                   false,
-                  BasicRenderPipeline._screenSpaceReflectionSurfaceStates
+                  surfaceStates
                 ) +
                 alphaTestQueue.render(
                   context,
@@ -669,7 +683,7 @@ export class BasicRenderPipeline {
                     this._isScreenSpaceReflectionReceiver(material, RenderQueueType.AlphaTest) &&
                     this._isScreenSpaceReflectionElementMaskSafe(element, RenderQueueType.AlphaTest),
                   false,
-                  BasicRenderPipeline._screenSpaceReflectionSurfaceStates
+                  surfaceStates
                 );
             } finally {
               screenSpaceReflectionPass.endSurface();
@@ -750,7 +764,7 @@ export class BasicRenderPipeline {
                 this._isScreenSpaceReflectionReceiver(material, RenderQueueType.Transparent) &&
                 this._isScreenSpaceReflectionElementMaskSafe(element, RenderQueueType.Transparent),
               false,
-              BasicRenderPipeline._screenSpaceReflectionSurfaceStates
+              BasicRenderPipeline._getScreenSpaceReflectionSurfaceStates(internalColorTarget!)
             );
           } finally {
             screenSpaceReflectionPass.endSurface();
@@ -850,7 +864,7 @@ export class BasicRenderPipeline {
     }
   }
 
-  /** Receiver surfaces have no stencil attachment, so masked/stencil elements fail closed. */
+  /** Receiver surfaces do not copy Forward stencil contents, so masked/stencil elements fail closed. */
   private _isScreenSpaceReflectionElementMaskSafe(
     renderElement: RenderElement,
     renderQueueType: RenderQueueType

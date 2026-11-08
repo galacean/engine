@@ -167,7 +167,6 @@ export class ScreenSpaceReflectionPass {
     }
 
     const effective = screenSpaceReflection._beginFrame(reason === null, reason);
-    camera.screenSpaceReflection._unpublish();
     if (!effective) this.release();
     return effective;
   }
@@ -251,7 +250,7 @@ export class ScreenSpaceReflectionPass {
     if (!material) return false;
 
     try {
-      this._configureTargets(camera, colorTarget);
+      this._configureTargets(colorTarget);
 
       const sceneColorTarget = this._sceneColorTarget!;
       const surfaceTarget = this._surfaceTarget!;
@@ -622,7 +621,7 @@ export class ScreenSpaceReflectionPass {
     return this._material;
   }
 
-  private _configureTargets(camera: Camera, colorTarget: RenderTarget): void {
+  private _configureTargets(colorTarget: RenderTarget): void {
     // The RenderTarget fields can retain a fractional camera pixelViewport even
     // though WebGL storage is GLsizei. Mirror the actual integer storage rather
     // than deriving a second, phase-shifted grid from camera.pixelViewport.
@@ -633,7 +632,7 @@ export class ScreenSpaceReflectionPass {
       : ScreenSpaceReflectionReceiverMode.TransparentSampleOnly;
     const sceneColor = colorTarget.getColorTexture(0) as Texture2D;
     const sceneFormat = sceneColor.format;
-    this._traceFormat = camera.enableHDR ? TextureFormat.R16G16B16A16 : TextureFormat.R8G8B8A8;
+    this._traceFormat = this._resolveTraceFormat();
 
     // Preserve full-resolution scene color and receiver coverage for compositing.
     // Trace, optional blur and reconstruction follow the phase-local budget.
@@ -672,6 +671,19 @@ export class ScreenSpaceReflectionPass {
     (this._surfaceTarget.depthTexture as Texture2D).filterMode = TextureFilterMode.Point;
     this._surfaceTexelSize.set(1 / fullWidth, 1 / fullHeight, fullWidth, fullHeight);
     this._updateResourcePeaks();
+  }
+
+  /**
+   * Trace stores linear, confidence-premultiplied radiance, so an 8-bit buffer quantizes dark reflections
+   * regardless of the camera's output range. Use half float wherever it is renderable and filterable.
+   */
+  private _resolveTraceFormat(): TextureFormat {
+    const rhi = this._engine._hardwareRenderer;
+    return rhi.canIUse(GLCapabilityType.colorBufferHalfFloat) &&
+      rhi.canIUse(GLCapabilityType.textureHalfFloat) &&
+      rhi.canIUse(GLCapabilityType.textureHalfFloatLinear)
+      ? TextureFormat.R16G16B16A16
+      : TextureFormat.R8G8B8A8;
   }
 
   private _configurePhaseTraceTarget(

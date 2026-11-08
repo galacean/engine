@@ -27,6 +27,10 @@ beforeAll(async () => {
 });
 afterAll(() => engine.destroy());
 
+/** Silhouette pixels of a multisampled target legitimately contain receiver samples; interior ones never do. */
+const INTERIOR_RADIUS = 2;
+const MSAA_EDGE_BAND_LIMIT = 120;
+
 /** Count occluder pixels whose colour changes when SSR is enabled; the occluder is not a receiver. */
 function countAlteredOccluderPixels(
   cubeCenterY: number,
@@ -35,7 +39,7 @@ function countAlteredOccluderPixels(
   upsamplingMode = Upsampling.Bilinear,
   depthFormat = TextureFormat.Depth24,
   samples = 1
-): number {
+): { altered: number; interior: number } {
   const scene = new Scene(engine);
   engine.sceneManager.activeScene = scene;
   scene.background.solidColor = new Color(0.6, 0.55, 0.65, 1);
@@ -87,8 +91,17 @@ function countAlteredOccluderPixels(
   const on = render();
 
   let altered = 0;
+  let interior = 0;
   let reflected = 0;
   let occluderPixels = 0;
+  const occluderAt = (x: number, y: number) =>
+    x >= 0 && y >= 0 && x < SIZE && y < SIZE && Math.abs(mask[(y * SIZE + x) * 4] - mask[(y * SIZE + x) * 4 + 2]) > 40;
+  const isInterior = (x: number, y: number) => {
+    for (let dy = -INTERIOR_RADIUS; dy <= INTERIOR_RADIUS; dy++) {
+      for (let dx = -INTERIOR_RADIUS; dx <= INTERIOR_RADIUS; dx++) if (!occluderAt(x + dx, y + dy)) return false;
+    }
+    return true;
+  };
   for (let i = 0; i < SIZE * SIZE; i++) {
     const isOccluder = Math.abs(mask[i * 4] - mask[i * 4 + 2]) > 40;
     const delta =
@@ -97,7 +110,10 @@ function countAlteredOccluderPixels(
       Math.abs(on[i * 4 + 2] - off[i * 4 + 2]);
     if (isOccluder) {
       occluderPixels++;
-      if (delta > 6) altered++;
+      if (delta > 6) {
+        altered++;
+        if (isInterior(i % SIZE, Math.floor(i / SIZE))) interior++;
+      }
     } else if (delta > 20) reflected++;
   }
   console.info(JSON.stringify({ resolutionScale, upsamplingMode, altered, reflected }));
@@ -107,23 +123,23 @@ function countAlteredOccluderPixels(
   ).toBe(0);
   expect(occluderPixels).toBeGreaterThan(1000);
   scene.destroy();
-  return altered;
+  return { altered, interior };
 }
 
 it("does not composite a hidden receiver's reflection onto an occluder that touches it", () => {
   const contactCenterY = CUBE_SIZE / 2;
   // Contact edge: only isolated silhouette pixels may differ, never a band across the base.
-  expect(countAlteredOccluderPixels(contactCenterY, 0.2)).toBeLessThan(30);
+  expect(countAlteredOccluderPixels(contactCenterY, 0.2).altered).toBeLessThan(30);
   // The result must not depend on the hit-thickness setting.
-  expect(countAlteredOccluderPixels(contactCenterY, 0.02)).toBeLessThan(30);
+  expect(countAlteredOccluderPixels(contactCenterY, 0.02).altered).toBeLessThan(30);
   // Floating occluder stays untouched.
-  expect(countAlteredOccluderPixels(contactCenterY + 0.35, 0.2)).toBe(0);
+  expect(countAlteredOccluderPixels(contactCenterY + 0.35, 0.2).altered).toBe(0);
 });
 
 for (const resolutionScale of [0.5, 0.25]) {
   for (const upsamplingMode of [Upsampling.Bilinear, Upsampling.Bilateral]) {
     it(`keeps occluders unchanged at scale ${resolutionScale}, reconstruction ${upsamplingMode}`, () => {
-      const altered = countAlteredOccluderPixels(CUBE_SIZE / 2, 0.2, resolutionScale, upsamplingMode);
+      const { altered } = countAlteredOccluderPixels(CUBE_SIZE / 2, 0.2, resolutionScale, upsamplingMode);
       console.info(JSON.stringify({ resolutionScale, upsamplingMode, altered }));
       expect(altered).toBeLessThan(30);
     });
@@ -132,6 +148,15 @@ for (const resolutionScale of [0.5, 0.25]) {
 
 for (const depthFormat of [TextureFormat.Depth24, TextureFormat.Depth24Stencil8]) {
   it(`preserves reflection and occlusion with MSAA and depth format ${depthFormat}`, () => {
-    expect(countAlteredOccluderPixels(CUBE_SIZE / 2, 0.2, 0.5, Upsampling.Bilateral, depthFormat, 4)).toBeLessThan(30);
+    const { altered, interior } = countAlteredOccluderPixels(
+      CUBE_SIZE / 2,
+      0.2,
+      0.5,
+      Upsampling.Bilateral,
+      depthFormat,
+      4
+    );
+    expect(interior).toBe(0);
+    expect(altered).toBeLessThan(MSAA_EDGE_BAND_LIMIT);
   });
 }

@@ -48,7 +48,8 @@ export function getPlantShaderPreparationPasses(
     reflection.activationMode !== ScreenSpaceReflectionActivationMode.ForceOff &&
     (ScreenSpaceReflection.isMaterialReceiver(material) ||
       (reflection.receiverPolicy === ScreenSpaceReflectionReceiverPolicy.StandardPbrAuto &&
-        material.shader.name === "PBR" &&
+        material.shader.subShaders[0]?.getTagValue(ScreenSpaceReflection.MATERIAL_AUTO_RECEIVER_TAG) ===
+          ScreenSpaceReflection.MATERIAL_AUTO_RECEIVER_CONTRACT &&
         ScreenSpaceReflection.getMaterialReceiverCapability(material).supported));
   const prepareSurface =
     surfaceCandidate &&

@@ -3,7 +3,6 @@ import {
   CameraClearFlags,
   Color,
   CompareFunction,
-  Material,
   MeshRenderer,
   PBRMaterial,
   PrimitiveMesh,
@@ -97,88 +96,131 @@ it("records SSR stages and compares the old and new Surface depth policies", asy
     const beginSurface = pass.beginSurface;
     const copyDepth = rhi.blitInternalRTByBlitFrameBuffer;
     const clear = rhi.clearRenderTarget;
+    const surfaceStates = pipeline.constructor._screenSpaceReflectionSurfaceStates;
+    const originalStates = { ...surfaceStates };
+    const originalProfiler = camera.screenSpaceReflection.profiler;
+    const pendingQueries = new Set<WebGLQuery>();
+    let activeQuery: WebGLQuery | null = null;
     const reports: object[] = [];
-    for (let i = 0; i < 40; i++) {
-      engine.update();
-      await new Promise((resolve) => setTimeout(resolve, 0));
-    }
-    for (const policy of [
-      "independent-depth",
-      "opaque-depth-copy",
-      "opaque-depth-copy",
-      "independent-depth"
-    ] as const) {
-      // Controlled counterfactual: reproduce the old empty Surface depth policy, keeping all other fixes identical.
-      pass.beginSurface = function (...args) {
-        if (policy === "opaque-depth-copy") return Reflect.apply(beginSurface, this, args);
-        rhi.blitInternalRTByBlitFrameBuffer = () => {};
-        rhi.clearRenderTarget = (...clearArgs) => {
-          clearArgs[1] = CameraClearFlags.ColorDepth;
-          Reflect.apply(clear, rhi, clearArgs);
-        };
-        try {
-          return Reflect.apply(beginSurface, this, args);
-        } finally {
-          rhi.blitInternalRTByBlitFrameBuffer = copyDepth;
-          rhi.clearRenderTarget = clear;
-        }
-      };
-      pipeline.constructor._screenSpaceReflectionSurfaceStates[RenderStateElementKey.DepthStateCompareFunction] =
-        policy === "independent-depth" ? CompareFunction.Less : CompareFunction.LessEqual;
-      for (let i = 0; i < 3; i++) engine.update();
-      const samples: { stage: string; cpu: number; query: WebGLQuery | null; gpu?: number }[] = [];
-      let current: (typeof samples)[number];
-      let start = 0;
-      camera.screenSpaceReflection.profiler = {
-        beginSample(stage) {
-          current = { stage, cpu: 0, query: extension ? gl.createQuery() : null };
-          if (current.query) gl.beginQuery(extension!.TIME_ELAPSED_EXT, current.query);
-          start = performance.now();
-        },
-        endSample() {
-          current.cpu = performance.now() - start;
-          if (current.query) gl.endQuery(extension!.TIME_ELAPSED_EXT);
-          samples.push(current);
-        }
-      };
-      for (let i = 0; i < FRAMES; i++) {
+    try {
+      for (let i = 0; i < 40; i++) {
         engine.update();
         await new Promise((resolve) => setTimeout(resolve, 0));
       }
-      camera.screenSpaceReflection.profiler = null;
-      const metrics = { ...camera.screenSpaceReflection.metrics };
-      if (extension) {
-        for (
-          let attempt = 0;
-          attempt < 100 && samples.some((s) => s.query && !gl.getQueryParameter(s.query, gl.QUERY_RESULT_AVAILABLE));
-          attempt++
-        )
-          await new Promise((resolve) => setTimeout(resolve, 10));
-        const disjoint = gl.getParameter(extension.GPU_DISJOINT_EXT);
-        for (const sample of samples) {
-          if (sample.query && !disjoint && gl.getQueryParameter(sample.query, gl.QUERY_RESULT_AVAILABLE))
-            sample.gpu = gl.getQueryParameter(sample.query, gl.QUERY_RESULT) / 1e6;
-          if (sample.query) gl.deleteQuery(sample.query);
-        }
-      }
-      const stages = [...new Set(samples.map((s) => s.stage))].map((stage) => {
-        const rows = samples.filter((s) => s.stage === stage);
-        return {
-          stage,
-          samples: rows.length,
-          cpuMs: rows.reduce((sum, s) => sum + s.cpu, 0) / rows.length,
-          gpuMs: rows.every((s) => s.gpu !== undefined) ? rows.reduce((sum, s) => sum + s.gpu!, 0) / rows.length : null
+      for (const policy of [
+        "independent-depth",
+        "opaque-depth-copy",
+        "opaque-depth-copy",
+        "independent-depth"
+      ] as const) {
+        // Controlled counterfactual: reproduce the old empty Surface depth policy, keeping all other fixes identical.
+        pass.beginSurface = function (...args) {
+          if (policy === "opaque-depth-copy") return Reflect.apply(beginSurface, this, args);
+          rhi.blitInternalRTByBlitFrameBuffer = () => {};
+          rhi.clearRenderTarget = (...clearArgs) => {
+            clearArgs[1] = CameraClearFlags.ColorDepth;
+            Reflect.apply(clear, rhi, clearArgs);
+          };
+          try {
+            return Reflect.apply(beginSurface, this, args);
+          } finally {
+            rhi.blitInternalRTByBlitFrameBuffer = copyDepth;
+            rhi.clearRenderTarget = clear;
+          }
         };
-      });
-      reports.push({
-        policy,
-        frames: FRAMES,
-        stages,
-        metrics,
-        samples: samples.map(({ stage, cpu, gpu }) => ({ stage, cpu, gpu }))
-      });
+        pipeline.constructor._screenSpaceReflectionSurfaceStates[RenderStateElementKey.DepthStateCompareFunction] =
+          policy === "independent-depth" ? CompareFunction.Less : CompareFunction.LessEqual;
+        for (let i = 0; i < 3; i++) engine.update();
+        const samples: { stage: string; cpu: number; query: WebGLQuery | null; gpu?: number }[] = [];
+        let current: (typeof samples)[number] | undefined;
+        let start = 0;
+        camera.screenSpaceReflection.profiler = {
+          beginSample(stage) {
+            expect(current, "profiler scopes must not overlap").toBeUndefined();
+            current = { stage, cpu: 0, query: extension ? gl.createQuery() : null };
+            if (current.query) {
+              pendingQueries.add(current.query);
+              activeQuery = current.query;
+              gl.beginQuery(extension!.TIME_ELAPSED_EXT, current.query);
+            }
+            start = performance.now();
+          },
+          endSample() {
+            expect(current, "endSample must have a matching beginSample").toBeDefined();
+            const sample = current!;
+            sample.cpu = performance.now() - start;
+            if (sample.query) gl.endQuery(extension!.TIME_ELAPSED_EXT);
+            activeQuery = null;
+            samples.push(sample);
+            current = undefined;
+          }
+        };
+        for (let i = 0; i < FRAMES; i++) {
+          engine.update();
+          await new Promise((resolve) => setTimeout(resolve, 0));
+        }
+        camera.screenSpaceReflection.profiler = null;
+        const metrics = { ...camera.screenSpaceReflection.metrics };
+        expect(current, "all profiler scopes must be closed after a frame").toBeUndefined();
+        expect(metrics.effective).toBe(true);
+        expect(metrics.tracePassCount).toBeGreaterThan(0);
+        expect(metrics.contributionColorDrawCount).toBeGreaterThan(0);
+        expect(metrics.contributionDepthDrawCount).toBeGreaterThan(0);
+        expect(samples.filter(({ stage }) => stage === "trace")).toHaveLength(FRAMES * metrics.tracePassCount);
+        expect(samples.filter(({ stage }) => stage === "surface")).toHaveLength(FRAMES);
+        expect(samples.filter(({ stage }) => stage === "composite")).toHaveLength(FRAMES * metrics.compositePassCount);
+        expect(samples.map(({ stage }) => stage)).toEqual(
+          expect.arrayContaining(["contribution-color", "contribution-depth"])
+        );
+        if (extension) {
+          for (
+            let attempt = 0;
+            attempt < 100 && samples.some((s) => s.query && !gl.getQueryParameter(s.query, gl.QUERY_RESULT_AVAILABLE));
+            attempt++
+          )
+            await new Promise((resolve) => setTimeout(resolve, 10));
+          const disjoint = gl.getParameter(extension.GPU_DISJOINT_EXT);
+          for (const sample of samples) {
+            if (sample.query && !disjoint && gl.getQueryParameter(sample.query, gl.QUERY_RESULT_AVAILABLE))
+              sample.gpu = gl.getQueryParameter(sample.query, gl.QUERY_RESULT) / 1e6;
+            if (sample.query) {
+              gl.deleteQuery(sample.query);
+              pendingQueries.delete(sample.query);
+            }
+          }
+        }
+        const stages = [...new Set(samples.map((s) => s.stage))].map((stage) => {
+          const rows = samples.filter((s) => s.stage === stage);
+          return {
+            stage,
+            samples: rows.length,
+            cpuMs: rows.reduce((sum, s) => sum + s.cpu, 0) / rows.length,
+            gpuMs: rows.every((s) => s.gpu !== undefined)
+              ? rows.reduce((sum, s) => sum + s.gpu!, 0) / rows.length
+              : null
+          };
+        });
+        reports.push({
+          policy,
+          frames: FRAMES,
+          stages,
+          metrics,
+          samples: samples.map(({ stage, cpu, gpu }) => ({ stage, cpu, gpu }))
+        });
+      }
+    } finally {
+      camera.screenSpaceReflection.profiler = originalProfiler;
+      pass.beginSurface = beginSurface;
+      rhi.blitInternalRTByBlitFrameBuffer = copyDepth;
+      rhi.clearRenderTarget = clear;
+      for (const key of Object.keys(surfaceStates)) delete surfaceStates[Number(key)];
+      Object.assign(surfaceStates, originalStates);
+      if (activeQuery) gl.endQuery(extension!.TIME_ELAPSED_EXT);
+      for (const query of pendingQueries) gl.deleteQuery(query);
     }
-    pass.beginSurface = beginSurface;
+    expect(surfaceStates).toEqual(originalStates);
+    expect(pass.beginSurface).toBe(beginSurface);
+    expect(camera.screenSpaceReflection.profiler).toBe(originalProfiler);
     console.info(
       "SSR_PROFILE=" + JSON.stringify({ renderer, timerAvailable: !!extension, width: SIZE, height: SIZE, reports })
     );
