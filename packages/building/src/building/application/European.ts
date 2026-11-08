@@ -89,7 +89,7 @@ function positive(name: string, value: number | undefined) {
 }
 
 /** Building prefabs of the asset kit that sit on roofs. */
-const ROOF_PREFABS = new Set(["dormer-gothic", "hatch-cottage", "hatch-gothic", "roof-lantern"]);
+const ROOF_PREFABS = new Set(["dormer-gothic", "dormer-cottage", "hatch-cottage", "hatch-gothic", "roof-lantern"]);
 const onRoof = (a: EuropeanAttachment) => a.host === "roof" || a.uv !== undefined;
 /** The prefab of a roof attachment that names only its kind: on a flat roof a window or hatch
  * is a hatch and a lamp is a roof lantern; on a pitched roof a window is a cottage dormer. */

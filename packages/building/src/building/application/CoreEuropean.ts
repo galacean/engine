@@ -196,11 +196,12 @@ export interface CoreWallAttachment {
 export interface CoreRoofAttachment {
   id: string;
   /** A dormer stands on a pitched roof; a hatch or a roof lantern on a flat roof's deck. */
-  type: "dormer-gothic" | "hatch-cottage" | "hatch-gothic" | "roof-lantern";
+  type: "dormer-gothic" | "dormer-cottage" | "hatch-cottage" | "hatch-gothic" | "roof-lantern";
   rank?: 1 | 2 | 3;
   uv: [number, number];
   bottom?: number;
-  /** Installation size. Default: the prefab's own. */
+  /** Installation size; for a Cottage dormer, of its whole row of bodies. Default: the
+   * prefab's own. */
   width?: number;
   height?: number;
   woodColor?: number;
@@ -214,6 +215,7 @@ const ROOF_PREFABS: Readonly<
   Record<CoreRoofAttachment["type"], { type: string; generator: string; facing?: "edge" | "front"; kind: string }>
 > = {
   "dormer-gothic": { type: "dormer", generator: "houseRoofMount", kind: "window" },
+  "dormer-cottage": { type: "shedDormer", generator: "houseShedDormer", kind: "window" },
   "hatch-cottage": { type: "hatch", generator: "houseDeckMount", facing: "edge", kind: "hatch" },
   "hatch-gothic": { type: "hatch", generator: "houseDeckMount", facing: "edge", kind: "hatch" },
   "roof-lantern": { type: "roofLamp", generator: "houseDeckMount", facing: "front", kind: "lantern" }
@@ -268,7 +270,11 @@ function wallAttachmentPart(house: CoreHouseParameters, a: CoreWallAttachment): 
 function roofAttachmentPart(house: CoreHouseParameters, a: CoreRoofAttachment): BuildingPartDef {
   if (!(a.uv.length === 2 && a.uv.every((v) => Number.isFinite(v) && v >= 0 && v <= 1)))
     throw Error(`Roof attachment "${a.id}" needs uv in [0, 1]`);
-  const prefab = `${a.type}/${a.rank ?? 1}`;
+  const rank = a.rank ?? 1;
+  // A Cottage dormer repeats its single body: rank bodies side by side under one shed roof,
+  // whose back rises by a tenth of the roof's height or more for wider sheds (as online).
+  const shed = a.type === "dormer-cottage";
+  const prefab = `${a.type}/${shed ? 1 : rank}`;
   const shape = profileShape(
     normalizeProfileFootprint(
       house.circle ? { circle: house.circle } : { rectangle: house.rectangle ?? DEFAULT_RECTANGLE }
@@ -293,7 +299,13 @@ function roofAttachmentPart(house: CoreHouseParameters, a: CoreRoofAttachment): 
         bottom: a.bottom ?? 0,
         ...(a.width !== undefined && { width: a.width }),
         ...(a.height !== undefined && { height: a.height }),
-        ...(kind.facing && { facing: kind.facing })
+        ...(kind.facing && { facing: kind.facing }),
+        ...(shed && {
+          count: rank,
+          spacing: [0, 0.75, 0.7333][rank - 1],
+          overhang: 0.1,
+          pitch: [0.1, 0.15, 0.2][rank - 1]
+        })
       }
     },
     algorithm: {
@@ -301,6 +313,7 @@ function roofAttachmentPart(house: CoreHouseParameters, a: CoreRoofAttachment): 
       params: {
         ...(a.width !== undefined && { width: a.width }),
         ...(a.height !== undefined && { height: a.height }),
+        ...(shed && rank > 1 && { row: { count: rank, spacing: [0, 0.75, 0.7333][rank - 1] } }),
         unitParams: {
           kind: kind.kind,
           host: "roof",
@@ -548,7 +561,7 @@ export function buildCoreHouse(p: CoreHouseParameters): BuildingCoreDraft {
         id: part.id + "/on-roof",
         guest: part.id,
         hosts: roofs
-          .filter((r) => part.type === "dormer" || r.part.type === "roofDeck")
+          .filter((r) => part.type === "dormer" || part.type === "shedDormer" || r.part.type === "roofDeck")
           .map((r) => ({ part: r.part.id })),
         ...(part.type === "dormer" && { params: { tiles } })
       }))

@@ -173,3 +173,40 @@ describe("Deck prefabs", () => {
     );
   });
 });
+
+describe("Shed dormers", () => {
+  const cottage = (rank: 1 | 2 | 3, uv: [number, number], width?: number): CoreRoofAttachment => ({
+    id: "c",
+    type: "dormer-cottage",
+    rank,
+    uv,
+    ...(width !== undefined && { width })
+  });
+  const bodies = (result: ReturnType<typeof design>) => lay(result.parts.find((p) => p.type === "shedDormer")!);
+  it("stands rank bodies side by side under one shed, and resizes the row as a whole", () => {
+    const three = design({ ...hip, roof: { height: 0.8 }, roofAttachments: [cottage(3, [0.5, 0.15])] });
+    expect(three.diagnostics).toEqual([]);
+    const units = bodies(three);
+    expect(units).toHaveLength(3);
+    const x = units.map((u) => u.matrix[12]);
+    expect(x[1] - x[0]).toBeCloseTo(0.7333, 3);
+    expect(x[2] - x[1]).toBeCloseTo(0.7333, 3);
+    // A row twice as wide doubles the bodies and their spacing.
+    const natural = 0.8 + 2 * 0.7333;
+    const wide = bodies(
+      design({ ...hip, roof: { height: 0.8 }, roofAttachments: [cottage(3, [0.5, 0.15], 2 * natural)] })
+    );
+    expect(wide[1].matrix[12] - wide[0].matrix[12]).toBeCloseTo(2 * 0.7333, 3);
+    // Each body stretches twice across (the unit matrix carries the stretch).
+    expect(Math.hypot(wide[0].matrix[0], wide[0].matrix[1], wide[0].matrix[2])).toBeCloseTo(2, 3);
+    // The shed and the cut behind the bodies.
+    const shed = three.parts.find((p) => p.type === "shedRoof")!;
+    expect(lay(shed).length).toBeGreaterThan(20);
+    const host = three.parts.filter((p) => p.type === "roof" && p.modifications.some((m) => m.op === "removeArea"));
+    expect(host).toHaveLength(1);
+  });
+  it("is an error where the row reaches past its roof part", () => {
+    const result = design({ ...hip, roofAttachments: [cottage(3, [0.08, 0.2])] });
+    expect(messages(result)).toContain("The dormer crosses an edge of its roof");
+  });
+});

@@ -304,6 +304,38 @@ const cases = (): Case[] => [
     ground: flat
   },
   {
+    id: "cottage-dormers",
+    title: "Cottage 老虎窗 · 四坡",
+    house: {
+      id: "a",
+      height: 4,
+      rectangle: { center: [0, 0], size: [10, 8], rotation: 0 },
+      roof: { height: 0.6 },
+      roofAttachments: (
+        [
+          ["c1", 1, [0.25, 0.2]],
+          ["c2", 2, [0.6, 0.2]]
+        ] as const
+      ).map(([id, rank, uv]) => {
+        const [width, height] = constructionDecorationRecipe(
+          library.compilation.decorations,
+          "dormer-cottage",
+          rank
+        )!.installationSize;
+        return {
+          id,
+          type: "dormer-cottage" as const,
+          rank,
+          uv: [...uv] as [number, number],
+          bottom: 0,
+          width,
+          height
+        };
+      })
+    },
+    ground: flat
+  },
+  {
     id: "deck-prefabs",
     title: "平屋顶 · 活板门与屋顶灯",
     house: {

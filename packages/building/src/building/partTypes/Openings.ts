@@ -297,41 +297,52 @@ export const mountHidden: ConnectionRule = ({ parts }) => {
   };
 };
 
+/** The mount points of a part, in order: "mount", then "mount1", "mount2", ... */
+const mountsOf = (ids: readonly string[]) =>
+  ids.filter((id) => /^mount\d*$/.test(id)).sort((a, b) => Number(a.slice(5) || 0) - Number(b.slice(5) || 0));
 interface MountPrefabParams {
   /** Installation size in metres. Default: the prefab's own. */
   readonly width?: number;
   readonly height?: number;
+  /** The prefabs stand in a row of `count`, `spacing` apart at their own size, and `width` is
+   * the whole row's: each prefab scales by width / (its width + (count - 1) * spacing). */
+  readonly row?: { readonly count: number; readonly spacing: number };
   /** Renderer values carried on the laid unit. */
   readonly unitParams?: Readonly<Record<string, unknown>>;
 }
-/** Lays a part's building prefab at its mount, scaled to the installation size. The prefab's
- * origin lies on the wall line and the center of its bounds on the mount across and up the
- * wall; it is resized about its back, so it keeps its distance from the wall at every size.
- * The unit's pivot must be the middle of the back: [0.5, 0.5, 0]. */
+/** Lays a part's building prefab at each of its mounts ("mount", "mount1", "mount2", ...),
+ * scaled to the installation size. The center of the prefab's bounds lies on the mount across
+ * and up; it is resized about its back, which stays where the unscaled prefab's back would be,
+ * so a wall prefab keeps its distance from the wall at every size. The unit's pivot must be
+ * the middle of the back: [0.5, 0.5, 0]. */
 export const mountPrefab: LayingAlgorithm<MountPrefabParams, null> = {
   info: {
     accepts: ["point"],
-    summary: 'One building prefab at the point "mount", scaled to the installation size.',
+    summary: 'One building prefab at each point "mount", "mount1", ..., scaled to the installation size.',
     params: {
       width: "Installation width in metres. Default: the prefab's own.",
       height: "Installation height in metres. Default: the prefab's own.",
-      unitParams: "Values the renderer reads from the laid unit."
+      unitParams: "Values the renderer reads from the laid unit.",
+      row: "The prefabs stand in a row { count, spacing }; width is the whole row's. Default: one prefab."
     }
   },
   // A rule may remove the mount, as when another house hides it: nothing is laid then.
-  plan: (context) => ({ count: context.geometry.ids("point").includes("mount") ? 1 : 0, data: null }),
-  unitAt(context) {
+  plan: (context) => ({ count: mountsOf(context.geometry.ids("point")).length, data: null }),
+  unitAt(context, _data, index) {
     const bounds = context.unit.bounds;
     if (!bounds) throw Error("mountPrefab needs the prefab's bounds");
-    const width = context.params.width ?? bounds.max[0] - bounds.min[0],
+    const own = bounds.max[0] - bounds.min[0],
+      row = context.params.row,
+      natural = own + (row ? (row.count - 1) * row.spacing : 0);
+    const width = ((context.params.width ?? natural) / natural) * own,
       height = context.params.height ?? bounds.max[1] - bounds.min[1];
     const sx = width / (bounds.max[0] - bounds.min[0]),
       sy = height / (bounds.max[1] - bounds.min[1]),
       sz = Math.min(sx, sy);
-    const frame = context.geometry.point("mount");
+    const frame = context.geometry.point(mountsOf(context.geometry.ids("point"))[index]);
     const back = bounds.min[2];
     return {
-      key: "0",
+      key: `${index}`,
       frame: { ...frame, origin: [0, 1, 2].map((k) => frame.origin[k] + frame.z[k] * back) as unknown as Vec3 },
       size: [width, height, (bounds.max[2] - bounds.min[2]) * sz],
       ...(context.params.unitParams && { params: { ...context.params.unitParams } })

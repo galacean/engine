@@ -41,6 +41,7 @@ import { wallOpeningsOf } from "../../src/building/partTypes/Openings";
 import { constructionDecorationType } from "../../src/building/runtime/ConstructionDecorationCatalog";
 import { constructionDecorationRecipe } from "../../src/building/runtime/ConstructionDecorationRecipe";
 import { gothicRoofTiles } from "../../src/building/runtime/GothicRoofTiles";
+import { placeCottageDormerCourses } from "../../src/building/runtime/CottageDormerSupport";
 
 // Acceptance of the core render path against the online path, house by house.
 const flat = () => 0;
@@ -594,6 +595,80 @@ describe("Roof dormers against the online path", () => {
         const host = result.parts.find((x) => x.key === connection.hosts[mount.on!.host])!;
         expect(host.modifications.some((m) => m.op === "removeArea")).toBe(true);
       }
+    },
+    60000
+  );
+});
+
+describe("Cottage dormers against the online path", () => {
+  it.each([1, 2] as const)(
+    "rank %s: the same window bodies under a shed of the same pieces",
+    async (rank) => {
+      const [width, height] = constructionDecorationRecipe(
+        nativeAssets.compilation.decorations,
+        "dormer-cottage",
+        rank
+      )!.installationSize;
+      const a: CoreRoofAttachment = {
+        id: "c",
+        type: "dormer-cottage",
+        rank,
+        uv: [0.45, 0.2],
+        bottom: 0,
+        width,
+        height
+      };
+      const p: CoreHouseParameters = {
+        id: "h",
+        height: 4,
+        rectangle: { center: [0, 0], size: [10, 8], rotation: 0 },
+        roof: { height: 0.6 },
+        roofAttachments: [a]
+      };
+      const { roofAttachments: _r, ...rest } = p;
+      const design = designBuilding(
+        European.buildHouses({ ...rest, attachments: [{ ...a, kind: "window", host: "roof" }] } as never) as never,
+        flat as never,
+        nativeAssets.compilation
+      );
+      expect(design.prepared.decorations.flatMap((d) => d.diagnostics)).toEqual([]);
+      const online = profilePreview(
+        buildingPreviewInput(design, await prepareBuildingPublication(design)),
+        flat as never,
+        { assets: nativeAssets.compilation, retainDecorationParts: true } as never
+      );
+      const environment = coreBuildingEnvironment(flat, nativeAssets.compilation);
+      const result = designBuildingCore(buildCoreHouse(p), registry, { environment });
+      expect(result.diagnostics).toEqual([]);
+      const parts = coreBuildingDecorations(coreBuildingLayout(result, registry, {}), nativeAssets.compilation).flatMap(
+        (d) => d.parts
+      );
+      // Online numbers the members of every Cottage dormer; the core numbers them when a part
+      // lays more than one body.
+      const byId = new Map(online.decorationParts.map((x) => [rank === 1 ? x.id.replace(/\/0$/, "") : x.id, x]));
+      expect(parts.map((x) => x.id).sort()).toEqual([...byId.keys()].sort());
+      for (const x of parts) {
+        const o = byId.get(x.id)!;
+        expect(x.positions.length).toBe(o.positions.length);
+        // Across the plan the bodies stand where online puts them. Online sets a row of bodies on
+        // its roof's section, 0.19 m behind where it sets one body; the core stands every body on
+        // its covering, which lies lower than online's roof.
+        const dy = x.positions[1] - o.positions[1];
+        expect(Math.abs(dy)).toBeLessThan(0.25);
+        for (let k = 0; k < x.positions.length; k += 3) {
+          expect(Math.abs(x.positions[k] - o.positions[k])).toBeLessThan(0.03);
+          expect(Math.abs(x.positions[k + 2] - o.positions[k + 2])).toBeLessThan(rank === 1 ? 0.03 : 0.2);
+        }
+        expect(x.colors).toEqual(o.colors);
+      }
+      // The shed: tiles, a soffit, trims and cheeks, about as many pieces as online's.
+      const strips = (
+        design.prepared.decorations[0] as unknown as { dormerRoofs: { support: never; placement: never }[] }
+      ).dormerRoofs.flatMap((r) => placeCottageDormerCourses(r.support, r.placement));
+      const shed = result.parts.find((x) => x.type === "shedRoof")!;
+      const pieces = expandUnits(shed, registry, { environment });
+      expect(Math.abs(pieces.length - strips.length) / strips.length).toBeLessThan(0.25);
+      for (const role of ["soffit", "trim", "cheek"]) expect(pieces.some((u) => u.key.startsWith(role))).toBe(true);
     },
     60000
   );

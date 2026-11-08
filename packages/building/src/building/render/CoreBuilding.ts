@@ -88,10 +88,12 @@ const FAMILIES: Readonly<Record<string, Family>> = {
   door: "prefab",
   lamp: "prefab",
   dormer: "prefab",
+  shedDormer: "prefab",
   hatch: "prefab",
   roofLamp: "prefab",
   dormerRoof: "roof",
-  dormerRidge: "roof"
+  dormerRidge: "roof",
+  shedRoof: "roof"
 };
 const MATERIALS = new Set<string>(["brick", "roof_tile", "wooden_plank"]);
 const NO_CLIP = [0, 1, 0, 65504];
@@ -390,7 +392,7 @@ interface DrawPlan {
 /** The draw groups of one binding, and the dependencies between its cells. */
 /** Part types of the small roofs that a roof prefab carries. They belong to that prefab: they
  * are drawn settled, without the roof's entrance, and picked as the prefab. */
-const CARRIED_ROOFS = new Set(["dormerRoof", "dormerRidge"]);
+const CARRIED_ROOFS = new Set(["dormerRoof", "dormerRidge", "shedRoof"]);
 /** The author part a derived part belongs to: the guest of the attach connection that
  * derived it. */
 function carrierOf(layout: CoreBuildingLayout, part: ResolvedPart): string | undefined {
@@ -1246,9 +1248,10 @@ export function coreBuildingDecorations(
             ...(params.lightColor !== undefined && { lightColor: params.lightColor as number }),
             ...(params.lightIntensity !== undefined && { lightIntensity: params.lightIntensity as number })
           };
+          // A part that lays its prefab more than once numbers the members of each.
           const parts = prefab.members.map(([name, suffix, material, emissionOrigin]) => ({
             name,
-            suffix,
+            suffix: units.length > 1 ? `${suffix}/${u.key}` : suffix,
             material,
             mesh: decorationMesh(assets.decorations, name),
             emissionOrigin,
@@ -1335,7 +1338,7 @@ export function coreBuildingDecorations(
             });
           }
           const [type, rank] = key.split("/");
-          compiled.resolved.push({ id, type, host: onRoof ? "roof" : "wall", rank: Number(rank) });
+          if (u === units[0]) compiled.resolved.push({ id, type, host: onRoof ? "roof" : "wall", rank: Number(rank) });
         }
     result.push(compiled);
   }

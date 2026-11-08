@@ -43,7 +43,7 @@ export interface RoofMountParams {
 }
 
 /** A point on a surface found from its plan position: its (u, v) and frame. */
-interface PlanHit {
+export interface PlanHit {
   readonly u: number;
   readonly v: number;
   readonly frame: Frame;
@@ -165,15 +165,15 @@ export const dormerSweepSurface: SurfaceKind<DormerSweepParams> = {
 /** How far the top of a roof's covering stands above its surface, measured upright, where the
  * roof's normal is `n`. Shingles lap over each other, so the covering is one of the roof's units
  * deep along the normal. */
-const coveringRise = (roof: ParticipantView, n: Vec3) =>
+export const coveringRise = (roof: ParticipantView, n: Vec3) =>
   ((roof.unit && unitExtent(roof.unit)?.[2]) ?? 0) / Math.max(n[1], 1e-3);
-const slopeSurface = (host: ParticipantView): EffectiveSurface | undefined =>
+export const slopeSurface = (host: ParticipantView): EffectiveSurface | undefined =>
   host.geometry.original.elements.slope?.kind === "surface" ? host.geometry.surface("slope") : undefined;
 
 /** How far back from plan point `from` along level direction `back` the surface first rises
  * to height `y`, searched in steps of 5 cm up to `limit` metres and refined by bisection.
  * Undefined when the surface ends first. */
-function depthToHeight(
+export function depthToHeight(
   surface: EffectiveSurface,
   from: Vec3,
   back: Vec3,
@@ -207,6 +207,26 @@ function depthToHeight(
   }
 }
 
+/** The highest host roof surface under plan point `at`: the host's index, its surface, the
+ * point on it, the roof's normal there, and the level frame of a prefab standing there: z out
+ * of the roof, x across, to the right as seen from outside. */
+export function roofUnder(hosts: readonly ParticipantView[], at: readonly [number, number]) {
+  let best: { index: number; surface: EffectiveSurface; hit: PlanHit } | undefined;
+  hosts.forEach((host, index) => {
+    const surface = slopeSurface(host);
+    if (!surface) throw Error("A roof mount attaches to roof parts");
+    const hit = surfaceAtPlan(surface, at[0], at[1]);
+    if (hit && (!best || hit.frame.origin[1] > best.hit.frame.origin[1])) best = { index, surface, hit };
+  });
+  if (!best) throw Error(`No roof at plan position ${at[0]}, ${at[1]}`);
+  const found: { index: number; surface: EffectiveSurface; hit: PlanHit } = best;
+  const n = found.hit.frame.z;
+  const level = Math.hypot(n[0], n[2]);
+  if (!(level > 1e-3)) throw Error("The roof is flat where the dormer sits");
+  const z: Vec3 = [n[0] / level, 0, n[2] / level];
+  const x: Vec3 = [z[2], 0, -z[0]];
+  return { ...found, n, x, z };
+}
 /** Elements "mount", "sweep" and "ridge".
  * - The mount sits on the highest host roof under the plan position, with the prefab's lowest
  *   point `bottom` above the roof's covering, and faces level out of the roof. Like a wall mount, its origin is the center of
@@ -221,20 +241,8 @@ export const houseRoofMountGeometry: GeometryGenerator<RoofMountParams> = (p, { 
   const facts = prefabFacts(environment, p.prefab);
   const half = facts.roofProfile;
   if (!half?.length) throw Error(`Building prefab "${p.prefab}" carries no roof`);
-  let best: { index: number; surface: EffectiveSurface; hit: PlanHit } | undefined;
-  hosts.forEach((host, index) => {
-    const surface = slopeSurface(host);
-    if (!surface) throw Error("A roof mount attaches to roof parts");
-    const hit = surfaceAtPlan(surface, p.at[0], p.at[1]);
-    if (hit && (!best || hit.frame.origin[1] > best.hit.frame.origin[1])) best = { index, surface, hit };
-  });
-  if (!best) throw Error(`No roof at plan position ${p.at[0]}, ${p.at[1]}`);
-  const { surface, hit } = best;
-  const n = hit.frame.z;
-  const level = Math.hypot(n[0], n[2]);
-  if (!(level > 1e-3)) throw Error("The roof is flat where the dormer sits");
-  const z: Vec3 = [n[0] / level, 0, n[2] / level];
-  const x: Vec3 = [z[2], 0, -z[0]];
+  const best = roofUnder(hosts, p.at);
+  const { surface, hit, n, x, z } = best;
   const { min, max } = facts.bounds;
   const [sx, sy] = prefabScale(facts, p.width ?? max[0] - min[0], p.height ?? max[1] - min[1]);
   // The dormer stands on the roof's covering, and its lowest point, such as its sill, rests on
@@ -331,7 +339,7 @@ function dormerFootprint(
 
 /** The tile unit of a dormer's small roof: the host roof's tile, adapting to the rows and
  * columns of the sweep. */
-const dormerTile = (tile: BuildingUnit): BuildingUnit => ({
+export const dormerTile = (tile: BuildingUnit): BuildingUnit => ({
   ...tile,
   range: { min: [0.1, 0.2, 1], max: [2, 3, 1] }
 });
@@ -474,9 +482,9 @@ export const sweepTiles: LayingAlgorithm<SweepTileParams, SweepLayout> = {
   }
 };
 
-/** Part types of prefabs that sit on roofs: dormers on slopes and cones, hatches and lamps on
- * flat roof decks. */
-export const ROOF_MOUNTS = ["dormer", "hatch", "roofLamp"] as const;
+/** Part types of prefabs that sit on roofs: dormers and shed dormers on slopes and cones,
+ * hatches and lamps on flat roof decks. */
+export const ROOF_MOUNTS = ["dormer", "shedDormer", "hatch", "roofLamp"] as const;
 
 /** Registers the roof mount part types into a registry. */
 export function registerDormerTypes(registry: BuildingRegistry): BuildingRegistry {
