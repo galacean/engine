@@ -15,8 +15,8 @@ import {
   type BuildingGroupDef,
   type BuildingRegistry,
   type LaidUnit,
-  type ResolvedPart,
-  type Vec3
+  type Rect,
+  type ResolvedPart
 } from "../core";
 import type { WallChartParams } from "../partTypes/House";
 import type { RoofDeckParams } from "../partTypes/Roof";
@@ -43,6 +43,18 @@ import {
   surfaceMaskTriangles
 } from "../runtime/SurfacePolygon";
 import { plasterPalette } from "../runtime/ConstructionPlasterPalette";
+import { decorationAssemblyGeometry } from "../runtime/ConstructionDecorationGeometry";
+import { decorationMesh } from "../runtime/ConstructionDecorationMeshes";
+import { masonryTintRoles, whiteMasonryVertexColors } from "../runtime/MasonryAppearance";
+import type {
+  CompiledConstructionDecorations,
+  ConstructionDecorationPart,
+  ConstructionDecorationStone
+} from "../runtime/ConstructionDecorations";
+import type { ConstructionDecorationFrame } from "../runtime/ConstructionDecorationFrames";
+import type { ConstructionJunctionGroup } from "../runtime/ConstructionJunctionLayout";
+import type { ConstructionWoodArchPart, ConstructionWoodArchPillar } from "../runtime/ConstructionWoodArchRender";
+import { wallChartSampler } from "../partTypes/House";
 import { packConstructionUnits } from "../runtime/ConstructionUnitRender";
 import { encodeCompleteConstructionDormerBins } from "../runtime/DormerBins";
 import { placeProfileRoofSpire } from "../runtime/ProfileRoofSpire";
@@ -51,7 +63,7 @@ import { f32BitsToHalf } from "../runtime/UnitPacking.js";
 import type { RetainedWallUnits } from "../runtime/ConstructionWallLod";
 
 /** How the renderer draws the units of each part type. */
-type Family = "wall" | "parapet" | "roof" | "spire" | "plaster";
+type Family = "wall" | "parapet" | "roof" | "spire" | "plaster" | "prefab";
 const FAMILIES: Readonly<Record<string, Family>> = {
   wall: "wall",
   cornerStone: "wall",
@@ -63,7 +75,10 @@ const FAMILIES: Readonly<Record<string, Family>> = {
   rakeCap: "roof",
   roofDeck: "roof",
   spire: "spire",
-  plaster: "plaster"
+  plaster: "plaster",
+  window: "prefab",
+  door: "prefab",
+  lamp: "prefab"
 };
 const MATERIALS = new Set<string>(["brick", "roof_tile", "wooden_plank"]);
 const NO_CLIP = [0, 1, 0, 65504];
@@ -121,7 +136,7 @@ export function coreBuildingLayout(
     const bindings = [...byFamily].map(([family, parts]): CoreBinding => {
       const unitSource = parts.find((p) => p.part.unit)?.part.unit?.source;
       const source = typeof unitSource === "string" ? unitSource : "";
-      if (family !== "spire" && family !== "plaster" && !MATERIALS.has(source))
+      if (family !== "spire" && family !== "plaster" && family !== "prefab" && !MATERIALS.has(source))
         throw Error(`Unsupported unit source ${JSON.stringify(unitSource)}`);
       return { id: `${group.id}-${family}`, owner: group.id, family, material: source as MaterialUnit, parts };
     });
@@ -383,8 +398,10 @@ function quad(mesh: Mesh, v: number[][], uv: number[][]) {
 }
 
 /** The outer face of the walls of one binding, unrolled along the perimeter: u = perimeter
- * metres, v = height above the binding's chart base. The top follows the roof joint. */
-function wallSurface(binding: CoreBinding) {
+ * metres, v = height above the binding's chart base. The top follows the roof joint. The
+ * areas removed from the walls, such as openings, stay open: `holes` are rects of perimeter
+ * metres and heights. */
+function wallSurface(binding: CoreBinding, holes: readonly Rect[]) {
   const walls = binding.parts
     .flatMap((p) => (chartOf(p.part) ? [chartOf(p.part)!] : []))
     .sort((a, b) => (a.uOffset ?? 0) - (b.uOffset ?? 0));
@@ -446,21 +463,46 @@ function wallSurface(binding: CoreBinding) {
     for (let s = 0; s < steps; s++) {
       const p = at(s / steps),
         q = at((s + 1) / steps);
-      quad(
-        mesh,
-        [
-          [p.x, p.bottom, p.z],
-          [q.x, q.bottom, q.z],
-          [q.x, q.top, q.z],
-          [p.x, p.top, p.z]
-        ],
-        [
-          [p.u, p.bottom - base],
-          [q.u, q.bottom - base],
-          [q.u, q.top - base],
-          [p.u, p.top - base]
-        ]
+      // Split the strip at the edges of the holes it meets; each piece leaves out the
+      // heights its holes cover.
+      const cuts = holes.filter((h) => h[0] < q.u && h[2] > p.u);
+      const breaks = [p.u, ...cuts.flatMap((h) => [h[0], h[2]]).filter((u) => u > p.u && u < q.u), q.u].sort(
+        (x, y) => x - y
       );
+      for (let k = 0; k < breaks.length - 1; k++) {
+        const a = at((s + (breaks[k] - p.u) / (q.u - p.u)) / steps),
+          b = at((s + (breaks[k + 1] - p.u) / (q.u - p.u)) / steps);
+        const mid = (breaks[k] + breaks[k + 1]) / 2;
+        const gaps: [number, number][] = [];
+        let low = -Infinity;
+        for (const h of cuts.filter((h) => h[0] <= mid && h[2] >= mid).sort((x, y) => x[1] - y[1])) {
+          gaps.push([low, h[1]]);
+          low = Math.max(low, h[3]);
+        }
+        gaps.push([low, Infinity]);
+        for (const [lo, hi] of gaps) {
+          const a0 = Math.max(a.bottom, lo),
+            a1 = Math.max(a0, Math.min(a.top, hi)),
+            b0 = Math.max(b.bottom, lo),
+            b1 = Math.max(b0, Math.min(b.top, hi));
+          if (a1 <= a0 && b1 <= b0) continue;
+          quad(
+            mesh,
+            [
+              [a.x, a0, a.z],
+              [b.x, b0, b.z],
+              [b.x, b1, b.z],
+              [a.x, a1, a.z]
+            ],
+            [
+              [a.u, a0 - base],
+              [b.u, b0 - base],
+              [b.u, b1 - base],
+              [a.u, a1 - base]
+            ]
+          );
+        }
+      }
     }
   }
   // The finish face around the house: units beyond it stand out of the wall.
@@ -534,7 +576,7 @@ function ringAt(chart: WallChartParams, d: number) {
   };
 }
 /** The finish over a wall chart as a preview part: the chart's region without removed areas,
- * cut into triangles no longer than 0.4 m, lifted to the finish face. Each vertex keeps its
+ * cut into cells no taller than 0.4 m, lifted to the finish face. Each vertex keeps its
  * distance to the finish's edge, where the shader wears it off. */
 function plasterPart(
   layout: CoreBuildingLayout,
@@ -552,40 +594,50 @@ function plasterPart(
   const outline = surface.region();
   const shifts = surface.domain.closedU ? [-ring.length, 0, ring.length] : [0];
   const holes = surface.removed.flatMap((r) =>
-    shifts.map((k) =>
-      surfaceBoundary([
+    shifts.map((k) => ({
+      rect: [r[0] + k, r[1], r[2] + k, r[3]] as Rect,
+      boundary: surfaceBoundary([
         [r[0] + k, r[1]],
         [r[2] + k, r[1]],
         [r[2] + k, r[3]],
         [r[0] + k, r[3]]
       ])
-    )
+    }))
   );
   // The region is a band over u: bottom along its first half, top back along its second.
+  // Each slice between two samples splits into rows no taller than 0.4 m, which keeps the
+  // shader's warp smooth; only the cells that meet a removed area are clipped.
   const half = outline.length / 2;
   const triangles: number[][][] = [];
+  const lerp = (a: readonly number[], b: readonly number[], t: number) => [
+    a[0] + (b[0] - a[0]) * t,
+    a[1] + (b[1] - a[1]) * t
+  ];
   for (let i = 0; i < half - 1; i++) {
     const [b0, b1] = [outline[i], outline[i + 1]],
       [t1, t0] = [outline[outline.length - 2 - i], outline[outline.length - 1 - i]];
-    let pieces = [surfaceBoundary([[...b0], [...b1], [...t1], [...t0]])];
-    for (const hole of holes) pieces = pieces.flatMap((q) => subtractSurfacePolygon(q, hole));
-    for (const piece of effectiveSurfaceRegions(pieces))
-      for (const tri of surfaceMaskTriangles(piece.points)) triangles.push(tri.points);
-  }
-  // Longest-edge subdivision keeps the shader's warp smooth.
-  const fine: number[][][] = [];
-  const queue = triangles.slice();
-  while (queue.length) {
-    const t = queue.pop()!;
-    const lengths = t.map((p, k) => Math.hypot(p[0] - t[(k + 1) % 3][0], p[1] - t[(k + 1) % 3][1]));
-    const e = lengths.indexOf(Math.max(...lengths));
-    if (lengths[e] <= 0.4) {
-      fine.push(t);
-      continue;
+    const rows = Math.max(1, Math.ceil(Math.max(t0[1] - b0[1], t1[1] - b1[1]) / 0.4));
+    for (let r = 0; r < rows; r++) {
+      const cell = [
+        lerp(b0, t0, r / rows),
+        lerp(b1, t1, r / rows),
+        lerp(b1, t1, (r + 1) / rows),
+        lerp(b0, t0, (r + 1) / rows)
+      ];
+      const u0 = Math.min(cell[0][0], cell[3][0]),
+        u1 = Math.max(cell[1][0], cell[2][0]),
+        v0 = Math.min(cell[0][1], cell[1][1]),
+        v1 = Math.max(cell[2][1], cell[3][1]);
+      const cuts = holes.filter(({ rect: h }) => h[0] < u1 && h[2] > u0 && h[1] < v1 && h[3] > v0);
+      if (!cuts.length) {
+        triangles.push([cell[0], cell[1], cell[2]], [cell[0], cell[2], cell[3]]);
+        continue;
+      }
+      let pieces = [surfaceBoundary(cell)];
+      for (const hole of cuts) pieces = pieces.flatMap((q) => subtractSurfacePolygon(q, hole.boundary));
+      for (const piece of effectiveSurfaceRegions(pieces))
+        for (const tri of surfaceMaskTriangles(piece.points)) triangles.push(tri.points);
     }
-    const [a, b, c] = [t[e], t[(e + 1) % 3], t[(e + 2) % 3]];
-    const m = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
-    queue.push([a, m, c], [m, b, c]);
   }
   const positions: number[] = [],
     normals: number[] = [],
@@ -607,7 +659,7 @@ function plasterPart(
     }
     return k;
   };
-  for (const t of fine) {
+  for (const t of triangles) {
     // Keep the face pointing out of the wall.
     const area = (t[1][0] - t[0][0]) * (t[2][1] - t[0][1]) - (t[1][1] - t[0][1]) * (t[2][0] - t[0][0]);
     const ordered = area >= 0 ? t : [t[0], t[2], t[1]];
@@ -751,6 +803,9 @@ export interface CoreBuildingViewOptions {
   readonly includeStructure?: boolean;
   /** Required for prefab units such as the roof spire. */
   readonly assets?: BuildingUnitAssets;
+  /** Keep each prefab's meshes as its own part, as Scene-bound views need; otherwise every
+   * group's prefabs batch into one distance part. */
+  readonly retainDecorationParts?: boolean;
 }
 /** Display, structure and distance geometry of a laid design, in the shape the building
  * renderer and the distance view consume. */
@@ -792,7 +847,16 @@ export function coreBuildingView(layout: CoreBuildingLayout, options: CoreBuildi
   for (const owner of layout.owners)
     for (const binding of owner.bindings) {
       if (binding.family === "wall") {
-        const { mesh, perimeter, inset, finish } = wallSurface(binding);
+        // Removed areas of each wall, along the perimeter.
+        const holes = binding.parts.flatMap(({ part }) => {
+          const chart = chartOf(part);
+          if (!chart) return [];
+          const offset = chart.uOffset ?? 0;
+          return new EffectiveGeometry(part.original, part.modifications, layout.surfaces)
+            .surface("face")
+            .removed.map((r): Rect => [r[0] + offset, r[1], r[2] + offset, r[3]]);
+        });
+        const { mesh, perimeter, inset, finish } = wallSurface(binding, holes);
         const base = chartBase(binding);
         // Units that stand out of the finish face, such as corner stones, stay solid at a
         // distance.
@@ -904,6 +968,8 @@ export function coreBuildingView(layout: CoreBuildingLayout, options: CoreBuildi
             const finish = plasterPart(layout, owner, binding, part, u);
             if (finish) parts.push(finish);
           }
+      } else if (binding.family === "prefab") {
+        // Prefab meshes are collected per group below.
       } else if (binding.family === "spire") {
         const mesh = options.assets?.roofSpire;
         if (!mesh) throw Error("Missing roof spire mesh in building library");
@@ -939,7 +1005,25 @@ export function coreBuildingView(layout: CoreBuildingLayout, options: CoreBuildi
           }
       }
     }
+  const decorations = options.assets ? coreBuildingDecorations(layout, options.assets) : [];
+  const decorationParts = decorations.flatMap((d) => d.parts);
+  if (options.retainDecorationParts)
+    for (const p of decorationParts) capture(p.ownerId, { positions: p.positions, indices: p.indices, uvs: [] });
+  else
+    for (const owner of layout.owners) {
+      const own = decorationParts.filter((p) => p.ownerId === owner.group.id);
+      if (!own.length) continue;
+      const batch = decorationBatch(owner.group.id, own);
+      capture(owner.group.id, batch);
+      parts.push(batch);
+    }
   const bounds = { min: [Infinity, Infinity, Infinity], max: [-Infinity, -Infinity, -Infinity] };
+  for (const p of decorationParts)
+    for (let i = 0; i < p.positions.length; i++) {
+      const margin = i % 3 === 1 ? 0 : 0.03;
+      bounds.min[i % 3] = Math.min(bounds.min[i % 3], p.positions[i] - margin);
+      bounds.max[i % 3] = Math.max(bounds.max[i % 3], p.positions[i] + margin);
+    }
   for (const p of parts)
     for (let i = 0; i < p.positions.length; i++) {
       bounds.min[i % 3] = Math.min(bounds.min[i % 3], p.positions[i]);
@@ -961,18 +1045,143 @@ export function coreBuildingView(layout: CoreBuildingLayout, options: CoreBuildi
         }
   return {
     parts,
-    decorationParts: [],
+    decorationParts: options.retainDecorationParts ? decorationParts : [],
     retainedWallUnits,
-    archGroups: [],
+    // Arches, stone frames and timber arches are not core parts yet.
+    archGroups: [] as ConstructionJunctionGroup[],
     bounds,
-    stones: [],
-    frames: [],
-    woodArchFrames: [],
-    woodArchPillars: [],
+    stones: [] as ConstructionDecorationStone[],
+    frames: [] as ConstructionDecorationFrame[],
+    woodArchFrames: [] as ConstructionWoodArchPart[],
+    woodArchPillars: [] as ConstructionWoodArchPillar[],
     ...(options.includeStructure && { structuralParts: [...structure.values()] })
   };
 }
 export type CoreBuildingView = ReturnType<typeof coreBuildingView>;
+
+/** Meshes of every prefab unit, one record per group, in the shape the building renderer
+ * consumes. A prefab's members come with their poses baked in; the unit matrix places them
+ * all. Their edit coordinates run along the house perimeter and up its walls. */
+export function coreBuildingDecorations(
+  layout: CoreBuildingLayout,
+  assets: BuildingUnitAssets
+): CompiledConstructionDecorations[] {
+  const result: CompiledConstructionDecorations[] = [];
+  for (const owner of layout.owners) {
+    const prefabs = owner.bindings.filter((b) => b.family === "prefab");
+    if (!prefabs.length) continue;
+    const walls = owner.bindings
+      .filter((b) => b.family === "wall")
+      .flatMap((b) => b.parts.flatMap((p) => (chartOf(p.part) ? [chartOf(p.part)!] : [])));
+    const perimeter = walls.reduce((n, c) => n + wallChartSampler(c).length, 0);
+    const minimumY = Math.min(...walls.map((c) => c.minGround)),
+      height = Math.max(0.01, Math.max(...walls.map((c) => c.topY)) - minimumY);
+    const compiled: CompiledConstructionDecorations = {
+      holes: [],
+      windowCuts: [],
+      roofOpenings: [],
+      roofUnits: [],
+      parts: [],
+      stones: [],
+      frames: [],
+      diagnostics: [],
+      resolved: []
+    };
+    for (const binding of prefabs)
+      for (const { part, units } of binding.parts)
+        for (const u of units) {
+          const source = part.unit?.source as { prefab: string; rank: number };
+          const key = `${source.prefab}/${source.rank}`;
+          const prefab = assets.prefabs?.[key];
+          if (!prefab) throw Error(`Building prefab "${key}" is not in the asset kit`);
+          const params = u.params ?? {};
+          const id = part.identity.kind === "author" ? part.identity.id.slice(owner.group.id.length + 1) : part.key;
+          const m = u.matrix;
+          const axes = [
+            [m[0], m[1], m[2]],
+            [m[4], m[5], m[6]],
+            [m[8], m[9], m[10]]
+          ] as const;
+          const centerX = (prefab.bounds.min[0] + prefab.bounds.max[0]) / 2,
+            scaleX = Math.hypot(...axes[0]),
+            mountU = (params.u as number | undefined) ?? 0;
+          const spec = {
+            id,
+            ...(params.woodColor !== undefined && { woodColor: params.woodColor as number }),
+            ...(params.lightColor !== undefined && { lightColor: params.lightColor as number }),
+            ...(params.lightIntensity !== undefined && { lightIntensity: params.lightIntensity as number })
+          };
+          const parts = prefab.members.map(([name, suffix, material, emissionOrigin]) => ({
+            name,
+            suffix,
+            material,
+            mesh: decorationMesh(assets.decorations, name),
+            emissionOrigin,
+            binding: { role: "body" as const }
+          }));
+          compiled.parts.push(
+            ...decorationAssemblyGeometry(
+              { id: owner.group.id, woodColor: owner.palette.woodColor },
+              spec,
+              { bounds: prefab.bounds, parts },
+              params.kind === "lantern" ? "wall-lamp" : (params.kind as string),
+              {
+                origin: [m[12], m[13], m[14]],
+                axes,
+                editUV: (local, world) => [
+                  mountU + ((local[0] - centerX) * scaleX) / perimeter,
+                  (world[1] - minimumY) / height
+                ]
+              }
+            )
+          );
+          compiled.resolved.push({ id, type: source.prefab, host: "wall", rank: source.rank });
+        }
+    result.push(compiled);
+  }
+  return result;
+}
+/** All prefab meshes of a group as one distance part, keeping each vertex's colours, tint
+ * role, normals and emission. */
+function decorationBatch(owner: string, parts: readonly ConstructionDecorationPart[]): ConstructionPreviewPart {
+  const batch: ConstructionPreviewPart = {
+    owner,
+    material: "wall",
+    positions: [],
+    indices: [],
+    uvs: [],
+    decoration: true,
+    appearance: { materialUVs: [], kinds: [], colorIds: [], centers: [] },
+    colors: [],
+    neutralColors: [],
+    tintRoles: [],
+    normals: [],
+    emission: [],
+    color: [1, 1, 1],
+    emissive: 0
+  };
+  for (const p of parts) {
+    const count = p.positions.length / 3,
+      offset = batch.positions.length / 3;
+    batch.positions.push(...p.positions);
+    batch.indices.push(...p.indices.map((i) => i + offset));
+    batch.uvs.push(...(p.uvs ?? Array.from({ length: count }, () => [0, 0])));
+    batch.appearance!.materialUVs.push(...(p.appearance?.materialUVs ?? Array.from({ length: count }, () => [0, 0])));
+    batch.appearance!.kinds.push(...(p.appearance?.kinds ?? Array(count).fill(0)));
+    batch.appearance!.colorIds.push(...(p.appearance?.colorIds ?? Array(count).fill(0)));
+    batch.appearance!.centers.push(...(p.appearance?.centers ?? Array(p.positions.length).fill(0)));
+    batch.colors!.push(...p.colors);
+    batch.neutralColors!.push(...(p.tintRole ? whiteMasonryVertexColors(p.colors, p.tintMask) : p.colors));
+    batch.tintRoles!.push(
+      ...Array.from({ length: count }, (_, i) =>
+        p.tintRole && p.tintMask?.[i] !== false ? masonryTintRoles.indexOf(p.tintRole) : -1
+      )
+    );
+    batch.normals!.push(...p.normals);
+    batch.emission!.push(...p.emission);
+  }
+  return batch;
+}
 
 /** Palette slots and color owners: one per group, in group order. */
 export function coreBuildingPalette(layout: CoreBuildingLayout) {
@@ -1053,7 +1262,8 @@ export function coreBuildingGrounding(
  * document that edits address. */
 export async function coreBuildingRenderInput(
   layout: CoreBuildingLayout,
-  view: CoreBuildingView = coreBuildingView(layout)
+  view: CoreBuildingView = coreBuildingView(layout),
+  assets?: BuildingUnitAssets
 ): Promise<BuildingRenderInput> {
   const groups: BuildingUnitDrawGroup[] = [];
   const plans: { binding_id: string; cells: SupportCell[]; dependencies: unknown[] }[] = [];
@@ -1062,7 +1272,7 @@ export async function coreBuildingRenderInput(
   for (const owner of layout.owners)
     for (const binding of owner.bindings) {
       // Prefabs and finishes are drawn from the view, not as unit groups.
-      if (binding.family === "spire" || binding.family === "plaster") continue;
+      if (binding.family === "spire" || binding.family === "plaster" || binding.family === "prefab") continue;
       const { draws, dependencies } = bindingDraws(binding, owner.slot);
       for (const draw of draws)
         groups.push({
@@ -1097,7 +1307,7 @@ export async function coreBuildingRenderInput(
     paletteSlots: palette.paletteSlots,
     rawDraws: [],
     groups,
-    decorations: [],
+    decorations: assets ? coreBuildingDecorations(layout, assets) : [],
     dormerBins: encodeCompleteConstructionDormerBins([]),
     colorOwners: palette.colorOwners.map(({ id, seed }) => ({ id, seed })),
     backingParts: view.parts.filter(
@@ -1132,6 +1342,10 @@ export async function compileCoreBuilding(
   const layout = coreBuildingLayout(result, registry, options);
   return {
     layout,
-    renderInput: await coreBuildingRenderInput(layout, coreBuildingView(layout, { assets: options.assets }))
+    renderInput: await coreBuildingRenderInput(
+      layout,
+      coreBuildingView(layout, { assets: options.assets }),
+      options.assets
+    )
   };
 }

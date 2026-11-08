@@ -10,7 +10,9 @@ import { registerHouseTypes } from "../../src/building/partTypes/House";
 import { buildCoreHouse, type CoreHouseParameters } from "../../src/building/application/CoreEuropean";
 import {
   compileCoreBuilding,
+  coreBuildingDecorations,
   coreBuildingGrounding,
+  coreBuildingLayout,
   prepareCoreBuilding
 } from "../../src/building/render/CoreBuilding";
 import { European } from "../../src/building/parts/architecture/European";
@@ -27,6 +29,10 @@ import { ConstructionSurfaceQuery } from "../../src/building/runtime/Constructio
 import { buildBuildingRenderPackage } from "../../src/building/runtime/BuildingRenderPackage";
 import { buildingGlobals } from "../../src/building/runtime/BuildingGlobals";
 import { resolveDocument } from "../../src/building/runtime/PlacementDocument.js";
+import { planFacadeDecorations, normalizeDecorationPlan } from "../../src/building/runtime/DecorationPlan";
+import { normalizeProfileRoof } from "../../src/building/runtime/ProfileParameters";
+import { isFlatRoofHeight } from "../../src/building/runtime/RoofMode";
+import type { WallOpeningParams } from "../../src/building/partTypes/Openings";
 
 // Acceptance of the core render path against the online path, house by house.
 const flat = () => 0;
@@ -298,6 +304,78 @@ describe("Plaster against the online path", () => {
       }
       // The finish is drawn, not backed.
       expect(b.backingParts.some((x) => x.plaster)).toBe(false);
+    },
+    60000
+  );
+});
+
+describe("Wall prefabs against the online path", () => {
+  /** The facade the initial village plans for a house: windows, a door and a wall lamp. */
+  const withFacade = (house: CoreHouseParameters): CoreHouseParameters => {
+    const roof = normalizeProfileRoof(house.roof ?? {});
+    const planned = planFacadeDecorations({ ...house, roof, wallStructure: "masonry" } as never);
+    return { ...house, attachments: normalizeDecorationPlan(planned, isFlatRoofHeight(roof.height)) as never };
+  };
+  it.each([
+    ["rectangular house", withFacade({ id: "a", height: 5, rectangle: { center: [0, 0], size: [8, 6], rotation: 0 } })],
+    ["round house", withFacade({ id: "c", height: 5, circle: { center: [0, 0], radius: 4 } })],
+    ["rotated house", withFacade({ id: "r", height: 7, rectangle: { center: [1, 2], size: [10, 7], rotation: 0.6 } })]
+  ] as [string, CoreHouseParameters][])(
+    "%s: the same prefab meshes and wall openings",
+    async (_name, p) => {
+      const design = designBuilding(European.buildHouses(p as never) as never, flat as never, nativeAssets.compilation);
+      const online = profilePreview(
+        buildingPreviewInput(design, await prepareBuildingPublication(design)),
+        flat as never,
+        {
+          assets: nativeAssets.compilation,
+          retainDecorationParts: true
+        } as never
+      );
+      const result = designBuildingCore(buildCoreHouse(p, nativeAssets.compilation), registry, { environment });
+      expect(result.diagnostics).toEqual([]);
+      const parts = coreBuildingDecorations(coreBuildingLayout(result, registry, {}), nativeAssets.compilation).flatMap(
+        (d) => d.parts
+      );
+      // Online part ids repeat the house id: the attachment ids it gives carry it already.
+      const byId = new Map(online.decorationParts.map((x) => [x.id.replace(/^[^/]+\//, ""), x]));
+      expect(parts.map((x) => x.id).sort()).toEqual([...byId.keys()].sort());
+      const deviation = (a: number[], b: number[]) => a.reduce((m, v, i) => Math.max(m, Math.abs(v - b[i])), 0);
+      for (const x of parts) {
+        const o = byId.get(x.id)!;
+        expect(x.positions.length).toBe(o.positions.length);
+        // Prefabs are resized about their back, online about their origin with a fixed
+        // standing distance: the two differ across the wall by up to a few centimetres.
+        expect(deviation(x.positions, o.positions)).toBeLessThan(0.03);
+        expect(deviation(x.normals, o.normals)).toBeLessThan(0.03);
+        expect(deviation(x.uvs!.flat(), o.uvs!.flat())).toBeLessThan(1e-4);
+        expect(x.colors).toEqual(o.colors);
+        expect(x.emission).toEqual(o.emission);
+        expect(x.appearance!.kinds).toEqual(o.appearance!.kinds);
+        expect(x.appearance!.colorIds).toEqual(o.appearance!.colorIds);
+      }
+      // Each opening is the online hole and comes out of a wall. Online centers a hole on
+      // the model origin, not on its collision box; on doors that is 1 cm lower.
+      const holes = design.prepared.decorations.flatMap((d) => d.holes);
+      const walls = result.parts.filter((x) => x.type === "wall");
+      const mounted = result.parts.filter((x) => x.original.elements.opening);
+      expect(mounted.length).toBe(holes.length);
+      for (const m of mounted) {
+        const opening = m.original.elements.opening as { surface: { params: WallOpeningParams } };
+        const [u0, v0, u1, v1] = opening.surface.params.perimeter;
+        const hole = holes.find((h) => m.identity.kind === "author" && h.decorationId === m.identity.id)!;
+        expect(hole).toBeDefined();
+        expect((u0 + u1) / 2).toBeCloseTo(hole.centerU, 3);
+        expect(u1 - u0).toBeCloseTo(hole.width, 3);
+        expect(v1 - v0).toBeCloseTo(hole.height, 3);
+        expect(Math.abs((v0 + v1) / 2 - hole.centerY)).toBeLessThan(0.015);
+        const rect = opening.surface.params.rect;
+        expect(
+          walls.some((w) =>
+            w.modifications.some((mod) => mod.op === "removeArea" && mod.rect.every((v, i) => v === rect[i]))
+          )
+        ).toBe(true);
+      }
     },
     60000
   );

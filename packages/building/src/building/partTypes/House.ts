@@ -29,6 +29,7 @@ import { wallRoofJointHeight, type ConstructionWallRoofJoint } from "../runtime/
 import { unitFootprintScale, type MaterialFootprint } from "../runtime/MaterialFootprint";
 import type { ProfileFootprint, ProfileRoofParameters } from "../runtime/ProfileParameters";
 import { registerRoofTypes } from "./Roof";
+import { registerOpeningTypes } from "./Openings";
 import { isFlatRoofHeight } from "../runtime/RoofMode";
 
 /** The wall chart: the perimeter unrolled along u, height along v. Plain JSON. */
@@ -81,7 +82,7 @@ export const wallChartSurface: SurfaceKind<WallChartParams> = {
   },
   // The wall itself: from the ground up to its top, which follows the roof joint.
   region: (p) => {
-    const sample = sampler(p);
+    const sample = wallChartSampler(p);
     const us: number[] = [];
     for (const e of edges(p)) {
       const steps = Math.max(1, Math.ceil(e.l / 0.25));
@@ -377,7 +378,7 @@ function runs(chart: WallChartParams): Run[] {
   return out.map(({ u, l }) => ({ u, l }));
 }
 /** Position, tangent, ground and roof top of a wall chart at u. */
-function sampler(chart: WallChartParams) {
+export function wallChartSampler(chart: WallChartParams) {
   const list = edges(chart);
   const find = (u: number) => list.find((e) => u <= e.u + e.l) ?? list[list.length - 1];
   return {
@@ -601,7 +602,7 @@ function brickPieces(
  * course lines. Kept per laying context, which belongs to one part, so the values are pure. */
 interface MasonryWall {
   chart: WallChartParams;
-  sample: ReturnType<typeof sampler>;
+  sample: ReturnType<typeof wallChartSampler>;
   removed: readonly Rect[];
   courses?: { data: MasonryLayout; lines: CourseLines };
 }
@@ -613,7 +614,7 @@ function masonryWall(context: LayingContext<MasonryParams>): MasonryWall {
     const chart = chart_(context.geometry.original.elements[element]);
     const surface = context.geometry.surface(element);
     // Units give way both where the wall is gone and where other units occupy it.
-    wall = { chart, sample: sampler(chart), removed: [...surface.removed, ...surface.reserved] };
+    wall = { chart, sample: wallChartSampler(chart), removed: [...surface.removed, ...surface.reserved] };
     masonryWalls.set(context, wall);
   }
   return wall;
@@ -753,7 +754,7 @@ export const beltCourses: LayingAlgorithm<BeltParams, BeltLayout> = {
     if (!piece) return;
     const run = d.runs.find((r) => slot >= r.offset && slot < r.offset + r.joints - 1)!;
     const chart = chart_(context.geometry.original.elements[run.element]);
-    const sample = sampler(chart);
+    const sample = wallChartSampler(chart);
     const at0 = sample.at(piece.u0),
       at1 = sample.at(piece.u1);
     const bl = Math.max(at0.ground, piece.lo),
@@ -843,7 +844,7 @@ export const masonryCourses: LayingAlgorithm<MasonryParams, MasonryLayout> = {
     // Calibrated against the online native masonry: 0.46 m courses and bricks.
     const h = (p.nominal ?? 0.46) * scale.height,
       w = (p.nominal ?? 0.46) * scale.width;
-    const length = sampler(chart).length,
+    const length = wallChartSampler(chart).length,
       uOffset = chart.uOffset ?? 0;
     const rows = Math.ceil((chart.maxYGable + 0.12 - chart.minGround) / h) + 1;
     const firstJoint = Math.floor(uOffset / w) - 1,
@@ -1093,7 +1094,7 @@ export const wallCorner: ConnectionRule = ({ parts, seed, params }) => {
   const ys = cornerStoneRows(seed, bottom, top, scale[1]);
   const rows = ys.length - 1,
     over = overhang(scale[2]);
-  const lengthBefore = sampler(cBefore).length;
+  const lengthBefore = wallChartSampler(cBefore).length;
   const modify = [];
   for (let row = 0; row < rows; row++) {
     const width = cornerStoneWidth(seed, row, rows, scale[0]);
@@ -1146,5 +1147,5 @@ export function registerHouseTypes(registry: BuildingRegistry): BuildingRegistry
   registry.rules.register("wallCorner", wallCorner);
   registry.defaults.join("wall", "wall", "wallCorner");
   registry.detectors.register(joinPairKey("wall", "wall"), wallsMeet);
-  return registerRoofTypes(registry);
+  return registerOpeningTypes(registerRoofTypes(registry));
 }

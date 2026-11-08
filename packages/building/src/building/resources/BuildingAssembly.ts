@@ -14,6 +14,21 @@ export function assemblyRole(value: string): AssemblyBinding["role"] {
 export interface BuildingAssembly {
   selected: [name: string, suffix: string, material: number, emissionOrigin?: number[], binding?: AssemblyBinding][];
 }
+/** An opening in a prefab's own x/y plane. */
+export interface BuildingPrefabOpening {
+  min: [number, number];
+  max: [number, number];
+}
+/** Read-only compilation output of a building prefab: its members, with the prefab's poses
+ * baked into their meshes, and the opening it takes out of a wall. */
+export interface BuildingPrefab {
+  members: [name: string, suffix: string, material: number, emissionOrigin?: number[]][];
+  opening?: BuildingPrefabOpening;
+}
+/** A building prefab with the bounds of its baked members. */
+export interface CompiledBuildingPrefab extends BuildingPrefab {
+  bounds: { min: number[]; max: number[] };
+}
 
 export function assemblyEmissionOrigin(origin: number[] | undefined, matrix: readonly number[]): number[] | undefined {
   if (!origin) return undefined;

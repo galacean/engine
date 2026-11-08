@@ -4,6 +4,8 @@ import type { GothicGeometryAssets, ConstructionPositionMesh } from "./Construct
 /** Numerical geometry inputs shared by building algorithms, independent of author models. */
 export interface BuildingUnitAssets {
   decorations?: import("./ConstructionDecorationMeshes").ConstructionDecorationMeshes;
+  /** Building prefabs by type and rank, such as "window-cottage/2". */
+  prefabs?: Record<string, import("../resources/BuildingAssembly").CompiledBuildingPrefab>;
   decorationCollisions?: import("./ConstructionDecorationCollisions").ConstructionDecorationCollisions;
   stoneGeometry?: import("./ConstructionGeometryAssets").ConstructionStoneGeometry;
   windowCuts: import("./ConstructionWindowCutAsset").ConstructionWindowCutAsset;

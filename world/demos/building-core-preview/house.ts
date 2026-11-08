@@ -35,6 +35,12 @@ import { registerHouseTypes } from "@galacean/engine-building/building/partTypes
 import { buildCoreHouse, type CoreHouseParameters } from "@galacean/engine-building/building/application/CoreEuropean";
 import { compileCoreBuilding, prepareCoreBuilding } from "@galacean/engine-building/building/render/CoreBuilding";
 import {
+  planFacadeDecorations,
+  normalizeDecorationPlan
+} from "@galacean/engine-building/building/runtime/DecorationPlan";
+import { normalizeProfileRoof } from "@galacean/engine-building/building/runtime/ProfileParameters";
+import { isFlatRoofHeight } from "@galacean/engine-building/building/runtime/RoofMode";
+import {
   buildingPreviewInput,
   prepareBuildingPublication
 } from "@galacean/engine-building/building/parts/architecture/BuildingPublication";
@@ -52,6 +58,15 @@ interface Case {
   title: string;
   house: CoreHouseParameters;
   ground: Ground;
+}
+/** The facade the initial village plans for a house: windows, a door and a wall lamp. */
+function withFacade(house: CoreHouseParameters): CoreHouseParameters {
+  const roof = normalizeProfileRoof(house.roof ?? {});
+  const planned = normalizeDecorationPlan(
+    planFacadeDecorations({ ...house, roof, wallStructure: "masonry" } as never),
+    isFlatRoofHeight(roof.height)
+  );
+  return { ...house, attachments: planned as never };
 }
 const CASES: Case[] = [
   { id: "house", title: "默认房屋", house: { id: "a" }, ground: flat },
@@ -88,6 +103,22 @@ const CASES: Case[] = [
       roof: { height: 0 },
       plaster: { enabled: true, wear: 0.5, color: 5 }
     },
+    ground: flat
+  },
+  {
+    id: "village",
+    title: "村庄房屋 · 门窗",
+    house: withFacade({
+      id: "a",
+      seed: 12345,
+      height: 5,
+      wallColor: 1,
+      woodColor: 2,
+      rectangle: { center: [0, 0], size: [9, 6], rotation: 0 },
+      roof: { profile: 0.5, height: 0.35, ridge_length: 0.6, eave: 0.3, color: 1 },
+      plaster: { enabled: true, wear: 0.35, color: 3 },
+      floors: { enabled: true, interval: 3.5 }
+    }),
     ground: flat
   },
   { id: "steep", title: "陡屋顶", house: { id: "a", roof: { height: 0.8, eave: 0.4 } }, ground: flat },
@@ -216,7 +247,7 @@ async function core(c: Case, dx: number, parent: Entity, signal: AbortSignal): P
   const house = moved(c, dx),
     ground = groundFor(c, dx);
   const start = performance.now();
-  const result = designBuildingCore(buildCoreHouse(house), registry, { environment: { ground } });
+  const result = designBuildingCore(buildCoreHouse(house, library.compilation), registry, { environment: { ground } });
   const options = { environment: { ground }, assets: library.compilation };
   if (far) {
     const prepared = prepareCoreBuilding(result, registry, options);

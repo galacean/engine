@@ -10,7 +10,14 @@ import {
   Texture2DArray,
   TextureCube
 } from "@galacean/engine-core";
-import { assemblyEmissionOrigin, assemblyRole, validateAssemblyPart, type BuildingAssembly } from "./BuildingAssembly";
+import {
+  assemblyEmissionOrigin,
+  assemblyRole,
+  validateAssemblyPart,
+  type BuildingAssembly,
+  type BuildingPrefab,
+  type BuildingPrefabOpening
+} from "./BuildingAssembly";
 import { PrefabResource } from "@galacean/engine-loader";
 import type { ConstructionResourceRole } from "../runtime/ConstructionBindings";
 import type { ConstructionGeometryAssets } from "./BuildingGeometry";
@@ -83,6 +90,18 @@ export class BuildingUnitComponent extends Component {
 }
 /** Fixed composition lives in this Entity's native child hierarchy. */
 export class BuildingAssemblyComponent extends Component {}
+/** Root of a building prefab: a fixed composition of models placed as one unit, such as a
+ * window, a door or a wall lamp. Its members are the native child hierarchy; their poses
+ * are part of the asset. A prefab that opens a wall names the opening in its own x/y plane. */
+export class BuildingPrefabComponent extends Component {
+  private _opening: BuildingPrefabOpening | null = null;
+  get opening() {
+    return this._opening && { min: [...this._opening.min], max: [...this._opening.max] };
+  }
+  set opening(value: BuildingPrefabOpening | null) {
+    this._opening = value && { min: [value.min[0], value.min[1]], max: [value.max[0], value.max[1]] };
+  }
+}
 export interface GothicUnit {
   mesh: BufferMesh;
   frameTemplate: string;
@@ -110,6 +129,7 @@ export class BuildingAssetKitComponent extends Component {
   private _units: Record<string, PrefabResource> = {};
   private _decorations: Record<string, PrefabResource> = {};
   private _assemblies: Record<string, PrefabResource> = {};
+  private _prefabs: Record<string, PrefabResource> = {};
   private _textures: Record<string, BuildingTexture> = {};
   private _neutralTextures: Record<string, BuildingTexture> = {};
   private _gothic: Record<string, GothicUnit> = {};
@@ -140,6 +160,14 @@ export class BuildingAssetKitComponent extends Component {
     const next = { ...value };
     this.replace(this._assemblies, next);
     this._assemblies = next;
+  }
+  get prefabs() {
+    return { ...this._prefabs };
+  }
+  set prefabs(value: Record<string, PrefabResource>) {
+    const next = { ...value };
+    this.replace(this._prefabs, next);
+    this._prefabs = next;
   }
   get textures() {
     return { ...this._textures };
@@ -197,6 +225,7 @@ export class BuildingAssetKitComponent extends Component {
       target._units,
       target._decorations,
       target._assemblies,
+      target._prefabs,
       target._textures,
       target._neutralTextures,
       target._gothic,
@@ -211,6 +240,7 @@ export class BuildingAssetKitComponent extends Component {
       this._units,
       this._decorations,
       this._assemblies,
+      this._prefabs,
       this._textures,
       this._neutralTextures,
       this._gothic,
@@ -236,6 +266,7 @@ export function registerBuildingAssetComponents(): void {
   Loader.registerClass("BuildingUnitComponent", BuildingUnitComponent);
   Loader.registerClass("BuildingAssetKitComponent", BuildingAssetKitComponent);
   Loader.registerClass("BuildingAssemblyComponent", BuildingAssemblyComponent);
+  Loader.registerClass("BuildingPrefabComponent", BuildingPrefabComponent);
 }
 export interface NativeBuildingUnit {
   mesh: BufferMesh;
@@ -375,6 +406,48 @@ export function buildingAssets(source: PrefabResource): BuildingAssets {
         entity.destroy();
       }
     }
+    // A building prefab's members keep their authored poses: each one's world matrix in the
+    // prefab is baked into its mesh, so the prefab places as a single unit.
+    const prefabs: Record<string, BuildingPrefab> = {};
+    for (const [key, prefab] of Object.entries(kit.prefabs)) {
+      const entity = prefab.instantiate();
+      try {
+        const root = entity.getComponent(BuildingPrefabComponent);
+        if (!root) throw Error(`Building prefab "${key}" requires BuildingPrefabComponent on its root`);
+        const members: BuildingPrefab["members"] = [];
+        const paths = new Set<string>();
+        const visit = (node: typeof entity, path: string) => {
+          if (!node.isActive || Math.min(node.transform.scale.x, node.transform.scale.y, node.transform.scale.z) <= 0)
+            throw Error(`Building prefab "${key}" requires active nodes and positive scale`);
+          const metadata = node.getComponent(BuildingUnitComponent);
+          if (node.getComponent(MeshRenderer) || metadata) {
+            if (!metadata?.enabled || metadata.family !== "decoration" || !node.getComponent(MeshRenderer)?.enabled)
+              throw Error(`A member of building prefab "${key}" requires an enabled decoration unit and MeshRenderer`);
+            const name = `prefab/${key}/${path}`,
+              matrix = Array.from(node.transform.worldMatrix.elements);
+            validateAssemblyPart(name, matrix, metadata.surfaceKind);
+            if (decorations[name]) throw Error("Duplicate building prefab member: " + name);
+            decorations[name] = { ...extractEntity(node), localMatrix: matrix };
+            members.push([name, path, metadata.surfaceKind, assemblyEmissionOrigin(metadata.emissionOrigin, matrix)]);
+          }
+          for (const child of node.children) {
+            const childPath = path ? `${path}/${child.name}` : child.name;
+            if (!child.name || child.name.includes("/") || paths.has(childPath))
+              throw Error(`Invalid member path in building prefab "${key}"`);
+            paths.add(childPath);
+            visit(child, childPath);
+          }
+        };
+        visit(entity, "");
+        if (!members.length) throw Error(`Empty building prefab "${key}"`);
+        const opening = root.opening;
+        if (opening && !(opening.max[0] > opening.min[0] && opening.max[1] > opening.min[1]))
+          throw Error(`Building prefab "${key}" has an empty opening`);
+        prefabs[key] = { members, ...(opening && { opening }) };
+      } finally {
+        entity.destroy();
+      }
+    }
     for (const [name, unit] of Object.entries(units)) {
       if (!unit.material || ![48, 64, 80, 96, 128].includes(unit.instanceStride))
         throw Error("Invalid arrangement unit: " + name);
@@ -400,7 +473,7 @@ export function buildingAssets(source: PrefabResource): BuildingAssets {
       frame: Uint32Array.from(kit.frameWords).buffer,
       sdfMaterials: { ...kit.sdfMaterials },
       sdfProxyIndices: [...kit.sdfProxyIndices],
-      compilation: freezeGeometry(buildingGeometry(kit, units, decorations, assemblies))
+      compilation: freezeGeometry(buildingGeometry(kit, units, decorations, assemblies, prefabs))
     };
     snapshots.set(source, result);
     return result;

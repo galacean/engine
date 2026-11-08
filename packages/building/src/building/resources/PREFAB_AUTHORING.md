@@ -42,6 +42,17 @@ VFS：`Building/Units/Prefabs/wall-lantern.prefab`。
 
 现有专用排列单元仍有 Shader/顶点布局约束；当前实现不表示任意 Shader、动画或嵌套 Prefab 实例均已支持建筑合批。
 
+## 建筑预制件（新架构）
+
+新架构的墙上预制件不使用 `assemblies`，而使用 `prefabs`。两者的区别：
+
+- `prefabs` 的成员位姿就是安装位姿。窗框离墙、玻璃内缩、灯离墙都写在子节点的 `position` 里，程序不再补偏移。
+- 根节点是 `BuildingPrefabComponent`。可选属性 `opening: { min: [x, y], max: [x, y] }` 是预制件在墙上开的洞，用预制件自身坐标。
+- 成员不需要 `attachment`。所有成员随预制件一起放置。
+- 资源包编译时，成员网格以 `prefab/<类型>/<规格>/<路径>` 命名，包围盒由烘焙后的网格得出。
+
+当前的建筑预制件：`window-cottage/1..3`、`door-cottage/1..3`、`wall-lantern/1`。
+
 ### 资产包的消费契约
 
 `BuildingAssetContract.ts` 定义建筑生成器必需的排列能力及实例记录布局；它约束语义键和 ABI，

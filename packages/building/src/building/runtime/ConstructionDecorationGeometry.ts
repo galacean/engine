@@ -18,7 +18,7 @@ export interface DecorationPlacementFrame {
  */
 export function decorationAssemblyGeometry(
   building: Pick<DecorationSurfaceOwner, "id" | "woodColor">,
-  spec: ConstructionDecorationSpec,
+  spec: Pick<ConstructionDecorationSpec, "id" | "woodColor" | "lightColor" | "lightIntensity">,
   assembly: DecorationAssembly,
   kind: string,
   frame: DecorationPlacementFrame

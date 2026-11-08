@@ -322,30 +322,27 @@ export class EffectiveSurface {
   }
   /** The surface's actual extent before removed areas, as one polygon in (u, v). */
   region(): readonly (readonly [number, number])[] {
-    if (this.kind.region) return this.kind.region(this.params);
-    const { u, v } = this.domain;
-    return [
-      [u[0], v[0]],
-      [u[1], v[0]],
-      [u[1], v[1]],
-      [u[0], v[1]]
-    ];
+    if (!this.outline) {
+      const { u, v } = this.domain;
+      this.outline = this.kind.region
+        ? this.kind.region(this.params)
+        : [
+            [u[0], v[0]],
+            [u[1], v[0]],
+            [u[1], v[1]],
+            [u[0], v[1]]
+          ];
+    }
+    return this.outline;
   }
-  /** Distance in surface coordinates from (u, v) to the nearest edge of the effective
-   * surface: the region's outline or a removed area's outline. Capped at `limit`. A closed
-   * surface has no edge at its seam. */
-  edgeDistance(u: number, v: number, limit = 1): number {
-    let best = limit * limit;
-    const segment = (a: readonly number[], b: readonly number[]) => {
-      for (const s of this.shifts()) {
-        const ax = a[0] + s,
-          bx = b[0] + s;
-        const dx = bx - ax,
-          dy = b[1] - a[1],
-          l2 = dx * dx + dy * dy;
-        const t = l2 > 0 ? Math.max(0, Math.min(1, ((u - ax) * dx + (v - a[1]) * dy) / l2)) : 0;
-        best = Math.min(best, (u - ax - dx * t) ** 2 + (v - a[1] - dy * t) ** 2);
-      }
+  private outline?: readonly (readonly [number, number])[];
+  /** Edge segments [ax, ay, bx, by] of the effective surface, shifted by the period on a
+   * closed surface. Computed once: a surface does not change. */
+  private edgeSegments(): Float64Array {
+    if (this.edges) return this.edges;
+    const out: number[] = [];
+    const add = (a: readonly number[], b: readonly number[]) => {
+      for (const s of this.shifts()) out.push(a[0] + s, a[1], b[0] + s, b[1]);
     };
     const outline = this.region();
     for (let i = 0; i < outline.length; i++) {
@@ -353,7 +350,7 @@ export class EffectiveSurface {
         b = outline[(i + 1) % outline.length];
       // The seam of a closed surface is not an edge.
       if (this.domain.closedU && a[0] === b[0] && (a[0] === this.domain.u[0] || a[0] === this.domain.u[1])) continue;
-      segment(a, b);
+      add(a, b);
     }
     for (const r of this.removes) {
       const corners = [
@@ -362,7 +359,26 @@ export class EffectiveSurface {
         [r[2], r[3]],
         [r[0], r[3]]
       ];
-      for (let i = 0; i < 4; i++) segment(corners[i], corners[(i + 1) % 4]);
+      for (let i = 0; i < 4; i++) add(corners[i], corners[(i + 1) % 4]);
+    }
+    return (this.edges = Float64Array.from(out));
+  }
+  private edges?: Float64Array;
+  /** Distance in surface coordinates from (u, v) to the nearest edge of the effective
+   * surface: the region's outline or a removed area's outline. Capped at `limit`. A closed
+   * surface has no edge at its seam. */
+  edgeDistance(u: number, v: number, limit = 1): number {
+    let best = limit * limit;
+    const e = this.edgeSegments();
+    for (let i = 0; i < e.length; i += 4) {
+      const ax = e[i],
+        ay = e[i + 1],
+        dx = e[i + 2] - ax,
+        dy = e[i + 3] - ay,
+        l2 = dx * dx + dy * dy;
+      const t = l2 > 0 ? Math.max(0, Math.min(1, ((u - ax) * dx + (v - ay) * dy) / l2)) : 0;
+      const d = (u - ax - dx * t) ** 2 + (v - ay - dy * t) ** 2;
+      if (d < best) best = d;
     }
     return Math.sqrt(best);
   }
