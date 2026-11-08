@@ -417,6 +417,213 @@ function capElement(context: LayingContext<CapParams>) {
   return context.params.element ?? context.geometry.ids("curve")[0];
 }
 
+/** A round roof: a cone whose section follows the profile from the eave radius (x = 0) to
+ * the top radius (x = 1). Plain JSON. */
+export interface RoofConeParams {
+  readonly center: V2;
+  /** Offset of the top from the center, in metres. */
+  readonly tip: V2;
+  readonly bottom: number;
+  readonly top: number;
+  readonly base: number;
+  readonly height: number;
+  readonly exponent: number;
+  /** Angle where u = 0 starts, in radians. */
+  readonly phase: number;
+}
+/** The cone over a round wall. The eave flares out with the eave parameter. */
+export function roofCone(shared: HouseShared, chart: WallChartParams): RoofConeParams {
+  const roof = shared.roof;
+  if (!roof) throw Error("A roof needs roof parameters");
+  const shape = profileShape(shared.footprint);
+  if (shape.type !== "circle") throw Error("A roof cone needs a round footprint");
+  if (isFlatRoofHeight(roof.height)) throw Error("Flat roofs have no slopes");
+  const q = roof.profile;
+  const flare = roof.eave * 1.5 * (Math.sqrt(q) + (1 - Math.sqrt(q)) * 0.5);
+  const t = smooth(clamp01((shape.radius - 0.9) / 7.1 / 0.4));
+  const cap = 12 * t + 8 * (1 - t);
+  return {
+    center: shape.center,
+    tip: [roof.tip[0] * shape.radius, roof.tip[1] * shape.radius],
+    bottom: shape.radius + (flare * 1.2 + 0.28) * 0.5,
+    top: 0.2,
+    base: chart.topY,
+    height: Math.min(cap, Math.max(0, roof.height * 12 + (1 - roof.height) * 0.4)),
+    exponent: q * 1.5 + (1 - q) * 0.5,
+    phase: shape.phase
+  };
+}
+/** The cone section by arc length: radius, height and their slope at v. */
+interface ConeSampler {
+  readonly length: number;
+  at(v: number): { radius: number; y: number; dr: number; dy: number };
+}
+const coneSamplers = new WeakMap<RoofConeParams, ConeSampler>();
+function coneSampler(p: RoofConeParams): ConeSampler {
+  let found = coneSamplers.get(p);
+  if (found) return found;
+  const xs = Array.from({ length: PROFILE_POINTS }, (_, i) => i / (PROFILE_POINTS - 1));
+  const rs = xs.map((x) => lerp(p.bottom, p.top, x)),
+    ys = xs.map((x) => p.height * Math.pow(x, p.exponent));
+  const knots = [0];
+  for (let i = 1; i < xs.length; i++) knots.push(knots[i - 1] + Math.hypot(rs[i] - rs[i - 1], ys[i] - ys[i - 1]));
+  const length = knots[knots.length - 1];
+  found = {
+    length,
+    at(v) {
+      const s = clamp01(v) * length;
+      let i = 0;
+      while (i < knots.length - 2 && knots[i + 1] < s) i++;
+      const t = (s - knots[i]) / (knots[i + 1] - knots[i]);
+      return {
+        radius: lerp(rs[i], rs[i + 1], t),
+        y: lerp(ys[i], ys[i + 1], t),
+        dr: rs[i + 1] - rs[i],
+        dy: ys[i + 1] - ys[i]
+      };
+    }
+  };
+  coneSamplers.set(p, found);
+  return found;
+}
+/** Horizontal direction at angle position u around the cone. */
+const around = (p: RoofConeParams, u: number, turn = 0): V2 => {
+  const angle = (1 - u) * 2 * Math.PI + p.phase + turn;
+  return [Math.cos(angle), Math.sin(angle)];
+};
+/** u around the cone, v up the cone by arc length. x follows u, y climbs, z points out. */
+export const roofConeSurface: SurfaceKind<RoofConeParams> = {
+  domain: () => ({ u: [0, 1], v: [0, 1], closedU: true }),
+  frame: (p, u, v) => {
+    const { radius, y, dr, dy } = coneSampler(p).at(v);
+    const [cx, cz] = around(p, u);
+    const out: Vec3 = [cx, 0, cz];
+    const x: Vec3 = [cz, 0, -cx];
+    const climb = normalize(add(scale(out, dr), [0, dy, 0]));
+    const origin: Vec3 = [
+      p.center[0] + p.tip[0] * v + cx * radius,
+      p.base + y,
+      p.center[1] + p.tip[1] * v + cz * radius
+    ];
+    return { origin, x, y: climb, z: cross(x, climb) };
+  }
+};
+/** Element "slope": the cone over a round wall. */
+export const houseRoofConeGeometry: GeometryGenerator<HouseShared> = (p, { hosts }) => ({
+  elements: { slope: { kind: "surface", surface: { kind: "roofCone", params: roofCone(p, hostChart(hosts)) } } }
+});
+
+/** Rotates v about the unit axis k by angle a (right hand). */
+function rotateAbout(v: Vec3, k: Vec3, a: number): Vec3 {
+  const c = Math.cos(a),
+    s = Math.sin(a);
+  return add(add(scale(v, c), scale(cross(k, v), s)), scale(k, dot(k, v) * (1 - c)));
+}
+type RingParams = TileParams & {
+  /** Extra downward tilt of every tile, in degrees. Default: 10. */
+  tilt?: number;
+};
+interface RingLayout {
+  rings: number;
+  cols: number;
+}
+function coneOf(context: LayingContext<unknown>): RoofConeParams {
+  const element = context.geometry.original.elements.slope;
+  if (element?.kind !== "surface" || element.surface.kind !== "roofCone") throw Error("ringTiles lays a roof cone");
+  return element.surface.params as RoofConeParams;
+}
+const ringCount = (p: RoofConeParams, height: number) => Math.max(2, Math.ceil(coneSampler(p).length / height)) - 1;
+/** Tiles per ring: about one unit wide, half as wide where the cone gets narrow. */
+function ringCols(radius: number, width: number) {
+  const taper = clamp01((radius - 0.9) / (0.3 - 0.9));
+  return Math.max(5, Math.ceil((2 * Math.PI * radius) / ((taper * 0.5 + 1 - taper) * width)));
+}
+function ringTile(
+  context: LayingContext<RingParams>,
+  p: RoofConeParams,
+  rings: number,
+  r: number,
+  c: number
+): (LaidUnitSpec & { normal: Vec3 }) | undefined {
+  const { width, depth } = tileSize(context);
+  const v = r / rings;
+  const { radius, y, dr, dy } = coneSampler(p).at(v);
+  const cols = ringCols(radius, width);
+  if (c >= cols) return;
+  // Each ring turns by its own random angle, so joints do not line up.
+  const turn = context.random(`ring:${r}`, "turn").next() * 2 * Math.PI;
+  const pa = around(p, c / cols, turn),
+    pb = around(p, (c + 1) / cols, turn),
+    mid = around(p, (c + 0.5) / cols, turn);
+  const origin: Vec3 = [
+    p.center[0] + p.tip[0] * v + ((pa[0] + pb[0]) / 2) * radius,
+    p.base + y,
+    p.center[1] + p.tip[1] * v + ((pa[1] + pb[1]) / 2) * radius
+  ];
+  const normal: Vec3 = [mid[0], 0, mid[1]];
+  const axis = cross(normal, [0, 1, 0]);
+  // The tile hangs down the cone, tilted a little further out than the slope.
+  const slope = Math.atan(dy / dr);
+  const angle = (-(context.params.tilt ?? 10) * Math.PI) / 180 - slope;
+  const along = rotateAbout(normal, axis, -angle);
+  const key = `${r}/${c}`;
+  const jitter = context.params.lengthJitter ?? 0.2;
+  const rowLength = (coneSampler(p).length / (rings + 1)) * (context.params.overlap ?? 1.43);
+  const length = rowLength * (1 - jitter + 2 * jitter * context.random(key, "length").next());
+  const shade = clamp01(v + context.random(key, "shade").next() * (context.params.shadeJitter ?? 0.2));
+  return {
+    key,
+    frame: { origin, x: axis, y: along, z: cross(axis, along) },
+    size: [Math.hypot(pa[0] - pb[0], pa[1] - pb[1]) * radius, length, depth],
+    params: { clip: NO_CLIP, shade, flag: r === 0 ? 2 : 1, circular: true },
+    normal
+  };
+}
+/** Rings of overlapping tiles up a roof cone. Ring r sits at v = r / rings and splits evenly
+ * into columns; each ring turns by a random angle. The first ring also gets flat closures. */
+export const ringTiles: LayingAlgorithm<RingParams, RingLayout> = {
+  info: {
+    accepts: ["surface"],
+    summary: "Rings of overlapping tiles up a roof cone, with flat closures under the eave.",
+    params: {
+      overlap: "Tile length over the ring spacing. Default: 1.43.",
+      lengthJitter: "Random tile length variation, as a fraction. Default: 0.2.",
+      shadeJitter: "Random shade offset up the cone. Default: 0.2.",
+      closureDepth: "Depth of the eave closures in metres. Default: the unit depth.",
+      tilt: "Extra downward tilt of every tile in degrees. Default: 10."
+    }
+  },
+  plan(context) {
+    const p = coneOf(context);
+    const { width, height } = tileSize(context);
+    const rings = ringCount(p, height);
+    const cols = Math.max(
+      ...Array.from({ length: rings }, (_, r) => ringCols(coneSampler(p).at(r / rings).radius, width))
+    );
+    return { count: rings * cols + cols, data: { rings, cols } };
+  },
+  unitAt(context, d, index) {
+    const p = coneOf(context);
+    const closure = index >= d.rings * d.cols;
+    const tile = ringTile(context, p, d.rings, closure ? 0 : Math.floor(index / d.cols), index % d.cols);
+    if (!tile) return;
+    const { normal, ...spec } = tile;
+    if (!closure) return spec;
+    // The closure lies flat at the height of the tile's top end, across the tile's reach.
+    const half = scale(spec.frame.y, spec.size![1] / 2);
+    const a: Vec3 = [spec.frame.origin[0] - half[0], spec.frame.origin[1] + half[1], spec.frame.origin[2] - half[2]];
+    const b = add(spec.frame.origin, half);
+    const span = Math.hypot(a[0] - b[0], a[2] - b[2]);
+    if (!(span > 0.1)) return;
+    return {
+      key: `eave/${index % d.cols}`,
+      frame: { origin: scale(add(a, b), 0.5), x: spec.frame.x, y: normal, z: [0, 1, 0] },
+      size: [spec.size![0], span, context.params.closureDepth ?? tileSize(context).depth],
+      params: { ...spec.params, shade: 0, flag: 2 }
+    };
+  }
+};
+
 /** Two slopes meet at a hip when they share a side edge, and at the ridge when their top
  * edges face each other. */
 function slopeMeeting(a: RoofSlopeParams, b: RoofSlopeParams): "hip" | "ridge" | undefined {
@@ -562,6 +769,9 @@ export function registerRoofTypes(registry: BuildingRegistry): BuildingRegistry 
   registry.surfaces.register("roofSlope", roofSlopeSurface);
   registry.geometry.register("houseRoofSlope", houseRoofSlopeGeometry);
   registry.algorithms.register("roofTiles", roofTiles);
+  registry.surfaces.register("roofCone", roofConeSurface);
+  registry.geometry.register("houseRoofCone", houseRoofConeGeometry);
+  registry.algorithms.register("ringTiles", ringTiles);
   registry.algorithms.register("capCourses", capCourses);
   registry.rules.register("roofSlopes", roofSlopes_);
   registry.rules.register("roofOnWalls", roofOnWalls);

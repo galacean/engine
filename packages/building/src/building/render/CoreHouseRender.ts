@@ -119,6 +119,7 @@ function roofEntry(batch: RoofBatch, id: string, surface: string, u: LaidUnit, b
   // COMPAT(online-parity): the online roof record has no seed lane; the unit seed goes into
   // the ordinal lane, which the roof shader uses for variation.
   view.setUint32(52, u.seed >>> 0, true);
+  view.setUint32(56, u.params?.circular ? 1 : 0, true);
   view.setUint32(60, (u.params?.flag as number | undefined) ?? 1, true);
   const [tangent, bitangent, normal] = quaternionBasis(q);
   batch.cells.push({

@@ -264,7 +264,8 @@ export function buildCoreHouse(p: CoreHouseParameters): BuildingCoreDraft {
   const roofParams = shared.house.roof;
   // A pitched roof over a rectangle has one part per slope; the joins between slopes derive
   // the hip and ridge caps. Other roofs keep one roof part.
-  const slopes = !p.circle && !isFlatRoofHeight(roofParams.height);
+  const pitched = !isFlatRoofHeight(roofParams.height);
+  const slopes = !p.circle && pitched;
   // A slope sits on the wall below it; a single roof part, or a roof over one wall, sits
   // on every wall.
   const under = (side: number) => (walls.length === 4 ? [walls[side]] : walls).map((w) => ({ part: w.id }));
@@ -283,19 +284,34 @@ export function buildCoreHouse(p: CoreHouseParameters): BuildingCoreDraft {
           },
           hosts: under(side)
         }))
-    : [
-        {
-          part: {
-            id: p.id + "-roof",
-            group: p.id,
-            type: "roof",
-            // COMPAT(online-parity): round and flat roofs still render through the online roof.
-            geometry: { generator: "houseRoof", params: { $shared: "house" } },
-            algorithm: { type: "none" }
-          },
-          hosts: walls.map((w) => ({ part: w.id }))
-        }
-      ];
+    : pitched
+      ? // A round roof is one cone over the round wall.
+        [
+          {
+            part: {
+              id: p.id + "-roof",
+              group: p.id,
+              type: "roof",
+              geometry: { generator: "houseRoofCone", params: { $shared: "house" } },
+              algorithm: { $shared: "roofTiles" },
+              unit: { $shared: "tile" }
+            },
+            hosts: walls.map((w) => ({ part: w.id }))
+          }
+        ]
+      : [
+          {
+            part: {
+              id: p.id + "-roof",
+              group: p.id,
+              type: "roof",
+              // COMPAT(online-parity): flat roofs still render through the online roof.
+              geometry: { generator: "houseRoof", params: { $shared: "house" } },
+              algorithm: { type: "none" }
+            },
+            hosts: walls.map((w) => ({ part: w.id }))
+          }
+        ];
   return {
     groups: [
       {
@@ -303,7 +319,7 @@ export function buildCoreHouse(p: CoreHouseParameters): BuildingCoreDraft {
         seed,
         shared: {
           ...shared,
-          ...(slopes && {
+          ...(pitched && {
             tile: {
               source: "roof_tile",
               bounds: CUBE,
@@ -312,7 +328,7 @@ export function buildCoreHouse(p: CoreHouseParameters): BuildingCoreDraft {
               // eave closures can be short. Tiles keep their depth.
               range: { min: [0.1, 0.2, 1], max: [1.001, 2.2, 1] }
             },
-            roofTiles: { type: "roofTiles" }
+            roofTiles: { type: p.circle ? "ringTiles" : "roofTiles" }
           })
         }
       }

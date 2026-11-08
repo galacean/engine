@@ -15,7 +15,7 @@ import {
 import { registerHouseTypes } from "../../src/building/partTypes/House";
 import type { RoofSlopeParams } from "../../src/building/partTypes/Roof";
 import { buildCoreHouse, type CoreHouseParameters } from "../../src/building/application/CoreEuropean";
-import { coreHouseRenderInput } from "../../src/building/render/CoreHouseRender";
+import { coreHouseRenderInput, coreRoofBatches } from "../../src/building/render/CoreHouseRender";
 
 const flat = () => 0;
 const registry = registerHouseTypes(createBuildingRegistry());
@@ -170,5 +170,40 @@ describe("Roof slopes", () => {
       expect(cap.unit!.source).toBe(tile.source);
       expect(cap.unit!.range).not.toEqual(tile.range);
     }
+  });
+
+  it("lays a round roof as one cone of tile rings", () => {
+    const p: CoreHouseParameters = { id: "t", height: 10, circle: { center: [0, 0], radius: 2.5, phase: 0 } };
+    const { result, slopes, hips, ridges } = roof(p);
+    expect(result.diagnostics).toEqual([]);
+    expect(slopes).toHaveLength(1);
+    expect(slopes[0].algorithm.type).toBe("ringTiles");
+    expect(hips).toHaveLength(0);
+    expect(ridges).toHaveLength(0);
+    const laid = units(slopes[0]);
+    const tiles = laid.filter((u) => !u.key.startsWith("eave/"));
+    // Same counts as the online round roof for this tower: 299 tiles and 35 closures.
+    expect(tiles).toHaveLength(299);
+    expect(laid.length - tiles.length).toBe(35);
+    for (const u of tiles) {
+      expect(u.params!.circular).toBe(true);
+      expect(u.frame.z[1]).toBeGreaterThan(0);
+    }
+    // The test asset library has no spire mesh, so check the packed records without the
+    // online pipeline.
+    const batches = coreRoofBatches(result, registry, "t", flat, 0)!;
+    expect(batches.layout.cells).toHaveLength(299);
+    const record = batches.layout.records[0].initial64_hex;
+    expect(parseInt(record.slice(112, 114), 16)).toBe(1);
+  });
+
+  it("keeps round roof tiles inside the unit range over a sweep", () => {
+    for (const height of [0.2, 1])
+      for (const profile of [0, 1])
+        for (const eave of [0, 1])
+          for (const radius of [0.8, 2.5, 9]) {
+            const p = { id: "a", height: 5, circle: { center: [0, 0] as [number, number], radius, phase: 0.3 } };
+            expect(roof({ ...p, roof: { height, profile, eave } }).result.diagnostics).toEqual([]);
+          }
   });
 });
