@@ -13,10 +13,7 @@ import {
   expandUnits,
   type BuildingPartDef
 } from "@galacean/engine-building/building/core/index.ts";
-import {
-  createBuildingTypeRegistry,
-  MOUNTED_PART_TYPES
-} from "@galacean/engine-building/building/partTypes/index.ts";
+import { createBuildingTypeRegistry, MOUNTED_PART_TYPES } from "@galacean/engine-building/building/partTypes/index.ts";
 import { coreBuildingEnvironment } from "@galacean/engine-building/building/render/CoreBuilding.ts";
 
 it("keeps the mounted parts the design lays when the initial plan is saved as native author Source", async () => {
@@ -29,7 +26,10 @@ it("keeps the mounted parts the design lays when the initial plan is saved as na
     const design = designBuildingCore(group.draft, registry, { environment });
     for (const part of design.parts)
       if (part.identity.kind === "author" && MOUNTED_PART_TYPES.includes(part.type))
-        (expandUnits(part, registry, { environment }).length ? laid : rejected).add(part.identity.id);
+        if (expandUnits(part, registry, { environment }).length) laid.add(part.identity.id);
+    // A mounted part the design does not lay, including one whose geometry failed.
+    for (const part of group.draft.parts)
+      if (MOUNTED_PART_TYPES.includes(part.type) && !laid.has(part.id)) rejected.add(part.id);
   }
   expect(laid.size).toBeGreaterThan(0);
   const source = await initialBuildingSource(

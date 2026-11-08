@@ -87,15 +87,16 @@ export function initialBuildingDrafts(plan: IslandPlan): InitialBuildingDraft[] 
     );
     b.attachments = normalizeDecorationPlan(planFacadeDecorations(b), isFlatRoofHeight(b.roof.height));
     if (!isFlatRoofHeight(b.roof.height) && p.width > 6 && p.depth > 6 && seed % 5 === 0)
-      // One Gothic dormer on the front slope, a little left of the middle, at its own size. A
-      // design that cannot fit it lays nothing, and the village drops it.
+      // One Gothic dormer on the front of the roof, a little left of the middle and about a
+      // third of the way up, at its own size. A design that cannot fit it lays nothing, and
+      // the village drops it.
       b.attachments!.push({
         id: "gothic",
         kind: "window",
         type: "dormer-gothic",
         host: "roof",
         rank: 1,
-        uv: [0.45, 0.3]
+        uv: [0.45, 0.15]
       });
     members.push({ owner: p.id, b, radius: Math.hypot(p.width, p.depth) / 2 + 0.5 });
   }

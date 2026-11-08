@@ -34,15 +34,17 @@ export async function initialBuildingSource(
     const height = prepareBuildingTerrain(terrain, { position: group.position, rotationY: 0 }).height;
     const environment = coreBuildingEnvironment(height, assets);
     const design = designBuildingCore(group.draft, registry, { environment });
+    // Keep only the mounted parts the design lays; a part whose geometry failed is not among
+    // the design's parts at all.
     const mounts = new Set<string>(MOUNTED_PART_TYPES);
-    const rejected = new Set(
+    const laid = new Set(
       design.parts.flatMap((p) =>
-        p.identity.kind === "author" && mounts.has(p.type) && !expandUnits(p, registry, { environment }).length
+        p.identity.kind === "author" && mounts.has(p.type) && expandUnits(p, registry, { environment }).length
           ? [p.identity.id]
           : []
       )
     );
-    const parts = group.draft.parts.filter((p) => !rejected.has(p.id));
+    const parts = group.draft.parts.filter((p) => !mounts.has(p.type) || laid.has(p.id));
     const ids = new Set(parts.map((p) => p.id));
     const draft: BuildingCoreDraft = {
       ...group.draft,
