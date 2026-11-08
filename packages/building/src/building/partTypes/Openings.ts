@@ -300,7 +300,8 @@ export const mountPrefab: LayingAlgorithm<MountPrefabParams, null> = {
       unitParams: "Values the renderer reads from the laid unit."
     }
   },
-  plan: () => ({ count: 1, data: null }),
+  // A rule may remove the mount, as when another house hides it: nothing is laid then.
+  plan: (context) => ({ count: context.geometry.ids("point").includes("mount") ? 1 : 0, data: null }),
   unitAt(context) {
     const bounds = context.unit.bounds;
     if (!bounds) throw Error("mountPrefab needs the prefab's bounds");

@@ -81,6 +81,8 @@ describe("Houses that touch", () => {
     const result = design([{ ...a, attachments: [windowAt(0.6), windowAt(0.87)] as never }, b]);
     const hidden = result.diagnostics.filter((d) => d.message.includes("inside another house"));
     expect(hidden.length).toBe(1);
+    // The hidden part lays nothing and reports nothing else.
+    expect(result.diagnostics.length).toBe(1);
     expect(hidden[0].message).toContain("a/w0.6");
     const laid = (id: string) =>
       expandUnits(result.parts.find((p) => p.identity.kind === "author" && p.identity.id === id)!, registry);
