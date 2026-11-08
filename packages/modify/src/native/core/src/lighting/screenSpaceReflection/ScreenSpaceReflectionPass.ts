@@ -23,6 +23,7 @@ export class ScreenSpaceReflectionPass {
   static readonly SHADER_NAME = "Lighting/ScreenSpaceReflection";
 
   private static readonly _sceneColorProperty = ShaderProperty.getByName("material_SSRSceneColorTexture");
+  private static readonly _opaqueDepthProperty = ShaderProperty.getByName("material_SSROpaqueDepthTexture");
   private static readonly _sceneDepthProperty = ShaderProperty.getByName("material_SSRSceneDepthTexture");
   private static readonly _surfaceProperty = ShaderProperty.getByName("material_SSRSurfaceTexture");
   private static readonly _responseProperty = ShaderProperty.getByName("material_SSRResponseTexture");
@@ -36,9 +37,6 @@ export class ScreenSpaceReflectionPass {
   private static readonly _rayLengthFadeProperty = ShaderProperty.getByName("material_SSRRayLengthFade");
   private static readonly _thicknessProperty = ShaderProperty.getByName("material_SSRThickness");
   private static readonly _maxRoughnessProperty = ShaderProperty.getByName("material_SSRMaxRoughness");
-  private static readonly _cameraMaxRoughnessProperty = ShaderProperty.getByName(
-    "camera_ScreenSpaceReflectionMaxRoughness"
-  );
   private static readonly _edgeFadeProperty = ShaderProperty.getByName("material_SSREdgeFade");
   private static readonly _maxStepsProperty = ShaderProperty.getByName("material_SSRMaxSteps");
   private static readonly _binaryStepsProperty = ShaderProperty.getByName("material_SSRBinarySteps");
@@ -169,7 +167,6 @@ export class ScreenSpaceReflectionPass {
     }
 
     const effective = screenSpaceReflection._beginFrame(reason === null, reason);
-    camera.shaderData.setTexture(ScreenSpaceReflection._cameraTextureProperty, null);
     if (!effective) this.release();
     return effective;
   }
@@ -253,7 +250,7 @@ export class ScreenSpaceReflectionPass {
     if (!material) return false;
 
     try {
-      this._configureTargets(camera, colorTarget);
+      this._configureTargets(colorTarget);
 
       const sceneColorTarget = this._sceneColorTarget!;
       const surfaceTarget = this._surfaceTarget!;
@@ -273,6 +270,7 @@ export class ScreenSpaceReflectionPass {
       const shaderData = material.shaderData;
       shaderData.setTexture(ScreenSpaceReflectionPass._sceneColorProperty, sceneColorTarget.getColorTexture(0));
       shaderData.setTexture(ScreenSpaceReflectionPass._sceneDepthProperty, sceneDepth);
+      shaderData.setTexture(ScreenSpaceReflectionPass._opaqueDepthProperty, sceneDepth);
       shaderData.setTexture(ScreenSpaceReflectionPass._surfaceProperty, surfaceTarget.getColorTexture(0));
       shaderData.setTexture(ScreenSpaceReflectionPass._responseProperty, surfaceTarget.getColorTexture(1));
       shaderData.setTexture(ScreenSpaceReflectionPass._receiverDepthProperty, surfaceTarget.depthTexture);
@@ -314,7 +312,7 @@ export class ScreenSpaceReflectionPass {
         colorTarget._depthFormat,
         true,
         true,
-        false,
+        opaqueColor.isSRGBColorSpace,
         1,
         TextureWrapMode.Clamp,
         TextureFilterMode.Bilinear,
@@ -383,7 +381,8 @@ export class ScreenSpaceReflectionPass {
     context: RenderContext,
     receiverMode:
       | ScreenSpaceReflectionReceiverMode.OpaqueComposite
-      | ScreenSpaceReflectionReceiverMode.TransparentSampleOnly
+      | ScreenSpaceReflectionReceiverMode.TransparentSampleOnly,
+    opaqueTarget: RenderTarget
   ): boolean {
     const profiler = this._camera.screenSpaceReflection.profiler;
     try {
@@ -398,10 +397,18 @@ export class ScreenSpaceReflectionPass {
       this._uploadSettings(shaderData, receiverMode);
       profiler?.beginSample("surface", receiverMode);
       this._surfaceProfiler = profiler;
+      // Copy resolved opaque depth for both phases, never the transparent contribution depth.
+      // Surface uses its own attachment so tracing/compositing cannot feed back into Forward depth.
+      this._engine._hardwareRenderer.blitInternalRTByBlitFrameBuffer(
+        opaqueTarget,
+        this._surfaceTarget!,
+        CameraClearFlags.Color | CameraClearFlags.Stencil,
+        PipelineUtils.defaultViewport
+      );
       context.setRenderTarget(this._surfaceTarget, PipelineUtils.defaultViewport, 0);
       this._engine._hardwareRenderer.clearRenderTarget(
         this._engine,
-        CameraClearFlags.ColorDepth,
+        CameraClearFlags.Color,
         ScreenSpaceReflectionPass._clearColor
       );
     } catch {
@@ -475,7 +482,7 @@ export class ScreenSpaceReflectionPass {
   /** Publish confidence-premultiplied RGB and confidence alpha for transparent consumers. */
   publish(): void {
     this._camera.shaderData.setFloat(
-      ScreenSpaceReflectionPass._cameraMaxRoughnessProperty,
+      ScreenSpaceReflection._cameraMaxRoughnessProperty,
       this._material!.shaderData.getFloat(ScreenSpaceReflectionPass._maxRoughnessProperty)!
     );
     this._camera.shaderData.setTexture(ScreenSpaceReflection._cameraTextureProperty, this._getOutputTexture());
@@ -506,7 +513,6 @@ export class ScreenSpaceReflectionPass {
 
   /** Stop borrowing the internal Forward depth once Transparent consumers have rendered. */
   endFrame(): void {
-    this._material?.shaderData.setTexture(ScreenSpaceReflectionPass._sceneDepthProperty, null);
     if (this._sceneColorTarget && this._surfaceTarget && this._traceTarget) {
       this._publishRenderStats();
     }
@@ -544,12 +550,13 @@ export class ScreenSpaceReflectionPass {
     const materialData = this._material?.shaderData;
     materialData?.setTexture(ScreenSpaceReflectionPass._sceneColorProperty, null);
     materialData?.setTexture(ScreenSpaceReflectionPass._sceneDepthProperty, null);
+    materialData?.setTexture(ScreenSpaceReflectionPass._opaqueDepthProperty, null);
     materialData?.setTexture(ScreenSpaceReflectionPass._surfaceProperty, null);
     materialData?.setTexture(ScreenSpaceReflectionPass._responseProperty, null);
     materialData?.setTexture(ScreenSpaceReflectionPass._receiverDepthProperty, null);
     materialData?.setTexture(ScreenSpaceReflectionPass._traceProperty, null);
     materialData?.setTexture(ScreenSpaceReflectionPass._traceOriginProperty, null);
-    this._camera.shaderData.setTexture(ScreenSpaceReflection._cameraTextureProperty, null);
+    this._camera.screenSpaceReflection._unpublish();
 
     if (this._contributionTarget) {
       pool.freeRenderTarget(this._contributionTarget);
@@ -612,7 +619,7 @@ export class ScreenSpaceReflectionPass {
     return this._material;
   }
 
-  private _configureTargets(camera: Camera, colorTarget: RenderTarget): void {
+  private _configureTargets(colorTarget: RenderTarget): void {
     // The RenderTarget fields can retain a fractional camera pixelViewport even
     // though WebGL storage is GLsizei. Mirror the actual integer storage rather
     // than deriving a second, phase-shifted grid from camera.pixelViewport.
@@ -621,8 +628,9 @@ export class ScreenSpaceReflectionPass {
     const firstReceiverMode = this.hasOpaqueReceivers
       ? ScreenSpaceReflectionReceiverMode.OpaqueComposite
       : ScreenSpaceReflectionReceiverMode.TransparentSampleOnly;
-    const sceneFormat = (colorTarget.getColorTexture(0) as Texture2D).format;
-    this._traceFormat = camera.enableHDR ? TextureFormat.R16G16B16A16 : TextureFormat.R8G8B8A8;
+    const sceneColor = colorTarget.getColorTexture(0) as Texture2D;
+    const sceneFormat = sceneColor.format;
+    this._traceFormat = this._resolveTraceFormat();
 
     // Preserve full-resolution scene color and receiver coverage for compositing.
     // Trace, optional blur and reconstruction follow the phase-local budget.
@@ -635,7 +643,7 @@ export class ScreenSpaceReflectionPass {
       null,
       false,
       true,
-      false,
+      sceneColor.isSRGBColorSpace,
       1,
       TextureWrapMode.Clamp,
       TextureFilterMode.Bilinear
@@ -647,7 +655,7 @@ export class ScreenSpaceReflectionPass {
       fullWidth,
       fullHeight,
       TextureFormat.R8G8B8A8,
-      TextureFormat.Depth24,
+      colorTarget._depthFormat,
       true,
       false,
       false,
@@ -661,6 +669,19 @@ export class ScreenSpaceReflectionPass {
     (this._surfaceTarget.depthTexture as Texture2D).filterMode = TextureFilterMode.Point;
     this._surfaceTexelSize.set(1 / fullWidth, 1 / fullHeight, fullWidth, fullHeight);
     this._updateResourcePeaks();
+  }
+
+  /**
+   * Trace stores linear, confidence-premultiplied radiance, so an 8-bit buffer quantizes dark reflections
+   * regardless of the camera's output range. Use half float wherever it is renderable and filterable.
+   */
+  private _resolveTraceFormat(): TextureFormat {
+    const rhi = this._engine._hardwareRenderer;
+    return rhi.canIUse(GLCapabilityType.colorBufferHalfFloat) &&
+      rhi.canIUse(GLCapabilityType.textureHalfFloat) &&
+      rhi.canIUse(GLCapabilityType.textureHalfFloatLinear)
+      ? TextureFormat.R16G16B16A16
+      : TextureFormat.R8G8B8A8;
   }
 
   private _configurePhaseTraceTarget(

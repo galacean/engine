@@ -81,7 +81,8 @@ export class RenderQueue {
     pipelineStageTagValue: string,
     maskType: RenderQueueMaskType = RenderQueueMaskType.No,
     elementFilter: ((material: Material, element: RenderElement) => boolean) | null = null,
-    applyMaskState: boolean = true
+    applyMaskState: boolean = true,
+    renderStateOverrides: RenderStateElementMap | null = null
   ): number {
     const batchedElements = this.batchedElements;
     const length = batchedElements.length;
@@ -127,7 +128,7 @@ export class RenderQueue {
       // Resolve mask render states
       const maskInteraction = component._maskInteraction;
       const needMaskInteraction = maskInteraction !== SpriteMaskInteraction.None;
-      let customStates: RenderStateElementMap | null = null;
+      let customStates: RenderStateElementMap | null = renderStateOverrides;
 
       if (needMaskType) {
         customStates = BasicResources.getMaskTypeRenderStates(maskType);

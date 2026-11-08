@@ -20,6 +20,7 @@ Shader "Lighting/ScreenSpaceReflection" {
 
       highp sampler2D material_SSRSceneColorTexture;
       highp sampler2D material_SSRSceneDepthTexture;
+      highp sampler2D material_SSROpaqueDepthTexture;
       highp sampler2D material_SSRSurfaceTexture;
       highp sampler2D material_SSRReceiverDepthTexture;
       vec4 material_SSRSurfaceTexelSize;
@@ -170,7 +171,7 @@ Shader "Lighting/ScreenSpaceReflection" {
             float candidateDepth = texture2D(material_SSRReceiverDepthTexture, candidateUV).r;
             if (candidateDepth >= 0.999999) continue;
             float candidateEyeDepth = remapDepthBufferEyeDepth(candidateDepth);
-            float rawSceneDepth = texture2D(material_SSRSceneDepthTexture, candidateUV).r;
+            float rawSceneDepth = texture2D(material_SSROpaqueDepthTexture, candidateUV).r;
             if (rawSceneDepth < 0.999999) {
               float sceneEyeDepth = remapDepthBufferEyeDepth(rawSceneDepth);
               // Occlusion must not reuse the hit thickness: near a contact edge the hidden receiver
@@ -300,9 +301,11 @@ Shader "Lighting/ScreenSpaceReflection" {
               );
               hit = hitDepthSample.y > 0.0 && hitDifference <= hitThickness;
             }
-            break;
+            if (hit) break;
           }
 
+          // Keep the measured sign even after rejecting a thin foreground hit. A new bracket
+          // requires a real front-to-back crossing, not another sample behind the same surface.
           previousScreenFraction = currentScreenFraction;
           previousDifference = difference;
         }
