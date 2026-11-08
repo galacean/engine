@@ -31,10 +31,12 @@ import {
   BUILTIN_BUILDING_ASSETS
 } from "@galacean/engine-building/building/resources/BuiltinBuildingAssets";
 import { renderBuilding } from "@galacean/engine-building/building/parts/architecture/BuildingRender";
-import { designBuildingCore } from "@galacean/engine-building/building/core/index";
-import { createStripRegistry } from "@galacean/engine-building/building/partTypes/Strip";
+import { designBuildingCore, laidUnit, layingContext } from "@galacean/engine-building/building/core/index";
+import { createBuildingTypeRegistry } from "@galacean/engine-building/building/partTypes/index";
 import { buildCoreWall } from "@galacean/engine-building/building/application/CoreEuropean";
-import { coreRenderInput } from "@galacean/engine-building/building/render/CoreRenderInput";
+import { compileCoreBuilding } from "@galacean/engine-building/building/render/CoreBuilding";
+import { packConstructionUnits } from "@galacean/engine-building/building/runtime/ConstructionUnitRender";
+import type { SupportCell } from "@galacean/engine-building/building/runtime/PlacementSupport";
 import { gridKernelInput, GridUnitKernel } from "@galacean/engine-building/building/render/GridUnitKernel";
 
 registerBuildingAssetComponents();
@@ -96,12 +98,49 @@ const assets = await engine.resourceManager.load<PrefabResource>({
 const library = buildingAssets(assets);
 
 // Design: the CPU keeps only the layout.
-const flat = () => 0;
-const registry = createStripRegistry();
-const building = buildCoreWall({ id: "w", length: 16, height: 2.5 });
-const result = designBuildingCore(building.draft, registry);
+const registry = createBuildingTypeRegistry();
+const result = designBuildingCore(buildCoreWall({ id: "w", length: 16, height: 2.5 }), registry);
 const part = result.parts[0];
-const input = await coreRenderInput(result, building.render, registry, flat, library.compilation, { slots: true });
+const { renderInput: input } = await compileCoreBuilding(result, registry, { assets: library.compilation });
+// One cell per layout slot, so that the renderer's record index is the slot. Empty slots
+// become zero-size cells; bricks use the core seed, which the GPU kernel reproduces.
+{
+  const algorithm = registry.algorithms.get(part.algorithm.type)!;
+  const context = layingContext(part, part.unit!, part.layout!.params, registry, {});
+  const cells: SupportCell[] = [];
+  for (let i = 0; i < part.layout!.count; i++) {
+    const spec = algorithm.unitAt(context, part.layout!.data, i);
+    const id = `w/slot-${i}`;
+    if (!spec) {
+      cells.push({
+        id,
+        logical_id: id,
+        anchor_uv: [0, 0],
+        center: [0, 0, 0],
+        tangent: [1, 0, 0],
+        bitangent: [0, 1, 0],
+        normal: [0, 0, 1],
+        size: [0, 0, 0]
+      } as SupportCell);
+      continue;
+    }
+    const u = laidUnit(context, spec);
+    cells.push({
+      id,
+      logical_id: id,
+      anchor_uv: [u.frame.origin[0], u.frame.origin[2]],
+      center: [...u.frame.origin],
+      tangent: [...u.frame.x],
+      bitangent: [...u.frame.y],
+      normal: [...u.frame.z],
+      size: [...u.size!],
+      brick_seed: u.seed & 0x7fffffff
+    } as SupportCell);
+  }
+  const group = input.groups[0];
+  group.cells = cells;
+  group.units = await packConstructionUnits({ cells, slot: 0, role: group.role });
+}
 const drawn = await renderBuilding(input, {
   parent: scene.createRootEntity("wall"),
   camera,

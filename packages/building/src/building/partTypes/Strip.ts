@@ -2,7 +2,6 @@
 // It only describes where things are. How units are laid stays in the algorithms.
 // The ground comes from the environment interface; the terrain system implements it.
 import {
-  createBuildingRegistry,
   sinCos,
   type BuildingEnvironment,
   type BuildingGeometry,
@@ -88,9 +87,8 @@ export const fenceGeometry: GeometryGenerator<FenceParams> = (p, { environment }
   return { elements } satisfies BuildingGeometry;
 };
 
-/** Core mechanism plus the strip part types. */
-export function createStripRegistry(): BuildingRegistry {
-  const registry = createBuildingRegistry();
+/** Registers the strip part types into a registry. */
+export function registerStripTypes(registry: BuildingRegistry): BuildingRegistry {
   registry.surfaces.register("groundStrip", groundStripSurface);
   registry.geometry.register("strip", stripGeometry);
   registry.geometry.register("fence", fenceGeometry);

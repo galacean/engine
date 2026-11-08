@@ -326,6 +326,8 @@ export const gridCourses: LayingAlgorithm<
     const q = [x, y, X, Y];
     const gap = p.gap ?? 0.008;
     const size: [number, number, number] = [joint(q[2] - q[0], gap), joint(q[3] - q[1], gap), p.footprint.depth];
+    // A piece too small for the brick's range is left out.
+    if (!unitFits(context.unit, size)) return;
     const s = ((q[0] + q[2]) / 2 - u) / l;
     return {
       key: `${e.edge}/${row}/${col}/0`,

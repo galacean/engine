@@ -2,7 +2,7 @@
 // the CPU reference expansion. Also reports time and memory.
 import { WebGLEngine, WebGLMode } from "@galacean/engine";
 import { designBuildingCore } from "@galacean/engine-building/building/core/index";
-import { createStripRegistry } from "@galacean/engine-building/building/partTypes/Strip";
+import { createBuildingTypeRegistry } from "@galacean/engine-building/building/partTypes/index";
 import { buildCoreWall } from "@galacean/engine-building/building/application/CoreEuropean";
 import {
   cpuBrickRecords,
@@ -70,10 +70,10 @@ const cases: [string, number, number][] = [
 ];
 log("每个用例：设计（只做布局）→ CPU 参考展开并写记录 → GPU 生成记录并读回比较。\n");
 for (const [title, length, height] of cases) {
-  const registry = createStripRegistry();
-  const building = buildCoreWall({ id: "w", length, height });
+  const registry = createBuildingTypeRegistry();
+  const draft = buildCoreWall({ id: "w", length, height });
   let t = performance.now();
-  const result = designBuildingCore(building.draft, registry, { validate: false });
+  const result = designBuildingCore(draft, registry, { validate: false });
   const tDesign = performance.now() - t;
   const part = result.parts[0];
   t = performance.now();

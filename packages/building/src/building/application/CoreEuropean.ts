@@ -1,18 +1,13 @@
-// Application layer: friendly European parameters → a core draft plus its render plan.
-//
-// COMPAT(online-parity): this file reproduces the online European wall and fence
-// byte for byte while both paths coexist. Every marked line exists only for that
-// and is deleted with the online path. See ../MIGRATION.md.
-import { authorPartKey, type BuildingCoreDraft, type BuildingPartDef, type BuildingUnit, type LaidUnit } from "../core";
+// Application layer: friendly European parameters → core drafts.
+import { type BuildingCoreDraft, type BuildingPartDef, type BuildingUnit } from "../core";
 import { normalizeProfileFootprint, normalizeProfileHeight, normalizeProfileRoof } from "../runtime/ProfileParameters";
 import { unitFootprintScale, type MaterialFootprint } from "../runtime/MaterialFootprint";
 import { isFlatRoofHeight } from "../runtime/RoofMode";
 import { floorLevels } from "../partTypes/House";
 import type { WALL_MOUNTS } from "../partTypes/Openings";
 import type { BuildingUnitAssets } from "../runtime/BuildingUnitAssets";
-import type { UnitPlacementBinding } from "../runtime/UnitPlacement";
-import type { CoreRenderPlan, CoreStripDraw } from "../render/CoreRenderInput";
 
+/** A free-standing wall or fence: its centerline on the ground and its size. */
 export interface CoreStripParameters {
   id: string;
   seed?: number;
@@ -22,183 +17,94 @@ export interface CoreStripParameters {
   center?: [number, number];
   rotation?: number;
   footprint?: MaterialFootprint;
-}
-export interface CoreBuilding {
-  readonly draft: BuildingCoreDraft;
-  readonly render: CoreRenderPlan;
+  /** Palette entry of the bricks or the timber. Default: 0. */
+  color?: number;
 }
 
 const CUBE = { min: [-0.5, -0.5, -0.5], max: [0.5, 0.5, 0.5] } as const;
 const DEFAULT_FOOTPRINT: MaterialFootprint = { width: 0.5, height: 0.4375, depth: 0.1 };
 /** Joint left between neighbouring bricks, in metres. */
 const MORTAR = 0.012;
-// COMPAT(online-parity): the online insetMaterialSpan caps a joint at a fifth of the span.
-const MORTAR_LIMIT = 0.2;
-// COMPAT(online-parity): the online path keeps arbitrarily thin end pieces, so the
-// range barely limits shrinking. A real brick range would reject slivers.
-const SLIVER = 0.001;
 
-function strip(p: CoreStripParameters, depth: number, unit: UnitPlacementBinding["unit_id"], rule: string) {
-  const footprint = p.footprint ?? DEFAULT_FOOTPRINT;
-  // COMPAT(online-parity): the online normalizers round to Float32; reuse them for equal bytes.
-  const rectangle = normalizeProfileFootprint({
-    rectangle: { center: p.center ?? [0, 0], size: [p.length ?? 8, p.depth ?? depth], rotation: p.rotation ?? 0 }
-  }).rectangle!;
-  const surface = p.id + "-surface";
-  // COMPAT(online-parity): binding, owner palette and geometry record reproduce the
-  // online placement document and palette slot shapes.
-  const binding: UnitPlacementBinding = {
-    id: surface + "/placement",
-    geometry_id: surface,
-    rule: { type: rule as UnitPlacementBinding["rule"]["type"] },
-    unit_id: unit,
-    footprint,
-    seed: "source"
-  };
-  const seed = p.seed ?? 17;
-  return {
-    footprint,
-    rectangle,
-    height: normalizeProfileHeight(p.height ?? 1.5),
-    scale: unitFootprintScale(footprint),
-    surface,
-    binding,
-    group: { id: p.id, seed },
-    owner: {
-      id: p.id,
-      slot: 0,
-      seed,
-      palette: { wallColor: 0, woodColor: 0, roofColor: normalizeProfileRoof({}).color }
-    },
-    geometry: { id: surface, type: "strip" as const, source: { type: "enclosure", building_id: p.id } }
-  };
-}
+const stripRectangle = (p: CoreStripParameters, depth: number) => ({
+  center: p.center ?? ([0, 0] as [number, number]),
+  size: [p.length ?? 8, p.depth ?? depth] as [number, number],
+  rotation: p.rotation ?? 0
+});
 
 /** A free-standing brick wall in staggered rows. */
-export function buildCoreWall(p: CoreStripParameters): CoreBuilding {
-  const s = strip(p, 0.45, "brick", "staggered_rows");
+export function buildCoreWall(p: CoreStripParameters): BuildingCoreDraft {
+  const footprint = p.footprint ?? DEFAULT_FOOTPRINT,
+    rectangle = stripRectangle(p, 0.45);
   const brick: BuildingUnit = {
     source: "brick",
     bounds: CUBE,
-    scale: [s.footprint.width, s.footprint.height, s.rectangle.size[1] * s.scale.depth],
-    range: { min: [SLIVER, SLIVER, 1], max: [1, 1, 1] }
-  };
-  const rows = Math.max(1, Math.ceil(s.height / s.footprint.height));
-  const length = s.rectangle.size[0];
-  const draw: CoreStripDraw = {
-    owner: p.id,
-    binding: s.binding,
-    geometry: s.geometry,
-    role: "enclosure",
-    parts: [
-      {
-        key: authorPartKey(s.surface),
-        // COMPAT(online-parity): online cell ids and its row-based anchor v.
-        name: (unit: LaidUnit) => {
-          const [, r, c] = unit.key.split(":").map(Number);
-          const [u] = unit.params!.uv as number[];
-          return { id: `${p.id}/row-${r}/${c}`, anchor_uv: [u / length, (r + 0.5) / rows], order: [] };
-        }
-      }
-    ]
+    scale: [footprint.width, footprint.height, rectangle.size[1]],
+    // Bricks at the ends are cut to fit the wall's length.
+    range: { min: [0.05, 0.05, 1], max: [1, 1, 1] }
   };
   return {
-    draft: {
-      groups: [s.group],
-      parts: [
-        {
-          id: s.surface,
-          group: p.id,
-          type: "wall",
-          geometry: { generator: "strip", params: { rectangle: s.rectangle, height: s.height } },
-          algorithm: {
-            type: "surfaceGrid",
-            params: { elements: ["face"], stagger: 0.5, trim: true, gap: [MORTAR, MORTAR], gapLimit: MORTAR_LIMIT }
-          },
-          unit: brick
-        }
-      ]
-    },
-    render: { owners: [s.owner], strips: [draw] }
+    groups: [{ id: p.id, seed: p.seed ?? 17, shared: { appearance: { wall: p.color ?? 0 } } }],
+    parts: [
+      {
+        id: `${p.id}-wall`,
+        group: p.id,
+        type: "freeWall",
+        geometry: { generator: "strip", params: { rectangle, height: p.height ?? 1.5 } },
+        algorithm: {
+          type: "surfaceGrid",
+          params: { elements: ["face"], stagger: 0.5, trim: true, gap: [MORTAR, MORTAR] }
+        },
+        unit: brick
+      }
+    ]
   };
 }
 
 /** A timber fence: posts on every span boundary and two rails per span. */
-export function buildCoreFence(p: CoreStripParameters): CoreBuilding {
-  const s = strip(p, 0.15, "wooden_plank", "posts_and_rails");
-  const depth = s.rectangle.size[1],
-    length = s.rectangle.size[0];
-  const maxSpacing = 1.6 * s.scale.width;
-  const spans = Math.max(1, Math.ceil(length / maxSpacing));
+export function buildCoreFence(p: CoreStripParameters): BuildingCoreDraft {
+  const footprint = p.footprint ?? DEFAULT_FOOTPRINT,
+    scale = unitFootprintScale(footprint),
+    rectangle = stripRectangle(p, 0.15),
+    height = p.height ?? 1.5;
+  const depth = rectangle.size[1];
+  const maxSpacing = 1.6 * scale.width;
   const post = Math.min(0.16, depth);
-  const levels = [0.35, 0.78];
-  const posts = s.surface + "#posts",
-    rails = s.surface + "#rails";
-  const geometry = {
-    generator: "fence",
-    params: { rectangle: s.rectangle, height: s.height, maxSpacing, levels }
-  };
-  // COMPAT(online-parity): posts and rails are two core parts; the online path draws
-  // them as one group, posts first, then rails interleaved by span.
-  const draw: CoreStripDraw = {
-    owner: p.id,
-    binding: s.binding,
-    geometry: s.geometry,
-    role: "enclosure",
+  const geometry = { generator: "fence", params: { rectangle, height, maxSpacing, levels: [0.35, 0.78] } };
+  return {
+    groups: [{ id: p.id, seed: p.seed ?? 17, shared: { appearance: { wood: p.color ?? 0 } } }],
     parts: [
       {
-        key: authorPartKey(posts),
-        name: (unit) => {
-          const i = Number(unit.key.split(":")[1]);
-          return { id: `${p.id}/post-${i}`, anchor_uv: [i / spans, 0.5], order: [i] };
+        id: `${p.id}-posts`,
+        group: p.id,
+        type: "fencePost",
+        geometry,
+        algorithm: { type: "placeAtPoints" },
+        unit: {
+          source: "wooden_plank",
+          bounds: CUBE,
+          pivot: [0.5, 0, 0.5],
+          scale: [post * scale.width, height, post * scale.depth]
         }
       },
       {
-        key: authorPartKey(rails),
-        name: (unit) => {
-          const [, j, i] = unit.key.split(":").map(Number);
-          return { id: `${p.id}/rail-${i}/${j}`, anchor_uv: [(i + 0.5) / spans, levels[j]], order: [i, j] };
+        id: `${p.id}-rails`,
+        group: p.id,
+        type: "fenceRail",
+        geometry,
+        algorithm: {
+          type: "alongCurves",
+          params: { elements: ["level:0", "level:1"], perSegment: true, stretch: true }
+        },
+        unit: {
+          source: "wooden_plank",
+          bounds: CUBE,
+          scale: [maxSpacing, 0.11 * scale.height, Math.min(0.1, depth) * scale.depth],
+          // A rail spans two posts; on a slope it is longer than its horizontal span.
+          range: { min: [0.05, 1, 1], max: [2, 1, 1] }
         }
       }
     ]
-  };
-  return {
-    draft: {
-      groups: [s.group],
-      parts: [
-        {
-          id: posts,
-          group: p.id,
-          type: "fencePost",
-          geometry,
-          algorithm: { type: "placeAtPoints" },
-          unit: {
-            source: "wooden_plank",
-            bounds: CUBE,
-            pivot: [0.5, 0, 0.5],
-            scale: [post * s.scale.width, s.height, post * s.scale.depth]
-          }
-        },
-        {
-          id: rails,
-          group: p.id,
-          type: "fenceRail",
-          geometry,
-          algorithm: {
-            type: "alongCurves",
-            params: { elements: ["level:0", "level:1"], perSegment: true, stretch: true }
-          },
-          unit: {
-            source: "wooden_plank",
-            bounds: CUBE,
-            scale: [maxSpacing, 0.11 * s.scale.height, Math.min(0.1, depth) * s.scale.depth],
-            // On a slope a rail is longer than its horizontal span.
-            range: { min: [SLIVER, 1, 1], max: [2, 1, 1] }
-          }
-        }
-      ]
-    },
-    render: { owners: [s.owner], strips: [draw] }
   };
 }
 
@@ -352,9 +258,9 @@ export function buildCoreHouse(p: CoreHouseParameters, assets?: BuildingUnitAsse
     bounds: CUBE,
     scale: [unit.width, unit.height, unit.depth],
     range: grid
-      ? // COMPAT(online-parity): the online arranged courses keep arbitrarily thin pieces
-        // at the roof joint and the ground; overlap rows grow 15% taller than the course.
-        { min: [SLIVER, SLIVER, 1], max: [1, 1.15, 1] }
+      ? // Grid courses cut bricks at the ends, the ground and the roof joint; overlap rows
+        // grow 15% taller than the course.
+        { min: [0.05, 0.05, 1], max: [1, 1.15, 1] }
       : // Masonry bricks vary with the joint and course jitter, and run 0.56 m deep through
         // the wall against a 0.1 m nominal unit depth.
         { min: [0.05, 0.05, 1], max: [2.5, 1.8, 8] }

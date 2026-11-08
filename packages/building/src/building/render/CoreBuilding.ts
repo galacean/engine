@@ -65,8 +65,11 @@ import { f32BitsToHalf } from "../runtime/UnitPacking.js";
 import type { RetainedWallUnits } from "../runtime/ConstructionWallLod";
 
 /** How the renderer draws the units of each part type. */
-type Family = "wall" | "parapet" | "roof" | "spire" | "plaster" | "prefab";
+type Family = "wall" | "parapet" | "roof" | "spire" | "plaster" | "prefab" | "enclosure";
 const FAMILIES: Readonly<Record<string, Family>> = {
+  freeWall: "enclosure",
+  fencePost: "enclosure",
+  fenceRail: "enclosure",
   wall: "wall",
   cornerStone: "wall",
   wallSeam: "wall",
@@ -300,6 +303,22 @@ function roofEntrance(base: number, count: number, flat = false) {
   });
 }
 /** Paving and other plain units: the generic packer derives every record from the cell. */
+/** A laid unit's size: the size the algorithm chose, or the prototype's scaled and stretched box. */
+function laidSize(part: ResolvedPart, u: LaidUnit): number[] {
+  if (u.size) return [...u.size];
+  const bounds = part.unit?.bounds,
+    scale = part.unit?.scale ?? [1, 1, 1];
+  if (!bounds) throw Error(`Unit of ${part.key} has neither a laid size nor bounds`);
+  return [0, 1, 2].map((a) => (bounds.max[a] - bounds.min[a]) * scale[a] * u.stretch[a]);
+}
+/** The center of a laid unit's box: the prototype's bounds center through the unit's matrix. */
+function laidCenter(part: ResolvedPart, u: LaidUnit): number[] {
+  const bounds = part.unit?.bounds;
+  if (!bounds) return [...u.frame.origin];
+  const c = [0, 1, 2].map((a) => (bounds.min[a] + bounds.max[a]) / 2),
+    m = u.matrix;
+  return [0, 1, 2].map((k) => m[k] * c[0] + m[4 + k] * c[1] + m[8 + k] * c[2] + m[12 + k]);
+}
 function plainCells(binding: CoreBinding): SupportCell[] {
   return binding.parts.flatMap(({ part, units }) =>
     units.map((u) => {
@@ -309,11 +328,11 @@ function plainCells(binding: CoreBinding): SupportCell[] {
         logical_id: id,
         surface_id: binding.id,
         anchor_uv: [u.frame.origin[0], u.frame.origin[2]],
-        center: [...u.frame.origin],
+        center: laidCenter(part, u),
         tangent: [...u.frame.x],
         bitangent: [...u.frame.y],
         normal: [...u.frame.z],
-        size: [...u.size!]
+        size: laidSize(part, u)
       };
     })
   );
@@ -338,6 +357,8 @@ function bindingDraws(binding: CoreBinding, slot: number) {
     const base = chartBase(binding);
     draws.push({ role: "wall", cells: masonryCells(binding, body, base), ...(joint && { wallRoofJoint: joint }) });
     if (bands.length) draws.push({ role: "floor-band", cells: masonryCells(binding, bands, base) });
+  } else if (binding.family === "enclosure") {
+    draws.push({ role: "enclosure", cells: plainCells(binding) });
   } else if (binding.family === "roof") {
     const deck = binding.parts.filter((p) => p.part.type === "roofDeck");
     if (deck.length) draws.push({ role: "platform", cells: plainCells({ ...binding, parts: deck }) });
@@ -768,15 +789,22 @@ function deckSurface(p: RoofDeckParams, offset: number) {
   }
   return { mesh, chart, width: W };
 }
-/** Six faces of a unit box, for solid units such as a parapet's merlons. Each face is charted
- * in metres around `anchor` when one is given, else from its own corner. */
-function unitBox(mesh: Mesh, u: LaidUnit, anchor?: number[]) {
+/** Six faces of a unit box, for solid units such as a parapet's merlons. The box is the
+ * prototype's bounds through the unit's matrix, or the laid size around the frame. Each face
+ * is charted in metres around `anchor` when one is given, else from its own corner. */
+function unitBox(mesh: Mesh, part: ResolvedPart, u: LaidUnit, anchor?: number[]) {
+  const bounds = part.unit?.bounds,
+    m = u.matrix;
   const axes = [u.frame.x, u.frame.y, u.frame.z],
-    size = u.size ?? [1, 1, 1];
-  const corner = (x: number, y: number, z: number) =>
-    u.frame.origin.map(
-      (c, k) => c + (x * size[0] * axes[0][k] + y * size[1] * axes[1][k] + z * size[2] * axes[2][k]) / 2
-    );
+    size = laidSize(part, u);
+  const corner = (x: number, y: number, z: number) => {
+    if (u.size || !bounds)
+      return u.frame.origin.map(
+        (c, k) => c + (x * size[0] * axes[0][k] + y * size[1] * axes[1][k] + z * size[2] * axes[2][k]) / 2
+      );
+    const p = [x, y, z].map((t, a) => (t < 0 ? bounds.min[a] : bounds.max[a]));
+    return [0, 1, 2].map((k) => m[k] * p[0] + m[4 + k] * p[1] + m[8 + k] * p[2] + m[12 + k]);
+  };
   const v = [-1, 1].flatMap((z) => [-1, 1].flatMap((y) => [-1, 1].map((x) => corner(x, y, z))));
   for (const face of [
     [0, 2, 3, 1],
@@ -904,7 +932,7 @@ export function coreBuildingView(layout: CoreBuildingLayout, options: CoreBuildi
             for (const u of units) {
               const span = u.params!.wallU as number[];
               const anchor = [(span[0] + span[1]) / 2, u.frame.origin[1] - base];
-              unitBox(bands, u, anchor);
+              unitBox(bands, part, u, anchor);
               bandCells.push({
                 id: `${partId(part)}/${u.key}`,
                 anchor_uv: anchor,
@@ -916,10 +944,11 @@ export function coreBuildingView(layout: CoreBuildingLayout, options: CoreBuildi
           ...(options.includeAppearance &&
             bandCells.length && { lodAppearance: constructionLodAppearance(bands.uvs, bandCells, perimeter) })
         });
-      } else if (binding.family === "parapet") {
-        // Merlons are few and solid: the distance view draws them as boxes.
+      } else if (binding.family === "parapet" || binding.family === "enclosure") {
+        // Merlons, free-standing walls and fences are solid: the distance view draws their
+        // units as boxes.
         const mesh = emptyMesh();
-        for (const { units } of binding.parts) for (const u of units) unitBox(mesh, u);
+        for (const { part, units } of binding.parts) for (const u of units) unitBox(mesh, part, u);
         add(owner, binding, mesh, { placement: "unit", backing: false });
       } else if (binding.family === "roof") {
         // Each slope, cone or deck unrolls into one chart; slopes lie side by side.

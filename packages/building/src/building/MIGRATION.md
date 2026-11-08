@@ -6,15 +6,15 @@
 
 1. **整体迁移完成后删除旧代码。** 下文“旧路径”中列出的代码，在最后一个阶段验收通过后全部删除，不保留开关、不保留回退。
 2. **兼容代码与旧路径一起删除。** 兼容代码只为在两条路径并存期间做到逐字节对比而存在，每处都标记 `COMPAT(online-parity)`，可以用 `git grep "COMPAT(online-parity)"` 找全。
-3. **兼容代码只能放在这些位置：** `application/`、`render/`、`tests/core/CoreParity.spec.ts`、`world/demos/building-core-preview/`。核心层禁止出现，由 `tests/core/CoreLayering.spec.ts` 检查。
-4. **删除旧代码前先冻结基准。** 把线上路径对各用例的渲染包哈希保存为固定基准，`CoreParity.spec.ts` 改为与基准比较，然后再删除旧路径。
+3. **兼容代码只能放在这些位置：** `application/`、`render/`、`tests/core/`、`world/demos/building-core-preview/`。核心层禁止出现，由 `tests/core/CoreLayering.spec.ts` 检查。
+4. **删除旧代码前先冻结基准。** `tests/core/` 中与线上对比的验收测试读取线上路径的输出。删除旧路径前，把它们读取的线上数值保存为固定基准，测试改为与基准比较。
 5. **不是兼容的未完成项不能删，要补实现。** 见文末“未完成项”。
 
 ## 阶段
 
 | 阶段 | 内容 | 状态 |
 | --- | --- | --- |
-| M1 | 独立墙、栅栏，含起伏地形 | 已完成：平地上不旋转的墙，渲染包逐字节相同（零的符号统一后）；栅栏、旋转、起伏地形的数值误差 < 1e-12 |
+| M1 | 独立墙、栅栏，含起伏地形 | 已完成：由 `render/CoreBuilding.ts` 直接渲染（族 `enclosure`，构件 `freeWall`、`fencePost`、`fenceRail`）。与线上对比（`tests/core/CoreStrip.spec.ts`）：绘制组相同，单元数相差 < 12%（新架构不铺放不下的碎块，例如墙顶 1 cm 高的一层），单元中心的范围相差 < 0.3 m |
 | M2 | 房屋：墙 + 屋顶，墙顶跟随屋顶轮廓 | 已完成：墙体、坡屋顶（四坡、山墙、攒尖、圆锥）、平屋顶（矩形、圆形，含女儿墙）、尖顶都由新架构生成；渲染输入、远景、结构查询、调色板、聚焦位姿、贴地数据、放置文档都由 `render/CoreBuilding.ts` 直接产出，不经过线上管线 |
 | M3 | 台基、腰线、木墙、抹灰 | 进行中：腰线已迁移（构件 `floorBand`，几何 `houseFloorBands`，铺设算法 `beltCourses`；与线上块数、层高、截面一致）；抹灰已迁移（构件 `plaster`，几何 `housePlaster` 继承各面墙的修改，铺设算法 `coverSurfaces`，单元是一块连续面材；与线上面积相差 < 5%，磨损和颜色相同）；台基（高度 > 0）和木墙未迁移 |
 | M4 | 相连的房屋：对等检测、避让、转角砖 | 已完成：多栋房屋放在一个草稿里（`buildCoreHouses`，每栋一个组）。墙与墙的对等检测同时找转角和相交（`wallsTouch`）；规则 `wallJoin` 在转角派生转角石，在两面墙外皮相交处派生一列接缝石（构件 `wallSeam`，铺设算法 `seamStones`，靠近墙角 0.2 m 以内的交点留给转角石）。两个平屋顶顶高相差不超过 2 m 时，女儿墙各自去掉伸进对方的部分（`parapetsJoin`）。挂点落在另一栋房屋外皮以内的挂件不铺设，并报告诊断（`mountHidden`；每面墙带 `outline` 曲线，离挂点最近的那面墙负责）。线上在平屋顶与坡屋顶交界处的垛口被坡屋顶盖住，看不到，不迁移 |
@@ -41,16 +41,9 @@
 
 | 位置 | 内容 | 为什么存在 |
 | --- | --- | --- |
-| `application/CoreEuropean.ts` | 调用线上的参数规范化函数 | 得到相同的 Float32 舍入 |
-| 同上 | `MORTAR_LIMIT = 0.2` | 线上 `insetMaterialSpan` 限制灰缝不超过跨度的 1/5 |
-| 同上 | `SLIVER = 0.001` 作为 `range` 下限 | 线上会保留极窄的碎砖 |
-| 同上 | binding、owner 调色板、geometry 记录 | 线上放置文档和调色板槽的形状 |
-| 同上 | 单元 id（`a/row-0/0`、`rail-i/j`）、按行号计算的 `anchor_uv`、横栏排序 | 线上的单元命名和绘制顺序 |
-| 同上 | 栅栏的两个构件合成一个绘制组 | 线上一个绘制组同时画立柱和横栏 |
-| `render/CoreRenderInput.ts` | 整个适配器，以及其中的类型强转 | 目标是线上的 `BuildingRenderInput`；迁移后铺设单元直接交给单元渲染器 |
 | `tests/core/CoreHouse.spec.ts` | `gridCourses` 与线上 `arrangedWallCells` 逐值对比 | 验证规则网格墙的迁移 |
-| `tests/core/CoreParity.spec.ts` | 与线上路径实时对比，`-0` 统一成 `+0` | 线上写 `-s`，`s = 0` 时得到 `-0` |
-| `world/demos/building-core-preview/` | M1 验收页 | 并排展示两条路径 |
+| `tests/core/` 中与线上对比的测试 | 读取线上路径的输出 | 验收；删除旧路径前改为与冻结的基准比较 |
+| `world/demos/building-core-preview/` | 验收页 | 并排展示两条路径 |
 
 ## 新架构的渲染适配（`render/CoreBuilding.ts`）
 
