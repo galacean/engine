@@ -21,6 +21,14 @@ export interface WorldTemplateArtDirection {
   foliage: string;
   /** Leaf colours keyed by native species identity, independent of catalog order. */
   treeFoliage?: Readonly<Record<string, string>>;
+  /** Per-part HDR colours for native vegetation layers; species accents retain every model variant. */
+  plantPalette?: {
+    layers: readonly string[];
+    parts: Readonly<Record<string, { color: string; intensity: number }>>;
+    species?: Readonly<Record<string, Readonly<Record<string, { color: string; intensity: number }>>>>;
+    /** Exact native material slots override the part palette, including slots outside its layers. */
+    slots?: Readonly<Record<string, Readonly<Record<string, { color: string; intensity: number }>>>>;
+  };
   bark: string;
   flowers: string;
   stone: string;
@@ -194,6 +202,76 @@ export const WORLD_TEMPLATE_ART: Readonly<Record<string, WorldTemplateArtDirecti
       SM_BirchTree_02: "#f78f95",
       SM_BirchTree_07: "#ffa0c1",
       "cartoon/tree/highlands-fir-3-candidate/v1": "#ffa0c1"
+    },
+    plantPalette: {
+      layers: ["shrubs", "herbs", "cover", "flowers", "litter"],
+      slots: {
+        SM_Flower_08_01: {
+          "appearance-540a4c6f542dc7f0": { color: "#ff006f", intensity: 20 }
+        },
+        SM_Flower_08_02: {
+          "appearance-540a4c6f542dc7f0": { color: "#ff006b", intensity: 20 }
+        },
+        SM_Flower_08_03: {
+          "appearance-540a4c6f542dc7f0": { color: "#ff0268", intensity: 20 }
+        },
+        SM_CoverPlant_06: {
+          "appearance-d7b4b46b60c4bf96": { color: "#e01a56", intensity: 15 }
+        },
+        SM_BirchTree_01: {
+          "appearance-58da25ba7b394497": { color: "#825636", intensity: 1 },
+          "appearance-a8b3441a505dd0f2": { color: "#a06f49", intensity: 1 },
+          "appearance-e832df91cc4eb1a2": { color: "#ff6681", intensity: 2 }
+        }
+      },
+      parts: {
+        foliage: { color: "#e48bb5", intensity: 1.2 },
+        leaves: { color: "#e18bbb", intensity: 1.15 },
+        blades: { color: "#eda0b9", intensity: 1.15 },
+        stem: { color: "#8fa77f", intensity: 1.05 },
+        petals: { color: "#ff7cb6", intensity: 1.3 },
+        cap: { color: "#ff9bbe", intensity: 1.2 },
+        bark: { color: "#c5a3b0", intensity: 1 }
+      },
+      species: {
+        // Native recipe inputs multiply the original material hue. This HDR swatch is
+        // rose foliage / the evaluated blue base of highlands-bush-2-leaves.mat.
+        "cartoon/shrub/highlands-bush-2/v1": { foliage: { color: "#ff414e", intensity: 9.26 } },
+        SM_Flower_01_01: { petals: { color: "#fff0da", intensity: 1.15 } },
+        SM_Flower_01_02: { petals: { color: "#fff0da", intensity: 1.15 } },
+        SM_Flower_01_03: { petals: { color: "#fff0da", intensity: 1.15 } },
+        SM_Flower_02_01: { petals: { color: "#ffb6d3", intensity: 1.2 } },
+        SM_Flower_02_02: { petals: { color: "#ffb6d3", intensity: 1.2 } },
+        SM_Flower_02_03: { petals: { color: "#ffb6d3", intensity: 1.2 } },
+        SM_Flower_03_01: { petals: { color: "#c18aee", intensity: 1.25 } },
+        SM_Flower_03_02: { petals: { color: "#c18aee", intensity: 1.25 } },
+        SM_Flower_03_03: { petals: { color: "#c18aee", intensity: 1.25 } },
+        SM_Flower_04_01: { petals: { color: "#e798d7", intensity: 1.2 } },
+        SM_Flower_04_02: { petals: { color: "#e798d7", intensity: 1.2 } },
+        SM_Flower_04_03: { petals: { color: "#e798d7", intensity: 1.2 } },
+        SM_Flower_06_01: { petals: { color: "#ffd0ac", intensity: 1.15 } },
+        SM_Flower_06_02: { petals: { color: "#ffd0ac", intensity: 1.15 } },
+        SM_Flower_06_03: { petals: { color: "#ffd0ac", intensity: 1.15 } },
+        SM_Flower_07_01: { petals: { color: "#ffa2c2", intensity: 1.2 } },
+        SM_Flower_07_02: { petals: { color: "#ffa2c2", intensity: 1.2 } },
+        SM_Flower_07_03: { petals: { color: "#ffa2c2", intensity: 1.2 } },
+        SM_Flower_09_01: { petals: { color: "#b77ee8", intensity: 1.25 } },
+        SM_Flower_09_02: { petals: { color: "#b77ee8", intensity: 1.25 } },
+        SM_Flower_09_03: { petals: { color: "#b77ee8", intensity: 1.25 } },
+        SM_Flower_10_01: { petals: { color: "#fff0da", intensity: 1.15 } },
+        SM_Mushroom_01: { stem: { color: "#ffe4cf", intensity: 1.1 } },
+        SM_Mushroom_02: { stem: { color: "#ffe4cf", intensity: 1.1 } },
+        SM_Mushroom_03: { stem: { color: "#ffe4cf", intensity: 1.1 } },
+        SM_Mushroom_04: { stem: { color: "#ffe4cf", intensity: 1.1 } },
+        SM_Mushroom_05: { stem: { color: "#ffe4cf", intensity: 1.1 } },
+        SM_Mushroom_06: { stem: { color: "#ffe4cf", intensity: 1.1 } },
+        SM_Mushroom_07: { stem: { color: "#ffe4cf", intensity: 1.1 } },
+        SM_Mushroom_08: { stem: { color: "#ffe4cf", intensity: 1.1 } },
+        SM_Mushroom_09: { stem: { color: "#ffe4cf", intensity: 1.1 } },
+        SM_Mushroom_10: { stem: { color: "#ffe4cf", intensity: 1.1 } },
+        SM_Mushroom_11: { stem: { color: "#ffe4cf", intensity: 1.1 } },
+        SM_Mushroom_12: { stem: { color: "#ffe4cf", intensity: 1.1 } }
+      }
     },
     bark: "#e4dce8",
     flowers: "#fff2fa",

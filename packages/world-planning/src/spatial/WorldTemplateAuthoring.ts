@@ -31,14 +31,22 @@ export function worldTemplatePaletteValues(id: string): Record<string, Record<st
     surfacePalette: { ...colorFields("color", art.ground), ...(art.road ? colorFields("road", art.road) : {}) },
     plantMaterial: Object.fromEntries(
       PLANT_MATERIAL_SLOTS.flatMap((slot) => {
-        const color = templateLinearColor(
+        const palette = art.plantPalette;
+        const swatch =
+          palette?.slots?.[slot.assetId]?.[slot.materialId] ??
+          (slot.layers.some((layer) => palette?.layers.includes(layer))
+            ? (palette?.species?.[slot.assetId]?.[slot.part] ?? palette?.parts[slot.part])
+            : undefined);
+        const fallback =
           slot.part === "bark"
             ? art.bark
             : ["petals", "cap"].includes(slot.part)
               ? art.flowers
               : slot.role === "leaf" && slot.layers.includes("trees")
                 ? (art.treeFoliage?.[slot.assetId] ?? art.foliage)
-                : art.foliage
+                : art.foliage;
+        const color = templateLinearColor(swatch?.color ?? fallback).map(
+          (channel) => channel * (swatch?.intensity ?? 1)
         );
         return (["r", "g", "b"] as const).map((channel, i) => [
           plantMaterialField(slot.assetId, slot.materialId, channel),

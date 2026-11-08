@@ -51,6 +51,7 @@ import {
   readSurfacePalette
 } from "@galacean/engine-world-planning/spatial/PlanningGrassAppearance";
 import { applyPlanningWeather } from "@galacean/engine-world-planning/spatial/PlanningWeather";
+import { PLANT_MATERIAL_SLOTS, plantMaterialField } from "@galacean/engine-world-planning/spatial/PlantMaterialParameters";
 import { planningLakeAssets } from "@galacean/engine-world-planning/semantic-study/PlanningLakeSource";
 import { planningGroundSurface } from "@galacean/engine-world-planning/semantic-study/PlanningHeightmap";
 
@@ -223,6 +224,44 @@ describe("authored world templates", () => {
     expect(source).toEqual(before);
     expect(readSurfacePalette(restored, [1, 1, 1], "road")).toEqual(templateLinearColor("#c7b9ad"));
     expect(readGrassAppearance(restored).colorA).toEqual(templateLinearColor("#e55959"));
+  });
+  it("covers native understory variants with independent HDR part colours", () => {
+    const palette = worldTemplatePaletteValues("sakura-pearl");
+    const rgb = (assetId: string, part: string, materialId?: string) => {
+      const slot = PLANT_MATERIAL_SLOTS.find(
+        (slot) => slot.assetId === assetId && slot.part === part && (!materialId || slot.materialId === materialId)
+      )!;
+      expect(slot).toBeDefined();
+      return (["r", "g", "b"] as const).map(
+        (channel) => palette.plantMaterial[plantMaterialField(assetId, slot.materialId, channel)]
+      );
+    };
+    for (const slot of PLANT_MATERIAL_SLOTS)
+      for (const channel of ["r", "g", "b"] as const)
+        expect(palette.plantMaterial[plantMaterialField(slot.assetId, slot.materialId, channel)]).toBeGreaterThanOrEqual(0);
+    const swatches = [
+      ["SM_Flower_08_01", "petals", "appearance-540a4c6f542dc7f0", "#ff006f", 20],
+      ["SM_Flower_08_02", "petals", "appearance-540a4c6f542dc7f0", "#ff006b", 20],
+      ["SM_Flower_08_03", "petals", "appearance-540a4c6f542dc7f0", "#ff0268", 20],
+      ["SM_CoverPlant_06", "foliage", "appearance-d7b4b46b60c4bf96", "#e01a56", 15],
+      ["SM_BirchTree_01", "bark", "appearance-58da25ba7b394497", "#825636", 1],
+      ["SM_BirchTree_01", "bark", "appearance-a8b3441a505dd0f2", "#a06f49", 1],
+      ["SM_BirchTree_01", "leaves", "appearance-e832df91cc4eb1a2", "#ff6681", 2]
+    ] as const;
+    for (const [asset, part, material, hex, intensity] of swatches)
+      expect(rgb(asset, part, material)).toEqual(templateLinearColor(hex).map((channel) => channel * intensity));
+    const flower = rgb("SM_Flower_08_01", "petals");
+    expect(flower[0]).toBeGreaterThan(1);
+    expect(rgb("SM_Flower_08_02", "petals")).not.toEqual(flower);
+    expect(rgb("SM_Flower_08_03", "petals")).not.toEqual(flower);
+    expect(rgb("SM_Flower_08_01", "stem")).not.toEqual(flower);
+    expect(rgb("SM_Flower_03_01", "petals")).not.toEqual(flower);
+    expect(rgb("SM_Mushroom_01", "cap")[0]).toBeGreaterThan(1);
+    expect(rgb("SM_Mushroom_01", "stem")).not.toEqual(rgb("SM_Mushroom_01", "cap"));
+    expect(rgb("SM_BirchTree_02", "leaves")).toEqual(templateLinearColor("#f78f95"));
+    expect(rgb("SM_CoverPlant_06", "foliage", "appearance-431c9ee4ddb29dc7")).toEqual(
+      templateLinearColor("#e48bb5").map((channel) => channel * 1.2)
+    );
   });
   for (const id of ["", ...WORLD_TEMPLATES.map((template) => template.id)]) {
     it(`${id || "original"}: retains underlying plant controls through habitat switches and Seed restoration`, () => {
