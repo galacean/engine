@@ -22,7 +22,7 @@ import {
   type LayingContext,
   type SurfaceKind
 } from "../core";
-import { profileShape, publishProfileWall, profileRoofGeometry } from "../runtime/ProfileGeometry";
+import { profileShape, publishProfileWall } from "../runtime/ProfileGeometry";
 import { profileWallEnvelope } from "../runtime/ConstructionWallEnvelope";
 import { wallRoofJointHeight, type ConstructionWallRoofJoint } from "../runtime/ConstructionWallRoofJoint";
 import { unitFootprintScale, type MaterialFootprint } from "../runtime/MaterialFootprint";
@@ -43,6 +43,8 @@ export interface WallChartParams {
   readonly joint?: ConstructionWallRoofJoint;
   /** Outer faces of the wall: laid units sit on the nominal one, the roof on the finish one. */
   readonly nominalOuter: number;
+  /** Wall unit depth against the 0.1 m reference; it scales the wall thickness. */
+  readonly depthScale?: number;
   readonly finishOuter: number;
   /** Where this chart starts on the house perimeter, in metres. Lets the walls of one
    * house share continuous courses. Default: 0. */
@@ -115,7 +117,8 @@ export const houseWallGeometry: GeometryGenerator<HouseShared> = (p, { environme
     topY: profile.topY,
     ...(profile.wallRoofJoint && { joint: profile.wallRoofJoint }),
     nominalOuter: envelope.nominalOuter,
-    finishOuter: envelope.finishOuter
+    finishOuter: envelope.finishOuter,
+    depthScale: envelope.depthScale
   };
   return { elements: { face: { kind: "surface", surface: { kind: "wallChart", params } } } };
 };
@@ -164,21 +167,6 @@ export const houseWallSideGeometry: GeometryGenerator<HouseShared & { side: numb
     uOffset
   };
   return { elements: { face: { kind: "surface", surface: { kind: "wallChart", params: side } } } };
-};
-
-/** Element "roof": the roof surface over the host wall. Read by the roof's laying algorithm. */
-export const houseRoofGeometry: GeometryGenerator<HouseShared> = (p, { hosts }) => {
-  const wall = hosts[0]?.geometry.original.elements.face;
-  if (wall?.kind !== "surface" || wall.surface.kind !== "wallChart") throw Error("A roof attaches to a house wall");
-  if (!p.roof) throw Error("A roof needs roof parameters");
-  const chart = wall.surface.params as WallChartParams;
-  const roof = profileRoofGeometry(profileShape(p.footprint), p.roof, chart.topY, chart.finishOuter);
-  return { elements: { roof: { kind: "surface", surface: { kind: "houseRoof", params: roof } } } };
-};
-/** The roof chart is consumed whole by the roof algorithm; its frame is not sampled yet. */
-export const houseRoofSurface: SurfaceKind<unknown> = {
-  domain: () => ({ u: [0, 1], v: [0, 1], closedU: false }),
-  frame: () => ({ origin: [0, 0, 0], x: [1, 0, 0], y: [0, 1, 0], z: [0, 0, 1] })
 };
 
 type CourseRule = "staggered_rows" | "overlap_rows" | "parallel_rows" | "horizontal_rows";
@@ -960,9 +948,7 @@ export const wallCorner: ConnectionRule = ({ parts, seed, params }) => {
 /** Registers the house part types into a registry. */
 export function registerHouseTypes(registry: BuildingRegistry): BuildingRegistry {
   registry.surfaces.register("wallChart", wallChartSurface);
-  registry.surfaces.register("houseRoof", houseRoofSurface);
   registry.geometry.register("houseWall", houseWallGeometry);
-  registry.geometry.register("houseRoof", houseRoofGeometry);
   registry.algorithms.register("gridCourses", gridCourses);
   registry.algorithms.register("masonryCourses", masonryCourses);
   registry.algorithms.register("cornerStones", cornerStones);

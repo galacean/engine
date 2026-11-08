@@ -8,7 +8,7 @@ import { nativeAssets } from "../fixtures/constructionAssets";
 import { createBuildingRegistry, designBuildingCore, expandUnits, type ResolvedPart } from "../../src/building/core";
 import { registerHouseTypes, type WallChartParams } from "../../src/building/partTypes/House";
 import { buildCoreHouse, type CoreHouseParameters } from "../../src/building/application/CoreEuropean";
-import { coreHouseRenderInput } from "../../src/building/render/CoreHouseRender";
+import { compileCoreBuilding } from "../../src/building/render/CoreBuilding";
 
 const flat = () => 0;
 const registry = registerHouseTypes(createBuildingRegistry());
@@ -68,14 +68,44 @@ describe("Flat roofs", () => {
     expect(parapets).toHaveLength(0);
   });
 
-  it("draws the deck in the flat roof group and the parapet with the wall bricks", async () => {
+  it("draws the deck as paving and the parapet as masonry", async () => {
     const p = { id: "f", roof: { height: 0 } };
     const { result, decks, parapets } = house(p);
-    const input = await coreHouseRenderInput(result, registry, p, flat, nativeAssets);
-    const platform = input.groups.find((g) => g.role === "platform" && g.binding_id === "f-roof/placement")!;
+    const { renderInput: input } = await compileCoreBuilding(result, registry, {
+      environment: { ground: flat },
+      assets: nativeAssets
+    });
+    const platform = input.groups.find((g) => g.role === "platform" && g.binding_id === "f-roof")!;
     expect(platform.cells).toHaveLength(units(decks[0]).length);
-    expect(input.groups.some((g) => g.role === "platform-rim")).toBe(false);
-    const wall = input.groups.find((g) => g.role === "wall" && g.binding_id === "f-wall/placement")!;
-    expect(wall.cells.filter((c) => c.id.includes("/parapet-"))).toHaveLength(units(parapets[0]).length);
+    const parapet = input.groups.find((g) => g.role === "wall" && g.binding_id === "f-parapet")!;
+    expect(parapet.cells).toHaveLength(units(parapets[0]).length);
+    // The deck backs the roof; the parapet's merlons are solid and need no backing.
+    expect(input.backingParts.map((b) => b.bindingId).sort()).toEqual(["f-roof", "f-wall"]);
+  });
+
+  it("paves a round flat roof inside its circle, with a round parapet", () => {
+    const p: CoreHouseParameters = {
+      id: "r",
+      height: 6,
+      circle: { center: [1, 2], radius: 3, phase: 0.4 },
+      roof: { height: 0 }
+    };
+    const { result, decks, parapets, walls } = house(p);
+    expect(result.diagnostics).toEqual([]);
+    expect(decks).toHaveLength(1);
+    expect(parapets).toHaveLength(1);
+    const outer = 3 + chartOf(walls[0]).nominalOuter;
+    const tiles = units(decks[0]);
+    expect(tiles.length).toBeGreaterThan(100);
+    for (const u of tiles) {
+      // Every tile lies inside the circle, corners included.
+      for (const sx of [-1, 1])
+        for (const sy of [-1, 1]) {
+          const x = u.frame.origin[0] + (sx * u.size![0] * u.frame.x[0] + sy * u.size![1] * u.frame.y[0]) / 2 - 1,
+            z = u.frame.origin[2] + (sx * u.size![0] * u.frame.x[2] + sy * u.size![1] * u.frame.y[2]) / 2 - 2;
+          expect(Math.hypot(x, z)).toBeLessThanOrEqual(outer + 1e-6);
+        }
+    }
+    expect(units(parapets[0]).length).toBeGreaterThan(30);
   });
 });

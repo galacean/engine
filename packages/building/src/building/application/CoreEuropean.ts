@@ -209,6 +209,9 @@ export interface CoreHouseParameters {
   footprint?: MaterialFootprint;
   /** Wall laying: our masonry (default) or regular grid courses. */
   walls?: "masonry" | "grid";
+  /** Palette entries of the wall and wood materials. Default: 0. The roof color is `roof.color`. */
+  wallColor?: number;
+  woodColor?: number;
 }
 /** A house group: walls and a roof that share the footprint, wall height and roof. */
 export function buildCoreHouse(p: CoreHouseParameters): BuildingCoreDraft {
@@ -299,53 +302,57 @@ export function buildCoreHouse(p: CoreHouseParameters): BuildingCoreDraft {
             hosts: walls.map((w) => ({ part: w.id }))
           }
         ]
-      : !p.circle
-        ? // A flat roof is a tiled deck at the wall top, with a parapet around it unless the
-          // roof has no rim.
-          [
-            {
-              part: {
-                id: p.id + "-roof",
-                group: p.id,
-                type: "roofDeck",
-                geometry: { generator: "houseRoofDeck", params: { $shared: "house" } },
-                algorithm: {
-                  type: "surfaceGrid",
-                  params: { cell: [unit.width, (unit.height * 0.4) / 0.4375], stagger: 0.5, trim: true }
-                },
-                unit: { $shared: "tile" }
-              },
-              hosts: walls.map((w) => ({ part: w.id }))
+      : // A flat roof is a paved deck at the wall top, with a parapet around it unless the
+        // roof has no rim.
+        [
+          {
+            part: {
+              id: p.id + "-roof",
+              group: p.id,
+              type: "roofDeck",
+              geometry: { generator: "houseRoofDeck", params: { $shared: "house" } },
+              algorithm: { type: "deckRows", params: { cell: [unit.width, (unit.height * 0.4) / 0.4375] } },
+              unit: { $shared: "tile" }
             },
-            ...(roofParams.flat_rim === 0
-              ? [
-                  {
-                    part: {
-                      id: p.id + "-parapet",
-                      group: p.id,
-                      type: "parapet",
-                      geometry: { generator: "houseParapet", params: { $shared: "house" } },
-                      algorithm: { type: "masonryCourses", params: { crenels: {} } },
-                      unit: { $shared: "brick" }
-                    },
-                    hosts: walls.map((w) => ({ part: w.id }))
-                  }
-                ]
-              : [])
-          ]
-        : [
-            {
-              part: {
-                id: p.id + "-roof",
-                group: p.id,
-                type: "roof",
-                // COMPAT(online-parity): round flat roofs still render through the online roof.
-                geometry: { generator: "houseRoof", params: { $shared: "house" } },
-                algorithm: { type: "none" }
-              },
-              hosts: walls.map((w) => ({ part: w.id }))
-            }
-          ];
+            hosts: walls.map((w) => ({ part: w.id }))
+          },
+          ...(roofParams.flat_rim === 0
+            ? [
+                {
+                  part: {
+                    id: p.id + "-parapet",
+                    group: p.id,
+                    type: "parapet",
+                    geometry: { generator: "houseParapet", params: { $shared: "house" } },
+                    algorithm: { type: "masonryCourses", params: { crenels: {} } },
+                    unit: { $shared: "brick" }
+                  },
+                  hosts: walls.map((w) => ({ part: w.id }))
+                }
+              ]
+            : [])
+        ];
+  // A round roof, or a pyramid roof whose ridge shrinks to a square cap, ends in a spire.
+  const size = p.rectangle?.size ?? [8, 6];
+  const cap = (1 - roofParams.ridge_length) * 0.1 + roofParams.ridge_length * size[roofParams.ridge_direction];
+  const spire =
+    pitched && (p.circle || Math.max(cap / 0.1, 0.1 / cap) < 1.01)
+      ? {
+          part: {
+            id: p.id + "-spire",
+            group: p.id,
+            type: "spire",
+            geometry: { generator: "roofApex" },
+            algorithm: {
+              type: "placeAtPoints",
+              // The spire mesh follows the roof profile at its collar.
+              params: { unitParams: { radius: 0.25, profile: roofParams.profile } }
+            },
+            unit: { source: "roofSpire" }
+          },
+          hosts: roofs.map((r) => ({ part: r.part.id }))
+        }
+      : undefined;
   return {
     groups: [
       {
@@ -353,26 +360,31 @@ export function buildCoreHouse(p: CoreHouseParameters): BuildingCoreDraft {
         seed,
         shared: {
           ...shared,
-          ...((pitched || !p.circle) && {
-            tile: {
-              source: "roof_tile",
-              bounds: CUBE,
-              scale: [unit.width, unit.height, unit.depth],
-              // Measured over 324 roofs: tiles narrow toward a hip top and run 1.1–2 units long;
-              // eave closures can be short. Tiles keep their depth.
-              range: { min: [0.1, 0.2, 1], max: [1.001, 2.2, 1] }
-            },
-            roofTiles: { type: p.circle ? "ringTiles" : "roofTiles" }
-          })
+          // Palette entries the renderer colors the house with.
+          appearance: { wall: p.wallColor ?? 0, roof: roofParams.color, wood: p.woodColor ?? 0 },
+          tile: {
+            source: "roof_tile",
+            bounds: CUBE,
+            scale: [unit.width, unit.height, unit.depth],
+            // Measured over 324 roofs: tiles narrow toward a hip top and run 1.1–2 units long;
+            // eave closures can be short. Tiles keep their depth.
+            range: { min: [0.1, 0.2, 1], max: [1.001, 2.2, 1] }
+          },
+          roofTiles: { type: p.circle ? "ringTiles" : "roofTiles" }
         }
       }
     ],
-    parts: [...walls, ...roofs.map((r) => r.part)],
-    connections: roofs.map(({ part, hosts }) => ({
-      kind: "attach" as const,
-      id: part.id + "/on-wall",
-      guest: part.id,
-      hosts
-    }))
+    parts: [...walls, ...roofs.map((r) => r.part), ...(spire ? [spire.part] : [])],
+    connections: [
+      ...roofs.map(({ part, hosts }) => ({
+        kind: "attach" as const,
+        id: part.id + "/on-wall",
+        guest: part.id,
+        hosts
+      })),
+      ...(spire
+        ? [{ kind: "attach" as const, id: spire.part.id + "/on-roof", guest: spire.part.id, hosts: spire.hosts }]
+        : [])
+    ]
   };
 }

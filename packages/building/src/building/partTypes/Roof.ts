@@ -25,7 +25,8 @@ import {
   type Plane,
   type SurfaceKind,
   type Vec3,
-  joinPairKey
+  joinPairKey,
+  unitFits
 } from "../core";
 import { profileShape } from "../runtime/ProfileGeometry";
 import { isFlatRoofHeight } from "../runtime/RoofMode";
@@ -323,7 +324,13 @@ function tileAt(
     // The tile hangs down the slope: its y points down, its x to the left.
     frame: { origin: frame.origin, x: scale(frame.x, -1), y: scale(frame.y, -1), z: frame.z },
     size: [tileWidth, length, depth],
-    params: { clip: nearestClip(context.geometry.clips("slope"), frame.origin), shade, flag: r === 0 ? 2 : 1 }
+    params: {
+      clip: nearestClip(context.geometry.clips("slope"), frame.origin),
+      shade,
+      flag: r === 0 ? 2 : 1,
+      // Where the tile sits on its slope, in the slope's (u, v).
+      uv: [(c + 0.5) / cols, v]
+    }
   };
 }
 
@@ -575,7 +582,14 @@ function ringTile(
     key,
     frame: { origin, x: axis, y: along, z: cross(axis, along) },
     size: [Math.hypot(pa[0] - pb[0], pa[1] - pb[1]) * radius, length, depth],
-    params: { clip: NO_CLIP, shade, flag: r === 0 ? 2 : 1, circular: true },
+    params: {
+      clip: NO_CLIP,
+      shade,
+      flag: r === 0 ? 2 : 1,
+      circular: true,
+      // Where the tile sits on the cone, in the cone's (u, v).
+      uv: [((((c + 0.5) / cols - turn / (2 * Math.PI)) % 1) + 1) % 1, v]
+    },
     normal
   };
 }
@@ -624,29 +638,104 @@ export const ringTiles: LayingAlgorithm<RingParams, RingLayout> = {
   }
 };
 
-/** Element "deck": the flat roof over the walls, a plane at the wall top that covers the
- * walls to their outer face. x runs along the footprint width, the plane faces up. */
+/** A flat roof deck: a plane at the wall top, rectangular or round. u runs along x from the
+ * origin corner, v along y; the plane faces up. A round deck is the disc inscribed in the
+ * square. Plain JSON. */
+export interface RoofDeckParams {
+  readonly origin: Vec3;
+  readonly x: Vec3;
+  readonly y: Vec3;
+  readonly size: readonly [number, number];
+  readonly round?: boolean;
+}
+export const roofDeckSurface: SurfaceKind<RoofDeckParams> = {
+  domain: (p) => ({ u: [0, p.size[0]], v: [0, p.size[1]], closedU: false }),
+  frame: (p, u, v) => ({
+    origin: add(add(p.origin, scale(p.x, u)), scale(p.y, v)),
+    x: [...p.x],
+    y: [...p.y],
+    z: cross(p.x, p.y)
+  })
+};
+/** Element "deck": the flat roof over the walls, out to their outer face. */
 export const houseRoofDeckGeometry: GeometryGenerator<HouseShared> = (p, { hosts }) => {
   const chart = hostChart(hosts);
   const shape = profileShape(p.footprint);
-  if (shape.type !== "rectangle") throw Error("A roof deck needs a rectangular footprint");
-  const [c, s] = shape.orientation;
-  const width = shape.width + 2 * chart.nominalOuter,
-    depth = shape.depth + 2 * chart.nominalOuter;
+  const round = shape.type === "circle";
+  const [c, s] = round ? [Math.cos(shape.phase), Math.sin(shape.phase)] : shape.orientation;
+  const width = (round ? 2 * shape.radius : shape.width) + 2 * chart.nominalOuter,
+    depth = (round ? 2 * shape.radius : shape.depth) + 2 * chart.nominalOuter;
   const y = Math.max(...chart.top);
   const origin: Vec3 = [
     shape.center[0] - (c * width) / 2 - (s * depth) / 2,
     y,
     shape.center[1] - (s * width) / 2 + (c * depth) / 2
   ];
-  return {
-    elements: {
-      deck: {
-        kind: "surface",
-        surface: { kind: "plane", params: { origin, x: [c, 0, s], y: [s, 0, -c], size: [width, depth] } }
-      }
+  const params: RoofDeckParams = { origin, x: [c, 0, s], y: [s, 0, -c], size: [width, depth], ...(round && { round }) };
+  return { elements: { deck: { kind: "surface", surface: { kind: "roofDeck", params } } } };
+};
+type DeckParams = {
+  /** Row pitch [along u, along v] in metres. Default: the unit's width and height. */
+  cell?: readonly [number, number];
+  /** Shift of odd rows as a fraction of the pitch. Default: 0.5. */
+  stagger?: number;
+};
+interface DeckLayout {
+  rows: number;
+  cols: number;
+  pitch: [number, number];
+}
+function deckOf(context: LayingContext<unknown>): RoofDeckParams {
+  const element = context.geometry.original.elements.deck;
+  if (element?.kind !== "surface" || element.surface.kind !== "roofDeck") throw Error("deckRows lays a roof deck");
+  return element.surface.params as RoofDeckParams;
+}
+/** Staggered rows of paving across a roof deck. Each row is cut to the deck's edge: the
+ * square's sides, or the circle across the row's whole height. */
+export const deckRows: LayingAlgorithm<DeckParams, DeckLayout> = {
+  info: {
+    accepts: ["surface"],
+    summary: "Staggered rows of paving across a roof deck, cut to its edge.",
+    params: {
+      cell: "Row pitch [along u, along v] in metres. Default: the unit's width and height.",
+      stagger: "Shift of odd rows as a fraction of the pitch. Default: 0.5."
     }
-  };
+  },
+  plan(context) {
+    const p = deckOf(context);
+    const { width, height } = tileSize(context);
+    const pitch: [number, number] = [context.params.cell?.[0] ?? width, context.params.cell?.[1] ?? height];
+    const rows = Math.ceil(p.size[1] / pitch[1]);
+    return {
+      count: rows * (Math.ceil(p.size[0] / pitch[0]) + 2),
+      data: { rows, cols: Math.ceil(p.size[0] / pitch[0]) + 2, pitch }
+    };
+  },
+  unitAt(context, d, index) {
+    const p = deckOf(context);
+    const [W, D] = p.size;
+    const r = Math.floor(index / d.cols),
+      c = (index % d.cols) - 1;
+    const v0 = r * d.pitch[1],
+      v1 = Math.min(D, v0 + d.pitch[1]);
+    // The row's span about the middle: the whole width, or the circle across the row.
+    const z = Math.max(Math.abs(v0 - D / 2), Math.abs(v1 - D / 2));
+    const half = p.round ? Math.sqrt(Math.max(0, (W / 2) ** 2 - z * z)) : W / 2;
+    const shift = r % 2 ? (context.params.stagger ?? 0.5) * d.pitch[0] : 0;
+    const u0 = Math.max(W / 2 - half, c * d.pitch[0] + shift),
+      u1 = Math.min(W / 2 + half, (c + 1) * d.pitch[0] + shift);
+    if (!(u1 - u0 > 0.015) || !(v1 - v0 > 0.015)) return;
+    const size: [number, number, number] = [u1 - u0, v1 - v0, tileSize(context).depth];
+    // A piece cut below the unit's range is not laid.
+    if (!unitFits(context.unit, size)) return;
+    const uv = [(u0 + u1) / 2, (v0 + v1) / 2];
+    return {
+      key: `${r}/${c}`,
+      frame: roofDeckSurface.frame(p, uv[0], uv[1], {}),
+      size,
+      params: { uv }
+    };
+  }
 };
 /** Element "face": the parapet, a wall chart around the whole house from the wall top up to
  * the roof base. Its masonry is laid like any wall. */
@@ -664,9 +753,33 @@ export const houseParapetGeometry: GeometryGenerator<HouseShared> = (p, context)
     maxYGable: wall.topY,
     topY: wall.topY,
     nominalOuter: wall.nominalOuter,
-    finishOuter: wall.finishOuter
+    finishOuter: wall.finishOuter,
+    depthScale: wall.depthScale
   };
   return { elements: { face: { kind: "surface", surface: { kind: "wallChart", params: chart } } } };
+};
+
+/** Element "apex": the top of the host roof, a cone or the slopes of a pyramid roof. The
+ * point faces up. */
+export const roofApexGeometry: GeometryGenerator<Record<string, never>> = (_p, { hosts }) => {
+  const tops: Vec3[] = [];
+  for (const host of hosts) {
+    const element = host.geometry.original.elements.slope;
+    if (element?.kind !== "surface") continue;
+    if (element.surface.kind === "roofCone") {
+      const c = element.surface.params as RoofConeParams;
+      tops.push([c.center[0] + c.tip[0], c.base + c.height, c.center[1] + c.tip[1]]);
+    } else if (element.surface.kind === "roofSlope") {
+      const s = element.surface.params as RoofSlopeParams;
+      for (const t of [s.t0, s.t1]) tops.push([t[0], s.base + s.height, t[1]]);
+    }
+  }
+  if (!tops.length) throw Error("A roof apex needs a roof cone or roof slopes as hosts");
+  const origin = scale(
+    tops.reduce((sum, p) => add(sum, p), [0, 0, 0] as Vec3),
+    1 / tops.length
+  );
+  return { elements: { apex: { kind: "point", frame: { origin, x: [1, 0, 0], y: [0, 0, -1], z: [0, 1, 0] } } } };
 };
 
 /** Two slopes meet at a hip when they share a side edge, and at the ridge when their top
@@ -778,9 +891,10 @@ function rakeEdges(p: RoofSlopeParams): [V2, V2][] {
   return sides.filter((_, i) => p.rakes[i]);
 }
 /** Caps are tiles laid as ridge, hip and rake caps. Over 648 roofs they stretch 0.5–1.1 wide
- * and 1.5–1.8 deep against the tile. A short ridge gets one cap up to 0.94 m × 1.4 long, about
- * 3.1 tile lengths. */
-const CAP_RANGE = { min: [0.45, 1.2, 1.4], max: [1.2, 3.4, 2] } as const;
+ * and 1.5–1.8 deep against the tile. A curve gets round(length / 0.625 m) joints, at least
+ * two, so a curve shorter than 1.5625 m is one gap; a ridge cap runs 1.4 gaps long, up to
+ * 2.19 m or 5 tile lengths. */
+const CAP_RANGE = { min: [0.45, 1.2, 1.4], max: [1.2, 5.2, 2] } as const;
 const capUnit = (tile: BuildingUnit): BuildingUnit => ({
   ...tile,
   range: { min: [...CAP_RANGE.min], max: [...CAP_RANGE.max] }
@@ -817,8 +931,13 @@ export function registerRoofTypes(registry: BuildingRegistry): BuildingRegistry 
   registry.surfaces.register("roofCone", roofConeSurface);
   registry.geometry.register("houseRoofCone", houseRoofConeGeometry);
   registry.algorithms.register("ringTiles", ringTiles);
+  registry.surfaces.register("roofDeck", roofDeckSurface);
+  registry.algorithms.register("deckRows", deckRows);
   registry.geometry.register("houseRoofDeck", houseRoofDeckGeometry);
   registry.geometry.register("houseParapet", houseParapetGeometry);
+  registry.geometry.register("roofApex", roofApexGeometry);
+  registry.defaults.attach("spire", ["roof"], "none");
+  registry.defaults.attach("spire", ["roof", "roof", "roof", "roof"], "none");
   registry.defaults.attach("roofDeck", ["wall"], "none");
   registry.defaults.attach("roofDeck", ["wall", "wall", "wall", "wall"], "none");
   registry.defaults.attach("parapet", ["wall"], "none");

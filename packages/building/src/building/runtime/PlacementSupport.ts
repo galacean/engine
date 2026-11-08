@@ -20,6 +20,10 @@ export interface SupportCell {
   brick_deformation?: number[];
   /** Original recipe seed, retained through clipping and material changes. */
   brick_seed?: number;
+  /** Accent stone: the brick shader draws it as a different stone. */
+  brick_accent?: boolean;
+  /** Where the brick lies along its wall, in metres; the brick shader maps its texture by it. */
+  brick_span?: [number, number];
   /** Effective boundary interval in the owning wall metre chart, after contact cuts. */
   boundaryU?: [number, number];
 }

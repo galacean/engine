@@ -15,7 +15,8 @@ import {
 import { registerHouseTypes } from "../../src/building/partTypes/House";
 import type { RoofSlopeParams } from "../../src/building/partTypes/Roof";
 import { buildCoreHouse, type CoreHouseParameters } from "../../src/building/application/CoreEuropean";
-import { coreHouseRenderInput, coreRoofBatches } from "../../src/building/render/CoreHouseRender";
+import { compileCoreBuilding } from "../../src/building/render/CoreBuilding";
+import type { RoofSpireAsset } from "../../src/building/runtime/RoofSpireAsset";
 
 const flat = () => 0;
 const registry = registerHouseTypes(createBuildingRegistry());
@@ -95,11 +96,14 @@ describe("Roof slopes", () => {
     expect(along({ id: "a", roof: { ridge_direction: 1 } })).toBe("z");
   });
 
-  it("replaces the online roof tiles and caps in the render input", async () => {
+  it("draws roof tiles in the layout group and caps and closures in the connection group", async () => {
     const p = { id: "a" };
     const { result, slopes, hips, ridges } = roof(p);
-    const input = await coreHouseRenderInput(result, registry, p, flat, nativeAssets);
-    const group = (role: string) => input.groups.find((g) => g.role === role && g.binding_id === "a-roof/placement")!;
+    const { renderInput: input } = await compileCoreBuilding(result, registry, {
+      environment: { ground: flat },
+      assets: nativeAssets
+    });
+    const group = (role: string) => input.groups.find((g) => g.role === role && g.binding_id === "a-roof")!;
     const count = (parts: ResolvedPart[], keep: (key: string) => boolean) =>
       parts.flatMap((part) => units(part).filter((u) => keep(u.key))).length;
     const tiles = count(slopes, (key) => !key.startsWith("eave/"));
@@ -146,10 +150,11 @@ describe("Roof slopes", () => {
   it("keeps every tile and cap inside its unit range over a sweep of roofs", () => {
     for (const height of [0.2, 1])
       for (const profile of [0, 1])
-        for (const ridge_length of [0, 0.6, 1])
+        for (const ridge_length of [0, 0.3, 0.6, 1])
           for (const eave of [0, 1])
             for (const size of [
               [4, 3],
+              [7, 6],
               [16, 5]
             ] as [number, number][])
               for (const ridge_direction of [0, 1]) {
@@ -172,7 +177,7 @@ describe("Roof slopes", () => {
     }
   });
 
-  it("lays a round roof as one cone of tile rings", () => {
+  it("lays a round roof as one cone of tile rings, with a spire", async () => {
     const p: CoreHouseParameters = { id: "t", height: 10, circle: { center: [0, 0], radius: 2.5, phase: 0 } };
     const { result, slopes, hips, ridges } = roof(p);
     expect(result.diagnostics).toEqual([]);
@@ -189,12 +194,33 @@ describe("Roof slopes", () => {
       expect(u.params!.circular).toBe(true);
       expect(u.frame.z[1]).toBeGreaterThan(0);
     }
-    // The test asset library has no spire mesh, so check the packed records without the
-    // online pipeline.
-    const batches = coreRoofBatches(result, registry, "t", flat, 0)!;
-    expect(batches.layout.cells).toHaveLength(299);
-    const record = batches.layout.records[0].initial64_hex;
-    expect(parseInt(record.slice(112, 114), 16)).toBe(1);
+    // The test asset library has no spire mesh; a small one stands in.
+    const roofSpire: RoofSpireAsset = {
+      positions: [
+        [0, 0, 0],
+        [0.1, 0, 0],
+        [0, 0, 0.1],
+        [0, 0.5, 0]
+      ],
+      normals: [
+        [0, -1, 0],
+        [0, -1, 0],
+        [0, -1, 0],
+        [0, 1, 0]
+      ],
+      profileMultipliers: [1, 1, 1, 0],
+      indices: [0, 1, 3, 1, 2, 3, 2, 0, 3],
+      color: [1, 1, 1]
+    };
+    const { renderInput } = await compileCoreBuilding(result, registry, {
+      environment: { ground: flat },
+      assets: { ...nativeAssets, roofSpire }
+    });
+    const layout = renderInput.groups.find((g) => g.role === "layout")!;
+    expect(layout.cells).toHaveLength(299);
+    const view = new DataView(layout.units.roof_tile.buffer, layout.units.roof_tile.byteOffset);
+    expect(view.getUint32(56, true)).toBe(1);
+    expect(renderInput.surfaceParts.filter((p) => p.roofSpire)).toHaveLength(1);
   });
 
   it("keeps round roof tiles inside the unit range over a sweep", () => {

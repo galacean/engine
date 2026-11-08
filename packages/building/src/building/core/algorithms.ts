@@ -151,17 +151,27 @@ export const noLaying: LayingAlgorithm = {
 };
 
 /** One unit at every point element. */
-export const placeAtPoints: LayingAlgorithm<{ elements?: string[] }, { ids: string[] }> = {
+export const placeAtPoints: LayingAlgorithm<
+  { elements?: string[]; unitParams?: Readonly<Record<string, unknown>> },
+  { ids: string[] }
+> = {
   info: {
     accepts: ["point"],
     summary: "One unit at every point.",
-    params: { elements: "Point ids to use. Default: all points." }
+    params: {
+      elements: "Point ids to use. Default: all points.",
+      unitParams: "Renderer values given to every unit, such as a prefab's shape parameters. Default: none."
+    }
   },
   plan(context) {
     const ids = select(context, "point");
     return { count: ids.length, data: { ids } };
   },
-  unitAt: (context, data, index) => ({ key: data.ids[index], frame: context.geometry.point(data.ids[index]) })
+  unitAt: (context, data, index) => ({
+    key: data.ids[index],
+    frame: context.geometry.point(data.ids[index]),
+    ...(context.params.unitParams && { params: context.params.unitParams })
+  })
 };
 
 interface CurveEntry {

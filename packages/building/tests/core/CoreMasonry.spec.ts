@@ -18,7 +18,7 @@ import {
 } from "../../src/building/core";
 import { registerHouseTypes, type WallChartParams } from "../../src/building/partTypes/House";
 import { buildCoreHouse, type CoreHouseParameters } from "../../src/building/application/CoreEuropean";
-import { coreHouseRenderInput } from "../../src/building/render/CoreHouseRender";
+import { compileCoreBuilding } from "../../src/building/render/CoreBuilding";
 import { buildBuildingRenderPackage } from "../../src/building/runtime/BuildingRenderPackage";
 import { buildingGlobals } from "../../src/building/runtime/BuildingGlobals";
 
@@ -151,7 +151,10 @@ describe("masonryCourses and corner stones", () => {
   it("renders a house whose walls and corner stones come from the core", async () => {
     const p = { id: "a" };
     const { registry, result, walls, stones, units } = house(p);
-    const input = await coreHouseRenderInput(result, registry, p, flat, nativeAssets);
+    const { renderInput: input } = await compileCoreBuilding(result, registry, {
+      environment: { ground: flat },
+      assets: nativeAssets
+    });
     const group = input.groups.find((g) => g.role === "wall")!;
     const expected = [...walls, ...stones].reduce((n, part) => n + units(part).length, 0);
     expect(group.cells.length).toBe(expected);

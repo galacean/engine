@@ -83,6 +83,8 @@ export interface ResolvedPart {
   readonly layout?: PartLayout;
 }
 export interface BuildingDesignResult {
+  /** Valid groups, sorted by id. */
+  readonly groups: readonly BuildingGroupDef[];
   readonly parts: readonly ResolvedPart[];
   readonly diagnostics: readonly BuildingDiagnostic[];
 }
@@ -492,7 +494,7 @@ export function designBuildingCore(
       ...(layout && { layout })
     });
   }
-  return { parts, diagnostics };
+  return { groups: [...groups.values()], parts, diagnostics };
 }
 
 function insertSorted(list: string[], value: string) {
