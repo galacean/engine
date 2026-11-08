@@ -142,4 +142,33 @@ describe("Roof slopes", () => {
           }
         }
   });
+
+  it("keeps every tile and cap inside its unit range over a sweep of roofs", () => {
+    for (const height of [0.2, 1])
+      for (const profile of [0, 1])
+        for (const ridge_length of [0, 0.6, 1])
+          for (const eave of [0, 1])
+            for (const size of [
+              [4, 3],
+              [16, 5]
+            ] as [number, number][])
+              for (const ridge_direction of [0, 1]) {
+                const p = {
+                  id: "a",
+                  rectangle: { center: [0, 0] as [number, number], size, rotation: 0.3 },
+                  roof: { height, profile, ridge_length, eave, ridge_direction }
+                };
+                expect(roof(p).result.diagnostics).toEqual([]);
+              }
+  });
+
+  it("gives caps their own unit range and keeps the tile depth fixed", () => {
+    const { slopes, hips, ridges } = roof({ id: "a" });
+    const tile = slopes[0].unit!;
+    expect(tile.range!.min[2]).toBe(tile.range!.max[2]);
+    for (const cap of [...hips, ...ridges]) {
+      expect(cap.unit!.source).toBe(tile.source);
+      expect(cap.unit!.range).not.toEqual(tile.range);
+    }
+  });
 });

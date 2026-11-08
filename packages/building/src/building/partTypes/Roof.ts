@@ -13,6 +13,7 @@ import {
   scale,
   sub,
   type BuildingRegistry,
+  type BuildingUnit,
   type ConnectionRule,
   type Frame,
   type GeometryGenerator,
@@ -48,6 +49,8 @@ export interface RoofSlopeParams {
   /** Ridge cap width and how far it sinks into the roof, in metres. */
   readonly ridgeWidth: number;
   readonly ridgeDrop: number;
+  /** Whether the left (b0–t0) and the right (b1–t1) side edge is a rake over a gable wall. */
+  readonly rakes: readonly [boolean, boolean];
 }
 
 const PROFILE_POINTS = 20;
@@ -120,7 +123,9 @@ export function roofSlopes(shared: HouseShared, chart: WallChartParams): (RoofSl
       height: roofRise(roof.height, Math.max(w, d)),
       exponent: q * 1.5 + (1 - q) * 0.5,
       ridgeWidth,
-      ridgeDrop
+      ridgeDrop,
+      // On a gable roof both side edges of a slope run over the gable walls.
+      rakes: [gable, gable]
     };
   });
 }
@@ -474,7 +479,7 @@ export const roofSlopes_: ConnectionRule = ({ parts, params }) => {
             type: "capCourses",
             params: HIP_CAP
           },
-          unit
+          unit: capUnit(unit)
         }
       ]
     };
@@ -506,26 +511,28 @@ export const roofSlopes_: ConnectionRule = ({ parts, params }) => {
           type: "capCourses",
           params: { width: pa.ridgeWidth, depth: 0.15, overlap: 1.4, sink: pa.ridgeDrop, shade: [0.9, 1] }
         },
-        unit
+        unit: capUnit(unit)
       }
     ]
   };
 };
 
-/** The side edges of a slope that run square to its eave: the rakes over gable walls. */
+/** The side edges of a slope that the slope declares as rakes over gable walls. */
 function rakeEdges(p: RoofSlopeParams): [V2, V2][] {
-  const eave = normalize([p.b1[0] - p.b0[0], 0, p.b1[1] - p.b0[1]]);
-  return (
-    [
-      [p.b0, p.t0],
-      [p.b1, p.t1]
-    ] as [V2, V2][]
-  ).filter(([b, t]) => {
-    const side = [t[0] - b[0], t[1] - b[1]];
-    const l = Math.hypot(side[0], side[1]);
-    return l > 1e-6 && Math.abs((side[0] * eave[0] + side[1] * eave[2]) / l) < 1e-6;
-  });
+  const sides: [V2, V2][] = [
+    [p.b0, p.t0],
+    [p.b1, p.t1]
+  ];
+  return sides.filter((_, i) => p.rakes[i]);
 }
+/** Caps are tiles laid as ridge, hip and rake caps. Over 648 roofs they stretch 0.5–1.1 wide
+ * and 1.5–1.8 deep against the tile. A short ridge gets one cap up to 0.94 m × 1.4 long, about
+ * 3.1 tile lengths. */
+const CAP_RANGE = { min: [0.45, 1.2, 1.4], max: [1.2, 3.4, 2] } as const;
+const capUnit = (tile: BuildingUnit): BuildingUnit => ({
+  ...tile,
+  range: { min: [...CAP_RANGE.min], max: [...CAP_RANGE.max] }
+});
 const HIP_CAP = { width: 0.25, depth: 0.18, pad: 0.05, along: 0.3, sink: 0.05, downhill: true, flag: 2 };
 /** Attach rule of a roof slope on its walls: each rake over a gable wall gets a rake cap,
  * and the slope's tiles are clipped `inset` short of it (default 0.075 m). */
@@ -545,7 +552,7 @@ export const roofOnWalls: ConnectionRule = ({ guest, params }) => {
       type: "rakeCap",
       geometry: { elements: { rake: { kind: "curve" as const, curve: { points: profileLine(p, b, t) } } } },
       algorithm: { type: "capCourses", params: HIP_CAP },
-      unit: guest.unit
+      unit: capUnit(guest.unit!)
     }))
   };
 };

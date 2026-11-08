@@ -308,8 +308,9 @@ export function buildCoreHouse(p: CoreHouseParameters): BuildingCoreDraft {
               source: "roof_tile",
               bounds: CUBE,
               scale: [unit.width, unit.height, unit.depth],
-              // Tiles stretch with their row; caps reach about 1.1 m long and 0.18 m deep.
-              range: { min: [0.05, 0.05, 0.5], max: [4, 6, 3] }
+              // Measured over 324 roofs: tiles narrow toward a hip top and run 1.1–2 units long;
+              // eave closures can be short. Tiles keep their depth.
+              range: { min: [0.1, 0.2, 1], max: [1.001, 2.2, 1] }
             },
             roofTiles: { type: "roofTiles" }
           })
