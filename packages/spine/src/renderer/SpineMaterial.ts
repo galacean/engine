@@ -6,7 +6,7 @@ import { Engine, Material, Shader } from "@galacean/engine";
  * Inputs use straight alpha; the shader premultiplies its final linear output for the supplied blend factors.
  */
 export class SpineMaterial extends Material {
-  constructor(engine: Engine, shader: Shader = Shader.find("2D/Spine")) {
+  constructor(engine: Engine, shader: Shader = Shader.find("2D/Spine")!) {
     super(engine, shader);
   }
 

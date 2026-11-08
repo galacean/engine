@@ -1343,16 +1343,20 @@ describe("ShaderCompiler Precompile", async () => {
       shader.destroy(true);
     });
 
-    it("duplicate shader name → returns existing shader (no re-registration)", () => {
-      const precompiled = shaderPrecompiler.precompile(PBRSource, ShaderLanguage.GLSLES100);
-      const testData = { ...precompiled, name: "TestPBR_CFP_Duplicate" };
+    it("creates independent precompiled shaders with the same name", async () => {
+      const source = await readFile("src/shader-compiler/shaders/noFragArgs.shader");
+      const precompiled = shaderPrecompiler.precompile(source, ShaderLanguage.GLSLES100);
+      const testData = { ...precompiled, name: "Test_CFP_Duplicate" };
 
       const first = Shader._createFromPrecompiled(testData);
       const second = Shader._createFromPrecompiled(testData);
 
-      expect(second).toBeFalsy();
+      expect(second).not.toBe(first);
+      expect(Shader.find(testData.name)).toBe(second);
 
       first.destroy(true);
+      expect(Shader.find(testData.name)).toBe(second);
+      second.destroy(true);
     });
 
     it("UsePass in multi-pass shader is handled without throwing", async () => {
