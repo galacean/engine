@@ -414,6 +414,10 @@ type MasonryParams = {
   split?: number;
   /** Seed shared by the walls of one house, so their courses meet at the corners. */
   courseSeed?: number;
+  /** Battlements along the top: each straight run splits into an even number of slots of
+   * about `pitch` metres, and every other slot, starting with the first, is cut `height`
+   * metres down from the top. Default: no battlements. */
+  crenels?: { pitch?: number; height?: number };
   element?: string;
 };
 interface MasonryLayout {
@@ -430,6 +434,8 @@ interface MasonryLayout {
    * areas and splits. Both are the largest counts that plan found. */
   runSlots: number;
   pieces: number;
+  /** Cuts of the battlements, in chart coordinates. */
+  crenels: Rect[];
 }
 interface Piece {
   u0: number;
@@ -569,7 +575,8 @@ function brickPieces(
   let pieces: Piece[] = [whole];
   const bottom = Math.min(courses.line(r, run[0]), courses.line(r, run[1])),
     top = Math.max(courses.line(r + 1, run[0]), courses.line(r + 1, run[1]));
-  for (const hole of masonryWall(context).removed) pieces = pieces.flatMap((q) => subtract(q, hole, bottom, top));
+  for (const hole of [...masonryWall(context).removed, ...d.crenels])
+    pieces = pieces.flatMap((q) => subtract(q, hole, bottom, top));
   // A tall brick splits into two thinner ones about 40% of the time. The split height comes
   // from the brick's own seed. Only a brick that no removed area touched splits, as in the
   // native masonry.
@@ -613,6 +620,21 @@ function masonryFootprint(context: LayingContext<MasonryParams>): MaterialFootpr
   const [width, height, depth] = context.unit.scale ?? [1, 1, 1];
   return { width, height, depth };
 }
+/** Battlement cuts along the top of a chart: each run splits into an even number of slots,
+ * and the even slots are cut down from the top. */
+function crenelCuts(chart: WallChartParams, pitch: number, height: number): Rect[] {
+  if (!(pitch > 0) || !(height > 0)) throw Error("Crenels need a positive pitch and height");
+  const top = Math.max(...chart.top);
+  return runs(chart).flatMap((run) => {
+    const n = Math.ceil(run.l / pitch);
+    const count = Math.max(2, n + (n % 2)),
+      slot = run.l / count;
+    return Array.from(
+      { length: count / 2 },
+      (_, i): Rect => [run.u + 2 * i * slot, top - height, run.u + (2 * i + 1) * slot, top + 1]
+    );
+  });
+}
 /** Our own masonry: random courses with wavy joints along a wall chart. Every brick is
  * computed alone, from its row, its index in the row and its piece:
  * - course line k: nominal height plus a jitter and a wave, from line k's seed;
@@ -638,6 +660,8 @@ export const masonryCourses: LayingAlgorithm<MasonryParams, MasonryLayout> = {
       wave: "Amplitude of the wavy course lines in metres. Default: 0.012.",
       courseSeed: "Seed shared by the walls of one house. Default: the part's own seed.",
       split: "Chance that a tall uncut brick splits into two thinner ones. Default: 0.4.",
+      crenels:
+        "Battlements { pitch, height }: every other slot of about `pitch` metres (default 0.69) along each straight run is cut `height` metres (default one course) down from the top. Default: none.",
       element: "Wall chart element id. Default: face."
     }
   },
@@ -663,7 +687,8 @@ export const masonryCourses: LayingAlgorithm<MasonryParams, MasonryLayout> = {
       firstJoint,
       perRow,
       runSlots: 0,
-      pieces: 0
+      pieces: 0,
+      crenels: p.crenels ? crenelCuts(chart, p.crenels.pitch ?? 0.69, p.crenels.height ?? h) : []
     };
     // Size the slots from the bricks themselves, so that empty slots stay rare.
     const courses = masonryCourses_(context, data);

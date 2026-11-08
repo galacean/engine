@@ -299,19 +299,53 @@ export function buildCoreHouse(p: CoreHouseParameters): BuildingCoreDraft {
             hosts: walls.map((w) => ({ part: w.id }))
           }
         ]
-      : [
-          {
-            part: {
-              id: p.id + "-roof",
-              group: p.id,
-              type: "roof",
-              // COMPAT(online-parity): flat roofs still render through the online roof.
-              geometry: { generator: "houseRoof", params: { $shared: "house" } },
-              algorithm: { type: "none" }
+      : !p.circle
+        ? // A flat roof is a tiled deck at the wall top, with a parapet around it unless the
+          // roof has no rim.
+          [
+            {
+              part: {
+                id: p.id + "-roof",
+                group: p.id,
+                type: "roofDeck",
+                geometry: { generator: "houseRoofDeck", params: { $shared: "house" } },
+                algorithm: {
+                  type: "surfaceGrid",
+                  params: { cell: [unit.width, (unit.height * 0.4) / 0.4375], stagger: 0.5, trim: true }
+                },
+                unit: { $shared: "tile" }
+              },
+              hosts: walls.map((w) => ({ part: w.id }))
             },
-            hosts: walls.map((w) => ({ part: w.id }))
-          }
-        ];
+            ...(roofParams.flat_rim === 0
+              ? [
+                  {
+                    part: {
+                      id: p.id + "-parapet",
+                      group: p.id,
+                      type: "parapet",
+                      geometry: { generator: "houseParapet", params: { $shared: "house" } },
+                      algorithm: { type: "masonryCourses", params: { crenels: {} } },
+                      unit: { $shared: "brick" }
+                    },
+                    hosts: walls.map((w) => ({ part: w.id }))
+                  }
+                ]
+              : [])
+          ]
+        : [
+            {
+              part: {
+                id: p.id + "-roof",
+                group: p.id,
+                type: "roof",
+                // COMPAT(online-parity): round flat roofs still render through the online roof.
+                geometry: { generator: "houseRoof", params: { $shared: "house" } },
+                algorithm: { type: "none" }
+              },
+              hosts: walls.map((w) => ({ part: w.id }))
+            }
+          ];
   return {
     groups: [
       {
@@ -319,7 +353,7 @@ export function buildCoreHouse(p: CoreHouseParameters): BuildingCoreDraft {
         seed,
         shared: {
           ...shared,
-          ...(pitched && {
+          ...((pitched || !p.circle) && {
             tile: {
               source: "roof_tile",
               bounds: CUBE,

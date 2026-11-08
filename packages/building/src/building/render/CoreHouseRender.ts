@@ -17,21 +17,24 @@ import { designBuilding } from "../parts/architecture/BuildingDesign";
 import { implementBuilding } from "../parts/architecture/BuildingImplementation";
 import type { CoreHouseParameters } from "../application/CoreEuropean";
 
-/** Wall bricks and corner stones of a core house as the renderer's support cells. */
-export function coreWallCells(
+/** Masonry units of some parts of a core house as the renderer's support cells, with the
+ * wall-space span of each cell. */
+function masonryCells(
   result: BuildingDesignResult,
   registry: BuildingRegistry,
   houseId: string,
-  terrain: TerrainHeight
-): SupportCell[] {
-  const geometryId = houseId + "-wall";
-  const parts = result.parts.filter((p) => p.group === houseId && (p.type === "wall" || p.type === "cornerStone"));
-  if (!parts.some((p) => p.type === "wall")) throw Error("No wall in house " + houseId);
-  return parts.flatMap((part, n) =>
-    expandUnits(part, registry, { environment: { ground: terrain } }).map((u) => {
+  terrain: TerrainHeight,
+  types: readonly string[],
+  geometryId: string
+): { cells: SupportCell[]; spans: (number[] | undefined)[] } {
+  const parts = result.parts.filter((p) => p.group === houseId && types.includes(p.type));
+  const cells: SupportCell[] = [],
+    spans: (number[] | undefined)[] = [];
+  parts.forEach((part, n) => {
+    for (const u of expandUnits(part, registry, { environment: { ground: terrain } })) {
       const deformation = u.params?.deformation as number[] | undefined;
       const id = `${geometryId}/${part.type}-${n}/${u.key}`;
-      return {
+      cells.push({
         id,
         logical_id: id,
         surface_id: geometryId,
@@ -45,20 +48,34 @@ export function coreWallCells(
         ...(u.params?.flags !== undefined && { brick_flags: u.params.flags as number }),
         // COMPAT(online-parity): the online brick shader treats seeds below 10 as accent stones.
         brick_seed: u.params?.accent ? u.seed % 10 : 10 + ((u.seed & 0x7fffffff) % 0x7ffffff0)
-      } as SupportCell;
-    })
-  );
+      } as SupportCell);
+      spans.push(u.params?.wallU as number[] | undefined);
+    }
+  });
+  return { cells, spans };
 }
-
-/** The wall-space span of every cell, in the same order as `coreWallCells`. */
-function wallSpans(result: BuildingDesignResult, registry: BuildingRegistry, houseId: string, terrain: TerrainHeight) {
-  return result.parts
-    .filter((p) => p.group === houseId && (p.type === "wall" || p.type === "cornerStone"))
-    .flatMap((part) =>
-      expandUnits(part, registry, { environment: { ground: terrain } }).map(
-        (u) => u.params?.wallU as number[] | undefined
-      )
-    );
+/** Wall bricks and corner stones of a core house as the renderer's support cells. */
+export function coreWallCells(
+  result: BuildingDesignResult,
+  registry: BuildingRegistry,
+  houseId: string,
+  terrain: TerrainHeight
+): SupportCell[] {
+  if (!result.parts.some((p) => p.group === houseId && p.type === "wall")) throw Error("No wall in house " + houseId);
+  return masonryCells(result, registry, houseId, terrain, ["wall", "cornerStone"], houseId + "-wall").cells;
+}
+/** Packs masonry cells and writes each cell's wall-space span into its brick record. */
+async function packMasonry(cells: SupportCell[], spans: readonly (number[] | undefined)[], role: "wall") {
+  const units = await packConstructionUnits({ cells, slot: 0, role, source: {} });
+  // COMPAT(online-parity): the cell format has no field for the wall-space span, so write it
+  // into the packed brick records directly (lanes 21 and 22, half floats at bytes 46 and 48).
+  const view = new DataView(units.brick.buffer, units.brick.byteOffset, units.brick.byteLength);
+  spans.forEach((span, i) => {
+    if (!span) return;
+    view.setUint16(i * 64 + 46, toHalf(span[0]), true);
+    view.setUint16(i * 64 + 48, toHalf(span[1]), true);
+  });
+  return units;
 }
 
 /** Column-major rotation of a frame as a quaternion [x, y, z, w]. */
@@ -192,24 +209,21 @@ export async function coreHouseRenderInput(
   const binding = house.id + "-wall/placement";
   const group = input.groups.find((g) => g.role === "wall" && g.binding_id === binding);
   if (!group) throw Error("The online house has no wall group " + binding);
-  const cells = coreWallCells(result, registry, house.id, terrain);
+  if (!result.parts.some((p) => p.group === house.id && p.type === "wall")) throw Error("No wall in house " + house.id);
+  // A parapet is laid with the wall's brick unit, so it draws with the wall bricks.
+  const { cells, spans } = masonryCells(
+    result,
+    registry,
+    house.id,
+    terrain,
+    ["wall", "cornerStone", "parapet"],
+    house.id + "-wall"
+  );
   group.cells = cells;
-  group.units = await packConstructionUnits({ cells, slot: 0, role: "wall", source: {} });
-  // COMPAT(online-parity): the cell format has no field for the wall-space span, so write it
-  // into the packed brick records directly (lanes 21 and 22, half floats at bytes 46 and 48).
-  const view = new DataView(group.units.brick.buffer, group.units.brick.byteOffset, group.units.brick.byteLength);
-  const half = (v: number) => {
-    const f = new DataView(new ArrayBuffer(4));
-    f.setFloat32(0, v, true);
-    return f32BitsToHalf(f.getUint32(0, true));
-  };
-  wallSpans(result, registry, house.id, terrain).forEach((span, i) => {
-    if (!span) return;
-    view.setUint16(i * 64 + 46, half(span[0]), true);
-    view.setUint16(i * 64 + 48, half(span[1]), true);
-  });
+  group.units = await packMasonry(cells, spans, "wall");
   for (const plan of input.plans) if (plan.binding_id === binding) plan.cells = cells;
   await replaceRoof(input, result, registry, house.id, terrain);
+  await replaceFlatRoof(input, result, registry, house.id, terrain);
   return input;
 }
 
@@ -250,4 +264,44 @@ async function replaceRoof(
     plan.cells = [...batches.layout.cells, ...batches.connections.cells];
     plan.dependencies = batches.pairs;
   }
+}
+
+/** Put the core roof deck and parapet into the online flat roof groups and their plan. */
+async function replaceFlatRoof(
+  input: BuildingRenderInput,
+  result: BuildingDesignResult,
+  registry: BuildingRegistry,
+  houseId: string,
+  terrain: TerrainHeight
+) {
+  const deck = result.parts.find((p) => p.group === houseId && p.type === "roofDeck");
+  if (!deck) return;
+  const binding = houseId + "-roof/placement";
+  const platform = input.groups.find((g) => g.role === "platform" && g.binding_id === binding);
+  if (!platform) throw Error("The online house has no flat roof group " + binding);
+  // COMPAT(online-parity): the palette slot comes from the online deck records.
+  const units = platform.units.roof_tile;
+  const slot = new DataView(units.buffer, units.byteOffset, units.byteLength).getUint32(40, true);
+  const surface = houseId + "-roof";
+  const deckCells = expandUnits(deck, registry, { environment: { ground: terrain } }).map((u) => {
+    const id = `${surface}/deck/${u.key}`;
+    return {
+      id,
+      logical_id: id,
+      surface_id: surface,
+      // COMPAT(online-parity): online deck cells carry their position on the deck chart.
+      anchor_uv: [0, 0],
+      center: [...u.frame.origin],
+      tangent: [...u.frame.x],
+      bitangent: [...u.frame.y],
+      normal: [...u.frame.z],
+      size: [...u.size!]
+    } as SupportCell;
+  });
+  platform.cells = deckCells;
+  platform.units = await packConstructionUnits({ cells: deckCells, slot, role: "platform" });
+  // The parapet draws with the wall bricks; the online rim group goes away.
+  input.groups = input.groups.filter((g) => !(g.role === "platform-rim" && g.binding_id === binding));
+  const plan = input.plans.find((p) => p.binding_id === binding);
+  if (plan) plan.cells = deckCells;
 }

@@ -29,7 +29,7 @@ import {
 } from "../core";
 import { profileShape } from "../runtime/ProfileGeometry";
 import { isFlatRoofHeight } from "../runtime/RoofMode";
-import type { HouseShared, WallChartParams } from "./House";
+import { houseWallGeometry, type HouseShared, type WallChartParams } from "./House";
 
 type V2 = readonly [number, number];
 
@@ -624,6 +624,51 @@ export const ringTiles: LayingAlgorithm<RingParams, RingLayout> = {
   }
 };
 
+/** Element "deck": the flat roof over the walls, a plane at the wall top that covers the
+ * walls to their outer face. x runs along the footprint width, the plane faces up. */
+export const houseRoofDeckGeometry: GeometryGenerator<HouseShared> = (p, { hosts }) => {
+  const chart = hostChart(hosts);
+  const shape = profileShape(p.footprint);
+  if (shape.type !== "rectangle") throw Error("A roof deck needs a rectangular footprint");
+  const [c, s] = shape.orientation;
+  const width = shape.width + 2 * chart.nominalOuter,
+    depth = shape.depth + 2 * chart.nominalOuter;
+  const y = Math.max(...chart.top);
+  const origin: Vec3 = [
+    shape.center[0] - (c * width) / 2 - (s * depth) / 2,
+    y,
+    shape.center[1] - (s * width) / 2 + (c * depth) / 2
+  ];
+  return {
+    elements: {
+      deck: {
+        kind: "surface",
+        surface: { kind: "plane", params: { origin, x: [c, 0, s], y: [s, 0, -c], size: [width, depth] } }
+      }
+    }
+  };
+};
+/** Element "face": the parapet, a wall chart around the whole house from the wall top up to
+ * the roof base. Its masonry is laid like any wall. */
+export const houseParapetGeometry: GeometryGenerator<HouseShared> = (p, context) => {
+  const whole = houseWallGeometry(p, context).elements.face;
+  if (whole.kind !== "surface") throw Error("Unexpected wall chart");
+  const wall = whole.surface.params as WallChartParams;
+  const bottom = Math.min(...wall.top);
+  if (!(wall.topY > bottom)) throw Error("A parapet needs room between the wall top and the roof base");
+  const chart: WallChartParams = {
+    points: wall.points.map((q, i) => [q[0], wall.top[i], q[2]]),
+    top: wall.points.map(() => wall.topY),
+    third: wall.points.map(() => 0),
+    minGround: bottom,
+    maxYGable: wall.topY,
+    topY: wall.topY,
+    nominalOuter: wall.nominalOuter,
+    finishOuter: wall.finishOuter
+  };
+  return { elements: { face: { kind: "surface", surface: { kind: "wallChart", params: chart } } } };
+};
+
 /** Two slopes meet at a hip when they share a side edge, and at the ridge when their top
  * edges face each other. */
 function slopeMeeting(a: RoofSlopeParams, b: RoofSlopeParams): "hip" | "ridge" | undefined {
@@ -772,6 +817,12 @@ export function registerRoofTypes(registry: BuildingRegistry): BuildingRegistry 
   registry.surfaces.register("roofCone", roofConeSurface);
   registry.geometry.register("houseRoofCone", houseRoofConeGeometry);
   registry.algorithms.register("ringTiles", ringTiles);
+  registry.geometry.register("houseRoofDeck", houseRoofDeckGeometry);
+  registry.geometry.register("houseParapet", houseParapetGeometry);
+  registry.defaults.attach("roofDeck", ["wall"], "none");
+  registry.defaults.attach("roofDeck", ["wall", "wall", "wall", "wall"], "none");
+  registry.defaults.attach("parapet", ["wall"], "none");
+  registry.defaults.attach("parapet", ["wall", "wall", "wall", "wall"], "none");
   registry.algorithms.register("capCourses", capCourses);
   registry.rules.register("roofSlopes", roofSlopes_);
   registry.rules.register("roofOnWalls", roofOnWalls);
