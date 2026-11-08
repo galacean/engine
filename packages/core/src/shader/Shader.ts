@@ -161,27 +161,20 @@ export class Shader implements IReferable {
   /**
    * Find a shader by name.
    * @param name - Name of the shader
-   * @returns The latest registered custom shader, or the latest built-in shader if no custom shader exists.
-   * Returns `undefined` when no shader has that name.
+   * @returns The most recently registered live shader with this name, or `undefined` if none exists.
    * @remarks Retain the shader object when a material must use a specific shader among namesakes.
    */
   static find(name: string): Shader | undefined {
     const shaders = Shader._shaderMap[name];
-    if (!shaders) return undefined;
-
-    for (let i = shaders.length - 1; i >= 0; i--) {
-      if (!shaders[i]._isBuiltin) return shaders[i];
-    }
-    return shaders[shaders.length - 1];
+    return shaders?.[shaders.length - 1];
   }
 
   /**
    * Create a shader from precompiled instructions.
    * @param data - Precompiled shader data
-   * @param isBuiltin - Whether name lookup treats this shader as a built-in fallback
    * @internal
    */
-  static _createFromPrecompiled(data: IPrecompiledShader, isBuiltin: boolean = false): Shader {
+  static _createFromPrecompiled(data: IPrecompiledShader): Shader {
     const subShaderList = data.subShaders.map((subData) => {
       const passList = subData.passes.map((passData) => {
         if (passData.isUsePass) {
@@ -209,7 +202,7 @@ export class Shader implements IReferable {
       return new SubShader(subData.name, passList, subData.tags);
     });
 
-    return new Shader(data.name, subShaderList, isBuiltin);
+    return new Shader(data.name, subShaderList);
   }
 
   /**
@@ -380,7 +373,6 @@ export class Shader implements IReferable {
   private _refCount: number = 0;
   private _destroyed: boolean = false;
   private _subShaders: SubShader[];
-  private readonly _isBuiltin: boolean;
 
   /**
    * Sub shaders of the shader.
@@ -398,11 +390,9 @@ export class Shader implements IReferable {
 
   private constructor(
     public readonly name: string,
-    subShaders: SubShader[],
-    isBuiltin: boolean = false
+    subShaders: SubShader[]
   ) {
     this._subShaders = subShaders;
-    this._isBuiltin = isBuiltin;
     (Shader._shaderMap[name] ??= []).push(this);
   }
 

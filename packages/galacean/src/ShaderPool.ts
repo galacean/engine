@@ -80,7 +80,7 @@ export class ShaderPool {
     ];
 
     for (const source of sources) {
-      Shader._createFromPrecompiled(source, true);
+      Shader._createFromPrecompiled(source);
     }
   }
 }

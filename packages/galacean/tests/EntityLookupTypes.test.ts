@@ -33,16 +33,18 @@ state.clip = undefined;
 const key = new Keyframe<ReferResource | null>();
 key.value = null;
 new AnimationRefCurve().addKey(key);
-const shader = Shader.create("typed-shader", []);
-shader?.name;
+const shader: Shader = Shader.create("typed-shader", []);
+shader.name;
+const foundShader: Shader | undefined = Shader.find("missing");
+foundShader?.name;
 // @ts-expect-error Released CPU vertex data is null.
 mesh.getPositions().length;
 // @ts-expect-error Adding a duplicate effect returns undefined.
 volume.addEffect(BloomEffect).intensity.value;
 // @ts-expect-error A state can have no animation clip.
 state.clip.length;
-// @ts-expect-error Duplicate shader names return undefined.
-shader.name;
+// @ts-expect-error A shader name lookup may return undefined.
+foundShader.name;
 named?.name;
 pathed?.name;
 child?.name;

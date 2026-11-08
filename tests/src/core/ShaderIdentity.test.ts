@@ -62,29 +62,9 @@ describe("Shader object identity", () => {
     expect(precompiled.compileVariant(engine, [])).toBe(true);
     precompiled.destroy();
     expect(Shader.find(name)).toBe(manual);
+    precompiled.destroy();
+    expect(Shader.find(name)).toBe(manual);
     manual.destroy();
-    expect(Shader.find(name)).toBeUndefined();
-  });
-
-  it("prefers the latest custom shader over built-ins regardless of registration order", () => {
-    const name = "ShaderIdentity/Priority";
-    const data = new ShaderPrecompiler().precompile(source(name, "1.0, 0.0, 0.0"), ShaderLanguage.GLSLES100);
-    const builtin = Shader._createFromPrecompiled(data, true);
-    const first = Shader._createFromPrecompiled(data);
-    const second = Shader._createFromPrecompiled(data);
-    const laterBuiltin = Shader._createFromPrecompiled(data, true);
-    shaders.push(builtin, first, second, laterBuiltin);
-
-    expect(Shader.find(name)).toBe(second);
-    second.destroy();
-    expect(Shader.find(name)).toBe(first);
-    second.destroy();
-    expect(Shader.find(name)).toBe(first);
-    first.destroy();
-    expect(Shader.find(name)).toBe(laterBuiltin);
-    laterBuiltin.destroy();
-    expect(Shader.find(name)).toBe(builtin);
-    builtin.destroy();
     expect(Shader.find(name)).toBeUndefined();
   });
 
