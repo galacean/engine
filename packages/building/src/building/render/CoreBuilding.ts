@@ -86,7 +86,10 @@ const FAMILIES: Readonly<Record<string, Family>> = {
   plaster: "plaster",
   window: "prefab",
   door: "prefab",
-  lamp: "prefab"
+  lamp: "prefab",
+  dormer: "prefab",
+  dormerRoof: "roof",
+  dormerRidge: "roof"
 };
 const MATERIALS = new Set<string>(["brick", "roof_tile", "wooden_plank"]);
 const NO_CLIP = [0, 1, 0, 65504];
@@ -278,7 +281,16 @@ function roofBase(binding: CoreBinding): number {
 /** One roof tile as a cell and its 64-byte roof record: position relative to the roof base,
  * clip plane, size, shade and rotation as half floats, palette slot, variation seed, the
  * circular flag and the entrance flag. Roof cells are anchored by their plan position. */
-function roofEntry(target: RoofRecords, id: string, surface: string, u: LaidUnit, base: number, slot: number) {
+/** One roof record. A settled record is drawn in place, without the roof's entrance. */
+function roofEntry(
+  target: RoofRecords,
+  id: string,
+  surface: string,
+  u: LaidUnit,
+  base: number,
+  slot: number,
+  settled = false
+) {
   const q = frameQuaternion(u);
   const size = u.size!.map(Math.fround);
   const position = [u.frame.origin[0], u.frame.origin[1] - base, u.frame.origin[2]].map(Math.fround);
@@ -292,6 +304,7 @@ function roofEntry(target: RoofRecords, id: string, surface: string, u: LaidUnit
     view.setUint16(16 + i * 2, toHalf(v), true)
   );
   view.setUint32(40, slot, true);
+  if (settled) view.setFloat32(48, 1, true);
   view.setUint32(52, u.seed >>> 0, true);
   view.setUint32(56, u.params?.circular ? 1 : 0, true);
   view.setUint32(60, (u.params?.flag as number | undefined) ?? 1, true);
@@ -363,11 +376,27 @@ interface DrawPlan {
   role: ConstructionUnitRole;
   cells: SupportCell[];
   design?: RoofRecords;
+  /** The prefab part a draw belongs to, such as the dormer that carries a small roof. */
+  decorationId?: string;
+  /** Roof records drawn in place, one per cell. */
+  settled?: Uint8Array;
   gravity?: ReturnType<typeof roofEntrance>;
   wallRoofJoint?: WallChartParams["joint"];
 }
 /** The draw groups of one binding, and the dependencies between its cells. */
-function bindingDraws(binding: CoreBinding, slot: number) {
+/** Part types of the small roofs that a roof prefab carries. They belong to that prefab: they
+ * are drawn settled, without the roof's entrance, and picked as the prefab. */
+const CARRIED_ROOFS = new Set(["dormerRoof", "dormerRidge"]);
+/** The author part a derived part belongs to: the guest of the attach connection that
+ * derived it. */
+function carrierOf(layout: CoreBuildingLayout, part: ResolvedPart): string | undefined {
+  if (part.identity.kind !== "derived") return;
+  const key = part.identity.connection;
+  const guest = layout.result.connections.find((c) => c.key === key)?.guest;
+  const owner = guest && layout.result.parts.find((p) => p.key === guest);
+  return owner ? partId(owner) : undefined;
+}
+function bindingDraws(binding: CoreBinding, slot: number, layout: CoreBuildingLayout) {
   const draws: DrawPlan[] = [];
   const dependencies: { parent_cell_id: string; child_cell_id: string }[] = [];
   if (binding.family === "wall" || binding.family === "parapet") {
@@ -383,7 +412,27 @@ function bindingDraws(binding: CoreBinding, slot: number) {
   } else if (binding.family === "roof") {
     const deck = binding.parts.filter((p) => p.part.type === "roofDeck");
     if (deck.length) draws.push({ role: "platform", cells: plainCells({ ...binding, parts: deck }) });
-    const pitched = binding.parts.filter((p) => p.part.type !== "roofDeck");
+    const pitched = binding.parts.filter((p) => p.part.type !== "roofDeck" && !CARRIED_ROOFS.has(p.part.type));
+    // Each prefab's small roof is one settled draw.
+    const carried = new Map<string, RoofRecords>();
+    for (const { part, units } of binding.parts) {
+      if (!CARRIED_ROOFS.has(part.type)) continue;
+      const owner = carrierOf(layout, part) ?? partId(part);
+      const records = carried.get(owner) ?? { cells: [], records: [] };
+      carried.set(owner, records);
+      // Settled records stand at their world height: no entrance lifts them from a base.
+      for (const u of units) roofEntry(records, `${binding.id}/${partId(part)}/${u.key}`, binding.id, u, 0, slot, true);
+    }
+    for (const [decorationId, records] of carried) {
+      const bytes = new Uint8Array(records.records.length * 64);
+      records.records.forEach((r, i) =>
+        bytes.set(
+          Uint8Array.from(r.initial64_hex.match(/../g)!, (h) => parseInt(h, 16)),
+          i * 64
+        )
+      );
+      draws.push({ role: "dormer_roof", cells: records.cells, settled: bytes, decorationId });
+    }
     if (pitched.length) {
       const base = roofBase(binding);
       const tiles: RoofRecords = { cells: [], records: [] },
@@ -1168,6 +1217,7 @@ export function coreBuildingDecorations(
           const prefab = assets.prefabs?.[key];
           if (!prefab) throw Error(`Building prefab "${key}" is not in the asset kit`);
           const params = u.params ?? {};
+          const onRoof = params.host === "roof";
           // The author id of the part: the runtime binds picking and poses by it.
           const id = partId(part);
           const m = u.matrix;
@@ -1202,10 +1252,14 @@ export function coreBuildingDecorations(
               {
                 origin: [m[12], m[13], m[14]],
                 axes,
-                editUV: (local, world) => [
-                  mountU + ((local[0] - centerX) * scaleX) / perimeter,
-                  (world[1] - minimumY) / height
-                ]
+                // On a roof the edit chart is the plan, as for roof units; on the walls it runs
+                // along the perimeter and up.
+                editUV: onRoof
+                  ? (_local, world) => [world[0], world[2]]
+                  : (local, world) => [
+                      mountU + ((local[0] - centerX) * scaleX) / perimeter,
+                      (world[1] - minimumY) / height
+                    ]
               }
             )
           );
@@ -1270,7 +1324,7 @@ export function coreBuildingDecorations(
             });
           }
           const [type, rank] = key.split("/");
-          compiled.resolved.push({ id, type, host: "wall", rank: Number(rank) });
+          compiled.resolved.push({ id, type, host: onRoof ? "roof" : "wall", rank: Number(rank) });
         }
     result.push(compiled);
   }
@@ -1428,7 +1482,7 @@ export async function coreBuildingRenderInput(
     for (const binding of owner.bindings) {
       // Prefabs and finishes are drawn from the view, not as unit groups.
       if (binding.family === "spire" || binding.family === "plaster" || binding.family === "prefab") continue;
-      const { draws, dependencies } = bindingDraws(binding, owner.slot);
+      const { draws, dependencies } = bindingDraws(binding, owner.slot, layout);
       for (const draw of draws)
         groups.push({
           id: groups.length,
@@ -1440,10 +1494,12 @@ export async function coreBuildingRenderInput(
             cells: draw.cells,
             slot: owner.slot,
             role: draw.role,
-            ...(draw.design && { roofDesign: { schema: "roof-design-v1", records: draw.design.records } })
+            ...(draw.design && { roofDesign: { schema: "roof-design-v1", records: draw.design.records } }),
+            ...(draw.settled && { source: { roof_tile: draw.settled } })
           }),
           ...(draw.gravity && { gravity: draw.gravity }),
-          ...(draw.wallRoofJoint && { wallRoofJoint: draw.wallRoofJoint })
+          ...(draw.wallRoofJoint && { wallRoofJoint: draw.wallRoofJoint }),
+          ...(draw.decorationId && { decorationId: draw.decorationId })
         });
       plans.push({ binding_id: binding.id, cells: draws.flatMap((d) => d.cells), dependencies });
       geometries.push({ id: binding.id, source: { type: "core", parts: binding.parts.map((p) => p.part.key) } });
@@ -1463,7 +1519,7 @@ export async function coreBuildingRenderInput(
     rawDraws: [],
     groups,
     decorations: assets ? coreBuildingDecorations(layout, assets) : [],
-    dormerBins: encodeCompleteConstructionDormerBins([]),
+    dormerBins: encodeCompleteConstructionDormerBins(roofApertures(layout)),
     colorOwners: palette.colorOwners.map(({ id, seed }) => ({ id, seed })),
     backingParts: view.parts.filter(
       (p) => p.placement !== "unit" && p.backing !== false && !p.decoration && !p.plaster
@@ -1472,6 +1528,63 @@ export async function coreBuildingRenderInput(
     placementDocument: { version: 2, geometries, bindings, overrides: [] },
     plans
   };
+}
+
+/** The areas removed from roof slopes and cones, such as under a dormer, as the roof
+ * renderer's apertures: it drops the fragments of the roof's own tiles inside them, so tiles
+ * that reach into a removed area end at its edge. Each removed rectangle becomes one upright
+ * box around its corners, square to the roof's level outward direction, with the house's
+ * render slot. An aperture record is 48 bytes: center, slot, size, level outward direction,
+ * and two shape terms that make it a plain box (k = 1, a = -1). */
+function roofApertures(layout: CoreBuildingLayout): Uint8Array[] {
+  const records: Uint8Array[] = [];
+  for (const owner of layout.owners)
+    for (const binding of owner.bindings) {
+      if (binding.family !== "roof") continue;
+      for (const { part } of binding.parts) {
+        const element = part.original.elements.slope;
+        if (element?.kind !== "surface") continue;
+        const surface = new EffectiveGeometry(part.original, part.modifications, layout.surfaces).surface("slope");
+        for (const [u0, v0, u1, v1] of surface.removed) {
+          const middle = surface.frame((u0 + u1) / 2, (v0 + v1) / 2);
+          const n = middle.z,
+            level = Math.hypot(n[0], n[2]);
+          if (!(level > 1e-6)) continue;
+          const out = [n[0] / level, 0, n[2] / level],
+            across = [-out[2], 0, out[0]];
+          const corners = [
+            [u0, v0],
+            [u1, v0],
+            [u0, v1],
+            [u1, v1]
+          ].map(([u, v]) => surface.frame(u, v).origin);
+          const range = (axis: readonly number[]) => {
+            const d = corners.map((c) => c[0] * axis[0] + c[1] * axis[1] + c[2] * axis[2]);
+            return [Math.min(...d), Math.max(...d)];
+          };
+          const [x0, x1] = range(across),
+            [z0, z1] = range(out),
+            [y0, y1] = range([0, 1, 0]);
+          // The box reaches well above and below the roof there: only this roof's tiles lie
+          // over the area.
+          const reach = 0.5;
+          const cx = (x0 + x1) / 2,
+            cz = (z0 + z1) / 2;
+          const center = [across[0] * cx + out[0] * cz, (y0 + y1) / 2, across[2] * cx + out[2] * cz];
+          const bytes = new Uint8Array(48),
+            view = new DataView(bytes.buffer);
+          center.forEach((v, i) => view.setFloat32(i * 4, v, true));
+          view.setUint32(12, owner.slot, true);
+          [x1 - x0, y1 - y0 + 2 * reach, z1 - z0].forEach((v, i) => view.setFloat32(16 + i * 4, v, true));
+          view.setFloat32(32, out[0], true);
+          view.setFloat32(36, out[2], true);
+          view.setFloat32(40, 1, true);
+          view.setFloat32(44, -1, true);
+          records.push(bytes);
+        }
+      }
+    }
+  return records;
 }
 
 export interface CoreBuildingEntryOptions extends CoreBuildingOptions {

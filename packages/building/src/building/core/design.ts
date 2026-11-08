@@ -82,10 +82,25 @@ export interface ResolvedPart {
    * are never stored. Expand them with `expandPart` when needed. */
   readonly layout?: PartLayout;
 }
+/** A connection whose rule ran: author, detected or derived, with the keys of its parts.
+ * A derived part names the connection that derived it, so a consumer can find, for example,
+ * the guest a derived part belongs to. */
+export interface ResolvedConnection {
+  readonly key: string;
+  readonly kind: "attach" | "join";
+  readonly rule: string;
+  /** Attach only. */
+  readonly guest?: string;
+  readonly hosts: readonly string[];
+  /** Join only. */
+  readonly parts: readonly string[];
+}
 export interface BuildingDesignResult {
   /** Valid groups, sorted by id. */
   readonly groups: readonly BuildingGroupDef[];
   readonly parts: readonly ResolvedPart[];
+  /** Sorted by key. */
+  readonly connections: readonly ResolvedConnection[];
   readonly diagnostics: readonly BuildingDiagnostic[];
 }
 export interface BuildingDesignOptions {
@@ -165,6 +180,7 @@ export function designBuildingCore(
 ): BuildingDesignResult {
   const diagnostics: BuildingDiagnostic[] = [];
   const report = (source: string, message: string) => diagnostics.push({ source, message });
+  const connections: ResolvedConnection[] = [];
   const maxDepth = options.maxDepth ?? 8;
   const environment = options.environment ?? {};
   // A prototype without bounds takes the bounds the asset layer measured for its source.
@@ -365,6 +381,14 @@ export function designBuildingCore(
       report(item.key, `Unknown connection rule "${ruleId}"`);
       return;
     }
+    connections.push({
+      key: item.key,
+      kind: item.kind,
+      rule: ruleId,
+      ...(item.guest !== undefined && { guest: item.guest }),
+      hosts: item.hosts.map((h) => h.part),
+      parts: [...item.parts]
+    });
     const guest = item.guest ? viewOf(states.get(item.guest)!) : undefined;
     const hosts = item.hosts.map((h) => viewOf(states.get(h.part)!, h.element));
     const parts = item.kind === "attach" ? [guest!, ...hosts] : item.parts.map((k) => viewOf(states.get(k)!));
@@ -536,7 +560,8 @@ export function designBuildingCore(
       ...(layout && { layout })
     });
   }
-  return { groups: [...groups.values()], parts, diagnostics };
+  connections.sort((a, b) => compareKeys(a.key, b.key));
+  return { groups: [...groups.values()], parts, connections, diagnostics };
 }
 
 function insertSorted(list: string[], value: string) {

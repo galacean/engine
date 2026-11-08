@@ -37,6 +37,9 @@ export interface BuildingPrefab {
   openings: BuildingPrefabOpening[];
   /** Metres taken off the opening's width on a curved wall. */
   curvedNarrowing: number;
+  /** The right half of the small roof the prefab carries out of a roof slope, from its peak
+   * at x = 0 down to its eave, in the prefab's x/y plane. */
+  roofProfile?: [number, number][];
 }
 /** A building prefab with the bounds of its baked members. */
 export interface CompiledBuildingPrefab extends BuildingPrefab {

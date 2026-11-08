@@ -6,9 +6,9 @@ import { designBuildingCore, expandUnits, type BuildingCoreDraft } from "@galace
 import {
   buildingFootprints,
   createBuildingTypeRegistry,
+  MOUNTED_PART_TYPES,
   placeBuildingGroup
 } from "@galacean/engine-building/building/partTypes/index";
-import { WALL_MOUNTS } from "@galacean/engine-building/building/partTypes/Openings";
 import { coreBuildingEnvironment } from "@galacean/engine-building/building/render/CoreBuilding";
 import {
   buildingDraftSource,
@@ -34,7 +34,7 @@ export async function initialBuildingSource(
     const height = prepareBuildingTerrain(terrain, { position: group.position, rotationY: 0 }).height;
     const environment = coreBuildingEnvironment(height, assets);
     const design = designBuildingCore(group.draft, registry, { environment });
-    const mounts = new Set<string>(WALL_MOUNTS);
+    const mounts = new Set<string>(MOUNTED_PART_TYPES);
     const rejected = new Set(
       design.parts.flatMap((p) =>
         p.identity.kind === "author" && mounts.has(p.type) && !expandUnits(p, registry, { environment }).length

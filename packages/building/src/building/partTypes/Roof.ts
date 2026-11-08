@@ -15,6 +15,7 @@ import {
   type BuildingRegistry,
   type BuildingUnit,
   type ConnectionRule,
+  type EffectiveSurface,
   type Frame,
   type GeometryGenerator,
   type JoinDetector,
@@ -245,6 +246,20 @@ function nearestClip(planes: readonly Plane[], at: Vec3): Plane {
   return best;
 }
 
+/** Whether a tile centered at (u, v), reaching `du` across and `dv` up and down the surface,
+ * lies wholly in areas removed from the surface, as under a dormer. Such a tile is not laid;
+ * the renderer cuts the tiles that only reach into a removed area at its edge. */
+function insideRemoved(surface: EffectiveSurface, u: number, v: number, du: number, dv: number): boolean {
+  const { u: domain, closedU } = surface.domain;
+  const period = domain[1] - domain[0];
+  const removed = (pu: number, pv: number) =>
+    surface.removed.some((r) =>
+      (closedU ? [-period, 0, period] : [0]).some(
+        (shift) => pu >= r[0] + shift && pu <= r[2] + shift && pv >= r[1] && pv <= r[3]
+      )
+    );
+  return surface.removed.length > 0 && [-1, 1].every((a) => [-1, 1].every((b) => removed(u + a * du, v + b * dv)));
+}
 /** Overlapping tile rows up a roof slope. Row r sits at v = r / rows; each row splits
  * evenly into columns of about one unit width; a tile is about 1.43 row spacings long, so
  * the rows overlap. The first row also gets a flat closure tile under the eave. Tiles take
@@ -319,6 +334,16 @@ function tileAt(
   const jitter = context.params.lengthJitter ?? 0.2;
   const length =
     spacing * (context.params.overlap ?? 1.43) * (1 - jitter + 2 * jitter * context.random(key, "length").next());
+  if (
+    insideRemoved(
+      context.geometry.surface("slope"),
+      (c + 0.5) / cols,
+      v,
+      0.5 / cols,
+      length / 2 / slopeSampler(p).length
+    )
+  )
+    return;
   const shade = clamp01(v + context.random(key, "shade").next() * (context.params.shadeJitter ?? 0.2));
   return {
     key,
@@ -568,6 +593,7 @@ function ringTile(
     p.base + y,
     p.center[1] + p.tip[1] * v + ((pa[1] + pb[1]) / 2) * radius
   ];
+  const u = ((((c + 0.5) / cols - turn / (2 * Math.PI)) % 1) + 1) % 1;
   const normal: Vec3 = [mid[0], 0, mid[1]];
   const axis = cross(normal, [0, 1, 0]);
   // The tile hangs down the cone, tilted a little further out than the slope.
@@ -578,6 +604,8 @@ function ringTile(
   const jitter = context.params.lengthJitter ?? 0.2;
   const rowLength = (coneSampler(p).length / (rings + 1)) * (context.params.overlap ?? 1.43);
   const length = rowLength * (1 - jitter + 2 * jitter * context.random(key, "length").next());
+  if (insideRemoved(context.geometry.surface("slope"), u, v, 0.5 / cols, length / 2 / coneSampler(p).length)) return;
+
   const shade = clamp01(v + context.random(key, "shade").next() * (context.params.shadeJitter ?? 0.2));
   return {
     key,
@@ -589,7 +617,7 @@ function ringTile(
       flag: r === 0 ? 2 : 1,
       circular: true,
       // Where the tile sits on the cone, in the cone's (u, v).
-      uv: [((((c + 0.5) / cols - turn / (2 * Math.PI)) % 1) + 1) % 1, v]
+      uv: [u, v]
     },
     normal
   };

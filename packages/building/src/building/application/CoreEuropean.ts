@@ -1,6 +1,7 @@
 // Application layer: friendly European parameters → core drafts.
 import { type BuildingCoreDraft, type BuildingPartDef, type BuildingUnit } from "../core";
 import { normalizeProfileFootprint, normalizeProfileHeight, normalizeProfileRoof } from "../runtime/ProfileParameters";
+import { profileShape } from "../runtime/ProfileGeometry";
 import { unitFootprintScale, type MaterialFootprint } from "../runtime/MaterialFootprint";
 import { isFlatRoofHeight } from "../runtime/RoofMode";
 import { floorLevels } from "../partTypes/House";
@@ -165,6 +166,10 @@ export interface CoreHouseParameters {
    * perimeter, `bottom` the height above the wall's base, `width` and `height` the
    * installation size; the type defaults by kind. */
   attachments?: readonly CoreWallAttachment[];
+  /** Prefabs that sit on the roof, such as dormers. `uv` addresses the footprint's oriented
+   * bounding rectangle: u across its width, v from its +z edge to its −z edge. `bottom` raises
+   * the prefab above the roof surface; `width` and `height` are the installation size. */
+  roofAttachments?: readonly CoreRoofAttachment[];
   /** Floor bands between storeys. Default: none. */
   floors?: { enabled?: boolean; interval?: number };
   /** A plaster finish over the walls: its wear (0..1, how much masonry shows at the edges)
@@ -184,6 +189,19 @@ export interface CoreWallAttachment {
   width: number;
   height: number;
   seed?: number;
+  woodColor?: number;
+  lightColor?: number;
+  lightIntensity?: number;
+}
+export interface CoreRoofAttachment {
+  id: string;
+  type: "dormer-gothic";
+  rank?: 1 | 2 | 3;
+  uv: [number, number];
+  bottom?: number;
+  /** Installation size. Default: the prefab's own. */
+  width?: number;
+  height?: number;
   woodColor?: number;
   lightColor?: number;
   lightIntensity?: number;
@@ -233,6 +251,55 @@ function wallAttachmentPart(house: CoreHouseParameters, a: CoreWallAttachment): 
   };
 }
 
+/** A roof prefab as a part: a mount on the roof under the plan point that `uv` addresses,
+ * and the building prefab, scaled to the installation size. */
+function roofAttachmentPart(house: CoreHouseParameters, a: CoreRoofAttachment): BuildingPartDef {
+  if (!(a.uv.length === 2 && a.uv.every((v) => Number.isFinite(v) && v >= 0 && v <= 1)))
+    throw Error(`Roof attachment "${a.id}" needs uv in [0, 1]`);
+  const prefab = `${a.type}/${a.rank ?? 1}`;
+  const shape = profileShape(
+    normalizeProfileFootprint(
+      house.circle ? { circle: house.circle } : { rectangle: house.rectangle ?? DEFAULT_RECTANGLE }
+    )
+  );
+  const [width, depth] = shape.type === "circle" ? [2 * shape.radius, 2 * shape.radius] : [shape.width, shape.depth];
+  const [c, s] = shape.type === "circle" ? [Math.cos(shape.phase ?? 0), Math.sin(shape.phase ?? 0)] : shape.orientation;
+  const lx = (a.uv[0] - 0.5) * width,
+    lz = (0.5 - a.uv[1]) * depth;
+  const at: [number, number] = [shape.center[0] + c * lx - s * lz, shape.center[1] + s * lx + c * lz];
+  return {
+    id: `${house.id}/${a.id}`,
+    group: house.id,
+    type: "dormer",
+    geometry: {
+      generator: "houseRoofMount",
+      params: {
+        prefab,
+        at,
+        bottom: a.bottom ?? 0,
+        ...(a.width !== undefined && { width: a.width }),
+        ...(a.height !== undefined && { height: a.height })
+      }
+    },
+    algorithm: {
+      type: "mountPrefab",
+      params: {
+        ...(a.width !== undefined && { width: a.width }),
+        ...(a.height !== undefined && { height: a.height }),
+        unitParams: {
+          kind: "window",
+          host: "roof",
+          ...(a.woodColor !== undefined && { woodColor: a.woodColor }),
+          ...(a.lightColor !== undefined && { lightColor: a.lightColor }),
+          ...(a.lightIntensity !== undefined && { lightIntensity: a.lightIntensity })
+        }
+      }
+    },
+    unit: { source: { prefab }, pivot: [0.5, 0.5, 0], range: { min: [0.01, 0.01, 0.01], max: [100, 100, 100] } }
+  };
+}
+const DEFAULT_RECTANGLE = { center: [0, 0] as [number, number], size: [8, 6] as [number, number], rotation: 0 };
+
 /** Several houses in one draft, so that houses that touch connect: one group per house. */
 export function buildCoreHouses(houses: readonly CoreHouseParameters[]): BuildingCoreDraft {
   const drafts = houses.map((h) => buildCoreHouse(h));
@@ -245,7 +312,7 @@ export function buildCoreHouses(houses: readonly CoreHouseParameters[]): Buildin
 /** A house group: walls and a roof that share the footprint, wall height and roof. */
 export function buildCoreHouse(p: CoreHouseParameters): BuildingCoreDraft {
   const footprint = normalizeProfileFootprint(
-    p.circle ? { circle: p.circle } : { rectangle: p.rectangle ?? { center: [0, 0], size: [8, 6], rotation: 0 } }
+    p.circle ? { circle: p.circle } : { rectangle: p.rectangle ?? DEFAULT_RECTANGLE }
   );
   const unit = p.footprint ?? DEFAULT_FOOTPRINT;
   const seed = p.seed ?? 17;
@@ -411,6 +478,11 @@ export function buildCoreHouse(p: CoreHouseParameters): BuildingCoreDraft {
         }
       : undefined;
   const mounted = (p.attachments ?? []).map((a) => wallAttachmentPart(p, a));
+  if (p.roofAttachments?.length && !pitched) throw Error("A dormer needs a pitched roof");
+  const onRoof = (p.roofAttachments ?? []).map((a) => roofAttachmentPart(p, a));
+  // The dormer's small roof follows the house's tile footprint.
+  const tileScale = unitFootprintScale(unit);
+  const tiles = { row: 0.3 * tileScale.width, column: 0.32 * tileScale.height };
   const onWalls = [...(floors ? [floors] : []), ...(plaster ? [plaster] : []), ...mounted];
   return {
     groups: [
@@ -433,7 +505,7 @@ export function buildCoreHouse(p: CoreHouseParameters): BuildingCoreDraft {
         }
       }
     ],
-    parts: [...walls, ...roofs.map((r) => r.part), ...(spire ? [spire.part] : []), ...onWalls],
+    parts: [...walls, ...roofs.map((r) => r.part), ...(spire ? [spire.part] : []), ...onWalls, ...onRoof],
     connections: [
       ...roofs.map(({ part, hosts }) => ({
         kind: "attach" as const,
@@ -450,6 +522,14 @@ export function buildCoreHouse(p: CoreHouseParameters): BuildingCoreDraft {
         id: part.id + "/on-wall",
         guest: part.id,
         hosts: walls.map((w) => ({ part: w.id }))
+      })),
+      // A dormer sits on whichever roof part is under it.
+      ...onRoof.map((part) => ({
+        kind: "attach" as const,
+        id: part.id + "/on-roof",
+        guest: part.id,
+        hosts: roofs.map((r) => ({ part: r.part.id })),
+        params: { tiles }
       }))
     ]
   };

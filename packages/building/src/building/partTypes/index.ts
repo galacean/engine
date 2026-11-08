@@ -9,6 +9,12 @@ import {
 } from "../core";
 import { registerHouseTypes } from "./House";
 import { registerStripTypes } from "./Strip";
+import { WALL_MOUNTS } from "./Openings";
+import { ROOF_MOUNTS } from "./Dormers";
+
+/** Part types of prefabs mounted on a building: on its walls or on its roof. Each is placed,
+ * removed and kept on its own; a design that does not lay one drops it. */
+export const MOUNTED_PART_TYPES: readonly string[] = [...WALL_MOUNTS, ...ROOF_MOUNTS];
 
 /** Registers every building part type into a registry. */
 export function registerBuildingTypes(registry: BuildingRegistry): BuildingRegistry {

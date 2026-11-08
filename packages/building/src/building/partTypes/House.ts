@@ -32,6 +32,7 @@ import { unitFootprintScale, type MaterialFootprint } from "../runtime/MaterialF
 import type { ProfileFootprint, ProfileRoofParameters } from "../runtime/ProfileParameters";
 import { registerRoofTypes } from "./Roof";
 import { registerOpeningTypes } from "./Openings";
+import { registerDormerTypes } from "./Dormers";
 import { isFlatRoofHeight } from "../runtime/RoofMode";
 
 /** The wall chart: the perimeter unrolled along u, height along v. Plain JSON. */
@@ -1335,5 +1336,5 @@ export function registerHouseTypes(registry: BuildingRegistry): BuildingRegistry
   registry.algorithms.register("seamStones", seamStones);
   registry.defaults.join("wall", "wall", "wallJoin");
   registry.detectors.register(joinPairKey("wall", "wall"), wallsTouch);
-  return registerOpeningTypes(registerRoofTypes(registry));
+  return registerDormerTypes(registerOpeningTypes(registerRoofTypes(registry)));
 }

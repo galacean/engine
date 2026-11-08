@@ -9,6 +9,7 @@ import {
   buildCoreSteps,
   buildCoreWall,
   type CoreHouseParameters,
+  type CoreRoofAttachment,
   type CoreStepsParameters,
   type CoreStripParameters,
   type CoreWallAttachment
@@ -29,9 +30,10 @@ export interface EuropeanAttachment {
   rank?: 1 | 2 | 3;
   u?: number;
   uv?: [number, number];
-  bottom: number;
-  width: number;
-  height: number;
+  bottom?: number;
+  /** Installation size. A roof prefab defaults to its own size. */
+  width?: number;
+  height?: number;
   frameMaterial?: "wood" | "wall";
   enabled?: boolean;
   seed?: number;
@@ -84,13 +86,37 @@ function positive(name: string, value: number | undefined) {
     throw Error(`${name} must be a positive finite number, not ${value}`);
 }
 
+/** Building prefabs of the asset kit that sit on roofs. */
+const ROOF_PREFABS = new Set(["dormer-gothic"]);
+const onRoof = (a: EuropeanAttachment) => a.host === "roof" || a.uv !== undefined;
+function roofAttachment(a: EuropeanAttachment): CoreRoofAttachment | undefined {
+  if (a.enabled === false || !onRoof(a)) return;
+  if (!a.type || !ROOF_PREFABS.has(a.type)) throw unavailable(`The roof attachment type "${a.type}" ("${a.id}")`);
+  if (a.frameMaterial === "wall") throw unavailable(`A frame of wall material ("${a.id}")`);
+  if (!a.uv) throw Error(`Roof attachment "${a.id}" needs uv`);
+  positive("attachment width", a.width);
+  positive("attachment height", a.height);
+  return {
+    id: a.id,
+    type: a.type as CoreRoofAttachment["type"],
+    ...(a.rank && { rank: a.rank }),
+    uv: a.uv,
+    ...(a.bottom !== undefined && { bottom: a.bottom }),
+    ...(a.width !== undefined && { width: a.width }),
+    ...(a.height !== undefined && { height: a.height }),
+    ...(a.woodColor !== undefined && { woodColor: a.woodColor }),
+    ...(a.lightColor !== undefined && { lightColor: a.lightColor }),
+    ...(a.lightIntensity !== undefined && { lightIntensity: a.lightIntensity })
+  };
+}
 function wallAttachment(a: EuropeanAttachment): CoreWallAttachment | undefined {
-  if (a.enabled === false) return;
-  if (a.host === "roof" || a.uv) throw unavailable(`A roof attachment ("${a.id}")`);
+  if (a.enabled === false || onRoof(a)) return;
   if (a.kind === "opening" || a.kind === "hatch") throw unavailable(`An attachment of kind "${a.kind}" ("${a.id}")`);
   if (a.type && !WALL_PREFABS.has(a.type)) throw unavailable(`The attachment type "${a.type}" ("${a.id}")`);
   if (a.frameMaterial === "wall") throw unavailable(`A frame of wall material ("${a.id}")`);
   if (a.u === undefined) throw Error(`Wall attachment "${a.id}" needs u`);
+  if (a.width === undefined || a.height === undefined || a.bottom === undefined)
+    throw Error(`Wall attachment "${a.id}" needs bottom, width and height`);
   return {
     id: a.id,
     kind: a.kind,
@@ -134,7 +160,8 @@ function house(p: EuropeanHouseParameters): CoreHouseParameters {
     ...(p.plaster && { plaster: p.plaster }),
     ...(p.wallColor !== undefined && { wallColor: p.wallColor }),
     ...(p.woodColor !== undefined && { woodColor: p.woodColor }),
-    attachments: (p.attachments ?? []).flatMap((a) => wallAttachment(a) ?? [])
+    attachments: (p.attachments ?? []).flatMap((a) => wallAttachment(a) ?? []),
+    roofAttachments: (p.attachments ?? []).flatMap((a) => roofAttachment(a) ?? [])
   };
 }
 function strip(p: EuropeanStripParameters): CoreStripParameters {

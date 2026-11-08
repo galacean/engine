@@ -41,7 +41,7 @@ export function constructionAssets(editMesh?:(path:string,bytes:Uint8Array)=>Uin
           const name=type===BuildingAssetKitComponent?"BuildingAssetKitComponent":type===BuildingUnitComponent?"BuildingUnitComponent":type===BuildingAssemblyComponent?"BuildingAssemblyComponent":type===BuildingPrefabComponent?"BuildingPrefabComponent":type===BuildingUnitMemberComponent?"BuildingUnitMemberComponent":type===MeshRenderer?"MeshRenderer":"";
           const config=members.find((c:any)=>c.type===name);if(!config)return null;
           if(type===MeshRenderer)return {enabled:config.props?.enabled!==false,mesh:native(config.props.mesh.$ref),getMaterial:()=>native(config.calls[0].args[0].$ref)};
-          return {enabled:true,assemblies:{},family:"",instanceStride:0,directInstances:false,bindings:{},attributeLocations:{},integerAttributes:[],textureSlots:{},doubleSided:false,lodMesh:null,sdfMaterial:null,stoneFrame:null,attachment:"body",surfaceKind:0,openings:[],curvedNarrowing:0,unit:null,span:null,...resolve(config.props)};
+          return {enabled:true,assemblies:{},family:"",instanceStride:0,directInstances:false,bindings:{},attributeLocations:{},integerAttributes:[],textureSlots:{},doubleSided:false,lodMesh:null,sdfMaterial:null,stoneFrame:null,attachment:"body",surfaceKind:0,openings:[],curvedNarrowing:0,roofProfile:[],unit:null,span:null,...resolve(config.props)};
         },destroy(){}};
       };
       value=Object.create(PrefabResource.prototype);

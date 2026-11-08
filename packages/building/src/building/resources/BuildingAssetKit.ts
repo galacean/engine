@@ -104,6 +104,16 @@ export class BuildingPrefabComponent extends Component {
   }
   /** Metres taken off the opening's width on a curved wall. */
   curvedNarrowing = 0;
+  private _roofProfile: [number, number][] = [];
+  /** The outline of the small roof a prefab carries out of a roof slope, such as a dormer's:
+   * its right half from the peak down to the eave, in the prefab's x/y plane. The roof is
+   * the outline mirrored across x = 0. Empty when the prefab carries no roof. */
+  get roofProfile() {
+    return this._roofProfile.map((p) => [p[0], p[1]] as [number, number]);
+  }
+  set roofProfile(value: [number, number][]) {
+    this._roofProfile = (value ?? []).map((p) => [p[0], p[1]]);
+  }
 }
 /** A prefab member drawn with an arrangement unit, such as a stone hat. With a span it bends
  * along the surface the prefab is mounted on, from x = span[0] to x = span[1] of the
@@ -483,7 +493,22 @@ export function buildingAssets(source: PrefabResource): BuildingAssets {
         if (openings.some((o) => !(o.max[0] > o.min[0] && o.max[1] > o.min[1])))
           throw Error(`Building prefab "${key}" has an empty opening`);
         if (!(root.curvedNarrowing >= 0)) throw Error(`Building prefab "${key}" has a negative curved narrowing`);
-        prefabs[key] = { members, units: unitMembers, openings, curvedNarrowing: root.curvedNarrowing };
+        const roofProfile = root.roofProfile;
+        if (
+          roofProfile.length &&
+          (roofProfile.length < 2 ||
+            roofProfile[0][0] !== 0 ||
+            roofProfile.some((p, i) => i > 0 && !(p[0] >= roofProfile[i - 1][0] && p[1] <= roofProfile[i - 1][1])) ||
+            !(roofProfile[0][1] > roofProfile[roofProfile.length - 1][1]))
+        )
+          throw Error(`Building prefab "${key}" needs a roof profile that runs from its peak at x = 0 down and out`);
+        prefabs[key] = {
+          members,
+          units: unitMembers,
+          openings,
+          curvedNarrowing: root.curvedNarrowing,
+          ...(roofProfile.length && { roofProfile })
+        };
       } finally {
         entity.destroy();
       }

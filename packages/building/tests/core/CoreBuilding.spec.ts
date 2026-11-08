@@ -5,7 +5,7 @@ vi.mock("@galacean/engine", async () => ({
 }));
 import { describe, expect, it, vi } from "vitest";
 import { nativeAssets } from "../fixtures/constructionAssets";
-import { createBuildingRegistry, designBuildingCore } from "../../src/building/core";
+import { createBuildingRegistry, designBuildingCore, expandUnits } from "../../src/building/core";
 import { registerHouseTypes } from "../../src/building/partTypes/House";
 import { buildCoreHouse, type CoreHouseParameters } from "../../src/building/application/CoreEuropean";
 import {
@@ -35,6 +35,8 @@ import { normalizeProfileRoof } from "../../src/building/runtime/ProfileParamete
 import { isFlatRoofHeight } from "../../src/building/runtime/RoofMode";
 import { wallOpeningsOf } from "../../src/building/partTypes/Openings";
 import { constructionDecorationType } from "../../src/building/runtime/ConstructionDecorationCatalog";
+import { constructionDecorationRecipe } from "../../src/building/runtime/ConstructionDecorationRecipe";
+import { gothicRoofTiles } from "../../src/building/runtime/GothicRoofTiles";
 
 // Acceptance of the core render path against the online path, house by house.
 const flat = () => 0;
@@ -438,6 +440,156 @@ describe("Wall prefabs against the online path", () => {
             expect(deviation([...bone.normalXZ], [...o.instance.bones[k].normalXZ])).toBeLessThan(0.05);
           });
       });
+    },
+    60000
+  );
+});
+
+describe("Roof dormers against the online path", () => {
+  const sized = (rank: 1 | 2 | 3) => {
+    const [width, height] = constructionDecorationRecipe(
+      nativeAssets.compilation.decorations,
+      "dormer-gothic",
+      rank
+    )!.installationSize;
+    return { width, height };
+  };
+  const withDormers = (house: CoreHouseParameters, at: [number, number, 1 | 2 | 3][]): CoreHouseParameters => ({
+    ...house,
+    roofAttachments: at.map(([u, v, rank], i) => ({
+      id: "d" + i,
+      type: "dormer-gothic" as const,
+      rank,
+      uv: [u, v] as [number, number],
+      bottom: 0,
+      ...sized(rank)
+    }))
+  });
+  it.each([
+    [
+      "hip roof",
+      withDormers(
+        { id: "h", height: 4, rectangle: { center: [0, 0], size: [10, 8], rotation: 0 }, roof: { height: 0.6 } },
+        [
+          [0.25, 0.2, 1],
+          [0.55, 0.2, 2],
+          [0.5, 0.82, 3]
+        ]
+      )
+    ],
+    [
+      "gable roof, turned",
+      withDormers(
+        {
+          id: "g",
+          height: 4,
+          rectangle: { center: [0, 0], size: [9, 7], rotation: 0.4 },
+          roof: { height: 0.55, ridge_length: 1 }
+        },
+        [
+          [0.3, 0.25, 2],
+          [0.7, 0.14, 1]
+        ]
+      )
+    ],
+    [
+      "round roof of the built-in presets",
+      withDormers(
+        {
+          id: "r",
+          seed: 1,
+          height: 3.125,
+          circle: { center: [0, 0], radius: 2.4, phase: 0 },
+          roof: { tip: [0, 0], profile: 0, height: 0.35, ridge_length: 0.6, eave: 0.3, ridge_direction: 0, flat_rim: 0 }
+        },
+        [[0.012081486496702987, 0.6565982408069662, 2]]
+      )
+    ]
+  ] as [string, CoreHouseParameters][])(
+    "%s: the same window meshes, a small roof of the same tiles, and a footprint",
+    async (_name, p) => {
+      const { roofAttachments, ...rest } = p;
+      const onlineHouse = {
+        ...rest,
+        attachments: roofAttachments!.map((a) => ({ ...a, kind: "window", host: "roof" }))
+      };
+      const design = designBuilding(
+        European.buildHouses(onlineHouse as never) as never,
+        flat as never,
+        nativeAssets.compilation
+      );
+      const online = profilePreview(
+        buildingPreviewInput(design, await prepareBuildingPublication(design)),
+        flat as never,
+        {
+          assets: nativeAssets.compilation,
+          retainDecorationParts: true
+        } as never
+      );
+      // Online also asks for clearance under the roof's top; the core only asks that the
+      // dormer's roof meets its slope, so it lays the dormers online turns away.
+      const rejected = new Set(design.prepared.decorations.flatMap((d) => d.diagnostics.map((x) => x.id)));
+      const result = designBuildingCore(buildCoreHouse(p), registry, {
+        environment: coreBuildingEnvironment(flat, nativeAssets.compilation)
+      });
+      expect(result.diagnostics).toEqual([]);
+      const environment = coreBuildingEnvironment(flat, nativeAssets.compilation);
+      expect(
+        result.parts.filter((x) => x.type === "dormer").every((x) => expandUnits(x, registry, { environment }).length)
+      ).toBe(true);
+      const parts = coreBuildingDecorations(coreBuildingLayout(result, registry, {}), nativeAssets.compilation)
+        .flatMap((d) => d.parts)
+        .filter((x) => !rejected.has(x.id.split("/").slice(1, 3).join("/")));
+      const byId = new Map(online.decorationParts.map((x) => [x.id, x]));
+      expect(parts.map((x) => x.id).sort()).toEqual([...byId.keys()].sort());
+      expect(parts.length).toBeGreaterThan(0);
+      for (const x of parts) {
+        const o = byId.get(x.id)!;
+        expect(x.positions.length).toBe(o.positions.length);
+        // Across the plan the window stands where online puts it. Upright it stands on the core
+        // roof's covering; the two roofs' surfaces differ by up to 0.13 m there.
+        const dy = x.positions[1] - o.positions[1];
+        expect(Math.abs(dy)).toBeLessThan(0.25);
+        for (let k = 0; k < x.positions.length; k += 3) {
+          expect(Math.abs(x.positions[k] - o.positions[k])).toBeLessThan(0.03);
+          expect(Math.abs(x.positions[k + 1] - o.positions[k + 1] - dy)).toBeLessThan(1e-4);
+          expect(Math.abs(x.positions[k + 2] - o.positions[k + 2])).toBeLessThan(0.03);
+        }
+        expect(x.colors).toEqual(o.colors);
+        expect(x.appearance!.kinds).toEqual(o.appearance!.kinds);
+      }
+      // The small roofs: the same rows of tiles over the arch and ridge caps along the peak,
+      // within a third of online's count (the core roof meets its own slope).
+      const accepted = p.roofAttachments!.filter((a) => !rejected.has(`${p.id}/${a.id}`));
+      const onlineTiles = design.prepared.decorations
+        .flatMap((d) => (d as unknown as { dormerRoofs: { decorationId: string; support: never }[] }).dormerRoofs)
+        .reduce((n, r) => {
+          const { transform, surface, footprint } = r.support as {
+            transform: Parameters<typeof gothicRoofTiles>[2];
+            surface: Parameters<typeof gothicRoofTiles>[3];
+            footprint: Parameters<typeof gothicRoofTiles>[4];
+          };
+          const rank = accepted.find((a) => `${p.id}/${a.id}` === r.decorationId)!.rank!;
+          return n + gothicRoofTiles("t", rank, transform, surface, footprint, 0).length;
+        }, 0);
+      const coreTiles = result.parts
+        .filter((x) => x.type === "dormerRoof" || x.type === "dormerRidge")
+        .filter((x) => {
+          const owner = result.connections.find(
+            (c) => x.identity.kind === "derived" && c.key === x.identity.connection
+          )!;
+          return !rejected.has(JSON.parse(owner.guest!)[1]);
+        })
+        .reduce((n, x) => n + expandUnits(x, registry, { environment }).length, 0);
+      expect(Math.abs(coreTiles - onlineTiles) / onlineTiles).toBeLessThan(0.35);
+      // Each dormer takes its footprint out of the roof part it stands on.
+      for (const d of result.parts.filter((x) => x.type === "dormer")) {
+        const connection = result.connections.find((c) => c.guest === d.key)!;
+        const mount = d.original.elements.mount;
+        if (mount.kind !== "point" || !mount.on) throw Error("A dormer mount names its roof");
+        const host = result.parts.find((x) => x.key === connection.hosts[mount.on!.host])!;
+        expect(host.modifications.some((m) => m.op === "removeArea")).toBe(true);
+      }
     },
     60000
   );

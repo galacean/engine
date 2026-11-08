@@ -8,9 +8,15 @@ import { constructionGeometry } from "../../../packages/building/tests/fixtures/
 import { buildingGenerationPlan } from "../../demos/building-components/BuildingGenerationFixture";
 import { initialBuildingDrafts } from "@galacean/engine-world-planning/masonry/BuildingInitialDraft.ts";
 import { initialBuildingSource } from "@galacean/engine-world-planning/masonry/BuildingInitialSource.ts";
-import { designBuildingCore, expandUnits, type BuildingPartDef } from "@galacean/engine-building/building/core/index.ts";
-import { createBuildingTypeRegistry } from "@galacean/engine-building/building/partTypes/index.ts";
-import { WALL_MOUNTS } from "@galacean/engine-building/building/partTypes/Openings.ts";
+import {
+  designBuildingCore,
+  expandUnits,
+  type BuildingPartDef
+} from "@galacean/engine-building/building/core/index.ts";
+import {
+  createBuildingTypeRegistry,
+  MOUNTED_PART_TYPES
+} from "@galacean/engine-building/building/partTypes/index.ts";
 import { coreBuildingEnvironment } from "@galacean/engine-building/building/render/CoreBuilding.ts";
 
 it("keeps the mounted parts the design lays when the initial plan is saved as native author Source", async () => {
@@ -22,7 +28,7 @@ it("keeps the mounted parts the design lays when the initial plan is saved as na
   for (const group of initialBuildingDrafts(plan)) {
     const design = designBuildingCore(group.draft, registry, { environment });
     for (const part of design.parts)
-      if (part.identity.kind === "author" && (WALL_MOUNTS as readonly string[]).includes(part.type))
+      if (part.identity.kind === "author" && MOUNTED_PART_TYPES.includes(part.type))
         (expandUnits(part, registry, { environment }).length ? laid : rejected).add(part.identity.id);
   }
   expect(laid.size).toBeGreaterThan(0);
@@ -47,4 +53,6 @@ it("keeps the mounted parts the design lays when the initial plan is saved as na
   for (const id of rejected) expect(saved.has(id), `Rejected installation persisted: ${id}`).toBe(false);
   expect(parts.some((p) => p.type === "window")).toBe(true);
   expect(parts.some((p) => p.type === "door")).toBe(true);
+  // Some houses carry a Gothic dormer on their roof.
+  expect(parts.some((p) => p.type === "dormer")).toBe(true);
 });

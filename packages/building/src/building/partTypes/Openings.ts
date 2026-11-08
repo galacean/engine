@@ -31,13 +31,14 @@ export interface WallMountParams {
   readonly height: number;
 }
 /** What the asset layer measured about a building prefab (`{ prefab: key }`): its bounds, its
- * opening in its own x/y plane, the members that bend along the wall, and how much its
- * opening narrows on a curved wall. */
+ * opening in its own x/y plane, the members that bend along the wall, how much its opening
+ * narrows on a curved wall, and the right half of the small roof it carries out of a roof. */
 export interface PrefabFacts {
   readonly bounds: { readonly min: readonly number[]; readonly max: readonly number[] };
   readonly openings: readonly { readonly min: readonly number[]; readonly max: readonly number[] }[];
   readonly units: readonly { readonly matrix: readonly number[]; readonly span?: readonly [number, number] }[];
   readonly curvedNarrowing: number;
+  readonly roofProfile?: readonly (readonly [number, number])[];
 }
 export function prefabFacts(environment: BuildingEnvironment, prefab: string): PrefabFacts {
   const facts = environment.asset?.({ prefab }) as unknown as PrefabFacts | undefined;
@@ -281,8 +282,9 @@ export const mountHidden: ConnectionRule = ({ parts }) => {
 };
 
 interface MountPrefabParams {
-  readonly width: number;
-  readonly height: number;
+  /** Installation size in metres. Default: the prefab's own. */
+  readonly width?: number;
+  readonly height?: number;
   /** Renderer values carried on the laid unit. */
   readonly unitParams?: Readonly<Record<string, unknown>>;
 }
@@ -295,8 +297,8 @@ export const mountPrefab: LayingAlgorithm<MountPrefabParams, null> = {
     accepts: ["point"],
     summary: 'One building prefab at the point "mount", scaled to the installation size.',
     params: {
-      width: "Installation width in metres.",
-      height: "Installation height in metres.",
+      width: "Installation width in metres. Default: the prefab's own.",
+      height: "Installation height in metres. Default: the prefab's own.",
       unitParams: "Values the renderer reads from the laid unit."
     }
   },
@@ -305,7 +307,8 @@ export const mountPrefab: LayingAlgorithm<MountPrefabParams, null> = {
   unitAt(context) {
     const bounds = context.unit.bounds;
     if (!bounds) throw Error("mountPrefab needs the prefab's bounds");
-    const { width, height } = context.params;
+    const width = context.params.width ?? bounds.max[0] - bounds.min[0],
+      height = context.params.height ?? bounds.max[1] - bounds.min[1];
     const sx = width / (bounds.max[0] - bounds.min[0]),
       sy = height / (bounds.max[1] - bounds.min[1]),
       sz = Math.min(sx, sy);

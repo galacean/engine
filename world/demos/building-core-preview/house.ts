@@ -39,6 +39,7 @@ import {
   prepareCoreBuilding
 } from "@galacean/engine-building/building/render/CoreBuilding";
 import { constructionDecorationType } from "@galacean/engine-building/building/runtime/ConstructionDecorationCatalog";
+import { constructionDecorationRecipe } from "@galacean/engine-building/building/runtime/ConstructionDecorationRecipe";
 import {
   planFacadeDecorations,
   normalizeDecorationPlan
@@ -95,6 +96,20 @@ function withStone(house: CoreHouseParameters): CoreHouseParameters {
       at("a2", "window", "window-arrow-slit", 2, 0.78, 1),
       at("a3", "window", "window-arrow-slit", 3, 0.9, 0.8)
     ] as never
+  };
+}
+/** Gothic dormers at their original sizes, at footprint uv positions. */
+function withDormers(house: CoreHouseParameters, at: [number, number, 1 | 2 | 3][]): CoreHouseParameters {
+  return {
+    ...house,
+    roofAttachments: at.map(([u, v, rank], i) => {
+      const [width, height] = constructionDecorationRecipe(
+        library.compilation.decorations,
+        "dormer-gothic",
+        rank
+      )!.installationSize;
+      return { id: "dormer" + i, type: "dormer-gothic" as const, rank, uv: [u, v], bottom: 0, width, height };
+    })
   };
 }
 /** Cases read the asset library, so they are built once it is loaded. */
@@ -242,6 +257,52 @@ const cases = (): Case[] => [
     }),
     ground: flat
   },
+  {
+    id: "dormers",
+    title: "老虎窗 · 四坡",
+    house: withDormers(
+      { id: "a", height: 4, rectangle: { center: [0, 0], size: [10, 8], rotation: 0 }, roof: { height: 0.6 } },
+      [
+        [0.25, 0.2, 1],
+        [0.55, 0.2, 2],
+        [0.5, 0.82, 3],
+        [0.85, 0.5, 2]
+      ]
+    ),
+    ground: flat
+  },
+  {
+    id: "dormers-gable",
+    title: "老虎窗 · 山墙",
+    house: withDormers(
+      {
+        id: "a",
+        height: 4,
+        rectangle: { center: [0, 0], size: [9, 7], rotation: 0.4 },
+        roof: { height: 0.55, ridge_length: 1 }
+      },
+      [
+        [0.3, 0.25, 2],
+        [0.7, 0.25, 1]
+      ]
+    ),
+    ground: flat
+  },
+  {
+    id: "dormer-round",
+    title: "老虎窗 · 圆屋（内置预设）",
+    house: withDormers(
+      {
+        id: "a",
+        seed: 1,
+        height: 3.125,
+        circle: { center: [0, 0], radius: 2.4, phase: 0 },
+        roof: { tip: [0, 0], profile: 0, height: 0.35, ridge_length: 0.6, eave: 0.3, ridge_direction: 0, flat_rim: 0 }
+      },
+      [[0.012081486496702987, 0.6565982408069662, 2]]
+    ),
+    ground: flat
+  },
   { id: "steep", title: "陡屋顶", house: { id: "a", roof: { height: 0.8, eave: 0.4 } }, ground: flat },
   { id: "gable", title: "山墙屋顶", house: { id: "a", roof: { ridge_length: 1 } }, ground: flat },
   {
@@ -343,7 +404,13 @@ interface Drawn {
   units: number;
 }
 async function online(c: Case, dx: number, parent: Entity, signal: AbortSignal): Promise<Drawn> {
-  const houses = moved(c, dx).map(({ walls: _w, footprint: _f, ...p }) => p);
+  const houses = moved(c, dx).map(({ walls: _w, footprint: _f, roofAttachments, ...p }) => ({
+    ...p,
+    attachments: [
+      ...(p.attachments ?? []),
+      ...(roofAttachments ?? []).map((a) => ({ ...a, kind: "window", host: "roof" }))
+    ]
+  }));
   const ground = groundFor(c, dx);
   const start = performance.now();
   const design = designBuilding(European.buildHouses(houses as never), ground, library.compilation);
@@ -432,8 +499,10 @@ async function show() {
   const zoom = Number(params.get("zoom") ?? 1),
     yaw = (Number(params.get("yaw") ?? 0) * Math.PI) / 180;
   const [ox, oz] = [16 * Math.cos(yaw) - 30 * Math.sin(yaw), 16 * Math.sin(yaw) + 30 * Math.cos(yaw)];
-  camera.entity.transform.setPosition(ox, 12 + height, oz);
-  camera.entity.transform.lookAt(new Vector3(0, height * 0.55, 0));
+  // `target=x,y,z` in the URL aims the camera at a point instead of the house's middle.
+  const [tx, ty, tz] = (params.get("target") ?? `0,${height * 0.55},0`).split(",").map(Number);
+  camera.entity.transform.setPosition(tx + ox, ty + 12 + height * 0.45, tz + oz);
+  camera.entity.transform.lookAt(new Vector3(tx, ty, tz));
   camera.orthographicSize = (mode === "side" ? 9 + height * 0.25 : 6 + height * 0.3) / zoom;
   $("#checks").innerHTML = "";
   for (const [label, detail] of [

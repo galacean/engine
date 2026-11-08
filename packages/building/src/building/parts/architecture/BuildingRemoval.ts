@@ -4,17 +4,14 @@ import { BuildingPartComponent } from "./BuildingPartComponent";
 import { connectionParts, partFrame } from "./BuildingPartCollection";
 import { validateBuildingDraft } from "./BuildingCpu";
 import type { ConnectionDef } from "../../core";
-import { WALL_MOUNTS } from "../../partTypes/Openings";
+import { MOUNTED_PART_TYPES } from "../../partTypes/index";
 
 type Member = BuildingGroupComponent | BuildingPartComponent;
 
 /** The parts that shape a building (walls, roofs, finishes) are deleted with their group;
  * mounted parts such as windows are deleted on their own. */
 export function removesBuildingGroup(member: Member): boolean {
-  return (
-    member instanceof BuildingGroupComponent ||
-    !(WALL_MOUNTS as readonly string[]).includes(member.definition?.type ?? "")
-  );
+  return member instanceof BuildingGroupComponent || !MOUNTED_PART_TYPES.includes(member.definition?.type ?? "");
 }
 
 /** Plan before mutating. Runtime CRUD and persisted editor transactions consume
