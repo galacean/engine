@@ -3,11 +3,13 @@ export interface PlanningSystemDeclaration {
   readonly id: string;
   readonly title: string;
   /** Existing progressive-knowledge document to which this system contributes. */
-  readonly knowledgePath: string;
+  readonly skill: string;
   readonly components: readonly {
     readonly type: string;
     readonly domain: "architecture" | "lighting" | "grading" | "vegetation" | "composition";
     readonly knowledge: readonly string[];
+    /** Reference data the knowledge links to, mounted under declare/editor/world/facts/. */
+    readonly facts?: readonly { readonly path: string; readonly content: string }[];
     /** Resolve only requested values inherited from a source asset, without authoring defaults or writes. */
     readonly readInherited?: (
       current: Readonly<Record<string, unknown>>,
@@ -27,8 +29,9 @@ export interface PlanningSystemDeclaration {
 export interface PlanningSystemKnowledge {
   readonly id: string;
   readonly title: string;
-  readonly knowledgePath: string;
+  readonly skill: string;
   readonly components: readonly string[];
   readonly domains: Readonly<Record<string, PlanningSystemDeclaration["components"][number]["domain"]>>;
   readonly knowledge: readonly string[];
+  readonly facts: readonly { readonly path: string; readonly content: string }[];
 }

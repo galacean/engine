@@ -1,3 +1,4 @@
+import searchCloudSkill from "./search-cloud.md?raw";
 import { z } from "zod";
 import type { AgentEditorExtension } from "@galacean/engine-ai-chat/ai-chat/agent-extensions";
 import type { AgentNativeReadTool } from "@galacean/engine-ai-chat/ai-chat/agent-types";
@@ -79,7 +80,16 @@ export function createRetrievalAgentExtension(
   ];
   return {
     tools: [],
-    definition: { toolNames: [], nativeReadTools, scriptApi: { catalog: "", entries: [], modules: [] } }
+    definition: {
+      toolNames: [],
+      nativeReadTools,
+      scriptApi: {
+        hostNotes: "项目里没有合适资源时，读[检索云端素材](skills/assets/search-cloud/SKILL.md)。",
+        documents: [{ path: "skills/assets/search-cloud/SKILL.md", content: searchCloudSkill }],
+        entries: [],
+        modules: []
+      }
+    }
   };
 }
 

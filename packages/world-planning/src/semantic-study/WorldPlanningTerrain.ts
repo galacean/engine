@@ -2,6 +2,7 @@ import { bridgeApproachGradingSampler } from "@galacean/engine-water/bridges/Bri
 import { planningRiverBankHeight, riverBankReach } from "./PlanningRiverBank";
 import { watercourseGeometry } from "@galacean/engine-water/water/index";
 import { fitFoundationLevels, gradeLimitedBed } from "../spatial/terrain/TerrainGrade";
+import { compositionTerrain } from "../spatial/SpatialCompositionGeometry";
 import { authoredTerrainDisplacement } from "../spatial/terrain/AuthoredTerrain";
 import { isPlanningTerrainResource } from "../spatial/PlanningResources";
 import roadLimits from "../planning-data/road-network.json";
@@ -896,8 +897,12 @@ function createPlanningNaturalGroundSampler(
   baseGround?: (p: PlanPoint) => number
 ): (p: PlanPoint) => number {
   const reliefAt = createReliefSampler(plan.parameters.landformSeed ?? plan.parameters.seed);
-  const authored = plan.authoredResources?.some(isPlanningTerrainResource)
-    ? authoredTerrainDisplacement(plan.authoredResources)
+  const terrainResources = [
+    ...(plan.authoredResources ?? []),
+    ...compositionTerrain(plan.parameters.spatialComposition)
+  ];
+  const authored = terrainResources.some(isPlanningTerrainResource)
+    ? authoredTerrainDisplacement(terrainResources)
     : () => 0;
   const profileSamplers = new WeakMap<PlanningProfile, (p: PlanPoint) => number>();
   const profileHeight = (p: PlanPoint, profile: PlanningProfile) => indexedProfileSampler(profile, profileSamplers)(p);

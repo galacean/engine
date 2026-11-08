@@ -221,7 +221,14 @@ export async function executeAgentEdit(
       publishing = true;
       const published = publication ? await publication.commit() : undefined;
       if (!publication) transaction?.completeRead?.();
-      result = { ...result, receipt: { ...receipt(publication ? "committed" : "completed"), ...published } };
+      result = {
+        ...result,
+        receipt: {
+          ...receipt(publication ? "committed" : "completed"),
+          ...published,
+          ...(publication ? { committedAt: new Date().toISOString() } : {})
+        }
+      };
       if (publication?.activate) {
         try {
           await activateCommittedEdit(publication, call.signal, call.timeoutMs);

@@ -9,8 +9,8 @@ export function createWaterAgentPackage(api: WaterAPI): { definition: AgentAppli
     definition: {
       toolNames: ["water.execute"],
       scriptApi: {
-        catalog: "水系统：先读取 water/README.md 和 water.execute，再调用 tools.water.execute。",
-        documents: [{ path: "water/README.md", content: JSON.stringify(WATER_KNOWLEDGE, null, 2) }],
+        hostNotes: "水系统：先读取 declare/editor/water/README.md 和 water.execute，再调用 tools.water.execute。",
+        documents: [{ path: "declare/editor/water/README.md", content: JSON.stringify(WATER_KNOWLEDGE, null, 2) }],
         entries: [
           {
             name: "water.execute",

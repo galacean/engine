@@ -1,4 +1,3 @@
-import { poiTerritoryWeights } from "../../semantic-study/PoiDistribution";
 import { footprintLookup } from "../layout/FootprintLookup";
 import { flowerInfluenceField, type LegacyFlowerContext } from "./FlowerInfluences";
 import { coverageBoundaries } from "./CoverageContours";
@@ -87,7 +86,6 @@ export function planFlowerRegions(
     plan.planning?.reservations.filter((area) => area.kind === "activity"),
     plan.poiDistribution.sites,
     plan.poiDistribution.domains,
-    poiTerritoryWeights(plan.poiDistribution),
     config,
     boundaryBlendM,
     Object.entries(edits)
@@ -110,8 +108,14 @@ export function planFlowerRegions(
     plan.waters,
     plan.planning?.profiles.filter((p) => p.kind === "bed"),
     plan.poiDistribution.domains,
-    plan.poiDistribution.sites.map(({ id, center, domainId, tier }) => ({ id, center, domainId, tier })),
-    poiTerritoryWeights(plan.poiDistribution),
+    plan.poiDistribution.sites.map(({ id, center, domainId, active, sizeWeight, weightM2 }) => ({
+      id,
+      center,
+      domainId,
+      active,
+      sizeWeight,
+      weightM2
+    })),
     boundaryBlendM
   ]);
   if (surfaceCache?.key !== surfaceKey) {

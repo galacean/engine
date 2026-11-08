@@ -33,11 +33,21 @@ function bodyInput(plan: IslandPlan | undefined, id: string): unknown {
   );
 }
 
+/** Resolve the independent global plan once; Source water is already projected into the document.
+ * @param document World authoring, including concrete water projected from Source.
+ * @param previous Optional result used for incremental solving and dirty-water detection.
+ * @param progress Optional stage notifications.
+ * @param runtimeSignature Registry/version identity for derived-cache invalidation.
+ * @param options Optional environment stage; cache identity separates full and environment-free results.
+ * @returns The independent layout with Source-water provenance.
+ * @throws For an unsupported water authoring version.
+ */
 export function generateWaterOverlay(
   document: PlanningDocument,
   previous?: SemanticResult,
   progress?: (stage: string) => void,
-  runtimeSignature = ""
+  runtimeSignature = "",
+  options: { environment?: boolean } = {}
 ): SemanticResult {
   if (document.waterAuthoringVersion !== undefined && document.waterAuthoringVersion !== 1)
     throw new Error("Unsupported water authoring version");
@@ -46,15 +56,18 @@ export function generateWaterOverlay(
   delete input.waterAuthoringVersion;
   delete input.placementState;
   delete input.layoutOverrides;
-  const signature = JSON.stringify([runtimeSignature, canonical(input)]);
+  const signature = JSON.stringify([runtimeSignature, options.environment !== false, canonical(input)]);
   let base = bases.get(signature);
   if (base) {
     bases.delete(signature);
     bases.set(signature, base);
   } else {
-    base = generateSpatialWorld(input, previous, progress);
-    bases.set(signature, base);
-    if (bases.size > 2) bases.delete(bases.keys().next().value!);
+    base = generateSpatialWorld(input, previous, progress, options);
+    // Rejected results remain visible to the caller but never become a reusable base.
+    if (base.accepted) {
+      bases.set(signature, base);
+      if (bases.size > 2) bases.delete(bases.keys().next().value!);
+    }
   }
   const checks = [...base.checks],
     plan: IslandPlan = {

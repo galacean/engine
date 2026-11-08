@@ -9,6 +9,7 @@ export class PlanningLightingProfileRuntime {
   private request = 0;
   private disposed = false;
   private resource?: JSONAsset;
+  private authoredTimeHours?: unknown;
 
   constructor(
     private readonly engine: Engine,
@@ -34,7 +35,10 @@ export class PlanningLightingProfileRuntime {
       if (this.disposed || request !== this.request) return false;
       // Reinstall the source before explicit overrides so reset/base and profile switches cannot retain old curves.
       this.lighting.applyVisualTuning(data.visualTuning);
-      applyPlanningLightSources(this.lighting, values, data.samples);
+      // A world republish repeats the same authored time. Only a changed value may move the live clock,
+      // otherwise any rebuild would undo world time edits and the clock's own progress.
+      applyPlanningLightSources(this.lighting, values, data.samples, values.timeHours !== this.authoredTimeHours);
+      this.authoredTimeHours = values.timeHours;
       this.resource = asset;
       return true;
     } catch (error) {

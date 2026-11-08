@@ -164,6 +164,7 @@ export function solveLayoutGroup(
     boxes: v.boxes.map((b) => ({ ...b, elevation: boxGroundBottom(b, ground) }))
   });
   for (const [i, boxes] of construction.members.entries()) {
+    if (volumes.length >= (rule.memberMax ?? Infinity)) break;
     const vid = `${id}:volume:${i}`,
       old = retained.get(vid);
     const slope = rule.maxGroundSlopeDegrees ?? 90;
@@ -196,10 +197,12 @@ export function solveLayoutGroup(
     }
     if (placed) {
       volumes.push(placed);
+      retained.delete(vid);
       collision.set(placed);
       spacingIndex.set(placed);
     }
   }
+  for (const id of retained.keys()) collision.remove(id);
   const result: LayoutGroup = {
     id,
     center,
@@ -403,7 +406,7 @@ export function connectLayoutGroup(
           const position = { x: box.center.x + Math.cos(yaw) * radius, z: box.center.z + Math.sin(yaw) * radius };
           const outline = envelope(position, rule.pathWidthM, rule.pathWidthM, yaw);
           if (entranceInside(outline) && !obstacles.collides(outline))
-            ports.push({ id: `${id}:port:${ports.length}`, position, access: true });
+            ports.push({ id: `${id}:port:${ports.length}`, position, access: true, servesVolumeId: volume.id });
         }
       }
   }

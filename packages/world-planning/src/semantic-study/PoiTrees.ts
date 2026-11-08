@@ -22,10 +22,10 @@ export function placePoiTrees(
     ...(plan.plazas ?? []).map((p) => p.outline)
   ];
   plan.landscapes = [];
-  for (const site of plan.poiDistribution!.sites.filter((s) => rules.tiers.includes(s.tier) && !s.memberIds.length)) {
+  for (const site of plan.poiDistribution!.sites.filter((s) => s.active && !s.memberIds.length)) {
     const id = `tree-${site.id}`,
       seed = plan.parameters.seed,
-      tree = treeDimensions(id, poiTreeHeight(seed, id, site.id, config, edits, site.tier), site.center),
+      tree = treeDimensions(id, poiTreeHeight(seed, id, site.id, config, edits, undefined, site.domainId), site.center),
       { width, depth } = tree,
       yaw = random(seed, id + "yaw") * Math.PI * 2;
     const ring = envelope(site.center, width + rules.clearanceM * 2, depth + rules.clearanceM * 2, yaw);
@@ -54,22 +54,31 @@ export function placePoiTrees(
   }
 }
 
-/** Height changes preserve the landmark footprint and all road access constraints. */
+/** Height changes preserve the landmark footprint and all road access constraints.
+ * @param seed World seed used for reproducible height sampling.
+ * @param id Stable tree identity.
+ * @param poiId Owning POI identity for local height overrides.
+ * @param config World landscape defaults.
+ * @param edits Local authoring overrides indexed by entity identity.
+ * @param heightRule Optional content-recipe height rule.
+ * @param domainId Owning land domain, resolved before local POI overrides.
+ * @returns Deterministic tree height in metres.
+ */
 export function poiTreeHeight(
   seed: number,
   id: string,
   poiId: string,
   config: import("./ContextLandscape").LandscapeConfig,
   edits: Record<string, SemanticEdit>,
-  tier: import("./PoiDistribution").PoiTier = "small",
-  heightRule?: { heightMultiplier: number; minimumAboveAmbientM: number }
+  heightRule?: { heightMultiplier: number; minimumAboveAmbientM: number },
+  domainId?: string
 ): number {
-  const tierScope = config.tierOverrides?.[tier];
+  const region = domainId ? edits[domainId]?.landscape : undefined;
   const local = edits[poiId]?.landscape;
   const multiplier = heightRule?.heightMultiplier ?? rules.heightMultiplier;
   const floor = heightRule ? config.treeHeightMaxM + heightRule.minimumAboveAmbientM : 0;
-  const min = local?.treeHeightMinM ?? tierScope?.treeHeightMinM ?? Math.max(floor, config.treeHeightMinM * multiplier),
-    max = local?.treeHeightMaxM ?? tierScope?.treeHeightMaxM ?? Math.max(min, config.treeHeightMaxM * multiplier);
+  const min = local?.treeHeightMinM ?? region?.treeHeightMinM ?? Math.max(floor, config.treeHeightMinM * multiplier),
+    max = local?.treeHeightMaxM ?? region?.treeHeightMaxM ?? Math.max(min, config.treeHeightMaxM * multiplier);
   if (!(min > 0 && max >= min && max <= 120)) throw new Error("POI 树高范围无效");
   return min + random(seed, id + "height") * (max - min);
 }

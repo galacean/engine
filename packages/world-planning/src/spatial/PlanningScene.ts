@@ -7,6 +7,7 @@ import type { IslandPlan, PlanLandscape, PlanPoint } from "../semantic-study/Isl
 import type { PlanningPort, PlanningRelation } from "../semantic-study/WorldPlanningContract";
 import { poiRangeOutline } from "../semantic-study/PoiFootprint";
 import type { PoiSite } from "../semantic-study/PoiDistribution";
+import { poiContentLabel } from "../semantic-study/PoiContents";
 import { envelope } from "../semantic-study/IslandPlanAtoms";
 import { rockObbId } from "../integrations/terrain/rock-formation/Authoring.ts";
 /** Generated entities are read-only outputs. Editing writes authoring components, never these buffers. */
@@ -83,11 +84,7 @@ registerSceneProjector((plan, put, landscapeBoundary) => {
   for (const p of plan.poiDistribution?.sites ?? [])
     put({
       id: p.id,
-      name:
-        p.memberIds
-          .map((id) => plan.regions.find((r) => r.id === id)?.label ?? plan.mountains.find((m) => m.id === id)?.label)
-          .filter(Boolean)
-          .join(" · ") || p.id,
+      name: plan.farming?.poiId === p.id ? "农场管理区" : poiContentLabel(plan, p),
       parent: "world",
       kind: "poi",
       components: { poi: p, position: p.center, ...geometry(poiRangeOutline(p)) }
@@ -204,6 +201,18 @@ registerSceneProjector((plan, put, landscapeBoundary) => {
       kind: isGlobalRoadId(r.id) ? "globalRoute" : "route",
       components: { ...geometry(r.outline), route: r }
     });
+  for (const [id, points] of Object.entries(plan.spatialLayout?.authoredRoadPaths ?? {}))
+    if (!plan.routes.some((route) => route.id === id))
+      put({
+        id,
+        name: "道路（待解决必经点）",
+        parent:
+          plan.planning?.modules.find((module) => module.memberIds?.includes(id))?.id ??
+          plan.spatialLayout?.baselineGroups?.find((group) => group.paths.some((path) => path.id === id))?.id ??
+          "world",
+        kind: isGlobalRoadId(id) ? "globalRoute" : "route",
+        components: { authoredRoadPath: { keypoints: points }, position: points[0], ...geometry([]) }
+      });
   for (const b of plan.bridges)
     put({
       id: b.id,
@@ -259,16 +268,17 @@ registerSceneProjector((plan, put) => {
     if (site)
       put({
         id: group.id,
-        name:
-          plan.farming?.poiId === site.id
-            ? "农场管理区"
-            : `${{ large: "大", medium: "中", small: "小" }[site.tier]}型 POI ${Number(group.id.split("-").at(-1)) + 1}`,
+        name: plan.farming?.poiId === site.id ? "农场管理区" : poiContentLabel(plan, site),
         parent: "world",
         kind: "poi",
         components: {
           poi: site,
           position: site.center,
-          layout: { ...group.rule, memberCount: group.volumes.length },
+          layout: {
+            ...group.rule,
+            elementProfile: plan.spatialLayout?.elementProfiles?.[site.id],
+            memberCount: group.volumes.length
+          },
           ...geometry(poiRangeOutline(site)),
           display: { group: "poi", label: "POI" }
         }
@@ -289,16 +299,14 @@ registerSceneProjector((plan, put) => {
   }
 });
 registerSceneProjector((plan, put) => {
-  const sites = plan.poiDistribution?.sites ?? [],
+  const candidates = plan.poiDistribution?.sites ?? [],
+    sites = candidates.filter((site) => site.active),
     areas = poiTerritoryAreas(plan);
-  const values: Record<string, number> = {};
-  for (const tier of ["large", "medium", "small"] as const) {
-    const own = sites.filter((site) => site.tier === tier);
-    values[tier + ".count"] = own.length;
-    values[tier + ".averageAreaM2"] = own.length
-      ? own.reduce((sum, site) => sum + (areas.get(site.id) ?? 0), 0) / own.length
-      : 0;
-  }
+  const values: Record<string, number> = {
+    count: sites.length,
+    candidateCount: candidates.length,
+    averageAreaM2: sites.length ? sites.reduce((sum, site) => sum + (areas.get(site.id) ?? 0), 0) / sites.length : 0
+  };
   put({ id: "world", name: "世界", kind: "world", components: { distributionMetrics: values } });
 });
 const builtInProjectorCount = projectors.length;
@@ -315,7 +323,7 @@ function applyDisplay(entity: SceneEntity, entities: ReadonlyMap<string, SceneEn
           ? ["rocks", "地貌与岩石"]
           : c.water
             ? ["water", "河流"]
-            : c.route || c.plaza
+            : c.route || c.authoredRoadPath || c.plaza
               ? ["roads", "场所道路与广场"]
               : c.landscapeElement
                 ? c.landscapeElement.role === "poi"
@@ -328,7 +336,7 @@ function applyDisplay(entity: SceneEntity, entities: ReadonlyMap<string, SceneEn
       label: group[1],
       aggregate: !!c.landform || (!!c.region && ["village", "open"].includes(entity.kind)),
       internal: !!c.rock && !!entities.get(entity.parent ?? "")?.components.landform,
-      globalRoad: !!c.route && isGlobalRoadId(c.route.id)
+      globalRoad: !!(c.route || c.authoredRoadPath) && isGlobalRoadId(entity.id)
     };
 }
 function sceneSnapshot(entities: Map<string, SceneEntity>, plan: IslandPlan, landscapeOffset: number): PlanningScene {

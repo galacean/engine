@@ -1,4 +1,4 @@
-import { masonryAppearance, masonryTintRoles } from "@galacean/engine-building/tiny-glade/runtime/MasonryAppearance";
+import { masonryAppearance, masonryTintRoles } from "@galacean/engine-building/building/runtime/MasonryAppearance";
 
 /** Temporary scene-wide material preview. Native components own geometry;
  * this panel only controls shared preview colors, not saved authoring. */

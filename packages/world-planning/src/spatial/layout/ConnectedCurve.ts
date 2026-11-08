@@ -120,7 +120,7 @@ export function buildCurveLayout(c: LayoutBuildContext): LayoutConstruction {
       const width = sample(i, "width", q.widthMinM, q.widthMaxM),
         depth = sample(i, "depth", q.depthMinM, q.depthMaxM);
       const jitter = sample(i, "yaw", -0.5, 0.5) * Math.PI * q.orientationVariation;
-      const yawAt = (x: number) => Math.atan(wave(x).slope) + jitter;
+      const yawAt = (x: number) => Math.atan(wave(x).slope) + ((q.headingDegrees ?? 0) * Math.PI) / 180 + jitter;
       const halfAt = (x: number) => (Math.abs(Math.cos(yawAt(x))) * width + Math.abs(Math.sin(yawAt(x))) * depth) / 2;
       // Solve the leading projected edge directly. Bisection is bounded geometry arithmetic, not placement retries.
       let low = edge,

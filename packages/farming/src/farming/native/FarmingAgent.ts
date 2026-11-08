@@ -4,7 +4,12 @@ import { toAgentValue } from "@galacean/engine-ai-chat/ai-chat/agent-values";
 import { FarmingAPI, FARMING_API_CONTRACT, isFarmingReadOperation } from "./FarmingAPI";
 import type { FarmingCommands, FarmingRequest } from "./FarmingAPIContract";
 import { FARMING_API_DECLARATION } from "./FarmingAPIDeclarations";
-import { FARMING_KNOWLEDGE } from "./FarmingKnowledge";
+import { FARMING_METHOD_DOCS } from "./FarmingMethodDocs";
+import { farmingSkillDocuments } from "./FarmingSkill";
+
+/** operations.md is written for FarmingSystem, which this package only exposes for diagnostics. */
+const AREA_PROXY_NOTE =
+  '> 当前宿主通过 FarmingAreaComponent 操作农场。用 `editor.component.query({type: "FarmingAreaComponent"})` 取区域代理，方法不传 farmId。下面的示例使用 FarmingSystem 代理，只参考流程；区域代理的写法见 skills/farming/references/overview.md。\n\n';
 
 /** System-owned capabilities for the existing generic Agent. No application or Prompt changes. */
 export function createFarmingAgentPackage(api: FarmingAPI): {
@@ -18,11 +23,14 @@ export function createFarmingAgentPackage(api: FarmingAPI): {
     definition: {
       toolNames: [],
       scriptApi: {
-        catalog:
-          '种植系统：先读取 farming/README.md；用 editor.component.query({type: "FarmingAreaComponent"}) 获取区域代理，通过区域方法操作。',
-        documents: FARMING_KNOWLEDGE.filter((doc) => doc.path !== "farming/system-editor.md").map((doc) => ({
+        hostNotes:
+          '种植系统：先读取 skills/farming/references/overview.md；用 editor.component.query({type: "FarmingAreaComponent"}) 获取区域代理，通过区域方法操作。',
+        documents: [...farmingSkillDocuments, ...FARMING_METHOD_DOCS].map((doc) => ({
           path: doc.path,
-          content: doc.content + (doc.path === "farming/README.md" ? `\n## API 索引\n\n${index}\n` : "")
+          content:
+            (doc.path === "skills/farming/references/operations.md" ? AREA_PROXY_NOTE : "") +
+            doc.content +
+            (doc.path === "skills/farming/references/overview.md" ? `\n## API 索引\n\n${index}\n` : "")
         })),
         entries: [
           {

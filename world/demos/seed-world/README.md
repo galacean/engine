@@ -24,7 +24,6 @@
 | [空间框架](spatial/README.md)、[协作规则](AGENTS.md) | 数据契约、参数作用域、规则与素材接入 |
 | [配置目录](planning-data/README.md)、[框架审计](spatial/FRAMEWORK_AUDIT.md) | 配置入口、范围与未完成项 |
 | [场景视觉意图](../scene-visual-intent/README.md)、[心理地图](spatial/WAYFINDING_DESIGN.md) | 自然语言首次生成与导演测量；不代表完整美感/找路验收 |
-| [实施记录](V2_IMPLEMENTATION.md)、[旧 Seed 参考](LEGACY_SEED_REFERENCE.md) | 当前交付边界与历史模块追溯 |
 
 源码只修改 `world/gallery`；物化、构建见 [World 开发指南](../../../../README.md)。已有 Engine 构建时，从仓库根串行执行：
 
@@ -55,11 +54,17 @@ cp world/.materialized/engine/world-gallery/demos/terrain/data/seed-world/public
 
 ## 地表渲染权重与草根颜色
 
-世界数据保留草地、湿地/海底、裸地和道路的原始 RGBA 分类，以及独立河床覆盖；导航、水域、动物与植被分布继续读取这些数据。`SeedWorldRenderWeights.ts` 在发布时投影出一张 1024² RGBA8 渲染权重图：R 草地、G 岩坡/裸地、B 道路式地表、A 为 0。道路、湿地、海底和河床合并到 B，使用同样的颜色和天气响应，河床不再有不积雪特例。每个通道都显式存权重，不在 shader 中通过减法补最后一层。
+世界数据保留草地、湿地/海底、裸地和道路的原始 RGBA 分类，以及独立河床覆盖；导航、水域、动物与植被分布继续读取这些数据。`SeedWorldRenderWeights.ts` 在发布时投影出一张 1024² RGBA8 渲染权重图：R 草地、G 岩坡/裸地、B 道路式地表、A 为可选自然土壤覆盖（没有土壤时为 0）。道路、湿地、海底和河床合并到 B，使用同样的颜色和天气响应，河床不再有不积雪特例。每个通道都显式存权重，不在 shader 中通过减法补最后一层。
 
 地形、原生草与草卡片共用 `TerrainLayerEvaluation.glsl`。当前三层均为色块，不创建地表颜色/法线/材质数组，也不加载河沙图片；纯色单图宏保留一次权重采样。以后添加地表纹理时，通过独立的逻辑层号和紧密图片数组索引恢复采样；纯色层不占白色占位图，多 Region、多张 RGBA 权重图继续走通用路径。纯色草根的顶点求值独立于带导数的片元纹理求值。
 
 权重投影按不可变 surface revision 缓存，初次创建和水域编辑共用结果；不新增逐帧 CPU 栅格处理。这里不改变 relief 遮罩、固定起伏法线、24 小时光照与季节/天气系统。
+
+Seed 地形从 LOD 2 起使用远景材质；仅有两圈时从 LOD 1 起。远景保留地表配色、积雪和简化湿润光泽，省略独立水膜光照、SSR 接收与细节法线，并与近景渐变过渡。
+
+Shader 编译使用仓库已有的 `shader-compiler-precompile` CLI，需使用 World 修改版 ShaderLibrary，并同步更新引用共享代码的 `.shaderc` 资源。
+
+运行 `pnpm --dir world exec vitest run --config scripts/acceptance/seed-world-fixes.config.mjs SeedWorldTerrainRuntimeIntegration TerrainFarShader` 检查接入及远景编译后的采样器裁减。
 
 ## 作者、存档与发布
 

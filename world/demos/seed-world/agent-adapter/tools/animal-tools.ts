@@ -172,11 +172,11 @@ export const SEED_WORLD_ANIMAL_CONTRACTS = [
     domain: "animals",
     effect: "command",
     description:
-      "在当前会话新增一只已注册动物，不重建已有动物，也不修改初始化数量。先查 catalog 选择 typeId；不指定 appearanceId 时沿用初始化外观权重，默认等权。省略 position 则在观察者附近 12 米内找落点，必须位于固定世界出生区域且避开水体、实体和其他动物；采样失败如实拒绝。关闭或尚未就绪时拒绝。新增身份按激活距离进入异步加载队列并自主闲逛。相同 requestId 和参数幂等，换参数须用新 ID。会话重建/刷新会清除新增动物；不随 editor.history.undo 撤销。",
+      "在当前世界新增并持久保存一只已注册动物，不重建已有动物，也不修改初始化数量。先查 catalog 选择 typeId；不指定 appearanceId 时沿用初始化外观权重，默认等权。省略 position 则在观察者附近 12 米内找落点，必须位于固定世界出生区域且避开水体、实体和其他动物；采样失败如实拒绝。关闭或尚未就绪时拒绝。新增身份按激活距离进入异步加载队列并自主闲逛。相同 requestId 和参数幂等，换参数须用新 ID。新增身份、出生位置和外观保存到项目 DB，刷新和重建恢复，不保存自主移动的每帧状态；不随 editor.history.undo 撤销。初始化数量范围不限制新增。保存失败返回 rejected，不新增动物。",
     inputDescription:
       "稳定 requestId、目录返回的 typeId、可选 appearanceId 和米制水平 position。不得传 URL、动画片段或权重。",
     outputDescription:
-      "accepted 仅表示落点和身份已创建，并非加载完成；返回 id 可用 query/describe 观察加载状态，再下发语义指令。rejected 以 reason 为准。",
+      "accepted 表示落点和身份已持久保存，并非模型加载完成；返回 id 可用 query/describe 观察加载状态，再下发语义指令。rejected 以 reason 为准。",
     input: z.strictObject({
       requestId: identity,
       typeId: identity,

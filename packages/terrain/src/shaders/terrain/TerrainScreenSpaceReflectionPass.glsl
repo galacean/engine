@@ -108,16 +108,7 @@ TerrainProjectScreenSpaceReflectionSurface terrainProjectResolveScreenSpaceRefle
 ) {
   TerrainProjectScreenSpaceReflectionSurface resolved;
   resolved.substrate = evaluateTerrainFallbackSurface(varyings, geometryNormal, resolved.waterFilm);
-  #ifdef MATERIAL_TERRAIN_SEED_FIXED_LAYERS
-    TerrainProjectLayerBlend layerBlend = terrainProjectEvaluateSeedFixedLayerBlend(varyings.positionWS.xz);
-    resolved.substrate = evaluateTerrainLayerSurface(
-      varyings,
-      geometryNormal,
-      layerBlend,
-      resolved.waterFilm
-    );
-    resolved.waterFilm.coverage *= layerBlend.weight;
-  #elif defined(MATERIAL_TERRAIN_LAYERS)
+  #ifdef MATERIAL_TERRAIN_LAYERS
     int regionIndex;
     int alphamapOffset;
     int alphamapCount;
@@ -183,7 +174,7 @@ TerrainProjectScreenSpaceReflectionOutput TerrainScreenSpaceReflectionFragment(V
       discard;
     }
   #endif
-  #ifdef MATERIAL_TERRAIN_SEED_FAR_COMPOSITE
+  #ifdef MATERIAL_TERRAIN_FAR
     discard;
   #endif
 
@@ -192,9 +183,6 @@ TerrainProjectScreenSpaceReflectionOutput TerrainScreenSpaceReflectionFragment(V
     terrainProjectResolveScreenSpaceReflectionSurface(varyings, geometryNormal);
   SurfaceData substrate = resolved.substrate;
   TerrainProjectWaterFilm waterFilm = resolved.waterFilm;
-  #ifdef MATERIAL_TERRAIN_SEED_FAR_TRANSITION
-    waterFilm.coverage *= terrainProjectFarDetailVisibility(varyings);
-  #endif
   float waterCoverage = waterFilm.coverage;
   if (waterCoverage <= 0.005) discard;
 

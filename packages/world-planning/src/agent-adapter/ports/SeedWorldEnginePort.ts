@@ -755,14 +755,14 @@ export type SeedWorldSurfaceSegment = { start: [number, number, number]; end: [n
 export interface SeedWorldSurfaceMeasurements {
   publicationRevision?: number;
   hits: ReturnType<
-    import("@galacean/engine-building/tiny-glade/runtime/ConstructionSurfaceQuery").ConstructionSurfaceQuery["intersectSegment"]
+    import("@galacean/engine-building/building/runtime/ConstructionSurfaceQuery").ConstructionSurfaceQuery["intersectSegment"]
   >[];
 }
 export type SeedWorldSurfaceCapsule = SeedWorldSurfaceSegment & { radius: number };
 export interface SeedWorldCapsuleMeasurements {
   publicationRevision?: number;
   hits: ReturnType<
-    import("@galacean/engine-building/tiny-glade/runtime/ConstructionSurfaceQuery").ConstructionSurfaceQuery["intersectCapsule"]
+    import("@galacean/engine-building/building/runtime/ConstructionSurfaceQuery").ConstructionSurfaceQuery["intersectCapsule"]
   >[];
 }
 export interface SeedWorldEnginePort {

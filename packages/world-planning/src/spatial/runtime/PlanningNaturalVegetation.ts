@@ -56,8 +56,7 @@ import {
   resolveSeedWorldAssetPlacement
 } from "../../world/SeedWorldAssetPlacementProfile";
 import { envelope } from "../../semantic-study/IslandPlanAtoms";
-import { volumeEnvelope } from "../layout/LayoutKernel";
-import { boxOutline } from "../layout/Volumes";
+import { applyLandscapeEdits } from "../layout/DerivedEdits";
 
 export interface PlanningPlantAsset extends LandscapePlantAsset {
   readonly bounds: LandscapeBounds;
@@ -259,36 +258,17 @@ export class PlanningNaturalVegetation {
     this.trees = planningNaturalTrees(plan, height, assets);
     const state = plan.spatialLayout,
       slots = state?.landscapeBase?.slots;
-    const landscapeSources = state?.baselineLandscapes ?? plan.landscapes ?? [];
+    const sources = state?.baselineLandscapes ?? plan.landscapes ?? [];
     const slotIds = new Set(slots?.map((slot) => slot.id));
-    const landscapes = slots
-      ? [...slots, ...landscapeSources.filter((item) => !slotIds.has(item.id))]
-      : landscapeSources;
-    this.associationTrees = planningNaturalTrees({ ...plan, landscapes, authoredResources: [] }, height, assets);
-    const volumes = new Map(
-      state?.baselineGroups?.flatMap((group) => group.volumes.map((volume) => [volume.id, volume] as const))
-    );
-    const guidance = new Map(state?.baselineGuidanceRocks?.map((rock) => [rock.id, rock]));
-    // Runtime instance commits retain existing understory. Cold replay must use the
-    // same construction footprints, including hidden candidates and unedited guidance.
-    this.solids = [...plan.buildings, ...plan.rocks]
-      .map((solid) => {
-        const volume = volumes.get(solid.id);
-        if (!volume) return guidance.get(solid.id) ?? solid;
-        const shape = volumeEnvelope(volume);
-        return {
-          id: solid.id,
-          outline:
-            "regionId" in solid && volume.boxes.length === 1
-              ? boxOutline(volume.boxes[0])
-              : envelope(shape.center, shape.width, shape.depth, 0)
-        };
-      })
-      .concat(landscapes.filter((item) => item.kind === "rock"));
-    const baselineRocks = plan.rocks.map((rock) => {
-      const volume = volumes.get(rock.id);
-      return volume ? { ...rock, ...volumeEnvelope(volume) } : (guidance.get(rock.id) ?? rock);
-    });
+    const associationPlan = {
+      ...plan,
+      landscapes: slots ? [...slots, ...sources.filter((item) => !slotIds.has(item.id))] : [...sources]
+    };
+    applyLandscapeEdits(associationPlan, state?.instanceEdits ?? {}, (point) => height.sample(point));
+    const landscapes = associationPlan.landscapes;
+    this.associationTrees = planningNaturalTrees(associationPlan, height, assets);
+    this.solids = [...plan.buildings, ...plan.rocks, ...landscapes.filter((item) => item.kind === "rock")];
+    const baselineRocks = plan.rocks;
     this.anchors = [
       ...this.associationTrees,
       ...[...baselineRocks, ...landscapes.filter((p) => p.kind === "rock")].map((rock) => ({
@@ -539,9 +519,15 @@ function groundProjectionSignature(
     plan.parameters.depth,
     plan.naturalVegetation ?? publishNaturalVegetation(plan),
     assets,
-    plan.poiDistribution?.territoryWeights,
     plan.poiDistribution?.domains,
-    plan.poiDistribution?.sites.map((site) => [site.id, site.tier, site.center, site.domainId]),
+    plan.poiDistribution?.sites.map((site) => [
+      site.id,
+      site.active,
+      site.center,
+      site.domainId,
+      site.sizeWeight ?? 1,
+      site.weightM2
+    ]),
     plan.routes.map((route) => route.outline),
     population.detailDensityFields.map((field) =>
       field.category === "grass"

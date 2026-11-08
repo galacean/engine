@@ -28,6 +28,34 @@ const lighting = () => ({
   applyVisualTuning: vi.fn()
 });
 
+describe("PlanningLightingProfileRuntime live clock", () => {
+  const runtime = (host: ReturnType<typeof lighting>) =>
+    new PlanningLightingProfileRuntime(engine(vi.fn(async () => asset())), host as never);
+
+  it("applies the authored time once and keeps the live clock across republishes", async () => {
+    const host = lighting();
+    const profile = runtime(host);
+    await profile.apply(parameters);
+    expect(host.setTuning).toHaveBeenCalledTimes(1);
+    expect(host.setTuning).toHaveBeenLastCalledWith({ playing: false, timeHours: 12 });
+    await profile.apply(parameters);
+    expect(host.setTuning).toHaveBeenCalledTimes(1);
+    expect(host.setVisibility).toHaveBeenCalledTimes(2);
+    expect(host.applyVisualTuning).toHaveBeenCalled();
+  });
+
+  it("moves the clock when the authored time changes", async () => {
+    const host = lighting();
+    const profile = runtime(host);
+    await profile.apply(parameters);
+    await profile.apply({ ...parameters, timeHours: 21 });
+    expect(host.setTuning).toHaveBeenLastCalledWith({ playing: false, timeHours: 21 });
+    await profile.apply(parameters);
+    expect(host.setTuning).toHaveBeenLastCalledWith({ playing: false, timeHours: 12 });
+    expect(host.setTuning).toHaveBeenCalledTimes(3);
+  });
+});
+
 describe("native lighting profile assets", () => {
   it("decodes all authored samples and static values without changing calibration or sharing mutable JSON", () => {
     const json = structuredClone(authoredProfile);

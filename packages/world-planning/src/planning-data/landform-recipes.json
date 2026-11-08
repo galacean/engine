@@ -3,26 +3,17 @@
     {
       "kind": "canyon",
       "label": "峡谷",
-      "weight": 1,
-      "tiers": [
-        "large"
-      ]
+      "weight": 1
     },
     {
       "kind": "cliff",
       "label": "断崖",
-      "weight": 1,
-      "tiers": [
-        "medium"
-      ]
+      "weight": 1
     },
     {
       "kind": "plateau",
       "label": "台地",
-      "weight": 1,
-      "tiers": [
-        "medium"
-      ]
+      "weight": 1
     }
   ],
   "canyonFit": {

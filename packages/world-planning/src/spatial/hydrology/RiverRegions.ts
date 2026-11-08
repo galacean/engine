@@ -1,3 +1,4 @@
+import { planningCandidateCount, type PlanningCountRange } from "../PlanningCountRange";
 import {
   watercourseGeometry,
   resolveWatercourse,
@@ -12,7 +13,10 @@ import { ribbonOutline } from "../../semantic-study/WorldRibbon";
 import { territoryLookup } from "../ecology/PoiTerritories";
 
 /** World hydrology preferences. All lengths and levels are metres. Each river publishes its own longitudinal profile. */
-export interface RiverParameters {
+export interface RiverParameters extends PlanningCountRange {
+  /** Flat garden channels may derive a dig-only level from their complete path.
+   * Explicit point elevations always retain precedence. */
+  levelMode?: "terrain" | "minimum";
   speed?: number;
   bankClearance?: number;
   dropThreshold?: number;
@@ -21,7 +25,6 @@ export interface RiverParameters {
   points?: WatercoursePoint[];
   sections?: WatercourseSection[];
   enabled?: boolean;
-  count: number;
   lengthM: number;
   automaticLevel: boolean;
   waterY: number;
@@ -35,7 +38,8 @@ export interface RiverParameters {
   preference: number;
 }
 export const RIVER_DEFAULTS: RiverParameters = {
-  count: 1,
+  countMin: 1,
+  countMax: 1,
   lengthM: 1000,
   automaticLevel: true,
   waterY: 3,
@@ -80,6 +84,7 @@ export function generateRiverRegions(
   config: RiverParameters,
   local: Record<string, Partial<RiverParameters>>
 ): PlanningCheck[] {
+  const candidateCount = planningCandidateCount(plan.parameters.seed, "rivers:count", config, 1);
   // This stage rebuilds the complete water set. Retire profiles by the actual
   // previous owner identities, including authored basins/rivers with custom IDs.
   // A prefix-only reset leaves stale profiles that would precede their new copy.
@@ -118,7 +123,7 @@ export function generateRiverRegions(
     .slice()
     .sort((a, b) => extent(b.outline) - extent(a.outline) || a.id.localeCompare(b.id));
   const requested = [
-    ...Array.from({ length: config.count }, (_, i) => `river:${i}`),
+    ...Array.from({ length: candidateCount }, (_, i) => `river:${i}`),
     ...Object.keys(local)
       .filter((id) => id.startsWith("river:authored:"))
       .sort()
@@ -129,18 +134,57 @@ export function generateRiverRegions(
       throw new Error("INVALID_ARGUMENT: 自定义河流缺少控制点");
     if (riverConfig.enabled === false) continue;
     if (riverConfig.points !== undefined) {
-      const course = resolveWatercourse(
-        {
-          id,
-          points: riverConfig.points,
-          sections: riverConfig.sections,
-          bankClearance: riverConfig.bankClearance,
-          dropThreshold: riverConfig.dropThreshold,
-          slopeThreshold: riverConfig.slopeThreshold,
-          probeSpacing: riverConfig.probeSpacing
-        },
-        (x, z) => ground({ x, z })
-      );
+      // Author overrides retain Watercourse defaults: 0.25 m probes and 0.05 m bank clearance.
+      const probeSpacing = riverConfig.probeSpacing ?? 0.25;
+      let pointsInput = riverConfig.points;
+      if (riverConfig.levelMode === "minimum") {
+        // Each explicitly carved drop separates two ordinary water platforms.
+        // Native sculpted drops put their curtain at the interval midpoint.
+        // Bound both platforms by their own complete Terrain support, including
+        // the approaches to that curtain; never fill Terrain to support water.
+        const falls = new Set(
+          (riverConfig.sections ?? [])
+            .filter((section) => section.form === "waterfall" && section.carve)
+            .map((section) => section.from)
+        );
+        const groups: number[] = [0];
+        for (let i = 1; i < pointsInput.length; i++)
+          groups.push(groups[i - 1] + (falls.has(pointsInput[i - 1].id) ? 1 : 0));
+        const levels = Array.from({ length: groups.at(-1)! + 1 }, () => Infinity);
+        for (let i = 1; i < pointsInput.length; i++) {
+          const a = pointsInput[i - 1],
+            b = pointsInput[i],
+            count = Math.max(1, Math.ceil(distance(a, b) / probeSpacing));
+          for (let sample = 0; sample <= count; sample++) {
+            const t = sample / count;
+            const group = groups[falls.has(a.id) && t > 0.5 ? i : i - 1];
+            levels[group] = Math.min(levels[group], ground({ x: a.x + (b.x - a.x) * t, z: a.z + (b.z - a.z) * t }));
+          }
+        }
+        for (let i = 1; i < levels.length; i++) levels[i] = Math.min(levels[i - 1], levels[i]);
+        // Use the native bank clearance; it is not a new water-depth policy.
+        pointsInput = pointsInput.map((point, i) => ({
+          ...point,
+          elevation: point.elevation ?? levels[groups[i]] - (riverConfig.bankClearance ?? 0.05)
+        }));
+      }
+      let course: ReturnType<typeof resolveWatercourse>;
+      try {
+        course = resolveWatercourse(
+          {
+            id,
+            points: pointsInput,
+            sections: riverConfig.sections,
+            bankClearance: riverConfig.bankClearance,
+            dropThreshold: riverConfig.dropThreshold,
+            slopeThreshold: riverConfig.slopeThreshold,
+            probeSpacing
+          },
+          (x, z) => ground({ x, z })
+        );
+      } catch (error) {
+        throw new Error(`${id}: ${error instanceof Error ? error.message : String(error)}`);
+      }
       const derived = watercourseGeometry(course);
       const points = derived.points.map((p) => ({ x: p.x, z: p.z })),
         widths = derived.points.map((p) => p.width);
@@ -496,16 +540,16 @@ export function generateRiverRegions(
       }
     );
   }
-  if (plan.waters.length < config.count)
+  if (plan.waters.length < candidateCount)
     checks.push({
       id: "river:count",
       owners: ["world"],
       rule: "river-generation",
       required: false,
       status: "unknown",
-      message: `请求 ${config.count} 条河流，本次生成 ${plan.waters.length} 条；部分走廊无法容纳当前形状与岸线，保留请求参数`,
+      message: `请求 ${candidateCount} 条河流，本次生成 ${plan.waters.length} 条；部分走廊无法容纳当前形状与岸线，保留请求参数`,
       measured: plan.waters.length,
-      limit: config.count
+      limit: candidateCount
     });
   return checks;
 }

@@ -101,11 +101,11 @@ export function createNativeWaterAgentPackage(
     definition: {
       toolNames: [tool.name],
       scriptApi: {
-        catalog:
-          "水体作者编辑：读取 editor/water/authoring.md 和 editor/water/WaterAuthoring.d.ts，再调用 tools.water.author。",
+        hostNotes:
+          "水体作者编辑：读取 declare/editor/water/authoring.md 和 declare/editor/water/WaterAuthoring.d.ts，再调用 tools.water.author。",
         documents: [
           {
-            path: "water/authoring.md",
+            path: "declare/editor/water/authoring.md",
             content:
               "Source Scene/Prefab 组件是唯一作者模型。先 list/get 发现稳定组件 ID。UI 与工具共用公共事务和历史；形状用局部米制坐标，放置归 Entity Transform。quality 是组件值属性，支持按字段微调，省略时使用当前水体类型默认值；不引用 Quality 资产，预算与材质、形状独立。手动床面不支持雕刻；host Terrain 由宿主协调。隐藏保留查询，禁用退出查询。color 必须显式选择共享或实例副本。工具返回 prepared-in-draft，外层事务 commit/activate 后才能报告接受和运行结果；保存另行等待。"
           }

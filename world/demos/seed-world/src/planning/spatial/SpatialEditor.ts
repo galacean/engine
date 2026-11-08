@@ -8,11 +8,12 @@ import { seedWorldProjectFormats } from "../../../SeedWorldProjectFormats.ts";
 import { createSeedWorldProjectClose } from "../../../SeedWorldProjectClose.ts";
 import { planningSourceDocument } from "./runtime/PlanningProjectSource.ts";
 import { exportPlanningScene, importPlanningScene } from "./PlanningSceneAsset.ts";
-import { createSeedPlanningDocument } from "@galacean/engine-world-planning/spatial/PlanningInitialization";
-import { createWorldStylePlanningDocument } from "@galacean/engine-world-planning/spatial/WorldTemplateAuthoring";
+import { createWorldStylePlanningDocument, worldTemplatePaletteValues } from "@galacean/engine-world-planning/spatial/WorldTemplateAuthoring";
 import { mountWorldTemplatePicker } from "./WorldTemplatePicker.ts";
 import { wayfindingPolicy } from "@galacean/engine-world-planning/spatial/guidance/WayfindingPolicy";
 import { wayfindingHighlights } from "./guidance/WayfindingHighlights.ts";
+import { planningRegistry } from "@galacean/engine-world-planning/spatial/PlanningComponents";
+import { formatSpatialFieldValue } from "./SpatialFieldValue.ts";
 import { planningOverview } from "./PlanningOverview.ts";
 import { mountDirectorPanel } from "./director/DirectorPanel.ts";
 import { IslandPlanView } from "@galacean/engine-world-planning/semantic-study/IslandPlanView";
@@ -26,6 +27,7 @@ import { planningPageUrl } from "./PlanningPageUrl.ts";
 import { resolveSceneSelection } from "@galacean/engine-world-planning/spatial/PlanningScene";
 import { exportPlanningRecipe, type PlanningDocument } from "@galacean/engine-world-planning/spatial/PlanningDocument";
 import { mountSpatialInspector } from "./SpatialInspector.ts";
+import { showPoiSizePreview } from "./PoiSizeEditor.ts";
 import type { SpatialCommand } from "@galacean/engine-world-planning/spatial/SpatialDocument";
 import "../../../../../../packages/world-planning/src/semantic-study/BaseMap.css";
 import "../semantic-study/WorldPlanning.css";
@@ -40,7 +42,8 @@ export async function mountSpatialEditor(
   document.title = "空间规划编辑器";
   const root = document.createElement("div");
   root.className = "island-plan-editor base-map-editor world-layout-editor world-planning-editor spatial-editor";
-  root.innerHTML = `<aside class="ip-sidebar sp-hierarchy"><header class="ip-brand"><h1>空间规划</h1><p data-ui="poi-summary" aria-live="polite"></p><p data-ui="summary"></p><a data-ui="visual-intent" target="_blank" rel="noopener">场景视觉意图 ↗</a></header><section data-ui="hierarchy"><div data-ui="layers"></div></section></aside><main class="ip-workspace"><header class="ip-topbar"><span data-ui="revision"></span><span data-ui="progress" role="status" hidden></span><nav aria-label="规划视图"><button data-action="open">打开工程</button><input data-ui="file" type="file" accept="application/json,.json,.scene" hidden><button data-action="save">导出工程</button><button data-action="clear" title="恢复当前工程的默认规划参数，保留场景与其他资产">重置规划参数</button><button data-action="fit">全图</button><button data-action="plan" aria-pressed="true">俯视</button><button data-action="oblique" aria-pressed="false">白盒测试</button><button data-action="director" aria-pressed="false" disabled>导演</button><button data-action="generate">生成 3D</button></nav></header><div class="ip-viewport" data-ui="viewport"></div></main><aside class="ip-sidebar sp-inspector"><nav class="sp-tabs"><button data-tab="inspector">Inspector</button><button data-tab="world">全局规划</button><button data-tab="wayfinding">心理地图</button><button data-tab="lighting">光照与后处理</button><button data-tab="display">辅助显示</button><button data-tab="diagnostics">诊断</button></nav><section data-ui="world-save" class="sp-world-save" hidden><button data-action="clear-save" type="button">清空存档</button><p>清除当前 Seed 的视角和离地高度，保留规划、建筑与农场。</p><p data-ui="world-save-status" role="status" hidden></p></section><div data-ui="inspector"></div><section data-ui="display" aria-label="辅助显示" hidden><div data-ui="display-layers"></div></section><section data-ui="diagnostics" hidden><p role="status" data-ui="status" class="sp-status" hidden></p><p data-ui="flower-diagnostics"></p><pre data-ui="checks"></pre></section></aside>`;
+  root.inert = true;
+  root.innerHTML = `<aside class="ip-sidebar sp-hierarchy"><header class="ip-brand"><h1>空间规划</h1><p data-ui="poi-summary" aria-live="polite"></p><dl data-ui="summary" class="sp-layout-statistics" aria-label="最终布局统计"></dl><p data-ui="area-statistics" class="sp-selected-statistics"></p><p data-ui="selected-statistics" class="sp-selected-statistics" hidden></p><a data-ui="visual-intent" target="_blank" rel="noopener">场景视觉意图 ↗</a></header><section data-ui="hierarchy"><div data-ui="layers"></div></section></aside><main class="ip-workspace"><header class="ip-topbar"><span data-ui="revision"></span><span data-ui="progress" role="status" hidden></span><nav aria-label="规划视图"><button data-action="open">打开工程</button><input data-ui="file" type="file" accept="application/json,.json,.scene" hidden><button data-action="save">导出工程</button><button data-action="clear" title="恢复当前工程的默认规划参数，保留场景与其他资产">重置规划参数</button><button data-action="fit">全图</button><button data-action="plan" aria-pressed="true">俯视</button><button data-action="oblique" aria-pressed="false">白盒测试</button><button data-action="director" aria-pressed="false" disabled>导演</button><button data-action="generate">生成 3D</button></nav></header><div class="ip-viewport" data-ui="viewport"></div></main><aside class="ip-sidebar sp-inspector"><nav class="sp-tabs"><button data-tab="inspector">Inspector</button><button data-tab="world">全局规划</button><button data-tab="wayfinding">心理地图</button><button data-tab="lighting">光照与后处理</button><button data-tab="display">辅助显示</button><button data-tab="diagnostics">诊断</button></nav><section data-ui="world-save" class="sp-world-save" hidden><button data-action="clear-save" type="button">清空存档</button><p>清除当前 Seed 的视角和离地高度，保留规划、建筑与农场。</p><p data-ui="world-save-status" role="status" hidden></p></section><div data-ui="inspector"></div><section data-ui="display" aria-label="辅助显示" hidden><div data-ui="display-layers"></div></section><section data-ui="diagnostics" hidden><p role="status" data-ui="status" class="sp-status" hidden></p><p data-ui="flower-diagnostics"></p><pre data-ui="checks"></pre></section></aside>`;
   host.replaceChildren(root);
   const ui = <T extends HTMLElement = HTMLElement>(id: string) => root.querySelector<T>(`[data-ui="${id}"]`)!;
   const button = (id: string) => root.querySelector<HTMLButtonElement>(`[data-action="${id}"]`)!;
@@ -84,6 +87,7 @@ export async function mountSpatialEditor(
   }
   let storageWarning = "";
   let clearingStorage = false;
+  let resettingPlanning = false;
   let saved: PlanningDocument | undefined;
   try {
     saved = await storage.load(parameters.seed);
@@ -91,16 +95,24 @@ export async function mountSpatialEditor(
   } catch (error) {
     storageWarning = "本地数据读取失败：" + String(error);
   }
-  if (!storageWarning) await storage.migrateToSource(saved ?? createSeedPlanningDocument(parameters.seed));
   const client = new PlanningWorkerClient();
   client.onProgress=stage=>{ui("progress").hidden=false;ui("progress").textContent=stage+"…";};
+  let initialDocument: PlanningDocument;
+  try {
+    initialDocument = saved ?? await client.initialize(parameters.seed);
+    if (!storageWarning) await storage.migrateToSource(initialDocument);
+  } catch (error) {
+    client.dispose();
+    project.dispose();
+    throw error;
+  }
   const session:PlanningSession = new PlanningSession(
     { version: 2, parameters, edits: {} },
     async (document, previous, signal) => {
       const r = exportPlanningRecipe(document);
       return client.run(r.parameters, r.edits, previous, document, signal);
     },
-    saved ?? createSeedPlanningDocument(parameters.seed),
+    initialDocument,
     { history: false, farmingStatePath: () => planningFarmingProjectStatePath(project) }
   );
   let tab = "inspector",
@@ -113,13 +125,22 @@ export async function mountSpatialEditor(
   const templatePicker = mountWorldTemplatePicker(
     root.querySelector<HTMLElement>(".ip-topbar nav")!,
     async (id, seed) => {
-      const receipt = await edit((draft) => draft.load(createWorldStylePlanningDocument(session.document, seed, id)));
+      const receipt = await edit((draft) => draft.load(createWorldStylePlanningDocument(session.document, seed, id, session.recipe().parameters.population)));
       if (receipt?.status !== "accepted") throw new Error(receipt?.message ?? "规划未接受");
+      if (storageWarning) throw new Error(storageWarning);
+      status(session.document.populationInitialization?.diagnostics.join("；") ?? "");
+    },
+    async id => {
+      const commands = Object.entries(worldTemplatePaletteValues(id)).map(([component, values]) => ({
+        op: "set" as const, entity: "world", component, values
+      }));
+      const receipt = await edit(draft => draft.dispatchParameters(commands));
+      if (receipt?.status !== "accepted") throw new Error(receipt?.message ?? "配色未接受");
       if (storageWarning) throw new Error(storageWarning);
     }
   );
   function updateGenerateControl() {
-    const unavailable = disposed || generating || clearingStorage || changingProjection || session.pending ||
+    const unavailable = disposed || generating || clearingStorage || resettingPlanning || changingProjection || session.pending ||
       root.dataset.pending === "true" || !session.result;
     button("generate").disabled = unavailable;
     button("director").disabled = unavailable;
@@ -173,7 +194,18 @@ export async function mountSpatialEditor(
     ui("display-layers")
   );
   session.setPublicationHandler((_document,result,signal,accept)=>view.publishPlan(result.plan,signal,accept));
-  const inspector = mountSpatialInspector(ui("inspector"), session, dispatch);
+  const inspector = mountSpatialInspector(ui("inspector"), session, dispatch, {
+    show: preview => showPoiSizePreview(view.svg, preview),
+    unavailableReason: () =>
+      button("oblique").getAttribute("aria-pressed") === "true" ? "请切换到俯视后调整管理区大小" :
+      disposed || generating || clearingStorage || resettingPlanning || changingProjection || session.pending || root.dataset.pending === "true"
+        ? "布局正在更新，请稍后调整" : undefined
+  });
+  const poiPicker = document.createElement("select");
+  poiPicker.className = "sp-poi-picker";
+  poiPicker.setAttribute("aria-label", "选择 POI 调整管理区");
+  ui("poi-summary").after(poiPicker);
+  poiPicker.onchange = () => { if (poiPicker.value) select(poiPicker.value); };
   const wayfindingKey = document.createElement("p");
   wayfindingKey.className = "sp-wayfinding-key";
   wayfindingKey.hidden = true;
@@ -183,10 +215,23 @@ export async function mountSpatialEditor(
     director.pause();
     focusedGroup = undefined;
     session.select(id);
+    poiPicker.value = id ?? "";
     view.setSelection(id);
     layers.select(id, hierarchyNodeId === undefined, hierarchyNodeId);
+    updateSelectionStatistics();
     if (tab !== "inspector") setTab("inspector");
     else inspector.update(id);
+  }
+  function updateSelectionStatistics() {
+    const id = session.selectedId;
+    const output = ui("selected-statistics");
+    const metrics = id ? session.inspect(id).components.flatMap(component =>
+      planningRegistry.get(component.type).fields
+        .filter(field => field.readonly && component.values[field.key] !== undefined)
+        .map(field => `${field.label} ${formatSpatialFieldValue(field, component.values[field.key])}`)
+    ) : [];
+    output.hidden = !metrics.length;
+    output.textContent = metrics.length ? `${session.inspect(id!).name} · ${metrics.join(" · ")}` : "";
   }
   function focus() {
     director.pause();
@@ -239,6 +284,7 @@ export async function mountSpatialEditor(
     });
   }
   function setTab(next: string) {
+    if (next !== tab) inspector.cancelPreview();
     tab = next;
     const highlights = wayfindingHighlights(tab === "wayfinding" ? session.result?.plan : undefined);
     view.setContextHighlights(highlights.elements, highlights.paths);
@@ -331,12 +377,41 @@ export async function mountSpatialEditor(
     syncLayers();
     director.update(r.plan);
     setTab(tab);
-    const poiCounts = { large: 0, medium: 0, small: 0 };
-    for (const site of r.plan.poiDistribution?.sites ?? []) poiCounts[site.tier]++;
+    const poiSites = r.plan.poiDistribution?.sites ?? [];
+    const placeholder = document.createElement("option");
+    placeholder.value = ""; placeholder.textContent = "选择 POI · 调整管理区大小";
+    poiPicker.replaceChildren(placeholder);
+    for (const site of r.plan.poiDistribution?.sites ?? []) {
+      const option = document.createElement("option");
+      option.value = site.id;
+      option.textContent = (session.scene?.entities.get(site.id)?.name ?? site.id) + (site.active ? "" : " · 未显示");
+      poiPicker.append(option);
+    }
+    poiPicker.value = session.selectedId ?? "";
     ui("poi-summary").textContent =
-      `POI ${poiCounts.large + poiCounts.medium + poiCounts.small} · 大 ${poiCounts.large} / 中 ${poiCounts.medium} / 小 ${poiCounts.small}`;
-    ui("summary").textContent =
-      `${r.plan.spatialLayout?.groups.reduce((n,g)=>n+g.volumes.length,0)??0} 体量 · ${r.plan.routes.length} 道路 · ${r.plan.landscapes?.length ?? 0} 景观`;
+      `POI ${poiSites.filter(site => site.active).length} · ${poiSites.length} 个可调整位置`;
+    const layout = r.plan.spatialLayout;
+    const counts: [string, number][] = [
+      ["体量", layout?.groups.reduce((sum, group) => sum + group.volumes.length, 0) ?? 0],
+      ["道路", r.plan.routes.length],
+      ["景观树", r.plan.landscapes?.filter(item => item.kind === "tree").length ?? 0],
+      ["景观石", r.plan.landscapes?.filter(item => item.kind === "rock").length ?? 0],
+      ["建筑", r.plan.buildings.length],
+      ["村庄", layout?.groups.filter(group => layout.elementProfiles?.[group.id] === "habitable" && group.volumes.length > 0).length ?? 0],
+      ["河流", r.plan.waters.filter(water => water.kind === "river").length],
+      ["湖泊", r.plan.waters.filter(water => water.kind === "lake").length]
+    ];
+    ui("summary").replaceChildren(...counts.map(([label, count]) => {
+      const item = document.createElement("div"), term = document.createElement("dt"), value = document.createElement("dd");
+      term.textContent = label;
+      value.textContent = String(count);
+      item.append(term, value);
+      return item;
+    }));
+    const distribution = session.inspect("world").components.find(component => component.type === "distribution");
+    const averageArea = distribution?.values.averageAreaM2;
+    ui("area-statistics").textContent = typeof averageArea === "number" ? `平均管理面积 ${Math.round(averageArea).toLocaleString()} ㎡` : "";
+    updateSelectionStatistics();
     ui("revision").textContent = `1024 × 1024 m · SEED ${r.recipe.parameters.seed}`;
     root.dataset.revision = String(session.document.revision);
 
@@ -349,15 +424,16 @@ export async function mountSpatialEditor(
     root.dataset.solveTimings = JSON.stringify(r.timings);
     root.dataset.renderMs = String(performance.now() - start);
   }
-  function edit(action: (draft: PlanningSession) => Promise<EditReceipt | undefined>): Promise<EditReceipt | undefined> {
-    const pending = executeEdit(action);
+  function edit(action: (draft: PlanningSession) => Promise<EditReceipt | undefined>, reset = false): Promise<EditReceipt | undefined> {
+    const pending = executeEdit(action, reset);
     activeEdits.add(pending);
     return pending.finally(() => { activeEdits.delete(pending); });
   }
-  async function executeEdit(action: (draft: PlanningSession) => Promise<EditReceipt | undefined>): Promise<EditReceipt | undefined> {
+  async function executeEdit(action: (draft: PlanningSession) => Promise<EditReceipt | undefined>, reset = false): Promise<EditReceipt | undefined> {
     if (disposed) throw new Error("空间规划已关闭");
     if (generating) throw new Error("3D 正在生成，请完成后再修改布局");
     if (clearingStorage) throw new Error("正在清理本地数据，请稍后再修改布局");
+    if (resettingPlanning && !reset) throw new Error("正在重置规划参数，请稍后再修改布局");
     const started = performance.now();
     director.pause();
     root.dataset.pending = "true";
@@ -394,6 +470,7 @@ export async function mountSpatialEditor(
         root.dataset.pending = String(session.pending);
         ui("progress").hidden=!session.pending;
         updateGenerateControl();
+        setTab(tab);
       }
     }
   }
@@ -428,6 +505,7 @@ export async function mountSpatialEditor(
       if (!disposed) {
         for (const control of controls) control.disabled = false;
         updateGenerateControl();
+        setTab(tab);
       }
     }
   }
@@ -476,6 +554,7 @@ export async function mountSpatialEditor(
       if (disposed) return;
       clearingStorage = false;
       root.inert = false;
+      ui("progress").hidden = true;
       const message = "本地数据清除失败：" + String(error);
       status(message);
       ui("world-save-status").textContent = message;
@@ -488,7 +567,35 @@ export async function mountSpatialEditor(
     if (!planningSourceDocument(project.projectPackage) && pageUrl.canReplaceHistory) location.replace(planningSeedURL(pageUrl.url.href, session.recipe().parameters.seed));
     else location.reload();
   }
-  button("clear").onclick = () => clearSavedData(() => storage.clear());
+  button("clear").onclick = async () => {
+    if (disposed || button("clear").disabled || resettingPlanning) return;
+    const started = performance.now();
+    resettingPlanning = true;
+    root.inert = true;
+    director.close();
+    updateGenerateControl();
+    try {
+      const receipt = await edit(async draft => {
+        const replacement = await client.initialize(session.recipe().parameters.seed, abort.signal);
+        abort.signal.throwIfAborted();
+        return draft.load(replacement, abort.signal);
+      }, true);
+      if (disposed || receipt?.status !== "accepted") return;
+      select(null);
+      await changeProjection(false);
+      view.fit();
+      root.dataset.resetMs = String(performance.now() - started);
+    } catch (error) {
+      if (!disposed) status("重置规划参数未能完成：" + String(error));
+    } finally {
+      resettingPlanning = false;
+      if (!disposed) {
+        root.inert = false;
+        ui("progress").hidden = !session.pending;
+        updateGenerateControl();
+      }
+    }
+  };
   button("clear-save").onclick = () => clearSavedData(async () => {
     const seed = session.recipe().parameters.seed;
     let owner: Awaited<ReturnType<typeof openSeedWorldProject>> | undefined;
@@ -538,6 +645,7 @@ export async function mountSpatialEditor(
     root.inert = true;
     abort.abort();
     templatePicker.dispose();
+    inspector.dispose();
     await Promise.allSettled([...activeEdits]);
     director.dispose();
     client.dispose();

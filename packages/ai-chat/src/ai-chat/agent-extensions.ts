@@ -73,8 +73,8 @@ export function composeAgentConfiguration(
       editorComponents: components,
       projectFiles: definitions.flatMap((definition) => definition.projectFiles ?? []),
       scriptApi: {
-        catalog: definitions
-          .map((definition) => definition.scriptApi.catalog)
+        hostNotes: definitions
+          .map((definition) => definition.scriptApi.hostNotes)
           .filter(Boolean)
           .join("\n\n"),
         documents,

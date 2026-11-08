@@ -40,7 +40,7 @@ export function resolveWorldTemplateScene(
     return value;
   };
   const anchor: Position = [site.center.x, sample(site.center.x, site.center.z), site.center.z];
-  const geometry = buildWorldTemplateGeometry(template, plan.parameters.seed);
+  const geometry = buildWorldTemplateGeometry(template, plan.parameters.seed, plan.parameters.spatialComposition);
   const resolution = plan.raster?.heightSamples ?? profile.world.heightmapResolution;
   const spacingX = plan.parameters.width / (resolution - 1);
   const spacingZ = plan.parameters.depth / (resolution - 1);

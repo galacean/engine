@@ -29,6 +29,7 @@ import { readRockGenerationProfile } from "@galacean/engine-world-planning/integ
 import { rockGrassExclusions, rockGrassWaterTest } from "@galacean/engine-world-planning/integrations/terrain/rock-formation/GrassExclusions";
 import {createWaterSurfaceSample} from "@galacean/engine-water/water/runtime/index";
 import {masonryPlacementAnchors,masonryTerrainSource} from "@galacean/engine-world-planning/masonry/MasonryPlacement";
+import { PlanningAnimalProjectAuthoring } from "./src/planning/spatial/runtime/PlanningAnimalAuthoring.ts";
 import { PlanningAnimalHost } from "./src/planning/spatial/runtime/PlanningAnimalHost.ts";
 import { PlanningAnimalFood } from "./src/planning/spatial/runtime/PlanningAnimalFood.ts";
 import { readAnimalPopulationConfig } from "@galacean/engine-world-planning/spatial/AnimalPopulationComponent";
@@ -669,6 +670,7 @@ export async function mountSeedWorldDemo(
       samplePlayerSupport: (x, z) => rockNavigation?.sampleContactHeight(x, z) });
     const animalPlayerPosition = new Vector3();
     animals = new PlanningAnimalHost(root, () => camera.entity.transform.worldPosition, undefined, {
+      authoring: new PlanningAnimalProjectAuthoring(runtimeProject!),
       player: () => {
         if (!navigation.enabled || navigation.verticalMovementEnabled) return undefined;
         const eye = camera.entity.transform.worldPosition;
@@ -762,13 +764,15 @@ export async function mountSeedWorldDemo(
       }
       if (!context.contentOnly && !context.worldUnchanged && waterFallback) canvas.dataset.waterImpact = JSON.stringify({ mode: "full-native", phase: "preparing", fallback: waterFallback });
       const plannedGeometryUnchanged = !publication!.current || sameMasonryPlan(publication!.current.plan, result.plan);
+      const roadState = (p: typeof result.plan) => JSON.stringify([p.routes, p.roadGraph, p.roadNetwork, p.bridges, p.roadApproaches]);
+      const roadGeometryUnchanged = !publication!.current || roadState(publication!.current.plan) === roadState(result.plan);
       const rockSupportChanged = publication!.current && JSON.stringify([
         result.plan.rocks, result.plan.landscapes?.filter(x => x.kind === "rock"), rockGeometrySettings(readRockFormationSettings(document))
       ]) !== JSON.stringify([
         publication!.current.plan.rocks, publication!.current.plan.landscapes?.filter(x => x.kind === "rock"),
         rockGeometrySettings(readRockFormationSettings(context.previousDocument))
       ]);
-      if (!context.forceFull && !rockSupportChanged && canPublishRockFormationEdit(publication!.current, context.previousDocument, document, result.plan)) {
+      if (!context.forceFull && roadGeometryUnchanged && !rockSupportChanged && canPublishRockFormationEdit(publication!.current, context.previousDocument, document, result.plan)) {
         const started = performance.now(), settings = readRockFormationSettings(document);
         const staged = await publication!.prepareRocks(result.plan, async signal =>
           prepareRockMaterialPublication(publication!.current!, settings, signal), context.signal);
@@ -780,13 +784,13 @@ export async function mountSeedWorldDemo(
       }
       // Mixed content edits still need the full transaction when building supports
       // change. Rock-only edits below stage their dependent supports locally.
-      if (context.contentOnly && plannedGeometryUnchanged && publication!.current?.vegetation
+      if (context.contentOnly && plannedGeometryUnchanged && roadGeometryUnchanged && publication!.current?.vegetation
         && !(rockSupportChanged && result.plan.buildings.length)) {
         const started = performance.now(), plan = result.plan;
         let metrics: Record<string, number> = {};
         const staged = await publication!.prepareContent(plan, async signal => {
           const current = publication!.current!;
-          const vegetation = current.vegetation!.prepareTrees(plan, signal);
+          const vegetation = await current.vegetation!.prepareTrees(plan, signal);
           const rockState = (p: typeof plan) => JSON.stringify([
             p.rocks, p.landscapes?.filter(element => element.kind === "rock")
           ]);
@@ -834,7 +838,7 @@ export async function mountSeedWorldDemo(
         // Reuse publication follow-up so mixed animal/lighting/grass edits all reach their consumers.
         return { discard() {}, commit() {}, afterCommit: () => publish(false, context.projectTransaction) };
       }
-      if (!context.forceFull && canPublishRockFormationEdit(publication!.current, context.previousDocument, document, result.plan)) {
+      if (!context.forceFull && roadGeometryUnchanged && canPublishRockFormationEdit(publication!.current, context.previousDocument, document, result.plan)) {
         const started = performance.now(), plan = result.plan;
         let metrics: Record<string, number> = {};
         let summary = "";
@@ -1022,15 +1026,16 @@ export async function mountSeedWorldDemo(
               { minimumX: 0, minimumZ: 0, maximumX: plan.parameters.width, maximumZ: plan.parameters.depth }
             );
             candidate.setSurfaceColorTuning({
-              roadColor: readSurfacePalette(document, SEED_WORLD_ROAD_COLOR_DEFAULT),
+              roadColor: readSurfacePalette(document, SEED_WORLD_ROAD_COLOR_DEFAULT, "road"),
               groundColor: readSurfacePalette(document, SEED_WORLD_ROAD_COLOR_DEFAULT),
               grass: readGrassAppearance(document)
             });
-            candidateTemplate = WorldTemplateRuntime.create(
+            candidateTemplate = await WorldTemplateRuntime.create(
               candidate.root,
               plan,
               (x, z) => sampleSeedWorldHeight(candidateData.fields, x, z),
-              templateScene
+              templateScene,
+              signal
             );
             if (!ready) progress(0.6, `生成真实建筑（${plan.buildings.length} 栋）`);
             progress(0.68, "生成全部房屋与围合构件");
@@ -1201,7 +1206,7 @@ export async function mountSeedWorldDemo(
           source!.session.inspect("world").components.find((c) => c.type === "weather")?.values
         );
         accepted.world.setSurfaceColorTuning({
-          roadColor: readSurfacePalette(source!.session.document, SEED_WORLD_ROAD_COLOR_DEFAULT),
+          roadColor: readSurfacePalette(source!.session.document, SEED_WORLD_ROAD_COLOR_DEFAULT, "road"),
           groundColor: readSurfacePalette(source!.session.document, SEED_WORLD_ROAD_COLOR_DEFAULT),
           grass: readGrassAppearance(source!.session.document)
         });

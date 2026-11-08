@@ -10,7 +10,7 @@ import {
   type RuntimeProjectManifest,
   type RuntimeProjectPackage
 } from "./runtime-project";
-import { VirtualProjectFiles } from "../../project-files/virtual-project-files";
+import { assertProjectPathWritable, VirtualProjectFiles } from "../../project-files/virtual-project-files";
 import { RuntimeDependencyMaintenance, RuntimeProjectDependencies } from "./runtime-project-dependencies";
 
 type AssetFile = RuntimeProjectManifest["files"][number];
@@ -152,6 +152,7 @@ export class RuntimeProjectEdit {
     this.assertOpen();
     const files = new VirtualProjectFiles([runtimeProjectFiles(() => this.draft)]).snapshot();
     for (const path of paths) {
+      assertProjectPathWritable(path);
       assertAssetPath(path);
       files.assertVacant(path);
     }

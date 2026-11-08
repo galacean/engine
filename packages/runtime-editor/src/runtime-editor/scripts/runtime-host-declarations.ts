@@ -5,7 +5,7 @@ export function runtimeHostDeclarations(moduleNames: readonly string[]) {
   const enabled = new Set(moduleNames);
   return Object.fromEntries(
     Object.entries(declarations).filter(([path]) => {
-      const name = /^engine\/node_modules\/((?:@[^/]+\/)?[^/]+)\//.exec(path)?.[1];
+      const name = /^declare\/engine\/node_modules\/((?:@[^/]+\/)?[^/]+)\//.exec(path)?.[1];
       return name !== undefined && enabled.has(name);
     })
   );

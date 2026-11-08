@@ -3,7 +3,7 @@
 import fs from "node:fs";
 import path from "node:path";
 const repo = path.resolve(import.meta.dirname, "../../..");
-const directory = path.join(repo, "packages/building/src/tiny-glade/assets/native");
+const directory = path.join(repo, "packages/building/src/building/assets/native");
 const read = (file) => JSON.parse(fs.readFileSync(path.join(directory, file), "utf8"));
 const relative = (reference) => reference.replace(/^Building\/Units\//, "");
 const materials = new Map();

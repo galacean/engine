@@ -34,7 +34,7 @@ export function populatePoiContents(
     ...(plan.landscapes ?? []).map((p) => p.outline),
     ...plan.rocks.flatMap((r) => r.boxes?.map((b) => envelope(b.center, b.sizeX, b.sizeZ, b.yaw)) ?? [r.outline])
   ].map((r) => ({ ring: r, bounds: polygonBounds(r) }));
-  for (const site of plan.poiDistribution!.sites.filter((s) => !s.memberIds.length)) {
+  for (const site of plan.poiDistribution!.sites.filter((s) => s.active !== false && !s.memberIds.length)) {
     let chosen: PoiContentCandidate | undefined,
       recipeId = "",
       chosenScale = 1,

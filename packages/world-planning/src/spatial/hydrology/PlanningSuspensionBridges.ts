@@ -22,8 +22,46 @@ import roadLimits from "../../planning-data/road-network.json";
 import { compileBridgeApproach, type BridgeApproachBoundary } from "@galacean/engine-water/bridges/BridgeApproach";
 import { boxFootprint, segmentPolygonDistance } from "../../geometry/V2Geometry";
 import { riverBankReach } from "../../semantic-study/PlanningRiverBank";
+import { omitUnusableRoads } from "../layout/RoadPublication";
 
 const distance = (a: PlanPoint, b: PlanPoint) => Math.hypot(b.x - a.x, b.z - a.z);
+class ApproachCoordinationError extends Error {
+  constructor(
+    readonly sectionId: string,
+    message: string
+  ) {
+    super(message);
+  }
+}
+function omitCrossings(plan: IslandPlan, bridges: readonly PlanBridge[]): void {
+  const sections = new Set(bridges.flatMap((b) => b.roadSectionIds ?? []));
+  const routes = new Set(bridges.flatMap((b) => (b.routeId ? [b.routeId] : [])));
+  if (!sections.size)
+    for (const section of plan.roadGraph?.sections ?? [])
+      if (section.owners.some((id) => routes.has(id))) sections.add(section.id);
+  omitUnusableRoads(plan, sections, routes);
+}
+function approachComponent(plan: IslandPlan, sectionId: string): Set<string> {
+  const sections = plan.roadGraph?.sections ?? plan.routes.map((route) => ({ id: route.id, route }));
+  const selected = new Set([sectionId]),
+    nodes = new Set<string>();
+  for (let changed = true; changed; ) {
+    changed = false;
+    for (const section of sections) {
+      if (!selected.has(section.id) && !nodes.has(section.route.from) && !nodes.has(section.route.to)) continue;
+      if (!selected.has(section.id)) {
+        selected.add(section.id);
+        changed = true;
+      }
+      for (const id of [section.route.from, section.route.to])
+        if (!nodes.has(id)) {
+          nodes.add(id);
+          changed = true;
+        }
+    }
+  }
+  return selected;
+}
 /** Derived baseline is private to the layout cache; never serialized as authoring. */
 export interface BridgeRoadBaseline {
   bridges: PlanBridge[];
@@ -91,6 +129,7 @@ export function publishPlanningSuspensionBridges(
   const checks: PlanningCheck[] = [],
     bridges: PlanBridge[] = [],
     approaches: PlanBridge[] = [];
+  const failed: PlanBridge[] = [];
   const routes = new Map(baseline.routes.map((r) => [r.id, r]));
   const physical = new Map(baseline.graph?.sections.map((s) => [s.id, s.route]));
   const sources = [...routes, ...physical].map(([id, route]) => ({ id, route, query: routeArcs(route) }));
@@ -116,6 +155,8 @@ export function publishPlanningSuspensionBridges(
     });
   };
   for (const source of baseline.bridges) {
+    const priorRoutes = new Map(routes),
+      priorPhysical = new Map(physical);
     try {
       const input = { ...defaults, ...overrides[source.id] };
       const originalLength = distance(source.a, source.b);
@@ -541,11 +582,18 @@ export function publishPlanningSuspensionBridges(
         message: "木吊桥、净空和两岸引道共同发布"
       });
     } catch (error) {
+      // A later carrier can fail after earlier carriers were fitted. Publish no
+      // part of that bridge transaction, including its temporary road deformation.
+      routes.clear();
+      for (const [id, route] of priorRoutes) routes.set(id, route);
+      physical.clear();
+      for (const [id, route] of priorPhysical) physical.set(id, route);
+      failed.push(source);
       checks.push({
         id: `suspension:${source.id}`,
         rule: "suspension-bridge",
         owners: [source.id],
-        required: true,
+        required: false,
         status: "fail",
         message: String(error)
       });
@@ -564,15 +612,34 @@ export function publishPlanningSuspensionBridges(
       ...baseline.graph,
       sections: baseline.graph.sections.map((s) => ({ ...s, route: physical.get(s.id)! }))
     };
-  if (!checks.some((c) => c.status === "fail")) {
+  omitCrossings(plan, failed);
+  while (plan.bridges.length) {
     try {
       plan.roadApproaches = retain(coordinateApproachHeights(plan, baseline, clear), previous?.roadApproaches);
+      break;
     } catch (error) {
+      const component =
+        error instanceof ApproachCoordinationError ? approachComponent(plan, error.sectionId) : undefined;
+      let rejected = plan.bridges.filter(
+        (b) => !component || (b.roadSectionIds ?? [b.routeId!]).some((id) => component.has(id))
+      );
+      if (!rejected.length) rejected = plan.bridges;
+      const rejectedIds = new Set(rejected.map((b) => b.id));
+      plan.bridges = plan.bridges.filter((b) => !rejectedIds.has(b.id));
+      plan.roadApproaches = (plan.roadApproaches ?? []).filter(
+        (a) => !rejected.some((b) => a.id.startsWith(`approach:${b.id}:`))
+      );
+      omitCrossings(plan, rejected);
+      for (const check of checks)
+        if (check.status === "pass" && check.owners.some((id) => rejectedIds.has(id))) {
+          check.status = "unknown";
+          check.message = "桥体已拟合，但共享引道未通过；本次不发布桥体";
+        }
       checks.push({
         id: "suspension:approaches",
         rule: "suspension-bridge",
-        owners: bridges.map((b) => b.id),
-        required: true,
+        owners: rejected.map((b) => b.id),
+        required: false,
         status: "fail",
         message: String(error)
       });
@@ -583,6 +650,13 @@ export function publishPlanningSuspensionBridges(
 
 /** A road junction has one support height, even when the selected bridge's physical section is short. */
 function coordinateApproachHeights(plan: IslandPlan, baseline: BridgeRoadBaseline, clear: RoadClearance): PlanBridge[] {
+  const compileApproach = (sectionId: string, ...args: Parameters<typeof compileBridgeApproach>) => {
+    try {
+      return compileBridgeApproach(...args);
+    } catch (error) {
+      throw new ApproachCoordinationError(sectionId, String(error));
+    }
+  };
   const ground = createPlanningGroundSampler(plan, { natural: true });
   const waters = plan.waters.map((w) => createPlanningRingQuery(w.outline));
   const acceptsGrading = (polygon: readonly PlanPoint[]) =>
@@ -749,7 +823,8 @@ function coordinateApproachHeights(plan: IslandPlan, baseline: BridgeRoadBaselin
   for (const { path, route } of sections)
     for (const id of [path[0], path.at(-1)!])
       if (nodes[id].edges.size <= 1 && nodes[id].y - priorSupport(nodes[id].p) > WALK_METRICS.step + 0.001)
-        throw new Error(
+        throw new ApproachCoordinationError(
+          route.id,
           `吊桥抬高后无法在现有路网末端衔接地面 (${route.id}, 桥面 ${nodes[id].y.toFixed(3)}m, 原支撑 ${priorSupport(nodes[id].p).toFixed(3)}m, 地面 ${nodes[id].floor.toFixed(3)}m)`
         );
   const result: PlanBridge[] = [];
@@ -799,7 +874,8 @@ function coordinateApproachHeights(plan: IslandPlan, baseline: BridgeRoadBaselin
         width,
         deckPath: points,
         deckY: Math.max(...points.map((p) => p.y)),
-        approach: compileBridgeApproach(
+        approach: compileApproach(
+          sectionId,
           points,
           widths.slice(start, end),
           ground,

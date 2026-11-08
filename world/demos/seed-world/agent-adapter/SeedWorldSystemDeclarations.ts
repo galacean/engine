@@ -1,4 +1,7 @@
+import { SPATIAL_COMPOSITION_DECLARATION } from "@galacean/engine-world-planning/spatial/SpatialCompositionParameters";
 import { SUBJECT_VIEW_DECLARATION } from "@galacean/engine-world-planning/spatial/PlanningSubjectView";
+import { ANIMAL_POPULATION_DECLARATION } from "@galacean/engine-world-planning/spatial/AnimalPopulationComponent";
+import { PLANNING_POI_DECLARATION } from "@galacean/engine-world-planning/spatial/PlanningPoiKnowledge";
 import { GRASS_APPEARANCE_DECLARATION } from "@galacean/engine-world-planning/spatial/PlanningGrassAppearance";
 import { PLANNING_WEATHER_DECLARATION } from "@galacean/engine-world-planning/spatial/PlanningWeather";
 import { PLANNING_LIGHTING_DECLARATION } from "@galacean/engine-world-planning/spatial/PlanningLightingParameters";
@@ -8,6 +11,9 @@ import type { PlanningSystemDeclaration, PlanningSystemKnowledge } from "@galace
 
 /** App composition only: each system owns its knowledge beside its public parameters. */
 export const PLANNING_SYSTEM_DECLARATIONS: readonly PlanningSystemDeclaration[] = [
+  SPATIAL_COMPOSITION_DECLARATION,
+  ANIMAL_POPULATION_DECLARATION,
+  PLANNING_POI_DECLARATION,
   PLANNING_LIGHTING_DECLARATION,
   VEGETATION_SYSTEM_DECLARATION,
   PLANT_MATERIAL_DECLARATION,
@@ -43,10 +49,11 @@ export function collectPlanningSystemKnowledge(
   return declarations.flatMap(system => {
     const components = system.components.filter(component => available.has(component.type));
     return components.length ? [{
-      id: system.id, title: system.title, knowledgePath: system.knowledgePath,
+      id: system.id, title: system.title, skill: system.skill,
       components: components.map(component => component.type),
       domains: Object.fromEntries(components.map(component => [component.type, component.domain])),
-      knowledge: components.flatMap(component => component.knowledge)
+      knowledge: components.flatMap(component => component.knowledge),
+      facts: components.flatMap(component => component.facts ?? [])
     }] : [];
   });
 }

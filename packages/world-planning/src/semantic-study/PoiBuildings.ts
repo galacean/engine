@@ -20,10 +20,10 @@ export function placePoiBuildings(
 ): void {
   const ground = createPlanningGroundSampler(plan),
     seed = plan.parameters.seed;
-  for (const tier of ["medium"] as const) {
-    const q = rules[tier];
+  {
+    const q = rules;
     let count = 0;
-    for (const site of plan.poiDistribution!.sites.filter((p) => p.tier === tier && !p.memberIds.length)) {
+    for (const site of plan.poiDistribution!.sites.filter((p) => p.active && !p.memberIds.length)) {
       if (count >= q.siteCount) break;
       const owner = `buildings-${site.id}`,
         buildingPolicy = resolveBuildingPolicy(globalPolicy, edits[owner]?.buildingPolicy),

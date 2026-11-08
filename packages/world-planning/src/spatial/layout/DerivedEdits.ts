@@ -2,10 +2,11 @@ import { boxGroundBottom } from "./VolumeTerrain";
 import type { IslandPlan, PlanPoint } from "../../semantic-study/IslandPlanModel";
 import { envelope } from "../../semantic-study/IslandPlanAtoms";
 import type { VolumeEdit } from "./LayoutKernel";
+import type { LandscapeCandidate } from "../../semantic-study/ContextLandscape";
 
 /** Apply explicit instance dimensions after population sampling. The candidate ID remains stable. */
 export function applyLandscapeEdits(
-  plan: IslandPlan,
+  plan: { landscapes?: LandscapeCandidate[] },
   edits: Record<string, VolumeEdit>,
   ground: (p: PlanPoint) => number
 ): void {

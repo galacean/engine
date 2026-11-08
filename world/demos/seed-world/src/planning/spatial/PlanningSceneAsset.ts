@@ -129,7 +129,7 @@ export function exportPlanningScene(document: PlanningDocument): PlanningSceneAs
 /** Legacy document imports remain valid; native Scene files use the same accepted author parameters. */
 export function importPlanningScene(value: unknown): PlanningDocument {
   const file = value as PlanningSceneAsset;
-  if (file?.version !== "2.0") return value as PlanningDocument;
+  if (file?.version !== "2.0") return exportPlanningAuthoring(value as PlanningDocument);
   if (!Array.isArray(file.components) || !Array.isArray(file.entities) || !Array.isArray(file.scene?.rootEntities))
     throw new Error("Invalid planning Scene");
   const nativeTypes = new Set([PLANNING_PROJECT_COMPONENT, PLANNING_ENTITY_COMPONENT, PLANNING_SEED_ARCHIVE_COMPONENT,

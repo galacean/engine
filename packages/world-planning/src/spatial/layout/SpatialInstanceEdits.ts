@@ -10,6 +10,7 @@ import { applyLandscapeEdits } from "./DerivedEdits";
 import { applyLayoutGroupEdits, volumeEnvelope, type LayoutGroup, type VolumeEdit } from "./LayoutKernel";
 import { boxOutline, type Volume } from "./Volumes";
 import { spatialRevealInputSignature } from "./SpatialEditInputs";
+import { updateSpatialInstanceConnections } from "./SpatialInstanceConnections";
 import { guidanceRockBox } from "../guidance/GuidanceRock";
 import {
   applyLandscapeRockGeneration,
@@ -296,9 +297,51 @@ export function applyLandscapeInstanceEdits(
   applyLandscapeRockGeneration(plan, document);
 }
 
-/** Called after generation/reveal and their checks. The input population is the
- * unedited base; only final published geometry receives authored overrides. */
-export function applySpatialInstanceEdits(
+/** Apply authored POI solids and roads before their dependent environment is generated.
+ * @param plan Generated geometry with immutable baseline groups and automatic roads.
+ * @param document Sparse project authoring parameters.
+ * @param ground Final ground sampler used by authored solids.
+ */
+export function applySpatialStructureEdits(
+  plan: IslandPlan,
+  document: PlanningDocument,
+  ground: (p: PlanPoint) => number
+): void {
+  const state = plan.spatialLayout;
+  if (!state?.baselineGroups) return;
+  const edits = instanceEdits(document);
+  plan.spatialLayout = {
+    ...state,
+    groups: [...state.baselineGroups],
+    instanceEdits: edits,
+    authoredRoadPaths: Object.fromEntries(
+      Object.entries(exportPlanningRecipe(document).edits).flatMap(([id, edit]) =>
+        edit.road?.keypoints?.length ? [[id, edit.road.keypoints]] : []
+      )
+    ),
+    instanceConnections: state.instanceConnections ?? {
+      routes: plan.routes,
+      graph: plan.roadGraph,
+      network: plan.roadNetwork,
+      ports: plan.planning?.ports ?? []
+    }
+  };
+  const members = lookup(plan).volumes;
+  projectInstances(
+    plan,
+    edits,
+    Object.keys(edits).filter((id) => members.has(id)),
+    ground
+  );
+  updateSpatialInstanceConnections(plan);
+}
+
+/** Apply authored scenery after environment generation without changing its road inputs.
+ * @param plan Final structural geometry and generated scenery.
+ * @param document Sparse project authoring parameters.
+ * @param ground Final ground sampler used by authored scenery.
+ */
+export function applySpatialSceneryEdits(
   plan: IslandPlan,
   document: PlanningDocument,
   ground: (p: PlanPoint) => number
@@ -309,20 +352,39 @@ export function applySpatialInstanceEdits(
   const inputSignature = instanceInputs(document);
   plan.spatialLayout = {
     ...state,
-    groups: [...state.baselineGroups],
     baselineLandscapes: plan.landscapes ?? [],
     instanceInputSignature: inputSignature,
     revealInputSignature: spatialRevealInputSignature(document),
     instanceEdits: edits
   };
-  const editedRocks = projectInstances(plan, edits, Object.keys(edits), ground);
-  // Parent geometry is resolved first. Sparse child OBB dimensions then win only
-  // their authored fields, while position and orientation follow the parent.
-  projectRockSizes(plan, document, state.instanceInputSignature === inputSignature ? editedRocks : undefined);
+  const members = lookup(plan).volumes;
+  projectInstances(
+    plan,
+    edits,
+    Object.keys(edits).filter((id) => !members.has(id)),
+    ground
+  );
+  projectRockSizes(plan, document);
 }
 
-/** No generator, mask, collision search, or unrelated terrain sampler is entered.
- * Reset reads the same immutable base as cold generation. */
+/** Reapply all author overrides to a reveal-only publication with unchanged structural inputs.
+ * @param plan Generated publication candidate.
+ * @param document Sparse project authoring parameters.
+ * @param ground Final ground sampler.
+ */
+export function applySpatialInstanceEdits(
+  plan: IslandPlan,
+  document: PlanningDocument,
+  ground: (p: PlanPoint) => number
+): void {
+  applySpatialStructureEdits(plan, document, ground);
+  applySpatialSceneryEdits(plan, document, ground);
+}
+
+/** Apply sparse geometry and its connection dependencies without rerunning placement.
+ * Reset reads the same immutable base as cold generation.
+ * @returns A local publication candidate, or undefined when a planning solve is needed.
+ */
 export function tryEditSpatialInstances(
   document: PlanningDocument,
   previous?: SemanticResult
@@ -376,6 +438,11 @@ export function tryEditSpatialInstances(
       ...state,
       groups: [...state.groups],
       instanceEdits: edits,
+      authoredRoadPaths: Object.fromEntries(
+        Object.entries(exportPlanningRecipe(document).edits).flatMap(([id, edit]) =>
+          edit.road?.keypoints?.length ? [[id, edit.road.keypoints]] : []
+        )
+      ),
       revealInputSignature: spatialRevealInputSignature(document)
     },
     authoredResources: structuredClone(document.authoredResources ?? []),
@@ -386,9 +453,19 @@ export function tryEditSpatialInstances(
     planningGroundSurface(plan).sample(point)
   );
   projectRockSizes(plan, document, editedRocks);
+  const changedRoads = updateSpatialInstanceConnections(plan);
+  // Road-dependent ecology and guidance must consume the same final pavement.
+  if (changedRoads.length) return;
+  changedIds.push(...changedRoads);
+  const checks = [
+    ...previous.checks.filter((check) => check.rule !== "instance-road-connection"),
+    ...(plan.spatialLayout?.instanceConnectionChecks ?? [])
+  ];
+  if (plan.planning) plan.planning = { ...plan.planning, checks };
   return {
     ...previous,
     plan,
+    checks,
     recipe: exportPlanningRecipe(document),
     changedIds,
     parameterCorrections: undefined,
