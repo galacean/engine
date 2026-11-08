@@ -90,6 +90,8 @@ const FAMILIES: Readonly<Record<string, Family>> = {
 };
 const MATERIALS = new Set<string>(["brick", "roof_tile", "wooden_plank"]);
 const NO_CLIP = [0, 1, 0, 65504];
+/** Two chart points closer than this are one point: charts carry float32-rounded points. */
+const CLOSE = 1e-4;
 
 /** The environment a design runs in: the ground, and the asset layer's facts about the
  * building prefabs of an asset kit, which units name as `{ prefab: key }`. */
@@ -457,12 +459,12 @@ function wallSurface(binding: CoreBinding, holes: readonly Rect[]) {
     chart.points.forEach((p, i) => {
       if (i > 0) u += Math.hypot(p[0] - chart.points[i - 1][0], p[2] - chart.points[i - 1][2]);
       const last = ring[ring.length - 1];
-      if (last && Math.hypot(last.p[0] - p[0], last.p[2] - p[2]) < 1e-9) return;
+      if (last && Math.hypot(last.p[0] - p[0], last.p[2] - p[2]) < CLOSE) return;
       ring.push({ p, top: chart.top[i], third: chart.third[i], u });
     });
   }
   const closed =
-    ring.length > 2 && Math.hypot(ring[0].p[0] - ring.at(-1)!.p[0], ring[0].p[2] - ring.at(-1)!.p[2]) < 1e-6;
+    ring.length > 2 && Math.hypot(ring[0].p[0] - ring.at(-1)!.p[0], ring[0].p[2] - ring.at(-1)!.p[2]) < CLOSE;
   if (closed) ring.pop();
   const chart = walls[0];
   const n = ring.length,
@@ -581,7 +583,8 @@ function standsOut(cell: SupportCell, outline: readonly number[][]) {
  * normal at perimeter coordinate u. */
 function ringAt(chart: WallChartParams, d: number) {
   const pts = chart.points.slice();
-  if (Math.hypot(pts[0][0] - pts.at(-1)![0], pts[0][2] - pts.at(-1)![2]) < 1e-9) pts.pop();
+  // A closed chart repeats its first point at the end, up to float32 rounding.
+  if (Math.hypot(pts[0][0] - pts.at(-1)![0], pts[0][2] - pts.at(-1)![2]) < CLOSE) pts.pop();
   const n = pts.length;
   const knots = [0];
   for (let i = 0; i < n; i++) {
@@ -996,15 +999,27 @@ export function coreBuildingView(layout: CoreBuildingLayout, options: CoreBuildi
           mesh.positions.push(...unrolled.mesh.positions);
           mesh.uvs.push(...unrolled.mesh.uvs);
           mesh.indices.push(...unrolled.mesh.indices.map((k) => k + base));
+          // A closed surface unrolls with a seam at both ends of its chart: a unit near the seam
+          // is drawn at both ends, so that the halves on either side meet.
+          const { u: domain, closedU } = surface.domain,
+            period = domain[1] - domain[0];
           if (options.includeAppearance)
             for (const u of units) {
               const uv = u.params?.uv as number[] | undefined;
               if (!uv || u.key.startsWith("eave/")) continue;
-              cells.push({
-                id: `${partId(part)}/${u.key}`,
-                anchor_uv: unrolled.chart(uv[0], uv[1]),
-                size: [u.size![0], u.size![1]]
-              });
+              const shifts = !closedU
+                ? [0]
+                : uv[0] - domain[0] < period / 8
+                  ? [0, period]
+                  : domain[1] - uv[0] < period / 8
+                    ? [0, -period]
+                    : [0];
+              for (const shift of shifts)
+                cells.push({
+                  id: `${partId(part)}/${u.key}${shift ? (shift > 0 ? "+" : "-") : ""}`,
+                  anchor_uv: unrolled.chart(uv[0] + shift, uv[1]),
+                  size: [u.size![0], u.size![1]]
+                });
             }
           offset += unrolled.width + 1;
         }
@@ -1461,6 +1476,8 @@ export async function coreBuildingRenderInput(
 
 export interface CoreBuildingEntryOptions extends CoreBuildingOptions {
   readonly assets?: BuildingUnitAssets;
+  /** Keep each prefab's meshes as its own part, as Scene-bound views need. */
+  readonly retainDecorationParts?: boolean;
 }
 /** What the distance view and queries need, before any resident detail: the view with
  * distance appearance and structure, the palette and the focus poses. */
@@ -1470,7 +1487,12 @@ export function prepareCoreBuilding(
   options: CoreBuildingEntryOptions = {}
 ) {
   const layout = coreBuildingLayout(result, registry, options);
-  const preview = coreBuildingView(layout, { assets: options.assets, includeAppearance: true, includeStructure: true });
+  const preview = coreBuildingView(layout, {
+    assets: options.assets,
+    includeAppearance: true,
+    includeStructure: true,
+    retainDecorationParts: options.retainDecorationParts
+  });
   return { layout, preview, appearance: coreBuildingPalette(layout), focus: coreBuildingFocus(layout) };
 }
 /** Resident detail of a design. */

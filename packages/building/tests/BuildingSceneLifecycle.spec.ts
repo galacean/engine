@@ -183,7 +183,7 @@ it("scopes cloned prefab definitions, query handles and edits to their native fr
     expect(manager.resolve(buildingInstanceKey(a, buildingGroupKey("house")))).toBe(manager.groupFor(wallA));
     expect(manager.resolve(buildingInstanceKey(b, buildingGroupKey("house")))).toBe(manager.groupFor(wallB));
     const changed = wallA.definition!;
-    manager.update(wallA, { ...changed, unit: { $shared: "brick", seed: 9 } });
+    manager.update(wallA, { ...changed, unit: { "@shared": "brick", seed: 9 } });
     expect((wallB.definition!.unit as { seed?: number }).seed).toBeUndefined();
     manager.remove(a);
     expect(manager.resolve(buildingInstanceKey(a, buildingGroupKey("house")))).toBeUndefined();

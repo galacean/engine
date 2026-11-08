@@ -36,13 +36,13 @@ import type { BuildingRegistry } from "./builtins";
 export interface BuildingGroupDef {
   readonly id: string;
   readonly seed: number;
-  /** Values shared by the group's parts. Any parameter written as { $shared: "name" } reads one. */
+  /** Values shared by the group's parts. Any parameter written as { "@shared": "name" } reads one. */
   readonly shared?: Readonly<Record<string, unknown>>;
   /** Group-level rule overrides, keyed by attachPairKey / joinPairKey. */
   readonly rules?: Readonly<Record<string, string>>;
 }
 /** A value read from the group's `shared`. Other keys override the shared object's keys. */
-export type SharedRef<T> = { readonly $shared: string } & { readonly [K in keyof T]?: T[K] };
+export type SharedRef<T> = { readonly "@shared": string } & { readonly [K in keyof T]?: T[K] };
 export interface BuildingAlgorithmRef {
   readonly type: string;
   readonly params?: Readonly<Record<string, unknown>>;
@@ -126,15 +126,15 @@ const byId = <T extends { id: string }>(items: readonly T[]) => [...items].sort(
 const plain = (value: unknown): Record<string, unknown> =>
   value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
 
-/** Replace every { $shared: name } with the group's shared value. Object keys are visited in sorted order.
- * Other keys next to `$shared` override the keys of the shared object, one level deep. */
+/** Replace every { "@shared": name } with the group's shared value. Object keys are visited in sorted order.
+ * Other keys next to `@shared` override the keys of the shared object, one level deep. */
 export function resolveShared(value: unknown, shared: Readonly<Record<string, unknown>>, path = "params"): unknown {
   if (Array.isArray(value)) return value.map((item, i) => resolveShared(item, shared, `${path}[${i}]`));
   if (value && typeof value === "object") {
     const record = value as Record<string, unknown>;
     let base: Record<string, unknown> = {};
-    if (Object.prototype.hasOwnProperty.call(record, "$shared")) {
-      const name = record.$shared;
+    if (Object.prototype.hasOwnProperty.call(record, "@shared")) {
+      const name = record["@shared"];
       if (typeof name !== "string" || !Object.prototype.hasOwnProperty.call(shared, name))
         throw Error(`Missing shared value "${String(name)}" at ${path}`);
       if (Object.keys(record).length === 1) return shared[name];
@@ -143,12 +143,12 @@ export function resolveShared(value: unknown, shared: Readonly<Record<string, un
         throw Error(`Shared value "${name}" at ${path} must be an object to take overrides`);
       base = found as Record<string, unknown>;
     }
-    const overrides = Object.keys(record).filter((key) => key !== "$shared");
+    const overrides = Object.keys(record).filter((key) => key !== "@shared");
     const keys = [...new Set([...Object.keys(base), ...overrides])].sort(compareKeys);
     const out: Record<string, unknown> = {};
     for (const key of keys)
       out[key] =
-        Object.prototype.hasOwnProperty.call(record, key) && key !== "$shared"
+        Object.prototype.hasOwnProperty.call(record, key) && key !== "@shared"
           ? resolveShared(record[key], shared, `${path}.${key}`)
           : base[key];
     return out;

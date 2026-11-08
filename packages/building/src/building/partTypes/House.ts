@@ -121,7 +121,8 @@ export interface HouseShared {
   readonly floorInterval?: number;
 }
 
-/** Element "face": the wall chart. Its top follows the roof from the shared parameters. */
+/** Element "face": the wall chart around the whole house, closed. Its top follows the roof
+ * from the shared parameters. */
 export const houseWallGeometry: GeometryGenerator<HouseShared> = (p, { environment }) => {
   const envelope = profileWallEnvelope(p.footprint, p.wallUnit);
   const profile = publishProfileWall(
@@ -130,8 +131,13 @@ export const houseWallGeometry: GeometryGenerator<HouseShared> = (p, { environme
     true,
     envelope
   );
+  const points = profile.points.map((q) => [...q]);
+  // The perimeter ends where it starts; the published points agree up to float32 rounding.
+  const [first, last] = [points[0], points[points.length - 1]];
+  if (Math.hypot(first[0] - last[0], first[2] - last[2]) < 1e-4) points[points.length - 1] = [...first];
   const params: WallChartParams = {
-    points: profile.points.map((q) => [...q]),
+    points,
+    closed: true,
     top: [...profile.top],
     third: [...profile.third],
     minGround: profile.minGround,
@@ -184,6 +190,7 @@ export const houseWallSideGeometry: GeometryGenerator<HouseShared & { side: numb
     uOffset += Math.hypot(chart.points[i + 1][0] - chart.points[i][0], chart.points[i + 1][2] - chart.points[i][2]);
   const side: WallChartParams = {
     ...chart,
+    closed: false,
     points: indexes.map((i) => [...chart.points[i]]),
     top: indexes.map((i) => chart.top[i]),
     third: indexes.map((i) => chart.third[i]),

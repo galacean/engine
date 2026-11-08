@@ -84,17 +84,17 @@ describe("Unit layouts", () => {
       ...draft,
       groups: [{ ...draft.groups[0], shared }],
       parts: draft.parts.map((p) =>
-        p.id === "wall" ? { ...p, unit: { $shared: "brick" }, algorithm: { $shared: "grid" } } : p
+        p.id === "wall" ? { ...p, unit: { "@shared": "brick" }, algorithm: { "@shared": "grid" } } : p
       )
     };
     const inline = designBuildingCore(draft, testRegistry()).parts.find((p) => p.type === "wall")!;
     const shared_ = designBuildingCore(byRef, testRegistry()).parts.find((p) => p.type === "wall")!;
     expect(shared_.unit).toEqual(inline.unit);
     expect(unitsOf(shared_)).toEqual(unitsOf(inline));
-    expect(resolveShared({ $shared: "a", y: 3 }, { a: { x: 1, y: 2 } })).toEqual({ x: 1, y: 3 });
-    expect(() => resolveShared({ $shared: "n", y: 3 }, { n: 4 })).toThrow(/must be an object/);
+    expect(resolveShared({ "@shared": "a", y: 3 }, { a: { x: 1, y: 2 } })).toEqual({ x: 1, y: 3 });
+    expect(() => resolveShared({ "@shared": "n", y: 3 }, { n: 4 })).toThrow(/must be an object/);
     const missing = designBuildingCore(
-      { ...byRef, parts: byRef.parts.map((p) => (p.id === "wall" ? { ...p, unit: { $shared: "none" } } : p)) },
+      { ...byRef, parts: byRef.parts.map((p) => (p.id === "wall" ? { ...p, unit: { "@shared": "none" } } : p)) },
       testRegistry()
     );
     expect(missing.diagnostics.some((d) => /Missing shared value "none" at unit/.test(d.message))).toBe(true);

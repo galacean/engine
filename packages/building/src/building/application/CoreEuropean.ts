@@ -287,7 +287,7 @@ export function buildCoreHouse(p: CoreHouseParameters): BuildingCoreDraft {
           id: p.id + "-plaster",
           group: p.id,
           type: "plaster",
-          geometry: { generator: "housePlaster", params: { $shared: "house" } },
+          geometry: { generator: "housePlaster", params: { "@shared": "house" } },
           algorithm: {
             type: "coverSurfaces",
             params: { unitParams: { wear: p.plaster.wear ?? 0.3, color: p.plaster.color ?? 0 } }
@@ -302,9 +302,9 @@ export function buildCoreHouse(p: CoreHouseParameters): BuildingCoreDraft {
           id: p.id + "-floors",
           group: p.id,
           type: "floorBand",
-          geometry: { generator: "houseFloorBands", params: { $shared: "house" } },
+          geometry: { generator: "houseFloorBands", params: { "@shared": "house" } },
           algorithm: { type: "beltCourses" },
-          unit: { $shared: "brick" }
+          unit: { "@shared": "brick" }
         }
       : undefined;
   // A rectangle has one wall per side; the corners between them derive the corner stones.
@@ -316,10 +316,10 @@ export function buildCoreHouse(p: CoreHouseParameters): BuildingCoreDraft {
     type: "wall",
     geometry:
       side === undefined
-        ? { generator: "houseWall", params: { $shared: "house" } }
-        : { generator: "houseWallSide", params: { $shared: "house", side } },
-    algorithm: { $shared: "courses" },
-    unit: { $shared: "brick" }
+        ? { generator: "houseWall", params: { "@shared": "house" } }
+        : { generator: "houseWallSide", params: { "@shared": "house", side } },
+    algorithm: { "@shared": "courses" },
+    unit: { "@shared": "brick" }
   }));
   const roofParams = shared.house.roof;
   // A pitched roof over a rectangle has one part per slope; the joins between slopes derive
@@ -338,9 +338,9 @@ export function buildCoreHouse(p: CoreHouseParameters): BuildingCoreDraft {
             id: `${p.id}-roof-${side}`,
             group: p.id,
             type: "roof",
-            geometry: { generator: "houseRoofSlope", params: { $shared: "house", side } },
-            algorithm: { $shared: "roofTiles" },
-            unit: { $shared: "tile" }
+            geometry: { generator: "houseRoofSlope", params: { "@shared": "house", side } },
+            algorithm: { "@shared": "roofTiles" },
+            unit: { "@shared": "tile" }
           },
           hosts: under(side)
         }))
@@ -352,9 +352,9 @@ export function buildCoreHouse(p: CoreHouseParameters): BuildingCoreDraft {
               id: p.id + "-roof",
               group: p.id,
               type: "roof",
-              geometry: { generator: "houseRoofCone", params: { $shared: "house" } },
-              algorithm: { $shared: "roofTiles" },
-              unit: { $shared: "tile" }
+              geometry: { generator: "houseRoofCone", params: { "@shared": "house" } },
+              algorithm: { "@shared": "roofTiles" },
+              unit: { "@shared": "tile" }
             },
             hosts: walls.map((w) => ({ part: w.id }))
           }
@@ -367,9 +367,9 @@ export function buildCoreHouse(p: CoreHouseParameters): BuildingCoreDraft {
               id: p.id + "-roof",
               group: p.id,
               type: "roofDeck",
-              geometry: { generator: "houseRoofDeck", params: { $shared: "house" } },
+              geometry: { generator: "houseRoofDeck", params: { "@shared": "house" } },
               algorithm: { type: "deckRows", params: { cell: [unit.width, (unit.height * 0.4) / 0.4375] } },
-              unit: { $shared: "tile" }
+              unit: { "@shared": "tile" }
             },
             hosts: walls.map((w) => ({ part: w.id }))
           },
@@ -380,9 +380,9 @@ export function buildCoreHouse(p: CoreHouseParameters): BuildingCoreDraft {
                     id: p.id + "-parapet",
                     group: p.id,
                     type: "parapet",
-                    geometry: { generator: "houseParapet", params: { $shared: "house" } },
+                    geometry: { generator: "houseParapet", params: { "@shared": "house" } },
                     algorithm: { type: "masonryCourses", params: { crenels: {} } },
-                    unit: { $shared: "brick" }
+                    unit: { "@shared": "brick" }
                   },
                   hosts: walls.map((w) => ({ part: w.id }))
                 }

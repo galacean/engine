@@ -146,7 +146,7 @@ const wallPart = (id: string, group: string) => ({
   id,
   group,
   type: "wall",
-  geometry: { generator: "extrude", params: { curve: { $shared: "footprint" }, height: { $shared: "height" } } },
+  geometry: { generator: "extrude", params: { curve: { "@shared": "footprint" }, height: { "@shared": "height" } } },
   algorithm: { type: "surfaceGrid", params: { stagger: 0.5 } },
   unit: brick
 });

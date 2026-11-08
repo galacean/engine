@@ -230,6 +230,18 @@ const cases = (): Case[] => [
     others: [{ id: "b", seed: 9, height: 4, rectangle: { center: [2.5, 1.5], size: [5, 6], rotation: 0.5 } }],
     ground: flat
   },
+  {
+    id: "round-facade",
+    title: "圆屋 · 门窗",
+    house: withFacade({
+      id: "a",
+      seed: 5,
+      height: 4,
+      circle: { center: [0, 0], radius: 3.5, phase: 0.4 },
+      plaster: { enabled: true, wear: 0.35, color: 4 }
+    }),
+    ground: flat
+  },
   { id: "steep", title: "陡屋顶", house: { id: "a", roof: { height: 0.8, eave: 0.4 } }, ground: flat },
   { id: "gable", title: "山墙屋顶", house: { id: "a", roof: { ridge_length: 1 } }, ground: flat },
   {
@@ -362,7 +374,11 @@ async function core(c: Case, dx: number, parent: Entity, signal: AbortSignal): P
   });
   const options = { environment: { ground }, assets: library.compilation };
   if (far) {
-    const prepared = prepareCoreBuilding(result, registry, options);
+    // `native=1` draws prefabs as the product does: their own meshes, not merged.
+    const prepared = prepareCoreBuilding(result, registry, {
+      ...options,
+      retainDecorationParts: params.get("native") === "1"
+    });
     const ms = performance.now() - start;
     const view = await createBuildingDistanceView(
       engine,

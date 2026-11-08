@@ -359,7 +359,8 @@ export class EffectiveSurface {
       const a = outline[i],
         b = outline[(i + 1) % outline.length];
       // The seam of a closed surface is not an edge.
-      if (this.domain.closedU && a[0] === b[0] && (a[0] === this.domain.u[0] || a[0] === this.domain.u[1])) continue;
+      const at = (u: number, v: number) => Math.abs(u - v) <= EPSILON * Math.max(1, Math.abs(v));
+      if (this.domain.closedU && at(a[0], b[0]) && (at(a[0], this.domain.u[0]) || at(a[0], this.domain.u[1]))) continue;
       add(a, b);
     }
     for (const r of this.removes) {

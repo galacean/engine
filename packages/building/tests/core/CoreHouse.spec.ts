@@ -70,7 +70,17 @@ describe("gridCourses reproduces the online arrangedWallCells", () => {
     const actual = zeros(core(p, ground)) as unknown[];
     expect(expected.length).toBeGreaterThan(100);
     expect(actual.length).toBe(expected.length);
-    expect(actual).toEqual(expected);
+    // The core closes the perimeter exactly; the online points end within float32 rounding
+    // of where they start, so the cells of the closing edge may move by a micrometre.
+    const round = (v: unknown): unknown =>
+      typeof v === "number"
+        ? Math.round(v * 1e4) / 1e4 + 0
+        : Array.isArray(v)
+          ? v.map(round)
+          : v && typeof v === "object"
+            ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, round(x)]))
+            : v;
+    expect(round(actual)).toEqual(round(expected));
     counts.push(`${name}: ${actual.length}`);
   });
   it("reports the brick counts", () => console.log("HOUSE WALLS " + counts.join(", ")));
