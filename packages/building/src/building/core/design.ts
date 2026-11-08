@@ -167,6 +167,19 @@ export function designBuildingCore(
   const report = (source: string, message: string) => diagnostics.push({ source, message });
   const maxDepth = options.maxDepth ?? 8;
   const environment = options.environment ?? {};
+  // A prototype without bounds takes the bounds the asset layer measured for its source.
+  const measured = (unit: BuildingUnit | undefined): BuildingUnit | undefined => {
+    const bounds = unit && !unit.bounds ? environment.asset?.(unit.source)?.bounds : undefined;
+    return bounds
+      ? {
+          ...unit!,
+          bounds: {
+            min: [bounds.min[0], bounds.min[1], bounds.min[2]],
+            max: [bounds.max[0], bounds.max[1], bounds.max[2]]
+          }
+        }
+      : unit;
+  };
   const surfaces = bindSurfaces(registry.surfaces, environment);
 
   // 1. Groups and base parts.
@@ -185,7 +198,7 @@ export function designBuildingCore(
     const group = groups.get(part.group);
     let unit: BuildingUnit | undefined, algorithm: BuildingAlgorithmRef | undefined, sharedProblem: string | undefined;
     try {
-      unit = part.unit && (resolveShared(part.unit, group?.shared ?? {}, "unit") as BuildingUnit);
+      unit = measured(part.unit && (resolveShared(part.unit, group?.shared ?? {}, "unit") as BuildingUnit));
       algorithm =
         part.algorithm && (resolveShared(part.algorithm, group?.shared ?? {}, "algorithm") as BuildingAlgorithmRef);
     } catch (error) {
@@ -378,7 +391,8 @@ export function designBuildingCore(
     for (const spec of result.derive ?? []) {
       const key = derivedPartKey(item.key, spec.localId);
       const group = spec.group === undefined ? ownerGroup(item) : groups.get(spec.group);
-      const unitProblem = spec.unit && unitIssue(spec.unit);
+      const unit = measured(spec.unit);
+      const unitProblem = unit && unitIssue(unit);
       if (!validId(spec.localId) || derived.has(spec.localId)) report(key, "Derived parts need unique local ids");
       else if (!group) report(key, `Unknown group "${spec.group}"`);
       else if (!validTypeName(spec.type)) report(key, `Invalid part type "${spec.type}"`);
@@ -390,7 +404,7 @@ export function designBuildingCore(
           type: spec.type,
           group,
           algorithm: spec.algorithm,
-          unit: spec.unit,
+          unit,
           modifications: []
         };
         if (setGeometry(state, spec.geometry)) {

@@ -1,5 +1,6 @@
 import { add, cross, dot, finite, length, normalize, positive, scale, sub, vec3, type Vec3 } from "./math";
 import { compareKeys } from "./identity";
+import type { AssetRef } from "./unit";
 
 /** Orthonormal frame. `x` follows u (or the curve), `y` follows v (or up), `z = x × y`. */
 export interface Frame {
@@ -70,6 +71,15 @@ export interface SurfaceDomain {
  * The draft never stores them. */
 export interface BuildingEnvironment {
   readonly ground?: (x: number, z: number) => number;
+  /** What the asset layer measured about an asset. The core reads `bounds` for a unit
+   * prototype that does not state its own; part types read the facts they need. */
+  readonly asset?: (source: AssetRef) => AssetFacts | undefined;
+}
+/** Facts the asset layer measured about one asset: its local bounds, and any data the part
+ * types read, such as the area a mounted part takes out of a surface. Plain JSON. */
+export interface AssetFacts {
+  readonly bounds?: { readonly min: readonly number[]; readonly max: readonly number[] };
+  readonly [fact: string]: unknown;
 }
 /** Built-in surfaces are metric: one unit of u or v is one metre along the surface. */
 export interface SurfaceKind<P = any> {

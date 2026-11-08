@@ -8,6 +8,8 @@
 // - An opening also cuts floor bands that cross it, through a join between the two parts.
 import {
   joinPairKey,
+  type BuildingEnvironment,
+  type LayingAlgorithm,
   type BuildingRegistry,
   type ConnectionRule,
   type GeometryGenerator,
@@ -19,21 +21,36 @@ import {
 } from "../core";
 import { wallChartSampler, type WallChartParams } from "./House";
 
-/** Where a mounted part sits: a fraction of the perimeter, a height above the wall's base at
- * that point, and the size of its installation. Openings and follows are relative to the
- * installation's center, in metres: a follow runs along the wall from `from` to `to`, at
- * `height` above the center. */
+/** Where a mounted part sits: the building prefab it installs, a fraction of the perimeter,
+ * a height above the wall's base at that point, and the size of its installation. */
 export interface WallMountParams {
+  readonly prefab: string;
   readonly u: number;
   readonly bottom: number;
   readonly width: number;
   readonly height: number;
-  readonly openings?: readonly {
-    readonly width: number;
-    readonly height: number;
-    readonly offset?: readonly [number, number];
-  }[];
-  readonly follows?: readonly { readonly from: number; readonly to: number; readonly height: number }[];
+}
+/** What the asset layer measured about a building prefab (`{ prefab: key }`): its bounds, its
+ * opening in its own x/y plane, the members that bend along the wall, and how much its
+ * opening narrows on a curved wall. */
+export interface PrefabFacts {
+  readonly bounds: { readonly min: readonly number[]; readonly max: readonly number[] };
+  readonly openings: readonly { readonly min: readonly number[]; readonly max: readonly number[] }[];
+  readonly units: readonly { readonly matrix: readonly number[]; readonly span?: readonly [number, number] }[];
+  readonly curvedNarrowing: number;
+}
+export function prefabFacts(environment: BuildingEnvironment, prefab: string): PrefabFacts {
+  const facts = environment.asset?.({ prefab }) as unknown as PrefabFacts | undefined;
+  if (!facts?.bounds) throw Error(`The asset layer has no building prefab "${prefab}"`);
+  return facts;
+}
+/** How a prefab scales to an installation of width × height: across and up to the size, in
+ * depth by the smaller of the two. */
+export function prefabScale(facts: PrefabFacts, width: number, height: number): [number, number, number] {
+  const { min, max } = facts.bounds;
+  const sx = width / (max[0] - min[0]),
+    sy = height / (max[1] - min[1]);
+  return [sx, sy, Math.min(sx, sy)];
 }
 /** An opening in a wall: the host's index among the part's hosts, the area in that wall's
  * chart, and the same area along the house perimeter. Plain JSON. */
@@ -65,8 +82,12 @@ const chartLength = (chart: WallChartParams) => wallChartSampler(chart).length;
 
 /** Elements "mount", "opening<i>" and "follow<i>". The mount sits on the wall at the middle
  * of the chord the installation spans, at the installation's center height; it faces out of
- * the wall. A follow samples the wall line at most 0.1 m apart. */
-export const houseWallMountGeometry: GeometryGenerator<WallMountParams> = (p, { hosts }) => {
+ * the wall. The prefab's opening and its members that bend along the wall come from the
+ * asset layer: each opening rectangle, centered on the prefab's bounds, becomes a wall area,
+ * narrower where the wall curves under the installation; each such member gets the wall
+ * line under its span, sampled at most 0.1 m apart. */
+export const houseWallMountGeometry: GeometryGenerator<WallMountParams> = (p, { hosts, environment }) => {
+  const facts = prefabFacts(environment, p.prefab);
   const walls = hosts.map((host, index) => ({ index, chart: chartOf(host) }));
   if (walls.some((w) => !w.chart)) throw Error("A wall mount attaches to house walls");
   const perimeter = walls.reduce((n, w) => Math.max(n, (w.chart!.uOffset ?? 0) + chartLength(w.chart!)), 0);
@@ -83,6 +104,19 @@ export const houseWallMountGeometry: GeometryGenerator<WallMountParams> = (p, { 
   const x: Vec3 = [(b.x - a.x) / chord, 0, (b.z - a.z) / chord];
   const center = sample.at(s).ground + p.bottom + p.height / 2;
   const origin: Vec3 = [(a.x + b.x) / 2, center, (a.z + b.z) / 2];
+  const [sx, sy] = prefabScale(facts, p.width, p.height);
+  const cx = (facts.bounds.min[0] + facts.bounds.max[0]) / 2,
+    cy = (facts.bounds.min[1] + facts.bounds.max[1]) / 2;
+  const curved = a.tangent[0] * b.tangent[0] + a.tangent[1] * b.tangent[1] < 1 - 1e-9;
+  const narrowing = curved ? facts.curvedNarrowing : 0;
+  const openings = facts.openings.map((o) => ({
+    width: (o.max[0] - o.min[0] - narrowing) * sx,
+    height: (o.max[1] - o.min[1]) * sy,
+    offset: [((o.min[0] + o.max[0]) / 2 - cx) * sx, ((o.min[1] + o.max[1]) / 2 - cy) * sy]
+  }));
+  const follows = facts.units.flatMap((m) =>
+    m.span ? [{ from: (m.span[0] - cx) * sx, to: (m.span[1] - cx) * sx, height: (m.matrix[13] - cy) * sy }] : []
+  );
   const elements: Record<string, import("../core").GeometryElement> = {
     mount: {
       kind: "point",
@@ -90,7 +124,7 @@ export const houseWallMountGeometry: GeometryGenerator<WallMountParams> = (p, { 
       on: { host: host.index, element: "face", u: s, v: center }
     }
   };
-  (p.openings ?? []).forEach((opening, i) => {
+  openings.forEach((opening, i) => {
     const [du, dv] = opening.offset ?? [0, 0];
     const rect: Rect = [
       s + du - opening.width / 2,
@@ -108,7 +142,7 @@ export const houseWallMountGeometry: GeometryGenerator<WallMountParams> = (p, { 
     };
     elements[`opening${i}`] = { kind: "surface", surface: { kind: "wallOpening", params } };
   });
-  (p.follows ?? []).forEach((follow, i) => {
+  follows.forEach((follow, i) => {
     const steps = Math.max(2, Math.ceil((follow.to - follow.from) / 0.1));
     const points = Array.from({ length: steps + 1 }, (_, k): Vec3 => {
       const at = sample.at(
@@ -241,6 +275,45 @@ export const mountHidden: ConnectionRule = ({ parts }) => {
   };
 };
 
+interface MountPrefabParams {
+  readonly width: number;
+  readonly height: number;
+  /** Renderer values carried on the laid unit. */
+  readonly unitParams?: Readonly<Record<string, unknown>>;
+}
+/** Lays a part's building prefab at its mount, scaled to the installation size. The prefab's
+ * origin lies on the wall line and the center of its bounds on the mount across and up the
+ * wall; it is resized about its back, so it keeps its distance from the wall at every size.
+ * The unit's pivot must be the middle of the back: [0.5, 0.5, 0]. */
+export const mountPrefab: LayingAlgorithm<MountPrefabParams, null> = {
+  info: {
+    accepts: ["point"],
+    summary: 'One building prefab at the point "mount", scaled to the installation size.',
+    params: {
+      width: "Installation width in metres.",
+      height: "Installation height in metres.",
+      unitParams: "Values the renderer reads from the laid unit."
+    }
+  },
+  plan: () => ({ count: 1, data: null }),
+  unitAt(context) {
+    const bounds = context.unit.bounds;
+    if (!bounds) throw Error("mountPrefab needs the prefab's bounds");
+    const { width, height } = context.params;
+    const sx = width / (bounds.max[0] - bounds.min[0]),
+      sy = height / (bounds.max[1] - bounds.min[1]),
+      sz = Math.min(sx, sy);
+    const frame = context.geometry.point("mount");
+    const back = bounds.min[2];
+    return {
+      key: "0",
+      frame: { ...frame, origin: [0, 1, 2].map((k) => frame.origin[k] + frame.z[k] * back) as unknown as Vec3 },
+      size: [width, height, (bounds.max[2] - bounds.min[2]) * sz],
+      ...(context.params.unitParams && { params: { ...context.params.unitParams } })
+    };
+  }
+};
+
 /** Part types of prefabs mounted on house walls. */
 export const WALL_MOUNTS = ["window", "door", "lamp"] as const;
 
@@ -248,6 +321,7 @@ export const WALL_MOUNTS = ["window", "door", "lamp"] as const;
 export function registerOpeningTypes(registry: BuildingRegistry): BuildingRegistry {
   registry.surfaces.register("wallOpening", wallOpeningSurface);
   registry.geometry.register("houseWallMount", houseWallMountGeometry);
+  registry.algorithms.register("mountPrefab", mountPrefab);
   registry.rules.register("wallOpening", wallOpening);
   registry.rules.register("openingCutsBand", openingCutsBand);
   registry.rules.register("mountHidden", mountHidden);

@@ -11,6 +11,7 @@ import {
   expandUnits,
   hashString,
   type BuildingDesignResult,
+  type AssetFacts,
   type BuildingEnvironment,
   type BuildingGroupDef,
   type BuildingRegistry,
@@ -89,6 +90,22 @@ const FAMILIES: Readonly<Record<string, Family>> = {
 const MATERIALS = new Set<string>(["brick", "roof_tile", "wooden_plank"]);
 const NO_CLIP = [0, 1, 0, 65504];
 
+/** The environment a design runs in: the ground, and the asset layer's facts about the
+ * building prefabs of an asset kit, which units name as `{ prefab: key }`. */
+export function coreBuildingEnvironment(
+  ground: BuildingEnvironment["ground"],
+  assets?: BuildingUnitAssets
+): BuildingEnvironment {
+  return {
+    ...(ground && { ground }),
+    ...(assets && {
+      asset: (source) => {
+        const key = typeof source === "object" ? source.prefab : undefined;
+        return typeof key === "string" ? (assets.prefabs?.[key] as unknown as AssetFacts | undefined) : undefined;
+      }
+    })
+  };
+}
 export interface CoreBuildingOptions {
   /** Must be the environment the design ran with. */
   readonly environment?: BuildingEnvironment;
@@ -126,7 +143,8 @@ export function coreBuildingLayout(
   registry: BuildingRegistry,
   options: CoreBuildingOptions = {}
 ): CoreBuildingLayout {
-  if (result.diagnostics.length) throw Error(result.diagnostics.map((d) => d.source + ": " + d.message).join("\n"));
+  // Parts that failed have no layout and lay nothing; the caller decides whether the
+  // design's diagnostics are acceptable.
   const environment = options.environment ?? {};
   const owners = result.groups.map((group, slot): CoreOwner => {
     const appearance = (group.shared?.appearance ?? {}) as { wall?: number; roof?: number; wood?: number };
@@ -1130,12 +1148,12 @@ export function coreBuildingDecorations(
     for (const binding of prefabs)
       for (const { part, units } of binding.parts)
         for (const u of units) {
-          const source = part.unit?.source as { prefab: string; rank: number };
-          const key = `${source.prefab}/${source.rank}`;
+          const key = (part.unit?.source as { prefab: string }).prefab;
           const prefab = assets.prefabs?.[key];
           if (!prefab) throw Error(`Building prefab "${key}" is not in the asset kit`);
           const params = u.params ?? {};
-          const id = part.identity.kind === "author" ? part.identity.id.slice(owner.group.id.length + 1) : part.key;
+          // The author id of the part: the runtime binds picking and poses by it.
+          const id = partId(part);
           const m = u.matrix;
           const axes = [
             [m[0], m[1], m[2]],
@@ -1235,7 +1253,8 @@ export function coreBuildingDecorations(
               geometryScale: scale
             });
           }
-          compiled.resolved.push({ id, type: source.prefab, host: "wall", rank: source.rank });
+          const [type, rank] = key.split("/");
+          compiled.resolved.push({ id, type, host: "wall", rank: Number(rank) });
         }
     result.push(compiled);
   }

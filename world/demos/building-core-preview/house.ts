@@ -33,7 +33,11 @@ import { renderBuilding } from "@galacean/engine-building/building/parts/archite
 import { createBuildingRegistry, designBuildingCore } from "@galacean/engine-building/building/core/index";
 import { registerHouseTypes } from "@galacean/engine-building/building/partTypes/House";
 import { buildCoreHouses, type CoreHouseParameters } from "@galacean/engine-building/building/application/CoreEuropean";
-import { compileCoreBuilding, prepareCoreBuilding } from "@galacean/engine-building/building/render/CoreBuilding";
+import {
+  compileCoreBuilding,
+  coreBuildingEnvironment,
+  prepareCoreBuilding
+} from "@galacean/engine-building/building/render/CoreBuilding";
 import { constructionDecorationType } from "@galacean/engine-building/building/runtime/ConstructionDecorationCatalog";
 import {
   planFacadeDecorations,
@@ -353,8 +357,8 @@ async function core(c: Case, dx: number, parent: Entity, signal: AbortSignal): P
   const houses = moved(c, dx),
     ground = groundFor(c, dx);
   const start = performance.now();
-  const result = designBuildingCore(buildCoreHouses(houses, library.compilation), registry, {
-    environment: { ground }
+  const result = designBuildingCore(buildCoreHouses(houses), registry, {
+    environment: coreBuildingEnvironment(ground, library.compilation)
   });
   const options = { environment: { ground }, assets: library.compilation };
   if (far) {

@@ -10,11 +10,14 @@ import { nativeAssets } from "../fixtures/constructionAssets";
 import { createBuildingRegistry, designBuildingCore, expandUnits } from "../../src/building/core";
 import { registerHouseTypes } from "../../src/building/partTypes/House";
 import { buildCoreHouses, type CoreHouseParameters } from "../../src/building/application/CoreEuropean";
+import { coreBuildingEnvironment } from "../../src/building/render/CoreBuilding";
 
 const registry = registerHouseTypes(createBuildingRegistry());
 const ground = (x: number, z: number) => 0.2 * Math.sin(0.4 * x) + 0.1 * Math.cos(0.3 * z);
 const design = (houses: CoreHouseParameters[]) =>
-  designBuildingCore(buildCoreHouses(houses, nativeAssets.compilation), registry, { environment: { ground } });
+  designBuildingCore(buildCoreHouses(houses), registry, {
+    environment: coreBuildingEnvironment(ground, nativeAssets.compilation)
+  });
 const a: CoreHouseParameters = {
   id: "a",
   seed: 3,

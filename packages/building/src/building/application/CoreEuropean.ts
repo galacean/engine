@@ -5,7 +5,6 @@ import { unitFootprintScale, type MaterialFootprint } from "../runtime/MaterialF
 import { isFlatRoofHeight } from "../runtime/RoofMode";
 import { floorLevels } from "../partTypes/House";
 import type { WALL_MOUNTS } from "../partTypes/Openings";
-import type { BuildingUnitAssets } from "../runtime/BuildingUnitAssets";
 
 /** A free-standing wall or fence: its centerline on the ground and its size. */
 export interface CoreStripParameters {
@@ -120,7 +119,7 @@ export interface CoreHouseParameters {
   walls?: "masonry" | "grid";
   /** Prefabs mounted on the walls: windows, doors and wall lamps. `u` is a fraction of the
    * perimeter, `bottom` the height above the wall's base, `width` and `height` the
-   * installation size; the type defaults by kind. Needs the asset library. */
+   * installation size; the type defaults by kind. */
   attachments?: readonly CoreWallAttachment[];
   /** Floor bands between storeys. Default: none. */
   floors?: { enabled?: boolean; interval?: number };
@@ -158,86 +157,41 @@ const DEFAULT_WALL_TYPES: Readonly<Record<CoreWallAttachment["kind"], string>> =
   "wall-lamp": "wall-lantern",
   lantern: "wall-lantern"
 };
-/** A wall prefab as a part: a mount on the walls, the building prefab scaled to the
- * installation size, the prefab's opening taken out of the wall, and the wall line under each
- * member that bends along the wall. The prefab's origin
- * lies on the wall line; the center of its bounds lands on the mount across and up the wall.
- * It is resized about its back, so it keeps its distance from the wall at every size. */
-function wallAttachmentPart(
-  house: CoreHouseParameters,
-  a: CoreWallAttachment,
-  assets: BuildingUnitAssets
-): BuildingPartDef {
-  const prefabType = a.type ?? DEFAULT_WALL_TYPES[a.kind],
-    rank = a.rank ?? 1;
-  const key = `${prefabType}/${rank}`;
-  const prefab = assets.prefabs?.[key];
-  if (!prefab) throw Error(`Building prefab "${key}" is not in the asset kit`);
-  const type = WALL_PART_TYPES[a.kind];
-  const { min, max } = prefab.bounds;
-  const sx = a.width / (max[0] - min[0]),
-    sy = a.height / (max[1] - min[1]),
-    sz = Math.min(sx, sy);
-  const cx = (min[0] + max[0]) / 2,
-    cy = (min[1] + max[1]) / 2;
-  const narrowing = house.circle ? prefab.curvedNarrowing : 0;
-  const openings = prefab.openings.map((o) => ({
-    width: (o.max[0] - o.min[0] - narrowing) * sx,
-    height: (o.max[1] - o.min[1]) * sy,
-    offset: [((o.min[0] + o.max[0]) / 2 - cx) * sx, ((o.min[1] + o.max[1]) / 2 - cy) * sy] as [number, number]
-  }));
-  // Members that bend along the wall follow the wall line under their span.
-  const follows = prefab.units.flatMap((m) =>
-    m.span ? [{ from: (m.span[0] - cx) * sx, to: (m.span[1] - cx) * sx, height: (m.matrix[13] - cy) * sy }] : []
-  );
+/** A wall prefab as a part: a mount on the walls and the building prefab, scaled to the
+ * installation size. The prefab's bounds, opening and members come from the asset layer at
+ * design time, so the draft names the prefab only. */
+function wallAttachmentPart(house: CoreHouseParameters, a: CoreWallAttachment): BuildingPartDef {
+  const prefab = `${a.type ?? DEFAULT_WALL_TYPES[a.kind]}/${a.rank ?? 1}`;
   return {
     id: `${house.id}/${a.id}`,
     group: house.id,
-    type,
+    type: WALL_PART_TYPES[a.kind],
     geometry: {
       generator: "houseWallMount",
-      params: {
-        u: a.u,
-        bottom: a.bottom,
-        width: a.width,
-        height: a.height,
-        ...(openings.length && { openings }),
-        ...(follows.length && { follows })
-      }
+      params: { prefab, u: a.u, bottom: a.bottom, width: a.width, height: a.height }
     },
     algorithm: {
-      type: "placeAtPoints",
+      type: "mountPrefab",
       params: {
-        elements: ["mount"],
+        width: a.width,
+        height: a.height,
         unitParams: {
           kind: a.kind,
           u: a.u,
-          bottom: a.bottom,
-          width: a.width,
-          height: a.height,
-          ...(a.seed !== undefined && { seed: a.seed }),
           ...(a.woodColor !== undefined && { woodColor: a.woodColor }),
           ...(a.lightColor !== undefined && { lightColor: a.lightColor }),
           ...(a.lightIntensity !== undefined && { lightIntensity: a.lightIntensity })
         }
       }
     },
-    unit: {
-      source: { prefab: prefabType, rank },
-      bounds: { min: [min[0], min[1], min[2]], max: [max[0], max[1], max[2]] },
-      pivot: [0.5, 0.5, 0],
-      position: [0, 0, min[2]],
-      scale: [sx, sy, sz]
-    }
+    // Resized about the middle of its back; the stretch covers any installation size.
+    unit: { source: { prefab }, pivot: [0.5, 0.5, 0], range: { min: [0.01, 0.01, 0.01], max: [100, 100, 100] } }
   };
 }
 
 /** Several houses in one draft, so that houses that touch connect: one group per house. */
-export function buildCoreHouses(
-  houses: readonly CoreHouseParameters[],
-  assets?: BuildingUnitAssets
-): BuildingCoreDraft {
-  const drafts = houses.map((h) => buildCoreHouse(h, assets));
+export function buildCoreHouses(houses: readonly CoreHouseParameters[]): BuildingCoreDraft {
+  const drafts = houses.map((h) => buildCoreHouse(h));
   return {
     groups: drafts.flatMap((d) => d.groups),
     parts: drafts.flatMap((d) => d.parts),
@@ -245,8 +199,7 @@ export function buildCoreHouses(
   };
 }
 /** A house group: walls and a roof that share the footprint, wall height and roof. */
-export function buildCoreHouse(p: CoreHouseParameters, assets?: BuildingUnitAssets): BuildingCoreDraft {
-  if (p.attachments?.length && !assets) throw Error("Wall attachments need the asset library");
+export function buildCoreHouse(p: CoreHouseParameters): BuildingCoreDraft {
   const footprint = normalizeProfileFootprint(
     p.circle ? { circle: p.circle } : { rectangle: p.rectangle ?? { center: [0, 0], size: [8, 6], rotation: 0 } }
   );
@@ -413,7 +366,7 @@ export function buildCoreHouse(p: CoreHouseParameters, assets?: BuildingUnitAsse
           hosts: roofs.map((r) => ({ part: r.part.id }))
         }
       : undefined;
-  const mounted = (p.attachments ?? []).map((a) => wallAttachmentPart(p, a, assets!));
+  const mounted = (p.attachments ?? []).map((a) => wallAttachmentPart(p, a));
   const onWalls = [...(floors ? [floors] : []), ...(plaster ? [plaster] : []), ...mounted];
   return {
     groups: [

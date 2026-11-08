@@ -11,6 +11,7 @@ import { buildCoreHouse, type CoreHouseParameters } from "../../src/building/app
 import {
   compileCoreBuilding,
   coreBuildingDecorations,
+  coreBuildingEnvironment,
   coreBuildingGrounding,
   coreBuildingLayout,
   prepareCoreBuilding
@@ -368,13 +369,14 @@ describe("Wall prefabs against the online path", () => {
           retainDecorationParts: true
         } as never
       );
-      const result = designBuildingCore(buildCoreHouse(p, nativeAssets.compilation), registry, { environment });
+      const result = designBuildingCore(buildCoreHouse(p), registry, {
+        environment: coreBuildingEnvironment(flat, nativeAssets.compilation)
+      });
       expect(result.diagnostics).toEqual([]);
       const parts = coreBuildingDecorations(coreBuildingLayout(result, registry, {}), nativeAssets.compilation).flatMap(
         (d) => d.parts
       );
-      // Online part ids repeat the house id: the attachment ids it gives carry it already.
-      const byId = new Map(online.decorationParts.map((x) => [x.id.replace(/^[^/]+\//, ""), x]));
+      const byId = new Map(online.decorationParts.map((x) => [x.id, x]));
       expect(parts.map((x) => x.id).sort()).toEqual([...byId.keys()].sort());
       const deviation = (a: number[], b: number[]) => a.reduce((m, v, i) => Math.max(m, Math.abs(v - b[i])), 0);
       for (const x of parts) {
