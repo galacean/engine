@@ -1,6 +1,8 @@
 // Part-type layer: prefabs mounted on house walls, such as windows, doors and wall lamps.
-// - A mounted part has a point "mount" on its wall and, when it opens the wall, a surface
-//   "opening": the area it takes out of the wall.
+// - A mounted part has a point "mount" on its wall. When it opens the wall, it has surfaces
+//   "opening0", "opening1", ...: rectangles that together form the area it takes out of the
+//   wall. A member that bends along the wall has a curve "follow0", "follow1", ...: the
+//   wall line under it.
 // - It attaches to the house walls; the attach rule removes its opening from the wall it sits
 //   on. A finish continues the wall faces, so it loses the opening too.
 // - An opening also cuts floor bands that cross it, through a join between the two parts.
@@ -18,14 +20,20 @@ import {
 import { wallChartSampler, type WallChartParams } from "./House";
 
 /** Where a mounted part sits: a fraction of the perimeter, a height above the wall's base at
- * that point, and the size of its installation. The opening is relative to the
- * installation's center, in metres. */
+ * that point, and the size of its installation. Openings and follows are relative to the
+ * installation's center, in metres: a follow runs along the wall from `from` to `to`, at
+ * `height` above the center. */
 export interface WallMountParams {
   readonly u: number;
   readonly bottom: number;
   readonly width: number;
   readonly height: number;
-  readonly opening?: { readonly width: number; readonly height: number; readonly offset?: readonly [number, number] };
+  readonly openings?: readonly {
+    readonly width: number;
+    readonly height: number;
+    readonly offset?: readonly [number, number];
+  }[];
+  readonly follows?: readonly { readonly from: number; readonly to: number; readonly height: number }[];
 }
 /** An opening in a wall: the host's index among the part's hosts, the area in that wall's
  * chart, and the same area along the house perimeter. Plain JSON. */
@@ -55,9 +63,9 @@ const chartOf = (part: ParticipantView): WallChartParams | undefined => {
 };
 const chartLength = (chart: WallChartParams) => wallChartSampler(chart).length;
 
-/** Elements "mount" and, with an opening, "opening". The mount sits on the wall at the
- * middle of the chord the installation spans, at the installation's center height; it
- * faces out of the wall. */
+/** Elements "mount", "opening<i>" and "follow<i>". The mount sits on the wall at the middle
+ * of the chord the installation spans, at the installation's center height; it faces out of
+ * the wall. A follow samples the wall line at most 0.1 m apart. */
 export const houseWallMountGeometry: GeometryGenerator<WallMountParams> = (p, { hosts }) => {
   const walls = hosts.map((host, index) => ({ index, chart: chartOf(host) }));
   if (walls.some((w) => !w.chart)) throw Error("A wall mount attaches to house walls");
@@ -82,13 +90,13 @@ export const houseWallMountGeometry: GeometryGenerator<WallMountParams> = (p, { 
       on: { host: host.index, element: "face", u: s, v: center }
     }
   };
-  if (p.opening) {
-    const [du, dv] = p.opening.offset ?? [0, 0];
+  (p.openings ?? []).forEach((opening, i) => {
+    const [du, dv] = opening.offset ?? [0, 0];
     const rect: Rect = [
-      s + du - p.opening.width / 2,
-      center + dv - p.opening.height / 2,
-      s + du + p.opening.width / 2,
-      center + dv + p.opening.height / 2
+      s + du - opening.width / 2,
+      center + dv - opening.height / 2,
+      s + du + opening.width / 2,
+      center + dv + opening.height / 2
     ];
     const at = sample.at(Math.max(0, rect[0]));
     const params: WallOpeningParams = {
@@ -98,29 +106,43 @@ export const houseWallMountGeometry: GeometryGenerator<WallMountParams> = (p, { 
       origin: [at.x, rect[1], at.z],
       x
     };
-    elements.opening = { kind: "surface", surface: { kind: "wallOpening", params } };
-  }
+    elements[`opening${i}`] = { kind: "surface", surface: { kind: "wallOpening", params } };
+  });
+  (p.follows ?? []).forEach((follow, i) => {
+    const steps = Math.max(2, Math.ceil((follow.to - follow.from) / 0.1));
+    const points = Array.from({ length: steps + 1 }, (_, k): Vec3 => {
+      const at = sample.at(
+        Math.min(sample.length, Math.max(0, s + follow.from + ((follow.to - follow.from) * k) / steps))
+      );
+      return [at.x, center + follow.height, at.z];
+    });
+    elements[`follow${i}`] = { kind: "curve", curve: { points } };
+  });
   return { elements };
 };
 
-const openingOf = (part: ParticipantView): WallOpeningParams | undefined => {
-  const element = part.geometry.original.elements.opening;
-  return element?.kind === "surface" && element.surface.kind === "wallOpening"
-    ? (element.surface.params as WallOpeningParams)
-    : undefined;
-};
+/** The opening rectangles of a mounted part. */
+export const wallOpeningsOf = (part: ParticipantView): WallOpeningParams[] =>
+  Object.values(part.geometry.original.elements).flatMap((e) =>
+    e.kind === "surface" && e.surface.kind === "wallOpening" ? [e.surface.params as WallOpeningParams] : []
+  );
 /** Attach rule of a mounted part: its opening comes out of the wall it sits on. An opening
  * must stay inside its wall. */
 export const wallOpening: ConnectionRule = ({ guest, hosts }) => {
-  const opening = guest && openingOf(guest);
-  if (!guest || !opening) return {};
-  const wall = hosts[opening.host];
+  const openings = guest ? wallOpeningsOf(guest) : [];
+  if (!guest || !openings.length) return {};
+  const wall = hosts[openings[0].host];
   const chart = wall && chartOf(wall);
   if (!chart) return { diagnostics: ["wallOpening needs the host wall's chart"] };
   const length = chartLength(chart);
-  if (opening.rect[0] < -1e-6 || opening.rect[2] > length + 1e-6)
+  if (openings.some((o) => o.rect[0] < -1e-6 || o.rect[2] > length + 1e-6))
     return { diagnostics: [`${guest.key} crosses the end of its wall`] };
-  return { modify: [{ part: wall.key, modification: { element: "face", op: "removeArea", rect: opening.rect } }] };
+  return {
+    modify: openings.map((o) => ({
+      part: wall.key,
+      modification: { element: "face", op: "removeArea" as const, rect: o.rect }
+    }))
+  };
 };
 
 /** Band elements of a floor band part with their charts. */
@@ -132,23 +154,26 @@ const crosses = (o: WallOpeningParams, band: WallChartParams) =>
   o.perimeter[1] < band.topY && band.minGround < o.perimeter[3];
 /** An opening meets a floor band when it crosses one of the band's levels. */
 export const openingMeetsBand: JoinDetector = (a, b) => {
-  const [opening, bands] = openingOf(a) ? [openingOf(a)!, bandsOf(b)] : [openingOf(b), bandsOf(a)];
-  return !!opening && bands.some((band) => crosses(opening, band.chart));
+  const [openings, bands] = wallOpeningsOf(a).length
+    ? [wallOpeningsOf(a), bandsOf(b)]
+    : [wallOpeningsOf(b), bandsOf(a)];
+  return openings.some((opening) => bands.some((band) => crosses(opening, band.chart)));
 };
 /** Peer rule between an opening and a floor band: the band gives way to the opening on every
  * level the opening crosses. Band charts run along the house perimeter. */
 export const openingCutsBand: ConnectionRule = ({ parts }) => {
-  const mounted = parts.find((p) => openingOf(p)),
-    band = parts.find((p) => !openingOf(p));
+  const mounted = parts.find((p) => wallOpeningsOf(p).length),
+    band = parts.find((p) => !wallOpeningsOf(p).length);
   if (!mounted || !band) return {};
-  const opening = openingOf(mounted)!;
   return {
-    modify: bandsOf(band)
-      .filter((b) => crosses(opening, b.chart))
-      .map((b) => ({
-        part: band.key,
-        modification: { element: b.id, op: "removeArea" as const, rect: opening.perimeter }
-      }))
+    modify: wallOpeningsOf(mounted).flatMap((opening) =>
+      bandsOf(band)
+        .filter((b) => crosses(opening, b.chart))
+        .map((b) => ({
+          part: band.key,
+          modification: { element: b.id, op: "removeArea" as const, rect: opening.perimeter }
+        }))
+    )
   };
 };
 

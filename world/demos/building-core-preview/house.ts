@@ -34,6 +34,7 @@ import { createBuildingRegistry, designBuildingCore } from "@galacean/engine-bui
 import { registerHouseTypes } from "@galacean/engine-building/building/partTypes/House";
 import { buildCoreHouse, type CoreHouseParameters } from "@galacean/engine-building/building/application/CoreEuropean";
 import { compileCoreBuilding, prepareCoreBuilding } from "@galacean/engine-building/building/render/CoreBuilding";
+import { constructionDecorationType } from "@galacean/engine-building/building/runtime/ConstructionDecorationCatalog";
 import {
   planFacadeDecorations,
   normalizeDecorationPlan
@@ -68,7 +69,30 @@ function withFacade(house: CoreHouseParameters): CoreHouseParameters {
   );
   return { ...house, attachments: planned as never };
 }
-const CASES: Case[] = [
+/** Gothic windows and doors and arrow slits at their original sizes. */
+function withStone(house: CoreHouseParameters): CoreHouseParameters {
+  const at = (id: string, kind: string, type: string, rank: number, u: number, bottom: number) => {
+    const size = constructionDecorationType(library.compilation.decorations, type)!.dimensions.find(
+      (d) => d.rank === rank
+    )!;
+    return { id, kind, type, rank, u, bottom, width: size.width, height: size.height };
+  };
+  return {
+    ...house,
+    attachments: [
+      at("g1", "window", "window-gothic", 1, 0.06, 1.2),
+      at("g2", "window", "window-gothic", 2, 0.19, 1.1),
+      at("g3", "window", "window-gothic", 3, 0.31, 0.6),
+      at("d1", "door", "door-gothic", 1, 0.44, 0),
+      at("d3", "door", "door-gothic", 3, 0.56, 0),
+      at("a1", "window", "window-arrow-slit", 1, 0.68, 1.6),
+      at("a2", "window", "window-arrow-slit", 2, 0.78, 1),
+      at("a3", "window", "window-arrow-slit", 3, 0.9, 0.8)
+    ] as never
+  };
+}
+/** Cases read the asset library, so they are built once it is loaded. */
+const cases = (): Case[] => [
   { id: "house", title: "默认房屋", house: { id: "a" }, ground: flat },
   { id: "tall", title: "高房屋 9 米", house: { id: "a", height: 9 }, ground: flat },
   {
@@ -119,6 +143,23 @@ const CASES: Case[] = [
       plaster: { enabled: true, wear: 0.35, color: 3 },
       floors: { enabled: true, interval: 3.5 }
     }),
+    ground: flat
+  },
+  {
+    id: "stone-openings",
+    title: "尖拱窗 · 尖拱门 · 箭缝窗",
+    house: withStone({
+      id: "a",
+      seed: 7,
+      height: 5,
+      rectangle: { center: [0, 0], size: [10, 10], rotation: 0 }
+    }),
+    ground: flat
+  },
+  {
+    id: "stone-round",
+    title: "圆墙 · 尖拱窗和箭缝窗",
+    house: withStone({ id: "a", seed: 7, height: 5, circle: { center: [0, 0], radius: 6 } }),
     ground: flat
   },
   { id: "steep", title: "陡屋顶", house: { id: "a", roof: { height: 0.8, eave: 0.4 } }, ground: flat },
@@ -198,6 +239,7 @@ const assets = await engine.resourceManager.load<PrefabResource>({
   type: AssetType.Prefab
 });
 const library = buildingAssets(assets);
+const CASES = cases();
 engine.run();
 
 // The two copies stand side by side along x; each samples the ground as if it stood at the origin.

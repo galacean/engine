@@ -19,11 +19,24 @@ export interface BuildingPrefabOpening {
   min: [number, number];
   max: [number, number];
 }
+/** A member drawn with an arrangement unit, such as a stone hat. `matrix` is its pose in
+ * the prefab. With a span it bends along the surface the prefab is mounted on, from
+ * x = span[0] to x = span[1] of the prefab; without one it is placed rigidly. */
+export interface BuildingPrefabUnitMember {
+  unit: string;
+  path: string;
+  matrix: number[];
+  span?: [number, number];
+}
 /** Read-only compilation output of a building prefab: its members, with the prefab's poses
- * baked into their meshes, and the opening it takes out of a wall. */
+ * baked into their meshes, its unit members, and the openings it takes out of a wall. The
+ * openings together form one opening. */
 export interface BuildingPrefab {
   members: [name: string, suffix: string, material: number, emissionOrigin?: number[]][];
-  opening?: BuildingPrefabOpening;
+  units: BuildingPrefabUnitMember[];
+  openings: BuildingPrefabOpening[];
+  /** Metres taken off the opening's width on a curved wall. */
+  curvedNarrowing: number;
 }
 /** A building prefab with the bounds of its baked members. */
 export interface CompiledBuildingPrefab extends BuildingPrefab {

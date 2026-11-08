@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { BufferMesh, Texture2D, Texture2DArray, TextureCube, MeshRenderer } from "@galacean/engine-core";
 import { PrefabResource, parseBufferMeshData, parseTexturePixelsData } from "@galacean/engine-loader";
-import { buildingAssets, BuildingAssetKitComponent, BuildingUnitComponent, BuildingAssemblyComponent, BuildingPrefabComponent } from "../../src/building/resources/BuildingAssetKit";
+import { buildingAssets, BuildingAssetKitComponent, BuildingUnitComponent, BuildingAssemblyComponent, BuildingPrefabComponent, BuildingUnitMemberComponent } from "../../src/building/resources/BuildingAssetKit";
 const root=process.env.BUILDING_TEST_ASSETS ?? fileURLToPath(new URL("../../src/building/assets/native/", import.meta.url)),prefix="Building/Units/";
 const json=(path:string)=>JSON.parse(readFileSync(root+path.slice(prefix.length),"utf8"));
 /** CPU tests replace GPU allocation only. Inputs and native decoding are the same
@@ -38,10 +38,10 @@ export function constructionAssets(editMesh?:(path:string,bytes:Uint8Array)=>Uin
         Quaternion.rotationEuler(rotation.x*Math.PI/180,rotation.y*Math.PI/180,rotation.z*Math.PI/180,q);
         Matrix.affineTransformation(scale,q,vector(e.position,[0,0,0]),local);Matrix.multiply(parent,local,world);
         return {name:e.name,isActive:e.isActive!==false,transform:{localMatrix:local,worldMatrix:world,scale},children:(e.children??[]).map((id:string)=>instantiate(id,world)),getComponent(type:unknown){
-          const name=type===BuildingAssetKitComponent?"BuildingAssetKitComponent":type===BuildingUnitComponent?"BuildingUnitComponent":type===BuildingAssemblyComponent?"BuildingAssemblyComponent":type===BuildingPrefabComponent?"BuildingPrefabComponent":type===MeshRenderer?"MeshRenderer":"";
+          const name=type===BuildingAssetKitComponent?"BuildingAssetKitComponent":type===BuildingUnitComponent?"BuildingUnitComponent":type===BuildingAssemblyComponent?"BuildingAssemblyComponent":type===BuildingPrefabComponent?"BuildingPrefabComponent":type===BuildingUnitMemberComponent?"BuildingUnitMemberComponent":type===MeshRenderer?"MeshRenderer":"";
           const config=members.find((c:any)=>c.type===name);if(!config)return null;
           if(type===MeshRenderer)return {enabled:config.props?.enabled!==false,mesh:native(config.props.mesh.$ref),getMaterial:()=>native(config.calls[0].args[0].$ref)};
-          return {enabled:true,assemblies:{},family:"",instanceStride:0,directInstances:false,bindings:{},attributeLocations:{},integerAttributes:[],textureSlots:{},doubleSided:false,lodMesh:null,sdfMaterial:null,stoneFrame:null,attachment:"body",surfaceKind:0,...resolve(config.props)};
+          return {enabled:true,assemblies:{},family:"",instanceStride:0,directInstances:false,bindings:{},attributeLocations:{},integerAttributes:[],textureSlots:{},doubleSided:false,lodMesh:null,sdfMaterial:null,stoneFrame:null,attachment:"body",surfaceKind:0,openings:[],curvedNarrowing:0,unit:null,span:null,...resolve(config.props)};
         },destroy(){}};
       };
       value=Object.create(PrefabResource.prototype);

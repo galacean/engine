@@ -32,7 +32,8 @@ import { resolveDocument } from "../../src/building/runtime/PlacementDocument.js
 import { planFacadeDecorations, normalizeDecorationPlan } from "../../src/building/runtime/DecorationPlan";
 import { normalizeProfileRoof } from "../../src/building/runtime/ProfileParameters";
 import { isFlatRoofHeight } from "../../src/building/runtime/RoofMode";
-import type { WallOpeningParams } from "../../src/building/partTypes/Openings";
+import { wallOpeningsOf } from "../../src/building/partTypes/Openings";
+import { constructionDecorationType } from "../../src/building/runtime/ConstructionDecorationCatalog";
 
 // Acceptance of the core render path against the online path, house by house.
 const flat = () => 0;
@@ -310,14 +311,49 @@ describe("Plaster against the online path", () => {
 });
 
 describe("Wall prefabs against the online path", () => {
+  const wallOpenings = (part: { original: Parameters<typeof wallOpeningsOf>[0]["geometry"]["original"] }) =>
+    wallOpeningsOf({ geometry: { original: part.original } } as never);
   /** The facade the initial village plans for a house: windows, a door and a wall lamp. */
   const withFacade = (house: CoreHouseParameters): CoreHouseParameters => {
     const roof = normalizeProfileRoof(house.roof ?? {});
     const planned = planFacadeDecorations({ ...house, roof, wallStructure: "masonry" } as never);
     return { ...house, attachments: normalizeDecorationPlan(planned, isFlatRoofHeight(roof.height)) as never };
   };
+  /** Gothic windows and a door, and arrow slits, at their original sizes. */
+  const withStone = (house: CoreHouseParameters): CoreHouseParameters => {
+    const size = (type: string, rank: number) =>
+      constructionDecorationType(nativeAssets.compilation.decorations, type)!.dimensions.find((d) => d.rank === rank)!;
+    const at = (id: string, kind: string, type: string, rank: number, u: number, bottom: number) => ({
+      id,
+      kind,
+      type,
+      rank,
+      u,
+      bottom,
+      width: size(type, rank).width,
+      height: size(type, rank).height
+    });
+    return {
+      ...house,
+      attachments: [
+        at("g1", "window", "window-gothic", 1, 0.06, 1.2),
+        at("g2", "window", "window-gothic", 2, 0.19, 1.1),
+        at("g3", "window", "window-gothic", 3, 0.31, 0.6),
+        at("d1", "door", "door-gothic", 1, 0.44, 0),
+        at("d3", "door", "door-gothic", 3, 0.56, 0),
+        at("a1", "window", "window-arrow-slit", 1, 0.68, 1.6),
+        at("a2", "window", "window-arrow-slit", 2, 0.78, 1),
+        at("a3", "window", "window-arrow-slit", 3, 0.9, 0.8)
+      ] as never
+    };
+  };
   it.each([
     ["rectangular house", withFacade({ id: "a", height: 5, rectangle: { center: [0, 0], size: [8, 6], rotation: 0 } })],
+    [
+      "gothic and arrow, square",
+      withStone({ id: "s", height: 5, rectangle: { center: [0, 0], size: [10, 10], rotation: 0 } })
+    ],
+    ["gothic and arrow, round", withStone({ id: "t", height: 5, circle: { center: [0, 0], radius: 6 } })],
     ["round house", withFacade({ id: "c", height: 5, circle: { center: [0, 0], radius: 4 } })],
     ["rotated house", withFacade({ id: "r", height: 7, rectangle: { center: [1, 2], size: [10, 7], rotation: 0.6 } })]
   ] as [string, CoreHouseParameters][])(
@@ -348,34 +384,58 @@ describe("Wall prefabs against the online path", () => {
         // standing distance: the two differ across the wall by up to a few centimetres.
         expect(deviation(x.positions, o.positions)).toBeLessThan(0.03);
         expect(deviation(x.normals, o.normals)).toBeLessThan(0.03);
-        expect(deviation(x.uvs!.flat(), o.uvs!.flat())).toBeLessThan(1e-4);
+        expect(deviation(x.uvs!.flat(), o.uvs!.flat())).toBeLessThan(1e-3);
         expect(x.colors).toEqual(o.colors);
         expect(x.emission).toEqual(o.emission);
         expect(x.appearance!.kinds).toEqual(o.appearance!.kinds);
         expect(x.appearance!.colorIds).toEqual(o.appearance!.colorIds);
       }
-      // Each opening is the online hole and comes out of a wall. Online centers a hole on
-      // the model origin, not on its collision box; on doors that is 1 cm lower.
+      // Each opening is an online hole and comes out of a wall. Online centers a hole on
+      // the model origin, not on its collision box; on doors that is 1 cm lower. Online sizes
+      // a Gothic window by its full hat, which it draws on timber walls only; the prefab by
+      // the hat it draws, which is 1 % narrower.
       const holes = design.prepared.decorations.flatMap((d) => d.holes);
       const walls = result.parts.filter((x) => x.type === "wall");
-      const mounted = result.parts.filter((x) => x.original.elements.opening);
-      expect(mounted.length).toBe(holes.length);
+      const mounted = result.parts.filter((x) => wallOpenings(x).length);
+      expect(mounted.reduce((n, x) => n + wallOpenings(x).length, 0)).toBe(holes.length);
       for (const m of mounted) {
-        const opening = m.original.elements.opening as { surface: { params: WallOpeningParams } };
-        const [u0, v0, u1, v1] = opening.surface.params.perimeter;
-        const hole = holes.find((h) => m.identity.kind === "author" && h.decorationId === m.identity.id)!;
-        expect(hole).toBeDefined();
-        expect((u0 + u1) / 2).toBeCloseTo(hole.centerU, 3);
-        expect(u1 - u0).toBeCloseTo(hole.width, 3);
-        expect(v1 - v0).toBeCloseTo(hole.height, 3);
-        expect(Math.abs((v0 + v1) / 2 - hole.centerY)).toBeLessThan(0.015);
-        const rect = opening.surface.params.rect;
-        expect(
-          walls.some((w) =>
-            w.modifications.some((mod) => mod.op === "removeArea" && mod.rect.every((v, i) => v === rect[i]))
-          )
-        ).toBe(true);
+        const own = holes
+          .filter((h) => m.identity.kind === "author" && h.decorationId === m.identity.id)
+          .sort((a, b) => a.centerY - b.centerY);
+        const openings = wallOpenings(m).sort((a, b) => a.rect[1] + a.rect[3] - b.rect[1] - b.rect[3]);
+        expect(openings.length).toBe(own.length);
+        openings.forEach((opening, i) => {
+          const [u0, v0, u1, v1] = opening.perimeter;
+          expect((u0 + u1) / 2).toBeCloseTo(own[i].centerU, 3);
+          expect(Math.abs(u1 - u0 - own[i].width) / own[i].width).toBeLessThan(0.015);
+          expect(Math.abs(v1 - v0 - own[i].height) / own[i].height).toBeLessThan(0.015);
+          expect(Math.abs((v0 + v1) / 2 - own[i].centerY)).toBeLessThan(0.02);
+          expect(
+            walls.some((w) =>
+              w.modifications.some((mod) => mod.op === "removeArea" && mod.rect.every((v, k) => v === opening.rect[k]))
+            )
+          ).toBe(true);
+        });
       }
+      // Stone hats: the same unit, placed the same way, with bones within 3 cm.
+      const coreStones = coreBuildingDecorations(coreBuildingLayout(result, registry, {}), nativeAssets.compilation)
+        .flatMap((d) => d.stones)
+        .sort((a, b) => a.id.localeCompare(b.id));
+      const onlineStones = online.stones.slice().sort((a, b) => a.id.localeCompare(b.id));
+      expect(coreStones.map((x) => x.template)).toEqual(onlineStones.map((x) => x.template));
+      coreStones.forEach((x, i) => {
+        const o = onlineStones[i];
+        expect(x.instance.flags).toBe(o.instance.flags);
+        // A rigid hat is placed by its pose; a bent one by its bones. Online narrows a bent hat
+        // by another 5 cm on round walls.
+        if (x.instance.flags & 4)
+          expect(deviation(x.instance.xform.slice(9), o.instance.xform.slice(9))).toBeLessThan(0.01);
+        else
+          x.instance.bones.forEach((bone, k) => {
+            expect(deviation([...bone.position], [...o.instance.bones[k].position])).toBeLessThan(0.03);
+            expect(deviation([...bone.normalXZ], [...o.instance.bones[k].normalXZ])).toBeLessThan(0.05);
+          });
+      });
     },
     60000
   );

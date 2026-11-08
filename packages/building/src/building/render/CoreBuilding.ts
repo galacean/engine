@@ -52,6 +52,8 @@ import type {
   ConstructionDecorationStone
 } from "../runtime/ConstructionDecorations";
 import type { ConstructionDecorationFrame } from "../runtime/ConstructionDecorationFrames";
+import type { DecorationStoneInstance } from "../runtime/DecorationStoneInstance";
+import { decorationStoneBounds } from "../runtime/DecorationStoneBounds";
 import type { ConstructionJunctionGroup } from "../runtime/ConstructionJunctionLayout";
 import type { ConstructionWoodArchPart, ConstructionWoodArchPillar } from "../runtime/ConstructionWoodArchRender";
 import { wallChartSampler } from "../partTypes/House";
@@ -1007,6 +1009,7 @@ export function coreBuildingView(layout: CoreBuildingLayout, options: CoreBuildi
     }
   const decorations = options.assets ? coreBuildingDecorations(layout, options.assets) : [];
   const decorationParts = decorations.flatMap((d) => d.parts);
+  const stones = decorations.flatMap((d) => d.stones);
   if (options.retainDecorationParts)
     for (const p of decorationParts) capture(p.ownerId, { positions: p.positions, indices: p.indices, uvs: [] });
   else
@@ -1029,6 +1032,13 @@ export function coreBuildingView(layout: CoreBuildingLayout, options: CoreBuildi
       bounds.min[i % 3] = Math.min(bounds.min[i % 3], p.positions[i]);
       bounds.max[i % 3] = Math.max(bounds.max[i % 3], p.positions[i]);
     }
+  for (const stone of stones) {
+    const b = decorationStoneBounds(options.assets?.stoneGeometry, stone);
+    for (let a = 0; a < 3; a++) {
+      bounds.min[a] = Math.min(bounds.min[a], b.min[a]);
+      bounds.max[a] = Math.max(bounds.max[a], b.max[a]);
+    }
+  }
   // Units stand out of their surfaces; include them in the bounds.
   for (const owner of layout.owners)
     for (const binding of owner.bindings)
@@ -1050,7 +1060,7 @@ export function coreBuildingView(layout: CoreBuildingLayout, options: CoreBuildi
     // Arches, stone frames and timber arches are not core parts yet.
     archGroups: [] as ConstructionJunctionGroup[],
     bounds,
-    stones: [] as ConstructionDecorationStone[],
+    stones,
     frames: [] as ConstructionDecorationFrame[],
     woodArchFrames: [] as ConstructionWoodArchPart[],
     woodArchPillars: [] as ConstructionWoodArchPillar[],
@@ -1135,11 +1145,91 @@ export function coreBuildingDecorations(
               }
             )
           );
+          // Unit members: rigid ones take the prefab's pose; the others bend along the wall
+          // line their part samples under them.
+          let follow = 0;
+          for (const member of prefab.units) {
+            const local = member.matrix;
+            const pose = [0, 1, 2, 3].map((c) =>
+              [0, 1, 2].map(
+                (r) =>
+                  m[r] * local[c * 4] +
+                  m[4 + r] * local[c * 4 + 1] +
+                  m[8 + r] * local[c * 4 + 2] +
+                  (c === 3 ? m[12 + r] : 0)
+              )
+            );
+            const scale = pose.slice(0, 3).map((axis) => Math.hypot(...axis)) as [number, number, number];
+            const mesh = assets.stoneGeometry?.[member.unit];
+            if (!mesh) throw Error(`Missing stone unit ${member.unit}`);
+            const reach = ((mesh.bounds.max[0] - mesh.bounds.min[0]) * scale[0]) / 2;
+            let instance: DecorationStoneInstance;
+            const base = {
+              seed: part.seed >>> 0,
+              wallSlot: owner.slot,
+              wallRange: [mountU * perimeter - reach, mountU * perimeter + reach] as [number, number],
+              clipY: -100000
+            };
+            if (!member.span) {
+              const axes = pose.slice(0, 3).map((axis, k) => axis.map((v) => v / scale[k]));
+              const bone = {
+                position: pose[3] as [number, number, number],
+                normalXZ: [axes[2][0], axes[2][2]] as [number, number]
+              };
+              instance = { ...base, xform: [...axes.flat(), ...pose[3]], flags: 4, bones: [bone, bone, bone] };
+            } else {
+              const line = part.original.elements[`follow${follow++}`];
+              if (line?.kind !== "curve") throw Error(`${part.key} has no wall line for ${member.path}`);
+              const bones: DecorationStoneInstance["bones"] = [
+                wallBone(line.curve.points, 0),
+                wallBone(line.curve.points, 0.5),
+                wallBone(line.curve.points, 1)
+              ];
+              const [left, right] = [bones[0].position, bones[2].position];
+              const chord = Math.hypot(right[0] - left[0], right[2] - left[2]);
+              const tx = (right[0] - left[0]) / chord,
+                tz = (right[2] - left[2]) / chord;
+              instance = {
+                ...base,
+                xform: [tx, 0, tz, 0, 1, 0, -tz, 0, tx, (left[0] + right[0]) / 2, left[1], (left[2] + right[2]) / 2],
+                flags: 0,
+                bones
+              };
+            }
+            compiled.stones.push({
+              id: `${owner.group.id}/${id}/${member.path}`,
+              decorationId: id,
+              ownerId: owner.group.id,
+              template: member.unit,
+              instance,
+              geometryScale: scale
+            });
+          }
           compiled.resolved.push({ id, type: source.prefab, host: "wall", rank: source.rank });
         }
     result.push(compiled);
   }
   return result;
+}
+/** A bone of a member that bends along a wall line: the point at fraction `t` of the line's
+ * length and the wall's outward normal there. */
+function wallBone(points: readonly (readonly number[])[], t: number): DecorationStoneInstance["bones"][0] {
+  const lengths = [0];
+  for (let i = 1; i < points.length; i++)
+    lengths.push(lengths[i - 1] + Math.hypot(points[i][0] - points[i - 1][0], points[i][2] - points[i - 1][2]));
+  const at = t * lengths[lengths.length - 1];
+  let i = 1;
+  while (i < points.length - 1 && lengths[i] < at) i++;
+  const a = points[i - 1],
+    b = points[i],
+    l = lengths[i] - lengths[i - 1] || 1,
+    k = (at - lengths[i - 1]) / l;
+  const tx = (b[0] - a[0]) / l,
+    tz = (b[2] - a[2]) / l;
+  return {
+    position: [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k, a[2] + (b[2] - a[2]) * k],
+    normalXZ: [-tz, tx]
+  };
 }
 /** All prefab meshes of a group as one distance part, keeping each vertex's colours, tint
  * role, normals and emission. */

@@ -92,14 +92,37 @@ export class BuildingUnitComponent extends Component {
 export class BuildingAssemblyComponent extends Component {}
 /** Root of a building prefab: a fixed composition of models placed as one unit, such as a
  * window, a door or a wall lamp. Its members are the native child hierarchy; their poses
- * are part of the asset. A prefab that opens a wall names the opening in its own x/y plane. */
+ * are part of the asset. A prefab that opens a wall names its opening in its own x/y plane,
+ * as rectangles that together form the opening. */
 export class BuildingPrefabComponent extends Component {
-  private _opening: BuildingPrefabOpening | null = null;
-  get opening() {
-    return this._opening && { min: [...this._opening.min], max: [...this._opening.max] };
+  private _openings: BuildingPrefabOpening[] = [];
+  get openings() {
+    return this._openings.map((o) => ({ min: [...o.min], max: [...o.max] }));
   }
-  set opening(value: BuildingPrefabOpening | null) {
-    this._opening = value && { min: [value.min[0], value.min[1]], max: [value.max[0], value.max[1]] };
+  set openings(value: BuildingPrefabOpening[]) {
+    this._openings = (value ?? []).map((o) => ({ min: [o.min[0], o.min[1]], max: [o.max[0], o.max[1]] }));
+  }
+  /** Metres taken off the opening's width on a curved wall. */
+  curvedNarrowing = 0;
+}
+/** A prefab member drawn with an arrangement unit, such as a stone hat. With a span it bends
+ * along the surface the prefab is mounted on, from x = span[0] to x = span[1] of the
+ * prefab; without one it is placed rigidly. */
+export class BuildingUnitMemberComponent extends Component {
+  private _unit: PrefabResource | null = null;
+  span: [number, number] | null = null;
+  get unit() {
+    return this._unit;
+  }
+  set unit(value: PrefabResource | null) {
+    retainBuildingResource(value, 1);
+    retainBuildingResource(this._unit, -1);
+    this._unit = value;
+  }
+  protected override _onDestroy(): void {
+    retainBuildingResource(this._unit, -1);
+    this._unit = null;
+    super._onDestroy();
   }
 }
 export interface GothicUnit {
@@ -267,6 +290,7 @@ export function registerBuildingAssetComponents(): void {
   Loader.registerClass("BuildingAssetKitComponent", BuildingAssetKitComponent);
   Loader.registerClass("BuildingAssemblyComponent", BuildingAssemblyComponent);
   Loader.registerClass("BuildingPrefabComponent", BuildingPrefabComponent);
+  Loader.registerClass("BuildingUnitMemberComponent", BuildingUnitMemberComponent);
 }
 export interface NativeBuildingUnit {
   mesh: BufferMesh;
@@ -414,13 +438,28 @@ export function buildingAssets(source: PrefabResource): BuildingAssets {
       try {
         const root = entity.getComponent(BuildingPrefabComponent);
         if (!root) throw Error(`Building prefab "${key}" requires BuildingPrefabComponent on its root`);
-        const members: BuildingPrefab["members"] = [];
+        const members: BuildingPrefab["members"] = [],
+          unitMembers: BuildingPrefab["units"] = [];
         const paths = new Set<string>();
         const visit = (node: typeof entity, path: string) => {
           if (!node.isActive || Math.min(node.transform.scale.x, node.transform.scale.y, node.transform.scale.z) <= 0)
             throw Error(`Building prefab "${key}" requires active nodes and positive scale`);
-          const metadata = node.getComponent(BuildingUnitComponent);
-          if (node.getComponent(MeshRenderer) || metadata) {
+          const metadata = node.getComponent(BuildingUnitComponent),
+            unitMember = node.getComponent(BuildingUnitMemberComponent);
+          if (unitMember) {
+            const unit = unitMember.unit && unitNames.get(unitMember.unit);
+            if (!unit || units[unit]?.family !== "stone-decoration")
+              throw Error(`A unit member of building prefab "${key}" requires a stone-decoration unit of the kit`);
+            const span = unitMember.span;
+            if (span && !(span[1] > span[0]))
+              throw Error(`A unit member of building prefab "${key}" has an empty span`);
+            unitMembers.push({
+              unit,
+              path,
+              matrix: Array.from(node.transform.worldMatrix.elements),
+              ...(span && { span: [span[0], span[1]] as [number, number] })
+            });
+          } else if (node.getComponent(MeshRenderer) || metadata) {
             if (!metadata?.enabled || metadata.family !== "decoration" || !node.getComponent(MeshRenderer)?.enabled)
               throw Error(`A member of building prefab "${key}" requires an enabled decoration unit and MeshRenderer`);
             const name = `prefab/${key}/${path}`,
@@ -440,10 +479,11 @@ export function buildingAssets(source: PrefabResource): BuildingAssets {
         };
         visit(entity, "");
         if (!members.length) throw Error(`Empty building prefab "${key}"`);
-        const opening = root.opening;
-        if (opening && !(opening.max[0] > opening.min[0] && opening.max[1] > opening.min[1]))
+        const openings = root.openings;
+        if (openings.some((o) => !(o.max[0] > o.min[0] && o.max[1] > o.min[1])))
           throw Error(`Building prefab "${key}" has an empty opening`);
-        prefabs[key] = { members, ...(opening && { opening }) };
+        if (!(root.curvedNarrowing >= 0)) throw Error(`Building prefab "${key}" has a negative curved narrowing`);
+        prefabs[key] = { members, units: unitMembers, openings, curvedNarrowing: root.curvedNarrowing };
       } finally {
         entity.destroy();
       }

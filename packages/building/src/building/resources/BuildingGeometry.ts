@@ -130,15 +130,28 @@ export function buildingGeometry(
     }
     decorations.meshes[name] = createDecorationMesh(channels, nativeMeshIndices(unit.mesh), box, unit.doubleSided);
   }
-  // A prefab's bounds enclose its baked members.
+  // A prefab's bounds enclose its baked members and its unit members.
   const buildingPrefabs: Record<string, CompiledBuildingPrefab> = Object.fromEntries(
     Object.entries(prefabs).map(([key, prefab]) => {
       const box = { min: [Infinity, Infinity, Infinity], max: [-Infinity, -Infinity, -Infinity] };
+      const include = (p: readonly number[]) => {
+        for (let axis = 0; axis < 3; axis++) {
+          box.min[axis] = Math.min(box.min[axis], p[axis]);
+          box.max[axis] = Math.max(box.max[axis], p[axis]);
+        }
+      };
       for (const [name] of prefab.members) {
         const member = decorations.meshes[name].bounds;
-        for (let axis = 0; axis < 3; axis++) {
-          box.min[axis] = Math.min(box.min[axis], member.min[axis]);
-          box.max[axis] = Math.max(box.max[axis], member.max[axis]);
+        include(member.min);
+        include(member.max);
+      }
+      // A unit member counts with the corners of its unit's box in its pose.
+      for (const member of prefab.units) {
+        const b = bounds(units[member.unit].mesh),
+          m = member.matrix;
+        for (let corner = 0; corner < 8; corner++) {
+          const p = [0, 1, 2].map((axis) => ((corner >> axis) & 1 ? b.max[axis] : b.min[axis]));
+          include([0, 1, 2].map((r) => m[r] * p[0] + m[4 + r] * p[1] + m[8 + r] * p[2] + m[12 + r]));
         }
       }
       return [key, { ...prefab, bounds: box }];

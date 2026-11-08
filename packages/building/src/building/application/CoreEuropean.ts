@@ -253,7 +253,8 @@ const DEFAULT_WALL_TYPES: Readonly<Record<CoreWallAttachment["kind"], string>> =
   lantern: "wall-lantern"
 };
 /** A wall prefab as a part: a mount on the walls, the building prefab scaled to the
- * installation size, and the prefab's opening taken out of the wall. The prefab's origin
+ * installation size, the prefab's opening taken out of the wall, and the wall line under each
+ * member that bends along the wall. The prefab's origin
  * lies on the wall line; the center of its bounds lands on the mount across and up the wall.
  * It is resized about its back, so it keeps its distance from the wall at every size. */
 function wallAttachmentPart(
@@ -273,21 +274,30 @@ function wallAttachmentPart(
     sz = Math.min(sx, sy);
   const cx = (min[0] + max[0]) / 2,
     cy = (min[1] + max[1]) / 2;
-  // Round walls take a little off a window opening's width, as the native producers do.
-  const shrink = house.circle && type === "window" ? [0.05, 0.1, 0.15][rank - 1] : 0;
-  const o = prefab.opening;
-  const opening = o && {
-    width: (o.max[0] - o.min[0] - shrink) * sx,
+  const narrowing = house.circle ? prefab.curvedNarrowing : 0;
+  const openings = prefab.openings.map((o) => ({
+    width: (o.max[0] - o.min[0] - narrowing) * sx,
     height: (o.max[1] - o.min[1]) * sy,
     offset: [((o.min[0] + o.max[0]) / 2 - cx) * sx, ((o.min[1] + o.max[1]) / 2 - cy) * sy] as [number, number]
-  };
+  }));
+  // Members that bend along the wall follow the wall line under their span.
+  const follows = prefab.units.flatMap((m) =>
+    m.span ? [{ from: (m.span[0] - cx) * sx, to: (m.span[1] - cx) * sx, height: (m.matrix[13] - cy) * sy }] : []
+  );
   return {
     id: `${house.id}/${a.id}`,
     group: house.id,
     type,
     geometry: {
       generator: "houseWallMount",
-      params: { u: a.u, bottom: a.bottom, width: a.width, height: a.height, ...(opening && { opening }) }
+      params: {
+        u: a.u,
+        bottom: a.bottom,
+        width: a.width,
+        height: a.height,
+        ...(openings.length && { openings }),
+        ...(follows.length && { follows })
+      }
     },
     algorithm: {
       type: "placeAtPoints",
