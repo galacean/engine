@@ -23,6 +23,7 @@ import {
   type LayingContext,
   type ParticipantView,
   type Plane,
+  type Rect,
   type SurfaceKind,
   type Vec3,
   joinPairKey,
@@ -30,7 +31,7 @@ import {
 } from "../core";
 import { profileShape } from "../runtime/ProfileGeometry";
 import { isFlatRoofHeight } from "../runtime/RoofMode";
-import { houseWallGeometry, type HouseShared, type WallChartParams } from "./House";
+import { houseWallGeometry, wallChartSampler, type HouseShared, type WallChartParams } from "./House";
 
 type V2 = readonly [number, number];
 
@@ -759,6 +760,76 @@ export const houseParapetGeometry: GeometryGenerator<HouseShared> = (p, context)
   return { elements: { face: { kind: "surface", surface: { kind: "wallChart", params: chart } } } };
 };
 
+const parapetOf = (part: ParticipantView): WallChartParams | undefined => {
+  const e = part.geometry.original.elements.face;
+  return e?.kind === "surface" && e.surface.kind === "wallChart" ? (e.surface.params as WallChartParams) : undefined;
+};
+/** The outer face of a closed parapet as a polygon in x, z, pushed out by `margin`. */
+function outerPolygon(chart: WallChartParams, margin: number): number[][] {
+  const n = chart.points.length;
+  return chart.points.map((p, i) => {
+    const a = chart.points[(i - 1 + n) % n],
+      b = chart.points[(i + 1) % n];
+    const tx = b[0] - a[0],
+      tz = b[2] - a[2],
+      l = Math.hypot(tx, tz) || 1;
+    return [p[0] - (tz / l) * (chart.nominalOuter + margin), p[2] + (tx / l) * (chart.nominalOuter + margin)];
+  });
+}
+function inside(polygon: readonly number[][], x: number, z: number) {
+  let result = false;
+  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+    const a = polygon[j],
+      b = polygon[i];
+    if (a[1] > z !== b[1] > z && x < ((b[0] - a[0]) * (z - a[1])) / (b[1] - a[1]) + a[0]) result = !result;
+  }
+  return result;
+}
+/** Spans of a parapet's u, sampled every 0.1 m, whose wall line lies inside another house. */
+function spansInside(chart: WallChartParams, polygon: readonly number[][]): [number, number][] {
+  const sample = wallChartSampler(chart),
+    steps = Math.max(1, Math.ceil(sample.length / 0.1));
+  const out: [number, number][] = [];
+  let start: number | undefined;
+  for (let k = 0; k <= steps; k++) {
+    const u = (sample.length * k) / steps,
+      at = sample.at(u);
+    const isInside = inside(polygon, at.x, at.z);
+    if (isInside && start === undefined) start = u;
+    if ((!isInside || k === steps) && start !== undefined) {
+      out.push([start, isInside ? u : u - sample.length / steps / 2]);
+      start = undefined;
+    }
+  }
+  return out.filter(([a, b]) => b > a);
+}
+/** Two parapets of flat roofs within 2 m of each other's top meet when either runs inside
+ * the other house. */
+export const parapetsMeet: JoinDetector = (a, b) => {
+  const ca = parapetOf(a),
+    cb = parapetOf(b);
+  if (!ca || !cb || Math.abs(ca.topY - cb.topY) > 2) return false;
+  return spansInside(ca, outerPolygon(cb, 0.05)).length > 0 || spansInside(cb, outerPolygon(ca, 0.05)).length > 0;
+};
+/** Peer rule between two parapets that meet: each gives way where it runs inside the other
+ * house, so the two roofs join into one. */
+export const parapetsJoin: ConnectionRule = ({ parts }) => {
+  const [a, b] = parts;
+  const ca = parapetOf(a),
+    cb = parapetOf(b);
+  if (!ca || !cb) return { diagnostics: ["parapetsJoin joins parapet charts"] };
+  const cut = (part: ParticipantView, own: WallChartParams, other: WallChartParams) =>
+    spansInside(own, outerPolygon(other, 0.05)).map(([u0, u1]) => ({
+      part: part.key,
+      modification: {
+        element: "face",
+        op: "removeArea" as const,
+        rect: [u0, own.minGround - 1, u1, own.topY + 1] as Rect
+      }
+    }));
+  return { modify: [...cut(a, ca, cb), ...cut(b, cb, ca)] };
+};
+
 /** Element "apex": the top of the host roof, a cone or the slopes of a pyramid roof. The
  * point faces up. */
 export const roofApexGeometry: GeometryGenerator<Record<string, never>> = (_p, { hosts }) => {
@@ -949,5 +1020,8 @@ export function registerRoofTypes(registry: BuildingRegistry): BuildingRegistry 
   registry.defaults.attach("roof", ["wall", "wall", "wall", "wall"], "roofOnWalls");
   registry.defaults.join("roof", "roof", "roofSlopes");
   registry.detectors.register(joinPairKey("roof", "roof"), slopesMeet);
+  registry.rules.register("parapetsJoin", parapetsJoin);
+  registry.defaults.join("parapet", "parapet", "parapetsJoin");
+  registry.detectors.register(joinPairKey("parapet", "parapet"), parapetsMeet);
   return registry;
 }

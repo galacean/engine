@@ -60,8 +60,11 @@ function select(context: LayingContext<{ elements?: string[] }>, kind: GeometryE
   const requested = context.params.elements;
   if (requested === undefined) return available;
   if (!Array.isArray(requested)) throw Error("elements must be a list of element ids");
-  for (const id of requested) if (!available.includes(id)) throw Error(`No ${kind} element "${id}"`);
-  return [...requested];
+  // An element a rule removed lays nothing; an element the geometry never had is an error.
+  const original = context.geometry.original.elements;
+  for (const id of requested)
+    if (!available.includes(id) && original[id]?.kind !== kind) throw Error(`No ${kind} element "${id}"`);
+  return requested.filter((id) => available.includes(id));
 }
 function extent(context: LayingContext<unknown>, label: string): Vec3 {
   const size = unitExtent(context.unit);

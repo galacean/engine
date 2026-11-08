@@ -177,6 +177,70 @@ export const openingCutsBand: ConnectionRule = ({ parts }) => {
   };
 };
 
+/** Whether (x, z) lies inside a closed polygon of (x, y, z) points. */
+function insideOutline(points: readonly (readonly number[])[], x: number, z: number) {
+  let result = false;
+  for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
+    const a = points[j],
+      b = points[i];
+    if (a[2] > z !== b[2] > z && x < ((b[0] - a[0]) * (z - a[2])) / (b[2] - a[2]) + a[0]) result = !result;
+  }
+  return result;
+}
+const outlineOf = (wall: ParticipantView) => {
+  const e = wall.geometry.original.elements.outline;
+  return e?.kind === "curve" ? e.curve.points : undefined;
+};
+const mountPoint = (part: ParticipantView) => {
+  const e = part.geometry.original.elements.mount;
+  return e?.kind === "point" ? e.frame.origin : undefined;
+};
+/** A mounted part of one house is hidden by another house when its mount lies inside that
+ * house's outer face. Of that house's walls, the one nearest to the mount answers. */
+export const mountInsideHouse: JoinDetector = (a, b) => {
+  const [mount, wall] = mountPoint(a) ? [a, b] : [b, a];
+  const point = mountPoint(mount),
+    outline = outlineOf(wall),
+    chart = chartOf(wall);
+  if (!point || !outline || !chart || mount.group === wall.group) return false;
+  // The outer face: the wall line pushed out by the wall's outer offset.
+  const n = outline.length;
+  const face = outline.map((p, i) => {
+    const prev = outline[(i - 1 + n) % n],
+      next = outline[(i + 1) % n];
+    const tx = next[0] - prev[0],
+      tz = next[2] - prev[2],
+      l = Math.hypot(tx, tz) || 1;
+    return [p[0] - (tz / l) * chart.nominalOuter, p[1], p[2] + (tx / l) * chart.nominalOuter];
+  });
+  if (!insideOutline(face, point[0], point[2])) return false;
+  const distance = (p: readonly number[], q: readonly number[]) => {
+    const dx = q[0] - p[0],
+      dz = q[2] - p[2],
+      l2 = dx * dx + dz * dz;
+    const t = l2 > 0 ? Math.max(0, Math.min(1, ((point[0] - p[0]) * dx + (point[2] - p[2]) * dz) / l2)) : 0;
+    return Math.hypot(point[0] - p[0] - dx * t, point[2] - p[2] - dz * t);
+  };
+  let best = Infinity,
+    nearest = 0;
+  for (let i = 0; i < n; i++) {
+    const d = distance(outline[i], outline[(i + 1) % n]);
+    if (d < best) [best, nearest] = [d, i];
+  }
+  // The nearest edge belongs to this wall when both its ends are among the wall's points.
+  const own = (p: readonly number[]) => chart.points.some((q) => Math.hypot(q[0] - p[0], q[2] - p[2]) < 1e-6);
+  return own(outline[nearest]) && own(outline[(nearest + 1) % n]);
+};
+/** Peer rule between a mounted part and a wall of another house that hides it: the part
+ * lays nothing, and a diagnostic says why. The opening stays: it lies inside the other house. */
+export const mountHidden: ConnectionRule = ({ parts }) => {
+  const mount = parts.find((p) => mountPoint(p))!;
+  return {
+    modify: [{ part: mount.key, modification: { element: "mount", op: "removeElement" } }],
+    diagnostics: [`${mount.key} is inside another house`]
+  };
+};
+
 /** Part types of prefabs mounted on house walls. */
 export const WALL_MOUNTS = ["window", "door", "lamp"] as const;
 
@@ -186,11 +250,14 @@ export function registerOpeningTypes(registry: BuildingRegistry): BuildingRegist
   registry.geometry.register("houseWallMount", houseWallMountGeometry);
   registry.rules.register("wallOpening", wallOpening);
   registry.rules.register("openingCutsBand", openingCutsBand);
+  registry.rules.register("mountHidden", mountHidden);
   for (const type of WALL_MOUNTS) {
     registry.defaults.attach(type, ["wall"], "wallOpening");
     registry.defaults.attach(type, ["wall", "wall", "wall", "wall"], "wallOpening");
     registry.defaults.join(type, "floorBand", "openingCutsBand");
     registry.detectors.register(joinPairKey(type, "floorBand"), openingMeetsBand);
+    registry.defaults.join(type, "wall", "mountHidden");
+    registry.detectors.register(joinPairKey(type, "wall"), mountInsideHouse);
   }
   return registry;
 }

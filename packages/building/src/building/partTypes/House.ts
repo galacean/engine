@@ -11,6 +11,7 @@ import {
   unitFits,
   type BuildingUnit,
   type ConnectionRule,
+  type DerivedPartSpec,
   type JoinDetector,
   type LaidUnitSpec,
   type Rect,
@@ -21,7 +22,8 @@ import {
   type GeometryGenerator,
   type LayingAlgorithm,
   type LayingContext,
-  type SurfaceKind
+  type SurfaceKind,
+  type Vec3
 } from "../core";
 import { profileShape, publishProfileWall } from "../runtime/ProfileGeometry";
 import { profileWallEnvelope } from "../runtime/ConstructionWallEnvelope";
@@ -161,7 +163,8 @@ function sharpCorners(points: readonly (readonly number[])[]): number[] {
   return out;
 }
 /** Element "face": one side of the house, between two sharp corners of the shared profile.
- * Courses stay continuous with the other sides through `uOffset`. */
+ * Courses stay continuous with the other sides through `uOffset`. Element "outline": the
+ * wall line around the whole house, a closed curve. */
 export const houseWallSideGeometry: GeometryGenerator<HouseShared & { side: number }> = (p, context) => {
   const whole = houseWallGeometry(p, context).elements.face;
   if (whole.kind !== "surface") throw Error("Unexpected wall chart");
@@ -186,7 +189,16 @@ export const houseWallSideGeometry: GeometryGenerator<HouseShared & { side: numb
     third: indexes.map((i) => chart.third[i]),
     uOffset
   };
-  return { elements: { face: { kind: "surface", surface: { kind: "wallChart", params: side } } } };
+  return {
+    elements: {
+      face: { kind: "surface", surface: { kind: "wallChart", params: side } },
+      // The wall line around the whole house, so that rules can tell what lies inside it.
+      outline: {
+        kind: "curve",
+        curve: { points: chart.points.slice(0, n).map((q) => [q[0], q[1], q[2]] as Vec3), closed: true }
+      }
+    }
+  };
 };
 
 type CourseRule = "staggered_rows" | "overlap_rows" | "parallel_rows" | "horizontal_rows";
@@ -1129,6 +1141,170 @@ export const wallCorner: ConnectionRule = ({ parts, seed, params }) => {
   };
 };
 
+/** Where the outer faces of two walls cross: the point, each face's outward normal there and
+ * each wall's chart u. Crossings closer than `clear` to an end of either face are left out:
+ * corners have their own stones. */
+function outerCrossings(ca: WallChartParams, cb: WallChartParams, clear: number) {
+  const faces = (c: WallChartParams) =>
+    edges(c).map((e) => {
+      const a = c.points[e.edge - 1],
+        b = c.points[e.edge];
+      const tx = (b[0] - a[0]) / e.l,
+        tz = (b[2] - a[2]) / e.l;
+      const n = [-tz, tx];
+      return {
+        u: e.u,
+        l: e.l,
+        n,
+        a: [a[0] + n[0] * c.nominalOuter, a[2] + n[1] * c.nominalOuter],
+        d: [b[0] - a[0], b[2] - a[2]]
+      };
+    });
+  const fa = faces(ca),
+    fb = faces(cb);
+  const ends = [
+    fa[0].a,
+    fb[0].a,
+    ...[fa, fb].map((f) => [f.at(-1)!.a[0] + f.at(-1)!.d[0], f.at(-1)!.a[1] + f.at(-1)!.d[1]])
+  ];
+  const out: { point: number[]; normals: [number[], number[]]; u: [number, number] }[] = [];
+  for (const a of fa)
+    for (const b of fb) {
+      const det = a.d[0] * b.d[1] - a.d[1] * b.d[0];
+      if (Math.abs(det) < 1e-12) continue;
+      const w = [b.a[0] - a.a[0], b.a[1] - a.a[1]];
+      const s = (w[0] * b.d[1] - w[1] * b.d[0]) / det,
+        t = (w[0] * a.d[1] - w[1] * a.d[0]) / det;
+      if (s < 0 || s > 1 || t < 0 || t > 1) continue;
+      const point = [a.a[0] + a.d[0] * s, a.a[1] + a.d[1] * s];
+      // Faces that run nearly together have no seam between them.
+      if (a.n[0] * b.n[0] + a.n[1] * b.n[1] >= 0.9) continue;
+      if (ends.some((e) => Math.hypot(e[0] - point[0], e[1] - point[1]) < clear)) continue;
+      out.push({ point, normals: [a.n, b.n], u: [a.u + a.l * s, b.u + b.l * t] });
+    }
+  return out;
+}
+/** Two walls of different houses cross when their outer faces do. */
+const wallsCross = (ca: WallChartParams, cb: WallChartParams) => outerCrossings(ca, cb, 0).length > 0;
+/** Two walls meet at a corner, where one ends and the other starts, or cross, where their
+ * outer faces pass through each other. */
+export const wallsTouch: JoinDetector = (a, b) => {
+  const ca = chartOf(a),
+    cb = chartOf(b);
+  return !!ca && !!cb && (wallsMeet(a, b) || wallsCross(ca, cb));
+};
+
+/** Peer rule between two walls whose outer faces cross: the connection derives a column of
+ * seam stones at each crossing. The stones face between the two faces and run from the
+ * higher wall base to the lower wall top. Crossings near a corner of either wall are left to
+ * its corner stones. */
+export const wallCrossing: ConnectionRule = ({ parts, seed }) => {
+  const [a, b] = parts;
+  const ca = chartOf(a),
+    cb = chartOf(b);
+  if (!ca || !cb) return { diagnostics: ["wallCrossing joins wall charts"] };
+  const unit = a.unit;
+  if (!unit?.scale) return { diagnostics: ["wallCrossing needs the wall unit's scale"] };
+  const scale: [number, number, number] = [
+    unit.scale[0] / REFERENCE.width,
+    unit.scale[1] / REFERENCE.height,
+    unit.scale[2] / REFERENCE.depth
+  ];
+  const [sa, sb] = [wallChartSampler(ca), wallChartSampler(cb)];
+  const derive = outerCrossings(ca, cb, 0.2 * scale[0]).flatMap((x, i): DerivedPartSpec[] => {
+    const [pa, pb] = [sa.at(x.u[0]), sb.at(x.u[1])];
+    const bottom = Math.max(pa.ground, pb.ground),
+      top = Math.min(pa.roof, pb.roof);
+    const n = [x.normals[0][0] + x.normals[1][0], x.normals[0][1] + x.normals[1][1]];
+    const length = Math.hypot(n[0], n[1]);
+    if (!(top - bottom > 0.1 * scale[1]) || length < 1e-6) return [];
+    const normal: [number, number] = [n[0] / length, n[1] / length];
+    const frame = {
+      origin: [x.point[0], bottom, x.point[1]] as [number, number, number],
+      x: [normal[1], 0, -normal[0]] as [number, number, number],
+      y: [0, 1, 0] as [number, number, number],
+      z: [normal[0], 0, normal[1]] as [number, number, number]
+    };
+    return [
+      {
+        localId: `seam${i}`,
+        type: "wallSeam",
+        geometry: { elements: { seam: { kind: "point" as const, frame } } },
+        algorithm: {
+          type: "seamStones",
+          params: { seed: deriveSeed(seed, "seam", i), bottom, top, scale, wallU: (ca.uOffset ?? 0) + x.u[0] }
+        },
+        unit: { ...unit, range: { min: [0.05, 0.05, 0.5], max: [3, 3, 8] } }
+      }
+    ];
+  });
+  return { derive };
+};
+/** Peer rule between two walls: corner stones where they meet at a corner, seam stones where
+ * their outer faces cross. */
+export const wallJoin: ConnectionRule = (context) => {
+  const [a, b] = context.parts;
+  return wallsMeet(a, b) ? wallCorner(context) : wallCrossing(context);
+};
+
+interface SeamStoneParams {
+  seed: number;
+  bottom: number;
+  top: number;
+  scale: [number, number, number];
+  wallU: number;
+}
+/** Boundaries of the seam stones from bottom to top: about half a metre each, with a jitter. */
+function seamRows(p: SeamStoneParams): number[] {
+  const span = p.top - p.bottom;
+  const count = Math.max(2, Math.ceil((2 * span) / p.scale[1]));
+  return Array.from({ length: count + 1 }, (_, i) =>
+    i === 0 || i === count
+      ? p.bottom + (i / count) * span
+      : p.bottom + ((i + (new Random(deriveSeed(p.seed, "row", i)).next() - 0.5) * 0.6) / count) * span
+  );
+}
+/** A column of stones over a seam where two walls cross. */
+export const seamStones: LayingAlgorithm<SeamStoneParams, { rows: number }> = {
+  info: {
+    accepts: ["point"],
+    summary: "A column of stones over the seam where two walls cross.",
+    params: {
+      seed: "Seed of the seam.",
+      bottom: "Height of the first stone's base.",
+      top: "Height of the last stone's top.",
+      scale: "Unit footprint scale [width, height, depth] against 0.5 × 0.4375 × 0.1.",
+      wallU: "Where the seam lies along the first wall's house perimeter, in metres."
+    }
+  },
+  plan(context) {
+    return { count: seamRows(context.params).length - 1, data: { rows: 0 } };
+  },
+  unitAt(context, _data, row) {
+    const p = context.params;
+    const ys = seamRows(p);
+    const frame = context.geometry.point("seam");
+    const width = (0.4 + 0.1 * (new Random(deriveSeed(p.seed, "width", row)).next() - 0.5)) * p.scale[0];
+    const gap = 0.05 * p.scale[1];
+    return masonryUnit(
+      context.unit,
+      String(row),
+      { x: frame.origin[0], z: frame.origin[2], tangent: [frame.x[0], frame.x[2]] },
+      0,
+      width,
+      [ys[row] + gap, ys[row] + gap, ys[row + 1] - gap, ys[row + 1] - gap],
+      0.3 * p.scale[2],
+      {
+        anchor_uv: [0, (ys[row] + ys[row + 1]) / 2 - p.bottom],
+        flags: 4,
+        gap: 0,
+        accent: true,
+        wallU: [p.wallU - width / 2, p.wallU + width / 2]
+      }
+    );
+  }
+};
+
 /** Registers the house part types into a registry. */
 export function registerHouseTypes(registry: BuildingRegistry): BuildingRegistry {
   registry.surfaces.register("wallChart", wallChartSurface);
@@ -1145,7 +1321,10 @@ export function registerHouseTypes(registry: BuildingRegistry): BuildingRegistry
   registry.defaults.attach("floorBand", ["wall", "wall", "wall", "wall"], "none");
   registry.geometry.register("houseWallSide", houseWallSideGeometry);
   registry.rules.register("wallCorner", wallCorner);
-  registry.defaults.join("wall", "wall", "wallCorner");
-  registry.detectors.register(joinPairKey("wall", "wall"), wallsMeet);
+  registry.rules.register("wallCrossing", wallCrossing);
+  registry.rules.register("wallJoin", wallJoin);
+  registry.algorithms.register("seamStones", seamStones);
+  registry.defaults.join("wall", "wall", "wallJoin");
+  registry.detectors.register(joinPairKey("wall", "wall"), wallsTouch);
   return registerOpeningTypes(registerRoofTypes(registry));
 }

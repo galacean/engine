@@ -326,6 +326,18 @@ function wallAttachmentPart(
   };
 }
 
+/** Several houses in one draft, so that houses that touch connect: one group per house. */
+export function buildCoreHouses(
+  houses: readonly CoreHouseParameters[],
+  assets?: BuildingUnitAssets
+): BuildingCoreDraft {
+  const drafts = houses.map((h) => buildCoreHouse(h, assets));
+  return {
+    groups: drafts.flatMap((d) => d.groups),
+    parts: drafts.flatMap((d) => d.parts),
+    connections: drafts.flatMap((d) => d.connections ?? [])
+  };
+}
 /** A house group: walls and a roof that share the footprint, wall height and roof. */
 export function buildCoreHouse(p: CoreHouseParameters, assets?: BuildingUnitAssets): BuildingCoreDraft {
   if (p.attachments?.length && !assets) throw Error("Wall attachments need the asset library");

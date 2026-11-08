@@ -69,6 +69,7 @@ type Family = "wall" | "parapet" | "roof" | "spire" | "plaster" | "prefab";
 const FAMILIES: Readonly<Record<string, Family>> = {
   wall: "wall",
   cornerStone: "wall",
+  wallSeam: "wall",
   floorBand: "wall",
   parapet: "parapet",
   roof: "roof",

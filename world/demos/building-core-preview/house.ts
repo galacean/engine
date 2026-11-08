@@ -32,7 +32,7 @@ import { implementBuilding } from "@galacean/engine-building/building/parts/arch
 import { renderBuilding } from "@galacean/engine-building/building/parts/architecture/BuildingRender";
 import { createBuildingRegistry, designBuildingCore } from "@galacean/engine-building/building/core/index";
 import { registerHouseTypes } from "@galacean/engine-building/building/partTypes/House";
-import { buildCoreHouse, type CoreHouseParameters } from "@galacean/engine-building/building/application/CoreEuropean";
+import { buildCoreHouses, type CoreHouseParameters } from "@galacean/engine-building/building/application/CoreEuropean";
 import { compileCoreBuilding, prepareCoreBuilding } from "@galacean/engine-building/building/render/CoreBuilding";
 import { constructionDecorationType } from "@galacean/engine-building/building/runtime/ConstructionDecorationCatalog";
 import {
@@ -58,6 +58,8 @@ interface Case {
   id: string;
   title: string;
   house: CoreHouseParameters;
+  /** Further houses in the same draft, such as a neighbour the house touches. */
+  others?: CoreHouseParameters[];
   ground: Ground;
 }
 /** The facade the initial village plans for a house: windows, a door and a wall lamp. */
@@ -162,6 +164,68 @@ const cases = (): Case[] => [
     house: withStone({ id: "a", seed: 7, height: 5, circle: { center: [0, 0], radius: 6 } }),
     ground: flat
   },
+  {
+    id: "pair",
+    title: "相交的两栋房屋",
+    house: { id: "a", seed: 3, height: 4, rectangle: { center: [-1.5, 0], size: [7, 5], rotation: 0 } },
+    others: [
+      {
+        id: "b",
+        seed: 9,
+        height: 5.5,
+        rectangle: { center: [3, 0], size: [4, 9], rotation: 0.3 },
+        roof: { ridge_length: 1 }
+      }
+    ],
+    ground: flat
+  },
+  {
+    id: "pair-flat",
+    title: "相交的平顶与圆塔",
+    house: {
+      id: "a",
+      seed: 3,
+      height: 4,
+      rectangle: { center: [-1.5, 0], size: [7, 5], rotation: 0 },
+      roof: { height: 0 }
+    },
+    others: [{ id: "b", seed: 9, height: 6, circle: { center: [2.5, 1], radius: 2.5, phase: 0 }, roof: { height: 0 } }],
+    ground: flat
+  },
+  {
+    id: "pair-level",
+    title: "等高的两个平顶",
+    house: {
+      id: "a",
+      seed: 3,
+      height: 4,
+      rectangle: { center: [-1.5, 0], size: [7, 5], rotation: 0 },
+      roof: { height: 0 }
+    },
+    others: [
+      {
+        id: "b",
+        seed: 9,
+        height: 4.5,
+        rectangle: { center: [2.5, 1.5], size: [5, 6], rotation: 0.5 },
+        roof: { height: 0 }
+      }
+    ],
+    ground: flat
+  },
+  {
+    id: "pair-mixed",
+    title: "平顶与坡顶相交",
+    house: {
+      id: "a",
+      seed: 3,
+      height: 4,
+      rectangle: { center: [-1.5, 0], size: [7, 5], rotation: 0 },
+      roof: { height: 0 }
+    },
+    others: [{ id: "b", seed: 9, height: 4, rectangle: { center: [2.5, 1.5], size: [5, 6], rotation: 0.5 } }],
+    ground: flat
+  },
   { id: "steep", title: "陡屋顶", house: { id: "a", roof: { height: 0.8, eave: 0.4 } }, ground: flat },
   { id: "gable", title: "山墙屋顶", house: { id: "a", roof: { ridge_length: 1 } }, ground: flat },
   {
@@ -244,8 +308,8 @@ engine.run();
 
 // The two copies stand side by side along x; each samples the ground as if it stood at the origin.
 const SPACING = 13;
-const moved = (c: Case, dx: number): CoreHouseParameters => {
-  const h = c.house;
+const moved = (c: Case, dx: number): CoreHouseParameters[] => [c.house, ...(c.others ?? [])].map((h) => shift(h, dx));
+const shift = (h: CoreHouseParameters, dx: number): CoreHouseParameters => {
   if (h.circle) return { ...h, circle: { ...h.circle, center: [h.circle.center[0] + dx, h.circle.center[1]] } };
   const r = h.rectangle ?? { center: [0, 0] as [number, number], size: [8, 6] as [number, number], rotation: 0 };
   return { ...h, rectangle: { ...r, center: [r.center[0] + dx, r.center[1]] } };
@@ -263,10 +327,10 @@ interface Drawn {
   units: number;
 }
 async function online(c: Case, dx: number, parent: Entity, signal: AbortSignal): Promise<Drawn> {
-  const { walls: _w, footprint: _f, ...p } = moved(c, dx);
+  const houses = moved(c, dx).map(({ walls: _w, footprint: _f, ...p }) => p);
   const ground = groundFor(c, dx);
   const start = performance.now();
-  const design = designBuilding(European.buildHouses(p as never), ground, library.compilation);
+  const design = designBuilding(European.buildHouses(houses as never), ground, library.compilation);
   if (far) {
     const preview = profilePreview(buildingPreviewInput(design, await prepareBuildingPublication(design)), ground, {
       assets: library.compilation,
@@ -286,10 +350,12 @@ async function online(c: Case, dx: number, parent: Entity, signal: AbortSignal):
 }
 async function core(c: Case, dx: number, parent: Entity, signal: AbortSignal): Promise<Drawn> {
   const registry = registerHouseTypes(createBuildingRegistry());
-  const house = moved(c, dx),
+  const houses = moved(c, dx),
     ground = groundFor(c, dx);
   const start = performance.now();
-  const result = designBuildingCore(buildCoreHouse(house, library.compilation), registry, { environment: { ground } });
+  const result = designBuildingCore(buildCoreHouses(houses, library.compilation), registry, {
+    environment: { ground }
+  });
   const options = { environment: { ground }, assets: library.compilation };
   if (far) {
     const prepared = prepareCoreBuilding(result, registry, options);
