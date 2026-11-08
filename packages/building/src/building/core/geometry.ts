@@ -1,0 +1,415 @@
+import { add, cross, dot, finite, length, normalize, positive, scale, sub, vec3, type Vec3 } from "./math";
+import { compareKeys } from "./identity";
+
+/** Orthonormal frame. `x` follows u (or the curve), `y` follows v (or up), `z = x × y`. */
+export interface Frame {
+  readonly origin: Vec3;
+  readonly x: Vec3;
+  readonly y: Vec3;
+  readonly z: Vec3;
+}
+/** Polyline in part-local metres. The parameter is arc length. */
+export interface CurveData {
+  readonly points: readonly Vec3[];
+  readonly closed?: boolean;
+  readonly up?: Vec3;
+}
+/** Plain data evaluated through a registered surface kind, so it can cross threads. */
+export interface SurfaceData {
+  readonly kind: string;
+  readonly params: unknown;
+}
+/** Where a point sits on a host surface, in the host's own (u, v) coordinates. */
+export interface SurfaceLocation {
+  readonly host: number;
+  readonly element: string;
+  readonly u: number;
+  readonly v: number;
+}
+export type GeometryElement =
+  | { readonly kind: "point"; readonly frame: Frame; readonly on?: SurfaceLocation }
+  | { readonly kind: "curve"; readonly curve: CurveData }
+  | { readonly kind: "surface"; readonly surface: SurfaceData };
+/** One geometry holds any mix of points, curves and surfaces. Element ids are unique across kinds. */
+export interface BuildingGeometry {
+  readonly elements: Readonly<Record<string, GeometryElement>>;
+}
+/** [u0, v0, u1, v1] in surface coordinates. */
+export type Rect = readonly [number, number, number, number];
+/** Edits produced by connection rules. Original geometry is never mutated. */
+export type GeometryModification =
+  | { readonly element: string; readonly op: "removeElement" }
+  | { readonly element: string; readonly op: "removeArea" | "addArea"; readonly rect: Rect }
+  | { readonly element: string; readonly op: "removeSpan"; readonly span: readonly [number, number] };
+
+export interface SurfaceDomain {
+  readonly u: readonly [number, number];
+  readonly v: readonly [number, number];
+  /** u wraps around with period u[1] - u[0]. */
+  readonly closedU: boolean;
+}
+/** Queries the building asks of the world around it. These are interfaces only: the
+ * owning systems implement them (the ground height belongs to the terrain system), and
+ * the building system neither samples, caches nor reshapes what they return. They must
+ * be pure: the same input gives the same output, on the main thread and in Workers.
+ * The draft never stores them. */
+export interface BuildingEnvironment {
+  readonly ground?: (x: number, z: number) => number;
+}
+/** Built-in surfaces are metric: one unit of u or v is one metre along the surface. */
+export interface SurfaceKind<P = any> {
+  domain(params: P, environment: BuildingEnvironment): SurfaceDomain;
+  frame(params: P, u: number, v: number, environment: BuildingEnvironment): Frame;
+}
+export interface SurfaceKinds {
+  get(kind: string): SurfaceKind | undefined;
+}
+/** A surface kind with the environment already bound, as geometry consumers use it. */
+export interface BoundSurfaceKind {
+  domain(params: unknown): SurfaceDomain;
+  frame(params: unknown, u: number, v: number): Frame;
+}
+export interface BoundSurfaces {
+  get(kind: string): BoundSurfaceKind | undefined;
+}
+/** Surface kinds with one environment bound. */
+export function bindSurfaces(surfaces: SurfaceKinds, environment: BuildingEnvironment): BoundSurfaces {
+  return {
+    get(name) {
+      const kind = surfaces.get(name);
+      return (
+        kind && {
+          domain: (params) => kind.domain(params, environment),
+          frame: (params, u, v) => kind.frame(params, u, v, environment)
+        }
+      );
+    }
+  };
+}
+
+const EPSILON = 1e-9;
+
+class CurveSampler {
+  readonly length: number;
+  readonly closed: boolean;
+  private readonly up: Vec3;
+  private readonly starts: number[] = [];
+  private readonly segments: { from: Vec3; direction: Vec3; length: number }[] = [];
+  constructor(curve: CurveData) {
+    if (!curve || !Array.isArray(curve.points) || curve.points.length < 2)
+      throw Error("A curve needs at least two points");
+    const points = curve.points.map((p, i) => vec3(p, `Curve point ${i}`));
+    this.closed = curve.closed === true;
+    if (this.closed && points.length < 3) throw Error("A closed curve needs at least three points");
+    this.up = normalize(vec3(curve.up ?? [0, 1, 0], "Curve up"), "curve up");
+    let total = 0;
+    const count = this.closed ? points.length : points.length - 1;
+    for (let i = 0; i < count; i++) {
+      const from = points[i],
+        delta = sub(points[(i + 1) % points.length], from),
+        l = length(delta);
+      if (!(l > EPSILON)) throw Error(`Curve segment ${i} has zero length`);
+      this.starts.push(total);
+      this.segments.push({ from, direction: scale(delta, 1 / l), length: l });
+      total += l;
+    }
+    this.length = total;
+  }
+  /** Number of straight segments. */
+  get segmentCount(): number {
+    return this.starts.length;
+  }
+  /** Arc-length parameter of vertex i. */
+  vertex(i: number): number {
+    return i < this.starts.length ? this.starts[i] : this.length;
+  }
+  frame(s: number): Frame {
+    finite(s, "Curve parameter");
+    if (this.closed) s = ((s % this.length) + this.length) % this.length;
+    else if (s < -EPSILON || s > this.length + EPSILON) throw Error("Curve parameter is outside the curve");
+    let lo = 0,
+      hi = this.starts.length - 1;
+    while (lo < hi) {
+      const mid = (lo + hi + 1) >> 1;
+      if (this.starts[mid] <= s) lo = mid;
+      else hi = mid - 1;
+    }
+    const segment = this.segments[lo];
+    const t = Math.min(Math.max(s - this.starts[lo], 0), segment.length);
+    const x = segment.direction;
+    const yRaw = sub(this.up, scale(x, dot(this.up, x)));
+    if (!(length(yRaw) > 1e-9)) throw Error("Curve tangent is parallel to its up direction");
+    const y = normalize(yRaw);
+    return { origin: add(segment.from, scale(x, t)), x, y, z: cross(x, y) };
+  }
+}
+const samplers = new WeakMap<CurveData, CurveSampler>();
+export function curveSampler(curve: CurveData): CurveSampler {
+  let sampler = samplers.get(curve);
+  if (!sampler) samplers.set(curve, (sampler = new CurveSampler(curve)));
+  return sampler;
+}
+
+/** A curve swept along its up direction. u = arc length, v = height. */
+export const extrusionSurface: SurfaceKind<{ curve: CurveData; height: number }> = {
+  domain: (p) => ({
+    u: [0, curveSampler(p.curve).length],
+    v: [0, positive(p.height, "Extrusion height")],
+    closedU: p.curve.closed === true
+  }),
+  frame: (p, u, v) => {
+    const f = curveSampler(p.curve).frame(u);
+    return { ...f, origin: add(f.origin, scale(f.y, finite(v, "Surface v"))) };
+  }
+};
+/** Rectangle spanned by orthonormal axes x and y. */
+export const planeSurface: SurfaceKind<{ origin: Vec3; x: Vec3; y: Vec3; size: readonly [number, number] }> = {
+  domain: (p) => {
+    planeAxes(p);
+    return {
+      u: [0, positive(p.size?.[0], "Plane width")],
+      v: [0, positive(p.size?.[1], "Plane height")],
+      closedU: false
+    };
+  },
+  frame: (p, u, v) => {
+    const { x, y } = planeAxes(p);
+    const origin = add(
+      add(vec3(p.origin, "Plane origin"), scale(x, finite(u, "Surface u"))),
+      scale(y, finite(v, "Surface v"))
+    );
+    return { origin, x, y, z: cross(x, y) };
+  }
+};
+function planeAxes(p: { x: Vec3; y: Vec3 }) {
+  const x = normalize(vec3(p.x, "Plane x"), "plane x"),
+    y = normalize(vec3(p.y, "Plane y"), "plane y");
+  if (Math.abs(dot(x, y)) > 1e-9) throw Error("Plane axes must be orthogonal");
+  return { x, y };
+}
+
+function frameIssue(frame: Frame): string | undefined {
+  try {
+    vec3(frame?.origin, "Frame origin");
+    const x = vec3(frame.x, "Frame x"),
+      y = vec3(frame.y, "Frame y"),
+      z = vec3(frame.z, "Frame z");
+    for (const axis of [x, y, z]) if (Math.abs(length(axis) - 1) > 1e-6) return "Frame axes must be unit length";
+    if (Math.abs(dot(x, y)) > 1e-6 || Math.abs(dot(y, z)) > 1e-6 || Math.abs(dot(x, z)) > 1e-6)
+      return "Frame axes must be orthogonal";
+    if (dot(cross(x, y), z) < 0) return "Frame must be right-handed";
+  } catch (error) {
+    return (error as Error).message;
+  }
+}
+function rectIssue(rect: unknown): string | undefined {
+  if (!Array.isArray(rect) || rect.length !== 4 || !rect.every((v) => typeof v === "number" && Number.isFinite(v)))
+    return "Area must be four finite numbers [u0, v0, u1, v1]";
+  if (!(rect[2] > rect[0] && rect[3] > rect[1])) return "Area must have positive width and height";
+}
+export function geometryIssue(geometry: BuildingGeometry, surfaces: BoundSurfaces): string | undefined {
+  if (!geometry || typeof geometry.elements !== "object" || geometry.elements === null)
+    return "Geometry must have an elements record";
+  for (const id of Object.keys(geometry.elements).sort(compareKeys)) {
+    if (!id) return "Element ids must not be empty";
+    const element = geometry.elements[id];
+    try {
+      if (element?.kind === "point") {
+        const issue = frameIssue(element.frame);
+        if (issue) return `Point "${id}": ${issue}`;
+      } else if (element?.kind === "curve") curveSampler(element.curve);
+      else if (element?.kind === "surface") {
+        const kind = surfaces.get(element.surface?.kind);
+        if (!kind) return `Surface "${id}" uses unknown kind "${element.surface?.kind}"`;
+        kind.domain(element.surface.params);
+      } else return `Element "${id}" has an unknown kind`;
+    } catch (error) {
+      return `Element "${id}": ${(error as Error).message}`;
+    }
+  }
+}
+export function modificationIssue(geometry: BuildingGeometry, modification: GeometryModification): string | undefined {
+  if (!modification || typeof modification !== "object") return "Modification must be an object";
+  const element = geometry.elements[modification.element];
+  if (!element) return `Modification targets unknown element "${modification.element}"`;
+  switch (modification.op) {
+    case "removeElement":
+      return;
+    case "removeArea":
+    case "addArea":
+      if (element.kind !== "surface") return `${modification.op} needs a surface element`;
+      return rectIssue(modification.rect);
+    case "removeSpan": {
+      if (element.kind !== "curve") return "removeSpan needs a curve element";
+      const span = modification.span;
+      if (!Array.isArray(span) || span.length !== 2 || !span.every(Number.isFinite) || !(span[1] > span[0]))
+        return "Span must be two increasing finite numbers";
+      return;
+    }
+    default:
+      return `Unknown modification "${(modification as { op: unknown }).op}"`;
+  }
+}
+
+/** A surface with its area edits applied. */
+export class EffectiveSurface {
+  readonly domain: SurfaceDomain;
+  readonly bounds: { readonly u: readonly [number, number]; readonly v: readonly [number, number] };
+  private readonly period: number;
+  constructor(
+    private readonly kind: BoundSurfaceKind,
+    private readonly params: unknown,
+    private readonly adds: readonly Rect[],
+    private readonly removes: readonly Rect[]
+  ) {
+    this.domain = kind.domain(params);
+    this.period = this.domain.u[1] - this.domain.u[0];
+    let [u0, u1] = this.domain.u,
+      [v0, v1] = this.domain.v;
+    for (const r of adds) {
+      if (!this.domain.closedU) {
+        u0 = Math.min(u0, r[0]);
+        u1 = Math.max(u1, r[2]);
+      }
+      v0 = Math.min(v0, r[1]);
+      v1 = Math.max(v1, r[3]);
+    }
+    this.bounds = { u: [u0, u1], v: [v0, v1] };
+  }
+  frame(u: number, v: number): Frame {
+    return this.kind.frame(this.params, u, v);
+  }
+  /** Areas removed from this surface, in surface coordinates. */
+  get removed(): readonly Rect[] {
+    return this.removes;
+  }
+  private shifts(): number[] {
+    return this.domain.closedU ? [-this.period, 0, this.period] : [0];
+  }
+  private included(u: number, v: number): boolean {
+    const d = this.domain;
+    if (
+      v >= d.v[0] - EPSILON &&
+      v <= d.v[1] + EPSILON &&
+      (d.closedU || (u >= d.u[0] - EPSILON && u <= d.u[1] + EPSILON))
+    )
+      return true;
+    return this.adds.some((r) =>
+      this.shifts().some(
+        (s) => u >= r[0] + s - EPSILON && u <= r[2] + s + EPSILON && v >= r[1] - EPSILON && v <= r[3] + EPSILON
+      )
+    );
+  }
+  contains(u: number, v: number): boolean {
+    return (
+      this.included(u, v) &&
+      !this.removes.some((r) => this.shifts().some((s) => u > r[0] + s && u < r[2] + s && v > r[1] && v < r[3]))
+    );
+  }
+  /** True when the whole rectangle lies on the effective surface. Inclusion in a union of
+   * added areas is tested at the corners and centre; removed areas are tested exactly. */
+  covers(rect: Rect): boolean {
+    const [v0, v1] = [rect[1], rect[3]];
+    let [u0, u1] = [rect[0], rect[2]];
+    if (!(u1 > u0 && v1 > v0)) return false;
+    if (this.domain.closedU) {
+      const shift = Math.floor((u0 - this.domain.u[0]) / this.period) * this.period;
+      u0 -= shift;
+      u1 -= shift;
+    }
+    const um = (u0 + u1) / 2,
+      vm = (v0 + v1) / 2;
+    const corners: [number, number][] = [
+      [u0, v0],
+      [u1, v0],
+      [u0, v1],
+      [u1, v1],
+      [um, vm]
+    ];
+    if (!corners.every(([u, v]) => this.included(u, v))) return false;
+    return !this.removes.some((r) =>
+      this.shifts().some((s) => r[0] + s < u1 && u0 < r[2] + s && r[1] < v1 && v0 < r[3])
+    );
+  }
+}
+/** A curve with its span edits applied. */
+export class EffectiveCurve {
+  constructor(
+    private readonly sampler: CurveSampler,
+    private readonly removes: readonly (readonly [number, number])[]
+  ) {}
+  get length(): number {
+    return this.sampler.length;
+  }
+  get closed(): boolean {
+    return this.sampler.closed;
+  }
+  frame(s: number): Frame {
+    return this.sampler.frame(s);
+  }
+  get segmentCount(): number {
+    return this.sampler.segmentCount;
+  }
+  vertex(i: number): number {
+    return this.sampler.vertex(i);
+  }
+  isFree(s0: number, s1: number): boolean {
+    if (!(s1 > s0)) return false;
+    if (!this.closed && (s0 < -EPSILON || s1 > this.length + EPSILON)) return false;
+    const shifts = this.closed ? [-this.length, 0, this.length] : [0];
+    return !this.removes.some((r) => shifts.some((s) => r[0] + s < s1 && s0 < r[1] + s));
+  }
+}
+/** Original geometry plus modifications. Laying algorithms only see this view. */
+export class EffectiveGeometry {
+  private readonly removed = new Set<string>();
+  private readonly areas = new Map<string, { adds: Rect[]; removes: Rect[] }>();
+  private readonly spans = new Map<string, [number, number][]>();
+  constructor(
+    readonly original: BuildingGeometry,
+    modifications: readonly GeometryModification[],
+    private readonly surfaces: BoundSurfaces
+  ) {
+    for (const modification of modifications) {
+      const issue = modificationIssue(original, modification);
+      if (issue) throw Error(issue);
+      if (modification.op === "removeElement") this.removed.add(modification.element);
+      else if (modification.op === "removeSpan") {
+        const list = this.spans.get(modification.element) ?? [];
+        list.push([modification.span[0], modification.span[1]]);
+        this.spans.set(modification.element, list);
+      } else {
+        const entry = this.areas.get(modification.element) ?? { adds: [], removes: [] };
+        (modification.op === "addArea" ? entry.adds : entry.removes).push(modification.rect);
+        this.areas.set(modification.element, entry);
+      }
+    }
+  }
+  ids(kind?: GeometryElement["kind"]): string[] {
+    return Object.keys(this.original.elements)
+      .filter((id) => !this.removed.has(id) && (!kind || this.original.elements[id].kind === kind))
+      .sort(compareKeys);
+  }
+  private element<K extends GeometryElement["kind"]>(id: string, kind: K): Extract<GeometryElement, { kind: K }> {
+    const element = this.original.elements[id];
+    if (!element || this.removed.has(id)) throw Error(`Unknown or removed element "${id}"`);
+    if (element.kind !== kind) throw Error(`Element "${id}" is not a ${kind}`);
+    return element as Extract<GeometryElement, { kind: K }>;
+  }
+  point(id: string): Frame {
+    return this.element(id, "point").frame;
+  }
+  location(id: string): SurfaceLocation | undefined {
+    return this.element(id, "point").on;
+  }
+  curve(id: string): EffectiveCurve {
+    return new EffectiveCurve(curveSampler(this.element(id, "curve").curve), this.spans.get(id) ?? []);
+  }
+  surface(id: string): EffectiveSurface {
+    const data = this.element(id, "surface").surface;
+    const kind = this.surfaces.get(data.kind);
+    if (!kind) throw Error(`Unknown surface kind "${data.kind}"`);
+    const area = this.areas.get(id) ?? { adds: [], removes: [] };
+    return new EffectiveSurface(kind, data.params, area.adds, area.removes);
+  }
+}

@@ -1,0 +1,845 @@
+// Part-type layer: house walls and roofs.
+// A house group shares its footprint, wall height and roof parameters. The wall
+// reads them to build its profile, whose top already follows the roof. The roof
+// attaches to the wall and reads the wall's top height and outer face.
+// The profile maths are the existing European geometry functions.
+import {
+  deriveSeed,
+  joinPairKey,
+  Random,
+  sinCos,
+  unitFits,
+  type BuildingUnit,
+  type ConnectionRule,
+  type JoinDetector,
+  type LaidUnitSpec,
+  type Rect,
+  type BuildingEnvironment,
+  type BuildingRegistry,
+  type Frame,
+  type GeometryGenerator,
+  type LayingAlgorithm,
+  type SurfaceKind
+} from "../core";
+import { profileShape, publishProfileWall, profileRoofGeometry } from "../runtime/ProfileGeometry";
+import { profileWallEnvelope } from "../runtime/ConstructionWallEnvelope";
+import { wallRoofJointHeight, type ConstructionWallRoofJoint } from "../runtime/ConstructionWallRoofJoint";
+import { unitFootprintScale, type MaterialFootprint } from "../runtime/MaterialFootprint";
+import type { ProfileFootprint, ProfileRoofParameters } from "../runtime/ProfileParameters";
+
+/** The wall chart: the perimeter unrolled along u, height along v. Plain JSON. */
+export interface WallChartParams {
+  /** Perimeter points (x, ground y, z); edge i runs from points[i - 1] to points[i]. */
+  readonly points: readonly (readonly number[])[];
+  /** Top and lower lift at each point. */
+  readonly top: readonly number[];
+  readonly third: readonly number[];
+  readonly minGround: number;
+  readonly maxYGable: number;
+  readonly topY: number;
+  /** Where the wall meets the roof, when it has one. */
+  readonly joint?: ConstructionWallRoofJoint;
+  /** Outer faces of the wall: laid units sit on the nominal one, the roof on the finish one. */
+  readonly nominalOuter: number;
+  readonly finishOuter: number;
+  /** Where this chart starts on the house perimeter, in metres. Lets the walls of one
+   * house share continuous courses. Default: 0. */
+  readonly uOffset?: number;
+}
+
+const flat = () => 0;
+const ground = (environment: BuildingEnvironment) => environment.ground ?? flat;
+
+function edges(p: WallChartParams) {
+  const out: { edge: number; u: number; l: number }[] = [];
+  let u = 0;
+  for (let edge = 1; edge < p.points.length; edge++) {
+    const a = p.points[edge - 1],
+      b = p.points[edge],
+      l = Math.hypot(b[0] - a[0], b[2] - a[2]);
+    if (l < 1e-8) continue;
+    out.push({ edge, u, l });
+    u += l;
+  }
+  return out;
+}
+
+/** u = metres along the perimeter, v = height. Axes stay upright on every edge. */
+export const wallChartSurface: SurfaceKind<WallChartParams> = {
+  domain: (p) => {
+    const e = edges(p),
+      last = e[e.length - 1];
+    return { u: [0, last ? last.u + last.l : 0], v: [p.minGround, p.maxYGable + 0.12], closedU: false };
+  },
+  frame: (p, u, v): Frame => {
+    const all = edges(p);
+    const e = all.find((x) => u <= x.u + x.l) ?? all[all.length - 1];
+    const a = p.points[e.edge - 1],
+      b = p.points[e.edge],
+      s = (u - e.u) / e.l;
+    const tangent = [(b[0] - a[0]) / e.l, 0, (b[2] - a[2]) / e.l] as const;
+    return {
+      origin: [a[0] + s * (b[0] - a[0]), v, a[2] + s * (b[2] - a[2])],
+      x: [tangent[0], 0, tangent[2]],
+      y: [0, 1, 0],
+      z: [-tangent[2], 0, tangent[0]]
+    };
+  }
+};
+
+export interface HouseShared {
+  readonly footprint: ProfileFootprint;
+  readonly height: number;
+  readonly roof?: ProfileRoofParameters;
+  /** Unit footprint of the wall material; it sets the wall's thickness. */
+  readonly wallUnit?: MaterialFootprint;
+}
+
+/** Element "face": the wall chart. Its top follows the roof from the shared parameters. */
+export const houseWallGeometry: GeometryGenerator<HouseShared> = (p, { environment }) => {
+  const envelope = profileWallEnvelope(p.footprint, p.wallUnit);
+  const profile = publishProfileWall(
+    { shape: profileShape(p.footprint), height: p.height, roof: p.roof },
+    ground(environment),
+    true,
+    envelope
+  );
+  const params: WallChartParams = {
+    points: profile.points.map((q) => [...q]),
+    top: [...profile.top],
+    third: [...profile.third],
+    minGround: profile.minGround,
+    maxYGable: profile.maxYGable,
+    topY: profile.topY,
+    ...(profile.wallRoofJoint && { joint: profile.wallRoofJoint }),
+    nominalOuter: envelope.nominalOuter,
+    finishOuter: envelope.finishOuter
+  };
+  return { elements: { face: { kind: "surface", surface: { kind: "wallChart", params } } } };
+};
+
+/** Point indexes where the closed perimeter turns by more than 30°. */
+function sharpCorners(points: readonly (readonly number[])[]): number[] {
+  const n = points.length - 1;
+  const dir = (i: number) => {
+    const a = points[i],
+      b = points[i + 1],
+      l = Math.hypot(b[0] - a[0], b[2] - a[2]) || 1;
+    return [(b[0] - a[0]) / l, (b[2] - a[2]) / l];
+  };
+  const out: number[] = [];
+  for (let i = 0; i < n; i++) {
+    const [ax, az] = dir((i - 1 + n) % n),
+      [bx, bz] = dir(i);
+    if (ax * bx + az * bz < CORNER_COS) out.push(i);
+  }
+  return out;
+}
+/** Element "face": one side of the house, between two sharp corners of the shared profile.
+ * Courses stay continuous with the other sides through `uOffset`. */
+export const houseWallSideGeometry: GeometryGenerator<HouseShared & { side: number }> = (p, context) => {
+  const whole = houseWallGeometry(p, context).elements.face;
+  if (whole.kind !== "surface") throw Error("Unexpected wall chart");
+  const chart = whole.surface.params as WallChartParams;
+  const corners = sharpCorners(chart.points);
+  if (!(p.side >= 0 && p.side < corners.length)) throw Error(`The house has no side ${p.side}`);
+  const n = chart.points.length - 1;
+  const from = corners[p.side],
+    to = corners[(p.side + 1) % corners.length];
+  const indexes: number[] = [];
+  for (let i = from; ; i = (i + 1) % n) {
+    indexes.push(i);
+    if (indexes.length > 1 && i === to) break;
+  }
+  let uOffset = 0;
+  for (let i = 0; i < from; i++)
+    uOffset += Math.hypot(chart.points[i + 1][0] - chart.points[i][0], chart.points[i + 1][2] - chart.points[i][2]);
+  const side: WallChartParams = {
+    ...chart,
+    points: indexes.map((i) => [...chart.points[i]]),
+    top: indexes.map((i) => chart.top[i]),
+    third: indexes.map((i) => chart.third[i]),
+    uOffset
+  };
+  return { elements: { face: { kind: "surface", surface: { kind: "wallChart", params: side } } } };
+};
+
+/** Element "roof": the roof surface over the host wall. Read by the roof's laying algorithm. */
+export const houseRoofGeometry: GeometryGenerator<HouseShared> = (p, { hosts }) => {
+  const wall = hosts[0]?.geometry.original.elements.face;
+  if (wall?.kind !== "surface" || wall.surface.kind !== "wallChart") throw Error("A roof attaches to a house wall");
+  if (!p.roof) throw Error("A roof needs roof parameters");
+  const chart = wall.surface.params as WallChartParams;
+  const roof = profileRoofGeometry(profileShape(p.footprint), p.roof, chart.topY, chart.finishOuter);
+  return { elements: { roof: { kind: "surface", surface: { kind: "houseRoof", params: roof } } } };
+};
+/** The roof chart is consumed whole by the roof algorithm; its frame is not sampled yet. */
+export const houseRoofSurface: SurfaceKind<unknown> = {
+  domain: () => ({ u: [0, 1], v: [0, 1], closedU: false }),
+  frame: () => ({ origin: [0, 0, 0], x: [1, 0, 0], y: [0, 1, 0], z: [0, 0, 1] })
+};
+
+type CourseRule = "staggered_rows" | "overlap_rows" | "parallel_rows" | "horizontal_rows";
+interface CourseEdge {
+  edge: number;
+  u: number;
+  l: number;
+  /** First and end column for even and odd rows. */
+  c0: [number, number];
+  c1: [number, number];
+  offset: number;
+  count: number;
+  columns: number;
+}
+interface CourseLayout {
+  rule: CourseRule;
+  pitch: number;
+  rowHeight: number;
+  rows: number;
+  edges: CourseEdge[];
+}
+/** A thin joint between bricks, at most a fifth of the span. */
+const joint = (span: number, gap: number) => span - Math.min(gap, span * 0.2);
+
+/** Brick courses around a wall chart: one slot per edge, row and column. Each brick is
+ * clipped to its edge, to the ground below and to the roof joint above. */
+export const gridCourses: LayingAlgorithm<
+  { rule: CourseRule; footprint: MaterialFootprint; gap?: number; element?: string },
+  CourseLayout
+> = {
+  info: {
+    accepts: ["surface"],
+    summary: "Regular courses around a wall chart, edge by edge, clipped to the ground and the roof joint.",
+    params: {
+      rule: "staggered_rows, overlap_rows, parallel_rows or horizontal_rows.",
+      footprint: "Unit size { width, height, depth } in metres; sets the pitch and row height.",
+      gap: "Joint between bricks in metres, at most a fifth of the span. Default: 0.008.",
+      element: "Wall chart element id. Default: face."
+    }
+  },
+  plan(context) {
+    const p = context.params;
+    const chart = chart_(context.geometry.original.elements[p.element ?? "face"]);
+    const scale = unitFootprintScale(p.footprint);
+    const pitch =
+      p.rule === "parallel_rows"
+        ? 0.22 * scale.width
+        : p.rule === "horizontal_rows"
+          ? 1.4 * scale.width
+          : p.footprint.width;
+    const rowHeight =
+      p.rule === "parallel_rows"
+        ? Math.max(0.2, chart.maxYGable - chart.minGround + 0.12) * scale.height
+        : p.rule === "horizontal_rows"
+          ? 0.3944 * scale.height
+          : p.footprint.height;
+    const rows = Math.ceil((chart.maxYGable + 0.12 - chart.minGround) / rowHeight);
+    const shifted = p.rule === "staggered_rows" || p.rule === "overlap_rows";
+    let offset = 0;
+    const list: CourseEdge[] = edges(chart).map(({ edge, u, l }) => {
+      const range = (shift: number): [number, number] => [
+        Math.floor(u / pitch - shift),
+        Math.ceil((u + l) / pitch - shift)
+      ];
+      const even = range(0),
+        odd = range(shifted ? 0.5 : 0);
+      const columns = Math.max(even[1] - even[0], odd[1] - odd[0], 0);
+      const entry = {
+        edge,
+        u,
+        l,
+        c0: [even[0], odd[0]],
+        c1: [even[1], odd[1]],
+        offset,
+        count: rows * columns,
+        columns
+      };
+      offset += entry.count;
+      return entry as CourseEdge;
+    });
+    return { count: offset, data: { rule: p.rule, pitch, rowHeight, rows, edges: list } };
+  },
+  unitAt(context, d, index) {
+    const p = context.params;
+    const chart = chart_(context.geometry.original.elements[p.element ?? "face"]);
+    const e = d.edges.find((x) => index >= x.offset && index < x.offset + x.count)!;
+    const local = index - e.offset,
+      row = Math.floor(local / e.columns),
+      parity = row % 2;
+    const col = e.c0[parity] + (local % e.columns);
+    if (col >= e.c1[parity]) return;
+    const shift = d.rule === "staggered_rows" || d.rule === "overlap_rows" ? parity * 0.5 : 0;
+    const a = chart.points[e.edge - 1],
+      b = chart.points[e.edge],
+      { u, l } = e,
+      pitch = d.pitch,
+      rowHeight = d.rowHeight;
+    const tangent = [(b[0] - a[0]) / l, 0, (b[2] - a[2]) / l],
+      normal = [-tangent[2], 0, tangent[0]];
+    // The same arithmetic, in the same order, as the existing arrangedWallCells.
+    const x = Math.max(u, (col + shift) * pitch),
+      X = Math.min(u + l, (col + shift + 1) * pitch),
+      t = ((x + X) / 2 - u) / l;
+    const lowerA = a[1] + Math.max(0, chart.third[e.edge - 1]),
+      lowerB = b[1] + Math.max(0, chart.third[e.edge]);
+    const bottom =
+      chart.third[e.edge - 1] > 0 || chart.third[e.edge] > 0
+        ? Math.max(lowerA + ((x - u) / l) * (lowerB - lowerA), lowerA + ((X - u) / l) * (lowerB - lowerA))
+        : a[1] + t * (b[1] - a[1]);
+    const top = chart.joint
+      ? Math.max(
+          ...[x, (x + X) / 2, X].map((q) => {
+            const s = (q - u) / l;
+            return wallRoofJointHeight(
+              chart.joint!,
+              a[0] + s * (b[0] - a[0]) + normal[0] * chart.nominalOuter,
+              a[2] + s * (b[2] - a[2]) + normal[2] * chart.nominalOuter
+            );
+          })
+        )
+      : chart.top[e.edge - 1] + t * (chart.top[e.edge] - chart.top[e.edge - 1]) + 0.12;
+    const y = Math.max(bottom, chart.minGround + row * rowHeight),
+      Y = Math.min(top, chart.minGround + (row + (d.rule === "overlap_rows" ? 1.15 : 1)) * rowHeight);
+    if (X - x < 0.015 || Y - y < 0.015) return;
+    const q = [x, y, X, Y];
+    const gap = p.gap ?? 0.008;
+    const size: [number, number, number] = [joint(q[2] - q[0], gap), joint(q[3] - q[1], gap), p.footprint.depth];
+    const s = ((q[0] + q[2]) / 2 - u) / l;
+    return {
+      key: `${e.edge}/${row}/${col}/0`,
+      frame: {
+        origin: [
+          a[0] + s * (b[0] - a[0]) + normal[0] * (chart.nominalOuter - size[2] / 2),
+          (q[1] + q[3]) / 2,
+          a[2] + s * (b[2] - a[2]) + normal[2] * (chart.nominalOuter - size[2] / 2)
+        ],
+        x: [tangent[0], tangent[1], tangent[2]],
+        y: [0, 1, 0],
+        z: [normal[0], normal[1], normal[2]]
+      },
+      size,
+      params: { anchor_uv: [(q[0] + q[2]) / 2, (q[1] + q[3]) / 2 - chart.minGround] }
+    };
+  }
+};
+function chart_(element: unknown): WallChartParams {
+  const e = element as { kind?: string; surface?: { kind: string; params: WallChartParams } };
+  if (e?.kind !== "surface" || e.surface?.kind !== "wallChart") throw Error("gridCourses lays a wall chart");
+  return e.surface.params;
+}
+
+const TAU = Math.PI * 2;
+/** Chart segments that turn less than this continue one run of bricks: only real corners
+ * break bricks; curved walls, sampled every 0.5 m, keep their bricks whole. */
+const KINK_COS = Math.cos(Math.PI / 6);
+/** Only turns sharper than this are corners. */
+const CORNER_COS = Math.cos(Math.PI / 6);
+/** Joints closer than this to the end of a run move onto it, in metres. */
+const CORNER_SNAP = 0.15;
+/** Reference unit footprint that the nominal sizes are measured against. */
+const REFERENCE = { width: 0.5, height: 0.4375, depth: 0.1 };
+
+function direction(chart: WallChartParams, edge: number): [number, number] {
+  const a = chart.points[edge - 1],
+    b = chart.points[edge],
+    l = Math.hypot(b[0] - a[0], b[2] - a[2]) || 1;
+  return [(b[0] - a[0]) / l, (b[2] - a[2]) / l];
+}
+interface Run {
+  u: number;
+  l: number;
+}
+/** Chart segments merged into straight runs: bricks only break where the wall turns. */
+function runs(chart: WallChartParams): Run[] {
+  const out: (Run & { last: number })[] = [];
+  for (const e of edges(chart)) {
+    const prev = out[out.length - 1];
+    if (prev) {
+      const [ax, az] = direction(chart, prev.last),
+        [bx, bz] = direction(chart, e.edge);
+      if (ax * bx + az * bz > KINK_COS) {
+        prev.l = e.u + e.l - prev.u;
+        prev.last = e.edge;
+        continue;
+      }
+    }
+    out.push({ u: e.u, l: e.l, last: e.edge });
+  }
+  return out.map(({ u, l }) => ({ u, l }));
+}
+/** Position, tangent, ground and roof top of a wall chart at u. */
+function sampler(chart: WallChartParams) {
+  const list = edges(chart);
+  const find = (u: number) => list.find((e) => u <= e.u + e.l) ?? list[list.length - 1];
+  return {
+    length: list.length ? list[list.length - 1].u + list[list.length - 1].l : 0,
+    at(u: number) {
+      const e = find(u),
+        a = chart.points[e.edge - 1],
+        b = chart.points[e.edge],
+        t = Math.min(1, Math.max(0, (u - e.u) / e.l));
+      const tangent = [(b[0] - a[0]) / e.l, (b[2] - a[2]) / e.l];
+      const x = a[0] + t * (b[0] - a[0]),
+        z = a[2] + t * (b[2] - a[2]);
+      const lift = Math.max(0, chart.third[e.edge - 1] + t * (chart.third[e.edge] - chart.third[e.edge - 1]));
+      const ground = a[1] + t * (b[1] - a[1]) + lift;
+      const roof = chart.joint
+        ? wallRoofJointHeight(chart.joint, x - tangent[1] * chart.nominalOuter, z + tangent[0] * chart.nominalOuter)
+        : chart.top[e.edge - 1] + t * (chart.top[e.edge] - chart.top[e.edge - 1]) + 0.12;
+      return { x, z, tangent, ground, roof };
+    }
+  };
+}
+const scaleOf = (footprint: MaterialFootprint) => ({
+  width: footprint.width / REFERENCE.width,
+  height: footprint.height / REFERENCE.height,
+  depth: footprint.depth / REFERENCE.depth
+});
+
+type MasonryParams = {
+  footprint: MaterialFootprint;
+  gap?: number;
+  rowJitter?: number;
+  jointJitter?: number;
+  wave?: number;
+  nominal?: number;
+  depth?: number;
+  depthJitter?: number;
+  flags?: number;
+  /** Chance that a tall uncut brick splits into two courses. Default: 0.4. */
+  split?: number;
+  /** Seed shared by the walls of one house, so their courses meet at the corners. */
+  courseSeed?: number;
+  element?: string;
+};
+interface MasonryLayout {
+  runs: Run[];
+  length: number;
+  uOffset: number;
+  h: number;
+  w: number;
+  rows: number;
+  /** First perimeter joint index of this chart, and bricks per row. */
+  firstJoint: number;
+  perRow: number;
+  /** Slots per brick for the pieces that removed areas cut it into: 1 + 3 per removed area. */
+  pieces: number;
+}
+interface Piece {
+  u0: number;
+  u1: number;
+  lo: number;
+  hi: number;
+}
+/** A piece minus a removed rect, by how many of the piece's corners the rect covers, as in
+ * the native masonry:
+ * - all four: nothing stays;
+ * - two, along one side: the piece is cut back to the rect's edge;
+ * - one: an L shape: the column clear of the rect keeps its full height, the other column
+ *   loses the covered part;
+ * - none, while the rect crosses the piece: the parts below, above, left and right stay. */
+function subtract(p: Piece, h: Rect, bottom: number, top: number): Piece[] {
+  const lo = Math.max(p.lo, bottom),
+    hi = Math.min(p.hi, top);
+  if (!(h[0] < p.u1 && p.u0 < h[2] && h[1] < hi && lo < h[3])) return [p];
+  const inside = (u: number, y: number) => u >= h[0] && u <= h[2] && y >= h[1] && y <= h[3];
+  const [bl, br, tl, tr] = [inside(p.u0, lo), inside(p.u1, lo), inside(p.u0, hi), inside(p.u1, hi)];
+  const covered = [bl, br, tl, tr].filter(Boolean).length;
+  if (covered === 4) return [];
+  if (covered === 2) {
+    if (bl && tl) return [{ ...p, u0: h[2] }];
+    if (br && tr) return [{ ...p, u1: h[0] }];
+    if (bl && br) return [{ ...p, lo: h[3] }];
+    return [{ ...p, hi: h[1] }];
+  }
+  if (covered === 1) {
+    const left = bl || tl,
+      below = bl || br,
+      cut = left ? h[2] : h[0];
+    const clear = left ? { u0: cut, u1: p.u1 } : { u0: p.u0, u1: cut };
+    const shortened = left ? { u0: p.u0, u1: cut } : { u0: cut, u1: p.u1 };
+    return [
+      { ...p, ...clear },
+      { ...p, ...shortened, ...(below ? { lo: Math.max(p.lo, h[3]) } : { hi: Math.min(p.hi, h[1]) }) }
+    ];
+  }
+  const out: Piece[] = [];
+  if (lo < h[1]) out.push({ ...p, hi: Math.min(p.hi, h[1]) });
+  if (h[3] < hi) out.push({ ...p, lo: Math.max(p.lo, h[3]) });
+  const band = { lo: Math.max(p.lo, h[1]), hi: Math.min(p.hi, h[3]) };
+  if (p.u0 < h[0]) out.push({ u0: p.u0, u1: h[0], ...band });
+  if (h[2] < p.u1) out.push({ u0: h[2], u1: p.u1, ...band });
+  return out;
+}
+
+/** Our own masonry: random courses with wavy joints along a wall chart. Every brick is
+ * computed alone, from its row, its index in the row and its piece:
+ * - course line k: nominal height plus a jitter and a wave, from line k's seed;
+ * - joint j of row r: regular position plus the row's offset and a jitter from (r, j);
+ * - lines and joints use the house perimeter and `courseSeed`, so the walls of one house
+ *   continue each other's courses;
+ * - a brick breaks where the wall turns, and gives way to removed areas such as corner stones;
+ * - corners follow the ground below and the roof joint above, through brick deformation. */
+export const masonryCourses: LayingAlgorithm<MasonryParams, MasonryLayout> = {
+  info: {
+    accepts: ["surface"],
+    summary: "Masonry along a wall chart: random courses with wavy joints, giving way to removed areas.",
+    params: {
+      footprint: "Unit footprint { width, height, depth }; scales the nominal size against 0.5 × 0.4375 × 0.1.",
+      nominal: "Nominal course height and brick width in metres before scaling. Default: 0.46.",
+      depth: "Brick depth through the wall in metres, scaled by the footprint depth. Default: 0.56.",
+      depthJitter: "Random depth variation per brick in metres. Default: 0.07.",
+      flags: "Brick shader flags; 4 turns on irregular brick shapes. Default: 4.",
+      gap: "Joint between bricks in metres, at most a fifth of the span. Default: 0 (the shader draws the joints).",
+      rowJitter: "Course height jitter as a fraction of the brick height. Default: 0.23.",
+      jointJitter: "Joint position jitter as a fraction of the brick width. Default: 0.25.",
+      wave: "Amplitude of the wavy course lines in metres. Default: 0.012.",
+      courseSeed: "Seed shared by the walls of one house. Default: the part's own seed.",
+      split: "Chance that a tall uncut brick splits into two thinner ones. Default: 0.4.",
+      element: "Wall chart element id. Default: face."
+    }
+  },
+  plan(context) {
+    const p = context.params;
+    const chart = chart_(context.geometry.original.elements[p.element ?? "face"]);
+    const scale = scaleOf(p.footprint);
+    // Calibrated against the online native masonry: 0.46 m courses and bricks.
+    const h = (p.nominal ?? 0.46) * scale.height,
+      w = (p.nominal ?? 0.46) * scale.width;
+    const length = sampler(chart).length,
+      uOffset = chart.uOffset ?? 0;
+    const rows = Math.ceil((chart.maxYGable + 0.12 - chart.minGround) / h) + 1;
+    const firstJoint = Math.floor(uOffset / w) - 1,
+      perRow = Math.ceil((uOffset + length) / w) + 2 - firstJoint;
+    // At least two, so an uncut brick can split into two courses.
+    const pieces = Math.max(2, 1 + 3 * context.geometry.surface(p.element ?? "face").removed.length);
+    return {
+      count: rows * perRow * 2 * pieces,
+      data: { runs: runs(chart), length, uOffset, h, w, rows, firstJoint, perRow, pieces }
+    };
+  },
+  unitAt(context, d, index) {
+    const p = context.params;
+    const element = p.element ?? "face";
+    const chart = chart_(context.geometry.original.elements[element]);
+    const scale = scaleOf(p.footprint);
+    const shared = (key: string, channel: string) =>
+      (p.courseSeed === undefined
+        ? context.random(key, channel)
+        : new Random(deriveSeed(p.courseSeed, key, channel))
+      ).next();
+    const amplitude = p.wave ?? 0.012;
+    // Course line k at chart position u. Line 0 is the ground course and stays flat.
+    const line = (k: number, u: number) => {
+      if (k === 0) return chart.minGround;
+      const along = d.uOffset + u;
+      const jitter = (shared(`line:${k}`, "height") - 0.5) * 2 * (p.rowJitter ?? 0.23) * d.h;
+      const wave =
+        amplitude *
+        (sinCos((TAU * along) / 2.3 + TAU * shared(`line:${k}`, "wave1"))[0] +
+          0.5 * sinCos((TAU * along) / 0.9 + TAU * shared(`line:${k}`, "wave2"))[0]);
+      return chart.minGround + k * d.h + jitter + wave;
+    };
+    const holePiece = Math.floor(index / 2) % d.pieces,
+      runPiece = index % 2,
+      j = Math.floor(index / (2 * d.pieces)) % d.perRow,
+      r = Math.floor(index / (2 * d.pieces * d.perRow));
+    // Joint k of row r on the house perimeter, then on this chart. Joints near the end of a run snap to it.
+    const offset = shared(`row:${r}`, "offset");
+    const jointAt = (k: number) => {
+      const u =
+        (k + offset) * d.w + (shared(`joint:${r}:${k}`, "width") - 0.5) * 2 * (p.jointJitter ?? 0.25) * d.w - d.uOffset;
+      for (const run of d.runs)
+        for (const end of [run.u, run.u + run.l]) if (Math.abs(end - u) < CORNER_SNAP) return end;
+      return u;
+    };
+    const k = d.firstJoint + j;
+    const x0 = Math.max(0, jointAt(k)),
+      x1 = Math.min(d.length, jointAt(k + 1));
+    if (!(x1 - x0 > 0.03)) return;
+    // Break where the wall turns: piece n is the part of the brick on the n-th run it touches.
+    const parts = d.runs
+      .map((run) => [Math.max(x0, run.u), Math.min(x1, run.u + run.l)] as const)
+      .filter(([a, b]) => b - a > 0.03);
+    const run = parts[runPiece];
+    if (!run) return;
+    // Give way to removed areas, such as the rows taken by corner stones.
+    const whole: Piece = { u0: run[0], u1: run[1], lo: -Infinity, hi: Infinity };
+    let pieces: Piece[] = [whole];
+    const bottom = Math.min(line(r, run[0]), line(r, run[1])),
+      top = Math.max(line(r + 1, run[0]), line(r + 1, run[1]));
+    for (const hole of context.geometry.surface(element).removed)
+      pieces = pieces.flatMap((q) => subtract(q, hole, bottom, top));
+    if (pieces.length > d.pieces)
+      throw Error(`Removed areas cut brick ${r}/${j} into ${pieces.length} pieces; the layout has ${d.pieces} slots`);
+    // A tall brick splits into two thinner ones about 40% of the time. The split height
+    // comes from the brick's own seed.
+    const splitKey = `${r}/${j}/${runPiece}`;
+    // Only a brick that no removed area touched splits, as in the native masonry.
+    if (pieces[0] === whole && top - bottom > d.h && context.random(splitKey, "split").next() < (p.split ?? 0.4)) {
+      const at = bottom + (top - bottom) * (0.35 + 0.3 * context.random(splitKey, "splitAt").next());
+      pieces = [
+        { ...pieces[0], hi: at },
+        { ...pieces[0], lo: at }
+      ];
+    }
+    const piece = pieces[holePiece];
+    if (!piece) return;
+    const sample = sampler(chart);
+    const at0 = sample.at(piece.u0),
+      at1 = sample.at(piece.u1);
+    const bl = Math.max(line(r, piece.u0), at0.ground, piece.lo),
+      br = Math.max(line(r, piece.u1), at1.ground, piece.lo),
+      tl = Math.min(line(r + 1, piece.u0), at0.roof, piece.hi),
+      tr = Math.min(line(r + 1, piece.u1), at1.roof, piece.hi);
+    if (tl - bl < 0.03 || tr - br < 0.03 || piece.u1 - piece.u0 < 0.03) return;
+    const key = `${r}/${j}/${runPiece}/${holePiece}`;
+    // Bricks within half a brick of a removed area are accent stones, as in the native masonry.
+    const accent = context.geometry
+      .surface(element)
+      .removed.some(
+        (h) =>
+          h[0] - d.w / 2 < piece.u1 &&
+          piece.u0 < h[2] + d.w / 2 &&
+          h[1] - d.h / 2 < Math.max(tl, tr) &&
+          Math.min(bl, br) < h[3] + d.h / 2
+      );
+    const depth =
+      ((p.depth ?? 0.56) + (context.random(key, "depth").next() - 0.5) * (p.depthJitter ?? 0.07)) * scale.depth;
+    // Along a curved wall a brick follows the chord between its ends, as in the native masonry.
+    const chord = Math.hypot(at1.x - at0.x, at1.z - at0.z) || 1;
+    return masonryUnit(
+      context.unit,
+      key,
+      { x: (at0.x + at1.x) / 2, z: (at0.z + at1.z) / 2, tangent: [(at1.x - at0.x) / chord, (at1.z - at0.z) / chord] },
+      piece.u0,
+      piece.u1,
+      [bl, br, tl, tr],
+      depth,
+      {
+        anchor_uv: [(piece.u0 + piece.u1) / 2, (bl + br + tl + tr) / 4 - chart.minGround],
+        flags: p.flags ?? 4,
+        gap: p.gap ?? 0,
+        accent,
+        wallU: [d.uOffset + piece.u0, d.uOffset + piece.u1]
+      }
+    );
+  }
+};
+/** One brick or stone from its span along the wall and the heights of its four corners. */
+function masonryUnit(
+  unit: BuildingUnit,
+  key: string,
+  center: { x: number; z: number; tangent: number[] },
+  u0: number,
+  u1: number,
+  [bl, br, tl, tr]: number[],
+  depth: number,
+  extra: { anchor_uv: number[]; flags: number; gap: number; accent?: boolean; wallU?: number[] }
+): LaidUnitSpec | undefined {
+  const y0 = (bl + br) / 2,
+    y1 = (tl + tr) / 2;
+  const size: [number, number, number] = [joint(u1 - u0, extra.gap), joint(y1 - y0, extra.gap), depth];
+  if (!unitFits(unit, size)) return;
+  const [tx, tz] = center.tangent;
+  // Units run through the wall: their centers lie on the wall line, as in the native masonry.
+  return {
+    key,
+    frame: { origin: [center.x, (y0 + y1) / 2, center.z], x: [tx, 0, tz], y: [0, 1, 0], z: [-tz, 0, tx] },
+    size,
+    params: {
+      anchor_uv: extra.anchor_uv,
+      // Vertical corner offsets: bottom-left, bottom-right, top-left, top-right.
+      deformation: [bl - y0, br - y0, tl - y1, tr - y1],
+      flags: extra.flags,
+      // Accent stones look like a different stone: corner stones, and bricks next to them or to openings.
+      ...(extra.accent && { accent: true }),
+      // Where the unit lies along the house perimeter, in metres; the renderer maps textures by it.
+      ...(extra.wallU && { wallU: extra.wallU })
+    }
+  };
+}
+
+/** Boundaries of the corner stone rows from bottom to top: about 0.69 m each, with a jitter. */
+export function cornerStoneRows(seed: number, bottom: number, top: number, heightScale: number): number[] {
+  const span = top - bottom;
+  if (!(span > 0)) return [];
+  const count = Math.max(2, Math.ceil(span / (0.69 * heightScale)));
+  const step = 1 / (count - 1),
+    amplitude = Math.min((0.21 * heightScale) / span, 0.495 * step);
+  return Array.from({ length: count }, (_, i) => {
+    const t =
+      i === 0 || i === count - 1
+        ? i * step
+        : i * step + (new Random(deriveSeed(seed, "row", i)).next() - 0.5) * amplitude;
+    return bottom + t * span;
+  });
+}
+/** Width of corner stone row `row`: 0.92 m ± 0.16 m, the top row 0.76 m. */
+function cornerStoneWidth(seed: number, row: number, rows: number, widthScale: number): number {
+  if (row === rows - 1) return 0.76 * widthScale;
+  return (0.92 + (new Random(deriveSeed(seed, "width", row)).next() - 0.5) * 0.32) * widthScale;
+}
+const overhang = (depthScale: number) => (0.28 + 0.0385) * depthScale;
+
+interface CornerStoneParams {
+  seed: number;
+  bottom: number;
+  top: number;
+  scale: [number, number, number];
+  /** Directions of the wall before the corner and of the wall after it. */
+  before: [number, number];
+  after: [number, number];
+  /** Position of the corner along the house perimeter, in metres. */
+  cornerU?: number;
+}
+/** Corner stones stacked at one corner: even rows along the wall after the corner, odd rows
+ * along the wall before it, each reaching past the corner by half its depth. */
+export const cornerStones: LayingAlgorithm<CornerStoneParams, { rows: number }> = {
+  info: {
+    accepts: ["point"],
+    summary: "Alternating corner stones stacked at a wall corner.",
+    params: {
+      seed: "Seed of the corner; the wall corner rule passes it so the walls give way to the same rows.",
+      bottom: "Height of the first row.",
+      top: "Height of the last row.",
+      scale: "Unit footprint scale [width, height, depth] against 0.5 × 0.4375 × 0.1.",
+      before: "Direction [x, z] of the wall before the corner.",
+      after: "Direction [x, z] of the wall after the corner."
+    }
+  },
+  plan(context) {
+    const p = context.params;
+    return { count: Math.max(0, cornerStoneRows(p.seed, p.bottom, p.top, p.scale[1]).length - 1), data: { rows: 0 } };
+  },
+  unitAt(context, _data, row) {
+    const p = context.params;
+    const ys = cornerStoneRows(p.seed, p.bottom, p.top, p.scale[1]);
+    const rows = ys.length - 1;
+    const width = cornerStoneWidth(p.seed, row, rows, p.scale[0]),
+      over = overhang(p.scale[2]);
+    const corner = context.geometry.point("corner").origin;
+    const [dx, dz] = row % 2 === 0 ? p.after : p.before;
+    const sign = row % 2 === 0 ? 1 : -1,
+      shift = width / 2 - over;
+    return masonryUnit(
+      context.unit,
+      String(row),
+      { x: corner[0] + sign * dx * shift, z: corner[2] + sign * dz * shift, tangent: [dx, dz] },
+      0,
+      width,
+      [ys[row], ys[row], ys[row + 1], ys[row + 1]],
+      0.637 * p.scale[2],
+      {
+        anchor_uv: [0, (ys[row] + ys[row + 1]) / 2 - p.bottom],
+        flags: 4,
+        gap: 0,
+        accent: true,
+        wallU:
+          row % 2 === 0
+            ? [(p.cornerU ?? 0) - over, (p.cornerU ?? 0) - over + width]
+            : [(p.cornerU ?? 0) + over - width, (p.cornerU ?? 0) + over]
+      }
+    );
+  }
+};
+
+function chartOf(view: { geometry: { original: { elements: Record<string, unknown> } } }) {
+  const e = view.geometry.original.elements.face as {
+    kind?: string;
+    surface?: { kind: string; params: WallChartParams };
+  };
+  return e?.kind === "surface" && e.surface?.kind === "wallChart" ? e.surface.params : undefined;
+}
+const near = (a: readonly number[], b: readonly number[]) => Math.hypot(a[0] - b[0], a[2] - b[2]) < 1e-6;
+/** Two walls meet when one ends where the other starts. */
+export const wallsMeet: JoinDetector = (a, b) => {
+  const ca = chartOf(a),
+    cb = chartOf(b);
+  if (!ca || !cb) return false;
+  return near(ca.points[ca.points.length - 1], cb.points[0]) || near(cb.points[cb.points.length - 1], ca.points[0]);
+};
+/** Peer rule between two walls that meet at a corner: both give way to a stack of
+ * alternating corner stones, which the connection derives as its own part.
+ * Connection param `angle`: [min, max] turn in degrees that gets stones. Default: [80, 100]. */
+export const wallCorner: ConnectionRule = ({ parts, seed, params }) => {
+  const [a, b] = parts;
+  const ca = chartOf(a),
+    cb = chartOf(b);
+  if (!ca || !cb) return { diagnostics: ["wallCorner joins wall charts"] };
+  const aFirst = near(ca.points[ca.points.length - 1], cb.points[0]);
+  if (!aFirst && !near(cb.points[cb.points.length - 1], ca.points[0])) return {};
+  const [before, after] = aFirst ? [a, b] : [b, a];
+  const cBefore = aFirst ? ca : cb,
+    cAfter = aFirst ? cb : ca;
+  const dirBefore = direction(cBefore, cBefore.points.length - 1),
+    dirAfter = direction(cAfter, 1);
+  // Corner stones only where the walls turn by 80° to 100°, as in the native masonry.
+  const [minAngle, maxAngle] = (params.angle as [number, number] | undefined) ?? [80, 100];
+  const turn = dirBefore[0] * dirAfter[0] + dirBefore[1] * dirAfter[1];
+  if (!(turn >= sinCos((maxAngle * Math.PI) / 180)[1] && turn < sinCos((minAngle * Math.PI) / 180)[1])) return {};
+  const unit = after.unit;
+  if (!unit?.scale) return { diagnostics: ["wallCorner needs the wall unit's scale"] };
+  const scale: [number, number, number] = [
+    unit.scale[0] / REFERENCE.width,
+    unit.scale[1] / REFERENCE.height,
+    unit.scale[2] / REFERENCE.depth
+  ];
+  const corner = cAfter.points[0];
+  const bottom = Math.min(corner[1], cBefore.points[cBefore.points.length - 1][1]),
+    top = cAfter.top[0];
+  const ys = cornerStoneRows(seed, bottom, top, scale[1]);
+  const rows = ys.length - 1,
+    over = overhang(scale[2]);
+  const lengthBefore = sampler(cBefore).length;
+  const modify = [];
+  for (let row = 0; row < rows; row++) {
+    const width = cornerStoneWidth(seed, row, rows, scale[0]);
+    const [y0, y1] = [ys[row], ys[row + 1]];
+    // Even rows: the stone lies along the wall after the corner; its end shows on the wall before.
+    const onAfter: Rect = [0, y0, row % 2 === 0 ? width - over : over, y1];
+    const onBefore: Rect = [lengthBefore - (row % 2 === 0 ? over : width - over), y0, lengthBefore, y1];
+    modify.push({ part: after.key, modification: { element: "face", op: "removeArea" as const, rect: onAfter } });
+    modify.push({ part: before.key, modification: { element: "face", op: "removeArea" as const, rect: onBefore } });
+  }
+  const frame = {
+    origin: [corner[0], bottom, corner[2]] as [number, number, number],
+    x: [dirAfter[0], 0, dirAfter[1]] as [number, number, number],
+    y: [0, 1, 0] as [number, number, number],
+    z: [-dirAfter[1], 0, dirAfter[0]] as [number, number, number]
+  };
+  return {
+    modify,
+    derive: [
+      {
+        localId: "stones",
+        type: "cornerStone",
+        geometry: { elements: { corner: { kind: "point", frame } } },
+        algorithm: {
+          type: "cornerStones",
+          params: { seed, bottom, top, scale, before: dirBefore, after: dirAfter, cornerU: cAfter.uOffset ?? 0 }
+        },
+        // Stones reach about 1.1 m wide, 0.8 m tall and 0.67 m deep.
+        unit: { ...unit, range: { min: [0.05, 0.05, 1], max: [3, 3, 8] } }
+      }
+    ]
+  };
+};
+
+/** Registers the house part types into a registry. */
+export function registerHouseTypes(registry: BuildingRegistry): BuildingRegistry {
+  registry.surfaces.register("wallChart", wallChartSurface);
+  registry.surfaces.register("houseRoof", houseRoofSurface);
+  registry.geometry.register("houseWall", houseWallGeometry);
+  registry.geometry.register("houseRoof", houseRoofGeometry);
+  registry.algorithms.register("gridCourses", gridCourses);
+  registry.algorithms.register("masonryCourses", masonryCourses);
+  registry.algorithms.register("cornerStones", cornerStones);
+  registry.geometry.register("houseWallSide", houseWallSideGeometry);
+  registry.rules.register("wallCorner", wallCorner);
+  registry.defaults.join("wall", "wall", "wallCorner");
+  registry.detectors.register(joinPairKey("wall", "wall"), wallsMeet);
+  registry.defaults.attach("roof", ["wall"], "none");
+  registry.defaults.attach("roof", ["wall", "wall", "wall", "wall"], "none");
+  return registry;
+}
