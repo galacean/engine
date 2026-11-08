@@ -1,5 +1,6 @@
-// Dormers: a building prefab on a roof slope or cone that carries a small roof of its own. Its
+// Roof prefabs. A dormer stands on a roof slope or cone and carries a small roof of its own: its
 // footprint comes out of the host roof, and the connection derives the small roof and its ridge.
+// A hatch or a roof lantern stands on a flat roof's deck; a hatch opens the deck.
 vi.mock("@galacean/engine", async () => ({
   ...(await import("@galacean/engine-core")),
   ...(await import("@galacean/engine-loader")),
@@ -131,5 +132,44 @@ describe("Dormers", () => {
     const house = { ...round, roofAttachments: [dormer([0.012, 0.657])] };
     const units = (r: ReturnType<typeof design>) => r.parts.map((p) => lay(p).map((u) => [u.key, ...u.matrix]));
     expect(units(design(house))).toEqual(units(design(structuredClone(house))));
+  });
+});
+
+describe("Deck prefabs", () => {
+  const deck: CoreHouseParameters = {
+    id: "f",
+    height: 4,
+    rectangle: { center: [0, 0], size: [8, 6], rotation: 0 },
+    roof: { height: 0 }
+  };
+  const on = (type: CoreRoofAttachment["type"], uv: [number, number]): CoreRoofAttachment => ({ id: "x", type, uv });
+  const mountOf = (result: ReturnType<typeof design>) => {
+    const e = result.parts.find((p) => p.type === "hatch" || p.type === "roofLamp")!.original.elements.mount;
+    if (e.kind !== "point") throw Error("no mount");
+    return e.frame;
+  };
+  it("faces the nearest edge (a hatch) or the front (a lantern), standing on the deck", () => {
+    // Nearer the +x side than the -z or +z sides, in proportion.
+    const hatch = design({ ...deck, roofAttachments: [on("hatch-cottage", [0.85, 0.45])] });
+    expect(hatch.diagnostics).toEqual([]);
+    expect(mountOf(hatch).z.map((v) => Math.round(v * 1e6) / 1e6 + 0)).toEqual([1, 0, 0]);
+    const lamp = design({ ...deck, roofAttachments: [on("roof-lantern", [0.85, 0.45])] });
+    expect(lamp.diagnostics).toEqual([]);
+    expect(mountOf(lamp).z.map((v) => Math.round(v * 1e6) / 1e6 + 0)).toEqual([0, 0, 1]);
+    // The deck loses the hatch's opening, and only the pieces wholly inside it.
+    const count = (r: ReturnType<typeof design>) => lay(r.parts.find((p) => p.type === "roofDeck")!).length;
+    const opened = count(hatch),
+      whole = count(design(deck));
+    expect(opened).toBeLessThan(whole);
+    expect(whole - opened).toBeLessThan(8);
+  });
+  it("stays inside the walls' inner face", () => {
+    const result = design({ ...deck, roofAttachments: [on("hatch-gothic", [0.98, 0.5])] });
+    expect(messages(result)).toContain("The prefab stands outside the roof deck");
+  });
+  it("needs a flat roof, as a dormer needs a pitched one", () => {
+    expect(() => buildCoreHouse({ ...hip, roofAttachments: [on("hatch-cottage", [0.5, 0.5])] })).toThrow(
+      "A hatch-cottage needs a flat roof"
+    );
   });
 });

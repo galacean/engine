@@ -28,7 +28,8 @@ import {
   type Vec3,
   unitExtent
 } from "../core";
-import { prefabFacts, prefabScale } from "./Openings";
+import { mountFor, prefabFacts, prefabScale } from "./Openings";
+import { registerDeckMountTypes } from "./DeckMounts";
 
 /** Where a dormer sits: the building prefab it installs, a plan position (x, z), a height
  * above the roof's covering there, and the size of its installation. The size defaults to the
@@ -241,9 +242,7 @@ export const houseRoofMountGeometry: GeometryGenerator<RoofMountParams> = (p, { 
   const host = hosts[best.index];
   const rise = coveringRise(host, n) - facts.bounds.min[1] * sy + p.bottom;
   const origin = add(hit.frame.origin, [0, rise, 0]);
-  const cx = (facts.bounds.min[0] + facts.bounds.max[0]) / 2,
-    cy = (facts.bounds.min[1] + facts.bounds.max[1]) / 2;
-  const center = add(add(origin, scale(x, cx * sx)), [0, cy * sy, 0]);
+  const center = mountFor(origin, { x, y: UP, z }, facts, sx, sy);
   const right = half.map(([px, py]) => [px * sx, py * sy] as const);
   const outline = [
     ...right
@@ -475,8 +474,9 @@ export const sweepTiles: LayingAlgorithm<SweepTileParams, SweepLayout> = {
   }
 };
 
-/** Part types of prefabs that sit on roofs. */
-export const ROOF_MOUNTS = ["dormer"] as const;
+/** Part types of prefabs that sit on roofs: dormers on slopes and cones, hatches and lamps on
+ * flat roof decks. */
+export const ROOF_MOUNTS = ["dormer", "hatch", "roofLamp"] as const;
 
 /** Registers the roof mount part types into a registry. */
 export function registerDormerTypes(registry: BuildingRegistry): BuildingRegistry {
@@ -484,12 +484,11 @@ export function registerDormerTypes(registry: BuildingRegistry): BuildingRegistr
   registry.geometry.register("houseRoofMount", houseRoofMountGeometry);
   registry.algorithms.register("sweepTiles", sweepTiles);
   registry.rules.register("dormerOnRoof", dormerOnRoof);
-  for (const type of ROOF_MOUNTS)
-    for (let n = 1; n <= 4; n++)
-      registry.defaults.attach(
-        type,
-        Array.from({ length: n }, () => "roof"),
-        "dormerOnRoof"
-      );
-  return registry;
+  for (let n = 1; n <= 4; n++)
+    registry.defaults.attach(
+      "dormer",
+      Array.from({ length: n }, () => "roof"),
+      "dormerOnRoof"
+    );
+  return registerDeckMountTypes(registry);
 }

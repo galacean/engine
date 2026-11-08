@@ -91,9 +91,10 @@ export class BuildingUnitComponent extends Component {
 /** Fixed composition lives in this Entity's native child hierarchy. */
 export class BuildingAssemblyComponent extends Component {}
 /** Root of a building prefab: a fixed composition of models placed as one unit, such as a
- * window, a door or a wall lamp. Its members are the native child hierarchy; their poses
- * are part of the asset. A prefab that opens a wall names its opening in its own x/y plane,
- * as rectangles that together form the opening. */
+ * window, a door, a wall lamp or a roof hatch. Its members are the native child hierarchy;
+ * their poses are part of the asset. A prefab that opens the surface it is mounted on names
+ * its opening as rectangles that together form the opening, in the prefab's mounting plane:
+ * its x/y plane on a wall, its x/z plane on a roof deck. */
 export class BuildingPrefabComponent extends Component {
   private _openings: BuildingPrefabOpening[] = [];
   get openings() {

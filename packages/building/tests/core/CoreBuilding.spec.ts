@@ -7,7 +7,11 @@ import { describe, expect, it, vi } from "vitest";
 import { nativeAssets } from "../fixtures/constructionAssets";
 import { createBuildingRegistry, designBuildingCore, expandUnits } from "../../src/building/core";
 import { registerHouseTypes } from "../../src/building/partTypes/House";
-import { buildCoreHouse, type CoreHouseParameters } from "../../src/building/application/CoreEuropean";
+import {
+  buildCoreHouse,
+  type CoreHouseParameters,
+  type CoreRoofAttachment
+} from "../../src/building/application/CoreEuropean";
 import {
   compileCoreBuilding,
   coreBuildingDecorations,
@@ -590,6 +594,98 @@ describe("Roof dormers against the online path", () => {
         const host = result.parts.find((x) => x.key === connection.hosts[mount.on!.host])!;
         expect(host.modifications.some((m) => m.op === "removeArea")).toBe(true);
       }
+    },
+    60000
+  );
+});
+
+describe("Flat roof prefabs against the online path", () => {
+  const at = (id: string, type: CoreRoofAttachment["type"], uv: [number, number]): CoreRoofAttachment => {
+    const [width, height] = constructionDecorationRecipe(
+      nativeAssets.compilation.decorations,
+      type,
+      1
+    )!.installationSize;
+    return { id, type, rank: 1, uv, bottom: 0, width, height };
+  };
+  it.each([
+    [
+      "square deck",
+      {
+        id: "f",
+        height: 4,
+        rectangle: { center: [1, 2], size: [9, 7], rotation: 0.4 },
+        roof: { height: 0 },
+        roofAttachments: [
+          at("h1", "hatch-cottage", [0.3, 0.4]),
+          at("h2", "hatch-gothic", [0.7, 0.7]),
+          at("l1", "roof-lantern", [0.75, 0.25])
+        ]
+      }
+    ],
+    [
+      "round deck",
+      {
+        id: "c",
+        height: 5,
+        circle: { center: [0, 0], radius: 4, phase: 0.3 },
+        roof: { height: 0 },
+        roofAttachments: [at("h1", "hatch-cottage", [0.4, 0.55]), at("l1", "roof-lantern", [0.6, 0.3])]
+      }
+    ]
+  ] as [string, CoreHouseParameters][])(
+    "%s: the same hatch and lantern meshes, and the hatch opens the deck",
+    async (_name, p) => {
+      const { roofAttachments, ...rest } = p;
+      const onlineHouse = {
+        ...rest,
+        attachments: roofAttachments!.map((a) => ({
+          ...a,
+          kind: a.type === "roof-lantern" ? "lantern" : "hatch",
+          host: "roof"
+        }))
+      };
+      const design = designBuilding(
+        European.buildHouses(onlineHouse as never) as never,
+        flat as never,
+        nativeAssets.compilation
+      );
+      expect(design.prepared.decorations.flatMap((d) => d.diagnostics)).toEqual([]);
+      const online = profilePreview(
+        buildingPreviewInput(design, await prepareBuildingPublication(design)),
+        flat as never,
+        { assets: nativeAssets.compilation, retainDecorationParts: true } as never
+      );
+      const result = designBuildingCore(buildCoreHouse(p), registry, {
+        environment: coreBuildingEnvironment(flat, nativeAssets.compilation)
+      });
+      expect(result.diagnostics).toEqual([]);
+      const parts = coreBuildingDecorations(coreBuildingLayout(result, registry, {}), nativeAssets.compilation).flatMap(
+        (d) => d.parts
+      );
+      const byId = new Map(online.decorationParts.map((x) => [x.id, x]));
+      expect(parts.map((x) => x.id).sort()).toEqual([...byId.keys()].sort());
+      const deviation = (a: number[], b: number[]) => a.reduce((m, v, i) => Math.max(m, Math.abs(v - b[i])), 0);
+      for (const x of parts) {
+        const o = byId.get(x.id)!;
+        expect(x.positions.length).toBe(o.positions.length);
+        // Online places a deck prefab by its origin on the deck, as the core does.
+        expect(deviation(x.positions, o.positions)).toBeLessThan(1e-5);
+        expect(deviation(x.normals, o.normals)).toBeLessThan(1e-5);
+        expect(x.colors).toEqual(o.colors);
+        expect(x.emission).toEqual(o.emission);
+      }
+      // A hatch takes its opening out of the deck; the renderer cuts the deck there.
+      const deck = result.parts.find((x) => x.type === "roofDeck")!;
+      expect(deck.modifications.filter((m) => m.op === "removeArea")).toHaveLength(
+        p.roofAttachments!.filter((a) => a.type !== "roof-lantern").length
+      );
+      const { renderInput } = await compileCoreBuilding(result, registry, {
+        environment: { ground: flat },
+        assets: nativeAssets.compilation
+      });
+      expect(renderInput.groups.find((g) => g.role === "platform")!.roofApertures).toBe(true);
+      expect(renderInput.dormerBins.report.inputCount).toBeGreaterThan(0);
     },
     60000
   );

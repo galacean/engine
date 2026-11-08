@@ -88,6 +88,8 @@ const FAMILIES: Readonly<Record<string, Family>> = {
   door: "prefab",
   lamp: "prefab",
   dormer: "prefab",
+  hatch: "prefab",
+  roofLamp: "prefab",
   dormerRoof: "roof",
   dormerRidge: "roof"
 };
@@ -380,6 +382,8 @@ interface DrawPlan {
   decorationId?: string;
   /** Roof records drawn in place, one per cell. */
   settled?: Uint8Array;
+  /** The renderer cuts these units at the roof's removed areas. */
+  roofApertures?: boolean;
   gravity?: ReturnType<typeof roofEntrance>;
   wallRoofJoint?: WallChartParams["joint"];
 }
@@ -411,7 +415,14 @@ function bindingDraws(binding: CoreBinding, slot: number, layout: CoreBuildingLa
     draws.push({ role: "enclosure", cells: plainCells(binding) });
   } else if (binding.family === "roof") {
     const deck = binding.parts.filter((p) => p.part.type === "roofDeck");
-    if (deck.length) draws.push({ role: "platform", cells: plainCells({ ...binding, parts: deck }) });
+    // A deck that lost an area, as under a hatch, has its tiles cut there by the renderer.
+    const cut = deck.some((p) => p.part.modifications.some((m) => m.op === "removeArea"));
+    if (deck.length)
+      draws.push({
+        role: "platform",
+        cells: plainCells({ ...binding, parts: deck }),
+        ...(cut && { roofApertures: true })
+      });
     const pitched = binding.parts.filter((p) => p.part.type !== "roofDeck" && !CARRIED_ROOFS.has(p.part.type));
     // Each prefab's small roof is one settled draw.
     const carried = new Map<string, RoofRecords>();
@@ -1495,11 +1506,13 @@ export async function coreBuildingRenderInput(
             slot: owner.slot,
             role: draw.role,
             ...(draw.design && { roofDesign: { schema: "roof-design-v1", records: draw.design.records } }),
-            ...(draw.settled && { source: { roof_tile: draw.settled } })
+            ...(draw.settled && { source: { roof_tile: draw.settled } }),
+            ...(draw.roofApertures && { roofApertures: true })
           }),
           ...(draw.gravity && { gravity: draw.gravity }),
           ...(draw.wallRoofJoint && { wallRoofJoint: draw.wallRoofJoint }),
-          ...(draw.decorationId && { decorationId: draw.decorationId })
+          ...(draw.decorationId && { decorationId: draw.decorationId }),
+          ...(draw.roofApertures && { roofApertures: true })
         });
       plans.push({ binding_id: binding.id, cells: draws.flatMap((d) => d.cells), dependencies });
       geometries.push({ id: binding.id, source: { type: "core", parts: binding.parts.map((p) => p.part.key) } });
@@ -1536,18 +1549,21 @@ export async function coreBuildingRenderInput(
  * box around its corners, square to the roof's level outward direction, with the house's
  * render slot. An aperture record is 48 bytes: center, slot, size, level outward direction,
  * and two shape terms that make it a plain box (k = 1, a = -1). */
+/** Surface elements of roof parts that may lose areas: slopes, cones and decks. */
+const ROOF_SURFACES = ["slope", "deck"];
 function roofApertures(layout: CoreBuildingLayout): Uint8Array[] {
   const records: Uint8Array[] = [];
   for (const owner of layout.owners)
     for (const binding of owner.bindings) {
       if (binding.family !== "roof") continue;
       for (const { part } of binding.parts) {
-        const element = part.original.elements.slope;
-        if (element?.kind !== "surface") continue;
-        const surface = new EffectiveGeometry(part.original, part.modifications, layout.surfaces).surface("slope");
+        const id = ROOF_SURFACES.find((k) => part.original.elements[k]?.kind === "surface");
+        if (!id) continue;
+        const surface = new EffectiveGeometry(part.original, part.modifications, layout.surfaces).surface(id);
         for (const [u0, v0, u1, v1] of surface.removed) {
           const middle = surface.frame((u0 + u1) / 2, (v0 + v1) / 2);
-          const n = middle.z,
+          // Square to the roof's level outward direction, or to the v axis of a level deck.
+          const n = Math.hypot(middle.z[0], middle.z[2]) > 1e-6 ? middle.z : middle.y,
             level = Math.hypot(n[0], n[2]);
           if (!(level > 1e-6)) continue;
           const out = [n[0] / level, 0, n[2] / level],

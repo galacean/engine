@@ -195,7 +195,8 @@ export interface CoreWallAttachment {
 }
 export interface CoreRoofAttachment {
   id: string;
-  type: "dormer-gothic";
+  /** A dormer stands on a pitched roof; a hatch or a roof lantern on a flat roof's deck. */
+  type: "dormer-gothic" | "hatch-cottage" | "hatch-gothic" | "roof-lantern";
   rank?: 1 | 2 | 3;
   uv: [number, number];
   bottom?: number;
@@ -206,6 +207,17 @@ export interface CoreRoofAttachment {
   lightColor?: number;
   lightIntensity?: number;
 }
+/** Each roof prefab: its part type, how it stands on the roof, and what the renderer draws it as.
+ * A dormer finds its roof part from its plan position; a deck prefab stands on the deck and
+ * faces the nearest edge (a hatch) or the house's front (a lantern). */
+const ROOF_PREFABS: Readonly<
+  Record<CoreRoofAttachment["type"], { type: string; generator: string; facing?: "edge" | "front"; kind: string }>
+> = {
+  "dormer-gothic": { type: "dormer", generator: "houseRoofMount", kind: "window" },
+  "hatch-cottage": { type: "hatch", generator: "houseDeckMount", facing: "edge", kind: "hatch" },
+  "hatch-gothic": { type: "hatch", generator: "houseDeckMount", facing: "edge", kind: "hatch" },
+  "roof-lantern": { type: "roofLamp", generator: "houseDeckMount", facing: "front", kind: "lantern" }
+};
 /** The part type of each attachment kind. */
 const WALL_PART_TYPES: Readonly<Record<CoreWallAttachment["kind"], (typeof WALL_MOUNTS)[number]>> = {
   window: "window",
@@ -267,18 +279,21 @@ function roofAttachmentPart(house: CoreHouseParameters, a: CoreRoofAttachment): 
   const lx = (a.uv[0] - 0.5) * width,
     lz = (0.5 - a.uv[1]) * depth;
   const at: [number, number] = [shape.center[0] + c * lx - s * lz, shape.center[1] + s * lx + c * lz];
+  const kind = ROOF_PREFABS[a.type];
+  if (!kind) throw Error(`Unknown roof attachment type "${a.type}"`);
   return {
     id: `${house.id}/${a.id}`,
     group: house.id,
-    type: "dormer",
+    type: kind.type,
     geometry: {
-      generator: "houseRoofMount",
+      generator: kind.generator,
       params: {
         prefab,
         at,
         bottom: a.bottom ?? 0,
         ...(a.width !== undefined && { width: a.width }),
-        ...(a.height !== undefined && { height: a.height })
+        ...(a.height !== undefined && { height: a.height }),
+        ...(kind.facing && { facing: kind.facing })
       }
     },
     algorithm: {
@@ -287,7 +302,7 @@ function roofAttachmentPart(house: CoreHouseParameters, a: CoreRoofAttachment): 
         ...(a.width !== undefined && { width: a.width }),
         ...(a.height !== undefined && { height: a.height }),
         unitParams: {
-          kind: "window",
+          kind: kind.kind,
           host: "roof",
           ...(a.woodColor !== undefined && { woodColor: a.woodColor }),
           ...(a.lightColor !== undefined && { lightColor: a.lightColor }),
@@ -478,7 +493,11 @@ export function buildCoreHouse(p: CoreHouseParameters): BuildingCoreDraft {
         }
       : undefined;
   const mounted = (p.attachments ?? []).map((a) => wallAttachmentPart(p, a));
-  if (p.roofAttachments?.length && !pitched) throw Error("A dormer needs a pitched roof");
+  for (const a of p.roofAttachments ?? []) {
+    const onDeck = ROOF_PREFABS[a.type]?.generator === "houseDeckMount";
+    if (onDeck && pitched) throw Error(`A ${a.type} needs a flat roof`);
+    if (!onDeck && !pitched) throw Error("A dormer needs a pitched roof");
+  }
   const onRoof = (p.roofAttachments ?? []).map((a) => roofAttachmentPart(p, a));
   // The dormer's small roof follows the house's tile footprint.
   const tileScale = unitFootprintScale(unit);
@@ -523,13 +542,15 @@ export function buildCoreHouse(p: CoreHouseParameters): BuildingCoreDraft {
         guest: part.id,
         hosts: walls.map((w) => ({ part: w.id }))
       })),
-      // A dormer sits on whichever roof part is under it.
+      // A dormer sits on whichever roof part is under it; a deck prefab stands on the deck.
       ...onRoof.map((part) => ({
         kind: "attach" as const,
         id: part.id + "/on-roof",
         guest: part.id,
-        hosts: roofs.map((r) => ({ part: r.part.id })),
-        params: { tiles }
+        hosts: roofs
+          .filter((r) => part.type === "dormer" || r.part.type === "roofDeck")
+          .map((r) => ({ part: r.part.id })),
+        ...(part.type === "dormer" && { params: { tiles } })
       }))
     ]
   };

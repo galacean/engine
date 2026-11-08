@@ -303,6 +303,31 @@ const cases = (): Case[] => [
     ),
     ground: flat
   },
+  {
+    id: "deck-prefabs",
+    title: "平屋顶 · 活板门与屋顶灯",
+    house: {
+      id: "a",
+      height: 4,
+      rectangle: { center: [0, 0], size: [9, 7], rotation: 0.4 },
+      roof: { height: 0 },
+      roofAttachments: (
+        [
+          ["h1", "hatch-cottage", [0.3, 0.4]],
+          ["h2", "hatch-gothic", [0.7, 0.7]],
+          ["l1", "roof-lantern", [0.75, 0.25]]
+        ] as const
+      ).map(([id, type, uv]) => {
+        const [width, height] = constructionDecorationRecipe(
+          library.compilation.decorations,
+          type,
+          1
+        )!.installationSize;
+        return { id, type, rank: 1 as const, uv: [...uv] as [number, number], bottom: 0, width, height };
+      })
+    },
+    ground: flat
+  },
   { id: "steep", title: "陡屋顶", house: { id: "a", roof: { height: 0.8, eave: 0.4 } }, ground: flat },
   { id: "gable", title: "山墙屋顶", house: { id: "a", roof: { ridge_length: 1 } }, ground: flat },
   {
@@ -408,7 +433,11 @@ async function online(c: Case, dx: number, parent: Entity, signal: AbortSignal):
     ...p,
     attachments: [
       ...(p.attachments ?? []),
-      ...(roofAttachments ?? []).map((a) => ({ ...a, kind: "window", host: "roof" }))
+      ...(roofAttachments ?? []).map((a) => ({
+        ...a,
+        kind: a.type === "roof-lantern" ? "lantern" : a.type.startsWith("hatch") ? "hatch" : "window",
+        host: "roof"
+      }))
     ]
   }));
   const ground = groundFor(c, dx);

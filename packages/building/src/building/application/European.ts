@@ -3,6 +3,8 @@
 // returns a core draft, a plain JSON value that describes the building on its own.
 import type { BuildingCoreDraft } from "../core";
 import type { MaterialFootprint } from "../runtime/MaterialFootprint";
+import { normalizeProfileRoof } from "../runtime/ProfileParameters";
+import { isFlatRoofHeight } from "../runtime/RoofMode";
 import {
   buildCoreFence,
   buildCoreHouses,
@@ -87,18 +89,28 @@ function positive(name: string, value: number | undefined) {
 }
 
 /** Building prefabs of the asset kit that sit on roofs. */
-const ROOF_PREFABS = new Set(["dormer-gothic"]);
+const ROOF_PREFABS = new Set(["dormer-gothic", "hatch-cottage", "hatch-gothic", "roof-lantern"]);
 const onRoof = (a: EuropeanAttachment) => a.host === "roof" || a.uv !== undefined;
-function roofAttachment(a: EuropeanAttachment): CoreRoofAttachment | undefined {
+/** The prefab of a roof attachment that names only its kind: on a flat roof a window or hatch
+ * is a hatch and a lamp is a roof lantern; on a pitched roof a window is a cottage dormer. */
+function roofType(a: EuropeanAttachment, flat: boolean): string | undefined {
+  if (a.type) return a.type;
+  if (a.kind === "wall-lamp" || a.kind === "lantern") return flat ? "roof-lantern" : undefined;
+  if (a.kind === "hatch") return flat ? "hatch-cottage" : undefined;
+  if (a.kind === "window") return flat ? "hatch-cottage" : "dormer-cottage";
+}
+function roofAttachment(a: EuropeanAttachment, flat: boolean): CoreRoofAttachment | undefined {
   if (a.enabled === false || !onRoof(a)) return;
-  if (!a.type || !ROOF_PREFABS.has(a.type)) throw unavailable(`The roof attachment type "${a.type}" ("${a.id}")`);
+  const type = roofType(a, flat);
+  if (!type) throw Error(`A roof attachment of kind "${a.kind}" needs a flat roof ("${a.id}")`);
+  if (!ROOF_PREFABS.has(type)) throw unavailable(`The roof attachment type "${type}" ("${a.id}")`);
   if (a.frameMaterial === "wall") throw unavailable(`A frame of wall material ("${a.id}")`);
   if (!a.uv) throw Error(`Roof attachment "${a.id}" needs uv`);
   positive("attachment width", a.width);
   positive("attachment height", a.height);
   return {
     id: a.id,
-    type: a.type as CoreRoofAttachment["type"],
+    type: type as CoreRoofAttachment["type"],
     ...(a.rank && { rank: a.rank }),
     uv: a.uv,
     ...(a.bottom !== undefined && { bottom: a.bottom }),
@@ -161,7 +173,9 @@ function house(p: EuropeanHouseParameters): CoreHouseParameters {
     ...(p.wallColor !== undefined && { wallColor: p.wallColor }),
     ...(p.woodColor !== undefined && { woodColor: p.woodColor }),
     attachments: (p.attachments ?? []).flatMap((a) => wallAttachment(a) ?? []),
-    roofAttachments: (p.attachments ?? []).flatMap((a) => roofAttachment(a) ?? [])
+    roofAttachments: (p.attachments ?? []).flatMap(
+      (a) => roofAttachment(a, isFlatRoofHeight(normalizeProfileRoof(p.roof ?? {}).height)) ?? []
+    )
   };
 }
 function strip(p: EuropeanStripParameters): CoreStripParameters {

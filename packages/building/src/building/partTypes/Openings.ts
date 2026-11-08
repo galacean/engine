@@ -53,6 +53,22 @@ export function prefabScale(facts: PrefabFacts, width: number, height: number): 
     sy = height / (max[1] - min[1]);
   return [sx, sy, Math.min(sx, sy)];
 }
+/** The mount point at which `mountPrefab` lays a prefab with its origin at `at`, on axes x
+ * (across), y (up) and z (out): the center of the prefab's bounds across and up, resized about
+ * its back. */
+export function mountFor(
+  at: Vec3,
+  axes: { readonly x: Vec3; readonly y: Vec3; readonly z: Vec3 },
+  facts: PrefabFacts,
+  sx: number,
+  sy: number
+): Vec3 {
+  const { min, max } = facts.bounds;
+  const cx = ((min[0] + max[0]) / 2) * sx,
+    cy = ((min[1] + max[1]) / 2) * sy,
+    cz = -min[2] * (1 - Math.min(sx, sy));
+  return [0, 1, 2].map((k) => at[k] + axes.x[k] * cx + axes.y[k] * cy + axes.z[k] * cz) as unknown as Vec3;
+}
 /** An opening in a wall: the host's index among the part's hosts, the area in that wall's
  * chart, and the same area along the house perimeter. Plain JSON. */
 export interface WallOpeningParams {

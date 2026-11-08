@@ -676,6 +676,9 @@ export interface RoofDeckParams {
   readonly y: Vec3;
   readonly size: readonly [number, number];
   readonly round?: boolean;
+  /** How far the deck reaches past the walls' inner face on every side, in metres. What
+   * stands on the deck stays inside that face. */
+  readonly rim?: number;
 }
 export const roofDeckSurface: SurfaceKind<RoofDeckParams> = {
   domain: (p) => ({ u: [0, p.size[0]], v: [0, p.size[1]], closedU: false }),
@@ -700,7 +703,16 @@ export const houseRoofDeckGeometry: GeometryGenerator<HouseShared> = (p, { hosts
     y,
     shape.center[1] - (s * width) / 2 + (c * depth) / 2
   ];
-  const params: RoofDeckParams = { origin, x: [c, 0, s], y: [s, 0, -c], size: [width, depth], ...(round && { round }) };
+  // The walls stand symmetric about their center line: the deck covers them out to their outer
+  // face, as far again past their inner face.
+  const params: RoofDeckParams = {
+    origin,
+    x: [c, 0, s],
+    y: [s, 0, -c],
+    size: [width, depth],
+    ...(round && { round }),
+    rim: 2 * chart.nominalOuter
+  };
   return { elements: { deck: { kind: "surface", surface: { kind: "roofDeck", params } } } };
 };
 type DeckParams = {
@@ -758,6 +770,8 @@ export const deckRows: LayingAlgorithm<DeckParams, DeckLayout> = {
     // A piece cut below the unit's range is not laid.
     if (!unitFits(context.unit, size)) return;
     const uv = [(u0 + u1) / 2, (v0 + v1) / 2];
+    // A piece wholly inside an area removed from the deck, as under a hatch, is not laid.
+    if (insideRemoved(context.geometry.surface("deck"), uv[0], uv[1], (u1 - u0) / 2, (v1 - v0) / 2)) return;
     return {
       key: `${r}/${c}`,
       frame: roofDeckSurface.frame(p, uv[0], uv[1], {}),
