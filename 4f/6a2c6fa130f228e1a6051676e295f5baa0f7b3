@@ -1,0 +1,926 @@
+.agents/skills/import-galacean-assets/references/intake.md
+  h_a3c79ce84ffdc2 31,33
+.github/HOW_TO_CONTRIBUTE.md
+  h_a3c79ce84ffdc2 37
+.github/workflows/ci.yml
+  h_a3c79ce84ffdc2 77-78
+package.json
+  h_a3c79ce84ffdc2 11
+packages/ai-chat/src/ai-chat/README.md
+  h_a3c79ce84ffdc2 120,138
+packages/ai-chat/src/ai-chat/agent-edit-execution.ts
+  h_a3c79ce84ffdc2 224-231
+packages/ai-chat/src/ai-chat/agent-extensions.ts
+  h_a3c79ce84ffdc2 76-77
+packages/ai-chat/src/ai-chat/agent-loop.ts
+  h_a3c79ce84ffdc2 314-315,377,411,984,1005
+packages/ai-chat/src/ai-chat/agent-native-files.ts
+  h_a3c79ce84ffdc2 62,65
+packages/ai-chat/src/ai-chat/agent-project-files.ts
+  h_a3c79ce84ffdc2 12-14,21-24,28,44,50,56,96
+packages/ai-chat/src/ai-chat/agent-protocol.ts
+  h_a3c79ce84ffdc2 1,35,38,90,116,134,164,184,186-187,189,191,195-196,206-207,212
+packages/ai-chat/src/ai-chat/agent-skills.ts
+  h_a3c79ce84ffdc2 3,28-31
+packages/ai-chat/src/ai-chat/agent-types.ts
+  h_a3c79ce84ffdc2 134,143,145-146,211-212
+packages/ai-chat/src/ai-chat/context-compaction.ts
+  h_a3c79ce84ffdc2 168
+packages/ai-chat/tests/AIChatAgentProtocol.spec.ts
+  h_a3c79ce84ffdc2 1-168
+packages/ai-chat/tests/AIChatController.spec.ts
+  h_a3c79ce84ffdc2 1-225
+packages/ai-chat/tests/AIChatInbox.spec.ts
+  h_a3c79ce84ffdc2 1-387
+packages/ai-chat/tests/AIChatTestRuntime.ts
+  h_a3c79ce84ffdc2 1-40
+packages/ai-chat/tests/MemoryTraceAttachments.ts
+  h_a3c79ce84ffdc2 1-12
+packages/ai-chat/tests/SessionFileResults.spec.ts
+  h_a3c79ce84ffdc2 1-195
+packages/ai-chat/tests/SessionRecovery.spec.ts
+  h_a3c79ce84ffdc2 1-86
+packages/ai-chat/tests/agent-artifacts.spec.ts
+  h_a3c79ce84ffdc2 1-48
+packages/ai-chat/tests/agent-command-receipts.spec.ts
+  h_a3c79ce84ffdc2 1-28
+packages/ai-chat/tests/agent-context.spec.ts
+  h_a3c79ce84ffdc2 1-38
+packages/ai-chat/tests/agent-edit-execution.spec.ts
+  h_a3c79ce84ffdc2 1-506
+packages/ai-chat/tests/agent-failure-statistics.spec.ts
+  h_a3c79ce84ffdc2 1-132
+packages/ai-chat/tests/agent-file-tools.spec.ts
+  h_a3c79ce84ffdc2 1-312
+packages/ai-chat/tests/agent-images.spec.ts
+  h_a3c79ce84ffdc2 1-258
+packages/ai-chat/tests/agent-knowledge-paths.spec.ts
+  h_a3c79ce84ffdc2 1-93
+packages/ai-chat/tests/agent-native-files.spec.ts
+  h_a3c79ce84ffdc2 1-10,12-47,49-52,54-67,69-89,91-158,161-208,210,212-242
+packages/ai-chat/tests/agent-output.spec.ts
+  h_a3c79ce84ffdc2 1-3,5-15,17-22,24-42
+packages/ai-chat/tests/agent-project-files.spec.ts
+  h_a3c79ce84ffdc2 1-58
+packages/ai-chat/tests/agent-read-window.spec.ts
+  h_a3c79ce84ffdc2 1-85
+packages/ai-chat/tests/agent-skills.spec.ts
+  h_a3c79ce84ffdc2 1-47
+packages/ai-chat/tests/agent-tool-batch.spec.ts
+  h_a3c79ce84ffdc2 1-59
+packages/ai-chat/tests/context-compaction-loop.spec.ts
+  h_a3c79ce84ffdc2 1-139
+packages/ai-chat/tests/context-compaction-transport.spec.ts
+  h_a3c79ce84ffdc2 1-3,5,7-42,44-50,52-58
+packages/ai-chat/tests/context-compaction.spec.ts
+  h_a3c79ce84ffdc2 1-124
+packages/ai-chat/tests/context-metrics.spec.ts
+  h_a3c79ce84ffdc2 1-63,65-102,104-119,121-133,135-163,165-174
+packages/ai-chat/tests/image-fixture.ts
+  h_a3c79ce84ffdc2 1-7
+packages/ai-chat/tests/llm/call-evidence.mjs
+  h_a3c79ce84ffdc2 1-5,7-23,25-29,32-54,56-65
+packages/ai-chat/tests/model-retry-transport.spec.ts
+  h_a3c79ce84ffdc2 1-178
+packages/ai-chat/tests/project-regex-search.spec.ts
+  h_a3c79ce84ffdc2 1-150
+packages/ai-chat/tests/reasoning-continuation.spec.ts
+  h_a3c79ce84ffdc2 1-108
+packages/ai-chat/vitest.config.mjs
+  h_a3c79ce84ffdc2 1-3
+packages/animals/src/skills/animals/SKILL.md
+  h_a3c79ce84ffdc2 1-78
+packages/building/package.json
+  h_a3c79ce84ffdc2 15-233
+packages/building/src/building/parts/BuildingKnowledge.ts
+  h_a3c79ce84ffdc2 1-18
+packages/building/src/building/resources/PREFAB_AUTHORING.md
+  h_a3c79ce84ffdc2 41,67
+packages/building/src/index.ts
+  h_a3c79ce84ffdc2 1
+packages/building/src/skills/building/SKILL.md
+  h_a3c79ce84ffdc2 2-3,6,8,10,12,14-34,38-39
+packages/building/src/skills/building/references/connections.md
+  h_a3c79ce84ffdc2 3,5-7,9,11,13,15-33
+packages/building/src/skills/building/references/foundation.md
+  h_a3c79ce84ffdc2 1,3,5,7,9,11,13,15,17-24,39-74
+packages/building/src/skills/building/references/planning.md
+  h_a3c79ce84ffdc2 1,3,5,7,9-17,19,21,23-42,45,47-49,51,53-54,57-61,65-85,87
+packages/building/src/skills/building/references/roof.md
+  h_a3c79ce84ffdc2 3,5,7,9,11-45
+packages/building/src/skills/building/references/structure.md
+  h_a3c79ce84ffdc2 1-7
+packages/building/src/skills/building/references/wall.md
+  h_a3c79ce84ffdc2 3,5,7,9,11-33
+packages/building/tests/BoundaryPlacement.spec.ts
+  h_a3c79ce84ffdc2 1-107
+packages/building/tests/BuildingAlgorithmExecution.spec.ts
+  h_a3c79ce84ffdc2 1-113
+packages/building/tests/BuildingAlgorithms.spec.ts
+  h_a3c79ce84ffdc2 1-17,19-93,95-97,99
+packages/building/tests/BuildingArchExecution.spec.ts
+  h_a3c79ce84ffdc2 1-130
+packages/building/tests/BuildingAttachmentExecution.spec.ts
+  h_a3c79ce84ffdc2 1-23,25-34,36-46,48-52,58,62-90,92-267,269-270
+packages/building/tests/BuildingAuthorBoundary.spec.ts
+  h_a3c79ce84ffdc2 1-370
+packages/building/tests/BuildingComponents.spec.ts
+  h_a3c79ce84ffdc2 1-22,24-27,30-46,48-62,64-82,84-88
+packages/building/tests/BuildingCpuBoundary.spec.ts
+  h_a3c79ce84ffdc2 1-24
+packages/building/tests/BuildingCpuClient.spec.ts
+  h_a3c79ce84ffdc2 1-199
+packages/building/tests/BuildingDecorationIdentity.spec.ts
+  h_a3c79ce84ffdc2 1-45
+packages/building/tests/BuildingDesignIdentity.spec.ts
+  h_a3c79ce84ffdc2 1-126
+packages/building/tests/BuildingDormerExecution.spec.ts
+  h_a3c79ce84ffdc2 1-122
+packages/building/tests/BuildingDraftLifetime.spec.ts
+  h_a3c79ce84ffdc2 1-78
+packages/building/tests/BuildingFocus.spec.ts
+  h_a3c79ce84ffdc2 1-278
+packages/building/tests/BuildingGothicDormerExecution.spec.ts
+  h_a3c79ce84ffdc2 1-18,20-172
+packages/building/tests/BuildingHalfDormerExecution.spec.ts
+  h_a3c79ce84ffdc2 1-148
+packages/building/tests/BuildingIndependent.spec.ts
+  h_a3c79ce84ffdc2 1-99
+packages/building/tests/BuildingInstanceExecution.spec.ts
+  h_a3c79ce84ffdc2 1-18,20-56,58-63,65-68,70-145
+packages/building/tests/BuildingInstancePalette.spec.ts
+  h_a3c79ce84ffdc2 1-209
+packages/building/tests/BuildingJunctionExecution.spec.ts
+  h_a3c79ce84ffdc2 1-35,37-40,42-138,140-166,168-184,186-191,193-216
+packages/building/tests/BuildingPartCollection.spec.ts
+  h_a3c79ce84ffdc2 1-253
+packages/building/tests/BuildingParts.spec.ts
+  h_a3c79ce84ffdc2 1-149
+packages/building/tests/BuildingPlacement.spec.ts
+  h_a3c79ce84ffdc2 1-124
+packages/building/tests/BuildingProductionCapabilities.spec.ts
+  h_a3c79ce84ffdc2 1-37,39-81,85-88,91-153
+packages/building/tests/BuildingProfileAlgorithms.spec.ts
+  h_a3c79ce84ffdc2 1-100
+packages/building/tests/BuildingProfileContacts.spec.ts
+  h_a3c79ce84ffdc2 1-105
+packages/building/tests/BuildingProfileDecorations.spec.ts
+  h_a3c79ce84ffdc2 1-81
+packages/building/tests/BuildingProfileGeometry.spec.ts
+  h_a3c79ce84ffdc2 1-18
+packages/building/tests/BuildingRenderInput.spec.ts
+  h_a3c79ce84ffdc2 1-93
+packages/building/tests/BuildingSceneLifecycle.spec.ts
+  h_a3c79ce84ffdc2 1-728
+packages/building/tests/BuildingSource.spec.ts
+  h_a3c79ce84ffdc2 1-38,40-285,287-313,315-336,338-355,357-405,407-497
+packages/building/tests/BuildingSpireExecution.spec.ts
+  h_a3c79ce84ffdc2 1-153
+packages/building/tests/BuildingStages.spec.ts
+  h_a3c79ce84ffdc2 1-71,73-241
+packages/building/tests/BuildingStripPlacement.spec.ts
+  h_a3c79ce84ffdc2 1-19,21-27
+packages/building/tests/BuildingSurfaceMath.spec.ts
+  h_a3c79ce84ffdc2 1-26
+packages/building/tests/BuildingWorkerCpu.spec.ts
+  h_a3c79ce84ffdc2 1-158
+packages/building/tests/ConstructionCpuClient.spec.ts
+  h_a3c79ce84ffdc2 1-153
+packages/building/tests/ConstructionLodAppearance.spec.ts
+  h_a3c79ce84ffdc2 1-7,9-49
+packages/building/tests/ConstructionPlasterTextures.spec.ts
+  h_a3c79ce84ffdc2 1-48
+packages/building/tests/ConstructionSurfaceRegions.spec.ts
+  h_a3c79ce84ffdc2 1-145
+packages/building/tests/CottageDoorProducer.spec.ts
+  h_a3c79ce84ffdc2 1-28
+packages/building/tests/CottageDormerGeometry.spec.ts
+  h_a3c79ce84ffdc2 1-11
+packages/building/tests/DecorationNativeView.spec.ts
+  h_a3c79ce84ffdc2 1-198
+packages/building/tests/GothicRoofDecorationProducer.spec.ts
+  h_a3c79ce84ffdc2 1-31
+packages/building/tests/PitchedRoofAttachment.spec.ts
+  h_a3c79ce84ffdc2 1-71,73-123,126-128,131-132,134-136,139-141,144-163
+packages/building/tests/PlannedMasonryPlasterBoundary.spec.ts
+  h_a3c79ce84ffdc2 1-10,12-111,113-178
+packages/building/tests/StoneHalfDormerGenerator.spec.ts
+  h_a3c79ce84ffdc2 1-36,38-54,56-82
+packages/building/tests/appearance.test.mjs
+  h_a3c79ce84ffdc2 1-296
+packages/building/tests/fixtures/constructionGeometry.ts
+  h_a3c79ce84ffdc2 1-4
+packages/building/tests/geometry-boundaries.test.mjs
+  h_a3c79ce84ffdc2 1-18
+packages/building/tests/plaster.test.mjs
+  h_a3c79ce84ffdc2 1-18
+packages/building/tests/unit-footprint.test.mjs
+  h_a3c79ce84ffdc2 1-79
+packages/building/tests/worker.test.mjs
+  h_a3c79ce84ffdc2 1-53
+packages/building/vitest.config.mjs
+  h_a3c79ce84ffdc2 1-3
+packages/environment/src/skills/environment/SKILL.md
+  h_a3c79ce84ffdc2 1-4,6,8,10-16,22
+packages/farming/package.json
+  h_a3c79ce84ffdc2 86-87,200-202
+packages/farming/src/farming/native/FarmingAgent.ts
+  h_a3c79ce84ffdc2 7-12,26-28,30-33
+packages/farming/src/farming/native/FarmingMethodDocs.ts
+  h_a3c79ce84ffdc2 1-2,4,6,9,11,14,16,19,21,24,26,29,31,34,36,39,41,44,46,49,51,54,56,59,61,64,66,69,71,74,76,79,81,84,86,89,91,94,96,99,101,104,106,109,111,114,116,119,121,124,126,129,131,134,136,139,141,144,146,149,151,154,156,159,161,164,166,169,171,174,176
+packages/farming/src/farming/native/FarmingSkill.ts
+  h_a3c79ce84ffdc2 1-16
+packages/farming/src/farming/native/index.ts
+  h_a3c79ce84ffdc2 25-26
+packages/farming/src/farming/scripts/generate-native-api.mjs
+  h_a3c79ce84ffdc2 1,34-35,120,135,143,146,148-151,153,155
+packages/farming/src/skills/farming/SKILL.md
+  h_a3c79ce84ffdc2 1-5,8-23,25-31,42-46,48-54,76,78,80-85,87,89,91
+packages/farming/src/skills/farming/references/operations.md
+  h_a3c79ce84ffdc2 3,5,7,10-19,24-30,32,36,38-46,49-56,63-72,74,76,81,86-94,96,98,102,104,106,108-117,121-123,125,127-130,132-139,143-147,149,151
+packages/farming/src/skills/farming/references/overview.md
+  h_a3c79ce84ffdc2 12,18,49-141
+packages/farming/src/skills/farming/references/saves-and-assets.md
+  h_a3c79ce84ffdc2 1,3,5,7,9-11,13,15,17,19,21,23,25,27-32,35-63,65
+packages/farming/src/skills/farming/references/state-and-units.md
+  h_a3c79ce84ffdc2 1-60
+packages/farming/src/skills/farming/references/verification.md
+  h_a3c79ce84ffdc2 3,5,7,9-16,18,20,22,24,26-48
+packages/farming/tests/fixtures/fixtures.ts
+  h_a3c79ce84ffdc2 1-111
+packages/farming/tests/fixtures/procedural-fixtures.ts
+  h_a3c79ce84ffdc2 1-38,40-77,79-89,92-105,107-119,122-149
+packages/farming/tests/native/FarmingAgronomy.spec.ts
+  h_a3c79ce84ffdc2 1-21
+packages/farming/tests/native/FarmingEditor.spec.ts
+  h_a3c79ce84ffdc2 1-164
+packages/farming/tests/native/FarmingInstructionSuite.ts
+  h_a3c79ce84ffdc2 1-199
+packages/farming/tests/native/FarmingNative.spec.ts
+  h_a3c79ce84ffdc2 1-776
+packages/farming/tests/native/FarmingStorage.spec.ts
+  h_a3c79ce84ffdc2 1-152
+packages/farming/tests/native/IrrigationEffectSummary.spec.ts
+  h_a3c79ce84ffdc2 1-15
+packages/farming/tests/watering-glb-fixture.ts
+  h_a3c79ce84ffdc2 1-22
+packages/farming/vitest.config.mjs
+  h_a3c79ce84ffdc2 1-3
+packages/project/src/project-files/virtual-project-files.ts
+  h_a3c79ce84ffdc2 34-53
+packages/project/src/runtime-editor/project/runtime-project-edit.ts
+  h_a3c79ce84ffdc2 13,155
+packages/project/src/runtime-editor/project/runtime-project.ts
+  h_a3c79ce84ffdc2 3,27,144-145
+packages/project/src/runtime-editor/scripts/runtime-script-inputs.ts
+  h_a3c79ce84ffdc2 8
+packages/project/tests/TestRegexWorker.ts
+  h_a3c79ce84ffdc2 1-27
+packages/project/tests/project-write-boundary.test.ts
+  h_a3c79ce84ffdc2 1-8,10-18,20-35,37,39-55,57-63
+packages/project/tests/runtime-project-compiler.spec.ts
+  h_a3c79ce84ffdc2 1-108
+packages/project/tests/runtime-project-persistence.spec.ts
+  h_a3c79ce84ffdc2 1-8,10-18,20-120
+packages/project/tests/vfs-operations.spec.ts
+  h_a3c79ce84ffdc2 1-58
+packages/project/vitest.config.mjs
+  h_a3c79ce84ffdc2 1-3
+packages/retrieval/src/retrieval/README.md
+  h_a3c79ce84ffdc2 22
+packages/runtime-editor/src/farming/FarmingComponentEditor.ts
+  h_a3c79ce84ffdc2 1,21-22,61-66
+packages/runtime-editor/src/retrieval-agent/index.ts
+  h_a3c79ce84ffdc2 1,83-92
+packages/runtime-editor/src/retrieval-agent/search-cloud.md
+  h_a3c79ce84ffdc2 2-3,6,8,10,12,14-16,18
+packages/runtime-editor/src/runtime-editor-agent/README.md
+  h_a3c79ce84ffdc2 210,216-218
+packages/runtime-editor/src/runtime-editor-agent/engine-runtime-files.ts
+  h_a3c79ce84ffdc2 5,7,9,11-19,35-36,38,41,47-48,52-54
+packages/runtime-editor/src/runtime-editor-agent/runtime-native-editor.ts
+  h_a3c79ce84ffdc2 3-7,94,103
+packages/runtime-editor/src/runtime-editor-agent/runtime-native-knowledge.ts
+  h_a3c79ce84ffdc2 2,50,65-91,97-99
+packages/runtime-editor/src/runtime-editor-agent/runtime-native-tools.ts
+  h_a3c79ce84ffdc2 1-4,121-127
+packages/runtime-editor/src/runtime-editor/generated/engine-runtime-files.json
+  h_a3c79ce84ffdc2 1
+packages/runtime-editor/src/runtime-editor/generated/engine-runtime-index.json
+  h_a3c79ce84ffdc2 1
+packages/runtime-editor/src/runtime-editor/generated/host-runtime-files.json
+  h_a3c79ce84ffdc2 2-107
+packages/runtime-editor/src/runtime-editor/scripts/generate-host-declarations.mjs
+  h_a3c79ce84ffdc2 10
+packages/runtime-editor/src/runtime-editor/scripts/runtime-host-declarations.ts
+  h_a3c79ce84ffdc2 8
+packages/runtime-editor/src/runtime-editor/scripts/runtime-script-compiler.ts
+  h_a3c79ce84ffdc2 27
+packages/runtime-editor/src/runtime-editor/scripts/runtime-script-environment.ts
+  h_a3c79ce84ffdc2 22
+packages/runtime-editor/src/skills/assets/SKILL.md
+  h_a3c79ce84ffdc2 1-4,6,8,10,12-20,22,24-25,27,29,31,33-37
+packages/runtime-editor/src/skills/assets/delete/SKILL.md
+  h_a3c79ce84ffdc2 1-19
+packages/runtime-editor/src/skills/assets/import/SKILL.md
+  h_a3c79ce84ffdc2 1-4,6,8,10,12,14,16-20
+packages/runtime-editor/src/skills/assets/inspect/SKILL.md
+  h_a3c79ce84ffdc2 1-19
+packages/runtime-editor/src/skills/assets/mesh-material/SKILL.md
+  h_a3c79ce84ffdc2 1-13
+packages/runtime-editor/src/skills/assets/references/material-format.md
+  h_a3c79ce84ffdc2 1-13
+packages/runtime-editor/src/skills/assets/references/primitive-mesh.md
+  h_a3c79ce84ffdc2 1,3,5,7,9-24,30,36
+packages/runtime-editor/src/skills/assets/use-image/SKILL.md
+  h_a3c79ce84ffdc2 1-8
+packages/runtime-editor/src/skills/assets/use-model/SKILL.md
+  h_a3c79ce84ffdc2 1-32,35-67
+packages/runtime-editor/src/skills/assets/use-prefab/SKILL.md
+  h_a3c79ce84ffdc2 1-4,6,8,10-19,21-25,27-29
+packages/runtime-editor/src/skills/components/SKILL.md
+  h_a3c79ce84ffdc2 1-33
+packages/runtime-editor/src/skills/history/SKILL.md
+  h_a3c79ce84ffdc2 1-20
+packages/runtime-editor/src/skills/scene-nodes/SKILL.md
+  h_a3c79ce84ffdc2 1-39
+packages/runtime-editor/src/skills/scene-nodes/references/draft-and-commit.md
+  h_a3c79ce84ffdc2 1-11
+packages/runtime-editor/src/skills/scene-nodes/references/project-files.md
+  h_a3c79ce84ffdc2 1-21
+packages/runtime-editor/src/skills/scripting/SKILL.md
+  h_a3c79ce84ffdc2 1-4,6,8,10,12,14-18,20,22,24-27
+packages/runtime-editor/src/skills/scripting/references/configured-assets.md
+  h_a3c79ce84ffdc2 3,5,9,24,39,69,73,75-77
+packages/runtime-editor/tests/AgentNativeReadTools.spec.ts
+  h_a3c79ce84ffdc2 1-117
+packages/runtime-editor/tests/agent-native-activation.spec.ts
+  h_a3c79ce84ffdc2 1-138
+packages/runtime-editor/tests/asset-import.spec.ts
+  h_a3c79ce84ffdc2 1-93
+packages/runtime-editor/tests/asset-inspection.spec.ts
+  h_a3c79ce84ffdc2 1-38
+packages/runtime-editor/tests/dependency-publication.spec.ts
+  h_a3c79ce84ffdc2 1-57
+packages/runtime-editor/tests/engine-runtime-files.spec.ts
+  h_a3c79ce84ffdc2 1-20,22-48,51-62
+packages/runtime-editor/tests/files-draft.spec.ts
+  h_a3c79ce84ffdc2 1-9,11-48,50-52
+packages/runtime-editor/tests/project-file-view.spec.ts
+  h_a3c79ce84ffdc2 1-293
+packages/runtime-editor/tests/retrieval-import.spec.ts
+  h_a3c79ce84ffdc2 1-7,9-55
+packages/runtime-editor/tests/runtime-explicit-undo.spec.ts
+  h_a3c79ce84ffdc2 1-81
+packages/runtime-editor/tests/runtime-history-fixture.ts
+  h_a3c79ce84ffdc2 1-30
+packages/runtime-editor/tests/runtime-history.spec.ts
+  h_a3c79ce84ffdc2 1-96
+packages/runtime-editor/tests/runtime-native-knowledge.spec.ts
+  h_a3c79ce84ffdc2 1-115
+packages/runtime-editor/tests/runtime-project-edit.spec.ts
+  h_a3c79ce84ffdc2 1-109
+packages/runtime-editor/tests/runtime-project.spec.ts
+  h_a3c79ce84ffdc2 1-623
+packages/runtime-editor/tests/runtime-scene-edit.spec.ts
+  h_a3c79ce84ffdc2 1-124
+packages/runtime-editor/tests/runtime-script-compiler.spec.ts
+  h_a3c79ce84ffdc2 1-75
+packages/runtime-editor/tests/vfs-import.spec.ts
+  h_a3c79ce84ffdc2 1-107,110-153,155-206
+packages/runtime-editor/tests/virtual-path-contract.spec.ts
+  h_a3c79ce84ffdc2 1-63
+packages/runtime-editor/vitest.config.mjs
+  h_a3c79ce84ffdc2 1-3
+packages/terrain/src/data/grasslands/public/Shader/Grass.shaderc
+  h_a3c79ce84ffdc2 1
+packages/terrain/src/data/grasslands/public/Shader/Terrain.shaderc
+  h_a3c79ce84ffdc2 1
+packages/terrain/src/data/grasslands/public/Shader/Vegetation.shaderc
+  h_a3c79ce84ffdc2 1
+packages/terrain/src/data/grasslands/public/Shader/debug/Core/Terrain.shaderc
+  h_a3c79ce84ffdc2 1
+packages/terrain/src/data/grasslands/public/Shader/debug/Core/Vegetation.shaderc
+  h_a3c79ce84ffdc2 1
+packages/terrain/src/data/grasslands/source/public/Shader/Grass.shaderc
+  h_a3c79ce84ffdc2 1
+packages/terrain/src/data/grasslands/source/public/Shader/Terrain.shaderc
+  h_a3c79ce84ffdc2 1
+packages/terrain/src/data/grasslands/source/public/Shader/Vegetation.shaderc
+  h_a3c79ce84ffdc2 1
+packages/terrain/src/data/grasslands/source/public/Shader/debug/Core/Terrain.shaderc
+  h_a3c79ce84ffdc2 1
+packages/terrain/src/data/grasslands/source/public/Shader/debug/Core/Vegetation.shaderc
+  h_a3c79ce84ffdc2 1
+packages/terrain/src/data/seed-world/public/Shader/Grass.shaderc
+  h_a3c79ce84ffdc2 1
+packages/terrain/src/data/seed-world/public/Shader/Terrain.shaderc
+  h_a3c79ce84ffdc2 1
+packages/terrain/src/data/seed-world/public/Shader/Vegetation.shaderc
+  h_a3c79ce84ffdc2 1
+packages/terrain/src/shaders/shared/GrassColorField.glsl
+  h_a3c79ce84ffdc2 88
+packages/terrain/src/shaders/terrain/TerrainEvaluation.glsl
+  h_a3c79ce84ffdc2 4,18-27,29-39,41-47,49-57,59-60,62-65,67-71,83,85-87,101-105,125-129
+packages/terrain/src/shaders/terrain/TerrainForwardPass.glsl
+  h_a3c79ce84ffdc2 14,132-135,148-150,154-157,160-162,170-172,177-184,189-196,198-200,204-211,213-215
+packages/terrain/src/shaders/terrain/TerrainScreenSpaceReflectionPass.glsl
+  h_a3c79ce84ffdc2 111,177
+packages/terrain/src/skills/terrain/SKILL.md
+  h_a3c79ce84ffdc2 1-4,6,8,10-12,16-20
+packages/terrain/src/terrain/clipmap/TerrainClipmapMaterial.ts
+  h_a3c79ce84ffdc2 473
+packages/terrain/src/terrain/clipmap/TerrainGroundBinding.ts
+  h_a3c79ce84ffdc2 55
+packages/vegetation/src/skills/vegetation/SKILL.md
+  h_a3c79ce84ffdc2 1-4,6,8,10,12-16,18,20,22,24,26,28,30,32,34,36,38-40,43-44
+packages/vegetation/src/world/SeedWorldGrassColorField.ts
+  h_a3c79ce84ffdc2 101-102
+packages/water/src/skills/water/SKILL.md
+  h_a3c79ce84ffdc2 1-4,6,8,10,12-14,16,18-21,23-32
+packages/water/src/water/native/WaterAgent.ts
+  h_a3c79ce84ffdc2 12-13
+packages/world-planning/src/agent-adapter/ports/SeedWorldEnginePort.ts
+  h_a3c79ce84ffdc2 758,765
+packages/world-planning/src/integrations/terrain/lighting/TerrainLightingRuntime.ts
+  h_a3c79ce84ffdc2 1140,1213,1669-1672,1674-1676
+packages/world-planning/src/integrations/terrain/rock-formation/GrassRockAppearance.ts
+  h_a3c79ce84ffdc2 1
+packages/world-planning/src/masonry/BuildingInitialDraft.ts
+  h_a3c79ce84ffdc2 1-4,6,11-14,18-20
+packages/world-planning/src/masonry/BuildingInitialSource.ts
+  h_a3c79ce84ffdc2 2-3,5,9-10,14-17
+packages/world-planning/src/masonry/MasonryAppearancePanel.ts
+  h_a3c79ce84ffdc2 1
+packages/world-planning/src/masonry/MasonryPlacement.ts
+  h_a3c79ce84ffdc2 2-3
+packages/world-planning/src/masonry/NativeBuildingHost.ts
+  h_a3c79ce84ffdc2 5-6
+packages/world-planning/src/masonry/NativeBuildingPanel.ts
+  h_a3c79ce84ffdc2 4-6,10,15-18
+packages/world-planning/src/planning-data/NaturalVegetationProfile.ts
+  h_a3c79ce84ffdc2 60-69
+packages/world-planning/src/planning-data/README.md
+  h_a3c79ce84ffdc2 7,17,19,53,121
+packages/world-planning/src/planning-data/WayfindingModel.ts
+  h_a3c79ce84ffdc2 4,180
+packages/world-planning/src/planning-data/landform-recipes.json
+  h_a3c79ce84ffdc2 6,11,16
+packages/world-planning/src/planning-data/poi-buildings.json
+  h_a3c79ce84ffdc2 2-4
+packages/world-planning/src/planning-data/poi-content-catalog.json
+  h_a3c79ce84ffdc2 10,23,36,49,62,76,90
+packages/world-planning/src/planning-data/poi-layout.json
+  h_a3c79ce84ffdc2 2,45-46
+packages/world-planning/src/planning-data/wayfinding-profile.json
+  h_a3c79ce84ffdc2 10-11,19-20,58,68,79,90,100,110
+packages/world-planning/src/runtime/SeedWorldRockAssemblyRuntime.ts
+  h_a3c79ce84ffdc2 1,371
+packages/world-planning/src/runtime/SeedWorldTerrainRuntime.ts
+  h_a3c79ce84ffdc2 108-109,150,156-159,161,165,380,387,413-418,1044,1055
+packages/world-planning/src/semantic-study/BaseMapDrawing.ts
+  h_a3c79ce84ffdc2 2,365
+packages/world-planning/src/semantic-study/ContextLandscape.ts
+  h_a3c79ce84ffdc2 1,10,114,496-498,744-750,757,773,780
+packages/world-planning/src/semantic-study/GlobalRoadNetwork.ts
+  h_a3c79ce84ffdc2 342,347
+packages/world-planning/src/semantic-study/IslandPlanModel.ts
+  h_a3c79ce84ffdc2 144
+packages/world-planning/src/semantic-study/POI_EXPERIMENT.md
+  h_a3c79ce84ffdc2 1,3,5,7,9,11,13-17,19,21,23,25,27,29,31,33,35,38,40
+packages/world-planning/src/semantic-study/PlanningHeightmap.ts
+  h_a3c79ce84ffdc2 449
+packages/world-planning/src/semantic-study/PlanningTerrainSource.ts
+  h_a3c79ce84ffdc2 1,30-38,41-43
+packages/world-planning/src/semantic-study/PlanningVectorSurface.ts
+  h_a3c79ce84ffdc2 1,21,30-39
+packages/world-planning/src/semantic-study/PoiBuildings.ts
+  h_a3c79ce84ffdc2 23-24,26
+packages/world-planning/src/semantic-study/PoiCanyon.ts
+  h_a3c79ce84ffdc2 33,235
+packages/world-planning/src/semantic-study/PoiContentCatalog.ts
+  h_a3c79ce84ffdc2 3,68,187,220,301
+packages/world-planning/src/semantic-study/PoiContents.ts
+  h_a3c79ce84ffdc2 50
+packages/world-planning/src/semantic-study/PoiDistribution.ts
+  h_a3c79ce84ffdc2 6-19,24-31,56,58-71,79-81,84-97,99,103-107,110-114,116,118-147,149-153,160-183,185-191,194-215,217-219,221-222
+packages/world-planning/src/semantic-study/PoiLandforms.ts
+  h_a3c79ce84ffdc2 45,47-48,58,84
+packages/world-planning/src/semantic-study/PoiLayoutPanel.ts
+  h_a3c79ce84ffdc2 1,3-7
+packages/world-planning/src/semantic-study/PoiPlanDrawing.ts
+  h_a3c79ce84ffdc2 6,8,12-19,22,34,40
+packages/world-planning/src/semantic-study/PoiPopulation.ts
+  h_a3c79ce84ffdc2 37
+packages/world-planning/src/semantic-study/PoiTrees.ts
+  h_a3c79ce84ffdc2 25,28,57-66,73-74,76,80-81
+packages/world-planning/src/semantic-study/VillagePlacementDiagnostics.ts
+  h_a3c79ce84ffdc2 40,51
+packages/world-planning/src/semantic-study/WorldPlanning3DView.ts
+  h_a3c79ce84ffdc2 637,681
+packages/world-planning/src/semantic-study/WorldPlanningContract.ts
+  h_a3c79ce84ffdc2 106,110,115-120,157-158
+packages/world-planning/src/semantic-study/WorldPlanningScene.ts
+  h_a3c79ce84ffdc2 3,204
+packages/world-planning/src/semantic-study/WorldPlanningTerrain.ts
+  h_a3c79ce84ffdc2 5,900-905
+packages/world-planning/src/spatial/AnimalPopulationComponent.ts
+  h_a3c79ce84ffdc2 14,40-41,61-77,88-94,129,264-268,296
+packages/world-planning/src/spatial/PlanningComponents.ts
+  h_a3c79ce84ffdc2 1,22,90-99,136-143,193-200,429-430,433-434,436-447,480-504,549-551,555-564,570,578-591,596,603,623-635,677,700-701,721,743-750,753,758-759,764-765,866-867,919-950,987,1069,1158,1162-1173,1184,1187-1204,1252-1258,1286
+packages/world-planning/src/spatial/PlanningCountRange.ts
+  h_a3c79ce84ffdc2 1-28
+packages/world-planning/src/spatial/PlanningDocument.ts
+  h_a3c79ce84ffdc2 2-4,32-33,44,133,356,372-373,375,409,418,429-453
+packages/world-planning/src/spatial/PlanningGrassAppearance.ts
+  h_a3c79ce84ffdc2 41,47-48,55,70-81,86-87,91-93,114-116
+packages/world-planning/src/spatial/PlanningInitialization.ts
+  h_a3c79ce84ffdc2 6-15,17,19-21,23-43,45,51-53,62
+packages/world-planning/src/spatial/PlanningLayoutScope.ts
+  h_a3c79ce84ffdc2 8,10,26-28,37,44,47
+packages/world-planning/src/spatial/PlanningLightingParameters.ts
+  h_a3c79ce84ffdc2 31-35,39,46,48-61,69-73,240-241,258,265
+packages/world-planning/src/spatial/PlanningPoiKnowledge.ts
+  h_a3c79ce84ffdc2 1-46
+packages/world-planning/src/spatial/PlanningPopulationInitialization.ts
+  h_a3c79ce84ffdc2 1-11,13-29,31-262
+packages/world-planning/src/spatial/PlanningPopulationParameters.ts
+  h_a3c79ce84ffdc2 1-35
+packages/world-planning/src/spatial/PlanningRuntime.ts
+  h_a3c79ce84ffdc2 56,67-72,79,81,129,148,154-167,172-173,175
+packages/world-planning/src/spatial/PlanningScene.ts
+  h_a3c79ce84ffdc2 10,87,204-215,271,277-281,302-303,305-309,326,339
+packages/world-planning/src/spatial/PlanningSession.ts
+  h_a3c79ce84ffdc2 1,18,514-522,599-607,687-688,822-831,1212-1220
+packages/world-planning/src/spatial/PlanningSubjectView.ts
+  h_a3c79ce84ffdc2 91,97-100
+packages/world-planning/src/spatial/PlanningSystemDeclaration.ts
+  h_a3c79ce84ffdc2 6,11-12,32,36
+packages/world-planning/src/spatial/PlanningWeather.ts
+  h_a3c79ce84ffdc2 23,29
+packages/world-planning/src/spatial/PlantMaterialParameters.ts
+  h_a3c79ce84ffdc2 48-52,56,61,63-69,158,194
+packages/world-planning/src/spatial/README.md
+  h_a3c79ce84ffdc2 5-12,56,97,100,102,104,111,113,115,120,134-135,138-139,169,173,180-184,188,241-244,266,299,321,323,326,338,348,354,356,398,426,462,482,515-517,576-579
+packages/world-planning/src/spatial/SpatialComposition.ts
+  h_a3c79ce84ffdc2 1-21,23-37,39-68,70-102,104-112,114-117,119-126,128-151,153-176,178,181-233,236-374
+packages/world-planning/src/spatial/SpatialCompositionGeometry.ts
+  h_a3c79ce84ffdc2 1-86
+packages/world-planning/src/spatial/SpatialCompositionParameters.ts
+  h_a3c79ce84ffdc2 1-174
+packages/world-planning/src/spatial/SpatialRecordEditor.ts
+  h_a3c79ce84ffdc2 52,63-64
+packages/world-planning/src/spatial/WorldTemplateArtDirection.ts
+  h_a3c79ce84ffdc2 1-2,6-7,15-17,20,22-31,158-175,180,182-194,196-275,278,291
+packages/world-planning/src/spatial/WorldTemplateAuthoring.ts
+  h_a3c79ce84ffdc2 1-6,12,21-60,72,75-77,84-85,91-92,158-169,174,186-187,193-194,198-204,209-210,256,261-277,295-296
+packages/world-planning/src/spatial/WorldTemplateCatalog.ts
+  h_a3c79ce84ffdc2 25-26,35,45,54,63,73,82,91,101,111,120,129,138,147,157,167
+packages/world-planning/src/spatial/WorldTemplateGeometry.ts
+  h_a3c79ce84ffdc2 3-4,9-16,29,31-59,61-65,70-113
+packages/world-planning/src/spatial/WorldTemplatePlanning.ts
+  h_a3c79ce84ffdc2 7-8,16,27-37,53,79-88,107-127
+packages/world-planning/src/spatial/WorldTemplateView.ts
+  h_a3c79ce84ffdc2 43
+packages/world-planning/src/spatial/director/DirectorAudit.ts
+  h_a3c79ce84ffdc2 126-127
+packages/world-planning/src/spatial/ecology/FlowerRegions.ts
+  h_a3c79ce84ffdc2 111-118
+packages/world-planning/src/spatial/ecology/PoiTerritories.ts
+  h_a3c79ce84ffdc2 6,9,26-27,30-33,39-43,47-99,112,133-134,152-154,157-160
+packages/world-planning/src/spatial/guidance/GuidancePlanner.ts
+  h_a3c79ce84ffdc2 27-28,63
+packages/world-planning/src/spatial/guidance/GuidancePolicy.ts
+  h_a3c79ce84ffdc2 19,21,28-33,36,41,49,76,80
+packages/world-planning/src/spatial/hydrology/LakeRegions.ts
+  h_a3c79ce84ffdc2 1,9,31-32,57,65,69,77,106,236,244,246
+packages/world-planning/src/spatial/hydrology/PlanningSuspensionBridges.ts
+  h_a3c79ce84ffdc2 25,28-64,132,158-159,585-591,596,615-616,619,621-637,641-642,653-659,826-827,877-878
+packages/world-planning/src/spatial/hydrology/PlanningWaterOverlay.ts
+  h_a3c79ce84ffdc2 36-44,49-50,59,65-70
+packages/world-planning/src/spatial/hydrology/RiverRegions.ts
+  h_a3c79ce84ffdc2 1,16-19,41-42,87,126,137-187,543,550,552
+packages/world-planning/src/spatial/layout/AuthoredRoadPaths.ts
+  h_a3c79ce84ffdc2 1-192
+packages/world-planning/src/spatial/layout/ConnectedCurve.ts
+  h_a3c79ce84ffdc2 123
+packages/world-planning/src/spatial/layout/DerivedEdits.ts
+  h_a3c79ce84ffdc2 5,9
+packages/world-planning/src/spatial/layout/EnvironmentStages.ts
+  h_a3c79ce84ffdc2 82
+packages/world-planning/src/spatial/layout/LayoutKernel.ts
+  h_a3c79ce84ffdc2 167,200,205,409
+packages/world-planning/src/spatial/layout/LayoutProfiles.ts
+  h_a3c79ce84ffdc2 14,19,21,29,37,47,55-56,65-66
+packages/world-planning/src/spatial/layout/LayoutRules.ts
+  h_a3c79ce84ffdc2 35-40,92,147,151,170,177
+packages/world-planning/src/spatial/layout/RadialLayout.ts
+  h_a3c79ce84ffdc2 63-65
+packages/world-planning/src/spatial/layout/RoadPublication.ts
+  h_a3c79ce84ffdc2 1-33
+packages/world-planning/src/spatial/layout/RoadTopology.ts
+  h_a3c79ce84ffdc2 1,514-522
+packages/world-planning/src/spatial/layout/SpatialInstanceEdits.ts
+  h_a3c79ce84ffdc2 13,300-305,316-354,360-367,370-387,441-445,456-464,468
+packages/world-planning/src/spatial/layout/SpatialTerrain.ts
+  h_a3c79ce84ffdc2 1,19,75-84
+packages/world-planning/src/spatial/layout/SpatialWorld.ts
+  h_a3c79ce84ffdc2 4-10,54,72-77,93,95,111,124-126,260-272,280-302,333,340-341,377,410-411,413-429,431,444-445,455,461,511-521,549-578,580-607,672,699,721-726,747-751,795,807-817,864-865,894-901,909,986-1008,1028-1030,1033-1035,1082-1093,1114-1126,1142,1146-1147,1160,1166,1172,1198,1257,1262
+packages/world-planning/src/spatial/layout/space-rules.json
+  h_a3c79ce84ffdc2 13,34,38,77-111
+packages/world-planning/src/spatial/regions/PoiLayoutSolver.ts
+  h_a3c79ce84ffdc2 1-4,6-19,21-36,38-260
+packages/world-planning/src/spatial/runtime/NativeWaterAgent.ts
+  h_a3c79ce84ffdc2 104-105,108
+packages/world-planning/src/spatial/runtime/PlanningLightingProfileRuntime.ts
+  h_a3c79ce84ffdc2 12,38-41
+packages/world-planning/src/spatial/runtime/PlanningNaturalVegetation.ts
+  h_a3c79ce84ffdc2 59,261,263-271,523-530
+packages/world-planning/src/spatial/runtime/PlanningNaturalVegetationRuntime.ts
+  h_a3c79ce84ffdc2 57-61,150,326,425,427,430,434,447-469,512-537,585-591,899,1016,1053
+packages/world-planning/src/spatial/runtime/PlanningPopulationVisibility.ts
+  h_a3c79ce84ffdc2 24
+packages/world-planning/src/spatial/runtime/PlanningProductionRuntime.ts
+  h_a3c79ce84ffdc2 46-48
+packages/world-planning/src/spatial/runtime/WorldTemplateRuntime.ts
+  h_a3c79ce84ffdc2 1-15,19,21-31,38-39,44,48-50,52-77,79-85,99-135,147-202,208-217,224-225
+packages/world-planning/src/world/SeedWorldViewSnapshot.ts
+  h_a3c79ce84ffdc2 559-561
+packages/world-planning/tests/BuildingPanelIdentity.spec.ts
+  h_a3c79ce84ffdc2 1-250
+packages/world-planning/tests/BuildingSizing.spec.ts
+  h_a3c79ce84ffdc2 1-94
+packages/world-planning/tests/ConstructionNativeRegression.spec.ts
+  h_a3c79ce84ffdc2 1-27,29-78,80-92,94-99
+packages/world-planning/tests/FrozenViewIdentityTexture.spec.ts
+  h_a3c79ce84ffdc2 1-30
+packages/world-planning/tests/PlanningLocalLandscape.spec.ts
+  h_a3c79ce84ffdc2 1-58
+packages/world-planning/tests/PlanningWorldPicking.spec.ts
+  h_a3c79ce84ffdc2 1-165
+packages/world-planning/tests/SeedWorldPicker.spec.ts
+  h_a3c79ce84ffdc2 1-65
+packages/world-planning/tests/SeedWorldViewSnapshot.spec.ts
+  h_a3c79ce84ffdc2 1-540
+packages/world-planning/tests/SnapshotSurfaceEncoding.spec.ts
+  h_a3c79ce84ffdc2 1-8,10-59
+packages/world-planning/tests/agent-snapshots.spec.ts
+  h_a3c79ce84ffdc2 1-135
+packages/world-planning/tests/editor/seed-world-fixture.ts
+  h_a3c79ce84ffdc2 1-14
+packages/world-planning/tests/placement.test.mjs
+  h_a3c79ce84ffdc2 1-12
+packages/world-planning/tests/terrain.test.mjs
+  h_a3c79ce84ffdc2 1-37
+packages/world-planning/vitest.config.mjs
+  h_a3c79ce84ffdc2 1-3
+pnpm-lock.yaml
+  h_a3c79ce84ffdc2 337-340
+vitest.config.ts
+  h_a3c79ce84ffdc2 5
+vitest.world-package.mjs
+  h_a3c79ce84ffdc2 1-26
+world/README.md
+  h_a3c79ce84ffdc2 86
+world/demos/building-components/fixture-declarations.json
+  h_a3c79ce84ffdc2 2-71
+world/demos/building-components/fixture-modules.ts
+  h_a3c79ce84ffdc2 3
+world/demos/building-components/preset-script-browser-harness.ts
+  h_a3c79ce84ffdc2 10
+world/demos/building-components/staged.ts
+  h_a3c79ce84ffdc2 1-2,4,23,27,31
+world/demos/seed-world/README.md
+  h_a3c79ce84ffdc2 57,63-68
+world/demos/seed-world/SeedWorldDemo.ts
+  h_a3c79ce84ffdc2 32,673,767-768,775,787,793,841,1029,1033,1037-1038,1209
+world/demos/seed-world/SeedWorldProject.ts
+  h_a3c79ce84ffdc2 1-6
+world/demos/seed-world/agent-adapter/SeedWorldAgentDefinition.ts
+  h_a3c79ce84ffdc2 1-4,38-44
+world/demos/seed-world/agent-adapter/SeedWorldKnowledge.ts
+  h_a3c79ce84ffdc2 5-35,61,68-102
+world/demos/seed-world/agent-adapter/SeedWorldSystemDeclarations.ts
+  h_a3c79ce84ffdc2 1,3-4,14-16,52,55-56
+world/demos/seed-world/agent-adapter/contracts/generated/SeedWorldApiSearchRegistry.ts
+  h_a3c79ce84ffdc2 4,224,329,894,1128
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/time.update.d.ts
+  h_a3c79ce84ffdc2 12
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/world.animals.spawn.d.ts
+  h_a3c79ce84ffdc2 11,13
+world/demos/seed-world/agent-adapter/ports/SeedWorldAnimalService.ts
+  h_a3c79ce84ffdc2 89,117
+world/demos/seed-world/agent-adapter/skills/scripting/preset-systems.md
+  h_a3c79ce84ffdc2 1,3,5,7,9-15,36,38,40-43,45,47,49,51,53
+world/demos/seed-world/agent-adapter/skills/scripting/world-runtime.md
+  h_a3c79ce84ffdc2 1,3,5-9,11-13
+world/demos/seed-world/agent-adapter/skills/spatial/SKILL.md
+  h_a3c79ce84ffdc2 1-4,6,8,10,12-16,18,20,22,24,26,28,30,32,34,36,38,40,42-63,66-67
+world/demos/seed-world/agent-adapter/skills/world-objects/SKILL.md
+  h_a3c79ce84ffdc2 1-4,6,8,10,12-32,35-36
+world/demos/seed-world/agent-adapter/skills/world-objects/parameters/SKILL.md
+  h_a3c79ce84ffdc2 1-36
+world/demos/seed-world/agent-adapter/tools/animal-tools.ts
+  h_a3c79ce84ffdc2 175,179
+world/demos/seed-world/agent-adapter/tools/building-tools.ts
+  h_a3c79ce84ffdc2 5,49,51
+world/demos/seed-world/agent-adapter/tools/time-tools.ts
+  h_a3c79ce84ffdc2 58
+world/demos/seed-world/masonry/BuildingSceneInitialization.ts
+  h_a3c79ce84ffdc2 5,7-8
+world/demos/seed-world/src/SeedWorldShaderVariantManifest.ts
+  h_a3c79ce84ffdc2 106,109
+world/demos/seed-world/src/planning/semantic-study/PlanningLayerTree.ts
+  h_a3c79ce84ffdc2 44,123-126,128,132,138,163,282,320-321,323-324
+world/demos/seed-world/src/planning/semantic-study/PlanningWorkerClient.ts
+  h_a3c79ce84ffdc2 6,20-23,29-30,37-54,68,98-103,150-153
+world/demos/seed-world/src/planning/semantic-study/PlanningWorkerRuntime.ts
+  h_a3c79ce84ffdc2 10-11,16-17,27-36,38,72-73,78-88,90,111,116,128,153-156
+world/demos/seed-world/src/planning/semantic-study/WorldLayoutEditor.ts
+  h_a3c79ce84ffdc2 83-84,87-90,106-107,109
+world/demos/seed-world/src/planning/spatial/PlanningSceneAsset.ts
+  h_a3c79ce84ffdc2 132
+world/demos/seed-world/src/planning/spatial/PoiSizeEditor.ts
+  h_a3c79ce84ffdc2 1-164
+world/demos/seed-world/src/planning/spatial/SpatialEditor.css
+  h_a3c79ce84ffdc2 216-257
+world/demos/seed-world/src/planning/spatial/SpatialEditor.ts
+  h_a3c79ce84ffdc2 11,15-16,30,45-46,90,100-108,115,128,131-139,143,197-208,218,221,225-235,287,380-390,392-414,427-428,432,436,473,508,557,570-598,648
+world/demos/seed-world/src/planning/spatial/SpatialInspector.ts
+  h_a3c79ce84ffdc2 6,31,33,48,60-61,63,82,95,114-115,135,189,224,287-294,297,302-309,340,368-370
+world/demos/seed-world/src/planning/spatial/WorldTemplatePicker.ts
+  h_a3c79ce84ffdc2 4-14,26,29-30,74,94,104-119
+world/demos/seed-world/src/planning/spatial/director/DirectorPanel.ts
+  h_a3c79ce84ffdc2 521,530,533
+world/demos/seed-world/src/planning/spatial/ecology/VegetationSystemDeclaration.ts
+  h_a3c79ce84ffdc2 6,9-11,14-21,24,27,30
+world/demos/seed-world/src/planning/spatial/runtime/PlanningAnimalAuthoring.ts
+  h_a3c79ce84ffdc2 1-110
+world/demos/seed-world/src/planning/spatial/runtime/PlanningAnimalHost.ts
+  h_a3c79ce84ffdc2 247
+world/demos/seed-world/src/planning/spatial/runtime/PlanningAnimalRuntime.ts
+  h_a3c79ce84ffdc2 1,56-57,128,213,284,299-307,315-317,387-401,407,417-436,1180
+world/demos/seed-world/src/planning/spatial/runtime/PlanningProjectSource.ts
+  h_a3c79ce84ffdc2 6,125-126
+world/demos/seed-world/src/planning/spatial/runtime/PlanningProjectStorage.ts
+  h_a3c79ce84ffdc2 79,81,85
+world/demos/seed-world/systems/runtime-declarations.json
+  h_a3c79ce84ffdc2 5,11,24,34,71,82,106,130,149,153,159,165,172,199,210,249-399
+world/demos/seed-world/systems/runtime.ts
+  h_a3c79ce84ffdc2 9
+world/demos/water/planner/WaterPreviewPlan.ts
+  h_a3c79ce84ffdc2 55-56
+world/migration/files.json
+  h_a3c79ce84ffdc2 521-1011,1147,1151-1155,1503,1505,2260,2354-2361,4184-4283
+world/package.json
+  h_a3c79ce84ffdc2 11-12
+world/scripts/acceptance/README.md
+  h_a3c79ce84ffdc2 9,47,53
+world/scripts/acceptance/adapt-tests.mjs
+  h_a3c79ce84ffdc2 232-237
+world/scripts/acceptance/native-building-fixture.mjs
+  h_a3c79ce84ffdc2 6
+world/scripts/acceptance/seed-world-fixes.config.mjs
+  h_a3c79ce84ffdc2 11,13,20-22
+world/tests/seed-world/AIChatPhotoInput.spec.ts
+  h_a3c79ce84ffdc2 1-295
+world/tests/seed-world/AIChatSession.spec.ts
+  h_a3c79ce84ffdc2 1-442
+world/tests/seed-world/AIChatSessionTrace.spec.ts
+  h_a3c79ce84ffdc2 1-354
+world/tests/seed-world/AgentScreenshotTrace.spec.ts
+  h_a3c79ce84ffdc2 1-167
+world/tests/seed-world/AgentSkillsVfs.spec.ts
+  h_a3c79ce84ffdc2 1-209
+world/tests/seed-world/AnimalAuthoring.spec.ts
+  h_a3c79ce84ffdc2 1-212
+world/tests/seed-world/AuthoredRoadPaths.spec.ts
+  h_a3c79ce84ffdc2 1-125
+world/tests/seed-world/BuildingAgentGeneration.spec.ts
+  h_a3c79ce84ffdc2 1-18,20-24,26-51,53-64,66-146,148-159
+world/tests/seed-world/BuildingGroupClone.spec.ts
+  h_a3c79ce84ffdc2 3
+world/tests/seed-world/BuildingInitialRecipe.spec.ts
+  h_a3c79ce84ffdc2 1-27
+world/tests/seed-world/BuildingInitialSource.spec.ts
+  h_a3c79ce84ffdc2 1-46
+world/tests/seed-world/BuildingPartScript.spec.ts
+  h_a3c79ce84ffdc2 1-112
+world/tests/seed-world/BuildingSourcePersistence.spec.ts
+  h_a3c79ce84ffdc2 1-12,14-36,38-55,57-74,76-121,123,126-195
+world/tests/seed-world/GentleTerrainDefaults.spec.ts
+  h_a3c79ce84ffdc2 1-17,19-20,22-66
+world/tests/seed-world/MemberCountLayout.spec.ts
+  h_a3c79ce84ffdc2 1-357
+world/tests/seed-world/MemberRangeAgent.spec.ts
+  h_a3c79ce84ffdc2 1-58
+world/tests/seed-world/PlanningCompanionEdits.spec.ts
+  h_a3c79ce84ffdc2 1-9,11-51
+world/tests/seed-world/PlanningCountRanges.spec.ts
+  h_a3c79ce84ffdc2 1-17,19-46
+world/tests/seed-world/PlanningInitializationWorker.spec.ts
+  h_a3c79ce84ffdc2 1-184
+world/tests/seed-world/PlanningLightingProfile.spec.ts
+  h_a3c79ce84ffdc2 31-58
+world/tests/seed-world/PlanningLightingRepublish.spec.ts
+  h_a3c79ce84ffdc2 1-73
+world/tests/seed-world/PlanningProjectFixture.ts
+  h_a3c79ce84ffdc2 1-16
+world/tests/seed-world/PlanningPublishedFarmingGround.spec.ts
+  h_a3c79ce84ffdc2 1-63,65-100,102-121,123-150,152-186,189-225
+world/tests/seed-world/PlanningStorage.spec.ts
+  h_a3c79ce84ffdc2 1-181
+world/tests/seed-world/PlanningTerrainPresentation.spec.ts
+  h_a3c79ce84ffdc2 1-80
+world/tests/seed-world/PoiContentOwnership.spec.ts
+  h_a3c79ce84ffdc2 1-59
+world/tests/seed-world/PoiInitialPopulation.spec.ts
+  h_a3c79ce84ffdc2 1-254
+world/tests/seed-world/PoiLayoutSolver.spec.ts
+  h_a3c79ce84ffdc2 1-151
+world/tests/seed-world/PoiPopulationParameters.spec.ts
+  h_a3c79ce84ffdc2 1-76
+world/tests/seed-world/PoiSizeWeight.spec.ts
+  h_a3c79ce84ffdc2 1-123
+world/tests/seed-world/PoiSizeWeightPersistence.spec.ts
+  h_a3c79ce84ffdc2 1-128
+world/tests/seed-world/PoiTemplatePopulation.spec.ts
+  h_a3c79ce84ffdc2 1-54
+world/tests/seed-world/PopulationPlacementProbe.spec.ts
+  h_a3c79ce84ffdc2 1-76
+world/tests/seed-world/PresetSystemScript.spec.ts
+  h_a3c79ce84ffdc2 1-24,26-29,31-82
+world/tests/seed-world/ProjectWriteBoundary.spec.ts
+  h_a3c79ce84ffdc2 1-30,33-59,62-82,84-95,97,99
+world/tests/seed-world/RoadVisibility.spec.ts
+  h_a3c79ce84ffdc2 1-57
+world/tests/seed-world/RuntimeSceneInspection.spec.ts
+  h_a3c79ce84ffdc2 1-177
+world/tests/seed-world/SeedWorldAgentApplication.spec.ts
+  h_a3c79ce84ffdc2 1-70,72-81,83-153,155-231,233-245,247-289,291-460,462-514,516-532,534-541,543-584,586-675,678-766,768-789,791-805,807-854,856-878,880-897,899-917,919-1108,1110-1243,1245-1282,1284-1439,1441-1449,1452-1473,1476-1503,1505,1507,1509-1520,1522-1526,1528-1540,1542-1549,1551-1684,1686,1689-1718,1722-1740,1743-1750,1753-1763,1765-1776,1778-1789,1791-1827,1832-1833,1836-1843,1846-1870,1873-1921
+world/tests/seed-world/SeedWorldAnimalTools.spec.ts
+  h_a3c79ce84ffdc2 1-182
+world/tests/seed-world/SeedWorldKnowledge.spec.ts
+  h_a3c79ce84ffdc2 1-179
+world/tests/seed-world/SeedWorldRuntimeEnginePort.spec.ts
+  h_a3c79ce84ffdc2 1-788,790-901,903-948
+world/tests/seed-world/SeedWorldTaskPresentation.spec.ts
+  h_a3c79ce84ffdc2 1-78
+world/tests/seed-world/SeedWorldTerrainRuntimeIntegration.spec.ts
+  h_a3c79ce84ffdc2 292-293,297-300,373-376,515-516,524-528,634-635,641,655-658,663-664,676-677,767
+world/tests/seed-world/SeedWorldToolCatalog.spec.ts
+  h_a3c79ce84ffdc2 1-246,248-413,416-423,425-690,692-699
+world/tests/seed-world/SeedWorldVoiceHudController.spec.ts
+  h_a3c79ce84ffdc2 1-935
+world/tests/seed-world/SpatialInstanceConnections.spec.ts
+  h_a3c79ce84ffdc2 1-22,24-86,88-154,156-164,166-206
+world/tests/seed-world/SpatialInstanceReplay.spec.ts
+  h_a3c79ce84ffdc2 1-58
+world/tests/seed-world/TerrainFarShader.spec.ts
+  h_a3c79ce84ffdc2 1-3,5-11,13-67
+world/tests/seed-world/TrajectoryCallGroups.spec.ts
+  h_a3c79ce84ffdc2 1-190
+world/tests/seed-world/TrajectoryContextTelemetry.spec.ts
+  h_a3c79ce84ffdc2 1-119
+world/tests/seed-world/TrajectoryToolReceipts.spec.ts
+  h_a3c79ce84ffdc2 1-120
+world/tests/seed-world/ViewPointerFixture.spec.ts
+  h_a3c79ce84ffdc2 1-148
+world/tests/seed-world/WorldTemplates.spec.ts
+  h_a3c79ce84ffdc2 7-10,13-14,16-20,30-33,55,59-265,313,410-413
+world/tests/seed-world/component-query-declarations.spec.ts
+  h_a3c79ce84ffdc2 1-186
+world/tests/seed-world/configured-assets.spec.ts
+  h_a3c79ce84ffdc2 1-243
+world/tests/seed-world/dependency-maintenance.spec.ts
+  h_a3c79ce84ffdc2 1-130
+world/tests/seed-world/editor/seed-world-edit-harness.ts
+  h_a3c79ce84ffdc2 1-76
+world/tests/seed-world/editor/seed-world-edit.spec.ts
+  h_a3c79ce84ffdc2 1-185
+world/tests/seed-world/editor/seed-world-project.spec.ts
+  h_a3c79ce84ffdc2 1-160
+world/tests/seed-world/fixture.ts
+  h_a3c79ce84ffdc2 1-38,40-68
+world/tests/seed-world/llm/view-pointer-fixture.ts
+  h_a3c79ce84ffdc2 1-224
+world/tests/seed-world/native/FarmingComponentEditor.spec.ts
+  h_a3c79ce84ffdc2 1-294
+world/tests/seed-world/runtime-editor/agent-loop.integration.spec.ts
+  h_a3c79ce84ffdc2 1-5,7-9,12-41,44-46,48-56,58-60,62-64,66-226,228-233,235-247,249-271,273-1446
+world/tests/seed-world/runtime-editor/native-tools.integration.spec.ts
+  h_a3c79ce84ffdc2 1-8,10-21,24-40,42-95
+world/tests/seed-world/vitest.config.mjs
+  h_a3c79ce84ffdc2 1
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "4f6a2c6fa130f228e1a6051676e295f5baa0f7b3",
+  "prompts": {},
+  "humans": {
+    "h_a3c79ce84ffdc2": {
+      "author": "星翊 <sunmingming.smm@antgroup.com>"
+    }
+  }
+}
