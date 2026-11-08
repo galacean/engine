@@ -45,7 +45,8 @@ const cases: [string, CoreHouseParameters][] = [
   ["default house", { id: "a" }],
   ["round tower", { id: "t", height: 10, circle: { center: [0, 0], radius: 2.5, phase: 0 } }],
   ["steep roof", { id: "s", roof: { height: 0.8 } }],
-  ["rotated house", { id: "r", rectangle: { center: [1, 2], size: [10, 7], rotation: 0.6 } }]
+  ["rotated house", { id: "r", rectangle: { center: [1, 2], size: [10, 7], rotation: 0.6 } }],
+  ["flat roof", { id: "f", roof: { height: 0 } }]
 ];
 
 describe("masonryCourses and corner stones", () => {
@@ -58,8 +59,10 @@ describe("masonryCourses and corner stones", () => {
       for (const u of units(wall)) {
         const b = box(u);
         expect(Math.min(b.bl, b.br)).toBeGreaterThanOrEqual(chart.minGround - 1e-9);
+        // Without a roof joint the masonry ends at the wall top, as the native masonry does.
         // The roof joint can rise a few millimetres above maxYGable + 0.12 on round roofs.
-        expect(Math.max(b.tl, b.tr)).toBeLessThanOrEqual(chart.maxYGable + 0.12 + 0.005);
+        if (chart.joint) expect(Math.max(b.tl, b.tr)).toBeLessThanOrEqual(chart.maxYGable + 0.12 + 0.005);
+        else expect(Math.max(b.tl, b.tr)).toBeLessThanOrEqual(Math.max(...chart.top) + 1e-9);
         expect(b.tl - b.bl).toBeGreaterThan(0);
         total++;
       }

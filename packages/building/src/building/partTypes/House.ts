@@ -387,7 +387,8 @@ function sampler(chart: WallChartParams) {
       const ground = a[1] + t * (b[1] - a[1]) + lift;
       const roof = chart.joint
         ? wallRoofJointHeight(chart.joint, x - tangent[1] * chart.nominalOuter, z + tangent[0] * chart.nominalOuter)
-        : chart.top[e.edge - 1] + t * (chart.top[e.edge] - chart.top[e.edge - 1]) + 0.12;
+        : // Without a roof joint, such as under a flat roof, the masonry ends at the wall top.
+          chart.top[e.edge - 1] + t * (chart.top[e.edge] - chart.top[e.edge - 1]);
       return { x, z, tangent, ground, roof };
     }
   };
