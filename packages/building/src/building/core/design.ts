@@ -41,6 +41,8 @@ export interface BuildingGroupDef {
   /** Group-level rule overrides, keyed by attachPairKey / joinPairKey. */
   readonly rules?: Readonly<Record<string, string>>;
 }
+/** A value read from the group's `shared`. Other keys override the shared object's keys. */
+export type SharedRef<T> = { readonly $shared: string } & { readonly [K in keyof T]?: T[K] };
 export interface BuildingAlgorithmRef {
   readonly type: string;
   readonly params?: Readonly<Record<string, unknown>>;
@@ -51,8 +53,8 @@ export interface BuildingPartDef {
   readonly type: string;
   readonly geometry: { readonly generator: string; readonly params?: Readonly<Record<string, unknown>> };
   /** Optional for points and lines; see `defaultLaying`. Required for surfaces. */
-  readonly algorithm?: BuildingAlgorithmRef;
-  readonly unit?: BuildingUnit;
+  readonly algorithm?: BuildingAlgorithmRef | SharedRef<BuildingAlgorithmRef>;
+  readonly unit?: BuildingUnit | SharedRef<BuildingUnit>;
 }
 /** Author data of one frame: groups, base parts and explicit connections. */
 export interface BuildingCoreDraft {
@@ -120,20 +122,31 @@ const byId = <T extends { id: string }>(items: readonly T[]) => [...items].sort(
 const plain = (value: unknown): Record<string, unknown> =>
   value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
 
-/** Replace every { $shared: name } with the group's shared value. Object keys are visited in sorted order. */
+/** Replace every { $shared: name } with the group's shared value. Object keys are visited in sorted order.
+ * Other keys next to `$shared` override the keys of the shared object, one level deep. */
 export function resolveShared(value: unknown, shared: Readonly<Record<string, unknown>>, path = "params"): unknown {
   if (Array.isArray(value)) return value.map((item, i) => resolveShared(item, shared, `${path}[${i}]`));
   if (value && typeof value === "object") {
-    const keys = Object.keys(value).sort(compareKeys);
     const record = value as Record<string, unknown>;
-    if (keys.length === 1 && keys[0] === "$shared") {
+    let base: Record<string, unknown> = {};
+    if (Object.prototype.hasOwnProperty.call(record, "$shared")) {
       const name = record.$shared;
       if (typeof name !== "string" || !Object.prototype.hasOwnProperty.call(shared, name))
         throw Error(`Missing shared value "${String(name)}" at ${path}`);
-      return shared[name];
+      if (Object.keys(record).length === 1) return shared[name];
+      const found = shared[name];
+      if (!found || typeof found !== "object" || Array.isArray(found))
+        throw Error(`Shared value "${name}" at ${path} must be an object to take overrides`);
+      base = found as Record<string, unknown>;
     }
+    const overrides = Object.keys(record).filter((key) => key !== "$shared");
+    const keys = [...new Set([...Object.keys(base), ...overrides])].sort(compareKeys);
     const out: Record<string, unknown> = {};
-    for (const key of keys) out[key] = resolveShared(record[key], shared, `${path}.${key}`);
+    for (const key of keys)
+      out[key] =
+        Object.prototype.hasOwnProperty.call(record, key) && key !== "$shared"
+          ? resolveShared(record[key], shared, `${path}.${key}`)
+          : base[key];
     return out;
   }
   return value;
@@ -166,11 +179,20 @@ export function designBuildingCore(
   for (const part of byId(draft.parts ?? [])) {
     const key = authorPartKey(part.id);
     const group = groups.get(part.group);
-    const unitProblem = part.unit && unitIssue(part.unit);
+    let unit: BuildingUnit | undefined, algorithm: BuildingAlgorithmRef | undefined, sharedProblem: string | undefined;
+    try {
+      unit = part.unit && (resolveShared(part.unit, group?.shared ?? {}, "unit") as BuildingUnit);
+      algorithm =
+        part.algorithm && (resolveShared(part.algorithm, group?.shared ?? {}, "algorithm") as BuildingAlgorithmRef);
+    } catch (error) {
+      sharedProblem = (error as Error).message;
+    }
+    const unitProblem = unit && unitIssue(unit);
     if (!validId(part.id)) report(key, "Part id must be a non-empty string");
     else if (states.has(key)) report(key, "Duplicate part id");
     else if (!group) report(key, `Unknown group "${part.group}"`);
     else if (!validTypeName(part.type)) report(key, `Invalid part type "${part.type}"`);
+    else if (sharedProblem) report(key, sharedProblem);
     else if (unitProblem) report(key, unitProblem);
     else {
       states.set(key, {
@@ -178,8 +200,8 @@ export function designBuildingCore(
         identity: { kind: "author", id: part.id },
         type: part.type,
         group,
-        algorithm: part.algorithm,
-        unit: part.unit,
+        algorithm,
+        unit,
         modifications: []
       });
       definitions.set(key, part);

@@ -19,6 +19,7 @@ import {
   type Frame,
   type GeometryGenerator,
   type LayingAlgorithm,
+  type LayingContext,
   type SurfaceKind
 } from "../core";
 import { profileShape, publishProfileWall, profileRoofGeometry } from "../runtime/ProfileGeometry";
@@ -26,6 +27,7 @@ import { profileWallEnvelope } from "../runtime/ConstructionWallEnvelope";
 import { wallRoofJointHeight, type ConstructionWallRoofJoint } from "../runtime/ConstructionWallRoofJoint";
 import { unitFootprintScale, type MaterialFootprint } from "../runtime/MaterialFootprint";
 import type { ProfileFootprint, ProfileRoofParameters } from "../runtime/ProfileParameters";
+import { registerRoofTypes } from "./Roof";
 
 /** The wall chart: the perimeter unrolled along u, height along v. Plain JSON. */
 export interface WallChartParams {
@@ -397,7 +399,8 @@ const scaleOf = (footprint: MaterialFootprint) => ({
 });
 
 type MasonryParams = {
-  footprint: MaterialFootprint;
+  /** Default: the unit's scale. */
+  footprint?: MaterialFootprint;
   gap?: number;
   rowJitter?: number;
   jointJitter?: number;
@@ -422,7 +425,9 @@ interface MasonryLayout {
   /** First perimeter joint index of this chart, and bricks per row. */
   firstJoint: number;
   perRow: number;
-  /** Slots per brick for the pieces that removed areas cut it into: 1 + 3 per removed area. */
+  /** Slots per brick for the runs it crosses, and per run for its pieces after removed
+   * areas and splits. Both are the largest counts that plan found. */
+  runSlots: number;
   pieces: number;
 }
 interface Piece {
@@ -472,6 +477,141 @@ function subtract(p: Piece, h: Rect, bottom: number, top: number): Piece[] {
   return out;
 }
 
+interface CourseLines {
+  /** Course line k at chart position u. */
+  line(k: number, u: number): number;
+  /** Joint k of row r, in chart coordinates. */
+  jointAt(r: number, k: number): number;
+}
+/** Course lines and joints of one wall chart. Line 0 is the ground course and stays flat.
+ * Lines and joints use the house perimeter and `courseSeed`, so the walls of one house
+ * continue each other's courses. */
+function masonryCourseLines(context: LayingContext<MasonryParams>, d: MasonryLayout): CourseLines {
+  const p = context.params;
+  const { chart } = masonryWall(context);
+  const shared = (key: string, channel: string) =>
+    (p.courseSeed === undefined
+      ? context.random(key, channel)
+      : new Random(deriveSeed(p.courseSeed, key, channel))
+    ).next();
+  const amplitude = p.wave ?? 0.012;
+  // The random values of each line and joint, drawn once per wall.
+  const lines = new Map<number, { jitter: number; phase1: number; phase2: number }>();
+  const joints = new Map<string, number>();
+  const lineOf = (k: number) => {
+    let line = lines.get(k);
+    if (!line) {
+      line = {
+        jitter: (shared(`line:${k}`, "height") - 0.5) * 2 * (p.rowJitter ?? 0.23) * d.h,
+        phase1: TAU * shared(`line:${k}`, "wave1"),
+        phase2: TAU * shared(`line:${k}`, "wave2")
+      };
+      lines.set(k, line);
+    }
+    return line;
+  };
+  return {
+    line(k, u) {
+      if (k === 0) return chart.minGround;
+      const along = d.uOffset + u;
+      const { jitter, phase1, phase2 } = lineOf(k);
+      const wave =
+        amplitude * (sinCos((TAU * along) / 2.3 + phase1)[0] + 0.5 * sinCos((TAU * along) / 0.9 + phase2)[0]);
+      return chart.minGround + k * d.h + jitter + wave;
+    },
+    // Joints near the end of a run snap to it.
+    jointAt(r, k) {
+      const id = `${r}:${k}`;
+      let u = joints.get(id);
+      if (u === undefined) {
+        u =
+          (k + shared(`row:${r}`, "offset")) * d.w +
+          (shared(`joint:${r}:${k}`, "width") - 0.5) * 2 * (p.jointJitter ?? 0.25) * d.w -
+          d.uOffset;
+        const free = u;
+        snap: for (const run of d.runs)
+          for (const end of [run.u, run.u + run.l])
+            if (Math.abs(end - free) < CORNER_SNAP) {
+              u = end;
+              break snap;
+            }
+        joints.set(id, u);
+      }
+      return u;
+    }
+  };
+}
+/** Brick j of row r, broken where the wall turns: entry n is its part on the n-th run it touches. */
+function brickRuns(courses: CourseLines, d: MasonryLayout, r: number, j: number): (readonly [number, number])[] {
+  const k = d.firstJoint + j;
+  const x0 = Math.max(0, courses.jointAt(r, k)),
+    x1 = Math.min(d.length, courses.jointAt(r, k + 1));
+  if (!(x1 - x0 > 0.03)) return [];
+  return d.runs
+    .map((run) => [Math.max(x0, run.u), Math.min(x1, run.u + run.l)] as const)
+    .filter(([a, b]) => b - a > 0.03);
+}
+/** The pieces of one brick run after removed areas, such as the rows taken by corner stones,
+ * and after the random split of a tall brick. */
+function brickPieces(
+  context: LayingContext<MasonryParams>,
+  courses: CourseLines,
+  d: MasonryLayout,
+  r: number,
+  j: number,
+  parts: readonly (readonly [number, number])[],
+  runPiece: number
+): { pieces: Piece[] } {
+  const p = context.params;
+  const run = parts[runPiece];
+  const whole: Piece = { u0: run[0], u1: run[1], lo: -Infinity, hi: Infinity };
+  let pieces: Piece[] = [whole];
+  const bottom = Math.min(courses.line(r, run[0]), courses.line(r, run[1])),
+    top = Math.max(courses.line(r + 1, run[0]), courses.line(r + 1, run[1]));
+  for (const hole of masonryWall(context).removed) pieces = pieces.flatMap((q) => subtract(q, hole, bottom, top));
+  // A tall brick splits into two thinner ones about 40% of the time. The split height comes
+  // from the brick's own seed. Only a brick that no removed area touched splits, as in the
+  // native masonry.
+  const splitKey = `${r}/${j}/${runPiece}`;
+  if (pieces[0] === whole && top - bottom > d.h && context.random(splitKey, "split").next() < (p.split ?? 0.4)) {
+    const at = bottom + (top - bottom) * (0.35 + 0.3 * context.random(splitKey, "splitAt").next());
+    pieces = [
+      { ...whole, hi: at },
+      { ...whole, lo: at }
+    ];
+  }
+  return { pieces };
+}
+/** What every brick of one part reads: the chart, its sampler, the removed areas and the
+ * course lines. Kept per laying context, which belongs to one part, so the values are pure. */
+interface MasonryWall {
+  chart: WallChartParams;
+  sample: ReturnType<typeof sampler>;
+  removed: readonly Rect[];
+  courses?: { data: MasonryLayout; lines: CourseLines };
+}
+const masonryWalls = new WeakMap<object, MasonryWall>();
+function masonryWall(context: LayingContext<MasonryParams>): MasonryWall {
+  let wall = masonryWalls.get(context);
+  if (!wall) {
+    const element = context.params.element ?? "face";
+    const chart = chart_(context.geometry.original.elements[element]);
+    wall = { chart, sample: sampler(chart), removed: context.geometry.surface(element).removed };
+    masonryWalls.set(context, wall);
+  }
+  return wall;
+}
+function masonryCourses_(context: LayingContext<MasonryParams>, d: MasonryLayout): CourseLines {
+  const wall = masonryWall(context);
+  if (wall.courses?.data !== d) wall.courses = { data: d, lines: masonryCourseLines(context, d) };
+  return wall.courses.lines;
+}
+/** The brick size the courses scale against. */
+function masonryFootprint(context: LayingContext<MasonryParams>): MaterialFootprint {
+  if (context.params.footprint) return context.params.footprint;
+  const [width, height, depth] = context.unit.scale ?? [1, 1, 1];
+  return { width, height, depth };
+}
 /** Our own masonry: random courses with wavy joints along a wall chart. Every brick is
  * computed alone, from its row, its index in the row and its piece:
  * - course line k: nominal height plus a jitter and a wave, from line k's seed;
@@ -485,7 +625,8 @@ export const masonryCourses: LayingAlgorithm<MasonryParams, MasonryLayout> = {
     accepts: ["surface"],
     summary: "Masonry along a wall chart: random courses with wavy joints, giving way to removed areas.",
     params: {
-      footprint: "Unit footprint { width, height, depth }; scales the nominal size against 0.5 × 0.4375 × 0.1.",
+      footprint:
+        "Unit footprint { width, height, depth }; scales the nominal size against 0.5 × 0.4375 × 0.1. Default: the unit's scale.",
       nominal: "Nominal course height and brick width in metres before scaling. Default: 0.46.",
       depth: "Brick depth through the wall in metres, scaled by the footprint depth. Default: 0.56.",
       depthJitter: "Random depth variation per brick in metres. Default: 0.07.",
@@ -502,7 +643,7 @@ export const masonryCourses: LayingAlgorithm<MasonryParams, MasonryLayout> = {
   plan(context) {
     const p = context.params;
     const chart = chart_(context.geometry.original.elements[p.element ?? "face"]);
-    const scale = scaleOf(p.footprint);
+    const scale = scaleOf(masonryFootprint(context));
     // Calibrated against the online native masonry: 0.46 m courses and bricks.
     const h = (p.nominal ?? 0.46) * scale.height,
       w = (p.nominal ?? 0.46) * scale.width;
@@ -511,81 +652,47 @@ export const masonryCourses: LayingAlgorithm<MasonryParams, MasonryLayout> = {
     const rows = Math.ceil((chart.maxYGable + 0.12 - chart.minGround) / h) + 1;
     const firstJoint = Math.floor(uOffset / w) - 1,
       perRow = Math.ceil((uOffset + length) / w) + 2 - firstJoint;
-    // At least two, so an uncut brick can split into two courses.
-    const pieces = Math.max(2, 1 + 3 * context.geometry.surface(p.element ?? "face").removed.length);
-    return {
-      count: rows * perRow * 2 * pieces,
-      data: { runs: runs(chart), length, uOffset, h, w, rows, firstJoint, perRow, pieces }
+    const data: MasonryLayout = {
+      runs: runs(chart),
+      length,
+      uOffset,
+      h,
+      w,
+      rows,
+      firstJoint,
+      perRow,
+      runSlots: 0,
+      pieces: 0
     };
+    // Size the slots from the bricks themselves, so that empty slots stay rare.
+    const courses = masonryCourses_(context, data);
+    for (let r = 0; r < rows; r++)
+      for (let j = 0; j < perRow; j++) {
+        const parts = brickRuns(courses, data, r, j);
+        data.runSlots = Math.max(data.runSlots, parts.length);
+        parts.forEach((_, runPiece) => {
+          data.pieces = Math.max(data.pieces, brickPieces(context, courses, data, r, j, parts, runPiece).pieces.length);
+        });
+      }
+    return { count: rows * perRow * data.runSlots * data.pieces, data };
   },
   unitAt(context, d, index) {
     const p = context.params;
-    const element = p.element ?? "face";
-    const chart = chart_(context.geometry.original.elements[element]);
-    const scale = scaleOf(p.footprint);
-    const shared = (key: string, channel: string) =>
-      (p.courseSeed === undefined
-        ? context.random(key, channel)
-        : new Random(deriveSeed(p.courseSeed, key, channel))
-      ).next();
-    const amplitude = p.wave ?? 0.012;
-    // Course line k at chart position u. Line 0 is the ground course and stays flat.
-    const line = (k: number, u: number) => {
-      if (k === 0) return chart.minGround;
-      const along = d.uOffset + u;
-      const jitter = (shared(`line:${k}`, "height") - 0.5) * 2 * (p.rowJitter ?? 0.23) * d.h;
-      const wave =
-        amplitude *
-        (sinCos((TAU * along) / 2.3 + TAU * shared(`line:${k}`, "wave1"))[0] +
-          0.5 * sinCos((TAU * along) / 0.9 + TAU * shared(`line:${k}`, "wave2"))[0]);
-      return chart.minGround + k * d.h + jitter + wave;
-    };
-    const holePiece = Math.floor(index / 2) % d.pieces,
-      runPiece = index % 2,
-      j = Math.floor(index / (2 * d.pieces)) % d.perRow,
-      r = Math.floor(index / (2 * d.pieces * d.perRow));
-    // Joint k of row r on the house perimeter, then on this chart. Joints near the end of a run snap to it.
-    const offset = shared(`row:${r}`, "offset");
-    const jointAt = (k: number) => {
-      const u =
-        (k + offset) * d.w + (shared(`joint:${r}:${k}`, "width") - 0.5) * 2 * (p.jointJitter ?? 0.25) * d.w - d.uOffset;
-      for (const run of d.runs)
-        for (const end of [run.u, run.u + run.l]) if (Math.abs(end - u) < CORNER_SNAP) return end;
-      return u;
-    };
-    const k = d.firstJoint + j;
-    const x0 = Math.max(0, jointAt(k)),
-      x1 = Math.min(d.length, jointAt(k + 1));
-    if (!(x1 - x0 > 0.03)) return;
-    // Break where the wall turns: piece n is the part of the brick on the n-th run it touches.
-    const parts = d.runs
-      .map((run) => [Math.max(x0, run.u), Math.min(x1, run.u + run.l)] as const)
-      .filter(([a, b]) => b - a > 0.03);
-    const run = parts[runPiece];
-    if (!run) return;
-    // Give way to removed areas, such as the rows taken by corner stones.
-    const whole: Piece = { u0: run[0], u1: run[1], lo: -Infinity, hi: Infinity };
-    let pieces: Piece[] = [whole];
-    const bottom = Math.min(line(r, run[0]), line(r, run[1])),
-      top = Math.max(line(r + 1, run[0]), line(r + 1, run[1]));
-    for (const hole of context.geometry.surface(element).removed)
-      pieces = pieces.flatMap((q) => subtract(q, hole, bottom, top));
+    const { chart, sample, removed } = masonryWall(context);
+    const scale = scaleOf(masonryFootprint(context));
+    const holePiece = index % d.pieces,
+      runPiece = Math.floor(index / d.pieces) % d.runSlots,
+      j = Math.floor(index / (d.pieces * d.runSlots)) % d.perRow,
+      r = Math.floor(index / (d.pieces * d.runSlots * d.perRow));
+    const courses = masonryCourses_(context, d);
+    const { line } = courses;
+    const parts = brickRuns(courses, d, r, j);
+    if (!parts[runPiece]) return;
+    const { pieces } = brickPieces(context, courses, d, r, j, parts, runPiece);
     if (pieces.length > d.pieces)
-      throw Error(`Removed areas cut brick ${r}/${j} into ${pieces.length} pieces; the layout has ${d.pieces} slots`);
-    // A tall brick splits into two thinner ones about 40% of the time. The split height
-    // comes from the brick's own seed.
-    const splitKey = `${r}/${j}/${runPiece}`;
-    // Only a brick that no removed area touched splits, as in the native masonry.
-    if (pieces[0] === whole && top - bottom > d.h && context.random(splitKey, "split").next() < (p.split ?? 0.4)) {
-      const at = bottom + (top - bottom) * (0.35 + 0.3 * context.random(splitKey, "splitAt").next());
-      pieces = [
-        { ...pieces[0], hi: at },
-        { ...pieces[0], lo: at }
-      ];
-    }
+      throw Error(`Brick ${r}/${j}/${runPiece} has ${pieces.length} pieces; the layout has ${d.pieces} slots`);
     const piece = pieces[holePiece];
     if (!piece) return;
-    const sample = sampler(chart);
     const at0 = sample.at(piece.u0),
       at1 = sample.at(piece.u1);
     const bl = Math.max(line(r, piece.u0), at0.ground, piece.lo),
@@ -595,15 +702,13 @@ export const masonryCourses: LayingAlgorithm<MasonryParams, MasonryLayout> = {
     if (tl - bl < 0.03 || tr - br < 0.03 || piece.u1 - piece.u0 < 0.03) return;
     const key = `${r}/${j}/${runPiece}/${holePiece}`;
     // Bricks within half a brick of a removed area are accent stones, as in the native masonry.
-    const accent = context.geometry
-      .surface(element)
-      .removed.some(
-        (h) =>
-          h[0] - d.w / 2 < piece.u1 &&
-          piece.u0 < h[2] + d.w / 2 &&
-          h[1] - d.h / 2 < Math.max(tl, tr) &&
-          Math.min(bl, br) < h[3] + d.h / 2
-      );
+    const accent = removed.some(
+      (h) =>
+        h[0] - d.w / 2 < piece.u1 &&
+        piece.u0 < h[2] + d.w / 2 &&
+        h[1] - d.h / 2 < Math.max(tl, tr) &&
+        Math.min(bl, br) < h[3] + d.h / 2
+    );
     const depth =
       ((p.depth ?? 0.56) + (context.random(key, "depth").next() - 0.5) * (p.depthJitter ?? 0.07)) * scale.depth;
     // Along a curved wall a brick follows the chord between its ends, as in the native masonry.
@@ -839,7 +944,5 @@ export function registerHouseTypes(registry: BuildingRegistry): BuildingRegistry
   registry.rules.register("wallCorner", wallCorner);
   registry.defaults.join("wall", "wall", "wallCorner");
   registry.detectors.register(joinPairKey("wall", "wall"), wallsMeet);
-  registry.defaults.attach("roof", ["wall"], "none");
-  registry.defaults.attach("roof", ["wall", "wall", "wall", "wall"], "none");
-  return registry;
+  return registerRoofTypes(registry);
 }

@@ -15,7 +15,7 @@
 | 阶段 | 内容 | 状态 |
 | --- | --- | --- |
 | M1 | 独立墙、栅栏，含起伏地形 | 已完成：平地上不旋转的墙，渲染包逐字节相同（零的符号统一后）；栅栏、旋转、起伏地形的数值误差 < 1e-12 |
-| M2 | 房屋：墙 + 屋顶，墙顶跟随屋顶轮廓 | 进行中：墙体用新架构的 `masonryCourses`；屋顶仍由线上内核生成 |
+| M2 | 房屋：墙 + 屋顶，墙顶跟随屋顶轮廓 | 进行中：墙体用新架构的 `masonryCourses`；矩形坡屋顶（四坡、山墙、攒尖）用新架构的坡面构件；圆形屋顶仍由线上内核生成 |
 | M3 | 台基、腰线、木墙、平屋顶 | 未开始 |
 | M4 | 相连的房屋：对等检测、避让、转角砖 | 未开始 |
 | M5 | 门窗开洞、老虎窗、拱、尖顶、挂件 | 未开始 |
@@ -49,7 +49,9 @@
 | 同上 | 栅栏的两个构件合成一个绘制组 | 线上一个绘制组同时画立柱和横栏 |
 | `render/CoreRenderInput.ts` | 整个适配器，以及其中的类型强转 | 目标是线上的 `BuildingRenderInput`；迁移后铺设单元直接交给单元渲染器 |
 | `render/CoreHouseRender.ts` | 强调石的种子映射到 0–9，普通砖不小于 10 | 线上砖块 shader 用“种子小于 10”表示强调石；新架构用单元参数 `accent` 表达，迁移到新的单元渲染器后改为显式参数 |
-| `render/CoreHouseRender.ts` | 房屋除墙砖外的全部渲染（屋顶、预览、背衬、调色板、装饰）仍调用线上管线，只替换墙砖 | 屋顶等构件类型还没迁移 |
+| `render/CoreHouseRender.ts` | 房屋先整体调用线上管线，再替换墙砖和矩形坡屋顶的瓦片、脊瓦、封边瓦；圆形屋顶、远景屋顶材质、预览、背衬、调色板、装饰仍是线上的 | 这些构件类型还没迁移 |
+| `render/CoreHouseRender.ts` | 屋顶记录写成线上的 `roof-design-v1`，单元种子写进记录的序号字段，单元的 `anchor_uv` 填 0 | 线上屋顶 shader 和重力动画读这个格式；迁移到新的单元渲染器后由单元参数直接驱动 |
+| `application/CoreEuropean.ts` | 圆形屋顶和平屋顶保留一个 `houseRoof` 占位构件 | 它们还由线上屋顶渲染 |
 | `tests/core/CoreHouse.spec.ts` | `gridCourses` 与线上 `arrangedWallCells` 逐值对比 | 验证规则网格墙的迁移 |
 | `world/demos/building-core-preview/house.html` | M2 房屋验收页 | 并排展示线上房屋与新架构房屋 |
 | `tests/core/CoreParity.spec.ts` | 与线上路径实时对比，`-0` 统一成 `+0` | 线上写 `-s`，`s = 0` 时得到 `-0` |
@@ -61,10 +63,21 @@
 - GPU 用 TransformFeedback（只支持 WebGL2）按槽位生成单元记录。记录留在显存里，正式运行不读回。原型：`render/GridUnitKernel.ts`，以及 `world/demos/building-core-preview/` 下的 `gpu.html`、`draw.html`。
 - LOD 保留在 CPU 上。在 seed-world 初始村子（约 1 万个单元）上实测，CPU 的 LOD 选择每帧约 0.15–0.23 ms。WebGL2 不能在 GPU 上压缩绘制列表，LOD 搬到 GPU 会使顶点工作量增加约 8 倍。GPU 路径用 `unitAt` 为 LOD 提供每个单元的中心和半径，每个单元 16 字节，不保留完整记录。测量页：`frame.html`。
 
+## 屋顶模型
+
+- 每个坡面一个构件（类型 `roof`），只 attach 到它下面的那面墙：坡面 k 在墙 k 上。坡面几何是 `roofSlope` 曲面：u 横跨一行瓦，v 按弧长沿坡面向上。
+- 相邻坡面共用一条侧边时是斜脊：join 规则 `roofSlopes` 派生 `hipCap` 构件，并给两个坡面各加一个 `clip` 修改，把瓦片切在斜脊线内 0.075 m。
+- 两个坡面的顶边相对时是正脊：同一条规则派生 `ridgeCap` 构件。
+- 坡面的侧边与檐口垂直时是山墙边：attach 规则 `roofOnWalls` 派生 `rakeCap` 构件，并沿这条边裁剪瓦片。
+- 铺设算法：`roofTiles`（瓦行，第一行下面加檐口封边瓦）、`capCourses`（沿线铺脊瓦，接缝位置用各自的种子）。
+- 这套规则以后也用来处理 L 形屋顶和相交屋顶的天沟。
+- 与线上对比（`tests/core` 临时对比、`house.html`）：瓦片朝向一致，尺寸比约 1.0，包围盒一致；瓦行按坡面实际弧长均分，所以和线上相差几厘米；檐口封边瓦数量随瓦长随机，和线上不同。
+
 ## 要替换的还原算法
 
 - 墙体原生砌筑（`generateMasonry` 以及 `Recovered*` 墙体内核）来自 Tiny Glade 的二进制还原。我们会用自己的 `masonryCourses` 替代它：同样做转角加随机砖行，随机数用核心层的种子通道，每块砖可以按槽位单独计算。
 - 替代的标准是观感相近，不要求逐字节一致。
+- 屋顶还原内核（`RecoveredRectangularRoof`、`RecoveredRoofPlacement` 中的矩形部分、`RecoveredRoofMath`）已由 `partTypes/Roof.ts` 取代矩形坡屋顶，删除前还要迁移圆形屋顶和远景屋顶材质（`RecoveredRoofContext`）。
 - 顺序：
   1. M2 先包装原生砌筑，和线上对比；
   2. 看效果；
@@ -77,4 +90,6 @@
 - 内置 `surfaceGrid` 的 `trim` 只按曲面边界截短，遇到洞口时整块丢弃。`masonryCourses` 已经能绕开删除区域（把砖切成上、下、左、右几块），转角石就是这样实现的；通用的 `surfaceGrid` 还没有这个能力，到 M4、M5 再补。
 - 引用元素：依附构件的几何引用宿主元素，继承宿主的修改记录。抹灰需要。
 - 有效曲面的“到边界距离”查询。抹灰边缘侵蚀需要。
-- 修改记录作为裁剪区域交给渲染。
+- 删除区域作为裁剪区域交给渲染（`clip` 平面已经交给渲染）。
+- 圆形屋顶（塔楼的锥形屋顶）、平屋顶、屋顶开洞（老虎窗）、尖顶。
+- 屋顶单元的 `anchor_uv`：线上用屋顶曲面投影，远景材质可能用到。

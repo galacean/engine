@@ -49,6 +49,13 @@ const CASES: Case[] = [
   { id: "house", title: "默认房屋", house: { id: "a" }, ground: flat },
   { id: "tall", title: "高房屋 9 米", house: { id: "a", height: 9 }, ground: flat },
   { id: "steep", title: "陡屋顶", house: { id: "a", roof: { height: 0.8, eave: 0.4 } }, ground: flat },
+  { id: "gable", title: "山墙屋顶", house: { id: "a", roof: { ridge_length: 1 } }, ground: flat },
+  {
+    id: "rotated",
+    title: "旋转房屋 10 × 7",
+    house: { id: "a", rectangle: { center: [0, 0], size: [10, 7], rotation: 0.6 } },
+    ground: flat
+  },
   { id: "flat", title: "平屋顶", house: { id: "a", roof: { height: 0 } }, ground: flat },
   {
     id: "tower",

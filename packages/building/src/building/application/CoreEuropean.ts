@@ -6,6 +6,7 @@
 import { authorPartKey, type BuildingCoreDraft, type BuildingUnit, type LaidUnit } from "../core";
 import { normalizeProfileFootprint, normalizeProfileHeight, normalizeProfileRoof } from "../runtime/ProfileParameters";
 import { unitFootprintScale, type MaterialFootprint } from "../runtime/MaterialFootprint";
+import { isFlatRoofHeight } from "../runtime/RoofMode";
 import type { UnitPlacementBinding } from "../runtime/UnitPlacement";
 import type { CoreRenderPlan, CoreStripDraw } from "../render/CoreRenderInput";
 
@@ -216,20 +217,6 @@ export function buildCoreHouse(p: CoreHouseParameters): BuildingCoreDraft {
   );
   const unit = p.footprint ?? DEFAULT_FOOTPRINT;
   const seed = p.seed ?? 17;
-  const shared = {
-    footprint,
-    height: normalizeProfileHeight(p.height ?? 4),
-    roof: normalizeProfileRoof(p.roof ?? {}),
-    wallUnit: unit,
-    // One course seed for the whole house, so the walls continue each other's courses.
-    courseSeed: seed
-  };
-  const fromShared = {
-    footprint: { $shared: "footprint" },
-    height: { $shared: "height" },
-    roof: { $shared: "roof" },
-    wallUnit: { $shared: "wallUnit" }
-  };
   const grid = p.walls === "grid";
   const brick: BuildingUnit = {
     source: "brick",
@@ -243,9 +230,23 @@ export function buildCoreHouse(p: CoreHouseParameters): BuildingCoreDraft {
         // the wall against a 0.1 m nominal unit depth.
         { min: [0.05, 0.05, 1], max: [2.5, 1.8, 8] }
   };
-  const algorithm = grid
+  // Masonry scales against the brick prototype; one course seed for the whole house, so the
+  // walls continue each other's courses.
+  const courses = grid
     ? { type: "gridCourses", params: { rule: "staggered_rows", footprint: unit } }
-    : { type: "masonryCourses", params: { footprint: unit, courseSeed: { $shared: "courseSeed" } } };
+    : { type: "masonryCourses", params: { courseSeed: seed } };
+  // Every part reads the house, the brick and the courses from the group, so the draft
+  // stores each of them once.
+  const shared = {
+    house: {
+      footprint,
+      height: normalizeProfileHeight(p.height ?? 4),
+      roof: normalizeProfileRoof(p.roof ?? {}),
+      wallUnit: unit
+    },
+    brick,
+    courses
+  };
   // A rectangle has one wall per side; the corners between them derive the corner stones.
   // A circle, or the grid courses kept for comparison with the online path, has one wall.
   const sides = grid || p.circle ? [undefined] : [0, 1, 2, 3];
@@ -255,24 +256,72 @@ export function buildCoreHouse(p: CoreHouseParameters): BuildingCoreDraft {
     type: "wall",
     geometry:
       side === undefined
-        ? { generator: "houseWall", params: fromShared }
-        : { generator: "houseWallSide", params: { ...fromShared, side } },
-    algorithm,
-    unit: brick
+        ? { generator: "houseWall", params: { $shared: "house" } }
+        : { generator: "houseWallSide", params: { $shared: "house", side } },
+    algorithm: { $shared: "courses" },
+    unit: { $shared: "brick" }
   }));
-  const roof = p.id + "-roof";
+  const roofParams = shared.house.roof;
+  // A pitched roof over a rectangle has one part per slope; the joins between slopes derive
+  // the hip and ridge caps. Other roofs keep one roof part.
+  const slopes = !p.circle && !isFlatRoofHeight(roofParams.height);
+  // A slope sits on the wall below it; a single roof part, or a roof over one wall, sits
+  // on every wall.
+  const under = (side: number) => (walls.length === 4 ? [walls[side]] : walls).map((w) => ({ part: w.id }));
+  const roofs = slopes
+    ? [0, 1, 2, 3]
+        // A gable roof has no slope over the gable walls.
+        .filter((side) => roofParams.ridge_length !== 1 || (side + roofParams.ridge_direction) % 2 === 1)
+        .map((side) => ({
+          part: {
+            id: `${p.id}-roof-${side}`,
+            group: p.id,
+            type: "roof",
+            geometry: { generator: "houseRoofSlope", params: { $shared: "house", side } },
+            algorithm: { $shared: "roofTiles" },
+            unit: { $shared: "tile" }
+          },
+          hosts: under(side)
+        }))
+    : [
+        {
+          part: {
+            id: p.id + "-roof",
+            group: p.id,
+            type: "roof",
+            // COMPAT(online-parity): round and flat roofs still render through the online roof.
+            geometry: { generator: "houseRoof", params: { $shared: "house" } },
+            algorithm: { type: "none" }
+          },
+          hosts: walls.map((w) => ({ part: w.id }))
+        }
+      ];
   return {
-    groups: [{ id: p.id, seed, shared }],
-    parts: [
-      ...walls,
+    groups: [
       {
-        id: roof,
-        group: p.id,
-        type: "roof",
-        geometry: { generator: "houseRoof", params: fromShared },
-        algorithm: { type: "none" }
+        id: p.id,
+        seed,
+        shared: {
+          ...shared,
+          ...(slopes && {
+            tile: {
+              source: "roof_tile",
+              bounds: CUBE,
+              scale: [unit.width, unit.height, unit.depth],
+              // Tiles stretch with their row; caps reach about 1.1 m long and 0.18 m deep.
+              range: { min: [0.05, 0.05, 0.5], max: [4, 6, 3] }
+            },
+            roofTiles: { type: "roofTiles" }
+          })
+        }
       }
     ],
-    connections: [{ kind: "attach", id: roof + "/on-wall", guest: roof, hosts: walls.map((w) => ({ part: w.id })) }]
+    parts: [...walls, ...roofs.map((r) => r.part)],
+    connections: roofs.map(({ part, hosts }) => ({
+      kind: "attach" as const,
+      id: part.id + "/on-wall",
+      guest: part.id,
+      hosts
+    }))
   };
 }

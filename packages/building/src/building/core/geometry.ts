@@ -36,9 +36,14 @@ export interface BuildingGeometry {
 }
 /** [u0, v0, u1, v1] in surface coordinates. */
 export type Rect = readonly [number, number, number, number];
-/** Edits produced by connection rules. Original geometry is never mutated. */
+/** Plane [nx, ny, nz, d] in part-local metres, with a unit normal. Its kept side is n·p + d ≥ 0. */
+export type Plane = readonly [number, number, number, number];
+/** Edits produced by connection rules. Original geometry is never mutated.
+ * - `clip`: units laid on the element are cut by the plane and keep its positive side.
+ *   The element itself keeps its shape; the renderer does the cut. */
 export type GeometryModification =
   | { readonly element: string; readonly op: "removeElement" }
+  | { readonly element: string; readonly op: "clip"; readonly plane: Plane }
   | { readonly element: string; readonly op: "removeArea" | "addArea"; readonly rect: Rect }
   | { readonly element: string; readonly op: "removeSpan"; readonly span: readonly [number, number] };
 
@@ -239,6 +244,17 @@ export function modificationIssue(geometry: BuildingGeometry, modification: Geom
     case "addArea":
       if (element.kind !== "surface") return `${modification.op} needs a surface element`;
       return rectIssue(modification.rect);
+    case "clip": {
+      const plane = modification.plane;
+      if (
+        !Array.isArray(plane) ||
+        plane.length !== 4 ||
+        !plane.every((v) => typeof v === "number" && Number.isFinite(v))
+      )
+        return "Clip plane must be four finite numbers [nx, ny, nz, d]";
+      if (Math.abs(Math.hypot(plane[0], plane[1], plane[2]) - 1) > 1e-6) return "Clip plane normal must be unit length";
+      return;
+    }
     case "removeSpan": {
       if (element.kind !== "curve") return "removeSpan needs a curve element";
       const span = modification.span;
@@ -365,6 +381,7 @@ export class EffectiveGeometry {
   private readonly removed = new Set<string>();
   private readonly areas = new Map<string, { adds: Rect[]; removes: Rect[] }>();
   private readonly spans = new Map<string, [number, number][]>();
+  private readonly planes = new Map<string, Plane[]>();
   constructor(
     readonly original: BuildingGeometry,
     modifications: readonly GeometryModification[],
@@ -374,7 +391,11 @@ export class EffectiveGeometry {
       const issue = modificationIssue(original, modification);
       if (issue) throw Error(issue);
       if (modification.op === "removeElement") this.removed.add(modification.element);
-      else if (modification.op === "removeSpan") {
+      else if (modification.op === "clip") {
+        const list = this.planes.get(modification.element) ?? [];
+        list.push(modification.plane);
+        this.planes.set(modification.element, list);
+      } else if (modification.op === "removeSpan") {
         const list = this.spans.get(modification.element) ?? [];
         list.push([modification.span[0], modification.span[1]]);
         this.spans.set(modification.element, list);
@@ -398,6 +419,11 @@ export class EffectiveGeometry {
   }
   point(id: string): Frame {
     return this.element(id, "point").frame;
+  }
+  /** Planes that cut the units laid on an element, in modification order. */
+  clips(id: string): readonly Plane[] {
+    if (!this.original.elements[id] || this.removed.has(id)) throw Error(`Unknown or removed element "${id}"`);
+    return this.planes.get(id) ?? [];
   }
   location(id: string): SurfaceLocation | undefined {
     return this.element(id, "point").on;

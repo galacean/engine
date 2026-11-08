@@ -97,11 +97,14 @@ describe("masonryCourses and corner stones", () => {
     expect(result.parts.filter((p) => p.type === "cornerStone")).toHaveLength(3);
   });
 
-  it("reserves brick slots for the pieces that removed areas cut", () => {
-    const { walls } = house({ id: "a" });
-    for (const wall of walls) {
-      const holes = wall.modifications.filter((m) => m.op === "removeArea").length;
-      expect((wall.layout!.data as { pieces: number }).pieces).toBe(1 + 3 * holes);
+  it("sizes brick slots from the bricks, so that few slots stay empty", () => {
+    for (const [, p] of cases) {
+      const { walls, units } = house(p);
+      for (const wall of walls) {
+        const laid = units(wall).length;
+        expect(laid).toBeGreaterThan(0);
+        expect(wall.layout!.count).toBeLessThan(4 * laid);
+      }
     }
   });
 
