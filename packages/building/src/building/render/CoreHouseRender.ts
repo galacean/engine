@@ -116,6 +116,8 @@ function roofEntry(batch: RoofBatch, id: string, surface: string, u: LaidUnit, b
     view.setUint16(16 + i * 2, toHalf(v), true)
   );
   view.setUint32(40, slot, true);
+  // COMPAT(online-parity): the online roof record has no seed lane; the unit seed goes into
+  // the ordinal lane, which the roof shader uses for variation.
   view.setUint32(52, u.seed >>> 0, true);
   view.setUint32(60, (u.params?.flag as number | undefined) ?? 1, true);
   const [tangent, bitangent, normal] = quaternionBasis(q);
@@ -123,6 +125,8 @@ function roofEntry(batch: RoofBatch, id: string, surface: string, u: LaidUnit, b
     id,
     logical_id: id,
     surface_id: surface,
+    // COMPAT(online-parity): online roof cells carry a projection onto the roof chart; the
+    // core roof has none yet, and the distance appearance still uses the online roof.
     anchor_uv: [0, 0],
     center: [position[0], position[1] + base, position[2]],
     tangent,
@@ -221,6 +225,7 @@ async function replaceRoof(
   const layout = group("layout"),
     connections = group("connections");
   if (!layout || !connections) return;
+  // COMPAT(online-parity): the palette slot comes from the online roof records.
   const units = layout.units.roof_tile;
   const slot = new DataView(units.buffer, units.byteOffset, units.byteLength).getUint32(40, true);
   const batches = coreRoofBatches(result, registry, houseId, terrain, slot);
