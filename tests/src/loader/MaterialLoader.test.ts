@@ -10,8 +10,7 @@ function createBlobURL(data: unknown, extension: string): string {
   return URL.createObjectURL(new Blob([JSON.stringify(data)], { type: "application/json" })) + `#.${extension}`;
 }
 
-function registerShaderResource(shaderName: string): string {
-  const shaderPath = `MaterialLoaderTest/${shaderName}`;
+function registerShaderResource(shaderName: string, shaderPath = `MaterialLoaderTest/${shaderName}`): string {
   engine.resourceManager.registerVirtualResources([
     {
       virtualPath: shaderPath,
@@ -37,7 +36,7 @@ afterAll(() => {
 });
 
 describe("ShaderLoader", () => {
-  it("preserves relative source includes and rejects duplicate source shader creation", async () => {
+  it("preserves relative source includes for independent shaders with the same name", async () => {
     const name = `ShaderLoaderSource-${Math.random()}`;
     const includeKey = `${name}/Common.glsl`;
     ShaderFactory.registerInclude(includeKey, "vec4 includedColor() { return vec4(0.25); }");
@@ -60,8 +59,13 @@ VertexShader = vert; FragmentShader = frag;
       const shader = await sourceEngine.resourceManager.load<Shader>(paths[0]);
       expect(shader).toBeInstanceOf(Shader);
       expect(shader.compileVariant(sourceEngine, [])).toBe(true);
-      await expect(sourceEngine.resourceManager.load<Shader>(paths[1])).rejects.toBeDefined();
-      expect(sourceEngine.resourceManager.getFromCache(paths[1])).toBeNull();
+      const namesake = await sourceEngine.resourceManager.load<Shader>(paths[1]);
+      expect(namesake).not.toBe(shader);
+      expect(namesake.compileVariant(sourceEngine, [])).toBe(true);
+      expect(sourceEngine.resourceManager.getFromCache(paths[0])).toBe(shader);
+      expect(sourceEngine.resourceManager.getFromCache(paths[1])).toBe(namesake);
+      shader.destroy(true);
+      namesake.destroy(true);
     } finally {
       sourceEngine.destroy();
       ShaderFactory.unregisterInclude(includeKey);
@@ -69,16 +73,20 @@ VertexShader = vert; FragmentShader = frag;
     }
   });
 
-  it("rejects duplicate shader creation", async () => {
+  it("caches precompiled shaders by resource URL even when their names match", async () => {
     const name = `ShaderLoaderDuplicate-${Math.random()}`;
     const source = { name, platformTarget: 0, subShaders: [] };
 
-    expect(
-      await engine.resourceManager.load<Shader>({ url: createBlobURL(source, "shader"), type: AssetType.Shader })
-    ).toBeInstanceOf(Shader);
-    await expect(
-      engine.resourceManager.load<Shader>({ url: createBlobURL(source, "shader"), type: AssetType.Shader })
-    ).rejects.toBeDefined();
+    const urls = [createBlobURL(source, "shader"), createBlobURL(source, "shader")];
+    const shaders = await Promise.all(
+      urls.map((url) => engine.resourceManager.load<Shader>({ url, type: AssetType.Shader }))
+    );
+    expect(shaders[0]).toBeInstanceOf(Shader);
+    expect(shaders[1]).toBeInstanceOf(Shader);
+    expect(shaders[0]).not.toBe(shaders[1]);
+    expect(engine.resourceManager.getFromCache(urls[0])).toBe(shaders[0]);
+    expect(engine.resourceManager.getFromCache(urls[1])).toBe(shaders[1]);
+    shaders.forEach((shader) => shader.destroy());
   });
 });
 
@@ -109,6 +117,64 @@ describe("MaterialLoader", () => {
     expect(material.shader).toBe(Shader.find(shaderName));
   });
 
+  it("binds each material to its explicit shader resource when names collide", async () => {
+    const name = `MaterialLoaderNamesakes-${Math.random()}`;
+    const registered = Shader._createFromPrecompiled({ name, platformTarget: 0, subShaders: [] });
+    const paths = [registerShaderResource(name, `${name}/first`), registerShaderResource(name, `${name}/second`)];
+    const materials = await Promise.all(
+      paths.map((url) =>
+        loadMaterial({
+          name: url,
+          shader: name,
+          shaderRef: { url },
+          shaderData: {},
+          macros: []
+        })
+      )
+    );
+
+    expect(materials[0].shader).not.toBe(registered);
+    expect(materials[1].shader).not.toBe(registered);
+    expect(materials[0].shader).not.toBe(materials[1].shader);
+    for (let i = 0; i < paths.length; i++) {
+      expect(materials[i].shader).toBe(engine.resourceManager.getFromCache(paths[i]));
+    }
+    expect(
+      (
+        await loadMaterial({
+          name: "first-again",
+          shader: name,
+          shaderRef: { url: paths[0] },
+          shaderData: {},
+          macros: []
+        })
+      ).shader
+    ).toBe(materials[0].shader);
+  });
+
+  it("loads a material by shader reference without a shader name", async () => {
+    const path = registerShaderResource(`MaterialLoaderReferenceOnly-${Math.random()}`);
+    const material = await loadMaterial({
+      name: "reference-only",
+      shaderRef: { url: path },
+      shaderData: {},
+      macros: []
+    });
+    expect(material.shader).toBe(engine.resourceManager.getFromCache(path));
+  });
+
+  it("rejects a missing explicit shader reference even when the shader name exists", async () => {
+    await expect(
+      loadMaterial({
+        name: "missing-reference",
+        shader: materialShaderName,
+        shaderRef: { url: "MaterialLoaderTest/missing" },
+        shaderData: {},
+        macros: []
+      })
+    ).rejects.toThrow('shader reference "MaterialLoaderTest/missing" did not resolve to a Shader');
+  });
+
   it("rejects a material without a resolvable shader", async () => {
     await expect(
       loadMaterial({ name: "missing-shader", shader: "missing", shaderData: {}, macros: [] })
@@ -124,12 +190,12 @@ describe("MaterialLoader", () => {
     await expect(
       loadMaterial({
         name: "wrong-shader-ref",
-        shader: "missing",
+        shader: materialShaderName,
         shaderRef: { url: textPath },
         shaderData: {},
         macros: []
       })
-    ).rejects.toBeDefined();
+    ).rejects.toThrow(`shader reference "${textPath}" did not resolve to a Shader`);
   });
 
   it("rejects a texture reference that resolves to another resource type", async () => {

@@ -1,9 +1,8 @@
 import type { RefItem } from "./CommonSchema";
 import type { IColor, IVector2, IVector3 } from "./BasicSchema";
 
-export interface IMaterialSchema {
+export type IMaterialSchema = {
   name: string;
-  shader: string;
   shaderData: {
     [key: string]: {
       type: MaterialLoaderType;
@@ -11,8 +10,18 @@ export interface IMaterialSchema {
     };
   };
   macros: Array<{ name: string; value?: string }>;
-  shaderRef: RefItem;
-}
+} & (
+  | {
+      /** Shader asset reference. Takes precedence over the optional shader name. */
+      shaderRef: RefItem;
+      shader?: string;
+    }
+  | {
+      /** Registered shader name, used when no shader asset reference is supplied. */
+      shader: string;
+      shaderRef?: undefined;
+    }
+);
 
 export enum MaterialLoaderType {
   Vector2 = "Vector2",

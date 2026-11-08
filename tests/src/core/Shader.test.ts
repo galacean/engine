@@ -16,7 +16,7 @@ import {
 } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
-import { vi, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 
 const shaderCompiler = new ShaderCompiler();
 // @ts-expect-error -- bind runtime include map so the compiler can resolve `#include`
@@ -47,11 +47,10 @@ describe("Shader", () => {
       Shader.create("customByPassCreate", [makePass()]);
       const customShader = Shader.create("custom", [new SubShader("Default", [makePass()])]);
 
-      // Create same name shader
-      const errorSpy = vi.spyOn(console, "error");
-      Shader.create("custom", [new SubShader("Default", [makePass()])]);
-      expect(errorSpy).toHaveBeenCalledWith('Shader named "custom" already exists.');
-      vi.resetAllMocks();
+      const namesake = Shader.create("custom", [new SubShader("Default", [makePass()])]);
+      expect(namesake).not.toBe(customShader);
+      expect(Shader.find("custom")).toBe(namesake);
+      namesake.destroy();
 
       // Create shader by empty SubShader array
       expect(() => {

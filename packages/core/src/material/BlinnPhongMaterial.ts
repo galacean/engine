@@ -160,7 +160,7 @@ export class BlinnPhongMaterial extends BaseMaterial {
    * @param engine - Engine to which the material belongs
    */
   constructor(engine: Engine) {
-    super(engine, Shader.find("BlinnPhong"));
+    super(engine, Shader.find("BlinnPhong")!);
 
     const shaderData = this.shaderData;
 
@@ -176,7 +176,7 @@ export class BlinnPhongMaterial extends BaseMaterial {
   }
 
   override clone(): BlinnPhongMaterial {
-    var dest: BlinnPhongMaterial = new BlinnPhongMaterial(this._engine);
+    const dest: BlinnPhongMaterial = new BlinnPhongMaterial(this._engine);
     this._cloneToAndModifyName(dest);
     return dest;
   }

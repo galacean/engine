@@ -34,14 +34,9 @@ class ShaderLoader extends Loader<Shader> {
     const url = item.url!;
     return resourceManager._request<string>(url, { ...item, type: "text" }).then((code) => {
       const source = code.trimStart();
-      const shader = source.startsWith("{")
+      return source.startsWith("{")
         ? Shader._createFromPrecompiled(JSON.parse(source))
         : Shader._createFromSource(code, undefined, sourceFileForShader(url, resourceManager.baseUrl));
-
-      if (!shader) {
-        throw new Error(`ShaderLoader: failed to create shader "${url}".`);
-      }
-      return shader;
     });
   }
 }
