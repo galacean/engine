@@ -453,6 +453,7 @@ async function main(): Promise<void> {
     const canvas = document.querySelector<HTMLCanvasElement>("#canvas")!;
     let pointerStart: { id: number; x: number; y: number; moved: boolean } | undefined;
     const events = { signal: pointerEvents.signal };
+    canvas.addEventListener("contextmenu", (event) => event.preventDefault(), events);
     canvas.addEventListener(
       "pointerdown",
       (event) => {
