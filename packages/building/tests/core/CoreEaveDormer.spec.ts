@@ -10,6 +10,7 @@ import { createBuildingRegistry, designBuildingCore, expandUnits, type ResolvedP
 import { registerHouseTypes } from "../../src/building/partTypes/House";
 import {
   buildCoreHouse,
+  buildCoreHouses,
   type CoreHouseParameters,
   type CoreWallAttachment
 } from "../../src/building/application/CoreEuropean";
@@ -182,6 +183,40 @@ describe("Eave dormers against the online path", () => {
     const draft = European.buildHouses({ id: "e", attachments: [{ ...a, frameMaterial: "wall" }] });
     expect(draft.parts.find((p) => p.type === "eaveDormer")!.geometry!.generator).toBe("houseEaveMount");
     expect(MOUNTED_PART_TYPES).toContain("eaveDormer");
+  });
+
+  it.each([1, 2, 3] as const)("rank %i Gothic carries the full stone surround", async (rank) => {
+    const p = house([at("dormer-gothic-half", rank, 0.125)]);
+    const ours = coreBuildingDecorations(coreBuildingLayout(design(p), registry, {}), assets).flatMap((d) => d.stones);
+    const planned = designBuilding(OnlineEuropean.buildHouses(p as never) as never, flat as never, assets);
+    const theirs = profilePreview(
+      buildingPreviewInput(planned, await prepareBuildingPublication(planned)),
+      flat as never,
+      {
+        assets,
+        retainDecorationParts: true
+      } as never
+    ).stones;
+    expect(ours.map((s) => [s.template, s.instance.flags])).toEqual(theirs.map((s) => [s.template, s.instance.flags]));
+  });
+
+  it("stays whole next to another house, as online", () => {
+    const window_ = at("dormer-cottage-half", 1, 0.375);
+    const alone = designBuildingCore(buildCoreHouses([house([window_])]), registry, { environment });
+    const mount = alone.parts.find((p) => p.type === "eaveDormer")!.original.elements.mount;
+    if (mount.kind !== "point") throw Error("no mount");
+    const [x, , z] = mount.frame.origin;
+    const r = designBuildingCore(
+      buildCoreHouses([
+        house([window_]),
+        { id: "n", height: 2, rectangle: { center: [x, z], size: [4, 4], rotation: 0 } }
+      ]),
+      registry,
+      { environment }
+    );
+    expect(r.diagnostics).toEqual([]);
+    expect(lay(r.parts.find((p) => p.type === "eaveDormer")!)).toHaveLength(1);
+    expect(lay(r.parts.find((p) => p.type === "shedRoof")!).length).toBeGreaterThan(0);
   });
 
   it("is deterministic", () => {

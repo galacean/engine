@@ -33,7 +33,6 @@ import {
 import { shedTile, vAtHeight, type LoftParams } from "./ShedDormers";
 import {
   houseWallMountGeometry,
-  mountInsideHouse,
   openingMeetsBand,
   prefabFacts,
   prefabScale,
@@ -309,7 +308,5 @@ export function registerEaveDormerTypes(registry: BuildingRegistry): BuildingReg
       );
   registry.defaults.join("eaveDormer", "floorBand", "openingCutsBand");
   registry.detectors.register(joinPairKey("eaveDormer", "floorBand"), openingMeetsBand);
-  registry.defaults.join("eaveDormer", "wall", "mountHidden");
-  registry.detectors.register(joinPairKey("eaveDormer", "wall"), mountInsideHouse);
   return registry;
 }

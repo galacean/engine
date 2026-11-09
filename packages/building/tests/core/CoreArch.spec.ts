@@ -149,6 +149,44 @@ describe("Arches against the online path", () => {
     ).toBe(true);
   });
 
+  it.each([
+    ["stone", {}, "arch"],
+    ["timber", { walls: "timber" as const }, "woodArch"]
+  ] as const)("cuts a floor band that crosses a %s arch", (_name, extra, type) => {
+    const r = design(
+      house({ height: 7, floors: { enabled: true, interval: 3 }, attachments: [arch({ height: 3.4 })], ...extra })
+    );
+    expect(r.diagnostics).toEqual([]);
+    const points = (part(r, type).original.elements.arc as { curve: { points: number[][] } }).curve.points;
+    const n = points.length - 1;
+    const open = points.map((_, i) => i).filter((i) => points[i][1] > 3.1);
+    const [a, b] = [4 + (2 * open[0]) / n, 4 + (2 * open.at(-1)!) / n];
+    const band = part(r, "floorBand");
+    const inside = lay(band).filter((u) => {
+      const [u0, u1] = u.params!.wallU as number[];
+      return u.frame.origin[1] < 4 && u1 > a + 0.02 && u0 < b - 0.02;
+    });
+    expect(inside).toEqual([]);
+    expect(lay(band).length).toBeGreaterThan(0);
+  });
+
+  it("gives its stones their place on the house perimeter, on every side", () => {
+    for (const u of [0.125, 0.375, 0.875]) {
+      const stones = lay(part(design(house({ attachments: [arch({ u, height: 2.6 })] })), "arch"));
+      for (const s of stones) {
+        const [a, b] = s.params!.wallU as number[];
+        expect(Math.abs((a + b) / 2 - u * 40)).toBeLessThan(1.4);
+      }
+    }
+  });
+
+  it("refuses a timber arch whose frame does not fit under the wall top", () => {
+    const m = (height: number) =>
+      messages(design(house({ walls: "timber", height: 3, attachments: [arch({ height })] }))).join();
+    expect(m(3.4)).toContain("no room above the arch");
+    expect(m(2)).toBe("");
+  });
+
   it("is deterministic", () => {
     const units = (r: ReturnType<typeof design>) => lay(part(r, "arch")).map((u) => [u.key, ...u.matrix]);
     expect(units(design(house()))).toEqual(units(design(structuredClone(house()))));

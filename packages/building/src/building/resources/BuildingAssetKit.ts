@@ -112,6 +112,8 @@ export class BuildingPrefabComponent extends Component {
   /** How far the prefab's origin stands in from the wall corner it spans, in metres, on a
    * corner window. Its openings then run along the perimeter from that corner. */
   cornerOut = 0;
+  /** How far a corner window reaches along each wall from its corner, in metres. */
+  cornerReach = 0;
   /** Paths of the members that set the prefab's size. Default: all of them. */
   sizeMembers: string[] = [];
   private _roofProfile: [number, number][] = [];
@@ -552,7 +554,7 @@ export function buildingAssets(source: PrefabResource): BuildingAssets {
           curvedNarrowing: root.curvedNarrowing,
           ...(roofProfile.length && { roofProfile }),
           ...(root.eaveOut > 0 && { eaveOut: root.eaveOut, eaveOutCurved: root.eaveOutCurved }),
-          ...(root.cornerOut > 0 && { cornerOut: root.cornerOut }),
+          ...(root.cornerOut > 0 && { cornerOut: root.cornerOut, cornerReach: root.cornerReach }),
           ...(root.sizeMembers.length && { sizeMembers: [...root.sizeMembers] })
         };
       } finally {

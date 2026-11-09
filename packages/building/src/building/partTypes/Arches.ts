@@ -5,6 +5,7 @@
 // - On masonry the arc is a curved shoulder rising to the crown, laid with voussoirs on two
 //   stone piers. On timber it is a level lintel, drawn by the renderer as beams and braces.
 import {
+  joinPairKey,
   type BuildingRegistry,
   type GeometryElement,
   type GeometryGenerator,
@@ -13,7 +14,7 @@ import {
   type Vec3
 } from "../core";
 import { wallChartSampler, type WallChartParams } from "./House";
-import type { WallOpeningParams } from "./Openings";
+import { openingMeetsBand, type WallOpeningParams } from "./Openings";
 
 /** An arch: a fraction of the perimeter, its span between the pier axes and its height from the
  * wall's ground at its middle up to the crown. `lintel` makes it level, for timber walls. */
@@ -85,9 +86,10 @@ export const houseArchGeometry: GeometryGenerator<ArchParams> = (p, { hosts }) =
   const ys = points.map((q) => q.ground);
   const apex = middle.ground + p.height;
   if (ys.some((y) => !(y < apex))) throw Error("The arch's crown must stand above its ground");
-  const heights = (p.lintel ? ys.map((y) => apex - y) : stoneHeights(ys, apex, p.height)).map((h, i) =>
-    Math.min(h, points[i].roof - ys[i] - (p.lintel ? 0.25 : 0))
-  );
+  // A stone arc stops at the wall top; a lintel must fit under it, frame and all.
+  const heights = p.lintel
+    ? ys.map((y) => apex - y)
+    : stoneHeights(ys, apex, p.height).map((h, i) => Math.min(h, points[i].roof - ys[i]));
   if (points.some((q, i) => q.roof < ys[i] + heights[i] + (p.lintel ? LINTEL_CROWN : STONE_CROWN)))
     throw Error("The wall has no room above the arch for its crown");
   const base = points.map((q, i): Vec3 => [q.x, ys[i], q.z]);
@@ -206,7 +208,13 @@ export const archStones: LayingAlgorithm<{ depthScale?: number }, ArchLayout> = 
     const [ground, top] = [curve(base), curve(arc)];
     const depthScale = context.params.depthScale ?? 1;
     const e = context.geometry.original.elements.mount;
-    const u0 = e?.kind === "point" && e.on ? e.on.u : 0;
+    const first = context.geometry.original.elements.opening0;
+    // The mount's u is on its own wall; wall spans run along the house perimeter.
+    const toPerimeter =
+      first?.kind === "surface"
+        ? (first.surface.params as WallOpeningParams).perimeter[0] - (first.surface.params as WallOpeningParams).rect[0]
+        : 0;
+    const u0 = (e?.kind === "point" && e.on ? e.on.u : 0) + toPerimeter;
     const planLength = ground.slice(1).reduce((n, q, i) => n + Math.hypot(q[0] - ground[i][0], q[2] - ground[i][2]), 0);
     const flags = { deformation: [0, 0, 0, 0], flags: 0 };
     if (index < d.arcs) {
@@ -265,12 +273,15 @@ export const ARCH_MOUNTS = ["arch", "woodArch"] as const;
 export function registerArchTypes(registry: BuildingRegistry): BuildingRegistry {
   registry.geometry.register("houseArch", houseArchGeometry);
   registry.algorithms.register("archStones", archStones);
-  for (const type of ARCH_MOUNTS)
+  for (const type of ARCH_MOUNTS) {
+    registry.defaults.join(type, "floorBand", "openingCutsBand");
+    registry.detectors.register(joinPairKey(type, "floorBand"), openingMeetsBand);
     for (const walls of [1, 4])
       registry.defaults.attach(
         type,
         Array.from({ length: walls }, () => "wall"),
         "wallOpening"
       );
+  }
   return registry;
 }

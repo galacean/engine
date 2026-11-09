@@ -178,7 +178,16 @@ function house(p: EuropeanHouseParameters): CoreHouseParameters {
   if (timber && wallUnit !== "wooden_plank") throw Error("A timber wall is laid with wooden_plank");
   if (p.wallStructure === "masonry" && wallUnit === "wooden_plank")
     throw Error("A masonry wall is not laid with wooden_plank");
-  const rule = p.wall?.algorithm?.type ?? (timber ? "horizontal_rows" : undefined);
+  // "auto" lets the material choose: boards on a timber structure, parallel rows of planks.
+  const authored = p.wall?.algorithm?.type;
+  const rule =
+    authored === undefined || authored === "auto"
+      ? timber
+        ? "horizontal_rows"
+        : authored && wallUnit === "wooden_plank"
+          ? "parallel_rows"
+          : authored
+      : authored;
   if (rule && rule !== "staggered_rows" && rule !== "auto" && !GRID_RULES.includes(rule as never))
     throw Error(`Unknown wall course rule "${rule}"`);
   // Planks in horizontal rows are boards; planks in other rules, and bricks in grid rules, are

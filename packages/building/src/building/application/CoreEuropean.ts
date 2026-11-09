@@ -255,6 +255,17 @@ const DEFAULT_WALL_TYPES: Readonly<Record<Exclude<CoreWallAttachment["kind"], "o
   "wall-lamp": "wall-lantern",
   lantern: "wall-lantern"
 };
+/** A snapped corner of the rectangle's perimeter, as a fraction of it, for a `u` within 1 cm of
+ * one. The perimeter starts at corner 0 and runs first along the depth. */
+function cornerOf(house: CoreHouseParameters, u: number): { index: number; u: number } | undefined {
+  if (house.circle) return;
+  const [w, d] = house.rectangle?.size ?? DEFAULT_RECTANGLE.size;
+  const perimeter = 2 * (w + d);
+  const at = ((u % 1) + 1) % 1;
+  const corners = [0, d / perimeter, 0.5, 0.5 + d / perimeter];
+  const index = corners.findIndex((k) => Math.min(Math.abs(k - at), 1 - Math.abs(k - at)) * perimeter <= 0.01);
+  return index < 0 ? undefined : { index, u: corners[index] };
+}
 /** A ground-open arch: stone voussoirs on piers in a masonry wall, a level timber frame in a
  * timber wall. Its stones take the wall's brick. */
 function archPart(house: CoreHouseParameters, a: CoreWallAttachment): BuildingPartDef {
@@ -318,6 +329,8 @@ function wallAttachmentPart(house: CoreHouseParameters, a: CoreWallAttachment): 
   const shed = a.type === "dormer-cottage-half" ? eaveShed(house, a) : undefined;
   const kind = a.kind;
   const corner = a.type === "window-cottage-corner";
+  // A window at a corner stands exactly on it, however its position was rounded.
+  const u = (corner ? cornerOf(house, a.u)?.u : undefined) ?? a.u;
   const prefab = shed?.prefab ?? `${a.type ?? DEFAULT_WALL_TYPES[kind]}/${a.rank ?? 1}`;
   return {
     id: `${house.id}/${a.id}`,
@@ -325,7 +338,7 @@ function wallAttachmentPart(house: CoreHouseParameters, a: CoreWallAttachment): 
     type: eave ? "eaveDormer" : WALL_PART_TYPES[kind],
     geometry: {
       generator: eave ? "houseEaveMount" : corner ? "houseCornerMount" : "houseWallMount",
-      params: { prefab, u: a.u, bottom: a.bottom, width: a.width, height: a.height, ...shed?.params }
+      params: { prefab, u, bottom: a.bottom, width: a.width, height: a.height, ...shed?.params }
     },
     algorithm: {
       type: "mountPrefab",
@@ -670,16 +683,11 @@ export function buildCoreHouse(p: CoreHouseParameters): BuildingCoreDraft {
   // A corner window takes the corner of its height: the walls' corner stones leave room for it.
   const cornerJoins = (() => {
     if (walls.length !== 4) return [];
-    const [w, d] = p.rectangle?.size ?? DEFAULT_RECTANGLE.size;
-    const perimeter = 2 * (w + d);
-    // The perimeter starts at corner 0 and runs first along the depth.
-    const corners = [0, d / perimeter, 0.5, 0.5 + d / perimeter];
     const gaps = new Map<number, [number, number][]>();
     for (const a of p.attachments ?? []) {
       if (a.type !== "window-cottage-corner") continue;
-      const u = ((a.u % 1) + 1) % 1;
-      const c = corners.findIndex((k) => Math.min(Math.abs(k - u), 1 - Math.abs(k - u)) < 1e-6);
-      if (c < 0) continue;
+      const c = cornerOf(p, a.u)?.index;
+      if (c === undefined) continue;
       gaps.set(c, [...(gaps.get(c) ?? []), [a.bottom - 0.05, a.bottom + a.height + 0.1]]);
     }
     return [...gaps].map(([c, list]) => ({

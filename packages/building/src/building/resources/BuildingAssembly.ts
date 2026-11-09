@@ -55,6 +55,8 @@ export interface BuildingPrefab {
   eaveOutCurved?: number;
   /** How far the origin of a corner window stands in from its wall corner. */
   cornerOut?: number;
+  /** How far a corner window reaches along each wall from its corner. */
+  cornerReach?: number;
   /** Paths of the members that set the prefab's size. Default: all of them. */
   sizeMembers?: string[];
 }

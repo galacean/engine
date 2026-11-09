@@ -150,6 +150,35 @@ describe("Corner windows against the online path", () => {
     expect(messages(house([at(2, 0.5, { bottom: 3 })])).join()).toContain("reaches above its walls");
   });
 
+  it("treats a rounded position as the corner it is meant for", () => {
+    const exact = design(house([at(2, 8 / 36)]));
+    const rounded = design(house([at(2, 0.2222)]));
+    expect(rounded.diagnostics).toEqual([]);
+    const mount = (r: ReturnType<typeof design>) => {
+      const e = r.parts.find((p) => p.type === "window")!.original.elements.mount;
+      if (e.kind !== "point") throw Error("no mount");
+      return e.frame.origin;
+    };
+    expect(mount(rounded)).toEqual(mount(exact));
+    const stones = (r: ReturnType<typeof design>) =>
+      r.parts.filter((p) => p.type === "cornerStone").flatMap((p) => expandUnits(p, registry, { environment })).length;
+    expect(stones(rounded)).toBe(stones(exact));
+  });
+
+  it("is an error more than 1 cm from a corner", () => {
+    const messages = design(house([at(2, 8 / 36 + 0.02 / 36)])).diagnostics.map((d) => d.message);
+    expect(messages.join()).toContain("needs a corner");
+  });
+
+  it("needs wall on both sides of its corner, as far as it reaches", () => {
+    const narrow = (side: number) =>
+      design(house([at(3, 0.5)], { rectangle: { center: [0, 0], size: [10, side], rotation: 0 } })).diagnostics.map(
+        (d) => d.message
+      );
+    expect(narrow(1).join()).toContain("of wall on both sides");
+    expect(narrow(3)).toEqual([]);
+  });
+
   it("comes from the European parameters", () => {
     const a = {
       id: "c",

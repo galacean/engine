@@ -239,12 +239,64 @@ interface CourseLayout {
   rowHeight: number;
   rows: number;
   edges: CourseEdge[];
+  /** Slots per course position: the most pieces the removed areas cut one unit into. */
+  pieces: number;
 }
 /** A thin joint between bricks, at most a fifth of the span. */
 const joint = (span: number, gap: number) => span - Math.min(gap, span * 0.2);
 
-/** Brick courses around a wall chart: one slot per edge, row and column. Each brick is
- * clipped to its edge, to the ground below and to the roof joint above. */
+/** The removed areas of a chart in its own u, also one perimeter either way on a closed chart. */
+function chartHoles(context: LayingContext<{ element?: string }>, chart: WallChartParams): Rect[] {
+  const removed = context.geometry.surface(context.params.element ?? "face").removed;
+  if (!chart.closed) return [...removed];
+  const length = wallChartSampler(chart).length;
+  return removed.flatMap((r) => [-length, 0, length].map((d): Rect => [r[0] + d, r[1], r[2] + d, r[3]]));
+}
+/** A course position as a rectangle on the chart, or nothing where none fits. */
+function courseCell(chart: WallChartParams, d: CourseLayout, e: CourseEdge, row: number, col: number) {
+  const parity = row % 2;
+  if (col >= e.c1[parity]) return;
+  const shift = d.rule === "staggered_rows" || d.rule === "overlap_rows" ? parity * 0.5 : 0;
+  const a = chart.points[e.edge - 1],
+    b = chart.points[e.edge],
+    { u, l } = e,
+    pitch = d.pitch,
+    rowHeight = d.rowHeight;
+  const normal = [-(b[2] - a[2]) / l, 0, (b[0] - a[0]) / l];
+  // The same arithmetic, in the same order, as the existing arrangedWallCells.
+  const x = Math.max(u, (col + shift) * pitch),
+    X = Math.min(u + l, (col + shift + 1) * pitch),
+    t = ((x + X) / 2 - u) / l;
+  const lowerA = a[1] + Math.max(0, chart.third[e.edge - 1]),
+    lowerB = b[1] + Math.max(0, chart.third[e.edge]);
+  const bottom =
+    chart.third[e.edge - 1] > 0 || chart.third[e.edge] > 0
+      ? Math.max(lowerA + ((x - u) / l) * (lowerB - lowerA), lowerA + ((X - u) / l) * (lowerB - lowerA))
+      : a[1] + t * (b[1] - a[1]);
+  const top = chart.joint
+    ? Math.max(
+        ...[x, (x + X) / 2, X].map((q) => {
+          const s = (q - u) / l;
+          return wallRoofJointHeight(
+            chart.joint!,
+            a[0] + s * (b[0] - a[0]) + normal[0] * chart.nominalOuter,
+            a[2] + s * (b[2] - a[2]) + normal[2] * chart.nominalOuter
+          );
+        })
+      )
+    : chart.top[e.edge - 1] + t * (chart.top[e.edge] - chart.top[e.edge - 1]) + 0.12;
+  const y = Math.max(bottom, chart.minGround + row * rowHeight),
+    Y = Math.min(top, chart.minGround + (row + (d.rule === "overlap_rows" ? 1.15 : 1)) * rowHeight);
+  if (X - x < 0.015 || Y - y < 0.015) return;
+  return { u0: x, u1: X, lo: y, hi: Y };
+}
+/** A course position's pieces around the removed areas. */
+const coursePieces = (cell: Piece, holes: readonly Rect[]) =>
+  holes.reduce<Piece[]>((list, h) => list.flatMap((q) => subtract(q, h, cell.lo, cell.hi)), [cell]);
+
+/** Brick courses around a wall chart: one slot per edge, row, column and piece. Each brick is
+ * clipped to its edge, to the ground below and to the roof joint above, and laid in pieces
+ * around the areas removed from the wall. */
 export const gridCourses: LayingAlgorithm<
   { rule: CourseRule; footprint: MaterialFootprint; gap?: number; element?: string },
   CourseLayout
@@ -299,62 +351,51 @@ export const gridCourses: LayingAlgorithm<
       offset += entry.count;
       return entry as CourseEdge;
     });
-    return { count: offset, data: { rule: p.rule, pitch, rowHeight, rows, edges: list } };
+    const data: CourseLayout = { rule: p.rule, pitch, rowHeight, rows, edges: list, pieces: 1 };
+    const holes = chartHoles(context, chart);
+    if (holes.length)
+      for (const e of list)
+        for (let row = 0; row < rows; row++)
+          for (let c = 0; c < e.columns; c++) {
+            const cell = courseCell(chart, data, e, row, e.c0[row % 2] + c);
+            if (cell) data.pieces = Math.max(data.pieces, coursePieces(cell, holes).length);
+          }
+    return { count: offset * data.pieces, data };
   },
   unitAt(context, d, index) {
     const p = context.params;
     const chart = chart_(context.geometry.original.elements[p.element ?? "face"]);
-    const e = d.edges.find((x) => index >= x.offset && index < x.offset + x.count)!;
-    const local = index - e.offset,
-      row = Math.floor(local / e.columns),
-      parity = row % 2;
-    const col = e.c0[parity] + (local % e.columns);
-    if (col >= e.c1[parity]) return;
-    const shift = d.rule === "staggered_rows" || d.rule === "overlap_rows" ? parity * 0.5 : 0;
+    const slot = Math.floor(index / d.pieces),
+      n = index % d.pieces;
+    const e = d.edges.find((x) => slot >= x.offset && slot < x.offset + x.count)!;
+    const local = slot - e.offset,
+      row = Math.floor(local / e.columns);
+    const col = e.c0[row % 2] + (local % e.columns);
+    const cell = courseCell(chart, d, e, row, col);
+    if (!cell) return;
+    const piece = (d.pieces > 1 ? coursePieces(cell, chartHoles(context, chart)) : [cell])[n];
+    if (!piece || piece.u1 - piece.u0 < 0.015 || piece.hi - piece.lo < 0.015) return;
     const a = chart.points[e.edge - 1],
       b = chart.points[e.edge],
-      { u, l } = e,
-      pitch = d.pitch,
-      rowHeight = d.rowHeight;
+      { u, l } = e;
     const tangent = [(b[0] - a[0]) / l, 0, (b[2] - a[2]) / l],
       normal = [-tangent[2], 0, tangent[0]];
-    // The same arithmetic, in the same order, as the existing arrangedWallCells.
-    const x = Math.max(u, (col + shift) * pitch),
-      X = Math.min(u + l, (col + shift + 1) * pitch),
-      t = ((x + X) / 2 - u) / l;
-    const lowerA = a[1] + Math.max(0, chart.third[e.edge - 1]),
-      lowerB = b[1] + Math.max(0, chart.third[e.edge]);
-    const bottom =
-      chart.third[e.edge - 1] > 0 || chart.third[e.edge] > 0
-        ? Math.max(lowerA + ((x - u) / l) * (lowerB - lowerA), lowerA + ((X - u) / l) * (lowerB - lowerA))
-        : a[1] + t * (b[1] - a[1]);
-    const top = chart.joint
-      ? Math.max(
-          ...[x, (x + X) / 2, X].map((q) => {
-            const s = (q - u) / l;
-            return wallRoofJointHeight(
-              chart.joint!,
-              a[0] + s * (b[0] - a[0]) + normal[0] * chart.nominalOuter,
-              a[2] + s * (b[2] - a[2]) + normal[2] * chart.nominalOuter
-            );
-          })
-        )
-      : chart.top[e.edge - 1] + t * (chart.top[e.edge] - chart.top[e.edge - 1]) + 0.12;
-    const y = Math.max(bottom, chart.minGround + row * rowHeight),
-      Y = Math.min(top, chart.minGround + (row + (d.rule === "overlap_rows" ? 1.15 : 1)) * rowHeight);
-    if (X - x < 0.015 || Y - y < 0.015) return;
-    const q = [x, y, X, Y];
     const gap = p.gap ?? 0.008;
-    const size: [number, number, number] = [joint(q[2] - q[0], gap), joint(q[3] - q[1], gap), p.footprint.depth];
+    const size: [number, number, number] = [
+      joint(piece.u1 - piece.u0, gap),
+      joint(piece.hi - piece.lo, gap),
+      p.footprint.depth
+    ];
     // A piece too small for the brick's range is left out.
     if (!unitFits(context.unit, size)) return;
-    const s = ((q[0] + q[2]) / 2 - u) / l;
+    const s = ((piece.u0 + piece.u1) / 2 - u) / l;
+    const uOffset = chart.uOffset ?? 0;
     return {
-      key: `${e.edge}/${row}/${col}/0`,
+      key: `${e.edge}/${row}/${col}/${n}`,
       frame: {
         origin: [
           a[0] + s * (b[0] - a[0]) + normal[0] * (chart.nominalOuter - size[2] / 2),
-          (q[1] + q[3]) / 2,
+          (piece.lo + piece.hi) / 2,
           a[2] + s * (b[2] - a[2]) + normal[2] * (chart.nominalOuter - size[2] / 2)
         ],
         x: [tangent[0], tangent[1], tangent[2]],
@@ -362,7 +403,10 @@ export const gridCourses: LayingAlgorithm<
         z: [normal[0], normal[1], normal[2]]
       },
       size,
-      params: { anchor_uv: [(q[0] + q[2]) / 2, (q[1] + q[3]) / 2 - chart.minGround] }
+      params: {
+        anchor_uv: [(piece.u0 + piece.u1) / 2, (piece.lo + piece.hi) / 2 - chart.minGround],
+        wallU: [uOffset + piece.u0, uOffset + piece.u1]
+      }
     };
   }
 };

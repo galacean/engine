@@ -44,6 +44,8 @@ export interface PrefabFacts {
   readonly eaveOutCurved?: number;
   /** How far the origin of a corner window stands in from its wall corner. */
   readonly cornerOut?: number;
+  /** How far a corner window reaches along each wall from its corner. */
+  readonly cornerReach?: number;
 }
 export function prefabFacts(environment: BuildingEnvironment, prefab: string): PrefabFacts {
   const facts = environment.asset?.({ prefab }) as unknown as PrefabFacts | undefined;
@@ -192,6 +194,8 @@ export interface CornerMountParams {
   readonly height: number;
 }
 const CORNER_COS = Math.cos(Math.PI / 6);
+/** How close to either side of `u` the two walls of a corner are sampled, in metres. */
+const CORNER_PROBE = 0.002;
 /** Elements "mount" and "opening<i>" of a window that spans a wall corner. It stands across the
  * corner, facing out along the corner's bisector, and scales evenly in plan so that it keeps
  * the corner's angle. Its openings run along the perimeter from the corner, on both of the walls
@@ -210,12 +214,12 @@ export const houseCornerMountGeometry: GeometryGenerator<CornerMountParams> = (p
     const w = walls.find((q) => v >= offsetOf(q) && v <= offsetOf(q) + chartLength(q.chart))!;
     return wallChartSampler(w.chart).at(v - offsetOf(w));
   };
-  const before = sampleAt(at - 0.05).tangent,
-    after = sampleAt(at + 0.05).tangent;
+  const before = sampleAt(at - CORNER_PROBE).tangent,
+    after = sampleAt(at + CORNER_PROBE).tangent;
   if (before[0] * after[0] + before[1] * after[1] > CORNER_COS)
     throw Error("A corner window needs a corner of its wall");
-  const here = sampleAt(at + 0.05);
-  const corner = [here.x - here.tangent[0] * 0.05, here.z - here.tangent[1] * 0.05];
+  const here = sampleAt(at + CORNER_PROBE);
+  const corner = [here.x - here.tangent[0] * CORNER_PROBE, here.z - here.tangent[1] * CORNER_PROBE];
   // Out of the corner: away from both walls that meet there.
   const nx = before[0] - after[0],
     nz = before[1] - after[1],
@@ -225,10 +229,21 @@ export const houseCornerMountGeometry: GeometryGenerator<CornerMountParams> = (p
     y: Vec3 = [0, 1, 0];
   const { min, max } = facts.bounds;
   const [sx, sy] = prefabScale(facts, p.width, p.height);
-  const ground = sampleAt(at + 0.05).ground;
+  // Both walls run straight for as far as the window reaches along them.
+  const need = (facts.cornerReach ?? 0) * sx + 0.04;
+  for (let d = CORNER_PROBE; d < need + 0.05; d += 0.05)
+    for (const [side, edge] of [
+      [-1, before],
+      [1, after]
+    ] as const) {
+      const t = sampleAt(at + side * Math.min(d, need)).tangent;
+      if (t[0] * edge[0] + t[1] * edge[1] < CORNER_COS)
+        throw Error(`The corner window needs ${need.toFixed(2)} m of wall on both sides of its corner`);
+    }
+  const ground = sampleAt(at + CORNER_PROBE).ground;
   const pivotY = ground + p.bottom - min[1] * sy;
   const top = pivotY + max[1] * sy;
-  if (top > Math.min(sampleAt(at - 0.05).roof, here.roof) + 0.02)
+  if (top > Math.min(sampleAt(at - CORNER_PROBE).roof, here.roof) + 0.02)
     throw Error("The corner window reaches above its walls");
   const origin: Vec3 = [corner[0] - z[0] * facts.cornerOut * sx, pivotY, corner[1] - z[2] * facts.cornerOut * sx];
   // The prefab scales evenly in plan and about its back: its origin stays where it was placed.
@@ -237,7 +252,7 @@ export const houseCornerMountGeometry: GeometryGenerator<CornerMountParams> = (p
       origin[k] + x[k] * ((min[0] + max[0]) / 2) * sx + y[k] * ((min[1] + max[1]) / 2) * sy + z[k] * min[2] * (sx - 1)
   ) as unknown as Vec3;
   const host = walls.find(
-    (w) => wrap(at + 0.05) - offsetOf(w) >= 0 && wrap(at + 0.05) - offsetOf(w) <= chartLength(w.chart)
+    (w) => wrap(at + CORNER_PROBE) - offsetOf(w) >= 0 && wrap(at + CORNER_PROBE) - offsetOf(w) <= chartLength(w.chart)
   )!;
   const elements: Record<string, import("../core").GeometryElement> = {
     mount: {

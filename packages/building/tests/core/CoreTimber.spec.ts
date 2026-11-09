@@ -15,7 +15,8 @@ import {
   compileCoreBuilding,
   coreBuildingEnvironment,
   coreBuildingLayout,
-  coreBuildingView
+  coreBuildingView,
+  prepareCoreBuilding
 } from "../../src/building/render/CoreBuilding";
 import { European as OnlineEuropean } from "../../src/building/parts/architecture/European";
 import { designBuilding } from "../../src/building/parts/architecture/BuildingDesign";
@@ -211,6 +212,51 @@ describe("Timber walls", () => {
       "A masonry wall is not laid"
     );
     expect(() => wallOf({ wall: { unit: "roof_tile" } })).toThrow("not available");
+  });
+
+  describe("grid courses of planks or bricks", () => {
+    const window_ = { id: "w", kind: "window" as const, u: 0.1, bottom: 1, width: 1, height: 1.4 };
+    it.each([
+      ["bricks in parallel rows", { wall: { algorithm: { type: "parallel_rows" } } }],
+      ["planks in staggered rows", { wall: { unit: "wooden_plank" as const } }],
+      ["planks left to the material", { wall: { unit: "wooden_plank" as const, algorithm: { type: "auto" } } }]
+    ])("%s prepare and compile", async (_name, style) => {
+      const r = designBuildingCore(European.buildHouses({ id: "e", ...style }), registry, { environment });
+      expect(r.diagnostics).toEqual([]);
+      expect(() =>
+        prepareCoreBuilding(r, registry, { environment: { ground: flat }, assets: nativeAssets.compilation })
+      ).not.toThrow();
+      const { renderInput } = await compileCoreBuilding(r, registry, {
+        environment: { ground: flat },
+        assets: nativeAssets.compilation
+      });
+      expect(renderInput.groups.find((g) => g.role === "wall")!.cells.length).toBeGreaterThan(0);
+    });
+    it("leaves a wall opening clear", () => {
+      const r = designBuildingCore(
+        European.buildHouses({ id: "e", height: 5, wall: { unit: "wooden_plank" }, attachments: [window_] }),
+        registry,
+        { environment }
+      );
+      expect(r.diagnostics).toEqual([]);
+      const wall = r.parts.find((p) => p.type === "wall")!;
+      const holes = wall.modifications.flatMap((m) => (m.op === "removeArea" ? [m.rect] : []));
+      expect(holes).toHaveLength(1);
+      const [a, y0, b, y1] = holes[0];
+      for (const u of lay(wall)) {
+        const [u0, u1] = u.params!.wallU as number[];
+        const lo = u.frame.origin[1] - u.size![1] / 2,
+          hi = u.frame.origin[1] + u.size![1] / 2;
+        expect(u0 < b - 0.01 && a + 0.01 < u1 && lo < y1 - 0.01 && y0 + 0.01 < hi).toBe(false);
+      }
+    });
+    it("takes the material's rule for auto, and boards on a timber structure", () => {
+      const courses = (p: object) => (European.buildHouses({ id: "e", ...p }).groups[0].shared as any).courses;
+      expect(courses({ wall: { unit: "wooden_plank", algorithm: { type: "auto" } } }).params.rule).toBe(
+        "parallel_rows"
+      );
+      expect(courses({ wallStructure: "timber", wall: { algorithm: { type: "auto" } } }).type).toBe("boardCourses");
+    });
   });
 
   it("is deterministic", () => {
