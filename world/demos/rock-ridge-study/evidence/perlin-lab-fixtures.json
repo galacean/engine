@@ -1,0 +1,510 @@
+{
+  "source": "codex/rockform-shaping-studies / perlin-heightmap/PerlinNoise.ts",
+  "sha256": "af9326823ee61bd07b6359695c62b31a082aced03c25c0651e0a065eb20ed6b6",
+  "samples": [
+    {
+      "seed": 0,
+      "settings": {
+        "frequency": 4,
+        "octaves": 5,
+        "lacunarity": 2,
+        "persistence": 0.5
+      },
+      "point": [
+        0,
+        0
+      ],
+      "value": 0.04128480176442665
+    },
+    {
+      "seed": 0,
+      "settings": {
+        "frequency": 4,
+        "octaves": 5,
+        "lacunarity": 2,
+        "persistence": 0.5
+      },
+      "point": [
+        0.37,
+        0.61
+      ],
+      "value": 0.2549728943023028
+    },
+    {
+      "seed": 0,
+      "settings": {
+        "frequency": 4,
+        "octaves": 5,
+        "lacunarity": 2,
+        "persistence": 0.5
+      },
+      "point": [
+        -0.3,
+        1.2
+      ],
+      "value": -0.18365749513106927
+    },
+    {
+      "seed": 0,
+      "settings": {
+        "frequency": 2,
+        "octaves": 3,
+        "lacunarity": 1.5,
+        "persistence": 0.8
+      },
+      "point": [
+        0,
+        0
+      ],
+      "value": 0.023396737534996
+    },
+    {
+      "seed": 0,
+      "settings": {
+        "frequency": 2,
+        "octaves": 3,
+        "lacunarity": 1.5,
+        "persistence": 0.8
+      },
+      "point": [
+        0.37,
+        0.61
+      ],
+      "value": -0.17037936111049945
+    },
+    {
+      "seed": 0,
+      "settings": {
+        "frequency": 2,
+        "octaves": 3,
+        "lacunarity": 1.5,
+        "persistence": 0.8
+      },
+      "point": [
+        -0.3,
+        1.2
+      ],
+      "value": 0.09019064254812527
+    },
+    {
+      "seed": 0,
+      "settings": {
+        "frequency": 1,
+        "octaves": 8,
+        "lacunarity": 3,
+        "persistence": 0
+      },
+      "point": [
+        0,
+        0
+      ],
+      "value": 0.17097665002489915
+    },
+    {
+      "seed": 0,
+      "settings": {
+        "frequency": 1,
+        "octaves": 8,
+        "lacunarity": 3,
+        "persistence": 0
+      },
+      "point": [
+        0.37,
+        0.61
+      ],
+      "value": -0.10854744749033142
+    },
+    {
+      "seed": 0,
+      "settings": {
+        "frequency": 1,
+        "octaves": 8,
+        "lacunarity": 3,
+        "persistence": 0
+      },
+      "point": [
+        -0.3,
+        1.2
+      ],
+      "value": -0.2544587729821907
+    },
+    {
+      "seed": 18,
+      "settings": {
+        "frequency": 4,
+        "octaves": 5,
+        "lacunarity": 2,
+        "persistence": 0.5
+      },
+      "point": [
+        0,
+        0
+      ],
+      "value": -0.07729858817576077
+    },
+    {
+      "seed": 18,
+      "settings": {
+        "frequency": 4,
+        "octaves": 5,
+        "lacunarity": 2,
+        "persistence": 0.5
+      },
+      "point": [
+        0.37,
+        0.61
+      ],
+      "value": -0.033000301653097745
+    },
+    {
+      "seed": 18,
+      "settings": {
+        "frequency": 4,
+        "octaves": 5,
+        "lacunarity": 2,
+        "persistence": 0.5
+      },
+      "point": [
+        -0.3,
+        1.2
+      ],
+      "value": 0.005919949590391291
+    },
+    {
+      "seed": 18,
+      "settings": {
+        "frequency": 2,
+        "octaves": 3,
+        "lacunarity": 1.5,
+        "persistence": 0.8
+      },
+      "point": [
+        0,
+        0
+      ],
+      "value": -0.11131572744741548
+    },
+    {
+      "seed": 18,
+      "settings": {
+        "frequency": 2,
+        "octaves": 3,
+        "lacunarity": 1.5,
+        "persistence": 0.8
+      },
+      "point": [
+        0.37,
+        0.61
+      ],
+      "value": -0.004100667810574183
+    },
+    {
+      "seed": 18,
+      "settings": {
+        "frequency": 2,
+        "octaves": 3,
+        "lacunarity": 1.5,
+        "persistence": 0.8
+      },
+      "point": [
+        -0.3,
+        1.2
+      ],
+      "value": 0.033351636054282464
+    },
+    {
+      "seed": 18,
+      "settings": {
+        "frequency": 1,
+        "octaves": 8,
+        "lacunarity": 3,
+        "persistence": 0
+      },
+      "point": [
+        0,
+        0
+      ],
+      "value": -0.0577883014764014
+    },
+    {
+      "seed": 18,
+      "settings": {
+        "frequency": 1,
+        "octaves": 8,
+        "lacunarity": 3,
+        "persistence": 0
+      },
+      "point": [
+        0.37,
+        0.61
+      ],
+      "value": -0.5327906628349964
+    },
+    {
+      "seed": 18,
+      "settings": {
+        "frequency": 1,
+        "octaves": 8,
+        "lacunarity": 3,
+        "persistence": 0
+      },
+      "point": [
+        -0.3,
+        1.2
+      ],
+      "value": 0.4700575995769883
+    },
+    {
+      "seed": 42,
+      "settings": {
+        "frequency": 4,
+        "octaves": 5,
+        "lacunarity": 2,
+        "persistence": 0.5
+      },
+      "point": [
+        0,
+        0
+      ],
+      "value": -0.07620407712285457
+    },
+    {
+      "seed": 42,
+      "settings": {
+        "frequency": 4,
+        "octaves": 5,
+        "lacunarity": 2,
+        "persistence": 0.5
+      },
+      "point": [
+        0.37,
+        0.61
+      ],
+      "value": 0.08765264916556842
+    },
+    {
+      "seed": 42,
+      "settings": {
+        "frequency": 4,
+        "octaves": 5,
+        "lacunarity": 2,
+        "persistence": 0.5
+      },
+      "point": [
+        -0.3,
+        1.2
+      ],
+      "value": 0.03594031975456224
+    },
+    {
+      "seed": 42,
+      "settings": {
+        "frequency": 2,
+        "octaves": 3,
+        "lacunarity": 1.5,
+        "persistence": 0.8
+      },
+      "point": [
+        0,
+        0
+      ],
+      "value": -0.08608387993195006
+    },
+    {
+      "seed": 42,
+      "settings": {
+        "frequency": 2,
+        "octaves": 3,
+        "lacunarity": 1.5,
+        "persistence": 0.8
+      },
+      "point": [
+        0.37,
+        0.61
+      ],
+      "value": 0.14765804950553005
+    },
+    {
+      "seed": 42,
+      "settings": {
+        "frequency": 2,
+        "octaves": 3,
+        "lacunarity": 1.5,
+        "persistence": 0.8
+      },
+      "point": [
+        -0.3,
+        1.2
+      ],
+      "value": -0.18590571867129171
+    },
+    {
+      "seed": 42,
+      "settings": {
+        "frequency": 1,
+        "octaves": 8,
+        "lacunarity": 3,
+        "persistence": 0
+      },
+      "point": [
+        0,
+        0
+      ],
+      "value": -0.15884827128550863
+    },
+    {
+      "seed": 42,
+      "settings": {
+        "frequency": 1,
+        "octaves": 8,
+        "lacunarity": 3,
+        "persistence": 0
+      },
+      "point": [
+        0.37,
+        0.61
+      ],
+      "value": -0.41196589176955345
+    },
+    {
+      "seed": 42,
+      "settings": {
+        "frequency": 1,
+        "octaves": 8,
+        "lacunarity": 3,
+        "persistence": 0
+      },
+      "point": [
+        -0.3,
+        1.2
+      ],
+      "value": 0.6133829448688288
+    },
+    {
+      "seed": 4294967295,
+      "settings": {
+        "frequency": 4,
+        "octaves": 5,
+        "lacunarity": 2,
+        "persistence": 0.5
+      },
+      "point": [
+        0,
+        0
+      ],
+      "value": 0.035398755545740054
+    },
+    {
+      "seed": 4294967295,
+      "settings": {
+        "frequency": 4,
+        "octaves": 5,
+        "lacunarity": 2,
+        "persistence": 0.5
+      },
+      "point": [
+        0.37,
+        0.61
+      ],
+      "value": 0.18818958683085216
+    },
+    {
+      "seed": 4294967295,
+      "settings": {
+        "frequency": 4,
+        "octaves": 5,
+        "lacunarity": 2,
+        "persistence": 0.5
+      },
+      "point": [
+        -0.3,
+        1.2
+      ],
+      "value": 0.10672179047909036
+    },
+    {
+      "seed": 4294967295,
+      "settings": {
+        "frequency": 2,
+        "octaves": 3,
+        "lacunarity": 1.5,
+        "persistence": 0.8
+      },
+      "point": [
+        0,
+        0
+      ],
+      "value": 0.15101312332103003
+    },
+    {
+      "seed": 4294967295,
+      "settings": {
+        "frequency": 2,
+        "octaves": 3,
+        "lacunarity": 1.5,
+        "persistence": 0.8
+      },
+      "point": [
+        0.37,
+        0.61
+      ],
+      "value": -0.26521386289503157
+    },
+    {
+      "seed": 4294967295,
+      "settings": {
+        "frequency": 2,
+        "octaves": 3,
+        "lacunarity": 1.5,
+        "persistence": 0.8
+      },
+      "point": [
+        -0.3,
+        1.2
+      ],
+      "value": 0.23356279069740146
+    },
+    {
+      "seed": 4294967295,
+      "settings": {
+        "frequency": 1,
+        "octaves": 8,
+        "lacunarity": 3,
+        "persistence": 0
+      },
+      "point": [
+        0,
+        0
+      ],
+      "value": -0.2783861885565853
+    },
+    {
+      "seed": 4294967295,
+      "settings": {
+        "frequency": 1,
+        "octaves": 8,
+        "lacunarity": 3,
+        "persistence": 0
+      },
+      "point": [
+        0.37,
+        0.61
+      ],
+      "value": -0.076165129228144
+    },
+    {
+      "seed": 4294967295,
+      "settings": {
+        "frequency": 1,
+        "octaves": 8,
+        "lacunarity": 3,
+        "persistence": 0
+      },
+      "point": [
+        -0.3,
+        1.2
+      ],
+      "value": -0.008562931752172452
+    }
+  ]
+}

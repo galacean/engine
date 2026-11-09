@@ -1,7 +1,9 @@
 # Rock ridge arrangement study
 
 This standalone study arranges baked upstream atomic rocks around an independent,
-seeded 3D ridge network. It includes curved cliffs, an uphill bend, an offshore
+seeded 3D ridge network. The default Perlin mode extracts that network from a
+coarse noise field; the previous seeded graph remains available for comparison.
+It includes curved cliffs, an uphill bend, an offshore
 vista, mountain peaks, walkable shelf geometry, and riverbank groups. The cliff,
 island and mountain scenes use the procedural ridge fitter.
 
@@ -18,11 +20,12 @@ python3 -m http.server 8771 --bind 127.0.0.1 --directory world/demos/rock-ridge-
 # Regenerate the page and run the geometry checks
 node world/demos/rock-ridge-study/build.mjs
 node world/demos/rock-ridge-study/src/verify-ridges.mjs
+node world/demos/rock-ridge-study/src/verify-perlin.mjs
 ```
 
 ## Current fitter
 
-`ridge-masses-4` generates the full network before reading any rock geometry.
+`ridge-perlin-5` generates the full network before reading any rock geometry.
 Shared XYZ junctions connect continuous curves with procedural peaks and saddles.
 The blue lines show that exact input; orange lines sample the actual mesh surface
 at the same X/Z positions. Orange is not an extraction of every mesh crest.
@@ -41,6 +44,8 @@ Independent ray checks verify the stored contact witnesses.
 
 For seed 382:
 
+The counts below describe the **Seeded graph** mode retained from version 4.
+
 | Scene | Previous pieces | Structural masses | Small rocks |
 | --- | ---: | ---: | ---: |
 | Curved cliff | 80 | 9 | 2 |
@@ -51,6 +56,61 @@ Height scales the full scene from 25% to 200%. Seed changes regenerate the netwo
 orbit, preset views and target/surface overlays remain interactive. Camera state
 echoes no longer reset the view at drag end. The earlier isolated camera-state
 checks passed; native drag automation did not establish gesture-level proof.
+
+## Perlin ridge prototype
+
+The default is seed 18, frequency 4, five octaves, lacunarity 2 and persistence
+0.5. Use **Ridge source** to compare with the earlier generator, and **Surface**
+to switch between fitted rocks, the coarse field, and the field with fine detail.
+Open **Noise controls** to change the four noise parameters. Height continues to
+scale the entire field, target curves and rock assembly from 25% to 200%.
+
+`src/perlin-ridges.mjs` ports the lab's seeded gradient noise and octave phase
+logic, then adds an extraction stage that the lab did not contain:
+
+1. Sample a masked 65 × 49 field in world X/Z. The noise domain is 100 m; the
+   masks follow each scene's footprint, including the curved cliff band.
+2. Use only wavelengths of at least 24 m for structure. Ascending paths assign
+   cells to local maxima. The highest pass between each pair of adjacent basins
+   supplies a candidate saddle connection.
+3. Build a maximum-pass spanning tree. Keep up to four major peaks by prominence
+   and 12 m separation, then retain the connecting subtree. Smaller transit peaks
+   needed by those connections can remain. Trace outward descending spurs on the
+   same coarse field; do not invent branches from a camera silhouette.
+4. Collapse ordinary degree-two cells, smooth and simplify the paths, and save
+   shared XYZ nodes with peak/saddle/junction/tail roles. Cubic curves interpolate
+   every retained node. Monotone Hermite height interpolation preserves extrema;
+   intermediate bends do not become rock anchors. Smoothing can depart slightly
+   from the sampled field between nodes.
+5. Fit the existing broad connected masses to the graph and its width envelope.
+   Long extracted edges offer intermediate candidate positions at 8 m intervals
+   so large pieces can grow continuously toward distant nodes. Candidate spacing
+   does not set rock size; every accepted structural footprint is still >=12 m.
+   Finer octaves add at most 1.2 m of amplitude-weighted surface variation before
+   height scaling, fading to zero on the target curves. They cannot spawn graph
+   nodes or a small-rock repair pass. Small rocks retain their separate budget of
+   two and structural pieces remain at least 12 m long.
+
+At frequency 4, only the first octave is structural: increasing octaves adds
+detail while preserving identical XYZ curves. At frequency 2 and lacunarity 2,
+the first two octaves are structural; changing from one to two can move peaks and
+saddles. The control summary shows the wavelength and the split. Frequency is
+limited to 1–4 cycles per 100 m so the base layer stays above the structural
+cutoff. A seed with only one significant peak has descending spurs and no invented
+saddle. Parameter changes regenerate topology; this prototype has no node-drag
+editor or manual edit preservation yet.
+
+For default Perlin seed 18 at 100% height:
+
+| Scene | Structural masses | Small rocks | Ridge edges |
+| --- | ---: | ---: | ---: |
+| Curved cliff | 3 | 2 | 16 |
+| Offshore vista | 9 | 2 | 5 |
+| Mountain peaks | 11 | 2 | 9 |
+
+The differing edge and rock counts are intentional: several short ridge edges
+can guide one large mass. The source field is an authoring reference; pruned hills
+and the full source surface are not all reproduced by the ridge envelope.
 
 ## Perlin lab assessment — 2026-11-09
 
@@ -80,8 +140,9 @@ current field/curve contracts need adaptation for independent 3D ridge targets.
   and generation separated from evaluation.
 
 The lab paths above are relative to
-`world/gallery/demos/terrain/asset-assembly/` on that lab branch. They have not been
-copied into this study or integrated into the current package-based engine.
+`world/gallery/demos/terrain/asset-assembly/` on that lab branch. Only the pure noise
+algorithm has now been ported into this standalone study. The lab's OBB controls,
+feature graph, triangulator and package engine are unchanged.
 
 ### What the existing ridge graph does
 
@@ -96,7 +157,11 @@ The resulting surface and displayed lines are three-dimensional, but the saved
 ridge is a 2D plan plus a terrain-relative uplift. That is the key contract gap
 for this study's independent 3D target network.
 
-### Proposed ridge authoring flow
+### Authoring direction from the assessment
+
+The prototype above implements coarse-field extraction, simplified XYZ curves,
+bounded fine detail and mass fitting. Manual node editing, persistent topology
+across regeneration, and dedicated bend/relief controls below remain future work.
 
 1. Generate a coarse height field within the authored footprint, using a seed,
    broad feature wavelength, overall height and directional bias. Start with a
@@ -104,7 +169,7 @@ for this study's independent 3D target network.
 2. Identify major peaks and saddle connections on that coarse field. Trace and
    simplify crest paths into a connected graph; remove insignificant branches
    using prominence and minimum spacing related to structural mass size. This
-   extraction and pruning stage is proposed work, not an existing lab capability.
+   extraction and pruning stage now exists in this study, not in the lab.
 3. Save explicit XYZ nodes and continuous 3D curves, including peak/saddle roles,
    shared junctions, widths and allowed fitting deviation. Artists can edit or
    regenerate the graph without losing its identity on every slider adjustment.
@@ -150,6 +215,19 @@ is needed before building topology. The probe values are preserved in the eviden
 
 ## Verification and limits
 
+- The noise port matches 36 numeric fixtures generated directly from the lab's
+  current `PerlinNoise.ts`. Its source hash is recorded in
+  [perlin-lab-fixtures.json](evidence/perlin-lab-fixtures.json).
+- The new Perlin suite checks 15 default assemblies (five seeds across three
+  scenes), four mountain control extremes, and one long-edge cliff regression.
+  It verifies field-derived maxima,
+  shared noncoplanar connected curves, monotone C1 interpolation, source/target
+  immutability, exact replay, octave separation, height scaling, shoreline bounds,
+  broad mass scale and independently ray-checked mesh contact witnesses.
+  The 15 default assemblies use 3–17 structural masses and 1–2 small rocks.
+  Worst RMS deviation is 2.144 m; a local deviation reaches 6.371 m at 100% height.
+  These are measured prototype residuals, not guarantees over every seed or
+  parameter combination. See [perlin-validation.json](evidence/perlin-validation.json).
 - The ridge fitter passed 20 categories of checks over 15 assemblies: five seeds
   each for cliff, island and mountain. Each has one connected body, 7–21 structural
   masses and at most two small rocks. Seed 382 input curves exactly match the
@@ -165,8 +243,13 @@ is needed before building topology. The probe values are preserved in the eviden
   `Could not retain a boundary vertex in its heightfield cell`. The saved combined
   path therefore needs repair/revalidation before adoption. This assessment did
   not repair the separate lab checkout.
-- The updated demo was visually checked at 736 and 320 px, with live seed and
-  height changes. Numerical overlap witnesses do not establish physical
+- The Perlin update was visually checked at 736 and 320 px, including cliff,
+  island and mountain masses, both source-field views, octave/frequency edits,
+  seed regeneration, height changes and the earlier generator comparison.
+  At 320 px the controls had no horizontal overflow. No runtime JavaScript
+  errors were observed. Native drag automation again did not establish an orbit
+  gesture, so gesture-level acceptance remains unverified.
+  Numerical overlap witnesses do not establish physical
   stability. The rocks remain overlapping independent meshes, without Boolean
   union, collision integration or navigation acceptance.
 

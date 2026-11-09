@@ -4,6 +4,6 @@
   "type": "module",
   "scripts": {
     "build": "node build.mjs",
-    "test": "node build.mjs && node src/verify-ridges.mjs"
+    "test": "node build.mjs && node src/verify-ridges.mjs && node src/verify-perlin.mjs"
   }
 }

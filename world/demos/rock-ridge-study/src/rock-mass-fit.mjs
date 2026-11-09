@@ -117,13 +117,13 @@ export function fitRockMasses(source,geometries,plan,field,networkSites,bodySite
   const components=others.length?massContactGraph(others.map(p=>p.rock),geometries).components:[];
   return trials.find(t=>connectedToAll(t,others,components));
  }
- function accept(trial){if(!trial)return false;trial.rock.id=source.id+'-mass-'+pieces.length;pieces.push(trial);return true;}
+ function accept(trial){if(!trial||(trial.role!=='small accent'&&pieces.filter(p=>p.role!=='small accent').length>=massBudget))return false;trial.rock.id=source.id+'-mass-'+pieces.length;pieces.push(trial);return true;}
  // Traverse outward from the dominant peak. Every accepted mass intersects
  // the already connected body in actual mesh volume, not just in screen space.
  const nodeMap=new Map(nodeSites.map(n=>[n.id,n])),links=new Map(nodeSites.map(n=>[n.id,[]]));
  for(const curve of plan.curves)for(let i=1;i<curve.knots.length;i++){const a=curve.knots[i-1].id,b=curve.knots[i].id;links.get(a).push(b);links.get(b).push(a);}
- const order=[],seen=new Set(),queue=[nodeSites.find(n=>n.primary).id];
- while(queue.length){const id=queue.shift();if(seen.has(id))continue;seen.add(id);order.push(id);queue.push(...links.get(id));}
+ const root=nodeSites.find(n=>n.primary).id,order=[],seen=new Set(),queue=[root],parents=new Map([[root,null]]);
+ while(queue.length){const id=queue.shift();if(seen.has(id))continue;seen.add(id);order.push(id);for(const next of links.get(id)){if(!parents.has(next))parents.set(next,id);queue.push(next);}}
  function nodeSite(id){
   const original=nodeMap.get(id);if(original.role!=='tail'||(cliff&&original.curveId==='main'))return original;
   const curve=plan.curves.find(c=>c.id===original.curveId),end=curve.knots[0].id===id?curve.knots[1]:curve.knots.at(-2);
@@ -132,7 +132,20 @@ export function fitRockMasses(source,geometries,plan,field,networkSites,bodySite
   return {...original,...nearby,id:original.id,role:'tail'};
  }
  const deferred=[];
- for(const id of order){const site=nodeSite(id),trial=choose(site,site.role==='tail'?'toe mass':'ridge mass',pieces);if(trial&&(trial.score>0||!pieces.length))accept(trial);else deferred.push(id);}
+ for(const id of order){
+  // Extracted edges can run tens of metres without a graph junction. Grow
+  // toward the next node at structural spacing so a distant high residual
+  // does not strand the search on the other side of an empty stretch.
+  if(plan.noise&&parents.get(id)){
+   const parent=parents.get(id),curve=plan.curves.find(c=>c.knots.some(k=>k.id===parent)&&c.knots.some(k=>k.id===id));
+   const a=curve.knots.find(k=>k.id===parent),b=curve.knots.find(k=>k.id===id),direction=Math.sign(b.t-a.t),samples=networkSites.filter(s=>s.curveId===curve.id);
+   for(let t=a.t+direction*8;direction*(b.t-t)>4;t+=direction*8){
+    const site=samples.reduce((best,s)=>Math.abs(s.t-t)<Math.abs(best.t-t)?s:best),trial=choose({...site,role:'shoulder'},'ridge mass',pieces);
+    if(trial&&trial.score>12)accept(trial);
+   }
+  }
+  const site=nodeSite(id),trial=choose(site,site.role==='tail'?'toe mass':'ridge mass',pieces);if(trial&&(trial.score>0||!pieces.length))accept(trial);else deferred.push(id);
+ }
  for(const id of deferred){const site=nodeSite(id),trial=choose(site,site.role==='tail'?'toe mass':'ridge mass',pieces);if(trial&&trial.score>12)accept(trial);}
  // Coordinate descent changes/removes existing large pieces before adding
  // further structure. Connectivity must survive every replacement or removal.

@@ -1,0 +1,30 @@
+{
+  "date": "2026-11-09",
+  "page": "index.html",
+  "inlineSha256": "c9656f9c7ae4d9f67452ac17c4aa2f121ac21f969eaa9c072285e16b608d5e35",
+  "widths": [
+    736,
+    320
+  ],
+  "narrowLayout": {
+    "rootWidth": 288,
+    "rootScrollWidth": 288,
+    "allVisibleControlsWithinRoot": true
+  },
+  "observed": [
+    "Perlin mountain: seed 18, frequency 4, five octaves, 11 structural masses and 2 small rocks",
+    "Coarse and detailed source-field views with the same blue target network",
+    "Frequency 4 to 2 changes base wavelength 25 m to 50 m and structural octave count 1 to 2",
+    "Octaves 1 and 5 update the field and layer summary",
+    "Cliff seed 19: long edge covered by 6 connected structural masses; displayed RMS 1.36 m at 130% height",
+    "Offshore vista and curved-cliff scenes render",
+    "Height changed from 130% through 75% to 100%",
+    "Seeded graph comparison renders and hides Perlin-only controls",
+    "Plan, side and oblique view controls render"
+  ],
+  "javascriptErrorsObserved": [],
+  "limits": [
+    "Native drag did not visibly rotate the preview; no gesture-level claim.",
+    "Screenshots and geometric checks do not establish aesthetic approval, physics or navigation."
+  ]
+}

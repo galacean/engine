@@ -1,6 +1,6 @@
 // Study generator: seed -> ridge plan -> atomic-rock assembly -> measured crest.
 // This is a proposal derived from Seed's hierarchy/curve concepts, not shipped Seed code.
-export const RIDGE_VERSION = 'ridge-masses-4';
+export const RIDGE_VERSION = 'ridge-perlin-5';
 export const DEFAULT_RIDGE_SEED = 382;
 const TAU = Math.PI * 2;
 export const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
@@ -47,6 +47,9 @@ export function withSceneHeight(source, heightScale = 1) {
     if(plan.minimumCoastGround !== undefined)plan.minimumCoastGround *= factor;
     if(plan.knots)plan.knots=plan.knots.map(k=>({...k,y:k.y*factor,...(k.position?{position:scaledPoint(k.position)}:{})}));
     if(plan.curves)plan.curves=plan.curves.map(c=>({...c,knots:c.knots.map(k=>({...k,y:k.y*factor,position:scaledPoint(k.position)}))}));
+    if(plan.curves)plan.curves=plan.curves.map(c=>c.path?{...c,path:c.path.map(k=>({...k,y:k.y*factor,position:scaledPoint(k.position)}))}:c);
+    if(plan.sourceField)plan.sourceField={...plan.sourceField,positions:plan.sourceField.positions.map((v,i)=>i%3===1?v*factor:v),detailOffsets:plan.sourceField.detailOffsets.map(v=>v*factor),ground:plan.sourceField.ground.map(v=>v*factor)};
+    if(plan.extraction)plan.extraction={...plan.extraction,minimumProminenceM:plan.extraction.minimumProminenceM*factor,passes:plan.extraction.passes.map(p=>({...p,y:p.y*factor}))};
     scene.ridge = {...r,heightScale: factor,primary: {...r.primary,position: scaledPoint(r.primary.position)},
       saddles: r.saddles.map(s => ({...s,position: scaledPoint(s.position),prominence: s.prominence * factor})),
       stations: (r.stations || []).map(s => ({...s,heightM: s.heightM * factor,base: scaledPoint(s.base),target: scaledPoint(s.target)})),plan};

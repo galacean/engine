@@ -1867,16 +1867,31 @@ html&gt;body{padding:0}&lt;/style&gt;
   &lt;/div&gt;
   &lt;div class=&quot;viz-row&quot;&gt;
     &lt;div id=&quot;rock-study-seed-controls&quot;&gt;&lt;div class=&quot;viz-row&quot;&gt;
-      &lt;label class=&quot;form-label&quot;&gt;Generation seed &lt;input class=&quot;form-control&quot; id=&quot;rock-study-seed&quot; type=&quot;number&quot; min=&quot;0&quot; max=&quot;4294967295&quot; step=&quot;1&quot; value=&quot;382&quot;&gt;&lt;/label&gt;
+      &lt;label class=&quot;form-label&quot;&gt;Generation seed &lt;input class=&quot;form-control&quot; id=&quot;rock-study-seed&quot; type=&quot;number&quot; min=&quot;0&quot; max=&quot;4294967295&quot; step=&quot;1&quot; value=&quot;18&quot;&gt;&lt;/label&gt;
       &lt;button class=&quot;btn&quot; type=&quot;button&quot; id=&quot;rock-study-next-seed&quot;&gt;Next seed&lt;/button&gt;
     &lt;/div&gt;&lt;/div&gt;
     &lt;label class=&quot;form-label&quot; for=&quot;rock-study-height&quot;&gt;Height &lt;output id=&quot;rock-study-height-value&quot; for=&quot;rock-study-height&quot; class=&quot;tabular-nums&quot;&gt;130%&lt;/output&gt;
       &lt;input class=&quot;form-range&quot; id=&quot;rock-study-height&quot; aria-label=&quot;Height&quot; type=&quot;range&quot; min=&quot;25&quot; max=&quot;200&quot; step=&quot;5&quot; value=&quot;130&quot;&gt;
     &lt;/label&gt;
   &lt;/div&gt;
+  &lt;div id=&quot;rock-study-authoring&quot;&gt;
+    &lt;div class=&quot;viz-controls&quot;&gt;
+      &lt;label class=&quot;form-label&quot;&gt;Ridge source &lt;select class=&quot;form-select&quot; id=&quot;rock-study-mode&quot;&gt;&lt;option value=&quot;perlin&quot; selected&gt;Perlin field&lt;/option&gt;&lt;option value=&quot;direct&quot;&gt;Seeded graph&lt;/option&gt;&lt;/select&gt;&lt;/label&gt;
+      &lt;label class=&quot;form-label&quot; id=&quot;rock-study-surface-control&quot;&gt;Surface &lt;select class=&quot;form-select&quot; id=&quot;rock-study-surface&quot;&gt;&lt;option value=&quot;rocks&quot;&gt;Rock masses&lt;/option&gt;&lt;option value=&quot;coarse&quot;&gt;Coarse noise field&lt;/option&gt;&lt;option value=&quot;detail&quot;&gt;Detailed noise field&lt;/option&gt;&lt;/select&gt;&lt;/label&gt;
+    &lt;/div&gt;
+    &lt;details id=&quot;rock-study-noise-controls&quot;&gt;
+      &lt;summary class=&quot;text-small&quot;&gt;Noise controls · &lt;span id=&quot;rock-study-noise-summary&quot;&gt;&lt;/span&gt;&lt;/summary&gt;
+      &lt;div class=&quot;viz-controls&quot;&gt;
+        &lt;label class=&quot;form-label&quot;&gt;Base frequency &lt;input class=&quot;form-control&quot; id=&quot;rock-study-frequency&quot; aria-label=&quot;Base frequency&quot; type=&quot;number&quot; min=&quot;1&quot; max=&quot;4&quot; step=&quot;.25&quot; value=&quot;4&quot;&gt;&lt;/label&gt;
+        &lt;label class=&quot;form-label&quot;&gt;Octaves &lt;input class=&quot;form-control&quot; id=&quot;rock-study-octaves&quot; aria-label=&quot;Octaves&quot; type=&quot;number&quot; min=&quot;1&quot; max=&quot;8&quot; step=&quot;1&quot; value=&quot;5&quot;&gt;&lt;/label&gt;
+        &lt;label class=&quot;form-label&quot;&gt;Lacunarity &lt;input class=&quot;form-control&quot; id=&quot;rock-study-lacunarity&quot; aria-label=&quot;Lacunarity&quot; type=&quot;number&quot; min=&quot;1&quot; max=&quot;3&quot; step=&quot;.25&quot; value=&quot;2&quot;&gt;&lt;/label&gt;
+        &lt;label class=&quot;form-label&quot;&gt;Persistence &lt;input class=&quot;form-control&quot; id=&quot;rock-study-persistence&quot; aria-label=&quot;Persistence&quot; type=&quot;number&quot; min=&quot;0&quot; max=&quot;1&quot; step=&quot;.05&quot; value=&quot;.5&quot;&gt;&lt;/label&gt;
+      &lt;/div&gt;
+    &lt;/details&gt;
+  &lt;/div&gt;
   &lt;div id=&quot;rock-study-ridge-legend&quot;&gt;&lt;div class=&quot;viz-row text-small&quot;&gt;
     &lt;span&gt;&lt;span class=&quot;rock-legend-line rock-legend-axis&quot; aria-hidden=&quot;true&quot;&gt;&lt;/span&gt;Ridge network&lt;/span&gt;
-    &lt;span&gt;&lt;span class=&quot;rock-legend-line rock-legend-crest&quot; aria-hidden=&quot;true&quot;&gt;&lt;/span&gt;Rock surface&lt;/span&gt;
+    &lt;span id=&quot;rock-study-surface-legend&quot;&gt;&lt;span class=&quot;rock-legend-line rock-legend-crest&quot; aria-hidden=&quot;true&quot;&gt;&lt;/span&gt;Rock surface&lt;/span&gt;
   &lt;/div&gt;&lt;/div&gt;
   &lt;div class=&quot;rock-stage&quot; id=&quot;rock-study-stage&quot; role=&quot;img&quot; aria-label=&quot;Interactive 3D rock arrangements. Select an arrangement and view above; drag to orbit.&quot;&gt;
     &lt;div class=&quot;rock-label-layer&quot; id=&quot;rock-study-labels&quot;&gt;&lt;/div&gt;
@@ -1887,6 +1902,7 @@ html&gt;body{padding:0}&lt;/style&gt;
 &lt;/div&gt;
 &lt;style&gt;
   #rock-arrangement-study {display:flex;flex-direction:column;gap:calc(var(--font-size-base)*.75)}
+  #rock-arrangement-study [hidden] {display:none!important}
   #rock-arrangement-study .rock-stage {position:relative;width:100%;overflow:hidden;min-height:280px}
   #rock-arrangement-study canvas {display:block;width:100%;touch-action:none;cursor:grab}
   #rock-arrangement-study canvas:active {cursor:grabbing}
@@ -1904,7 +1920,7 @@ html&gt;body{padding:0}&lt;/style&gt;
 (()=&gt;{
  // Study generator: seed -&gt; ridge plan -&gt; atomic-rock assembly -&gt; measured crest.
 // This is a proposal derived from Seed&#x27;s hierarchy/curve concepts, not shipped Seed code.
-const RIDGE_VERSION = &#x27;ridge-masses-4&#x27;;
+const RIDGE_VERSION = &#x27;ridge-perlin-5&#x27;;
 const DEFAULT_RIDGE_SEED = 382;
 const TAU = Math.PI * 2;
 const clamp = (x, a, b) =&gt; Math.max(a, Math.min(b, x));
@@ -1951,6 +1967,9 @@ function withSceneHeight(source, heightScale = 1) {
     if(plan.minimumCoastGround !== undefined)plan.minimumCoastGround *= factor;
     if(plan.knots)plan.knots=plan.knots.map(k=&gt;({...k,y:k.y*factor,...(k.position?{position:scaledPoint(k.position)}:{})}));
     if(plan.curves)plan.curves=plan.curves.map(c=&gt;({...c,knots:c.knots.map(k=&gt;({...k,y:k.y*factor,position:scaledPoint(k.position)}))}));
+    if(plan.curves)plan.curves=plan.curves.map(c=&gt;c.path?{...c,path:c.path.map(k=&gt;({...k,y:k.y*factor,position:scaledPoint(k.position)}))}:c);
+    if(plan.sourceField)plan.sourceField={...plan.sourceField,positions:plan.sourceField.positions.map((v,i)=&gt;i%3===1?v*factor:v),detailOffsets:plan.sourceField.detailOffsets.map(v=&gt;v*factor),ground:plan.sourceField.ground.map(v=&gt;v*factor)};
+    if(plan.extraction)plan.extraction={...plan.extraction,minimumProminenceM:plan.extraction.minimumProminenceM*factor,passes:plan.extraction.passes.map(p=&gt;({...p,y:p.y*factor}))};
     scene.ridge = {...r,heightScale: factor,primary: {...r.primary,position: scaledPoint(r.primary.position)},
       saddles: r.saddles.map(s =&gt; ({...s,position: scaledPoint(s.position),prominence: s.prominence * factor})),
       stations: (r.stations || []).map(s =&gt; ({...s,heightM: s.heightM * factor,base: scaledPoint(s.base),target: scaledPoint(s.target)})),plan};
@@ -2299,13 +2318,13 @@ function fitRockMasses(source,geometries,plan,field,networkSites,bodySites,nodeS
   const components=others.length?massContactGraph(others.map(p=&gt;p.rock),geometries).components:[];
   return trials.find(t=&gt;connectedToAll(t,others,components));
  }
- function accept(trial){if(!trial)return false;trial.rock.id=source.id+&#x27;-mass-&#x27;+pieces.length;pieces.push(trial);return true;}
+ function accept(trial){if(!trial||(trial.role!==&#x27;small accent&#x27;&amp;&amp;pieces.filter(p=&gt;p.role!==&#x27;small accent&#x27;).length&gt;=massBudget))return false;trial.rock.id=source.id+&#x27;-mass-&#x27;+pieces.length;pieces.push(trial);return true;}
  // Traverse outward from the dominant peak. Every accepted mass intersects
  // the already connected body in actual mesh volume, not just in screen space.
  const nodeMap=new Map(nodeSites.map(n=&gt;[n.id,n])),links=new Map(nodeSites.map(n=&gt;[n.id,[]]));
  for(const curve of plan.curves)for(let i=1;i&lt;curve.knots.length;i++){const a=curve.knots[i-1].id,b=curve.knots[i].id;links.get(a).push(b);links.get(b).push(a);}
- const order=[],seen=new Set(),queue=[nodeSites.find(n=&gt;n.primary).id];
- while(queue.length){const id=queue.shift();if(seen.has(id))continue;seen.add(id);order.push(id);queue.push(...links.get(id));}
+ const root=nodeSites.find(n=&gt;n.primary).id,order=[],seen=new Set(),queue=[root],parents=new Map([[root,null]]);
+ while(queue.length){const id=queue.shift();if(seen.has(id))continue;seen.add(id);order.push(id);for(const next of links.get(id)){if(!parents.has(next))parents.set(next,id);queue.push(next);}}
  function nodeSite(id){
   const original=nodeMap.get(id);if(original.role!==&#x27;tail&#x27;||(cliff&amp;&amp;original.curveId===&#x27;main&#x27;))return original;
   const curve=plan.curves.find(c=&gt;c.id===original.curveId),end=curve.knots[0].id===id?curve.knots[1]:curve.knots.at(-2);
@@ -2314,7 +2333,20 @@ function fitRockMasses(source,geometries,plan,field,networkSites,bodySites,nodeS
   return {...original,...nearby,id:original.id,role:&#x27;tail&#x27;};
  }
  const deferred=[];
- for(const id of order){const site=nodeSite(id),trial=choose(site,site.role===&#x27;tail&#x27;?&#x27;toe mass&#x27;:&#x27;ridge mass&#x27;,pieces);if(trial&amp;&amp;(trial.score&gt;0||!pieces.length))accept(trial);else deferred.push(id);}
+ for(const id of order){
+  // Extracted edges can run tens of metres without a graph junction. Grow
+  // toward the next node at structural spacing so a distant high residual
+  // does not strand the search on the other side of an empty stretch.
+  if(plan.noise&amp;&amp;parents.get(id)){
+   const parent=parents.get(id),curve=plan.curves.find(c=&gt;c.knots.some(k=&gt;k.id===parent)&amp;&amp;c.knots.some(k=&gt;k.id===id));
+   const a=curve.knots.find(k=&gt;k.id===parent),b=curve.knots.find(k=&gt;k.id===id),direction=Math.sign(b.t-a.t),samples=networkSites.filter(s=&gt;s.curveId===curve.id);
+   for(let t=a.t+direction*8;direction*(b.t-t)&gt;4;t+=direction*8){
+    const site=samples.reduce((best,s)=&gt;Math.abs(s.t-t)&lt;Math.abs(best.t-t)?s:best),trial=choose({...site,role:&#x27;shoulder&#x27;},&#x27;ridge mass&#x27;,pieces);
+    if(trial&amp;&amp;trial.score&gt;12)accept(trial);
+   }
+  }
+  const site=nodeSite(id),trial=choose(site,site.role===&#x27;tail&#x27;?&#x27;toe mass&#x27;:&#x27;ridge mass&#x27;,pieces);if(trial&amp;&amp;(trial.score&gt;0||!pieces.length))accept(trial);else deferred.push(id);
+ }
  for(const id of deferred){const site=nodeSite(id),trial=choose(site,site.role===&#x27;tail&#x27;?&#x27;toe mass&#x27;:&#x27;ridge mass&#x27;,pieces);if(trial&amp;&amp;trial.score&gt;12)accept(trial);}
  // Coordinate descent changes/removes existing large pieces before adding
  // further structure. Connectivity must survive every replacement or removal.
@@ -2356,6 +2388,174 @@ function fitRockMasses(source,geometries,plan,field,networkSites,bodySites,nodeS
 }
 
 
+const PERLIN_DEFAULTS={frequency:4,octaves:5,lacunarity:2,persistence:.5};
+function perlinSettings(input={}){
+ const result={...PERLIN_DEFAULTS,...input};
+ for(const [key,lo,hi] of [[&#x27;frequency&#x27;,1,4],[&#x27;octaves&#x27;,1,8],[&#x27;lacunarity&#x27;,1,3],[&#x27;persistence&#x27;,0,1]]){
+  if(!Number.isFinite(result[key])||result[key]&lt;lo||result[key]&gt;hi||(key===&#x27;octaves&#x27;&amp;&amp;!Number.isInteger(result[key])))throw new RangeError(&#x27;Invalid Perlin &#x27;+key);
+ }
+ return result;
+}
+
+// Port of the lab&#x27;s PerlinNoise.ts: same permutation, gradients, quintic fade
+// and octave phase stream. Prefixes keep the standalone bundle self-contained.
+function perlinRandom(seed){let state=seed&gt;&gt;&gt;0;return ()=&gt;{state=(state+0x6d2b79f5)&gt;&gt;&gt;0;let v=Math.imul(state^(state&gt;&gt;&gt;15),state|1);v^=v+Math.imul(v^(v&gt;&gt;&gt;7),v|61);return ((v^(v&gt;&gt;&gt;14))&gt;&gt;&gt;0)/4294967296;};}
+function labPerlin2D(seed){
+ const rng=perlinRandom(seed),permutation=new Uint8Array(512),d=Math.SQRT1_2,gradients=[[1,0],[-1,0],[0,1],[0,-1],[d,d],[-d,d],[d,-d],[-d,-d]];
+ for(let i=0;i&lt;256;i++)permutation[i]=i;
+ for(let i=255;i&gt;0;i--){const j=Math.floor(rng()*(i+1));[permutation[i],permutation[j]]=[permutation[j],permutation[i]];}
+ permutation.set(permutation.subarray(0,256),256);
+ const dot=(ix,iz,x,z)=&gt;{const g=gradients[permutation[permutation[ix]+iz]&amp;7];return g[0]*x+g[1]*z;};
+ const fade=t=&gt;t*t*t*(t*(t*6-15)+10),mix=(a,b,t)=&gt;a+(b-a)*t;
+ return (x,z)=&gt;{const ix=Math.floor(x),iz=Math.floor(z),dx=x-ix,dz=z-iz,gx=ix&amp;255,gz=iz&amp;255;
+  const a=mix(dot(gx,gz,dx,dz),dot(gx+1,gz,dx-1,dz),fade(dx)),b=mix(dot(gx,gz+1,dx,dz-1),dot(gx+1,gz+1,dx-1,dz-1),fade(dx));
+  return mix(a,b,fade(dz))*Math.SQRT2;
+ };
+}
+function perlinLayers(seed,settings){
+ const s=perlinSettings(settings),noise=labPerlin2D(seed),rng=perlinRandom(seed^0x9e3779b9),layers=[];
+ let frequency=s.frequency,amplitude=1;
+ for(let i=0;i&lt;s.octaves;i++){layers.push({frequency,amplitude,x:rng()*256,z:rng()*256});frequency*=s.lacunarity;amplitude*=s.persistence;}
+ const sample=(x,z,subset=layers)=&gt;{let sum=0,weight=0;for(const l of subset){sum+=noise(x*l.frequency+l.x,z*l.frequency+l.z)*l.amplitude;weight+=l.amplitude;}return weight?sum/weight:0;};
+ return {layers,sample};
+}
+
+// The mask and field exist before meshes are passed to the fitter. Structural
+// wavelengths are &gt;=24 m (twice the minimum mass length); fine octaves cannot
+// introduce graph vertices. Each subset keeps its own amplitude normalization.
+function createPerlinSource(source,seed,settings={}){
+ const options=perlinSettings(settings),noise=perlinLayers(seed,options),domainM=100,minimumWavelengthM=24;
+ const coarse=noise.layers.filter(l=&gt;domainM/l.frequency&gt;=minimumWavelengthM-1e-9),fine=noise.layers.filter(l=&gt;!coarse.includes(l));
+ const ground=createSurfaceSampler(source,{},true),cliff=source.id===&#x27;cliff&#x27;,island=source.id===&#x27;island&#x27;,nx=65,nz=49;
+ const rx=cliff?34:island?42:44,rz=cliff?13:island?18:29,amplitude=cliff?7:island?26:30;
+ const positions=[],masks=[],floors=[],raw=[],neighbors=[];
+ for(let j=0;j&lt;nz;j++)for(let i=0;i&lt;nx;i++){
+  const u=2*i/(nx-1)-1,v=2*j/(nz-1)-1,x=u*rx,z=cliff?Math.sqrt(Math.max(0,36*36-x*x))-39+v*rz:v*rz;
+  const mask=Math.max(0,1-(u*u+v*v)**2)**.65,g=ground(clamp(x,source.extent[0],source.extent[1]),clamp(z,source.extent[2],source.extent[3]));
+  positions.push([x,g,z]);masks.push(mask);floors.push(g);raw.push(mask*Math.max(.02,.42+.70*noise.sample(x/domainM+.5,z/domainM+.5,coarse)));
+  const adjacent=[];for(let dz=-1;dz&lt;=1;dz++)for(let dx=-1;dx&lt;=1;dx++)if((dx||dz)&amp;&amp;i+dx&gt;=0&amp;&amp;i+dx&lt;nx&amp;&amp;j+dz&gt;=0&amp;&amp;j+dz&lt;nz)adjacent.push((j+dz)*nx+i+dx);neighbors.push(adjacent);
+ }
+ const maximum=Math.max(...raw),valid=masks.map((m,i)=&gt;m&gt;.025&amp;&amp;(!island||floors[i]&gt;.4));
+ for(let k=0;k&lt;positions.length;k++)positions[k][1]=floors[k]+amplitude*raw[k]/maximum;
+ // Fine contribution is amplitude-weighted against all layers, capped at 1.2 m.
+ // It changes the surface envelope, never the coarse topology or pinned nodes.
+ const fineWeight=fine.reduce((s,l)=&gt;s+l.amplitude,0)/noise.layers.reduce((s,l)=&gt;s+l.amplitude,0);
+ const detail=(x,z)=&gt;1.2*fineWeight*noise.sample(x/domainM+.5,z/domainM+.5,fine);
+ return {options,seed,domainM,minimumWavelengthM,coarseOctaves:coarse.length,fineOctaves:fine.length,nx,nz,positions,masks,floors,valid,neighbors,detail};
+}
+
+function perlinSimplify(points,tolerance=1.15){
+ if(points.length&lt;3)return points;
+ const a=points[0],b=points.at(-1),delta=b.map((v,d)=&gt;v-a[d]),length=delta.reduce((s,v)=&gt;s+v*v,0);let far=0,index=-1;
+ for(let i=1;i&lt;points.length-1;i++){const p=points[i],t=length?clamp(p.reduce((s,v,d)=&gt;s+(v-a[d])*delta[d],0)/length,0,1):0,d=Math.hypot(...p.map((v,k)=&gt;v-a[k]-t*delta[k]));if(d&gt;far){far=d;index=i;}}
+ return far&gt;tolerance?[...perlinSimplify(points.slice(0,index+1),tolerance).slice(0,-1),...perlinSimplify(points.slice(index),tolerance)]:[a,b];
+}
+
+function extractPerlinRidgeTarget(source,inputSeed=382,settings={}){
+ const seed=Number(inputSeed)&gt;&gt;&gt;0,field=createPerlinSource(source,seed,settings),{positions:p,valid,neighbors}=field,n=p.length;
+ const height=k=&gt;p[k][1],distance=(a,b)=&gt;Math.hypot(p[a][0]-p[b][0],p[a][2]-p[b][2]);
+ // Ascending watershed: every cell belongs to an actual coarse-field maximum.
+ const uphill=new Int32Array(n).fill(-1),basin=new Int32Array(n).fill(-1);
+ for(let k=0;k&lt;n;k++)if(valid[k]){let best=0;for(const j of neighbors[k])if(valid[j]){const slope=(height(j)-height(k))/distance(j,k);if(slope&gt;best){best=slope;uphill[k]=j;}}}
+ const root=k=&gt;{if(basin[k]&gt;=0)return basin[k];return basin[k]=uphill[k]&lt;0?k:root(uphill[k]);};
+ const peaks=[];for(let k=0;k&lt;n;k++)if(valid[k]){root(k);if(uphill[k]&lt;0)peaks.push(k);}
+ const crown=peaks.reduce((a,b)=&gt;height(a)&gt;height(b)?a:b),passes=new Map();
+ for(let k=0;k&lt;n;k++)if(valid[k])for(const j of neighbors[k])if(valid[j]&amp;&amp;basin[k]!==basin[j]){
+  const a=Math.min(basin[k],basin[j]),b=Math.max(basin[k],basin[j]),key=a+&#x27;:&#x27;+b,y=Math.min(height(k),height(j)),old=passes.get(key);
+  if(!old||y&gt;old.y)passes.set(key,{a,b,cellA:k,cellB:j,y});
+ }
+ // Highest connecting passes form the basin maximum-spanning tree. The elder
+ // component survives each merge; losing peak height minus pass is prominence.
+ const parent=new Map(peaks.map(k=&gt;[k,k])),elder=new Map(peaks.map(k=&gt;[k,k])),prominence=new Map([[crown,Infinity]]),tree=[];
+ const find=k=&gt;{const v=parent.get(k);if(v!==k)parent.set(k,find(v));return parent.get(k);};
+ for(const edge of [...passes.values()].sort((a,b)=&gt;b.y-a.y||a.a-b.a||a.b-b.b)){
+  const a=find(edge.a),b=find(edge.b);if(a===b)continue;
+  const ea=elder.get(a),eb=elder.get(b),winner=height(ea)&gt;=height(eb)?ea:eb,loser=winner===ea?eb:ea;
+  prominence.set(loser,height(loser)-edge.y);parent.set(b,a);elder.set(a,winner);tree.push(edge);
+ }
+ const selected=[crown],minimumProminence=source.id===&#x27;cliff&#x27;?.5:1.8,minimumRelief=source.id===&#x27;cliff&#x27;?2:7;
+ for(const k of [...peaks].sort((a,b)=&gt;(prominence.get(b)||0)-(prominence.get(a)||0)||height(b)-height(a))){
+  if(selected.length&gt;=4)break;
+  if(k!==crown&amp;&amp;(prominence.get(k)||0)&gt;=minimumProminence&amp;&amp;height(k)-field.floors[k]&gt;minimumRelief&amp;&amp;selected.every(j=&gt;distance(j,k)&gt;=12))selected.push(k);
+ }
+ const basinLinks=new Map(peaks.map(k=&gt;[k,[]]));
+ for(const edge of tree){basinLinks.get(edge.a).push({next:edge.b,edge});basinLinks.get(edge.b).push({next:edge.a,edge});}
+ const toward=new Map([[crown,null]]),queue=[crown];
+ while(queue.length){const k=queue.shift();for(const link of basinLinks.get(k))if(!toward.has(link.next)){toward.set(link.next,{next:k,edge:link.edge});queue.push(link.next);}}
+ const used=new Set();for(const k of selected){let at=k;while(at!==crown){const link=toward.get(at);if(!link)throw new Error(&#x27;Disconnected Perlin watershed&#x27;);used.add(link.edge);at=link.next;}}
+ const graph=new Map([[crown,new Set()]]);
+ const connect=(a,b)=&gt;{if(!graph.has(a))graph.set(a,new Set());if(!graph.has(b))graph.set(b,new Set());graph.get(a).add(b);graph.get(b).add(a);};
+ const ascend=k=&gt;{while(uphill[k]&gt;=0){connect(k,uphill[k]);k=uphill[k];}};
+ for(const edge of used){connect(edge.cellA,edge.cellB);ascend(edge.cellA);ascend(edge.cellB);}
+ // Descending spurs follow high downhill neighbors, with an outward direction
+ // preference. They are traced on this same coarse field, not drawn in a view.
+ const tails=new Set(),centroid=selected.reduce((a,k)=&gt;[a[0]+p[k][0]/selected.length,a[1]+p[k][2]/selected.length],[0,0]);
+ const requests=selected.flatMap(k=&gt;{const heading=Math.atan2(p[k][2]-centroid[1],p[k][0]-centroid[0]);return selected.length===1?[0,2.1,4.2].map(angle=&gt;({k,angle})): [{k,angle:heading}];});
+ const traceSpur=({k,angle})=&gt;{let at=k,run=0;const path=[k],direction=[Math.cos(angle),Math.sin(angle)];
+  for(let step=0;step&lt;60;step++){
+   let next=-1,score=-Infinity;
+   for(const j of neighbors[at])if(valid[j]&amp;&amp;!graph.has(j)&amp;&amp;!path.includes(j)&amp;&amp;height(j)&lt;height(at)-1e-7){
+    const dx=p[j][0]-p[at][0],dz=p[j][2]-p[at][2],length=distance(j,at),dot=(dx*direction[0]+dz*direction[1])/length;
+    if(dot&lt;.15)continue;
+    const candidate=dot*.7-(height(at)-height(j))/length*.3;if(candidate&gt;score){score=candidate;next=j;}
+   }
+   if(next&lt;0)break;run+=distance(at,next);path.push(next);at=next;
+   if(run&gt;32||height(at)-field.floors[at]&lt;2.5)break;
+  }
+  if(run&gt;=(source.id===&#x27;cliff&#x27;?5:9)){for(let i=1;i&lt;path.length;i++)connect(path[i-1],path[i]);tails.add(at);}
+ };
+ for(const request of requests)traceSpur(request);
+ for(let attempt=0;attempt&lt;4&amp;&amp;graph.get(crown).size&lt;3;attempt++){
+  const angles=[...graph.get(crown)].map(k=&gt;Math.atan2(p[k][2]-p[crown][2],p[k][0]-p[crown][0])).sort((a,b)=&gt;a-b);
+  if(!angles.length)break;let gap=-1,angle=0;
+  for(let i=0;i&lt;angles.length;i++){const width=(i===angles.length-1?angles[0]+Math.PI*2:angles[i+1])-angles[i];if(width&gt;gap){gap=width;angle=angles[i]+width/2;}}
+  traceSpur({k:crown,angle:angle+[0,.5,-.5,.9][attempt]});
+ }
+ const anchors=new Set();
+ for(const [k,links] of graph){const next=[...links];if(links.size!==2||uphill[k]&lt;0||(height(k)&lt;height(next[0])&amp;&amp;height(k)&lt;height(next[1])))anchors.add(k);}
+ const nodeFor=k=&gt;({id:&#x27;field-&#x27;+k,position:[...p[k]],y:height(k),role:tails.has(k)?&#x27;tail&#x27;:uphill[k]&lt;0?&#x27;peak&#x27;:[...graph.get(k)].every(j=&gt;height(j)&gt;height(k))?&#x27;saddle&#x27;:&#x27;junction&#x27;,primary:k===crown,sourceCell:k,incidentCurves:[]});
+ const nodes=[...anchors].map(nodeFor),byCell=new Map(nodes.map(node=&gt;[node.sourceCell,node])),curves=[],visited=new Set();
+ const pair=(a,b)=&gt;Math.min(a,b)+&#x27;:&#x27;+Math.max(a,b);
+ for(const start of anchors)for(const next of graph.get(start)){
+  if(visited.has(pair(start,next)))continue;
+  const cells=[start];let previous=start,at=next;visited.add(pair(previous,at));
+  while(true){cells.push(at);if(anchors.has(at))break;const following=[...graph.get(at)].find(j=&gt;j!==previous);previous=at;at=following;visited.add(pair(previous,at));}
+  const raw=cells.map(k=&gt;p[k]),smoothed=raw.map((v,i)=&gt;i===0||i===raw.length-1?v:[(raw[i-1][0]+v[0]*2+raw[i+1][0])/4,v[1],(raw[i-1][2]+v[2]*2+raw[i+1][2])/4]);
+  const simplified=perlinSimplify(smoothed),path=[];let t=0;
+  for(let i=0;i&lt;simplified.length;i++){if(i)t+=Math.hypot(simplified[i][0]-simplified[i-1][0],simplified[i][2]-simplified[i-1][2]);path.push({t,y:simplified[i][1],position:[...simplified[i]]});}
+  if(t&lt;1e-7)throw new Error(&#x27;Degenerate Perlin ridge&#x27;);
+  const id=curves.length?&#x27;field-edge-&#x27;+curves.length:&#x27;main&#x27;,a=byCell.get(start),b=byCell.get(at);
+  a.incidentCurves.push(id);b.incidentCurves.push(id);
+  curves.push({id,kind:curves.length?&#x27;branch&#x27;:&#x27;trunk&#x27;,knots:[{...a,t:0},{...b,t}],path,sourceCells:cells});
+ }
+ const indices=[];for(let j=0;j&lt;field.nz-1;j++)for(let i=0;i&lt;field.nx-1;i++){const k=j*field.nx+i;indices.push(k,k+field.nx,k+1,k+1,k+field.nx,k+field.nx+1);}
+ return {version:RIDGE_VERSION,seed,kind:&#x27;perlin-watershed-network&#x27;,nodes,curves,
+  noise:{...field.options,domainM:field.domainM,minimumWavelengthM:field.minimumWavelengthM,coarseOctaves:field.coarseOctaves,fineOctaves:field.fineOctaves},
+  extraction:{method:&#x27;ascending-watershed / maximum-pass tree / prominence pruning&#x27;,rawPeaks:peaks.length,selectedPeaks:selected.length,minimumProminenceM:minimumProminence,minimumPeakSpacingM:12,maximumSelectedPeaks:4,selectedCells:selected,passes:[...used].map(e=&gt;({...e})),resolution:[field.nx,field.nz]},
+  sourceField:{positions:p.flat(),indices,detailOffsets:p.map((v,k)=&gt;field.detail(v[0],v[2])*field.masks[k]),ground:field.floors}
+ };
+}
+
+// Monotone Hermite Y preserves peaks/saddles. Interior shape points are bends,
+// not extra extrema or rock anchors. X/Z use cubic tangents on the same path.
+function perlinCurvePoint(curve,t){
+ const path=curve.path;
+ if(t&lt;=0)return [...path[0].position];if(t&gt;=path.at(-1).t)return [...path.at(-1).position];
+ let i=1;while(t&gt;path[i].t)i++;
+ const a=path[i-1],b=path[i],dt=b.t-a.t,u=(t-a.t)/dt,u2=u*u,u3=u2*u;
+ const tangent=(k,d)=&gt;{
+  if(d===1){
+   if(k===0||k===path.length-1)return 0;
+   const h0=path[k].t-path[k-1].t,h1=path[k+1].t-path[k].t,s0=(path[k].y-path[k-1].y)/h0,s1=(path[k+1].y-path[k].y)/h1;
+   if(s0*s1&lt;=0)return 0;
+   const w0=2*h1+h0,w1=h1+2*h0;return (w0+w1)/(w0/s0+w1/s1);
+  }
+  const l=path[Math.max(0,k-1)],r=path[Math.min(path.length-1,k+1)];return (r.position[d]-l.position[d])/(r.t-l.t);
+ };
+ return [0,1,2].map(d=&gt;(2*u3-3*u2+1)*a.position[d]+(u3-2*u2+u)*dt*tangent(i-1,d)+(-2*u3+3*u2)*b.position[d]+(u3-u2)*dt*tangent(i,d));
+}
+
+
 const smooth01=u=&gt;{u=clamp(u,0,1);return u*u*(3-2*u);};
 function knotTangent(knots,i,d){
  const a=knots[Math.max(0,i-1)],b=knots[Math.min(knots.length-1,i+1)];
@@ -2365,6 +2565,7 @@ function knotTangent(knots,i,d){
 // branch directions may diverge there, while each individual edge is C1 smooth.
 function ridgePointAt(plan,t,curveId=&#x27;main&#x27;){
  const curve=plan.curves?plan.curves.find(c=&gt;c.id===curveId):plan,knots=curve.knots;
+ if(curve.path)return perlinCurvePoint(curve,t);
  if(t&lt;=knots[0].t)return [...knots[0].position];
  if(t&gt;=knots.at(-1).t)return [...knots.at(-1).position];
  let i=1;while(t&gt;knots[i].t)i++;
@@ -2437,6 +2638,7 @@ function createRidgeTarget(source,inputSeed=DEFAULT_RIDGE_SEED){
 // of the main profile. Near an edge its exact target height constrains the field.
 function createRidgeField(source,plan){
  const ground=createSurfaceSampler(source,{},true),segments=[],cliff=source.id===&#x27;cliff&#x27;,island=source.id===&#x27;island&#x27;;
+ const noise=plan.noise?createPerlinSource(source,plan.seed,plan.noise):null;
  for(const curve of plan.curves){
   const samples=curveSamples(curve,.85).map(s=&gt;{
    const relief=Math.max(0,s.position[1]-ground(s.position[0],s.position[2]));
@@ -2456,6 +2658,7 @@ function createRidgeField(source,plan){
    if(q&lt;1){const ridgeY=a.position[1]+u*(b.position[1]-a.position[1]);height=Math.max(height,base+Math.max(0,ridgeY-base)*(1-q*q)**2);}
   }
   if(nearest&lt;1.6)height=nearY+(height-nearY)*smooth01(nearest/1.6);
+  if(noise)height+=noise.detail(x,z)*smooth01(nearest/5)*clamp((height-base)/4,0,1);
   return {height:Math.max(base,height),distance:nearest,yaw:nearYaw};
  }
  const pitch=.75,[x0,x1,z0,z1]=source.extent,nx=Math.ceil((x1-x0)/pitch)+1,nz=Math.ceil((z1-z0)/pitch)+1,px=(x1-x0)/(nx-1),pz=(z1-z0)/(nz-1),values=new Float32Array(nx*nz);
@@ -2493,15 +2696,15 @@ function assembleRidgeTarget(source,geometries,plan){
  scene.ridge={version:RIDGE_VERSION,seed:plan.seed,plan,primary,saddles:[],target:{source:&#x27;generated-before-atoms&#x27;,interpolation:&#x27;C1 XYZ cubic curves; shared graph junctions&#x27;,knots:plan.nodes.map(n=&gt;({...n,position:point(n.position)}))},stations:plan.nodes.map(n=&gt;({id:n.id,role:n.role,primary:n.primary,junction:n.incidentCurves.length&gt;1,target:point(n.position),base:[n.position[0],ground(n.position[0],n.position[2]),n.position[2]],heightM:n.y-ground(n.position[0],n.position[2])})),field:{gridPitchM:field.pitch,gridSamples:field.gridSamples,bodyFitSamples:bodySites.length},fit:{samplePitchM:.25,samples:allErrors.length,maxUnderM:Math.max(0,...allErrors.map(e=&gt;-e)),maxOverM:Math.max(0,...allErrors),rmsM:Math.sqrt(allErrors.reduce((s,e)=&gt;s+e*e,0)/allErrors.length),atoms:scene.rocks.length,byCurve}};
  scene.ridge.policy=masses.policy;scene.ridge.composition=masses.composition;
  const crown=plan.nodes.find(n=&gt;n.primary),branch=plan.nodes.filter(n=&gt;n.role===&#x27;saddle&#x27;&amp;&amp;!n.id.startsWith(&#x27;main&#x27;)).sort((a,b)=&gt;b.position[2]-a.position[2])[0];
- scene.labels=[{text:&#x27;Peak junction&#x27;,anchor:point(crown.position),position:[crown.position[0],crown.y+2.5,crown.position[2]]}];
- if(branch)scene.labels.push({text:&#x27;Branch saddle&#x27;,anchor:point(branch.position),position:[branch.position[0],branch.y+2.5,branch.position[2]]});
+ scene.labels=[{text:plan.noise?&#x27;Field peak&#x27;:&#x27;Peak junction&#x27;,anchor:point(crown.position),position:[crown.position[0],crown.y+2.5,crown.position[2]]}];
+ if(branch)scene.labels.push({text:plan.noise?&#x27;Field saddle&#x27;:&#x27;Branch saddle&#x27;,anchor:point(branch.position),position:[branch.position[0],branch.y+2.5,branch.position[2]]});
  scene.metrics={rocks:scene.rocks.length,triangles:scene.rocks.reduce((sum,r)=&gt;sum+geometries[r.mesh].stats.triangles,0)};
  if(!cliff)scene.camera={...source.camera,yaw:.58,pitch:.52};
  return scene;
 }
-function generateRidgeScene(source,geometries,seed=DEFAULT_RIDGE_SEED){
+function generateRidgeScene(source,geometries,seed=DEFAULT_RIDGE_SEED,options={}){
  if(![&#x27;cliff&#x27;,&#x27;island&#x27;,&#x27;peaks&#x27;].includes(source.id))return source;
- return assembleRidgeTarget(source,geometries,createRidgeTarget(source,seed));
+ return assembleRidgeTarget(source,geometries,options.mode===&#x27;perlin&#x27;?extractPerlinRidgeTarget(source,seed,options.noise):createRidgeTarget(source,seed));
 }
 
  const root=document.getElementById(&#x27;rock-arrangement-study&#x27;);
@@ -2511,6 +2714,11 @@ function generateRidgeScene(source,geometries,seed=DEFAULT_RIDGE_SEED){
  const seedInput=root.querySelector(&#x27;#rock-study-seed&#x27;),nextSeed=root.querySelector(&#x27;#rock-study-next-seed&#x27;),seedControls=root.querySelector(&#x27;#rock-study-seed-controls&#x27;);
  const heightInput=root.querySelector(&#x27;#rock-study-height&#x27;),heightValue=root.querySelector(&#x27;#rock-study-height-value&#x27;);
  const ridgeLegend=root.querySelector(&#x27;#rock-study-ridge-legend&#x27;);
+ const modeInput=root.querySelector(&#x27;#rock-study-mode&#x27;),surfaceInput=root.querySelector(&#x27;#rock-study-surface&#x27;),surfaceControl=root.querySelector(&#x27;#rock-study-surface-control&#x27;);
+ const authoring=root.querySelector(&#x27;#rock-study-authoring&#x27;),noiseControls=root.querySelector(&#x27;#rock-study-noise-controls&#x27;),noiseSummary=root.querySelector(&#x27;#rock-study-noise-summary&#x27;);
+ const noiseInputs=Object.fromEntries(Object.keys(PERLIN_DEFAULTS).map(key=&gt;[key,root.querySelector(&#x27;#rock-study-&#x27;+key)]));
+ const noiseOptions=()=&gt;Object.fromEntries(Object.entries(noiseInputs).map(([key,input])=&gt;[key,Number(input.value)]));
+ const authoringKey=()=&gt;JSON.stringify({mode:modeInput.value,noise:noiseOptions()});
  const data=JSON.parse(document.getElementById(&#x27;rock-study-data&#x27;).textContent);
  if(typeof THREE===&#x27;undefined&#x27;){detail.textContent=&#x27;The 3D renderer could not load.&#x27;;detail.setAttribute(&#x27;role&#x27;,&#x27;alert&#x27;);return;}
  const T=THREE,scene=new T.Scene();
@@ -2564,11 +2772,14 @@ function generateRidgeScene(source,geometries,seed=DEFAULT_RIDGE_SEED){
  function createScene(resetCamera=true){
   current=data.scenes.find(s=&gt;s.id===caseSelect.value)||data.scenes[0];
   const procedural=[&#x27;cliff&#x27;,&#x27;island&#x27;,&#x27;peaks&#x27;].includes(current.id);
+  const perlin=procedural&amp;&amp;modeInput.value===&#x27;perlin&#x27;;
+  root.querySelector(&#x27;#rock-study-surface-legend&#x27;).hidden=perlin&amp;&amp;surfaceInput.value!==&#x27;rocks&#x27;;
   seedControls.hidden=!procedural;
+  authoring.hidden=!procedural;noiseControls.hidden=!perlin;surfaceControl.hidden=!perlin;
   ridgeLegend.hidden=!procedural||!guideInput.checked;
   if(procedural){
-   const key=current.id+&#x27;:&#x27;+seedInput.value;
-   if(key!==generatedKey){generatedScene=generateRidgeScene(current,data.geometries,Number(seedInput.value));generatedKey=key;}
+   const key=current.id+&#x27;:&#x27;+seedInput.value+&#x27;:&#x27;+authoringKey();
+   if(key!==generatedKey){generatedScene=generateRidgeScene(current,data.geometries,Number(seedInput.value),{mode:modeInput.value,noise:noiseOptions()});generatedKey=key;}
    current=generatedScene;
   }
   current=withSceneHeight(current,Number(heightInput.value)/100);
@@ -2577,7 +2788,12 @@ function generateRidgeScene(source,geometries,seed=DEFAULT_RIDGE_SEED){
   clearScene();const p=palette();
   renderer.setClearColor(p.bg,0);
   const stone=mat(p.stone),terrain=mat(p.ground,{side:T.DoubleSide});
-  for(const r of current.rocks){const mesh=new T.Mesh(geometryCache[r.mesh],stone);mesh.position.set(r.x,r.y,r.z);mesh.scale.set(r.scale*(r.longitudinalScale??1),r.scale*(r.verticalScale??1),r.scale*(r.lateralScale??1));mesh.rotation.y=-r.yaw;mesh.castShadow=true;mesh.receiveShadow=true;world.add(mesh);}
+  if(!perlin||surfaceInput.value===&#x27;rocks&#x27;)for(const r of current.rocks){const mesh=new T.Mesh(geometryCache[r.mesh],stone);mesh.position.set(r.x,r.y,r.z);mesh.scale.set(r.scale*(r.longitudinalScale??1),r.scale*(r.verticalScale??1),r.scale*(r.lateralScale??1));mesh.rotation.y=-r.yaw;mesh.castShadow=true;mesh.receiveShadow=true;world.add(mesh);}
+  if(perlin&amp;&amp;surfaceInput.value!==&#x27;rocks&#x27;){
+   const field=current.ridge.plan.sourceField,positions=field.positions.map((v,i)=&gt;i%3===1?v+.04+(surfaceInput.value===&#x27;detail&#x27;?field.detailOffsets[(i-1)/3]:0):v);
+   const geo=new T.BufferGeometry();geo.setAttribute(&#x27;position&#x27;,new T.Float32BufferAttribute(positions,3));geo.setIndex(field.indices);geo.computeVertexNormals();guideGeometries.push(geo);
+   const mesh=new T.Mesh(geo,mat(p.stone,{side:T.DoubleSide}));mesh.castShadow=true;mesh.receiveShadow=true;world.add(mesh);
+  }
   terrainGeometry=new T.BufferGeometry();terrainGeometry.setAttribute(&#x27;position&#x27;,new T.Float32BufferAttribute(current.terrain.positions,3));terrainGeometry.setIndex(current.terrain.indices);terrainGeometry.computeVertexNormals();
   const ground=new T.Mesh(terrainGeometry,terrain);ground.receiveShadow=true;world.add(ground);
   if(current.water!==undefined){const [x0,x1,z0,z1]=current.extent;
@@ -2587,6 +2803,7 @@ function generateRidgeScene(source,geometries,seed=DEFAULT_RIDGE_SEED){
    if(!current.channel){water.rotation.x=-Math.PI/2;water.position.set((x0+x1)/2,current.water+.04,(z0+z1)/2);}water.receiveShadow=true;world.add(water);
   }
   for(const guide of current.guides){
+   if(perlin&amp;&amp;surfaceInput.value!==&#x27;rocks&#x27;&amp;&amp;guide.kind===&#x27;spine&#x27;)continue;
    const points=guide.points.map(a=&gt;new T.Vector3(...a));
    if(guide.kind===&#x27;spine&#x27;||guide.kind===&#x27;target&#x27;){
     const curve=new T.CurvePath();for(let i=1;i&lt;points.length;i++)curve.add(new T.LineCurve3(points[i-1],points[i]));
@@ -2612,14 +2829,17 @@ function generateRidgeScene(source,geometries,seed=DEFAULT_RIDGE_SEED){
    const dots=new T.SphereGeometry(.52,10,8),saddleDot=new T.OctahedronGeometry(.65);guideGeometries.push(dots,saddleDot);
    const ink=new T.MeshBasicMaterial({color:p.axis,depthTest:true,depthWrite:false,toneMapped:false});materials.push(ink);
    for(const station of current.ridge.stations){
-    if(station.role===&#x27;tail&#x27;)continue;
+    if(![&#x27;peak&#x27;,&#x27;saddle&#x27;].includes(station.role))continue;
     const marker=new T.Mesh(station.role===&#x27;saddle&#x27;?saddleDot:dots,ink);marker.position.fromArray(station.target);marker.renderOrder=13;guideGroup.add(marker);
    }
   }
   current.labels.forEach(l=&gt;{const el=document.createElement(&#x27;span&#x27;);el.className=&#x27;rock-label text-small&#x27;;el.textContent=l.text;labels.appendChild(el);});
   guideGroup.visible=guideInput.checked;labels.hidden=!guideInput.checked;
   detail.textContent=procedural?current.ridge.composition.structuralMasses+&#x27; masses · &#x27;+current.ridge.composition.smallRocks+&#x27; small rocks · &#x27;+current.ridge.plan.curves.length+&#x27; ridges&#x27;:current.metrics.rocks+&#x27; rocks · &#x27;+(current.id===&#x27;platform&#x27;?&#x27;3 m route · &#x27;+current.validation.maxSampledRiseM.toFixed(2)+&#x27; m maximum sampled rise&#x27;:current.notes);
+  if(perlin){const n=current.ridge.plan.noise;noiseSummary.textContent=(100/n.frequency).toFixed(1)+&#x27; m base · &#x27;+n.coarseOctaves+&#x27; structural / &#x27;+n.fineOctaves+&#x27; detail octaves&#x27;;}
+  if(perlin&amp;&amp;surfaceInput.value!==&#x27;rocks&#x27;){const count=current.ridge.plan.extraction.selectedPeaks;detail.textContent=count+&#x27; major peak&#x27;+(count===1?&#x27;&#x27;:&#x27;s&#x27;)+&#x27; · &#x27;+current.ridge.plan.curves.length+&#x27; ridges · &#x27;+(surfaceInput.value===&#x27;coarse&#x27;?&#x27;Structural field&#x27;:&#x27;Fine detail; same ridge network&#x27;);}
   description.textContent=current.notes+(procedural?&#x27; The blue branching ridge network guides broad overlapping rock masses. Whole masses are refitted before adding structure; local differences within &#x27;+current.ridge.policy.curveToleranceM.toFixed(1)+&#x27; meters are tolerated. Small rocks have a separate budget of two and stay at the lower edges. All accepted pieces overlap the connected body in sampled mesh volume. Orange shows the actual surface along each target curve; its measured RMS deviation is &#x27;+current.ridge.fit.rmsM.toFixed(2)+&#x27; meters. Spheres mark peaks and diamonds mark saddles.&#x27;:&#x27;&#x27;)+&#x27; Height scales rocks, terrain and the complete ridge network together. These are proposed arrangements using actual procedural mesh geometry, without Seed materials or runtime navigation. Drag to orbit; side, plan and low angle views are also available.&#x27;;
+  if(perlin)description.textContent+=&#x27; Peaks and connecting saddle passes are extracted from a coarse Perlin field. Curves simplify and smooth the traced paths, so intermediate points may depart slightly from the sampled field. Octaves below 24 meters affect only bounded surface detail, not graph topology. The source field views hide the rock meshes and orange comparison lines.&#x27;;
   stage.setAttribute(&#x27;aria-describedby&#x27;,&#x27;rock-study-description&#x27;);
   if(resetCamera)setCamera();else target.fromArray(current.camera.target);resize();
  }
@@ -2647,13 +2867,13 @@ function generateRidgeScene(source,geometries,seed=DEFAULT_RIDGE_SEED){
   scaleBar.style.width=(width*10/(camera.right-camera.left))+&#x27;px&#x27;;
  }
  function resize(){width=stage.clientWidth||700;height=Math.max(280,Math.min(520,width*.64));renderer.setSize(width,height);stage.style.height=height+&#x27;px&#x27;;camera.left=-span/2;camera.right=span/2;camera.top=span*height/width/2;camera.bottom=-camera.top;camera.updateProjectionMatrix();render();}
- function save(){if(window.openai?.setWidgetState)window.openai.setWidgetState({modelContent:{arrangement:current.id,view:viewSelect.value,showLayout:guideInput.checked,seed:Number(seedInput.value),heightPercent:Number(heightInput.value),ridgeVersion:RIDGE_VERSION},privateContent:{yaw,pitch}}).catch(()=&gt;{});}
- function applyState(state){const m=state?.modelContent;if(!m)return false;if(data.scenes.some(s=&gt;s.id===m.arrangement))caseSelect.value=m.arrangement;if([&#x27;plan&#x27;,&#x27;low&#x27;,&#x27;perspective&#x27;,&#x27;side&#x27;].includes(m.view))viewSelect.value=m.view;if(typeof m.showLayout===&#x27;boolean&#x27;)guideInput.checked=m.showLayout;if(Number.isInteger(m.seed)&amp;&amp;m.seed&gt;=0&amp;&amp;m.seed&lt;=4294967295)seedInput.value=m.seed;if(Number.isFinite(m.heightPercent)&amp;&amp;m.heightPercent&gt;=25&amp;&amp;m.heightPercent&lt;=200)heightInput.value=m.heightPercent;return true;}
+ function save(){if(window.openai?.setWidgetState)window.openai.setWidgetState({modelContent:{arrangement:current.id,view:viewSelect.value,showLayout:guideInput.checked,seed:Number(seedInput.value),heightPercent:Number(heightInput.value),ridgeMode:modeInput.value,noise:noiseOptions(),surface:surfaceInput.value,ridgeVersion:RIDGE_VERSION},privateContent:{yaw,pitch}}).catch(()=&gt;{});}
+ function applyState(state){const m=state?.modelContent;if(!m)return false;if(data.scenes.some(s=&gt;s.id===m.arrangement))caseSelect.value=m.arrangement;if([&#x27;plan&#x27;,&#x27;low&#x27;,&#x27;perspective&#x27;,&#x27;side&#x27;].includes(m.view))viewSelect.value=m.view;if(typeof m.showLayout===&#x27;boolean&#x27;)guideInput.checked=m.showLayout;if(Number.isInteger(m.seed)&amp;&amp;m.seed&gt;=0&amp;&amp;m.seed&lt;=4294967295)seedInput.value=m.seed;if(Number.isFinite(m.heightPercent)&amp;&amp;m.heightPercent&gt;=25&amp;&amp;m.heightPercent&lt;=200)heightInput.value=m.heightPercent;if([&#x27;perlin&#x27;,&#x27;direct&#x27;].includes(m.ridgeMode))modeInput.value=m.ridgeMode;if([&#x27;rocks&#x27;,&#x27;coarse&#x27;,&#x27;detail&#x27;].includes(m.surface))surfaceInput.value=m.surface;try{const n=perlinSettings(m.noise);for(const key in noiseInputs)noiseInputs[key].value=n[key];}catch{}return true;}
  function restoreState(state){
-  const previous={arrangement:caseSelect.value,view:viewSelect.value,seed:seedInput.value,height:heightInput.value};
+  const previous={arrangement:caseSelect.value,view:viewSelect.value,seed:seedInput.value,height:heightInput.value,authoring:authoringKey(),surface:surfaceInput.value};
   if(!applyState(state))return false;
   const resetCamera=!current||previous.arrangement!==caseSelect.value||previous.view!==viewSelect.value;
-  const rebuild=!current||previous.arrangement!==caseSelect.value||previous.seed!==seedInput.value||previous.height!==heightInput.value;
+  const rebuild=!current||previous.arrangement!==caseSelect.value||previous.seed!==seedInput.value||previous.height!==heightInput.value||previous.authoring!==authoringKey()||previous.surface!==surfaceInput.value;
   // A state echo after pointerup is persistence, not a request for a preset view.
   if(rebuild)createScene(resetCamera);else if(resetCamera)setCamera();
   const orbit=state.privateContent;
@@ -2668,6 +2888,7 @@ function generateRidgeScene(source,geometries,seed=DEFAULT_RIDGE_SEED){
  heightInput.addEventListener(&#x27;change&#x27;,()=&gt;{if(heightFrame){cancelAnimationFrame(heightFrame);heightFrame=0;createScene(false);}save();});
  seedInput.addEventListener(&#x27;change&#x27;,()=&gt;{if(!seedInput.value||!seedInput.checkValidity())seedInput.value=DEFAULT_RIDGE_SEED;createScene();save();});
  nextSeed.addEventListener(&#x27;click&#x27;,()=&gt;{seedInput.value=(Number(seedInput.value)+1)&gt;&gt;&gt;0;createScene();save();});
+ for(const input of [modeInput,surfaceInput,...Object.values(noiseInputs)])input.addEventListener(&#x27;change&#x27;,()=&gt;{for(const [key,field] of Object.entries(noiseInputs))if(!field.value||!field.checkValidity())field.value=PERLIN_DEFAULTS[key];createScene(false);save();});
  caseSelect.addEventListener(&#x27;change&#x27;,()=&gt;{createScene();save();});
  viewSelect.addEventListener(&#x27;change&#x27;,()=&gt;{setCamera();resize();save();});
  guideInput.addEventListener(&#x27;change&#x27;,()=&gt;{guideGroup.visible=guideInput.checked;labels.hidden=!guideInput.checked;ridgeLegend.hidden=!current.ridge||!guideInput.checked;render();save();});
