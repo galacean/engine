@@ -102,6 +102,14 @@ describe("Flat roofs", () => {
     expect(built.package.draws.filter((d: { family?: string }) => d.family === "stone-floor")).toHaveLength(1);
   });
 
+  it("lays a timber house's parapet in solid stones of the roof's colours", () => {
+    const { parapets } = house({ id: "t", walls: "timber", roof: { height: 0 } });
+    expect(parapets[0].unit?.source).toBe("brick");
+    for (const u of units(parapets[0])) expect((u.params!.flags as number) & 2).toBe(2);
+    const masonry = house({ id: "m", roof: { height: 0 } }).parapets[0];
+    for (const u of units(masonry)) expect((u.params!.flags as number) & 2).toBe(0);
+  });
+
   it("leaves out a merlon that another house cuts", () => {
     const stones = designBuildingCore(
       buildCoreHouses([

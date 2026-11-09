@@ -496,7 +496,7 @@ export function buildCoreHouse(p: CoreHouseParameters): BuildingCoreDraft {
             { min: [0.05, 0.05, 1], max: [2.5, 1.8, 8] }
       };
   const merlon: BuildingUnit = {
-    source: "roof_tile",
+    source: "brick",
     bounds: CUBE,
     scale: [unit.width, unit.height, unit.depth],
     range: { min: [0.05, 0.05, 1], max: [2.5, 1.8, 8] }
@@ -642,8 +642,8 @@ export function buildCoreHouse(p: CoreHouseParameters): BuildingCoreDraft {
                     group: p.id,
                     type: "parapet",
                     geometry: { generator: "houseParapet", params: { "@shared": "house" } },
-                    algorithm: { type: "parapetCourses" },
-                    // Timber has no masonry: the merlons take the roof's material.
+                    // Timber has no masonry: the stones are solid, in the roof's colours.
+                    algorithm: { type: "parapetCourses", ...(timber && { params: { roofColor: true } }) },
                     unit: timber ? merlon : { "@shared": "brick" }
                   },
                   hosts: walls.map((w) => ({ part: w.id }))

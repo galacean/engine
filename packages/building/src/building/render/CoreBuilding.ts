@@ -1229,7 +1229,12 @@ export function coreBuildingView(layout: CoreBuildingLayout, options: CoreBuildi
         // units as boxes.
         const mesh = emptyMesh();
         for (const { part, units } of binding.parts) for (const u of units) unitBox(mesh, part, u);
-        add(owner, binding, mesh, { placement: "unit", backing: false });
+        const roofColor = binding.parts.some(({ part }) => part.algorithm.params?.roofColor === true);
+        add(owner, binding, mesh, {
+          placement: "unit",
+          backing: false,
+          ...(roofColor && { color: colorOf(owner.palette, "roof_tile") })
+        });
       } else if (binding.family === "roof") {
         // Each slope, cone or deck unrolls into one chart; slopes lie side by side.
         const surfaces = binding.parts.filter(({ part }) =>
