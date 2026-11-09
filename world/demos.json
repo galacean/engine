@@ -208,5 +208,11 @@
     "title": "P3 Tree 千树风增量与资产性能门禁",
     "mode": "static",
     "owner": "vegetation / environment"
+  },
+  {
+    "entry": "demos/procedural-rock/index.html",
+    "title": "程序化岩石 · 3D 与 2D 轮廓",
+    "mode": "static",
+    "owner": "terrain"
   }
 ]

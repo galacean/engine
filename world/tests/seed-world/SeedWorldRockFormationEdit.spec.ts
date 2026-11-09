@@ -328,15 +328,15 @@ it("keeps reset, undo, redo and complete authoring replay consistent without a w
   expect(f.execute).toHaveBeenCalledOnce();
 });
 
-it("accepts global slab edits locally but does not bypass unrelated world changes", async () => {
+it("accepts global shape edits locally but does not bypass unrelated world changes", async () => {
   const f = await fixture();
   const receipt = await f.session.dispatchParameters([
-    { op: "set", entity: "world", component: "rockFormation", values: { slabSize: 32 } }
+    { op: "set", entity: "world", component: "rockFormation", values: { wallCount: 20 } }
   ]);
   expect(receipt.status, receipt.message).toBe("accepted");
   expect(f.execute).toHaveBeenCalledOnce();
   const next = f.session.export();
-  next.entities.world.components.rockFormation.values.slabSize = 34;
+  next.entities.world.components.rockFormation.values.wallCount = 24;
   expect(isRockFormationOnlyEdit(f.session.document, next)).toBe(true);
   next.entities.world.components.terrain = { values: { mountainHeight: 90 } };
   expect(isRockFormationOnlyEdit(f.session.document, next)).toBe(false);
@@ -371,33 +371,25 @@ it.each([
   }
 );
 
-it("switches surface modes with history/reset while retaining the terrain and spatial solve", async () => {
-  const f = await fixture();
-  const before = f.session.result!.plan;
-  expect(readRockFormationSettings(f.session.document).surfaceMode).toBe("vertex-slabs");
+it("changes shape with history/reset while retaining terrain and spatial solve", async () => {
+  const f = await fixture(),
+    before = f.session.result!.plan;
+  const initial = readRockFormationSettings(f.session.document).shape;
   const receipt = await f.session.dispatchParameters([
-    {
-      op: "set",
-      entity: "world",
-      component: "rockFormation",
-      values: { surfaceMode: "cellular-curvature", cellInset: 0, cellDetail: 0.6 }
-    }
+    { op: "set", entity: "world", component: "rockFormation", values: { wallCount: 24, wallProtrusion: 0.5 } }
   ]);
   expect(receipt.status, receipt.message).toBe("accepted");
-  expect(readRockFormationSettings(f.session.document)).toMatchObject({
-    surfaceMode: "cellular-curvature",
-    curvature: { inset: 0, detail: 0.6 }
-  });
+  expect(readRockFormationSettings(f.session.document).shape).toMatchObject({ wallCount: 24, wallProtrusion: 0.5 });
   expect(f.session.result!.plan.rocks).toEqual(before.rocks);
   expect(planningHeightmap(f.session.result!.plan).heights).toBe(f.height.heights);
   expect((await f.session.undo())?.status).toBe("accepted");
-  expect(readRockFormationSettings(f.session.document).surfaceMode).toBe("vertex-slabs");
+  expect(readRockFormationSettings(f.session.document).shape).toEqual(initial);
   expect((await f.session.redo())?.status).toBe("accepted");
-  expect(readRockFormationSettings(f.session.document).surfaceMode).toBe("cellular-curvature");
+  expect(readRockFormationSettings(f.session.document).shape.wallCount).toBe(24);
   expect(
     (await f.session.dispatchParameters([{ op: "reset", entity: "world", component: "rockFormation" }])).status
   ).toBe("accepted");
-  expect(readRockFormationSettings(f.session.document).surfaceMode).toBe("vertex-slabs");
+  expect(readRockFormationSettings(f.session.document).shape).toEqual(initial);
   expect(f.execute).toHaveBeenCalledOnce();
 });
 
@@ -405,7 +397,7 @@ it("persists texture scale with undo, redo and reset without changing rock geome
   const f = await fixture(),
     before = f.session.result!.plan;
   const initial = readRockFormationSettings(f.session.document);
-  expect(initial.textureScale).toBe(60);
+  expect(initial.textureScale).toBe(0);
   const receipt = await f.session.dispatchParameters([
     { op: "set", entity: "world", component: "rockFormation", values: { textureScale: 24 } }
   ]);
@@ -419,7 +411,7 @@ it("persists texture scale with undo, redo and reset without changing rock geome
   const replay = importPlanningScene(JSON.parse(JSON.stringify(exportPlanningScene(f.session.export()))));
   expect(readRockFormationSettings(replay)).toEqual(settings);
   expect((await f.session.undo())?.status).toBe("accepted");
-  expect(readRockFormationSettings(f.session.document).textureScale).toBe(60);
+  expect(readRockFormationSettings(f.session.document).textureScale).toBe(0);
   expect((await f.session.redo())?.status).toBe("accepted");
   expect(readRockFormationSettings(f.session.document).textureScale).toBe(24);
   expect(
@@ -429,23 +421,23 @@ it("persists texture scale with undo, redo and reset without changing rock geome
       ])
     ).status
   ).toBe("accepted");
-  expect(readRockFormationSettings(f.session.document).textureScale).toBe(60);
+  expect(readRockFormationSettings(f.session.document).textureScale).toBe(0);
   expect(f.execute).toHaveBeenCalledOnce();
 });
 
-it("requires positive texture sizes without imposing the lab slider's upper limit", async () => {
+it("clamps negative texture sizes to automatic while accepting positive world-space sizes", async () => {
   const f = await fixture();
-  for (const textureScale of [0, -1]) {
+  for (const textureScale of [-1]) {
     expect(
       (
         await f.session.dispatchParameters([
           { op: "set", entity: "world", component: "rockFormation", values: { textureScale } }
         ])
       ).status
-    ).toBe("rejected");
-    expect(readRockFormationSettings(f.session.document).textureScale).toBe(60);
+    ).toBe("accepted");
+    expect(readRockFormationSettings(f.session.document).textureScale).toBe(0);
   }
-  for (const textureScale of [0.5, 480]) {
+  for (const textureScale of [0, 0.5, 480]) {
     expect(
       (
         await f.session.dispatchParameters([
@@ -535,16 +527,9 @@ it("persists Shader Color channels, including zero, through native scene replay 
   expect(f.execute).toHaveBeenCalledOnce();
 });
 
-it("keeps legacy OBBs following the saved global surface without materializing a local default", async () => {
+it("keeps surface-free OBB planning metadata sparse while generating with the unified surface", async () => {
   const f = await fixture();
   expect(ROCK_OBB_COMPONENT.fields.find((field) => field.key === "surfaceMode")?.default).toBeUndefined();
-  expect(
-    (
-      await f.session.dispatchParameters([
-        { op: "set", entity: "world", component: "rockFormation", values: { surfaceMode: "vertex-slabs" } }
-      ])
-    ).status
-  ).toBe("accepted");
   expect(
     (await f.session.dispatchParameters([{ op: "set", entity: f.id, component: "rockObb", values: { height: 48 } }]))
       .status
@@ -558,11 +543,6 @@ it("keeps legacy OBBs following the saved global surface without materializing a
   ).not.toHaveProperty("surfaceMode");
   const jobs = rockFormationJobs(plan, f.height);
   expect(jobs[0].guides.every((guide) => !Object.hasOwn(guide, "surfaceMode"))).toBe(true);
-  expect(
-    jobs
-      .flatMap((job) => job.guides)
-      .map((guide) => guide.surfaceMode ?? readRockFormationSettings(f.session.document).surfaceMode)
-  ).toEqual(["vertex-slabs", "vertex-slabs"]);
   expect(f.execute).toHaveBeenCalledOnce();
 });
 
@@ -586,19 +566,9 @@ it("pins a selected surface equal to the current default while neighboring OBBs 
   expect(f.session.result!.plan.mountains).toBe(f.plan.mountains);
   expect(planningHeightmap(f.session.result!.plan).heights).toBe(f.height.heights);
   expect(f.plan).toEqual(original);
-  expect(
-    (
-      await f.session.dispatchParameters([
-        { op: "set", entity: "world", component: "rockFormation", values: { surfaceMode: "vertex-slabs" } }
-      ])
-    ).status
-  ).toBe("accepted");
   const guides = rockFormationJobs(f.session.result!.plan, f.height).flatMap((job) => job.guides);
-  expect(guides[0].surfaceMode).toBe("cellular-curvature");
+  expect(guides[0]).not.toHaveProperty("surfaceMode");
   expect(guides[1]).not.toHaveProperty("surfaceMode");
-  expect(guides.map((guide) => guide.surfaceMode ?? readRockFormationSettings(f.session.document).surfaceMode)).toEqual(
-    ["cellular-curvature", "vertex-slabs"]
-  );
   expect(f.session.export().entities[f.id].components.rockObb.values).toEqual({ surfaceMode: "cellular-curvature" });
   expect(f.execute).toHaveBeenCalledOnce();
 });
@@ -738,18 +708,8 @@ it("does not pin the global default when a surface-free generated OBB becomes a 
     ).status
   ).toBe("accepted");
   expect(f.session.export().entities[sibling].components.rockObb.values).not.toHaveProperty("surfaceMode");
-  expect(
-    (
-      await f.session.dispatchParameters([
-        { op: "set", entity: "world", component: "rockFormation", values: { surfaceMode: "vertex-slabs" } }
-      ])
-    ).status
-  ).toBe("accepted");
   const guides = rockFormationJobs(f.session.result!.plan, f.height).flatMap((job) => job.guides);
   expect(guides.every((guide) => !Object.hasOwn(guide, "surfaceMode"))).toBe(true);
-  expect(guides.map((guide) => guide.surfaceMode ?? readRockFormationSettings(f.session.document).surfaceMode)).toEqual(
-    ["vertex-slabs", "vertex-slabs"]
-  );
   expect(f.execute).toHaveBeenCalledOnce();
 });
 
@@ -834,8 +794,7 @@ it("keeps size-derived slope defaults out of unrelated edits and manual mode wit
   ).toBe("accepted");
   expect(f.session.export().entities[f.id].components.rockObb.values).toEqual({ height: 48, slopeMode: "manual" });
   expect(rockFormationJobs(f.session.result!.plan, f.height)[0].guides[0]).toMatchObject({
-    size: [30, 48, 20],
-    slopeMode: "manual"
+    size: [30, 48, 20]
   });
   expect(rockFormationJobs(f.session.result!.plan, f.height)[0].guides[0]).not.toHaveProperty("slopeRate");
 });
@@ -863,7 +822,8 @@ it("publishes only one OBB's slope settings including zero variation without rec
   expect(isRockFormationOnlyEdit(document, f.session.document)).toBe(true);
   expect(f.session.export().entities[f.id].components.rockObb.values).toEqual(values);
   const guides = rockFormationJobs(plan, f.height).flatMap((job) => job.guides);
-  expect(guides[0]).toMatchObject(values);
+  expect(plan.rocks[0].boxes![0]).toMatchObject(values);
+  expect(guides[0]).not.toHaveProperty("slopeMode");
   expect(guides[1]).not.toHaveProperty("slopeMode");
   expect(guides[1]).not.toHaveProperty("slopeRate");
   expect(guides[1]).not.toHaveProperty("slopeVariation");

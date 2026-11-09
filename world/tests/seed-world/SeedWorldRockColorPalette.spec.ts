@@ -4,16 +4,16 @@ import {
   retireRockPaletteFields,
   rockPaletteHexToLinear,
   rockPaletteLinearToHex
-} from "@galacean/engine-world-planning/integrations/terrain/rock-formation/ColorPalette";
-import { setRockColorBlend } from "@galacean/engine-world-planning/integrations/terrain/rock-formation/ColorMaterial";
+} from "../../../packages/world-planning/src/integrations/terrain/rock-formation/ColorPalette.ts";
+import { setRockColorBlend } from "../../../packages/world-planning/src/integrations/terrain/rock-formation/ColorMaterial.ts";
 
-it("defaults to the source stone tint and preserves explicitly authored channels", () => {
-  const { color } = readRockColorBlend();
-  expect(rockPaletteLinearToHex(color)).toBe("#96967a");
-  expect(readRockColorBlend({ "color.r": 0, "color.b": 0.24 }).color).toEqual([0, color[1], 0.24]);
-  expect(readRockColorBlend({ "color.r": 1, "color.g": 1, "color.b": 1 }).color).toEqual([1, 1, 1]);
-  color[0] = 0;
-  expect(rockPaletteLinearToHex(readRockColorBlend().color)).toBe("#96967a");
+it("defaults to the accepted neutral grey and preserves explicitly authored black channels", () => {
+  const neutral = rockPaletteHexToLinear("#b8bcc2");
+  expect(readRockColorBlend()).toEqual({ color: neutral });
+  expect(readRockColorBlend({ "color.r": 0, "color.b": 0.24 })).toEqual({ color: [0, neutral[1], 0.24] });
+  const settings = readRockColorBlend();
+  settings.color[0] = 0;
+  expect(readRockColorBlend().color[0]).toBe(neutral[0]);
 });
 
 it("converts editor colors through sRGB exactly once", () => {
@@ -44,7 +44,7 @@ it("binds one Color uniform without changing textures, geometry or grass", () =>
   setRockColorBlend({ shaderData: data } as any, readRockColorBlend({ "color.r": 0, "color.g": 0.5 }));
   expect(data.setVector3).toHaveBeenCalledExactlyOnceWith(
     "material_RockColor",
-    expect.objectContaining({ x: 0, y: 0.5, z: readRockColorBlend().color[2] })
+    expect.objectContaining({ x: 0, y: 0.5, z: rockPaletteHexToLinear("#b8bcc2")[2] })
   );
   expect(data.setFloat).not.toHaveBeenCalled();
   expect(data.setTexture).not.toHaveBeenCalled();

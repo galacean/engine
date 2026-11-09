@@ -146,7 +146,7 @@ import type { PlanningSeedObbDebug } from "./src/planning/spatial/runtime/Planni
 import type { PlanningSeedRuntimeDebug } from "./src/planning/spatial/runtime/PlanningSeedRuntimeDebug.ts";
 import type { PlanningSeedDebugSidebar } from "./src/planning/spatial/runtime/PlanningSeedDebugSidebar.ts";
 import { RockFormationClient } from "@galacean/engine-world-planning/integrations/terrain/rock-formation/Client";
-import { preparePaintedRockTexture } from "@galacean/engine-world-planning/integrations/terrain/rock-formation/PaintedRockMaterial";
+import { prepareRockTextures } from "@galacean/engine-world-planning/integrations/terrain/rock-formation/RockMaterial";
 import { readRockFormationSettings, rockGeometrySettings } from "@galacean/engine-world-planning/integrations/terrain/rock-formation/Settings";
 
 /** Original Seed scene/HUD/gameplay host. The spatial planner supplies data, never its preview camera. */
@@ -255,7 +255,7 @@ export async function mountSeedWorldDemo(
     }
   }
   const raster = new PlanningRasterClient();
-  const rockFormations = new RockFormationClient();
+  const rockFormations = new RockFormationClient(pageUrl.searchParams.get("rockUnion") === "1");
   let rockNavigation: RockNavigation | undefined;
   const bootPhases: { phase: string; startMs: number }[] = [];
   const traceBootPhase = (phase: string) => {
@@ -525,6 +525,8 @@ export async function mountSeedWorldDemo(
         debugSidebar?.update(); runtimeDebug?.refresh(); debugReadoutElapsed = 0;
         const current = publication?.current;
         if (current?.vegetation) canvas.dataset.vegetation = JSON.stringify(current.vegetation.getDiagnostics());
+        canvas.dataset.rockGeneration = JSON.stringify(rockFormations.generationMetrics);
+        canvas.dataset.rockUnion = JSON.stringify(rockFormations.publicationMetrics);
         if (current?.template && pageUrl.searchParams.get("debug") === "1") {
           const forward = camera.entity.transform.worldForward;
           canvas.dataset.templateCamera = JSON.stringify({
@@ -737,7 +739,7 @@ export async function mountSeedWorldDemo(
           try {
             if (rockState(plan) !== rockState(current.plan)) {
               const meshes = await rockFormations.prepare(plan, readRockFormationSettings(document), signal);
-              await preparePaintedRockTexture(engine!, meshes, signal);
+              await prepareRockTextures(engine!, signal);
               signal.throwIfAborted();
               solids = current.solids.prepareRocks(plan, planningPresentedSolids(plan,
                 current.heightTransition?.fields ?? current.data.fields, current.data.fields), meshes,
@@ -784,20 +786,24 @@ export async function mountSeedWorldDemo(
           const current = publication!.current!, settings = readRockFormationSettings(document);
           const meshes = await rockFormations.prepare(plan, settings, signal, current.solids.formations);
           const preparationMetrics = { ...rockFormations.preparationMetrics };
-          await preparePaintedRockTexture(engine!, meshes, signal);
+          await prepareRockTextures(engine!, signal);
           signal.throwIfAborted();
           const frame = await prepareRockFormationPublication(current, plan, meshes, rockFormations,
             settings, document.revision, signal, readRockGenerationProfile(document));
           metrics = { ...preparationMetrics, ...frame.metrics };
           summary = JSON.stringify({ formations: meshes.length,
             triangles: meshes.reduce((sum, f) => sum + f.mesh.indices.length / 3, 0),
-            slabs: meshes.reduce((sum, f) => sum + f.stats.slabs, 0),
-            deformedVertices: meshes.reduce((sum, f) => sum + f.stats.deformedVertices, 0) });
+            bodies: meshes.reduce((sum, f) => sum + f.stats.bodies, 0),
+            vertices: meshes.reduce((sum, f) => sum + f.stats.vertices, 0),
+            targetTriangles: settings.targetTriangles,
+            overBudgetBodies: meshes.reduce((sum, f) => sum + (f.stats.overBudgetBodies ?? 0), 0) });
           return frame;
         }, context.signal);
         return { discard: () => staged.discard(), commit: () => {
           staged.commit();
           canvas.dataset.rockFormations = summary;
+          canvas.dataset.rockGeneration = JSON.stringify(rockFormations.generationMetrics);
+          canvas.dataset.rockUnion = JSON.stringify(rockFormations.publicationMetrics);
           canvas.dataset.rockEdit = JSON.stringify({ ...metrics, publicationMs: performance.now() - started });
         }, afterCommit: () => publishContentEdit(context.projectTransaction) };
       }
@@ -933,7 +939,7 @@ export async function mountSeedWorldDemo(
             });
           applyPlanningTreeVariations(candidate.population, plan.authoredResources ?? []);
           const formationMeshes = await rockFormations.prepare(plan, readRockFormationSettings(document), signal);
-          await preparePaintedRockTexture(engine!, formationMeshes, signal);
+          await prepareRockTextures(engine!, signal);
           signal.throwIfAborted();
           candidateSolids = await createPlanningSeedSolids(engine!, candidate.root,
             planningPresentedSolids(plan, heightTransition?.fields ?? candidateData.fields, candidateData.fields), {
@@ -945,8 +951,10 @@ export async function mountSeedWorldDemo(
             });
           canvas.dataset.rockFormations = JSON.stringify({ formations: formationMeshes.length,
             triangles: formationMeshes.reduce((sum, f) => sum + f.mesh.indices.length / 3, 0),
-            slabs: formationMeshes.reduce((sum, f) => sum + f.stats.slabs, 0),
-            deformedVertices: formationMeshes.reduce((sum, f) => sum + f.stats.deformedVertices, 0) });
+            bodies: formationMeshes.reduce((sum, f) => sum + f.stats.bodies, 0),
+            vertices: formationMeshes.reduce((sum, f) => sum + f.stats.vertices, 0),
+            targetTriangles: readRockFormationSettings(document).targetTriangles,
+            overBudgetBodies: formationMeshes.reduce((sum, f) => sum + (f.stats.overBudgetBodies ?? 0), 0) });
           candidateVegetation = await PlanningNaturalVegetationRuntime.create(candidate.root, candidate.population.trees,
             candidate.population.details, camera, library, plan, planningHeightmap(plan), candidateData.fields,
             candidateData.population, { client: rockFormations, settings: readRockFormationSettings(document), signal,
@@ -959,6 +967,8 @@ export async function mountSeedWorldDemo(
               heightTransition?.fields ?? candidateData.fields
             );
             signal.throwIfAborted();
+          canvas.dataset.rockGeneration = JSON.stringify(rockFormations.generationMetrics);
+          canvas.dataset.rockUnion = JSON.stringify(rockFormations.publicationMetrics);
           await candidate.population.applyAuthoringPopulationLayout(planningNaturalGroundPopulation(candidateData.population,
             planningNaturalGrassDensity(library), plan, candidateVegetation.plantAssets),
               { minimumX: 0, minimumZ: 0, maximumX: plan.parameters.width, maximumZ: plan.parameters.depth }

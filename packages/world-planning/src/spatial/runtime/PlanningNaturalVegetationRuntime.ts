@@ -15,7 +15,8 @@ import {
 import {
   getSeedWorldAssetPlacementProfile,
   DETAIL_HORIZONTAL_SCALE_VARIATION_MINIMUM,
-  DETAIL_HORIZONTAL_SCALE_VARIATION_MAXIMUM
+  DETAIL_HORIZONTAL_SCALE_VARIATION_MAXIMUM,
+  SEED_WORLD_SURFACE_DETAIL_TERMINAL_DISTANCE_MULTIPLIER
 } from "../../world/SeedWorldAssetPlacementProfile";
 import {
   BoundingBox,
@@ -30,7 +31,7 @@ import {
 } from "@galacean/engine";
 import type {
   AssetAssemblySourceLibrary,
-  AtomicAssemblySource
+  AtomicAssemblyPlacement
 } from "@galacean/engine-vegetation/asset-assembly/AssetAssemblySourceLibrary";
 import { PlantSpeciesSources } from "@galacean/engine-vegetation/asset-assembly/PlantSpeciesSources";
 import {
@@ -50,10 +51,7 @@ import {
 import type { SeedWorldTerrainRuntime } from "../../runtime/SeedWorldTerrainRuntime.ts";
 import { TerrainLodGroupRendererRuntime } from "@galacean/engine-terrain/terrain/lod/TerrainLodGroupRendererRuntime";
 import { SEED_WORLD_POPULATION_RUNTIME_PROFILE } from "../../runtime/SeedWorldPopulationRuntimeCell.ts";
-import {
-  resolveSeedWorldSurfaceDetailTransitionHeights,
-  resolveSeedWorldTreeTransitionHeights
-} from "../../world/SeedWorldRuntimeLodProfile";
+import { resolveSeedWorldTreeTransitionHeights } from "../../world/SeedWorldRuntimeLodProfile";
 import {
   SEED_WORLD_NATURAL_VEGETATION_ASSET_IDS,
   NATURAL_VEGETATION_COMPANION_PATCHES
@@ -89,7 +87,6 @@ import {
   companionRockGeometryKey,
   companionRockJob
 } from "../../integrations/terrain/rock-formation/CompanionRocks.ts";
-import { SMALL_ROCK_COLOR } from "../../integrations/terrain/rock-formation/ColorPalette.ts";
 import {
   ROCK_GENERATION_DEFAULTS,
   rockGenerationKind,
@@ -101,16 +98,16 @@ import {
   uploadRockFormationSurface,
   type RockFormationSurface
 } from "../../integrations/terrain/rock-formation/View.ts";
-import {
-  preparePaintedRockTexture,
-  setPaintedRockTextureScale
-} from "../../integrations/terrain/rock-formation/PaintedRockMaterial.ts";
+import { prepareRockTextures, setRockTextureScale } from "../../integrations/terrain/rock-formation/RockMaterial";
+import type { RockColorBlend } from "../../integrations/terrain/rock-formation/ColorPalette.ts";
+import { setRockColorBlend } from "../../integrations/terrain/rock-formation/ColorMaterial";
 
 type PlantSource = ReturnType<ProceduralPlantLibraryRuntime["getPlacementSources"]>[number];
 type Source = Pick<PlantSource, "bounds" | "rendererBindings"> & {
   entry: Pick<PlantSource["entry"], "id" | "category" | "instanceScale">;
   kind?: "stone";
   transitionHeights?: readonly number[];
+  geometrySize?: readonly number[];
 };
 type Plant = {
   root: Entity;
@@ -153,6 +150,7 @@ export class PlanningNaturalVegetationRuntime {
   private readonly treePool = new Map<string, Plant>();
   private height!: PlanningHeightmap;
   private readonly cells = new Map<string, Cell>();
+  private detailTask?: Promise<void>;
   private readonly groundExclusions = new Map<string, readonly PlanPoint[][]>();
   private foliageColors?: FoliageColors;
   private barkColors?: FoliageColors;
@@ -336,6 +334,10 @@ export class PlanningNaturalVegetationRuntime {
       }
       // Initial nearby cells are ready before publication; later cells retain the same deterministic identities.
       runtime.update(0);
+      while (runtime.detailTask && !runtime.error) {
+        await runtime.detailTask;
+        runtime.update(0);
+      }
       if (runtime.error) throw new Error(runtime.error);
       return runtime;
     } catch (error) {
@@ -343,7 +345,7 @@ export class PlanningNaturalVegetationRuntime {
       throw error;
     }
   }
-  /** Stage shared procedural sources; commit rebinds resident LODs without replanting any instance. */
+  /** Stage per-instance procedural meshes; commit preserves placement and pick identity. */
   async prepareRocks(
     client: RockFormationClient,
     settings: RockFormationSettings,
@@ -363,10 +365,24 @@ export class PlanningNaturalVegetationRuntime {
           for (const batch of plant.pickBatches) {
             batch.renderer.mesh = original.mesh;
             batch.renderer.setMaterials([...original.getMaterials()]);
+            const scale = plant.instance.scaleAxes ?? [
+              plant.instance.scale,
+              plant.instance.scale,
+              plant.instance.scale
+            ];
+            batch.renderer.shaderData.setFloat(
+              "renderer_RockTextureScale",
+              Math.max(...source.geometrySize!.map((size, axis) => size * scale[axis])) / 2
+            );
           }
         }
     };
     if (previous?.settingsKey === companionRockGeometryKey(settings, profile)) {
+      await previous.prepareInstances(
+        [...this.cells.values()].flatMap((c) => c.plants.map((p) => p.instance)),
+        profile
+      );
+      signal.throwIfAborted();
       let consumed = false;
       return {
         commit: () => {
@@ -375,6 +391,7 @@ export class PlanningNaturalVegetationRuntime {
           if (this.rockGenerationProfile.platformShare !== profile.platformShare) rebind(previous);
           this.rockGenerationProfile = profile;
           previous.setTextureScale(settings.textureScale);
+          previous.setColorBlend(settings.colorBlend);
         },
         discard: () => {
           consumed = true;
@@ -383,7 +400,7 @@ export class PlanningNaturalVegetationRuntime {
     }
     const next = await createCompanionRockSources(
       this.resourceRoot,
-      this.library.stoneFamily.variants,
+      this.library.stonePlacements,
       this.plan.parameters.seed,
       client,
       settings,
@@ -391,6 +408,16 @@ export class PlanningNaturalVegetationRuntime {
       profile,
       this.rockGrassAppearance
     );
+    try {
+      await next.prepareInstances(
+        [...this.cells.values()].flatMap((c) => c.plants.map((p) => p.instance)),
+        profile
+      );
+      signal.throwIfAborted();
+    } catch (error) {
+      next.dispose();
+      throw error;
+    }
     if (this.disposed) {
       next.dispose();
       throw new Error("Native vegetation is disposed");
@@ -525,6 +552,7 @@ export class PlanningNaturalVegetationRuntime {
         signal?.throwIfAborted();
         const result = nextPlanner.compileCell(x, z),
           root = stage().createChild(`Natural cell ${key}`);
+        await this.rockSources?.prepareInstances(result.instances, this.rockGenerationProfile);
         replacements.set(key, {
           root,
           plants: result.instances.map((instance) => this.plant(root, instance, false)),
@@ -666,6 +694,14 @@ export class PlanningNaturalVegetationRuntime {
         renderer.mesh = original.mesh;
         renderer.setMaterials([...original.getMaterials()]);
         original.shaderData.cloneTo(renderer.shaderData);
+        if (source.kind === "stone") {
+          const scale = instance.scaleAxes ?? [instance.scale, instance.scale, instance.scale];
+          renderer.shaderData.enableMacro("RENDERER_ROCK_TEXTURE_SCALE");
+          renderer.shaderData.setFloat(
+            "renderer_RockTextureScale",
+            Math.max(...source.geometrySize!.map((size, axis) => size * scale[axis])) / 2
+          );
+        }
         const authoredChannels = plantMaterialColorOverrideMask(this.materialParameters, instance.assetId, materialId);
         for (const [index, channel] of ["R", "G", "B"].entries()) {
           const macro = `RENDERER_PLANT_COLOR_OVERRIDE_${channel}`;
@@ -845,14 +881,18 @@ export class PlanningNaturalVegetationRuntime {
       if (cellDistance(x, z) > retain) {
         destroyTree(cell.root);
         this.cells.delete(key);
+        this.rockSources?.releaseInstances(cell.plants.map((p) => p.instance));
         this.foliageColors = undefined;
       }
     }
-    const start = performance.now();
-    try {
-      for (const item of wanted) {
-        if (this.cells.has(item.key)) continue;
-        const result = this.planner.compileCell(item.x, item.z);
+    const item = wanted.find((item) => !this.cells.has(item.key));
+    if (item && !this.detailTask && !this.error) {
+      const planner = this.planner,
+        rocks = this.rockSources;
+      const load = async () => {
+        const result = planner.compileCell(item.x, item.z);
+        await rocks?.prepareInstances(result.instances, this.rockGenerationProfile);
+        if (this.disposed || this.planner !== planner || this.rockSources !== rocks) return;
         const root = this.detailRoot.createChild(`Natural cell ${item.key}`);
         try {
           const plants = result.instances.map((instance) => this.plant(root, instance, false));
@@ -869,11 +909,16 @@ export class PlanningNaturalVegetationRuntime {
           destroyTree(root);
           throw error;
         }
-        if (performance.now() - start >= profile.detail.compactionTimeBudgetMilliseconds) break;
-      }
-    } catch (error) {
-      this.error = String(error);
-      console.error("[planning-natural-vegetation]", error);
+      };
+      this.detailTask = load()
+        .catch((error) => {
+          if (this.disposed || this.planner !== planner || this.rockSources !== rocks) return;
+          this.error = String(error);
+          console.error("[planning-natural-vegetation]", error);
+        })
+        .finally(() => {
+          this.detailTask = undefined;
+        });
     }
     for (const cell of this.cells.values())
       for (const plant of cell.plants) {
@@ -957,6 +1002,7 @@ export class PlanningNaturalVegetationRuntime {
         signal.throwIfAborted();
         const result = nextPlanner.compileCell(x, z),
           root = stage.createChild(`Natural cell ${key}`);
+        await this.rockSources?.prepareInstances(result.instances, this.rockGenerationProfile);
         const plants = result.instances.map((instance) => this.plant(root, instance, false, fields));
         replacements.set(key, {
           root,
@@ -1227,10 +1273,26 @@ export class PlanningNaturalVegetationRuntime {
       this.foliageColors = foliageColors;
       this.barkColors = barkColors;
     }
+    const companionRocks = {
+      representation: "procedural",
+      meshLods: 1,
+      sources: this.rockSources?.specimenCount ?? 0,
+      count: 0,
+      residentTriangles: 0,
+      activeTriangles: 0
+    };
     const companionGroups: Record<string, Record<string, number>> = {};
     const speciesSizes: Record<string, { count: number; scaleY: [number, number]; heightM: [number, number] }> = {};
     for (const cell of this.cells.values())
       for (const plant of cell.plants) {
+        if (this.rockSources?.forInstance(plant.instance, this.rockGenerationProfile)) {
+          companionRocks.count++;
+          for (const { renderer } of plant.pickBatches) {
+            const triangles = renderer.mesh?.subMeshes.reduce((sum, mesh) => sum + mesh.count / 3, 0) ?? 0;
+            companionRocks.residentTriangles += triangles;
+            if (renderer.enabled && renderer.entity.isActiveInHierarchy) companionRocks.activeTriangles += triangles;
+          }
+        }
         if (plant.instance.companionAnchorId) {
           const counts = (companionGroups[plant.instance.companionAnchorId] ??= {});
           counts[plant.instance.layerId] = (counts[plant.instance.layerId] ?? 0) + 1;
@@ -1288,11 +1350,7 @@ export class PlanningNaturalVegetationRuntime {
       barkColors,
       groundCoverColors: { source: "grass-field", shading: "plant", brightness: this.groundCoverBrightness },
       companionGroups,
-      companionRocks: {
-        representation: "procedural",
-        sources: this.rockSources?.sources.size ?? 0,
-        count: layers["树脚石块"] ?? 0
-      },
+      companionRocks,
       assets: [...(this.sources[0]?.keys() ?? [])],
       materialParameters: this.materialParameters,
       shadows: {
@@ -1417,10 +1475,10 @@ export function planningNaturalGrassDensity(library: AssetAssemblySourceLibrary)
   return -Math.log(1 - LANDSCAPE_GRASS_COVERAGE) / area;
 }
 
-/** Retain the measured placement envelope; only the shared rock generator supplies visible geometry. */
+/** Placement bounds remain authored; each visible stone is generated from its own stable identity. */
 async function createCompanionRockSources(
   parent: Entity,
-  variants: readonly AtomicAssemblySource[],
+  variants: readonly AtomicAssemblyPlacement[],
   seed: number,
   client: RockFormationClient,
   settings: RockFormationSettings,
@@ -1428,104 +1486,115 @@ async function createCompanionRockSources(
   profile: RockGenerationProfile,
   registerGrassAppearance?: (material: Material) => () => void
 ) {
+  await prepareRockTextures(parent.engine, signal);
+  signal.throwIfAborted();
   const root = parent.createChild("Companion procedural rock sources");
   root.isActive = false;
-  let material: ReturnType<typeof createRockFormationMaterial> | undefined;
-  let releaseAppearance: (() => void) | undefined;
-  const surfaces: RockFormationSurface[] = [];
-  const sources = new Map<string, Source>();
-  const families = new Map<string, Map<RockGenerationKind, Source>>();
-  const dispose = () => {
-    root.destroy();
-    for (const surface of surfaces) {
-      surface.mesh.destroy();
-      if (!surface.buffer.destroyed) surface.buffer.destroy();
-    }
-    releaseAppearance?.();
-    material?.destroy();
-  };
-  try {
-    const descriptors = variants.flatMap((source) => {
-      if (!source.lodGroup || source.lods.length !== source.lodGroup.screenRelativeTransitionHeights.length)
-        throw new Error(`Invalid companion stone LODs: ${source.id}`);
-      const min: [number, number, number] = [Infinity, Infinity, Infinity];
-      const max: [number, number, number] = [-Infinity, -Infinity, -Infinity];
-      for (const part of source.lods[0].renderers) {
-        const box = new BoundingBox();
-        BoundingBox.transform(part.mesh.bounds, part.localMatrix, box);
-        for (const [axis, key] of (["x", "y", "z"] as const).entries()) {
-          min[axis] = Math.min(min[axis], box.min[key]);
-          max[axis] = Math.max(max[axis], box.max[key]);
-        }
-      }
-      const bounds = { min, max },
-        transitionHeights = resolveSeedWorldSurfaceDetailTransitionHeights(
-          source.lodGroup.screenRelativeTransitionHeights
-        );
-      return COMPANION_ROCK_KINDS.map((kind) => ({
-        source,
-        bounds,
-        kind,
-        transitionHeights,
-        job: companionRockJob(source.id, bounds, seed, kind, profile)
-      }));
-    });
-    const formations = await client.prepareJobs(
-      descriptors.map((d) => d.job),
-      settings,
-      signal
-    );
-    await preparePaintedRockTexture(parent.engine, formations, signal);
-    signal.throwIfAborted();
-    material = createRockFormationMaterial(
-      parent.engine,
-      settings.surfaceMode === "cellular-curvature",
-      settings.textureScale,
-      SMALL_ROCK_COLOR
-    );
-    if (registerGrassAppearance) {
-      material.shaderData.enableMacro("MATERIAL_GRASS_SHARED_COLOR_FIELD");
-      releaseAppearance = registerGrassAppearance(material);
-    }
-    for (const [index, formation] of formations.entries()) {
-      const descriptor = descriptors[index],
-        entity = root.createChild(formation.id);
-      entity.transform.setPosition(...formation.origin);
-      const surface = uploadRockFormationSurface(parent.engine, entity, formation, material);
-      if (!surface) throw new Error(`Empty companion rock geometry: ${descriptor.source.id}`);
-      surfaces.push(surface);
-      surface.renderer.shaderData.setVector4("renderer_AssetAssemblyColor", new Vector4(1, 1, 1, 1));
-      const source: Source = {
-        entry: { id: descriptor.source.id, category: "Rocks" },
-        bounds: descriptor.bounds,
+  const lifetime = new AbortController();
+  const material = createRockFormationMaterial(parent.engine, settings.textureScale, settings.colorBlend);
+  if (registerGrassAppearance) material.shaderData.enableMacro("MATERIAL_GRASS_SHARED_COLOR_FIELD");
+  const releaseAppearance = registerGrassAppearance?.(material);
+  const placements = new Map(variants.map((v) => [v.id, v]));
+  const sources = new Map<string, Source>(
+    variants.map((v) => [
+      v.id,
+      {
+        entry: { id: v.id, category: "Rocks" },
+        bounds: v.bounds,
         kind: "stone",
-        transitionHeights: descriptor.transitionHeights,
-        rendererBindings: [{ renderer: surface.renderer, materialId: "surface" }]
-      };
-      let family = families.get(descriptor.source.id);
-      if (!family) families.set(descriptor.source.id, (family = new Map()));
-      family.set(descriptor.kind, source);
-      // Ecology keeps one source identity and its original placement envelope.
-      if (descriptor.kind === "platform") sources.set(descriptor.source.id, source);
-    }
-    return {
-      root,
-      sources,
-      settingsKey: companionRockGeometryKey(settings, profile),
-      dispose,
-      forInstance(
-        instance: Pick<LandscapePlantInstance, "id" | "assetId">,
-        profile: RockGenerationProfile
-      ): Source | undefined {
-        const family = families.get(instance.assetId);
-        return family?.get(rockGenerationKind(seed, instance.id, profile));
-      },
-      setTextureScale(textureScale: number) {
-        setPaintedRockTextureScale(material!, textureScale);
+        rendererBindings: []
       }
-    };
-  } catch (error) {
-    dispose();
-    throw error;
-  }
+    ])
+  );
+  const specimens = new Map<string, { source: Source; surface: RockFormationSurface; entity: Entity }>();
+  const pending = new Map<string, Promise<void>>();
+  const keyFor = (instance: Pick<LandscapePlantInstance, "id" | "assetId">, p: RockGenerationProfile) =>
+    `${instance.id}:${rockGenerationKind(seed, instance.id, p)}`;
+  const remove = (key: string) => {
+    const specimen = specimens.get(key);
+    if (!specimen) return;
+    specimens.delete(key);
+    specimen.entity.destroy();
+    specimen.surface.mesh.destroy();
+    if (!specimen.surface.buffer.destroyed) specimen.surface.buffer.destroy();
+  };
+  return {
+    root,
+    sources,
+    settingsKey: companionRockGeometryKey(settings, profile),
+    get specimenCount() {
+      return specimens.size;
+    },
+    async prepareInstances(instances: readonly LandscapePlantInstance[], p = profile) {
+      await Promise.all(
+        instances.map((instance) => {
+          const placement = placements.get(instance.assetId);
+          if (!placement) return;
+          const key = keyFor(instance, p);
+          if (specimens.has(key)) return;
+          const existing = pending.get(key);
+          if (existing) return existing;
+          const job = companionRockJob(
+            instance.id,
+            placement.bounds,
+            seed,
+            rockGenerationKind(seed, instance.id, p),
+            p
+          );
+          const task = client
+            .prepareJobs([job], settings, lifetime.signal)
+            .then(([formation]) => {
+              lifetime.signal.throwIfAborted();
+              const entity = root.createChild(formation.id);
+              entity.transform.setPosition(...formation.origin);
+              const surface = uploadRockFormationSurface(parent.engine, entity, formation, material);
+              if (!surface) {
+                entity.destroy();
+                throw new Error(`Empty companion rock: ${instance.id}`);
+              }
+              surface.renderer.shaderData.setVector4("renderer_AssetAssemblyColor", new Vector4(1, 1, 1, 1));
+              specimens.set(key, {
+                entity,
+                surface,
+                source: {
+                  entry: { id: instance.assetId, category: "Rocks" },
+                  bounds: placement.bounds,
+                  kind: "stone",
+                  geometrySize: job.guides[0].size,
+                  transitionHeights: [
+                    placement.cullScreenHeight / SEED_WORLD_SURFACE_DETAIL_TERMINAL_DISTANCE_MULTIPLIER
+                  ],
+                  rendererBindings: [{ renderer: surface.renderer, materialId: "surface" }]
+                }
+              });
+            })
+            .finally(() => pending.delete(key));
+          pending.set(key, task);
+          return task;
+        })
+      );
+    },
+    forInstance(
+      instance: Pick<LandscapePlantInstance, "id" | "assetId">,
+      p: RockGenerationProfile
+    ): Source | undefined {
+      return specimens.get(keyFor(instance, p))?.source;
+    },
+    releaseInstances(instances: readonly LandscapePlantInstance[]) {
+      for (const instance of instances) for (const kind of COMPANION_ROCK_KINDS) remove(`${instance.id}:${kind}`);
+    },
+    setColorBlend(value: RockColorBlend) {
+      setRockColorBlend(material, value);
+    },
+    setTextureScale(value: number) {
+      setRockTextureScale(material, value);
+    },
+    dispose() {
+      lifetime.abort(new Error("Companion rock sources disposed"));
+      for (const key of specimens.keys()) remove(key);
+      root.destroy();
+      releaseAppearance?.();
+      material.destroy();
+    }
+  };
 }

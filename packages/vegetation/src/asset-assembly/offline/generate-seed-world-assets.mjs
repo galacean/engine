@@ -593,7 +593,9 @@ featureRockVariants.push(cliffAccentSurfaceVariants.plain);
 
 const stylizedStoneVariants = [];
 for (const sourceId of ["stone-1", "stone-2", "stone-3", "stone-4"]) {
-  stylizedStoneVariants.push(await writeStylizedAtomicLodSource(sourceId, stylizedStoneMaterialUrl, sourceId));
+  stylizedStoneVariants.push(await writeStylizedAtomicLodSource(sourceId, stylizedStoneMaterialUrl, sourceId, {
+    placementBounds: true
+  }));
 }
 
 const stylizedDebris = await writeStylizedAtomicLodSource("stones", stylizedStoneMaterialUrl, "stones");
@@ -735,6 +737,7 @@ function atomicLodAsAtomic(source) {
 
 async function writeStylizedAtomicLodSource(sourceId, materialUrl, outputSlug, options = {}) {
   const source = requireStylizedSource(sourceId);
+  let geometryBounds;
   const publishedLodIndices = options.publishedLodIndices ?? source.lods.map((_lod, index) => index);
   if (
     publishedLodIndices.length === 0 ||
@@ -757,6 +760,11 @@ async function writeStylizedAtomicLodSource(sourceId, materialUrl, outputSlug, o
         ? buildGroundWindGlb(optimizeSeedWorldGroundDetail(parseGlb(sourceGlb), "flower-1"))
         : sourceGlb;
     let bakedGlb = bakeStylizedSourceTransform(optimizedSourceGlb);
+    if (options.placementBounds && lodIndex === publishedLodIndices[0]) {
+      const { json } = parseGlb(bakedGlb);
+      const { min, max } = json.accessors[json.meshes[0].primitives[0].attributes.POSITION];
+      geometryBounds = { min, max };
+    }
     if (source.category === "flower") {
       bakedGlb = buildGroundWindGlb(bakeGroundWindWeights(parseGlb(bakedGlb), sourceLod.fileName, "flower"));
       requireGroundWindWeights(parseGlb(bakedGlb), 0, 0, `${sourceId}-lod${lodIndex}`, "flower");
@@ -783,6 +791,7 @@ async function writeStylizedAtomicLodSource(sourceId, materialUrl, outputSlug, o
           : "rock";
   return {
     id: `cartoon/${catalogCategory}/${sourceId}/v1`,
+    ...(geometryBounds && { geometryBounds }),
     label: source.label,
     selectionWeight: 1,
     lods,
