@@ -726,35 +726,7 @@ material_Water_renderState_blendMode("material_Water_renderState_blendMode", Enu
       }
       #endif
 
-      vec3 sampleWaterBaseReflectionRadiance(
-        vec3 analyticFallbackRadiance,
-        vec3 directionWS,
-        vec3 positionWS,
-        float roughness
-      ) {
-        vec3 reflectedRadiance = analyticFallbackRadiance;
-        if (material_EnvironmentReflectionAvailable > 0.5) {
-          reflectedRadiance = sampleWaterDistantEnvironmentReflection(directionWS, positionWS, roughness);
-        }
-        #ifdef MATERIAL_WATER_LOCAL_ENVIRONMENT_REFLECTION
-        if (material_LocalEnvironmentReflectionAvailable > 0.5) {
-          float localWeight = waterLocalEnvironmentWeight(positionWS);
-          if (localWeight > 0.0) {
-            vec3 localRadiance = sampleWaterLocalEnvironmentReflection(directionWS, positionWS, roughness);
-            reflectedRadiance = mix(reflectedRadiance, localRadiance, localWeight);
-          }
-        }
-        #endif
-        return reflectedRadiance;
-      }
 
-      float waterBaseReflectionAvailable() {
-        float available = material_EnvironmentReflectionAvailable;
-        #ifdef MATERIAL_WATER_LOCAL_ENVIRONMENT_REFLECTION
-          available = max(available, material_LocalEnvironmentReflectionAvailable);
-        #endif
-        return available;
-      }
 
 #endif
 
@@ -898,23 +870,6 @@ float waterSurfaceLitDirectSpecular(
 
 // Mobile Lit environment term: perceptual roughness controls both the
 // prefiltered probe mip and the F0-to-grazing interpolation (Pow4).
-float waterSurfaceLitEnvironmentSpecularWeight(
-  float f0,
-  float perceptualRoughness,
-  float dotNV
-) {
-  float resolvedPerceptualRoughness =
-    waterSurfaceResolvePerceptualRoughness(perceptualRoughness);
-  float roughness = resolvedPerceptualRoughness * resolvedPerceptualRoughness;
-  float surfaceReduction = 1.0 / (roughness * roughness + 1.0);
-  float grazingTerm = clamp(
-    1.0 - resolvedPerceptualRoughness + clamp(f0, 0.0, 1.0),
-    0.0,
-    1.0
-  );
-  float fresnelTerm = pow(1.0 - clamp(dotNV, 0.0, 1.0), 4.0);
-  return surfaceReduction * mix(clamp(f0, 0.0, 1.0), grazingTerm, fresnelTerm);
-}
 
 #endif
 
@@ -1455,21 +1410,6 @@ vec3 waterSurfaceAppearanceSafeNormalize3(vec3 value, vec3 fallbackValue) {
     : fallbackValue;
 }
 
-vec3 waterSurfaceAppearanceDecodeTangentNormal(
-  vec4 packedNormal,
-  float strength,
-  float flipGreen
-) {
-  vec2 slope = packedNormal.rg * 2.0 - 1.0;
-  slope.y *= mix(1.0, -1.0, step(0.5, flipGreen));
-  slope *= strength;
-  float normalZ = sqrt(max(1.0 - dot(slope, slope), 0.0001));
-  normalZ = mix(1.0, normalZ, clamp(strength, 0.0, 1.0));
-  return waterSurfaceAppearanceSafeNormalize3(
-    vec3(slope, normalZ),
-    vec3(0.0, 0.0, 1.0)
-  );
-}
 
 vec3 waterSurfaceAppearanceDecodeTangentNormalPreserveSourceZ(
   vec4 packedNormal,
@@ -1495,256 +1435,25 @@ vec3 waterSurfaceAppearanceBlendTangentNormals(
   );
 }
 
-vec3 waterSurfaceAppearanceBlendTangentNormalsPartialDerivative(
-  vec3 firstNormal,
-  vec3 secondNormal
-) {
-  return waterSurfaceAppearanceSafeNormalize3(
-    vec3(
-      firstNormal.xy * secondNormal.z + secondNormal.xy * firstNormal.z,
-      firstNormal.z * secondNormal.z
-    ),
-    vec3(0.0, 0.0, 1.0)
-  );
-}
 
-vec3 waterSurfaceAppearanceV2BlendAddSlope(vec3 baseNormal, vec3 detailNormal) {
-  vec2 slope = baseNormal.xy / max(baseNormal.z, 0.0001)
-    + detailNormal.xy / max(detailNormal.z, 0.0001);
-  return waterSurfaceAppearanceSafeNormalize3(vec3(slope, 1.0), vec3(0.0, 0.0, 1.0));
-}
 
-vec3 waterSurfaceAppearanceV2BlendReoriented(vec3 baseNormal, vec3 detailNormal) {
-  vec3 t = baseNormal + vec3(0.0, 0.0, 1.0);
-  vec3 u = detailNormal * vec3(-1.0, -1.0, 1.0);
-  return waterSurfaceAppearanceSafeNormalize3(
-    t * dot(t, u) / max(t.z, 0.0001) - u,
-    vec3(0.0, 0.0, 1.0)
-  );
-}
 
 #endif
 
 #ifndef WATER_SURFACE_APPEARANCE_INCLUDED
 #define WATER_SURFACE_APPEARANCE_INCLUDED
 
-#ifndef WATER_SURFACE_NORMAL_FUNCTIONS_INCLUDED
-#define WATER_SURFACE_NORMAL_FUNCTIONS_INCLUDED
-vec3 waterSurfaceAppearanceSafeNormalize3(vec3 value, vec3 fallbackValue) {
-  float lengthSquared = dot(value, value);
-  return lengthSquared > 0.000001
-    ? value * inversesqrt(lengthSquared)
-    : fallbackValue;
-}
 
-vec3 waterSurfaceAppearanceDecodeTangentNormal(
-  vec4 packedNormal,
-  float strength,
-  float flipGreen
-) {
-  vec2 slope = packedNormal.rg * 2.0 - 1.0;
-  slope.y *= mix(1.0, -1.0, step(0.5, flipGreen));
-  slope *= strength;
-  float normalZ = sqrt(max(1.0 - dot(slope, slope), 0.0001));
-  normalZ = mix(1.0, normalZ, clamp(strength, 0.0, 1.0));
-  return waterSurfaceAppearanceSafeNormalize3(
-    vec3(slope, normalZ),
-    vec3(0.0, 0.0, 1.0)
-  );
-}
 
-vec3 waterSurfaceAppearanceDecodeTangentNormalPreserveSourceZ(
-  vec4 packedNormal,
-  float strength,
-  float flipGreen
-) {
-  vec2 sourceSlope = packedNormal.rg * 2.0 - 1.0;
-  sourceSlope.y *= mix(1.0, -1.0, step(0.5, flipGreen));
-  float sourceNormalZ = sqrt(max(1.0 - clamp(dot(sourceSlope, sourceSlope), 0.0, 1.0), 0.0001));
-  float normalZ = mix(1.0, sourceNormalZ, clamp(strength, 0.0, 1.0));
-  // Do not normalize here: partial-derivative/whiteout blends own the final
-  // normalization and must retain the authored XY-to-Z strength relation.
-  return vec3(sourceSlope * strength, normalZ);
-}
 
-vec3 waterSurfaceAppearanceBlendTangentNormals(
-  vec3 firstNormal,
-  vec3 secondNormal
-) {
-  return waterSurfaceAppearanceSafeNormalize3(
-    vec3(firstNormal.xy + secondNormal.xy, firstNormal.z * secondNormal.z),
-    vec3(0.0, 0.0, 1.0)
-  );
-}
 
-vec3 waterSurfaceAppearanceBlendTangentNormalsPartialDerivative(
-  vec3 firstNormal,
-  vec3 secondNormal
-) {
-  return waterSurfaceAppearanceSafeNormalize3(
-    vec3(
-      firstNormal.xy * secondNormal.z + secondNormal.xy * firstNormal.z,
-      firstNormal.z * secondNormal.z
-    ),
-    vec3(0.0, 0.0, 1.0)
-  );
-}
-
-vec3 waterSurfaceAppearanceV2BlendAddSlope(vec3 baseNormal, vec3 detailNormal) {
-  vec2 slope = baseNormal.xy / max(baseNormal.z, 0.0001)
-    + detailNormal.xy / max(detailNormal.z, 0.0001);
-  return waterSurfaceAppearanceSafeNormalize3(vec3(slope, 1.0), vec3(0.0, 0.0, 1.0));
-}
-
-vec3 waterSurfaceAppearanceV2BlendReoriented(vec3 baseNormal, vec3 detailNormal) {
-  vec3 t = baseNormal + vec3(0.0, 0.0, 1.0);
-  vec3 u = detailNormal * vec3(-1.0, -1.0, 1.0);
-  return waterSurfaceAppearanceSafeNormalize3(
-    t * dot(t, u) / max(t.z, 0.0001) - u,
-    vec3(0.0, 0.0, 1.0)
-  );
-}
-
-#endif
-
-float waterSurfaceAppearanceDepthTintFactor(
-  float sceneDepthDelta,
-  float distance,
-  float exponent
-) {
-  return pow(
-    clamp(sceneDepthDelta / max(distance, 0.0001), 0.0, 1.0),
-    max(exponent, 0.0001)
-  );
-}
-
-float waterSurfaceAppearanceCoastalAlpha(
-  float sceneDepthDelta,
-  float distance
-) {
-  return clamp(sceneDepthDelta / max(distance, 0.0001), 0.0, 1.0);
-}
-
-vec2 waterSurfaceAppearanceRefractionUvDelta(
-  vec2 normalDelta,
-  float strength
-) {
-  return normalDelta * max(strength, 0.0);
-}
-
-float waterSurfaceAppearanceRefractionSampleValidity(
-  float screenInterior,
-  float depthContinuity,
-  float geometryBehindSurface,
-  float centeredDepthBehind,
-  float refractedSceneDepthFinite
-) {
-  return clamp(screenInterior, 0.0, 1.0)
-    * clamp(depthContinuity, 0.0, 1.0)
-    * clamp(geometryBehindSurface, 0.0, 1.0)
-    * clamp(centeredDepthBehind, 0.0, 1.0)
-    * clamp(refractedSceneDepthFinite, 0.0, 1.0);
-}
 
 #endif
 
 #ifndef WATER_SURFACE_APPEARANCE_V2_FUNCTIONS_INCLUDED
 #define WATER_SURFACE_APPEARANCE_V2_FUNCTIONS_INCLUDED
 
-#ifndef WATER_SURFACE_NORMAL_FUNCTIONS_INCLUDED
-#define WATER_SURFACE_NORMAL_FUNCTIONS_INCLUDED
-vec3 waterSurfaceAppearanceSafeNormalize3(vec3 value, vec3 fallbackValue) {
-  float lengthSquared = dot(value, value);
-  return lengthSquared > 0.000001
-    ? value * inversesqrt(lengthSquared)
-    : fallbackValue;
-}
 
-vec3 waterSurfaceAppearanceDecodeTangentNormal(
-  vec4 packedNormal,
-  float strength,
-  float flipGreen
-) {
-  vec2 slope = packedNormal.rg * 2.0 - 1.0;
-  slope.y *= mix(1.0, -1.0, step(0.5, flipGreen));
-  slope *= strength;
-  float normalZ = sqrt(max(1.0 - dot(slope, slope), 0.0001));
-  normalZ = mix(1.0, normalZ, clamp(strength, 0.0, 1.0));
-  return waterSurfaceAppearanceSafeNormalize3(
-    vec3(slope, normalZ),
-    vec3(0.0, 0.0, 1.0)
-  );
-}
-
-vec3 waterSurfaceAppearanceDecodeTangentNormalPreserveSourceZ(
-  vec4 packedNormal,
-  float strength,
-  float flipGreen
-) {
-  vec2 sourceSlope = packedNormal.rg * 2.0 - 1.0;
-  sourceSlope.y *= mix(1.0, -1.0, step(0.5, flipGreen));
-  float sourceNormalZ = sqrt(max(1.0 - clamp(dot(sourceSlope, sourceSlope), 0.0, 1.0), 0.0001));
-  float normalZ = mix(1.0, sourceNormalZ, clamp(strength, 0.0, 1.0));
-  // Do not normalize here: partial-derivative/whiteout blends own the final
-  // normalization and must retain the authored XY-to-Z strength relation.
-  return vec3(sourceSlope * strength, normalZ);
-}
-
-vec3 waterSurfaceAppearanceBlendTangentNormals(
-  vec3 firstNormal,
-  vec3 secondNormal
-) {
-  return waterSurfaceAppearanceSafeNormalize3(
-    vec3(firstNormal.xy + secondNormal.xy, firstNormal.z * secondNormal.z),
-    vec3(0.0, 0.0, 1.0)
-  );
-}
-
-vec3 waterSurfaceAppearanceBlendTangentNormalsPartialDerivative(
-  vec3 firstNormal,
-  vec3 secondNormal
-) {
-  return waterSurfaceAppearanceSafeNormalize3(
-    vec3(
-      firstNormal.xy * secondNormal.z + secondNormal.xy * firstNormal.z,
-      firstNormal.z * secondNormal.z
-    ),
-    vec3(0.0, 0.0, 1.0)
-  );
-}
-
-vec3 waterSurfaceAppearanceV2BlendAddSlope(vec3 baseNormal, vec3 detailNormal) {
-  vec2 slope = baseNormal.xy / max(baseNormal.z, 0.0001)
-    + detailNormal.xy / max(detailNormal.z, 0.0001);
-  return waterSurfaceAppearanceSafeNormalize3(vec3(slope, 1.0), vec3(0.0, 0.0, 1.0));
-}
-
-vec3 waterSurfaceAppearanceV2BlendReoriented(vec3 baseNormal, vec3 detailNormal) {
-  vec3 t = baseNormal + vec3(0.0, 0.0, 1.0);
-  vec3 u = detailNormal * vec3(-1.0, -1.0, 1.0);
-  return waterSurfaceAppearanceSafeNormalize3(
-    t * dot(t, u) / max(t.z, 0.0001) - u,
-    vec3(0.0, 0.0, 1.0)
-  );
-}
-
-#endif
-
-float waterSurfaceAppearanceV2RefractionValidity(
-  float insideScreen,
-  float waterCoverage,
-  float shoreSafety,
-  float centeredGeometryBehindSurface,
-  float shiftedGeometryBehindSurface,
-  float shiftedDepthContinuity
-) {
-  return clamp(insideScreen, 0.0, 1.0)
-    * clamp(waterCoverage, 0.0, 1.0)
-    * clamp(shoreSafety, 0.0, 1.0)
-    * clamp(centeredGeometryBehindSurface, 0.0, 1.0)
-    * clamp(shiftedGeometryBehindSurface, 0.0, 1.0)
-    * clamp(shiftedDepthContinuity, 0.0, 1.0);
-}
 #endif
 
 #ifndef WATER_SURFACE_DEPTH_RESPONSE_INCLUDED
@@ -1797,9 +1506,6 @@ float waterSurfaceDerivedSceneRayDepth(
 }
 
 // max(1-exp(-a), 1-exp(-b)) == 1-exp(-max(a,b)); one exp for one or two terms.
-float waterSurfaceCompositeExponentialDensity(float firstScaledDepth, float secondScaledDepth) {
-  return clamp(1.0 - exp(-max(max(firstScaledDepth, 0.0), max(secondScaledDepth, 0.0))), 0.0, 1.0);
-}
 
 #endif
 
@@ -3349,21 +3055,6 @@ vec3 waterSurfaceAppearanceSafeNormalize3(vec3 value, vec3 fallbackValue) {
     : fallbackValue;
 }
 
-vec3 waterSurfaceAppearanceDecodeTangentNormal(
-  vec4 packedNormal,
-  float strength,
-  float flipGreen
-) {
-  vec2 slope = packedNormal.rg * 2.0 - 1.0;
-  slope.y *= mix(1.0, -1.0, step(0.5, flipGreen));
-  slope *= strength;
-  float normalZ = sqrt(max(1.0 - dot(slope, slope), 0.0001));
-  normalZ = mix(1.0, normalZ, clamp(strength, 0.0, 1.0));
-  return waterSurfaceAppearanceSafeNormalize3(
-    vec3(slope, normalZ),
-    vec3(0.0, 0.0, 1.0)
-  );
-}
 
 vec3 waterSurfaceAppearanceDecodeTangentNormalPreserveSourceZ(
   vec4 packedNormal,
@@ -3389,33 +3080,8 @@ vec3 waterSurfaceAppearanceBlendTangentNormals(
   );
 }
 
-vec3 waterSurfaceAppearanceBlendTangentNormalsPartialDerivative(
-  vec3 firstNormal,
-  vec3 secondNormal
-) {
-  return waterSurfaceAppearanceSafeNormalize3(
-    vec3(
-      firstNormal.xy * secondNormal.z + secondNormal.xy * firstNormal.z,
-      firstNormal.z * secondNormal.z
-    ),
-    vec3(0.0, 0.0, 1.0)
-  );
-}
 
-vec3 waterSurfaceAppearanceV2BlendAddSlope(vec3 baseNormal, vec3 detailNormal) {
-  vec2 slope = baseNormal.xy / max(baseNormal.z, 0.0001)
-    + detailNormal.xy / max(detailNormal.z, 0.0001);
-  return waterSurfaceAppearanceSafeNormalize3(vec3(slope, 1.0), vec3(0.0, 0.0, 1.0));
-}
 
-vec3 waterSurfaceAppearanceV2BlendReoriented(vec3 baseNormal, vec3 detailNormal) {
-  vec3 t = baseNormal + vec3(0.0, 0.0, 1.0);
-  vec3 u = detailNormal * vec3(-1.0, -1.0, 1.0);
-  return waterSurfaceAppearanceSafeNormalize3(
-    t * dot(t, u) / max(t.z, 0.0001) - u,
-    vec3(0.0, 0.0, 1.0)
-  );
-}
 
 #endif
 

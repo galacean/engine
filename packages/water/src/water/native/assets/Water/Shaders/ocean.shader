@@ -242,39 +242,10 @@ float material_RefractionEnabled;
 #ifndef WATER_SURFACE_DEPTH_RESPONSE_INCLUDED
 #define WATER_SURFACE_DEPTH_RESPONSE_INCLUDED
 
-float waterSurfaceDepthSampleValidity(float rawDepth, float sceneEyeDepth, float surfaceEyeDepth) {
-  return step(0.0, sceneEyeDepth)
-    * step(sceneEyeDepth, 1000000.0)
-    * step(surfaceEyeDepth + 0.000001, sceneEyeDepth)
-    * (1.0 - step(0.999999, rawDepth));
-}
 
-vec3 waterSurfaceReconstructOpaquePositionWS(
-  vec3 surfacePositionWS,
-  vec3 cameraPositionWS,
-  mat4 cameraViewInverse,
-  float surfaceEyeDepth,
-  float sceneEyeDepth,
-  float orthographicProjection
-) {
-  float safeSurfaceEyeDepth = max(surfaceEyeDepth, 0.000001);
-  vec3 perspectivePosition = cameraPositionWS
-    + (surfacePositionWS - cameraPositionWS) * (sceneEyeDepth / safeSurfaceEyeDepth);
-  vec3 cameraForwardWS = normalize((cameraViewInverse * vec4(0.0, 0.0, -1.0, 0.0)).xyz);
-  vec3 orthographicPosition = surfacePositionWS
-    + cameraForwardWS * max(sceneEyeDepth - surfaceEyeDepth, 0.0);
-  return mix(perspectivePosition, orthographicPosition, clamp(orthographicProjection, 0.0, 1.0));
-}
 
 // Surface-normal depth uses the normalized physical macro normal; scrolling
 // detail normals never affect the appearance depth field.
-float waterSurfaceNormalDepth(
-  vec3 surfacePositionWS,
-  vec3 opaquePositionWS,
-  vec3 macroNormalWS
-) {
-  return abs(dot(surfacePositionWS - opaquePositionWS, normalize(macroNormalWS)));
-}
 
 float waterSurfaceDerivedSceneRayDepth(
   float verticalDepth,
@@ -297,98 +268,15 @@ float waterSurfaceCompositeExponentialDensity(float firstScaledDepth, float seco
 
 #ifndef WATER_SURFACE_NORMAL_FUNCTIONS_INCLUDED
 #define WATER_SURFACE_NORMAL_FUNCTIONS_INCLUDED
-vec3 waterSurfaceAppearanceSafeNormalize3(vec3 value, vec3 fallbackValue) {
-  float lengthSquared = dot(value, value);
-  return lengthSquared > 0.000001
-    ? value * inversesqrt(lengthSquared)
-    : fallbackValue;
-}
 
-vec3 waterSurfaceAppearanceDecodeTangentNormal(
-  vec4 packedNormal,
-  float strength,
-  float flipGreen
-) {
-  vec2 slope = packedNormal.rg * 2.0 - 1.0;
-  slope.y *= mix(1.0, -1.0, step(0.5, flipGreen));
-  slope *= strength;
-  float normalZ = sqrt(max(1.0 - dot(slope, slope), 0.0001));
-  normalZ = mix(1.0, normalZ, clamp(strength, 0.0, 1.0));
-  return waterSurfaceAppearanceSafeNormalize3(
-    vec3(slope, normalZ),
-    vec3(0.0, 0.0, 1.0)
-  );
-}
 
-vec3 waterSurfaceAppearanceDecodeTangentNormalPreserveSourceZ(
-  vec4 packedNormal,
-  float strength,
-  float flipGreen
-) {
-  vec2 sourceSlope = packedNormal.rg * 2.0 - 1.0;
-  sourceSlope.y *= mix(1.0, -1.0, step(0.5, flipGreen));
-  float sourceNormalZ = sqrt(max(1.0 - clamp(dot(sourceSlope, sourceSlope), 0.0, 1.0), 0.0001));
-  float normalZ = mix(1.0, sourceNormalZ, clamp(strength, 0.0, 1.0));
-  // Do not normalize here: partial-derivative/whiteout blends own the final
-  // normalization and must retain the authored XY-to-Z strength relation.
-  return vec3(sourceSlope * strength, normalZ);
-}
 
-vec3 waterSurfaceAppearanceBlendTangentNormals(
-  vec3 firstNormal,
-  vec3 secondNormal
-) {
-  return waterSurfaceAppearanceSafeNormalize3(
-    vec3(firstNormal.xy + secondNormal.xy, firstNormal.z * secondNormal.z),
-    vec3(0.0, 0.0, 1.0)
-  );
-}
 
-vec3 waterSurfaceAppearanceBlendTangentNormalsPartialDerivative(
-  vec3 firstNormal,
-  vec3 secondNormal
-) {
-  return waterSurfaceAppearanceSafeNormalize3(
-    vec3(
-      firstNormal.xy * secondNormal.z + secondNormal.xy * firstNormal.z,
-      firstNormal.z * secondNormal.z
-    ),
-    vec3(0.0, 0.0, 1.0)
-  );
-}
 
-vec3 waterSurfaceAppearanceV2BlendAddSlope(vec3 baseNormal, vec3 detailNormal) {
-  vec2 slope = baseNormal.xy / max(baseNormal.z, 0.0001)
-    + detailNormal.xy / max(detailNormal.z, 0.0001);
-  return waterSurfaceAppearanceSafeNormalize3(vec3(slope, 1.0), vec3(0.0, 0.0, 1.0));
-}
 
-vec3 waterSurfaceAppearanceV2BlendReoriented(vec3 baseNormal, vec3 detailNormal) {
-  vec3 t = baseNormal + vec3(0.0, 0.0, 1.0);
-  vec3 u = detailNormal * vec3(-1.0, -1.0, 1.0);
-  return waterSurfaceAppearanceSafeNormalize3(
-    t * dot(t, u) / max(t.z, 0.0001) - u,
-    vec3(0.0, 0.0, 1.0)
-  );
-}
 
 #endif
 
-float waterSurfaceAppearanceV2RefractionValidity(
-  float insideScreen,
-  float waterCoverage,
-  float shoreSafety,
-  float centeredGeometryBehindSurface,
-  float shiftedGeometryBehindSurface,
-  float shiftedDepthContinuity
-) {
-  return clamp(insideScreen, 0.0, 1.0)
-    * clamp(waterCoverage, 0.0, 1.0)
-    * clamp(shoreSafety, 0.0, 1.0)
-    * clamp(centeredGeometryBehindSurface, 0.0, 1.0)
-    * clamp(shiftedGeometryBehindSurface, 0.0, 1.0)
-    * clamp(shiftedDepthContinuity, 0.0, 1.0);
-}
 #endif
 
 #ifndef WATER_SURFACE_AMBIENT_LIGHTING_UNIFORMS_INCLUDED
@@ -664,35 +552,7 @@ vec4 waterOceanApplySceneFog(vec4 color, vec3 positionVS) {
       }
       #endif
 
-      vec3 sampleWaterBaseReflectionRadiance(
-        vec3 analyticFallbackRadiance,
-        vec3 directionWS,
-        vec3 positionWS,
-        float roughness
-      ) {
-        vec3 reflectedRadiance = analyticFallbackRadiance;
-        if (material_EnvironmentReflectionAvailable > 0.5) {
-          reflectedRadiance = sampleWaterDistantEnvironmentReflection(directionWS, positionWS, roughness);
-        }
-        #ifdef MATERIAL_WATER_LOCAL_ENVIRONMENT_REFLECTION
-        if (material_LocalEnvironmentReflectionAvailable > 0.5) {
-          float localWeight = waterLocalEnvironmentWeight(positionWS);
-          if (localWeight > 0.0) {
-            vec3 localRadiance = sampleWaterLocalEnvironmentReflection(directionWS, positionWS, roughness);
-            reflectedRadiance = mix(reflectedRadiance, localRadiance, localWeight);
-          }
-        }
-        #endif
-        return reflectedRadiance;
-      }
 
-      float waterBaseReflectionAvailable() {
-        float available = material_EnvironmentReflectionAvailable;
-        #ifdef MATERIAL_WATER_LOCAL_ENVIRONMENT_REFLECTION
-          available = max(available, material_LocalEnvironmentReflectionAvailable);
-        #endif
-        return available;
-      }
 
 #endif
 
@@ -890,23 +750,6 @@ float waterSurfaceLitDirectSpecular(
 
 // Mobile Lit environment term: perceptual roughness controls both the
 // prefiltered probe mip and the F0-to-grazing interpolation (Pow4).
-float waterSurfaceLitEnvironmentSpecularWeight(
-  float f0,
-  float perceptualRoughness,
-  float dotNV
-) {
-  float resolvedPerceptualRoughness =
-    waterSurfaceResolvePerceptualRoughness(perceptualRoughness);
-  float roughness = resolvedPerceptualRoughness * resolvedPerceptualRoughness;
-  float surfaceReduction = 1.0 / (roughness * roughness + 1.0);
-  float grazingTerm = clamp(
-    1.0 - resolvedPerceptualRoughness + clamp(f0, 0.0, 1.0),
-    0.0,
-    1.0
-  );
-  float fresnelTerm = pow(1.0 - clamp(dotNV, 0.0, 1.0), 4.0);
-  return surfaceReduction * mix(clamp(f0, 0.0, 1.0), grazingTerm, fresnelTerm);
-}
 
 #endif
 
@@ -1749,10 +1592,6 @@ float waterSurface_waveCrest = 0.0;
 #endif
 
 
-      vec2 safeNormalize2(vec2 value, vec2 fallbackValue) {
-        float lengthSquared = dot(value, value);
-        return lengthSquared > 0.00000001 ? value * inversesqrt(lengthSquared) : fallbackValue;
-      }
 
       vec3 safeNormalize3(vec3 value, vec3 fallbackValue) {
         float lengthSquared = dot(value, value);
@@ -2820,153 +2659,27 @@ float material_RefractionEnabled;
 #ifndef WATER_SURFACE_DEPTH_RESPONSE_INCLUDED
 #define WATER_SURFACE_DEPTH_RESPONSE_INCLUDED
 
-float waterSurfaceDepthSampleValidity(float rawDepth, float sceneEyeDepth, float surfaceEyeDepth) {
-  return step(0.0, sceneEyeDepth)
-    * step(sceneEyeDepth, 1000000.0)
-    * step(surfaceEyeDepth + 0.000001, sceneEyeDepth)
-    * (1.0 - step(0.999999, rawDepth));
-}
 
-vec3 waterSurfaceReconstructOpaquePositionWS(
-  vec3 surfacePositionWS,
-  vec3 cameraPositionWS,
-  mat4 cameraViewInverse,
-  float surfaceEyeDepth,
-  float sceneEyeDepth,
-  float orthographicProjection
-) {
-  float safeSurfaceEyeDepth = max(surfaceEyeDepth, 0.000001);
-  vec3 perspectivePosition = cameraPositionWS
-    + (surfacePositionWS - cameraPositionWS) * (sceneEyeDepth / safeSurfaceEyeDepth);
-  vec3 cameraForwardWS = normalize((cameraViewInverse * vec4(0.0, 0.0, -1.0, 0.0)).xyz);
-  vec3 orthographicPosition = surfacePositionWS
-    + cameraForwardWS * max(sceneEyeDepth - surfaceEyeDepth, 0.0);
-  return mix(perspectivePosition, orthographicPosition, clamp(orthographicProjection, 0.0, 1.0));
-}
 
 // Surface-normal depth uses the normalized physical macro normal; scrolling
 // detail normals never affect the appearance depth field.
-float waterSurfaceNormalDepth(
-  vec3 surfacePositionWS,
-  vec3 opaquePositionWS,
-  vec3 macroNormalWS
-) {
-  return abs(dot(surfacePositionWS - opaquePositionWS, normalize(macroNormalWS)));
-}
 
-float waterSurfaceDerivedSceneRayDepth(
-  float verticalDepth,
-  vec3 macroNormalWS,
-  vec3 viewDirectionWS
-) {
-  float projectionDenominator = abs(dot(normalize(viewDirectionWS), normalize(macroNormalWS)));
-  return min(
-    max(verticalDepth, 0.0) / max(projectionDenominator, 0.001),
-    1000000.0
-  );
-}
 
 // max(1-exp(-a), 1-exp(-b)) == 1-exp(-max(a,b)); one exp for one or two terms.
-float waterSurfaceCompositeExponentialDensity(float firstScaledDepth, float secondScaledDepth) {
-  return clamp(1.0 - exp(-max(max(firstScaledDepth, 0.0), max(secondScaledDepth, 0.0))), 0.0, 1.0);
-}
 
 #endif
 
 #ifndef WATER_SURFACE_NORMAL_FUNCTIONS_INCLUDED
 #define WATER_SURFACE_NORMAL_FUNCTIONS_INCLUDED
-vec3 waterSurfaceAppearanceSafeNormalize3(vec3 value, vec3 fallbackValue) {
-  float lengthSquared = dot(value, value);
-  return lengthSquared > 0.000001
-    ? value * inversesqrt(lengthSquared)
-    : fallbackValue;
-}
 
-vec3 waterSurfaceAppearanceDecodeTangentNormal(
-  vec4 packedNormal,
-  float strength,
-  float flipGreen
-) {
-  vec2 slope = packedNormal.rg * 2.0 - 1.0;
-  slope.y *= mix(1.0, -1.0, step(0.5, flipGreen));
-  slope *= strength;
-  float normalZ = sqrt(max(1.0 - dot(slope, slope), 0.0001));
-  normalZ = mix(1.0, normalZ, clamp(strength, 0.0, 1.0));
-  return waterSurfaceAppearanceSafeNormalize3(
-    vec3(slope, normalZ),
-    vec3(0.0, 0.0, 1.0)
-  );
-}
 
-vec3 waterSurfaceAppearanceDecodeTangentNormalPreserveSourceZ(
-  vec4 packedNormal,
-  float strength,
-  float flipGreen
-) {
-  vec2 sourceSlope = packedNormal.rg * 2.0 - 1.0;
-  sourceSlope.y *= mix(1.0, -1.0, step(0.5, flipGreen));
-  float sourceNormalZ = sqrt(max(1.0 - clamp(dot(sourceSlope, sourceSlope), 0.0, 1.0), 0.0001));
-  float normalZ = mix(1.0, sourceNormalZ, clamp(strength, 0.0, 1.0));
-  // Do not normalize here: partial-derivative/whiteout blends own the final
-  // normalization and must retain the authored XY-to-Z strength relation.
-  return vec3(sourceSlope * strength, normalZ);
-}
 
-vec3 waterSurfaceAppearanceBlendTangentNormals(
-  vec3 firstNormal,
-  vec3 secondNormal
-) {
-  return waterSurfaceAppearanceSafeNormalize3(
-    vec3(firstNormal.xy + secondNormal.xy, firstNormal.z * secondNormal.z),
-    vec3(0.0, 0.0, 1.0)
-  );
-}
 
-vec3 waterSurfaceAppearanceBlendTangentNormalsPartialDerivative(
-  vec3 firstNormal,
-  vec3 secondNormal
-) {
-  return waterSurfaceAppearanceSafeNormalize3(
-    vec3(
-      firstNormal.xy * secondNormal.z + secondNormal.xy * firstNormal.z,
-      firstNormal.z * secondNormal.z
-    ),
-    vec3(0.0, 0.0, 1.0)
-  );
-}
 
-vec3 waterSurfaceAppearanceV2BlendAddSlope(vec3 baseNormal, vec3 detailNormal) {
-  vec2 slope = baseNormal.xy / max(baseNormal.z, 0.0001)
-    + detailNormal.xy / max(detailNormal.z, 0.0001);
-  return waterSurfaceAppearanceSafeNormalize3(vec3(slope, 1.0), vec3(0.0, 0.0, 1.0));
-}
 
-vec3 waterSurfaceAppearanceV2BlendReoriented(vec3 baseNormal, vec3 detailNormal) {
-  vec3 t = baseNormal + vec3(0.0, 0.0, 1.0);
-  vec3 u = detailNormal * vec3(-1.0, -1.0, 1.0);
-  return waterSurfaceAppearanceSafeNormalize3(
-    t * dot(t, u) / max(t.z, 0.0001) - u,
-    vec3(0.0, 0.0, 1.0)
-  );
-}
 
 #endif
 
-float waterSurfaceAppearanceV2RefractionValidity(
-  float insideScreen,
-  float waterCoverage,
-  float shoreSafety,
-  float centeredGeometryBehindSurface,
-  float shiftedGeometryBehindSurface,
-  float shiftedDepthContinuity
-) {
-  return clamp(insideScreen, 0.0, 1.0)
-    * clamp(waterCoverage, 0.0, 1.0)
-    * clamp(shoreSafety, 0.0, 1.0)
-    * clamp(centeredGeometryBehindSurface, 0.0, 1.0)
-    * clamp(shiftedGeometryBehindSurface, 0.0, 1.0)
-    * clamp(shiftedDepthContinuity, 0.0, 1.0);
-}
 #endif
 
 #ifndef WATER_SURFACE_AMBIENT_LIGHTING_UNIFORMS_INCLUDED
@@ -3061,12 +2774,6 @@ vec4 waterOceanApplySceneFog(vec4 color, vec3 positionVS) {
 #ifndef WATER_SPATIAL_FIELD_DECODE_INCLUDED
 #define WATER_SPATIAL_FIELD_DECODE_INCLUDED
 
-float waterSpatialFieldDecodeDepth(
-  float encodedDepth,
-  float maximumDepth
-) {
-  return encodedDepth * maximumDepth;
-}
 
 float waterSpatialFieldDecodeSignedDistance(
   float encodedDistance,
@@ -3083,215 +2790,14 @@ float waterSpatialFieldDecodeSignedDistance(
 #ifndef WATER_ENVIRONMENT_REFLECTION_INCLUDED
 #define WATER_ENVIRONMENT_REFLECTION_INCLUDED
 
-      vec3 waterEnvironmentSrgbToLinear(vec3 color) {
-        vec3 low = color / 12.92;
-        vec3 high = pow(max((color + 0.055) / 1.055, vec3(0.0)), vec3(2.4));
-        return mix(low, high, step(vec3(0.04045), color));
-      }
 
-      vec3 waterEnvironmentReflectionDirection(
-        vec3 directionWS,
-        vec3 positionWS,
-        vec4 probePosition,
-        vec3 boxMinimum,
-        vec3 boxMaximum
-      ) {
-        if (probePosition.w < 0.5) {
-          return directionWS;
-        }
-        vec3 directionSign = mix(
-          vec3(-1.0),
-          vec3(1.0),
-          step(vec3(0.0), directionWS)
-        );
-        vec3 safeDirection = directionSign * max(abs(directionWS), vec3(0.000001));
-        vec3 intersectingPlane = mix(
-          boxMinimum,
-          boxMaximum,
-          step(vec3(0.0), directionWS)
-        );
-        vec3 intersectionDistances = (intersectingPlane - positionWS) / safeDirection;
-        float nearestIntersection = min(
-          intersectionDistances.x,
-          min(intersectionDistances.y, intersectionDistances.z)
-        );
-        vec3 projectedDirection = positionWS
-          + directionWS * max(nearestIntersection, 0.0)
-          - probePosition.xyz;
-        float projectedValid = step(0.00000001, dot(projectedDirection, projectedDirection));
-        return mix(directionWS, projectedDirection, projectedValid);
-      }
 
-      vec3 sampleWaterDistantEnvironmentReflection(vec3 directionWS, vec3 positionWS, float roughness) {
-        vec3 originalDirectionWS = directionWS;
-        directionWS = waterEnvironmentReflectionDirection(
-          directionWS,
-          positionWS,
-          material_EnvironmentReflectionProbePosition,
-          material_EnvironmentReflectionBoxMinimum.xyz,
-          material_EnvironmentReflectionBoxMaximum.xyz
-        );
-        vec2 rotation = material_EnvironmentReflectionParameters.xy;
-        vec3 sampleDirection = vec3(
-          rotation.x * directionWS.x + rotation.y * directionWS.z,
-          directionWS.y,
-          -rotation.y * directionWS.x + rotation.x * directionWS.z
-        );
-        float mipLevel = clamp(roughness, 0.0, 1.0)
-          * max(material_EnvironmentReflectionMaximumMip, 0.0);
-        #ifdef HAS_TEX_LOD
-          vec3 reflectedRadiance = textureCubeLodEXT(
-            material_ReflectionCubeTexture,
-            sampleDirection,
-            mipLevel
-          ).rgb;
-        #else
-          vec3 reflectedRadiance = textureCube(
-            material_ReflectionCubeTexture,
-            sampleDirection,
-            mipLevel
-          ).rgb;
-        #endif
-        #ifdef ENGINE_NO_SRGB
-          reflectedRadiance = mix(
-            reflectedRadiance,
-            waterEnvironmentSrgbToLinear(reflectedRadiance),
-            step(0.5, material_EnvironmentReflectionParameters.w)
-          );
-        #endif
-        reflectedRadiance *= max(material_EnvironmentReflectionParameters.z, 0.0);
-
-        float secondaryWeight = clamp(material_EnvironmentReflectionBlend, 0.0, 1.0);
-        if (secondaryWeight > 0.0) {
-          vec3 secondaryDirection = waterEnvironmentReflectionDirection(
-            originalDirectionWS,
-            positionWS,
-            material_SecondaryEnvironmentReflectionProbePosition,
-            material_SecondaryEnvironmentReflectionBoxMinimum.xyz,
-            material_SecondaryEnvironmentReflectionBoxMaximum.xyz
-          );
-          vec2 secondaryRotation = material_SecondaryEnvironmentReflectionParameters.xy;
-          secondaryDirection = vec3(
-            secondaryRotation.x * secondaryDirection.x + secondaryRotation.y * secondaryDirection.z,
-            secondaryDirection.y,
-            -secondaryRotation.y * secondaryDirection.x + secondaryRotation.x * secondaryDirection.z
-          );
-          float secondaryMipLevel = clamp(roughness, 0.0, 1.0)
-            * max(material_SecondaryEnvironmentReflectionMaximumMip, 0.0);
-          #ifdef HAS_TEX_LOD
-            vec3 secondaryRadiance = textureCubeLodEXT(
-              material_SecondaryReflectionCubeTexture,
-              secondaryDirection,
-              secondaryMipLevel
-            ).rgb;
-          #else
-            vec3 secondaryRadiance = textureCube(
-              material_SecondaryReflectionCubeTexture,
-              secondaryDirection,
-              secondaryMipLevel
-            ).rgb;
-          #endif
-          #ifdef ENGINE_NO_SRGB
-            secondaryRadiance = mix(
-              secondaryRadiance,
-              waterEnvironmentSrgbToLinear(secondaryRadiance),
-              step(0.5, material_SecondaryEnvironmentReflectionParameters.w)
-            );
-          #endif
-          secondaryRadiance *= max(material_SecondaryEnvironmentReflectionParameters.z, 0.0);
-          reflectedRadiance = mix(reflectedRadiance, secondaryRadiance, secondaryWeight);
-        }
-        return reflectedRadiance * max(material_EnvironmentFallbackIntensity, 0.0);
-      }
 
       #ifdef MATERIAL_WATER_LOCAL_ENVIRONMENT_REFLECTION
-      float waterLocalEnvironmentWeight(vec3 positionWS) {
-        if (material_LocalEnvironmentReflectionProbePosition.w < 0.5) {
-          return 0.0;
-        }
-        vec3 distanceToBoundary = min(
-          positionWS - material_LocalEnvironmentReflectionBoxMinimum.xyz,
-          material_LocalEnvironmentReflectionBoxMaximum.xyz - positionWS
-        );
-        float nearestBoundary = min(distanceToBoundary.x, min(distanceToBoundary.y, distanceToBoundary.z));
-        vec3 boxSize = max(
-          material_LocalEnvironmentReflectionBoxMaximum.xyz
-            - material_LocalEnvironmentReflectionBoxMinimum.xyz,
-          vec3(0.001)
-        );
-        float fadeWidth = max(min(boxSize.x, min(boxSize.y, boxSize.z)) * 0.1, 0.001);
-        return smoothstep(0.0, fadeWidth, nearestBoundary);
-      }
 
-      vec3 sampleWaterLocalEnvironmentReflection(vec3 directionWS, vec3 positionWS, float roughness) {
-        directionWS = waterEnvironmentReflectionDirection(
-          directionWS,
-          positionWS,
-          material_LocalEnvironmentReflectionProbePosition,
-          material_LocalEnvironmentReflectionBoxMinimum.xyz,
-          material_LocalEnvironmentReflectionBoxMaximum.xyz
-        );
-        vec2 rotation = material_LocalEnvironmentReflectionParameters.xy;
-        vec3 sampleDirection = vec3(
-          rotation.x * directionWS.x + rotation.y * directionWS.z,
-          directionWS.y,
-          -rotation.y * directionWS.x + rotation.x * directionWS.z
-        );
-        float mipLevel = clamp(roughness, 0.0, 1.0)
-          * max(material_LocalEnvironmentReflectionMaximumMip, 0.0);
-        #ifdef HAS_TEX_LOD
-          vec3 reflectedRadiance = textureCubeLodEXT(
-            material_LocalReflectionCubeTexture,
-            sampleDirection,
-            mipLevel
-          ).rgb;
-        #else
-          vec3 reflectedRadiance = textureCube(
-            material_LocalReflectionCubeTexture,
-            sampleDirection,
-            mipLevel
-          ).rgb;
-        #endif
-        #ifdef ENGINE_NO_SRGB
-          reflectedRadiance = mix(
-            reflectedRadiance,
-            waterEnvironmentSrgbToLinear(reflectedRadiance),
-            step(0.5, material_LocalEnvironmentReflectionParameters.w)
-          );
-        #endif
-        return reflectedRadiance * max(material_LocalEnvironmentReflectionParameters.z, 0.0);
-      }
       #endif
 
-      vec3 sampleWaterBaseReflectionRadiance(
-        vec3 analyticFallbackRadiance,
-        vec3 directionWS,
-        vec3 positionWS,
-        float roughness
-      ) {
-        vec3 reflectedRadiance = analyticFallbackRadiance;
-        if (material_EnvironmentReflectionAvailable > 0.5) {
-          reflectedRadiance = sampleWaterDistantEnvironmentReflection(directionWS, positionWS, roughness);
-        }
-        #ifdef MATERIAL_WATER_LOCAL_ENVIRONMENT_REFLECTION
-        if (material_LocalEnvironmentReflectionAvailable > 0.5) {
-          float localWeight = waterLocalEnvironmentWeight(positionWS);
-          if (localWeight > 0.0) {
-            vec3 localRadiance = sampleWaterLocalEnvironmentReflection(directionWS, positionWS, roughness);
-            reflectedRadiance = mix(reflectedRadiance, localRadiance, localWeight);
-          }
-        }
-        #endif
-        return reflectedRadiance;
-      }
 
-      float waterBaseReflectionAvailable() {
-        float available = material_EnvironmentReflectionAvailable;
-        #ifdef MATERIAL_WATER_LOCAL_ENVIRONMENT_REFLECTION
-          available = max(available, material_LocalEnvironmentReflectionAvailable);
-        #endif
-        return available;
-      }
 
 #endif
 
@@ -3347,9 +2853,6 @@ float waterConnectionShore(vec2 p, float original) {
 #endif
   return result;
 }
-vec3 waterConnectionNormal(vec2 p, vec3 normal) {
-  return normalize(mix(vec3(0.0, 1.0, 0.0), normal, waterConnectionFacts(p).x));
-}
 #endif
 #ifndef WATER_SURFACE_BRDF_INCLUDED
 #define WATER_SURFACE_BRDF_INCLUDED
@@ -3361,12 +2864,6 @@ const float WATER_SURFACE_BRDF_RECIPROCAL_PI =
   0.3183098861837907;
 const float WATER_SURFACE_BRDF_PI = 3.141592653589793;
 
-float waterSurfaceResolvePerceptualRoughness(float perceptualRoughness) {
-  return max(
-    WATER_SURFACE_BRDF_MIN_PERCEPTUAL_ROUGHNESS,
-    clamp(perceptualRoughness, 0.0, 1.0)
-  );
-}
 
 float waterSurfaceSchlick(float f0, float f90, float dotLH) {
   float boundedF0 = clamp(f0, 0.0, 1.0);
@@ -3376,66 +2873,8 @@ float waterSurfaceSchlick(float f0, float f90, float dotLH) {
       * pow(1.0 - clamp(dotLH, 0.0, 1.0), 5.0);
 }
 
-float waterSurfaceGgxDistribution(float alpha, float dotNH) {
-  float minimumAlpha =
-    WATER_SURFACE_BRDF_MIN_PERCEPTUAL_ROUGHNESS
-    * WATER_SURFACE_BRDF_MIN_PERCEPTUAL_ROUGHNESS;
-  float resolvedAlpha = max(minimumAlpha, alpha);
-  float alphaSquared = resolvedAlpha * resolvedAlpha;
-  float boundedDotNH = clamp(dotNH, 0.0, 1.0);
-  float denominator =
-    boundedDotNH * boundedDotNH * (alphaSquared - 1.0) + 1.0;
-  return WATER_SURFACE_BRDF_RECIPROCAL_PI * alphaSquared
-    / max(
-      denominator * denominator,
-      WATER_SURFACE_BRDF_EPSILON
-    );
-}
 
-float waterSurfaceGgxSmithCorrelated(float alpha, float dotNL, float dotNV) {
-  float minimumAlpha =
-    WATER_SURFACE_BRDF_MIN_PERCEPTUAL_ROUGHNESS
-    * WATER_SURFACE_BRDF_MIN_PERCEPTUAL_ROUGHNESS;
-  float resolvedAlpha = max(minimumAlpha, alpha);
-  float alphaSquared = resolvedAlpha * resolvedAlpha;
-  float boundedDotNL = clamp(dotNL, 0.0, 1.0);
-  float boundedDotNV = clamp(dotNV, 0.0, 1.0);
-  float gv = boundedDotNL * sqrt(
-    alphaSquared
-      + (1.0 - alphaSquared) * boundedDotNV * boundedDotNV
-  );
-  float gl = boundedDotNV * sqrt(
-    alphaSquared
-      + (1.0 - alphaSquared) * boundedDotNL * boundedDotNL
-  );
-  return 0.5 / max(gv + gl, WATER_SURFACE_BRDF_EPSILON);
-}
 
-float waterSurfaceDirectSpecular(
-  float f0,
-  float perceptualRoughness,
-  float dotNV,
-  float dotNL,
-  float dotNH,
-  float dotLH
-) {
-  float resolvedRoughness =
-    waterSurfaceResolvePerceptualRoughness(perceptualRoughness);
-  float alpha = resolvedRoughness * resolvedRoughness;
-  float boundedDotNV = clamp(dotNV, 0.0, 1.0);
-  float boundedDotNL = clamp(dotNL, 0.0, 1.0);
-  float boundedDotNH = clamp(dotNH, 0.0, 1.0);
-  float boundedDotLH = clamp(dotLH, 0.0, 1.0);
-  float fresnel = waterSurfaceSchlick(f0, 1.0, boundedDotLH);
-  float distribution = waterSurfaceGgxDistribution(alpha, boundedDotNH);
-  float visibility =
-    waterSurfaceGgxSmithCorrelated(alpha, boundedDotNL, boundedDotNV);
-  return fresnel
-    * distribution
-    * visibility
-    * boundedDotNL
-    * WATER_SURFACE_BRDF_PI;
-}
 
 // Same split-sum DFG fit used by the engine PBR environment BRDF. Every
 // reflected-radiance source (distant IBL, Local Probe, or SSR) passes
@@ -3460,54 +2899,9 @@ vec3 waterSurfaceEnvironmentSpecularWeight(
 // The mobile Lit closure uses a stable direct-BRDF fit rather than the full
 // correlated-Smith evaluation above. Keep it opt-in so physical Water PCG
 // materials retain the physically-derived default.
-float waterSurfaceLitDirectSpecular(
-  float f0,
-  float perceptualRoughness,
-  float dotNL,
-  float dotNH,
-  float dotLH
-) {
-  float resolvedPerceptualRoughness =
-    waterSurfaceResolvePerceptualRoughness(perceptualRoughness);
-  float roughness = max(
-    resolvedPerceptualRoughness * resolvedPerceptualRoughness,
-    0.0078125
-  );
-  float roughnessSquared = max(roughness * roughness, 0.00006103515625);
-  float denominator = clamp(dotNH, 0.0, 1.0);
-  denominator = denominator * denominator * (roughnessSquared - 1.0) + 1.00001;
-  float lightDotHalfSquared = max(
-    clamp(dotLH, 0.0, 1.0) * clamp(dotLH, 0.0, 1.0),
-    0.1
-  );
-  float normalization = roughness * 4.0 + 2.0;
-  float specularTerm = roughnessSquared
-    / max(
-      denominator * denominator * lightDotHalfSquared * normalization,
-      WATER_SURFACE_BRDF_EPSILON
-    );
-  return clamp(f0, 0.0, 1.0) * specularTerm * clamp(dotNL, 0.0, 1.0);
-}
 
 // Mobile Lit environment term: perceptual roughness controls both the
 // prefiltered probe mip and the F0-to-grazing interpolation (Pow4).
-float waterSurfaceLitEnvironmentSpecularWeight(
-  float f0,
-  float perceptualRoughness,
-  float dotNV
-) {
-  float resolvedPerceptualRoughness =
-    waterSurfaceResolvePerceptualRoughness(perceptualRoughness);
-  float roughness = resolvedPerceptualRoughness * resolvedPerceptualRoughness;
-  float surfaceReduction = 1.0 / (roughness * roughness + 1.0);
-  float grazingTerm = clamp(
-    1.0 - resolvedPerceptualRoughness + clamp(f0, 0.0, 1.0),
-    0.0,
-    1.0
-  );
-  float fresnelTerm = pow(1.0 - clamp(dotNV, 0.0, 1.0), 4.0);
-  return surfaceReduction * mix(clamp(f0, 0.0, 1.0), grazingTerm, fresnelTerm);
-}
 
 #endif
 
@@ -3561,42 +2955,6 @@ struct WaterSurfaceResolvedRawContributionsV2 {
   float foamWeight;
 };
 
-void waterSurfaceSampleRawEnvironmentReflectionV2(
-  vec3 directionWS,
-  vec3 positionWS,
-  float perceptualRoughness,
-  out vec3 radiance,
-  out float validity
-) {
-  radiance = vec3(0.0);
-  validity = 0.0;
-  if (material_EnvironmentReflectionAvailable > 0.5) {
-    radiance = sampleWaterDistantEnvironmentReflection(
-      directionWS,
-      positionWS,
-      perceptualRoughness
-    );
-    validity = 1.0;
-  }
-  #ifdef MATERIAL_WATER_LOCAL_ENVIRONMENT_REFLECTION
-    if (material_LocalEnvironmentReflectionAvailable > 0.5) {
-      float localWeight = waterLocalEnvironmentWeight(positionWS);
-      if (localWeight > 0.0) {
-        vec3 localRadiance = sampleWaterLocalEnvironmentReflection(
-          directionWS,
-          positionWS,
-          perceptualRoughness
-        );
-        if (validity > 0.5) {
-          radiance = mix(radiance, localRadiance, localWeight);
-        } else {
-          radiance = localRadiance;
-          validity = localWeight;
-        }
-      }
-    }
-  #endif
-}
 
 vec3 waterSurfaceResolveAnalyticReflectionFallbackV2(
   float normalY,
@@ -3691,16 +3049,6 @@ WaterSurfaceResolvedRawContributionsV2 waterSurfaceResolveRawContributionsV2(
 #define WATER_SURFACE_BOUNDED_TRANSLUCENCY_INCLUDED
 // Optional artistic transmission lobe. Geometry supplies the normal and mask;
 // lighting response is shared and enters FinalClosure before Fresnel and foam.
-vec3 waterSurfaceBoundedTranslucency(
-  vec3 tint, vec3 lightRadiance, vec3 lightDirection, vec3 viewDirection,
-  vec3 normal, float backStrength, float incidentStrength, float exponent,
-  float curvatureWeight, float visibility
-) {
-  float back = pow(max(dot(-viewDirection, lightDirection), 0.0), max(exponent, 1.0)) * max(backStrength, 0.0);
-  float incident = max(dot(lightDirection, normal), 0.0) * max(incidentStrength, 0.0);
-  float curvature = clamp(mix(1.0, dot(normal, -lightDirection), curvatureWeight), 0.0, 1.0);
-  return max(tint, vec3(0.0)) * max(lightRadiance, vec3(0.0)) * (back + incident) * curvature * clamp(visibility, 0.0, 1.0);
-}
 #endif
 
 #ifndef WATER_SURFACE_SINGLE_SCATTERING_INCLUDED
@@ -3818,50 +3166,8 @@ float waterSurfaceResolveAlphaV2(
   alpha = mix(alpha, coastalAlpha, clamp(coastalAlphaWeight, 0.0, 1.0));
   return clamp(alpha, 0.0, 1.0);
 }
-vec3 waterSurfaceAmplifyMacroNormalSlopes(vec3 macroNormalWS, float strength) {
-  vec3 amplified = vec3(
-    macroNormalWS.x * max(strength, 0.0),
-    macroNormalWS.y,
-    macroNormalWS.z * max(strength, 0.0)
-  );
-  float lengthSquared = dot(amplified, amplified);
-  return lengthSquared > 0.00000001
-    ? amplified * inversesqrt(lengthSquared)
-    : vec3(0.0, 1.0, 0.0);
-}
 
 // Vendor-neutral port of the bounded perturbed Blinn-Phong directional highlight.
-vec3 waterSurfaceDirectionalHighlightV2(
-  vec3 lightRadiance,
-  vec3 lightDirectionWS,
-  vec3 viewDirectionWS,
-  vec3 geometryNormalWS,
-  vec3 detailNormalWS,
-  float distortion,
-  float exponent,
-  float strength,
-  float sharp
-) {
-  float safeDistortion = clamp(distortion, 0.0, 2.0);
-  vec3 perturbedNormal = normalize(mix(geometryNormalWS, detailNormalWS, safeDistortion));
-  vec3 halfVector = normalize(lightDirectionWS + viewDirectionWS + perturbedNormal * safeDistortion);
-  float specular = pow(
-    clamp(dot(geometryNormalWS, halfVector), 0.0, 1.0),
-    max(exponent, 1.0)
-  );
-  float sharpWeight = step(0.5, sharp);
-  specular = mix(specular, step(0.2, specular), sharpWeight);
-  float viewFactor = smoothstep(
-    0.0,
-    0.15,
-    clamp(dot(geometryNormalWS, lightDirectionWS), 0.0, 1.0)
-  );
-  return max(lightRadiance, vec3(0.0))
-    * specular
-    * max(strength, 0.0)
-    * mix(1.0, 0.5, sharpWeight)
-  * viewFactor;
-}
 
 struct WaterSurfaceFinalClosureV2Input {
   vec3 additionalTransmissionRadiance;
@@ -3911,51 +3217,7 @@ struct WaterSurfaceResolvedLightingV2 {
   vec3 directSpecularRadiance;
 };
 
-WaterSurfaceResolvedLightingV2 waterSurfaceCreateResolvedLightingV2(vec3 ambientDiffuseRadiance) {
-  WaterSurfaceResolvedLightingV2 lighting;
-  lighting.diffuseRadiance = max(ambientDiffuseRadiance, vec3(0.0));
-  lighting.directSpecularRadiance = vec3(0.0);
-  return lighting;
-}
 
-WaterSurfaceResolvedLightingV2 waterSurfaceAccumulateDirectLightingV2(
-  WaterSurfaceResolvedLightingV2 lighting,
-  vec3 lightRadiance,
-  float normalDotView,
-  float normalDotLight,
-  float normalDotHalf,
-  float lightDotHalf,
-  float fresnelF0,
-  float perceptualRoughness,
-  float primaryColorClosureModel,
-  float directSpecularEnabled
-) {
-  vec3 safeLightRadiance = max(lightRadiance, vec3(0.0));
-  float safeNormalDotLight = clamp(normalDotLight, 0.0, 1.0);
-  float standardDirectSpecular = waterSurfaceDirectSpecular(
-    fresnelF0,
-    perceptualRoughness,
-    normalDotView,
-    safeNormalDotLight,
-    normalDotHalf,
-    lightDotHalf
-  );
-  float litDirectSpecular = waterSurfaceLitDirectSpecular(
-    fresnelF0,
-    perceptualRoughness,
-    safeNormalDotLight,
-    normalDotHalf,
-    lightDotHalf
-  );
-  float resolvedDirectSpecular = mix(
-    standardDirectSpecular,
-    litDirectSpecular,
-    step(1.5, primaryColorClosureModel) * (1.0 - step(3.5, primaryColorClosureModel))
-  ) * clamp(directSpecularEnabled, 0.0, 1.0);
-  lighting.diffuseRadiance += safeLightRadiance * safeNormalDotLight;
-  lighting.directSpecularRadiance += safeLightRadiance * resolvedDirectSpecular;
-  return lighting;
-}
 
 vec4 waterSurfaceEvaluateFinalClosureV2(
   WaterSurfaceFinalClosureV2Input closure,

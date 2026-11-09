@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import { createServer } from "vite";
 import { createHash } from "node:crypto";
 import { engineModify } from "../../packages/modify/build/vite.mjs";
+import { cleanWaterShaderSource } from "./water-shader-cleanup.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const output = process.env.WATER_ASSET_OUTPUT ?? path.join(root, "packages/water/src/water/native/assets");
@@ -16,6 +17,10 @@ const server = await createServer({ root, configFile: false, plugins: [
   } }, engineModify()], server: { middlewareMode: true },
   optimizeDeps: { noDiscovery: true, entries: [] } });
 try {
+  const { ShaderCompiler } = await server.ssrLoadModule("@galacean/engine-shader-compiler");
+  const { shaderLibrary } = await server.ssrLoadModule("/packages/shader/src/ShaderLibrary/index.ts");
+  const shaderCompiler = new ShaderCompiler();
+  shaderCompiler._setIncludeMap(Object.fromEntries(shaderLibrary.map(({ path, source }) => [path, source])));
   const load = file => server.ssrLoadModule(`/packages/water/src/water/${file}.ts`);
   const { WaterBodyAssetRegistry } = await load("runtime/body/WaterBodyAssetRegistry");
   const { registerLakeWaterLook, LAKE_WATER_LOOK_PRESET_ID } = await load("presets/lake/LakeWaterLook");
@@ -122,9 +127,9 @@ try {
       source = source.slice(0, source.lastIndexOf('}')) + farSubShader + "\n}";
     }
     // The river Shader declares both surface and drop controls. Plain rivers do not acquire drop textures.
-    if (kind !== "river") files[shaderPath] = texturesOnly
+    if (kind !== "river") files[shaderPath] = cleanWaterShaderSource(texturesOnly
       ? await fs.readFile(path.join(root, "packages/water/src/water/native/assets", shaderPath), "utf8")
-      : waterMaterialShaderSource(source, material);
+      : waterMaterialShaderSource(source, material), shaderCompiler);
     files[`Water/Materials/${kind}.mat`] = material;
   }
   const nativeTypes = { ".scene": "Scene", ".prefab": "Prefab", ".mat": "Material", ".shader": "Shader", ".json": "JSON", ".bin": "Buffer" };
