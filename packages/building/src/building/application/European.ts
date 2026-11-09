@@ -3,7 +3,7 @@
 // returns a core draft, a plain JSON value that describes the building on its own.
 import type { BuildingCoreDraft } from "../core";
 import type { MaterialFootprint } from "../runtime/MaterialFootprint";
-import { normalizeProfileRoof } from "../runtime/ProfileParameters";
+import { normalizeProfileFoundation, normalizeProfileRoof } from "../runtime/ProfileParameters";
 import { isFlatRoofHeight } from "../runtime/RoofMode";
 import {
   buildCoreFence,
@@ -151,13 +151,23 @@ function house(p: EuropeanHouseParameters): CoreHouseParameters {
   positive("rectangle depth", p.rectangle?.size[1]);
   positive("circle radius", p.circle?.radius);
   if (p.wallStructure === "timber") throw unavailable("A timber wall");
-  if ((p.foundation?.height ?? 0) > 0) throw unavailable("A raised foundation");
   if (p.wall?.unit && p.wall.unit !== "brick") throw unavailable(`A wall of ${p.wall.unit}`);
   const rule = p.wall?.algorithm?.type;
   if (rule && rule !== "staggered_rows" && rule !== "auto" && !GRID_RULES.includes(rule as never))
     throw Error(`Unknown wall course rule "${rule}"`);
   const grid = GRID_RULES.find((r) => r === rule);
   const roofUnit = p.roofStyle?.unit;
+  const foundation = p.foundation && normalizeProfileFoundation(p.foundation);
+  const foundationUnit = p.foundationStyle?.unit,
+    foundationRule = p.foundationStyle?.algorithm?.type;
+  if (foundationUnit === "roof_tile") throw unavailable("A foundation of roof_tile");
+  if (
+    foundationRule &&
+    foundationRule !== "auto" &&
+    foundationRule !== "staggered_rows" &&
+    !GRID_RULES.includes(foundationRule as never)
+  )
+    throw Error(`Unknown foundation course rule "${foundationRule}"`);
   return {
     id: p.id,
     ...(p.seed !== undefined && { seed: p.seed }),
@@ -172,6 +182,19 @@ function house(p: EuropeanHouseParameters): CoreHouseParameters {
     ...(p.plaster && { plaster: p.plaster }),
     ...(p.wallColor !== undefined && { wallColor: p.wallColor }),
     ...(p.woodColor !== undefined && { woodColor: p.woodColor }),
+    ...(foundation &&
+      foundation.height > 0 && {
+        foundation: {
+          height: foundation.height,
+          ...(foundation.mode && { mode: foundation.mode }),
+          ...(foundationUnit && { unit: foundationUnit }),
+          ...(foundationRule &&
+            foundationRule !== "auto" && {
+              rule: foundationRule as NonNullable<CoreHouseParameters["foundation"]>["rule"]
+            }),
+          ...(p.foundationStyle?.footprint && { footprint: p.foundationStyle.footprint })
+        }
+      }),
     attachments: (p.attachments ?? []).flatMap((a) => wallAttachment(a) ?? []),
     roofAttachments: (p.attachments ?? []).flatMap(
       (a) => roofAttachment(a, isFlatRoofHeight(normalizeProfileRoof(p.roof ?? {}).height)) ?? []

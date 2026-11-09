@@ -178,6 +178,19 @@ export interface CoreHouseParameters {
   /** Palette entries of the wall and wood materials. Default: 0. The roof color is `roof.color`. */
   wallColor?: number;
   woodColor?: number;
+  /** The base the house stands on: its height above the ground under the house's center,
+   * solid down to the ground or on pillars ("auto" is pillars), and how it is laid. Default:
+   * none, the walls stand on the ground. */
+  foundation?: CoreFoundation;
+}
+export interface CoreFoundation {
+  height: number;
+  mode?: "auto" | "pillars" | "solid";
+  /** Default: brick. */
+  unit?: "brick" | "wooden_plank";
+  /** Default: parallel rows of planks, staggered rows of bricks. */
+  rule?: "staggered_rows" | "overlap_rows" | "parallel_rows" | "horizontal_rows";
+  footprint?: MaterialFootprint;
 }
 export interface CoreWallAttachment {
   id: string;
@@ -326,6 +339,38 @@ function roofAttachmentPart(house: CoreHouseParameters, a: CoreRoofAttachment): 
     unit: { source: { prefab }, pivot: [0.5, 0.5, 0], range: { min: [0.01, 0.01, 0.01], max: [100, 100, 100] } }
   };
 }
+/** The foundation as a part: a solid skirt in level courses hung from the base's top, or a
+ * slab on pillars whose faces each carry their own courses, 0.1 m deep and 0.02 m proud. */
+function foundationPart(house: CoreHouseParameters, f: CoreFoundation): BuildingPartDef {
+  const source = f.unit ?? "brick",
+    rule = f.rule ?? (source === "wooden_plank" ? "parallel_rows" : "staggered_rows"),
+    footprint = f.footprint ?? DEFAULT_FOOTPRINT,
+    scale = unitFootprintScale(footprint);
+  const solid = f.mode === "solid";
+  const pitch = (rule === "parallel_rows" ? 0.22 : rule === "horizontal_rows" ? 1.4 : 0.5) * scale.width;
+  return {
+    id: house.id + "-foundation",
+    group: house.id,
+    type: "foundation",
+    geometry: { generator: solid ? "houseFoundation" : "housePillarFoundation", params: { "@shared": "house" } },
+    algorithm: {
+      type: "foundationCourses",
+      params: {
+        footprint,
+        rule,
+        ...(!solid && { courses: "stacked", depth: 0.1 * scale.depth, proud: 0.02 })
+      }
+    },
+    // A course is cut at the ends of each face and at the ground; parallel rows run the
+    // height of their face.
+    unit: {
+      source,
+      bounds: CUBE,
+      scale: [pitch, 0.25 * scale.height, 0.1 * scale.depth],
+      range: { min: [0.01, 0.01, 0.1], max: [1, rule === "parallel_rows" ? 1000 : 1.15, 10] }
+    }
+  };
+}
 const DEFAULT_RECTANGLE = { center: [0, 0] as [number, number], size: [8, 6] as [number, number], rotation: 0 };
 
 /** Several houses in one draft, so that houses that touch connect: one group per house. */
@@ -344,6 +389,9 @@ export function buildCoreHouse(p: CoreHouseParameters): BuildingCoreDraft {
   );
   const unit = p.footprint ?? DEFAULT_FOOTPRINT;
   const seed = p.seed ?? 17;
+  if (p.foundation && !(Number.isFinite(p.foundation.height) && p.foundation.height >= 0))
+    throw Error("A foundation height must be a finite number of metres, 0 or more");
+  const raised = (p.foundation?.height ?? 0) > 0;
   const grid = p.walls === "grid";
   const brick: BuildingUnit = {
     source: "brick",
@@ -370,7 +418,10 @@ export function buildCoreHouse(p: CoreHouseParameters): BuildingCoreDraft {
       height: normalizeProfileHeight(p.height ?? 4),
       roof: normalizeProfileRoof(p.roof ?? {}),
       wallUnit: unit,
-      ...(p.floors?.interval !== undefined && { floorInterval: p.floors.interval })
+      ...(p.floors?.interval !== undefined && { floorInterval: p.floors.interval }),
+      ...(raised && {
+        foundation: { height: p.foundation!.height, ...(p.foundation!.mode && { mode: p.foundation!.mode }) }
+      })
     },
     brick,
     courses
@@ -505,6 +556,7 @@ export function buildCoreHouse(p: CoreHouseParameters): BuildingCoreDraft {
           hosts: roofs.map((r) => ({ part: r.part.id }))
         }
       : undefined;
+  const foundation = raised ? foundationPart(p, p.foundation!) : undefined;
   const mounted = (p.attachments ?? []).map((a) => wallAttachmentPart(p, a));
   for (const a of p.roofAttachments ?? []) {
     const onDeck = ROOF_PREFABS[a.type]?.generator === "houseDeckMount";
@@ -537,7 +589,14 @@ export function buildCoreHouse(p: CoreHouseParameters): BuildingCoreDraft {
         }
       }
     ],
-    parts: [...walls, ...roofs.map((r) => r.part), ...(spire ? [spire.part] : []), ...onWalls, ...onRoof],
+    parts: [
+      ...(foundation ? [foundation] : []),
+      ...walls,
+      ...roofs.map((r) => r.part),
+      ...(spire ? [spire.part] : []),
+      ...onWalls,
+      ...onRoof
+    ],
     connections: [
       ...roofs.map(({ part, hosts }) => ({
         kind: "attach" as const,

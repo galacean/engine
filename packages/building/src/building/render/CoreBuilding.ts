@@ -15,12 +15,14 @@ import {
   type BuildingEnvironment,
   type BuildingGroupDef,
   type BuildingRegistry,
+  type GeometryElement,
   type LaidUnit,
   type Rect,
   type ResolvedPart
 } from "../core";
 import type { WallChartParams } from "../partTypes/House";
 import type { RoofDeckParams } from "../partTypes/Roof";
+import { foundationFaces, runEdges } from "../partTypes/Foundation";
 import type { BuildingRenderInput, BuildingUnitDrawGroup } from "../runtime/BuildingRenderPackage";
 import type { BuildingUnitAssets } from "../runtime/BuildingUnitAssets";
 import type { BuildingPaletteSlot } from "../runtime/BuildingGlobals";
@@ -66,12 +68,13 @@ import { f32BitsToHalf } from "../runtime/UnitPacking.js";
 import type { RetainedWallUnits } from "../runtime/ConstructionWallLod";
 
 /** How the renderer draws the units of each part type. */
-type Family = "wall" | "parapet" | "roof" | "spire" | "plaster" | "prefab" | "enclosure";
+type Family = "wall" | "parapet" | "roof" | "spire" | "plaster" | "prefab" | "enclosure" | "foundation";
 const FAMILIES: Readonly<Record<string, Family>> = {
   freeWall: "enclosure",
   fencePost: "enclosure",
   fenceRail: "enclosure",
   steps: "enclosure",
+  foundation: "foundation",
   wall: "wall",
   cornerStone: "wall",
   wallSeam: "wall",
@@ -365,7 +368,8 @@ function plainCells(binding: CoreBinding): SupportCell[] {
         id,
         logical_id: id,
         surface_id: binding.id,
-        anchor_uv: [u.frame.origin[0], u.frame.origin[2]],
+        // The unit's place on its part's placement chart, or its plan position.
+        anchor_uv: (u.params?.anchor_uv as number[] | undefined) ?? [u.frame.origin[0], u.frame.origin[2]],
         center: laidCenter(part, u),
         tangent: [...u.frame.x],
         bitangent: [...u.frame.y],
@@ -415,6 +419,8 @@ function bindingDraws(binding: CoreBinding, slot: number, layout: CoreBuildingLa
     if (bands.length) draws.push({ role: "floor-band", cells: masonryCells(binding, bands, base) });
   } else if (binding.family === "enclosure") {
     draws.push({ role: "enclosure", cells: plainCells(binding) });
+  } else if (binding.family === "foundation") {
+    draws.push({ role: "foundation", cells: plainCells(binding) });
   } else if (binding.family === "roof") {
     const deck = binding.parts.filter((p) => p.part.type === "roofDeck");
     // A deck that lost an area, as under a hatch, has its tiles cut there by the renderer.
@@ -873,6 +879,78 @@ function deckSurface(p: RoofDeckParams, offset: number) {
   }
   return { mesh, chart, width: W };
 }
+/** The faces of a foundation: the side of each wall chart from its bottom to its top on its
+ * finish face, each level deck, and each closed outline filled in the order of its points. A
+ * face's chart is where `foundationFaces` puts it, in metres along it and up from the bottom of
+ * its surface. */
+function foundationMesh(mesh: Mesh, geometry: EffectiveGeometry) {
+  const elements = geometry.original.elements;
+  let end = 0;
+  for (const f of foundationFaces(geometry)) {
+    end = Math.max(end, f.chart + f.width);
+    const e = elements[f.element];
+    if (e.kind !== "surface") continue;
+    if (e.surface.kind === "roofDeck") {
+      const deck = deckSurface(e.surface.params as RoofDeckParams, f.chart).mesh;
+      const base = mesh.positions.length / 3;
+      mesh.positions.push(...deck.positions);
+      mesh.uvs.push(...deck.uvs);
+      mesh.indices.push(...deck.indices.map((k) => k + base));
+      continue;
+    }
+    const chart = e.surface.params as WallChartParams;
+    const ring = ringAt(chart, chart.finishOuter);
+    for (const { a, b, ta, tb, s0, s1 } of runEdges(chart, f)) {
+      // Where the ground stands above the top, the side ends where it crosses the top.
+      if (a[1] >= ta && b[1] >= tb) continue;
+      let t0 = 0,
+        t1 = 1;
+      const crossing = (ta - a[1]) / (b[1] - a[1] - (tb - ta));
+      if (a[1] > ta) t0 = crossing;
+      if (b[1] > tb) t1 = crossing;
+      const pa = ring.at(f.u + s0),
+        pb = ring.at(f.u + s1);
+      const at = (t: number) => ({
+        x: pa.x + (pb.x - pa.x) * t,
+        z: pa.z + (pb.z - pa.z) * t,
+        bottom: Math.min(a[1] + (b[1] - a[1]) * t, ta + (tb - ta) * t),
+        top: ta + (tb - ta) * t,
+        u: f.chart + s0 + (s1 - s0) * t
+      });
+      const p = at(t0),
+        q = at(t1);
+      quad(
+        mesh,
+        [
+          [p.x, p.bottom, p.z],
+          [q.x, q.bottom, q.z],
+          [q.x, q.top, q.z],
+          [p.x, p.top, p.z]
+        ],
+        [
+          [p.u, p.bottom - chart.minGround],
+          [q.u, q.bottom - chart.minGround],
+          [q.u, q.top - chart.minGround],
+          [p.u, p.top - chart.minGround]
+        ]
+      );
+    }
+  }
+  // Each outline is charted in plan, after the faces.
+  for (const e of Object.values(elements)) {
+    if (e.kind !== "curve" || !e.curve.closed) continue;
+    const pts = e.curve.points,
+      base = mesh.positions.length / 3;
+    const x0 = Math.min(...pts.map((q) => q[0])),
+      z0 = Math.min(...pts.map((q) => q[2]));
+    for (const q of pts) {
+      mesh.positions.push(q[0], q[1], q[2]);
+      mesh.uvs.push([end + q[0] - x0, q[2] - z0]);
+    }
+    end += Math.max(...pts.map((q) => q[0])) - x0;
+    for (let i = 1; i + 1 < pts.length; i++) mesh.indices.push(base, base + i, base + i + 1);
+  }
+}
 /** Six faces of a unit box, for solid units such as a parapet's merlons. The box is the
  * prototype's bounds through the unit's matrix, or the laid size around the frame. Each face
  * is charted in metres around `anchor` when one is given, else from its own corner. */
@@ -1027,6 +1105,24 @@ export function coreBuildingView(layout: CoreBuildingLayout, options: CoreBuildi
           backing: false,
           ...(options.includeAppearance &&
             bandCells.length && { lodAppearance: constructionLodAppearance(bands.uvs, bandCells, perimeter) })
+        });
+      } else if (binding.family === "foundation") {
+        // The faces of the foundation, charted face after face as its units are.
+        const mesh = emptyMesh(),
+          cells: ConstructionLodCell[] = [];
+        for (const { part, units } of binding.parts) {
+          foundationMesh(mesh, new EffectiveGeometry(part.original, part.modifications, layout.surfaces));
+          if (options.includeAppearance)
+            for (const u of units)
+              cells.push({
+                id: `${partId(part)}/${u.key}`,
+                anchor_uv: u.params!.anchor_uv as number[],
+                size: [u.size![0], u.size![1]]
+              });
+        }
+        add(owner, binding, mesh, {
+          ...(options.includeAppearance &&
+            cells.length && { lodAppearance: constructionLodAppearance(mesh.uvs, cells) })
         });
       } else if (binding.family === "parapet" || binding.family === "enclosure") {
         // Merlons, free-standing walls and fences are solid: the distance view draws their

@@ -59,6 +59,7 @@ registerBuildingAssetComponents();
 type Ground = (x: number, z: number) => number;
 const flat: Ground = () => 0;
 const hills: Ground = (x, z) => 0.35 * Math.sin(0.6 * x + 0.3) + 0.2 * Math.cos(0.45 * z);
+const slope: Ground = (x, z) => 0.12 * x + 0.04 * z;
 interface Case {
   id: string;
   title: string;
@@ -360,6 +361,37 @@ const cases = (): Case[] => [
     },
     ground: flat
   },
+  {
+    id: "foundation-solid",
+    title: "台基 · 实心",
+    house: {
+      id: "a",
+      rectangle: { center: [0, 0], size: [9, 6], rotation: 0.3 },
+      foundation: { height: 0.8, mode: "solid" }
+    },
+    ground: hills
+  },
+  {
+    id: "foundation-pillars",
+    title: "台基 · 柱子",
+    house: {
+      id: "a",
+      rectangle: { center: [0, 0], size: [9, 6], rotation: 0.3 },
+      foundation: { height: 1.2, mode: "pillars" }
+    },
+    ground: slope
+  },
+  {
+    id: "foundation-round",
+    title: "台基 · 圆屋柱子",
+    house: {
+      id: "a",
+      height: 6,
+      circle: { center: [0, 0], radius: 3, phase: 0 },
+      foundation: { height: 1.5 }
+    },
+    ground: hills
+  },
   { id: "steep", title: "陡屋顶", house: { id: "a", roof: { height: 0.8, eave: 0.4 } }, ground: flat },
   { id: "gable", title: "山墙屋顶", house: { id: "a", roof: { ridge_length: 1 } }, ground: flat },
   {
@@ -461,8 +493,16 @@ interface Drawn {
   units: number;
 }
 async function online(c: Case, dx: number, parent: Entity, signal: AbortSignal): Promise<Drawn> {
-  const houses = moved(c, dx).map(({ walls: _w, footprint: _f, roofAttachments, ...p }) => ({
+  const houses = moved(c, dx).map(({ walls: _w, footprint: _f, roofAttachments, foundation, ...p }) => ({
     ...p,
+    ...(foundation && {
+      foundation: { height: foundation.height, ...(foundation.mode && { mode: foundation.mode }) },
+      foundationStyle: {
+        ...(foundation.unit && { unit: foundation.unit }),
+        ...(foundation.rule && { algorithm: { type: foundation.rule } }),
+        ...(foundation.footprint && { footprint: foundation.footprint })
+      }
+    }),
     attachments: [
       ...(p.attachments ?? []),
       ...(roofAttachments ?? []).map((a) => ({

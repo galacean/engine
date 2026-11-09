@@ -35,6 +35,7 @@ import { registerOpeningTypes } from "./Openings";
 import { registerDormerTypes } from "./Dormers";
 import { registerShedDormerTypes } from "./ShedDormers";
 import { isFlatRoofHeight } from "../runtime/RoofMode";
+import { registerFoundationTypes, type HouseFoundation } from "./Foundation";
 
 /** The wall chart: the perimeter unrolled along u, height along v. Plain JSON. */
 export interface WallChartParams {
@@ -121,6 +122,8 @@ export interface HouseShared {
   readonly wallUnit?: MaterialFootprint;
   /** Storey height of the floor bands, in metres. Default: 3.5. */
   readonly floorInterval?: number;
+  /** The base the house stands on; its walls start on it. Default: the ground. */
+  readonly foundation?: HouseFoundation;
 }
 
 /** Element "face": the wall chart around the whole house, closed. Its top follows the roof
@@ -128,7 +131,12 @@ export interface HouseShared {
 export const houseWallGeometry: GeometryGenerator<HouseShared> = (p, { environment }) => {
   const envelope = profileWallEnvelope(p.footprint, p.wallUnit);
   const profile = publishProfileWall(
-    { shape: profileShape(p.footprint), height: p.height, roof: p.roof },
+    {
+      shape: profileShape(p.footprint),
+      height: p.height,
+      roof: p.roof,
+      ...(p.foundation && { foundation: { height: p.foundation.height } })
+    },
     ground(environment),
     true,
     envelope
@@ -1337,5 +1345,7 @@ export function registerHouseTypes(registry: BuildingRegistry): BuildingRegistry
   registry.algorithms.register("seamStones", seamStones);
   registry.defaults.join("wall", "wall", "wallJoin");
   registry.detectors.register(joinPairKey("wall", "wall"), wallsTouch);
-  return registerShedDormerTypes(registerDormerTypes(registerOpeningTypes(registerRoofTypes(registry))));
+  return registerFoundationTypes(
+    registerShedDormerTypes(registerDormerTypes(registerOpeningTypes(registerRoofTypes(registry))))
+  );
 }
