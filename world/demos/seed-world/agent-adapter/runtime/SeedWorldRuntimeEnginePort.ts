@@ -405,8 +405,8 @@ export class SeedWorldRuntimeEnginePort implements SeedWorldEnginePort {
         submittedCounts: { ...world.population.submittedCounts }
       },
       decorations: {
-        rocks: world.stones.placementCount,
-        smallRocks: world.smallRocks.placementCount,
+        rocks: (world.stones?.placementCount ?? 0),
+        smallRocks: (world.smallRocks?.placementCount ?? 0),
         mushrooms: world.mushrooms.placementCount,
         lotus: world.lotus.placementCount
       },

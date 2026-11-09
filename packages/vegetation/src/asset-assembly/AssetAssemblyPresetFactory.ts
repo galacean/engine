@@ -199,6 +199,7 @@ export function createDefaultPopulationToken(
         lodProfile: detachLodProfile(sourceLibrary.flower.defaultLodProfile)
       };
     case "rock":
+      if (!sourceLibrary.rock) throw new Error("Rock preview requires authored rock sources");
       return {
         ...common,
         category,
@@ -246,13 +247,15 @@ export function validatePopulationTokenSource(
     requireCatalogLodMetric(token, sourceLibrary.shrub.defaultLodProfile.metric);
     return;
   }
-  if (token.assetId !== sourceLibrary[token.category].id) {
+  const source = sourceLibrary[token.category];
+  if (!source) throw new Error(`No authored source loaded for ${token.category}`);
+  if (token.assetId !== source.id) {
     throw new Error(`${token.category} Population Token does not resolve to one immutable production Prefab`);
   }
-  if (token.lodProfile.values.length !== sourceLibrary[token.category].lods.length) {
+  if (token.lodProfile.values.length !== source.lods.length) {
     throw new Error(`${token.category} Population Token LOD quantity count does not match its production Prefab`);
   }
-  requireCatalogLodMetric(token, sourceLibrary[token.category].defaultLodProfile.metric);
+  requireCatalogLodMetric(token, source.defaultLodProfile.metric);
 }
 
 /**
@@ -751,6 +754,7 @@ function categoryEntropy(category: AssetCategory): number {
 
 function sourceColor(category: AssetCategory, sourceLibrary: AssetAssemblySourceLibrary): AssetSeedColor {
   const source = category === "tree" ? sourceLibrary.treeRecipes[0] : sourceLibrary[category];
+  if (!source) throw new Error(`No authored source loaded for ${category}`);
   return [...source.defaultColorRgb] as AssetSeedColor;
 }
 

@@ -222,8 +222,9 @@ export function createTemplatePlanningDocument(
       ...art.weather
     }
   };
-  Object.assign(components.landscape.values, art.landscape);
+  Object.assign(components.landscape.values, art.landscape, art.initialLandscape);
   if (art.flowerCoverage !== undefined) components.flowers.values.coverage = art.flowerCoverage;
+  Object.assign(components.flowers.values, art.initialFlowers);
   components.animals = { values: { enabled: false } };
   document.authoredResources = structuredClone(resources);
   // Template lakes enter the same native Source conversion as generated lakes.

@@ -2207,6 +2207,7 @@ function lodPreviewDistances(
 ): readonly number[] {
   if (category !== "shrub" && category !== "rock") return LOD_PREVIEW_DISTANCES[category];
   const source = category === "shrub" ? sourceLibrary.shrub : sourceLibrary.rock;
+  if (!source) throw new Error("No loaded rock source");
   const profile = source.lodGroup!;
   const tangent = Math.tan((fieldOfViewDegrees * Math.PI) / 360);
   const transitions = profile.screenRelativeTransitionHeights.map((height) => profile.size / (2 * tangent * height));

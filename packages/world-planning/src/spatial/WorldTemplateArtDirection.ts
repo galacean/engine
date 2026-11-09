@@ -13,6 +13,20 @@ export interface WorldTemplateArtDirection {
   /** Composition aim relative to the focus envelope; a side subject stays at the side. */
   lookAtOffset?: [number, number, number];
   models: (TemplateNode | TemplateAssetSlot)[];
+  /** Infrastructure may be generated around a separately authored set of model poses. */
+  modelLayout?: "authored" | "generated";
+  spores?: {
+    count: number;
+    center: [number, number, number];
+    extent: [number, number, number];
+    radiusM: number;
+    /** Minimum glow diameter as a fraction of the viewport height. */
+    minScreenFraction: number;
+    color: string;
+    intensity: number;
+    driftM: number;
+    periodSeconds: number;
+  };
   /** Scalar authoring only; roads, water, relief and populations are derived. */
   generation?: Partial<SpatialCompositionParameters>;
   grass: [string, string];
@@ -35,6 +49,9 @@ export interface WorldTemplateArtDirection {
   lighting: Record<string, number | boolean>;
   postProcess: Record<string, number | boolean>;
   landscape?: Record<string, number>;
+  /** Initial density and distribution inputs; subsequent authored controls retain precedence. */
+  initialLandscape?: Record<string, number>;
+  initialFlowers?: Record<string, number>;
   flowerCoverage?: number;
   weather?: {
     cloudCoverage?: number;
@@ -153,6 +170,53 @@ const plateau = (id: string, x: number, z: number, length: number, width: number
   kind: "plateau" as const
 });
 
+const forestMushroom = (id: string, x: number, z: number, height: number, yaw = 0): TemplateNode => ({
+  ...model(id, [x, 0, z], [height, height, height], true, yaw),
+  footprint: [height * 0.22, height * 0.22],
+  assetUrl: new URL("../assets/forest-luminous-mushroom.glb", import.meta.url).href,
+  assetMaterials: {
+    // A forest-only material variant. The red source GLB and its local emission mask stay intact.
+    Mushroom_Tree: {
+      emission: { color: "#ffffff", intensity: 15 },
+      translucent: {
+        shade: "#78ead4",
+        highlight: "#adfff2",
+        textureExposure: 4,
+        transmission: 0.68,
+        roughness: 0.48,
+        clearCoat: 0.45,
+        clearCoatRoughness: 0.2
+      }
+    }
+  }
+});
+// Measurements of the exported oak's lowest closed root boundary, in normalized source metres.
+// The cut rim is slanted; its highest point, rather than the mesh minimum, is the planting plane.
+const forestOakRoot = {
+  plantingY: 0.027408771216869354,
+  halfWidth: 0.1557244062423706,
+  halfDepth: 0.1570490300655365
+};
+const forestOak = (id: string, x: number, z: number, height: number, yaw: number): TemplateNode => ({
+  ...model(id, [x, 0, z], [height, height, height * 0.65], true, yaw),
+  footprint: [height * 0.065, height * 0.065],
+  assetGroundY: forestOakRoot.plantingY,
+  groundingFootprint: [
+    (2 * forestOakRoot.halfWidth * height) / (1 - forestOakRoot.plantingY),
+    (2 * forestOakRoot.halfDepth * height) / (1 - forestOakRoot.plantingY)
+  ],
+  assetUrl: new URL("../assets/forest-giant-oak.glb", import.meta.url).href,
+  assetLeafMaterials: ["rsSprite1"],
+  assetLeafColor: "#74a45b"
+});
+const forestFern = (id: string, x: number, z: number, height: number, yaw: number): TemplateNode => ({
+  ...model(id, [x, 0, z], [height * 4, height, height * 4], true, yaw),
+  footprint: [height * 0.25, height * 0.25],
+  assetUrl: new URL("../assets/forest-fern.glb", import.meta.url).href,
+  assetLeafMaterials: ["MI_Ferns"],
+  assetLeafColor: "#9cbd4c"
+});
+
 export const WORLD_TEMPLATE_ART: Readonly<Record<string, WorldTemplateArtDirection>> = {
   "sakura-pearl": {
     generation: {
@@ -160,17 +224,17 @@ export const WORLD_TEMPLATE_ART: Readonly<Record<string, WorldTemplateArtDirecti
       roadWidthM: 10,
       roadBendM: 18,
       roadWavelengthM: 220,
-      destinationId: "garden-pavilion",
+      destinationId: "",
       forecourtDepthM: 30,
       streamWidthM: 24,
       bankWidthM: 7,
       leftReliefM: 60,
       rightReliefM: 70,
-      waterfallWidthM: 10,
+      waterfallWidthM: 0,
       treeSpacingM: 22,
       treeBandWidthM: 65,
       treeAssetId: "SM_BirchTree_01",
-      rockSpacingM: 28,
+      rockSpacingM: 18,
       replacePopulation: true
     },
     reference: "SeedWorld-01-sakura-pearl.png",
@@ -188,12 +252,11 @@ export const WORLD_TEMPLATE_ART: Readonly<Record<string, WorldTemplateArtDirecti
         assetGroundY: 1.0934512615203857,
         assetYawDegrees: -155,
         assetLeafMaterials: ["Foliage_PBR_512"],
+        assetLeafColor: "#ff2f70",
         assetUrl: new URL("../assets/pink-tree.glb", import.meta.url).href
-      },
-      { id: "garden-pavilion", scale: [16, 18, 15], grounded: true },
-      { id: "garden-tower", scale: [12, 27, 12], grounded: true }
+      }
     ],
-    grass: ["#e55959", "#ff899e"],
+    grass: ["#e55959", "#fc5a7a"],
     ground: "#f2dfe8",
     road: "#c7b9ad",
     foliage: "#f8b8cb",
@@ -277,18 +340,36 @@ export const WORLD_TEMPLATE_ART: Readonly<Record<string, WorldTemplateArtDirecti
     flowers: "#fff2fa",
     stone: "#c9bfd3",
     lighting: {
-      ...lighting(9.5, 2.1, 1.25, 1.3, 0.00025, 0.55),
+      ...lighting(15, 2.1, 1.15, 0.9, 0.00025, 0.7),
       ...atmosphere([0.765, 1.6, 1.6], [1.1, 1.15, 1.2]),
       skyTintR: 0.557,
       skyTintG: 0.626,
       skyTintB: 0.747,
       sunColorR: 1.04,
       sunColorG: 1,
-      sunColorB: 1.08
+      sunColorB: 0.97
     },
     postProcess: post(8, 7),
     landscape: { treeHeightMinM: 8, treeHeightMaxM: 18 },
-    flowerCoverage: 0.65
+    initialLandscape: {
+      "vegetation.shrubs": 0.7,
+      "vegetation.herbs": 0.15,
+      "vegetation.cover": 0.8,
+      "vegetation.flowers": 0.8,
+      "vegetation.litter": 1,
+      "plantSizes.shrubs.scaleMin": 0.2,
+      "plantSizes.cover.scaleMin": 0.9,
+      "plantSizes.cover.scaleMax": 1.6,
+      "plantSizes.flowers.scaleMin": 0.75,
+      "plantSizes.flowers.scaleMax": 1.25,
+      "plantSizes.litter.scaleMin": 1,
+      "plantSizes.litter.scaleMax": 1.4,
+      roadsideDensityMultiplier: 20,
+      grassRelativeHeight: 0.4,
+      roadsideGrassHeightRatio: 0.45
+    },
+    flowerCoverage: 0.85,
+    initialFlowers: { densityPerM2: 0.7 }
   },
   "aurora-palace": {
     reference: "SeedWorld-02-aurora-ice-palace.png",
@@ -315,38 +396,125 @@ export const WORLD_TEMPLATE_ART: Readonly<Record<string, WorldTemplateArtDirecti
     terrain: [ridge("west-ice-wall", -110, 55, 330, 72, 65), ridge("east-ice-wall", 110, 55, 330, 72, 65)]
   },
   "emerald-forest": {
+    modelLayout: "authored",
+    spores: {
+      count: 400,
+      center: [0, 6, 15],
+      extent: [64, 12, 120],
+      radiusM: 0.005,
+      minScreenFraction: 0.0015,
+      color: "#e1ff8c",
+      intensity: 16,
+      driftM: 0.4,
+      periodSeconds: 7
+    },
+    generation: {
+      enabled: true,
+      widthM: 180,
+      frontDepthM: 100,
+      backDepthM: 155,
+      roadWidthM: 4.5,
+      roadEndWidthRatio: 0.6,
+      roadBendM: 5,
+      roadWavelengthM: 95,
+      destinationId: "giant-oak-distant-center",
+      bankWidthM: 18,
+      leftReliefM: 0,
+      rightReliefM: 0,
+      treeSpacingM: 18,
+      treeBandWidthM: 36,
+      treeAssetId: "SM_BirchTree_01",
+      rockSpacingM: 12,
+      rockWidthM: 5,
+      rockDepthM: 4,
+      rockHeightM: 2.5,
+      replacePopulation: true
+    },
     reference: "SeedWorld-03-emerald-rainforest.png",
     focus: ["giant-luminous-mushroom"],
-    frameFraction: 0.65,
-    azimuthDegrees: -8,
-    lookAtOffset: [-12, 0, 0],
+    frameFraction: 0.86,
+    azimuthDegrees: -5,
+    lookAtOffset: [-8, 1.5, 0],
     models: [
-      model("giant-luminous-mushroom", [12, 0, 7], [15, 18, 15]),
-      model("small-luminous-mushroom", [22, 0, 3], [6, 8, 6]),
-      model("fallen-forest-trunk", [-8, 3, 28], [40, 7, 8], false, 12)
+      {
+        ...forestMushroom("giant-luminous-mushroom", 12, 8, 20, -20),
+        // The glowing gills illuminate the pale tissue and the companion cluster.
+        light: { offset: [0, 0.12, 0], color: "#78ffe0", intensity: 0.9, rangeM: 26 }
+      },
+      forestMushroom("small-luminous-mushroom", 23, 9, 8, 30),
+      forestMushroom("mushroom-front-companion", 7, -1, 6.5, -55),
+      forestMushroom("mushroom-east-companion", 20, 19, 5, 85),
+      forestMushroom("mushroom-root-cluster", 16, -2, 2.4, 125),
+      forestMushroom("mushroom-west-foreground", -10, -24, 2, -15),
+      forestMushroom("mushroom-west-small", -12, -22, 1.1, 45),
+      forestMushroom("mushroom-east-foreground", 12, -25, 1.8, 90),
+      forestMushroom("mushroom-east-small", 14, -23, 0.9, -50),
+      forestMushroom("mushroom-trail-west", -7, 30, 1.4, 20),
+      forestMushroom("mushroom-trail-east", 8, 43, 1.7, -60),
+      forestOak("giant-oak-west-frame", -25, 0, 110, 20),
+      forestOak("giant-oak-east-frame", 36, 21, 115, -35),
+      forestOak("giant-oak-west-middle", -22, 62, 95, 85),
+      forestOak("giant-oak-east-middle", 27, 78, 125, 140),
+      forestOak("giant-oak-distant-center", -2, 133, 130, -70),
+      forestOak("giant-oak-west-outer", -67, 65, 140, -25),
+      forestOak("giant-oak-east-outer", 70, 95, 130, 65),
+      forestOak("giant-oak-west-distance", -43, 153, 115, 120),
+      forestOak("giant-oak-east-distance", 43, 185, 150, -100),
+      forestFern("fern-west-foreground", -17, -16, 2.8, 20),
+      forestFern("fern-east-foreground", 23, -18, 2.4, -40),
+      forestFern("fern-west-bank", -19, 4, 3.8, 70),
+      forestFern("fern-east-bank", 31, 11, 3.4, -65),
+      forestFern("fern-mushroom-root", 21, 0, 1.6, 110),
+      forestFern("fern-trail-west", -11, 28, 2, 45),
+      forestFern("fern-trail-east", 14, 40, 2.2, -20),
+      {
+        ...model("fallen-forest-trunk", [-4, 7, 40], [48, 11, 11], false, -8),
+        assetUrl: new URL("../assets/forest-fallen-trunk.glb", import.meta.url).href,
+        assetMaterials: { SHD_trunk: { color: "#97ac64" } }
+      },
+      {
+        ...model("canopy-sunbeams", [0, 45, 80], [130, 90, 90], false),
+        assetUrl: new URL("../assets/forest-canopy-sunbeams.glb", import.meta.url).href,
+        assetMaterials: { "Scattered canopy sunlight": { intensity: 1 } }
+      }
     ],
-    grass: ["#174e2b", "#4a822d"],
-    ground: "#756b34",
-    foliage: "#23854b",
-    bark: "#69532d",
-    flowers: "#8be3c1",
-    stone: "#3d7562",
-    lighting: {
-      ...lighting(10.3, 1.7, 1.5, 1.1, 0.0009, 0.7),
-      ...atmosphere([0.45, 1.25, 0.85], [0.65, 1.5, 0.75]),
-      sunColorR: 0.95,
-      sunColorG: 1.12,
-      sunColorB: 0.85
+    grass: ["#163c26", "#718f2e"],
+    ground: "#49603c",
+    road: "#9d9962",
+    foliage: "#598b32",
+    bark: "#706042",
+    flowers: "#d4f7d9",
+    stone: "#526c50",
+    plantPalette: {
+      layers: ["shrubs", "herbs", "cover", "flowers", "litter"],
+      parts: {
+        foliage: { color: "#668c39", intensity: 1 },
+        leaves: { color: "#4e8135", intensity: 1 },
+        stem: { color: "#47703a", intensity: 1 },
+        petals: { color: "#e3ffe3", intensity: 1.2 },
+        cap: { color: "#4ce9ba", intensity: 2 },
+        bark: { color: "#6c6541", intensity: 1 }
+      }
     },
-    postProcess: post(12, 10),
-    landscape: { treeHeightMinM: 23, treeHeightMaxM: 42 },
-    flowerCoverage: 0.18,
-    plantings: [
-      { id: "west-forest-grove", kind: "tree", x: -28, z: 8, radius: 18, densityScale: 0.15 },
-      { id: "east-forest-grove", kind: "tree", x: 42, z: 18, radius: 18, densityScale: 0.15 },
-      { id: "forest-backdrop", kind: "tree", x: 0, z: 60, radius: 35, densityScale: 0.15 }
-    ],
-    terrain: [ridge("west-forest-bank", -70, 40, 220, 46, 18), ridge("east-forest-bank", 70, 40, 220, 46, 20)]
+    lighting: {
+      ...lighting(10.3, 2.4, 1.2, 0.8, 0.009, 0.7),
+      ...atmosphere([0.35, 0.72, 0.57], [0.64, 1.15, 0.84]),
+      sunColorR: 1.1,
+      sunColorG: 1.05,
+      sunColorB: 0.72,
+      fogTintR: 0.46,
+      fogTintG: 0.95,
+      fogTintB: 0.76
+    },
+    postProcess: { ...post(15, 9, -2), bloomThreshold: 0.65, bloomIntensity: 0.8, bloomScatter: 0.7 },
+    landscape: {
+      treeHeightMinM: 32,
+      treeHeightMaxM: 55,
+      grassRelativeHeight: 0.3
+    },
+    flowerCoverage: 0.08,
+    weather: { cloudCoverage: 0, relativeHumidity: 0.7 },
+    terrain: [ridge("west-forest-bank", -33, 24, 100, 22, 3), ridge("east-forest-bank", 30, 28, 110, 24, 4)]
   },
   "amethyst-ruins": {
     reference: "SeedWorld-04-amethyst-cosmic-ruins.png",

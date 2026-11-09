@@ -65,6 +65,8 @@ export interface SeedWorldExactPrefabRuntimeProfile {
   readonly key: string;
   /** Child entity label created below the shared Decorations root. */
   readonly entityName: string;
+  /** Omit unused authored families when the active world supplies procedural replacements. */
+  readonly enabled?: (context: SeedWorldExactPrefabRuntimeContext) => boolean;
   /**
    * Creates one runtime family from shared world dependencies.
    * @param context Immutable generated-world dependencies.
@@ -79,6 +81,9 @@ export interface SeedWorldExactPrefabRuntimeProfile {
 export const SEED_WORLD_EXACT_PREFAB_RUNTIME_PROFILES: readonly SeedWorldExactPrefabRuntimeProfile[] = Object.freeze([
   {
     key: "rock",
+    enabled: (context) =>
+      Boolean(context.sourceLibrary.featureRockFamily) ||
+      context.decorations.some((decoration) => decoration.category === "rock"),
     entityName: "Feature Rocks",
     create: (context, root) =>
       new SeedWorldRockRuntime(
@@ -95,6 +100,9 @@ export const SEED_WORLD_EXACT_PREFAB_RUNTIME_PROFILES: readonly SeedWorldExactPr
   },
   {
     key: "stone",
+    enabled: (context) =>
+      Boolean(context.sourceLibrary.stoneFamily) ||
+      context.decorations.some((decoration) => decoration.category === "stone"),
     entityName: "Stones",
     create: (context, root) =>
       new SeedWorldRockRuntime(
@@ -111,9 +119,14 @@ export const SEED_WORLD_EXACT_PREFAB_RUNTIME_PROFILES: readonly SeedWorldExactPr
   },
   {
     key: "small-rock",
+    enabled: (context) =>
+      Boolean(context.sourceLibrary.debrisSource) ||
+      context.decorations.some((decoration) => decoration.category === "small-rock"),
     entityName: "Small Rocks",
-    create: (context, root) =>
-      new SeedWorldSmallRockRuntime(
+    create: (context, root) => {
+      if (!context.sourceLibrary.debrisSource)
+        throw new Error("Small-rock Prefab runtime requires authored debris sources");
+      return new SeedWorldSmallRockRuntime(
         context.engine,
         root,
         context.camera,
@@ -123,7 +136,8 @@ export const SEED_WORLD_EXACT_PREFAB_RUNTIME_PROFILES: readonly SeedWorldExactPr
           (decoration): decoration is SeedWorldSmallRockInstance => decoration.category === "small-rock"
         ),
         context.crossFadeDurationSeconds
-      )
+      );
+    }
   },
   {
     key: "mushroom",
@@ -183,6 +197,7 @@ export class SeedWorldExactPrefabRuntimeRegistry {
         if (runtimes.has(profile.key)) {
           throw new Error(`Seed World exact Prefab profile key "${profile.key}" is duplicated`);
         }
+        if (profile.enabled && !profile.enabled(context)) continue;
         runtimes.set(profile.key, profile.create(context, context.parent.createChild(profile.entityName)));
       }
     } catch (error) {
@@ -194,6 +209,11 @@ export class SeedWorldExactPrefabRuntimeRegistry {
     this.exactSpatialEntries = Object.freeze(
       this.exactInstances.filter((entry): entry is SeedWorldExactInstanceSpatialEntry => "update" in entry.controller)
     );
+  }
+
+  /** Returns an active family, or undefined when its resources were intentionally omitted. */
+  get(key: string): SeedWorldExactPrefabRuntime | undefined {
+    return this._runtimes.get(key);
   }
 
   /**

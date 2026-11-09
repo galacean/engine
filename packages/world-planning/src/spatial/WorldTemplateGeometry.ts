@@ -14,6 +14,36 @@ export interface TemplateNode {
   assetYawDegrees?: number;
   /** Source material slots whose authored normals use the shared foliage lighting contract. */
   assetLeafMaterials?: readonly string[];
+  /** Optional sRGB leaf tint for the supplied model; its bark and textures retain their authored values. */
+  assetLeafColor?: string;
+  /** Local emission lighting. Offset uses envelope fractions relative to its centre. */
+  light?: { offset: Vec3; color: string; intensity: number; rangeM: number };
+  /** Source material presentation overrides shared by every instance. */
+  assetMaterials?: Readonly<
+    Record<
+      string,
+      {
+        color?: string;
+        /** Linear RGB intensity multiplier; source alpha and textures stay intact. */
+        intensity?: number;
+        emission?: { color: string; intensity: number };
+        /** A dyed, diffusely transmitting surface; source textures remain untouched. */
+        translucent?: {
+          shade: string;
+          highlight: string;
+          textureExposure: number;
+          transmission: number;
+          roughness: number;
+          clearCoat: number;
+          clearCoatRoughness: number;
+        };
+      }
+    >
+  >;
+  /** Solid ground clearance in metres, independent of an overhanging crown's visual envelope. */
+  footprint?: [number, number];
+  /** Terrain sampling area for the planting plane, including shallow spreading roots. */
+  groundingFootprint?: [number, number];
   position: Vec3;
   scale: Vec3;
   rotation: Vec3;
@@ -68,7 +98,7 @@ export function buildWorldTemplateGeometry(
   // Reference layout uses screen-right +X and depth +Z. A native camera looking
   // into +Z has world-right -X; convert the layout frame once at this boundary.
   let nodes: TemplateNode[];
-  if (art.generation || parameters?.enabled) {
+  if ((art.generation || parameters?.enabled) && art.modelLayout !== "authored") {
     const q = spatialCompositionParameters(parameters ?? art.generation),
       frame = { ...q, centerX: 0, centerZ: 0 };
     const primary = art.models.filter((slot) => art.focus.includes(slot.id));
@@ -112,14 +142,14 @@ export function buildWorldTemplateGeometry(
     });
   }
   const radius = Math.max(
-    ...nodes.flatMap((node) => templateNodeFootprint(node).flatMap((p) => [Math.abs(p.x), Math.abs(p.z)]))
+    ...nodes.flatMap((node) => templateNodeFootprint(node, true).flatMap((p) => [Math.abs(p.x), Math.abs(p.z)]))
   );
   const height = Math.max(...nodes.map((node) => node.position[1] + node.scale[1] * (node.grounded ? 1 : 0.5)));
   return { nodes, radius, height, targetHeight: height / 2, focusIds: [...art.focus] };
 }
 
 /** Exact rotated asset footprint, shared by reservation, placement and verification. */
-export function templateNodeFootprint(node: TemplateNode) {
+export function templateNodeFootprint(node: TemplateNode, visualEnvelope = false) {
   const angle = (node.rotation[1] * Math.PI) / 180,
     c = Math.cos(angle),
     s = Math.sin(angle);
@@ -129,8 +159,9 @@ export function templateNodeFootprint(node: TemplateNode) {
     [1, 1],
     [-1, 1]
   ].map(([sx, sz]) => {
-    const x = (sx * node.scale[0]) / 2,
-      z = (sz * node.scale[2]) / 2;
+    const size = !visualEnvelope && node.footprint ? node.footprint : [node.scale[0], node.scale[2]];
+    const x = (sx * size[0]) / 2,
+      z = (sz * size[1]) / 2;
     return { x: node.position[0] + x * c - z * s, z: node.position[2] + x * s + z * c };
   });
 }

@@ -310,7 +310,7 @@ function targetIdFromRockId(rockId: string): string {
 }
 
 function resolveCliffSource(sourceLibrary: AssetAssemblySourceLibrary): AtomicAssemblySource {
-  const source = sourceLibrary.largeRockSurfaceFamilies.grass.variants.find((candidate) =>
+  const source = sourceLibrary.largeRockSurfaceFamilies.grass?.variants.find((candidate) =>
     candidate.id.includes("/rock-clif-1/")
   );
   if (!source?.lods[0]) throw new Error('Seed World source catalog is missing "rock-clif-1" LOD0');

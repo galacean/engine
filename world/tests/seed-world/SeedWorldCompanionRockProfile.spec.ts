@@ -1,43 +1,31 @@
+import { simplifierReady } from "../../../packages/terrain/src/rock-formation/generator/simplify-rock.js";
 import { readFileSync } from "node:fs";
 import { afterEach, expect, it, vi } from "vitest";
-import { companionRockJob } from "@galacean/engine-world-planning/integrations/terrain/rock-formation/CompanionRocks";
-import { ROCK_GENERATION_DEFAULTS } from "@galacean/engine-world-planning/integrations/terrain/rock-formation/GenerationProfile";
-import { seedAscentProfile } from "@galacean/engine-terrain/rock-formation/AscentMask";
-import { ascendingBoundary } from "@galacean/engine-terrain/rock-formation/AscendingBoundary";
-import { RockFormationClient } from "@galacean/engine-world-planning/integrations/terrain/rock-formation/Client";
-import { readRockFormationSettings } from "@galacean/engine-world-planning/integrations/terrain/rock-formation/Settings";
-import { decodeCellularModule } from "@galacean/engine-terrain/rock-formation/CellularModule";
-import { generateRockFormation } from "@galacean/engine-world-planning/integrations/terrain/rock-formation/Generate";
-import { rockSurfaceAttributes } from "@galacean/engine-terrain/rock-formation/SurfaceAttributes";
-import type { RockFormationJob, RockFormationMesh } from "@galacean/engine-terrain/rock-formation/types";
-import type { PlanningDocument } from "@galacean/engine-world-planning/spatial/PlanningDocument";
+import { companionRockJob } from "../../../packages/world-planning/src/integrations/terrain/rock-formation/CompanionRocks.ts";
+import { ROCK_GENERATION_DEFAULTS } from "../../../packages/world-planning/src/integrations/terrain/rock-formation/GenerationProfile.ts";
+import { RockFormationClient } from "../../../packages/world-planning/src/integrations/terrain/rock-formation/Client.ts";
+import { readRockFormationSettings } from "../../../packages/world-planning/src/integrations/terrain/rock-formation/Settings.ts";
+import { generateRockFormation } from "../../../packages/world-planning/src/integrations/terrain/rock-formation/Generate.ts";
+import { rockSurfaceAttributes } from "../../../packages/terrain/src/rock-formation/SurfaceAttributes.ts";
+import type { RockFormationJob, RockFormationMesh } from "../../../packages/terrain/src/rock-formation/types.ts";
+import type { PlanningDocument } from "../../../packages/world-planning/src/spatial/PlanningDocument.ts";
 
 const sources = [1, 2, 3, 4].map((i) => {
-  const bytes = readFileSync(new URL(`../../../packages/terrain/src/data/seed-world/public/atoms/stone-${i}-lod0.glb`, import.meta.url));
+  const bytes = readFileSync(
+    new URL(`../../../packages/terrain/src/data/seed-world/public/atoms/stone-${i}-lod0.glb`, import.meta.url)
+  );
   const gltf = JSON.parse(bytes.subarray(20, 20 + bytes.readUInt32LE(12)).toString());
   const { min, max } = gltf.accessors[gltf.meshes[0].primitives[0].attributes.POSITION];
   return { id: `cartoon/rock/stone-${i}/v1`, bounds: { min: min as number[], max: max as number[] } };
 });
-const area = (ring: number[][]) =>
-  Math.abs(
-    ring.reduce((sum, a, i) => {
-      const b = ring[(i + 1) % ring.length];
-      return sum + a[0] * b[2] - b[0] * a[2];
-    }, 0)
-  ) / 2;
+await simplifierReady;
 const settings = readRockFormationSettings({ entities: {} } as PlanningDocument);
 afterEach(() => vi.unstubAllGlobals());
 
-it("keeps broad level platform caps on the four actual scenic-rock envelopes with zero upper-height variation", () => {
+it("preserves the four ground-stone placement envelopes without loading their geometry", () => {
   for (const seed of [1, 7, 42])
     for (const { id, bounds } of sources) {
       const job = companionRockJob(id, bounds, seed, "platform", ROCK_GENERATION_DEFAULTS);
-      const { geometry } = ascendingBoundary(seedAscentProfile(job.guides[0], job.seed));
-      // Zero jitter keeps the whole cap at full height, contracting it slightly
-      // more than the old 5% variation. Its footprint must still be mostly cap.
-      expect(area(geometry.upperBoundary!) / area(geometry.bottom)).toBeGreaterThan(0.5);
-      expect(job.guides[0].heightVariation).toBe(0);
-      for (const vertex of geometry.upperBoundary!) expect(vertex[1]).toBeCloseTo(job.guides[0].size[1], 8);
       expect(job.guides[0].size).toEqual([
         bounds.max[0] - bounds.min[0],
         bounds.max[1] - bounds.min[1],
@@ -50,86 +38,79 @@ it("keeps broad level platform caps on the four actual scenic-rock envelopes wit
         (bounds.min[2] + bounds.max[2]) / 2
       ]);
       const peak = companionRockJob(id, bounds, seed, "peak", ROCK_GENERATION_DEFAULTS);
-      expect(peak.guides[0]).toMatchObject({
-        heightMode: "perlin-ascent",
-        slopeMode: "auto",
-        slopeVariation: 0.8,
-        heightVariation: 0
-      });
       expect(peak.guides[0].size[1]).toBe(bounds.max[1] - bounds.min[1]);
-      expect(peak.seed).toBe(job.seed);
+      expect(peak.seed).not.toBe(job.seed);
       expect(peak.origin).toEqual(job.origin);
     }
 });
 
-it("generates finite blunt surfaces at the original small-stone height", () => {
-  const bytes = readFileSync(
-    new URL("../../../packages/terrain/src/rock-formation/assets/asymmetric.glb", import.meta.url)
-  );
-  const module = decodeCellularModule(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength));
+it("generates finite reduced surfaces inside the original small-stone OBBs", () => {
   for (const { id, bounds } of sources) {
-    const generate = (kind: "platform" | "peak") => {
-      const mesh = generateRockFormation(
-        companionRockJob(id, bounds, 1, kind, ROCK_GENERATION_DEFAULTS),
-        settings,
-        module
+    const job = companionRockJob(id, bounds, 1, "platform", ROCK_GENERATION_DEFAULTS);
+    const mesh = generateRockFormation(job, settings),
+      guide = job.guides[0];
+    expect(mesh.mesh.indices.length).toBeGreaterThan(0);
+    expect(mesh.mesh.positions.every(Number.isFinite)).toBe(true);
+    expect(mesh.mesh.indices.length / 3).toBeLessThanOrEqual(1000);
+    expect(mesh.stats).toMatchObject({ targetTriangles: 1000, overBudgetBodies: 0 });
+    for (let i = 0; i < mesh.mesh.positions.length; i++) {
+      const axis = i % 3;
+      expect(Math.abs(mesh.mesh.positions[i] - guide.center[axis])).toBeLessThanOrEqual(guide.size[axis] / 2 + 1e-5);
+    }
+    expect(Math.max(...mesh.mesh.positions.filter((_, i) => i % 3 === 1))).toBeGreaterThan(guide.size[1] * 0.85);
+  }
+}, 30000);
+
+it("uses the same rock geometry while disabling grass support on companion stones", () => {
+  const { id, bounds } = sources[0];
+  const job = companionRockJob(id, bounds, 1, "platform", ROCK_GENERATION_DEFAULTS);
+  expect(job.surfaceGrass).toBe(false);
+  const bare = generateRockFormation(job, settings);
+  const covered = generateRockFormation({ ...job, surfaceGrass: true }, settings);
+  expect(bare.grass).toBeUndefined();
+  expect(covered.grass!.coverage.some((value) => value > 0)).toBe(true);
+  expect(bare.mesh).toEqual(covered.mesh);
+  const attributes = rockSurfaceAttributes(bare);
+  expect(attributes.data.filter((_, index) => index % attributes.stride === 9).every((value) => value === 0)).toBe(
+    true
+  );
+}, 30000);
+
+it("records exactly the original GLB bounds as metadata for resource-free placement", () => {
+  for (const path of [
+    "../../../packages/terrain/src/data/seed-world/public/production-catalog.json",
+    "../../../packages/vegetation/src/asset-assembly/generated/procedural-trees/plant-project-production-catalog.json"
+  ]) {
+    const manifest = JSON.parse(readFileSync(new URL(path, import.meta.url), "utf8"));
+    for (const source of sources)
+      expect(manifest.stoneVariants.find((entry: { id: string }) => entry.id === source.id).geometryBounds).toEqual(
+        source.bounds
       );
-      expect(mesh.mesh.indices.length).toBeGreaterThan(0);
-      expect(mesh.mesh.positions.every(Number.isFinite)).toBe(true);
-      return Math.max(...mesh.mesh.positions.filter((_, i) => i % 3 === 1));
-    };
-    // The tessellated cap samples the ascent field; allow at most 1 mm of
-    // interpolation loss when the authored upper-height variation is zero.
-    expect(generate("platform")).toBeGreaterThanOrEqual(
-      (bounds.max[1] - bounds.min[1]) * (1 - ROCK_GENERATION_DEFAULTS.platformHeightVariation) - 0.001
-    );
-    generate("peak");
   }
 });
-
-it.each(["vertex-slabs", "cellular-curvature"] as const)(
-  "keeps %s companion geometry and painted detail while removing grass support and substrate",
-  (surfaceMode) => {
-    const bytes = readFileSync(
-      new URL("../../../packages/terrain/src/rock-formation/assets/asymmetric.glb", import.meta.url)
-    );
-    const module = decodeCellularModule(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength));
-    let coveredVertices = 0;
-    for (const { id, bounds } of sources) {
-      const job = companionRockJob(id, bounds, 1, "platform", ROCK_GENERATION_DEFAULTS);
-      expect(job.surfaceGrass).toBe(false);
-      const bare = generateRockFormation(job, { ...settings, surfaceMode }, module);
-      const covered = generateRockFormation({ ...job, surfaceGrass: true }, { ...settings, surfaceMode }, module);
-      expect(bare.grass).toBeUndefined();
-      coveredVertices += covered.grass!.coverage.filter((value) => value > 0).length;
-      expect(bare.mesh).toEqual(covered.mesh);
-      expect(bare.painted).toEqual(covered.painted);
-      const attributes = rockSurfaceAttributes(bare);
-      expect(attributes.data.filter((_, index) => index % attributes.stride === 9).every((value) => value === 0)).toBe(
-        true
-      );
-    }
-    expect(coveredVertices).toBeGreaterThan(0);
-  }
-);
 
 it("reuses companion worker results on replay and only invalidates the changed profile shape", async () => {
   const requests: RockFormationJob[] = [];
   class WorkerStub {
-    onmessage?: (event: { data: { id: number; result: RockFormationMesh } }) => void;
+    onmessage?: (event: { data: { id?: number; results?: RockFormationMesh[]; ready?: boolean } }) => void;
+    constructor() {
+      queueMicrotask(() => this.onmessage?.({ data: { ready: true } }));
+    }
     postMessage({ id, job }: { id: number; job: RockFormationJob }) {
       requests.push(job);
       queueMicrotask(() =>
         this.onmessage?.({
           data: {
             id,
-            result: {
-              id: job.id,
-              origin: job.origin,
-              owners: [job.guides[0].ownerId],
-              mesh: { positions: new Float32Array(0), indices: new Uint32Array(0) },
-              stats: { slabs: 0, deformedVertices: 0, generationMs: 1 }
-            }
+            results: [
+              {
+                id: job.id,
+                origin: job.origin,
+                owners: [job.guides[0].ownerId],
+                mesh: { positions: new Float32Array(0), indices: new Uint32Array(0) },
+                stats: { bodies: 0, vertices: 0, generationMs: 1 }
+              }
+            ]
           }
         })
       );
@@ -162,7 +143,21 @@ it("reuses companion worker results on replay and only invalidates the changed p
     expect(edited.every((mesh, i) => (mesh === initial[i]) === (i % 2 === 1))).toBe(true);
     const reset = await client.prepareJobs(jobs(), settings, signal);
     expect(reset.every((mesh, i) => mesh === initial[i])).toBe(true);
+    await client.prepareJobs(jobs(), { ...settings, targetTriangles: 2000 }, signal);
+    expect(client.preparationMetrics).toMatchObject({ cached: 0, generated: 8 });
   } finally {
     client.dispose();
   }
 });
+
+it("different placement identities produce different deterministic geometry within the same OBB", () => {
+  const bounds = sources[0].bounds;
+  const jobs = ["stone-a", "stone-b", "stone-c"].map((id) =>
+    companionRockJob(id, bounds, 1, "platform", ROCK_GENERATION_DEFAULTS)
+  );
+  const meshes = jobs.map((job) => generateRockFormation(job, settings));
+  expect(generateRockFormation(jobs[0], settings).mesh).toEqual(meshes[0].mesh);
+  expect(meshes[1].mesh.positions).not.toEqual(meshes[0].mesh.positions);
+  expect(meshes[2].mesh.positions).not.toEqual(meshes[1].mesh.positions);
+  for (const mesh of meshes) expect(mesh.textureScale).toBe(Math.max(...jobs[0].guides[0].size) / 2);
+}, 30000);

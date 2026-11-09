@@ -46,7 +46,8 @@ export function preparePlanningPopulationResources(engine: Engine): Promise<Popu
     treeRecipeIds: new Set(
       SEED_WORLD_TREE_SPECIES_PROFILES.filter((s) => rules.treeSpecies.includes(s.key)).map((s) => s.assetRecipeId)
     ),
-    loadTreeImpostor: true
+    loadTreeImpostor: true,
+    loadRockGeometry: false
   })
     .then((library) => {
       const fallback = createDefaultPopulationToken("tree", library) as TreePopulationTokenV1;

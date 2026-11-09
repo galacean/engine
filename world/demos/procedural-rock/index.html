@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="color-scheme" content="dark" />
+    <title>程序化岩石 · 3D 与 2D 轮廓</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body data-ready="false" data-state="loading">
+    <main id="rock-lab" data-ready="false" data-state="loading">
+      <header class="heading">
+        <h1>程序化岩石</h1>
+        <p>调整形状、尺寸与材质，点击岩石独立编辑。</p>
+      </header>
+      <nav class="lab-tabs" role="tablist" aria-label="岩石实验">
+        <button id="rock-tab" role="tab" aria-controls="rock-panel" aria-selected="true">3D 岩石</button>
+        <button id="outline-tab" role="tab" aria-controls="outline-panel" aria-selected="false" tabindex="-1">
+          2D 轮廓
+        </button>
+      </nav>
+      <section id="rock-panel" role="tabpanel" aria-labelledby="rock-tab">
+        <div class="workbench">
+          <section class="comparison" aria-label="程序化岩石形状预览">
+            <div class="views">
+              <section class="view-card">
+                <div class="view-title">
+                  <label class="rock-select-label" for="rock-select"
+                    >选中<select id="rock-select" aria-label="选择要调试的岩石"></select></label
+                  ><label class="material-label"
+                    >显示<select id="generated-material" aria-label="生成岩石材质">
+                      <option value="projected">世界投影</option>
+                      <option value="clay">素模</option>
+                    </select></label
+                  >
+                </div>
+                <div id="generated-view" class="viewport">
+                  <canvas id="canvas" aria-label="程序化岩石，点击选中，拖动旋转视角"></canvas>
+                </div>
+                <div class="stats">
+                  <div id="scene-stats" aria-live="polite">正在布置近中远岩石…</div>
+                  <div id="scene-budget" aria-live="polite"></div>
+                  <div id="generated-stats" aria-live="polite">等待生成…</div>
+                </div>
+              </section>
+            </div>
+            <div class="viewbar">
+              <div class="view-buttons" role="group" aria-label="观察视角">
+                <button type="button" data-view="overview" aria-pressed="true">全景</button
+                ><button type="button" data-view="perspective" aria-pressed="false">聚焦选中</button
+                ><button type="button" data-view="front" aria-pressed="false">正面</button
+                ><button type="button" data-view="side" aria-pressed="false">侧面</button
+                ><button type="button" data-view="back" aria-pressed="false">背面</button
+                ><button type="button" data-view="top" aria-pressed="false">顶面</button>
+              </div>
+              <div class="view-toggles">
+                <label class="check"><input id="show-obb" type="checkbox" checked />选中 OBB</label
+                ><label class="check"><input id="wireframe" type="checkbox" />选中线框</label>
+              </div>
+            </div>
+            <div class="footer">
+              <p id="obb-readout">米制 OBB。拖动旋转；调形状保持尺寸与观察距离。</p>
+              <p id="status" role="status" aria-live="polite">正在载入…</p>
+            </div>
+          </section>
+          <aside aria-label="岩石参数">
+            <section class="scene-panel" aria-label="近中远岩石列表">
+              <div class="scene-panel-heading">
+                <h2>场景岩石</h2>
+                <span>每块独立保存</span>
+              </div>
+              <div id="rock-list"></div>
+            </section>
+            <section class="selected-panel" aria-live="polite">
+              <h2 id="selected-name"></h2>
+              <p id="selected-description"></p>
+            </section>
+            <section class="control-section" aria-label="网格减面">
+              <h3>选中岩石 · 网格</h3>
+              <label class="check"><input id="mesh-reduction" type="checkbox" checked />自动减面</label>
+              <label class="select-parameter" for="mesh-budget"
+                >每块三角面预算<select id="mesh-budget">
+                  <option value="500">500 面</option>
+                  <option value="1000" selected>1,000 面 · 100 块 / 10 万面</option>
+                  <option value="1500">1,500 面</option>
+                  <option value="2000">2,000 面</option>
+                  <option value="0">原误差档位</option>
+                </select></label
+              >
+              <label id="mesh-error-label" class="select-parameter" for="mesh-error" hidden
+                >减面精度<select id="mesh-error">
+                  <option value="0.001">精细 · 0.1%</option>
+                  <option value="0.004" selected>标准 · 0.4%</option>
+                  <option value="0.008">精简 · 0.8%</option>
+                </select></label
+              >
+              <p id="mesh-stats" class="surface-note" style="white-space: pre-line" aria-live="polite">等待网格…</p>
+              <p id="mesh-safety" class="surface-note limit-note" role="status" hidden></p>
+              <p class="surface-note">
+                关闭自动减面可对比原始网格，配合「选中线框」观察。预算模式分别保护长、宽、高的轮廓，保留尖底与草顶，局部处理过陡折边；无法满足约束时会明确提示超预算。
+              </p>
+            </section>
+            <section id="base-color-panel" class="base-color-panel" aria-label="Base Color 颜色面板">
+              <h3>Base Color</h3>
+              <div class="color-control">
+                <input id="surface-color" type="color" value="#b8bcc2" aria-label="Base Color 颜色选择器" /><input
+                  id="surface-color-hex"
+                  type="text"
+                  value="#b8bcc2"
+                  maxlength="7"
+                  pattern="#[0-9a-fA-F]{6}"
+                  aria-label="Base Color HEX"
+                  spellcheck="false"
+                /><button id="reset-color" type="button">恢复岩灰</button>
+              </div>
+              <p class="surface-note">实时调色，自动保存。</p>
+            </section>
+            <section class="grass-panel" aria-label="顶部草地">
+              <label class="check"><input id="top-grass" type="checkbox" checked />顶部草地与草丛</label
+              ><label class="parameter" for="grass-density"
+                ><span class="parameter-label"
+                  ><span>草丛密度</span><output id="grass-density-value">4 丛/m²</output></span
+                ><input id="grass-density" type="range" min="0" max="12" step="1" value="4"
+              /></label>
+              <p id="grass-stats" class="surface-note" aria-live="polite">正在生成顶部草…</p>
+            </section>
+            <div class="seed-row">
+              <label for="seed">Seed</label>
+              <div>
+                <input id="seed" type="number" min="1" max="999999" step="1" /><button id="next-seed" type="button">
+                  换 Seed
+                </button>
+              </div>
+            </div>
+            <section id="compound-section" class="control-section" hidden>
+              <h3>第二个 OBB · 几何并集</h3>
+              <div id="compound-parameters" class="parameters"></div>
+              <p class="surface-note">尺寸与位置独立控制；预算按每个输入 OBB 计算。交叠面会裁除，分离后会显示两个连通体。</p>
+              <p id="compound-stats" class="surface-note"></p>
+            </section>
+            <section class="control-section">
+              <h3>OBB 尺寸</h3>
+              <div id="obb-parameters" class="parameters"></div>
+            </section>
+            <section class="control-section">
+              <h3>整体轮廓</h3>
+              <div id="envelope-parameters" class="parameters"></div>
+              <p class="surface-note">底部 0% 收成一个尖点；提高比例可展开底部截面。</p>
+            </section>
+            <section class="control-section">
+              <h3>顶部形态</h3>
+              <div id="roof-parameters" class="parameters"></div>
+              <p class="surface-note">起伏和倾斜都为 0 时，顶部为平顶；坡向 0° 与 360° 相同。</p>
+              <p id="slope-note" class="surface-note limit-note" role="status" hidden></p>
+            </section>
+            <section class="control-section wall-section">
+              <h3>岩壁块面</h3>
+              <div id="wall-parameters" class="parameters"></div>
+              <p class="surface-note">
+                伸出高度：平缓岩面 → 明显岩肩。横向宽度：窄块 → 宽块；纵向长度：短块 →
+                长条。岩块根部连续过渡，整体仍保持在 OBB 内。
+              </p>
+            </section>
+            <details id="composition-controls" style="grid-column: 1/-1">
+              <summary>轮廓组合 · 周向展开</summary>
+              <div style="overflow-x: auto; margin-top: 12px">
+                <canvas
+                  id="composition-canvas"
+                  style="display: block; width: 100%; height: 150px"
+                  role="img"
+                  aria-label="当前岩石轮廓组合的周向展开图"
+                ></canvas>
+              </div>
+              <button id="composition-zoom" type="button" aria-pressed="false" style="margin-top: 10px">
+                放大展开图
+              </button>
+              <p class="surface-note">绕岩壁一圈展开，编号对应当前 Seed 的真实轮廓；交叠会遮住局部轮廓。</p>
+            </details>
+            <details id="surface-controls">
+              <summary>共享投影材质</summary>
+              <p class="surface-note">自适应平铺：<output id="auto-tile-size" aria-live="polite"></output></p>
+              <div id="surface-parameters" class="parameters"></div>
+              <label class="check surface-toggle"><input id="detail-normal" type="checkbox" checked />细节法线</label>
+              <p class="surface-note">底图与法线共用世界投影尺寸，始终等于 OBB 最长边的一半。</p>
+              <p id="texture-stats" class="surface-note">正在加载共享纹理…</p>
+            </details>
+            <details>
+              <summary>形状采样</summary>
+              <label class="select-parameter" for="resolution"
+                >生成采样精度<select id="resolution">
+                  <option value="32">快速 · 32</option>
+                  <option value="48">中等 · 48</option>
+                  <option value="72">标准 · 72</option>
+                  <option value="96">精细 · 96</option>
+                </select></label
+              >
+            </details>
+            <button id="reset" class="reset" type="button">恢复选中岩石的造型</button>
+          </aside>
+        </div>
+      </section>
+      <section id="outline-panel" role="tabpanel" aria-labelledby="outline-tab" hidden>
+        <div class="outline-workbench" id="rock-outline-constraints">
+          <section class="outline-preview">
+            <canvas role="img" aria-label="程序化岩块二维轮廓预览"></canvas>
+            <p data-readout aria-live="polite"></p>
+          </section>
+          <aside aria-label="二维轮廓参数">
+            <div class="seed-row">
+              <label>Seed</label>
+              <div>
+                <input aria-label="2D Seed" type="number" data-seed min="1" max="999999" step="1" /><button
+                  type="button"
+                  data-next
+                >
+                  换 Seed
+                </button>
+              </div>
+            </div>
+            <div class="rc-controls"></div>
+            <p class="surface-note">包络转角过渡固定 6%。缺口至少 1 个；根据宽度约束深度，维持 90°–270° 的转折。</p>
+          </aside>
+        </div>
+      </section>
+    </main>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>
