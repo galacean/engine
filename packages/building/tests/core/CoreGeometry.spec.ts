@@ -28,6 +28,40 @@ const extruded = (): BuildingGeometry => ({
 });
 
 describe("Geometry", () => {
+  it("trims a grid unit around a removed area instead of dropping it", () => {
+    const registry = createBuildingRegistry();
+    const result = designBuildingCore(
+      {
+        groups: [{ id: "g", seed: 1 }],
+        parts: [
+          {
+            id: "p",
+            group: "g",
+            type: "thing",
+            geometry: { generator: "elements", params: extruded() },
+            algorithm: { type: "surfaceGrid", params: { cell: [1, 1], trim: true } },
+            unit: {
+              source: "box",
+              bounds: { min: [-0.5, -0.5, 0], max: [0.5, 0.5, 0.1] },
+              range: { min: [0.1, 0.1, 1], max: [1, 1, 1] }
+            }
+          }
+        ]
+      },
+      registry
+    );
+    expect(result.diagnostics).toEqual([]);
+    const part = result.parts[0];
+    const cut = {
+      ...part,
+      modifications: [{ element: "face", op: "removeArea", rect: [0.7, 0, 2, 1] } as const]
+    };
+    const units = expandUnits(cut, registry, {});
+    const first = units.find((u) => u.key === "face:0:0")!;
+    expect(first.size![0]).toBeCloseTo(0.7, 6);
+    expect(units.some((u) => u.key === "face:0:1")).toBe(false);
+  });
+
   it("removes only the inside of an outline, and refuses a broken one", () => {
     const outline = [
       [1, 0],

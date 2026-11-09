@@ -57,6 +57,8 @@ export interface EaveMountParams extends WallMountParams {
   readonly pitch?: number;
 }
 const UP: Vec3 = [0, 1, 0];
+/** How far below a shed's back its opening ends, in metres. */
+const SHED_BACK_LAP = 0.08;
 /** How far below an arch's peak its opening ends, in metres. */
 const ARCH_LAP = 0.3;
 /** How far behind the wall the roof above an eave dormer is found, in metres. */
@@ -266,7 +268,7 @@ export const eaveDormerOnHouse: ConnectionRule = (context) => {
   if (shed?.kind !== "surface" || shed.surface.kind !== "loft") return opened;
   const loft = shed.surface.params as LoftParams;
   const last = loft.rows[loft.rows.length - 1].points;
-  const vBack = vAtHeight(surface, near[0], last[Math.floor(last.length / 2)][1] - lift);
+  const vBack = vAtHeight(surface, near[0], last[Math.floor(last.length / 2)][1] - lift - SHED_BACK_LAP);
   if (vBack === undefined) return { ...opened, diagnostics: [`${guest.key} lies off its roof`] };
   // Behind the wall the opening is as wide as the window. From the wall out it is as wide as
   // everything that stands there, such as open shutters.

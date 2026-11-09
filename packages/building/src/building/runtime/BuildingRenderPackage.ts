@@ -21,7 +21,7 @@ import { packDecorationStoneInstances } from "./DecorationStoneInstance";
 import { addWoodArchPillarDraws, appendWoodArchRenderPackage } from "./ConstructionWoodArchRender";
 import type { CompiledConstructionDecorations } from "./ConstructionDecorations";
 import type { ConstructionPreviewPart } from "./ProfilePreview";
-import type { encodeCompleteConstructionDormerBins } from "./DormerBins";
+import type { encodeConstructionDormerBins } from "./DormerBins";
 import type { MaterialUnit } from "./UnitPlacementStyle";
 import type { SupportCell } from "./PlacementSupport";
 import type { buildDecorationWindowCutBuffer } from "./DecorationWindowCutBuffer";
@@ -48,7 +48,7 @@ export interface BuildingRenderInput {
   rawDraws: (ConstructionDrawInput & { pickId?: string })[];
   groups: BuildingUnitDrawGroup[];
   decorations: CompiledConstructionDecorations[];
-  dormerBins: ReturnType<typeof encodeCompleteConstructionDormerBins>;
+  dormerBins: ReturnType<typeof encodeConstructionDormerBins>;
   colorOwners: { id: string; seed: number }[];
   backingParts: ConstructionPreviewPart[];
   surfaceParts: ConstructionPreviewPart[];

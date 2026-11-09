@@ -72,7 +72,7 @@ import { placeConstructionWoodArch } from "../runtime/ConstructionWoodArch";
 import { woodArchFrameGeometry, woodArchPillarGeometry } from "../runtime/ConstructionWoodArchGeometry";
 import { wallChartSampler } from "../partTypes/House";
 import { packConstructionUnits } from "../runtime/ConstructionUnitRender";
-import { encodeCompleteConstructionDormerBins } from "../runtime/DormerBins";
+import { encodeConstructionDormerBins } from "../runtime/DormerBins";
 import { placeProfileRoofSpire } from "../runtime/ProfileRoofSpire";
 import { wallRoofJointHeight } from "../runtime/ConstructionWallRoofJoint";
 import { f32BitsToHalf } from "../runtime/UnitPacking.js";
@@ -1848,7 +1848,8 @@ export async function coreBuildingRenderInput(
     rawDraws: [],
     groups,
     decorations: assets ? coreBuildingDecorations(layout, assets) : [],
-    dormerBins: encodeCompleteConstructionDormerBins(roofApertures(layout)),
+    // Openings beyond a bin's capacity leave their tiles uncut; the report says how many.
+    dormerBins: encodeConstructionDormerBins(roofApertures(layout)),
     colorOwners: palette.colorOwners.map(({ id, seed }) => ({ id, seed })),
     backingParts: view.parts.filter(
       (p) => p.placement !== "unit" && p.backing !== false && !p.decoration && !p.plaster

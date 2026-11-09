@@ -328,7 +328,7 @@ interface GridEntry {
 /** Rows and columns over surfaces: abutting by default, or at a fixed `cell` pitch.
  * Row and column indices are anchored at u = 0, v = 0, so adding or removing area
  * never renumbers the units that remain. Only closed surfaces fill their period.
- * `trim` shortens units that cross the surface bounds instead of dropping them, and
+ * `trim` shortens units that cross the surface bounds or a removed area instead of dropping them, and
  * `gap` leaves a joint between neighbours, at most `gapLimit` of the span when given.
  * Both stay inside the unit's range; a unit that cannot is not laid.
  * Each unit reports the surface parameter of its center as `params.uv`. */
@@ -350,7 +350,7 @@ export const surfaceGrid: LayingAlgorithm<
     params: {
       cell: "Fixed pitch [u, v] in metres. Default: the unit's size, abutting.",
       stagger: "Shift of odd rows as a fraction of the pitch, in [0, 1). Default: 0.",
-      trim: "Shorten units that cross the edge instead of dropping them. Default: false.",
+      trim: "Shorten units that cross the edge or a removed area instead of dropping them. Default: false.",
       gap: "Joint [u, v] between neighbours in metres. Default: [0, 0].",
       gapLimit: "Largest joint as a fraction of the span. Default: no limit.",
       elements: "Surface ids to use. Default: all surfaces.",
@@ -424,6 +424,20 @@ export const surfaceGrid: LayingAlgorithm<
         Math.min(rect[3], v[1])
       ];
       if (!(rect[2] > rect[0] && rect[3] > rect[1])) return;
+      // Of what stays beside a removed area, the largest piece is laid.
+      for (const hole of surface.removed) {
+        if (!(hole[0] < rect[2] && rect[0] < hole[2] && hole[1] < rect[3] && rect[1] < hole[3])) continue;
+        const [a, b, c, d] = rect;
+        const sides: Rect[] = [
+          [a, b, hole[0], d],
+          [hole[2], b, c, d],
+          [a, b, c, hole[1]],
+          [a, hole[3], c, d]
+        ];
+        const area = (q: Rect) => Math.max(0, q[2] - q[0]) * Math.max(0, q[3] - q[1]);
+        rect = sides.reduce((x, y) => (area(y) > area(x) ? y : x));
+        if (!(area(rect) > 0)) return;
+      }
     }
     if (!surface.covers(rect)) return;
     const gap = p.gap ?? [0, 0];

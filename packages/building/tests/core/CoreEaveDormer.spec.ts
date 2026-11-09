@@ -384,4 +384,22 @@ describe("Eave dormers against the online path", () => {
       expect(gap).toBeLessThan(0.12);
     }
   });
+
+  it("leaves the tiles uncut, without failing, past the capacity of a bin", async () => {
+    const windows = [0, 1, 2, 3].flatMap((side) =>
+      [0.26, 0.38, 0.5, 0.62, 0.74].map((t, i) => ({
+        ...at("dormer-gothic-half", 1, (side + t) / 4),
+        id: `w${side}-${i}`
+      }))
+    );
+    const p = house(windows, { rectangle: { center: [0, 0], size: [8, 8], rotation: 0 } });
+    const result = design(p);
+    expect(result.diagnostics).toEqual([]);
+    const { renderInput } = await compileCoreBuilding(result, registry, {
+      environment: { ground: flat },
+      assets: nativeAssets.compilation
+    });
+    expect(renderInput.dormerBins.report.inputCount).toBeGreaterThan(49);
+    expect(renderInput.dormerBins.report.droppedAssignments).toBeGreaterThan(0);
+  });
 });
