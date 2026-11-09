@@ -237,20 +237,6 @@ const chartBase = (binding: CoreBinding) =>
 /** Wall cells: bricks or boards. Their placement chart runs along the house perimeter, with
  * height above the lowest wall base. A brick carries its deformation, flags and accent; a
  * board its plank flags. */
-/** The brick shader hashes the low 16 bits of a brick's packed seed, and for about one seed in
- * ten reads its colour at three times the frequency, which shows as bands on a big stone. This
- * is the nearest seed from `seed` up that the shader reads at the ordinary frequency. */
-export function evenToneSeed(seed: number): number {
-  for (let candidate = seed; ; candidate = (candidate + 1) & 0x7fffffff) {
-    let x = (((10 + (candidate % 0x7ffffff0)) & 65535) ^ 292478890) >>> 0;
-    x = (x + (x << 10)) >>> 0;
-    x = (x ^ (x >>> 6)) >>> 0;
-    x = (x + (x << 3)) >>> 0;
-    x = (x ^ (x >>> 11)) >>> 0;
-    x = (x + (x << 15)) >>> 0;
-    if ((x & 8388607) / 8388608 <= 0.9) return candidate;
-  }
-}
 function masonryCells(
   binding: CoreBinding,
   parts: readonly LaidPart[] = binding.parts,
@@ -275,7 +261,7 @@ function masonryCells(
           ? {
               brick_deformation: [...(u.params!.deformation as number[])],
               brick_flags: u.params!.flags as number,
-              brick_seed: u.params!.evenTone ? evenToneSeed(u.seed & 0x7fffffff) : u.seed & 0x7fffffff,
+              brick_seed: u.seed & 0x7fffffff,
               brick_accent: !!u.params!.accent,
               brick_span: [span[0], span[1]]
             }

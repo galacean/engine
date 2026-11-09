@@ -3,6 +3,8 @@ vi.mock("@galacean/engine", async () => ({
   ...(await import("@galacean/engine-loader")),
   ...(await import("@galacean/engine-math"))
 }));
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { nativeAssets } from "../fixtures/constructionAssets";
 import { createBuildingRegistry, designBuildingCore, expandUnits, type ResolvedPart } from "../../src/building/core";
@@ -109,30 +111,13 @@ describe("Flat roofs", () => {
     expect(foot.reduce((n, u) => n + u.size![0], 0) / foot.length).toBeGreaterThan(0.55);
   });
 
-  it("keeps the parapet's big stones to one colour tone", async () => {
-    const { result } = house({ id: "f", roof: { height: 0 } });
-    const { renderInput: input } = await compileCoreBuilding(result, registry, {
-      environment: { ground: flat },
-      assets: nativeAssets
-    });
-    const cells = input.groups.find((g) => g.role === "wall" && g.binding_id === "f-parapet")!.cells as {
-      brick_seed: number;
-    }[];
-    expect(cells.length).toBeGreaterThan(20);
-    // The brick shader's own hash of the packed seed: above 0.9 it reads colour three times as fine.
-    const tone = (seed: number) => {
-      let x = (((10 + seed) & 65535) ^ 292478890) >>> 0;
-      for (const [shift, right] of [
-        [10, false],
-        [6, true],
-        [3, false],
-        [11, true],
-        [15, false]
-      ] as const)
-        x = (right ? x ^ (x >>> shift) : x + (x << shift)) >>> 0;
-      return (x & 8388607) / 8388608;
-    };
-    for (const cell of cells) expect(tone(cell.brick_seed)).toBeLessThanOrEqual(0.9);
+  it("draws each big stone of a parapet in one colour", () => {
+    const { parapets } = house({ id: "f", roof: { height: 0 } });
+    for (const u of units(parapets[0])) expect((u.params!.flags as number) & 1024).toBe(1024);
+    // Every brick shader honours the flag: without it the stone shows the colour map's bands.
+    const shaders = resolve(__dirname, "../../src/building/assets/native/Shaders");
+    for (const name of ["brick", "brick_roof", "sdf-brick", "sdf-brick_clip", "sdf-brick_roof", "sdf-brick_roof_clip"])
+      expect(readFileSync(resolve(shaders, `${name}.shaderc`), "utf8")).toContain("& 1024) != 0) ? 0.0 :");
   });
 
   it("leaves the crenels open", () => {

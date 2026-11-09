@@ -870,13 +870,12 @@ export const parapetCourses: LayingAlgorithm<ParapetParams, ParapetLayout> = {
       depth,
       {
         anchor_uv: [(stone.u0 - before + stone.u1 + after) / 2, (stone.lo + stone.hi) / 2 - chart.minGround],
-        flags: 4,
+        // 4: irregular shape. 1024: the brick shader reads the colour at one height, so that a
+        // big stone does not cross the bands of the wall's colour map.
+        flags: 4 | 1024,
         gap: 0,
-        // The renderer takes a stone's colour along this span. A big stone would cross patches
-        // of the wall's colour map and show two colours, so it reads one place, and keeps to
-        // one tone.
-        wallU: [middle, middle],
-        evenTone: true
+        // The renderer takes a stone's colour along this span: a big stone reads one place.
+        wallU: [middle, middle]
       }
     );
   }
@@ -1179,7 +1178,7 @@ function masonryUnit(
   u1: number,
   [bl, br, tl, tr]: number[],
   depth: number,
-  extra: { anchor_uv: number[]; flags: number; gap: number; accent?: boolean; wallU?: number[]; evenTone?: boolean }
+  extra: { anchor_uv: number[]; flags: number; gap: number; accent?: boolean; wallU?: number[] }
 ): LaidUnitSpec | undefined {
   const y0 = (bl + br) / 2,
     y1 = (tl + tr) / 2;
@@ -1198,7 +1197,6 @@ function masonryUnit(
       flags: extra.flags,
       // Accent stones look like a different stone: corner stones, and bricks next to them or to openings.
       ...(extra.accent && { accent: true }),
-      ...(extra.evenTone && { evenTone: true }),
       // Where the unit lies along the house perimeter, in metres; the renderer maps textures by it.
       ...(extra.wallU && { wallU: extra.wallU })
     }
