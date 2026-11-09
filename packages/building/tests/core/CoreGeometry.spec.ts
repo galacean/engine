@@ -28,6 +28,31 @@ const extruded = (): BuildingGeometry => ({
 });
 
 describe("Geometry", () => {
+  it("removes only the inside of an outline, and refuses a broken one", () => {
+    const outline = [
+      [1, 0],
+      [3, 0],
+      [2, 2]
+    ] as const;
+    const rect = [1, 0, 3, 2] as const;
+    const modification = { element: "face", op: "removeArea", rect, outline } as const;
+    const geometry = new EffectiveGeometry(extruded(), [modification], createBuildingRegistry().surfaces);
+    const face = geometry.surface("face");
+    expect(face.outlineOf(face.removed[0])).toEqual(outline);
+    expect(face.contains(2, 1)).toBe(false);
+    expect(face.contains(1.1, 1.9)).toBe(true);
+    const broken = {
+      ...modification,
+      outline: [
+        [1, 0],
+        [3, 0]
+      ] as never
+    };
+    expect(() => new EffectiveGeometry(extruded(), [broken], createBuildingRegistry().surfaces)).toThrow(
+      "An outline needs three or more finite points [u, v]"
+    );
+  });
+
   it("evaluates orthonormal frames and wraps closed curves", () => {
     const surface = new EffectiveGeometry(extruded(), [], createBuildingRegistry().surfaces).surface("face");
     expect(surface.domain).toEqual({ u: [0, 16], v: [0, 2], closedU: true });

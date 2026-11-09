@@ -45,17 +45,31 @@ export interface BuildingGeometry {
 }
 /** [u0, v0, u1, v1] in surface coordinates. */
 export type Rect = readonly [number, number, number, number];
+/** A closed polygon in surface coordinates. */
+export type Outline = readonly (readonly [number, number])[];
+/** Whether (u, v) lies inside a closed polygon. */
+export function insideOutline(outline: Outline, u: number, v: number): boolean {
+  let inside = false;
+  for (let i = 0, j = outline.length - 1; i < outline.length; j = i++) {
+    const [ua, va] = outline[j],
+      [ub, vb] = outline[i];
+    if (va > v !== vb > v && u < ((ub - ua) * (v - va)) / (vb - va) + ua) inside = !inside;
+  }
+  return inside;
+}
 /** Plane [nx, ny, nz, d] in part-local metres, with a unit normal. Its kept side is n·p + d ≥ 0. */
 export type Plane = readonly [number, number, number, number];
 /** Edits produced by connection rules. Original geometry is never mutated.
- * - `removeArea`: the surface is gone there, as at an opening.
+ * - `removeArea`: the surface is gone there, as at an opening. With an `outline` only the area
+ *   inside it is gone; `rect` is then the outline's bounds.
  * - `reserveArea`: the surface stays, but other units occupy it; laid units give way.
  * - `clip`: units laid on the element are cut by the plane and keep its positive side.
  *   The element itself keeps its shape; the renderer does the cut. */
 export type GeometryModification =
   | { readonly element: string; readonly op: "removeElement" }
   | { readonly element: string; readonly op: "clip"; readonly plane: Plane }
-  | { readonly element: string; readonly op: "removeArea" | "addArea" | "reserveArea"; readonly rect: Rect }
+  | { readonly element: string; readonly op: "removeArea"; readonly rect: Rect; readonly outline?: Outline }
+  | { readonly element: string; readonly op: "addArea" | "reserveArea"; readonly rect: Rect }
   | { readonly element: string; readonly op: "removeSpan"; readonly span: readonly [number, number] };
 
 export interface SurfaceDomain {
@@ -285,6 +299,11 @@ export function modificationIssue(geometry: BuildingGeometry, modification: Geom
     case "addArea":
     case "reserveArea":
       if (element.kind !== "surface") return `${modification.op} needs a surface element`;
+      if (modification.op === "removeArea" && modification.outline) {
+        const { outline } = modification;
+        if (outline.length < 3 || !outline.every((q) => q.length === 2 && q.every(Number.isFinite)))
+          return "An outline needs three or more finite points [u, v]";
+      }
       return rectIssue(modification.rect);
     case "clip": {
       const plane = modification.plane;
@@ -319,7 +338,8 @@ export class EffectiveSurface {
     private readonly params: unknown,
     private readonly adds: readonly Rect[],
     private readonly removes: readonly Rect[],
-    private readonly reserves: readonly Rect[] = []
+    private readonly reserves: readonly Rect[] = [],
+    private readonly outlines: ReadonlyMap<Rect, Outline> = new Map()
   ) {
     this.domain = kind.domain(params);
     this.period = this.domain.u[1] - this.domain.u[0];
@@ -341,6 +361,10 @@ export class EffectiveSurface {
   /** Areas removed from this surface, in surface coordinates. */
   get removed(): readonly Rect[] {
     return this.removes;
+  }
+  /** The outline of a removed area that is not its whole rectangle. */
+  outlineOf(rect: Rect): Outline | undefined {
+    return this.outlines.get(rect);
   }
   /** Areas of this surface that other units occupy, in surface coordinates. */
   get reserved(): readonly Rect[] {
@@ -429,7 +453,12 @@ export class EffectiveSurface {
   contains(u: number, v: number): boolean {
     return (
       this.included(u, v) &&
-      !this.removes.some((r) => this.shifts().some((s) => u > r[0] + s && u < r[2] + s && v > r[1] && v < r[3]))
+      !this.removes.some((r) => {
+        const outline = this.outlines.get(r);
+        return this.shifts().some(
+          (s) => u > r[0] + s && u < r[2] + s && v > r[1] && v < r[3] && (!outline || insideOutline(outline, u - s, v))
+        );
+      })
     );
   }
   /** True when the whole rectangle lies on the effective surface. Inclusion in a union of
@@ -490,6 +519,7 @@ export class EffectiveCurve {
 export class EffectiveGeometry {
   private readonly removed = new Set<string>();
   private readonly areas = new Map<string, { adds: Rect[]; removes: Rect[]; reserves: Rect[] }>();
+  private readonly outlines = new Map<Rect, Outline>();
   private readonly spans = new Map<string, [number, number][]>();
   private readonly planes = new Map<string, Plane[]>();
   constructor(
@@ -517,6 +547,8 @@ export class EffectiveGeometry {
             ? entry.reserves
             : entry.removes
         ).push(modification.rect);
+        if (modification.op === "removeArea" && modification.outline)
+          this.outlines.set(modification.rect, modification.outline);
         this.areas.set(modification.element, entry);
       }
     }
@@ -551,6 +583,6 @@ export class EffectiveGeometry {
     const kind = this.surfaces.get(data.kind);
     if (!kind) throw Error(`Unknown surface kind "${data.kind}"`);
     const area = this.areas.get(id) ?? { adds: [], removes: [], reserves: [] };
-    return new EffectiveSurface(kind, data.params, area.adds, area.removes, area.reserves);
+    return new EffectiveSurface(kind, data.params, area.adds, area.removes, area.reserves, this.outlines);
   }
 }

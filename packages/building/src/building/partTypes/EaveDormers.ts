@@ -15,15 +15,22 @@ import {
   type EffectiveSurface,
   type GeometryElement,
   type GeometryGenerator,
+  type Outline,
   type ParticipantView,
   type Rect,
-  type Vec3
+  type Vec3,
+  unitExtent
 } from "../core";
 import {
+  archHalfWidth,
   coveringRise,
+  coveringThickness,
+  sweepBackV,
   depthToHeight,
   dormerCap,
   dormerTile,
+  occupiedSpan,
+  roofOpeningArea,
   roofUnder,
   slopeSurface,
   surfaceAtPlan,
@@ -41,16 +48,16 @@ import {
 import { wallChartSampler, type WallChartParams } from "./House";
 
 /** A wall mount, and the shed of a prefab that carries no arch: how far it reaches past the
- * window on each side and in front at the eave, how much higher its back stands than its front
- * as a fraction of the roof's height, and how much wider than the window the eave is cut, for
- * shutters that open across it. Lengths are in metres at the prefab's own size. */
+ * window on each side and in front at the eave, and how much higher its back stands than its
+ * front as a fraction of the roof's height. Lengths are in metres at the prefab's own size. */
 export interface EaveMountParams extends WallMountParams {
   readonly overhang?: number;
   readonly expand?: number;
   readonly pitch?: number;
-  readonly clearance?: number;
 }
 const UP: Vec3 = [0, 1, 0];
+/** How far below an arch's peak its opening ends, in metres. */
+const ARCH_LAP = 0.3;
 /** How far behind the wall the roof above an eave dormer is found, in metres. */
 const FRONT_BEHIND_WALL = 0.3;
 const chartOf = (host: ParticipantView): WallChartParams | undefined => {
@@ -79,10 +86,9 @@ function cutOutline(half: readonly (readonly [number, number])[], floor: number)
  * - "eave", the roof point behind the window, which records the roof part it lies on;
  * - with a roof profile, "sweep" and "ridge": the outline, cut off at the wall top, swept from
  *   the prefab's `eaveOut` in front of the wall back until the peak meets the roof;
- * - otherwise "shed" and "front": rows along the roof's contours from the wall top to the
- *   height of the shed's back, each `expand` further out at the eave and none at the back,
- *   standing from the window's top up to the back; the curve "front" is the window's width
- *   behind the wall. With a clearance, "clearance" is that width and the clearance.
+ * - otherwise "shed": rows along the roof's contours from the wall top to the height of the
+ *   shed's back, each `expand` further out at the eave and none at the back, standing from the
+ *   window's top up to the back.
  * An eave dormer that stays below the wall top, stands above it entirely, sits on a gable-end
  * wall or crosses an edge of its roof part is an error. */
 export const houseEaveMountGeometry: GeometryGenerator<EaveMountParams> = (p, context) => {
@@ -147,13 +153,6 @@ export const houseEaveMountGeometry: GeometryGenerator<EaveMountParams> = (p, co
     const sweep: DormerSweepParams = { origin, x, z, outline, depth };
     const top = add(origin, [0, peak, 0]);
     elements.sweep = { kind: "surface", surface: { kind: "dormerSweep", params: sweep } };
-    // The arch's width where it comes down to the wall top, on the wall line: the eave is open
-    // from there out; behind the wall the arch's steps open the roof.
-    const reach = 2 * right[right.length - 1][0];
-    elements.front = {
-      kind: "curve",
-      curve: { points: [-0.5, 0, 0.5].map((t) => add(pivot, scale(x, t * reach)) as Vec3) }
-    };
     elements.ridge = {
       kind: "curve",
       curve: { points: [add(top, scale(back, depth)), add(top, scale(z, depth * 0.05))] }
@@ -200,75 +199,9 @@ export const houseEaveMountGeometry: GeometryGenerator<EaveMountParams> = (p, co
     };
   });
   elements.shed = { kind: "surface", surface: { kind: "loft", params: { rows } satisfies LoftParams } };
-  const across2 = (w: number) => [-0.5, 0, 0.5].map((t) => add(add(inward, scale(x, t * w)), [0, lift, 0]) as Vec3);
-  elements.front = { kind: "curve", curve: { points: across2(span) } };
-  if (p.clearance) elements.clearance = { kind: "curve", curve: { points: across2(span + p.clearance * sx) } };
   return { elements };
 };
 
-/** The depth of one band of an eave opening, in metres, the most bands an opening has, and how
- * far each band overlaps the next, so that no seam opens between them. */
-const EAVE_BAND = 0.12;
-const EAVE_BANDS = 4;
-const EAVE_BAND_OVERLAP = 0.02;
-/** The opening an eave dormer makes in the roof, from `untilV` out to the roof's lower edge. The
- * roof's rows fan out towards its hips, so one rectangle would drift sideways over that distance:
- * the opening is a stack of bands, each centred in plan on the level line through `center` along
- * `z`, and `halfWidth` wide at its middle, given how far out that is and the roof's height at the
- * band's lower edge. */
-function eaveBands(
-  surface: EffectiveSurface,
-  near: readonly [number, number],
-  center: Vec3,
-  x: Vec3,
-  z: Vec3,
-  untilV: number,
-  halfWidth: (out: number, height: number) => number
-): Rect[] {
-  const v0 = surface.domain.v[0];
-  const hitAt = (out: number, side = 0) => {
-    const q = add(add(center, scale(z, out)), scale(x, side));
-    return surfaceAtPlan(surface, q[0], q[2], near);
-  };
-  /** How far out along `z` the roof comes down to `v`, between `inner` and `outer`. `offIsInner`
-   * says which side a point off the roof lies on. */
-  const outAt = (v: number, inner: number, outer: number, offIsInner: boolean) => {
-    for (let i = 0; i < 24; i++) {
-      const middle = (inner + outer) / 2,
-        hit = hitAt(middle);
-      if (hit ? hit.v > v : offIsInner) inner = middle;
-      else outer = middle;
-    }
-    return inner;
-  };
-  const from = hitAt(0)?.v ?? v0;
-  const eave = outAt(v0, 0, 8, false);
-  const back = untilV > from ? outAt(untilV, -8, 0, true) : outAt(untilV, 0, eave, false);
-  const bands = Math.min(EAVE_BANDS, Math.max(1, Math.ceil((eave - back) / EAVE_BAND)));
-  const at = (k: number) => lerp(back, eave, k / bands);
-  const rects: Rect[] = [];
-  for (let k = 0; k < bands; k++) {
-    const high = hitAt(at(k)),
-      low = hitAt(Math.min(eave, at(k + 1) + EAVE_BAND_OVERLAP));
-    if (!high || !low) continue;
-    const middle = (at(k) + at(k + 1)) / 2;
-    const width = halfWidth(middle, low.frame.origin[1]);
-    const a = width > 0 ? hitAt(middle, -width) : undefined,
-      b = width > 0 ? hitAt(middle, width) : undefined;
-    if (a && b) rects.push([Math.min(a.u, b.u), k === bands - 1 ? v0 : low.v, Math.max(a.u, b.u), high.v]);
-  }
-  return rects;
-}
-/** How wide an arch stands at a height above its origin, from its outline. */
-export function archHalfWidth(outline: DormerSweepParams["outline"], height: number) {
-  const right = outline.slice(Math.floor(outline.length / 2));
-  if (height > right[0][1]) return 0;
-  for (let i = 1; i < right.length; i++)
-    if (height >= right[i][1])
-      return lerp(right[i - 1][0], right[i][0], (right[i - 1][1] - height) / (right[i - 1][1] - right[i][1]));
-  return right[right.length - 1][0];
-}
-const curveOf = (e: GeometryElement | undefined) => (e?.kind === "curve" ? e.curve.points : undefined);
 /** Attach rule of an eave dormer: the window opens its wall, its footprint comes out of the roof
  * part behind it, and the connection derives its small roof, laid with the roof's tile. */
 export const eaveDormerOnHouse: ConnectionRule = (context) => {
@@ -282,26 +215,34 @@ export const eaveDormerOnHouse: ConnectionRule = (context) => {
   const near = [eave.on.u, eave.on.v] as const;
   const lift = coveringRise(host, surface.frame(near[0], near[1]).z);
   const elements = guest.geometry.original.elements;
-  const removed = (rect: Rect) => ({
+  const removed = (area: { rect: Rect; outline: Outline }) => ({
     part: host.key,
-    modification: { element: "slope", op: "removeArea" as const, rect }
+    modification: { element: "slope", op: "removeArea" as const, ...area }
   });
+  const mount = elements.mount;
+  if (mount?.kind !== "point") return { ...opened, diagnostics: [`${guest.key} has no mount`] };
+  const { x, z } = mount.frame;
   const sweep = elements.sweep;
   if (sweep?.kind === "surface" && sweep.surface.kind === "dormerSweep") {
     const arch = sweep.surface.params as DormerSweepParams;
-    const wall = curveOf(elements.front);
-    const line = wall && surfaceAtPlan(surface, wall[1][0], wall[1][2], near);
-    // The opening runs from the wall line to the eave. The tiles behind the wall stay whole and
-    // the small roof comes up through them.
-    const footprint =
-      wall && line
-        ? eaveBands(surface, near, wall[1], arch.x, arch.z, line.v, (_, height) =>
-            archHalfWidth(arch.outline, height + lift - arch.origin[1])
-          )
-        : [];
+    // Behind the wall the roof opens up to where the covering meets the small roof, as under a
+    // dormer on a slope; in front of it the eave opens, down to the roof's lower edge.
+    const backV = sweepBackV(arch, surface, near, lift, ARCH_LAP);
+    const area =
+      backV !== undefined &&
+      roofOpeningArea(surface, near, {
+        center: mount.frame.origin,
+        x: arch.x,
+        z: arch.z,
+        backV,
+        frontV: surface.domain.v[0],
+        thickness: coveringThickness(host),
+        hang: (host.unit && unitExtent(host.unit)?.[1]) ?? 0,
+        halfWidth: (_, height) => archHalfWidth(arch.outline, height - arch.origin[1])
+      });
     return {
       ...opened,
-      modify: [...(opened.modify ?? []), ...footprint.map(removed)],
+      modify: [...(opened.modify ?? []), ...(area ? [removed(area)] : [])],
       derive: [
         {
           localId: "roof",
@@ -324,25 +265,32 @@ export const eaveDormerOnHouse: ConnectionRule = (context) => {
     };
   }
   const shed = elements.shed;
-  const front = curveOf(elements.front);
-  if (shed?.kind !== "surface" || shed.surface.kind !== "loft" || !front) return opened;
+  if (shed?.kind !== "surface" || shed.surface.kind !== "loft") return opened;
   const loft = shed.surface.params as LoftParams;
   const last = loft.rows[loft.rows.length - 1].points;
   const vBack = vAtHeight(surface, near[0], last[Math.floor(last.length / 2)][1] - lift);
-  const mount = elements.mount;
-  if (vBack === undefined || mount?.kind !== "point")
-    return { ...opened, diagnostics: [`${guest.key} lies off its roof`] };
-  const half = (curve: readonly Vec3[]) => Math.hypot(...add(curve[2], scale(curve[0], -1))) / 2;
-  const clearance = curveOf(elements.clearance);
-  const [bodyHalf, wideHalf] = [half(front), clearance ? half(clearance) : 0];
-  // With shutters, the eave is wider, from the wall line out: behind it the roof stays whole.
-  const rects = eaveBands(surface, near, front[1], mount.frame.x, mount.frame.z, vBack, (out) =>
-    out >= FRONT_BEHIND_WALL ? Math.max(bodyHalf, wideHalf) : bodyHalf
-  );
-  if (!rects.length) return { ...opened, diagnostics: [`${guest.key} lies off its roof`] };
+  if (vBack === undefined) return { ...opened, diagnostics: [`${guest.key} lies off its roof`] };
+  // Behind the wall the opening is as wide as the window. From the wall out it is as wide as
+  // everything that stands there, such as open shutters.
+  const center = add(mount.frame.origin, scale(z, -FRONT_BEHIND_WALL));
+  const bounds = guest.unit?.bounds;
+  const m = guest.occupied[0]?.matrix;
+  const bodyHalf = bounds && m ? ((bounds.max[0] - bounds.min[0]) / 2) * Math.hypot(m[0], m[1], m[2]) : 0;
+  const [lo, hi] = occupiedSpan(guest, center, x);
+  const wideHalf = Math.max(bodyHalf, (hi - lo) / 2);
+  const area = roofOpeningArea(surface, near, {
+    center,
+    x,
+    z,
+    backV: vBack,
+    frontV: surface.domain.v[0],
+    thickness: coveringThickness(host),
+    halfWidth: (out) => (out >= FRONT_BEHIND_WALL ? wideHalf : bodyHalf)
+  });
+  if (!area) return { ...opened, diagnostics: [`${guest.key} lies off its roof`] };
   return {
     ...opened,
-    modify: [...(opened.modify ?? []), ...rects.map(removed)],
+    modify: [...(opened.modify ?? []), removed(area)],
     derive: [
       {
         localId: "roof",

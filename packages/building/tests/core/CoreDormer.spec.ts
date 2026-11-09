@@ -16,7 +16,6 @@ import {
   type ResolvedPart
 } from "../../src/building/core";
 import { registerHouseTypes } from "../../src/building/partTypes/House";
-import { dormerFootprint, type DormerSweepParams } from "../../src/building/partTypes/Dormers";
 import {
   buildCoreHouse,
   type CoreHouseParameters,
@@ -67,10 +66,12 @@ describe("Dormers", () => {
     expect(connection.rule).toBe("dormerOnRoof");
     for (const derived of [...byType("dormerRoof"), ...byType("dormerRidge")])
       expect(derived.identity).toMatchObject({ kind: "derived", connection: connection.key });
-    // The footprint comes out of one roof part, as nested rectangles.
+    // The footprint comes out of one roof part, as one outline.
     const hosts = result.parts.filter((p) => p.type === "roof" && p.modifications.some((m) => m.op === "removeArea"));
     expect(hosts).toHaveLength(1);
-    expect(hosts[0].modifications.filter((m) => m.op === "removeArea").length).toBeGreaterThanOrEqual(3);
+    const areas = hosts[0].modifications.flatMap((m) => (m.op === "removeArea" ? [m] : []));
+    expect(areas).toHaveLength(1);
+    expect(areas[0].outline!.length).toBeGreaterThanOrEqual(6);
   });
 
   it("stands on the roof's covering and faces level out of the slope", () => {
@@ -107,15 +108,10 @@ describe("Dormers", () => {
     expect(result.diagnostics).toEqual([]);
     const roof = result.parts.find((p) => p.type === "roof" && p.modifications.some((m) => m.op === "removeArea"))!;
     const part = result.parts.find((p) => p.type === "dormer")!;
-    const sweep = part.original.elements.sweep;
-    if (sweep?.kind !== "surface") throw Error("no sweep");
-    const surface = new EffectiveGeometry(roof.original, roof.modifications, registry.surfaces).surface("slope");
     const mount = part.original.elements.mount;
     if (mount.kind !== "point" || !mount.on) throw Error("no mount");
-    const near = [mount.on.u, mount.on.v] as const;
-    const plain = dormerFootprint(sweep.surface.params as DormerSweepParams, surface, near, 0);
     const opened = roof.modifications.flatMap((m) => (m.op === "removeArea" ? [m.rect] : []));
-    expect(Math.min(...opened.map((r) => r[1]))).toBeLessThan(Math.min(...plain.map((r) => r[1])));
+    expect(Math.min(...opened.map((r) => r[1]))).toBeLessThan(mount.on.v);
   });
 
   it("is an error where no roof slope lies under it, where it crosses an edge, or where it outgrows the roof", () => {
@@ -145,10 +141,8 @@ describe("Dormers", () => {
     const records = carried[0].units.roof_tile;
     for (let i = 0; i < carried[0].cells.length; i++)
       expect(new DataView(records.buffer, records.byteOffset + i * 64).getFloat32(48, true)).toBe(1);
-    const footprint = result.parts
-      .filter((p) => p.type === "roof")
-      .reduce((n, p) => n + p.modifications.filter((m) => m.op === "removeArea").length, 0);
-    expect(renderInput.dormerBins.report.inputCount).toBe(footprint);
+    // One opening: a box where it is widest and three pieces where it narrows.
+    expect(renderInput.dormerBins.report.inputCount).toBe(4);
   });
 
   it("is deterministic", () => {

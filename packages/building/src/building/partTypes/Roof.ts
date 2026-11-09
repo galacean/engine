@@ -16,6 +16,7 @@ import {
   type BuildingUnit,
   type ConnectionRule,
   type EffectiveSurface,
+  insideOutline,
   type Frame,
   type GeometryGenerator,
   type JoinDetector,
@@ -253,11 +254,17 @@ function insideRemoved(surface: EffectiveSurface, u: number, v: number, du: numb
   const { u: domain, closedU } = surface.domain;
   const period = domain[1] - domain[0];
   const removed = (pu: number, pv: number) =>
-    surface.removed.some((r) =>
-      (closedU ? [-period, 0, period] : [0]).some(
-        (shift) => pu >= r[0] + shift && pu <= r[2] + shift && pv >= r[1] && pv <= r[3]
-      )
-    );
+    surface.removed.some((r) => {
+      const outline = surface.outlineOf(r);
+      return (closedU ? [-period, 0, period] : [0]).some(
+        (shift) =>
+          pu >= r[0] + shift &&
+          pu <= r[2] + shift &&
+          pv >= r[1] &&
+          pv <= r[3] &&
+          (!outline || insideOutline(outline, pu - shift, pv))
+      );
+    });
   return surface.removed.length > 0 && [-1, 1].every((a) => [-1, 1].every((b) => removed(u + a * du, v + b * dv)));
 }
 /** Overlapping tile rows up a roof slope. Row r sits at v = r / rows; each row splits

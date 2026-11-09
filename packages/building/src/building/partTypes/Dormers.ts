@@ -18,6 +18,7 @@ import {
   type BuildingRegistry,
   type ConnectionRule,
   type EffectiveSurface,
+  type Outline,
   type Frame,
   type GeometryElement,
   type GeometryGenerator,
@@ -165,8 +166,8 @@ export const dormerSweepSurface: SurfaceKind<DormerSweepParams> = {
 /** How far the top of a roof's covering stands above its surface, measured upright, where the
  * roof's normal is `n`. Shingles lap over each other, so the covering is one of the roof's units
  * deep along the normal. */
-export const coveringRise = (roof: ParticipantView, n: Vec3) =>
-  ((roof.unit && unitExtent(roof.unit)?.[2]) ?? 0) / Math.max(n[1], 1e-3);
+export const coveringThickness = (roof: ParticipantView) => (roof.unit && unitExtent(roof.unit)?.[2]) ?? 0;
+export const coveringRise = (roof: ParticipantView, n: Vec3) => coveringThickness(roof) / Math.max(n[1], 1e-3);
 export const slopeSurface = (host: ParticipantView): EffectiveSurface | undefined =>
   host.geometry.original.elements.slope?.kind === "surface" ? host.geometry.surface("slope") : undefined;
 
@@ -303,57 +304,125 @@ const sweepOf = (part: ParticipantView): DormerSweepParams | undefined => {
 };
 const shift = (u: number, around: number, period: number) =>
   period ? u - Math.round((u - around) / period) * period : u;
-/** The first point of a surface over plan point `at` or further along `back`, in steps of 2 cm
- * up to 2 m: a start in front of an eave reaches the eave. */
-function firstOver(surface: EffectiveSurface, at: Vec3, back: Vec3, near: readonly [number, number]) {
-  for (let d = 0; d <= 2; d += 0.02) {
-    const q = add(at, scale(back, d));
-    const hit = surfaceAtPlan(surface, q[0], q[2], near) ?? surfaceAtPlan(surface, q[0], q[2]);
-    if (hit) return hit;
-  }
+/** How wide an arch stands at a height above its origin, from its outline. */
+export function archHalfWidth(outline: DormerSweepParams["outline"], height: number) {
+  const right = outline.slice(Math.floor(outline.length / 2));
+  if (height > right[0][1]) return 0;
+  for (let i = 1; i < right.length; i++)
+    if (height >= right[i][1])
+      return (
+        right[i - 1][0] +
+        ((right[i][0] - right[i - 1][0]) * (right[i - 1][1] - height)) / (right[i - 1][1] - right[i][1])
+      );
+  return right[right.length - 1][0];
 }
-/** The areas of a dormer's host surface that lie inside the dormer, in the host's (u, v):
- * one rectangle per outline point, nested like stairs. Rectangle k spans the outline's width
- * at that point and runs from the front plane back to where the host's covering, `lift` above
- * the host's surface, reaches the dormer's roof there, which rests on the outline. Further back
- * the host's covering laps over the dormer's roof, as it does on a real roof. */
-export function dormerFootprint(
+/** What a roof gives way to, along a level line through `center` that runs out of the roof along
+ * `z`: from where the roof is at `backV` down to where it is at `frontV`, and at each point as
+ * wide across `x`, on either side of the line, as `halfWidth` says, given how far out that is and
+ * how high the roof's covering is there. The covering is `thickness` thick, along the roof's
+ * normal. At the roof's lower edge the covering hangs `hang` lower; the opening is as wide there
+ * as it is at that height. */
+export interface RoofOpening {
+  readonly center: Vec3;
+  readonly x: Vec3;
+  readonly z: Vec3;
+  readonly backV: number;
+  readonly frontV: number;
+  readonly thickness: number;
+  readonly hang?: number;
+  readonly halfWidth: (out: number, height: number) => number;
+}
+/** How far apart the outline of a roof opening is sampled along the roof, in metres, and at most
+ * how many times. */
+const OPENING_STEP = 0.12;
+const OPENING_SAMPLES = 16;
+/** The area of a roof that a roof opening takes out, as an outline in the roof's (u, v). The
+ * roof's rows may fan out, so the outline follows the plan shape of the opening instead of its
+ * rows. */
+export function roofOpeningArea(
+  surface: EffectiveSurface,
+  near: readonly [number, number],
+  { center, x, z, backV, frontV, thickness, hang = 0, halfWidth }: RoofOpening
+): { rect: Rect; outline: Outline } | undefined {
+  const period = surface.domain.closedU ? surface.domain.u[1] - surface.domain.u[0] : 0;
+  const hitAt = (out: number, side = 0) => {
+    const q = add(add(center, scale(z, out)), scale(x, side));
+    return surfaceAtPlan(surface, q[0], q[2], near);
+  };
+  const from = hitAt(0)?.v ?? surface.domain.v[0];
+  // How far out along z the roof comes to v. Off the roof, beyond the eave a point lies further
+  // out; behind the part a point lies further in.
+  const outAt = (v: number) => {
+    const outward = v < from;
+    let inner = outward ? 0 : -8,
+      outer = outward ? 8 : 0;
+    for (let i = 0; i < 24; i++) {
+      const middle = (inner + outer) / 2,
+        hit = hitAt(middle);
+      if (hit ? hit.v > v : !outward) inner = middle;
+      else outer = middle;
+    }
+    return inner;
+  };
+  const back = outAt(backV),
+    front = outAt(frontV);
+  // A steep roof rises a long way over a short distance out: the outline follows the distance
+  // along the roof.
+  const [high, low] = [hitAt(back), hitAt(front)];
+  const rise = high && low ? Math.abs(high.frame.origin[1] - low.frame.origin[1]) : 0;
+  const count = Math.min(OPENING_SAMPLES, Math.max(1, Math.ceil(Math.hypot(front - back, rise) / OPENING_STEP))) + 1;
+  const right: (readonly [number, number])[] = [],
+    left: (readonly [number, number])[] = [];
+  for (let k = 0; k < count; k++) {
+    const out = back + ((front - back) * k) / (count - 1);
+    const middle = hitAt(out);
+    if (!middle) continue;
+    const hanging = k === count - 1 && frontV <= surface.domain.v[0] ? hang : 0;
+    const width = halfWidth(out, middle.frame.origin[1] + thickness / Math.max(middle.frame.z[1], 1e-3) - hanging);
+    const v = (hit: { v: number }) => (k === 0 ? backV : k === count - 1 ? frontV : hit.v);
+    const a = width > 1e-6 ? hitAt(out, -width) : middle,
+      b = width > 1e-6 ? hitAt(out, width) : middle;
+    if (!a || !b) continue;
+    left.push([shift(a.u, near[0], period), v(a)]);
+    if (b !== a) right.push([shift(b.u, near[0], period), v(b)]);
+  }
+  const outline = [...right, ...left.reverse()];
+  if (outline.length < 3) return undefined;
+  const us = outline.map((q) => q[0]),
+    vs = outline.map((q) => q[1]);
+  const rect: Rect = [Math.min(...us), Math.min(...vs), Math.max(...us), Math.max(...vs)];
+  return rect[2] > rect[0] && rect[3] > rect[1] ? { rect, outline } : undefined;
+}
+/** Where a swept dormer's roof comes down to the covering of its host, `lift` above the host's
+ * surface, as the v of its back end. `lap` stops it that much lower, so that the host's tiles run
+ * on under the dormer's roof and their cut edge stays hidden. */
+export function sweepBackV(
   sweep: DormerSweepParams,
   surface: EffectiveSurface,
   near: readonly [number, number],
-  lift: number
-): Rect[] {
-  const right = sweep.outline.slice(Math.floor(sweep.outline.length / 2));
+  lift: number,
+  lap = 0
+): number | undefined {
   const back = scale(sweep.z, -1);
-  const period = surface.domain.closedU ? surface.domain.u[1] - surface.domain.u[0] : 0;
-  const rects: Rect[] = [];
-  for (const [width, height] of right) {
-    if (!(width > 0) || !(height > lift)) continue;
-    const depth = depthToHeight(surface, sweep.origin, back, sweep.origin[1] + height - lift, near);
-    if (depth === undefined) continue;
-    // Corners: left front, left back, right front, right back.
-    const corners = [-1, 1].flatMap((side) =>
-      [0, depth].map((d) => {
-        const hit = firstOver(
-          surface,
-          add(add(sweep.origin, scale(sweep.x, side * width)), scale(back, d)),
-          back,
-          near
-        );
-        return hit && ([shift(hit.u, near[0], period), hit.v] as const);
-      })
-    );
-    if (corners.some((c) => !c)) continue;
-    const [lf, lb, rf, rb] = corners as (readonly [number, number])[];
-    // u may run either way across the dormer; keep what both the front and the back cover.
-    const ascending = lf[0] < rf[0];
-    const lo = ascending ? Math.max(lf[0], lb[0]) : Math.max(rf[0], rb[0]);
-    const hi = ascending ? Math.min(rf[0], rb[0]) : Math.min(lf[0], lb[0]);
-    const v0 = Math.max(lf[1], rf[1]),
-      v1 = Math.min(lb[1], rb[1]);
-    if (hi > lo && v1 > v0) rects.push([lo, v0, hi, v1]);
-  }
-  return rects;
+  const peak = Math.max(...sweep.outline.map((q) => q[1]));
+  const depth = depthToHeight(surface, sweep.origin, back, sweep.origin[1] + peak - lift - lap, near);
+  if (depth === undefined) return undefined;
+  const q = add(sweep.origin, scale(back, depth));
+  return surfaceAtPlan(surface, q[0], q[2], near)?.v;
+}
+/** How far an occupied part reaches across `x` on either side of `center`, in metres. */
+export function occupiedSpan(part: ParticipantView, center: Vec3, x: Vec3): [number, number] {
+  let lo = Infinity,
+    hi = -Infinity;
+  for (const { matrix: m, solids } of part.occupied)
+    for (const solid of solids)
+      for (const [px, pz] of solid.hull) {
+        const d =
+          (m[0] * px + m[8] * pz + m[12] - center[0]) * x[0] + (m[2] * px + m[10] * pz + m[14] - center[2]) * x[2];
+        lo = Math.min(lo, d);
+        hi = Math.max(hi, d);
+      }
+  return [lo, hi];
 }
 
 /** The tile unit of a dormer's small roof: the host roof's tile, adapting to the rows and
@@ -387,14 +456,21 @@ export const dormerOnRoof: ConnectionRule = ({ guest, hosts, params }) => {
   const along = surface.frame(mount.on.u, mount.on.v + 1e-3).origin,
     here = surface.frame(mount.on.u, mount.on.v).origin;
   const front = (DORMER_SILL_CLEAR * 1e-3) / Math.hypot(...add(along, scale(here, -1)));
-  const rects = dormerFootprint(sweep, surface, [mount.on.u, mount.on.v], lift).map(
-    ([u0, v0, u1, v1]): Rect => [u0, v0 - front, u1, v1]
-  );
+  const near = [mount.on.u, mount.on.v] as const;
+  const backV = sweepBackV(sweep, surface, near, lift);
+  const area =
+    backV !== undefined &&
+    roofOpeningArea(surface, near, {
+      center: sweep.origin,
+      x: sweep.x,
+      z: sweep.z,
+      backV,
+      frontV: mount.on.v - front,
+      thickness: coveringThickness(host),
+      halfWidth: (_, height) => archHalfWidth(sweep.outline, height - sweep.origin[1])
+    });
   return {
-    modify: rects.map((rect) => ({
-      part: host.key,
-      modification: { element: "slope", op: "removeArea" as const, rect }
-    })),
+    modify: area ? [{ part: host.key, modification: { element: "slope", op: "removeArea" as const, ...area } }] : [],
     derive: [
       {
         localId: "roof",

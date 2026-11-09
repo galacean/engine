@@ -26,7 +26,15 @@ import {
   type SurfaceKind,
   type Vec3
 } from "../core";
-import { coveringRise, roofUnder, slopeSurface, surfaceAtPlan } from "./Dormers";
+import {
+  coveringRise,
+  coveringThickness,
+  occupiedSpan,
+  roofOpeningArea,
+  roofUnder,
+  slopeSurface,
+  surfaceAtPlan
+} from "./Dormers";
 import { prefabFacts, prefabScale } from "./Openings";
 
 /** Where a shed dormer stands: the window body's building prefab, a plan position (x, z) for
@@ -101,7 +109,7 @@ function floorAt(p: LoftParams, side: number, v: number): number {
   return at(p.rows[i]) * (1 - f) + at(p.rows[i + 1]) * f;
 }
 
-/** Elements "mount", "mount1", ..., "front" and "shed".
+/** Elements "mount", "mount1", ... and "shed".
  * - The bodies stand along the roof's level contour through the plan position, `spacing`
  *   apart, each with its lowest point `bottom` above the roof's covering and facing level out
  *   of the roof there.
@@ -139,18 +147,7 @@ export const houseShedDormerGeometry: GeometryGenerator<ShedDormerParams> = (p, 
     return u;
   };
   const elements: Record<string, GeometryElement> = {};
-  // The bodies' fronts along the contour, from the left edge of the first to the right edge of
-  // the last.
   const span = (p.count - 1) * spacing + (max[0] - min[0]) * sx;
-  elements.front = {
-    kind: "curve",
-    curve: {
-      points: [-0.5, 0, 0.5].map((t) => {
-        const q = surface.frame(along(t * span, hit.v), hit.v).origin;
-        return [q[0], q[1] + lift, q[2]] as Vec3;
-      })
-    }
-  };
   for (let i = 0; i < p.count; i++) {
     const u = along((i - (p.count - 1) / 2) * spacing, hit.v);
     const f = surface.frame(u, hit.v);
@@ -221,10 +218,10 @@ function shedOpeningBack(
   while (row > (rows.length - 1) / 2 && Math.hypot(...sub(rows[row].points[mid], back)) < SHED_LAP) row--;
   return vAtHeight(surface, u, rows[row].floor[mid] - lift);
 }
-/** Attach rule of a shed dormer on its roof: the area from the bodies' fronts (the curve
- * "front") back to just before the shed meets the covering, as wide as the bodies, comes out of
- * the roof part they stand on; the shed's overhang keeps the roof under it. The connection derives
- * the shed, laid with the roof's tile. */
+/** Attach rule of a shed dormer on its roof: the area from the bodies' fronts back to just before
+ * the shed meets the covering, as wide as the bodies, comes out of the roof part they stand on;
+ * the shed's overhang keeps the roof under it. The connection derives the shed, laid with the
+ * roof's tile. */
 export const shedOnRoof: ConnectionRule = ({ guest, hosts }) => {
   const loft = guest && loftOf(guest);
   const mount = guest?.geometry.original.elements.mount;
@@ -233,15 +230,25 @@ export const shedOnRoof: ConnectionRule = ({ guest, hosts }) => {
   const surface = host && slopeSurface(host);
   if (!surface || !host.unit) return { diagnostics: ["shedOnRoof needs the host roof and its tile"] };
   const near = [mount.on.u, mount.on.v] as const;
-  const front = guest.geometry.original.elements.front;
   const lift = coveringRise(host, surface.frame(near[0], near[1]).z);
   const vBack = shedOpeningBack(surface, near[0], loft.rows, lift);
-  const us = front?.kind === "curve" ? front.curve.points.map((q) => surfaceAtPlan(surface, q[0], q[2], near)?.u) : [];
-  if (vBack === undefined || !us.length || us.some((u) => u === undefined))
-    return { diagnostics: [`${guest.key} lies off its roof`] };
-  const rect: Rect = [Math.min(...(us as number[])), mount.on.v, Math.max(...(us as number[])), vBack];
+  const { origin, x, z } = mount.frame;
+  const [lo, hi] = occupiedSpan(guest, origin, x);
+  const area =
+    vBack !== undefined && hi > lo
+      ? roofOpeningArea(surface, near, {
+          center: add(origin, scale(x, (lo + hi) / 2)),
+          x,
+          z,
+          backV: vBack,
+          frontV: mount.on.v,
+          thickness: coveringThickness(host),
+          halfWidth: () => (hi - lo) / 2
+        })
+      : undefined;
+  if (!area) return { diagnostics: [`${guest.key} lies off its roof`] };
   return {
-    modify: [{ part: host.key, modification: { element: "slope", op: "removeArea", rect } }],
+    modify: [{ part: host.key, modification: { element: "slope", op: "removeArea", ...area } }],
     derive: [
       {
         localId: "roof",

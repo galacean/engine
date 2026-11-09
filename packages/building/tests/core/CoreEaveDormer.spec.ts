@@ -273,10 +273,9 @@ describe("Eave dormers against the online path", () => {
     const across = (q: readonly number[]) =>
       (q[0] - mount.frame.origin[0]) * mount.frame.x[0] + (q[2] - mount.frame.origin[2]) * mount.frame.x[2];
     for (const m of roof.modifications) {
-      if (!("rect" in m)) continue;
-      const [u0, v0, u1, v1] = m.rect;
-      const middle = surface.frame((u0 + u1) / 2, (v0 + v1) / 2).origin;
-      expect(Math.abs(across(middle))).toBeLessThan(0.06);
+      if (m.op !== "removeArea") continue;
+      const side = m.outline!.map(([u, v]) => across(surface.frame(u, v).origin));
+      expect(Math.abs((Math.min(...side) + Math.max(...side)) / 2)).toBeLessThan(0.06);
     }
   });
 
@@ -313,11 +312,15 @@ describe("Eave dormers against the online path", () => {
       const top = view.getFloat32(k + 4, true) + view.getFloat32(k + 20, true) / 2;
       boxes.set(`${view.getFloat32(k, true)}/${top}/${depth}`, { top, depth });
     }
-    const all = [...boxes.values()];
-    expect(all.length).toBeGreaterThan(1);
-    // Only the band at the eave reaches out past the roof's edge.
-    const eave = all.find((b) => b.depth > 1)!;
-    expect(eave.top).toBeCloseTo(Math.max(...all.map((b) => b.top)), 3);
+    // A plain rectangle in plan: one box that reaches out past the roof's edge.
+    expect(boxes.size).toBe(1);
+    const [box] = [...boxes.values()];
+    expect(box.depth).toBeGreaterThan(1);
+    const roof = result.parts.find((p) => p.type === "roof" && p.modifications.some((m) => m.op === "removeArea"))!;
+    const surface = new EffectiveGeometry(roof.original, roof.modifications, registry.surfaces).surface("slope");
+    const area = roof.modifications.find((m) => m.op === "removeArea")!;
+    if (area.op !== "removeArea") throw Error("no area");
+    expect(box.top).toBeGreaterThan(Math.max(...area.outline!.map(([u, v]) => surface.frame(u, v).origin[1])));
   });
 
   it.each([
@@ -371,9 +374,14 @@ describe("Eave dormers against the online path", () => {
     };
     const base = right[right.length - 1][1],
       peak = right[0][1];
+    // The opening ends a little below the peak; the host's tiles run on under the small roof there.
+    const end = peak - 0.35;
     for (let i = 1; i < 40; i++) {
-      const height = base + ((peak - base) * i) / 40;
-      expect(Math.abs(opened(arch.origin[1] + height) - outline(height))).toBeLessThan(0.025);
+      const height = base + ((end - base) * i) / 40;
+      // The opening follows the arch. At the eave it is wider, for the tiles that hang below.
+      const gap = opened(arch.origin[1] + height) - outline(height);
+      expect(gap).toBeGreaterThan(-0.025);
+      expect(gap).toBeLessThan(0.12);
     }
   });
 });

@@ -307,8 +307,7 @@ function eaveShed(house: CoreHouseParameters, a: CoreWallAttachment) {
     params: {
       overhang: 0.1,
       expand: [0.1, 0.05, 0.3][rank - 1],
-      pitch: [0.1, 0.15, 0.2][rank - 1],
-      ...(shutters && { clearance: 0.7 })
+      pitch: [0.1, 0.15, 0.2][rank - 1]
     }
   };
 }
