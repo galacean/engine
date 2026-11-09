@@ -667,6 +667,28 @@ export function buildCoreHouse(p: CoreHouseParameters): BuildingCoreDraft {
   // The dormer's small roof follows the house's tile footprint.
   const tileScale = unitFootprintScale(unit);
   const tiles = { row: 0.3 * tileScale.width, column: 0.32 * tileScale.height };
+  // A corner window takes the corner of its height: the walls' corner stones leave room for it.
+  const cornerJoins = (() => {
+    if (walls.length !== 4) return [];
+    const [w, d] = p.rectangle?.size ?? DEFAULT_RECTANGLE.size;
+    const perimeter = 2 * (w + d);
+    // The perimeter starts at corner 0 and runs first along the depth.
+    const corners = [0, d / perimeter, 0.5, 0.5 + d / perimeter];
+    const gaps = new Map<number, [number, number][]>();
+    for (const a of p.attachments ?? []) {
+      if (a.type !== "window-cottage-corner") continue;
+      const u = ((a.u % 1) + 1) % 1;
+      const c = corners.findIndex((k) => Math.min(Math.abs(k - u), 1 - Math.abs(k - u)) < 1e-6);
+      if (c < 0) continue;
+      gaps.set(c, [...(gaps.get(c) ?? []), [a.bottom - 0.05, a.bottom + a.height + 0.1]]);
+    }
+    return [...gaps].map(([c, list]) => ({
+      kind: "join" as const,
+      id: `${p.id}-corner-${c}`,
+      parts: [walls[(c + 3) % 4].id, walls[c].id] as [string, string],
+      params: { gaps: list }
+    }));
+  })();
   const eaves = mounted.filter((part) => part.type === "eaveDormer");
   if (eaves.length && !pitched) throw Error("An eave dormer needs a pitched roof");
   const onWalls = [
@@ -721,6 +743,7 @@ export function buildCoreHouse(p: CoreHouseParameters): BuildingCoreDraft {
         guest: part.id,
         hosts: walls.map((w) => ({ part: w.id }))
       })),
+      ...cornerJoins,
       // An eave dormer opens a wall and the roof part behind it: walls first.
       ...eaves.map((part) => ({
         kind: "attach" as const,

@@ -600,7 +600,7 @@ const cases = (): Case[] => [
           kind: "window",
           type: "window-cottage-corner",
           rank,
-          u: [0.25, 0.5, 0.75][i],
+          u: [8 / 36, 0.5, 26 / 36][i],
           bottom: 1,
           width: size.width,
           height: size.height

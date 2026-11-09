@@ -6,7 +6,7 @@ vi.mock("@galacean/engine", async () => ({
 }));
 import { describe, expect, it, vi } from "vitest";
 import { nativeAssets } from "../fixtures/constructionAssets";
-import { createBuildingRegistry, designBuildingCore } from "../../src/building/core";
+import { createBuildingRegistry, designBuildingCore, expandUnits } from "../../src/building/core";
 import { registerHouseTypes } from "../../src/building/partTypes/House";
 import {
   buildCoreHouse,
@@ -100,6 +100,27 @@ describe("Corner windows against the online path", () => {
     const result = design(house([at(2, 0.5)]));
     const walls = result.parts.filter((p) => p.type === "wall" && p.modifications.some((m) => m.op === "removeArea"));
     expect(walls).toHaveLength(2);
+  });
+
+  it.each([
+    [0.5, 2],
+    [8 / 36, 1],
+    [0, 0]
+  ] as const)("leaves its corner free of corner stones at u = %f", (u) => {
+    const stones = (r: ReturnType<typeof design>) =>
+      r.parts.filter((p) => p.type === "cornerStone").flatMap((p) => expandUnits(p, registry, { environment }));
+    const with_ = stones(design(house([at(2, u)]))),
+      without = stones(design(house([])));
+    expect(with_.length).toBeLessThan(without.length);
+    const size = 1.6;
+    const window = design(house([at(2, u)])).parts.find((p) => p.type === "window")!.original.elements.mount;
+    if (window.kind !== "point") throw Error("no mount");
+    const at_ = window.frame.origin;
+    for (const s of with_)
+      if (Math.hypot(s.frame.origin[0] - at_[0], s.frame.origin[2] - at_[2]) < 1.2)
+        expect(
+          s.frame.origin[1] > 1 + size + 0.1 - s.size![1] / 2 || s.frame.origin[1] < 1 - 0.05 + s.size![1] / 2
+        ).toBe(true);
   });
 
   it("keeps the corner's angle when it is resized", () => {

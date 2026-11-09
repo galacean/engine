@@ -206,6 +206,7 @@
 - **预制件：** `window-cottage-corner/1..3`，成员是窗框、玻璃和两块窗楣。窗楣的位姿写在预制件里。根节点新增 `cornerOut`（预制件原点离墙角的距离）和 `sizeMembers`（决定预制件尺寸的成员，窗楣不算）。转角窗的 `openings` 沿周长从墙角量起。
 - **构件：** 类型仍是 `window`，几何 `houseCornerMount`。`u` 必须指向墙角，圆墙和普通墙面报错。窗沿墙角的角平分线朝外，平面内等比缩放，保持墙角的角度（`mountPrefab` 的 `evenPlan`）。
 - **开口：** 窗洞和窗楣的开口分别落到相交的两面墙上。`wallOpening` 规则现在按每个开口自己的 `host` 处理。
+- **转角石：** 应用层为转角窗所在的墙角写一条显式的 join 连接，`wallCorner` 规则的 `gaps` 参数让出窗的高度范围，这个范围内不铺转角石。
 - **与线上对比（`tests/core/CoreCornerWindow.spec.ts`）：** 1–3 号的窗框、玻璃和两块窗楣的网格顶点数相同，中心偏差 < 3 cm。
 
 ## 屋顶模型

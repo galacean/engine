@@ -1029,9 +1029,14 @@ interface CornerStoneParams {
   after: [number, number];
   /** Position of the corner along the house perimeter, in metres. */
   cornerU?: number;
+  /** Height ranges above the base with no stones. */
+  gaps?: readonly (readonly [number, number])[];
 }
 /** Corner stones stacked at one corner: even rows along the wall after the corner, odd rows
  * along the wall before it, each reaching past the corner by half its depth. */
+/** Whether a row of corner stones overlaps one of the height ranges kept free above the base. */
+const inGap = (y0: number, y1: number, bottom: number, gaps: readonly (readonly [number, number])[]) =>
+  gaps.some(([from, to]) => y0 - bottom < to && y1 - bottom > from);
 export const cornerStones: LayingAlgorithm<CornerStoneParams, { rows: number }> = {
   info: {
     accepts: ["point"],
@@ -1052,6 +1057,7 @@ export const cornerStones: LayingAlgorithm<CornerStoneParams, { rows: number }> 
   unitAt(context, _data, row) {
     const p = context.params;
     const ys = cornerStoneRows(p.seed, p.bottom, p.top, p.scale[1]);
+    if (inGap(ys[row], ys[row + 1], p.bottom, p.gaps ?? [])) return;
     const rows = ys.length - 1;
     const width = cornerStoneWidth(p.seed, row, rows, p.scale[0]),
       over = overhang(p.scale[2]);
@@ -1098,7 +1104,9 @@ export const wallsMeet: JoinDetector = (a, b) => {
 };
 /** Peer rule between two walls that meet at a corner: both give way to a stack of
  * alternating corner stones, which the connection derives as its own part.
- * Connection param `angle`: [min, max] turn in degrees that gets stones. Default: [80, 100]. */
+ * Connection param `angle`: [min, max] turn in degrees that gets stones. Default: [80, 100].
+ * Connection param `gaps`: height ranges above the corner's base with no stones, where
+ * something else, such as a corner window, takes the corner. */
 export const wallCorner: ConnectionRule = ({ parts, seed, params }) => {
   const [a, b] = parts;
   const ca = chartOf(a),
@@ -1129,8 +1137,10 @@ export const wallCorner: ConnectionRule = ({ parts, seed, params }) => {
   const rows = ys.length - 1,
     over = overhang(scale[2]);
   const lengthBefore = wallChartSampler(cBefore).length;
+  const gaps = (params.gaps as readonly (readonly [number, number])[] | undefined) ?? [];
   const modify = [];
   for (let row = 0; row < rows; row++) {
+    if (inGap(ys[row], ys[row + 1], bottom, gaps)) continue;
     const width = cornerStoneWidth(seed, row, rows, scale[0]);
     const [y0, y1] = [ys[row], ys[row + 1]];
     // Even rows: the stone lies along the wall after the corner; its end shows on the wall before.
@@ -1154,7 +1164,7 @@ export const wallCorner: ConnectionRule = ({ parts, seed, params }) => {
         geometry: { elements: { corner: { kind: "point", frame } } },
         algorithm: {
           type: "cornerStones",
-          params: { seed, bottom, top, scale, before: dirBefore, after: dirAfter, cornerU: cAfter.uOffset ?? 0 }
+          params: { seed, bottom, top, scale, before: dirBefore, after: dirAfter, cornerU: cAfter.uOffset ?? 0, gaps }
         },
         // Stones reach about 1.1 m wide, 0.8 m tall and 0.67 m deep.
         unit: { ...unit, range: { min: [0.05, 0.05, 1], max: [3, 3, 8] } }
