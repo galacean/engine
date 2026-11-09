@@ -53,6 +53,10 @@ export interface BuildingPrefab {
   /** How far in front of the wall the arch of an eave dormer starts. */
   eaveOut?: number;
   eaveOutCurved?: number;
+  /** How far the origin of a corner window stands in from its wall corner. */
+  cornerOut?: number;
+  /** Paths of the members that set the prefab's size. Default: all of them. */
+  sizeMembers?: string[];
 }
 /** A building prefab with the bounds of its baked members. */
 export interface CompiledBuildingPrefab extends BuildingPrefab {

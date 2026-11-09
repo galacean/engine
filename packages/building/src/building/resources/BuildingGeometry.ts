@@ -140,7 +140,8 @@ export function buildingGeometry(
           box.max[axis] = Math.max(box.max[axis], p[axis]);
         }
       };
-      for (const [name] of prefab.members) {
+      for (const [name, path] of prefab.members) {
+        if (prefab.sizeMembers && !prefab.sizeMembers.includes(path)) continue;
         const member = decorations.meshes[name].bounds;
         include(member.min);
         include(member.max);

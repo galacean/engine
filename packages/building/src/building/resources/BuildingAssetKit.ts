@@ -109,6 +109,11 @@ export class BuildingPrefabComponent extends Component {
    * curved wall, in metres. */
   eaveOut = 0;
   eaveOutCurved = 0;
+  /** How far the prefab's origin stands in from the wall corner it spans, in metres, on a
+   * corner window. Its openings then run along the perimeter from that corner. */
+  cornerOut = 0;
+  /** Paths of the members that set the prefab's size. Default: all of them. */
+  sizeMembers: string[] = [];
   private _roofProfile: [number, number][] = [];
   /** The outline of the small roof a prefab carries out of a roof slope, such as a dormer's:
    * its right half from the peak down to the eave, in the prefab's x/y plane. The roof is
@@ -546,7 +551,9 @@ export function buildingAssets(source: PrefabResource): BuildingAssets {
           openings,
           curvedNarrowing: root.curvedNarrowing,
           ...(roofProfile.length && { roofProfile }),
-          ...(root.eaveOut > 0 && { eaveOut: root.eaveOut, eaveOutCurved: root.eaveOutCurved })
+          ...(root.eaveOut > 0 && { eaveOut: root.eaveOut, eaveOutCurved: root.eaveOutCurved }),
+          ...(root.cornerOut > 0 && { cornerOut: root.cornerOut }),
+          ...(root.sizeMembers.length && { sizeMembers: [...root.sizeMembers] })
         };
       } finally {
         entity.destroy();

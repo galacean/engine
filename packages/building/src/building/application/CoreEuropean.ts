@@ -317,13 +317,14 @@ function wallAttachmentPart(house: CoreHouseParameters, a: CoreWallAttachment): 
   const eave = a.type !== undefined && EAVE_TYPES.has(a.type);
   const shed = a.type === "dormer-cottage-half" ? eaveShed(house, a) : undefined;
   const kind = a.kind;
+  const corner = a.type === "window-cottage-corner";
   const prefab = shed?.prefab ?? `${a.type ?? DEFAULT_WALL_TYPES[kind]}/${a.rank ?? 1}`;
   return {
     id: `${house.id}/${a.id}`,
     group: house.id,
     type: eave ? "eaveDormer" : WALL_PART_TYPES[kind],
     geometry: {
-      generator: eave ? "houseEaveMount" : "houseWallMount",
+      generator: eave ? "houseEaveMount" : corner ? "houseCornerMount" : "houseWallMount",
       params: { prefab, u: a.u, bottom: a.bottom, width: a.width, height: a.height, ...shed?.params }
     },
     algorithm: {
@@ -331,6 +332,7 @@ function wallAttachmentPart(house: CoreHouseParameters, a: CoreWallAttachment): 
       params: {
         width: a.width,
         height: a.height,
+        ...(corner && { evenPlan: true }),
         unitParams: {
           kind: a.kind,
           u: a.u,

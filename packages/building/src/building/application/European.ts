@@ -82,7 +82,8 @@ const WALL_PREFABS = new Set([
   "window-arrow-slit",
   "dormer-cottage-half",
   "dormer-gothic-half",
-  "dormer-arrow-slit-half"
+  "dormer-arrow-slit-half",
+  "window-cottage-corner"
 ]);
 const unavailable = (what: string) => Error(`${what} is not available in the building system yet`);
 /** A size the caller gave must be a positive finite number. */

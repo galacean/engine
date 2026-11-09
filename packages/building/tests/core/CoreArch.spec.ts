@@ -66,7 +66,8 @@ const onlineInput = async (p: CoreHouseParameters, timber = false) => {
 describe("Arches against the online path", () => {
   it.each([
     ["a square house", {}],
-    ["a tall arch", { attachments: [arch({ height: 3.4, width: 1.4 })] }]
+    ["a tall arch", { attachments: [arch({ height: 3.4, width: 1.4 })] }],
+    ["a round wall", { rectangle: undefined, circle: { center: [0, 0], radius: 5, phase: 0 } }]
   ] as [string, Partial<CoreHouseParameters>][])(
     "stone on %s: as many stones, along the same arc",
     async (_n, extra) => {
@@ -87,7 +88,8 @@ describe("Arches against the online path", () => {
         const v = units.map((u) => u.frame.origin[k]);
         return Math.max(...v) - Math.min(...v);
       };
-      expect(Math.min(range(0), range(2))).toBeLessThan(1e-6);
+      // On a straight wall every stone stands on one line.
+      if (!extra.circle) expect(Math.min(range(0), range(2))).toBeLessThan(1e-6);
     }
   );
 

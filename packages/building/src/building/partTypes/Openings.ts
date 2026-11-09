@@ -42,6 +42,8 @@ export interface PrefabFacts {
   /** How far in front of the wall an eave dormer's arch starts, on a straight and a curved wall. */
   readonly eaveOut?: number;
   readonly eaveOutCurved?: number;
+  /** How far the origin of a corner window stands in from its wall corner. */
+  readonly cornerOut?: number;
 }
 export function prefabFacts(environment: BuildingEnvironment, prefab: string): PrefabFacts {
   const facts = environment.asset?.({ prefab }) as unknown as PrefabFacts | undefined;
@@ -180,6 +182,97 @@ export const houseWallMountGeometry: GeometryGenerator<WallMountParams> = (p, { 
   return { elements };
 };
 
+/** Parameters of a mounted corner window: its prefab, the perimeter fraction of the corner, a
+ * height above the wall's base and its installation size. */
+export interface CornerMountParams {
+  readonly prefab: string;
+  readonly u: number;
+  readonly bottom: number;
+  readonly width: number;
+  readonly height: number;
+}
+const CORNER_COS = Math.cos(Math.PI / 6);
+/** Elements "mount" and "opening<i>" of a window that spans a wall corner. It stands across the
+ * corner, facing out along the corner's bisector, and scales evenly in plan so that it keeps
+ * the corner's angle. Its openings run along the perimeter from the corner, on both of the walls
+ * they cross. `u` must name a corner; a round wall has none. */
+export const houseCornerMountGeometry: GeometryGenerator<CornerMountParams> = (p, { hosts, environment }) => {
+  const facts = prefabFacts(environment, p.prefab);
+  if (!facts.cornerOut) throw Error(`Building prefab "${p.prefab}" does not span a corner`);
+  const walls = hosts.map((host, index) => ({ index, chart: chartOf(host)! }));
+  if (walls.some((w) => !w.chart)) throw Error("A corner window attaches to house walls");
+  const offsetOf = (w: (typeof walls)[number]) => w.chart.uOffset ?? 0;
+  const perimeter = walls.reduce((n, w) => Math.max(n, offsetOf(w) + chartLength(w.chart)), 0);
+  const wrap = (u: number) => ((u % perimeter) + perimeter) % perimeter;
+  const at = wrap(p.u * perimeter);
+  const sampleAt = (u: number) => {
+    const v = wrap(u);
+    const w = walls.find((q) => v >= offsetOf(q) && v <= offsetOf(q) + chartLength(q.chart))!;
+    return wallChartSampler(w.chart).at(v - offsetOf(w));
+  };
+  const before = sampleAt(at - 0.05).tangent,
+    after = sampleAt(at + 0.05).tangent;
+  if (before[0] * after[0] + before[1] * after[1] > CORNER_COS)
+    throw Error("A corner window needs a corner of its wall");
+  const here = sampleAt(at + 0.05);
+  const corner = [here.x - here.tangent[0] * 0.05, here.z - here.tangent[1] * 0.05];
+  // Out of the corner: away from both walls that meet there.
+  const nx = before[0] - after[0],
+    nz = before[1] - after[1],
+    length = Math.hypot(nx, nz) || 1;
+  const z: Vec3 = [nx / length, 0, nz / length],
+    x: Vec3 = [z[2], 0, -z[0]],
+    y: Vec3 = [0, 1, 0];
+  const { min, max } = facts.bounds;
+  const [sx, sy] = prefabScale(facts, p.width, p.height);
+  const ground = sampleAt(at + 0.05).ground;
+  const pivotY = ground + p.bottom - min[1] * sy;
+  const top = pivotY + max[1] * sy;
+  if (top > Math.min(sampleAt(at - 0.05).roof, here.roof) + 0.02)
+    throw Error("The corner window reaches above its walls");
+  const origin: Vec3 = [corner[0] - z[0] * facts.cornerOut * sx, pivotY, corner[1] - z[2] * facts.cornerOut * sx];
+  // The prefab scales evenly in plan and about its back: its origin stays where it was placed.
+  const center = [0, 1, 2].map(
+    (k) =>
+      origin[k] + x[k] * ((min[0] + max[0]) / 2) * sx + y[k] * ((min[1] + max[1]) / 2) * sy + z[k] * min[2] * (sx - 1)
+  ) as unknown as Vec3;
+  const host = walls.find(
+    (w) => wrap(at + 0.05) - offsetOf(w) >= 0 && wrap(at + 0.05) - offsetOf(w) <= chartLength(w.chart)
+  )!;
+  const elements: Record<string, import("../core").GeometryElement> = {
+    mount: {
+      kind: "point",
+      frame: { origin: center, x, y, z },
+      on: { host: host.index, element: "face", u: at, v: pivotY }
+    }
+  };
+  let i = 0;
+  for (const o of facts.openings) {
+    const [a, b] = [at + o.min[0] * sx, at + o.max[0] * sx];
+    const [lo, hi] = [pivotY + o.min[1] * sy, pivotY + o.max[1] * sy];
+    // Each wall loses the part of the span that lies on it.
+    for (const w of walls) {
+      const start = offsetOf(w),
+        end = start + chartLength(w.chart);
+      for (const shift of [-perimeter, 0, perimeter]) {
+        const from = Math.max(a + shift, start),
+          to = Math.min(b + shift, end);
+        if (!(to - from > 1e-6)) continue;
+        const sample = wallChartSampler(w.chart).at(from - start);
+        const params: WallOpeningParams = {
+          host: w.index,
+          rect: [from - start, lo, to - start, hi],
+          perimeter: [from, lo, to, hi],
+          origin: [sample.x, lo, sample.z],
+          x: [sample.tangent[0], 0, sample.tangent[1]]
+        };
+        elements[`opening${i++}`] = { kind: "surface", surface: { kind: "wallOpening", params } };
+      }
+    }
+  }
+  return { elements };
+};
+
 /** The opening rectangles of a mounted part. */
 export const wallOpeningsOf = (part: ParticipantView): WallOpeningParams[] =>
   Object.values(part.geometry.original.elements).flatMap((e) =>
@@ -190,18 +283,16 @@ export const wallOpeningsOf = (part: ParticipantView): WallOpeningParams[] =>
 export const wallOpening: ConnectionRule = ({ guest, hosts }) => {
   const openings = guest ? wallOpeningsOf(guest) : [];
   if (!guest || !openings.length) return {};
-  const wall = hosts[openings[0].host];
-  const chart = wall && chartOf(wall);
-  if (!chart) return { diagnostics: ["wallOpening needs the host wall's chart"] };
-  const length = chartLength(chart);
-  if (!chart.closed && openings.some((o) => o.rect[0] < -1e-6 || o.rect[2] > length + 1e-6))
-    return { diagnostics: [`${guest.key} crosses the end of its wall`] };
-  return {
-    modify: openings.map((o) => ({
-      part: wall.key,
-      modification: { element: "face", op: "removeArea" as const, rect: o.rect }
-    }))
-  };
+  const modify = [];
+  for (const o of openings) {
+    const wall = hosts[o.host];
+    const chart = wall && chartOf(wall);
+    if (!chart) return { diagnostics: ["wallOpening needs the host wall's chart"] };
+    if (!chart.closed && (o.rect[0] < -1e-6 || o.rect[2] > chartLength(chart) + 1e-6))
+      return { diagnostics: [`${guest.key} crosses the end of its wall`] };
+    modify.push({ part: wall.key, modification: { element: "face", op: "removeArea" as const, rect: o.rect } });
+  }
+  return { modify };
 };
 
 /** Band elements of a floor band part with their charts. */
@@ -312,6 +403,9 @@ interface MountPrefabParams {
   readonly row?: { readonly count: number; readonly spacing: number };
   /** Renderer values carried on the laid unit. */
   readonly unitParams?: Readonly<Record<string, unknown>>;
+  /** Scale depth with the width, as for a window that spans a corner. Default: the smaller of
+   * width and height. */
+  readonly evenPlan?: boolean;
 }
 /** Lays a part's building prefab at each of its mounts ("mount", "mount1", "mount2", ...),
  * scaled to the installation size. The center of the prefab's bounds lies on the mount across
@@ -341,7 +435,7 @@ export const mountPrefab: LayingAlgorithm<MountPrefabParams, null> = {
       height = context.params.height ?? bounds.max[1] - bounds.min[1];
     const sx = width / (bounds.max[0] - bounds.min[0]),
       sy = height / (bounds.max[1] - bounds.min[1]),
-      sz = Math.min(sx, sy);
+      sz = context.params.evenPlan ? sx : Math.min(sx, sy);
     const frame = context.geometry.point(mountsOf(context.geometry.ids("point"))[index]);
     const back = bounds.min[2];
     return {
@@ -360,6 +454,7 @@ export const WALL_MOUNTS = ["window", "door", "lamp"] as const;
 export function registerOpeningTypes(registry: BuildingRegistry): BuildingRegistry {
   registry.surfaces.register("wallOpening", wallOpeningSurface);
   registry.geometry.register("houseWallMount", houseWallMountGeometry);
+  registry.geometry.register("houseCornerMount", houseCornerMountGeometry);
   registry.algorithms.register("mountPrefab", mountPrefab);
   registry.rules.register("wallOpening", wallOpening);
   registry.rules.register("openingCutsBand", openingCutsBand);

@@ -457,7 +457,12 @@ const cases = (): Case[] => [
   {
     id: "timber-gable",
     title: "木墙 · 山墙",
-    house: { id: "a", walls: "timber", rectangle: { center: [0, 0], size: [8, 6], rotation: 0.3 }, roof: { ridge_length: 1 } },
+    house: {
+      id: "a",
+      walls: "timber",
+      rectangle: { center: [0, 0], size: [8, 6], rotation: 0.3 },
+      roof: { ridge_length: 1 }
+    },
     online: { wallStructure: "timber", wall: { unit: "wooden_plank", algorithm: { type: "horizontal_rows" } } },
     ground: flat
   },
@@ -576,6 +581,32 @@ const cases = (): Case[] => [
       ] as never
     },
     online: { wallStructure: "timber", wall: { unit: "wooden_plank", algorithm: { type: "horizontal_rows" } } },
+    ground: flat
+  },
+  {
+    id: "corner-windows",
+    title: "转角窗",
+    house: {
+      id: "a",
+      height: 4,
+      rectangle: { center: [0, 0], size: [10, 8], rotation: 0 },
+      attachments: ([1, 2, 3] as const).map((rank, i) => {
+        const size = constructionDecorationType(
+          library.compilation.decorations,
+          "window-cottage-corner"
+        )!.dimensions.find((d) => d.rank === rank)!;
+        return {
+          id: "c" + rank,
+          kind: "window",
+          type: "window-cottage-corner",
+          rank,
+          u: [0.25, 0.5, 0.75][i],
+          bottom: 1,
+          width: size.width,
+          height: size.height
+        };
+      }) as never
+    },
     ground: flat
   },
   { id: "steep", title: "陡屋顶", house: { id: "a", roof: { height: 0.8, eave: 0.4 } }, ground: flat },
