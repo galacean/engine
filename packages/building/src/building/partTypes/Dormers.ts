@@ -429,10 +429,11 @@ export const dormerTile = (tile: BuildingUnit): BuildingUnit => ({
   ...tile,
   range: { min: [0.1, 0.2, 1], max: [2, 3, 1] }
 });
-/** Ridge caps of a dormer: narrow and tall against the tile; as long as the roof's caps. */
+/** Ridge caps of a dormer: narrow and tall against the tile; no longer than the roof's caps. */
 export const dormerCap = (tile: BuildingUnit): BuildingUnit => ({
   ...tile,
-  range: { min: [0.1, 0.5, 1], max: [1, 5.2, 2.5] }
+  // A short ridge, as where the ground lifts an eave dormer, takes a short cap.
+  range: { min: [0.1, 0.1, 1], max: [1, 5.2, 2.5] }
 });
 /** How far in front of a dormer's window the roof opens, along the slope, in metres. */
 const DORMER_SILL_CLEAR = 0.15;

@@ -284,12 +284,13 @@ function chartPieces(chart: WallChartParams) {
   const [first, last] = [points[0], points[points.length - 1]];
   if (chart.closed && Math.hypot(first[0] - last[0], first[1] - last[1]) > 1e-4) points.push(first);
   let u = 0;
-  return points.slice(1).map((b, i) => {
+  return points.slice(1).flatMap((b, i) => {
     const a = points[i],
-      length = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1;
+      length = Math.hypot(b[0] - a[0], b[1] - a[1]);
+    if (length < 1e-8) return [];
     const piece = { a, tx: (b[0] - a[0]) / length, tz: (b[1] - a[1]) / length, length, u };
     u += length;
-    return piece;
+    return [piece];
   });
 }
 /** A convex polygon of (s, d) points cut to the part where `keep` is not negative. */
@@ -351,7 +352,7 @@ export function occupiedRows(occupied: readonly OccupiedUnit[], chart: WallChart
         u1 = Math.max(...shifted.map((s) => s[1]));
       }
       if (!(u1 - u0 > 1e-4)) continue;
-      const height = (y: number) => m[1] * 0 + m[5] * y + m[13];
+      const height = (y: number) => m[5] * y + m[13];
       sections.push({ y0: height(solid.y[0]), y1: height(solid.y[1]), u0, u1, cover: solid.cover === true });
     }
   const through = sections.filter((s) => !s.cover);

@@ -1,6 +1,6 @@
-// Per-frame cost of the online building renderer on the seed-world initial village:
+// Per-frame cost of the building renderer on the seed-world initial village:
 // engine update time, per-brick LOD selection on the CPU, and LOD list uploads.
-// Measurement page only; it renders through the online path.
+// Measurement page only.
 import {
   AssetType,
   Camera,
@@ -28,8 +28,9 @@ import {
   BUILTIN_BUILDING_ASSETS
 } from "@galacean/engine-building/building/resources/BuiltinBuildingAssets";
 import { renderBuilding } from "@galacean/engine-building/building/parts/architecture/BuildingRender";
-import { designBuilding } from "@galacean/engine-building/building/parts/architecture/BuildingDesign";
-import { implementBuilding } from "@galacean/engine-building/building/parts/architecture/BuildingImplementation";
+import { designBuildingCore } from "@galacean/engine-building/building/core/index";
+import { createBuildingTypeRegistry } from "@galacean/engine-building/building/partTypes/index";
+import { compileCoreBuilding, coreBuildingEnvironment } from "@galacean/engine-building/building/render/CoreBuilding";
 import { initialBuildingDrafts } from "@galacean/engine-world-planning/masonry/BuildingInitialDraft.ts";
 import { buildingGenerationPlan } from "../building-components/BuildingGenerationFixture";
 
@@ -87,8 +88,10 @@ const assets = await engine.resourceManager.load<PrefabResource>({
 });
 const library = buildingAssets(assets);
 
-// The seed-world initial village through the online path.
-const drafts = initialBuildingDrafts(buildingGenerationPlan, library.compilation);
+// The seed-world initial village.
+const drafts = initialBuildingDrafts(buildingGenerationPlan);
+const registry = createBuildingTypeRegistry();
+const flat = () => 0;
 type Runtime = {
   metrics: {
     lodSelectionMs: number;
@@ -104,8 +107,14 @@ type Runtime = {
 const runtimes: Runtime[] = [];
 let units = 0;
 for (const g of drafts) {
-  const result = await implementBuilding(designBuilding(g.draft, () => 0, library.compilation));
-  const drawn = await renderBuilding(result.renderInput, {
+  const design = designBuildingCore(g.draft, registry, {
+    environment: coreBuildingEnvironment(flat, library.compilation)
+  });
+  const { renderInput } = await compileCoreBuilding(design, registry, {
+    environment: { ground: flat },
+    assets: library.compilation
+  });
+  const drawn = await renderBuilding(renderInput, {
     parent: scene.createRootEntity("building"),
     camera,
     assets,

@@ -214,6 +214,23 @@ describe("Raised foundations", () => {
       expect(Object.keys(plaster.original.elements)).toHaveLength(faces);
       expect(lay(plaster)).toHaveLength(faces);
     });
+    it("goes with a column that a neighbouring house removes", () => {
+      const result = design([
+        {
+          id: "a",
+          height: 4,
+          rectangle: { center: [0, 0], size: [8, 6], rotation: 0 },
+          foundation: { height: 1.2, mode: "pillars", plaster: { wear: 0.4, color: 2 } }
+        },
+        { id: "b", height: 8, rectangle: { center: [7.5, 0], size: [8, 6], rotation: 0 } }
+      ]);
+      const plaster = result.parts.find((p) => p.type === "plaster" && p.group === "a")!;
+      const gone = plaster.modifications.filter((m) => m.op === "removeElement");
+      expect(gone.length).toBeGreaterThan(0);
+      expect(lay(plaster).length).toBe(
+        Object.keys(plaster.original.elements).length - new Set(gone.map((m) => m.element)).size
+      );
+    });
     it("is not offered by a part type that does not allow it", () => {
       expect(registry.defaults.get(attachPairKey("plaster", ["roof"]))).toBeUndefined();
       expect(registry.defaults.get(attachPairKey("plaster", ["foundation"]))).toBe("none");

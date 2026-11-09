@@ -386,6 +386,36 @@ describe("Eave dormers against the online path", () => {
     }
   });
 
+  it("takes a short cap on a short ridge", () => {
+    const hills = (x: number, z: number) => 0.35 * Math.sin(0.6 * x + 0.3) + 0.2 * Math.cos(0.45 * z);
+    const { width, height } = constructionDecorationType(assets.decorations, "dormer-gothic-half")!.dimensions.find(
+      (d) => d.rank === 2
+    )!;
+    const result = designBuildingCore(
+      buildCoreHouse({
+        id: "h",
+        seed: 11,
+        height: 5,
+        rectangle: { center: [0, 0], size: [10, 8], rotation: 0 },
+        attachments: [
+          {
+            id: "a",
+            kind: "window",
+            type: "dormer-gothic-half",
+            rank: 2,
+            u: 0.11,
+            bottom: 5 - height * 0.6,
+            width,
+            height
+          }
+        ]
+      }),
+      registry,
+      { environment: coreBuildingEnvironment(hills, assets) }
+    );
+    expect(result.diagnostics).toEqual([]);
+  });
+
   it("leaves the tiles uncut, without failing, past the capacity of a bin", async () => {
     const windows = [0, 1, 2, 3].flatMap((side) =>
       [0.26, 0.38, 0.5, 0.62, 0.74].map((t, i) => ({

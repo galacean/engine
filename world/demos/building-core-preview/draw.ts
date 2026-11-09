@@ -139,6 +139,7 @@ const { renderInput: input } = await compileCoreBuilding(result, registry, { ass
   }
   const group = input.groups[0];
   group.cells = cells;
+  input.plans.find((plan) => plan.binding_id === group.binding_id)!.cells = cells;
   group.units = await packConstructionUnits({ cells, slot: 0, role: group.role });
 }
 const drawn = await renderBuilding(input, {
