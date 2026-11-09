@@ -1,4 +1,5 @@
 import { Matrix, Vector3 } from "@galacean/engine-math";
+import type { OccupancySolid } from "./BuildingOccupancy";
 import { validDecorationMaterial } from "../runtime/ConstructionDecorationMaterial";
 
 /** Read-only compilation output of a native prefab hierarchy. */
@@ -62,9 +63,10 @@ export interface BuildingPrefab {
   /** Paths of the members that set the prefab's size. Default: all of them. */
   sizeMembers?: string[];
 }
-/** A building prefab with the bounds of its baked members. */
+/** A building prefab with the bounds of its baked members and the space its members occupy. */
 export interface CompiledBuildingPrefab extends BuildingPrefab {
   bounds: { min: number[]; max: number[] };
+  occupancy: OccupancySolid[];
 }
 
 export function assemblyEmissionOrigin(origin: number[] | undefined, matrix: readonly number[]): number[] | undefined {

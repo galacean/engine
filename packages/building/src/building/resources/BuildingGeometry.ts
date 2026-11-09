@@ -11,6 +11,7 @@ import {
   type CompiledBuildingPrefab
 } from "./BuildingAssembly";
 import { validateBuildingAssetContract } from "./BuildingAssetContract";
+import { meshOccupancy, type OccupancySolid } from "./BuildingOccupancy";
 
 export type BuildingQueryMesh = Pick<
   BufferMesh,
@@ -155,7 +156,22 @@ export function buildingGeometry(
           include([0, 1, 2].map((r) => m[r] * p[0] + m[4 + r] * p[1] + m[8 + r] * p[2] + m[12 + r]));
         }
       }
-      return [key, { ...prefab, bounds: box }];
+      const occupancy: OccupancySolid[] = [];
+      for (const [name, path] of prefab.members) {
+        const mesh = decorations.meshes[name];
+        occupancy.push(...meshOccupancy(path, mesh.positions, mesh.indices));
+      }
+      for (const member of prefab.units) {
+        const unit = units[member.unit],
+          local = nativeMeshAttribute(unit.mesh, unit.attributeLocations[0]).values,
+          m = member.matrix,
+          placed: number[] = [];
+        for (let i = 0; i < local.length; i += 3)
+          for (let r = 0; r < 3; r++)
+            placed.push(m[r] * local[i] + m[4 + r] * local[i + 1] + m[8 + r] * local[i + 2] + m[12 + r]);
+        occupancy.push(...meshOccupancy(member.path, placed, nativeMeshIndices(unit.mesh)));
+      }
+      return [key, { ...prefab, bounds: box, occupancy }];
     })
   );
   const positionMesh = (unit: QueryUnit) => ({
