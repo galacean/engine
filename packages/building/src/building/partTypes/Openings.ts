@@ -109,7 +109,7 @@ const chartLength = (chart: WallChartParams) => wallChartSampler(chart).length;
 
 /** A door stands on the ground, and gets its threshold, up to this height above it, in metres. */
 const THRESHOLD_ON_GROUND = 0.05;
-/** How far a threshold reaches past its opening on each side, in metres. */
+/** How far a threshold reaches past its opening on each side, in metres at the prefab's size. */
 const THRESHOLD_OVERHANG = 0.08;
 /** Elements "mount", "opening<i>" and "follow<i>". The mount sits on the wall at the middle
  * of the chord the installation spans, at the installation's center height; it faces out of
@@ -180,16 +180,25 @@ export const houseWallMountGeometry: GeometryGenerator<WallMountParams> = (p, { 
     };
     elements[`opening${i}`] = { kind: "surface", surface: { kind: "wallOpening", params } };
   });
-  // A door on the ground steps out over a threshold, along the wall under its opening.
+  // A door on the ground steps out over a threshold, along the wall under its opening, as far
+  // as the wall goes. The curve "thresholdTop" is level at the height of its top.
   const sill = elements.opening0;
   if (facts.threshold && p.bottom <= THRESHOLD_ON_GROUND && sill?.kind === "surface") {
     const [from, , to] = (sill.surface.params as WallOpeningParams).rect;
-    const steps = Math.max(2, Math.ceil((to - from + 2 * THRESHOLD_OVERHANG) / 0.25));
+    const over = THRESHOLD_OVERHANG * sx;
+    const lo = chart.closed ? from - over : Math.max(0, from - over),
+      hi = chart.closed ? to + over : Math.min(sample.length, to + over);
+    const steps = Math.max(2, Math.ceil((hi - lo) / 0.25));
     const points = Array.from({ length: steps + 1 }, (_, k): Vec3 => {
-      const at = along(from - THRESHOLD_OVERHANG + ((to - from + 2 * THRESHOLD_OVERHANG) * k) / steps);
+      const at = along(lo + ((hi - lo) * k) / steps);
       return [at.x, at.ground, at.z];
     });
+    const level = Math.max(...points.map((q) => q[1])) + facts.threshold * sy;
     elements.threshold = { kind: "curve", curve: { points } };
+    elements.thresholdTop = {
+      kind: "curve",
+      curve: { points: [points[0], points[steps]].map((q): Vec3 => [q[0], level, q[2]]) }
+    };
   }
   follows.forEach((follow, i) => {
     const steps = Math.max(2, Math.ceil((follow.to - follow.from) / 0.1));
@@ -352,7 +361,7 @@ export const wallOpening: ConnectionRule = ({ guest, hosts }) => {
           {
             localId: "threshold",
             type: "threshold",
-            geometry: { elements: { step } },
+            geometry: { elements: { step, top: guest.geometry.original.elements.thresholdTop } },
             algorithm: {
               type: "thresholdStones",
               params: { wallU: [openings[0].perimeter[0], openings[0].perimeter[2]] }
@@ -375,20 +384,17 @@ export const wallOpening: ConnectionRule = ({ guest, hosts }) => {
 interface ThresholdParams {
   /** Where the threshold lies along the house perimeter, in metres. */
   readonly wallU: readonly [number, number];
-  /** Height above the ground's highest point under it, in metres. Default: 0.07. */
-  readonly height?: number;
   /** Depth through the wall, in metres. Default: 0.76, wider than the wall's bricks. */
   readonly depth?: number;
 }
-/** The stones of a door's threshold: about 0.7 m each along the wall line, from the ground up to
- * one level top a little above its highest point. */
+/** The stones of a door's threshold: about 0.7 m each along the curve "step" on the ground, up
+ * to the level of the curve "top". */
 export const thresholdStones: LayingAlgorithm<ThresholdParams, { count: number }> = {
   info: {
     accepts: ["curve"],
     summary: "A door's threshold: a row of low stones along a curve on the ground.",
     params: {
       wallU: "Where the threshold lies along the house perimeter, in metres.",
-      height: "Height above the ground's highest point, in metres. Default: 0.07.",
       depth: "Depth through the wall, in metres. Default: 0.76."
     }
   },
@@ -404,7 +410,7 @@ export const thresholdStones: LayingAlgorithm<ThresholdParams, { count: number }
       i === 0 || i === count ? i / count : (i + (context.random(`joint/${i}`, "joint").next() - 0.5) * 0.3) / count;
     const a = pointAlong(points, joint(index)),
       b = pointAlong(points, joint(index + 1));
-    const top = Math.max(...points.map((q) => q[1])) + (context.params.height ?? 0.07);
+    const top = curvePoints(context.geometry.original.elements.top)[0][1];
     const y0 = (a[1] + b[1]) / 2;
     const l = Math.hypot(b[0] - a[0], b[2] - a[2]) || 1;
     const x: Vec3 = [(b[0] - a[0]) / l, 0, (b[2] - a[2]) / l];

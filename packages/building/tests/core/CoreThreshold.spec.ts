@@ -60,4 +60,23 @@ describe("Door thresholds", () => {
     expect(thresholds(house(door("door-cottage", 0)))).toHaveLength(0);
     expect(thresholds(house(door("door-gothic", 0), { walls: "timber" }))).toHaveLength(0);
   });
+
+  it("takes its height from the prefab", () => {
+    const tall = {
+      ...environment,
+      asset: (source: never) => ({ ...(environment.asset!(source) as object), threshold: 0.2 }) as never
+    };
+    const top = (env: typeof environment) => {
+      const result = designBuildingCore(buildCoreHouse(house(door("door-gothic", 0))), registry, { environment: env });
+      const [unit] = expandUnits(result.parts.find((x) => x.type === "threshold")!, registry, { environment: env });
+      return unit.frame.origin[1] + unit.size![1] / 2;
+    };
+    expect(top(tall) - top(environment)).toBeCloseTo(0.13, 5);
+  });
+
+  it("stays on its wall when a small door stands at the end of it", () => {
+    const d = door("door-gothic", 0);
+    const small = { ...d, width: d.width! * 0.4, height: d.height! * 0.4, u: ((d.width! * 0.4) / 2 + 0.005) / 40 };
+    expect(thresholds(house(small))).toHaveLength(1);
+  });
 });

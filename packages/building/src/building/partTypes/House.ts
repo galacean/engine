@@ -825,8 +825,18 @@ export const parapetCourses: LayingAlgorithm<ParapetParams, ParapetLayout> = {
         const n = Math.max(1, Math.round(run.l / pitch));
         const offset = (i: number) => (context.random(`foot/${r}/${i}`, "joint").next() - 0.5) * 0.5;
         const joint = (i: number) => (i === 0 || i === n ? i / n : (i + offset(i)) / n);
+        // A stone too long for its unit becomes two.
+        const fits = (w: number) => unitFits(context.unit, [w, shoulder - foot, depth]);
+        const lay = (key: string, a: number, b: number, past: [number, number]) => {
+          const w = b - a + past[0] + past[1];
+          if (!fits(w) && fits(w / 2)) {
+            const middle = (a + b) / 2;
+            lay(`${key}a`, a, middle, [past[0], 0]);
+            lay(`${key}b`, middle, b, [0, past[1]]);
+          } else push(key, a, b, foot, shoulder, past);
+        };
         for (let i = 0; i < n; i++)
-          push(`foot/${r}/${i}`, run.u + joint(i) * run.l, run.u + joint(i + 1) * run.l, foot, shoulder, [
+          lay(`foot/${r}/${i}`, run.u + joint(i) * run.l, run.u + joint(i + 1) * run.l, [
             i === 0 ? -reach : 0,
             i === n - 1 ? reach : 0
           ]);

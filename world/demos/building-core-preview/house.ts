@@ -440,6 +440,13 @@ const cases = (): Case[] => [
     ground: flat
   },
   {
+    id: "timber-round-small",
+    title: "木墙 · 小圆屋",
+    house: { id: "a", walls: "timber", height: 5, circle: { center: [0, 0], radius: 1.6, phase: 0 } },
+    online: { wallStructure: "timber", wall: { unit: "wooden_plank", algorithm: { type: "horizontal_rows" } } },
+    ground: flat
+  },
+  {
     id: "timber-windows",
     title: "木墙 · 门窗",
     house: withFacade({

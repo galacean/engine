@@ -13,8 +13,11 @@ import { buildCoreHouse, buildCoreHouses, type CoreHouseParameters } from "../..
 import {
   compileCoreBuilding,
   coreBuildingEnvironment,
+  coreBuildingGrounding,
   prepareCoreBuilding
 } from "../../src/building/render/CoreBuilding";
+import { buildBuildingRenderPackage } from "../../src/building/runtime/BuildingRenderPackage";
+import { buildingGlobals } from "../../src/building/runtime/BuildingGlobals";
 import { European } from "../../src/building/application/European";
 import { constructionDecorationRecipe } from "../../src/building/runtime/ConstructionDecorationRecipe";
 
@@ -55,6 +58,48 @@ describe("Flat roofs", () => {
       if (top > chart.topY - 0.05) merlons++;
     }
     expect(merlons).toBeGreaterThan(8);
+  });
+
+  it("lays every planned stone of a short parapet", () => {
+    for (const size of [
+      [1.6, 1.6],
+      [2.4, 2.4]
+    ] as [number, number][])
+      for (let seed = 1; seed <= 40; seed++) {
+        const { parapets } = house({
+          id: "s",
+          seed,
+          rectangle: { center: [0, 0], size, rotation: 0 },
+          roof: { height: 0 }
+        });
+        expect(units(parapets[0])).toHaveLength((parapets[0].layout!.data as { stones: unknown[] }).stones.length);
+      }
+  });
+
+  it("builds the default stone deck into draws and grounding", async () => {
+    const p: CoreHouseParameters = {
+      id: "s",
+      rectangle: { center: [0, 0], size: [8, 6], rotation: 0 },
+      roof: { height: 0 }
+    };
+    const result = designBuildingCore(buildCoreHouse(p), registry, { environment: coreEnvironment });
+    const prepared = prepareCoreBuilding(result, registry, {
+      environment: coreEnvironment,
+      assets: nativeAssets.compilation
+    });
+    const ground = { grounding: { originY: 0, renderPosition: [0, 0, 0] as [number, number, number] }, height: flat };
+    expect(coreBuildingGrounding(prepared.layout, prepared.preview, ground).supports).toHaveLength(1);
+    const { renderInput: input } = await compileCoreBuilding(result, registry, {
+      environment: { ground: flat },
+      assets: nativeAssets
+    });
+    const built = buildBuildingRenderPackage(
+      input,
+      nativeAssets,
+      buildingGlobals(input.paletteSlots, nativeAssets.frame),
+      true
+    );
+    expect(built.package.draws.filter((d: { family?: string }) => d.family === "stone-floor")).toHaveLength(1);
   });
 
   it("leaves out a merlon that another house cuts", () => {
@@ -170,6 +215,15 @@ describe("Flat roofs", () => {
         (JSON.stringify(d).includes('"source":"stone_floor"') ? "stone" : "rows") as "stone" | "rows";
       expect(unitOf(of())).toBe("stone");
       expect(unitOf(of({ type: "staggered_rows" }))).toBe("rows");
+      // On a timber house too: the author chose brick, and it must not turn into tiles.
+      const timber = European.buildHouses({
+        id: "b",
+        wallStructure: "timber",
+        wall: { unit: "wooden_plank", algorithm: { type: "horizontal_rows" } },
+        roof: { height: 0 },
+        roofStyle: { unit: "brick" }
+      } as never);
+      expect(unitOf(timber)).toBe("stone");
     });
     it("is drawn as a stone floor surface, only inside the wall's center line and around a hatch", async () => {
       const preview = async (p: CoreHouseParameters) =>

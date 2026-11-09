@@ -138,6 +138,13 @@ describe("Timber walls", () => {
       expect((u.params!.wallV as number[])[1]).toBeLessThan(top);
   });
 
+  it.each([1.6, 2, 2.5])("spans two facets on a round wall of radius %s", (radius) => {
+    const result = design({ ...house, rectangle: undefined, circle: { center: [0, 0], radius, phase: 0 } });
+    expect(result.diagnostics).toEqual([]);
+    const lengths = boards(result).map((u) => u.size![1]);
+    expect(lengths.reduce((a, b) => a + b, 0) / lengths.length).toBeGreaterThan(0.9);
+  });
+
   it("spans two facets of a round wall, with the joints of neighbouring rows apart", () => {
     const result = design({ ...house, rectangle: undefined, circle: { center: [0, 0], radius: 3, phase: 0 } });
     expect(result.diagnostics).toEqual([]);

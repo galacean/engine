@@ -229,7 +229,7 @@ function house(p: EuropeanHouseParameters): CoreHouseParameters {
       wallRule: grid,
       ...(wallUnit === "wooden_plank" && { wallUnit: "wooden_plank" as const })
     }),
-    ...(roofUnit && !stoneDeck && { roofUnit }),
+    ...(stoneDeck ? { roofPaving: "stone" as const } : roofUnit && { roofUnit }),
     ...(p.floors && { floors: p.floors }),
     ...(p.plaster && { plaster: p.plaster }),
     ...(p.wallColor !== undefined && { wallColor: p.wallColor }),

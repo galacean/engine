@@ -60,10 +60,10 @@ const PITCH = 0.3944;
 const LONGEST = 5;
 /** Regions lower than this join a neighbour above or below. */
 const NARROW = 0.1;
-/** Turns gentler than this let a board span a facet of a round wall. */
-const SOFT_COS = Math.cos((20 * Math.PI) / 180);
+/** Turns gentler than this let a board span two facets of a round wall. */
+const SOFT_COS = Math.cos((30 * Math.PI) / 180);
 /** The furthest a board may stand off a facet it spans, in metres. */
-const SAG = 0.06;
+const SAG = 0.1;
 /** Boards shorter than this join the board next to them, against the reference unit. */
 const SHORTEST = 0.3;
 
@@ -239,8 +239,14 @@ function settle(input: Rect[]): Rect[] {
   return regions.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
 }
 /** The boards of a row between `x0` and `x1`, a part of the whole row. A board shorter than
- * `shortest` joins the one next to it. */
-function clipBoards(boards: [number, number][], x0: number, x1: number, shortest: number): [number, number][] {
+ * `shortest` joins the one next to it, unless that makes it longer than `longest`. */
+function clipBoards(
+  boards: [number, number][],
+  x0: number,
+  x1: number,
+  shortest: number,
+  longest: number
+): [number, number][] {
   const out: [number, number][] = [];
   for (const [a, b] of boards) {
     const lo = Math.max(a, x0),
@@ -249,8 +255,10 @@ function clipBoards(boards: [number, number][], x0: number, x1: number, shortest
   }
   for (let i = out.length - 1; i >= 0 && out.length > 1; i--)
     if (out[i][1] - out[i][0] < shortest) {
-      if (i > 0) out[i - 1][1] = out[i][1];
-      else out[1][0] = out[0][0];
+      const other = out[i > 0 ? i - 1 : 1];
+      if (Math.max(other[1], out[i][1]) - Math.min(other[0], out[i][0]) > longest) continue;
+      if (i > 0) other[1] = out[i][1];
+      else other[0] = out[0][0];
       out.splice(i, 1);
     }
   return out;
@@ -358,7 +366,8 @@ export const boardCourses: LayingAlgorithm<BoardParams, BoardLayout> = {
       ),
       region.x0,
       region.x1,
-      SHORTEST * scale.width
+      SHORTEST * scale.width,
+      LONGEST * scale.width
     );
     if (piece >= boards.length) return;
     const [x0, x1] = boards[piece];

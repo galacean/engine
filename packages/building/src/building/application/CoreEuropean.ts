@@ -164,6 +164,9 @@ export interface CoreHouseParameters {
   wallRule?: "staggered_rows" | "overlap_rows" | "parallel_rows" | "horizontal_rows";
   /** Unit the roof is laid with: tiles (default), or planks or bricks, as on a flat deck. */
   roofUnit?: "roof_tile" | "wooden_plank" | "brick";
+  /** How a flat roof is paved: irregular stone or rows of the roof unit. Default: stone on a
+   * masonry house with no `roofUnit` of its own, otherwise rows. */
+  roofPaving?: "stone" | "rows";
   /** Prefabs mounted on the walls: windows, doors and wall lamps. `u` is a fraction of the
    * perimeter, `bottom` the height above the wall's base, `width` and `height` the
    * installation size; the type defaults by kind. */
@@ -614,7 +617,7 @@ export function buildCoreHouse(p: CoreHouseParameters): BuildingCoreDraft {
               type: "roofDeck",
               geometry: { generator: "houseRoofDeck", params: { "@shared": "house" } },
               // A masonry house paves its flat roof in irregular stone, unless told otherwise.
-              ...(!p.roofUnit && brick.source === "brick"
+              ...((p.roofPaving ?? (!p.roofUnit && brick.source === "brick" ? "stone" : "rows")) === "stone"
                 ? {
                     algorithm: {
                       type: "coverSurfaces",
