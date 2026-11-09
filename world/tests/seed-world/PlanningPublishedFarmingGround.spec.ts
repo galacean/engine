@@ -174,21 +174,15 @@ it("refreshes farming against actual building surface snapshots, excludes ghost 
   };
   const before = publishedPlanningFarmingGround(source, fields, 1, () => false, undefined, await capture());
   expect(before.inspectBounds("ground", bounds(10)).blocked).toBe(true);
-  group.draft.parts.find((p) => p.type === "roof")!.regions = [
-    {
-      id: "hide-roof",
-      region: {
-        space: "surface_uv",
-        polygon: [
-          [-100, -100],
-          [100, -100],
-          [100, 100],
-          [-100, 100]
-        ]
-      },
-      effect: { hidden: true }
-    }
-  ];
+  // The author removes the roof: its slopes and what stands on them.
+  const roofs = new Set(group.draft.parts.filter((p) => p.type === "roof" || p.type === "spire").map((p) => p.id));
+  group.draft.parts = group.draft.parts.filter((p) => !roofs.has(p.id));
+  group.draft.connections = (group.draft.connections ?? []).filter(
+    (c) =>
+      !(c.kind === "attach"
+        ? roofs.has(c.guest) || c.hosts.some((h) => roofs.has(h.part))
+        : c.parts.some((k) => roofs.has(k)))
+  );
   const after = publishedPlanningFarmingGround(source, fields, 2, () => false, undefined, await capture());
   expect(after.inspectBounds("ground", bounds(10)).blocked).toBe(false);
   expect(before.inspectBounds("ground", bounds(10)).blocked).toBe(true);
