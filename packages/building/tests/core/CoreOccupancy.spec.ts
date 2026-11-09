@@ -136,4 +136,50 @@ describe("Prefab occupancy", () => {
       expect(placed).toBeCloseTo(mount.frame.origin[k] + mount.frame.z[k] * min[2], 5);
     }
   });
+
+  describe("opens walls", () => {
+    const registry = registerHouseTypes(createBuildingRegistry());
+    const environment = coreBuildingEnvironment(() => 0, nativeAssets.compilation);
+    const decorations = nativeAssets.compilation.decorations;
+    const place = (type: string, rank: 1 | 2 | 3, kind = "window") => {
+      const size = constructionDecorationType(decorations, type)!.dimensions.find((d) => d.rank === rank)!;
+      const result = designBuildingCore(
+        buildCoreHouse({
+          id: "h",
+          height: 7,
+          rectangle: { center: [0, 0], size: [10, 8], rotation: 0 },
+          attachments: [{ id: "a", kind, type, rank, u: 4 / 36, bottom: 1, width: size.width, height: size.height }]
+        }),
+        registry,
+        { environment }
+      );
+      expect(result.diagnostics).toEqual([]);
+      const wall = result.parts.find((p) => p.type === "wall" && p.modifications.some((m) => m.op === "removeArea"));
+      return wall ? wall.modifications.flatMap((m) => (m.op === "removeArea" ? [m.rect] : [])) : [];
+    };
+    const area = (rects: readonly (readonly number[])[]) =>
+      rects.reduce((n, r) => n + (r[2] - r[0]) * (r[3] - r[1]), 0);
+    const authored = (key: string) =>
+      prefabs[key].openings.reduce((n, o) => n + (o.max[0] - o.min[0]) * (o.max[1] - o.min[1]), 0);
+
+    it.each([
+      ["window-cottage", 2],
+      ["window-arrow-slit", 2]
+    ] as const)("%s %s opens the size of its frame", (type, rank) => {
+      const rects = place(type, rank);
+      expect(rects).toHaveLength(1);
+      expect(Math.abs(area(rects) - authored(`${type}/${rank}`))).toBeLessThan(0.1);
+    });
+
+    it.each([1, 2, 3] as const)("Gothic window %s needs no more than four rows", (rank) => {
+      const rects = place("window-gothic", rank);
+      expect(rects.length).toBeGreaterThan(0);
+      expect(rects.length).toBeLessThanOrEqual(4);
+      expect(area(rects)).toBeLessThan(authored(`window-gothic/${rank}`) * 1.2);
+    });
+
+    it("leaves the wall behind a lamp whole", () => {
+      expect(place("wall-lantern", 1, "wall-lamp")).toEqual([]);
+    });
+  });
 });

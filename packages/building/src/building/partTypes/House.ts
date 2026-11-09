@@ -11,6 +11,7 @@ import {
   unitFits,
   type BuildingUnit,
   type ConnectionRule,
+  type ParticipantView,
   type DerivedPartSpec,
   type JoinDetector,
   type LaidUnitSpec,
@@ -31,7 +32,7 @@ import { wallRoofJointHeight, type ConstructionWallRoofJoint } from "../runtime/
 import { unitFootprintScale, type MaterialFootprint } from "../runtime/MaterialFootprint";
 import type { ProfileFootprint, ProfileRoofParameters } from "../runtime/ProfileParameters";
 import { registerRoofTypes } from "./Roof";
-import { registerOpeningTypes } from "./Openings";
+import { occupiedRows, registerOpeningTypes, wallOpeningsOf } from "./Openings";
 import { registerDormerTypes } from "./Dormers";
 import { registerShedDormerTypes } from "./ShedDormers";
 import { isFlatRoofHeight } from "../runtime/RoofMode";
@@ -1372,14 +1373,18 @@ export const wallCorner: ConnectionRule = ({ parts, seed, params, attached }) =>
   // The stones give way to what the walls open for, as they do on either side of the corner.
   const cornerU = cAfter.uOffset ?? 0,
     perimeter = (cBefore.uOffset ?? 0) + lengthBefore;
-  const openings = attached.flatMap((guest) =>
-    Object.values(guest.geometry.original.elements).flatMap((element): Rect[] => {
-      if (element.kind !== "surface" || element.surface.kind !== "wallOpening") return [];
-      const [u0, y0, u1, y1] = (element.surface.params as { perimeter: Rect }).perimeter;
-      // The first corner of a house lies where the perimeter wraps round.
-      return (cornerU === 0 ? [0, -perimeter] : [0]).map((k): Rect => [u0 + k, y0, u1 + k, y1]);
-    })
-  );
+  const opened = (guest: ParticipantView): Rect[] =>
+    guest.occupied.length
+      ? [cBefore, cAfter].flatMap((chart) =>
+          occupiedRows(guest.occupied, chart).map(
+            (r): Rect => [r[0] + (chart.uOffset ?? 0), r[1], r[2] + (chart.uOffset ?? 0), r[3]]
+          )
+        )
+      : wallOpeningsOf(guest).map((o) => o.perimeter);
+  // The first corner of a house lies where the perimeter wraps round.
+  const openings = attached
+    .flatMap(opened)
+    .flatMap((r) => (cornerU === 0 ? [0, -perimeter] : [0]).map((k): Rect => [r[0] + k, r[1], r[2] + k, r[3]]));
   const stoneParams = { seed, bottom, top, scale, before: dirBefore, after: dirAfter, cornerU, openings };
   const modify = [];
   for (const { u0, u1, lo, hi } of cornerStonePieces(stoneParams)) {

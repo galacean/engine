@@ -78,11 +78,14 @@ const center = (positions: number[]) => {
 const chartOf = (p: ResolvedPart) =>
   (p.original.elements.face as { surface: { params: WallChartParams } }).surface.params;
 const openingsOf = (r: ReturnType<typeof design>) =>
-  Object.values(r.parts.find((p) => p.type === "window")!.original.elements).flatMap((e) =>
-    e.kind === "surface" && e.surface.kind === "wallOpening"
-      ? [(e.surface.params as { perimeter: number[] }).perimeter]
-      : []
-  );
+  r.parts
+    .filter((p) => p.type === "wall")
+    .flatMap((w) => {
+      const offset = chartOf(w).uOffset ?? 0;
+      return w.modifications.flatMap((m) =>
+        m.op === "removeArea" ? [[m.rect[0] + offset, m.rect[1], m.rect[2] + offset, m.rect[3]]] : []
+      );
+    });
 
 describe("Corner windows against the online path", () => {
   it.each([

@@ -407,24 +407,32 @@ describe("Wall prefabs against the online path", () => {
       const walls = result.parts.filter((x) => x.type === "wall");
       const mounted = result.parts.filter((x) => wallOpenings(x).length);
       expect(mounted.reduce((n, x) => n + wallOpenings(x).length, 0)).toBe(holes.length);
+      const rows = walls.flatMap((w) => {
+        const face = w.original.elements.face;
+        const offset = face.kind === "surface" ? ((face.surface.params as { uOffset?: number }).uOffset ?? 0) : 0;
+        return w.modifications.flatMap((mod) =>
+          mod.op === "removeArea" ? [[mod.rect[0] + offset, mod.rect[1], mod.rect[2] + offset, mod.rect[3]]] : []
+        );
+      });
       for (const m of mounted) {
-        const own = holes
-          .filter((h) => m.identity.kind === "author" && h.decorationId === m.identity.id)
-          .sort((a, b) => a.centerY - b.centerY);
-        const openings = wallOpenings(m).sort((a, b) => a.rect[1] + a.rect[3] - b.rect[1] - b.rect[3]);
-        expect(openings.length).toBe(own.length);
-        openings.forEach((opening, i) => {
-          const [u0, v0, u1, v1] = opening.perimeter;
-          expect((u0 + u1) / 2).toBeCloseTo(own[i].centerU, 3);
-          expect(Math.abs(u1 - u0 - own[i].width) / own[i].width).toBeLessThan(0.015);
-          expect(Math.abs(v1 - v0 - own[i].height) / own[i].height).toBeLessThan(0.015);
-          expect(Math.abs((v0 + v1) / 2 - own[i].centerY)).toBeLessThan(0.02);
-          expect(
-            walls.some((w) =>
-              w.modifications.some((mod) => mod.op === "removeArea" && mod.rect.every((v, k) => v === opening.rect[k]))
-            )
-          ).toBe(true);
-        });
+        const own = holes.filter((h) => m.identity.kind === "author" && h.decorationId === m.identity.id);
+        const middle = own[0].centerU;
+        // The openings come from the prefab's occupied space, a few rows round the online holes.
+        const near = rows.filter(
+          (r) =>
+            Math.abs((r[0] + r[2]) / 2 - middle) < own[0].width &&
+            r[1] < Math.max(...own.map((h) => h.centerY + h.height / 2))
+        );
+        expect(near.length).toBeGreaterThan(0);
+        expect(near.length).toBeLessThanOrEqual(4);
+        const widest = near.reduce((x, y) => (y[2] - y[0] > x[2] - x[0] ? y : x));
+        const hole = own.reduce((x, y) => (y.width > x.width ? y : x));
+        expect(Math.abs((widest[0] + widest[2]) / 2 - middle)).toBeLessThan(0.02);
+        expect(Math.abs(widest[2] - widest[0] - hole.width)).toBeLessThan(0.1);
+        const bottom = Math.min(...own.map((h) => h.centerY - h.height / 2)),
+          top = Math.max(...own.map((h) => h.centerY + h.height / 2));
+        expect(Math.abs(Math.min(...near.map((r) => r[1])) - bottom)).toBeLessThan(0.1);
+        expect(Math.abs(Math.max(...near.map((r) => r[3])) - top)).toBeLessThan(0.1);
       }
       // Stone hats: the same unit, placed the same way, with bones within 3 cm.
       const coreStones = coreBuildingDecorations(coreBuildingLayout(result, registry, {}), nativeAssets.compilation)

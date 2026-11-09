@@ -15,6 +15,7 @@ import {
   type GeometryElement,
   type GeometryGenerator,
   type JoinDetector,
+  type OccupiedUnit,
   type ParticipantView,
   type Rect,
   type SurfaceKind,
@@ -304,6 +305,8 @@ export const houseCornerMountGeometry: GeometryGenerator<CornerMountParams> = (p
       on: { host: host.index, element: "face", u: at, v: pivotY }
     }
   };
+  // Standing on a corner, the part opens both of the walls that meet there.
+  elements.corner = { kind: "point", frame: { origin: [corner[0], pivotY, corner[1]], x, y, z } };
   let i = 0;
   for (const o of facts.openings) {
     const [a, b] = [at + o.min[0] * sx, at + o.max[0] * sx];
@@ -331,6 +334,157 @@ export const houseCornerMountGeometry: GeometryGenerator<CornerMountParams> = (p
   return { elements };
 };
 
+/** How far a member must reach behind a wall's outer face to count as passing into it, in
+ * metres. A lamp's bracket that rests on the face does not. */
+const PENETRATION = 0.05;
+/** How far a row of an opening may pass a cover's edge, in metres. */
+const ROW_FIT = 0.02;
+interface SolidSection {
+  readonly y0: number;
+  readonly y1: number;
+  readonly u0: number;
+  readonly u1: number;
+  readonly cover: boolean;
+}
+/** The straight pieces of a wall chart with the chart's u at their start. */
+function chartPieces(chart: WallChartParams) {
+  const points = chart.points.map((q) => [q[0], q[2]]);
+  const [first, last] = [points[0], points[points.length - 1]];
+  if (chart.closed && Math.hypot(first[0] - last[0], first[1] - last[1]) > 1e-4) points.push(first);
+  let u = 0;
+  return points.slice(1).map((b, i) => {
+    const a = points[i],
+      length = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1;
+    const piece = { a, tx: (b[0] - a[0]) / length, tz: (b[1] - a[1]) / length, length, u };
+    u += length;
+    return piece;
+  });
+}
+/** A convex polygon of (s, d) points cut to the part where `keep` is not negative. */
+function clipPolygon(polygon: number[][], keep: (p: number[]) => number): number[][] {
+  const out: number[][] = [];
+  polygon.forEach((p, i) => {
+    const q = polygon[(i + 1) % polygon.length];
+    const [a, b] = [keep(p), keep(q)];
+    if (a >= 0) out.push(p);
+    if (a >= 0 !== b >= 0) {
+      const t = a / (a - b);
+      out.push([p[0] + (q[0] - p[0]) * t, p[1] + (q[1] - p[1]) * t]);
+    }
+  });
+  return out;
+}
+/** Where the occupied space passes through a wall, as rectangles of the wall's chart. What passes
+ * into the wall must be open. A row may be wider than that at some heights, so that an arch needs
+ * only a few rows, as long as a cover hides the row's corners there. */
+export function occupiedRows(occupied: readonly OccupiedUnit[], chart: WallChartParams): Rect[] {
+  const pieces = chartPieces(chart),
+    length = pieces.reduce((n, p) => n + p.length, 0),
+    half = chart.nominalOuter;
+  const sections: SolidSection[] = [];
+  for (const { matrix: m, solids } of occupied)
+    for (const solid of solids) {
+      const middle = (solid.y[0] + solid.y[1]) / 2;
+      const plan = solid.hull.map(([x, z]) => [
+        m[0] * x + m[4] * middle + m[8] * z + m[12],
+        m[2] * x + m[6] * middle + m[10] * z + m[14]
+      ]);
+      const spans: [number, number][] = [];
+      for (const piece of pieces) {
+        let polygon = plan.map(([x, z]) => {
+          const [dx, dz] = [x - piece.a[0], z - piece.a[1]];
+          // The chart's outward normal is (-tz, tx).
+          return [dx * piece.tx + dz * piece.tz, -dx * piece.tz + dz * piece.tx];
+        });
+        for (const keep of [
+          (p: number[]) => p[0],
+          (p: number[]) => piece.length - p[0],
+          (p: number[]) => p[1] + half,
+          (p: number[]) => half - PENETRATION - p[1]
+        ]) {
+          polygon = clipPolygon(polygon, keep);
+          if (polygon.length < 3) break;
+        }
+        if (polygon.length < 3) continue;
+        const along = polygon.map((p) => p[0]);
+        spans.push([piece.u + Math.min(...along), piece.u + Math.max(...along)]);
+      }
+      if (!spans.length) continue;
+      let u0 = Math.min(...spans.map((s) => s[0])),
+        u1 = Math.max(...spans.map((s) => s[1]));
+      // Across the seam of a closed wall the span continues past its end.
+      if (chart.closed && u1 - u0 > length / 2) {
+        const shifted = spans.map(([a, b]): [number, number] => (a < length / 2 ? [a + length, b + length] : [a, b]));
+        u0 = Math.min(...shifted.map((s) => s[0]));
+        u1 = Math.max(...shifted.map((s) => s[1]));
+      }
+      if (!(u1 - u0 > 1e-4)) continue;
+      const height = (y: number) => m[1] * 0 + m[5] * y + m[13];
+      sections.push({ y0: height(solid.y[0]), y1: height(solid.y[1]), u0, u1, cover: solid.cover === true });
+    }
+  const through = sections.filter((s) => !s.cover);
+  const heights = [...new Set(through.flatMap((s) => [s.y0, s.y1]))].sort((a, b) => a - b);
+  const rows: { y0: number; y1: number; u0: number; u1: number; limit0: number; limit1: number }[] = [];
+  for (let i = 0; i + 1 < heights.length; i++) {
+    const [y0, y1] = [heights[i], heights[i + 1]],
+      y = (y0 + y1) / 2;
+    const inside = (s: SolidSection) => s.y0 <= y && y <= s.y1;
+    const passing = through.filter(inside);
+    if (!passing.length) continue;
+    const all = sections.filter(inside);
+    const band = {
+      y0,
+      y1,
+      u0: Math.min(...passing.map((s) => s.u0)),
+      u1: Math.max(...passing.map((s) => s.u1)),
+      limit0: Math.min(...all.map((s) => s.u0)),
+      limit1: Math.max(...all.map((s) => s.u1))
+    };
+    const last = rows[rows.length - 1];
+    if (last && Math.abs(last.y1 - y0) < 1e-6) {
+      const merged = {
+        y0: last.y0,
+        y1,
+        u0: Math.min(last.u0, band.u0),
+        u1: Math.max(last.u1, band.u1),
+        limit0: Math.max(last.limit0, band.limit0),
+        limit1: Math.min(last.limit1, band.limit1)
+      };
+      if (merged.u0 >= merged.limit0 - ROW_FIT && merged.u1 <= merged.limit1 + ROW_FIT) {
+        rows[rows.length - 1] = merged;
+        continue;
+      }
+    }
+    rows.push(band);
+  }
+  return rows.map((r): Rect => [r.u0, r.y0, r.u1, r.y1]);
+}
+/** What a mounted part opens in its hosts: on the wall it stands on, or on both walls of a corner
+ * it stands on. A part that occupies no space, such as an arch, declares its openings itself. */
+export function openingsOf(guest: ParticipantView, hosts: readonly ParticipantView[]) {
+  if (!guest.occupied.length)
+    return wallOpeningsOf(guest).map(({ host, rect, perimeter }) => ({ host, rect, perimeter }));
+  const { mount, corner } = guest.geometry.original.elements;
+  const stands = corner ? hosts.map((_, i) => i) : mount?.kind === "point" && mount.on ? [mount.on.host] : [];
+  return stands.flatMap((host) => {
+    const chart = hosts[host] && chartOf(hosts[host]);
+    if (!chart) return [];
+    const offset = chart.uOffset ?? 0;
+    return occupiedRows(guest.occupied, chart).map((rect) => ({
+      host,
+      rect,
+      perimeter: [rect[0] + offset, rect[1], rect[2] + offset, rect[3]] as Rect
+    }));
+  });
+}
+/** The heights an opening of a part crosses, for finding the bands it meets. */
+function openedHeights(part: ParticipantView): (readonly [number, number])[] {
+  if (!part.occupied.length) return wallOpeningsOf(part).map((o) => [o.perimeter[1], o.perimeter[3]]);
+  return part.occupied.flatMap(({ matrix: m, solids }) =>
+    solids.filter((s) => !s.cover).map((s): [number, number] => [m[5] * s.y[0] + m[13], m[5] * s.y[1] + m[13]])
+  );
+}
+const opens = (part: ParticipantView) => part.occupied.length > 0 || wallOpeningsOf(part).length > 0;
 /** The opening rectangles of a mounted part. */
 export const wallOpeningsOf = (part: ParticipantView): WallOpeningParams[] =>
   Object.values(part.geometry.original.elements).flatMap((e) =>
@@ -339,7 +493,7 @@ export const wallOpeningsOf = (part: ParticipantView): WallOpeningParams[] =>
 /** Attach rule of a mounted part: its opening comes out of the wall it sits on. An opening
  * must stay inside its wall. */
 export const wallOpening: ConnectionRule = ({ guest, hosts }) => {
-  const openings = guest ? wallOpeningsOf(guest) : [];
+  const openings = guest ? openingsOf(guest, hosts) : [];
   if (!guest || !openings.length) return {};
   const modify = [];
   // A masonry wall carries the threshold of a door in its own stone.
@@ -445,29 +599,26 @@ const bandsOf = (part: ParticipantView) =>
   Object.entries(part.geometry.original.elements).flatMap(([id, e]) =>
     e.kind === "surface" && e.surface.kind === "wallChart" ? [{ id, chart: e.surface.params as WallChartParams }] : []
   );
-const crosses = (o: WallOpeningParams, band: WallChartParams) =>
-  o.perimeter[1] < band.topY && band.minGround < o.perimeter[3];
+const crosses = (low: number, high: number, band: WallChartParams) => low < band.topY && band.minGround < high;
 /** An opening meets a floor band when it crosses one of the band's levels. */
 export const openingMeetsBand: JoinDetector = (a, b) => {
-  const [openings, bands] = wallOpeningsOf(a).length
-    ? [wallOpeningsOf(a), bandsOf(b)]
-    : [wallOpeningsOf(b), bandsOf(a)];
-  return openings.some((opening) => bands.some((band) => crosses(opening, band.chart)));
+  const [mounted, band] = opens(a) ? [a, b] : [b, a];
+  return openedHeights(mounted).some(([low, high]) => bandsOf(band).some((b) => crosses(low, high, b.chart)));
 };
 /** Peer rule between an opening and a floor band: the band gives way to the opening on every
  * level the opening crosses. Band charts run along the house perimeter. */
 export const openingCutsBand: ConnectionRule = ({ parts }) => {
-  const mounted = parts.find((p) => wallOpeningsOf(p).length),
-    band = parts.find((p) => !wallOpeningsOf(p).length);
+  const mounted = parts.find(opens),
+    band = parts.find((p) => !opens(p));
   if (!mounted || !band) return {};
   return {
-    modify: wallOpeningsOf(mounted).flatMap((opening) =>
-      bandsOf(band)
-        .filter((b) => crosses(opening, b.chart))
-        .map((b) => ({
-          part: band.key,
-          modification: { element: b.id, op: "removeArea" as const, rect: opening.perimeter }
-        }))
+    modify: bandsOf(band).flatMap((b) =>
+      (mounted.occupied.length
+        ? occupiedRows(mounted.occupied, b.chart)
+        : wallOpeningsOf(mounted).map((o) => o.perimeter)
+      )
+        .filter((rect) => crosses(rect[1], rect[3], b.chart))
+        .map((rect) => ({ part: band.key, modification: { element: b.id, op: "removeArea" as const, rect } }))
     )
   };
 };
