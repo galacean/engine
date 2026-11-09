@@ -27,19 +27,17 @@ class MaterialLoader extends Loader<Material> {
     return resourceManager._request(item.url!, { ...item, type: "json" }).then((materialSchema: IMaterialSchema) => {
       const { shaderRef, shader: shaderName } = materialSchema;
       const engine = resourceManager.engine;
-      const shader = Shader.find(shaderName);
-      if (shader) {
-        return this._getMaterialByShader(materialSchema, shader, engine);
+      if (shaderRef) {
+        return resourceManager.getResourceByRef<Shader>(shaderRef).then((shader) => {
+          if (!(shader instanceof Shader)) {
+            throw new Error(`MaterialLoader: shader reference "${shaderRef.url}" did not resolve to a Shader.`);
+          }
+          return this._getMaterialByShader(materialSchema, shader, engine);
+        });
       }
-      if (!shaderRef) {
-        throw new Error(`MaterialLoader: shader "${shaderName}" not found.`);
-      }
-      return resourceManager.getResourceByRef<Shader>(<RefItem>shaderRef).then((shader) => {
-        if (!(shader instanceof Shader)) {
-          throw new Error(`MaterialLoader: shader reference "${shaderRef.url}" did not resolve to a Shader.`);
-        }
-        return this._getMaterialByShader(materialSchema, shader, engine);
-      });
+      const shader = shaderName && Shader.find(shaderName);
+      if (!shader) throw new Error(`MaterialLoader: shader "${shaderName}" not found.`);
+      return this._getMaterialByShader(materialSchema, shader, engine);
     });
   }
 
