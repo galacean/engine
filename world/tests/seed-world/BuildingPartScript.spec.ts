@@ -51,7 +51,7 @@ export default class Example extends Script {
     const part: BuildingPartComponent | undefined = manager.get(draft.parts[0].id, frame);
     const owner: BuildingGroupComponent | undefined = part ? manager.groupFor(part) : undefined;
     const groups: number = manager.listGroups().length;
-    if (owner) owner.definition = { ...owner.definition!, wallColor: 1 };
+    if (owner) owner.definition = { ...owner.definition!, seed: 1 };
     if(part && state.parts.length && groups) part.rebuild();
   }
 }`;

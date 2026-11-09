@@ -34,7 +34,7 @@
 尚未完成：
 
 - 无。所有门、窗、拱和老虎窗的类型都已迁移。
-- 运行时脚本的类型声明（`world/demos/seed-world/systems/runtime-declarations.json`）要按新的公开 API 重新生成。
+- 运行时脚本的类型声明已按新的公开 API 重新生成：`node world/demos/seed-world/systems/generate-runtime-declarations.cjs`。公开 API 变化后要重新运行。
 - 删除旧路径和对比测试的线上依赖（先冻结基准）。
 
 ## 旧路径（迁移完成后删除）
