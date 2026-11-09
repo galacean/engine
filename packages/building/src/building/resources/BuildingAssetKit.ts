@@ -478,7 +478,22 @@ export function buildingAssets(source: PrefabResource): BuildingAssets {
             validateAssemblyPart(name, matrix, metadata.surfaceKind);
             if (decorations[name]) throw Error("Duplicate building prefab member: " + name);
             decorations[name] = { ...extractEntity(node), localMatrix: matrix };
-            members.push([name, path, metadata.surfaceKind, assemblyEmissionOrigin(metadata.emissionOrigin, matrix)]);
+            let stoneFrame: { template: string; matrix: number[] } | undefined;
+            if (metadata.stoneFrame) {
+              const template = unitNames.get(metadata.stoneFrame) ?? `stone-frame/${name}`;
+              const unit = units[template] ?? extract(metadata.stoneFrame);
+              if (unit.family !== "stone-decoration")
+                throw Error(`The stone frame of building prefab "${key}" requires a stone-decoration unit`);
+              units[template] = unit;
+              unitNames.set(metadata.stoneFrame, template);
+              stoneFrame = { template, matrix };
+            }
+            const emission = assemblyEmissionOrigin(metadata.emissionOrigin, matrix);
+            members.push(
+              stoneFrame
+                ? [name, path, metadata.surfaceKind, emission, stoneFrame]
+                : [name, path, metadata.surfaceKind, emission]
+            );
           }
           for (const child of node.children) {
             const childPath = path ? `${path}/${child.name}` : child.name;

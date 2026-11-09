@@ -32,7 +32,15 @@ export interface BuildingPrefabUnitMember {
  * baked into their meshes, its unit members, and the openings it takes out of a wall. The
  * openings together form one opening. */
 export interface BuildingPrefab {
-  members: [name: string, suffix: string, material: number, emissionOrigin?: number[]][];
+  /** `stoneFrame` is the frame's stone alternative, drawn when the frame takes the wall's
+   * material: a stone unit of the kit and the member's pose in the prefab. */
+  members: [
+    name: string,
+    suffix: string,
+    material: number,
+    emissionOrigin?: number[],
+    stoneFrame?: { template: string; matrix: number[] }
+  ][];
   units: BuildingPrefabUnitMember[];
   openings: BuildingPrefabOpening[];
   /** Metres taken off the opening's width on a curved wall. */

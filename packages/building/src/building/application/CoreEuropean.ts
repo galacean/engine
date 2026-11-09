@@ -204,6 +204,8 @@ export interface CoreWallAttachment {
   width: number;
   height: number;
   seed?: number;
+  /** "wall" draws the frame in the stone of the wall. Default: wood. */
+  frameMaterial?: "wood" | "wall";
   woodColor?: number;
   lightColor?: number;
   lightIntensity?: number;
@@ -219,6 +221,7 @@ export interface CoreRoofAttachment {
    * prefab's own. */
   width?: number;
   height?: number;
+  frameMaterial?: "wood" | "wall";
   woodColor?: number;
   lightColor?: number;
   lightIntensity?: number;
@@ -269,6 +272,7 @@ function wallAttachmentPart(house: CoreHouseParameters, a: CoreWallAttachment): 
         unitParams: {
           kind: a.kind,
           u: a.u,
+          ...(a.frameMaterial === "wall" && { frameMaterial: "wall" }),
           ...(a.woodColor !== undefined && { woodColor: a.woodColor }),
           ...(a.lightColor !== undefined && { lightColor: a.lightColor }),
           ...(a.lightIntensity !== undefined && { lightIntensity: a.lightIntensity })
@@ -332,6 +336,7 @@ function roofAttachmentPart(house: CoreHouseParameters, a: CoreRoofAttachment): 
         unitParams: {
           kind: kind.kind,
           host: "roof",
+          ...(a.frameMaterial === "wall" && { frameMaterial: "wall" }),
           ...(a.woodColor !== undefined && { woodColor: a.woodColor }),
           ...(a.lightColor !== undefined && { lightColor: a.lightColor }),
           ...(a.lightIntensity !== undefined && { lightIntensity: a.lightIntensity })

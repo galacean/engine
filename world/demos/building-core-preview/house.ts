@@ -80,12 +80,22 @@ function withFacade(house: CoreHouseParameters): CoreHouseParameters {
   return { ...house, attachments: planned as never };
 }
 /** Gothic windows and doors and arrow slits at their original sizes. */
-function withStone(house: CoreHouseParameters): CoreHouseParameters {
+function withStone(house: CoreHouseParameters, frameMaterial?: "wall"): CoreHouseParameters {
   const at = (id: string, kind: string, type: string, rank: number, u: number, bottom: number) => {
     const size = constructionDecorationType(library.compilation.decorations, type)!.dimensions.find(
       (d) => d.rank === rank
     )!;
-    return { id, kind, type, rank, u, bottom, width: size.width, height: size.height };
+    return {
+      id,
+      kind,
+      type,
+      rank,
+      u,
+      bottom,
+      width: size.width,
+      height: size.height,
+      ...(frameMaterial && kind === "window" && { frameMaterial })
+    };
   };
   return {
     ...house,
@@ -442,6 +452,20 @@ const cases = (): Case[] => [
       floors: { enabled: true, interval: 3 }
     },
     online: { wallStructure: "timber", wall: { unit: "wooden_plank", algorithm: { type: "horizontal_rows" } } },
+    ground: flat
+  },
+  {
+    id: "wall-frames",
+    title: "石框窗",
+    house: withStone(
+      {
+        id: "a",
+        height: 7,
+        wallColor: 1,
+        rectangle: { center: [0, 0], size: [9, 7], rotation: 0.2 }
+      },
+      "wall"
+    ),
     ground: flat
   },
   { id: "steep", title: "陡屋顶", house: { id: "a", roof: { height: 0.8, eave: 0.4 } }, ground: flat },

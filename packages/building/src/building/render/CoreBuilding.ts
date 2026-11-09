@@ -54,7 +54,11 @@ import type {
   ConstructionDecorationPart,
   ConstructionDecorationStone
 } from "../runtime/ConstructionDecorations";
-import type { ConstructionDecorationFrame } from "../runtime/ConstructionDecorationFrames";
+import {
+  constructionDecorationFrame,
+  decorationFrameBounds,
+  decorationFrameGeometry
+} from "../runtime/ConstructionDecorationFrames";
 import type { DecorationStoneInstance } from "../runtime/DecorationStoneInstance";
 import { decorationStoneBounds } from "../runtime/DecorationStoneBounds";
 import type { ConstructionJunctionGroup } from "../runtime/ConstructionJunctionLayout";
@@ -1241,6 +1245,11 @@ export function coreBuildingView(layout: CoreBuildingLayout, options: CoreBuildi
   const decorations = options.assets ? coreBuildingDecorations(layout, options.assets) : [];
   const decorationParts = decorations.flatMap((d) => d.parts);
   const stones = decorations.flatMap((d) => d.stones);
+  const frames = decorations.flatMap((d) => d.frames);
+  for (const frame of frames) {
+    const { owner, positions, indices } = decorationFrameGeometry(options.assets?.stoneGeometry, frame);
+    capture(owner, { positions, indices, uvs: [] });
+  }
   if (options.retainDecorationParts)
     for (const p of decorationParts) capture(p.ownerId, { positions: p.positions, indices: p.indices, uvs: [] });
   else
@@ -1263,13 +1272,14 @@ export function coreBuildingView(layout: CoreBuildingLayout, options: CoreBuildi
       bounds.min[i % 3] = Math.min(bounds.min[i % 3], p.positions[i]);
       bounds.max[i % 3] = Math.max(bounds.max[i % 3], p.positions[i]);
     }
-  for (const stone of stones) {
-    const b = decorationStoneBounds(options.assets?.stoneGeometry, stone);
+  for (const b of [
+    ...stones.map((stone) => decorationStoneBounds(options.assets?.stoneGeometry, stone)),
+    ...frames.map((frame) => decorationFrameBounds(options.assets?.stoneGeometry, frame))
+  ])
     for (let a = 0; a < 3; a++) {
       bounds.min[a] = Math.min(bounds.min[a], b.min[a]);
       bounds.max[a] = Math.max(bounds.max[a], b.max[a]);
     }
-  }
   // Units stand out of their surfaces; include them in the bounds.
   for (const owner of layout.owners)
     for (const binding of owner.bindings)
@@ -1288,11 +1298,11 @@ export function coreBuildingView(layout: CoreBuildingLayout, options: CoreBuildi
     parts,
     decorationParts: options.retainDecorationParts ? decorationParts : [],
     retainedWallUnits,
-    // Arches, stone frames and timber arches are not core parts yet.
+    // Arches and timber arches are not core parts yet.
     archGroups: [] as ConstructionJunctionGroup[],
     bounds,
     stones,
-    frames: [] as ConstructionDecorationFrame[],
+    frames,
     woodArchFrames: [] as ConstructionWoodArchPart[],
     woodArchPillars: [] as ConstructionWoodArchPillar[],
     ...(options.includeStructure && { structuralParts: [...structure.values()] })
@@ -1353,15 +1363,44 @@ export function coreBuildingDecorations(
             ...(params.lightColor !== undefined && { lightColor: params.lightColor as number }),
             ...(params.lightIntensity !== undefined && { lightIntensity: params.lightIntensity as number })
           };
+          // A frame of wall material is drawn in stone, from the frame's stone alternative.
+          const inStone = params.frameMaterial === "wall";
           // A part that lays its prefab more than once numbers the members of each.
-          const parts = prefab.members.map(([name, suffix, material, emissionOrigin]) => ({
-            name,
-            suffix: units.length > 1 ? `${suffix}/${u.key}` : suffix,
-            material,
-            mesh: decorationMesh(assets.decorations, name),
-            emissionOrigin,
-            binding: { role: "body" as const }
-          }));
+          const numbered = (suffix: string) => (units.length > 1 ? `${suffix}/${u.key}` : suffix);
+          const parts = prefab.members
+            .filter((member) => !(inStone && member[4]))
+            .map(([name, suffix, material, emissionOrigin]) => ({
+              name,
+              suffix: numbered(suffix),
+              material,
+              mesh: decorationMesh(assets.decorations, name),
+              emissionOrigin,
+              binding: { role: "body" as const }
+            }));
+          if (inStone)
+            for (const [name, suffix, , , stone] of prefab.members) {
+              if (!stone) continue;
+              // The stone's color varies across the prefab's width on the wall.
+              const meshSizeX = prefab.bounds.max[0] - prefab.bounds.min[0],
+                width = meshSizeX * scaleX;
+              const at = onRoof ? m[12] : mountU * perimeter - width / 2;
+              compiled.frames.push(
+                constructionDecorationFrame({
+                  id: `${owner.group.id}/${id}/${numbered(suffix)}`,
+                  ownerId: owner.group.id,
+                  decorationId: id,
+                  mesh: name,
+                  binding: { role: "frame", stoneTemplate: stone.template, localMatrix: stone.matrix },
+                  origin: [m[12], m[13], m[14]],
+                  axes,
+                  wallRange: [at, at + width],
+                  meshSizeX,
+                  seed: part.seed >>> 0,
+                  wallSlot: owner.slot,
+                  woodenWall: false
+                })
+              );
+            }
           compiled.parts.push(
             ...decorationAssemblyGeometry(
               { id: owner.group.id, woodColor: owner.palette.woodColor },

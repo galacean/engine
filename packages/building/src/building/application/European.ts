@@ -99,12 +99,18 @@ function roofType(a: EuropeanAttachment, flat: boolean): string | undefined {
   if (a.kind === "hatch") return flat ? "hatch-cottage" : undefined;
   if (a.kind === "window") return flat ? "hatch-cottage" : "dormer-cottage";
 }
+/** Prefabs whose frame has a stone alternative. */
+const STONE_FRAMES = new Set(["window-gothic", "window-arrow-slit", "dormer-gothic"]);
+function checkFrame(a: EuropeanAttachment, type: string) {
+  if (a.frameMaterial === "wall" && !STONE_FRAMES.has(type))
+    throw Error(`The attachment type "${type}" has no frame of wall material ("${a.id}")`);
+}
 function roofAttachment(a: EuropeanAttachment, flat: boolean): CoreRoofAttachment | undefined {
   if (a.enabled === false || !onRoof(a)) return;
   const type = roofType(a, flat);
   if (!type) throw Error(`A roof attachment of kind "${a.kind}" needs a flat roof ("${a.id}")`);
   if (!ROOF_PREFABS.has(type)) throw unavailable(`The roof attachment type "${type}" ("${a.id}")`);
-  if (a.frameMaterial === "wall") throw unavailable(`A frame of wall material ("${a.id}")`);
+  checkFrame(a, type);
   if (!a.uv) throw Error(`Roof attachment "${a.id}" needs uv`);
   positive("attachment width", a.width);
   positive("attachment height", a.height);
@@ -116,6 +122,7 @@ function roofAttachment(a: EuropeanAttachment, flat: boolean): CoreRoofAttachmen
     ...(a.bottom !== undefined && { bottom: a.bottom }),
     ...(a.width !== undefined && { width: a.width }),
     ...(a.height !== undefined && { height: a.height }),
+    ...(a.frameMaterial === "wall" && { frameMaterial: "wall" as const }),
     ...(a.woodColor !== undefined && { woodColor: a.woodColor }),
     ...(a.lightColor !== undefined && { lightColor: a.lightColor }),
     ...(a.lightIntensity !== undefined && { lightIntensity: a.lightIntensity })
@@ -125,7 +132,7 @@ function wallAttachment(a: EuropeanAttachment): CoreWallAttachment | undefined {
   if (a.enabled === false || onRoof(a)) return;
   if (a.kind === "opening" || a.kind === "hatch") throw unavailable(`An attachment of kind "${a.kind}" ("${a.id}")`);
   if (a.type && !WALL_PREFABS.has(a.type)) throw unavailable(`The attachment type "${a.type}" ("${a.id}")`);
-  if (a.frameMaterial === "wall") throw unavailable(`A frame of wall material ("${a.id}")`);
+  checkFrame(a, a.type ?? (a.kind === "window" ? "window-cottage" : a.kind));
   if (a.u === undefined) throw Error(`Wall attachment "${a.id}" needs u`);
   if (a.width === undefined || a.height === undefined || a.bottom === undefined)
     throw Error(`Wall attachment "${a.id}" needs bottom, width and height`);
@@ -138,6 +145,7 @@ function wallAttachment(a: EuropeanAttachment): CoreWallAttachment | undefined {
     bottom: a.bottom,
     width: a.width,
     height: a.height,
+    ...(a.frameMaterial === "wall" && { frameMaterial: "wall" as const }),
     ...(a.woodColor !== undefined && { woodColor: a.woodColor }),
     ...(a.lightColor !== undefined && { lightColor: a.lightColor }),
     ...(a.lightIntensity !== undefined && { lightIntensity: a.lightIntensity })
