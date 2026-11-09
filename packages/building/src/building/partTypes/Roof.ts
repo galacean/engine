@@ -398,7 +398,7 @@ interface CapLayout {
  * of the curve, moved by its own random offset. */
 export const capCourses: LayingAlgorithm<CapParams, CapLayout> = {
   info: {
-    accepts: ["surface"],
+    accepts: ["ribbon"],
     summary: "Ridge or hip caps along a ribbon, between randomly placed joints.",
     params: {
       width: "Cap width in metres.",

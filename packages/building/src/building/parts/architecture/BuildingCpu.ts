@@ -10,7 +10,8 @@ import {
   coreBuildingLayout,
   coreBuildingPalette,
   coreBuildingRenderInput,
-  coreBuildingView
+  coreBuildingView,
+  coreBuildingDiagnostics
 } from "../../render/CoreBuilding";
 import { groundSupportsInRegion, type ConstructionGrounding } from "../../runtime/TerrainField";
 import type { ConstructionTerrainGrid } from "../../runtime/TerrainField";
@@ -106,7 +107,7 @@ export function prepareBuildingOnGround(
     structure,
     appearance: coreBuildingPalette(layout),
     focus: coreBuildingFocus(layout),
-    diagnostics: result.diagnostics
+    diagnostics: [...result.diagnostics, ...coreBuildingDiagnostics(layout)]
   };
 }
 export async function prepareBuildingCpu(

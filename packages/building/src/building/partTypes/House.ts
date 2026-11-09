@@ -58,6 +58,9 @@ export interface WallChartParams {
   readonly nominalOuter: number;
   /** Wall unit depth against the 0.1 m reference; it scales the wall thickness. */
   readonly depthScale?: number;
+  /** How far what is mounted on the wall moves out with a thicker wall, in metres: prefabs are
+   * authored against the reference wall. Default: 0. */
+  readonly mountOffset?: number;
   /** The chart runs around the whole house: u wraps at the perimeter length. */
   readonly closed?: boolean;
   readonly finishOuter: number;
@@ -161,7 +164,8 @@ export const houseWallGeometry: GeometryGenerator<HouseShared> = (p, { environme
     ...(profile.wallRoofJoint && { joint: profile.wallRoofJoint }),
     nominalOuter: envelope.nominalOuter,
     finishOuter: envelope.finishOuter,
-    depthScale: envelope.depthScale
+    depthScale: envelope.depthScale,
+    mountOffset: envelope.mountOffset
   };
   return { elements: { face: { kind: "surface", surface: { kind: "wallChart", params } } } };
 };

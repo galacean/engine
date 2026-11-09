@@ -314,8 +314,8 @@ function eaveShed(house: CoreHouseParameters, a: CoreWallAttachment) {
   };
 }
 /** A wall prefab as a part: a mount on the walls and the building prefab, scaled to the
- * installation size. The prefab's bounds, opening and members come from the asset layer at
- * design time, so the draft names the prefab only. */
+ * installation size. The prefab's bounds, occupied space and members come from the asset layer
+ * at design time, so the draft names the prefab only. */
 function wallAttachmentPart(house: CoreHouseParameters, a: CoreWallAttachment): BuildingPartDef {
   if (a.kind === "opening") return archPart(house, a);
   const eave = a.type !== undefined && EAVE_TYPES.has(a.type);
@@ -698,9 +698,7 @@ export function buildCoreHouse(p: CoreHouseParameters): BuildingCoreDraft {
     if (!onDeck && !pitched) throw Error("A dormer needs a pitched roof");
   }
   const onRoof = (p.roofAttachments ?? []).map((a) => roofAttachmentPart(p, a));
-  // The dormer's small roof follows the house's tile footprint.
-  const tileScale = unitFootprintScale(unit);
-  const tiles = { row: 0.3 * tileScale.width, column: 0.32 * tileScale.height };
+  const tiles = { row: 0.3, column: 0.32 };
   const eaves = mounted.filter((part) => part.type === "eaveDormer");
   if (eaves.length && !pitched) throw Error("An eave dormer needs a pitched roof");
   const onWalls = [
@@ -720,7 +718,8 @@ export function buildCoreHouse(p: CoreHouseParameters): BuildingCoreDraft {
           tile: {
             source: p.roofUnit ?? "roof_tile",
             bounds: CUBE,
-            scale: [unit.width, unit.height, unit.depth],
+            // The wall's unit size has no say over the roof's tiles.
+            scale: [DEFAULT_FOOTPRINT.width, DEFAULT_FOOTPRINT.height, DEFAULT_FOOTPRINT.depth],
             // Measured over 324 roofs: tiles narrow toward a hip top and run 1.1–2 units long;
             // eave closures can be short. Tiles keep their depth.
             range: { min: [0.1, 0.2, 1], max: [1.001, 2.2, 1] }

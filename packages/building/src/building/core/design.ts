@@ -576,7 +576,7 @@ export function designBuildingCore(
         const algorithm = registry.algorithms.get(state.algorithm.type);
         if (!algorithm) throw Error(`Unknown laying algorithm "${state.algorithm.type}"`);
         const accepts = algorithm.info?.accepts;
-        if (accepts && !accepts.some((kind) => kinds.has(kind) || (kind === "surface" && kinds.has("ribbon"))))
+        if (accepts && !accepts.some((kind) => kinds.has(kind)))
           throw Error(`${state.algorithm.type} lays ${accepts.join(" or ")} elements; this geometry has none`);
         const params = plain(resolveShared(state.algorithm.params ?? {}, state.group.shared ?? {}));
         const context = layingContext(

@@ -1848,7 +1848,7 @@ export async function coreBuildingRenderInput(
     rawDraws: [],
     groups,
     decorations: assets ? coreBuildingDecorations(layout, assets) : [],
-    // Openings beyond a bin's capacity leave their tiles uncut; the report says how many.
+    // Openings beyond a bin's capacity leave their tiles uncut; `coreBuildingDiagnostics` says so.
     dormerBins: encodeConstructionDormerBins(roofApertures(layout)),
     colorOwners: palette.colorOwners.map(({ id, seed }) => ({ id, seed })),
     backingParts: view.parts.filter(
@@ -2067,6 +2067,17 @@ function roofApertures(layout: CoreBuildingLayout): Uint8Array[] {
   return records;
 }
 
+/** What drawing a design could not do in full. It still draws. */
+export function coreBuildingDiagnostics(layout: CoreBuildingLayout): { source: string; message: string }[] {
+  const { droppedAssignments } = encodeConstructionDormerBins(roofApertures(layout)).report;
+  if (!droppedAssignments) return [];
+  return [
+    {
+      source: layout.owners.map((o) => o.group.id).join(", "),
+      message: `Too many roof openings close together: ${droppedAssignments} of them leave their tiles uncut`
+    }
+  ];
+}
 export interface CoreBuildingEntryOptions extends CoreBuildingOptions {
   readonly assets?: BuildingUnitAssets;
   /** Keep each prefab's meshes as its own part, as Scene-bound views need. */

@@ -90,6 +90,8 @@ const chartLength = (chart: WallChartParams) => wallChartSampler(chart).length;
 
 /** A door stands on the ground, and gets its threshold, up to this height above it, in metres. */
 const THRESHOLD_ON_GROUND = 0.05;
+/** Depth of a threshold through the reference wall, in metres; it grows with the wall. */
+const THRESHOLD_DEPTH = 0.76;
 /** How far a threshold reaches past its opening on each side, in metres at the prefab's size. */
 const THRESHOLD_OVERHANG = 0.08;
 /** Elements "mount" and "follow<i>", and "sill" for a door with a threshold. The mount sits on
@@ -116,8 +118,15 @@ export const houseWallMountGeometry: GeometryGenerator<WallMountParams> = (p, { 
     if (v < -1e-6 || v > sample.length + 1e-6) throw Error("The installation crosses a corner of its wall");
     return sample.at(Math.min(sample.length, Math.max(0, v)));
   };
-  const a = along(s - p.width / 2),
-    b = along(s + p.width / 2);
+  // Prefabs are authored against the reference wall: on a thicker wall they stand further out.
+  const push = chart.mountOffset ?? 0;
+  const pushed = (at: ReturnType<typeof along>) => ({
+    ...at,
+    x: at.x - at.tangent[1] * push,
+    z: at.z + at.tangent[0] * push
+  });
+  const a = pushed(along(s - p.width / 2)),
+    b = pushed(along(s + p.width / 2));
   const chord = Math.hypot(b.x - a.x, b.z - a.z) || 1;
   const x: Vec3 = [(b.x - a.x) / chord, 0, (b.z - a.z) / chord];
   const center = sample.at(s).ground + p.bottom + p.height / 2;
@@ -146,7 +155,7 @@ export const houseWallMountGeometry: GeometryGenerator<WallMountParams> = (p, { 
   follows.forEach((follow, i) => {
     const steps = Math.max(2, Math.ceil((follow.to - follow.from) / 0.1));
     const points = Array.from({ length: steps + 1 }, (_, k): Vec3 => {
-      const at = along(s + follow.from + ((follow.to - follow.from) * k) / steps);
+      const at = pushed(along(s + follow.from + ((follow.to - follow.from) * k) / steps));
       return [at.x, center + follow.height, at.z];
     });
     elements[`follow${i}`] = ribbon({ points });
@@ -197,7 +206,7 @@ export const houseCornerMountGeometry: GeometryGenerator<CornerMountParams> = (p
   const sampleAt = (u: number) => {
     const v = wrap(u);
     const w = walls.find((q) => v >= offsetOf(q) && v <= offsetOf(q) + chartLength(q.chart))!;
-    return wallChartSampler(w.chart).at(v - offsetOf(w));
+    return { ...wallChartSampler(w.chart).at(v - offsetOf(w)), chart: w.chart };
   };
   const before = sampleAt(at - CORNER_PROBE).tangent,
     after = sampleAt(at + CORNER_PROBE).tangent;
@@ -234,7 +243,14 @@ export const houseCornerMountGeometry: GeometryGenerator<CornerMountParams> = (p
   const top = pivotY + max[1] * sy;
   if (top > Math.min(sampleAt(at - CORNER_PROBE).roof, here.roof) + 0.02)
     throw Error("The corner window reaches above its walls");
-  const origin: Vec3 = [corner[0], pivotY, corner[1]];
+  // On a thicker wall both faces move out, and the corner with them.
+  const push = here.chart.mountOffset ?? 0;
+  const [n0, n1] = [
+    [-before[1], before[0]],
+    [-after[1], after[0]]
+  ];
+  const miter = push / (1 + n0[0] * n1[0] + n0[1] * n1[1]);
+  const origin: Vec3 = [corner[0] + (n0[0] + n1[0]) * miter, pivotY, corner[1] + (n0[1] + n1[1]) * miter];
   const host = walls.find(
     (w) => wrap(at + CORNER_PROBE) - offsetOf(w) >= 0 && wrap(at + CORNER_PROBE) - offsetOf(w) <= chartLength(w.chart)
   )!;
@@ -455,7 +471,13 @@ function thresholdOf(
     geometry: {
       elements: { step: ribbon({ points, offsets: points.map((q): Vec3 => [0, level - q[1], 0]) }) }
     },
-    algorithm: { type: "thresholdStones", params: { wallU: [opening.perimeter[0], opening.perimeter[2]] } },
+    algorithm: {
+      type: "thresholdStones",
+      params: {
+        wallU: [opening.perimeter[0], opening.perimeter[2]],
+        depth: THRESHOLD_DEPTH * (chart.depthScale ?? 1)
+      }
+    },
     unit: { ...wall.unit, range: { min: [0.05, 0.05, 0.1] as Vec3, max: [10, 10, 10] as Vec3 } }
   };
 }
@@ -463,14 +485,14 @@ function thresholdOf(
 interface ThresholdParams {
   /** Where the threshold lies along the house perimeter, in metres. */
   readonly wallU: readonly [number, number];
-  /** Depth through the wall, in metres. Default: 0.76, wider than the wall's bricks. */
+  /** Depth through the wall, in metres. Default: 0.76, wider than the reference wall's bricks. */
   readonly depth?: number;
 }
 /** The stones of a door's threshold: about 0.7 m each along the ground line of the ribbon "step",
  * up to the top of the ribbon. */
 export const thresholdStones: LayingAlgorithm<ThresholdParams, { count: number }> = {
   info: {
-    accepts: ["surface"],
+    accepts: ["ribbon"],
     summary: "A door's threshold: a row of low stones along a ribbon on the ground.",
     params: {
       wallU: "Where the threshold lies along the house perimeter, in metres.",
@@ -501,7 +523,7 @@ export const thresholdStones: LayingAlgorithm<ThresholdParams, { count: number }
         y: [0, 1, 0],
         z: [-x[2], 0, x[0]]
       },
-      size: [l, top - y0, context.params.depth ?? 0.76],
+      size: [l, top - y0, context.params.depth ?? THRESHOLD_DEPTH],
       params: {
         deformation: [a[1] - y0, b[1] - y0, 0, 0],
         flags: 0,

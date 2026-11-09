@@ -200,7 +200,7 @@ function pierPieces(height: number, random: () => number): PierPiece[] {
 /** Voussoirs along an arch's arc, about 0.56 m long, and two stone piers under its ends. */
 export const archStones: LayingAlgorithm<{ depthScale?: number }, ArchLayout> = {
   info: {
-    accepts: ["surface"],
+    accepts: ["ribbon"],
     summary: "Voussoirs along an arch's arc and stone piers under its ends.",
     params: { depthScale: "Scale of the stones' depth through the wall. Default: 1." }
   },

@@ -24,6 +24,7 @@ import { European } from "../../src/building/application/European";
 import {
   compileCoreBuilding,
   coreBuildingDecorations,
+  coreBuildingDiagnostics,
   coreBuildingEnvironment,
   coreBuildingLayout
 } from "../../src/building/render/CoreBuilding";
@@ -401,5 +402,8 @@ describe("Eave dormers against the online path", () => {
     });
     expect(renderInput.dormerBins.report.inputCount).toBeGreaterThan(49);
     expect(renderInput.dormerBins.report.droppedAssignments).toBeGreaterThan(0);
+    const notes = coreBuildingDiagnostics(coreBuildingLayout(result, registry, { environment: { ground: flat } }));
+    expect(notes).toHaveLength(1);
+    expect(notes[0].message).toContain("leave their tiles uncut");
   });
 });

@@ -1,11 +1,11 @@
 // Part-type layer: eave dormers, windows that stand on a wall and break through its eave.
-// - An eave dormer is a wall prefab, with the wall mount's point "mount", openings and members
-//   that follow the wall. It attaches to the walls and the roof parts of its house, walls first.
+// - An eave dormer is a wall prefab, with the wall mount's point "mount" and members that follow
+//   the wall. It attaches to the walls and the roof parts of its house, walls first.
 // - It carries a small roof out of the roof. A prefab with a roof profile carries an arch, swept
 //   back from a little in front of the wall into the roof and cut off at the wall top; the
 //   others carry a shed, lofted through the roof's contours from the eave to its back.
 // - The attach rule opens the wall, takes the dormer's footprint out of the roof part behind it
-//   and derives the small roof. An arch opens the roof from the eave back to the wall line.
+//   and derives the small roof. The opening runs from the eave back under the small roof.
 import {
   add,
   joinPairKey,

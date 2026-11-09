@@ -38,7 +38,7 @@ export type GeometryKind = GeometryElement["kind"];
 /** What a laying algorithm tells people and tools about itself, like an entry in a list of
  * easing functions: the geometry it lays, one line of description and its parameters. */
 export interface LayingInfo {
-  readonly accepts: readonly GeometryKind[];
+  readonly accepts: readonly LayingKind[];
   readonly summary: string;
   /** Parameter name → one line of description, including its default. */
   readonly params?: Readonly<Record<string, string>>;
@@ -163,7 +163,7 @@ export function defaultLaying(kinds: ReadonlySet<LayingKind>): { type: string; p
 }
 
 export const noLaying: LayingAlgorithm = {
-  info: { accepts: ["point", "surface"], summary: "Lays nothing." },
+  info: { accepts: ["point", "surface", "ribbon"], summary: "Lays nothing." },
   plan: () => ({ count: 0, data: null }),
   unitAt: () => undefined
 };
@@ -250,7 +250,7 @@ export const alongCurves: LayingAlgorithm<
   CurveEntry[]
 > = {
   info: {
-    accepts: ["surface"],
+    accepts: ["ribbon"],
     summary: "Units along ribbons: abutting, at a fixed spacing, or one per straight segment.",
     params: {
       spacing: "Fixed pitch in metres; units keep their size. Default: abut.",

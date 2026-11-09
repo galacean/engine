@@ -204,7 +204,8 @@ function house(p: EuropeanHouseParameters): CoreHouseParameters {
     roofUnit === "brick" &&
     isFlatRoofHeight(normalizeProfileRoof(p.roof ?? {}).height) &&
     (p.roofStyle?.algorithm?.type ?? "auto") === "auto";
-  const foundation = p.foundation && normalizeProfileFoundation(p.foundation);
+  const { plaster: foundationPlaster, ...foundationShape } = p.foundation ?? {};
+  const foundation = p.foundation && normalizeProfileFoundation(foundationShape);
   const foundationUnit = p.foundationStyle?.unit,
     foundationRule = p.foundationStyle?.algorithm?.type;
   if (foundationUnit === "roof_tile") throw unavailable("A foundation of roof_tile");
@@ -239,7 +240,7 @@ function house(p: EuropeanHouseParameters): CoreHouseParameters {
         foundation: {
           height: foundation.height,
           ...(foundation.mode && { mode: foundation.mode }),
-          ...(p.foundation!.plaster && { plaster: p.foundation!.plaster }),
+          ...(foundationPlaster && { plaster: foundationPlaster }),
           ...(foundationUnit && { unit: foundationUnit }),
           ...(foundationRule &&
             foundationRule !== "auto" && {
