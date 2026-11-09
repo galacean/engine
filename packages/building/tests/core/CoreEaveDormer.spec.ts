@@ -280,6 +280,23 @@ describe("Eave dormers against the online path", () => {
     }
   });
 
+  it("opens the roof behind a shed's window up to the window's top", () => {
+    const result = design(house([at("dormer-cottage-half", 2, 0.125, { shutters: false })]));
+    expect(result.diagnostics).toEqual([]);
+    const window = result.parts.find((p) => p.type === "eaveDormer")!;
+    const shed = window.original.elements.shed;
+    if (shed?.kind !== "surface") throw Error("no shed");
+    const top = (shed.surface.params as { rows: { points: number[][] }[] }).rows[0].points[4][1];
+    const roof = result.parts.find((p) => p.type === "roof" && p.modifications.some((m) => m.op === "removeArea"))!;
+    const surface = new EffectiveGeometry(roof.original, roof.modifications, registry.surfaces).surface("slope");
+    const reach = Math.max(
+      ...roof.modifications.flatMap((m) =>
+        m.op === "removeArea" ? [surface.frame((m.rect[0] + m.rect[2]) / 2, m.rect[3]).origin[1]] : []
+      )
+    );
+    expect(reach).toBeGreaterThan(top - 0.2);
+  });
+
   it("cuts the tiles that hang over a shed's eave as high as the whole opening reaches", async () => {
     const result = design(house([at("dormer-cottage-half", 2, 0.125)]));
     expect(result.diagnostics).toEqual([]);

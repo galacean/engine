@@ -229,6 +229,26 @@ describe("Shed dormers", () => {
     const host = three.parts.filter((p) => p.type === "roof" && p.modifications.some((m) => m.op === "removeArea"));
     expect(host).toHaveLength(1);
   });
+  it("ends its opening under the shed, so that the roof's tiles run on beneath its back", () => {
+    const result = design({ ...hip, roof: { height: 0.6 }, roofAttachments: [cottage(2, [0.6, 0.2])] });
+    expect(result.diagnostics).toEqual([]);
+    const roof = result.parts.find((p) => p.type === "roof" && p.modifications.some((m) => m.op === "removeArea"))!;
+    const part = result.parts.find((p) => p.type === "shedDormer")!;
+    const loft = part.original.elements.shed;
+    if (loft?.kind !== "surface") throw Error("no shed");
+    const rows = (loft.surface.params as { rows: { points: number[][]; floor: number[] }[] }).rows;
+    const mid = Math.floor(rows[0].points.length / 2);
+    const back = rows[rows.length - 1].points[mid];
+    const surface = new EffectiveGeometry(roof.original, roof.modifications, registry.surfaces).surface("slope");
+    const rect = roof.modifications.flatMap((m) => (m.op === "removeArea" ? [m.rect] : []))[0];
+    const edge = surface.frame((rect[0] + rect[2]) / 2, rect[3]).origin;
+    expect(Math.hypot(edge[0] - back[0], edge[1] - back[1], edge[2] - back[2])).toBeGreaterThan(0.3);
+    // The edge still lies under the shed.
+    const toEdge = rows.map((r) => Math.hypot(r.points[mid][0] - edge[0], r.points[mid][2] - edge[2]));
+    const nearest = rows[toEdge.indexOf(Math.min(...toEdge))];
+    expect(nearest.points[mid][1]).toBeGreaterThan(edge[1]);
+  });
+
   it("is an error where the row reaches past its roof part", () => {
     const result = design({ ...hip, roofAttachments: [cottage(3, [0.08, 0.2])] });
     expect(messages(result)).toContain("The dormer crosses an edge of its roof");

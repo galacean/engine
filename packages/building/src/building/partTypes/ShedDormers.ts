@@ -205,9 +205,25 @@ export const shedTile = (tile: BuildingUnit): BuildingUnit => ({
   ...tile,
   range: { min: [0.1, 0.1, 1], max: [3, 8, 2.5] }
 });
+/** How far before a shed's back its opening ends, along the roof, in metres. */
+const SHED_LAP = 0.4;
+/** Where the opening under a shed ends on the host, as its v: a little before the shed meets the
+ * covering. The host's tiles run on beneath the shed's back, so that their cut edge stays hidden. */
+function shedOpeningBack(
+  surface: EffectiveSurface,
+  u: number,
+  rows: LoftParams["rows"],
+  lift: number
+): number | undefined {
+  const mid = Math.floor(rows[0].points.length / 2);
+  const back = rows[rows.length - 1].points[mid];
+  let row = rows.length - 1;
+  while (row > (rows.length - 1) / 2 && Math.hypot(...sub(rows[row].points[mid], back)) < SHED_LAP) row--;
+  return vAtHeight(surface, u, rows[row].floor[mid] - lift);
+}
 /** Attach rule of a shed dormer on its roof: the area from the bodies' fronts (the curve
- * "front") back to where the shed meets the covering, as wide as the bodies, comes out of the
- * roof part they stand on; the shed's overhang keeps the roof under it. The connection derives
+ * "front") back to just before the shed meets the covering, as wide as the bodies, comes out of
+ * the roof part they stand on; the shed's overhang keeps the roof under it. The connection derives
  * the shed, laid with the roof's tile. */
 export const shedOnRoof: ConnectionRule = ({ guest, hosts }) => {
   const loft = guest && loftOf(guest);
@@ -218,10 +234,8 @@ export const shedOnRoof: ConnectionRule = ({ guest, hosts }) => {
   if (!surface || !host.unit) return { diagnostics: ["shedOnRoof needs the host roof and its tile"] };
   const near = [mount.on.u, mount.on.v] as const;
   const front = guest.geometry.original.elements.front;
-  // The back: where the covering reaches the last row's height above the bodies' middle.
   const lift = coveringRise(host, surface.frame(near[0], near[1]).z);
-  const last = loft.rows[loft.rows.length - 1].points;
-  const vBack = vAtHeight(surface, near[0], last[Math.floor(last.length / 2)][1] - lift);
+  const vBack = shedOpeningBack(surface, near[0], loft.rows, lift);
   const us = front?.kind === "curve" ? front.curve.points.map((q) => surfaceAtPlan(surface, q[0], q[2], near)?.u) : [];
   if (vBack === undefined || !us.length || us.some((u) => u === undefined))
     return { diagnostics: [`${guest.key} lies off its roof`] };
