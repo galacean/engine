@@ -117,7 +117,8 @@ export const houseEaveMountGeometry: GeometryGenerator<EaveMountParams> = (p, co
   const wallTop = sample.at(mount.on.u).roof;
   const height = (max[1] - min[1]) * sy,
     middle = ((min[1] + max[1]) / 2) * sy;
-  const inward = add(pivot, scale(z, -FRONT_BEHIND_WALL));
+  // The wall line, where a thicker wall's mount has moved out from.
+  const inward = add(pivot, scale(z, -(FRONT_BEHIND_WALL + (chart.mountOffset ?? 0))));
   // Behind a gable-end wall no slope comes down to the wall.
   if (!roofs.some((h) => surfaceAtPlan(slopeSurface(h)!, inward[0], inward[2])))
     throw Error("An eave dormer cannot stand on a gable-end wall");
@@ -272,7 +273,8 @@ export const eaveDormerOnHouse: ConnectionRule = (context) => {
   if (vBack === undefined) return { ...opened, diagnostics: [`${guest.key} lies off its roof`] };
   // Behind the wall the opening is as wide as the window. From the wall out it is as wide as
   // everything that stands there, such as open shutters.
-  const center = add(mount.frame.origin, scale(z, -FRONT_BEHIND_WALL));
+  const wall = mount.on !== undefined ? chartOf(hosts[mount.on.host]) : undefined;
+  const center = add(mount.frame.origin, scale(z, -(FRONT_BEHIND_WALL + (wall?.mountOffset ?? 0))));
   const bounds = guest.unit?.bounds;
   const m = guest.occupied[0]?.matrix;
   const bodyHalf = bounds && m ? ((bounds.max[0] - bounds.min[0]) / 2) * Math.hypot(m[0], m[1], m[2]) : 0;

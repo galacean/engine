@@ -269,6 +269,8 @@ export const houseCornerMountGeometry: GeometryGenerator<CornerMountParams> = (p
 /** How far a member must reach behind a wall's outer face to count as passing into it, in
  * metres. A lamp's bracket that rests on the face does not. */
 const PENETRATION = 0.05;
+/** The most rows one part opens in one wall. */
+const MAX_ROWS = 4;
 /** How far a row of an opening may pass a cover's edge, in metres. */
 const ROW_FIT = 0.02;
 interface SolidSection {
@@ -389,6 +391,23 @@ export function occupiedRows(occupied: readonly OccupiedUnit[], chart: WallChart
       }
     }
     rows.push(band);
+  }
+  // A wall takes only so many rows: past that, the neighbours that gain the least area merge.
+  while (rows.length > MAX_ROWS) {
+    const merged = (i: number) => ({
+      ...rows[i],
+      y1: rows[i + 1].y1,
+      u0: Math.min(rows[i].u0, rows[i + 1].u0),
+      u1: Math.max(rows[i].u1, rows[i + 1].u1)
+    });
+    const area = (r: { y0: number; y1: number; u0: number; u1: number }) => (r.y1 - r.y0) * (r.u1 - r.u0);
+    let best = 0,
+      least = Infinity;
+    for (let i = 0; i + 1 < rows.length; i++) {
+      const gain = area(merged(i)) - area(rows[i]) - area(rows[i + 1]);
+      if (gain < least) [best, least] = [i, gain];
+    }
+    rows.splice(best, 2, merged(best));
   }
   return rows.map((r): Rect => [r.u0, r.y0, r.u1, r.y1]);
 }

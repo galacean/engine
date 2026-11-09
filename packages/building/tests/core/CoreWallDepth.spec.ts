@@ -106,6 +106,20 @@ describe("Walls of other depths", () => {
       }
     }
   });
+  it.each(["dormer-gothic-half", "dormer-cottage-half", "dormer-arrow-slit-half"])(
+    "lets %s stand at the eave of every wall depth, in no more than four rows",
+    (type) => {
+      for (const depth of [0.05, 0.1, 0.2, 0.3]) {
+        const rank = type === "dormer-arrow-slit-half" ? 3 : 2;
+        const { height } = constructionDecorationType(assets.decorations, type)!.dimensions.find(
+          (d) => d.rank === rank
+        )!;
+        const result = design(house(depth, [at("e", "window", type, rank, 0.11, 6 - height * 0.6)]));
+        expect(result.diagnostics).toEqual([]);
+        expect(holes(result).length).toBeLessThanOrEqual(4);
+      }
+    }
+  );
   it.each([0.05, 0.2, 0.3])("keeps a pitched roof's tiles when the wall's bricks are %f deep", (depth) => {
     const thick = design(house(depth, []));
     expect(thick.diagnostics).toEqual([]);
