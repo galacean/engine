@@ -22,6 +22,7 @@ import { validatePlanningProject } from "./src/planning/spatial/runtime/Planning
 import { registerPlantProjectAssets } from "@galacean/engine-world-planning/integrations/vegetation/PlantProjectFormats";
 import { nativeAssetFormats } from "@galacean/engine-runtime-editor/project/runtime-native-formats";
 import { registerNativeWater } from "@galacean/engine-water/water/native/index";
+import { migrateSeedWorldWaterTextures } from "./SeedWorldWaterTextureMigration";
 
 /** Building author schemas are intentionally incompatible across these save versions.
  * The storage key excludes older saves before any contents are loaded. */
@@ -55,6 +56,7 @@ export async function openSeedWorldProject(
     registerPlantProjectAssets();
     project.registerAssetFormats(seedWorldProjectFormats);
     await migrateBuildingAssetPaths(project, initial, projectUrl);
+    await migrateSeedWorldWaterTextures(project);
     await project.prepareEditableHierarchies((name) => Boolean(Loader.getClass(name)));
     await project.initializeDependencies();
     await migrateVegetationAssets(project, initial, projectUrl);

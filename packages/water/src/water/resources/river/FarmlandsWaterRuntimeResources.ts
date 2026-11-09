@@ -9,5 +9,5 @@ export function createFarmlandsWaterResourceFactories(engine: Engine) {
     FARMLANDS_WAVE_RESOURCE,
     FARMLANDS_CAUSTICS_RESOURCE,
     ...Object.values(FARMLANDS_DROP_ASSETS).map((asset) => asset.descriptor)
-  ].map((descriptor) => builtinWaterTextureFactory(engine, descriptor, `Water/Textures/${descriptor.id}.png`));
+  ].map((descriptor) => builtinWaterTextureFactory(engine, descriptor, `Water/Textures/${descriptor.id}.ktx2`));
 }

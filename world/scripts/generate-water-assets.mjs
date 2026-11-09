@@ -7,6 +7,9 @@ import { engineModify } from "../../packages/modify/build/vite.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const output = process.env.WATER_ASSET_OUTPUT ?? path.join(root, "packages/water/src/water/native/assets");
+// A format-only migration keeps authored Shader behavior independent of newer
+// compiler features. Full generation remains the default for Shader updates.
+const texturesOnly = process.argv.includes("--textures-only");
 const server = await createServer({ root, configFile: false, plugins: [
   { name: "water-offline-source-paths", enforce: "pre", resolveId(source) {
     if (source.startsWith("/packages/")) return path.join(root, source);
@@ -60,10 +63,10 @@ try {
   const resourceRoot = "packages/water/src/water/resources/";
   const textures = [
     [LAKE_NORMAL_RESOURCE.id, "lake/assets/grasslands-water-normal-512.ktx2", false, 1],
-    [FARMLANDS_WAVE_RESOURCE.id, "river/assets/farmlands-wave-large.png", false, 1, FARMLANDS_WAVE_RESOURCE.contentHash],
-    [FARMLANDS_CAUSTICS_RESOURCE.id, "river/assets/farmlands-caustics.png", true, 1, FARMLANDS_CAUSTICS_RESOURCE.contentHash],
+    [FARMLANDS_WAVE_RESOURCE.id, "river/assets/ktx2/farmlands-wave-large.ktx2", false, 1, FARMLANDS_WAVE_RESOURCE.contentHash],
+    [FARMLANDS_CAUSTICS_RESOURCE.id, "river/assets/ktx2/farmlands-caustics.ktx2", true, 1, FARMLANDS_CAUSTICS_RESOURCE.contentHash],
     ...Object.entries(FARMLANDS_DROP_ASSETS).map(([slot, asset]) => [asset.descriptor.id,
-      `river/assets/drops/${slot === "cloud" ? "cloud-linear" : slot}.png`, asset.srgb, 1, asset.descriptor.contentHash]),
+      `river/assets/ktx2/drops/${slot === "cloud" ? "cloud-linear" : slot}.ktx2`, asset.srgb, 1, asset.descriptor.contentHash]),
     ...[["smoothWaves", "Normals/SmoothWaves.ktx2", false, 4], ["roughWaves", "Normals/RoughWaves.ktx2", false, 4],
       ["caustics", "Caustics/Caustics_1.ktx2", true, 2], ["foam", "Foam/Foam1.ktx2", true, 2],
       ["intersectionNoise", "IntersectionNoise.ktx2", true, 2]].map(([slot, file, srgb, aniso]) => [`ocean-${slot}`, `ocean/textures/${file}`, srgb, aniso])
@@ -119,7 +122,9 @@ try {
       source = source.slice(0, source.lastIndexOf('}')) + farSubShader + "\n}";
     }
     // The river Shader declares both surface and drop controls. Plain rivers do not acquire drop textures.
-    if (kind !== "river") files[shaderPath] = waterMaterialShaderSource(source, material);
+    if (kind !== "river") files[shaderPath] = texturesOnly
+      ? await fs.readFile(path.join(root, "packages/water/src/water/native/assets", shaderPath), "utf8")
+      : waterMaterialShaderSource(source, material);
     files[`Water/Materials/${kind}.mat`] = material;
   }
   const nativeTypes = { ".scene": "Scene", ".prefab": "Prefab", ".mat": "Material", ".shader": "Shader", ".json": "JSON", ".bin": "Buffer" };

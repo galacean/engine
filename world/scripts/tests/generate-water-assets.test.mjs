@@ -78,3 +78,39 @@ test("copied texture and Shader bytes retain their source hashes", async () => {
     assert.equal(bytes.length, entry.byteLength, entry.target);
   }
 });
+
+test("all sixteen native textures use KTX2 and river metadata preserves source and color identity", async () => {
+  const textures = manifest.files.filter(file => file.virtualPath.startsWith("Water/Textures/"));
+  assert.equal(textures.length, 16);
+  const recipe = JSON.parse(await readFile(path.join(root, "packages/water/src/water/resources/river/assets/ktx2-manifest.json")));
+  for (const file of textures) {
+    assert.equal(file.type, "KTX2");
+    assert.ok(file.path.endsWith(".ktx2"));
+    const bytes = await readFile(path.join(output, file.path));
+    assert.equal(bytes.subarray(0, 12).toString("hex"), "ab4b5458203230bb0d0a1a0a");
+    const width = bytes.readUInt32LE(20), height = bytes.readUInt32LE(24);
+    assert.equal(bytes.readUInt32LE(40), Math.floor(Math.log2(Math.max(width, height))) + 1);
+    const dfd = bytes.readUInt32LE(48);
+    assert.equal(bytes[dfd + 14], file.params.isSRGBColorSpace ? 2 : 1);
+    const entry = Object.values(recipe.textures).find(entry => file.virtualPath === `Water/Textures/${entry.id}.ktx2`);
+    if (!entry) continue; // Six previously compressed Lake/Ocean assets retain their own recipes.
+    assert.deepEqual([width, height], [entry.width, entry.height]);
+    assert.equal(sha(bytes), entry.sha256);
+    const source = await readFile(path.join(root, "packages/water/src/water/resources/river/assets", entry.source));
+    assert.equal(sha(source), entry.sourceSha256);
+    assert.deepEqual([source.readUInt32BE(16), source.readUInt32BE(20)], [width, height]);
+    if (["farmlands-drop-cloud", "farmlands-drop-mist", "farmlands-drop-splash"].includes(entry.id))
+      assert.equal(bytes[dfd + 31], 3, "UASTC RGBA must retain the non-opaque alpha channel");
+  }
+});
+
+test("texture-only generation preserves all authored Shader and near/far AOT bytes", async () => {
+  const isolated = await mkdtemp(path.join(tmpdir(), "water-texture-only-"));
+  execFileSync(process.execPath, [path.join(root, "world/scripts/generate-water-assets.mjs"), "--textures-only"], {
+    cwd: root, env: { ...process.env, WATER_ASSET_OUTPUT: isolated }, stdio: "pipe"
+  });
+  for (const file of manifest.files.filter(file => file.type === "Shader")) {
+    assert.deepEqual(await readFile(path.join(isolated, file.path)),
+      await readFile(path.join(root, "packages/water/src/water/native/assets", file.path)), file.path);
+  }
+});

@@ -15,9 +15,9 @@
       }
     },
     {
-      "virtualPath": "Water/Textures/farmlands-wave-large-normal.png",
-      "path": "Water/Textures/farmlands-wave-large-normal.png",
-      "type": "Texture",
+      "virtualPath": "Water/Textures/farmlands-wave-large-normal.ktx2",
+      "path": "Water/Textures/farmlands-wave-large-normal.ktx2",
+      "type": "KTX2",
       "params": {
         "isSRGBColorSpace": false,
         "mipmap": true,
@@ -28,9 +28,9 @@
       }
     },
     {
-      "virtualPath": "Water/Textures/farmlands-caustics-color.png",
-      "path": "Water/Textures/farmlands-caustics-color.png",
-      "type": "Texture",
+      "virtualPath": "Water/Textures/farmlands-caustics-color.ktx2",
+      "path": "Water/Textures/farmlands-caustics-color.ktx2",
+      "type": "KTX2",
       "params": {
         "isSRGBColorSpace": true,
         "mipmap": true,
@@ -41,9 +41,9 @@
       }
     },
     {
-      "virtualPath": "Water/Textures/farmlands-drop-directional.png",
-      "path": "Water/Textures/farmlands-drop-directional.png",
-      "type": "Texture",
+      "virtualPath": "Water/Textures/farmlands-drop-directional.ktx2",
+      "path": "Water/Textures/farmlands-drop-directional.ktx2",
+      "type": "KTX2",
       "params": {
         "isSRGBColorSpace": true,
         "mipmap": true,
@@ -54,9 +54,9 @@
       }
     },
     {
-      "virtualPath": "Water/Textures/farmlands-drop-cloud.png",
-      "path": "Water/Textures/farmlands-drop-cloud.png",
-      "type": "Texture",
+      "virtualPath": "Water/Textures/farmlands-drop-cloud.ktx2",
+      "path": "Water/Textures/farmlands-drop-cloud.ktx2",
+      "type": "KTX2",
       "params": {
         "isSRGBColorSpace": false,
         "mipmap": true,
@@ -67,9 +67,9 @@
       }
     },
     {
-      "virtualPath": "Water/Textures/farmlands-drop-lines.png",
-      "path": "Water/Textures/farmlands-drop-lines.png",
-      "type": "Texture",
+      "virtualPath": "Water/Textures/farmlands-drop-lines.ktx2",
+      "path": "Water/Textures/farmlands-drop-lines.ktx2",
+      "type": "KTX2",
       "params": {
         "isSRGBColorSpace": true,
         "mipmap": true,
@@ -80,9 +80,9 @@
       }
     },
     {
-      "virtualPath": "Water/Textures/farmlands-drop-edge.png",
-      "path": "Water/Textures/farmlands-drop-edge.png",
-      "type": "Texture",
+      "virtualPath": "Water/Textures/farmlands-drop-edge.ktx2",
+      "path": "Water/Textures/farmlands-drop-edge.ktx2",
+      "type": "KTX2",
       "params": {
         "isSRGBColorSpace": true,
         "mipmap": true,
@@ -93,9 +93,9 @@
       }
     },
     {
-      "virtualPath": "Water/Textures/farmlands-drop-voronoi.png",
-      "path": "Water/Textures/farmlands-drop-voronoi.png",
-      "type": "Texture",
+      "virtualPath": "Water/Textures/farmlands-drop-voronoi.ktx2",
+      "path": "Water/Textures/farmlands-drop-voronoi.ktx2",
+      "type": "KTX2",
       "params": {
         "isSRGBColorSpace": true,
         "mipmap": true,
@@ -106,9 +106,9 @@
       }
     },
     {
-      "virtualPath": "Water/Textures/farmlands-drop-foam.png",
-      "path": "Water/Textures/farmlands-drop-foam.png",
-      "type": "Texture",
+      "virtualPath": "Water/Textures/farmlands-drop-foam.ktx2",
+      "path": "Water/Textures/farmlands-drop-foam.ktx2",
+      "type": "KTX2",
       "params": {
         "isSRGBColorSpace": true,
         "mipmap": true,
@@ -119,9 +119,9 @@
       }
     },
     {
-      "virtualPath": "Water/Textures/farmlands-drop-mist.png",
-      "path": "Water/Textures/farmlands-drop-mist.png",
-      "type": "Texture",
+      "virtualPath": "Water/Textures/farmlands-drop-mist.ktx2",
+      "path": "Water/Textures/farmlands-drop-mist.ktx2",
+      "type": "KTX2",
       "params": {
         "isSRGBColorSpace": true,
         "mipmap": true,
@@ -132,9 +132,9 @@
       }
     },
     {
-      "virtualPath": "Water/Textures/farmlands-drop-splash.png",
-      "path": "Water/Textures/farmlands-drop-splash.png",
-      "type": "Texture",
+      "virtualPath": "Water/Textures/farmlands-drop-splash.ktx2",
+      "path": "Water/Textures/farmlands-drop-splash.ktx2",
+      "type": "KTX2",
       "params": {
         "isSRGBColorSpace": true,
         "mipmap": true,

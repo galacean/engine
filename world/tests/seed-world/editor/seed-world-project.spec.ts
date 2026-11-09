@@ -20,6 +20,8 @@ import {
   type RuntimeProjectPackage
 } from "@galacean/engine-project/runtime-editor/project/runtime-project.ts";
 import { validateProjectDependencies } from "@galacean/engine-project/runtime-editor/project/runtime-project-dependencies.ts";
+import { BUILTIN_WATER_PROJECT_URL } from "@galacean/engine-water/water/native/WaterBuiltinAssets";
+import textureManifest from "@galacean/engine-water/water/resources/river/assets/ktx2-manifest.json";
 
 vi.hoisted(() => {
   (globalThis as any).window ??= {};
@@ -207,6 +209,69 @@ it("restores relocated building assets before hierarchy reads without replacing 
   expect(restored.projectPackage.contents[roof]).toEqual(retained.contents[roof]);
   expect(restored.projectPackage.contents[authoredMaterial.virtualPath]).toBe(retained.contents[authoredMaterial.virtualPath]);
   expect(restored.projectPackage.documents).toEqual(retained.documents);
+  await restored.save();
+  const checkpoint = structuredClone(f.records.get(restored.id));
+  restored.dispose();
+  sessions.pop();
+  f.fetcher.mockClear();
+  const reopened = await openSeedWorldProject(f.url, initial);
+  sessions.push(reopened);
+  expect(reopened.projectPackage).toEqual(checkpoint);
+  expect(f.fetcher).not.toHaveBeenCalled();
+});
+
+it("reopens legacy Water PNG references as KTX2 without overwriting authored textures or materials", async () => {
+  const f = storageFixture();
+  const initial = JSON.parse(await readCatalogFile(SEED_WORLD_PRODUCTION_ASSET_CATALOG.projectUrl)) as RuntimeProjectManifest;
+  const project = await openSeedWorldProject(f.url, initial);
+  const entries = textureManifest.textures;
+  const key = (entry: { id: string }) => `Water/Textures/${entry.id}.png`;
+  const selected = [entries.wave, entries.caustics, entries.directional, entries.cloud, entries.lines];
+  const waveBytes = new Uint8Array(await readFile(resolve(globalThis.__migrationRepositoryRoot,
+    "packages/water/src/water/resources/river/assets", entries.wave.source)));
+  const editedBytes = new Uint8Array([9, 8, 7, 6]);
+  const materialPath = "Water/Materials/legacy-author.mat";
+  const material = JSON.stringify({ name: "My Water edits", shader: "unlit", shaderData: {
+    material_BaseTexture: { type: "Texture", value: { url: key(entries.wave) } }
+  } });
+  await project.update(pack => ({ ...pack,
+    project: { ...pack.project, files: [...pack.project.files,
+      ...selected.map(entry => ({ virtualPath: key(entry),
+        path: entry === entries.cloud ? "https://custom.test/water.png" : new URL(key(entry), BUILTIN_WATER_PROJECT_URL).href,
+        type: "Texture", params: { isSRGBColorSpace: entry === entries.lines ? false : entry.isSRGBColorSpace, wrapModeU: 0 } })),
+      { virtualPath: materialPath, path: materialPath, type: "Material" }] },
+    contents: { ...pack.contents, [key(entries.wave)]: waveBytes,
+      [key(entries.directional)]: editedBytes, [materialPath]: material }
+  }));
+  await project.save();
+  project.dispose();
+  f.fetcher.mockImplementation(async input => {
+    const url = String(input);
+    if (!url.endsWith(".ktx2")) throw new Error(`Unexpected migration fetch: ${url}`);
+    const entry = Object.values(entries).find(entry => url.endsWith(`/${entry.id}.ktx2`))!;
+    const bytes = await readFile(resolve(globalThis.__migrationRepositoryRoot,
+      "packages/water/src/water/resources/river/assets", entry.output));
+    return new Response(new Uint8Array(bytes));
+  });
+  f.fetcher.mockClear();
+  const restored = await openSeedWorldProject(f.url, initial);
+  sessions.push(restored);
+  expect(f.fetcher).toHaveBeenCalledTimes(2);
+  for (const entry of [entries.wave, entries.caustics]) {
+    expect(restored.projectPackage.project.files.find(file => file.virtualPath === key(entry))).toMatchObject({
+      type: "KTX2", path: new URL(`Water/Textures/${entry.id}.ktx2`, BUILTIN_WATER_PROJECT_URL).href,
+      params: { wrapModeU: 0 }
+    });
+    const content = restored.projectPackage.contents[key(entry)] as Uint8Array;
+    expect([...content.slice(0, 4)]).toEqual([0xab, 0x4b, 0x54, 0x58]);
+  }
+  for (const entry of [entries.directional, entries.cloud, entries.lines])
+    expect(restored.projectPackage.project.files.find(file => file.virtualPath === key(entry))?.type).toBe("Texture");
+  expect(restored.projectPackage.contents[key(entries.directional)]).toEqual(editedBytes);
+  expect(restored.projectPackage.contents[materialPath]).toBe(material);
+  expect(restored.projectPackage.project.files.find(file => file.virtualPath === materialPath)?.dependencies).toEqual([key(entries.wave)]);
+  expect(restored.projectPackage.project.files.some(file => file.virtualPath === key(entries.edge))).toBe(false);
+  validateProjectDependencies(restored.projectPackage);
   await restored.save();
   const checkpoint = structuredClone(f.records.get(restored.id));
   restored.dispose();

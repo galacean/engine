@@ -153,7 +153,7 @@ it("edits a real Source lake through public history and reopens it in a new Engi
       revisionBeforeTexture = current.system.revision;
     const replace = await current.water.texture(
       prefabIdentity.id,
-      "Water/Textures/farmlands-wave-large-normal.png",
+      "Water/Textures/farmlands-wave-large-normal.ktx2",
       "shared"
     );
     expect(replace.runtimeError).toBeUndefined();
@@ -170,17 +170,14 @@ it("edits a real Source lake through public history and reopens it in a new Engi
     });
     expect(boundTexture).toBeDefined();
     expect(boundTexture).not.toBe(originalTexture);
-    const image = document.createElement("canvas");
-    image.width = image.height = 32;
-    image.getContext("2d")!.fillStyle = "rgb(128,128,255)";
-    image.getContext("2d")!.fillRect(0, 0, 32, 32);
-    const blob = await new Promise<Blob>((resolve) => image.toBlob((blob) => resolve(blob!)));
-    const replacement = new Uint8Array(await blob.arrayBuffer());
+    const replacement = new Uint8Array(await (await fetch(
+      new URL("../../water/tests/assets/replacement-normal.ktx2", import.meta.url).href
+    )).arrayBuffer());
     expect(
       (
         await current.water.execute((edit) =>
           edit.run(({ draft, edited }) => {
-            draft.update("Water/Textures/farmlands-wave-large-normal.png", replacement);
+            draft.update("Water/Textures/farmlands-wave-large-normal.ktx2", replacement);
             edited();
           })
         )
@@ -197,7 +194,7 @@ it("edits a real Source lake through public history and reopens it in a new Engi
     await expect(
       current.water.execute((edit) =>
         edit.run(({ draft, edited }) => {
-          draft.delete("Water/Textures/farmlands-wave-large-normal.png");
+          draft.delete("Water/Textures/farmlands-wave-large-normal.ktx2");
           edited();
         })
       )

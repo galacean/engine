@@ -81,49 +81,49 @@
     "material_Water_look_riverDrops_textures_directional": {
       "type": "Texture",
       "value": {
-        "url": "Water/Textures/farmlands-drop-directional.png"
+        "url": "Water/Textures/farmlands-drop-directional.ktx2"
       }
     },
     "material_Water_look_riverDrops_textures_cloud": {
       "type": "Texture",
       "value": {
-        "url": "Water/Textures/farmlands-drop-cloud.png"
+        "url": "Water/Textures/farmlands-drop-cloud.ktx2"
       }
     },
     "material_Water_look_riverDrops_textures_lines": {
       "type": "Texture",
       "value": {
-        "url": "Water/Textures/farmlands-drop-lines.png"
+        "url": "Water/Textures/farmlands-drop-lines.ktx2"
       }
     },
     "material_Water_look_riverDrops_textures_edge": {
       "type": "Texture",
       "value": {
-        "url": "Water/Textures/farmlands-drop-edge.png"
+        "url": "Water/Textures/farmlands-drop-edge.ktx2"
       }
     },
     "material_Water_look_riverDrops_textures_voronoi": {
       "type": "Texture",
       "value": {
-        "url": "Water/Textures/farmlands-drop-voronoi.png"
+        "url": "Water/Textures/farmlands-drop-voronoi.ktx2"
       }
     },
     "material_Water_look_riverDrops_textures_foam": {
       "type": "Texture",
       "value": {
-        "url": "Water/Textures/farmlands-drop-foam.png"
+        "url": "Water/Textures/farmlands-drop-foam.ktx2"
       }
     },
     "material_Water_look_riverDrops_textures_mist": {
       "type": "Texture",
       "value": {
-        "url": "Water/Textures/farmlands-drop-mist.png"
+        "url": "Water/Textures/farmlands-drop-mist.ktx2"
       }
     },
     "material_Water_look_riverDrops_textures_splash": {
       "type": "Texture",
       "value": {
-        "url": "Water/Textures/farmlands-drop-splash.png"
+        "url": "Water/Textures/farmlands-drop-splash.ktx2"
       }
     },
     "material_Water_look_riverDrops_layers_directional_scale": {
@@ -411,7 +411,7 @@
     "material_Water_appearance_appearance_detailLayers_0_texture": {
       "type": "Texture",
       "value": {
-        "url": "Water/Textures/farmlands-wave-large-normal.png"
+        "url": "Water/Textures/farmlands-wave-large-normal.ktx2"
       }
     },
     "material_Water_appearance_appearance_detailLayers_1_scale": {
@@ -455,7 +455,7 @@
     "material_Water_appearance_appearance_detailLayers_1_texture": {
       "type": "Texture",
       "value": {
-        "url": "Water/Textures/farmlands-wave-large-normal.png"
+        "url": "Water/Textures/farmlands-wave-large-normal.ktx2"
       }
     },
     "material_Water_appearance_appearance_depthResponse_colorCoefficientPerMeter": {
@@ -621,7 +621,7 @@
     "material_Water_appearance_appearance_caustics_texture": {
       "type": "Texture",
       "value": {
-        "url": "Water/Textures/farmlands-caustics-color.png"
+        "url": "Water/Textures/farmlands-caustics-color.ktx2"
       }
     },
     "material_Water_appearance_featureFlags_externalNormal": {
