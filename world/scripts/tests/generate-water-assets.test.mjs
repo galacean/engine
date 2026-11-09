@@ -47,11 +47,14 @@ float testNormal(float value) { return value * 0.5; }
     void frag() { gl_FragColor = vec4(testNormal(1.0)); }
   } } }`;
   const normalized = value => value.replace(/\s+/g, "");
-  for (const conditional of [false, true]) {
-    const original = shader(conditional ? `#ifdef FIRST_COPY\n${library}#endif\n` : library);
+  const comment = `/*\n${library}*/\n`;
+  for (const prefix of [library, `#ifdef FIRST_COPY\n${library}#endif\n`, comment + library]) {
+    const conditional = prefix.startsWith("#ifdef");
+    const original = shader(prefix);
     const cleaned = cleanWaterShaderSource(original, compiler);
     assert.ok(!cleaned.includes("unusedHelper"));
-    assert.equal((cleaned.match(/float testNormal\(/g) ?? []).length, conditional ? 2 : 1);
+    assert.equal((cleaned.replace(/\/\*[\s\S]*?\*\//g, "").match(/float testNormal\(/g) ?? []).length, conditional ? 2 : 1);
+    if (prefix.startsWith(comment)) assert.ok(cleaned.includes(comment));
     assert.equal(cleanWaterShaderSource(cleaned, compiler), cleaned);
     const before = compiler._parseShaderSource(original).subShaders[0].passes[0];
     const after = compiler._parseShaderSource(cleaned).subShaders[0].passes[0];

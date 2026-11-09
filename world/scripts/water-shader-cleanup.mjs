@@ -51,12 +51,13 @@ export function cleanWaterShaderSource(source, compiler) {
   for (const sub of compiler._parseShaderSource(source).subShaders)
     for (const pass of sub.passes) {
       const seen = new Set();
-      for (const statement of pass.pendingContents)
-        for (const match of statement.content.matchAll(guarded)) {
+      for (const statement of pass.pendingContents) {
+        const content = mask(statement.content);
+        for (const match of content.matchAll(guarded)) {
           // A feature branch might skip the first copy. In that case the later copy
           // remains necessary even when its text matches exactly.
-          if (!headerGuardsOnly(statement.content, match.index)) continue;
-          if (new RegExp(`#undef\\s+${match[1]}\\b`).test(pass.contents)) continue;
+          if (!headerGuardsOnly(content, match.index)) continue;
+          if (new RegExp(`#undef\\s+${match[1]}\\b`).test(mask(pass.contents))) continue;
           const key = tokens(match[0]);
           if (seen.has(key))
             duplicateEdits.push({
@@ -65,6 +66,7 @@ export function cleanWaterShaderSource(source, compiler) {
             });
           else seen.add(key);
         }
+      }
     }
   source = apply(source, duplicateEdits);
 
