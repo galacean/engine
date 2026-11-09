@@ -53,6 +53,8 @@ export interface BuildingPrefab {
   /** How far in front of the wall the arch of an eave dormer starts. */
   eaveOut?: number;
   eaveOutCurved?: number;
+  /** The height of the stone threshold laid under a door that stands on the ground. */
+  threshold?: number;
   /** How far the origin of a corner window stands in from its wall corner. */
   cornerOut?: number;
   /** How far a corner window reaches along each wall from its corner. */

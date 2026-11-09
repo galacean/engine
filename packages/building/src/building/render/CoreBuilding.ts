@@ -100,6 +100,7 @@ const FAMILIES: Readonly<Record<string, Family>> = {
   shedDormer: "prefab",
   eaveDormer: "prefab",
   arch: "wall",
+  threshold: "wall",
   woodArch: "woodArch",
   hatch: "prefab",
   roofLamp: "prefab",

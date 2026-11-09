@@ -12,6 +12,7 @@ import {
   type LayingAlgorithm,
   type BuildingRegistry,
   type ConnectionRule,
+  type GeometryElement,
   type GeometryGenerator,
   type JoinDetector,
   type ParticipantView,
@@ -42,6 +43,8 @@ export interface PrefabFacts {
   /** How far in front of the wall an eave dormer's arch starts, on a straight and a curved wall. */
   readonly eaveOut?: number;
   readonly eaveOutCurved?: number;
+  /** The height of the stone threshold laid under a door that stands on the ground. */
+  readonly threshold?: number;
   /** How far the origin of a corner window stands in from its wall corner. */
   readonly cornerOut?: number;
   /** How far a corner window reaches along each wall from its corner. */
@@ -104,6 +107,10 @@ const chartOf = (part: ParticipantView): WallChartParams | undefined => {
 };
 const chartLength = (chart: WallChartParams) => wallChartSampler(chart).length;
 
+/** A door stands on the ground, and gets its threshold, up to this height above it, in metres. */
+const THRESHOLD_ON_GROUND = 0.05;
+/** How far a threshold reaches past its opening on each side, in metres. */
+const THRESHOLD_OVERHANG = 0.08;
 /** Elements "mount", "opening<i>" and "follow<i>". The mount sits on the wall at the middle
  * of the chord the installation spans, at the installation's center height; it faces out of
  * the wall. The prefab's opening and its members that bend along the wall come from the
@@ -173,6 +180,17 @@ export const houseWallMountGeometry: GeometryGenerator<WallMountParams> = (p, { 
     };
     elements[`opening${i}`] = { kind: "surface", surface: { kind: "wallOpening", params } };
   });
+  // A door on the ground steps out over a threshold, along the wall under its opening.
+  const sill = elements.opening0;
+  if (facts.threshold && p.bottom <= THRESHOLD_ON_GROUND && sill?.kind === "surface") {
+    const [from, , to] = (sill.surface.params as WallOpeningParams).rect;
+    const steps = Math.max(2, Math.ceil((to - from + 2 * THRESHOLD_OVERHANG) / 0.25));
+    const points = Array.from({ length: steps + 1 }, (_, k): Vec3 => {
+      const at = along(from - THRESHOLD_OVERHANG + ((to - from + 2 * THRESHOLD_OVERHANG) * k) / steps);
+      return [at.x, at.ground, at.z];
+    });
+    elements.threshold = { kind: "curve", curve: { points } };
+  }
   follows.forEach((follow, i) => {
     const steps = Math.max(2, Math.ceil((follow.to - follow.from) / 0.1));
     const points = Array.from({ length: steps + 1 }, (_, k): Vec3 => {
@@ -325,6 +343,24 @@ export const wallOpening: ConnectionRule = ({ guest, hosts }) => {
   const openings = guest ? wallOpeningsOf(guest) : [];
   if (!guest || !openings.length) return {};
   const modify = [];
+  // A masonry wall carries the threshold of a door in its own stone.
+  const step = guest.geometry.original.elements.threshold;
+  const facts = hosts[openings[0].host]?.unit;
+  const derive =
+    step?.kind === "curve" && facts?.source === "brick"
+      ? [
+          {
+            localId: "threshold",
+            type: "threshold",
+            geometry: { elements: { step } },
+            algorithm: {
+              type: "thresholdStones",
+              params: { wallU: [openings[0].perimeter[0], openings[0].perimeter[2]] }
+            },
+            unit: { ...facts, range: { min: [0.05, 0.05, 0.1] as Vec3, max: [10, 10, 10] as Vec3 } }
+          }
+        ]
+      : [];
   for (const o of openings) {
     const wall = hosts[o.host];
     const chart = wall && chartOf(wall);
@@ -333,8 +369,80 @@ export const wallOpening: ConnectionRule = ({ guest, hosts }) => {
       return { diagnostics: [`${guest.key} crosses the end of its wall`] };
     modify.push({ part: wall.key, modification: { element: "face", op: "removeArea" as const, rect: o.rect } });
   }
-  return { modify };
+  return { modify, ...(derive.length && { derive }) };
 };
+
+interface ThresholdParams {
+  /** Where the threshold lies along the house perimeter, in metres. */
+  readonly wallU: readonly [number, number];
+  /** Height above the ground's highest point under it, in metres. Default: 0.07. */
+  readonly height?: number;
+  /** Depth through the wall, in metres. Default: 0.76, wider than the wall's bricks. */
+  readonly depth?: number;
+}
+/** The stones of a door's threshold: about 0.7 m each along the wall line, from the ground up to
+ * one level top a little above its highest point. */
+export const thresholdStones: LayingAlgorithm<ThresholdParams, { count: number }> = {
+  info: {
+    accepts: ["curve"],
+    summary: "A door's threshold: a row of low stones along a curve on the ground.",
+    params: {
+      wallU: "Where the threshold lies along the house perimeter, in metres.",
+      height: "Height above the ground's highest point, in metres. Default: 0.07.",
+      depth: "Depth through the wall, in metres. Default: 0.76."
+    }
+  },
+  plan(context) {
+    const points = curvePoints(context.geometry.original.elements.step);
+    const length = points.slice(1).reduce((n, q, i) => n + Math.hypot(q[0] - points[i][0], q[2] - points[i][2]), 0);
+    const count = Math.max(1, Math.round(length / 0.7));
+    return { count, data: { count } };
+  },
+  unitAt(context, { count }, index) {
+    const points = curvePoints(context.geometry.original.elements.step);
+    const joint = (i: number) =>
+      i === 0 || i === count ? i / count : (i + (context.random(`joint/${i}`, "joint").next() - 0.5) * 0.3) / count;
+    const a = pointAlong(points, joint(index)),
+      b = pointAlong(points, joint(index + 1));
+    const top = Math.max(...points.map((q) => q[1])) + (context.params.height ?? 0.07);
+    const y0 = (a[1] + b[1]) / 2;
+    const l = Math.hypot(b[0] - a[0], b[2] - a[2]) || 1;
+    const x: Vec3 = [(b[0] - a[0]) / l, 0, (b[2] - a[2]) / l];
+    const [u0, u1] = context.params.wallU;
+    return {
+      key: `${index}`,
+      frame: {
+        origin: [(a[0] + b[0]) / 2, (y0 + top) / 2, (a[2] + b[2]) / 2],
+        x,
+        y: [0, 1, 0],
+        z: [-x[2], 0, x[0]]
+      },
+      size: [l, top - y0, context.params.depth ?? 0.76],
+      params: {
+        deformation: [a[1] - y0, b[1] - y0, 0, 0],
+        flags: 0,
+        wallU: [u0 + (u1 - u0) * joint(index), u0 + (u1 - u0) * joint(index + 1)]
+      }
+    };
+  }
+};
+function curvePoints(element: GeometryElement | undefined): readonly Vec3[] {
+  if (element?.kind !== "curve") throw Error("thresholdStones lays a curve");
+  return element.curve.points;
+}
+/** The point a fraction of the way along a polyline, by its plan length. */
+function pointAlong(points: readonly Vec3[], t: number): Vec3 {
+  const lengths = points.slice(1).map((q, i) => Math.hypot(q[0] - points[i][0], q[2] - points[i][2]));
+  let rest = t * lengths.reduce((n, l) => n + l, 0);
+  for (let i = 0; i < lengths.length; i++) {
+    if (rest <= lengths[i] || i === lengths.length - 1) {
+      const f = lengths[i] > 0 ? rest / lengths[i] : 0;
+      return [0, 1, 2].map((k) => points[i][k] + (points[i + 1][k] - points[i][k]) * f) as unknown as Vec3;
+    }
+    rest -= lengths[i];
+  }
+  return points[points.length - 1];
+}
 
 /** Band elements of a floor band part with their charts. */
 const bandsOf = (part: ParticipantView) =>
@@ -497,6 +605,7 @@ export function registerOpeningTypes(registry: BuildingRegistry): BuildingRegist
   registry.geometry.register("houseWallMount", houseWallMountGeometry);
   registry.geometry.register("houseCornerMount", houseCornerMountGeometry);
   registry.algorithms.register("mountPrefab", mountPrefab);
+  registry.algorithms.register("thresholdStones", thresholdStones);
   registry.rules.register("wallOpening", wallOpening);
   registry.rules.register("openingCutsBand", openingCutsBand);
   registry.rules.register("mountHidden", mountHidden);
