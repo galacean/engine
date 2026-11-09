@@ -854,6 +854,7 @@ export const parapetCourses: LayingAlgorithm<ParapetParams, ParapetLayout> = {
     const tangent = [(at1.x - at0.x) / chord, (at1.z - at0.z) / chord];
     const [before, after] = stone.past;
     const shift = (after - before) / 2;
+    const middle = (chart.uOffset ?? 0) + (stone.u0 + stone.u1) / 2;
     const random = context.random(stone.key, "stone");
     // A big stone is a little uneven on top, not along its joints.
     const uneven = stone.key.startsWith("foot") ? 0 : 0.03 * scale.height;
@@ -871,7 +872,9 @@ export const parapetCourses: LayingAlgorithm<ParapetParams, ParapetLayout> = {
         anchor_uv: [(stone.u0 - before + stone.u1 + after) / 2, (stone.lo + stone.hi) / 2 - chart.minGround],
         flags: 4,
         gap: 0,
-        wallU: [(chart.uOffset ?? 0) + stone.u0, (chart.uOffset ?? 0) + stone.u1]
+        // The renderer takes a stone's colour along this span. A big stone would cross patches
+        // of the wall's colour map and show two colours, so it reads one place.
+        wallU: [middle, middle]
       }
     );
   }

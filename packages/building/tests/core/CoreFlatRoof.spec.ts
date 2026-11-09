@@ -101,6 +101,11 @@ describe("Flat roofs", () => {
     expect(corners).toHaveLength(4);
     expect(merlons.length).toBe(data.crenels.length - 4);
     for (const u of merlons) expect(u.size![0]).toBeGreaterThan(0.5);
+    // Each stone reads its colour at one place along the wall.
+    for (const u of laid) {
+      const [a, b] = u.params!.wallU as number[];
+      expect(a).toBe(b);
+    }
     expect(foot.reduce((n, u) => n + u.size![0], 0) / foot.length).toBeGreaterThan(0.55);
   });
 
