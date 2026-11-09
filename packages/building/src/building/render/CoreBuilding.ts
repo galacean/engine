@@ -798,6 +798,11 @@ function plasterPart(
     indices: number[] = [],
     distances: number[] = [];
   const index = new Map<string, number>();
+  const rise = (unit.params?.rise as number | undefined) ?? 0;
+  // Plaster wears away within a metre of its edges. On a low face no point is that far from an
+  // edge, so the middle of the face counts as the full distance.
+  const heights = outline.map((q) => q[1]);
+  const reach = Math.max(1e-3, Math.min(1, (Math.max(...heights) - Math.min(...heights)) / 2));
   const vertex = ([u, v]: number[]) => {
     const key = `${u.toFixed(6)}/${v.toFixed(6)}`;
     let k = index.get(key);
@@ -806,8 +811,9 @@ function plasterPart(
       k = uvs.length;
       positions.push(at.x, v, at.z);
       normals.push(...at.normal);
-      uvs.push([u, v - chart.minGround]);
-      distances.push(surface.edgeDistance(u, v, 1));
+      // Plaster wears away towards the ground; `rise` is how high above it this face counts as.
+      uvs.push([u, v - chart.minGround + rise]);
+      distances.push(Math.min(1, surface.edgeDistance(u, v, 1) / reach));
       index.set(key, k);
     }
     return k;

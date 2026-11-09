@@ -55,7 +55,7 @@ export interface EuropeanHouseParameters {
   wall?: EuropeanSurfaceStyle;
   wallStructure?: "masonry" | "timber";
   roofStyle?: EuropeanSurfaceStyle;
-  foundation?: { height?: number; mode?: string };
+  foundation?: { height?: number; mode?: string; plaster?: { enabled?: boolean; wear?: number; color?: number } };
   foundationStyle?: EuropeanSurfaceStyle;
   plaster?: { enabled?: boolean; wear?: number; color?: number };
   floors?: { enabled?: boolean; interval?: number };
@@ -239,6 +239,7 @@ function house(p: EuropeanHouseParameters): CoreHouseParameters {
         foundation: {
           height: foundation.height,
           ...(foundation.mode && { mode: foundation.mode }),
+          ...(p.foundation!.plaster && { plaster: p.foundation!.plaster }),
           ...(foundationUnit && { unit: foundationUnit }),
           ...(foundationRule &&
             foundationRule !== "auto" && {

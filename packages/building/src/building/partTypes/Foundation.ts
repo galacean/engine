@@ -25,7 +25,7 @@ import { constructionWallOutlinePoint, profileWallEnvelope } from "../runtime/Co
 import { resolveConstructionFoundation } from "../runtime/ConstructionFoundation";
 import { supportShapeFrame } from "../runtime/ConstructionSupportFrame";
 import { unitFootprintScale, type MaterialFootprint } from "../runtime/MaterialFootprint";
-import type { HouseShared, WallChartParams } from "./House";
+import { allowPlaster, type HouseShared, type WallChartParams } from "./House";
 import type { RoofDeckParams } from "./Roof";
 
 /** The base a house stands on. Height 0 means the walls stand on the ground. */
@@ -537,6 +537,7 @@ export function registerFoundationTypes(registry: BuildingRegistry): BuildingReg
   registry.geometry.register("housePillarFoundation", housePillarFoundationGeometry);
   registry.algorithms.register("foundationCourses", foundationCourses);
   registry.rules.register("foundationUnderNeighbour", foundationUnderNeighbour);
+  allowPlaster(registry, "foundation");
   registry.defaults.join("foundation", "wall", "foundationUnderNeighbour");
   registry.detectors.register(joinPairKey("foundation", "wall"), columnsUnderNeighbour);
   return registry;

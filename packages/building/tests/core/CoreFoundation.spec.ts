@@ -12,7 +12,8 @@ import {
   designBuildingCore,
   expandUnits,
   type ResolvedPart,
-  ribbonOf
+  ribbonOf,
+  attachPairKey
 } from "../../src/building/core";
 import { registerHouseTypes, type WallChartParams } from "../../src/building/partTypes/House";
 import { buildCoreHouse, buildCoreHouses, type CoreHouseParameters } from "../../src/building/application/CoreEuropean";
@@ -196,5 +197,26 @@ describe("Raised foundations", () => {
     const units = (r: ReturnType<typeof design>) => lay(foundationOf(r), slope).map((u) => [u.key, ...u.matrix]);
     expect(units(design([h], slope))).toEqual(units(design([structuredClone(h)], slope)));
     expect(() => buildCoreHouse(house({ foundation: { height: -1 } }))).toThrow("A foundation height");
+  });
+
+  describe("plaster", () => {
+    const plastered = (mode: "pillars" | "solid") =>
+      design([{ id: "h", foundation: { height: 1.2, mode, plaster: { wear: 0.4, color: 2 } } }]);
+    it.each(["pillars", "solid"] as const)("covers each charted face of a %s base", (mode) => {
+      const result = plastered(mode);
+      expect(result.diagnostics).toEqual([]);
+      const base = result.parts.find((p) => p.type === "foundation")!;
+      const plaster = result.parts.find((p) => p.type === "plaster")!;
+      const faces = Object.values(base.original.elements).filter(
+        (e) => e.kind === "surface" && e.surface.kind === "wallChart"
+      ).length;
+      expect(faces).toBeGreaterThan(0);
+      expect(Object.keys(plaster.original.elements)).toHaveLength(faces);
+      expect(lay(plaster)).toHaveLength(faces);
+    });
+    it("is not offered by a part type that does not allow it", () => {
+      expect(registry.defaults.get(attachPairKey("plaster", ["roof"]))).toBeUndefined();
+      expect(registry.defaults.get(attachPairKey("plaster", ["foundation"]))).toBe("none");
+    });
   });
 });

@@ -405,6 +405,16 @@ const cases = (): Case[] => [
     ground: hills
   },
   {
+    id: "foundation-plaster",
+    title: "台基 · 柱子抹灰",
+    house: {
+      id: "a",
+      rectangle: { center: [0, 0], size: [9, 6], rotation: 0.3 },
+      foundation: { height: 1.2, mode: "pillars", plaster: { wear: 0.4, color: 2 } }
+    },
+    ground: hills
+  },
+  {
     id: "foundation-pillars",
     title: "台基 · 柱子",
     house: {

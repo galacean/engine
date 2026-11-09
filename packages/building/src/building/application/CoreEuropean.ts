@@ -196,6 +196,8 @@ export interface CoreFoundation {
   /** Default: parallel rows of planks, staggered rows of bricks. */
   rule?: "staggered_rows" | "overlap_rows" | "parallel_rows" | "horizontal_rows";
   footprint?: MaterialFootprint;
+  /** A plaster finish over the base's faces, as on the walls. Default: none. */
+  plaster?: { enabled?: boolean; wear?: number; color?: number };
 }
 export interface CoreWallAttachment {
   id: string;
@@ -673,6 +675,22 @@ export function buildCoreHouse(p: CoreHouseParameters): BuildingCoreDraft {
         }
       : undefined;
   const foundation = raised ? foundationPart(p, p.foundation!) : undefined;
+  const baseFinish =
+    foundation && p.foundation!.plaster && p.foundation!.plaster.enabled !== false ? p.foundation!.plaster : undefined;
+  const basePlaster: BuildingPartDef | undefined =
+    foundation && baseFinish
+      ? {
+          id: foundation.id + "-plaster",
+          group: p.id,
+          type: "plaster",
+          geometry: { generator: "surfaceFinish", params: { proud: 0.05 } },
+          algorithm: {
+            type: "coverSurfaces",
+            params: { unitParams: { wear: baseFinish.wear ?? 0.3, color: baseFinish.color ?? 0, rise: 3 } }
+          },
+          unit: { source: "plaster" }
+        }
+      : undefined;
   const mounted = (p.attachments ?? []).map((a) => wallAttachmentPart(p, a));
   for (const a of p.roofAttachments ?? []) {
     const onDeck = ROOF_PREFABS[a.type]?.generator === "houseDeckMount";
@@ -713,6 +731,7 @@ export function buildCoreHouse(p: CoreHouseParameters): BuildingCoreDraft {
     ],
     parts: [
       ...(foundation ? [foundation] : []),
+      ...(basePlaster ? [basePlaster] : []),
       ...walls,
       ...roofs.map((r) => r.part),
       ...(spire ? [spire.part] : []),
@@ -721,6 +740,16 @@ export function buildCoreHouse(p: CoreHouseParameters): BuildingCoreDraft {
       ...onRoof
     ],
     connections: [
+      ...(foundation && basePlaster
+        ? [
+            {
+              kind: "attach" as const,
+              id: basePlaster.id + "/on-base",
+              guest: basePlaster.id,
+              hosts: [{ part: foundation.id }]
+            }
+          ]
+        : []),
       ...roofs.map(({ part, hosts }) => ({
         kind: "attach" as const,
         id: part.id + "/on-wall",

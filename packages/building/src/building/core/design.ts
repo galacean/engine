@@ -548,11 +548,14 @@ export function designBuildingCore(
         for (const { modification: m } of [...host.modifications].sort(
           (a, b) => compareKeys(a.order, b.order) || a.index - b.index
         ))
-          if (m.element === source.element && "rect" in m)
+          if (m.element !== source.element) continue;
+          else if (m.op === "removeElement") inherited.push({ element: id, op: "removeElement" });
+          else if ("rect" in m)
             inherited.push({
               ...m,
               element: id,
-              rect: [m.rect[0] + du, m.rect[1] + dv, m.rect[2] + du, m.rect[3] + dv]
+              rect: [m.rect[0] + du, m.rect[1] + dv, m.rect[2] + du, m.rect[3] + dv],
+              ...("outline" in m && m.outline && { outline: m.outline.map(([u, v]) => [u + du, v + dv] as const) })
             });
       }
     }

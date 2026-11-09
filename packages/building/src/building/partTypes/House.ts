@@ -895,6 +895,46 @@ export const parapetCourses: LayingAlgorithm<ParapetParams, ParapetLayout> = {
 /** Element "face": the finish over the house walls, one chart around the whole house. It
  * continues the face of every host wall, so openings in the walls are openings in the finish;
  * corner stones only reserve wall area and stay under the finish. */
+/** Plaster covers the charted faces of its hosts, one surface for each, standing `proud` metres in
+ * front of them so that it clears the units laid there. `elements` limits it to some of the faces.
+ * Each surface takes the openings of the face it covers, and goes when that face goes. */
+export const surfaceFinishGeometry: GeometryGenerator<{
+  readonly elements?: readonly string[];
+  readonly proud?: number;
+}> = (p, { hosts }) => {
+  const elements: Record<string, GeometryElement> = {};
+  hosts.forEach((host, index) => {
+    for (const [id, element] of Object.entries(host.geometry.original.elements))
+      if (
+        element.kind === "surface" &&
+        element.surface.kind === "wallChart" &&
+        (!p.elements || p.elements.includes(id))
+      )
+        elements[`${index}/${id}`] = {
+          kind: "surface",
+          surface: {
+            kind: "wallChart",
+            params: {
+              ...(element.surface.params as WallChartParams),
+              finishOuter: (element.surface.params as WallChartParams).finishOuter + (p.proud ?? 0)
+            }
+          },
+          inherit: [{ host: index, element: id }]
+        };
+  });
+  if (!Object.keys(elements).length) throw Error("A finish needs a charted face to cover");
+  return { elements };
+};
+/** Lets plaster attach to a part type, standing alone or across `hosts` parts of that type. Only
+ * the part types that say so can be plastered. */
+export function allowPlaster(registry: BuildingRegistry, type: string, hosts: readonly number[] = [1]): void {
+  for (const n of hosts)
+    registry.defaults.attach(
+      "plaster",
+      Array.from({ length: n }, () => type),
+      "none"
+    );
+}
 export const housePlasterGeometry: GeometryGenerator<HouseShared> = (p, context) => {
   const whole = houseWallGeometry(p, context).elements.face;
   if (whole.kind !== "surface") throw Error("Unexpected wall chart");
@@ -1614,8 +1654,8 @@ export function registerHouseTypes(registry: BuildingRegistry): BuildingRegistry
   registry.algorithms.register("beltCourses", beltCourses);
   registry.geometry.register("houseFloorBands", houseFloorBandsGeometry);
   registry.geometry.register("housePlaster", housePlasterGeometry);
-  registry.defaults.attach("plaster", ["wall"], "none");
-  registry.defaults.attach("plaster", ["wall", "wall", "wall", "wall"], "none");
+  registry.geometry.register("surfaceFinish", surfaceFinishGeometry);
+  allowPlaster(registry, "wall", [1, 4]);
   registry.defaults.attach("floorBand", ["wall"], "none");
   registry.defaults.attach("floorBand", ["wall", "wall", "wall", "wall"], "none");
   registry.geometry.register("houseWallSide", houseWallSideGeometry);
