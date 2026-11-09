@@ -61,6 +61,20 @@ describe("Flat roofs", () => {
     }
   });
 
+  it("stops the paving inside the wall behind a parapet, and covers the wall without one", () => {
+    const reach = (rim: number) => {
+      const { decks } = house({ id: "a", roof: { height: 0, flat_rim: rim } });
+      const deck = (decks[0].original.elements.deck as { surface: { params: { size: number[]; unpaved?: number } } })
+        .surface.params;
+      const outer = Math.max(
+        ...units(decks[0]).map((u) => Math.abs((u.params!.uv as number[])[0] - deck.size[0] / 2) + u.size![0] / 2)
+      );
+      return deck.size[0] / 2 - outer;
+    };
+    expect(reach(0)).toBeGreaterThan(0.1);
+    expect(reach(1)).toBeCloseTo(0, 5);
+  });
+
   it("has no parapet without a rim", () => {
     const { result, decks, parapets } = house({ id: "f", roof: { height: 0, flat_rim: 1 } });
     expect(result.diagnostics).toEqual([]);

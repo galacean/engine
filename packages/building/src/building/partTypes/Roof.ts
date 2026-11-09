@@ -679,6 +679,8 @@ export interface RoofDeckParams {
   /** How far the deck reaches past the walls' inner face on every side, in metres. What
    * stands on the deck stays inside that face. */
   readonly rim?: number;
+  /** How far in from the deck's edge the paving stops, in metres. Default: 0. */
+  readonly unpaved?: number;
 }
 export const roofDeckSurface: SurfaceKind<RoofDeckParams> = {
   domain: (p) => ({ u: [0, p.size[0]], v: [0, p.size[1]], closedU: false }),
@@ -704,14 +706,16 @@ export const houseRoofDeckGeometry: GeometryGenerator<HouseShared> = (p, { hosts
     shape.center[1] - (s * width) / 2 + (c * depth) / 2
   ];
   // The walls stand symmetric about their center line: the deck covers them out to their outer
-  // face, as far again past their inner face.
+  // face, as far again past their inner face. Behind a parapet the paving stops at the center
+  // line, so that its edge never shows between the wall and the parapet.
   const params: RoofDeckParams = {
     origin,
     x: [c, 0, s],
     y: [s, 0, -c],
     size: [width, depth],
     ...(round && { round }),
-    rim: 2 * chart.nominalOuter
+    rim: 2 * chart.nominalOuter,
+    ...(p.roof?.flat_rim === 0 && { unpaved: chart.nominalOuter })
   };
   return { elements: { deck: { kind: "surface", surface: { kind: "roofDeck", params } } } };
 };
@@ -731,8 +735,8 @@ function deckOf(context: LayingContext<unknown>): RoofDeckParams {
   if (element?.kind !== "surface" || element.surface.kind !== "roofDeck") throw Error("deckRows lays a roof deck");
   return element.surface.params as RoofDeckParams;
 }
-/** Staggered rows of paving across a roof deck. Each row is cut to the deck's edge: the
- * square's sides, or the circle across the row's whole height. */
+/** Staggered rows of paving across a roof deck. Each row is cut to the paved edge of the deck:
+ * the square's sides, or the circle across the row's whole height. */
 export const deckRows: LayingAlgorithm<DeckParams, DeckLayout> = {
   info: {
     accepts: ["surface"],
@@ -757,11 +761,12 @@ export const deckRows: LayingAlgorithm<DeckParams, DeckLayout> = {
     const [W, D] = p.size;
     const r = Math.floor(index / d.cols),
       c = (index % d.cols) - 1;
-    const v0 = r * d.pitch[1],
-      v1 = Math.min(D, v0 + d.pitch[1]);
+    const edge = p.unpaved ?? 0;
+    const v0 = Math.max(edge, r * d.pitch[1]),
+      v1 = Math.min(D - edge, r * d.pitch[1] + d.pitch[1]);
     // The row's span about the middle: the whole width, or the circle across the row.
     const z = Math.max(Math.abs(v0 - D / 2), Math.abs(v1 - D / 2));
-    const half = p.round ? Math.sqrt(Math.max(0, (W / 2) ** 2 - z * z)) : W / 2;
+    const half = p.round ? Math.sqrt(Math.max(0, (W / 2 - edge) ** 2 - z * z)) : W / 2 - edge;
     const shift = r % 2 ? (context.params.stagger ?? 0.5) * d.pitch[0] : 0;
     const u0 = Math.max(W / 2 - half, c * d.pitch[0] + shift),
       u1 = Math.min(W / 2 + half, (c + 1) * d.pitch[0] + shift);

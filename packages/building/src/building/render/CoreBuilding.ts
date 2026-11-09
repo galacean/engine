@@ -869,19 +869,25 @@ const sub3 = (a: readonly number[], b: readonly number[]): [number, number, numb
   a[2] - b[2]
 ];
 
-/** A roof deck in its own plane coordinates: the square, or the inscribed disc. */
+/** The paved part of a roof deck in its own plane coordinates: the square, or the inscribed
+ * disc. */
 function deckSurface(p: RoofDeckParams, offset: number) {
-  const [W, D] = p.size;
+  const [W, D] = p.size,
+    edge = p.unpaved ?? 0;
   const at = (u: number, v: number) => [0, 1, 2].map((k) => p.origin[k] + p.x[k] * u + p.y[k] * v);
   const chart = (u: number, v: number) => [offset + u, v];
   const mesh = emptyMesh();
   if (!p.round)
-    quad(mesh, [at(0, 0), at(W, 0), at(W, D), at(0, D)], [chart(0, 0), chart(W, 0), chart(W, D), chart(0, D)]);
+    quad(
+      mesh,
+      [at(edge, edge), at(W - edge, edge), at(W - edge, D - edge), at(edge, D - edge)],
+      [chart(edge, edge), chart(W - edge, edge), chart(W - edge, D - edge), chart(edge, D - edge)]
+    );
   else {
     const n = Math.max(24, Math.ceil((Math.PI * W) / 0.35));
     const ring = Array.from({ length: n }, (_, i) => {
       const a = (2 * Math.PI * i) / n;
-      return [W / 2 + (Math.cos(a) * W) / 2, D / 2 + (Math.sin(a) * D) / 2];
+      return [W / 2 + Math.cos(a) * (W / 2 - edge), D / 2 + Math.sin(a) * (D / 2 - edge)];
     });
     const center = mesh.positions.length / 3;
     mesh.positions.push(...at(W / 2, D / 2));
