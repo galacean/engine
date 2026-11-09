@@ -258,7 +258,7 @@ function eaveBands(
   return rects;
 }
 /** How wide an arch stands at a height above its origin, from its outline. */
-function archHalfWidth(outline: DormerSweepParams["outline"], height: number) {
+export function archHalfWidth(outline: DormerSweepParams["outline"], height: number) {
   const right = outline.slice(Math.floor(outline.length / 2));
   if (height > right[0][1]) return 0;
   for (let i = 1; i < right.length; i++)

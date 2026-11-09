@@ -270,8 +270,8 @@ describe("Eave dormers against the online path", () => {
     }
   });
 
-  it("cuts the tiles that hang over the eave as high as the whole opening reaches", async () => {
-    const result = design(house([at("dormer-gothic-half", 3, 0.3)]));
+  it("cuts the tiles that hang over a shed's eave as high as the whole opening reaches", async () => {
+    const result = design(house([at("dormer-cottage-half", 2, 0.125)]));
     expect(result.diagnostics).toEqual([]);
     const { renderInput } = await compileCoreBuilding(result, registry, {
       environment: { ground: flat },
@@ -291,5 +291,62 @@ describe("Eave dormers against the online path", () => {
     // Only the band at the eave reaches out past the roof's edge.
     const eave = all.find((b) => b.depth > 1)!;
     expect(eave.top).toBeCloseTo(Math.max(...all.map((b) => b.top)), 3);
+  });
+
+  it.each([
+    ["dormer-gothic-half", 3, 0.3],
+    ["dormer-arrow-slit-half", 3, 0.44]
+  ] as const)("cuts the tiles along the arch of %s %s, with no steps", async (type, rank, u) => {
+    const result = design(house([at(type, rank, u)]));
+    expect(result.diagnostics).toEqual([]);
+    const { renderInput } = await compileCoreBuilding(result, registry, {
+      environment: { ground: flat },
+      assets: nativeAssets.compilation
+    });
+    const { holes } = renderInput.dormerBins;
+    const view = new DataView(holes.buffer, holes.byteOffset, holes.byteLength);
+    const seen = new Map<string, { y: number; h: number; w: number; k: number; a: number }>();
+    for (let n = 0; n + 48 <= holes.byteLength; n += 48) {
+      const h = view.getFloat32(n + 20, true);
+      if (!(h > 0)) continue;
+      const box = {
+        y: view.getFloat32(n + 4, true),
+        h,
+        w: view.getFloat32(n + 16, true),
+        k: view.getFloat32(n + 40, true),
+        a: view.getFloat32(n + 44, true)
+      };
+      seen.set(JSON.stringify(box), box);
+    }
+    const boxes = [...seen.values()];
+    const sweep = result.parts.find((p) => p.type === "eaveDormer")!.original.elements.sweep;
+    if (sweep?.kind !== "surface") throw Error("no sweep");
+    const arch = sweep.surface.params as { origin: number[]; outline: number[][] };
+    const right = arch.outline.slice(Math.floor(arch.outline.length / 2));
+    const outline = (height: number) => {
+      for (let i = 1; i < right.length; i++)
+        if (height >= right[i][1])
+          return (
+            right[i - 1][0] +
+            ((right[i][0] - right[i - 1][0]) * (right[i - 1][1] - height)) / (right[i - 1][1] - right[i][1])
+          );
+      return right[right.length - 1][0];
+    };
+    const opened = (world: number) => {
+      let width = 0;
+      for (const b of boxes) {
+        const y = (world - b.y) / b.h;
+        if (!(y > -0.5 && y < (b.k === 1 ? 0.5 : Math.fround(0.7)))) continue;
+        const t = Math.min(1, Math.max(0, y * b.k + b.a));
+        width = Math.max(width, 0.5 * b.w * (1 - t * t * t));
+      }
+      return width;
+    };
+    const base = right[right.length - 1][1],
+      peak = right[0][1];
+    for (let i = 1; i < 40; i++) {
+      const height = base + ((peak - base) * i) / 40;
+      expect(Math.abs(opened(arch.origin[1] + height) - outline(height))).toBeLessThan(0.025);
+    }
   });
 });

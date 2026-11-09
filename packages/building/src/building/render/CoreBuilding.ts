@@ -48,6 +48,8 @@ import {
 } from "../runtime/SurfacePolygon";
 import { plasterPalette } from "../runtime/ConstructionPlasterPalette";
 import { stonePavingPlacement } from "../runtime/StonePavingPlacement";
+import { archHalfWidth } from "../partTypes/EaveDormers";
+import type { DormerSweepParams } from "../partTypes/Dormers";
 import { decorationAssemblyGeometry } from "../runtime/ConstructionDecorationGeometry";
 import { decorationMesh } from "../runtime/ConstructionDecorationMeshes";
 import { masonryTintRoles, whiteMasonryVertexColors } from "../runtime/MasonryAppearance";
@@ -1855,6 +1857,108 @@ export async function coreBuildingRenderInput(
 const ROOF_SURFACES = ["slope", "deck"];
 /** How far the eave's tiles can hang past the roof's lower edge, in metres. */
 const EAVE_REACH = 1.2;
+/** How many curved pieces follow the outline of an arched opening. */
+const ARCH_PIECES = 3;
+interface ArchOpening {
+  readonly sweep: DormerSweepParams;
+  /** The level direction out of the wall, and the opening's range along it. */
+  readonly out: readonly number[];
+  readonly z: readonly [number, number];
+  /** Whether a point of the roof lies in the opening, in plan. */
+  covers(point: readonly number[]): boolean;
+}
+const dotXZ = (a: readonly number[], b: readonly number[]) => a[0] * b[0] + a[2] * b[2];
+/** The arched eave dormers that open a roof part, each with its range out of the wall. */
+function archesOn(layout: CoreBuildingLayout, part: ResolvedPart, surface: EffectiveSurface): ArchOpening[] {
+  const openings: ArchOpening[] = [];
+  for (const guest of layout.result.parts) {
+    if (guest.type !== "eaveDormer") continue;
+    const { sweep: element, front, eave } = guest.original.elements;
+    if (element?.kind !== "surface" || front?.kind !== "curve" || eave?.kind !== "point" || !eave.on) continue;
+    if (layout.result.connections.find((c) => c.guest === guest.key)?.hosts[eave.on.host] !== part.key) continue;
+    const sweep = element.surface.params as DormerSweepParams;
+    const out = [sweep.z[0], 0, sweep.z[2]],
+      line = dotXZ(front.curve.points[1], out),
+      middle = dotXZ(sweep.origin, sweep.x);
+    const half = Math.max(...sweep.outline.map((q) => Math.abs(q[0])));
+    const covers = (q: readonly number[]) =>
+      Math.abs(dotXZ(q, sweep.x) - middle) <= half + 1e-3 && dotXZ(q, out) >= line - 1e-2;
+    const reach = surface.removed
+      .filter(([u0, v0, u1, v1]) => covers(surface.frame((u0 + u1) / 2, (v0 + v1) / 2).origin))
+      .flatMap(([u0, v0, u1, v1]) => [
+        surface.frame(u0, v0).origin,
+        surface.frame(u1, v0).origin,
+        surface.frame(u0, v1).origin,
+        surface.frame(u1, v1).origin
+      ])
+      .map((q) => dotXZ(q, out));
+    if (reach.length) openings.push({ sweep, out, z: [Math.min(...reach), Math.max(...reach) + EAVE_REACH], covers });
+  }
+  return openings;
+}
+/** An aperture record: center, slot, size, level outward direction, shape terms. */
+function apertureRecord(
+  center: readonly number[],
+  slot: number,
+  size: readonly number[],
+  out: readonly number[],
+  k: number,
+  a: number
+) {
+  const bytes = new Uint8Array(48),
+    view = new DataView(bytes.buffer);
+  center.forEach((v, i) => view.setFloat32(i * 4, v, true));
+  view.setUint32(12, slot, true);
+  size.forEach((v, i) => view.setFloat32(16 + i * 4, v, true));
+  view.setFloat32(32, out[0], true);
+  view.setFloat32(36, out[2], true);
+  view.setFloat32(40, k, true);
+  view.setFloat32(44, a, true);
+  return bytes;
+}
+/** The piece of the aperture's curve, half width X(1 - t³) with t running from `t0` to `t1`, that
+ * narrows from `w0` through `middle` to `w1`. */
+function fitArchPiece(w0: number, middle: number, w1: number) {
+  let best = { error: Infinity, x: w0, t0: 0, t1: 0 };
+  for (let s = 0; s <= 180; s++) {
+    const t0 = s / 200,
+      x = w0 / (1 - t0 ** 3),
+      end = 1 - w1 / x;
+    if (end < t0 ** 3 - 1e-9) continue;
+    const t1 = Math.cbrt(Math.max(0, end)),
+      error = Math.abs(x * (1 - ((t0 + t1) / 2) ** 3) - middle);
+    if (error < best.error) best = { error, x, t0, t1 };
+  }
+  return best;
+}
+/** The records of an arched opening. Below the outline a plain box opens the eave; above it a few
+ * curved pieces follow the outline, so that the tiles end along the arch. In a shaped record the
+ * shader takes local heights from -0.5 up to 0.7 and t = k·y + a. */
+function archRecords({ sweep, out, z }: ArchOpening, slot: number): Uint8Array[] {
+  const right = sweep.outline.slice(Math.floor(sweep.outline.length / 2));
+  const base = right[right.length - 1][1],
+    peak = right[0][1];
+  const half = (height: number) => archHalfWidth(sweep.outline, height);
+  const middle = dotXZ(sweep.origin, sweep.x),
+    depth = z[1] - z[0],
+    cz = (z[0] + z[1]) / 2;
+  const at = (y: number) => [sweep.x[0] * middle + out[0] * cz, y, sweep.x[2] * middle + out[2] * cz];
+  const floor = sweep.origin[1] + base - EAVE_REACH - 0.5,
+    shoulder = sweep.origin[1] + base + 0.01;
+  const records = [
+    apertureRecord(at((floor + shoulder) / 2), slot, [2 * half(base), shoulder - floor, depth], out, 1, -1)
+  ];
+  for (let i = 0; i < ARCH_PIECES; i++) {
+    const h0 = base + ((peak - base) * i) / ARCH_PIECES,
+      h1 = base + ((peak - base) * (i + 1)) / ARCH_PIECES;
+    const { x, t0, t1 } = fitArchPiece(half(h0), half((h0 + h1) / 2), half(h1));
+    const size = (h1 - h0) / 1.2,
+      k = (t1 - t0) / 1.2;
+    const center = sweep.origin[1] + h0 + size / 2;
+    records.push(apertureRecord(at(center), slot, [2 * x, size, depth], out, k, t0 + k / 2));
+  }
+  return records;
+}
 /** The height of the top of the stack of removed areas that a removed area starts: each next
  * area overlaps the last along u and meets it along v. */
 function stackTop(surface: EffectiveSurface, first: readonly number[]): number {
@@ -1872,8 +1976,12 @@ function roofApertures(layout: CoreBuildingLayout): Uint8Array[] {
         const id = ROOF_SURFACES.find((k) => part.original.elements[k]?.kind === "surface");
         if (!id) continue;
         const surface = new EffectiveGeometry(part.original, part.modifications, layout.surfaces).surface(id);
+        const arches = archesOn(layout, part, surface);
+        for (const arch of arches) records.push(...archRecords(arch, owner.slot));
         for (const [u0, v0, u1, v1] of surface.removed) {
           const middle = surface.frame((u0 + u1) / 2, (v0 + v1) / 2);
+          // An arch cuts its own opening along its outline.
+          if (arches.some((arch) => arch.covers(middle.origin))) continue;
           // Square to the roof's level outward direction, or to the v axis of a level deck.
           const n = Math.hypot(middle.z[0], middle.z[2]) > 1e-6 ? middle.z : middle.y,
             level = Math.hypot(n[0], n[2]);
