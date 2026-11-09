@@ -17,7 +17,8 @@ import {
   modificationIssue,
   type BuildingEnvironment,
   type BuildingGeometry,
-  type GeometryModification
+  type GeometryModification,
+  type OccupiedUnit
 } from "./geometry";
 import { unitIssue, type BuildingUnit } from "./unit";
 import { laidUnit, layingContext, type PartLayout } from "./expansion";
@@ -122,6 +123,7 @@ interface PartState {
   readonly unit?: BuildingUnit;
   original?: BuildingGeometry;
   view?: EffectiveGeometry;
+  occupied?: readonly OccupiedUnit[];
   guestOf?: string;
   /** Hosts of the guest's attach connection, in connection order. */
   hosts?: readonly string[];
@@ -271,8 +273,42 @@ export function designBuildingCore(
     group: state.group.id,
     unit: state.unit,
     element,
-    geometry: state.view!
+    geometry: state.view!,
+    get occupied() {
+      return (state.occupied ??= occupiedOf(state));
+    }
   });
+  /** The space a part occupies. Only the original geometry and the unit decide it, so that rules
+   * can read it before any of them has edited a part. */
+  function occupiedOf(state: PartState): readonly OccupiedUnit[] {
+    const unit = state.unit;
+    const solids = unit && environment.asset?.(unit.source)?.occupancy;
+    if (!unit || !solids?.length || !state.original) return [];
+    try {
+      const kinds = new Set(Object.values(state.original.elements).map((e) => e.kind));
+      const ref = state.algorithm ?? defaultLaying(kinds);
+      const algorithm = registry.algorithms.get(ref.type);
+      if (!algorithm) return [];
+      const params = plain(resolveShared(ref.params ?? {}, state.group.shared ?? {}));
+      const context = layingContext(
+        { seed: deriveSeed(state.group.seed, state.key), original: state.original, modifications: [], algorithm: ref },
+        unit,
+        params,
+        registry,
+        environment
+      );
+      const { count, data } = algorithm.plan(context);
+      const out: OccupiedUnit[] = [];
+      for (let i = 0; i < count; i++) {
+        const spec = algorithm.unitAt(context, data, i);
+        if (spec) out.push({ matrix: laidUnit(context, spec).matrix, solids });
+      }
+      return out;
+    } catch {
+      // The part's own layout reports what is wrong with it.
+      return [];
+    }
+  }
   const setGeometry = (state: PartState, geometry: BuildingGeometry): boolean => {
     const issue = geometryIssue(geometry, surfaces);
     if (issue) {

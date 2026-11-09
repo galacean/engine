@@ -7,6 +7,11 @@ vi.mock("@galacean/engine", async () => ({
 import { describe, expect, it, vi } from "vitest";
 import { nativeAssets } from "../fixtures/constructionAssets";
 import { meshOccupancy, type OccupancySolid } from "../../src/building/resources/BuildingOccupancy";
+import { createBuildingRegistry, designBuildingCore, type RuleContext } from "../../src/building/core";
+import { registerHouseTypes } from "../../src/building/partTypes/House";
+import { buildCoreHouse } from "../../src/building/application/CoreEuropean";
+import { coreBuildingEnvironment } from "../../src/building/render/CoreBuilding";
+import { constructionDecorationType } from "../../src/building/runtime/ConstructionDecorationCatalog";
 
 const prefabs = nativeAssets.compilation.prefabs;
 const box = (lo: number[], hi: number[]) => {
@@ -83,5 +88,52 @@ describe("Prefab occupancy", () => {
   it("includes a stone hat, a unit member", () => {
     const paths = new Set(prefabs["door-gothic/1"].occupancy.map((s) => s.path));
     expect(paths.has("hat")).toBe(true);
+  });
+
+  it("is laid on the original geometry and read by rules, for parts whose asset declares it", () => {
+    const registry = registerHouseTypes(createBuildingRegistry());
+    const environment = coreBuildingEnvironment(() => 0, nativeAssets.compilation);
+    const size = constructionDecorationType(nativeAssets.compilation.decorations, "window-cottage")!.dimensions[0];
+    const draft = buildCoreHouse({
+      id: "h",
+      rectangle: { center: [0, 0], size: [10, 8], rotation: 0 },
+      attachments: [
+        {
+          id: "w",
+          kind: "window",
+          type: "window-cottage",
+          rank: 1,
+          u: 0.1,
+          bottom: 1,
+          width: size.width,
+          height: size.height
+        }
+      ]
+    });
+    const seen: RuleContext[] = [];
+    registry.rules.register("probe", (context) => {
+      seen.push(context);
+      return {};
+    });
+    const connections = (draft.connections ?? []).map((c) =>
+      c.kind === "attach" && c.guest.includes("/w") ? { ...c, rule: "probe" } : c
+    );
+    expect(connections.some((c) => c.rule === "probe")).toBe(true);
+    designBuildingCore({ ...draft, connections }, registry, { environment });
+    expect(seen).toHaveLength(1);
+    const { guest, hosts } = seen[0];
+    expect(hosts.every((h) => h.occupied.length === 0)).toBe(true);
+    expect(guest!.occupied).toHaveLength(1);
+    const { matrix, solids } = guest!.occupied[0];
+    expect(solids).toBe(prefabs["window-cottage/1"].occupancy);
+    // The prefab's middle lands on the mount.
+    const mount = guest!.geometry.original.elements.mount;
+    if (mount.kind !== "point") throw Error("no mount");
+    const { min, max } = prefabs["window-cottage/1"].bounds;
+    const middle = [(min[0] + max[0]) / 2, (min[1] + max[1]) / 2];
+    for (const k of [0, 1, 2]) {
+      const placed = matrix[k] * middle[0] + matrix[4 + k] * middle[1] + matrix[8 + k] * min[2] + matrix[12 + k];
+      expect(placed).toBeCloseTo(mount.frame.origin[k] + mount.frame.z[k] * min[2], 5);
+    }
   });
 });

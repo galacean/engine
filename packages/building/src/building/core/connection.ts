@@ -1,4 +1,4 @@
-import type { BuildingGeometry, EffectiveGeometry, GeometryModification } from "./geometry";
+import type { BuildingGeometry, EffectiveGeometry, GeometryModification, OccupiedUnit } from "./geometry";
 import type { PartIdentity } from "./identity";
 import type { BuildingUnit } from "./unit";
 
@@ -38,6 +38,9 @@ export interface ParticipantView {
   /** The host element named by the connection, if any. */
   readonly element?: string;
   readonly geometry: EffectiveGeometry;
+  /** The space the part occupies: its units laid on the original geometry, one entry for each
+   * unit whose asset declares a space. Parts laid from assets without one occupy nothing. */
+  readonly occupied: readonly OccupiedUnit[];
 }
 export interface RuleContext {
   readonly key: string;

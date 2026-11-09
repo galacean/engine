@@ -1,15 +1,9 @@
 // The space a building prefab occupies, measured from its members' meshes and poses. It is solid:
 // a window's frame occupies the space of its glass too. Each member is measured on its own, so
 // that the gap between a frame and a shutter is not occupied.
+import type { OccupancySolid } from "../core";
 
-/** One layer of a member's occupied space: a convex outline in the prefab's x, z plane, standing
- * between two heights. The outline runs counter-clockwise when x points right and z up. */
-export interface OccupancySolid {
-  /** The member's path in the prefab. */
-  readonly path: string;
-  readonly y: readonly [number, number];
-  readonly hull: readonly (readonly [number, number])[];
-}
+export type { OccupancySolid };
 /** The height of a measuring band, in metres. */
 const BAND = 0.1;
 /** How far two neighbouring bands may differ and still become one layer, in metres. */
@@ -50,11 +44,13 @@ function outside(hull: readonly Point[], p: Point): number {
 }
 /** The space a triangle mesh occupies, in layers from the bottom up. Each band of height collects
  * what the triangles leave in it and takes its convex outline; bands that differ by no more than
- * 2 cm become one layer. `positions` holds x, y, z per vertex, already in the prefab's space. */
+ * 2 cm become one layer. `positions` holds x, y, z per vertex, already in the prefab's space. A
+ * `cover` member lies over what the prefab stands on, as a stone surround does. */
 export function meshOccupancy(
   path: string,
   positions: readonly number[],
-  indices: readonly number[]
+  indices: readonly number[],
+  cover = false
 ): OccupancySolid[] {
   let lo = Infinity,
     hi = -Infinity;
@@ -102,5 +98,5 @@ export function meshOccupancy(
     }
     solids.push({ y, hull });
   });
-  return solids.map((s) => ({ path, ...s }));
+  return solids.map((s) => ({ path, ...s, ...(cover && { cover }) }));
 }

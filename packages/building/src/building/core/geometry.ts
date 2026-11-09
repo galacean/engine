@@ -75,10 +75,26 @@ export interface BuildingEnvironment {
    * prototype that does not state its own; part types read the facts they need. */
   readonly asset?: (source: AssetRef) => AssetFacts | undefined;
 }
-/** Facts the asset layer measured about one asset: its local bounds, and any data the part
- * types read, such as the area a mounted part takes out of a surface. Plain JSON. */
+/** One layer of the space an asset occupies: a convex outline in the asset's x, z plane, standing
+ * between two heights. The outline runs counter-clockwise when x points right and z up. */
+export interface OccupancySolid {
+  /** The member of the asset the layer belongs to. */
+  readonly path: string;
+  readonly y: readonly [number, number];
+  readonly hull: readonly (readonly [number, number])[];
+  /** The member lies over what it stands on: what it covers need not give way, but may. */
+  readonly cover?: boolean;
+}
+/** The space one laid unit occupies: its asset's solids and the matrix that places them. */
+export interface OccupiedUnit {
+  readonly matrix: readonly number[];
+  readonly solids: readonly OccupancySolid[];
+}
+/** Facts the asset layer measured about one asset: its local bounds, the space it occupies, and
+ * any data the part types read. Plain JSON. */
 export interface AssetFacts {
   readonly bounds?: { readonly min: readonly number[]; readonly max: readonly number[] };
+  readonly occupancy?: readonly OccupancySolid[];
   readonly [fact: string]: unknown;
 }
 /** Built-in surfaces are metric: one unit of u or v is one metre along the surface. */

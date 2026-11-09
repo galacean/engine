@@ -169,7 +169,7 @@ export function buildingGeometry(
         for (let i = 0; i < local.length; i += 3)
           for (let r = 0; r < 3; r++)
             placed.push(m[r] * local[i] + m[4 + r] * local[i + 1] + m[8 + r] * local[i + 2] + m[12 + r]);
-        occupancy.push(...meshOccupancy(member.path, placed, nativeMeshIndices(unit.mesh)));
+        occupancy.push(...meshOccupancy(member.path, placed, nativeMeshIndices(unit.mesh), true));
       }
       return [key, { ...prefab, bounds: box, occupancy }];
     })
