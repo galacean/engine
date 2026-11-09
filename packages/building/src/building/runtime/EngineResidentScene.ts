@@ -5,6 +5,7 @@ import type { ConstructionWallRoofJoint } from "./ConstructionWallRoofJoint";
 import { entranceBinding, injectConstructionEntrance } from "./ConstructionEntranceShader";
 import type { ConstructionEntranceState } from "./ConstructionEntrance";
 import { constructionLightingInstructions } from "./ConstructionSceneLighting";
+import { rawGlslInstructions } from "./RawGlslInstructions";
 import { leaseBuildingTexture, textureSourceColors } from "../resources/BuildingTextures";
 import type { BuildingAssets, NativeBuildingUnit } from "../resources/BuildingAssetKit";
 import { scaledNativeAttribute } from "../resources/BuildingGeometry";
@@ -81,11 +82,7 @@ function residentShader(vertex: string, fragment: string) {
       // feature macros and the existing raw picking/deformation ABI.
       const pass = new ShaderPass(
         "Forward",
-        [
-          [1, "RENDERER_MASONRY_ENTRANCE", 2],
-          [0, "#define RENDERER_MASONRY_ENTRANCE\n"],
-          [0, vertex]
-        ],
+        rawGlslInstructions(["RENDERER_MASONRY_ENTRANCE"], vertex),
         constructionLightingInstructions(fragment),
         ShaderLanguage.GLSLES300
       );

@@ -53,12 +53,18 @@ function storageFixture() {
     records.set(id, structuredClone(pack));
   });
   const load = vi.fn(async (id: string) => structuredClone(records.get(id)));
+  const deleteMatching = vi.fn(async (matches: (id: string) => boolean) => {
+    const removed = [...records.keys()].filter(matches);
+    for (const id of removed) records.delete(id);
+    return removed;
+  });
   vi.spyOn(RuntimeProjectStorage, "open").mockImplementation(
     async () =>
       ({
         load,
         save,
-        close
+        close,
+        deleteMatching
       }) as unknown as RuntimeProjectStorage
   );
   const url = new URL("https://seed.test/demos/terrain/seed-world-planner/index.html?seed=42");
@@ -126,25 +132,33 @@ it("closes the session and leaves storage untouched if catalog preparation fails
   ) as RuntimeProjectManifest;
   f.fetcher.mockResolvedValue(new Response("unavailable", { status: 503 }));
   await expect(openSeedWorldProject(f.url, initial)).rejects.toThrow();
-  expect(f.close).toHaveBeenCalledTimes(1);
+  // One close releases the retired-save cleanup handle, the other the failed session.
+  expect(f.close).toHaveBeenCalledTimes(2);
   expect(f.save).not.toHaveBeenCalled();
 });
 
-it("excludes previous building saves before loading contents and restores the current version", async () => {
+it("deletes saves of other versions before loading contents and restores the current version", async () => {
   const f = storageFixture();
   const projectUrl = new URL(SEED_WORLD_PRODUCTION_ASSET_CATALOG.projectUrl, f.url).href;
   const oldId = `seed-world:native-buildings-v6-assemblies:42:${projectUrl}`;
+  const previousId = `seed-world:native-buildings-v7-groups:7:${projectUrl}`;
+  const otherProjectId = "seed-world:native-buildings-v7-groups:42:https://other.test/project.json";
+  const unrelatedId = "another-project";
   const legacy = { incompatibleBuildingSave: true } as unknown as RuntimeProjectPackage;
-  f.records.set(oldId, legacy);
+  for (const id of [oldId, previousId, otherProjectId, unrelatedId]) f.records.set(id, legacy);
   const initial = JSON.parse(
     await readCatalogFile(SEED_WORLD_PRODUCTION_ASSET_CATALOG.projectUrl)
   ) as RuntimeProjectManifest;
   const project = await openSeedWorldProject(f.url, initial);
   sessions.push(project);
-  expect(SEED_WORLD_BUILDING_SAVE_VERSION).toBe(7);
+  expect(SEED_WORLD_BUILDING_SAVE_VERSION).toBe(8);
   expect(project.id).toBe(seedWorldProjectStorageId(42, projectUrl));
   expect(f.load.mock.calls).toEqual([[project.id]]);
   expect(project.id).not.toBe(oldId);
+  expect(f.records.has(oldId)).toBe(false);
+  expect(f.records.has(previousId)).toBe(false);
+  expect(f.records.get(otherProjectId)).toEqual(legacy);
+  expect(f.records.get(unrelatedId)).toEqual(legacy);
   await project.update((current) => ({
     ...current,
     documents: { ...current.documents, "building-save.txt": "current building version" }
@@ -156,5 +170,4 @@ it("excludes previous building saves before loading contents and restores the cu
   sessions.push(restored);
   expect(restored.projectPackage.documents?.["building-save.txt"]).toBe("current building version");
   expect(f.load.mock.calls.every(([id]) => id !== oldId)).toBe(true);
-  expect(f.records.get(oldId)).toEqual(legacy);
 });

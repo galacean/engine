@@ -1,3 +1,4 @@
+import { createPhysics } from "../../utils/physics";
 import {
   Entity,
   BoxColliderShape,
@@ -10,7 +11,6 @@ import {
 } from "@galacean/engine-core";
 import { Vector3 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine";
-import { PhysXPhysics } from "@galacean/engine-physics-physx";
 import { describe, beforeAll, beforeEach, expect, it } from "vitest";
 
 describe("ColliderShape PhysX", () => {
@@ -21,7 +21,7 @@ describe("ColliderShape PhysX", () => {
   }
 
   beforeAll(async () => {
-    const engine = await WebGLEngine.create({ canvas: document.createElement("canvas"), physics: new PhysXPhysics() });
+    const engine = await WebGLEngine.create({ canvas: document.createElement("canvas"), physics: createPhysics() });
     engine.run();
 
     const scene = engine.sceneManager.activeScene;

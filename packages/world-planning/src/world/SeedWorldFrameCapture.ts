@@ -157,14 +157,14 @@ export class SeedWorldFrameCapture extends Script {
     };
     try {
       if (!this.srgb) {
-        this.srgb = new Material(engine, Shader.find("PostProcess/FinalSRGB"));
+        this.srgb = new Material(engine, Shader.find("PostProcess/FinalSRGB")!);
         this.srgb.isGCIgnored = true;
       }
       let final = allocate(source.width, source.height);
       Blitter.blitTexture(engine, source, final.target, 0, undefined, this.srgb);
       if (camera.antiAliasing === AntiAliasing.FXAA) {
         if (!this.fxaa) {
-          this.fxaa = new Material(engine, Shader.find("PostProcess/FinalAntiAliasing"));
+          this.fxaa = new Material(engine, Shader.find("PostProcess/FinalAntiAliasing")!);
           this.fxaa.isGCIgnored = true;
         }
         // Match screen output; the stock shader otherwise converts RT output back to linear.

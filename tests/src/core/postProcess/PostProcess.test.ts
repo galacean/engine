@@ -1,3 +1,4 @@
+import { createPhysics } from "../../utils/physics";
 import { Color } from "@galacean/engine";
 import {
   BloomDownScaleMode,
@@ -18,7 +19,6 @@ import {
   TonemappingEffect
 } from "@galacean/engine-core";
 import { MathUtil } from "@galacean/engine-math";
-import { PhysXPhysics } from "@galacean/engine-physics-physx";
 import { WebGLEngine } from "@galacean/engine";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
@@ -346,7 +346,7 @@ describe("PostProcess", () => {
     {
       const engine = await WebGLEngine.create({
         canvas: document.createElement("canvas"),
-        physics: new PhysXPhysics()
+        physics: createPhysics()
       });
       const scene = engine.sceneManager.scenes[0];
       const passes = engine.postProcessPasses;

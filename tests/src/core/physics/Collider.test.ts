@@ -1,3 +1,4 @@
+import { createPhysics } from "../../utils/physics";
 import {
   BoxColliderShape,
   Collision,
@@ -10,7 +11,6 @@ import {
   StaticCollider
 } from "@galacean/engine-core";
 import { Vector3 } from "@galacean/engine-math";
-import { PhysXPhysics } from "@galacean/engine-physics-physx";
 import { WebGLEngine } from "@galacean/engine";
 import { vi, describe, beforeAll, beforeEach, expect, it, afterEach } from "vitest";
 
@@ -82,7 +82,7 @@ describe("physics collider test", function () {
   }
 
   beforeAll(async function () {
-    engine = await WebGLEngine.create({ canvas: document.createElement("canvas"), physics: new PhysXPhysics() });
+    engine = await WebGLEngine.create({ canvas: document.createElement("canvas"), physics: createPhysics() });
 
     rootEntity = engine.sceneManager.activeScene.createRootEntity("root");
   });
@@ -389,7 +389,7 @@ describe("Collider Layer Collision Tests", () => {
     beforeAll(async () => {
       engine = await WebGLEngine.create({
         canvas: document.createElement("canvas"),
-        physics: new PhysXPhysics()
+        physics: createPhysics()
       });
       rootEntity = engine.sceneManager.activeScene.createRootEntity("root");
     });

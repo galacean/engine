@@ -508,7 +508,7 @@ export class SkyProceduralMaterial extends Material {
    * @param engine - Engine to which the material belongs
    */
   constructor(engine: Engine) {
-    super(engine, Shader.find("Sky/SkyProcedural"));
+    super(engine, Shader.find("Sky/SkyProcedural")!);
     this.sunMode = SunMode.HighQuality;
     this.sunSize = 0.04;
     this.sunSizeConvergence = 5;

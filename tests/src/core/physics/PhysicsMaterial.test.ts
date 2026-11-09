@@ -1,3 +1,4 @@
+import { createPhysics } from "../../utils/physics";
 import {
   DynamicCollider,
   PhysicsMaterial,
@@ -9,7 +10,6 @@ import {
   PlaneColliderShape
 } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine";
-import { PhysXPhysics } from "@galacean/engine-physics-physx";
 import { Vector3 } from "@galacean/engine-math";
 import { describe, beforeAll, beforeEach, expect, it } from "vitest";
 
@@ -49,7 +49,7 @@ describe("PhysicsMaterial", () => {
   }
 
   beforeAll(async () => {
-    engine = await WebGLEngine.create({ canvas: document.createElement("canvas"), physics: new PhysXPhysics() });
+    engine = await WebGLEngine.create({ canvas: document.createElement("canvas"), physics: createPhysics() });
 
     rootEntity = engine.sceneManager.activeScene.createRootEntity("root");
   });
@@ -134,7 +134,8 @@ describe("PhysicsMaterial", () => {
 
     // @ts-ignore
     engine.sceneManager.activeScene.physics._update(2);
-    expect(formatValue(boxEntity.transform.position.y)).eq(5.16451);
+    // Standard and SIMD solvers differ in the last few float32 bits
+    expect(boxEntity.transform.position.y).closeTo(5.16451, 0.00002);
   });
 
   it("bounceCombine Multiply", () => {
