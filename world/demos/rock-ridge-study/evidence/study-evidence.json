@@ -1,0 +1,759 @@
+{
+  "date": "2026-11-09",
+  "scope": "Proposed arrangements derived from Seed World source; not captured Seed output or a production integration.",
+  "currentSeedCommit": "9c832eb7f87640475237df003473538c693a90d4",
+  "atomicGeneratorCommit": "b2887feee34df433303d1c3197a679e4c219367d",
+  "proceduralRidgeMarkings": {
+    "blueTarget": "Every curve of the generated branching XYZ network. Shared junctions use exactly matching coordinates. Spheres mark peaks and diamonds mark saddles. Curves are sampled at approximately 0.25 m spacing before any display height scaling.",
+    "orangeSurface": "The actual top triangle surface at each displayed ridge XZ sample, with a 0.08 m lift. Measurements use the quantized display coordinates to avoid sampling across triangle edges after rounding. This is surface agreement along the network, not a global crest extraction.",
+    "depth": "Visible segments use depth testing. Occluded segments have a faint 24 percent overlay so branches behind the mass remain traceable.",
+    "verification": "Every generated curve has a target and measured surface guide. Connected graph, shared junctions, noncoplanarity, extrema and smooth XYZ tangents are checked in ridge-validation.json."
+  },
+  "cameraPersistenceFix": {
+    "cause": "Pointerup saved yaw/pitch, but openai:set_globals unconditionally rebuilt the scene with its preset camera and ignored the saved private orbit.",
+    "change": "State restoration compares controls before deciding to rebuild, preserves the current camera on unchanged state echoes, and restores saved yaw/pitch on initialization and subsequent state updates. Active drags retain their current angle.",
+    "verification": "Actual restoration functions passed five isolated replay checks: same-state echo, echo without private orbit, initial saved-orbit restoration, height-only update, and active-drag preservation. Inline syntax passed; preview loaded without console errors. Background browser drag automation produced no observable rotation, so gesture-level verification remains inconclusive."
+  },
+  "heightControl": {
+    "rangePercent": [
+      25,
+      200
+    ],
+    "stepPercent": 5,
+    "scenes": "All six samples",
+    "semantics": "Positive vertical scaling of rocks and terrain around zero elevation. Footprints, seed, headings and the generated ridge layout stay fixed. Surface measurements, summit/saddle markers, camera framing and platform step readouts follow the transform. The crest overlay retains its original display offset.",
+    "state": "Height percentage is stored with arrangement, seed, view and guide visibility. Existing saved states default to 100 percent.",
+    "verification": "18 geometry checks: all six scenes at 25, 100 and 200 percent using seed 309 for procedural scenes. XZ mesh coordinates unchanged; Y coordinates match the expected scale; no source mutation; maximum sampled crest error 0.000923 m. Browser checked live 25, 50, 100 and 200 percent, updated platform rise, seed 309, 320 and 736 px layouts and no console errors.",
+    "currentRidgeVerification": "Three procedural scenes at 25, 130 and 200 percent: all atom vertices, curve nodes, target/surface guides, contact witnesses and tolerance values scale consistently in Y while preserving XZ. Final browser exercised 50 and 130 percent and retained plan view through a height change."
+  },
+  "proceduralRidges": {
+    "version": "ridge-masses-4",
+    "implementation": [
+      "ridge.mjs",
+      "rock-mass-fit.mjs",
+      "ridge-base.mjs",
+      "ridge-utils.mjs"
+    ],
+    "defaultSeed": 382,
+    "defaultHeightPercent": 130,
+    "scenes": [
+      "cliff",
+      "island",
+      "peaks"
+    ],
+    "generation": "Generate a main sequence of peaks and saddles, then branches in several nonparallel directions from shared peak junctions. Branches have their own lower peaks, saddles and descending tails. Coast and terrain constraints shorten branches where needed. All network coordinates exist before reading atomic geometry.",
+    "spatialEnvelope": "All network edges contribute to one surface across XZ. Radial falloff blends absolute ridge elevation toward local terrain elevation on both sides. This avoids treating the main elevation profile as an extrusion and avoids adding plateau elevation twice in the cliff case.",
+    "assembly": "Grow grounded structural masses outward from the dominant peak through the ridge graph. Each structural footprint is at least 12 m long. Fit full meshes against every ridge direction and the between-branch field; allow soft curve deviation and penalize excess volume and piece count. Two whole-mass coordinate-descent passes refit, move, resize and prune existing masses, before and after broad residual additions. No small ridge-fill loop or summit stacking remains.",
+    "measurement": "Vertical surface error is measured independently on every curve. The input network is immutable during assembly. Changing a side-branch peak changes local placement with the main curve held fixed.",
+    "manualCoordinates": "No manually drawn ridge, summit or saddle coordinates. Seeded composition ranges and the sample terrain remain authored inputs.",
+    "integration": "Study proposal using actual upstream-generated atomic meshes; not production Seed World integration.",
+    "generationUnchanged": "Seed 382 node and curve XYZ values are exactly equal to the previous demo, verified against mass-fit-baseline.json. The existing seeded network generator was retained.",
+    "softCurveBandAt100PercentM": {
+      "cliff": 1.8,
+      "island": 2.8,
+      "peaks": 3.2
+    },
+    "deviationSemantics": "The band is a dead zone in the fit score, not a guaranteed maximum. Mesh positions and rotations may deviate from the curve; the target is never moved to improve agreement. Large local residuals remain possible.",
+    "smallRocks": {
+      "maximumCount": 2,
+      "maximumHeightAt100PercentM": 3,
+      "footprintM": [
+        5.5,
+        4.5
+      ],
+      "placement": "Grounded low edges and tails only; each accepted accent must overlap the existing connected body."
+    },
+    "connectivity": "Candidate contacts intersect solid vertical intervals obtained from actual prototype triangles, preserving cavities and overhangs. At least two sampled columns must overlap by more than 0.18 m. Existing-mass replacement must reconnect every component created by removing that mass. Contact witnesses are independently checked by ray casting the fully transformed triangle meshes.",
+    "structuralBudget": 30
+  },
+  "sources": [
+    {
+      "path": "packages/world-planning/src/spatial/layout/ConnectedCurve.ts",
+      "line": 55,
+      "status": "current generic layout",
+      "finding": "Spline, independently staggered rows, tangent orientation, signed projected edge gaps, and rotated-footprint corridor clearance."
+    },
+    {
+      "path": "packages/world-planning/src/spatial/layout/LayoutKernel.ts",
+      "line": 120,
+      "status": "current generic layout",
+      "finding": "Layout candidates are grounded over their occupied footprints and checked against slope, clearance and exclusion constraints."
+    },
+    {
+      "path": "packages/world-planning/src/spatial/layout/VolumeTerrain.ts",
+      "line": 36,
+      "status": "current shared grounding",
+      "finding": "The rotated footprint is sampled, and the base is placed below the lowest support sample."
+    },
+    {
+      "path": "packages/world-planning/src/spatial/layout/LayoutPlanAdapter.ts",
+      "line": 99,
+      "status": "current generic layout",
+      "finding": "Generic rock volumes are projected with the wall role; semantic crown/shoulder/skirt assignment is not supplied here."
+    },
+    {
+      "path": "packages/world-planning/src/spatial/layout/SpatialWorld.ts",
+      "line": 693,
+      "status": "current generic layout",
+      "finding": "Rock candidates may cross coast and territory boundaries; generated footprints still exclude river polygons."
+    },
+    {
+      "path": "packages/world-planning/src/semantic-study/WorldMountainChain.ts",
+      "line": 6,
+      "status": "older composition reference",
+      "finding": "One curved axis, central crown, alternating shoulders, tangent-based yaw and optional flanks."
+    },
+    {
+      "path": "packages/world-planning/src/semantic-study/WorldIslandRocks.ts",
+      "line": 13,
+      "status": "older composition reference, not today's default island filler",
+      "finding": "Tests island-interior centers and principal directions; fits 3-7 rocks within the actual coast, with descending prominence."
+    },
+    {
+      "path": "packages/world-planning/src/landforms/RockComposition.ts",
+      "line": 3,
+      "status": "older composition reference",
+      "finding": "Overlapping neighbor groups and reserved landing caps; explicitly does not establish walkable access by itself."
+    },
+    {
+      "path": "packages/world-planning/src/world/SeedWorldDecorations.ts",
+      "line": 834,
+      "status": "older decoration reference",
+      "finding": "Riverbank sampling uses local tangents/normals, bank offsets, jitter and spatially correlated cluster ranking."
+    }
+  ],
+  "proposals": {
+    "cliff": "A continuous face band with shared heading, correlated crest heights and intermittent buttresses; broad atoms overlap to remove the separate-pillar rhythm.",
+    "path": "Reserve the ascent and turning corridor before placing backing masses and a bend anchor. Keep the exit view and clearance open.",
+    "island": "Judge the silhouette from the intended shore viewpoint: one dominant crown, unequal shoulders, a long tail and low detail density.",
+    "peaks": "Connected broad bases with unequal upper summits and a deliberate low saddle; skirts bridge the rock mass into terrain.",
+    "platform": "Construct a connected top-surface route with controlled elevation. Shape variation is kept outside the usable corridor.",
+    "river": "Use unequal, tangent-aligned bank clusters with small subordinate fragments and intentionally empty access reaches. Preserve the channel."
+  },
+  "verification": {
+    "meshPrototypes": "12 actual upstream-generated meshes; 764-1000 triangles each",
+    "browser": "Final build visually inspected at 736 px: island seed 382 at 130 and 50 percent height, with the exact blue network and orange measured surface. Next seed changed the mountain to seed 383; plan view showed the broad connected mass extending across both horizontal axes. Height returned to 130 percent without changing plan view. At 320 px controls, legends and count text wrap without clipping. Final state restored to island, seed 382, 130 percent, oblique, guides visible. No console errors. Temporary viewport override reset. Earlier prototype oblique inspections also covered cliff and mountain. Existing camera-state restoration code was retained; no new drag-gesture proof is claimed.",
+    "proceduralRidges": {
+      "assemblies": 15,
+      "seeds": [
+        0,
+        42,
+        334,
+        382,
+        4294967295
+      ],
+      "checks": [
+        "network generated independently of atoms",
+        "shared XYZ junctions",
+        "connected graph with real branching",
+        "noncoplanar ridge directions",
+        "C1 continuity along every curve",
+        "true peak and saddle extrema",
+        "input network immutable during fitting",
+        "exact seeded repeat",
+        "different seeds vary the assembly",
+        "positive finite transforms",
+        "actual bounds and shoreline containment",
+        "every branch is marked and measured",
+        "soft curve tolerance with bounded residuals",
+        "minimum structural scale and sparse accent budget",
+        "ray-verified connected mesh volumes",
+        "input ridge network unchanged from previous demo",
+        "fewer pieces than fragment fitter",
+        "between-branch body fitting",
+        "whole-network height scaling",
+        "side-branch edit changes local placement with fixed main ridge"
+      ],
+      "independentMeasurementPitchM": 0.15,
+      "maximumUnderM": 6.987193564509118,
+      "maximumOverM": 7.127637642461069,
+      "maximumRmsM": 2.302211432693542,
+      "maximumSurfaceGuideErrorM": 4.999349316925361e-05,
+      "structuralMassCountRange": [
+        7,
+        21
+      ],
+      "maximumSmallRockCount": 2,
+      "allCasesOneConnectedBody": true,
+      "branchCausality": [
+        {
+          "scene": "cliff",
+          "inputBranchPeakRiseM": 6,
+          "actualSurfaceRiseM": 6.997428993920572,
+          "mainRidgeUnchanged": true
+        },
+        {
+          "scene": "island",
+          "inputBranchPeakRiseM": 6,
+          "actualSurfaceRiseM": 7.042583634247356,
+          "mainRidgeUnchanged": true
+        },
+        {
+          "scene": "peaks",
+          "inputBranchPeakRiseM": 6,
+          "actualSurfaceRiseM": 5.959972486988356,
+          "mainRidgeUnchanged": true
+        }
+      ],
+      "evidence": "ridge-validation.json",
+      "previousBaseline": "mass-fit-baseline.json",
+      "defaultScenes": [
+        {
+          "scene": "cliff",
+          "seed": 382,
+          "curves": 4,
+          "previousAtomCount": 80,
+          "currentAtomCount": 11,
+          "structuralMasses": 9,
+          "smallRocks": 2,
+          "connectedComponents": 1,
+          "verifiedContactEdges": 15,
+          "refitOperations": 4,
+          "prunedMasses": 2,
+          "fitAt100Percent": {
+            "maxUnderM": 3.2656670133900843,
+            "maxOverM": 1.7306541536617104,
+            "rmsM": 1.3095844071371827,
+            "toleranceM": 1.8,
+            "withinBandFraction": 0.8021454112038141,
+            "samples": 839,
+            "byCurve": [
+              {
+                "id": "main",
+                "samples": 440,
+                "maxUnderM": 3.2656670133900843,
+                "maxOverM": 1.6845151399366234,
+                "rmsM": 1.1589802226022594
+              },
+              {
+                "id": "branch-1",
+                "samples": 140,
+                "maxUnderM": 2.0718373707854223,
+                "maxOverM": 1.1775145984112427,
+                "rmsM": 1.492526421614691
+              },
+              {
+                "id": "branch-2",
+                "samples": 135,
+                "maxUnderM": 2.7007878566069223,
+                "maxOverM": 0.41462521689718024,
+                "rmsM": 1.4609843536659952
+              },
+              {
+                "id": "branch-3",
+                "samples": 124,
+                "maxUnderM": 1.9507807489157099,
+                "maxOverM": 1.7306541536617104,
+                "rmsM": 1.4137799609441706
+              }
+            ]
+          }
+        },
+        {
+          "scene": "island",
+          "seed": 382,
+          "curves": 5,
+          "previousAtomCount": 105,
+          "currentAtomCount": 11,
+          "structuralMasses": 9,
+          "smallRocks": 2,
+          "connectedComponents": 1,
+          "verifiedContactEdges": 16,
+          "refitOperations": 8,
+          "prunedMasses": 1,
+          "fitAt100Percent": {
+            "maxUnderM": 3.73481827462092,
+            "maxOverM": 4.665045003829697,
+            "rmsM": 1.6817915545667144,
+            "toleranceM": 2.8,
+            "withinBandFraction": 0.9129989764585466,
+            "samples": 977,
+            "byCurve": [
+              {
+                "id": "main",
+                "samples": 431,
+                "maxUnderM": 3.73481827462092,
+                "maxOverM": 4.665045003829697,
+                "rmsM": 1.913655768499579
+              },
+              {
+                "id": "branch-1",
+                "samples": 134,
+                "maxUnderM": 2.7427071279140094,
+                "maxOverM": 1.1606955567964716,
+                "rmsM": 1.2584970634775423
+              },
+              {
+                "id": "branch-2",
+                "samples": 110,
+                "maxUnderM": 3.3101515980968,
+                "maxOverM": 2.728049510149507,
+                "rmsM": 2.003297759450231
+              },
+              {
+                "id": "branch-3",
+                "samples": 145,
+                "maxUnderM": 2.676532566137574,
+                "maxOverM": 2.006055255308098,
+                "rmsM": 1.467759298069858
+              },
+              {
+                "id": "branch-4",
+                "samples": 157,
+                "maxUnderM": 2.6618165655811588,
+                "maxOverM": 1.1744476662520107,
+                "rmsM": 1.1809364173717087
+              }
+            ]
+          }
+        },
+        {
+          "scene": "peaks",
+          "seed": 382,
+          "curves": 5,
+          "previousAtomCount": 119,
+          "currentAtomCount": 16,
+          "structuralMasses": 14,
+          "smallRocks": 2,
+          "connectedComponents": 1,
+          "verifiedContactEdges": 29,
+          "refitOperations": 12,
+          "prunedMasses": 1,
+          "fitAt100Percent": {
+            "maxUnderM": 4.210537954232959,
+            "maxOverM": 5.534267823842825,
+            "rmsM": 2.03756359233035,
+            "toleranceM": 3.2,
+            "withinBandFraction": 0.8905109489051095,
+            "samples": 1370,
+            "byCurve": [
+              {
+                "id": "main",
+                "samples": 554,
+                "maxUnderM": 2.2601706725096307,
+                "maxOverM": 5.534267823842825,
+                "rmsM": 2.3583623370756546
+              },
+              {
+                "id": "branch-1",
+                "samples": 233,
+                "maxUnderM": 3.814533730197221,
+                "maxOverM": 3.1850337525214965,
+                "rmsM": 1.8429617240410343
+              },
+              {
+                "id": "branch-2",
+                "samples": 204,
+                "maxUnderM": 3.7186328965931637,
+                "maxOverM": 4.51166026277615,
+                "rmsM": 1.965732133151587
+              },
+              {
+                "id": "branch-3",
+                "samples": 201,
+                "maxUnderM": 2.197371727571758,
+                "maxOverM": 4.117574034775101,
+                "rmsM": 1.6705561338193096
+              },
+              {
+                "id": "branch-4",
+                "samples": 178,
+                "maxUnderM": 4.210537954232959,
+                "maxOverM": 3.974328592825021,
+                "rmsM": 1.6178400736220164
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "uphillPath": "3.5 m reserved corridor; sampled centerline is at least 2.994 m from every rock OBB.",
+    "platform": "3 m corridor sampled on five lateral tracks at 0.1 m longitudinal spacing against the actual triangle surfaces; maximum sampled rise 0.1425 m, maximum drop 0 m, minimum interior surface height 0.16 m.",
+    "limitations": "Five seeds and sampled checks do not prove all uint32 seeds or continuous surface error bounds. Curve tolerance is soft: the tested set has local deviations up to 7.13 m at 100 percent height. Actual triangle-volume witnesses establish sampled intersections, not a physics or stability simulation. Independent atoms overlap without boolean union. Rocks approximate a surface envelope derived from the branching 3D network; cave topology, collision and navigability are not established. Surface guides measure along target XZ paths and do not extract every terrain crest. Materials and lighting remain simplified."
+  },
+  "history": [
+    {
+      "version": "seeded-ridge-1",
+      "supersededBy": "ridge-curve-2",
+      "proceduralRidgeMarkings": {
+        "blueAxis": "Samples the actual XZ placement function used by buildMasses, or the actual terrain-edge arc used by buildCliff. Projected onto the displayed terrain with a 0.12 m rendering offset.",
+        "blueStations": "Markers and vertical stems at the generated placement stations; targets use the actual grounded rock transform and generated height. No new interpolated 3D summit guide is claimed.",
+        "orangeCrest": "The existing crest measured from assembled triangle surfaces. Summit and saddle labels now explicitly identify mesh measurements.",
+        "verification": "18 combinations across three procedural scenes, seeds 309 and 731, and height scales 25/100/200 percent: station positions and heights match real placed atoms; the guide projects to terrain. Default rock arrays are identical before and after adding annotations. Browser inspected mountain oblique/plan and cliff oblique views, 320 and 736 px layouts, with no console errors."
+      },
+      "proceduralRidges": {
+        "version": "seeded-ridge-1",
+        "implementation": "ridge.mjs",
+        "defaultSeed": 731,
+        "scenes": [
+          "cliff",
+          "island",
+          "peaks"
+        ],
+        "generation": "Keyed seed streams generate a bent ridge axis, unequal peak stations and heights, tangent-aligned atoms, saddle supports, buttresses and skirts. Island compositions contract to sampled coastline clearance. Cliff placement follows the terrain edge with seeded spacing and correlated heights.",
+        "measurement": "The displayed crest follows a continuity-penalized height-maximizing path through actual triangle top envelopes. Exposed summit vertices pin the path. The primary marker is the global maximum mesh vertex. Saddle markers are sampled minima along the traced ridge between neighboring exposed summits.",
+        "manualCoordinates": "No authored summit, saddle or crest polyline coordinates remain in these three study scenes. Terrain constraints and composition parameter ranges remain study inputs.",
+        "integration": "Shared pure JavaScript module used for offline recipe generation and live browser seed changes; not integrated into the production Seed World planner."
+      },
+      "verification": "21 assemblies across 7 seeds (including 0 and uint32 maximum) passed exact repeatability, seed variation, finite transforms, actual mesh bounds, global summit/pinned crest, sampled triangle-surface agreement, island containment and measured saddle support checks. Maximum sampled crest error after removing the 0.08 m overlay offset: 0.000533 m. Details: ridge-validation.json."
+    },
+    {
+      "version": "ridge-curve-2",
+      "supersededBy": "ridge-network-3",
+      "proceduralRidgeMarkings": {
+        "blueTarget": "The actual continuous 3D input curve, generated before any atom geometry is examined. Spheres identify generated peaks and diamonds identify generated saddles. The display samples the cubic curve at approximately 0.3 m spacing.",
+        "orangeCrest": "Measured from the top envelope of the assembled triangles, with a 0.08 m display lift. This exposes the difference between the input curve and the finite atomic assembly.",
+        "verification": "The displayed blue line matches the generated curve samples; assembly leaves its input target unchanged. The measured orange crest is pinned to the global mesh summit and agrees with sampled triangle heights within 0.000464 m across the validation cases."
+      },
+      "proceduralRidges": {
+        "version": "ridge-curve-2",
+        "implementation": [
+          "ridge.mjs",
+          "ridge-utils.mjs"
+        ],
+        "defaultSeed": 334,
+        "defaultHeightPercent": 130,
+        "scenes": [
+          "cliff",
+          "island",
+          "peaks"
+        ],
+        "generation": "Seed and terrain constraints produce a laterally curved axis and explicit peak, saddle and tail heights. Cubic smoothstep segments join them with continuous XYZ tangents and zero height derivative at each extremum. The target is independent of the atomic meshes and exists before assembly.",
+        "assembly": "Fit peak and saddle atoms against the complete height envelope. Yaw follows the projected curve tangent; width, depth and height are fitted with aspect-ratio limits. Grounded bases and overlapping supported infill close uncovered target intervals. Lower flank masses inherit the curve direction and height. Scoring uses actual transformed triangle surfaces at approximately 0.2 m spacing.",
+        "fitSemantics": "Vertical top-surface minus target-height error at the target XZ locations. The target is not moved after fitting. Finite pieces approximate the curve; no exact surface equality or boolean union is claimed.",
+        "measurement": "An independent continuous crest trace through actual triangle surfaces remains visible in orange. Its global summit and measured saddles are separate from the generated target extrema.",
+        "manualCoordinates": "No hand-authored summit or saddle coordinates. Terrain shapes and composition parameter ranges are study inputs.",
+        "integration": "Pure JavaScript proposal shared by offline recipe generation and the browser demo; not production Seed World integration."
+      },
+      "verification": {
+        "assemblies": 15,
+        "seeds": [
+          0,
+          42,
+          309,
+          334,
+          4294967295
+        ],
+        "checks": [
+          "curve independent of existing rock geometry",
+          "C1 XYZ continuity",
+          "true peak and saddle extrema",
+          "no cubic height overshoot",
+          "immutable input target",
+          "same-seed exact repeat",
+          "seed variation",
+          "displayed line equals input curve",
+          "finite positive 3D transforms",
+          "mesh bounds and island containment",
+          "actual global maximum and surface crest",
+          "dense 0.1 m target fit",
+          "supported saddles",
+          "height scaling at 25,130,200 percent",
+          "target-peak change drives atom placement"
+        ],
+        "independentMeasurementPitchM": 0.1,
+        "maximumUnderM": 1.6480591069512052,
+        "maximumOverM": 0.12331093410240257,
+        "maximumRmsM": 0.49623671875948855,
+        "maximumCrestSurfaceErrorM": 0.000463407073148403,
+        "evidence": "ridge-validation.json",
+        "defaultScenes": [
+          {
+            "scene": "cliff",
+            "seed": 334,
+            "fitAt100Percent": {
+              "samplePitchM": 0.2,
+              "samples": 332,
+              "maxUnderM": 0.5862973615429343,
+              "maxOverM": 0.12301752446953529,
+              "rmsM": 0.2456068988782681,
+              "atoms": 28
+            },
+            "fitRmsAt130Percent": 0.31928896854174854
+          },
+          {
+            "scene": "island",
+            "seed": 334,
+            "fitAt100Percent": {
+              "samplePitchM": 0.2,
+              "samples": 330,
+              "maxUnderM": 1.6480591069512052,
+              "maxOverM": 0.11885657742920674,
+              "rmsM": 0.41130745936513574,
+              "atoms": 32
+            },
+            "fitRmsAt130Percent": 0.5346996971746765
+          },
+          {
+            "scene": "peaks",
+            "seed": 334,
+            "fitAt100Percent": {
+              "samplePitchM": 0.2,
+              "samples": 438,
+              "maxUnderM": 1.1432226047981597,
+              "maxOverM": 0.11993810917093128,
+              "rmsM": 0.35322004013784775,
+              "atoms": 40
+            },
+            "fitRmsAt130Percent": 0.4591860521792021
+          }
+        ]
+      }
+    },
+    {
+      "version": "ridge-network-3",
+      "supersededBy": "ridge-masses-4",
+      "proceduralRidgeMarkings": {
+        "blueTarget": "Every curve of the generated branching XYZ network. Shared junctions use exactly matching coordinates. Spheres mark peaks and diamonds mark saddles. Curves are sampled at approximately 0.25 m spacing before any display height scaling.",
+        "orangeSurface": "The actual top triangle surface at each displayed ridge XZ sample, with a 0.08 m lift. Measurements use the quantized display coordinates to avoid sampling across triangle edges after rounding. This is surface agreement along the network, not a global crest extraction.",
+        "depth": "Visible segments use depth testing. Occluded segments have a faint 24 percent overlay so branches behind the mass remain traceable.",
+        "verification": "Every generated curve has a target and measured surface guide. Connected graph, shared junctions, noncoplanarity, extrema and smooth XYZ tangents are checked in ridge-validation.json."
+      },
+      "proceduralRidges": {
+        "version": "ridge-network-3",
+        "implementation": [
+          "ridge.mjs",
+          "ridge-base.mjs",
+          "ridge-utils.mjs"
+        ],
+        "defaultSeed": 382,
+        "defaultHeightPercent": 130,
+        "scenes": [
+          "cliff",
+          "island",
+          "peaks"
+        ],
+        "generation": "Generate a main sequence of peaks and saddles, then branches in several nonparallel directions from shared peak junctions. Branches have their own lower peaks, saddles and descending tails. Coast and terrain constraints shorten branches where needed. All network coordinates exist before reading atomic geometry.",
+        "spatialEnvelope": "All network edges contribute to one surface across XZ. Radial falloff blends absolute ridge elevation toward local terrain elevation on both sides. This avoids treating the main elevation profile as an extrusion and avoids adding plateau elevation twice in the cliff case.",
+        "assembly": "Place shared junction foundations once, fit node atoms, fill sampled spaces between branches, then close the largest uncovered ridge intervals. Candidate mesh vertices and face centroids constrain the full surface envelope. Actual candidate top triangles are additionally checked against every covered ridge direction simultaneously. All atoms share one evolving support surface.",
+        "measurement": "Vertical surface error is measured independently on every curve. The input network is immutable during assembly. Changing a side-branch peak changes local placement with the main curve held fixed.",
+        "manualCoordinates": "No manually drawn ridge, summit or saddle coordinates. Seeded composition ranges and the sample terrain remain authored inputs.",
+        "integration": "Study proposal using actual upstream-generated atomic meshes; not production Seed World integration."
+      },
+      "verification": {
+        "assemblies": 15,
+        "seeds": [
+          0,
+          42,
+          334,
+          382,
+          4294967295
+        ],
+        "checks": [
+          "network generated independently of atoms",
+          "shared XYZ junctions",
+          "connected graph with real branching",
+          "noncoplanar ridge directions",
+          "C1 continuity along every curve",
+          "true peak and saddle extrema",
+          "input network immutable during fitting",
+          "exact seeded repeat",
+          "different seeds vary the assembly",
+          "positive finite transforms",
+          "actual bounds and shoreline containment",
+          "every branch is marked and measured",
+          "independent dense surface fit on all directions",
+          "between-branch body fitting",
+          "whole-network height scaling",
+          "side-branch edit changes local placement with fixed main ridge"
+        ],
+        "independentMeasurementPitchM": 0.15,
+        "maximumUnderM": 3.1095778494781214,
+        "maximumOverM": 0.5863608768621429,
+        "maximumRmsM": 0.5533893168962348,
+        "maximumSurfaceGuideErrorM": 4.9999973857239866e-05,
+        "branchCausality": [
+          {
+            "scene": "cliff",
+            "inputBranchPeakRiseM": 2,
+            "actualSurfaceRiseM": 2.235086623008442,
+            "mainRidgeUnchanged": true
+          },
+          {
+            "scene": "island",
+            "inputBranchPeakRiseM": 2,
+            "actualSurfaceRiseM": 1.867055434859477,
+            "mainRidgeUnchanged": true
+          },
+          {
+            "scene": "peaks",
+            "inputBranchPeakRiseM": 2,
+            "actualSurfaceRiseM": 1.7926887473610051,
+            "mainRidgeUnchanged": true
+          }
+        ],
+        "evidence": "ridge-validation.json",
+        "defaultScenes": [
+          {
+            "scene": "cliff",
+            "seed": 382,
+            "curves": 4,
+            "fitAt100Percent": {
+              "samplePitchM": 0.25,
+              "samples": 505,
+              "maxUnderM": 0.6707144076388918,
+              "maxOverM": 0.15099375106780855,
+              "rmsM": 0.23085007327189053,
+              "atoms": 80,
+              "byCurve": [
+                {
+                  "id": "main",
+                  "samples": 265,
+                  "maxUnderM": 0.548317718076996,
+                  "maxOverM": 0.15099375106780855,
+                  "rmsM": 0.21054187984644
+                },
+                {
+                  "id": "branch-1",
+                  "samples": 84,
+                  "maxUnderM": 0.6707144076388918,
+                  "maxOverM": 0.019323133566171435,
+                  "rmsM": 0.2572642820723916
+                },
+                {
+                  "id": "branch-2",
+                  "samples": 81,
+                  "maxUnderM": 0.6667052767637838,
+                  "maxOverM": 0.13241491392408022,
+                  "rmsM": 0.27439755442610747
+                },
+                {
+                  "id": "branch-3",
+                  "samples": 75,
+                  "maxUnderM": 0.45286765162334497,
+                  "maxOverM": 0.004465830840208795,
+                  "rmsM": 0.21624368812348244
+                }
+              ]
+            }
+          },
+          {
+            "scene": "island",
+            "seed": 382,
+            "curves": 5,
+            "fitAt100Percent": {
+              "samplePitchM": 0.25,
+              "samples": 588,
+              "maxUnderM": 2.6105876349044266,
+              "maxOverM": 0.4611632058280364,
+              "rmsM": 0.4542761106731216,
+              "atoms": 105,
+              "byCurve": [
+                {
+                  "id": "main",
+                  "samples": 260,
+                  "maxUnderM": 1.635389409659318,
+                  "maxOverM": 0.2516320651484705,
+                  "rmsM": 0.40851398070850287
+                },
+                {
+                  "id": "branch-1",
+                  "samples": 81,
+                  "maxUnderM": 0.934389820228656,
+                  "maxOverM": 0.15712962053680535,
+                  "rmsM": 0.3111884520957911
+                },
+                {
+                  "id": "branch-2",
+                  "samples": 66,
+                  "maxUnderM": 2.6105876349044266,
+                  "maxOverM": 0.4512055206959218,
+                  "rmsM": 0.7573689508339827
+                },
+                {
+                  "id": "branch-3",
+                  "samples": 87,
+                  "maxUnderM": 1.4062453925384588,
+                  "maxOverM": 0.4611632058280364,
+                  "rmsM": 0.472299927197522
+                },
+                {
+                  "id": "branch-4",
+                  "samples": 94,
+                  "maxUnderM": 1.122776131008667,
+                  "maxOverM": 0.18127303995017208,
+                  "rmsM": 0.3696614011747245
+                }
+              ]
+            }
+          },
+          {
+            "scene": "peaks",
+            "seed": 382,
+            "curves": 5,
+            "fitAt100Percent": {
+              "samplePitchM": 0.25,
+              "samples": 826,
+              "maxUnderM": 1.3865885241341651,
+              "maxOverM": 0.26545884758222726,
+              "rmsM": 0.36759205136015366,
+              "atoms": 119,
+              "byCurve": [
+                {
+                  "id": "main",
+                  "samples": 334,
+                  "maxUnderM": 1.3865885241341651,
+                  "maxOverM": 0.24108448926924098,
+                  "rmsM": 0.4039188437514106
+                },
+                {
+                  "id": "branch-1",
+                  "samples": 140,
+                  "maxUnderM": 0.9036726964778348,
+                  "maxOverM": 0.19235672064830212,
+                  "rmsM": 0.31078166021288306
+                },
+                {
+                  "id": "branch-2",
+                  "samples": 123,
+                  "maxUnderM": 1.10868602722954,
+                  "maxOverM": 0.187614943303819,
+                  "rmsM": 0.37037537772351575
+                },
+                {
+                  "id": "branch-3",
+                  "samples": 121,
+                  "maxUnderM": 1.1622957929019488,
+                  "maxOverM": 0.26545884758222726,
+                  "rmsM": 0.3657848000460446
+                },
+                {
+                  "id": "branch-4",
+                  "samples": 108,
+                  "maxUnderM": 1.1288944822894056,
+                  "maxOverM": 0.21176462899710824,
+                  "rmsM": 0.3123339800289696
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "inline": {
+    "bytes": 916398,
+    "scriptSyntax": "passed",
+    "standalonePreview": "../index.html",
+    "unexpectedNetworkApis": false,
+    "documentWrapper": false
+  },
+  "repositoryDelivery": {
+    "directory": "world/demos/rock-ridge-study",
+    "baseCommit": "9c832eb7f87640475237df003473538c693a90d4",
+    "standaloneSha256": "60d210c4445cca7dcbc707d32abe0c49a6c8e0102ab6428c13387d9702680d6b",
+    "matchesBrowserVerifiedPreviewExactly": false,
+    "buildCommand": "node world/demos/rock-ridge-study/build.mjs",
+    "testCommand": "node world/demos/rock-ridge-study/src/verify-ridges.mjs",
+    "assemblyCount": 15,
+    "checkCategories": 20,
+    "labAssessment": "lab-analysis.json",
+    "boundaryCheck": {
+      "status": "passed",
+      "command": "node world/scripts/check-boundaries.mjs",
+      "dependencyResolution": "Used the lab checkout existing TypeScript installation through a temporary ESM adapter; this checkout has no installed TypeScript."
+    },
+    "fullEngineBuild": "Not run: standalone page consumes baked geometry and its own checked-in shell; no Engine runtime code changed.",
+    "browserPreviewDifference": "Two trailing blank source lines removed for Git whitespace checks; all non-whitespace bytes match the browser-verified preview."
+  }
+}

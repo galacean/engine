@@ -87,7 +87,7 @@ AI Chat 的真实模型请求沿用业务配置，需要配置可用的 provider
 
 ## Demo 归属
 
-共 42 个 HTML 入口：40 个静态构建入口、2 个依赖外部服务的历史建筑实验。`static` 表示构建模式，不代表所有在线 API 功能都能离线运行。完整入口清单由 [demos.json](demos.json) 维护。
+当前 [demos.json](demos.json) 登记了 36 个静态构建入口。`static` 表示构建模式，不代表所有在线 API 功能都能离线运行。
 
 | Demo 目录 | 系统归属 |
 | --- | --- |
@@ -104,6 +104,7 @@ AI Chat 的真实模型请求沿用业务配置，需要配置可用的 provider
 | `demos/metrics-zoo/` | world-planning |
 | `demos/prompt-noise-world/` | world-planning / terrain |
 | `demos/rain-wind/` | environment |
+| `demos/rock-ridge-study/` | world-planning / terrain（独立原子岩石排布研究） |
 | `demos/screen-space-reflection/` | water |
 | `demos/seed-world/` | world-planning（Seed World 业务） |
 | `demos/snow-wind/` | environment |

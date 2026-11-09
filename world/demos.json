@@ -114,6 +114,12 @@
     "owner": "environment"
   },
   {
+    "entry": "demos/rock-ridge-study/index.html",
+    "title": "Rock ridge network · atomic mass fitting",
+    "mode": "static",
+    "owner": "world-planning / terrain"
+  },
+  {
     "entry": "demos/screen-space-reflection/index.html",
     "title": "Meadow Lake · Screen Space Reflection",
     "mode": "static",

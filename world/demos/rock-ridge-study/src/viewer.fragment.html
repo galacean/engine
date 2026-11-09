@@ -1,0 +1,239 @@
+<div id="rock-arrangement-study">
+  <div class="viz-controls">
+    <label class="form-label">Arrangement
+      <select class="form-select" id="rock-study-case">
+        <option value="cliff">1a · Curved cliff</option>
+        <option value="path">1b · Uphill path bend</option>
+        <option value="island">2 · Offshore vista</option>
+        <option value="peaks" selected>3 · Mountain peaks</option>
+        <option value="platform">4 · Walkable shelves</option>
+        <option value="river">5 · Riverside</option>
+      </select>
+    </label>
+    <label class="form-label">View
+      <select class="form-select" id="rock-study-view">
+        <option value="perspective">Oblique</option>
+        <option value="side">Side</option>
+        <option value="plan">Plan</option>
+        <option value="low">Low angle</option>
+      </select>
+    </label>
+    <label class="form-check"><input class="form-check-input" id="rock-study-guides" type="checkbox" checked><span class="form-check-label">Show layout</span></label>
+  </div>
+  <div class="viz-row">
+    <div id="rock-study-seed-controls"><div class="viz-row">
+      <label class="form-label">Generation seed <input class="form-control" id="rock-study-seed" type="number" min="0" max="4294967295" step="1" value="382"></label>
+      <button class="btn" type="button" id="rock-study-next-seed">Next seed</button>
+    </div></div>
+    <label class="form-label" for="rock-study-height">Height <output id="rock-study-height-value" for="rock-study-height" class="tabular-nums">130%</output>
+      <input class="form-range" id="rock-study-height" aria-label="Height" type="range" min="25" max="200" step="5" value="130">
+    </label>
+  </div>
+  <div id="rock-study-ridge-legend"><div class="viz-row text-small">
+    <span><span class="rock-legend-line rock-legend-axis" aria-hidden="true"></span>Ridge network</span>
+    <span><span class="rock-legend-line rock-legend-crest" aria-hidden="true"></span>Rock surface</span>
+  </div></div>
+  <div class="rock-stage" id="rock-study-stage" role="img" aria-label="Interactive 3D rock arrangements. Select an arrangement and view above; drag to orbit.">
+    <div class="rock-label-layer" id="rock-study-labels"></div>
+    <div class="rock-scale text-small" id="rock-study-scale"><span></span><div>10 m</div></div>
+  </div>
+  <div class="viz-row text-small" aria-live="polite"><span id="rock-study-detail"></span><span class="text-muted">Proposed layout · upstream rock meshes</span></div>
+  <div class="sr-only" id="rock-study-description"></div>
+</div>
+<style>
+  #rock-arrangement-study {display:flex;flex-direction:column;gap:calc(var(--font-size-base)*.75)}
+  #rock-arrangement-study .rock-stage {position:relative;width:100%;overflow:hidden;min-height:280px}
+  #rock-arrangement-study canvas {display:block;width:100%;touch-action:none;cursor:grab}
+  #rock-arrangement-study canvas:active {cursor:grabbing}
+  #rock-arrangement-study .rock-label-layer {position:absolute;inset:0;pointer-events:none}
+  #rock-arrangement-study .rock-label {position:absolute;white-space:nowrap;color:var(--foreground);text-shadow:0 1px 2px var(--background),0 -1px 2px var(--background),1px 0 2px var(--background),-1px 0 2px var(--background)}
+  #rock-arrangement-study .rock-scale {position:absolute;left:12px;bottom:8px;color:var(--foreground);pointer-events:none}
+  #rock-arrangement-study .rock-scale span {display:block;height:5px;border:1px solid var(--foreground);border-top:0}
+  #rock-arrangement-study .rock-legend-line {display:inline-block;width:24px;vertical-align:middle;margin-inline-end:6px}
+  #rock-arrangement-study .rock-legend-axis {border-top:2px solid var(--blue)}
+  #rock-arrangement-study .rock-legend-crest {border-top:2px solid var(--orange)}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+<script id="rock-study-data" type="application/json">__ROCK_STUDY_DATA__</script>
+<script>
+(()=>{
+ __ROCK_RIDGE_GENERATOR__
+ const root=document.getElementById('rock-arrangement-study');
+ const stage=root.querySelector('#rock-study-stage'), labels=root.querySelector('#rock-study-labels');
+ const caseSelect=root.querySelector('#rock-study-case'),viewSelect=root.querySelector('#rock-study-view'),guideInput=root.querySelector('#rock-study-guides');
+ const detail=root.querySelector('#rock-study-detail'),description=root.querySelector('#rock-study-description'),scaleBar=root.querySelector('#rock-study-scale span');
+ const seedInput=root.querySelector('#rock-study-seed'),nextSeed=root.querySelector('#rock-study-next-seed'),seedControls=root.querySelector('#rock-study-seed-controls');
+ const heightInput=root.querySelector('#rock-study-height'),heightValue=root.querySelector('#rock-study-height-value');
+ const ridgeLegend=root.querySelector('#rock-study-ridge-legend');
+ const data=JSON.parse(document.getElementById('rock-study-data').textContent);
+ if(typeof THREE==='undefined'){detail.textContent='The 3D renderer could not load.';detail.setAttribute('role','alert');return;}
+ const T=THREE,scene=new T.Scene();
+ const camera=new T.OrthographicCamera(-60,60,40,-40,.1,3000);
+ let renderer;
+ try {renderer=new T.WebGLRenderer({antialias:true,alpha:true});}
+ catch(error){detail.textContent='WebGL is unavailable in this view.';detail.setAttribute('role','alert');return;}
+ renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+ renderer.outputColorSpace=T.SRGBColorSpace;
+ renderer.toneMapping=T.ACESFilmicToneMapping;
+ renderer.toneMappingExposure=1.15;
+ renderer.shadowMap.enabled=true;
+ renderer.shadowMap.type=T.PCFSoftShadowMap;
+ stage.insertBefore(renderer.domElement,labels);
+ const ambient=new T.HemisphereLight();ambient.intensity=2.4;scene.add(ambient);
+ const sun=new T.DirectionalLight();sun.intensity=3.3;sun.position.set(-60,115,70);sun.castShadow=true;
+ sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-120,right:120,top:120,bottom:-120,near:1,far:350});
+ sun.shadow.bias=-.00025;sun.shadow.normalBias=.08;scene.add(sun);
+ const geometryCache={};
+ for(const [key,g]of Object.entries(data.geometries)){
+  const geo=new T.BufferGeometry();geo.setAttribute('position',new T.Float32BufferAttribute(g.positions,3));
+  geo.setAttribute('normal',new T.Float32BufferAttribute(g.normals,3));geo.setIndex(g.indices);geo.computeBoundingSphere();geometryCache[key]=geo;
+ }
+ let current,world=new T.Group(),guideGroup=new T.Group(),target=new T.Vector3(),yaw=0,pitch=.45,span=100,width=700,height=450;
+ scene.add(world,guideGroup);
+ let materials=[],terrainGeometry,waterGeometry,guideGeometries=[],lastColors='',generatedKey='',generatedScene;
+ function cssColor(name){const probe=document.createElement('span');probe.style.color='var('+name+')';root.appendChild(probe);const value=getComputedStyle(probe).color;probe.remove();return new T.Color(value);}
+ function palette(){
+  const bg=cssColor('--background'),fg=cssColor('--foreground'),green=cssColor('--green'),blue=cssColor('--blue'),orange=cssColor('--orange');
+  const dark=bg.r+bg.g+bg.b<fg.r+fg.g+fg.b;
+  const bright=dark?fg:bg;
+  ambient.color.copy(bright);ambient.groundColor.copy(bg.clone().lerp(fg,.2));sun.color.copy(bright);
+  const stone=bg.clone().lerp(fg,dark?.31:.30).lerp(orange,.035);
+  const ground=bg.clone().lerp(green,dark?.16:.11).lerp(fg,dark?.08:.05);
+  const water=bg.clone().lerp(blue,dark?.26:.17);
+  return {bg,fg,stone,ground,water,spine:orange,axis:blue,route:orange,river:blue,dark};
+ }
+ function mat(color,extra={}){const m=new T.MeshStandardMaterial({color,roughness:1,metalness:0,...extra});materials.push(m);return m;}
+ function clearScene(){
+  world.clear();guideGroup.clear();materials.forEach(m=>m.dispose());materials=[];
+  terrainGeometry?.dispose();waterGeometry?.dispose();guideGeometries.forEach(g=>g.dispose());guideGeometries=[];labels.replaceChildren();
+ }
+ function setCamera(){
+  const view=viewSelect.value;
+  yaw=current.camera.yaw;pitch=current.camera.pitch;
+  if(view==='plan'){yaw=0;pitch=Math.PI/2-.0001;}
+  if(view==='side')yaw+=Math.PI/2;
+  if(view==='low')pitch=.13;
+  target.fromArray(current.camera.target);span=current.camera.span;
+ }
+ function createScene(resetCamera=true){
+  current=data.scenes.find(s=>s.id===caseSelect.value)||data.scenes[0];
+  const procedural=['cliff','island','peaks'].includes(current.id);
+  seedControls.hidden=!procedural;
+  ridgeLegend.hidden=!procedural||!guideInput.checked;
+  if(procedural){
+   const key=current.id+':'+seedInput.value;
+   if(key!==generatedKey){generatedScene=generateRidgeScene(current,data.geometries,Number(seedInput.value));generatedKey=key;}
+   current=generatedScene;
+  }
+  current=withSceneHeight(current,Number(heightInput.value)/100);
+  heightValue.value=heightInput.value+'%';
+  heightInput.setAttribute('aria-valuetext',heightInput.value+' percent of original height');
+  clearScene();const p=palette();
+  renderer.setClearColor(p.bg,0);
+  const stone=mat(p.stone),terrain=mat(p.ground,{side:T.DoubleSide});
+  for(const r of current.rocks){const mesh=new T.Mesh(geometryCache[r.mesh],stone);mesh.position.set(r.x,r.y,r.z);mesh.scale.set(r.scale*(r.longitudinalScale??1),r.scale*(r.verticalScale??1),r.scale*(r.lateralScale??1));mesh.rotation.y=-r.yaw;mesh.castShadow=true;mesh.receiveShadow=true;world.add(mesh);}
+  terrainGeometry=new T.BufferGeometry();terrainGeometry.setAttribute('position',new T.Float32BufferAttribute(current.terrain.positions,3));terrainGeometry.setIndex(current.terrain.indices);terrainGeometry.computeVertexNormals();
+  const ground=new T.Mesh(terrainGeometry,terrain);ground.receiveShadow=true;world.add(ground);
+  if(current.water!==undefined){const [x0,x1,z0,z1]=current.extent;
+   if(current.channel){const p=[],idx=[];current.channel.forEach(([x,z,w],i)=>{p.push(x-w-2.9,.04,z,x+w+2.9,.04,z);if(i){const j=(i-1)*2;idx.push(j,j+2,j+1,j+1,j+2,j+3);}});waterGeometry=new T.BufferGeometry();waterGeometry.setAttribute('position',new T.Float32BufferAttribute(p,3));waterGeometry.setIndex(idx);waterGeometry.computeVertexNormals();}
+   else waterGeometry=new T.PlaneGeometry(x1-x0+12,z1-z0+12);
+   const water=new T.Mesh(waterGeometry,mat(p.water,{roughness:.65,transparent:true,opacity:.91,side:T.DoubleSide}));
+   if(!current.channel){water.rotation.x=-Math.PI/2;water.position.set((x0+x1)/2,current.water+.04,(z0+z1)/2);}water.receiveShadow=true;world.add(water);
+  }
+  for(const guide of current.guides){
+   const points=guide.points.map(a=>new T.Vector3(...a));
+   if(guide.kind==='spine'||guide.kind==='target'){
+    const curve=new T.CurvePath();for(let i=1;i<points.length;i++)curve.add(new T.LineCurve3(points[i-1],points[i]));
+    const isTarget=guide.kind==='target';
+    const tube=new T.TubeGeometry(curve,Math.min(2000,points.length*3),isTarget?(guide.branch?.17:.22):.11,5,false);guideGeometries.push(tube);
+    const color=isTarget?p.axis:p.spine;
+    const ghostInk=new T.MeshBasicMaterial({color,depthTest:false,depthWrite:false,transparent:true,opacity:.24,toneMapped:false});materials.push(ghostInk);
+    const ghost=new T.Mesh(tube,ghostInk);ghost.renderOrder=10;guideGroup.add(ghost);
+    const ink=new T.MeshBasicMaterial({color,depthTest:true,depthWrite:false,toneMapped:false});materials.push(ink);
+    const crest=new T.Mesh(tube,ink);crest.renderOrder=isTarget?12:11;guideGroup.add(crest);
+   }else{
+    const g=new T.BufferGeometry().setFromPoints(points);guideGeometries.push(g);
+    const m=new T.LineBasicMaterial({color:guide.kind==='route'?p.route:p.river,depthTest:false,transparent:true,opacity:.85,toneMapped:false});materials.push(m);
+    const line=new T.Line(g,m);line.renderOrder=10;guideGroup.add(line);
+   }
+   if(guide.width){const positions=[],indices=[];
+    guide.points.forEach((p,i)=>{const a=guide.points[Math.max(0,i-1)],b=guide.points[Math.min(guide.points.length-1,i+1)],dx=b[0]-a[0],dz=b[2]-a[2],l=Math.hypot(dx,dz)||1;for(const side of [-1,1])positions.push(p[0]-side*dz/l*guide.width/2,p[1],p[2]+side*dx/l*guide.width/2);if(i){const j=(i-1)*2;indices.push(j,j+2,j+1,j+1,j+2,j+3);}});
+    const ribbon=new T.BufferGeometry();ribbon.setAttribute('position',new T.Float32BufferAttribute(positions,3));ribbon.setIndex(indices);guideGeometries.push(ribbon);
+    const rm=new T.MeshBasicMaterial({color:p.route,side:T.DoubleSide,transparent:true,opacity:.32,depthWrite:false});materials.push(rm);const strip=new T.Mesh(ribbon,rm);strip.renderOrder=9;guideGroup.add(strip);
+   }
+  }
+  if(current.ridge?.stations?.length){
+   const dots=new T.SphereGeometry(.52,10,8),saddleDot=new T.OctahedronGeometry(.65);guideGeometries.push(dots,saddleDot);
+   const ink=new T.MeshBasicMaterial({color:p.axis,depthTest:true,depthWrite:false,toneMapped:false});materials.push(ink);
+   for(const station of current.ridge.stations){
+    if(station.role==='tail')continue;
+    const marker=new T.Mesh(station.role==='saddle'?saddleDot:dots,ink);marker.position.fromArray(station.target);marker.renderOrder=13;guideGroup.add(marker);
+   }
+  }
+  current.labels.forEach(l=>{const el=document.createElement('span');el.className='rock-label text-small';el.textContent=l.text;labels.appendChild(el);});
+  guideGroup.visible=guideInput.checked;labels.hidden=!guideInput.checked;
+  detail.textContent=procedural?current.ridge.composition.structuralMasses+' masses · '+current.ridge.composition.smallRocks+' small rocks · '+current.ridge.plan.curves.length+' ridges':current.metrics.rocks+' rocks · '+(current.id==='platform'?'3 m route · '+current.validation.maxSampledRiseM.toFixed(2)+' m maximum sampled rise':current.notes);
+  description.textContent=current.notes+(procedural?' The blue branching ridge network guides broad overlapping rock masses. Whole masses are refitted before adding structure; local differences within '+current.ridge.policy.curveToleranceM.toFixed(1)+' meters are tolerated. Small rocks have a separate budget of two and stay at the lower edges. All accepted pieces overlap the connected body in sampled mesh volume. Orange shows the actual surface along each target curve; its measured RMS deviation is '+current.ridge.fit.rmsM.toFixed(2)+' meters. Spheres mark peaks and diamonds mark saddles.':'')+' Height scales rocks, terrain and the complete ridge network together. These are proposed arrangements using actual procedural mesh geometry, without Seed materials or runtime navigation. Drag to orbit; side, plan and low angle views are also available.';
+  stage.setAttribute('aria-describedby','rock-study-description');
+  if(resetCamera)setCamera();else target.fromArray(current.camera.target);resize();
+ }
+ function render(){
+  if(!current)return;
+  let maxX=0,maxY=0;
+  const projectExtent=(x,y,z)=>{x-=target.x;y-=target.y;z-=target.z;maxX=Math.max(maxX,Math.abs(x*Math.cos(yaw)-z*Math.sin(yaw)));maxY=Math.max(maxY,Math.abs(-x*Math.sin(yaw)*Math.sin(pitch)+y*Math.cos(pitch)-z*Math.cos(yaw)*Math.sin(pitch)));};
+  for(const r of current.rocks){const b=data.geometries[r.mesh].bounds,c=Math.cos(r.yaw),sn=Math.sin(r.yaw);for(let i=0;i<2;i++)for(let j=0;j<2;j++)for(let k=0;k<2;k++){const x=b[i][0]*r.scale*(r.longitudinalScale??1),z=b[k][2]*r.scale*(r.lateralScale??1);projectExtent(r.x+c*x-sn*z,r.y+b[j][1]*r.scale*(r.verticalScale??1),r.z+sn*x+c*z);}}
+  for(const l of current.labels)projectExtent(...l.position);
+  for(const station of current.ridge?.stations||[])projectExtent(...station.target);
+  const fit=Math.max(span,maxX*2.15,maxY*2.18*width/height);
+  camera.left=-fit/2;camera.right=fit/2;camera.top=fit*height/width/2;camera.bottom=-camera.top;camera.updateProjectionMatrix();
+  const distance=span*1.8;
+  camera.position.set(target.x+distance*Math.sin(yaw)*Math.cos(pitch),target.y+distance*Math.sin(pitch),target.z+distance*Math.cos(yaw)*Math.cos(pitch));
+  camera.lookAt(target);camera.updateMatrixWorld();renderer.render(scene,camera);
+  const boxes=[];
+  [...labels.children].forEach((el,i)=>{
+   const point=new T.Vector3(...current.labels[i].position).project(camera);
+   let x=(point.x*.5+.5)*width,y=(-point.y*.5+.5)*height;
+   const w=el.offsetWidth,h=el.offsetHeight;
+   x=Math.max(6,Math.min(width-w-6,x-w/2));y=Math.max(8,Math.min(height-h-30,y));
+   const overlaps=boxes.some(b=>x<b.x+b.w&&x+w>b.x&&y<b.y+b.h&&y+h>b.y);
+   el.hidden=overlaps||point.z>1;el.style.left=x+'px';el.style.top=y+'px';if(!el.hidden)boxes.push({x,y,w,h});
+  });
+  scaleBar.style.width=(width*10/(camera.right-camera.left))+'px';
+ }
+ function resize(){width=stage.clientWidth||700;height=Math.max(280,Math.min(520,width*.64));renderer.setSize(width,height);stage.style.height=height+'px';camera.left=-span/2;camera.right=span/2;camera.top=span*height/width/2;camera.bottom=-camera.top;camera.updateProjectionMatrix();render();}
+ function save(){if(window.openai?.setWidgetState)window.openai.setWidgetState({modelContent:{arrangement:current.id,view:viewSelect.value,showLayout:guideInput.checked,seed:Number(seedInput.value),heightPercent:Number(heightInput.value),ridgeVersion:RIDGE_VERSION},privateContent:{yaw,pitch}}).catch(()=>{});}
+ function applyState(state){const m=state?.modelContent;if(!m)return false;if(data.scenes.some(s=>s.id===m.arrangement))caseSelect.value=m.arrangement;if(['plan','low','perspective','side'].includes(m.view))viewSelect.value=m.view;if(typeof m.showLayout==='boolean')guideInput.checked=m.showLayout;if(Number.isInteger(m.seed)&&m.seed>=0&&m.seed<=4294967295)seedInput.value=m.seed;if(Number.isFinite(m.heightPercent)&&m.heightPercent>=25&&m.heightPercent<=200)heightInput.value=m.heightPercent;return true;}
+ function restoreState(state){
+  const previous={arrangement:caseSelect.value,view:viewSelect.value,seed:seedInput.value,height:heightInput.value};
+  if(!applyState(state))return false;
+  const resetCamera=!current||previous.arrangement!==caseSelect.value||previous.view!==viewSelect.value;
+  const rebuild=!current||previous.arrangement!==caseSelect.value||previous.seed!==seedInput.value||previous.height!==heightInput.value;
+  // A state echo after pointerup is persistence, not a request for a preset view.
+  if(rebuild)createScene(resetCamera);else if(resetCamera)setCamera();
+  const orbit=state.privateContent;
+  if(!drag&&Number.isFinite(orbit?.yaw)&&Number.isFinite(orbit?.pitch)){
+   yaw=orbit.yaw;pitch=Math.max(.08,Math.min(Math.PI/2-.0001,orbit.pitch));
+  }
+  guideGroup.visible=guideInput.checked;labels.hidden=!guideInput.checked;ridgeLegend.hidden=!current.ridge||!guideInput.checked;render();
+  return true;
+ }
+ let heightFrame;
+ heightInput.addEventListener('input',()=>{heightValue.value=heightInput.value+'%';if(heightFrame)cancelAnimationFrame(heightFrame);heightFrame=requestAnimationFrame(()=>{heightFrame=0;createScene(false);});});
+ heightInput.addEventListener('change',()=>{if(heightFrame){cancelAnimationFrame(heightFrame);heightFrame=0;createScene(false);}save();});
+ seedInput.addEventListener('change',()=>{if(!seedInput.value||!seedInput.checkValidity())seedInput.value=DEFAULT_RIDGE_SEED;createScene();save();});
+ nextSeed.addEventListener('click',()=>{seedInput.value=(Number(seedInput.value)+1)>>>0;createScene();save();});
+ caseSelect.addEventListener('change',()=>{createScene();save();});
+ viewSelect.addEventListener('change',()=>{setCamera();resize();save();});
+ guideInput.addEventListener('change',()=>{guideGroup.visible=guideInput.checked;labels.hidden=!guideInput.checked;ridgeLegend.hidden=!current.ridge||!guideInput.checked;render();save();});
+ let drag;
+ renderer.domElement.addEventListener('pointerdown',e=>{drag={x:e.clientX,y:e.clientY,yaw,pitch};renderer.domElement.setPointerCapture(e.pointerId);});
+ renderer.domElement.addEventListener('pointermove',e=>{if(!drag)return;yaw=drag.yaw-(e.clientX-drag.x)*.006;pitch=Math.max(.08,Math.min(Math.PI/2-.001,drag.pitch+(e.clientY-drag.y)*.006));render();});
+ renderer.domElement.addEventListener('pointerup',()=>{if(drag){drag=null;save();}});
+ renderer.domElement.addEventListener('pointercancel',()=>drag=null);
+ new ResizeObserver(resize).observe(stage);
+ let themeTimer;
+ new MutationObserver(()=>{clearTimeout(themeTimer);themeTimer=setTimeout(()=>{const c=getComputedStyle(root).color+getComputedStyle(document.documentElement).getPropertyValue('--background');if(c!==lastColors){lastColors=c;createScene(false);}},50);}).observe(document.documentElement,{attributes:true,attributeFilter:['class','style','data-theme']});
+ window.addEventListener('openai:set_globals',e=>{restoreState(e.detail?.globals?.widgetState);});
+ if(!restoreState(window.openai?.widgetState))createScene();
+})();
+</script>

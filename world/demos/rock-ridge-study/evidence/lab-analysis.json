@@ -1,0 +1,116 @@
+{
+  "branch": "codex/rockform-shaping-studies",
+  "commit": "28bdc6a96cf276711af14a2e9088a87525e75c0f",
+  "includesUncommittedLabChanges": true,
+  "sourceParity": [
+    {
+      "path": "world/gallery/demos/terrain/asset-assembly/perlin-heightmap/PerlinNoise.ts",
+      "sha256": "af9326823ee61bd07b6359695c62b31a082aced03c25c0651e0a065eb20ed6b6",
+      "materializedCopyEqual": true
+    },
+    {
+      "path": "world/gallery/demos/terrain/asset-assembly/perlin-heightmap/main.ts",
+      "sha256": "e877c7524863bdb723fe495c86add2b9370518b3356239bed6f19f2ccffea27d",
+      "materializedCopyEqual": true
+    },
+    {
+      "path": "world/gallery/demos/terrain/asset-assembly/perlin-heightmap/tests/noise.spec.ts",
+      "sha256": "e715c3e9e6d94326f373962bbe1e3edaea9cd17968a6a56e760f315d1af8b347",
+      "materializedCopyEqual": true
+    },
+    {
+      "path": "world/gallery/demos/terrain/asset-assembly/obb-heightfield/LandformShapes.ts",
+      "sha256": "29c17b8712d137c40c6bc19040071d29d5400c4a63a8684b83c8fc392f6169b5",
+      "materializedCopyEqual": true
+    },
+    {
+      "path": "world/gallery/demos/terrain/asset-assembly/obb-heightfield/PerlinHeightfield.ts",
+      "sha256": "f03c48d88f4e613f64400e1881ac4534bf663cb2994ef987c69587a6724f4d71",
+      "materializedCopyEqual": true
+    },
+    {
+      "path": "world/gallery/demos/terrain/asset-assembly/obb-heightfield/AlgorithmControls.ts",
+      "sha256": "38146c6c8ee63c3506014733f14a021c9d15ec2c088842e5ab39409cebb34481",
+      "materializedCopyEqual": true
+    },
+    {
+      "path": "world/gallery/demos/terrain/asset-assembly/obb-heightfield/tests/landforms.spec.ts",
+      "sha256": "36971627248b31e101d2940539f8c6bc30afc38fb6ad01f3aa035342fb5219d9",
+      "materializedCopyEqual": true
+    },
+    {
+      "path": "world/gallery/demos/terrain/asset-assembly/obb-heightfield/tests/perlin-cell-normalization.spec.ts",
+      "sha256": "0bb340a11cf9ab845804d9cfd03efc4571a7e2e69efc80b7b45fcbf7366b83f7",
+      "materializedCopyEqual": true
+    }
+  ],
+  "savedBuild": {
+    "path": "world/.materialized/engine/.obb-heightfield-build",
+    "indexModifiedAt": "2026-11-04T21:35:15.704642",
+    "indexSha256": "ab1c9a21236752fd7daa925ff47504a43e7f787e461165acd313c71146b9b727",
+    "sourceBuildParity": "Not established for bundled assets; source/materialized TypeScript equality verified separately."
+  },
+  "tests": {
+    "passed": 63,
+    "files": 3
+  },
+  "octaveProbe": [
+    {
+      "seed": 18,
+      "frequency": 4,
+      "octaves": 1,
+      "persistence": 0.5,
+      "lacunarity": 2,
+      "normalization": "fixed",
+      "resolution": 257,
+      "interiorLocalMaxima8Neighbors": 8,
+      "meanAbsoluteSecondDifference": 0.00038854758953049017,
+      "highestFrequency": 4
+    },
+    {
+      "seed": 18,
+      "frequency": 4,
+      "octaves": 3,
+      "persistence": 0.5,
+      "lacunarity": 2,
+      "normalization": "fixed",
+      "resolution": 257,
+      "interiorLocalMaxima8Neighbors": 63,
+      "meanAbsoluteSecondDifference": 0.0009980026177377344,
+      "highestFrequency": 16
+    },
+    {
+      "seed": 18,
+      "frequency": 4,
+      "octaves": 5,
+      "persistence": 0.5,
+      "lacunarity": 2,
+      "normalization": "fixed",
+      "resolution": 257,
+      "interiorLocalMaxima8Neighbors": 438,
+      "meanAbsoluteSecondDifference": 0.003258600944924565,
+      "highestFrequency": 64
+    },
+    {
+      "seed": 18,
+      "frequency": 4,
+      "octaves": 5,
+      "persistence": 0.8,
+      "lacunarity": 2,
+      "normalization": "fixed",
+      "resolution": 257,
+      "interiorLocalMaxima8Neighbors": 1397,
+      "meanAbsoluteSecondDifference": 0.011083584752783138,
+      "highestFrequency": 64
+    }
+  ],
+  "browser": {
+    "perlinDescentGraphDisabled": "Stacked mountain reference, Voronoi outline, seed 17, noise seed 18, frequency 4, lacunarity 2, persistence .5, 129-square grid: 2 and 5 octaves rendered successfully. Both retained 175.49 m peak through per-OBB calibration.",
+    "graphEnabledError": "Could not retain a boundary vertex in its heightfield cell",
+    "failingCases": [
+      "Mountain ridges / Perlin ascent / mixed outlines / feature graph enabled",
+      "Stacked mountain reference / Perlin descent / Voronoi / feature graph enabled"
+    ],
+    "scope": "Existing saved build, not a fresh build of the complete dirty lab checkout."
+  }
+}

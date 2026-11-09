@@ -1,0 +1,962 @@
+{
+  "version": "ridge-masses-4",
+  "testedAssemblies": 15,
+  "seeds": [
+    0,
+    42,
+    334,
+    382,
+    4294967295
+  ],
+  "checks": [
+    "network generated independently of atoms",
+    "shared XYZ junctions",
+    "connected graph with real branching",
+    "noncoplanar ridge directions",
+    "C1 continuity along every curve",
+    "true peak and saddle extrema",
+    "input network immutable during fitting",
+    "exact seeded repeat",
+    "different seeds vary the assembly",
+    "positive finite transforms",
+    "actual bounds and shoreline containment",
+    "every branch is marked and measured",
+    "soft curve tolerance with bounded residuals",
+    "minimum structural scale and sparse accent budget",
+    "ray-verified connected mesh volumes",
+    "input ridge network unchanged from previous demo",
+    "fewer pieces than fragment fitter",
+    "between-branch body fitting",
+    "whole-network height scaling",
+    "side-branch edit changes local placement with fixed main ridge"
+  ],
+  "results": [
+    {
+      "scene": "cliff",
+      "seed": 0,
+      "curves": 4,
+      "nodes": 16,
+      "atoms": 9,
+      "nonPlanarity": 584.1006556426692,
+      "bodyFitSamples": 30,
+      "composition": {
+        "structuralMasses": 7,
+        "smallRocks": 2,
+        "refitted": 6,
+        "pruned": 1,
+        "verifiedContactEdges": 8
+      },
+      "fitAtPointOneFiveMeter": {
+        "maxUnderM": 3.71188813261044,
+        "maxOverM": 1.7372365274053472,
+        "rmsM": 1.6017714458959822,
+        "toleranceM": 1.8,
+        "withinBandFraction": 0.6738578680203046,
+        "samples": 788,
+        "byCurve": [
+          {
+            "id": "main",
+            "samples": 440,
+            "maxUnderM": 3.71188813261044,
+            "maxOverM": 1.6522477937844418,
+            "rmsM": 1.4932006199290646
+          },
+          {
+            "id": "branch-1",
+            "samples": 110,
+            "maxUnderM": 2.2863640679238557,
+            "maxOverM": 1.7372365274053472,
+            "rmsM": 1.5801885049793054
+          },
+          {
+            "id": "branch-2",
+            "samples": 121,
+            "maxUnderM": 3.1973062401868244,
+            "maxOverM": 0.4652450262001455,
+            "rmsM": 2.091744954271696
+          },
+          {
+            "id": "branch-3",
+            "samples": 117,
+            "maxUnderM": 1.9685691274721862,
+            "maxOverM": 0.5100911845347547,
+            "rmsM": 1.4220835529530815
+          }
+        ]
+      },
+      "maximumSurfaceGuideErrorM": 4.990277295569001e-05,
+      "durationMs": 686
+    },
+    {
+      "scene": "cliff",
+      "seed": 42,
+      "curves": 4,
+      "nodes": 16,
+      "atoms": 11,
+      "nonPlanarity": 1220.9473388413585,
+      "bodyFitSamples": 31,
+      "composition": {
+        "structuralMasses": 9,
+        "smallRocks": 2,
+        "refitted": 7,
+        "pruned": 0,
+        "verifiedContactEdges": 12
+      },
+      "fitAtPointOneFiveMeter": {
+        "maxUnderM": 3.3696730681333182,
+        "maxOverM": 2.7644106046710633,
+        "rmsM": 1.26548106811679,
+        "toleranceM": 1.8,
+        "withinBandFraction": 0.8266666666666667,
+        "samples": 825,
+        "byCurve": [
+          {
+            "id": "main",
+            "samples": 440,
+            "maxUnderM": 3.3696730681333182,
+            "maxOverM": 2.7644106046710633,
+            "rmsM": 1.1171209680402183
+          },
+          {
+            "id": "branch-1",
+            "samples": 147,
+            "maxUnderM": 2.100929730910794,
+            "maxOverM": 1.7090900174588253,
+            "rmsM": 1.4033384921707646
+          },
+          {
+            "id": "branch-2",
+            "samples": 114,
+            "maxUnderM": 2.9747413522316073,
+            "maxOverM": 1.8742534342393462,
+            "rmsM": 1.4395274165549456
+          },
+          {
+            "id": "branch-3",
+            "samples": 124,
+            "maxUnderM": 1.9671990901844953,
+            "maxOverM": 0.17277737844061747,
+            "rmsM": 1.4095206904851034
+          }
+        ]
+      },
+      "maximumSurfaceGuideErrorM": 4.987982054416307e-05,
+      "durationMs": 686
+    },
+    {
+      "scene": "cliff",
+      "seed": 334,
+      "curves": 4,
+      "nodes": 16,
+      "atoms": 11,
+      "nonPlanarity": 1430.9388250436145,
+      "bodyFitSamples": 29,
+      "composition": {
+        "structuralMasses": 9,
+        "smallRocks": 2,
+        "refitted": 4,
+        "pruned": 0,
+        "verifiedContactEdges": 14
+      },
+      "fitAtPointOneFiveMeter": {
+        "maxUnderM": 3.4044615251396415,
+        "maxOverM": 2.277471649005488,
+        "rmsM": 1.3174099883751966,
+        "toleranceM": 1.8,
+        "withinBandFraction": 0.8012820512820513,
+        "samples": 780,
+        "byCurve": [
+          {
+            "id": "main",
+            "samples": 440,
+            "maxUnderM": 3.4044615251396415,
+            "maxOverM": 2.277471649005488,
+            "rmsM": 1.0967388476168913
+          },
+          {
+            "id": "branch-1",
+            "samples": 131,
+            "maxUnderM": 1.9786542852300553,
+            "maxOverM": 0.7487060662316694,
+            "rmsM": 1.4436391645585984
+          },
+          {
+            "id": "branch-2",
+            "samples": 108,
+            "maxUnderM": 3.222297307581375,
+            "maxOverM": 1.6086564103641408,
+            "rmsM": 1.809882648158709
+          },
+          {
+            "id": "branch-3",
+            "samples": 101,
+            "maxUnderM": 1.9611960754327473,
+            "maxOverM": 0.16585083224024721,
+            "rmsM": 1.3991042253280739
+          }
+        ]
+      },
+      "maximumSurfaceGuideErrorM": 4.992997769370788e-05,
+      "durationMs": 646
+    },
+    {
+      "scene": "cliff",
+      "seed": 382,
+      "curves": 4,
+      "nodes": 16,
+      "atoms": 11,
+      "nonPlanarity": 298.93116971734344,
+      "bodyFitSamples": 31,
+      "composition": {
+        "structuralMasses": 9,
+        "smallRocks": 2,
+        "refitted": 4,
+        "pruned": 2,
+        "verifiedContactEdges": 15
+      },
+      "fitAtPointOneFiveMeter": {
+        "maxUnderM": 3.2656670133900843,
+        "maxOverM": 1.7306541536617104,
+        "rmsM": 1.3095844071371827,
+        "toleranceM": 1.8,
+        "withinBandFraction": 0.8021454112038141,
+        "samples": 839,
+        "byCurve": [
+          {
+            "id": "main",
+            "samples": 440,
+            "maxUnderM": 3.2656670133900843,
+            "maxOverM": 1.6845151399366234,
+            "rmsM": 1.1589802226022594
+          },
+          {
+            "id": "branch-1",
+            "samples": 140,
+            "maxUnderM": 2.0718373707854223,
+            "maxOverM": 1.1775145984112427,
+            "rmsM": 1.492526421614691
+          },
+          {
+            "id": "branch-2",
+            "samples": 135,
+            "maxUnderM": 2.7007878566069223,
+            "maxOverM": 0.41462521689718024,
+            "rmsM": 1.4609843536659952
+          },
+          {
+            "id": "branch-3",
+            "samples": 124,
+            "maxUnderM": 1.9507807489157099,
+            "maxOverM": 1.7306541536617104,
+            "rmsM": 1.4137799609441706
+          }
+        ]
+      },
+      "maximumSurfaceGuideErrorM": 4.99149772181795e-05,
+      "raisedBranchSurfaceResponseM": 6.997428993920572,
+      "durationMs": 1006
+    },
+    {
+      "scene": "cliff",
+      "seed": 4294967295,
+      "curves": 4,
+      "nodes": 16,
+      "atoms": 12,
+      "nonPlanarity": 688.7138843656726,
+      "bodyFitSamples": 32,
+      "composition": {
+        "structuralMasses": 10,
+        "smallRocks": 2,
+        "refitted": 5,
+        "pruned": 0,
+        "verifiedContactEdges": 15
+      },
+      "fitAtPointOneFiveMeter": {
+        "maxUnderM": 2.983126798070181,
+        "maxOverM": 1.826103373686351,
+        "rmsM": 1.3708762182950218,
+        "toleranceM": 1.8,
+        "withinBandFraction": 0.7726692209450831,
+        "samples": 783,
+        "byCurve": [
+          {
+            "id": "main",
+            "samples": 440,
+            "maxUnderM": 2.983126798070181,
+            "maxOverM": 1.6822715388971883,
+            "rmsM": 1.1694590996603387
+          },
+          {
+            "id": "branch-1",
+            "samples": 105,
+            "maxUnderM": 1.9544753810392521,
+            "maxOverM": 1.4492218958906768,
+            "rmsM": 1.3512311365315082
+          },
+          {
+            "id": "branch-2",
+            "samples": 121,
+            "maxUnderM": 2.8515931333510167,
+            "maxOverM": 1.826103373686351,
+            "rmsM": 1.8285491452123623
+          },
+          {
+            "id": "branch-3",
+            "samples": 117,
+            "maxUnderM": 2.3877675242444525,
+            "maxOverM": 1.7306587001348621,
+            "rmsM": 1.5287770213020677
+          }
+        ]
+      },
+      "maximumSurfaceGuideErrorM": 4.991304347790049e-05,
+      "durationMs": 682
+    },
+    {
+      "scene": "island",
+      "seed": 0,
+      "curves": 5,
+      "nodes": 19,
+      "atoms": 11,
+      "nonPlanarity": 28901.94268005779,
+      "bodyFitSamples": 48,
+      "composition": {
+        "structuralMasses": 9,
+        "smallRocks": 2,
+        "refitted": 10,
+        "pruned": 1,
+        "verifiedContactEdges": 17
+      },
+      "fitAtPointOneFiveMeter": {
+        "maxUnderM": 6.987193564509118,
+        "maxOverM": 3.848849724076155,
+        "rmsM": 1.956087315613885,
+        "toleranceM": 2.8,
+        "withinBandFraction": 0.8507614213197969,
+        "samples": 985,
+        "byCurve": [
+          {
+            "id": "main",
+            "samples": 447,
+            "maxUnderM": 4.090454992512448,
+            "maxOverM": 3.4740018667958275,
+            "rmsM": 1.9185572975996161
+          },
+          {
+            "id": "branch-1",
+            "samples": 122,
+            "maxUnderM": 3.7074789701055657,
+            "maxOverM": 2.3924105982373582,
+            "rmsM": 1.9725211965301128
+          },
+          {
+            "id": "branch-2",
+            "samples": 136,
+            "maxUnderM": 3.216452445450429,
+            "maxOverM": 3.848849724076155,
+            "rmsM": 2.2285603403925762
+          },
+          {
+            "id": "branch-3",
+            "samples": 141,
+            "maxUnderM": 6.987193564509118,
+            "maxOverM": 1.8982036292296804,
+            "rmsM": 2.1531054212269463
+          },
+          {
+            "id": "branch-4",
+            "samples": 139,
+            "maxUnderM": 2.630716961891526,
+            "maxOverM": 2.501695221157246,
+            "rmsM": 1.5167114158216881
+          }
+        ]
+      },
+      "maximumSurfaceGuideErrorM": 4.998849087556323e-05,
+      "durationMs": 1237
+    },
+    {
+      "scene": "island",
+      "seed": 42,
+      "curves": 5,
+      "nodes": 19,
+      "atoms": 12,
+      "nonPlanarity": 31512.625678168195,
+      "bodyFitSamples": 48,
+      "composition": {
+        "structuralMasses": 10,
+        "smallRocks": 2,
+        "refitted": 9,
+        "pruned": 1,
+        "verifiedContactEdges": 27
+      },
+      "fitAtPointOneFiveMeter": {
+        "maxUnderM": 4.071348432288505,
+        "maxOverM": 5.433488630286565,
+        "rmsM": 1.854645860690799,
+        "toleranceM": 2.8,
+        "withinBandFraction": 0.8651211801896733,
+        "samples": 949,
+        "byCurve": [
+          {
+            "id": "main",
+            "samples": 456,
+            "maxUnderM": 4.071348432288505,
+            "maxOverM": 2.88577988859992,
+            "rmsM": 1.5825586293072162
+          },
+          {
+            "id": "branch-1",
+            "samples": 122,
+            "maxUnderM": 3.249995218022152,
+            "maxOverM": 3.5293310037830317,
+            "rmsM": 1.8477471793573723
+          },
+          {
+            "id": "branch-2",
+            "samples": 120,
+            "maxUnderM": 3.0631836978150275,
+            "maxOverM": 5.433488630286565,
+            "rmsM": 2.3763545765944745
+          },
+          {
+            "id": "branch-3",
+            "samples": 123,
+            "maxUnderM": 3.752132177405545,
+            "maxOverM": 3.8678394953634694,
+            "rmsM": 2.378233373718438
+          },
+          {
+            "id": "branch-4",
+            "samples": 128,
+            "maxUnderM": 2.909188046989735,
+            "maxOverM": 2.4102501619295573,
+            "rmsM": 1.6114202825236792
+          }
+        ]
+      },
+      "maximumSurfaceGuideErrorM": 4.991983684021761e-05,
+      "durationMs": 1175
+    },
+    {
+      "scene": "island",
+      "seed": 334,
+      "curves": 5,
+      "nodes": 19,
+      "atoms": 11,
+      "nonPlanarity": 28322.63293704003,
+      "bodyFitSamples": 47,
+      "composition": {
+        "structuralMasses": 9,
+        "smallRocks": 2,
+        "refitted": 8,
+        "pruned": 1,
+        "verifiedContactEdges": 22
+      },
+      "fitAtPointOneFiveMeter": {
+        "maxUnderM": 3.7606790043866436,
+        "maxOverM": 5.153315810966909,
+        "rmsM": 1.8553125058411761,
+        "toleranceM": 2.8,
+        "withinBandFraction": 0.8814655172413793,
+        "samples": 928,
+        "byCurve": [
+          {
+            "id": "main",
+            "samples": 437,
+            "maxUnderM": 3.7606790043866436,
+            "maxOverM": 3.4822206879171915,
+            "rmsM": 1.79746162799184
+          },
+          {
+            "id": "branch-1",
+            "samples": 106,
+            "maxUnderM": 3.272889482046443,
+            "maxOverM": 2.5318155997330205,
+            "rmsM": 1.8011867807045814
+          },
+          {
+            "id": "branch-2",
+            "samples": 110,
+            "maxUnderM": 2.7568592738469917,
+            "maxOverM": 5.153315810966909,
+            "rmsM": 2.6598115408292946
+          },
+          {
+            "id": "branch-3",
+            "samples": 121,
+            "maxUnderM": 3.348653983790289,
+            "maxOverM": 1.5744671481018084,
+            "rmsM": 1.794476009553332
+          },
+          {
+            "id": "branch-4",
+            "samples": 154,
+            "maxUnderM": 2.177258569923401,
+            "maxOverM": 2.4032188466191267,
+            "rmsM": 1.3258704012515317
+          }
+        ]
+      },
+      "maximumSurfaceGuideErrorM": 4.9971845649920965e-05,
+      "durationMs": 1108
+    },
+    {
+      "scene": "island",
+      "seed": 382,
+      "curves": 5,
+      "nodes": 19,
+      "atoms": 11,
+      "nonPlanarity": 30962.205602480164,
+      "bodyFitSamples": 46,
+      "composition": {
+        "structuralMasses": 9,
+        "smallRocks": 2,
+        "refitted": 8,
+        "pruned": 1,
+        "verifiedContactEdges": 16
+      },
+      "fitAtPointOneFiveMeter": {
+        "maxUnderM": 3.73481827462092,
+        "maxOverM": 4.665045003829697,
+        "rmsM": 1.6817915545667144,
+        "toleranceM": 2.8,
+        "withinBandFraction": 0.9129989764585466,
+        "samples": 977,
+        "byCurve": [
+          {
+            "id": "main",
+            "samples": 431,
+            "maxUnderM": 3.73481827462092,
+            "maxOverM": 4.665045003829697,
+            "rmsM": 1.913655768499579
+          },
+          {
+            "id": "branch-1",
+            "samples": 134,
+            "maxUnderM": 2.7427071279140094,
+            "maxOverM": 1.1606955567964716,
+            "rmsM": 1.2584970634775423
+          },
+          {
+            "id": "branch-2",
+            "samples": 110,
+            "maxUnderM": 3.3101515980968,
+            "maxOverM": 2.728049510149507,
+            "rmsM": 2.003297759450231
+          },
+          {
+            "id": "branch-3",
+            "samples": 145,
+            "maxUnderM": 2.676532566137574,
+            "maxOverM": 2.006055255308098,
+            "rmsM": 1.467759298069858
+          },
+          {
+            "id": "branch-4",
+            "samples": 157,
+            "maxUnderM": 2.6618165655811588,
+            "maxOverM": 1.1744476662520107,
+            "rmsM": 1.1809364173717087
+          }
+        ]
+      },
+      "maximumSurfaceGuideErrorM": 4.996861647121875e-05,
+      "raisedBranchSurfaceResponseM": 7.042583634247356,
+      "durationMs": 1762
+    },
+    {
+      "scene": "island",
+      "seed": 4294967295,
+      "curves": 5,
+      "nodes": 19,
+      "atoms": 9,
+      "nonPlanarity": 29709.22580448792,
+      "bodyFitSamples": 40,
+      "composition": {
+        "structuralMasses": 7,
+        "smallRocks": 2,
+        "refitted": 4,
+        "pruned": 2,
+        "verifiedContactEdges": 12
+      },
+      "fitAtPointOneFiveMeter": {
+        "maxUnderM": 5.081215038847956,
+        "maxOverM": 4.739354751747207,
+        "rmsM": 2.0978311420376055,
+        "toleranceM": 2.8,
+        "withinBandFraction": 0.8035527690700105,
+        "samples": 957,
+        "byCurve": [
+          {
+            "id": "main",
+            "samples": 437,
+            "maxUnderM": 3.6590614470359757,
+            "maxOverM": 3.399997709833677,
+            "rmsM": 1.9176514321980642
+          },
+          {
+            "id": "branch-1",
+            "samples": 113,
+            "maxUnderM": 5.081215038847956,
+            "maxOverM": 3.632261663725174,
+            "rmsM": 3.053633087989649
+          },
+          {
+            "id": "branch-2",
+            "samples": 112,
+            "maxUnderM": 4.431654982027744,
+            "maxOverM": 4.739354751747207,
+            "rmsM": 1.8865780844017153
+          },
+          {
+            "id": "branch-3",
+            "samples": 136,
+            "maxUnderM": 4.029658405389913,
+            "maxOverM": 3.7212918959103174,
+            "rmsM": 2.492511352135689
+          },
+          {
+            "id": "branch-4",
+            "samples": 159,
+            "maxUnderM": 3.0477512158894253,
+            "maxOverM": 1.1957585214624302,
+            "rmsM": 1.3904603861402531
+          }
+        ]
+      },
+      "maximumSurfaceGuideErrorM": 4.996679393975967e-05,
+      "durationMs": 1079
+    },
+    {
+      "scene": "peaks",
+      "seed": 0,
+      "curves": 5,
+      "nodes": 19,
+      "atoms": 14,
+      "nonPlanarity": 71450.85117134186,
+      "bodyFitSamples": 141,
+      "composition": {
+        "structuralMasses": 12,
+        "smallRocks": 2,
+        "refitted": 12,
+        "pruned": 0,
+        "verifiedContactEdges": 22
+      },
+      "fitAtPointOneFiveMeter": {
+        "maxUnderM": 4.45594323400632,
+        "maxOverM": 4.227089164178615,
+        "rmsM": 1.8084019640197302,
+        "toleranceM": 3.2,
+        "withinBandFraction": 0.9202733485193622,
+        "samples": 1317,
+        "byCurve": [
+          {
+            "id": "main",
+            "samples": 572,
+            "maxUnderM": 3.2923897681381433,
+            "maxOverM": 4.227089164178615,
+            "rmsM": 1.8792737075384927
+          },
+          {
+            "id": "branch-1",
+            "samples": 150,
+            "maxUnderM": 2.6067455124648777,
+            "maxOverM": 3.484936486243349,
+            "rmsM": 1.8979918922321815
+          },
+          {
+            "id": "branch-2",
+            "samples": 210,
+            "maxUnderM": 4.45594323400632,
+            "maxOverM": 4.16587384953724,
+            "rmsM": 1.7848187367551533
+          },
+          {
+            "id": "branch-3",
+            "samples": 210,
+            "maxUnderM": 2.941263113011546,
+            "maxOverM": 2.8430141138273157,
+            "rmsM": 1.6542574593993242
+          },
+          {
+            "id": "branch-4",
+            "samples": 175,
+            "maxUnderM": 3.616248952606472,
+            "maxOverM": 1.3080098447257065,
+            "rmsM": 1.6951809674577882
+          }
+        ]
+      },
+      "maximumSurfaceGuideErrorM": 4.995006592878326e-05,
+      "durationMs": 1424
+    },
+    {
+      "scene": "peaks",
+      "seed": 42,
+      "curves": 6,
+      "nodes": 24,
+      "atoms": 19,
+      "nonPlanarity": 80323.56864636757,
+      "bodyFitSamples": 142,
+      "composition": {
+        "structuralMasses": 17,
+        "smallRocks": 2,
+        "refitted": 14,
+        "pruned": 0,
+        "verifiedContactEdges": 41
+      },
+      "fitAtPointOneFiveMeter": {
+        "maxUnderM": 4.238847674364024,
+        "maxOverM": 4.799305103252408,
+        "rmsM": 2.1541017923569465,
+        "toleranceM": 3.2,
+        "withinBandFraction": 0.8426896977174584,
+        "samples": 1621,
+        "byCurve": [
+          {
+            "id": "main",
+            "samples": 590,
+            "maxUnderM": 4.111244060608389,
+            "maxOverM": 4.689895856726249,
+            "rmsM": 2.465391355804534
+          },
+          {
+            "id": "branch-1",
+            "samples": 193,
+            "maxUnderM": 3.946571557785701,
+            "maxOverM": 1.379983607233708,
+            "rmsM": 2.070193442065111
+          },
+          {
+            "id": "branch-2",
+            "samples": 215,
+            "maxUnderM": 2.886402498690124,
+            "maxOverM": 4.799305103252408,
+            "rmsM": 1.7737956460551405
+          },
+          {
+            "id": "branch-3",
+            "samples": 229,
+            "maxUnderM": 3.8564687110791347,
+            "maxOverM": 3.774142327636202,
+            "rmsM": 2.1251660211046897
+          },
+          {
+            "id": "branch-4",
+            "samples": 195,
+            "maxUnderM": 2.4389561919400453,
+            "maxOverM": 3.5850244737827417,
+            "rmsM": 1.840540161160706
+          },
+          {
+            "id": "branch-5",
+            "samples": 199,
+            "maxUnderM": 4.238847674364024,
+            "maxOverM": 0.7971912042745313,
+            "rmsM": 1.9246538502490536
+          }
+        ]
+      },
+      "maximumSurfaceGuideErrorM": 4.999235627067833e-05,
+      "durationMs": 1901
+    },
+    {
+      "scene": "peaks",
+      "seed": 334,
+      "curves": 5,
+      "nodes": 19,
+      "atoms": 15,
+      "nonPlanarity": 75696.85310330126,
+      "bodyFitSamples": 143,
+      "composition": {
+        "structuralMasses": 13,
+        "smallRocks": 2,
+        "refitted": 8,
+        "pruned": 0,
+        "verifiedContactEdges": 26
+      },
+      "fitAtPointOneFiveMeter": {
+        "maxUnderM": 5.18068357673164,
+        "maxOverM": 4.398674552772338,
+        "rmsM": 2.2237875786550863,
+        "toleranceM": 3.2,
+        "withinBandFraction": 0.8282608695652174,
+        "samples": 1380,
+        "byCurve": [
+          {
+            "id": "main",
+            "samples": 582,
+            "maxUnderM": 3.741222979680934,
+            "maxOverM": 4.398674552772338,
+            "rmsM": 2.436704019877774
+          },
+          {
+            "id": "branch-1",
+            "samples": 220,
+            "maxUnderM": 3.5822908526145625,
+            "maxOverM": 3.1320505098381872,
+            "rmsM": 1.6214511340846267
+          },
+          {
+            "id": "branch-2",
+            "samples": 197,
+            "maxUnderM": 5.18068357673164,
+            "maxOverM": 3.9819389224151482,
+            "rmsM": 2.3094943052187515
+          },
+          {
+            "id": "branch-3",
+            "samples": 188,
+            "maxUnderM": 3.37744349735857,
+            "maxOverM": 4.366314434062563,
+            "rmsM": 2.3472225015695463
+          },
+          {
+            "id": "branch-4",
+            "samples": 193,
+            "maxUnderM": 3.1017910911657296,
+            "maxOverM": 3.272756365491391,
+            "rmsM": 1.9096795376350864
+          }
+        ]
+      },
+      "maximumSurfaceGuideErrorM": 4.985755281872173e-05,
+      "durationMs": 1484
+    },
+    {
+      "scene": "peaks",
+      "seed": 382,
+      "curves": 5,
+      "nodes": 19,
+      "atoms": 16,
+      "nonPlanarity": 84747.56076618758,
+      "bodyFitSamples": 145,
+      "composition": {
+        "structuralMasses": 14,
+        "smallRocks": 2,
+        "refitted": 12,
+        "pruned": 1,
+        "verifiedContactEdges": 29
+      },
+      "fitAtPointOneFiveMeter": {
+        "maxUnderM": 4.210537954232959,
+        "maxOverM": 5.534267823842825,
+        "rmsM": 2.03756359233035,
+        "toleranceM": 3.2,
+        "withinBandFraction": 0.8905109489051095,
+        "samples": 1370,
+        "byCurve": [
+          {
+            "id": "main",
+            "samples": 554,
+            "maxUnderM": 2.2601706725096307,
+            "maxOverM": 5.534267823842825,
+            "rmsM": 2.3583623370756546
+          },
+          {
+            "id": "branch-1",
+            "samples": 233,
+            "maxUnderM": 3.814533730197221,
+            "maxOverM": 3.1850337525214965,
+            "rmsM": 1.8429617240410343
+          },
+          {
+            "id": "branch-2",
+            "samples": 204,
+            "maxUnderM": 3.7186328965931637,
+            "maxOverM": 4.51166026277615,
+            "rmsM": 1.965732133151587
+          },
+          {
+            "id": "branch-3",
+            "samples": 201,
+            "maxUnderM": 2.197371727571758,
+            "maxOverM": 4.117574034775101,
+            "rmsM": 1.6705561338193096
+          },
+          {
+            "id": "branch-4",
+            "samples": 178,
+            "maxUnderM": 4.210537954232959,
+            "maxOverM": 3.974328592825021,
+            "rmsM": 1.6178400736220164
+          }
+        ]
+      },
+      "maximumSurfaceGuideErrorM": 4.982958473931376e-05,
+      "raisedBranchSurfaceResponseM": 5.959972486988356,
+      "durationMs": 2415
+    },
+    {
+      "scene": "peaks",
+      "seed": 4294967295,
+      "curves": 6,
+      "nodes": 24,
+      "atoms": 23,
+      "nonPlanarity": 90863.26501219884,
+      "bodyFitSamples": 171,
+      "composition": {
+        "structuralMasses": 21,
+        "smallRocks": 2,
+        "refitted": 18,
+        "pruned": 2,
+        "verifiedContactEdges": 69
+      },
+      "fitAtPointOneFiveMeter": {
+        "maxUnderM": 4.222806808417165,
+        "maxOverM": 7.127637642461069,
+        "rmsM": 2.302211432693542,
+        "toleranceM": 3.2,
+        "withinBandFraction": 0.828391167192429,
+        "samples": 1585,
+        "byCurve": [
+          {
+            "id": "main",
+            "samples": 568,
+            "maxUnderM": 3.974207590392089,
+            "maxOverM": 7.127637642461069,
+            "rmsM": 2.789142482647408
+          },
+          {
+            "id": "branch-1",
+            "samples": 146,
+            "maxUnderM": 3.478598068128907,
+            "maxOverM": 5.059361608925352,
+            "rmsM": 2.5652114374129384
+          },
+          {
+            "id": "branch-2",
+            "samples": 238,
+            "maxUnderM": 1.5,
+            "maxOverM": 3.3809763383367155,
+            "rmsM": 1.5475488324676163
+          },
+          {
+            "id": "branch-3",
+            "samples": 204,
+            "maxUnderM": 3.6246168969539028,
+            "maxOverM": 4.533371464798945,
+            "rmsM": 1.7858660608576296
+          },
+          {
+            "id": "branch-4",
+            "samples": 227,
+            "maxUnderM": 4.222806808417165,
+            "maxOverM": 5.984365651798397,
+            "rmsM": 2.5277575571376176
+          },
+          {
+            "id": "branch-5",
+            "samples": 202,
+            "maxUnderM": 3.674797042298035,
+            "maxOverM": 1.7103232144319591,
+            "rmsM": 1.316999002360742
+          }
+        ]
+      },
+      "maximumSurfaceGuideErrorM": 4.999349316925361e-05,
+      "durationMs": 2522
+    }
+  ]
+}
