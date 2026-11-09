@@ -23,7 +23,7 @@ export function drawPoiDistribution(plan: IslandPlan): string {
 export function drawPoiTerritories(plan: IslandPlan): string {
   const height = plan.regionFields?.elevation ? createPlanningGroundSampler(plan) : undefined;
   const path = (points: { x: number; z: number }[]) =>
-    points.map((p, i) => `${i ? "L" : "M"}${p.x.toFixed(2)},${p.z.toFixed(2)}`).join(" ") + " Z";
+    points.map((p, i) => `${i ? "L" : "M"}${p.x.toFixed(2)},${p.z.toFixed(2)}`).join(" ") + (points.length ? " Z" : "");
   return (
     "<g>" +
     poiTerritories(plan)

@@ -4,13 +4,30 @@
 
 ```ts
 registerNativeWater();
+// The host owns the scene system and selects its camera before publishing bodies.
 const system = scene.createRootEntity("Water System").addComponent(WaterSystem);
 system.camera = camera;
+const { shape, terrain } = createWaterCreationPreset("lake");
+// Persist terrain as the ordinary JSON/Buffer pair, and load a native Water Material.
 const body = scene.createRootEntity("Lake").addComponent(WaterBodyComponent);
-await body.configure({ asset: new WaterBodyResource(engine, definition.asset),
-  look: new WaterLookResource(engine, definition.look), quality: new WaterQualityResource(engine, definition.quality) });
-const api = new WaterAPI(system);
+body.authoring = {
+  shape,
+  terrain: { mode: "asset", description: bedDescription, heights: bedHeights },
+  material
+};
+await body.ready;
 ```
+
+`createWaterCreationPreset(kind)` is CPU-only and returns a fresh shape plus a matching computational bed for Lake/River/Ocean. It does not create visible terrain or carve it. `validateWaterShape`, `compileWaterShape`, `createWaterQualitySettings`, `patchWaterQualitySettings` and `validateWaterAuthoringSettings` remain the shared authoring boundary. `validateWaterWorldTransform(kind, connected, {position, rotationQuaternion, scale})` checks effective world placement, including parent transforms; quaternion order is XYZW.
+
+Authoring is the public component input. Body/Look/Quality resources and `configure` remain low-level compiler/runtime bridges, not required project assets. Editor writes authoring through its Model transactions; direct Engine assignment is for pure Engine hosts.
+
+`compileWaterConnectionGraph(inputs)` validates and compiles static author connections without Engine/GPU objects. Each input contains `id`, `shape`, an accepted `WaterTerrainSnapshot`, and `connections` with `id`, `targetId`, `section`, `transitionLengths`. It shares native connection facts, level/bed consistency, footprint checks and shore-field compilation. Scope and final world-transform validation remain with the caller; connected shapes are identity/world aligned. The accepted bed must cover the expanded shore field, not only the cross-section. The result is `{ byBody, hash, count }`; compilation does not modify inputs or terrain.
+
+`system.resolveRenderOwner(entity)` returns the current WaterBodyComponent for a generated render descendant. Ownership comes from published render roots, not names. Staging roots, retired generations, hidden/disabled bodies and destroyed owners return `undefined`. This read does not allocate runtime resources or expose backend internals.
+
+Native surface renderers consume the authored Shader for Lake, River and the Ocean near surface. Runtime geometry, query and optical bindings remain Water-owned; this does not make an arbitrary non-Water Shader compatible. Ocean assets must also provide a `WaterFar` SubShader. Far rings use a private shader derived from that authored region, preserving its specialized sampler budget. Replacing the asset without this region is rejected by `validateWaterShaderCapabilities` before publication. Native project textures are borrowed: Water releases its lease without destroying the asset.
+
 
 类型从 shared/water/native 导入；完整有效输入见 tests/fixtures/nativeWaterFixtures.ts。有限水体支持平移/Y旋转，不支持缩放/倾斜；Ocean 每Scene最多一个活动实例。Camera 必须归当前Scene，发布后不能换绑。湖/河需要宿主已接受地形；terrain.modifiedByWater=false，组件发布不表示修改地形。
 
@@ -31,7 +48,11 @@ prepareBatch(updates,signal,removals) 支持同Scene的新增/修改/移除组�
 
 ## 资源与存档
 
-Body/Look/Quality继承ReferResource；ResourceManager加载type:WaterResource并缓存.water文件。格式 `{version:1,kind:"body"|"look"|"quality",data}`；serializeWaterResource/parseWaterResource往返，TypedArray编码为{$waterArray,values}，派生Ocean transfer不保存。waterBodyComponentData输出原生ComponentSchema，沿用Scene/Prefab的entities/components/refs和$ref/$component；宿主保存资源URL与Scene，不另建世界存档服务。
+Source 的 `authoring.terrain` 明确选择 `{mode:"host"}` 或 `{mode:"asset",description:{$ref:"床面.json"},heights:{$ref:"床面.bin"}}`。host 模式使用宿主本次接受的 Terrain；asset 模式由原生 JSONAsset 和 BufferAsset 提供共享输入。描述文件不保存资源路径，两条依赖都位于 Scene/Prefab 的原生引用位置。两种来源互斥，不回退到隐含平底。
+
+高度数据使用 float64-le，保留米制数值、网格起点、两个方向的采样间距、插值方式与 refinement。描述记录版本、长度及 SHA-256；错误配对、非法数值和不支持的范围在接受前拒绝。通过 `writeWaterTerrainAssets` 在同一次公共作者事务更新两个资产，支持撤销/重做和保存重开。复用原生 Loader，不注册 WaterResource 文件类型或专用扩展名。共享内容通过弱缓存复用已校验的不可变采样快照，组件持有该快照；JSON/Buffer 沿用引擎 EngineObject 生命周期，不伪造 ReferResource 引用计数。
+
+Body/Look/Quality 仍是编译器和低层运行 API 使用的内部资源。派生 Mesh、atlas、Ocean transfer 和渲染缓存不进入 Source。`waterBodyComponentData` 继续使用原生 Scene/Prefab 编码。
 
 ## API与Agent
 

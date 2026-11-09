@@ -6,6 +6,7 @@ import { GraphicsResource } from "./GraphicsResource";
 import { Loader } from "./Loader";
 import { LoadItem } from "./LoadItem";
 import { ReferResource } from "./ReferResource";
+import { Texture } from "../texture/Texture";
 import { request, RequestConfig } from "./request";
 
 type LoadableResource = EngineObject | Shader;
@@ -428,7 +429,17 @@ export class ResourceManager {
 
   private _loadMainAsset<T>(loader: Loader<T>, item: LoadItem, remoteAssetBaseURL: string): AssetPromise<T> {
     const loadingPromises = this._loadingPromises;
-    const promise = loader.load(item, this);
+    const promise = loader.load(item, this).then((resource) => {
+      // Sampler overrides belong to the native asset declaration, including KTX2.
+      // Container metadata still supplies defaults when the project omits a value.
+      if (resource instanceof Texture && item.params) {
+        for (const key of ["wrapModeU", "wrapModeV", "filterMode", "anisoLevel"] as const) {
+          const value = item.params[key];
+          if (value !== undefined) Reflect.set(resource, key, value);
+        }
+      }
+      return resource;
+    });
     loadingPromises[remoteAssetBaseURL] = promise;
 
     promise.then(

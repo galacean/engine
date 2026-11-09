@@ -1,5 +1,5 @@
+import { scopedLook } from "@galacean/engine-water/water/native/WaterResources";
 import type { PlanningWaterUpdate } from "../hydrology/PlanningWaterEdits";
-import { registerPlanningWaterColor } from "./PlanningWaterColors";
 import {
   registerFarmlandsRiverLook,
   registerRiverWaterBodyPresets,
@@ -17,7 +17,7 @@ import {
   WaterLookResource,
   WaterQualityResource
 } from "@galacean/engine-water/water/native/index";
-import { PlanningNativeWaterColor } from "./PlanningNativeWaterColor";
+import { readSeedWorldWaterColor } from "@galacean/engine-water/world/SeedWorldWaterColor";
 import { planningLakeRequests } from "../../semantic-study/PlanningLakeSource";
 import { registerLakeWaterLook } from "@galacean/engine-water/water/presets/lake/index";
 import { createLakeNormalResourceFactory } from "@galacean/engine-water/water/resources/lake/index";
@@ -80,6 +80,9 @@ export interface PlanningWaterRuntimeOptions {
   root: Entity;
   camera: Camera;
   environmentReflection?: WaterEnvironmentReflectionSource;
+  /** Project hosts lend Source components; planning previews may own generated runtime components. */
+  readBody?: (planningId: string) => WaterBodyComponent | undefined;
+  pickId?: (planningId: string) => string | undefined;
 }
 
 /** A prepared body set owns hidden resources until exactly one commit or rollback. */
@@ -97,7 +100,6 @@ export class PlanningWaterRuntime {
     return this.system.runtimeHost;
   }
   readonly system: WaterSystem;
-  readonly colorAuthoring: PlanningNativeWaterColor;
   private readonly components = new Map<string, WaterBodyComponent>();
   private readonly componentRoot: Entity;
   private readonly queryPosition = new Vector3();
@@ -175,7 +177,6 @@ export class PlanningWaterRuntime {
         }
       }
     );
-    this.colorAuthoring = new PlanningNativeWaterColor(this.system, (id) => this.components.get(id));
   }
 
   /** Prepare hidden bodies without changing published queries, IDs or the current plan. */
@@ -279,10 +280,15 @@ export class PlanningWaterRuntime {
           for (const [id, entry] of savedRequests) this.requestCache.set(id, entry);
           this.oceanRequest = savedOcean;
         };
-        const requests = (waterUpdate ? this.requests(plan, waterUpdate) : this.requests(plan)).map((request) => ({
-          ...request,
-          instance: { ...request.instance }
-        }));
+        const requests = (waterUpdate ? this.requests(plan, waterUpdate) : this.requests(plan))
+          .filter(
+            (request) =>
+              !this.options.readBody || request.bodyId !== "planning-ocean" || this.options.readBody(request.bodyId)
+          )
+          .map((request) => ({
+            ...request,
+            instance: { ...request.instance }
+          }));
         const nextPublished = new Map<
           string,
           { signature: string; asset: WaterBodyResource; quality: WaterQualityResource }
@@ -299,12 +305,18 @@ export class PlanningWaterRuntime {
         const updates: Array<{ body: WaterBodyComponent; configuration: WaterBodyConfiguration }> = [];
         for (const request of requests) {
           pending.signal.throwIfAborted();
-          let body = this.components.get(request.bodyId);
+          let body =
+            this.options.readBody?.(request.bodyId) ??
+            (this.options.readBody ? undefined : this.components.get(request.bodyId));
+          if (this.options.readBody && !body)
+            throw new Error(`MISSING_DEPENDENCY: Source Water '${request.bodyId}' is missing.`);
+          const input = body?.authoring;
           const signature = hashStableValue({
             source: request.asset.sourceHash,
             representation: request.asset.representationDataHash,
             kind: request.asset.kind,
-            instance: request.instance
+            instance: request.instance,
+            authoring: input && body!._authoringKey()
           });
           const published = this.publishedRequests.get(request.bodyId);
           if (
@@ -322,23 +334,22 @@ export class PlanningWaterRuntime {
             fresh.push(body);
           }
           const configuration: WaterBodyConfiguration = {
+            ...(this.options.readBody ? { sourceSpace: "world" as const } : {}),
             asset:
               waterUpdate?.bodyId === request.bodyId && !waterUpdate.surface && body.configuration
                 ? body.configuration.asset
                 : own(new WaterBodyResource(this.options.engine, request.asset)),
-            look: own(
-              this.colorAuthoring.apply(
-                request.bodyId,
-                own(
+            look: input
+              ? undefined
+              : own(
                   new WaterLookResource(
                     this.options.engine,
                     this.host.assets.getLookAuthoringSnapshot(request.instance.lookPresetId)!
                   )
-                )
-              )
-            ),
-            quality:
-              waterUpdate?.bodyId === request.bodyId && !waterUpdate.surface && body.configuration
+                ),
+            quality: input
+              ? body!._compileQuality()
+              : waterUpdate?.bodyId === request.bodyId && !waterUpdate.surface && body.configuration
                 ? body.configuration.quality
                 : own(
                     new WaterQualityResource(
@@ -346,21 +357,36 @@ export class PlanningWaterRuntime {
                       this.host.assets.getQualityPlan(request.instance.qualityPlanId)!
                     )
                   ),
-            visible: request.instance.visible,
-            priority: request.instance.priority,
-            interaction: request.instance.interaction,
-            representationState: request.instance.representationState
+            material: input?.material,
+            visible: input?.visible ?? request.instance.visible,
+            priority: input?.priority ?? request.instance.priority,
+            interaction: input?.interaction ?? request.instance.interaction,
+            representationState:
+              input?.shape.kind === "ocean" ? input.shape.layout : request.instance.representationState
           };
           updates.push({ body, configuration });
           nextPublished.set(request.bodyId, { signature, asset: configuration.asset, quality: configuration.quality });
           await onResourcesPrepared?.(updates.length, requests.length);
           pending.signal.throwIfAborted();
         }
-        const removed = [...this.components.values()].filter((body) => !ids.has(body.waterId));
-        const previousConfigurations = [...updates.map((update) => update.body), ...removed]
+        const removed = [...this.components]
+          .filter(([id, body]) => !ids.has(id) || (this.options.readBody && this.options.readBody(id) !== body))
+          .map(([, body]) => body)
+          .filter((body) => !updates.some((update) => update.body.waterId === body.waterId));
+        const replaced = [...this.components.values()].filter((body) =>
+          updates.some((update) => update.body !== body && update.body.waterId === body.waterId)
+        );
+        const previousConfigurations = [...new Set([...updates.map((update) => update.body), ...removed, ...replaced])]
           .map((body) => body.configuration!)
           .filter(Boolean);
-        prepared = await this.system.prepareBatch(updates, pending.signal, removed);
+        prepared =
+          updates.length || removed.length
+            ? await this.system.prepareBatch(updates, pending.signal, removed)
+            : {
+                shaderWarmupRoots: [],
+                rollback: async () => {},
+                commit: () => ({ revision: this.publishedRevision, retiredCleanup: Promise.resolve() })
+              };
         pending.signal.throwIfAborted();
         const runtime = this;
         return {
@@ -381,15 +407,29 @@ export class PlanningWaterRuntime {
             const publication = prepared!.commit();
             this.publishedRevision = publication.revision;
             // The Host has already installed these visibility flags and query routes synchronously.
-            for (const body of removed) this.components.delete(body.waterId);
+            for (const [id, body] of this.components) if (removed.includes(body)) this.components.delete(id);
             this.publishedRequests = nextPublished;
-            for (const { body } of updates) this.components.set(body.waterId, body);
+            for (const request of requests) {
+              const body =
+                this.options.readBody?.(request.bodyId) ??
+                updates.find((update) => update.body.waterId === request.bodyId)?.body;
+              if (body) {
+                this.components.set(request.bodyId, body);
+                const published = nextPublished.get(request.bodyId);
+                if (published && body.configuration) published.asset = body.configuration.asset;
+              }
+            }
 
             if (visibility) {
               this.oceanVisible = visibility.ocean;
               this.riversVisible = visibility.rivers;
             }
-            this.activeIds = ids;
+            this.activeIds = new Set(
+              [...ids].filter((id) => {
+                const body = this.components.get(id);
+                return body?.enabled && body.entity.isActiveInHierarchy;
+              })
+            );
             this.plan = plan;
             this.runtimePlan = plan;
             if (!runtimeRestoration) this.latestPlan = plan;
@@ -399,7 +439,9 @@ export class PlanningWaterRuntime {
             // never to the synchronous accepted-state publication boundary.
             const retiredCleanup = Promise.allSettled([
               publication.retiredCleanup,
+              ...replaced.filter((body) => body.destroyed || body.pendingDestroy).map((body) => body.dispose()),
               ...removed.map(async (body) => {
+                if (this.options.readBody) return;
                 try {
                   await body.dispose();
                 } finally {
@@ -416,7 +458,12 @@ export class PlanningWaterRuntime {
               for (const resource of new Set(
                 previousConfigurations.flatMap((config) => [config.asset, config.look, config.quality])
               )) {
-                if (retained.has(resource)) continue;
+                if (
+                  !resource ||
+                  retained.has(resource) ||
+                  (this.options.readBody && !(resource instanceof WaterBodyResource))
+                )
+                  continue;
                 try {
                   resource.destroy();
                 } catch (error) {
@@ -454,7 +501,14 @@ export class PlanningWaterRuntime {
 
   /** Convenience path shares the prepared publication implementation. */
   async synchronize(plan: IslandPlan, signal?: AbortSignal, runtimeRestoration = false): Promise<void> {
-    if (this.plan === plan && !this.pending && !this.destroyed && this.system.runtimeState.phase === "enabled") return;
+    if (
+      !this.options.readBody &&
+      this.plan === plan &&
+      !this.pending &&
+      !this.destroyed &&
+      this.system.runtimeState.phase === "enabled"
+    )
+      return;
     const prepared = await this.prepare(plan, signal, undefined, undefined, runtimeRestoration);
     try {
       await prepared.commit().retiredCleanup;
@@ -497,6 +551,14 @@ export class PlanningWaterRuntime {
           !!this.plan?.waters.some((water) => water.kind === "river" && this.activeIds.has(water.id));
   }
 
+  readColor(id: string) {
+    const body = this.components.get(id),
+      config = body?.configuration;
+    return body && !body.destroyed && !body.pendingDestroy && config
+      ? readSeedWorldWaterColor(scopedLook(config.look, config.material))
+      : undefined;
+  }
+
   /** Inspect real active Water bodies and resource ownership for automated acceptance. */
   getDiagnostics() {
     const host = this.system.activeRuntimeHost?.getDiagnostics();
@@ -528,8 +590,9 @@ export class PlanningWaterRuntime {
 
   /** Static agricultural facts use the actually accepted Water bodies, without following future publications. */
   captureGrounding() {
-    const fields = (this.system.runtimeState.effectiveEnabled ? [...this.activeIds] : []).flatMap((id) => {
-      const body = this.system.activeRuntimeHost?.getBodyHandle(id);
+    const fields = (this.system.runtimeState.effectiveEnabled ? this.system.bodies : []).flatMap((component) => {
+      const id = component.waterId,
+        body = this.system.activeRuntimeHost?.getBodyHandle(id);
       if (!body?.active || !body.queryEnabled) return [];
       const field = body.runtimeInterfaces.spatialField;
       if (!field?.capture) throw new Error(`Published water ${id} cannot capture static grounding facts`);
@@ -537,7 +600,7 @@ export class PlanningWaterRuntime {
     });
     const sample = createWaterSpatialFieldSample();
     return Object.freeze({
-      revision: this.publishedRevision,
+      revision: this.system.revision,
       spatialFields: Object.freeze(fields),
       underwater: (x: number, z: number, height: number) =>
         fields.some(
@@ -572,6 +635,7 @@ export class PlanningWaterRuntime {
   private pickVisitor?: SeedWorldPickVisitor;
   private readonly visitPickRendererBound = this.visitPickRenderer.bind(this);
   private visitPickRenderer(bodyId: string, renderer: MeshRenderer): void {
+    bodyId = [...this.components].find(([, body]) => body.waterId === bodyId)?.[0] ?? bodyId;
     let kind: string | undefined = bodyId === "planning-ocean" ? "ocean" : undefined;
     if (!kind && this.plan) {
       for (let i = 0; i < this.plan.waters.length; i++) {
@@ -585,7 +649,7 @@ export class PlanningWaterRuntime {
     if (!kind) return;
     let batch = this.pickBatches.get(renderer);
     if (!batch || batch.bodyId !== bodyId || batch.kind !== kind) {
-      batch = new PlanningWaterPickBatch(renderer, bodyId, kind);
+      batch = new PlanningWaterPickBatch(renderer, bodyId, kind, this.options.pickId?.(bodyId));
       this.pickBatches.set(renderer, batch);
     }
     this.pickVisitor!(batch);
@@ -617,11 +681,19 @@ export class PlanningWaterRuntime {
     const bodies = [...this.components.values()].map((body) => ({ body, config: body.configuration }));
     try {
       await finishPlanningWaterCleanup(
-        bodies.flatMap(({ body, config }) => [
-          () => body.dispose(),
-          () => body.entity.destroy(),
-          ...(config ? [config.asset, config.look, config.quality].map((resource) => () => resource.destroy()) : [])
-        ]),
+        bodies.flatMap(({ body, config }) =>
+          this.options.readBody
+            ? []
+            : [
+                () => body.dispose(),
+                () => body.entity.destroy(),
+                ...(config
+                  ? [config.asset, config.quality, ...(config.look ? [config.look] : [])].map(
+                      (resource) => () => resource.destroy()
+                    )
+                  : [])
+              ]
+        ),
         "Planning Water unloaded-resource cleanup failed"
       );
     } finally {
@@ -652,10 +724,18 @@ export class PlanningWaterRuntime {
       await finishPlanningWaterCleanup(
         [
           () => this.system.dispose(),
-          ...bodies.flatMap(({ body, config }) => [
-            () => body.dispose(),
-            ...(config ? [config.asset, config.look, config.quality].map((resource) => () => resource.destroy()) : [])
-          ]),
+          ...bodies.flatMap(({ body, config }) =>
+            this.options.readBody
+              ? []
+              : [
+                  () => body.dispose(),
+                  ...(config
+                    ? [config.asset, config.quality, ...(config.look ? [config.look] : [])].map(
+                        (resource) => () => resource.destroy()
+                      )
+                    : [])
+                ]
+          ),
           () => this.componentRoot.destroy()
         ],
         "Planning Water shutdown cleanup failed",
@@ -671,12 +751,6 @@ export class PlanningWaterRuntime {
   }
 
   private requests(plan: IslandPlan, update?: PlanningWaterUpdate): WaterSceneBodyRequest[] {
-    const colorFor = (id: string) => {
-      const resource = plan.authoredResources?.find((resource) => resource.resourceId === id);
-      return resource?.resourceType === "river" || resource?.resourceType === "water-body"
-        ? resource.properties.colorRgb
-        : undefined;
-    };
     const { engine, camera } = this.options;
     const oceanRequest = (): WaterSceneBodyRequest => {
       const prepared = compilePlanningOcean(plan);
@@ -752,9 +826,7 @@ export class PlanningWaterRuntime {
         instance: createRiverWaterBodyInstance({
           id: river.id,
           assetId: asset.id,
-          lookPresetId: this.host.registerAuthoring((assets) =>
-            registerPlanningWaterColor(assets, river.id, waterPresentation.riverLookId, colorFor(river.id))
-          ),
+          lookPresetId: waterPresentation.riverLookId,
           qualityPlanId: riverQualityPlanIdForQuality(river.defaults.quality.material.level),
           visible: this.riversVisible,
           priority: 12
@@ -813,9 +885,7 @@ export class PlanningWaterRuntime {
           instance: {
             ...cached.request.instance,
             visible: this.riversVisible,
-            lookPresetId: this.host.registerAuthoring((assets) =>
-              registerPlanningWaterColor(assets, water.id, cached.baseLookId, colorFor(water.id))
-            )
+            lookPresetId: cached.baseLookId
           }
         };
         this.requestCache.set(water.id, { ...cached, request });
@@ -830,11 +900,12 @@ class PlanningWaterPickBatch extends SeedWorldArrayPickBatch {
   constructor(
     renderer: MeshRenderer,
     readonly bodyId: string,
-    readonly kind: string
+    readonly kind: string,
+    sourceId?: string
   ) {
     super(renderer);
     this.count = 1;
-    this.id = `natural:${kind}:${bodyId}`;
+    this.id = sourceId ?? `natural:${kind}:${bodyId}`;
   }
   prepare(): void {
     this.state.prepare(this.renderer.getMaterials());

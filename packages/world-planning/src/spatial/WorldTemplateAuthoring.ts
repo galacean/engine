@@ -13,9 +13,10 @@ import { spatialCompositionParameters } from "./SpatialCompositionParameters";
 import { createSpatialTerrainPlan } from "./layout/SpatialTerrain";
 import { createPlanningGroundSampler } from "../semantic-study/WorldPlanningTerrain";
 import { planWorldTemplateSite } from "./WorldTemplatePlanning";
-import { planningLakeSpillLevel } from "../semantic-study/PlanningLakeBasin";
 import type { PlanningResource } from "./PlanningResources";
-import { assertSeedWorldAuthoredBasinPublicParametersV1 } from "../runtime/SeedWorldAuthoredBasinWater";
+import type { SpatialEntity } from "./SpatialDocument";
+import { LAKE_DEFAULTS } from "./hydrology/LakeRegions";
+import profile from "../planning-data/settlement-profile.json";
 
 /** World material fields shared by first creation and palette-only authoring edits. */
 export function worldTemplatePaletteValues(id: string): Record<string, Record<string, number>> {
@@ -59,7 +60,10 @@ export function worldTemplatePaletteValues(id: string): Record<string, Record<st
 
 /** The canonical physical recipe is common to every Seed variation. Retain only
  * its measured author inputs, never a generated world, raster or live object. */
-const cores = new Map<string, { anchor: { x: number; z: number }; resources: PlanningResource[] }>();
+const cores = new Map<
+  string,
+  { anchor: { x: number; z: number }; resources: PlanningResource[]; lakes: SpatialEntity[] }
+>();
 function templateCore(template: WorldTemplate) {
   const cached = cores.get(template.id);
   if (cached) return cached;
@@ -107,36 +111,30 @@ function templateCore(template: WorldTemplate) {
       seed: templateBaseSeed(`${id}:${feature.id}`)
     }
   }));
-  for (const pool of art.water ?? []) {
-    const x = anchor.x - pool.x,
-      z = anchor.z + pool.z;
-    const resourceId = `template:${id}:water:${pool.id}`;
-    const shape = {
-      kind: "lake" as const,
-      x,
-      z,
-      radiusMetres: pool.radius,
-      depthMetres: pool.depth,
-      shorelineIrregularity: 0.08,
-      seed: templateBaseSeed(`${id}:${pool.id}`)
-    };
-    assertSeedWorldAuthoredBasinPublicParametersV1(shape);
-    // A lake closes at the native terrain-derived spill level. Its depth, rather
-    // than an elevated water plane, provides the submerged scene's headroom.
-    const level = planningLakeSpillLevel(base, resourceId, shape);
-    resources.push({
-      resourceId,
-      resourceType: "water-body",
-      properties: {
-        ...shape,
-        colorRgb: pool.color,
-        canonicalWaterLevelMetres: level,
-        minimumWaterLevelMetres: level - pool.depth,
-        maximumWaterLevelMetres: level,
-        waterLevelMetres: level
-      }
+  const lakes: SpatialEntity[] = (art.water ?? []).map((pool) => {
+    const lakeId = `lake:authored:template:${id}:water:${pool.id}`;
+    const shoreline = Array.from({ length: 96 }, (_, i) => {
+      const angle = (i * 2 * Math.PI) / 96;
+      return {
+        id: `${lakeId}:shore:${i}`,
+        ring: "shore",
+        x: anchor.x - pool.x + Math.cos(angle) * pool.radius,
+        z: anchor.z + pool.z + Math.sin(angle) * pool.radius
+      };
     });
-  }
+    return {
+      id: lakeId,
+      name: pool.id,
+      parent: "world",
+      origin: "generated",
+      components: {
+        lakes: {
+          base: { entity: "world", component: "lakes" },
+          values: { ...LAKE_DEFAULTS, count: 0, radiusM: pool.radius, depthM: pool.depth, shoreline, referenceLevel: 0 }
+        }
+      }
+    };
+  });
   for (const grove of art.plantings ?? [])
     resources.push({
       resourceType: "vegetation-brush",
@@ -152,7 +150,7 @@ function templateCore(template: WorldTemplate) {
         seed: templateBaseSeed(`${id}:${grove.id}`)
       }
     });
-  const core = { anchor, resources };
+  const core = { anchor, resources, lakes };
   cores.set(id, core);
   return core;
 }
@@ -195,7 +193,7 @@ export function createTemplatePlanningDocument(
     rivers: { countMin: 0, countMax: 0 },
     lakes: { countMin: 0, countMax: 0 }
   });
-  const { anchor, resources } = templateCore(template);
+  const { anchor, resources, lakes } = templateCore(template);
   recipe.parameters.worldTemplate = { id, centerX: anchor.x, centerZ: anchor.z };
   if (art.generation)
     recipe.parameters.spatialComposition = spatialCompositionParameters({
@@ -229,6 +227,33 @@ export function createTemplatePlanningDocument(
   Object.assign(components.flowers.values, art.initialFlowers);
   components.animals = { values: { enabled: false } };
   document.authoredResources = structuredClone(resources);
+  // Template lakes enter the same native Source conversion as generated lakes.
+  // Resolve their datum against this Seed's terrain before publishing the shape.
+  const terrainPlan = createSpatialTerrainPlan(exportPlanningRecipe(document));
+  const ground = createPlanningGroundSampler(terrainPlan, {
+    natural: true
+  });
+  for (const input of lakes) {
+    const lake = structuredClone(input);
+    const values = lake.components.lakes.values;
+    const shoreline = values.shoreline as { x: number; z: number }[];
+    const center = {
+      x: shoreline.reduce((sum, p) => sum + p.x, 0) / shoreline.length,
+      z: shoreline.reduce((sum, p) => sum + p.z, 0) / shoreline.length
+    };
+    values.radiusM = Math.max(...shoreline.map((p) => Math.hypot(p.x - center.x, p.z - center.z)));
+    const spacing = terrainPlan.parameters.width / (profile.world.heightmapResolution - 1);
+    const spacingZ = terrainPlan.parameters.depth / (profile.world.heightmapResolution - 1);
+    let level = Math.min(...shoreline.map((point) => ground(point)));
+    const x0 = (Math.floor(Math.min(...shoreline.map((p) => p.x)) / spacing) - 2) * spacing;
+    const z0 = (Math.floor(Math.min(...shoreline.map((p) => p.z)) / spacingZ) - 2) * spacingZ;
+    const x1 = Math.max(...shoreline.map((p) => p.x)) + spacing * 3;
+    const z1 = Math.max(...shoreline.map((p) => p.z)) + spacingZ * 3;
+    for (let z = z0; z <= z1; z += spacingZ)
+      for (let x = x0; x <= x1; x += spacing) level = Math.min(level, ground({ x, z }));
+    values.referenceLevel = Math.fround(level) - 0.001;
+    document.entities[lake.id] = lake;
+  }
   return initializePlanningPopulation(document, options);
 }
 

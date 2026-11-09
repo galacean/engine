@@ -111,6 +111,44 @@ export class RuntimeSceneEdit {
     return { ...member.record, scene: this.sceneId, entityId: member.entityId };
   }
 
+  /** Resolve native references in the owner's template scope, or explicit Scene/instance scope. */
+  resolveComponentReference(reference: GalaceanComponentRef, ownerId?: string): string | undefined {
+    const source = this.read(),
+      instances = this.instances(source),
+      target = reference.$component;
+    if (typeof target === "string") {
+      const owner = ownerId && instances.components.get(ownerId);
+      const scope =
+        owner &&
+        (owner.nested
+          ? [owner.nested.rootSceneEntityId, ...owner.nested.sourceEntityPath]
+          : instances.entities.get(owner.entityId)?.scope);
+      if (scope) {
+        const member = instances.components.get(instanceMemberId(scope, target));
+        if (member) return member.id;
+      }
+      return source.components.some((component) => component.id === target) || instances.components.has(target)
+        ? target
+        : undefined;
+    }
+    if (!target || typeof target.instance !== "string" || typeof target.target !== "string") return;
+    const members = [...instances.components.values()].filter(
+      (member) => instances.entities.get(member.entityId)?.root === target.instance && member.target === target.target
+    );
+    return members.length === 1 ? members[0].id : undefined;
+  }
+
+  /** Convert a public identity into the existing native Source reference layout. */
+  componentReference(id: string): GalaceanComponentRef {
+    const source = this.read();
+    if (source.components.some((component) => component.id === id)) return { $component: id };
+    const member = this.instanceComponent(source, id);
+    if (member.nested) throw new Error("A nested template reference must be authored in its local component scope.");
+    return {
+      $component: { instance: this.instances(source).entities.get(member.entityId)!.root, target: member.target }
+    };
+  }
+
   create(input: RuntimeEntityPatch & { name: string; parentEntityId?: string; prefab?: string }): { id: string } {
     const scene = this.read();
     const { parentEntityId, prefab, ...props } = input;
@@ -428,7 +466,13 @@ export class RuntimeSceneEdit {
     else {
       const member = this.instanceComponent(scene, id);
       if (member.nested) {
-        this.editNested(scene, member, "component.update", { props });
+        if (member.added) this.editNested(scene, member, "component.update", { props });
+        else {
+          const values = sourceOverrideValue(member.base.props ?? {}, props) as GalaceanSourceValueRecord | undefined;
+          const inherited = Object.keys(props).filter((key) => !Object.hasOwn(values ?? {}, key));
+          if (inherited.length) this.editNested(scene, member, "component.revert", { keys: inherited });
+          if (values) this.editNested(this.read(), member, "component.update", { props: values });
+        }
         return;
       }
       if (member.added) member.added.props = { ...member.added.props, ...structuredClone(props) };
@@ -438,8 +482,8 @@ export class RuntimeSceneEdit {
         const values: GalaceanSourceValueRecord = {};
         for (const [key, value] of Object.entries(props)) {
           for (const patch of patches) if (patch.target === member.target) delete patch.props?.[key];
-          // Only a value explicitly supplied by the template can be compared in a detached draft.
-          if (!sameSourceValue(value, member.base.props?.[key])) values[key] = structuredClone(value);
+          const override = sourceOverrideValue(member.base.props?.[key], value);
+          if (override !== undefined) values[key] = override;
         }
         // Property edits retain explicit method calls; only a full revert removes them.
         if (Object.keys(values).length) patches.push({ target: member.target, props: values });
@@ -647,4 +691,23 @@ function sameSourceValue(a: unknown, b: unknown): boolean {
         sameSourceValue((a as Record<string, unknown>)[key], (b as Record<string, unknown>)[key])
     )
   );
+}
+
+/** Match Source's deep merge: arrays and reference/sentinel records are atomic values. */
+function sourceOverrideValue(
+  base: GalaceanSourceValue | undefined,
+  value: GalaceanSourceValue
+): GalaceanSourceValue | undefined {
+  if (value === undefined || sameSourceValue(base, value)) return;
+  const record = (value: unknown): value is GalaceanSourceValueRecord =>
+    value !== null && typeof value === "object" && !Array.isArray(value);
+  const sentinel = (value: GalaceanSourceValueRecord) =>
+    ["$ref", "$entity", "$component", "$signal", "$type", "$class", "$number"].some((key) => key in value);
+  if (!record(base) || !record(value) || sentinel(base) || sentinel(value)) return structuredClone(value);
+  const result: GalaceanSourceValueRecord = {};
+  for (const [key, child] of Object.entries(value)) {
+    const override = sourceOverrideValue(base[key], child);
+    if (override !== undefined) result[key] = override;
+  }
+  return Object.keys(result).length ? result : undefined;
 }

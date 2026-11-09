@@ -40,6 +40,7 @@ export const OCEAN_WATER_BACKEND_ID = "ocean";
 
 export interface OceanWaterBackendRuntimeContext {
   readonly engine: Engine;
+  readonly surfaceShader?: import("@galacean/engine-core").Shader;
   readonly root: Entity;
   readonly textures: Readonly<OceanTextures>;
   readonly cameraPositionProvider: OceanCameraPositionProvider;
@@ -179,6 +180,7 @@ function createRuntimeConfig(
   const representation = effective.instance.representationState!;
   return Object.freeze({
     renderContract: effective.renderContract,
+    surfaceShader: runtime.surfaceShader,
     waterLevel: resource.data.config.waterLevel,
     nearshoreDescriptor: resource.data.config.nearshoreDescriptor,
     connections: resource.data.config.connections,

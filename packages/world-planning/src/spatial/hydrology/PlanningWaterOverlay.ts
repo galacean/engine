@@ -1,38 +1,12 @@
-import { flowerInfluenceSources, resolveFlowerInfluence } from "../ecology/FlowerInfluences";
-import { applyLandscapeInstanceEdits } from "../layout/SpatialInstanceEdits";
-import { refreshGuidanceEcologyModule } from "../guidance/GuidanceEcology";
-import { footprintLookup } from "../layout/FootprintLookup";
-import { overlap } from "../../semantic-study/WorldPlanningGeometry";
 import type { IslandPlan } from "../../semantic-study/IslandPlanModel";
 import type { SemanticResult } from "../../semantic-study/WorldPlanningContract";
-import { defaultPoiLayout } from "../../semantic-study/PoiDistribution";
-import {
-  compilePlanningWaterHeightmap,
-  cachedPlanningHeightmap,
-  planningHeightmap,
-  planningHeightmapWork,
-  inheritPlanningHeightmap,
-  type PlanningHeightmap,
-  type PlanningHeightBounds
-} from "../../semantic-study/PlanningHeightmap";
-import {
-  landscapeWaterInfluence,
-  prepareLandscapeBasemap,
-  revealLandscapeBasemap
-} from "../../semantic-study/ContextLandscape";
+import { inheritPlanningHeightmap, type PlanningHeightBounds } from "../../semantic-study/PlanningHeightmap";
 import { exportPlanningRecipe, type PlanningDocument } from "../PlanningDocument";
-import { worldTemplateEcology } from "../WorldTemplateEcology";
 import { generateSpatialWorld } from "../layout/SpatialWorld";
-import { bounds, intersects } from "../layout/Volumes";
-import { poiTerritories } from "../ecology/PoiTerritories";
-import { planFlowerRegions } from "../ecology/FlowerRegions";
-import { excludePlanningFarmLandscape } from "../farming/PlanningFarmingLayout";
-import { compileAuthoredLakes } from "./AuthoredLakes";
-import { compileAuthoredRivers } from "./AuthoredRivers";
 
-/** Derived provenance only; author files persist intent and the semantic version. */
+/** Derived publication provenance. Concrete water intent has already been projected from Source. */
 export interface PlanningWaterOverlayState {
-  mode: "overlay" | "legacy";
+  mode: "overlay";
   baseSignature: string;
   reason: string;
   bounds: readonly PlanningHeightBounds[];
@@ -44,229 +18,29 @@ function canonical(value: unknown): unknown {
   if (value && typeof value === "object")
     return Object.fromEntries(
       Object.entries(value)
-        .filter(([, v]) => v !== undefined)
+        .filter(([, child]) => child !== undefined)
         .sort(([a], [b]) => a.localeCompare(b))
-        .map(([k, v]) => [k, canonical(v)])
+        .map(([key, child]) => [key, canonical(child)])
     );
   return value;
 }
-function baseDocument(document: PlanningDocument): PlanningDocument {
-  const result = structuredClone(document);
-  delete result.waterAuthoringVersion;
-  delete result.placementState;
-  delete result.layoutOverrides;
-  result.revision = 0;
-  result.authoredResources = (result.authoredResources ?? []).filter(
-    (r) => r.resourceType !== "water-body" && r.resourceType !== "river"
-  );
-  return result;
-}
-function waterSupport(plan: IslandPlan, map: PlanningHeightmap): PlanningHeightBounds[] {
-  // The broad-relief river grade limiter has unbounded support. Preserve its algorithm.
-  if (plan.authoredResources?.some((r) => r.resourceType === "river"))
-    return [[0, 0, plan.parameters.width, plan.parameters.depth]];
-  return (plan.authoredResources ?? []).flatMap((r) =>
-    r.resourceType === "water-body"
-      ? [
-          [
-            r.properties.x - r.properties.radiusMetres * 1.5 - map.spacingX,
-            r.properties.z - r.properties.radiusMetres * 1.5 - map.spacingZ,
-            r.properties.x + r.properties.radiusMetres * 1.5 + map.spacingX,
-            r.properties.z + r.properties.radiusMetres * 1.5 + map.spacingZ
-          ] as PlanningHeightBounds
-        ]
-      : []
+function bodyInput(plan: IslandPlan | undefined, id: string): unknown {
+  return (
+    plan && [
+      plan.waters.find((water) => water.id === id),
+      plan.planning?.profiles.filter((profile) => profile.ownerId === id)
+    ]
   );
 }
-function applyLayer(
-  document: PlanningDocument,
-  base: SemanticResult,
-  signature: string,
-  previous: SemanticResult | undefined,
-  progress?: (stage: string) => void,
-  baseReused = true,
-  options: { environment?: boolean } = {}
-): SemanticResult {
-  const started = performance.now(),
-    recipe = exportPlanningRecipe(document);
-  const plan: IslandPlan = {
-    ...base.plan,
-    authoredWaterLayer: 1,
-    authoredResources: structuredClone(document.authoredResources ?? []),
-    waters: [...base.plan.waters],
-    planning: base.plan.planning && {
-      ...base.plan.planning,
-      profiles: [...base.plan.planning.profiles],
-      revision: document.revision
-    }
-  };
-  compileAuthoredRivers(plan);
-  compileAuthoredLakes(plan);
-  const support = waterSupport(plan, planningHeightmap(base.plan));
-  progress?.("更新作者水体地形采样");
-  const heightStarted = performance.now(),
-    heightCached = !!cachedPlanningHeightmap(plan);
-  const height = compilePlanningWaterHeightmap(plan, planningHeightmap(base.plan), support);
-  const timings: Record<string, number> = {
-    "waterOverlay.height.wall": performance.now() - heightStarted,
-    "waterOverlay.height.cacheHit": Number(heightCached)
-  };
-  for (const [key, value] of Object.entries(heightCached ? {} : (planningHeightmapWork(height)?.timings ?? {})))
-    timings["waterOverlay.height." + key] = value;
-  const ecologyStarted = performance.now(),
-    config = worldTemplateEcology(
-      recipe.parameters.worldTemplate?.id,
-      recipe.parameters.poiLayout ?? defaultPoiLayout()
-    );
-  const candidates = base.plan.spatialLayout?.landscapeBase;
-  if (options.environment !== false && support.length && candidates) {
-    progress?.("更新作者水体局部生态");
-    const halo = landscapeWaterInfluence(plan, config.landscape, recipe.edits);
-    const area = bounds(
-      support.flatMap(([x0, z0, x1, z1]) => [
-        { x: x0, z: z0 },
-        { x: x1, z: z1 }
-      ]),
-      halo
-    );
-    const inside = (p: { x: number; z: number }) =>
-      p.x >= area.x0 && p.x <= area.x1 && p.z >= area.z0 && p.z <= area.z1;
-    const scoped = prepareLandscapeBasemap(plan, config.landscape, recipe.edits, area);
-    const protectedIds = new Set(base.plan.visualGuidance?.flatMap((g) => g.memberIds));
-    const proposals = [
-      ...candidates.slots.filter((slot) => protectedIds.has(slot.id) || !inside(slot.center)),
-      ...scoped.slots.filter((slot) => !protectedIds.has(slot.id))
-    ].sort((a, b) => a.id.localeCompare(b.id));
-    const masses = [...base.plan.rocks, ...(base.plan.landscapes ?? [])].filter((p) => protectedIds.has(p.id));
-    const massesAt = footprintLookup(masses, (p) => p.outline);
-    const slots = proposals.filter(
-      (p) =>
-        protectedIds.has(p.id) ||
-        !massesAt(p.center, Math.hypot(p.width, p.depth) / 2).some((m) => overlap(p.outline, m.outline))
-    );
-    plan.landscapes = [
-      ...(base.plan.spatialLayout?.baselineLandscapes ?? base.plan.landscapes ?? []).filter((p) => p.role === "poi"),
-      ...slots.flatMap((p) => (p.baseHeight === undefined ? [] : [{ ...p, baseHeight: p.baseHeight }]))
-    ];
-    const landscapeBase = {
-      signature: signature + scoped.signature,
-      slots,
-      weights: Object.fromEntries(
-        slots
-          .map((slot) => [slot.id, scoped.weights[slot.id] ?? candidates.weights[slot.id]])
-          .filter(([, weight]) => !!weight)
-      )
-    };
-    plan.spatialLayout = { ...base.plan.spatialLayout!, landscapeBase };
-    const owners = new Set(
-      poiTerritories(plan)
-        .filter((t) => t.outline.length && intersects(bounds(t.outline), area))
-        .map((t) => t.poiId)
-    );
-    for (const source of flowerInfluenceSources(plan)) {
-      const influence = resolveFlowerInfluence(source, {}, recipe.edits[source.id]?.flowerInfluence);
-      if (source.regionOwner && influence.enabled && intersects(bounds(source.outline, influence.bandM), area))
-        owners.add(source.id);
-    }
-    for (const flower of base.plan.flowerRegions ?? [])
-      if (flower.outline.length && intersects(bounds(flower.outline), area)) owners.add(flower.ownerId);
-    plan.flowerRegions = planFlowerRegions(
-      plan,
-      recipe.parameters.flowers,
-      recipe.edits,
-      config.landscape.boundaryBlendM,
-      undefined,
-      { owners, previous: base.plan.flowerRegions ?? [] },
-      slots.filter((p) => p.kind === "rock")
-    );
-    plan.landscapes = revealLandscapeBasemap(plan, landscapeBase, config.landscape, recipe.edits);
-    excludePlanningFarmLandscape(plan);
-    applyLandscapeInstanceEdits(plan, document, height.sample);
-    refreshGuidanceEcologyModule(plan);
-  }
-  if (!support.length && plan.spatialLayout) plan.spatialLayout = { ...plan.spatialLayout };
-  timings["waterOverlay.ecology"] = performance.now() - ecologyStarted;
-  const oldAuthors = previous?.plan.authoredResources ?? [],
-    authors = plan.authoredResources ?? [];
-  const ids = new Set(
-    [...oldAuthors, ...authors]
-      .filter((r) => r.resourceType === "water-body" || r.resourceType === "river")
-      .map((r) => r.resourceId)
-  );
-  const dirtyWaterIds = [...ids].filter(
-    (id) =>
-      JSON.stringify(oldAuthors.find((r) => r.resourceId === id)) !==
-      JSON.stringify(authors.find((r) => r.resourceId === id))
-  );
-  const changedIds = [...dirtyWaterIds];
-  if (plan.planning) plan.planning.changedIds = changedIds;
-  const hot =
-    baseReused && previous?.waterOverlay?.mode === "overlay" && previous.waterOverlay.baseSignature === signature;
-  const reason = hot
-    ? authors.some((r) => r.resourceType === "river")
-      ? "authored-river-unbounded-support"
-      : "author-water-only"
-    : "base-changed-or-cold";
-  const waterOverlay: PlanningWaterOverlayState = {
-    mode: "overlay",
-    baseSignature: signature,
-    reason,
-    bounds: support,
-    dirtyWaterIds
-  };
-  timings.total = performance.now() - started;
-  const checks = [...base.checks];
-  if (plan.planning) plan.planning.checks = checks;
-  return {
-    recipe,
-    plan,
-    accepted: base.accepted,
-    checks,
-    notes: [...base.notes],
-    changedIds,
-    execution: hot ? "water-overlay" : "full",
-    timings,
-    waterOverlay
-  };
-}
-function difference(legacy: SemanticResult, overlay: SemanticResult): string | undefined {
-  for (const key of [
-    "waters",
-    "planning",
-    "routes",
-    "roadApproaches",
-    "buildings",
-    "rocks",
-    "roadGraph",
-    "roadNetwork",
-    "farming",
-    "visualGuidance",
-    "landscapes",
-    "flowerRegions"
-  ] as const) {
-    // Planning diagnostics/revisions describe execution, not geometry.
-    const geometry = (r: SemanticResult) => (key === "planning" ? r.plan.planning?.profiles : r.plan[key]);
-    if (JSON.stringify(canonical(geometry(legacy))) !== JSON.stringify(canonical(geometry(overlay)))) return key;
-  }
-  const a = planningHeightmap(legacy.plan),
-    b = planningHeightmap(overlay.plan);
-  if (
-    a.resolution !== b.resolution ||
-    a.spacingX !== b.spacingX ||
-    a.spacingZ !== b.spacingZ ||
-    a.heights.some((height, i) => height !== b.heights[i])
-  )
-    return "canonical-float32-bed";
-  return undefined;
-}
-/** Resolve the independent global plan once; author-only changes never enter its solver.
- * @param document World authoring and native water resources.
- * @param previous Optional result with compatible water-overlay provenance.
+
+/** Resolve the independent global plan once; Source water is already projected into the document.
+ * @param document World authoring, including concrete water projected from Source.
+ * @param previous Optional result used for incremental solving and dirty-water detection.
  * @param progress Optional stage notifications.
  * @param runtimeSignature Registry/version identity for derived-cache invalidation.
  * @param options Optional environment stage; cache identity separates full and environment-free results.
- * @returns The independent layout with the canonical authored-water layer applied.
- * @throws For an unsupported water authoring version or invalid native water resources.
+ * @returns The independent layout with Source-water provenance.
+ * @throws For an unsupported water authoring version.
  */
 export function generateWaterOverlay(
   document: PlanningDocument,
@@ -276,85 +50,56 @@ export function generateWaterOverlay(
   options: { environment?: boolean } = {}
 ): SemanticResult {
   if (document.waterAuthoringVersion !== undefined && document.waterAuthoringVersion !== 1)
-    throw Error("Unsupported water authoring version");
-  const input = baseDocument(document),
-    signature = JSON.stringify([runtimeSignature, options.environment !== false, canonical(input)]);
-  const authored = document.authoredResources?.some(
-    (r) => r.resourceType === "water-body" || r.resourceType === "river"
-  );
-  if (!document.waterAuthoringVersion && previous?.waterOverlay?.mode === "legacy") {
-    const legacy = generateSpatialWorld(document, previous, progress, options);
-    legacy.waterOverlay = {
-      mode: "legacy",
-      baseSignature: signature,
-      reason: previous.waterOverlay.reason,
-      bounds: [],
-      dirtyWaterIds: []
-    };
-    return legacy;
-  }
+    throw new Error("Unsupported water authoring version");
+  const input = structuredClone(document);
+  input.revision = 0;
+  delete input.waterAuthoringVersion;
+  delete input.placementState;
+  delete input.layoutOverrides;
+  const signature = JSON.stringify([runtimeSignature, options.environment !== false, canonical(input)]);
   let base = bases.get(signature);
-  const baseReused = !!base;
   if (base) {
     bases.delete(signature);
     bases.set(signature, base);
-  }
-  if (!base) {
-    base = generateSpatialWorld(
-      input,
-      previous?.waterOverlay?.mode === "overlay" ? bases.get(previous.waterOverlay.baseSignature) : undefined,
-      progress,
-      options
-    );
+  } else {
+    base = generateSpatialWorld(input, previous, progress, options);
+    // Rejected results remain visible to the caller but never become a reusable base.
     if (base.accepted) {
       bases.set(signature, base);
       if (bases.size > 2) bases.delete(bases.keys().next().value!);
     }
   }
-  if (
-    !authored &&
-    !previous?.plan.authoredResources?.some((r) => r.resourceType === "water-body" || r.resourceType === "river")
-  ) {
-    const checks = [...base.checks];
-    const plan = {
+  const checks = [...base.checks],
+    plan: IslandPlan = {
       ...base.plan,
       authoredResources: structuredClone(document.authoredResources ?? []),
       planning: base.plan.planning && { ...base.plan.planning, revision: document.revision, checks }
     };
-    inheritPlanningHeightmap(plan, base.plan);
-    return {
-      ...base,
-      recipe: exportPlanningRecipe(document),
-      plan,
-      checks,
-      changedIds: [...base.changedIds],
-      notes: [...base.notes],
-      timings: base.timings && { ...base.timings },
-      waterOverlay: {
-        mode: "overlay",
-        baseSignature: signature,
-        reason: "independent-base",
-        bounds: [],
-        dirtyWaterIds: []
-      }
-    };
-  }
-  const overlay = applyLayer(document, base, signature, previous, progress, baseReused, options);
-  if (document.waterAuthoringVersion || !authored) return overlay;
-  const legacy = generateSpatialWorld(document, previous, progress, options);
-  const mismatch =
-    difference(legacy, overlay) ??
-    difference(
-      generateSpatialWorld(document, undefined, undefined, options),
-      applyLayer(document, base, signature, undefined, undefined, true, options)
+  inheritPlanningHeightmap(plan, base.plan);
+  const ids = new Set([...plan.waters, ...(previous?.plan.waters ?? [])].map((water) => water.id));
+  const dirtyWaterIds = [...ids].filter(
+    (id) => JSON.stringify(bodyInput(previous?.plan, id)) !== JSON.stringify(bodyInput(plan, id))
+  );
+  const dirty = new Set(dirtyWaterIds);
+  const bounds = [...plan.waters, ...(previous?.plan.waters ?? [])]
+    .filter((water) => dirty.has(water.id) && water.outline.length)
+    .map(
+      (water) =>
+        [
+          Math.min(...water.outline.map((point) => point.x)),
+          Math.min(...water.outline.map((point) => point.z)),
+          Math.max(...water.outline.map((point) => point.x)),
+          Math.max(...water.outline.map((point) => point.z))
+        ] as PlanningHeightBounds
     );
-  if (!mismatch) return overlay;
-  legacy.waterOverlay = {
-    mode: "legacy",
-    baseSignature: signature,
-    reason: "legacy-difference:" + mismatch,
-    bounds: [],
-    dirtyWaterIds: []
+  return {
+    ...base,
+    recipe: exportPlanningRecipe(document),
+    plan,
+    checks,
+    changedIds: [...new Set([...base.changedIds, ...dirtyWaterIds])],
+    notes: [...base.notes],
+    timings: base.timings && { ...base.timings },
+    waterOverlay: { mode: "overlay", baseSignature: signature, reason: "source-water", bounds, dirtyWaterIds }
   };
-  return legacy;
 }

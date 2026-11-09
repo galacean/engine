@@ -1,9 +1,8 @@
 import type {
   SeedWorldEngineChange, SeedWorldEngineEdit, SeedWorldEnginePort,
   SeedWorldEnvironmentUpdateInput, SeedWorldLiveState, SeedWorldRef,
-  SeedWorldWaterColorRgb, SeedWorldEditorSettings
+  SeedWorldEditorSettings
 } from "@galacean/engine-world-planning/agent-adapter/ports/SeedWorldEnginePort";
-import { validateSeedWorldWaterColor } from "@galacean/engine-water/world/SeedWorldWaterColor";
 import { applyEnvironmentChange, captureEnvironmentChange, environmentChangeInput,
   type SeedWorldEnvironmentChange } from "@galacean/engine-world-planning/agent-adapter/SeedWorldEnvironmentChange";
 import { toAgentValue } from "@galacean/engine-ai-chat/ai-chat/agent-values";
@@ -24,7 +23,7 @@ export function createSeedWorldEngineDraft(
   base: SeedWorldEnginePort,
   projection: SeedWorldDraftProjection,
   executionId: string,
-  initialSettings: SeedWorldEditorSettings = { waterColors: [] }
+  initialSettings: SeedWorldEditorSettings = {}
 ): SeedWorldEngineEdit {
   const initial = base.readWorldState();
   if (!initial) throw new Error("Seed World is not ready for editing");
@@ -41,36 +40,22 @@ export function createSeedWorldEngineDraft(
     state = projected;
     changes.push(change);
   };
-  const colors = new Map<string, SeedWorldWaterColorRgb>();
   const check = (signal?: AbortSignal) => {
     signal?.throwIfAborted();
     if (phase !== "open") throw new Error("Seed World edit is closed");
   };
-  const key = (ref: SeedWorldRef) => `${ref.domain}:${ref.source}:${ref.kind}:${ref.id}`;
-  for (const { ref, color } of settings.waterColors) colors.set(key(ref), color);
   const unsupported = () => {
     check();
     throw new Error("NOT_SUPPORTED: Legacy resource CRUD is not mapped to this host's editing document; no changes were made.");
   };
   const overrides: Partial<SeedWorldEnginePort> = {
     readWorldState: () => { check(); return structuredClone(state); },
-    readWaterColor: ref => { check(); return colors.get(key(ref)) ?? base.readWaterColor?.(ref); },
+    readWaterColor: ref => { check(); return base.readWaterColor?.(ref); },
     updateEnvironment: (input, signal) => {
       check(signal);
       const next = projection.environment(state, input);
       acceptEnvironmentChange(captureEnvironmentChange(settings.environment, next.forward), next.state);
       return { requested: toAgentValue({ ...input, appliedTo: "draft" }), state: structuredClone(state) };
-    },
-    updateWaterColor: async (ref, color, signal) => {
-      check(signal); validateSeedWorldWaterColor(color);
-      const previous = colors.get(key(ref)) ?? base.readWaterColor?.(ref);
-      if (!previous || !base.updateWaterColor) throw new Error("NOT_EDITABLE: water color target is unavailable");
-      changes.push({ kind: "command",
-        forward: { kind: "water-color", ref: structuredClone(ref), color: [...color] } });
-      colors.set(key(ref), [...color]);
-      settings.waterColors = settings.waterColors.filter(item => key(item.ref) !== key(ref));
-      settings.waterColors.push({ ref: structuredClone(ref), color: [...color] });
-      return [...color] as SeedWorldWaterColorRgb;
     },
     teleport: input => {
       check();
@@ -129,12 +114,6 @@ export function createSeedWorldEngineDraft(
         if (patch.season !== undefined) patch.weatherChannels = saved.environment.weatherChannels;
         if (Object.keys(patch).length) await port.updateEnvironment({ ...patch, transitionDuration: 0, waitForIbl: false }, signal);
       }
-      if ((force && base.replaceWaterColors) || saved.waterColors.length || settings.waterColors.length) {
-        if (!base.replaceWaterColors) throw new Error("Water color consumer cannot reconcile authored overrides");
-        changes.push({kind: "command", forward: {kind: "water-colors", colors: structuredClone(saved.waterColors)}});
-        colors.clear();
-        for (const {ref, color} of saved.waterColors) colors.set(key(ref), color);
-      }
       if (saved.camera && (force || JSON.stringify(saved.camera) !== JSON.stringify(settings.camera))) {
         changes.push({ kind: "command", forward: { kind: "camera", camera: structuredClone(saved.camera) } });
         state = { ...state, camera: structuredClone(saved.camera) };
@@ -157,9 +136,7 @@ export function createSeedWorldEngineDraft(
             continue;
           }
           const command = change.forward;
-          if (command.kind === "water-color") await base.updateWaterColor!(command.ref, command.color, signal);
-          else if (command.kind === "water-colors") await base.replaceWaterColors!(command.colors, signal);
-          else if (command.kind === "teleport") base.teleport(command.input);
+          if (command.kind === "teleport") base.teleport(command.input);
           else if (command.kind === "camera") projection.restoreCamera(command.camera);
           else await base.commandMount!(command.input, signal);
         } catch (error) { errors.push(error instanceof Error ? error : new Error(String(error))); }

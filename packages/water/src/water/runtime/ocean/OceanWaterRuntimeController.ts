@@ -1,3 +1,4 @@
+import { Shader, ShaderPass } from "@galacean/engine-core";
 import type { Vector3 } from "@galacean/engine-math";
 import type { WaterSurfaceSample } from "../query/WaterSurfaceProvider";
 import { resetWaterSurfaceSample } from "../query/WaterSurfaceProvider";
@@ -156,6 +157,7 @@ export class OceanWaterRuntimeController {
   private _materialDestroyCount = 0;
   private _surfaceLevelOffsetMetres = 0;
   private _destroyed = false;
+  private _authoredFarShader?: Shader;
 
   constructor(
     engine: Engine,
@@ -215,6 +217,7 @@ export class OceanWaterRuntimeController {
     this.nearshoreFieldResource = compiled.nearshoreResource;
     this.nearshoreFieldResource.retain();
     this.root = parent.createChild(`ocean-render-${config.waterBodyId}`);
+    this.root.layer = parent.layer;
     let nearshoreTexture: Texture2D | undefined;
     let materialState: OceanMaterialState | undefined;
     let farMaterialState: OceanFarMaterialState | undefined;
@@ -256,6 +259,7 @@ export class OceanWaterRuntimeController {
         lodDebug: config.lodDebug,
         sceneFogEnabled: config.sceneFogEnabled
       });
+      if (config.surfaceShader) materialState.material.shader = config.surfaceShader;
       farMaterialState = createOceanFarMaterial(engine, {
         renderContract: config.renderContract,
         waterLevel: config.waterLevel,
@@ -266,6 +270,26 @@ export class OceanWaterRuntimeController {
         lodDebug: config.lodDebug,
         sceneFogEnabled: config.sceneFogEnabled
       });
+      if (config.surfaceShader) {
+        const far = config.surfaceShader.subShaders.find((sub) => sub.name === "WaterFar");
+        if (!far) throw new Error("NOT_SUPPORTED: Ocean Shader requires its authored WaterFar SubShader.");
+        const passes = far.passes.map((source) => {
+          const pass = new ShaderPass(
+            source.name,
+            source._vertexShaderInstructions,
+            source._fragmentShaderInstructions,
+            source._platformTarget,
+            {
+              pipelineStage: source.getTagValue("pipelineStage") ?? "Forward"
+            }
+          );
+          pass._renderState = source._renderState;
+          pass._renderStateDataMap = { ...source._renderStateDataMap };
+          return pass;
+        });
+        this._authoredFarShader = Shader.create(`WaterFar/${crypto.randomUUID()}`, passes)!;
+        farMaterialState.material.shader = this._authoredFarShader;
+      }
       connectionBinding = createWaterConnectionBinding(engine, config.connections);
       connectionBinding?.bind(materialState.material);
       connectionBinding?.bind(farMaterialState.material);
@@ -274,6 +298,7 @@ export class OceanWaterRuntimeController {
         this.root,
         { near: materialState.material, far: farMaterialState.material },
         {
+          layer: parent.layer,
           nearshore: config.nearshoreDescriptor,
           surfaceCenterXZ: config.surfaceCenterXZ,
           size: config.size,
@@ -343,6 +368,7 @@ export class OceanWaterRuntimeController {
             if (materialState) connectionBinding?.unbind(materialState.material);
           },
           () => materialState?.material.destroy(true),
+          () => this._authoredFarShader?.destroy(),
           () => connectionBinding?.destroy(),
           () => geometry?.destroy(),
           () => nearshoreTexture?.destroy(true),
@@ -634,6 +660,7 @@ export class OceanWaterRuntimeController {
         this._materialState.material.destroy(true);
         this._materialDestroyCount++;
       },
+      () => this._authoredFarShader?.destroy(),
       () => this._connectionBinding?.destroy(),
       () => {
         this._geometry.destroy();

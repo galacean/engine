@@ -1,3 +1,4 @@
+import manifest from "./assets/ktx2-manifest.json";
 import {
   WaterBodyResourceSchemaVersion,
   type WaterResourceAssetDescriptorV1
@@ -7,7 +8,7 @@ export const FARMLANDS_WAVE_RESOURCE: WaterResourceAssetDescriptorV1 = Object.fr
   schemaVersion: WaterBodyResourceSchemaVersion.V1,
   id: "farmlands-wave-large-normal",
   kind: "texture",
-  contentHash: "25a717a13b29082b65a62b6ca489412ce9620d8c99ee65a96f626ac153ac3400",
+  contentHash: manifest.textures.wave.sha256,
   ownership: "shared",
   fallbackPolicy: "required"
 });
@@ -15,7 +16,7 @@ export const FARMLANDS_CAUSTICS_RESOURCE: WaterResourceAssetDescriptorV1 = Objec
   schemaVersion: WaterBodyResourceSchemaVersion.V1,
   id: "farmlands-caustics-color",
   kind: "texture",
-  contentHash: "82024c671895a0a84b362cb2d5170d1ae1ab78139a022dcfc9d00f77bfde299f",
+  contentHash: manifest.textures.caustics.sha256,
   ownership: "shared",
   fallbackPolicy: "required"
 });

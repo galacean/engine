@@ -106,6 +106,7 @@ export function assertHeightfieldWaterRenderSurfaceDepthSource(
 
 export interface HeightfieldWaterBackendRuntimeContext {
   readonly engine: Engine;
+  readonly surfaceShader?: import("@galacean/engine-core").Shader;
   readonly root: Entity;
   readonly submission?: Omit<HeightfieldWaterRuntimeSubmissionOptions, "shouldCancel">;
   /** Runtime-only render offset; it does not alter the immutable Heightfield source or WaterBody transform. */
@@ -641,6 +642,7 @@ export class HeightfieldWaterBackend implements WaterBodyBackend {
     );
     let reflection: WaterReflectionBindingLifecycle | undefined;
     try {
+      controller.surfaceShader = runtimeContext.surfaceShader;
       controller.setDepthSource(effective.lookRuntimeFeatures.depthSource);
       controller.setOpticalProfile(resolveEffectiveOpticalProfile(effective));
       controller.setRefractionEnabled(effective.refractionEnabled);

@@ -180,6 +180,12 @@
     "owner": "water"
   },
   {
+    "entry": "demos/water/editor/index.html",
+    "title": "Water native editor",
+    "mode": "static",
+    "owner": "water"
+  },
+  {
     "entry": "demos/water/island/index.html",
     "title": "岚湾岛 · Water Island",
     "mode": "static",

@@ -15,7 +15,6 @@ declare global {
     interface BuildingApi {}
     interface AtmosphereApi {}
     interface TerrainApi {}
-    interface WaterApi {}
     interface VegetationApi {}
     interface SeedWorldAgentScriptTools {
       readonly world: WorldApi;
@@ -25,7 +24,6 @@ declare global {
       readonly building: BuildingApi;
       readonly atmosphere: AtmosphereApi;
       readonly terrain: TerrainApi;
-      readonly water: WaterApi;
       readonly vegetation: VegetationApi;
     }
   }

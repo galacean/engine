@@ -52,11 +52,11 @@ import {
   readSurfacePalette
 } from "@galacean/engine-world-planning/spatial/PlanningGrassAppearance";
 import { applyPlanningWeather } from "@galacean/engine-world-planning/spatial/PlanningWeather";
+import { planningLakeBoundary } from "@galacean/engine-world-planning/semantic-study/PlanningLakeBoundary";
 import {
   PLANT_MATERIAL_SLOTS,
   plantMaterialField
 } from "@galacean/engine-world-planning/spatial/PlantMaterialParameters";
-import { planningLakeAssets } from "@galacean/engine-world-planning/semantic-study/PlanningLakeSource";
 import { planningGroundSurface } from "@galacean/engine-world-planning/semantic-study/PlanningHeightmap";
 
 describe("authored world templates", () => {
@@ -592,9 +592,11 @@ describe("authored world templates", () => {
       }
       if (WORLD_TEMPLATE_ART[template.id].water?.length) {
         const waterIds = new Set(
-          WORLD_TEMPLATE_ART[template.id].water!.map((pool) => `template:${template.id}:water:${pool.id}`)
+          WORLD_TEMPLATE_ART[template.id].water!.map((pool) => `lake:authored:template:${template.id}:water:${pool.id}`)
         );
-        expect(planningLakeAssets(result.plan, waterIds)).toHaveLength(waterIds.size);
+        const lakes = result.plan.waters.filter((water) => waterIds.has(water.id));
+        expect(lakes).toHaveLength(waterIds.size);
+        for (const lake of lakes) expect(planningLakeBoundary(result.plan, lake).boundary.rings.length).toBeGreaterThan(0);
       }
       const vegetation = result.plan.naturalVegetation!.world;
       if (!template.vegetation) {

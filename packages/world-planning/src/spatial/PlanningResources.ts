@@ -17,8 +17,6 @@ import {
   validateSeedWorldTreeShapePatch,
   type SeedWorldTreeShapePatch
 } from "@galacean/engine-vegetation/world/SeedWorldTreeShapeControls";
-import type { SeedWorldRiverInput } from "../agent-adapter/ports/SeedWorldEnginePort";
-import type { SeedWorldWaterBodyResourceProperties } from "../agent-adapter/ports/SeedWorldEnginePort";
 
 /** Only authored intent is persisted. Hashes, realized instances and bounds are projections. */
 export interface PlanningVegetationResource {
@@ -46,24 +44,12 @@ export interface PlanningTreeVariationResource {
   resourceId: string;
   properties: { recipeId: string; variationIndex: number; controls: SeedWorldTreeShapePatch };
 }
-export interface PlanningRiverResource {
-  resourceType: "river";
-  resourceId: string;
-  properties: SeedWorldRiverInput;
-}
-export interface PlanningLakeResource {
-  resourceType: "water-body";
-  resourceId: string;
-  properties: SeedWorldWaterBodyResourceProperties;
-}
 export type PlanningResource =
   | PlanningVegetationResource
   | PlanningTerrainPatchResource
   | PlanningTerrainFeatureResource
   | PlanningObjectRemovalResource
-  | PlanningTreeVariationResource
-  | PlanningRiverResource
-  | PlanningLakeResource;
+  | PlanningTreeVariationResource;
 export function planningRemovedObjectIds(resources: readonly PlanningResource[]): Set<string> {
   return new Set(
     resources.flatMap((resource) => (resource.resourceType === "object-removal" ? [resource.properties.objectId] : []))
@@ -75,17 +61,9 @@ export function isPlanningTerrainResource(
   return resource.resourceType === "terrain-patch" || resource.resourceType === "terrain-feature";
 }
 
-/** Shared authored physical dependencies for Terrain rasters and hydrology.
- * Appearance is persisted on the resource but cannot invalidate either derived field.
- */
+/** Terrain resources supply the shared physical input; concrete water is projected from Source. */
 export function planningTerrainAuthoringInputs(resources: readonly PlanningResource[] = []) {
-  return resources
-    .filter((resource) => isPlanningTerrainResource(resource) || resource.resourceType === "water-body")
-    .map((resource) => {
-      if (resource.resourceType !== "water-body") return resource;
-      const { colorRgb, ...properties } = resource.properties;
-      return { ...resource, properties };
-    });
+  return resources.filter(isPlanningTerrainResource);
 }
 
 const vegetation = z
@@ -134,53 +112,8 @@ const landform = z.strictObject({
   seed: z.number().int().min(0).max(0xffffffff)
 });
 const identity = { resourceId: z.string().min(1) };
-const colorRgb = z
-  .tuple([z.number().int().min(0).max(255), z.number().int().min(0).max(255), z.number().int().min(0).max(255)])
-  .optional();
 const resources = z.array(
   z.discriminatedUnion("resourceType", [
-    z.strictObject({
-      ...identity,
-      resourceType: z.literal("water-body"),
-      properties: z
-        .strictObject({
-          ...position,
-          colorRgb,
-          kind: z.enum(["pond", "lake"]),
-          radiusMetres: z.number().positive(),
-          depthMetres: z.number().positive(),
-          shorelineIrregularity: z.number().min(0).max(1),
-          seed: z.number().int().min(0).max(0xffffffff),
-          canonicalWaterLevelMetres: z.number().finite(),
-          minimumWaterLevelMetres: z.number().finite(),
-          maximumWaterLevelMetres: z.number().finite(),
-          waterLevelMetres: z.number().finite()
-        })
-        .superRefine((value, context) => {
-          if (
-            value.minimumWaterLevelMetres !== value.canonicalWaterLevelMetres - value.depthMetres ||
-            value.maximumWaterLevelMetres !== value.canonicalWaterLevelMetres ||
-            value.waterLevelMetres < value.minimumWaterLevelMetres ||
-            value.waterLevelMetres > value.maximumWaterLevelMetres
-          )
-            context.addIssue({ code: "custom", message: "Lake water level is outside its basin range" });
-        })
-    }),
-    z.strictObject({
-      ...identity,
-      resourceType: z.literal("river"),
-      properties: z.strictObject({
-        ...position,
-        colorRgb,
-        kind: z.enum(["stream", "river"]),
-        headingDegrees: z.number().finite(),
-        lengthMetres: z.number().positive(),
-        widthMetres: z.number().positive(),
-        depthMetres: z.number().positive(),
-        flowSpeed: z.number().nonnegative(),
-        meander: z.number().min(0).max(1)
-      })
-    }),
     z.strictObject({
       ...identity,
       resourceType: z.literal("tree-variation"),

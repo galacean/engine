@@ -117,6 +117,9 @@ export class WaterRuntimeResourceRegistry {
         `Water runtime resource '${right.id}' is already registered with a different descriptor.`
       );
     }
+    // Equal content may be supplied by a new native resource after an asset reload.
+    // Existing leases keep their original factory; the next load borrows the current handle.
+    this._factories.set(factory.descriptor.id, factory);
     return false;
   }
 

@@ -29,6 +29,12 @@ class MaterialLoader extends Loader<Material> {
       const engine = resourceManager.engine;
       if (shaderRef) {
         return resourceManager.getResourceByRef<Shader>(shaderRef).then((shader) => {
+          // World projects retain the legacy fallback for an unmapped reference.
+          // A resolved asset always wins over a registered shader with the same name.
+          if (shader === null && shaderName) {
+            const fallback = Shader.find(shaderName);
+            if (fallback) return this._getMaterialByShader(materialSchema, fallback, engine);
+          }
           if (!(shader instanceof Shader)) {
             throw new Error(`MaterialLoader: shader reference "${shaderRef.url}" did not resolve to a Shader.`);
           }

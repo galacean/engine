@@ -57,8 +57,6 @@ import {
   type PoiSite
 } from "../../semantic-study/PoiDistribution";
 import { createPlanningGroundSampler, createPlanningRingQuery } from "../../semantic-study/WorldPlanningTerrain";
-import { compileAuthoredRivers } from "../hydrology/AuthoredRivers";
-import { compileAuthoredLakes } from "../hydrology/AuthoredLakes";
 import { settlementRandom } from "../../semantic-study/SettlementGeometry";
 import {
   planGlobalRoadNetwork,
@@ -473,8 +471,6 @@ function* spatialWorldStages(
     checks.push(...generateRiverRegions(plan, riverConfig, localRivers));
     checks.push(...generateLakeRegions(plan, lakeConfig, localLakes));
   }
-  compileAuthoredRivers(plan);
-  compileAuthoredLakes(plan);
   const terrainSignature = JSON.stringify([plan.parameters, terrainInputs]);
   const riverSignature = JSON.stringify([
     RIVER_BANK_PROFILE_VERSION,

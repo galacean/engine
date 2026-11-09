@@ -18,13 +18,23 @@ export interface PlanningWorldHandoff {
  */
 export async function createPlanningWorldSource(search: string, handoff: PlanningWorldHandoff | undefined, storage: {
   load(seed: number): Promise<PlanningDocument | undefined>; save(document: PlanningDocument): Promise<void>;
+  initialize?(document: PlanningDocument, result: SemanticResult): Promise<PlanningDocument>;
 }) {
   const raw = new URLSearchParams(search).get("seed");
   const seed = raw !== null && /^\d+$/.test(raw) && Number(raw) <= 0xffffffff ? Number(raw) : SEMANTIC_DEFAULTS.seed;
-  const document = handoff?.document ?? await storage.load(seed);
+  let document = handoff?.document ?? await storage.load(seed);
   if (!handoff && document) resetPlanningFarmSaveChoice(document);
   const client = new PlanningWorkerClient();
   let accepted = handoff?.result;
+  if (storage.initialize) {
+    try {
+      document ??= createSeedPlanningDocument(seed);
+      const recipe = exportPlanningRecipe(document);
+      accepted ??= await client.run(recipe.parameters, recipe.edits, undefined, document);
+      if (!accepted?.accepted) throw new Error("Water authoring initialization requires an accepted planning result");
+      document = await storage.initialize(document, accepted);
+    } catch (error) { client.dispose(); throw error; }
+  }
   // Source/project history owns undo; the runtime session is a derived consumer.
   const options: PlanningSessionOptions = { history: false };
   let disposed = false, started = false;

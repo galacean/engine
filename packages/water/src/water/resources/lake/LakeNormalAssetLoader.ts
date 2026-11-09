@@ -1,13 +1,15 @@
 import { AssetType, Texture2D, TextureFilterMode, TextureWrapMode, type Engine } from "@galacean/engine-core";
 import { LAKE_NORMAL_ASSET_ID, LAKE_NORMAL_CONTENT_HASH } from "./LakeNormalAssetIdentity";
 import { digestSha256Hex } from "../sha256";
+import { BUILTIN_WATER_PROJECT_URL } from "../../native/WaterBuiltinAssets";
 
 export { LAKE_NORMAL_ASSET_ID, LAKE_NORMAL_CONTENT_HASH };
 export const LAKE_NORMAL_WIDTH = 512;
 export const LAKE_NORMAL_HEIGHT = 512;
 export const LAKE_LOCAL_NORMAL_WIDTH = 1024;
 export const LAKE_LOCAL_NORMAL_HEIGHT = 1024;
-export const LAKE_TRACKED_NORMAL_URL = new URL("./assets/grasslands-water-normal-512.ktx2", import.meta.url).href;
+export const LAKE_TRACKED_NORMAL_URL = new URL(`Water/Textures/${LAKE_NORMAL_ASSET_ID}.ktx2`, BUILTIN_WATER_PROJECT_URL)
+  .href;
 export const LAKE_TRACKED_NORMAL_SHA256 = "4ba55626a9d761edf5d5beb7d71eafdf2e9d393e3029b33491b0dd3d44159594";
 
 export type LakeNormalAssetSource = "tracked" | "local-override";

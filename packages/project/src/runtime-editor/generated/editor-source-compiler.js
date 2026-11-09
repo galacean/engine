@@ -16211,6 +16211,7 @@ export {
   compileSourcePrefabToRuntime,
   compileSourceSceneToRuntime,
   getBuiltinComponentRuntimeCapabilitySnapshot,
+  mergeSourceValueRecords,
   moveSourceAddition,
   mutateSourceInstance,
   runtimeSourceReferenceIds,

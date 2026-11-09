@@ -5,16 +5,7 @@ import type { SeedWorldAuthoredWaterQueryResultV1 } from "@galacean/engine-water
 /** Water habitat and draft point queries use current water elevation over the canonical bed. */
 export function createPlanningWaterQuery(plan: IslandPlan, sampleGround: (point: { x: number; z: number }) => number) {
   const lands = [plan.land, ...plan.islands].map(createPlanningRingQuery);
-  const dry = new Set(
-    (plan.authoredResources ?? []).flatMap((resource) =>
-      resource.resourceType === "water-body" &&
-      resource.properties.waterLevelMetres <= resource.properties.minimumWaterLevelMetres
-        ? [resource.resourceId]
-        : []
-    )
-  );
   const waters = plan.waters.flatMap((water) => {
-    if (dry.has(water.id)) return [];
     const profile = plan.planning?.profiles.find((profile) => profile.ownerId === water.id && profile.kind === "water");
     return profile
       ? [

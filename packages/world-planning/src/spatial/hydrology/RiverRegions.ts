@@ -17,6 +17,11 @@ export interface RiverParameters extends PlanningCountRange {
   /** Flat garden channels may derive a dig-only level from their complete path.
    * Explicit point elevations always retain precedence. */
   levelMode?: "terrain" | "minimum";
+  speed?: number;
+  bankClearance?: number;
+  dropThreshold?: number;
+  slopeThreshold?: number;
+  probeSpacing?: number;
   points?: WatercoursePoint[];
   sections?: WatercourseSection[];
   enabled?: boolean;
@@ -129,7 +134,8 @@ export function generateRiverRegions(
       throw new Error("INVALID_ARGUMENT: 自定义河流缺少控制点");
     if (riverConfig.enabled === false) continue;
     if (riverConfig.points !== undefined) {
-      const probeSpacing = 0.25; // Watercourse's native terrain probe interval, in metres.
+      // Author overrides retain Watercourse defaults: 0.25 m probes and 0.05 m bank clearance.
+      const probeSpacing = riverConfig.probeSpacing ?? 0.25;
       let pointsInput = riverConfig.points;
       if (riverConfig.levelMode === "minimum") {
         // Each explicitly carved drop separates two ordinary water platforms.
@@ -159,13 +165,22 @@ export function generateRiverRegions(
         // Use the native bank clearance; it is not a new water-depth policy.
         pointsInput = pointsInput.map((point, i) => ({
           ...point,
-          elevation: point.elevation ?? levels[groups[i]] - 0.05
+          elevation: point.elevation ?? levels[groups[i]] - (riverConfig.bankClearance ?? 0.05)
         }));
       }
       let course: ReturnType<typeof resolveWatercourse>;
       try {
-        course = resolveWatercourse({ id, points: pointsInput, sections: riverConfig.sections, probeSpacing }, (x, z) =>
-          ground({ x, z })
+        course = resolveWatercourse(
+          {
+            id,
+            points: pointsInput,
+            sections: riverConfig.sections,
+            bankClearance: riverConfig.bankClearance,
+            dropThreshold: riverConfig.dropThreshold,
+            slopeThreshold: riverConfig.slopeThreshold,
+            probeSpacing
+          },
+          (x, z) => ground({ x, z })
         );
       } catch (error) {
         throw new Error(`${id}: ${error instanceof Error ? error.message : String(error)}`);
@@ -482,8 +497,17 @@ export function generateRiverRegions(
         width: water.widths![i],
         depth: depths[i]
       }));
-      const course = resolveWatercourse({ id: water.id, points: anchors, sections: cfg.sections }, (x, z) =>
-        ground({ x, z })
+      const course = resolveWatercourse(
+        {
+          id: water.id,
+          points: anchors,
+          sections: cfg.sections,
+          bankClearance: cfg.bankClearance,
+          dropThreshold: cfg.dropThreshold,
+          slopeThreshold: cfg.slopeThreshold,
+          probeSpacing: cfg.probeSpacing
+        },
+        (x, z) => ground({ x, z })
       );
       const geometry = watercourseGeometry(course);
       water.course = course;
@@ -493,6 +517,7 @@ export function generateRiverRegions(
       depths.splice(0, depths.length, ...geometry.points.map((p) => p.depth));
       levels = geometry.points.map((p) => p.elevation);
     }
+    water.flowSpeed = { ...config, ...local[water.id] }.speed ?? 1;
     plan.waters.push(water);
     const points = water.centerline!,
       width = Math.max(...water.widths!);
