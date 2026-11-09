@@ -1,0 +1,313 @@
+packages/modify/src/native/loader/src/MaterialLoader.ts
+  s_ad31577d195071::t_61c7a85a052209 31,38-43
+packages/water/src/water/native/WaterConnectionAuthoring.ts
+  s_ed67304e26cb8b::t_2c1bffcb4558c9 1-5,7-19,26-34,36-52,54-62,64-70,73-83,106-115,120-133,147-151,154-157,162-165,174-175,177-181
+  s_ed67304e26cb8b::t_f4a47bf2471148 20-25,134-146,152-153,158-161,166-173,176
+  s_ed67304e26cb8b::t_46ca1f03f25fe5 53,72
+  s_ed67304e26cb8b::t_8cea76bea4ed6a 6,35,63,71
+  s_ed67304e26cb8b::t_ebeed675fcf764 84-105,116-119
+packages/water/src/water/native/WaterCreationPresets.ts
+  s_ed67304e26cb8b::t_7210770b788bae 10-16,18-58
+  s_ed67304e26cb8b::t_48cc3a5bf7327b 1-9,17,59-61
+packages/world-planning/tests/PoiPlanDrawing.spec.ts
+  s_ad31577d195071::t_3aa021fad72983 1-28
+packages/water/src/water/runtime/river/RiverSurfaceShader.ts
+  s_aa96dfab27eed7::t_ee428800b2d242 386-388
+packages/water/src/water/runtime/heightfield/HeightfieldWaterBackend.ts
+  s_ed67304e26cb8b::t_d0b0852826ce86 109,645
+world/demos/water/editor/main.ts
+  s_c3d96a07b92338::t_506c789f6cde65 25
+packages/water/src/water/native/index.ts
+  s_ed67304e26cb8b::t_a31281951ef8e8 65
+  s_c3d96a07b92338::t_d6f0cd61e20355 42,50-52,54-56
+  s_c3d96a07b92338::t_dec86f72bec5d7 49
+  s_ed67304e26cb8b::t_48cc3a5bf7327b 57-58
+  s_ed67304e26cb8b::t_809554be058902 59-60
+  s_ad31577d195071::t_d5096499e0e6a1 12,17-22,53,67-75
+  s_ed67304e26cb8b::t_b54ca8e20f1731 66
+  s_ed67304e26cb8b::t_1b933d4837bc0c 63-64
+  s_1cf2d901c8cb82::t_c51aef2a289494 61-62
+packages/water/src/water/runtime/body/WaterBodyLoader.ts
+  s_ed67304e26cb8b::t_ac7cfab25668fd 917,920-921,924-927,957
+  s_ed67304e26cb8b::t_581e897037d9e7 937-956
+  s_ed67304e26cb8b::t_f2c1c8083a0fdd 922,931,936
+  s_ed67304e26cb8b::t_03f6e41b132523 928-930,958
+packages/water/src/water/native/WaterMaterial.ts
+  s_ed67304e26cb8b::t_1b933d4837bc0c 394,437-441,443
+  s_ed67304e26cb8b::t_fd726f5f58b299 207-210,442
+  s_aa96dfab27eed7::t_3d46b5ea48287d 373-374
+  s_ed67304e26cb8b::t_479750d9b643e8 2,204,206
+  s_ed67304e26cb8b::t_75366be27394d7 431
+  s_aa96dfab27eed7::t_e8fb961c27d7ed 382-383,404-405
+  s_00c77494c5bb21::t_a13a803df85950 444
+packages/world-planning/src/semantic-study/IslandPlanView.ts
+  s_ad31577d195071::t_0844797805ec98 76
+world/demos/seed-world/SeedWorldProjectFormats.ts
+  s_c3d96a07b92338::t_d6f0cd61e20355 17-18,29-35,42-43,46-47,56-57,60-70
+packages/water/tests/WaterNativeMaterial.test.ts
+  s_ed67304e26cb8b::t_092fa3cc84bdb2 5-25
+  s_aa96dfab27eed7::t_e8fb961c27d7ed 1-4,26-30,32-41,43-47
+  s_aa96dfab27eed7::t_3d46b5ea48287d 31,42
+packages/water/src/water/native/WaterAuthoring.ts
+  s_c3d96a07b92338::t_d6f0cd61e20355 118,123-133
+  s_ed67304e26cb8b::t_da7d2e7780e186 331-361
+  s_ed67304e26cb8b::t_f723130edb3962 175-182
+  s_ed67304e26cb8b::t_809554be058902 284-319
+  s_ed67304e26cb8b::t_fd726f5f58b299 322-325,327-329
+  s_c3d96a07b92338::t_dec86f72bec5d7 102,122
+  s_ed67304e26cb8b::t_1b933d4837bc0c 320-321,326,330
+packages/water/src/water/native/assets/Water/Shaders/river.shader
+  s_c3d96a07b92338::t_39e40005826cd7 2200-2245
+world/demos/seed-world/tests/WaterSource.test.ts
+  s_c3d96a07b92338::t_506c789f6cde65 21
+  s_c3d96a07b92338::t_6559f657157118 43
+world/tests/seed-world/editor/seed-world-project.spec.ts
+  s_ad31577d195071::t_a06ddc99e2dc5c 161-181,184-185,187,191-219
+  s_ad31577d195071::t_11b8eb87cf72ac 188-190
+  s_ad31577d195071::t_8ea625b9ca7c42 186
+  s_ad31577d195071::t_59e81621159450 182-183
+packages/water/src/water/runtime/heightfield/HeightfieldWaterRuntimeController.ts
+  s_ed67304e26cb8b::t_d0b0852826ce86 304-306,654
+packages/water/tests/WaterTerrainAssets.test.ts
+  s_c3d96a07b92338::t_ebc64ff06dca7a 1-2,8-14,21-28,45-55,62,66-71,74-87,91-96,100-101
+  s_c3d96a07b92338::t_d6f0cd61e20355 3-7,15-20,29-44,56-61,63-65,72-73,88-90,97-99
+packages/water/scripts/export-editor-snapshot.mjs
+  s_babde4f84bbd40::t_c3e334d9917f8f 1-12
+  s_ad31577d195071::t_5eb67cb06da0f5 15-50
+  s_ad31577d195071::t_f4ed61e08cae8b 51-53
+packages/water/EDITOR_CONSUMER_CONTRACT.md
+  s_ad31577d195071::t_feaaf16b1b5fdc 76-98
+  s_ad31577d195071::t_e8582e94331bfc 1-75
+packages/world-planning/tests/NativeWaterImmediateLifecycle.test.ts
+  s_ed67304e26cb8b::t_4bd78952cf5a93 2
+  s_ed67304e26cb8b::t_46ca1f03f25fe5 44-52,56,63-65,67
+  s_ed67304e26cb8b::t_fee38c7212d392 6-7,72
+  s_ed67304e26cb8b::t_4fecec043427f5 9-43,53-55,57-62,66,68-71,74
+  s_ed67304e26cb8b::t_a73354fff9912b 1,3-5,8,73
+packages/world-planning/src/spatial/runtime/NativeWaterAgent.ts
+  s_c3d96a07b92338::t_506c789f6cde65 31
+packages/water/src/water/native/WaterConnections.ts
+  s_ed67304e26cb8b::t_2c1bffcb4558c9 4,75-76,83-84
+  s_aa96dfab27eed7::t_b68c5108ad6159 36-38
+  s_ed67304e26cb8b::t_f4a47bf2471148 77-82
+  s_ed67304e26cb8b::t_f723130edb3962 1,48-52
+packages/water/tests/WaterNativeShader.test.ts
+  s_aa96dfab27eed7::t_ee428800b2d242 1-7,12-23
+  s_ed67304e26cb8b::t_fd726f5f58b299 8-11
+packages/water/src/water/native/WaterBuiltinAssets.ts
+  s_aa96dfab27eed7::t_b6f359d02dce07 17-29,35,37-39,44,46
+packages/world-planning/src/spatial/runtime/NativeWaterEditor.ts
+  s_c3d96a07b92338::t_506c789f6cde65 1-2,25,137,143-145
+  s_c3d96a07b92338::t_d6f0cd61e20355 138-142,148-156,160
+packages/water/src/water/native/WaterSystem.ts
+  s_ed67304e26cb8b::t_12a1b939c13fa5 841-843
+  s_ed67304e26cb8b::t_d0b0852826ce86 81-82,90,638
+  s_ed67304e26cb8b::t_cb4cf369e02627 1,566-570
+  s_ed67304e26cb8b::t_6c439ac5cb34b4 214-219,223,848
+  s_c3d96a07b92338::t_dec86f72bec5d7 123
+  s_ed67304e26cb8b::t_d177420ad39509 477-480,839-840,844-847
+  s_ed67304e26cb8b::t_46ca1f03f25fe5 220-222
+  s_ed67304e26cb8b::t_809554be058902 559-563
+  s_ed67304e26cb8b::t_1dc3bd02e42c12 849
+world/scripts/tests/generate-water-assets.test.mjs
+  s_ed67304e26cb8b::t_4856ed1679a553 25-27
+  s_ed67304e26cb8b::t_5417c02b687f2e 1-23,28-80
+  s_ed67304e26cb8b::t_e2bae58ea0edb4 24
+packages/water/src/water/native/WaterResources.ts
+  s_c3d96a07b92338::t_dec86f72bec5d7 2
+packages/world-planning/tests/NativeWaterDrops.test.ts
+  s_c3d96a07b92338::t_d6f0cd61e20355 7-10,35-39,48,53-57
+packages/water/src/water/native/assets/Water/Shaders/ocean.shader
+  s_ed67304e26cb8b::t_1b933d4837bc0c 2717-2854,2856-4441
+packages/water/tests/WaterShaderReference.test.ts
+  s_ad31577d195071::t_8695a36a4e919d 1-51
+world/scripts/generate-water-assets.mjs
+  s_ed67304e26cb8b::t_feba3d20c10063 9,20,33-36,39-40,115-120,125-130,133
+packages/water/tests/WaterConnectionAuthoring.test.ts
+  s_ed67304e26cb8b::t_fd239e755a3fb8 1,6-8,18,35-38,51-53,66-69,95-100,118
+  s_ed67304e26cb8b::t_4a960c56ce923d 2-5,9-17,19-34,39-50,54-65,70-94,101-117
+world/demos/seed-world/SeedWorldProject.ts
+  s_ad31577d195071::t_0844797805ec98 57,70-83,106-107,110
+  s_ad31577d195071::t_b770e3faede073 84-105,108-109
+  s_ad31577d195071::t_194979871fd522 111-112
+packages/world-planning/tests/WaterEditor.test.ts
+  s_c3d96a07b92338::t_d6f0cd61e20355 8-11,23,27-28,41-42,57-63,113,241-248,255-259,267-271,313-320
+  s_c3d96a07b92338::t_26cb68c8d42b88 6
+packages/water/tests/WaterCreationPresets.test.ts
+  s_ed67304e26cb8b::t_48cc3a5bf7327b 1-3,5-10,25
+  s_ed67304e26cb8b::t_a04742fbc9bb62 4,11-24
+packages/world-planning/tests/NativeWaterRendering.test.ts
+  s_ed67304e26cb8b::t_59e779cb7cfa43 4,94-97
+  s_c3d96a07b92338::t_d6f0cd61e20355 80-84
+  s_ed67304e26cb8b::t_ecf0700a099446 21,44
+packages/water/src/water/runtime/ocean/OceanWaterBackend.ts
+  s_ed67304e26cb8b::t_d0b0852826ce86 43,183
+packages/water/src/water/compiler/connections/WaterConnectionCompiler.ts
+  s_ed67304e26cb8b::t_f4a47bf2471148 56-60
+  s_ed67304e26cb8b::t_0e120c7fa4f065 14-15,55,61
+packages/water/src/water/runtime/river/RiverRuntimeController.ts
+  s_ed67304e26cb8b::t_d0b0852826ce86 233-235,1074-1077
+packages/water/src/water/runtime/ocean/OceanWaterRuntimeController.ts
+  s_ed67304e26cb8b::t_fd726f5f58b299 274,276-285
+  s_ed67304e26cb8b::t_d0b0852826ce86 262
+  s_ed67304e26cb8b::t_1b933d4837bc0c 1,160,273,275,286-292,371,663
+  s_aa96dfab27eed7::t_d5927f57d697a0 220,301
+packages/water/src/water/native/WaterTerrainAssets.ts
+  s_c3d96a07b92338::t_d6f0cd61e20355 22,47-54,62-68,77-102,112-116,125-135,140-146,155-157,161
+  s_c3d96a07b92338::t_c1393ce24632c5 149-151
+  s_c3d96a07b92338::t_2be626367417a0 2-21,23-46,55-61,69-76,103-111,117-122,136-139,147-148,152-153,160,162-168
+  s_c3d96a07b92338::t_c41ec211fa4ab4 1,123-124,154,158-159
+packages/world-planning/src/spatial/runtime/NativeWaterHost.ts
+  s_c3d96a07b92338::t_506c789f6cde65 4,96,136,138,141-143,148,154-155
+  s_c3d96a07b92338::t_d6f0cd61e20355 97-100,139-140,144-147,152-153
+  s_c3d96a07b92338::t_e412c6bed3811a 106,149-151,156-158
+packages/water/tests/WaterPublicContract.test.ts
+  s_ad31577d195071::t_e8582e94331bfc 1-70
+world/demos/seed-world/src/planning/spatial/PlanningWaterSource.ts
+  s_c3d96a07b92338::t_506c789f6cde65 72,80
+packages/modify/src/native/loader/src/ShaderLoader.ts
+  s_ad31577d195071::t_61c7a85a052209 18-19,25-28,43-44,49
+  s_ad31577d195071::t_d5fa9beab5eea9 20-22,24,40-41
+  s_ad31577d195071::t_8a644c8ec6c4e0 23,42
+packages/water/src/water/runtime/ocean/OceanWaterRuntimeTypes.ts
+  s_ed67304e26cb8b::t_d0b0852826ce86 22
+packages/water/src/water/runtime/scene/WaterSceneRuntimeHost.ts
+  s_ed67304e26cb8b::t_e67f01cde86bb3 304,2141-2142,2160
+  s_ed67304e26cb8b::t_46ca1f03f25fe5 1919-1925,1931-1933
+  s_ed67304e26cb8b::t_c9cf99df7fcf0d 1938,1940-1944
+  s_ed67304e26cb8b::t_05ac8e2a2e3ce6 1917
+  s_ed67304e26cb8b::t_0e64d416f7ecca 1939
+  s_ed67304e26cb8b::t_bf2c9d2911144f 1918,1926,1928-1930,1934-1937
+  s_ad31577d195071::t_5eb67cb06da0f5 1927
+packages/water/tests/WaterAuthoring.test.ts
+  s_ed67304e26cb8b::t_f723130edb3962 70-78
+  s_ed67304e26cb8b::t_b2206aebce91d6 2-9,79-93
+packages/water/src/water/resources/sha256.ts
+  s_c3d96a07b92338::t_a3f86a2c595679 23
+world/demos/seed-world/tests/WaterStartup.test.ts
+  s_ad31577d195071::t_7778eb64d2751a 4-6,8-9,24,26-63,89-91
+  s_ad31577d195071::t_b980b02f843176 7,25,64-88,92
+  s_ad31577d195071::t_304936adba399c 1-3,10-12,17-22
+  s_ad31577d195071::t_485aee1c47bea0 13-16
+  s_b6a078b261b213::t_37f7a1b61be79f 23
+packages/water/src/water/native/README.md
+  s_ed67304e26cb8b::t_b09e31ef99d5d7 25-28
+  s_ed67304e26cb8b::t_447f4e5fbf3b72 7,10-11,13-18,21-24,30
+  s_ed67304e26cb8b::t_8a9bef819db015 29,31,51-55
+packages/world-planning/tests/NativeWaterTerrain.test.ts
+  s_c3d96a07b92338::t_9b8a28541552b0 1-11,14-15,25,31,33,37-40,55-56,65-73,77
+  s_c3d96a07b92338::t_d6f0cd61e20355 12-13,16-24,26-30,32,34-36,41-54,57-64,74-76
+packages/world-planning/tests/WaterEditorFixture.ts
+  s_c3d96a07b92338::t_506c789f6cde65 24
+world/demos/seed-world/src/planning/spatial/runtime/PlanningWaterInitialization.ts
+  s_c3d96a07b92338::t_506c789f6cde65 280
+  s_c3d96a07b92338::t_795534092dcddb 53
+packages/world-planning/src/semantic-study/PoiPlanDrawing.ts
+  s_ad31577d195071::t_b770e3faede073 26
+packages/world-planning/tests/NativeWaterLifecycle.test.ts
+  s_ed67304e26cb8b::t_9a1ec2f3725fe5 69-70
+packages/water/src/water/native/WaterBodyComponent.ts
+  s_ed67304e26cb8b::t_587dc58218ca10 461-462
+  s_ed67304e26cb8b::t_37fff9e277faf3 59,466,491
+  s_c3d96a07b92338::t_dec86f72bec5d7 12,46,200,203,207,221-222,224-225,227,242,522
+  s_c3d96a07b92338::t_d6f0cd61e20355 1-6,122-124,126-127,150,213,470,496,515-516
+  s_aa96dfab27eed7::t_1e050d93bdfab6 467-469,471
+  s_ed67304e26cb8b::t_2556ca415511f9 17,133-137
+  s_c3d96a07b92338::t_c1393ce24632c5 95,106,121,148,202,223,226,233,498,584
+  s_e5dc0dc55c9ee3::t_03010799d58668 149,153
+world/demos/seed-world/SeedWorldDemo.ts
+  s_ad31577d195071::t_a475bb33aa7a42 291
+  s_ad31577d195071::t_b980b02f843176 414-415
+packages/water/src/water/runtime/river/RiverWaterBackend.ts
+  s_ed67304e26cb8b::t_d0b0852826ce86 99,774
+packages/runtime-editor/src/project/runtime-native-formats.ts
+  s_c3d96a07b92338::t_05d4c546ea23fb 186-187
+packages/water/EDITOR_MIGRATION_IMPLEMENTATION.md
+  s_c3d96a07b92338::t_11cb4aea2ab24c 16,36,38,87
+packages/water/src/water/native/assets/Water/Presets/lake.prefab
+  s_c3d96a07b92338::t_8abcd76490c368 53-59
+packages/water/src/water/native/assets/Water/Terrain/manual-bed.json
+  s_c3d96a07b92338::t_253573d85f0e3d 3-7,17
+packages/water/src/water/native/assets/project.json
+  s_c3d96a07b92338::t_d70447b3a265a0 223-230
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "3957981da3c69f005d9c722f2a2fdb02d46c086a",
+  "prompts": {},
+  "sessions": {
+    "s_00c77494c5bb21": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1ab7a-5c3a-7e12-8eec-3b35ffa2af92",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "星翊 <sunmingming.smm@antgroup.com>"
+    },
+    "s_1cf2d901c8cb82": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1bb0b-7e5f-7341-bae8-dadb848eeaaa",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "星翊 <sunmingming.smm@antgroup.com>"
+    },
+    "s_aa96dfab27eed7": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1aac9-5f70-73e3-b083-b810eee9083c",
+        "model": "gpt-6-astra"
+      },
+      "human_author": null
+    },
+    "s_ad31577d195071": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1bb0b-6dfd-7122-816b-54fbba5355f3",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "星翊 <sunmingming.smm@antgroup.com>"
+    },
+    "s_b6a078b261b213": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1b6af-9619-7b82-a765-d404dd9bb414",
+        "model": "deepseek-flash"
+      },
+      "human_author": "星翊 <sunmingming.smm@antgroup.com>"
+    },
+    "s_babde4f84bbd40": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1be4c-db47-74b1-bc8a-fb30f01aeb6b",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "星翊 <sunmingming.smm@antgroup.com>"
+    },
+    "s_c3d96a07b92338": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1aec1-d978-7fb0-a83b-ba458ac8a901",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "星翊 <sunmingming.smm@antgroup.com>"
+    },
+    "s_e5dc0dc55c9ee3": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1b1a8-440b-7582-930b-cad72dbc5987",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "星翊 <sunmingming.smm@antgroup.com>"
+    },
+    "s_ed67304e26cb8b": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1b1e2-1f17-7541-a888-4f6f3959474b",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "星翊 <sunmingming.smm@antgroup.com>"
+    }
+  }
+}
