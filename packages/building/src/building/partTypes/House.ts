@@ -714,16 +714,18 @@ function masonryFootprint(context: LayingContext<MasonryParams>): MaterialFootpr
   const [width, height, depth] = context.unit.scale ?? [1, 1, 1];
   return { width, height, depth };
 }
-/** The slots of a battlement along each run of a chart: a straight run ends in a merlon at both
- * corners, so that the merlons of two walls meet there; a ring has no ends. */
-function battlementSlots(chart: WallChartParams, pitch: number) {
+/** The slots of a battlement along each run of a chart, between `inset` from each end: crenels
+ * on the even slots. A straight run starts and ends on a crenel, next to the stone at its
+ * corner; a ring has no ends. */
+function battlementSlots(chart: WallChartParams, pitch: number, corner: number) {
   const all = runs(chart);
   const [start, end] = [chart.points[0], chart.points[chart.points.length - 1]];
   const ring = all.length === 1 && Math.hypot(start[0] - end[0], start[2] - end[2]) < 1e-4;
   return all.map((run) => {
-    const n = Math.ceil(run.l / pitch);
-    const count = ring ? Math.max(2, n + (n % 2)) : Math.max(3, n + (1 - (n % 2)));
-    return { run, ring, count, slot: run.l / count };
+    const inset = ring ? 0 : corner / 2;
+    const n = Math.ceil((run.l - 2 * inset) / pitch);
+    const count = ring ? Math.max(2, n + (n % 2)) : Math.max(1, n + (1 - (n % 2)));
+    return { run, ring, inset, count, slot: (run.l - 2 * inset) / count };
   });
 }
 interface ParapetParams {
@@ -743,7 +745,7 @@ interface ParapetStone {
   readonly u1: number;
   readonly lo: number;
   readonly hi: number;
-  /** How far the stone runs past each end, to meet the stone of the next wall at a corner. */
+  /** How far the stone runs past each end, or stops short of it where negative, at a corner. */
   readonly past: readonly [number, number];
 }
 interface ParapetLayout {
@@ -766,8 +768,9 @@ function spansLeft(u0: number, u1: number, lo: number, hi: number, removed: read
   }
   return spans;
 }
-/** The stones of a parapet: a course of long stones along its foot, and above it one big stone
- * for each merlon, every other slot. Stones give way to removed areas. */
+/** The stones of a parapet: a course of long stones along its foot and, above it, one big stone
+ * for each merlon, every other slot, with one square stone on each corner. The foot gives way
+ * to removed areas; a merlon they cut is left out. */
 export const parapetCourses: LayingAlgorithm<ParapetParams, ParapetLayout> = {
   info: {
     accepts: ["surface"],
@@ -806,8 +809,17 @@ export const parapetCourses: LayingAlgorithm<ParapetParams, ParapetLayout> = {
           past: [x === a ? past[0] : 0, y === b ? past[1] : 0]
         });
       });
-    const slots = battlementSlots(chart, pitch);
-    slots.forEach(({ run, ring, count, slot }, r) => {
+    // A merlon is one whole stone: where another house cuts it, it is left out.
+    const whole = (key: string, a: number, b: number, past: [number, number]) => {
+      const [left, ...more] = spansLeft(a, b, shoulder, top, removed);
+      if (!more.length && left && left[0] === a && left[1] === b)
+        stones.push({ key: `${key}/0`, u0: a, u1: b, lo: shoulder, hi: top, past });
+    };
+    const corner = depth + 0.04 * scale.depth;
+    const slots = battlementSlots(chart, pitch, corner);
+    slots.forEach(({ run, ring, inset, count, slot }, r) => {
+      // The stones of the foot butt at a corner: each run reaches out to the outer face at its
+      // end and stops at the next wall's inner face at its start.
       const reach = ring ? 0 : depth / 2;
       if (shoulder - foot > 0.05 * scale.height) {
         const n = Math.max(1, Math.round(run.l / pitch));
@@ -815,17 +827,17 @@ export const parapetCourses: LayingAlgorithm<ParapetParams, ParapetLayout> = {
         const joint = (i: number) => (i === 0 || i === n ? i / n : (i + offset(i)) / n);
         for (let i = 0; i < n; i++)
           push(`foot/${r}/${i}`, run.u + joint(i) * run.l, run.u + joint(i + 1) * run.l, foot, shoulder, [
-            i === 0 ? reach : 0,
+            i === 0 ? -reach : 0,
             i === n - 1 ? reach : 0
           ]);
       }
-      // A ring starts on a crenel; a straight run on a merlon.
-      const firstCrenel = ring ? 0 : 1;
       for (let i = 0; i < count; i++) {
-        const [a, b] = [run.u + i * slot, run.u + (i + 1) * slot];
-        if (i % 2 === firstCrenel) crenels.push([a, shoulder, b, top + 1]);
-        else push(`merlon/${r}/${i}`, a, b, shoulder, top, [i === 0 ? reach : 0, i === count - 1 ? reach : 0]);
+        const [a, b] = [run.u + inset + i * slot, run.u + inset + (i + 1) * slot];
+        if (i % 2 === 0) crenels.push([a, shoulder, b, top + 1]);
+        else whole(`merlon/${r}/${i}`, a, b, [0, 0]);
       }
+      // One square stone stands on each corner, along the wall that ends there.
+      if (!ring) whole(`corner/${r}`, run.u + run.l - corner / 2, run.u + run.l, [0, corner / 2]);
     });
     return { count: stones.length, data: { runs: slots.map((s) => s.run), crenels, stones } };
   },
@@ -844,7 +856,7 @@ export const parapetCourses: LayingAlgorithm<ParapetParams, ParapetLayout> = {
     const shift = (after - before) / 2;
     const random = context.random(stone.key, "stone");
     // A big stone is a little uneven on top, not along its joints.
-    const uneven = stone.key.startsWith("merlon") ? 0.03 * scale.height : 0;
+    const uneven = stone.key.startsWith("foot") ? 0 : 0.03 * scale.height;
     const [tl, tr] = [stone.hi - random.next() * uneven, stone.hi - random.next() * uneven];
     const depth = ((p.depth ?? 0.56) + (random.next() - 0.5) * 0.07) * scale.depth;
     return masonryUnit(

@@ -55,7 +55,25 @@ describe("Flat roofs", () => {
     expect(merlons).toBeGreaterThan(8);
   });
 
-  it("ends each straight run of a parapet in a merlon at both corners", () => {
+  it("leaves out a merlon that another house cuts", () => {
+    const stones = designBuildingCore(
+      buildCoreHouses([
+        { id: "a", height: 4, rectangle: { center: [-1.5, 0], size: [7, 5], rotation: 0 }, roof: { height: 0 } },
+        { id: "b", height: 4.5, rectangle: { center: [2.5, 1.5], size: [5, 6], rotation: 0.5 }, roof: { height: 0 } }
+      ]),
+      registry,
+      { environment: { ground: flat } }
+    ).parts.find((p) => p.key.includes("a-parapet"))!;
+    const removed = stones.modifications.flatMap((m) => (m.op === "removeArea" ? [m.rect] : []));
+    expect(removed.length).toBeGreaterThan(0);
+    for (const u of units(stones).filter((x) => !x.key.startsWith("foot"))) {
+      const [c] = u.params!.anchor_uv as number[];
+      const w = u.size![0] / 2;
+      for (const [a, , b] of removed) expect(c + w <= a + 1e-6 || c - w >= b - 1e-6).toBe(true);
+    }
+  });
+
+  it("stands one stone on each corner of a parapet, the slots between them even", () => {
     const { parapets } = house({ id: "f", roof: { height: 0 }, roofUnit: "roof_tile" });
     const data = parapets[0].layout!.data as { crenels: number[][]; runs: { u: number; l: number }[] };
     expect(data.runs.length).toBe(4);
@@ -77,9 +95,11 @@ describe("Flat roofs", () => {
     const data = parapets[0].layout!.data as { crenels: number[][]; stones: { key: string }[] };
     const laid = units(parapets[0]);
     const merlons = laid.filter((u) => u.key.startsWith("merlon")),
+      corners = laid.filter((u) => u.key.startsWith("corner")),
       foot = laid.filter((u) => u.key.startsWith("foot"));
-    // Every other slot of each of the four sides, with one more merlon than crenels per side.
-    expect(merlons.length).toBe(data.crenels.length + 4);
+    // Each side starts and ends on a crenel, between the stones on its corners.
+    expect(corners).toHaveLength(4);
+    expect(merlons.length).toBe(data.crenels.length - 4);
     for (const u of merlons) expect(u.size![0]).toBeGreaterThan(0.5);
     expect(foot.reduce((n, u) => n + u.size![0], 0) / foot.length).toBeGreaterThan(0.55);
   });
