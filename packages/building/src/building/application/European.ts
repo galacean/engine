@@ -163,6 +163,8 @@ function house(p: EuropeanHouseParameters): CoreHouseParameters {
   const wallUnit = p.wall?.unit ?? (timber ? "wooden_plank" : "brick");
   if (wallUnit === "roof_tile") throw unavailable("A wall of roof_tile");
   if (timber && wallUnit !== "wooden_plank") throw Error("A timber wall is laid with wooden_plank");
+  if (p.wallStructure === "masonry" && wallUnit === "wooden_plank")
+    throw Error("A masonry wall is not laid with wooden_plank");
   const rule = p.wall?.algorithm?.type ?? (timber ? "horizontal_rows" : undefined);
   if (rule && rule !== "staggered_rows" && rule !== "auto" && !GRID_RULES.includes(rule as never))
     throw Error(`Unknown wall course rule "${rule}"`);

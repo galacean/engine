@@ -207,6 +207,9 @@ describe("Timber walls", () => {
     expect(grid.courses).toMatchObject({ type: "gridCourses", params: { rule: "parallel_rows" } });
     expect(grid.brick.source).toBe("wooden_plank");
     expect(() => wallOf({ wallStructure: "timber", wall: { unit: "brick" } })).toThrow("A timber wall is laid");
+    expect(() => wallOf({ wallStructure: "masonry", wall: { unit: "wooden_plank" } })).toThrow(
+      "A masonry wall is not laid"
+    );
     expect(() => wallOf({ wall: { unit: "roof_tile" } })).toThrow("not available");
   });
 
