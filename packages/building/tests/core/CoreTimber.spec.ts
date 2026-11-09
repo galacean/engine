@@ -138,13 +138,26 @@ describe("Timber walls", () => {
       expect((u.params!.wallV as number[])[1]).toBeLessThan(top);
   });
 
-  it("makes one board per facet on a round wall", () => {
+  it("spans two facets of a round wall, with the joints of neighbouring rows apart", () => {
     const result = design({ ...house, rectangle: undefined, circle: { center: [0, 0], radius: 3, phase: 0 } });
     expect(result.diagnostics).toEqual([]);
-    for (const u of boards(result)) {
-      expect(u.size![1]).toBeLessThan(0.6);
-      expect(Math.hypot(u.frame.origin[0], u.frame.origin[2])).toBeGreaterThan(3.1);
+    const rows = new Map<number, number[]>();
+    for (const b of boards(result)) {
+      expect(b.size![1]).toBeLessThan(1.7);
+      expect(Math.hypot(b.frame.origin[0], b.frame.origin[2])).toBeGreaterThan(3.02);
+      const y = Math.round(b.frame.origin[1] * 10);
+      rows.set(y, [...(rows.get(y) ?? []), Math.atan2(b.frame.origin[2], b.frame.origin[0])]);
     }
+    const ordered = [...rows.entries()].sort((a, b) => a[0] - b[0]).map(([, v]) => v);
+    let shared = 0,
+      total = 0;
+    for (let i = 1; i < ordered.length; i++)
+      for (const a of ordered[i]) {
+        total++;
+        if (ordered[i - 1].some((b) => Math.abs(b - a) < 1e-3)) shared++;
+      }
+    // A few boards line up where the facets close the ring.
+    expect(shared / total).toBeLessThan(0.1);
   });
 
   it("has seam stones only with a masonry neighbour, in that house", () => {

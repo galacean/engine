@@ -42,6 +42,9 @@ interface BoardRegion {
   /** Boards a row of the region can split into, and the region's first slot. */
   readonly slots: number;
   readonly offset: number;
+  /** The rows of the region laid with this run: every `step`-th, from row `phase`. */
+  readonly phase: number;
+  readonly step: number;
 }
 interface BoardLayout {
   runs: BoardRun[];
@@ -57,6 +60,12 @@ const PITCH = 0.3944;
 const LONGEST = 5;
 /** Regions lower than this join a neighbour above or below. */
 const NARROW = 0.1;
+/** Turns gentler than this let a board span a facet of a round wall. */
+const SOFT_COS = Math.cos((20 * Math.PI) / 180);
+/** The furthest a board may stand off a facet it spans, in metres. */
+const SAG = 0.06;
+/** Boards shorter than this join the board next to them, against the reference unit. */
+const SHORTEST = 0.3;
 
 function chartOf(element: GeometryElement | undefined): WallChartParams {
   if (element?.kind !== "surface" || element.surface.kind !== "wallChart")
@@ -65,7 +74,7 @@ function chartOf(element: GeometryElement | undefined): WallChartParams {
 }
 /** The board line in straight runs, `out` metres out from the chart's points with mitred
  * corners, each with the stretch of the chart it covers. */
-function boardRuns(element: string, chart: WallChartParams, out: number): BoardRun[] {
+function boardRuns(element: string, chart: WallChartParams, out: number, phase?: number): BoardRun[] {
   const pts = chart.points.map((q) => [q[0], q[2]]);
   // A chart that ends where it starts goes all the way round.
   const closed = chart.closed === true || Math.hypot(pts[0][0] - pts.at(-1)![0], pts[0][1] - pts.at(-1)![1]) < 1e-4;
@@ -98,8 +107,15 @@ function boardRuns(element: string, chart: WallChartParams, out: number): BoardR
       q = dirOf(i);
     return p[0] * q[0] + p[1] * q[1] < KINK_COS;
   };
-  const breaks = Array.from({ length: n }, (_, i) => i).filter(turns);
+  let breaks = Array.from({ length: n }, (_, i) => i).filter(turns);
   if (closed && !breaks.length) breaks.push(0);
+  // Every other facet of a round wall joins the next one in this row of boards.
+  if (phase !== undefined) {
+    // With an odd number of facets, the last facet is in the other rows' way: it stays alone
+    // in one phase and joins the board before it in the other.
+    const last = breaks.length - (breaks.length % 2);
+    breaks = breaks.filter((_, k) => (k >= last ? phase === 0 : k % 2 !== phase));
+  }
   const runs: BoardRun[] = [];
   const count = closed ? breaks.length : breaks.length - 1;
   for (let r = 0; r < count; r++) {
@@ -119,6 +135,25 @@ function boardRuns(element: string, chart: WallChartParams, out: number): BoardR
     });
   }
   return runs;
+}
+/** Whether the boards of a closed, gently turning wall can span two facets each: every turn is
+ * soft, and a board across two facets stands close enough to the facets' common point. */
+function spansFacets(chart: WallChartParams): boolean {
+  const pts = chart.points.map((q) => [q[0], q[2]]);
+  if (Math.hypot(pts[0][0] - pts.at(-1)![0], pts[0][1] - pts.at(-1)![1]) < 1e-4) pts.pop();
+  if (!chart.closed || pts.length < 4) return false;
+  const n = pts.length;
+  for (let i = 0; i < n; i++) {
+    const [a, b, c] = [pts[(i + n - 1) % n], pts[i], pts[(i + 1) % n]];
+    const p = [b[0] - a[0], b[1] - a[1]],
+      q = [c[0] - b[0], c[1] - b[1]],
+      lp = Math.hypot(p[0], p[1]) || 1,
+      lq = Math.hypot(q[0], q[1]) || 1;
+    if ((p[0] * q[0] + p[1] * q[1]) / (lp * lq) < SOFT_COS) return false;
+    const m = [(a[0] + c[0]) / 2, (a[1] + c[1]) / 2];
+    if (Math.hypot(b[0] - m[0], b[1] - m[1]) > SAG) return false;
+  }
+  return true;
 }
 /** Run x of a chart u, and back. */
 const xOf = (run: BoardRun, u: number) => ((u - run.u0) / (run.u1 - run.u0)) * run.length;
@@ -203,6 +238,23 @@ function settle(input: Rect[]): Rect[] {
   }
   return regions.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
 }
+/** The boards of a row between `x0` and `x1`, a part of the whole row. A board shorter than
+ * `shortest` joins the one next to it. */
+function clipBoards(boards: [number, number][], x0: number, x1: number, shortest: number): [number, number][] {
+  const out: [number, number][] = [];
+  for (const [a, b] of boards) {
+    const lo = Math.max(a, x0),
+      hi = Math.min(b, x1);
+    if (hi - lo > 1e-6) out.push([lo, hi]);
+  }
+  for (let i = out.length - 1; i >= 0 && out.length > 1; i--)
+    if (out[i][1] - out[i][0] < shortest) {
+      if (i > 0) out[i - 1][1] = out[i][1];
+      else out[1][0] = out[0][0];
+      out.splice(i, 1);
+    }
+  return out;
+}
 /** The boards of one row: split at random between 15% and 85% while longer than `limit`. */
 function rowBoards(x0: number, x1: number, limit: number, random: Random): [number, number][] {
   const out: [number, number][] = [];
@@ -222,7 +274,8 @@ function rowBoards(x0: number, x1: number, limit: number, random: Random): [numb
 /** Horizontal boards around a wall chart. Rows of about 0.3944 m fill each straight run of
  * the board line from the wall's base to 0.2 m above its highest roof point, around the
  * areas removed from the wall: each region left between openings gets its own whole number
- * of rows. Boards longer than 5 m split at random. Each board is 0.29–0.35 m thick, up to
+ * of rows. A row longer than 5 m splits at random along its whole run, and an opening only
+ * cuts the boards it meets. On a round wall each board spans two facets, in alternating rows. Each board is 0.29–0.35 m thick, up to
  * 0.05 m shorter than its span and up to 0.075 m taller than its row; boards above the roof
  * or under the ground are left out. Sizes scale with the unit footprint. */
 export const boardCourses: LayingAlgorithm<BoardParams, BoardLayout> = {
@@ -252,22 +305,29 @@ export const boardCourses: LayingAlgorithm<BoardParams, BoardLayout> = {
       const bottom = chart.minGround;
       // Removed areas are in the chart's own u.
       const removed = context.geometry.surface(element).removed;
-      for (const run of boardRuns(element, chart, p.out ?? OUT * scale.depth)) {
-        const index = runs.push(run) - 1;
-        let parts: Rect[] = [[0, bottom, run.length, top]];
-        for (const r of removed)
-          for (const shift of chart.closed ? [0, sample.length] : [0]) {
-            const a = xOf(run, r[0] + shift),
-              b = xOf(run, r[2] + shift);
-            if (b > 0 && a < run.length) parts = subtract(parts, [a, r[1], b, r[3]]);
+      const out = p.out ?? OUT * scale.depth;
+      // A round wall's rows take turns at which facets their boards join, so that the joints
+      // of neighbouring rows fall apart.
+      const phases = spansFacets(chart) ? [0, 1] : [undefined];
+      for (const [phaseIndex, phase] of phases.entries())
+        for (const run of boardRuns(element, chart, out, phase)) {
+          const index = runs.push(run) - 1;
+          let parts: Rect[] = [[0, bottom, run.length, top]];
+          for (const r of removed)
+            for (const shift of chart.closed ? [0, sample.length] : [0]) {
+              const a = xOf(run, r[0] + shift),
+                b = xOf(run, r[2] + shift);
+              if (b > 0 && a < run.length) parts = subtract(parts, [a, r[1], b, r[3]]);
+            }
+          for (const [x0, y0, x1, y1] of settle(parts)) {
+            const rows = Math.max(1, Math.round((y1 - y0) / pitch));
+            // A row splits as a whole along its run; an opening only cuts the boards it meets.
+            const slots = run.length <= limit ? 1 : Math.ceil(run.length / (0.15 * limit));
+            const step = phases.length;
+            regions.push({ run: index, x0, x1, y0, y1, rows, slots, offset: slot, phase: phaseIndex, step });
+            slot += Math.ceil((rows - phaseIndex) / step) * slots;
           }
-        for (const [x0, y0, x1, y1] of settle(parts)) {
-          const rows = Math.max(1, Math.round((y1 - y0) / pitch));
-          const slots = x1 - x0 <= limit ? 1 : Math.ceil((x1 - x0) / (0.15 * limit));
-          regions.push({ run: index, x0, x1, y0, y1, rows, slots, offset: slot });
-          slot += rows * slots;
         }
-      }
     }
     return { count: slot, data: { runs, regions } };
   },
@@ -284,10 +344,22 @@ export const boardCourses: LayingAlgorithm<BoardParams, BoardLayout> = {
       run = d.runs[region.run],
       chart = chartOf(context.geometry.original.elements[run.element]);
     const local = index - region.offset,
-      row = Math.floor(local / region.slots),
+      row = region.phase + region.step * Math.floor(local / region.slots),
       piece = local % region.slots;
+    if (row >= region.rows) return;
     const key = `${run.element}/${region.run}/${Math.round(region.x0 * 1000)}/${Math.round(region.y0 * 1000)}/${row}`;
-    const boards = rowBoards(region.x0, region.x1, LONGEST * scale.width, context.random(key, "split"));
+    const pitchRow = Math.round((region.y0 + (row * (region.y1 - region.y0)) / region.rows) / (PITCH * scale.height));
+    const boards = clipBoards(
+      rowBoards(
+        0,
+        run.length,
+        LONGEST * scale.width,
+        context.random(`${run.element}/${region.run}/${pitchRow}`, "split")
+      ),
+      region.x0,
+      region.x1,
+      SHORTEST * scale.width
+    );
     if (piece >= boards.length) return;
     const [x0, x1] = boards[piece];
     const h = (region.y1 - region.y0) / region.rows,
