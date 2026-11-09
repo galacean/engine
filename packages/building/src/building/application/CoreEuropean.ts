@@ -196,7 +196,8 @@ export interface CoreFoundation {
 }
 export interface CoreWallAttachment {
   id: string;
-  kind: "window" | "door" | "wall-lamp" | "lantern";
+  /** An opening is a ground-open arch: `bottom` is 0, `width` its span between the piers. */
+  kind: "window" | "door" | "wall-lamp" | "lantern" | "opening";
   type?: string;
   rank?: 1 | 2 | 3;
   u: number;
@@ -241,18 +242,54 @@ const ROOF_PREFABS: Readonly<
   "roof-lantern": { type: "roofLamp", generator: "houseDeckMount", facing: "front", kind: "lantern" }
 };
 /** The part type of each attachment kind. */
-const WALL_PART_TYPES: Readonly<Record<CoreWallAttachment["kind"], (typeof WALL_MOUNTS)[number]>> = {
-  window: "window",
-  door: "door",
-  "wall-lamp": "lamp",
-  lantern: "lamp"
-};
-const DEFAULT_WALL_TYPES: Readonly<Record<CoreWallAttachment["kind"], string>> = {
+const WALL_PART_TYPES: Readonly<Record<Exclude<CoreWallAttachment["kind"], "opening">, (typeof WALL_MOUNTS)[number]>> =
+  {
+    window: "window",
+    door: "door",
+    "wall-lamp": "lamp",
+    lantern: "lamp"
+  };
+const DEFAULT_WALL_TYPES: Readonly<Record<Exclude<CoreWallAttachment["kind"], "opening">, string>> = {
   window: "window-cottage",
   door: "door-cottage",
   "wall-lamp": "wall-lantern",
   lantern: "wall-lantern"
 };
+/** A ground-open arch: stone voussoirs on piers in a masonry wall, a level timber frame in a
+ * timber wall. Its stones take the wall's brick. */
+function archPart(house: CoreHouseParameters, a: CoreWallAttachment): BuildingPartDef {
+  if (a.bottom !== 0) throw Error(`The arch "${a.id}" stands on the ground: its bottom must be 0`);
+  const timber = house.walls === "timber" || house.wallUnit === "wooden_plank";
+  return {
+    id: `${house.id}/${a.id}`,
+    group: house.id,
+    type: timber ? "woodArch" : "arch",
+    geometry: {
+      generator: "houseArch",
+      params: { u: a.u, width: a.width, height: a.height, ...(timber && { lintel: true }) }
+    },
+    ...(timber
+      ? {
+          algorithm: {
+            type: "placeAtPoints",
+            params: { unitParams: { ...(a.woodColor !== undefined && { woodColor: a.woodColor }) } }
+          },
+          unit: { source: "wooden_plank", bounds: CUBE, scale: [0.43, 0.25, 0.675] }
+        }
+      : {
+          algorithm: {
+            type: "archStones",
+            params: { depthScale: unitFootprintScale(house.footprint ?? DEFAULT_FOOTPRINT).depth }
+          },
+          unit: {
+            source: "brick",
+            bounds: CUBE,
+            scale: [0.56, 0.42, 0.7],
+            range: { min: [0.05, 0.05, 0.5], max: [3, 5, 3] }
+          }
+        })
+  };
+}
 /** Wall prefabs that break through the eave and carry a small roof out of it. */
 const EAVE_TYPES = new Set(["dormer-cottage-half", "dormer-gothic-half", "dormer-arrow-slit-half"]);
 /** A Cottage eave dormer's shed, by rank: its side overhang and front reach at the eave, and how
@@ -276,13 +313,15 @@ function eaveShed(house: CoreHouseParameters, a: CoreWallAttachment) {
  * installation size. The prefab's bounds, opening and members come from the asset layer at
  * design time, so the draft names the prefab only. */
 function wallAttachmentPart(house: CoreHouseParameters, a: CoreWallAttachment): BuildingPartDef {
+  if (a.kind === "opening") return archPart(house, a);
   const eave = a.type !== undefined && EAVE_TYPES.has(a.type);
   const shed = a.type === "dormer-cottage-half" ? eaveShed(house, a) : undefined;
-  const prefab = shed?.prefab ?? `${a.type ?? DEFAULT_WALL_TYPES[a.kind]}/${a.rank ?? 1}`;
+  const kind = a.kind;
+  const prefab = shed?.prefab ?? `${a.type ?? DEFAULT_WALL_TYPES[kind]}/${a.rank ?? 1}`;
   return {
     id: `${house.id}/${a.id}`,
     group: house.id,
-    type: eave ? "eaveDormer" : WALL_PART_TYPES[a.kind],
+    type: eave ? "eaveDormer" : WALL_PART_TYPES[kind],
     geometry: {
       generator: eave ? "houseEaveMount" : "houseWallMount",
       params: { prefab, u: a.u, bottom: a.bottom, width: a.width, height: a.height, ...shed?.params }

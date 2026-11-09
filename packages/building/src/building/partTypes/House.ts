@@ -38,6 +38,7 @@ import { isFlatRoofHeight } from "../runtime/RoofMode";
 import { registerFoundationTypes, type HouseFoundation } from "./Foundation";
 import { registerTimberTypes } from "./Timber";
 import { registerEaveDormerTypes } from "./EaveDormers";
+import { registerArchTypes } from "./Arches";
 
 /** The wall chart: the perimeter unrolled along u, height along v. Plain JSON. */
 export interface WallChartParams {
@@ -1359,10 +1360,12 @@ export function registerHouseTypes(registry: BuildingRegistry): BuildingRegistry
   registry.algorithms.register("seamStones", seamStones);
   registry.defaults.join("wall", "wall", "wallJoin");
   registry.detectors.register(joinPairKey("wall", "wall"), wallsTouch);
-  return registerEaveDormerTypes(
-    registerTimberTypes(
-      registerFoundationTypes(
-        registerShedDormerTypes(registerDormerTypes(registerOpeningTypes(registerRoofTypes(registry))))
+  return registerArchTypes(
+    registerEaveDormerTypes(
+      registerTimberTypes(
+        registerFoundationTypes(
+          registerShedDormerTypes(registerDormerTypes(registerOpeningTypes(registerRoofTypes(registry))))
+        )
       )
     )
   );

@@ -63,6 +63,8 @@ import type { DecorationStoneInstance } from "../runtime/DecorationStoneInstance
 import { decorationStoneBounds } from "../runtime/DecorationStoneBounds";
 import type { ConstructionJunctionGroup } from "../runtime/ConstructionJunctionLayout";
 import type { ConstructionWoodArchPart, ConstructionWoodArchPillar } from "../runtime/ConstructionWoodArchRender";
+import { placeConstructionWoodArch } from "../runtime/ConstructionWoodArch";
+import { woodArchFrameGeometry, woodArchPillarGeometry } from "../runtime/ConstructionWoodArchGeometry";
 import { wallChartSampler } from "../partTypes/House";
 import { packConstructionUnits } from "../runtime/ConstructionUnitRender";
 import { encodeCompleteConstructionDormerBins } from "../runtime/DormerBins";
@@ -72,7 +74,7 @@ import { f32BitsToHalf } from "../runtime/UnitPacking.js";
 import type { RetainedWallUnits } from "../runtime/ConstructionWallLod";
 
 /** How the renderer draws the units of each part type. */
-type Family = "wall" | "parapet" | "roof" | "spire" | "plaster" | "prefab" | "enclosure" | "foundation";
+type Family = "woodArch" | "wall" | "parapet" | "roof" | "spire" | "plaster" | "prefab" | "enclosure" | "foundation";
 const FAMILIES: Readonly<Record<string, Family>> = {
   freeWall: "enclosure",
   fencePost: "enclosure",
@@ -97,6 +99,8 @@ const FAMILIES: Readonly<Record<string, Family>> = {
   dormer: "prefab",
   shedDormer: "prefab",
   eaveDormer: "prefab",
+  arch: "wall",
+  woodArch: "woodArch",
   hatch: "prefab",
   roofLamp: "prefab",
   dormerRoof: "roof",
@@ -1247,6 +1251,16 @@ export function coreBuildingView(layout: CoreBuildingLayout, options: CoreBuildi
   const decorationParts = decorations.flatMap((d) => d.parts);
   const stones = decorations.flatMap((d) => d.stones);
   const frames = decorations.flatMap((d) => d.frames);
+  const woodArchFrames: ConstructionWoodArchPart[] = decorations.flatMap((d) => d.woodArchFrames ?? []);
+  const woodArchPillars: ConstructionWoodArchPillar[] = decorations.flatMap((d) => d.woodArchPillars ?? []);
+  for (const frame of woodArchFrames) {
+    const { owner, positions, indices } = woodArchFrameGeometry(frame);
+    capture(owner, { positions, indices, uvs: [] });
+  }
+  for (const pillar of woodArchPillars) {
+    const { owner, positions, indices } = woodArchPillarGeometry(pillar, options.assets?.woodPillar);
+    capture(owner, { positions, indices, uvs: [] });
+  }
   for (const frame of frames) {
     const { owner, positions, indices } = decorationFrameGeometry(options.assets?.stoneGeometry, frame);
     capture(owner, { positions, indices, uvs: [] });
@@ -1304,8 +1318,8 @@ export function coreBuildingView(layout: CoreBuildingLayout, options: CoreBuildi
     bounds,
     stones,
     frames,
-    woodArchFrames: [] as ConstructionWoodArchPart[],
-    woodArchPillars: [] as ConstructionWoodArchPillar[],
+    woodArchFrames,
+    woodArchPillars,
     ...(options.includeStructure && { structuralParts: [...structure.values()] })
   };
 }
@@ -1321,7 +1335,8 @@ export function coreBuildingDecorations(
   const result: CompiledConstructionDecorations[] = [];
   for (const owner of layout.owners) {
     const prefabs = owner.bindings.filter((b) => b.family === "prefab");
-    if (!prefabs.length) continue;
+    const woodArches = owner.bindings.filter((b) => b.family === "woodArch");
+    if (!prefabs.length && !woodArches.length) continue;
     const walls = owner.bindings
       .filter((b) => b.family === "wall")
       .flatMap((b) => b.parts.flatMap((p) => (chartOf(p.part) ? [chartOf(p.part)!] : [])));
@@ -1495,6 +1510,29 @@ export function coreBuildingDecorations(
           const [type, rank] = key.split("/");
           if (u === units[0]) compiled.resolved.push({ id, type, host: onRoof ? "roof" : "wall", rank: Number(rank) });
         }
+    // A timber arch is drawn as its native beams, braces and posts, from its arc.
+    for (const binding of woodArches)
+      for (const { part, units } of binding.parts) {
+        const base = part.original.elements.base,
+          arc = part.original.elements.arc;
+        if (base?.kind !== "curve" || arc?.kind !== "curve" || !units.length) continue;
+        const id = partId(part);
+        const depth = (walls[0]?.depthScale ?? 1) as number;
+        const members = placeConstructionWoodArch(
+          base.curve.points.map((q) => [q[0], q[1], q[2]] as [number, number, number]),
+          {
+            id: `${owner.group.id}/${id}`,
+            seed: part.seed >>> 0,
+            slot: owner.slot,
+            depthScale: depth,
+            heights: base.curve.points.map((q, i) => arc.curve.points[i][1] - q[1])
+          }
+        );
+        const colorId = (units[0].params?.woodColor as number | undefined) ?? owner.palette.woodColor;
+        const identity = { ownerId: owner.group.id, decorationId: id, colorId };
+        for (const frame of members.frames) (compiled.woodArchFrames ??= []).push({ ...frame, ...identity });
+        for (const pillar of members.pillars) (compiled.woodArchPillars ??= []).push({ ...pillar, ...identity });
+      }
     result.push(compiled);
   }
   return result;
@@ -1650,7 +1688,13 @@ export async function coreBuildingRenderInput(
   for (const owner of layout.owners)
     for (const binding of owner.bindings) {
       // Prefabs and finishes are drawn from the view, not as unit groups.
-      if (binding.family === "spire" || binding.family === "plaster" || binding.family === "prefab") continue;
+      if (
+        binding.family === "spire" ||
+        binding.family === "plaster" ||
+        binding.family === "prefab" ||
+        binding.family === "woodArch"
+      )
+        continue;
       const { draws, dependencies } = bindingDraws(binding, owner.slot, layout);
       for (const draw of draws)
         groups.push({

@@ -139,8 +139,11 @@ function roofAttachment(a: EuropeanAttachment, flat: boolean): CoreRoofAttachmen
 }
 function wallAttachment(a: EuropeanAttachment): CoreWallAttachment | undefined {
   if (a.enabled === false || onRoof(a)) return;
-  if (a.kind === "opening" || a.kind === "hatch") throw unavailable(`An attachment of kind "${a.kind}" ("${a.id}")`);
-  if (a.type && !WALL_PREFABS.has(a.type)) throw unavailable(`The attachment type "${a.type}" ("${a.id}")`);
+  if (a.kind === "hatch") throw unavailable(`An attachment of kind "${a.kind}" ("${a.id}")`);
+  if (a.kind === "opening" && a.type && a.type !== "opening-arch")
+    throw unavailable(`The opening type "${a.type}" ("${a.id}")`);
+  if (a.kind !== "opening" && a.type && !WALL_PREFABS.has(a.type))
+    throw unavailable(`The attachment type "${a.type}" ("${a.id}")`);
   checkFrame(a, a.type ?? (a.kind === "window" ? "window-cottage" : a.kind));
   if (a.u === undefined) throw Error(`Wall attachment "${a.id}" needs u`);
   if (a.width === undefined || a.height === undefined || a.bottom === undefined)

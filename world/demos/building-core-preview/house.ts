@@ -535,6 +535,49 @@ const cases = (): Case[] => [
     ]),
     ground: flat
   },
+  {
+    id: "arch-stone",
+    title: "拱 · 砖墙",
+    house: {
+      id: "a",
+      height: 5,
+      rectangle: { center: [0, 0], size: [10, 8], rotation: 0 },
+      attachments: [
+        { id: "a1", kind: "opening", type: "opening-arch", u: 0.36, bottom: 0, width: 2, height: 2.6 },
+        { id: "a2", kind: "opening", type: "opening-arch", u: 0.45, bottom: 0, width: 1.2, height: 3.2 }
+      ] as never
+    },
+    ground: flat
+  },
+  {
+    id: "arch-round",
+    title: "拱 · 圆墙 · 起伏",
+    house: {
+      id: "a",
+      height: 5,
+      circle: { center: [0, 0], radius: 5, phase: 0 },
+      attachments: [
+        { id: "a1", kind: "opening", type: "opening-arch", u: 0.4, bottom: 0, width: 2.4, height: 3 }
+      ] as never
+    },
+    ground: hills
+  },
+  {
+    id: "arch-timber",
+    title: "拱 · 木墙",
+    house: {
+      id: "a",
+      walls: "timber",
+      height: 5,
+      rectangle: { center: [0, 0], size: [10, 8], rotation: 0 },
+      attachments: [
+        { id: "a1", kind: "opening", type: "opening-arch", u: 0.36, bottom: 0, width: 2, height: 2.6 },
+        { id: "a2", kind: "opening", type: "opening-arch", u: 0.45, bottom: 0, width: 1.2, height: 3 }
+      ] as never
+    },
+    online: { wallStructure: "timber", wall: { unit: "wooden_plank", algorithm: { type: "horizontal_rows" } } },
+    ground: flat
+  },
   { id: "steep", title: "陡屋顶", house: { id: "a", roof: { height: 0.8, eave: 0.4 } }, ground: flat },
   { id: "gable", title: "山墙屋顶", house: { id: "a", roof: { ridge_length: 1 } }, ground: flat },
   {
