@@ -523,6 +523,18 @@ const cases = (): Case[] => [
     online: { wallStructure: "timber", wall: { unit: "wooden_plank", algorithm: { type: "horizontal_rows" } } },
     ground: flat
   },
+  (() => {
+    const base = withEave({ id: "a", height: 4, rectangle: { center: [0, 0], size: [12, 8], rotation: 0 } }, [
+      ["dormer-cottage-half", 2, 0.12],
+      ["dormer-cottage-half", 2, 0.28]
+    ]);
+    return {
+      id: "eave-shutters",
+      title: "半老虎窗 · 百叶窗",
+      house: { ...base, attachments: base.attachments!.map((a) => ({ ...a, shutters: true })) },
+      ground: flat
+    };
+  })(),
   {
     id: "eave-cottage",
     title: "半老虎窗 · Cottage",
@@ -725,6 +737,7 @@ interface Drawn {
   destroy(): void;
   ms: number;
   units: number;
+  metrics?: { triangles: number; uploadBytes: number; residentBytes: number };
 }
 async function online(c: Case, dx: number, parent: Entity, signal: AbortSignal): Promise<Drawn> {
   const houses = moved(c, dx).map(({ walls: _w, footprint: _f, roofAttachments, foundation, ...p }) => ({
@@ -739,7 +752,8 @@ async function online(c: Case, dx: number, parent: Entity, signal: AbortSignal):
       }
     }),
     attachments: [
-      ...(p.attachments ?? []),
+      // Online has no choice of shutters on an eave dormer.
+      ...(p.attachments ?? []).map(({ shutters: _shutters, ...a }) => a),
       ...(roofAttachments ?? []).map((a) => ({
         ...a,
         kind: a.type === "roof-lantern" ? "lantern" : a.type.startsWith("hatch") ? "hatch" : "window",
@@ -765,7 +779,13 @@ async function online(c: Case, dx: number, parent: Entity, signal: AbortSignal):
   const input = (await implementBuilding(design)).renderInput;
   const ms = performance.now() - start;
   const r = await renderBuilding(input, { parent, camera, assets, signal });
-  return { root: r.runtime.root, destroy: r.destroy, ms, units: input.groups.reduce((n, g) => n + g.cells.length, 0) };
+  return {
+    root: r.runtime.root,
+    destroy: r.destroy,
+    ms,
+    units: input.groups.reduce((n, g) => n + g.cells.length, 0),
+    metrics: r.runtime.metrics
+  };
 }
 async function core(c: Case, dx: number, parent: Entity, signal: AbortSignal): Promise<Drawn> {
   const registry = registerHouseTypes(createBuildingRegistry());
@@ -802,7 +822,8 @@ async function core(c: Case, dx: number, parent: Entity, signal: AbortSignal): P
     root: r.runtime.root,
     destroy: r.destroy,
     ms,
-    units: renderInput.groups.reduce((n, g) => n + g.cells.length, 0)
+    units: renderInput.groups.reduce((n, g) => n + g.cells.length, 0),
+    metrics: r.runtime.metrics
   };
 }
 
@@ -898,4 +919,123 @@ if (params.get("mode") === "flip") {
   for (const x of document.querySelectorAll<HTMLButtonElement>("#modes button"))
     x.setAttribute("aria-pressed", String(x.dataset.mode === "flip"));
 }
-select(CASES.find((c) => c.id === params.get("case")) ?? CASES[0]);
+// `town=core|online` builds one town through that path and measures it, for comparing the two.
+const TOWN = [
+  "house",
+  "tall",
+  "stone-openings",
+  "wall-frames",
+  "timber-windows",
+  "round-facade",
+  "corner-windows",
+  "eave-gothic",
+  "eave-cottage",
+  "dormers",
+  "cottage-dormers",
+  "flat",
+  "deck-prefabs",
+  "foundation-solid",
+  "foundation-pillars",
+  "plaster",
+  "gable"
+];
+async function measureTown(path: "core" | "online") {
+  const spacing = 22;
+  const placed = TOWN.map((id, i): Case => {
+    const c = CASES.find((k) => k.id === id);
+    if (!c) throw Error(`No case "${id}"`);
+    const x = ((i % 5) - 2) * spacing,
+      z = (Math.floor(i / 5) - 1.5) * spacing;
+    const put = (h: CoreHouseParameters): CoreHouseParameters =>
+      h.circle
+        ? { ...h, circle: { ...h.circle, center: [h.circle.center[0] + x, h.circle.center[1] + z] } }
+        : {
+            ...h,
+            rectangle: {
+              ...(h.rectangle ?? { center: [0, 0], size: [8, 6], rotation: 0 }),
+              center: [(h.rectangle?.center[0] ?? 0) + x, (h.rectangle?.center[1] ?? 0) + z] as [number, number]
+            }
+          };
+    return { ...c, ground: flat, house: put(c.house), others: c.others?.map(put) };
+  });
+  const parent = scene.createRootEntity("town");
+  const signal = new AbortController().signal;
+  const start = performance.now();
+  const drawn: Drawn[] = [];
+  for (const c of placed) drawn.push(await (path === "core" ? core : online)(c, 0, parent, signal));
+  const build = performance.now() - start;
+  const total = (f: (d: Drawn) => number) => drawn.reduce((n, d) => n + f(d), 0);
+  const gl = (engine as unknown as { _hardwareRenderer: { gl: WebGL2RenderingContext } })._hardwareRenderer.gl;
+  const info = gl.getExtension("WEBGL_debug_renderer_info");
+  const timer = gl.getExtension("EXT_disjoint_timer_query_webgl2") as {
+    TIME_ELAPSED_EXT: number;
+    GPU_DISJOINT_EXT: number;
+  } | null;
+  engine.pause();
+  camera.isOrthographic = false;
+  camera.farClipPlane = 1000;
+  const place = (angle: number, radius: number) => {
+    camera.entity.transform.setPosition(Math.cos(angle) * radius, 34, Math.sin(angle) * radius);
+    camera.entity.transform.lookAt(new Vector3(0, 2, 0));
+  };
+  const frames = async (count: number, move: (i: number) => void) => {
+    const update: number[] = [],
+      queries: WebGLQuery[] = [];
+    for (let i = 0; i < count; i++) {
+      move(i);
+      const query = timer ? gl.createQuery()! : undefined;
+      if (query) gl.beginQuery(timer!.TIME_ELAPSED_EXT, query);
+      const t = performance.now();
+      engine.update();
+      update.push(performance.now() - t);
+      if (query) {
+        gl.endQuery(timer!.TIME_ELAPSED_EXT);
+        queries.push(query);
+      }
+      await new Promise((r) => requestAnimationFrame(r));
+    }
+    for (let tries = 0; tries < 60 && queries.length; tries++) {
+      if (gl.getQueryParameter(queries[queries.length - 1], gl.QUERY_RESULT_AVAILABLE)) break;
+      await new Promise((r) => requestAnimationFrame(r));
+    }
+    const disjoint = timer ? gl.getParameter(timer.GPU_DISJOINT_EXT) : false;
+    const gpu = disjoint
+      ? []
+      : queries.flatMap((q) =>
+          gl.getQueryParameter(q, gl.QUERY_RESULT_AVAILABLE) ? [gl.getQueryParameter(q, gl.QUERY_RESULT) / 1e6] : []
+        );
+    const stat = (xs: number[]) => {
+      if (!xs.length) return null;
+      const sorted = [...xs].sort((a, b) => a - b);
+      return {
+        mean: xs.reduce((a, b) => a + b, 0) / xs.length,
+        p95: sorted[Math.floor(sorted.length * 0.95)]
+      };
+    };
+    return { update: stat(update), gpu: stat(gpu), gpuFrames: gpu.length };
+  };
+  place(0.8, 80);
+  await frames(30, () => {});
+  const still = await frames(60, () => {});
+  const orbit = await frames(120, (i) => place(0.8 + i * 0.0105, 80));
+  const closer = await frames(120, (i) => place(0.8, 80 - i * 0.45));
+  const result = {
+    path,
+    renderer: info ? gl.getParameter(info.UNMASKED_RENDERER_WEBGL) : "unknown",
+    houses: placed.length,
+    generateMs: total((d) => d.ms),
+    buildMs: build,
+    units: total((d) => d.units),
+    triangles: total((d) => d.metrics?.triangles ?? 0),
+    uploadMB: total((d) => d.metrics?.uploadBytes ?? 0) / 1048576,
+    residentMB: total((d) => d.metrics?.residentBytes ?? 0) / 1048576,
+    still,
+    orbit,
+    closer
+  };
+  (window as unknown as { townResult: unknown }).townResult = result;
+  document.body.dataset.town = "done";
+}
+const town = params.get("town");
+if (town === "core" || town === "online") void measureTown(town).catch(report);
+else select(CASES.find((c) => c.id === params.get("case")) ?? CASES[0]);
