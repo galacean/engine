@@ -1,0 +1,39 @@
+packages/modify/src/native/core/src/lighting/screenSpaceReflection/ScreenSpaceReflection.ts
+  s_37f36ddb216819::t_56ce89af327928 18-35,313,600,604,613,616,635,638,652,655,664,667,676,679,688,697,700,709,712,721,724,733,736,745,754,961-964,973-1004,1013-1029,1039-1040,1048,1080-1083,1486-1489
+  s_37f36ddb216819::t_76d8f0413ae3eb 601-603,614-615,636-637,653-654,665-666,677-678,698-699,710-711,722-723,734-735
+packages/modify/tests/ScreenSpaceReflectionSecondReview.test.ts
+  s_37f36ddb216819::t_03dc00fa34d4c7 174-183
+  s_37f36ddb216819::t_56ce89af327928 2-148,150-151,187-189
+  s_37f36ddb216819::t_d8635dea01eaa0 1,149,152-173,184-186,190
+packages/modify/SSR_AUTHORING.md
+  s_37f36ddb216819::t_117d828a69de5a 18,20,22,34,62,83-107
+  s_37f36ddb216819::t_fd4061662880da 108-116
+packages/modify/src/native/core/src/material/Material.ts
+  s_37f36ddb216819::t_e7641639550eb0 42-49,55-59,62-63,156-157
+  s_37f36ddb216819::t_03dc00fa34d4c7 27-31,50-54,60-61
+  s_37f36ddb216819::t_2369035ac32023 158
+packages/modify/src/native/core/src/lighting/screenSpaceReflection/ScreenSpaceReflectionSettings.ts
+  s_37f36ddb216819::t_8edf98336c30d9 26,33-36
+packages/modify/src/native/loader/src/SceneLoader.ts
+  s_37f36ddb216819::t_1230934378a950 14,32-33
+packages/modify/tests/ScreenSpaceReflectionAuthoring.test.ts
+  s_37f36ddb216819::t_4642e1bb38dd0b 100,105-107,167,218
+packages/world-planning/src/world/SeedWorldPicker.ts
+  s_37f36ddb216819::t_b49cb7495c247b 309,415
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "6e29e005b32d79effd79759f43970e8143eed699",
+  "prompts": {},
+  "sessions": {
+    "s_37f36ddb216819": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1a5b4-0e3b-7012-9d7a-e5ae58790463",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "星翊 <sunmingming.smm@antgroup.com>"
+    }
+  }
+}

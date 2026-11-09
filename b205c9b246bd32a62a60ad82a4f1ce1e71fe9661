@@ -1,0 +1,19 @@
+packages/modify/src/native/loader/src/index.ts
+  s_688dcb14bd16e2::t_d96fa5218f8783 4
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "b205c9b246bd32a62a60ad82a4f1ce1e71fe9661",
+  "prompts": {},
+  "sessions": {
+    "s_688dcb14bd16e2": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1a63f-aca4-78c0-a4ac-4481e9d3037b",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "星翊 <sunmingming.smm@antgroup.com>"
+    }
+  }
+}
