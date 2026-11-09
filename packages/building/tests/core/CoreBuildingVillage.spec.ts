@@ -28,6 +28,8 @@ const village = Array.from({ length: 17 }, (_, i) => ({
   roof: roofs[i % roofs.length]
 })) as any[];
 const flat = () => 0;
+// Online paves a flat roof with roof tiles; the comparison lays the same unit.
+const asOnline = (h: any) => (h.roof?.height === 0 ? { ...h, roofUnit: "roof_tile" } : h);
 async function time<T>(f: () => Promise<T> | T, runs = 3) {
   let best = Infinity,
     out!: T;
@@ -61,7 +63,7 @@ it("renders a village with the same draws and comparable output to the online pa
     village.map(
       (h) =>
         prepareCoreBuilding(
-          designBuildingCore(buildCoreHouse(h), registry, { environment: { ground: flat } }),
+          designBuildingCore(buildCoreHouse(asOnline(h)), registry, { environment: { ground: flat } }),
           registry,
           env
         ).preview
@@ -82,7 +84,7 @@ it("renders a village with the same draws and comparable output to the online pa
       r.push(
         (
           await compileCoreBuilding(
-            designBuildingCore(buildCoreHouse(h), registry, { environment: { ground: flat } }),
+            designBuildingCore(buildCoreHouse(asOnline(h)), registry, { environment: { ground: flat } }),
             registry,
             env
           )

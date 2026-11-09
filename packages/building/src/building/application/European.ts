@@ -199,6 +199,11 @@ function house(p: EuropeanHouseParameters): CoreHouseParameters {
       ? ((GRID_RULES.find((r) => r === rule) ?? "staggered_rows") as CoreHouseParameters["wallRule"])
       : GRID_RULES.find((r) => r === rule);
   const roofUnit = p.roofStyle?.unit;
+  // Brick on a flat roof, with no rule of its own, is the irregular stone paving.
+  const stoneDeck =
+    roofUnit === "brick" &&
+    isFlatRoofHeight(normalizeProfileRoof(p.roof ?? {}).height) &&
+    (p.roofStyle?.algorithm?.type ?? "auto") === "auto";
   const foundation = p.foundation && normalizeProfileFoundation(p.foundation);
   const foundationUnit = p.foundationStyle?.unit,
     foundationRule = p.foundationStyle?.algorithm?.type;
@@ -224,7 +229,7 @@ function house(p: EuropeanHouseParameters): CoreHouseParameters {
       wallRule: grid,
       ...(wallUnit === "wooden_plank" && { wallUnit: "wooden_plank" as const })
     }),
-    ...(roofUnit && { roofUnit }),
+    ...(roofUnit && !stoneDeck && { roofUnit }),
     ...(p.floors && { floors: p.floors }),
     ...(p.plaster && { plaster: p.plaster }),
     ...(p.wallColor !== undefined && { wallColor: p.wallColor }),

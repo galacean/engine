@@ -163,7 +163,8 @@ describe("Deck prefabs", () => {
     id: "f",
     height: 4,
     rectangle: { center: [0, 0], size: [8, 6], rotation: 0 },
-    roof: { height: 0 }
+    roof: { height: 0 },
+    roofUnit: "roof_tile"
   };
   const on = (type: CoreRoofAttachment["type"], uv: [number, number]): CoreRoofAttachment => ({ id: "x", type, uv });
   const mountOf = (result: ReturnType<typeof design>) => {

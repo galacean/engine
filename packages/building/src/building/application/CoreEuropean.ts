@@ -613,8 +613,21 @@ export function buildCoreHouse(p: CoreHouseParameters): BuildingCoreDraft {
               group: p.id,
               type: "roofDeck",
               geometry: { generator: "houseRoofDeck", params: { "@shared": "house" } },
-              algorithm: { type: "deckRows", params: { cell: [unit.width, (unit.height * 0.4) / 0.4375] } },
-              unit: { "@shared": "tile" }
+              // A masonry house paves its flat roof in irregular stone, unless told otherwise.
+              ...(!p.roofUnit && brick.source === "brick"
+                ? {
+                    algorithm: {
+                      type: "coverSurfaces",
+                      params: {
+                        unitParams: { footprint: { width: unit.width, height: unit.height, depth: unit.depth } }
+                      }
+                    },
+                    unit: { source: "stone_floor" }
+                  }
+                : {
+                    algorithm: { type: "deckRows", params: { cell: [unit.width, (unit.height * 0.4) / 0.4375] } },
+                    unit: { "@shared": "tile" }
+                  })
             },
             hosts: walls.map((w) => ({ part: w.id }))
           },
@@ -626,7 +639,7 @@ export function buildCoreHouse(p: CoreHouseParameters): BuildingCoreDraft {
                     group: p.id,
                     type: "parapet",
                     geometry: { generator: "houseParapet", params: { "@shared": "house" } },
-                    algorithm: { type: "masonryCourses", params: { crenels: {} } },
+                    algorithm: { type: "parapetCourses" },
                     // Timber has no masonry: the merlons take the roof's material.
                     unit: timber ? merlon : { "@shared": "brick" }
                   },

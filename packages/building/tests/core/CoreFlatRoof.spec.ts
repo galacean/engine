@@ -8,9 +8,16 @@ import { nativeAssets } from "../fixtures/constructionAssets";
 import { createBuildingRegistry, designBuildingCore, expandUnits, type ResolvedPart } from "../../src/building/core";
 import { registerHouseTypes, type WallChartParams } from "../../src/building/partTypes/House";
 import { buildCoreHouse, buildCoreHouses, type CoreHouseParameters } from "../../src/building/application/CoreEuropean";
-import { compileCoreBuilding } from "../../src/building/render/CoreBuilding";
+import {
+  compileCoreBuilding,
+  coreBuildingEnvironment,
+  prepareCoreBuilding
+} from "../../src/building/render/CoreBuilding";
+import { European } from "../../src/building/application/European";
+import { constructionDecorationRecipe } from "../../src/building/runtime/ConstructionDecorationRecipe";
 
 const flat = () => 0;
+const coreEnvironment = coreBuildingEnvironment(flat, nativeAssets.compilation);
 const registry = registerHouseTypes(createBuildingRegistry());
 function house(p: CoreHouseParameters) {
   const result = designBuildingCore(buildCoreHouse(p), registry, { environment: { ground: flat } });
@@ -23,7 +30,7 @@ const chartOf = (part: ResolvedPart) =>
 
 describe("Flat roofs", () => {
   it("lays a deck at the wall top and a parapet with battlements around it", () => {
-    const { result, decks, parapets, walls } = house({ id: "f", roof: { height: 0 } });
+    const { result, decks, parapets, walls } = house({ id: "f", roof: { height: 0 }, roofUnit: "roof_tile" });
     expect(result.diagnostics).toEqual([]);
     expect(decks).toHaveLength(1);
     expect(parapets).toHaveLength(1);
@@ -49,7 +56,7 @@ describe("Flat roofs", () => {
   });
 
   it("ends each straight run of a parapet in a merlon at both corners", () => {
-    const { parapets } = house({ id: "f", roof: { height: 0 } });
+    const { parapets } = house({ id: "f", roof: { height: 0 }, roofUnit: "roof_tile" });
     const data = parapets[0].layout!.data as { crenels: number[][]; runs: { u: number; l: number }[] };
     expect(data.runs.length).toBe(4);
     for (const run of data.runs) {
@@ -65,8 +72,20 @@ describe("Flat roofs", () => {
     expect(ring.crenels[0][0]).toBeCloseTo(0, 6);
   });
 
+  it("lays one big stone per merlon, on a course of long stones", () => {
+    const { parapets } = house({ id: "f", roof: { height: 0 }, roofUnit: "roof_tile" });
+    const data = parapets[0].layout!.data as { crenels: number[][]; stones: { key: string }[] };
+    const laid = units(parapets[0]);
+    const merlons = laid.filter((u) => u.key.startsWith("merlon")),
+      foot = laid.filter((u) => u.key.startsWith("foot"));
+    // Every other slot of each of the four sides, with one more merlon than crenels per side.
+    expect(merlons.length).toBe(data.crenels.length + 4);
+    for (const u of merlons) expect(u.size![0]).toBeGreaterThan(0.5);
+    expect(foot.reduce((n, u) => n + u.size![0], 0) / foot.length).toBeGreaterThan(0.55);
+  });
+
   it("leaves the crenels open", () => {
-    const { parapets } = house({ id: "f", roof: { height: 0 } });
+    const { parapets } = house({ id: "f", roof: { height: 0 }, roofUnit: "roof_tile" });
     const data = parapets[0].layout!.data as { crenels: number[][] };
     expect(data.crenels.length).toBeGreaterThan(8);
     for (const u of units(parapets[0])) {
@@ -80,7 +99,7 @@ describe("Flat roofs", () => {
 
   it("stops the paving inside the wall behind a parapet, and covers the wall without one", () => {
     const reach = (rim: number) => {
-      const { decks } = house({ id: "a", roof: { height: 0, flat_rim: rim } });
+      const { decks } = house({ id: "a", roof: { height: 0, flat_rim: rim }, roofUnit: "roof_tile" });
       const deck = (decks[0].original.elements.deck as { surface: { params: { size: number[]; unpaved?: number } } })
         .surface.params;
       const outer = Math.max(
@@ -90,6 +109,79 @@ describe("Flat roofs", () => {
     };
     expect(reach(0)).toBeGreaterThan(0.1);
     expect(reach(1)).toBeCloseTo(0, 5);
+  });
+
+  describe("stone paving", () => {
+    const deckOf = (p: CoreHouseParameters) => house(p).decks[0];
+    it("is the default of a masonry house, one continuous surface", () => {
+      const deck = deckOf({ id: "s", roof: { height: 0 } });
+      expect(deck.unit?.source).toBe("stone_floor");
+      expect(units(deck)).toHaveLength(1);
+    });
+    it("gives way to a chosen unit, and to timber walls", () => {
+      expect(deckOf({ id: "s", roof: { height: 0 }, roofUnit: "roof_tile" }).unit?.source).toBe("roof_tile");
+      expect(deckOf({ id: "s", roof: { height: 0 }, walls: "timber" }).unit?.source).toBe("roof_tile");
+    });
+    it("comes from brick on a flat roof, unless the brick has its own rule", () => {
+      const of = (algorithm?: { type: string }) => {
+        return European.buildHouses({
+          id: "b",
+          roof: { height: 0 },
+          roofStyle: { unit: "brick", algorithm }
+        } as never);
+      };
+      const unitOf = (d: unknown) =>
+        (JSON.stringify(d).includes('"source":"stone_floor"') ? "stone" : "rows") as "stone" | "rows";
+      expect(unitOf(of())).toBe("stone");
+      expect(unitOf(of({ type: "staggered_rows" }))).toBe("rows");
+    });
+    it("is drawn as a stone floor surface, only inside the wall's center line and around a hatch", async () => {
+      const preview = async (p: CoreHouseParameters) =>
+        prepareCoreBuilding(
+          designBuildingCore(buildCoreHouse(p), registry, { environment: coreEnvironment }),
+          registry,
+          {
+            environment: coreEnvironment,
+            assets: nativeAssets.compilation
+          }
+        ).preview.parts.find((x) => x.stonePaving)!;
+      const base: CoreHouseParameters = {
+        id: "s",
+        rectangle: { center: [0, 0], size: [8, 6], rotation: 0 },
+        roof: { height: 0 }
+      };
+      const plain = await preview(base);
+      expect(plain.material).toBe("brick");
+      const area = (part: typeof plain) => {
+        let n = 0;
+        for (let i = 0; i < part.indices.length; i += 3) {
+          const [a, b, c] = [0, 1, 2].map((k) => part.uvs[part.indices[i + k]]);
+          n += Math.abs((b[0] - a[0]) * (c[1] - a[1]) - (c[0] - a[0]) * (b[1] - a[1])) / 2;
+        }
+        return n;
+      };
+      expect(area(plain)).toBeCloseTo(48, 3);
+      const hatch = constructionDecorationRecipe(
+        nativeAssets.compilation.decorations,
+        "hatch-cottage",
+        1
+      )!.installationSize;
+      const withHatch = await preview({
+        ...base,
+        roofAttachments: [
+          {
+            id: "h",
+            type: "hatch-cottage",
+            rank: 1,
+            uv: [0.4, 0.5],
+            bottom: 0,
+            width: hatch[0],
+            height: hatch[1]
+          }
+        ]
+      });
+      expect(area(withHatch)).toBeLessThan(area(plain) - 0.2);
+    });
   });
 
   describe("two flat roofs that meet", () => {
@@ -127,7 +219,7 @@ describe("Flat roofs", () => {
   });
 
   it("draws the deck as paving and the parapet as masonry", async () => {
-    const p = { id: "f", roof: { height: 0 } };
+    const p = { id: "f", roof: { height: 0 }, roofUnit: "roof_tile" };
     const { result, decks, parapets } = house(p);
     const { renderInput: input } = await compileCoreBuilding(result, registry, {
       environment: { ground: flat },
@@ -146,7 +238,8 @@ describe("Flat roofs", () => {
       id: "r",
       height: 6,
       circle: { center: [1, 2], radius: 3, phase: 0.4 },
-      roof: { height: 0 }
+      roof: { height: 0 },
+      roofUnit: "roof_tile"
     };
     const { result, decks, parapets, walls } = house(p);
     expect(result.diagnostics).toEqual([]);

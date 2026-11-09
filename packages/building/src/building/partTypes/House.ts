@@ -512,10 +512,6 @@ type MasonryParams = {
   split?: number;
   /** Seed shared by the walls of one house, so their courses meet at the corners. */
   courseSeed?: number;
-  /** Battlements along the top: each straight run splits into an even number of slots of
-   * about `pitch` metres, and every other slot, starting with the first, is cut `height`
-   * metres down from the top. Default: no battlements. */
-  crenels?: { pitch?: number; height?: number };
   element?: string;
 };
 interface MasonryLayout {
@@ -533,7 +529,6 @@ interface MasonryLayout {
   runSlots: number;
   pieces: number;
   /** Cuts of the battlements, in chart coordinates. */
-  crenels: Rect[];
 }
 interface Piece {
   u0: number;
@@ -673,8 +668,7 @@ function brickPieces(
   let pieces: Piece[] = [whole];
   const bottom = Math.min(courses.line(r, run[0]), courses.line(r, run[1])),
     top = Math.max(courses.line(r + 1, run[0]), courses.line(r + 1, run[1]));
-  for (const hole of [...masonryWall(context).removed, ...d.crenels])
-    pieces = pieces.flatMap((q) => subtract(q, hole, bottom, top));
+  for (const hole of masonryWall(context).removed) pieces = pieces.flatMap((q) => subtract(q, hole, bottom, top));
   // A tall brick splits into two thinner ones about 40% of the time. The split height comes
   // from the brick's own seed. Only a brick that no removed area touched splits, as in the
   // native masonry.
@@ -720,26 +714,156 @@ function masonryFootprint(context: LayingContext<MasonryParams>): MaterialFootpr
   const [width, height, depth] = context.unit.scale ?? [1, 1, 1];
   return { width, height, depth };
 }
-/** Battlement cuts along the top of a chart: each run splits into slots,
- * and the even slots are cut down from the top. */
-function crenelCuts(chart: WallChartParams, pitch: number, height: number): Rect[] {
-  if (!(pitch > 0) || !(height > 0)) throw Error("Crenels need a positive pitch and height");
-  const top = Math.max(...chart.top);
-  return runs(chart).flatMap((run) => {
+/** The slots of a battlement along each run of a chart: a straight run ends in a merlon at both
+ * corners, so that the merlons of two walls meet there; a ring has no ends. */
+function battlementSlots(chart: WallChartParams, pitch: number) {
+  const all = runs(chart);
+  const [start, end] = [chart.points[0], chart.points[chart.points.length - 1]];
+  const ring = all.length === 1 && Math.hypot(start[0] - end[0], start[2] - end[2]) < 1e-4;
+  return all.map((run) => {
     const n = Math.ceil(run.l / pitch);
-    // A ring has no ends. A straight run ends in a merlon at both corners, so that the merlons
-    // of two walls meet there.
-    const [start, end] = [chart.points[0], chart.points[chart.points.length - 1]];
-    const ring = Math.hypot(start[0] - end[0], start[2] - end[2]) < 1e-4 && runs(chart).length === 1;
-    const count = ring ? Math.max(2, n + (n % 2)) : Math.max(3, n + (1 - (n % 2))),
-      slot = run.l / count,
-      first = ring ? 0 : 1;
-    return Array.from(
-      { length: Math.floor(count / 2) },
-      (_, i): Rect => [run.u + (first + 2 * i) * slot, top - height, run.u + (first + 2 * i + 1) * slot, top + 1]
-    );
+    const count = ring ? Math.max(2, n + (n % 2)) : Math.max(3, n + (1 - (n % 2)));
+    return { run, ring, count, slot: run.l / count };
   });
 }
+interface ParapetParams {
+  /** Default: the unit's scale. */
+  footprint?: MaterialFootprint;
+  /** Width of a merlon slot and of the stones below, in metres before scaling. Default: 0.69. */
+  pitch?: number;
+  /** Height of a merlon in metres before scaling. Default: 0.46. */
+  merlon?: number;
+  /** Depth of the stones through the wall in metres before scaling. Default: 0.56. */
+  depth?: number;
+  element?: string;
+}
+interface ParapetStone {
+  readonly key: string;
+  readonly u0: number;
+  readonly u1: number;
+  readonly lo: number;
+  readonly hi: number;
+  /** How far the stone runs past each end, to meet the stone of the next wall at a corner. */
+  readonly past: readonly [number, number];
+}
+interface ParapetLayout {
+  runs: { u: number; l: number }[];
+  crenels: Rect[];
+  stones: ParapetStone[];
+}
+/** The spans of [u0, u1] left by the removed areas that cross heights [lo, hi]. */
+function spansLeft(u0: number, u1: number, lo: number, hi: number, removed: readonly Rect[]): [number, number][] {
+  let spans: [number, number][] = [[u0, u1]];
+  for (const [a, b, c, d] of removed) {
+    if (!(b < hi && lo < d)) continue;
+    spans = spans.flatMap(([x, y]): [number, number][] => {
+      if (!(a < y && x < c)) return [[x, y]];
+      const left: [number, number][] = [];
+      if (x < a) left.push([x, a]);
+      if (c < y) left.push([c, y]);
+      return left;
+    });
+  }
+  return spans;
+}
+/** The stones of a parapet: a course of long stones along its foot, and above it one big stone
+ * for each merlon, every other slot. Stones give way to removed areas. */
+export const parapetCourses: LayingAlgorithm<ParapetParams, ParapetLayout> = {
+  info: {
+    accepts: ["surface"],
+    summary: "A parapet: a course of long stones with one big stone per merlon on top.",
+    params: {
+      footprint: "Unit footprint { width, height, depth }; scales the stones. Default: the unit's scale.",
+      pitch: "Width of a merlon slot and of the stones below in metres before scaling. Default: 0.69.",
+      merlon: "Height of a merlon in metres before scaling. Default: 0.46.",
+      depth: "Depth of the stones through the wall in metres before scaling. Default: 0.56.",
+      element: "Wall chart element id. Default: face."
+    }
+  },
+  plan(context) {
+    const p = context.params;
+    const element = p.element ?? "face";
+    const chart = chart_(context.geometry.original.elements[element]);
+    const scale = scaleOf(masonryFootprint(context as unknown as LayingContext<MasonryParams>));
+    const removed = context.geometry.surface(element).removed;
+    const pitch = (p.pitch ?? 0.69) * scale.width,
+      height = (p.merlon ?? 0.46) * scale.height,
+      depth = (p.depth ?? 0.56) * scale.depth;
+    const top = Math.max(...chart.top),
+      foot = chart.minGround,
+      shoulder = Math.max(foot, top - height);
+    const stones: ParapetStone[] = [];
+    const crenels: Rect[] = [];
+    const push = (key: string, a: number, b: number, lo: number, hi: number, past: [number, number]) =>
+      spansLeft(a, b, lo, hi, removed).forEach(([x, y], piece) => {
+        if (y - x < 0.1 * scale.width) return;
+        stones.push({
+          key: `${key}/${piece}`,
+          u0: x,
+          u1: y,
+          lo,
+          hi,
+          past: [x === a ? past[0] : 0, y === b ? past[1] : 0]
+        });
+      });
+    const slots = battlementSlots(chart, pitch);
+    slots.forEach(({ run, ring, count, slot }, r) => {
+      const reach = ring ? 0 : depth / 2;
+      if (shoulder - foot > 0.05 * scale.height) {
+        const n = Math.max(1, Math.round(run.l / pitch));
+        const offset = (i: number) => (context.random(`foot/${r}/${i}`, "joint").next() - 0.5) * 0.5;
+        const joint = (i: number) => (i === 0 || i === n ? i / n : (i + offset(i)) / n);
+        for (let i = 0; i < n; i++)
+          push(`foot/${r}/${i}`, run.u + joint(i) * run.l, run.u + joint(i + 1) * run.l, foot, shoulder, [
+            i === 0 ? reach : 0,
+            i === n - 1 ? reach : 0
+          ]);
+      }
+      // A ring starts on a crenel; a straight run on a merlon.
+      const firstCrenel = ring ? 0 : 1;
+      for (let i = 0; i < count; i++) {
+        const [a, b] = [run.u + i * slot, run.u + (i + 1) * slot];
+        if (i % 2 === firstCrenel) crenels.push([a, shoulder, b, top + 1]);
+        else push(`merlon/${r}/${i}`, a, b, shoulder, top, [i === 0 ? reach : 0, i === count - 1 ? reach : 0]);
+      }
+    });
+    return { count: stones.length, data: { runs: slots.map((s) => s.run), crenels, stones } };
+  },
+  unitAt(context, d, index) {
+    const stone = d.stones[index];
+    if (!stone) return;
+    const p = context.params;
+    const chart = chart_(context.geometry.original.elements[p.element ?? "face"]);
+    const sample = wallChartSampler(chart);
+    const scale = scaleOf(masonryFootprint(context as unknown as LayingContext<MasonryParams>));
+    const at0 = sample.at(stone.u0),
+      at1 = sample.at(stone.u1);
+    const chord = Math.hypot(at1.x - at0.x, at1.z - at0.z) || 1;
+    const tangent = [(at1.x - at0.x) / chord, (at1.z - at0.z) / chord];
+    const [before, after] = stone.past;
+    const shift = (after - before) / 2;
+    const random = context.random(stone.key, "stone");
+    // A big stone is a little uneven on top, not along its joints.
+    const uneven = stone.key.startsWith("merlon") ? 0.03 * scale.height : 0;
+    const [tl, tr] = [stone.hi - random.next() * uneven, stone.hi - random.next() * uneven];
+    const depth = ((p.depth ?? 0.56) + (random.next() - 0.5) * 0.07) * scale.depth;
+    return masonryUnit(
+      context.unit,
+      stone.key,
+      { x: (at0.x + at1.x) / 2 + tangent[0] * shift, z: (at0.z + at1.z) / 2 + tangent[1] * shift, tangent },
+      stone.u0 - before,
+      stone.u1 + after,
+      [stone.lo, stone.lo, tl, tr],
+      depth,
+      {
+        anchor_uv: [(stone.u0 - before + stone.u1 + after) / 2, (stone.lo + stone.hi) / 2 - chart.minGround],
+        flags: 4,
+        gap: 0,
+        wallU: [(chart.uOffset ?? 0) + stone.u0, (chart.uOffset ?? 0) + stone.u1]
+      }
+    );
+  }
+};
 /** Element "face": the finish over the house walls, one chart around the whole house. It
  * continues the face of every host wall, so openings in the walls are openings in the finish;
  * corner stones only reserve wall area and stay under the finish. */
@@ -927,8 +1051,6 @@ export const masonryCourses: LayingAlgorithm<MasonryParams, MasonryLayout> = {
       wave: "Amplitude of the wavy course lines in metres. Default: 0.012.",
       courseSeed: "Seed shared by the walls of one house. Default: the part's own seed.",
       split: "Chance that a tall uncut brick splits into two thinner ones. Default: 0.4.",
-      crenels:
-        "Battlements { pitch, height }: every other slot of about `pitch` metres (default 0.69) along each straight run is cut `height` metres (default one course) down from the top. Default: none.",
       element: "Wall chart element id. Default: face."
     }
   },
@@ -954,8 +1076,7 @@ export const masonryCourses: LayingAlgorithm<MasonryParams, MasonryLayout> = {
       firstJoint,
       perRow,
       runSlots: 0,
-      pieces: 0,
-      crenels: p.crenels ? crenelCuts(chart, p.crenels.pitch ?? 0.69, p.crenels.height ?? h) : []
+      pieces: 0
     };
     // Size the slots from the bricks themselves, so that empty slots stay rare.
     const courses = masonryCourses_(context, data);
@@ -1430,6 +1551,7 @@ export function registerHouseTypes(registry: BuildingRegistry): BuildingRegistry
   registry.geometry.register("houseWall", houseWallGeometry);
   registry.algorithms.register("gridCourses", gridCourses);
   registry.algorithms.register("masonryCourses", masonryCourses);
+  registry.algorithms.register("parapetCourses", parapetCourses);
   registry.algorithms.register("cornerStones", cornerStones);
   registry.algorithms.register("beltCourses", beltCourses);
   registry.geometry.register("houseFloorBands", houseFloorBandsGeometry);

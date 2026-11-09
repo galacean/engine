@@ -52,7 +52,7 @@ const HOUSES: [string, CoreHouseParameters][] = [
   ["gable roof", { id: "g", roof: { ridge_length: 1 } }],
   ["steep roof", { id: "s", roof: { height: 0.8 } }],
   ["rotated house", { id: "r", rectangle: { center: [1, 2], size: [10, 7], rotation: 0.6 } }],
-  ["flat roof", { id: "f", roof: { height: 0 } }],
+  ["flat roof", { id: "f", roof: { height: 0 }, roofUnit: "roof_tile" }],
   [
     "floor bands",
     {
@@ -691,6 +691,7 @@ describe("Flat roof prefabs against the online path", () => {
         height: 4,
         rectangle: { center: [1, 2], size: [9, 7], rotation: 0.4 },
         roof: { height: 0 },
+        roofUnit: "roof_tile",
         roofAttachments: [
           at("h1", "hatch-cottage", [0.3, 0.4]),
           at("h2", "hatch-gothic", [0.7, 0.7]),
@@ -705,6 +706,7 @@ describe("Flat roof prefabs against the online path", () => {
         height: 5,
         circle: { center: [0, 0], radius: 4, phase: 0.3 },
         roof: { height: 0 },
+        roofUnit: "roof_tile",
         roofAttachments: [at("h1", "hatch-cottage", [0.4, 0.55]), at("l1", "roof-lantern", [0.6, 0.3])]
       }
     ]

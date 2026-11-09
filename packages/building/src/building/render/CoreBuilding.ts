@@ -46,6 +46,7 @@ import {
   surfaceMaskTriangles
 } from "../runtime/SurfacePolygon";
 import { plasterPalette } from "../runtime/ConstructionPlasterPalette";
+import { stonePavingPlacement } from "../runtime/StonePavingPlacement";
 import { decorationAssemblyGeometry } from "../runtime/ConstructionDecorationGeometry";
 import { decorationMesh } from "../runtime/ConstructionDecorationMeshes";
 import { masonryTintRoles, whiteMasonryVertexColors } from "../runtime/MasonryAppearance";
@@ -74,7 +75,17 @@ import { f32BitsToHalf } from "../runtime/UnitPacking.js";
 import type { RetainedWallUnits } from "../runtime/ConstructionWallLod";
 
 /** How the renderer draws the units of each part type. */
-type Family = "woodArch" | "wall" | "parapet" | "roof" | "spire" | "plaster" | "prefab" | "enclosure" | "foundation";
+type Family =
+  | "woodArch"
+  | "wall"
+  | "parapet"
+  | "roof"
+  | "spire"
+  | "plaster"
+  | "stoneFloor"
+  | "prefab"
+  | "enclosure"
+  | "foundation";
 const FAMILIES: Readonly<Record<string, Family>> = {
   freeWall: "enclosure",
   fencePost: "enclosure",
@@ -174,7 +185,7 @@ export function coreBuildingLayout(
     const byFamily = new Map<Family, LaidPart[]>();
     for (const part of result.parts) {
       if (part.group !== group.id) continue;
-      const family = FAMILIES[part.type];
+      const family = part.unit?.source === "stone_floor" ? "stoneFloor" : FAMILIES[part.type];
       if (!family) throw Error(`The renderer has no family for part type "${part.type}"`);
       const list = byFamily.get(family) ?? [];
       list.push({ part, units: expandUnits(part, registry, { environment }) });
@@ -183,9 +194,17 @@ export function coreBuildingLayout(
     const bindings = [...byFamily].map(([family, parts]): CoreBinding => {
       const unitSource = parts.find((p) => p.part.unit)?.part.unit?.source;
       const source = typeof unitSource === "string" ? unitSource : "";
-      if (family !== "spire" && family !== "plaster" && family !== "prefab" && !MATERIALS.has(source))
+      if (
+        family !== "spire" &&
+        family !== "plaster" &&
+        family !== "stoneFloor" &&
+        family !== "prefab" &&
+        !MATERIALS.has(source)
+      )
         throw Error(`Unsupported unit source ${JSON.stringify(unitSource)}`);
-      return { id: `${group.id}-${family}`, owner: group.id, family, material: source as MaterialUnit, parts };
+      // A stone floor is a brick surface to everything that reads the binding's material.
+      const material = (family === "stoneFloor" ? "brick" : source) as MaterialUnit;
+      return { id: `${group.id}-${family}`, owner: group.id, family, material, parts };
     });
     return {
       group,
@@ -901,6 +920,59 @@ function deckSurface(p: RoofDeckParams, offset: number) {
   }
   return { mesh, chart, width: W };
 }
+/** The paved part of a stone deck, without the areas removed from it, in metres from the walls'
+ * center line. Openings are cut out exactly on a square deck; on a round one, in 0.2 m cells
+ * that the prefab's frame covers. */
+function stoneDeckMesh(p: RoofDeckParams, removed: readonly (readonly number[])[]) {
+  const [W, D] = p.size,
+    edge = p.unpaved ?? 0,
+    outward = (p.rim ?? 0) / 2;
+  const at = (u: number, v: number) => [0, 1, 2].map((k) => p.origin[k] + p.x[k] * u + p.y[k] * v);
+  const chart = (u: number, v: number) => [u - outward, v - outward];
+  const mesh = emptyMesh();
+  const rect = (a: number, b: number, c: number, d: number) =>
+    quad(mesh, [at(a, b), at(c, b), at(c, d), at(a, d)], [chart(a, b), chart(c, b), chart(c, d), chart(a, d)]);
+  if (!p.round) {
+    let pieces = [[edge, edge, W - edge, D - edge]];
+    for (const [a, b, c, d] of removed)
+      pieces = pieces.flatMap(([x0, y0, x1, y1]) => {
+        if (!(a < x1 && x0 < c && b < y1 && y0 < d)) return [[x0, y0, x1, y1]];
+        return [
+          [x0, y0, x1, Math.max(y0, b)],
+          [x0, Math.min(y1, d), x1, y1],
+          [x0, Math.max(y0, b), Math.max(x0, a), Math.min(y1, d)],
+          [Math.min(x1, c), Math.max(y0, b), x1, Math.min(y1, d)]
+        ].filter(([e, f, g, h]) => g > e && h > f);
+      });
+    for (const [a, b, c, d] of pieces) rect(a, b, c, d);
+    return mesh;
+  }
+  if (!removed.length) {
+    const n = Math.max(24, Math.ceil((Math.PI * W) / 0.35));
+    const center = mesh.positions.length / 3;
+    mesh.positions.push(...at(W / 2, D / 2));
+    mesh.uvs.push(chart(W / 2, D / 2));
+    for (let i = 0; i < n; i++) {
+      const a = (2 * Math.PI * i) / n,
+        u = W / 2 + Math.cos(a) * (W / 2 - edge),
+        v = D / 2 + Math.sin(a) * (D / 2 - edge);
+      mesh.positions.push(...at(u, v));
+      mesh.uvs.push(chart(u, v));
+    }
+    for (let i = 0; i < n; i++) mesh.indices.push(center, center + 1 + i, center + 1 + ((i + 1) % n));
+    return mesh;
+  }
+  const radius = W / 2 - edge,
+    cell = 0.2;
+  for (let u = 0; u < W; u += cell)
+    for (let v = 0; v < D; v += cell) {
+      const [cu, cv] = [u + cell / 2, v + cell / 2];
+      if (Math.hypot(cu - W / 2, cv - D / 2) > radius) continue;
+      if (removed.some(([a, b, c, d]) => cu > a && cu < c && cv > b && cv < d)) continue;
+      rect(u, v, u + cell, v + cell);
+    }
+  return mesh;
+}
 /** The faces of a foundation: the side of each wall chart from its bottom to its top on its
  * finish face, each level deck, and each closed outline filled in the order of its points. A
  * face's chart is where `foundationFaces` puts it, in metres along it and up from the bottom of
@@ -1211,6 +1283,26 @@ export function coreBuildingView(layout: CoreBuildingLayout, options: CoreBuildi
           ...(options.includeAppearance &&
             mesh.uvs.length && { lodAppearance: constructionLodAppearance(mesh.uvs, cells) })
         });
+      } else if (binding.family === "stoneFloor") {
+        // One continuous surface per deck, like a finish on a wall.
+        for (const { part, units } of binding.parts)
+          for (const u of units) {
+            const element = part.original.elements[u.params!.element as string];
+            if (element.kind !== "surface") continue;
+            const params = element.surface.params as RoofDeckParams;
+            const removed = new EffectiveGeometry(part.original, part.modifications, layout.surfaces).surface(
+              u.params!.element as string
+            ).removed;
+            const outward = (params.rim ?? 0) / 2;
+            add(owner, binding, stoneDeckMesh(params, removed), {
+              stonePaving: stonePavingPlacement(
+                { footprint: u.params!.footprint } as never,
+                params.size[0] - 2 * outward,
+                params.size[1] - 2 * outward,
+                owner.palette.wallColor
+              )
+            });
+          }
       } else if (binding.family === "plaster") {
         for (const { part, units } of binding.parts)
           for (const u of units) {
