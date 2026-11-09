@@ -211,6 +211,7 @@ export async function packUnits(spec) {
     w.setInt32(48, seed, true);
     w.setInt32(52, seed, true);
     w.setUint32(56, slot, true);
+    if (c.plank_flags !== undefined) w.setUint32(60, uint(c.plank_flags), true);
     if (design) {
       result.roof_tile.set(design.get(c.id), index * 64);
       return;

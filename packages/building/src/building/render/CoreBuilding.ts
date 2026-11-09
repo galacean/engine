@@ -205,8 +205,9 @@ const partId = (part: ResolvedPart) =>
 const chartBase = (binding: CoreBinding) =>
   Math.min(...binding.parts.flatMap((p) => (chartOf(p.part) ? [chartOf(p.part)!.minGround] : [])));
 
-/** Masonry cells. Their placement chart runs along the house perimeter, with height above
- * the lowest wall base. */
+/** Wall cells: bricks or boards. Their placement chart runs along the house perimeter, with
+ * height above the lowest wall base. A brick carries its deformation, flags and accent; a
+ * board its plank flags. */
 function masonryCells(
   binding: CoreBinding,
   parts: readonly LaidPart[] = binding.parts,
@@ -227,11 +228,16 @@ function masonryCells(
         bitangent: [...u.frame.y],
         normal: [...u.frame.z],
         size: [...u.size!],
-        brick_deformation: [...(u.params!.deformation as number[])],
-        brick_flags: u.params!.flags as number,
-        brick_seed: u.seed & 0x7fffffff,
-        brick_accent: !!u.params!.accent,
-        brick_span: [span[0], span[1]]
+        ...(u.params!.deformation
+          ? {
+              brick_deformation: [...(u.params!.deformation as number[])],
+              brick_flags: u.params!.flags as number,
+              brick_seed: u.seed & 0x7fffffff,
+              brick_accent: !!u.params!.accent,
+              brick_span: [span[0], span[1]]
+            }
+          : {}),
+        ...(u.params!.plankFlags !== undefined && { plank_flags: u.params!.plankFlags as number })
       };
     })
   );
@@ -1051,9 +1057,9 @@ export function coreBuildingView(layout: CoreBuildingLayout, options: CoreBuildi
         });
         const { mesh, perimeter, inset, finish } = wallSurface(binding, holes);
         const base = chartBase(binding);
-        // Units that stand out of the finish face, such as corner stones, stay solid at a
-        // distance.
-        if (options.includeAppearance && finish) {
+        // Bricks that stand out of the finish face, such as corner stones, stay solid at a
+        // distance. Boards stand out everywhere; the distance view draws them on the surface.
+        if (options.includeAppearance && finish && binding.material === "brick") {
           const body = binding.parts.filter((p) => p.part.type !== "floorBand");
           const cells = masonryCells(binding, body).filter((cell) => standsOut(cell, finish));
           const joint = binding.parts.map((p) => chartOf(p.part)?.joint).find(Boolean);
@@ -1074,10 +1080,12 @@ export function coreBuildingView(layout: CoreBuildingLayout, options: CoreBuildi
               binding.parts.flatMap(({ part, units }) =>
                 units.map((u): ConstructionLodCell => {
                   const span = u.params!.wallU as number[];
+                  // A board's height is its row's, not its laid size along y.
+                  const v = u.params!.wallV as number[] | undefined;
                   return {
                     id: `${partId(part)}/${u.key}`,
                     anchor_uv: [(span[0] + span[1]) / 2, u.frame.origin[1] - base],
-                    size: [span[1] - span[0], u.size![1]]
+                    size: [span[1] - span[0], v ? v[1] - v[0] : u.size![1]]
                   };
                 })
               ),
@@ -1095,10 +1103,11 @@ export function coreBuildingView(layout: CoreBuildingLayout, options: CoreBuildi
               const span = u.params!.wallU as number[];
               const anchor = [(span[0] + span[1]) / 2, u.frame.origin[1] - base];
               unitBox(bands, part, u, anchor);
+              const v = u.params!.wallV as number[] | undefined;
               bandCells.push({
                 id: `${partId(part)}/${u.key}`,
                 anchor_uv: anchor,
-                size: [span[1] - span[0], u.size![1]]
+                size: [span[1] - span[0], v ? v[1] - v[0] : u.size![1]]
               });
             }
         add(owner, binding, bands, {

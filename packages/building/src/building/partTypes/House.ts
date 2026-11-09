@@ -36,6 +36,7 @@ import { registerDormerTypes } from "./Dormers";
 import { registerShedDormerTypes } from "./ShedDormers";
 import { isFlatRoofHeight } from "../runtime/RoofMode";
 import { registerFoundationTypes, type HouseFoundation } from "./Foundation";
+import { registerTimberTypes } from "./Timber";
 
 /** The wall chart: the perimeter unrolled along u, height along v. Plain JSON. */
 export interface WallChartParams {
@@ -1222,8 +1223,13 @@ export const wallCrossing: ConnectionRule = ({ parts, seed }) => {
   const ca = chartOf(a),
     cb = chartOf(b);
   if (!ca || !cb) return { diagnostics: ["wallCrossing joins wall charts"] };
-  const unit = a.unit;
-  if (!unit?.scale) return { diagnostics: ["wallCrossing needs the wall unit's scale"] };
+  // Seam stones are the masonry's: a crossing of two timber walls has none, and next to a
+  // timber wall they belong to the masonry wall's house.
+  const k: number = a.unit?.source === "brick" ? 0 : b.unit?.source === "brick" ? 1 : -1;
+  if (k < 0) return {};
+  const unit = [a.unit, b.unit][k]!;
+  const own = [a, b][1 - k].unit?.source === "brick" ? {} : { group: [a, b][k].group };
+  if (!unit.scale) return { diagnostics: ["wallCrossing needs the wall unit's scale"] };
   const scale: [number, number, number] = [
     unit.scale[0] / REFERENCE.width,
     unit.scale[1] / REFERENCE.height,
@@ -1251,9 +1257,16 @@ export const wallCrossing: ConnectionRule = ({ parts, seed }) => {
         geometry: { elements: { seam: { kind: "point" as const, frame } } },
         algorithm: {
           type: "seamStones",
-          params: { seed: deriveSeed(seed, "seam", i), bottom, top, scale, wallU: (ca.uOffset ?? 0) + x.u[0] }
+          params: {
+            seed: deriveSeed(seed, "seam", i),
+            bottom,
+            top,
+            scale,
+            wallU: ([ca, cb][k].uOffset ?? 0) + x.u[k]
+          }
         },
-        unit: { ...unit, range: { min: [0.05, 0.05, 0.5], max: [3, 3, 8] } }
+        unit: { ...unit, range: { min: [0.05, 0.05, 0.5], max: [3, 3, 8] } },
+        ...own
       }
     ];
   });
@@ -1345,7 +1358,9 @@ export function registerHouseTypes(registry: BuildingRegistry): BuildingRegistry
   registry.algorithms.register("seamStones", seamStones);
   registry.defaults.join("wall", "wall", "wallJoin");
   registry.detectors.register(joinPairKey("wall", "wall"), wallsTouch);
-  return registerFoundationTypes(
-    registerShedDormerTypes(registerDormerTypes(registerOpeningTypes(registerRoofTypes(registry))))
+  return registerTimberTypes(
+    registerFoundationTypes(
+      registerShedDormerTypes(registerDormerTypes(registerOpeningTypes(registerRoofTypes(registry))))
+    )
   );
 }

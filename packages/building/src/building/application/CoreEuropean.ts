@@ -156,8 +156,10 @@ export interface CoreHouseParameters {
   circle?: { center: [number, number]; radius: number; phase?: number };
   roof?: Record<string, unknown>;
   footprint?: MaterialFootprint;
-  /** Wall laying: our masonry (default) or regular grid courses. */
-  walls?: "masonry" | "grid";
+  /** Wall laying: our masonry (default), regular grid courses, or timber: horizontal boards. */
+  walls?: "masonry" | "grid" | "timber";
+  /** Unit of grid courses. Default: brick. */
+  wallUnit?: "brick" | "wooden_plank";
   /** Course rule of grid walls. Default: staggered rows. */
   wallRule?: "staggered_rows" | "overlap_rows" | "parallel_rows" | "horizontal_rows";
   /** Unit the roof is laid with: tiles (default), or planks or bricks, as on a flat deck. */
@@ -392,24 +394,48 @@ export function buildCoreHouse(p: CoreHouseParameters): BuildingCoreDraft {
   if (p.foundation && !(Number.isFinite(p.foundation.height) && p.foundation.height >= 0))
     throw Error("A foundation height must be a finite number of metres, 0 or more");
   const raised = (p.foundation?.height ?? 0) > 0;
-  const grid = p.walls === "grid";
-  const brick: BuildingUnit = {
-    source: "brick",
+  const grid = p.walls === "grid",
+    timber = p.walls === "timber";
+  if (p.wallUnit && !grid) throw Error("A wall unit is chosen for grid courses only");
+  const rule = p.wallRule ?? "staggered_rows";
+  const scale = unitFootprintScale(unit);
+  const brick: BuildingUnit = timber
+    ? {
+        // A board: its thickness across x, its length along y and its height up z, in metres.
+        source: "wooden_plank",
+        bounds: CUBE,
+        scale: [0.32 * scale.depth, 5 * scale.width, 0.3944 * scale.height],
+        range: { min: [0.5, 0.001, 0.1], max: [1.5, 1, 3] }
+      }
+    : {
+        source: grid ? (p.wallUnit ?? "brick") : "brick",
+        bounds: CUBE,
+        scale: [unit.width, unit.height, unit.depth],
+        range: grid
+          ? // Grid courses cut units at the ends, the ground and the roof joint. Overlap rows grow
+            // 15% taller than the course; horizontal rows are 1.4 by 0.3944 m against the
+            // reference unit, and parallel rows run the wall's height.
+            {
+              min: [0.05, 0.05, 1],
+              max: rule === "horizontal_rows" ? [2.8, 0.91, 1] : rule === "parallel_rows" ? [1, 1000, 1] : [1, 1.15, 1]
+            }
+          : // Masonry bricks vary with the joint and course jitter, and run 0.56 m deep through
+            // the wall against a 0.1 m nominal unit depth.
+            { min: [0.05, 0.05, 1], max: [2.5, 1.8, 8] }
+      };
+  const merlon: BuildingUnit = {
+    source: "roof_tile",
     bounds: CUBE,
     scale: [unit.width, unit.height, unit.depth],
-    range: grid
-      ? // Grid courses cut bricks at the ends, the ground and the roof joint; overlap rows
-        // grow 15% taller than the course.
-        { min: [0.05, 0.05, 1], max: [1, 1.15, 1] }
-      : // Masonry bricks vary with the joint and course jitter, and run 0.56 m deep through
-        // the wall against a 0.1 m nominal unit depth.
-        { min: [0.05, 0.05, 1], max: [2.5, 1.8, 8] }
+    range: { min: [0.05, 0.05, 1], max: [2.5, 1.8, 8] }
   };
   // Masonry scales against the brick prototype; one course seed for the whole house, so the
   // walls continue each other's courses.
-  const courses = grid
-    ? { type: "gridCourses", params: { rule: p.wallRule ?? "staggered_rows", footprint: unit } }
-    : { type: "masonryCourses", params: { courseSeed: seed } };
+  const courses = timber
+    ? { type: "boardCourses", params: { footprint: unit } }
+    : grid
+      ? { type: "gridCourses", params: { rule, footprint: unit } }
+      : { type: "masonryCourses", params: { courseSeed: seed } };
   // Every part reads the house, the brick and the courses from the group, so the draft
   // stores each of them once.
   const shared = {
@@ -449,13 +475,17 @@ export function buildCoreHouse(p: CoreHouseParameters): BuildingCoreDraft {
           group: p.id,
           type: "floorBand",
           geometry: { generator: "houseFloorBands", params: { "@shared": "house" } },
-          algorithm: { type: "beltCourses" },
+          // On a timber wall a band is one row of boards standing 0.06 m proud of the wall's.
+          algorithm: timber
+            ? { type: "boardCourses", params: { footprint: unit, out: 0.185 * scale.depth, overshoot: 0 } }
+            : { type: "beltCourses" },
           unit: { "@shared": "brick" }
         }
       : undefined;
   // A rectangle has one wall per side; the corners between them derive the corner stones.
-  // A circle, or the grid courses kept for comparison with the online path, has one wall.
-  const sides = grid || p.circle ? [undefined] : [0, 1, 2, 3];
+  // A circle, grid courses or a timber house has one wall: boards and grid courses break at
+  // the corners themselves.
+  const sides = grid || timber || p.circle ? [undefined] : [0, 1, 2, 3];
   const walls = sides.map((side) => ({
     id: side === undefined ? p.id + "-wall" : `${p.id}-wall-${side}`,
     group: p.id,
@@ -528,7 +558,8 @@ export function buildCoreHouse(p: CoreHouseParameters): BuildingCoreDraft {
                     type: "parapet",
                     geometry: { generator: "houseParapet", params: { "@shared": "house" } },
                     algorithm: { type: "masonryCourses", params: { crenels: {} } },
-                    unit: { "@shared": "brick" }
+                    // Timber has no masonry: the merlons take the roof's material.
+                    unit: timber ? merlon : { "@shared": "brick" }
                   },
                   hosts: walls.map((w) => ({ part: w.id }))
                 }

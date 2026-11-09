@@ -16,6 +16,8 @@ export interface SupportCell {
   size: number[];
   /** Optional native brick deformation flags; other material adapters ignore them. */
   brick_flags?: number;
+  /** Wood plank shape flags: 64 and 128 keep the bevelled start and end at their size. */
+  plank_flags?: number;
   /** Original metric bottom-left/right and top-left/right vertical offsets. */
   brick_deformation?: number[];
   /** Original recipe seed, retained through clipping and material changes. */

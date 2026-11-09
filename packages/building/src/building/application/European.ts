@@ -150,12 +150,22 @@ function house(p: EuropeanHouseParameters): CoreHouseParameters {
   positive("rectangle width", p.rectangle?.size[0]);
   positive("rectangle depth", p.rectangle?.size[1]);
   positive("circle radius", p.circle?.radius);
-  if (p.wallStructure === "timber") throw unavailable("A timber wall");
-  if (p.wall?.unit && p.wall.unit !== "brick") throw unavailable(`A wall of ${p.wall.unit}`);
-  const rule = p.wall?.algorithm?.type;
+  // A timber structure is laid with horizontal boards unless the wall style says otherwise.
+  const timber = p.wallStructure === "timber";
+  const wallUnit = p.wall?.unit ?? (timber ? "wooden_plank" : "brick");
+  if (wallUnit === "roof_tile") throw unavailable("A wall of roof_tile");
+  if (timber && wallUnit !== "wooden_plank") throw Error("A timber wall is laid with wooden_plank");
+  const rule = p.wall?.algorithm?.type ?? (timber ? "horizontal_rows" : undefined);
   if (rule && rule !== "staggered_rows" && rule !== "auto" && !GRID_RULES.includes(rule as never))
     throw Error(`Unknown wall course rule "${rule}"`);
-  const grid = GRID_RULES.find((r) => r === rule);
+  // Planks in horizontal rows are boards; planks in other rules, and bricks in grid rules, are
+  // grid courses.
+  const boards = wallUnit === "wooden_plank" && rule === "horizontal_rows";
+  const grid = boards
+    ? undefined
+    : wallUnit === "wooden_plank"
+      ? ((GRID_RULES.find((r) => r === rule) ?? "staggered_rows") as CoreHouseParameters["wallRule"])
+      : GRID_RULES.find((r) => r === rule);
   const roofUnit = p.roofStyle?.unit;
   const foundation = p.foundation && normalizeProfileFoundation(p.foundation);
   const foundationUnit = p.foundationStyle?.unit,
@@ -176,7 +186,12 @@ function house(p: EuropeanHouseParameters): CoreHouseParameters {
     ...(p.circle && { circle: p.circle }),
     ...(p.roof && { roof: p.roof }),
     ...(p.wall?.footprint && { footprint: p.wall.footprint }),
-    ...(grid && { walls: "grid" as const, wallRule: grid }),
+    ...(boards && { walls: "timber" as const }),
+    ...(grid && {
+      walls: "grid" as const,
+      wallRule: grid,
+      ...(wallUnit === "wooden_plank" && { wallUnit: "wooden_plank" as const })
+    }),
     ...(roofUnit && { roofUnit }),
     ...(p.floors && { floors: p.floors }),
     ...(p.plaster && { plaster: p.plaster }),

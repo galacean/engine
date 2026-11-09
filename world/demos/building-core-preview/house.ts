@@ -66,6 +66,8 @@ interface Case {
   house: CoreHouseParameters;
   /** Further houses in the same draft, such as a neighbour the house touches. */
   others?: CoreHouseParameters[];
+  /** Online parameters the core expresses differently. */
+  online?: Record<string, unknown>;
   ground: Ground;
 }
 /** The facade the initial village plans for a house: windows, a door and a wall lamp. */
@@ -392,6 +394,56 @@ const cases = (): Case[] => [
     },
     ground: hills
   },
+  {
+    id: "timber",
+    title: "木墙",
+    house: { id: "a", walls: "timber", rectangle: { center: [0, 0], size: [8, 6], rotation: 0.3 } },
+    online: { wallStructure: "timber", wall: { unit: "wooden_plank", algorithm: { type: "horizontal_rows" } } },
+    ground: hills
+  },
+  {
+    id: "timber-round",
+    title: "木墙 · 圆屋",
+    house: { id: "a", walls: "timber", height: 5, circle: { center: [0, 0], radius: 3, phase: 0 } },
+    online: { wallStructure: "timber", wall: { unit: "wooden_plank", algorithm: { type: "horizontal_rows" } } },
+    ground: flat
+  },
+  {
+    id: "timber-windows",
+    title: "木墙 · 门窗",
+    house: withFacade({
+      id: "a",
+      seed: 12345,
+      height: 5,
+      walls: "timber",
+      woodColor: 2,
+      rectangle: { center: [0, 0], size: [9, 6], rotation: 0 },
+      roof: { profile: 0.5, height: 0.35, ridge_length: 0.6, eave: 0.3, color: 1 }
+    }),
+    online: { wallStructure: "timber", wall: { unit: "wooden_plank", algorithm: { type: "horizontal_rows" } } },
+    ground: flat
+  },
+  {
+    id: "timber-gable",
+    title: "木墙 · 山墙",
+    house: { id: "a", walls: "timber", rectangle: { center: [0, 0], size: [8, 6], rotation: 0.3 }, roof: { ridge_length: 1 } },
+    online: { wallStructure: "timber", wall: { unit: "wooden_plank", algorithm: { type: "horizontal_rows" } } },
+    ground: flat
+  },
+  {
+    id: "timber-flat",
+    title: "木墙 · 平屋顶 · 腰线",
+    house: {
+      id: "a",
+      walls: "timber",
+      height: 6,
+      rectangle: { center: [0, 0], size: [8, 6], rotation: 0.3 },
+      roof: { height: 0 },
+      floors: { enabled: true, interval: 3 }
+    },
+    online: { wallStructure: "timber", wall: { unit: "wooden_plank", algorithm: { type: "horizontal_rows" } } },
+    ground: flat
+  },
   { id: "steep", title: "陡屋顶", house: { id: "a", roof: { height: 0.8, eave: 0.4 } }, ground: flat },
   { id: "gable", title: "山墙屋顶", house: { id: "a", roof: { ridge_length: 1 } }, ground: flat },
   {
@@ -495,6 +547,7 @@ interface Drawn {
 async function online(c: Case, dx: number, parent: Entity, signal: AbortSignal): Promise<Drawn> {
   const houses = moved(c, dx).map(({ walls: _w, footprint: _f, roofAttachments, foundation, ...p }) => ({
     ...p,
+    ...c.online,
     ...(foundation && {
       foundation: { height: foundation.height, ...(foundation.mode && { mode: foundation.mode }) },
       foundationStyle: {
