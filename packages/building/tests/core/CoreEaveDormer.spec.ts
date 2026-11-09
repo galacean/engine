@@ -168,6 +168,16 @@ describe("Eave dormers against the online path", () => {
         .filter((p) => p.id.includes("shutter")).length;
     expect(members(shuttered)).toBe(2);
     expect(members(plain)).toBe(0);
+    // The shutters hang beside the window: it keeps its size with them.
+    const frame = (r: ReturnType<typeof design>) =>
+      coreBuildingDecorations(coreBuildingLayout(r, registry, {}), assets)
+        .flatMap((d) => d.parts)
+        .find((p) => p.id.endsWith("frame"))!.positions;
+    const width = (q: number[]) => {
+      const xs = q.filter((_, i) => i % 3 === 2);
+      return Math.max(...xs) - Math.min(...xs);
+    };
+    expect(width(frame(shuttered))).toBeCloseTo(width(frame(plain)), 3);
   });
 
   it("is an error below the eave, on a gable end, and without a pitched roof", () => {

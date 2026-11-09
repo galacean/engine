@@ -51,6 +51,8 @@ export interface EaveMountParams extends WallMountParams {
   readonly clearance?: number;
 }
 const UP: Vec3 = [0, 1, 0];
+/** How far behind the wall the roof above an eave dormer is found, in metres. */
+const FRONT_BEHIND_WALL = 0.3;
 const chartOf = (host: ParticipantView): WallChartParams | undefined => {
   const face = host.geometry.original.elements.face;
   return face?.kind === "surface" && face.surface.kind === "wallChart"
@@ -106,7 +108,7 @@ export const houseEaveMountGeometry: GeometryGenerator<EaveMountParams> = (p, co
   const wallTop = sample.at(mount.on.u).roof;
   const height = (max[1] - min[1]) * sy,
     middle = ((min[1] + max[1]) / 2) * sy;
-  const inward = add(pivot, scale(z, -0.3));
+  const inward = add(pivot, scale(z, -FRONT_BEHIND_WALL));
   // Behind a gable-end wall no slope comes down to the wall.
   if (!roofs.some((h) => surfaceAtPlan(slopeSurface(h)!, inward[0], inward[2])))
     throw Error("An eave dormer cannot stand on a gable-end wall");
@@ -333,9 +335,9 @@ export const eaveDormerOnHouse: ConnectionRule = (context) => {
   const half = (curve: readonly Vec3[]) => Math.hypot(...add(curve[2], scale(curve[0], -1))) / 2;
   const clearance = curveOf(elements.clearance);
   const [bodyHalf, wideHalf] = [half(front), clearance ? half(clearance) : 0];
-  // With shutters, the eave is wider in front of the point the width is measured at.
+  // With shutters, the eave is wider, from the wall line out: behind it the roof stays whole.
   const rects = eaveBands(surface, near, front[1], mount.frame.x, mount.frame.z, vBack, (out) =>
-    out >= 0 ? Math.max(bodyHalf, wideHalf) : bodyHalf
+    out >= FRONT_BEHIND_WALL ? Math.max(bodyHalf, wideHalf) : bodyHalf
   );
   if (!rects.length) return { ...opened, diagnostics: [`${guest.key} lies off its roof`] };
   return {
