@@ -720,18 +720,23 @@ function masonryFootprint(context: LayingContext<MasonryParams>): MaterialFootpr
   const [width, height, depth] = context.unit.scale ?? [1, 1, 1];
   return { width, height, depth };
 }
-/** Battlement cuts along the top of a chart: each run splits into an even number of slots,
+/** Battlement cuts along the top of a chart: each run splits into slots,
  * and the even slots are cut down from the top. */
 function crenelCuts(chart: WallChartParams, pitch: number, height: number): Rect[] {
   if (!(pitch > 0) || !(height > 0)) throw Error("Crenels need a positive pitch and height");
   const top = Math.max(...chart.top);
   return runs(chart).flatMap((run) => {
     const n = Math.ceil(run.l / pitch);
-    const count = Math.max(2, n + (n % 2)),
-      slot = run.l / count;
+    // A ring has no ends. A straight run ends in a merlon at both corners, so that the merlons
+    // of two walls meet there.
+    const [start, end] = [chart.points[0], chart.points[chart.points.length - 1]];
+    const ring = Math.hypot(start[0] - end[0], start[2] - end[2]) < 1e-4 && runs(chart).length === 1;
+    const count = ring ? Math.max(2, n + (n % 2)) : Math.max(3, n + (1 - (n % 2))),
+      slot = run.l / count,
+      first = ring ? 0 : 1;
     return Array.from(
-      { length: count / 2 },
-      (_, i): Rect => [run.u + 2 * i * slot, top - height, run.u + (2 * i + 1) * slot, top + 1]
+      { length: Math.floor(count / 2) },
+      (_, i): Rect => [run.u + (first + 2 * i) * slot, top - height, run.u + (first + 2 * i + 1) * slot, top + 1]
     );
   });
 }
@@ -983,8 +988,11 @@ export const masonryCourses: LayingAlgorithm<MasonryParams, MasonryLayout> = {
     if (!piece) return;
     const at0 = sample.at(piece.u0),
       at1 = sample.at(piece.u1);
-    const bl = Math.max(line(r, piece.u0), at0.ground, piece.lo),
-      br = Math.max(line(r, piece.u1), at1.ground, piece.lo),
+    // A brick's lower edge is straight and the ground is not: it sinks far enough that the
+    // ground meets it everywhere along the brick, and no gap shows under it.
+    const sink = GROUND_SINK + Math.max(0, (at0.ground + at1.ground) / 2 - sample.at((piece.u0 + piece.u1) / 2).ground);
+    const bl = Math.max(line(r, piece.u0), at0.ground - sink, piece.lo),
+      br = Math.max(line(r, piece.u1), at1.ground - sink, piece.lo),
       // Under a roof joint a brick keeps its full height and the renderer cuts it along the
       // joint, so that the courses reach the slope; a brick wholly above the roof is left out.
       tl = Math.min(line(r + 1, piece.u0), chart.joint ? Infinity : at0.roof, piece.hi),
@@ -1022,6 +1030,8 @@ export const masonryCourses: LayingAlgorithm<MasonryParams, MasonryLayout> = {
     );
   }
 };
+/** How far a brick's lower edge reaches below the ground, in metres. */
+const GROUND_SINK = 0.02;
 /** One brick or stone from its span along the wall and the heights of its four corners. */
 function masonryUnit(
   unit: BuildingUnit,

@@ -70,6 +70,32 @@ describe("masonryCourses and corner stones", () => {
     expect(total).toBeGreaterThan(200);
   });
 
+  it("leaves no gap under the bricks on uneven ground", () => {
+    const hills = (x: number, z: number) => 0.35 * Math.sin(0.6 * x + 0.3) + 0.2 * Math.cos(0.45 * z);
+    const registry = registerHouseTypes(createBuildingRegistry());
+    const environment = { ground: hills };
+    const result = designBuildingCore(
+      buildCoreHouse({ id: "h", rectangle: { center: [0, 0], size: [9, 6], rotation: 0.3 } }),
+      registry,
+      { environment }
+    );
+    expect(result.diagnostics).toEqual([]);
+    let bottom = 0;
+    for (const wall of result.parts.filter((p) => p.type === "wall")) {
+      const chart = chartOf(wall);
+      const sample = wallChartSampler(chart);
+      for (const u of expandUnits(wall, registry, { environment })) {
+        const b = box(u);
+        const ends = [sample.at(b.u0).ground, sample.at(b.u1).ground];
+        // Only the bricks that stand on the ground at both ends: the others rest on a course.
+        if (b.bl > ends[0] + 0.01 || b.br > ends[1] + 0.01) continue;
+        bottom++;
+        expect((b.bl + b.br) / 2).toBeLessThanOrEqual(hills(u.frame.origin[0], u.frame.origin[2]) + 0.005);
+      }
+    }
+    expect(bottom).toBeGreaterThan(30);
+  });
+
   it("reaches the slope of a gable, whose joint cuts the bricks", () => {
     const { walls, units } = house({
       id: "g",

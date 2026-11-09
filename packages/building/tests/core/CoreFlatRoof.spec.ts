@@ -48,6 +48,23 @@ describe("Flat roofs", () => {
     expect(merlons).toBeGreaterThan(8);
   });
 
+  it("ends each straight run of a parapet in a merlon at both corners", () => {
+    const { parapets } = house({ id: "f", roof: { height: 0 } });
+    const data = parapets[0].layout!.data as { crenels: number[][]; runs: { u: number; l: number }[] };
+    expect(data.runs.length).toBe(4);
+    for (const run of data.runs) {
+      const inRun = data.crenels.filter((c) => c[0] >= run.u - 1e-6 && c[2] <= run.u + run.l + 1e-6);
+      expect(inRun.length).toBeGreaterThan(0);
+      expect(Math.min(...inRun.map((c) => c[0]))).toBeGreaterThan(run.u + 0.1);
+      expect(Math.max(...inRun.map((c) => c[2]))).toBeLessThan(run.u + run.l - 0.1);
+    }
+    // A round parapet is a ring, with no ends to finish: it starts on a crenel.
+    const round = house({ id: "r", circle: { center: [0, 0], radius: 3, phase: 0 }, roof: { height: 0 } });
+    const ring = round.parapets[0].layout!.data as { crenels: number[][]; runs: unknown[] };
+    expect(ring.runs.length).toBe(1);
+    expect(ring.crenels[0][0]).toBeCloseTo(0, 6);
+  });
+
   it("leaves the crenels open", () => {
     const { parapets } = house({ id: "f", roof: { height: 0 } });
     const data = parapets[0].layout!.data as { crenels: number[][] };
