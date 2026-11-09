@@ -8,6 +8,26 @@ import {
   resourceLoader
 } from "@galacean/engine-core";
 
+const ABSOLUTE_URL_PATTERN = /^[A-Za-z][A-Za-z\d+.-]*:/;
+
+function sourceFileForShader(url: string, baseUrl: string | null): string {
+  if (!ABSOLUTE_URL_PATTERN.test(url)) {
+    return url.split(/[?#]/, 1)[0].replace(/^\/+/, "");
+  }
+  const sourceURL = new URL(url);
+  sourceURL.search = "";
+  sourceURL.hash = "";
+  // Relative bases do not identify an absolute source's project root without a host context.
+  if (baseUrl && ABSOLUTE_URL_PATTERN.test(baseUrl)) {
+    const resolvedBase = new URL(baseUrl);
+    const baseDirectory = resolvedBase.href.endsWith("/") ? resolvedBase : new URL(".", resolvedBase);
+    if (sourceURL.origin === baseDirectory.origin && sourceURL.href.startsWith(baseDirectory.href)) {
+      return decodeURI(sourceURL.href.slice(baseDirectory.href.length));
+    }
+  }
+  return sourceURL.href;
+}
+
 @resourceLoader(AssetType.Shader, ["shader", "shaderc"])
 class ShaderLoader extends Loader<Shader> {
   private static readonly _loadedPrograms = new Map<string, Shader>();
@@ -41,7 +61,7 @@ class ShaderLoader extends Loader<Shader> {
         /^((?:\s|\/\*[\s\S]*?\*\/|\/\/[^\n]*(?:\n|$))*Shader\s+")([^"\n]+)(")/,
         (declaration, prefix, name, suffix) => (Shader.find(name) ? `${prefix}${name}/${key}${suffix}` : declaration)
       );
-      const shader = Shader.create(qualified, undefined, url);
+      const shader = Shader._createFromSource(qualified, undefined, sourceFileForShader(url, resourceManager.baseUrl));
 
       if (!shader) {
         throw new Error(`ShaderLoader: failed to create shader "${url}".`);

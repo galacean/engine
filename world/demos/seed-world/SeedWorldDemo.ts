@@ -372,8 +372,8 @@ export async function mountSeedWorldDemo(
     engine = await WebGLEngine.create({
       canvas,
       physics: new PhysXPhysics(PhysXRuntimeMode.Auto, import.meta.env.DEV ? {
-        wasmModeUrl: new URL("../../../packages/modify/assets/physx/physx.release.js", import.meta.url).href,
-        wasmSIMDModeUrl: new URL("../../../packages/modify/assets/physx/physx.release.simd.js", import.meta.url).href
+        wasmModeUrl: new URL("../../../packages/physics-physx/libs/physx.release.js", import.meta.url).href,
+        wasmSIMDModeUrl: new URL("../../../packages/physics-physx/libs/physx.release.simd.js", import.meta.url).href
       } : undefined),
       shaderCompiler: new ShaderCompiler(),
       graphicDeviceOptions: { webGLMode: WebGLMode.WebGL2 }

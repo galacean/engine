@@ -406,7 +406,13 @@ export class WorldTemplateRuntime {
           data.setFloat("material_LightingFlatness", 0);
           data.setFloat("material_Tiling", 1);
           data.setFloat("material_UVBaseLock", 0);
-          data.setFloat("material_AlphaCutoff", source.alphaCutoff);
+          // BLEND sources have no cutout threshold. This shared leaf pass is
+          // alpha-tested, so use its authored coverage rule for blended foliage.
+          const cutoff = source.alphaCutoff;
+          data.setFloat(
+            "material_AlphaCutoff",
+            source.isTransparent && cutoff === 0 ? template.shaderData.getFloat("material_AlphaCutoff") : cutoff
+          );
           data.setFloat("material_Smoothness", 1 - source.roughness);
         }
         renderer.setMaterial(index, material);

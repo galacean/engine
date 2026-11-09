@@ -12,7 +12,7 @@ Demo 的页面、UI 编排和私有配置位于仓库 `world/demos/`；公共包
 
 修改层保留原项目粒子模块及其配套 GLSL 顶点布局；`native-overrides.json` 同时登记两端依赖，不能只升级其中一端。Vite 插件对原生 Engine 源码使用与 release 相同的 ES5 类转换，以兼容 toolkit 的构造函数继承方式；模块路径仍使用原生身份，避免双份 Engine 类。
 
-MaterialLoader 按干净的 engine-next/dev/2.0@039cbdcf 所用旧引擎基线 bd34daa 恢复字段读取行为：忽略不支持的字段类型，包括编辑器 `Select` / `Toggle` 元数据，不将其转换成 Integer 或 Boolean。该兼容逻辑只在 modify 中启用，原生 Engine 保留严格校验。原项目 ShaderLoader 按内容共享相同程序的行为保留，与原生 Engine 的重复 Shader 拒绝契约不同，测试分别验证。
+MaterialLoader 按干净的 engine-next/dev/2.0@039cbdcf 所用旧引擎基线 bd34daa 恢复字段读取行为：忽略不支持的字段类型，包括编辑器 `Select` / `Toggle` 元数据，不将其转换成 Integer 或 Boolean。该兼容逻辑只在 modify 中启用，原生 Engine 保留严格校验。原项目 ShaderLoader 按内容共享预编译程序的行为保留：内容相同的重复加载共享同一个 Shader，内容不同但名称冲突时使用带内容哈希的名称。原生 Engine 自 #3159 起允许同名 Shader 并存，`Shader.find` 返回最后注册的实例。
 
 材质字段、宏解析或纹理依赖加载失败时，修改层销毁本次创建的材质并传播原错误。纹理绑定在全部依赖加载成功后写入，避免失败后的异步回调写入已销毁材质；共享纹理仍由资源管理器管理。未知字段类型的忽略行为保持不变。
 

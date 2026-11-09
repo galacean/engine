@@ -11,7 +11,7 @@ import { registerPlanningFarmingAssets } from "./src/planning/spatial/farming/Pl
 import { seedWorldProjectFormats } from "./SeedWorldProjectFormats.ts";
 import { seedWorldScriptModules } from "./systems/SeedWorldScriptModules.ts";
 import { RuntimeProjectSession } from "@galacean/engine-runtime-editor/project/runtime-project-session";
-import type { RuntimeProjectManifest } from "@galacean/engine-project/runtime-editor/project/runtime-project";
+import { RuntimeProjectStorage, type RuntimeProjectManifest } from "@galacean/engine-project/runtime-editor/project/runtime-project";
 import { SEED_WORLD_PRODUCTION_ASSET_CATALOG } from "@galacean/engine-vegetation/asset-assembly/SeedWorldProductionAssetCatalog";
 import { SEMANTIC_DEFAULTS } from "@galacean/engine-world-planning/semantic-study/WorldPlanningContract";
 import { PLANT_PROJECT_ROOT, PLANT_PROJECT_PRODUCTION, PLANT_PROJECT_CATALOG } from "@galacean/engine-vegetation/asset-assembly/PlantSpeciesResources";
@@ -24,11 +24,30 @@ import { nativeAssetFormats } from "@galacean/engine-runtime-editor/project/runt
 import { registerNativeWater } from "@galacean/engine-water/water/native/index";
 import { migrateSeedWorldWaterTextures } from "./SeedWorldWaterTextureMigration";
 
-/** Building author schemas are intentionally incompatible across these save versions.
- * The storage key excludes older saves before any contents are loaded. */
-export const SEED_WORLD_BUILDING_SAVE_VERSION = 7;
+/** Building author schemas and saved asset catalogs are intentionally incompatible across these save versions.
+ * Opening a project deletes saves of any other version before loading, so it starts from the initial world. */
+export const SEED_WORLD_BUILDING_SAVE_VERSION = 8;
 export function seedWorldProjectStorageId(seed: number, projectUrl: string): string {
   return `seed-world:native-buildings-v${SEED_WORLD_BUILDING_SAVE_VERSION}-groups:${seed}:${projectUrl}`;
+}
+
+const SEED_WORLD_SAVE_ID = /^seed-world:native-buildings-v(\d+)-[^:]*:\d+:(.+)$/;
+
+/** Stale data must not block startup: the storage key already keeps it from being loaded. */
+async function deleteRetiredSeedWorldSaves(projectUrl: string): Promise<void> {
+  try {
+    const storage = await RuntimeProjectStorage.open();
+    try {
+      await storage.deleteMatching((id) => {
+        const match = SEED_WORLD_SAVE_ID.exec(id);
+        return match !== null && match[2] === projectUrl && Number(match[1]) !== SEED_WORLD_BUILDING_SAVE_VERSION;
+      });
+    } finally {
+      storage.close();
+    }
+  } catch (error) {
+    console.warn("Seed World could not delete retired saves", error);
+  }
 }
 
 /** Open a project ready for authoring in both the runtime and the planning editor. */
@@ -45,6 +64,7 @@ export async function openSeedWorldProject(
     initial = (await response.json()) as RuntimeProjectManifest;
   }
   initial = { ...initial, files: [...initial.files, ...builtinBuildingAssetFiles, ...builtinBuildingPresetFiles] };
+  await deleteRetiredSeedWorldSaves(projectUrl);
   const project = await RuntimeProjectSession.open(seedWorldProjectStorageId(seed, projectUrl), initial, projectUrl, {
     scriptModules: seedWorldScriptModules
   });

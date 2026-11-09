@@ -49,9 +49,7 @@ mediump vec3 material_EmissiveColor;
 struct Attributes {
     #if defined(RENDERER_MODE_SPHERE_BILLBOARD) || defined(RENDERER_MODE_STRETCHED_BILLBOARD) || defined(RENDERER_MODE_HORIZONTAL_BILLBOARD) || defined(RENDERER_MODE_VERTICAL_BILLBOARD)
         vec4 a_CornerTextureCoordinate;
-    #endif
-
-    #ifdef RENDERER_MODE_MESH
+    #elif defined(RENDERER_MODE_MESH)
         vec3 POSITION;
         #ifdef RENDERER_ENABLE_VERTEXCOLOR
             vec4 COLOR_0;
@@ -93,7 +91,7 @@ struct Varyings {
     #ifdef MATERIAL_HAS_BASETEXTURE
         vec2 v_TextureCoordinate;
     #endif
-    #ifdef RENDERER_MODE_MESH
+    #if defined(RENDERER_MODE_MESH) && !defined(RENDERER_MODE_SPHERE_BILLBOARD) && !defined(RENDERER_MODE_STRETCHED_BILLBOARD) && !defined(RENDERER_MODE_HORIZONTAL_BILLBOARD) && !defined(RENDERER_MODE_VERTICAL_BILLBOARD)
         vec4 v_MeshColor;
     #endif
 };
@@ -271,9 +269,7 @@ vec3 computeParticleCenter(Attributes attr, float age, float normalizedAge, inou
                 center += renderer_SizeScale.xzy * (corner.x * sideVector + corner.y * upVector);
             }
         #endif
-    #endif
-
-    #ifdef RENDERER_MODE_STRETCHED_BILLBOARD
+    #elif defined(RENDERER_MODE_STRETCHED_BILLBOARD)
         vec2 corner = attr.a_CornerTextureCoordinate.xy + renderer_PivotOffset.xy;
         vec3 velocity = rotationByQuaternions(renderer_SizeScale * visualLocalVelocity, worldRotation) + visualWorldVelocity;
         vec3 cameraUpVector = normalize(velocity);
@@ -292,9 +288,7 @@ vec3 computeParticleCenter(Attributes attr, float age, float normalizedAge, inou
         float speed = length(velocity);
         center += sign(renderer_SizeScale.x) * (sign(renderer_StretchedBillboardLengthScale) * size.x * corner.x * sideVector
                 + (speed * renderer_StretchedBillboardSpeedScale + size.y * renderer_StretchedBillboardLengthScale) * corner.y * cameraUpVector);
-    #endif
-
-    #ifdef RENDERER_MODE_HORIZONTAL_BILLBOARD
+    #elif defined(RENDERER_MODE_HORIZONTAL_BILLBOARD)
         vec2 corner = attr.a_CornerTextureCoordinate.xy + renderer_PivotOffset.xy;
         const vec3 sideVector = vec3(1.0, 0.0, 0.0);
         const vec3 upVector = vec3(0.0, 0.0, -1.0);
@@ -312,9 +306,7 @@ vec3 computeParticleCenter(Attributes attr, float age, float normalizedAge, inou
         mat2 rotation = mat2(c, -s, s, c);
         corner = rotation * corner;
         center += renderer_SizeScale.xzy * (corner.x * sideVector + corner.y * upVector);
-    #endif
-
-    #ifdef RENDERER_MODE_VERTICAL_BILLBOARD
+    #elif defined(RENDERER_MODE_VERTICAL_BILLBOARD)
         vec2 corner = attr.a_CornerTextureCoordinate.xy + renderer_PivotOffset.xy;
         const vec3 cameraUpVector = vec3(0.0, 1.0, 0.0);
         vec3 sideVector = normalize(cross(camera_Forward, cameraUpVector));
@@ -326,9 +318,7 @@ vec3 computeParticleCenter(Attributes attr, float age, float normalizedAge, inou
         corner = rotation * corner * cos(0.78539816339744830961566084581988);
         corner *= computeParticleSizeBillboard(attr, attr.a_StartSize.xy, normalizedAge);
         center += renderer_SizeScale.xzy * (corner.x * sideVector + corner.y * cameraUpVector);
-    #endif
-
-    #ifdef RENDERER_MODE_MESH
+    #elif defined(RENDERER_MODE_MESH)
         #if defined(RENDERER_ROL_CONSTANT_MODE) || defined(RENDERER_ROL_CURVE_MODE)
             #define RENDERER_ROL_ENABLED
         #endif
@@ -382,8 +372,7 @@ vec2 computeParticleVaryingUV(Attributes attr, float normalizedAge) {
     vec2 simulateUV;
     #if defined(RENDERER_MODE_SPHERE_BILLBOARD) || defined(RENDERER_MODE_STRETCHED_BILLBOARD) || defined(RENDERER_MODE_HORIZONTAL_BILLBOARD) || defined(RENDERER_MODE_VERTICAL_BILLBOARD)
         simulateUV = attr.a_CornerTextureCoordinate.zw * attr.a_SimulationUV.xy + attr.a_SimulationUV.zw;
-    #endif
-    #ifdef RENDERER_MODE_MESH
+    #elif defined(RENDERER_MODE_MESH)
         simulateUV = attr.a_SimulationUV.zw + attr.TEXCOORD_0 * attr.a_SimulationUV.xy;
     #endif
     return computeParticleUV(attr, simulateUV, normalizedAge);
