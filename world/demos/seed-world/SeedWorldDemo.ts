@@ -6,7 +6,6 @@ import { planningFarmInitializationRequest } from "@galacean/engine-world-planni
 import { mountNativeBuildingPanel } from "@galacean/engine-world-planning/masonry/NativeBuildingPanel";
 import { NativeWaterHost } from "@galacean/engine-world-planning/spatial/runtime/NativeWaterHost";
 import { NativeWaterEditor } from "@galacean/engine-world-planning/spatial/runtime/NativeWaterEditor";
-import { mountNativeWaterPanel } from "@galacean/engine-world-planning/spatial/runtime/NativeWaterPanel";
 import { createNativeWaterAgentPackage } from "@galacean/engine-world-planning/spatial/runtime/NativeWaterAgent";
 import { WaterBodyComponent } from "@galacean/engine-water/water/native/WaterBodyComponent";
 import { PlanningEntityAuthoring } from "./src/planning/spatial/runtime/PlanningAuthoringComponents.ts";
@@ -225,7 +224,6 @@ export async function mountSeedWorldDemo(
   let nativeBuildingPanel: ReturnType<typeof mountNativeBuildingPanel> | undefined;
   let nativeWaterHost: NativeWaterHost | undefined;
   let nativeWaterEditor: NativeWaterEditor | undefined;
-  let nativeWaterPanel: ReturnType<typeof mountNativeWaterPanel> | undefined;
   let runtimeProject: RuntimeProjectSession | undefined;
   let unmountProjectSave: (() => void) | undefined;
   let nativeEditor: RuntimeNativeEditor | undefined;
@@ -290,7 +288,7 @@ export async function mountSeedWorldDemo(
       disposed = true; ready = false; editorLifetime.abort();
       unmountProjectSave?.(); unmountProjectSave = undefined;
       pickPreparation?.dispose(); runtimeDebug?.destroy(); unregisterFarmingActivation?.();
-      nativeWaterHost?.dispose(); nativeWaterPanel?.destroy();
+      nativeWaterHost?.dispose();
     }],
     ["农场宿主", () => farmingHost?.dispose()],
     ["建筑宿主", () => nativeBuildingHost?.dispose()],
@@ -363,21 +361,6 @@ export async function mountSeedWorldDemo(
     retry.style.pointerEvents = "auto";
     retry.onclick = () => { void dispose().then(() => location.reload()).catch(closeFailure); };
   };
-  const closeProject = async () => {
-    try {
-      await dispose();
-      canvas.dataset.status = "closed";
-      canvas.dataset.bootPhase = "工程已保存并关闭";
-      loading.hidden = false;
-      loading.dataset.state = "closed";
-      loading.setAttribute("aria-label", "工程已保存并关闭");
-      percent.value = "工程已保存并关闭";
-      retry.hidden = false;
-      retry.textContent = "重新打开";
-      retry.style.pointerEvents = "auto";
-      retry.onclick = () => location.reload();
-    } catch (error) { closeFailure(error); throw error; }
-  };
   window.addEventListener(
     "pagehide",
     () => {
@@ -428,7 +411,8 @@ export async function mountSeedWorldDemo(
     engine.resourceManager.registerVirtualResources(resources);
     useProjectPlantResources(engine, planningVegetationReferences(runtimeProject.projectPackage));
     await runtimeProject.save();
-    // Materials resolve the shared Shader registry before loading their declared shaderRef.
+    // Startup registers Water's shared near profiles before scene loading; explicit material shaderRefs
+    // resolve independent authored Shaders even when their names match a startup profile.
     // Loading the entire manifest again would re-create shaders already used by the planning preview.
     registerWindGpuFieldShaders();
     registerTerrainWindGpuExposureShader();
@@ -1438,8 +1422,6 @@ export async function mountSeedWorldDemo(
     ready = true;
     disconnectEditorAssets = tools.application.connectProject(runtimeProject);
     nativeWaterEditor = new NativeWaterEditor(runtimeProject, nativeEditor.editor);
-    nativeWaterPanel = mountNativeWaterPanel(nativeWaterEditor, { close: closeProject });
-    nativeWaterPanel.refresh();
     const savedEditor = runtimeProject.projectPackage.contents[SEED_WORLD_EDITOR_PATH];
     if (typeof savedEditor === "string") await tools.application.restoreEditorDocument(
       JSON.parse(savedEditor), editorLifetime.signal, { restoreCamera: false }

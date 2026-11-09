@@ -69,7 +69,7 @@ export function planningWaterSource(entity: SpatialEntity): WaterSourceAuthoring
   validateWaterShape(shape);
   return {
     shape,
-    terrainBinding: "host",
+    terrain: { mode: "host" },
 
     quality: createWaterQualitySettings(shape.kind),
     material: { $ref: `Water/Materials/${shape.kind}.mat` }
@@ -77,7 +77,7 @@ export function planningWaterSource(entity: SpatialEntity): WaterSourceAuthoring
 }
 
 export function planningWaterParameters(input: WaterSourceAuthoring, enabled: boolean): SpatialEntity["components"] {
-  if (input.terrainBinding !== "host") return {};
+  if (input.terrain.mode !== "host") return {};
   const shape = validateWaterShape(input.shape);
   if (shape.kind === "lake") {
     const shore = shape.shoreline.filter((point) => point.ring === "shore");

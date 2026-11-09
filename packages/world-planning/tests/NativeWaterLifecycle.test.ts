@@ -3,7 +3,6 @@ import { AssetType, Camera, Scene, WebGLEngine } from "@galacean/engine";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
 import { registerNativeWater, WaterBodyComponent, WaterSystem } from "@galacean/engine-water/water/native/index";
 import { BUILTIN_WATER_PROJECT_URL } from "@galacean/engine-water/water/native/WaterBuiltinAssets";
-import { waterProjectFormats } from "@galacean/engine-water/water/native/WaterProjectFormats";
 import { RuntimeProjectSession } from "@galacean/engine-runtime-editor/project/runtime-project-session";
 
 it("retires replaced Source components without leaking cancelled candidates or Scene ownership", async () => {
@@ -17,8 +16,6 @@ it("retires replaced Source components without leaking cancelled candidates or S
     manifest,
     BUILTIN_WATER_PROJECT_URL
   );
-  project.registerAssetFormats(waterProjectFormats);
-  project.registerTextAssetTypes(["WaterResource"]);
   await project.initializeDependencies();
   engine.resourceManager.registerVirtualResources(await project.resources());
   const scene = await engine.resourceManager.load<Scene>({ type: AssetType.Scene, url: manifest.scene });
@@ -69,6 +66,8 @@ it("retires replaced Source components without leaking cancelled candidates or S
       [{ body: replacement, configuration: { ...candidateConfiguration, visible: false } }],
       controller.signal
     );
+    for (const root of candidate.shaderWarmupRoots)
+      expect(system.resolveRenderOwner(root)).toBeUndefined();
     controller.abort();
     expect(() => candidate.commit()).toThrow();
     await candidate.rollback();

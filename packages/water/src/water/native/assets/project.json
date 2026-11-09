@@ -220,9 +220,14 @@
       "type": "Shader"
     },
     {
-      "virtualPath": "Water/Terrain/manual-bed.water",
-      "path": "Water/Terrain/manual-bed.water",
-      "type": "WaterResource"
+      "virtualPath": "Water/Terrain/manual-bed.json",
+      "path": "Water/Terrain/manual-bed.json",
+      "type": "JSON"
+    },
+    {
+      "virtualPath": "Water/Terrain/manual-bed.bin",
+      "path": "Water/Terrain/manual-bed.bin",
+      "type": "Buffer"
     },
     {
       "virtualPath": "Water/Presets/lake.prefab",

@@ -9,7 +9,6 @@ import {
 } from "../src/planning/spatial/runtime/PlanningProjectSource";
 import { initializePlanningWater } from "../src/planning/spatial/runtime/PlanningWaterInitialization";
 import type { IslandPlan } from "@galacean/engine-world-planning/semantic-study/IslandPlanModel";
-import { waterProjectFormats } from "@galacean/engine-water/water/native/WaterProjectFormats";
 import { RUNTIME_PROJECT_SAVE_VERSION } from "@galacean/engine-project/runtime-editor/project/runtime-project";
 import { createSeedWorldProjectClose } from "../SeedWorldProjectClose";
 import { parsePlanningResources } from "@galacean/engine-world-planning/spatial/PlanningResources";
@@ -19,7 +18,7 @@ it("persists generated water once as Source and projects edits without a second 
     parsePlanningResources([{ resourceType: "river", resourceId: "duplicate-author", properties: {} }])
   ).toThrow();
   const scenePath = "Main.scene",
-    formats = new Map([...nativeAssetFormats(() => ({})), ...waterProjectFormats]);
+    formats = new Map([...nativeAssetFormats(() => ({}))]);
   const contents = {
     [scenePath]: JSON.stringify({
       asset: { version: "2.0" },
@@ -41,7 +40,7 @@ it("persists generated water once as Source and projects edits without a second 
       files: Object.keys(contents).map((virtualPath) => ({
         virtualPath,
         path: virtualPath,
-        type: virtualPath === scenePath ? "Scene" : virtualPath.endsWith(".mat") ? "Material" : "WaterResource"
+        type: virtualPath === scenePath ? "Scene" : virtualPath.endsWith(".mat") ? "Material" : "JSON"
       }))
     },
     contents

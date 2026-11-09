@@ -28,7 +28,7 @@ type Quality = { geometry?:"low"|"medium"|"high"; surfaceShading?:"low"|"medium"
  reflectionBudget?:{environment?:boolean;screenSpace?:boolean};surfaceEffectBudget?:{caustics?:boolean};
  spatialField?:{maximumHorizontalError?:number;maximumDepthError?:number;maximumGpuDepthDecodeError?:number;maximumGpuShoreDecodeError?:number;maximumAtlasPixels?:number};
  backendBudgets?:{ocean?:{finitePatchSegments?:number;fixedLodRingPatchSegments?:number;fixedLodCentralPatchSegments?:number;fixedLodFirstRingPatchSegments?:number;nearshoreFixedStepRateHz?:number;nearshoreMaximumSeekSeconds?:number;windResponseFixedStepRateHz?:number;windResponseMaximumCatchUpSteps?:number}} };
-type Input = { shape:Shape; terrain?:WaterRef; terrainBinding?:"host";quality?:Quality;material:WaterRef;visible?:boolean;priority?:number;interaction?:{query:boolean;buoyancy:boolean;wake:boolean}; connections?:{id:string;target:{$component:string|{instance:string;target:string}};section:[[number,number],[number,number]];transitionLengths:[number,number]}[] };
+type Input = { shape:Shape; terrain:{mode:"host"}|{mode:"asset";description:WaterRef;heights:WaterRef};quality?:Quality;material:WaterRef;visible?:boolean;priority?:number;interaction?:{query:boolean;buoyancy:boolean;wake:boolean}; connections?:{id:string;target:{$component:string|{instance:string;target:string}};section:[[number,number],[number,number]];transitionLengths:[number,number]}[] };
 type Command = {operation:"list"}|{operation:"get";id:string}|{operation:"create";name:string;input:Input;parent?:string}
  | {operation:"update";id:string;patch:Partial<Input>}|{operation:"updateMany";updates:{id:string;patch:Partial<Input>}[]}
  | {operation:"setEnabled";id:string;enabled:boolean}|{operation:"remove";id:string}

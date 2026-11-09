@@ -50,7 +50,13 @@
             ]
           },
           "terrain": {
-            "$ref": "Water/Terrain/manual-bed.water"
+            "mode": "asset",
+            "description": {
+              "$ref": "Water/Terrain/manual-bed.json"
+            },
+            "heights": {
+              "$ref": "Water/Terrain/manual-bed.bin"
+            }
           },
           "quality": {
             "geometry": "high",

@@ -50,7 +50,7 @@ export const preparePlanningWaterSource =
       let oceans = 0;
       for (const body of bodies) {
         const input = scene.readComponent(body.id).props?.authoring as unknown as WaterSourceAuthoring | undefined;
-        if (input?.terrainBinding !== "host") continue;
+        if (input?.terrain.mode !== "host") continue;
         if (scene.queryComponents({ entityId: body.entityId, type: "WaterBodyComponent" }).length !== 1)
           throw new Error(`Seed World Water '${body.id}' requires its own author Entity.`);
         const frame = planningWaterFrame(scene, body.entityId);
@@ -277,7 +277,7 @@ export function initializePlanningOcean(draft: RuntimeProjectEdit, plan: IslandP
             waterLevel: 0,
             layout: planningOceanRepresentation(plan) as unknown as GalaceanSourceValueRecord
           },
-          terrainBinding: "host",
+          terrain: { mode: "host" },
 
           quality: createWaterQualitySettings("ocean") as unknown as GalaceanSourceValueRecord,
           material: { $ref: "Water/Materials/ocean.mat" },

@@ -301,6 +301,7 @@ export class WaterSceneRuntimeHost {
   private readonly _environmentProviders = new Map<string, WaterEnvironmentReflectionProvider>();
   private readonly _environmentProviderList: WaterEnvironmentReflectionProvider[] = [];
   private readonly _activeBodies = new Map<string, ActiveWaterSceneBody>();
+  private readonly _renderOwners = new WeakMap<Entity, string>();
   private readonly _activeBodyList: ActiveWaterSceneBody[] = [];
   private readonly _bodyHandles = new Map<string, WaterSceneBodyHandle>();
   private readonly _developmentTargetViews = new WeakMap<WaterDevelopmentTarget, WaterDevelopmentTarget>();
@@ -1913,6 +1914,34 @@ export class WaterSceneRuntimeHost {
     });
   }
 
+  /** Read only: resolve only descendants of a currently published, visible render root. */
+  resolveRenderBodyId(entity: Entity): string | undefined {
+    if (
+      this._lifecycle !== "active" ||
+      this._withdrawn ||
+      entity.destroyed ||
+      entity.pendingDestroy ||
+      !entity.isActiveInHierarchy
+    )
+      return undefined;
+    for (let root: Entity | null = entity; root; root = root?.parent ?? null) {
+      const id = this._renderOwners.get(root);
+      if (id === undefined) continue;
+      const body = this._activeBodies.get(id);
+      return body?.root === root && body.handle.active && body.handle.visible && root.isActiveInHierarchy
+        ? id
+        : undefined;
+    }
+    return undefined;
+  }
+
+  withdrawBodyRuntime(bodyId: string): void {
+    const body = this._activeBodies.get(bodyId);
+    if (!body || this._lifecycle !== "active") return;
+    body.root.isActive = false;
+    this._loader.withdrawBodyRuntime(bodyId);
+  }
+
   /** @internal Irreversible withdrawal ahead of asynchronous owner destruction. */
   withdrawRuntime(): void {
     if (this._withdrawn || this._lifecycle !== "active") return;
@@ -2109,6 +2138,8 @@ export class WaterSceneRuntimeHost {
 
   private _setActiveBody(bodyId: string, body: ActiveWaterSceneBody): void {
     const previous = this._activeBodies.get(bodyId);
+    if (previous) this._renderOwners.delete(previous.root);
+    this._renderOwners.set(body.root, bodyId);
     if (previous) {
       const bodyIndex = this._activeBodyList.indexOf(previous);
       if (bodyIndex < 0) throw new Error(`Water Scene body '${bodyId}' lost its frame slot.`);
@@ -2126,6 +2157,7 @@ export class WaterSceneRuntimeHost {
     const bodyIndex = this._activeBodyList.indexOf(body);
     if (bodyIndex < 0) throw new Error(`Water Scene body '${bodyId}' lost its frame slot.`);
     this._activeBodies.delete(bodyId);
+    this._renderOwners.delete(body.root);
     removeArrayIndex(this._activeBodyList, bodyIndex);
     return body;
   }

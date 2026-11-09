@@ -383,9 +383,9 @@ export function createSurfaceShaderSource(
           : 0,
     REFRACTION_SHIFTED_DEPTH:
       appearance.refraction.validation === WaterRefractionValidationModeV2.ShiftedSceneDepth ? 1 : 0,
-    REFRACTION_FUNCTIONS: renderContract.optics.profile.surfaceScattering
-      ? registerGeneratedWaterShaderModule("RiverRefraction", riverRefractionFunctions)
-      : "",
+    // Engine resolves symbols in conditional branches before compiling variants.
+    // Keep their declarations available even when surface scattering is disabled.
+    REFRACTION_FUNCTIONS: registerGeneratedWaterShaderModule("RiverRefraction", riverRefractionFunctions),
     AMBIENT_UNIFORMS: registerGeneratedWaterShaderModule(
       "RiverAmbientUniforms",
       WATER_SURFACE_AMBIENT_LIGHTING_UNIFORM_DECLARATIONS

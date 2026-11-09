@@ -96,6 +96,7 @@ export class RiverWaterBackendQualityError extends Error {
 
 export interface RiverWaterBackendRuntimeContext {
   readonly engine: Engine;
+  readonly surfaceShader?: import("@galacean/engine-core").Shader;
   readonly root: Entity;
   readonly submission?: Omit<RiverRuntimeSubmissionOptions, "shouldCancel">;
   readonly reachSources?: readonly RiverRuntimeReachSource[];
@@ -770,6 +771,7 @@ export class RiverWaterBackend implements WaterBodyBackend {
       instanceRoot.transform.setRotation(0, planarTransform.source.yawDegrees, 0);
     }
     const controller = this._createController(runtimeContext.engine, instanceRoot);
+    controller.surfaceShader = runtimeContext.surfaceShader;
     let reflection: WaterReflectionBindingLifecycle | undefined;
     let dropRenderer: RiverDropRenderer | undefined;
     try {

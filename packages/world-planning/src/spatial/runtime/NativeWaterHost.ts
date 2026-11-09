@@ -1,7 +1,7 @@
 import { WaterBodyComponent, WaterSystem } from "@galacean/engine-water/water/native/index";
 import { validateWaterAuthoringSettings } from "@galacean/engine-water/water/native/WaterAuthoring";
 import { hashStableValue } from "@galacean/engine-water/water/compiler/shared/determinism";
-import { validateWaterResourceFile } from "@galacean/engine-water/water/native/WaterProjectFormats";
+import { decodeWaterTerrainAssets } from "@galacean/engine-water/water/native/WaterTerrainAssets";
 import type { RuntimeEditor } from "@galacean/engine-runtime-editor/runtime-editor/runtime-editor";
 import type { RuntimeProjectSession } from "@galacean/engine-runtime-editor/project/runtime-project-session";
 import { RuntimeSceneEdit } from "@galacean/engine-runtime-editor/runtime-editor/scene/runtime-scene-edit";
@@ -93,12 +93,17 @@ export class NativeWaterHost {
             ...new Set(
               scene.queryComponents({ type: "WaterBodyComponent" }).flatMap((identity) => {
                 const input = scene.readComponent(identity.id).props?.authoring as Record<string, any> | undefined;
-                return input ? [input.terrain?.$ref].filter((path): path is string => typeof path === "string") : [];
+                return input?.terrain?.mode === "asset"
+                  ? [input.terrain.description?.$ref, input.terrain.heights?.$ref].filter(
+                      (path): path is string => typeof path === "string"
+                    )
+                  : [];
               })
             )
           ];
         });
         await edit.run(() => {}, true, paths);
+        const terrainPairs = new Map<string, ReturnType<typeof decodeWaterTerrainAssets>>();
         const materials = await edit.run(({ draft }) => {
           const scene = new RuntimeSceneEdit(draft, project.projectPackage.project.scene);
           const materials: {
@@ -128,19 +133,29 @@ export class NativeWaterHost {
                   `Water '${identity.id}'.connections '${connection.id}' requires another Source Water component.`
                 );
             }
-            if (input.terrainBinding === "host" && !options.hostTerrain)
+            if (input.terrain.mode === "host" && !options.hostTerrain)
               throw new Error(`Water '${identity.id}': this host does not provide a Terrain publication.`);
-            if (input.terrainBinding !== undefined && input.terrainBinding !== "host")
-              throw new Error(`Water '${identity.id}': unknown Terrain binding.`);
-            if (input.terrainBinding === "host" && input.terrain !== undefined)
-              throw new Error(`Water '${identity.id}': host Terrain and manual bed are mutually exclusive.`);
-            if (input.terrainBinding !== "host") {
-              const path = input.terrain?.$ref;
-              if (typeof path !== "string")
-                throw new Error(`Water '${identity.id}'.terrain requires a native asset reference.`);
-              const content = draft.read(path);
-              if (typeof content !== "string" || validateWaterResourceFile(content).kind !== "terrain")
-                throw new Error(`Water '${identity.id}'.terrain: '${path}' must be a terrain asset.`);
+            if (input.terrain.mode === "asset") {
+              const descriptionPath = input.terrain.description?.$ref,
+                heightPath = input.terrain.heights?.$ref;
+              if (typeof descriptionPath !== "string" || typeof heightPath !== "string")
+                throw new Error(`Water '${identity.id}': terrain requires native JSON and Buffer references.`);
+              const files = draft.list();
+              if (
+                files.find((file) => file.virtualPath === descriptionPath)?.type !== "JSON" ||
+                files.find((file) => file.virtualPath === heightPath)?.type !== "Buffer"
+              )
+                throw new Error(`Water '${identity.id}': terrain requires JSON and Buffer asset types.`);
+              const pairKey = JSON.stringify([descriptionPath, heightPath]);
+              let terrain = terrainPairs.get(pairKey);
+              if (!terrain) {
+                const description = draft.read(descriptionPath),
+                  heights = draft.read(heightPath);
+                if (typeof description !== "string" || !(heights instanceof Uint8Array))
+                  throw new Error(`Water '${identity.id}': terrain asset contents are unavailable.`);
+                terrain = decodeWaterTerrainAssets(JSON.parse(description), heights);
+                terrainPairs.set(pairKey, terrain);
+              }
             }
             if (typeof input.material?.$ref !== "string")
               throw new Error(`Water '${identity.id}'.material requires a native Material reference.`);

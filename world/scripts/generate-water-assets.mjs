@@ -6,7 +6,7 @@ import { createHash } from "node:crypto";
 import { engineModify } from "../../packages/modify/build/vite.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
-const output = path.join(root, "packages/water/src/water/native/assets");
+const output = process.env.WATER_ASSET_OUTPUT ?? path.join(root, "packages/water/src/water/native/assets");
 const server = await createServer({ root, configFile: false, plugins: [
   { name: "water-offline-source-paths", enforce: "pre", resolveId(source) {
     if (source.startsWith("/packages/")) return path.join(root, source);
@@ -17,6 +17,7 @@ try {
   const { WaterBodyAssetRegistry } = await load("runtime/body/WaterBodyAssetRegistry");
   const { registerLakeWaterLook, LAKE_WATER_LOOK_PRESET_ID } = await load("presets/lake/LakeWaterLook");
   const { createWaterQualitySettings } = await load("native/WaterQualitySettings");
+  const { encodeWaterTerrainAssets } = await load("native/WaterTerrainAssets");
   const registry = new WaterBodyAssetRegistry(); registerLakeWaterLook(registry);
   const { registerRiverWaterBodyPresets, registerFarmlandsRiverLook, FARMLANDS_RIVER_LOOK_ID, riverQualityPlanIdForQuality } = await load("presets/river/index");
   const { registerOceanLook } = await load("authoring/ocean/OceanAuthoring");
@@ -29,11 +30,14 @@ try {
   registerOceanLook(registry);
   const shape = { kind: "lake", referenceLevel: 0.5, levelOffsetM: 0,
     shoreline: [[1, 1], [7, 1], [7, 7], [1, 7]].map(([x, z], index) => ({ id: `shore-${index}`, ring: "shore", x, z })) };
-  const authoring = { shape, terrain: { $ref: "Water/Terrain/manual-bed.water" },
+  const terrain = encodeWaterTerrainAssets({ id: "manual-bed", revision: 1,
+    origin: [0, 0], spacing: 1, columns: 9, rows: 9, heights: Array(81).fill(-1) });
+  const authoring = { shape, terrain: { mode: "asset",
+    description: { $ref: "Water/Terrain/manual-bed.json" }, heights: { $ref: "Water/Terrain/manual-bed.bin" } },
     quality: createWaterQualitySettings("lake"), material: { $ref: "Water/Materials/lake.mat" }, visible: true, priority: 10 };
   const files = {
-    "Water/Terrain/manual-bed.water": { version: 1, kind: "terrain", data: { id: "manual-bed", revision: 1,
-      origin: [0, 0], spacing: 1, columns: 9, rows: 9, heights: Array(81).fill(-1) } },
+    "Water/Terrain/manual-bed.json": terrain.description,
+    "Water/Terrain/manual-bed.bin": terrain.heights,
     "Water/Presets/lake.prefab": { asset: { version: "2.0" }, root: "lake-root",
       entities: [{ id: "lake-root", name: "Lake", components: ["lake-body"] }],
       components: [{ id: "lake-body", type: "WaterBodyComponent", props: { authoring } }] },
@@ -108,17 +112,25 @@ try {
     const material = createWaterMaterialFile(look, profile, { name: shader.name, path: shaderPath }, texturePaths);
     if (profile === "ocean") for (const slot of ["smoothWaves", "roughWaves", "caustics", "foam", "intersectionNoise"])
       material.shaderData[`material_Ocean_${slot}`] = { type: "Texture", value: { url: texturePaths.get(`ocean-${slot}`) } };
-    const source = profile === "river" ? nativeRiverSource : materializeWaterShaderModuleSource(modules.find(module => module.id === (profile === "lake" ? "lake-heightfield-high-hybrid-v2" : "ocean-near-detailed")).module);
+    let source = profile === "river" ? nativeRiverSource : materializeWaterShaderModuleSource(modules.find(module => module.id === (profile === "lake" ? "lake-heightfield-high-hybrid-v2" : "ocean-near-detailed")).module);
+    if (profile === "ocean") {
+      const far = materializeWaterShaderModuleSource(modules.find(module => module.id === "ocean-far-graded").module);
+      const farSubShader = far.slice(far.indexOf('SubShader '), far.lastIndexOf('}')).replace(/SubShader\s+"[^"]+"/, 'SubShader "WaterFar"');
+      source = source.slice(0, source.lastIndexOf('}')) + farSubShader + "\n}";
+    }
     // The river Shader declares both surface and drop controls. Plain rivers do not acquire drop textures.
     if (kind !== "river") files[shaderPath] = waterMaterialShaderSource(source, material);
     files[`Water/Materials/${kind}.mat`] = material;
   }
-  const manifest = { scene: "Water/Scenes/lake.scene", files: [...nativeFiles, ...Object.keys(files).map(virtualPath => ({ virtualPath,
-    path: virtualPath, type: virtualPath.endsWith(".scene") ? "Scene" : virtualPath.endsWith(".prefab") ? "Prefab"
-      : virtualPath.endsWith(".mat") ? "Material" : virtualPath.endsWith(".shader") ? "Shader" : "WaterResource" }))] };
+  const nativeTypes = { ".scene": "Scene", ".prefab": "Prefab", ".mat": "Material", ".shader": "Shader", ".json": "JSON", ".bin": "Buffer" };
+  const manifest = { scene: "Water/Scenes/lake.scene", files: [...nativeFiles, ...Object.keys(files).map(virtualPath => {
+    const type = nativeTypes[path.extname(virtualPath)];
+    if (!type) throw new Error(`Unsupported generated native Water asset '${virtualPath}'.`);
+    return { virtualPath, path: virtualPath, type };
+  })] };
   for (const [name, value] of Object.entries({ ...files, "project.json": manifest })) {
     const target = path.join(output, name); await fs.mkdir(path.dirname(target), { recursive: true });
-    await fs.writeFile(target, typeof value === "string" ? value : JSON.stringify(value, null, 2) + "\n");
+    await fs.writeFile(target, value instanceof Uint8Array || typeof value === "string" ? value : JSON.stringify(value, null, 2) + "\n");
   }
   await fs.writeFile(path.join(output, "conversion.json"), JSON.stringify(conversion, null, 2) + "\n");
   console.log(`Wrote ${manifest.files.length} native Water assets, project manifest and verified source hashes.`);

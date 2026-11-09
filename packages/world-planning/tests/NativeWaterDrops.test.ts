@@ -4,7 +4,10 @@ import { MeshRenderer } from "@galacean/engine";
 import { WaterBodyComponent } from "@galacean/engine-water/water/native/index";
 import { BUILTIN_WATER_PROJECT_URL } from "@galacean/engine-water/water/native/WaterBuiltinAssets";
 import { waterMaterialTextures, resolveWaterMaterialLook } from "@galacean/engine-water/water/native/WaterMaterial";
-import { editWaterSource, writeWaterAsset } from "@galacean/engine-world-planning/spatial/runtime/NativeWaterEditor";
+import {
+  editWaterSource,
+  writeWaterTerrainAssets
+} from "@galacean/engine-world-planning/spatial/runtime/NativeWaterEditor";
 import { openWaterEditorFixture } from "./WaterEditorFixture";
 import { ledgeTerrain } from "../../water/tests/WaterFixtures";
 
@@ -29,7 +32,11 @@ it("loads drop appearance on demand and preserves its native Material through hi
       name: "River",
       input: {
         shape,
-        terrain: { $ref: "Water/Terrain/manual-bed.water" },
+        terrain: {
+          mode: "asset",
+          description: { $ref: "Water/Terrain/manual-bed.json" },
+          heights: { $ref: "Water/Terrain/manual-bed.bin" }
+        },
         material: { $ref: "Water/Materials/river.mat" },
         quality: createWaterQualitySettings("river")
       }
@@ -38,12 +45,16 @@ it("loads drop appearance on demand and preserves its native Material through hi
     const body = () => current.editor.projection.component(created.value) as WaterBodyComponent;
     expect(waterMaterialTextures(body().authoring!.material!)).toHaveLength(2);
     const drop = await current.water.execute(async (edit) => {
-      await writeWaterAsset(edit, "Water/Terrain/ledge.water", { version: 1, kind: "terrain", data: ledgeTerrain });
+      await writeWaterTerrainAssets(edit, "Water/Terrain/ledge.json", ledgeTerrain);
       await editWaterSource(edit, manifest.scene, {
         operation: "update",
         id: created.value,
         patch: {
-          terrain: { $ref: "Water/Terrain/ledge.water" },
+          terrain: {
+            mode: "asset",
+            description: { $ref: "Water/Terrain/ledge.json" },
+            heights: { $ref: "Water/Terrain/ledge.bin" }
+          },
           shape: {
             ...shape,
             course: {

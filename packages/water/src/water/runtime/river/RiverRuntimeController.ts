@@ -230,6 +230,9 @@ export class RiverRuntimeController {
   private _junctionVisibility = true;
   private _debugTarget: RiverRuntimeDebugTarget = { kind: "network" };
 
+  /** Authored native surface shader; runtime bindings remain owned by this controller. */
+  surfaceShader?: import("@galacean/engine-core").Shader;
+
   constructor(
     private readonly _engine: Engine,
     private readonly _root: Entity
@@ -1068,6 +1071,10 @@ export class RiverRuntimeController {
                 surfaceOpticsBinding
               )
             : undefined;
+          if (this.surfaceShader) {
+            surface.shader = this.surfaceShader;
+            if (surfaceLocalMap) surfaceLocalMap.shader = this.surfaceShader;
+          }
           connectionBinding?.bind(surface);
           if (surfaceLocalMap) connectionBinding?.bind(surfaceLocalMap);
           const materials: RiverRuntimeMaterialSet = { surface, surfaceLocalMap };

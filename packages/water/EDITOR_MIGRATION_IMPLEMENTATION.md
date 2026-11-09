@@ -13,7 +13,7 @@
 | 放置 | Source Entity Transform | 形状是局部米制坐标，支持平移/yaw/单位缩放；Seed World 在规划 DTO 边界转到世界坐标，写回时逆变换 |
 | 外观值与纹理 | 一份原生 Material 及其 Texture/KTX2 引用 | `.mat` 持有视觉值和外观策略；固定结构从 Shader 家族代码推导；运行私有克隆只读作者资源 |
 | 质量预算 | Source `authoring.quality` 类型化值 | 默认函数产生初值，Prefab 共享模板与实例叶子覆盖；运行 QualityResource 是组件拥有的不可变派生输入 |
-| 人工床面 | 注册的 WaterTerrainResource | `.water` 不含原生资源引用；运行床面与作者质量分别更新 |
+| 共享水底高度 | 原生 JSONAsset 描述 + BufferAsset 高度 | 两条引用保存在 Source 组件；校验版本、网格、长度和 SHA-256；保留 Float64 精度 |
 | Terrain、网格、atlas、编译 transfer、查询场、反射 RT、粒子 | Terrain/Water 运行 owner | 派生数据不进 Source、历史和作者存档；Seed World 保留 Terrain/Water 原子发布 |
 | 农场地块、库存、物品、作物、运行时间 | 农场原有仓储与 runtime-owned 资产 | Water 发布只更新接地和取水输入，不执行农场重新初始化；作者历史不包含玩家进度 |
 | 相机、Scene、订阅、候选、加载租约 | 各宿主及资源 owner | 一个 Scene 一个 WaterSystem；更换相机需重建 owner，禁止跨 Scene 偷用服务 |
@@ -33,9 +33,9 @@
 | 现有 Lake/Ocean AOT profile | 2 份 `.shaderc` 运行产物 | 复用已生成 profile；不是正式 editor 的编辑输入 |
 | Lake/River/Ocean Shader 家族代码 | `Water/Shaders/{lake,river,ocean}.shader` | 原生 Shader 源和 `Editor.Properties`；Material 的 shaderRef 指向可编辑源，后端继续按有效结构派生变体 |
 | 原始预设 Look 的视觉数值与纹理地址 | Lake/River/RiverDrop/Ocean 4 份 `.mat` | 颜色、透明度、法线、焦散、落水数值和外观策略进入原生有类型的 shaderData；纹理是原生引用，实际后端从当前 Material 取值 |
-| 人工床面 | 1 Terrain `.water` | 只读床面领域输入；Quality 已改为组件值，不再生成或引用质量作者文件 |
+| 共享水底高度 | `manual-bed.json` + `manual-bed.bin` | 描述无资源路径；Source 显式引用原生 JSON 与 Buffer。Quality 继续保存为组件值 |
 
-保留 `.water` 的理由逐项如下：人工 Terrain 是可编辑的只读床面输入；低层 BodyResource 保留给运行 compiler/API，Source 作者使用类型化 shape。Look 作者资产、Source look 字段及其格式分支已删除；内部 Look DTO 仍供 compiler/backend 使用。它们均不是用 JSON 包装一个原生资源包。动态 Mesh、材质克隆、atlas 和粒子由原有 backend 创建并释放。
+2026-11-06：已取消自定义水资源文件类型、扩展名注册和对应 Loader。水底明确选择场景 Terrain 或共享 JSON/Buffer 高度输入；后者通过普通项目事务更新一对原生资产。内部 Body/Look/Quality DTO 和资源只服务编译与运行 API，不再对应文件封装。动态 Mesh、材质克隆、atlas 和粒子继续由 backend 创建并释放。旧工程不自动重置，也不保留旧格式的运行解析旁路。
 
 Source 路径引用经过公共 codec。正式 editor 的资产 ID 映射与导入 UI 属于 E 项，本期没有把路径直接写进正式 editor。
 
@@ -84,7 +84,7 @@ Quality 不属于 Material，也没有新的 Quality 编辑资产。`WaterQualit
 | W-01 | 完成 | Source 唯一持久形状；Planning 只投影 DTO。`WaterSource.test.ts` 验证 referenceLevel、显式 0/false、手工覆盖、删除后不重生，拒绝旧 raw river 资源 |
 | W-02 | 完成 | Lake/River/Ocean 联合类型与共同校验；领域用例验证无效值、河宽与深度床面约束；实际公共编辑验证三类形状及落水 |
 | W-03 | 完成 | 28 项原生资产、完整转换清单；四类实际 WebGL 画面与原始预设逐像素比较相等，并有隐藏对照证明画面非空；纹理替换实际更新消费者 |
-| W-04 | 完成 | `.water` 类型、版本、TypedArray 与床面校验；组件 Quality 复用领域枚举与数值预算校验；引用使用原生依赖图。错误版本、缺引用、Material 类型错配、删除被引用纹理均被拒绝且不接受作者变更 |
+| W-04 | 完成 | JSON/Buffer 描述版本、字节长度、SHA-256 与床面校验；组件 Quality 复用领域枚举与数值预算校验；引用使用原生依赖图。错误版本、缺引用、Material 类型错配、删除被引用纹理均被拒绝且不接受作者变更 |
 | W-05 | 完成 | 加载前注册 Water/格式，直接 Source Scene/Prefab 冷加载。生命周期用例覆盖缺相机、重复 System、多个 Scene；Seed 生产构建冷加载三类水体 |
 | W-06 | 完成 | UI/Agent 使用共同 RuntimeEditor 草稿/历史。实际工具 updateMany 只发布一次；低层运行 API 拒绝修改 Source 水体；raw 语义水体 CRUD 与水色第二写入口删除 |
 | W-07 | 完成 | 首次生成与按 Seed 标记同次写入；无生成结果时不建对象，后续首次生成仍可执行。Source 用例覆盖 inactive 祖先、Prefab 覆盖、人工值、重放和删除；没有独立 Water generator 组件或运行期补对象机制 |

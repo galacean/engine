@@ -158,3 +158,62 @@ it("excludes previous building saves before loading contents and restores the cu
   expect(f.load.mock.calls.every(([id]) => id !== oldId)).toBe(true);
   expect(f.records.get(oldId)).toEqual(legacy);
 });
+
+it("restores relocated building assets before hierarchy reads without replacing saved authoring", async () => {
+  const f = storageFixture();
+  const initial = JSON.parse(
+    await readCatalogFile(SEED_WORLD_PRODUCTION_ASSET_CATALOG.projectUrl)
+  ) as RuntimeProjectManifest;
+  const project = await openSeedWorldProject(f.url, initial);
+  await project.save();
+  project.dispose();
+  const saved = f.records.get(project.id)!;
+  const originalFiles = structuredClone(saved.project.files);
+  const toLegacy = (url: string) => url.replace("/packages/building/src/building/", "/packages/building/src/tiny-glade/");
+  const kit = saved.project.files.find((file) => file.virtualPath === "Building/Units/building-kit.prefab")!;
+  delete saved.contents[kit.virtualPath];
+  const roof = "Building/Units/Textures/roof_colors.tex";
+  saved.contents[roof] = new Uint8Array([1, 2, 3]);
+  saved.documents = { ...saved.documents, "Notes/author.txt": "Keep my scene and building edits" };
+  saved.project.files = saved.project.files.map((file) => ({ ...file, path: toLegacy(file.path) }));
+  const custom = saved.project.files.find((file) => file.virtualPath === "Building/Units/Textures/brick_colors.tex")!;
+  custom.path = "https://assets.example.test/custom-bricks.tex";
+  const inbound = new Set(saved.project.files.flatMap((file) => file.dependencies ?? []));
+  const deleted = saved.project.files.find((file) => file.type === "Prefab" &&
+    file.virtualPath.startsWith("Building/") && !inbound.has(file.virtualPath) && file.virtualPath !== kit.virtualPath)!;
+  expect(deleted).toBeDefined();
+  saved.project.files = saved.project.files.filter((file) => file !== deleted);
+  delete saved.contents[deleted.virtualPath];
+  const authoredMaterial = saved.project.files.find((file) => file.type === "Material" && file.virtualPath.startsWith("Building/"))!;
+  const material = JSON.parse(await readCatalogFile(
+    originalFiles.find((file) => file.virtualPath === authoredMaterial.virtualPath)!.path
+  ));
+  material.name = "My edited building material";
+  saved.contents[authoredMaterial.virtualPath] = JSON.stringify(material);
+  const retained = structuredClone(saved);
+  f.fetcher.mockClear();
+
+  const restored = await openSeedWorldProject(f.url, initial);
+  sessions.push(restored);
+  expect(f.fetcher.mock.calls.some(([url]) => String(url).includes("/tiny-glade/"))).toBe(false);
+  expect(restored.projectPackage.project.files.find((file) => file.virtualPath === kit.virtualPath)?.path).toBe(
+    originalFiles.find((file) => file.virtualPath === kit.virtualPath)!.path
+  );
+  expect(restored.projectPackage.project.files.find((file) => file.virtualPath === roof)?.path).toBe(
+    originalFiles.find((file) => file.virtualPath === roof)!.path
+  );
+  expect(restored.projectPackage.project.files.find((file) => file.virtualPath === custom.virtualPath)?.path).toBe(custom.path);
+  expect(restored.projectPackage.project.files.some((file) => file.virtualPath === deleted.virtualPath)).toBe(false);
+  expect(restored.projectPackage.contents[roof]).toEqual(retained.contents[roof]);
+  expect(restored.projectPackage.contents[authoredMaterial.virtualPath]).toBe(retained.contents[authoredMaterial.virtualPath]);
+  expect(restored.projectPackage.documents).toEqual(retained.documents);
+  await restored.save();
+  const checkpoint = structuredClone(f.records.get(restored.id));
+  restored.dispose();
+  sessions.pop();
+  f.fetcher.mockClear();
+  const reopened = await openSeedWorldProject(f.url, initial);
+  sessions.push(reopened);
+  expect(reopened.projectPackage).toEqual(checkpoint);
+  expect(f.fetcher).not.toHaveBeenCalled();
+});

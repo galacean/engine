@@ -1,14 +1,5 @@
 import type { RiverDrop } from "../authoring/river/RiverDrop";
-import {
-  AssetPromise,
-  Loader,
-  ReferResource,
-  Material,
-  resourceLoader,
-  type Engine,
-  type LoadItem,
-  type ResourceManager
-} from "@galacean/engine-core";
+import { ReferResource, Material, type Engine } from "@galacean/engine-core";
 import {
   computeWaterBodyAssetContentHash,
   createWaterBodyAsset,
@@ -20,7 +11,6 @@ import type { WaterLookAuthoringComponents } from "../authoring/surface/WaterLoo
 import { WaterBodyAssetRegistry } from "../runtime/body/WaterBodyAssetRegistry";
 import { hashStableValue } from "../compiler/shared/determinism";
 import { isOceanWaterCompiledTransferV1 } from "../runtime/ocean/OceanWaterCompiledResource";
-import { copyWaterTerrainSnapshot, type WaterTerrainSnapshot } from "../authoring/terrain/WaterTerrainSnapshot";
 import { resolveWaterMaterialLook, waterMaterialKey } from "./WaterMaterial";
 
 /** Native resources own immutable authoring data, never compiled or scene-owned objects. */
@@ -105,14 +95,6 @@ export class WaterQualityResource extends WaterResource<WaterQualityPlanV2> {
   }
 }
 
-/** Explicit manual bed input. Host-generated Terrain snapshots remain runtime inputs. */
-export class WaterTerrainResource extends WaterResource<WaterTerrainSnapshot> {
-  constructor(engine: Engine, data: WaterTerrainSnapshot) {
-    super(engine, copyWaterTerrainSnapshot(data));
-    this.name = data.id;
-  }
-}
-
 export function installLook(registry: WaterBodyAssetRegistry, data: WaterLookAuthoringComponents): void {
   registry.registerAppearancePreset(data.appearance);
   registry.registerOpticsPreset(data.optics);
@@ -144,23 +126,6 @@ export function scopedLook(resource?: WaterLookResource, material?: Material): W
       renderStatePresetId: `${id}:render`
     }
   };
-}
-
-export type WaterResourceFile =
-  | { version: 1; kind: "body"; data: WaterBodyAsset }
-  | { version: 1; kind: "quality"; data: WaterQualityPlanV2 }
-  | { version: 1; kind: "terrain"; data: WaterTerrainSnapshot };
-
-/** Resource payload only; Entity/Component/Scene references use the engine's existing schema. */
-export function serializeWaterResource(
-  resource: WaterBodyResource | WaterQualityResource | WaterTerrainResource
-): string {
-  return stringifyWaterData({
-    version: 1,
-    kind:
-      resource instanceof WaterBodyResource ? "body" : resource instanceof WaterTerrainResource ? "terrain" : "quality",
-    data: resource.data
-  });
 }
 
 export function stringifyWaterData(data: unknown): string {
@@ -196,54 +161,4 @@ export function parseWaterData(text: string): unknown {
     }
     return value;
   });
-}
-
-export function parseWaterResource(
-  engine: Engine,
-  text: string
-): WaterBodyResource | WaterQualityResource | WaterTerrainResource {
-  const file = parseWaterData(text) as WaterResourceFile;
-  if (file?.version !== 1) throw new RangeError("Unsupported Water resource version.");
-  switch (file.kind) {
-    case "body":
-      return new WaterBodyResource(engine, file.data);
-    case "quality":
-      return new WaterQualityResource(engine, file.data);
-    case "terrain":
-      return new WaterTerrainResource(engine, file.data);
-    default:
-      throw new TypeError("Unsupported Water resource kind.");
-  }
-}
-
-export class WaterResourceLoader extends Loader<ReferResource> {
-  load(item: LoadItem, manager: ResourceManager): AssetPromise<ReferResource> {
-    return new AssetPromise((resolve, reject, _complete, _detail, onCancel) => {
-      let cancelled = false;
-      // Engine Loader extension point, matching built-in loaders.
-      const request = (manager as unknown as { _request(url: string, config: unknown): AssetPromise<string> })._request(
-        item.url!,
-        { ...item, type: "text" }
-      );
-      onCancel?.(() => {
-        cancelled = true;
-        request.cancel?.();
-      });
-      request
-        .then((text) => {
-          if (cancelled) return;
-          if (manager.engine.destroyed)
-            reject?.(new DOMException("Engine was destroyed during Water loading.", "AbortError"));
-          else resolve(parseWaterResource(manager.engine, text));
-        })
-        .catch((error) => reject?.(error));
-    });
-  }
-}
-
-let registered = false;
-export function registerWaterResourceLoader(): void {
-  if (registered) return;
-  registered = true;
-  resourceLoader("WaterResource", ["water"], true)(WaterResourceLoader);
 }

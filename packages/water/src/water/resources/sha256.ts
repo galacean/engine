@@ -20,7 +20,7 @@ function bytesToHex(bytes: Uint8Array): string {
   return Array.from(bytes, (value) => value.toString(16).padStart(2, "0")).join("");
 }
 
-function digestSha256HexPortable(bytes: Uint8Array): string {
+export function digestSha256HexPortable(bytes: Uint8Array): string {
   const paddedLength = Math.ceil((bytes.byteLength + 9) / 64) * 64;
   const padded = new Uint8Array(paddedLength);
   padded.set(bytes);

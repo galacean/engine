@@ -2,7 +2,6 @@ import { AssetType, Camera, DirectLight, Loader, Scene, Vector3, WebGLEngine } f
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
 import { registerNativeWater, WaterSystem } from "@galacean/engine-water/water/native/index";
 import { BUILTIN_WATER_PROJECT_URL } from "@galacean/engine-water/water/native/WaterBuiltinAssets";
-import { waterProjectFormats } from "@galacean/engine-water/water/native/WaterProjectFormats";
 import { RuntimeProjectSession } from "@galacean/engine-runtime-editor/project/runtime-project-session";
 import { RuntimeEditor } from "@galacean/engine-runtime-editor/runtime-editor/runtime-editor";
 import { NativeWaterHost } from "@galacean/engine-world-planning/spatial/runtime/NativeWaterHost";
@@ -15,8 +14,6 @@ const response = await fetch(BUILTIN_WATER_PROJECT_URL);
 if (!response.ok) throw new Error(`Water project: HTTP ${response.status}`);
 const initial = await response.json(),
   project = await RuntimeProjectSession.open("native-water-editor-v1", initial, BUILTIN_WATER_PROJECT_URL);
-project.registerAssetFormats(waterProjectFormats);
-project.registerTextAssetTypes(["WaterResource"]);
 await project.prepareEditableHierarchies((name) => Boolean(Loader.getClass(name)));
 await project.initializeDependencies();
 engine.resourceManager.registerVirtualResources(await project.resources());
@@ -25,7 +22,7 @@ const scene = await engine.resourceManager.load<Scene>({
   url: project.projectPackage.project.scene
 });
 engine.sceneManager.activeScene = scene;
-const editor = new RuntimeEditor(project, scene, waterProjectFormats);
+const editor = new RuntimeEditor(project, scene);
 const camera = scene.createRootEntity("Editor camera").addComponent(Camera);
 camera.entity.transform.setPosition(10, 10, 13);
 camera.entity.transform.lookAt(new Vector3(4, 0, 4));

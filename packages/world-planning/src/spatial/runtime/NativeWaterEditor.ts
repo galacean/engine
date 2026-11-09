@@ -1,13 +1,12 @@
+import { encodeWaterTerrainAssets } from "@galacean/engine-water/water/native/WaterTerrainAssets";
+import type { WaterTerrainSnapshot } from "@galacean/engine-water/water/authoring/terrain/WaterTerrainSnapshot";
 import type { WaterShapeAuthoring } from "@galacean/engine-water/water/native/WaterAuthoring";
 import { validateWaterAuthoringSettings } from "@galacean/engine-water/water/native/WaterAuthoring";
-import { stringifyWaterData } from "@galacean/engine-water/water/native/WaterResources";
-import type { WaterResourceFile } from "@galacean/engine-water/water/native/WaterResources";
 import type { WaterBodyAuthoring } from "@galacean/engine-water/water/native/WaterBodyComponent";
 import type { RuntimeEditor, RuntimeEditorEdit } from "@galacean/engine-runtime-editor/runtime-editor/runtime-editor";
 import { RuntimeSceneEdit } from "@galacean/engine-runtime-editor/runtime-editor/scene/runtime-scene-edit";
 import type { RuntimeProjectSession } from "@galacean/engine-runtime-editor/project/runtime-project-session";
 import { withSeedWorldWaterColor, type SeedWorldWaterColorRgb } from "@galacean/engine-water/world/SeedWorldWaterColor";
-import { validateWaterResourceFile } from "@galacean/engine-water/water/native/WaterProjectFormats";
 import { Material } from "@galacean/engine";
 import {
   createWaterQualitySettings,
@@ -23,8 +22,7 @@ import {
 
 export interface WaterSourceAuthoring {
   shape: WaterShapeAuthoring;
-  terrain?: { $ref: string };
-  terrainBinding?: "host";
+  terrain: { mode: "host" } | { mode: "asset"; description: { $ref: string }; heights: { $ref: string } };
   quality?: WaterQualityInput;
   material: { $ref: string };
   connections?: {
@@ -136,16 +134,30 @@ export function editWaterSource(
   });
 }
 
-export function writeWaterAsset(edit: Pick<RuntimeEditorEdit, "run">, path: string, file: WaterResourceFile) {
+/** Both native resources are accepted and undone together. No custom asset type or loader. */
+export function writeWaterTerrainAssets(
+  edit: Pick<RuntimeEditorEdit, "run">,
+  descriptionPath: string,
+  terrain: WaterTerrainSnapshot
+) {
+  if (!descriptionPath.endsWith(".json")) throw new Error("Water terrain description requires a .json path.");
+  const heightPath = descriptionPath.slice(0, -5) + ".bin";
+  const encoded = encodeWaterTerrainAssets(terrain);
   return edit.run(
     ({ draft, edited }) => {
-      const content = stringifyWaterData(file);
-      if (draft.list().some((file) => file.virtualPath === path)) draft.update(path, content);
-      else draft.create({ virtualPath: path, path, type: "WaterResource" }, content);
+      for (const [path, type, content] of [
+        [descriptionPath, "JSON", JSON.stringify(encoded.description)],
+        [heightPath, "Buffer", encoded.heights]
+      ] as const) {
+        const existing = draft.list().find((file) => file.virtualPath === path);
+        if (existing && existing.type !== type) throw new Error(`Water terrain '${path}' requires ${type}.`);
+        if (existing) draft.update(path, content);
+        else draft.create({ virtualPath: path, path, type }, content);
+      }
       edited();
     },
     true,
-    [path]
+    [descriptionPath, heightPath]
   );
 }
 

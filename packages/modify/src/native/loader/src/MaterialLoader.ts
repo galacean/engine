@@ -28,13 +28,19 @@ class MaterialLoader extends Loader<Material> {
       const { shaderRef, shader: shaderName } = materialSchema;
       const engine = resourceManager.engine;
       const shader = Shader.find(shaderName);
-      if (shader) {
+      if (!shaderRef && shader) {
         return this._getMaterialByShader(materialSchema, shader, engine);
       }
       if (!shaderRef) {
         throw new Error(`MaterialLoader: shader "${shaderName}" not found.`);
       }
       return resourceManager.getResourceByRef<Shader>(<RefItem>shaderRef).then((shader) => {
+        // Missing virtual references historically fall back to registered built-ins.
+        // A resolved explicit asset, however, owns its program even when names collide.
+        if (shader === null) {
+          const fallback = Shader.find(shaderName);
+          if (fallback) return this._getMaterialByShader(materialSchema, fallback, engine);
+        }
         if (!(shader instanceof Shader)) {
           throw new Error(`MaterialLoader: shader reference "${shaderRef.url}" did not resolve to a Shader.`);
         }

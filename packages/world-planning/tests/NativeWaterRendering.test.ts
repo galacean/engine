@@ -1,7 +1,7 @@
 import { createWaterQualitySettings } from "@galacean/engine-water/water/native/WaterQualitySettings";
 import { expect, it } from "vitest";
 import { page } from "@vitest/browser/context";
-import { Vector3 } from "@galacean/engine";
+import { Vector3, MeshRenderer } from "@galacean/engine";
 import { WaterBodyComponent, WaterLookResource } from "@galacean/engine-water/water/native/index";
 import { BUILTIN_WATER_PROJECT_URL } from "@galacean/engine-water/water/native/WaterBuiltinAssets";
 import { WaterBodyAssetRegistry } from "@galacean/engine-water/water/runtime/body/WaterBodyAssetRegistry";
@@ -18,7 +18,7 @@ import { registerOceanLook } from "@galacean/engine-water/water/authoring/ocean/
 import { OCEAN_LOOK_ID } from "@galacean/engine-water/water/presets/ocean/index";
 import type { WaterShapeAuthoring } from "@galacean/engine-water/water/native/WaterAuthoring";
 import { openWaterEditorFixture } from "./WaterEditorFixture";
-import { writeWaterAsset } from "@galacean/engine-world-planning/spatial/runtime/NativeWaterEditor";
+import { writeWaterTerrainAssets } from "@galacean/engine-world-planning/spatial/runtime/NativeWaterEditor";
 import { ledgeTerrain } from "../../water/tests/WaterFixtures";
 
 it.each(["lake", "river", "river-drops", "ocean"] as const)(
@@ -41,7 +41,7 @@ it.each(["lake", "river", "river-drops", "ocean"] as const)(
         const drops = kind === "river-drops";
         if (drops) {
           await current.water.execute((edit) =>
-            writeWaterAsset(edit, "Water/Terrain/ledge.water", { version: 1, kind: "terrain", data: ledgeTerrain })
+            writeWaterTerrainAssets(edit, "Water/Terrain/ledge.json", ledgeTerrain)
           );
           current.system.camera!.entity.transform.setPosition(10, 6, 10);
           current.system.camera!.entity.transform.lookAt(new Vector3(4, 0, 4));
@@ -77,7 +77,11 @@ it.each(["lake", "river", "river-drops", "ocean"] as const)(
           name: kind,
           input: {
             shape,
-            terrain: { $ref: `Water/Terrain/${drops ? "ledge" : "manual-bed"}.water` },
+            terrain: {
+              mode: "asset",
+              description: { $ref: `Water/Terrain/${drops ? "ledge" : "manual-bed"}.json` },
+              heights: { $ref: `Water/Terrain/${drops ? "ledge" : "manual-bed"}.bin` }
+            },
             material: { $ref: `Water/Materials/${kind}.mat` },
             quality: createWaterQualitySettings(drops ? "river" : (kind as "river" | "ocean"))
           }
@@ -87,6 +91,10 @@ it.each(["lake", "river", "river-drops", "ocean"] as const)(
       }
       const body = current.editor.projection.component(identity.id) as WaterBodyComponent,
         native = body.configuration!;
+      const renderers: MeshRenderer[] = [];
+      for (const root of current.engine.sceneManager.activeScene.rootEntities)
+        root.getComponentsIncludeChildren(MeshRenderer, renderers);
+      expect(renderers.some((renderer) => renderer.getMaterial()?.shader === native.material!.shader)).toBe(true);
       const gl = current.canvas.getContext("webgl2")!;
       const render = () => {
         current.engine.update();

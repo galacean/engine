@@ -914,33 +914,46 @@ export class WaterBodyLoader {
   }
 
   /** Terminal withdrawal bypasses editing locks and never rolls gameplay routes back on failure. */
+  withdrawBodyRuntime(bodyId: string): void {
+    const errors: unknown[] = [];
+    for (const current of this._committed) {
+      if (current.prepared.body.id !== bodyId) continue;
+      current.revision++;
+      this._withdrawActivation(current, errors);
+    }
+    if (errors.length) throw new AggregateError(errors, "Water body withdrawal failed.");
+  }
+
+  /** Terminal withdrawal bypasses editing locks and never rolls gameplay routes back on failure. */
   withdrawRuntime(): void {
     this._withdrawn = true;
     const errors: unknown[] = [];
-    for (const current of this._committed) {
-      current.prepared.body.enabled = false;
-      current.interaction = freezeInteraction({ query: false, buoyancy: false, wake: false });
-      current.visible = false;
-      for (const release of [
-        () => {
-          current.state.registration?.destroy();
-          current.state.registration = undefined;
-        },
-        () => current.prepared.setVisible?.(false),
-        () => this._releaseCameraLeases(current.state)
-      ]) {
-        try {
-          release();
-        } catch (error) {
-          errors.push(error);
-        }
-      }
-      this._updateResolvedVisibility(current, false);
-      this._updateResolvedInteraction(current, current.interaction);
-      this._synchronizeEffectiveInstanceSnapshot(current);
-    }
+    for (const current of this._committed) this._withdrawActivation(current, errors);
     this.abortPendingOperations();
     if (errors.length) throw new AggregateError(errors, "Water runtime withdrawal failed.");
+  }
+
+  private _withdrawActivation(current: MutableCommittedActivation, errors: unknown[]): void {
+    current.prepared.body.enabled = false;
+    current.interaction = freezeInteraction({ query: false, buoyancy: false, wake: false });
+    current.visible = false;
+    for (const release of [
+      () => {
+        current.state.registration?.destroy();
+        current.state.registration = undefined;
+      },
+      () => current.prepared.setVisible?.(false),
+      () => this._releaseCameraLeases(current.state)
+    ]) {
+      try {
+        release();
+      } catch (error) {
+        errors.push(error);
+      }
+    }
+    this._updateResolvedVisibility(current, false);
+    this._updateResolvedInteraction(current, current.interaction);
+    this._synchronizeEffectiveInstanceSnapshot(current);
   }
 
   /** Cancels all current and future backend operations before lifecycle drain. */

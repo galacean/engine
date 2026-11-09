@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { compileWaterShape, validateWaterShape, type WaterShapeAuthoring } from "../src/water/native/WaterAuthoring";
-import { validateWaterResourceFile } from "../src/water/native/WaterProjectFormats";
+import {
+  compileWaterShape,
+  validateWaterShape,
+  validateWaterWorldTransform,
+  validateWaterAuthoringSettings,
+  getWaterAuthoringCapabilities,
+  type WaterShapeAuthoring
+} from "../src/water/native/WaterAuthoring";
 
 import { lake, terrain } from "./WaterFixtures";
 
@@ -15,7 +21,6 @@ describe("Water author input", () => {
     expect(lake.levelOffsetM).toBe(0);
   });
   it("rejects invalid geometry at the author boundary", () => {
-    expect(() => validateWaterResourceFile('{"version":2,"kind":"quality","data":{}}')).toThrow("version");
     expect(() => validateWaterShape({ ...lake, levelOffsetM: NaN })).toThrow("finite");
     expect(() => validateWaterShape({ ...lake, shoreline: lake.shoreline.slice(0, 2) })).toThrow("three");
     expect(() =>
@@ -61,4 +66,28 @@ describe("Water author input", () => {
     ).toThrow("TERRAIN_CHANGE_REQUIRED");
     expect(terrain.heights.every((height) => height === -1)).toBe(true);
   });
+});
+
+it("validates final world placement without a renderer", () => {
+  const transform = { position: [2, 0, 3], rotationQuaternion: [0, 0, 0, 1], scale: [1, 1, 1] };
+  expect(() => validateWaterWorldTransform("lake", false, transform)).not.toThrow();
+  expect(() => validateWaterWorldTransform("ocean", false, transform)).toThrow("identity");
+  expect(() => validateWaterWorldTransform("river", true, transform)).toThrow("identity");
+  expect(() => validateWaterWorldTransform("lake", false, { ...transform, scale: [2, 1, 1] })).toThrow(
+    "unit world scale"
+  );
+});
+
+it("rejects unsupported native interaction requests before runtime allocation", () => {
+  expect(getWaterAuthoringCapabilities("ocean").buoyancy).toBe(false);
+  expect(getWaterAuthoringCapabilities("lake").wake).toBe(false);
+  const input = { shape: lake, terrain: { mode: "host" }, interaction: { query: true, buoyancy: false, wake: true } };
+  expect(() => validateWaterAuthoringSettings(input)).toThrow("NOT_SUPPORTED");
+  expect(() =>
+    validateWaterAuthoringSettings({
+      ...input,
+      quality: { query: "off" },
+      interaction: { query: true, buoyancy: true, wake: false }
+    })
+  ).toThrow("query quality");
 });

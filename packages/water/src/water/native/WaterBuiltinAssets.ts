@@ -14,24 +14,36 @@ interface TextureAsset {
   height: number;
   params: Record<string, any>;
 }
-let converted: Promise<TextureAsset[]> | undefined;
-async function textures(): Promise<TextureAsset[]> {
-  return (converted ??= fetch(conversionURL)
+const resolvers = new WeakMap<Engine, (path: string) => string>();
+const converted = new WeakMap<Engine, Promise<TextureAsset[]>>();
+
+/** Host-owned delivery URLs for the same immutable native resource closure. */
+export function configureWaterBuiltinAssets(engine: Engine, resolve: (path: string) => string): void {
+  if (converted.has(engine)) throw new Error("Water built-in assets cannot change after their first load.");
+  resolvers.set(engine, resolve);
+}
+
+async function textures(engine: Engine): Promise<TextureAsset[]> {
+  let loading = converted.get(engine);
+  if (loading) return loading;
+  loading = fetch(resolvers.get(engine)?.("conversion.json") ?? conversionURL)
     .then(async (response) => {
       if (!response.ok) throw new Error(`Water asset conversion manifest: HTTP ${response.status}.`);
       return response.json();
     })
     .catch((error) => {
-      converted = undefined;
+      converted.delete(engine);
       throw error;
-    }));
+    });
+  converted.set(engine, loading);
+  return loading;
 }
 
 /** Runtime-only demos borrow the same converted native assets as editable projects. */
 export async function loadBuiltinWaterTexture(engine: Engine, path: string, signal?: AbortSignal): Promise<Texture2D> {
-  const asset = (await textures()).find((asset) => asset.target === path);
+  const asset = (await textures(engine)).find((asset) => asset.target === path);
   if (!asset || !["Texture", "KTX2"].includes(asset.type)) throw new Error(`Missing native Water texture '${path}'.`);
-  const url = new URL(path, BUILTIN_WATER_PROJECT_URL).href;
+  const url = resolvers.get(engine)?.(path) ?? new URL(path, BUILTIN_WATER_PROJECT_URL).href;
   const response = await fetch(url, { signal });
   if (!response.ok || (await digestSha256Hex(await response.arrayBuffer())) !== asset.sha256)
     throw new Error(`Native Water texture '${path}' failed its source hash check.`);

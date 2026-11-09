@@ -54,6 +54,7 @@ export async function openSeedWorldProject(
     registerBuildingAssetComponents();
     registerPlantProjectAssets();
     project.registerAssetFormats(seedWorldProjectFormats);
+    await migrateBuildingAssetPaths(project, initial, projectUrl);
     await project.prepareEditableHierarchies((name) => Boolean(Loader.getClass(name)));
     await project.initializeDependencies();
     await migrateVegetationAssets(project, initial, projectUrl);
@@ -64,6 +65,49 @@ export async function openSeedWorldProject(
     project.dispose();
     throw error;
   }
+}
+
+/** Rebase known built-in locations before any restored hierarchy can fetch the retired folder. */
+async function migrateBuildingAssetPaths(
+  project: RuntimeProjectSession,
+  initial: RuntimeProjectManifest,
+  baseUrl: string
+): Promise<void> {
+  const locations = new Map(initial.files.map((file) => [file.virtualPath, file]));
+  const relocate = (file: RuntimeProjectManifest["files"][number]) => {
+    const current = locations.get(file.virtualPath);
+    if (!current || current.type !== file.type) return file;
+    const path = new URL(current.path, baseUrl).href;
+    const legacy = path.replace("/packages/building/src/building/", "/packages/building/src/tiny-glade/");
+    return legacy !== path && new URL(file.path, baseUrl).href === legacy ? { ...file, path } : file;
+  };
+  const current = project.projectPackage;
+  const files = current.project.files.map(relocate);
+  const changed = files.filter((file, index) => file !== current.project.files[index]);
+  if (!changed.length) return;
+  // A URL change invalidates dependency metadata. Hydrate only reference-bearing
+  // sources at their new locations; saved edits always retain their own bytes.
+  const formats = new Map([...nativeAssetFormats(() => ({})), ...seedWorldProjectFormats]);
+  const contents: Record<string, string> = {};
+  for (const file of changed) {
+    if (current.contents[file.virtualPath] !== undefined || formats.get(file.type)?.referenceTypes?.length === 0) continue;
+    const response = await fetch(file.path);
+    if (!response.ok) throw new Error(`Building migration read failed (${response.status}): ${file.virtualPath}`);
+    const text = await response.text();
+    if (file.type !== "Prefab" && file.type !== "Scene") { contents[file.virtualPath] = text; continue; }
+    const original = JSON.parse(text);
+    const converted = original.asset ? original : importRuntimeHierarchy(original, file.virtualPath, files, name => Boolean(Loader.getClass(name)));
+    contents[file.virtualPath] = JSON.stringify(converted);
+    if (!original.asset) {
+      const candidate = { ...current, project: { ...current.project, files }, contents: { ...current.contents, ...contents } };
+      assertRuntimeHierarchyEquivalent(original, JSON.parse(compileProjectResource(candidate, file.virtualPath) as string));
+    }
+  }
+  await project.update((pack) => ({
+    ...pack,
+    project: { ...pack.project, files: pack.project.files.map(relocate) },
+    contents: { ...contents, ...pack.contents }
+  }));
 }
 
 /** Versioned import preserves saved asset edits and intentionally deleted resources after migration. */

@@ -1,13 +1,20 @@
+import {
+  resolveWaterTerrainAssets,
+  waterTerrainReferences,
+  type WaterTerrainInput,
+  type DecodedWaterTerrain
+} from "./WaterTerrainAssets";
 import { Script, Material, ignoreClone, type Scene } from "@galacean/engine-core";
 import type {
   WaterInteractionRequestV1,
   WaterRepresentationInstanceStateV1
 } from "../authoring/body/WaterBodyInstance";
-import { WaterBodyResource, WaterLookResource, WaterQualityResource, WaterTerrainResource } from "./WaterResources";
+import { WaterBodyResource, WaterLookResource, WaterQualityResource } from "./WaterResources";
 import {
   compileWaterShape,
   validateWaterShape,
   validateWaterAuthoringSettings,
+  resolveWaterMaterialProfile,
   type WaterShapeAuthoring
 } from "./WaterAuthoring";
 import { waterMaterialKey } from "./WaterMaterial";
@@ -36,9 +43,7 @@ export interface WaterBodyAuthoring
   readonly material: Material;
   readonly quality: WaterQualitySettings;
   readonly shape: WaterShapeAuthoring;
-  readonly terrain?: WaterTerrainResource;
-  /** The host prepares the final Terrain and the Water batch in one publication. */
-  readonly terrainBinding?: "host";
+  readonly terrain: WaterTerrainInput;
   readonly connections?: readonly WaterBodyConnection[];
 }
 
@@ -51,6 +56,7 @@ export interface NativeWaterOwner {
   register(body: WaterBodyComponent): void;
   publish(body: WaterBodyComponent, config: Readonly<WaterBodyConfiguration>, signal: AbortSignal): Promise<number>;
   detach(body: WaterBodyComponent, forget?: boolean): Promise<void>;
+  withdraw?(body: WaterBodyComponent): void;
   requestAuthoringUpdate?(body: WaterBodyComponent): Promise<void>;
 }
 export const nativeWaterOwners = new WeakMap<Scene, NativeWaterOwner>();
@@ -86,6 +92,7 @@ export function freezeConfiguration(config: WaterBodyConfiguration): Readonly<Wa
 /** Scene instance. Transform is owned by Entity; authoring assets may be shared. */
 export class WaterBodyComponent extends Script {
   private _authoring?: Readonly<WaterBodyAuthoring>;
+  private _decodedTerrain?: DecodedWaterTerrain;
   private _authoringAsset?: { key: string; resource: WaterBodyResource };
   private _authoringQuality?: { key: string; resource: WaterQualityResource };
   private _authoringAssets = new Set<WaterBodyResource | WaterQualityResource>();
@@ -96,6 +103,7 @@ export class WaterBodyComponent extends Script {
     return (
       input && {
         ...input,
+        terrain: { ...input.terrain },
         quality: structuredClone(input.quality),
         shape: structuredClone(input.shape),
         interaction: input.interaction && { ...input.interaction },
@@ -110,17 +118,23 @@ export class WaterBodyComponent extends Script {
   set authoring(value: WaterBodyAuthoringInput) {
     if (this._disposed) throw new Error("DESTROYED: Water component was destroyed.");
     const shape = validateWaterShape(value.shape);
-    const refs = [value.terrain, value.material].filter((resource) => resource !== undefined);
+    const decodedTerrain = value.terrain?.mode === "asset" ? resolveWaterTerrainAssets(value.terrain) : undefined;
+    const refs = [...waterTerrainReferences(value.terrain), value.material].filter(
+      (resource) => resource !== undefined
+    );
     if (
-      (value.terrainBinding === "host"
-        ? value.terrain !== undefined
-        : !(value.terrain instanceof WaterTerrainResource)) ||
-      (value.terrainBinding !== undefined && value.terrainBinding !== "host") ||
+      !value.terrain ||
+      !["host", "asset"].includes(value.terrain.mode) ||
       refs.some((resource) => resource.destroyed || resource.engine !== this.engine)
     )
       throw new TypeError("INVALID_ARGUMENT: Authoring requires live Terrain and Material resources from this Engine.");
     if (!(value.material instanceof Material))
       throw new TypeError("INVALID_ARGUMENT: Source Water requires a native Material.");
+    resolveWaterMaterialProfile(
+      value.material.shaderData.getInt("material_WaterProfile"),
+      value.material.shaderData.getInt("material_WaterRiverDrops"),
+      shape.kind
+    );
     const quality = validateWaterAuthoringSettings(value);
     if (
       value.connections?.some(
@@ -131,11 +145,12 @@ export class WaterBodyComponent extends Script {
       )
     )
       throw new Error("INVALID_ARGUMENT: Water connections require another Water component in this Scene.");
-    for (const resource of refs) resource._addReferCount(1);
-    if (this._authoring)
-      for (const resource of [this._authoring.terrain, this._authoring.material]) resource?._addReferCount(-1);
+    this._decodedTerrain = decodedTerrain;
+    value.material._addReferCount(1);
+    if (this._authoring) this._authoring.material._addReferCount(-1);
     this._authoring = Object.freeze({
       ...value,
+      terrain: Object.freeze({ ...value.terrain }),
       shape,
       quality,
       interaction: value.interaction && Object.freeze({ ...value.interaction }),
@@ -182,26 +197,20 @@ export class WaterBodyComponent extends Script {
   }
   private compileAuthoring(): WaterBodyConfiguration {
     const input = this._authoring;
-    if (!input?.terrain)
+    if (input?.terrain.mode !== "asset")
       throw new Error("MISSING_DEPENDENCY: Water requires a manual bed or a host Terrain publication.");
-    const key = hashStableValue([input.shape, input.terrain.contentHash]);
+    const terrain = this._decodedTerrain!;
+    const key = hashStableValue([input.shape, terrain.contentHash]);
     if (this._authoringAsset?.key !== key || this._authoringAsset.resource.destroyed) {
       const resource = new WaterBodyResource(
         this.engine,
-        compileWaterShape(input.shape, input.terrain.data, `authored:${this.waterId}`)
+        compileWaterShape(input.shape, terrain.snapshot, `authored:${this.waterId}`)
       );
       resource._addReferCount(1);
       this._authoringAssets.add(resource);
       this._authoringAsset = { key, resource };
     }
-    const {
-      shape,
-      terrain: _terrain,
-      terrainBinding: _binding,
-      connections: _connections,
-      quality: _quality,
-      ...settings
-    } = input;
+    const { shape, terrain: _terrain, connections: _connections, quality: _quality, ...settings } = input;
     return {
       ...settings,
       quality: this._compileQuality(),
@@ -209,12 +218,19 @@ export class WaterBodyComponent extends Script {
       representationState: shape.kind === "ocean" ? shape.layout : undefined
     };
   }
+  /** @internal Read-only terrain identity and connection sampling share the decoded resource pair. */
+  _terrainSnapshot() {
+    return this._decodedTerrain?.snapshot;
+  }
+  _terrainContentHash() {
+    return this._decodedTerrain?.contentHash ?? "host";
+  }
   /** @internal Local invalidation key, including the effective world transform. */
   _authoringKey(): string {
     const input = this._authoring!;
     return hashStableValue({
       shape: input.shape,
-      terrain: input.terrain?.contentHash,
+      terrain: this._terrainContentHash(),
       material: waterMaterialKey(input.material),
       quality: input.quality,
       visible: input.visible ?? true,
@@ -223,7 +239,7 @@ export class WaterBodyComponent extends Script {
         ...connection,
         target: connection.target.waterId,
         shape: connection.target._authoring?.shape,
-        terrain: connection.target._authoring?.terrain?.contentHash,
+        terrain: connection.target._terrainContentHash(),
         enabled: connection.target.enabled && connection.target.entity.isActiveInHierarchy,
         transform: connection.target.transformKey()
       })),
@@ -442,11 +458,17 @@ export class WaterBodyComponent extends Script {
     if (owner) this._registerWith(owner);
   }
   override onEnable(): void {
-    void this.refresh().catch(() => {});
+    this._ready = this.refresh();
+    void this._ready.catch(() => {});
   }
   override onDisable(): void {
     this._controller?.abort();
-    if (this._owner) this._ready = this._owner.detach(this);
+    this._owner?.withdraw?.(this);
+    // Native authoring owns enabled state in its publication key. Publish the
+    // disabled state through that same queue so re-enabling cannot reuse a key
+    // whose runtime body was independently detached.
+    if (this._authoring && this._authoring.terrain.mode !== "host" && !this._disposed) this._ready = this.refresh();
+    else if (this._owner) this._ready = this._owner.detach(this);
     void this._ready.catch((error) => {
       this._error = String(error);
     });
@@ -466,13 +488,14 @@ export class WaterBodyComponent extends Script {
     if (this._disposeTask) return this._disposeTask;
     this._disposed = true;
     this._controller?.abort();
+    this._owner?.withdraw?.(this);
     this._ready = this._disposeTask = Promise.allSettled([...this._pending, this._owner?.detach(this, true)]).then(
       () => {
         if (this._retained) retain(this._retained, -1);
         this._retained = undefined;
-        if (this._authoring)
-          for (const resource of [this._authoring.terrain, this._authoring.material]) resource?._addReferCount(-1);
+        if (this._authoring) this._authoring.material._addReferCount(-1);
         this._authoring = undefined;
+        this._decodedTerrain = undefined;
         for (const asset of this._authoringAssets) {
           asset._addReferCount(-1);
           asset.destroy();
@@ -489,12 +512,14 @@ export class WaterBodyComponent extends Script {
     target._authoringAsset = undefined;
     target._authoringQuality = undefined;
     if (target._authoring) {
+      target._decodedTerrain =
+        target._authoring.terrain.mode === "asset" ? resolveWaterTerrainAssets(target._authoring.terrain) : undefined;
       target._authoring = Object.freeze({
         ...target._authoring,
         shape: validateWaterShape(target._authoring.shape),
         quality: createWaterQualitySettings(target._authoring.shape.kind, target._authoring.quality)
       });
-      for (const resource of [target._authoring.terrain, target._authoring.material]) resource?._addReferCount(1);
+      target._authoring.material._addReferCount(1);
     }
     if (target._configuration) {
       target._configuration = freezeConfiguration({
@@ -556,6 +581,7 @@ export class WaterBodyComponent extends Script {
 }
 
 for (const key of [
+  "_decodedTerrain",
   "_authoringAsset",
   "_authoringQuality",
   "_authoringAssets",

@@ -1,3 +1,4 @@
+import { resolveWaterMaterialProfile, validateWaterWorldTransform } from "./WaterAuthoring";
 import { createFarmlandsWaterResourceFactories } from "../resources/river/FarmlandsWaterRuntimeResources";
 import { sampleRiverDrop, type RiverDrop } from "../authoring/river/RiverDrop";
 import {
@@ -77,7 +78,8 @@ interface WaterBatchRenderRoots {
 function nativeWaterRuntimeContext(
   system: WaterSystem,
   textures: Readonly<OceanTextures> | undefined,
-  capture?: WaterBatchRenderRoots
+  capture?: WaterBatchRenderRoots,
+  surfaceShader?: import("@galacean/engine-core").Shader
 ) {
   return (root: Entity) => {
     capture?.roots?.push(root);
@@ -85,6 +87,7 @@ function nativeWaterRuntimeContext(
       engine: system.engine,
       root,
       textures,
+      surfaceShader,
       cameraPositionProvider: () => system.camera!.entity.transform.worldPosition,
       sceneFogEnabled: false
     };
@@ -117,7 +120,7 @@ export class WaterSystem extends Script implements WaterRuntimeControl {
     if (flush && !this._authoringDepth) void this.flushAuthoring().catch(() => {});
   }
   requestAuthoringUpdate(body: WaterBodyComponent): Promise<void> {
-    if (body.authoring?.terrainBinding === "host") return Promise.resolve();
+    if (body.authoring?.terrain.mode === "host") return Promise.resolve();
     this.assertLive();
     this._authoringBodies.add(body);
     this._authoringDirty = true;
@@ -207,6 +210,16 @@ export class WaterSystem extends Script implements WaterRuntimeControl {
   /** Non-allocating access for disabled queries and diagnostics. */
   get activeRuntimeHost(): WaterSceneRuntimeHost | undefined {
     return this._host;
+  }
+  /** Resolve a generated render descendant to its current author component without exposing backend state. */
+  resolveRenderOwner(entity: Entity): WaterBodyComponent | undefined {
+    if (this._disposed || !this.enabled || !this.entity.isActiveInHierarchy || !this._runtimeState.effectiveEnabled)
+      return undefined;
+    const id = this._host?.resolveRenderBodyId(entity);
+    const body = id === undefined ? undefined : this._bodies.get(id);
+    return body && !body.destroyed && !body.pendingDestroy && body.enabled && body.entity.isActiveInHierarchy
+      ? body
+      : undefined;
   }
   get activeEnvironment(): WaterEnvironmentReflectionProviderHandle | undefined {
     return this._environment;
@@ -461,7 +474,10 @@ export class WaterSystem extends Script implements WaterRuntimeControl {
   }
   override onDisable(): void {
     this._activation.abort();
-    for (const body of this.bodies) void this.detach(body).catch(() => {});
+    for (const body of this.bodies) {
+      this.withdraw(body);
+      void this.detach(body).catch(() => {});
+    }
   }
   override onUpdate(deltaSeconds: number): void {
     if (!this._runtimeState.effectiveEnabled) return;
@@ -540,12 +556,18 @@ export class WaterSystem extends Script implements WaterRuntimeControl {
       p = t.worldPosition,
       q = t.worldRotationQuaternion,
       scale = t.lossyWorldScale;
-    if (![p.x, p.y, p.z, q.x, q.y, q.z, q.w, scale.x, scale.y, scale.z].every(Number.isFinite))
-      throw new Error("INVALID_ARGUMENT: Water Entity transform must contain finite values.");
-    if ([scale.x - 1, scale.y - 1, scale.z - 1, q.x, q.z].some((v) => Math.abs(v) > 1e-6))
-      throw new Error("NOT_SUPPORTED: Water supports translation and yaw, with unit world scale.");
+    validateWaterWorldTransform(config.asset.kind as "lake" | "river" | "ocean", false, {
+      position: [p.x, p.y, p.z],
+      rotationQuaternion: [q.x, q.y, q.z, q.w],
+      scale: [scale.x, scale.y, scale.z]
+    });
     const host = this.host();
     if (config.material) {
+      resolveWaterMaterialProfile(
+        config.material.shaderData.getInt("material_WaterProfile"),
+        config.material.shaderData.getInt("material_WaterRiverDrops"),
+        config.asset.kind === "pool" ? "lake" : config.asset.kind
+      );
       await prepareWaterMaterial(config.material, signal);
       for (const factory of waterMaterialFactories(config.material)) {
         host.ensureRuntimeResource(factory);
@@ -613,7 +635,7 @@ export class WaterSystem extends Script implements WaterRuntimeControl {
         bodyId: body.waterId,
         asset,
         instance,
-        createRuntimeContext: nativeWaterRuntimeContext(this, textures, renderRoots)
+        createRuntimeContext: nativeWaterRuntimeContext(this, textures, renderRoots, config.material?.shader)
       });
     } else transaction.remove(body.waterId);
   }
@@ -812,6 +834,17 @@ export class WaterSystem extends Script implements WaterRuntimeControl {
         throw error;
       }
     });
+  }
+
+  /** Stop participation now; queued authoring publication owns cleanup and future reactivation. */
+  withdraw(body: WaterBodyComponent): void {
+    // Projection may temporarily deactivate or replace components inside a
+    // public input batch. Its final prepared state owns that atomic boundary.
+    if (this._authoringDepth) return;
+    if (this._bodies.get(body.waterId) !== body) return;
+    this._authoringKeys.delete(body);
+    this._host?.withdrawBodyRuntime(body.waterId);
+    this._revision++;
   }
 
   detach(body: WaterBodyComponent, forget = false): Promise<void> {

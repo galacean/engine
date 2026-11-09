@@ -99,6 +99,7 @@ export function validateWaterShape(shape: WaterShapeAuthoring): Readonly<WaterSh
 
 export function validateWaterAuthoringSettings(input: {
   shape: WaterShapeAuthoring;
+  terrain?: unknown;
   quality?: WaterQualityInput;
   visible?: boolean;
   priority?: number;
@@ -114,20 +115,22 @@ export function validateWaterAuthoringSettings(input: {
     !input ||
     Object.keys(input).some(
       (key) =>
-        ![
-          "shape",
-          "terrain",
-          "terrainBinding",
-          "quality",
-          "material",
-          "connections",
-          "visible",
-          "priority",
-          "interaction"
-        ].includes(key)
+        !["shape", "terrain", "quality", "material", "connections", "visible", "priority", "interaction"].includes(key)
     )
   )
     throw new TypeError("INVALID_ARGUMENT: Unknown Water authoring property.");
+  const terrain = input.terrain as { mode?: string; description?: unknown; heights?: unknown } | undefined;
+  if (
+    !terrain ||
+    !["host", "asset"].includes(terrain.mode ?? "") ||
+    Object.keys(terrain).some(
+      (key) => !(terrain.mode === "host" ? ["mode"] : ["mode", "description", "heights"]).includes(key)
+    ) ||
+    (terrain.mode === "asset" && (!terrain.description || !terrain.heights))
+  )
+    throw new TypeError(
+      "INVALID_ARGUMENT: Water terrain requires host mode or a native description/height asset pair."
+    );
   validateWaterShape(input.shape);
   if (input.connections !== undefined) {
     if (
@@ -169,7 +172,14 @@ export function validateWaterAuthoringSettings(input: {
     representationState: input.shape.kind === "ocean" ? input.shape.layout : undefined,
     transform: { position: [0, 0, 0], yawDegrees: 0, scaleXZ: [1, 1] }
   });
-  return createWaterQualitySettings(input.shape.kind, input.quality);
+  const quality = createWaterQualitySettings(input.shape.kind, input.quality);
+  const interaction = input.interaction ?? { query: true, buoyancy: false, wake: false };
+  const capabilities = getWaterAuthoringCapabilities(input.shape.kind);
+  if ((!capabilities.wake && interaction.wake) || (!capabilities.buoyancy && interaction.buoyancy))
+    throw new Error("NOT_SUPPORTED: Water wake and Ocean buoyancy are unavailable in the current native backends.");
+  if (quality.query === "off" && (interaction.buoyancy || interaction.wake))
+    throw new Error("INVALID_ARGUMENT: Water interaction requires a query quality other than off.");
+  return quality;
 }
 
 /** Build derived compiler input from the accepted shape and a read-only bed. Never persists sampling caches. */
@@ -270,4 +280,82 @@ export function compileWaterShape(
     source,
     sourceHash: hashStableValue(source)
   });
+}
+
+/** Final effective world placement, including all parents. Quaternion order is x/y/z/w. */
+export function validateWaterWorldTransform(
+  kind: WaterShapeAuthoring["kind"],
+  connected: boolean,
+  transform: {
+    position: readonly number[];
+    rotationQuaternion: readonly number[];
+    scale: readonly number[];
+  }
+): void {
+  const { position: p, rotationQuaternion: q, scale: s } = transform;
+  if (p.length !== 3 || q.length !== 4 || s.length !== 3 || ![...p, ...q, ...s].every(Number.isFinite))
+    throw new TypeError("INVALID_ARGUMENT: Water world transform must contain finite position, quaternion and scale.");
+  const tolerance = 1e-6;
+  if ([s[0] - 1, s[1] - 1, s[2] - 1, q[0], q[2]].some((value) => Math.abs(value) > tolerance))
+    throw new Error("NOT_SUPPORTED: Water supports translation and yaw, with unit world scale.");
+  if (
+    (kind === "ocean" || connected) &&
+    [...p, q[0], q[1], q[2], Math.abs(q[3]) - 1].some((value) => Math.abs(value) > tolerance)
+  )
+    throw new Error("NOT_SUPPORTED: Ocean and connected Water require identity world placement.");
+}
+
+/** Static native-backend request limits, not device readiness or physical force behavior. */
+export function getWaterAuthoringCapabilities(kind: WaterShapeAuthoring["kind"]) {
+  if (!["lake", "river", "ocean"].includes(kind)) throw new TypeError("INVALID_ARGUMENT: Unknown Water kind.");
+  return Object.freeze({
+    query: true,
+    buoyancy: kind !== "ocean",
+    wake: false,
+    worldPlacement: kind === "ocean" ? ("identity" as const) : ("translation-yaw" as const),
+    connectedWorldPlacement: "identity" as const,
+    cameraCount: 1
+  });
+}
+
+/** Shader asset metadata check shared with Headless author validation. Ocean assets own both region implementations. */
+export function validateWaterShaderCapabilities(
+  kind: WaterShapeAuthoring["kind"],
+  subShaderNames: readonly string[]
+): void {
+  if (!subShaderNames.length || (kind === "ocean" && !subShaderNames.includes("WaterFar")))
+    throw new Error(
+      "NOT_SUPPORTED: Ocean Water Shader requires an authored WaterFar SubShader in addition to its near surface."
+    );
+}
+
+/** Decode the native Material's integer profile without importing Engine or maintaining a second enum in Editor. */
+export function resolveWaterMaterialProfile(
+  profileIndex: unknown,
+  riverDrops: unknown,
+  expectedKind?: WaterShapeAuthoring["kind"]
+): WaterShapeAuthoring["kind"] {
+  const profiles = ["lake", "river", "ocean"] as const;
+  const profile =
+    typeof profileIndex === "number" && Number.isInteger(profileIndex) ? profiles[profileIndex] : undefined;
+  if (!profile || (riverDrops !== 0 && riverDrops !== 1) || (riverDrops === 1 && profile !== "river"))
+    throw new TypeError("INVALID_ARGUMENT: Water Material has an unsupported profile or river drop policy.");
+  if (expectedKind !== undefined && expectedKind !== profile)
+    throw new TypeError(
+      `INVALID_ARGUMENT: ${expectedKind} Water requires a ${expectedKind} Material, received ${profile}.`
+    );
+  return profile;
+}
+
+/** Validate the ordinary .mat file's declared profile and shape compatibility before author commit. */
+export function validateWaterMaterialCapabilities(
+  kind: WaterShapeAuthoring["kind"],
+  material: { readonly shaderData?: Readonly<Record<string, { readonly type?: string; readonly value?: unknown }>> }
+): void {
+  const data = material?.shaderData;
+  const profile = data?.material_WaterProfile;
+  const drops = data?.material_WaterRiverDrops;
+  if (profile?.type !== "Integer" || (drops?.type !== "Boolean" && drops?.type !== "Integer"))
+    throw new TypeError("INVALID_ARGUMENT: Water Material requires native profile and river drop declarations.");
+  resolveWaterMaterialProfile(profile.value, drops.value === true ? 1 : drops.value === false ? 0 : drops.value, kind);
 }

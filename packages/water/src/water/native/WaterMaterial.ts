@@ -1,4 +1,5 @@
 import { Material, Texture2D } from "@galacean/engine-core";
+import { resolveWaterMaterialProfile, validateWaterShaderCapabilities } from "./WaterAuthoring";
 import { Color } from "@galacean/engine-math";
 import type { WaterLookAuthoringComponents } from "../authoring/surface/WaterLookAuthoringSnapshot";
 import type { WaterResourceAssetDescriptorV1 } from "../authoring/body/WaterBodyAuthoringTypes";
@@ -200,11 +201,13 @@ function materialDefinition(
 function definitionForMaterial(material: Material) {
   if (!(material instanceof Material) || material.destroyed)
     throw new TypeError("Water requires a live native Material.");
-  const index = material.shaderData.getInt("material_WaterProfile"),
-    profile = profiles[index];
+  const index = material.shaderData.getInt("material_WaterProfile");
   const drops = material.shaderData.getInt("material_WaterRiverDrops");
-  if (!profile || !Number.isInteger(index) || (drops !== 0 && drops !== 1) || (drops && profile !== "river"))
-    throw new TypeError(`Water Material '${material.name}' has an unsupported shader profile or drop policy.`);
+  const profile = resolveWaterMaterialProfile(index, drops);
+  validateWaterShaderCapabilities(
+    profile,
+    material.shader.subShaders.map((sub) => sub.name)
+  );
   return materialDefinition(defaultLook(profile, !!drops));
 }
 
@@ -367,6 +370,8 @@ export async function prepareWaterMaterial(material: Material, signal?: AbortSig
     }
     await loading;
     const identity = textureIdentities.get(texture)!;
+    // Decoding the same image with a different mip policy changes the sampled
+    // resource. Active leases must not reuse the previous native mip chain.
     textureIdentities.set(texture, {
       ...identity,
       id: `native-water-texture:${identity.contentHash}:${hashStableValue([
@@ -374,7 +379,8 @@ export async function prepareWaterMaterial(material: Material, signal?: AbortSig
         texture.wrapModeU,
         texture.wrapModeV,
         texture.filterMode,
-        texture.anisoLevel
+        texture.anisoLevel,
+        texture.mipmapCount
       ])}`
     });
     signal?.throwIfAborted();
@@ -385,6 +391,7 @@ export function waterMaterialKey(material?: Material): string | undefined {
   if (!material) return;
   return hashStableValue([
     material.shader.name,
+    shaderIdentity(material.shader),
     material.shaderData.getProperties().map((property) => {
       const texture = material.shaderData.getTexture(property);
       if (texture instanceof Texture2D)
@@ -394,7 +401,8 @@ export function waterMaterialKey(material?: Material): string | undefined {
           texture.wrapModeU,
           texture.wrapModeV,
           texture.filterMode,
-          texture.anisoLevel
+          texture.anisoLevel,
+          texture.mipmapCount
         ];
       return [
         property.name,
@@ -420,9 +428,17 @@ export function waterMaterialFactories(material: Material): WaterRuntimeResource
         return { texture };
       },
       destroy: () => {
+        // Native project textures are borrowed assets, not Water-owned allocations.
         texture._addReferCount(-1);
-        texture.destroy();
       }
     };
   });
+}
+
+const shaderIdentities = new WeakMap<object, number>();
+let nextShaderIdentity = 0;
+function shaderIdentity(shader: object): number {
+  let identity = shaderIdentities.get(shader);
+  if (identity === undefined) shaderIdentities.set(shader, (identity = ++nextShaderIdentity));
+  return identity;
 }

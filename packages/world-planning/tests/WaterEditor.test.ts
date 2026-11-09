@@ -3,9 +3,12 @@ import { expect, it } from "vitest";
 import type { MeshRenderer, Texture2D } from "@galacean/engine";
 import { WaterBodyComponent } from "@galacean/engine-water/water/native/index";
 import type { WaterShapeAuthoring } from "@galacean/engine-water/water/native/WaterAuthoring";
-import { stringifyWaterData } from "@galacean/engine-water/water/native/WaterResources";
+import { encodeWaterTerrainAssets } from "@galacean/engine-water/water/native/WaterTerrainAssets";
 import { RuntimeSceneEdit } from "@galacean/engine-runtime-editor/runtime-editor/scene/runtime-scene-edit";
-import { editWaterSource, writeWaterAsset } from "@galacean/engine-world-planning/spatial/runtime/NativeWaterEditor";
+import {
+  editWaterSource,
+  writeWaterTerrainAssets
+} from "@galacean/engine-world-planning/spatial/runtime/NativeWaterEditor";
 import { createNativeWaterAgentPackage } from "@galacean/engine-world-planning/spatial/runtime/NativeWaterAgent";
 import { WaterAPI } from "@galacean/engine-water/water/native/WaterAPI";
 import { BUILTIN_WATER_PROJECT_URL } from "@galacean/engine-water/water/native/WaterBuiltinAssets";
@@ -17,11 +20,12 @@ it("edits a real Source lake through public history and reopens it in a new Engi
   const builtin = await (await fetch(BUILTIN_WATER_PROJECT_URL)).json();
   const input = {
     shape: lake,
-    terrain: { $ref: "Water/bed.water" },
+    terrain: { mode: "asset", description: { $ref: "Water/bed.json" }, heights: { $ref: "Water/bed.bin" } },
     quality: createWaterQualitySettings("lake", { spatialField: { maximumDepthError: 0.02 } }),
     material: { $ref: "Water/Materials/lake.mat" }
   };
-  const contents: Record<string, string> = {
+  const terrainAssets = encodeWaterTerrainAssets(terrain);
+  const contents: Record<string, string | Uint8Array> = {
     "Main.scene": JSON.stringify({
       asset: { version: "2.0" },
       scene: { rootEntities: [], background: { mode: 0, color: { r: 0.1, g: 0.1, b: 0.1, a: 1 } } },
@@ -34,7 +38,8 @@ it("edits a real Source lake through public history and reopens it in a new Engi
       entities: [{ id: "root", name: "Lake", components: ["body"] }],
       components: [{ id: "body", type: "WaterBodyComponent", props: { authoring: input } }]
     }),
-    "Water/bed.water": stringifyWaterData({ version: 1, kind: "terrain", data: terrain })
+    "Water/bed.json": JSON.stringify(terrainAssets.description),
+    "Water/bed.bin": terrainAssets.heights
   };
   const urls = Object.values(contents).map((content) => URL.createObjectURL(new Blob([content])));
   const manifest = {
@@ -49,7 +54,13 @@ it("edits a real Source lake through public history and reopens it in a new Engi
       ...Object.keys(contents).map((virtualPath, index) => ({
         virtualPath,
         path: urls[index],
-        type: virtualPath.endsWith(".scene") ? "Scene" : virtualPath.endsWith(".prefab") ? "Prefab" : "WaterResource"
+        type: virtualPath.endsWith(".scene")
+          ? "Scene"
+          : virtualPath.endsWith(".prefab")
+            ? "Prefab"
+            : virtualPath.endsWith(".bin")
+              ? "Buffer"
+              : "JSON"
       }))
     ]
   };
@@ -99,7 +110,7 @@ it("edits a real Source lake through public history and reopens it in a new Engi
     await expect(
       current.water.change({ operation: "update", id: created.value, patch: { priority: Infinity } })
     ).rejects.toThrow("finite");
-    for (const patch of [{ material: { $ref: "Water/missing.mat" } }, { material: { $ref: "Water/bed.water" } }])
+    for (const patch of [{ material: { $ref: "Water/missing.mat" } }, { material: { $ref: "Water/bed.json" } }])
       await expect(current.water.change({ operation: "update", id: created.value, patch })).rejects.toThrow();
     expect(current.project.publicationRevision).toBe(beforeInvalid);
     await expect(
@@ -227,25 +238,25 @@ it("edits a real Source lake through public history and reopens it in a new Engi
     expect(current.project.publicationRevision).toBe(beforeInvalidMany);
     expect(current.system.bodies[0].configuration?.priority).toBe(1);
     const group = await current.water.execute(async (edit) => {
-      await writeWaterAsset(edit, "Water/connection-bed.water", {
-        version: 1,
-        kind: "terrain",
-        data: {
-          id: "connection-bed",
-          revision: 1,
-          origin: [-20, -20],
-          spacing: 1,
-          columns: 65,
-          rows: 65,
-          heights: Array(65 * 65).fill(-1)
-        }
+      await writeWaterTerrainAssets(edit, "Water/connection-bed.json", {
+        id: "connection-bed",
+        revision: 1,
+        origin: [-20, -20],
+        spacing: 1,
+        columns: 65,
+        rows: 65,
+        heights: Array(65 * 65).fill(-1)
       });
       const left = (await editWaterSource(edit, "Main.scene", {
         operation: "create",
         name: "Connected Lake A",
         input: {
           ...input,
-          terrain: { $ref: "Water/connection-bed.water" }
+          terrain: {
+            mode: "asset",
+            description: { $ref: "Water/connection-bed.json" },
+            heights: { $ref: "Water/connection-bed.bin" }
+          }
         }
       })) as string;
       const right = (await editWaterSource(edit, "Main.scene", {
@@ -253,7 +264,11 @@ it("edits a real Source lake through public history and reopens it in a new Engi
         name: "Connected Lake B",
         input: {
           ...input,
-          terrain: { $ref: "Water/connection-bed.water" },
+          terrain: {
+            mode: "asset",
+            description: { $ref: "Water/connection-bed.json" },
+            heights: { $ref: "Water/connection-bed.bin" }
+          },
           shape: { ...lake, shoreline: lake.shoreline.map((point) => ({ ...point, x: point.x + 3 })) }
         }
       })) as string;
@@ -295,7 +310,14 @@ it("edits a real Source lake through public history and reopens it in a new Engi
     expect((await current.water.history("undo")).runtimeError).toBeUndefined();
     const connectionPrefabs = await current.water.execute((edit) =>
       edit.run(({ draft, edited }) => {
-        const authoring = { ...input, terrain: { $ref: "Water/connection-bed.water" } };
+        const authoring = {
+          ...input,
+          terrain: {
+            mode: "asset",
+            description: { $ref: "Water/connection-bed.json" },
+            heights: { $ref: "Water/connection-bed.bin" }
+          }
+        };
         draft.create(
           { virtualPath: "Water/connected.prefab", path: "Water/connected.prefab", type: "Prefab" },
           JSON.stringify({

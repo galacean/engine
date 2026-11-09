@@ -183,6 +183,8 @@ export function nativeAssetFormats(
   formats.get("Buffer")!.validateImport = (content) => {
     if (!(content instanceof Uint8Array)) throw new Error("Buffer import requires binary bytes");
   };
+  // Buffer has no internal references. Domains validate the meaning of replacement bytes.
+  formats.get("Buffer")!.validate = formats.get("Buffer")!.validateImport!;
   formats.get("Shader")!.validateImport = (content) => {
     if (typeof content === "string" && /^\s*Shader\s+"[^"\n]+"\s*\{/.test(content)) return;
     const shader = json(content);
