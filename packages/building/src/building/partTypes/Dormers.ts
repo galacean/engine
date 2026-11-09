@@ -28,7 +28,7 @@ import {
   type Vec3,
   unitExtent
 } from "../core";
-import { mountFor, prefabFacts, prefabScale } from "./Openings";
+import { prefabFacts, prefabScale } from "./Openings";
 import { registerDeckMountTypes } from "./DeckMounts";
 
 /** Where a dormer sits: the building prefab it installs, a plan position (x, z), a height
@@ -257,7 +257,6 @@ export const houseRoofMountGeometry: GeometryGenerator<RoofMountParams> = (p, { 
   const host = hosts[best.index];
   const rise = coveringRise(host, n) - facts.bounds.min[1] * sy + p.bottom;
   const origin = add(hit.frame.origin, [0, rise, 0]);
-  const center = mountFor(origin, { x, y: UP, z }, facts, sx, sy);
   const right = half.map(([px, py]) => [px * sx, py * sy] as const);
   const outline = [
     ...right
@@ -284,7 +283,7 @@ export const houseRoofMountGeometry: GeometryGenerator<RoofMountParams> = (p, { 
   const elements: Record<string, GeometryElement> = {
     mount: {
       kind: "point",
-      frame: { origin: center, x, y: UP, z },
+      frame: { origin, x, y: UP, z },
       on: { host: best.index, element: "slope", u: hit.u, v: hit.v }
     },
     sweep: { kind: "surface", surface: { kind: "dormerSweep", params: sweep } },

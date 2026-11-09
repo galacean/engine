@@ -335,7 +335,7 @@ function wallAttachmentPart(house: CoreHouseParameters, a: CoreWallAttachment): 
       params: {
         width: a.width,
         height: a.height,
-        ...(corner && { evenPlan: true }),
+        ...(corner && { evenPlan: true, anchor: "origin" }),
         unitParams: {
           kind: a.kind,
           u: a.u,
@@ -399,6 +399,7 @@ function roofAttachmentPart(house: CoreHouseParameters, a: CoreRoofAttachment): 
       params: {
         ...(a.width !== undefined && { width: a.width }),
         ...(a.height !== undefined && { height: a.height }),
+        anchor: "origin",
         ...(shed && rank > 1 && { row: { count: rank, spacing: [0, 0.75, 0.7333][rank - 1] } }),
         unitParams: {
           kind: kind.kind,

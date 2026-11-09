@@ -37,7 +37,6 @@ import { resolveDocument } from "../../src/building/runtime/PlacementDocument.js
 import { planFacadeDecorations, normalizeDecorationPlan } from "../../src/building/runtime/DecorationPlan";
 import { normalizeProfileRoof } from "../../src/building/runtime/ProfileParameters";
 import { isFlatRoofHeight } from "../../src/building/runtime/RoofMode";
-import { wallOpeningsOf } from "../../src/building/partTypes/Openings";
 import { constructionDecorationType } from "../../src/building/runtime/ConstructionDecorationCatalog";
 import { constructionDecorationRecipe } from "../../src/building/runtime/ConstructionDecorationRecipe";
 import { gothicRoofTiles } from "../../src/building/runtime/GothicRoofTiles";
@@ -319,8 +318,6 @@ describe("Plaster against the online path", () => {
 });
 
 describe("Wall prefabs against the online path", () => {
-  const wallOpenings = (part: { original: Parameters<typeof wallOpeningsOf>[0]["geometry"]["original"] }) =>
-    wallOpeningsOf({ geometry: { original: part.original } } as never);
   /** The facade the initial village plans for a house: windows, a door and a wall lamp. */
   const withFacade = (house: CoreHouseParameters): CoreHouseParameters => {
     const roof = normalizeProfileRoof(house.roof ?? {});
@@ -405,8 +402,10 @@ describe("Wall prefabs against the online path", () => {
       // the hat it draws, which is 1 % narrower.
       const holes = design.prepared.decorations.flatMap((d) => d.holes);
       const walls = result.parts.filter((x) => x.type === "wall");
-      const mounted = result.parts.filter((x) => wallOpenings(x).length);
-      expect(mounted.reduce((n, x) => n + wallOpenings(x).length, 0)).toBe(holes.length);
+      const mounted = result.parts.filter(
+        (x) => x.identity.kind === "author" && holes.some((h) => h.decorationId === (x.identity as { id: string }).id)
+      );
+      expect(mounted).toHaveLength(new Set(holes.map((h) => h.decorationId)).size);
       const rows = walls.flatMap((w) => {
         const face = w.original.elements.face;
         const offset = face.kind === "surface" ? ((face.surface.params as { uOffset?: number }).uOffset ?? 0) : 0;

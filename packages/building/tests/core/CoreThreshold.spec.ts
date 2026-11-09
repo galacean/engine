@@ -44,10 +44,10 @@ describe("Door thresholds", () => {
     const [part] = thresholds(house(door("door-gothic", 0)));
     const units = expandUnits(part, registry, { environment });
     expect(units.length).toBeGreaterThanOrEqual(2);
-    const opening = design(house(door("door-gothic", 0))).parts.find((x) => x.type === "door")!.original.elements
-      .opening0;
-    if (opening.kind !== "surface") throw Error("no opening");
-    const rect = (opening.surface.params as { rect: number[] }).rect;
+    const wall = design(house(door("door-gothic", 0))).parts.find((x) => x.type === "wall")!;
+    const rect = wall.modifications
+      .flatMap((m) => (m.op === "removeArea" ? [m.rect] : []))
+      .sort((a, b) => a[1] - b[1])[0];
     const total = units.reduce((n, u) => n + u.size![0], 0);
     expect(total).toBeGreaterThan(rect[2] - rect[0] + 0.1);
     const tops = units.map((u) => u.frame.origin[1] + u.size![1] / 2);

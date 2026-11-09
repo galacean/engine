@@ -1,20 +1,19 @@
 // Part-type layer: prefabs that stand on a flat roof's deck, such as hatches and roof lamps.
 // - A deck mount has a point "mount" on the deck under its plan position. It stands upright
 //   and faces the nearest edge of the deck (a hatch) or the house's front (a lamp).
-// - A prefab that opens the deck names its opening in its own x/z plane; the geometry turns it
-//   into rectangles of the deck, "opening0", "opening1", ..., which the attach rule removes
-//   from the deck.
+// - What passes down through the deck opens it.
 import {
   scale,
   type BuildingRegistry,
   type ConnectionRule,
   type GeometryElement,
   type GeometryGenerator,
+  type OccupiedUnit,
   type ParticipantView,
   type Rect,
   type Vec3
 } from "../core";
-import { mountFor, prefabFacts, prefabScale } from "./Openings";
+import { prefabFacts, prefabScale } from "./Openings";
 import type { RoofDeckParams } from "./Roof";
 
 /** Where a deck mount stands: the building prefab it installs, a plan position (x, z), a
@@ -37,9 +36,8 @@ const deckOf = (part: ParticipantView): RoofDeckParams | undefined => {
 };
 const dot2 = (a: Vec3, x: number, z: number) => a[0] * x + a[2] * z;
 
-/** Elements "mount" and "opening<i>". The prefab's origin stands on the deck under the plan
- * position, raised by `bottom`; its footprint must stay inside the walls' inner face. Each
- * opening rectangle of the prefab becomes the largest rectangle of the deck inside it. */
+/** Element "mount". The prefab's origin stands on the deck under the plan position, raised by
+ * `bottom`; its footprint must stay inside the walls' inner face. */
 export const houseDeckMountGeometry: GeometryGenerator<DeckMountParams> = (p, { hosts, environment }) => {
   const facts = prefabFacts(environment, p.prefab);
   const host = hosts.findIndex((h) => deckOf(h));
@@ -60,7 +58,7 @@ export const houseDeckMountGeometry: GeometryGenerator<DeckMountParams> = (p, { 
     x: Vec3 = [z[2], 0, -z[0]],
     y: Vec3 = [0, 1, 0];
   const { min, max } = facts.bounds;
-  const [sx, sy, sz] = prefabScale(facts, p.width ?? max[0] - min[0], p.height ?? max[1] - min[1]);
+  const [sx, , sz] = prefabScale(facts, p.width ?? max[0] - min[0], p.height ?? max[1] - min[1]);
   // A point of the prefab's x/z plane in the deck's centered coordinates.
   const local = (px: number, pz: number): [number, number] => {
     const wx = x[0] * px * sx + z[0] * pz * sz,
@@ -83,49 +81,56 @@ export const houseDeckMountGeometry: GeometryGenerator<DeckMountParams> = (p, { 
   const elements: Record<string, GeometryElement> = {
     mount: {
       kind: "point",
-      frame: { origin: mountFor(at, { x, y, z }, facts, sx, sy), x, y, z },
+      frame: { origin: at, x, y, z },
       on: { host, element: "deck", u, v }
     }
   };
-  // The prefab's x/z plane lies on the deck square to its sides or, on a round deck, turned by
-  // any angle; then the largest deck rectangle inside an opening is a square, smaller by
-  // |cos| + |sin|.
-  const cos = Math.abs(dot2(deck.x, x[0], x[2])),
-    sin = Math.abs(dot2(deck.y, x[0], x[2]));
-  facts.openings.forEach((o, i) => {
-    const [cu, cv] = local((o.min[0] + o.max[0]) / 2, (o.min[1] + o.max[1]) / 2);
-    const w = (o.max[0] - o.min[0]) * sx,
-      h = (o.max[1] - o.min[1]) * sz;
-    const turned = Math.min(w, h) / 2 / (cos + sin);
-    const [hu, hv] = Math.min(cos, sin) > 1e-9 ? [turned, turned] : cos > sin ? [w / 2, h / 2] : [h / 2, w / 2];
-    const origin: Vec3 = [
-      deck.origin[0] + deck.x[0] * (cu + W / 2 - hu) + deck.y[0] * (cv + D / 2 - hv),
-      deck.origin[1],
-      deck.origin[2] + deck.x[2] * (cu + W / 2 - hu) + deck.y[2] * (cv + D / 2 - hv)
-    ];
-    const params: RoofDeckParams = { origin, x: deck.x, y: deck.y, size: [2 * hu, 2 * hv] };
-    elements[`opening${i}`] = { kind: "surface", surface: { kind: "roofDeck", params } };
-  });
   return { elements };
 };
 
-/** Attach rule of a deck mount: each of its openings comes out of the deck. */
+/** How far a member must reach below the deck to pass through it, in metres. */
+const THROUGH_DECK = 0.05;
+/** The rectangle of the deck a unit opens: where its members pass down through the deck. On a
+ * round deck a unit can stand turned by any angle; the rectangle is then the largest square of
+ * the deck inside what passes through. */
+function deckRect({ matrix: m, solids }: OccupiedUnit, deck: RoofDeckParams): Rect | undefined {
+  const level = deck.origin[1];
+  const through = solids.filter(
+    (s) => !s.cover && m[5] * s.y[0] + m[13] < level - THROUGH_DECK && m[5] * s.y[1] + m[13] > level
+  );
+  if (!through.length) return undefined;
+  const lx = Math.hypot(m[0], m[2]),
+    lz = Math.hypot(m[8], m[10]);
+  const hull = through.flatMap((s) => s.hull);
+  const span = (k: number, scale: number) => {
+    const values = hull.map((q) => q[k] * scale);
+    return [Math.min(...values), Math.max(...values)];
+  };
+  const [x0, x1] = span(0, lx),
+    [z0, z1] = span(1, lz);
+  const ax = [m[0] / lx, m[2] / lx],
+    az = [m[8] / lz, m[10] / lz];
+  const [cx, cz] = [(x0 + x1) / 2, (z0 + z1) / 2];
+  const center = [m[12] + ax[0] * cx + az[0] * cz - deck.origin[0], m[14] + ax[1] * cx + az[1] * cz - deck.origin[2]];
+  const [cu, cv] = [deck.x[0] * center[0] + deck.x[2] * center[1], deck.y[0] * center[0] + deck.y[2] * center[1]];
+  const cos = Math.abs(deck.x[0] * ax[0] + deck.x[2] * ax[1]),
+    sin = Math.abs(deck.y[0] * ax[0] + deck.y[2] * ax[1]);
+  const [w, h] = [x1 - x0, z1 - z0];
+  const turned = Math.min(w, h) / 2 / (cos + sin);
+  const [hu, hv] = Math.min(cos, sin) > 1e-9 ? [turned, turned] : cos > sin ? [w / 2, h / 2] : [h / 2, w / 2];
+  return [cu - hu, cv - hv, cu + hu, cv + hv];
+}
+
+/** Attach rule of a deck mount: what passes through the deck comes out of it. */
 export const deckOpening: ConnectionRule = ({ guest, hosts }) => {
   const deckHost = hosts.find((h) => deckOf(h));
   if (!guest || !deckHost) return {};
   const deck = deckOf(deckHost)!;
-  const rects = Object.values(guest.geometry.original.elements).flatMap((e): Rect[] => {
-    if (e.kind !== "surface" || e.surface.kind !== "roofDeck") return [];
-    const o = e.surface.params as RoofDeckParams;
-    const u = dot2(deck.x, o.origin[0] - deck.origin[0], o.origin[2] - deck.origin[2]),
-      v = dot2(deck.y, o.origin[0] - deck.origin[0], o.origin[2] - deck.origin[2]);
-    return [[u, v, u + o.size[0], v + o.size[1]]];
-  });
   return {
-    modify: rects.map((rect) => ({
-      part: deckHost.key,
-      modification: { element: "deck", op: "removeArea" as const, rect }
-    }))
+    modify: guest.occupied.flatMap((unit) => {
+      const rect = deckRect(unit, deck);
+      return rect ? [{ part: deckHost.key, modification: { element: "deck", op: "removeArea" as const, rect } }] : [];
+    })
   };
 };
 

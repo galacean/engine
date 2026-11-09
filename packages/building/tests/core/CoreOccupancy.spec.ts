@@ -8,10 +8,12 @@ import { describe, expect, it, vi } from "vitest";
 import { nativeAssets } from "../fixtures/constructionAssets";
 import { meshOccupancy, type OccupancySolid } from "../../src/building/resources/BuildingOccupancy";
 import { createBuildingRegistry, designBuildingCore, type RuleContext } from "../../src/building/core";
-import { registerHouseTypes } from "../../src/building/partTypes/House";
+import { registerHouseTypes, type WallChartParams } from "../../src/building/partTypes/House";
+import { occupiedRows } from "../../src/building/partTypes/Openings";
 import { buildCoreHouse } from "../../src/building/application/CoreEuropean";
 import { coreBuildingEnvironment } from "../../src/building/render/CoreBuilding";
 import { constructionDecorationType } from "../../src/building/runtime/ConstructionDecorationCatalog";
+import { constructionDecorationRecipe } from "../../src/building/runtime/ConstructionDecorationRecipe";
 
 const prefabs = nativeAssets.compilation.prefabs;
 const box = (lo: number[], hi: number[]) => {
@@ -79,7 +81,7 @@ describe("Prefab occupancy", () => {
 
   it("matches the frame of a square window to within a few centimetres of its opening", () => {
     const prefab = prefabs["window-cottage/2"];
-    const half = (prefab.openings[0].max[0] - prefab.openings[0].min[0]) / 2;
+    const half = 0.718;
     const frame = prefab.occupancy.filter((s) => s.path === "frame");
     const reach = Math.max(...frame.flatMap((s) => s.hull.map((p) => Math.abs(p[0]))));
     expect(Math.abs(reach - half)).toBeLessThan(0.04);
@@ -159,8 +161,14 @@ describe("Prefab occupancy", () => {
     };
     const area = (rects: readonly (readonly number[])[]) =>
       rects.reduce((n, r) => n + (r[2] - r[0]) * (r[3] - r[1]), 0);
-    const authored = (key: string) =>
-      prefabs[key].openings.reduce((n, o) => n + (o.max[0] - o.min[0]) * (o.max[1] - o.min[1]), 0);
+    /** The areas these prefabs' authors gave as their openings, in square metres. */
+    const authored: Record<string, number> = {
+      "window-cottage/2": 2.296,
+      "window-arrow-slit/2": 0.6,
+      "window-gothic/1": 1.3481,
+      "window-gothic/2": 2.7488,
+      "window-gothic/3": 4.2926
+    };
 
     it.each([
       ["window-cottage", 2],
@@ -168,14 +176,76 @@ describe("Prefab occupancy", () => {
     ] as const)("%s %s opens the size of its frame", (type, rank) => {
       const rects = place(type, rank);
       expect(rects).toHaveLength(1);
-      expect(Math.abs(area(rects) - authored(`${type}/${rank}`))).toBeLessThan(0.1);
+      expect(Math.abs(area(rects) - authored[`${type}/${rank}`])).toBeLessThan(0.1);
     });
 
     it.each([1, 2, 3] as const)("Gothic window %s needs no more than four rows", (rank) => {
       const rects = place("window-gothic", rank);
       expect(rects.length).toBeGreaterThan(0);
       expect(rects.length).toBeLessThanOrEqual(4);
-      expect(area(rects)).toBeLessThan(authored(`window-gothic/${rank}`) * 1.2);
+      expect(area(rects)).toBeLessThan(authored[`window-gothic/${rank}`] * 1.2);
+    });
+
+    it("opens both sides of a corner that is not square", () => {
+      // A hexagon: the wall turns by 60 degrees at each corner.
+      const R = 5;
+      const points = Array.from({ length: 7 }, (_, i) => {
+        const t = (-i * Math.PI) / 3;
+        return [R * Math.cos(t), 0, R * Math.sin(t)];
+      });
+      const n = points.length;
+      const chart: WallChartParams = {
+        points,
+        top: Array(n).fill(4),
+        third: Array(n).fill(0),
+        minGround: 0,
+        maxYGable: 4,
+        topY: 4,
+        nominalOuter: 0.28,
+        finishOuter: 0.3,
+        closed: true
+      };
+      const facts = prefabs["window-cottage-corner/2"];
+      // The corner of points[1]; the window faces straight out of it.
+      const [cx, , cz] = points[1];
+      const zAxis = [cx / R, 0, cz / R],
+        xAxis = [zAxis[2], 0, -zAxis[0]];
+      const matrix = [...xAxis, 0, 0, 1, 0, 0, ...zAxis, 0, cx, 1.5, cz, 1];
+      const rows = occupiedRows([{ matrix, solids: facts.occupancy } as never], chart);
+      expect(rows.length).toBeGreaterThan(0);
+      expect(rows.length).toBeLessThanOrEqual(4);
+      for (const [u0, , u1] of rows) {
+        expect(u0).toBeLessThan(R);
+        expect(u1).toBeGreaterThan(R);
+        expect(Math.abs(R - u0 - (u1 - R))).toBeLessThan(0.2);
+      }
+    });
+
+    it("opens a flat roof's deck under a hatch, not under a lamp", () => {
+      const deckHoles = (type: "hatch-cottage" | "roof-lantern") => {
+        const size = constructionDecorationRecipe(decorations, type, 1)!.installationSize;
+        const result = designBuildingCore(
+          buildCoreHouse({
+            id: "h",
+            height: 4,
+            rectangle: { center: [0, 0], size: [9, 7], rotation: 0 },
+            roof: { height: 0 },
+            roofAttachments: [{ id: "m", type, rank: 1, uv: [0.3, 0.4], bottom: 0, width: size[0], height: size[1] }]
+          }),
+          registry,
+          { environment }
+        );
+        expect(result.diagnostics).toEqual([]);
+        return result.parts
+          .find((p) => p.type === "roofDeck")!
+          .modifications.flatMap((m) => (m.op === "removeArea" ? [m.rect] : []));
+      };
+      const [hole, ...more] = deckHoles("hatch-cottage");
+      expect(more).toEqual([]);
+      const { min, max } = prefabs["hatch-cottage/1"].bounds;
+      expect(hole[2] - hole[0]).toBeCloseTo(max[0] - min[0], 1);
+      expect(hole[3] - hole[1]).toBeCloseTo(max[2] - min[2], 1);
+      expect(deckHoles("roof-lantern")).toEqual([]);
     });
 
     it("leaves the wall behind a lamp whole", () => {

@@ -15,11 +15,6 @@ export function assemblyRole(value: string): AssemblyBinding["role"] {
 export interface BuildingAssembly {
   selected: [name: string, suffix: string, material: number, emissionOrigin?: number[], binding?: AssemblyBinding][];
 }
-/** An opening in a prefab's own x/y plane. */
-export interface BuildingPrefabOpening {
-  min: [number, number];
-  max: [number, number];
-}
 /** A member drawn with an arrangement unit, such as a stone hat. `matrix` is its pose in
  * the prefab. With a span it bends along the surface the prefab is mounted on, from
  * x = span[0] to x = span[1] of the prefab; without one it is placed rigidly. */
@@ -32,8 +27,7 @@ export interface BuildingPrefabUnitMember {
   span?: [number, number];
 }
 /** Read-only compilation output of a building prefab: its members, with the prefab's poses
- * baked into their meshes, its unit members, and the openings it takes out of a wall. The
- * openings together form one opening. */
+ * baked into their meshes, and its unit members. */
 export interface BuildingPrefab {
   /** `stoneFrame` is the frame's stone alternative, drawn when the frame takes the wall's
    * material: a stone unit of the kit and the member's pose in the prefab. */
@@ -45,9 +39,6 @@ export interface BuildingPrefab {
     stoneFrame?: { template: string; matrix: number[] }
   ][];
   units: BuildingPrefabUnitMember[];
-  openings: BuildingPrefabOpening[];
-  /** Metres taken off the opening's width on a curved wall. */
-  curvedNarrowing: number;
   /** The right half of the small roof the prefab carries out of a roof slope, from its peak
    * at x = 0 down to its eave, in the prefab's x/y plane. */
   roofProfile?: [number, number][];
@@ -56,10 +47,6 @@ export interface BuildingPrefab {
   eaveOutCurved?: number;
   /** The height of the stone threshold laid under a door that stands on the ground. */
   threshold?: number;
-  /** How far the origin of a corner window stands in from its wall corner. */
-  cornerOut?: number;
-  /** How far a corner window reaches along each wall from its corner. */
-  cornerReach?: number;
   /** Paths of the members that set the prefab's size. Default: all of them. */
   sizeMembers?: string[];
 }

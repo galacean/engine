@@ -15,8 +15,7 @@ import {
   assemblyRole,
   validateAssemblyPart,
   type BuildingAssembly,
-  type BuildingPrefab,
-  type BuildingPrefabOpening
+  type BuildingPrefab
 } from "./BuildingAssembly";
 import { PrefabResource } from "@galacean/engine-loader";
 import type { ConstructionResourceRole } from "../runtime/ConstructionBindings";
@@ -92,19 +91,9 @@ export class BuildingUnitComponent extends Component {
 export class BuildingAssemblyComponent extends Component {}
 /** Root of a building prefab: a fixed composition of models placed as one unit, such as a
  * window, a door, a wall lamp or a roof hatch. Its members are the native child hierarchy;
- * their poses are part of the asset. A prefab that opens the surface it is mounted on names
- * its opening as rectangles that together form the opening, in the prefab's mounting plane:
- * its x/y plane on a wall, its x/z plane on a roof deck. */
+ * their poses are part of the asset. The space they occupy decides what a prefab opens. A
+ * window that spans a wall corner has its origin on that corner. */
 export class BuildingPrefabComponent extends Component {
-  private _openings: BuildingPrefabOpening[] = [];
-  get openings() {
-    return this._openings.map((o) => ({ min: [...o.min], max: [...o.max] }));
-  }
-  set openings(value: BuildingPrefabOpening[]) {
-    this._openings = (value ?? []).map((o) => ({ min: [o.min[0], o.min[1]], max: [o.max[0], o.max[1]] }));
-  }
-  /** Metres taken off the opening's width on a curved wall. */
-  curvedNarrowing = 0;
   /** How far in front of the wall the arch of an eave dormer starts, on a straight and on a
    * curved wall, in metres. */
   eaveOut = 0;
@@ -112,11 +101,6 @@ export class BuildingPrefabComponent extends Component {
   /** The height of the stone threshold laid under a door that stands on the ground, in metres.
    * Default: 0, no threshold. */
   threshold = 0;
-  /** How far the prefab's origin stands in from the wall corner it spans, in metres, on a
-   * corner window. Its openings then run along the perimeter from that corner. */
-  cornerOut = 0;
-  /** How far a corner window reaches along each wall from its corner, in metres. */
-  cornerReach = 0;
   /** Paths of the members that set the prefab's size. Default: all of them. */
   sizeMembers: string[] = [];
   private _roofProfile: [number, number][] = [];
@@ -537,10 +521,6 @@ export function buildingAssets(source: PrefabResource): BuildingAssets {
         };
         visit(entity, "");
         if (!members.length) throw Error(`Empty building prefab "${key}"`);
-        const openings = root.openings;
-        if (openings.some((o) => !(o.max[0] > o.min[0] && o.max[1] > o.min[1])))
-          throw Error(`Building prefab "${key}" has an empty opening`);
-        if (!(root.curvedNarrowing >= 0)) throw Error(`Building prefab "${key}" has a negative curved narrowing`);
         const roofProfile = root.roofProfile;
         if (
           roofProfile.length &&
@@ -553,12 +533,9 @@ export function buildingAssets(source: PrefabResource): BuildingAssets {
         prefabs[key] = {
           members,
           units: unitMembers,
-          openings,
-          curvedNarrowing: root.curvedNarrowing,
           ...(roofProfile.length && { roofProfile }),
           ...(root.eaveOut > 0 && { eaveOut: root.eaveOut, eaveOutCurved: root.eaveOutCurved }),
           ...(root.threshold > 0 && { threshold: root.threshold }),
-          ...(root.cornerOut > 0 && { cornerOut: root.cornerOut, cornerReach: root.cornerReach }),
           ...(root.sizeMembers.length && { sizeMembers: [...root.sizeMembers] })
         };
       } finally {

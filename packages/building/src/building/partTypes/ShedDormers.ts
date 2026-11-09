@@ -27,7 +27,7 @@ import {
   type Vec3
 } from "../core";
 import { coveringRise, roofUnder, slopeSurface, surfaceAtPlan } from "./Dormers";
-import { mountFor, prefabFacts, prefabScale } from "./Openings";
+import { prefabFacts, prefabScale } from "./Openings";
 
 /** Where a shed dormer stands: the window body's building prefab, a plan position (x, z) for
  * the middle of the row of bodies, a height above the roof's covering, the size of the whole
@@ -160,7 +160,7 @@ export const houseShedDormerGeometry: GeometryGenerator<ShedDormerParams> = (p, 
     const at = add(f.origin, [0, rise, 0]);
     elements[i ? `mount${i}` : "mount"] = {
       kind: "point",
-      frame: { origin: mountFor(at, { x, y: UP, z }, facts, sx, sy), x, y: UP, z },
+      frame: { origin: at, x, y: UP, z },
       on: { host: roof.index, element: "slope", u, v: hit.v }
     };
   }

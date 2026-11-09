@@ -1,10 +1,8 @@
 // Part-type layer: prefabs mounted on house walls, such as windows, doors and wall lamps.
-// - A mounted part has a point "mount" on its wall. When it opens the wall, it has surfaces
-//   "opening0", "opening1", ...: rectangles that together form the area it takes out of the
-//   wall. A member that bends along the wall has a curve "follow0", "follow1", ...: the
-//   wall line under it.
-// - It attaches to the house walls; the attach rule removes its opening from the wall it sits
-//   on. A finish continues the wall faces, so it loses the opening too.
+// - A mounted part has a point "mount" on its wall. A member that bends along the wall has a
+//   curve "follow0", "follow1", ...: the wall line under it.
+// - It attaches to the house walls; the attach rule removes what the part occupies from the wall
+//   it sits on. A finish continues the wall faces, so it loses the opening too.
 // - An opening also cuts floor bands that cross it, through a join between the two parts.
 import {
   joinPairKey,
@@ -15,6 +13,7 @@ import {
   type GeometryElement,
   type GeometryGenerator,
   type JoinDetector,
+  type OccupancySolid,
   type OccupiedUnit,
   type ParticipantView,
   type Rect,
@@ -32,24 +31,19 @@ export interface WallMountParams {
   readonly width: number;
   readonly height: number;
 }
-/** What the asset layer measured about a building prefab (`{ prefab: key }`): its bounds, its
- * opening in its own x/y plane, the members that bend along the wall, how much its opening
- * narrows on a curved wall, and the right half of the small roof it carries out of a roof. */
+/** What the asset layer measured about a building prefab (`{ prefab: key }`): its bounds, the
+ * space it occupies, the members that bend along the wall, and the right half of the small roof
+ * it carries out of a roof. */
 export interface PrefabFacts {
   readonly bounds: { readonly min: readonly number[]; readonly max: readonly number[] };
-  readonly openings: readonly { readonly min: readonly number[]; readonly max: readonly number[] }[];
+  readonly occupancy: readonly OccupancySolid[];
   readonly units: readonly { readonly matrix: readonly number[]; readonly span?: readonly [number, number] }[];
-  readonly curvedNarrowing: number;
   readonly roofProfile?: readonly (readonly [number, number])[];
   /** How far in front of the wall an eave dormer's arch starts, on a straight and a curved wall. */
   readonly eaveOut?: number;
   readonly eaveOutCurved?: number;
   /** The height of the stone threshold laid under a door that stands on the ground. */
   readonly threshold?: number;
-  /** How far the origin of a corner window stands in from its wall corner. */
-  readonly cornerOut?: number;
-  /** How far a corner window reaches along each wall from its corner. */
-  readonly cornerReach?: number;
 }
 export function prefabFacts(environment: BuildingEnvironment, prefab: string): PrefabFacts {
   const facts = environment.asset?.({ prefab }) as unknown as PrefabFacts | undefined;
@@ -63,22 +57,6 @@ export function prefabScale(facts: PrefabFacts, width: number, height: number): 
   const sx = width / (max[0] - min[0]),
     sy = height / (max[1] - min[1]);
   return [sx, sy, Math.min(sx, sy)];
-}
-/** The mount point at which `mountPrefab` lays a prefab with its origin at `at`, on axes x
- * (across), y (up) and z (out): the center of the prefab's bounds across and up, resized about
- * its back. */
-export function mountFor(
-  at: Vec3,
-  axes: { readonly x: Vec3; readonly y: Vec3; readonly z: Vec3 },
-  facts: PrefabFacts,
-  sx: number,
-  sy: number
-): Vec3 {
-  const { min, max } = facts.bounds;
-  const cx = ((min[0] + max[0]) / 2) * sx,
-    cy = ((min[1] + max[1]) / 2) * sy,
-    cz = -min[2] * (1 - Math.min(sx, sy));
-  return [0, 1, 2].map((k) => at[k] + axes.x[k] * cx + axes.y[k] * cy + axes.z[k] * cz) as unknown as Vec3;
 }
 /** An opening in a wall: the host's index among the part's hosts, the area in that wall's
  * chart, and the same area along the house perimeter. Plain JSON. */
@@ -112,12 +90,11 @@ const chartLength = (chart: WallChartParams) => wallChartSampler(chart).length;
 const THRESHOLD_ON_GROUND = 0.05;
 /** How far a threshold reaches past its opening on each side, in metres at the prefab's size. */
 const THRESHOLD_OVERHANG = 0.08;
-/** Elements "mount", "opening<i>" and "follow<i>". The mount sits on the wall at the middle
- * of the chord the installation spans, at the installation's center height; it faces out of
- * the wall. The prefab's opening and its members that bend along the wall come from the
- * asset layer: each opening rectangle, centered on the prefab's bounds, becomes a wall area,
- * narrower where the wall curves under the installation; each such member gets the wall
- * line under its span, sampled at most 0.1 m apart. */
+/** Elements "mount" and "follow<i>", and "sill" for a door with a threshold. The mount sits on
+ * the wall at the middle of the chord the installation spans, at the installation's center
+ * height; it faces out of the wall. Each prefab member that bends along the wall gets the wall
+ * line under its span, sampled at most 0.1 m apart. The sill is the top of the door's threshold
+ * under its middle; a door stands on the ground to have one. */
 export const houseWallMountGeometry: GeometryGenerator<WallMountParams> = (p, { hosts, environment }) => {
   const facts = prefabFacts(environment, p.prefab);
   const walls = hosts.map((host, index) => ({ index, chart: chartOf(host) }));
@@ -146,13 +123,6 @@ export const houseWallMountGeometry: GeometryGenerator<WallMountParams> = (p, { 
   const [sx, sy] = prefabScale(facts, p.width, p.height);
   const cx = (facts.bounds.min[0] + facts.bounds.max[0]) / 2,
     cy = (facts.bounds.min[1] + facts.bounds.max[1]) / 2;
-  const curved = a.tangent[0] * b.tangent[0] + a.tangent[1] * b.tangent[1] < 1 - 1e-9;
-  const narrowing = curved ? facts.curvedNarrowing : 0;
-  const openings = facts.openings.map((o) => ({
-    width: (o.max[0] - o.min[0] - narrowing) * sx,
-    height: (o.max[1] - o.min[1]) * sy,
-    offset: [((o.min[0] + o.max[0]) / 2 - cx) * sx, ((o.min[1] + o.max[1]) / 2 - cy) * sy]
-  }));
   const follows = facts.units.flatMap((m) =>
     m.span ? [{ from: (m.span[0] - cx) * sx, to: (m.span[1] - cx) * sx, height: (m.matrix[13] - cy) * sy }] : []
   );
@@ -163,42 +133,12 @@ export const houseWallMountGeometry: GeometryGenerator<WallMountParams> = (p, { 
       on: { host: host.index, element: "face", u: s, v: center }
     }
   };
-  openings.forEach((opening, i) => {
-    const [du, dv] = opening.offset ?? [0, 0];
-    const rect: Rect = [
-      s + du - opening.width / 2,
-      center + dv - opening.height / 2,
-      s + du + opening.width / 2,
-      center + dv + opening.height / 2
-    ];
-    const at = sample.at(Math.max(0, rect[0]));
-    const params: WallOpeningParams = {
-      host: host.index,
-      rect,
-      perimeter: [rect[0] + offset, rect[1], rect[2] + offset, rect[3]],
-      origin: [at.x, rect[1], at.z],
-      x
-    };
-    elements[`opening${i}`] = { kind: "surface", surface: { kind: "wallOpening", params } };
-  });
-  // A door on the ground steps out over a threshold, along the wall under its opening, as far
-  // as the wall goes. The curve "thresholdTop" is level at the height of its top.
-  const sill = elements.opening0;
-  if (facts.threshold && p.bottom <= THRESHOLD_ON_GROUND && sill?.kind === "surface") {
-    const [from, , to] = (sill.surface.params as WallOpeningParams).rect;
-    const over = THRESHOLD_OVERHANG * sx;
-    const lo = chart.closed ? from - over : Math.max(0, from - over),
-      hi = chart.closed ? to + over : Math.min(sample.length, to + over);
-    const steps = Math.max(2, Math.ceil((hi - lo) / 0.25));
-    const points = Array.from({ length: steps + 1 }, (_, k): Vec3 => {
-      const at = along(lo + ((hi - lo) * k) / steps);
-      return [at.x, at.ground, at.z];
-    });
-    const level = Math.max(...points.map((q) => q[1])) + facts.threshold * sy;
-    elements.threshold = { kind: "curve", curve: { points } };
-    elements.thresholdTop = {
-      kind: "curve",
-      curve: { points: [points[0], points[steps]].map((q): Vec3 => [q[0], level, q[2]]) }
+  if (facts.threshold && p.bottom <= THRESHOLD_ON_GROUND) {
+    const at = sample.at(s);
+    elements.sill = {
+      kind: "point",
+      frame: { origin: [at.x, at.ground + facts.threshold * sy, at.z], x, y: [0, 1, 0], z: [-x[2], 0, x[0]] },
+      on: { host: host.index, element: "face", u: s, v: at.ground }
     };
   }
   follows.forEach((follow, i) => {
@@ -226,14 +166,11 @@ const CORNER_COS = Math.cos(Math.PI / 6);
 const CORNER_PROBE = 0.002;
 /** How far a corner window's position may lie from the corner it means, in metres. */
 const CORNER_SNAP = 0.01;
-/** Elements "mount" and "opening<i>" of a window that spans a wall corner. It stands across the
- * corner, facing out along the corner's bisector, and scales evenly in plan so that it keeps
- * the corner's angle. Its openings run along the perimeter from the corner, on both of the walls
- * they cross. `u` must lie within 1 cm of a corner; a
- * round wall has none. */
+/** Elements "mount" and "corner" of a window that spans a wall corner. The prefab's origin
+ * stands on the corner, and the window faces out along the corner's bisector. `u` must lie within
+ * 1 cm of a corner; a round wall has none. */
 export const houseCornerMountGeometry: GeometryGenerator<CornerMountParams> = (p, { hosts, environment }) => {
   const facts = prefabFacts(environment, p.prefab);
-  if (!facts.cornerOut) throw Error(`Building prefab "${p.prefab}" does not span a corner`);
   const walls = hosts.map((host, index) => ({ index, chart: chartOf(host)! }));
   if (walls.some((w) => !w.chart)) throw Error("A corner window attaches to house walls");
   const offsetOf = (w: (typeof walls)[number]) => w.chart.uOffset ?? 0;
@@ -274,7 +211,13 @@ export const houseCornerMountGeometry: GeometryGenerator<CornerMountParams> = (p
   const { min, max } = facts.bounds;
   const [sx, sy] = prefabScale(facts, p.width, p.height);
   // Both walls run straight for as far as the window reaches along them.
-  const need = (facts.cornerReach ?? 0) * sx + 0.04;
+  const reach = (t: readonly number[]) =>
+    Math.max(
+      ...facts.occupancy.flatMap((s) =>
+        s.hull.map(([px, pz]) => (x[0] * px + z[0] * pz) * sx * t[0] + (x[2] * px + z[2] * pz) * sx * t[1])
+      )
+    );
+  const need = Math.max(reach(after), reach([-before[0], -before[1]])) + 0.04;
   for (let d = CORNER_PROBE; d < need + 0.05; d += 0.05)
     for (const [side, edge] of [
       [-1, before],
@@ -289,48 +232,19 @@ export const houseCornerMountGeometry: GeometryGenerator<CornerMountParams> = (p
   const top = pivotY + max[1] * sy;
   if (top > Math.min(sampleAt(at - CORNER_PROBE).roof, here.roof) + 0.02)
     throw Error("The corner window reaches above its walls");
-  const origin: Vec3 = [corner[0] - z[0] * facts.cornerOut * sx, pivotY, corner[1] - z[2] * facts.cornerOut * sx];
-  // The prefab scales evenly in plan and about its back: its origin stays where it was placed.
-  const center = [0, 1, 2].map(
-    (k) =>
-      origin[k] + x[k] * ((min[0] + max[0]) / 2) * sx + y[k] * ((min[1] + max[1]) / 2) * sy + z[k] * min[2] * (sx - 1)
-  ) as unknown as Vec3;
+  const origin: Vec3 = [corner[0], pivotY, corner[1]];
   const host = walls.find(
     (w) => wrap(at + CORNER_PROBE) - offsetOf(w) >= 0 && wrap(at + CORNER_PROBE) - offsetOf(w) <= chartLength(w.chart)
   )!;
   const elements: Record<string, import("../core").GeometryElement> = {
     mount: {
       kind: "point",
-      frame: { origin: center, x, y, z },
+      frame: { origin, x, y, z },
       on: { host: host.index, element: "face", u: at, v: pivotY }
     }
   };
   // Standing on a corner, the part opens both of the walls that meet there.
-  elements.corner = { kind: "point", frame: { origin: [corner[0], pivotY, corner[1]], x, y, z } };
-  let i = 0;
-  for (const o of facts.openings) {
-    const [a, b] = [at + o.min[0] * sx, at + o.max[0] * sx];
-    const [lo, hi] = [pivotY + o.min[1] * sy, pivotY + o.max[1] * sy];
-    // Each wall loses the part of the span that lies on it.
-    for (const w of walls) {
-      const start = offsetOf(w),
-        end = start + chartLength(w.chart);
-      for (const shift of [-perimeter, 0, perimeter]) {
-        const from = Math.max(a + shift, start),
-          to = Math.min(b + shift, end);
-        if (!(to - from > 1e-6)) continue;
-        const sample = wallChartSampler(w.chart).at(from - start);
-        const params: WallOpeningParams = {
-          host: w.index,
-          rect: [from - start, lo, to - start, hi],
-          perimeter: [from, lo, to, hi],
-          origin: [sample.x, lo, sample.z],
-          x: [sample.tangent[0], 0, sample.tangent[1]]
-        };
-        elements[`opening${i++}`] = { kind: "surface", surface: { kind: "wallOpening", params } };
-      }
-    }
-  }
+  elements.corner = { kind: "point", frame: { origin, x, y, z } };
   return { elements };
 };
 
@@ -460,7 +374,7 @@ export function occupiedRows(occupied: readonly OccupiedUnit[], chart: WallChart
   return rows.map((r): Rect => [r.u0, r.y0, r.u1, r.y1]);
 }
 /** What a mounted part opens in its hosts: on the wall it stands on, or on both walls of a corner
- * it stands on. A part that occupies no space, such as an arch, declares its openings itself. */
+ * it stands on. A part made of laid stones, such as an arch, declares its openings itself. */
 export function openingsOf(guest: ParticipantView, hosts: readonly ParticipantView[]) {
   if (!guest.occupied.length)
     return wallOpeningsOf(guest).map(({ host, rect, perimeter }) => ({ host, rect, perimeter }));
@@ -496,24 +410,8 @@ export const wallOpening: ConnectionRule = ({ guest, hosts }) => {
   const openings = guest ? openingsOf(guest, hosts) : [];
   if (!guest || !openings.length) return {};
   const modify = [];
-  // A masonry wall carries the threshold of a door in its own stone.
-  const step = guest.geometry.original.elements.threshold;
-  const facts = hosts[openings[0].host]?.unit;
-  const derive =
-    step?.kind === "curve" && facts?.source === "brick"
-      ? [
-          {
-            localId: "threshold",
-            type: "threshold",
-            geometry: { elements: { step, top: guest.geometry.original.elements.thresholdTop } },
-            algorithm: {
-              type: "thresholdStones",
-              params: { wallU: [openings[0].perimeter[0], openings[0].perimeter[2]] }
-            },
-            unit: { ...facts, range: { min: [0.05, 0.05, 0.1] as Vec3, max: [10, 10, 10] as Vec3 } }
-          }
-        ]
-      : [];
+  const threshold = thresholdOf(guest, openings[0], hosts[openings[0].host]);
+  const derive = threshold ? [threshold] : [];
   for (const o of openings) {
     const wall = hosts[o.host];
     const chart = wall && chartOf(wall);
@@ -524,6 +422,47 @@ export const wallOpening: ConnectionRule = ({ guest, hosts }) => {
   }
   return { modify, ...(derive.length && { derive }) };
 };
+
+/** The threshold a masonry wall carries under a door, in its own stone: along the wall under the
+ * door's lowest opening and a little past it, as far as the wall goes, level at the height of the
+ * door's sill above the highest ground it crosses. */
+function thresholdOf(
+  guest: ParticipantView,
+  opening: { readonly rect: Rect; readonly perimeter: Rect },
+  wall: ParticipantView
+) {
+  const sill = guest.geometry.original.elements.sill;
+  const chart = chartOf(wall);
+  if (sill?.kind !== "point" || !sill.on || !chart || wall.unit?.source !== "brick") return undefined;
+  const sample = wallChartSampler(chart);
+  const along = (v: number) => sample.at(chart.closed ? ((v % sample.length) + sample.length) % sample.length : v);
+  const m = guest.occupied[0].matrix;
+  const over = THRESHOLD_OVERHANG * Math.hypot(m[0], m[1], m[2]);
+  const [from, , to] = opening.rect;
+  const lo = chart.closed ? from - over : Math.max(0, from - over),
+    hi = chart.closed ? to + over : Math.min(sample.length, to + over);
+  const steps = Math.max(2, Math.ceil((hi - lo) / 0.25));
+  const points = Array.from({ length: steps + 1 }, (_, k): Vec3 => {
+    const at = along(lo + ((hi - lo) * k) / steps);
+    return [at.x, at.ground, at.z];
+  });
+  const level = Math.max(...points.map((q) => q[1])) + sill.frame.origin[1] - sample.at(sill.on.u).ground;
+  return {
+    localId: "threshold",
+    type: "threshold",
+    geometry: {
+      elements: {
+        step: { kind: "curve" as const, curve: { points } },
+        top: {
+          kind: "curve" as const,
+          curve: { points: [points[0], points[steps]].map((q): Vec3 => [q[0], level, q[2]]) }
+        }
+      }
+    },
+    algorithm: { type: "thresholdStones", params: { wallU: [opening.perimeter[0], opening.perimeter[2]] } },
+    unit: { ...wall.unit, range: { min: [0.05, 0.05, 0.1] as Vec3, max: [10, 10, 10] as Vec3 } }
+  };
+}
 
 interface ThresholdParams {
   /** Where the threshold lies along the house perimeter, in metres. */
@@ -702,12 +641,17 @@ interface MountPrefabParams {
   /** Scale depth with the width, as for a window that spans a corner. Default: the smaller of
    * width and height. */
   readonly evenPlan?: boolean;
+  /** Which point of the prefab stands on the mount. "center": the center of its bounds across
+   * and up, on its back at its own size. "origin": its origin, also after scaling. Default:
+   * "center". */
+  readonly anchor?: "center" | "origin";
 }
 /** Lays a part's building prefab at each of its mounts ("mount", "mount1", "mount2", ...),
- * scaled to the installation size. The center of the prefab's bounds lies on the mount across
- * and up; it is resized about its back, which stays where the unscaled prefab's back would be,
- * so a wall prefab keeps its distance from the wall at every size. The unit's pivot must be
- * the middle of the back: [0.5, 0.5, 0]. */
+ * scaled to the installation size. With the "center" anchor the center of the prefab's bounds
+ * lies on the mount across and up, and it is resized about its back, which stays where the
+ * unscaled prefab's back would be, so a wall prefab keeps its distance from the wall at every
+ * size. With the "origin" anchor the prefab's origin stays on the mount. The unit's pivot must
+ * be the middle of the back: [0.5, 0.5, 0]. */
 export const mountPrefab: LayingAlgorithm<MountPrefabParams, null> = {
   info: {
     accepts: ["point"],
@@ -716,7 +660,8 @@ export const mountPrefab: LayingAlgorithm<MountPrefabParams, null> = {
       width: "Installation width in metres. Default: the prefab's own.",
       height: "Installation height in metres. Default: the prefab's own.",
       unitParams: "Values the renderer reads from the laid unit.",
-      row: "The prefabs stand in a row { count, spacing }; width is the whole row's. Default: one prefab."
+      row: "The prefabs stand in a row { count, spacing }; width is the whole row's. Default: one prefab.",
+      anchor: 'What stands on the mount: "center" of the bounds or the prefab\'s "origin". Default: "center".'
     }
   },
   // A rule may remove the mount, as when another house hides it: nothing is laid then.
@@ -734,9 +679,16 @@ export const mountPrefab: LayingAlgorithm<MountPrefabParams, null> = {
       sz = context.params.evenPlan ? sx : Math.min(sx, sy);
     const frame = context.geometry.point(mountsOf(context.geometry.ids("point"))[index]);
     const back = bounds.min[2];
+    const offset =
+      context.params.anchor === "origin"
+        ? [((bounds.min[0] + bounds.max[0]) / 2) * sx, ((bounds.min[1] + bounds.max[1]) / 2) * sy, back * sz]
+        : [0, 0, back];
+    const at = [0, 1, 2].map(
+      (k) => frame.origin[k] + frame.x[k] * offset[0] + frame.y[k] * offset[1] + frame.z[k] * offset[2]
+    ) as unknown as Vec3;
     return {
       key: `${index}`,
-      frame: { ...frame, origin: [0, 1, 2].map((k) => frame.origin[k] + frame.z[k] * back) as unknown as Vec3 },
+      frame: { ...frame, origin: at },
       size: [width, height, (bounds.max[2] - bounds.min[2]) * sz],
       ...(context.params.unitParams && { params: { ...context.params.unitParams } })
     };
