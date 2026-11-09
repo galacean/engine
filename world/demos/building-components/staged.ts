@@ -1,7 +1,7 @@
-import { BuildingPartDraft } from "@galacean/engine-building/tiny-glade/parts/BuildingParts";
-import { buildingAlgorithmContext } from "@galacean/engine-building/tiny-glade/parts/architecture/BuildingInstanceRender";
+import { BuildingPartDraft } from "@galacean/engine-building/building/parts/BuildingParts";
+import { buildingAlgorithmContext } from "@galacean/engine-building/building/parts/architecture/BuildingInstanceRender";
 import { RuntimeEditor } from "@galacean/engine-runtime-editor/runtime-editor/runtime-editor";
-import { designBuilding, implementBuilding } from "@galacean/engine-building/tiny-glade/parts/architecture/index";
+import { designBuilding, implementBuilding } from "@galacean/engine-building/building/parts/architecture/index";
 import {
   AssetType,
   Camera,
@@ -20,15 +20,15 @@ import {
   buildingDraftSource,
   type BuildingDraft,
   type EuropeanHouseParameters
-} from "@galacean/engine-building/tiny-glade/parts/architecture/index";
+} from "@galacean/engine-building/building/parts/architecture/index";
 import {
   registerBuildingAssetComponents,
   buildingAssets
-} from "@galacean/engine-building/tiny-glade/resources/BuildingAssetKit";
+} from "@galacean/engine-building/building/resources/BuildingAssetKit";
 import {
   builtinBuildingAssetFiles,
   BUILTIN_BUILDING_ASSETS
-} from "@galacean/engine-building/tiny-glade/resources/BuiltinBuildingAssets";
+} from "@galacean/engine-building/building/resources/BuiltinBuildingAssets";
 import { RuntimeProjectSession } from "@galacean/engine-runtime-editor/project/runtime-project-session";
 import {
   RuntimeProjectStorage,

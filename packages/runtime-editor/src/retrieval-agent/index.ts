@@ -84,6 +84,7 @@ export function createRetrievalAgentExtension(
       toolNames: [],
       nativeReadTools,
       scriptApi: {
+        hostNotes: "项目里没有合适资源时，读[检索云端素材](skills/assets/search-cloud/SKILL.md)。",
         documents: [{ path: "skills/assets/search-cloud/SKILL.md", content: searchCloudSkill }],
         entries: [],
         modules: []

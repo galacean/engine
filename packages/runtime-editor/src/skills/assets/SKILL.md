@@ -11,7 +11,6 @@ description: 查找、导入、查看、删除资产，或把模型、图片、P
 
 | 当前任务 | 子 Skill |
 | --- | --- |
-| 项目里没有合适资源，宿主提供 search_assets | [检索云端素材](skills/assets/search-cloud/SKILL.md) |
 | 把外部来源导入项目 | [导入](skills/assets/import/SKILL.md) |
 | 查看项目资产的类型和内容 | [查看](skills/assets/inspect/SKILL.md) |
 | 使用 GLB 模型 | [使用模型](skills/assets/use-model/SKILL.md) |

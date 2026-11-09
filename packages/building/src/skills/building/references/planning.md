@@ -18,7 +18,7 @@
 
 不传 roof 时使用默认值。不要传其他字段，否则会报 `Unsupported roof field`。
 
-完整参数见 [European 声明](declare/engine/node_modules/@galacean/seed-world-systems/shared/tiny-glade/parts/architecture/European.d.ts)。屋顶、台基和楼层参数见 [ProfileParameters 声明](declare/engine/node_modules/@galacean/seed-world-systems/shared/tiny-glade/runtime/ProfileParameters.d.ts)。
+完整参数见 [European 声明](declare/engine/node_modules/@galacean/seed-world-systems/shared/building/parts/architecture/European.d.ts)。屋顶、台基和楼层参数见 [ProfileParameters 声明](declare/engine/node_modules/@galacean/seed-world-systems/shared/building/runtime/ProfileParameters.d.ts)。
 
 - `buildTower` 使用相同的墙和屋顶能力，默认圆形，墙体较高。
 - `buildWall` 生成独立墙条。

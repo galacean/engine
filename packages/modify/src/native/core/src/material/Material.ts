@@ -102,7 +102,10 @@ export class Material extends ReferResource implements IClone {
     // Standard PBR owns the built-in Auto receiver contract. Initialize the
     // uniforms once so a shared WebGL program cannot retain another material's
     // values. Custom shaders remain fail-closed unless explicitly registered.
-    if (value.name === "PBR" && this._shaderData.getFloat(Material._screenSpaceReflectionModeProperty) === undefined) {
+    if (
+      ScreenSpaceReflection._supportsShaderAutoReceiver(value) &&
+      this._shaderData.getFloat(Material._screenSpaceReflectionModeProperty) === undefined
+    ) {
       this._shaderData.setFloat(Material._screenSpaceReflectionModeProperty, ScreenSpaceReflectionReceiverMode.Auto);
       this._shaderData.setFloat(Material._screenSpaceReflectionIntensityProperty, 1);
     }

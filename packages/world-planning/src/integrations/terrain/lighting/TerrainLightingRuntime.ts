@@ -1137,7 +1137,7 @@ export class TerrainLightingRuntime {
   }
 
   /** Applies live visual overrides at the paused astronomical time used by the inspector. */
-  applyVisualTuning(values: Partial<TerrainLightingVisualTuning>): void {
+  applyVisualTuning(values: Partial<TerrainLightingVisualTuning>, authoredTimeHours?: number): void {
     this._assertAlive();
     validateBakeLighting(values);
     const fogStart = values.fogStart ?? this._scene.fogStart;
@@ -1210,7 +1210,7 @@ export class TerrainLightingRuntime {
     if (values.fogRadianceIntensity !== undefined) {
       this._atmosphericFog.setRadianceIntensity(values.fogRadianceIntensity);
     }
-    this._applyTimeOfDayAuthoringTuning(values);
+    this._applyTimeOfDayAuthoringTuning(values, authoredTimeHours);
     const fogTint = this._atmosphericFog.tint;
     this._atmosphericFog.setTint(
       values.fogTintR ?? fogTint.r,
@@ -1666,9 +1666,14 @@ export class TerrainLightingRuntime {
   }
 
   /** Writes an inspector edit into the shared circular time profile instead of the weather or season layers. */
-  private _applyTimeOfDayAuthoringTuning(values: Partial<TerrainLightingVisualTuning>): void {
+  private _applyTimeOfDayAuthoringTuning(
+    values: Partial<TerrainLightingVisualTuning>,
+    authoredTimeHours?: number
+  ): void {
     const profile = this.system.profile;
-    const time = this.system.clock.normalizedTime;
+    // Authored overrides belong to their authored time, not to wherever the live clock is.
+    const time =
+      authoredTimeHours === undefined ? this.system.clock.normalizedTime : (((authoredTimeHours % 24) + 24) % 24) / 24;
     if (values.sunIntensity !== undefined) upsertCurveKey(profile.sunIntensity, time, values.sunIntensity);
     if (values.shadowStrength !== undefined) upsertCurveKey(profile.shadowStrength, time, values.shadowStrength);
     upsertColorKey(profile.sunColor, time, values.sunColorR, values.sunColorG, values.sunColorB);

@@ -8,7 +8,7 @@ import { seedWorldProjectFormats } from "../../../SeedWorldProjectFormats.ts";
 import { createSeedWorldProjectClose } from "../../../SeedWorldProjectClose.ts";
 import { planningSourceDocument } from "./runtime/PlanningProjectSource.ts";
 import { exportPlanningScene, importPlanningScene } from "./PlanningSceneAsset.ts";
-import { createWorldStylePlanningDocument } from "@galacean/engine-world-planning/spatial/WorldTemplateAuthoring";
+import { createWorldStylePlanningDocument, worldTemplatePaletteValues } from "@galacean/engine-world-planning/spatial/WorldTemplateAuthoring";
 import { mountWorldTemplatePicker } from "./WorldTemplatePicker.ts";
 import { wayfindingPolicy } from "@galacean/engine-world-planning/spatial/guidance/WayfindingPolicy";
 import { wayfindingHighlights } from "./guidance/WayfindingHighlights.ts";
@@ -129,6 +129,14 @@ export async function mountSpatialEditor(
       if (receipt?.status !== "accepted") throw new Error(receipt?.message ?? "规划未接受");
       if (storageWarning) throw new Error(storageWarning);
       status(session.document.populationInitialization?.diagnostics.join("；") ?? "");
+    },
+    async id => {
+      const commands = Object.entries(worldTemplatePaletteValues(id)).map(([component, values]) => ({
+        op: "set" as const, entity: "world", component, values
+      }));
+      const receipt = await edit(draft => draft.dispatchParameters(commands));
+      if (receipt?.status !== "accepted") throw new Error(receipt?.message ?? "配色未接受");
+      if (storageWarning) throw new Error(storageWarning);
     }
   );
   function updateGenerateControl() {

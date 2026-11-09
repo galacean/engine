@@ -1,20 +1,20 @@
 import type { IslandPlan } from "../semantic-study/IslandPlanModel";
-import type { ConstructionTerrainGrid } from "@galacean/engine-building/tiny-glade/runtime/TerrainField";
-import type { BuildingUnitAssets } from "@galacean/engine-building/tiny-glade/runtime/BuildingUnitAssets";
+import type { ConstructionTerrainGrid } from "@galacean/engine-building/building/runtime/TerrainField";
+import type { BuildingUnitAssets } from "@galacean/engine-building/building/runtime/BuildingUnitAssets";
 import { initialBuildingDrafts } from "./BuildingInitialDraft";
-import { designBuilding } from "@galacean/engine-building/tiny-glade/parts/architecture/BuildingDesign";
+import { designBuilding } from "@galacean/engine-building/building/parts/architecture/BuildingDesign";
 import {
   buildingDraftSource,
   type BuildingSourceOptions
-} from "@galacean/engine-building/tiny-glade/parts/architecture/BuildingSource";
-import { prepareBuildingTerrain } from "@galacean/engine-building/tiny-glade/parts/architecture/BuildingTerrain";
+} from "@galacean/engine-building/building/parts/architecture/BuildingSource";
+import { prepareBuildingTerrain } from "@galacean/engine-building/building/parts/architecture/BuildingTerrain";
 import {
   buildingPreviewInput,
   prepareBuildingPublication
-} from "@galacean/engine-building/tiny-glade/parts/architecture/BuildingPublication";
-import { profilePreview } from "@galacean/engine-building/tiny-glade/runtime/ProfilePreview";
-import { profileShape } from "@galacean/engine-building/tiny-glade/runtime/ProfileGeometry";
-import { wallMountCurve, wallMountPoint } from "@galacean/engine-building/tiny-glade/runtime/WallMountGeometry";
+} from "@galacean/engine-building/building/parts/architecture/BuildingPublication";
+import { profilePreview } from "@galacean/engine-building/building/runtime/ProfilePreview";
+import { profileShape } from "@galacean/engine-building/building/runtime/ProfileGeometry";
+import { wallMountCurve, wallMountPoint } from "@galacean/engine-building/building/runtime/WallMountGeometry";
 
 /** One-shot creation from published planning intent. Style builders publish
  * parts directly; rejected speculative attachments are never saved as objects. */

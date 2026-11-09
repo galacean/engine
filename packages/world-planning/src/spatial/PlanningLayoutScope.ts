@@ -41,7 +41,7 @@ export function switchPlanningLayoutScope(draft: PlanningDocument, previousSeed:
   } else {
     const template = worldTemplate(outgoing.world.components.worldTemplate?.values.id);
     const fresh = template
-      ? createWorldStylePlanningDocument(draft, nextSeed, template.id)
+      ? createWorldStylePlanningDocument(draft, nextSeed, template.id, undefined, true)
       : createSeedPlanningDocument(nextSeed);
     draft.waterAuthoringVersion = fresh.waterAuthoringVersion;
     draft.populationInitialization = structuredClone(fresh.populationInitialization);

@@ -72,3 +72,18 @@ pnpm --dir world exec vitest run --config scripts/acceptance/seed-world-fixes.co
   SeedWorldRockFormationView.spec.ts SeedWorldRockFormationEdit.spec.ts \
   SeedWorldRockGroundContact.spec.ts SeedWorldRockPickRouting.spec.ts
 ```
+
+## Direct target-branch reconciliation — 2026-11-09
+
+The user clarified that the destination is `origin/experimental/engine-next`
+itself. Reconciled the prepared port with `93d9ad582073bd123299876593968cc5c565f8a2`,
+retaining all four newer upstream commits. Kept upstream's removal of the obsolete
+`V2_IMPLEMENTATION.md`; the commit accounting remains in this migration record.
+Rock implementation changes and the single virtual rock-types entry are retained,
+including the confirmed bounded-grounding rollback.
+
+After refreshing the generated Engine shaders, nine focused rock files / 163
+tests passed (the original eight files plus the upstream color-palette checks).
+World typecheck, package-boundary checks and the Seed World production build also
+passed. Existing Engine type-baseline and build-size warnings remain; no fresh
+browser/GPU check is claimed.

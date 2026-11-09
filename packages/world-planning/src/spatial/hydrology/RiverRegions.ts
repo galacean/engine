@@ -14,6 +14,9 @@ import { territoryLookup } from "../ecology/PoiTerritories";
 
 /** World hydrology preferences. All lengths and levels are metres. Each river publishes its own longitudinal profile. */
 export interface RiverParameters extends PlanningCountRange {
+  /** Flat garden channels may derive a dig-only level from their complete path.
+   * Explicit point elevations always retain precedence. */
+  levelMode?: "terrain" | "minimum";
   points?: WatercoursePoint[];
   sections?: WatercourseSection[];
   enabled?: boolean;
@@ -126,9 +129,47 @@ export function generateRiverRegions(
       throw new Error("INVALID_ARGUMENT: 自定义河流缺少控制点");
     if (riverConfig.enabled === false) continue;
     if (riverConfig.points !== undefined) {
-      const course = resolveWatercourse({ id, points: riverConfig.points, sections: riverConfig.sections }, (x, z) =>
-        ground({ x, z })
-      );
+      const probeSpacing = 0.25; // Watercourse's native terrain probe interval, in metres.
+      let pointsInput = riverConfig.points;
+      if (riverConfig.levelMode === "minimum") {
+        // Each explicitly carved drop separates two ordinary water platforms.
+        // Native sculpted drops put their curtain at the interval midpoint.
+        // Bound both platforms by their own complete Terrain support, including
+        // the approaches to that curtain; never fill Terrain to support water.
+        const falls = new Set(
+          (riverConfig.sections ?? [])
+            .filter((section) => section.form === "waterfall" && section.carve)
+            .map((section) => section.from)
+        );
+        const groups: number[] = [0];
+        for (let i = 1; i < pointsInput.length; i++)
+          groups.push(groups[i - 1] + (falls.has(pointsInput[i - 1].id) ? 1 : 0));
+        const levels = Array.from({ length: groups.at(-1)! + 1 }, () => Infinity);
+        for (let i = 1; i < pointsInput.length; i++) {
+          const a = pointsInput[i - 1],
+            b = pointsInput[i],
+            count = Math.max(1, Math.ceil(distance(a, b) / probeSpacing));
+          for (let sample = 0; sample <= count; sample++) {
+            const t = sample / count;
+            const group = groups[falls.has(a.id) && t > 0.5 ? i : i - 1];
+            levels[group] = Math.min(levels[group], ground({ x: a.x + (b.x - a.x) * t, z: a.z + (b.z - a.z) * t }));
+          }
+        }
+        for (let i = 1; i < levels.length; i++) levels[i] = Math.min(levels[i - 1], levels[i]);
+        // Use the native bank clearance; it is not a new water-depth policy.
+        pointsInput = pointsInput.map((point, i) => ({
+          ...point,
+          elevation: point.elevation ?? levels[groups[i]] - 0.05
+        }));
+      }
+      let course: ReturnType<typeof resolveWatercourse>;
+      try {
+        course = resolveWatercourse({ id, points: pointsInput, sections: riverConfig.sections, probeSpacing }, (x, z) =>
+          ground({ x, z })
+        );
+      } catch (error) {
+        throw new Error(`${id}: ${error instanceof Error ? error.message : String(error)}`);
+      }
       const derived = watercourseGeometry(course);
       const points = derived.points.map((p) => ({ x: p.x, z: p.z })),
         widths = derived.points.map((p) => p.width);

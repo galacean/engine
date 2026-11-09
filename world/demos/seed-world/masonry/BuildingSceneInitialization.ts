@@ -2,10 +2,10 @@ import type { PrefabResource } from "@galacean/engine";
 import type { RuntimeEditor, RuntimeEditorEdit, RuntimeEditPreparation } from "@galacean/engine-runtime-editor/runtime-editor/runtime-editor";
 import type { RuntimeProjectSession } from "@galacean/engine-runtime-editor/project/runtime-project-session";
 import { RuntimeSceneEdit } from "@galacean/engine-runtime-editor/runtime-editor/scene/runtime-scene-edit";
-import type { ConstructionTerrainSource } from "@galacean/engine-building/tiny-glade/runtime/TerrainField";
+import type { ConstructionTerrainSource } from "@galacean/engine-building/building/runtime/TerrainField";
 import type { IslandPlan } from "@galacean/engine-world-planning/semantic-study/IslandPlanModel";
-import { BUILTIN_BUILDING_ASSETS } from "@galacean/engine-building/tiny-glade/resources/BuiltinBuildingAssets";
-import { buildingAssets } from "@galacean/engine-building/tiny-glade/resources/BuildingAssetKit";
+import { BUILTIN_BUILDING_ASSETS } from "@galacean/engine-building/building/resources/BuiltinBuildingAssets";
+import { buildingAssets } from "@galacean/engine-building/building/resources/BuildingAssetKit";
 import { initialBuildingSource } from "@galacean/engine-world-planning/masonry/BuildingInitialSource";
 
 type AuthoringEdit = Pick<RuntimeEditorEdit, "run" | "withAsset">;

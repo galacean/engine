@@ -1,6 +1,13 @@
 import { finalizePlanningFarm } from "../farming/PlanningFarmingFinalization";
 import { planWorldTemplateSite } from "../WorldTemplatePlanning";
 import { worldTemplateEcology } from "../WorldTemplateEcology";
+import {
+  compileCompositionGroup,
+  publishCompositionPaths,
+  publishCompositionTrees,
+  compositionHydrology
+} from "../SpatialComposition";
+import { compositionOutline } from "../SpatialCompositionGeometry";
 import { generateLakeRegions, LAKE_DEFAULTS } from "../hydrology/LakeRegions";
 import { generateRiverRegions, RIVER_DEFAULTS } from "../hydrology/RiverRegions";
 import { RIVER_BANK_PROFILE_VERSION } from "../../semantic-study/PlanningRiverBank";
@@ -87,7 +94,7 @@ import profile from "./space-rules.json";
 import { changedSpatialOutputs } from "./DerivedEdits";
 import { initialLayoutConfiguration } from "./LayoutProfiles";
 import { compileRoadGraphSplines } from "./RoadGraphSplines";
-import { pruneUnusedAccessPaths, resolveRoadTopology } from "./RoadTopology";
+import { pruneUnusedAccessPaths, resolveRoadTopology, rebuildPhysicalRoadTopology } from "./RoadTopology";
 import { ROAD_GEOMETRY_VERSION } from "./RoadGeometry";
 import { planningTerrainAuthoringInputs } from "../PlanningResources";
 import {
@@ -325,6 +332,7 @@ function* spatialWorldStages(
     p.seed,
     p.landformSeed,
     p.worldTemplate,
+    p.spatialComposition,
     p.landCoverage,
     p.landAspect,
     p.landOrientation,
@@ -422,6 +430,7 @@ function* spatialWorldStages(
     plan.poiDistribution.candidates.map((c) => [c.id, { center: { ...c.origin }, domainId: c.domainId }])
   );
   const domains = plan.poiDistribution!.domains.map((d) => ({ ...d, query: createPlanningRingQuery(d.outline) }));
+  const generatedWater = compositionHydrology(plan);
   const riverConfig = { ...RIVER_DEFAULTS, ...p.rivers };
   const localRivers = Object.fromEntries(
     Object.entries(recipe.edits)
@@ -434,6 +443,8 @@ function* spatialWorldStages(
       .filter(([, e]) => e.lakes)
       .map(([id, e]) => [id, e.lakes!])
   );
+  Object.assign(localRivers, generatedWater.rivers);
+  Object.assign(localLakes, generatedWater.lakes);
   // Automatic hydrology samples natural Terrain before it publishes any cuts.
   // Authored patches and basin geometry belong to that physical input; appearance
   // does not. Reuse this projection for Terrain invalidation so a colour edit
@@ -501,8 +512,17 @@ function* spatialWorldStages(
       relatedIds: []
     });
   const templateAreas = (plan.worldTemplateSite?.footprints ?? []).map((item) => createPlanningRingQuery(item.outline));
-  const inside = (outline: PlanPoint[]) => domains.some((d) => d.query.containsPolygon(outline));
-  let roadExcludedAreas: ReturnType<typeof createPlanningRingQuery>[] = [...templateAreas];
+  const generatedOutline =
+    p.spatialComposition?.enabled && p.spatialComposition.replacePopulation
+      ? compositionOutline(p.spatialComposition)
+      : undefined;
+  const compositionArea = generatedOutline && createPlanningRingQuery(generatedOutline);
+  const insideDomain = (outline: PlanPoint[]) => domains.some((d) => d.query.containsPolygon(outline));
+  const inside = (outline: PlanPoint[]) => insideDomain(outline) && !compositionArea?.overlapsPolygon(outline);
+  let roadExcludedAreas: ReturnType<typeof createPlanningRingQuery>[] = [
+    ...templateAreas,
+    ...(compositionArea ? [compositionArea] : [])
+  ];
   const respectsRoadAreas = (outline: PlanPoint[]) => !roadExcludedAreas.some((area) => area.overlapsPolygon(outline));
   const roadInside = (outline: PlanPoint[]) =>
     inside(outline) && respectsRoadAreas(outline) && !riverRoads.some((w) => w.ring.overlapsPolygon(outline));
@@ -678,7 +698,9 @@ function* spatialWorldStages(
       (rock || !!domains.find((d) => d.id === site.domainId)?.query.containsPolygon(outline)) &&
       !riverRings.some((w) => w.overlapsPolygon(outline));
     const clearGeneratedFootprint = (outline: PlanPoint[]) =>
-      clear(outline) && !templateAreas.some((area) => area.overlapsPolygon(outline));
+      clear(outline) &&
+      !templateAreas.some((area) => area.overlapsPolygon(outline)) &&
+      !compositionArea?.overlapsPolygon(outline);
     // Reconstruct the same unedited baseline for cold and incremental generation.
     // Overrides resolve against this baseline, never against edit-history-dependent positions.
     const candidateBounds = bounds(territoryOutlines.get(site.id) ?? []);
@@ -699,6 +721,11 @@ function* spatialWorldStages(
       construction
     );
     groups.push(baseline);
+  }
+  const composition = compileCompositionGroup(plan, ground);
+  if (composition) {
+    groups.push(composition);
+    appearances[composition.id] = "rock";
   }
   yield { candidates: plan.poiDistribution!.candidates, groups, elementProfiles };
   const oldVolumes = new Map(
@@ -721,6 +748,11 @@ function* spatialWorldStages(
   );
   for (let i = 0; i < groups.length; i++) {
     const group = groups[i];
+    if (group === composition) continue;
+    if (!group.volumes.length && compositionArea?.inside(group.center)) {
+      groups[i] = { ...group, paths: [], ports: [] };
+      continue;
+    }
     if (
       terrainChanged ||
       changedGroups.has(group.id) ||
@@ -833,6 +865,8 @@ function* spatialWorldStages(
     JSON.stringify([
       "explicit-access-v8-independent-farm",
       ROAD_GEOMETRY_VERSION,
+      p.worldTemplate,
+      p.spatialComposition,
       p.poiLayout?.network,
       p.wayfinding?.sBend,
       groups.map((g) => [g.id, g.ports.some((port) => port.access)]),
@@ -861,6 +895,14 @@ function* spatialWorldStages(
   plan.routes = [];
   plan.spatialLayout.elementProfiles = elementProfiles;
   projectLayoutGroups(plan, groups, appearances, !reuseRoads);
+  if (generatedOutline)
+    plan.regions.push({
+      id: "landscape-composition:region",
+      label: "参数化景观区域",
+      kind: "open",
+      outline: generatedOutline,
+      roadExcluded: true
+    });
   roadExcludedAreas = [
     ...templateAreas,
     ...plan.regions.filter((region) => region.roadExcluded).map((region) => createPlanningRingQuery(region.outline))
@@ -868,6 +910,7 @@ function* spatialWorldStages(
   if (reuseRoads) {
     plan.roadNetwork = retainedRoads!.network;
     plan.routes = retainedRoads!.routes;
+    publishCompositionPaths(plan, false);
     // Group projection includes optional cached paths. Publish only accepted
     // path references, exactly as the cold topology/pruning pass does.
     const candidatePaths = new Set(groups.flatMap((group) => group.paths.map((path) => path.id)));
@@ -944,6 +987,29 @@ function* spatialWorldStages(
       plan,
       (_, outline) => inside(outline) && respectsRoadAreas(outline) && !roadObstacles.collides(outline)
     );
+    if (p.spatialComposition?.enabled && p.spatialComposition.roadWidthM) {
+      const compositionDomain = (outline: PlanPoint[]) =>
+        insideDomain(outline) &&
+        !templateAreas.some((area) => area.overlapsPolygon(outline)) &&
+        !riverRings.some((area) => area.overlapsPolygon(outline));
+      publishCompositionPaths(
+        plan,
+        true,
+        (_, outline) => compositionDomain(outline) && !roadObstacles.collides(outline),
+        (from, to, width) =>
+          findLocalPath(from, to, width, roadObstacles, compositionDomain, p.spatialComposition!.widthM!)
+      );
+      if (
+        !rebuildPhysicalRoadTopology(
+          plan,
+          (_, outline) =>
+            insideDomain(outline) &&
+            !templateAreas.some((area) => area.overlapsPolygon(outline)) &&
+            !roadObstacles.collides(outline)
+        )
+      )
+        throw new Error("景观步道与已发布地形或体量冲突");
+    }
     timings["roads.splines"] = performance.now() - splineStarted;
   }
   for (let i = checks.length - 1; i >= 0; i--)
@@ -1077,6 +1143,7 @@ function* spatialWorldStages(
     checks.push(...updateSpatialGuidance(environment, area));
     mark("guidance");
     landscapeBase = revealSpatialEcology(environment);
+    publishCompositionTrees(plan, ground, config.landscape, recipe.edits);
   }
   // Spawn belongs to a populated village when one exists; layout order also includes rock POIs.
   const first =

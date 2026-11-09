@@ -1,4 +1,7 @@
 import animalTypes from "../planning-data/animal-types.json";
+import { WORLD_TEMPLATE_ART } from "./WorldTemplateArtDirection";
+import { spatialCompositionParameters } from "./SpatialCompositionParameters";
+import { templateBaseSeed } from "./WorldTemplateCatalog";
 import { defaultPoiLayout } from "../semantic-study/PoiDistribution";
 import { isGlobalRoadId } from "./layout/RoadIdentity";
 import type { SemanticRecipe, SemanticEdit } from "../semantic-study/WorldPlanningContract";
@@ -423,6 +426,31 @@ export function exportPlanningRecipe(document: PlanningDocument): SemanticRecipe
 /** Remove retired authoring contracts once, while retaining registered extension components and current overrides. */
 export function upgradePlanningDocument(input: PlanningDocument): PlanningDocument {
   const document = exportPlanningAuthoring(input);
+  for (const scope of [document, ...Object.values(document.layoutOverrides ?? {})]) {
+    const world = scope.entities.world?.components;
+    const legacy = world?.worldTemplate?.values;
+    const id = typeof legacy?.id === "string" ? legacy.id : "";
+    const preset = WORLD_TEMPLATE_ART[id]?.generation;
+    if (!world || !preset) continue;
+    if (!world.landscapeComposition?.base && !Object.keys(world.landscapeComposition?.values ?? {}).length)
+      world.landscapeComposition = {
+        values: spatialCompositionParameters({
+          ...preset,
+          seed: templateBaseSeed(id),
+          ...(typeof legacy?.centerX === "number" ? { centerX: legacy.centerX } : {}),
+          ...(typeof legacy?.centerZ === "number" ? { centerZ: legacy.centerZ } : {})
+        })
+      };
+    // Retire only resources owned by this template's former instance-table contract.
+    scope.authoredResources = scope.authoredResources?.filter(
+      (resource) =>
+        !["terrain", "vegetation", "water"].some((kind) => resource.resourceId.startsWith(`template:${id}:${kind}:`))
+    );
+    for (const key of Object.keys(scope.entities))
+      if (key.startsWith(`river:authored:template:${id}:`)) delete scope.entities[key];
+    const edits = "edits" in scope ? scope.edits : scope.passthrough.edits;
+    for (const key of Object.keys(edits)) if (key.startsWith(`river:authored:template:${id}:`)) delete edits[key];
+  }
   for (const scope of [document, ...Object.values(document.layoutOverrides ?? {})])
     for (const entity of Object.values(scope.entities)) {
       const rock = entity.components.rockFormation;

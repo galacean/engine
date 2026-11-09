@@ -1,19 +1,10 @@
-import { ScreenSpaceReflection } from "./ScreenSpaceReflection";
+import { ScreenSpaceReflectionConfig, ScreenSpaceReflectionContent } from "./ScreenSpaceReflectionConfig";
+export { ScreenSpaceReflectionContent, ScreenSpaceReflectionSettingsSource } from "./ScreenSpaceReflectionConfig";
 import { ScreenSpaceReflectionActivationMode } from "./enums/ScreenSpaceReflectionActivationMode";
 import { ScreenSpaceReflectionReceiverPolicy } from "./enums/ScreenSpaceReflectionReceiverPolicy";
 import { ScreenSpaceReflectionQuality } from "./enums/ScreenSpaceReflectionQuality";
 import { ScreenSpaceReflectionUpsamplingMode } from "./enums/ScreenSpaceReflectionUpsamplingMode";
 
-/** Which visible surfaces can supply reflection hits. */
-export enum ScreenSpaceReflectionContent {
-  OpaqueOnly = 0,
-  OpaqueAndTransparent = 1
-}
-
-export enum ScreenSpaceReflectionSettingsSource {
-  UseSceneSettings = 0,
-  Override = 1
-}
 /** Serializable author values only. No leases, textures, diagnostics or quality label. */
 export interface ScreenSpaceReflectionSettingsData {
   activationMode: ScreenSpaceReflectionActivationMode;
@@ -41,25 +32,11 @@ export class ScreenSpaceReflectionSettings implements ScreenSpaceReflectionSetti
   /** @internal Scene changes are consumed once at camera render preparation. */
   _version = 0;
   /** Shared legacy defaults for scene and camera construction. */
-  static readonly defaults: Readonly<ScreenSpaceReflectionSettingsData> = Object.freeze({
-    activationMode: ScreenSpaceReflectionActivationMode.Auto,
-    receiverPolicy: ScreenSpaceReflectionReceiverPolicy.ExplicitOnly,
-    reflectionContent: ScreenSpaceReflectionContent.OpaqueOnly,
-    resolutionScale: 1,
-    upsamplingMode: ScreenSpaceReflectionUpsamplingMode.GaussianBilateral,
-    intensity: 1,
-    maxRayDistance: 20,
-    rayLengthFade: 1,
-    maxRaySteps: 32,
-    hitRefinementSteps: 3,
-    thickness: 0.2,
-    maxRoughness: 0.7,
-    edgeFade: 0.1
-  });
+  static readonly defaults = ScreenSpaceReflectionConfig.defaults;
   private _data: ScreenSpaceReflectionSettingsData = { ...ScreenSpaceReflectionSettings.defaults };
   /** Shared whitelist and validation for partial author parameters. */
   static normalize(data: Partial<ScreenSpaceReflectionSettingsData>): Partial<ScreenSpaceReflectionSettingsData> {
-    const values = { ...ScreenSpaceReflection._sanitizeConsumerRequest(data) };
+    const values = { ...ScreenSpaceReflectionConfig.sanitizeConsumerRequest(data) };
     delete values.priority;
     delete values.receiverMode;
     delete values.quality;
@@ -89,7 +66,7 @@ export class ScreenSpaceReflectionSettings implements ScreenSpaceReflectionSetti
     "resolutionScale" | "upsamplingMode" | "maxRaySteps" | "thickness" | "maxRayDistance" | "hitRefinementSteps"
   > {
     const { resolutionScale, upsamplingMode, maxRaySteps, thickness, maxRayDistance, hitRefinementSteps } =
-      ScreenSpaceReflection.getQualityPreset(quality);
+      ScreenSpaceReflectionConfig.getQualityPreset(quality);
     return { resolutionScale, upsamplingMode, maxRaySteps, thickness, maxRayDistance, hitRefinementSteps };
   }
   apply(data: Partial<ScreenSpaceReflectionSettingsData>): void {

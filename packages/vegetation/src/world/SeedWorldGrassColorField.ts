@@ -98,8 +98,8 @@ export const SEED_WORLD_SURFACE_PALETTE_PRESETS = Object.freeze({
     saturation: SEED_WORLD_GRASS_COLOR_FIELD_DEFAULTS.saturation
   },
   樱花粉: {
-    colorA: paletteHexToLinear(0xce608c),
-    colorB: paletteHexToLinear(0xffa0aa),
+    colorA: paletteHexToLinear(0xe55959),
+    colorB: paletteHexToLinear(0xff899e),
     roadColorA: paletteHexToLinear(0xf1cbc5),
     roadColorB: paletteHexToLinear(0xdca3ae),
     saturation: 1

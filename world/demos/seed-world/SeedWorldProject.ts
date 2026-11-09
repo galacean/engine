@@ -1,9 +1,9 @@
-import "@galacean/engine-building/tiny-glade/parts/index";
-import "@galacean/engine-building/tiny-glade/parts/BuildingParts";
-import { registerBuildingAssetComponents } from "@galacean/engine-building/tiny-glade/resources/BuildingAssetKit";
-import { builtinBuildingPresetFiles } from "@galacean/engine-building/tiny-glade/resources/BuiltinBuildingPresets";
-import "@galacean/engine-building/tiny-glade/components/BuildingGeneratorComponent";
-import { builtinBuildingAssetFiles } from "@galacean/engine-building/tiny-glade/resources/BuiltinBuildingAssets";
+import "@galacean/engine-building/building/parts/index";
+import "@galacean/engine-building/building/parts/BuildingParts";
+import { registerBuildingAssetComponents } from "@galacean/engine-building/building/resources/BuildingAssetKit";
+import { builtinBuildingPresetFiles } from "@galacean/engine-building/building/resources/BuiltinBuildingPresets";
+import "@galacean/engine-building/building/components/BuildingGeneratorComponent";
+import { builtinBuildingAssetFiles } from "@galacean/engine-building/building/resources/BuiltinBuildingAssets";
 import { Loader } from "@galacean/engine";
 import "@galacean/engine-world-planning/runtime/script-registry";
 import { registerNativeFarming } from "@galacean/engine-farming/farming/native/index";
