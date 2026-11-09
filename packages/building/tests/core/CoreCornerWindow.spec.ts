@@ -6,8 +6,8 @@ vi.mock("@galacean/engine", async () => ({
 }));
 import { describe, expect, it, vi } from "vitest";
 import { nativeAssets } from "../fixtures/constructionAssets";
-import { createBuildingRegistry, designBuildingCore, expandUnits } from "../../src/building/core";
-import { registerHouseTypes } from "../../src/building/partTypes/House";
+import { createBuildingRegistry, designBuildingCore, expandUnits, type ResolvedPart } from "../../src/building/core";
+import { registerHouseTypes, wallChartSampler, type WallChartParams } from "../../src/building/partTypes/House";
 import {
   buildCoreHouse,
   type CoreHouseParameters,
@@ -75,6 +75,15 @@ const center = (positions: number[]) => {
   return out;
 };
 
+const chartOf = (p: ResolvedPart) =>
+  (p.original.elements.face as { surface: { params: WallChartParams } }).surface.params;
+const openingsOf = (r: ReturnType<typeof design>) =>
+  Object.values(r.parts.find((p) => p.type === "window")!.original.elements).flatMap((e) =>
+    e.kind === "surface" && e.surface.kind === "wallOpening"
+      ? [(e.surface.params as { perimeter: number[] }).perimeter]
+      : []
+  );
+
 describe("Corner windows against the online path", () => {
   it.each([
     [1, 0.5],
@@ -106,21 +115,23 @@ describe("Corner windows against the online path", () => {
     [0.5, 2],
     [8 / 36, 1],
     [0, 0]
-  ] as const)("leaves its corner free of corner stones at u = %f", (u) => {
-    const stones = (r: ReturnType<typeof design>) =>
-      r.parts.filter((p) => p.type === "cornerStone").flatMap((p) => expandUnits(p, registry, { environment }));
-    const with_ = stones(design(house([at(2, u)]))),
-      without = stones(design(house([])));
-    expect(with_.length).toBeLessThan(without.length);
-    const size = 1.6;
-    const window = design(house([at(2, u)])).parts.find((p) => p.type === "window")!.original.elements.mount;
-    if (window.kind !== "point") throw Error("no mount");
-    const at_ = window.frame.origin;
-    for (const s of with_)
-      if (Math.hypot(s.frame.origin[0] - at_[0], s.frame.origin[2] - at_[2]) < 1.2)
-        expect(
-          s.frame.origin[1] > 1 + size + 0.1 - s.size![1] / 2 || s.frame.origin[1] < 1 - 0.05 + s.size![1] / 2
-        ).toBe(true);
+  ] as const)("keeps its corner stones out of its openings at u = %f", (u) => {
+    const result = design(house([at(2, u)]));
+    const perimeter = result.parts
+      .filter((p) => p.type === "wall")
+      .reduce((n, p) => n + wallChartSampler(chartOf(p)).length, 0);
+    const openings = openingsOf(result);
+    const stones = result.parts
+      .filter((p) => p.type === "cornerStone")
+      .flatMap((p) => expandUnits(p, registry, { environment }));
+    expect(stones.length).toBeGreaterThan(0);
+    for (const stone of stones) {
+      const [u0, u1] = stone.params!.wallU as number[];
+      const [lo, hi] = [stone.frame.origin[1] - stone.size![1] / 2, stone.frame.origin[1] + stone.size![1] / 2];
+      for (const [a, b, c, d] of openings)
+        for (const k of [-perimeter, 0, perimeter])
+          expect(u0 < c + k - 1e-6 && a + k + 1e-6 < u1 && lo < d - 1e-6 && b + 1e-6 < hi).toBe(false);
+    }
   });
 
   it("keeps the corner's angle when it is resized", () => {
@@ -212,21 +223,29 @@ describe("Corner windows against the online path", () => {
     expect(draft.parts.find((p) => p.type === "window")!.geometry!.generator).toBe("houseCornerMount");
   });
 
-  it("cuts the corner stones it crosses instead of dropping them", () => {
-    const window = at(2, 0.5);
-    const heights = (attachments: CoreWallAttachment[]) =>
-      design(house(attachments))
-        .parts.filter((p) => p.type === "cornerStone")
-        .map((p) => expandUnits(p, registry, { environment }).map((u) => u.size![1]));
-    const without = heights([]),
-      withWindow = heights([window]);
-    const changed = withWindow.findIndex(
-      (row, i) => row.length !== without[i].length || row.some((h, k) => h !== without[i][k])
-    );
-    expect(changed).toBeGreaterThanOrEqual(0);
-    // The row the window's sill stands on stays, shorter than it was.
-    const cut = withWindow[changed].filter((h) => !without[changed].includes(h));
-    expect(cut.length).toBeGreaterThan(0);
-    expect(withWindow[changed].length).toBeGreaterThan(0);
+  it("leaves what it does not cover of the corner stones, under and beside it", () => {
+    let besides = 0;
+    for (let seed = 1; seed <= 12; seed++) {
+      const result = design(house([at(1, 0.5)], { seed }));
+      const [opening] = openingsOf(result);
+      const corner = opening[2];
+      const near = result.parts
+        .filter((p) => p.type === "cornerStone")
+        .flatMap((p) => expandUnits(p, registry, { environment }))
+        .filter((u) => {
+          const [u0, u1] = u.params!.wallU as number[];
+          return u0 < corner + 1.5 && u1 > corner - 1.5;
+        });
+      const height = (u: (typeof near)[number]) => u.frame.origin[1];
+      // A whole stone stands under the sill; a wider one leaves a piece beside the window.
+      expect(near.some((u) => height(u) < opening[1])).toBe(true);
+      const beside = near.filter((u) => height(u) > opening[1] && height(u) < opening[3]);
+      besides += beside.length;
+      for (const u of beside) {
+        const [u0, u1] = u.params!.wallU as number[];
+        expect(u0 < corner && u1 > corner).toBe(false);
+      }
+    }
+    expect(besides).toBeGreaterThan(0);
   });
 });

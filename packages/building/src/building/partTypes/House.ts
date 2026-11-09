@@ -1248,35 +1248,34 @@ interface CornerStoneParams {
   after: [number, number];
   /** Position of the corner along the house perimeter, in metres. */
   cornerU?: number;
-  /** Height ranges above the base with no stones. */
-  gaps?: readonly (readonly [number, number])[];
+  /** Areas of the walls that stones give way to, in perimeter metres and heights. */
+  openings?: readonly Rect[];
 }
 /** Corner stones stacked at one corner: even rows along the wall after the corner, odd rows
  * along the wall before it, each reaching past the corner by half its depth. */
-/** Whether a row of corner stones overlaps one of the height ranges kept free above the base. */
-/** What is left of a row of corner stones beside the gaps, which are heights above `bottom`: the
- * tallest piece, unless it is lower than `least`. A window takes the part of a stone it crosses. */
-function cornerRowSpan(
-  y0: number,
-  y1: number,
-  bottom: number,
-  gaps: readonly (readonly [number, number])[],
-  least: number
-): [number, number] | undefined {
-  let pieces: [number, number][] = [[y0, y1]];
-  for (const [from, to] of gaps)
-    pieces = pieces.flatMap(([a, b]): [number, number][] => {
-      const [lo, hi] = [bottom + from, bottom + to];
-      if (!(a < hi && lo < b)) return [[a, b]];
-      return [...(a < lo ? [[a, lo] as [number, number]] : []), ...(hi < b ? [[hi, b] as [number, number]] : [])];
-    });
-  const tallest = pieces.reduce<[number, number] | undefined>(
-    (best, q) => (!best || q[1] - q[0] > best[1] - best[0] ? q : best),
-    undefined
-  );
-  return tallest && tallest[1] - tallest[0] >= least ? tallest : undefined;
+/** A corner stone, or what an opening leaves of one: its row, its span along the house perimeter
+ * and its heights. */
+interface CornerStonePiece extends Piece {
+  readonly row: number;
 }
-export const cornerStones: LayingAlgorithm<CornerStoneParams, { rows: number }> = {
+/** The corner stones of one corner. Each row is one stone across the corner; an opening takes the
+ * part of the stone it covers, and what is left beside, under or over it stays. */
+function cornerStonePieces(p: CornerStoneParams): CornerStonePiece[] {
+  const ys = cornerStoneRows(p.seed, p.bottom, p.top, p.scale[1]);
+  const rows = ys.length - 1,
+    over = overhang(p.scale[2]),
+    corner = p.cornerU ?? 0;
+  return Array.from({ length: Math.max(0, rows) }, (_, row) => {
+    const width = cornerStoneWidth(p.seed, row, rows, p.scale[0]);
+    const [u0, u1] = row % 2 === 0 ? [corner - over, corner - over + width] : [corner + over - width, corner + over];
+    let pieces: Piece[] = [{ u0, u1, lo: ys[row], hi: ys[row + 1] }];
+    for (const hole of p.openings ?? []) pieces = pieces.flatMap((q) => subtract(q, hole, p.bottom, p.top));
+    return pieces
+      .filter((q) => q.u1 - q.u0 >= 0.15 * p.scale[0] && q.hi - q.lo >= 0.1 * p.scale[1])
+      .map((q) => ({ ...q, row }));
+  }).flat();
+}
+export const cornerStones: LayingAlgorithm<CornerStoneParams, { pieces: CornerStonePiece[] }> = {
   info: {
     accepts: ["point"],
     summary: "Alternating corner stones stacked at a wall corner.",
@@ -1286,43 +1285,36 @@ export const cornerStones: LayingAlgorithm<CornerStoneParams, { rows: number }> 
       top: "Height of the last row.",
       scale: "Unit footprint scale [width, height, depth] against 0.5 × 0.4375 × 0.1.",
       before: "Direction [x, z] of the wall before the corner.",
-      after: "Direction [x, z] of the wall after the corner."
+      after: "Direction [x, z] of the wall after the corner.",
+      openings: "Areas of the walls the stones give way to, as perimeter metres and heights. Default: none."
     }
   },
   plan(context) {
-    const p = context.params;
-    return { count: Math.max(0, cornerStoneRows(p.seed, p.bottom, p.top, p.scale[1]).length - 1), data: { rows: 0 } };
+    const pieces = cornerStonePieces(context.params);
+    return { count: pieces.length, data: { pieces } };
   },
-  unitAt(context, _data, row) {
+  unitAt(context, { pieces }, index) {
     const p = context.params;
-    const ys = cornerStoneRows(p.seed, p.bottom, p.top, p.scale[1]);
-    const span = cornerRowSpan(ys[row], ys[row + 1], p.bottom, p.gaps ?? [], 0.1 * p.scale[1]);
-    if (!span) return;
-    const [y0, y1] = span;
-    const rows = ys.length - 1;
-    const width = cornerStoneWidth(p.seed, row, rows, p.scale[0]),
-      over = overhang(p.scale[2]);
+    const piece = pieces[index];
+    const { row, u0, u1, lo, hi } = piece;
     const corner = context.geometry.point("corner").origin;
     const [dx, dz] = row % 2 === 0 ? p.after : p.before;
-    const sign = row % 2 === 0 ? 1 : -1,
-      shift = width / 2 - over;
+    const along = (u0 + u1) / 2 - (p.cornerU ?? 0);
+    const nth = pieces.slice(0, index).filter((q) => q.row === row).length;
     return masonryUnit(
       context.unit,
-      String(row),
-      { x: corner[0] + sign * dx * shift, z: corner[2] + sign * dz * shift, tangent: [dx, dz] },
+      nth ? `${row}/${nth}` : String(row),
+      { x: corner[0] + dx * along, z: corner[2] + dz * along, tangent: [dx, dz] },
       0,
-      width,
-      [y0, y0, y1, y1],
+      u1 - u0,
+      [lo, lo, hi, hi],
       0.637 * p.scale[2],
       {
-        anchor_uv: [0, (y0 + y1) / 2 - p.bottom],
+        anchor_uv: [0, (lo + hi) / 2 - p.bottom],
         flags: 4,
         gap: 0,
         accent: true,
-        wallU:
-          row % 2 === 0
-            ? [(p.cornerU ?? 0) - over, (p.cornerU ?? 0) - over + width]
-            : [(p.cornerU ?? 0) + over - width, (p.cornerU ?? 0) + over]
+        wallU: [u0, u1]
       }
     );
   }
@@ -1346,8 +1338,7 @@ export const wallsMeet: JoinDetector = (a, b) => {
 /** Peer rule between two walls that meet at a corner: both give way to a stack of
  * alternating corner stones, which the connection derives as its own part.
  * Connection param `angle`: [min, max] turn in degrees that gets stones. Default: [80, 100].
- * A part attached to the walls with a curve "cornerSpan" standing at this corner keeps the
- * heights of that curve free of stones. */
+ * The stones give way to the openings of the parts attached to the walls. */
 export const wallCorner: ConnectionRule = ({ parts, seed, params, attached }) => {
   const [a, b] = parts;
   const ca = chartOf(a),
@@ -1378,24 +1369,36 @@ export const wallCorner: ConnectionRule = ({ parts, seed, params, attached }) =>
   const rows = ys.length - 1,
     over = overhang(scale[2]);
   const lengthBefore = wallChartSampler(cBefore).length;
-  // What stands across this corner, such as a corner window, keeps its heights free of stones.
-  const gaps = attached.flatMap((guest): [number, number][] => {
-    const span = guest.geometry.original.elements.cornerSpan;
-    if (span?.kind !== "curve") return [];
-    const [lo, hi] = span.curve.points;
-    return Math.hypot(lo[0] - corner[0], lo[2] - corner[2]) < 1e-3 ? [[lo[1] - bottom, hi[1] - bottom]] : [];
-  });
+  // The stones give way to what the walls open for, as they do on either side of the corner.
+  const cornerU = cAfter.uOffset ?? 0,
+    perimeter = (cBefore.uOffset ?? 0) + lengthBefore;
+  const openings = attached.flatMap((guest) =>
+    Object.values(guest.geometry.original.elements).flatMap((element): Rect[] => {
+      if (element.kind !== "surface" || element.surface.kind !== "wallOpening") return [];
+      const [u0, y0, u1, y1] = (element.surface.params as { perimeter: Rect }).perimeter;
+      // The first corner of a house lies where the perimeter wraps round.
+      return (cornerU === 0 ? [0, -perimeter] : [0]).map((k): Rect => [u0 + k, y0, u1 + k, y1]);
+    })
+  );
+  const stoneParams = { seed, bottom, top, scale, before: dirBefore, after: dirAfter, cornerU, openings };
   const modify = [];
-  for (let row = 0; row < rows; row++) {
-    const span = cornerRowSpan(ys[row], ys[row + 1], bottom, gaps, 0.1 * scale[1]);
-    if (!span) continue;
-    const width = cornerStoneWidth(seed, row, rows, scale[0]);
-    const [y0, y1] = span;
-    // Even rows: the stone lies along the wall after the corner; its end shows on the wall before.
-    const onAfter: Rect = [0, y0, row % 2 === 0 ? width - over : over, y1];
-    const onBefore: Rect = [lengthBefore - (row % 2 === 0 ? over : width - over), y0, lengthBefore, y1];
-    modify.push({ part: after.key, modification: { element: "face", op: "reserveArea" as const, rect: onAfter } });
-    modify.push({ part: before.key, modification: { element: "face", op: "reserveArea" as const, rect: onBefore } });
+  for (const { u0, u1, lo, hi } of cornerStonePieces(stoneParams)) {
+    // The part of the stone on each wall, from the corner.
+    const [s0, s1] = [u0 - cornerU, u1 - cornerU];
+    if (s1 > 0)
+      modify.push({
+        part: after.key,
+        modification: { element: "face", op: "reserveArea" as const, rect: [Math.max(0, s0), lo, s1, hi] as Rect }
+      });
+    if (s0 < 0)
+      modify.push({
+        part: before.key,
+        modification: {
+          element: "face",
+          op: "reserveArea" as const,
+          rect: [lengthBefore + s0, lo, lengthBefore + Math.min(0, s1), hi] as Rect
+        }
+      });
   }
   const frame = {
     origin: [corner[0], bottom, corner[2]] as [number, number, number],
@@ -1412,7 +1415,7 @@ export const wallCorner: ConnectionRule = ({ parts, seed, params, attached }) =>
         geometry: { elements: { corner: { kind: "point", frame } } },
         algorithm: {
           type: "cornerStones",
-          params: { seed, bottom, top, scale, before: dirBefore, after: dirAfter, cornerU: cAfter.uOffset ?? 0, gaps }
+          params: stoneParams
         },
         // Stones reach about 1.1 m wide, 0.8 m tall and 0.67 m deep.
         unit: { ...unit, range: { min: [0.05, 0.05, 1], max: [3, 3, 8] } }

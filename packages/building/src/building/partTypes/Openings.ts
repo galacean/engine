@@ -228,8 +228,7 @@ const CORNER_SNAP = 0.01;
 /** Elements "mount" and "opening<i>" of a window that spans a wall corner. It stands across the
  * corner, facing out along the corner's bisector, and scales evenly in plan so that it keeps
  * the corner's angle. Its openings run along the perimeter from the corner, on both of the walls
- * they cross. The curve "cornerSpan" stands at the corner from below the window to above its
- * lintels: the corner's stones leave those heights free. `u` must lie within 1 cm of a corner; a
+ * they cross. `u` must lie within 1 cm of a corner; a
  * round wall has none. */
 export const houseCornerMountGeometry: GeometryGenerator<CornerMountParams> = (p, { hosts, environment }) => {
   const facts = prefabFacts(environment, p.prefab);
@@ -303,15 +302,6 @@ export const houseCornerMountGeometry: GeometryGenerator<CornerMountParams> = (p
       kind: "point",
       frame: { origin: center, x, y, z },
       on: { host: host.index, element: "face", u: at, v: pivotY }
-    }
-  };
-  elements.cornerSpan = {
-    kind: "curve",
-    curve: {
-      points: [
-        [corner[0], pivotY + min[1] * sy - 0.05, corner[1]],
-        [corner[0], top + 0.1, corner[1]]
-      ]
     }
   };
   let i = 0;
