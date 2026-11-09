@@ -21,7 +21,8 @@ import {
   type EffectiveSurface,
   type Outline,
   unitExtent,
-  type ResolvedPart
+  type ResolvedPart,
+  ribbonOf
 } from "../core";
 import type { WallChartParams } from "../partTypes/House";
 import type { RoofDeckParams } from "../partTypes/Roof";
@@ -1035,8 +1036,9 @@ function foundationMesh(mesh: Mesh, geometry: EffectiveGeometry) {
   }
   // Each outline is charted in plan, after the faces.
   for (const e of Object.values(elements)) {
-    if (e.kind !== "curve" || !e.curve.closed) continue;
-    const pts = e.curve.points,
+    const line = ribbonOf(e);
+    if (!line?.closed) continue;
+    const pts = line.points,
       base = mesh.positions.length / 3;
     const x0 = Math.min(...pts.map((q) => q[0])),
       z0 = Math.min(...pts.map((q) => q[2]));
@@ -1238,7 +1240,7 @@ export function coreBuildingView(layout: CoreBuildingLayout, options: CoreBuildi
       } else if (binding.family === "roof") {
         // Each slope, cone or deck unrolls into one chart; slopes lie side by side.
         const surfaces = binding.parts.filter(({ part }) =>
-          Object.values(part.original.elements).some((e) => e.kind === "surface")
+          Object.values(part.original.elements).some((e) => e.kind === "surface" && !ribbonOf(e))
         );
         let offset = 0;
         const mesh = emptyMesh(),
@@ -1587,12 +1589,12 @@ export function coreBuildingDecorations(
                 bones: [bone, bone, bone]
               };
             } else {
-              const line = part.original.elements[`follow${follow++}`];
-              if (line?.kind !== "curve") throw Error(`${part.key} has no wall line for ${member.path}`);
+              const line = ribbonOf(part.original.elements[`follow${follow++}`]);
+              if (!line) throw Error(`${part.key} has no wall line for ${member.path}`);
               const bones: DecorationStoneInstance["bones"] = [
-                wallBone(line.curve.points, 0),
-                wallBone(line.curve.points, 0.5),
-                wallBone(line.curve.points, 1)
+                wallBone(line.points, 0),
+                wallBone(line.points, 0.5),
+                wallBone(line.points, 1)
               ];
               const [left, right] = [bones[0].position, bones[2].position];
               const chord = Math.hypot(right[0] - left[0], right[2] - left[2]);
@@ -1620,19 +1622,18 @@ export function coreBuildingDecorations(
     // A timber arch is drawn as its native beams, braces and posts, from its arc.
     for (const binding of woodArches)
       for (const { part, units } of binding.parts) {
-        const base = part.original.elements.base,
-          arc = part.original.elements.arc;
-        if (base?.kind !== "curve" || arc?.kind !== "curve" || !units.length) continue;
+        const arch = ribbonOf(part.original.elements.arch);
+        if (!arch?.offsets || !units.length) continue;
         const id = partId(part);
         const depth = (walls[0]?.depthScale ?? 1) as number;
         const members = placeConstructionWoodArch(
-          base.curve.points.map((q) => [q[0], q[1], q[2]] as [number, number, number]),
+          arch.points.map((q) => [q[0], q[1], q[2]] as [number, number, number]),
           {
             id: `${owner.group.id}/${id}`,
             seed: part.seed >>> 0,
             slot: owner.slot,
             depthScale: depth,
-            heights: base.curve.points.map((q, i) => arc.curve.points[i][1] - q[1])
+            heights: arch.offsets.map((q) => q[1])
           }
         );
         const colorId = (units[0].params?.woodColor as number | undefined) ?? owner.palette.woodColor;

@@ -23,13 +23,16 @@ const polyline = {
   params: {
     elements: {
       line: {
-        kind: "curve",
-        curve: {
-          points: [
-            [0, 0, 0],
-            [1.2, 0, 0],
-            [2, 0, 0]
-          ]
+        kind: "surface",
+        surface: {
+          kind: "ribbon",
+          params: {
+            points: [
+              [0, 0, 0],
+              [1.2, 0, 0],
+              [2, 0, 0]
+            ]
+          }
         }
       }
     }

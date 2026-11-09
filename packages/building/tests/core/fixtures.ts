@@ -3,6 +3,7 @@
 import {
   createBuildingRegistry,
   expandUnits,
+  ribbonOf,
   type ExpandablePart,
   joinPairKey,
   type BuildingCoreDraft,
@@ -23,9 +24,9 @@ export const stitch = box("stitch", 0.2, 0.5, 0.2);
 export const capTile = box("cap-tile", 0.25, 0.25, 0.02);
 
 function baseSegment(view: ParticipantView): [Vec3, Vec3] {
-  const base = view.geometry.original.elements.base;
-  if (base?.kind !== "curve") throw Error("Expected an extruded part with a base curve");
-  return [base.curve.points[0], base.curve.points[1]];
+  const base = ribbonOf(view.geometry.original.elements.base);
+  if (!base) throw Error("Expected an extruded part with a base ribbon");
+  return [base.points[0], base.points[1]];
 }
 /** Crossing of two segments in XZ, as fractions along each. */
 function crossing(a: [Vec3, Vec3], b: [Vec3, Vec3]): { t: number; s: number } | undefined {
@@ -67,13 +68,16 @@ export const crossingRule: ConnectionRule = ({ parts }) => {
         geometry: {
           elements: {
             line: {
-              kind: "curve",
-              curve: {
-                points: [
-                  [x, 0, z],
-                  [x, height, z]
-                ],
-                up: [1, 0, 0]
+              kind: "surface",
+              surface: {
+                kind: "ribbon",
+                params: {
+                  points: [
+                    [x, 0, z],
+                    [x, height, z]
+                  ],
+                  up: [1, 0, 0]
+                }
               }
             }
           }

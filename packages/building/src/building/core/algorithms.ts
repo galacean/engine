@@ -1,5 +1,5 @@
 import { positive, type Vec3 } from "./math";
-import type { EffectiveGeometry, Frame, GeometryElement, Rect } from "./geometry";
+import { ribbonOf, type EffectiveGeometry, type Frame, type GeometryElement, type Rect } from "./geometry";
 import type { Random } from "./random";
 import { unitAxisAlong, unitExtent, unitFits, unitNominal, type BuildingUnit } from "./unit";
 
@@ -55,6 +55,16 @@ export interface LayingAlgorithm<P = any, D = any> {
   unitAt(context: LayingContext<P>, data: D, index: number): LaidUnitSpec | undefined;
 }
 
+function selectRibbons(context: LayingContext<{ elements?: string[] }>): string[] {
+  const available = context.geometry.ribbons();
+  const requested = context.params.elements;
+  if (requested === undefined) return available;
+  if (!Array.isArray(requested)) throw Error("elements must be a list of element ids");
+  const original = context.geometry.original.elements;
+  for (const id of requested)
+    if (!available.includes(id) && !ribbonOf(original[id])) throw Error(`No ribbon element "${id}"`);
+  return requested.filter((id) => available.includes(id));
+}
 function select(context: LayingContext<{ elements?: string[] }>, kind: GeometryElement["kind"]): string[] {
   const available = context.geometry.ids(kind);
   const requested = context.params.elements;
@@ -136,19 +146,24 @@ export function simpleLaying<P = Record<string, unknown>>(
     unitAt: (_context, data, index) => data[index]
   };
 }
+/** What a part's geometry is made of, to choose its laying: a ribbon counts apart from a surface. */
+export type LayingKind = GeometryKind | "ribbon";
+export function layingKinds(elements: Readonly<Record<string, GeometryElement>>): Set<LayingKind> {
+  return new Set(Object.values(elements).map((e) => (ribbonOf(e) ? "ribbon" : e.kind)));
+}
 /** The algorithm a part gets when it names none: one unit per point, or one unit per
- * straight segment of a line, stretched to the segment. A surface must name one. */
-export function defaultLaying(kinds: ReadonlySet<GeometryKind>): { type: string; params?: Record<string, unknown> } {
+ * straight segment of a ribbon, stretched to the segment. A surface must name one. */
+export function defaultLaying(kinds: ReadonlySet<LayingKind>): { type: string; params?: Record<string, unknown> } {
   if (kinds.has("surface")) throw Error("A surface part must name a laying algorithm");
-  if (kinds.has("curve") && kinds.has("point"))
-    throw Error("Name a laying algorithm: the geometry has both points and lines");
-  if (kinds.has("curve")) return { type: "alongCurves", params: { perSegment: true, stretch: true } };
+  if (kinds.has("ribbon") && kinds.has("point"))
+    throw Error("Name a laying algorithm: the geometry has both points and ribbons");
+  if (kinds.has("ribbon")) return { type: "alongCurves", params: { perSegment: true, stretch: true } };
   if (kinds.has("point")) return { type: "placeAtPoints" };
   return { type: "none" };
 }
 
 export const noLaying: LayingAlgorithm = {
-  info: { accepts: ["point", "curve", "surface"], summary: "Lays nothing." },
+  info: { accepts: ["point", "surface"], summary: "Lays nothing." },
   plan: () => ({ count: 0, data: null }),
   unitAt: () => undefined
 };
@@ -235,8 +250,8 @@ export const alongCurves: LayingAlgorithm<
   CurveEntry[]
 > = {
   info: {
-    accepts: ["curve"],
-    summary: "Units along lines: abutting, at a fixed spacing, or one per straight segment.",
+    accepts: ["surface"],
+    summary: "Units along ribbons: abutting, at a fixed spacing, or one per straight segment.",
     params: {
       spacing: "Fixed pitch in metres; units keep their size. Default: abut.",
       perSegment: "One unit per straight segment. Default: false.",
@@ -244,7 +259,7 @@ export const alongCurves: LayingAlgorithm<
       gap: "Joint between neighbours in metres. Default: 0.",
       gapLimit: "Largest joint as a fraction of the span. Default: no limit.",
       start: "Offset of the first unit on open lines, in metres. Default: 0.",
-      elements: "Line ids to use. Default: all lines.",
+      elements: "Ribbon ids to use. Default: all ribbons.",
       limit: "Largest number of units. Default: 100000."
     }
   },
@@ -255,8 +270,8 @@ export const alongCurves: LayingAlgorithm<
       p.spacing === undefined && !p.perSegment ? positive(extent(context, "alongCurves")[0], "Unit length") : undefined;
     const entries: CurveEntry[] = [];
     let offset = 0;
-    for (const id of select(context, "curve")) {
-      const curve = context.geometry.curve(id);
+    for (const id of selectRibbons(context)) {
+      const curve = context.geometry.line(id);
       const start = curve.closed ? 0 : (p.start ?? 0);
       const lay = p.perSegment
         ? { count: curve.segmentCount, pitch: 0, fill: false }
@@ -281,7 +296,7 @@ export const alongCurves: LayingAlgorithm<
     const p = context.params,
       e = owner(data, index),
       j = index - e.offset;
-    const curve = context.geometry.curve(e.id);
+    const curve = context.geometry.line(e.id);
     const [s0, s1] = e.perSegment
       ? [curve.vertex(j), curve.vertex(j + 1)]
       : [e.start + j * e.pitch, e.start + (j + 1) * e.pitch];

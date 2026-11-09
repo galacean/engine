@@ -24,7 +24,8 @@ import {
   type LayingAlgorithm,
   type LayingContext,
   type SurfaceKind,
-  type Vec3
+  type Vec3,
+  ribbon
 } from "../core";
 import { profileShape, publishProfileWall } from "../runtime/ProfileGeometry";
 import { profileWallEnvelope } from "../runtime/ConstructionWallEnvelope";
@@ -226,10 +227,7 @@ export const houseWallSideGeometry: GeometryGenerator<HouseShared & { side: numb
     elements: {
       face: { kind: "surface", surface: { kind: "wallChart", params: side } },
       // The wall line around the whole house, so that rules can tell what lies inside it.
-      outline: {
-        kind: "curve",
-        curve: { points: chart.points.slice(0, n).map((q) => [q[0], q[1], q[2]] as Vec3), closed: true }
-      }
+      outline: ribbon({ points: chart.points.slice(0, n).map((q) => [q[0], q[1], q[2]] as Vec3), closed: true })
     }
   };
 };

@@ -4,6 +4,8 @@ import { Registry } from "./registry";
 import {
   curveSampler,
   extrusionSurface,
+  ribbon,
+  ribbonSurface,
   planeSurface,
   type BuildingEnvironment,
   type BuildingGeometry,
@@ -45,21 +47,18 @@ export interface BuildingRegistry {
 const elementsGenerator: GeometryGenerator<{ elements: BuildingGeometry["elements"] }> = (p) => ({
   elements: p.elements
 });
-/** A curve swept along its up direction: surface "face", curves "base" and "top", and
+/** A curve swept along its up direction: surface "face", ribbons "base" and "top", and
  * one "corner:i" point per vertex. */
 const extrudeGenerator: GeometryGenerator<{ curve: CurveData; height: number }> = (p) => {
   const height = positive(p.height, "Extrusion height");
   const sampler = curveSampler(p.curve);
   const elements: Record<string, GeometryElement> = {
     face: { kind: "surface", surface: { kind: "extrusion", params: { curve: p.curve, height } } },
-    base: { kind: "curve", curve: p.curve }
+    base: ribbon(p.curve)
   };
   const points = p.curve.points.map((point) => vec3(point, "Curve point"));
   const up = sampler.frame(0).y;
-  elements.top = {
-    kind: "curve",
-    curve: { ...p.curve, points: points.map((point) => add(point, scale(up, height))) }
-  };
+  elements.top = ribbon({ ...p.curve, points: points.map((point) => add(point, scale(up, height))) });
   points.forEach((_, i) => (elements[`corner:${i}`] = { kind: "point", frame: sampler.frame(sampler.vertex(i)) }));
   return { elements };
 };
@@ -154,6 +153,7 @@ export function createBuildingRegistry(): BuildingRegistry {
   registry.geometry.register("onHost", onHostGenerator);
   registry.geometry.register("hostElements", hostElementsGenerator);
   registry.surfaces.register("extrusion", extrusionSurface);
+  registry.surfaces.register("ribbon", ribbonSurface);
   registry.surfaces.register("plane", planeSurface);
   registry.algorithms.register("none", noLaying);
   registry.algorithms.register("placeAtPoints", placeAtPoints);

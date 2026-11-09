@@ -1,6 +1,6 @@
 // Part-type layer: ground-open arches through house walls.
-// - An arch has a mount at its crown, the curve "base" on the wall line along its span, the curve
-//   "arc" above it, and surfaces "opening0", "opening1", ...: rectangles that together take the
+// - An arch has a mount at its crown, a ribbon "arch" from the wall line along its span up to the
+//   arc above it, and surfaces "opening0", "opening1", ...: rectangles that together take the
 //   opening out of the wall, up to the arc. Stone covers their stepped top edge.
 // - On masonry the arc is a curved shoulder rising to the crown, laid with voussoirs on two
 //   stone piers. On timber it is a level lintel, drawn by the renderer as beams and braces.
@@ -11,7 +11,9 @@ import {
   type GeometryGenerator,
   type LayingAlgorithm,
   type Rect,
-  type Vec3
+  type Vec3,
+  ribbon,
+  ribbonOf
 } from "../core";
 import { wallChartSampler, type WallChartParams } from "./House";
 import { openingMeetsBand, type WallOpeningParams } from "./Openings";
@@ -104,8 +106,10 @@ export const houseArchGeometry: GeometryGenerator<ArchParams> = (p, { hosts }) =
       frame: { origin: [middle.x, apex, middle.z], x, y: [0, 1, 0], z: [-x[2], 0, x[0]] },
       on: { host: host.index, element: "face", u: s, v: apex }
     },
-    base: { kind: "curve", curve: { points: base } },
-    arc: { kind: "curve", curve: { points: arc } }
+    arch: ribbon({
+      points: base,
+      offsets: base.map((q, i): Vec3 => [arc[i][0] - q[0], arc[i][1] - q[1], arc[i][2] - q[2]])
+    })
   };
   // The opening in steps: a new step where the arc has risen or run far enough. A lintel is one.
   const steps: Rect[] = [];
@@ -132,9 +136,15 @@ export const houseArchGeometry: GeometryGenerator<ArchParams> = (p, { hosts }) =
 };
 
 type ArchLayout = { arcs: number; piers: number[] };
-const curve = (e: GeometryElement | undefined) => {
-  if (e?.kind !== "curve") throw Error("archStones lays an arch");
-  return e.curve.points;
+/** The ground line of an arch and the arc above it, point by point. */
+export const archRails = (e: GeometryElement | undefined) => {
+  const params = ribbonOf(e);
+  if (!params?.offsets) throw Error("archStones lays an arch");
+  const { points, offsets } = params;
+  return [
+    points,
+    points.map((q, i): Vec3 => [q[0] + offsets[i][0], q[1] + offsets[i][1], q[2] + offsets[i][2]])
+  ] as const;
 };
 const lengthOf = (list: readonly Vec3[]) =>
   list.slice(1).reduce((n, q, i) => n + Math.hypot(q[0] - list[i][0], q[1] - list[i][1], q[2] - list[i][2]), 0);
@@ -190,13 +200,12 @@ function pierPieces(height: number, random: () => number): PierPiece[] {
 /** Voussoirs along an arch's arc, about 0.56 m long, and two stone piers under its ends. */
 export const archStones: LayingAlgorithm<{ depthScale?: number }, ArchLayout> = {
   info: {
-    accepts: ["curve"],
+    accepts: ["surface"],
     summary: "Voussoirs along an arch's arc and stone piers under its ends.",
     params: { depthScale: "Scale of the stones' depth through the wall. Default: 1." }
   },
   plan(context) {
-    const { base, arc } = context.geometry.original.elements;
-    const [ground, top] = [curve(base), curve(arc)];
+    const [ground, top] = archRails(context.geometry.original.elements.arch);
     const arcs = Math.max(1, Math.floor(lengthOf(top) / VOUSSOIR + 0.5));
     const heights = [0, ground.length - 1].map((i) => top[i][1] - ground[i][1]);
     // A pier stands only under an end higher than 0.3 m.
@@ -204,8 +213,7 @@ export const archStones: LayingAlgorithm<{ depthScale?: number }, ArchLayout> = 
     return { count: arcs + piers[0] + piers[1], data: { arcs, piers } };
   },
   unitAt(context, d, index) {
-    const { base, arc } = context.geometry.original.elements;
-    const [ground, top] = [curve(base), curve(arc)];
+    const [ground, top] = archRails(context.geometry.original.elements.arch);
     const depthScale = context.params.depthScale ?? 1;
     const e = context.geometry.original.elements.mount;
     const first = context.geometry.original.elements.opening0;

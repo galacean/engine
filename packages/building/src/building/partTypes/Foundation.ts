@@ -16,7 +16,9 @@ import {
   type GeometryElement,
   type GeometryGenerator,
   type LayingAlgorithm,
-  type Vec3
+  type Vec3,
+  ribbon,
+  ribbonOf
 } from "../core";
 import { profileShape } from "../runtime/ProfileGeometry";
 import { constructionWallOutlinePoint, profileWallEnvelope } from "../runtime/ConstructionWallEnvelope";
@@ -68,10 +70,8 @@ const surface = (kind: string, params: object): GeometryElement => ({
   kind: "surface",
   surface: { kind, params }
 });
-const ring = (points: readonly (readonly number[])[], y: number): GeometryElement => ({
-  kind: "curve",
-  curve: { points: points.map((q) => [q[0], y, q[2]] as Vec3), closed: true }
-});
+const ring = (points: readonly (readonly number[])[], y: number): GeometryElement =>
+  ribbon({ points: points.map((q) => [q[0], y, q[2]] as Vec3), closed: true });
 
 /** The house perimeter where the foundation meets the ground, and the base's top height. */
 function contactOf(p: HouseShared, environment: BuildingEnvironment) {
@@ -486,14 +486,14 @@ function faceGeometry(elements: Readonly<Record<string, GeometryElement>>, f: Fo
 function columnsInside(foundation: ParticipantView, wall: ParticipantView): string[] {
   if (foundation.group === wall.group) return [];
   const elements = foundation.geometry.original.elements;
-  const underside = elements.underside;
+  const underside = ribbonOf(elements.underside);
   const face = wall.geometry.original.elements.face,
     line = wall.geometry.original.elements.outline;
-  if (underside?.kind !== "curve" || face?.kind !== "surface" || face.surface.kind !== "wallChart") return [];
+  if (!underside || face?.kind !== "surface" || face.surface.kind !== "wallChart") return [];
   const chart = face.surface.params as WallChartParams;
-  const y = underside.curve.points[0][1];
+  const y = underside.points[0][1];
   if (y < chart.minGround || y > Math.max(chart.maxYGable, ...chart.top)) return [];
-  const polygon = line?.kind === "curve" ? line.curve.points : chart.points;
+  const polygon = ribbonOf(line)?.points ?? chart.points;
   const kept = new Set(foundation.geometry.ids());
   const out: string[] = [];
   for (const id of kept) {

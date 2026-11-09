@@ -10,7 +10,8 @@ import {
   designBuildingCore,
   expandUnits,
   type BuildingCoreDraft,
-  type ResolvedPart
+  type ResolvedPart,
+  ribbonOf
 } from "../../src/building/core";
 import { registerHouseTypes } from "../../src/building/partTypes/House";
 import type { RoofSlopeParams } from "../../src/building/partTypes/Roof";
@@ -89,7 +90,7 @@ describe("Roof slopes", () => {
   it("follows the ridge direction", () => {
     const along = (p: CoreHouseParameters) => {
       const ridge = roof(p).ridges[0];
-      const points = (ridge.original.elements.ridge as { curve: { points: number[][] } }).curve.points;
+      const points = ribbonOf(ridge.original.elements.ridge)!.points;
       return Math.abs(points[1][0] - points[0][0]) > Math.abs(points[1][2] - points[0][2]) ? "x" : "z";
     };
     expect(along({ id: "a" })).toBe("x");

@@ -29,7 +29,8 @@ import {
   type SurfaceKind,
   type Vec3,
   joinPairKey,
-  unitFits
+  unitFits,
+  ribbon
 } from "../core";
 import { profileShape } from "../runtime/ProfileGeometry";
 import { isFlatRoofHeight } from "../runtime/RoofMode";
@@ -397,8 +398,8 @@ interface CapLayout {
  * of the curve, moved by its own random offset. */
 export const capCourses: LayingAlgorithm<CapParams, CapLayout> = {
   info: {
-    accepts: ["curve"],
-    summary: "Ridge or hip caps along a curve, between randomly placed joints.",
+    accepts: ["surface"],
+    summary: "Ridge or hip caps along a ribbon, between randomly placed joints.",
     params: {
       width: "Cap width in metres.",
       depth: "Cap depth in metres.",
@@ -411,17 +412,17 @@ export const capCourses: LayingAlgorithm<CapParams, CapLayout> = {
       flag: "Renderer flag of every cap. Default: 2 at both ends, 1 between.",
       spacing: "Joint spacing in metres. Default: 0.625.",
       jitter: "Joint jitter in metres. Default: 0.125.",
-      element: "Curve element id. Default: the first curve."
+      element: "Ribbon id. Default: the first ribbon."
     }
   },
   plan(context) {
-    const curve = context.geometry.curve(capElement(context));
+    const curve = context.geometry.line(capElement(context));
     const joints = Math.max(2, Math.floor(curve.length / (context.params.spacing ?? 0.625) + 0.5));
     return { count: joints - 1, data: { joints } };
   },
   unitAt(context, d, index) {
     const p = context.params;
-    const curve = context.geometry.curve(capElement(context));
+    const curve = context.geometry.line(capElement(context));
     const step = 1 / (d.joints - 1),
       amplitude = Math.min((p.jitter ?? 0.125) / curve.length, step * 0.495);
     const joint = (i: number) =>
@@ -454,7 +455,7 @@ export const capCourses: LayingAlgorithm<CapParams, CapLayout> = {
   }
 };
 function capElement(context: LayingContext<CapParams>) {
-  return context.params.element ?? context.geometry.ids("curve")[0];
+  return context.params.element ?? context.geometry.ribbons()[0];
 }
 
 /** A round roof: a cone whose section follows the profile from the eave radius (x = 0) to
@@ -971,7 +972,7 @@ export const roofSlopes_: ConnectionRule = ({ parts, params }) => {
         {
           localId: "hip",
           type: "hipCap",
-          geometry: { elements: { hip: { kind: "curve", curve: { points: profileLine(pl, pl.b1, pl.t1) } } } },
+          geometry: { elements: { hip: ribbon({ points: profileLine(pl, pl.b1, pl.t1) }) } },
           algorithm: {
             type: "capCourses",
             params: HIP_CAP
@@ -993,15 +994,12 @@ export const roofSlopes_: ConnectionRule = ({ parts, params }) => {
         type: "ridgeCap",
         geometry: {
           elements: {
-            ridge: {
-              kind: "curve",
-              curve: {
-                points: [
-                  [start[0], y, start[1]],
-                  [end[0], y, end[1]]
-                ]
-              }
-            }
+            ridge: ribbon({
+              points: [
+                [start[0], y, start[1]],
+                [end[0], y, end[1]]
+              ]
+            })
           }
         },
         algorithm: {
@@ -1048,7 +1046,7 @@ export const roofOnWalls: ConnectionRule = ({ guest, params }) => {
     derive: rakes.map(([b, t], i) => ({
       localId: `rake:${i}`,
       type: "rakeCap",
-      geometry: { elements: { rake: { kind: "curve" as const, curve: { points: profileLine(p, b, t) } } } },
+      geometry: { elements: { rake: ribbon({ points: profileLine(p, b, t) }) } },
       algorithm: { type: "capCourses", params: HIP_CAP },
       unit: capUnit(guest.unit!)
     }))

@@ -14,6 +14,7 @@ import {
   normalize,
   scale,
   sub,
+  ribbon,
   type BuildingUnit,
   type BuildingRegistry,
   type ConnectionRule,
@@ -288,10 +289,7 @@ export const houseRoofMountGeometry: GeometryGenerator<RoofMountParams> = (p, { 
       on: { host: best.index, element: "slope", u: hit.u, v: hit.v }
     },
     sweep: { kind: "surface", surface: { kind: "dormerSweep", params: sweep } },
-    ridge: {
-      kind: "curve",
-      curve: { points: [add(top, scale(back, depth)), add(top, scale(z, depth * 0.05))] }
-    }
+    ridge: ribbon({ points: [add(top, scale(back, depth)), add(top, scale(z, depth * 0.05))] })
   };
   return { elements };
 };

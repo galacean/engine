@@ -29,7 +29,6 @@ export interface SurfaceLocation {
 }
 export type GeometryElement =
   | { readonly kind: "point"; readonly frame: Frame; readonly on?: SurfaceLocation }
-  | { readonly kind: "curve"; readonly curve: CurveData }
   | { readonly kind: "surface"; readonly surface: SurfaceData; readonly inherit?: readonly SurfaceInheritance[] };
 /** A guest surface that continues a host surface: the host element's modifications apply to
  * this surface too, shifted by `offset` in surface coordinates. `host` indexes the hosts of
@@ -211,6 +210,40 @@ export function curveSampler(curve: CurveData): CurveSampler {
 }
 
 /** A curve swept along its up direction. u = arc length, v = height. */
+/** A strip of a surface along a polyline: u runs along it in metres, v across from 0 to 1, to the
+ * point `offsets` away from each vertex. Without offsets it has no width and is only its line. */
+export interface RibbonParams extends CurveData {
+  readonly offsets?: readonly Vec3[];
+}
+export const ribbonSurface: SurfaceKind<RibbonParams> = {
+  domain: (p) => ({ u: [0, curveSampler(p).length], v: [0, 1], closedU: p.closed === true }),
+  frame: (p, u, v) => {
+    const sampler = curveSampler(p);
+    const f = sampler.frame(u);
+    if (!p.offsets || !v) return f;
+    const n = p.points.length;
+    let i = 0;
+    while (i + 2 < n && sampler.vertex(i + 1) < u) i++;
+    const [a, b] = [sampler.vertex(i), sampler.vertex(i + 1)];
+    const t = b > a ? Math.max(0, Math.min(1, (u - a) / (b - a))) : 0;
+    const [p0, p1] = [p.offsets[i], p.offsets[(i + 1) % n]];
+    return {
+      ...f,
+      origin: [0, 1, 2].map((k) => f.origin[k] + (p0[k] + (p1[k] - p0[k]) * t) * v) as unknown as Vec3
+    };
+  }
+};
+/** A ribbon as a geometry element. */
+export const ribbon = (params: RibbonParams): GeometryElement => ({
+  kind: "surface",
+  surface: { kind: "ribbon", params }
+});
+/** The ribbon data of an element, if it is a ribbon. */
+export const ribbonOf = (element: GeometryElement | undefined): RibbonParams | undefined =>
+  element?.kind === "surface" && element.surface.kind === "ribbon"
+    ? (element.surface.params as RibbonParams)
+    : undefined;
+
 export const extrusionSurface: SurfaceKind<{ curve: CurveData; height: number }> = {
   domain: (p) => ({
     u: [0, curveSampler(p.curve).length],
@@ -277,8 +310,7 @@ export function geometryIssue(geometry: BuildingGeometry, surfaces: BoundSurface
       if (element?.kind === "point") {
         const issue = frameIssue(element.frame);
         if (issue) return `Point "${id}": ${issue}`;
-      } else if (element?.kind === "curve") curveSampler(element.curve);
-      else if (element?.kind === "surface") {
+      } else if (element?.kind === "surface") {
         const kind = surfaces.get(element.surface?.kind);
         if (!kind) return `Surface "${id}" uses unknown kind "${element.surface?.kind}"`;
         kind.domain(element.surface.params);
@@ -317,7 +349,7 @@ export function modificationIssue(geometry: BuildingGeometry, modification: Geom
       return;
     }
     case "removeSpan": {
-      if (element.kind !== "curve") return "removeSpan needs a curve element";
+      if (!ribbonOf(element)) return "removeSpan needs a ribbon";
       const span = modification.span;
       if (!Array.isArray(span) || span.length !== 2 || !span.every(Number.isFinite) || !(span[1] > span[0]))
         return "Span must be two increasing finite numbers";
@@ -488,7 +520,7 @@ export class EffectiveSurface {
   }
 }
 /** A curve with its span edits applied. */
-export class EffectiveCurve {
+export class EffectiveLine {
   constructor(
     private readonly sampler: CurveSampler,
     private readonly removes: readonly (readonly [number, number])[]
@@ -555,7 +587,11 @@ export class EffectiveGeometry {
   }
   ids(kind?: GeometryElement["kind"]): string[] {
     return Object.keys(this.original.elements)
-      .filter((id) => !this.removed.has(id) && (!kind || this.original.elements[id].kind === kind))
+      .filter((id) => {
+        const element = this.original.elements[id];
+        // A ribbon is laid along its line, unlike the surfaces that cover an area.
+        return !this.removed.has(id) && (!kind || (element.kind === kind && !ribbonOf(element)));
+      })
       .sort(compareKeys);
   }
   private element<K extends GeometryElement["kind"]>(id: string, kind: K): Extract<GeometryElement, { kind: K }> {
@@ -575,8 +611,15 @@ export class EffectiveGeometry {
   location(id: string): SurfaceLocation | undefined {
     return this.element(id, "point").on;
   }
-  curve(id: string): EffectiveCurve {
-    return new EffectiveCurve(curveSampler(this.element(id, "curve").curve), this.spans.get(id) ?? []);
+  /** The center line of a ribbon. */
+  line(id: string): EffectiveLine {
+    const params = ribbonOf(this.element(id, "surface"));
+    if (!params) throw Error(`Element "${id}" is not a ribbon`);
+    return new EffectiveLine(curveSampler(params), this.spans.get(id) ?? []);
+  }
+  /** The ids of this geometry's ribbons. */
+  ribbons(): string[] {
+    return this.ids().filter((id) => ribbonOf(this.original.elements[id]));
   }
   surface(id: string): EffectiveSurface {
     const data = this.element(id, "surface").surface;

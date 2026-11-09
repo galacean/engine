@@ -7,7 +7,13 @@ vi.mock("@galacean/engine", async () => ({
 }));
 import { describe, expect, it, vi } from "vitest";
 import { nativeAssets } from "../fixtures/constructionAssets";
-import { createBuildingRegistry, designBuildingCore, expandUnits, type ResolvedPart } from "../../src/building/core";
+import {
+  createBuildingRegistry,
+  designBuildingCore,
+  expandUnits,
+  type ResolvedPart,
+  ribbonOf
+} from "../../src/building/core";
 import { registerHouseTypes, type WallChartParams } from "../../src/building/partTypes/House";
 import { buildCoreHouse, buildCoreHouses, type CoreHouseParameters } from "../../src/building/application/CoreEuropean";
 import { European } from "../../src/building/application/European";
@@ -27,7 +33,12 @@ const lay = (part: ResolvedPart, ground: Ground = flat) =>
   expandUnits(part, registry, { environment: coreBuildingEnvironment(ground) });
 const rectangle = { center: [0, 0] as [number, number], size: [10, 8] as [number, number], rotation: 0.3 };
 const circle = { center: [0, 0] as [number, number], radius: 3, phase: 0 };
-const house = (extra: Partial<CoreHouseParameters>): CoreHouseParameters => ({ id: "h", height: 4, rectangle, ...extra });
+const house = (extra: Partial<CoreHouseParameters>): CoreHouseParameters => ({
+  id: "h",
+  height: 4,
+  rectangle,
+  ...extra
+});
 const foundationOf = (result: ReturnType<typeof design>) => result.parts.find((p) => p.type === "foundation")!;
 const chartOf = (part: ResolvedPart) => {
   const face = part.original.elements.face;
@@ -125,8 +136,7 @@ describe("Raised foundations", () => {
         expect((foot.surface.params as WallChartParams).minGround).toBeCloseTo(theirs[i].startY, 5);
       });
     const underside = elements.underside;
-    if (underside.kind !== "curve") throw Error("no underside");
-    expect(underside.curve.points[0][1]).toBeCloseTo(1.2 - 0.24, 6);
+    expect(ribbonOf(underside)!.points[0][1]).toBeCloseTo(1.2 - 0.24, 6);
   });
 
   it("pillars: no column stands inside a neighbouring house", () => {

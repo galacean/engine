@@ -22,7 +22,7 @@ import {
 } from "./geometry";
 import { unitIssue, type BuildingUnit } from "./unit";
 import { laidUnit, layingContext, type PartLayout } from "./expansion";
-import { defaultLaying } from "./algorithms";
+import { defaultLaying, layingKinds } from "./algorithms";
 import {
   attachPairKey,
   joinPairKey,
@@ -53,7 +53,7 @@ export interface BuildingPartDef {
   readonly group: string;
   readonly type: string;
   readonly geometry: { readonly generator: string; readonly params?: Readonly<Record<string, unknown>> };
-  /** Optional for points and lines; see `defaultLaying`. Required for surfaces. */
+  /** Optional for points and ribbons; see `defaultLaying`. Required for surfaces. */
   readonly algorithm?: BuildingAlgorithmRef | SharedRef<BuildingAlgorithmRef>;
   readonly unit?: BuildingUnit | SharedRef<BuildingUnit>;
 }
@@ -285,8 +285,7 @@ export function designBuildingCore(
     const solids = unit && environment.asset?.(unit.source)?.occupancy;
     if (!unit || !solids?.length || !state.original) return [];
     try {
-      const kinds = new Set(Object.values(state.original.elements).map((e) => e.kind));
-      const ref = state.algorithm ?? defaultLaying(kinds);
+      const ref = state.algorithm ?? defaultLaying(layingKinds(state.original.elements));
       const algorithm = registry.algorithms.get(ref.type);
       if (!algorithm) return [];
       const params = plain(resolveShared(ref.params ?? {}, state.group.shared ?? {}));
@@ -569,12 +568,12 @@ export function designBuildingCore(
     if (state.unit)
       try {
         const unit = state.unit;
-        const kinds = new Set(Object.values(state.original.elements).map((e) => e.kind));
+        const kinds = layingKinds(state.original.elements);
         state.algorithm ??= defaultLaying(kinds);
         const algorithm = registry.algorithms.get(state.algorithm.type);
         if (!algorithm) throw Error(`Unknown laying algorithm "${state.algorithm.type}"`);
         const accepts = algorithm.info?.accepts;
-        if (accepts && !accepts.some((kind) => kinds.has(kind)))
+        if (accepts && !accepts.some((kind) => kinds.has(kind) || (kind === "surface" && kinds.has("ribbon"))))
           throw Error(`${state.algorithm.type} lays ${accepts.join(" or ")} elements; this geometry has none`);
         const params = plain(resolveShared(state.algorithm.params ?? {}, state.group.shared ?? {}));
         const context = layingContext(

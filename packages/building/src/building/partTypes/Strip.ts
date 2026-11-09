@@ -11,7 +11,8 @@ import {
   type GeometryGenerator,
   type LayingAlgorithm,
   type SurfaceKind,
-  type Vec3
+  type Vec3,
+  ribbon
 } from "../core";
 
 export interface StripRectangle {
@@ -80,10 +81,7 @@ export const fenceGeometry: GeometryGenerator<FenceParams> = (p, { environment }
     elements[`post:${i}`] = { kind: "point", frame: { origin, x: [c, 0, s], y: [0, 1, 0], z: [-s, 0, c] } };
   });
   p.levels.forEach((level, j) => {
-    elements[`level:${j}`] = {
-      kind: "curve",
-      curve: { points: feet.map(([x, y, z]) => [x, y + p.height * level, z] as Vec3) }
-    };
+    elements[`level:${j}`] = ribbon({ points: feet.map(([x, y, z]) => [x, y + p.height * level, z] as Vec3) });
   });
   return { elements } satisfies BuildingGeometry;
 };

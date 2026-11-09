@@ -9,6 +9,7 @@
 import {
   add,
   joinPairKey,
+  ribbon,
   scale,
   type BuildingRegistry,
   type ConnectionRule,
@@ -153,10 +154,7 @@ export const houseEaveMountGeometry: GeometryGenerator<EaveMountParams> = (p, co
     const sweep: DormerSweepParams = { origin, x, z, outline, depth };
     const top = add(origin, [0, peak, 0]);
     elements.sweep = { kind: "surface", surface: { kind: "dormerSweep", params: sweep } };
-    elements.ridge = {
-      kind: "curve",
-      curve: { points: [add(top, scale(back, depth)), add(top, scale(z, depth * 0.05))] }
-    };
+    elements.ridge = ribbon({ points: [add(top, scale(back, depth)), add(top, scale(z, depth * 0.05))] });
     return { elements };
   }
   // A shed: rows along the contours from the wall top to the height of its back.

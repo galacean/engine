@@ -6,6 +6,7 @@ vi.mock("@galacean/engine", async () => ({
 }));
 import { describe, expect, it, vi } from "vitest";
 import { nativeAssets } from "../fixtures/constructionAssets";
+import { archRails } from "../../src/building/partTypes/Arches";
 import { createBuildingRegistry, designBuildingCore, expandUnits, type ResolvedPart } from "../../src/building/core";
 import { registerHouseTypes } from "../../src/building/partTypes/House";
 import {
@@ -157,7 +158,7 @@ describe("Arches against the online path", () => {
       house({ height: 7, floors: { enabled: true, interval: 3 }, attachments: [arch({ height: 3.4 })], ...extra })
     );
     expect(r.diagnostics).toEqual([]);
-    const points = (part(r, type).original.elements.arc as { curve: { points: number[][] } }).curve.points;
+    const [, points] = archRails(part(r, type).original.elements.arch);
     const n = points.length - 1;
     const open = points.map((_, i) => i).filter((i) => points[i][1] > 3.1);
     const [a, b] = [4 + (2 * open[0]) / n, 4 + (2 * open.at(-1)!) / n];

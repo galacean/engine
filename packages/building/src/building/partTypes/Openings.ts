@@ -1,6 +1,6 @@
 // Part-type layer: prefabs mounted on house walls, such as windows, doors and wall lamps.
 // - A mounted part has a point "mount" on its wall. A member that bends along the wall has a
-//   curve "follow0", "follow1", ...: the wall line under it.
+//   ribbon "follow0", "follow1", ...: the wall line under it.
 // - It attaches to the house walls; the attach rule removes what the part occupies from the wall
 //   it sits on. A finish continues the wall faces, so it loses the opening too.
 // - An opening also cuts floor bands that cross it, through a join between the two parts.
@@ -18,7 +18,9 @@ import {
   type ParticipantView,
   type Rect,
   type SurfaceKind,
-  type Vec3
+  type Vec3,
+  ribbon,
+  ribbonOf
 } from "../core";
 import { wallChartCorners, wallChartSampler, type WallChartParams } from "./House";
 
@@ -147,7 +149,7 @@ export const houseWallMountGeometry: GeometryGenerator<WallMountParams> = (p, { 
       const at = along(s + follow.from + ((follow.to - follow.from) * k) / steps);
       return [at.x, center + follow.height, at.z];
     });
-    elements[`follow${i}`] = { kind: "curve", curve: { points } };
+    elements[`follow${i}`] = ribbon({ points });
   });
   return { elements };
 };
@@ -451,13 +453,7 @@ function thresholdOf(
     localId: "threshold",
     type: "threshold",
     geometry: {
-      elements: {
-        step: { kind: "curve" as const, curve: { points } },
-        top: {
-          kind: "curve" as const,
-          curve: { points: [points[0], points[steps]].map((q): Vec3 => [q[0], level, q[2]]) }
-        }
-      }
+      elements: { step: ribbon({ points, offsets: points.map((q): Vec3 => [0, level - q[1], 0]) }) }
     },
     algorithm: { type: "thresholdStones", params: { wallU: [opening.perimeter[0], opening.perimeter[2]] } },
     unit: { ...wall.unit, range: { min: [0.05, 0.05, 0.1] as Vec3, max: [10, 10, 10] as Vec3 } }
@@ -470,30 +466,29 @@ interface ThresholdParams {
   /** Depth through the wall, in metres. Default: 0.76, wider than the wall's bricks. */
   readonly depth?: number;
 }
-/** The stones of a door's threshold: about 0.7 m each along the curve "step" on the ground, up
- * to the level of the curve "top". */
+/** The stones of a door's threshold: about 0.7 m each along the ground line of the ribbon "step",
+ * up to the top of the ribbon. */
 export const thresholdStones: LayingAlgorithm<ThresholdParams, { count: number }> = {
   info: {
-    accepts: ["curve"],
-    summary: "A door's threshold: a row of low stones along a curve on the ground.",
+    accepts: ["surface"],
+    summary: "A door's threshold: a row of low stones along a ribbon on the ground.",
     params: {
       wallU: "Where the threshold lies along the house perimeter, in metres.",
       depth: "Depth through the wall, in metres. Default: 0.76."
     }
   },
   plan(context) {
-    const points = curvePoints(context.geometry.original.elements.step);
+    const { points } = stepOf(context.geometry.original.elements.step);
     const length = points.slice(1).reduce((n, q, i) => n + Math.hypot(q[0] - points[i][0], q[2] - points[i][2]), 0);
     const count = Math.max(1, Math.round(length / 0.7));
     return { count, data: { count } };
   },
   unitAt(context, { count }, index) {
-    const points = curvePoints(context.geometry.original.elements.step);
+    const { points, top } = stepOf(context.geometry.original.elements.step);
     const joint = (i: number) =>
       i === 0 || i === count ? i / count : (i + (context.random(`joint/${i}`, "joint").next() - 0.5) * 0.3) / count;
     const a = pointAlong(points, joint(index)),
       b = pointAlong(points, joint(index + 1));
-    const top = curvePoints(context.geometry.original.elements.top)[0][1];
     const y0 = (a[1] + b[1]) / 2;
     const l = Math.hypot(b[0] - a[0], b[2] - a[2]) || 1;
     const x: Vec3 = [(b[0] - a[0]) / l, 0, (b[2] - a[2]) / l];
@@ -515,9 +510,10 @@ export const thresholdStones: LayingAlgorithm<ThresholdParams, { count: number }
     };
   }
 };
-function curvePoints(element: GeometryElement | undefined): readonly Vec3[] {
-  if (element?.kind !== "curve") throw Error("thresholdStones lays a curve");
-  return element.curve.points;
+function stepOf(element: GeometryElement | undefined) {
+  const params = ribbonOf(element);
+  if (!params?.offsets) throw Error("thresholdStones lays a ribbon");
+  return { points: params.points as readonly Vec3[], top: params.points[0][1] + params.offsets[0][1] };
 }
 /** The point a fraction of the way along a polyline, by its plan length. */
 function pointAlong(points: readonly Vec3[], t: number): Vec3 {
@@ -573,8 +569,7 @@ function insideOutline(points: readonly (readonly number[])[], x: number, z: num
   return result;
 }
 const outlineOf = (wall: ParticipantView) => {
-  const e = wall.geometry.original.elements.outline;
-  return e?.kind === "curve" ? e.curve.points : undefined;
+  return ribbonOf(wall.geometry.original.elements.outline)?.points;
 };
 const mountPoint = (part: ParticipantView) => {
   const e = part.geometry.original.elements.mount;
