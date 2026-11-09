@@ -5,7 +5,7 @@
 //   back from a little in front of the wall into the roof and cut off at the wall top; the
 //   others carry a shed, lofted through the roof's contours from the eave to its back.
 // - The attach rule opens the wall, takes the dormer's footprint out of the roof part behind it
-//   and derives the small roof.
+//   and derives the small roof. An arch opens the roof from the eave back to the wall line.
 import {
   add,
   joinPairKey,
@@ -23,7 +23,6 @@ import {
   coveringRise,
   depthToHeight,
   dormerCap,
-  dormerFootprint,
   dormerTile,
   roofUnder,
   slopeSurface,
@@ -205,12 +204,67 @@ export const houseEaveMountGeometry: GeometryGenerator<EaveMountParams> = (p, co
   return { elements };
 };
 
-/** The span in the host's u of a level line of plan points, and the v of its middle. */
-function lineSpan(surface: EffectiveSurface, points: readonly Vec3[], near: readonly [number, number]) {
-  const hits = points.map((q) => surfaceAtPlan(surface, q[0], q[2], near) ?? surfaceAtPlan(surface, q[0], q[2]));
-  if (hits.some((h) => !h)) return undefined;
-  const us = hits.map((h) => h!.u);
-  return { lo: Math.min(...us), hi: Math.max(...us), v: hits[1]!.v };
+/** The depth of one band of an eave opening, in metres, the most bands an opening has, and how
+ * far each band overlaps the next, so that no seam opens between them. */
+const EAVE_BAND = 0.12;
+const EAVE_BANDS = 4;
+const EAVE_BAND_OVERLAP = 0.02;
+/** The opening an eave dormer makes in the roof, from `untilV` out to the roof's lower edge. The
+ * roof's rows fan out towards its hips, so one rectangle would drift sideways over that distance:
+ * the opening is a stack of bands, each centred in plan on the level line through `center` along
+ * `z`, and `halfWidth` wide at its middle, given how far out that is and the roof's height at the
+ * band's lower edge. */
+function eaveBands(
+  surface: EffectiveSurface,
+  near: readonly [number, number],
+  center: Vec3,
+  x: Vec3,
+  z: Vec3,
+  untilV: number,
+  halfWidth: (out: number, height: number) => number
+): Rect[] {
+  const v0 = surface.domain.v[0];
+  const hitAt = (out: number, side = 0) => {
+    const q = add(add(center, scale(z, out)), scale(x, side));
+    return surfaceAtPlan(surface, q[0], q[2], near);
+  };
+  /** How far out along `z` the roof comes down to `v`, between `inner` and `outer`. `offIsInner`
+   * says which side a point off the roof lies on. */
+  const outAt = (v: number, inner: number, outer: number, offIsInner: boolean) => {
+    for (let i = 0; i < 24; i++) {
+      const middle = (inner + outer) / 2,
+        hit = hitAt(middle);
+      if (hit ? hit.v > v : offIsInner) inner = middle;
+      else outer = middle;
+    }
+    return inner;
+  };
+  const from = hitAt(0)?.v ?? v0;
+  const eave = outAt(v0, 0, 8, false);
+  const back = untilV > from ? outAt(untilV, -8, 0, true) : outAt(untilV, 0, eave, false);
+  const bands = Math.min(EAVE_BANDS, Math.max(1, Math.ceil((eave - back) / EAVE_BAND)));
+  const at = (k: number) => lerp(back, eave, k / bands);
+  const rects: Rect[] = [];
+  for (let k = 0; k < bands; k++) {
+    const high = hitAt(at(k)),
+      low = hitAt(Math.min(eave, at(k + 1) + EAVE_BAND_OVERLAP));
+    if (!high || !low) continue;
+    const middle = (at(k) + at(k + 1)) / 2;
+    const width = halfWidth(middle, low.frame.origin[1]);
+    const a = width > 0 ? hitAt(middle, -width) : undefined,
+      b = width > 0 ? hitAt(middle, width) : undefined;
+    if (a && b) rects.push([Math.min(a.u, b.u), k === bands - 1 ? v0 : low.v, Math.max(a.u, b.u), high.v]);
+  }
+  return rects;
+}
+/** How wide an arch stands at a height above its origin, from its outline. */
+function archHalfWidth(outline: DormerSweepParams["outline"], height: number) {
+  const right = outline.slice(Math.floor(outline.length / 2));
+  if (height > right[0][1]) return 0;
+  for (let i = 1; i < right.length; i++)
+    if (height >= right[i][1])
+      return lerp(right[i - 1][0], right[i][0], (right[i - 1][1] - height) / (right[i - 1][1] - right[i][1]));
+  return right[right.length - 1][0];
 }
 const curveOf = (e: GeometryElement | undefined) => (e?.kind === "curve" ? e.curve.points : undefined);
 /** Attach rule of an eave dormer: the window opens its wall, its footprint comes out of the roof
@@ -232,14 +286,17 @@ export const eaveDormerOnHouse: ConnectionRule = (context) => {
   });
   const sweep = elements.sweep;
   if (sweep?.kind === "surface" && sweep.surface.kind === "dormerSweep") {
-    // The footprint opens the eave: every step of it reaches the roof's lower edge, and the
-    // whole width of the arch is open from there back to the wall.
-    const footprint = dormerFootprint(sweep.surface.params as DormerSweepParams, surface, near, lift).map(
-      ([u0, , u1, v1]): Rect => [u0, surface.domain.v[0], u1, v1]
-    );
+    const arch = sweep.surface.params as DormerSweepParams;
     const wall = curveOf(elements.front);
-    const body = wall && lineSpan(surface, wall, near);
-    if (body) footprint.push([body.lo, surface.domain.v[0], body.hi, body.v]);
+    const line = wall && surfaceAtPlan(surface, wall[1][0], wall[1][2], near);
+    // The opening runs from the wall line to the eave. The tiles behind the wall stay whole and
+    // the small roof comes up through them.
+    const footprint =
+      wall && line
+        ? eaveBands(surface, near, wall[1], arch.x, arch.z, line.v, (_, height) =>
+            archHalfWidth(arch.outline, height + lift - arch.origin[1])
+          )
+        : [];
     return {
       ...opened,
       modify: [...(opened.modify ?? []), ...footprint.map(removed)],
@@ -268,15 +325,19 @@ export const eaveDormerOnHouse: ConnectionRule = (context) => {
   const front = curveOf(elements.front);
   if (shed?.kind !== "surface" || shed.surface.kind !== "loft" || !front) return opened;
   const loft = shed.surface.params as LoftParams;
-  const body = lineSpan(surface, front, near);
   const last = loft.rows[loft.rows.length - 1].points;
   const vBack = vAtHeight(surface, near[0], last[Math.floor(last.length / 2)][1] - lift);
-  if (!body || vBack === undefined) return { ...opened, diagnostics: [`${guest.key} lies off its roof`] };
-  const v0 = surface.domain.v[0];
-  const rects: Rect[] = [[body.lo, v0, body.hi, vBack]];
+  const mount = elements.mount;
+  if (vBack === undefined || mount?.kind !== "point")
+    return { ...opened, diagnostics: [`${guest.key} lies off its roof`] };
+  const half = (curve: readonly Vec3[]) => Math.hypot(...add(curve[2], scale(curve[0], -1))) / 2;
   const clearance = curveOf(elements.clearance);
-  const wide = clearance && lineSpan(surface, clearance, near);
-  if (wide) rects.push([wide.lo, v0, wide.hi, wide.v]);
+  const [bodyHalf, wideHalf] = [half(front), clearance ? half(clearance) : 0];
+  // With shutters, the eave is wider in front of the point the width is measured at.
+  const rects = eaveBands(surface, near, front[1], mount.frame.x, mount.frame.z, vBack, (out) =>
+    out >= 0 ? Math.max(bodyHalf, wideHalf) : bodyHalf
+  );
+  if (!rects.length) return { ...opened, diagnostics: [`${guest.key} lies off its roof`] };
   return {
     ...opened,
     modify: [...(opened.modify ?? []), ...rects.map(removed)],

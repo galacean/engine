@@ -6,7 +6,13 @@ vi.mock("@galacean/engine", async () => ({
 }));
 import { describe, expect, it, vi } from "vitest";
 import { nativeAssets } from "../fixtures/constructionAssets";
-import { createBuildingRegistry, designBuildingCore, expandUnits, type ResolvedPart } from "../../src/building/core";
+import {
+  createBuildingRegistry,
+  designBuildingCore,
+  EffectiveGeometry,
+  expandUnits,
+  type ResolvedPart
+} from "../../src/building/core";
 import { registerHouseTypes } from "../../src/building/partTypes/House";
 import {
   buildCoreHouse,
@@ -108,9 +114,26 @@ describe("Eave dormers against the online path", () => {
     expect(wall).toHaveLength(1);
     const roofs = result.parts.filter((p) => p.type === "roof" && p.modifications.some((m) => m.op === "removeArea"));
     expect(roofs).toHaveLength(1);
-    for (const m of roofs[0].modifications) if (m.op === "removeArea") expect(m.rect[1]).toBe(0);
+    // The opening is a stack of bands that reaches the roof's lower edge.
+    const starts = roofs[0].modifications.flatMap((m) => (m.op === "removeArea" ? [m.rect[1]] : []));
+    expect(Math.min(...starts)).toBe(0);
     const shed = result.parts.find((p) => p.type === "shedRoof")!;
     expect(lay(shed).length).toBeGreaterThanOrEqual(8);
+    // The opening ends under the shed: no hole opens in the roof behind it.
+    const loft = shed.original.elements.shed;
+    const mount = result.parts.find((p) => p.type === "eaveDormer")!.original.elements.mount;
+    if (loft?.kind !== "surface" || mount.kind !== "point") throw Error("no shed");
+    const rows = (loft.surface.params as { rows: { points: number[][] }[] }).rows;
+    const inward = (q: readonly number[]) =>
+      -((q[0] - mount.frame.origin[0]) * mount.frame.z[0] + (q[2] - mount.frame.origin[2]) * mount.frame.z[2]);
+    const surface = new EffectiveGeometry(roofs[0].original, roofs[0].modifications, registry.surfaces).surface(
+      "slope"
+    );
+    for (const m of roofs[0].modifications) {
+      if (m.op !== "removeArea") continue;
+      const top = surface.frame((m.rect[0] + m.rect[2]) / 2, m.rect[3]).origin;
+      expect(inward(top)).toBeLessThan(inward(rows[rows.length - 1].points[4]) + 0.1);
+    }
     const connection = result.connections.find((c) => c.rule === "eaveDormerOnHouse")!;
     expect(shed.identity).toMatchObject({ kind: "derived", connection: connection.key });
   });
@@ -133,7 +156,12 @@ describe("Eave dormers against the online path", () => {
     const plain = design(house([at("dormer-cottage-half", 2, 0.125, { shutters: false })]));
     const cuts = (r: ReturnType<typeof design>) =>
       r.parts.filter((p) => p.type === "roof").flatMap((p) => p.modifications.filter((m) => m.op === "removeArea"));
-    expect(cuts(shuttered).length).toBe(cuts(plain).length + 1);
+    const eaveSpan = (r: ReturnType<typeof design>) => {
+      const m = cuts(r).find((c) => c.op === "removeArea" && c.rect[1] === 0);
+      if (m?.op !== "removeArea") throw Error("no eave band");
+      return m.rect[2] - m.rect[0];
+    };
+    expect(eaveSpan(shuttered)).toBeGreaterThan(eaveSpan(plain) * 1.2);
     const members = (r: ReturnType<typeof design>) =>
       coreBuildingDecorations(coreBuildingLayout(r, registry, {}), assets)
         .flatMap((d) => d.parts)
@@ -223,5 +251,22 @@ describe("Eave dormers against the online path", () => {
     const p = house([at("dormer-cottage-half", 2, 0.125), at("dormer-gothic-half", 3, 0.375)]);
     const units = (r: ReturnType<typeof design>) => r.parts.map((q) => lay(q).map((u) => [u.key, ...u.matrix]));
     expect(units(design(p))).toEqual(units(design(structuredClone(p))));
+  });
+
+  it.each(["dormer-gothic-half", "dormer-cottage-half"])("opens the eave centred on %s near a hip", (type) => {
+    const result = design(house([at(type, 1, 0.05)]));
+    expect(result.diagnostics).toEqual([]);
+    const roof = result.parts.find((p) => p.type === "roof" && p.modifications.some((m) => "rect" in m))!;
+    const mount = result.parts.find((p) => p.type === "eaveDormer")!.original.elements.mount;
+    if (mount.kind !== "point") throw Error("no mount");
+    const surface = new EffectiveGeometry(roof.original, roof.modifications, registry.surfaces).surface("slope");
+    const across = (q: readonly number[]) =>
+      (q[0] - mount.frame.origin[0]) * mount.frame.x[0] + (q[2] - mount.frame.origin[2]) * mount.frame.x[2];
+    for (const m of roof.modifications) {
+      if (!("rect" in m)) continue;
+      const [u0, v0, u1, v1] = m.rect;
+      const middle = surface.frame((u0 + u1) / 2, (v0 + v1) / 2).origin;
+      expect(Math.abs(across(middle))).toBeLessThan(0.06);
+    }
   });
 });

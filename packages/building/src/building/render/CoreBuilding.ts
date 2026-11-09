@@ -1782,11 +1782,14 @@ function roofApertures(layout: CoreBuildingLayout): Uint8Array[] {
             const d = corners.map((c) => c[0] * axis[0] + c[1] * axis[1] + c[2] * axis[2]);
             return [Math.min(...d), Math.max(...d)];
           };
-          // An area that starts at the roof's lower edge also opens what hangs past that edge.
+          // An area that starts at the roof's lower edge also opens what hangs out and down
+          // past that edge.
           const [z0, edge] = range(out);
-          const z1 = edge + (v0 <= surface.domain.v[0] + 1e-6 ? EAVE_REACH : 0);
-          const [x0, x1] = range(across),
-            [y0, y1] = range([0, 1, 0]);
+          const atEave = v0 <= surface.domain.v[0] + 1e-6;
+          const z1 = edge + (atEave ? EAVE_REACH : 0);
+          const [x0, x1] = range(across);
+          const [bottom, y1] = range([0, 1, 0]);
+          const y0 = bottom - (atEave ? EAVE_REACH : 0);
           // The box reaches well above and below the roof there: only this roof's tiles lie
           // over the area.
           const reach = 0.5;
