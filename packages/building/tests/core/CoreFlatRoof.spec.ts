@@ -7,7 +7,7 @@ import { describe, expect, it, vi } from "vitest";
 import { nativeAssets } from "../fixtures/constructionAssets";
 import { createBuildingRegistry, designBuildingCore, expandUnits, type ResolvedPart } from "../../src/building/core";
 import { registerHouseTypes, type WallChartParams } from "../../src/building/partTypes/House";
-import { buildCoreHouse, type CoreHouseParameters } from "../../src/building/application/CoreEuropean";
+import { buildCoreHouse, buildCoreHouses, type CoreHouseParameters } from "../../src/building/application/CoreEuropean";
 import { compileCoreBuilding } from "../../src/building/render/CoreBuilding";
 
 const flat = () => 0;
@@ -73,6 +73,33 @@ describe("Flat roofs", () => {
     };
     expect(reach(0)).toBeGreaterThan(0.1);
     expect(reach(1)).toBeCloseTo(0, 5);
+  });
+
+  describe("two flat roofs that meet", () => {
+    const cuts = (height: number) => {
+      const result = designBuildingCore(
+        buildCoreHouses([
+          { id: "a", height: 4, rectangle: { center: [-1.5, 0], size: [7, 5], rotation: 0 }, roof: { height: 0 } },
+          { id: "b", height, rectangle: { center: [2.5, 1.5], size: [5, 6], rotation: 0.5 }, roof: { height: 0 } }
+        ]),
+        registry,
+        { environment: { ground: flat } }
+      );
+      expect(result.diagnostics).toEqual([]);
+      return result.parts
+        .filter((p) => p.type === "parapet")
+        .map((p) => p.modifications.filter((m) => m.op === "removeArea").length);
+    };
+    it("both give way when level", () => {
+      const [a, b] = cuts(4);
+      expect(a).toBeGreaterThan(0);
+      expect(b).toBeGreaterThan(0);
+    });
+    it("only the lower gives way when one stands higher", () => {
+      const [a, b] = cuts(4.5);
+      expect(a).toBeGreaterThan(0);
+      expect(b).toBe(0);
+    });
   });
 
   it("has no parapet without a rim", () => {

@@ -58,7 +58,7 @@ describe("Houses that touch", () => {
     expect(apart.parts.filter((p) => p.type === "wallSeam")).toEqual([]);
     expect(JSON.stringify(design([a, b]))).toBe(JSON.stringify(design([a, b])));
   });
-  it("join the parapets of two flat roofs of about the same height into one", () => {
+  it("let the lower of two flat roofs' parapets give way, the higher one keeping its edge", () => {
     const flat = { roof: { height: 0 } };
     const result = design([
       { ...a, ...flat },
@@ -67,7 +67,10 @@ describe("Houses that touch", () => {
     expect(result.diagnostics).toEqual([]);
     const parapets = result.parts.filter((p) => p.type === "parapet");
     expect(parapets.length).toBe(2);
-    for (const p of parapets) expect(p.modifications.some((m) => m.op === "removeArea")).toBe(true);
+    const cuts = (id: string) =>
+      parapets.find((p) => p.key.includes(id))!.modifications.some((m) => m.op === "removeArea");
+    expect(cuts("a-parapet")).toBe(true);
+    expect(cuts("b-parapet")).toBe(false);
     // A roof more than 2 m higher keeps its whole parapet, and so does the lower one.
     const apart = design([
       { ...a, ...flat },

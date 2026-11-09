@@ -858,8 +858,10 @@ export const parapetsMeet: JoinDetector = (a, b) => {
   if (!ca || !cb || Math.abs(ca.topY - cb.topY) > 2) return false;
   return spansInside(ca, outerPolygon(cb, 0.05)).length > 0 || spansInside(cb, outerPolygon(ca, 0.05)).length > 0;
 };
-/** Peer rule between two parapets that meet: each gives way where it runs inside the other
- * house, so the two roofs join into one. */
+/** Two parapets within this height of each other, in metres, belong to level roofs. */
+const PARAPET_STEP = 0.1;
+/** Peer rule between two parapets that meet: the lower gives way where it runs inside the other
+ * house; level ones both do, so the two roofs join into one. */
 export const parapetsJoin: ConnectionRule = ({ parts }) => {
   const [a, b] = parts;
   const ca = parapetOf(a),
@@ -874,7 +876,12 @@ export const parapetsJoin: ConnectionRule = ({ parts }) => {
         rect: [u0, own.minGround - 1, u1, own.topY + 1] as Rect
       }
     }));
-  return { modify: [...cut(a, ca, cb), ...cut(b, cb, ca)] };
+  // Level roofs join into one. Where one stands higher, its parapet keeps its edge above the
+  // lower roof, and only the lower parapet gives way.
+  const step = ca.topY - cb.topY;
+  return {
+    modify: [...(step <= PARAPET_STEP ? cut(a, ca, cb) : []), ...(step >= -PARAPET_STEP ? cut(b, cb, ca) : [])]
+  };
 };
 
 /** Element "apex": the top of the host roof, a cone or the slopes of a pyramid roof. The
