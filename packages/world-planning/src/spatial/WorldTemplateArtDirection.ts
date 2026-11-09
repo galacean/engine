@@ -190,23 +190,24 @@ const forestMushroom = (id: string, x: number, z: number, height: number, yaw = 
     }
   }
 });
-// Measurements of the exported oak's lowest closed root boundary, in normalized source metres.
+// Measurements after the supplied GLB's node transforms, in source metres.
 // The cut rim is slanted; its highest point, rather than the mesh minimum, is the planting plane.
 const forestOakRoot = {
-  plantingY: 0.027408771216869354,
-  halfWidth: 0.1557244062423706,
-  halfDepth: 0.1570490300655365
+  topY: 0.2235571464766295,
+  plantingY: 0.007137361742719506,
+  halfWidth: 0.034349252409877185,
+  halfDepth: 0.03463059992993678
 };
 const forestOak = (id: string, x: number, z: number, height: number, yaw: number): TemplateNode => ({
   ...model(id, [x, 0, z], [height, height, height * 0.65], true, yaw),
   footprint: [height * 0.065, height * 0.065],
   assetGroundY: forestOakRoot.plantingY,
   groundingFootprint: [
-    (2 * forestOakRoot.halfWidth * height) / (1 - forestOakRoot.plantingY),
-    (2 * forestOakRoot.halfDepth * height) / (1 - forestOakRoot.plantingY)
+    (2 * forestOakRoot.halfWidth * height) / (forestOakRoot.topY - forestOakRoot.plantingY),
+    (2 * forestOakRoot.halfDepth * height) / (forestOakRoot.topY - forestOakRoot.plantingY)
   ],
   assetUrl: new URL("../assets/forest-giant-oak.glb", import.meta.url).href,
-  assetLeafMaterials: ["rsSprite1"],
+  assetLeafMaterials: ["Flower_Clusters_512", "Flowers_512"],
   assetLeafColor: "#74a45b"
 });
 const forestFern = (id: string, x: number, z: number, height: number, yaw: number): TemplateNode => ({
