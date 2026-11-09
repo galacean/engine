@@ -108,12 +108,15 @@ export const houseEaveMountGeometry: GeometryGenerator<EaveMountParams> = (p, co
   const wallTop = sample.at(mount.on.u).roof;
   const height = (max[1] - min[1]) * sy,
     middle = ((min[1] + max[1]) / 2) * sy;
+  const inward = add(pivot, scale(z, -0.3));
+  // Behind a gable-end wall no slope comes down to the wall.
+  if (!roofs.some((h) => surfaceAtPlan(slopeSurface(h)!, inward[0], inward[2])))
+    throw Error("An eave dormer cannot stand on a gable-end wall");
+  const roof = roofUnder(roofs, [inward[0], inward[2]]);
+  if (roof.z[0] * z[0] + roof.z[2] * z[2] < 0.5) throw Error("An eave dormer cannot stand on a gable-end wall");
   // The window's top half stands clear of the wall.
   if (!(pivot[1] + (height + middle) / 2 > wallTop)) throw Error("The window must cross the eave above it");
   if (!(pivot[1] + min[1] * sy < wallTop)) throw Error("The window stands above its wall");
-  const inward = add(pivot, scale(z, -0.3));
-  const roof = roofUnder(roofs, [inward[0], inward[2]]);
-  if (roof.z[0] * z[0] + roof.z[2] * z[2] < 0.5) throw Error("An eave dormer cannot stand on a gable-end wall");
   const { surface, hit } = roof;
   const host = roofs[roof.index];
   const near = [hit.u, hit.v] as const;
