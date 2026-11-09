@@ -16,7 +16,7 @@ import {
   type LaidUnit,
   type ResolvedPart
 } from "../../src/building/core";
-import { registerHouseTypes, type WallChartParams } from "../../src/building/partTypes/House";
+import { registerHouseTypes, wallChartSampler, type WallChartParams } from "../../src/building/partTypes/House";
 import { buildCoreHouse, type CoreHouseParameters } from "../../src/building/application/CoreEuropean";
 import { compileCoreBuilding } from "../../src/building/render/CoreBuilding";
 import { buildBuildingRenderPackage } from "../../src/building/runtime/BuildingRenderPackage";
@@ -68,6 +68,22 @@ describe("masonryCourses and corner stones", () => {
       }
     }
     expect(total).toBeGreaterThan(200);
+  });
+
+  it("reaches the slope of a gable, whose joint cuts the bricks", () => {
+    const { walls, units } = house({
+      id: "g",
+      rectangle: { center: [0, 0], size: [9, 7], rotation: 0.4 },
+      roof: { height: 0.55, ridge_length: 1 }
+    });
+    const gable = walls.find((w) => chartOf(w).joint && chartOf(w).maxYGable > Math.min(...chartOf(w).top) + 3)!;
+    const sample = wallChartSampler(chartOf(gable));
+    const bricks = units(gable).map(box);
+    for (let i = 1; i < 60; i++) {
+      const u = (i / 60) * sample.length;
+      const top = Math.max(...bricks.filter((b) => u >= b.u0 && u <= b.u1).map((b) => Math.max(b.tl, b.tr)));
+      expect(top).toBeGreaterThan(sample.at(u).roof - 0.2);
+    }
   });
 
   it("derives one stack of corner stones per corner of a rectangle, and none for a round tower", () => {

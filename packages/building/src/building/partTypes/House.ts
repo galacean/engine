@@ -985,8 +985,11 @@ export const masonryCourses: LayingAlgorithm<MasonryParams, MasonryLayout> = {
       at1 = sample.at(piece.u1);
     const bl = Math.max(line(r, piece.u0), at0.ground, piece.lo),
       br = Math.max(line(r, piece.u1), at1.ground, piece.lo),
-      tl = Math.min(line(r + 1, piece.u0), at0.roof, piece.hi),
-      tr = Math.min(line(r + 1, piece.u1), at1.roof, piece.hi);
+      // Under a roof joint a brick keeps its full height and the renderer cuts it along the
+      // joint, so that the courses reach the slope; a brick wholly above the roof is left out.
+      tl = Math.min(line(r + 1, piece.u0), chart.joint ? Infinity : at0.roof, piece.hi),
+      tr = Math.min(line(r + 1, piece.u1), chart.joint ? Infinity : at1.roof, piece.hi);
+    if (chart.joint && Math.max(at0.roof - bl, at1.roof - br) < 0.03) return;
     if (tl - bl < 0.03 || tr - br < 0.03 || piece.u1 - piece.u0 < 0.03) return;
     const key = `${r}/${j}/${runPiece}/${holePiece}`;
     // Bricks within half a brick of a removed area are accent stones, as in the native masonry.
