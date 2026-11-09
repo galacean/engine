@@ -165,6 +165,24 @@ describe("Corner windows against the online path", () => {
     expect(stones(rounded)).toBe(stones(exact));
   });
 
+  it("follows an edit of the saved definition, as it follows the generator", () => {
+    const edited = (u: number) => {
+      const draft = structuredClone(buildCoreHouse(house([at(2, 0.5)]))) as any;
+      draft.parts.find((p: any) => p.type === "window").geometry.params.u = u;
+      return designBuildingCore(draft, registry, { environment });
+    };
+    const rows = (r: ReturnType<typeof design>) =>
+      r.parts.filter((p) => p.type === "cornerStone").map((p) => expandUnits(p, registry, { environment }).length);
+    const generated = (u: number) => design(house([at(2, u)]));
+    // A rounded edit means the same corner.
+    expect(edited(0.4999).diagnostics).toEqual([]);
+    expect(rows(edited(0.4999))).toEqual(rows(generated(0.5)));
+    // Moved to another corner, the stones make room there and come back at the old one.
+    expect(edited(0).diagnostics).toEqual([]);
+    expect(rows(edited(0))).toEqual(rows(generated(0)));
+    expect(rows(edited(0))).not.toEqual(rows(generated(0.5)));
+  });
+
   it("is an error more than 1 cm from a corner", () => {
     const messages = design(house([at(2, 8 / 36 + 0.02 / 36)])).diagnostics.map((d) => d.message);
     expect(messages.join()).toContain("needs a corner");

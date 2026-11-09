@@ -49,6 +49,9 @@ export interface RuleContext {
   readonly hosts: readonly ParticipantView[];
   /** Every participant: [guest, ...hosts] for attach, both parts for join. */
   readonly parts: readonly ParticipantView[];
+  /** The parts attached to a participant, other than the participants, in key order. A rule
+   * reads what stands on its parts here. */
+  readonly attached: readonly ParticipantView[];
 }
 /** A participant key, or a part derived by the same rule result. */
 export type PartRef = { readonly part: string } | { readonly derived: string };

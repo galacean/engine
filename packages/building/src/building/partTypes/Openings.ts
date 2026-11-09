@@ -19,7 +19,7 @@ import {
   type SurfaceKind,
   type Vec3
 } from "../core";
-import { wallChartSampler, type WallChartParams } from "./House";
+import { wallChartCorners, wallChartSampler, type WallChartParams } from "./House";
 
 /** Where a mounted part sits: the building prefab it installs, a fraction of the perimeter,
  * a height above the wall's base at that point, and the size of its installation. */
@@ -196,10 +196,14 @@ export interface CornerMountParams {
 const CORNER_COS = Math.cos(Math.PI / 6);
 /** How close to either side of `u` the two walls of a corner are sampled, in metres. */
 const CORNER_PROBE = 0.002;
+/** How far a corner window's position may lie from the corner it means, in metres. */
+const CORNER_SNAP = 0.01;
 /** Elements "mount" and "opening<i>" of a window that spans a wall corner. It stands across the
  * corner, facing out along the corner's bisector, and scales evenly in plan so that it keeps
  * the corner's angle. Its openings run along the perimeter from the corner, on both of the walls
- * they cross. `u` must name a corner; a round wall has none. */
+ * they cross. The curve "cornerSpan" stands at the corner from below the window to above its
+ * lintels: the corner's stones leave those heights free. `u` must lie within 1 cm of a corner; a
+ * round wall has none. */
 export const houseCornerMountGeometry: GeometryGenerator<CornerMountParams> = (p, { hosts, environment }) => {
   const facts = prefabFacts(environment, p.prefab);
   if (!facts.cornerOut) throw Error(`Building prefab "${p.prefab}" does not span a corner`);
@@ -208,7 +212,22 @@ export const houseCornerMountGeometry: GeometryGenerator<CornerMountParams> = (p
   const offsetOf = (w: (typeof walls)[number]) => w.chart.uOffset ?? 0;
   const perimeter = walls.reduce((n, w) => Math.max(n, offsetOf(w) + chartLength(w.chart)), 0);
   const wrap = (u: number) => ((u % perimeter) + perimeter) % perimeter;
-  const at = wrap(p.u * perimeter);
+  // A position within 1 cm of a corner means that corner, however it was rounded or edited.
+  const asked = wrap(p.u * perimeter);
+  const away = (c: number) => Math.min(Math.abs(c - asked), perimeter - Math.abs(c - asked));
+  const corners = walls.flatMap((w) => wallChartCorners(w.chart));
+  const at = corners.reduce<number | undefined>(
+    (best, c) => (best === undefined || away(c) < away(best) ? c : best),
+    undefined
+  );
+  if (at === undefined || away(at) > CORNER_SNAP)
+    throw Error(
+      `A corner window needs a corner of its wall (${
+        corners.length
+          ? `corners at u = ${corners.map((c) => (c / perimeter).toFixed(4)).join(", ")}`
+          : "this wall has none"
+      }; received ${p.u})`
+    );
   const sampleAt = (u: number) => {
     const v = wrap(u);
     const w = walls.find((q) => v >= offsetOf(q) && v <= offsetOf(q) + chartLength(q.chart))!;
@@ -216,8 +235,6 @@ export const houseCornerMountGeometry: GeometryGenerator<CornerMountParams> = (p
   };
   const before = sampleAt(at - CORNER_PROBE).tangent,
     after = sampleAt(at + CORNER_PROBE).tangent;
-  if (before[0] * after[0] + before[1] * after[1] > CORNER_COS)
-    throw Error("A corner window needs a corner of its wall");
   const here = sampleAt(at + CORNER_PROBE);
   const corner = [here.x - here.tangent[0] * CORNER_PROBE, here.z - here.tangent[1] * CORNER_PROBE];
   // Out of the corner: away from both walls that meet there.
@@ -259,6 +276,15 @@ export const houseCornerMountGeometry: GeometryGenerator<CornerMountParams> = (p
       kind: "point",
       frame: { origin: center, x, y, z },
       on: { host: host.index, element: "face", u: at, v: pivotY }
+    }
+  };
+  elements.cornerSpan = {
+    kind: "curve",
+    curve: {
+      points: [
+        [corner[0], pivotY + min[1] * sy - 0.05, corner[1]],
+        [corner[0], top + 0.1, corner[1]]
+      ]
     }
   };
   let i = 0;

@@ -208,6 +208,14 @@ export function designBuildingCore(
     else groups.set(group.id, group);
   }
   const states = new Map<string, PartState>();
+  const guestsByHost = new Map<string, string[]>();
+  const indexGuest = (guest: PartState) => {
+    for (const host of guest.hosts!) {
+      const guests = guestsByHost.get(host);
+      if (guests) guests.push(guest.key);
+      else guestsByHost.set(host, [guest.key]);
+    }
+  };
   const definitions = new Map<string, BuildingPartDef>();
   for (const part of byId(draft.parts ?? [])) {
     const key = authorPartKey(part.id);
@@ -250,7 +258,7 @@ export function designBuildingCore(
     else if (connectionIds.has(connection.id)) report(key, "Duplicate connection id");
     else {
       connectionIds.add(connection.id);
-      const pending = authorPending(connection, key, states, report);
+      const pending = authorPending(connection, key, states, report, indexGuest);
       if (pending) author.push(pending);
     }
   }
@@ -392,6 +400,15 @@ export function designBuildingCore(
     const guest = item.guest ? viewOf(states.get(item.guest)!) : undefined;
     const hosts = item.hosts.map((h) => viewOf(states.get(h.part)!, h.element));
     const parts = item.kind === "attach" ? [guest!, ...hosts] : item.parts.map((k) => viewOf(states.get(k)!));
+    let attached: readonly ParticipantView[] | undefined;
+    const attachedParts = () => {
+      const among = new Set(participants);
+      const keys = new Set(participants.flatMap((k) => guestsByHost.get(k) ?? []));
+      return [...keys]
+        .filter((k) => !among.has(k) && states.get(k)!.original)
+        .sort(compareKeys)
+        .map((k) => viewOf(states.get(k)!));
+    };
     let result: RuleResult;
     try {
       result = rule({
@@ -401,7 +418,10 @@ export function designBuildingCore(
         seed: deriveSeed(ownerGroup(item).seed, item.key),
         guest,
         hosts,
-        parts
+        parts,
+        get attached() {
+          return (attached ??= attachedParts());
+        }
       });
     } catch (error) {
       report(item.key, (error as Error).message);
@@ -469,6 +489,7 @@ export function designBuildingCore(
         }
         guest.guestOf = key;
         guest.hosts = pending.hosts.map((h) => h.part);
+        indexGuest(guest);
       }
       next.push(pending);
     }
@@ -573,7 +594,8 @@ function authorPending(
   connection: ConnectionDef,
   key: string,
   states: Map<string, PartState>,
-  report: (source: string, message: string) => void
+  report: (source: string, message: string) => void,
+  indexGuest: (guest: PartState) => void
 ): Pending | undefined {
   const params = plain(connection.params);
   if (connection.kind === "attach") {
@@ -591,6 +613,7 @@ function authorPending(
     else {
       state.guestOf = key;
       state.hosts = hosts.map((h) => h.part);
+      indexGuest(state);
       return { key, kind: "attach", guest, hosts, parts: [], rule: connection.rule, params };
     }
     return;

@@ -164,6 +164,18 @@ export const houseWallGeometry: GeometryGenerator<HouseShared> = (p, { environme
   return { elements: { face: { kind: "surface", surface: { kind: "wallChart", params } } } };
 };
 
+/** The corners of a wall chart along the house perimeter, in metres: the start of one side of
+ * a house, or each sharp turn of a chart around the whole house. */
+export function wallChartCorners(chart: WallChartParams): number[] {
+  const offset = chart.uOffset ?? 0;
+  if (!chart.closed) return [offset];
+  const us = [0];
+  for (let i = 1; i < chart.points.length; i++)
+    us.push(
+      us[i - 1] + Math.hypot(chart.points[i][0] - chart.points[i - 1][0], chart.points[i][2] - chart.points[i - 1][2])
+    );
+  return sharpCorners(chart.points).map((i) => offset + us[i]);
+}
 /** Point indexes where the closed perimeter turns by more than 30°. */
 function sharpCorners(points: readonly (readonly number[])[]): number[] {
   const n = points.length - 1;
@@ -1149,9 +1161,9 @@ export const wallsMeet: JoinDetector = (a, b) => {
 /** Peer rule between two walls that meet at a corner: both give way to a stack of
  * alternating corner stones, which the connection derives as its own part.
  * Connection param `angle`: [min, max] turn in degrees that gets stones. Default: [80, 100].
- * Connection param `gaps`: height ranges above the corner's base with no stones, where
- * something else, such as a corner window, takes the corner. */
-export const wallCorner: ConnectionRule = ({ parts, seed, params }) => {
+ * A part attached to the walls with a curve "cornerSpan" standing at this corner keeps the
+ * heights of that curve free of stones. */
+export const wallCorner: ConnectionRule = ({ parts, seed, params, attached }) => {
   const [a, b] = parts;
   const ca = chartOf(a),
     cb = chartOf(b);
@@ -1181,7 +1193,13 @@ export const wallCorner: ConnectionRule = ({ parts, seed, params }) => {
   const rows = ys.length - 1,
     over = overhang(scale[2]);
   const lengthBefore = wallChartSampler(cBefore).length;
-  const gaps = (params.gaps as readonly (readonly [number, number])[] | undefined) ?? [];
+  // What stands across this corner, such as a corner window, keeps its heights free of stones.
+  const gaps = attached.flatMap((guest): [number, number][] => {
+    const span = guest.geometry.original.elements.cornerSpan;
+    if (span?.kind !== "curve") return [];
+    const [lo, hi] = span.curve.points;
+    return Math.hypot(lo[0] - corner[0], lo[2] - corner[2]) < 1e-3 ? [[lo[1] - bottom, hi[1] - bottom]] : [];
+  });
   const modify = [];
   for (let row = 0; row < rows; row++) {
     if (inGap(ys[row], ys[row + 1], bottom, gaps)) continue;
