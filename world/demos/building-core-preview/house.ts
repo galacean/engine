@@ -468,6 +468,18 @@ const cases = (): Case[] => [
     ),
     ground: flat
   },
+  {
+    id: "timber-stone",
+    title: "木墙 · 尖拱窗 · 箭缝窗",
+    house: withStone({
+      id: "a",
+      walls: "timber",
+      height: 6,
+      rectangle: { center: [0, 0], size: [9, 7], rotation: 0.2 }
+    }),
+    online: { wallStructure: "timber", wall: { unit: "wooden_plank", algorithm: { type: "horizontal_rows" } } },
+    ground: flat
+  },
   { id: "steep", title: "陡屋顶", house: { id: "a", roof: { height: 0.8, eave: 0.4 } }, ground: flat },
   { id: "gable", title: "山墙屋顶", house: { id: "a", roof: { ridge_length: 1 } }, ground: flat },
   {

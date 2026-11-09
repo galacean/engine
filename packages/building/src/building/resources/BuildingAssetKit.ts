@@ -121,6 +121,7 @@ export class BuildingPrefabComponent extends Component {
  * prefab; without one it is placed rigidly. */
 export class BuildingUnitMemberComponent extends Component {
   private _unit: PrefabResource | null = null;
+  private _onTimber: PrefabResource | null = null;
   span: [number, number] | null = null;
   get unit() {
     return this._unit;
@@ -130,9 +131,20 @@ export class BuildingUnitMemberComponent extends Component {
     retainBuildingResource(this._unit, -1);
     this._unit = value;
   }
+  /** The unit drawn on a timber wall. Default: `unit`. */
+  get onTimber() {
+    return this._onTimber;
+  }
+  set onTimber(value: PrefabResource | null) {
+    retainBuildingResource(value, 1);
+    retainBuildingResource(this._onTimber, -1);
+    this._onTimber = value;
+  }
   protected override _onDestroy(): void {
     retainBuildingResource(this._unit, -1);
+    retainBuildingResource(this._onTimber, -1);
     this._unit = null;
+    this._onTimber = null;
     super._onDestroy();
   }
 }
@@ -464,8 +476,14 @@ export function buildingAssets(source: PrefabResource): BuildingAssets {
             const span = unitMember.span;
             if (span && !(span[1] > span[0]))
               throw Error(`A unit member of building prefab "${key}" has an empty span`);
+            const onTimber = unitMember.onTimber ? unitNames.get(unitMember.onTimber) : undefined;
+            if (unitMember.onTimber && (!onTimber || units[onTimber]?.family !== "stone-decoration"))
+              throw Error(
+                `A unit member of building prefab "${key}" requires a stone-decoration unit for timber walls`
+              );
             unitMembers.push({
               unit,
+              ...(onTimber && { onTimber }),
               path,
               matrix: Array.from(node.transform.worldMatrix.elements),
               ...(span && { span: [span[0], span[1]] as [number, number] })

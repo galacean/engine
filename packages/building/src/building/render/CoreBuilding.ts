@@ -1324,6 +1324,7 @@ export function coreBuildingDecorations(
     const walls = owner.bindings
       .filter((b) => b.family === "wall")
       .flatMap((b) => b.parts.flatMap((p) => (chartOf(p.part) ? [chartOf(p.part)!] : [])));
+    const timber = owner.bindings.some((b) => b.family === "wall" && b.material === "wooden_plank");
     const perimeter = walls.reduce((n, c) => n + wallChartSampler(c).length, 0);
     const minimumY = Math.min(...walls.map((c) => c.minGround)),
       height = Math.max(0.01, Math.max(...walls.map((c) => c.topY)) - minimumY);
@@ -1436,8 +1437,12 @@ export function coreBuildingDecorations(
               )
             );
             const scale = pose.slice(0, 3).map((axis) => Math.hypot(...axis)) as [number, number, number];
-            const mesh = assets.stoneGeometry?.[member.unit];
-            if (!mesh) throw Error(`Missing stone unit ${member.unit}`);
+            // On a timber wall a unit member takes its timber unit, in the wood's colors, and
+            // stands rigid.
+            const template = (timber && member.onTimber) || member.unit;
+            const timberFlags = timber ? 7 : 0;
+            const mesh = assets.stoneGeometry?.[template];
+            if (!mesh) throw Error(`Missing stone unit ${template}`);
             const reach = ((mesh.bounds.max[0] - mesh.bounds.min[0]) * scale[0]) / 2;
             let instance: DecorationStoneInstance;
             const base = {
@@ -1452,7 +1457,12 @@ export function coreBuildingDecorations(
                 position: pose[3] as [number, number, number],
                 normalXZ: [axes[2][0], axes[2][2]] as [number, number]
               };
-              instance = { ...base, xform: [...axes.flat(), ...pose[3]], flags: 4, bones: [bone, bone, bone] };
+              instance = {
+                ...base,
+                xform: [...axes.flat(), ...pose[3]],
+                flags: 4 | timberFlags,
+                bones: [bone, bone, bone]
+              };
             } else {
               const line = part.original.elements[`follow${follow++}`];
               if (line?.kind !== "curve") throw Error(`${part.key} has no wall line for ${member.path}`);
@@ -1468,7 +1478,7 @@ export function coreBuildingDecorations(
               instance = {
                 ...base,
                 xform: [tx, 0, tz, 0, 1, 0, -tz, 0, tx, (left[0] + right[0]) / 2, left[1], (left[2] + right[2]) / 2],
-                flags: 0,
+                flags: timberFlags,
                 bones
               };
             }
@@ -1476,7 +1486,7 @@ export function coreBuildingDecorations(
               id: `${owner.group.id}/${id}/${member.path}`,
               decorationId: id,
               ownerId: owner.group.id,
-              template: member.unit,
+              template,
               instance,
               geometryScale: scale
             });

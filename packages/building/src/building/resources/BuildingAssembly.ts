@@ -25,6 +25,8 @@ export interface BuildingPrefabOpening {
 export interface BuildingPrefabUnitMember {
   unit: string;
   path: string;
+  /** The stone unit drawn on a timber wall. Default: `unit`. */
+  onTimber?: string;
   matrix: number[];
   span?: [number, number];
 }

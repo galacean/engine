@@ -11,7 +11,12 @@ import { createBuildingRegistry, designBuildingCore, expandUnits, type ResolvedP
 import { registerHouseTypes } from "../../src/building/partTypes/House";
 import { buildCoreHouses, type CoreHouseParameters } from "../../src/building/application/CoreEuropean";
 import { European } from "../../src/building/application/European";
-import { compileCoreBuilding, coreBuildingEnvironment } from "../../src/building/render/CoreBuilding";
+import {
+  compileCoreBuilding,
+  coreBuildingEnvironment,
+  coreBuildingLayout,
+  coreBuildingView
+} from "../../src/building/render/CoreBuilding";
 import { European as OnlineEuropean } from "../../src/building/parts/architecture/European";
 import { designBuilding } from "../../src/building/parts/architecture/BuildingDesign";
 import { implementBuilding } from "../../src/building/parts/architecture/BuildingImplementation";
@@ -165,6 +170,30 @@ describe("Timber walls", () => {
     expect(renderInput.placementDocument.bindings.find((b) => (b as { id: string }).id === "h-wall")).toMatchObject({
       unit_id: "wooden_plank"
     });
+  });
+
+  it("gives a Gothic window the full surround in the wood's colors", () => {
+    const stones = (walls: CoreHouseParameters["walls"]) =>
+      coreBuildingView(
+        coreBuildingLayout(
+          design({
+            ...house,
+            walls,
+            attachments: [
+              { id: "w", kind: "window", type: "window-gothic", rank: 2, u: 0.1, bottom: 1, width: 1.5, height: 2 }
+            ]
+          }),
+          registry,
+          { environment: { ground: flat } }
+        ),
+        { assets: nativeAssets.compilation }
+      ).stones;
+    const [timber] = stones("timber"),
+      [masonry] = stones("masonry");
+    expect(timber.template).toBe("window_gothic_2x1_hat_full");
+    expect(timber.instance.flags).toBe(7);
+    expect(masonry.template).toBe("window_gothic_2x1_hat");
+    expect(masonry.instance.flags).toBe(0);
   });
 
   it("comes from the European parameters", () => {
