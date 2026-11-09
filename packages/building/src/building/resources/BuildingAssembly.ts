@@ -50,6 +50,9 @@ export interface BuildingPrefab {
   /** The right half of the small roof the prefab carries out of a roof slope, from its peak
    * at x = 0 down to its eave, in the prefab's x/y plane. */
   roofProfile?: [number, number][];
+  /** How far in front of the wall the arch of an eave dormer starts. */
+  eaveOut?: number;
+  eaveOutCurved?: number;
 }
 /** A building prefab with the bounds of its baked members. */
 export interface CompiledBuildingPrefab extends BuildingPrefab {

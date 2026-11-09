@@ -105,6 +105,10 @@ export class BuildingPrefabComponent extends Component {
   }
   /** Metres taken off the opening's width on a curved wall. */
   curvedNarrowing = 0;
+  /** How far in front of the wall the arch of an eave dormer starts, on a straight and on a
+   * curved wall, in metres. */
+  eaveOut = 0;
+  eaveOutCurved = 0;
   private _roofProfile: [number, number][] = [];
   /** The outline of the small roof a prefab carries out of a roof slope, such as a dormer's:
    * its right half from the peak down to the eave, in the prefab's x/y plane. The roof is
@@ -541,7 +545,8 @@ export function buildingAssets(source: PrefabResource): BuildingAssets {
           units: unitMembers,
           openings,
           curvedNarrowing: root.curvedNarrowing,
-          ...(roofProfile.length && { roofProfile })
+          ...(roofProfile.length && { roofProfile }),
+          ...(root.eaveOut > 0 && { eaveOut: root.eaveOut, eaveOutCurved: root.eaveOutCurved })
         };
       } finally {
         entity.destroy();

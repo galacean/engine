@@ -96,6 +96,7 @@ const FAMILIES: Readonly<Record<string, Family>> = {
   lamp: "prefab",
   dormer: "prefab",
   shedDormer: "prefab",
+  eaveDormer: "prefab",
   hatch: "prefab",
   roofLamp: "prefab",
   dormerRoof: "roof",
@@ -1708,6 +1709,8 @@ export async function coreBuildingRenderInput(
  * and two shape terms that make it a plain box (k = 1, a = -1). */
 /** Surface elements of roof parts that may lose areas: slopes, cones and decks. */
 const ROOF_SURFACES = ["slope", "deck"];
+/** How far the eave's tiles can hang past the roof's lower edge, in metres. */
+const EAVE_REACH = 1.2;
 function roofApertures(layout: CoreBuildingLayout): Uint8Array[] {
   const records: Uint8Array[] = [];
   for (const owner of layout.owners)
@@ -1735,8 +1738,10 @@ function roofApertures(layout: CoreBuildingLayout): Uint8Array[] {
             const d = corners.map((c) => c[0] * axis[0] + c[1] * axis[1] + c[2] * axis[2]);
             return [Math.min(...d), Math.max(...d)];
           };
+          // An area that starts at the roof's lower edge also opens what hangs past that edge.
+          const [z0, edge] = range(out);
+          const z1 = edge + (v0 <= surface.domain.v[0] + 1e-6 ? EAVE_REACH : 0);
           const [x0, x1] = range(across),
-            [z0, z1] = range(out),
             [y0, y1] = range([0, 1, 0]);
           // The box reaches well above and below the roof there: only this roof's tiles lie
           // over the area.

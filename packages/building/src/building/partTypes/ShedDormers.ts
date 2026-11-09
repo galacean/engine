@@ -80,7 +80,7 @@ export const loftSurface: SurfaceKind<LoftParams> = {
 
 /** The host's v where its surface stands at height y above host u, by bisection. Undefined
  * above the surface's top. Height grows with v on roof slopes and cones. */
-function vAtHeight(surface: EffectiveSurface, u: number, y: number): number | undefined {
+export function vAtHeight(surface: EffectiveSurface, u: number, y: number): number | undefined {
   let [lo, hi] = surface.domain.v;
   if (surface.frame(u, hi).origin[1] < y) return;
   if (surface.frame(u, lo).origin[1] >= y) return lo;
@@ -201,7 +201,10 @@ const loftOf = (part: ParticipantView): LoftParams | undefined => {
   return e?.kind === "surface" && e.surface.kind === "loft" ? (e.surface.params as LoftParams) : undefined;
 };
 /** The tile unit of a shed's pieces: the host roof's tile, from narrow trims to tall cheeks. */
-const shedTile = (tile: BuildingUnit): BuildingUnit => ({ ...tile, range: { min: [0.1, 0.1, 1], max: [3, 8, 2.5] } });
+export const shedTile = (tile: BuildingUnit): BuildingUnit => ({
+  ...tile,
+  range: { min: [0.1, 0.1, 1], max: [3, 8, 2.5] }
+});
 /** Attach rule of a shed dormer on its roof: the area from the bodies' fronts (the curve
  * "front") back to where the shed meets the covering, as wide as the bodies, comes out of the
  * roof part they stand on; the shed's overhang keeps the roof under it. The connection derives

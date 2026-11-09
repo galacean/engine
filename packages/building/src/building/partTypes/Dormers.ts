@@ -171,8 +171,8 @@ export const slopeSurface = (host: ParticipantView): EffectiveSurface | undefine
   host.geometry.original.elements.slope?.kind === "surface" ? host.geometry.surface("slope") : undefined;
 
 /** How far back from plan point `from` along level direction `back` the surface first rises
- * to height `y`, searched in steps of 5 cm up to `limit` metres and refined by bisection.
- * Undefined when the surface ends first. */
+ * to height `y`, searched in steps of 5 cm up to `limit` metres and refined by bisection. The
+ * start may lie in front of the surface. Undefined when the surface ends first. */
 export function depthToHeight(
   surface: EffectiveSurface,
   from: Vec3,
@@ -186,11 +186,18 @@ export function depthToHeight(
     return surfaceAtPlan(surface, p[0], p[2], guess) ?? surfaceAtPlan(surface, p[0], p[2]);
   };
   let guess = near,
-    previous = 0;
+    previous = 0,
+    reached = false;
   const step = 0.05;
   for (let d = 0; d <= limit; d += step) {
     const hit = heightAt(d, guess);
-    if (!hit) return;
+    if (!hit) {
+      // A start in front of the eave reaches the roof further back.
+      if (reached) return;
+      previous = d;
+      continue;
+    }
+    reached = true;
     if (hit.frame.origin[1] >= y) {
       let [lo, hi] = [previous, d];
       for (let i = 0; i < 30; i++) {
@@ -297,12 +304,21 @@ const sweepOf = (part: ParticipantView): DormerSweepParams | undefined => {
 };
 const shift = (u: number, around: number, period: number) =>
   period ? u - Math.round((u - around) / period) * period : u;
+/** The first point of a surface over plan point `at` or further along `back`, in steps of 2 cm
+ * up to 2 m: a start in front of an eave reaches the eave. */
+function firstOver(surface: EffectiveSurface, at: Vec3, back: Vec3, near: readonly [number, number]) {
+  for (let d = 0; d <= 2; d += 0.02) {
+    const q = add(at, scale(back, d));
+    const hit = surfaceAtPlan(surface, q[0], q[2], near) ?? surfaceAtPlan(surface, q[0], q[2]);
+    if (hit) return hit;
+  }
+}
 /** The areas of a dormer's host surface that lie inside the dormer, in the host's (u, v):
  * one rectangle per outline point, nested like stairs. Rectangle k spans the outline's width
  * at that point and runs from the front plane back to where the host's covering, `lift` above
  * the host's surface, reaches the dormer's roof there, which rests on the outline. Further back
  * the host's covering laps over the dormer's roof, as it does on a real roof. */
-function dormerFootprint(
+export function dormerFootprint(
   sweep: DormerSweepParams,
   surface: EffectiveSurface,
   near: readonly [number, number],
@@ -319,8 +335,12 @@ function dormerFootprint(
     // Corners: left front, left back, right front, right back.
     const corners = [-1, 1].flatMap((side) =>
       [0, depth].map((d) => {
-        const at = add(add(sweep.origin, scale(sweep.x, side * width)), scale(back, d));
-        const hit = surfaceAtPlan(surface, at[0], at[2], near) ?? surfaceAtPlan(surface, at[0], at[2]);
+        const hit = firstOver(
+          surface,
+          add(add(sweep.origin, scale(sweep.x, side * width)), scale(back, d)),
+          back,
+          near
+        );
         return hit && ([shift(hit.u, near[0], period), hit.v] as const);
       })
     );
@@ -344,7 +364,7 @@ export const dormerTile = (tile: BuildingUnit): BuildingUnit => ({
   range: { min: [0.1, 0.2, 1], max: [2, 3, 1] }
 });
 /** Ridge caps of a dormer: narrow and tall against the tile; as long as the roof's caps. */
-const dormerCap = (tile: BuildingUnit): BuildingUnit => ({
+export const dormerCap = (tile: BuildingUnit): BuildingUnit => ({
   ...tile,
   range: { min: [0.1, 0.5, 1], max: [1, 5.2, 2.5] }
 });

@@ -125,6 +125,27 @@ function withDormers(house: CoreHouseParameters, at: [number, number, 1 | 2 | 3]
     })
   };
 }
+/** Eave windows at their original sizes, with 40% of their height above the wall top. */
+function withEave(house: CoreHouseParameters, at: [string, number, number][]): CoreHouseParameters {
+  return {
+    ...house,
+    attachments: at.map(([type, rank, u], i) => {
+      const size = constructionDecorationType(library.compilation.decorations, type)!.dimensions.find(
+        (d) => d.rank === rank
+      )!;
+      return {
+        id: "eave" + i,
+        kind: "window",
+        type,
+        rank,
+        u,
+        bottom: (house.height ?? 4) - size.height * 0.6,
+        width: size.width,
+        height: size.height
+      };
+    }) as never
+  };
+}
 /** Cases read the asset library, so they are built once it is loaded. */
 const cases = (): Case[] => [
   { id: "house", title: "默认房屋", house: { id: "a" }, ground: flat },
@@ -478,6 +499,40 @@ const cases = (): Case[] => [
       rectangle: { center: [0, 0], size: [9, 7], rotation: 0.2 }
     }),
     online: { wallStructure: "timber", wall: { unit: "wooden_plank", algorithm: { type: "horizontal_rows" } } },
+    ground: flat
+  },
+  {
+    id: "eave-cottage",
+    title: "半老虎窗 · Cottage",
+    house: withEave({ id: "a", seed: 12345, height: 4, rectangle: { center: [0, 0], size: [10, 10], rotation: 0 } }, [
+      ["dormer-cottage-half", 1, 0.06],
+      ["dormer-cottage-half", 2, 0.125],
+      ["dormer-cottage-half", 3, 0.2],
+      ["dormer-cottage-half", 2, 0.375]
+    ]),
+    ground: flat
+  },
+  {
+    id: "eave-gothic",
+    title: "半老虎窗 · 尖拱 · 箭缝",
+    house: withEave({ id: "a", height: 4, rectangle: { center: [0, 0], size: [10, 10], rotation: 0 } }, [
+      ["dormer-gothic-half", 1, 0.05],
+      ["dormer-gothic-half", 2, 0.125],
+      ["dormer-gothic-half", 3, 0.3],
+      ["dormer-gothic-half", 1, 0.38],
+      ["dormer-arrow-slit-half", 2, 0.34],
+      ["dormer-arrow-slit-half", 3, 0.44]
+    ]),
+    ground: flat
+  },
+  {
+    id: "eave-round",
+    title: "半老虎窗 · 圆屋",
+    house: withEave({ id: "a", height: 4, circle: { center: [0, 0], radius: 5, phase: 0 } }, [
+      ["dormer-gothic-half", 2, 0.3],
+      ["dormer-cottage-half", 1, 0.4],
+      ["dormer-arrow-slit-half", 3, 0.48]
+    ]),
     ground: flat
   },
   { id: "steep", title: "陡屋顶", house: { id: "a", roof: { height: 0.8, eave: 0.4 } }, ground: flat },

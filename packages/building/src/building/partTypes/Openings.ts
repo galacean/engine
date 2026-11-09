@@ -39,6 +39,9 @@ export interface PrefabFacts {
   readonly units: readonly { readonly matrix: readonly number[]; readonly span?: readonly [number, number] }[];
   readonly curvedNarrowing: number;
   readonly roofProfile?: readonly (readonly [number, number])[];
+  /** How far in front of the wall an eave dormer's arch starts, on a straight and a curved wall. */
+  readonly eaveOut?: number;
+  readonly eaveOutCurved?: number;
 }
 export function prefabFacts(environment: BuildingEnvironment, prefab: string): PrefabFacts {
   const facts = environment.asset?.({ prefab }) as unknown as PrefabFacts | undefined;

@@ -1,5 +1,5 @@
 // Application layer: friendly European parameters → core drafts.
-import { type BuildingCoreDraft, type BuildingPartDef, type BuildingUnit } from "../core";
+import { deriveSeed, Random, type BuildingCoreDraft, type BuildingPartDef, type BuildingUnit } from "../core";
 import { normalizeProfileFootprint, normalizeProfileHeight, normalizeProfileRoof } from "../runtime/ProfileParameters";
 import { profileShape } from "../runtime/ProfileGeometry";
 import { unitFootprintScale, type MaterialFootprint } from "../runtime/MaterialFootprint";
@@ -206,6 +206,8 @@ export interface CoreWallAttachment {
   seed?: number;
   /** "wall" draws the frame in the stone of the wall. Default: wood. */
   frameMaterial?: "wood" | "wall";
+  /** Shutters on a rank 2 Cottage eave dormer. Default: chosen by the seed. */
+  shutters?: boolean;
   woodColor?: number;
   lightColor?: number;
   lightIntensity?: number;
@@ -251,18 +253,39 @@ const DEFAULT_WALL_TYPES: Readonly<Record<CoreWallAttachment["kind"], string>> =
   "wall-lamp": "wall-lantern",
   lantern: "wall-lantern"
 };
+/** Wall prefabs that break through the eave and carry a small roof out of it. */
+const EAVE_TYPES = new Set(["dormer-cottage-half", "dormer-gothic-half", "dormer-arrow-slit-half"]);
+/** A Cottage eave dormer's shed, by rank: its side overhang and front reach at the eave, and how
+ * much higher its back stands as a fraction of the roof's height (as online). A rank 2 window
+ * may have shutters, chosen by the seed unless stated; the eave is cut 0.7 m wider for them. */
+function eaveShed(house: CoreHouseParameters, a: CoreWallAttachment) {
+  const rank = a.rank ?? 1;
+  const shutters =
+    rank === 2 && (a.shutters ?? new Random(deriveSeed(house.seed ?? 17, a.id, "shutters")).next() < 0.5);
+  return {
+    prefab: `dormer-cottage-half${shutters ? "-shutters" : ""}/${rank}`,
+    params: {
+      overhang: 0.1,
+      expand: [0.1, 0.05, 0.3][rank - 1],
+      pitch: [0.1, 0.15, 0.2][rank - 1],
+      ...(shutters && { clearance: 0.7 })
+    }
+  };
+}
 /** A wall prefab as a part: a mount on the walls and the building prefab, scaled to the
  * installation size. The prefab's bounds, opening and members come from the asset layer at
  * design time, so the draft names the prefab only. */
 function wallAttachmentPart(house: CoreHouseParameters, a: CoreWallAttachment): BuildingPartDef {
-  const prefab = `${a.type ?? DEFAULT_WALL_TYPES[a.kind]}/${a.rank ?? 1}`;
+  const eave = a.type !== undefined && EAVE_TYPES.has(a.type);
+  const shed = a.type === "dormer-cottage-half" ? eaveShed(house, a) : undefined;
+  const prefab = shed?.prefab ?? `${a.type ?? DEFAULT_WALL_TYPES[a.kind]}/${a.rank ?? 1}`;
   return {
     id: `${house.id}/${a.id}`,
     group: house.id,
-    type: WALL_PART_TYPES[a.kind],
+    type: eave ? "eaveDormer" : WALL_PART_TYPES[a.kind],
     geometry: {
-      generator: "houseWallMount",
-      params: { prefab, u: a.u, bottom: a.bottom, width: a.width, height: a.height }
+      generator: eave ? "houseEaveMount" : "houseWallMount",
+      params: { prefab, u: a.u, bottom: a.bottom, width: a.width, height: a.height, ...shed?.params }
     },
     algorithm: {
       type: "mountPrefab",
@@ -603,7 +626,13 @@ export function buildCoreHouse(p: CoreHouseParameters): BuildingCoreDraft {
   // The dormer's small roof follows the house's tile footprint.
   const tileScale = unitFootprintScale(unit);
   const tiles = { row: 0.3 * tileScale.width, column: 0.32 * tileScale.height };
-  const onWalls = [...(floors ? [floors] : []), ...(plaster ? [plaster] : []), ...mounted];
+  const eaves = mounted.filter((part) => part.type === "eaveDormer");
+  if (eaves.length && !pitched) throw Error("An eave dormer needs a pitched roof");
+  const onWalls = [
+    ...(floors ? [floors] : []),
+    ...(plaster ? [plaster] : []),
+    ...mounted.filter((part) => part.type !== "eaveDormer")
+  ];
   return {
     groups: [
       {
@@ -631,6 +660,7 @@ export function buildCoreHouse(p: CoreHouseParameters): BuildingCoreDraft {
       ...roofs.map((r) => r.part),
       ...(spire ? [spire.part] : []),
       ...onWalls,
+      ...eaves,
       ...onRoof
     ],
     connections: [
@@ -649,6 +679,14 @@ export function buildCoreHouse(p: CoreHouseParameters): BuildingCoreDraft {
         id: part.id + "/on-wall",
         guest: part.id,
         hosts: walls.map((w) => ({ part: w.id }))
+      })),
+      // An eave dormer opens a wall and the roof part behind it: walls first.
+      ...eaves.map((part) => ({
+        kind: "attach" as const,
+        id: part.id + "/on-house",
+        guest: part.id,
+        hosts: [...walls.map((w) => ({ part: w.id })), ...roofs.map((r) => ({ part: r.part.id }))],
+        params: { tiles }
       })),
       // A dormer sits on whichever roof part is under it; a deck prefab stands on the deck.
       ...onRoof.map((part) => ({

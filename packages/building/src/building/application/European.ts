@@ -79,7 +79,10 @@ const WALL_PREFABS = new Set([
   "wall-lantern",
   "window-gothic",
   "door-gothic",
-  "window-arrow-slit"
+  "window-arrow-slit",
+  "dormer-cottage-half",
+  "dormer-gothic-half",
+  "dormer-arrow-slit-half"
 ]);
 const unavailable = (what: string) => Error(`${what} is not available in the building system yet`);
 /** A size the caller gave must be a positive finite number. */
@@ -100,7 +103,13 @@ function roofType(a: EuropeanAttachment, flat: boolean): string | undefined {
   if (a.kind === "window") return flat ? "hatch-cottage" : "dormer-cottage";
 }
 /** Prefabs whose frame has a stone alternative. */
-const STONE_FRAMES = new Set(["window-gothic", "window-arrow-slit", "dormer-gothic"]);
+const STONE_FRAMES = new Set([
+  "window-gothic",
+  "window-arrow-slit",
+  "dormer-gothic",
+  "dormer-gothic-half",
+  "dormer-arrow-slit-half"
+]);
 function checkFrame(a: EuropeanAttachment, type: string) {
   if (a.frameMaterial === "wall" && !STONE_FRAMES.has(type))
     throw Error(`The attachment type "${type}" has no frame of wall material ("${a.id}")`);
