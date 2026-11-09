@@ -368,6 +368,8 @@ export const dormerCap = (tile: BuildingUnit): BuildingUnit => ({
   ...tile,
   range: { min: [0.1, 0.5, 1], max: [1, 5.2, 2.5] }
 });
+/** How far in front of a dormer's window the roof opens, along the slope, in metres. */
+const DORMER_SILL_CLEAR = 0.15;
 /** Attach rule of a dormer on its roof: the dormer's footprint comes out of the roof part it
  * sits on, and the connection derives the dormer's small roof and its ridge, laid with the
  * host roof's tile. */
@@ -381,7 +383,14 @@ export const dormerOnRoof: ConnectionRule = ({ guest, hosts, params }) => {
   const tile = host.unit;
   // The dormer's roof rests on its outline.
   const lift = coveringRise(host, surface.frame(mount.on.u, mount.on.v).z);
-  const rects = dormerFootprint(sweep, surface, [mount.on.u, mount.on.v], lift);
+  // The tiles in front of the window lift their upper ends over its sill: the opening starts a
+  // little in front of it, so that the whole window shows.
+  const along = surface.frame(mount.on.u, mount.on.v + 1e-3).origin,
+    here = surface.frame(mount.on.u, mount.on.v).origin;
+  const front = (DORMER_SILL_CLEAR * 1e-3) / Math.hypot(...add(along, scale(here, -1)));
+  const rects = dormerFootprint(sweep, surface, [mount.on.u, mount.on.v], lift).map(
+    ([u0, v0, u1, v1]): Rect => [u0, v0 - front, u1, v1]
+  );
   return {
     modify: rects.map((rect) => ({
       part: host.key,

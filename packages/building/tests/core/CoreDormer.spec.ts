@@ -8,8 +8,15 @@ vi.mock("@galacean/engine", async () => ({
 }));
 import { describe, expect, it, vi } from "vitest";
 import { nativeAssets } from "../fixtures/constructionAssets";
-import { createBuildingRegistry, designBuildingCore, expandUnits, type ResolvedPart } from "../../src/building/core";
+import {
+  createBuildingRegistry,
+  designBuildingCore,
+  EffectiveGeometry,
+  expandUnits,
+  type ResolvedPart
+} from "../../src/building/core";
 import { registerHouseTypes } from "../../src/building/partTypes/House";
+import { dormerFootprint, type DormerSweepParams } from "../../src/building/partTypes/Dormers";
 import {
   buildCoreHouse,
   type CoreHouseParameters,
@@ -93,6 +100,22 @@ describe("Dormers", () => {
       withDormer = tiles({ ...hip, roofAttachments: [dormer([0.45, 0.2])] });
     expect(withDormer).toBeLessThan(without);
     expect(without - withDormer).toBeLessThan(8);
+  });
+
+  it("opens the roof a little in front of its window", () => {
+    const result = design({ ...hip, roofAttachments: [dormer([0.45, 0.2])] });
+    expect(result.diagnostics).toEqual([]);
+    const roof = result.parts.find((p) => p.type === "roof" && p.modifications.some((m) => m.op === "removeArea"))!;
+    const part = result.parts.find((p) => p.type === "dormer")!;
+    const sweep = part.original.elements.sweep;
+    if (sweep?.kind !== "surface") throw Error("no sweep");
+    const surface = new EffectiveGeometry(roof.original, roof.modifications, registry.surfaces).surface("slope");
+    const mount = part.original.elements.mount;
+    if (mount.kind !== "point" || !mount.on) throw Error("no mount");
+    const near = [mount.on.u, mount.on.v] as const;
+    const plain = dormerFootprint(sweep.surface.params as DormerSweepParams, surface, near, 0);
+    const opened = roof.modifications.flatMap((m) => (m.op === "removeArea" ? [m.rect] : []));
+    expect(Math.min(...opened.map((r) => r[1]))).toBeLessThan(Math.min(...plain.map((r) => r[1])));
   });
 
   it("is an error where no roof slope lies under it, where it crosses an edge, or where it outgrows the roof", () => {
