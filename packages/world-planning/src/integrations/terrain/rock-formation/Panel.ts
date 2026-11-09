@@ -4,12 +4,35 @@ import type { IslandPlan } from "../../../semantic-study/IslandPlanModel.ts";
 import type { PlanningDocument } from "../../../spatial/PlanningDocument.ts";
 import type { PlanningParameterCommand } from "../../../spatial/PlanningSession.ts";
 import { ROCK_FORMATION_COMPONENT, ROCK_OBB_COMPONENT, readRockFormationSettings } from "./Settings.ts";
-import { DEFAULT_ROCK_HEIGHT_MODE, type RockSurfaceMode } from "@galacean/engine-terrain/rock-formation/types";
+import {
+  DEFAULT_ROCK_HEIGHT_MODE,
+  DEFAULT_ROCK_HEIGHT_VARIATION,
+  type RockSurfaceMode
+} from "@galacean/engine-terrain/rock-formation/types";
 import { rockObbId } from "./Authoring.ts";
 import { automaticSlopeRate, DEFAULT_ROCK_SLOPE_VARIATION } from "@galacean/engine-terrain/rock-formation/Slope";
 import { ROCK_COLOR_FIELD_KEYS } from "./ColorPalette.ts";
 import { RockColorControls } from "./ColorControls.ts";
 import { ROCK_GENERATION_COMPONENT, readRockGenerationProfile, rockGenerationKind } from "./GenerationProfile.ts";
+
+// Authoring retains fractions for saved documents; the native controls show percentages.
+const percentage = (fraction: number) => String(Number((fraction * 100).toFixed(10)));
+
+/** Keep the full bilingual label and percent unit visible in the native narrow panel. */
+function wrapPercentageLabel(controller: dat.GUIController): void {
+  const row = controller.domElement.parentElement?.closest("li");
+  const label = row?.querySelector<HTMLElement>(".property-name");
+  if (!row || !label) return;
+  Object.assign(row.style, { height: "auto", minHeight: "27px" });
+  Object.assign(label.style, {
+    width: "70%",
+    whiteSpace: "normal",
+    lineHeight: "1.4",
+    padding: "4px 6px 4px 0",
+    boxSizing: "border-box"
+  });
+  controller.domElement.style.width = "30%";
+}
 
 /** Shared detail settings and individual OBB surface, height, slope and dimension authoring. */
 export class RockFormationPanel {
@@ -24,7 +47,10 @@ export class RockFormationPanel {
   >();
   private readonly draft: Record<string, string> = {};
   private readonly generationDraft: Record<string, string> = {};
-  private readonly generationFields = new Map<string, { input: HTMLInputElement; controller: dat.GUIController }>();
+  private readonly generationFields = new Map<
+    string,
+    { input: HTMLInputElement; controller: dat.GUIController; scale: number }
+  >();
   private readonly writeGeneration: (value: string) => void;
   private readonly sizes = { width: "", height: "", depth: "" };
   private readonly sizeControllers = new Map<string, dat.GUIController>();
@@ -37,7 +63,7 @@ export class RockFormationPanel {
     slopeRate: "",
     slopeVariation: String(DEFAULT_ROCK_SLOPE_VARIATION)
   };
-  private readonly topDraft = { heightVariation: "0.2" };
+  private readonly topDraft = { heightVariation: percentage(DEFAULT_ROCK_HEIGHT_VARIATION) };
   private readonly heightVariationController: dat.GUIController;
   private readonly heightVariationInput: HTMLInputElement;
   private readonly heightModeController: dat.GUIController;
@@ -75,18 +101,19 @@ export class RockFormationPanel {
     this.writeSurface = host.addReadout(this.folder, "Default surface / 默认表面");
     const generation = host.subfolder(this.folder, "Generation profile / 生成配置", false);
     for (const field of ROCK_GENERATION_COMPONENT.fields) {
-      this.generationDraft[field.key] = String(field.default);
-      const controller = generation
-        .add(this.generationDraft, field.key)
-        .name(`${field.label}${field.unit ? ` (${field.unit})` : ""}`);
+      const scale = field.unit === "%" ? 100 : 1;
+      const label = `${field.label}${field.unit ? ` (${field.unit})` : ""}`;
+      this.generationDraft[field.key] = scale === 100 ? percentage(Number(field.default)) : String(field.default);
+      const controller = generation.add(this.generationDraft, field.key).name(label);
+      if (scale === 100) wrapPercentageLabel(controller);
       const input = controller.domElement.querySelector("input")!;
       input.type = "number";
-      input.min = String(field.min);
-      if (field.max !== undefined) input.max = String(field.max);
-      input.step = String(field.step);
+      input.min = String(Number(field.min) * scale);
+      if (field.max !== undefined) input.max = String(field.max * scale);
+      input.step = String(Number(field.step) * scale);
       input.dataset.generationField = field.key;
-      input.setAttribute("aria-label", field.label);
-      this.generationFields.set(field.key, { input, controller });
+      input.setAttribute("aria-label", label);
+      this.generationFields.set(field.key, { input, controller, scale });
     }
     host.addReadout(
       generation,
@@ -98,8 +125,12 @@ export class RockFormationPanel {
       if (!this.document) return;
       const current = readRockGenerationProfile(this.document),
         values: Record<string, number> = {};
-      for (const [key, { input }] of this.generationFields)
-        if (Number(input.value) !== current[key as keyof typeof current]) values[key] = Number(input.value);
+      for (const [key, { input, scale }] of this.generationFields)
+        if (
+          input.value !== input.dataset.displayed &&
+          Number(input.value) / scale !== current[key as keyof typeof current]
+        )
+          values[key] = Number(input.value) / scale;
       if (Object.keys(values).length)
         void this.submit([{ op: "set", entity: "world", component: "rockGeneration", values }]);
     }).dataset.generationApply = "";
@@ -285,14 +316,21 @@ export class RockFormationPanel {
     this.slopeVariationInput.dataset.obbSlopeVariation = "";
     this.heightVariationController = this.obbFolder
       .add(this.topDraft, "heightVariation")
-      .name("Top height variation / 顶部高度变化 (0–1)");
+      .name("Upper height variation / 上层高度变化 (%)");
+    wrapPercentageLabel(this.heightVariationController);
     this.heightVariationInput = this.heightVariationController.domElement.querySelector("input")!;
     this.heightVariationInput.type = "number";
     this.heightVariationInput.min = "0";
-    this.heightVariationInput.max = "1";
-    this.heightVariationInput.step = "0.01";
+    this.heightVariationInput.max = "100";
+    this.heightVariationInput.step = "1";
     this.heightVariationInput.dataset.obbHeightVariation = "";
-    this.heightVariationInput.setAttribute("aria-label", "Top height variation / 顶部高度变化");
+    this.heightVariationInput.setAttribute("aria-label", "Upper height variation / 上层高度变化 (%)");
+    host.addReadout(
+      this.obbFolder,
+      "Upper height guide / 上层高度说明"
+    )(
+      "Seeded upper-vertex variation as a percentage of OBB height. 0% removes this variation; slope and Perlin shaping remain independent. / 上层顶点随机高度变化占包围盒高度的百分比。0% 取消此项变化；坡率与 Perlin 塑形仍独立生效。"
+    );
     this.writeSlope = host.addReadout(this.obbFolder, "Base slope / 基础坡率");
     host.addReadout(
       this.obbFolder,
@@ -325,7 +363,7 @@ export class RockFormationPanel {
       if (this.slopeVariationInput.value !== this.slopeVariationInput.dataset.displayed)
         values.slopeVariation = Number(this.slopeVariationInput.value);
       if (this.heightVariationInput.value !== this.heightVariationInput.dataset.displayed)
-        values.heightVariation = Number(this.heightVariationInput.value);
+        values.heightVariation = Number(this.heightVariationInput.value) / 100;
       if (Object.keys(values).length)
         commands.push({ op: "set", entity: this.select.value, component: "rockObb", values });
       if (commands.length) void this.submit(commands);
@@ -348,10 +386,12 @@ export class RockFormationPanel {
     this.plan = plan;
     this.document = document;
     const generation = readRockGenerationProfile(document);
-    for (const [key, { input, controller }] of this.generationFields) {
-      this.generationDraft[key] = String(generation[key as keyof typeof generation]);
+    for (const [key, { input, controller, scale }] of this.generationFields) {
+      const value = generation[key as keyof typeof generation];
+      this.generationDraft[key] = scale === 100 ? percentage(value) : String(value);
       controller.updateDisplay();
       input.value = this.generationDraft[key];
+      input.dataset.displayed = input.value;
     }
     const selected = this.select.value;
     this.select.replaceChildren();
@@ -477,7 +517,7 @@ export class RockFormationPanel {
         this.slopeVariationController.updateDisplay();
         this.slopeVariationInput.value = this.obbDraft.slopeVariation;
         this.slopeVariationInput.dataset.displayed = this.slopeVariationInput.value;
-        this.topDraft.heightVariation = String(box.heightVariation ?? 0.2);
+        this.topDraft.heightVariation = percentage(box.heightVariation ?? DEFAULT_ROCK_HEIGHT_VARIATION);
         this.heightVariationController.updateDisplay();
         this.heightVariationInput.value = this.topDraft.heightVariation;
         this.heightVariationInput.dataset.displayed = this.heightVariationInput.value;

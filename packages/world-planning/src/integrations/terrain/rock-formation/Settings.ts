@@ -4,7 +4,11 @@ import { ComponentRegistry, resolveComponent } from "../../../spatial/SpatialDoc
 import { defaultSlabSettings, type SlabSettings } from "@galacean/engine-terrain/rock-formation/SlabSettings";
 import type { NoiseSettings } from "@galacean/engine-terrain/rock-formation/PerlinNoise";
 import type { CellularCurvatureSettings } from "@galacean/engine-terrain/rock-formation/CellularCurvature";
-import { DEFAULT_ROCK_HEIGHT_MODE, type RockSurfaceMode } from "@galacean/engine-terrain/rock-formation/types";
+import {
+  DEFAULT_ROCK_HEIGHT_MODE,
+  DEFAULT_ROCK_HEIGHT_VARIATION,
+  type RockSurfaceMode
+} from "@galacean/engine-terrain/rock-formation/types";
 import { DEFAULT_ROCK_SLOPE_VARIATION } from "@galacean/engine-terrain/rock-formation/Slope";
 import { readRockColorBlend, ROCK_COLOR_FIELDS, type RockColorBlend } from "./ColorPalette.ts";
 
@@ -163,12 +167,13 @@ export const ROCK_OBB_COMPONENT: PlanningComponentDefinition = {
     },
     {
       key: "heightVariation",
-      label: "Top height variation / 顶部高度变化",
+      label: "Upper height variation / 上层高度变化",
       type: "number",
+      unit: "%",
       min: 0,
       max: 1,
       step: 0.01,
-      default: 0.2
+      default: DEFAULT_ROCK_HEIGHT_VARIATION
     }
   ],
   validate(values) {

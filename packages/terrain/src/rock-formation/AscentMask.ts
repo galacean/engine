@@ -3,11 +3,11 @@ import { seedVoronoiOutline } from "./VoronoiOutline";
 import { hashSeed, random } from "./math";
 import { surfaceTriangle, triangleHeight } from "./TriangleSampling";
 import { rockFaceSlopeRate } from "./Slope";
-import type { GuideProfile, RockDomain, RockObb } from "./types";
+import { DEFAULT_ROCK_HEIGHT_VARIATION, type GuideProfile, type RockDomain, type RockObb } from "./types";
 
 /** Preserve the lab's independent outline, face-rate, and upper-height random streams. */
 export function seedAscentProfile(obb: RockObb, seed: number): GuideProfile {
-  const heightVariation = obb.heightVariation ?? 0.2;
+  const heightVariation = obb.heightVariation ?? DEFAULT_ROCK_HEIGHT_VARIATION;
   if (!Number.isFinite(heightVariation) || heightVariation < 0 || heightVariation > 1)
     throw new Error("Rock upper height variation must be between 0 and 1");
   const slopeRate = rockFaceSlopeRate(obb, seed);

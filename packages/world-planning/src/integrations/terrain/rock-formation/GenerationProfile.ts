@@ -2,7 +2,7 @@ import type { PlanningComponentDefinition } from "../../../spatial/PlanningCompo
 import type { PlanningDocument } from "../../../spatial/PlanningDocument.ts";
 import { ComponentRegistry, resolveComponent } from "../../../spatial/SpatialDocument.ts";
 import { hashSeed, random } from "@galacean/engine-terrain/rock-formation/math";
-import type { RockObb } from "@galacean/engine-terrain/rock-formation/types";
+import { DEFAULT_ROCK_HEIGHT_VARIATION, type RockObb } from "@galacean/engine-terrain/rock-formation/types";
 
 /** Authoring defaults, resolved into published OBBs before worker/cache inputs. */
 export const ROCK_GENERATION_DEFAULTS = {
@@ -10,10 +10,10 @@ export const ROCK_GENERATION_DEFAULTS = {
   platformHeightScale: 1,
   platformSlopeRate: 12,
   platformSlopeVariation: 0.2,
-  platformHeightVariation: 0.05,
+  platformHeightVariation: DEFAULT_ROCK_HEIGHT_VARIATION,
   peakHeightScale: 1,
   peakSlopeVariation: 0.8,
-  peakHeightVariation: 0.2
+  peakHeightVariation: DEFAULT_ROCK_HEIGHT_VARIATION
 };
 export type RockGenerationProfile = typeof ROCK_GENERATION_DEFAULTS;
 export type RockGenerationKind = "platform" | "peak";
@@ -66,10 +66,10 @@ export const ROCK_GENERATION_COMPONENT: PlanningComponentDefinition = {
     field("platformHeightScale", "Platform height scale / 平台高度倍率", "×", 0.05),
     field("platformSlopeRate", "Platform base slope / 平台基础坡率", "m/m", 0.1),
     field("platformSlopeVariation", "Platform slope variation / 平台坡率变化", "", 0.05, 1),
-    field("platformHeightVariation", "Platform top variation / 平台顶部高度变化", "", 0.01, 1),
+    field("platformHeightVariation", "Platform upper height variation / 平台上层高度变化", "%", 0.01, 1),
     field("peakHeightScale", "Peak height scale / 山峰高度倍率", "×", 0.05),
     field("peakSlopeVariation", "Peak slope variation / 山峰坡率变化", "", 0.05, 1),
-    field("peakHeightVariation", "Peak top variation / 山峰顶部高度变化", "", 0.01, 1)
+    field("peakHeightVariation", "Peak upper height variation / 山峰上层高度变化", "%", 0.01, 1)
   ],
   validate(values) {
     for (const key of ["platformHeightScale", "peakHeightScale", "platformSlopeRate"] as const)
