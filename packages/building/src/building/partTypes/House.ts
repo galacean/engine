@@ -737,6 +737,8 @@ interface ParapetParams {
   merlon?: number;
   /** Depth of the stones through the wall in metres before scaling. Default: 0.56. */
   depth?: number;
+  /** Draw the stones in the colours of the roof. Default: false, the wall's. */
+  roofColor?: boolean;
   element?: string;
 }
 interface ParapetStone {
@@ -780,6 +782,7 @@ export const parapetCourses: LayingAlgorithm<ParapetParams, ParapetLayout> = {
       pitch: "Width of a merlon slot and of the stones below in metres before scaling. Default: 0.69.",
       merlon: "Height of a merlon in metres before scaling. Default: 0.46.",
       depth: "Depth of the stones through the wall in metres before scaling. Default: 0.56.",
+      roofColor: "Draw the stones in the colours of the roof. Default: false, the wall's.",
       element: "Wall chart element id. Default: face."
     }
   },
@@ -881,8 +884,8 @@ export const parapetCourses: LayingAlgorithm<ParapetParams, ParapetLayout> = {
       {
         anchor_uv: [(stone.u0 - before + stone.u1 + after) / 2, (stone.lo + stone.hi) / 2 - chart.minGround],
         // 4: irregular shape. 1024: the brick shader reads the colour at one height, so that a
-        // big stone does not cross the bands of the wall's colour map.
-        flags: 4 | 1024,
+        // big stone does not cross the bands of the wall's colour map. 2: the roof's colours.
+        flags: 4 | 1024 | (p.roofColor ? 2 : 0),
         gap: 0,
         // The renderer takes a stone's colour along this span: a big stone reads one place.
         wallU: [middle, middle]
@@ -1251,8 +1254,28 @@ interface CornerStoneParams {
 /** Corner stones stacked at one corner: even rows along the wall after the corner, odd rows
  * along the wall before it, each reaching past the corner by half its depth. */
 /** Whether a row of corner stones overlaps one of the height ranges kept free above the base. */
-const inGap = (y0: number, y1: number, bottom: number, gaps: readonly (readonly [number, number])[]) =>
-  gaps.some(([from, to]) => y0 - bottom < to && y1 - bottom > from);
+/** What is left of a row of corner stones beside the gaps, which are heights above `bottom`: the
+ * tallest piece, unless it is lower than `least`. A window takes the part of a stone it crosses. */
+function cornerRowSpan(
+  y0: number,
+  y1: number,
+  bottom: number,
+  gaps: readonly (readonly [number, number])[],
+  least: number
+): [number, number] | undefined {
+  let pieces: [number, number][] = [[y0, y1]];
+  for (const [from, to] of gaps)
+    pieces = pieces.flatMap(([a, b]): [number, number][] => {
+      const [lo, hi] = [bottom + from, bottom + to];
+      if (!(a < hi && lo < b)) return [[a, b]];
+      return [...(a < lo ? [[a, lo] as [number, number]] : []), ...(hi < b ? [[hi, b] as [number, number]] : [])];
+    });
+  const tallest = pieces.reduce<[number, number] | undefined>(
+    (best, q) => (!best || q[1] - q[0] > best[1] - best[0] ? q : best),
+    undefined
+  );
+  return tallest && tallest[1] - tallest[0] >= least ? tallest : undefined;
+}
 export const cornerStones: LayingAlgorithm<CornerStoneParams, { rows: number }> = {
   info: {
     accepts: ["point"],
@@ -1273,7 +1296,9 @@ export const cornerStones: LayingAlgorithm<CornerStoneParams, { rows: number }> 
   unitAt(context, _data, row) {
     const p = context.params;
     const ys = cornerStoneRows(p.seed, p.bottom, p.top, p.scale[1]);
-    if (inGap(ys[row], ys[row + 1], p.bottom, p.gaps ?? [])) return;
+    const span = cornerRowSpan(ys[row], ys[row + 1], p.bottom, p.gaps ?? [], 0.1 * p.scale[1]);
+    if (!span) return;
+    const [y0, y1] = span;
     const rows = ys.length - 1;
     const width = cornerStoneWidth(p.seed, row, rows, p.scale[0]),
       over = overhang(p.scale[2]);
@@ -1287,10 +1312,10 @@ export const cornerStones: LayingAlgorithm<CornerStoneParams, { rows: number }> 
       { x: corner[0] + sign * dx * shift, z: corner[2] + sign * dz * shift, tangent: [dx, dz] },
       0,
       width,
-      [ys[row], ys[row], ys[row + 1], ys[row + 1]],
+      [y0, y0, y1, y1],
       0.637 * p.scale[2],
       {
-        anchor_uv: [0, (ys[row] + ys[row + 1]) / 2 - p.bottom],
+        anchor_uv: [0, (y0 + y1) / 2 - p.bottom],
         flags: 4,
         gap: 0,
         accent: true,
@@ -1362,9 +1387,10 @@ export const wallCorner: ConnectionRule = ({ parts, seed, params, attached }) =>
   });
   const modify = [];
   for (let row = 0; row < rows; row++) {
-    if (inGap(ys[row], ys[row + 1], bottom, gaps)) continue;
+    const span = cornerRowSpan(ys[row], ys[row + 1], bottom, gaps, 0.1 * scale[1]);
+    if (!span) continue;
     const width = cornerStoneWidth(seed, row, rows, scale[0]);
-    const [y0, y1] = [ys[row], ys[row + 1]];
+    const [y0, y1] = span;
     // Even rows: the stone lies along the wall after the corner; its end shows on the wall before.
     const onAfter: Rect = [0, y0, row % 2 === 0 ? width - over : over, y1];
     const onBefore: Rect = [lengthBefore - (row % 2 === 0 ? over : width - over), y0, lengthBefore, y1];

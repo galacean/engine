@@ -211,4 +211,22 @@ describe("Corner windows against the online path", () => {
     const draft = European.buildHouses({ id: "e", attachments: [a] });
     expect(draft.parts.find((p) => p.type === "window")!.geometry!.generator).toBe("houseCornerMount");
   });
+
+  it("cuts the corner stones it crosses instead of dropping them", () => {
+    const window = at(2, 0.5);
+    const heights = (attachments: CoreWallAttachment[]) =>
+      design(house(attachments))
+        .parts.filter((p) => p.type === "cornerStone")
+        .map((p) => expandUnits(p, registry, { environment }).map((u) => u.size![1]));
+    const without = heights([]),
+      withWindow = heights([window]);
+    const changed = withWindow.findIndex(
+      (row, i) => row.length !== without[i].length || row.some((h, k) => h !== without[i][k])
+    );
+    expect(changed).toBeGreaterThanOrEqual(0);
+    // The row the window's sill stands on stays, shorter than it was.
+    const cut = withWindow[changed].filter((h) => !without[changed].includes(h));
+    expect(cut.length).toBeGreaterThan(0);
+    expect(withWindow[changed].length).toBeGreaterThan(0);
+  });
 });
