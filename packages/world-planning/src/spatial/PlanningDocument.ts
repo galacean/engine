@@ -441,6 +441,16 @@ export function upgradePlanningDocument(input: PlanningDocument): PlanningDocume
           ...(typeof legacy?.centerZ === "number" ? { centerZ: legacy.centerZ } : {})
         })
       };
+    // Saved routes must not retain a destination whose template model was removed.
+    const composition = world.landscapeComposition;
+    const destination = composition?.values.destinationId;
+    if (
+      composition &&
+      typeof destination === "string" &&
+      destination &&
+      !WORLD_TEMPLATE_ART[id].models.some((model) => model.id === destination)
+    )
+      composition.values.destinationId = preset.destinationId ?? "";
     // Retire only resources owned by this template's former instance-table contract.
     scope.authoredResources = scope.authoredResources?.filter(
       (resource) =>

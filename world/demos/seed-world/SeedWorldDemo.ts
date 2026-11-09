@@ -1254,6 +1254,13 @@ export async function mountSeedWorldDemo(
         import("./src/planning/spatial/runtime/PlanningSeedDebugSidebar.ts")
       ]);
       runtimeDebug = await PlanningSeedRuntimeDebug.create({
+        trees: {
+          project: runtimeProject,
+          editor: nativeEditor,
+          application: tools.application,
+          planning: source!.session,
+          readVegetation: () => readPublished()?.vegetation
+        },
         engine,
         root,
         camera,

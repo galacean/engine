@@ -99,7 +99,7 @@ export const SEED_WORLD_SURFACE_PALETTE_PRESETS = Object.freeze({
   },
   樱花粉: {
     colorA: paletteHexToLinear(0xe55959),
-    colorB: paletteHexToLinear(0xff899e),
+    colorB: paletteHexToLinear(0xfc5a7a),
     roadColorA: paletteHexToLinear(0xf1cbc5),
     roadColorB: paletteHexToLinear(0xdca3ae),
     saturation: 1

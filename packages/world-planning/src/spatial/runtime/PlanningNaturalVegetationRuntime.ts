@@ -20,6 +20,7 @@ import {
 } from "../../world/SeedWorldAssetPlacementProfile";
 import {
   BoundingBox,
+  Color,
   Matrix,
   MeshRenderer,
   Vector3,
@@ -118,6 +119,7 @@ type Plant = {
   grassRootPositions: readonly Vector4[];
   foliageRenderers: readonly MeshRenderer[];
   barkRenderers: readonly MeshRenderer[];
+  appearanceBindings: readonly { renderer: MeshRenderer; source: Source["rendererBindings"][number] }[];
 };
 type Cell = {
   root: Entity;
@@ -137,6 +139,12 @@ type FoliageColors = Record<
   }
 >;
 const plantingHeights = new Map(PLANT_SPECIES.map((entry) => [entry.id, entry.vegetation.plantingHeightM]));
+/** Display preview owned by a published World; accepted edits persist through project transactions. */
+export interface PlanningPlantAppearancePreview {
+  baseColor?: readonly [number, number, number];
+  shaderData?: Readonly<Record<string, number | readonly [number, number, number, number]>>;
+  macros?: Readonly<Record<string, boolean>>;
+}
 /** Shared procedural resources plus ordinary MeshRenderers: Engine native instancing remains authoritative. */
 export class PlanningNaturalVegetationRuntime {
   private readonly libraries: ProceduralPlantLibraryRuntime[] = [];
@@ -148,6 +156,8 @@ export class PlanningNaturalVegetationRuntime {
   plantAssets: readonly PlanningPlantAsset[] = [];
   private readonly trees: Plant[] = [];
   private readonly treePool = new Map<string, Plant>();
+  private readonly previewColors = new Map<string, readonly [number, number, number]>();
+  private readonly previewSurfaces = new WeakMap<Material, PlanningPlantAppearancePreview>();
   private height!: PlanningHeightmap;
   private readonly cells = new Map<string, Cell>();
   private detailTask?: Promise<void>;
@@ -201,6 +211,84 @@ export class PlanningNaturalVegetationRuntime {
 
   setUnderstoryVisible(visible: boolean): void {
     this.detailRoot.isActive = visible;
+  }
+
+  private appearanceMaterials(assetId: string, materialId: string): Set<Material> {
+    return new Set(
+      this.sources
+        .flatMap(
+          (level) =>
+            level
+              .get(assetId)
+              ?.rendererBindings.filter((binding) => binding.materialId === materialId)
+              .flatMap((binding) => binding.renderer.getMaterials()) ?? []
+        )
+        .filter((material): material is Material => !!material)
+    );
+  }
+
+  appearancePreview(assetId: string, materialId: string): PlanningPlantAppearancePreview {
+    const surface = [...this.appearanceMaterials(assetId, materialId)]
+      .map((material) => this.previewSurfaces.get(material))
+      .find(Boolean);
+    const baseColor = this.previewColors.get(JSON.stringify([assetId, materialId]));
+    return structuredClone({ ...surface, ...(baseColor ? { baseColor } : {}) });
+  }
+
+  /** Synchronous uniform/instance-data updates: keep the World, meshes and placement intact. */
+  previewAppearance(assetId: string, materialId: string, patch: PlanningPlantAppearancePreview): void {
+    if (this.disposed) throw new Error("Vegetation is disposed");
+    if (
+      patch.baseColor &&
+      (patch.baseColor.length !== 3 || !patch.baseColor.every((value) => Number.isFinite(value) && value >= 0))
+    )
+      throw new Error("Invalid vegetation preview color");
+    for (const value of Object.values(patch.shaderData ?? {}))
+      if (
+        typeof value === "number"
+          ? !Number.isFinite(value)
+          : !Array.isArray(value) || value.length !== 4 || !value.every(Number.isFinite)
+      )
+        throw new Error("Invalid vegetation preview uniform");
+    if (Object.values(patch.macros ?? {}).some((value) => typeof value !== "boolean"))
+      throw new Error("Invalid vegetation preview switch");
+    const materials = this.appearanceMaterials(assetId, materialId);
+    if (!materials.size) throw new Error(`Vegetation material slot is unavailable: ${assetId}/${materialId}`);
+    if (patch.baseColor) {
+      this.previewColors.set(JSON.stringify([assetId, materialId]), [...patch.baseColor]);
+      const refresh = (plant: Plant) => {
+        if (plant.instance.assetId !== assetId) return;
+        for (const { renderer, source } of plant.appearanceBindings)
+          if (source.materialId === materialId) {
+            applyPlantRendererColor(
+              renderer,
+              this.plantColor(plant.instance, source),
+              !!source.renderer.shaderData.getVector4("renderer_ProceduralTreeLeafColor")
+            );
+            for (const channel of ["R", "G", "B"])
+              renderer.shaderData.enableMacro(`RENDERER_PLANT_COLOR_OVERRIDE_${channel}`);
+          }
+      };
+      for (const plant of this.treePool.values()) refresh(plant);
+      for (const cell of this.cells.values()) for (const plant of cell.plants) refresh(plant);
+    }
+    for (const material of materials) {
+      const previous = this.previewSurfaces.get(material);
+      this.previewSurfaces.set(material, {
+        shaderData: { ...previous?.shaderData, ...patch.shaderData },
+        macros: { ...previous?.macros, ...patch.macros }
+      });
+      for (const [property, value] of Object.entries(patch.shaderData ?? {})) {
+        if (typeof value === "number") material.shaderData.setFloat(property, value);
+        else material.shaderData.setColor(property, new Color(...value));
+      }
+      for (const [macro, enabled] of Object.entries(patch.macros ?? {})) {
+        if (enabled) material.shaderData.enableMacro(macro);
+        else material.shaderData.disableMacro(macro);
+      }
+    }
+    this.foliageColors = undefined;
+    this.barkColors = undefined;
   }
 
   static async create(
@@ -633,6 +721,16 @@ export class PlanningNaturalVegetationRuntime {
   }
   private plantColor(instance: LandscapePlantInstance, binding: Source["rendererBindings"][number]): Vector4 {
     const source = binding.renderer.shaderData.getVector4("renderer_AssetAssemblyColor");
+    const preview = this.previewColors.get(JSON.stringify([instance.assetId, binding.materialId]));
+    if (preview)
+      return new Vector4(
+        ...(preview.map((value, axis) => value * (binding.authoredColorScale?.[axis] ?? 1)) as [
+          number,
+          number,
+          number
+        ]),
+        source.w
+      );
     return new Vector4(
       ...resolvePlantMaterialColor(
         this.materialParameters,
@@ -666,6 +764,7 @@ export class PlanningNaturalVegetationRuntime {
     const grassRootPositions: Vector4[] = [];
     const foliageRenderers: MeshRenderer[] = [];
     const barkRenderers: MeshRenderer[] = [];
+    const appearanceBindings: Plant["appearanceBindings"][number][] = [];
     root.transform.setPosition(instance.position[0], ground, instance.position[2]);
     root.transform.setRotation(0, instance.yaw, 0);
     root.transform.setScale(...(instance.scaleAxes ?? ([instance.scale, instance.scale, instance.scale] as const)));
@@ -703,9 +802,10 @@ export class PlanningNaturalVegetationRuntime {
           );
         }
         const authoredChannels = plantMaterialColorOverrideMask(this.materialParameters, instance.assetId, materialId);
+        const previewColor = this.previewColors.has(JSON.stringify([instance.assetId, materialId]));
         for (const [index, channel] of ["R", "G", "B"].entries()) {
           const macro = `RENDERER_PLANT_COLOR_OVERRIDE_${channel}`;
-          if (authoredChannels[index]) renderer.shaderData.enableMacro(macro);
+          if (previewColor || authoredChannels[index]) renderer.shaderData.enableMacro(macro);
           else renderer.shaderData.disableMacro(macro);
         }
         if (original.getMaterials().some((material) => material && this.grassMaterials.has(material))) {
@@ -733,6 +833,7 @@ export class PlanningNaturalVegetationRuntime {
           this.plantColor(instance, binding),
           !!original.shaderData.getVector4("renderer_ProceduralTreeLeafColor")
         );
+        appearanceBindings.push({ renderer, source: binding });
         const role = PLANT_SPECIES_MATERIALS[instance.assetId]?.[materialId]?.role;
         if (
           level === 0 &&
@@ -781,7 +882,17 @@ export class PlanningNaturalVegetationRuntime {
       source.kind === "stone" ? 0 : SEED_WORLD_POPULATION_RUNTIME_PROFILE.tree.crossFadeSeconds
     );
     lod.setAuthoringVisible(!this.groundExcluded(instance));
-    return { root, lod, instance, pickBatches, groundHeight, grassRootPositions, foliageRenderers, barkRenderers };
+    return {
+      root,
+      lod,
+      instance,
+      pickBatches,
+      groundHeight,
+      grassRootPositions,
+      foliageRenderers,
+      barkRenderers,
+      appearanceBindings
+    };
   }
 
   private groundExcluded(instance: LandscapePlantInstance): boolean {
