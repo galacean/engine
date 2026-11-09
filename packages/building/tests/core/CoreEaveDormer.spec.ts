@@ -269,4 +269,27 @@ describe("Eave dormers against the online path", () => {
       expect(Math.abs(across(middle))).toBeLessThan(0.06);
     }
   });
+
+  it("cuts the tiles that hang over the eave as high as the whole opening reaches", async () => {
+    const result = design(house([at("dormer-gothic-half", 3, 0.3)]));
+    expect(result.diagnostics).toEqual([]);
+    const { renderInput } = await compileCoreBuilding(result, registry, {
+      environment: { ground: flat },
+      assets: nativeAssets.compilation
+    });
+    const { holes } = renderInput.dormerBins;
+    const view = new DataView(holes.buffer, holes.byteOffset, holes.byteLength);
+    const boxes = new Map<string, { top: number; depth: number }>();
+    for (let k = 0; k + 48 <= holes.byteLength; k += 48) {
+      const depth = view.getFloat32(k + 24, true);
+      if (!(depth > 0)) continue;
+      const top = view.getFloat32(k + 4, true) + view.getFloat32(k + 20, true) / 2;
+      boxes.set(`${view.getFloat32(k, true)}/${top}/${depth}`, { top, depth });
+    }
+    const all = [...boxes.values()];
+    expect(all.length).toBeGreaterThan(1);
+    // Only the band at the eave reaches out past the roof's edge.
+    const eave = all.find((b) => b.depth > 1)!;
+    expect(eave.top).toBeCloseTo(Math.max(...all.map((b) => b.top)), 3);
+  });
 });

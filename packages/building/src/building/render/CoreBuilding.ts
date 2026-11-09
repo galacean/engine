@@ -18,6 +18,7 @@ import {
   type GeometryElement,
   type LaidUnit,
   type Rect,
+  type EffectiveSurface,
   type ResolvedPart
 } from "../core";
 import type { WallChartParams } from "../partTypes/House";
@@ -1854,6 +1855,14 @@ export async function coreBuildingRenderInput(
 const ROOF_SURFACES = ["slope", "deck"];
 /** How far the eave's tiles can hang past the roof's lower edge, in metres. */
 const EAVE_REACH = 1.2;
+/** The height of the top of the stack of removed areas that a removed area starts: each next
+ * area overlaps the last along u and meets it along v. */
+function stackTop(surface: EffectiveSurface, first: readonly number[]): number {
+  let [, , , top] = first;
+  for (const [u0, v0, u1, v1] of [...surface.removed].sort((a, b) => a[1] - b[1]))
+    if (u0 < first[2] && first[0] < u1 && v0 <= top && v1 > top) top = v1;
+  return surface.frame((first[0] + first[2]) / 2, top).origin[1];
+}
 function roofApertures(layout: CoreBuildingLayout): Uint8Array[] {
   const records: Uint8Array[] = [];
   for (const owner of layout.owners)
@@ -1887,8 +1896,11 @@ function roofApertures(layout: CoreBuildingLayout): Uint8Array[] {
           const atEave = v0 <= surface.domain.v[0] + 1e-6;
           const z1 = edge + (atEave ? EAVE_REACH : 0);
           const [x0, x1] = range(across);
-          const [bottom, y1] = range([0, 1, 0]);
+          const [bottom, own] = range([0, 1, 0]);
           const y0 = bottom - (atEave ? EAVE_REACH : 0);
+          // The tiles above hang out over the eave: the eave's box reaches as high as the
+          // bands of its opening.
+          const y1 = atEave ? Math.max(own, stackTop(surface, [u0, v0, u1, v1])) : own;
           // The box reaches well above and below the roof there: only this roof's tiles lie
           // over the area.
           const reach = 0.5;
