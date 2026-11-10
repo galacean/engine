@@ -31,6 +31,7 @@ import {
   depthToHeight,
   dormerCap,
   dormerTile,
+  requireOnRoof,
   roofOpeningArea,
   roofUnder,
   slopeSurface,
@@ -154,6 +155,9 @@ export const houseEaveMountGeometry: GeometryGenerator<EaveMountParams> = (p, co
     const back = scale(z, -1);
     const depth = depthToHeight(surface, origin, back, origin[1] + peak, near);
     if (depth === undefined) throw Error("The dormer reaches above its roof");
+    // On the roof the dormer stands from the wall line, behind the front it reaches out to.
+    const wallLine = Math.min(depth, out + FRONT_BEHIND_WALL + (chart.mountOffset ?? 0));
+    requireOnRoof(surface, origin, x, back, right[right.length - 1][0], [wallLine, depth], near);
     const sweep: DormerSweepParams = { origin, x, z, outline, depth };
     const top = add(origin, [0, peak, 0]);
     elements.sweep = { kind: "surface", surface: { kind: "dormerSweep", params: sweep } };

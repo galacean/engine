@@ -173,6 +173,26 @@ export const coveringRise = (roof: ParticipantView, n: Vec3) => coveringThicknes
 export const slopeSurface = (host: ParticipantView): EffectiveSurface | undefined =>
   host.geometry.original.elements.slope?.kind === "surface" ? host.geometry.surface("slope") : undefined;
 
+/** A dormer stays on its roof part: every corner of its footprint, `width` to either side of
+ * `origin` along `x` and `depths[0]` to `depths[1]` back along level direction `back`, lies
+ * over the part's surface. Otherwise it is an error. */
+export function requireOnRoof(
+  surface: EffectiveSurface,
+  origin: Vec3,
+  x: Vec3,
+  back: Vec3,
+  width: number,
+  depths: readonly [number, number],
+  near: readonly [number, number]
+): void {
+  for (const side of [-1, 1])
+    for (const d of depths) {
+      const corner = add(add(origin, scale(x, side * width)), scale(back, d));
+      if (!surfaceAtPlan(surface, corner[0], corner[2], near) && !surfaceAtPlan(surface, corner[0], corner[2]))
+        throw Error("The dormer crosses an edge of its roof");
+    }
+}
+
 /** How far back from plan point `from` along level direction `back` the surface first rises
  * to height `y`, searched in steps of 5 cm up to `limit` metres and refined by bisection. The
  * start may lie in front of the surface. Undefined when the surface ends first. */
@@ -273,14 +293,7 @@ export const houseRoofMountGeometry: GeometryGenerator<RoofMountParams> = (p, { 
   const near = [hit.u, hit.v] as const;
   const depth = depthToHeight(surface, origin, back, origin[1] + peak, near);
   if (depth === undefined) throw Error("The dormer reaches above its roof");
-  // The dormer stays on its roof part: every corner of its footprint lies over it.
-  const width = right[right.length - 1][0];
-  for (const side of [-1, 1])
-    for (const d of [0, depth]) {
-      const corner = add(add(origin, scale(x, side * width)), scale(back, d));
-      if (!surfaceAtPlan(surface, corner[0], corner[2], near) && !surfaceAtPlan(surface, corner[0], corner[2]))
-        throw Error("The dormer crosses an edge of its roof");
-    }
+  requireOnRoof(surface, origin, x, back, right[right.length - 1][0], [0, depth], near);
   const sweep: DormerSweepParams = { origin, x, z, outline, depth };
   const top = add(origin, [0, peak, 0]);
   const elements: Record<string, GeometryElement> = {

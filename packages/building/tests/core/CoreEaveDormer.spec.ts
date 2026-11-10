@@ -254,6 +254,19 @@ describe("Eave dormers against the online path", () => {
     );
   });
 
+  it("is an error across an edge of its roof part, with an arch as with a shed", () => {
+    const hipped = {
+      rectangle: { center: [0, 0] as [number, number], size: [8, 6] as [number, number], rotation: 0 },
+      roof: { height: 0.35, profile: 1 }
+    };
+    const near = (type: string, rank: 1 | 2 | 3, u: number) =>
+      messages(design(house([at(type, rank, u, { width: 2, height: 2.4, bottom: 2 })], hipped)));
+    // Near the corner the dormer reaches over the hip onto the next slope.
+    expect(near("dormer-gothic-half", 2, 0.06)).toContain("The dormer crosses an edge of its roof");
+    expect(near("dormer-cottage-half", 2, 0.06)).toContain("The dormer crosses an edge of its roof");
+    expect(near("dormer-gothic-half", 2, 0.125)).toEqual([]);
+  });
+
   it("is drawn with its roof picked as the dormer, and the eave cut by apertures", async () => {
     const result = design(house([at("dormer-gothic-half", 2, 0.125)]));
     const { renderInput } = await compileCoreBuilding(result, registry, { environment: { ground: flat }, assets });
