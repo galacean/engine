@@ -8,7 +8,6 @@ export interface BuildingUnitAssets {
   prefabs?: Record<string, import("../resources/BuildingAssembly").CompiledBuildingPrefab>;
   decorationCollisions?: import("./ConstructionDecorationCollisions").ConstructionDecorationCollisions;
   stoneGeometry?: import("./ConstructionGeometryAssets").ConstructionStoneGeometry;
-  windowCuts: import("./ConstructionWindowCutAsset").ConstructionWindowCutAsset;
   woodPillar?: ConstructionPositionMesh;
   roofSpire?: RoofSpireAsset;
   gothic: Record<1 | 2 | 3, { collisionBounds: GothicCollisionBounds; geometry?: GothicGeometryAssets }>;

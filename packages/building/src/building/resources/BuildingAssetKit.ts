@@ -1,4 +1,3 @@
-import { validateConstructionWindowCuts } from "../runtime/ConstructionWindowCutAsset";
 import {
   Component,
   Loader,
@@ -22,7 +21,6 @@ import type { ConstructionResourceRole } from "../runtime/ConstructionBindings";
 import type { ConstructionGeometryAssets } from "./BuildingGeometry";
 import { buildingGeometry, validateBuildingMesh } from "./BuildingGeometry";
 import type { ConstructionDecorationCollisions } from "../runtime/ConstructionDecorationCollisions";
-import type { ConstructionWindowCutAsset } from "../runtime/ConstructionWindowCutAsset";
 
 export interface BuildingUnitBinding {
   kind: "storage" | "uniform";
@@ -254,7 +252,6 @@ export class BuildingAssetKitComponent extends Component {
   }
   textureColors: Record<string, number[]> = {};
   decorationCollisions: ConstructionDecorationCollisions = {};
-  windowCuts!: ConstructionWindowCutAsset;
   roofSpireColor: number[] = [];
   frameWords: number[] = [];
   sdfProxyIndices: number[] = [];
@@ -548,11 +545,6 @@ export function buildingAssets(source: PrefabResource): BuildingAssets {
     }
     if (!kit.decorationMaterial) throw Error("Building kit requires its decoration Material");
     if (!kit.woodArchMaterial) throw Error("Building kit requires its wood arch Material");
-    const cutTexture = kit.textures[kit.windowCuts?.texture];
-    if (!(cutTexture instanceof Texture2DArray)) throw Error("Window-cut atlas requires a native Texture2DArray");
-    validateConstructionWindowCuts(kit.windowCuts, {
-      [kit.windowCuts.texture]: { width: cutTexture.width, height: cutTexture.height, layers: cutTexture.length }
-    });
     const result: BuildingAssets = {
       source,
       decorationMaterial: kit.decorationMaterial,

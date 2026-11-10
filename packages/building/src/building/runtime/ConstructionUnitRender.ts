@@ -1,6 +1,4 @@
 import { packUnits } from "./UnitPacking.js";
-import { bindDecorationWoodCuts, decorationWoodCutTemplate } from "./DecorationWoodCutAssets";
-import type { buildDecorationWindowCutBuffer } from "./DecorationWindowCutBuffer";
 import type { ConstructionDrawInput } from "./ConstructionPackage";
 import type { MaterialUnit } from "./UnitPlacementStyle";
 import type { SupportCell } from "./PlacementSupport";
@@ -52,13 +50,9 @@ export function constructionSurfaceUnitDraw(
   instances: Uint8Array,
   options: {
     sourceDraw?: ConstructionUnitDraw;
-    windowCuts?: ReturnType<typeof buildDecorationWindowCutBuffer>;
   } = {}
 ): ConstructionUnitDraw {
   if (options.sourceDraw) return options.sourceDraw;
-  if (material === "wooden_plank" && options.windowCuts?.indexCount) {
-    return { template: decorationWoodCutTemplate, ...bindDecorationWoodCuts(instances, options.windowCuts) };
-  }
   return {
     template: material === "wooden_plank" ? "wood" : material === "roof_tile" ? "roof" : "brick",
     instances,

@@ -47,7 +47,7 @@ type QueryUnit = Pick<
 > & { mesh: BuildingQueryMesh };
 type QueryKit = Pick<
   BuildingAssetKitComponent,
-  "decorationCollisions" | "windowCuts" | "roofSpireColor" | "textures" | "neutralTextures" | "textureColors"
+  "decorationCollisions" | "roofSpireColor" | "textures" | "neutralTextures" | "textureColors"
 > & {
   roofSpireMesh: BuildingQueryMesh | null;
   gothic: Record<
@@ -233,7 +233,6 @@ export function buildingGeometry(
     prefabs: buildingPrefabs,
     decorationCollisions: structuredClone(kit.decorationCollisions),
     stoneGeometry,
-    windowCuts: structuredClone(kit.windowCuts),
     roofSpire,
     gothic,
     woodPillar

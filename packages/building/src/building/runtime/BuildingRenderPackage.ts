@@ -24,7 +24,6 @@ import type { ConstructionPreviewPart } from "./ConstructionPreview";
 import type { encodeConstructionDormerBins } from "./DormerBins";
 import type { MaterialUnit } from "./UnitPlacementStyle";
 import type { SupportCell } from "./PlacementSupport";
-import type { buildDecorationWindowCutBuffer } from "./DecorationWindowCutBuffer";
 
 export interface BuildingUnitDrawGroup {
   id: number;
@@ -39,7 +38,6 @@ export interface BuildingUnitDrawGroup {
   wallRoofJoint?: ConstructionDrawInput["wallRoofJoint"];
   roofApertures?: boolean;
   gravity?: NonNullable<ConstructionDrawInput["feedback"]>["steps"];
-  windowCuts?: ReturnType<typeof buildDecorationWindowCutBuffer>;
 }
 /** Transient implementation output. All ownership and backing choices are
  * explicit; the renderer never discovers a house or interprets geometry names. */
@@ -147,7 +145,7 @@ export function buildBuildingRenderPackage(
         builder.addDraw({
           id: "enclosure-" + group.id + "-" + variant,
           ownerId,
-          ...constructionSurfaceUnitDraw(variant, group.units[variant], { windowCuts: group.windowCuts }),
+          ...constructionSurfaceUnitDraw(variant, group.units[variant]),
           wallRoofJoint,
           variant,
           group: group.id

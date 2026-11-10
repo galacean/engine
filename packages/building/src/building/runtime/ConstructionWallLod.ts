@@ -1,5 +1,4 @@
 import type { ProfileWallGeometry } from "./ProfileWallGeometry";
-import type { buildDecorationWindowCutBuffer } from "./DecorationWindowCutBuffer";
 import type { ConstructionDrawInput } from "./ConstructionPackage";
 import { concatenateRecords } from "./ConstructionRecords";
 import type { SupportCell } from "./PlacementSupport";
@@ -18,7 +17,6 @@ export interface RetainedWallUnits {
   material: MaterialUnit;
   cells: SupportCell[];
   brickRecords?: Uint8Array[];
-  windowCuts?: ReturnType<typeof buildDecorationWindowCutBuffer>;
   sourceDraw?: Pick<ConstructionDrawInput, "template" | "instances" | "bindings">;
   wallRoofJoint?: ProfileWallGeometry["wallRoofJoint"];
 }

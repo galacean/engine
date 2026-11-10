@@ -1,5 +1,4 @@
 export { parseDecorationSpecs as parseConstructionDecorations } from "./DecorationParameters";
-import type { DecorationWindowCut } from "./DecorationWindowCutBuffer.ts";
 import {
   type DecorationIntent,
   type DecorationHost,
@@ -77,9 +76,6 @@ export interface ConstructionDecorationPart {
 export interface CompiledConstructionDecorations {
   woodArchFrames?: ConstructionWoodArchPart[];
   woodArchPillars?: ConstructionWoodArchPillar[];
-  /** Stable attachment identity plus its producer-owned SDF pose. These are
-   * geometry intents; the selected material determines whether to consume them. */
-  windowCuts: { id: string; cut: DecorationWindowCut }[];
   parts: ConstructionDecorationPart[];
   stones: ConstructionDecorationStone[];
   frames: ConstructionDecorationFrame[];
