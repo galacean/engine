@@ -133,7 +133,7 @@ it("closes the session and leaves storage untouched if catalog preparation fails
 it("excludes previous building saves before loading contents and restores the current version", async () => {
   const f = storageFixture();
   const projectUrl = new URL(SEED_WORLD_PRODUCTION_ASSET_CATALOG.projectUrl, f.url).href;
-  const oldId = `seed-world:native-buildings-v6-assemblies:42:${projectUrl}`;
+  const oldId = `seed-world:native-buildings-v7-groups:42:${projectUrl}`;
   const legacy = { incompatibleBuildingSave: true } as unknown as RuntimeProjectPackage;
   f.records.set(oldId, legacy);
   const initial = JSON.parse(
@@ -141,7 +141,7 @@ it("excludes previous building saves before loading contents and restores the cu
   ) as RuntimeProjectManifest;
   const project = await openSeedWorldProject(f.url, initial);
   sessions.push(project);
-  expect(SEED_WORLD_BUILDING_SAVE_VERSION).toBe(7);
+  expect(SEED_WORLD_BUILDING_SAVE_VERSION).toBe(8);
   expect(project.id).toBe(seedWorldProjectStorageId(42, projectUrl));
   expect(f.load.mock.calls).toEqual([[project.id]]);
   expect(project.id).not.toBe(oldId);

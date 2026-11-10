@@ -2,7 +2,7 @@
 
 当前公开入口是 `architecture/index.ts`，由 `parts/index.ts` 和 `@galacean/seed-world-systems` 导出。
 
-生产与演示都运行这一流程。Seed World 建筑项目使用 v7-groups 存档键，只加载该版本。测试验证功能、资源生命周期、编辑保存及版本隔离。
+生产与演示都运行这一流程。Seed World 建筑项目使用 v8-groups 存档键，只加载该版本。测试验证功能、资源生命周期、编辑保存及版本隔离。
 
 ```ts
 const draft = Building.European.buildHouses({

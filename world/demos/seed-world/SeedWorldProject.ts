@@ -24,7 +24,7 @@ import { nativeAssetFormats } from "@galacean/engine-runtime-editor/project/runt
 
 /** Building author schemas are intentionally incompatible across these save versions.
  * The storage key excludes older saves before any contents are loaded. */
-export const SEED_WORLD_BUILDING_SAVE_VERSION = 7;
+export const SEED_WORLD_BUILDING_SAVE_VERSION = 8;
 export function seedWorldProjectStorageId(seed: number, projectUrl: string): string {
   return `seed-world:native-buildings-v${SEED_WORLD_BUILDING_SAVE_VERSION}-groups:${seed}:${projectUrl}`;
 }
