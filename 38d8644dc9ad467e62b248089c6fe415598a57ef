@@ -1,0 +1,21 @@
+world/scripts/tests/generate-water-assets.test.mjs
+  s_ad31577d195071::t_466afffda4e0ed 50-53,56-57
+world/scripts/water-shader-cleanup.mjs
+  s_ad31577d195071::t_466afffda4e0ed 54-56,59-60,69
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "38d8644dc9ad467e62b248089c6fe415598a57ef",
+  "prompts": {},
+  "sessions": {
+    "s_ad31577d195071": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1bb0b-6dfd-7122-816b-54fbba5355f3",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "星翊 <sunmingming.smm@antgroup.com>"
+    }
+  }
+}
