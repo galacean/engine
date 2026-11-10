@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import assert from 'node:assert/strict';
 import {fracturedRockLibrary,fractureRockGeometry,creasedRockAttributes,ROCK_SURFACE_VERSION} from './rock-surface.mjs';
 import {generateRidgeScene,createSurfaceSampler,transformedVertices,ridgePointAt,withSceneHeight} from './ridge.mjs';
+import {measureFractureDirection} from './measure-fracture-direction.mjs';
 
 const data=JSON.parse(fs.readFileSync(new URL('./study-data.json',import.meta.url)));
 const original=JSON.stringify(data.geometries),started=performance.now(),library=fracturedRockLibrary(data.geometries),generationMs=performance.now()-started;
@@ -10,6 +11,7 @@ const cross=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]]
 const vertex=(g,i)=>g.positions.slice(i*3,i*3+3);
 const near=(a,b,t,label)=>assert(Math.abs(a-b)<t,`${label}: ${a} / ${b}`);
 const prototypes=[];
+const directionBaseline=JSON.parse(fs.readFileSync(new URL('../evidence/surface-direction-baseline.json',import.meta.url)));
 for(const [id,g] of Object.entries(library)){
  const source=data.geometries[id],edges=new Map();let volume=0,minProjectedAreaRatio=Infinity;
  assert.deepEqual(g,fractureRockGeometry(structuredClone(source)),'Deterministic uncached replay');
@@ -42,7 +44,11 @@ for(const [id,g] of Object.entries(library)){
  }
  assert(render.rockDetail.every(v=>Number.isFinite(v)&&v>=0&&v<=1));
  assert(g.surface.maximumDisplacementM>.02,'Surface changes actual geometry');
- prototypes.push({id,triangles:g.indices.length/3,...g.surface,minProjectedAreaRatio,signedVolumeM3:volume});
+ const direction=measureFractureDirection(g),before=directionBaseline.prototypes.find(p=>p.id===id);
+ assert(direction.contourLengthM>10,'Fracture contours remain present');
+ assert(direction.within30DegreesOfVertical>before.within30DegreesOfVertical+.10,`${id}: direction must improve on the previous all-direction pattern`);
+ if(!id.startsWith('slab'))assert(direction.within30DegreesOfVertical>.55,'Vertical joints dominate the steep faces');
+ prototypes.push({id,triangles:g.indices.length/3,...g.surface,minProjectedAreaRatio,signedVolumeM3:volume,direction});
 }
 assert.equal(JSON.stringify(data.geometries),original,'Upstream geometry is immutable');
 
@@ -58,7 +64,7 @@ function inside(point,vertices,indices){
  hits.sort((a,b)=>a-b);return hits.filter((v,i)=>!i||v-hits[i-1]>1e-5).length%2===1;
 }
 const assemblies=[];
-for(const [id,seed,options] of [['cliff',18,{mode:'perlin'}],['cliff',19,{mode:'perlin'}],['island',18,{mode:'perlin'}],['peaks',18,{mode:'perlin'}],['peaks',416,{mode:'perlin',noise:{frequency:4,octaves:5,lacunarity:2,persistence:.85}}],['peaks',382,{mode:'direct'}]]){
+for(const [id,seed,options] of [['cliff',18,{mode:'perlin'}],['cliff',19,{mode:'perlin'}],['island',18,{mode:'perlin'}],['island',425,{mode:'perlin',noise:{frequency:4,octaves:5,lacunarity:2,persistence:.85}}],['peaks',18,{mode:'perlin'}],['peaks',416,{mode:'perlin',noise:{frequency:4,octaves:5,lacunarity:2,persistence:.85}}],['peaks',382,{mode:'direct'}]]){
  const source=data.scenes.find(s=>s.id===id),before=JSON.stringify(source),scene=generateRidgeScene(source,library,seed,options),sample=createSurfaceSampler(scene,library),ground=createSurfaceSampler(source,{},true),errors=[];
  assert.equal(JSON.stringify(source),before);
  // Geometry may change the fit, never the independent target.
@@ -83,9 +89,9 @@ for(const [id,seed,options] of [['cliff',18,{mode:'perlin'}],['cliff',19,{mode:'
  let maximumGuideErrorM=0;
  for(const guide of scene.guides.filter(g=>g.kind==='spine'))for(const p of guide.points)maximumGuideErrorM=Math.max(maximumGuideErrorM,Math.abs(p[1]-guide.liftM-sample(p[0],p[2])));
  assert(maximumGuideErrorM<.015,'Orange guide measures the deformed surface');
- if(seed===416){
+ if(seed===416||seed===425){
   assert.deepEqual(scene,generateRidgeScene(source,library,seed,options),'Assembly replay with surface detail');
-  for(const factor of [.25,1.3,2]){
+  for(const factor of [.25,1.3,1.45,2]){
    const scaled=withSceneHeight(scene,factor);
    for(const r of scaled.rocks)transformedVertices(r,library[r.mesh]).forEach((p,i)=>p.forEach((v,d)=>near(v,vertices.get(r.id)[i][d]*(d===1?factor:1),1e-8,'Height scales detailed triangles')));
   }
@@ -98,6 +104,6 @@ let platformSamples=0,maximumPlatformChangeM=0;
 function routeZ(x){let i=1;while(i<platform.route.length-1&&x>platform.route[i][0])i++;const a=platform.route[i-1],b=platform.route[i],t=Math.max(0,Math.min(1,(x-a[0])/(b[0]-a[0])));return a[1]+(b[1]-a[1])*t;}
 for(const offset of [-1.5,-.75,0,.75,1.5])for(let x=-31;x<=19;x+=.1){const slope=(routeZ(x+.05)-routeZ(x-.05))/.1,l=Math.hypot(1,slope),px=x-offset*slope/l,pz=routeZ(x)+offset/l;maximumPlatformChangeM=Math.max(maximumPlatformChangeM,Math.abs(newTop(px,pz)-oldTop(px,pz)));platformSamples++;}
 assert(maximumPlatformChangeM<1e-6,'Entire sampled 3m platform route remains unchanged');
-const output={version:ROCK_SURFACE_VERSION,generationMs,checks:['immutable source and uncached deterministic replay','finite bounded geometry and unit normals','closed wound manifold with preserved source orientation','pinned base apex and platform caps','render positions equal measured mesh positions','independent ridge target unchanged','large connected masses and sparse accents','independent ray parity on deformed contact witnesses','dense fit and measured orange guides','detailed mesh height scaling','unchanged 3m platform route'],prototypes,assemblies,platformSamples,maximumPlatformChangeM};
+const output={version:ROCK_SURFACE_VERSION,generationMs,checks:['immutable source and uncached deterministic replay','finite bounded geometry and unit normals','closed wound manifold with preserved source orientation','pinned base apex and platform caps','render positions equal measured mesh positions','joint contours favor vertical directions more than the previous version','independent ridge target unchanged','large connected masses and sparse accents','independent ray parity on deformed contact witnesses','dense fit and measured orange guides','detailed mesh height scaling including 145 percent','unchanged 3m platform route'],prototypes,assemblies,platformSamples,maximumPlatformChangeM};
 fs.writeFileSync(new URL('../evidence/surface-validation.json',import.meta.url),JSON.stringify(output,null,2)+'\n');
 console.log(JSON.stringify({version:output.version,prototypes:prototypes.length,assemblies:assemblies.length,platformSamples,maximumPlatformChangeM,maxRmsM:Math.max(...assemblies.map(r=>r.rmsM)),maximumDeviationM:Math.max(...assemblies.map(r=>r.maximumDeviationM)),generationMs},null,2));

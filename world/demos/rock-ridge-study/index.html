@@ -1924,7 +1924,7 @@ html&gt;body{padding:0}&lt;/style&gt;
 (()=&gt;{
  // Study generator: seed -&gt; ridge plan -&gt; atomic-rock assembly -&gt; measured crest.
 // This is a proposal derived from Seed&#x27;s hierarchy/curve concepts, not shipped Seed code.
-const RIDGE_VERSION = &#x27;ridge-fracture-6&#x27;;
+const RIDGE_VERSION = &#x27;ridge-vertical-7&#x27;;
 const DEFAULT_RIDGE_SEED = 382;
 const TAU = Math.PI * 2;
 const clamp = (x, a, b) =&gt; Math.max(a, Math.min(b, x));
@@ -2564,7 +2564,7 @@ function perlinCurvePoint(curve,t){
 }
 
 
-const ROCK_SURFACE_VERSION=&#x27;fractured-slab-1&#x27;;
+const ROCK_SURFACE_VERSION=&#x27;vertical-fractures-2&#x27;;
 const surfaceCache=new WeakMap();
 const surfaceBlend=(a,b,x)=&gt;{const t=clamp((x-a)/(b-a),0,1);return t*t*(3-2*t);};
 const surfaceHash=(x,y,z,seed)=&gt;{
@@ -2576,10 +2576,12 @@ const surfaceDot=(a,b)=&gt;a[0]*b[0]+a[1]*b[1]+a[2]*b[2];
 const surfaceSub=(a,b)=&gt;a.map((v,i)=&gt;v-b[i]);
 const surfaceUnit=v=&gt;{const l=Math.hypot(...v)||1;return v.map(x=&gt;x/l);};
 
-// Long, uneven cells supply face patches and joints. They are regions of one
-// continuous mesh, never detached rocks or uniformly spaced extruded strips.
+// The fracture field changes very slowly in Y. Unequal long seams share a
+// slight lean, with occasional cross breaks rather than an all-direction web.
+// Regions deform one connected body; they never become detached columns.
 function surfaceRegion(p,size,seed){
- const q=[p[0]/size[0]*3.4+.08*Math.sin(p[1]/size[1]*9+seed),p[1]/size[1]*1.8+.11*Math.sin(p[0]/size[0]*8),p[2]/size[2]*3.2+.07*Math.sin(p[1]/size[1]*7)];
+ const y=p[1]/size[1],lean=(surfaceHash(0,0,0,seed)-.5)*.16;
+ const q=[p[0]/size[0]*3.1+lean*y+.025*Math.sin(y*5+seed),y*.18,p[2]/size[2]*2.9-lean*y*.7+.025*Math.sin(y*4+seed*.73)];
  const cell=q.map(Math.floor),candidates=[];let first=null,second=null;
  for(let z=-1;z&lt;=1;z++)for(let y=-1;y&lt;=1;y++)for(let x=-1;x&lt;=1;x++){
   const c=[cell[0]+x,cell[1]+y,cell[2]+z],center=c.map((v,d)=&gt;v+.15+.70*surfaceHash(...c,seed+d*1013)),distance=center.reduce((s,v,d)=&gt;s+(v-q[d])**2,0);
@@ -2587,7 +2589,7 @@ function surfaceRegion(p,size,seed){
   if(!first||distance&lt;first.distance){second=first;first=candidate;}else if(!second||distance&lt;second.distance)second=candidate;
  }
  const boundary=(second.distance-first.distance)/(2*Math.hypot(...surfaceSub(second.center,first.center)));
- return {id:first.id,value:first.value,boundary,neighbors:candidates.filter(c=&gt;c.distance-first.distance&lt;.35).map(c=&gt;({id:c.id,weight:(.35-(c.distance-first.distance))**2}))};
+ return {id:first.id,value:first.value,boundary,neighbors:candidates.filter(c=&gt;c.distance-first.distance&lt;.20).map(c=&gt;({id:c.id,weight:(.20-(c.distance-first.distance))**2}))};
 }
 
 function surfaceSubdivide(g,levels){
@@ -2625,8 +2627,9 @@ function fractureRockGeometry(g){
   const region=regions[i],y=(p[1]-minimum)/height;
   const mask=surfaceBlend(.065,.19,y)*(1-surfaceBlend(.985,1,y));
   const protect=mask===0||(g.parameters.topRoughness===0&amp;&amp;y&gt;.65);protectedVertices.push(protect);
-  const joint=1-surfaceBlend(.005,.15,region.boundary),rim=surfaceBlend(.06,.14,region.boundary)*(1-surfaceBlend(.14,.24,region.boundary));
-  const chip=.5+.5*Math.sin(p[1]/scale*27+Math.sin(p[0]/scale*21)+Math.sin(p[2]/scale*19));
+  // A narrow V section keeps a definite edge instead of a rounded trench.
+  const joint=clamp(1-region.boundary/.105,0,1),rim=surfaceBlend(.035,.07,region.boundary)*(1-surfaceBlend(.07,.12,region.boundary));
+  const chip=.5+.5*Math.sin(p[1]/scale*9+Math.sin(p[0]/scale*7)+Math.sin(p[2]/scale*8));
   const projection=[0,0,0];let totalWeight=0;
   for(const neighbor of region.neighbors){
    const patch=patches.get(neighbor.id);if(!patch)continue;
@@ -2634,7 +2637,7 @@ function fractureRockGeometry(g){
    for(let d=0;d&lt;3;d++)projection[d]+=patch.normal[d]*plane*neighbor.weight;
    totalWeight+=neighbor.weight;
   }
-  const recess=scale*(.018*joint+Math.max(0,chip-.64)*.006*joint);
+  const recess=scale*(.036*joint+Math.max(0,chip-.78)*.006*joint);
   details.push(protect?[0,region.value,0]:[joint*mask,region.value,rim*mask]);
   if(protect)return [0,0,0];
   // Blend neighboring plane projections instead of fading back to the round
@@ -2668,7 +2671,7 @@ function creasedRockAttributes(g){
  const p=g.positions,indices=g.indices,vertices=Array.from({length:p.length/3},(_,i)=&gt;p.slice(i*3,i*3+3));
  const {faces}=surfaceNormals(vertices,indices),unit=faces.map(surfaceUnit),adjacent=vertices.map(()=&gt;[]);
  for(let i=0;i&lt;indices.length;i++)adjacent[indices[i]].push(Math.floor(i/3));
- const positions=[],normals=[],rockDetail=[],threshold=Math.cos(55*Math.PI/180);
+ const positions=[],normals=[],rockDetail=[],threshold=Math.cos(34*Math.PI/180);
  for(let i=0;i&lt;indices.length;i++){
   const id=indices[i],face=Math.floor(i/3),sum=[0,0,0];
   for(const j of adjacent[id])if(surfaceDot(unit[face],unit[j])&gt;=threshold)for(let d=0;d&lt;3;d++)sum[d]+=faces[j][d];
@@ -2692,13 +2695,13 @@ float rsGrain(vec3 p){return rsNoise(p*6.)*.68+rsNoise(p*17.)*.32;}
 float rsGrainValue=rsGrain(vRockLocal);
 float rsOxide=smoothstep(.64,.85,rsNoise(vRockLocal*.47+vec3(8.,1.,3.)))*.32;
 diffuseColor.rgb=mix(diffuseColor.rgb,rockOxide,rsOxide);
-diffuseColor.rgb*= (.78+.28*vRockDetail.y)*(.86+.25*rsGrainValue)*(1.-.43*vRockDetail.x)+.08*vRockDetail.z;
+diffuseColor.rgb*= (.84+.18*vRockDetail.y)*(.86+.25*rsGrainValue)*(1.-.43*vRockDetail.x)+.08*vRockDetail.z;
 `);
   shader.fragmentShader=shader.fragmentShader.replace(&#x27;#include &lt;roughnessmap_fragment&gt;&#x27;,&#x27;#include &lt;roughnessmap_fragment&gt;\nroughnessFactor=clamp(roughnessFactor+(.5-rsGrainValue)*.18,.65,1.);&#x27;);
   shader.fragmentShader=shader.fragmentShader.replace(&#x27;#include &lt;normal_fragment_maps&gt;&#x27;,`#include &lt;normal_fragment_maps&gt;
 vec3 rsDx=dFdx(-vViewPosition),rsDy=dFdy(-vViewPosition);
 float rsFilter=1.-smoothstep(.15,.65,max(length(dFdx(vRockLocal)),length(dFdy(vRockLocal))));
-float rsHeight=rsGrainValue*.034*rsFilter;
+float rsHeight=rsGrainValue*.020*rsFilter;
 vec3 rsR1=cross(rsDy,normal),rsR2=cross(normal,rsDx);
 float rsDet=dot(rsDx,rsR1);
 normal=normalize(abs(rsDet)*normal-sign(rsDet)*(dFdx(rsHeight)*rsR1+dFdy(rsHeight)*rsR2));
@@ -3016,7 +3019,7 @@ function generateRidgeScene(source,geometries,seed=DEFAULT_RIDGE_SEED,options={}
   if(perlin&amp;&amp;surfaceInput.value!==&#x27;rocks&#x27;){const count=current.ridge.plan.extraction.selectedPeaks;detail.textContent=count+&#x27; major peak&#x27;+(count===1?&#x27;&#x27;:&#x27;s&#x27;)+&#x27; · &#x27;+current.ridge.plan.curves.length+&#x27; ridges · &#x27;+(surfaceInput.value===&#x27;coarse&#x27;?&#x27;Structural field&#x27;:&#x27;Fine detail; same ridge network&#x27;);}
   description.textContent=current.notes+(procedural?&#x27; The blue branching ridge network guides broad overlapping rock masses. Whole masses are refitted before adding structure; local differences within &#x27;+current.ridge.policy.curveToleranceM.toFixed(1)+&#x27; meters are tolerated. Small rocks have a separate budget of two and stay at the lower edges. All accepted pieces overlap the connected body in sampled mesh volume. Orange shows the actual surface along each target curve; its measured RMS deviation is &#x27;+current.ridge.fit.rmsM.toFixed(2)+&#x27; meters. Spheres mark peaks and diamonds mark saddles.&#x27;:&#x27;&#x27;)+&#x27; Height scales rocks, terrain and the complete ridge network together. These are proposed arrangements using actual procedural mesh geometry, without Seed materials or runtime navigation. Drag to orbit; side, plan and low angle views are also available.&#x27;;
   if(perlin)description.textContent+=&#x27; Peaks and connecting saddle passes are extracted from a coarse Perlin field. Curves simplify and smooth the traced paths, so intermediate points may depart slightly from the sampled field. Octaves below 24 meters affect only bounded surface detail, not graph topology. The source field views hide the rock meshes and orange comparison lines.&#x27;;
-  description.textContent+=finishInput.value===&#x27;original&#x27;?&#x27; Original baked geometry and clay shading.&#x27;:&#x27; Fractured surfaces use connected planar patches, recessed joints and chipped borders in the actual mesh. The fitter measures the deformed triangles. The clay option exposes those shapes without stone grain or color. Low contact regions and the flat platform caps are protected.&#x27;;
+  description.textContent+=finishInput.value===&#x27;original&#x27;?&#x27; Original baked geometry and clay shading.&#x27;:&#x27; Fractured surfaces favor long vertical joints with a slight shared lean, narrow V-shaped recesses and sharp face edges. Crosswise breaks are sparse. The fitter measures the deformed triangles. The clay option exposes those shapes without stone grain or color. Low contact regions and the flat platform caps are protected.&#x27;;
   stage.setAttribute(&#x27;aria-describedby&#x27;,&#x27;rock-study-description&#x27;);
   if(resetCamera)setCamera();else setCameraTarget();resize();
  }

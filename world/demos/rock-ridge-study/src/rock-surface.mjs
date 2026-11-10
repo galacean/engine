@@ -1,6 +1,6 @@
 import {clamp} from './ridge-utils.mjs';
 
-export const ROCK_SURFACE_VERSION='fractured-slab-1';
+export const ROCK_SURFACE_VERSION='vertical-fractures-2';
 const surfaceCache=new WeakMap();
 const surfaceBlend=(a,b,x)=>{const t=clamp((x-a)/(b-a),0,1);return t*t*(3-2*t);};
 const surfaceHash=(x,y,z,seed)=>{
@@ -12,10 +12,12 @@ const surfaceDot=(a,b)=>a[0]*b[0]+a[1]*b[1]+a[2]*b[2];
 const surfaceSub=(a,b)=>a.map((v,i)=>v-b[i]);
 const surfaceUnit=v=>{const l=Math.hypot(...v)||1;return v.map(x=>x/l);};
 
-// Long, uneven cells supply face patches and joints. They are regions of one
-// continuous mesh, never detached rocks or uniformly spaced extruded strips.
+// The fracture field changes very slowly in Y. Unequal long seams share a
+// slight lean, with occasional cross breaks rather than an all-direction web.
+// Regions deform one connected body; they never become detached columns.
 function surfaceRegion(p,size,seed){
- const q=[p[0]/size[0]*3.4+.08*Math.sin(p[1]/size[1]*9+seed),p[1]/size[1]*1.8+.11*Math.sin(p[0]/size[0]*8),p[2]/size[2]*3.2+.07*Math.sin(p[1]/size[1]*7)];
+ const y=p[1]/size[1],lean=(surfaceHash(0,0,0,seed)-.5)*.16;
+ const q=[p[0]/size[0]*3.1+lean*y+.025*Math.sin(y*5+seed),y*.18,p[2]/size[2]*2.9-lean*y*.7+.025*Math.sin(y*4+seed*.73)];
  const cell=q.map(Math.floor),candidates=[];let first=null,second=null;
  for(let z=-1;z<=1;z++)for(let y=-1;y<=1;y++)for(let x=-1;x<=1;x++){
   const c=[cell[0]+x,cell[1]+y,cell[2]+z],center=c.map((v,d)=>v+.15+.70*surfaceHash(...c,seed+d*1013)),distance=center.reduce((s,v,d)=>s+(v-q[d])**2,0);
@@ -23,7 +25,7 @@ function surfaceRegion(p,size,seed){
   if(!first||distance<first.distance){second=first;first=candidate;}else if(!second||distance<second.distance)second=candidate;
  }
  const boundary=(second.distance-first.distance)/(2*Math.hypot(...surfaceSub(second.center,first.center)));
- return {id:first.id,value:first.value,boundary,neighbors:candidates.filter(c=>c.distance-first.distance<.35).map(c=>({id:c.id,weight:(.35-(c.distance-first.distance))**2}))};
+ return {id:first.id,value:first.value,boundary,neighbors:candidates.filter(c=>c.distance-first.distance<.20).map(c=>({id:c.id,weight:(.20-(c.distance-first.distance))**2}))};
 }
 
 function surfaceSubdivide(g,levels){
@@ -61,8 +63,9 @@ export function fractureRockGeometry(g){
   const region=regions[i],y=(p[1]-minimum)/height;
   const mask=surfaceBlend(.065,.19,y)*(1-surfaceBlend(.985,1,y));
   const protect=mask===0||(g.parameters.topRoughness===0&&y>.65);protectedVertices.push(protect);
-  const joint=1-surfaceBlend(.005,.15,region.boundary),rim=surfaceBlend(.06,.14,region.boundary)*(1-surfaceBlend(.14,.24,region.boundary));
-  const chip=.5+.5*Math.sin(p[1]/scale*27+Math.sin(p[0]/scale*21)+Math.sin(p[2]/scale*19));
+  // A narrow V section keeps a definite edge instead of a rounded trench.
+  const joint=clamp(1-region.boundary/.105,0,1),rim=surfaceBlend(.035,.07,region.boundary)*(1-surfaceBlend(.07,.12,region.boundary));
+  const chip=.5+.5*Math.sin(p[1]/scale*9+Math.sin(p[0]/scale*7)+Math.sin(p[2]/scale*8));
   const projection=[0,0,0];let totalWeight=0;
   for(const neighbor of region.neighbors){
    const patch=patches.get(neighbor.id);if(!patch)continue;
@@ -70,7 +73,7 @@ export function fractureRockGeometry(g){
    for(let d=0;d<3;d++)projection[d]+=patch.normal[d]*plane*neighbor.weight;
    totalWeight+=neighbor.weight;
   }
-  const recess=scale*(.018*joint+Math.max(0,chip-.64)*.006*joint);
+  const recess=scale*(.036*joint+Math.max(0,chip-.78)*.006*joint);
   details.push(protect?[0,region.value,0]:[joint*mask,region.value,rim*mask]);
   if(protect)return [0,0,0];
   // Blend neighboring plane projections instead of fading back to the round
@@ -104,7 +107,7 @@ export function creasedRockAttributes(g){
  const p=g.positions,indices=g.indices,vertices=Array.from({length:p.length/3},(_,i)=>p.slice(i*3,i*3+3));
  const {faces}=surfaceNormals(vertices,indices),unit=faces.map(surfaceUnit),adjacent=vertices.map(()=>[]);
  for(let i=0;i<indices.length;i++)adjacent[indices[i]].push(Math.floor(i/3));
- const positions=[],normals=[],rockDetail=[],threshold=Math.cos(55*Math.PI/180);
+ const positions=[],normals=[],rockDetail=[],threshold=Math.cos(34*Math.PI/180);
  for(let i=0;i<indices.length;i++){
   const id=indices[i],face=Math.floor(i/3),sum=[0,0,0];
   for(const j of adjacent[id])if(surfaceDot(unit[face],unit[j])>=threshold)for(let d=0;d<3;d++)sum[d]+=faces[j][d];
@@ -128,13 +131,13 @@ float rsGrain(vec3 p){return rsNoise(p*6.)*.68+rsNoise(p*17.)*.32;}
 float rsGrainValue=rsGrain(vRockLocal);
 float rsOxide=smoothstep(.64,.85,rsNoise(vRockLocal*.47+vec3(8.,1.,3.)))*.32;
 diffuseColor.rgb=mix(diffuseColor.rgb,rockOxide,rsOxide);
-diffuseColor.rgb*= (.78+.28*vRockDetail.y)*(.86+.25*rsGrainValue)*(1.-.43*vRockDetail.x)+.08*vRockDetail.z;
+diffuseColor.rgb*= (.84+.18*vRockDetail.y)*(.86+.25*rsGrainValue)*(1.-.43*vRockDetail.x)+.08*vRockDetail.z;
 `);
   shader.fragmentShader=shader.fragmentShader.replace('#include <roughnessmap_fragment>','#include <roughnessmap_fragment>\nroughnessFactor=clamp(roughnessFactor+(.5-rsGrainValue)*.18,.65,1.);');
   shader.fragmentShader=shader.fragmentShader.replace('#include <normal_fragment_maps>',`#include <normal_fragment_maps>
 vec3 rsDx=dFdx(-vViewPosition),rsDy=dFdy(-vViewPosition);
 float rsFilter=1.-smoothstep(.15,.65,max(length(dFdx(vRockLocal)),length(dFdy(vRockLocal))));
-float rsHeight=rsGrainValue*.034*rsFilter;
+float rsHeight=rsGrainValue*.020*rsFilter;
 vec3 rsR1=cross(rsDy,normal),rsR2=cross(normal,rsDx);
 float rsDet=dot(rsDx,rsR1);
 normal=normalize(abs(rsDet)*normal-sign(rsDet)*(dFdx(rsHeight)*rsR1+dFdy(rsHeight)*rsR2));

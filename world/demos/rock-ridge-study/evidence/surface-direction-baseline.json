@@ -1,0 +1,90 @@
+{
+  "version": "fractured-slab-1",
+  "sourceCommit": "025a0f5610c824147000904a71f25234c1499c37",
+  "prototypes": [
+    {
+      "id": "cliff",
+      "segments": 1852,
+      "contourLengthM": 265.1524468298176,
+      "within30DegreesOfVertical": 0.5744234337646951,
+      "meanVerticalAlignment": 0.7603171916907867
+    },
+    {
+      "id": "cliff2",
+      "segments": 1839,
+      "contourLengthM": 246.31031795805467,
+      "within30DegreesOfVertical": 0.5403449626046257,
+      "meanVerticalAlignment": 0.7518873340459843
+    },
+    {
+      "id": "wall",
+      "segments": 1764,
+      "contourLengthM": 208.90386377148016,
+      "within30DegreesOfVertical": 0.6674906190493414,
+      "meanVerticalAlignment": 0.847994502873777
+    },
+    {
+      "id": "wall2",
+      "segments": 1834,
+      "contourLengthM": 207.34267649013879,
+      "within30DegreesOfVertical": 0.7228735192707993,
+      "meanVerticalAlignment": 0.8622613295484379
+    },
+    {
+      "id": "shoulder",
+      "segments": 1336,
+      "contourLengthM": 136.93208124148765,
+      "within30DegreesOfVertical": 0.39937474723836014,
+      "meanVerticalAlignment": 0.6813950051924107
+    },
+    {
+      "id": "shoulder2",
+      "segments": 1423,
+      "contourLengthM": 139.79120781396256,
+      "within30DegreesOfVertical": 0.3689091340668581,
+      "meanVerticalAlignment": 0.7100804552667138
+    },
+    {
+      "id": "peak",
+      "segments": 1246,
+      "contourLengthM": 295.20812569121057,
+      "within30DegreesOfVertical": 0.448987730682011,
+      "meanVerticalAlignment": 0.7306881046759254
+    },
+    {
+      "id": "peak2",
+      "segments": 1445,
+      "contourLengthM": 302.98267202469185,
+      "within30DegreesOfVertical": 0.4332130032085207,
+      "meanVerticalAlignment": 0.7221728790312858
+    },
+    {
+      "id": "slab",
+      "segments": 1006,
+      "contourLengthM": 64.6856558056364,
+      "within30DegreesOfVertical": 0.039816323007288566,
+      "meanVerticalAlignment": 0.3087106014982565
+    },
+    {
+      "id": "slab2",
+      "segments": 938,
+      "contourLengthM": 63.462793515641486,
+      "within30DegreesOfVertical": 0.08449192486651574,
+      "meanVerticalAlignment": 0.31684430252138146
+    },
+    {
+      "id": "bank",
+      "segments": 1524,
+      "contourLengthM": 80.25447147146913,
+      "within30DegreesOfVertical": 0.40100451698131795,
+      "meanVerticalAlignment": 0.7160621530749984
+    },
+    {
+      "id": "bank2",
+      "segments": 1627,
+      "contourLengthM": 86.52509982497541,
+      "within30DegreesOfVertical": 0.40937722157695605,
+      "meanVerticalAlignment": 0.7235074163687594
+    }
+  ]
+}

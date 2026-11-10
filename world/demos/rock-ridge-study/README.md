@@ -37,7 +37,7 @@ node world/demos/rock-ridge-study/src/verify-surfaces.mjs
 
 ## Current fitter
 
-`ridge-fracture-6` generates the full network before reading any rock geometry.
+`ridge-vertical-7` generates the full network before reading any rock geometry.
 Shared XYZ junctions connect continuous curves with procedural peaks and saddles.
 The blue lines show that exact input; orange lines sample the actual mesh surface
 at the same X/Z positions. Orange is not an extraction of every mesh crest.
@@ -143,10 +143,15 @@ Changing the finish keeps the current orbit angles.
 
 1. Subdivide shared edges twice, retaining one closed mesh. Seeded elongated
    three-dimensional cells define unequal face regions over the whole surface.
+   The fracture field varies ten times more slowly in Y than the first surface
+   version, with a small shared lean. Long vertical joints dominate; crosswise
+   breaks occur sparsely instead of making a web of closed crack polygons.
 2. Project regions toward area-weighted planes, blending projections near joints.
-   Bounded inward recesses and irregular border relief break up the faces without
+   Narrow V-shaped recesses and irregular border relief break up the faces without
    adding separate fragments. Local displacement attenuation preserves each
-   triangle's winding and at least 8% of its original projected area.
+   triangle's winding and at least 8% of its original projected area. Groove depth
+   is nominally doubled; the local limiter still controls deformation on thin
+   source triangles. A narrower plane blend keeps adjacent face edges sharper.
 3. Pin the low contact region, apex and upper platform cap. Preserve the original
    summit anchor explicitly: new midpoint vertices on a flat crown must not change
    the fitter's anchor selection. All vertices stay inside the source mesh bounds.
@@ -154,10 +159,11 @@ Changing the finish keeps the current orbit angles.
    the orange surface guide. Only envelope probes are capped for search cost;
    surface and interval queries use the full mesh. No visual-only displacement
    changes the silhouette after fitting.
-5. Split render normals at 55-degree creases without changing triangle positions.
+5. Split render normals at 34-degree creases without changing triangle positions.
    The stone material adds object-space grain, subtle weathering color, darker
    joints, roughness variation and a distance-filtered fine bump. These fine
-   shading details do not enter collision or surface measurements.
+   shading details do not enter collision or surface measurements. Fine bump and
+   per-region color contrast are reduced so the structural fractures dominate.
 
 The 12 prototypes now have 12,224–16,000 triangles each (16 times the baked count).
 They are cached and reused, but this is a study resolution with no LODs, normal-map
@@ -166,23 +172,37 @@ bake fine grain and shallow cuts while retaining silhouette features in geometry
 The displacement limiter preserves local orientation and manifold connectivity;
 it is not a general self-intersection proof for arbitrary meshes.
 
-The surface suite verifies all 12 prototypes and six fitted assemblies, including
-Perlin seed 416 with persistence 0.85, the long cliff connection at seed 19, and the
+The surface suite verifies all 12 prototypes and seven fitted assemblies, including
+island seed 425 and mountain seed 416 with persistence 0.85, the long cliff connection at seed 19, and the
 older seeded mountain graph. Every checked assembly remains one connected body,
-with 3–17 structural masses and two small accents. The worst dense RMS residual is
-1.987 m and the largest local deviation is 5.748 m at 100% height. All 2,500 samples
+with 4–17 structural masses and one or two small accents. The worst dense RMS residual is
+2.265 m and the largest local deviation is 7.543 m at 100% height. All 2,500 samples
 across the 3 m platform route retain the original height within floating-point
 precision. See [surface-validation.json](evidence/surface-validation.json).
+
+The direction regression traces the 0.5 joint-intensity contour on actual mesh
+triangles, excluding the pinned foot/crown and near-horizontal caps. Across the
+ten non-platform prototypes, 74.0% of that contour length is within 30 degrees
+of vertical, versus 51.4% in the previous version. Every prototype improves by
+at least ten percentage points. This measures fracture direction, not geological
+realism or overall artistic quality. The old measurements are preserved in
+[surface-direction-baseline.json](evidence/surface-direction-baseline.json).
 
 The surface pass was reviewed in clay as well as stone: the first narrow boundary
 blend produced excessive small facets, so neighboring face planes now blend
 continuously. The broader faces and joints remain visible without the material.
-The final browser checks covered 736 px and 320 px layouts, the close-up and whole
+The initial surface browser checks covered 736 px and 320 px layouts, the close-up and whole
 network views, all three finishes, the detailed source field, island/cliff scenes,
 and platform caps. Seed 416 at persistence 0.85 and height 130% rendered 17 masses
 and two small rocks, with the measured orange guide on the modified surface.
-The final build produced no new JavaScript or shader errors; earlier deformation
+That build produced no new JavaScript or shader errors; earlier deformation
 errors were resolved before these checks. Native orbit gestures were not revalidated.
+The vertical revision was reviewed in clay from the close-up and side views on
+island seed 425 at persistence 0.85 and height 145%. That scene has ten connected
+structural masses and one small accent. The geometry suite also checks its full
+height transforms, target immutability and independent solid-contact witnesses.
+Stone and clay rendered at 736 px, and the clay overview also fit at 320 px.
+No JavaScript or shader errors were reported in the final browser session.
 This is a procedural approximation; reference-level sculpting and texture quality
 has not been established.
 
