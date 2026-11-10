@@ -1,4 +1,11 @@
-import { Shader, ShaderFactory, ShaderLanguage, ShaderMacro, ShaderMacroCollection } from "@galacean/engine-core";
+import {
+  Shader,
+  ShaderFactory,
+  ShaderLanguage,
+  ShaderMacro,
+  ShaderMacroCollection,
+  ShaderPreprocessorDirective
+} from "@galacean/engine-core";
 import { IPrecompiledShader } from "@galacean/engine-design";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
 import { ShaderPrecompiler } from "@galacean/engine-shader-compiler/src/ShaderPrecompiler";
@@ -990,18 +997,19 @@ describe("ShaderCompiler Precompile", async () => {
       }
     });
 
-    it("simple shader (noFragArgs) → instructions should be single TEXT", async () => {
+    it("simple shader (noFragArgs) keeps one text instruction plus naming metadata", async () => {
       const source = await readFile("src/shader-compiler/shaders/noFragArgs.shader");
       const precompiled = shaderPrecompiler.precompile(source, ShaderLanguage.GLSLES100);
 
       for (const subShader of precompiled.subShaders) {
         for (const pass of subShader.passes) {
           if (pass.isUsePass) continue;
-          // No-macro shaders should have single TEXT instruction
-          expect(pass.vertexShaderInstructions!.length).toBe(1);
-          expect(pass.vertexShaderInstructions![0][0]).toBe(0);
-          expect(pass.fragmentShaderInstructions!.length).toBe(1);
-          expect(pass.fragmentShaderInstructions![0][0]).toBe(0);
+          for (const instructions of [pass.vertexShaderInstructions!, pass.fragmentShaderInstructions!]) {
+            const executable = instructions.filter(([kind]) => kind !== ShaderPreprocessorDirective.GeneratedNames);
+            expect(executable).toHaveLength(1);
+            expect(executable[0][0]).toBe(ShaderPreprocessorDirective.Text);
+            expect(ShaderMacroProcessor.evaluate(instructions, new Map())).toMatch(/void\s+main\s*\(/);
+          }
         }
       }
     });
@@ -1202,13 +1210,7 @@ describe("ShaderCompiler Precompile", async () => {
     });
   });
 
-  // After LALR enforces shift on `macro_call_symbol . '('`, the visitor at
-  // `K(args)` must distinguish three callee kinds derived from the macro's
-  // replacement and apply IO-struct formal flattening only when the callee is
-  // a user-declared function. Earlier the filter ran for every object-like
-  // macro and silently dropped member-access / literal args (e.g. emitting
-  // `vec3()` from `MyVec3(attr.POSITION.x, attr.POSITION.y, attr.POSITION.z)`).
-  describe("MacroCallFunction calleeKind-aware arg filtering", () => {
+  describe("macro aliases preserve call arguments", () => {
     let evaluated: string;
     beforeAll(async () => {
       const source = await readFile("src/shader-compiler/shaders/macro-as-type-args.shader");
@@ -1217,32 +1219,23 @@ describe("ShaderCompiler Precompile", async () => {
       evaluated = ShaderMacroProcessor.evaluate(vi as any, new Map());
     });
 
-    // (1) builtin type alias: constructor call, no formal flattening
     it("builtin type alias keeps member-access args", () => {
-      // After flatten, `attr.POSITION.x/y/z` → `POSITION.x/y/z`.
-      expect(evaluated).toMatch(/vec3\s*\(\s*POSITION\.x\s*,\s*POSITION\.y\s*,\s*POSITION\.z\s*\)/);
+      expect(evaluated).toMatch(/vec3\s*\(\s*attr\.POSITION\.x\s*,\s*attr\.POSITION\.y\s*,\s*attr\.POSITION\.z\s*\)/);
     });
     it("builtin type alias keeps literal args", () => {
       expect(evaluated).toMatch(/vec3\s*\(\s*0\.1\s*,\s*0\.2\s*,\s*0\.3\s*\)/);
     });
     it("builtin type alias never emits an empty constructor call", () => {
-      // Defends against the original bug where every arg was filtered.
       expect(evaluated).not.toMatch(/vec3\s*\(\s*\)/);
     });
 
-    // (2) builtin function alias: args are values, no flattening
     it("builtin function alias keeps all args verbatim", () => {
       expect(evaluated).toMatch(/mix\s*\(\s*v_member\s*,\s*v_literal\s*,\s*0\.5\s*\)/);
     });
 
-    // (3) user-fn alias: formal flattening DOES apply — bare IO-struct arg
-    //     must be dropped so the call site matches the flattened signature.
-    it("user-fn alias drops bare IO-struct arg paired with flattened formal", () => {
-      // `computeColor(Attributes a)` flattens to `computeColor()` and call
-      // becomes `computeColor()` (the `attr` arg drops).
-      expect(evaluated).toMatch(/computeColor\s*\(\s*\)/);
-      // The macro name `MyHelper` should still appear in the macro define
-      // table (the directive itself), but never as `MyHelper(attr)` text.
+    it("user-fn alias preserves the structure argument and parameter", () => {
+      expect(evaluated).toMatch(/computeColor\s*\(\s*Attributes\s+a\s*\)/);
+      expect(evaluated).toMatch(/computeColor\s*\(\s*attr\s*\)/);
       expect(evaluated).not.toMatch(/MyHelper\s*\(\s*attr\s*\)/);
     });
   });

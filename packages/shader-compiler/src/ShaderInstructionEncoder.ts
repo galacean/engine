@@ -13,6 +13,33 @@ export class ShaderInstructionEncoder {
   private static _FUNC_MACRO_RE = /^(\w+)\(([^)]*)\)\s*(.*)/;
 
   /**
+   * Protects compiler identifiers until runtime macros have been expanded.
+   * @param source - Generated stage source with declaration ownership markers.
+   * @param generatedNames - The complete, identically ordered name table for both stages.
+   * @param reservedNames - User identifiers reserved by the pass name allocator.
+   * @param varyingAliases - Alternating external varying names and their allocated default identifiers.
+   * @returns Intermediate source carrying the pass-wide naming contract.
+   * @internal
+   */
+  static generatedNames(
+    source: string,
+    generatedNames: readonly string[],
+    reservedNames: readonly string[],
+    varyingAliases: readonly string[] = []
+  ): string {
+    if (!generatedNames.length) return source;
+    const identifiers = new Map(generatedNames.map((name, index) => [name, `\x01${index}\x02`]));
+    const protectedSource = source.replace(/[A-Za-z_][A-Za-z_0-9]*/g, (name) => identifiers.get(name) ?? name);
+    // Defaults are already disjoint from source names. Only occupied suffixes can affect a rename
+    // when a macro introduced at variant time collides with one of those defaults.
+    const occupiedSuffixes = reservedNames.filter((name) => {
+      const suffix = /^(.*)_([1-9][0-9]*)$/.exec(name);
+      return suffix !== null && identifiers.has(suffix[1]);
+    });
+    return `\0N${JSON.stringify([generatedNames, occupiedSuffixes, varyingAliases])}\0\n${protectedSource}`;
+  }
+
+  /**
    * Marks compiler-owned text without placing parser objects in the instruction stream.
    * @param text - Declaration or derived declaration text.
    * @param owner - Neutral declaration identity, if runtime selection is required.
@@ -55,6 +82,12 @@ export class ShaderInstructionEncoder {
    * @internal
    */
   static source(source: string): string {
+    if (source.startsWith("\0N")) {
+      const end = source.indexOf("\0", 2);
+      const [names] = JSON.parse(source.slice(2, end)) as [string[], string[]];
+      // eslint-disable-next-line no-control-regex -- Restore compiler identity delimiters in the public source view.
+      source = source.slice(end + 2).replace(/\x01(\d+)\x02/g, (_, index) => names[Number(index)]);
+    }
     return source.indexOf("\0") < 0 ? source : source.replace(/\0[^\0]*\0\n?/g, "");
   }
 
@@ -73,7 +106,7 @@ export class ShaderInstructionEncoder {
     const instructions: ShaderInstruction[] = [];
     const length = glsl.length;
     let pos = 0;
-    let owners: number[] | undefined;
+    const owners: number[][] = [];
     const backfillStack: number[][] = [];
 
     while (pos < length) {
@@ -94,7 +127,18 @@ export class ShaderInstructionEncoder {
 
       if (line.charCodeAt(0) === 0) {
         const kind = line.charAt(1);
-        if (kind === "D") {
+        if (kind === "N") {
+          const [generatedNames, reservedNames, varyingAliases] = JSON.parse(line.slice(2, -1)) as [
+            string[],
+            string[],
+            string[]?
+          ];
+          instructions.push(
+            varyingAliases?.length
+              ? [ShaderPreprocessorDirective.GeneratedNames, generatedNames, reservedNames, varyingAliases]
+              : [ShaderPreprocessorDirective.GeneratedNames, generatedNames, reservedNames]
+          );
+        } else if (kind === "D") {
           const fields = line.slice(2, -1).split(",").map(Number);
           instructions.push([ShaderPreprocessorDirective.Declaration, fields[0], fields[1], fields[2]]);
         } else if (kind === "R") {
@@ -102,7 +146,8 @@ export class ShaderInstructionEncoder {
           instructions.push([ShaderPreprocessorDirective.Reference, fields[0], fields[1]]);
         } else {
           const ids = line.slice(2, -1);
-          owners = kind === "T" ? (ids ? ids.split(",").map(Number) : []) : undefined;
+          if (kind === "T") owners.push(ids ? ids.split(",").map(Number) : []);
+          else owners.pop();
         }
         continue;
       }
@@ -287,23 +332,35 @@ export class ShaderInstructionEncoder {
     source: string,
     from: number,
     to: number,
-    owners?: readonly number[]
+    owners: readonly number[][]
   ): void {
     if (from >= to) return;
     const last = instructions.length > 0 ? instructions[instructions.length - 1] : null;
-    const directive = owners === undefined ? ShaderPreprocessorDirective.Text : ShaderPreprocessorDirective.OwnedText;
-    if (
-      last &&
-      last[0] === directive &&
-      (owners === undefined ||
-        (last.length === owners.length + 2 && owners.every((owner, index) => last[index + 2] === owner)))
-    ) {
+    const directive =
+      owners.length === 0
+        ? ShaderPreprocessorDirective.Text
+        : owners.length === 1
+          ? ShaderPreprocessorDirective.OwnedText
+          : ShaderPreprocessorDirective.GuardedText;
+    const matches =
+      owners.length === 0 ||
+      (owners.length === 1
+        ? last?.length === owners[0].length + 2 && owners[0].every((owner, index) => last[index + 2] === owner)
+        : last?.[0] === ShaderPreprocessorDirective.GuardedText &&
+          (<number[][]>last[2]).length === owners.length &&
+          owners.every((group, index) => {
+            const previous = (<number[][]>last[2])[index];
+            return previous.length === group.length && group.every((owner, index) => previous[index] === owner);
+          }));
+    if (last && last[0] === directive && matches) {
       (last as [number, string])[1] += source.substring(from, to);
     } else {
       instructions.push(
-        owners === undefined
+        owners.length === 0
           ? [directive, source.substring(from, to)]
-          : [directive, source.substring(from, to), ...owners]
+          : owners.length === 1
+            ? [directive, source.substring(from, to), ...owners[0]]
+            : [directive, source.substring(from, to), owners.map((group) => group.slice())]
       );
     }
   }

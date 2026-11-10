@@ -1,16 +1,13 @@
 import { BaseToken } from "@galacean/engine-shader-parser/internal";
 import { ASTNode, TreeNode } from "@galacean/engine-shader-parser/internal";
-import { NoneTerminal } from "@galacean/engine-shader-parser/internal";
-import { ESymbolType, FnSymbol } from "@galacean/engine-shader-parser/internal";
+import { ESymbolType, FnSymbol, VarSymbol } from "@galacean/engine-shader-parser/internal";
 import { NodeChild, StructProp } from "@galacean/engine-shader-parser/internal";
 import { ParserUtils } from "@galacean/engine-shader-parser/internal";
 import { ShaderStructRole } from "@galacean/engine-shader-parser/internal";
 import type { BranchSignature, ICodeGenVisitor } from "@galacean/engine-shader-parser/internal";
 import { VisitorContext } from "./VisitorContext";
 import { ReturnableObjectPool } from "@galacean/engine-core";
-import { Keyword } from "@galacean/engine-shader-parser/internal";
 import { TempArray } from "../TempArray";
-import { ICodeSegment } from "./types";
 
 /**
  * @internal
@@ -22,7 +19,74 @@ export abstract class CodeGenVisitor implements ICodeGenVisitor {
   abstract getMRTProp(prop: StructProp): string | null;
 
   protected static _tmpArrayPool = new ReturnableObjectPool(TempArray<string>, 10);
+  // GLSL ES 1.00/3.00 section 3.8 reserves these spellings even though ShaderLab accepts identifiers.
+  private static readonly _reservedIdentifiers = new Set(
+    `attribute varying coherent volatile restrict readonly writeonly resource atomic_uint
+    noperspective patch sample subroutine common partition active asm class union enum typedef
+    template this packed goto inline noinline public static extern external interface
+    long short double half fixed unsigned superp input output hvec2 hvec3 hvec4 dvec2 dvec3 dvec4
+    fvec2 fvec3 fvec4 sampler3DRect filter image1D image2D image3D imageCube
+    iimage1D iimage2D iimage3D iimageCube uimage1D uimage2D uimage3D uimageCube
+    image1DArray image2DArray iimage1DArray iimage2DArray uimage1DArray uimage2DArray
+    imageBuffer iimageBuffer uimageBuffer sampler1D sampler1DShadow sampler1DArray sampler1DArrayShadow
+    isampler1D isampler1DArray usampler1D usampler1DArray sampler2DRect sampler2DRectShadow
+    isampler2DRect usampler2DRect samplerBuffer isamplerBuffer usamplerBuffer
+    sampler2DMS isampler2DMS usampler2DMS sampler2DMSArray isampler2DMSArray usampler2DMSArray
+    sizeof cast namespace using row_major`.split(/\s+/)
+  );
   protected readonly context = new VisitorContext();
+  private _variableTokens = new WeakMap<BaseToken, string>();
+  private _variableSymbols = new WeakMap<VarSymbol, string>();
+  private readonly _sourceIdentifiers = new Map<string, string>();
+  private _macroParameters?: Set<string>;
+
+  /** Prepares legal backend names for source declarations previously erased by IO lowering. */
+  protected prepareSourceNames(program: TreeNode): void {
+    this._variableTokens = new WeakMap();
+    this._variableSymbols = new WeakMap();
+    this._sourceIdentifiers.clear();
+    const legalName = (name: string) => {
+      if (!CodeGenVisitor._reservedIdentifiers.has(name) && !name.startsWith("gl_")) return name;
+      const result = this.context.names.allocate(`source-variable:${name}`, `source_${name}`);
+      this._sourceIdentifiers.set(name, result);
+      return result;
+    };
+    const register = (token: BaseToken | undefined, symbol: VarSymbol | undefined) => {
+      if (
+        !token ||
+        !symbol ||
+        (symbol.isUniform && !this.context.getStructVarRole([symbol])) ||
+        (!CodeGenVisitor._reservedIdentifiers.has(token.lexeme) && !token.lexeme.startsWith("gl_"))
+      )
+        return;
+      const name = legalName(token.lexeme);
+      this._variableTokens.set(token, name);
+      this._variableSymbols.set(symbol, name);
+    };
+    const visit = (node: TreeNode) => {
+      if (
+        node instanceof ASTNode.SingleDeclaration ||
+        node instanceof ASTNode.InitDeclaratorList ||
+        node instanceof ASTNode.VariableDeclaration
+      ) {
+        register(node.declarator?.identifier, node.declarator?.symbol);
+      } else if (node instanceof ASTNode.ParameterDeclaration) register(node.ident, node.symbol);
+      else if (node instanceof ASTNode.StructSpecifier && node.ident) legalName(node.ident.lexeme);
+      else if (node instanceof ASTNode.FunctionDefinition) legalName(node.protoType.ident.lexeme);
+      for (const child of node.children) if (child instanceof TreeNode) visit(child);
+    };
+    visit(program);
+  }
+
+  /** Returns the emitted name of a source variable without changing its symbol identity. */
+  protected variableName(symbol: VarSymbol): string {
+    return this._variableSymbols.get(symbol) ?? symbol.ident;
+  }
+
+  /** Resolves source type and function names legalized for the target language. */
+  protected sourceName(name: string): string {
+    return this._sourceIdentifiers.get(name) ?? name;
+  }
 
   cache(node: TreeNode, code: string): string {
     this.context.codeCache.set(node, code);
@@ -40,7 +104,11 @@ export abstract class CodeGenVisitor implements ICodeGenVisitor {
     for (const child of children) {
       if (child instanceof BaseToken) {
         // Legacy opaque `#define` lexemes carry the directive verbatim; expression-style defines use the AST path
-        ret.array.push(child.lexeme);
+        ret.array.push(
+          this._macroParameters?.has(child.lexeme)
+            ? child.lexeme
+            : (this._variableTokens.get(child) ?? this.sourceName(child.lexeme))
+        );
       } else {
         ret.array.push(child.codeGen(this));
       }
@@ -76,14 +144,15 @@ export abstract class CodeGenVisitor implements ICodeGenVisitor {
               : undefined;
         }
 
+        if (!directRoot) role = context.getStructRole(node.resolvedMemberOwners);
+
         if (role) {
           if (role === ShaderStructRole.Attribute) context.referenceAttribute(prop);
           else if (role === ShaderStructRole.Varying) context.referenceVarying(prop);
           else context.referenceMRTProp(prop);
-          return prop.lexeme;
         }
 
-        return `${postExpr.codeGen(this)}.${prop.lexeme}`;
+        return `${postExpr.codeGen(this)}.${this.sourceName(prop.lexeme)}`;
       } else {
         return `${postExpr.codeGen(this)}.${prop.codeGen(this)}`;
       }
@@ -104,6 +173,18 @@ export abstract class CodeGenVisitor implements ICodeGenVisitor {
       if (symbol instanceof FnSymbol) this.referenceFunction(symbol, node.location.start.index, node._branch);
     }
 
+    const child = node.children[0];
+    if (child instanceof BaseToken) {
+      if (this._macroParameters?.has(child.lexeme)) return child.lexeme;
+      for (const symbol of node.resolvedValueSymbols()) {
+        if (symbol instanceof VarSymbol) {
+          const name = this._variableSymbols.get(symbol);
+          if (name) return name;
+        }
+      }
+      if (!node.resolvedSymbols().length) return this.sourceName(child.lexeme);
+      return this.sourceName(child.lexeme);
+    }
     return node.getLexeme(this);
   }
 
@@ -119,41 +200,6 @@ export abstract class CodeGenVisitor implements ICodeGenVisitor {
       for (const symbol of call.fnSymbols?.length ? call.fnSymbols : [call.fnSymbol]) {
         this.referenceFunction(symbol, node.location.start.index, node._branch);
       }
-
-      const paramList = call.children[2];
-      if (paramList instanceof ASTNode.FunctionCallParameterList) {
-        const astNodes = paramList.paramNodes;
-        const finalSymbol = this.context._referencedGlobals[call.fnSymbol.ident].find(
-          (candidate) => candidate instanceof FnSymbol && candidate.equal(call.fnSymbol!)
-        ) as FnSymbol | undefined;
-        const paramInfoList = (finalSymbol ?? call.fnSymbol).astNode.protoType.parameterList;
-
-        const context = this.context;
-        const params = astNodes.filter((_, i) => {
-          const parameter = paramInfoList?.[i]?.astNode;
-          // Drop struct-IO parameters (attribute/varying/mrt) — they're flattened
-          // into top-level declarations and no longer exist as function-call args.
-          return (
-            !(parameter instanceof ASTNode.ParameterDeclaration) ||
-            !parameter.symbol ||
-            !context.getStructVarRole([parameter.symbol])
-          );
-        });
-
-        let paramsCode = "";
-
-        for (let i = 0, length = params.length; i < length; i++) {
-          const astNode = params[i];
-          const code = astNode.codeGen(this);
-          if (astNode instanceof ASTNode.MacroCallArgBlock || i === 0) {
-            paramsCode += code;
-          } else {
-            paramsCode += `, ${code}`;
-          }
-        }
-
-        return `${call.fnSymbol.ident}(${paramsCode})`;
-      }
     }
 
     return this.defaultCodeGen(node.children);
@@ -164,24 +210,7 @@ export abstract class CodeGenVisitor implements ICodeGenVisitor {
     const paramList = children[2];
     if (paramList instanceof ASTNode.FunctionCallParameterList) {
       const astNodes = paramList.paramNodes;
-      const context = this.context;
-
-      // Drop bare IO-struct args only when the macro aliases a user fn (whose
-      // formal was flattened). All other shapes preserve args verbatim.
-      let params: typeof astNodes;
-      if (node.isFunctionLikeMacro || !node.aliasesNonBuiltinIdent) {
-        params = astNodes;
-      } else {
-        params = astNodes.filter((arg) => {
-          if (arg instanceof ASTNode.AssignmentExpression) {
-            const variableParam = ParserUtils.unwrapBareIdentifier(arg, { allowParens: false });
-            if (variableParam && context.getStructVarRole(variableParam.resolvedValueSymbols())) {
-              return false;
-            }
-          }
-          return true;
-        });
-      }
+      const params = astNodes;
 
       let paramsCode = "";
       for (let i = 0, length = params.length; i < length; i++) {
@@ -212,8 +241,7 @@ export abstract class CodeGenVisitor implements ICodeGenVisitor {
 
   /**
    * Code-generate a `#define` macro parsed as expression AST. Produces a `#define`
-   * directive whose value is the AST-rewritten string — so varying flattening
-   * happens naturally via `visitPostfixExpression` inside the AST walk.
+   * directive whose value retains ordinary expression and member-access semantics.
    */
   visitMacroDefine(node: ASTNode.MacroDefine): string {
     // For function-like macros, preserve the original `(params)` lexeme verbatim —
@@ -223,7 +251,14 @@ export abstract class CodeGenVisitor implements ICodeGenVisitor {
       const paramsToken = node.children[2];
       if (paramsToken instanceof BaseToken) paramsLexeme = paramsToken.lexeme;
     }
-    const valueCode = node.valueExpression ? node.valueExpression.codeGen(this) : "";
+    const previousParameters = this._macroParameters;
+    this._macroParameters = new Set(ParserUtils.parseMacroParamList(paramsLexeme));
+    let valueCode: string;
+    try {
+      valueCode = node.valueExpression ? node.valueExpression.codeGen(this) : "";
+    } finally {
+      this._macroParameters = previousParameters;
+    }
     // Newlines around the directive keep `#` at the start of its physical line per
     // GLSL ES 3.0 §3.4, regardless of how surrounding tokens are joined.
     return `\n#define ${node.macroName}${paramsLexeme}${valueCode ? " " + valueCode : ""}\n`;
@@ -238,9 +273,9 @@ export abstract class CodeGenVisitor implements ICodeGenVisitor {
     const fullType = children[0];
     if (fullType instanceof ASTNode.FullySpecifiedType && fullType.typeSpecifier.isCustom) {
       const context = this.context;
-      // Global interface variables are flattened and therefore are not emitted as uniforms.
+      // Global interface variables are mutable shader values, not material bindings.
       if (context.getStructVarRole([node.declarator.symbol])) {
-        return "";
+        return this.defaultCodeGen(children);
       }
       context.referenceGlobal(<string>fullType.type, ESymbolType.STRUCT);
     }
@@ -248,80 +283,19 @@ export abstract class CodeGenVisitor implements ICodeGenVisitor {
   }
 
   visitDeclaration(node: ASTNode.Declaration): string {
-    const context = this.context;
-    const children = node.children;
-    const child = children[0];
-
-    if (child instanceof ASTNode.InitDeclaratorList) {
-      const first = child.children[0];
-      const declarator =
-        child.declarator ?? (first instanceof ASTNode.SingleDeclaration ? first.declarator : undefined);
-      const role = declarator && context.getStructVarRole([declarator.symbol]);
-      if (role === ShaderStructRole.Varying || role === ShaderStructRole.Mrt) return "";
-    }
-    return this.defaultCodeGen(children);
+    return this.defaultCodeGen(node.children);
   }
 
   visitFunctionParameterList(node: ASTNode.FunctionParameterList): string {
-    const context = this.context;
-    const params = node.parameterInfoList.filter((item) => {
-      const parameter = item.astNode;
-      return (
-        !(parameter instanceof ASTNode.ParameterDeclaration) ||
-        !parameter.symbol ||
-        !context.getStructVarRole([parameter.symbol])
-      );
-    });
-
-    let out = "";
-    for (let i = 0, length = params.length; i < length; i++) {
-      const item = params[i];
-      const astNode = item.astNode!;
-      const code = astNode.codeGen(this);
-      if (astNode instanceof ASTNode.MacroParamBlock || i === 0) {
-        out += code;
-      } else {
-        out += `, ${code}`;
-      }
-    }
-
-    return out;
+    return this.defaultCodeGen(node.children);
   }
 
   visitFunctionHeader(node: ASTNode.FunctionHeader): string {
-    const returnType = node.returnType.typeSpecifier;
-    if (this.context.getStructRole(returnType.structDeclarations) === ShaderStructRole.Varying) {
-      return `void ${node.ident.lexeme}(`;
-    }
     return this.defaultCodeGen(node.children);
   }
 
   visitJumpStatement(node: ASTNode.JumpStatement): string {
-    const children = node.children;
-    const cmd = children[0] as BaseToken;
-    if (cmd.type === Keyword.RETURN) {
-      const expr = children[1];
-      if (expr instanceof ASTNode.Expression) {
-        const returnVar = ParserUtils.unwrapNodeByType<ASTNode.VariableIdentifier>(
-          expr,
-          NoneTerminal.variable_identifier
-        );
-        if (returnVar && this.context.getStructVarRole(returnVar.resolvedValueSymbols()) === ShaderStructRole.Varying) {
-          return this.context.isTerminalInterfaceReturn(node) ? "" : "return;";
-        }
-        const returnFnCall = ParserUtils.unwrapNodeByType<ASTNode.FunctionCall>(expr, NoneTerminal.function_call);
-        const calledFunction = returnFnCall?.children[0] as ASTNode.FunctionCallGeneric | undefined;
-        const returnDeclarations =
-          calledFunction?.fnSymbol instanceof FnSymbol
-            ? calledFunction.fnSymbol.astNode.protoType.returnType.typeSpecifier.structDeclarations
-            : [];
-        if (this.context.getStructRole(returnDeclarations) === ShaderStructRole.Varying) {
-          const call = `${expr.codeGen(this)};`;
-          return this.context.isTerminalInterfaceReturn(node) ? call : `{ ${call} return; }`;
-        }
-      }
-    }
-    return this.defaultCodeGen(children);
+    return this.defaultCodeGen(node.children);
   }
 
   visitFunctionIdentifier(node: ASTNode.FunctionIdentifier): string {
@@ -333,64 +307,10 @@ export abstract class CodeGenVisitor implements ICodeGenVisitor {
   }
 
   visitStructSpecifier(node: ASTNode.StructSpecifier): string {
-    const context = this.context;
-    const { varyingStructs, attributeStructs, mrtStructs } = context;
-    const isVaryingStruct = varyingStructs.indexOf(node) !== -1;
-    const isAttributeStruct = attributeStructs.indexOf(node) !== -1;
-    const isMRTStruct = mrtStructs.indexOf(node) !== -1;
-
-    if (isVaryingStruct || isAttributeStruct || isMRTStruct) {
-      const result: ICodeSegment[] = [];
-
-      result.push(
-        ...node.macroExpressions.map((item) => ({
-          text: item instanceof BaseToken ? item.lexeme : item.codeGen(this),
-          index: item.location.start.index
-        }))
-      );
-
-      for (const prop of node.propList) {
-        const name = prop.ident.lexeme;
-        if (isVaryingStruct && context._referencedVaryingList[name]?.indexOf(prop) >= 0) {
-          result.push({
-            text: `${this.getVaryingProp(prop)}\n`,
-            index: prop.ident.location.start.index
-          });
-        } else if (isAttributeStruct && context._referencedAttributeList[name]?.indexOf(prop) >= 0) {
-          result.push({
-            text: `${this.getAttributeProp(prop)}\n`,
-            index: prop.ident.location.start.index
-          });
-        } else if (isMRTStruct && context._referencedMRTList[name]?.indexOf(prop) >= 0) {
-          result.push({
-            text: `${this.getMRTProp(prop)}\n`,
-            index: prop.ident.location.start.index
-          });
-        }
-      }
-
-      const text = result
-        .sort((a, b) => a.index - b.index)
-        .map((item) => item.text)
-        .join("");
-
-      return text;
-    } else {
-      return this.defaultCodeGen(node.children);
-    }
+    return this.defaultCodeGen(node.children);
   }
 
   visitFunctionDefinition(fnNode: ASTNode.FunctionDefinition): string {
-    const fnName = fnNode.protoType.ident.lexeme;
-    const context = this.context;
-    const terminal = ParserUtils.lastStatement(fnNode.statements);
-    if (terminal instanceof ASTNode.JumpStatement) context.registerTerminalInterfaceReturn(terminal);
-
-    if (fnName == context.stageEntry) {
-      const statements = fnNode.statements.codeGen(this);
-      return `void main() ${statements}`;
-    } else {
-      return this.defaultCodeGen(fnNode.children);
-    }
+    return this.defaultCodeGen(fnNode.children);
   }
 }

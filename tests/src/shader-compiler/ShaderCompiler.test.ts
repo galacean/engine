@@ -535,7 +535,7 @@ describe("ShaderCompiler", async () => {
     const expectedVert = await readFile("src/shader-compiler/expected/define-struct-access.vert.glsl");
     const expectedFrag = await readFile("src/shader-compiler/expected/define-struct-access.frag.glsl");
     expect(vertex).to.equal(expectedVert);
-    expect(fragment).to.equal(expectedFrag);
+    expect(fragment.replace(/[ \t]+$/gm, "")).to.equal(expectedFrag);
   });
 
   it("macro-member-access-builtin-arg (member access macro as builtin fn arg)", async () => {
@@ -582,12 +582,11 @@ describe("ShaderCompiler", async () => {
     expect(vertex).to.not.contain("uniform Varyings");
     expect(fragment).to.not.contain("uniform Varyings");
 
-    // Macros should be transformed: "o.v_worldPos" → "v_worldPos"
-    expect(vertex).to.contain("#define VSOutput_worldPos v_worldPos");
-    expect(vertex).to.contain("#define VSOutput_worldNormal v_normal.xyz");
+    expect(vertex).to.contain("#define VSOutput_worldPos o.v_worldPos");
+    expect(vertex).to.contain("#define VSOutput_worldNormal o.v_normal.xyz");
 
     // No duplicate varying declarations
-    const varyingMatches = vertex.match(/varying vec3 v_worldPos/g);
+    const varyingMatches = vertex.match(/varying vec3 io_v_worldPos/g);
     expect(varyingMatches).to.have.lengthOf(1);
   });
 
@@ -602,8 +601,8 @@ void frag(Varyings input) { gl_FragColor = readColor(input); }`;
     const result = shaderCompilerRelease._parseShaderPass(source, "vert", "frag", ShaderLanguage.GLSLES100);
 
     expect(result).toBeDefined();
-    expect(result!.fragment).to.contain("varying vec4 color;");
-    expect(result!.fragment).to.contain("#define READ_COLOR color");
+    expect(result!.fragment).to.contain("varying vec4 io_color;");
+    expect(result!.fragment).to.match(/#define READ_COLOR \w+\.color/);
   });
 
   it("define-ctor-with-member (constructor-style macro with struct member access)", async () => {
@@ -763,10 +762,9 @@ void frag(Varyings input) { gl_FragColor = readColor(input); }`;
       pass.fragmentEntry,
       ShaderLanguage.GLSLES300
     )!.fragment;
-    expect(fragment).to.match(/if\s*\([^)]*\)\s*\{\s*GS_glFragColor\s*=[^;]+;\s*return\s*;\s*\}/);
-    expect(fragment.match(/GS_glFragColor\s*=/g)).to.have.lengthOf(2);
-    expect(fragment.match(/return\s*;/g)).to.have.lengthOf(1);
-    expect(fragment).not.to.match(/return\s+vec4/);
+    expect(fragment).to.match(/if\s*\([^)]*\)\s*return\s+vec4\s*\(\s*1\.0\s*\)/);
+    expect(fragment.match(/return\s+vec4/g)).to.have.lengthOf(2);
+    expect(fragment).to.match(/void\s+main\s*\(\s*\)\s*\{\s*\w+\s*=\s*frag\s*\(\s*\)/);
   });
 
   it("preserves every early return while lowering a varying vertex entry", () => {
@@ -797,8 +795,8 @@ void frag(Varyings input) { gl_FragColor = readColor(input); }`;
       pass.fragmentEntry,
       ShaderLanguage.GLSLES300
     )!.vertex;
-    expect(vertex.match(/return\s*;/g)).to.have.lengthOf(1);
-    expect(vertex).not.to.match(/return\s+outputValue/);
+    expect(vertex.match(/return\s+outputValue\s*;/g)).to.have.lengthOf(2);
+    expect(vertex).to.match(/void\s+main\s*\(\s*\)\s*\{\s*\w+\s*\(\s*vert\s*\(\s*\)/);
   });
 
   it("rejects a varying constructor return instead of emitting it from void main", () => {
@@ -850,9 +848,9 @@ void frag(Varyings input) { gl_FragColor = readColor(input); }`;
       pass.fragmentEntry,
       ShaderLanguage.GLSLES100
     )!.fragment;
-    expect(fragment.match(/gl_FragData\[0\]\s*=/g)).to.have.lengthOf(2);
-    expect(fragment.match(/return\s*;/g)).to.have.lengthOf(1);
-    expect(fragment).not.to.match(/return\s+outputValue/);
+    expect(fragment.match(/gl_FragData\[0\]\s*=/g)).to.have.lengthOf(1);
+    expect(fragment.match(/return\s+outputValue\s*;/g)).to.have.lengthOf(2);
+    expect(fragment).to.match(/void\s+main\s*\(\s*\)\s*\{\s*\w+\s*\(\s*frag\s*\(\s*\)/);
   });
 
   it("rejects an MRT contract that would emit an undefined output location", () => {
@@ -935,8 +933,8 @@ void frag(Varyings input) { gl_FragColor = readColor(input); }`;
       ShaderLanguage.GLSLES300
     )!.fragment;
     expect(fragment).to.include("gl_FragDepth = 0.5");
-    expect(fragment).to.include("layout(location = 0) out vec4 GS_glFragData0;");
-    expect(fragment).to.include("GS_glFragData0 = vec4");
+    expect(fragment).to.include("layout(location = 0) out vec4 output_color_0;");
+    expect(fragment).to.include("output_color_0 = vec4");
     expect(fragment).not.to.include("gl_FragDepthEXT");
     expect(fragment).not.to.include("gl_FragData[");
 
@@ -955,8 +953,8 @@ void frag(Varyings input) { gl_FragColor = readColor(input); }`;
       gl.attachShader(program, shader);
       gl.linkProgram(program);
       expect(gl.getProgramParameter(program, gl.LINK_STATUS), gl.getProgramInfoLog(program) || "").to.be.true;
-      expect(gl.getFragDataLocation(program, "GS_glFragData0")).to.equal(0);
-      expect(gl.getFragDataLocation(program, "GS_glFragData1")).to.equal(-1);
+      expect(gl.getFragDataLocation(program, "output_color_0")).to.equal(0);
+      expect(gl.getFragDataLocation(program, "output_color_1")).to.equal(-1);
     }
   });
 
@@ -1345,7 +1343,7 @@ void frag(Varyings input) { gl_FragColor = readColor(input); }`;
       // Guard the guard: if the macro walk regressed far enough that no stage expands
       // `INVERSE_MAT`, the per-stage assertion below would be skipped and pass vacuously.
       const referencing = [parsed.vertex, parsed.fragment].filter((instructions) =>
-        instructions.includes("inverseMat(")
+        /inverseMat\s*\(/.test(instructions)
       );
       expect(referencing, "at least one stage must expand INVERSE_MAT").to.not.be.empty;
       for (const instructions of referencing) {

@@ -18,5 +18,9 @@ export enum ShaderPreprocessorDirective {
   /** Text retained when any listed declaration is selected and reachable: [text, ...ownerIds]. */
   OwnedText,
   /** Declaration dependency: [fromOwnerId, toOwnerId]; owner zero denotes a stage root. */
-  Reference
+  Reference,
+  /** Shared pass identifier allocation: [generatedNames, reservedNames, varyingAliases?]. */
+  GeneratedNames,
+  /** Text requiring a selected owner from every group: [text, ownerGroups]. */
+  GuardedText
 }

@@ -1,60 +1,25 @@
-import { BaseToken } from "@galacean/engine-shader-parser/internal";
-import { ASTNode } from "@galacean/engine-shader-parser/internal";
-import { ParserUtils, ShaderStructRole } from "@galacean/engine-shader-parser/internal";
 import { StructProp } from "@galacean/engine-shader-parser/internal";
 import { GLESVisitor } from "./GLESVisitor";
 
 export class GLES100Visitor extends GLESVisitor {
+  protected override readonly supportsArrayStructReturn = false;
   override getAttributeProp(prop: StructProp): string {
     return `attribute ${prop.typeInfo.typeLexeme} ${prop.ident.lexeme};`;
   }
 
   override getVaryingProp(prop: StructProp): string {
-    return `varying ${prop.typeInfo.typeLexeme} ${prop.ident.lexeme};`;
+    return `varying ${prop.typeInfo.typeLexeme} ${this.interfaceName(prop)}${prop.typeInfo.arraySpecifier?.codeGen(this) ?? ""};`;
   }
 
   override getMRTProp(): string {
     return "";
   }
 
-  override visitPostfixExpression(node: ASTNode.PostfixExpression): string {
-    const { children } = node;
-    const postExpr = children[0];
-    const context = this.context;
-    const directRoot =
-      postExpr instanceof ASTNode.PostfixExpression
-        ? ParserUtils.unwrapBareIdentifier(postExpr, { allowParens: true })
-        : undefined;
-    const directSymbols = directRoot?.resolvedValueSymbols() ?? [];
-    const unresolvedName =
-      postExpr instanceof ASTNode.PostfixExpression ? ParserUtils.extractDirectIdentLexeme(postExpr) : null;
-    const directRole = directRoot
-      ? directSymbols.length
-        ? context.getStructVarRole(directSymbols)
-        : unresolvedName
-          ? context.getUnresolvedStructVarRole(unresolvedName)
-          : undefined
-      : undefined;
-    if (directRole === ShaderStructRole.Mrt) {
-      const propReferenced = children[2] as BaseToken;
-      const prop = context.mrtList.find((item) => item.ident.lexeme === propReferenced.lexeme);
-      // The parser already validated struct fields (UndeclaredStructMember); a miss here is an
-      // already-errored shader, so emit nothing rather than re-report.
-      if (!prop) return "";
-      return `gl_FragData[${prop.mrtIndex!}]`;
-    }
-    return super.visitPostfixExpression(node);
+  protected override fragmentColorOutput(): string {
+    return "gl_FragColor";
   }
 
-  override visitJumpStatement(node: ASTNode.JumpStatement): string {
-    const mode = this.context.getFragmentReturnMode(node);
-    const terminal = this.context.isTerminalInterfaceReturn(node);
-    if (mode === "mrt") return terminal ? "" : "return;";
-    if (mode === "color") {
-      const expression = node.children[1] as ASTNode.Expression;
-      const assignment = `gl_FragColor = ${expression.codeGen(this)};`;
-      return terminal ? assignment : `{ ${assignment} return; }`;
-    }
-    return super.visitJumpStatement(node);
+  protected override mrtOutput(prop: StructProp): string {
+    return `gl_FragData[${prop.mrtIndex!}]`;
   }
 }

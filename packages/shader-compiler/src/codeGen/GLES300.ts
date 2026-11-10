@@ -11,9 +11,6 @@ import { ICodeSegment } from "./types";
 import type { DeferredDeclarationOwnership } from "@galacean/engine-shader-parser/internal";
 import { ShaderInstructionEncoder } from "../ShaderInstructionEncoder";
 
-const V3_GL_FragColor = "GS_glFragColor";
-const V3_GL_FragData = "GS_glFragData";
-
 export class GLES300Visitor extends GLESVisitor {
   private readonly _outputDeclarations = new Map<
     string,
@@ -52,17 +49,17 @@ export class GLES300Visitor extends GLESVisitor {
 
   override getVaryingProp(prop: StructProp): string {
     const qualifier = this.context.stage === EShaderStage.FRAGMENT ? "in" : "out";
-    return `${qualifier} ${prop.typeInfo.typeLexeme} ${prop.ident.lexeme};`;
+    return `${prop.isFlat ? "flat " : ""}${qualifier} ${prop.typeInfo.typeLexeme} ${this.interfaceName(prop)}${prop.typeInfo.arraySpecifier?.codeGen(this) ?? ""};`;
   }
 
   override getMRTProp(prop: StructProp): string {
-    return `layout(location = ${prop.mrtIndex}) out vec4 ${prop.ident.lexeme};`;
+    return `layout(location = ${prop.mrtIndex}) out vec4 ${this.interfaceName(prop)}${prop.typeInfo.arraySpecifier?.codeGen(this) ?? ""};`;
   }
 
   override visitFunctionIdentifier(node: ASTNode.FunctionIdentifier): string {
     const children = node.children;
     const typeSpecifier = children[0] as ASTNode.TypeSpecifier;
-    if (typeSpecifier.children.length !== 1 || typeSpecifier.structDependencies.length) {
+    if (!node.isBuiltin || typeSpecifier.children.length !== 1 || typeSpecifier.structDependencies.length) {
       // Struct constructors still need the shared type-dependency visitor.
       return super.visitFunctionIdentifier(node);
     }
@@ -97,14 +94,14 @@ export class GLES300Visitor extends GLESVisitor {
     const context = this.context;
     if (context.stage === EShaderStage.FRAGMENT && node.builtinSemantic === ShaderBuiltinSemantic.FragmentOutput0) {
       this._registerFragColorVariable();
-      return V3_GL_FragColor;
+      return this._fragmentColorName();
     }
     if (context.stage === EShaderStage.FRAGMENT && node.builtinSemantic === ShaderBuiltinSemantic.FragmentDepth) {
       return "gl_FragDepth";
     }
     if (context.stage === EShaderStage.FRAGMENT && node.builtinSemantic === ShaderBuiltinSemantic.FragmentOutputArray) {
       this._registerFragDataArray();
-      return V3_GL_FragData;
+      return this._fragmentDataName();
     }
     return super.visitVariableIdentifier(node);
   }
@@ -117,22 +114,26 @@ export class GLES300Visitor extends GLESVisitor {
     return super.visitPostfixExpression(node);
   }
 
-  override visitJumpStatement(node: ASTNode.JumpStatement): string {
-    const mode = this.context.getFragmentReturnMode(node);
-    const terminal = this.context.isTerminalInterfaceReturn(node);
-    if (mode === "mrt") return terminal ? "" : "return;";
-    if (mode === "color") {
-      this._registerFragColorVariable();
+  protected override fragmentColorOutput(): string {
+    this._registerFragColorVariable();
+    return this._fragmentColorName();
+  }
 
-      const expression = node.children[1] as ASTNode.Expression;
-      const assignment = `${V3_GL_FragColor} = ${expression.codeGen(this)};`;
-      return terminal ? assignment : `{ ${assignment} return; }`;
-    }
-    return super.visitJumpStatement(node);
+  protected override mrtOutput(prop: StructProp): string {
+    return this.interfaceName(prop);
+  }
+
+  private _fragmentColorName(): string {
+    return this.context.names.allocate("fragment-output", "output_color");
+  }
+
+  private _fragmentDataName(): string {
+    return this.context.names.allocate("fragment-output-array", "output_colors");
   }
 
   private _registerFragColorVariable(): void {
-    this._registerOutput(V3_GL_FragColor, `out vec4 ${V3_GL_FragColor};`);
+    const name = this._fragmentColorName();
+    this._registerOutput(name, `out vec4 ${name};`);
   }
 
   private _registerOutput(name: string, text: string): void {
@@ -188,11 +189,12 @@ export class GLES300Visitor extends GLESVisitor {
   }
 
   private _registerFragDataArray(): void {
-    this._registerOutput(V3_GL_FragData, `layout(location = 0) out vec4 ${V3_GL_FragData}[gl_MaxDrawBuffers];`);
+    const name = this._fragmentDataName();
+    this._registerOutput(name, `layout(location = 0) out vec4 ${name}[gl_MaxDrawBuffers];`);
   }
 
   private _registerFragDataVariable(index: number): string {
-    const name = `${V3_GL_FragData}${index}`;
+    const name = this.context.names.allocate(`fragment-output:${index}`, `output_color_${index}`);
     this._registerOutput(name, `layout(location = ${index}) out vec4 ${name};`);
     return name;
   }

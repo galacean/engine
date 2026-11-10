@@ -122,12 +122,17 @@ export class ShaderPass extends ShaderPart {
     feedbackVaryings?: string[]
   ): ShaderProgram {
     const isGPUInstance = macroCollection.isEnable(InstanceBuffer.gpuInstanceMacro);
+    const outputNames = feedbackVaryings ? new Map<string, string>() : undefined;
     const { vertexSource, fragmentSource, instanceLayout } = this._compileShaderSource(
       engine,
       macroCollection,
-      isGPUInstance
+      isGPUInstance,
+      outputNames
     );
-    const program = new ShaderProgram(engine, vertexSource, fragmentSource, feedbackVaryings);
+    const linkedVaryings = feedbackVaryings?.map((name) =>
+      name.replace(/^[A-Za-z_][A-Za-z_0-9]*/, (identifier) => outputNames!.get(identifier) ?? identifier)
+    );
+    const program = new ShaderProgram(engine, vertexSource, fragmentSource, linkedVaryings);
     program._instanceLayout = instanceLayout;
     return program;
   }
@@ -135,7 +140,8 @@ export class ShaderPass extends ShaderPart {
   private _compileShaderSource(
     engine: Engine,
     macroCollection: ShaderMacroCollection,
-    isGPUInstance: boolean
+    isGPUInstance: boolean,
+    outputNames?: Map<string, string>
   ): { vertexSource: string; fragmentSource: string; instanceLayout: InstanceBufferLayout | null } {
     const isWebGL2: boolean = engine._hardwareRenderer.isWebGL2;
     const shaderMacroList = ShaderPass._shaderMacroList;
@@ -155,7 +161,7 @@ export class ShaderPass extends ShaderPart {
       const macro = shaderMacroList[i];
       macroMap.set(macro.name, macro.value ?? "");
     }
-    let vertexSource = ShaderMacroProcessor.evaluate(this._vertexShaderInstructions, macroMap);
+    let vertexSource = ShaderMacroProcessor.evaluate(this._vertexShaderInstructions, macroMap, outputNames);
     let fragmentSource = ShaderMacroProcessor.evaluate(this._fragmentShaderInstructions, macroMap);
 
     let instanceLayout: InstanceBufferLayout | null = null;
