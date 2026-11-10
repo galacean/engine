@@ -109,6 +109,44 @@ function floorAt(p: LoftParams, side: number, v: number): number {
   return at(p.rows[i]) * (1 - f) + at(p.rows[i + 1]) * f;
 }
 
+/** The u that lies `s` metres from `u0` along the roof's row at `v`: rows of slopes and cones are
+ * evenly parametrized. Leaving an open roof is an error. */
+export function alongRow(surface: EffectiveSurface, u0: number, s: number, v: number): number {
+  const { domain } = surface;
+  const h = 1e-4 * (domain.u[1] - domain.u[0]);
+  const a = surface.frame(u0, v).origin,
+    b = surface.frame(u0 + h, v).origin;
+  const u = u0 + (s * h) / Math.hypot(b[0] - a[0], b[2] - a[2]);
+  if (!domain.closedU && (u < domain.u[0] - 1e-9 || u > domain.u[1] + 1e-9))
+    throw Error("The dormer crosses an edge of its roof");
+  return u;
+}
+/** `count` points along the roof's row at `v`, `width` metres from end to end, centred where the
+ * row crosses the upright plane through `centre` square to the level direction `x`. The roof's
+ * rows may fan toward its ridge, so one u drifts sideways from row to row; centring each row on
+ * one line keeps what stands on the rows square. `u` is where to start looking. */
+export function contourRow(
+  surface: EffectiveSurface,
+  v: number,
+  u: number,
+  centre: Vec3,
+  x: Vec3,
+  width: number,
+  count: number
+): Vec3[] {
+  let middle = u;
+  for (let i = 0; i < 4; i++) {
+    const q = surface.frame(middle, v).origin;
+    const off = (q[0] - centre[0]) * x[0] + (q[2] - centre[2]) * x[2];
+    if (Math.abs(off) < 1e-6) break;
+    middle = alongRow(surface, middle, -off, v);
+  }
+  return Array.from(
+    { length: count },
+    (_, j) => surface.frame(alongRow(surface, middle, width * (j / (count - 1) - 0.5), v), v).origin
+  );
+}
+
 /** Elements "mount", "mount1", ... and "shed".
  * - The bodies stand along the roof's level contour through the plan position, `spacing`
  *   apart, each with its lowest point `bottom` above the roof's covering and facing level out
@@ -136,20 +174,10 @@ export const houseShedDormerGeometry: GeometryGenerator<ShedDormerParams> = (p, 
   const lift = coveringRise(host, roof.n);
   const rise = lift - min[1] * sy + p.bottom;
   const { domain } = surface;
-  const inside = (u: number) => domain.closedU || (u >= domain.u[0] - 1e-9 && u <= domain.u[1] + 1e-9);
-  // Host u per metre along the contour at v: rows of slopes and cones are evenly parametrized.
-  const along = (s: number, v: number) => {
-    const h = 1e-4 * (domain.u[1] - domain.u[0]);
-    const a = surface.frame(hit.u, v).origin,
-      b = surface.frame(hit.u + h, v).origin;
-    const u = hit.u + (s * h) / Math.hypot(b[0] - a[0], b[2] - a[2]);
-    if (!inside(u)) throw Error("The dormer crosses an edge of its roof");
-    return u;
-  };
   const elements: Record<string, GeometryElement> = {};
   const span = (p.count - 1) * spacing + (max[0] - min[0]) * sx;
   for (let i = 0; i < p.count; i++) {
-    const u = along((i - (p.count - 1) / 2) * spacing, hit.v);
+    const u = alongRow(surface, hit.u, (i - (p.count - 1) / 2) * spacing, hit.v);
     const f = surface.frame(u, hit.v);
     const level = Math.hypot(f.z[0], f.z[2]);
     const z: Vec3 = [f.z[0] / level, 0, f.z[2] / level],
@@ -179,14 +207,14 @@ export const houseShedDormerGeometry: GeometryGenerator<ShedDormerParams> = (p, 
   );
   const count = Math.max(2, Math.ceil(depth / 0.2) + 1),
     across = 9;
+  // Every row stands square over the bodies, centred on the line out of the roof through them.
+  const level = Math.hypot(roof.z[0], roof.z[2]);
+  const side: Vec3 = [roof.z[2] / level, 0, -roof.z[0] / level];
   const rows = Array.from({ length: count }, (_, k) => {
     const t = k / (count - 1);
     const v = k === count - 1 ? vBack : vAtHeight(surface, hit.u, coverFront + (back - coverFront) * t - lift)!;
     const y = top + (back - top) * t;
-    const samples = Array.from(
-      { length: across },
-      (_, j) => surface.frame(along(width * (j / (across - 1) - 0.5), v), v).origin
-    );
+    const samples = contourRow(surface, v, hit.u, hit.frame.origin, side, width, across);
     return { points: samples.map((q): Vec3 => [q[0], y, q[2]]), floor: samples.map((q) => q[1] + lift) };
   });
   elements.shed = { kind: "surface", surface: { kind: "loft", params: { rows } satisfies LoftParams } };

@@ -243,6 +243,26 @@ describe("Shed dormers", () => {
     expect(nearest.points[mid][1]).toBeGreaterThan(edge[1]);
   });
 
+  it("centres every row of its shed on its bodies, close to a hip as in the middle", () => {
+    for (const uv of [
+      [0.25, 0.15],
+      [0.5, 0.15]
+    ] as [number, number][]) {
+      const result = design({ ...hip, roof: { height: 0.8 }, roofAttachments: [cottage(2, uv)] });
+      expect(result.diagnostics).toEqual([]);
+      const { shed, mount } = result.parts.find((p) => p.type === "shedDormer")!.original.elements;
+      if (shed?.kind !== "surface" || mount?.kind !== "point") throw Error("no shed");
+      const { origin, x } = mount.frame;
+      const rows = (shed.surface.params as { rows: { points: number[][] }[] }).rows;
+      // The roof's rows fan toward its ridge; the shed's rows still stand square over the bodies.
+      const offsets = rows.map(({ points }) => {
+        const q = points[(points.length - 1) / 2];
+        return (q[0] - origin[0]) * x[0] + (q[2] - origin[2]) * x[2];
+      });
+      expect(Math.max(...offsets) - Math.min(...offsets)).toBeLessThan(0.01);
+    }
+  });
+
   it("is an error where the row reaches past its roof part", () => {
     const result = design({ ...hip, roofAttachments: [cottage(3, [0.08, 0.2])] });
     expect(messages(result)).toContain("The dormer crosses an edge of its roof");
