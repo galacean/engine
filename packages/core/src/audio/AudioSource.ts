@@ -68,7 +68,10 @@ export class AudioSource extends Component {
     value = Math.min(Math.max(0, value), 1.0);
     this._volume = value;
     // No node yet -> _ensureGainNode() applies _volume on first play
-    this._gainNode?.gain.setValueAtTime(value, AudioManager.getContext().currentTime);
+    const gainNode = this._gainNode;
+    if (gainNode) {
+      gainNode.gain.value = value;
+    }
   }
 
   /**
@@ -248,7 +251,9 @@ export class AudioSource extends Component {
     if (!gainNode) {
       this._gainNode = gainNode = AudioManager.getContext().createGain();
       gainNode.connect(AudioManager.getGainNode());
-      gainNode.gain.setValueAtTime(this._volume, AudioManager.getContext().currentTime);
+      // Setting `value` is equivalent to `setValueAtTime(value, currentTime)` in the Web Audio spec, and is the only
+      // form some runtimes provide (Douyin mini-games have no AudioParam.setValueAtTime)
+      gainNode.gain.value = this._volume;
     }
     return gainNode;
   }
