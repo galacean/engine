@@ -746,18 +746,15 @@ function plasterPart(
   const surface = new EffectiveGeometry(part.original, part.modifications, layout.surfaces).surface(id);
   const ring = ringAt(chart, chart.finishOuter);
   const outline = surface.region();
-  const shifts = surface.domain.closedU ? [-ring.length, 0, ring.length] : [0];
-  const holes = surface.removed.flatMap((r) =>
-    shifts.map((k) => ({
-      rect: [r[0] + k, r[1], r[2] + k, r[3]] as Rect,
-      boundary: surfaceBoundary([
-        [r[0] + k, r[1]],
-        [r[2] + k, r[1]],
-        [r[2] + k, r[3]],
-        [r[0] + k, r[3]]
-      ])
-    }))
-  );
+  const holes = surface.removedOver(surface.domain.u[0], surface.domain.u[1]).map((r) => ({
+    rect: r,
+    boundary: surfaceBoundary([
+      [r[0], r[1]],
+      [r[2], r[1]],
+      [r[2], r[3]],
+      [r[0], r[3]]
+    ])
+  }));
   // The region is a band over u: bottom along its first half, top back along its second.
   // Each slice between two samples splits into rows no taller than 0.4 m, which keeps the
   // shader's warp smooth; only the cells that meet a removed area are clipped.
@@ -1158,9 +1155,10 @@ export function coreBuildingView(layout: CoreBuildingLayout, options: CoreBuildi
           const chart = chartOf(part);
           if (!chart) return [];
           const offset = chart.uOffset ?? 0;
-          return new EffectiveGeometry(part.original, part.modifications, layout.surfaces)
-            .surface("face")
-            .removed.map((r): Rect => [r[0] + offset, r[1], r[2] + offset, r[3]]);
+          const face = new EffectiveGeometry(part.original, part.modifications, layout.surfaces).surface("face");
+          return face
+            .removedOver(face.domain.u[0], face.domain.u[1])
+            .map((r): Rect => [r[0] + offset, r[1], r[2] + offset, r[3]]);
         });
         const { mesh, perimeter, inset, finish } = wallSurface(binding, holes);
         const base = chartBase(binding);

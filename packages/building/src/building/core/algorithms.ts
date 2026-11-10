@@ -425,7 +425,7 @@ export const surfaceGrid: LayingAlgorithm<
       ];
       if (!(rect[2] > rect[0] && rect[3] > rect[1])) return;
       // Of what stays beside a removed area, the largest piece is laid.
-      for (const hole of surface.removed) {
+      for (const hole of surface.removedOver(rect[0], rect[2])) {
         if (!(hole[0] < rect[2] && rect[0] < hole[2] && hole[1] < rect[3] && rect[1] < hole[3])) continue;
         const [a, b, c, d] = rect;
         const sides: Rect[] = [

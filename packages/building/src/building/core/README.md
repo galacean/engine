@@ -130,6 +130,7 @@
 - **GPU 铺设原型：** `../render/GridUnitKernel.ts` 用 TransformFeedback（只支持 WebGL2）按槽位直接生成线上 64 字节砖块记录，CPU 只保留布局（约 260 字节）。`world/demos/building-core-preview/gpu.html` 在 8 米、100 米、1000 米三种墙上和 CPU 参考展开逐字节对比。目前只支持平地、无洞口的 `groundStrip` 立面上的 `surfaceGrid`，`draw.html` 把 GPU 生成的记录在显存内拷进砖块记录纹理，由线上砖块 shader 绘制，画面与 CPU 上传的结果相差在逐帧渲染噪声之内。砖块 LOD 仍读取 CPU 上的记录。
 - **未接入：** Source 存档、Worker 调度、Mesh 曲面、UV 铺设。
 - **删除和占用：** `removeArea` 表示曲面在这里不存在（如开口）；`reserveArea` 表示曲面仍在，但被其他单元占用（如转角石），铺设的单元要避让。
+- **闭合曲面没有接缝：** 闭合曲面上的删除区域可以跨过 u 的起点，矩形的 u 可以小于 0 或大于周长。铺设算法和渲染不直接比较 `removed`、`reserved` 中的矩形，而是查询：`removedOver(u0, u1)`、`reservedOver(u0, u1)` 返回与这段 u 重叠的区域，并换算到这段 u 所在的周期；`removedAt(u, v)` 判断一个点是否被删除。周期只在核心层处理一次。`removed`、`reserved` 每次编辑一项，只用于按区域逐个处理的场合，例如每个开口生成一条渲染记录。
 - **继承：** 曲面元素可以声明 `inherit: [{ host, element, offset }]`，表示它延续宿主的某个曲面：宿主元素上的删除、增加和占用按偏移量复制到这个元素上，排在它自己的修改之前。`host` 是依附连接的宿主序号。
 - **真实范围和到边缘距离：** 曲面类型可以提供 `region`，给出比定义域矩形更小的真实范围；`EffectiveSurface.edgeDistance(u, v, limit)` 返回到真实范围边界或删除区域边界的距离，闭合曲面的接缝不算边界。
 - **连续单元：** 内置铺设算法 `coverSurfaces` 为每个曲面元素放一个覆盖整个有效曲面的单元，渲染器按有效曲面画它，例如抹灰。

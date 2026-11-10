@@ -11,6 +11,7 @@ import {
   unitFits,
   type BuildingUnit,
   type ConnectionRule,
+  type EffectiveSurface,
   type ParticipantView,
   type DerivedPartSpec,
   type JoinDetector,
@@ -272,12 +273,10 @@ interface CourseLayout {
 /** A thin joint between bricks, at most a fifth of the span. */
 const joint = (span: number, gap: number) => span - Math.min(gap, span * 0.2);
 
-/** The removed areas of a chart in its own u, also one perimeter either way on a closed chart. */
-function chartHoles(context: LayingContext<{ element?: string }>, chart: WallChartParams): Rect[] {
-  const removed = context.geometry.surface(context.params.element ?? "face").removed;
-  if (!chart.closed) return [...removed];
-  const length = wallChartSampler(chart).length;
-  return removed.flatMap((r) => [-length, 0, length].map((d): Rect => [r[0] + d, r[1], r[2] + d, r[3]]));
+/** What units on a wall give way to over u0..u1: the areas removed from it and those that
+ * other units occupy, in that range's u. */
+function blockedOver(surface: EffectiveSurface, u0: number, u1: number): Rect[] {
+  return [...surface.removedOver(u0, u1), ...surface.reservedOver(u0, u1)];
 }
 /** A course position as a rectangle on the chart, or nothing where none fits. */
 function courseCell(chart: WallChartParams, d: CourseLayout, e: CourseEdge, row: number, col: number) {
@@ -379,13 +378,14 @@ export const gridCourses: LayingAlgorithm<
       return entry as CourseEdge;
     });
     const data: CourseLayout = { rule: p.rule, pitch, rowHeight, rows, edges: list, pieces: 1 };
-    const holes = chartHoles(context, chart);
-    if (holes.length)
+    const surface = context.geometry.surface(p.element ?? "face");
+    if (surface.removed.length)
       for (const e of list)
         for (let row = 0; row < rows; row++)
           for (let c = 0; c < e.columns; c++) {
             const cell = courseCell(chart, data, e, row, e.c0[row % 2] + c);
-            if (cell) data.pieces = Math.max(data.pieces, coursePieces(cell, holes).length);
+            if (cell)
+              data.pieces = Math.max(data.pieces, coursePieces(cell, surface.removedOver(cell.u0, cell.u1)).length);
           }
     return { count: offset * data.pieces, data };
   },
@@ -400,7 +400,8 @@ export const gridCourses: LayingAlgorithm<
     const col = e.c0[row % 2] + (local % e.columns);
     const cell = courseCell(chart, d, e, row, col);
     if (!cell) return;
-    const piece = (d.pieces > 1 ? coursePieces(cell, chartHoles(context, chart)) : [cell])[n];
+    const holes = () => context.geometry.surface(p.element ?? "face").removedOver(cell.u0, cell.u1);
+    const piece = (d.pieces > 1 ? coursePieces(cell, holes()) : [cell])[n];
     if (!piece || piece.u1 - piece.u0 < 0.015 || piece.hi - piece.lo < 0.015) return;
     const a = chart.points[e.edge - 1],
       b = chart.points[e.edge],
@@ -683,7 +684,8 @@ function brickPieces(
   let pieces: Piece[] = [whole];
   const bottom = Math.min(courses.line(r, run[0]), courses.line(r, run[1])),
     top = Math.max(courses.line(r + 1, run[0]), courses.line(r + 1, run[1]));
-  for (const hole of masonryWall(context).removed) pieces = pieces.flatMap((q) => subtract(q, hole, bottom, top));
+  for (const hole of blockedOver(masonryWall(context).surface, run[0], run[1]))
+    pieces = pieces.flatMap((q) => subtract(q, hole, bottom, top));
   // A tall brick splits into two thinner ones about 40% of the time. The split height comes
   // from the brick's own seed. Only a brick that no removed area touched splits, as in the
   // native masonry.
@@ -697,12 +699,12 @@ function brickPieces(
   }
   return { pieces };
 }
-/** What every brick of one part reads: the chart, its sampler, the removed areas and the
+/** What every brick of one part reads: the chart, its sampler, its effective surface and the
  * course lines. Kept per laying context, which belongs to one part, so the values are pure. */
 interface MasonryWall {
   chart: WallChartParams;
   sample: ReturnType<typeof wallChartSampler>;
-  removed: readonly Rect[];
+  surface: EffectiveSurface;
   courses?: { data: MasonryLayout; lines: CourseLines };
 }
 const masonryWalls = new WeakMap<object, MasonryWall>();
@@ -711,9 +713,7 @@ function masonryWall(context: LayingContext<MasonryParams>): MasonryWall {
   if (!wall) {
     const element = context.params.element ?? "face";
     const chart = chart_(context.geometry.original.elements[element]);
-    const surface = context.geometry.surface(element);
-    // Units give way both where the wall is gone and where other units occupy it.
-    wall = { chart, sample: wallChartSampler(chart), removed: [...surface.removed, ...surface.reserved] };
+    wall = { chart, sample: wallChartSampler(chart), surface: context.geometry.surface(element) };
     masonryWalls.set(context, wall);
   }
   return wall;
@@ -821,14 +821,15 @@ export const parapetCourses: LayingAlgorithm<ParapetParams, ParapetLayout> = {
     if (!chart.battlement) throw Error("parapetCourses lays a chart with a battlement");
     const { pitch, merlon, corner } = chart.battlement;
     // The stones give way to what other parts removed; the battlement's own crenels are slots.
-    const removed = context.geometry.surface(element).removed.filter((r) => !chart.cuts?.includes(r));
+    const surface = context.geometry.surface(element);
+    const removed = (u0: number, u1: number) => surface.removedOver(u0, u1, (r) => !chart.cuts?.includes(r));
     const depth = (p.depth ?? 0.56) * scale.depth;
     const top = Math.max(...chart.top),
       foot = chart.minGround,
       shoulder = Math.max(foot, top - merlon);
     const stones: ParapetStone[] = [];
     const push = (key: string, a: number, b: number, lo: number, hi: number, past: [number, number]) =>
-      spansLeft(a, b, lo, hi, removed).forEach(([x, y], piece) => {
+      spansLeft(a, b, lo, hi, removed(a, b)).forEach(([x, y], piece) => {
         if (y - x < 0.1 * scale.width) return;
         stones.push({
           key: `${key}/${piece}`,
@@ -841,7 +842,7 @@ export const parapetCourses: LayingAlgorithm<ParapetParams, ParapetLayout> = {
       });
     // A merlon is one whole stone: where another house cuts it, it is left out.
     const whole = (key: string, a: number, b: number, past: [number, number]) => {
-      const [left, ...more] = spansLeft(a, b, shoulder, top, removed);
+      const [left, ...more] = spansLeft(a, b, shoulder, top, removed(a, b));
       if (!more.length && left && left[0] === a && left[1] === b)
         stones.push({ key: `${key}/0`, u0: a, u1: b, lo: shoulder, hi: top, past });
     };
@@ -1010,16 +1011,17 @@ export const houseFloorBandsGeometry: GeometryGenerator<HouseShared> = (p, conte
   const elements: Record<string, GeometryElement> = {};
   floorLevels(p.height, p.floorInterval ?? 3.5).forEach((level, k) => {
     const y = base + level;
+    // The band is the wall's chart cut to its own height: it goes round the house like the
+    // wall, closed where the wall is, and meets no roof.
     const band: WallChartParams = {
+      ...wall,
+      joint: undefined,
       points: wall.points.map((q) => [q[0], Math.max(y - half, q[1]), q[2]]),
       top: wall.points.map(() => y + half),
       third: wall.points.map(() => 0),
       minGround: y - half,
       maxYGable: y + half,
-      topY: y + half,
-      nominalOuter: wall.nominalOuter,
-      finishOuter: wall.finishOuter,
-      depthScale: wall.depthScale
+      topY: y + half
     };
     elements[`level:${k}`] = { kind: "surface", surface: { kind: "wallChart", params: band } };
   });
@@ -1123,8 +1125,8 @@ function beltPieces(context: LayingContext<BeltParams>, d: BeltLayout, slot: num
         : j * step + (context.random(key(j), "joint").next() - 0.5) * amplitude);
   const j = slot - run.offset;
   let pieces: Piece[] = [{ u0: joint(j), u1: joint(j + 1), lo: chart.minGround, hi: chart.topY }];
-  const surface = context.geometry.surface(run.element);
-  for (const hole of [...surface.removed, ...surface.reserved])
+  const [u0, u1] = [pieces[0].u0, pieces[0].u1];
+  for (const hole of blockedOver(context.geometry.surface(run.element), u0, u1))
     pieces = pieces.flatMap((q) => subtract(q, hole, chart.minGround, chart.topY));
   return pieces;
 }
@@ -1194,7 +1196,7 @@ export const masonryCourses: LayingAlgorithm<MasonryParams, MasonryLayout> = {
   },
   unitAt(context, d, index) {
     const p = context.params;
-    const { chart, sample, removed } = masonryWall(context);
+    const { chart, sample, surface } = masonryWall(context);
     const scale = scaleOf(masonryFootprint(context));
     const holePiece = index % d.pieces,
       runPiece = Math.floor(index / d.pieces) % d.runSlots,
@@ -1224,12 +1226,8 @@ export const masonryCourses: LayingAlgorithm<MasonryParams, MasonryLayout> = {
     if (tl - bl < 0.03 || tr - br < 0.03 || piece.u1 - piece.u0 < 0.03) return;
     const key = `${r}/${j}/${runPiece}/${holePiece}`;
     // Bricks within half a brick of a removed area are accent stones, as in the native masonry.
-    const accent = removed.some(
-      (h) =>
-        h[0] - d.w / 2 < piece.u1 &&
-        piece.u0 < h[2] + d.w / 2 &&
-        h[1] - d.h / 2 < Math.max(tl, tr) &&
-        Math.min(bl, br) < h[3] + d.h / 2
+    const accent = blockedOver(surface, piece.u0 - d.w / 2, piece.u1 + d.w / 2).some(
+      (h) => h[1] - d.h / 2 < Math.max(tl, tr) && Math.min(bl, br) < h[3] + d.h / 2
     );
     const depth =
       ((p.depth ?? 0.56) + (context.random(key, "depth").next() - 0.5) * (p.depthJitter ?? 0.07)) * scale.depth;

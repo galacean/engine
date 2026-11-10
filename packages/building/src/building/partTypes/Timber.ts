@@ -311,8 +311,7 @@ export const boardCourses: LayingAlgorithm<BoardParams, BoardLayout> = {
       for (let u = 0; u < sample.length; u += 0.25) top = Math.max(top, sample.at(u).roof);
       top += p.overshoot ?? 0.2;
       const bottom = chart.minGround;
-      // Removed areas are in the chart's own u.
-      const removed = context.geometry.surface(element).removed;
+      const surface = context.geometry.surface(element);
       const out = p.out ?? OUT * scale.depth;
       // A round wall's rows take turns at which facets their boards join, so that the joints
       // of neighbouring rows fall apart.
@@ -321,12 +320,8 @@ export const boardCourses: LayingAlgorithm<BoardParams, BoardLayout> = {
         for (const run of boardRuns(element, chart, out, phase)) {
           const index = runs.push(run) - 1;
           let parts: Rect[] = [[0, bottom, run.length, top]];
-          for (const r of removed)
-            for (const shift of chart.closed ? [0, sample.length] : [0]) {
-              const a = xOf(run, r[0] + shift),
-                b = xOf(run, r[2] + shift);
-              if (b > 0 && a < run.length) parts = subtract(parts, [a, r[1], b, r[3]]);
-            }
+          for (const r of surface.removedOver(run.u0, run.u1))
+            parts = subtract(parts, [xOf(run, r[0]), r[1], xOf(run, r[2]), r[3]]);
           for (const [x0, y0, x1, y1] of settle(parts)) {
             const rows = Math.max(1, Math.round((y1 - y0) / pitch));
             // A row splits as a whole along its run; an opening only cuts the boards it meets.

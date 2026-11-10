@@ -416,7 +416,9 @@ export class EffectiveSurface {
   frame(u: number, v: number): Frame {
     return this.kind.frame(this.params, u, v);
   }
-  /** Areas removed from this surface, in surface coordinates. */
+  /** Areas removed from this surface, one per edit, in surface coordinates. On a closed
+   * surface an area may reach past the seam; to find what a range of u gives way to, use
+   * `removedOver`. */
   get removed(): readonly Rect[] {
     return this.removes;
   }
@@ -424,9 +426,47 @@ export class EffectiveSurface {
   outlineOf(rect: Rect): Outline | undefined {
     return this.outlines.get(rect);
   }
-  /** Areas of this surface that other units occupy, in surface coordinates. */
+  /** Areas of this surface that other units occupy, one per edit, in surface coordinates.
+   * To find what a range of u gives way to, use `reservedOver`. */
   get reserved(): readonly Rect[] {
     return this.reserves;
+  }
+  /** The removed areas that overlap u0..u1, in that range's u. On a closed surface an area
+   * counts once for each period it overlaps the range in, shifted there, so a range at
+   * either side of the seam meets an area that crosses it. `keep` selects areas before
+   * they are shifted. */
+  removedOver(u0: number, u1: number, keep?: (area: Rect) => boolean): Rect[] {
+    return this.over(keep ? this.removes.filter(keep) : this.removes, u0, u1);
+  }
+  /** The reserved areas that overlap u0..u1, in that range's u, as `removedOver`. */
+  reservedOver(u0: number, u1: number): Rect[] {
+    return this.over(this.reserves, u0, u1);
+  }
+  /** True when (u, v) lies in a removed area or on its edge, inside its outline if it has
+   * one. A closed surface has no seam: u may be in any period. */
+  removedAt(u: number, v: number): boolean {
+    return this.removes.some((r) => this.inArea(r, u, v, true));
+  }
+  private over(areas: readonly Rect[], u0: number, u1: number): Rect[] {
+    const out: Rect[] = [];
+    for (const r of areas) {
+      const [k0, k1] = this.domain.closedU
+        ? [Math.ceil((u0 - r[2]) / this.period), Math.floor((u1 - r[0]) / this.period)]
+        : [0, 0];
+      for (let k = k0; k <= k1; k++) {
+        const s = k * this.period;
+        if (r[0] + s < u1 && u0 < r[2] + s) out.push(s === 0 ? r : [r[0] + s, r[1], r[2] + s, r[3]]);
+      }
+    }
+    return out;
+  }
+  /** Whether (u, v) is in area `r` in some period, with or without its edge. */
+  private inArea(r: Rect, u: number, v: number, edge: boolean): boolean {
+    const outline = this.outlines.get(r);
+    const inside = (a: number, b: number) => (edge ? a <= b : a < b);
+    if (!(inside(r[1], v) && inside(v, r[3]))) return false;
+    const s = this.domain.closedU ? Math.floor((u - r[0]) / this.period) * this.period : 0;
+    return inside(r[0] + s, u) && inside(u, r[2] + s) && (!outline || insideOutline(outline, u - s, v));
   }
   /** The surface's actual extent before removed areas, as one polygon in (u, v). */
   region(): readonly (readonly [number, number])[] {
@@ -509,15 +549,7 @@ export class EffectiveSurface {
     );
   }
   contains(u: number, v: number): boolean {
-    return (
-      this.included(u, v) &&
-      !this.removes.some((r) => {
-        const outline = this.outlines.get(r);
-        return this.shifts().some(
-          (s) => u > r[0] + s && u < r[2] + s && v > r[1] && v < r[3] && (!outline || insideOutline(outline, u - s, v))
-        );
-      })
-    );
+    return this.included(u, v) && !this.removes.some((r) => this.inArea(r, u, v, false));
   }
   /** True when the whole rectangle lies on the effective surface. Inclusion in a union of
    * added areas is tested at the corners and centre; removed areas are tested exactly. */
@@ -540,9 +572,7 @@ export class EffectiveSurface {
       [um, vm]
     ];
     if (!corners.every(([u, v]) => this.included(u, v))) return false;
-    return ![...this.removes, ...this.reserves].some((r) =>
-      this.shifts().some((s) => r[0] + s < u1 && u0 < r[2] + s && r[1] < v1 && v0 < r[3])
-    );
+    return ![...this.removedOver(u0, u1), ...this.reservedOver(u0, u1)].some((r) => r[1] < v1 && v0 < r[3]);
   }
 }
 /** A curve with its span edits applied. */

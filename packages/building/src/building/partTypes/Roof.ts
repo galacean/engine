@@ -16,7 +16,6 @@ import {
   type BuildingUnit,
   type ConnectionRule,
   type EffectiveSurface,
-  insideOutline,
   type Frame,
   type GeometryGenerator,
   type JoinDetector,
@@ -259,21 +258,7 @@ function nearestClip(planes: readonly Plane[], at: Vec3): Plane {
  * lies wholly in areas removed from the surface, as under a dormer. Such a tile is not laid;
  * the renderer cuts the tiles that only reach into a removed area at its edge. */
 function insideRemoved(surface: EffectiveSurface, u: number, v: number, du: number, dv: number): boolean {
-  const { u: domain, closedU } = surface.domain;
-  const period = domain[1] - domain[0];
-  const removed = (pu: number, pv: number) =>
-    surface.removed.some((r) => {
-      const outline = surface.outlineOf(r);
-      return (closedU ? [-period, 0, period] : [0]).some(
-        (shift) =>
-          pu >= r[0] + shift &&
-          pu <= r[2] + shift &&
-          pv >= r[1] &&
-          pv <= r[3] &&
-          (!outline || insideOutline(outline, pu - shift, pv))
-      );
-    });
-  return surface.removed.length > 0 && [-1, 1].every((a) => [-1, 1].every((b) => removed(u + a * du, v + b * dv)));
+  return [-1, 1].every((a) => [-1, 1].every((b) => surface.removedAt(u + a * du, v + b * dv)));
 }
 /** Overlapping tile rows up a roof slope. Row r sits at v = r / rows; each row splits
  * evenly into columns of about one unit width; a tile is about 1.43 row spacings long, so
