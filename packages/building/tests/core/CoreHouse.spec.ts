@@ -1,16 +1,15 @@
-// gridCourses against the online arrangedWallCells, which the online path uses for
+// gridCourses against the online arrangedWallCells, which the online path used for
 // overlap_rows, parallel_rows and round horizontal_rows walls. Default brick walls
-// (staggered_rows) use the native masonry online; that is not covered here.
+// (staggered_rows) used the native masonry online; that is not covered here. The online cells
+// are frozen in baselines/CoreHouse.json: their count, and a digest of every value rounded to
+// 0.1 mm.
 vi.mock("@galacean/engine", async () => ({
   ...(await import("@galacean/engine-core")),
   ...(await import("@galacean/engine-loader")),
   ...(await import("@galacean/engine-math"))
 }));
 import { describe, expect, it, vi } from "vitest";
-import { nativeAssets } from "../fixtures/constructionAssets";
-import { European } from "../../src/building/parts/architecture/European";
-import { designBuilding } from "../../src/building/parts/architecture/BuildingDesign";
-import { arrangedWallCells } from "../../src/building/runtime/ConstructionArrangement";
+import { baseline, digest } from "./baseline";
 import { createBuildingRegistry, designBuildingCore, expandUnits } from "../../src/building/core";
 import { registerHouseTypes } from "../../src/building/partTypes/House";
 import { buildCoreHouse, type CoreHouseParameters } from "../../src/building/application/CoreEuropean";
@@ -27,11 +26,7 @@ const zeros = (v: unknown): unknown =>
         ? 0
         : v;
 
-function online(p: CoreHouseParameters, ground: Ground) {
-  const design = designBuilding(European.buildHouses(p as never), ground, nativeAssets.compilation);
-  const o = design.profileSupports[0];
-  return arrangedWallCells(o.wallBinding, o.profile, [], o.wallEnvelope.nominalOuter, o.wallRoofJoint);
-}
+const ONLINE = baseline<{ count: number; digest: string }>("CoreHouse");
 function core(p: CoreHouseParameters, ground: Ground) {
   const registry = registerHouseTypes(createBuildingRegistry());
   const result = designBuildingCore(buildCoreHouse({ ...p, walls: "grid" }), registry, { environment: { ground } });
@@ -64,12 +59,11 @@ const cases: [string, CoreHouseParameters, Ground][] = [
 const counts: string[] = [];
 describe("gridCourses reproduces the online arrangedWallCells", () => {
   it.each(cases)("%s", (name, p, ground) => {
-    // The core leaves out pieces too small for the brick's range; the online path keeps them.
-    const fits = (c: { size: number[] }) => c.size[0] >= 0.05 * 0.5 && c.size[1] >= 0.05 * 0.4375;
-    const expected = zeros(online(p, ground).filter(fits)) as unknown[];
+    // The online cells leave out pieces too small for the brick's range, as the core does.
+    const expected = ONLINE[name];
     const actual = zeros(core(p, ground)) as unknown[];
-    expect(expected.length).toBeGreaterThan(100);
-    expect(actual.length).toBe(expected.length);
+    expect(expected.count).toBeGreaterThan(100);
+    expect(actual.length).toBe(expected.count);
     // The core closes the perimeter exactly; the online points end within float32 rounding
     // of where they start, so the cells of the closing edge may move by a micrometre.
     const round = (v: unknown): unknown =>
@@ -80,7 +74,7 @@ describe("gridCourses reproduces the online arrangedWallCells", () => {
           : v && typeof v === "object"
             ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, round(x)]))
             : v;
-    expect(round(actual)).toEqual(round(expected));
+    expect(digest(round(actual))).toBe(expected.digest);
     counts.push(`${name}: ${actual.length}`);
   });
   it("reports the brick counts", () => console.log("HOUSE WALLS " + counts.join(", ")));

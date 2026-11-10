@@ -21,9 +21,7 @@ import {
   coreBuildingLayout,
   coreBuildingView
 } from "../../src/building/render/CoreBuilding";
-import { European as OnlineEuropean } from "../../src/building/parts/architecture/European";
-import { designBuilding } from "../../src/building/parts/architecture/BuildingDesign";
-import { implementBuilding } from "../../src/building/parts/architecture/BuildingImplementation";
+import { baseline } from "./baseline";
 
 const registry = registerHouseTypes(createBuildingRegistry());
 const flat = () => 0;
@@ -49,50 +47,33 @@ const house = (extra: Partial<CoreHouseParameters> = {}): CoreHouseParameters =>
 });
 const part = (r: ReturnType<typeof design>, type: string) => r.parts.find((p) => p.type === type)!;
 const messages = (r: ReturnType<typeof design>) => r.diagnostics.map((d) => d.message);
-const onlineInput = async (p: CoreHouseParameters, timber = false) => {
-  const attachments = (p.attachments ?? []).map((a) => ({ ...a, type: "opening-arch" }));
-  const { walls: _w, ...rest } = p;
-  const planned = designBuilding(
-    OnlineEuropean.buildHouses({
-      ...rest,
-      attachments,
-      ...(timber && { wallStructure: "timber", wall: { unit: "wooden_plank", algorithm: { type: "horizontal_rows" } } })
-    } as never) as never,
-    flat as never,
-    { ...assets, windowCuts: { texture: "x", layers: [{ layer: 0, bounds: { min: [0, 0], max: [1, 1] } }] } } as never
-  );
-  return { planned, input: (await implementBuilding(planned)).renderInput };
-};
+/** Online's arch stones (count and the highest center) and its timber arch members, frozen. */
+const ONLINE = baseline<{ stones: number; crown: number; frames: number; pillars: number }>("CoreArch");
 
 describe("Arches against the online path", () => {
   it.each([
     ["a square house", {}],
     ["a tall arch", { attachments: [arch({ height: 3.4, width: 1.4 })] }],
     ["a round wall", { rectangle: undefined, circle: { center: [0, 0], radius: 5, phase: 0 } }]
-  ] as [string, Partial<CoreHouseParameters>][])(
-    "stone on %s: as many stones, along the same arc",
-    async (_n, extra) => {
-      const p = house(extra);
-      const result = design(p);
-      expect(result.diagnostics).toEqual([]);
-      const units = lay(part(result, "arch"));
-      const { input } = await onlineInput(p);
-      const theirs = input.groups.filter((g) => g.role === "wall_arch").flatMap((g) => g.cells);
-      expect(theirs.length).toBeGreaterThan(5);
-      expect(Math.abs(units.length - theirs.length) / theirs.length).toBeLessThan(0.15);
-      // The crown: the highest stone of each.
-      const crown = Math.max(...units.map((u) => u.frame.origin[1]));
-      const theirCrown = Math.max(...theirs.map((c) => c.center[1]));
-      expect(Math.abs(crown - theirCrown)).toBeLessThan(0.1);
-      // Every stone stands on the wall line.
-      const range = (k: number) => {
-        const v = units.map((u) => u.frame.origin[k]);
-        return Math.max(...v) - Math.min(...v);
-      };
-      // On a straight wall every stone stands on one line.
-      if (!extra.circle) expect(Math.min(range(0), range(2))).toBeLessThan(1e-6);
-    }
-  );
+  ] as [string, Partial<CoreHouseParameters>][])("stone on %s: as many stones, along the same arc", (name, extra) => {
+    const p = house(extra);
+    const result = design(p);
+    expect(result.diagnostics).toEqual([]);
+    const units = lay(part(result, "arch"));
+    const theirs = ONLINE[name];
+    expect(theirs.stones).toBeGreaterThan(5);
+    expect(Math.abs(units.length - theirs.stones) / theirs.stones).toBeLessThan(0.15);
+    // The crown: the highest stone of each.
+    const crown = Math.max(...units.map((u) => u.frame.origin[1]));
+    expect(Math.abs(crown - theirs.crown)).toBeLessThan(0.1);
+    // Every stone stands on the wall line.
+    const range = (k: number) => {
+      const v = units.map((u) => u.frame.origin[k]);
+      return Math.max(...v) - Math.min(...v);
+    };
+    // On a straight wall every stone stands on one line.
+    if (!extra.circle) expect(Math.min(range(0), range(2))).toBeLessThan(1e-6);
+  });
 
   it("takes the opening out of the wall up to the arc", () => {
     const result = design(house());
@@ -118,16 +99,15 @@ describe("Arches against the online path", () => {
     expect(far.retainedWallUnits.some((r) => r.cells.some((c) => c.id.includes("arc/")))).toBe(true);
   });
 
-  it("is a timber frame on a timber wall, with online's members", async () => {
+  it("is a timber frame on a timber wall, with online's members", () => {
     const p = house({ walls: "timber" });
     const result = design(p);
     expect(result.diagnostics).toEqual([]);
     const view = coreBuildingView(coreBuildingLayout(result, registry, { environment: { ground: flat } }), { assets });
     expect(view.woodArchFrames.length).toBeGreaterThan(0);
     expect(view.woodArchPillars).toHaveLength(2);
-    const decorations = (await onlineInput(p, true)).input.decorations;
-    expect(view.woodArchFrames.length).toBe(decorations.flatMap((d) => d.woodArchFrames ?? []).length);
-    expect(view.woodArchPillars.length).toBe(decorations.flatMap((d) => d.woodArchPillars ?? []).length);
+    expect(view.woodArchFrames.length).toBe(ONLINE.timber.frames);
+    expect(view.woodArchPillars.length).toBe(ONLINE.timber.pillars);
     // A lintel opens one rectangle.
     const wall = result.parts.find((q) => q.type === "wall")!;
     expect(wall.modifications.filter((m) => m.op === "removeArea")).toHaveLength(1);
