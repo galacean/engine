@@ -140,7 +140,6 @@ export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBacken
       context.registerStructVar(variable, role, EShaderStage.FRAGMENT);
     });
 
-    this.prepareSourceNames(ir.program);
     this._globalInputs.clear();
     for (const [stage, variables] of [
       [EShaderStage.VERTEX, io.vertexStructVariableRoles],
@@ -352,7 +351,7 @@ export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBacken
     const context = this.context;
     const role = context.getStructRole([node]);
     if (!role) return super.visitStructSpecifier(node);
-    const typeName = this.sourceName(node.ident!.lexeme);
+    const typeName = node.ident!.lexeme;
     const memberCode = (emit: (prop: StructProp) => string) => {
       const segments: ICodeSegment[] = node.macroExpressions.map((item) => ({
         text: item instanceof BaseToken ? item.lexeme : item.codeGen(this),
@@ -377,7 +376,7 @@ export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBacken
     const retain = (prop: StructProp) =>
       this.supportsArrayStructReturn || !this._containsArray(prop) || used(prop) || this._wholeStructs.has(node);
     const declaration = (prop: StructProp) =>
-      `${this.sourceName(prop.typeInfo.typeLexeme)} ${this.sourceName(prop.ident.lexeme)}${prop.typeInfo.arraySpecifier?.codeGen(this) ?? ""};`;
+      `${prop.typeInfo.typeLexeme} ${prop.ident.lexeme}${prop.typeInfo.arraySpecifier?.codeGen(this) ?? ""};`;
     let structCode: string;
     const hasRetainedField = node.propList.some(retain);
     if (hasRetainedField && !node.macroExpressions.length) {
@@ -409,15 +408,8 @@ export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBacken
           : role === ShaderStructRole.Mrt
             ? this.mrtOutput(prop)
             : this.interfaceName(prop);
-      const member = `${value}.${this.sourceName(prop.ident.lexeme)}`;
-      const assignment = (suffix: string) =>
-        read ? `${member}${suffix} = ${wire}${suffix};` : `${wire}${suffix} = ${member}${suffix};`;
-      const array = prop.typeInfo.arraySpecifier;
-      if (!array) return assignment("");
-      const index = context.names.allocate("interface-index", "interface_index");
-      const size = array.children[1];
-      const bound = size instanceof BaseToken ? size.lexeme : size.codeGen(this);
-      return `for (int ${index} = 0; ${index} < ${bound}; ++${index}) { ${assignment(`[${index}]`)} }`;
+      const member = `${value}.${prop.ident.lexeme}`;
+      return read ? `${member} = ${wire};` : `${wire} = ${member};`;
     });
     const transfer = read
       ? `${typeName} ${this._transferName(node, true)}() { ${typeName} ${value};\n${assignments}\nreturn ${value}; }`
@@ -511,7 +503,7 @@ export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBacken
     ) {
       const parameters = (fnNode.protoType.parameterList ?? []).map((parameter) => {
         const struct = parameter.typeInfo!.structDeclarations[0];
-        return `${this.sourceName(struct.ident!.lexeme)} ${this.variableName((parameter.astNode as ASTNode.ParameterDeclaration).symbol!)} = ${this._transferName(struct, true)}();`;
+        return `${struct.ident!.lexeme} ${parameter.ident!.lexeme} = ${this._transferName(struct, true)}();`;
       });
       const inputs = this._initializeGlobalInputs();
       // Keep legacy fragment built-ins in main, including when the resulting GLES100 is loaded on WebGL2.
@@ -526,12 +518,12 @@ export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBacken
       const struct = parameter.typeInfo.structDeclarations[0];
       if (struct) {
         const name = this.context.names.allocate(parameter, `input_${parameter.ident.lexeme}`);
-        parameters.push(`${this.sourceName(struct.ident!.lexeme)} ${name} = ${this._transferName(struct, true)}();`);
+        parameters.push(`${struct.ident!.lexeme} ${name} = ${this._transferName(struct, true)}();`);
         args.push(name);
       }
     }
     const name = fnNode.protoType.ident.lexeme;
-    const entryName = name === "main" ? this.context.names.allocate("entry-main", "entry_main") : this.sourceName(name);
+    const entryName = name === "main" ? this.context.names.allocate("entry-main", "entry_main") : name;
     const call = `${entryName}(${args.join(", ")})`;
     const type = fnNode.protoType.returnType;
     const struct = type.typeSpecifier.structDeclarations[0];
@@ -566,7 +558,7 @@ export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBacken
       }
       this._inputHelperBodies.set(
         variable.astNode!,
-        `void ${group.name}() { ${this.variableName(variable)} = ${this._transferName(struct, true)}(); }`
+        `void ${group.name}() { ${variable.ident} = ${this._transferName(struct, true)}(); }`
       );
       calls.add(`${group.name}();`);
     }

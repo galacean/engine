@@ -49,11 +49,11 @@ export class GLES300Visitor extends GLESVisitor {
 
   override getVaryingProp(prop: StructProp): string {
     const qualifier = this.context.stage === EShaderStage.FRAGMENT ? "in" : "out";
-    return `${prop.isFlat ? "flat " : ""}${qualifier} ${prop.typeInfo.typeLexeme} ${this.interfaceName(prop)}${prop.typeInfo.arraySpecifier?.codeGen(this) ?? ""};`;
+    return `${qualifier} ${prop.typeInfo.typeLexeme} ${this.interfaceName(prop)};`;
   }
 
   override getMRTProp(prop: StructProp): string {
-    return `layout(location = ${prop.mrtIndex}) out vec4 ${this.interfaceName(prop)}${prop.typeInfo.arraySpecifier?.codeGen(this) ?? ""};`;
+    return `layout(location = ${prop.mrtIndex}) out vec4 ${this.interfaceName(prop)};`;
   }
 
   override visitFunctionIdentifier(node: ASTNode.FunctionIdentifier): string {

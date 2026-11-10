@@ -20,13 +20,13 @@ Shader "global-varying-var-test" {
 
       Varyings o;
 
-      Varyings vert(Attributes input) {
+      Varyings vert(Attributes stageInput) {
         mat4 matWorld = renderer_MVPMat;
-        vec4 pos = matWorld * vec4(input.POSITION, 1.0);
+        vec4 pos = matWorld * vec4(stageInput.POSITION, 1.0);
         VSOutput_worldPos = pos.xyz;
-        VSOutput_worldNormal = input.NORMAL;
+        VSOutput_worldNormal = stageInput.NORMAL;
         VSOutput_faceSideSign = 1.0;
-        VSOutput_texcoord = input.TEXCOORD_0;
+        VSOutput_texcoord = stageInput.TEXCOORD_0;
         VSOutput_shadowBias = vec2(0.0, 0.0);
         gl_Position = pos;
         return o;

@@ -1,6 +1,6 @@
 import { BaseToken } from "@galacean/engine-shader-parser/internal";
 import { ASTNode, TreeNode } from "@galacean/engine-shader-parser/internal";
-import { ESymbolType, FnSymbol, VarSymbol } from "@galacean/engine-shader-parser/internal";
+import { ESymbolType, FnSymbol } from "@galacean/engine-shader-parser/internal";
 import { NodeChild, StructProp } from "@galacean/engine-shader-parser/internal";
 import { ParserUtils } from "@galacean/engine-shader-parser/internal";
 import { ShaderStructRole } from "@galacean/engine-shader-parser/internal";
@@ -19,74 +19,7 @@ export abstract class CodeGenVisitor implements ICodeGenVisitor {
   abstract getMRTProp(prop: StructProp): string | null;
 
   protected static _tmpArrayPool = new ReturnableObjectPool(TempArray<string>, 10);
-  // GLSL ES 1.00/3.00 section 3.8 reserves these spellings even though ShaderLab accepts identifiers.
-  private static readonly _reservedIdentifiers = new Set(
-    `attribute varying coherent volatile restrict readonly writeonly resource atomic_uint
-    noperspective patch sample subroutine common partition active asm class union enum typedef
-    template this packed goto inline noinline public static extern external interface
-    long short double half fixed unsigned superp input output hvec2 hvec3 hvec4 dvec2 dvec3 dvec4
-    fvec2 fvec3 fvec4 sampler3DRect filter image1D image2D image3D imageCube
-    iimage1D iimage2D iimage3D iimageCube uimage1D uimage2D uimage3D uimageCube
-    image1DArray image2DArray iimage1DArray iimage2DArray uimage1DArray uimage2DArray
-    imageBuffer iimageBuffer uimageBuffer sampler1D sampler1DShadow sampler1DArray sampler1DArrayShadow
-    isampler1D isampler1DArray usampler1D usampler1DArray sampler2DRect sampler2DRectShadow
-    isampler2DRect usampler2DRect samplerBuffer isamplerBuffer usamplerBuffer
-    sampler2DMS isampler2DMS usampler2DMS sampler2DMSArray isampler2DMSArray usampler2DMSArray
-    sizeof cast namespace using row_major`.split(/\s+/)
-  );
   protected readonly context = new VisitorContext();
-  private _variableTokens = new WeakMap<BaseToken, string>();
-  private _variableSymbols = new WeakMap<VarSymbol, string>();
-  private readonly _sourceIdentifiers = new Map<string, string>();
-  private _macroParameters?: Set<string>;
-
-  /** Prepares legal backend names for source declarations previously erased by IO lowering. */
-  protected prepareSourceNames(program: TreeNode): void {
-    this._variableTokens = new WeakMap();
-    this._variableSymbols = new WeakMap();
-    this._sourceIdentifiers.clear();
-    const legalName = (name: string) => {
-      if (!CodeGenVisitor._reservedIdentifiers.has(name) && !name.startsWith("gl_")) return name;
-      const result = this.context.names.allocate(`source-variable:${name}`, `source_${name}`);
-      this._sourceIdentifiers.set(name, result);
-      return result;
-    };
-    const register = (token: BaseToken | undefined, symbol: VarSymbol | undefined) => {
-      if (
-        !token ||
-        !symbol ||
-        (symbol.isUniform && !this.context.getStructVarRole([symbol])) ||
-        (!CodeGenVisitor._reservedIdentifiers.has(token.lexeme) && !token.lexeme.startsWith("gl_"))
-      )
-        return;
-      const name = legalName(token.lexeme);
-      this._variableTokens.set(token, name);
-      this._variableSymbols.set(symbol, name);
-    };
-    const visit = (node: TreeNode) => {
-      if (
-        node instanceof ASTNode.SingleDeclaration ||
-        node instanceof ASTNode.InitDeclaratorList ||
-        node instanceof ASTNode.VariableDeclaration
-      ) {
-        register(node.declarator?.identifier, node.declarator?.symbol);
-      } else if (node instanceof ASTNode.ParameterDeclaration) register(node.ident, node.symbol);
-      else if (node instanceof ASTNode.StructSpecifier && node.ident) legalName(node.ident.lexeme);
-      else if (node instanceof ASTNode.FunctionDefinition) legalName(node.protoType.ident.lexeme);
-      for (const child of node.children) if (child instanceof TreeNode) visit(child);
-    };
-    visit(program);
-  }
-
-  /** Returns the emitted name of a source variable without changing its symbol identity. */
-  protected variableName(symbol: VarSymbol): string {
-    return this._variableSymbols.get(symbol) ?? symbol.ident;
-  }
-
-  /** Resolves source type and function names legalized for the target language. */
-  protected sourceName(name: string): string {
-    return this._sourceIdentifiers.get(name) ?? name;
-  }
 
   cache(node: TreeNode, code: string): string {
     this.context.codeCache.set(node, code);
@@ -104,11 +37,7 @@ export abstract class CodeGenVisitor implements ICodeGenVisitor {
     for (const child of children) {
       if (child instanceof BaseToken) {
         // Legacy opaque `#define` lexemes carry the directive verbatim; expression-style defines use the AST path
-        ret.array.push(
-          this._macroParameters?.has(child.lexeme)
-            ? child.lexeme
-            : (this._variableTokens.get(child) ?? this.sourceName(child.lexeme))
-        );
+        ret.array.push(child.lexeme);
       } else {
         ret.array.push(child.codeGen(this));
       }
@@ -152,7 +81,7 @@ export abstract class CodeGenVisitor implements ICodeGenVisitor {
           else context.referenceMRTProp(prop);
         }
 
-        return `${postExpr.codeGen(this)}.${this.sourceName(prop.lexeme)}`;
+        return `${postExpr.codeGen(this)}.${prop.lexeme}`;
       } else {
         return `${postExpr.codeGen(this)}.${prop.codeGen(this)}`;
       }
@@ -173,18 +102,6 @@ export abstract class CodeGenVisitor implements ICodeGenVisitor {
       if (symbol instanceof FnSymbol) this.referenceFunction(symbol, node.location.start.index, node._branch);
     }
 
-    const child = node.children[0];
-    if (child instanceof BaseToken) {
-      if (this._macroParameters?.has(child.lexeme)) return child.lexeme;
-      for (const symbol of node.resolvedValueSymbols()) {
-        if (symbol instanceof VarSymbol) {
-          const name = this._variableSymbols.get(symbol);
-          if (name) return name;
-        }
-      }
-      if (!node.resolvedSymbols().length) return this.sourceName(child.lexeme);
-      return this.sourceName(child.lexeme);
-    }
     return node.getLexeme(this);
   }
 
@@ -251,14 +168,7 @@ export abstract class CodeGenVisitor implements ICodeGenVisitor {
       const paramsToken = node.children[2];
       if (paramsToken instanceof BaseToken) paramsLexeme = paramsToken.lexeme;
     }
-    const previousParameters = this._macroParameters;
-    this._macroParameters = new Set(ParserUtils.parseMacroParamList(paramsLexeme));
-    let valueCode: string;
-    try {
-      valueCode = node.valueExpression ? node.valueExpression.codeGen(this) : "";
-    } finally {
-      this._macroParameters = previousParameters;
-    }
+    const valueCode = node.valueExpression ? node.valueExpression.codeGen(this) : "";
     // Newlines around the directive keep `#` at the start of its physical line per
     // GLSL ES 3.0 §3.4, regardless of how surrounding tokens are joined.
     return `\n#define ${node.macroName}${paramsLexeme}${valueCode ? " " + valueCode : ""}\n`;

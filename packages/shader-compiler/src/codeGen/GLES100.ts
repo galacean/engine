@@ -9,7 +9,7 @@ export class GLES100Visitor extends GLESVisitor {
   }
 
   override getVaryingProp(prop: StructProp): string {
-    return `varying ${prop.typeInfo.typeLexeme} ${this.interfaceName(prop)}${prop.typeInfo.arraySpecifier?.codeGen(this) ?? ""};`;
+    return `varying ${prop.typeInfo.typeLexeme} ${this.interfaceName(prop)};`;
   }
 
   override getMRTProp(): string {

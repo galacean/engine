@@ -60,18 +60,6 @@ const cases: {
   paths?: CompilationPath[];
 }[] = [
   {
-    name: "reserved interface type names are legalized",
-    source: valueShader("Varyings v; v.a = 0.25; return v;").replaceAll("Varyings", "common"),
-    pixel: [64, 0, 0, 255]
-  },
-  {
-    name: "reserved entry names are legalized",
-    source: valueShader("Varyings v; v.a = 0.25; return v;")
-      .replace("Varyings vert()", "Varyings common()")
-      .replace("VertexShader = vert", "VertexShader = common"),
-    pixel: [64, 0, 0, 255]
-  },
-  {
     name: "constructor values reach the fragment interface",
     source: valueShader("Varyings v = Varyings(0.25); return v;"),
     pixel: [64, 0, 0, 255]
@@ -107,21 +95,7 @@ const cases: {
       .replace("vec4(v.a,", "vec4(0.25,"),
     pixel: [64, 0, 0, 255]
   },
-  {
-    name: "reserved source variable names retain independent interface values",
-    source: valueShader(`Varyings common;
-      Varyings partition;
-      Varyings active;
-      Varyings resource;
-      Varyings gl_local;
-      common.a = 0.03125;
-      partition.a = 0.03125;
-      active.a = 0.0625;
-      resource.a = 0.0625;
-      gl_local.a = common.a + partition.a + active.a + resource.a + 0.0625;
-      return gl_local;`),
-    pixel: [64, 0, 0, 255]
-  },
+
   {
     name: "issue 3160 original position collision",
     source: positionCollision,
@@ -178,19 +152,19 @@ const cases: {
     pixel: [64, 0, 0, 255]
   },
   {
-    name: "macro formal parameters do not inherit renamed local bindings",
-    source: valueShader(`Varyings output;
+    name: "macro formal parameters preserve structure argument identity",
+    source: valueShader(`Varyings result;
       Varyings other;
-      output.a = 0.75;
+      result.a = 0.75;
       other.a = 0.25;
       #define GET(output) (output)
-      output.a = GET(other).a;
-      return output;`),
+      result.a = GET(other).a;
+      return result;`),
     pixel: [64, 0, 0, 255]
   },
   {
-    name: "global reserved identifiers remain bound through object macros",
-    source: valueShader("Varyings x; x.a = 0.25; return x;", "Varyings output;\n#define OWNER output")
+    name: "global interface identifiers remain bound through object macros",
+    source: valueShader("Varyings x; x.a = 0.25; return x;", "Varyings result;\n#define OWNER result")
       .replace("void frag(Varyings v)", "void frag()")
       .replace("vec4(v.a,", "vec4(OWNER.a,"),
     pixel: [64, 0, 0, 255]
@@ -229,15 +203,7 @@ const cases: {
       .replace("vec4(v.a,", "vec4(OWNER.a,"),
     pixel: [64, 0, 0, 255]
   },
-  {
-    name: "array members retain per-element values at stage boundaries",
-    source: valueShader("Varyings x; x.a[0] = 0.25; x.a[1] = 0.75; return x;")
-      .replace("float a;", "float a[2];")
-      .replace("vec4(v.a,", "vec4(v.a[0],"),
-    pixel: [64, 0, 0, 255],
-    // GLSL ES 1.00 forbids function returns of structures containing arrays.
-    targets: [ShaderLanguage.GLSLES300]
-  },
+
   ...[false, true].map((enabled) => ({
     name: `conditional global fragment interface variant ${enabled}`,
     source: valueShader(

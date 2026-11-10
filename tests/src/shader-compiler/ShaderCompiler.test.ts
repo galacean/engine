@@ -114,18 +114,18 @@ describe("ShaderCompiler", async () => {
               #define SURFACE_HOOK shadeSurface
             #endif
             Varyings vertexMain(Attributes attributes) {
-              Varyings output;
+              Varyings stageOutput;
               gl_Position = attributes.POSITION;
-              output.uv = attributes.POSITION.xy;
-              return output;
+              stageOutput.uv = attributes.POSITION.xy;
+              return stageOutput;
             }
-            vec4 fragmentMain(Varyings input) {
+            vec4 fragmentMain(Varyings stageInput) {
               #ifdef MATERIAL_TEST_LIGHT
                 SurfaceData surface;
-                surface.color = vec3(input.uv, 1.0);
+                surface.color = vec3(stageInput.uv, 1.0);
                 return vec4(SURFACE_HOOK(surface), 1.0);
               #else
-                return vec4(input.uv, 0.0, 1.0);
+                return vec4(stageInput.uv, 0.0, 1.0);
               #endif
             }
           } }
@@ -179,7 +179,7 @@ describe("ShaderCompiler", async () => {
                 if (material_UseRed > 0.5) return makeOutput(attributes, vec4(1.0, 0.0, 0.0, 1.0));
                 return makeOutput(attributes, vec4(0.0, 1.0, 0.0, 1.0));
               }
-              vec4 fragmentMain(Varyings input) { return input.color; }
+              vec4 fragmentMain(Varyings stageInput) { return stageInput.color; }
             `
                 : `
               void vertexMain(Attributes attributes) { gl_Position = renderer_MVPMat * attributes.POSITION; }
@@ -593,10 +593,10 @@ describe("ShaderCompiler", async () => {
   it("tracks stage IO variables through a reachable helper without rescanning its AST", () => {
     const source = `
 struct Varyings { vec4 color; };
-#define READ_COLOR input.color
-Varyings vert() { Varyings output; output.color = vec4(1.0); gl_Position = vec4(0.0); return output; }
-vec4 readColor(Varyings input) { return READ_COLOR; }
-void frag(Varyings input) { gl_FragColor = readColor(input); }`;
+#define READ_COLOR stageInput.color
+Varyings vert() { Varyings stageOutput; stageOutput.color = vec4(1.0); gl_Position = vec4(0.0); return stageOutput; }
+vec4 readColor(Varyings stageInput) { return READ_COLOR; }
+void frag(Varyings stageInput) { gl_FragColor = readColor(stageInput); }`;
 
     const result = shaderCompilerRelease._parseShaderPass(source, "vert", "frag", ShaderLanguage.GLSLES100);
 
@@ -782,7 +782,7 @@ void frag(Varyings input) { gl_FragColor = readColor(input); }`;
         gl_Position = vec4(0.0);
         return outputValue;
       }
-      void frag(Varyings input) { gl_FragColor = input.color; }
+      void frag(Varyings stageInput) { gl_FragColor = stageInput.color; }
       VertexShader = vert;
       FragmentShader = frag;
     } } }`;
@@ -803,7 +803,7 @@ void frag(Varyings input) { gl_FragColor = readColor(input); }`;
     const source = `Shader "invalid-varying-return" { SubShader "Default" { Pass "Forward" {
       struct Varyings { vec4 color; };
       Varyings vert() { gl_Position = vec4(0.0); return Varyings(vec4(1.0)); }
-      void frag(Varyings input) { gl_FragColor = input.color; }
+      void frag(Varyings stageInput) { gl_FragColor = stageInput.color; }
       VertexShader = vert;
       FragmentShader = frag;
     } } }`;
