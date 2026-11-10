@@ -29,8 +29,7 @@ import { meshPrint, type MeshPrint } from "./meshPrint";
 import { planFacadeDecorations, normalizeDecorationPlan } from "../../src/building/runtime/DecorationPlan";
 import { normalizeProfileRoof } from "../../src/building/runtime/ProfileParameters";
 import { isFlatRoofHeight } from "../../src/building/runtime/RoofMode";
-import { constructionDecorationType } from "../../src/building/runtime/ConstructionDecorationCatalog";
-import { constructionDecorationRecipe } from "../../src/building/runtime/ConstructionDecorationRecipe";
+import { decorationSize } from "./decorationSizes";
 
 // Acceptance of the core render path against the online path, house by house. What online gave
 // is frozen in baselines/CoreBuilding-*.json.
@@ -360,8 +359,7 @@ describe("Wall prefabs against the online path", () => {
   };
   /** Gothic windows and a door, and arrow slits, at their original sizes. */
   const withStone = (house: CoreHouseParameters): CoreHouseParameters => {
-    const size = (type: string, rank: number) =>
-      constructionDecorationType(nativeAssets.compilation.decorations, type)!.dimensions.find((d) => d.rank === rank)!;
+    const size = (type: string, rank: number) => decorationSize(type, rank);
     const at = (id: string, kind: string, type: string, rank: number, u: number, bottom: number) => ({
       id,
       kind,
@@ -496,11 +494,7 @@ const ROOF_ONLINE = frozen<{
 const printPoints = (m: MeshPrint) => [m.center, m.min, m.max, ...m.samples.map((x) => x.position)];
 describe("Roof dormers against the online path", () => {
   const sized = (rank: 1 | 2 | 3) => {
-    const [width, height] = constructionDecorationRecipe(
-      nativeAssets.compilation.decorations,
-      "dormer-gothic",
-      rank
-    )!.installationSize;
+    const [width, height] = decorationSize("dormer-gothic", rank).installationSize;
     return { width, height };
   };
   const withDormers = (house: CoreHouseParameters, at: [number, number, 1 | 2 | 3][]): CoreHouseParameters => ({
@@ -622,11 +616,7 @@ describe("Cottage dormers against the online path", () => {
   it.each([1, 2] as const)(
     "rank %s: the same window bodies under a shed of the same pieces",
     (rank) => {
-      const [width, height] = constructionDecorationRecipe(
-        nativeAssets.compilation.decorations,
-        "dormer-cottage",
-        rank
-      )!.installationSize;
+      const [width, height] = decorationSize("dormer-cottage", rank).installationSize;
       const a: CoreRoofAttachment = {
         id: "c",
         type: "dormer-cottage",
@@ -683,11 +673,7 @@ describe("Cottage dormers against the online path", () => {
 
 describe("Flat roof prefabs against the online path", () => {
   const at = (id: string, type: CoreRoofAttachment["type"], uv: [number, number]): CoreRoofAttachment => {
-    const [width, height] = constructionDecorationRecipe(
-      nativeAssets.compilation.decorations,
-      type,
-      1
-    )!.installationSize;
+    const [width, height] = decorationSize(type, 1).installationSize;
     return { id, type, rank: 1, uv, bottom: 0, width, height };
   };
   it.each([

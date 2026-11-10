@@ -1,8 +1,23 @@
+import { type DecorationMesh } from "./ConstructionDecorationMeshes";
 import { decorationMountPosition } from "./DecorationMountGeometry";
 import { DecorationMaterial as M } from "./ConstructionDecorationMaterial.ts";
-import type { DecorationAssembly } from "./ConstructionDecorationAssembly.ts";
 import type { ConstructionDecorationPart, ConstructionDecorationSpec } from "./ConstructionDecorations.ts";
 import type { DecorationSurfaceOwner } from "./DecorationSurfaceOwner";
+
+/** The meshes of one decoration as its asset kit assembles them. */
+export interface DecorationAssemblyPart {
+  name: string;
+  suffix: string;
+  mesh: DecorationMesh;
+  material: number;
+  emissionOrigin?: number[];
+  binding: import("../resources/BuildingAssembly").AssemblyBinding;
+}
+export interface DecorationAssembly {
+  parts: DecorationAssemblyPart[];
+  /** One bounds/pivot for the entire original assembly. Parts never recenter. */
+  bounds: { min: number[]; max: number[] };
+}
 
 export interface DecorationPlacementFrame {
   /** Original assembly origin and scaled, mutually orthogonal basis columns. */

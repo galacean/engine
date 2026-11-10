@@ -11,10 +11,6 @@ export const plasterPalette = [
   [0.745098, 0.607843, 0.45098],
   [0.741176, 0.572549, 0.52549]
 ];
-export function parsePlasterHex(hex: string): [number, number, number] {
-  if (!/^#[0-9a-f]{6}$/i.test(hex)) throw Error("颜色格式须为 #RRGGBB");
-  return [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255) as [number, number, number];
-}
 
 /** Authored plaster RGB is sRGB; both render adapters consume this linear value. */
 export function plasterLinearColor(color: readonly number[]): [number, number, number] {

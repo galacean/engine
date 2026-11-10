@@ -16,16 +16,14 @@ import {
   coreBuildingLayout
 } from "../../src/building/render/CoreBuilding";
 import { baseline } from "./baseline";
-import { constructionDecorationType } from "../../src/building/runtime/ConstructionDecorationCatalog";
+import { decorationSize } from "./decorationSizes";
 
 const assets = nativeAssets.compilation;
 const registry = registerHouseTypes(createBuildingRegistry());
 const flat = () => 0;
 const environment = coreBuildingEnvironment(flat, assets);
 const at = (id: string, kind: string, type: string, rank: 1 | 2 | 3, u: number, bottom: number) => {
-  const { width, height } = constructionDecorationType(assets.decorations, type)!.dimensions.find(
-    (d) => d.rank === rank
-  )!;
+  const { width, height } = decorationSize(type, rank);
   return { id, kind, type, rank, u, bottom, width, height } as never;
 };
 const house = (depth: number, attachments: never[], extra: Partial<CoreHouseParameters> = {}): CoreHouseParameters => ({
@@ -88,9 +86,7 @@ describe("Walls of other depths", () => {
     (type) => {
       for (const depth of [0.05, 0.1, 0.2, 0.3]) {
         const rank = type === "dormer-arrow-slit-half" ? 3 : 2;
-        const { height } = constructionDecorationType(assets.decorations, type)!.dimensions.find(
-          (d) => d.rank === rank
-        )!;
+        const { height } = decorationSize(type, rank);
         const result = design(house(depth, [at("e", "window", type, rank, 0.11, 6 - height * 0.6)]));
         expect(result.diagnostics).toEqual([]);
         expect(holes(result).length).toBeLessThanOrEqual(4);

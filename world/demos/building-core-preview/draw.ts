@@ -2,7 +2,6 @@
 // A: records packed on the CPU and uploaded (the current path).
 // B: the record texture cleared to zero; the wall must disappear.
 // C: records generated on the GPU and copied into the texture inside the GPU; must match A.
-// COMPAT(online-parity): validation page for the prototype; see packages/building/src/building/MIGRATION.md.
 import {
   AssetType,
   Camera,

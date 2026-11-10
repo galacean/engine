@@ -20,7 +20,7 @@ import {
   coreBuildingLayout
 } from "../../src/building/render/CoreBuilding";
 import { baseline } from "./baseline";
-import { constructionDecorationType } from "../../src/building/runtime/ConstructionDecorationCatalog";
+import { decorationSize } from "./decorationSizes";
 
 const registry = registerHouseTypes(createBuildingRegistry());
 const flat = () => 0;
@@ -28,9 +28,7 @@ const assets = nativeAssets.compilation;
 const environment = coreBuildingEnvironment(flat, assets);
 const design = (p: CoreHouseParameters) => designBuildingCore(buildCoreHouse(p), registry, { environment });
 const at = (rank: 1 | 2 | 3, u: number, extra: Partial<CoreWallAttachment> = {}): CoreWallAttachment => {
-  const size = constructionDecorationType(assets.decorations, "window-cottage-corner")!.dimensions.find(
-    (d) => d.rank === rank
-  )!;
+  const size = decorationSize("window-cottage-corner", rank);
   return {
     id: `c${rank}`,
     kind: "window",

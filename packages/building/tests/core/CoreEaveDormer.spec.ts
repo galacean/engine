@@ -30,7 +30,7 @@ import {
   roofApertures
 } from "../../src/building/render/CoreBuilding";
 import { frozen } from "./baseline";
-import { constructionDecorationType } from "../../src/building/runtime/ConstructionDecorationCatalog";
+import { decorationSize } from "./decorationSizes";
 import { MOUNTED_PART_TYPES } from "../../src/building/partTypes";
 
 const registry = registerHouseTypes(createBuildingRegistry());
@@ -41,7 +41,7 @@ const design = (p: CoreHouseParameters) => designBuildingCore(buildCoreHouse(p),
 const lay = (part: ResolvedPart) => expandUnits(part, registry, { environment });
 const square = { center: [0, 0] as [number, number], size: [10, 10] as [number, number], rotation: 0 };
 const at = (type: string, rank: 1 | 2 | 3, u: number, extra: Partial<CoreWallAttachment> = {}): CoreWallAttachment => {
-  const size = constructionDecorationType(assets.decorations, type)!.dimensions.find((d) => d.rank === rank)!;
+  const size = decorationSize(type, rank);
   return {
     id: `${type}-${rank}`,
     kind: "window",
@@ -486,9 +486,7 @@ describe("Eave dormers against the online path", () => {
 
   it("takes a short cap on a short ridge", () => {
     const hills = (x: number, z: number) => 0.35 * Math.sin(0.6 * x + 0.3) + 0.2 * Math.cos(0.45 * z);
-    const { width, height } = constructionDecorationType(assets.decorations, "dormer-gothic-half")!.dimensions.find(
-      (d) => d.rank === 2
-    )!;
+    const { width, height } = decorationSize("dormer-gothic-half", 2);
     const result = designBuildingCore(
       buildCoreHouse({
         id: "h",

@@ -12,8 +12,7 @@ import { registerHouseTypes, type WallChartParams } from "../../src/building/par
 import { occupiedRows } from "../../src/building/partTypes/Openings";
 import { buildCoreHouse } from "../../src/building/application/CoreEuropean";
 import { coreBuildingEnvironment } from "../../src/building/render/CoreBuilding";
-import { constructionDecorationType } from "../../src/building/runtime/ConstructionDecorationCatalog";
-import { constructionDecorationRecipe } from "../../src/building/runtime/ConstructionDecorationRecipe";
+import { decorationSize } from "./decorationSizes";
 
 const prefabs = nativeAssets.compilation.prefabs;
 const box = (lo: number[], hi: number[]) => {
@@ -95,7 +94,7 @@ describe("Prefab occupancy", () => {
   it("is laid on the original geometry and read by rules, for parts whose asset declares it", () => {
     const registry = registerHouseTypes(createBuildingRegistry());
     const environment = coreBuildingEnvironment(() => 0, nativeAssets.compilation);
-    const size = constructionDecorationType(nativeAssets.compilation.decorations, "window-cottage")!.dimensions[0];
+    const size = decorationSize("window-cottage", 1);
     const draft = buildCoreHouse({
       id: "h",
       rectangle: { center: [0, 0], size: [10, 8], rotation: 0 },
@@ -144,7 +143,7 @@ describe("Prefab occupancy", () => {
     const environment = coreBuildingEnvironment(() => 0, nativeAssets.compilation);
     const decorations = nativeAssets.compilation.decorations;
     const place = (type: string, rank: 1 | 2 | 3, kind = "window") => {
-      const size = constructionDecorationType(decorations, type)!.dimensions.find((d) => d.rank === rank)!;
+      const size = decorationSize(type, rank);
       const result = designBuildingCore(
         buildCoreHouse({
           id: "h",
@@ -223,7 +222,7 @@ describe("Prefab occupancy", () => {
 
     it("opens a flat roof's deck under a hatch, not under a lamp", () => {
       const deckHoles = (type: "hatch-cottage" | "roof-lantern") => {
-        const size = constructionDecorationRecipe(decorations, type, 1)!.installationSize;
+        const size = decorationSize(type, 1).installationSize;
         const result = designBuildingCore(
           buildCoreHouse({
             id: "h",

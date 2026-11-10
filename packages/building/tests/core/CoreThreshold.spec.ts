@@ -14,14 +14,14 @@ import {
   type CoreWallAttachment
 } from "../../src/building/application/CoreEuropean";
 import { coreBuildingEnvironment } from "../../src/building/render/CoreBuilding";
-import { constructionDecorationType } from "../../src/building/runtime/ConstructionDecorationCatalog";
+import { decorationSize } from "./decorationSizes";
 
 const registry = registerHouseTypes(createBuildingRegistry());
 const assets = nativeAssets.compilation;
 const slope = (x: number) => 0.05 * x;
 const environment = coreBuildingEnvironment(slope, assets);
 const door = (type: string, bottom: number): CoreWallAttachment => {
-  const size = constructionDecorationType(assets.decorations, type)!.dimensions.find((d) => d.rank === 2)!;
+  const size = decorationSize(type, 2);
   return { id: "d", kind: "door", type, rank: 2, u: 0.125, bottom, width: size.width, height: size.height };
 };
 const house = (a: CoreWallAttachment, extra: Partial<CoreHouseParameters> = {}): CoreHouseParameters => ({

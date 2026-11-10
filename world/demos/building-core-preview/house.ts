@@ -35,8 +35,6 @@ import {
   coreBuildingEnvironment,
   prepareCoreBuilding
 } from "@galacean/engine-building/building/render/CoreBuilding";
-import { constructionDecorationType } from "@galacean/engine-building/building/runtime/ConstructionDecorationCatalog";
-import { constructionDecorationRecipe } from "@galacean/engine-building/building/runtime/ConstructionDecorationRecipe";
 import {
   planFacadeDecorations,
   normalizeDecorationPlan
@@ -68,12 +66,15 @@ function withFacade(house: CoreHouseParameters): CoreHouseParameters {
   );
   return { ...house, attachments: planned as never };
 }
-/** Gothic windows and doors and arrow slits at their original sizes. */
+/** A prefab's own size, from the facts the asset layer has about it. */
+function ownSize(type: string, rank: number) {
+  const { min, max } = library.compilation.prefabs![`${type}/${rank}`].bounds;
+  return { width: max[0] - min[0], height: max[1] - min[1] };
+}
+/** Gothic windows and doors and arrow slits at their own sizes. */
 function withStone(house: CoreHouseParameters, frameMaterial?: "wall"): CoreHouseParameters {
   const at = (id: string, kind: string, type: string, rank: number, u: number, bottom: number) => {
-    const size = constructionDecorationType(library.compilation.decorations, type)!.dimensions.find(
-      (d) => d.rank === rank
-    )!;
+    const size = ownSize(type, rank);
     return {
       id,
       kind,
@@ -100,28 +101,21 @@ function withStone(house: CoreHouseParameters, frameMaterial?: "wall"): CoreHous
     ] as never
   };
 }
-/** Gothic dormers at their original sizes, at footprint uv positions. */
+/** Gothic dormers at their own sizes, at footprint uv positions. */
 function withDormers(house: CoreHouseParameters, at: [number, number, 1 | 2 | 3][]): CoreHouseParameters {
   return {
     ...house,
     roofAttachments: at.map(([u, v, rank], i) => {
-      const [width, height] = constructionDecorationRecipe(
-        library.compilation.decorations,
-        "dormer-gothic",
-        rank
-      )!.installationSize;
-      return { id: "dormer" + i, type: "dormer-gothic" as const, rank, uv: [u, v], bottom: 0, width, height };
+      return { id: "dormer" + i, type: "dormer-gothic" as const, rank, uv: [u, v], bottom: 0 };
     })
   };
 }
-/** Eave windows at their original sizes, with 40% of their height above the wall top. */
+/** Eave windows at their own sizes, with 40% of their height above the wall top. */
 function withEave(house: CoreHouseParameters, at: [string, number, number][]): CoreHouseParameters {
   return {
     ...house,
     attachments: at.map(([type, rank, u], i) => {
-      const size = constructionDecorationType(library.compilation.decorations, type)!.dimensions.find(
-        (d) => d.rank === rank
-      )!;
+      const size = ownSize(type, rank);
       return {
         id: "eave" + i,
         kind: "window",
@@ -352,19 +346,12 @@ const cases = (): Case[] => [
           ["c2", 2, [0.6, 0.2]]
         ] as const
       ).map(([id, rank, uv]) => {
-        const [width, height] = constructionDecorationRecipe(
-          library.compilation.decorations,
-          "dormer-cottage",
-          rank
-        )!.installationSize;
         return {
           id,
           type: "dormer-cottage" as const,
           rank,
           uv: [...uv] as [number, number],
-          bottom: 0,
-          width,
-          height
+          bottom: 0
         };
       })
     },
@@ -385,12 +372,7 @@ const cases = (): Case[] => [
           ["l1", "roof-lantern", [0.75, 0.25]]
         ] as const
       ).map(([id, type, uv]) => {
-        const [width, height] = constructionDecorationRecipe(
-          library.compilation.decorations,
-          type,
-          1
-        )!.installationSize;
-        return { id, type, rank: 1 as const, uv: [...uv] as [number, number], bottom: 0, width, height };
+        return { id, type, rank: 1 as const, uv: [...uv] as [number, number], bottom: 0 };
       })
     },
     ground: flat
@@ -613,10 +595,7 @@ const cases = (): Case[] => [
       height: 4,
       rectangle: { center: [0, 0], size: [10, 8], rotation: 0 },
       attachments: ([1, 2, 3] as const).map((rank, i) => {
-        const size = constructionDecorationType(
-          library.compilation.decorations,
-          "window-cottage-corner"
-        )!.dimensions.find((d) => d.rank === rank)!;
+        const size = ownSize("window-cottage-corner", rank);
         return {
           id: "c" + rank,
           kind: "window",

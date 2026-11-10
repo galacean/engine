@@ -1,5 +1,4 @@
 import type { RoofSpireAsset } from "./RoofSpireAsset";
-import type { GothicCollisionBounds } from "./GothicBlueprint";
 import type { GothicGeometryAssets, ConstructionPositionMesh } from "./ConstructionGeometryAssets";
 /** Numerical geometry inputs shared by building algorithms, independent of author models. */
 export interface BuildingUnitAssets {
@@ -10,5 +9,5 @@ export interface BuildingUnitAssets {
   stoneGeometry?: import("./ConstructionGeometryAssets").ConstructionStoneGeometry;
   woodPillar?: ConstructionPositionMesh;
   roofSpire?: RoofSpireAsset;
-  gothic: Record<1 | 2 | 3, { collisionBounds: GothicCollisionBounds; geometry?: GothicGeometryAssets }>;
+  gothic: Record<1 | 2 | 3, { collisionBounds: { min: number[]; max: number[] }; geometry?: GothicGeometryAssets }>;
 }

@@ -19,7 +19,7 @@ import {
 import { buildBuildingRenderPackage } from "../../src/building/runtime/BuildingRenderPackage";
 import { buildingGlobals } from "../../src/building/runtime/BuildingGlobals";
 import { European } from "../../src/building/application/European";
-import { constructionDecorationRecipe } from "../../src/building/runtime/ConstructionDecorationRecipe";
+import { decorationSize } from "./decorationSizes";
 
 const flat = () => 0;
 const coreEnvironment = coreBuildingEnvironment(flat, nativeAssets.compilation);
@@ -323,11 +323,7 @@ describe("Flat roofs", () => {
         return n;
       };
       expect(area(plain)).toBeCloseTo(48, 3);
-      const hatch = constructionDecorationRecipe(
-        nativeAssets.compilation.decorations,
-        "hatch-cottage",
-        1
-      )!.installationSize;
+      const hatch = decorationSize("hatch-cottage", 1).installationSize;
       const withHatch = await preview({
         ...base,
         roofAttachments: [

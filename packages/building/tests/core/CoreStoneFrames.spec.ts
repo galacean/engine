@@ -12,7 +12,7 @@ import { buildCoreHouse, type CoreHouseParameters } from "../../src/building/app
 import { European } from "../../src/building/application/European";
 import { coreBuildingLayout, coreBuildingView, coreBuildingEnvironment } from "../../src/building/render/CoreBuilding";
 import { baseline } from "./baseline";
-import { constructionDecorationType } from "../../src/building/runtime/ConstructionDecorationCatalog";
+import { decorationSize } from "./decorationSizes";
 
 const registry = registerHouseTypes(createBuildingRegistry());
 const flat = () => 0;
@@ -31,7 +31,7 @@ const view = (p: CoreHouseParameters) => {
 const ONLINE =
   baseline<{ decorationId: string; template: string; xform: number[]; meshSizeX: number }[]>("CoreStoneFrames");
 const at = (id: string, type: string, rank: number, u: number, bottom: number) => {
-  const size = constructionDecorationType(assets.decorations, type)!.dimensions.find((d) => d.rank === rank)!;
+  const size = decorationSize(type, rank);
   return {
     id,
     kind: "window" as const,

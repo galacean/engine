@@ -19,11 +19,8 @@ import { registerHouseTypes, type WallChartParams } from "../../src/building/par
 import { buildCoreHouse, buildCoreHouses, type CoreHouseParameters } from "../../src/building/application/CoreEuropean";
 import { European } from "../../src/building/application/European";
 import { compileCoreBuilding, coreBuildingEnvironment } from "../../src/building/render/CoreBuilding";
-import { buildConstructionFoundation } from "../../src/building/runtime/ConstructionFoundation";
+import { frozen } from "./baseline";
 import { PLASTER_RISE } from "../../src/building/runtime/ConstructionPlasterShader";
-import { profileShape } from "../../src/building/runtime/ProfileGeometry";
-import { profileWallEnvelope } from "../../src/building/runtime/ConstructionWallEnvelope";
-import { normalizeProfileFootprint } from "../../src/building/runtime/ProfileParameters";
 
 const registry = registerHouseTypes(createBuildingRegistry());
 type Ground = (x: number, z: number) => number;
@@ -58,17 +55,12 @@ const columns = (part: ResolvedPart) =>
       const q = (e.surface.params as WallChartParams).points.slice(0, 4);
       return [q.reduce((n, p) => n + p[0], 0) / 4, q.reduce((n, p) => n + p[2], 0) / 4];
     });
-const online = (shape: object, ground: Ground, height: number, mode: "solid" | "pillars") => {
-  const footprint = normalizeProfileFootprint(shape);
-  return buildConstructionFoundation({
-    id: "x",
-    shape: profileShape(footprint),
-    wallEnvelope: profileWallEnvelope(footprint),
-    height,
-    mode,
-    terrain: ground
-  });
-};
+/** Where online stood the pillars of a 1.2 m foundation on the slope, and how many it kept beside
+ * the neighbouring house. */
+const ONLINE = frozen<{
+  pillars: Record<"rectangle" | "circle", { x: number; z: number; startY: number }[]>;
+  besideNeighbour: number;
+}>("CoreFoundation");
 
 describe("Raised foundations", () => {
   it.each(["solid", "pillars"] as const)("%s: the walls start on the level base", (mode) => {
@@ -117,16 +109,16 @@ describe("Raised foundations", () => {
   it.each([
     ["a rectangle", { rectangle }],
     ["a circle", { circle }]
-  ] as const)("pillars under %s: columns where online stands them, each foot on the ground", (_name, shape) => {
+  ] as const)("pillars under %s: columns where online stands them, each foot on the ground", (name, shape) => {
     const result = design([house({ ...shape, foundation: { height: 1.2 } })], slope);
     expect(result.diagnostics).toEqual([]);
     const part = foundationOf(result);
     const ours = columns(part),
-      theirs = online(shape, slope, 1.2, "pillars").pillars;
+      theirs = ONLINE.pillars[name === "a circle" ? "circle" : "rectangle"];
     expect(ours.length).toBe(theirs.length);
     ours.forEach(([x, z], i) => {
-      expect(x).toBeCloseTo(theirs[i].point[0], 6);
-      expect(z).toBeCloseTo(theirs[i].point[2], 6);
+      expect(x).toBeCloseTo(theirs[i].x, 6);
+      expect(z).toBeCloseTo(theirs[i].z, 6);
     });
     // Each foot starts 0.04 m under the lowest ground at its corners; the slab is 0.24 m deep.
     const elements = part.original.elements;
@@ -153,17 +145,7 @@ describe("Raised foundations", () => {
     expect(kept.length).toBeLessThan(alone.length);
     for (const [x, z] of kept) expect(x > 4 && x < 9 && Math.abs(z) < 3).toBe(false);
     // Online leaves out the same columns.
-    const footprint = normalizeProfileFootprint({ rectangle: { center: [6.5, 0], size: [5, 6], rotation: 0 } });
-    const theirs = buildConstructionFoundation({
-      id: "x",
-      shape: profileShape(normalizeProfileFootprint({ rectangle: raised.rectangle! })),
-      wallEnvelope: profileWallEnvelope(normalizeProfileFootprint({ rectangle: raised.rectangle! })),
-      height: 1.2,
-      mode: "pillars",
-      terrain: flat,
-      neighbors: [{ shape: profileShape(footprint), bottomY: 0, topY: 4 }]
-    }).pillars;
-    expect(kept.length).toBe(theirs.length);
+    expect(kept.length).toBe(ONLINE.besideNeighbour);
   });
 
   it("is drawn as foundation units over its faces", async () => {
