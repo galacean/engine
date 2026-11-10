@@ -2,7 +2,7 @@
 
 ## 生成器参数
 
-`Building.European.buildHouses({id,seed,height,rectangle|circle,roof,wall,roofStyle,attachments})` 返回 groups、parts、relations。`height` 是墙高，单位是米。rectangle 和 circle 使用米和弧度。
+`Building.European.buildHouses({id,seed,height,rectangle|circle,roof,wall,wallStructure,roofStyle,foundation,plaster,floors,attachments})` 返回草稿 `{groups, parts, connections}`。`height` 是墙高，单位是米。rectangle 和 circle 使用米和弧度。`wallStructure: "timber"` 生成木墙。`foundation: {height, mode: "solid"|"pillars", plaster?}` 生成台基。`plaster: {wear, color}` 给墙抹灰。`floors: {interval}` 加腰线。
 
 `roof` 必须是对象。下面的字段都可选，前四个是 0..1 的控制量，不是米，也不是角度。超出范围时，报错 `Roof control must be in [0,1]`。
 
@@ -21,10 +21,10 @@
 完整参数见 [European 声明](declare/engine/node_modules/@galacean/seed-world-systems/packages/building/src/building/application/European.d.ts)。屋顶、台基和楼层参数见 [ProfileParameters 声明](declare/engine/node_modules/@galacean/seed-world-systems/packages/building/src/building/runtime/ProfileParameters.d.ts)。
 
 - `buildTower` 使用相同的墙和屋顶能力，默认圆形，墙体较高。
-- `buildWall` 生成独立墙条。
-- `buildSteps({id,width,rise,run,count})` 生成台阶 Path。
+- `buildWall` 和 `buildFence` 生成独立墙条和栅栏。
+- `buildSteps({id,width,rise,run,count})` 生成台阶。
 
-基础构件字段有 id、group、type、`support:{generator,params}`、`algorithm:{type}`、unit、params。组只存 seed 和调色身份。关系存 from 和 to 的 part 与 boundary，以及 rule。自定义生成器直接输出同样的结构，不需要经过欧式入口。
+构件字段有 id、group、type、`geometry:{generator,params}`、`algorithm:{type,params}`、unit。组存 id、seed 和共享值 `shared`。连接是 `{kind:"attach", id, guest, hosts:[{part}]}` 或 `{kind:"join", id, parts:[a,b]}`，可带 `rule` 和 `params`。自定义草稿直接写同样的结构，见[结构](structure.md)。
 
 ## 在 execute 中持久创建
 
