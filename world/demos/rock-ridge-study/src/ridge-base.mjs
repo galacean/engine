@@ -69,6 +69,8 @@ export function atomProfile(g){
   const min=g.bounds[0][1],height=g.bounds[1][1]-min,vertices=[];
   let top=[0,-Infinity,0];
   for(let i=0;i<g.positions.length;i+=3){const v=g.positions.slice(i,i+3);vertices.push(v);if(v[1]>=top[1])top=v;}
+  // Subdividing a flat crown must not silently choose a different anchor.
+  if(g.surface?.anchor)top=g.surface.anchor;
   const probes=[];
   for(const v of vertices)if(v[1]>min+height*.05)probes.push([v[0],(v[1]-min)/height,v[2]]);
   // Mid-face checks keep broad facets from bridging above a narrow saddle.
@@ -79,5 +81,6 @@ export function atomProfile(g){
   const empty={terrain:{positions:[],indices:[]},rocks:[{mesh:'atom',x:0,y:0,z:0,scale:1,yaw:0}]};
   const inverted={...g,positions:g.positions.map((v,i)=>i%3===1?-v:v)};
   const underside=createSurfaceSampler(empty,{atom:inverted});
-  const profile={min,height,top,probes,sample:createSurfaceSampler(empty,{atom:g}),bottom:(x,z)=>-underside(x,z),intervals:createColumnSampler(g)};atomProfileCache.set(g,profile);return profile;
+  const fitProbes=g.surface&&probes.length>1800?probes.filter((_,i)=>i%Math.ceil(probes.length/1800)===0):probes;
+  const profile={min,height,top,probes:fitProbes,sample:createSurfaceSampler(empty,{atom:g}),bottom:(x,z)=>-underside(x,z),intervals:createColumnSampler(g)};atomProfileCache.set(g,profile);return profile;
 }

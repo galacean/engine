@@ -1,0 +1,323 @@
+{
+  "version": "fractured-slab-1",
+  "generationMs": 1348.174417,
+  "checks": [
+    "immutable source and uncached deterministic replay",
+    "finite bounded geometry and unit normals",
+    "closed wound manifold with preserved source orientation",
+    "pinned base apex and platform caps",
+    "render positions equal measured mesh positions",
+    "independent ridge target unchanged",
+    "large connected masses and sparse accents",
+    "independent ray parity on deformed contact witnesses",
+    "dense fit and measured orange guides",
+    "detailed mesh height scaling",
+    "unchanged 3m platform route"
+  ],
+  "prototypes": [
+    {
+      "id": "cliff",
+      "triangles": 16000,
+      "version": "fractured-slab-1",
+      "sourceTriangles": 1000,
+      "anchor": [
+        5.4125,
+        7,
+        -0.9971
+      ],
+      "patches": 44,
+      "limitedVertices": 196,
+      "vertices": 8002,
+      "maximumDisplacementM": 0.7150000000000001,
+      "protectedVertices": 903,
+      "minProjectedAreaRatio": 0.09990723448925495,
+      "signedVolumeM3": 1511.8586346824982
+    },
+    {
+      "id": "cliff2",
+      "triangles": 16000,
+      "version": "fractured-slab-1",
+      "sourceTriangles": 1000,
+      "anchor": [
+        6.1209,
+        7,
+        -1.1276
+      ],
+      "patches": 41,
+      "limitedVertices": 193,
+      "vertices": 8002,
+      "maximumDisplacementM": 0.7150000000000004,
+      "protectedVertices": 1038,
+      "minProjectedAreaRatio": 0.09909477031146476,
+      "signedVolumeM3": 1487.2430658386668
+    },
+    {
+      "id": "wall",
+      "triangles": 16000,
+      "version": "fractured-slab-1",
+      "sourceTriangles": 1000,
+      "anchor": [
+        3.6661,
+        7,
+        -1.063
+      ],
+      "patches": 40,
+      "limitedVertices": 264,
+      "vertices": 8002,
+      "maximumDisplacementM": 0.45500000000000035,
+      "protectedVertices": 905,
+      "minProjectedAreaRatio": 0.08457450008925697,
+      "signedVolumeM3": 594.3715206190312
+    },
+    {
+      "id": "wall2",
+      "triangles": 15680,
+      "version": "fractured-slab-1",
+      "sourceTriangles": 980,
+      "anchor": [
+        2.6348,
+        7,
+        -0.7639
+      ],
+      "patches": 36,
+      "limitedVertices": 139,
+      "vertices": 7842,
+      "maximumDisplacementM": 0.5477699581001798,
+      "protectedVertices": 998,
+      "minProjectedAreaRatio": 0.08047394800688668,
+      "signedVolumeM3": 560.8953598503775
+    },
+    {
+      "id": "shoulder",
+      "triangles": 14208,
+      "version": "fractured-slab-1",
+      "sourceTriangles": 888,
+      "anchor": [
+        3.2327,
+        5,
+        0.3274
+      ],
+      "patches": 36,
+      "limitedVertices": 108,
+      "vertices": 7106,
+      "maximumDisplacementM": 0.650581518809688,
+      "protectedVertices": 1043,
+      "minProjectedAreaRatio": 0.08157121523584378,
+      "signedVolumeM3": 636.7290281872204
+    },
+    {
+      "id": "shoulder2",
+      "triangles": 14752,
+      "version": "fractured-slab-1",
+      "sourceTriangles": 922,
+      "anchor": [
+        2.9504,
+        5,
+        1.3103
+      ],
+      "patches": 39,
+      "limitedVertices": 125,
+      "vertices": 7378,
+      "maximumDisplacementM": 0.6500000000000002,
+      "protectedVertices": 1043,
+      "minProjectedAreaRatio": 0.0824916810330748,
+      "signedVolumeM3": 693.5738300949371
+    },
+    {
+      "id": "peak",
+      "triangles": 12224,
+      "version": "fractured-slab-1",
+      "sourceTriangles": 764,
+      "anchor": [
+        2.2427,
+        12,
+        1.079
+      ],
+      "patches": 33,
+      "limitedVertices": 110,
+      "vertices": 6114,
+      "maximumDisplacementM": 1.3679408727537095,
+      "protectedVertices": 1068,
+      "minProjectedAreaRatio": 0.08581304973151213,
+      "signedVolumeM3": 4865.114589070813
+    },
+    {
+      "id": "peak2",
+      "triangles": 14048,
+      "version": "fractured-slab-1",
+      "sourceTriangles": 878,
+      "anchor": [
+        2.6785,
+        12,
+        0.2939
+      ],
+      "patches": 35,
+      "limitedVertices": 51,
+      "vertices": 7026,
+      "maximumDisplacementM": 1.230972951538067,
+      "protectedVertices": 1101,
+      "minProjectedAreaRatio": 0.09419167555284766,
+      "signedVolumeM3": 4954.067438593464
+    },
+    {
+      "id": "slab",
+      "triangles": 15136,
+      "version": "fractured-slab-1",
+      "sourceTriangles": 946,
+      "anchor": [
+        -0.6824,
+        1.2,
+        -0.3808
+      ],
+      "patches": 46,
+      "limitedVertices": 215,
+      "vertices": 7570,
+      "maximumDisplacementM": 0.23353074815947447,
+      "protectedVertices": 4041,
+      "minProjectedAreaRatio": 0.0801105915021529,
+      "signedVolumeM3": 170.34875639794498
+    },
+    {
+      "id": "slab2",
+      "triangles": 15424,
+      "version": "fractured-slab-1",
+      "sourceTriangles": 964,
+      "anchor": [
+        0.2131,
+        1.2,
+        -0.5783
+      ],
+      "patches": 50,
+      "limitedVertices": 41,
+      "vertices": 7714,
+      "maximumDisplacementM": 0.2349223690755145,
+      "protectedVertices": 4305,
+      "minProjectedAreaRatio": 0.14433536919759257,
+      "signedVolumeM3": 180.70054118128394
+    },
+    {
+      "id": "bank",
+      "triangles": 15264,
+      "version": "fractured-slab-1",
+      "sourceTriangles": 954,
+      "anchor": [
+        2.3718,
+        2.5,
+        0.223
+      ],
+      "patches": 41,
+      "limitedVertices": 169,
+      "vertices": 7634,
+      "maximumDisplacementM": 0.32912288446990984,
+      "protectedVertices": 1044,
+      "minProjectedAreaRatio": 0.10367224350957369,
+      "signedVolumeM3": 97.16752257721288
+    },
+    {
+      "id": "bank2",
+      "triangles": 15072,
+      "version": "fractured-slab-1",
+      "sourceTriangles": 942,
+      "anchor": [
+        1.698,
+        2.5,
+        0.7003
+      ],
+      "patches": 41,
+      "limitedVertices": 91,
+      "vertices": 7538,
+      "maximumDisplacementM": 0.32499999999999996,
+      "protectedVertices": 993,
+      "minProjectedAreaRatio": 0.08902464026797764,
+      "signedVolumeM3": 100.45284812911997
+    }
+  ],
+  "assemblies": [
+    {
+      "scene": "cliff",
+      "seed": 18,
+      "options": {
+        "mode": "perlin"
+      },
+      "structuralMasses": 3,
+      "smallRocks": 2,
+      "verifiedContactEdges": 4,
+      "rmsM": 1.3459062166157643,
+      "maximumDeviationM": 3.5473055268204945,
+      "maximumGuideErrorM": 0.00004949674768894852
+    },
+    {
+      "scene": "cliff",
+      "seed": 19,
+      "options": {
+        "mode": "perlin"
+      },
+      "structuralMasses": 6,
+      "smallRocks": 2,
+      "verifiedContactEdges": 9,
+      "rmsM": 1.303634016835395,
+      "maximumDeviationM": 3.519970210544809,
+      "maximumGuideErrorM": 0.00004997251430793881
+    },
+    {
+      "scene": "island",
+      "seed": 18,
+      "options": {
+        "mode": "perlin"
+      },
+      "structuralMasses": 8,
+      "smallRocks": 2,
+      "verifiedContactEdges": 20,
+      "rmsM": 1.6893236550337947,
+      "maximumDeviationM": 5.10988840885871,
+      "maximumGuideErrorM": 0.00004995800222928892
+    },
+    {
+      "scene": "peaks",
+      "seed": 18,
+      "options": {
+        "mode": "perlin"
+      },
+      "structuralMasses": 11,
+      "smallRocks": 2,
+      "verifiedContactEdges": 23,
+      "rmsM": 1.8994007155108736,
+      "maximumDeviationM": 5.747907236231242,
+      "maximumGuideErrorM": 0.00004991999572112604
+    },
+    {
+      "scene": "peaks",
+      "seed": 416,
+      "options": {
+        "mode": "perlin",
+        "noise": {
+          "frequency": 4,
+          "octaves": 5,
+          "lacunarity": 2,
+          "persistence": 0.85
+        }
+      },
+      "structuralMasses": 17,
+      "smallRocks": 2,
+      "verifiedContactEdges": 39,
+      "rmsM": 1.6847922132817532,
+      "maximumDeviationM": 4.067905361440598,
+      "maximumGuideErrorM": 0.00004992175302120927
+    },
+    {
+      "scene": "peaks",
+      "seed": 382,
+      "options": {
+        "mode": "direct"
+      },
+      "structuralMasses": 17,
+      "smallRocks": 2,
+      "verifiedContactEdges": 47,
+      "rmsM": 1.9870363634131578,
+      "maximumDeviationM": 5.007755996201732,
+      "maximumGuideErrorM": 0.00004991815973909297
+    }
+  ],
+  "platformSamples": 2500,
+  "maximumPlatformChangeM": 3.6637359812630166e-15
+}

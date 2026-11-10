@@ -1,6 +1,6 @@
 // Study generator: seed -> ridge plan -> atomic-rock assembly -> measured crest.
 // This is a proposal derived from Seed's hierarchy/curve concepts, not shipped Seed code.
-export const RIDGE_VERSION = 'ridge-perlin-5';
+export const RIDGE_VERSION = 'ridge-fracture-6';
 export const DEFAULT_RIDGE_SEED = 382;
 const TAU = Math.PI * 2;
 export const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
@@ -68,7 +68,8 @@ export function withSceneHeight(source, heightScale = 1) {
 
 // XZ acceleration bins; barycentric interpolation on the actual displayed triangles.
 export function createSurfaceSampler(scene, geometries, terrainOnly = false) {
-  const bins = new Map(), cell = 4;
+  const detailed=Object.values(geometries).filter(g=>g.surface);
+  const bins = new Map(), cell = detailed.length===1?Math.min(detailed[0].parameters.obbWidth,detailed[0].parameters.obbDepth)/20:detailed.length?1.1:4;
   function add(vertices, indices) {
     for (let i = 0; i < indices.length; i += 3) {
       const a = vertices[indices[i]], b = vertices[indices[i + 1]], c = vertices[indices[i + 2]];
@@ -109,7 +110,7 @@ export function footprint(rock, geometry, visit) {
 // All solid intervals along a vertical ray through a prototype. Separate
 // intervals preserve concavities and overhangs when checking volume contacts.
 export function createColumnSampler(geometry){
-  const bins=new Map(),cell=4,p=geometry.positions,idx=geometry.indices;
+  const bins=new Map(),cell=geometry.surface?Math.min(geometry.parameters.obbWidth,geometry.parameters.obbDepth)/20:4,p=geometry.positions,idx=geometry.indices;
   for(let i=0;i<idx.length;i+=3){
     const a=p.slice(idx[i]*3,idx[i]*3+3),b=p.slice(idx[i+1]*3,idx[i+1]*3+3),c=p.slice(idx[i+2]*3,idx[i+2]*3+3);
     const d=(b[2]-c[2])*(a[0]-c[0])+(c[0]-b[0])*(a[2]-c[2]);if(Math.abs(d)<1e-9)continue;

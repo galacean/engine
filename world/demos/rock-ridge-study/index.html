@@ -1861,9 +1861,13 @@ html&gt;body{padding:0}&lt;/style&gt;
         &lt;option value=&quot;side&quot;&gt;Side&lt;/option&gt;
         &lt;option value=&quot;plan&quot;&gt;Plan&lt;/option&gt;
         &lt;option value=&quot;low&quot;&gt;Low angle&lt;/option&gt;
+        &lt;option value=&quot;close&quot;&gt;Rock close-up&lt;/option&gt;
       &lt;/select&gt;
     &lt;/label&gt;
     &lt;label class=&quot;form-check&quot;&gt;&lt;input class=&quot;form-check-input&quot; id=&quot;rock-study-guides&quot; type=&quot;checkbox&quot; checked&gt;&lt;span class=&quot;form-check-label&quot;&gt;Show layout&lt;/span&gt;&lt;/label&gt;
+  &lt;/div&gt;
+  &lt;div class=&quot;viz-controls&quot;&gt;
+    &lt;label class=&quot;form-label&quot;&gt;Rock finish &lt;select class=&quot;form-select&quot; id=&quot;rock-study-finish&quot;&gt;&lt;option value=&quot;stone&quot; selected&gt;Fractured stone&lt;/option&gt;&lt;option value=&quot;clay&quot;&gt;Fractured clay&lt;/option&gt;&lt;option value=&quot;original&quot;&gt;Original clay&lt;/option&gt;&lt;/select&gt;&lt;/label&gt;
   &lt;/div&gt;
   &lt;div class=&quot;viz-row&quot;&gt;
     &lt;div id=&quot;rock-study-seed-controls&quot;&gt;&lt;div class=&quot;viz-row&quot;&gt;
@@ -1897,7 +1901,7 @@ html&gt;body{padding:0}&lt;/style&gt;
     &lt;div class=&quot;rock-label-layer&quot; id=&quot;rock-study-labels&quot;&gt;&lt;/div&gt;
     &lt;div class=&quot;rock-scale text-small&quot; id=&quot;rock-study-scale&quot;&gt;&lt;span&gt;&lt;/span&gt;&lt;div&gt;10 m&lt;/div&gt;&lt;/div&gt;
   &lt;/div&gt;
-  &lt;div class=&quot;viz-row text-small&quot; aria-live=&quot;polite&quot;&gt;&lt;span id=&quot;rock-study-detail&quot;&gt;&lt;/span&gt;&lt;span class=&quot;text-muted&quot;&gt;Proposed layout · upstream rock meshes&lt;/span&gt;&lt;/div&gt;
+  &lt;div class=&quot;viz-row text-small&quot; aria-live=&quot;polite&quot;&gt;&lt;span id=&quot;rock-study-detail&quot;&gt;&lt;/span&gt;&lt;span class=&quot;text-muted&quot;&gt;Surface study · upstream base meshes&lt;/span&gt;&lt;/div&gt;
   &lt;div class=&quot;sr-only&quot; id=&quot;rock-study-description&quot;&gt;&lt;/div&gt;
 &lt;/div&gt;
 &lt;style&gt;
@@ -1920,7 +1924,7 @@ html&gt;body{padding:0}&lt;/style&gt;
 (()=&gt;{
  // Study generator: seed -&gt; ridge plan -&gt; atomic-rock assembly -&gt; measured crest.
 // This is a proposal derived from Seed&#x27;s hierarchy/curve concepts, not shipped Seed code.
-const RIDGE_VERSION = &#x27;ridge-perlin-5&#x27;;
+const RIDGE_VERSION = &#x27;ridge-fracture-6&#x27;;
 const DEFAULT_RIDGE_SEED = 382;
 const TAU = Math.PI * 2;
 const clamp = (x, a, b) =&gt; Math.max(a, Math.min(b, x));
@@ -1988,7 +1992,8 @@ function withSceneHeight(source, heightScale = 1) {
 
 // XZ acceleration bins; barycentric interpolation on the actual displayed triangles.
 function createSurfaceSampler(scene, geometries, terrainOnly = false) {
-  const bins = new Map(), cell = 4;
+  const detailed=Object.values(geometries).filter(g=&gt;g.surface);
+  const bins = new Map(), cell = detailed.length===1?Math.min(detailed[0].parameters.obbWidth,detailed[0].parameters.obbDepth)/20:detailed.length?1.1:4;
   function add(vertices, indices) {
     for (let i = 0; i &lt; indices.length; i += 3) {
       const a = vertices[indices[i]], b = vertices[indices[i + 1]], c = vertices[indices[i + 2]];
@@ -2029,7 +2034,7 @@ function footprint(rock, geometry, visit) {
 // All solid intervals along a vertical ray through a prototype. Separate
 // intervals preserve concavities and overhangs when checking volume contacts.
 function createColumnSampler(geometry){
-  const bins=new Map(),cell=4,p=geometry.positions,idx=geometry.indices;
+  const bins=new Map(),cell=geometry.surface?Math.min(geometry.parameters.obbWidth,geometry.parameters.obbDepth)/20:4,p=geometry.positions,idx=geometry.indices;
   for(let i=0;i&lt;idx.length;i+=3){
     const a=p.slice(idx[i]*3,idx[i]*3+3),b=p.slice(idx[i+1]*3,idx[i+1]*3+3),c=p.slice(idx[i+2]*3,idx[i+2]*3+3);
     const d=(b[2]-c[2])*(a[0]-c[0])+(c[0]-b[0])*(a[2]-c[2]);if(Math.abs(d)&lt;1e-9)continue;
@@ -2188,6 +2193,8 @@ function atomProfile(g){
   const min=g.bounds[0][1],height=g.bounds[1][1]-min,vertices=[];
   let top=[0,-Infinity,0];
   for(let i=0;i&lt;g.positions.length;i+=3){const v=g.positions.slice(i,i+3);vertices.push(v);if(v[1]&gt;=top[1])top=v;}
+  // Subdividing a flat crown must not silently choose a different anchor.
+  if(g.surface?.anchor)top=g.surface.anchor;
   const probes=[];
   for(const v of vertices)if(v[1]&gt;min+height*.05)probes.push([v[0],(v[1]-min)/height,v[2]]);
   // Mid-face checks keep broad facets from bridging above a narrow saddle.
@@ -2198,7 +2205,8 @@ function atomProfile(g){
   const empty={terrain:{positions:[],indices:[]},rocks:[{mesh:&#x27;atom&#x27;,x:0,y:0,z:0,scale:1,yaw:0}]};
   const inverted={...g,positions:g.positions.map((v,i)=&gt;i%3===1?-v:v)};
   const underside=createSurfaceSampler(empty,{atom:inverted});
-  const profile={min,height,top,probes,sample:createSurfaceSampler(empty,{atom:g}),bottom:(x,z)=&gt;-underside(x,z),intervals:createColumnSampler(g)};atomProfileCache.set(g,profile);return profile;
+  const fitProbes=g.surface&amp;&amp;probes.length&gt;1800?probes.filter((_,i)=&gt;i%Math.ceil(probes.length/1800)===0):probes;
+  const profile={min,height,top,probes:fitProbes,sample:createSurfaceSampler(empty,{atom:g}),bottom:(x,z)=&gt;-underside(x,z),intervals:createColumnSampler(g)};atomProfileCache.set(g,profile);return profile;
 }
 
 
@@ -2556,6 +2564,151 @@ function perlinCurvePoint(curve,t){
 }
 
 
+const ROCK_SURFACE_VERSION=&#x27;fractured-slab-1&#x27;;
+const surfaceCache=new WeakMap();
+const surfaceBlend=(a,b,x)=&gt;{const t=clamp((x-a)/(b-a),0,1);return t*t*(3-2*t);};
+const surfaceHash=(x,y,z,seed)=&gt;{
+ let h=Math.imul(x|0,374761393)^Math.imul(y|0,668265263)^Math.imul(z|0,2147483647)^(seed|0);
+ h=Math.imul(h^(h&gt;&gt;&gt;13),1274126177);return ((h^(h&gt;&gt;&gt;16))&gt;&gt;&gt;0)/4294967296;
+};
+const surfaceCross=(a,b)=&gt;[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]];
+const surfaceDot=(a,b)=&gt;a[0]*b[0]+a[1]*b[1]+a[2]*b[2];
+const surfaceSub=(a,b)=&gt;a.map((v,i)=&gt;v-b[i]);
+const surfaceUnit=v=&gt;{const l=Math.hypot(...v)||1;return v.map(x=&gt;x/l);};
+
+// Long, uneven cells supply face patches and joints. They are regions of one
+// continuous mesh, never detached rocks or uniformly spaced extruded strips.
+function surfaceRegion(p,size,seed){
+ const q=[p[0]/size[0]*3.4+.08*Math.sin(p[1]/size[1]*9+seed),p[1]/size[1]*1.8+.11*Math.sin(p[0]/size[0]*8),p[2]/size[2]*3.2+.07*Math.sin(p[1]/size[1]*7)];
+ const cell=q.map(Math.floor),candidates=[];let first=null,second=null;
+ for(let z=-1;z&lt;=1;z++)for(let y=-1;y&lt;=1;y++)for(let x=-1;x&lt;=1;x++){
+  const c=[cell[0]+x,cell[1]+y,cell[2]+z],center=c.map((v,d)=&gt;v+.15+.70*surfaceHash(...c,seed+d*1013)),distance=center.reduce((s,v,d)=&gt;s+(v-q[d])**2,0);
+  const candidate={id:c.join(&#x27;,&#x27;),center,distance,value:surfaceHash(...c,seed+7717)};candidates.push(candidate);
+  if(!first||distance&lt;first.distance){second=first;first=candidate;}else if(!second||distance&lt;second.distance)second=candidate;
+ }
+ const boundary=(second.distance-first.distance)/(2*Math.hypot(...surfaceSub(second.center,first.center)));
+ return {id:first.id,value:first.value,boundary,neighbors:candidates.filter(c=&gt;c.distance-first.distance&lt;.35).map(c=&gt;({id:c.id,weight:(.35-(c.distance-first.distance))**2}))};
+}
+
+function surfaceSubdivide(g,levels){
+ let vertices=Array.from({length:g.positions.length/3},(_,i)=&gt;g.positions.slice(i*3,i*3+3)),indices=[...g.indices];
+ for(let level=0;level&lt;levels;level++){
+  const edgeCache=new Map(),next=[];
+  const middle=(a,b)=&gt;{const key=Math.min(a,b)+&#x27;:&#x27;+Math.max(a,b);if(edgeCache.has(key))return edgeCache.get(key);const id=vertices.length;vertices.push(vertices[a].map((v,d)=&gt;(v+vertices[b][d])*.5));edgeCache.set(key,id);return id;};
+  for(let i=0;i&lt;indices.length;i+=3){const [a,b,c]=indices.slice(i,i+3),ab=middle(a,b),bc=middle(b,c),ca=middle(c,a);next.push(a,ab,ca,ab,b,bc,ca,bc,c,ab,bc,ca);}
+  indices=next;
+ }
+ return {vertices,indices};
+}
+
+function surfaceNormals(vertices,indices){
+ const sums=vertices.map(()=&gt;[0,0,0]),weights=new Float64Array(vertices.length),faces=[];
+ for(let i=0;i&lt;indices.length;i+=3){
+  const [a,b,c]=indices.slice(i,i+3),normal=surfaceCross(surfaceSub(vertices[b],vertices[a]),surfaceSub(vertices[c],vertices[a])),weight=Math.hypot(...normal);
+  faces.push(normal);for(const k of [a,b,c]){for(let d=0;d&lt;3;d++)sums[k][d]+=normal[d];weights[k]+=weight;}
+ }
+ return {normals:sums.map(surfaceUnit),weights,faces};
+}
+
+function fractureRockGeometry(g){
+ if(surfaceCache.has(g))return surfaceCache.get(g);
+ const {vertices,indices}=surfaceSubdivide(g,2),original=surfaceNormals(vertices,indices),seed=g.parameters.seed+92071;
+ const size=[g.parameters.obbWidth,g.parameters.obbHeight,g.parameters.obbDepth],minimum=g.bounds[0][1],height=g.bounds[1][1]-minimum;
+ const scale=Math.min(size[0],size[2],size[1]*1.5),regions=vertices.map(p=&gt;surfaceRegion(p,size,seed)),patches=new Map();
+ for(let i=0;i&lt;vertices.length;i++){
+  const region=regions[i];if(!patches.has(region.id))patches.set(region.id,{position:[0,0,0],normal:[0,0,0],weight:0});
+  const patch=patches.get(region.id),w=original.weights[i];patch.weight+=w;
+  for(let d=0;d&lt;3;d++){patch.position[d]+=vertices[i][d]*w;patch.normal[d]+=original.normals[i][d]*w;}
+ }
+ for(const patch of patches.values()){patch.position=patch.position.map(v=&gt;v/(patch.weight||1));patch.normal=surfaceUnit(patch.normal);}
+ const details=[],protectedVertices=[],deltas=vertices.map((p,i)=&gt;{
+  const region=regions[i],y=(p[1]-minimum)/height;
+  const mask=surfaceBlend(.065,.19,y)*(1-surfaceBlend(.985,1,y));
+  const protect=mask===0||(g.parameters.topRoughness===0&amp;&amp;y&gt;.65);protectedVertices.push(protect);
+  const joint=1-surfaceBlend(.005,.15,region.boundary),rim=surfaceBlend(.06,.14,region.boundary)*(1-surfaceBlend(.14,.24,region.boundary));
+  const chip=.5+.5*Math.sin(p[1]/scale*27+Math.sin(p[0]/scale*21)+Math.sin(p[2]/scale*19));
+  const projection=[0,0,0];let totalWeight=0;
+  for(const neighbor of region.neighbors){
+   const patch=patches.get(neighbor.id);if(!patch)continue;
+   const plane=clamp(surfaceDot(surfaceSub(p,patch.position),patch.normal),-scale*.035,scale*.065);
+   for(let d=0;d&lt;3;d++)projection[d]+=patch.normal[d]*plane*neighbor.weight;
+   totalWeight+=neighbor.weight;
+  }
+  const recess=scale*(.018*joint+Math.max(0,chip-.64)*.006*joint);
+  details.push(protect?[0,region.value,0]:[joint*mask,region.value,rim*mask]);
+  if(protect)return [0,0,0];
+  // Blend neighboring plane projections instead of fading back to the round
+  // source at every border. This keeps joints continuous without raised rims.
+  const wanted=p.map((v,d)=&gt;v-(projection[d]/totalWeight+original.normals[i][d]*recess)*mask);
+  return wanted.map((v,d)=&gt;clamp(v,g.bounds[0][d],g.bounds[1][d])-p[d]);
+ });
+ const factors=new Float64Array(vertices.length).fill(1),result=vertices.map(p=&gt;[...p]);
+ const update=()=&gt;{for(let i=0;i&lt;vertices.length;i++)for(let d=0;d&lt;3;d++)result[i][d]=vertices[i][d]+deltas[i][d]*factors[i];};
+ // Limit the local displacement where a narrow source triangle cannot carry
+ // it. This preserves winding and closed topology instead of making holes.
+ let limited=0,remaining=0;
+ for(let pass=0;pass&lt;48;pass++){
+  update();const unsafe=new Set();
+  for(let i=0;i&lt;indices.length;i+=3){const [a,b,c]=indices.slice(i,i+3),before=original.faces[i/3],after=surfaceCross(surfaceSub(result[b],result[a]),surfaceSub(result[c],result[a]));if(surfaceDot(before,after)&lt;surfaceDot(before,before)*.08)for(const id of [a,b,c])unsafe.add(id);}
+  remaining=unsafe.size;if(!remaining)break;
+  for(const id of unsafe){if(factors[id]===1)limited++;factors[id]*=.52;}
+ }
+ if(remaining){factors.fill(0);update();throw new Error(&#x27;Rock surface displacement could not preserve source triangle orientation&#x27;);}
+ const final=surfaceNormals(result,indices),positions=result.flat(),bounds=[0,1,2].map(d=&gt;[Math.min(...result.map(p=&gt;p[d])),Math.max(...result.map(p=&gt;p[d]))]);
+ let anchor=[0,-Infinity,0];for(let i=0;i&lt;g.positions.length;i+=3)if(g.positions[i+1]&gt;=anchor[1])anchor=g.positions.slice(i,i+3);
+ const output={...g,positions,indices,normals:final.normals.flat(),rockDetail:details.flat(),bounds:[bounds.map(b=&gt;b[0]),bounds.map(b=&gt;b[1])],stats:{triangles:indices.length/3,method:ROCK_SURFACE_VERSION},surface:{version:ROCK_SURFACE_VERSION,sourceTriangles:g.indices.length/3,anchor,patches:patches.size,limitedVertices:limited,vertices:result.length,maximumDisplacementM:Math.max(...result.map((p,i)=&gt;Math.hypot(...surfaceSub(p,vertices[i])))),protectedVertices:protectedVertices.filter(Boolean).length}};
+ surfaceCache.set(g,output);return output;
+}
+
+function fracturedRockLibrary(geometries){return Object.fromEntries(Object.entries(geometries).map(([id,g])=&gt;[id,fractureRockGeometry(g)]));}
+
+// Split only the render normals at physical creases. Geometry used by fitting
+// and contact measurements stays welded and has identical triangle positions.
+function creasedRockAttributes(g){
+ const p=g.positions,indices=g.indices,vertices=Array.from({length:p.length/3},(_,i)=&gt;p.slice(i*3,i*3+3));
+ const {faces}=surfaceNormals(vertices,indices),unit=faces.map(surfaceUnit),adjacent=vertices.map(()=&gt;[]);
+ for(let i=0;i&lt;indices.length;i++)adjacent[indices[i]].push(Math.floor(i/3));
+ const positions=[],normals=[],rockDetail=[],threshold=Math.cos(55*Math.PI/180);
+ for(let i=0;i&lt;indices.length;i++){
+  const id=indices[i],face=Math.floor(i/3),sum=[0,0,0];
+  for(const j of adjacent[id])if(surfaceDot(unit[face],unit[j])&gt;=threshold)for(let d=0;d&lt;3;d++)sum[d]+=faces[j][d];
+  positions.push(...vertices[id]);normals.push(...surfaceUnit(sum));rockDetail.push(...(g.rockDetail?.slice(id*3,id*3+3)||[0,.5,0]));
+ }
+ return {positions,normals,rockDetail};
+}
+
+function applyStoneSurface(material,THREE,oxideColor){
+ material.roughness=.88;material.extensions={...material.extensions,derivatives:true};
+ material.onBeforeCompile=shader=&gt;{
+  shader.uniforms.rockOxide={value:new THREE.Color(oxideColor)};
+  shader.vertexShader=shader.vertexShader.replace(&#x27;#include &lt;common&gt;&#x27;,&#x27;#include &lt;common&gt;\nattribute vec3 rockDetail; varying vec3 vRockLocal; varying vec3 vRockDetail;&#x27;).replace(&#x27;#include &lt;begin_vertex&gt;&#x27;,&#x27;#include &lt;begin_vertex&gt;\nvRockLocal=position;vRockDetail=rockDetail;&#x27;);
+  shader.fragmentShader=shader.fragmentShader.replace(&#x27;#include &lt;common&gt;&#x27;,`#include &lt;common&gt;
+varying vec3 vRockLocal; varying vec3 vRockDetail; uniform vec3 rockOxide;
+float rsHash(vec3 p){p=fract(p*.1031);p+=dot(p,p.yzx+33.33);return fract((p.x+p.y)*p.z);}
+float rsNoise(vec3 p){vec3 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(mix(rsHash(i),rsHash(i+vec3(1,0,0)),f.x),mix(rsHash(i+vec3(0,1,0)),rsHash(i+vec3(1,1,0)),f.x),f.y),mix(mix(rsHash(i+vec3(0,0,1)),rsHash(i+vec3(1,0,1)),f.x),mix(rsHash(i+vec3(0,1,1)),rsHash(i+vec3(1,1,1)),f.x),f.y),f.z);}
+float rsGrain(vec3 p){return rsNoise(p*6.)*.68+rsNoise(p*17.)*.32;}
+`);
+  shader.fragmentShader=shader.fragmentShader.replace(&#x27;#include &lt;color_fragment&gt;&#x27;,`#include &lt;color_fragment&gt;
+float rsGrainValue=rsGrain(vRockLocal);
+float rsOxide=smoothstep(.64,.85,rsNoise(vRockLocal*.47+vec3(8.,1.,3.)))*.32;
+diffuseColor.rgb=mix(diffuseColor.rgb,rockOxide,rsOxide);
+diffuseColor.rgb*= (.78+.28*vRockDetail.y)*(.86+.25*rsGrainValue)*(1.-.43*vRockDetail.x)+.08*vRockDetail.z;
+`);
+  shader.fragmentShader=shader.fragmentShader.replace(&#x27;#include &lt;roughnessmap_fragment&gt;&#x27;,&#x27;#include &lt;roughnessmap_fragment&gt;\nroughnessFactor=clamp(roughnessFactor+(.5-rsGrainValue)*.18,.65,1.);&#x27;);
+  shader.fragmentShader=shader.fragmentShader.replace(&#x27;#include &lt;normal_fragment_maps&gt;&#x27;,`#include &lt;normal_fragment_maps&gt;
+vec3 rsDx=dFdx(-vViewPosition),rsDy=dFdy(-vViewPosition);
+float rsFilter=1.-smoothstep(.15,.65,max(length(dFdx(vRockLocal)),length(dFdy(vRockLocal))));
+float rsHeight=rsGrainValue*.034*rsFilter;
+vec3 rsR1=cross(rsDy,normal),rsR2=cross(normal,rsDx);
+float rsDet=dot(rsDx,rsR1);
+normal=normalize(abs(rsDet)*normal-sign(rsDet)*(dFdx(rsHeight)*rsR1+dFdy(rsHeight)*rsR2));
+`);
+ };
+ material.customProgramCacheKey=()=&gt;ROCK_SURFACE_VERSION;
+ return material;
+}
+
+
 const smooth01=u=&gt;{u=clamp(u,0,1);return u*u*(3-2*u);};
 function knotTangent(knots,i,d){
  const a=knots[Math.max(0,i-1)],b=knots[Math.min(knots.length-1,i+1)];
@@ -2714,6 +2867,7 @@ function generateRidgeScene(source,geometries,seed=DEFAULT_RIDGE_SEED,options={}
  const seedInput=root.querySelector(&#x27;#rock-study-seed&#x27;),nextSeed=root.querySelector(&#x27;#rock-study-next-seed&#x27;),seedControls=root.querySelector(&#x27;#rock-study-seed-controls&#x27;);
  const heightInput=root.querySelector(&#x27;#rock-study-height&#x27;),heightValue=root.querySelector(&#x27;#rock-study-height-value&#x27;);
  const ridgeLegend=root.querySelector(&#x27;#rock-study-ridge-legend&#x27;);
+ const finishInput=root.querySelector(&#x27;#rock-study-finish&#x27;);
  const modeInput=root.querySelector(&#x27;#rock-study-mode&#x27;),surfaceInput=root.querySelector(&#x27;#rock-study-surface&#x27;),surfaceControl=root.querySelector(&#x27;#rock-study-surface-control&#x27;);
  const authoring=root.querySelector(&#x27;#rock-study-authoring&#x27;),noiseControls=root.querySelector(&#x27;#rock-study-noise-controls&#x27;),noiseSummary=root.querySelector(&#x27;#rock-study-noise-summary&#x27;);
  const noiseInputs=Object.fromEntries(Object.keys(PERLIN_DEFAULTS).map(key=&gt;[key,root.querySelector(&#x27;#rock-study-&#x27;+key)]));
@@ -2737,10 +2891,21 @@ function generateRidgeScene(source,geometries,seed=DEFAULT_RIDGE_SEED,options={}
  const sun=new T.DirectionalLight();sun.intensity=3.3;sun.position.set(-60,115,70);sun.castShadow=true;
  sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-120,right:120,top:120,bottom:-120,near:1,far:350});
  sun.shadow.bias=-.00025;sun.shadow.normalBias=.08;scene.add(sun);
- const geometryCache={};
- for(const [key,g]of Object.entries(data.geometries)){
-  const geo=new T.BufferGeometry();geo.setAttribute(&#x27;position&#x27;,new T.Float32BufferAttribute(g.positions,3));
-  geo.setAttribute(&#x27;normal&#x27;,new T.Float32BufferAttribute(g.normals,3));geo.setIndex(g.indices);geo.computeBoundingSphere();geometryCache[key]=geo;
+ let activeGeometries=data.geometries,geometryCache={},geometryMode=&#x27;&#x27;;
+ const libraryCache=new Map();
+ function useRockGeometry(){
+  const mode=finishInput.value===&#x27;original&#x27;?&#x27;original&#x27;:&#x27;fractured&#x27;;if(geometryMode===mode)return;
+  if(!libraryCache.has(mode)){
+   const library=mode===&#x27;original&#x27;?data.geometries:fracturedRockLibrary(data.geometries),buffers={};
+   for(const [key,g]of Object.entries(library)){
+    const attributes=g.surface?creasedRockAttributes(g):g,geo=new T.BufferGeometry();
+    geo.setAttribute(&#x27;position&#x27;,new T.Float32BufferAttribute(attributes.positions,3));geo.setAttribute(&#x27;normal&#x27;,new T.Float32BufferAttribute(attributes.normals,3));
+    if(g.surface)geo.setAttribute(&#x27;rockDetail&#x27;,new T.Float32BufferAttribute(attributes.rockDetail,3));else geo.setIndex(g.indices);
+    geo.computeBoundingSphere();buffers[key]=geo;
+   }
+   libraryCache.set(mode,{library,buffers});
+  }
+  const cached=libraryCache.get(mode);activeGeometries=cached.library;geometryCache=cached.buffers;geometryMode=mode;
  }
  let current,world=new T.Group(),guideGroup=new T.Group(),target=new T.Vector3(),yaw=0,pitch=.45,span=100,width=700,height=450;
  scene.add(world,guideGroup);
@@ -2767,9 +2932,18 @@ function generateRidgeScene(source,geometries,seed=DEFAULT_RIDGE_SEED,options={}
   if(view===&#x27;plan&#x27;){yaw=0;pitch=Math.PI/2-.0001;}
   if(view===&#x27;side&#x27;)yaw+=Math.PI/2;
   if(view===&#x27;low&#x27;)pitch=.13;
+  setCameraTarget();
+ }
+ function setCameraTarget(){
   target.fromArray(current.camera.target);span=current.camera.span;
+  if(viewSelect.value!==&#x27;close&#x27;)return;
+  const r=current.rocks.find(r=&gt;r.id===current.ridge?.primary.rock)||current.rocks[0],g=activeGeometries[r.mesh],b=g.bounds,c=Math.cos(r.yaw),s=Math.sin(r.yaw);
+  const x=(b[0][0]+b[1][0])*.5*r.scale*(r.longitudinalScale??1),z=(b[0][2]+b[1][2])*.5*r.scale*(r.lateralScale??1),h=(b[1][1]-b[0][1])*r.scale*(r.verticalScale??1);
+  target.set(r.x+c*x-s*z,r.y+(b[0][1]+b[1][1])*.5*r.scale*(r.verticalScale??1),r.z+s*x+c*z);
+  span=Math.max(h*width/height,g.parameters.obbWidth*r.scale*(r.longitudinalScale??1))*1.18;
  }
  function createScene(resetCamera=true){
+  useRockGeometry();
   current=data.scenes.find(s=&gt;s.id===caseSelect.value)||data.scenes[0];
   const procedural=[&#x27;cliff&#x27;,&#x27;island&#x27;,&#x27;peaks&#x27;].includes(current.id);
   const perlin=procedural&amp;&amp;modeInput.value===&#x27;perlin&#x27;;
@@ -2778,16 +2952,18 @@ function generateRidgeScene(source,geometries,seed=DEFAULT_RIDGE_SEED,options={}
   authoring.hidden=!procedural;noiseControls.hidden=!perlin;surfaceControl.hidden=!perlin;
   ridgeLegend.hidden=!procedural||!guideInput.checked;
   if(procedural){
-   const key=current.id+&#x27;:&#x27;+seedInput.value+&#x27;:&#x27;+authoringKey();
-   if(key!==generatedKey){generatedScene=generateRidgeScene(current,data.geometries,Number(seedInput.value),{mode:modeInput.value,noise:noiseOptions()});generatedKey=key;}
+   const key=current.id+&#x27;:&#x27;+seedInput.value+&#x27;:&#x27;+authoringKey()+&#x27;:&#x27;+geometryMode;
+   if(key!==generatedKey){generatedScene=generateRidgeScene(current,activeGeometries,Number(seedInput.value),{mode:modeInput.value,noise:noiseOptions()});generatedKey=key;}
    current=generatedScene;
   }
   current=withSceneHeight(current,Number(heightInput.value)/100);
   heightValue.value=heightInput.value+&#x27;%&#x27;;
   heightInput.setAttribute(&#x27;aria-valuetext&#x27;,heightInput.value+&#x27; percent of original height&#x27;);
   clearScene();const p=palette();
+  ambient.intensity=finishInput.value===&#x27;stone&#x27;?1.6:2.4;
   renderer.setClearColor(p.bg,0);
   const stone=mat(p.stone),terrain=mat(p.ground,{side:T.DoubleSide});
+  if(finishInput.value===&#x27;stone&#x27;)applyStoneSurface(stone,T,p.stone.clone().lerp(p.route,.22));
   if(!perlin||surfaceInput.value===&#x27;rocks&#x27;)for(const r of current.rocks){const mesh=new T.Mesh(geometryCache[r.mesh],stone);mesh.position.set(r.x,r.y,r.z);mesh.scale.set(r.scale*(r.longitudinalScale??1),r.scale*(r.verticalScale??1),r.scale*(r.lateralScale??1));mesh.rotation.y=-r.yaw;mesh.castShadow=true;mesh.receiveShadow=true;world.add(mesh);}
   if(perlin&amp;&amp;surfaceInput.value!==&#x27;rocks&#x27;){
    const field=current.ridge.plan.sourceField,positions=field.positions.map((v,i)=&gt;i%3===1?v+.04+(surfaceInput.value===&#x27;detail&#x27;?field.detailOffsets[(i-1)/3]:0):v);
@@ -2840,17 +3016,18 @@ function generateRidgeScene(source,geometries,seed=DEFAULT_RIDGE_SEED,options={}
   if(perlin&amp;&amp;surfaceInput.value!==&#x27;rocks&#x27;){const count=current.ridge.plan.extraction.selectedPeaks;detail.textContent=count+&#x27; major peak&#x27;+(count===1?&#x27;&#x27;:&#x27;s&#x27;)+&#x27; · &#x27;+current.ridge.plan.curves.length+&#x27; ridges · &#x27;+(surfaceInput.value===&#x27;coarse&#x27;?&#x27;Structural field&#x27;:&#x27;Fine detail; same ridge network&#x27;);}
   description.textContent=current.notes+(procedural?&#x27; The blue branching ridge network guides broad overlapping rock masses. Whole masses are refitted before adding structure; local differences within &#x27;+current.ridge.policy.curveToleranceM.toFixed(1)+&#x27; meters are tolerated. Small rocks have a separate budget of two and stay at the lower edges. All accepted pieces overlap the connected body in sampled mesh volume. Orange shows the actual surface along each target curve; its measured RMS deviation is &#x27;+current.ridge.fit.rmsM.toFixed(2)+&#x27; meters. Spheres mark peaks and diamonds mark saddles.&#x27;:&#x27;&#x27;)+&#x27; Height scales rocks, terrain and the complete ridge network together. These are proposed arrangements using actual procedural mesh geometry, without Seed materials or runtime navigation. Drag to orbit; side, plan and low angle views are also available.&#x27;;
   if(perlin)description.textContent+=&#x27; Peaks and connecting saddle passes are extracted from a coarse Perlin field. Curves simplify and smooth the traced paths, so intermediate points may depart slightly from the sampled field. Octaves below 24 meters affect only bounded surface detail, not graph topology. The source field views hide the rock meshes and orange comparison lines.&#x27;;
+  description.textContent+=finishInput.value===&#x27;original&#x27;?&#x27; Original baked geometry and clay shading.&#x27;:&#x27; Fractured surfaces use connected planar patches, recessed joints and chipped borders in the actual mesh. The fitter measures the deformed triangles. The clay option exposes those shapes without stone grain or color. Low contact regions and the flat platform caps are protected.&#x27;;
   stage.setAttribute(&#x27;aria-describedby&#x27;,&#x27;rock-study-description&#x27;);
-  if(resetCamera)setCamera();else target.fromArray(current.camera.target);resize();
+  if(resetCamera)setCamera();else setCameraTarget();resize();
  }
  function render(){
   if(!current)return;
   let maxX=0,maxY=0;
   const projectExtent=(x,y,z)=&gt;{x-=target.x;y-=target.y;z-=target.z;maxX=Math.max(maxX,Math.abs(x*Math.cos(yaw)-z*Math.sin(yaw)));maxY=Math.max(maxY,Math.abs(-x*Math.sin(yaw)*Math.sin(pitch)+y*Math.cos(pitch)-z*Math.cos(yaw)*Math.sin(pitch)));};
-  for(const r of current.rocks){const b=data.geometries[r.mesh].bounds,c=Math.cos(r.yaw),sn=Math.sin(r.yaw);for(let i=0;i&lt;2;i++)for(let j=0;j&lt;2;j++)for(let k=0;k&lt;2;k++){const x=b[i][0]*r.scale*(r.longitudinalScale??1),z=b[k][2]*r.scale*(r.lateralScale??1);projectExtent(r.x+c*x-sn*z,r.y+b[j][1]*r.scale*(r.verticalScale??1),r.z+sn*x+c*z);}}
+  for(const r of current.rocks){const b=activeGeometries[r.mesh].bounds,c=Math.cos(r.yaw),sn=Math.sin(r.yaw);for(let i=0;i&lt;2;i++)for(let j=0;j&lt;2;j++)for(let k=0;k&lt;2;k++){const x=b[i][0]*r.scale*(r.longitudinalScale??1),z=b[k][2]*r.scale*(r.lateralScale??1);projectExtent(r.x+c*x-sn*z,r.y+b[j][1]*r.scale*(r.verticalScale??1),r.z+sn*x+c*z);}}
   for(const l of current.labels)projectExtent(...l.position);
   for(const station of current.ridge?.stations||[])projectExtent(...station.target);
-  const fit=Math.max(span,maxX*2.15,maxY*2.18*width/height);
+  const fit=viewSelect.value===&#x27;close&#x27;?span:Math.max(span,maxX*2.15,maxY*2.18*width/height);
   camera.left=-fit/2;camera.right=fit/2;camera.top=fit*height/width/2;camera.bottom=-camera.top;camera.updateProjectionMatrix();
   const distance=span*1.8;
   camera.position.set(target.x+distance*Math.sin(yaw)*Math.cos(pitch),target.y+distance*Math.sin(pitch),target.z+distance*Math.cos(yaw)*Math.cos(pitch));
@@ -2862,18 +3039,19 @@ function generateRidgeScene(source,geometries,seed=DEFAULT_RIDGE_SEED,options={}
    const w=el.offsetWidth,h=el.offsetHeight;
    x=Math.max(6,Math.min(width-w-6,x-w/2));y=Math.max(8,Math.min(height-h-30,y));
    const overlaps=boxes.some(b=&gt;x&lt;b.x+b.w&amp;&amp;x+w&gt;b.x&amp;&amp;y&lt;b.y+b.h&amp;&amp;y+h&gt;b.y);
-   el.hidden=overlaps||point.z&gt;1;el.style.left=x+&#x27;px&#x27;;el.style.top=y+&#x27;px&#x27;;if(!el.hidden)boxes.push({x,y,w,h});
+   el.hidden=overlaps||point.z&gt;1||(viewSelect.value===&#x27;close&#x27;&amp;&amp;(Math.abs(point.x)&gt;1||Math.abs(point.y)&gt;1));el.style.left=x+&#x27;px&#x27;;el.style.top=y+&#x27;px&#x27;;if(!el.hidden)boxes.push({x,y,w,h});
   });
   scaleBar.style.width=(width*10/(camera.right-camera.left))+&#x27;px&#x27;;
  }
- function resize(){width=stage.clientWidth||700;height=Math.max(280,Math.min(520,width*.64));renderer.setSize(width,height);stage.style.height=height+&#x27;px&#x27;;camera.left=-span/2;camera.right=span/2;camera.top=span*height/width/2;camera.bottom=-camera.top;camera.updateProjectionMatrix();render();}
- function save(){if(window.openai?.setWidgetState)window.openai.setWidgetState({modelContent:{arrangement:current.id,view:viewSelect.value,showLayout:guideInput.checked,seed:Number(seedInput.value),heightPercent:Number(heightInput.value),ridgeMode:modeInput.value,noise:noiseOptions(),surface:surfaceInput.value,ridgeVersion:RIDGE_VERSION},privateContent:{yaw,pitch}}).catch(()=&gt;{});}
- function applyState(state){const m=state?.modelContent;if(!m)return false;if(data.scenes.some(s=&gt;s.id===m.arrangement))caseSelect.value=m.arrangement;if([&#x27;plan&#x27;,&#x27;low&#x27;,&#x27;perspective&#x27;,&#x27;side&#x27;].includes(m.view))viewSelect.value=m.view;if(typeof m.showLayout===&#x27;boolean&#x27;)guideInput.checked=m.showLayout;if(Number.isInteger(m.seed)&amp;&amp;m.seed&gt;=0&amp;&amp;m.seed&lt;=4294967295)seedInput.value=m.seed;if(Number.isFinite(m.heightPercent)&amp;&amp;m.heightPercent&gt;=25&amp;&amp;m.heightPercent&lt;=200)heightInput.value=m.heightPercent;if([&#x27;perlin&#x27;,&#x27;direct&#x27;].includes(m.ridgeMode))modeInput.value=m.ridgeMode;if([&#x27;rocks&#x27;,&#x27;coarse&#x27;,&#x27;detail&#x27;].includes(m.surface))surfaceInput.value=m.surface;try{const n=perlinSettings(m.noise);for(const key in noiseInputs)noiseInputs[key].value=n[key];}catch{}return true;}
+ function resize(){width=stage.clientWidth||700;height=Math.max(280,Math.min(520,width*.64));if(current&amp;&amp;viewSelect.value===&#x27;close&#x27;)setCameraTarget();renderer.setSize(width,height);stage.style.height=height+&#x27;px&#x27;;camera.left=-span/2;camera.right=span/2;camera.top=span*height/width/2;camera.bottom=-camera.top;camera.updateProjectionMatrix();render();}
+ function save(){if(window.openai?.setWidgetState)window.openai.setWidgetState({modelContent:{arrangement:current.id,view:viewSelect.value,showLayout:guideInput.checked,seed:Number(seedInput.value),heightPercent:Number(heightInput.value),ridgeMode:modeInput.value,noise:noiseOptions(),surface:surfaceInput.value,rockFinish:finishInput.value,ridgeVersion:RIDGE_VERSION},privateContent:{yaw,pitch}}).catch(()=&gt;{});}
+ function applyState(state){const m=state?.modelContent;if(!m)return false;if(data.scenes.some(s=&gt;s.id===m.arrangement))caseSelect.value=m.arrangement;if([&#x27;plan&#x27;,&#x27;low&#x27;,&#x27;perspective&#x27;,&#x27;side&#x27;,&#x27;close&#x27;].includes(m.view))viewSelect.value=m.view;if(typeof m.showLayout===&#x27;boolean&#x27;)guideInput.checked=m.showLayout;if(Number.isInteger(m.seed)&amp;&amp;m.seed&gt;=0&amp;&amp;m.seed&lt;=4294967295)seedInput.value=m.seed;if(Number.isFinite(m.heightPercent)&amp;&amp;m.heightPercent&gt;=25&amp;&amp;m.heightPercent&lt;=200)heightInput.value=m.heightPercent;if([&#x27;perlin&#x27;,&#x27;direct&#x27;].includes(m.ridgeMode))modeInput.value=m.ridgeMode;if([&#x27;rocks&#x27;,&#x27;coarse&#x27;,&#x27;detail&#x27;].includes(m.surface))surfaceInput.value=m.surface;try{const n=perlinSettings(m.noise);for(const key in noiseInputs)noiseInputs[key].value=n[key];}catch{}return true;}
  function restoreState(state){
-  const previous={arrangement:caseSelect.value,view:viewSelect.value,seed:seedInput.value,height:heightInput.value,authoring:authoringKey(),surface:surfaceInput.value};
+  const previous={arrangement:caseSelect.value,view:viewSelect.value,seed:seedInput.value,height:heightInput.value,authoring:authoringKey(),surface:surfaceInput.value,finish:finishInput.value};
   if(!applyState(state))return false;
+  if([&#x27;stone&#x27;,&#x27;clay&#x27;,&#x27;original&#x27;].includes(state.modelContent?.rockFinish))finishInput.value=state.modelContent.rockFinish;
   const resetCamera=!current||previous.arrangement!==caseSelect.value||previous.view!==viewSelect.value;
-  const rebuild=!current||previous.arrangement!==caseSelect.value||previous.seed!==seedInput.value||previous.height!==heightInput.value||previous.authoring!==authoringKey()||previous.surface!==surfaceInput.value;
+  const rebuild=!current||previous.arrangement!==caseSelect.value||previous.seed!==seedInput.value||previous.height!==heightInput.value||previous.authoring!==authoringKey()||previous.surface!==surfaceInput.value||previous.finish!==finishInput.value;
   // A state echo after pointerup is persistence, not a request for a preset view.
   if(rebuild)createScene(resetCamera);else if(resetCamera)setCamera();
   const orbit=state.privateContent;
@@ -2888,6 +3066,7 @@ function generateRidgeScene(source,geometries,seed=DEFAULT_RIDGE_SEED,options={}
  heightInput.addEventListener(&#x27;change&#x27;,()=&gt;{if(heightFrame){cancelAnimationFrame(heightFrame);heightFrame=0;createScene(false);}save();});
  seedInput.addEventListener(&#x27;change&#x27;,()=&gt;{if(!seedInput.value||!seedInput.checkValidity())seedInput.value=DEFAULT_RIDGE_SEED;createScene();save();});
  nextSeed.addEventListener(&#x27;click&#x27;,()=&gt;{seedInput.value=(Number(seedInput.value)+1)&gt;&gt;&gt;0;createScene();save();});
+ finishInput.addEventListener(&#x27;change&#x27;,()=&gt;{createScene(false);save();});
  for(const input of [modeInput,surfaceInput,...Object.values(noiseInputs)])input.addEventListener(&#x27;change&#x27;,()=&gt;{for(const [key,field] of Object.entries(noiseInputs))if(!field.value||!field.checkValidity())field.value=PERLIN_DEFAULTS[key];createScene(false);save();});
  caseSelect.addEventListener(&#x27;change&#x27;,()=&gt;{createScene();save();});
  viewSelect.addEventListener(&#x27;change&#x27;,()=&gt;{setCamera();resize();save();});
