@@ -4087,7 +4087,6 @@
   "shared/tiny-glade/parts/BuildingLayout.ts": "packages/building/src/building/parts/BuildingLayout.ts",
   "shared/tiny-glade/parts/BuildingParts.ts": "packages/building/src/building/parts/BuildingParts.ts",
   "shared/tiny-glade/parts/README.md": "packages/building/src/building/parts/README.md",
-  "shared/tiny-glade/parts/architecture/BuildingAttachmentFrame.ts": "packages/building/src/building/parts/architecture/BuildingAttachmentFrame.ts",
   "shared/tiny-glade/parts/architecture/BuildingAuthorMarker.ts": "packages/building/src/building/parts/architecture/BuildingAuthorMarker.ts",
   "shared/tiny-glade/parts/architecture/BuildingCpu.ts": "packages/building/src/building/parts/architecture/BuildingCpu.ts",
   "shared/tiny-glade/parts/architecture/BuildingCpuClient.ts": "packages/building/src/building/parts/architecture/BuildingCpuClient.ts",
