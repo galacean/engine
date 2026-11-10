@@ -165,13 +165,26 @@ export const houseEaveMountGeometry: GeometryGenerator<EaveMountParams> = (p, co
   const lift = coveringRise(host, roof.n);
   const span = (max[0] - min[0]) * sx;
   const width = span + 2 * (p.overhang ?? 0) * sx;
-  const along = (s: number, v: number) => {
+  /** The u that lies `s` metres from `u0` along the roof's row at `v`. */
+  const along = (u0: number, s: number, v: number) => {
     const h = 1e-4 * (domain.u[1] - domain.u[0]);
-    const a = surface.frame(hit.u, v).origin,
-      b = surface.frame(hit.u + h, v).origin;
-    const u = hit.u + (s * h) / Math.hypot(b[0] - a[0], b[2] - a[2]);
+    const a = surface.frame(u0, v).origin,
+      b = surface.frame(u0 + h, v).origin;
+    const u = u0 + (s * h) / Math.hypot(b[0] - a[0], b[2] - a[2]);
     if (!domain.closedU && (u < domain.u[0] - 1e-9 || u > domain.u[1] + 1e-9))
       throw Error("The dormer crosses an edge of its roof");
+    return u;
+  };
+  // Each row is centred on the window's own line. The roof's rows may fan toward its ridge, so
+  // one u drifts sideways from row to row, and the shed would lean.
+  const centred = (v: number) => {
+    let u = hit.u;
+    for (let i = 0; i < 4; i++) {
+      const q = surface.frame(u, v).origin;
+      const off = (q[0] - pivot[0]) * x[0] + (q[2] - pivot[2]) * x[2];
+      if (Math.abs(off) < 1e-6) break;
+      u = along(u, -off, v);
+    }
     return u;
   };
   const front = pivot[1] + max[1] * sy;
@@ -188,9 +201,10 @@ export const houseEaveMountGeometry: GeometryGenerator<EaveMountParams> = (p, co
   const rows = Array.from({ length: rowCount }, (_, k) => {
     const t = k / (rowCount - 1);
     const v = k === rowCount - 1 ? vBack : (vAtHeight(surface, hit.u, lerp(wallTop, back - lift, t)) ?? domain.v[0]);
+    const centre = centred(v);
     const samples = Array.from(
       { length: across },
-      (_, j) => surface.frame(along(width * (j / (across - 1) - 0.5), v), v).origin
+      (_, j) => surface.frame(along(centre, width * (j / (across - 1) - 0.5), v), v).origin
     );
     const out = (1 - t) * expand;
     const y = lerp(front, back, t);

@@ -109,6 +109,24 @@ describe("Eave dormers against the online path", () => {
     }
   });
 
+  it("centres every row of its shed on the window, close to a hip as anywhere", () => {
+    for (const u of [0.12, 0.28]) {
+      const result = design(house([at("dormer-cottage-half", 2, u)], { rectangle: { ...square, size: [12, 8] } }));
+      expect(result.diagnostics).toEqual([]);
+      const part = result.parts.find((p) => p.type === "eaveDormer")!;
+      const { shed, mount } = part.original.elements;
+      if (shed?.kind !== "surface" || mount?.kind !== "point") throw Error("no shed");
+      const { origin, x } = mount.frame;
+      const rows = (shed.surface.params as { rows: { points: number[][] }[] }).rows;
+      // The roof's rows fan toward its ridge; the shed's rows still stand square over the window.
+      const offsets = rows.map(({ points }) => {
+        const q = points[(points.length - 1) / 2];
+        return (q[0] - origin[0]) * x[0] + (q[2] - origin[2]) * x[2];
+      });
+      expect(Math.max(...offsets) - Math.min(...offsets)).toBeLessThan(0.01);
+    }
+  });
+
   it("opens the wall and the eave, and carries a shed", () => {
     const result = design(house([at("dormer-cottage-half", 1, 0.125)]));
     const wall = result.parts.filter((p) => p.type === "wall" && p.modifications.some((m) => m.op === "removeArea"));
