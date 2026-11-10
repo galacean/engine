@@ -1466,10 +1466,7 @@ export function coreBuildingDecorations(
     const minimumY = Math.min(...walls.map((c) => c.minGround)),
       height = Math.max(0.01, Math.max(...walls.map((c) => c.topY)) - minimumY);
     const compiled: CompiledConstructionDecorations = {
-      holes: [],
       windowCuts: [],
-      roofOpenings: [],
-      roofUnits: [],
       parts: [],
       stones: [],
       frames: [],
