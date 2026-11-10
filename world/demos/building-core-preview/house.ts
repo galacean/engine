@@ -788,6 +788,8 @@ async function show() {
   drawn?.destroy();
   for (const e of scene.rootEntities) if (e.name.startsWith("preview-") && e !== parent) e.destroy();
   drawn = next;
+  // A drawn building starts hidden; show it once it replaces the last one.
+  next.root.isActive = true;
   const height = c.house.height ?? 4;
   // `zoom` in the URL magnifies the view for a close look; `yaw` turns the camera (degrees).
   const zoom = Number(params.get("zoom") ?? 1),
