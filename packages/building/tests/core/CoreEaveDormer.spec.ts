@@ -26,7 +26,8 @@ import {
   coreBuildingDecorations,
   coreBuildingDiagnostics,
   coreBuildingEnvironment,
-  coreBuildingLayout
+  coreBuildingLayout,
+  roofApertures
 } from "../../src/building/render/CoreBuilding";
 import { European as OnlineEuropean } from "../../src/building/parts/architecture/European";
 import { designBuilding } from "../../src/building/parts/architecture/BuildingDesign";
@@ -272,6 +273,45 @@ describe("Eave dormers against the online path", () => {
     ]);
     expect(renderInput.dormerBins.report.inputCount).toBeGreaterThan(0);
   });
+
+  it.each(["dormer-gothic-half", "dormer-cottage-half"])(
+    "%s: its eave opening takes in every eave tile that hangs into it",
+    (type) => {
+      const result = design(house([at(type, 2, 0.125)]));
+      expect(result.diagnostics).toEqual([]);
+      const roof = result.parts.find((p) => p.type === "roof" && p.modifications.some((m) => m.op === "removeArea"))!;
+      // Plain boxes: center, size along (across, up, out), level outward direction.
+      const boxes = roofApertures(coreBuildingLayout(result, registry, {})).flatMap((r) => {
+        const f = new DataView(r.buffer, r.byteOffset, 48);
+        const get = (o: number) => f.getFloat32(o, true);
+        if (get(40) !== 1 || get(44) !== -1) return [];
+        const out = [get(32), 0, get(36)];
+        return [{ c: [get(0), get(4), get(8)], s: [get(16), get(20), get(24)], out, across: [-out[2], 0, out[0]] }];
+      });
+      const local = (b: (typeof boxes)[number], p: readonly number[]) => {
+        const d = [p[0] - b.c[0], p[1] - b.c[1], p[2] - b.c[2]];
+        return [d[0] * b.across[0] + d[2] * b.across[2], d[1], d[0] * b.out[0] + d[2] * b.out[2]];
+      };
+      const inside = (b: (typeof boxes)[number], p: readonly number[]) =>
+        local(b, p).every((v, k) => Math.abs(v) <= b.s[k] / 2 + 1e-4);
+      // The box that opens the eave reaches furthest out.
+      const eave = boxes.reduce((a, b) => (local(b, b.c)[2] + b.s[2] / 2 > local(a, a.c)[2] + a.s[2] / 2 ? b : a));
+      // A first-row tile hangs from where it is laid, down the roof, by its length.
+      const hanging = lay(roof).filter((u) => /^0\//.test(u.key) && inside(eave, u.frame.origin));
+      expect(hanging.length).toBeGreaterThan(0);
+      for (const u of hanging) {
+        const { origin, x, y } = u.frame;
+        const [w, l] = u.size!;
+        for (const s of [-0.5, 0.5]) {
+          const end = [0, 1, 2].map((k) => origin[k] + x[k] * w * s + y[k] * l);
+          // Out and down: a tile may straddle the opening's sides, but not hang past its reach.
+          const [, up, out] = local(eave, end);
+          expect(up).toBeGreaterThanOrEqual(-eave.s[1] / 2 - 1e-4);
+          expect(out).toBeLessThanOrEqual(eave.s[2] / 2 + 1e-4);
+        }
+      }
+    }
+  );
 
   it("comes from the European parameters and counts as a mounted part", () => {
     const a = {

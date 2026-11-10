@@ -1876,8 +1876,19 @@ export async function coreBuildingRenderInput(
  * and two shape terms that make it a plain box (k = 1, a = -1). */
 /** Surface elements of roof parts that may lose areas: slopes, cones and decks. */
 const ROOF_SURFACES = ["slope", "deck"];
-/** How far the eave's tiles can hang past the roof's lower edge, in metres. */
-const EAVE_REACH = 1.2;
+/** How far any unit of a roof part reaches from the point it is laid at, which lies on the roof:
+ * half its width across, its whole length down the roof (a roof tile hangs from that point), and
+ * its depth. An aperture reaches this far past the area it opens, so that it takes in every
+ * fragment of the tiles over the area, and those that hang past the roof's lower edge. */
+function layReach(part: ResolvedPart, units: readonly LaidUnit[]): number {
+  const nominal = (part.unit && unitExtent(part.unit)) ?? [0, 0, 0];
+  let reach = 0;
+  for (const u of units) {
+    const [w, l, d] = u.size ?? nominal.map((n, k) => n * u.stretch[k]);
+    reach = Math.max(reach, Math.hypot(w / 2, l, d));
+  }
+  return reach;
+}
 /** How many curved pieces follow the outline of an opening that narrows. */
 const ARCH_PIECES = 3;
 const dotXZ = (a: readonly number[], b: readonly number[]) => a[0] * b[0] + a[2] * b[2];
@@ -1923,9 +1934,16 @@ const PROFILE_LEVELS = 16;
 /** The records of a removed area with an outline, seen along the roof's level outward direction.
  * Its shape stands in across and height. Where it is at its widest a plain box opens it; where it
  * narrows, a few curved pieces follow it, so that the tiles end along its shape. In a shaped
- * record the shader takes local heights from -0.5 up to 0.7 and t = k·y + a. An area that reaches
- * the roof's lower edge also opens what hangs out and down past that edge. */
-function outlineRecords(surface: EffectiveSurface, outline: Outline, slot: number, thickness: number): Uint8Array[] {
+ * record the shader takes local heights from -0.5 up to 0.7 and t = k·y + a. The records reach
+ * `reach` below the area; an area that reaches the roof's lower edge also opens what hangs out
+ * and down that far past that edge. */
+function outlineRecords(
+  surface: EffectiveSurface,
+  outline: Outline,
+  slot: number,
+  thickness: number,
+  reach: number
+): Uint8Array[] {
   // Heights of the covering, a tile thickness above the surface along its normal.
   const points = outline.map(([u, v]) => {
     const { origin, z } = surface.frame(u, v);
@@ -1969,17 +1987,16 @@ function outlineRecords(surface: EffectiveSurface, outline: Outline, slot: numbe
   const inPlain = levels.slice(0, plain + 1);
   const zRange = (limit: number) => {
     const z = shape.filter((p) => p.y <= limit + 1e-6).map((p) => p.z);
-    return [Math.min(...z), Math.max(...z) + (atEave ? EAVE_REACH : 0)];
+    return [Math.min(...z), Math.max(...z) + (atEave ? reach : 0)];
   };
   const place = (cx: number, cz: number, y: number) => [across[0] * cx + out[0] * cz, y, across[2] * cx + out[2] * cz];
   const depth = zRange(y1);
   const box = depth;
   const x0 = Math.min(...inPlain.map((l) => l.span[0])),
     x1 = Math.max(...inPlain.map((l) => l.span[1]));
-  // The box reaches well below the roof there: only this roof's tiles lie over the area. It ends
-  // at the covering's top edge, so that the tiles above the area stay whole.
-  const reach = 0.5;
-  const bottom = y0 - reach - (atEave ? EAVE_REACH : 0),
+  // The box reaches below the roof there as far as a tile can: only this roof's tiles lie over
+  // the area. It ends at the covering's top edge, so that the tiles above the area stay whole.
+  const bottom = y0 - reach - (atEave ? reach : 0),
     ceiling = top + 0.01;
   const records = [
     apertureRecord(
@@ -2010,16 +2027,18 @@ function outlineRecords(surface: EffectiveSurface, outline: Outline, slot: numbe
   }
   return records;
 }
-function roofApertures(layout: CoreBuildingLayout): Uint8Array[] {
+/** The roof renderer's apertures for a layout, as 48-byte records (see `apertureRecord`). */
+export function roofApertures(layout: CoreBuildingLayout): Uint8Array[] {
   const records: Uint8Array[] = [];
   for (const owner of layout.owners)
     for (const binding of owner.bindings) {
       if (binding.family !== "roof") continue;
-      for (const { part } of binding.parts) {
+      for (const { part, units } of binding.parts) {
         const id = ROOF_SURFACES.find((k) => part.original.elements[k]?.kind === "surface");
         if (!id) continue;
         const geometry = new EffectiveGeometry(part.original, part.modifications, layout.surfaces);
         const surface = geometry.surface(id);
+        const reach = surface.removed.length ? layReach(part, units) : 0;
         // Boxes that the tiles give way in, as to an open shutter that stands in them.
         for (const box of geometry.clearings(id))
           records.push(apertureRecord(box.center, owner.slot, box.size, box.out, 1, -1));
@@ -2027,7 +2046,7 @@ function roofApertures(layout: CoreBuildingLayout): Uint8Array[] {
           const outline = surface.outlineOf(rect);
           if (outline) {
             records.push(
-              ...outlineRecords(surface, outline, owner.slot, (part.unit && unitExtent(part.unit)?.[2]) ?? 0)
+              ...outlineRecords(surface, outline, owner.slot, (part.unit && unitExtent(part.unit)?.[2]) ?? 0, reach)
             );
             continue;
           }
@@ -2053,13 +2072,12 @@ function roofApertures(layout: CoreBuildingLayout): Uint8Array[] {
           // past that edge.
           const [z0, edge] = range(out);
           const atEave = v0 <= surface.domain.v[0] + 1e-6;
-          const z1 = edge + (atEave ? EAVE_REACH : 0);
+          const z1 = edge + (atEave ? reach : 0);
           const [x0, x1] = range(across);
           const [bottom, y1] = range([0, 1, 0]);
-          const y0 = bottom - (atEave ? EAVE_REACH : 0);
-          // The box reaches well above and below the roof there: only this roof's tiles lie
-          // over the area.
-          const reach = 0.5;
+          const y0 = bottom - (atEave ? reach : 0);
+          // The box reaches above and below the roof there as far as a tile can: only this
+          // roof's tiles lie over the area.
           const cx = (x0 + x1) / 2,
             cz = (z0 + z1) / 2;
           const center = [across[0] * cx + out[0] * cz, (y0 + y1) / 2, across[2] * cx + out[2] * cz];
