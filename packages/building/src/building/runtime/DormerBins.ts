@@ -89,20 +89,3 @@ export function encodeConstructionDormerBins(records: readonly Uint8Array[]) {
     throw Error("Dormer grid exceeds finite address domain");
   return { ...encodeDormerBins(records, native ? undefined : grid), grid };
 }
-
-/** A candidate must not publish geometry whose native GPU holes would be lost.
- * The original first-49 encoder stays available for original-format replay. */
-export class DormerBinCapacityError extends Error {
-  readonly report: ReturnType<typeof encodeConstructionDormerBins>["report"];
-  constructor(report: ReturnType<typeof encodeConstructionDormerBins>["report"]) {
-    super(
-      `Roof attachment clipping exceeds the native ${DORMER_ADMITTED_COUNT}-hole spatial-bin capacity (${report.droppedAssignments} dropped assignments in ${report.overflowBins.length} bins); placement was not published`
-    );
-    this.report = report;
-  }
-}
-export function encodeCompleteConstructionDormerBins(records: readonly Uint8Array[]) {
-  const bins = encodeConstructionDormerBins(records);
-  if (bins.report.droppedAssignments) throw new DormerBinCapacityError(bins.report);
-  return bins;
-}

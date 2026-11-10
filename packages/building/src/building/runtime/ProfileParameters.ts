@@ -25,10 +25,6 @@ export interface ProfileFinishParameters {
   color: number;
   tint?: [number, number, number] | null;
 }
-export interface ProfileFloorParameters {
-  enabled: boolean;
-  interval: number;
-}
 
 function record(v: unknown, label: string): Record<string, unknown> {
   if (!v || typeof v !== "object" || Array.isArray(v)) throw Error(label + " must be an object");
@@ -124,12 +120,4 @@ export function normalizeProfileFinish(input: unknown): ProfileFinishParameters 
     result.tint = p.tint === null ? null : ([...p.tint] as [number, number, number]);
   }
   return result;
-}
-export function normalizeProfileFloors(input: unknown): ProfileFloorParameters {
-  const f = record(input, "floors");
-  only(f, ["enabled", "interval"], "floors");
-  if (typeof f.enabled !== "boolean") throw Error("Floor bands enabled must be boolean");
-  const interval = profileNumber(f.interval, "floors.interval");
-  if (!(interval > 0)) throw Error("Invalid floor band spacing");
-  return { enabled: f.enabled, interval };
 }

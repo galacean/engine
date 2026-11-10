@@ -34,18 +34,6 @@ export interface DecorationPlacementConstraint {
   relation: "<=" | "<";
   unit: "m" | "m2";
 }
-export type MeasuredDecorationConstraint = Omit<DecorationPlacementConstraint, "measured" | "limit"> & {
-  measured: number;
-  limit: number;
-};
-/** Normalize only diagnostic transport, after the unchanged geometric test. */
-export function decorationConstraintFact(value: MeasuredDecorationConstraint): DecorationPlacementConstraint {
-  return {
-    ...value,
-    measured: Number.isFinite(value.measured) ? value.measured : null,
-    limit: Number.isFinite(value.limit) ? value.limit : null
-  };
-}
 export interface ConstructionDecorationIssue {
   id: string;
   reason: string;

@@ -51,35 +51,6 @@ export function intersect(p: number[][], clip: number[][]) {
   for (let i = 0; i < clip.length; i++) p = halfplane(p, clip[i], clip[(i + 1) % clip.length]);
   return p;
 }
-export function subtractConvex(p: number[][], c: number[][]) {
-  if (!p.length) return [];
-  if (!c.length) return [p];
-  if (!intersect(p, c).length) return [p];
-  let remaining = p;
-  const out: number[][][] = [];
-  for (let i = 0; i < c.length && remaining.length; i++) {
-    const a = c[i],
-      b = c[(i + 1) % c.length],
-      outside = halfplane(remaining, a, b, false);
-    if (outside.length) out.push(outside);
-    remaining = halfplane(remaining, a, b);
-  }
-  return out;
-}
-export function planeClip(p: number[][], n: number[], d: number) {
-  const out: number[][] = [];
-  for (let i = 0; i < p.length; i++) {
-    const a = p[i],
-      b = p[(i + 1) % p.length],
-      av = dot(n, a) + d,
-      bv = dot(n, b) + d,
-      ai = av >= -EPS,
-      bi = bv >= -EPS;
-    if (ai) out.push(a);
-    if (ai !== bi) out.push(add(a, scale(sub(b, a), av / (av - bv))));
-  }
-  return out;
-}
 
 /** Ear-clipped simple UV polygon; used only for author edit masks, not native arithmetic. */
 export function triangulateUVPolygon(input: number[][]): number[][][] {

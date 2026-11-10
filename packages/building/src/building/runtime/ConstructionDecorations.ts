@@ -39,9 +39,6 @@ export interface ConstructionDecorationSpec {
   /** Original lantern palette, 0..4. Independent of timber color. */
   lightColor?: number;
 }
-/** Transient producer input; authoring keeps omitted defaults omitted. */
-export type ResolvedConstructionDecorationSpec = ConstructionDecorationSpec &
-  Required<Pick<ConstructionDecorationSpec, "type" | "host" | "rank">>;
 
 /** Appearance coordinates are original model UVs, never wall editing coordinates.
  * kinds use ConstructionDecorationMaterial; colors belong to that material.

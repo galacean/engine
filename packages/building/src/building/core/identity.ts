@@ -9,8 +9,6 @@ export const compareKeys = (a: string, b: string): number => (a < b ? -1 : a > b
 export const authorPartKey = (id: string): string => JSON.stringify(["p", id]);
 export const derivedPartKey = (connection: string, localId: string): string =>
   JSON.stringify(["d", connection, localId]);
-export const partKey = (identity: PartIdentity): string =>
-  identity.kind === "author" ? authorPartKey(identity.id) : derivedPartKey(identity.connection, identity.localId);
 
 export const authorConnectionKey = (id: string): string => JSON.stringify(["c", id]);
 export const derivedConnectionKey = (parent: string, localId: string): string =>

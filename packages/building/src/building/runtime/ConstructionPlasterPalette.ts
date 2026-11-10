@@ -11,17 +11,6 @@ export const plasterPalette = [
   [0.745098, 0.607843, 0.45098],
   [0.741176, 0.572549, 0.52549]
 ];
-
-export const plasterColorNames = ["赭红", "麦黄", "灰蓝", "炭灰", "石灰白", "鼠尾草绿", "砂岩", "暖粉"];
-export const plasterColorHex = (rgb: readonly number[]) =>
-  "#" +
-  rgb
-    .map((v) =>
-      Math.round(v * 255)
-        .toString(16)
-        .padStart(2, "0")
-    )
-    .join("");
 export function parsePlasterHex(hex: string): [number, number, number] {
   if (!/^#[0-9a-f]{6}$/i.test(hex)) throw Error("颜色格式须为 #RRGGBB");
   return [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255) as [number, number, number];

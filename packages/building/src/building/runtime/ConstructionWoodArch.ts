@@ -111,8 +111,3 @@ export function placeConstructionWoodArch(
   }
   return { frames, pillars };
 }
-
-export function compileConstructionWoodArch(source: PublishedWallProfile, input: ConstructionWoodArchInput) {
-  const { placement, ...plan } = planConstructionWoodArch(source, input);
-  return { ...plan, ...placeConstructionWoodArch(plan.cut.points, placement) };
-}
