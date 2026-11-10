@@ -315,6 +315,29 @@ describe("Plaster against the online path", () => {
     },
     60000
   );
+  it.each([
+    ["hip", {}],
+    ["gable", { ridge_length: 1 }],
+    ["flat", { height: 0 }]
+  ] as [string, CoreHouseParameters["roof"]][])(
+    "wears the walls under a %s roof from their height above the ground, as online does",
+    async (_name, roof) => {
+      const p: CoreHouseParameters = {
+        id: "w",
+        height: 4,
+        rectangle: { center: [0, 0], size: [8, 6], rotation: 0 },
+        roof,
+        plaster: { enabled: true, wear: 0.35, color: 4 }
+      };
+      const { renderInput } = await compileCoreBuilding(core(p), registry, { environment, assets: nativeAssets });
+      const walls = renderInput.surfaceParts.filter((x) => x.plaster);
+      expect(walls.length).toBeGreaterThan(0);
+      // The ground is flat at 0: every point of the finish wears as high as it stands, so the
+      // roof above cannot change how the foot of the wall wears.
+      for (const x of walls) x.uvs.forEach((uv, i) => expect(uv[1]).toBeCloseTo(x.positions[i * 3 + 1], 6));
+    },
+    60000
+  );
 });
 
 describe("Wall prefabs against the online path", () => {

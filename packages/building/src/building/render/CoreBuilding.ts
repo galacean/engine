@@ -800,12 +800,13 @@ function plasterPart(
     distances: number[] = [];
   const index = new Map<string, number>();
   // The shader builds plaster up to full cover over the lowest PLASTER_RISE metres above the
-  // ground, and wears it away within a metre of its edges. A face is whole at its top: one whose
-  // top stands lower takes the upper part of that rise. On a face too small for any point to lie
+  // ground, and wears it away within a metre of its edges. A finish that asks to be whole at its
+  // top, such as a base under the walls, takes the upper part of that rise when its top stands
+  // lower; any other finish wears as high as it stands. On a face too small for any point to lie
   // a metre from an edge, its deepest point counts as that metre. A face too low for a row of the
   // mesh to run inside it, such as a pillar's cap, lies all along its edges and wears away.
   const top = Math.max(...outline.map((q) => q[1]));
-  const lift = Math.max(0, PLASTER_RISE - (top - chart.minGround));
+  const lift = unit.params?.wholeAtTop === true ? Math.max(0, PLASTER_RISE - (top - chart.minGround)) : 0;
   const depths = outline
     .slice(0, half)
     .map((b, i) => surface.edgeDistance(b[0], (b[1] + outline[outline.length - 1 - i][1]) / 2, 1));

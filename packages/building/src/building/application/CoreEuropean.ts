@@ -686,7 +686,8 @@ export function buildCoreHouse(p: CoreHouseParameters): BuildingCoreDraft {
           geometry: { generator: "surfaceFinish", params: { proud: 0.05 } },
           algorithm: {
             type: "coverSurfaces",
-            params: { unitParams: { wear: baseFinish.wear ?? 0.3, color: baseFinish.color ?? 0 } }
+            // The walls stand on the base: its plaster is whole where they meet it.
+            params: { unitParams: { wear: baseFinish.wear ?? 0.3, color: baseFinish.color ?? 0, wholeAtTop: true } }
           },
           unit: { source: "plaster" }
         }
