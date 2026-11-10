@@ -11,6 +11,7 @@ import { createPlanningGroundSampler, createPlanningRingQuery } from "../../sema
 import { settlementRandom } from "../../semantic-study/SettlementGeometry";
 import { ribbonOutline } from "../../semantic-study/WorldRibbon";
 import { territoryLookup } from "../ecology/PoiTerritories";
+import { compositionReliefGround } from "../SpatialCompositionGeometry";
 
 /** World hydrology preferences. All lengths and levels are metres. Each river publishes its own longitudinal profile. */
 export interface RiverParameters extends PlanningCountRange {
@@ -93,7 +94,7 @@ export function generateRiverRegions(
   plan.bridges = [];
   plan.roadApproaches = []; // Derived road grading must never feed back into hydrology.
   plan.planning!.profiles = plan.planning!.profiles.filter((p) => !previousWaterIds.has(p.ownerId));
-  const ground = createPlanningGroundSampler(plan),
+  const ground = compositionReliefGround(plan.parameters.spatialComposition, createPlanningGroundSampler(plan)),
     owner = territoryLookup(plan),
     checks: PlanningCheck[] = [];
   const rules = (p: PlanPoint, base = config): RiverParameters => {

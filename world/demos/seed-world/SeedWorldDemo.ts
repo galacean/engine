@@ -507,8 +507,16 @@ export async function mountSeedWorldDemo(
     engine.sceneManager.activeScene!?.destroy();
     const resize = () => {
       if (!canvas.clientWidth || !canvas.clientHeight) return;
-      const dpr = window.devicePixelRatio || 1;
-      engine!.canvas.setResolution(Math.round(canvas.clientWidth * dpr), Math.round(canvas.clientHeight * dpr));
+      // Keep the view's aspect ratio and small-screen pixel density, but bound
+      // HDR, bloom and reflection render targets on large Retina displays.
+      const dpr = Math.min(
+        window.devicePixelRatio || 1,
+        Math.sqrt(PLANNING_RUNTIME_OPTIONS.maxRenderPixels / (canvas.clientWidth * canvas.clientHeight))
+      );
+      engine!.canvas.setResolution(
+        Math.max(1, Math.floor(canvas.clientWidth * dpr)),
+        Math.max(1, Math.floor(canvas.clientHeight * dpr))
+      );
       orb?.resize();
     };
     resizeObserver = new ResizeObserver(resize);
@@ -1397,7 +1405,10 @@ export async function mountSeedWorldDemo(
                     rockGrassExclusions(candidateSolids!.sourcePlan, fields, rockGrassWaterTest(water!))
                   );
                   try {
-                    const vegetationFrame = candidateVegetation!.prepareGrounding(fields, signal);
+                    const vegetationFrame = candidateVegetation!.prepareGrounding(fields, signal, {
+                    plan: presented,
+                    formations: candidateSolids!.formations
+                  });
                     return {
                       commit: () => {
                         solidFrame.commit();
@@ -1462,7 +1473,9 @@ export async function mountSeedWorldDemo(
                 client: rockFormations,
                 settings: readRockFormationSettings(document),
                 signal,
-                generationProfile: readRockGenerationProfile(document)
+                generationProfile: readRockGenerationProfile(document),
+                formations: formationMeshes,
+                supportPlan: planningPresentedSolids(plan, heightTransition?.fields ?? candidateData.fields, candidateData.fields)
               },
               readPlantMaterialParameters(document),
               candidate,

@@ -17,6 +17,10 @@ export interface TemplateNode {
   assetLeafMaterials?: readonly string[];
   /** Optional sRGB leaf tint for the supplied model; its bark and textures retain their authored values. */
   assetLeafColor?: string;
+  /** Linear intensity of the leaf pigment, including values above one. */
+  assetLeafIntensity?: number;
+  /** Native foliage texture overlay weight; zero uses the atlas for coverage only. */
+  assetLeafTextureBlend?: number;
   /** Local emission lighting. Offset uses envelope fractions relative to its centre. */
   light?: { offset: Vec3; color: string; intensity: number; rangeM: number };
   /** Source material presentation overrides shared by every instance. */

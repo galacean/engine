@@ -67,6 +67,7 @@ export async function prepareRockFormationPublication(
     settings.colorBlend
   );
   let vegetation: Awaited<ReturnType<NonNullable<typeof current.vegetation>["prepareRocks"]>> | undefined;
+  let grounding: ReturnType<NonNullable<typeof current.vegetation>["prepareGrounding"]> | undefined;
   let masonry: Awaited<ReturnType<NonNullable<typeof current.masonry>["prepareRockSupports"]>> | undefined;
   let grass: ReturnType<typeof current.world.population.prepareRockGrass> | undefined;
   let consumed = false;
@@ -75,12 +76,17 @@ export async function prepareRockFormationPublication(
     consumed = true;
     rocks.discard();
     vegetation?.discard();
+    grounding?.discard();
     masonry?.discard();
     grass?.discard();
   };
   try {
     vegetation = await current.vegetation?.prepareRocks(client, settings, signal, generationProfile);
     signal.throwIfAborted();
+    grounding = current.vegetation?.prepareGrounding(current.heightTransition?.fields ?? current.data.fields, signal, {
+      plan: planningPresentedSolids(plan, current.heightTransition?.fields ?? current.data.fields, current.data.fields),
+      formations: meshes
+    });
     masonry = await current.masonry?.prepareRockSupports(plan, meshes, revision, signal);
     signal.throwIfAborted();
     grass = current.world.population.prepareRockGrass(
@@ -101,6 +107,7 @@ export async function prepareRockFormationPublication(
           masonry?.commit();
           rocks.commit();
           vegetation?.commit();
+          grounding?.commit();
           grass!.commit();
           masonry?.finalize();
           current.world.population.setRockGrassGround(settings);

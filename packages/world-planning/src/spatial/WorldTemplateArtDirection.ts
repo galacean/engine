@@ -65,6 +65,27 @@ export type WorldTemplateArtDirection = (WorldTemplatePalette | { grass?: undefi
     driftM: number;
     periodSeconds: number;
   };
+  /** Textured native billboard particles; motion and scale use metres and seconds. */
+  petals?: {
+    textureUrl: string;
+    count: number;
+    center: [number, number, number];
+    extent: [number, number, number];
+    sizeM: [number, number];
+    lifetimeSeconds: number;
+    fallSpeedMps: [number, number];
+    windMps: [number, number, number];
+    flutterMps: number;
+    flutterWavelengthM: number;
+    spinDegreesPerSecond: [number, number];
+    /** Submission order within the transparent queue. */
+    renderPriority: number;
+    /** Foreground petals may opt out of scene occlusion while retaining perspective motion. */
+    depthTest: boolean;
+    color: string;
+    intensity: number;
+    emission?: { color: string; intensity: number };
+  };
   /** Scalar authoring only; roads, water, relief and populations are derived. */
   generation?: Partial<SpatialCompositionParameters>;
   lighting: Record<string, number | boolean>;
@@ -243,50 +264,96 @@ export const WORLD_TEMPLATE_ART: Readonly<Record<string, WorldTemplateArtDirecti
   "sakura-pearl": {
     generation: {
       enabled: true,
-      roadWidthM: 10,
-      roadBendM: 18,
-      roadWavelengthM: 220,
+      widthM: 440,
+      frontDepthM: 270,
+      backDepthM: 180,
+      roadWidthM: 7,
+      roadBendM: 14,
+      roadWavelengthM: 210,
+      roadEndWidthRatio: 0.5,
       destinationId: "",
-      forecourtDepthM: 30,
-      streamWidthM: 24,
-      bankWidthM: 7,
-      leftReliefM: 60,
-      rightReliefM: 70,
-      waterfallWidthM: 0,
-      treeSpacingM: 22,
-      treeBandWidthM: 65,
+      forecourtDepthM: 14,
+      streamWidthM: 14,
+      streamDepthM: 0.9,
+      bankWidthM: 12,
+      leftReliefM: 104,
+      rightReliefM: 108,
+      reliefSurface: "rocks",
+      reliefBandWidthM: 128,
+      reliefFrontDepthM: 54,
+      reliefInnerHeightRatio: 0.45,
+      reliefFrontHeightRatio: 0.65,
+      reliefTreeDensity: 0.7,
+      terraceStepHeightM: 20,
+      terraceTreadM: 32,
+      cliffSharpness: 1,
+      terrainRoughness: 0.22,
+      waterfallWidthM: 8,
+      treeSpacingM: 19,
+      treeBandWidthM: 74,
       treeAssetId: "SM_BirchTree_01",
-      rockSpacingM: 18,
+      rockSpacingM: 16,
+      rockWidthM: 6,
+      rockDepthM: 5,
+      rockHeightM: 3.5,
       replacePopulation: true
     },
     reference: "SeedWorld-01-sakura-pearl.png",
     focus: ["pearl-cherry-tree"],
-    frameFraction: 0.8,
+    frameFraction: 1,
     azimuthDegrees: 0,
-    lookAtOffset: [0, -13, 0],
+    lookAtOffset: [0, 0, 0],
+    petals: {
+      textureUrl: new URL("../assets/sakura-petal.png", import.meta.url).href,
+      count: 280,
+      center: [0, 18, -95],
+      extent: [96, 28, 210],
+      sizeM: [0.45, 1.1],
+      lifetimeSeconds: 22,
+      fallSpeedMps: [0.3, 0.65],
+      windMps: [0.7, 0, 0.25],
+      flutterMps: 0.2,
+      flutterWavelengthM: 3,
+      spinDegreesPerSecond: [-45, 45],
+      renderPriority: 1000,
+      depthTest: false,
+      color: "#ffffff",
+      intensity: 1.15,
+      emission: { color: "#ff9dcc", intensity: 4 }
+    },
     models: [
       {
         id: "pearl-cherry-tree",
-        // Preserve the existing footprint; source proportions determine the height.
-        scale: [92, 43, 70],
+        // One uniformly fitted source tree supplies the reference's dominant crown.
+        scale: [150, 72, 128],
+        footprint: [24, 20],
+        groundingFootprint: [28, 24],
         grounded: true,
         // Highest vertex of the source root rims, so all cut openings enter the soil.
         assetGroundY: 1.0934512615203857,
         assetYawDegrees: -155,
+        // The atlas is white RGB with an alpha silhouette. Use the source canopy
+        // normals on both sides and keep the HDR pigment outside the overlay clamp.
         assetLeafMaterials: ["Foliage_PBR_512"],
-        assetLeafColor: "#ff2f70",
+        assetLeafColor: "#ff82a4",
+        assetLeafIntensity: 1.6,
+        assetLeafTextureBlend: 0,
+        assetMaterials: {
+          Bark_PBR_512: { color: "#f2e9e1", intensity: 1.1 }
+        },
         assetUrl: new URL("../assets/pink-tree.glb", import.meta.url).href
       }
     ],
-    grass: ["#e55959", "#fc5a7a"],
-    ground: "#f2dfe8",
-    road: "#c7b9ad",
-    foliage: "#f8b8cb",
+    // Vivid rose and fresh green retain their colour through the lit HDR pipeline.
+    grass: ["#ff64a8", "#79c846"],
+    ground: "#f0bfd6",
+    road: "#dbbeaa",
+    foliage: "#e6a0cb",
     treeFoliage: {
       SM_BirchTree_01: "#ff8ea0",
-      SM_BirchTree_02: "#f78f95",
-      SM_BirchTree_07: "#ffa0c1",
-      "cartoon/tree/highlands-fir-3-candidate/v1": "#ffa0c1"
+      SM_BirchTree_02: "#c179ed",
+      SM_BirchTree_07: "#ff9fcb",
+      "cartoon/tree/highlands-fir-3-candidate/v1": "#da96c7"
     },
     plantPalette: {
       layers: ["shrubs", "herbs", "cover", "flowers", "litter"],
@@ -310,40 +377,40 @@ export const WORLD_TEMPLATE_ART: Readonly<Record<string, WorldTemplateArtDirecti
         }
       },
       parts: {
-        foliage: { color: "#e48bb5", intensity: 1.2 },
-        leaves: { color: "#e18bbb", intensity: 1.15 },
-        blades: { color: "#eda0b9", intensity: 1.15 },
-        stem: { color: "#8fa77f", intensity: 1.05 },
-        petals: { color: "#ff7cb6", intensity: 1.3 },
-        cap: { color: "#ff9bbe", intensity: 1.2 },
+        foliage: { color: "#66b83f", intensity: 1.1 },
+        leaves: { color: "#93cf50", intensity: 1.1 },
+        blades: { color: "#83c747", intensity: 1.1 },
+        stem: { color: "#509633", intensity: 1.05 },
+        petals: { color: "#ff75bd", intensity: 5 },
+        cap: { color: "#f4b3cf", intensity: 1.35 },
         bark: { color: "#c5a3b0", intensity: 1 }
       },
       species: {
         // Native recipe inputs multiply the original material hue. This HDR swatch is
         // rose foliage / the evaluated blue base of highlands-bush-2-leaves.mat.
         "cartoon/shrub/highlands-bush-2/v1": { foliage: { color: "#ff414e", intensity: 9.26 } },
-        SM_Flower_01_01: { petals: { color: "#fff0da", intensity: 1.15 } },
-        SM_Flower_01_02: { petals: { color: "#fff0da", intensity: 1.15 } },
-        SM_Flower_01_03: { petals: { color: "#fff0da", intensity: 1.15 } },
-        SM_Flower_02_01: { petals: { color: "#ffb6d3", intensity: 1.2 } },
-        SM_Flower_02_02: { petals: { color: "#ffb6d3", intensity: 1.2 } },
-        SM_Flower_02_03: { petals: { color: "#ffb6d3", intensity: 1.2 } },
-        SM_Flower_03_01: { petals: { color: "#c18aee", intensity: 1.25 } },
-        SM_Flower_03_02: { petals: { color: "#c18aee", intensity: 1.25 } },
-        SM_Flower_03_03: { petals: { color: "#c18aee", intensity: 1.25 } },
-        SM_Flower_04_01: { petals: { color: "#e798d7", intensity: 1.2 } },
-        SM_Flower_04_02: { petals: { color: "#e798d7", intensity: 1.2 } },
-        SM_Flower_04_03: { petals: { color: "#e798d7", intensity: 1.2 } },
-        SM_Flower_06_01: { petals: { color: "#ffd0ac", intensity: 1.15 } },
-        SM_Flower_06_02: { petals: { color: "#ffd0ac", intensity: 1.15 } },
-        SM_Flower_06_03: { petals: { color: "#ffd0ac", intensity: 1.15 } },
-        SM_Flower_07_01: { petals: { color: "#ffa2c2", intensity: 1.2 } },
-        SM_Flower_07_02: { petals: { color: "#ffa2c2", intensity: 1.2 } },
-        SM_Flower_07_03: { petals: { color: "#ffa2c2", intensity: 1.2 } },
-        SM_Flower_09_01: { petals: { color: "#b77ee8", intensity: 1.25 } },
-        SM_Flower_09_02: { petals: { color: "#b77ee8", intensity: 1.25 } },
-        SM_Flower_09_03: { petals: { color: "#b77ee8", intensity: 1.25 } },
-        SM_Flower_10_01: { petals: { color: "#fff0da", intensity: 1.15 } },
+        SM_Flower_01_01: { petals: { color: "#fff0da", intensity: 4 } },
+        SM_Flower_01_02: { petals: { color: "#fff0da", intensity: 4 } },
+        SM_Flower_01_03: { petals: { color: "#fff0da", intensity: 4 } },
+        SM_Flower_02_01: { petals: { color: "#ffb6d3", intensity: 4.5 } },
+        SM_Flower_02_02: { petals: { color: "#ffb6d3", intensity: 4.5 } },
+        SM_Flower_02_03: { petals: { color: "#ffb6d3", intensity: 4.5 } },
+        SM_Flower_03_01: { petals: { color: "#c18aee", intensity: 6 } },
+        SM_Flower_03_02: { petals: { color: "#c18aee", intensity: 6 } },
+        SM_Flower_03_03: { petals: { color: "#c18aee", intensity: 6 } },
+        SM_Flower_04_01: { petals: { color: "#e798d7", intensity: 5 } },
+        SM_Flower_04_02: { petals: { color: "#e798d7", intensity: 5 } },
+        SM_Flower_04_03: { petals: { color: "#e798d7", intensity: 5 } },
+        SM_Flower_06_01: { petals: { color: "#ffd0ac", intensity: 4 } },
+        SM_Flower_06_02: { petals: { color: "#ffd0ac", intensity: 4 } },
+        SM_Flower_06_03: { petals: { color: "#ffd0ac", intensity: 4 } },
+        SM_Flower_07_01: { petals: { color: "#ffa2c2", intensity: 4.5 } },
+        SM_Flower_07_02: { petals: { color: "#ffa2c2", intensity: 4.5 } },
+        SM_Flower_07_03: { petals: { color: "#ffa2c2", intensity: 4.5 } },
+        SM_Flower_09_01: { petals: { color: "#b77ee8", intensity: 6 } },
+        SM_Flower_09_02: { petals: { color: "#b77ee8", intensity: 6 } },
+        SM_Flower_09_03: { petals: { color: "#b77ee8", intensity: 6 } },
+        SM_Flower_10_01: { petals: { color: "#fff0da", intensity: 4 } },
         SM_Mushroom_01: { stem: { color: "#ffe4cf", intensity: 1.1 } },
         SM_Mushroom_02: { stem: { color: "#ffe4cf", intensity: 1.1 } },
         SM_Mushroom_03: { stem: { color: "#ffe4cf", intensity: 1.1 } },
@@ -359,39 +426,44 @@ export const WORLD_TEMPLATE_ART: Readonly<Record<string, WorldTemplateArtDirecti
       }
     },
     bark: "#e4dce8",
-    flowers: "#fff2fa",
-    stone: "#c9bfd3",
+    flowers: "#fff4e8",
+    stone: "#d2b9ca",
     lighting: {
-      ...lighting(15, 2.1, 1.15, 0.9, 0.00025, 0.7),
-      ...atmosphere([0.765, 1.6, 1.6], [1.1, 1.15, 1.2]),
-      skyTintR: 0.557,
-      skyTintG: 0.626,
-      skyTintB: 0.747,
-      sunColorR: 1.04,
+      ...lighting(14.5, 2.5, 0.9, 1.1, 0.0002, 0.55),
+      ...atmosphere([0.22, 0.65, 1.8], [0.75, 1.05, 1.25]),
+      iblIntensity: 0.85,
+      sunColorR: 1.06,
       sunColorG: 1,
-      sunColorB: 0.97
+      sunColorB: 0.98
     },
-    postProcess: post(8, 7),
-    landscape: { treeHeightMinM: 8, treeHeightMaxM: 18 },
+    postProcess: {
+      ...post(10, 25),
+      postExposure: 0.15,
+      bloomThreshold: 1,
+      bloomIntensity: 0.65
+    },
+    landscape: { treeHeightMinM: 7, treeHeightMaxM: 16 },
     initialLandscape: {
-      "vegetation.shrubs": 0.7,
-      "vegetation.herbs": 0.15,
-      "vegetation.cover": 0.8,
-      "vegetation.flowers": 0.8,
-      "vegetation.litter": 1,
-      "plantSizes.shrubs.scaleMin": 0.2,
-      "plantSizes.cover.scaleMin": 0.9,
-      "plantSizes.cover.scaleMax": 1.6,
-      "plantSizes.flowers.scaleMin": 0.75,
-      "plantSizes.flowers.scaleMax": 1.25,
-      "plantSizes.litter.scaleMin": 1,
-      "plantSizes.litter.scaleMax": 1.4,
-      roadsideDensityMultiplier: 20,
-      grassRelativeHeight: 0.4,
-      roadsideGrassHeightRatio: 0.45
+      "vegetation.shrubs": 0.5,
+      "vegetation.herbs": 0.7,
+      "vegetation.cover": 0.85,
+      "vegetation.flowers": 1,
+      "vegetation.litter": 0.45,
+      "plantSizes.shrubs.scaleMin": 0.18,
+      "plantSizes.shrubs.scaleMax": 0.35,
+      "plantSizes.cover.scaleMin": 0.55,
+      "plantSizes.cover.scaleMax": 0.95,
+      "plantSizes.flowers.scaleMin": 0.85,
+      "plantSizes.flowers.scaleMax": 1.3,
+      "plantSizes.litter.scaleMin": 0.7,
+      "plantSizes.litter.scaleMax": 1,
+      roadsideDensityMultiplier: 8,
+      grassRelativeHeight: 0.22,
+      roadsideGrassHeightRatio: 0.4
     },
-    flowerCoverage: 0.85,
-    initialFlowers: { densityPerM2: 0.7 }
+    flowerCoverage: 0.9,
+    initialFlowers: { densityPerM2: 0.85 },
+    weather: { cloudCoverage: 0.3, rainRate: 0, snowRate: 0 }
   },
   "aurora-palace": {
     reference: "SeedWorld-02-aurora-ice-palace.png",

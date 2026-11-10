@@ -7,6 +7,7 @@ import { PLANNING_RUNTIME_OPTIONS } from "../runtime/RuntimeOptions";
 import { worldTemplateEcology } from "../WorldTemplateEcology";
 import {
   compileCompositionGroup,
+  compileCompositionReliefGroup,
   publishCompositionPaths,
   publishCompositionTrees,
   compositionHydrology
@@ -727,8 +728,10 @@ function* spatialWorldStages(
     );
     groups.push(baseline);
   }
-  const composition = compileCompositionGroup(plan, ground);
-  if (composition) {
+  const compositionGroups = [compileCompositionGroup(plan, ground), compileCompositionReliefGroup(plan)].filter(
+    (group): group is LayoutGroup => !!group
+  );
+  for (const composition of compositionGroups) {
     groups.push(composition);
     appearances[composition.id] = "rock";
   }
@@ -757,7 +760,7 @@ function* spatialWorldStages(
       groups[i] = { ...group, paths: [], connectionBounds: undefined, connectionSignature: undefined };
       continue;
     }
-    if (group === composition) continue;
+    if (compositionGroups.includes(group)) continue;
     if (!group.volumes.length && compositionArea?.inside(group.center)) {
       groups[i] = { ...group, paths: [], ports: [] };
       continue;

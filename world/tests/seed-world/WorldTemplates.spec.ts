@@ -57,7 +57,15 @@ import {
   PLANT_MATERIAL_SLOTS,
   plantMaterialField
 } from "@galacean/engine-world-planning/spatial/PlantMaterialParameters";
-import { planningGroundSurface } from "@galacean/engine-world-planning/semantic-study/PlanningHeightmap";
+import {
+  planningGroundSurface,
+  planningHeightmap
+} from "@galacean/engine-world-planning/semantic-study/PlanningHeightmap";
+import { compositionTerrain } from "@galacean/engine-world-planning/spatial/SpatialCompositionGeometry";
+import { COMPOSITION_RELIEF_OWNER } from "@galacean/engine-world-planning/spatial/SpatialComposition";
+import { rockFormationJobs } from "@galacean/engine-world-planning/integrations/terrain/rock-formation/Jobs";
+import { readRockFormationSettings } from "@galacean/engine-world-planning/integrations/terrain/rock-formation/Settings";
+import { generateRockFormation } from "@galacean/engine-world-planning/integrations/terrain/rock-formation/Generate";
 
 describe("authored world templates", () => {
   it("幻兽荒原: starts with bounded land and empty automatic water, roads, buildings and vegetation", () => {
@@ -232,12 +240,44 @@ describe("authored world templates", () => {
     const document = createTemplatePlanningDocument(20261107, "sakura-pearl");
     const first = generatePlanningDocument(document);
     expect(first.accepted).toBe(true);
+    const relief = first.plan.rocks.filter((rock) => rock.groupId === COMPOSITION_RELIEF_OWNER);
+    expect(relief.length).toBeGreaterThan(0);
+    const q = first.plan.parameters.spatialComposition!;
+    expect(Math.max(...relief.flatMap((rock) => rock.boxes!.map((box) => box.sizeY)))).toBe(
+      Math.max(q.leftReliefM!, q.rightReliefM!)
+    );
+    const jobs = rockFormationJobs(first.plan, planningHeightmap(first.plan)).filter((job) =>
+      job.id.startsWith(COMPOSITION_RELIEF_OWNER + ":")
+    );
+    expect(jobs).toHaveLength(relief.reduce((count, rock) => count + rock.boxes!.length, 0));
+    const settings = readRockFormationSettings(document),
+      mesh = generateRockFormation(jobs[0], settings);
+    expect(mesh.mesh.indices.length).toBeGreaterThan(0);
+    expect(mesh.mesh.indices.length / 3).toBeLessThanOrEqual(settings.targetTriangles);
+    expect(mesh.mesh.positions.every(Number.isFinite)).toBe(true);
+    expect(mesh.mesh.normals!.every(Number.isFinite)).toBe(true);
+    // Waterfalls retain their resolved drop while no part of the rock relief,
+    // including the upstream support, is raised through a Terrain height field.
+    expect(compositionTerrain(q)).toEqual([]);
+    expect(first.plan.waters.some((water) => water.course?.drops.length)).toBe(true);
     expect(
       first.plan.waters.filter((water) => water.id.startsWith("river:authored:landscape-composition:"))
-    ).toHaveLength(2);
+    ).toHaveLength(3);
     expect(first.plan.routes.some((route) => route.id === "landscape-composition:path")).toBe(true);
     const trees = first.plan.landscapes!.filter((item) => item.ownerId === "landscape-composition");
     expect(trees.length).toBeGreaterThan(0);
+    const ledgeTrees = first.plan.landscapes!.filter(
+      (item) => item.ownerId === COMPOSITION_RELIEF_OWNER && item.kind === "tree"
+    );
+    expect(ledgeTrees.length).toBeGreaterThan(0);
+    expect(
+      ledgeTrees.every(
+        (tree) => tree.assetId === q.treeAssetId && tree.baseHeight > planningHeightmap(first.plan).sample(tree.center)
+      )
+    ).toBe(true);
+    expect(Math.min(...relief.flatMap((rock) => rock.boxes!.map((box) => box.center.z - box.sizeZ / 2)))).toBeLessThan(
+      q.centerZ!
+    );
     const snapshot = structuredClone(first.plan.landscapes);
     const replay = generatePlanningDocument(
       importPlanningScene(JSON.parse(JSON.stringify(exportPlanningScene(document)))),
@@ -358,8 +398,10 @@ describe("authored world templates", () => {
       };
     expect(restored).toEqual(importPlanningScene(exportPlanningScene(expected)));
     expect(source).toEqual(before);
-    expect(readSurfacePalette(restored, [1, 1, 1], "road")).toEqual(templateLinearColor("#c7b9ad"));
-    expect(readGrassAppearance(restored).colorA).toEqual(templateLinearColor("#e55959"));
+    expect(readSurfacePalette(restored, [1, 1, 1], "road")).toEqual(templateLinearColor("#dbbeaa"));
+    expect(readGrassAppearance(restored).colorA).toEqual(templateLinearColor("#ff64a8"));
+    expect(readGrassAppearance(restored).colorB).toEqual(templateLinearColor("#79c846"));
+    expect(readSurfacePalette(restored, [1, 1, 1])).toEqual(templateLinearColor("#f0bfd6"));
   });
   it("covers native understory variants with independent HDR part colours", () => {
     const palette = worldTemplatePaletteValues("sakura-pearl");
@@ -394,12 +436,25 @@ describe("authored world templates", () => {
     expect(rgb("SM_Flower_08_03", "petals")).not.toEqual(flower);
     expect(rgb("SM_Flower_08_01", "stem")).not.toEqual(flower);
     expect(rgb("SM_Flower_03_01", "petals")).not.toEqual(flower);
+    for (const slot of PLANT_MATERIAL_SLOTS.filter((slot) => slot.part === "petals")) {
+      const colour = rgb(slot.assetId, slot.part, slot.materialId);
+      // Every flowering variant must retain HDR energy, not only the three saved swatches.
+      expect(Math.max(...colour)).toBeGreaterThan(1);
+      const luminance = colour[0] * 0.2126 + colour[1] * 0.7152 + colour[2] * 0.0722;
+      expect(luminance).toBeGreaterThan(Number(WORLD_TEMPLATE_ART["sakura-pearl"].postProcess.bloomThreshold));
+    }
     expect(rgb("SM_Mushroom_01", "cap")[0]).toBeGreaterThan(1);
     expect(rgb("SM_Mushroom_01", "stem")).not.toEqual(rgb("SM_Mushroom_01", "cap"));
-    expect(rgb("SM_BirchTree_02", "leaves")).toEqual(templateLinearColor("#f78f95"));
+    expect(rgb("SM_BirchTree_02", "leaves")).toEqual(templateLinearColor("#c179ed"));
     expect(rgb("SM_CoverPlant_06", "foliage", "appearance-431c9ee4ddb29dc7")).toEqual(
-      templateLinearColor("#e48bb5").map((channel) => channel * 1.2)
+      templateLinearColor("#66b83f").map((channel) => channel * 1.1)
     );
+    for (const green of [
+      templateLinearColor(WORLD_TEMPLATE_ART["sakura-pearl"].grass[1]),
+      rgb("SM_CoverPlant_06", "foliage", "appearance-431c9ee4ddb29dc7"),
+      rgb("SM_Flower_08_01", "stem")
+    ])
+      expect(green[1]).toBeGreaterThan(Math.max(green[0], green[2]));
   });
   for (const id of ["", ...WORLD_TEMPLATES.map((template) => template.id)]) {
     it(`${id || "original"}: retains underlying plant controls through habitat switches and Seed restoration`, () => {

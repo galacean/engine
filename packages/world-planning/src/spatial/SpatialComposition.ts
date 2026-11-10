@@ -2,6 +2,8 @@ import type { IslandPlan, PlanPoint } from "../semantic-study/IslandPlanModel";
 import { createPlanningGroundSampler, createPlanningRingQuery } from "../semantic-study/WorldPlanningTerrain";
 import { envelope } from "../semantic-study/IslandPlanAtoms";
 import { settlementRandom } from "../semantic-study/SettlementGeometry";
+import { ribbonOutline } from "../semantic-study/WorldRibbon";
+import { watercourseGeometry } from "@galacean/engine-water/water/index";
 import { naturalTreeDimensions, naturalVegetationAt } from "../planning-data/NaturalVegetationProfile";
 import { poiLandscapeConfig, sampleLandscapeHabitat, type LandscapeConfig } from "../semantic-study/ContextLandscape";
 import type { SemanticEdit } from "../semantic-study/WorldPlanningContract";
@@ -13,7 +15,13 @@ import { registerLayoutRule, layoutRule, layoutRandom, type LayoutRule } from ".
 import { solveLayoutGroup, type LayoutGroup } from "./layout/LayoutKernel";
 import { VolumeIndex } from "./layout/Volumes";
 import { compileRoadPath, type RoadClearance } from "./layout/RoadGeometry";
-import { compositionAxis, compositionLane, compositionOutline, compositionPoint } from "./SpatialCompositionGeometry";
+import {
+  compositionAxis,
+  compositionLane,
+  compositionOutline,
+  compositionPoint,
+  compositionReliefBoxes
+} from "./SpatialCompositionGeometry";
 import { spatialCompositionParameters } from "./SpatialCompositionParameters";
 import { worldTemplate } from "./WorldTemplateCatalog";
 import { buildWorldTemplateGeometry } from "./WorldTemplateGeometry";
@@ -21,6 +29,7 @@ import type { RiverParameters } from "./hydrology/RiverRegions";
 import type { LakeParameters } from "./hydrology/LakeRegions";
 
 export const COMPOSITION_OWNER = "landscape-composition";
+export const COMPOSITION_RELIEF_OWNER = `${COMPOSITION_OWNER}:relief`;
 function context(plan: IslandPlan) {
   const q = spatialCompositionParameters(plan.parameters.spatialComposition);
   const template = worldTemplate(plan.parameters.worldTemplate?.id);
@@ -77,7 +86,7 @@ export function compositionHydrology(plan: IslandPlan): {
         .filter((node) => node.grounded)
         .map((node) => side * -node.position[0] + node.scale[0] / 2);
       const edge = Math.max(
-        q.widthM / 2 - Math.min(q.widthM / 2, steps * q.terraceTreadM),
+        q.widthM / 2 - Math.min(q.widthM / 2, q.reliefBandWidthM || steps * q.terraceTreadM),
         ...occupied.map((extent) => extent + q.waterfallWidthM / 2 + q.bankWidthM + q.roadWidthM)
       );
       if (edge >= q.widthM / 2 - q.terraceTreadM / 2) throw new Error("布局宽度不足以容纳主体、水道和通行净空");
@@ -234,6 +243,94 @@ export function compileCompositionGroup(plan: IslandPlan, ground: (p: PlanPoint)
   );
 }
 
+const reliefPattern = "terraced-rocks";
+registerLayoutRule({
+  id: reliefPattern,
+  version: 1,
+  label: "程序化岩台",
+  connections: "none",
+  parameterKeys: [],
+  build: ({ components }) => ({ members: compositionReliefBoxes(components.landscapeComposition as never) })
+});
+
+/** Rock relief enters the existing worker, material, grass, picking and collision
+ * publication as an ordinary layout group, with no extra renderer. */
+export function compileCompositionReliefGroup(plan: IslandPlan): LayoutGroup | undefined {
+  const q = spatialCompositionParameters(plan.parameters.spatialComposition),
+    outline = compositionOutline(q),
+    members = compositionReliefBoxes(q);
+  if (!outline || !members.length) return;
+  const ground = createPlanningGroundSampler(plan, { natural: true });
+  const blocked = [
+    ...plan.waters.flatMap((water) => {
+      if (water.course?.drops.length) {
+        // Raised reaches are supported by the rocks. Only ground-level reaches
+        // exclude rock footprints; deleting the upstream rock would suspend water.
+        return watercourseGeometry(water.course)
+          .paths.filter((path) => path.some((point) => point.elevation <= ground(point) + point.depth))
+          .map((path) =>
+            ribbonOutline(
+              path,
+              path.map((point) => point.width + 2 * (water.bankWidthM ?? 0)),
+              undefined,
+              true
+            )
+          );
+      }
+      return [
+        water.kind === "river" && water.centerline && water.widths
+          ? ribbonOutline(
+              water.centerline,
+              water.widths.map((width, i) => width + 2 * (water.bankWidths?.[i] ?? water.bankWidthM ?? 0)),
+              undefined,
+              true
+            )
+          : water.outline
+      ];
+    }),
+    ...(plan.worldTemplateSite?.footprints ?? []).map((item) => item.outline)
+  ].map(createPlanningRingQuery);
+  const clear = (footprint: PlanPoint[]) => !blocked.some((area) => area.overlapsPolygon(footprint));
+  // Keep the complete candidate sequence: water rejection must not renumber
+  // another rock's identity, material edits or worker cache.
+  const construction = { members };
+  const boxes = members.flat();
+  const rule: LayoutRule = {
+    pattern: reliefPattern,
+    radiusM: Math.hypot(q.widthM, q.frontDepthM + q.backDepthM),
+    widthMinM: Math.min(...boxes.map((box) => box.width)),
+    widthMaxM: Math.max(...boxes.map((box) => box.width)),
+    depthMinM: Math.min(...boxes.map((box) => box.depth)),
+    depthMaxM: Math.max(...boxes.map((box) => box.depth)),
+    heightMinM: Math.min(...boxes.map((box) => box.height)),
+    heightMaxM: Math.max(...boxes.map((box) => box.height)),
+    spacingMinM: -q.terraceTreadM * q.terrainRoughness,
+    spacingMaxM: -q.terraceTreadM * q.terrainRoughness,
+    orientationVariation: 0,
+    pathWidthM: 1,
+    openRadiusM: 0,
+    roadMode: "none",
+    roadAccess: false,
+    maxGroundSlopeDegrees: 90
+  };
+  return solveLayoutGroup(
+    COMPOSITION_RELIEF_OWNER,
+    { x: q.centerX, z: q.centerZ },
+    rule,
+    q.seed,
+    new VolumeIndex(),
+    () => true,
+    ground,
+    undefined,
+    {},
+    JSON.stringify(q),
+    { landscapeComposition: q },
+    clear,
+    undefined,
+    construction
+  );
+}
+
 /** The published route is compiled once by native RoadSpline and enters ordinary
  * topology, terrain, vegetation and navigation. Endpoints are real navigation areas. */
 export function publishCompositionPaths(
@@ -303,6 +400,35 @@ export function publishCompositionPaths(
   plan.routes.push(route);
 }
 
+function reliefTreeCandidates(plan: IslandPlan) {
+  const q = spatialCompositionParameters(plan.parameters.spatialComposition);
+  const result: { id: string; center: PlanPoint; yaw: number; surfaceHeight: number }[] = [];
+  if (!q.enabled || !q.treeSpacingM || !q.reliefTreeDensity) return result;
+  for (const rock of plan.rocks) {
+    if (rock.groupId !== COMPOSITION_RELIEF_OWNER) continue;
+    for (const box of rock.boxes ?? []) {
+      const nx = Math.max(1, Math.floor(box.sizeX / q.treeSpacingM)),
+        nz = Math.max(1, Math.floor(box.sizeZ / q.treeSpacingM)),
+        c = Math.cos(box.yaw),
+        s = Math.sin(box.yaw);
+      for (let x = 0; x < nx; x++)
+        for (let z = 0; z < nz; z++) {
+          const id = `${rock.id}:${box.id}:${x}:${z}`;
+          const jitter = (axis: string) => (settlementRandom(q.seed, `${id}:${axis}`) - 0.5) * q.terrainRoughness;
+          const px = box.sizeX * ((x + 0.5 + jitter("x")) / nx - 0.5),
+            pz = box.sizeZ * ((z + 0.5 + jitter("z")) / nz - 0.5);
+          result.push({
+            id,
+            center: { x: box.center.x + px * c - pz * s, z: box.center.z + px * s + pz * c },
+            yaw: settlementRandom(q.seed, `${id}:yaw`) * Math.PI * 2,
+            surfaceHeight: (box.elevation ?? rock.baseHeight ?? 0) + box.sizeY
+          });
+        }
+    }
+  }
+  return result;
+}
+
 /** Deterministic strata produce candidates; native density, species, actual
  * trunk footprints and water/road clearance decide which candidates survive. */
 export function publishCompositionTrees(
@@ -321,16 +447,26 @@ export function publishCompositionTrees(
     ...plan.waters.map((w) => w.outline),
     ...plan.routes.flatMap((route) => (route.outline ? [route.outline] : [])),
     ...plan.buildings.map((item) => item.outline),
-    ...plan.rocks.map((item) => item.outline),
     ...(plan.worldTemplateSite?.footprints ?? []).map((item) => item.outline)
   ].map(createPlanningRingQuery);
+  const rocks = plan.rocks.map((item) => createPlanningRingQuery(item.outline));
   const land = [plan.land, ...plan.islands].map(createPlanningRingQuery);
-  for (const candidate of bankCandidates(plan, q.treeSpacingM, q.treeBandWidthM)) {
+  const candidates = [
+    ...bankCandidates(plan, q.treeSpacingM, q.treeBandWidthM).map((candidate) => ({
+      ...candidate,
+      surfaceHeight: undefined as number | undefined
+    })),
+    ...reliefTreeCandidates(plan)
+  ];
+  for (const candidate of candidates) {
     const { center, yaw } = candidate,
-      id = `${COMPOSITION_OWNER}:tree:${candidate.id}`;
+      elevated = candidate.surfaceHeight !== undefined,
+      treeOwner = elevated ? COMPOSITION_RELIEF_OWNER : COMPOSITION_OWNER,
+      id = `${treeOwner}:tree:${candidate.id}`;
     const site = owner(center)[0]?.site,
       growth = site ? poiLandscapeConfig(config, site, edits[site.id], edits[site.domainId]) : config;
-    const abundance = growth.density * (config.multiplier ?? 1) * (density(center).trees ?? 0);
+    const abundance =
+      growth.density * (config.multiplier ?? 1) * (density(center).trees ?? 0) * (elevated ? q.reliefTreeDensity : 1);
     if (settlementRandom(q.seed, id + ":density") >= abundance) continue;
     const minimum = growth.treeHeightMinM,
       maximum = growth.treeHeightMaxM;
@@ -343,9 +479,14 @@ export function publishCompositionTrees(
         }
       : naturalTreeDimensions(q.seed, id, height, center);
     const trunk = envelope(center, trunkRadius * 2, trunkRadius * 2, yaw);
-    if (!land.some((area) => area.containsPolygon(trunk)) || blocked.some((area) => area.overlapsPolygon(trunk)))
+    if (
+      (!elevated && !land.some((area) => area.containsPolygon(trunk))) ||
+      blocked.some((area) => area.overlapsPolygon(trunk)) ||
+      (!elevated && rocks.some((area) => area.overlapsPolygon(trunk)))
+    )
       continue;
-    const habitat = sampleLandscapeHabitat(center, trunkRadius, "tree", ground);
+    const support = elevated ? (_p: PlanPoint) => candidate.surfaceHeight! : ground;
+    const habitat = sampleLandscapeHabitat(center, trunkRadius, "tree", support);
     if (
       habitat.altitudeM > growth.maxAltitudeM ||
       habitat.slopeDegrees > growth.maxSlopeDegrees ||
@@ -354,16 +495,17 @@ export function publishCompositionTrees(
       continue;
     plan.landscapes!.push({
       id,
-      ownerId: COMPOSITION_OWNER,
+      ownerId: treeOwner,
       sourceId: candidate.id,
       kind: "tree",
       role: "ambient",
+      ...(elevated ? { context: "landform" as const } : {}),
       center,
       width: shape.width,
       depth: shape.depth,
       height,
       yaw,
-      baseHeight: boxGroundBottom({ center, width: trunkRadius * 2, depth: trunkRadius * 2, yaw }, ground),
+      baseHeight: boxGroundBottom({ center, width: trunkRadius * 2, depth: trunkRadius * 2, yaw }, support),
       outline: envelope(center, shape.width, shape.depth, yaw),
       habitat,
       collisionRadius: trunkRadius,
