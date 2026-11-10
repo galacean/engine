@@ -13,10 +13,12 @@ function dormerBounds(record: Uint8Array) {
     [x, z, width, depth, ox, oz] = [0, 8, 16, 24, 32, 36].map((i) => v.getFloat32(i, true));
   if (![x, z, width, depth, ox, oz].every(Number.isFinite) || width < 0 || depth < 0)
     throw Error("Invalid finite dormer geometry");
+  // The roof shader spans a hole's width along cross(out, up) = (-oz, 0, ox) and its depth
+  // along out = (ox, 0, oz); its plan bounds are those two half-extents projected on x and z.
   const hw = mul(width, 0.5),
     hd = mul(depth, 0.5),
-    dx = add(mul(hw, Math.abs(ox)), mul(hd, Math.abs(oz))),
-    dz = add(mul(hd, Math.abs(ox)), mul(hw, Math.abs(oz)));
+    dx = add(mul(hw, Math.abs(oz)), mul(hd, Math.abs(ox))),
+    dz = add(mul(hw, Math.abs(ox)), mul(hd, Math.abs(oz)));
   return { min: [sub(x, dx), sub(z, dz)], max: [add(x, dx), add(z, dz)] };
 }
 export function dormerSelectedBins(record: Uint8Array, grid?: DormerGrid): number[] {
