@@ -124,6 +124,12 @@ describe("Eave dormers against the online path", () => {
         return (q[0] - origin[0]) * x[0] + (q[2] - origin[2]) * x[2];
       });
       expect(Math.max(...offsets) - Math.min(...offsets)).toBeLessThan(0.01);
+      // And they draw in toward the ridge with the roof's rows, as online does.
+      const width = ({ points }: { points: number[][] }) => {
+        const [a, b] = [points[0], points[points.length - 1]];
+        return Math.abs((b[0] - a[0]) * x[0] + (b[2] - a[2]) * x[2]);
+      };
+      expect(width(rows[rows.length - 1])).toBeLessThan(width(rows[0]) - 0.02);
     }
   });
 

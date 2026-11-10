@@ -37,7 +37,7 @@ import {
   surfaceAtPlan,
   type DormerSweepParams
 } from "./Dormers";
-import { contourRow, shedTile, vAtHeight, type LoftParams } from "./ShedDormers";
+import { contourRow, rowShare, shedTile, vAtHeight, type LoftParams } from "./ShedDormers";
 import {
   houseWallMountGeometry,
   openingMeetsBand,
@@ -176,11 +176,13 @@ export const houseEaveMountGeometry: GeometryGenerator<EaveMountParams> = (p, co
   const rowCount = Math.max(2, Math.ceil(depth / 0.2) + 1),
     across = 9;
   const expand = (p.expand ?? 0) * sx;
+  // The shed takes this share of every row: as wide as `width` at the wall top, narrower higher up.
+  const share = rowShare(surface, hit.u, vFront, width);
   const rows = Array.from({ length: rowCount }, (_, k) => {
     const t = k / (rowCount - 1);
     const v = k === rowCount - 1 ? vBack : (vAtHeight(surface, hit.u, lerp(wallTop, back - lift, t)) ?? domain.v[0]);
     // Every row stands square over the window, centred on its line.
-    const samples = contourRow(surface, v, hit.u, pivot, x, width, across);
+    const samples = contourRow(surface, v, hit.u, pivot, x, share, across);
     const out = (1 - t) * expand;
     const y = lerp(front, back, t);
     return {

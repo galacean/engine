@@ -109,29 +109,40 @@ function floorAt(p: LoftParams, side: number, v: number): number {
   return at(p.rows[i]) * (1 - f) + at(p.rows[i + 1]) * f;
 }
 
-/** The u that lies `s` metres from `u0` along the roof's row at `v`: rows of slopes and cones are
- * evenly parametrized. Leaving an open roof is an error. */
-export function alongRow(surface: EffectiveSurface, u0: number, s: number, v: number): number {
-  const { domain } = surface;
-  const h = 1e-4 * (domain.u[1] - domain.u[0]);
+/** How much of the roof's row at `v`, in u, is `s` metres long, measured in plan at `u0`: rows
+ * of slopes and cones are evenly parametrized. */
+export function rowShare(surface: EffectiveSurface, u0: number, v: number, s: number): number {
+  const h = 1e-4 * (surface.domain.u[1] - surface.domain.u[0]);
   const a = surface.frame(u0, v).origin,
     b = surface.frame(u0 + h, v).origin;
-  const u = u0 + (s * h) / Math.hypot(b[0] - a[0], b[2] - a[2]);
+  return (s * h) / Math.hypot(b[0] - a[0], b[2] - a[2]);
+}
+/** `u` itself; one past an edge of an open roof is an error. */
+function onRoof(surface: EffectiveSurface, u: number): number {
+  const { domain } = surface;
   if (!domain.closedU && (u < domain.u[0] - 1e-9 || u > domain.u[1] + 1e-9))
     throw Error("The dormer crosses an edge of its roof");
   return u;
 }
-/** `count` points along the roof's row at `v`, `width` metres from end to end, centred where the
- * row crosses the upright plane through `centre` square to the level direction `x`. The roof's
- * rows may fan toward its ridge, so one u drifts sideways from row to row; centring each row on
- * one line keeps what stands on the rows square. `u` is where to start looking. */
+/** The u that lies `s` metres from `u0` along the roof's row at `v`. Leaving an open roof is an
+ * error. */
+export function alongRow(surface: EffectiveSurface, u0: number, s: number, v: number): number {
+  return onRoof(surface, u0 + rowShare(surface, u0, v, s));
+}
+/** `count` points along the roof's row at `v`, spanning `share` of it in u, centred where the
+ * row crosses the upright plane through `centre` square to the level direction `x`.
+ * - The roof's rows shorten toward its ridge. A fixed share narrows with them, so what stands on
+ *   the rows draws in toward the ridge as the roof's own columns do.
+ * - The rows also fan, so one u drifts sideways from row to row. Centring each row on one line
+ *   keeps what stands on the rows square.
+ * `u` is where to start looking. */
 export function contourRow(
   surface: EffectiveSurface,
   v: number,
   u: number,
   centre: Vec3,
   x: Vec3,
-  width: number,
+  share: number,
   count: number
 ): Vec3[] {
   let middle = u;
@@ -143,7 +154,7 @@ export function contourRow(
   }
   return Array.from(
     { length: count },
-    (_, j) => surface.frame(alongRow(surface, middle, width * (j / (count - 1) - 0.5), v), v).origin
+    (_, j) => surface.frame(onRoof(surface, middle + share * (j / (count - 1) - 0.5)), v).origin
   );
 }
 
@@ -152,9 +163,10 @@ export function contourRow(
  *   apart, each with its lowest point `bottom` above the roof's covering and facing level out
  *   of the roof there.
  * - The shed's rows follow the roof's contours, from the one `overhang` in front of the bodies
- *   up to the one where the covering reaches the shed's back; each row is as wide as the bodies
- *   plus the overhang on both sides. The front row stands at the bodies' tops; the rows rise
- *   evenly to the back.
+ *   up to the one where the covering reaches the shed's back. Each row takes the share of the
+ *   roof's row that the bodies plus the overhang on both sides take where the bodies stand, so
+ *   the shed narrows toward its back as the roof's rows do. The front row stands at the bodies'
+ *   tops; the rows rise evenly to the back.
  * A shed dormer that is over no roof, faces no direction, crosses an edge of its roof part or
  * reaches above it is an error. */
 export const houseShedDormerGeometry: GeometryGenerator<ShedDormerParams> = (p, { hosts, environment }) => {
@@ -207,14 +219,16 @@ export const houseShedDormerGeometry: GeometryGenerator<ShedDormerParams> = (p, 
   );
   const count = Math.max(2, Math.ceil(depth / 0.2) + 1),
     across = 9;
-  // Every row stands square over the bodies, centred on the line out of the roof through them.
+  // Every row stands square over the bodies, centred on the line out of the roof through them,
+  // and takes the share of the roof's row that the shed takes where the bodies stand.
   const level = Math.hypot(roof.z[0], roof.z[2]);
   const side: Vec3 = [roof.z[2] / level, 0, -roof.z[0] / level];
+  const share = rowShare(surface, hit.u, hit.v, width);
   const rows = Array.from({ length: count }, (_, k) => {
     const t = k / (count - 1);
     const v = k === count - 1 ? vBack : vAtHeight(surface, hit.u, coverFront + (back - coverFront) * t - lift)!;
     const y = top + (back - top) * t;
-    const samples = contourRow(surface, v, hit.u, hit.frame.origin, side, width, across);
+    const samples = contourRow(surface, v, hit.u, hit.frame.origin, side, share, across);
     return { points: samples.map((q): Vec3 => [q[0], y, q[2]]), floor: samples.map((q) => q[1] + lift) };
   });
   elements.shed = { kind: "surface", surface: { kind: "loft", params: { rows } satisfies LoftParams } };

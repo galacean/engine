@@ -22,6 +22,7 @@ import {
   type CoreRoofAttachment
 } from "../../src/building/application/CoreEuropean";
 import { compileCoreBuilding, coreBuildingEnvironment } from "../../src/building/render/CoreBuilding";
+import { surfaceAtPlan } from "../../src/building/partTypes/Dormers";
 
 const registry = registerHouseTypes(createBuildingRegistry());
 const flat = () => 0;
@@ -241,6 +242,25 @@ describe("Shed dormers", () => {
     const toEdge = rows.map((r) => Math.hypot(r.points[mid][0] - edge[0], r.points[mid][2] - edge[2]));
     const nearest = rows[toEdge.indexOf(Math.min(...toEdge))];
     expect(nearest.points[mid][1]).toBeGreaterThan(edge[1]);
+  });
+
+  it("narrows its shed toward the back as the roof's rows shorten toward the ridge", () => {
+    const result = design({ ...hip, roof: { height: 0.8 }, roofAttachments: [cottage(2, [0.5, 0.15])] });
+    expect(result.diagnostics).toEqual([]);
+    const roof = result.parts.find((p) => p.type === "roof" && p.modifications.some((m) => m.op === "removeArea"))!;
+    const surface = new EffectiveGeometry(roof.original, roof.modifications, registry.surfaces).surface("slope");
+    const loft = result.parts.find((p) => p.type === "shedDormer")!.original.elements.shed;
+    if (loft?.kind !== "surface") throw Error("no shed");
+    const rows = (loft.surface.params as { rows: { points: number[][] }[] }).rows;
+    // Each row takes the same share of the roof's row under it, as online does.
+    const shares = rows.map(({ points }) => {
+      const [a, b] = [points[0], points[points.length - 1]].map((q) => surfaceAtPlan(surface, q[0], q[2])!.u);
+      return b - a;
+    });
+    for (const s of shares) expect(s).toBeCloseTo(shares[0], 4);
+    const width = (points: number[][]) =>
+      Math.hypot(points[0][0] - points[points.length - 1][0], points[0][2] - points[points.length - 1][2]);
+    expect(width(rows[rows.length - 1].points)).toBeLessThan(width(rows[0].points) - 0.05);
   });
 
   it("centres every row of its shed on its bodies, close to a hip as in the middle", () => {
