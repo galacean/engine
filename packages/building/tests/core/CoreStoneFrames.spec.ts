@@ -11,13 +11,7 @@ import { registerHouseTypes } from "../../src/building/partTypes/House";
 import { buildCoreHouse, type CoreHouseParameters } from "../../src/building/application/CoreEuropean";
 import { European } from "../../src/building/application/European";
 import { coreBuildingLayout, coreBuildingView, coreBuildingEnvironment } from "../../src/building/render/CoreBuilding";
-import { European as OnlineEuropean } from "../../src/building/parts/architecture/European";
-import { designBuilding } from "../../src/building/parts/architecture/BuildingDesign";
-import {
-  buildingPreviewInput,
-  prepareBuildingPublication
-} from "../../src/building/parts/architecture/BuildingPublication";
-import { profilePreview } from "../../src/building/runtime/ProfilePreview";
+import { baseline } from "./baseline";
 import { constructionDecorationType } from "../../src/building/runtime/ConstructionDecorationCatalog";
 
 const registry = registerHouseTypes(createBuildingRegistry());
@@ -33,17 +27,9 @@ const view = (p: CoreHouseParameters) => {
     includeStructure: true
   });
 };
-const online = async (p: CoreHouseParameters) => {
-  const design = designBuilding(OnlineEuropean.buildHouses(p as never) as never, flat as never, assets);
-  return profilePreview(
-    buildingPreviewInput(design, await prepareBuildingPublication(design)),
-    flat as never,
-    {
-      assets,
-      retainDecorationParts: true
-    } as never
-  );
-};
+/** Online's stone frames for each house, by decoration id: mesh, transform and mesh width. */
+const ONLINE =
+  baseline<{ decorationId: string; template: string; xform: number[]; meshSizeX: number }[]>("CoreStoneFrames");
 const at = (id: string, type: string, rank: number, u: number, bottom: number) => {
   const size = constructionDecorationType(assets.decorations, type)!.dimensions.find((d) => d.rank === rank)!;
   return {
@@ -71,22 +57,22 @@ describe("Frames of wall material against the online path", () => {
   it.each([
     ["a square house", { rectangle: { center: [0, 0], size: [10, 10], rotation: 0 } }],
     ["a round house", { circle: { center: [0, 0], radius: 6 } }]
-  ] as const)("on %s: the same stone meshes at the same places", async (_name, shape) => {
+  ] as const)("on %s: the same stone meshes at the same places", (name, shape) => {
     const p = { id: "s", height: 5, ...shape, attachments } as unknown as CoreHouseParameters;
     const ours = view(p).frames,
-      theirs = (await online(p)).frames;
+      theirs = ONLINE[name];
     expect(ours.length).toBe(attachments.length);
     expect(theirs.length).toBe(ours.length);
     const byId = (list: typeof ours) => [...list].sort((a, b) => (a.decorationId < b.decorationId ? -1 : 1));
     byId(ours).forEach((frame, i) => {
-      const other = byId(theirs)[i];
+      const other = theirs[i];
+      expect(frame.decorationId).toBe(other.decorationId);
       expect(frame.template).toBe(other.template);
-      for (const k of [9, 10, 11])
-        expect(Math.abs(frame.instance.xform[k] - other.instance.xform[k])).toBeLessThan(0.03);
+      for (const k of [9, 10, 11]) expect(Math.abs(frame.instance.xform[k] - other.xform[k])).toBeLessThan(0.03);
       for (const k of [0, 1, 2, 3, 4, 5, 6, 7, 8])
-        expect(Math.abs(frame.instance.xform[k] - other.instance.xform[k])).toBeLessThan(0.08);
-      expect(frame.instance.meshSizeX / other.instance.meshSizeX).toBeGreaterThan(0.9);
-      expect(frame.instance.meshSizeX / other.instance.meshSizeX).toBeLessThan(1.1);
+        expect(Math.abs(frame.instance.xform[k] - other.xform[k])).toBeLessThan(0.08);
+      expect(frame.instance.meshSizeX / other.meshSizeX).toBeGreaterThan(0.9);
+      expect(frame.instance.meshSizeX / other.meshSizeX).toBeLessThan(1.1);
     });
   });
 

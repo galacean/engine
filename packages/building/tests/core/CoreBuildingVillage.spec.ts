@@ -9,14 +9,7 @@ import { createBuildingRegistry, designBuildingCore } from "../../src/building/c
 import { registerHouseTypes } from "../../src/building/partTypes/House";
 import { buildCoreHouse } from "../../src/building/application/CoreEuropean";
 import { prepareCoreBuilding, compileCoreBuilding } from "../../src/building/render/CoreBuilding";
-import { European } from "../../src/building/parts/architecture/European";
-import { designBuilding } from "../../src/building/parts/architecture/BuildingDesign";
-import { implementBuilding } from "../../src/building/parts/architecture/BuildingImplementation";
-import {
-  prepareBuildingPublication,
-  buildingPreviewInput
-} from "../../src/building/parts/architecture/BuildingPublication";
-import { profilePreview } from "../../src/building/runtime/ProfilePreview";
+import { frozen } from "./baseline";
 import { buildBuildingRenderPackage } from "../../src/building/runtime/BuildingRenderPackage";
 import { buildingGlobals } from "../../src/building/runtime/BuildingGlobals";
 const roofs = [{}, { ridge_length: 1 }, { height: 0.8 }, { height: 0 }, { ridge_length: 0.3, height: 0.5 }];
@@ -40,25 +33,24 @@ async function time<T>(f: () => Promise<T> | T, runs = 3) {
   }
   return { ms: best, out };
 }
-// Village benchmark of the core render path against the online path. Times are printed for
-// the acceptance record; the assertions check the output sizes, which do not depend on the machine.
+/** The online path's output sizes for this village, and its times on the machine that froze them. */
+const online = frozen<{
+  units: number;
+  unitBytes: number;
+  draws: number;
+  previewTriangles: number;
+  distanceTextureBytes: number;
+  structureTriangles: number;
+  retainedDistanceUnits: number;
+  documentBytes: number;
+  ms: { prepare: number; compile: number; package: number };
+}>("CoreBuildingVillage");
+// Village benchmark of the core render path against the online path's frozen output. Times are
+// printed for the acceptance record; the assertions check the output sizes, which do not depend
+// on the machine.
 it("renders a village with the same draws and comparable output to the online path", async () => {
   const registry = registerHouseTypes(createBuildingRegistry());
   const env = { environment: { ground: flat }, assets: nativeAssets };
-  const onPrep = await time(async () => {
-    const r = [];
-    for (const h of village) {
-      const d = designBuilding(European.buildHouses(h) as never, flat as never, nativeAssets);
-      r.push(
-        profilePreview(buildingPreviewInput(d, await prepareBuildingPublication(d)), flat as never, {
-          assets: nativeAssets,
-          includeAppearance: true,
-          includeStructure: true
-        })
-      );
-    }
-    return r;
-  });
   const coPrep = await time(() =>
     village.map(
       (h) =>
@@ -69,15 +61,6 @@ it("renders a village with the same draws and comparable output to the online pa
         ).preview
     )
   );
-  const onComp = await time(async () => {
-    const r = [];
-    for (const h of village)
-      r.push(
-        (await implementBuilding(designBuilding(European.buildHouses(h) as never, flat as never, nativeAssets)))
-          .renderInput
-      );
-    return r;
-  });
   const coComp = await time(async () => {
     const r = [];
     for (const h of village)
@@ -97,8 +80,7 @@ it("renders a village with the same draws and comparable output to the online pa
       (i) =>
         buildBuildingRenderPackage(i, nativeAssets, buildingGlobals(i.paletteSlots, nativeAssets.frame), true).package
     );
-  const onPk = await time(() => pk(onComp.out), 2),
-    coPk = await time(() => pk(coComp.out), 2);
+  const coPk = await time(() => pk(coComp.out), 2);
   const sum = (a: number[]) => a.reduce((x, y) => x + y, 0);
   const unitBytes = (inputs: any[]) =>
     sum(inputs.flatMap((i) => i.groups.map((g: any) => sum(Object.values(g.units).map((u: any) => u.byteLength)))));
@@ -113,20 +95,20 @@ it("renders a village with the same draws and comparable output to the online pa
     sum(inputs.map((i) => JSON.stringify(i.placementDocument).length + JSON.stringify(i.plans).length));
   const row = (k: string, a: any, b: any) =>
     console.log("PERF", k.padEnd(28), String(a).padStart(12), String(b).padStart(12));
-  row("", "online", "core");
-  row("prepare ms (17 houses)", onPrep.ms.toFixed(1), coPrep.ms.toFixed(1));
-  row("compile ms", onComp.ms.toFixed(1), coComp.ms.toFixed(1));
-  row("package ms", onPk.ms.toFixed(1), coPk.ms.toFixed(1));
-  row("units", cells(onComp.out), cells(coComp.out));
-  row("unit record bytes", unitBytes(onComp.out), unitBytes(coComp.out));
-  row("draws", draws(onPk.out), draws(coPk.out));
-  row("preview triangles", previewTris(onPrep.out), previewTris(coPrep.out));
-  row("distance texture bytes", lodBytes(onPrep.out), lodBytes(coPrep.out));
-  row("structure triangles", structTris(onPrep.out), structTris(coPrep.out));
-  row("retained distance units", retained(onPrep.out), retained(coPrep.out));
-  row("document+plans bytes", docBytes(onComp.out), docBytes(coComp.out));
-  expect(draws(coPk.out)).toBe(draws(onPk.out));
-  expect(Math.abs(cells(coComp.out) - cells(onComp.out)) / cells(onComp.out)).toBeLessThan(0.05);
-  expect(lodBytes(coPrep.out)).toBeLessThan(lodBytes(onPrep.out) * 1.1);
-  expect(previewTris(coPrep.out)).toBeLessThan(previewTris(onPrep.out) * 1.2);
+  row("", "online (frozen)", "core");
+  row("prepare ms (17 houses)", online.ms.prepare, coPrep.ms.toFixed(1));
+  row("compile ms", online.ms.compile, coComp.ms.toFixed(1));
+  row("package ms", online.ms.package, coPk.ms.toFixed(1));
+  row("units", online.units, cells(coComp.out));
+  row("unit record bytes", online.unitBytes, unitBytes(coComp.out));
+  row("draws", online.draws, draws(coPk.out));
+  row("preview triangles", online.previewTriangles, previewTris(coPrep.out));
+  row("distance texture bytes", online.distanceTextureBytes, lodBytes(coPrep.out));
+  row("structure triangles", online.structureTriangles, structTris(coPrep.out));
+  row("retained distance units", online.retainedDistanceUnits, retained(coPrep.out));
+  row("document+plans bytes", online.documentBytes, docBytes(coComp.out));
+  expect(draws(coPk.out)).toBe(online.draws);
+  expect(Math.abs(cells(coComp.out) - online.units) / online.units).toBeLessThan(0.05);
+  expect(lodBytes(coPrep.out)).toBeLessThan(online.distanceTextureBytes * 1.1);
+  expect(previewTris(coPrep.out)).toBeLessThan(online.previewTriangles * 1.2);
 }, 600000);

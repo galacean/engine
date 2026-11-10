@@ -6,6 +6,10 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 export function baseline<T>(file: string): Readonly<Record<string, T>> {
+  return frozen(file);
+}
+/** A whole baseline file. */
+export function frozen<T>(file: string): T {
   return JSON.parse(readFileSync(resolve(__dirname, "baselines", `${file}.json`), "utf8"));
 }
 

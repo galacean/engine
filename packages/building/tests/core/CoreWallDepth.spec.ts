@@ -15,13 +15,7 @@ import {
   coreBuildingEnvironment,
   coreBuildingLayout
 } from "../../src/building/render/CoreBuilding";
-import { European as OnlineEuropean } from "../../src/building/parts/architecture/European";
-import { designBuilding } from "../../src/building/parts/architecture/BuildingDesign";
-import {
-  buildingPreviewInput,
-  prepareBuildingPublication
-} from "../../src/building/parts/architecture/BuildingPublication";
-import { profilePreview } from "../../src/building/runtime/ProfilePreview";
+import { baseline } from "./baseline";
 import { constructionDecorationType } from "../../src/building/runtime/ConstructionDecorationCatalog";
 
 const assets = nativeAssets.compilation;
@@ -49,25 +43,8 @@ const center = (positions: number[]) => {
   for (let i = 0; i < positions.length; i++) out[i % 3] += positions[i] / (positions.length / 3);
   return out;
 };
-const online = async (p: CoreHouseParameters) => {
-  const { footprint, ...rest } = p;
-  const planned = designBuilding(
-    OnlineEuropean.buildHouses({
-      ...rest,
-      wall: { unit: "brick", algorithm: { type: "staggered_rows" }, footprint }
-    } as never) as never,
-    flat as never,
-    assets
-  );
-  return profilePreview(
-    buildingPreviewInput(planned, await prepareBuildingPublication(planned)),
-    flat as never,
-    {
-      assets,
-      retainDecorationParts: true
-    } as never
-  ).decorationParts;
-};
+/** Where online drew each decoration part, by case and wall depth: its id and mesh center. */
+const ONLINE = baseline<{ id: string; center: number[] }[]>("CoreWallDepth");
 const holes = (r: ReturnType<typeof design>) =>
   r.parts
     .filter((p) => p.type === "wall")
@@ -91,17 +68,17 @@ describe("Walls of other depths", () => {
     ],
     ["Gothic window with a hat", [at("g", "window", "window-gothic", 2, 0.1, 1)]],
     ["corner window", [at("c", "window", "window-cottage-corner", 2, 0.5, 1)]]
-  ] as const)("%s stands where it does online", async (_name, attachments) => {
+  ] as const)("%s stands where it does online", (name, attachments) => {
     for (const depth of [0.05, 0.2]) {
       const p = house(depth, [...attachments] as never[], { roof: { height: 0 } });
       const result = design(p);
       expect(result.diagnostics).toEqual([]);
       const ours = coreBuildingDecorations(coreBuildingLayout(result, registry, {}), assets).flatMap((d) => d.parts);
-      const theirs = await online(p);
+      const theirs = ONLINE[`${name} @ ${depth}`];
       expect(ours.map((x) => x.id).sort()).toEqual(theirs.map((x) => x.id).sort());
       for (const x of ours) {
         const o = theirs.find((y) => y.id === x.id)!;
-        const [c, d] = [center(x.positions), center(o.positions)];
+        const [c, d] = [center(x.positions), o.center];
         for (let k = 0; k < 3; k++) expect(Math.abs(c[k] - d[k])).toBeLessThan(0.03);
       }
     }
