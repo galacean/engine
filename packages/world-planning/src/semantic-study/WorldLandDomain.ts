@@ -84,6 +84,35 @@ function availableSea(plan: IslandPlan): { center: PlanPoint; half: { x: number;
  * @param c World shape inputs and destination plan.
  */
 export function planWorldDomain(c: WorldLandDomainContext): void {
+  if (c.plan.parameters.landMode === "continuous") {
+    const { width, depth } = c.plan.parameters;
+    const center = { x: width / 2, z: depth / 2 };
+    c.plan.land = [
+      { x: 0, z: 0 },
+      { x: width, z: 0 },
+      { x: width, z: depth },
+      { x: 0, z: depth }
+    ];
+    c.plan.islands = [];
+    c.plan.shapeRecipes!.push({
+      id: "land-main",
+      label: "整图陆地",
+      rounding: 0,
+      blocks: [{ id: "land-main:bounds", ...center, width, length: depth, yaw: 0 }]
+    });
+    c.frame = { center, width: width * 0.43, length: depth * 0.43, angle: 0 };
+    c.plan.spawn = { ...center };
+    c.plan.planning?.modules.push({
+      id: "land-main",
+      kind: "land",
+      outline: c.plan.land,
+      dependencies: [],
+      requested: { continuous: 1 },
+      resolved: { coverage: 1 }
+    });
+    c.plan.planning?.requiredIds.push("land-main");
+    return;
+  }
   const q = c.parameters,
     orientation = q.landOrientation ?? c.random("orientation"),
     a = orientation * Math.PI * 2,

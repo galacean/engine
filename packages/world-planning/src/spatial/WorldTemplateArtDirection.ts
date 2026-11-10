@@ -7,6 +7,11 @@ import type { SpatialCompositionParameters } from "./SpatialCompositionParameter
  * Camera fitting uses only the focus entries. */
 export interface WorldTemplateArtDirection {
   reference: string;
+  initialPlanning?: {
+    landMode?: import("../semantic-study/IslandPlanModel").IslandPlanParameters["landMode"];
+    roadsEnabled?: boolean;
+    population?: import("./PlanningPopulationParameters").PlanningPopulationOptions;
+  };
   focus: string[];
   frameFraction: number;
   azimuthDegrees: number;
@@ -754,13 +759,15 @@ export const WORLD_TEMPLATE_ART: Readonly<Record<string, WorldTemplateArtDirecti
   },
   "titan-wasteland": {
     reference: "SeedWorld-13-titan-wasteland.png",
+    initialPlanning: {
+      landMode: "continuous",
+      roadsEnabled: false,
+      population: { villageMin: 0, villageMax: 0, buildingMin: 0, buildingMax: 0 }
+    },
     focus: ["ancient-mech-wreck"],
     frameFraction: 0.7,
     azimuthDegrees: -7,
-    models: [
-      model("ancient-mech-wreck", [15, 0, 38], [115, 93, 80]),
-      model("foreground-round-house", [-69, 0, -57], [17, 14, 16])
-    ],
+    models: [model("ancient-mech-wreck", [15, 0, 38], [115, 93, 80])],
     grass: ["#c58743", "#e8b96e"],
     ground: "#e1a66b",
     foliage: "#aa874f",
@@ -780,7 +787,17 @@ export const WORLD_TEMPLATE_ART: Readonly<Record<string, WorldTemplateArtDirecti
     },
     postProcess: post(9, 9, 2),
     landscape: { treeHeightMinM: 5, treeHeightMaxM: 12 },
-    flowerCoverage: 0.15,
+    flowerCoverage: 0,
+    initialLandscape: {
+      density: 0,
+      "vegetation.trees": 0,
+      "vegetation.grass": 0,
+      "vegetation.shrubs": 0,
+      "vegetation.herbs": 0,
+      "vegetation.cover": 0,
+      "vegetation.flowers": 0,
+      "vegetation.litter": 0
+    },
     terrain: [ridge("west-dune", -150, 80, 380, 120, 24, 20), ridge("east-dune", 170, 110, 450, 140, 32, -20)]
   },
   "luminous-abyss": {

@@ -140,6 +140,7 @@ export interface PlanSight {
 }
 /** A small set of compositional parameters; no terrain-resolution or asset dependency. */
 export interface IslandPlanParameters {
+  landMode?: "island" | "continuous";
   worldTemplate?: { id: string; centerX?: number; centerZ?: number };
   spatialComposition?: Partial<import("../spatial/SpatialCompositionParameters").SpatialCompositionParameters>;
   landformSeed?: number;

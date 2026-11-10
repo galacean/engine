@@ -265,6 +265,7 @@ export class IslandPlanView {
     const { width, depth } = plan.parameters;
     this.svg.dataset.planRevision = String(revision);
     this.svg.dataset.seed = String(plan.parameters.seed);
+    this.svg.dataset.landMode = plan.parameters.landMode ?? "island";
     this.svg.dataset.width = String(width);
     this.svg.dataset.depth = String(depth);
     if (!this.oblique) {

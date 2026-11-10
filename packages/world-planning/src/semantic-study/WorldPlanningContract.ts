@@ -130,6 +130,7 @@ export interface SemanticParameters {
   elevation: number;
   landAspect: number;
   landOrientation: number;
+  landMode?: IslandPlan["parameters"]["landMode"];
   landCoverage: number;
   offshoreCoverage: number;
   complexity: number;

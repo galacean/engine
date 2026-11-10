@@ -76,6 +76,7 @@ function templateCore(template: WorldTemplate) {
       ? { spatialComposition: { ...art.generation, enabled: false, seed: templateBaseSeed(id) } }
       : {}),
     landformSeed: templateBaseSeed(id),
+    landMode: art.initialPlanning?.landMode,
     landCoverage: terrain.coverage,
     complexity: 0.6,
     offshoreCoverage: 0.07,
@@ -178,6 +179,7 @@ export function createTemplatePlanningDocument(
   Object.assign(recipe.parameters, {
     worldTemplate: { id },
     landformSeed: templateBaseSeed(id),
+    landMode: art.initialPlanning?.landMode,
     landCoverage: terrain.coverage * (1 + jitter("coverage") * 0.02),
     complexity: 0.6 + jitter("coast") * 0.03,
     offshoreCoverage: 0.07,
@@ -206,6 +208,8 @@ export function createTemplatePlanningDocument(
   document.samplingVersion = initial.samplingVersion;
   document.waterAuthoringVersion = 1;
   const components = document.entities.world.components;
+  if (art.initialPlanning?.roadsEnabled !== undefined)
+    components.network.values.enabled = art.initialPlanning.roadsEnabled;
   for (const [type, values] of Object.entries(worldTemplatePaletteValues(id)))
     components[type] = { ...components[type], values: { ...components[type]?.values, ...values } };
   // The user explicitly authorized reference-specific lighting on 2026-11-05.
@@ -254,7 +258,7 @@ export function createTemplatePlanningDocument(
     values.referenceLevel = Math.fround(level) - 0.001;
     document.entities[lake.id] = lake;
   }
-  return initializePlanningPopulation(document, options);
+  return initializePlanningPopulation(document, { ...art.initialPlanning?.population, ...options });
 }
 
 /** Apply a reference recipe while retaining independently authored plant controls.

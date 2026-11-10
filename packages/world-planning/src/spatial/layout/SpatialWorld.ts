@@ -331,6 +331,7 @@ function* spatialWorldStages(
     p.landformSeed,
     p.worldTemplate,
     p.spatialComposition,
+    p.landMode,
     p.landCoverage,
     p.landAspect,
     p.landOrientation,
@@ -744,6 +745,10 @@ function* spatialWorldStages(
   );
   for (let i = 0; i < groups.length; i++) {
     const group = groups[i];
+    if (config.network.enabled === false) {
+      groups[i] = { ...group, paths: [], connectionBounds: undefined, connectionSignature: undefined };
+      continue;
+    }
     if (group === composition) continue;
     if (!group.volumes.length && compositionArea?.inside(group.center)) {
       groups[i] = { ...group, paths: [], ports: [] };
@@ -983,7 +988,7 @@ function* spatialWorldStages(
       plan,
       (_, outline) => inside(outline) && respectsRoadAreas(outline) && !roadObstacles.collides(outline)
     );
-    if (p.spatialComposition?.enabled && p.spatialComposition.roadWidthM) {
+    if (config.network.enabled !== false && p.spatialComposition?.enabled && p.spatialComposition.roadWidthM) {
       const compositionDomain = (outline: PlanPoint[]) =>
         insideDomain(outline) &&
         !templateAreas.some((area) => area.overlapsPolygon(outline)) &&

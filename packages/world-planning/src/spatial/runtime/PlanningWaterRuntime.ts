@@ -570,7 +570,9 @@ export class PlanningWaterRuntime {
         ? (this.system.activeEnvironment?.inspection ?? null)
         : null,
       ready: this.system.runtimeState.effectiveEnabled && (host?.activeBodyCount ?? 0) > 0,
-      visible: this.system.runtimeState.effectiveEnabled && (this.oceanVisible || this.riversVisible),
+      visible:
+        this.system.runtimeState.effectiveEnabled &&
+        [...this.activeIds].some((id) => (id === "planning-ocean" ? this.oceanVisible : this.riversVisible)),
       bodyCount: host?.activeBodyCount ?? 0,
       hostRevision: host?.activeSceneRevision ?? this.publishedRevision,
       chunkCount: host?.bodies.reduce((sum, body) => sum + body.activation.runtimeMetrics.drawCount, 0) ?? 0
@@ -794,10 +796,14 @@ export class PlanningWaterRuntime {
         })
       };
     };
-    const ocean = update ? this.oceanRequest : oceanRequest();
-    if (!ocean) throw new Error("Water edit has no published ocean base");
-    this.oceanRequest = ocean;
-    const requests: WaterSceneBodyRequest[] = [ocean];
+    const requests: WaterSceneBodyRequest[] = [];
+    if (plan.parameters.landMode === "continuous") {
+      this.oceanRequest = undefined;
+    } else {
+      const ocean = update ? this.oceanRequest : oceanRequest();
+      if (!ocean) throw new Error("Water edit has no published ocean base");
+      this.oceanRequest = ocean;
+    }
     const dependencies = new Map(
       plan.waters.map((water) => [
         water.id,
@@ -876,7 +882,7 @@ export class PlanningWaterRuntime {
     // Presentation is per publication. Retain each physical request and its original preset,
     // including when undo removes a colour override or the basin is temporarily dry.
     return [
-      requests[0],
+      ...(this.oceanRequest ? [this.oceanRequest] : []),
       ...plan.waters.flatMap((water) => {
         const cached = this.requestCache.get(water.id);
         if (!cached) return [];

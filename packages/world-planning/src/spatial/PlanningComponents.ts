@@ -414,10 +414,19 @@ const wayfindingFields: SpatialField[] = [
   number("cueSpanM", "单处引导最大范围", { unit: "m", step: 2, min: 0.001, default: WAYFINDING_DEFAULTS.cueSpanM }),
   number("spacingM", "引导点内体量间隔", { unit: "m", step: 1, min: 0.001, default: WAYFINDING_DEFAULTS.spacingM })
 ];
-const globals = [
+const globals: SpatialField[] = [
   {
     ...number("seed", "布局种子（Seed）", { unit: "", step: 1, min: 0, max: 4294967295 }),
     randomizeLabel: "换布局（随机 Seed）"
+  },
+  {
+    key: "landMode",
+    label: "陆域模式",
+    type: "string" as const,
+    default: "island",
+    options: ["island", "continuous"],
+    optionLabels: { island: "岛屿", continuous: "整图陆地" },
+    description: "整图陆地铺满规划边界并关闭默认海洋。河流和湖泊仍独立配置。"
   },
   number("landCoverage", "主陆地占比", { unit: "%", step: 0.01, min: 0, max: 1 }),
   number("landAspect", "主岛长宽倾向", { unit: "%", step: 0.01, min: 0, max: 1 }),
@@ -425,7 +434,12 @@ const globals = [
   number("complexity", "海岸轮廓变化", { unit: "%", step: 0.01, min: 0, max: 1 }),
   number("offshoreCoverage", "离岸陆地占比", { unit: "%", step: 0.01, min: 0, max: 1 }),
   number("islandRichness", "离岸岛丰富度", { unit: "%", step: 0.01, min: 0, max: 1 })
-];
+].map(
+  (field): SpatialField =>
+    field.key === "seed" || field.key === "landMode"
+      ? field
+      : { ...field, hiddenWhen: { field: "landMode", values: ["continuous"] } }
+);
 const distributionFields = [
   number("spacingM", "POI 基准间距", {
     unit: "m",
@@ -446,6 +460,7 @@ const distributionFields = [
   number("averageAreaM2", "平均管理面积", { unit: "㎡", readonly: true })
 ];
 const network = [
+  { key: "enabled", label: "生成道路", type: "boolean" as const, default: true, combine: "override" as const },
   number("widthM", "全局道路宽度", { unit: "m", step: 0.5, min: 0.001 }),
   number("bend", "全局道路弯曲", { unit: "%", step: 0.01, min: 0, max: 1 }),
   number("loopiness", "连接冗余", { unit: "%", step: 0.01, min: 0, max: 1 })
@@ -874,7 +889,9 @@ export const PLANNING_COMPONENTS: PlanningComponentDefinition[] = [
     version: 1,
     tab: "roads",
     fields: network.map((f) =>
-      f.key === "loopiness" ? { ...f, kinds: ["world"] } : { ...f, label: f.key === "widthM" ? "道路宽度" : "道路弯曲" }
+      f.key === "loopiness" || f.key === "enabled"
+        ? { ...f, kinds: ["world"] }
+        : { ...f, label: f.key === "widthM" ? "道路宽度" : "道路弯曲" }
     ),
     kinds: ["globalRoute"],
     local: { widthM: "road.widthM", bend: "road.bend" },

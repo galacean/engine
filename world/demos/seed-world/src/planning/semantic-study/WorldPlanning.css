@@ -89,6 +89,7 @@
 .world-planning-editor .base-height { fill:#40594f; }
 .world-planning-editor .ip-svg,
 .world-planning-editor .ip-viewport { background:#b5d6db; }
+.world-planning-editor .ip-svg[data-land-mode="continuous"] { background:#e8eddd; }
 .world-planning-editor .wp-layer-panel { background:#edf0e2; border-color:#c4cbb7; }
 .world-planning-editor .wp-layer-panel h2,
 .world-planning-editor .wp-seed,

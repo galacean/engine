@@ -117,7 +117,7 @@ export function planningLayerTree(plan: IslandPlan, scene: PlanningScene = build
             layers: [`object:offshore-${i}`]
           }))
         },
-        { id: "ocean", label: "海洋", layers: ["ocean"] }
+        ...(plan.parameters.landMode === "continuous" ? [] : [{ id: "ocean", label: "海洋", layers: ["ocean"] }])
       ]
     },
     {

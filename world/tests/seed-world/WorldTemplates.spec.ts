@@ -60,6 +60,41 @@ import {
 import { planningGroundSurface } from "@galacean/engine-world-planning/semantic-study/PlanningHeightmap";
 
 describe("authored world templates", () => {
+  it("幻兽荒原: starts with bounded land and empty automatic water, roads, buildings and vegetation", () => {
+    const source = createTemplatePlanningDocument(110613, "titan-wasteland");
+    const restored = importPlanningScene(exportPlanningScene(source));
+    const recipe = exportPlanningRecipe(restored);
+    expect(recipe.parameters.landMode).toBe("continuous");
+    expect(recipe.parameters.poiLayout?.network.enabled).toBe(false);
+
+    const result = generatePlanningDocument(restored);
+    expect(result.accepted).toBe(true);
+    const { plan } = result;
+    expect(plan.parameters).toMatchObject({ width: 1024, depth: 1024 });
+    expect(plan.land).toEqual([
+      { x: 0, z: 0 }, { x: 1024, z: 0 }, { x: 1024, z: 1024 }, { x: 0, z: 1024 }
+    ]);
+    expect(plan.islands).toHaveLength(0);
+    expect(plan.poiDistribution!.sites.some(site => site.active)).toBe(true);
+    expect(plan.parameters.terrainPatches!.length).toBeGreaterThan(0);
+    expect(plan.waters).toHaveLength(0);
+    expect(plan.routes).toHaveLength(0);
+    expect(plan.buildings).toHaveLength(0);
+    expect(plan.flowerRegions ?? []).toHaveLength(0);
+    expect(Object.values(plan.naturalVegetation!.world).every(density => density === 0)).toBe(true);
+    const template = WORLD_TEMPLATES.find(entry => entry.id === "titan-wasteland")!;
+    expect(buildWorldTemplateGeometry(template, 110613).nodes.map(node => node.id)).toEqual(["ancient-mech-wreck"]);
+
+    const edited = applySpatialCommands(restored, [
+      { op: "set", entity: "world", component: "world", values: { landMode: "island" } },
+      { op: "set", entity: "world", component: "network", values: { enabled: true } }
+    ], planningRegistry);
+    const enabled = generatePlanningDocument(edited, result);
+    expect(enabled.accepted).toBe(true);
+    expect(enabled.plan.land).not.toEqual(plan.land);
+    expect(enabled.plan.routes.length).toBeGreaterThan(0);
+  }, 60000);
+
   it("keeps authored forest poses while generating paths and separates roots from canopy bounds", () => {
     const template = WORLD_TEMPLATES.find((entry) => entry.id === "emerald-forest")!;
     const art = WORLD_TEMPLATE_ART[template.id];
@@ -602,7 +637,10 @@ describe("authored world templates", () => {
       if (!template.vegetation) {
         expect(vegetation.trees).toBeGreaterThan(0);
         expect(result.plan.landscapes!.some((plant) => plant.kind === "tree")).toBe(true);
-      } else if (template.vegetation === "desert") expect(vegetation.shrubs).toBeGreaterThan(0);
+      } else if (template.vegetation === "desert") {
+        const authored = WORLD_TEMPLATE_ART[template.id].initialLandscape?.["vegetation.shrubs"];
+        expect(vegetation.shrubs).toBe(authored ?? NATURAL_VEGETATION_CONTROLS.find(layer => layer.key === "shrubs")!.density);
+      }
       else expect(Object.values(vegetation).every((value) => value === 0)).toBe(true);
       expect(result.plan.planning!.reservations.some((area) => area.ownerId === "world-template")).toBe(true);
       for (const object of [
