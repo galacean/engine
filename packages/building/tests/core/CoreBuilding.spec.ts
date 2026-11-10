@@ -20,29 +20,20 @@ import {
   coreBuildingLayout,
   prepareCoreBuilding
 } from "../../src/building/render/CoreBuilding";
-import { European } from "../../src/building/parts/architecture/European";
-import { designBuilding } from "../../src/building/parts/architecture/BuildingDesign";
-import { implementBuilding } from "../../src/building/parts/architecture/BuildingImplementation";
-import {
-  buildingPreviewInput,
-  prepareBuildingPublication
-} from "../../src/building/parts/architecture/BuildingPublication";
-import { buildingPalette } from "../../src/building/parts/architecture/BuildingPalette";
-import { buildingGrounding } from "../../src/building/parts/architecture/BuildingGrounding";
-import { profilePreview } from "../../src/building/runtime/ProfilePreview";
 import { ConstructionSurfaceQuery } from "../../src/building/runtime/ConstructionSurfaceQuery";
 import { buildBuildingRenderPackage } from "../../src/building/runtime/BuildingRenderPackage";
 import { buildingGlobals } from "../../src/building/runtime/BuildingGlobals";
 import { resolveDocument } from "../../src/building/runtime/PlacementDocument.js";
+import { baseline, digest, frozen } from "./baseline";
+import { meshPrint, type MeshPrint } from "./meshPrint";
 import { planFacadeDecorations, normalizeDecorationPlan } from "../../src/building/runtime/DecorationPlan";
 import { normalizeProfileRoof } from "../../src/building/runtime/ProfileParameters";
 import { isFlatRoofHeight } from "../../src/building/runtime/RoofMode";
 import { constructionDecorationType } from "../../src/building/runtime/ConstructionDecorationCatalog";
 import { constructionDecorationRecipe } from "../../src/building/runtime/ConstructionDecorationRecipe";
-import { gothicRoofTiles } from "../../src/building/runtime/GothicRoofTiles";
-import { placeCottageDormerCourses } from "../../src/building/runtime/CottageDormerSupport";
 
-// Acceptance of the core render path against the online path, house by house.
+// Acceptance of the core render path against the online path, house by house. What online gave
+// is frozen in baselines/CoreBuilding-*.json.
 const flat = () => 0;
 const registry = registerHouseTypes(createBuildingRegistry());
 const environment = { ground: flat };
@@ -63,16 +54,23 @@ const HOUSES: [string, CoreHouseParameters][] = [
   ]
 ];
 const core = (p: CoreHouseParameters) => designBuildingCore(buildCoreHouse(p), registry, { environment });
-async function online(p: CoreHouseParameters) {
-  const design = designBuilding(European.buildHouses(p as never) as never, flat as never, nativeAssets);
-  const publication = await prepareBuildingPublication(design);
-  const preview = profilePreview(buildingPreviewInput(design, publication), flat as never, {
-    assets: nativeAssets,
-    includeStructure: true,
-    includeAppearance: true
-  });
-  return { design, preview };
-}
+/** What online gave for each house: where its structure rays hit (80 rays, in the order the test
+ * casts them), its palette, preview bounds, solid distance units and distance-texture coverage,
+ * its grounding, and its resident package. */
+const HOUSE_ONLINE = baseline<{
+  hits: (number[] | null)[];
+  palette: { paletteSlots: object[]; colorOwners: string[] };
+  bounds: { min: number[]; max: number[] };
+  retained: number;
+  coverage: Record<"brick" | "roof_tile", number | null>;
+  grounding: {
+    supports: { id: string; minGround: number; maxGround: number; topY: number }[];
+    minWorldHeight: number;
+    maxWorldHeight: number;
+    localBounds: { min: number[]; max: number[] };
+  };
+  resident: { draws: number; units: number; backingParts: number };
+}>("CoreBuilding-houses");
 const pack = (input: Parameters<typeof buildBuildingRenderPackage>[0]) =>
   buildBuildingRenderPackage(input, nativeAssets, buildingGlobals(input.paletteSlots, nativeAssets.frame), true)
     .package;
@@ -122,25 +120,25 @@ function coverage(part: {
 describe("Core render path against the online path", () => {
   it.each(HOUSES)(
     "%s: structure queries hit the same surfaces",
-    async (_name, p) => {
-      const a = await online(p);
+    (name, p) => {
+      const hits = HOUSE_ONLINE[name].hits;
       const b = prepareCoreBuilding(core(p), registry, { environment, assets: nativeAssets });
-      const qa = new ConstructionSurfaceQuery(a.preview.structuralParts!, [0, 0, 0], (id) => id);
       const qb = new ConstructionSurfaceQuery(b.preview.structuralParts!, [0, 0, 0], (id) => id);
       const [cx, cz] = p.rectangle?.center ?? [0, 0];
       const flatRoof = p.roof?.height === 0;
-      let rays = 0;
+      let rays = 0,
+        ray = 0;
       for (const y of [1, 2.5, 3.6, 5, 6.5])
         for (let k = 0; k < 16; k++) {
           const angle = (k / 16) * 2 * Math.PI;
           const start: [number, number, number] = [cx + 20 * Math.cos(angle), y + 6, cz + 20 * Math.sin(angle)];
-          const ha = qa.intersectSegment(start, [cx, y, cz]),
+          const ha = hits[ray++],
             hb = qb.intersectSegment(start, [cx, y, cz]);
           expect(!!hb).toBe(!!ha);
           if (!ha || !hb) continue;
           // The online structure treats a parapet as a solid band; the core keeps its crenels.
-          if (flatRoof && ha.position[1] > 2.85 - 1e-6) continue;
-          expect(Math.hypot(...ha.position.map((v, i) => v - hb.position[i]))).toBeLessThan(0.1);
+          if (flatRoof && ha[1] > 2.85 - 1e-6) continue;
+          expect(Math.hypot(...ha.map((v, i) => v - hb.position[i]))).toBeLessThan(0.1);
           rays++;
         }
       expect(rays).toBeGreaterThan(flatRoof ? 12 : 30);
@@ -150,29 +148,25 @@ describe("Core render path against the online path", () => {
 
   it.each(HOUSES)(
     "%s: same palette, similar bounds and distance appearance",
-    async (_name, p) => {
-      const a = await online(p);
+    (name, p) => {
+      const a = HOUSE_ONLINE[name];
       const b = prepareCoreBuilding(core(p), registry, { environment, assets: nativeAssets });
-      const palette = buildingPalette(a.design);
-      expect(b.appearance.paletteSlots).toEqual(palette.paletteSlots.map((s) => expect.objectContaining(s)));
-      expect(b.appearance.colorOwners.map((o) => o.id)).toEqual(palette.colorOwners.map((o) => o.id));
+      expect(b.appearance.paletteSlots).toEqual(a.palette.paletteSlots.map((s) => expect.objectContaining(s)));
+      expect(b.appearance.colorOwners.map((o) => o.id)).toEqual(a.palette.colorOwners);
       for (let k = 0; k < 3; k++) {
-        expect(Math.abs(b.preview.bounds.min[k] - a.preview.bounds.min[k])).toBeLessThan(0.3);
-        expect(Math.abs(b.preview.bounds.max[k] - a.preview.bounds.max[k])).toBeLessThan(0.3);
+        expect(Math.abs(b.preview.bounds.min[k] - a.bounds.min[k])).toBeLessThan(0.3);
+        expect(Math.abs(b.preview.bounds.max[k] - a.bounds.max[k])).toBeLessThan(0.3);
       }
       // Units standing out of the walls stay solid at a distance, about as many as online.
-      const retained = (v: { retainedWallUnits: { cells: unknown[] }[] }) =>
-        v.retainedWallUnits.reduce((n, r) => n + r.cells.length, 0);
-      expect(Math.abs(retained(b.preview) - retained(a.preview))).toBeLessThanOrEqual(
-        Math.max(4, 0.35 * retained(a.preview))
-      );
+      const retained = b.preview.retainedWallUnits.reduce((n, r) => n + r.cells.length, 0);
+      expect(Math.abs(retained - a.retained)).toBeLessThanOrEqual(Math.max(4, 0.35 * a.retained));
       // Every textured surface online has a textured core counterpart.
       for (const material of ["brick", "roof_tile"] as const) {
-        const ia = a.preview.parts.find((x) => x.material === material && x.lodAppearance);
+        const theirs = a.coverage[material];
         const ib = b.preview.parts.find((x) => x.material === material && x.lodAppearance);
-        expect(!!ib).toBe(!!ia);
+        expect(!!ib).toBe(theirs !== null);
         // The core surface is covered at least as well as the online one.
-        if (ia && ib) expect(coverage(ib)).toBeGreaterThan(coverage(ia) - 0.1);
+        if (theirs !== null && ib) expect(coverage(ib)).toBeGreaterThan(theirs - 0.1);
       }
     },
     60000
@@ -180,25 +174,22 @@ describe("Core render path against the online path", () => {
 
   it.each(HOUSES)(
     "%s: same grounding supports and similar bounds",
-    async (_name, p) => {
-      const implemented = await implementBuilding(
-        designBuilding(European.buildHouses(p as never) as never, flat as never, nativeAssets)
-      );
+    (name, p) => {
       const ground = { grounding: { originY: 0, renderPosition: [0, 0, 0] as [number, number, number] }, height: flat };
-      const ga = buildingGrounding(implemented as never, ground as never);
+      const ga = HOUSE_ONLINE[name].grounding;
       const prepared = prepareCoreBuilding(core(p), registry, { environment, assets: nativeAssets });
       const gb = coreBuildingGrounding(prepared.layout, prepared.preview, ground);
-      expect(gb.supports!.map((s) => s.id)).toEqual(ga.supports!.map((s) => s.id));
-      for (const [sa, sb] of ga.supports!.map((s, i) => [s, gb.supports![i]] as const)) {
+      expect(gb.supports!.map((s) => s.id)).toEqual(ga.supports.map((s) => s.id));
+      for (const [sa, sb] of ga.supports.map((s, i) => [s, gb.supports![i]] as const)) {
         expect(sb.minGround).toBeCloseTo(sa.minGround, 6);
         expect(sb.maxGround).toBeCloseTo(sa.maxGround, 6);
         expect(sb.topY).toBeCloseTo(sa.topY, 6);
       }
-      expect(gb.minWorldHeight).toBeCloseTo(ga.minWorldHeight!, 6);
-      expect(gb.maxWorldHeight).toBeCloseTo(ga.maxWorldHeight!, 6);
+      expect(gb.minWorldHeight).toBeCloseTo(ga.minWorldHeight, 6);
+      expect(gb.maxWorldHeight).toBeCloseTo(ga.maxWorldHeight, 6);
       for (let k = 0; k < 3; k++) {
-        expect(Math.abs(gb.localBounds!.min[k] - ga.localBounds!.min[k])).toBeLessThan(0.6);
-        expect(Math.abs(gb.localBounds!.max[k] - ga.localBounds!.max[k])).toBeLessThan(0.6);
+        expect(Math.abs(gb.localBounds!.min[k] - ga.localBounds.min[k])).toBeLessThan(0.6);
+        expect(Math.abs(gb.localBounds!.max[k] - ga.localBounds.max[k])).toBeLessThan(0.6);
       }
       expect(gb.contacts!.belowTerrain).toBeLessThan(1e-9);
     },
@@ -207,22 +198,23 @@ describe("Core render path against the online path", () => {
 
   it.each(HOUSES)(
     "%s: the resident package has the same draws and similar unit counts",
-    async (_name, p) => {
-      const a = (
-        await implementBuilding(designBuilding(European.buildHouses(p as never) as never, flat as never, nativeAssets))
-      ).renderInput;
+    async (name, p) => {
+      const a = HOUSE_ONLINE[name].resident;
       const { renderInput: b } = await compileCoreBuilding(core(p), registry, { environment, assets: nativeAssets });
-      const pa = pack(a),
-        pb = pack(b);
-      expect(pb.draws.length).toBe(pa.draws.length);
-      const units = (input: typeof a) => input.groups.reduce((n, g) => n + g.cells.length, 0);
-      expect(Math.abs(units(b) - units(a)) / units(a)).toBeLessThan(0.12);
-      expect(b.backingParts.length).toBe(a.backingParts.length);
+      expect(pack(b).draws.length).toBe(a.draws);
+      const units = b.groups.reduce((n, g) => n + g.cells.length, 0);
+      expect(Math.abs(units - a.units) / a.units).toBeLessThan(0.12);
+      expect(b.backingParts.length).toBe(a.backingParts);
     },
     60000
   );
 });
 
+/** Online's floor bands (count, levels, section) and plaster (area, wear, colour, wall length). */
+const FINISH_ONLINE = frozen<{
+  bands: Record<string, { count: number; levels: string[]; section: [number, number] }>;
+  plaster: Record<string, { area: number; wear: number; color: number; wallLength: number }>;
+}>("CoreBuilding-finish");
 describe("Floor bands against the online path", () => {
   it.each([
     ["rectangle", { id: "a", height: 8, floors: { enabled: true, interval: 3.5 } }],
@@ -247,19 +239,15 @@ describe("Floor bands against the online path", () => {
     ]
   ] as [string, CoreHouseParameters][])(
     "%s: same band count, levels and section",
-    async (_name, p) => {
-      const a = (
-        await implementBuilding(designBuilding(European.buildHouses(p as never) as never, flat as never, nativeAssets))
-      ).renderInput;
+    async (name, p) => {
+      const ba = FINISH_ONLINE.bands[name];
       const { renderInput: b } = await compileCoreBuilding(core(p), registry, { environment, assets: nativeAssets });
-      const bands = (input: typeof a) => input.groups.filter((g) => g.role === "floor-band").flatMap((g) => g.cells);
-      const [ba, bb] = [bands(a), bands(b)];
-      expect(bb.length).toBe(ba.length);
-      const levels = (cells: typeof ba) => [...new Set(cells.map((c) => c.center[1].toFixed(3)))].sort();
-      expect(levels(bb)).toEqual(levels(ba));
+      const bb = b.groups.filter((g) => g.role === "floor-band").flatMap((g) => g.cells);
+      expect(bb.length).toBe(ba.count);
+      expect([...new Set(bb.map((c) => c.center[1].toFixed(3)))].sort()).toEqual(ba.levels);
       for (const c of bb) {
-        expect(c.size[1]).toBeCloseTo(ba[0].size[1], 6);
-        expect(c.size[2]).toBeCloseTo(ba[0].size[2], 6);
+        expect(c.size[1]).toBeCloseTo(ba.section[0], 6);
+        expect(c.size[2]).toBeCloseTo(ba.section[1], 6);
         expect(c.brick_flags).toBe(4);
       }
     },
@@ -293,20 +281,17 @@ describe("Plaster against the online path", () => {
     ]
   ] as [string, CoreHouseParameters][])(
     "%s: a finish of the same area, wear and colour",
-    async (_name, p) => {
-      const a = (
-        await implementBuilding(designBuilding(European.buildHouses(p as never) as never, flat as never, nativeAssets))
-      ).renderInput;
+    async (name, p) => {
+      const a = FINISH_ONLINE.plaster[name];
       const { renderInput: b } = await compileCoreBuilding(core(p), registry, { environment, assets: nativeAssets });
-      const pa = a.surfaceParts.filter((x) => x.plaster),
-        pb = b.surfaceParts.filter((x) => x.plaster);
+      const pb = b.surfaceParts.filter((x) => x.plaster);
       expect(pb.length).toBeGreaterThan(0);
-      const [sa, sb] = [pa.reduce((n, x) => n + area(x), 0), pb.reduce((n, x) => n + area(x), 0)];
-      expect(Math.abs(sb - sa) / sa).toBeLessThan(0.05);
+      const sb = pb.reduce((n, x) => n + area(x), 0);
+      expect(Math.abs(sb - a.area) / a.area).toBeLessThan(0.05);
       for (const x of pb) {
-        expect(x.plaster!.wear).toBeCloseTo(pa[0].plaster!.wear, 6);
-        expect(x.plaster!.color).toBe(pa[0].plaster!.color);
-        expect(x.plaster!.wallLength).toBeCloseTo(pa[0].plaster!.wallLength, 4);
+        expect(x.plaster!.wear).toBeCloseTo(a.wear, 6);
+        expect(x.plaster!.color).toBe(a.color);
+        expect(x.plaster!.wallLength).toBeCloseTo(a.wallLength, 4);
         expect(x.plaster!.edgeDistances.length).toBe(x.uvs.length);
         expect(x.normals!.length).toBe(x.positions.length);
       }
@@ -340,6 +325,32 @@ describe("Plaster against the online path", () => {
   );
 });
 
+/** Online's wall prefabs per house: a fingerprint of each decoration part's mesh with digests of
+ * its colours, emission and appearance; the wall holes it opened; its stone hats. */
+const PREFAB_ONLINE = baseline<{
+  parts: (MeshPrint & { id: string; colors: string; emission: string; kinds: string; colorIds: string })[];
+  holes: { decorationId: string; centerU: number; centerY: number; width: number; height: number }[];
+  stones: {
+    template: string;
+    flags: number;
+    position: number[];
+    bones: { position: number[]; normalXZ: number[] }[];
+  }[];
+}>("CoreBuilding-prefabs");
+/** How far two meshes' fingerprints are apart: positions, normals and uvs. */
+const printDeviation = (a: MeshPrint, b: MeshPrint) => {
+  const d = (x: number[], y: number[]) => x.reduce((m, v, i) => Math.max(m, Math.abs(v - y[i])), 0);
+  return {
+    position: Math.max(
+      d(a.center, b.center),
+      d(a.min, b.min),
+      d(a.max, b.max),
+      ...a.samples.map((s, k) => d(s.position, b.samples[k].position))
+    ),
+    normal: Math.max(...a.samples.map((s, k) => d(s.normal, b.samples[k].normal))),
+    uv: Math.max(...a.samples.map((s, k) => d(s.uv, b.samples[k].uv)))
+  };
+};
 describe("Wall prefabs against the online path", () => {
   /** The facade the initial village plans for a house: windows, a door and a wall lamp. */
   const withFacade = (house: CoreHouseParameters): CoreHouseParameters => {
@@ -386,16 +397,8 @@ describe("Wall prefabs against the online path", () => {
     ["rotated house", withFacade({ id: "r", height: 7, rectangle: { center: [1, 2], size: [10, 7], rotation: 0.6 } })]
   ] as [string, CoreHouseParameters][])(
     "%s: the same prefab meshes and wall openings",
-    async (_name, p) => {
-      const design = designBuilding(European.buildHouses(p as never) as never, flat as never, nativeAssets.compilation);
-      const online = profilePreview(
-        buildingPreviewInput(design, await prepareBuildingPublication(design)),
-        flat as never,
-        {
-          assets: nativeAssets.compilation,
-          retainDecorationParts: true
-        } as never
-      );
+    (name, p) => {
+      const online = PREFAB_ONLINE[name];
       const result = designBuildingCore(buildCoreHouse(p), registry, {
         environment: coreBuildingEnvironment(flat, nativeAssets.compilation)
       });
@@ -403,27 +406,29 @@ describe("Wall prefabs against the online path", () => {
       const parts = coreBuildingDecorations(coreBuildingLayout(result, registry, {}), nativeAssets.compilation).flatMap(
         (d) => d.parts
       );
-      const byId = new Map(online.decorationParts.map((x) => [x.id, x]));
+      const byId = new Map(online.parts.map((x) => [x.id, x]));
       expect(parts.map((x) => x.id).sort()).toEqual([...byId.keys()].sort());
       const deviation = (a: number[], b: number[]) => a.reduce((m, v, i) => Math.max(m, Math.abs(v - b[i])), 0);
       for (const x of parts) {
         const o = byId.get(x.id)!;
-        expect(x.positions.length).toBe(o.positions.length);
+        const ours = meshPrint(x);
+        expect(ours.floats).toBe(o.floats);
         // Prefabs are resized about their back, online about their origin with a fixed
         // standing distance: the two differ across the wall by up to a few centimetres.
-        expect(deviation(x.positions, o.positions)).toBeLessThan(0.03);
-        expect(deviation(x.normals, o.normals)).toBeLessThan(0.03);
-        expect(deviation(x.uvs!.flat(), o.uvs!.flat())).toBeLessThan(1e-3);
-        expect(x.colors).toEqual(o.colors);
-        expect(x.emission).toEqual(o.emission);
-        expect(x.appearance!.kinds).toEqual(o.appearance!.kinds);
-        expect(x.appearance!.colorIds).toEqual(o.appearance!.colorIds);
+        const off = printDeviation(ours, o);
+        expect(off.position).toBeLessThan(0.03);
+        expect(off.normal).toBeLessThan(0.03);
+        expect(off.uv).toBeLessThan(1e-3);
+        expect(digest(x.colors)).toBe(o.colors);
+        expect(digest(x.emission)).toBe(o.emission);
+        expect(digest(x.appearance!.kinds)).toBe(o.kinds);
+        expect(digest(x.appearance!.colorIds)).toBe(o.colorIds);
       }
       // Each opening is an online hole and comes out of a wall. Online centers a hole on
       // the model origin, not on its collision box; on doors that is 1 cm lower. Online sizes
       // a Gothic window by its full hat, which it draws on timber walls only; the prefab by
       // the hat it draws, which is 1 % narrower.
-      const holes = design.prepared.decorations.flatMap((d) => d.holes);
+      const holes = online.holes;
       const walls = result.parts.filter((x) => x.type === "wall");
       const mounted = result.parts.filter(
         (x) => x.identity.kind === "author" && holes.some((h) => h.decorationId === (x.identity as { id: string }).id)
@@ -460,19 +465,18 @@ describe("Wall prefabs against the online path", () => {
       const coreStones = coreBuildingDecorations(coreBuildingLayout(result, registry, {}), nativeAssets.compilation)
         .flatMap((d) => d.stones)
         .sort((a, b) => a.id.localeCompare(b.id));
-      const onlineStones = online.stones.slice().sort((a, b) => a.id.localeCompare(b.id));
+      const onlineStones = online.stones;
       expect(coreStones.map((x) => x.template)).toEqual(onlineStones.map((x) => x.template));
       coreStones.forEach((x, i) => {
         const o = onlineStones[i];
-        expect(x.instance.flags).toBe(o.instance.flags);
+        expect(x.instance.flags).toBe(o.flags);
         // A rigid hat is placed by its pose; a bent one by its bones. Online narrows a bent hat
         // by another 5 cm on round walls.
-        if (x.instance.flags & 4)
-          expect(deviation(x.instance.xform.slice(9), o.instance.xform.slice(9))).toBeLessThan(0.01);
+        if (x.instance.flags & 4) expect(deviation([...x.instance.xform.slice(9)], o.position)).toBeLessThan(0.01);
         else
           x.instance.bones.forEach((bone, k) => {
-            expect(deviation([...bone.position], [...o.instance.bones[k].position])).toBeLessThan(0.03);
-            expect(deviation([...bone.normalXZ], [...o.instance.bones[k].normalXZ])).toBeLessThan(0.05);
+            expect(deviation([...bone.position], o.bones[k].position)).toBeLessThan(0.03);
+            expect(deviation([...bone.normalXZ], o.bones[k].normalXZ)).toBeLessThan(0.05);
           });
       });
     },
@@ -480,6 +484,16 @@ describe("Wall prefabs against the online path", () => {
   );
 });
 
+type FrozenPart = MeshPrint & { id: string; colors: string; kinds?: string; emission?: string };
+/** Online's roof prefabs: Gothic dormers (which it rejected, its small-roof tile count, its
+ * parts), Cottage dormers (its shed strips and parts) and deck prefabs (its parts). */
+const ROOF_ONLINE = frozen<{
+  dormers: Record<string, { rejected: string[]; tiles: number; parts: FrozenPart[] }>;
+  cottage: Record<string, { diagnostics: number; strips: number; parts: FrozenPart[] }>;
+  deck: Record<string, { diagnostics: number; parts: FrozenPart[] }>;
+}>("CoreBuilding-roofPrefabs");
+/** The positions of a fingerprint, flattened: center, bounds and the samples. */
+const printPoints = (m: MeshPrint) => [m.center, m.min, m.max, ...m.samples.map((x) => x.position)];
 describe("Roof dormers against the online path", () => {
   const sized = (rank: 1 | 2 | 3) => {
     const [width, height] = constructionDecorationRecipe(
@@ -542,28 +556,11 @@ describe("Roof dormers against the online path", () => {
     ]
   ] as [string, CoreHouseParameters][])(
     "%s: the same window meshes, a small roof of the same tiles, and a footprint",
-    async (_name, p) => {
-      const { roofAttachments, ...rest } = p;
-      const onlineHouse = {
-        ...rest,
-        attachments: roofAttachments!.map((a) => ({ ...a, kind: "window", host: "roof" }))
-      };
-      const design = designBuilding(
-        European.buildHouses(onlineHouse as never) as never,
-        flat as never,
-        nativeAssets.compilation
-      );
-      const online = profilePreview(
-        buildingPreviewInput(design, await prepareBuildingPublication(design)),
-        flat as never,
-        {
-          assets: nativeAssets.compilation,
-          retainDecorationParts: true
-        } as never
-      );
+    (name, p) => {
+      const online = ROOF_ONLINE.dormers[name];
       // Online also asks for clearance under the roof's top; the core only asks that the
       // dormer's roof meets its slope, so it lays the dormers online turns away.
-      const rejected = new Set(design.prepared.decorations.flatMap((d) => d.diagnostics.map((x) => x.id)));
+      const rejected = new Set(online.rejected);
       const result = designBuildingCore(buildCoreHouse(p), registry, {
         environment: coreBuildingEnvironment(flat, nativeAssets.compilation)
       });
@@ -575,38 +572,29 @@ describe("Roof dormers against the online path", () => {
       const parts = coreBuildingDecorations(coreBuildingLayout(result, registry, {}), nativeAssets.compilation)
         .flatMap((d) => d.parts)
         .filter((x) => !rejected.has(x.id.split("/").slice(1, 3).join("/")));
-      const byId = new Map(online.decorationParts.map((x) => [x.id, x]));
+      const byId = new Map(online.parts.map((x) => [x.id, x]));
       expect(parts.map((x) => x.id).sort()).toEqual([...byId.keys()].sort());
       expect(parts.length).toBeGreaterThan(0);
       for (const x of parts) {
         const o = byId.get(x.id)!;
-        expect(x.positions.length).toBe(o.positions.length);
+        const ours = meshPrint(x);
+        expect(ours.floats).toBe(o.floats);
         // Across the plan the window stands where online puts it. Upright it stands on the core
         // roof's covering; the two roofs' surfaces differ by up to 0.13 m there.
-        const dy = x.positions[1] - o.positions[1];
+        const dy = ours.samples[0].position[1] - o.samples[0].position[1];
         expect(Math.abs(dy)).toBeLessThan(0.25);
-        for (let k = 0; k < x.positions.length; k += 3) {
-          expect(Math.abs(x.positions[k] - o.positions[k])).toBeLessThan(0.03);
-          expect(Math.abs(x.positions[k + 1] - o.positions[k + 1] - dy)).toBeLessThan(1e-4);
-          expect(Math.abs(x.positions[k + 2] - o.positions[k + 2])).toBeLessThan(0.03);
-        }
-        expect(x.colors).toEqual(o.colors);
-        expect(x.appearance!.kinds).toEqual(o.appearance!.kinds);
+        const theirs = printPoints(o);
+        printPoints(ours).forEach((q, i) => {
+          expect(Math.abs(q[0] - theirs[i][0])).toBeLessThan(0.03);
+          expect(Math.abs(q[1] - theirs[i][1] - dy)).toBeLessThan(1e-4);
+          expect(Math.abs(q[2] - theirs[i][2])).toBeLessThan(0.03);
+        });
+        expect(digest(x.colors)).toBe(o.colors);
+        expect(digest(x.appearance!.kinds)).toBe(o.kinds);
       }
       // The small roofs: the same rows of tiles over the arch and ridge caps along the peak,
       // within a third of online's count (the core roof meets its own slope).
-      const accepted = p.roofAttachments!.filter((a) => !rejected.has(`${p.id}/${a.id}`));
-      const onlineTiles = design.prepared.decorations
-        .flatMap((d) => (d as unknown as { dormerRoofs: { decorationId: string; support: never }[] }).dormerRoofs)
-        .reduce((n, r) => {
-          const { transform, surface, footprint } = r.support as {
-            transform: Parameters<typeof gothicRoofTiles>[2];
-            surface: Parameters<typeof gothicRoofTiles>[3];
-            footprint: Parameters<typeof gothicRoofTiles>[4];
-          };
-          const rank = accepted.find((a) => `${p.id}/${a.id}` === r.decorationId)!.rank!;
-          return n + gothicRoofTiles("t", rank, transform, surface, footprint, 0).length;
-        }, 0);
+      const onlineTiles = online.tiles;
       const coreTiles = result.parts
         .filter((x) => x.type === "dormerRoof" || x.type === "dormerRidge")
         .filter((x) => {
@@ -633,7 +621,7 @@ describe("Roof dormers against the online path", () => {
 describe("Cottage dormers against the online path", () => {
   it.each([1, 2] as const)(
     "rank %s: the same window bodies under a shed of the same pieces",
-    async (rank) => {
+    (rank) => {
       const [width, height] = constructionDecorationRecipe(
         nativeAssets.compilation.decorations,
         "dormer-cottage",
@@ -655,18 +643,8 @@ describe("Cottage dormers against the online path", () => {
         roof: { height: 0.6 },
         roofAttachments: [a]
       };
-      const { roofAttachments: _r, ...rest } = p;
-      const design = designBuilding(
-        European.buildHouses({ ...rest, attachments: [{ ...a, kind: "window", host: "roof" }] } as never) as never,
-        flat as never,
-        nativeAssets.compilation
-      );
-      expect(design.prepared.decorations.flatMap((d) => d.diagnostics)).toEqual([]);
-      const online = profilePreview(
-        buildingPreviewInput(design, await prepareBuildingPublication(design)),
-        flat as never,
-        { assets: nativeAssets.compilation, retainDecorationParts: true } as never
-      );
+      const online = ROOF_ONLINE.cottage[`rank ${rank}`];
+      expect(online.diagnostics).toBe(0);
       const environment = coreBuildingEnvironment(flat, nativeAssets.compilation);
       const result = designBuildingCore(buildCoreHouse(p), registry, { environment });
       expect(result.diagnostics).toEqual([]);
@@ -675,29 +653,28 @@ describe("Cottage dormers against the online path", () => {
       );
       // Online numbers the members of every Cottage dormer; the core numbers them when a part
       // lays more than one body.
-      const byId = new Map(online.decorationParts.map((x) => [rank === 1 ? x.id.replace(/\/0$/, "") : x.id, x]));
+      const byId = new Map(online.parts.map((x) => [x.id, x]));
       expect(parts.map((x) => x.id).sort()).toEqual([...byId.keys()].sort());
       for (const x of parts) {
         const o = byId.get(x.id)!;
-        expect(x.positions.length).toBe(o.positions.length);
+        const ours = meshPrint(x);
+        expect(ours.floats).toBe(o.floats);
         // Across the plan the bodies stand where online puts them. Online sets a row of bodies on
         // its roof's section, 0.19 m behind where it sets one body; the core stands every body on
         // its covering, which lies lower than online's roof.
-        const dy = x.positions[1] - o.positions[1];
+        const dy = ours.samples[0].position[1] - o.samples[0].position[1];
         expect(Math.abs(dy)).toBeLessThan(0.25);
-        for (let k = 0; k < x.positions.length; k += 3) {
-          expect(Math.abs(x.positions[k] - o.positions[k])).toBeLessThan(0.03);
-          expect(Math.abs(x.positions[k + 2] - o.positions[k + 2])).toBeLessThan(rank === 1 ? 0.03 : 0.2);
-        }
-        expect(x.colors).toEqual(o.colors);
+        const theirs = printPoints(o);
+        printPoints(ours).forEach((q, i) => {
+          expect(Math.abs(q[0] - theirs[i][0])).toBeLessThan(0.03);
+          expect(Math.abs(q[2] - theirs[i][2])).toBeLessThan(rank === 1 ? 0.03 : 0.2);
+        });
+        expect(digest(x.colors)).toBe(o.colors);
       }
       // The shed: tiles, a soffit, trims and cheeks, about as many pieces as online's.
-      const strips = (
-        design.prepared.decorations[0] as unknown as { dormerRoofs: { support: never; placement: never }[] }
-      ).dormerRoofs.flatMap((r) => placeCottageDormerCourses(r.support, r.placement));
       const shed = result.parts.find((x) => x.type === "shedRoof")!;
       const pieces = expandUnits(shed, registry, { environment });
-      expect(Math.abs(pieces.length - strips.length) / strips.length).toBeLessThan(0.25);
+      expect(Math.abs(pieces.length - online.strips) / online.strips).toBeLessThan(0.25);
       for (const role of ["soffit", "trim", "cheek"]) expect(pieces.some((u) => u.key.startsWith(role))).toBe(true);
     },
     60000
@@ -742,27 +719,9 @@ describe("Flat roof prefabs against the online path", () => {
     ]
   ] as [string, CoreHouseParameters][])(
     "%s: the same hatch and lantern meshes, and the hatch opens the deck",
-    async (_name, p) => {
-      const { roofAttachments, ...rest } = p;
-      const onlineHouse = {
-        ...rest,
-        attachments: roofAttachments!.map((a) => ({
-          ...a,
-          kind: a.type === "roof-lantern" ? "lantern" : "hatch",
-          host: "roof"
-        }))
-      };
-      const design = designBuilding(
-        European.buildHouses(onlineHouse as never) as never,
-        flat as never,
-        nativeAssets.compilation
-      );
-      expect(design.prepared.decorations.flatMap((d) => d.diagnostics)).toEqual([]);
-      const online = profilePreview(
-        buildingPreviewInput(design, await prepareBuildingPublication(design)),
-        flat as never,
-        { assets: nativeAssets.compilation, retainDecorationParts: true } as never
-      );
+    async (name, p) => {
+      const online = ROOF_ONLINE.deck[name];
+      expect(online.diagnostics).toBe(0);
       const result = designBuildingCore(buildCoreHouse(p), registry, {
         environment: coreBuildingEnvironment(flat, nativeAssets.compilation)
       });
@@ -770,17 +729,18 @@ describe("Flat roof prefabs against the online path", () => {
       const parts = coreBuildingDecorations(coreBuildingLayout(result, registry, {}), nativeAssets.compilation).flatMap(
         (d) => d.parts
       );
-      const byId = new Map(online.decorationParts.map((x) => [x.id, x]));
+      const byId = new Map(online.parts.map((x) => [x.id, x]));
       expect(parts.map((x) => x.id).sort()).toEqual([...byId.keys()].sort());
-      const deviation = (a: number[], b: number[]) => a.reduce((m, v, i) => Math.max(m, Math.abs(v - b[i])), 0);
       for (const x of parts) {
         const o = byId.get(x.id)!;
-        expect(x.positions.length).toBe(o.positions.length);
+        const ours = meshPrint(x);
+        expect(ours.floats).toBe(o.floats);
         // Online places a deck prefab by its origin on the deck, as the core does.
-        expect(deviation(x.positions, o.positions)).toBeLessThan(1e-5);
-        expect(deviation(x.normals, o.normals)).toBeLessThan(1e-5);
-        expect(x.colors).toEqual(o.colors);
-        expect(x.emission).toEqual(o.emission);
+        const off = printDeviation(ours, o);
+        expect(off.position).toBeLessThan(1e-5);
+        expect(off.normal).toBeLessThan(1e-5);
+        expect(digest(x.colors)).toBe(o.colors);
+        expect(digest(x.emission)).toBe(o.emission);
       }
       // A hatch takes its opening out of the deck; the renderer cuts the deck there.
       const deck = result.parts.find((x) => x.type === "roofDeck")!;
