@@ -1,4 +1,4 @@
-import { positive, type Vec3 } from "./math";
+import { finite, positive, type Vec3 } from "./math";
 import { ribbonOf, type EffectiveGeometry, type Frame, type GeometryElement, type Rect } from "./geometry";
 import type { Random } from "./random";
 import { unitAxisAlong, unitExtent, unitFits, unitNominal, type BuildingUnit } from "./unit";
@@ -266,6 +266,7 @@ export const alongCurves: LayingAlgorithm<
   plan(context) {
     const p = context.params;
     if (p.spacing !== undefined) positive(p.spacing, "spacing");
+    if (p.start !== undefined && !(finite(p.start, "start") >= 0)) throw Error("start must not be negative");
     const nominal =
       p.spacing === undefined && !p.perSegment ? positive(extent(context, "alongCurves")[0], "Unit length") : undefined;
     const entries: CurveEntry[] = [];
@@ -273,11 +274,13 @@ export const alongCurves: LayingAlgorithm<
     for (const id of selectRibbons(context)) {
       const curve = context.geometry.line(id);
       const start = curve.closed ? 0 : (p.start ?? 0);
+      // An open line shorter than the start has no room for a unit.
+      const room = Math.max(0, curve.length - start);
       const lay = p.perSegment
         ? { count: curve.segmentCount, pitch: 0, fill: false }
         : nominal === undefined
-          ? spaced(curve.length - start, p.spacing!, curve.closed)
-          : abut(context.unit, curve.length - start, nominal, curve.closed);
+          ? spaced(room, p.spacing!, curve.closed)
+          : abut(context.unit, room, nominal, curve.closed);
       entries.push({
         id,
         offset,

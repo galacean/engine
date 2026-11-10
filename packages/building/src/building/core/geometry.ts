@@ -238,10 +238,12 @@ export const ribbonSurface: SurfaceKind<RibbonParams> = {
     const f = sampler.frame(u);
     if (!p.offsets || !v) return f;
     const n = p.points.length;
+    // A closed ribbon has a segment back to its first point, and u wraps like its curve's.
+    const s = sampler.closed ? ((u % sampler.length) + sampler.length) % sampler.length : u;
     let i = 0;
-    while (i + 2 < n && sampler.vertex(i + 1) < u) i++;
+    while (i + 1 < sampler.segmentCount && sampler.vertex(i + 1) < s) i++;
     const [a, b] = [sampler.vertex(i), sampler.vertex(i + 1)];
-    const t = b > a ? Math.max(0, Math.min(1, (u - a) / (b - a))) : 0;
+    const t = b > a ? Math.max(0, Math.min(1, (s - a) / (b - a))) : 0;
     const [p0, p1] = [p.offsets[i], p.offsets[(i + 1) % n]];
     return {
       ...f,

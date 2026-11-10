@@ -103,6 +103,71 @@ describe("Laying algorithms, like easing functions", () => {
     expect(registry.algorithms.get("twoInARow")!.info!.cpuOnly).toBe(true);
   });
 
+  it("lays nothing on an open line shorter than the start, and keeps the other lines", () => {
+    const registry = createBuildingRegistry();
+    const line = (x: number) => ({
+      kind: "surface",
+      surface: {
+        kind: "ribbon",
+        params: {
+          points: [
+            [0, 0, 0],
+            [x, 0, 0]
+          ]
+        }
+      }
+    });
+    const geometry = { generator: "elements", params: { elements: { a: line(5), b: line(0.6) } } };
+    const lay = (start: number) =>
+      designBuildingCore(
+        draft({ geometry, unit: board, algorithm: { type: "alongCurves", params: { spacing: 0.5, start } } }),
+        registry
+      );
+    const result = lay(1.6);
+    expect(result.diagnostics).toEqual([]);
+    expect(expandUnits(result.parts[0], registry).map((u) => u.key)).toEqual([
+      "a:0",
+      "a:1",
+      "a:2",
+      "a:3",
+      "a:4",
+      "a:5"
+    ]);
+    expect(
+      lay(-1)
+        .diagnostics.map((d) => d.message)
+        .join()
+    ).toContain("start must not be negative");
+  });
+
+  it("offsets a closed ribbon between its last and first points too", () => {
+    const registry = createBuildingRegistry();
+    const square = {
+      kind: "ribbon",
+      params: {
+        points: [
+          [0, 0, 0],
+          [1, 0, 0],
+          [1, 0, 1],
+          [0, 0, 1]
+        ],
+        closed: true,
+        offsets: [
+          [0, 1, 0],
+          [0, 1, 0],
+          [0, 1, 0],
+          [0, 3, 0]
+        ]
+      }
+    };
+    const surface = registry.surfaces.get("ribbon")!;
+    // Halfway along each side the offset is halfway between its two points' offsets.
+    expect(surface.frame(square.params, 0.5, 1).origin[1]).toBeCloseTo(1, 12);
+    expect(surface.frame(square.params, 2.5, 1).origin[1]).toBeCloseTo(2, 12);
+    expect(surface.frame(square.params, 3.5, 1).origin[1]).toBeCloseTo(2, 12);
+    expect(surface.frame(square.params, -0.5, 1).origin[1]).toBeCloseTo(2, 12);
+  });
+
   it("lists every algorithm with what it lays and how", () => {
     const list = describeLaying(createBuildingRegistry());
     expect(list.map((a) => a.name)).toEqual(["alongCurves", "coverSurfaces", "none", "placeAtPoints", "surfaceGrid"]);
