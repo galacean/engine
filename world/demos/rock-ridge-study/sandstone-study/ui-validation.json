@@ -1,0 +1,32 @@
+{
+  "version": "sandstone-structural-v1",
+  "date": "2026-11-10",
+  "surface": "fresh local standalone build in the in-app browser",
+  "defaultSeed": 1,
+  "defaultMeshFingerprint": "ce96d137",
+  "defaultReducedTriangles": 49914,
+  "matchingNodeFingerprint": true,
+  "browserJavaScriptOrShaderErrors": [],
+  "layouts": [
+    {"browserWidth": 320, "rootWidth": 288, "rootScrollWidth": 288, "visibleClipping": false},
+    {"browserWidth": 736, "rootWidth": 704, "rootScrollWidth": 704, "visibleClipping": false}
+  ],
+  "observed": [
+    "All five processing stages render in clay",
+    "Oblique, front, side, top and face close-up views render",
+    "Height slider changes 10 m to 12 m and regenerates geometry",
+    "Seed slider changes 4659 to 1; both fingerprints match Node",
+    "Seed 1 source wireframe renders 196848 triangles, fingerprint 832a3196",
+    "Seed 1 reduced mesh renders 49914 triangles, fingerprint ce96d137",
+    "Invalid recipe version shows an error and preserves the displayed mesh",
+    "Applying the complete seed-4659 JSON restores the 10 m stage-4 mesh, fingerprint be6d7c6c",
+    "Clay and sandstone previews share the same mesh fingerprint",
+    "Fine shading renders in face close-up without shader errors"
+  ],
+  "screenshots": ["evidence/clay-seed-1.png", "evidence/sandstone-seed-1.png"],
+  "visualAssessment": "The cuts produce connected buttresses, unequal crown breaks and localized ledges. The facade layout and weathering remain more regular and simpler than the photograph; this is a stylized procedural approximation.",
+  "unverified": [
+    "Native drag automation produced no visible camera change, so gesture-level orbit acceptance is unproven",
+    "Production performance, collision, UV/bake workflow and integration into ridge assemblies"
+  ]
+}

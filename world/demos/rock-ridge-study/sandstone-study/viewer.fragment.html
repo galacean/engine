@@ -1,0 +1,106 @@
+<div id="sandstone-study">
+  <div class="viz-controls">
+    <label class="form-label">Stage <select class="form-select" id="ss-step"><option value="0">0 · Clean atomic base</option><option value="1">1 · Broad faces</option><option value="2">2 · Vertical joints</option><option value="3">3 · Uneven beds</option><option value="4" selected>4 · Local edge damage</option></select></label>
+    <label class="form-label">Surface <select class="form-select" id="ss-finish"><option value="clay">Clay</option><option value="sandstone" selected>Sandstone</option></select></label>
+  </div>
+  <div id="ss-viewport" role="img" aria-label="Procedural sandstone rock. Drag to orbit. Stages show actual face cuts, joints, bed erosion and edge damage."></div>
+  <div class="text-small tabular-nums" id="ss-status" aria-live="polite">Building sandstone…</div>
+  <div class="viz-controls">
+    <label class="form-label">Parameter <select class="form-select" id="ss-parameter"></select></label>
+    <label class="form-label">View <select class="form-select" id="ss-view"><option value="oblique">Oblique</option><option value="front">Front</option><option value="side">Side</option><option value="top">Top</option><option value="closeup">Face close-up</option></select></label>
+  </div>
+  <label class="form-label" for="ss-slider"><span id="ss-label"></span> <output class="tabular-nums" id="ss-value" for="ss-slider"></output></label>
+  <input class="form-range" type="range" id="ss-slider" min="0" max="0.7" step="0.01" value="0.55" aria-label="Joint depth">
+  <div class="viz-row">
+    <label class="form-check"><input class="form-check-input" type="checkbox" id="ss-reduced" checked><span class="form-check-label">Reduced mesh</span></label>
+    <label class="form-check"><input class="form-check-input" type="checkbox" id="ss-wire"><span class="form-check-label">Wireframe</span></label>
+    <label class="form-check"><input class="form-check-input" type="checkbox" id="ss-box"><span class="form-check-label">Bounds</span></label>
+  </div>
+  <details id="ss-recipe-details"><summary>Replicable recipe</summary><label class="form-label" for="ss-recipe">Seed + processing parameters</label><textarea class="form-control" id="ss-recipe" rows="8" spellcheck="false" aria-label="Procedural recipe JSON"></textarea><div class="viz-row"><button class="btn" id="ss-apply" type="button">Apply recipe</button><span class="text-small" id="ss-recipe-status" role="status"></span></div></details>
+</div>
+<style>
+ #sandstone-study{display:flex;flex-direction:column;gap:calc(var(--font-size-base)*.5)}
+ #sandstone-study #ss-viewport{width:100%;min-height:300px;overflow:hidden}
+ #sandstone-study canvas{display:block;width:100%;touch-action:none;cursor:grab}
+ #sandstone-study canvas:active{cursor:grabbing}
+ #sandstone-study #ss-recipe-details[open]{display:flex;flex-direction:column;gap:calc(var(--font-size-base)*.5)}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+<script>
+(()=>{
+ __ATOMIC_KERNEL__
+ __SANDSTONE_RECIPE__
+ __SANDSTONE_PROCESSOR__
+ const root=document.getElementById('sandstone-study'),find=id=>root.querySelector('#ss-'+id),T=window.THREE;
+ const status=find('status'),viewport=find('viewport'),selector=find('parameter'),slider=find('slider'),stepInput=find('step'),finish=find('finish'),view=find('view'),reduced=find('reduced'),wire=find('wire'),box=find('box'),recipeInput=find('recipe'),recipeStatus=find('recipe-status');
+ if(!T){status.textContent='The 3D renderer could not load.';status.setAttribute('role','alert');return;}
+ let recipe=sandstoneRecipe(),parameter='jointDepth',yaw=.62,pitch=.23,width=700,height=440,mesh=null,rock=null,ground=null,bounds=null,worker=null,processor=null,busy=false,pending=null,serial=0,timer=0,drag=null,lastSaved='';
+ for(const def of SANDSTONE_CONTROLS){const option=document.createElement('option');option.value=def.key;option.textContent=def.label;selector.append(option);}
+ const scene=new T.Scene(),camera=new T.OrthographicCamera(-5,5,5,-5,.01,1000);
+ let renderer;try{renderer=new T.WebGLRenderer({antialias:true,alpha:true});}catch{status.textContent='WebGL is unavailable.';status.setAttribute('role','alert');return;}
+ renderer.setPixelRatio(Math.min(devicePixelRatio||1,2));renderer.outputColorSpace=T.SRGBColorSpace;renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=1;renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFSoftShadowMap;viewport.append(renderer.domElement);
+ const sky=new T.HemisphereLight(0xd9e8f4,0x716053,1.15);scene.add(sky);const sun=new T.DirectionalLight(0xffeed5,3.3);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);sun.shadow.bias=-.0001;sun.shadow.normalBias=.015;scene.add(sun);const fill=new T.DirectionalLight(0xbdcddd,.35);fill.position.set(10,3,-8);scene.add(fill);
+ function themeColor(token){const e=document.createElement('span');e.style.color='var('+token+')';root.append(e);const c=new T.Color(getComputedStyle(e).color);e.remove();return c;}
+ function palette(){const bg=themeColor('--background'),fg=themeColor('--foreground');return {bg,fg,clay:bg.clone().lerp(fg,bg.r+bg.g+bg.b<fg.r+fg.g+fg.b?.38:.3),ground:bg.clone().lerp(fg,.035)};}
+ function material(){
+  const stone=finish.value==='sandstone',p=palette(),m=new T.MeshStandardMaterial({color:stone?new T.Color('#b66c3b'):p.clay,roughness:.93,metalness:0,wireframe:wire.checked});
+  if(stone&&mesh){const f=mesh.features,beds=f.beds;
+   m.onBeforeCompile=shader=>{
+    shader.uniforms.ssBedY={value:beds.map(b=>b.y)};shader.uniforms.ssBedTilt={value:new T.Vector2(...f.bedTilt)};shader.uniforms.ssPhase={value:f.bedPhase};
+    shader.vertexShader=shader.vertexShader.replace('#include <common>','#include <common>\nvarying vec3 ssLocal;').replace('#include <begin_vertex>','#include <begin_vertex>\nssLocal=position;');
+    shader.fragmentShader=shader.fragmentShader.replace('#include <common>',`#include <common>
+varying vec3 ssLocal; uniform float ssBedY[${beds.length}]; uniform vec2 ssBedTilt; uniform float ssPhase;
+float ssHash(vec3 p){p=fract(p*.1031);p+=dot(p,p.yzx+33.33);return fract((p.x+p.y)*p.z);}
+float ssNoise(vec3 p){vec3 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(mix(ssHash(i),ssHash(i+vec3(1,0,0)),f.x),mix(ssHash(i+vec3(0,1,0)),ssHash(i+vec3(1,1,0)),f.x),f.y),mix(mix(ssHash(i+vec3(0,0,1)),ssHash(i+vec3(1,0,1)),f.x),mix(ssHash(i+vec3(0,1,1)),ssHash(i+vec3(1,1,1)),f.x),f.y),f.z);}
+`);
+    shader.fragmentShader=shader.fragmentShader.replace('#include <color_fragment>',`#include <color_fragment>
+float ssBy=ssLocal.y+dot(ssLocal.xz,ssBedTilt)+.045*sin(ssLocal.x*.65+ssPhase)*sin(ssLocal.z*.48+.8);
+float ssLayer=0.,ssSeam=1.;for(int i=0;i<${beds.length};i++){if(ssBy>ssBedY[i])ssLayer=float(i);ssSeam=min(ssSeam,abs(ssBy-ssBedY[i]));}
+float ssTone=ssHash(vec3(ssLayer,ssPhase,1.));
+float ssStreak=ssNoise(ssLocal*vec3(3.,.18,3.))*.7+ssNoise(ssLocal*vec3(12.,.5,12.))*.3;
+float ssGrain=ssNoise(ssLocal*65.);
+float ssSediment=ssNoise(vec3(ssLocal.x*.9,ssBy*24.,ssLocal.z*.9));
+float ssPatch=ssNoise(ssLocal*.7+vec3(ssPhase));
+float ssFilter=1.-smoothstep(.006,.025,max(length(dFdx(ssLocal)),length(dFdy(ssLocal))));
+diffuseColor.rgb*=.83+.17*ssTone+.10*ssStreak+.08*ssPatch+(.02*ssGrain+.015*ssSediment)*ssFilter;
+diffuseColor.rgb*=.93+.07*smoothstep(.008,.04,ssSeam);
+`);
+    shader.fragmentShader=shader.fragmentShader.replace('#include <normal_fragment_maps>',`#include <normal_fragment_maps>
+vec3 ssDx=dFdx(-vViewPosition),ssDy=dFdy(-vViewPosition),ssR1=cross(ssDy,normal),ssR2=cross(normal,ssDx);float ssDet=dot(ssDx,ssR1);
+float ssBump=(ssGrain*.0015+ssSediment*.0008)*ssFilter+ssStreak*.003;
+normal=normalize(abs(ssDet)*normal-sign(ssDet)*(dFdx(ssBump)*ssR1+dFdy(ssBump)*ssR2));
+`);
+   };m.customProgramCacheKey=()=>SANDSTONE_VERSION+':'+beds.length;
+  }
+  return m;
+ }
+ function remove(object){if(!object)return;scene.remove(object);object.geometry.dispose();object.material.dispose();}
+ function appearance(){if(!rock)return;rock.material.dispose();rock.material=material();const p=palette(),stone=finish.value==='sandstone';ground.material.color.copy(stone?new T.Color('#94704e'):p.ground);bounds.material.color.copy(p.fg);bounds.visible=box.checked;render();}
+ function accept(result){
+  mesh=result;remove(rock);remove(ground);remove(bounds);const g=new T.BufferGeometry();g.setAttribute('position',new T.BufferAttribute(mesh.positions,3));g.setAttribute('normal',new T.BufferAttribute(mesh.normals,3));g.setIndex(new T.BufferAttribute(mesh.indices,1));g.computeBoundingSphere();rock=new T.Mesh(g,material());rock.castShadow=true;rock.receiveShadow=true;scene.add(rock);
+  const p=recipe.parameters,b=new T.BoxGeometry(p.width,p.height,p.depth);bounds=new T.LineSegments(new T.EdgesGeometry(b),new T.LineBasicMaterial({color:palette().fg,transparent:true,opacity:.28}));b.dispose();bounds.visible=box.checked;scene.add(bounds);
+  ground=new T.Mesh(new T.PlaneGeometry(Math.max(p.width,p.depth)*6,Math.max(p.width,p.depth)*6),new T.MeshStandardMaterial({color:palette().ground,roughness:1}));ground.rotation.x=-Math.PI/2;ground.position.y=-p.height/2-.015;ground.receiveShadow=true;scene.add(ground);
+  const size=Math.max(p.width,p.height,p.depth);sun.position.set(-size*1.1,size*1.5,size);Object.assign(sun.shadow.camera,{left:-size,right:size,top:size,bottom:-size,near:.1,far:size*6});sun.shadow.camera.updateProjectionMatrix();
+  status.removeAttribute('role');status.textContent=[p.width,p.height,p.depth].join(' × ')+' m · '+mesh.stats.triangles.toLocaleString()+' triangles · '+mesh.stats.hash+(mesh.reduction?.accepted===false?' · source retained for topology':'');recipeInput.value=JSON.stringify(recipe,null,2);appearance();
+ }
+ function render(){if(!mesh)return;const p=recipe.parameters;let ex=0,ey=0;for(const x of [-p.width/2,p.width/2])for(const y of [-p.height/2,p.height/2])for(const z of [-p.depth/2,p.depth/2]){ex=Math.max(ex,Math.abs(x*Math.cos(yaw)-z*Math.sin(yaw)));ey=Math.max(ey,Math.abs(-x*Math.sin(yaw)*Math.sin(pitch)+y*Math.cos(pitch)-z*Math.cos(yaw)*Math.sin(pitch)));}const close=view.value==='closeup',span=close?Math.min(p.width,p.depth)*.8:Math.max(ex*2.32,ey*2.28*width/height),distance=Math.max(p.width,p.height,p.depth)*4,targetY=close?p.height*.09:0;camera.left=-span/2;camera.right=span/2;camera.top=span*height/width/2;camera.bottom=-camera.top;camera.updateProjectionMatrix();camera.position.set(distance*Math.sin(yaw)*Math.cos(pitch),distance*Math.sin(pitch)+targetY,distance*Math.cos(yaw)*Math.cos(pitch));camera.lookAt(0,targetY,0);renderer.render(scene,camera);}
+ function resize(){width=viewport.clientWidth||700;height=Math.max(300,Math.min(470,width*.67));renderer.setSize(width,height);viewport.style.height=height+'px';render();}new ResizeObserver(resize).observe(viewport);
+ function sync(){const d=SANDSTONE_CONTROLS.find(d=>d.key===parameter);selector.value=parameter;stepInput.value=String(recipe.stage);find('label').textContent=d.label;find('value').value=recipe.parameters[parameter]+d.unit;Object.assign(slider,{min:d.min,max:d.max,step:d.step,value:recipe.parameters[parameter]});slider.setAttribute('aria-label',d.label);slider.setAttribute('aria-valuetext',recipe.parameters[parameter]+d.unit);}
+ function error(message){status.textContent=message;status.setAttribute('role','alert');}
+ function done(data){busy=false;if(data.id===serial){if(data.error)error(data.error);else accept(data.mesh);}pump();}
+ async function fallback(request){try{if(!processor){const a=atomicRockKernel();await a.ready;processor=createSandstoneProcessor(a);}done({id:request.id,mesh:processor.generate(request.recipe,{reduced:request.reduced})});}catch(e){done({id:request.id,error:e.message});}}
+ function pump(){if(busy||!pending)return;const request=pending;pending=null;busy=true;if(worker)worker.postMessage(request);else setTimeout(()=>fallback(request),0);}
+ const code='const atomic=('+atomicRockKernel.toString()+')();const processor=('+createSandstoneProcessor.toString()+')(atomic);self.onmessage=async({data})=>{try{await atomic.ready;const mesh=processor.generate(data.recipe,{reduced:data.reduced});self.postMessage({id:data.id,mesh},[mesh.positions.buffer,mesh.normals.buffer,mesh.indices.buffer]);}catch(e){self.postMessage({id:data.id,error:e.message});}};';
+ try{const url=URL.createObjectURL(new Blob([code],{type:'text/javascript'}));worker=new Worker(url);URL.revokeObjectURL(url);worker.onmessage=({data})=>done(data);worker.onerror=()=>{worker.terminate();worker=null;busy=false;schedule(true);};}catch{}
+ function schedule(immediate=false){clearTimeout(timer);const id=++serial;pending=null;status.textContent='Building '+stepInput.selectedOptions[0].textContent.replace(/^\d · /,'').toLowerCase()+'…';const run=()=>{pending={id,recipe:JSON.parse(JSON.stringify(recipe)),reduced:reduced.checked};pump();};if(immediate)run();else timer=setTimeout(run,130);}
+ function state(){return {kind:'sandstone-study',recipe,parameter,view:view.value,finish:finish.value,reduced:reduced.checked,wire:wire.checked,bounds:box.checked};}
+ function save(){const m=state();lastSaved=JSON.stringify(m);window.openai?.setWidgetState({modelContent:m,privateContent:{yaw,pitch}}).catch(()=>{});}
+ function restore(saved,initial=false){const m=saved?.modelContent;if(m?.kind!=='sandstone-study')return false;let r;try{r=parseSandstoneRecipe(m.recipe);}catch{return false;}const before=JSON.stringify(state());recipe=r;if(SANDSTONE_CONTROLS.some(d=>d.key===m.parameter))parameter=m.parameter;if(['oblique','front','side','top','closeup'].includes(m.view))view.value=m.view;if(['clay','sandstone'].includes(m.finish))finish.value=m.finish;for(const [key,input]of [['reduced',reduced],['wire',wire],['bounds',box]])if(typeof m[key]==='boolean')input.checked=m[key];if(initial&&Number.isFinite(saved.privateContent?.yaw)&&Number.isFinite(saved.privateContent?.pitch)){yaw=saved.privateContent.yaw;pitch=saved.privateContent.pitch;}sync();const after=JSON.stringify(state());if(initial||before!==after&&after!==lastSaved)schedule(true);return true;}
+ selector.addEventListener('change',()=>{parameter=selector.value;sync();save();});slider.addEventListener('input',()=>{recipe=sandstoneRecipe({...recipe.parameters,[parameter]:Number(slider.value)},recipe.stage);sync();schedule();});slider.addEventListener('change',save);
+ stepInput.addEventListener('change',()=>{recipe=sandstoneRecipe(recipe.parameters,Number(stepInput.value));schedule(true);save();});reduced.addEventListener('change',()=>{schedule(true);save();});finish.addEventListener('change',()=>{appearance();save();});wire.addEventListener('change',()=>{appearance();save();});box.addEventListener('change',()=>{appearance();save();});
+ view.addEventListener('change',()=>{yaw=view.value==='side'?Math.PI/2:view.value==='oblique'?.62:0;pitch=view.value==='top'?Math.PI/2-.001:view.value==='oblique'?.23:.03;render();save();});
+ find('apply').addEventListener('click',()=>{try{recipe=parseSandstoneRecipe(recipeInput.value);sync();schedule(true);save();recipeStatus.textContent='Recipe applied';recipeStatus.removeAttribute('role');}catch(e){recipeStatus.textContent=e.message;recipeStatus.setAttribute('role','alert');}});
+ renderer.domElement.addEventListener('pointerdown',e=>{drag={x:e.clientX,y:e.clientY,yaw,pitch};renderer.domElement.setPointerCapture(e.pointerId);});renderer.domElement.addEventListener('pointermove',e=>{if(!drag)return;yaw=drag.yaw-(e.clientX-drag.x)*.006;pitch=Math.max(.03,Math.min(Math.PI/2-.001,drag.pitch+(e.clientY-drag.y)*.006));render();});renderer.domElement.addEventListener('pointerup',()=>{if(drag){drag=null;save();}});renderer.domElement.addEventListener('pointercancel',()=>drag=null);
+ let themeTimer;new MutationObserver(()=>{clearTimeout(themeTimer);themeTimer=setTimeout(appearance,50);}).observe(document.documentElement,{attributes:true,attributeFilter:['class','style','data-theme']});window.addEventListener('openai:set_globals',e=>restore(e.detail?.globals?.widgetState));resize();if(!restore(window.openai?.widgetState,true)){sync();schedule(true);}
+})();
+</script>

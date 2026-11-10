@@ -1,0 +1,365 @@
+{
+  "version": "sandstone-structural-v1",
+  "defaultRecipe": {
+    "version": "sandstone-structural-v1",
+    "upstream": "b2887feee34df433303d1c3197a679e4c219367d",
+    "stage": 4,
+    "parameters": {
+      "seed": 1,
+      "width": 7.2,
+      "height": 10,
+      "depth": 5.8,
+      "faceCut": 0.65,
+      "faceRelief": 0.75,
+      "jointSpacing": 1.75,
+      "jointWidth": 0.25,
+      "jointDepth": 0.55,
+      "bedThickness": 0.85,
+      "bedRecession": 0.12,
+      "edgeDamage": 0.52,
+      "resolution": 48
+    }
+  },
+  "exactRecipeReplay": true,
+  "sha256": "b1c0f7087845e895ba9154615b420f78ddc8d350e0303cb1a07072832ac78789",
+  "defaultHash": "ce96d137",
+  "endpointCases": 26,
+  "combinedCases": 3,
+  "stageResults": [
+    {
+      "stage": 0,
+      "faces": 7360,
+      "vertices": 3682,
+      "volume": 341.5286750079935,
+      "hash": "bad0dd85"
+    },
+    {
+      "stage": 1,
+      "faces": 18000,
+      "vertices": 9002,
+      "volume": 260.96205049505966,
+      "hash": "f873daa5"
+    },
+    {
+      "stage": 2,
+      "faces": 41432,
+      "vertices": 20718,
+      "volume": 240.1605325559914,
+      "hash": "014de15d"
+    },
+    {
+      "stage": 3,
+      "faces": 48580,
+      "vertices": 24280,
+      "volume": 236.04098549872324,
+      "hash": "87a7186c"
+    },
+    {
+      "stage": 4,
+      "faces": 49914,
+      "vertices": 24947,
+      "volume": 235.5900248252825,
+      "hash": "ce96d137"
+    }
+  ],
+  "results": [
+    {
+      "parameter": "seed",
+      "value": 1,
+      "faces": 49914,
+      "vertices": 24947,
+      "volume": 235.5900248252825,
+      "hash": "ce96d137",
+      "retainedSource": false
+    },
+    {
+      "parameter": "seed",
+      "value": 99999,
+      "faces": 49278,
+      "vertices": 24629,
+      "volume": 250.8767050239623,
+      "hash": "25f6989e",
+      "retainedSource": false
+    },
+    {
+      "parameter": "width",
+      "value": 3,
+      "faces": 457568,
+      "vertices": 228770,
+      "volume": 82.74739087011064,
+      "hash": "c4ecca4c",
+      "retainedSource": true
+    },
+    {
+      "parameter": "width",
+      "value": 12,
+      "faces": 62250,
+      "vertices": 31111,
+      "volume": 416.7675987454452,
+      "hash": "25a18d31",
+      "retainedSource": false
+    },
+    {
+      "parameter": "height",
+      "value": 4,
+      "faces": 36830,
+      "vertices": 18413,
+      "volume": 78.39367636888385,
+      "hash": "10f0173b",
+      "retainedSource": false
+    },
+    {
+      "parameter": "height",
+      "value": 16,
+      "faces": 58360,
+      "vertices": 29150,
+      "volume": 393.91537378631244,
+      "hash": "0869fc14",
+      "retainedSource": false
+    },
+    {
+      "parameter": "depth",
+      "value": 3,
+      "faces": 58456,
+      "vertices": 29222,
+      "volume": 114.99143770991189,
+      "hash": "866799fb",
+      "retainedSource": false
+    },
+    {
+      "parameter": "depth",
+      "value": 8,
+      "faces": 55366,
+      "vertices": 27667,
+      "volume": 335.37820869015576,
+      "hash": "8e30f46a",
+      "retainedSource": false
+    },
+    {
+      "parameter": "faceCut",
+      "value": 0,
+      "faces": 52556,
+      "vertices": 26268,
+      "volume": 241.97393823056674,
+      "hash": "6108930b",
+      "retainedSource": false
+    },
+    {
+      "parameter": "faceCut",
+      "value": 1,
+      "faces": 50292,
+      "vertices": 25126,
+      "volume": 227.230266411863,
+      "hash": "9b55fdc0",
+      "retainedSource": false
+    },
+    {
+      "parameter": "faceRelief",
+      "value": 0,
+      "faces": 51612,
+      "vertices": 25792,
+      "volume": 265.52553761509483,
+      "hash": "69edd593",
+      "retainedSource": false
+    },
+    {
+      "parameter": "faceRelief",
+      "value": 1.1,
+      "faces": 50270,
+      "vertices": 25111,
+      "volume": 204.63120647085174,
+      "hash": "4c84c880",
+      "retainedSource": false
+    },
+    {
+      "parameter": "jointSpacing",
+      "value": 0.6,
+      "faces": 84828,
+      "vertices": 42360,
+      "volume": 224.06701967157892,
+      "hash": "b790d70b",
+      "retainedSource": false
+    },
+    {
+      "parameter": "jointSpacing",
+      "value": 3,
+      "faces": 41578,
+      "vertices": 20775,
+      "volume": 246.77056249193524,
+      "hash": "c8a5546f",
+      "retainedSource": false
+    },
+    {
+      "parameter": "jointWidth",
+      "value": 0.05,
+      "faces": 44990,
+      "vertices": 22475,
+      "volume": 253.94843773703505,
+      "hash": "ac4039e7",
+      "retainedSource": false
+    },
+    {
+      "parameter": "jointWidth",
+      "value": 0.5,
+      "faces": 49336,
+      "vertices": 24644,
+      "volume": 214.6750863155448,
+      "hash": "74a99e95",
+      "retainedSource": false
+    },
+    {
+      "parameter": "jointDepth",
+      "value": 0,
+      "faces": 24910,
+      "vertices": 12457,
+      "volume": 256.2366948258092,
+      "hash": "ea739901",
+      "retainedSource": false
+    },
+    {
+      "parameter": "jointDepth",
+      "value": 0.7,
+      "faces": 55284,
+      "vertices": 27612,
+      "volume": 229.03729653688345,
+      "hash": "937a71e6",
+      "retainedSource": false
+    },
+    {
+      "parameter": "bedThickness",
+      "value": 0.35,
+      "faces": 56850,
+      "vertices": 28405,
+      "volume": 235.31631225831265,
+      "hash": "6a375f67",
+      "retainedSource": false
+    },
+    {
+      "parameter": "bedThickness",
+      "value": 2,
+      "faces": 46620,
+      "vertices": 23302,
+      "volume": 235.57831440878536,
+      "hash": "039f1d02",
+      "retainedSource": false
+    },
+    {
+      "parameter": "bedRecession",
+      "value": 0,
+      "faces": 43194,
+      "vertices": 21599,
+      "volume": 239.6401748336676,
+      "hash": "710d1f3a",
+      "retainedSource": false
+    },
+    {
+      "parameter": "bedRecession",
+      "value": 0.3,
+      "faces": 210804,
+      "vertices": 105368,
+      "volume": 229.0629291586358,
+      "hash": "4ade54ef",
+      "retainedSource": true
+    },
+    {
+      "parameter": "edgeDamage",
+      "value": 0,
+      "faces": 48580,
+      "vertices": 24280,
+      "volume": 236.04098549872324,
+      "hash": "87a7186c",
+      "retainedSource": false
+    },
+    {
+      "parameter": "edgeDamage",
+      "value": 1,
+      "faces": 54840,
+      "vertices": 27410,
+      "volume": 227.97864718122418,
+      "hash": "cef5550b",
+      "retainedSource": false
+    },
+    {
+      "parameter": "resolution",
+      "value": 32,
+      "faces": 35258,
+      "vertices": 17627,
+      "volume": 236.42440323037016,
+      "hash": "06ff2446",
+      "retainedSource": false
+    },
+    {
+      "parameter": "resolution",
+      "value": 64,
+      "faces": 65936,
+      "vertices": 32956,
+      "volume": 235.41495655190644,
+      "hash": "8153d0d5",
+      "retainedSource": false
+    },
+    {
+      "combination": {
+        "seed": 19,
+        "width": 3,
+        "depth": 3,
+        "height": 16,
+        "faceRelief": 1.1,
+        "jointDepth": 0.7,
+        "jointWidth": 0.5,
+        "edgeDamage": 1
+      },
+      "faces": 20164,
+      "vertices": 10080,
+      "volume": 27.38160787304093,
+      "hash": "058248c4"
+    },
+    {
+      "combination": {
+        "seed": 416,
+        "width": 12,
+        "depth": 3,
+        "height": 6,
+        "bedThickness": 0.35,
+        "bedRecession": 0.3,
+        "edgeDamage": 1
+      },
+      "faces": 401660,
+      "vertices": 200796,
+      "volume": 90.63196981793936,
+      "hash": "771ff627"
+    },
+    {
+      "combination": {
+        "seed": 382,
+        "width": 9,
+        "depth": 8,
+        "height": 12
+      },
+      "faces": 43652,
+      "vertices": 21818,
+      "volume": 547.3475178853487,
+      "hash": "c88eb2f8"
+    }
+  ],
+  "reduction": {
+    "rawTriangles": 196848,
+    "reducedTriangles": 49914,
+    "maxRayErrorMeters": 0.008470709553010547,
+    "rayProbes": 126,
+    "relativeVolumeError": 0.0001438880871702959
+  },
+  "checks": [
+    "byte-identical positions / normals / indices on recipe replay",
+    "finite source-bounded vertices",
+    "two opposite faces per edge",
+    "single connected surface",
+    "one cyclic fan per vertex",
+    "positive volume and nonzero triangles",
+    "same feature fields at every processing stage",
+    "all geometry slider endpoints",
+    "strong simultaneous cuts on a thin tall source",
+    "independent two-direction surface ray profiles after reduction",
+    "immutable generated buffers",
+    "strict recipe version / parameter validation"
+  ]
+}

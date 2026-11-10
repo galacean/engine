@@ -1,0 +1,12 @@
+import fs from 'node:fs';
+import vm from 'node:vm';
+import {buildAtomicKernel} from '../atomic-controls/kernel-bundle.mjs';
+const directory=new URL('./',import.meta.url),read=file=>fs.readFileSync(new URL(file,directory),'utf8');
+const clean=text=>text.replace(/^export /gm,'');
+const fragment=read('viewer.fragment.html').replace('__ATOMIC_KERNEL__',()=>buildAtomicKernel()).replace('__SANDSTONE_RECIPE__',()=>clean(read('recipe.mjs'))).replace('__SANDSTONE_PROCESSOR__',()=>clean(read('processor.mjs')));
+for(const [,attrs,source]of fragment.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/g))if(!/\bsrc=/.test(attrs))new vm.Script(source);
+if(Buffer.byteLength(fragment)>=1_000_000)throw Error('Sandstone study exceeds inline limit');
+fs.writeFileSync(new URL('sandstone-study.html',directory),fragment);
+const escape=text=>text.replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#x27;');
+fs.writeFileSync(new URL('index.html',directory),read('../src/standalone-template.html').replaceAll('Rock Arrangement Study','Procedural Sandstone Study').replace('__ROCK_RIDGE_ESCAPED_FRAGMENT__',()=>escape(fragment)));
+console.log(JSON.stringify({inlineBytes:Buffer.byteLength(fragment),page:new URL('index.html',directory).pathname}));

@@ -17,6 +17,12 @@ For individual shape controls, open [Atomic rock controls](atomic-controls/index
 Its 27 parameter choices run the upstream single-rock generator and compare source/reduced
 meshes. Choose one parameter at a time or enable combined edits.
 
+For the sandstone photograph target, open [Procedural sandstone processing](sandstone-study/index.html).
+It cuts a clean upstream atomic mesh into broad buttresses, open vertical joints,
+uneven bed breaks and localized chips. Compare all five stages in clay or sandstone,
+change the seed and dimensions, and replay the versioned recipe. See the
+[pipeline and reproduction commands](sandstone-study/README.md).
+
 ```sh
 # From the repository root
 python3 -m http.server 8771 --bind 127.0.0.1 --directory world/demos/rock-ridge-study

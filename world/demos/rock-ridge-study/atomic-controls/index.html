@@ -4634,7 +4634,7 @@ function flipDeviation(positions, metric, a, b, c, d, normal) {
 
 return {simplifyRock,simplifierReady};
 })(loft.enforceMetricAngles,optimizer.MeshoptSimplifier);
-return {buildRock:body.buildRock,simplifyRock:reduction.simplifyRock,ready:reduction.simplifierReady};
+return {buildRock:body.buildRock,simplifyRock:reduction.simplifyRock,ready:reduction.simplifierReady,optimizer:optimizer.MeshoptSimplifier};
 }
  const CONTROL_VERSION=&#x27;atomic-controls-1&#x27;;
 const CONTROL_DEFAULTS={seed:4659,obbWidth:4.2,obbHeight:4.2,obbDepth:4.2,bottomScale:1,shoulderScale:.95,shoulderHeight:.68,topScale:.8,topSlope:0,topDirection:0,topRoughness:.15,outlineIrregularity:0,wear:.35,wallCount:12,wallOverlap:.45,wallLength:1.6,wallTilt:8,wallStrength:.65,wallProtrusion:.35,wallStagger:.55,resolution:32,targetTriangles:1000,reductionError:.008,normalStrength:.35,roughness:1,colorHue:35,grassCoverage:0};
