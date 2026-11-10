@@ -163,6 +163,18 @@ describe("Eave dormers against the online path", () => {
       return m.rect[2] - m.rect[0];
     };
     expect(eaveSpan(shuttered)).toBeGreaterThan(eaveSpan(plain) * 1.2);
+    // It widens only where the tiles come down as low as the shutters' tops, near the roof's
+    // edge; further up, the tiles in front of the wall stay.
+    const outline = (r: ReturnType<typeof design>) => {
+      const m = cuts(r).find((c) => c.op === "removeArea" && c.rect[1] === 0);
+      if (m?.op !== "removeArea" || !m.outline) throw Error("no eave outline");
+      return m.outline;
+    };
+    const narrow = outline(plain),
+      [u0, u1] = [Math.min(...narrow.map((q) => q[0])), Math.max(...narrow.map((q) => q[0]))];
+    const wide = outline(shuttered).filter((q) => q[0] < u0 - 1e-3 || q[0] > u1 + 1e-3);
+    expect(wide.length).toBeGreaterThan(0);
+    expect(Math.max(...wide.map((q) => q[1]))).toBeLessThan(Math.max(...narrow.map((q) => q[1])) * 0.25);
     const members = (r: ReturnType<typeof design>) =>
       coreBuildingDecorations(coreBuildingLayout(r, registry, {}), assets)
         .flatMap((d) => d.parts)

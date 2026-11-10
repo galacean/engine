@@ -30,7 +30,7 @@ import {
   depthToHeight,
   dormerCap,
   dormerTile,
-  occupiedSpan,
+  occupiedSolids,
   roofOpeningArea,
   roofUnder,
   slopeSurface,
@@ -271,15 +271,15 @@ export const eaveDormerOnHouse: ConnectionRule = (context) => {
   const last = loft.rows[loft.rows.length - 1].points;
   const vBack = vAtHeight(surface, near[0], last[Math.floor(last.length / 2)][1] - lift - SHED_BACK_LAP);
   if (vBack === undefined) return { ...opened, diagnostics: [`${guest.key} lies off its roof`] };
-  // Behind the wall the opening is as wide as the window. From the wall out it is as wide as
-  // everything that stands there, such as open shutters.
+  // The opening is as wide as the window. Something wider, such as an open shutter, widens it
+  // where the covering comes down between its foot and its top, out to its front: the covering
+  // slopes down outward, and past the roof's edge its tiles hang on down to meet it.
   const wall = mount.on !== undefined ? chartOf(hosts[mount.on.host]) : undefined;
   const center = add(mount.frame.origin, scale(z, -(FRONT_BEHIND_WALL + (wall?.mountOffset ?? 0))));
   const bounds = guest.unit?.bounds;
   const m = guest.occupied[0]?.matrix;
   const bodyHalf = bounds && m ? ((bounds.max[0] - bounds.min[0]) / 2) * Math.hypot(m[0], m[1], m[2]) : 0;
-  const [lo, hi] = occupiedSpan(guest, center, x);
-  const wideHalf = Math.max(bodyHalf, (hi - lo) / 2);
+  const wider = occupiedSolids(guest, center, x, z).filter((s) => s.across > bodyHalf);
   const area = roofOpeningArea(surface, near, {
     center,
     x,
@@ -287,7 +287,11 @@ export const eaveDormerOnHouse: ConnectionRule = (context) => {
     backV: vBack,
     frontV: surface.domain.v[0],
     thickness: coveringThickness(host),
-    halfWidth: (out) => (out >= FRONT_BEHIND_WALL ? wideHalf : bodyHalf)
+    halfWidth: (out, height) =>
+      wider.reduce(
+        (half, s) => (out <= s.out[1] && s.y[0] < height && height < s.y[1] ? Math.max(half, s.across) : half),
+        bodyHalf
+      )
   });
   if (!area) return { ...opened, diagnostics: [`${guest.key} lies off its roof`] };
   return {
