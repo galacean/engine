@@ -403,7 +403,7 @@ export async function mountSeedWorldDemo(
     void sourceTask.catch(() => {});
     await preparePlanningFarmingScene(runtimeProject, { baseUrl: location.href });
     source = await sourceTask;
-    await planningStorage.migrateToSource(source.session.document);
+    await planningStorage.migrateToSource(source.session.document, source.replaceSavedTemplate);
     await installRuntimeProjectScripts(runtimeProject, editorLifetime.signal);
     if (disposed) { runtimeProject.dispose(); throw new Error("Seed page disposed during script preparation"); }
     const resources = await runtimeProject.resources();
@@ -1409,7 +1409,11 @@ export async function mountSeedWorldDemo(
           void source!
             .save()
             .then(() => dispose())
-            .then(() => location.reload())
+            .then(() => {
+              const url = new URL(location.href);
+              url.searchParams.delete("view");
+              location.assign(url.href);
+            })
             .catch((error) => {
               if (disposed) closeFailure(error);
               else progress(1, "工程保存失败：" + String(error));

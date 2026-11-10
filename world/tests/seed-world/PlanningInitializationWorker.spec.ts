@@ -1,3 +1,4 @@
+import * as templates from "@galacean/engine-world-planning/spatial/WorldTemplateAuthoring";
 import { afterEach, expect, it, vi } from "vitest";
 import { PlanningWorkerClient } from "../../demos/seed-world/src/planning/semantic-study/PlanningWorkerClient.ts";
 import { createPlanningWorkerRuntime, type PlanningWorkerRequest, type PlanningWorkerResponse } from "../../demos/seed-world/src/planning/semantic-study/PlanningWorkerRuntime.ts";
@@ -47,6 +48,19 @@ it("queues initialization on the worker, forwards progress and reuses the worker
   worker.respond({ type: "error", requestId: worker.requests[1].requestId, message: "solve rejected" });
   await expect(next).rejects.toThrow("solve rejected");
   client.dispose();
+});
+
+it("initializes the selected theme without preparing the default world first", () => {
+  const document = createSeedPlanningInputs(7);
+  const selected = vi.spyOn(templates, "createTemplatePlanningDocument").mockReturnValue(document);
+  const defaults = vi.spyOn(initialization, "prepareSeedPlanningDocument");
+  const responses: PlanningWorkerResponse[] = [];
+  createPlanningWorkerRuntime(message => responses.push(message))({
+    type: "initialize", requestId: 1, runtimeSignature: planningRuntimeSignature(), seed: 7, templateId: "titan-wasteland"
+  });
+  expect(selected).toHaveBeenCalledWith(7, "titan-wasteland");
+  expect(defaults).not.toHaveBeenCalled();
+  expect(responses.at(-1)).toMatchObject({ type: "initialized", document });
 });
 
 it("terminates cancelled initialization, ignores late results and propagates worker failures", async () => {

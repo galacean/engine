@@ -666,36 +666,6 @@ export const WORLD_TEMPLATE_ART: Readonly<Record<string, WorldTemplateArtDirecti
     postProcess: post(10),
     terrain: []
   },
-  "amber-dunes": {
-    reference: "SeedWorld-09-amber-sunset-dunes.png",
-    focus: ["weathered-stone-ring"],
-    frameFraction: 0.65,
-    azimuthDegrees: -10,
-    lookAtOffset: [-8, 0, 0],
-    models: [
-      model("weathered-stone-ring", [15, 0, 15], [38, 42, 10]),
-      model("desert-obelisk", [12, 0, -3], [9, 24, 8])
-    ],
-    grass: ["#c58743", "#e8b96e"],
-    ground: "#e1a66b",
-    foliage: "#aa874f",
-    bark: "#826340",
-    flowers: "#e2b25f",
-    stone: "#bd865d",
-    lighting: {
-      ...lighting(17.6, 2.25, 1.55, 1.2, 0.00045, 0.6),
-      ...atmosphere([5, 0.95, 0.18], [3.1, 1.1, 0.2]),
-      sunColorR: 1.6,
-      sunColorG: 0.86,
-      sunColorB: 0.43,
-      sunSize: 0.04,
-      fogTintR: 1.35,
-      fogTintG: 0.9,
-      fogTintB: 0.45
-    },
-    postProcess: post(9, 9, 2),
-    terrain: [ridge("west-dune", -150, 80, 380, 120, 24, 20), ridge("east-dune", 170, 110, 450, 140, 32, -20)]
-  },
   "voxel-arcade": {
     reference: "SeedWorld-10-voxel-arcade-world.png",
     focus: ["giant-voxel-arcade"],
@@ -791,27 +761,27 @@ export const WORLD_TEMPLATE_ART: Readonly<Record<string, WorldTemplateArtDirecti
       model("ancient-mech-wreck", [15, 0, 38], [115, 93, 80]),
       model("foreground-round-house", [-69, 0, -57], [17, 14, 16])
     ],
-    grass: ["#bc7339", "#dfaa54"],
-    ground: "#cf9462",
-    foliage: "#ac793d",
-    bark: "#775341",
-    flowers: "#e1b66a",
-    stone: "#9b8583",
+    grass: ["#c58743", "#e8b96e"],
+    ground: "#e1a66b",
+    foliage: "#aa874f",
+    bark: "#826340",
+    flowers: "#e2b25f",
+    stone: "#bd865d",
     lighting: {
-      ...lighting(17, 2.3, 1.65, 1.2, 0.0004, 0.6),
-      ...atmosphere([4, 0.85, 0.32], [2.5, 1, 0.4]),
-      sunColorR: 1.5,
-      sunColorG: 0.88,
-      sunColorB: 0.6,
-      sunSize: 0.035,
+      ...lighting(17.6, 2.25, 1.55, 1.2, 0.00045, 0.6),
+      ...atmosphere([5, 0.95, 0.18], [3.1, 1.1, 0.2]),
+      sunColorR: 1.6,
+      sunColorG: 0.86,
+      sunColorB: 0.43,
+      sunSize: 0.04,
       fogTintR: 1.35,
-      fogTintG: 0.95,
-      fogTintB: 0.7
+      fogTintG: 0.9,
+      fogTintB: 0.45
     },
-    postProcess: post(10, 8, 1),
+    postProcess: post(9, 9, 2),
     landscape: { treeHeightMinM: 5, treeHeightMaxM: 12 },
     flowerCoverage: 0.15,
-    terrain: [ridge("west-red-dune", -220, 80, 450, 140, 30, 20), ridge("east-red-dune", 220, 120, 500, 145, 36, -20)]
+    terrain: [ridge("west-dune", -150, 80, 380, 120, 24, 20), ridge("east-dune", 170, 110, 450, 140, 32, -20)]
   },
   "luminous-abyss": {
     reference: "SeedWorld-14-bioluminescent-abyss.png",

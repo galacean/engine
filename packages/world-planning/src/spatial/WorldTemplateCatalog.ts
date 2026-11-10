@@ -101,16 +101,6 @@ export const WORLD_TEMPLATES: readonly WorldTemplate[] = [
     terrain: { ...gentleBaseTerrain, heightM: 4, widthM: 240, count: 1, coverage: 0.72 }
   },
   {
-    id: "amber-dunes",
-    name: "落日余晖沙漠",
-    icon: "🍊",
-    family: "desert",
-    vegetation: "desert",
-    colors: ["#d89756", "#f4c781", "#ffc474", "#7d456b"],
-    subject: "暖橙沙丘 · 风化石雕 · 悬浮落日",
-    terrain: { ...gentleBaseTerrain, widthM: 270, count: 4, coverage: 0.85 }
-  },
-  {
     id: "voxel-arcade",
     name: "像素潮玩",
     icon: "🛹",
@@ -140,11 +130,12 @@ export const WORLD_TEMPLATES: readonly WorldTemplate[] = [
   {
     id: "titan-wasteland",
     name: "幻兽荒原",
-    icon: "🌿",
-    family: "titan",
-    colors: ["#ac6548", "#a29688", "#75e6ff", "#543e60"],
-    subject: "巨型机甲残骸 · 红沙丘 · 呼吸核心",
-    terrain: { ...gentleBaseTerrain, widthM: 240, count: 4, coverage: 0.84 }
+    icon: "🏜️",
+    family: "desert",
+    vegetation: "desert",
+    colors: ["#d89756", "#f4c781", "#ffc474", "#7d456b"],
+    subject: "暖橙沙丘 · 巨型机甲残骸 · 落日薄雾",
+    terrain: { ...gentleBaseTerrain, widthM: 270, count: 4, coverage: 0.85 }
   },
   {
     id: "luminous-abyss",

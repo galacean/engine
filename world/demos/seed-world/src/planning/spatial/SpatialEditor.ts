@@ -1,3 +1,4 @@
+import { initialPlanningTemplate } from "./PlanningStartupTemplate.ts";
 import { planningFarmingProjectStatePath } from "./farming/PlanningFarmingScene.ts";
 import { PlanningFarmRepository } from "./farming/PlanningFarmRepository.ts";
 import { planningFarmId, resetPlanningFarmSaveChoice } from "./farming/PlanningFarmSave.ts";
@@ -99,8 +100,10 @@ export async function mountSpatialEditor(
   client.onProgress=stage=>{ui("progress").hidden=false;ui("progress").textContent=stage+"…";};
   let initialDocument: PlanningDocument;
   try {
-    initialDocument = saved ?? await client.initialize(parameters.seed);
-    if (!storageWarning) await storage.migrateToSource(initialDocument);
+    const template = initialPlanningTemplate(pageUrl.url.search, parameters.seed,
+      saved ? exportPlanningRecipe(saved).parameters.worldTemplate?.id ?? "" : undefined);
+    initialDocument = template === undefined && saved ? saved : await client.initialize(parameters.seed, undefined, template);
+    if (!storageWarning) await storage.migrateToSource(initialDocument, template !== undefined && !!saved);
   } catch (error) {
     client.dispose();
     project.dispose();

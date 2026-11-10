@@ -48,7 +48,7 @@ describe("gentle default terrain bands", () => {
   });
 
   it("uses the gentle base through the real template initialization path", () => {
-    for (const id of ["amber-dunes", "neon-alley", "titan-wasteland"]) {
+    for (const id of ["neon-alley", "titan-wasteland"]) {
       const document = createTemplatePlanningDocument(110613, id, {
         villageMin: 0, villageMax: 0, buildingMin: 0, buildingMax: 0
       });

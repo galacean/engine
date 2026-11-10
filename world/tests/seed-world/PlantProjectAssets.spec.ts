@@ -116,11 +116,19 @@ describe("production vegetation native asset closure", () => {
         preserved.contents["World/PlayerState.json"]
       );
       expect(session.projectPackage.documents!["Notes/author.txt"]).toBe(preserved.documents!["Notes/author.txt"]);
+      // An explicit startup choice must replace the current source even after its v2 import marker exists.
+      const selected = structuredClone(authoring);
+      selected.entities.world.components.weather = {
+        values: { ...selected.entities.world.components.weather?.values, cloudCoverage: 0 }
+      };
+      await new PlanningProjectStorage(session, seedWorldProjectFormats).migrateToSource(selected, true);
+      expect(planningSourceDocument(session.projectPackage)).toEqual(selected);
       await session.save();
       session.dispose();
       const reopened = await openSeedWorldProject(new URL("http://localhost/?seed=1"), project);
       opened.push(reopened);
       expect(reopened.projectPackage).toEqual(saved);
+      expect(planningSourceDocument(reopened.projectPackage)).toEqual(selected);
       expect(reopened.projectPackage.project.files.map((file) => file.virtualPath)).toEqual(
         session.projectPackage.project.files.map((file) => file.virtualPath)
       );
