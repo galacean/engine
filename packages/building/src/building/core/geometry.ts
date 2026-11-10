@@ -58,15 +58,25 @@ export function insideOutline(outline: Outline, u: number, v: number): boolean {
 }
 /** Plane [nx, ny, nz, d] in part-local metres, with a unit normal. Its kept side is n·p + d ≥ 0. */
 export type Plane = readonly [number, number, number, number];
+/** An upright box: its centre, its size across, up and out, and its level `out` direction, a
+ * unit vector. Across runs square to `out`. */
+export interface UprightBox {
+  readonly center: Vec3;
+  readonly size: Vec3;
+  readonly out: Vec3;
+}
 /** Edits produced by connection rules. Original geometry is never mutated.
  * - `removeArea`: the surface is gone there, as at an opening. With an `outline` only the area
  *   inside it is gone; `rect` is then the outline's bounds.
  * - `reserveArea`: the surface stays, but other units occupy it; laid units give way.
  * - `clip`: units laid on the element are cut by the plane and keep its positive side.
- *   The element itself keeps its shape; the renderer does the cut. */
+ *   The element itself keeps its shape; the renderer does the cut.
+ * - `clearBox`: units laid on the element give way inside the box, to something that stands
+ *   there. The element keeps its shape; the renderer does the cut. */
 export type GeometryModification =
   | { readonly element: string; readonly op: "removeElement" }
   | { readonly element: string; readonly op: "clip"; readonly plane: Plane }
+  | { readonly element: string; readonly op: "clearBox"; readonly box: UprightBox }
   | { readonly element: string; readonly op: "removeArea"; readonly rect: Rect; readonly outline?: Outline }
   | { readonly element: string; readonly op: "addArea" | "reserveArea"; readonly rect: Rect }
   | { readonly element: string; readonly op: "removeSpan"; readonly span: readonly [number, number] };
@@ -337,6 +347,16 @@ export function modificationIssue(geometry: BuildingGeometry, modification: Geom
           return "An outline needs three or more finite points [u, v]";
       }
       return rectIssue(modification.rect);
+    case "clearBox": {
+      const { center, size, out } = modification.box ?? ({} as Partial<UprightBox>);
+      const finite3 = (v: unknown) =>
+        Array.isArray(v) && v.length === 3 && v.every((c) => typeof c === "number" && Number.isFinite(c));
+      if (!finite3(center) || !finite3(size) || !finite3(out)) return "A box needs a finite center, size and out";
+      if (!size!.every((c) => c > 0)) return "A box's size must be positive";
+      if (Math.abs(out![1]) > 1e-6 || Math.abs(Math.hypot(out![0], out![2]) - 1) > 1e-6)
+        return "A box's out direction must be level and unit length";
+      return;
+    }
     case "clip": {
       const plane = modification.plane;
       if (
@@ -554,6 +574,7 @@ export class EffectiveGeometry {
   private readonly outlines = new Map<Rect, Outline>();
   private readonly spans = new Map<string, [number, number][]>();
   private readonly planes = new Map<string, Plane[]>();
+  private readonly boxes = new Map<string, UprightBox[]>();
   constructor(
     readonly original: BuildingGeometry,
     modifications: readonly GeometryModification[],
@@ -567,6 +588,10 @@ export class EffectiveGeometry {
         const list = this.planes.get(modification.element) ?? [];
         list.push(modification.plane);
         this.planes.set(modification.element, list);
+      } else if (modification.op === "clearBox") {
+        const list = this.boxes.get(modification.element) ?? [];
+        list.push(modification.box);
+        this.boxes.set(modification.element, list);
       } else if (modification.op === "removeSpan") {
         const list = this.spans.get(modification.element) ?? [];
         list.push([modification.span[0], modification.span[1]]);
@@ -607,6 +632,11 @@ export class EffectiveGeometry {
   clips(id: string): readonly Plane[] {
     if (!this.original.elements[id] || this.removed.has(id)) throw Error(`Unknown or removed element "${id}"`);
     return this.planes.get(id) ?? [];
+  }
+  /** Boxes the units laid on an element give way in, in modification order. */
+  clearings(id: string): readonly UprightBox[] {
+    if (!this.original.elements[id] || this.removed.has(id)) throw Error(`Unknown or removed element "${id}"`);
+    return this.boxes.get(id) ?? [];
   }
   location(id: string): SurfaceLocation | undefined {
     return this.element(id, "point").on;

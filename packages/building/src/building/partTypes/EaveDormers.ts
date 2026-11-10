@@ -19,6 +19,7 @@ import {
   type Outline,
   type ParticipantView,
   type Rect,
+  type UprightBox,
   type Vec3,
   unitExtent
 } from "../core";
@@ -30,7 +31,6 @@ import {
   depthToHeight,
   dormerCap,
   dormerTile,
-  occupiedSolids,
   roofOpeningArea,
   roofUnder,
   slopeSurface,
@@ -271,15 +271,13 @@ export const eaveDormerOnHouse: ConnectionRule = (context) => {
   const last = loft.rows[loft.rows.length - 1].points;
   const vBack = vAtHeight(surface, near[0], last[Math.floor(last.length / 2)][1] - lift - SHED_BACK_LAP);
   if (vBack === undefined) return { ...opened, diagnostics: [`${guest.key} lies off its roof`] };
-  // The opening is as wide as the window. Something wider, such as an open shutter, widens it
-  // where the covering comes down between its foot and its top, out to its front: the covering
-  // slopes down outward, and past the roof's edge its tiles hang on down to meet it.
+  // The opening is as wide as the window. What stands beside it, such as an open shutter, has
+  // the tiles give way where it stands, so that they end against it.
   const wall = mount.on !== undefined ? chartOf(hosts[mount.on.host]) : undefined;
   const center = add(mount.frame.origin, scale(z, -(FRONT_BEHIND_WALL + (wall?.mountOffset ?? 0))));
   const bounds = guest.unit?.bounds;
   const m = guest.occupied[0]?.matrix;
   const bodyHalf = bounds && m ? ((bounds.max[0] - bounds.min[0]) / 2) * Math.hypot(m[0], m[1], m[2]) : 0;
-  const wider = occupiedSolids(guest, center, x, z).filter((s) => s.across > bodyHalf);
   const area = roofOpeningArea(surface, near, {
     center,
     x,
@@ -287,16 +285,18 @@ export const eaveDormerOnHouse: ConnectionRule = (context) => {
     backV: vBack,
     frontV: surface.domain.v[0],
     thickness: coveringThickness(host),
-    halfWidth: (out, height) =>
-      wider.reduce(
-        (half, s) => (out <= s.out[1] && s.y[0] < height && height < s.y[1] ? Math.max(half, s.across) : half),
-        bodyHalf
-      )
+    halfWidth: () => bodyHalf
   });
   if (!area) return { ...opened, diagnostics: [`${guest.key} lies off its roof`] };
+  const tile = host.unit,
+    hang = (unitExtent(tile)?.[1] ?? 0) * (tile.range?.max[1] ?? 1);
+  const beside = besideWindow(guest, center, x, z, bodyHalf, hang).map((box) => ({
+    part: host.key,
+    modification: { element: "slope", op: "clearBox" as const, box }
+  }));
   return {
     ...opened,
-    modify: [...(opened.modify ?? []), removed(area)],
+    modify: [...(opened.modify ?? []), removed(area), ...beside],
     derive: [
       {
         localId: "roof",
@@ -308,6 +308,63 @@ export const eaveDormerOnHouse: ConnectionRule = (context) => {
     ]
   };
 };
+
+/** The boxes the roof's tiles give way in, one for each member of a part that stands beside its
+ * window, more than `bodyHalf` across `x` from `center`. Each is square to the member in plan,
+ * the way it fits the member most tightly; it runs from the member's face toward the wall out by
+ * `hang`, as far as a tile can hang, and from the member's foot to its top. The tiles between the
+ * member and the wall stay. */
+function besideWindow(part: ParticipantView, center: Vec3, x: Vec3, z: Vec3, bodyHalf: number, hang: number) {
+  const members = new Map<string, { plan: [number, number][]; y: [number, number] }>();
+  part.occupied.forEach(({ matrix: m, solids }, i) => {
+    for (const solid of solids) {
+      const member = members.get(`${i}/${solid.path}`) ?? { plan: [], y: [Infinity, -Infinity] };
+      for (const [px, pz] of solid.hull)
+        for (const py of solid.y) {
+          const q = [0, 1, 2].map((k) => m[k] * px + m[4 + k] * py + m[8 + k] * pz + m[12 + k]);
+          member.plan.push([q[0], q[2]]);
+          member.y = [Math.min(member.y[0], q[1]), Math.max(member.y[1], q[1])];
+        }
+      members.set(`${i}/${solid.path}`, member);
+    }
+  });
+  const boxes: UprightBox[] = [];
+  for (const { plan, y } of members.values()) {
+    const across = (p: readonly number[]) => Math.abs((p[0] - center[0]) * x[0] + (p[1] - center[2]) * x[2]);
+    if (!plan.some((p) => across(p) > bodyHalf + 1e-6)) continue;
+    // The tightest fit lies along one of the outline's edges.
+    let best: { e: [number, number]; n: [number, number]; area: number } | undefined;
+    for (let i = 0; i < plan.length; i++) {
+      const [a, b] = [plan[i], plan[(i + 1) % plan.length]];
+      const l = Math.hypot(b[0] - a[0], b[1] - a[1]);
+      if (!(l > 1e-6)) continue;
+      const e: [number, number] = [(b[0] - a[0]) / l, (b[1] - a[1]) / l],
+        n: [number, number] = [-e[1], e[0]];
+      const span = (d: readonly number[]) => {
+        const v = plan.map((p) => p[0] * d[0] + p[1] * d[1]);
+        return Math.max(...v) - Math.min(...v);
+      };
+      const area = span(e) * span(n);
+      if (!best || area < best.area - 1e-9) best = { e, n, area };
+    }
+    if (!best) continue;
+    // Out points away from the wall.
+    const n = best.n[0] * z[0] + best.n[1] * z[2] < 0 ? [-best.n[0], -best.n[1]] : best.n,
+      e = best.e;
+    const along = (d: readonly number[]) => plan.map((p) => p[0] * d[0] + p[1] * d[1]);
+    const [e0, e1] = [Math.min(...along(e)), Math.max(...along(e))],
+      n0 = Math.min(...along(n)),
+      n1 = Math.max(...along(n)) + hang;
+    const ce = (e0 + e1) / 2,
+      cn = (n0 + n1) / 2;
+    boxes.push({
+      center: [e[0] * ce + n[0] * cn, (y[0] + y[1]) / 2, e[1] * ce + n[1] * cn],
+      size: [e1 - e0, y[1] - y[0], n1 - n0],
+      out: [n[0], 0, n[1]]
+    });
+  }
+  return boxes;
+}
 
 /** Part types of prefabs that stand on a wall and break through its eave. */
 export const EAVE_MOUNTS = ["eaveDormer"] as const;

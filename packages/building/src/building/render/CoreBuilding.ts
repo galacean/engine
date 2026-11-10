@@ -1975,11 +1975,11 @@ function outlineRecords(surface: EffectiveSurface, outline: Outline, slot: numbe
   const box = depth;
   const x0 = Math.min(...inPlain.map((l) => l.span[0])),
     x1 = Math.max(...inPlain.map((l) => l.span[1]));
-  // The box reaches well below the roof there, and above it when nothing narrows above it: only
-  // this roof's tiles lie over the area.
+  // The box reaches well below the roof there: only this roof's tiles lie over the area. It ends
+  // at the covering's top edge, so that the tiles above the area stay whole.
   const reach = 0.5;
   const bottom = y0 - reach - (atEave ? EAVE_REACH : 0),
-    ceiling = top + (whole ? reach : 0.01);
+    ceiling = top + 0.01;
   const records = [
     apertureRecord(
       place((x0 + x1) / 2, (box[0] + box[1]) / 2, (bottom + ceiling) / 2),
@@ -2017,7 +2017,11 @@ function roofApertures(layout: CoreBuildingLayout): Uint8Array[] {
       for (const { part } of binding.parts) {
         const id = ROOF_SURFACES.find((k) => part.original.elements[k]?.kind === "surface");
         if (!id) continue;
-        const surface = new EffectiveGeometry(part.original, part.modifications, layout.surfaces).surface(id);
+        const geometry = new EffectiveGeometry(part.original, part.modifications, layout.surfaces);
+        const surface = geometry.surface(id);
+        // Boxes that the tiles give way in, as to an open shutter that stands in them.
+        for (const box of geometry.clearings(id))
+          records.push(apertureRecord(box.center, owner.slot, box.size, box.out, 1, -1));
         for (const rect of surface.removed) {
           const outline = surface.outlineOf(rect);
           if (outline) {

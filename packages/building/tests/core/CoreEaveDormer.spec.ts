@@ -152,29 +152,58 @@ describe("Eave dormers against the online path", () => {
     expect(lay(result.parts.find((p) => p.type === "dormerRidge")!).length).toBeGreaterThan(0);
   });
 
-  it("has shutters on rank 2 when asked, and opens the eave wider for them", () => {
+  it("has shutters on rank 2 when asked, and the tiles beside the window end against them", () => {
     const shuttered = design(house([at("dormer-cottage-half", 2, 0.125, { shutters: true })]));
     const plain = design(house([at("dormer-cottage-half", 2, 0.125, { shutters: false })]));
-    const cuts = (r: ReturnType<typeof design>) =>
-      r.parts.filter((p) => p.type === "roof").flatMap((p) => p.modifications.filter((m) => m.op === "removeArea"));
+    const roofMods = (r: ReturnType<typeof design>) =>
+      r.parts.filter((p) => p.type === "roof").flatMap((p) => p.modifications);
     const eaveSpan = (r: ReturnType<typeof design>) => {
-      const m = cuts(r).find((c) => c.op === "removeArea" && c.rect[1] === 0);
+      const m = roofMods(r).find((c) => c.op === "removeArea" && c.rect[1] === 0);
       if (m?.op !== "removeArea") throw Error("no eave band");
       return m.rect[2] - m.rect[0];
     };
-    expect(eaveSpan(shuttered)).toBeGreaterThan(eaveSpan(plain) * 1.2);
-    // It widens only where the tiles come down as low as the shutters' tops, near the roof's
-    // edge; further up, the tiles in front of the wall stay.
-    const outline = (r: ReturnType<typeof design>) => {
-      const m = cuts(r).find((c) => c.op === "removeArea" && c.rect[1] === 0);
-      if (m?.op !== "removeArea" || !m.outline) throw Error("no eave outline");
-      return m.outline;
-    };
-    const narrow = outline(plain),
-      [u0, u1] = [Math.min(...narrow.map((q) => q[0])), Math.max(...narrow.map((q) => q[0]))];
-    const wide = outline(shuttered).filter((q) => q[0] < u0 - 1e-3 || q[0] > u1 + 1e-3);
-    expect(wide.length).toBeGreaterThan(0);
-    expect(Math.max(...wide.map((q) => q[1]))).toBeLessThan(Math.max(...narrow.map((q) => q[1])) * 0.25);
+    // The opening stays as wide as the window: the tiles between a shutter and the wall stay.
+    expect(eaveSpan(shuttered)).toBeCloseTo(eaveSpan(plain), 6);
+    const boxes = (r: ReturnType<typeof design>) => roofMods(r).flatMap((m) => (m.op === "clearBox" ? [m.box] : []));
+    expect(boxes(plain)).toEqual([]);
+    expect(boxes(shuttered)).toHaveLength(2);
+    const mount = shuttered.parts.find((p) => p.type === "eaveDormer")!.original.elements.mount;
+    if (mount.kind !== "point") throw Error("no mount");
+    const { origin, x, z } = mount.frame;
+    const shutters = coreBuildingDecorations(coreBuildingLayout(shuttered, registry, {}), assets)
+      .flatMap((d) => d.parts)
+      .filter((p) => p.id.includes("shutter"));
+    const sides = boxes(shuttered).map(({ center, size, out }) => {
+      // Each box points away from the wall, turned with its open shutter.
+      expect(Math.hypot(out[0], out[2])).toBeCloseTo(1, 6);
+      const facing = out[0] * z[0] + out[2] * z[2];
+      expect(facing).toBeGreaterThan(0);
+      expect(facing).toBeLessThan(Math.cos((10 * Math.PI) / 180));
+      // One shutter stands in it, from its back face on.
+      const across = [-out[2], 0, out[0]];
+      const inside = shutters.filter((p) => {
+        const q = p.positions;
+        for (let i = 0; i < q.length; i += 3) {
+          const d = [q[i] - center[0], q[i + 1] - center[1], q[i + 2] - center[2]];
+          if (Math.abs(d[0] * across[0] + d[2] * across[2]) > size[0] / 2 + 1e-3) return false;
+          if (Math.abs(d[1]) > size[1] / 2 + 1e-3) return false;
+          if (Math.abs(d[0] * out[0] + d[2] * out[2]) > size[2] / 2 + 1e-3) return false;
+        }
+        return true;
+      });
+      expect(inside).toHaveLength(1);
+      const q = inside[0].positions;
+      const back = Math.min(
+        ...Array.from(
+          { length: q.length / 3 },
+          (_, i) => (q[3 * i] - center[0]) * out[0] + (q[3 * i + 2] - center[2]) * out[2]
+        )
+      );
+      expect(back).toBeCloseTo(-size[2] / 2, 2);
+      return Math.sign((center[0] - origin[0]) * x[0] + (center[2] - origin[2]) * x[2]);
+    });
+    // One on each side of the window.
+    expect(sides.sort()).toEqual([-1, 1]);
     const members = (r: ReturnType<typeof design>) =>
       coreBuildingDecorations(coreBuildingLayout(r, registry, {}), assets)
         .flatMap((d) => d.parts)

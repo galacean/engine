@@ -319,8 +319,7 @@ export function archHalfWidth(outline: DormerSweepParams["outline"], height: num
  * wide across `x`, on either side of the line, as `halfWidth` says, given how far out that is and
  * how high the roof's covering is there. The covering is `thickness` thick, along the roof's
  * normal. At the roof's lower edge the covering hangs `hang` lower; the opening is as wide there
- * as it is at that height. Where `halfWidth` jumps from one width to another, the outline
- * steps there. */
+ * as it is at that height. */
 export interface RoofOpening {
   readonly center: Vec3;
   readonly x: Vec3;
@@ -369,46 +368,21 @@ export function roofOpeningArea(
   // along the roof.
   const [high, low] = [hitAt(back), hitAt(front)];
   const rise = high && low ? Math.abs(high.frame.origin[1] - low.frame.origin[1]) : 0;
-  const spans = Math.min(OPENING_SAMPLES, Math.max(1, Math.ceil(Math.hypot(front - back, rise) / OPENING_STEP)));
-  const sample = (out: number, end = false) => {
-    const middle = hitAt(out);
-    if (!middle) return undefined;
-    const hanging = end && frontV <= surface.domain.v[0] ? hang : 0;
-    const height = middle.frame.origin[1] + thickness / Math.max(middle.frame.z[1], 1e-3) - hanging;
-    return { out, middle, width: halfWidth(out, height), fixed: undefined as number | undefined };
-  };
-  type Sample = NonNullable<ReturnType<typeof sample>>;
-  // Between two samples of different widths, the width may jump from one to the other: the
-  // outline then finds the jump and steps there.
-  const jump = (a: Sample, b: Sample): Sample[] => {
-    let lo = a,
-      hi = b;
-    for (let i = 0; i < 24; i++) {
-      const m = sample((lo.out + hi.out) / 2);
-      if (!m) return [];
-      if (m.width === a.width) lo = m;
-      else if (m.width === b.width) hi = m;
-      else return [];
-    }
-    return [lo, hi].filter((s) => s !== a && s !== b);
-  };
-  const samples: Sample[] = [];
-  for (let k = 0; k <= spans; k++) {
-    const s = sample(back + ((front - back) * k) / spans, k === spans);
-    if (!s) continue;
-    const previous = samples[samples.length - 1];
-    if (previous && previous.width !== s.width) samples.push(...jump(previous, s));
-    // The ends lie at the v asked for.
-    samples.push({ ...s, fixed: k === 0 ? backV : k === spans ? frontV : undefined });
-  }
+  const count = Math.min(OPENING_SAMPLES, Math.max(1, Math.ceil(Math.hypot(front - back, rise) / OPENING_STEP))) + 1;
   const right: (readonly [number, number])[] = [],
     left: (readonly [number, number])[] = [];
-  for (const { out, middle, width, fixed } of samples) {
+  for (let k = 0; k < count; k++) {
+    const out = back + ((front - back) * k) / (count - 1);
+    const middle = hitAt(out);
+    if (!middle) continue;
+    const hanging = k === count - 1 && frontV <= surface.domain.v[0] ? hang : 0;
+    const width = halfWidth(out, middle.frame.origin[1] + thickness / Math.max(middle.frame.z[1], 1e-3) - hanging);
+    const v = (hit: { v: number }) => (k === 0 ? backV : k === count - 1 ? frontV : hit.v);
     const a = width > 1e-6 ? hitAt(out, -width) : middle,
       b = width > 1e-6 ? hitAt(out, width) : middle;
     if (!a || !b) continue;
-    left.push([shift(a.u, near[0], period), fixed ?? a.v]);
-    if (b !== a) right.push([shift(b.u, near[0], period), fixed ?? b.v]);
+    left.push([shift(a.u, near[0], period), v(a)]);
+    if (b !== a) right.push([shift(b.u, near[0], period), v(b)]);
   }
   const outline = [...right, ...left.reverse()];
   if (outline.length < 3) return undefined;
@@ -447,36 +421,6 @@ export function occupiedSpan(part: ParticipantView, center: Vec3, x: Vec3): [num
         hi = Math.max(hi, d);
       }
   return [lo, hi];
-}
-/** Each solid of an occupied part, measured from `center`: how far out along `z` it reaches, how
- * far across `x` on either side, and between which heights it stands. */
-/** Each solid of an occupied part, measured from `center`: how far out along `z` it reaches, how
- * far across `x` on either side, and between which heights it stands. */
-export function occupiedSolids(
-  part: ParticipantView,
-  center: Vec3,
-  x: Vec3,
-  z: Vec3
-): { out: [number, number]; across: number; y: [number, number] }[] {
-  const measured: { out: [number, number]; across: number; y: [number, number] }[] = [];
-  for (const { matrix: m, solids } of part.occupied)
-    for (const solid of solids) {
-      const out: [number, number] = [Infinity, -Infinity],
-        y: [number, number] = [Infinity, -Infinity];
-      let across = 0;
-      for (const [px, pz] of solid.hull)
-        for (const py of solid.y) {
-          const q = [0, 1, 2].map((i) => m[i] * px + m[4 + i] * py + m[8 + i] * pz + m[12 + i] - center[i]);
-          const o = q[0] * z[0] + q[2] * z[2];
-          out[0] = Math.min(out[0], o);
-          out[1] = Math.max(out[1], o);
-          y[0] = Math.min(y[0], q[1] + center[1]);
-          y[1] = Math.max(y[1], q[1] + center[1]);
-          across = Math.max(across, Math.abs(q[0] * x[0] + q[2] * x[2]));
-        }
-      measured.push({ out, across, y });
-    }
-  return measured;
 }
 
 /** The tile unit of a dormer's small roof: the host roof's tile, adapting to the rows and

@@ -87,6 +87,21 @@ describe("Geometry", () => {
     );
   });
 
+  it("keeps the boxes its units give way in, leaves the surface whole, and refuses a tilted one", () => {
+    const box = { center: [1, 1, 0] as const, size: [0.5, 1, 0.8] as const, out: [0.6, 0, 0.8] as const };
+    const modification = { element: "face", op: "clearBox", box } as const;
+    const geometry = new EffectiveGeometry(extruded(), [modification], createBuildingRegistry().surfaces);
+    expect(geometry.clearings("face")).toEqual([box]);
+    expect(geometry.surface("face").removed).toEqual([]);
+    const surfaces = createBuildingRegistry().surfaces;
+    expect(
+      () => new EffectiveGeometry(extruded(), [{ ...modification, box: { ...box, out: [0.6, 0.1, 0.8] } }], surfaces)
+    ).toThrow("A box's out direction must be level and unit length");
+    expect(
+      () => new EffectiveGeometry(extruded(), [{ ...modification, box: { ...box, size: [0.5, 0, 0.8] } }], surfaces)
+    ).toThrow("A box's size must be positive");
+  });
+
   it("evaluates orthonormal frames and wraps closed curves", () => {
     const surface = new EffectiveGeometry(extruded(), [], createBuildingRegistry().surfaces).surface("face");
     expect(surface.domain).toEqual({ u: [0, 16], v: [0, 2], closedU: true });
