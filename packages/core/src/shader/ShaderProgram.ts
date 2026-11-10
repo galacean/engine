@@ -1,4 +1,4 @@
-import { IHardwareRenderer } from "@galacean/engine-design";
+import { IHardwareRenderer, IShaderInterfaceBindings } from "@galacean/engine-design";
 import { Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import { Engine } from "../Engine";
 import { Logger } from "../base/Logger";
@@ -74,10 +74,19 @@ export class ShaderProgram {
     return this._isValid;
   }
 
-  constructor(engine: Engine, vertexSource: string, fragmentSource: string, transformFeedbackVaryings?: string[]) {
+  constructor(
+    engine: Engine,
+    source: { vertexSource: string; fragmentSource: string; interfaceBindings?: IShaderInterfaceBindings },
+    transformFeedbackVaryings?: string[]
+  ) {
     this._engine = engine;
     this._gl = engine._hardwareRenderer.gl;
-    this._glProgram = this._createProgram(vertexSource, fragmentSource, transformFeedbackVaryings);
+    this._glProgram = this._createProgram(
+      source.vertexSource,
+      source.fragmentSource,
+      transformFeedbackVaryings,
+      source.interfaceBindings
+    );
 
     if (this._glProgram) {
       this._isValid = true;
@@ -246,7 +255,8 @@ export class ShaderProgram {
   private _createProgram(
     vertexSource: string,
     fragmentSource: string,
-    transformFeedbackVaryings?: string[]
+    transformFeedbackVaryings?: string[],
+    interfaceBindings?: IShaderInterfaceBindings
   ): WebGLProgram | null {
     const gl = this._gl;
 
@@ -274,7 +284,14 @@ export class ShaderProgram {
     if (transformFeedbackVaryings?.length) {
       (<WebGL2RenderingContext>gl).transformFeedbackVaryings(
         program,
-        transformFeedbackVaryings,
+        transformFeedbackVaryings.map((name) =>
+          name.replace(/^[A-Za-z_][A-Za-z_0-9]*/, (identifier) => {
+            const outputs = interfaceBindings?.vertexOutputs;
+            return outputs && Object.prototype.hasOwnProperty.call(outputs, identifier)
+              ? outputs[identifier]
+              : identifier;
+          })
+        ),
         (<WebGL2RenderingContext>gl).INTERLEAVED_ATTRIBS
       );
     }

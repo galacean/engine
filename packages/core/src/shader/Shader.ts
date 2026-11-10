@@ -140,7 +140,7 @@ export class Shader implements IReferable {
           shaderPassSource.fragmentShaderInstructions!,
           platformTarget,
           passSource.tags,
-          shaderPassSource.varyingNames
+          shaderPassSource.interfaceBindings
         );
 
         Shader._applyRenderStates(
@@ -188,7 +188,7 @@ export class Shader implements IReferable {
           passData.fragmentShaderInstructions!,
           data.platformTarget as ShaderLanguage,
           passData.tags,
-          passData.varyingNames
+          passData.interfaceBindings
         );
 
         Shader._applyRenderStates(

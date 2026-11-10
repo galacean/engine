@@ -220,7 +220,7 @@ export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBacken
       return {
         vertex,
         fragment,
-        varyingNames: Object.fromEntries(this._varyingAliases)
+        interfaceBindings: { vertexOutputs: Object.fromEntries(this._varyingAliases) }
       };
     } finally {
       this._sourceIR = undefined;

@@ -114,7 +114,7 @@ export class ShaderPrecompiler {
             isUsePass: false as const,
             tags: pass.tags,
             renderStates: serializeRenderStates(pass.renderStates),
-            varyingNames: program.varyingNames,
+            interfaceBindings: program.interfaceBindings,
             vertexShaderInstructions: program.vertexShaderInstructions,
             fragmentShaderInstructions: program.fragmentShaderInstructions
           };

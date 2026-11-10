@@ -1,3 +1,4 @@
+import type { IShaderInterfaceBindings } from "./IShaderInterfaceBindings";
 import type { ShaderInstruction } from "./ICondition";
 
 export interface IPrecompiledShader {
@@ -20,8 +21,8 @@ export interface IPrecompiledPass {
     constantMap: Record<string, number | string | boolean | number[]>;
     variableMap: Record<string, string>;
   };
-  /** Original varying field names mapped to generated stage outputs for external bindings. */
-  varyingNames?: Record<string, string>;
+  /** Interface bindings emitted together with the shader instructions. */
+  interfaceBindings?: IShaderInterfaceBindings;
   vertexShaderInstructions?: ShaderInstruction[];
   fragmentShaderInstructions?: ShaderInstruction[];
 }

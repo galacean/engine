@@ -23,3 +23,5 @@ export type { IShaderPosition } from "./shaderSource/IShaderPosition";
 export type { IShaderSource } from "./shaderSource/IShaderSource";
 export type { IStatement } from "./shaderSource/IStatement";
 export type { ISubShaderSource } from "./shaderSource/ISubShaderSource";
+
+export type { IShaderInterfaceBindings } from "./IShaderInterfaceBindings";
