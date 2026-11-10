@@ -1,23 +1,29 @@
 import {
   BloomEffect,
+  Camera,
+  Color,
   ColorAdjustmentsEffect,
   DayNightProceduralSky,
   DayNightSolarPosition,
-  RealtimeIBLBaker,
-  PostProcess,
-  TonemappingEffect,
-  TonemappingMode,
-  Camera,
-  Color,
   DirectLight,
   Layer,
+  PostProcess,
+  RealtimeIBLBaker,
   Script,
   ShadowType,
+  TonemappingEffect,
+  TonemappingMode,
   Vector3,
   WebGLEngine,
   WebGLMode
 } from "@galacean/engine";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
+import {
+  HeightfieldWaterBackend,
+  HeightfieldWaterCompileWorkerClient
+} from "@galacean/engine-water/water/runtime/heightfield/index";
+import type { WaterSceneBodyRequest, WaterSceneBodySetTransaction } from "@galacean/engine-water/water/runtime/index";
+import { WaterSceneRuntimeHost } from "@galacean/engine-water/water/runtime/index";
 import {
   createOceanEditRevision,
   OceanEditSession,
@@ -25,18 +31,12 @@ import {
 } from "@galacean/engine-water/water/runtime/ocean/index";
 import { createIslandOceanOwnership } from "./WaterIslandOceanEditing.ts";
 import { mountIslandOceanEditor } from "./WaterIslandOceanEditor.ts";
-import type { WaterSceneBodyRequest, WaterSceneBodySetTransaction } from "@galacean/engine-water/water/runtime/index";
-import { WaterSceneRuntimeHost } from "@galacean/engine-water/water/runtime/index";
-import {
-  HeightfieldWaterBackend,
-  HeightfieldWaterCompileWorkerClient
-} from "@galacean/engine-water/water/runtime/heightfield/index";
 
-import { RiverWaterBackend, RiverCompileWorkerClient } from "@galacean/engine-water/water/runtime/river/index";
+import { RiverCompileWorkerClient, RiverWaterBackend } from "@galacean/engine-water/water/runtime/river/index";
 
-import { OceanTextureLibrary } from "@galacean/engine-water/water/resources/ocean/index";
 import { registerLakeWaterLook } from "@galacean/engine-water/water/presets/lake/index";
 import { LAKE_NORMAL_RESOURCE, LakeNormalAssetLoader } from "@galacean/engine-water/water/resources/lake/index";
+import { OceanTextureLibrary } from "@galacean/engine-water/water/resources/ocean/index";
 
 import {
   createRiverWaterBodyAsset,
@@ -44,25 +44,26 @@ import {
   RiverQualityLevel
 } from "@galacean/engine-water/water/index";
 import {
+  registerRiverHighLook,
   registerRiverWaterBodyPresets,
+  RIVER_HIGH_LOOK_ID,
   riverQualityPlanIdForQuality
 } from "@galacean/engine-water/water/presets/river/index";
-import { registerRiverHighLook, RIVER_HIGH_LOOK_ID } from "@galacean/engine-water/water/presets/river/index";
 
-import { createIslandOceanBody } from "../../ocean/IslandOceanSource.ts";
 import {
   PROCEDURAL_SKY_REALTIME_IBL_OPTIONS,
   PROCEDURAL_SKY_SOLAR_POSITION
 } from "@galacean/engine-environment/lighting/ProceduralSkyLightingProfile";
-import { createShowcaseCameraController } from "../showcase/ShowcaseCameraControl.ts";
+import { createIslandOceanBody } from "../../ocean/IslandOceanSource.ts";
 import { resizeEngineCanvasByClientSize } from "../resizeEngineCanvas.ts";
 import { WaterLandscapeAssets } from "../shared/WaterLandscapeAssets.ts";
+import { createShowcaseCameraController } from "../showcase/ShowcaseCameraControl.ts";
+import { createIslandLakeBody, getIslandWaterBodyRevision } from "./WaterIslandAuthoring.ts";
+import { createWaterIslandBodies } from "./WaterIslandBodies.ts";
+import { createWaterIslandLandscape } from "./WaterIslandLandscape.ts";
 import { registerWaterIslandLook } from "./WaterIslandLook.ts";
 import { WATER_ISLAND_PRESET } from "./WaterIslandPreset.ts";
-import { createWaterIslandTerrain, createWaterIslandSource } from "./WaterIslandTerrain.ts";
-import { createWaterIslandBodies } from "./WaterIslandBodies.ts";
-import { createIslandLakeBody, getIslandWaterBodyRevision } from "./WaterIslandAuthoring.ts";
-import { createWaterIslandLandscape } from "./WaterIslandLandscape.ts";
+import { createWaterIslandSource, createWaterIslandTerrain } from "./WaterIslandTerrain.ts";
 
 type View = keyof typeof WATER_ISLAND_PRESET.cameras;
 async function bootstrap() {
@@ -74,16 +75,6 @@ async function bootstrap() {
     view: View = "hero",
     readyMs: number | undefined;
   const status = document.getElementById("status")!;
-  let diagnostics: () => unknown = () => ({
-    ready,
-    closed,
-    error: errorMessage,
-    phase: closed ? "closed" : "preparing"
-  });
-  Object.defineProperty(window, "waterIslandDemo", {
-    configurable: true,
-    value: Object.freeze({ getSnapshot: () => structuredClone(diagnostics()) })
-  });
   const cleanup: (() => void | Promise<void>)[] = [];
   const own = <T>(value: T, release: (value: T) => void | Promise<void>): T => {
     if (closed) {
@@ -202,7 +193,6 @@ async function bootstrap() {
     };
     const resize = () => {
       resizeEngineCanvasByClientSize(engine, "canvas", 1);
-      host.setViewportSize(engine.canvas.width, engine.canvas.height);
     };
     resize();
     setView("hero");
@@ -289,8 +279,7 @@ async function bootstrap() {
           asset,
           instance: { ...instance, interaction: { query: true, buoyancy: false, wake: false } },
           createRuntimeContext: (bodyRoot) => ({ engine, root: bodyRoot, surfaceTimeOverride }),
-          setSurfaceTimeOverride: (s) =>
-            riverBackend.getRuntimeDiagnostics(descriptor.id)?.controller.setSurfaceTimeOverride(s)
+          setSurfaceTimeOverride: (s) => riverBackend.getRuntimeController(descriptor.id)?.setSurfaceTimeOverride(s)
         });
       }
       const ocean = host.registerAuthoring((a) => {
@@ -451,55 +440,6 @@ async function bootstrap() {
     readyMs = performance.now() - started;
     status.hidden = true;
     document.body.dataset.ready = "true";
-    const runtimeIds = new WeakMap<object, number>();
-    let nextRuntimeId = 1;
-    diagnostics = () => ({
-      ready,
-      closed,
-      error: errorMessage,
-      readyMs,
-      view,
-      paused,
-      surfaceTimeOverride,
-      waterRuntimes: [
-        ...bodies.lakes.map(({ id }) => ({ id, controller: lakeBackend.getRuntimeDiagnostics(id)?.controller })),
-        ...bodies.rivers.map(({ id }) => ({ id, controller: riverBackend.getRuntimeDiagnostics(id)?.controller })),
-        { id: "ocean", controller: oceanBackend.getRuntimeDiagnostics("ocean")?.controller }
-      ].map(({ id, controller }) => {
-        if (controller && !runtimeIds.has(controller)) runtimeIds.set(controller, nextRuntimeId++);
-        return {
-          id,
-          controllerId: controller && runtimeIds.get(controller),
-          surfaceTimeOverride: controller?.surfaceTimeOverride
-        };
-      }),
-      seed: WATER_ISLAND_PRESET.seed,
-      oceanEdit: oceanEditor.status,
-      oceanNearshore: {
-        waterLevel: bodies.ocean.config.nearshoreDescriptor.waterLevel,
-        wetCells: Array.from((bodies.ocean.config.nearshoreDescriptor.wetSource as { mask: Uint8Array }).mask).reduce(
-          (a, b) => a + b,
-          0
-        ),
-        terrainRevision: source.terrain.revision
-      },
-      terrain: { id: source.terrain.id, hash: source.hash, columns: 513, rows: 513 },
-      bodies: [...bodies.lakes, ...bodies.rivers, bodies.ocean].map((b) => b.id),
-      connections: WATER_ISLAND_PRESET.connections,
-      host: host.getDiagnostics(),
-      landscape: {
-        instances: landscape.placements.length,
-        meshes: landscape.meshCount,
-        triangles: landscape.triangleCount,
-        assets: assets.metrics
-      },
-      frameTimes: frames.slice(),
-      resources: {
-        textureBytes: engine.renderingStatistics.textureMemory,
-        bufferBytes: engine.renderingStatistics.bufferMemory
-      },
-      viewport: { width: engine.canvas.width, height: engine.canvas.height, dpr: 1 }
-    });
   } catch (error) {
     errorMessage = error instanceof Error ? error.message : String(error);
     const cancelled = closed;

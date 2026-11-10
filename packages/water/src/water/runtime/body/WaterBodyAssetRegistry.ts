@@ -1,44 +1,12 @@
+import {
+  MAX_WATER_REFLECTION_INTENSITY,
+  MAX_WATER_REFRACTION_STRENGTH
+} from "../../authoring/optics/WaterOpticalLimits";
 import { RIVER_DEFAULT_DROP_LOOK } from "../../authoring/river/FarmlandsDropLook";
 import { FARMLANDS_DROP_ASSETS } from "../../resources/river/FarmlandsDropAssets";
-import {
-  MAX_WATER_REFRACTION_STRENGTH,
-  MAX_WATER_REFLECTION_INTENSITY
-} from "../../authoring/optics/WaterOpticalLimits";
 /** Versioned WaterBody asset/preset/resource lookup with fail-closed resolution. */
-import type { WaterSurfaceAppearanceAsset } from "../../authoring/surface/WaterSurfaceAppearanceTypes";
-import {
-  collectWaterSurfaceTextureReferences,
-  waterSurfaceTextureReferencePath,
-  waterTextureResourceIssue
-} from "../../compiler/surface/WaterSurfaceTextureReferences";
-import { WaterSurfaceAppearanceCompiler } from "../../compiler/surface/WaterSurfaceAppearanceCompiler";
-import { WaterSurfaceFieldCompiler } from "../../compiler/surface/WaterSurfaceFieldCompiler";
-import { WaterSurfaceClosureCompiler } from "../../compiler/surface/WaterSurfaceClosureCompiler";
-import { createWaterBodyAsset, type WaterBodyAsset } from "../../authoring/body/WaterBodyAsset";
-import type { WaterBodyInstance } from "../../authoring/body/WaterBodyInstance";
 import type { ResolvedWaterBodyInstance } from "../../authoring/body/ResolvedWaterBodyInstance";
-import { createWaterLookPresetV1, type WaterLookPresetV1 } from "../../authoring/surface/WaterLookPreset";
-import {
-  createWaterLookAuthoringSnapshot,
-  type WaterLookAuthoringDraft,
-  type WaterLookAuthoringSnapshot
-} from "../../authoring/surface/WaterLookAuthoringSnapshot";
-import {
-  createWaterRenderStatePresetV1,
-  type WaterRenderStatePresetV1
-} from "../../authoring/surface/WaterRenderStatePreset";
-import {
-  createWaterReflectionPolicyPresetV1,
-  type WaterReflectionPolicyPresetV1
-} from "../../authoring/optics/WaterReflectionPolicyPreset";
-import {
-  computeWaterQualityPlanContentHash,
-  createWaterQualityPlanV2,
-  type WaterQualityPlanV2
-} from "../../authoring/quality/WaterQualityPlan";
-import { WaterRenderContractCompiler } from "../../compiler/surface/WaterRenderContractCompiler";
-import type { CompiledWaterRenderContractV1 } from "../../compiler/surface/CompiledWaterRenderContractTypes";
-import { hashStableValue } from "../../compiler/shared/determinism";
+import { createWaterBodyAsset, type WaterBodyAsset } from "../../authoring/body/WaterBodyAsset";
 import {
   WaterBodySourceKind,
   type WaterAppearancePresetV1,
@@ -48,8 +16,40 @@ import {
   type WaterOpticsPresetV1,
   type WaterResourceAssetDescriptorV1
 } from "../../authoring/body/WaterBodyAuthoringTypes";
+import type { WaterBodyInstance } from "../../authoring/body/WaterBodyInstance";
 import { decodeWaterBodySource } from "../../authoring/body/WaterBodySchemaDecoder";
 import { createImmutableWaterSnapshot } from "../../authoring/identity/WaterImmutableSnapshot";
+import {
+  createWaterReflectionPolicyPresetV1,
+  type WaterReflectionPolicyPresetV1
+} from "../../authoring/optics/WaterReflectionPolicyPreset";
+import {
+  computeWaterQualityPlanContentHash,
+  createWaterQualityPlanV2,
+  type WaterQualityPlanV2
+} from "../../authoring/quality/WaterQualityPlan";
+import {
+  createWaterLookAuthoringSnapshot,
+  type WaterLookAuthoringDraft,
+  type WaterLookAuthoringSnapshot
+} from "../../authoring/surface/WaterLookAuthoringSnapshot";
+import { createWaterLookPresetV1, type WaterLookPresetV1 } from "../../authoring/surface/WaterLookPreset";
+import {
+  createWaterRenderStatePresetV1,
+  type WaterRenderStatePresetV1
+} from "../../authoring/surface/WaterRenderStatePreset";
+import type { WaterSurfaceAppearanceAsset } from "../../authoring/surface/WaterSurfaceAppearanceTypes";
+import { hashStableValue } from "../../compiler/shared/determinism";
+import type { CompiledWaterRenderContractV1 } from "../../compiler/surface/CompiledWaterRenderContractTypes";
+import { WaterRenderContractCompiler } from "../../compiler/surface/WaterRenderContractCompiler";
+import { WaterSurfaceAppearanceCompiler } from "../../compiler/surface/WaterSurfaceAppearanceCompiler";
+import { WaterSurfaceClosureCompiler } from "../../compiler/surface/WaterSurfaceClosureCompiler";
+import { WaterSurfaceFieldCompiler } from "../../compiler/surface/WaterSurfaceFieldCompiler";
+import {
+  collectWaterSurfaceTextureReferences,
+  waterSurfaceTextureReferencePath,
+  waterTextureResourceIssue
+} from "../../compiler/surface/WaterSurfaceTextureReferences";
 
 const DEFAULT_DROP_RESOURCES = new Map(
   Object.values(FARMLANDS_DROP_ASSETS).map(({ descriptor }) => [descriptor.id, descriptor])
@@ -215,21 +215,6 @@ function assertSourceRepresentation(
   }
 }
 
-export interface WaterBodyAssetRegistryMetrics {
-  readonly assetCount: number;
-  readonly appearancePresetCount: number;
-  readonly opticsPresetCount: number;
-  readonly resourceCount: number;
-  readonly lookPresetCount: number;
-  readonly reflectionPolicyCount: number;
-  readonly renderStatePresetCount: number;
-  readonly qualityPlanCount: number;
-  readonly compiledRenderContractCount: number;
-  readonly compiledRenderContractLimit: number;
-  readonly renderContractCompileCount: number;
-  readonly renderContractEvictionCount: number;
-}
-
 export class WaterBodyAssetRegistry {
   private readonly _assets = new Map<string, WaterBodyAsset<WaterBodySourceV1>>();
   private readonly _appearances = new Map<string, WaterAppearancePresetV1>();
@@ -248,23 +233,6 @@ export class WaterBodyAssetRegistry {
   private _renderContractEvictionCount = 0;
   private readonly _runtimeVariants = new Map<string, Map<string, WaterBodyRuntimeVariant>>();
   private readonly _resources = new Map<string, WaterResourceAssetDescriptorV1>();
-
-  get metrics(): WaterBodyAssetRegistryMetrics {
-    return Object.freeze({
-      assetCount: this._assets.size,
-      appearancePresetCount: this._appearances.size,
-      opticsPresetCount: this._optics.size,
-      resourceCount: this._resources.size,
-      lookPresetCount: this._looks.size,
-      reflectionPolicyCount: this._reflectionPolicies.size,
-      renderStatePresetCount: this._renderStates.size,
-      qualityPlanCount: this._qualityPlans.size,
-      compiledRenderContractCount: this._compiledRenderContracts.size,
-      compiledRenderContractLimit: WATER_RENDER_CONTRACT_CACHE_LIMIT,
-      renderContractCompileCount: this._renderContractCompileCount,
-      renderContractEvictionCount: this._renderContractEvictionCount
-    });
-  }
 
   registerAsset(asset: WaterBodyAsset): void {
     this._assertUnique(this._assets, asset.id, "asset");

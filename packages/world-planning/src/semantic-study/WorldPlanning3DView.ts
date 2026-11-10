@@ -1,54 +1,54 @@
-import { PlanningWindRuntime } from "../spatial/runtime/PlanningWindRuntime";
-import { PlanningWaterRuntime, type PreparedPlanningWater } from "../spatial/runtime/PlanningWaterRuntime";
-import { PlanningProductionRuntime } from "../spatial/runtime/PlanningProductionRuntime";
-import { PLANNING_RUNTIME_OPTIONS } from "../spatial/runtime/RuntimeOptions";
-import { DirectorSemanticView } from "../spatial/director/DirectorSemanticView";
-import { pickPlanningGround } from "./PlanningGroundPick";
-import { PlanningRasterClient } from "./PlanningRasterClient";
-import { PlanningTerrainView } from "./PlanningTerrainView";
-import { planningFocusPose, type FocusBounds } from "./PlanningFocus";
-import { PlanningPresentation, type PresentationComponents } from "../spatial/PlanningPresentation";
-import { poiMemberIds } from "./PoiContents";
-import { planningHeightmap } from "./PlanningHeightmap";
-import { PLANNING_CAMERA_METRICS } from "../landforms/PlanningLandform";
-import whiteboxShader from "./PlanningWhitebox.shader?raw";
-import { planningAlphamap, PLANNING_SURFACES } from "./PlanningAlphamap";
-import { PLANNING_OBJECT_CSS, planningColor } from "./PlanningSurfacePalette";
-import { PlanningWalk, WALK_METRICS, WALK_SPEED_LIMITS } from "./PlanningWalk";
-import { thirdPersonCamera } from "./PlanningThirdPerson";
 import {
-  WebGLEngine,
-  WebGLMode,
-  Camera,
-  DirectLight,
   BlinnPhongMaterial,
-  PBRMaterial,
-  UnlitMaterial,
+  Camera,
   Color,
-  Vector3,
-  Vector2,
+  DirectLight,
+  MeshRenderer,
+  PBRMaterial,
+  PrimitiveMesh,
   Ray,
   RenderFace,
   Script,
-  Texture2D,
-  TextureFormat,
-  TextureFilterMode,
   Shader,
-  PrimitiveMesh,
-  MeshRenderer,
-  type ModelMesh,
-  type Entity
+  Texture2D,
+  TextureFilterMode,
+  TextureFormat,
+  UnlitMaterial,
+  Vector2,
+  Vector3,
+  WebGLEngine,
+  WebGLMode,
+  type Entity,
+  type ModelMesh
 } from "@galacean/engine";
-import { ShaderCompiler } from "@galacean/engine-shader-compiler";
-import { OrbitControl } from "@galacean/engine-toolkit-controls/dist/es/OrbitControl.js";
 import {
-  addV2Surface,
   addV2Lines,
+  addV2Surface,
   destroyV2ViewResources,
   type V2ViewResources
 } from "@galacean/engine-modify/rendering/V2ViewGeometry";
-import { compilePlanningScene, pickPlanningScene, type PlanningScenePart } from "./WorldPlanningScene";
+import { ShaderCompiler } from "@galacean/engine-shader-compiler";
+import { OrbitControl } from "@galacean/engine-toolkit-controls/dist/es/OrbitControl.js";
+import { PLANNING_CAMERA_METRICS } from "../landforms/PlanningLandform";
+import { DirectorSemanticView } from "../spatial/director/DirectorSemanticView";
+import { PlanningPresentation, type PresentationComponents } from "../spatial/PlanningPresentation";
+import { PlanningProductionRuntime } from "../spatial/runtime/PlanningProductionRuntime";
+import { PlanningWaterRuntime, type PreparedPlanningWater } from "../spatial/runtime/PlanningWaterRuntime";
+import { PlanningWindRuntime } from "../spatial/runtime/PlanningWindRuntime";
+import { PLANNING_RUNTIME_OPTIONS } from "../spatial/runtime/RuntimeOptions";
 import type { IslandPlan, PlanPoint } from "./IslandPlanModel";
+import { PLANNING_SURFACES, planningAlphamap } from "./PlanningAlphamap";
+import { planningFocusPose, type FocusBounds } from "./PlanningFocus";
+import { pickPlanningGround } from "./PlanningGroundPick";
+import { planningHeightmap } from "./PlanningHeightmap";
+import { PlanningRasterClient } from "./PlanningRasterClient";
+import { PLANNING_OBJECT_CSS, planningColor } from "./PlanningSurfacePalette";
+import { PlanningTerrainView } from "./PlanningTerrainView";
+import { thirdPersonCamera } from "./PlanningThirdPerson";
+import { PlanningWalk, WALK_METRICS, WALK_SPEED_LIMITS } from "./PlanningWalk";
+import whiteboxShader from "./PlanningWhitebox.shader?raw";
+import { poiMemberIds } from "./PoiContents";
+import { compilePlanningScene, pickPlanningScene, type PlanningScenePart } from "./WorldPlanningScene";
 
 class PlanningLabelsUpdate extends Script {
   updateLabels: (delta: number) => void = () => {};
@@ -243,20 +243,6 @@ export class WorldPlanning3DView {
       events
     );
     this.canvas.addEventListener("contextmenu", (e) => e.preventDefault(), events);
-    eye.addComponent(PlanningLabelsUpdate).updateLabels = (delta) => {
-      this.updateLabels();
-      this.updateWalk();
-      if (this.production) {
-        this.productionRuntime?.update(delta);
-        this.diagnosticsSeconds += delta;
-        if (this.diagnosticsSeconds >= 1) {
-          this.diagnosticsSeconds = 0;
-          const d = this.productionRuntime?.getDiagnostics();
-          this.canvas.dataset.populationRuntime = JSON.stringify(d?.population ?? {});
-          this.canvas.dataset.waterRuntime = JSON.stringify(d?.water ?? {});
-        }
-      }
-    };
     this.terrain = await PlanningTerrainView.create(this.engine, this.root, this.camera);
     this.semantic = new DirectorSemanticView(this.engine, this.camera, this.root, this.canvas);
     this.engine.run();
@@ -493,10 +479,6 @@ export class WorldPlanning3DView {
       this.canvas.dataset.renderMode = production ? "production" : "whitebox";
       this.canvas.dataset.shaderPrecompile = String(PLANNING_RUNTIME_OPTIONS.precompileShaders);
       this.canvas.dataset.oceanRenderer = production ? "Water/Ocean" : "Whitebox/grid";
-      this.canvas.dataset.waterRuntime = JSON.stringify({
-        presentation: "Whitebox/grid",
-        ...this.productionWater.getDiagnostics()
-      });
       this.retained = next;
       if (this.surfaceTexture !== texture) this.surfaceTexture?.destroy();
       this.surfaceTexture = texture;
@@ -508,9 +490,7 @@ export class WorldPlanning3DView {
       this.setLayers(this.layers);
       this.rebuildLabels(plan);
       this.setSelection(this.selectedId, true);
-      if (this.productionRuntime)
-        this.canvas.dataset.waterRuntime = JSON.stringify(this.productionRuntime.getDiagnostics().water);
-      this.canvas.dataset.terrainStatus = "ready";
+      if (this.productionRuntime) this.canvas.dataset.terrainStatus = "ready";
       this.canvas.dataset.prepareMs = String(performance.now() - prepareStarted);
       this.canvas.dataset.worldWidth = String(plan.parameters.width);
       this.canvas.dataset.worldDepth = String(plan.parameters.depth);

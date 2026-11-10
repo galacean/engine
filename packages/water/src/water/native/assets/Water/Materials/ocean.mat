@@ -1,9 +1,6 @@
 {
   "name": "ocean-look",
-  "shader": "AIWorld/Ocean",
-  "shaderRef": {
-    "url": "Water/Shaders/ocean.shader"
-  },
+  "shader": "Water/Ocean.v1",
   "macros": [],
   "shaderData": {
     "material_WaterProfile": {
@@ -280,36 +277,6 @@
     "material_Water_renderState_blendMode": {
       "type": "Integer",
       "value": 1
-    },
-    "material_Ocean_smoothWaves": {
-      "type": "Texture",
-      "value": {
-        "url": "Water/Textures/ocean-smoothWaves.ktx2"
-      }
-    },
-    "material_Ocean_roughWaves": {
-      "type": "Texture",
-      "value": {
-        "url": "Water/Textures/ocean-roughWaves.ktx2"
-      }
-    },
-    "material_Ocean_caustics": {
-      "type": "Texture",
-      "value": {
-        "url": "Water/Textures/ocean-caustics.ktx2"
-      }
-    },
-    "material_Ocean_foam": {
-      "type": "Texture",
-      "value": {
-        "url": "Water/Textures/ocean-foam.ktx2"
-      }
-    },
-    "material_Ocean_intersectionNoise": {
-      "type": "Texture",
-      "value": {
-        "url": "Water/Textures/ocean-intersectionNoise.ktx2"
-      }
     }
   }
 }

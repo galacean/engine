@@ -1,9 +1,7 @@
 /** Shared backend-owned request, binding refresh, replacement, and cleanup lifecycle. */
-import type { WaterReflectionBinding, WaterReflectionService } from "./WaterReflectionService";
 import type { WaterReflectionMode } from "../../authoring/body/WaterBodyAuthoringTypes";
 import {
   type WaterReflectionPolicyMode,
-  type WaterReflectionPolicy,
   type WaterReflectionPresentationMode
 } from "../../authoring/optics/WaterReflectionPolicy";
 import {
@@ -11,6 +9,7 @@ import {
   waterReflectionRequestMode,
   type WaterReflectionRequest
 } from "./WaterReflectionPolicy";
+import type { WaterReflectionBinding, WaterReflectionService } from "./WaterReflectionService";
 
 export type WaterReflectionBindingService = Pick<WaterReflectionService, "setRequest" | "removeRequest" | "getBinding">;
 
@@ -19,28 +18,6 @@ export interface WaterReflectionBindingLifecycleOptions {
   readonly request: WaterReflectionRequest;
   readonly activationMode?: "initial" | "replacement-staging";
   readonly applyBinding: (binding?: Readonly<WaterReflectionBinding>) => void;
-}
-
-export interface WaterReflectionBindingLifecycleInspection {
-  readonly active: boolean;
-  readonly published: boolean;
-  readonly currentOwner: boolean;
-  readonly requestId: string;
-  readonly requestRevision?: number;
-  readonly appliedBindingRevision?: number;
-  readonly resolvedMode?: WaterReflectionPolicyMode;
-  readonly bindingApplyCount: number;
-  readonly bindingSkipCount: number;
-  readonly visible: boolean;
-  /** Conservative Camera-frustum demand after the short release debounce. */
-  readonly cameraFrustumVisible: boolean;
-  /** Consecutive rendered frames in which every Water surface chunk was culled. */
-  readonly cameraFrustumCulledFrameCount: number;
-  /** Preferred user-selectable authored source. */
-  readonly reflectionMode?: WaterReflectionPresentationMode;
-  readonly ssrEligible: boolean;
-  readonly cameraOwnershipAttached: boolean;
-  readonly cameraSurfaceFieldsRequired: boolean;
 }
 
 export interface WaterReflectionCameraOwnershipState {
@@ -98,19 +75,6 @@ function freezeRequest(request: WaterReflectionRequest): WaterReflectionRequest 
   });
 }
 
-function reflectionPoliciesEqual(
-  left: Readonly<WaterReflectionPolicy>,
-  right: Readonly<WaterReflectionPolicy>
-): boolean {
-  if (left.preferred !== right.preferred || left.fallbacks.length !== right.fallbacks.length) {
-    return false;
-  }
-  for (let index = 0; index < left.fallbacks.length; index++) {
-    if (left.fallbacks[index] !== right.fallbacks[index]) return false;
-  }
-  return true;
-}
-
 /**
  * Owns one stable reflection consumer id.
  *
@@ -132,8 +96,6 @@ export class WaterReflectionBindingLifecycle {
   private _bindingApplicationState: "uninitialized" | "cleared" | "bound" = "uninitialized";
   private _appliedBindingRevision?: number;
   private _appliedResolvedMode?: WaterReflectionPolicyMode;
-  private _bindingApplyCount = 0;
-  private _bindingSkipCount = 0;
 
   constructor(options: WaterReflectionBindingLifecycleOptions) {
     this._service = options.service;
@@ -161,27 +123,6 @@ export class WaterReflectionBindingLifecycle {
    */
   get resolvedMode(): WaterReflectionPolicyMode | undefined {
     return this._appliedResolvedMode;
-  }
-
-  get inspection(): Readonly<WaterReflectionBindingLifecycleInspection> {
-    return Object.freeze({
-      active: this._active,
-      published: this._published,
-      currentOwner: this._isCurrentOwner(),
-      requestId: this._request.id,
-      requestRevision: this._requestRevision,
-      appliedBindingRevision: this._appliedBindingRevision,
-      resolvedMode: this._appliedResolvedMode,
-      bindingApplyCount: this._bindingApplyCount,
-      bindingSkipCount: this._bindingSkipCount,
-      visible: this._request.visible,
-      cameraFrustumVisible: this._cameraFrustumVisible,
-      cameraFrustumCulledFrameCount: this._cameraFrustumCulledFrameCount,
-      reflectionMode: this.reflectionMode,
-      ssrEligible: this.ssrEligible,
-      cameraOwnershipAttached: this._cameraOwnership !== undefined,
-      cameraSurfaceFieldsRequired: this._cameraSurfaceFieldsRequired
-    });
   }
 
   get reflectionMode(): WaterReflectionPresentationMode | undefined {
@@ -266,30 +207,6 @@ export class WaterReflectionBindingLifecycle {
       }
       throw error;
     }
-  }
-
-  /**
-   * Diagnostics-only request injection for reflection arbitration galleries.
-   * Production Water bodies receive policy changes only by replacing their
-   * shared Water Look through RuntimeHost.
-   */
-  setReflectionPolicyForDiagnostics(policy: Readonly<WaterReflectionPolicy>): void {
-    this._assertActive();
-    const nextPolicy = normalizeWaterReflectionRequestPolicy({ policy });
-    if (reflectionPoliciesEqual(this._request.policy, nextPolicy)) return;
-    this._replaceRequest({ ...this._request, policy: nextPolicy });
-  }
-
-  /**
-   * Explicit diagnostics hook for labs that exercise arbitration inputs.
-   * Production authoring continues to create the initial immutable request.
-   */
-  setRequestForDiagnostics(request: WaterReflectionRequest): void {
-    this._assertActive();
-    if (request.id !== this._request.id) {
-      throw new Error(`Water reflection diagnostics cannot change stable request id '${this._request.id}'.`);
-    }
-    this._replaceRequest(request);
   }
 
   private _replaceRequest(request: WaterReflectionRequest): void {
@@ -454,7 +371,6 @@ export class WaterReflectionBindingLifecycle {
   private _applyBindingIfChanged(binding: Readonly<WaterReflectionBinding> | undefined): boolean {
     if (!binding) {
       if (this._bindingApplicationState === "cleared") {
-        this._bindingSkipCount++;
         return false;
       }
     } else if (
@@ -462,7 +378,6 @@ export class WaterReflectionBindingLifecycle {
       binding.bindingRevision !== undefined &&
       binding.bindingRevision === this._appliedBindingRevision
     ) {
-      this._bindingSkipCount++;
       return false;
     }
 
@@ -470,7 +385,6 @@ export class WaterReflectionBindingLifecycle {
     this._bindingApplicationState = binding ? "bound" : "cleared";
     this._appliedBindingRevision = binding?.bindingRevision;
     this._appliedResolvedMode = binding?.resolvedMode;
-    this._bindingApplyCount++;
     return true;
   }
 

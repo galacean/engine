@@ -1,44 +1,23 @@
-/** Explicit demo/acceptance diagnostics facade. It never publishes the owned runtime controller. */
+/** Detached runtime controls for the Water parameter panel. */
 import { createImmutableWaterSnapshot } from "../../authoring/identity/WaterImmutableSnapshot";
 
 const READ_KEYS = Object.freeze([
-  "activeData",
-  "activeReaches",
   "activeSurfaceOpticsReadback",
   "config",
-  "debugMode",
-  "debugView",
-  "depthResponseDebugView",
-  "depthResponseTermMode",
-  "featureAvailability",
+  "dropCount",
   "foamEnabled",
-  "junctionVisibility",
-  "lodDebugEnabled",
   "macroDisplacementEnabled",
-  "metrics",
   "microSurfaceEnabled",
   "opticalProfile",
   "refractionEnabled",
-  "reachSummary",
-  "dropCount",
   "shoreFoamEnabled",
   "surfaceAppearanceBinding",
-  "surfaceDebugMode",
   "surfaceOpticsBinding",
   "surfaceTimeOverride",
   "tuning"
 ] as const);
 
-const COMMAND_KEYS = Object.freeze([
-  "setDebugMode",
-  "setDebugView",
-  "setDepthResponseDebugView",
-  "setDepthResponseTermMode",
-  "setLodDebug",
-  "setSurfaceDebugMode",
-  "setSurfaceTimeOverride",
-  "setTuning"
-] as const);
+const COMMAND_KEYS = Object.freeze(["setSurfaceTimeOverride", "setTuning"] as const);
 
 function createOwnedReadback(value: unknown, ancestors = new WeakSet<object>()): unknown {
   try {
@@ -72,7 +51,7 @@ function createOwnedReadback(value: unknown, ancestors = new WeakSet<object>()):
 // Only this factory can establish provenance; public properties cannot bypass projection.
 const adapters = new WeakSet<object>();
 
-export function createWaterBackendDiagnosticsAdapter(controller: object): unknown {
+export function createWaterBackendControl(controller: object): unknown {
   if (adapters.has(controller)) return controller;
   const view = Object.create(null) as Record<PropertyKey, unknown>;
   for (const key of READ_KEYS) {

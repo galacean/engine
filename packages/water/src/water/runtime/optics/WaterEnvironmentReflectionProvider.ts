@@ -5,8 +5,8 @@ import type {
   WaterEnvironmentReflectionFrame,
   WaterEnvironmentReflectionLobe,
   WaterEnvironmentReflectionProjection,
-  WaterEnvironmentReflectionRole,
-  WaterEnvironmentReflectionProviderRequest
+  WaterEnvironmentReflectionProviderRequest,
+  WaterEnvironmentReflectionRole
 } from "./WaterEnvironmentReflectionTypes";
 import { isValidWaterEnvironmentReflectionFrame } from "./WaterEnvironmentReflectionTypes";
 import type { WaterReflectionService } from "./WaterReflectionService";
@@ -39,28 +39,6 @@ export interface WaterEnvironmentReflectionProviderOptions {
   readonly active?: boolean;
 }
 
-export interface WaterEnvironmentReflectionProviderInspection {
-  readonly id: string;
-  readonly role: WaterEnvironmentReflectionRole;
-  readonly active: boolean;
-  readonly published: boolean;
-  readonly available: boolean;
-  readonly ownership: "borrowed" | "unavailable";
-  readonly publishCount: number;
-  readonly refreshCount: number;
-  readonly rotationDegrees: number;
-  readonly exposure: number;
-  readonly intensity: number;
-  readonly colorSpace: "linear" | "srgb";
-  readonly hdr: boolean;
-  readonly maximumMipLevel: number;
-  readonly revision: number;
-  readonly secondaryAvailable: boolean;
-  readonly secondaryWeight: number;
-  readonly secondaryMaximumMipLevel: number;
-  readonly projectionMode: "infinite" | "box";
-}
-
 function readFiniteValue(name: string, value: number | (() => number), minimum: number): number {
   const resolved = typeof value === "function" ? value() : value;
   if (!Number.isFinite(resolved) || resolved < minimum) {
@@ -90,8 +68,6 @@ export class WaterEnvironmentReflectionProvider {
   private _binding?: Readonly<WaterEnvironmentReflectionBinding>;
   private _frame?: Readonly<WaterEnvironmentReflectionFrame>;
   private _frameRevision = 0;
-  private _publishCount = 0;
-  private _refreshCount = 0;
   private _destroyed = false;
 
   constructor(options: WaterEnvironmentReflectionProviderOptions) {
@@ -113,31 +89,6 @@ export class WaterEnvironmentReflectionProvider {
     this._source = options.source;
     this._active = options.active !== false;
     this.refresh();
-  }
-
-  get inspection(): Readonly<WaterEnvironmentReflectionProviderInspection> {
-    const binding = this._binding;
-    return Object.freeze({
-      id: this._id,
-      role: this._role,
-      active: this._active && !this._destroyed,
-      published: this._revision !== undefined && !this._destroyed,
-      available: binding !== undefined && this._active && !this._destroyed,
-      ownership: binding && this._active && !this._destroyed ? "borrowed" : "unavailable",
-      publishCount: this._publishCount,
-      refreshCount: this._refreshCount,
-      rotationDegrees: binding?.rotationDegrees ?? 0,
-      exposure: binding?.exposure ?? 0,
-      intensity: binding?.intensity ?? 0,
-      colorSpace: binding?.colorSpace ?? "linear",
-      hdr: binding?.hdr ?? false,
-      maximumMipLevel: binding?.maximumMipLevel ?? 0,
-      revision: this._frame?.revision ?? 0,
-      secondaryAvailable: this._frame?.secondary !== undefined,
-      secondaryWeight: this._frame?.secondaryWeight ?? 0,
-      secondaryMaximumMipLevel: this._frame?.secondary?.maximumMipLevel ?? 0,
-      projectionMode: binding?.projection?.mode ?? "infinite"
-    });
   }
 
   /** Atomically switches the scene source; the previous cubemap is never destroyed. */
@@ -170,7 +121,6 @@ export class WaterEnvironmentReflectionProvider {
     source: WaterEnvironmentReflectionSource,
     active: boolean
   ): Readonly<WaterEnvironmentReflectionBinding> | undefined {
-    this._refreshCount++;
     const publishedFrame = source.readFrame?.();
     if (publishedFrame && !isValidWaterEnvironmentReflectionFrame(publishedFrame)) {
       throw new TypeError("Environment reflection frame must satisfy the immutable dual-lobe contract.");
@@ -280,7 +230,6 @@ export class WaterEnvironmentReflectionProvider {
     this._frame = nextFrame;
     this._frameRevision = nextFrameRevision;
     this._revision = nextRevision;
-    this._publishCount++;
     return next;
   }
 

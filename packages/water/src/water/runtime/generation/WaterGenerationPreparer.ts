@@ -1,8 +1,11 @@
+import {
+  computeWaterBodyAssetContentHash,
+  createWaterBodyAsset,
+  type WaterBodyAsset
+} from "../../authoring/body/WaterBodyAsset";
 import type { WaterBodySourceV1 } from "../../authoring/body/WaterBodyAuthoringTypes";
-import { computeWaterBodyAssetContentHash, type WaterBodyAsset } from "../../authoring/body/WaterBodyAsset";
 import type { WaterGenerationAssetSetV1 } from "../../authoring/generation/WaterGenerationAssetSet";
 import { createWaterGenerationAssetSetV1 } from "../../authoring/generation/WaterGenerationAssetSet";
-import { createWaterBodyAsset } from "../../authoring/body/WaterBodyAsset";
 import {
   hashWaterFootprintPrecompileIdentity,
   hashWaterTerrainDependencies,
@@ -16,29 +19,10 @@ import {
   type WaterGenerationResourceLease
 } from "../../compiler/generation/WaterGenerationResourceLease";
 import {
+  canonicalSha256HexToBytes,
   CanonicalWaterBinaryWriterV1,
-  CanonicalWaterByteCollector,
-  canonicalSha256HexToBytes
+  CanonicalWaterByteCollector
 } from "../../compiler/shared/CanonicalWaterBinaryWriterV1";
-
-export interface PreparedWaterGenerationDiagnosticsV1 {
-  readonly bodyCount: number;
-  readonly footprintCacheHitCount: number;
-  /** Footprints reused before Ownership/Hfinal compilation started. */
-  readonly footprintPrecompileReuseCount: number;
-  /** Detached backend sources reused with their immutable Footprint resource. */
-  readonly bodySourceCacheHitCount: number;
-  readonly compiledFootprintBodyCount: number;
-  readonly lakeVisibility: readonly Readonly<{
-    bodyId: string;
-    basinSupportTexelCount: number;
-    visibleCoverageTexelCount: number;
-    visibleCoveragePermille: number;
-    visibleConnectedComponentCount: number;
-    largestVisibleConnectedComponentTexelCount: number;
-    largestVisibleConnectedComponentPermille: number;
-  }>[];
-}
 
 export class CompiledWaterFootprintResourceV1 implements WaterGenerationContentResource {
   private _destroyed = false;
@@ -66,7 +50,6 @@ export interface ActiveWaterGenerationResourcesV1 {
   readonly footprints: ReadonlyMap<string, Readonly<CompiledWaterFootprintV1>>;
   /** Backend-native detached sources prepared from the shared Footprint exactly once. */
   readonly runtimeAssetSet: Readonly<WaterGenerationAssetSetV1>;
-  readonly diagnostics: Readonly<PreparedWaterGenerationDiagnosticsV1>;
   readonly retired: boolean;
   retire(): void;
 }
@@ -74,7 +57,6 @@ export interface ActiveWaterGenerationResourcesV1 {
 export interface PreparedWaterGenerationResourcesV1 {
   readonly generationId: number;
   readonly active: boolean;
-  readonly diagnostics: Readonly<PreparedWaterGenerationDiagnosticsV1>;
   readonly runtimeAssetSet: Readonly<WaterGenerationAssetSetV1>;
   commit(): ActiveWaterGenerationResourcesV1;
   rollback(): void;
@@ -95,7 +77,6 @@ export interface WaterGenerationPreparedTransferV1 {
     bodyId: string;
     precompileIdentityHash: string;
   }>[];
-  readonly diagnostics: Readonly<PreparedWaterGenerationDiagnosticsV1>;
 }
 
 export function collectWaterGenerationPreparedTransferablesV1(
@@ -169,8 +150,6 @@ export class WaterGenerationPreparerV1 {
       const footprintByBodyId = new Map<string, Readonly<CompiledWaterFootprintV1>>();
       const footprintResourceByBodyId = new Map<string, CompiledWaterFootprintResourceV1>();
       const precompileIdentityByBodyId = new Map<string, string>();
-      let footprintCacheHitCount = 0;
-      let footprintPrecompileReuseCount = 0;
       const bodiesToCompile: Readonly<WaterBodyAsset<WaterBodySourceV1>>[] = [];
       for (const asset of assetSet.bodies) {
         const precompileIdentityHash = hashWaterFootprintPrecompileIdentity(asset, context);
@@ -188,8 +167,6 @@ export class WaterGenerationPreparerV1 {
           }
         );
         footprintLeases.push(lease);
-        footprintCacheHitCount++;
-        footprintPrecompileReuseCount++;
         footprintByBodyId.set(asset.id, reusable.footprint);
         footprintResourceByBodyId.set(asset.id, reusable);
       }
@@ -213,14 +190,12 @@ export class WaterGenerationPreparerV1 {
           return resource;
         });
         footprintLeases.push(lease);
-        if (lease.reused) footprintCacheHitCount++;
         footprintByBodyId.set(footprint.bodyId, lease.resource.footprint);
         footprintResourceByBodyId.set(footprint.bodyId, lease.resource);
       }
       if (footprintByBodyId.size !== assetSet.bodies.length) {
         throw new Error("Water generation did not resolve one Footprint for every Body.");
       }
-      let bodySourceCacheHitCount = 0;
       const runtimeBodies = assetSet.bodies.map((asset) => {
         const matches = this._bodySourceCompilers.filter((compiler) => compiler.matches(asset));
         if (matches.length > 1) {
@@ -237,7 +212,6 @@ export class WaterGenerationPreparerV1 {
         const compilerInputKey = `${compiler.id}:${computeWaterBodyAssetContentHash(asset)}`;
         const cached = cachedByCompiler?.get(compilerInputKey);
         if (cached) {
-          bodySourceCacheHitCount++;
           return cached;
         }
         const compiledInputs = compiler.compile(asset, footprint, context);
@@ -258,31 +232,7 @@ export class WaterGenerationPreparerV1 {
         return runtimeAsset;
       });
       const runtimeAssetSet = createWaterGenerationAssetSetV1(runtimeBodies);
-      const diagnostics = Object.freeze({
-        bodyCount: assetSet.bodies.length,
-        footprintCacheHitCount,
-        footprintPrecompileReuseCount,
-        bodySourceCacheHitCount,
-        compiledFootprintBodyCount: bodiesToCompile.length,
-        lakeVisibility: Object.freeze(
-          [...footprintByBodyId.values()]
-            .filter((footprint) => footprint.lakeSurface !== undefined)
-            .sort((left, right) => left.bodyId.localeCompare(right.bodyId))
-            .map((footprint) => {
-              const surface = footprint.lakeSurface!;
-              return Object.freeze({
-                bodyId: footprint.bodyId,
-                basinSupportTexelCount: surface.basinSupportTexelCount,
-                visibleCoverageTexelCount: surface.visibleCoverageTexelCount,
-                visibleCoveragePermille: surface.visibleCoveragePermille,
-                visibleConnectedComponentCount: surface.visibleConnectedComponentCount,
-                largestVisibleConnectedComponentTexelCount: surface.largestVisibleConnectedComponentTexelCount,
-                largestVisibleConnectedComponentPermille: surface.largestVisibleConnectedComponentPermille
-              });
-            })
-        )
-      });
-      return createPreparedResources(context.generationId, footprintLeases, runtimeAssetSet, diagnostics);
+      return createPreparedResources(context.generationId, footprintLeases, runtimeAssetSet);
     } catch (error) {
       releaseAll(footprintLeases);
       throw error;
@@ -312,8 +262,7 @@ export class WaterGenerationPreparerV1 {
         sourceAssetSet: assetSet,
         runtimeAssetSet: active.runtimeAssetSet,
         footprints: Object.freeze([...active.footprints.values()]),
-        precompileIdentities,
-        diagnostics: active.diagnostics
+        precompileIdentities
       });
     } finally {
       active.retire();
@@ -402,13 +351,7 @@ export class WaterGenerationPreparerV1 {
           cachedByCompiler.set(`${matches[0]!.id}:${computeWaterBodyAssetContentHash(expectedAsset)}`, runtimeAsset);
         }
       }
-      const diagnostics = Object.freeze({
-        ...transferred.diagnostics,
-        lakeVisibility: Object.freeze(
-          transferred.diagnostics.lakeVisibility.map((entry) => Object.freeze({ ...entry }))
-        )
-      });
-      return createPreparedResources(generationId, footprintLeases, runtimeAssetSet, diagnostics);
+      return createPreparedResources(generationId, footprintLeases, runtimeAssetSet);
     } catch (error) {
       releaseAll(footprintLeases);
       throw error;
@@ -458,8 +401,7 @@ export class WaterGenerationPreparerV1 {
 function createPreparedResources(
   generationId: number,
   footprintLeases: readonly WaterGenerationResourceLease<CompiledWaterFootprintResourceV1>[],
-  runtimeAssetSet: Readonly<WaterGenerationAssetSetV1>,
-  diagnostics: Readonly<PreparedWaterGenerationDiagnosticsV1>
+  runtimeAssetSet: Readonly<WaterGenerationAssetSetV1>
 ): PreparedWaterGenerationResourcesV1 {
   let active = true;
   return Object.freeze({
@@ -467,7 +409,6 @@ function createPreparedResources(
     get active() {
       return active;
     },
-    diagnostics,
     runtimeAssetSet,
     commit: () => {
       if (!active) throw new Error(`Prepared Water generation ${generationId} is inactive.`);
@@ -480,7 +421,6 @@ function createPreparedResources(
         generationId,
         footprints,
         runtimeAssetSet,
-        diagnostics,
         get retired() {
           return retired;
         },

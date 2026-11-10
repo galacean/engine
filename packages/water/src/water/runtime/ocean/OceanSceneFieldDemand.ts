@@ -25,13 +25,11 @@ export interface OceanSceneFieldDemandInput {
     readonly vertical: number;
   }>;
   readonly currentlyRequired: boolean;
-  /** Debug views execute the detailed closure outside its production distance branch. */
-  readonly forceDetailedClosure?: boolean;
 }
 
 export interface OceanSceneFieldDemandResult {
   readonly required: boolean;
-  readonly reason: "detailed-closure" | "far-only" | "debug-forced";
+  readonly reason: "detailed-closure" | "far-only";
   readonly minimumWetSurfaceDistanceMetres: number;
   readonly conservativeHorizontalDryDistanceMetres: number;
   readonly conservativeVerticalDistanceMetres: number;
@@ -118,8 +116,7 @@ export class OceanSceneFieldDemandResolver {
     cameraY: number,
     cameraZ: number,
     waterLevel: number,
-    currentlyRequired: boolean,
-    forceDetailedClosure = false
+    currentlyRequired: boolean
   ): Readonly<OceanSceneFieldDemandResult> {
     if (
       !Number.isFinite(cameraX) ||
@@ -143,10 +140,10 @@ export class OceanSceneFieldDemandResolver {
       );
     }
     const minimumWetSurfaceDistanceMetres = Math.hypot(horizontalDryDistanceMetres, verticalDistanceMetres);
-    const required = forceDetailedClosure || minimumWetSurfaceDistanceMetres <= transitionThresholdMetres;
+    const required = minimumWetSurfaceDistanceMetres <= transitionThresholdMetres;
     const result = this._result;
     result.required = required;
-    result.reason = forceDetailedClosure ? "debug-forced" : required ? "detailed-closure" : "far-only";
+    result.reason = required ? "detailed-closure" : "far-only";
     result.minimumWetSurfaceDistanceMetres = minimumWetSurfaceDistanceMetres;
     result.conservativeHorizontalDryDistanceMetres = horizontalDryDistanceMetres;
     result.conservativeVerticalDistanceMetres = verticalDistanceMetres;
@@ -166,13 +163,6 @@ export function resolveOceanSceneFieldDemand(
   const { atlas, cameraPosition, maximumDisplacement } = input;
   const resolver = new OceanSceneFieldDemandResolver(atlas, maximumDisplacement);
   return Object.freeze(
-    resolver.resolve(
-      cameraPosition.x,
-      cameraPosition.y,
-      cameraPosition.z,
-      input.waterLevel,
-      input.currentlyRequired,
-      input.forceDetailedClosure
-    )
+    resolver.resolve(cameraPosition.x, cameraPosition.y, cameraPosition.z, input.waterLevel, input.currentlyRequired)
   );
 }

@@ -67,30 +67,8 @@
           * max(material_EnvironmentFallbackIntensity, 0.0);
       }
 
-      // Far diagnostics report the same deep-water/flat-normal approximation
       // used by the far renderer. Missing scene/detail signals are not zero data.
-      vec3 oceanFarFieldDiagnostic(float view, vec3 worldPosition, float coverage, float shoreDistance) {
-        if (view < 2.5) return vec3(0.5, 1.0, 0.5);
-        if (view < 3.5) return oceanDepthDensityColor(1.0);
-        if (view < 4.5) return vec3(clamp(shoreDistance / max(material_NearshoreDecode.y, 0.001) * 0.5 + 0.5, 0.0, 1.0));
-        if (view < 5.5) return oceanUnavailableDiagnosticColor();
-        if (view < 6.5) {
-          vec3 viewDirection = oceanFarFieldSafeNormalize(camera_Position - worldPosition, vec3(0.0, 1.0, 0.0));
-          return sampleOceanFarFieldReflection(
-            waterSurfaceResolveAnalyticReflectionFallbackV2(1.0, material_OceanFarReflectionFilter.x, 1.0),
-            oceanFarReflectionDirection(viewDirection)
-          );
-        }
-        if (view < 8.5) return oceanUnavailableDiagnosticColor();
-        if (view < 9.5) {
-          vec3 lightVector = -scene_SunlightDirection;
-          return waterSurfaceAmbientDiffuseRadiance(vec3(0.0, 1.0, 0.0))
-            + max(scene_SunlightColor.rgb, vec3(0.0))
-              * step(0.00000001, dot(lightVector, lightVector))
-              * max(oceanFarFieldSafeNormalize(lightVector, vec3(0.0, 1.0, 0.0)).y, 0.0);
-        }
-        return vec3(coverage);
-      }
+
 
       vec3 oceanFarFieldRadiance(vec3 worldPosition) {
         const vec3 surfaceNormal = vec3(0.0, 1.0, 0.0);
@@ -148,8 +126,7 @@
         rawContributionPolicy.reflectionSource = 1.0;
         rawContributionPolicy.ssrCompositeIntensity = 0.0;
         rawContributionPolicy.foamIntensity = 0.0;
-        rawContributionPolicy.calibrationMode = 0.0;
-        WaterSurfaceResolvedRawContributionsV2 contributions = waterSurfaceResolveRawContributionsV2(rawRefractionFacts, rawReflectionFacts, rawFoamFacts, rawContributionPolicy);
+        WaterSurfaceResolvedRawContributionsV2 contributions = waterSurfaceResolveRawContributionsV2(rawRefractionFacts, rawReflectionFacts, waterSurfaceResolveRawFoamWeightV2(rawFoamFacts, rawContributionPolicy), rawContributionPolicy);
         WaterSurfaceFinalClosureV2Input closureInput;
         closureInput.additionalTransmissionRadiance = vec3(0.0);
         closureInput.primarySceneColor = vec3(0.0);
@@ -177,7 +154,6 @@
         closureInput.foamWeight = contributions.foamWeight;
         closureInput.baseAlpha = 1.0;
         closureInput.clarity = 1.0;
-        closureInput.calibrationMode = 0.0;
         closureInput.coastalAlpha = 1.0;
         closureInput.coastalAlphaWeight = 1.0;
         closureInput.coverage = waterSurface_coverage;

@@ -1,18 +1,19 @@
-import { Material, Texture2D } from "@galacean/engine-core";
-import { resolveWaterMaterialProfile, validateWaterShaderCapabilities } from "./WaterAuthoring";
+import { Material, type Shader, Texture } from "@galacean/engine-core";
 import { Color } from "@galacean/engine-math";
-import type { WaterLookAuthoringComponents } from "../authoring/surface/WaterLookAuthoringSnapshot";
-import type { WaterResourceAssetDescriptorV1 } from "../authoring/body/WaterBodyAuthoringTypes";
-import type { WaterRuntimeResourceFactory } from "../runtime/resources/WaterRuntimeResourceRegistry";
-import { digestSha256Hex } from "../resources/sha256";
-import { hashStableValue } from "../compiler/shared/determinism";
-import { WaterBodyAssetRegistry } from "../runtime/body/WaterBodyAssetRegistry";
-import { registerLakeWaterLook, LAKE_WATER_LOOK_PRESET_ID } from "../presets/lake/LakeWaterLook";
-import { registerFarmlandsRiverLook, FARMLANDS_RIVER_LOOK_ID } from "../authoring/river/FarmlandsRiverLook";
-import { registerRiverWaterBodyPresets } from "../authoring/river/RiverWaterBodyAuthoring";
 import { registerOceanLook } from "../authoring/ocean/OceanAuthoring";
-import { OCEAN_LOOK_ID } from "../presets/ocean/index";
+import { FARMLANDS_RIVER_LOOK_ID, registerFarmlandsRiverLook } from "../authoring/river/FarmlandsRiverLook";
+import { registerRiverWaterBodyPresets } from "../authoring/river/RiverWaterBodyAuthoring";
+import type { WaterLookAuthoringComponents } from "../authoring/surface/WaterLookAuthoringSnapshot";
 import * as Surface from "../authoring/surface/WaterSurfaceAppearanceTypes";
+import { hashStableValue } from "../compiler/shared/determinism";
+import { LAKE_WATER_LOOK_PRESET_ID, registerLakeWaterLook } from "../presets/lake/LakeWaterLook";
+import { OCEAN_LOOK_ID } from "../presets/ocean/index";
+import { WaterBodyAssetRegistry } from "../runtime/body/WaterBodyAssetRegistry";
+import type { WaterRuntimeResourceFactory } from "../runtime/resources/WaterRuntimeResourceRegistry";
+import { resolveWaterMaterialProfile, validateWaterShaderCapabilities } from "./WaterAuthoring";
+import { builtinWaterTextureFactory } from "./WaterBuiltinAssets";
+import { waterBuiltinMaterialTextures } from "./WaterBuiltinMaterialTextures";
+import { WATER_BUILTIN_SHADER_NAMES } from "./WaterBuiltinShaderNames";
 
 type ParameterType = "Float" | "Integer" | "Boolean" | "Vector2" | "Vector3" | "Vector4" | "Color";
 interface Parameter {
@@ -26,13 +27,15 @@ interface TextureParameter {
 export interface WaterMaterialFile {
   name: string;
   shader: string;
-  shaderRef: { url: string };
   macros: { name: string; value?: string }[];
   shaderData: Record<string, { type: ParameterType | "Texture"; value: unknown }>;
 }
 export type WaterMaterialProfile = "lake" | "river" | "ocean";
 const profiles: WaterMaterialProfile[] = ["lake", "river", "ocean"];
 const definitions = new Map<string, WaterLookAuthoringComponents>();
+// Shader names are not unique; equivalent materials must share the same Shader instance.
+const shaderIdentities = new WeakMap<Shader, number>();
+let nextShaderIdentity = 0;
 
 /** Fixed shader/field structure comes from the existing compiler presets, never an author asset. */
 function defaultLook(profile: WaterMaterialProfile, drops: boolean): WaterLookAuthoringComponents {
@@ -89,34 +92,23 @@ function property(path: string): string {
   return direct[path] ?? `material_Water_${path.replaceAll(".", "_")}`;
 }
 
-/** One native Material owns visual values, texture references and appearance policies. */
+/** One native Material owns visual values and appearance policies; textures are Engine built-ins. */
 export function createWaterMaterialFile(
   look: WaterLookAuthoringComponents,
-  profile: WaterMaterialProfile,
-  shader: { name: string; path: string },
-  texturePaths: ReadonlyMap<string, string>
+  profile: WaterMaterialProfile
 ): WaterMaterialFile {
   const material: WaterMaterialFile = {
     name: look.look.id,
-    shader: shader.name,
-    shaderRef: { url: shader.path },
+    shader: WATER_BUILTIN_SHADER_NAMES[profile],
     macros: [],
     shaderData: {
       material_WaterProfile: { type: "Integer", value: profiles.indexOf(profile) },
       material_WaterRiverDrops: { type: "Boolean", value: !!look.look.riverDrops }
     }
   };
-  materialDefinition(
-    look,
-    (name, type, value) => {
-      material.shaderData[name] = { type, value };
-    },
-    (id) => {
-      const path = texturePaths.get(id);
-      if (!path) throw new Error(`Missing native Water texture '${id}'.`);
-      return { url: path };
-    }
-  );
+  materialDefinition(look, (name, type, value) => {
+    if (type !== "Texture") material.shaderData[name] = { type, value };
+  });
   return material;
 }
 
@@ -131,6 +123,7 @@ function materialDefinition(
     return { $waterTexture: name };
   };
   const visit = (value: any, path: string): any => {
+    if (look.look.id === LAKE_WATER_LOOK_PRESET_ID && path === "look.foam") return value;
     if (value && typeof value === "object" && !Array.isArray(value)) {
       if (typeof value.assetId === "string" && typeof value.contentHash === "string")
         return texture(value.assetId, property(path));
@@ -214,12 +207,10 @@ function definitionForMaterial(material: Material) {
 /** Resolve transient compiler input solely from a native Material. No Look author asset is required. */
 export function resolveWaterMaterialLook(material: Material): WaterLookAuthoringComponents {
   const source = definitionForMaterial(material);
+  const textures = new Map(waterMaterialTextures(material).map((binding) => [binding.slot, binding.descriptor]));
   const readTexture = (value: TextureParameter) => {
-    const texture = material.shaderData.getTexture(value.$waterTexture);
-    if (!(texture instanceof Texture2D) || texture.destroyed)
-      throw new TypeError(`Water Material '${material.name}' is missing Texture2D '${value.$waterTexture}'.`);
-    const identity = textureIdentities.get(texture);
-    if (!identity) throw new Error(`Water texture '${texture.name}' is not prepared.`);
+    const identity = textures.get(value.$waterTexture);
+    if (!identity) throw new Error(`Missing built-in Water texture mapping '${value.$waterTexture}'.`);
     return { assetId: identity.id, contentHash: identity.contentHash };
   };
   const enumValue = (name: string, options: readonly string[]) => {
@@ -328,117 +319,84 @@ export function updateWaterMaterialParameters(
   return result;
 }
 
-const textureIdentities = new WeakMap<Texture2D, WaterResourceAssetDescriptorV1>();
-const textureLoads = new WeakMap<Texture2D, Promise<void>>();
-
-export function waterMaterialTextures(material: Material): Texture2D[] {
-  return [
-    ...new Set(
-      material.shaderData
-        .getProperties()
-        .map((property) => material.shaderData.getTexture(property))
-        .filter((value): value is Texture2D => value instanceof Texture2D)
-    )
-  ];
+/** Built-in bindings, not texture values authored on the Material. No GPU ownership is acquired here. */
+export function waterMaterialTextures(material: Material) {
+  const data = material.shaderData;
+  const drops = data.getInt("material_WaterRiverDrops");
+  const profile = resolveWaterMaterialProfile(data.getInt("material_WaterProfile"), drops);
+  warnIgnoredTextures(material);
+  return waterBuiltinMaterialTextures(profile, !!drops);
 }
 
-/** Hash the bytes addressed by this loaded native resource, including detached withAsset namespaces. */
-export async function prepareWaterMaterial(material: Material, signal?: AbortSignal): Promise<void> {
-  if (!(material instanceof Material) || material.destroyed)
-    throw new TypeError("Water requires a live native Material.");
-  for (const texture of waterMaterialTextures(material)) {
-    signal?.throwIfAborted();
-    let loading = textureLoads.get(texture);
-    if (!loading) {
-      loading = (async () => {
-        const path = texture.engine.resourceManager.getAssetPath(texture.instanceId);
-        if (!path) throw new Error(`Water texture '${texture.name}' has no native source URL.`);
-        const response = await fetch(path);
-        if (!response.ok) throw new Error(`Water texture '${path}': HTTP ${response.status}.`);
-        const contentHash = await digestSha256Hex(await response.arrayBuffer());
-        textureIdentities.set(texture, {
-          schemaVersion: 1,
-          id: `native-water-texture:${contentHash}:${texture.isSRGBColorSpace ? "srgb" : "linear"}`,
-          kind: "texture",
-          contentHash,
-          ownership: "shared",
-          fallbackPolicy: "required"
-        });
-      })();
-      textureLoads.set(texture, loading);
-      void loading.catch(() => textureLoads.delete(texture));
-    }
-    await loading;
-    const identity = textureIdentities.get(texture)!;
-    // Decoding the same image with a different mip policy changes the sampled
-    // resource. Active leases must not reuse the previous native mip chain.
-    textureIdentities.set(texture, {
-      ...identity,
-      id: `native-water-texture:${identity.contentHash}:${hashStableValue([
-        texture.isSRGBColorSpace,
-        texture.wrapModeU,
-        texture.wrapModeV,
-        texture.filterMode,
-        texture.anisoLevel,
-        texture.mipmapCount
-      ])}`
-    });
-    signal?.throwIfAborted();
+const warnedMaterials = new WeakSet<Material>();
+function warnIgnoredTextures(material: Material): void {
+  if (warnedMaterials.has(material)) return;
+  if (
+    material.shaderData.getProperties().some((property) => material.shaderData.getTexture(property) instanceof Texture)
+  ) {
+    warnedMaterials.add(material);
+    console.warn(
+      `Water Material '${material.name}' contains authored textures; only Engine built-in textures are used.`
+    );
   }
+}
+
+/** Validate authoring input; the runtime registry acquires and releases the built-in textures. */
+export async function prepareWaterMaterial(material: Material, signal?: AbortSignal): Promise<void> {
+  signal?.throwIfAborted();
+  definitionForMaterial(material);
+  waterMaterialTextures(material);
 }
 
 export function waterMaterialKey(material?: Material): string | undefined {
   if (!material) return;
+  const shader = material.shader;
+  let shaderIdentity = shaderIdentities.get(shader);
+  if (shaderIdentity === undefined) shaderIdentities.set(shader, (shaderIdentity = ++nextShaderIdentity));
+  const drops = material.shaderData.getInt("material_WaterRiverDrops");
+  const profile = resolveWaterMaterialProfile(material.shaderData.getInt("material_WaterProfile"), drops);
+  const values: unknown[] = [];
+  materialDefinition(defaultLook(profile, !!drops), (name, type) => {
+    const data = material.shaderData;
+    if (type !== "Texture")
+      values.push([
+        name,
+        type === "Float"
+          ? data.getFloat(name)
+          : type === "Integer" || type === "Boolean"
+            ? data.getInt(name)
+            : type === "Color"
+              ? data.getColor(name)
+              : type === "Vector2"
+                ? data.getVector2(name)
+                : type === "Vector3"
+                  ? data.getVector3(name)
+                  : data.getVector4(name)
+      ]);
+  });
   return hashStableValue([
-    material.shader.name,
-    shaderIdentity(material.shader),
-    material.shaderData.getProperties().map((property) => {
-      const texture = material.shaderData.getTexture(property);
-      if (texture instanceof Texture2D)
-        return [
-          property.name,
-          texture.instanceId,
-          texture.wrapModeU,
-          texture.wrapModeV,
-          texture.filterMode,
-          texture.anisoLevel,
-          texture.mipmapCount
-        ];
-      return [
-        property.name,
-        material.shaderData.getFloat(property),
-        material.shaderData.getInt(property),
-        material.shaderData.getVector2(property),
-        material.shaderData.getVector3(property),
-        material.shaderData.getVector4(property),
-        material.shaderData.getColor(property)
-      ];
-    })
+    shaderIdentity,
+    profile,
+    !!drops,
+    values,
+    waterMaterialTextures(material).map(({ slot, descriptor }) => [slot, descriptor.contentHash])
   ]);
 }
 
 export function waterMaterialFactories(material: Material): WaterRuntimeResourceFactory[] {
-  return waterMaterialTextures(material).map((texture) => {
-    const descriptor = textureIdentities.get(texture);
-    if (!descriptor) throw new Error(`Water texture '${texture.name}' is not prepared.`);
-    return {
-      descriptor,
-      load: () => {
-        texture._addReferCount(1);
-        return { texture };
-      },
-      destroy: () => {
-        // Native project textures are borrowed assets, not Water-owned allocations.
-        texture._addReferCount(-1);
-      }
-    };
-  });
+  return [
+    ...new Map(
+      waterMaterialTextures(material).map(({ path, descriptor }) => [
+        descriptor.id,
+        builtinWaterTextureFactory(material.engine, descriptor, path)
+      ])
+    ).values()
+  ];
 }
 
-const shaderIdentities = new WeakMap<object, number>();
-let nextShaderIdentity = 0;
-function shaderIdentity(shader: object): number {
-  let identity = shaderIdentities.get(shader);
-  if (identity === undefined) shaderIdentities.set(shader, (identity = ++nextShaderIdentity));
-  return identity;
+/** Detached .mat defaults for Editor and standalone callers; no shaderRef or texture slots. */
+export function createWaterMaterialDefaults(profile: WaterMaterialProfile, riverDrops = false): WaterMaterialFile {
+  if (!profiles.includes(profile) || (riverDrops && profile !== "river"))
+    throw new TypeError("Unsupported Water material preset.");
+  return createWaterMaterialFile(defaultLook(profile, riverDrops), profile);
 }

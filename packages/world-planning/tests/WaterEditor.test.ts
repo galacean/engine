@@ -1,18 +1,20 @@
-import { createWaterQualitySettings } from "@galacean/engine-water/water/native/WaterQualitySettings";
-import { expect, it } from "vitest";
-import type { MeshRenderer, Texture2D } from "@galacean/engine";
-import { WaterBodyComponent } from "@galacean/engine-water/water/native/index";
-import type { WaterShapeAuthoring } from "@galacean/engine-water/water/native/WaterAuthoring";
-import { encodeWaterTerrainAssets } from "@galacean/engine-water/water/native/WaterTerrainAssets";
+import type { MeshRenderer } from "@galacean/engine";
 import { RuntimeSceneEdit } from "@galacean/engine-runtime-editor/runtime-editor/scene/runtime-scene-edit";
+import { createWaterTuningSession } from "@galacean/engine-water/water/devtools/WaterTuningAdapters";
+import { WaterBodyComponent } from "@galacean/engine-water/water/native/index";
+import { WaterAPI } from "@galacean/engine-water/water/native/WaterAPI";
+import type { WaterShapeAuthoring } from "@galacean/engine-water/water/native/WaterAuthoring";
+import { BUILTIN_WATER_PROJECT_URL } from "@galacean/engine-water/water/native/WaterBuiltinAssets";
+import { waterMaterialTextures } from "@galacean/engine-water/water/native/WaterMaterial";
+import { createWaterQualitySettings } from "@galacean/engine-water/water/native/WaterQualitySettings";
+import { encodeWaterTerrainAssets } from "@galacean/engine-water/water/native/WaterTerrainAssets";
+import { OceanTextureLibrary } from "@galacean/engine-water/water/runtime/ocean/OceanTextureLibrary";
+import { createNativeWaterAgentPackage } from "@galacean/engine-world-planning/spatial/runtime/NativeWaterAgent";
 import {
   editWaterSource,
   writeWaterTerrainAssets
 } from "@galacean/engine-world-planning/spatial/runtime/NativeWaterEditor";
-import { createNativeWaterAgentPackage } from "@galacean/engine-world-planning/spatial/runtime/NativeWaterAgent";
-import { WaterAPI } from "@galacean/engine-water/water/native/WaterAPI";
-import { BUILTIN_WATER_PROJECT_URL } from "@galacean/engine-water/water/native/WaterBuiltinAssets";
-import { OceanTextureLibrary } from "@galacean/engine-water/water/runtime/ocean/OceanTextureLibrary";
+import { expect, it } from "vitest";
 import { lake, terrain } from "../../water/tests/WaterFixtures";
 import { openWaterEditorFixture } from "./WaterEditorFixture";
 
@@ -71,6 +73,17 @@ it("edits a real Source lake through public history and reopens it in a new Engi
     current = await open();
     const created = await current.water.change({ operation: "create", name: "Editable Lake", input });
     expect(created.runtimeError).toBeUndefined();
+    const controls: string[] = [];
+    const stopObserving = current.system.activeRuntimeHost!.loader.observeDevelopmentTargets({
+      attach(target) {
+        controls.push(...createWaterTuningSession(target).controls.map(({ id }) => id));
+      },
+      replace() {},
+      detach() {}
+    });
+    stopObserving();
+    expect(controls.some((id) => id.includes(".appearanceV2."))).toBe(true);
+    expect(controls.some((id) => /debug|metrics|diagnostic/i.test(id))).toBe(false);
     expect(current.system.sample(4, 4)).toMatchObject({ water: true, surfaceElevationMetres: 0.5 });
     current.engine.update();
     expect(current.canvas.getContext("webgl2")!.getError()).toBe(0);
@@ -138,70 +151,17 @@ it("edits a real Source lake through public history and reopens it in a new Engi
     expect(current.system.bodies[0].revision).toBe(firstRevision);
     const independent = current.system.bodies[0],
       shared = current.system.bodies.find((body) => body !== independent)!;
-    const independentMaterial = independent.configuration!.material!,
-      originalTexture = independentMaterial.shaderData.getTexture(
-        "material_Water_appearance_appearance_detailLayers_0_texture"
-      ) as Texture2D;
-    expect(originalTexture).toMatchObject({
-      width: 512,
-      height: 512,
-      isSRGBColorSpace: false,
-      wrapModeU: 1,
-      filterMode: 1
-    });
-    const bed = shared.configuration!.asset,
-      revisionBeforeTexture = current.system.revision;
-    const replace = await current.water.texture(
-      prefabIdentity.id,
-      "Water/Textures/farmlands-wave-large-normal.ktx2",
-      "shared"
+    // Material instances keep separate scalar values and share Engine-owned texture identities.
+    const independentTextures = waterMaterialTextures(independent.configuration!.material!);
+    const sharedTextures = waterMaterialTextures(shared.configuration!.material!);
+    expect(independentTextures.map(({ descriptor }) => descriptor.contentHash)).toEqual(
+      sharedTextures.map(({ descriptor }) => descriptor.contentHash)
     );
-    expect(replace.runtimeError).toBeUndefined();
-    expect(current.system.revision).toBe(revisionBeforeTexture + 1);
-    expect(shared.configuration!.asset).toBe(bed);
-    expect(independent.revision).toBe(firstRevision);
-    expect(originalTexture.destroyed).toBe(false);
-    let boundTexture: Texture2D | undefined;
-    current.system.activeRuntimeHost!.visitBodyRenderers((id, renderer) => {
-      if (id === shared.waterId)
-        boundTexture = renderer
-          .getMaterial()
-          ?.shaderData.getTexture("material_AppearanceV2Detail0Texture") as Texture2D;
-    });
-    expect(boundTexture).toBeDefined();
-    expect(boundTexture).not.toBe(originalTexture);
-    const replacement = new Uint8Array(await (await fetch(
-      new URL("../../water/tests/assets/replacement-normal.ktx2", import.meta.url).href
-    )).arrayBuffer());
     expect(
-      (
-        await current.water.execute((edit) =>
-          edit.run(({ draft, edited }) => {
-            draft.update("Water/Textures/farmlands-wave-large-normal.ktx2", replacement);
-            edited();
-          })
-        )
-      ).runtimeError
-    ).toBeUndefined();
-    current.system.activeRuntimeHost!.visitBodyRenderers((id, renderer) => {
-      if (id === shared.waterId)
-        boundTexture = renderer
-          .getMaterial()
-          ?.shaderData.getTexture("material_AppearanceV2Detail0Texture") as Texture2D;
-    });
-    expect(boundTexture).toMatchObject({ width: 32, height: 32, isSRGBColorSpace: false });
-    const beforeDelete = current.project.publicationRevision;
-    await expect(
-      current.water.execute((edit) =>
-        edit.run(({ draft, edited }) => {
-          draft.delete("Water/Textures/farmlands-wave-large-normal.ktx2");
-          edited();
-        })
+      independent.configuration!.material!.shaderData.getTexture(
+        "material_Water_appearance_appearance_detailLayers_0_texture"
       )
-    ).rejects.toThrow();
-    expect(current.project.publicationRevision).toBe(beforeDelete);
-    expect((await current.water.history("undo")).runtimeError).toBeUndefined();
-    expect((await current.water.history("redo")).runtimeError).toBeUndefined();
+    ).toBeUndefined();
     const beforeAgent = current.system.revision;
     const agent = await current.water.execute((edit) =>
       createNativeWaterAgentPackage(edit, "Main.scene").tools[0].execute(
@@ -501,20 +461,20 @@ it("edits a real Source lake through public history and reopens it in a new Engi
       surfaceElevationMetres: 0.25,
       surfaceModel: "ocean-datum-excludes-gerstner"
     });
-    expect(oceanBody.authoring!.material!.shaderData.getTexture("material_Ocean_smoothWaves")).toMatchObject({
+    expect(oceanBody.authoring!.material!.shaderData.getTexture("material_Ocean_smoothWaves")).toBeUndefined();
+    const oceanTexturesA = await OceanTextureLibrary.create(current.engine),
+      oceanTexturesB = await OceanTextureLibrary.create(current.engine);
+    expect(oceanTexturesA.textures.smoothWaves).toMatchObject({
       filterMode: 2,
       anisoLevel: 4,
       isSRGBColorSpace: false
     });
-    const oceanTexturesA = await OceanTextureLibrary.create(current.engine),
-      oceanTexturesB = await OceanTextureLibrary.create(current.engine);
     expect(oceanTexturesA.textures.smoothWaves).toBe(oceanTexturesB.textures.smoothWaves);
+    const oceanTexture = oceanTexturesA.textures.smoothWaves;
     oceanTexturesA.destroy();
     expect(oceanTexturesB.textures.smoothWaves.destroyed).toBe(false);
     oceanTexturesB.destroy();
-    expect(
-      (oceanBody.authoring!.material!.shaderData.getTexture("material_Ocean_smoothWaves") as Texture2D).destroyed
-    ).toBe(false);
+    expect(oceanTexture.destroyed).toBe(false);
     expect(
       (
         await current.water.change({
@@ -579,7 +539,7 @@ it("edits a real Source lake through public history and reopens it in a new Engi
       reopenedShared.configuration!.material!.shaderData.getTexture(
         "material_Water_appearance_appearance_detailLayers_0_texture"
       )
-    ).toMatchObject({ width: 32, height: 32 });
+    ).toBeUndefined();
     let renderer: MeshRenderer | undefined;
     current.system.activeRuntimeHost!.visitBodyRenderers((id, currentRenderer) => {
       const identity = current!.host.identityForRenderer(currentRenderer);

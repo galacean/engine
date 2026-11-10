@@ -1,23 +1,23 @@
+import type { WaterLookAuthoringDraft, WaterLookAuthoringSnapshot } from "@galacean/engine-water/water/index";
 import {
   resolveWaterContactEffectsLook,
   type WaterContactEffectsLook,
   WaterSurfaceDepthResponseModelV2
 } from "@galacean/engine-water/water/index";
-import type { WaterLookAuthoringSnapshot, WaterLookAuthoringDraft } from "@galacean/engine-water/water/index";
 
 import {
   resolveWaterIndexOfRefraction,
-  resolveWaterRefractionStrength,
   resolveWaterReflectionIntensity,
+  resolveWaterRefractionStrength,
   resolveWaterRoughness
 } from "@galacean/engine-water/water/runtime/index";
 
 export interface RiverDemoLook {
   absorption: [number, number, number];
-  scattering: [number, number, number];
+
   shallowColor: [number, number, number];
   deepColor: [number, number, number];
-  phaseG: number;
+
   indexOfRefraction: number;
   refractionStrength: number;
   roughness: number;
@@ -31,10 +31,10 @@ export interface RiverDemoLook {
 }
 const RIVER_DEMO_LOOK_KEYS = new Set<keyof RiverDemoLook>([
   "absorption",
-  "scattering",
+
   "shallowColor",
   "deepColor",
-  "phaseG",
+
   "indexOfRefraction",
   "refractionStrength",
   "roughness",
@@ -52,19 +52,15 @@ export function readRiverDemoLook(snapshot: Readonly<WaterLookAuthoringSnapshot>
   const { appearance, featureFlags } = snapshot.appearance;
   const { depthResponse } = appearance;
   const profile = snapshot.optics.profile;
-  if (
-    depthResponse.model !== WaterSurfaceDepthResponseModelV2.BeerLambert ||
-    !depthResponse.scatteringTint ||
-    !profile.surfaceScattering
-  ) {
-    throw new Error("River High requires single scattering and a scattering palette.");
+  if (depthResponse.model !== WaterSurfaceDepthResponseModelV2.BeerLambert || !depthResponse.scatteringTint) {
+    throw new Error("River High requires a depth color palette.");
   }
   return validateRiverDemoLook({
     absorption: [...profile.absorptionCoefficient],
-    scattering: [...profile.surfaceScattering.coefficientPerMeter],
+
     shallowColor: depthResponse.scatteringTint.shallowColor.slice(0, 3),
     deepColor: depthResponse.scatteringTint.deepColor.slice(0, 3),
-    phaseG: profile.surfaceScattering.phaseG,
+
     indexOfRefraction: resolveWaterIndexOfRefraction(profile.indexOfRefraction),
     refractionStrength: resolveWaterRefractionStrength(profile.refractionStrength),
     roughness: resolveWaterRoughness(profile.roughness),
@@ -122,10 +118,10 @@ export function validateRiverDemoLook(input: unknown): RiverDemoLook {
   return {
     ...(contactEffects ? { contactEffects } : {}),
     absorption: rgb("absorption", 1000),
-    scattering: rgb("scattering", 1000),
+
     shallowColor: rgb("shallowColor", 1),
     deepColor: rgb("deepColor", 1),
-    phaseG: finite("phaseG", -0.95, 0.95),
+
     indexOfRefraction: finite("indexOfRefraction", 1, 4),
     refractionStrength: finite("refractionStrength", 0, 4),
     roughness: finite("roughness", 0, 1),
@@ -185,7 +181,7 @@ export function applyRiverDemoLook(
       profile: {
         ...current.optics.profile,
         absorptionCoefficient: look.absorption,
-        surfaceScattering: { coefficientPerMeter: look.scattering, phaseG: look.phaseG },
+
         indexOfRefraction: look.indexOfRefraction,
         fresnelF0: undefined,
         refractionStrength: look.refractionStrength,

@@ -1,13 +1,12 @@
 import type {
+  WaterLookAuthoringComponents,
+  WaterLookAuthoringSnapshot
+} from "../authoring/surface/WaterLookAuthoringSnapshot";
+import type {
   WaterDevelopmentObserver,
   WaterDevelopmentTarget,
   WaterDevelopmentTargetSource
 } from "../runtime/body/WaterBodyLoader";
-import { createWaterResourceMemoryMetrics } from "../runtime/resources/WaterResourceMetrics";
-import type {
-  WaterLookAuthoringSnapshot,
-  WaterLookAuthoringComponents
-} from "../authoring/surface/WaterLookAuthoringSnapshot";
 
 export interface WaterRuntimeState {
   readonly requestedEnabled: boolean;
@@ -25,28 +24,12 @@ export interface WaterRuntimeControl {
   observeRuntimeState(observer: (state: Readonly<WaterRuntimeState>) => void): () => void;
 }
 
-const EMPTY_METRICS = Object.freeze({
-  activeBodyCount: 0,
-  cachedResourceCount: 0,
-  compileCount: 0,
-  cacheHitCount: 0,
-  cacheMissCount: 0,
-  failedActivationCount: 0,
-  cacheEvictionCount: 0,
-  compileCacheEntryLimit: 0,
-  compileCacheBudgetBytes: 0,
-  cachedResourceMemory: createWaterResourceMemoryMetrics()
-});
-
 /** Stable discovery identity across complete Host destruction. Holds no retired handles. */
 export class WaterDevelopmentRelay implements WaterDevelopmentTargetSource, WaterDevelopmentObserver {
   private source?: WaterDevelopmentTargetSource;
   private unsubscribe?: () => void;
   private readonly targets = new Set<WaterDevelopmentTarget>();
   private readonly observers = new Set<WaterDevelopmentObserver>();
-  get metrics() {
-    return this.source?.metrics ?? EMPTY_METRICS;
-  }
   bind(source?: WaterDevelopmentTargetSource): void {
     if (source === this.source) return;
     this.unsubscribe?.();
@@ -110,10 +93,6 @@ interface WaterRuntimeDraft {
 }
 const BACKEND_PARAMETERS = [
   ["tuning", "setTuning"],
-  ["debugMode", "setDebugMode"],
-  ["debugView", "setDebugView"],
-  ["surfaceDebugMode", "setSurfaceDebugMode"],
-  ["lodDebugEnabled", "setLodDebug"],
   ["surfaceTimeOverride", "setSurfaceTimeOverride"]
 ] as const;
 

@@ -6,10 +6,8 @@ import {
   ScreenSpaceReflectionReceiverMode,
   type ScreenSpaceReflection,
   type ScreenSpaceReflectionConsumerLease,
-  type ScreenSpaceReflectionConsumerRequest,
-  type ScreenSpaceReflectionResolvedSettings
+  type ScreenSpaceReflectionConsumerRequest
 } from "@galacean/engine-core";
-import type { WaterSurfaceFieldGraphReadback } from "../surface/WaterSurfaceFieldResolver";
 import {
   acquireCameraDepthTexturePrePass,
   type CameraDepthTexturePrePassLease
@@ -29,13 +27,6 @@ export interface WaterCameraFeatureRequest {
    * complete normalized Water request and forwards it unchanged to the Camera.
    */
   readonly screenSpaceReflection?: Readonly<ScreenSpaceReflectionConsumerRequest>;
-  /** Optional V2 diagnostic graph; the broker reads it but never owns field providers. */
-  readonly fieldGraph?: WaterSurfaceFieldGraphReadback;
-}
-
-export interface WaterCameraSurfaceFieldGraphReadback {
-  readonly cameraConsumerId: string;
-  readonly graph: WaterSurfaceFieldGraphReadback;
 }
 
 export interface WaterCameraFeatureTarget {
@@ -50,57 +41,12 @@ export interface WaterCameraFeatureTarget {
   readonly screenSpaceReflection?: Pick<
     ScreenSpaceReflection,
     "effective" | "supported" | "unsupportedReason" | "acquireConsumer"
-  > & {
-    readonly metrics: Pick<
-      ScreenSpaceReflection["metrics"],
-      "activeConsumerLeaseCount" | "resolvedSettings" | "transparentResolvedSettings"
-    >;
-  };
+  > & {};
 }
 
 type MutableScreenSpaceReflectionConsumerRequest = {
   -readonly [Property in keyof ScreenSpaceReflectionConsumerRequest]: ScreenSpaceReflectionConsumerRequest[Property];
 };
-
-export interface CameraWaterFeatureMetrics {
-  readonly activeConsumerCount: number;
-  /** Stable, sorted ids of all requests contributing to Camera features. */
-  readonly activeConsumerIds: readonly string[];
-  readonly surfaceFieldGraphs: readonly WaterCameraSurfaceFieldGraphReadback[];
-  readonly depthTextureRequested: boolean;
-  readonly opaqueTextureRequested: boolean;
-  /** Water-requested incremental copy counts; retained aliases for existing callers. */
-  readonly depthCopyPassCount: 0 | 1;
-  readonly colorCopyPassCount: 0 | 1;
-  readonly incrementalDepthCopyPassCount: 0 | 1;
-  readonly incrementalColorCopyPassCount: 0 | 1;
-  /** Actual camera totals after merging the original camera state with water requests. */
-  readonly totalDepthCopyPassCount: 0 | 1;
-  readonly totalColorCopyPassCount: 0 | 1;
-  /** Actual depth publication path observed on the most recently rendered Camera frame. */
-  readonly depthTextureSource: "none" | "prepass" | "forward-resolve";
-  readonly depthPrepassPassCount: 0 | 1;
-  readonly forwardDepthResolvePassCount: 0 | 1;
-  readonly screenSpaceReflectionRequested: boolean;
-  /** The broker owns either zero or one engine consumer lease, independent of Water consumer count. */
-  readonly screenSpaceReflectionLeaseCount: 0 | 1;
-  readonly screenSpaceReflectionEffective: boolean;
-  readonly screenSpaceReflectionSupported: boolean;
-  readonly screenSpaceReflectionUnsupportedReason: string | null;
-  /** Consumer whose complete SSR request won Water-local whole-request arbitration. */
-  readonly selectedScreenSpaceReflectionConsumerId?: string;
-  /** Exact selected Water request, absent when no visible Water consumer requests SSR. */
-  readonly screenSpaceReflectionConsumerRequest?: Readonly<ScreenSpaceReflectionConsumerRequest>;
-  /** Trace settings Core resolves for the transparent Water receiver phase. */
-  readonly screenSpaceReflectionResolvedSettings?: Readonly<ScreenSpaceReflectionResolvedSettings>;
-  /** Includes consumers outside Water and is useful for sole/shared ownership acceptance tests. */
-  readonly totalScreenSpaceReflectionConsumerLeaseCount: number;
-  readonly opaqueTextureDownsampling: Downsampling;
-  /** Water-attributed incremental estimate; retained alias for existing callers. */
-  readonly estimatedRenderTargetBytes: number;
-  readonly incrementalEstimatedRenderTargetBytes: number;
-  readonly totalEstimatedRenderTargetBytes: number;
-}
 
 export interface WaterCameraFeatureRequestLease {
   readonly consumerId: string;
@@ -260,13 +206,7 @@ export class CameraWaterFeatureBroker {
   private _depthTextureLease?: CameraDepthTexturePrePassLease;
   private _screenSpaceReflectionLease?: ScreenSpaceReflectionConsumerLease;
   private _screenSpaceReflectionRequest?: Readonly<ScreenSpaceReflectionConsumerRequest>;
-  private _selectedScreenSpaceReflectionConsumerId?: string;
-  private _selectedScreenSpaceReflectionRequest?: Readonly<ScreenSpaceReflectionConsumerRequest>;
-  private _screenSpaceReflectionAcquireFailure: string | null = null;
-  private _viewportWidth = 0;
-  private _viewportHeight = 0;
   private _nextLeaseId = 1;
-  private _metrics: CameraWaterFeatureMetrics;
   private _destroyed = false;
 
   constructor(private readonly _camera: WaterCameraFeatureTarget) {
@@ -274,36 +214,6 @@ export class CameraWaterFeatureBroker {
     this._originalOpaqueTextureEnabled = _camera.opaqueTextureEnabled;
     this._originalOpaqueTextureDownsampling = _camera.opaqueTextureDownsampling;
     this._originalForwardDepthResolveEnabled = _camera._enableForwardDepthResolve;
-    this._metrics = this._createMetrics(false, false, false, [], [], this._originalOpaqueTextureDownsampling);
-  }
-
-  get metrics(): CameraWaterFeatureMetrics {
-    const screenSpaceReflection = this._camera.screenSpaceReflection;
-    const depthTextureSource = this._resolveDepthTextureSource();
-    return Object.freeze({
-      ...this._metrics,
-      depthTextureSource,
-      depthPrepassPassCount: depthTextureSource === "prepass" ? 1 : 0,
-      forwardDepthResolvePassCount: depthTextureSource === "forward-resolve" ? 1 : 0,
-      screenSpaceReflectionLeaseCount: this._screenSpaceReflectionLease?.active === true ? 1 : 0,
-      screenSpaceReflectionEffective: screenSpaceReflection?.effective === true,
-      screenSpaceReflectionSupported: screenSpaceReflection?.supported === true,
-      screenSpaceReflectionUnsupportedReason:
-        this._screenSpaceReflectionAcquireFailure ??
-        (screenSpaceReflection
-          ? screenSpaceReflection.unsupportedReason
-          : "camera-screen-space-reflection-unavailable"),
-      selectedScreenSpaceReflectionConsumerId: this._selectedScreenSpaceReflectionConsumerId,
-      screenSpaceReflectionConsumerRequest: this._selectedScreenSpaceReflectionRequest,
-      screenSpaceReflectionResolvedSettings: screenSpaceReflection?.metrics.transparentResolvedSettings,
-      totalScreenSpaceReflectionConsumerLeaseCount: screenSpaceReflection?.metrics.activeConsumerLeaseCount ?? 0
-    });
-  }
-
-  setViewportSize(width: number, height: number): void {
-    this._viewportWidth = Math.max(0, Math.floor(width));
-    this._viewportHeight = Math.max(0, Math.floor(height));
-    this._apply();
   }
 
   setRequest(consumerId: string, request?: WaterCameraFeatureRequest): void {
@@ -345,11 +255,8 @@ export class CameraWaterFeatureBroker {
     this._destroyed = true;
     this._requests.clear();
     this._leaseRequests.clear();
-    this._selectedScreenSpaceReflectionConsumerId = undefined;
-    this._selectedScreenSpaceReflectionRequest = undefined;
     this._releaseScreenSpaceReflectionOwnership();
     this._restoreOriginalState();
-    this._metrics = this._createMetrics(false, false, false, [], [], this._originalOpaqueTextureDownsampling);
   }
 
   private _apply(): void {
@@ -393,25 +300,7 @@ export class CameraWaterFeatureBroker {
     screenSpaceReflectionCandidates.sort(compareScreenSpaceReflectionCandidates);
     const selectedScreenSpaceReflection = screenSpaceReflectionCandidates[0];
     const frozenScreenSpaceReflectionRequest = selectedScreenSpaceReflection?.request;
-    this._selectedScreenSpaceReflectionConsumerId = selectedScreenSpaceReflection?.consumerId;
-    this._selectedScreenSpaceReflectionRequest = frozenScreenSpaceReflectionRequest;
     this._applyScreenSpaceReflectionOwnership(frozenScreenSpaceReflectionRequest);
-    this._metrics = this._createMetrics(
-      depthRequested,
-      opaqueRequested,
-      frozenScreenSpaceReflectionRequest !== undefined,
-      requests.map(({ consumerId }) => consumerId).sort(),
-      requests
-        .flatMap(({ consumerId, request }) =>
-          request.fieldGraph ? [Object.freeze({ cameraConsumerId: consumerId, graph: request.fieldGraph })] : []
-        )
-        .sort((left, right) =>
-          left.cameraConsumerId === right.cameraConsumerId
-            ? left.graph.sourceId.localeCompare(right.graph.sourceId)
-            : left.cameraConsumerId.localeCompare(right.cameraConsumerId)
-        ),
-      opaqueRequested ? selectedDownsampling : this._originalOpaqueTextureDownsampling
-    );
   }
 
   private _validateRequest(request: WaterCameraFeatureRequest): void {
@@ -445,70 +334,6 @@ export class CameraWaterFeatureBroker {
         throw new RangeError(`Water Camera SSR ${name} is outside its supported range.`);
       }
     }
-  }
-
-  private _createMetrics(
-    depthRequested: boolean,
-    opaqueRequested: boolean,
-    screenSpaceReflectionRequested: boolean,
-    activeConsumerIds: readonly string[],
-    surfaceFieldGraphs: readonly WaterCameraSurfaceFieldGraphReadback[],
-    downsampling: Downsampling
-  ): CameraWaterFeatureMetrics {
-    const divisor = downsampling === Downsampling.None ? 1 : downsampling === Downsampling.TwoX ? 2 : 4;
-    const pixelCount = Math.ceil(this._viewportWidth / divisor) * Math.ceil(this._viewportHeight / divisor);
-    const depthBytes = depthRequested ? this._viewportWidth * this._viewportHeight * 4 : 0;
-    const colorBytes = opaqueRequested ? pixelCount * 4 : 0;
-    const totalDepthEnabled = this._camera.depthTextureMode !== DepthTextureMode.None;
-    const totalColorEnabled = this._camera.opaqueTextureEnabled;
-    const totalDownsampling = this._camera.opaqueTextureDownsampling;
-    const totalDivisor = totalDownsampling === Downsampling.None ? 1 : totalDownsampling === Downsampling.TwoX ? 2 : 4;
-    const totalColorPixelCount =
-      Math.ceil(this._viewportWidth / totalDivisor) * Math.ceil(this._viewportHeight / totalDivisor);
-    const incrementalEstimatedRenderTargetBytes = depthBytes + colorBytes;
-    const totalEstimatedRenderTargetBytes =
-      (totalDepthEnabled ? this._viewportWidth * this._viewportHeight * 4 : 0) +
-      (totalColorEnabled ? totalColorPixelCount * 4 : 0);
-    const depthTextureSource = this._resolveDepthTextureSource();
-    return Object.freeze({
-      activeConsumerCount: activeConsumerIds.length,
-      activeConsumerIds: Object.freeze([...activeConsumerIds]),
-      surfaceFieldGraphs: Object.freeze([...surfaceFieldGraphs]),
-      depthTextureRequested: depthRequested,
-      opaqueTextureRequested: opaqueRequested,
-      depthCopyPassCount: depthRequested ? 1 : 0,
-      colorCopyPassCount: opaqueRequested ? 1 : 0,
-      incrementalDepthCopyPassCount: depthRequested ? 1 : 0,
-      incrementalColorCopyPassCount: opaqueRequested ? 1 : 0,
-      totalDepthCopyPassCount: totalDepthEnabled ? 1 : 0,
-      totalColorCopyPassCount: totalColorEnabled ? 1 : 0,
-      depthTextureSource,
-      depthPrepassPassCount: depthTextureSource === "prepass" ? 1 : 0,
-      forwardDepthResolvePassCount: depthTextureSource === "forward-resolve" ? 1 : 0,
-      screenSpaceReflectionRequested,
-      screenSpaceReflectionLeaseCount: this._screenSpaceReflectionLease?.active === true ? 1 : 0,
-      screenSpaceReflectionEffective: this._camera.screenSpaceReflection?.effective === true,
-      screenSpaceReflectionSupported: this._camera.screenSpaceReflection?.supported === true,
-      screenSpaceReflectionUnsupportedReason:
-        this._screenSpaceReflectionAcquireFailure ??
-        (this._camera.screenSpaceReflection
-          ? this._camera.screenSpaceReflection.unsupportedReason
-          : "camera-screen-space-reflection-unavailable"),
-      screenSpaceReflectionConsumerRequest: this._screenSpaceReflectionRequest,
-      screenSpaceReflectionResolvedSettings: this._camera.screenSpaceReflection?.metrics.transparentResolvedSettings,
-      totalScreenSpaceReflectionConsumerLeaseCount:
-        this._camera.screenSpaceReflection?.metrics.activeConsumerLeaseCount ?? 0,
-      opaqueTextureDownsampling: downsampling,
-      estimatedRenderTargetBytes: incrementalEstimatedRenderTargetBytes,
-      incrementalEstimatedRenderTargetBytes,
-      totalEstimatedRenderTargetBytes
-    });
-  }
-
-  private _resolveDepthTextureSource(): "none" | "prepass" | "forward-resolve" {
-    return (
-      this._camera.depthTextureSource ?? (this._camera.depthTextureMode === DepthTextureMode.None ? "none" : "prepass")
-    );
   }
 
   private _restoreOriginalState(): void {
@@ -548,32 +373,26 @@ export class CameraWaterFeatureBroker {
     }
     const target = this._camera.screenSpaceReflection;
     if (!target) {
-      this._screenSpaceReflectionAcquireFailure = "camera-screen-space-reflection-unavailable";
       return;
     }
     try {
       if (this._screenSpaceReflectionLease?.active) {
         if (this._screenSpaceReflectionLease.update(request)) {
           this._screenSpaceReflectionRequest = request;
-          this._screenSpaceReflectionAcquireFailure = null;
           return;
         }
       }
       const lease = target.acquireConsumer("water-pcg", request);
       if (!lease.active) {
         lease.release();
-        this._screenSpaceReflectionAcquireFailure = "camera-screen-space-reflection-lease-inactive";
         return;
       }
       const previousLease = this._screenSpaceReflectionLease;
       this._screenSpaceReflectionLease = lease;
       this._screenSpaceReflectionRequest = request;
-      this._screenSpaceReflectionAcquireFailure = null;
       previousLease?.release();
     } catch {
-      this._screenSpaceReflectionAcquireFailure = this._screenSpaceReflectionLease?.active
-        ? "camera-screen-space-reflection-update-failed"
-        : "camera-screen-space-reflection-acquire-failed";
+      // A camera may reject SSR ownership; environment reflection remains available.
     }
   }
 
@@ -581,6 +400,5 @@ export class CameraWaterFeatureBroker {
     this._screenSpaceReflectionLease?.release();
     this._screenSpaceReflectionLease = undefined;
     this._screenSpaceReflectionRequest = undefined;
-    this._screenSpaceReflectionAcquireFailure = null;
   }
 }

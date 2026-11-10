@@ -1,15 +1,15 @@
-import { createWaterQualitySettings } from "@galacean/engine-water/water/native/WaterQualitySettings";
-import { expect, it } from "vitest";
 import { MeshRenderer } from "@galacean/engine";
 import { WaterBodyComponent } from "@galacean/engine-water/water/native/index";
 import { BUILTIN_WATER_PROJECT_URL } from "@galacean/engine-water/water/native/WaterBuiltinAssets";
-import { waterMaterialTextures, resolveWaterMaterialLook } from "@galacean/engine-water/water/native/WaterMaterial";
+import { resolveWaterMaterialLook, waterMaterialTextures } from "@galacean/engine-water/water/native/WaterMaterial";
+import { createWaterQualitySettings } from "@galacean/engine-water/water/native/WaterQualitySettings";
 import {
   editWaterSource,
   writeWaterTerrainAssets
 } from "@galacean/engine-world-planning/spatial/runtime/NativeWaterEditor";
-import { openWaterEditorFixture } from "./WaterEditorFixture";
+import { expect, it } from "vitest";
 import { ledgeTerrain } from "../../water/tests/WaterFixtures";
+import { openWaterEditorFixture } from "./WaterEditorFixture";
 
 it("loads drop appearance on demand and preserves its native Material through history and reopening", async () => {
   const manifest = await (await fetch(BUILTIN_WATER_PROJECT_URL)).json(),
@@ -43,7 +43,9 @@ it("loads drop appearance on demand and preserves its native Material through hi
     });
     expect(created.runtimeError).toBeUndefined();
     const body = () => current.editor.projection.component(created.value) as WaterBodyComponent;
-    expect(waterMaterialTextures(body().authoring!.material!)).toHaveLength(2);
+    const bindings = waterMaterialTextures(body().authoring!.material!);
+    expect(bindings).toHaveLength(3);
+    expect(new Set(bindings.map(({ descriptor }) => descriptor.contentHash)).size).toBe(2);
     const drop = await current.water.execute(async (edit) => {
       await writeWaterTerrainAssets(edit, "Water/Terrain/ledge.json", ledgeTerrain);
       await editWaterSource(edit, manifest.scene, {

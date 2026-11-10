@@ -240,11 +240,6 @@
       "type": "Scene"
     },
     {
-      "virtualPath": "Water/Shaders/lake.shader",
-      "path": "Water/Shaders/lake.shader",
-      "type": "Shader"
-    },
-    {
       "virtualPath": "Water/Materials/lake.mat",
       "path": "Water/Materials/lake.mat",
       "type": "Material"
@@ -255,19 +250,9 @@
       "type": "Material"
     },
     {
-      "virtualPath": "Water/Shaders/river.shader",
-      "path": "Water/Shaders/river.shader",
-      "type": "Shader"
-    },
-    {
       "virtualPath": "Water/Materials/river-drops.mat",
       "path": "Water/Materials/river-drops.mat",
       "type": "Material"
-    },
-    {
-      "virtualPath": "Water/Shaders/ocean.shader",
-      "path": "Water/Shaders/ocean.shader",
-      "type": "Shader"
     },
     {
       "virtualPath": "Water/Materials/ocean.mat",

@@ -8,6 +8,7 @@ import {
 } from "@galacean/engine-core";
 
 import { loadBuiltinWaterTexture } from "../../native/WaterBuiltinAssets";
+import { WATER_BUILTIN_MATERIAL_TEXTURE_PATHS } from "../../native/WaterBuiltinMaterialTextures";
 
 export interface OceanTextures {
   readonly smoothWaves: Texture2D;
@@ -132,12 +133,13 @@ export class OceanTextureLibrary {
   }
 
   static async create(engine: Engine): Promise<OceanTextureLibrary> {
+    const paths = WATER_BUILTIN_MATERIAL_TEXTURE_PATHS.ocean;
     const requests = [
-      loadTexture(engine, "Water/Textures/ocean-smoothWaves.ktx2", "Ocean SmoothWaves", false, 4),
-      loadTexture(engine, "Water/Textures/ocean-roughWaves.ktx2", "Ocean RoughWaves", false, 4),
-      loadTexture(engine, "Water/Textures/ocean-caustics.ktx2", "Ocean Caustics_1", true, 2),
-      loadTexture(engine, "Water/Textures/ocean-foam.ktx2", "Ocean Foam1", true, 2),
-      loadTexture(engine, "Water/Textures/ocean-intersectionNoise.ktx2", "Ocean IntersectionNoise", true, 2)
+      loadTexture(engine, paths.material_Ocean_smoothWaves, "Ocean SmoothWaves", false, 4),
+      loadTexture(engine, paths.material_Ocean_roughWaves, "Ocean RoughWaves", false, 4),
+      loadTexture(engine, paths.material_Ocean_caustics, "Ocean Caustics_1", true, 2),
+      loadTexture(engine, paths.material_Ocean_foam, "Ocean Foam1", true, 2),
+      loadTexture(engine, paths.material_Ocean_intersectionNoise, "Ocean IntersectionNoise", true, 2)
     ] as const;
     const settled = await Promise.allSettled(requests);
     const resources = settled.flatMap((result) => (result.status === "fulfilled" ? [result.value] : []));

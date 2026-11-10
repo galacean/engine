@@ -3,7 +3,6 @@ import type { WaterSurfaceAppearanceAsset } from "../surface/WaterSurfaceAppeara
 import type { WaterSurfaceFieldDependencyAssetV2 } from "../surface/WaterSurfaceFieldTypes";
 import { WaterSurfaceDepthSource } from "../surface/enums/WaterSurfaceDepthSource";
 import type { WaterQualityTier } from "../wave/enums/WaterQualityTier";
-import type { WaterSurfaceScattering } from "../optics/WaterSurfaceScattering";
 
 export enum WaterBodySourceSchemaVersion {
   V1 = 1
@@ -201,7 +200,6 @@ export interface WaterAppearancePresetV1 {
 export type WaterReflectionMode = "none" | "probe" | "ssr";
 
 export interface WaterOpticalProfileV1 {
-  readonly surfaceScattering?: WaterSurfaceScattering;
   readonly absorptionCoefficient: readonly [number, number, number];
   readonly scatteringColor: readonly [number, number, number];
   readonly scatteringCoefficient: number;

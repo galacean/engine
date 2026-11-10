@@ -137,7 +137,7 @@ const SIMPLIFIED_CHINESE_TERMS: Readonly<Record<string, string>> = Object.freeze
   "Depth tint distance": "深度着色距离",
   "Depth tint exponent": "深度着色指数",
   "Depth response A/B": "深度响应对比",
-  "Depth response debug": "深度响应调试",
+
   "Dual terms": "双深度项",
   "Scene ray only": "仅视线深度",
   "Surface normal only": "仅水面法线深度",
@@ -154,7 +154,7 @@ const SIMPLIFIED_CHINESE_TERMS: Readonly<Record<string, string>> = Object.freeze
   "Foam lacunarity": "泡沫间隙度",
   "Foam refraction suppression": "泡沫折射抑制",
   "Foam roughness": "泡沫粗糙度",
-  "Debug view": "调试视图",
+
   "Use scene time": "使用场景时间",
   "Surface time": "水面时间",
   "Detail normal": "细节法线",
@@ -260,7 +260,7 @@ const SIMPLIFIED_CHINESE_TERMS: Readonly<Record<string, string>> = Object.freeze
   "Direct translucency": "直接光透光强度",
   "Translucency exponent": "透光指数",
   "Translucency curvature": "透光曲率遮罩",
-  "LOD debug": "细节层级调试",
+
   "Far detail filter": "远海细节过滤",
   "Far detail fade start": "远海细节衰减起点",
   "Far detail fade end": "远海细节衰减终点",

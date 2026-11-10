@@ -1,12 +1,12 @@
-import { WaterContourPreparation } from "./WaterContourPreparation";
 import { float32GridCell, interpolateGridTriangle } from "@galacean/engine-terrain/geometry/GridInterpolation";
+import { sampleWaterConnection, type WaterConnectionPort } from "../../authoring/connections/WaterConnection";
 import {
   resolveWaterTerrainGrid,
-  WATER_TERRAIN_OWNER_EPSILON,
   sampleWaterTerrainHeight,
+  WATER_TERRAIN_OWNER_EPSILON,
   type WaterTerrainSnapshot
 } from "../../authoring/terrain/WaterTerrainSnapshot";
-import { sampleWaterConnection, type WaterConnectionPort } from "../../authoring/connections/WaterConnection";
+import { WaterContourPreparation } from "./WaterContourPreparation";
 import type { WaterNearShoreSample } from "./WaterNearShoreQuery";
 
 export interface NearShoreBounds {
@@ -117,12 +117,6 @@ export class WaterWetNearShoreSearch {
   private tree?: Node;
   private ready = false;
   private preparation?: Generator<void>;
-  private segments = 0;
-  private samples = 0;
-  private visits = 0;
-  private preparationSteps = 0;
-  private querySamples = 0;
-  private cellCount = 0;
   private ownerBounds?: readonly NearShoreBounds[];
   constructor(
     private readonly root: NearShoreBounds,
@@ -143,23 +137,10 @@ export class WaterWetNearShoreSearch {
       prepareGeometry?: (bounds: NearShoreBounds) => Generator<void>;
     }
   ) {}
-  diagnostics() {
-    return {
-      builds: this.ready ? 1 : 0,
-      cellCount: this.cellCount,
-      segmentCount: this.segments,
-      nodeCount: Math.max(0, 2 * this.segments - 1),
-      preparationSamples: this.samples,
-      preparationSteps: this.preparationSteps,
-      querySamples: this.querySamples,
-      queryVisits: this.visits
-    };
-  }
   *prepare(): Generator<void> {
     if (this.ready) return;
     this.preparation ??= this.build();
     while (!this.ready) {
-      this.preparationSteps++;
       const next = this.preparation!.next();
       if (next.done) {
         this.ready = true;
@@ -222,7 +203,6 @@ export class WaterWetNearShoreSearch {
             }
           for (const bounds of parts)
             if (bounds.minX < bounds.maxX && bounds.minZ < bounds.maxZ) {
-              this.cellCount++;
               yield { bounds, grid, cell };
             }
         }
@@ -255,14 +235,12 @@ export class WaterWetNearShoreSearch {
     return false;
   }
   private height(p: Point): number | undefined {
-    this.samples++;
     return this.wetHeight(p[0], p[1]);
   }
   private *build(): Generator<void> {
     let nodes: Node[] = [];
     const heights = new Map<number, Map<number, number | undefined>>();
     const sampleHeight = (x: number, z: number) => {
-      this.samples++;
       const datum = this.geometryOptions?.contourDatum;
       if (datum !== undefined && this.terrain) {
         const bed = sampleWaterTerrainHeight(this.terrain, x, z);
@@ -299,7 +277,6 @@ export class WaterWetNearShoreSearch {
         maxZ: Math.max(a[1], b[1])
       };
       nodes.push({ ...segment, segment });
-      this.segments++;
     };
     const crossing = function* (this: WaterWetNearShoreSearch, wet: Point, dry: Point): Generator<void, Point> {
       const cached = cachedCut(wet, dry);
@@ -483,7 +460,6 @@ export class WaterWetNearShoreSearch {
       // geometry before becoming query support. No dry witness is published.
       const candidates = nodes;
       nodes = [];
-      this.segments = 0;
       for (const candidate of candidates) {
         const segment = candidate.segment!;
         for (const part of this.geometryOptions.clipContour(segment.a, segment.b)) {
@@ -536,7 +512,6 @@ export class WaterWetNearShoreSearch {
   *search(x: number, z: number, out: WaterNearShoreSample): Generator<void> {
     yield* this.prepare();
     const visit = function* (this: WaterWetNearShoreSearch, node: Node): Generator<void> {
-      this.visits++;
       yield;
       if (nearShoreBoundsDistanceSquared(node, x, z) > out.distanceM) return;
       if (node.segment) {
@@ -547,7 +522,6 @@ export class WaterWetNearShoreSearch {
         let wx = a[0] + t * dx,
           wz = a[1] + t * dz;
         if ((wx - x) ** 2 + (wz - z) ** 2 > out.distanceM) return;
-        this.querySamples++;
         let height = this.wetHeight(wx, wz);
         yield;
         if (height === undefined) {
@@ -557,14 +531,12 @@ export class WaterWetNearShoreSearch {
             hi = 1;
           for (let i = 0; i < 20; i++) {
             const m = (lo + hi) / 2;
-            this.querySamples++;
             if (this.wetHeight(wx + (wet[0] - wx) * m, wz + (wet[1] - wz) * m) === undefined) lo = m;
             else hi = m;
             yield;
           }
           wx += (wet[0] - wx) * hi;
           wz += (wet[1] - wz) * hi;
-          this.querySamples++;
           height = this.wetHeight(wx, wz);
           yield;
         }

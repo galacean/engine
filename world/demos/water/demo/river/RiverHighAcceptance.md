@@ -41,12 +41,11 @@
 | 编号 | 实现 | 关键文件 |
 | --- | --- | --- |
 | F1 | 真实床深、场景 eye depth 和折射后视线光程分离；选样后重建光程 | `shaders/river/RiverRefraction.glsl`、`ForwardPass.glsl`、`demo/river/RiverDemoSceneSource.ts` |
-| F2 | 可选 `surfaceScattering` RGB 每米系数、PhaseG；CPU/GPU 同一物理表达式 | `authoring/optics/WaterSurfaceScattering.ts`、`runtime/optics/WaterSurfaceOpticsMath.ts`、`shaders/library/surface/WaterSurfaceSingleScattering.glsl` |
 | F3 | 独立新版 Look，PhysicalVolume + 散射色盘；背景透射一次、覆盖率合成一次 | `authoring/river/RiverHighLook.ts`、`shaders/library/surface/WaterSurfaceClosure.glsl` |
 | F4 | IOR 折射位移、薄水/岸边抑制、纹素边界渐退、颜色/深度一致的有效权重 | `shaders/river/RiverRefraction.glsl`、`ForwardPass.glsl` |
 | F5 | 共用六面天空、SSR→环境→解析；主方向光阴影只压低直接贡献 | `demo/river/RiverDemoEnvironment.ts`、`runtime/river/RiverWaterBackend.ts`、`runtime/surface/WaterSurfaceRendererContract.ts` |
 | F6 | Forward/SSR 共用几何、局部流向、纹理法线与时间；岸边/坡面/静态接触泡沫 | `shaders/river/ScreenSpaceReflectionSurface.glsl`、`ForwardPass.glsl`、`demo/river/RiverDemoSceneSource.ts` |
-| F7 | Look 事务更新、完整 JSON 校验/保存/恢复、时间冻结、GPU 诊断与显式资源释放 | `demo/river/RiverDemoLook.ts`、`RiverDemoLookPanel.ts`、`runtime/resources/destroyWaterOwnedMesh.ts` |
+| F7 | Look 事务更新、完整 JSON 校验/保存/恢复、时间冻结与显式资源释放 | `demo/river/RiverDemoLook.ts`、`RiverDemoLookPanel.ts`、`runtime/resources/destroyWaterOwnedMesh.ts` |
 
 本次验收发现并修复了几处已有路径问题：Look 更新清空反射绑定而生命周期跳过重绑；空附加法线层覆盖了 River 流动法线；泡沫开关未覆盖岸边信号；程序网格销毁后 buffer 依赖全局 GC；固定的旧 Fresnel F0 被新版 Look 继承。新的默认行为由回归验证，旧 Look 不自动迁移。
 
@@ -70,7 +69,7 @@
 
 旧光学字段仍用于兼容旧消费者；启用新配置后不再把旧标量散射或经验 Alpha 叠加到新水面。
 
-## Demo 与诊断
+## Demo 控制
 
 入口保持 `#showcase-river`。场景仅保留标定河槽、弯道、浅滩深池、桥岸遮挡；重复的平缓河槽已删除。标定河槽水位 `0.5 m`，三个河床高程 `0.25/-0.5/-2.5 m`，对应 `0.25/1/3 m` 水深。RGB 水下标记只放在这个平直标定场景；桥、桥墩、半浸石头与反射立柱仅位于桥岸场景。弯道只改变中心线和宽度，浅滩深池使用直线等宽河槽以突出水深变化。
 
@@ -79,9 +78,7 @@
 - JSON 支持复制、下载、导入，版本为 `1`，预设标识为 `river-high`。非法字段/范围/格式会保留上一有效配置。
 - GPU 深度/光程视图以 **4 m 对应白色**；T/S 直接显示 Shader 分量。T/S 数值验收使用线性化读回；显示 gamma 与水体积分分别处理。
 - 泡沫来源视图：R=岸边、G=几何坡面、B=静态障碍。平水面没有坡面泡沫；可见桥墩/石头与障碍输入共用数据，高架桥面不作为接触泡沫输入。
-- 默认关闭的诊断面板可观察实际光程、透射、散射、折射有效性、法线、SSR 有效性/辐亮度及方向光阴影。
 
-`window.riverDemo` 保留场景、查询与相机接口，新增 `setDebugView(mode)`、`setSurfaceTime(seconds | undefined)`、`exportLook()`、`importLook(json)`；另提供环境开关、光照标定、相机 pose 和屏幕投影用于验收。没有恢复已删除的旧 River 全局调试 API。
 
 ## 验收结果
 

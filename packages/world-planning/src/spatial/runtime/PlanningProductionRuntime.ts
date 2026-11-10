@@ -1,8 +1,8 @@
 import { type Camera, type Entity, type WebGLEngine } from "@galacean/engine";
 import type { IslandPlan } from "../../semantic-study/IslandPlanModel";
-import type { PlanningTerrainView } from "../../semantic-study/PlanningTerrainView";
-import { planningHeightmap } from "../../semantic-study/PlanningHeightmap";
 import { planningAlphamap } from "../../semantic-study/PlanningAlphamap";
+import { planningHeightmap } from "../../semantic-study/PlanningHeightmap";
+import type { PlanningTerrainView } from "../../semantic-study/PlanningTerrainView";
 import { warmupSeedWorldRendererVariants } from "../../world/SeedWorldShaderWarmup";
 import { PlanningPopulationRuntime } from "./PlanningPopulationRuntime";
 import { PlanningWaterRuntime } from "./PlanningWaterRuntime";
@@ -77,7 +77,7 @@ export class PlanningProductionRuntime {
   getDiagnostics() {
     return {
       population: this.population?.getDiagnostics(),
-      water: this.water.getDiagnostics(),
+
       precompileShaders: PLANNING_RUNTIME_OPTIONS.precompileShaders
     };
   }

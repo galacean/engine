@@ -247,18 +247,6 @@ export interface TerrainPerformanceSceneMetrics {
   readonly exactStaticReuse?: boolean;
   /** CPU milliseconds spent by exact-Prefab spatial scheduling in the latest frame. */
   readonly exactSpatialMilliseconds?: number;
-  /** Whether the authored water runtime is visible. */
-  readonly waterVisible?: boolean;
-  /** Number of water runtime chunks, or zero before water is available. */
-  readonly waterChunks?: number;
-  /** Lake and River chunks eligible for the shared Terrain Horizon. */
-  readonly waterTerrainOcclusionEligibleChunks?: number;
-  /** Eligible Lake and River chunks currently omitted by terrain occlusion. */
-  readonly waterTerrainOccludedChunks?: number;
-  /** Fine Heightfield surface regions used for Camera and Terrain Horizon visibility. */
-  readonly waterTerrainOcclusionEligibleSurfaceBounds?: number;
-  /** Fine Heightfield surface regions currently omitted from Camera demand by terrain occlusion. */
-  readonly waterTerrainOccludedSurfaceBounds?: number;
   /** Camera render-target multisample count. */
   readonly msaaSamples: number;
   /** Whether the camera currently executes its post-process chain. */
@@ -572,12 +560,6 @@ export class TerrainPerformancePanel {
       scene.exactSpatialMode
         ? `${scene.exactSpatialMode.toUpperCase()} ${scene.exactCellSizeMetres ?? "—"}m · ${scene.exactOccupiedCells ?? 0} cells · ${scene.exactCandidateInstances ?? 0}/${scene.prefabInstances ?? 0} candidates · terrain ${scene.exactTerrainOccludedCells ?? 0}/${scene.exactTerrainOcclusionTestedCells ?? 0} cells, ${scene.exactTerrainOccludedInstances ?? 0}/${scene.exactTerrainOcclusionTestedInstances ?? 0} instances · ${scene.exactInstanceUpdates ?? 0} updates · ${(scene.exactSpatialMilliseconds ?? 0).toFixed(3)} ms${scene.exactStaticReuse ? " · reused" : ""}`
         : "—"
-    );
-    this._setValue(
-      "water",
-      scene.waterVisible
-        ? `On · ${scene.waterChunks ?? 0} chunks · terrain ${scene.waterTerrainOccludedChunks ?? 0}/${scene.waterTerrainOcclusionEligibleChunks ?? 0} chunks, ${scene.waterTerrainOccludedSurfaceBounds ?? 0}/${scene.waterTerrainOcclusionEligibleSurfaceBounds ?? 0} surface regions hidden`
-        : "Off"
     );
     this._setValue("msaa", scene.msaaSamples === 1 ? "None · 1×" : `${scene.msaaSamples}×`);
     this._setValue("postProcess", scene.postProcessEnabled ? "On" : "Off");

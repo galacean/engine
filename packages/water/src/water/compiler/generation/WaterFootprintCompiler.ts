@@ -1,5 +1,5 @@
-import type { WaterBodySourceV1 } from "../../authoring/body/WaterBodyAuthoringTypes";
 import type { WaterBodyAsset } from "../../authoring/body/WaterBodyAsset";
+import type { WaterBodySourceV1 } from "../../authoring/body/WaterBodyAuthoringTypes";
 import {
   canonicalSha256HexToBytes,
   compareCanonicalBytes,
@@ -81,18 +81,8 @@ export interface CompiledWaterFootprintV1 {
   readonly lakeSurface?: Readonly<CompiledWaterBasinTileSurfaceV1>;
 }
 
-export interface WaterFootprintCompilationDiagnosticsV1 {
-  readonly ownershipPassCount: 1 | 2;
-  readonly ownershipCellVisitCount: number;
-  readonly bodyCount: number;
-  readonly compiledTileCount: number;
-  readonly compiledCellCount: number;
-  readonly fullWorldPerBodyScanCount: 0;
-}
-
 export interface WaterFootprintCompilationResultV1 {
   readonly footprints: readonly Readonly<CompiledWaterFootprintV1>[];
-  readonly diagnostics: Readonly<WaterFootprintCompilationDiagnosticsV1>;
 }
 
 interface BodyAccumulator {
@@ -177,18 +167,8 @@ export class WaterFootprintCompilerV1 {
         compareCanonicalBytes(canonicalSha256HexToBytes(left.asset.id), canonicalSha256HexToBytes(right.asset.id))
       )
       .map((body) => compileBodyFootprint(body, resolution, tileCellWidth, context));
-    const compiledTileCount = footprints.reduce((sum, footprint) => sum + footprint.tiles.length, 0);
-    const compiledCellCount = footprints.reduce((sum, footprint) => sum + footprint.compiledNearshoreCellCount, 0);
     return Object.freeze({
-      footprints: Object.freeze(footprints),
-      diagnostics: Object.freeze({
-        ownershipPassCount: hasOcean ? (2 as const) : (1 as const),
-        ownershipCellVisitCount: resolution * resolution * (hasOcean ? 2 : 1),
-        bodyCount: bodies.length,
-        compiledTileCount,
-        compiledCellCount,
-        fullWorldPerBodyScanCount: 0 as const
-      })
+      footprints: Object.freeze(footprints)
     });
   }
 }

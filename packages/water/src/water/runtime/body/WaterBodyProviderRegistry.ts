@@ -1,6 +1,6 @@
 /** Registered bridge from scene-owned providers to detached Water-owned source data. */
-import type { TerrainRegionWaterBodySourceV1 } from "../../authoring/body/WaterBodyAuthoringTypes";
 import type { ResolvedWaterBodyInstance } from "../../authoring/body/ResolvedWaterBodyInstance";
+import type { TerrainRegionWaterBodySourceV1 } from "../../authoring/body/WaterBodyAuthoringTypes";
 import { WaterBodyRegistryError, WaterBodyRegistryErrorCode } from "./WaterBodyAssetRegistry";
 
 export interface WaterBodyProviderResolveContext {
@@ -14,21 +14,9 @@ export interface WaterBodySourceProviderFactory {
   resolve(source: TerrainRegionWaterBodySourceV1, context: WaterBodyProviderResolveContext): unknown | Promise<unknown>;
 }
 
-export interface WaterBodyProviderRegistryMetrics {
-  readonly registeredProviderCount: number;
-  readonly activeResolveCount: number;
-}
-
 export class WaterBodyProviderRegistry {
   private readonly _factories = new Map<string, WaterBodySourceProviderFactory>();
   private _activeResolveCount = 0;
-
-  get metrics(): WaterBodyProviderRegistryMetrics {
-    return Object.freeze({
-      registeredProviderCount: this._factories.size,
-      activeResolveCount: this._activeResolveCount
-    });
-  }
 
   register(factory: WaterBodySourceProviderFactory): void {
     if (factory.id.trim().length === 0) {

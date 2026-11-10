@@ -1,5 +1,3 @@
-/** Public Water entry. Internal modules retain direct imports. */
-export { OceanDebugView } from "./OceanDebugView";
 export { OceanEditSession, createOceanEditRevision } from "./OceanEditSession";
 export { createOceanFarShaderModule, resolveOceanFarShader } from "./OceanFarMaterial";
 export { createOceanShaderModule, resolveOceanShader } from "./OceanMaterial";
@@ -13,4 +11,4 @@ export {
 } from "./OceanWaterCompiledResource";
 export type { OceanWaterBodyDescriptorV1, OceanWaterCompiledTransferV1 } from "./OceanWaterCompiledResource";
 export { OceanWaterRuntimeController } from "./OceanWaterRuntimeController";
-export type { OceanWaterRuntimeMetrics, OceanWaterSourceConfig } from "./OceanWaterRuntimeTypes";
+export type { OceanWaterSourceConfig } from "./OceanWaterRuntimeTypes";

@@ -1,9 +1,6 @@
 {
   "name": "farmlands-scene-demo-river-v1",
-  "shader": "AIWorld/RiverSurfaceLocalMapBodyLocalV2AppearanceV2watersurfacematerialv12b852e5af9cd14f0",
-  "shaderRef": {
-    "url": "Water/Shaders/river.shader"
-  },
+  "shader": "Water/River.v1",
   "macros": [],
   "shaderData": {
     "material_WaterProfile": {
@@ -137,12 +134,6 @@
       "type": "Integer",
       "value": 0
     },
-    "material_Water_appearance_appearance_detailLayers_0_texture": {
-      "type": "Texture",
-      "value": {
-        "url": "Water/Textures/farmlands-wave-large-normal.ktx2"
-      }
-    },
     "material_Water_appearance_appearance_detailLayers_1_scale": {
       "type": "Vector2",
       "value": {
@@ -180,12 +171,6 @@
     "material_Water_appearance_appearance_detailLayers_1_blend": {
       "type": "Integer",
       "value": 0
-    },
-    "material_Water_appearance_appearance_detailLayers_1_texture": {
-      "type": "Texture",
-      "value": {
-        "url": "Water/Textures/farmlands-wave-large-normal.ktx2"
-      }
     },
     "material_Water_appearance_appearance_depthResponse_colorCoefficientPerMeter": {
       "type": "Float",
@@ -346,12 +331,6 @@
     "material_Water_appearance_appearance_caustics_opacityContribution": {
       "type": "Float",
       "value": 0
-    },
-    "material_Water_appearance_appearance_caustics_texture": {
-      "type": "Texture",
-      "value": {
-        "url": "Water/Textures/farmlands-caustics-color.ktx2"
-      }
     },
     "material_Water_appearance_featureFlags_externalNormal": {
       "type": "Boolean",

@@ -27,10 +27,10 @@ export type WaterControlOwner =
   | "water-look"
   | "lake-water-level"
   | "ocean-water-level"
-  | "runtime-diagnostics"
+  | "runtime"
   | "authoring";
 
-export type WaterControlEffect = "visual" | "state" | "diagnostic" | "authoring";
+export type WaterControlEffect = "visual" | "state" | "authoring";
 
 export type WaterControlAvailability = "active" | "conditional" | "unavailable" | "readonly";
 
