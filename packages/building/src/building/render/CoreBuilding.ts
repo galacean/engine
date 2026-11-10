@@ -50,6 +50,7 @@ import {
   surfaceMaskTriangles
 } from "../runtime/SurfacePolygon";
 import { plasterPalette } from "../runtime/ConstructionPlasterPalette";
+import { PLASTER_RISE } from "../runtime/ConstructionPlasterShader";
 import { stonePavingPlacement } from "../runtime/StonePavingPlacement";
 import { decorationAssemblyGeometry } from "../runtime/ConstructionDecorationGeometry";
 import { decorationMesh } from "../runtime/ConstructionDecorationMeshes";
@@ -798,11 +799,16 @@ function plasterPart(
     indices: number[] = [],
     distances: number[] = [];
   const index = new Map<string, number>();
-  const rise = (unit.params?.rise as number | undefined) ?? 0;
-  // Plaster wears away within a metre of its edges. On a low face no point is that far from an
-  // edge, so the middle of the face counts as the full distance.
-  const heights = outline.map((q) => q[1]);
-  const reach = Math.max(1e-3, Math.min(1, (Math.max(...heights) - Math.min(...heights)) / 2));
+  // The shader builds plaster up to full cover over the lowest PLASTER_RISE metres above the
+  // ground, and wears it away within a metre of its edges. A face is whole at its top: one whose
+  // top stands lower takes the upper part of that rise. On a face too small for any point to lie
+  // a metre from an edge, its deepest point counts as that metre. A face too low for a row of the
+  // mesh to run inside it, such as a pillar's cap, lies all along its edges and wears away.
+  const top = Math.max(...outline.map((q) => q[1]));
+  const lift = Math.max(0, PLASTER_RISE - (top - chart.minGround));
+  const depths = outline
+    .slice(0, half)
+    .map((b, i) => surface.edgeDistance(b[0], (b[1] + outline[outline.length - 1 - i][1]) / 2, 1));
   const vertex = ([u, v]: number[]) => {
     const key = `${u.toFixed(6)}/${v.toFixed(6)}`;
     let k = index.get(key);
@@ -811,9 +817,8 @@ function plasterPart(
       k = uvs.length;
       positions.push(at.x, v, at.z);
       normals.push(...at.normal);
-      // Plaster wears away towards the ground; `rise` is how high above it this face counts as.
-      uvs.push([u, v - chart.minGround + rise]);
-      distances.push(Math.min(1, surface.edgeDistance(u, v, 1) / reach));
+      uvs.push([u, v - chart.minGround + lift]);
+      distances.push(surface.edgeDistance(u, v, 1));
       index.set(key, k);
     }
     return k;
@@ -825,6 +830,8 @@ function plasterPart(
     indices.push(...ordered.map(vertex));
   }
   if (!indices.length) return;
+  const deepest = Math.max(1e-3, ...depths, ...distances);
+  for (let i = 0; i < distances.length; i++) distances[i] = Math.min(1, distances[i] / deepest);
   const wear = (unit.params?.wear as number | undefined) ?? 0.3,
     color = (unit.params?.color as number | undefined) ?? 0;
   return {

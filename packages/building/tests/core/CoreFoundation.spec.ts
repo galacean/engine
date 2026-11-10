@@ -20,6 +20,7 @@ import { buildCoreHouse, buildCoreHouses, type CoreHouseParameters } from "../..
 import { European } from "../../src/building/application/European";
 import { compileCoreBuilding, coreBuildingEnvironment } from "../../src/building/render/CoreBuilding";
 import { buildConstructionFoundation } from "../../src/building/runtime/ConstructionFoundation";
+import { PLASTER_RISE } from "../../src/building/runtime/ConstructionPlasterShader";
 import { profileShape } from "../../src/building/runtime/ProfileGeometry";
 import { profileWallEnvelope } from "../../src/building/runtime/ConstructionWallEnvelope";
 import { normalizeProfileFootprint } from "../../src/building/runtime/ProfileParameters";
@@ -231,6 +232,34 @@ describe("Raised foundations", () => {
         Object.keys(plaster.original.elements).length - new Set(gone.map((m) => m.element)).size
       );
     });
+    it.each(["pillars", "solid"] as const)(
+      "wears a %s base from its own height: whole at the top, worn lower down and at its edges",
+      async (mode) => {
+        const { renderInput } = await compileCoreBuilding(plastered(mode), registry, {
+          environment: { ground: flat },
+          assets: nativeAssets.compilation
+        });
+        const faces = renderInput.surfaceParts.filter((p) => p.plaster);
+        expect(faces.length).toBeGreaterThan(0);
+        for (const face of faces) {
+          const ys = face.uvs.map((uv) => uv[1]),
+            heights = face.positions.filter((_, i) => i % 3 === 1);
+          // Every face, a short cap as much as the shaft, is whole at its top, and keeps its own
+          // height below that: the wear only moves, it does not stretch the texture.
+          expect(Math.max(...ys)).toBeCloseTo(PLASTER_RISE, 3);
+          expect(Math.max(...ys) - Math.min(...ys)).toBeCloseTo(Math.max(...heights) - Math.min(...heights), 6);
+          // Its deepest point counts as a full metre from the edges; the rows of the mesh, 0.4 m
+          // apart, come within two thirds of it. A face lower than a row lies all along its
+          // edges and wears away.
+          const d = face.plaster!.edgeDistances,
+            low = Math.max(...heights) - Math.min(...heights) <= 0.4;
+          expect(Math.max(...d)).toBeLessThanOrEqual(1);
+          expect(Math.min(...d)).toBeLessThan(0.01);
+          if (low) expect(Math.max(...d)).toBeLessThan(0.01);
+          else expect(Math.max(...d)).toBeGreaterThan(0.6);
+        }
+      }
+    );
     it("is not offered by a part type that does not allow it", () => {
       expect(registry.defaults.get(attachPairKey("plaster", ["roof"]))).toBeUndefined();
       expect(registry.defaults.get(attachPairKey("plaster", ["foundation"]))).toBe("none");

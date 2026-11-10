@@ -686,7 +686,7 @@ export function buildCoreHouse(p: CoreHouseParameters): BuildingCoreDraft {
           geometry: { generator: "surfaceFinish", params: { proud: 0.05 } },
           algorithm: {
             type: "coverSurfaces",
-            params: { unitParams: { wear: baseFinish.wear ?? 0.3, color: baseFinish.color ?? 0, rise: 3 } }
+            params: { unitParams: { wear: baseFinish.wear ?? 0.3, color: baseFinish.color ?? 0 } }
           },
           unit: { source: "plaster" }
         }
