@@ -1,7 +1,7 @@
 // CPU side of the building runtime: design a core draft and prepare what the main thread
 // draws. The same functions run in the Worker and, for tests and custom terrain, on the main
 // thread. Inputs and outputs are plain data.
-import { designBuildingCore, type BuildingCoreDraft } from "../../core";
+import { designBuildingCore, type BuildingCoreDraft, type HostRef } from "../../core";
 import { buildingDraftRegion, createBuildingTypeRegistry } from "../../partTypes";
 import {
   coreBuildingEnvironment,
@@ -41,7 +41,7 @@ export function validateBuildingDraft(draft: BuildingCoreDraft): void {
     parts = new Set(draft.parts.map((p) => p.id));
   for (const part of draft.parts) if (!groups.has(part.group)) throw Error(`Missing group for ${part.id}`);
   for (const c of draft.connections ?? [])
-    for (const id of c.kind === "attach" ? [c.guest, ...c.hosts.map((h) => h.part)] : c.parts)
+    for (const id of c.kind === "attach" ? [c.guest, ...c.hosts.map((h: HostRef) => h.part)] : c.parts)
       if (!parts.has(id)) throw Error(`Missing connection endpoint "${id}" in ${c.id}`);
 }
 export interface BuildingCpuOptions {

@@ -18,6 +18,7 @@ import {
   type BuildingUnit,
   type BuildingRegistry,
   type ConnectionRule,
+  type DerivedPartSpec,
   type EffectiveSurface,
   type Outline,
   type Frame,
@@ -447,6 +448,8 @@ export const dormerOnRoof: ConnectionRule = ({ guest, hosts, params }) => {
   const host = hosts[mount.on.host];
   const surface = host && slopeSurface(host);
   if (!surface || !host.unit) return { diagnostics: ["dormerOnRoof needs the host roof and its tile"] };
+  const ridge = guest.geometry.original.elements.ridge;
+  if (!ridge) return { diagnostics: ["dormerOnRoof needs the dormer's ridge"] };
   const tile = host.unit;
   // The dormer's roof rests on its outline.
   const lift = coveringRise(host, surface.frame(mount.on.u, mount.on.v).z);
@@ -468,27 +471,28 @@ export const dormerOnRoof: ConnectionRule = ({ guest, hosts, params }) => {
       thickness: coveringThickness(host),
       halfWidth: (_, height) => archHalfWidth(sweep.outline, height - sweep.origin[1])
     });
+  const derive: DerivedPartSpec[] = [
+    {
+      localId: "roof",
+      type: "dormerRoof",
+      geometry: { elements: { sweep: { kind: "surface", surface: { kind: "dormerSweep", params: sweep } } } },
+      algorithm: { type: "sweepTiles", params: (params.tiles as Record<string, unknown> | undefined) ?? {} },
+      unit: dormerTile(tile)
+    },
+    {
+      localId: "ridge",
+      type: "dormerRidge",
+      geometry: { elements: { ridge } },
+      algorithm: {
+        type: "capCourses",
+        params: { width: 0.1, depth: 0.2, overlap: 1.2, spacing: 0.46875, jitter: 0.09375, shade: [1, 1], flag: 0 }
+      },
+      unit: dormerCap(tile)
+    }
+  ];
   return {
     modify: area ? [{ part: host.key, modification: { element: "slope", op: "removeArea" as const, ...area } }] : [],
-    derive: [
-      {
-        localId: "roof",
-        type: "dormerRoof",
-        geometry: { elements: { sweep: { kind: "surface", surface: { kind: "dormerSweep", params: sweep } } } },
-        algorithm: { type: "sweepTiles", params: (params.tiles as Record<string, unknown> | undefined) ?? {} },
-        unit: dormerTile(tile)
-      },
-      {
-        localId: "ridge",
-        type: "dormerRidge",
-        geometry: { elements: { ridge: guest.geometry.original.elements.ridge } },
-        algorithm: {
-          type: "capCourses",
-          params: { width: 0.1, depth: 0.2, overlap: 1.2, spacing: 0.46875, jitter: 0.09375, shade: [1, 1], flag: 0 }
-        },
-        unit: dormerCap(tile)
-      }
-    ]
+    derive
   };
 };
 
