@@ -6,24 +6,11 @@ export class NameAllocator {
   private readonly _used = new Set<string>();
   private readonly _names = new Map<object | string, string>();
   private readonly _suffixes = new Map<string, string>();
-  private readonly _reserved = new Set<string>();
-
-  /** Source and external identifiers reserved before generation. */
-  get reservedNames(): readonly string[] {
-    return Array.from(this._reserved);
-  }
-
-  /** Allocated identifiers in deterministic allocation order. */
-  get generatedNames(): readonly string[] {
-    return Array.from(this._names.values());
-  }
-
   /**
    * Reserves an existing identifier before allocating generated names.
    * @param name - Identifier that generated names must not shadow.
    */
   reserve(name: string): void {
-    this._reserved.add(name);
     this._occupy(name);
   }
 
@@ -72,6 +59,5 @@ export class NameAllocator {
     this._used.clear();
     this._names.clear();
     this._suffixes.clear();
-    this._reserved.clear();
   }
 }

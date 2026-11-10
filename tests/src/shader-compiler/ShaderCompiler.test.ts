@@ -848,7 +848,8 @@ void frag(Varyings input) { gl_FragColor = readColor(input); }`;
       pass.fragmentEntry,
       ShaderLanguage.GLSLES100
     )!.fragment;
-    expect(fragment.match(/gl_FragData\[0\]\s*=/g)).to.have.lengthOf(1);
+    expect(fragment.match(/gl_FragData\[0\]/g)).to.have.lengthOf(1);
+    expect(fragment).to.match(/out\s+vec4\s+output_color/);
     expect(fragment.match(/return\s+outputValue\s*;/g)).to.have.lengthOf(2);
     expect(fragment).to.match(/void\s+main\s*\(\s*\)\s*\{\s*\w+\s*\(\s*frag\s*\(\s*\)/);
   });

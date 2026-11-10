@@ -70,56 +70,42 @@ function capture(vertex: string, fragment: string, varying: string): number[] {
 describe("transform feedback interface bindings", () => {
   for (const target of [ShaderLanguage.GLSLES100, ShaderLanguage.GLSLES300]) {
     for (const precompiled of [false, true]) {
-      for (const collision of [false, true]) {
-        it(`captures original field names for target ${target}, precompiled=${precompiled}, macro collision=${collision}`, () => {
-          const compiler = new ShaderCompiler();
-          const parsed = compiler._parseShaderSource(source).subShaders[0].passes[0];
-          const program = precompiled
-            ? JSON.parse(JSON.stringify(new ShaderPrecompiler().precompile(source, target).subShaders[0].passes[0]))
-            : compiler._parseShaderPass(
-                parsed.contents,
-                parsed.vertexEntry,
-                parsed.fragmentEntry,
-                target,
-                undefined,
-                parsed.contentScopeStarts
-              )!;
-          const bindings = new Map<string, string>();
-          const macros = new Map<string, string>();
-          ShaderMacroProcessor.evaluate(program.vertexShaderInstructions, macros, bindings);
-          const defaultName = bindings.get("feedbackValue")!;
-          expect(defaultName).toBeDefined();
-          if (collision) macros.set(defaultName, "0.0");
-          let vertex = ShaderMacroProcessor.evaluate(program.vertexShaderInstructions, macros, bindings);
-          let fragment = ShaderMacroProcessor.evaluate(program.fragmentShaderInstructions, macros);
-          const varying = bindings.get("feedbackValue")!;
-          if (collision) expect(varying).not.toBe(defaultName);
-          if (target === ShaderLanguage.GLSLES100) {
-            vertex = ShaderFactory.convertTo300(vertex);
-            fragment = ShaderFactory.convertTo300(fragment, true);
-          }
-          expect(capture(vertex, fragment, varying)).toEqual([0.25, 0.5, 0.75, 1]);
-        });
-      }
+      it(`captures original field names for target ${target}, precompiled=${precompiled}`, () => {
+        const compiler = new ShaderCompiler();
+        const parsed = compiler._parseShaderSource(source).subShaders[0].passes[0];
+        const program = precompiled
+          ? JSON.parse(JSON.stringify(new ShaderPrecompiler().precompile(source, target).subShaders[0].passes[0]))
+          : compiler._parseShaderPass(
+              parsed.contents,
+              parsed.vertexEntry,
+              parsed.fragmentEntry,
+              target,
+              undefined,
+              parsed.contentScopeStarts
+            )!;
+        const macros = new Map<string, string>();
+        let vertex = ShaderMacroProcessor.evaluate(program.vertexShaderInstructions, macros);
+        let fragment = ShaderMacroProcessor.evaluate(program.fragmentShaderInstructions, macros);
+        const varying = program.varyingNames?.feedbackValue;
+        expect(varying).toBeDefined();
+        if (target === ShaderLanguage.GLSLES100) {
+          vertex = ShaderFactory.convertTo300(vertex);
+          fragment = ShaderFactory.convertTo300(fragment, true);
+        }
+        expect(capture(vertex, fragment, varying!)).toEqual([0.25, 0.5, 0.75, 1]);
+      });
     }
   }
 
-  it("clears stale alias mappings for raw GLSL instruction streams", () => {
-    const bindings = new Map([["feedbackValue", "stale_name"]]);
+  it("keeps original bindings for raw GLSL instruction streams", () => {
     const vertex = ShaderMacroProcessor.evaluate(
       ShaderInstructionEncoder.parse(
         "out vec4 feedbackValue; void main() { feedbackValue = vec4(0.25, 0.5, 0.75, 1.0); gl_Position = vec4(0.0); }"
       ),
-      new Map(),
-      bindings
+      new Map()
     );
-    expect(bindings.size).toBe(0);
-    expect(
-      capture(
-        vertex,
-        "out vec4 color; void main() { color = vec4(1.0); }",
-        bindings.get("feedbackValue") ?? "feedbackValue"
-      )
-    ).toEqual([0.25, 0.5, 0.75, 1]);
+    expect(capture(vertex, "out vec4 color; void main() { color = vec4(1.0); }", "feedbackValue")).toEqual([
+      0.25, 0.5, 0.75, 1
+    ]);
   });
 });

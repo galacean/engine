@@ -153,4 +153,4 @@ export type Condition =
 /**
  * Preprocessor instruction tuple: `[directive, ...operands]`.
  */
-export type ShaderInstruction = readonly [number, ...(string | number | string[] | number[][] | Condition)[]];
+export type ShaderInstruction = readonly [number, ...(string | number | string[] | Condition)[]];

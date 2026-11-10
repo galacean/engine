@@ -621,7 +621,7 @@ describe("Precompile A/B Test: Live vs Precompiled", async () => {
   // A/B 7: Instruction-based optimization correctness
   // ═══════════════════════════════════════════════════════════
   describe("A/B: instruction optimization", () => {
-    it("noFragArgs (one text instruction plus naming metadata): still compiles with full macro set", async () => {
+    it("noFragArgs (one text instruction): still compiles with full macro set", async () => {
       const source = await readFile("src/shader-compiler/shaders/noFragArgs.shader");
       const precompiled = shaderPrecompiler.precompile(source, ShaderLanguage.GLSLES100);
 
@@ -629,9 +629,8 @@ describe("Precompile A/B Test: Live vs Precompiled", async () => {
         for (const pass of sub.passes) {
           if (pass.isUsePass) continue;
           for (const instructions of [pass.vertexShaderInstructions!, pass.fragmentShaderInstructions!]) {
-            const executable = instructions.filter(([kind]) => kind !== ShaderPreprocessorDirective.GeneratedNames);
-            expect(executable).toHaveLength(1);
-            expect(executable[0][0]).toBe(ShaderPreprocessorDirective.Text);
+            expect(instructions).toHaveLength(1);
+            expect(instructions[0][0]).toBe(ShaderPreprocessorDirective.Text);
           }
         }
       }
@@ -654,7 +653,7 @@ describe("Precompile A/B Test: Live vs Precompiled", async () => {
       }
     });
 
-    it("mrt-struct (one text instruction plus naming metadata): compiles correctly", async () => {
+    it("mrt-struct (one text instruction): compiles correctly", async () => {
       const source = await readFile("src/shader-compiler/shaders/mrt-struct.shader");
       const precompiled = shaderPrecompiler.precompile(source, ShaderLanguage.GLSLES100);
 
@@ -662,9 +661,8 @@ describe("Precompile A/B Test: Live vs Precompiled", async () => {
         for (const pass of sub.passes) {
           if (pass.isUsePass) continue;
           for (const instructions of [pass.vertexShaderInstructions!, pass.fragmentShaderInstructions!]) {
-            const executable = instructions.filter(([kind]) => kind !== ShaderPreprocessorDirective.GeneratedNames);
-            expect(executable).toHaveLength(1);
-            expect(executable[0][0]).toBe(ShaderPreprocessorDirective.Text);
+            expect(instructions).toHaveLength(1);
+            expect(instructions[0][0]).toBe(ShaderPreprocessorDirective.Text);
           }
         }
       }

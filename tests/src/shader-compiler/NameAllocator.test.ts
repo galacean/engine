@@ -17,7 +17,6 @@ describe("Shader name allocation", () => {
     expect(names.allocate({}, "io_a")).toBe("io_a_5001");
     expect(names.allocate({}, "io_a_5000")).toBe("io_a_5000_2");
     expect(names.allocate({}, "io_a")).toBe("io_a_5002");
-    expect(names.reservedNames).toEqual(["io_a", "io_a_1", "io_a_5000", "io_a_5000_1"]);
   });
 
   it("appends collision suffixes to the complete original name", () => {
@@ -36,8 +35,6 @@ describe("Shader name allocation", () => {
     names.reserve("io_a");
     expect(names.allocate(key, "io_a")).toBe("io_a_1");
     names.reset();
-    expect(names.reservedNames).toEqual([]);
-    expect(names.generatedNames).toEqual([]);
     expect(names.allocate(key, "io_a")).toBe("io_a");
   });
 

@@ -997,7 +997,7 @@ describe("ShaderCompiler Precompile", async () => {
       }
     });
 
-    it("simple shader (noFragArgs) keeps one text instruction plus naming metadata", async () => {
+    it("simple shader (noFragArgs) keeps one text instruction", async () => {
       const source = await readFile("src/shader-compiler/shaders/noFragArgs.shader");
       const precompiled = shaderPrecompiler.precompile(source, ShaderLanguage.GLSLES100);
 
@@ -1005,9 +1005,8 @@ describe("ShaderCompiler Precompile", async () => {
         for (const pass of subShader.passes) {
           if (pass.isUsePass) continue;
           for (const instructions of [pass.vertexShaderInstructions!, pass.fragmentShaderInstructions!]) {
-            const executable = instructions.filter(([kind]) => kind !== ShaderPreprocessorDirective.GeneratedNames);
-            expect(executable).toHaveLength(1);
-            expect(executable[0][0]).toBe(ShaderPreprocessorDirective.Text);
+            expect(instructions).toHaveLength(1);
+            expect(instructions[0][0]).toBe(ShaderPreprocessorDirective.Text);
             expect(ShaderMacroProcessor.evaluate(instructions, new Map())).toMatch(/void\s+main\s*\(/);
           }
         }

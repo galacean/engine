@@ -33,10 +33,13 @@ import { ShaderInstructionEncoder } from "../ShaderInstructionEncoder";
  */
 export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBackend, IPoolElement {
   protected readonly supportsArrayStructReturn: boolean = true;
+  protected readonly inlineVoidFragmentEntry: boolean = false;
   private readonly _varyingAliases = new Map<string, string>();
   private readonly _wholeStructs = new Set<ASTNode.StructSpecifier>();
   private readonly _fragmentVaryingProps = new Set<StructProp>();
   private readonly _globalInputs = new Map<EShaderStage, VarSymbol[]>();
+  private readonly _inputHelperBodies = new Map<TreeNode, string>();
+  private readonly _inputHelperGroups = new Map<number, { name: string; fallback: DeferredDeclarationOwnership }>();
   private _globalCodeArray: ICodeSegment[] = [];
   private readonly _forwardFunctionDeclarations = new Map<ASTNode.FunctionDefinition, string>();
   private readonly _forwardStructIndices = new Map<ASTNode.StructSpecifier, number>();
@@ -63,6 +66,8 @@ export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBacken
     this._variableCodeSegments.clear();
     this._deferredPrototypes.clear();
     this._declarationReferences.clear();
+    this._inputHelperBodies.clear();
+    this._inputHelperGroups.clear();
     this._currentDeclaration = undefined;
   }
 
@@ -84,6 +89,14 @@ export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBacken
    * @param out - Destination code segments.
    */
   getOtherGlobal(data: ShaderData, out: ICodeSegment[]): void {
+    for (const { name, fallback } of this._inputHelperGroups.values()) {
+      out.push({
+        text:
+          ShaderInstructionEncoder.declaration(`void ${name}() {}`, fallback) +
+          ShaderInstructionEncoder.reference(0, fallback.id),
+        index: -1
+      });
+    }
     for (const precision of data.globalPrecisions) {
       out.push({ text: precision.codeGen(this), index: precision.location.start.index });
     }
@@ -205,16 +218,10 @@ export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBacken
       this._fragmentVaryingProps.clear();
       const fragment = this._fragmentMain(coreInfo.fragmentEntry, shaderData, outerGlobalMacroDeclarations);
       const vertex = this._vertexMain(coreInfo.vertexEntry, shaderData, outerGlobalMacroDeclarations);
-      const generatedNames = context.names.generatedNames;
-      const reservedNames = context.names.reservedNames;
       return {
-        vertex: ShaderInstructionEncoder.generatedNames(
-          vertex,
-          generatedNames,
-          reservedNames,
-          Array.from(this._varyingAliases).flat()
-        ),
-        fragment: ShaderInstructionEncoder.generatedNames(fragment, generatedNames, reservedNames)
+        vertex,
+        fragment,
+        varyingNames: Object.fromEntries(this._varyingAliases)
       };
     } finally {
       this._sourceIR = undefined;
@@ -250,6 +257,7 @@ export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBacken
     context.referenceGlobal(entryInfo.name, ESymbolType.FN);
 
     this._referenceInterfaceDependencies([...context.attributeStructs, ...context.varyingStructs]);
+    this._initializeGlobalInputs();
     this._getGlobalSymbol(globalCodeArray);
     this._getCustomStruct(context.attributeStructs, globalCodeArray);
     this._getCustomStruct(context.varyingStructs, globalCodeArray);
@@ -286,6 +294,7 @@ export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBacken
     context.referenceGlobal(entryInfo.name, ESymbolType.FN);
 
     this._referenceInterfaceDependencies([...context.varyingStructs, ...context.mrtStructs]);
+    this._initializeGlobalInputs();
     this._getGlobalSymbol(globalCodeArray);
     this._getCustomStruct(context.varyingStructs, globalCodeArray);
     this._getCustomStruct(context.mrtStructs, globalCodeArray);
@@ -412,8 +421,15 @@ export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBacken
     });
     const transfer = read
       ? `${typeName} ${this._transferName(node, true)}() { ${typeName} ${value};\n${assignments}\nreturn ${value}; }`
-      : `void ${this._transferName(node, false)}(${typeName} ${value}) {\n${assignments}\n}`;
+      : `void ${this._transferName(node, false)}(${typeName} ${value}${this.transferOutputs(node)
+          .map((output) => `, out vec4 ${output.name}`)
+          .join("")}) {\n${assignments}\n}`;
     return `${structCode}\n${declarations}\n${transfer}`;
+  }
+
+  protected transferOutputs(struct: ASTNode.StructSpecifier): { name: string; expression: string }[] {
+    void struct;
+    return [];
   }
 
   private _containsArray(prop: StructProp, visited = new Set<ASTNode.StructSpecifier>()): boolean {
@@ -486,6 +502,21 @@ export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBacken
   }
 
   override visitFunctionDefinition(fnNode: ASTNode.FunctionDefinition): string {
+    if (
+      this.inlineVoidFragmentEntry &&
+      this.context.stage === EShaderStage.FRAGMENT &&
+      fnNode.protoType.ident.lexeme === this.context.stageEntry &&
+      fnNode.protoType.returnType.type === Keyword.VOID &&
+      !this._hasIncomingCall(fnNode)
+    ) {
+      const parameters = (fnNode.protoType.parameterList ?? []).map((parameter) => {
+        const struct = parameter.typeInfo!.structDeclarations[0];
+        return `${this.sourceName(struct.ident!.lexeme)} ${this.variableName((parameter.astNode as ASTNode.ParameterDeclaration).symbol!)} = ${this._transferName(struct, true)}();`;
+      });
+      const inputs = this._initializeGlobalInputs();
+      // Keep legacy fragment built-ins in main, including when the resulting GLES100 is loaded on WebGL2.
+      return `void main() {\n${inputs.join("\n")}\n${parameters.join("\n")}\n${fnNode.statements.codeGen(this)}\n}`;
+    }
     const definition = super.visitFunctionDefinition(fnNode);
     if (fnNode.protoType.ident.lexeme !== this.context.stageEntry) return definition;
     const args: string[] = [];
@@ -506,22 +537,49 @@ export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBacken
     const struct = type.typeSpecifier.structDeclarations[0];
     let statement: string;
     if (struct) {
-      statement = `${this._transferName(struct, false)}(${call});`;
+      statement = `${this._transferName(struct, false)}(${call}${this.transferOutputs(struct)
+        .map((output) => `, ${output.expression}`)
+        .join("")});`;
     } else if (this.context.stage === EShaderStage.FRAGMENT && type.type === Keyword.VEC4) {
       statement = `${this.fragmentColorOutput()} = ${call};`;
     } else statement = type.type === Keyword.VOID ? `${call};` : `return ${call};`;
-    const inputs = (this._globalInputs.get(this.context.stage) ?? [])
-      .map((variable) => {
-        this.context.referenceGlobal(variable.ident, ESymbolType.VAR);
-        const struct = variable.dataType!.structDeclarations[0];
-        this._referenceDeclaration(this._declarationOwners.get(variable.astNode!)!.id, struct);
-        return ShaderInstructionEncoder.sharedDeclaration(
-          `${this.variableName(variable)} = ${this._transferName(struct, true)}();`,
-          [this._declarationOwners.get(variable.astNode!)!]
-        );
-      })
-      .join("\n");
-    return `${definition}\nvoid main() {\n${inputs}\n${parameters.join("\n")}\n${statement} }`;
+    const inputs = this._initializeGlobalInputs();
+    return `${definition}\nvoid main() {\n${inputs.join("\n")}\n${parameters.join("\n")}\n${statement} }`;
+  }
+
+  private _initializeGlobalInputs(): string[] {
+    const calls = new Set<string>();
+    for (const variable of this._globalInputs.get(this.context.stage) ?? []) {
+      this.context.referenceGlobal(variable.ident, ESymbolType.VAR);
+      const struct = variable.dataType!.structDeclarations[0];
+      const owner = this._declarationOwners.get(variable.astNode!)!;
+      this._referenceDeclaration(owner.id, struct);
+      let group = this._inputHelperGroups.get(owner.group);
+      if (!group) {
+        let nextId = 0;
+        for (const declaration of this._declarationOwners.values()) nextId = Math.max(nextId, declaration.id);
+        for (const helper of this._inputHelperGroups.values()) nextId = Math.max(nextId, helper.fallback.id);
+        // A missing conditional input selects the no-op; an active declaration selects its own initializer.
+        const fallback = { id: nextId + 1, group: owner.group, sourceScope: -1 };
+        const name = this.context.names.allocate(`input-initializer:${owner.group}`, `initialize_${variable.ident}`);
+        this._inputHelperGroups.set(owner.group, (group = { name, fallback }));
+      }
+      this._inputHelperBodies.set(
+        variable.astNode!,
+        `void ${group.name}() { ${this.variableName(variable)} = ${this._transferName(struct, true)}(); }`
+      );
+      calls.add(`${group.name}();`);
+    }
+    return Array.from(calls);
+  }
+
+  private _hasIncomingCall(definition: ASTNode.FunctionDefinition): boolean {
+    let called = false;
+    this.context._passSymbolTable!.forEach((symbol) => {
+      if (symbol instanceof FnSymbol && symbol.calledFunctions.some((callee) => callee.astNode === definition))
+        called = true;
+    });
+    return called;
   }
 
   protected prepareFragment(
@@ -1085,6 +1143,11 @@ export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBacken
   }
 
   private _declaration(text: string, node: TreeNode, activate = true): string {
-    return ShaderInstructionEncoder.declaration(text, this._declarationOwners.get(node), activate);
+    const initializer = text && this._inputHelperBodies.get(node);
+    return ShaderInstructionEncoder.declaration(
+      initializer ? `${text}\n${initializer}` : text,
+      this._declarationOwners.get(node),
+      activate
+    );
   }
 }

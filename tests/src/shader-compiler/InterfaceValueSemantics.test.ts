@@ -253,6 +253,24 @@ const cases: {
     pixel: [64, 0, 0, 255]
   })),
   ...[false, true].map((enabled) => ({
+    name: `global interface selection survives later macro ${enabled ? "undef" : "define"}`,
+    source: valueShader(
+      "Varyings x; x.a = 0.25; return x;",
+      `
+      ${enabled ? "#define USE_A 1" : "#undef USE_A"}
+      #ifdef USE_A
+      Varyings ownerA;
+      #else
+      Varyings ownerB;
+      #endif
+      ${enabled ? "#undef USE_A" : "#define USE_A 1"}
+      `
+    )
+      .replace("void frag(Varyings v)", "void frag()")
+      .replace("vec4(v.a,", `vec4(${enabled ? "ownerA" : "ownerB"}.a,`),
+    pixel: [64, 0, 0, 255]
+  })),
+  ...[false, true].map((enabled) => ({
     name: `conditional interface member variant ${enabled}`,
     source: valueShader(`Varyings x;
       x.a = 0.25;

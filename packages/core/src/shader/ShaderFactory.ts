@@ -1,5 +1,5 @@
 import { Matrix, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
-import { NameAllocator, normalizeShaderIncludeKey } from "@galacean/engine-design";
+import { normalizeShaderIncludeKey } from "@galacean/engine-design";
 import { Logger } from "../base/Logger";
 import { Engine } from "../Engine";
 import { Renderer } from "../Renderer";
@@ -202,17 +202,14 @@ mat3 _normalMatFromModel(mat3 m) {
       shader = shader.replace(/\bgl_FragDepthEXT\b/g, "gl_FragDepth");
 
       if (!ShaderFactory._has300OutInFragReg.test(shader)) {
-        const names = new NameAllocator();
-        for (const name of shader.match(/[A-Za-z_][A-Za-z0-9_]*/g) ?? []) names.reserve(name);
         const isMRT = /\bgl_FragData\[.+?\]/g.test(shader);
         if (isMRT) {
           shader = shader.replace(/\bgl_FragColor\b/g, "gl_FragData[0]");
           const result = shader.match(/\bgl_FragData\[.+?\]/g);
-          shader = ShaderFactory._replaceMRTShader(shader, result!, names);
+          shader = ShaderFactory._replaceMRTShader(shader, result!);
         } else {
-          const output = names.allocate("color", "glFragColor");
-          shader = `out vec4 ${output};\n` + shader;
-          shader = shader.replace(/\bgl_FragColor\b/g, output);
+          shader = "out vec4 glFragColor;\n" + shader;
+          shader = shader.replace(/\bgl_FragColor\b/g, "glFragColor");
         }
       }
     } else {
@@ -385,7 +382,7 @@ mat3 _normalMatFromModel(mat3 m) {
     return lines.join("\n");
   }
 
-  private static _replaceMRTShader(shader: string, result: string[], names: NameAllocator): string {
+  private static _replaceMRTShader(shader: string, result: string[]): string {
     let declaration = "";
     const mrtIndexSet = new Set();
 
@@ -395,11 +392,14 @@ mat3 _normalMatFromModel(mat3 m) {
     }
 
     mrtIndexSet.forEach((index) => {
-      declaration += `layout(location=${index}) out vec4 ${names.allocate(String(index), `fragOutColor${index}`)};\n`;
+      declaration += `layout(location=${index}) out vec4 fragOutColor${index};\n`;
     });
-    shader = shader.replace(/\bgl_FragData\[(.+?)\]/g, (_, index) => names.allocate(index, `fragOutColor${index}`));
-    // Output writes can occur in helper functions before the stage entry point.
-    return declaration + shader;
+    declaration += `void main(`;
+
+    shader = shader.replace(/\bgl_FragData\[(.+?)\]/g, "fragOutColor$1");
+
+    shader = shader.replace(/void\s+?main\s*\(/g, declaration);
+    return shader;
   }
 }
 

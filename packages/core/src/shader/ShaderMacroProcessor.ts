@@ -1,5 +1,4 @@
 import {
-  NameAllocator,
   expandPreprocessorExpressionMacros,
   expandShaderMacros,
   evaluatePreprocessorExpression,
@@ -62,15 +61,9 @@ export class ShaderMacroProcessor {
    * Declaration ownership filters buffered text after execution; it never skips macro directives.
    * @param instructions - Pre-parsed instruction array
    * @param macros - Active runtime macros
-   * @param varyingBindings - Optional destination for external varying names mapped to this variant's identifiers.
    * @returns Pure GLSL string with all conditionals resolved and macros expanded
    */
-  static evaluate(
-    instructions: ShaderInstruction[],
-    macros: Map<string, string>,
-    varyingBindings?: Map<string, string>
-  ): string {
-    varyingBindings?.clear();
+  static evaluate(instructions: ShaderInstruction[], macros: Map<string, string>): string {
     const valueMacros = ShaderMacroProcessor._valueMacros;
     const funcMacros = ShaderMacroProcessor._funcMacros;
     const shaderChunks = ShaderMacroProcessor._shaderChunks;
@@ -98,43 +91,10 @@ export class ShaderMacroProcessor {
 
     let index = 0;
     const length = instructions.length;
-    let generatedNames: string[] | undefined;
 
     while (index < length) {
       const instruction = instructions[index];
       switch (instruction[0]) {
-        case ShaderPreprocessorDirective.GeneratedNames: {
-          const defaults = <string[]>instruction[1];
-          const generated = new Set(defaults);
-          let collision = false;
-          for (const [name, value] of macros) {
-            if (
-              generated.has(name) ||
-              (value.match(/[A-Za-z_][A-Za-z_0-9]*/g) ?? []).some((name) => generated.has(name))
-            ) {
-              collision = true;
-              break;
-            }
-          }
-          generatedNames = defaults;
-          if (collision) {
-            const allocator = new NameAllocator();
-            for (const name of <string[]>instruction[2]) allocator.reserve(name);
-            for (const [name, value] of macros) {
-              allocator.reserve(name);
-              for (const identifier of value.match(/[A-Za-z_][A-Za-z_0-9]*/g) ?? []) allocator.reserve(identifier);
-            }
-            generatedNames = defaults.map((name) => allocator.allocate(name, name));
-          }
-          const aliases = <string[] | undefined>instruction[3];
-          if (varyingBindings && aliases?.length) {
-            const resolvedNames = new Map(defaults.map((name, index) => [name, generatedNames![index]]));
-            for (let i = 0; i < aliases.length; i += 2)
-              varyingBindings.set(aliases[i], resolvedNames.get(aliases[i + 1])!);
-          }
-          index++;
-          break;
-        }
         case ShaderPreprocessorDirective.Text:
           // Immediately expand macros using current macro state (GLSL/C99 conformant)
           shaderChunks.push(ShaderMacroProcessor._expandChunk(<string>instruction[1], valueMacros, funcMacros));
@@ -155,8 +115,7 @@ export class ShaderMacroProcessor {
           index++;
           break;
         }
-        case ShaderPreprocessorDirective.OwnedText:
-        case ShaderPreprocessorDirective.GuardedText: {
+        case ShaderPreprocessorDirective.OwnedText: {
           const chunk: OwnedChunk = { instruction };
           ownedChunks.set(shaderChunks.length, chunk);
           try {
@@ -257,12 +216,19 @@ export class ShaderMacroProcessor {
         const owned = ownedChunks.get(i);
         if (owned) {
           const instruction = owned.instruction;
-          const selected =
-            instruction[0] === ShaderPreprocessorDirective.GuardedText
-              ? (<number[][]>instruction[2]).every((group) =>
-                  ShaderMacroProcessor._hasSelectedOwner(group, 0, hasReferences)
-                )
-              : ShaderMacroProcessor._hasSelectedOwner(instruction, 2, hasReferences);
+          let selected = false;
+          for (let j = 2; j < instruction.length; j++) {
+            const ownerId = <number>instruction[j];
+            const active = activeDeclarations.get(ownerId);
+            if (
+              active &&
+              active.sourceScope === active.group.sourceScope &&
+              (!hasReferences || reachableDeclarations.has(ownerId))
+            ) {
+              selected = true;
+              break;
+            }
+          }
           if (!selected) continue;
           if ("error" in owned) throw owned.error;
         }
@@ -270,27 +236,7 @@ export class ShaderMacroProcessor {
       }
       shaderChunks.length = count;
     }
-    const source = ShaderMacroProcessor._concatChunks(shaderChunks);
-    // eslint-disable-next-line no-control-regex -- Compiler identities use non-identifier delimiters during expansion.
-    return generatedNames ? source.replace(/\x01(\d+)\x02/g, (_, index) => generatedNames![Number(index)]) : source;
-  }
-
-  private static _hasSelectedOwner(
-    owners: ShaderInstruction | readonly number[],
-    start: number,
-    hasReferences: boolean
-  ): boolean {
-    for (let i = start; i < owners.length; i++) {
-      const ownerId = <number>owners[i];
-      const active = ShaderMacroProcessor._activeDeclarations.get(ownerId);
-      if (
-        active &&
-        active.sourceScope === active.group.sourceScope &&
-        (!hasReferences || ShaderMacroProcessor._reachableDeclarations.has(ownerId))
-      )
-        return true;
-    }
-    return false;
+    return ShaderMacroProcessor._concatChunks(shaderChunks);
   }
 
   /**

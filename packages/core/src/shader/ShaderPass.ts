@@ -41,6 +41,8 @@ export class ShaderPass extends ShaderPart {
   /** @internal */
   _fragmentShaderInstructions: ShaderInstruction[];
 
+  private readonly _varyingNames?: Record<string, string>;
+
   /** @internal */
   _shaderPassId: number = 0;
 
@@ -58,13 +60,15 @@ export class ShaderPass extends ShaderPart {
    * @param fragmentShaderInstructions - Precompiled fragment instruction array
    * @param platformTarget - Target shader language
    * @param tags - Tags
+   * @param varyingNames - Original varying field names mapped to generated stage outputs
    */
   constructor(
     name: string,
     vertexShaderInstructions: ShaderInstruction[],
     fragmentShaderInstructions: ShaderInstruction[],
     platformTarget: ShaderLanguage,
-    tags?: Record<string, number | string | boolean>
+    tags?: Record<string, number | string | boolean>,
+    varyingNames?: Record<string, string>
   ) {
     super();
     this._shaderPassId = ShaderPass._shaderPassCounter++;
@@ -73,6 +77,7 @@ export class ShaderPass extends ShaderPart {
     this._vertexShaderInstructions = vertexShaderInstructions;
     this._fragmentShaderInstructions = fragmentShaderInstructions;
     this._platformTarget = platformTarget;
+    this._varyingNames = varyingNames;
 
     const mergedTags = { pipelineStage: PipelineStage.Forward, ...tags };
     for (const key in mergedTags) {
@@ -122,15 +127,17 @@ export class ShaderPass extends ShaderPart {
     feedbackVaryings?: string[]
   ): ShaderProgram {
     const isGPUInstance = macroCollection.isEnable(InstanceBuffer.gpuInstanceMacro);
-    const outputNames = feedbackVaryings ? new Map<string, string>() : undefined;
     const { vertexSource, fragmentSource, instanceLayout } = this._compileShaderSource(
       engine,
       macroCollection,
-      isGPUInstance,
-      outputNames
+      isGPUInstance
     );
     const linkedVaryings = feedbackVaryings?.map((name) =>
-      name.replace(/^[A-Za-z_][A-Za-z_0-9]*/, (identifier) => outputNames!.get(identifier) ?? identifier)
+      name.replace(/^[A-Za-z_][A-Za-z_0-9]*/, (identifier) =>
+        this._varyingNames && Object.prototype.hasOwnProperty.call(this._varyingNames, identifier)
+          ? this._varyingNames[identifier]
+          : identifier
+      )
     );
     const program = new ShaderProgram(engine, vertexSource, fragmentSource, linkedVaryings);
     program._instanceLayout = instanceLayout;
@@ -140,8 +147,7 @@ export class ShaderPass extends ShaderPart {
   private _compileShaderSource(
     engine: Engine,
     macroCollection: ShaderMacroCollection,
-    isGPUInstance: boolean,
-    outputNames?: Map<string, string>
+    isGPUInstance: boolean
   ): { vertexSource: string; fragmentSource: string; instanceLayout: InstanceBufferLayout | null } {
     const isWebGL2: boolean = engine._hardwareRenderer.isWebGL2;
     const shaderMacroList = ShaderPass._shaderMacroList;
@@ -161,7 +167,7 @@ export class ShaderPass extends ShaderPart {
       const macro = shaderMacroList[i];
       macroMap.set(macro.name, macro.value ?? "");
     }
-    let vertexSource = ShaderMacroProcessor.evaluate(this._vertexShaderInstructions, macroMap, outputNames);
+    let vertexSource = ShaderMacroProcessor.evaluate(this._vertexShaderInstructions, macroMap);
     let fragmentSource = ShaderMacroProcessor.evaluate(this._fragmentShaderInstructions, macroMap);
 
     let instanceLayout: InstanceBufferLayout | null = null;

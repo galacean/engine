@@ -20,6 +20,8 @@ export interface IPrecompiledPass {
     constantMap: Record<string, number | string | boolean | number[]>;
     variableMap: Record<string, string>;
   };
+  /** Original varying field names mapped to generated stage outputs for external bindings. */
+  varyingNames?: Record<string, string>;
   vertexShaderInstructions?: ShaderInstruction[];
   fragmentShaderInstructions?: ShaderInstruction[];
 }
