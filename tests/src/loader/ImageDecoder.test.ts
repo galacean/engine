@@ -1,5 +1,6 @@
-import { AssetPromise, AssetType, ImageDecoder, Texture2D, TextureCube, WebGLEngine } from "@galacean/engine";
+import { AssetPromise, AssetType, Texture2D, TextureCube, WebGLEngine } from "@galacean/engine";
 import "@galacean/engine-loader";
+import { ImageDecoder } from "../../../packages/loader/src/ImageDecoder";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
 let engine: WebGLEngine;

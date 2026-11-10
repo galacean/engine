@@ -5,6 +5,7 @@ import { AssetPromise } from "@galacean/engine-core";
  *
  * The blob handed to the image carries the MIME type detected from the bytes: browsers sniff an untyped
  * blob, but some platforms (for example mini-game runtimes) only decode images whose type is declared.
+ * @internal
  */
 export class ImageDecoder {
   /**
