@@ -87,13 +87,13 @@ AI Chat 的真实模型请求沿用业务配置，需要配置可用的 provider
 
 ## Demo 归属
 
-共 42 个 HTML 入口：40 个静态构建入口、2 个依赖外部服务的历史建筑实验。`static` 表示构建模式，不代表所有在线 API 功能都能离线运行。完整入口清单由 [demos.json](demos.json) 维护。
+共 33 个 HTML 入口，都是静态构建入口。`static` 表示构建模式，不代表所有在线 API 功能都能离线运行。完整入口清单由 [demos.json](demos.json) 维护。`demos/building-core-preview/` 的四个开发页（新建筑系统的预览和 GPU 铺设原型）不登记在其中。
 
 | Demo 目录 | 系统归属 |
 | --- | --- |
 | `demos/agent-trajectory/` | ai-chat |
 | `demos/animals/` | animals |
-| `demos/building-components/` | building |
+| `demos/building-core-preview/` | building（开发页；`demos/building-components/` 只放 world 测试用的建筑夹具） |
 | `demos/canyon-shape-study/` | world-planning / terrain |
 | `demos/day-night-system/` | environment |
 | `demos/farming/` | farming |

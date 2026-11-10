@@ -52,7 +52,7 @@
 
 同时删除：只测试旧路径或旧通用 API 的 29 个测试文件；M1 并排验收页（`world/demos/building-core-preview/index.html`、`main.ts`）；已经无法运行的旧构件演示（`world/demos/building-components/` 下的 `staged.ts`、`index.html`、`recursive.html`）；`package.json` 中指向已删除文件的 69 个导出；`world/demos.json` 和 `world/migration/files.json` 中对应的条目。运行时脚本声明已重新生成。
 
-仍保留的 `Recovered*` 文件都还被新架构的运行时使用（例如屋顶数学 `RecoveredRoofMath`、木拱和墙洞内核）；以后替换它们时再按引用删除。
+这一轮删除后，仍有一批旧代码只通过类型引用挂在产品上，或者只给测试当对照标准用。它们在“旧代码清理（第二轮）”中删除。
 
 ## 兼容代码（已删除）
 
@@ -277,17 +277,22 @@ Cottage 老虎窗的开口在棚后端之前 0.4 m 结束（至多退到棚的�
 - `flat_rim = 1` 时没有女儿墙。
 - 与线上对比：屋面瓦片数量相差约 3%–7%，朝向一致；线上屋面瓦更薄（0.08 m），顶面和墙顶齐平。
 
-## 要替换的还原算法
+## 还原算法（已替换）
 
-- 墙体原生砌筑（`generateMasonry` 以及 `Recovered*` 墙体内核）来自 Tiny Glade 的二进制还原。我们会用自己的 `masonryCourses` 替代它：同样做转角加随机砖行，随机数用核心层的种子通道，每块砖可以按槽位单独计算。
-- 替代的标准是观感相近，不要求逐字节一致。
-- 屋顶还原内核（`RecoveredRectangularRoof`、`RecoveredRoofPlacement`、`RecoveredRoofContext`）：新架构的房屋不用它们生成屋顶，但渲染层仍经 `ConstructionDecorations` → `ConstructionSettledRoof` → `ConstructionRoof` 引用它们，所以删除旧路径时保留了下来。`RecoveredRoofMath` 还被 `world-planning` 的 `BuildingInitialDraft` 直接引用。替换这几处引用之后再删除。
-- 顺序：
-  1. M2 先包装原生砌筑，和线上对比；
-  2. 看效果；
-  3. 实现 `masonryCourses`；
-  4. 在验收页并排对比两者；
-  5. 删除还原的墙体内核。
+- 墙体原生砌筑已由核心层的 `masonryCourses` 替代：同样做转角加随机砖行，随机数用核心层的种子通道，每块砖按槽位单独计算。替代的标准是观感相近，不要求逐字节一致。还原的墙体内核已删除。
+- 屋顶由核心层的坡面和屋面构件铺设，屋顶还原内核已删除。
+- 仍保留的 `Recovered*` 文件都被产品使用：屋顶数学 `RecoveredRoofMath`（`world-planning` 的 `BuildingInitialDraft` 也直接引用）、屋顶几何 `RecoveredRoofGeometry`、木拱内核（`RecoveredWoodArch*`、`RecoveredWallArchCut`）、墙洞类型 `RecoveredWallConnectionHoles` 和墙面采样 `RecoveredWallSpace`。以后替换它们时再按引用删除。
+
+## 旧代码清理（第二轮）
+
+旧路径删除后，又按全仓库的导入图和逐符号引用查了一遍，删除了以下内容：
+
+- 只通过 `import type` 挂在产品上、运行时从不执行的旧代码：屋顶还原内核（`ConstructionRoof`、`ConstructionSettledRoof`、`Recovered*Roof*`、`GothicClip`、`SurfaceProjector`、屋顶装饰和装饰安装）、墙体砌筑还原内核（`BoundaryPlacement`、`BoundaryCourses`、`RecoveredWall*`、`RecoveredSine`、`RecoveredWoodPlank`），以及 `CompiledConstructionDecorations` 中恒为空或无人读写的字段。
+- 木墙窗洞的 SDF 切口：核心层由 `boardCourses` 在洞口处不铺木板，切口缓冲、绑定和资源校验从未生效。同时删除 3 个切口预制件及其网格、材质、着色器、SDF 图集和资源包的 `windowCuts` 字段。
+- 产品仍在使用的模块里约 60 个没有任何调用的函数和类型。
+- 只给测试当对照标准的旧算法：装饰 recipe 和类型尺寸表、Cottage 老虎窗的屋面采样和摆放、旧台基生成。测试改为读冻结在 `tests/core/baselines/` 中的数值（`CoreDecorationSizes`、`CoreFoundation`），输入和期望都不变。
+- 只测试旧代码的测试和用例，以及 `world/demos/building-components/` 中无人引用的验收文件。
+- 对应的包导出、`world/migration/files.json` 条目和运行时脚本声明。`check-assets` 现在随 world 测试运行，删除文件而遗漏清单会直接失败。
 
 ## 未完成项（不是兼容，要补实现）
 

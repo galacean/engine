@@ -47,7 +47,7 @@ VFS：`Building/Units/Prefabs/wall-lantern.prefab`。
 新架构的墙上预制件不使用 `assemblies`，而使用 `prefabs`。两者的区别：
 
 - `prefabs` 的成员位姿就是安装位姿。窗框离墙、玻璃内缩、灯离墙都写在子节点的 `position` 里，程序不再补偏移。
-- 根节点是 `BuildingPrefabComponent`。属性 `openings: [{ min: [x, y], max: [x, y] }, ...]` 是预制件在墙上开的洞，用预制件自身坐标；多个矩形合起来是一个洞。`curvedNarrowing` 是洞在弯曲的墙上变窄的宽度（米）。
+- 根节点是 `BuildingPrefabComponent`。预制件不写它开的洞：资源包编译时从成员网格量出占位形状（`occupancy`），墙和平屋顶按占位和自身的相交结果开洞，弯曲墙上的洞口自然变窄（见 [MIGRATION.md](../MIGRATION.md) 的“占位形状”）。门的根节点可以写 `threshold`，即门槛高度（米）。
 - 用排列单元绘制的成员（例如石帽）挂 `BuildingUnitMemberComponent`：`unit` 引用资源包里的石材排列单元；`span: [x0, x1]` 表示成员在这段 x 范围内沿墙弯曲，没有 `span` 时按节点位姿固定放置。
 - 成员不需要 `attachment`。所有成员随预制件一起放置。
 - 资源包编译时，成员网格以 `prefab/<类型>/<规格>/<路径>` 命名，包围盒由烘焙后的网格得出。

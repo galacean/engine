@@ -127,7 +127,7 @@
 
 - **已实现：** 本目录的全部机制，以及测试中的最小类型层：开洞、相交避让并派生接缝、二级派生、多宿主。
 - **已接入：** 独立墙、栅栏、房屋（墙、屋顶、腰线、抹灰、门窗壁灯、相连的房屋）走 应用层 → 类型层 → 核心层 → 渲染适配（`../render/CoreBuilding.ts`）。各阶段与线上的对比见 [../MIGRATION.md](../MIGRATION.md)。
-- **GPU 铺设原型：** `../render/GridUnitKernel.ts` 用 TransformFeedback（只支持 WebGL2）按槽位直接生成线上 64 字节砖块记录，CPU 只保留布局（约 260 字节）。`world/demos/building-core-preview/gpu.html` 在 8 米、100 米、1000 米三种墙上和 CPU 参考展开逐字节对比。目前只支持平地、无洞口的 `groundStrip` 立面上的 `surfaceGrid`，`draw.html` 把 GPU 生成的记录在显存内拷进砖块记录纹理，由线上砖块 shader 绘制，画面与 CPU 上传的结果相差在逐帧渲染噪声之内。砖块 LOD 仍读取 CPU 上的记录。
+- **GPU 铺设原型：** `../render/GridUnitKernel.ts` 用 TransformFeedback（只支持 WebGL2）按槽位直接生成渲染器读取的 64 字节砖块记录，CPU 只保留布局（约 260 字节）。`world/demos/building-core-preview/gpu.html` 在 8 米、100 米、1000 米三种墙上和 CPU 参考展开逐字节对比。目前只支持平地、无洞口的 `groundStrip` 立面上的 `surfaceGrid`，`draw.html` 把 GPU 生成的记录在显存内拷进砖块记录纹理，由现有的砖块 shader 绘制，画面与 CPU 上传的结果相差在逐帧渲染噪声之内。砖块 LOD 仍读取 CPU 上的记录。
 - **未接入：** Source 存档、Worker 调度、Mesh 曲面、UV 铺设。
 - **删除和占用：** `removeArea` 表示曲面在这里不存在（如开口）；`reserveArea` 表示曲面仍在，但被其他单元占用（如转角石），铺设的单元要避让。
 - **闭合曲面没有接缝：** 闭合曲面上的删除区域可以跨过 u 的起点，矩形的 u 可以小于 0 或大于周长。铺设算法和渲染不直接比较 `removed`、`reserved` 中的矩形，而是查询：`removedOver(u0, u1)`、`reservedOver(u0, u1)` 返回与这段 u 重叠的区域，并换算到这段 u 所在的周期；`removedAt(u, v)` 判断一个点是否被删除。周期只在核心层处理一次。`removed`、`reserved` 每次编辑一项，只用于按区域逐个处理的场合，例如每个开口生成一条渲染记录。
