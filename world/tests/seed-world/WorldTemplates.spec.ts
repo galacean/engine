@@ -62,6 +62,7 @@ import { planningGroundSurface } from "@galacean/engine-world-planning/semantic-
 describe("authored world templates", () => {
   it("幻兽荒原: starts with bounded land and empty automatic water, roads, buildings and vegetation", () => {
     const source = createTemplatePlanningDocument(110613, "titan-wasteland");
+    expect(source.authoredResources?.filter((resource) => resource.resourceType === "terrain-feature")).toEqual([]);
     const restored = importPlanningScene(exportPlanningScene(source));
     const recipe = exportPlanningRecipe(restored);
     expect(recipe.parameters.landMode).toBe("continuous");

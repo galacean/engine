@@ -797,8 +797,7 @@ export const WORLD_TEMPLATE_ART: Readonly<Record<string, WorldTemplateArtDirecti
       "vegetation.cover": 0,
       "vegetation.flowers": 0,
       "vegetation.litter": 0
-    },
-    terrain: [ridge("west-dune", -150, 80, 380, 120, 24, 20), ridge("east-dune", 170, 110, 450, 140, 32, -20)]
+    }
   },
   "luminous-abyss": {
     reference: "SeedWorld-14-bioluminescent-abyss.png",
