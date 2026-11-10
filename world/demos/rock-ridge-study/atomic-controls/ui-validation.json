@@ -1,0 +1,18 @@
+{
+  "date": "2026-11-10",
+  "widthsPx": [736, 320],
+  "observations": [
+    "topScale 0.2 visibly narrows the crown and increases source sampling",
+    "wallCount 12 to 28 changes face organization at 320 px",
+    "targetTriangles 200 reports 252 retained triangles and quality fallback",
+    "topSlope 75 reports effective slope 35.44 degrees in the default cube",
+    "combined height, crown and roof values produce a tall tapered mass",
+    "source and reduced mesh options render successfully",
+    "wireframe and OBB controls update the preview",
+    "grassCoverage 0 to 1 adds cap blades while triangle counts stay fixed",
+    "stone preview shader compiles without reported errors",
+    "narrow controls wrap with the whole preview visible"
+  ],
+  "observedJavaScriptOrShaderErrors": 0,
+  "nativeOrbitGesture": "Not established by the native drag attempt; gesture-level acceptance remains unverified."
+}

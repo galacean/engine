@@ -13,6 +13,10 @@ needed for the study. Fractured stone, fractured clay and the original clay mesh
 can be compared. This is a standalone surface study; Seed materials and runtime
 navigation are not integrated.
 
+For individual shape controls, open [Atomic rock controls](atomic-controls/index.html).
+Its 27 parameter choices run the upstream single-rock generator and compare source/reduced
+meshes. Choose one parameter at a time or enable combined edits.
+
 ```sh
 # From the repository root
 python3 -m http.server 8771 --bind 127.0.0.1 --directory world/demos/rock-ridge-study

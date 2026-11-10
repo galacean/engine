@@ -1,0 +1,159 @@
+<div id="atomic-rock-controls">
+  <div class="viz-controls">
+    <label class="form-label">Parameter <select class="form-select" id="arc-parameter"></select></label>
+    <label class="form-check"><input class="form-check-input" id="arc-combine" type="checkbox"><span class="form-check-label">Combine changes</span></label>
+  </div>
+  <label class="form-label" for="arc-slider"><span id="arc-label"></span> <code id="arc-key"></code> <output class="tabular-nums" id="arc-value" for="arc-slider"></output></label>
+  <input class="form-range" id="arc-slider" type="range" aria-label="Top section (topScale)" min="0.08" max="1" step="0.01" value="0.8">
+  <div class="text-small" id="arc-help"></div>
+  <div id="arc-stage" role="img" aria-label="Single procedural rock. Drag to orbit; use the parameter slider to change its shape.">
+    <div id="arc-scale" class="text-small"><span></span><div>1 m</div></div>
+  </div>
+  <div class="text-small tabular-nums" id="arc-status" aria-live="polite">Preparing rock…</div>
+  <div class="viz-controls">
+    <label class="form-label">View <select class="form-select" id="arc-view"><option value="oblique">Oblique</option><option value="side">Side</option><option value="top">Top</option></select></label>
+    <label class="form-label">Mesh <select class="form-select" id="arc-mesh"><option value="source">Source mesh</option><option value="reduced">Reduced mesh</option></select></label>
+    <label class="form-label">Surface <select class="form-select" id="arc-finish"><option value="clay">Clay</option><option value="stone">Stone preview</option></select></label>
+  </div>
+  <div class="viz-row">
+    <label class="form-check"><input class="form-check-input" id="arc-box" type="checkbox" checked><span class="form-check-label">Show OBB</span></label>
+    <label class="form-check"><input class="form-check-input" id="arc-wire" type="checkbox"><span class="form-check-label">Wireframe</span></label>
+  </div>
+</div>
+<style>
+ #atomic-rock-controls{display:flex;flex-direction:column;gap:calc(var(--font-size-base)*.5)}
+ #atomic-rock-controls #arc-stage{position:relative;width:100%;overflow:hidden;min-height:280px}
+ #atomic-rock-controls canvas{display:block;width:100%;touch-action:none;cursor:grab}
+ #atomic-rock-controls canvas:active{cursor:grabbing}
+ #atomic-rock-controls #arc-scale{position:absolute;left:calc(var(--font-size-base)*.5);bottom:calc(var(--font-size-base)*.5);pointer-events:none}
+ #atomic-rock-controls #arc-scale span{display:block;height:5px;border:1px solid var(--foreground);border-top:0}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+<script>
+(()=>{
+ __ATOMIC_KERNEL__
+ __ATOMIC_CONTROLS__
+ const root=document.getElementById('atomic-rock-controls'),find=id=>root.querySelector('#arc-'+id);
+ const selector=find('parameter'),slider=find('slider'),value=find('value'),label=find('label'),keyLabel=find('key'),help=find('help'),stage=find('stage'),status=find('status');
+ const combineInput=find('combine'),viewInput=find('view'),meshInput=find('mesh'),finishInput=find('finish'),boxInput=find('box'),wireInput=find('wire');
+ const groups=new Map();for(const def of CONTROL_DEFINITIONS){if(!groups.has(def.group)){const group=document.createElement('optgroup');group.label=def.group;selector.append(group);groups.set(def.group,group);}const option=document.createElement('option');option.value=def.key;option.textContent=def.label+' · '+def.key;groups.get(def.group).append(option);}
+ let selected='topScale',values={...CONTROL_DEFAULTS},yaw=.65,pitch=.3,width=700,height=440,current=null,lastMesh=null,worker=null,workerReady=false,workerBusy=false,pending=null,serial=0,timer=0,drag=null,lastStateKey='',fallbackKernel=null;
+ selector.value=selected;
+ const T=window.THREE;if(!T){status.textContent='The 3D renderer could not load.';status.setAttribute('role','alert');return;}
+ const scene=new T.Scene(),world=new T.Group();scene.add(world);
+ const camera=new T.OrthographicCamera(-5,5,3,-3,.01,2000);
+ let renderer;try{renderer=new T.WebGLRenderer({antialias:true,alpha:true});}catch{status.textContent='WebGL is unavailable in this view.';status.setAttribute('role','alert');return;}
+ renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));renderer.outputColorSpace=T.SRGBColorSpace;renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=1.1;renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFSoftShadowMap;stage.prepend(renderer.domElement);
+ const ambient=new T.HemisphereLight();ambient.intensity=1.5;scene.add(ambient);
+ const sun=new T.DirectionalLight();sun.intensity=3.4;sun.position.set(-8,12,9);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);sun.shadow.bias=-.00015;sun.shadow.normalBias=.015;scene.add(sun);
+ const fill=new T.DirectionalLight();fill.intensity=.5;fill.position.set(8,4,-7);scene.add(fill);
+ let rockMesh=null,grassMesh=null,boxMesh=null,groundMesh=null;
+ function color(token){const probe=document.createElement('span');probe.style.color='var('+token+')';root.append(probe);const c=new T.Color(getComputedStyle(probe).color);probe.remove();return c;}
+ function palette(){const bg=color('--background'),fg=color('--foreground'),dark=bg.r+bg.g+bg.b<fg.r+fg.g+fg.b,bright=dark?fg:bg;return {bg,fg,dark,bright,stone:bg.clone().lerp(fg,dark?.36:.31),ground:bg.clone().lerp(color('--green'),.08).lerp(fg,.035),grass:bg.clone().lerp(color('--green'),.64).lerp(fg,.12)};}
+ function rockMaterial(appearance){
+  const p=palette(),stone=finishInput.value==='stone',base=p.stone.clone();
+  if(stone){const tint=new T.Color().setHSL(appearance.colorHue/360,.25,.5);base.lerp(tint,.19);}
+  const material=new T.MeshStandardMaterial({color:base,roughness:stone?appearance.roughness:1,metalness:0,wireframe:wireInput.checked});
+  if(stone){
+   material.extensions={derivatives:true};material.onBeforeCompile=shader=>{
+    shader.uniforms.arcNormalStrength={value:appearance.normalStrength};
+    shader.vertexShader=shader.vertexShader.replace('#include <common>','#include <common>\nvarying vec3 arcLocal;').replace('#include <begin_vertex>','#include <begin_vertex>\narcLocal=position;');
+    shader.fragmentShader=shader.fragmentShader.replace('#include <common>',`#include <common>
+varying vec3 arcLocal; uniform float arcNormalStrength;
+float arcHash(vec3 p){p=fract(p*.1031);p+=dot(p,p.yzx+33.33);return fract((p.x+p.y)*p.z);}
+float arcNoise(vec3 p){vec3 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(mix(arcHash(i),arcHash(i+vec3(1,0,0)),f.x),mix(arcHash(i+vec3(0,1,0)),arcHash(i+vec3(1,1,0)),f.x),f.y),mix(mix(arcHash(i+vec3(0,0,1)),arcHash(i+vec3(1,0,1)),f.x),mix(arcHash(i+vec3(0,1,1)),arcHash(i+vec3(1,1,1)),f.x),f.y),f.z);}
+`);
+    shader.fragmentShader=shader.fragmentShader.replace('#include <color_fragment>','#include <color_fragment>\nfloat arcGrain=arcNoise(arcLocal*8.)*.7+arcNoise(arcLocal*23.)*.3;diffuseColor.rgb*=.83+.30*arcGrain;');
+    shader.fragmentShader=shader.fragmentShader.replace('#include <normal_fragment_maps>',`#include <normal_fragment_maps>
+vec3 arcDx=dFdx(-vViewPosition),arcDy=dFdy(-vViewPosition),arcR1=cross(arcDy,normal),arcR2=cross(normal,arcDx);
+float arcDet=dot(arcDx,arcR1),arcFilter=1.-smoothstep(.08,.4,max(length(dFdx(arcLocal)),length(dFdy(arcLocal))));
+float arcHeight=arcGrain*.035*arcNormalStrength*arcFilter;
+normal=normalize(abs(arcDet)*normal-sign(arcDet)*(dFdx(arcHeight)*arcR1+dFdy(arcHeight)*arcR2));
+`);
+   };material.customProgramCacheKey=()=>CONTROL_VERSION+':stone';
+  }
+  return material;
+ }
+ function remove(object){if(!object)return;world.remove(object);object.geometry.dispose();if(Array.isArray(object.material))object.material.forEach(m=>m.dispose());else object.material.dispose();object.dispose?.();}
+ function makeGrass(mesh,appearance){
+  remove(grassMesh);grassMesh=null;if(appearance.grassCoverage<=0)return;
+  const triangles=[];let total=0;
+  for(let i=0;i<mesh.indices.length;i+=3){const ids=Array.from(mesh.indices.slice(i,i+3)),p=ids.map(k=>new T.Vector3().fromArray(mesh.positions,k*3)),n=new T.Vector3().crossVectors(p[1].clone().sub(p[0]),p[2].clone().sub(p[0])),area=n.length()/2;n.normalize();if(n.y<.55||ids.reduce((s,k)=>s+(mesh.surfaceRoles?.[k]??0),0)/3<.6)continue;total+=area;triangles.push({p,n,total});}
+  if(!total)return;
+  const count=Math.round(280*appearance.grassCoverage),blade=new T.PlaneGeometry(.07,.42,1,2);blade.translate(0,.21,0);
+  grassMesh=new T.InstancedMesh(blade,new T.MeshStandardMaterial({color:palette().grass,roughness:1,side:T.DoubleSide}),count);grassMesh.castShadow=true;
+  let seed=current.parameters.seed>>>0;const random=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;},dummy=new T.Object3D(),up=new T.Vector3(0,1,0);
+  const scale=Math.max(.5,Math.min(2,Math.min(current.parameters.obbWidth,current.parameters.obbDepth)/4.2));
+  for(let i=0;i<count;i++){const at=random()*total,tri=triangles.find(t=>t.total>=at),a=Math.sqrt(random()),b=random();dummy.position.copy(tri.p[0]).multiplyScalar(1-a).addScaledVector(tri.p[1],a*(1-b)).addScaledVector(tri.p[2],a*b).addScaledVector(tri.n,.01);dummy.quaternion.setFromUnitVectors(up,tri.n);dummy.rotateY(random()*Math.PI*2);dummy.scale.setScalar(scale*(.7+random()*.5));dummy.updateMatrix();grassMesh.setMatrixAt(i,dummy.matrix);}
+  grassMesh.instanceMatrix.needsUpdate=true;world.add(grassMesh);
+ }
+ function appearance(){
+  if(!rockMesh||!lastMesh)return;rockMesh.material.dispose();rockMesh.material=rockMaterial(current.appearance);makeGrass(lastMesh,current.appearance);
+  const p=palette();ambient.color.copy(p.bright);ambient.groundColor.copy(p.bg.clone().lerp(p.fg,.15));sun.color.copy(p.bright);fill.color.copy(p.bright);if(groundMesh)groundMesh.material.color.copy(p.ground);if(boxMesh){boxMesh.material.color.copy(p.fg);boxMesh.visible=boxInput.checked;}render();
+ }
+ function accept(mesh,settings){
+  lastMesh=mesh;current=settings;remove(rockMesh);remove(boxMesh);remove(groundMesh);
+  const geometry=new T.BufferGeometry();geometry.setAttribute('position',new T.BufferAttribute(mesh.positions,3));geometry.setAttribute('normal',new T.BufferAttribute(mesh.normals,3));geometry.setIndex(new T.BufferAttribute(mesh.indices,1));geometry.computeBoundingSphere();
+  rockMesh=new T.Mesh(geometry,rockMaterial(settings.appearance));rockMesh.castShadow=true;rockMesh.receiveShadow=true;world.add(rockMesh);
+  const p=settings.parameters,w=p.obbWidth,h=p.obbHeight,d=p.obbDepth,box=new T.BoxGeometry(w,h,d),edges=new T.EdgesGeometry(box);box.dispose();boxMesh=new T.LineSegments(edges,new T.LineBasicMaterial({color:palette().fg,transparent:true,opacity:.27}));boxMesh.visible=boxInput.checked;world.add(boxMesh);
+  groundMesh=new T.Mesh(new T.PlaneGeometry(Math.max(w,d)*4,Math.max(w,d)*4),new T.MeshStandardMaterial({color:palette().ground,roughness:1}));groundMesh.rotation.x=-Math.PI/2;groundMesh.position.y=-h/2-.015;groundMesh.receiveShadow=true;world.add(groundMesh);
+  const size=Math.max(w,h,d);sun.position.set(-size*1.8,size*2.5,size*2);Object.assign(sun.shadow.camera,{left:-size*1.2,right:size*1.2,top:size*1.2,bottom:-size*1.2,near:.1,far:size*8});sun.shadow.camera.updateProjectionMatrix();
+  appearance();showStatus();
+ }
+ function showStatus(message){
+  status.removeAttribute('role');if(message){status.textContent=message;return;}if(!lastMesh)return;
+  const p=current.parameters,s=lastMesh.stats,reduced=meshInput.value==='reduced';
+  const count=reduced?s.rawTriangles.toLocaleString()+' → '+s.triangles.toLocaleString():s.triangles.toLocaleString();
+  let text=[p.obbWidth,p.obbHeight,p.obbDepth].map(n=>Number(n.toFixed(2))).join(' × ')+' m · '+count+' triangles';
+  if(selected==='topSlope'||selected==='topDirection')text+=' · effective slope '+s.effectiveTopSlope.toFixed(2)+'°';
+  if(reduced&&current.reduction.targetTriangles&&s.triangles>current.reduction.targetTriangles)text+=' · quality requires more than the target';
+  if(selected==='wallStagger')text+=' · unchanged by stagger';status.textContent=text;
+ }
+ function render(){
+  if(!current)return;const p=current.parameters,w=p.obbWidth,h=p.obbHeight,d=p.obbDepth;let ex=0,ey=0;
+  for(const x of [-w/2,w/2])for(const y of [-h/2,h/2])for(const z of [-d/2,d/2]){ex=Math.max(ex,Math.abs(x*Math.cos(yaw)-z*Math.sin(yaw)));ey=Math.max(ey,Math.abs(-x*Math.sin(yaw)*Math.sin(pitch)+y*Math.cos(pitch)-z*Math.cos(yaw)*Math.sin(pitch)));}
+  const span=Math.max(ex*2.5,ey*2.5*width/height,1),distance=Math.max(w,h,d)*4;
+  camera.left=-span/2;camera.right=span/2;camera.top=span*height/width/2;camera.bottom=-camera.top;camera.updateProjectionMatrix();camera.position.set(distance*Math.sin(yaw)*Math.cos(pitch),distance*Math.sin(pitch),distance*Math.cos(yaw)*Math.cos(pitch));camera.lookAt(0,0,0);renderer.render(scene,camera);const metres=10**Math.floor(Math.log10(span*.15));find('scale').querySelector('span').style.width=width*metres/span+'px';find('scale').querySelector('div').textContent=metres+' m';
+ }
+ function resize(){width=stage.clientWidth||700;height=Math.max(280,Math.min(450,width*.62));renderer.setSize(width,height);stage.style.height=height+'px';render();}
+ new ResizeObserver(resize).observe(stage);
+ function currentSettings(){const result=resolvedControls(values,selected,combineInput.checked);result.reduction.enabled=meshInput.value==='reduced';return result;}
+ function format(def,n){const digits=def.step<1?Math.min(3,(String(def.step).split('.')[1]||'').length):0;return n.toFixed(digits)+def.unit;}
+ function sync(){const def=CONTROL_DEFINITIONS.find(d=>d.key===selected);selector.value=selected;label.textContent=def.label;keyLabel.textContent=def.key;value.value=format(def,values[selected]);Object.assign(slider,{min:def.min,max:def.max,step:def.step,value:values[selected]});slider.setAttribute('aria-label',def.label+' ('+def.key+')');slider.setAttribute('aria-valuetext',format(def,values[selected]));help.textContent=def.help;}
+ function error(message){showStatus(message);status.setAttribute('role','alert');}
+ function done(data){workerBusy=false;if(data.id===serial){if(data.error)error(data.error);else accept(data.mesh,currentSettings());}pump();}
+ async function fallback(request){try{fallbackKernel??=atomicRockKernel();await fallbackKernel.ready;const raw=fallbackKernel.buildRock(request.parameters),mesh=fallbackKernel.simplifyRock(raw,request.reduction);done({id:request.id,mesh});}catch(e){done({id:request.id,error:e.message});}}
+ function pump(){if(!workerReady||workerBusy||!pending)return;const request=pending;pending=null;workerBusy=true;if(worker)worker.postMessage(request);else setTimeout(()=>fallback(request),0);}
+ const workerCode='const kernel=('+atomicRockKernel.toString()+')();let rawKey="",raw=null;self.onmessage=({data})=>{try{const key=JSON.stringify(data.parameters);if(key!==rawKey){raw=kernel.buildRock(data.parameters);rawKey=key;}const result=kernel.simplifyRock(raw,data.reduction),mesh={positions:result.positions.slice(),normals:result.normals.slice(),indices:result.indices.slice(),surfaceRoles:result.surfaceRoles?.slice(),bounds:result.bounds,envelopeBounds:result.envelopeBounds,stats:result.stats},transfer=[mesh.positions.buffer,mesh.normals.buffer,mesh.indices.buffer];if(mesh.surfaceRoles)transfer.push(mesh.surfaceRoles.buffer);self.postMessage({id:data.id,mesh},transfer);}catch(e){self.postMessage({id:data.id,error:e.message});}};kernel.ready.then(()=>self.postMessage({ready:true})).catch(e=>self.postMessage({fatal:e.message}));';
+ try{const url=URL.createObjectURL(new Blob([workerCode],{type:'text/javascript'}));worker=new Worker(url);URL.revokeObjectURL(url);worker.onmessage=({data})=>{if(data.ready){workerReady=true;pump();}else if(data.fatal){worker.terminate();worker=null;workerReady=true;pump();}else done(data);};worker.onerror=()=>{worker.terminate();worker=null;workerBusy=false;workerReady=true;schedule(true);};}catch{workerReady=true;}
+ function schedule(immediate=false){
+  clearTimeout(timer);const settings=currentSettings(),id=++serial;pending=null;
+  showStatus('Building '+CONTROL_DEFINITIONS.find(d=>d.key===selected).label.toLowerCase()+'…');
+  const run=()=>{pending={id,parameters:settings.parameters,reduction:settings.reduction};pump();};if(immediate)run();else timer=setTimeout(run,100);
+ }
+ function save(){lastStateKey=stateKey();window.openai?.setWidgetState({modelContent:{kind:'atomic-rock-controls',version:CONTROL_VERSION,parameter:selected,values,combine:combineInput.checked,view:viewInput.value,mesh:meshInput.value,finish:finishInput.value,showOBB:boxInput.checked,wireframe:wireInput.checked},privateContent:{yaw,pitch}}).catch(()=>{});}
+ function stateKey(){return JSON.stringify({selected,values,combine:combineInput.checked,view:viewInput.value,mesh:meshInput.value,finish:finishInput.value,box:boxInput.checked,wire:wireInput.checked});}
+ function restore(state,initial=false){
+  const m=state?.modelContent;if(m?.kind!=='atomic-rock-controls')return false;
+  const before=stateKey();if(CONTROL_DEFINITIONS.some(d=>d.key===m.parameter))selected=m.parameter;values=resolvedControls(m.values,selected).values;
+  if(typeof m.combine==='boolean')combineInput.checked=m.combine;if(['oblique','side','top'].includes(m.view))viewInput.value=m.view;if(['source','reduced'].includes(m.mesh))meshInput.value=m.mesh;if(['clay','stone'].includes(m.finish))finishInput.value=m.finish;if(typeof m.showOBB==='boolean')boxInput.checked=m.showOBB;if(typeof m.wireframe==='boolean')wireInput.checked=m.wireframe;
+  if(initial&&Number.isFinite(state.privateContent?.yaw)&&Number.isFinite(state.privateContent?.pitch)){yaw=state.privateContent.yaw;pitch=Math.max(.06,Math.min(Math.PI/2-.001,state.privateContent.pitch));}
+  sync();const after=stateKey();if(initial||before!==after&&after!==lastStateKey)schedule(true);return true;
+ }
+ selector.addEventListener('change',()=>{selected=selector.value;const def=CONTROL_DEFINITIONS.find(d=>d.key===selected);if(def.group==='Appearance'){finishInput.value='stone';wireInput.checked=false;}if(['targetTriangles','reductionError'].includes(selected))meshInput.value='reduced';if(selected==='resolution'){meshInput.value='source';wireInput.checked=true;}sync();schedule(true);save();});
+ slider.addEventListener('input',()=>{values[selected]=Number(slider.value);sync();const settings=currentSettings();if(CONTROL_DEFINITIONS.find(d=>d.key===selected).group==='Appearance'&&lastMesh){current.appearance=settings.appearance;appearance();showStatus();}else schedule();});
+ slider.addEventListener('change',save);
+ combineInput.addEventListener('change',()=>{schedule(true);save();});
+ meshInput.addEventListener('change',()=>{schedule(true);save();});
+ finishInput.addEventListener('change',()=>{appearance();save();});
+ boxInput.addEventListener('change',()=>{if(boxMesh)boxMesh.visible=boxInput.checked;render();save();});
+ wireInput.addEventListener('change',()=>{if(rockMesh){rockMesh.material.wireframe=wireInput.checked;rockMesh.material.needsUpdate=true;}render();save();});
+ viewInput.addEventListener('change',()=>{if(viewInput.value==='top'){yaw=0;pitch=Math.PI/2-.001;}else if(viewInput.value==='side'){yaw=0;pitch=.08;}else{yaw=.65;pitch=.3;}render();save();});
+ renderer.domElement.addEventListener('pointerdown',e=>{drag={x:e.clientX,y:e.clientY,yaw,pitch};renderer.domElement.setPointerCapture(e.pointerId);});
+ renderer.domElement.addEventListener('pointermove',e=>{if(!drag)return;yaw=drag.yaw-(e.clientX-drag.x)*.006;pitch=Math.max(.06,Math.min(Math.PI/2-.001,drag.pitch+(e.clientY-drag.y)*.006));render();});
+ renderer.domElement.addEventListener('pointerup',()=>{if(drag){drag=null;save();}});renderer.domElement.addEventListener('pointercancel',()=>drag=null);
+ let themeTimer;new MutationObserver(()=>{clearTimeout(themeTimer);themeTimer=setTimeout(appearance,50);}).observe(document.documentElement,{attributes:true,attributeFilter:['class','style','data-theme']});
+ window.addEventListener('openai:set_globals',e=>restore(e.detail?.globals?.widgetState));
+ resize();if(!restore(window.openai?.widgetState,true)){sync();schedule(true);}
+})();
+</script>

@@ -1,0 +1,331 @@
+{
+  "version": "atomic-controls-1",
+  "controls": 27,
+  "sourceEndpointCases": 40,
+  "exactUpstreamParity": true,
+  "verifiedUpstreamFiles": 9,
+  "checks": [
+    "pinned upstream Git blob identity",
+    "bundled kernel matches upstream buffers",
+    "finite bounded geometry at slider endpoints",
+    "geometry angle acceptance",
+    "unused stagger stays ineffective",
+    "appearance leaves geometry fixed",
+    "isolated and combined controls",
+    "visible roof direction example",
+    "error-only reduction",
+    "validated state whitelist",
+    "cached source immutable during reduction",
+    "truthful triangle budgets",
+    "resolution changes source sampling",
+    "effective roof clamp"
+  ],
+  "results": [
+    {
+      "key": "obbWidth",
+      "value": 0.5,
+      "sourceTriangles": 4992,
+      "hash": "854bc46d373f3c14eb4703cc0b269d3fdc4f58a1e6c30485a04fa7d8fdebae40",
+      "effectiveTopSlope": 0
+    },
+    {
+      "key": "obbWidth",
+      "value": 30,
+      "sourceTriangles": 4992,
+      "hash": "47696fa977a77434618764ff0ac812bcf4e8ebdc26e2d90ce0d5172979f56357",
+      "effectiveTopSlope": 0
+    },
+    {
+      "key": "obbHeight",
+      "value": 0.5,
+      "sourceTriangles": 4992,
+      "hash": "635502e91948636ea9c12c94541bb83982ef87a04304e6bce131f9f903d0316b",
+      "effectiveTopSlope": 0
+    },
+    {
+      "key": "obbHeight",
+      "value": 40,
+      "sourceTriangles": 4992,
+      "hash": "591709271adae282b48fdbff704b98faa588f4ef9b9fab7e7c1c6ae29d3357d0",
+      "effectiveTopSlope": 0
+    },
+    {
+      "key": "obbDepth",
+      "value": 0.5,
+      "sourceTriangles": 4992,
+      "hash": "94ca2d902d12606c3e0f8c8ed83ac9db46d5d445a23dfb707f5dc47919a28837",
+      "effectiveTopSlope": 0
+    },
+    {
+      "key": "obbDepth",
+      "value": 30,
+      "sourceTriangles": 4992,
+      "hash": "ee48a776f54461824a2cb745773cc204ea12c48af7155703861caa3a56c52f2a",
+      "effectiveTopSlope": 0
+    },
+    {
+      "key": "bottomScale",
+      "value": 0,
+      "sourceTriangles": 9216,
+      "hash": "2d7fe85ed0b730e7b0f64ddc34fa2276b0c6712cbe845f2d0917a926f1e4bb65",
+      "effectiveTopSlope": 0
+    },
+    {
+      "key": "bottomScale",
+      "value": 1,
+      "sourceTriangles": 4992,
+      "hash": "76b33e444d21f5b2c3398b2272ea4c7eebac474d460cd1eb532a9c030b71848f",
+      "effectiveTopSlope": 0
+    },
+    {
+      "key": "shoulderScale",
+      "value": 0.08,
+      "sourceTriangles": 4992,
+      "hash": "d23c61e674fbf6a695ff924dff483def910cfd9662f6a9fba53bd65c88465cd9",
+      "effectiveTopSlope": 0
+    },
+    {
+      "key": "shoulderScale",
+      "value": 1,
+      "sourceTriangles": 4992,
+      "hash": "de0b6954815329ff10f49cc360fa22a42714927b373007cddd9782ff89393504",
+      "effectiveTopSlope": 0
+    },
+    {
+      "key": "shoulderHeight",
+      "value": 0.15,
+      "sourceTriangles": 4992,
+      "hash": "bc00d0455175eea3ebf805ba82add2910bc57c02c2132c686e86940cd351d419",
+      "effectiveTopSlope": 0
+    },
+    {
+      "key": "shoulderHeight",
+      "value": 0.9,
+      "sourceTriangles": 4992,
+      "hash": "53c852e510a480b4b937323e8fa297cb6e30efc111199764ee2253ad1a207896",
+      "effectiveTopSlope": 0
+    },
+    {
+      "key": "topScale",
+      "value": 0.08,
+      "sourceTriangles": 10176,
+      "hash": "2d2ad3328ab1548c01e580d76101f2cb386c52974722ecb85b7283a1a7714c6d",
+      "effectiveTopSlope": 0
+    },
+    {
+      "key": "topScale",
+      "value": 1,
+      "sourceTriangles": 4992,
+      "hash": "2f0afe11d72c4ceb0c9f2eae6f611038e8f689e81613e3a8aa06000c96697250",
+      "effectiveTopSlope": 0
+    },
+    {
+      "key": "topSlope",
+      "value": 0,
+      "sourceTriangles": 4992,
+      "hash": "76b33e444d21f5b2c3398b2272ea4c7eebac474d460cd1eb532a9c030b71848f",
+      "effectiveTopSlope": 0
+    },
+    {
+      "key": "topSlope",
+      "value": 75,
+      "sourceTriangles": 4992,
+      "hash": "2e7748942145eda953306397ee06d369a04000e8f6443f961123c1cef07b2631",
+      "effectiveTopSlope": 35.43819035058003
+    },
+    {
+      "key": "topDirection",
+      "value": 0,
+      "sourceTriangles": 4992,
+      "hash": "9de152bd8c600e3d1b9653ae7188092b2d1482938d567034039b235edba8201c",
+      "effectiveTopSlope": 20
+    },
+    {
+      "key": "topDirection",
+      "value": 360,
+      "sourceTriangles": 4992,
+      "hash": "9de152bd8c600e3d1b9653ae7188092b2d1482938d567034039b235edba8201c",
+      "effectiveTopSlope": 20
+    },
+    {
+      "key": "topRoughness",
+      "value": 0,
+      "sourceTriangles": 4992,
+      "hash": "a5d166b3cdd77fd2af07d804b4c81965acc2b95214a10b288466b556c8f83297",
+      "effectiveTopSlope": 0
+    },
+    {
+      "key": "topRoughness",
+      "value": 1,
+      "sourceTriangles": 4992,
+      "hash": "b284eb9b0a2a07ed662358432242053100a4c554fdf9eb0a2f8b0b06f873f963",
+      "effectiveTopSlope": 0
+    },
+    {
+      "key": "seed",
+      "value": 1,
+      "sourceTriangles": 4992,
+      "hash": "251eedfe958ad357af5436bde3aa5b16bc88d489f5ca140df25a2801793db68f",
+      "effectiveTopSlope": 0
+    },
+    {
+      "key": "seed",
+      "value": 10000,
+      "sourceTriangles": 4992,
+      "hash": "feb5a1917d94f2038d41893f9a6bf6d30adce94a8dbaf66b92c347fc260db24f",
+      "effectiveTopSlope": 0
+    },
+    {
+      "key": "outlineIrregularity",
+      "value": 0,
+      "sourceTriangles": 4992,
+      "hash": "76b33e444d21f5b2c3398b2272ea4c7eebac474d460cd1eb532a9c030b71848f",
+      "effectiveTopSlope": 0
+    },
+    {
+      "key": "outlineIrregularity",
+      "value": 1,
+      "sourceTriangles": 4992,
+      "hash": "1a47612f2ef8c3ddd74678194ad33bad7344d158f30bfa626313ca10dcf78817",
+      "effectiveTopSlope": 0
+    },
+    {
+      "key": "wear",
+      "value": 0,
+      "sourceTriangles": 4992,
+      "hash": "7ecc18aa1e66c0d635658dd9738da759eba8055b3b212b2d5df2966e0b537c61",
+      "effectiveTopSlope": 0
+    },
+    {
+      "key": "wear",
+      "value": 1,
+      "sourceTriangles": 4992,
+      "hash": "659cf98cda81ef38b181b96f69daa8be4301e1db17a35f14e95515083072727f",
+      "effectiveTopSlope": 0
+    },
+    {
+      "key": "wallCount",
+      "value": 4,
+      "sourceTriangles": 4992,
+      "hash": "efec296ea0ba3ef17c8c48a3f0c15710853fa3a6c1d17f6c7005365a9c7c1a41",
+      "effectiveTopSlope": 0
+    },
+    {
+      "key": "wallCount",
+      "value": 28,
+      "sourceTriangles": 4992,
+      "hash": "4449b7e1e17594d81aa3f215b106fcc4dc205a8dd3fbd31ee71123874175eb82",
+      "effectiveTopSlope": 0
+    },
+    {
+      "key": "wallOverlap",
+      "value": 0,
+      "sourceTriangles": 4992,
+      "hash": "981e6fa1b794c378c694565f3a1636665189889c8fc30399291e1cc0712b0f96",
+      "effectiveTopSlope": 0
+    },
+    {
+      "key": "wallOverlap",
+      "value": 1,
+      "sourceTriangles": 4992,
+      "hash": "41b2c59a4bdde945fa1a80da17054a1b2185245bb1088f4a1046fdf49a14bcc1",
+      "effectiveTopSlope": 0
+    },
+    {
+      "key": "wallLength",
+      "value": 0.5,
+      "sourceTriangles": 4992,
+      "hash": "ad3245696577f63383534c45af56bd5e5bfd4c98e95fa69d40366cd53cd6195c",
+      "effectiveTopSlope": 0
+    },
+    {
+      "key": "wallLength",
+      "value": 3,
+      "sourceTriangles": 4992,
+      "hash": "529729959066295f73b9916b07a85b8105d975d9eb2b602ff9c12392160ece35",
+      "effectiveTopSlope": 0
+    },
+    {
+      "key": "wallTilt",
+      "value": -35,
+      "sourceTriangles": 4992,
+      "hash": "b802347b297d383ec770ac6de51f9efed249fa3c251c96b9e750df51b0db9e96",
+      "effectiveTopSlope": 0
+    },
+    {
+      "key": "wallTilt",
+      "value": 35,
+      "sourceTriangles": 4992,
+      "hash": "61b44fd2f4e212f23a49fe1d163bfc9d20f708498ca5cbfce63debeaab306c1d",
+      "effectiveTopSlope": 0
+    },
+    {
+      "key": "wallStrength",
+      "value": 0,
+      "sourceTriangles": 4992,
+      "hash": "2f7c0390617975a87d9757dd3b34d688ce58b1a7b8150a62ffeaf75e4a2b6f1c",
+      "effectiveTopSlope": 0
+    },
+    {
+      "key": "wallStrength",
+      "value": 1,
+      "sourceTriangles": 4992,
+      "hash": "c23dae0a0bd3f8a4536ec36195488314ee4785d4151a97dfec9a0c3b1863512a",
+      "effectiveTopSlope": 0
+    },
+    {
+      "key": "wallProtrusion",
+      "value": 0,
+      "sourceTriangles": 4992,
+      "hash": "53fbd5910cdd0863c028c71cb971aa2363b44fcad34e7744a91d79c5a840695d",
+      "effectiveTopSlope": 0
+    },
+    {
+      "key": "wallProtrusion",
+      "value": 1,
+      "sourceTriangles": 4992,
+      "hash": "c94b541aeda436e916e5ea7b6f03d8d544ba62ad65686b713512771b680a9e12",
+      "effectiveTopSlope": 0
+    },
+    {
+      "key": "wallStagger",
+      "value": 0,
+      "sourceTriangles": 4992,
+      "hash": "76b33e444d21f5b2c3398b2272ea4c7eebac474d460cd1eb532a9c030b71848f",
+      "effectiveTopSlope": 0
+    },
+    {
+      "key": "wallStagger",
+      "value": 1,
+      "sourceTriangles": 4992,
+      "hash": "76b33e444d21f5b2c3398b2272ea4c7eebac474d460cd1eb532a9c030b71848f",
+      "effectiveTopSlope": 0
+    }
+  ],
+  "reductions": [
+    {
+      "targetTriangles": 200,
+      "triangles": 252,
+      "budgetMet": false
+    },
+    {
+      "targetTriangles": 1000,
+      "triangles": 1000,
+      "budgetMet": true
+    },
+    {
+      "targetTriangles": 5000,
+      "triangles": 1196,
+      "budgetMet": true
+    }
+  ],
+  "errorOnly": {
+    "tight": 4884,
+    "loose": 1366
+  },
+  "sourceResolution": {
+    "low": 3168,
+    "high": 37248
+  },
+  "effectiveSlope": 2.716329519751028
+}

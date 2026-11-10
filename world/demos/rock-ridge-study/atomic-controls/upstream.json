@@ -1,0 +1,16 @@
+{
+  "repository": "galacean/engine",
+  "commit": "b2887feee34df433303d1c3197a679e4c219367d",
+  "directory": "packages/terrain/src/rock-formation/generator",
+  "gitBlobIds": {
+    "open-recesses.js": "312be78fd4fc73a343b8f4a21bed16bfc20ad556",
+    "rock-body.js": "d39d9f9a512bdcaf9268410279519fbf8e2feb3c",
+    "loft-rock.js": "189d4bb508d982ee669398fb8ff0c485c2a4b62d",
+    "wall-composition.js": "f278969ca565446d44eee2df6199485addbc08b8",
+    "body-profile.js": "3b0e351512624f20187370ea2aabccaccf095fb3",
+    "simplify-rock.js": "089e8355e5691423e02972439410cb4accde3408",
+    "outline.js": "9ffe3ed74e8ade79739749469da0dff85905a340",
+    "vendor/meshopt_simplifier.js": "4e14ef3ee444f5f7bc8d5d9d8b2f2bacb3065b51",
+    "vendor/meshoptimizer-LICENSE.md": "468827f4b86ef754465396a9e163db25af406626"
+  }
+}
