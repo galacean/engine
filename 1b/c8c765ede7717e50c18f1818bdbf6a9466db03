@@ -1,0 +1,52 @@
+packages/world-planning/src/spatial/WorldTemplateView.ts
+  s_9cc19efe6cb9e3::t_19c7a634ee3d65 212-241,256-272,279,303-310,314-317
+  s_9cc19efe6cb9e3::t_17a75c39993db4 11-13,28-29,91-95,174-211,273-278,299-302,311-313,319
+packages/world-planning/src/spatial/WorldTemplatePlanning.ts
+  s_9cc19efe6cb9e3::t_19c7a634ee3d65 65-70,73-78,130,140
+  s_9cc19efe6cb9e3::t_516ef2f0416a4e 6-7,13-21,37,48-58,71,101-103,105-108,111-112
+  s_9cc19efe6cb9e3::t_28b53842562227 98,100,104,109-110,113-114,141,159
+packages/world-planning/src/spatial/WorldTemplateArtDirection.ts
+  s_9cc19efe6cb9e3::t_a3e63c2fc0da45 798
+  s_9cc19efe6cb9e3::t_516ef2f0416a4e 39-40,772-773,776-778,780-783,785-788,790-793,795-796
+  s_9cc19efe6cb9e3::t_da539396221e9d 784,789,794
+  s_9cc19efe6cb9e3::t_0e856f3222bbc4 33-34,803
+world/tests/seed-world/WorldTemplates.spec.ts
+  s_9cc19efe6cb9e3::t_a3e63c2fc0da45 70
+  s_9cc19efe6cb9e3::t_2f9c2a1cbf6517 76,91-94,98-104,108-109,115,566
+packages/world-planning/src/spatial/WorldTemplateGeometry.ts
+  s_9cc19efe6cb9e3::t_516ef2f0416a4e 9
+packages/world-planning/src/planning-data/natural-vegetation.json
+  s_9cc19efe6cb9e3::t_37acbd0905231e 11
+packages/world-planning/src/semantic-study/IslandPlanView.ts
+  s_9cc19efe6cb9e3::t_fa656786c3bab7 250-253,555-572
+packages/world-planning/src/spatial/PlanningComponents.ts
+  s_9cc19efe6cb9e3::t_efe3a3e31db6f4 226-235
+packages/world-planning/src/spatial/WorldTemplateAuthoring.ts
+  s_9cc19efe6cb9e3::t_c2969d9718c81e 200,214-215,262-267
+packages/world-planning/src/spatial/farming/PlanningFarmingComponent.ts
+  s_9cc19efe6cb9e3::t_359f7472484ce7 4,11,27-34,75
+packages/world-planning/src/spatial/layout/SpatialWorld.ts
+  s_9cc19efe6cb9e3::t_d4d65be08305dc 2,4-6,1167-1181,1198-1250,1252-1265
+packages/world-planning/src/spatial/runtime/PlanningNaturalVegetation.ts
+  s_9cc19efe6cb9e3::t_5684ab6670b9d5 287-290,437-438
+world/demos/seed-world/SeedWorldDemo.ts
+  s_9cc19efe6cb9e3::t_caa67959fca138 673,676,709-714,889,1174-1178,1385-1389
+world/demos/seed-world/src/planning/spatial/farming/PlanningFarmingHost.ts
+  s_9cc19efe6cb9e3::t_b45dd520307b8c 18,38,40
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "1bc8c765ede7717e50c18f1818bdbf6a9466db03",
+  "prompts": {},
+  "sessions": {
+    "s_9cc19efe6cb9e3": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1a5d0-adc0-7cf2-99f0-6032732bfb59",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}
