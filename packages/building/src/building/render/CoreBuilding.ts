@@ -40,7 +40,7 @@ import {
   woodPalette,
   type ConstructionPreviewPart,
   type ConstructionSurfacePart
-} from "../runtime/ProfilePreview";
+} from "../runtime/ConstructionPreview";
 import { constructionLodAppearance, type ConstructionLodCell } from "../runtime/ConstructionLodAppearance";
 import { constructionSurfaceFrame, projectConstructionSurface } from "../runtime/ConstructionSurfaceFrame";
 import {
@@ -67,7 +67,7 @@ import {
 } from "../runtime/ConstructionDecorationFrames";
 import type { DecorationStoneInstance } from "../runtime/DecorationStoneInstance";
 import { decorationStoneBounds } from "../runtime/DecorationStoneBounds";
-import type { ConstructionJunctionGroup } from "../runtime/ConstructionJunctionLayout";
+import type { ConstructionJunctionGroup } from "../runtime/ConstructionPreview";
 import type { ConstructionWoodArchPart, ConstructionWoodArchPillar } from "../runtime/ConstructionWoodArchRender";
 import { placeConstructionWoodArch } from "../runtime/ConstructionWoodArch";
 import { woodArchFrameGeometry, woodArchPillarGeometry } from "../runtime/ConstructionWoodArchGeometry";

@@ -117,20 +117,12 @@
     <canvas></canvas>
     <aside>
       <h1>建筑核心层 · M2 房屋</h1>
-      <p>
-        同一套引擎、资产和渲染器。左边是线上房屋（原生砌筑）；右边是新架构房屋：墙砖由核心层的 masonryCourses 铺设，转角石由墙与墙的成角连接派生，屋顶、预览和其他部分仍来自线上。
-      </p>
+      <p>新架构生成的房屋，逐个案例查看。</p>
       <div class="row" id="cases"></div>
-      <div class="row" id="modes">
-        <button data-mode="side" aria-pressed="true">并排</button>
-        <button data-mode="flip" aria-pressed="false">同位交替（空格切换）</button>
-      </div>
       <ul id="checks">
         <li><span class="wait">…</span><span>加载中</span></li>
       </ul>
-      <p>对比标准是观感相近，不要求逐字节一致。同位交替：两者放在同一位置，按空格切换。</p>
     </aside>
-    <div id="ab" hidden></div>
     <script type="module" src="./house.ts"></script>
   </body>
 </html>

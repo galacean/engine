@@ -1,5 +1,5 @@
-// Acceptance page: online houses next to core houses, as resident detail or as the distance
-// view (`view=far`). Validation only; it goes away with the online path.
+// Preview page: the core's houses, case by case, as resident detail or as the distance view
+// (`view=far`). `case`, `zoom`, `yaw` and `target` in the URL pick what to show and from where.
 import {
   AssetType,
   Camera,
@@ -26,9 +26,6 @@ import {
   builtinBuildingAssetFiles,
   BUILTIN_BUILDING_ASSETS
 } from "@galacean/engine-building/building/resources/BuiltinBuildingAssets";
-import { European } from "@galacean/engine-building/building/parts/architecture/European";
-import { designBuilding } from "@galacean/engine-building/building/parts/architecture/BuildingDesign";
-import { implementBuilding } from "@galacean/engine-building/building/parts/architecture/BuildingImplementation";
 import { renderBuilding } from "@galacean/engine-building/building/parts/architecture/BuildingRender";
 import { createBuildingRegistry, designBuildingCore } from "@galacean/engine-building/building/core/index";
 import { registerHouseTypes } from "@galacean/engine-building/building/partTypes/House";
@@ -46,12 +43,6 @@ import {
 } from "@galacean/engine-building/building/runtime/DecorationPlan";
 import { normalizeProfileRoof } from "@galacean/engine-building/building/runtime/ProfileParameters";
 import { isFlatRoofHeight } from "@galacean/engine-building/building/runtime/RoofMode";
-import {
-  buildingPreviewInput,
-  prepareBuildingPublication
-} from "@galacean/engine-building/building/parts/architecture/BuildingPublication";
-import { buildingPalette } from "@galacean/engine-building/building/parts/architecture/BuildingPalette";
-import { profilePreview } from "@galacean/engine-building/building/runtime/ProfilePreview";
 import { createBuildingDistanceView } from "@galacean/engine-building/building/runtime/BuildingDistanceView";
 import type { Entity } from "@galacean/engine";
 
@@ -66,8 +57,6 @@ interface Case {
   house: CoreHouseParameters;
   /** Further houses in the same draft, such as a neighbour the house touches. */
   others?: CoreHouseParameters[];
-  /** Online parameters the core expresses differently. */
-  online?: Record<string, unknown>;
   ground: Ground;
 }
 /** The facade the initial village plans for a house: windows, a door and a wall lamp. */
@@ -451,21 +440,18 @@ const cases = (): Case[] => [
     id: "timber",
     title: "木墙",
     house: { id: "a", walls: "timber", rectangle: { center: [0, 0], size: [8, 6], rotation: 0.3 } },
-    online: { wallStructure: "timber", wall: { unit: "wooden_plank", algorithm: { type: "horizontal_rows" } } },
     ground: hills
   },
   {
     id: "timber-round",
     title: "木墙 · 圆屋",
     house: { id: "a", walls: "timber", height: 5, circle: { center: [0, 0], radius: 3, phase: 0 } },
-    online: { wallStructure: "timber", wall: { unit: "wooden_plank", algorithm: { type: "horizontal_rows" } } },
     ground: flat
   },
   {
     id: "timber-round-small",
     title: "木墙 · 小圆屋",
     house: { id: "a", walls: "timber", height: 5, circle: { center: [0, 0], radius: 1.6, phase: 0 } },
-    online: { wallStructure: "timber", wall: { unit: "wooden_plank", algorithm: { type: "horizontal_rows" } } },
     ground: flat
   },
   {
@@ -480,7 +466,6 @@ const cases = (): Case[] => [
       rectangle: { center: [0, 0], size: [9, 6], rotation: 0 },
       roof: { profile: 0.5, height: 0.35, ridge_length: 0.6, eave: 0.3, color: 1 }
     }),
-    online: { wallStructure: "timber", wall: { unit: "wooden_plank", algorithm: { type: "horizontal_rows" } } },
     ground: flat
   },
   {
@@ -492,7 +477,6 @@ const cases = (): Case[] => [
       rectangle: { center: [0, 0], size: [8, 6], rotation: 0.3 },
       roof: { ridge_length: 1 }
     },
-    online: { wallStructure: "timber", wall: { unit: "wooden_plank", algorithm: { type: "horizontal_rows" } } },
     ground: flat
   },
   {
@@ -506,7 +490,6 @@ const cases = (): Case[] => [
       roof: { height: 0 },
       floors: { enabled: true, interval: 3 }
     },
-    online: { wallStructure: "timber", wall: { unit: "wooden_plank", algorithm: { type: "horizontal_rows" } } },
     ground: flat
   },
   {
@@ -532,7 +515,6 @@ const cases = (): Case[] => [
       height: 6,
       rectangle: { center: [0, 0], size: [9, 7], rotation: 0.2 }
     }),
-    online: { wallStructure: "timber", wall: { unit: "wooden_plank", algorithm: { type: "horizontal_rows" } } },
     ground: flat
   },
   (() => {
@@ -621,7 +603,6 @@ const cases = (): Case[] => [
         { id: "a2", kind: "opening", type: "opening-arch", u: 0.45, bottom: 0, width: 1.2, height: 3 }
       ] as never
     },
-    online: { wallStructure: "timber", wall: { unit: "wooden_plank", algorithm: { type: "horizontal_rows" } } },
     ground: flat
   },
   {
@@ -730,8 +711,7 @@ const library = buildingAssets(assets);
 const CASES = cases();
 engine.run();
 
-// The two copies stand side by side along x; each samples the ground as if it stood at the origin.
-const SPACING = 13;
+// A house moved along x samples the ground as if it stood at the origin.
 const moved = (c: Case, dx: number): CoreHouseParameters[] => [c.house, ...(c.others ?? [])].map((h) => shift(h, dx));
 const shift = (h: CoreHouseParameters, dx: number): CoreHouseParameters => {
   if (h.circle) return { ...h, circle: { ...h.circle, center: [h.circle.center[0] + dx, h.circle.center[1]] } };
@@ -750,54 +730,6 @@ interface Drawn {
   ms: number;
   units: number;
   metrics?: { triangles: number; uploadBytes: number; residentBytes: number };
-}
-async function online(c: Case, dx: number, parent: Entity, signal: AbortSignal): Promise<Drawn> {
-  const houses = moved(c, dx).map(({ walls: _w, footprint: _f, roofAttachments, foundation, ...p }) => ({
-    ...p,
-    ...c.online,
-    ...(foundation && {
-      foundation: { height: foundation.height, ...(foundation.mode && { mode: foundation.mode }) },
-      foundationStyle: {
-        ...(foundation.unit && { unit: foundation.unit }),
-        ...(foundation.rule && { algorithm: { type: foundation.rule } }),
-        ...(foundation.footprint && { footprint: foundation.footprint })
-      }
-    }),
-    attachments: [
-      // Online has no choice of shutters on an eave dormer.
-      ...(p.attachments ?? []).map(({ shutters: _shutters, ...a }) => a),
-      ...(roofAttachments ?? []).map((a) => ({
-        ...a,
-        kind: a.type === "roof-lantern" ? "lantern" : a.type.startsWith("hatch") ? "hatch" : "window",
-        host: "roof"
-      }))
-    ]
-  }));
-  const ground = groundFor(c, dx);
-  const start = performance.now();
-  const design = designBuilding(European.buildHouses(houses as never), ground, library.compilation);
-  if (far) {
-    const preview = profilePreview(buildingPreviewInput(design, await prepareBuildingPublication(design)), ground, {
-      assets: library.compilation,
-      includeAppearance: true,
-      includeStructure: true
-    });
-    const ms = performance.now() - start;
-    const palette = buildingPalette(design);
-    const view = await createBuildingDistanceView(engine, parent, palette, preview, assets, camera, signal);
-    await view.ready;
-    return { root: view.root, destroy: () => view.root.destroy(), ms, units: 0 };
-  }
-  const input = (await implementBuilding(design)).renderInput;
-  const ms = performance.now() - start;
-  const r = await renderBuilding(input, { parent, camera, assets, signal });
-  return {
-    root: r.runtime.root,
-    destroy: r.destroy,
-    ms,
-    units: input.groups.reduce((n, g) => n + g.cells.length, 0),
-    metrics: r.runtime.metrics
-  };
 }
 async function core(c: Case, dx: number, parent: Entity, signal: AbortSignal): Promise<Drawn> {
   const registry = registerHouseTypes(createBuildingRegistry());
@@ -840,31 +772,24 @@ async function core(c: Case, dx: number, parent: Entity, signal: AbortSignal): P
 }
 
 let current = CASES[0],
-  mode: "side" | "flip" = "side",
-  showing: "online" | "core" = "online",
   token = 0;
-let drawn: { online: Drawn; core: Drawn } | undefined;
+let drawn: Drawn | undefined;
 async function show() {
   const my = ++token,
     c = current;
-  const dx = mode === "side" ? SPACING / 2 : 0;
   const parent = scene.createRootEntity("preview-" + my);
   const signal = new AbortController().signal;
-  const pair = { online: await online(c, -dx, parent, signal), core: await core(c, dx, parent, signal) };
+  const next = await core(c, 0, parent, signal);
   if (my !== token) {
-    pair.online.destroy();
-    pair.core.destroy();
+    next.destroy();
     parent.destroy();
     return;
   }
-  drawn?.online.destroy();
-  drawn?.core.destroy();
+  drawn?.destroy();
   for (const e of scene.rootEntities) if (e.name.startsWith("preview-") && e !== parent) e.destroy();
-  drawn = pair;
-  showing = "online";
-  apply();
+  drawn = next;
   const height = c.house.height ?? 4;
-  // `zoom` in the URL magnifies the view for close comparison; `yaw` turns the camera (degrees).
+  // `zoom` in the URL magnifies the view for a close look; `yaw` turns the camera (degrees).
   const zoom = Number(params.get("zoom") ?? 1),
     yaw = (Number(params.get("yaw") ?? 0) * Math.PI) / 180;
   const [ox, oz] = [16 * Math.cos(yaw) - 30 * Math.sin(yaw), 16 * Math.sin(yaw) + 30 * Math.cos(yaw)];
@@ -872,13 +797,12 @@ async function show() {
   const [tx, ty, tz] = (params.get("target") ?? `0,${height * 0.55},0`).split(",").map(Number);
   camera.entity.transform.setPosition(tx + ox, ty + 12 + height * 0.45, tz + oz);
   camera.entity.transform.lookAt(new Vector3(tx, ty, tz));
-  camera.orthographicSize = (mode === "side" ? 9 + height * 0.25 : 6 + height * 0.3) / zoom;
+  camera.orthographicSize = (6 + height * 0.3) / zoom;
   $("#checks").innerHTML = "";
   for (const [label, detail] of [
     ["视图", far ? "远景（distance view）" : "近景（常驻单元）"],
-    ...(far ? [] : [["单元数量", `线上 ${pair.online.units} · 新架构 ${pair.core.units}`]]),
-    ["生成耗时", `线上 ${pair.online.ms.toFixed(1)} ms · 新架构 ${pair.core.ms.toFixed(1)} ms`],
-    ["左右位置", mode === "side" ? "左：线上 · 右：新架构" : "同位交替，按空格切换"]
+    ...(far ? [] : [["单元数量", `${next.units}`]]),
+    ["生成耗时", `${next.ms.toFixed(1)} ms`]
   ]) {
     const li = document.createElement("li");
     li.innerHTML = `<span class="ok">•</span><span></span><span class="d"></span>`;
@@ -887,13 +811,6 @@ async function show() {
     $("#checks").append(li);
   }
   document.body.dataset.ready = c.id;
-}
-function apply() {
-  if (!drawn) return;
-  drawn.online.root.isActive = mode === "side" || showing === "online";
-  drawn.core.root.isActive = mode === "side" || showing === "core";
-  $("#ab").hidden = mode !== "flip";
-  $("#ab").textContent = showing === "online" ? "当前显示：线上" : "当前显示：新架构";
 }
 function select(c: Case) {
   current = c;
@@ -909,29 +826,12 @@ for (const c of CASES) {
   b.onclick = () => select(c);
   $("#cases").append(b);
 }
-for (const b of document.querySelectorAll<HTMLButtonElement>("#modes button"))
-  b.onclick = () => {
-    mode = b.dataset.mode as typeof mode;
-    for (const x of document.querySelectorAll("#modes button")) x.setAttribute("aria-pressed", String(x === b));
-    select(current);
-  };
-addEventListener("keydown", (e) => {
-  if (e.code !== "Space" || mode !== "flip") return;
-  e.preventDefault();
-  showing = showing === "online" ? "core" : "online";
-  apply();
-});
 function report(error: unknown) {
   console.error(error);
   $("#checks").innerHTML = `<li><span class="bad">✕</span><span></span></li>`;
   $("#checks").querySelector("li span:last-child")!.textContent = String((error as Error)?.message ?? error);
 }
-if (params.get("mode") === "flip") {
-  mode = "flip";
-  for (const x of document.querySelectorAll<HTMLButtonElement>("#modes button"))
-    x.setAttribute("aria-pressed", String(x.dataset.mode === "flip"));
-}
-// `town=core|online` builds one town through that path and measures it, for comparing the two.
+// `town=core` builds one town of the cases below and measures it.
 const TOWN = [
   "house",
   "tall",
@@ -951,7 +851,7 @@ const TOWN = [
   "plaster",
   "gable"
 ];
-async function measureTown(path: "core" | "online") {
+async function measureTown() {
   const spacing = 22;
   const placed = TOWN.map((id, i): Case => {
     const c = CASES.find((k) => k.id === id);
@@ -974,7 +874,7 @@ async function measureTown(path: "core" | "online") {
   const signal = new AbortController().signal;
   const start = performance.now();
   const drawn: Drawn[] = [];
-  for (const c of placed) drawn.push(await (path === "core" ? core : online)(c, 0, parent, signal));
+  for (const c of placed) drawn.push(await core(c, 0, parent, signal));
   const build = performance.now() - start;
   const total = (f: (d: Drawn) => number) => drawn.reduce((n, d) => n + f(d), 0);
   const gl = (engine as unknown as { _hardwareRenderer: { gl: WebGL2RenderingContext } })._hardwareRenderer.gl;
@@ -1032,7 +932,6 @@ async function measureTown(path: "core" | "online") {
   const orbit = await frames(120, (i) => place(0.8 + i * 0.0105, 80));
   const closer = await frames(120, (i) => place(0.8, 80 - i * 0.45));
   const result = {
-    path,
     renderer: info ? gl.getParameter(info.UNMASKED_RENDERER_WEBGL) : "unknown",
     houses: placed.length,
     generateMs: total((d) => d.ms),
@@ -1049,5 +948,5 @@ async function measureTown(path: "core" | "online") {
   document.body.dataset.town = "done";
 }
 const town = params.get("town");
-if (town === "core" || town === "online") void measureTown(town).catch(report);
+if (town === "core") void measureTown().catch(report);
 else select(CASES.find((c) => c.id === params.get("case")) ?? CASES[0]);

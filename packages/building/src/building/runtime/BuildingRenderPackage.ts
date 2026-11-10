@@ -20,7 +20,7 @@ import {
 import { packDecorationStoneInstances } from "./DecorationStoneInstance";
 import { addWoodArchPillarDraws, appendWoodArchRenderPackage } from "./ConstructionWoodArchRender";
 import type { CompiledConstructionDecorations } from "./ConstructionDecorations";
-import type { ConstructionPreviewPart } from "./ProfilePreview";
+import type { ConstructionPreviewPart } from "./ConstructionPreview";
 import type { encodeConstructionDormerBins } from "./DormerBins";
 import type { MaterialUnit } from "./UnitPlacementStyle";
 import type { SupportCell } from "./PlacementSupport";

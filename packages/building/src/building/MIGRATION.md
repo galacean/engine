@@ -2,12 +2,14 @@
 
 目标：建筑全部迁到新架构（应用层 → 构件类型层 → 核心层 → 单元渲染）之后，**删除线上旧路径和全部兼容代码**。新架构的规格见 [core/README.md](core/README.md)。
 
+**状态（2026-11-10）：** 迁移已完成，旧路径和兼容代码已删除（见“旧路径（已删除）”）。
+
 ## 规则
 
 1. **整体迁移完成后删除旧代码。** 下文“旧路径”中列出的代码，在最后一个阶段验收通过后全部删除，不保留开关、不保留回退。
 2. **兼容代码与旧路径一起删除。** 兼容代码只为在两条路径并存期间做到逐字节对比而存在，每处都标记 `COMPAT(online-parity)`，可以用 `git grep "COMPAT(online-parity)"` 找全。
 3. **兼容代码只能放在这些位置：** `application/`、`render/`、`tests/core/`、`world/demos/building-core-preview/`。核心层禁止出现，由 `tests/core/CoreLayering.spec.ts` 检查。
-4. **删除旧代码前先冻结基准。** `tests/core/` 中与线上对比的验收测试读取线上路径的输出。删除旧路径前，把它们读取的线上数值保存为固定基准，测试改为与基准比较。
+4. **删除旧代码前先冻结基准。** 已完成：`tests/core/` 中与线上对比的验收测试读取 `tests/core/baselines/` 中冻结的线上数值（`tests/core/baseline.ts`）。网格冻结为指纹（`tests/core/meshPrint.ts`）：大小、中心、包围盒和四个采样顶点；颜色、发光和外观冻结为与键顺序无关的摘要。
 5. **不是兼容的未完成项不能删，要补实现。** 见文末“未完成项”。
 
 ## 阶段
@@ -16,9 +18,9 @@
 | --- | --- | --- |
 | M1 | 独立墙、栅栏，含起伏地形 | 已完成：由 `render/CoreBuilding.ts` 直接渲染（族 `enclosure`，构件 `freeWall`、`fencePost`、`fenceRail`）。与线上对比（`tests/core/CoreStrip.spec.ts`）：绘制组相同，单元数相差 < 12%（新架构不铺放不下的碎块，例如墙顶 1 cm 高的一层），单元中心的范围相差 < 0.3 m |
 | M2 | 房屋：墙 + 屋顶，墙顶跟随屋顶轮廓 | 已完成：墙体、坡屋顶（四坡、山墙、攒尖、圆锥）、平屋顶（矩形、圆形，含女儿墙）、尖顶都由新架构生成；渲染输入、远景、结构查询、调色板、聚焦位姿、贴地数据、放置文档都由 `render/CoreBuilding.ts` 直接产出，不经过线上管线 |
-| M3 | 台基、腰线、木墙、抹灰 | 进行中：腰线已迁移（构件 `floorBand`，几何 `houseFloorBands`，铺设算法 `beltCourses`；与线上块数、层高、截面一致）；抹灰已迁移（构件 `plaster`，几何 `housePlaster` 继承各面墙的修改，铺设算法 `coverSurfaces`，单元是一块连续面材；与线上面积相差 < 5%，磨损和颜色相同）；台基已迁移（见“台基”）；木墙已迁移（见“木墙”） |
+| M3 | 台基、腰线、木墙、抹灰 | 已完成：腰线已迁移（构件 `floorBand`，几何 `houseFloorBands`，铺设算法 `beltCourses`；与线上块数、层高、截面一致）；抹灰已迁移（构件 `plaster`，几何 `housePlaster` 继承各面墙的修改，铺设算法 `coverSurfaces`，单元是一块连续面材；与线上面积相差 < 5%，磨损和颜色相同）；台基已迁移（见“台基”）；木墙已迁移（见“木墙”） |
 | M4 | 相连的房屋：对等检测、避让、转角砖 | 已完成：多栋房屋放在一个草稿里（`buildCoreHouses`，每栋一个组）。墙与墙的对等检测同时找转角和相交（`wallsTouch`）；规则 `wallJoin` 在转角派生转角石，在两面墙外皮相交处派生一列接缝石（构件 `wallSeam`，铺设算法 `seamStones`，靠近墙角 0.2 m 以内的交点留给转角石）。两个平屋顶顶高相差不超过 2 m 时，较低的女儿墙去掉伸进对方的部分，较高的沿边缘保留；等高（相差 0.1 m 以内）时两边都去掉，两块屋面连成一片（`parapetsJoin`）。挂点落在另一栋房屋外皮以内的挂件不铺设，并报告诊断（`mountHidden`；每面墙带 `outline` 曲线，离挂点最近的那面墙负责）。线上在平屋顶与坡屋顶交界处的垛口被坡屋顶盖住，看不到，不迁移 |
-| M5 | 门窗开洞、老虎窗、拱、尖顶、挂件 | 进行中：墙上的建筑预制件已迁移（Cottage 窗、Cottage 门、壁灯、Gothic 窗、Gothic 门、箭缝窗；构件 `window`、`door`、`lamp`，几何 `houseWallMount`，铺设算法 `placeAtPoints`，attach 规则 `wallOpening` 从所在墙面移除洞口，join 规则 `openingCutsBand` 让腰线避让洞口）。与线上对比：网格、颜色、UV、发光相同，位置偏差 < 3 cm，洞口位置和尺寸相同。Gothic 老虎窗和 Cottage 老虎窗已迁移（见“屋顶老虎窗”“Cottage 老虎窗”），平屋顶的活板门和屋顶灯已迁移（见“平屋顶上的预制件”）。半老虎窗、拱和转角窗已迁移（见“半老虎窗”“拱”“转角窗”） |
+| M5 | 门窗开洞、老虎窗、拱、尖顶、挂件 | 已完成：墙上的建筑预制件已迁移（Cottage 窗、Cottage 门、壁灯、Gothic 窗、Gothic 门、箭缝窗；构件 `window`、`door`、`lamp`，几何 `houseWallMount`，铺设算法 `placeAtPoints`，attach 规则 `wallOpening` 从所在墙面移除洞口，join 规则 `openingCutsBand` 让腰线避让洞口）。与线上对比：网格、颜色、UV、发光相同，位置偏差 < 3 cm，洞口位置和尺寸相同。Gothic 老虎窗和 Cottage 老虎窗已迁移（见“屋顶老虎窗”“Cottage 老虎窗”），平屋顶的活板门和屋顶灯已迁移（见“平屋顶上的预制件”）。半老虎窗、拱和转角窗已迁移（见“半老虎窗”“拱”“转角窗”） |
 
 ## 产品切换
 
@@ -35,32 +37,27 @@
 
 - 无。所有门、窗、拱和老虎窗的类型都已迁移。
 - 运行时脚本的类型声明已按新的公开 API 重新生成：`node world/demos/seed-world/systems/generate-runtime-declarations.cjs`。公开 API 变化后要重新运行。
-- 删除旧路径和对比测试的线上依赖（先冻结基准）。
+- 旧路径和对比测试的线上依赖已删除（基准已冻结）。
 
-## 旧路径（迁移完成后删除）
+## 旧路径（已删除）
 
-已确认可由 M1 取代：
+2026-11-10 按引用分析删除。根是产品真正用到的入口：包的公开入口 `src/index.ts`，`world/` 和 `world-planning` 实际引入的深路径，以及 `tests/core/`。根到不了的源码模块全部删除，共 114 个：
 
-- `runtime/StripPlacement.ts`
-- `parts/architecture/ProfilePlacementAlgorithms.ts` 中的 `placeStripSupport`
-- `parts/architecture/BuildingGenerators.ts` 中的 `buildWallStrip`，`European.ts` 中的 `buildEuropeanWall`、`buildEuropeanFence`
-- `parts/architecture/BuildingPublication.ts`、`BuildingProfileSupports.ts` 中的 `wallStrip` 分支
+- `parts/architecture/` 的设计与编排（`BuildingDraft`、`BuildingDesign`、`BuildingDesignRules`、`BuildingDesignIdentity`、`BuildingGenerators`、`BuildingImplementation`、`BuildingPublication`、`BuildingProfileSupports`、`ProfilePlacementAlgorithms`、`BuildingExecution`、`BuildingPipeline`、`BuildingPalette`、`BuildingGrounding`、`BuildingInstancePlacement`、`BuildingInstanceRender`、`BuildingProfileTerrain`、旧的 `European`、`Steps`）。
+- 旧的通用构件 API：`parts/BuildingAlgorithms.ts`、`parts/algorithms/`、`parts/geometry/`、`parts/supports/`、`parts/native/`、`BuildingBatch`，以及 `BuildingLayout` 中只为它们服务的部分（`BuildingMeshChart`、`BuildingPath`、`surfaceGrid`、`pathArray`、`beamBetween`、`buildingPose`）和 `BuildingPartDraft`。运行时脚本 API 不再提供这些名称；保留 `createBuildingPatch` 和 `buildingMeshData`。
+- `runtime/` 中只有线上路径用到的 72 个模块：线上预览 `ProfilePreview`、连接与开洞编排（`WallConnectionPipeline`、`ProfileContacts`、`ProfileDecorations`、`StripPlacement`）、线上抹灰、旧的装饰安装，以及只被它们使用的 `Recovered*` 内核。
 
-预计由 M2–M5 取代，迁到对应阶段时逐个确认后补进上面的列表：
+新架构仍在用的共享定义移到了 `runtime/ConstructionPreview.ts`：预览面（`ConstructionSurfacePart`、`ConstructionPreviewPart`）、抹灰元数据、交界单元组、调色板和砖色函数，以及距离视图读取的整个预览（`ConstructionPreview`）。
 
-- `parts/architecture/` 的设计与编排：`BuildingDraft`、`BuildingDesign`、`BuildingDesignRules`、`BuildingDesignIdentity`、`BuildingGenerators`、`BuildingImplementation`、`BuildingPublication`、`BuildingProfileSupports`、`ProfilePlacementAlgorithms`、`BuildingExecution`、`European`、`Steps`
-- `parts/algorithms/`、`parts/BuildingAlgorithms.ts`
-- `runtime/` 中的连接与开洞编排：`WallConnectionPipeline`、`ProfileContacts`、`ProfileDecorations` 等
+同时删除：只测试旧路径或旧通用 API 的 29 个测试文件；M1 并排验收页（`world/demos/building-core-preview/index.html`、`main.ts`）；已经无法运行的旧构件演示（`world/demos/building-components/` 下的 `staged.ts`、`index.html`、`recursive.html`）；`package.json` 中指向已删除文件的 69 个导出；`world/demos.json` 和 `world/migration/files.json` 中对应的条目。运行时脚本声明已重新生成。
 
-保留：`runtime/` 中的渲染、打包、shader、LOD。数值内核迁为构件类型层的铺设算法，或者连接规则。
+仍保留的 `Recovered*` 文件都还被新架构的运行时使用（例如屋顶数学 `RecoveredRoofMath`、木拱和墙洞内核）；以后替换它们时再按引用删除。
 
-## 兼容代码（与旧路径一起删除）
+## 兼容代码（已删除）
 
-| 位置 | 内容 | 为什么存在 |
-| --- | --- | --- |
-| `tests/core/CoreHouse.spec.ts` | `gridCourses` 与线上 `arrangedWallCells` 逐值对比 | 验证规则网格墙的迁移 |
-| `tests/core/` 中与线上对比的测试 | 读取线上路径的输出 | 验收；删除旧路径前改为与冻结的基准比较 |
-| `world/demos/building-core-preview/` | 验收页 | 并排展示两条路径 |
+- `tests/core/CoreHouse.spec.ts` 改为与冻结的线上网格摘要比较。
+- `tests/core/` 中与线上对比的测试改为读取 `tests/core/baselines/`。
+- 预览页 `world/demos/building-core-preview/house.html` 只显示新架构。
 
 ## 新架构的渲染适配（`render/CoreBuilding.ts`）
 
@@ -283,7 +280,7 @@ Cottage 老虎窗的开口在棚后端之前 0.4 m 结束（至多退到棚的�
 
 - 墙体原生砌筑（`generateMasonry` 以及 `Recovered*` 墙体内核）来自 Tiny Glade 的二进制还原。我们会用自己的 `masonryCourses` 替代它：同样做转角加随机砖行，随机数用核心层的种子通道，每块砖可以按槽位单独计算。
 - 替代的标准是观感相近，不要求逐字节一致。
-- 屋顶还原内核（`RecoveredRectangularRoof`、`RecoveredRoofPlacement`、`RecoveredRoofContext`）：新架构的房屋（含远景和预览）已经不再使用它们，只剩旧路径在用。产品切换到新架构后，随旧路径一起删除。`RecoveredRoofMath` 还被 70 多个旧文件引用，同样随旧路径删除。
+- 屋顶还原内核（`RecoveredRectangularRoof`、`RecoveredRoofPlacement`、`RecoveredRoofContext`）：新架构的房屋不用它们生成屋顶，但渲染层仍经 `ConstructionDecorations` → `ConstructionSettledRoof` → `ConstructionRoof` 引用它们，所以删除旧路径时保留了下来。`RecoveredRoofMath` 还被 `world-planning` 的 `BuildingInitialDraft` 直接引用。替换这几处引用之后再删除。
 - 顺序：
   1. M2 先包装原生砌筑，和线上对比；
   2. 看效果；

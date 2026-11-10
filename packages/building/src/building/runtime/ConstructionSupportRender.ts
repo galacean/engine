@@ -1,4 +1,4 @@
-import type { ConstructionPreviewPart } from "./ProfilePreview";
+import type { ConstructionPreviewPart } from "./ConstructionPreview";
 import type { ConstructionDecorationPart } from "./ConstructionDecorations";
 /** Thin support backs material units, shares UV cutouts with distance geometry.
  * It never reinstates a wall behind an authored hidden region or opening. */

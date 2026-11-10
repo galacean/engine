@@ -62,7 +62,7 @@ import {
   type SeedWorldPickVisitor
 } from "@galacean/engine-modify/rendering/SeedWorldPickBatch";
 import { plasterPalette, plasterLinearColor } from "./ConstructionPlasterPalette";
-import { type profilePreview, constructionBrickLayer, woodPalette, wallPalette } from "./ProfilePreview";
+import { type ConstructionPreview, constructionBrickLayer, woodPalette, wallPalette } from "./ConstructionPreview";
 import type { BuildingPaletteSlot } from "./BuildingGlobals";
 import { createDecorationNativeView } from "./DecorationNativeView";
 export interface BuildingDistanceInput {
@@ -75,7 +75,7 @@ export async function createBuildingDistanceView(
   engine: Engine,
   parent: Entity,
   group: BuildingDistanceInput,
-  geometry: ReturnType<typeof profilePreview>,
+  geometry: ConstructionPreview,
   assets: PrefabResource,
   camera?: import("@galacean/engine").Camera,
   signal: AbortSignal = new AbortController().signal
