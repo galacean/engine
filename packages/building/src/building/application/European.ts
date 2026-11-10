@@ -86,6 +86,15 @@ const WALL_PREFABS = new Set([
   "window-cottage-corner"
 ]);
 const unavailable = (what: string) => Error(`${what} is not available in the building system yet`);
+const KINDS: readonly EuropeanAttachment["kind"][] = ["window", "door", "wall-lamp", "lantern", "opening", "hatch"];
+/** What every attachment must name, wherever it stands. Which ranks a type has is a fact of
+ * the asset kit: a rank it lacks is reported as an unknown asset when the house is designed. */
+function checkAttachment(a: EuropeanAttachment) {
+  if (!KINDS.includes(a.kind))
+    throw Error(`Unknown attachment kind "${a.kind}" ("${a.id}"); the kinds are ${KINDS.join(", ")}`);
+  if (a.rank !== undefined && !(Number.isInteger(a.rank) && a.rank >= 1))
+    throw Error(`The rank of attachment "${a.id}" must be a whole number from 1, not ${a.rank}`);
+}
 /** A size the caller gave must be a positive finite number. */
 function positive(name: string, value: number | undefined) {
   if (value !== undefined && !(Number.isFinite(value) && value > 0))
@@ -117,9 +126,18 @@ function checkFrame(a: EuropeanAttachment, type: string) {
 }
 function roofAttachment(a: EuropeanAttachment, flat: boolean): CoreRoofAttachment | undefined {
   if (a.enabled === false || !onRoof(a)) return;
+  checkAttachment(a);
   const type = roofType(a, flat);
-  if (!type) throw Error(`A roof attachment of kind "${a.kind}" needs a flat roof ("${a.id}")`);
+  if (!type)
+    throw Error(
+      a.kind === "door" || a.kind === "opening"
+        ? `A roof has no attachment of kind "${a.kind}" ("${a.id}"); on a roof use a window, hatch or lamp`
+        : `A roof attachment of kind "${a.kind}" needs a flat roof ("${a.id}")`
+    );
   if (!ROOF_PREFABS.has(type)) throw unavailable(`The roof attachment type "${type}" ("${a.id}")`);
+  // A cottage dormer's rank is how many windows stand side by side under its roof.
+  if (type === "dormer-cottage" && (a.rank ?? 1) > 3)
+    throw Error(`A dormer-cottage has 1 to 3 windows: rank ${a.rank} ("${a.id}")`);
   checkFrame(a, type);
   if (!a.uv) throw Error(`Roof attachment "${a.id}" needs uv`);
   positive("attachment width", a.width);
@@ -127,7 +145,7 @@ function roofAttachment(a: EuropeanAttachment, flat: boolean): CoreRoofAttachmen
   return {
     id: a.id,
     type: type as CoreRoofAttachment["type"],
-    ...(a.rank && { rank: a.rank }),
+    ...(a.rank !== undefined && { rank: a.rank }),
     uv: a.uv,
     ...(a.bottom !== undefined && { bottom: a.bottom }),
     ...(a.width !== undefined && { width: a.width }),
@@ -140,6 +158,7 @@ function roofAttachment(a: EuropeanAttachment, flat: boolean): CoreRoofAttachmen
 }
 function wallAttachment(a: EuropeanAttachment): CoreWallAttachment | undefined {
   if (a.enabled === false || onRoof(a)) return;
+  checkAttachment(a);
   if (a.kind === "hatch") throw unavailable(`An attachment of kind "${a.kind}" ("${a.id}")`);
   if (a.kind === "opening" && a.type && a.type !== "opening-arch")
     throw unavailable(`The opening type "${a.type}" ("${a.id}")`);
@@ -153,7 +172,7 @@ function wallAttachment(a: EuropeanAttachment): CoreWallAttachment | undefined {
     id: a.id,
     kind: a.kind,
     ...(a.type && { type: a.type }),
-    ...(a.rank && { rank: a.rank }),
+    ...(a.rank !== undefined && { rank: a.rank }),
     u: a.u,
     bottom: a.bottom,
     width: a.width,
@@ -199,11 +218,15 @@ function house(p: EuropeanHouseParameters): CoreHouseParameters {
       ? ((GRID_RULES.find((r) => r === rule) ?? "staggered_rows") as CoreHouseParameters["wallRule"])
       : GRID_RULES.find((r) => r === rule);
   const roofUnit = p.roofStyle?.unit;
+  const roofShape = normalizeProfileRoof(p.roof ?? {});
+  // The tip moves the top of a round roof. The slopes of a rectangle meet over its centre.
+  if (!p.circle && !isFlatRoofHeight(roofShape.height) && roofShape.tip.some((v) => v !== 0))
+    throw Error(
+      `roof.tip moves the top of a round roof; a rectangular pitched roof needs [0, 0], not [${roofShape.tip}]`
+    );
   // Brick on a flat roof, with no rule of its own, is the irregular stone paving.
   const stoneDeck =
-    roofUnit === "brick" &&
-    isFlatRoofHeight(normalizeProfileRoof(p.roof ?? {}).height) &&
-    (p.roofStyle?.algorithm?.type ?? "auto") === "auto";
+    roofUnit === "brick" && isFlatRoofHeight(roofShape.height) && (p.roofStyle?.algorithm?.type ?? "auto") === "auto";
   const { plaster: foundationPlaster, ...foundationShape } = p.foundation ?? {};
   const foundation = p.foundation && normalizeProfileFoundation(foundationShape);
   const foundationUnit = p.foundationStyle?.unit,
@@ -250,9 +273,7 @@ function house(p: EuropeanHouseParameters): CoreHouseParameters {
         }
       }),
     attachments: (p.attachments ?? []).flatMap((a) => wallAttachment(a) ?? []),
-    roofAttachments: (p.attachments ?? []).flatMap(
-      (a) => roofAttachment(a, isFlatRoofHeight(normalizeProfileRoof(p.roof ?? {}).height)) ?? []
-    )
+    roofAttachments: (p.attachments ?? []).flatMap((a) => roofAttachment(a, isFlatRoofHeight(roofShape.height)) ?? [])
   };
 }
 function strip(p: EuropeanStripParameters): CoreStripParameters {

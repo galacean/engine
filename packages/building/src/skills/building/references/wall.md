@@ -2,7 +2,17 @@
 
 ## 墙上的挂件
 
-欧式生成器通过 `attachments` 指定门、窗、灯和拱，每个挂件是一个独立构件，依附所在的墙。挂件写 `id`、`kind`、`type`、`rank`（规格 1–3）和位置：
+欧式生成器通过 `attachments` 指定门、窗、灯和拱，每个挂件是一个独立构件，依附所在的墙。挂件写 `id`、`kind`、`type`、`rank`（规格，从 1 开始的整数）和位置。`kind` 只能是 `window`、`door`、`wall-lamp`、`lantern`、`opening`、`hatch`。
+
+可用的规格由资源包决定：
+
+- `wall-lantern`、`hatch-cottage`、`hatch-gothic`、`roof-lantern` 只有 1。
+- `dormer-arrow-slit-half` 只有 2 和 3。
+- 其他类型有 1、2、3。`dormer-cottage` 的规格是并排的窗数。
+
+资源包里没有的规格报 `Unknown asset {"prefab":"<type>/<rank>"}`。
+
+位置的写法：
 
 - `u` 是 [0,1) 的周向参数，不是米。
 - `bottom`、`width`、`height` 的单位是米。

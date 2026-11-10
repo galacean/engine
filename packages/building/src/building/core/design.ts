@@ -181,7 +181,12 @@ export function designBuildingCore(
   options: BuildingDesignOptions = {}
 ): BuildingDesignResult {
   const diagnostics: BuildingDiagnostic[] = [];
-  const report = (source: string, message: string) => diagnostics.push({ source, message });
+  // A part that failed reports once; what depends on it is left out without a second report.
+  const failed = new Set<string>();
+  const report = (source: string, message: string) => {
+    failed.add(source);
+    diagnostics.push({ source, message });
+  };
   const connections: ResolvedConnection[] = [];
   const maxDepth = options.maxDepth ?? 8;
   const environment = options.environment ?? {};
@@ -197,6 +202,13 @@ export function designBuildingCore(
           }
         }
       : unit;
+  };
+  // A unit that needs facts the asset layer does not have names its source.
+  const unitProblemOf = (unit: BuildingUnit): string | undefined => {
+    const issue = unitIssue(unit);
+    if (issue && !unit.bounds && environment.asset && !environment.asset(unit.source))
+      return `Unknown asset ${JSON.stringify(unit.source)}`;
+    return issue;
   };
   const surfaces = bindSurfaces(registry.surfaces, environment);
 
@@ -230,7 +242,7 @@ export function designBuildingCore(
     } catch (error) {
       sharedProblem = (error as Error).message;
     }
-    const unitProblem = unit && unitIssue(unit);
+    const unitProblem = unit && unitProblemOf(unit);
     if (!validId(part.id)) report(key, "Part id must be a non-empty string");
     else if (states.has(key)) report(key, "Duplicate part id");
     else if (!group) report(key, `Unknown group "${part.group}"`);
@@ -260,7 +272,7 @@ export function designBuildingCore(
     else if (connectionIds.has(connection.id)) report(key, "Duplicate connection id");
     else {
       connectionIds.add(connection.id);
-      const pending = authorPending(connection, key, states, report, indexGuest);
+      const pending = authorPending(connection, key, states, failed, report, indexGuest);
       if (pending) author.push(pending);
     }
   }
@@ -335,7 +347,10 @@ export function designBuildingCore(
       definition = definitions.get(key)!;
     const connection = attachOf.get(key);
     const hosts = connection?.hosts ?? [];
-    if (hosts.some((h) => !states.get(h.part)?.original)) report(key, "A host has no geometry");
+    const missing = hosts.filter((h) => !states.get(h.part)?.original);
+    // A guest of a host that failed is not built either; the host reported why.
+    if (missing.some((h) => failed.has(h.part))) failed.add(key);
+    else if (missing.length) report(key, "A host has no geometry");
     else
       try {
         const generator = registry.geometry.get(definition.geometry?.generator);
@@ -413,8 +428,9 @@ export function designBuildingCore(
   }
   function runRule(item: Pending, next: Pending[]) {
     const participants = [item.guest, ...item.hosts.map((h) => h.part), ...item.parts].filter(Boolean) as string[];
-    if (participants.some((k) => !states.get(k)?.original)) {
-      report(item.key, "A participant has no geometry");
+    const missing = participants.filter((k) => !states.get(k)?.original);
+    if (missing.length) {
+      if (!missing.every((k) => failed.has(k))) report(item.key, "A participant has no geometry");
       return;
     }
     const ruleId = chooseRule(item);
@@ -471,7 +487,7 @@ export function designBuildingCore(
       const key = derivedPartKey(item.key, spec.localId);
       const group = spec.group === undefined ? ownerGroup(item) : groups.get(spec.group);
       const unit = measured(spec.unit);
-      const unitProblem = unit && unitIssue(unit);
+      const unitProblem = unit && unitProblemOf(unit);
       if (!validId(spec.localId) || derived.has(spec.localId)) report(key, "Derived parts need unique local ids");
       else if (!group) report(key, `Unknown group "${spec.group}"`);
       else if (!validTypeName(spec.type)) report(key, `Invalid part type "${spec.type}"`);
@@ -632,9 +648,12 @@ function authorPending(
   connection: ConnectionDef,
   key: string,
   states: Map<string, PartState>,
+  failed: ReadonlySet<string>,
   report: (source: string, message: string) => void,
   indexGuest: (guest: PartState) => void
 ): Pending | undefined {
+  // A connection of a part that failed is left out; the part reported why.
+  const known = (part: string) => states.has(part) || failed.has(part);
   const params = plain(connection.params);
   if (connection.kind === "attach") {
     const guest = authorPartKey(connection.guest);
@@ -643,9 +662,10 @@ function authorPending(
       element: h.element
     }));
     const state = states.get(guest);
-    if (!state) report(key, `Unknown guest "${connection.guest}"`);
+    if (!known(guest)) report(key, `Unknown guest "${connection.guest}"`);
     else if (!hosts.length) report(key, "Attach needs at least one host");
-    else if (hosts.some((h) => !states.has(h.part))) report(key, "Attach refers to an unknown host");
+    else if (hosts.some((h) => !known(h.part))) report(key, "Attach refers to an unknown host");
+    else if (!state || hosts.some((h) => !states.has(h.part))) return;
     else if (hosts.some((h) => h.part === guest)) report(key, "A part cannot attach to itself");
     else if (state.guestOf) report(key, "A part can be the guest of only one attach connection");
     else {
@@ -659,7 +679,8 @@ function authorPending(
   if (connection.kind === "join") {
     const list = Array.isArray(connection.parts) ? connection.parts.map(authorPartKey) : [];
     if (list.length !== 2 || list[0] === list[1]) report(key, "Join needs two different parts");
-    else if (list.some((p) => !states.has(p))) report(key, "Join refers to an unknown part");
+    else if (list.some((p) => !known(p))) report(key, "Join refers to an unknown part");
+    else if (list.some((p) => !states.has(p))) return;
     else return { key, kind: "join", hosts: [], parts: [...list].sort(compareKeys), rule: connection.rule, params };
     return;
   }
