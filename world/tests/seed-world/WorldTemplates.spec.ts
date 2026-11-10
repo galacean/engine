@@ -62,6 +62,12 @@ import { planningGroundSurface } from "@galacean/engine-world-planning/semantic-
 describe("authored world templates", () => {
   it("幻兽荒原: starts with bounded land and empty automatic water, roads, buildings and vegetation", () => {
     const source = createTemplatePlanningDocument(110613, "titan-wasteland");
+    const original = createSeedPlanningInputs(110613).entities.world.components;
+    const components = source.entities.world.components;
+    for (const type of ["surfacePalette", "grassAppearance", "rockFormation", "plantMaterial"])
+      expect(components[type]).toEqual(original[type]);
+    expect(components.lighting.values).toEqual({ timeHours: 12 });
+    expect(components.postProcess.values).toEqual({});
     expect(source.authoredResources?.filter((resource) => resource.resourceType === "terrain-feature")).toEqual([]);
     const restored = importPlanningScene(exportPlanningScene(source));
     const recipe = exportPlanningRecipe(restored);

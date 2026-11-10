@@ -137,6 +137,10 @@ export async function mountSpatialEditor(
       const commands = Object.entries(worldTemplatePaletteValues(id)).map(([component, values]) => ({
         op: "set" as const, entity: "world", component, values
       }));
+      if (!commands.length) {
+        status("此主题沿用原始配色。");
+        return;
+      }
       const receipt = await edit(draft => draft.dispatchParameters(commands));
       if (receipt?.status !== "accepted") throw new Error(receipt?.message ?? "配色未接受");
       if (storageWarning) throw new Error(storageWarning);

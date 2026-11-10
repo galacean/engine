@@ -22,6 +22,7 @@ import profile from "../planning-data/settlement-profile.json";
 export function worldTemplatePaletteValues(id: string): Record<string, Record<string, number>> {
   if (!worldTemplate(id)) throw new Error("未知世界风格：" + id);
   const art = WORLD_TEMPLATE_ART[id];
+  if (!art.grass) return {};
   const colorFields = (slot: string, hex: string) =>
     Object.fromEntries(
       (["r", "g", "b"] as const).map((channel, i) => [slot + "." + channel, templateLinearColor(hex)[i]])
@@ -212,8 +213,6 @@ export function createTemplatePlanningDocument(
     components.network.values.enabled = art.initialPlanning.roadsEnabled;
   for (const [type, values] of Object.entries(worldTemplatePaletteValues(id)))
     components[type] = { ...components[type], values: { ...components[type]?.values, ...values } };
-  // The user explicitly authorized reference-specific lighting on 2026-11-05.
-  // Time, light energy and material colour have independent artistic meanings.
   components.lighting = { values: { ...art.lighting } };
   components.postProcess = { values: { ...art.postProcess } };
   components.weather = {

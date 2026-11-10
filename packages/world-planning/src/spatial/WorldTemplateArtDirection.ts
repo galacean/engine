@@ -1,11 +1,31 @@
 import type { TemplateNode, TemplateAssetSlot } from "./WorldTemplateGeometry";
 import type { SpatialCompositionParameters } from "./SpatialCompositionParameters";
 
+interface WorldTemplatePalette {
+  grass: [string, string];
+  ground: string;
+  road?: string;
+  foliage: string;
+  /** Leaf colours keyed by native species identity, independent of catalog order. */
+  treeFoliage?: Readonly<Record<string, string>>;
+  /** Per-part HDR colours for native vegetation layers; species accents retain every model variant. */
+  plantPalette?: {
+    layers: readonly string[];
+    parts: Readonly<Record<string, { color: string; intensity: number }>>;
+    species?: Readonly<Record<string, Readonly<Record<string, { color: string; intensity: number }>>>>;
+    /** Exact native material slots override the part palette, including slots outside its layers. */
+    slots?: Readonly<Record<string, Readonly<Record<string, { color: string; intensity: number }>>>>;
+  };
+  bark: string;
+  flowers: string;
+  stone: string;
+}
+
 /** Authored scene measurements from the fifteen supplied reference images.
  * These are template inputs, not geometry guessed from a Seed or renderer output.
  * Each model entry defines an asset envelope, with a supplied model when available.
  * Camera fitting uses only the focus entries. */
-export interface WorldTemplateArtDirection {
+export type WorldTemplateArtDirection = (WorldTemplatePalette | { grass?: undefined }) & {
   reference: string;
   initialPlanning?: {
     landMode?: import("../semantic-study/IslandPlanModel").IslandPlanParameters["landMode"];
@@ -34,23 +54,6 @@ export interface WorldTemplateArtDirection {
   };
   /** Scalar authoring only; roads, water, relief and populations are derived. */
   generation?: Partial<SpatialCompositionParameters>;
-  grass: [string, string];
-  ground: string;
-  road?: string;
-  foliage: string;
-  /** Leaf colours keyed by native species identity, independent of catalog order. */
-  treeFoliage?: Readonly<Record<string, string>>;
-  /** Per-part HDR colours for native vegetation layers; species accents retain every model variant. */
-  plantPalette?: {
-    layers: readonly string[];
-    parts: Readonly<Record<string, { color: string; intensity: number }>>;
-    species?: Readonly<Record<string, Readonly<Record<string, { color: string; intensity: number }>>>>;
-    /** Exact native material slots override the part palette, including slots outside its layers. */
-    slots?: Readonly<Record<string, Readonly<Record<string, { color: string; intensity: number }>>>>;
-  };
-  bark: string;
-  flowers: string;
-  stone: string;
   lighting: Record<string, number | boolean>;
   postProcess: Record<string, number | boolean>;
   landscape?: Record<string, number>;
@@ -81,7 +84,7 @@ export interface WorldTemplateArtDirection {
     height: number;
     heading: number;
   }[];
-}
+};
 const model = (
   id: string,
   position: [number, number, number],
@@ -768,24 +771,8 @@ export const WORLD_TEMPLATE_ART: Readonly<Record<string, WorldTemplateArtDirecti
     frameFraction: 0.7,
     azimuthDegrees: -7,
     models: [model("ancient-mech-wreck", [15, 0, 38], [115, 93, 80])],
-    grass: ["#c58743", "#e8b96e"],
-    ground: "#e1a66b",
-    foliage: "#aa874f",
-    bark: "#826340",
-    flowers: "#e2b25f",
-    stone: "#bd865d",
-    lighting: {
-      ...lighting(17.6, 2.25, 1.55, 1.2, 0.00045, 0.6),
-      ...atmosphere([5, 0.95, 0.18], [3.1, 1.1, 0.2]),
-      sunColorR: 1.6,
-      sunColorG: 0.86,
-      sunColorB: 0.43,
-      sunSize: 0.04,
-      fogTintR: 1.35,
-      fogTintG: 0.9,
-      fogTintB: 0.45
-    },
-    postProcess: post(9, 9, 2),
+    lighting: { timeHours: 12 },
+    postProcess: {},
     landscape: { treeHeightMinM: 5, treeHeightMaxM: 12 },
     flowerCoverage: 0,
     initialLandscape: {

@@ -134,7 +134,7 @@ export const WORLD_TEMPLATES: readonly WorldTemplate[] = [
     family: "desert",
     vegetation: "desert",
     colors: ["#d89756", "#f4c781", "#ffc474", "#7d456b"],
-    subject: "暖橙沙丘 · 巨型机甲残骸 · 落日薄雾",
+    subject: "整图荒原 · 巨型机甲残骸",
     terrain: { ...gentleBaseTerrain, widthM: 270, count: 4, coverage: 0.85 }
   },
   {
