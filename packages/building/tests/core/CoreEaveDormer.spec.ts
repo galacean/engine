@@ -29,13 +29,7 @@ import {
   coreBuildingLayout,
   roofApertures
 } from "../../src/building/render/CoreBuilding";
-import { European as OnlineEuropean } from "../../src/building/parts/architecture/European";
-import { designBuilding } from "../../src/building/parts/architecture/BuildingDesign";
-import {
-  buildingPreviewInput,
-  prepareBuildingPublication
-} from "../../src/building/parts/architecture/BuildingPublication";
-import { profilePreview } from "../../src/building/runtime/ProfilePreview";
+import { frozen } from "./baseline";
 import { constructionDecorationType } from "../../src/building/runtime/ConstructionDecorationCatalog";
 import { MOUNTED_PART_TYPES } from "../../src/building/partTypes";
 
@@ -69,17 +63,12 @@ const house = (attachments: CoreWallAttachment[], extra: Partial<CoreHouseParame
   ...extra
 });
 const messages = (r: ReturnType<typeof design>) => r.diagnostics.map((d) => d.message);
-const online = async (p: CoreHouseParameters) => {
-  const planned = designBuilding(OnlineEuropean.buildHouses(p as never) as never, flat as never, assets);
-  return profilePreview(
-    buildingPreviewInput(planned, await prepareBuildingPublication(planned)),
-    flat as never,
-    {
-      assets,
-      retainDecorationParts: true
-    } as never
-  );
-};
+/** What online drew for each eave dormer: its decoration parts (id, mesh size in floats, mesh
+ * center), and the template and flags of each stone of a Gothic surround. */
+const ONLINE = frozen<{
+  parts: Record<string, { id: string; floats: number; center: number[] }[]>;
+  stones: Record<string, [string, number][]>;
+}>("CoreEaveDormer");
 const center = (positions: number[]) => {
   const out = [0, 0, 0];
   for (let i = 0; i < positions.length; i++) out[i % 3] += positions[i] / (positions.length / 3);
@@ -95,17 +84,17 @@ describe("Eave dormers against the online path", () => {
     ["Gothic 3", at("dormer-gothic-half", 3, 0.125)],
     ["arrow slit 2", at("dormer-arrow-slit-half", 2, 0.125)],
     ["arrow slit 3", at("dormer-arrow-slit-half", 3, 0.125)]
-  ] as [string, CoreWallAttachment][])("%s: the same meshes at the same place", async (_name, a) => {
+  ] as [string, CoreWallAttachment][])("%s: the same meshes at the same place", (name, a) => {
     const p = house([a]);
     const result = design(p);
     expect(result.diagnostics).toEqual([]);
     const ours = coreBuildingDecorations(coreBuildingLayout(result, registry, {}), assets).flatMap((d) => d.parts);
-    const theirs = (await online(p)).decorationParts;
+    const theirs = ONLINE.parts[name];
     expect(ours.map((x) => x.id).sort()).toEqual(theirs.map((x) => x.id).sort());
     for (const x of ours) {
       const o = theirs.find((y) => y.id === x.id)!;
-      expect(x.positions.length).toBe(o.positions.length);
-      const [c, d] = [center(x.positions), center(o.positions)];
+      expect(x.positions.length).toBe(o.floats);
+      const [c, d] = [center(x.positions), o.center];
       for (let k = 0; k < 3; k++) expect(Math.abs(c[k] - d[k])).toBeLessThan(0.03);
     }
   });
@@ -329,19 +318,10 @@ describe("Eave dormers against the online path", () => {
     expect(MOUNTED_PART_TYPES).toContain("eaveDormer");
   });
 
-  it.each([1, 2, 3] as const)("rank %i Gothic carries the full stone surround", async (rank) => {
+  it.each([1, 2, 3] as const)("rank %i Gothic carries the full stone surround", (rank) => {
     const p = house([at("dormer-gothic-half", rank, 0.125)]);
     const ours = coreBuildingDecorations(coreBuildingLayout(design(p), registry, {}), assets).flatMap((d) => d.stones);
-    const planned = designBuilding(OnlineEuropean.buildHouses(p as never) as never, flat as never, assets);
-    const theirs = profilePreview(
-      buildingPreviewInput(planned, await prepareBuildingPublication(planned)),
-      flat as never,
-      {
-        assets,
-        retainDecorationParts: true
-      } as never
-    ).stones;
-    expect(ours.map((s) => [s.template, s.instance.flags])).toEqual(theirs.map((s) => [s.template, s.instance.flags]));
+    expect(ours.map((s) => [s.template, s.instance.flags])).toEqual(ONLINE.stones[`Gothic ${rank}`]);
   });
 
   it("stays whole next to another house, as online", () => {

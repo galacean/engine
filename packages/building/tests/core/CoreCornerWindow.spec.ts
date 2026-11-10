@@ -19,13 +19,7 @@ import {
   coreBuildingEnvironment,
   coreBuildingLayout
 } from "../../src/building/render/CoreBuilding";
-import { European as OnlineEuropean } from "../../src/building/parts/architecture/European";
-import { designBuilding } from "../../src/building/parts/architecture/BuildingDesign";
-import {
-  buildingPreviewInput,
-  prepareBuildingPublication
-} from "../../src/building/parts/architecture/BuildingPublication";
-import { profilePreview } from "../../src/building/runtime/ProfilePreview";
+import { baseline } from "./baseline";
 import { constructionDecorationType } from "../../src/building/runtime/ConstructionDecorationCatalog";
 
 const registry = registerHouseTypes(createBuildingRegistry());
@@ -58,17 +52,8 @@ const house = (a: CoreWallAttachment[], extra: Partial<CoreHouseParameters> = {}
 });
 const parts = (r: ReturnType<typeof design>) =>
   coreBuildingDecorations(coreBuildingLayout(r, registry, {}), assets).flatMap((d) => d.parts);
-const online = async (p: CoreHouseParameters) => {
-  const planned = designBuilding(OnlineEuropean.buildHouses(p as never) as never, flat as never, assets);
-  return profilePreview(
-    buildingPreviewInput(planned, await prepareBuildingPublication(planned)),
-    flat as never,
-    {
-      assets,
-      retainDecorationParts: true
-    } as never
-  ).decorationParts;
-};
+/** Online's decoration parts by rank and u: id, mesh size in floats and mesh center. */
+const ONLINE = baseline<{ id: string; floats: number; center: number[] }[]>("CoreCornerWindow");
 const center = (positions: number[]) => {
   const out = [0, 0, 0];
   for (let i = 0; i < positions.length; i++) out[i % 3] += positions[i] / (positions.length / 3);
@@ -93,17 +78,17 @@ describe("Corner windows against the online path", () => {
     [2, 0.5],
     [3, 0.5],
     [2, 0]
-  ] as [1 | 2 | 3, number][])("rank %i at u = %f: the same meshes at the same place", async (rank, u) => {
+  ] as [1 | 2 | 3, number][])("rank %i at u = %f: the same meshes at the same place", (rank, u) => {
     const p = house([at(rank, u)]);
     const result = design(p);
     expect(result.diagnostics).toEqual([]);
     const ours = parts(result),
-      theirs = await online(p);
+      theirs = ONLINE[`${rank} @ ${u}`];
     expect(ours.map((x) => x.id).sort()).toEqual(theirs.map((x) => x.id).sort());
     for (const x of ours) {
       const o = theirs.find((y) => y.id === x.id)!;
-      expect(x.positions.length).toBe(o.positions.length);
-      const [c, d] = [center(x.positions), center(o.positions)];
+      expect(x.positions.length).toBe(o.floats);
+      const [c, d] = [center(x.positions), o.center];
       for (let k = 0; k < 3; k++) expect(Math.abs(c[k] - d[k])).toBeLessThan(0.03);
     }
   });

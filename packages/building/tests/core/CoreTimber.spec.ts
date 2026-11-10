@@ -18,9 +18,7 @@ import {
   coreBuildingView,
   prepareCoreBuilding
 } from "../../src/building/render/CoreBuilding";
-import { European as OnlineEuropean } from "../../src/building/parts/architecture/European";
-import { designBuilding } from "../../src/building/parts/architecture/BuildingDesign";
-import { implementBuilding } from "../../src/building/parts/architecture/BuildingImplementation";
+import { baseline } from "./baseline";
 
 const registry = registerHouseTypes(createBuildingRegistry());
 const flat = () => 0;
@@ -32,41 +30,9 @@ const rectangle = { center: [0, 0] as [number, number], size: [8, 6] as [number,
 const house: CoreHouseParameters = { id: "h", height: 4, walls: "timber", rectangle };
 const walls = (result: ReturnType<typeof design>) => result.parts.filter((p) => p.type === "wall");
 const boards = (result: ReturnType<typeof design>) => walls(result).flatMap(lay);
-/** The boards online draws for a house: one 80-byte record each for ordinary boards. */
-async function onlineBoards(p: object) {
-  const assets = {
-    ...nativeAssets,
-    windowCuts: { texture: "x", layers: [{ layer: 0, bounds: { min: [0, 0], max: [1, 1] } }] }
-  };
-  const { renderInput } = await implementBuilding(
-    designBuilding(
-      OnlineEuropean.buildHouses({
-        ...p,
-        wallStructure: "timber",
-        wall: { unit: "wooden_plank", algorithm: { type: "horizontal_rows" } }
-      } as never) as never,
-      flat as never,
-      assets as never
-    )
-  );
-  const out: { center: number[]; length: number }[] = [];
-  for (const g of renderInput.groups as { woodDraw?: { instances: Uint8Array } }[]) {
-    if (!g.woodDraw || g.woodDraw.instances.length % 80) continue;
-    const v = new DataView(
-      g.woodDraw.instances.buffer,
-      g.woodDraw.instances.byteOffset,
-      g.woodDraw.instances.byteLength
-    );
-    for (let i = 0; i < g.woodDraw.instances.length / 80; i++) {
-      const f = (k: number) => v.getFloat32(i * 80 + k * 4, true);
-      out.push({
-        center: [f(9) + f(3) / 2, f(10) + f(4) / 2, f(11) + f(5) / 2],
-        length: Math.hypot(f(3), f(4), f(5))
-      });
-    }
-  }
-  return out;
-}
+/** Online's boards on an 8 by 6 m timber house: how many on the sides across x, their rows there
+ * to 0.1 m, and the mean board length. */
+const ONLINE = baseline<{ sideBoards: number; rows: number[]; meanLength: number }>("CoreTimber");
 
 describe("Timber walls", () => {
   it("lays boards along each side, 0.125 m out, crossing at the corners", () => {
@@ -89,19 +55,17 @@ describe("Timber walls", () => {
     }
   });
 
-  it("stands on online's board line, with rows and board lengths like online's", async () => {
-    const p = { id: "h", height: 4, rectangle, roof: {} };
-    const theirs = await onlineBoards(p),
+  it("stands on online's board line, with rows and board lengths like online's", () => {
+    const theirs = ONLINE.boards,
       ours = boards(design(house));
-    const sideX = (b: { center: number[] }) => Math.abs(Math.abs(b.center[0]) - 4.125) < 1e-3;
-    expect(theirs.filter(sideX).length).toBeGreaterThan(5);
+    expect(theirs.sideBoards).toBeGreaterThan(5);
     // Their rows on one side, and ours.
     const rows = (ys: number[]) => [...new Set(ys.map((y) => Math.round(y * 10) / 10))].sort((a, b) => a - b);
-    const theirRows = rows(theirs.filter(sideX).map((b) => b.center[1]));
+    const theirRows = theirs.rows;
     const ourRows = rows(ours.filter((u) => Math.abs(u.frame.y[2]) > 0.5).map((u) => u.frame.origin[1]));
     expect(Math.abs(ourRows.length - theirRows.length)).toBeLessThanOrEqual(1);
     const mean = (v: number[]) => v.reduce((n, x) => n + x, 0) / v.length;
-    const ratio = mean(ours.map((u) => u.size![1])) / mean(theirs.map((b) => b.length));
+    const ratio = mean(ours.map((u) => u.size![1])) / theirs.meanLength;
     expect(ratio).toBeGreaterThan(0.75);
     expect(ratio).toBeLessThan(1.25);
     // Boards cover each side, up to the joints between them.
