@@ -577,8 +577,10 @@ const bandsOf = (part: ParticipantView) =>
     e.kind === "surface" && e.surface.kind === "wallChart" ? [{ id, chart: e.surface.params as WallChartParams }] : []
   );
 const crosses = (low: number, high: number, band: WallChartParams) => low < band.topY && band.minGround < high;
-/** An opening meets a floor band when it crosses one of the band's levels. */
+/** An opening meets a floor band of its own house when it crosses one of the band's levels.
+ * The band of another house runs along that house's walls, which the opening is not in. */
 export const openingMeetsBand: JoinDetector = (a, b) => {
+  if (a.group !== b.group) return false;
   const [mounted, band] = opens(a) ? [a, b] : [b, a];
   return openedHeights(mounted).some(([low, high]) => bandsOf(band).some((b) => crosses(low, high, b.chart)));
 };

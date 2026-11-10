@@ -53,6 +53,30 @@ describe("Houses that touch", () => {
         expect(Math.hypot(u.frame.origin[0] - origin[0], u.frame.origin[2] - origin[2])).toBeLessThan(1e-9);
     }
   });
+
+  it("cut a floor band only for the openings of its own house", () => {
+    // The arch reaches through the first band of its house on the uneven ground.
+    const arch = { id: "a", kind: "opening" as const, u: 0.125, bottom: 0, width: 1.6, height: 4.4 };
+    const result = design([
+      {
+        id: "A",
+        height: 7,
+        rectangle: { center: [0, 0], size: [8, 8], rotation: 0 },
+        floors: { interval: 3.5 },
+        attachments: [arch]
+      },
+      { id: "B", height: 7, rectangle: { center: [30, 0], size: [8, 8], rotation: 0 }, floors: { interval: 3.5 } }
+    ]);
+    expect(result.diagnostics).toEqual([]);
+    const band = (group: string) => result.parts.find((p) => p.type === "floorBand" && p.group === group)!;
+    expect(band("A").modifications.some((m) => m.op === "removeArea")).toBe(true);
+    expect(band("B").modifications).toEqual([]);
+    const across = result.connections.filter(
+      (c) => c.kind === "join" && c.parts.some((p) => p.includes("A/")) && c.parts.some((p) => p.includes("B-floors"))
+    );
+    expect(across).toEqual([]);
+  });
+
   it("lay nothing between houses that do not touch, and the same stones every time", () => {
     const apart = design([a, { ...b, rectangle: { ...b.rectangle!, center: [20, 0] } }]);
     expect(apart.parts.filter((p) => p.type === "wallSeam")).toEqual([]);
