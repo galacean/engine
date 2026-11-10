@@ -67,12 +67,13 @@ describe("authored world templates", () => {
     for (const type of ["surfacePalette", "grassAppearance", "rockFormation", "plantMaterial"])
       expect(components[type]).toEqual(original[type]);
     expect(components.lighting.values).toEqual({ timeHours: 12 });
-    expect(components.postProcess.values).toEqual({});
+    expect(components.postProcess.values).toEqual({ contrast: 0 });
     expect(source.authoredResources?.filter((resource) => resource.resourceType === "terrain-feature")).toEqual([]);
     const restored = importPlanningScene(exportPlanningScene(source));
     const recipe = exportPlanningRecipe(restored);
     expect(recipe.parameters.landMode).toBe("continuous");
     expect(recipe.parameters.poiLayout?.network.enabled).toBe(false);
+    expect(recipe.parameters.farming?.enabled).toBe(false);
 
     const result = generatePlanningDocument(restored);
     expect(result.accepted).toBe(true);
@@ -87,19 +88,31 @@ describe("authored world templates", () => {
     expect(plan.waters).toHaveLength(0);
     expect(plan.routes).toHaveLength(0);
     expect(plan.buildings).toHaveLength(0);
+    expect(plan.rocks).toHaveLength(0);
+    expect(plan.landscapes?.filter(({ kind }) => kind === "rock") ?? []).toHaveLength(0);
+    expect(plan.farming).toBeUndefined();
+    expect(plan.naturalVegetation?.settings.companionStoneDensity).toBe(0);
     expect(plan.flowerRegions ?? []).toHaveLength(0);
     expect(Object.values(plan.naturalVegetation!.world).every(density => density === 0)).toBe(true);
     const template = WORLD_TEMPLATES.find(entry => entry.id === "titan-wasteland")!;
-    expect(buildWorldTemplateGeometry(template, 110613).nodes.map(node => node.id)).toEqual(["ancient-mech-wreck"]);
+    const nodes = buildWorldTemplateGeometry(template, 110613).nodes;
+    expect(nodes.map((node) => node.id)).toEqual(["ancient-mech-wreck", "stone-stele", "broken-stone-arch"]);
+    expect(nodes.every((node) => node.assetUrl)).toBe(true);
+    const site = plan.worldTemplateSite!;
+    expect(site.footprints.map(({ id, obb, poiId }) => [id, obb.size, Boolean(poiId)]))
+      .toEqual(nodes.map((node) => [node.id, node.scale, true]));
+    expect(plan.spawn).toEqual({ x: site.spawnView!.eye[0], z: site.spawnView!.eye[2] });
 
     const edited = applySpatialCommands(restored, [
       { op: "set", entity: "world", component: "world", values: { landMode: "island" } },
-      { op: "set", entity: "world", component: "network", values: { enabled: true } }
+      { op: "set", entity: "world", component: "network", values: { enabled: true } },
+      { op: "set", entity: "world", component: "farming", values: { enabled: true } }
     ], planningRegistry);
     const enabled = generatePlanningDocument(edited, result);
     expect(enabled.accepted).toBe(true);
     expect(enabled.plan.land).not.toEqual(plan.land);
     expect(enabled.plan.routes.length).toBeGreaterThan(0);
+    expect(enabled.plan.farming?.options.enabled).toBe(true);
   }, 60000);
 
   it("keeps authored forest poses while generating paths and separates roots from canopy bounds", () => {
@@ -547,13 +560,10 @@ describe("authored world templates", () => {
   for (const template of WORLD_TEMPLATES) {
     it(`${template.name}: fits the complete subject at standing height in landscape and portrait viewports`, () => {
       const plan = createSpatialWorldBase(exportPlanningRecipe(createTemplatePlanningDocument(1, template.id)));
-      const geometry = buildWorldTemplateGeometry(template, 1);
       const authored = plan.parameters.worldTemplate!;
       plan.worldTemplateSite = {
         templateId: template.id,
-        center: { x: authored.centerX!, z: authored.centerZ! },
-        radius: geometry.radius,
-        outline: [],
+        center: { x: authored.centerX ?? plan.parameters.width / 2, z: authored.centerZ ?? plan.parameters.depth / 2 },
         footprints: []
       };
       const ground = (x: number, z: number) => 0.015 * x + 0.025 * z;

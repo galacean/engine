@@ -6,6 +6,7 @@ import { compositionPoint } from "./SpatialCompositionGeometry";
 type Vec3 = [number, number, number];
 export interface TemplateNode {
   id: string;
+  label?: string;
   /** Supplied model fitted to this node's authored envelope. */
   assetUrl?: string;
   /** Planting plane in the imported model's metre coordinates; defaults to its lowest point. */

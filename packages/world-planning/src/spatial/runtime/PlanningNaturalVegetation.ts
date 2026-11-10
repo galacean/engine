@@ -284,7 +284,10 @@ export class PlanningNaturalVegetation {
     // Prove that once before spending a cell's candidate budget; flowers and stones
     // have independent suitability and must retain their own generation rules.
     const hasSubstrate = this.grass.some((value, index) => value > 0 && !fields.waterMask[index]);
-    const stones = createNaturalCompanionStoneLayer(assets.filter((asset) => asset.kind === "stone"));
+    const stoneDensity =
+      plan.naturalVegetation?.settings.companionStoneDensity ?? NATURAL_VEGETATION_DEFAULTS.companionStoneDensity;
+    const stones =
+      stoneDensity > 0 ? createNaturalCompanionStoneLayer(assets.filter((asset) => asset.kind === "stone")) : undefined;
     this.layers = [
       ...(stones ? [stones] : []),
       ...createNaturalVegetationLayers(
@@ -431,7 +434,8 @@ export class PlanningNaturalVegetation {
         Math.min(resolution - 1, Math.max(0, Math.round((z / depth) * (resolution - 1)))) * resolution +
         Math.min(resolution - 1, Math.max(0, Math.round((x / width) * (resolution - 1))));
       if (this.fields.waterMask[i]) return 0;
-      if (layerId === "树脚石块") return 1;
+      if (layerId === "树脚石块")
+        return settings.companionStoneDensity ?? NATURAL_VEGETATION_DEFAULTS.companionStoneDensity;
       if (layerId === "零星野花") return this.densityAt({ x, z }).flowers!;
       return (this.grass[i] / 255) * this.densityAt({ x, z })[densityKeys.get(layerId)!]!;
     };

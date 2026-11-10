@@ -224,6 +224,16 @@ const landscape = [
   ...(
     [
       {
+        ...number("companionStoneDensity", "地表小石头密度", {
+          min: 0,
+          max: 1,
+          step: 0.01,
+          unit: "%",
+          default: NATURAL_VEGETATION_DEFAULTS.companionStoneDensity
+        }),
+        description: "控制自动散布和树脚伴生的小石头，0 时关闭。"
+      },
+      {
         ...number("grassRelativeHeight", "低草相对花灌木高度", {
           min: 0.05,
           max: 1,

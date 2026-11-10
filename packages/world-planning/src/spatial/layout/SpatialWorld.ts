@@ -1,5 +1,9 @@
 import { finalizePlanningFarm } from "../farming/PlanningFarmingFinalization";
+import { PLANNING_REFERENCE } from "../../planning-data/PlanningReference";
 import { planWorldTemplateSite } from "../WorldTemplatePlanning";
+import { resolveWorldTemplateScene, resolveWorldTemplateView } from "../WorldTemplateView";
+import { WORLD_TEMPLATE_ART } from "../WorldTemplateArtDirection";
+import { PLANNING_RUNTIME_OPTIONS } from "../runtime/RuntimeOptions";
 import { worldTemplateEcology } from "../WorldTemplateEcology";
 import {
   compileCompositionGroup,
@@ -1160,6 +1164,21 @@ function* spatialWorldStages(
       first.ports[0];
     plan.spawn = { ...port.position };
   }
+  const templateSite = plan.worldTemplateSite;
+  if (options.environment !== false && templateSite && WORLD_TEMPLATE_ART[templateSite.templateId].plannedSubjects) {
+    const surface = planningGroundSurface(plan);
+    const sample = (x: number, z: number) => surface.sample({ x, z });
+    const scene = resolveWorldTemplateScene(plan, sample)!;
+    const { pose } = resolveWorldTemplateView(
+      scene,
+      1,
+      PLANNING_RUNTIME_OPTIONS.verticalFieldOfView,
+      PLANNING_REFERENCE.actor.heightM,
+      sample
+    );
+    templateSite.spawnView = pose;
+    plan.spawn = { x: pose.eye[0], z: pose.eye[2] };
+  }
   const guidanceIds = new Set(plan.visualGuidance?.flatMap((g) => g.memberIds));
   plan.spatialLayout = {
     ...plan.spatialLayout,
@@ -1176,72 +1195,74 @@ function* spatialWorldStages(
     exclusions: relations,
     roads: automaticRoads
   };
-  const farmSearchStarted = performance.now();
-  const farmSignature = JSON.stringify([
-    worldSignature,
-    terrainSignature,
-    riverSignature,
-    plan.spawn,
-    p.farming,
-    document.authoredResources,
-    plan.poiDistribution,
-    groups.map((g) => g.volumes),
-    plan.buildings,
-    plan.rocks,
-    plan.regions,
-    plan.plazas,
-    plan.fences,
-    plan.waters,
-    plan.bridges,
-    plan.roadApproaches,
-    plan.planning!.profiles,
-    plan.routes
-  ]);
-  const farmResult =
-    saved?.farmSearch?.signature === farmSignature
-      ? { ...saved.farmSearch.result, planningRevision: document.revision }
-      : preparePlanningFarmLayout(plan, publishedGroups, document.revision, p.farming ?? {});
-  plan.spatialLayout.farmSearch = { signature: farmSignature, result: farmResult };
-  plan.farming = farmResult;
-  timings["farming.initialSearch"] = performance.now() - farmSearchStarted;
-  const finalFarmStarted = performance.now();
-  const unoccupiedLandscapes = plan.landscapes;
-  excludePlanningFarmLandscape(plan);
-  finalizePlanningFarm(plan);
-  if (plan.farming.placementCheck.state === "ready") publishPlanningFarmGeometry(plan);
-  else plan.landscapes = unoccupiedLandscapes;
-  timings["farming.finalValidation"] = performance.now() - finalFarmStarted;
-  timings["farming.total"] = timings["farming.initialSearch"] + timings["farming.finalValidation"];
-  if (!previous)
-    console.info("[Planner][Farming] 初始化选址", {
-      seed: p.seed,
-      poiId: plan.farming.poiId,
-      plotCount: plan.farming.placement?.plots.length ?? 0,
-      containerCount: plan.farming.placement?.storage.containers.length ?? 0,
-      sampled: plan.farming.search?.sampled ?? 0,
-      initialCandidates: plan.farming.search?.inspected ?? 0,
-      searchedPois: plan.farming.search?.regionIds.length ?? 0,
-      placement: plan.farming.placementCheck.state,
-      spawnDistanceM: plan.farming.entrance
-        ? Math.hypot(plan.farming.entrance.x - plan.spawn.x, plan.farming.entrance.z - plan.spawn.z)
-        : null,
-      initialSearchMs: timings["farming.initialSearch"],
-      finalValidationMs: timings["farming.finalValidation"],
-      totalMs: timings["farming.total"]
-    });
-  for (const [dimension, result] of Object.entries({
-    placement: plan.farming.placementCheck,
-    access: plan.farming.accessCheck
-  }))
-    for (const issue of result.issues)
-      checks.push({
-        id: `farming:${dimension}:${issue.code}:${issue.target}`,
-        rule: `farming-${dimension}`,
-        owners: plan.farming.poiId ? [plan.farming.poiId] : ["world"],
-        required: false,
-        status: "unknown",
-        message: issue.message
+  if (p.farming?.enabled !== false) {
+    const farmSearchStarted = performance.now();
+    const farmSignature = JSON.stringify([
+      worldSignature,
+      terrainSignature,
+      riverSignature,
+      plan.spawn,
+      p.farming,
+      document.authoredResources,
+      plan.poiDistribution,
+      groups.map((g) => g.volumes),
+      plan.buildings,
+      plan.rocks,
+      plan.regions,
+      plan.plazas,
+      plan.fences,
+      plan.waters,
+      plan.bridges,
+      plan.roadApproaches,
+      plan.planning!.profiles,
+      plan.routes
+    ]);
+    const farmResult =
+      saved?.farmSearch?.signature === farmSignature
+        ? { ...saved.farmSearch.result, planningRevision: document.revision }
+        : preparePlanningFarmLayout(plan, publishedGroups, document.revision, p.farming ?? {});
+    plan.spatialLayout.farmSearch = { signature: farmSignature, result: farmResult };
+    plan.farming = farmResult;
+    timings["farming.initialSearch"] = performance.now() - farmSearchStarted;
+    const finalFarmStarted = performance.now();
+    const unoccupiedLandscapes = plan.landscapes;
+    excludePlanningFarmLandscape(plan);
+    finalizePlanningFarm(plan);
+    if (plan.farming.placementCheck.state === "ready") publishPlanningFarmGeometry(plan);
+    else plan.landscapes = unoccupiedLandscapes;
+    timings["farming.finalValidation"] = performance.now() - finalFarmStarted;
+    timings["farming.total"] = timings["farming.initialSearch"] + timings["farming.finalValidation"];
+    if (!previous)
+      console.info("[Planner][Farming] 初始化选址", {
+        seed: p.seed,
+        poiId: plan.farming.poiId,
+        plotCount: plan.farming.placement?.plots.length ?? 0,
+        containerCount: plan.farming.placement?.storage.containers.length ?? 0,
+        sampled: plan.farming.search?.sampled ?? 0,
+        initialCandidates: plan.farming.search?.inspected ?? 0,
+        searchedPois: plan.farming.search?.regionIds.length ?? 0,
+        placement: plan.farming.placementCheck.state,
+        spawnDistanceM: plan.farming.entrance
+          ? Math.hypot(plan.farming.entrance.x - plan.spawn.x, plan.farming.entrance.z - plan.spawn.z)
+          : null,
+        initialSearchMs: timings["farming.initialSearch"],
+        finalValidationMs: timings["farming.finalValidation"],
+        totalMs: timings["farming.total"]
       });
+    for (const [dimension, result] of Object.entries({
+      placement: plan.farming.placementCheck,
+      access: plan.farming.accessCheck
+    }))
+      for (const issue of result.issues)
+        checks.push({
+          id: `farming:${dimension}:${issue.code}:${issue.target}`,
+          rule: `farming-${dimension}`,
+          owners: plan.farming.poiId ? [plan.farming.poiId] : ["world"],
+          required: false,
+          status: "unknown",
+          message: issue.message
+        });
+  }
 
   const verification = new VolumeIndex(relations);
   const volumes = groups.flatMap((g) => g.volumes);

@@ -197,7 +197,7 @@ export function createTemplatePlanningDocument(
     lakes: { countMin: 0, countMax: 0 }
   });
   const { anchor, resources, lakes } = templateCore(template);
-  recipe.parameters.worldTemplate = { id, centerX: anchor.x, centerZ: anchor.z };
+  if (!art.plannedSubjects) recipe.parameters.worldTemplate = { id, centerX: anchor.x, centerZ: anchor.z };
   if (art.generation)
     recipe.parameters.spatialComposition = spatialCompositionParameters({
       ...art.generation,
@@ -211,6 +211,8 @@ export function createTemplatePlanningDocument(
   const components = document.entities.world.components;
   if (art.initialPlanning?.roadsEnabled !== undefined)
     components.network.values.enabled = art.initialPlanning.roadsEnabled;
+  if (art.initialPlanning?.farmingEnabled !== undefined)
+    components.farming.values.enabled = art.initialPlanning.farmingEnabled;
   for (const [type, values] of Object.entries(worldTemplatePaletteValues(id)))
     components[type] = { ...components[type], values: { ...components[type]?.values, ...values } };
   components.lighting = { values: { ...art.lighting } };
@@ -257,7 +259,12 @@ export function createTemplatePlanningDocument(
     values.referenceLevel = Math.fround(level) - 0.001;
     document.entities[lake.id] = lake;
   }
-  return initializePlanningPopulation(document, { ...art.initialPlanning?.population, ...options });
+  const initialized = initializePlanningPopulation(document, { ...art.initialPlanning?.population, ...options });
+  if (art.initialPlanning?.poiMemberMax !== undefined) {
+    const layout = (initialized.entities.world.components.layout ??= { values: {} });
+    layout.values.memberMax = art.initialPlanning.poiMemberMax;
+  }
+  return initialized;
 }
 
 /** Apply a reference recipe while retaining independently authored plant controls.

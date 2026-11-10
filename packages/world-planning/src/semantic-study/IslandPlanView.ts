@@ -1,5 +1,4 @@
 import { onlyLandscapeDrawingChanged } from "./PlanningDerivedPatch";
-import { worldTemplate } from "../spatial/WorldTemplateCatalog";
 import { poiMemberIds } from "./PoiContents";
 import { planningFocusBox } from "./PlanningFocus";
 import type { PresentationComponents } from "../spatial/PlanningPresentation";
@@ -248,7 +247,10 @@ export class IslandPlanView {
       !this.plan ||
       this.plan.parameters.width !== plan.parameters.width ||
       this.plan.parameters.depth !== plan.parameters.depth;
-    landscapeOnly = landscapeOnly && onlyLandscapeDrawingChanged(this.plan, plan);
+    landscapeOnly =
+      landscapeOnly &&
+      onlyLandscapeDrawingChanged(this.plan, plan) &&
+      JSON.stringify(this.plan?.worldTemplateSite) === JSON.stringify(plan.worldTemplateSite);
     this.plan = plan;
     if (this.oblique)
       void this.worldView
@@ -272,22 +274,6 @@ export class IslandPlanView {
       const landscape = landscapeOnly && this.svg.querySelector('[data-plan-layer="landscape"]');
       if (landscape) landscape.outerHTML = drawPlanLandscape(plan);
       else this.svg.innerHTML = this.draw(plan);
-      this.svg.querySelector("[data-world-template-site]")?.remove();
-      const site = plan.worldTemplateSite,
-        template = worldTemplate(site?.templateId);
-      if (site && template) {
-        const group = document.createElementNS(NS, "g");
-        group.dataset.worldTemplateSite = template.id;
-        group.setAttribute("pointer-events", "none");
-        const outline = document.createElementNS(NS, "polygon");
-        outline.setAttribute("points", site.outline.map((p) => `${p.x},${p.z}`).join(" "));
-        outline.setAttribute("fill", template.colors[2]);
-        outline.setAttribute("fill-opacity", ".25");
-        outline.setAttribute("stroke", template.colors[3]);
-        outline.setAttribute("stroke-dasharray", "5 3");
-        group.append(outline);
-        this.svg.append(group);
-      }
     }
     if (!this.selectable)
       for (const node of this.svg.querySelectorAll<SVGElement>("[data-feature-id]")) {
@@ -566,6 +552,24 @@ export class IslandPlanView {
   }
 
   private draw(plan: IslandPlan): string {
+    const map = this.drawMap(plan),
+      site = plan.worldTemplateSite;
+    if (!site) return map;
+    const footprints = site.footprints
+      .map(({ id, label, obb, poiId }) => {
+        const [width, height, depth] = obb.size;
+        const dimensions = `${width} × ${depth} × ${height} m`;
+        const name = xml(label ?? id);
+        const caption = label
+          ? `<text x="${obb.center.x}" y="${obb.center.z - 2}" text-anchor="middle" font-size="12" font-weight="700" fill="#342a21" stroke="#fff9e9" stroke-width="3" paint-order="stroke">${name}<tspan x="${obb.center.x}" dy="13" font-size="9">${dimensions}</tspan></text>`
+          : "";
+        return `<g data-world-template-obb="${xml(id)}" data-poi-id="${xml(poiId ?? "")}"><title>${name} · 宽 × 深 × 高 ${dimensions}${poiId ? ` · ${xml(poiId)}` : ""}</title><path d="${ring(obb.outline)}" fill="#d58e55" fill-opacity=".35" stroke="#7d3f21" stroke-width="2"/>${caption}</g>`;
+      })
+      .join("");
+    return `${map}<g data-world-template-site="${xml(site.templateId)}">${footprints}</g>`;
+  }
+
+  private drawMap(plan: IslandPlan): string {
     if (plan.mode === "base-map") {
       if (plan.villageStudy) return drawVillagePlan(plan);
       if (!plan.landformStudy && !plan.settlementLayout) return drawBaseMap(plan);

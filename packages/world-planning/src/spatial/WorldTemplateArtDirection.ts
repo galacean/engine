@@ -30,10 +30,14 @@ export type WorldTemplateArtDirection = (WorldTemplatePalette | { grass?: undefi
   initialPlanning?: {
     landMode?: import("../semantic-study/IslandPlanModel").IslandPlanParameters["landMode"];
     roadsEnabled?: boolean;
+    farmingEnabled?: boolean;
+    poiMemberMax?: number;
     population?: import("./PlanningPopulationParameters").PlanningPopulationOptions;
   };
   focus: string[];
   frameFraction: number;
+  /** Reserve each subject in a solved POI and publish a clear starting view. */
+  plannedSubjects?: boolean;
   azimuthDegrees: number;
   /** Composition aim relative to the focus envelope; a side subject stays at the side. */
   lookAtOffset?: [number, number, number];
@@ -765,18 +769,38 @@ export const WORLD_TEMPLATE_ART: Readonly<Record<string, WorldTemplateArtDirecti
     initialPlanning: {
       landMode: "continuous",
       roadsEnabled: false,
+      farmingEnabled: false,
+      poiMemberMax: 0,
       population: { villageMin: 0, villageMax: 0, buildingMin: 0, buildingMax: 0 }
     },
-    focus: ["ancient-mech-wreck"],
-    frameFraction: 0.7,
+    plannedSubjects: true,
+    focus: ["ancient-mech-wreck", "stone-stele", "broken-stone-arch"],
+    frameFraction: 0.85,
     azimuthDegrees: -7,
-    models: [model("ancient-mech-wreck", [15, 0, 38], [115, 93, 80])],
+    models: [
+      {
+        ...model("ancient-mech-wreck", [26, 0, 52], [115, 93, 139]),
+        label: "巨兽",
+        assetUrl: "https://mdn.alipayobjects.com/rms/afts/file/A*WzQ9Q6me6W8AAAAAgGAAAAgAehQnAQ/jushou.glb"
+      },
+      {
+        ...model("stone-stele", [-50, 0, -75], [9, 19, 8], true, -12),
+        label: "石碑",
+        assetUrl: "https://mdn.alipayobjects.com/rms/afts/file/A*SSvqT74aEKIAAAAAf8AAAAgAehQnAQ/shitou1.glb"
+      },
+      {
+        ...model("broken-stone-arch", [-39, 0, -37], [32, 31, 11], true, 12),
+        label: "断壁残垣",
+        assetUrl: "https://mdn.alipayobjects.com/rms/afts/file/A*E1bHTKH2busAAAAAgBAAAAgAehQnAQ/shitou2.glb"
+      }
+    ],
     lighting: { timeHours: 12 },
-    postProcess: {},
+    postProcess: { contrast: 0 },
     landscape: { treeHeightMinM: 5, treeHeightMaxM: 12 },
     flowerCoverage: 0,
     initialLandscape: {
       density: 0,
+      companionStoneDensity: 0,
       "vegetation.trees": 0,
       "vegetation.grass": 0,
       "vegetation.shrubs": 0,

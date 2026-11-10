@@ -1,12 +1,14 @@
 import type { PlanningComponentDefinition } from "../PlanningComponents";
 
 export interface PlanningFarmingOptions {
+  readonly enabled: boolean;
   readonly saveMode: "auto" | "new";
   readonly poiId: string;
   readonly plotCount: number;
   readonly initialContainers: boolean;
 }
 export const PLANNING_FARMING_DEFAULTS: PlanningFarmingOptions = Object.freeze({
+  enabled: true,
   saveMode: "auto",
   poiId: "auto",
   plotCount: 4,
@@ -22,6 +24,14 @@ export const PLANNING_FARMING_COMPONENT: PlanningComponentDefinition = {
   description:
     "无存档时在出生点附近的 POI 管理区寻找完整农场，同一距离范围内按坡度选址；不偏好河流，不要求公共道路接入。设施与内部操作通道检查通过才显示起始点；有存档时优先恢复玩家编辑状态。",
   fields: [
+    {
+      key: "enabled",
+      label: "启用农场",
+      type: "boolean",
+      default: PLANNING_FARMING_DEFAULTS.enabled,
+      combine: "override",
+      description: "关闭后停止农场选址和运行，保留当前 Seed 的农场存档。"
+    },
     {
       key: "saveMode",
       affectsLayout: false,
@@ -62,6 +72,7 @@ export const PLANNING_FARMING_COMPONENT: PlanningComponentDefinition = {
     }
   ],
   global: {
+    enabled: "farming.enabled",
     saveMode: "farming.saveMode",
     poiId: "farming.poiId",
     plotCount: "farming.plotCount",

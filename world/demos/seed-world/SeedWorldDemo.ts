@@ -670,8 +670,10 @@ export async function mountSeedWorldDemo(
       animals?.notify({ id: `lightning:${strike.id}`, type: "thunder",
         source: [strike.position.x, strike.position.z] });
     });
+    const isFarmingPlanned = () => source!.session.document.entities.world.components.farming?.values.enabled !== false;
     farmingHost = new PlanningFarmingHost({
       projection: nativeEditor.projection,
+      isPlannedEnabled: isFarmingPlanned,
       create: (system, statePath) => new PlanningFarmingRuntime({
         canvas,
         isInputEnabled: () => ready && !disposed && !tools?.listening && !runtimeDebug?.farmingPicking,
@@ -704,7 +706,12 @@ export async function mountSeedWorldDemo(
       }
     });
     const farmingSwitch = farmingHost.switch;
-    const bindFarming = () => farmingSwitch.refresh();
+    let boundFarmingEnabled: boolean | undefined;
+    const bindFarming = async () => {
+      const enabled = isFarmingPlanned();
+      await farmingSwitch.refresh();
+      boundFarmingEnabled = enabled;
+    };
     // Invalid farm assets leave the editor available; Apply reports the consumer failure.
     await bindFarming().catch(error => console.warn("[seed-world-planner] farming activation failed", error));
     unregisterFarmingActivation = runtimeProject.registerRuntimeActivation({
@@ -879,7 +886,7 @@ export async function mountSeedWorldDemo(
         }, { restoreCamera: !initial });
         const groundPopulation = planningNaturalGroundPopulation(candidateData.population, planningNaturalGrassDensity(library), plan);
         let cameraPose: PlanningPlayerCameraPose | undefined;
-        if (initial && !preparedPlayer?.bookmark && !readSubjectView(document).subjectId) {
+        if (initial && !plan.worldTemplateSite?.spawnView && !preparedPlayer?.bookmark && !readSubjectView(document).subjectId) {
           const view = spawnView(plan, candidateData, groundPopulation);
           const position = new Vector3(view.eye.x, view.eye.y, view.eye.z);
           const target = new Vector3(view.target.x, view.target.y, view.target.z);
@@ -1163,8 +1170,12 @@ export async function mountSeedWorldDemo(
     };
     const publish = async (restorePlayerState: boolean, projectTransaction = false) => {
       const accepted = publication!.current!;
-      farmingHost?.runtime?.publish(accepted, source!.session.document.revision);
       const plan = accepted.plan;
+      if (isFarmingPlanned() !== boundFarmingEnabled) {
+        await bindFarming().catch(error => console.warn("[seed-world-planner] farming activation failed", error));
+        if (publication!.current !== accepted || disposed) return;
+      }
+      farmingHost?.runtime?.publish(accepted, source!.session.document.revision);
       accepted.template?.activate(canvas);
       if (!accepted.template) delete canvas.dataset.worldTemplate;
       animals!.synchronize(plan, readAnimalPopulationConfig(source!.session.document), accepted.navigation, {
@@ -1371,7 +1382,11 @@ export async function mountSeedWorldDemo(
           },
           returnToSpawn: () => {
             const current = publication!.current!;
-            const view = spawnView(current.plan, current.data);
+            const planned = current.plan.worldTemplateSite?.spawnView;
+            const view = planned ? {
+              eye: { x: planned.eye[0], y: planned.eye[1], z: planned.eye[2] },
+              target: { x: planned.target[0], y: planned.target[1], z: planned.target[2] }
+            } : spawnView(current.plan, current.data);
             debugSidebar?.resumeNavigation();
             navigation.setVerticalOffset(0);
             camera.fieldOfView = PLANNING_RUNTIME_OPTIONS.verticalFieldOfView;
