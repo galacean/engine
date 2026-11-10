@@ -34,7 +34,14 @@ import {
 } from "../core";
 import { profileShape } from "../runtime/ProfileGeometry";
 import { isFlatRoofHeight } from "../runtime/RoofMode";
-import { houseWallGeometry, wallChartSampler, type HouseShared, type WallChartParams } from "./House";
+import {
+  battlementCrenels,
+  houseBattlement,
+  houseWallGeometry,
+  wallChartSampler,
+  type HouseShared,
+  type WallChartParams
+} from "./House";
 
 type V2 = readonly [number, number];
 
@@ -794,7 +801,7 @@ export const deckRows: LayingAlgorithm<DeckParams, DeckLayout> = {
   }
 };
 /** Element "face": the parapet, a wall chart around the whole house from the wall top up to
- * the roof base. Its masonry is laid like any wall. */
+ * the roof base, with the house's battlement along its top: its crenels are cuts in the face. */
 export const houseParapetGeometry: GeometryGenerator<HouseShared> = (p, context) => {
   const whole = houseWallGeometry(p, context).elements.face;
   if (whole.kind !== "surface") throw Error("Unexpected wall chart");
@@ -812,7 +819,9 @@ export const houseParapetGeometry: GeometryGenerator<HouseShared> = (p, context)
     finishOuter: wall.finishOuter,
     depthScale: wall.depthScale
   };
-  return { elements: { face: { kind: "surface", surface: { kind: "wallChart", params: chart } } } };
+  const battlement = houseBattlement(p);
+  const face: WallChartParams = { ...chart, battlement, cuts: battlementCrenels(chart, battlement) };
+  return { elements: { face: { kind: "surface", surface: { kind: "wallChart", params: face } } } };
 };
 
 const parapetOf = (part: ParticipantView): WallChartParams | undefined => {
@@ -1072,6 +1081,9 @@ export function registerRoofTypes(registry: BuildingRegistry): BuildingRegistry 
   registry.defaults.attach("roofDeck", ["wall", "wall", "wall", "wall"], "none");
   registry.defaults.attach("parapet", ["wall"], "none");
   registry.defaults.attach("parapet", ["wall", "wall", "wall", "wall"], "none");
+  // Plaster on the walls of a flat-roofed house runs on up their parapet.
+  registry.defaults.attach("plaster", ["wall", "parapet"], "none");
+  registry.defaults.attach("plaster", ["wall", "wall", "wall", "wall", "parapet"], "none");
   registry.algorithms.register("capCourses", capCourses);
   registry.rules.register("roofSlopes", roofSlopes_);
   registry.rules.register("roofOnWalls", roofOnWalls);

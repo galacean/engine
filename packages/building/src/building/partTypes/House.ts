@@ -67,6 +67,17 @@ export interface WallChartParams {
   /** Where this chart starts on the house perimeter, in metres. Lets the walls of one
    * house share continuous courses. Default: 0. */
   readonly uOffset?: number;
+  /** Areas the face does not have by its own shape, such as the crenels of a battlement. */
+  readonly cuts?: readonly Rect[];
+  /** The battlement along the top of a parapet. */
+  readonly battlement?: Battlement;
+}
+/** A battlement along the top of a parapet, in metres: the width of each merlon and crenel slot,
+ * the height of a merlon, and the width of the square stone on each corner. */
+export interface Battlement {
+  readonly pitch: number;
+  readonly merlon: number;
+  readonly corner: number;
 }
 
 const flat = () => 0;
@@ -106,6 +117,7 @@ export const wallChartSurface: SurfaceKind<WallChartParams> = {
     const top = us.map((u): [number, number] => [u, sample.at(u).roof]).reverse();
     return [...bottom, ...top];
   },
+  cuts: (p) => p.cuts ?? [],
   frame: (p, u, v): Frame => {
     const all = edges(p);
     const e = all.find((x) => u <= x.u + x.l) ?? all[all.length - 1];
@@ -731,13 +743,27 @@ function battlementSlots(chart: WallChartParams, pitch: number, corner: number) 
     return { run, ring, inset, count, slot: (run.l - 2 * inset) / count };
   });
 }
+/** The battlement of a house's parapet: slots 0.69 m wide, merlons 0.46 m tall and a 0.6 m stone
+ * on each corner, scaled with the wall unit. */
+export function houseBattlement(p: HouseShared): Battlement {
+  const s = scaleOf(p.wallUnit ?? REFERENCE);
+  return { pitch: 0.69 * s.width, merlon: 0.46 * s.height, corner: 0.6 * s.depth };
+}
+/** The crenels of a battlement along the top of a chart: the even slots of each run, from the
+ * merlons' foot up past the top. */
+export function battlementCrenels(chart: WallChartParams, battlement: Battlement): Rect[] {
+  const top = Math.max(...chart.top),
+    shoulder = Math.max(chart.minGround, top - battlement.merlon);
+  return battlementSlots(chart, battlement.pitch, battlement.corner).flatMap(({ run, inset, count, slot }) =>
+    Array.from({ length: Math.ceil(count / 2) }, (_, k): Rect => {
+      const i = 2 * k;
+      return [run.u + inset + i * slot, shoulder, run.u + inset + (i + 1) * slot, top + 1];
+    })
+  );
+}
 interface ParapetParams {
   /** Default: the unit's scale. */
   footprint?: MaterialFootprint;
-  /** Width of a merlon slot and of the stones below, in metres before scaling. Default: 0.69. */
-  pitch?: number;
-  /** Height of a merlon in metres before scaling. Default: 0.46. */
-  merlon?: number;
   /** Depth of the stones through the wall in metres before scaling. Default: 0.56. */
   depth?: number;
   /** Draw the stones in the colours of the roof. Default: false, the wall's. */
@@ -755,7 +781,6 @@ interface ParapetStone {
 }
 interface ParapetLayout {
   runs: { u: number; l: number }[];
-  crenels: Rect[];
   stones: ParapetStone[];
 }
 /** The spans of [u0, u1] left by the removed areas that cross heights [lo, hi]. */
@@ -774,16 +799,15 @@ function spansLeft(u0: number, u1: number, lo: number, hi: number, removed: read
   return spans;
 }
 /** The stones of a parapet: a course of long stones along its foot and, above it, one big stone
- * for each merlon, every other slot, with one square stone on each corner. The foot gives way
- * to removed areas; a merlon they cut is left out. */
+ * for each merlon of the chart's battlement, with one square stone on each corner. The foot gives
+ * way to removed areas; a merlon they cut is left out. The battlement's own crenels are the
+ * chart's cuts. */
 export const parapetCourses: LayingAlgorithm<ParapetParams, ParapetLayout> = {
   info: {
     accepts: ["surface"],
     summary: "A parapet: a course of long stones with one big stone per merlon on top.",
     params: {
       footprint: "Unit footprint { width, height, depth }; scales the stones. Default: the unit's scale.",
-      pitch: "Width of a merlon slot and of the stones below in metres before scaling. Default: 0.69.",
-      merlon: "Height of a merlon in metres before scaling. Default: 0.46.",
       depth: "Depth of the stones through the wall in metres before scaling. Default: 0.56.",
       roofColor: "Draw the stones in the colours of the roof. Default: false, the wall's.",
       element: "Wall chart element id. Default: face."
@@ -794,15 +818,15 @@ export const parapetCourses: LayingAlgorithm<ParapetParams, ParapetLayout> = {
     const element = p.element ?? "face";
     const chart = chart_(context.geometry.original.elements[element]);
     const scale = scaleOf(masonryFootprint(context as unknown as LayingContext<MasonryParams>));
-    const removed = context.geometry.surface(element).removed;
-    const pitch = (p.pitch ?? 0.69) * scale.width,
-      height = (p.merlon ?? 0.46) * scale.height,
-      depth = (p.depth ?? 0.56) * scale.depth;
+    if (!chart.battlement) throw Error("parapetCourses lays a chart with a battlement");
+    const { pitch, merlon, corner } = chart.battlement;
+    // The stones give way to what other parts removed; the battlement's own crenels are slots.
+    const removed = context.geometry.surface(element).removed.filter((r) => !chart.cuts?.includes(r));
+    const depth = (p.depth ?? 0.56) * scale.depth;
     const top = Math.max(...chart.top),
       foot = chart.minGround,
-      shoulder = Math.max(foot, top - height);
+      shoulder = Math.max(foot, top - merlon);
     const stones: ParapetStone[] = [];
-    const crenels: Rect[] = [];
     const push = (key: string, a: number, b: number, lo: number, hi: number, past: [number, number]) =>
       spansLeft(a, b, lo, hi, removed).forEach(([x, y], piece) => {
         if (y - x < 0.1 * scale.width) return;
@@ -821,7 +845,6 @@ export const parapetCourses: LayingAlgorithm<ParapetParams, ParapetLayout> = {
       if (!more.length && left && left[0] === a && left[1] === b)
         stones.push({ key: `${key}/0`, u0: a, u1: b, lo: shoulder, hi: top, past });
     };
-    const corner = depth + 0.04 * scale.depth;
     const slots = battlementSlots(chart, pitch, corner);
     slots.forEach(({ run, ring, inset, count, slot }, r) => {
       // The stones of the foot butt at a corner: each run reaches out to the outer face at its
@@ -847,15 +870,12 @@ export const parapetCourses: LayingAlgorithm<ParapetParams, ParapetLayout> = {
             i === n - 1 ? reach : 0
           ]);
       }
-      for (let i = 0; i < count; i++) {
-        const [a, b] = [run.u + inset + i * slot, run.u + inset + (i + 1) * slot];
-        if (i % 2 === 0) crenels.push([a, shoulder, b, top + 1]);
-        else whole(`merlon/${r}/${i}`, a, b, [0, 0]);
-      }
+      for (let i = 1; i < count; i += 2)
+        whole(`merlon/${r}/${i}`, run.u + inset + i * slot, run.u + inset + (i + 1) * slot, [0, 0]);
       // One square stone stands on each corner, along the wall that ends there.
       if (!ring) whole(`corner/${r}`, run.u + run.l - corner / 2, run.u + run.l, [0, corner / 2]);
     });
-    return { count: stones.length, data: { runs: slots.map((s) => s.run), crenels, stones } };
+    return { count: stones.length, data: { runs: slots.map((s) => s.run), stones } };
   },
   unitAt(context, d, index) {
     const stone = d.stones[index];
@@ -950,13 +970,23 @@ export const housePlasterGeometry: GeometryGenerator<HouseShared> = (p, context)
   });
   if (!inherit.length) throw Error("A finish attaches to house walls");
   const wall = whole.surface.params as WallChartParams;
-  // Over a flat roof with a parapet, the finish runs up the parapet and stops below its
-  // battlements, one course under the roof base.
-  const parapet = p.roof && isFlatRoofHeight(p.roof.height) && p.roof.flat_rim === 0;
-  const top = wall.topY - 0.46 * scaleOf(p.wallUnit ?? REFERENCE).height;
+  // Over a flat roof the finish runs on up the parapet. On the parapet it covers, it takes the
+  // crenels and stops 0.3 m below the top (against the reference unit), as online. A finish that
+  // does not cover the parapet stops below the battlements.
+  const parapet = context.hosts
+    .filter((host) => host.type === "parapet")
+    .map((host) => host.geometry.original.elements.face)
+    .flatMap((face) =>
+      face?.kind === "surface" && face.surface.kind === "wallChart" ? [face.surface.params] : []
+    )[0] as WallChartParams | undefined;
+  const flat = p.roof && isFlatRoofHeight(p.roof.height) && p.roof.flat_rim === 0;
+  const top = parapet
+    ? parapet.topY - 0.3 * scaleOf(p.wallUnit ?? REFERENCE).height
+    : wall.topY - houseBattlement(p).merlon;
   const chart: WallChartParams = {
     ...wall,
-    ...(parapet && { top: wall.top.map(() => top), maxYGable: Math.max(wall.maxYGable, top) }),
+    ...((parapet || flat) && { top: wall.top.map(() => top), maxYGable: Math.max(wall.maxYGable, top) }),
+    ...(parapet?.cuts && { cuts: parapet.cuts }),
     closed: true
   };
   return { elements: { face: { kind: "surface", surface: { kind: "wallChart", params: chart }, inherit } } };

@@ -127,6 +127,10 @@ export interface SurfaceKind<P = any> {
   /** The surface's actual extent as one polygon in (u, v), when it is smaller than the
    * domain rectangle. Default: the domain rectangle. */
   region?(params: P, environment: BuildingEnvironment): readonly (readonly [number, number])[];
+  /** Areas inside the surface's extent that are not part of it, by its own shape, such as notches
+   * along an edge. They count as removed areas, before any modification, and a surface that
+   * copies these params has them too. Default: none. */
+  cuts?(params: P, environment: BuildingEnvironment): readonly Rect[];
 }
 export interface SurfaceKinds {
   get(kind: string): SurfaceKind | undefined;
@@ -136,6 +140,7 @@ export interface BoundSurfaceKind {
   domain(params: unknown): SurfaceDomain;
   frame(params: unknown, u: number, v: number): Frame;
   region?(params: unknown): readonly (readonly [number, number])[];
+  cuts?(params: unknown): readonly Rect[];
 }
 export interface BoundSurfaces {
   get(kind: string): BoundSurfaceKind | undefined;
@@ -149,7 +154,8 @@ export function bindSurfaces(surfaces: SurfaceKinds, environment: BuildingEnviro
         kind && {
           domain: (params) => kind.domain(params, environment),
           frame: (params, u, v) => kind.frame(params, u, v, environment),
-          ...(kind.region && { region: (params: unknown) => kind.region!(params, environment) })
+          ...(kind.region && { region: (params: unknown) => kind.region!(params, environment) }),
+          ...(kind.cuts && { cuts: (params: unknown) => kind.cuts!(params, environment) })
         }
       );
     }
@@ -656,6 +662,9 @@ export class EffectiveGeometry {
     const kind = this.surfaces.get(data.kind);
     if (!kind) throw Error(`Unknown surface kind "${data.kind}"`);
     const area = this.areas.get(id) ?? { adds: [], removes: [], reserves: [] };
-    return new EffectiveSurface(kind, data.params, area.adds, area.removes, area.reserves, this.outlines);
+    // The surface's own cuts count as removed areas, before any modification.
+    const cuts = kind.cuts?.(data.params) ?? [];
+    const removes = cuts.length ? [...cuts, ...area.removes] : area.removes;
+    return new EffectiveSurface(kind, data.params, area.adds, removes, area.reserves, this.outlines);
   }
 }

@@ -185,6 +185,18 @@ const cases = (): Case[] => [
     ground: flat
   },
   {
+    id: "plaster-flat",
+    title: "抹灰 · 方形平屋顶",
+    house: {
+      id: "a",
+      height: 4,
+      rectangle: { center: [0, 0], size: [8, 6], rotation: 0 },
+      roof: { height: 0 },
+      plaster: { enabled: true, wear: 0.35, color: 3 }
+    },
+    ground: flat
+  },
+  {
     id: "village",
     title: "村庄房屋 · 门窗",
     house: withFacade({

@@ -102,6 +102,28 @@ describe("Geometry", () => {
     ).toThrow("A box's size must be positive");
   });
 
+  it("counts a surface's own cuts as removed areas, before its modifications", () => {
+    const registry = createBuildingRegistry();
+    registry.surfaces.register("notched", {
+      ...registry.surfaces.get("extrusion")!,
+      cuts: () => [[1, 1.5, 2, 3]]
+    });
+    const geometry = (): BuildingGeometry => ({
+      elements: { face: { kind: "surface", surface: { kind: "notched", params: { curve: square, height: 2 } } } }
+    });
+    const face = new EffectiveGeometry(
+      geometry(),
+      [{ element: "face", op: "removeArea", rect: [5, 0, 6, 1] }],
+      registry.surfaces
+    ).surface("face");
+    expect(face.removed).toEqual([
+      [1, 1.5, 2, 3],
+      [5, 0, 6, 1]
+    ]);
+    expect(face.contains(1.5, 1.8)).toBe(false);
+    expect(face.contains(1.5, 1)).toBe(true);
+  });
+
   it("evaluates orthonormal frames and wraps closed curves", () => {
     const surface = new EffectiveGeometry(extruded(), [], createBuildingRegistry().surfaces).surface("face");
     expect(surface.domain).toEqual({ u: [0, 16], v: [0, 2], closedU: true });

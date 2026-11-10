@@ -110,6 +110,64 @@ describe("Flat roofs", () => {
     for (const u of units(masonry)) expect((u.params!.flags as number) & 2).toBe(0);
   });
 
+  it("plasters the walls on up the parapet, to 0.3 m below its top, and keeps the crenels open", async () => {
+    const p: CoreHouseParameters = {
+      id: "p",
+      rectangle: { center: [0, 0], size: [8, 6], rotation: 0 },
+      roof: { height: 0 },
+      plaster: { enabled: true, wear: 0, color: 3 }
+    };
+    const result = designBuildingCore(buildCoreHouse(p), registry, { environment: { ground: flat } });
+    expect(result.diagnostics).toEqual([]);
+    const parapet = result.parts.find((x) => x.type === "parapet")!;
+    const plaster = result.parts.find((x) => x.type === "plaster")!;
+    const crenels = chartOf(parapet).cuts!;
+    expect(crenels.length).toBeGreaterThan(8);
+    // The finish takes the parapet's crenels as its own.
+    expect(chartOf(plaster).cuts).toEqual(crenels);
+    const { renderInput } = await compileCoreBuilding(result, registry, {
+      environment: { ground: flat },
+      assets: nativeAssets
+    });
+    const finish = renderInput.surfaceParts.filter((x) => x.plaster);
+    const ys = finish.flatMap((x) => x.positions.filter((_, i) => i % 3 === 1));
+    expect(Math.max(...ys)).toBeCloseTo(chartOf(parapet).topY - 0.3, 6);
+    // No plaster stands in a crenel above its foot: every vertex there lies on its edges.
+    const sampler = chartOf(plaster);
+    for (const x of finish)
+      for (let i = 0; i < x.uvs.length; i++) {
+        const [u] = x.uvs[i],
+          y = x.positions[i * 3 + 1];
+        for (const [u0, v0, u1] of crenels)
+          if (u > u0 + 1e-3 && u < u1 - 1e-3) expect(y).toBeLessThanOrEqual(v0 + 1e-3);
+      }
+    expect(sampler.closed).toBe(true);
+  });
+
+  it("takes the plaster off where the parapet gives way to another house", () => {
+    const plastered = { enabled: true, wear: 0.3, color: 1 };
+    const result = designBuildingCore(
+      buildCoreHouses([
+        {
+          id: "a",
+          height: 4,
+          rectangle: { center: [-1.5, 0], size: [7, 5], rotation: 0 },
+          roof: { height: 0 },
+          plaster: plastered
+        },
+        { id: "b", height: 4.5, rectangle: { center: [2.5, 1.5], size: [5, 6], rotation: 0.5 }, roof: { height: 0 } }
+      ]),
+      registry,
+      { environment: { ground: flat } }
+    );
+    const parapet = result.parts.find((x) => x.key.includes("a-parapet"))!;
+    const plaster = result.parts.find((x) => x.type === "plaster")!;
+    const gone = parapet.modifications.flatMap((m) => (m.op === "removeArea" ? [m.rect] : []));
+    expect(gone.length).toBeGreaterThan(0);
+    const removed = plaster.modifications.flatMap((m) => (m.op === "removeArea" ? [m.rect] : []));
+    for (const r of gone) expect(removed).toContainEqual(r);
+  });
+
   it("leaves out a merlon that another house cuts", () => {
     const stones = designBuildingCore(
       buildCoreHouses([
@@ -128,9 +186,15 @@ describe("Flat roofs", () => {
     }
   });
 
+  /** A parapet's crenels: cuts in its face, by its battlement. */
+  const crenelsOf = (part: ResolvedPart) =>
+    (part.original.elements.face as { surface: { params: { cuts: number[][] } } }).surface.params.cuts;
   it("stands one stone on each corner of a parapet, the slots between them even", () => {
     const { parapets } = house({ id: "f", roof: { height: 0 }, roofUnit: "roof_tile" });
-    const data = parapets[0].layout!.data as { crenels: number[][]; runs: { u: number; l: number }[] };
+    const data = {
+      ...(parapets[0].layout!.data as { runs: { u: number; l: number }[] }),
+      crenels: crenelsOf(parapets[0])
+    };
     expect(data.runs.length).toBe(4);
     for (const run of data.runs) {
       const inRun = data.crenels.filter((c) => c[0] >= run.u - 1e-6 && c[2] <= run.u + run.l + 1e-6);
@@ -140,14 +204,14 @@ describe("Flat roofs", () => {
     }
     // A round parapet is a ring, with no ends to finish: it starts on a crenel.
     const round = house({ id: "r", circle: { center: [0, 0], radius: 3, phase: 0 }, roof: { height: 0 } });
-    const ring = round.parapets[0].layout!.data as { crenels: number[][]; runs: unknown[] };
+    const ring = { ...(round.parapets[0].layout!.data as { runs: unknown[] }), crenels: crenelsOf(round.parapets[0]) };
     expect(ring.runs.length).toBe(1);
     expect(ring.crenels[0][0]).toBeCloseTo(0, 6);
   });
 
   it("lays one big stone per merlon, on a course of long stones", () => {
     const { parapets } = house({ id: "f", roof: { height: 0 }, roofUnit: "roof_tile" });
-    const data = parapets[0].layout!.data as { crenels: number[][]; stones: { key: string }[] };
+    const data = { crenels: crenelsOf(parapets[0]) };
     const laid = units(parapets[0]);
     const merlons = laid.filter((u) => u.key.startsWith("merlon")),
       corners = laid.filter((u) => u.key.startsWith("corner")),
@@ -175,7 +239,7 @@ describe("Flat roofs", () => {
 
   it("leaves the crenels open", () => {
     const { parapets } = house({ id: "f", roof: { height: 0 }, roofUnit: "roof_tile" });
-    const data = parapets[0].layout!.data as { crenels: number[][] };
+    const data = { crenels: crenelsOf(parapets[0]) };
     expect(data.crenels.length).toBeGreaterThan(8);
     for (const u of units(parapets[0])) {
       const [c] = u.params!.anchor_uv as number[];

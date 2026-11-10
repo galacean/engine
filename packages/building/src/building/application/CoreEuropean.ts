@@ -759,12 +759,15 @@ export function buildCoreHouse(p: CoreHouseParameters): BuildingCoreDraft {
       ...(spire
         ? [{ kind: "attach" as const, id: spire.part.id + "/on-roof", guest: spire.part.id, hosts: spire.hosts }]
         : []),
-      // Floor bands and the finish follow every wall.
+      // Floor bands and the finish follow every wall; the finish runs on up a parapet.
       ...onWalls.map((part) => ({
         kind: "attach" as const,
         id: part.id + "/on-wall",
         guest: part.id,
-        hosts: walls.map((w) => ({ part: w.id }))
+        hosts: [
+          ...walls.map((w) => ({ part: w.id })),
+          ...(part === plaster ? roofs.filter((r) => r.part.type === "parapet").map((r) => ({ part: r.part.id })) : [])
+        ]
       })),
       // An eave dormer opens a wall and the roof part behind it: walls first.
       ...eaves.map((part) => ({
