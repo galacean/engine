@@ -80,7 +80,7 @@ def main():
     print(json.dumps({
         "engine": engine,
         "asap": asap,
-        "requiredAsapRemoteBranch": "codex/seed-world-local-debug",
+        "requiredAsapRemoteBranch": "codex/seed-world-master-sync",
         "previewUrl": preview,
         "httpChecks": checks,
         "note": "Checkout inventory only; verify process cwd, remote freshness and actual model/Tool trace separately.",
