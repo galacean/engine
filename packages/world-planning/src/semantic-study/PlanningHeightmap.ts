@@ -446,6 +446,10 @@ function heightKey(plan: IslandPlan, resolution: number): string {
       ? {
           seed: plan.parameters.seed,
           landformSeed: plan.parameters.landformSeed,
+          reliefNearAmplitudeM: plan.parameters.reliefNearAmplitudeM,
+          reliefAmplitudeM: plan.parameters.reliefAmplitudeM,
+          reliefFarAmplitudeM: plan.parameters.reliefFarAmplitudeM,
+          reliefScaleM: plan.parameters.reliefScaleM,
           spatialComposition: plan.parameters.spatialComposition,
           width: plan.parameters.width,
           depth: plan.parameters.depth,

@@ -106,7 +106,7 @@ export class TerrainPostProcessRuntime extends Script {
   private _tonemappingMode = TonemappingMode.ACES;
   private _bloomEnabled = true;
   private readonly _bloomTint = new Color(1, 1, 1, 1);
-  private readonly _manualOverrides: TerrainPostProcessManualOverrides = {};
+  private _manualOverrides: TerrainPostProcessManualOverrides = {};
 
   /** @returns Whether the authored effects currently contribute while the camera pipeline remains resident. */
   get profileEnabled(): boolean {
@@ -346,6 +346,30 @@ export class TerrainPostProcessRuntime extends Script {
       colorAdjustments: enabled && this._colorAdjustments.isValid(),
       tonemappingMode: enabled && this._tonemapping.isValid() ? this._tonemapping.mode.value : undefined
     });
+  }
+
+  /** Captures the current profile and which values follow the weather presets. */
+  captureDebugReset(): () => void {
+    const initial = this.getDebugSnapshot();
+    const overrides = { ...this._manualOverrides };
+    return () => {
+      const { colorAdjustments: color, bloom } = initial;
+      this.setProfileEnabled(initial.enabled);
+      this.setColorAdjustmentsEnabled(color.enabled);
+      this.setPostExposure(color.postExposure);
+      this.setTemperature(color.temperature);
+      this.setTint(color.tint);
+      this.setContrast(color.contrast);
+      this.setSaturation(color.saturation);
+      this.setTonemappingMode(initial.tonemappingMode);
+      this.setTonemappingEnabled(initial.tonemapping);
+      this.setBloomEnabled(bloom.enabled);
+      this.setBloomTint(bloom.tintR, bloom.tintG, bloom.tintB);
+      this.setBloomThreshold(bloom.threshold);
+      this.setBloomIntensity(bloom.intensity);
+      this.setBloomScatter(bloom.scatter);
+      this._manualOverrides = { ...overrides };
+    };
   }
 
   getDebugSnapshot(): TerrainPostProcessDebugSnapshot {

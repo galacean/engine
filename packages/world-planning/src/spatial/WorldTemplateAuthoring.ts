@@ -179,8 +179,9 @@ export function createTemplatePlanningDocument(
   const terrain = template.terrain;
   Object.assign(recipe.parameters, {
     worldTemplate: { id },
-    landformSeed: templateBaseSeed(id),
+    landformSeed: art.initialPlanning?.relief ? seed : templateBaseSeed(id),
     landMode: art.initialPlanning?.landMode,
+    ...art.initialPlanning?.relief,
     landCoverage: terrain.coverage * (1 + jitter("coverage") * 0.02),
     complexity: 0.6 + jitter("coast") * 0.03,
     offshoreCoverage: 0.07,
@@ -215,6 +216,10 @@ export function createTemplatePlanningDocument(
     components.farming.values.enabled = art.initialPlanning.farmingEnabled;
   for (const [type, values] of Object.entries(worldTemplatePaletteValues(id)))
     components[type] = { ...components[type], values: { ...components[type]?.values, ...values } };
+  if (art.grassGroundFusion !== undefined) {
+    const appearance = (components.grassAppearance ??= { values: {} });
+    appearance.values.groundFusion = art.grassGroundFusion;
+  }
   components.lighting = { values: { ...art.lighting } };
   components.postProcess = { values: { ...art.postProcess } };
   components.weather = {

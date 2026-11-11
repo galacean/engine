@@ -1,5 +1,5 @@
 import { createSeedPlanningDocument } from "@galacean/engine-world-planning/spatial/PlanningInitialization";
-import { initialPlanningTemplate } from "../PlanningStartupTemplate.ts";
+import { applyPlanningTemplateSurface, initialPlanningTemplate } from "../PlanningStartupTemplate.ts";
 import { resetPlanningFarmSaveChoice } from "../farming/PlanningFarmSave.ts";
 import { PlanningSession, type PlanningSessionOptions } from "@galacean/engine-world-planning/spatial/PlanningSession";
 import { exportPlanningRecipe, type PlanningDocument } from "@galacean/engine-world-planning/spatial/PlanningDocument";
@@ -32,7 +32,10 @@ export async function createPlanningWorldSource(search: string, handoff: Plannin
       document ? exportPlanningRecipe(document).parameters.worldTemplate?.id ?? "" : undefined);
     if (template !== undefined) {
       replaceSavedTemplate = !!document;
-      try { document = await client.initialize(seed, undefined, template); }
+      try {
+        document = await client.initialize(seed, undefined, template);
+        applyPlanningTemplateSurface(document);
+      }
       catch (error) { client.dispose(); throw error; }
     }
   }

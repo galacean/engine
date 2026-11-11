@@ -48,6 +48,7 @@ import { PlanningNaturalVegetationRuntime, planningNaturalGrassDensity } from "@
 import { planningNaturalGroundPopulation } from "@galacean/engine-world-planning/spatial/runtime/PlanningNaturalVegetation";
 import {
   readGrassAppearance,
+  readGrassGroundFusion,
   readSurfacePalette
 } from "@galacean/engine-world-planning/spatial/PlanningGrassAppearance";
 import { applyPlanningWeather } from "@galacean/engine-world-planning/spatial/PlanningWeather";
@@ -823,7 +824,9 @@ export async function mountSeedWorldDemo(
         }, afterCommit: () => publishContentEdit(context.projectTransaction) };
       }
       farmingHost?.runtime?.inspectCandidate(result.plan, document.revision);
-      if (result.execution === "runtime" && context.worldUnchanged && !rockSupportChanged && plannedGeometryUnchanged && publication!.current
+      const fusionChanged = readGrassGroundFusion(document) !== readGrassGroundFusion(context.previousDocument);
+      if ((result.execution === "runtime" || (result.execution === "presentation" && fusionChanged))
+        && context.worldUnchanged && !rockSupportChanged && plannedGeometryUnchanged && publication!.current
         && JSON.stringify(readPlantMaterialParameters(document)) === JSON.stringify(readPlantMaterialParameters(context.previousDocument))
         && JSON.stringify(readSubjectView(document)) === JSON.stringify(readSubjectView(context.previousDocument))
         && JSON.stringify(readRockFormationSettings(document)) === JSON.stringify(readRockFormationSettings(context.previousDocument))
@@ -965,9 +968,13 @@ export async function mountSeedWorldDemo(
             candidateData.terrainNormalSamples,
             SEED_WORLD_SURFACE_LOD_CROSS_FADE_DURATION_SECONDS,
             undefined,
-            signal
+            signal,
+            result.recipe.parameters.terrainSurface
           );
           signal.throwIfAborted();
+          const { reliefNearAmplitudeM = 0, reliefAmplitudeM = 0, reliefFarAmplitudeM = 0 } = plan.parameters;
+          if (Math.max(reliefNearAmplitudeM, reliefAmplitudeM, reliefFarAmplitudeM) > 0)
+            candidate.clipmap.setShadowsEnabled(true);
           heightTransition = preparePlanningTerrainPresentation(candidate,
             publication!.current?.heightTransition?.fields ?? publication!.current?.data.fields,
             candidateData.fields, runtimeFields, (plan.buildings.length || plan.fences?.length || plan.courtyards?.length) ? undefined : context.terrainTransitionDurationSeconds,
@@ -992,7 +999,7 @@ export async function mountSeedWorldDemo(
             });
           applyPlanningTreeVariations(candidate.population, plan.authoredResources ?? []);
           const formationMeshes = await rockFormations.prepare(plan, readRockFormationSettings(document), signal);
-          await prepareRockTextures(engine!, signal);
+          if (formationMeshes.length) await prepareRockTextures(engine!, signal);
           signal.throwIfAborted();
           candidateSolids = await createPlanningSeedSolids(engine!, candidate.root,
             planningPresentedSolids(plan, heightTransition?.fields ?? candidateData.fields, candidateData.fields), {
@@ -1028,7 +1035,8 @@ export async function mountSeedWorldDemo(
             );
             candidate.setSurfaceColorTuning({
               roadColor: readSurfacePalette(document, SEED_WORLD_ROAD_COLOR_DEFAULT, "road"),
-              groundColor: readSurfacePalette(document, SEED_WORLD_ROAD_COLOR_DEFAULT),
+              groundColor: readSurfacePalette(document, candidate.defaultGroundColor),
+              groundFusion: readGrassGroundFusion(document),
               grass: readGrassAppearance(document)
             });
             candidateTemplate = await WorldTemplateRuntime.create(
@@ -1212,10 +1220,13 @@ export async function mountSeedWorldDemo(
         );
         accepted.world.setSurfaceColorTuning({
           roadColor: readSurfacePalette(source!.session.document, SEED_WORLD_ROAD_COLOR_DEFAULT, "road"),
-          groundColor: readSurfacePalette(source!.session.document, SEED_WORLD_ROAD_COLOR_DEFAULT),
+          groundColor: readSurfacePalette(source!.session.document, accepted.world.defaultGroundColor),
+          groundFusion: readGrassGroundFusion(source!.session.document),
           grass: readGrassAppearance(source!.session.document)
         });
-        canvas.dataset.grassAppearance = JSON.stringify(accepted.world.getSurfaceColorTuning().grass);
+        const surfaceTuning = accepted.world.getSurfaceColorTuning();
+        canvas.dataset.grassAppearance = JSON.stringify(surfaceTuning.grass);
+        canvas.dataset.grassGroundFusion = String(surfaceTuning.groundFusion);
       const actualLight = lighting!.getSnapshot();
       const actualTuning = lighting!.getVisualTuning();
       canvas.dataset.presentation = JSON.stringify({ revision: source!.session.document.revision,
@@ -1334,6 +1345,9 @@ export async function mountSeedWorldDemo(
         environment,
         water,
         audio: audio.audio,
+        setGrassGroundFusion: enabled => tools!.dispatchParameters([
+          { op: "set", entity: "world", component: "grassAppearance", values: { groundFusion: enabled } }
+        ]),
         readSolidsRoot: () => publication?.current?.solids.root,
         readPublished,
         rocks: {

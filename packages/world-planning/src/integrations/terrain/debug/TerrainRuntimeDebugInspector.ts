@@ -333,6 +333,8 @@ export interface TerrainExactInstanceSpatialDebugControl {
 export class TerrainRuntimeDebugInspector {
   /** Underlying dat.gui instance used by browser interaction tests. */
   readonly gui: dat.GUI;
+  /** Scoped host for page-owned terrain authoring. */
+  readonly terrainFolderHost: DebugInspectorPanelHost;
   /** Scoped host for page-owned grass and vegetation authoring. */
   readonly grassFolderHost: DebugInspectorPanelHost;
   /** Scoped host for page-owned procedural-tree material authoring. */
@@ -462,6 +464,7 @@ export class TerrainRuntimeDebugInspector {
     const postProcess = category("Post-processing / 后处理", false);
     const rendering = category("Rendering / 渲染", false);
     const debug = runtimeDebug ? category("Debug / 调试", false) : undefined;
+    this.terrainFolderHost = createPanelHost(inspector, terrain);
     this.grassFolderHost = createPanelHost(inspector, vegetation);
     this.treeFolderHost = createPanelHost(inspector, proceduralTrees);
     this.rockFolderHost = createPanelHost(inspector, rocks);
@@ -579,55 +582,64 @@ export class TerrainRuntimeDebugInspector {
       .add(shadowCascadeState, "distribution", 1, 30, 0.05)
       .name("Distribution / 分布密度")
       .onChange((distribution: number) => options.lighting.setShadowCascadeTuning({ distribution }));
+    let restorePostProcess: (() => void) | undefined;
+    const editPostProcess =
+      <T>(apply: (value: T) => void) =>
+      (value: T): void => {
+        restorePostProcess ??= options.postProcess.captureDebugReset();
+        apply(value);
+      };
     if (runtimeDebug) {
       postProcess
         .add(postProcessState, "enabled")
         .name("Post process / 后处理")
-        .onChange((enabled: boolean) => runtimeDebug.setPostProcessEnabled(enabled));
+        .onChange(editPostProcess((enabled: boolean) => runtimeDebug.setPostProcessEnabled(enabled)));
     }
     const colorAdjustments = inspector.subfolder(postProcess, "Color Adjustments / 颜色调整", true);
     colorAdjustments
       .add(postProcessState.colorAdjustments, "enabled")
       .name("Enabled / 启用")
-      .onChange((enabled: boolean) => options.postProcess.setColorAdjustmentsEnabled(enabled));
+      .onChange(editPostProcess((enabled: boolean) => options.postProcess.setColorAdjustmentsEnabled(enabled)));
     colorAdjustments
       .add(postProcessState.colorAdjustments, "temperature", -100, 100, 1)
       .name("Temperature / 色温")
-      .onChange((temperature: number) => options.postProcess.setTemperature(temperature));
+      .onChange(editPostProcess((temperature: number) => options.postProcess.setTemperature(temperature)));
     colorAdjustments
       .add(postProcessState.colorAdjustments, "tint", -100, 100, 1)
       .name("Tint / 色调")
-      .onChange((tint: number) => options.postProcess.setTint(tint));
+      .onChange(editPostProcess((tint: number) => options.postProcess.setTint(tint)));
     colorAdjustments
       .add(postProcessState.colorAdjustments, "contrast", -100, 100, 1)
       .name("Contrast / 对比度")
-      .onChange((contrast: number) => options.postProcess.setContrast(contrast));
+      .onChange(editPostProcess((contrast: number) => options.postProcess.setContrast(contrast)));
     colorAdjustments
       .add(postProcessState.colorAdjustments, "saturation", -100, 100, 1)
       .name("Saturation / 饱和度")
-      .onChange((saturation: number) => options.postProcess.setSaturation(saturation));
+      .onChange(editPostProcess((saturation: number) => options.postProcess.setSaturation(saturation)));
     bindNumericInput(
       colorAdjustments
         .add(postProcessState.colorAdjustments, "postExposure", -10, 10, 0.01)
         .name("Post exposure / 后曝光")
-        .onChange((postExposure: number) => options.postProcess.setPostExposure(postExposure))
+        .onChange(editPostProcess((postExposure: number) => options.postProcess.setPostExposure(postExposure)))
     );
     postProcess
       .add(postProcessState, "tonemapping")
       .name("Tonemapping / 色调映射")
-      .onChange((enabled: boolean) => options.postProcess.setTonemappingEnabled(enabled));
+      .onChange(editPostProcess((enabled: boolean) => options.postProcess.setTonemappingEnabled(enabled)));
     postProcess
       .add(postProcessState, "tonemappingMode", {
         "Neutral / 中性": TonemappingMode.Neutral,
         "ACES / 电影": TonemappingMode.ACES
       })
       .name("Tonemapping mode / 色调映射模式")
-      .onChange((mode: number) => options.postProcess.setTonemappingMode(Number(mode) as TonemappingMode));
+      .onChange(
+        editPostProcess((mode: number) => options.postProcess.setTonemappingMode(Number(mode) as TonemappingMode))
+      );
     const bloom = inspector.subfolder(postProcess, "Bloom / 泛光", true);
     bloom
       .add(postProcessState.bloom, "enabled")
       .name("Enabled / 启用")
-      .onChange((enabled: boolean) => options.postProcess.setBloomEnabled(enabled));
+      .onChange(editPostProcess((enabled: boolean) => options.postProcess.setBloomEnabled(enabled)));
     const applyBloomTint = (): void => {
       const { tintR, tintG, tintB } = postProcessState.bloom;
       options.postProcess.setBloomTint(tintR, tintG, tintB);
@@ -640,22 +652,27 @@ export class TerrainRuntimeDebugInspector {
       bloom
         .add(postProcessState.bloom, key, 0, 4, 0.001)
         .name(`Bloom tint ${channel} / 泛光颜色 ${channel}`)
-        .onChange(applyBloomTint);
+        .onChange(editPostProcess(applyBloomTint));
     }
     bindNumericInput(
       bloom
         .add(postProcessState.bloom, "threshold", 0, 5, 0.01)
         .name("Bloom threshold / 泛光阈值")
-        .onChange((threshold: number) => options.postProcess.setBloomThreshold(threshold))
+        .onChange(editPostProcess((threshold: number) => options.postProcess.setBloomThreshold(threshold)))
     );
     bindNumericInput(
       bloom
         .add(postProcessState.bloom, "intensity", 0, 5, 0.01)
         .name("Bloom intensity / 泛光强度")
-        .onChange((intensity: number) => options.postProcess.setBloomIntensity(intensity))
+        .onChange(editPostProcess((intensity: number) => options.postProcess.setBloomIntensity(intensity)))
     );
     const synchronizePostProcessControls = (): void => {
       const current = options.postProcess.getDebugSnapshot();
+      Object.assign(postProcessState, {
+        enabled: current.enabled,
+        tonemapping: current.tonemapping,
+        tonemappingMode: current.tonemappingMode
+      });
       Object.assign(postProcessState.colorAdjustments, current.colorAdjustments);
       Object.assign(postProcessState.bloom, current.bloom);
       const activeElement = document.activeElement;
@@ -672,7 +689,13 @@ export class TerrainRuntimeDebugInspector {
     bloom
       .add(postProcessState.bloom, "scatter", 0, 1, 0.01)
       .name("Bloom scatter / 泛光扩散")
-      .onChange((scatter: number) => options.postProcess.setBloomScatter(scatter));
+      .onChange(editPostProcess((scatter: number) => options.postProcess.setBloomScatter(scatter)));
+    inspector.addAction(postProcess, "重置后处理参数", () => {
+      restorePostProcess?.();
+      restorePostProcess = undefined;
+      synchronizePostProcessControls();
+      postProcess.updateDisplay();
+    });
     const synchronizeLightingSource = (): void => {
       this._lightingAuthoringControls.synchronize();
       Object.assign(shadowCascadeState, options.lighting.getShadowCascadeTuning());

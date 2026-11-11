@@ -27,8 +27,15 @@ interface WorldTemplatePalette {
  * Camera fitting uses only the focus entries. */
 export type WorldTemplateArtDirection = (WorldTemplatePalette | { grass?: undefined }) & {
   reference: string;
+  grassGroundFusion?: boolean;
   initialPlanning?: {
     landMode?: import("../semantic-study/IslandPlanModel").IslandPlanParameters["landMode"];
+    relief?: {
+      reliefNearAmplitudeM: number;
+      reliefAmplitudeM: number;
+      reliefFarAmplitudeM: number;
+      reliefScaleM: number;
+    };
     roadsEnabled?: boolean;
     farmingEnabled?: boolean;
     poiMemberMax?: number;
@@ -38,6 +45,8 @@ export type WorldTemplateArtDirection = (WorldTemplatePalette | { grass?: undefi
   frameFraction: number;
   /** Reserve each subject in a solved POI and publish a clear starting view. */
   plannedSubjects?: boolean;
+  /** A continuous world framed from its map centre instead of a searched spawn. */
+  centeredStart?: boolean;
   azimuthDegrees: number;
   /** Composition aim relative to the focus envelope; a side subject stays at the side. */
   lookAtOffset?: [number, number, number];
@@ -766,30 +775,29 @@ export const WORLD_TEMPLATE_ART: Readonly<Record<string, WorldTemplateArtDirecti
   },
   "titan-wasteland": {
     reference: "SeedWorld-13-titan-wasteland.png",
+    grassGroundFusion: false,
     initialPlanning: {
       landMode: "continuous",
+      relief: { reliefNearAmplitudeM: 9, reliefAmplitudeM: 35, reliefFarAmplitudeM: 110, reliefScaleM: 256 },
       roadsEnabled: false,
       farmingEnabled: false,
       poiMemberMax: 0,
       population: { villageMin: 0, villageMax: 0, buildingMin: 0, buildingMax: 0 }
     },
     plannedSubjects: true,
-    focus: ["ancient-mech-wreck", "stone-stele", "broken-stone-arch"],
+    centeredStart: true,
+    focus: ["ancient-mech-wreck", "broken-stone-arch"],
     frameFraction: 0.85,
     azimuthDegrees: -7,
+    lookAtOffset: [0, -22, 0],
     models: [
       {
-        ...model("ancient-mech-wreck", [26, 0, 52], [115, 93, 139]),
+        ...model("ancient-mech-wreck", [64, 0, 313], [230, 186, 278]),
         label: "巨兽",
         assetUrl: "https://mdn.alipayobjects.com/rms/afts/file/A*WzQ9Q6me6W8AAAAAgGAAAAgAehQnAQ/jushou.glb"
       },
       {
-        ...model("stone-stele", [-50, 0, -75], [9, 19, 8], true, -12),
-        label: "石碑",
-        assetUrl: "https://mdn.alipayobjects.com/rms/afts/file/A*SSvqT74aEKIAAAAAf8AAAAgAehQnAQ/shitou1.glb"
-      },
-      {
-        ...model("broken-stone-arch", [-39, 0, -37], [32, 31, 11], true, 12),
+        ...model("broken-stone-arch", [-104, 0, 212], [64, 62, 22], true, 12),
         label: "断壁残垣",
         assetUrl: "https://mdn.alipayobjects.com/rms/afts/file/A*E1bHTKH2busAAAAAgBAAAAgAehQnAQ/shitou2.glb"
       }

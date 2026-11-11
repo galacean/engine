@@ -19,6 +19,7 @@ export interface WorldTemplateSite {
     containedInPoi?: boolean;
   }[];
   spawnView?: SubjectViewPose;
+  centeredStart?: PlanPoint;
 }
 
 /** Choose the authored subject's domain before any ordinary population is constructed.
@@ -77,7 +78,14 @@ export function planWorldTemplateSite(
         footprints: WorldTemplateSite["footprints"];
       }
     | undefined;
-  const authored = q.enabled ? { centerX: q.centerX, centerZ: q.centerZ } : plan.parameters.worldTemplate;
+  const centeredStart = art.centeredStart && plan.parameters.landMode === "continuous" ? center : undefined;
+  const authored = q.enabled
+    ? { centerX: q.centerX, centerZ: q.centerZ }
+    : plan.parameters.worldTemplate?.centerX !== undefined ||
+        plan.parameters.worldTemplate?.centerZ !== undefined ||
+        !centeredStart
+      ? plan.parameters.worldTemplate
+      : { centerX: center.x, centerZ: center.z };
   if ((authored?.centerX === undefined) !== (authored?.centerZ === undefined))
     throw new Error("风格主体锚点须同时提供 X 与 Z");
   const fixed = authored?.centerX !== undefined && authored.centerZ !== undefined;
@@ -156,6 +164,7 @@ export function planWorldTemplateSite(
   return {
     templateId: template.id,
     center: best.center,
-    footprints: best.footprints
+    footprints: best.footprints,
+    centeredStart
   };
 }

@@ -64,21 +64,35 @@ describe("authored world templates", () => {
     const source = createTemplatePlanningDocument(110613, "titan-wasteland");
     const original = createSeedPlanningInputs(110613).entities.world.components;
     const components = source.entities.world.components;
-    for (const type of ["surfacePalette", "grassAppearance", "rockFormation", "plantMaterial"])
+    for (const type of ["surfacePalette", "rockFormation", "plantMaterial"])
       expect(components[type]).toEqual(original[type]);
     expect(components.lighting.values).toEqual({ timeHours: 12 });
     expect(components.postProcess.values).toEqual({ contrast: 0 });
     expect(source.authoredResources?.filter((resource) => resource.resourceType === "terrain-feature")).toEqual([]);
     const restored = importPlanningScene(exportPlanningScene(source));
+    expect(restored.entities.world.components.grassAppearance.values.groundFusion).toBe(false);
     const recipe = exportPlanningRecipe(restored);
     expect(recipe.parameters.landMode).toBe("continuous");
+    expect(recipe.parameters).toMatchObject({
+      reliefNearAmplitudeM: 9, reliefAmplitudeM: 35, reliefFarAmplitudeM: 110, reliefScaleM: 256
+    });
     expect(recipe.parameters.poiLayout?.network.enabled).toBe(false);
     expect(recipe.parameters.farming?.enabled).toBe(false);
 
     const result = generatePlanningDocument(restored);
     expect(result.accepted).toBe(true);
     const { plan } = result;
-    expect(plan.parameters).toMatchObject({ width: 1024, depth: 1024 });
+    expect(plan.parameters).toMatchObject({ width: 1024, depth: 1024, reliefAmplitudeM: 35, reliefScaleM: 256 });
+    const uniformFbm = {
+      ...plan,
+      parameters: { ...plan.parameters, reliefNearAmplitudeM: 35, reliefFarAmplitudeM: 35 }
+    };
+    const stepped = planningGroundSurface(plan);
+    const uniform = planningGroundSurface(uniformFbm);
+    const center = { x: 497, z: 607 };
+    const outskirts = { x: 512, z: 1022 };
+    expect(stepped.sample(center)).toBeLessThan(uniform.sample(center));
+    expect(stepped.sample(outskirts) - uniform.sample(outskirts)).toBeGreaterThan(10);
     expect(plan.land).toEqual([
       { x: 0, z: 0 }, { x: 1024, z: 0 }, { x: 1024, z: 1024 }, { x: 0, z: 1024 }
     ]);
@@ -96,11 +110,13 @@ describe("authored world templates", () => {
     expect(Object.values(plan.naturalVegetation!.world).every(density => density === 0)).toBe(true);
     const template = WORLD_TEMPLATES.find(entry => entry.id === "titan-wasteland")!;
     const nodes = buildWorldTemplateGeometry(template, 110613).nodes;
-    expect(nodes.map((node) => node.id)).toEqual(["ancient-mech-wreck", "stone-stele", "broken-stone-arch"]);
+    expect(nodes.map((node) => node.id)).toEqual(["ancient-mech-wreck", "broken-stone-arch"]);
     expect(nodes.every((node) => node.assetUrl)).toBe(true);
+    expect(nodes.map((node) => node.scale)).toEqual([[230, 186, 278], [64, 62, 22]]);
     const site = plan.worldTemplateSite!;
     expect(site.footprints.map(({ id, obb, poiId }) => [id, obb.size, Boolean(poiId)]))
       .toEqual(nodes.map((node) => [node.id, node.scale, true]));
+    expect(plan.spawn).toEqual({ x: 512, z: 512 });
     expect(plan.spawn).toEqual({ x: site.spawnView!.eye[0], z: site.spawnView!.eye[2] });
 
     const edited = applySpatialCommands(restored, [

@@ -178,7 +178,7 @@ TerrainProjectScreenSpaceReflectionOutput TerrainScreenSpaceReflectionFragment(V
     discard;
   #endif
 
-  vec3 geometryNormal = normalize(varyings.normalWS);
+  vec3 geometryNormal = terrainProjectShadingGeometryNormal(varyings.positionWS.xz, varyings.normalWS);
   TerrainProjectScreenSpaceReflectionSurface resolved =
     terrainProjectResolveScreenSpaceReflectionSurface(varyings, geometryNormal);
   SurfaceData substrate = resolved.substrate;

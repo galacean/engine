@@ -1,4 +1,8 @@
+import type { PlanningDocument } from "@galacean/engine-world-planning/spatial/PlanningDocument";
 import { worldTemplate } from "@galacean/engine-world-planning/spatial/WorldTemplateCatalog";
+
+const rippleNormal = new URL("../../../assets/terrain-surface/RippleNormal.png", import.meta.url);
+const microNormal = new URL("../../../assets/terrain-surface/MicroNormal.png", import.meta.url);
 
 let selection: { id: string; seed: number } | undefined;
 
@@ -23,4 +27,18 @@ export function initialPlanningTemplate(search: string, seed: number, savedTempl
   if (id === "original" || !id) return "";
   if (!worldTemplate(id)) throw new Error("未知世界风格：" + id);
   return id;
+}
+
+/** Author the sand surface on new desert template documents. */
+export function applyPlanningTemplateSurface(document: PlanningDocument): void {
+  const components = document.entities.world.components;
+  if (components.worldTemplate?.values.id !== "titan-wasteland") return;
+  const terrain = (components.terrain ??= { values: {} });
+  Object.assign(terrain.values, {
+    roadSurfacePattern: true,
+    surfaceNormalTextureUrl: rippleNormal.href,
+    surfaceTileM: 12,
+    surfaceNormalScale: 1,
+    surfaceMicroNormalTextureUrl: microNormal.href
+  });
 }

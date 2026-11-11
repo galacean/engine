@@ -57,7 +57,7 @@ export const PLANNING_VISUAL_AUTHORING: readonly VisualAuthoringDescriptor[] = [
     directFields("coverage", "densityPerM2", "patchSizeM", "maxSlopeDegrees"), collection: "assetWeights" },
   { component: "subjectView", type: "PlanningSubjectView", fields: directFields("subjectId", "frameFraction", "fovDegrees", "azimuthDegrees", "distanceM") },
   { component: "grassAppearance", type: "PlanningGrassAppearance", fields: {
-    ...directFields("saturation"),
+    ...directFields("saturation", "groundFusion"),
     ...Object.fromEntries(["colorA", "colorB"].flatMap(slot => ["r", "g", "b"].map(channel => [`${slot}.${channel}`, `${slot}.${channel}`])))
   } },
   { component: "plantMaterial", type: "PlanningPlantMaterials", fields: {}, collection: "materialSlots" }

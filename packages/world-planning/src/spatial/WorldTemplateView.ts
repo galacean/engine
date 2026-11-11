@@ -26,6 +26,7 @@ export interface ResolvedWorldTemplateScene {
   nodes: ResolvedTemplateNode[];
   focusBounds: LandscapeBounds;
   spawnView?: SubjectViewPose;
+  centeredStart?: Position;
   occluders?: V2Box[];
   world: { width: number; depth: number; spacingX: number; spacingZ: number };
 }
@@ -89,6 +90,11 @@ export function resolveWorldTemplateScene(
     nodes,
     focusBounds,
     spawnView: site.spawnView,
+    centeredStart: site.centeredStart && [
+      site.centeredStart.x,
+      sample(site.centeredStart.x, site.centeredStart.z),
+      site.centeredStart.z
+    ],
     occluders:
       WORLD_TEMPLATE_ART[template.id].plannedSubjects && !site.spawnView
         ? planningWhiteboxes(plan, (p) => sample(p.x, p.z)).flatMap((part) => part.boxes.filter((box) => box.occlusion))
@@ -171,7 +177,12 @@ export function resolveWorldTemplateView(
   const target = [0, 1, 2].map(
     (axis) => (bounds.min[axis] + bounds.max[axis]) / 2 + (art.lookAtOffset?.[axis] ?? 0) * (axis === 0 ? -1 : 1)
   ) as Position;
-  const eye = scene.spawnView?.eye ?? findTemplateEye(scene, target, aspect, fovDegrees, eyeHeight, ground);
+  const centered = scene.centeredStart;
+  const eye =
+    scene.spawnView?.eye ??
+    (centered
+      ? ([centered[0], centered[1] + eyeHeight, centered[2]] as Position)
+      : findTemplateEye(scene, target, aspect, fovDegrees, eyeHeight, ground));
   if (!eye) throw new Error("地形或体量遮挡参考图主景，无法在当前世界范围内完整取景");
   const pose: SubjectViewPose = scene.spawnView ?? {
     subjectId: `world-template:${scene.id}`,
