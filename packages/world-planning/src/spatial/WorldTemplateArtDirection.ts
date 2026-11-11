@@ -880,6 +880,7 @@ export const WORLD_TEMPLATE_ART: Readonly<Record<string, WorldTemplateArtDirecti
     azimuthDegrees: 0,
     models: [],
     lighting: { timeHours: 12 },
+    weather: { cloudCoverage: 0 },
     postProcess: { contrast: 0 },
     landscape: { treeHeightMinM: 5, treeHeightMaxM: 12 },
     flowerCoverage: 0,

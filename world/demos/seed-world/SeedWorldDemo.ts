@@ -582,6 +582,9 @@ export async function mountSeedWorldDemo(
     if (disposed) throw new Error("Seed page disposed during startup");
     unmountProjectSave = mountProjectSaveControl(runtimeProject, scene!, canvas);
     source = await sourceTask!;
+    const desert = source.session.recipe().parameters.worldTemplate?.id === "titan-wasteland"
+      ? await import("./src/DesertPresentation")
+      : undefined;
     nativeEditor = new RuntimeNativeEditor(runtimeProject, scene!, seedWorldProjectFormats, [
       ...(options.assetSources ?? []),
       ...(retrieval ? [retrieval.source] : [])
@@ -643,7 +646,7 @@ export async function mountSeedWorldDemo(
       restore?.();
     };
 
-    lighting = createIntegratedWorldLightingRuntime(sun.entity, scene!, sun, post);
+    lighting = createIntegratedWorldLightingRuntime(sun.entity, scene!, sun, post, desert?.DESERT_SOLAR_POSITION);
     lighting.setTuning({ playing: false, timeHours: INTEGRATED_WORLD_DAYLIGHT_REFERENCE_TIME_HOURS });
     lighting.applyVisualTuning({
       fogMode: FogMode.ExponentialSquared,
@@ -704,10 +707,9 @@ export async function mountSeedWorldDemo(
       lighting,
       wind
     );
-    applyPlanningWeather(
-      environment,
-      source!.session.inspect("world").components.find((c) => c.type === "weather")?.values
-    );
+    const initialWeather = source.session.inspect("world").components.find((component) => component.type === "weather")?.values;
+    if (initialWeather?.cloudCoverage === 0) desert?.clearDesertClouds(environment);
+    applyPlanningWeather(environment, initialWeather);
     audio = new SeedWorldAudioRuntime(camera, navigation, environment, wind);
     const windCenter = new Vector3();
     const driver = root.addComponent(SeedDemoFrame);
@@ -1756,6 +1758,7 @@ export async function mountSeedWorldDemo(
         if (publication!.current !== accepted || disposed) return;
         debugSidebar?.synchronize(plan);
         await applyPresentation(source!.session, lightingProfile!, post);
+        desert?.applyDesertSky(lighting!);
         applyPlanningWeather(
           environment!,
           source!.session.inspect("world").components.find((c) => c.type === "weather")?.values
@@ -1766,6 +1769,7 @@ export async function mountSeedWorldDemo(
           groundFusion: readGrassGroundFusion(source!.session.document),
           grass: readGrassAppearance(source!.session.document)
         });
+        desert?.applyDesertTerrain(accepted.world);
         const surfaceTuning = accepted.world.getSurfaceColorTuning();
         canvas.dataset.grassAppearance = JSON.stringify(surfaceTuning.grass);
         canvas.dataset.grassGroundFusion = String(surfaceTuning.groundFusion);
@@ -1814,6 +1818,7 @@ export async function mountSeedWorldDemo(
       )
     );
     progress(0.94, "准备世界画面");
+    desert?.applyDesertShadows(lighting);
     await lighting.waitForEnvironmentIBLIdle();
     if (pageUrl.searchParams.get("debug") === "1") {
       const { PlanningSeedObbDebug } = await import("./src/planning/spatial/runtime/PlanningSeedObbDebug.ts");
