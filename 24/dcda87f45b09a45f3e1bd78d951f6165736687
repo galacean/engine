@@ -1,0 +1,23 @@
+world/tests/seed-world/TerrainFarShader.spec.ts
+  s_0ad7efa77c17be::t_65fc4b6d30cea2 14-28
+packages/terrain/src/data/seed-world/public/Shader/Terrain.shaderc
+  s_0ad7efa77c17be::t_7e032c63b0b327 1
+packages/terrain/src/shaders/terrain/TerrainHeight.glsl
+  s_0ad7efa77c17be::t_65fc4b6d30cea2 103-104
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "24dcda87f45b09a45f3e1bd78d951f6165736687",
+  "prompts": {},
+  "sessions": {
+    "s_0ad7efa77c17be": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1c9b0-c1c7-7c20-94e2-5d4a2cc750f7",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}
