@@ -35,6 +35,17 @@ export interface RuntimeProjectPackage {
   documents?: Record<string, string>;
 }
 
+/** Asset identity and embedded text for source resolvers. Binary payloads stay with the package owner. */
+export function lookupRuntimeProjectTextAsset(
+  pack: RuntimeProjectPackage,
+  path: string
+): { readonly type: string; readonly text?: string } | undefined {
+  const file = pack.project.files.find((entry) => entry.virtualPath === path);
+  if (!file) return undefined;
+  const content = pack.contents[path];
+  return { type: file.type, text: typeof content === "string" ? content : undefined };
+}
+
 /** Text is immutable. Copy only containers and mutable bytes at ownership boundaries. */
 export function cloneRuntimeProjectContent(content: string | Uint8Array): string | Uint8Array {
   if (typeof content === "string") return content;

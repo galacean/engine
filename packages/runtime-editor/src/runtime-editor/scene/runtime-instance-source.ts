@@ -4,7 +4,10 @@ import {
   type SourceAddress
 } from "@galacean/engine-project/runtime-editor/generated/editor-source-compiler";
 import type {} from "../generated/editor-source-schema";
-import type { RuntimeProjectPackage } from "@galacean/engine-project/runtime-editor/project/runtime-project";
+import {
+  lookupRuntimeProjectTextAsset,
+  type RuntimeProjectPackage
+} from "@galacean/engine-project/runtime-editor/project/runtime-project";
 
 export const instanceMemberId = (scope: readonly string[], id: string) => `@instance:${JSON.stringify([...scope, id])}`;
 
@@ -34,12 +37,16 @@ export interface InstanceSourceComponent {
   inlineOwner?: GalaceanInlineEntitySchema;
 }
 
-export function readSourcePrefab(pack: RuntimeProjectPackage, path: string): GalaceanSourcePrefabFile | undefined {
-  const file = pack.project.files.find((file) => file.virtualPath === path);
-  if (file?.type.toLowerCase() !== "prefab") return;
-  const text = pack.contents[path];
-  if (typeof text !== "string") throw Error(`Load Prefab source '${path}' before editing`);
-  const source = JSON.parse(text);
+type SourceAssetLookup = (path: string) => ReturnType<typeof lookupRuntimeProjectTextAsset>;
+
+export function readSourcePrefab(
+  assets: RuntimeProjectPackage | SourceAssetLookup,
+  path: string
+): GalaceanSourcePrefabFile | undefined {
+  const asset = typeof assets === "function" ? assets(path) : lookupRuntimeProjectTextAsset(assets, path);
+  if (asset?.type.toLowerCase() !== "prefab") return;
+  if (asset.text === undefined) throw Error(`Load Prefab source '${path}' before editing`);
+  const source = JSON.parse(asset.text);
   if (
     source.asset?.version !== "2.0" ||
     typeof source.root !== "string" ||
@@ -55,14 +62,15 @@ export class RuntimeInstanceSource {
   readonly entities = new Map<string, InstanceSourceEntity>();
   readonly components = new Map<string, InstanceSourceComponent>();
 
-  constructor(source: GalaceanSourceSceneFile, pack: RuntimeProjectPackage) {
+  constructor(source: GalaceanSourceSceneFile, assets: RuntimeProjectPackage | SourceAssetLookup) {
+    const lookup: SourceAssetLookup =
+      typeof assets === "function" ? assets : (path) => lookupRuntimeProjectTextAsset(assets, path);
     let views: Map<string, ReturnType<typeof sourceNestedViews>[number]> | undefined;
     const nestedViews = () =>
       (views ??= new Map(
         sourceNestedViews(source, {
-          resolveInstanceSourceFile: (path) => readSourcePrefab(pack, path),
-          resolveInstanceAssetKind: (path) =>
-            pack.project.files.find((file) => file.virtualPath === path)?.type === "glTF" ? "glTF" : "Prefab"
+          resolveInstanceSourceFile: (path) => readSourcePrefab(lookup, path),
+          resolveInstanceAssetKind: (path) => lookup(path)?.type === "glTF" ? "glTF" : "Prefab"
         }).map((view) => [JSON.stringify([view.address.rootSceneEntityId, ...view.address.sourceEntityPath]), view])
       ));
     const templates = new Map<string, GalaceanSourcePrefabFile>();
@@ -126,7 +134,7 @@ export class RuntimeInstanceSource {
       if (ancestors.has(asset)) throw Error(`Recursive Prefab instance '${asset}'`);
       let template = templates.get(asset);
       if (!template) {
-        template = readSourcePrefab(pack, asset);
+        template = readSourcePrefab(lookup, asset);
         if (!template) return; // glTF has no Prefab Source member identities.
         templates.set(asset, template);
       }

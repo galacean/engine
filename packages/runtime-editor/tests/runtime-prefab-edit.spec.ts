@@ -1,5 +1,5 @@
 import {runtimeSourceReferenceIds} from "@galacean/engine-project/runtime-editor/generated/editor-source-compiler.js";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { RUNTIME_PROJECT_SAVE_VERSION, type RuntimeProjectPackage } from "@galacean/engine-project/runtime-editor/project/runtime-project.ts";
 import { RuntimeProjectEdit } from "@galacean/engine-project/runtime-editor/project/runtime-project-edit.ts";
 import { RuntimeSceneEdit } from "../src/runtime-editor/scene/runtime-scene-edit";
@@ -39,6 +39,22 @@ describe("Prefab edits through ordinary scene tools",()=>{
     expect(f.scene.queryComponents({entityId:b.id})[0].id).not.toBe(query[0].id);
     expect(()=>compileProjectResource(f.draft.preview(),"Main.scene")).not.toThrow();
     expect(nativeToolSchemas['entity.create'].parse({scene:"Main.scene",name:"A",prefab:"Lamp.prefab"})).toMatchObject({prefab:"Lamp.prefab"});
+  });
+  it("reads current nested Prefab text without copying the project for each scene lookup", () => {
+    const { draft, scene, create } = fixture();
+    const instance = create("A");
+    const nested = scene.queryComponents().find(({ id }) => id.includes(instance.id) && id.includes("inner-light"))!;
+    const snapshot = draft.preview();
+    const preview = vi.spyOn(draft, "preview");
+
+    const updated = JSON.parse(snapshot.contents["Nested.prefab"] as string);
+    updated.components[0].props.intensity = 21;
+    draft.update("Nested.prefab", JSON.stringify(updated));
+
+    expect(scene.queryComponents({ id: nested.id })).toEqual([nested]);
+    expect(scene.readComponent(nested.id).props!.intensity).toBe(21);
+    expect(JSON.parse(snapshot.contents["Nested.prefab"] as string).components[0].props.intensity).toBe(8);
+    expect(preview).not.toHaveBeenCalled();
   });
   it("keeps root placement and state through native ownership serialization",()=>{
     const f=fixture(),a=f.create("A"),b=f.create("B");
