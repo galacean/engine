@@ -91,6 +91,16 @@ const cases: {
     pixel: [64, 0, 0, 255]
   },
   {
+    name: "layout-qualified varyings and MRT outputs retain distinct names",
+    source: valueShader("Varyings v; v.a = 0.25; return v;", "struct Outputs { layout(location = 0) vec4 a; };")
+      .replace("struct Varyings { float a; }", "struct Varyings { layout(location = 0) float a; }")
+      .replace(
+        "void frag(Varyings v) { gl_FragColor = vec4(v.a, 0.0, 0.0, 1.0); }",
+        "Outputs frag(Varyings v) { Outputs o; o.a = vec4(v.a, 0.0, 0.0, 1.0); return o; }"
+      ),
+    pixel: [64, 0, 0, 255]
+  },
+  {
     name: "interface variables may use names that GLSL ES reserves",
     source: valueShader(
       "Varyings output; output.a = keep(output, 0.25); return output;",
@@ -99,6 +109,38 @@ const cases: {
       "void frag(Varyings v) { gl_FragColor = vec4(v.a,",
       "void frag(Varyings input) { gl_FragColor = vec4(input.a,"
     ),
+    pixel: [64, 0, 0, 255]
+  },
+  {
+    name: "interface types may use names that GLSL ES reserves",
+    source: valueShader("Varyings v = Varyings(0.25); return v;").replace(/\bVaryings\b/g, "input"),
+    pixel: [64, 0, 0, 255]
+  },
+  {
+    name: "macro type aliases retain escaped interface type names",
+    source: valueShader("Varyings v; v.a = 0.25; return v;", "#define VALUE_TYPE Varyings")
+      .replace("gl_FragColor = vec4(v.a,", "VALUE_TYPE copy = v; gl_FragColor = vec4(copy.a + v.a,")
+      .replace(/\bVaryings\b/g, "input"),
+    pixel: [128, 0, 0, 255]
+  },
+  {
+    name: "unused reserved member names remain legal inside interface values",
+    source: valueShader("Varyings v; v.a = 0.25; return v;").replace("float a;", "float a; float input;"),
+    pixel: [64, 0, 0, 255]
+  },
+  {
+    name: "reserved interface members remain distinct from an occupied escaped name",
+    source: valueShader("Varyings v; v.a = 0.125; v.input_ = 0.125; v.a += v.input_; return v;")
+      .replace("float a;", "float a; float input_;")
+      .replace(/\ba\b/g, "input"),
+    pixel: [64, 0, 0, 255]
+  },
+  {
+    name: "interface names avoid the GLSL built-in namespace",
+    source: valueShader("Varyings v; v.a = 0.25; return v;")
+      .replace(/\bVaryings\b/g, "gl_Data")
+      .replace(/\ba\b/g, "gl_value")
+      .replace(/\bv\b/g, "gl_local"),
     pixel: [64, 0, 0, 255]
   },
   {
@@ -450,9 +492,16 @@ describe.runIf(typeof document !== "undefined")("interface value semantics on We
         )!.source;
         const first = compile(source, target, path, compiler, precompiler);
         const expected = JSON.stringify([first.vertexShaderInstructions, first.fragmentShaderInstructions]);
-        compile(positionCollision, target, path, compiler, precompiler);
+        const renamedSource = cases.find(
+          (fixture) => fixture.name === "uniform and varying member retain independent identities"
+        )!.source;
+        const renamed = compile(renamedSource, target, path, compiler, precompiler);
+        expect(renamed.vertexOutputNames).toEqual({ a: "a_1" });
+        expect(compile(positionCollision, target, path, compiler, precompiler).vertexOutputNames).toBeUndefined();
         const repeated = compile(source, target, path, compiler, precompiler);
         expect(JSON.stringify([repeated.vertexShaderInstructions, repeated.fragmentShaderInstructions])).toBe(expected);
+        expect(repeated.vertexOutputNames).toBeUndefined();
+        expect(renamed.vertexOutputNames).toEqual({ a: "a_1" });
       });
     }
   }

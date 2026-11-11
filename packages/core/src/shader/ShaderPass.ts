@@ -51,6 +51,8 @@ export class ShaderPass extends ShaderPart {
   /** @internal */
   _shaderProgramMaps: ShaderProgramMap[] = [];
 
+  private readonly _vertexOutputNames?: Readonly<Record<string, string>>;
+
   /**
    * Create a shader pass from precompiled instructions.
    * @param name - Shader pass name
@@ -58,13 +60,15 @@ export class ShaderPass extends ShaderPart {
    * @param fragmentShaderInstructions - Precompiled fragment instruction array
    * @param platformTarget - Target shader language
    * @param tags - Tags
+   * @param vertexOutputNames - Source output names mapped to generated GLSL names
    */
   constructor(
     name: string,
     vertexShaderInstructions: ShaderInstruction[],
     fragmentShaderInstructions: ShaderInstruction[],
     platformTarget: ShaderLanguage,
-    tags?: Record<string, number | string | boolean>
+    tags?: Record<string, number | string | boolean>,
+    vertexOutputNames?: Readonly<Record<string, string>>
   ) {
     super();
     this._shaderPassId = ShaderPass._shaderPassCounter++;
@@ -73,6 +77,7 @@ export class ShaderPass extends ShaderPart {
     this._vertexShaderInstructions = vertexShaderInstructions;
     this._fragmentShaderInstructions = fragmentShaderInstructions;
     this._platformTarget = platformTarget;
+    this._vertexOutputNames = vertexOutputNames;
 
     const mergedTags = { pipelineStage: PipelineStage.Forward, ...tags };
     for (const key in mergedTags) {
@@ -121,6 +126,12 @@ export class ShaderPass extends ShaderPart {
     macroCollection: ShaderMacroCollection,
     feedbackVaryings?: string[]
   ): ShaderProgram {
+    const names = this._vertexOutputNames;
+    if (names && feedbackVaryings?.length) {
+      feedbackVaryings = feedbackVaryings.map((name) =>
+        Object.prototype.hasOwnProperty.call(names, name) ? names[name] : name
+      );
+    }
     const isGPUInstance = macroCollection.isEnable(InstanceBuffer.gpuInstanceMacro);
     const { vertexSource, fragmentSource, instanceLayout } = this._compileShaderSource(
       engine,

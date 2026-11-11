@@ -23,11 +23,11 @@ const reservedWords = new Set(
 /**
  * Tests whether GLSL ES rejects an identifier that ShaderLab accepts.
  * @param name - Source identifier
- * @returns Whether the identifier is a reserved word or contains `__`, which WebGL rejects
+ * @returns Whether the identifier uses a reserved word or namespace
  * @internal
  */
 export function isUnsafeGLSLIdentifier(name: string): boolean {
-  return reservedWords.has(name) || name.includes("__");
+  return reservedWords.has(name) || name.startsWith("gl_") || name.includes("__");
 }
 
 /**
@@ -44,6 +44,17 @@ export class NameAllocator {
    */
   reserve(name: string): void {
     this._used.add(name);
+  }
+
+  /**
+   * Keeps a source identifier when GLSL accepts it, otherwise assigns a legal name to its identity.
+   * @param key - Source declaration or namespace identity
+   * @param name - Source identifier
+   * @returns Identifier used by the declaration and its references
+   */
+  sourceName(key: unknown, name: string): string {
+    if (!isUnsafeGLSLIdentifier(name)) return name;
+    return this.allocate(key, name.startsWith("gl_") ? `user_${name}` : `${name}_`);
   }
 
   /**

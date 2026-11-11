@@ -394,12 +394,8 @@ mat3 _normalMatFromModel(mat3 m) {
     mrtIndexSet.forEach((index) => {
       declaration += `layout(location=${index}) out vec4 fragOutColor${index};\n`;
     });
-    declaration += `void main(`;
-
     shader = shader.replace(/\bgl_FragData\[(.+?)\]/g, "fragOutColor$1");
-
-    shader = shader.replace(/void\s+?main\s*\(/g, declaration);
-    return shader;
+    return declaration + shader;
   }
 }
 

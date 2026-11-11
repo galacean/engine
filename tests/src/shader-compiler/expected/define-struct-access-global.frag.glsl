@@ -15,8 +15,8 @@ uniform sampler2D u_texture;
 
 #define FRAG_UV v.v_uv
 
+void frag ( Varyings v ) { gl_FragColor = texture2D ( u_texture , FRAG_UV ) ; }
 void main() {
 
-Varyings v = read_Varyings();
-{ gl_FragColor = texture2D ( u_texture , FRAG_UV ) ; }
-}
+Varyings input_v = read_Varyings();
+frag(input_v); }

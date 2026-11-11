@@ -27,7 +27,8 @@ async function capture(
   vertex: string,
   fragment: string,
   varying: string,
-  compiledPass?: ShaderPass
+  compiledPass?: ShaderPass,
+  vertexOutputNames?: Readonly<Record<string, string>>
 ): Promise<number[]> {
   const engine = await WebGLEngine.create({
     canvas: document.createElement("canvas"),
@@ -41,7 +42,9 @@ async function capture(
       "feedback",
       ShaderInstructionEncoder.parse(vertex),
       ShaderInstructionEncoder.parse(fragment),
-      ShaderLanguage.GLSLES300
+      ShaderLanguage.GLSLES300,
+      undefined,
+      vertexOutputNames
     );
   const shaderProgram = pass._compileShaderProgram(engine, new ShaderMacroCollection(), [varying]);
   const program = shaderProgram["_glProgram"]!;
@@ -74,43 +77,67 @@ async function capture(
 }
 
 describe("transform feedback captures interface members by source name", () => {
-  for (const target of [ShaderLanguage.GLSLES100, ShaderLanguage.GLSLES300]) {
-    for (const precompiled of [false, true]) {
-      it(`captures the member name for target ${target}, precompiled=${precompiled}`, async () => {
-        const compiler = new ShaderCompiler();
-        const parsed = compiler._parseShaderSource(source).subShaders[0].passes[0];
-        const program = precompiled
-          ? JSON.parse(JSON.stringify(new ShaderPrecompiler().precompile(source, target).subShaders[0].passes[0]))
-          : compiler._parseShaderPass(
-              parsed.contents,
-              parsed.vertexEntry,
-              parsed.fragmentEntry,
-              target,
-              undefined,
-              parsed.contentScopeStarts
-            )!;
-        const macros = new Map<string, string>();
-        let vertex = ShaderMacroProcessor.evaluate(program.vertexShaderInstructions, macros);
-        let fragment = ShaderMacroProcessor.evaluate(program.fragmentShaderInstructions, macros);
-        if (target === ShaderLanguage.GLSLES100) {
-          vertex = ShaderFactory.convertTo300(vertex);
-          fragment = ShaderFactory.convertTo300(fragment, true);
-        }
-        expect(await capture(vertex, fragment, "feedbackValue")).toEqual([0.25, 0.5, 0.75, 1]);
-      });
-    }
-  }
-
-  for (const target of [ShaderLanguage.GLSLES100, ShaderLanguage.GLSLES300]) {
-    it(`captures through a serialized Shader for target ${target}`, async () => {
-      const data = JSON.parse(JSON.stringify(new ShaderPrecompiler().precompile(source, target)));
-      const shader = Shader._createFromPrecompiled(data);
-      try {
-        expect(await capture("", "", "feedbackValue", shader.subShaders[0].passes[0])).toEqual([0.25, 0.5, 0.75, 1]);
-      } finally {
-        shader.destroy();
+  const sources = [
+    ["local collision", source],
+    ["global collision", source.replace("struct Varyings", "float feedbackValue;\nstruct Varyings")],
+    [
+      "reserved member",
+      source
+        .replace("float feedbackValue =", "float localValue =")
+        .replace("vec4(feedbackValue,", "vec4(localValue,")
+        .replace(/feedbackValue/g, "input")
+    ]
+  ];
+  for (const [label, source] of sources) {
+    const outputName = label === "reserved member" ? "input" : "feedbackValue";
+    for (const target of [ShaderLanguage.GLSLES100, ShaderLanguage.GLSLES300]) {
+      for (const precompiled of [false, true]) {
+        it(`captures ${label} for target ${target}, precompiled=${precompiled}`, async () => {
+          const compiler = new ShaderCompiler();
+          const parsed = compiler._parseShaderSource(source).subShaders[0].passes[0];
+          const program = precompiled
+            ? JSON.parse(JSON.stringify(new ShaderPrecompiler().precompile(source, target).subShaders[0].passes[0]))
+            : compiler._parseShaderPass(
+                parsed.contents,
+                parsed.vertexEntry,
+                parsed.fragmentEntry,
+                target,
+                undefined,
+                parsed.contentScopeStarts
+              )!;
+          const macros = new Map<string, string>();
+          let vertex = ShaderMacroProcessor.evaluate(program.vertexShaderInstructions, macros);
+          let fragment = ShaderMacroProcessor.evaluate(program.fragmentShaderInstructions, macros);
+          if (target === ShaderLanguage.GLSLES100) {
+            vertex = ShaderFactory.convertTo300(vertex);
+            fragment = ShaderFactory.convertTo300(fragment, true);
+          }
+          expect(await capture(vertex, fragment, outputName, undefined, program.vertexOutputNames)).toEqual([
+            0.25, 0.5, 0.75, 1
+          ]);
+        });
       }
-    });
+    }
+
+    for (const target of [ShaderLanguage.GLSLES100, ShaderLanguage.GLSLES300]) {
+      for (const precompiled of [false, true]) {
+        it(`captures ${label} through Shader, target ${target}, precompiled=${precompiled}`, async () => {
+          const previousCompiler = Shader._shaderCompiler;
+          Shader._shaderCompiler = new ShaderCompiler();
+          const shader = precompiled
+            ? Shader._createFromPrecompiled(
+                JSON.parse(JSON.stringify(new ShaderPrecompiler().precompile(source, target)))
+              )
+            : Shader.create(source, target);
+          try {
+            expect(await capture("", "", outputName, shader.subShaders[0].passes[0])).toEqual([0.25, 0.5, 0.75, 1]);
+          } finally {
+            shader.destroy();
+            Shader._shaderCompiler = previousCompiler;
+          }
+        });
+      }
+    }
   }
 
   it("captures raw GLSL instruction streams", async () => {
@@ -123,5 +150,17 @@ describe("transform feedback captures interface members by source name", () => {
     expect(await capture(vertex, "out vec4 color; void main() { color = vec4(1.0); }", "feedbackValue")).toEqual([
       0.25, 0.5, 0.75, 1
     ]);
+  });
+
+  it("does not treat prototype properties as output mappings", async () => {
+    expect(
+      await capture(
+        "out vec4 toString; void main() { toString = vec4(0.25, 0.5, 0.75, 1.0); gl_Position = vec4(0.0); }",
+        "out vec4 color; void main() { color = vec4(1.0); }",
+        "toString",
+        undefined,
+        { original: "renamed" }
+      )
+    ).toEqual([0.25, 0.5, 0.75, 1]);
   });
 });

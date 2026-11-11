@@ -45,7 +45,19 @@ describe("Shader name allocation", () => {
   });
 
   it("detects identifiers that GLSL ES rejects", () => {
-    for (const name of ["input", "output", "sample", "filter", "a__b"]) expect(isUnsafeGLSLIdentifier(name)).toBe(true);
+    for (const name of ["input", "output", "sample", "filter", "a__b", "gl_user"])
+      expect(isUnsafeGLSLIdentifier(name)).toBe(true);
     for (const name of ["position", "texture", "_a", "a_"]) expect(isUnsafeGLSLIdentifier(name)).toBe(false);
+  });
+
+  it("escapes source identifiers without colliding with existing names", () => {
+    const names = new NameAllocator();
+    names.reserve("input_");
+    expect(names.sourceName("type:input", "input")).toBe("input_1");
+    expect(names.sourceName("type:input", "input")).toBe("input_1");
+    expect(names.sourceName("member:input", "input")).toBe("input_2");
+    expect(names.sourceName("type:gl_user", "gl_user")).toBe("user_gl_user");
+    expect(names.sourceName("member:a__b", "a__b")).toBe("a_b_");
+    expect(names.sourceName("position", "position")).toBe("position");
   });
 });

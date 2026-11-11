@@ -6,6 +6,7 @@ import { ParserUtils } from "@galacean/engine-shader-parser/internal";
 import { ShaderEntryPointInfo } from "@galacean/engine-shader-parser/internal";
 import { TreeNode } from "@galacean/engine-shader-parser/internal";
 import { StructProp } from "@galacean/engine-shader-parser/internal";
+import { ShaderStructRole } from "@galacean/engine-shader-parser/internal";
 import { GLESVisitor } from "./GLESVisitor";
 import { ICodeSegment } from "./types";
 import type { DeferredDeclarationOwnership } from "@galacean/engine-shader-parser/internal";
@@ -49,11 +50,11 @@ export class GLES300Visitor extends GLESVisitor {
 
   override getVaryingProp(prop: StructProp): string {
     const qualifier = this.context.stage === EShaderStage.FRAGMENT ? "in" : "out";
-    return `${qualifier} ${prop.typeInfo.typeLexeme} ${this.interfaceName(prop)};`;
+    return `${qualifier} ${prop.typeInfo.typeLexeme} ${this.interfaceName(prop, ShaderStructRole.Varying)};`;
   }
 
   override getMRTProp(prop: StructProp): string {
-    return `layout(location = ${prop.mrtIndex}) out vec4 ${this.interfaceName(prop)};`;
+    return `layout(location = ${prop.mrtIndex}) out vec4 ${this.interfaceName(prop, ShaderStructRole.Mrt)};`;
   }
 
   override visitFunctionIdentifier(node: ASTNode.FunctionIdentifier): string {
@@ -120,7 +121,7 @@ export class GLES300Visitor extends GLESVisitor {
   }
 
   protected override mrtOutput(prop: StructProp): string {
-    return this.interfaceName(prop);
+    return this.interfaceName(prop, ShaderStructRole.Mrt);
   }
 
   private _fragmentColorName(): string {

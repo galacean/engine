@@ -10,10 +10,7 @@ interface_value.v_normal = v_normal;
 return interface_value; }
 uniform sampler2D u_texture;
 uniform vec3 u_lightDir;
-void main() {
-
-Varyings v = read_Varyings();
-{
+void frag ( Varyings v ) {
 #define FRAG_UV v.v_uv
 
 
@@ -21,4 +18,7 @@ Varyings v = read_Varyings();
 
 float NdotL = dot ( FRAG_NORMAL , u_lightDir ) ;
 gl_FragColor = texture2D ( u_texture , FRAG_UV ) * NdotL ; }
-}
+void main() {
+
+Varyings input_v = read_Varyings();
+frag(input_v); }

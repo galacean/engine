@@ -57,6 +57,10 @@ export abstract class CodeGenVisitor implements ICodeGenVisitor {
     return token.lexeme;
   }
 
+  protected interfaceMemberName(name: string): string {
+    return name;
+  }
+
   visitPostfixExpression(node: ASTNode.PostfixExpression): string {
     const children = node.children;
     const derivationLength = children.length;
@@ -90,7 +94,7 @@ export abstract class CodeGenVisitor implements ICodeGenVisitor {
           else context.referenceMRTProp(prop);
         }
 
-        return `${postExpr.codeGen(this)}.${prop.lexeme}`;
+        return `${postExpr.codeGen(this)}.${role ? this.interfaceMemberName(prop.lexeme) : prop.lexeme}`;
       } else {
         return `${postExpr.codeGen(this)}.${prop.codeGen(this)}`;
       }

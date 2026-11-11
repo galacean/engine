@@ -20,6 +20,24 @@ describe("MRT interface backend conversion", () => {
   for (const [name, shader] of [
     ["MRT structure return", source],
     [
+      "unused caller of the fragment entry",
+      `Shader "unused-fragment-caller" { SubShader "s" { Pass "p" {
+        void vert() { gl_Position = vec4(0.0, 0.0, 0.0, 1.0); gl_PointSize = 1.0; }
+        void frag() { gl_FragData[0] = vec4(0.25, 0.0, 0.0, 1.0); }
+        void unused() { frag(); }
+        VertexShader = vert; FragmentShader = frag;
+      } } }`
+    ],
+    [
+      "helper writing a fragment output",
+      `Shader "helper-fragment-output" { SubShader "s" { Pass "p" {
+        void vert() { gl_Position = vec4(0.0, 0.0, 0.0, 1.0); gl_PointSize = 1.0; }
+        void writeColor() { gl_FragData[0] = vec4(0.25, 0.0, 0.0, 1.0); }
+        void frag() { writeColor(); }
+        VertexShader = vert; FragmentShader = frag;
+      } } }`
+    ],
+    [
       "void entry with conditional global structure input",
       `Shader "conditional-global-output-conversion" { SubShader "s" { Pass "p" {
         #define USE_INPUT 1
