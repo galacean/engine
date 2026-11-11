@@ -398,10 +398,10 @@ export class ResourceManager {
   }
 
   /**
-   * Registers the load of a main asset for as long as it runs, and caches its result.
+   * Registers the load of a main asset for as long as it runs, and caches its result when the loader uses the cache.
    * @remarks
    * The registered promise is the one `_loadSubpackageAndMainAsset` returns, so the load is registered while a
-   * mini-game adapter still loads the subpackage, and it is released however that promise settles. The entry has
+   * mini-game adapter still loads the subpackage, and it is released when that promise settles. The entry has
    * one owner: only the load that registered it removes it.
    */
   private _trackMainAsset<T>(
@@ -430,7 +430,14 @@ export class ResourceManager {
     return promise;
   }
 
-  // For adapter mini-game platform: load the subpackage, then return `_loadMainAsset`.
+  /**
+   * Hook for mini-game adapters: an adapter replaces this method to load the subpackage, then load the asset with
+   * `_loadMainAsset`.
+   * @remarks
+   * `_trackMainAsset` registers the promise this method returns, so `cancelNotLoaded` and `AssetPromise.cancel`
+   * cancel that promise, not the loader's. A replacement that returns its own promise must cancel the promise of
+   * `_loadMainAsset` in `onCancel` and forward its progress.
+   */
   private _loadSubpackageAndMainAsset<T>(
     loader: Loader<T>,
     item: LoadItem,
