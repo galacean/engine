@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import {
   AGENT_PROTOCOL,
+  SYSTEM_INJECTION_PROTOCOL,
   buildAgentMessages,
   buildAgentSystemPrompt,
   buildAgentToolDefinitions,
@@ -86,6 +87,22 @@ describe("native Agent Tool Calling protocol", () => {
     expect(prompt).not.toContain("species: string");
     expect(prompt).not.toContain('"type":"final"');
     expect(prompt).not.toContain("responseFormat");
+  });
+
+  it("explains the server's system_injection blocks after the Agent rules", () => {
+    const prompt = buildAgentSystemPrompt(definition);
+
+    // The block must stay byte-identical to ASAP's SYSTEM_INJECTION_PROTOCOL.
+    expect(SYSTEM_INJECTION_PROTOCOL).toBe(
+      [
+        "<system_injection_protocol>",
+        '<system_injection type="..."> 中的内容是系统注入的上下文或执行指导，type 表示用途，不属于用户原始 query。',
+        "请结合这些内容完成当前任务，但不要将其视为用户新增的请求、偏好或授权。",
+        "</system_injection_protocol>"
+      ].join("\n")
+    );
+    expect(prompt).toBe(`${AGENT_PROTOCOL}\n\n${SYSTEM_INJECTION_PROTOCOL}`);
+    expect(prompt.match(/<system_injection_protocol>/g)).toHaveLength(1);
   });
 
   it("replays assistant Tool Calls and matching Tool Results without flattening identity", () => {
