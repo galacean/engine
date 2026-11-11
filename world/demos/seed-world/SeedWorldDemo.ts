@@ -35,6 +35,7 @@ import {
 } from "@galacean/engine-world-planning/masonry/NativeBuildingHost";
 import { mountNativeBuildingPanel } from "@galacean/engine-world-planning/masonry/NativeBuildingPanel";
 import type { IslandPlan } from "@galacean/engine-world-planning/semantic-study/IslandPlanModel";
+import { worldTemplate } from "@galacean/engine-world-planning/spatial/WorldTemplateCatalog";
 import { readAnimalPopulationConfig } from "@galacean/engine-world-planning/spatial/AnimalPopulationComponent";
 import { planningFarmInitializationRequest } from "@galacean/engine-world-planning/spatial/farming/PlanningFarmInitialization";
 import { planningWaterQueryProjection } from "@galacean/engine-world-planning/spatial/hydrology/PlanningWaterEdits";
@@ -237,6 +238,7 @@ export async function mountSeedWorldDemo(
   let source: Awaited<ReturnType<typeof createPlanningWorldSource>> | undefined;
   let sourceTask: ReturnType<typeof createPlanningWorldSource> | undefined;
   let publication: PlanningSeedScenePublication | undefined;
+  let sandstorm: Entity | undefined;
   const readWorld = () => publication?.current?.world;
   const readPublished = () => {
     const current = publication?.current;
@@ -407,6 +409,7 @@ export async function mountSeedWorldDemo(
       }
     ],
     ["水运行", () => water?.destroy()],
+    ["沙雾", () => sandstorm?.destroy()],
     ["环境", () => environment?.destroy()],
     ["光照", () => lighting?.destroy()],
     ["加载界面", () => orb?.destroy()],
@@ -1731,6 +1734,29 @@ export async function mountSeedWorldDemo(
       farmingHost?.runtime?.publish(accepted, source!.session.document.revision);
       accepted.template?.activate(canvas);
       if (!accepted.template) delete canvas.dataset.worldTemplate;
+      if (worldTemplate(plan.parameters.worldTemplate?.id)?.family === "desert") {
+        try {
+          const { createSeedSandstorm, loadSeedSandstormAtlas, placeSeedSandstorm } = await import("./src/SeedWorldSandstorm");
+          if (publication!.current !== accepted || disposed) return;
+          const { x, z } = plan.spawn;
+          const ground = sampleSeedWorldHeight(accepted.data.fields, x, z);
+          if (ground === undefined) throw new Error("Sandstorm spawn terrain is unavailable");
+          if (sandstorm) {
+            placeSeedSandstorm(sandstorm, x, ground, z);
+          } else {
+            const atlas = await loadSeedSandstormAtlas(engine!);
+            if (publication!.current !== accepted || disposed) return;
+            if (sandstorm) placeSeedSandstorm(sandstorm, x, ground, z);
+            else sandstorm = createSeedSandstorm(root, atlas, x, ground, z);
+          }
+        } catch (error) {
+          if (!disposed) console.warn("[seed-world] sandstorm setup failed", error);
+        }
+      } else if (sandstorm) {
+        sandstorm.destroy();
+        sandstorm = undefined;
+      }
+      canvas.dataset.sandstorm = sandstorm ? "active" : "off";
       animals!.synchronize(plan, readAnimalPopulationConfig(source!.session.document), accepted.navigation, {
         surface: accepted.data.surfaceIntent
       });
