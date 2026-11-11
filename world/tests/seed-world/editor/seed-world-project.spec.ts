@@ -153,7 +153,7 @@ it("deletes saves of other versions before loading contents and restores the cur
   ) as RuntimeProjectManifest;
   const project = await openSeedWorldProject(f.url, initial);
   sessions.push(project);
-  expect(SEED_WORLD_BUILDING_SAVE_VERSION).toBe(9);
+  expect(SEED_WORLD_BUILDING_SAVE_VERSION).toBe(10);
   expect(project.id).toBe(seedWorldProjectStorageId(42, projectUrl));
   expect(f.load.mock.calls).toEqual([[project.id]]);
   expect(project.id).not.toBe(oldId);
@@ -187,12 +187,12 @@ it("restores relocated building assets before hierarchy reads without replacing 
   const toLegacy = (url: string) => url.replace("/packages/building/src/building/", "/packages/building/src/tiny-glade/");
   const kit = saved.project.files.find((file) => file.virtualPath === "Building/Units/building-kit.prefab")!;
   delete saved.contents[kit.virtualPath];
-  const roof = "Building/Units/Textures/roof_colors.tex";
+  const roof = "Building/Units/Textures/roof_colors-neutral.ktx2";
   saved.contents[roof] = new Uint8Array([1, 2, 3]);
   saved.documents = { ...saved.documents, "Notes/author.txt": "Keep my scene and building edits" };
   saved.project.files = saved.project.files.map((file) => ({ ...file, path: toLegacy(file.path) }));
-  const custom = saved.project.files.find((file) => file.virtualPath === "Building/Units/Textures/brick_colors.tex")!;
-  custom.path = "https://assets.example.test/custom-bricks.tex";
+  const custom = saved.project.files.find((file) => file.virtualPath === "Building/Units/Textures/brick_colors-neutral.ktx2")!;
+  custom.path = "https://assets.example.test/custom-bricks.ktx2";
   const inbound = new Set(saved.project.files.flatMap((file) => file.dependencies ?? []));
   const deleted = saved.project.files.find((file) => file.type === "Prefab" &&
     file.virtualPath.startsWith("Building/") && !inbound.has(file.virtualPath) && file.virtualPath !== kit.virtualPath)!;
