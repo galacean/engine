@@ -1,9 +1,8 @@
 import type { Engine, Entity } from "@galacean/engine";
 import {
-  RiverQualityLevel,
-  RIVER_LIMITS,
   createRiverWaterBodyAsset,
-  createRiverWaterBodyInstance
+  createRiverWaterBodyInstance,
+  RIVER_LIMITS
 } from "@galacean/engine-water/water/index";
 import {
   registerRiverWaterBodyPresets,
@@ -14,8 +13,8 @@ import {
 import type { RiverNetworkDescriptor } from "@galacean/engine-water/water/index";
 
 import { RIVER_COMPILER_SEMANTIC_VERSION } from "@galacean/engine-water/water/compiler/index";
-import { RIVER_WATER_BACKEND_ID, RiverWaterBackend } from "@galacean/engine-water/water/runtime/river/index";
 import { WaterSceneRuntimeHost, type WaterSceneBodyRequest } from "@galacean/engine-water/water/runtime/index";
+import { RIVER_WATER_BACKEND_ID, RiverWaterBackend } from "@galacean/engine-water/water/runtime/river/index";
 import {
   resolvePromptNoiseRiverGeneration,
   resolvePromptNoiseRiverSet,
@@ -30,39 +29,6 @@ import type {
 /** Maximum terrain river half-width represented without changing authored shape. */
 export const PROMPT_NOISE_RIVER_MAX_HALF_WIDTH = RIVER_LIMITS.maxWidth * 0.5;
 
-export interface PromptNoiseRiverWaterSnapshotV1 {
-  readonly riverCount: number;
-  readonly reachCount: number;
-  readonly junctionCount: number;
-  readonly widthLimitedRiverCount: number;
-  readonly active: boolean;
-  readonly compiling: boolean;
-  readonly compileCount: number;
-  readonly cachedResourceCount: number;
-  readonly cacheBytes: number;
-  readonly cacheEvictionCount: number;
-  readonly chunkCount: number;
-  readonly waterBytes: number;
-  readonly activeBodyIds: readonly string[];
-  readonly activeRevision: number;
-  readonly profileIds: readonly string[];
-  readonly sectionProfiles: readonly Readonly<{
-    bodyId: string;
-    descriptorSchemaVersion: number;
-    materialPreset: string;
-    quality: string;
-    disturbanceCount: number;
-    points: readonly Readonly<{
-      width: number;
-      depth: number;
-      flowSpeed: number;
-      bankFeather: number;
-    }>[];
-  }>[];
-  readonly reflectionServiceCreated: boolean;
-  readonly error: string | null;
-}
-
 /** Prompt adapter: Operator/Profile projection and diffing only; Host owns every Water service. */
 export class PromptNoiseRiverWaterRuntime {
   private readonly _host: WaterSceneRuntimeHost;
@@ -75,7 +41,6 @@ export class PromptNoiseRiverWaterRuntime {
   private _widthLimitedRiverCount = 0;
   private _compiling = false;
   private _error: string | null = null;
-  private _sectionProfiles: PromptNoiseRiverWaterSnapshotV1["sectionProfiles"] = Object.freeze([]);
   private _abortController?: AbortController;
   private _destroyed = false;
 
@@ -115,30 +80,6 @@ export class PromptNoiseRiverWaterRuntime {
       await transaction.commit(abortController.signal);
       if (revision !== this._revision || abortController.signal.aborted) return;
       this._activeBodyIds = nextBodyIds;
-      this._sectionProfiles = Object.freeze(
-        resolvedSet.rivers.map((resolved) =>
-          Object.freeze({
-            bodyId: resolved.bodyId,
-            descriptorSchemaVersion: resolved.descriptor.schemaVersion,
-            materialPreset: resolved.descriptor.defaults.material.preset,
-            quality: resolved.descriptor.defaults.quality.material.level,
-            disturbanceCount:
-              resolved.descriptor.schemaVersion === 2 ? (resolved.descriptor.disturbances?.length ?? 0) : 0,
-            points: Object.freeze(
-              resolved.descriptor.segments
-                .flatMap((segment) => segment.curve.points)
-                .map(({ width, depth, flowSpeed, bankFeather }) =>
-                  Object.freeze({
-                    width: width ?? resolved.descriptor.defaults.shape.width,
-                    depth: depth ?? resolved.descriptor.defaults.shape.depth,
-                    flowSpeed: flowSpeed ?? resolved.descriptor.defaults.flow.speed,
-                    bankFeather: bankFeather ?? resolved.descriptor.defaults.shape.bankFeather
-                  })
-                )
-            )
-          })
-        )
-      );
       this._error = null;
     } catch (error) {
       if (revision !== this._revision || abortController.signal.aborted) return;
@@ -163,39 +104,6 @@ export class PromptNoiseRiverWaterRuntime {
     this._compiling = false;
   }
 
-  getSnapshot(): PromptNoiseRiverWaterSnapshotV1 {
-    const diagnostics = this._host.getDiagnostics();
-    const bodies = diagnostics.bodies.filter(({ bodyId }) => this._activeBodyIds.has(bodyId));
-    return Object.freeze({
-      riverCount: this._riverCount,
-      reachCount: this._reachCount,
-      junctionCount: this._junctionCount,
-      widthLimitedRiverCount: this._widthLimitedRiverCount,
-      active:
-        this._riverCount === this._activeBodyIds.size &&
-        bodies.length === this._activeBodyIds.size &&
-        bodies.every(({ activation }) => activation.active),
-      compiling: this._compiling,
-      compileCount: diagnostics.loader.compileCount,
-      cachedResourceCount: diagnostics.loader.cachedResourceCount,
-      cacheBytes: diagnostics.loader.cachedResourceMemory.totalBytes,
-      cacheEvictionCount: diagnostics.loader.cacheEvictionCount,
-      chunkCount: bodies.reduce((sum, { activation }) => sum + activation.runtimeMetrics.meshUploadCount, 0),
-      waterBytes: bodies.reduce((sum, { activation }) => sum + activation.runtimeMetrics.memory.totalBytes, 0),
-      activeBodyIds: Object.freeze(bodies.map(({ bodyId }) => bodyId)),
-      activeRevision: diagnostics.activeSceneRevision,
-      profileIds: Object.freeze([...new Set(bodies.flatMap(({ profileId }) => (profileId ? [profileId] : [])))]),
-      sectionProfiles: this._sectionProfiles,
-      reflectionServiceCreated: diagnostics.reflectionServiceCreated,
-      error: this._error
-    });
-  }
-
-  /** Full Scene ownership/feature diagnostics used by desktop acceptance. */
-  getHostDiagnostics() {
-    return this._host.getDiagnostics();
-  }
-
   async destroy(): Promise<void> {
     if (this._destroyed) return;
     this._destroyed = true;
@@ -203,7 +111,6 @@ export class PromptNoiseRiverWaterRuntime {
     this._abortController?.abort();
     const ids = [...this._activeBodyIds];
     this._activeBodyIds.clear();
-    this._sectionProfiles = Object.freeze([]);
     await Promise.all(ids.map((bodyId) => this._host.removeBody(bodyId)));
   }
 

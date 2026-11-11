@@ -19,7 +19,7 @@
           opticalDepth,
           effectiveFresnel,
           foamTint,
-          material_OpticsCalibrationMode,
+          0.0,
           {{COASTAL_ALPHA}},
           {{COASTAL_ALPHA_WEIGHT}}
         );

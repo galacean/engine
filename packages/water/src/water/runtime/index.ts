@@ -13,15 +13,10 @@ export { WaterBackendRegistry } from "./body/WaterBackendRegistry";
 export type { WaterBodyBackend, WaterTerrainOcclusionProvider } from "./body/WaterBackendRegistry";
 export { WaterBodyAssetRegistry } from "./body/WaterBodyAssetRegistry";
 export { WaterBodyLoader } from "./body/WaterBodyLoader";
-export type {
-  WaterBodyActivationHandle,
-  WaterBodyLoaderMetrics,
-  WaterDevelopmentTargetSource
-} from "./body/WaterBodyLoader";
+export type { WaterBodyActivationHandle, WaterDevelopmentTargetSource } from "./body/WaterBodyLoader";
 export type { WaterBodyProviderResolveContext, WaterBodySourceProviderFactory } from "./body/WaterBodyProviderRegistry";
 export { resolveWaterBodyQualityTier } from "./body/WaterBodyRuntimeSemantics";
 export { isWaterSceneMutationSafe, markWaterSceneMutationSafe } from "./body/WaterMutationFailure";
-export type { WaterBodyActivationInspection } from "./body/WaterRuntimeInspectionStore";
 export { WaterWorld } from "./body/WaterWorld";
 export {
   WaterGenerationPreparerV1,
@@ -35,19 +30,13 @@ export type {
 } from "./generation/WaterGenerationPreparer";
 export type { WaterShaderModule } from "./material/WaterShaderModule";
 export { CameraWaterFeatureBroker } from "./optics/CameraWaterFeatureBroker";
-export type { CameraWaterFeatureMetrics } from "./optics/CameraWaterFeatureBroker";
 export { WaterEnvironmentReflectionProvider } from "./optics/WaterEnvironmentReflectionProvider";
-export type {
-  WaterEnvironmentReflectionProviderInspection,
-  WaterEnvironmentReflectionSource
-} from "./optics/WaterEnvironmentReflectionProvider";
+export type { WaterEnvironmentReflectionSource } from "./optics/WaterEnvironmentReflectionProvider";
 export { DEFAULT_WATER_OPTICAL_PROFILE } from "./optics/WaterOpticalProfile";
 export type { WaterOpticalProfile } from "./optics/WaterOpticalProfile";
 export type { WaterReflectionSource } from "./optics/WaterReflectionPolicy";
 export { WaterReflectionPreRenderSynchronizer } from "./optics/WaterReflectionPreRenderSynchronizer";
 export { WaterReflectionService } from "./optics/WaterReflectionService";
-export type { WaterReflectionServiceMetrics } from "./optics/WaterReflectionService";
-export type { WaterSceneReflectionProbeProviderInspection } from "./optics/WaterSceneReflectionProbeProvider";
 export {
   DEFAULT_WATER_REFLECTION_INTENSITY,
   DEFAULT_WATER_REFRACTION_STRENGTH,
@@ -61,7 +50,6 @@ export {
 export type { WaterSurfaceOpticsBindingReadback } from "./optics/WaterSurfaceOpticsTypes";
 export { createWaterSurfaceSample, resetWaterSurfaceSample } from "./query/WaterSurfaceProvider";
 export type { WaterSurfaceProvider, WaterSurfaceSample } from "./query/WaterSurfaceProvider";
-export type { WaterSceneRuntimeDiagnostics } from "./scene/WaterSceneRuntimeDiagnostics";
 export { WaterSceneRuntimeHost } from "./scene/WaterSceneRuntimeHost";
 export type {
   PreparedWaterSceneBodySetTransaction,
@@ -72,6 +60,8 @@ export type {
   WaterSceneBodyRequest,
   WaterSceneBodySetTransaction
 } from "./scene/WaterSceneRuntimeHost";
+export { createWaterNearShoreSample, resetWaterNearShoreSample } from "./spatial/WaterNearShoreQuery";
+export type { WaterNearShoreQuery, WaterNearShoreSample, WaterNearShoreTask } from "./spatial/WaterNearShoreQuery";
 export {
   createWaterSemanticFieldSample,
   createWaterSemanticFieldSnapshot,
@@ -80,20 +70,16 @@ export {
 export type { WaterSemanticFieldBodyV1, WaterSemanticFieldSnapshotV1 } from "./spatial/WaterSemanticField";
 export {
   createCanonicalWaterSemanticFieldSample,
-  sampleCanonicalWaterSemanticField,
-  legacyWaterShoreDistanceToCanonical
+  legacyWaterShoreDistanceToCanonical,
+  sampleCanonicalWaterSemanticField
 } from "./spatial/WaterSemanticFieldAdapter";
 export type { CanonicalWaterSemanticFieldSample } from "./spatial/WaterSemanticFieldAdapter";
 export {
+  WaterSpatialFieldChannel,
   createWaterSpatialFieldSample,
-  resetWaterSpatialFieldSample,
-  WaterSpatialFieldChannel
+  resetWaterSpatialFieldSample
 } from "./spatial/WaterSpatialFieldProvider";
 export type { WaterSpatialFieldProvider, WaterSpatialFieldSnapshot } from "./spatial/WaterSpatialFieldProvider";
-export { createWaterNearShoreSample, resetWaterNearShoreSample } from "./spatial/WaterNearShoreQuery";
-export type { WaterNearShoreQuery, WaterNearShoreSample, WaterNearShoreTask } from "./spatial/WaterNearShoreQuery";
-export { readWaterSpatialFieldEngineTextureCalibration } from "./spatial/WaterSpatialFieldGpuCalibration";
-export type { WaterSpatialFieldEngineTextureCalibrationReadback } from "./spatial/WaterSpatialFieldGpuCalibration";
 export type { WaterSurfaceAppearanceBindingV2 } from "./surface/WaterSurfaceAppearanceRuntimeTypes";
 export type { WaterSurfaceFieldGraphReadback } from "./surface/WaterSurfaceFieldResolver";
 

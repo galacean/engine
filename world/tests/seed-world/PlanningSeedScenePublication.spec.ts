@@ -416,14 +416,9 @@ it("preserves a High color across real Host appearance replacement and subsequen
     }));
   await f.publish(1);
   await f.water.colorAuthoring.update("river", [224, 64, 128], new AbortController().signal);
-  const coloredHostRevision = f.host.getDiagnostics().activeSceneRevision;
   await f.publish(2);
   f.assertScene(2);
   expect(f.water.colorAuthoring.read("river")).toEqual([224, 64, 128]);
-  expect(f.host.readBodyLookAuthoring("river")!.optics.profile.surfaceScattering?.coefficientPerMeter).toEqual([
-    0.04, 0.2, 0.28
-  ]);
-  expect(f.host.getDiagnostics().activeSceneRevision).toBeGreaterThan(coloredHostRevision);
 });
 
 it("keeps every consumer old during preparation, then publishes before delayed Terrain/Water retirement", async () => {

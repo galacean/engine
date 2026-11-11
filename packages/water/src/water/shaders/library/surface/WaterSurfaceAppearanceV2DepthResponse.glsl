@@ -1,6 +1,5 @@
-#ifndef WATER_SURFACE_APPEARANCE_V2_DEPTH_RESPONSE_{{SECTION}}_INCLUDED
-#define WATER_SURFACE_APPEARANCE_V2_DEPTH_RESPONSE_{{SECTION}}_INCLUDED
-#if {{SECTION}} == 0
+#ifndef WATER_SURFACE_APPEARANCE_V2_DEPTH_RESPONSE_INCLUDED
+#define WATER_SURFACE_APPEARANCE_V2_DEPTH_RESPONSE_INCLUDED
 #if {{MODEL}} == 0
         float appearanceDepthTintFactor = 0.0;
         vec3 appearanceDepthTintColor = vec3(0.0);
@@ -78,30 +77,5 @@
 #endif
 #if {{REFRACTED_ALBEDO}} == 1
         appearanceDepthTintFactor *= appearanceCoastalAlpha;
-#endif
-#else
-        if ({{DEBUG_VIEW}} > {{FINAL_THRESHOLD}}) {
-          float appearanceDebugValue = 0.0;
-          if ({{DEBUG_VIEW}} < {{SURFACE_NORMAL_DEPTH_THRESHOLD}}) {
-            appearanceDebugValue = clamp({{SCENE_RAY_DEPTH}} / 10.0, 0.0, 1.0);
-          } else if ({{DEBUG_VIEW}} < {{SCENE_RAY_TERM_THRESHOLD}}) {
-            appearanceDebugValue = clamp({{SURFACE_NORMAL_DEPTH}} / 10.0, 0.0, 1.0);
-          } else if ({{DEBUG_VIEW}} < {{SURFACE_NORMAL_TERM_THRESHOLD}}) {
-            appearanceDebugValue = clamp(
-              max({{FIRST_FIELD}}, 0.0) * {{COEFFICIENT_0}},
-              0.0,
-              1.0
-            );
-          } else if ({{DEBUG_VIEW}} < {{DENSITY_THRESHOLD}}) {
-            appearanceDebugValue = clamp(
-              max({{SECOND_FIELD}}, 0.0) * {{COEFFICIENT_1}},
-              0.0,
-              1.0
-            );
-          } else {
-            appearanceDebugValue = clamp({{DENSITY}}, 0.0, 1.0);
-          }
-          {{OUTPUT_COLOR}} = vec3(appearanceDebugValue);
-        }
 #endif
 #endif

@@ -9,8 +9,8 @@ import type {
   WaterSurfaceProvider
 } from "../query/WaterSurfaceProvider";
 import type { WaterSpatialFieldProvider } from "../spatial/WaterSpatialFieldProvider";
-import type { WaterVolumeProvider } from "./WaterVolumeProvider";
 import type { WaterBodyRuntime } from "./WaterBodyRuntime";
+import type { WaterVolumeProvider } from "./WaterVolumeProvider";
 
 export type WaterRuntimeInterfaces = Readonly<
   Pick<
@@ -24,7 +24,6 @@ export type WaterRuntimeInterfaces = Readonly<
     | "interactionSink"
     | "bounds"
     | "exclusionBounds"
-    | "metrics"
   >
 >;
 
@@ -207,10 +206,6 @@ export function createWaterRuntimeInterfacesView(requireBody: () => WaterBodyRun
     exclusionBounds: {
       enumerable: true,
       get: () => createImmutableWaterSnapshot(requireGeneration().exclusionBounds)
-    },
-    metrics: {
-      enumerable: true,
-      get: () => createImmutableWaterSnapshot(requireGeneration().metrics)
     }
   });
   return Object.freeze(view) as WaterRuntimeInterfaces;

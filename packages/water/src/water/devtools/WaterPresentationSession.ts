@@ -1,25 +1,20 @@
 import type { WaterTuningSession } from "./WaterDevToolsTypes";
 
-/** Only explicit render diagnostics survive; no draft export or replacement command is exposed. */
+/** Presentation sessions expose playback and visibility without replacing authoring. */
 export function createPresentationWaterTuningSession(session: WaterTuningSession): WaterTuningSession {
-  const diagnostics = new Set([
-    "heightfield.debugMode",
+  const playback = new Set([
     "heightfield.animate",
     "heightfield.surfaceTime",
-    "river.surfaceDebugMode",
-    "river.debugMode",
     "river.animate",
     "river.surfaceTime",
-    "ocean.debugView",
     "ocean.animate",
-    "ocean.surfaceTime",
-    "ocean.lodDebug"
+    "ocean.surfaceTime"
   ]);
   return Object.freeze({
     target: session.target,
     controls: Object.freeze(
       session.controls.map((control) => {
-        const safe = diagnostics.has(control.id) || (control.group === "Body" && control.id.endsWith("visible"));
+        const safe = playback.has(control.id) || (control.group === "Body" && control.id.endsWith("visible"));
         if (control.kind === "readonly" || (safe && control.updateMode !== "replace" && control.effect !== "authoring"))
           return control;
         return Object.freeze({

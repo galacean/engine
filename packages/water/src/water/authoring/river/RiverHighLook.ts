@@ -1,13 +1,13 @@
 import type { WaterBodyAssetRegistry } from "../../runtime/body/WaterBodyAssetRegistry";
-import { WaterFieldSemantic } from "../surface/WaterSurfaceFieldTypes";
 import { createWaterLookPresetV1 } from "../surface/WaterLookPreset";
 import {
-  WaterSurfacePrimaryColorClosure,
-  WaterSurfaceDepthResponseModelV2
+  WaterSurfaceDepthResponseModelV2,
+  WaterSurfacePrimaryColorClosure
 } from "../surface/WaterSurfaceAppearanceTypes";
+import { WaterFieldSemantic } from "../surface/WaterSurfaceFieldTypes";
 import { registerStylizedRiverLook, STYLIZED_RIVER_LOOK_ID } from "./StylizedRiverLook";
 
-export const RIVER_HIGH_LOOK_ID = "stylized-river-high-single-scattering-v1";
+export const RIVER_HIGH_LOOK_ID = "stylized-river-high-v1";
 
 /** Explicit opt-in: existing River, Lake and Ocean Looks retain their optical model. */
 export function registerRiverHighLook(registry: WaterBodyAssetRegistry): void {
@@ -38,7 +38,6 @@ export function registerRiverHighLook(registry: WaterBodyAssetRegistry): void {
     profile: {
       ...base.optics.profile,
       absorptionCoefficient: [0.8, 0.11, 0.045],
-      surfaceScattering: { coefficientPerMeter: [0.04, 0.2, 0.28], phaseG: 0 },
       indexOfRefraction: 1.333,
       fresnelF0: undefined,
       roughness: 0.28,

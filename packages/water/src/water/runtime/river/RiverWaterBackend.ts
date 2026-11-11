@@ -1,52 +1,53 @@
-import { RiverDropRenderer } from "./RiverDropRenderer";
 import { assertWaterConnectionTransform } from "../../authoring/connections/WaterConnection";
+import { RiverDropRenderer } from "./RiverDropRenderer";
 /** Real WaterBody backend adapter for the existing River compiler/runtime. */
 import type { Engine, Entity, Texture2D } from "@galacean/engine-core";
-import type {
-  RiverNetworkDescriptor,
-  RiverWaterBodyRepresentationDataV1,
-  RiverWaterBodySourceDescriptorV2
-} from "../../authoring/river/RiverDescriptor";
-import { computeRiverPhysicalSourceHash } from "../../authoring/river/RiverPhysicalSourceIdentity";
+import { createPhysicalSurfaceIdentity } from "../../authoring/body/PhysicalSurfaceIdentity";
+import { WaterBodySourceKind } from "../../authoring/body/WaterBodyAuthoringTypes";
+import { createImmutableWaterSnapshot } from "../../authoring/identity/WaterImmutableSnapshot";
+import type { WaterQualityLevelV2 } from "../../authoring/quality/WaterQualityPlan";
 import {
   RiverMaterialPreset,
   RiverNetworkSchemaVersion,
   RiverQualityLevel
 } from "../../authoring/river/RiverAuthoringEnums";
 import { RIVER_QUALITY_PRESET } from "../../authoring/river/RiverAuthoringLimits";
-import { WaterBodySourceKind } from "../../authoring/body/WaterBodyAuthoringTypes";
-import { createPhysicalSurfaceIdentity } from "../../authoring/body/PhysicalSurfaceIdentity";
-import type { WaterQualityLevelV2 } from "../../authoring/quality/WaterQualityPlan";
+import type {
+  RiverNetworkDescriptor,
+  RiverWaterBodyRepresentationDataV1,
+  RiverWaterBodySourceDescriptorV2
+} from "../../authoring/river/RiverDescriptor";
+import { computeRiverPhysicalSourceHash } from "../../authoring/river/RiverPhysicalSourceIdentity";
 import { WaterQualityTier } from "../../authoring/wave/enums/WaterQualityTier";
 import type { WaterCompiledResource } from "../../compiler/body/WaterCompiledResource";
+import { createWaterCompiledDataSnapshot } from "../../compiler/body/WaterCompiledResource";
 import { RiverNetworkCompiler } from "../../compiler/river/RiverNetworkCompiler";
-import type { RiverDiagnostic } from "../../compiler/shared/diagnostics";
+import type { RiverTerrainInteractionData } from "../../compiler/river/types";
 import { hashRiverStableValue } from "../../compiler/shared/determinism";
+import type { RiverDiagnostic } from "../../compiler/shared/diagnostics";
+import { RiverReadonlyFloat32Buffer, RiverReadonlyUint8Buffer } from "../../compiler/shared/ReadonlyNumericBuffer";
+import { createWaterBackendControl } from "../body/WaterBackendControl";
 import type {
+  ResolvedWaterBodyInstance,
   WaterBackendCompileContext,
   WaterBackendCompileIdentityContext,
   WaterBackendRuntime,
   WaterBackendRuntimeContext,
   WaterBackendUpdateDecision,
   WaterBackendUpdateRequest,
-  WaterBodyBackend,
-  ResolvedWaterBodyInstance
+  WaterBodyBackend
 } from "../body/WaterBackendRegistry";
 import { WaterBodyRuntimeAdapter } from "../body/WaterBodyRuntime";
 import { resolveWaterBodyQualityTier } from "../body/WaterBodyRuntimeSemantics";
-import type { WaterOpticalProfile } from "../optics/WaterOpticalProfile";
-import { WaterReflectionBindingLifecycle } from "../optics/WaterReflectionBindingLifecycle";
-import { waterReflectionPolicyModeToSource } from "../optics/WaterReflectionPolicy";
-import { WaterOpticsDebugView, type WaterSurfaceOpticsBinding } from "../optics/WaterSurfaceOpticsTypes";
-import type { WaterRuntimeResourceLease } from "../resources/WaterRuntimeResourceRegistry";
-import type { EffectiveWaterRuntimeSnapshot } from "../state/EffectiveWaterRuntimeSnapshot";
-import { createWaterBackendDiagnosticsAdapter } from "../body/WaterBackendDiagnosticsAdapter";
-import type { WaterSurfaceAppearanceBindingV2 } from "../surface/WaterSurfaceAppearanceRuntimeTypes";
 import {
   compileWaterPlanarTransform,
   waterPlanarTransformIsIdentity,
   type CompiledWaterPlanarTransformV1
 } from "../body/WaterPlanarTransform";
+import { WaterReflectionBindingLifecycle } from "../optics/WaterReflectionBindingLifecycle";
+import { waterReflectionPolicyModeToSource } from "../optics/WaterReflectionPolicy";
+import { type WaterSurfaceOpticsBinding } from "../optics/WaterSurfaceOpticsTypes";
+import type { WaterRuntimeResourceLease } from "../resources/WaterRuntimeResourceRegistry";
 import {
   WaterSpatialFieldRegion,
   resetWaterSpatialFieldSample,
@@ -54,8 +55,10 @@ import {
   type WaterSpatialFieldProvider,
   type WaterSpatialFieldSample
 } from "../spatial/WaterSpatialFieldProvider";
-import { RiverResource } from "./RiverResource";
+import type { EffectiveWaterRuntimeSnapshot } from "../state/EffectiveWaterRuntimeSnapshot";
+import type { WaterSurfaceAppearanceBindingV2 } from "../surface/WaterSurfaceAppearanceRuntimeTypes";
 import { resolveRiverRenderContractAdapter } from "./RiverRenderContractAdapter";
+import { RiverResource } from "./RiverResource";
 import {
   RiverRuntimeController,
   RiverRuntimeSubmissionCancelledError,
@@ -65,12 +68,6 @@ import {
 } from "./RiverRuntimeController";
 import { TransformedRiverWaterSpatialFieldProvider } from "./RiverWaterSpatialFieldProvider";
 import { TransformedRiverWaterSurfaceProvider } from "./RiverWaterSurfaceProvider";
-import type { RiverTerrainInteractionData } from "../../compiler/river/types";
-import { RiverReadonlyFloat32Buffer, RiverReadonlyUint8Buffer } from "../../compiler/shared/ReadonlyNumericBuffer";
-import { createWaterCompiledDataSnapshot } from "../../compiler/body/WaterCompiledResource";
-import { createImmutableWaterSnapshot } from "../../authoring/identity/WaterImmutableSnapshot";
-import { deserializeRiverResource } from "../../compiler/river/RiverResourceSerializer";
-import type { RiverCompiledData } from "../../compiler/river/types";
 
 import { RIVER_COMPILER_SEMANTIC_VERSION } from "../../compiler/river/constants";
 
@@ -105,17 +102,9 @@ export interface RiverWaterBackendRuntimeContext {
   /** Transient deterministic time pin; it never changes Look or physical identity. */
   readonly surfaceTimeOverride?: number;
   /** Explicit detached data projection for demo diagnostics; never exposes the resource owner. */
-  readonly compiledDiagnostics?: boolean;
 }
 
-export interface RiverWaterCompiledDiagnostics {
-  readonly identity: RiverResource["identity"];
-  readonly metadata: RiverResource["metadata"];
-  readonly totalBytes: number;
-  readonly data: Readonly<RiverCompiledData>;
-}
-
-export interface RiverWaterBackendRuntimeDiagnostics {
+interface RiverWaterRuntimeState {
   readonly instanceId: string;
   readonly controller: RiverRuntimeController;
   readonly activation: RiverRuntimeActivation;
@@ -124,7 +113,6 @@ export interface RiverWaterBackendRuntimeDiagnostics {
   readonly reflection?: WaterReflectionBindingLifecycle;
   /** Detached compiler projection for Terrain integration; it owns no active resource lifecycle. */
   readonly terrainInteraction: Readonly<RiverTerrainInteractionData>;
-  readonly compiledDiagnostics?: Readonly<RiverWaterCompiledDiagnostics>;
 }
 
 export interface RiverWaterBackendOptions {
@@ -452,8 +440,7 @@ function createOpticsBinding(effective: Readonly<EffectiveWaterRuntimeSnapshot>)
     opticalProfile: Object.freeze({ ...effective.optics }),
     refractionEnabled: effective.refractionEnabled,
     reflection: undefined,
-    reflectionSampling: effective.reflectionSampling,
-    debugView: WaterOpticsDebugView.Final
+    reflectionSampling: effective.reflectionSampling
   });
 }
 
@@ -624,15 +611,15 @@ export class RiverWaterBackend implements WaterBodyBackend {
 
   private readonly _compile: RiverWaterBackendOptions["compile"];
   private readonly _createController: NonNullable<RiverWaterBackendOptions["createController"]>;
-  private readonly _runtimes = new Map<string, RiverWaterBackendRuntimeDiagnostics>();
+  private readonly _runtimes = new Map<string, RiverWaterRuntimeState>();
 
   constructor(options: RiverWaterBackendOptions = {}) {
     this._compile = options.compile;
     this._createController = options.createController ?? ((engine, root) => new RiverRuntimeController(engine, root));
   }
 
-  getRuntimeDiagnostics(instanceId: string): RiverWaterBackendRuntimeDiagnostics | undefined {
-    return this._runtimes.get(instanceId);
+  getRuntimeController(instanceId: string): RiverRuntimeController | undefined {
+    return this._runtimes.get(instanceId)?.controller;
   }
 
   get activeRuntimeCount(): number {
@@ -841,12 +828,6 @@ export class RiverWaterBackend implements WaterBodyBackend {
         logicalBodyOrigin,
         planarTransform
       );
-      const dropCount = resource.data.drops?.length ?? 0;
-      const drawCount = resource.data.chunks.reduce((count, chunk) => count + 1, dropRenderer?.drawCount ?? 0);
-      const triangleCount = resource.data.chunks.reduce(
-        (count, chunk) => count + chunk.surfaceGeometry.indices.length / 3,
-        dropRenderer?.triangleCount ?? 0
-      );
       const body = new WaterBodyRuntimeAdapter({
         id: instanceId,
         resolvedBackendId: this.id,
@@ -859,40 +840,16 @@ export class RiverWaterBackend implements WaterBodyBackend {
         opticalProfile: Object.freeze({ ...effective.optics }),
         bounds: spatialField.metadata.bounds,
         priority: effective.instance.priority,
-        enabled: effective.instance.interaction.query,
-        metrics: {
-          meshUploadCount: activation.submittedChunkCount + dropCount,
-          drawCount,
-          triangleCount,
-          workload: {
-            cpuQueryElementCount: resource.data.stats.queryPrimitiveCount,
-            gpuAtlasPixelCount: resource.data.stats.mapPixelCount,
-            fallbackReasons: [
-              ...(resource.data.stats.budgetRedistributed ? ["sampling-budget-redistributed"] : []),
-              ...(resource.data.reaches.some((reach) => reach.artifact.geometryAnalysis.sharpBendFallbackCount > 0)
-                ? ["bounded-sharp-bend-join"]
-                : [])
-            ]
-          },
-          memory: resource.memory
-        }
+        enabled: effective.instance.interaction.query
       });
-      const record: RiverWaterBackendRuntimeDiagnostics = Object.freeze({
+      const record: RiverWaterRuntimeState = Object.freeze({
         instanceId,
         controller,
         activation,
         root: instanceRoot,
         planarTransform,
         reflection,
-        terrainInteraction: createRiverTerrainInteractionSnapshot(resource.data.terrainInteraction),
-        compiledDiagnostics: runtimeContext.compiledDiagnostics
-          ? Object.freeze({
-              identity: Object.freeze({ ...resource.identity }),
-              metadata: Object.freeze({ ...resource.metadata }),
-              totalBytes: resource.byteLength,
-              data: deserializeRiverResource(resource.serialize()).data
-            })
-          : undefined
+        terrainInteraction: createRiverTerrainInteractionSnapshot(resource.data.terrainInteraction)
       });
       if (!staged) this._runtimes.set(instanceId, record);
       let active = true;
@@ -902,7 +859,7 @@ export class RiverWaterBackend implements WaterBodyBackend {
         reflection,
         development: Object.freeze({
           backendId: this.id,
-          adapter: createWaterBackendDiagnosticsAdapter(controller),
+          adapter: createWaterBackendControl(controller),
           renderContract,
           fieldGraph
         }),

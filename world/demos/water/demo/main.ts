@@ -1,53 +1,39 @@
-import { RiverDemoCleanup } from "./river/RiverDemoCleanup.ts";
-import {
-  Camera,
-  Buffer,
-  ModelMesh,
-  Material,
-  Texture2D,
-  TextureCube,
-  RenderTarget,
-  Color,
-  DirectLight,
-  FogMode,
-  ShadowType,
-  Layer,
-  Vector3,
-  WebGLMode,
-  WebGLEngine
-} from "@galacean/engine";
+import { Camera, Color, DirectLight, Layer, ShadowType, Vector3, WebGLEngine, WebGLMode } from "@galacean/engine";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
-import * as dat from "dat.gui";
 import {
-  RiverQualityLevel,
   createRiverWaterBodyAsset,
   createRiverWaterBodyInstance,
-  RIVER_WATER_BODY_ASSET_ID,
+  RiverQualityLevel,
   sampleWaterTerrainHeight
 } from "@galacean/engine-water/water/index";
-import { registerRiverWaterBodyPresets, riverQualityPlanIdForQuality } from "@galacean/engine-water/water/presets/river/index";
+import {
+  registerRiverWaterBodyPresets,
+  riverQualityPlanIdForQuality
+} from "@galacean/engine-water/water/presets/river/index";
+import * as dat from "dat.gui";
+import { RiverDemoCleanup } from "./river/RiverDemoCleanup.ts";
 
 import {
-  RiverWaterBackend,
+  commitRiverEdit,
   RiverCompileWorkerClient,
-  RiverSurfaceDebugMode,
   RiverEditSession,
-  type RiverEditPublication,
-  commitRiverEdit
+  RiverWaterBackend,
+  type RiverEditPublication
 } from "@galacean/engine-water/water/runtime/river/index";
 
-import { WaterSceneRuntimeHost, createWaterSurfaceSample } from "@galacean/engine-water/water/runtime/index";
+import { createWaterSurfaceSample, WaterSceneRuntimeHost } from "@galacean/engine-water/water/runtime/index";
 
-import { createShowcaseCameraController } from "./showcase/ShowcaseCameraControl.ts";
+import { registerRiverHighLook, RIVER_HIGH_LOOK_ID } from "@galacean/engine-water/water/presets/river/index";
 import { resizeEngineCanvasByClientSize } from "./resizeEngineCanvas.ts";
 import {
   createRiverDemoSceneSource,
-  RIVER_DEMO_SCENE_DEFAULTS,
   RIVER_DEMO_SCENARIOS,
+  RIVER_DEMO_SCENE_DEFAULTS,
   type RiverDemoSceneParameters
 } from "./river/RiverDemoSceneSource.ts";
-import { RIVER_HIGH_LOOK_ID, registerRiverHighLook } from "@galacean/engine-water/water/presets/river/index";
+import { createShowcaseCameraController } from "./showcase/ShowcaseCameraControl.ts";
 
+import { createRiverDemoEnvironment } from "./river/RiverDemoEnvironment.ts";
 import {
   applyRiverDemoLook,
   exportRiverDemoLook,
@@ -57,17 +43,13 @@ import {
   type RiverDemoLook
 } from "./river/RiverDemoLook.ts";
 import { createRiverDemoLookPanel } from "./river/RiverDemoLookPanel.ts";
-import { createRiverDemoEnvironment } from "./river/RiverDemoEnvironment.ts";
-import { WaterLandscapeAssets } from "./shared/WaterLandscapeAssets.ts";
+import { riverDemoSceneConfiguration, type RiverDemoCameraView } from "./river/RiverDemoSceneConfiguration.ts";
 import { RiverDemoSceneView } from "./river/RiverDemoSceneView.ts";
 import { RiverValleyAssets } from "./river/RiverValleyAssets.ts";
-import { RiverValleySceneView } from "./river/RiverValleySceneView.ts";
 import { registerRiverValleyLook, RIVER_VALLEY_LOOK_ID } from "./river/RiverValleyScene.ts";
-import { riverDemoSceneConfiguration, type RiverDemoCameraView } from "./river/RiverDemoSceneConfiguration.ts";
+import { RiverValleySceneView } from "./river/RiverValleySceneView.ts";
+import { WaterLandscapeAssets } from "./shared/WaterLandscapeAssets.ts";
 
-import type { RiverEditablePoint, RiverGenerationParameters, RiverTerrainModifier } from "@galacean/engine-water/water/index";
-
-import { riverTerrainContentHash } from "@galacean/engine-water/water/compiler/index";
 import { createRiverEditorPanel } from "./river/RiverEditorPanel.ts";
 
 async function bootstrapRiverDemo() {
@@ -130,7 +112,6 @@ async function bootstrapRiverDemo() {
     landscapeAssets = await WaterLandscapeAssets.load(engine);
     const resize = () => {
       resizeEngineCanvasByClientSize(engine);
-      host.setViewportSize(engine.canvas.width, engine.canvas.height);
     };
     resize();
     window.addEventListener("resize", resize);
@@ -162,7 +143,6 @@ async function bootstrapRiverDemo() {
     let surfaceTimeOverride =
       requestedTime !== null && Number.isFinite(Number(requestedTime)) ? Number(requestedTime) : undefined;
     const bodyId = "river-demo";
-    let debugView = RiverSurfaceDebugMode.Off;
     let sceneView: RiverDemoSceneView | RiverValleySceneView | undefined;
     const presentation = { sceneryVisible: true };
     let editorSession: RiverEditSession | undefined;
@@ -343,7 +323,6 @@ async function bootstrapRiverDemo() {
               if (previousSceneView) previousSceneView.root.isActive = true;
             }
           });
-          riverBackend.getRuntimeDiagnostics(bodyId)?.controller.setSurfaceDebugMode(debugView);
           if (change.kind === "remove" && sceneView instanceof RiverValleySceneView)
             sceneView.effects?.setVisible(false);
           if (change.kind === "replace" && stagedSceneView) {
@@ -420,7 +399,7 @@ async function bootstrapRiverDemo() {
         if (sceneView instanceof RiverValleySceneView) sceneView.effects?.setLook(requested.contactEffects);
       }
       lastError = undefined;
-      phase = host.world.metrics.registeredBodyCount > 0 ? "就绪" : "水体已删除";
+      phase = host.hasBody(bodyId) ? "就绪" : "水体已删除";
       refreshStatus();
     }
     function replaceAppearanceParameters(candidate: RiverDemoLook): Promise<void> {
@@ -443,13 +422,7 @@ async function bootstrapRiverDemo() {
       if (time !== undefined && (!Number.isFinite(time) || time < 0)) throw new RangeError("时间必须为非负有限数。");
       surfaceTimeOverride = time;
       if (sceneView instanceof RiverValleySceneView) sceneView.setSurfaceTime(time);
-      riverBackend.getRuntimeDiagnostics(bodyId)?.controller.setSurfaceTimeOverride(time);
-    }
-    function setDebugView(mode: RiverSurfaceDebugMode) {
-      if (!Number.isInteger(mode) || mode < 0 || mode > RiverSurfaceDebugMode.SsrRadiance)
-        throw new RangeError("无效的 GPU 分量。");
-      debugView = mode;
-      riverBackend.getRuntimeDiagnostics(bodyId)?.controller.setSurfaceDebugMode(mode);
+      riverBackend.getRuntimeController(bodyId)?.setSurfaceTimeOverride(time);
     }
     function setCameraView(view: RiverDemoCameraView) {
       const pose = riverDemoSceneConfiguration(publishedSceneParameters?.scenario ?? sceneParameters.scenario).camera(
@@ -504,10 +477,9 @@ async function bootstrapRiverDemo() {
       applyLook: replaceAppearanceParameters,
       patchLook: patchAppearanceParameters,
       readSurfaceTime: () => surfaceTimeOverride,
-      readDebugView: () => debugView,
+
       exportLook: () => exportRiverDemoLook(appearanceParameters),
       importLook: (json) => replaceAppearanceParameters(importRiverDemoLook(json)),
-      setDebugView,
       setSurfaceTime,
       setEnvironmentEnabled: environment!.setEnabled
     });
@@ -557,156 +529,7 @@ async function bootstrapRiverDemo() {
       sceneUpdateAbortController?.abort();
       return cleanup.dispose();
     }
-    const api = {
-      get snapshot() {
-        const engineResources = {
-          buffers: engine.resourceManager.findResourcesByType(Buffer).length,
-          bufferMemory: engine.renderingStatistics.bufferMemory,
-          meshes: engine.resourceManager.findResourcesByType(ModelMesh).length,
-          materials: engine.resourceManager.findResourcesByType(Material).length,
-          textures2D: engine.resourceManager.findResourcesByType(Texture2D).length,
-          texturesCube: engine.resourceManager.findResourcesByType(TextureCube).length,
-          renderTargets: engine.resourceManager.findResourcesByType(RenderTarget).length
-        };
-        return {
-          engineResources,
-          contactEffects: sceneView instanceof RiverValleySceneView ? sceneView.effects?.metrics : undefined,
-          phase,
-          editing: editorSession?.snapshot,
-          parameters: publishedSceneParameters ? { ...publishedSceneParameters } : undefined,
-          landscape: {
-            visible: presentation.sceneryVisible,
-            instanceCount: sceneView?.placements.length ?? 0,
-            assets: publishedSceneParameters?.scenario === "valley" ? valleyAssets?.metrics : landscapeAssets!.metrics
-          },
-          lookId: activeLookId,
-          terrainRevision: sceneView?.terrain.revision,
-          terrainContentHash: sceneView ? riverTerrainContentHash(sceneView.terrain) : undefined,
-          sourceHash: host.assets.getAsset(RIVER_WATER_BODY_ASSET_ID)?.sourceHash,
-          bodyCount: host.world.metrics.registeredBodyCount,
-          compileCount: host.loader.metrics.compileCount,
-          lastError,
-          look: validateRiverDemoLook(appearanceParameters),
-          surfaceTime: surfaceTimeOverride,
-          sunDirection: sun.transform.worldForward.toJSON(),
-          sunColor: [sunlight.color.r, sunlight.color.g, sunlight.color.b],
-          debugView,
-          reflection: riverBackend.getRuntimeDiagnostics(bodyId)?.reflection?.inspection,
-          environment: environment!.inspection,
-          resources: host.getDiagnostics(),
-          screenSpaceReflection: { ...camera.screenSpaceReflection.metrics },
-          resolvedOptics: riverBackend.getRuntimeDiagnostics(bodyId)?.controller.surfaceOpticsBinding?.opticalProfile,
-          activeChunks: riverBackend.getRuntimeDiagnostics(bodyId)?.controller.activeChunkCount,
-          camera: {
-            position: cameraEntity.transform.position.toJSON(),
-            fov: camera.fieldOfView,
-            width: engine.canvas.width,
-            height: engine.canvas.height
-          }
-        };
-      },
-      editor: {
-        generate: (parameters: RiverGenerationParameters) => {
-          const result = requireEditor().generate(parameters);
-          refreshEditor();
-          return result;
-        },
-        shiftElevation: (delta: number, includeLocked = false) => {
-          requireEditor().shiftElevation(delta, includeLocked);
-          refreshEditor();
-        },
-        setTerrainModifier: (modifier?: RiverTerrainModifier) => {
-          requireEditor().setTerrainModifier(modifier);
-          refreshEditor();
-        },
-        sampleTerrainAt: (x: number, z: number) => ({
-          base: sampleWaterTerrainHeight(requireEditor().terrain, x, z),
-          published: sampleWaterTerrainHeight(requireEditor().publishedTerrain, x, z)
-        }),
-        get snapshot() {
-          return requireEditor().snapshot;
-        },
-        patchPoint: (id: string, patch: Partial<Omit<RiverEditablePoint, "id">>) => {
-          requireEditor().patchPoint(id, patch);
-          refreshEditor();
-        },
-        insertAfter: (id: string) => {
-          const created = requireEditor().insertAfter(id);
-          refreshEditor();
-          return created;
-        },
-        removePoint: (id: string) => {
-          requireEditor().removePoint(id);
-          refreshEditor();
-        },
-        snapPointToTerrain: (id: string, clearance: number) => {
-          requireEditor().snapPointToTerrain(id, clearance);
-          refreshEditor();
-        },
-        cancel: () => {
-          requireEditor().cancel();
-          refreshEditor();
-        },
-        apply: () => publishEditor("apply"),
-        undo: () => publishEditor("undo"),
-        redo: () => publishEditor("redo"),
-        exportJSON: () => requireEditor().exportJSON(),
-        importJSON: (json: string) => {
-          requireEditor().importJSON(json);
-          refreshEditor();
-        }
-      },
-      updateScene: (parameters: Partial<RiverDemoSceneParameters>) => {
-        Object.assign(sceneParameters, parameters);
-        refreshGui(gui);
-        return updateScene();
-      },
-      removeWaterBody,
-      cancelSceneUpdate: actions.cancelSceneUpdate,
-      setCameraView,
-      setCameraPose: (position: [number, number, number], target: [number, number, number]) => {
-        if (
-          ![...position, ...target].every(Number.isFinite) ||
-          Math.hypot(...position.map((v, i) => v - target[i])) < 0.001
-        )
-          throw new RangeError("无效相机位置。");
-        cameraEntity.transform.setPosition(...position);
-        cameraEntity.transform.lookAt(new Vector3(...target));
-        cameraControl.syncFromTransform();
-      },
-      projectPoint: (point: [number, number, number]) => {
-        const projected = camera.worldToViewportPoint(new Vector3(...point), new Vector3());
-        return [projected.x, projected.y, projected.z];
-      },
-      setLighting: (sunRgb: [number, number, number], ambientRgb: [number, number, number]) => {
-        if (![...sunRgb, ...ambientRgb].every((value) => Number.isFinite(value) && value >= 0 && value <= 16))
-          throw new RangeError("光照需要有效的线性 RGB。");
-        sunlight.color.set(...sunRgb, 1);
-        scene.ambientLight.diffuseSolidColor.set(...ambientRgb, 1);
-        scene.ambientLight.diffuseIntensity = 1;
-      },
-      setWaterVisible,
-      setOpticalParameters: (parameters: Partial<RiverDemoLook>) =>
-        patchAppearanceParameters(parameters).then(() => lookPanel.refresh()),
-      setDebugView: (mode: RiverSurfaceDebugMode) => {
-        setDebugView(mode);
-        lookPanel.refresh();
-      },
-      setSurfaceTime: (time?: number) => {
-        setSurfaceTime(time);
-        lookPanel.refresh();
-      },
-      exportLook: () => exportRiverDemoLook(appearanceParameters),
-      importLook: (json: string) =>
-        replaceAppearanceParameters(importRiverDemoLook(json)).then(() => lookPanel.refresh()),
-      setEnvironmentEnabled: environment!.setEnabled,
-      sampleWaterAt,
-      dispose
-    };
-    window.riverDemo = api;
-    cleanup.defer(() => {
-      if (window.riverDemo === api) delete window.riverDemo;
-    });
+
     const onPageHide = () => void dispose();
     window.addEventListener("pagehide", onPageHide, { once: true });
     cleanup.defer(() => window.removeEventListener("pagehide", onPageHide));
@@ -717,7 +540,7 @@ async function bootstrapRiverDemo() {
       await pendingMutation;
     });
     await updateScene();
-    return api;
+    return;
   } catch (error) {
     try {
       await cleanup.dispose();

@@ -6,7 +6,6 @@ import type {
   WaterDevelopmentTarget,
   WaterDevelopmentTargetSource
 } from "../runtime/body/WaterBodyLoader";
-import { createWaterTuningSession, getActiveWaterRuntimeVariantId } from "./WaterTuningAdapters";
 import { getWaterDevToolsDisplayLabel, getWaterDevToolsDisplayOptions } from "./WaterDevToolsLocalization";
 import type {
   WaterControlAvailability,
@@ -18,6 +17,7 @@ import type {
   WaterEnumControl,
   WaterTuningSession
 } from "./WaterDevToolsTypes";
+import { createWaterTuningSession, getActiveWaterRuntimeVariantId } from "./WaterTuningAdapters";
 
 const PANEL_WIDTH = 420;
 const AUTO_PLACE_GAP = 8;
@@ -137,7 +137,7 @@ function resolveControlOwner(control: WaterControlDescriptor): WaterControlOwner
       return "optical-profile";
     case "Backend":
     case "Session":
-      return "runtime-diagnostics";
+      return "runtime";
     case "Lake":
     case "Authoring (read-only)":
       return "authoring";
@@ -152,7 +152,7 @@ function resolveControlEffect(control: WaterControlDescriptor): WaterControlEffe
       return "visual";
     case "Backend":
     case "Session":
-      return "diagnostic";
+      return "state";
     case "Lake":
     case "Authoring (read-only)":
       return "authoring";
@@ -170,19 +170,6 @@ function resolveControlAvailability(control: WaterControlDescriptor): WaterContr
 function isWritableControl(control: WaterControlDescriptor): boolean {
   const availability = resolveControlAvailability(control);
   return control.kind !== "readonly" && availability !== "readonly" && availability !== "unavailable";
-}
-
-function formatControlValue(value: WaterControlValue): string {
-  if (typeof value === "number") {
-    if (!Number.isFinite(value)) return String(value);
-    return Number.parseFloat(value.toPrecision(6)).toString();
-  }
-  return String(value);
-}
-
-function readEffectiveControlValue(control: WaterControlDescriptor): WaterControlValue {
-  if (resolveControlAvailability(control) === "unavailable") return "not consumed";
-  return control.readEffective?.() ?? readControlValue(control);
 }
 
 function writeControlValue(control: WaterControlDescriptor, value: WaterControlValue): void | Promise<void> {
@@ -909,16 +896,12 @@ class WaterDevToolsPanel implements WaterDevToolsHandle, WaterDevelopmentObserve
     }
     const row = controller.domElement.closest<HTMLElement>(".cr");
     if (row) {
-      const selected = String(selector.body);
       row.dataset.waterControlId = "body.selector";
       row.dataset.waterControlKind = "enum";
       row.dataset.waterUpdateMode = "live";
-      row.dataset.waterControlOwner = "runtime-diagnostics";
+      row.dataset.waterControlOwner = "runtime";
       row.dataset.waterControlEffect = "state";
       row.dataset.waterControlAvailability = "active";
-      row.dataset.waterControlRequested = selected;
-      row.dataset.waterControlEffective = selected;
-      row.dataset.waterEffectPath = `requested ${selected} → effective ${selected} · runtime-diagnostics`;
     }
   }
 
@@ -1007,7 +990,6 @@ class WaterDevToolsPanel implements WaterDevToolsHandle, WaterDevelopmentObserve
     const binding = Object.freeze({ descriptor, controller, model });
     this._bindings.set(descriptor.id, binding);
     this._syncControlAvailability(binding);
-    this._syncControlDiagnostics(binding);
   }
 
   private async _applyStandaloneControl(control: WaterControlDescriptor, value: WaterControlValue): Promise<void> {
@@ -1414,12 +1396,10 @@ class WaterDevToolsPanel implements WaterDevToolsHandle, WaterDevelopmentObserve
     try {
       this._syncControlAvailability(binding);
       if (this._editingControls.has(controlId) || this._frameValues.has(controlId)) {
-        this._syncControlDiagnostics(binding);
         return;
       }
       binding.model[controlId] = readControlValue(binding.descriptor);
       binding.controller.updateDisplay();
-      this._syncControlDiagnostics(binding);
     } catch (error) {
       this._setStatus(`Read failed: ${formatError(error)}`, "error");
     }
@@ -1464,18 +1444,6 @@ class WaterDevToolsPanel implements WaterDevToolsHandle, WaterDevelopmentObserve
       const handle = this._activeRecord()?.target.handle;
       this._setControllerBusy(controller, handle !== undefined && (this._busyCounts.get(handle) ?? 0) > 0);
     }
-  }
-
-  private _syncControlDiagnostics(binding: WaterControlBinding): void {
-    const row = binding.controller.domElement.closest<HTMLElement>(".cr");
-    if (!row) return;
-    const requested = binding.model[binding.descriptor.id];
-    const effective = readEffectiveControlValue(binding.descriptor);
-    row.dataset.waterControlRequested = formatControlValue(requested);
-    row.dataset.waterControlEffective = formatControlValue(effective);
-    row.dataset.waterEffectPath =
-      `requested ${formatControlValue(requested)} → effective ${formatControlValue(effective)}` +
-      ` · ${resolveControlOwner(binding.descriptor)}`;
   }
 
   private _activeRecord(): WaterTargetRecord | undefined {

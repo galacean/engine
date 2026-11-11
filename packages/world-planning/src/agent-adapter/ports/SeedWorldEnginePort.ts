@@ -1,6 +1,6 @@
-import type { SeedWorldEnvironmentChange } from "../SeedWorldEnvironmentChange";
 import type { SeedWorldHillAtomParameters } from "../../world/SeedWorldHillAtom";
 import type { SeedWorldAssetKind } from "../contracts/SeedWorldAssetContracts";
+import type { SeedWorldEnvironmentChange } from "../SeedWorldEnvironmentChange";
 
 export type SeedWorldWeatherPreset = "clear" | "cloudy" | "rain" | "storm" | "snow" | "fog";
 export type SeedWorldSeason = "spring" | "summer" | "autumn" | "winter";
@@ -702,14 +702,6 @@ export interface SeedWorldLiveState {
     readonly smallRocks: number;
     readonly mushrooms: number;
     readonly lotus: number;
-  };
-  readonly water: {
-    readonly colors?: readonly { readonly bodyId: string; readonly colorRgb: readonly number[] | null }[];
-    readonly ready: boolean;
-    readonly visible: boolean;
-    readonly bodyCount: number;
-    readonly chunkCount: number;
-    readonly hostRevision: number;
   };
   readonly lighting: {
     readonly timeHours: number;

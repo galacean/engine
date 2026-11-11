@@ -8,11 +8,7 @@ import {
 import type { HeightfieldWaterLocalMapAtlas } from "../../compiler/heightfield/HeightfieldWaterCompiledTypes";
 import type { CompiledWaterWaveSet } from "../../compiler/wave/CompiledWaterWaveTypes";
 import type { CompiledWaterPlanarTransformV1 } from "../body/WaterPlanarTransform";
-import {
-  HEIGHTFIELD_WATER_DEFAULT_FOAM_COLOR,
-  HEIGHTFIELD_WATER_SHADER_PROPERTY,
-  HEIGHTFIELD_WATER_WAVE_TIME_SCALE
-} from "./constants";
+import { HEIGHTFIELD_WATER_SHADER_PROPERTY, HEIGHTFIELD_WATER_WAVE_TIME_SCALE } from "./constants";
 import { heightfieldWaterWaveCycle } from "./HeightfieldWaterWaveEvaluator";
 import type { HeightfieldWaterMaterialState } from "./types";
 
@@ -80,18 +76,11 @@ export function bindHeightfieldWaterBaseMaterial(
     HEIGHTFIELD_WATER_SHADER_PROPERTY.deepColor,
     new Color(config.deepColor[0], config.deepColor[1], config.deepColor[2], config.deepColor[3])
   );
-  const foamColor = config.foamColor ?? HEIGHTFIELD_WATER_DEFAULT_FOAM_COLOR;
-  shaderData.setColor(
-    HEIGHTFIELD_WATER_SHADER_PROPERTY.foamColor,
-    new Color(foamColor[0], foamColor[1], foamColor[2], foamColor[3])
-  );
   shaderData.setFloat(HEIGHTFIELD_WATER_SHADER_PROPERTY.alpha, config.opacity);
   shaderData.setFloat(HEIGHTFIELD_WATER_SHADER_PROPERTY.clarity, 0.7);
   shaderData.setFloat(HEIGHTFIELD_WATER_SHADER_PROPERTY.timeScale, HEIGHTFIELD_WATER_WAVE_TIME_SCALE);
   shaderData.setFloat(HEIGHTFIELD_WATER_SHADER_PROPERTY.waveStrength, config.waveStrength);
-  shaderData.setFloat(HEIGHTFIELD_WATER_SHADER_PROPERTY.microNormalStrength, config.microNormalStrength);
-  shaderData.setFloat(HEIGHTFIELD_WATER_SHADER_PROPERTY.foamIntensity, config.foamIntensity ?? 0.82);
-  shaderData.setFloat(HEIGHTFIELD_WATER_SHADER_PROPERTY.shoreDampingWidth, config.shoreFoamWidth);
+  shaderData.setFloat(HEIGHTFIELD_WATER_SHADER_PROPERTY.shoreDampingWidth, config.shoreDampingWidth);
   shaderData.setVector4(
     HEIGHTFIELD_WATER_SHADER_PROPERTY.localMapDecode,
     new Vector4(atlas.flowDecodeScale, atlas.maxDepth, atlas.signedDistanceRange, 0)

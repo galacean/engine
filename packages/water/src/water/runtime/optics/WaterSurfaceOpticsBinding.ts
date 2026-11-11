@@ -6,7 +6,14 @@ import {
   writeWaterReflectionSamplingSettings,
   type WaterReflectionSamplingConfig
 } from "../../authoring/optics/WaterReflectionSampling";
+import {
+  WATER_OPTICS_REFLECTION_SOURCE_VALUE,
+  WATER_OPTICS_SHADER_PROPERTY
+} from "./constants/WaterOpticsShaderConstants";
+import { isValidWaterEnvironmentReflectionProjection } from "./WaterEnvironmentReflectionTypes";
 import { DEFAULT_WATER_OPTICAL_PROFILE, type WaterOpticalProfile } from "./WaterOpticalProfile";
+import { waterReflectionSourceToPolicyMode } from "./WaterReflectionPolicy";
+import type { WaterReflectionBinding } from "./WaterReflectionService";
 import {
   resolveWaterReflectionIntensity,
   resolveWaterRefractionStrength,
@@ -15,11 +22,6 @@ import {
   type MutableResolvedWaterOpticalProfile
 } from "./WaterSurfaceOpticsMath";
 import {
-  WATER_OPTICS_REFLECTION_SOURCE_VALUE,
-  WATER_OPTICS_SHADER_PROPERTY
-} from "./constants/WaterOpticsShaderConstants";
-import {
-  WaterOpticsDebugView,
   type ResolvedWaterOpticalProfile,
   type ResolvedWaterOpticsTier,
   type WaterOpticsTier,
@@ -28,9 +30,6 @@ import {
   type WaterSurfaceOpticsBindingState,
   type WaterSurfaceOpticsReflectionReadback
 } from "./WaterSurfaceOpticsTypes";
-import type { WaterReflectionBinding } from "./WaterReflectionService";
-import { waterReflectionSourceToPolicyMode } from "./WaterReflectionPolicy";
-import { isValidWaterEnvironmentReflectionProjection } from "./WaterEnvironmentReflectionTypes";
 
 interface NullableTextureShaderData {
   setTexture(propertyName: string, value: Texture | null): void;
@@ -51,7 +50,6 @@ const LOCAL_ENVIRONMENT_REFLECTION_MACRO = "MATERIAL_WATER_LOCAL_ENVIRONMENT_REF
 
 function createMutableResolvedProfile(): MutableResolvedWaterOpticalProfile {
   return {
-    surfaceScattering: undefined,
     absorptionCoefficient: [0, 0, 0],
     scatteringColor: [0, 0, 0],
     scatteringCoefficient: 0,
@@ -134,14 +132,6 @@ function writeVector3Tuple(target: readonly number[], source: readonly number[] 
 
 function resolveTier(tier: WaterOpticsTier): ResolvedWaterOpticsTier {
   return tier === "medium" ? "medium" : "high";
-}
-
-function sanitizedDebugView(debugView: number): WaterOpticsDebugView {
-  return Number.isInteger(debugView) &&
-    debugView >= WaterOpticsDebugView.Final &&
-    debugView <= WaterOpticsDebugView.CompositeReflection
-    ? (debugView as WaterOpticsDebugView)
-    : WaterOpticsDebugView.Final;
 }
 
 function writeReflectionReadback(
@@ -378,12 +368,10 @@ export function createWaterSurfaceOpticsBindingState(): WaterSurfaceOpticsBindin
   const bindingReadback: MutableBindingReadback = {
     ...reflectionReadback,
     opticalProfile: opticalProfileReadback,
-    refractionEnabled: true,
-    debugView: WaterOpticsDebugView.Final
+    refractionEnabled: true
   };
   Object.seal(bindingReadback);
   return Object.freeze({
-    surfaceScatteringCoefficient: new Vector3(),
     opticalAbsorption: new Vector3(),
     opticalScatteringColor: new Vector3(),
     environmentReflectionParameters: new Vector4(1, 0, 0, 0),
@@ -410,10 +398,6 @@ export function resolveWaterSurfaceOpticalProfile(profile: WaterOpticalProfile):
   sanitizeWaterOpticalProfileInto(profile, resolved);
   Object.freeze(resolved.absorptionCoefficient);
   Object.freeze(resolved.scatteringColor);
-  if (resolved.surfaceScattering) {
-    Object.freeze(resolved.surfaceScattering.coefficientPerMeter);
-    Object.freeze(resolved.surfaceScattering);
-  }
   return Object.freeze(resolved);
 }
 
@@ -430,11 +414,6 @@ export function applyWaterSurfaceOpticalProfile(
   state.opticalAbsorption.set(absorption[0], absorption[1], absorption[2]);
   state.opticalScatteringColor.set(scatteringColor[0], scatteringColor[1], scatteringColor[2]);
 
-  const surfaceScattering = resolved.surfaceScattering;
-  const coefficients = surfaceScattering?.coefficientPerMeter;
-  state.surfaceScatteringCoefficient.set(coefficients?.[0] ?? 0, coefficients?.[1] ?? 0, coefficients?.[2] ?? 0);
-  shaderData.setVector3(WATER_OPTICS_SHADER_PROPERTY.surfaceScatteringCoefficient, state.surfaceScatteringCoefficient);
-  shaderData.setFloat(WATER_OPTICS_SHADER_PROPERTY.surfaceScatteringPhaseG, surfaceScattering?.phaseG ?? 0);
   shaderData.setVector3(WATER_OPTICS_SHADER_PROPERTY.absorptionCoefficient, state.opticalAbsorption);
   shaderData.setVector3(WATER_OPTICS_SHADER_PROPERTY.scatteringColor, state.opticalScatteringColor);
   shaderData.setFloat(WATER_OPTICS_SHADER_PROPERTY.scatteringCoefficient, resolved.scatteringCoefficient);
@@ -668,14 +647,11 @@ export function applyWaterSurfaceOpticsBinding(
   binding: Readonly<WaterSurfaceOpticsBinding>
 ): Readonly<WaterSurfaceOpticsBindingReadback> {
   const opticalProfile = applyWaterSurfaceOpticalProfile(shaderData, state, binding.opticalProfile);
-  const debugView = sanitizedDebugView(binding.debugView);
   const refractionEnabled = binding.refractionEnabled === true;
   shaderData.setFloat(WATER_OPTICS_SHADER_PROPERTY.refractionEnabled, refractionEnabled ? 1 : 0);
-  shaderData.setFloat(WATER_OPTICS_SHADER_PROPERTY.debugMode, debugView);
   applyWaterSurfaceReflectionBinding(shaderData, state, binding.tier, binding.reflection, binding.reflectionSampling);
   const readback = state.bindingReadback as MutableBindingReadback;
   readback.opticalProfile = opticalProfile;
   readback.refractionEnabled = refractionEnabled;
-  readback.debugView = debugView;
   return readback;
 }

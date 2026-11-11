@@ -1,11 +1,6 @@
 /** Pure semantic readbacks derived from the authoritative Water bundle. */
-import type {
-  WaterBodyCapabilityRequirementsV1,
-  WaterOpaqueDownsampling,
-  WaterSpatialFieldQualityBudgetV1
-} from "../../authoring/body/WaterBodyAuthoringTypes";
 import type { ResolvedWaterBodyInstance } from "../../authoring/body/ResolvedWaterBodyInstance";
-import { resolveWaterOpaqueDownsampling } from "../../authoring/quality/WaterQualityPlan";
+import type { WaterBodyCapabilityRequirementsV1 } from "../../authoring/body/WaterBodyAuthoringTypes";
 import {
   WaterFieldFallback,
   WaterFieldProviderKind,
@@ -25,26 +20,6 @@ export function resolveWaterBodyQualityTier(
     case "high":
       return WaterQualityTier.High;
   }
-}
-
-export interface WaterResolvedQualityReadback {
-  readonly planId: string;
-  readonly tier: WaterQualityTier;
-  readonly opaqueDownsampling: WaterOpaqueDownsampling;
-  readonly spatialField: WaterSpatialFieldQualityBudgetV1;
-}
-
-/** Compact diagnostic projection of the authoritative Quality Plan. */
-export function createWaterResolvedQualityReadback(
-  resolved: Readonly<ResolvedWaterBodyInstance>
-): Readonly<WaterResolvedQualityReadback> {
-  const tier = resolveWaterBodyQualityTier(resolved.qualityPlan.surfaceShading);
-  return Object.freeze({
-    planId: resolved.qualityPlan.id,
-    tier,
-    opaqueDownsampling: resolveWaterOpaqueDownsampling(resolved.qualityPlan),
-    spatialField: resolved.qualityPlan.spatialField
-  });
 }
 
 export function resolveWaterBodyCapabilityRequirements(

@@ -16,7 +16,6 @@
         vec3 waterDiffuseLighting = max(resolvedLighting.diffuseRadiance, vec3(0.0));
         float coverage = shoreDamping;
         float material_Alpha = 1.0;
-        float material_OpticsCalibrationMode = 0.0;
         float depthRatio = saturate(
           opticalDepth / max(material_MaximumSurfaceOpticalDistance, 0.0001)
         );
@@ -52,24 +51,13 @@
         rawContributionPolicy.reflectionSource = material_ReflectionSource;
         rawContributionPolicy.ssrCompositeIntensity = material_WaterScreenSpaceReflectionCompositeIntensity;
         rawContributionPolicy.foamIntensity = material_FoamIntensity;
-        rawContributionPolicy.calibrationMode = 0.0;
         WaterSurfaceResolvedRawContributionsV2 resolvedContributions = waterSurfaceResolveRawContributionsV2(
           rawRefractionFacts,
           rawReflectionFacts,
-          rawFoamFacts,
+          waterSurfaceResolveRawFoamWeightV2(rawFoamFacts, rawContributionPolicy),
           rawContributionPolicy
         );
         WaterSurfaceFinalClosureV2Input closureInput;
-#ifdef MATERIAL_WATER_SURFACE_SCATTERING
-        closureInput.surfaceScatteringCoefficient = material_SurfaceScatteringCoefficient;
-        closureInput.surfaceScatteringPhaseG = material_SurfaceScatteringPhaseG;
-        closureInput.sceneToSurfaceDistance = max(input.worldPosition.y - refractedOpaquePositionWS.y, 0.0);
-        vec3 volumeRayDirection = safeNormalize3(refract(-viewDirection, surfaceNormalWS, 1.0 / max(material_IndexOfRefraction, 1.0)), -viewDirection);
-        closureInput.phaseCosine = dot(lightDirection, volumeRayDirection);
-        closureInput.sunRadiance = sunlightColor;
-        closureInput.ambientRadiance = waterSurfaceAmbientDiffuseRadiance(input.macroNormalWS);
-        closureInput.opticalDebugMode = material_SurfaceDebugMode;
-#endif
         closureInput.primarySceneColor = resolvedContributions.refractionSceneColor;
         closureInput.surfaceColor = {{VALUE_007_SURFACECOLOR}};
         closureInput.depthColor = appearanceDepthTintColor;
@@ -95,7 +83,6 @@
         closureInput.foamWeight = resolvedContributions.foamWeight;
         closureInput.baseAlpha = material_Alpha;
         closureInput.clarity = clarity;
-        closureInput.calibrationMode = material_OpticsCalibrationMode;
         {{VALUE_011_CREATEWATERSURFACEAPPEARANCEV2ALPHAINPUTASSIGNMENTS_}}
         closureInput.coverage = shoreDamping;
         closureInput.compositionSceneColor = centeredSceneColor;
@@ -109,9 +96,7 @@
         closureInput.perceptualRoughness = mix(0.1, closureInput.perceptualRoughness, connectionWeight);
 #endif
         {{VALUE_013_CREATEWATERSURFACEV2EVALUATIONSTATEMENT_RESOLVEDWATE}}
-        if (material_SurfaceDebugMode > {{VALUE_014_RIVERSURFACEDEBUGMODE_OFF_0_5}} && (material_SurfaceDebugMode < 13.5 || material_SurfaceDebugMode > 15.5)) {
-          resolvedWaterClosure = vec4(color, 1.0);
-        }
+
         #ifdef SSR_CONTRIBUTION_CAPTURE
           if (resolvedWaterClosure.a <= 0.0001) discard;
         #endif

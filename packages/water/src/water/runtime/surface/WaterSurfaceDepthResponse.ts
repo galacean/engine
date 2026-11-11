@@ -7,22 +7,6 @@ import {
 } from "../../authoring/surface/WaterSurfaceAppearanceTypes";
 import type { WaterFieldSemantic } from "../../authoring/surface/WaterSurfaceFieldTypes";
 
-export enum WaterDepthResponseTermMode {
-  Dual = "dual",
-  SceneRayOnly = "scene-ray-only",
-  SurfaceNormalOnly = "surface-normal-only",
-  Off = "off"
-}
-
-export enum WaterDepthResponseDebugView {
-  Final = 0,
-  SceneRayDepth = 1,
-  SurfaceNormalDepth = 2,
-  SceneRayTerm = 3,
-  SurfaceNormalTerm = 4,
-  Density = 5
-}
-
 export interface WaterCompositeExponentialDepthReadback {
   readonly scaledTerms: readonly [number, number?];
   readonly density: number;

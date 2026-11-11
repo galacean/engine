@@ -1,45 +1,22 @@
 import { getRequiredWaterSurfaceV2Semantics } from "../../compiler/surface/WaterSurfaceClosureCompiler";
-import type { WaterSurfaceFieldGraphReadback } from "../surface/WaterSurfaceFieldResolver";
-import { bindWaterSurfaceCaustics } from "../surface/WaterSurfaceCausticsBinding";
-import { registerWaterSurfacePicking } from "../surface/WaterSurfacePicking";
 import { WATER_CONNECTION_SHADER } from "../connections/WaterConnectionBinding";
-/** Dedicated heightfield-water shader: curved base surface, packed local map, waves, optics, and debug views. */
-import heightfieldPlanarTransformTemplate from "../../shaders/heightfield/PlanarTransform.glsl?raw";
-import heightfieldGeometryTemplate from "../../shaders/heightfield/HeightfieldGeometry.glsl?raw";
-import heightfieldWavesTemplate from "../../shaders/heightfield/HeightfieldWaves.glsl?raw";
-import heightfieldFlowSurfaceTemplate from "../../shaders/heightfield/FlowSurface.glsl?raw";
-import heightfieldWakeFoamTemplate from "../../shaders/heightfield/WakeFoam.glsl?raw";
-import heightfieldOpticalDepthTemplate from "../../shaders/heightfield/HeightfieldOpticalDepth.glsl?raw";
-import heightfieldSceneColorRefractionTemplate from "../../shaders/heightfield/HeightfieldSceneColorRefraction.glsl?raw";
-import heightfieldSurfaceLightingFunctionsTemplate from "../../shaders/heightfield/SurfaceLightingFunctions.glsl?raw";
-import heightfieldDirectionalLightingTemplate from "../../shaders/heightfield/DirectionalLighting.glsl?raw";
-import heightfieldSceneLightingUniformsTemplate from "../../shaders/heightfield/SceneLightingUniforms.glsl?raw";
-import heightfieldDiffuseLightingTemplate from "../../shaders/heightfield/DiffuseLighting.glsl?raw";
-import heightfieldFinalClosureTemplate from "../../shaders/heightfield/FinalClosure.glsl?raw";
-import heightfieldSurfaceReflectionTemplate from "../../shaders/heightfield/SurfaceReflection.glsl?raw";
-import heightfieldDebugTemplate from "../../shaders/heightfield/Debug.glsl?raw";
-import heightfieldLocalMapDecodeTemplate from "../../shaders/heightfield/LocalMapDecode.glsl?raw";
-import heightfieldScreenSpaceReflectionPassTemplate from "../../shaders/heightfield/ScreenSpaceReflectionPass.glsl?raw";
-import heightfieldScreenSpaceReflectionSurfaceTemplate from "../../shaders/heightfield/ScreenSpaceReflectionSurface.glsl?raw";
-import heightfieldForwardPassTemplate from "../../shaders/heightfield/ForwardPass.glsl?raw";
-import heightfieldWaterShaderTemplate from "../../shaders/HeightfieldWater.shader?raw";
-import { renderWaterShaderTemplate } from "../material/WaterShaderTemplate";
-import {
-  registerGeneratedWaterShaderInclude,
-  registerGeneratedWaterShaderModule,
-  withScopedWaterShaderAssemblyRegistry
-} from "../material/WaterShaderLibrary";
+import { bindWaterSurfaceCaustics } from "../surface/WaterSurfaceCausticsBinding";
+import type { WaterSurfaceFieldGraphReadback } from "../surface/WaterSurfaceFieldResolver";
+import { registerWaterSurfacePicking } from "../surface/WaterSurfacePicking";
+/** Dedicated heightfield-water shader: curved base surface, packed local map, waves, optics,. */
 import {
   Engine,
   Material,
   ScreenSpaceReflection,
   ScreenSpaceReflectionReceiverMode,
-  type Shader,
   ShaderMacro,
   Texture2D,
+  type Shader,
   type Texture
 } from "@galacean/engine-core";
 import { Vector2, Vector3, Vector4 } from "@galacean/engine-math";
+import type { HeightfieldWaterVisualUniformConfig } from "../../authoring/heightfield/HeightfieldWaterTypes";
+import { WaterSurfaceDepthSource } from "../../authoring/surface/enums/WaterSurfaceDepthSource";
 import {
   WaterPatternModelV2,
   WaterPatternResponseV2,
@@ -50,34 +27,61 @@ import {
   WaterSurfaceDepthResponseModelV2,
   WaterSurfacePrimaryColorClosure
 } from "../../authoring/surface/WaterSurfaceAppearanceTypes";
-import { WaterFieldSemantic, WaterFieldConsumerActivation } from "../../authoring/surface/WaterSurfaceFieldTypes";
 import { getWaterSurfaceDepthResponseSemantics } from "../../authoring/surface/WaterSurfaceDepthResponseSemantics";
-import { WaterSurfaceDepthSource } from "../../authoring/surface/enums/WaterSurfaceDepthSource";
+import { WaterFieldConsumerActivation, WaterFieldSemantic } from "../../authoring/surface/WaterSurfaceFieldTypes";
 import { WaterQualityTier } from "../../authoring/wave/enums/WaterQualityTier";
-import type { HeightfieldWaterVisualUniformConfig } from "../../authoring/heightfield/HeightfieldWaterTypes";
 import type { HeightfieldWaterLocalMapAtlas } from "../../compiler/heightfield/HeightfieldWaterCompiledTypes";
-import type { CompiledWaterWaveSet } from "../../compiler/wave/CompiledWaterWaveTypes";
 import type { CompiledWaterSurfaceAppearanceV2 } from "../../compiler/surface/CompiledWaterSurfaceAppearanceTypes";
-import { DEFAULT_WATER_OPTICAL_PROFILE, type WaterOpticalProfile } from "../optics/WaterOpticalProfile";
+import type { CompiledWaterWaveSet } from "../../compiler/wave/CompiledWaterWaveTypes";
+import heightfieldDepthAlphaTemplate from "../../shaders/heightfield/DepthAlpha.glsl?raw";
+import heightfieldDiffuseLightingTemplate from "../../shaders/heightfield/DiffuseLighting.glsl?raw";
+import heightfieldDirectionalLightingTemplate from "../../shaders/heightfield/DirectionalLighting.glsl?raw";
+import heightfieldFinalClosureTemplate from "../../shaders/heightfield/FinalClosure.glsl?raw";
+import heightfieldForwardPassTemplate from "../../shaders/heightfield/ForwardPass.glsl?raw";
+import heightfieldGeometryTemplate from "../../shaders/heightfield/HeightfieldGeometry.glsl?raw";
+import heightfieldOpticalDepthTemplate from "../../shaders/heightfield/HeightfieldOpticalDepth.glsl?raw";
+import heightfieldSceneColorRefractionTemplate from "../../shaders/heightfield/HeightfieldSceneColorRefraction.glsl?raw";
+import heightfieldWavesTemplate from "../../shaders/heightfield/HeightfieldWaves.glsl?raw";
+import heightfieldLocalMapDecodeTemplate from "../../shaders/heightfield/LocalMapDecode.glsl?raw";
+import heightfieldPlanarTransformTemplate from "../../shaders/heightfield/PlanarTransform.glsl?raw";
+import heightfieldSceneLightingUniformsTemplate from "../../shaders/heightfield/SceneLightingUniforms.glsl?raw";
+import heightfieldScreenSpaceReflectionPassTemplate from "../../shaders/heightfield/ScreenSpaceReflectionPass.glsl?raw";
+import heightfieldScreenSpaceReflectionSurfaceTemplate from "../../shaders/heightfield/ScreenSpaceReflectionSurface.glsl?raw";
+import heightfieldSurfaceLightingFunctionsTemplate from "../../shaders/heightfield/SurfaceLightingFunctions.glsl?raw";
+import heightfieldSurfaceNormalTemplate from "../../shaders/heightfield/SurfaceNormal.glsl?raw";
+import heightfieldSurfaceReflectionTemplate from "../../shaders/heightfield/SurfaceReflection.glsl?raw";
+import heightfieldWaterShaderTemplate from "../../shaders/HeightfieldWater.shader?raw";
 import {
-  applyWaterSurfaceReflectionBinding,
-  applyWaterSurfaceTransientOpticalProfile,
-  applyWaterSurfaceOpticsBinding,
-  createWaterSurfaceOpticsBindingState
-} from "../optics/WaterSurfaceOpticsBinding";
-import type { WaterReflectionBinding } from "../optics/WaterReflectionService";
+  registerGeneratedWaterShaderInclude,
+  registerGeneratedWaterShaderModule,
+  withScopedWaterShaderAssemblyRegistry
+} from "../material/WaterShaderLibrary";
 import {
-  WaterOpticsDebugView,
-  type WaterOpticsTier,
-  type WaterSurfaceOpticsBinding,
-  type WaterSurfaceOpticsBindingReadback,
-  type WaterSurfaceOpticsReflectionReadback
-} from "../optics/WaterSurfaceOpticsTypes";
-import { WATER_OPTICS_SHADER_PROPERTY } from "../optics/constants/WaterOpticsShaderConstants";
+  createWaterShaderModule,
+  resolveWaterShaderModule,
+  type WaterShaderModule
+} from "../material/WaterShaderModule";
+import { renderWaterShaderTemplate } from "../material/WaterShaderTemplate";
 import {
   WATER_ENVIRONMENT_REFLECTION_SHADER_FUNCTIONS,
   WATER_ENVIRONMENT_REFLECTION_UNIFORM_DECLARATIONS
 } from "../optics/WaterEnvironmentReflectionShader";
+import { DEFAULT_WATER_OPTICAL_PROFILE, type WaterOpticalProfile } from "../optics/WaterOpticalProfile";
+import type { WaterReflectionBinding } from "../optics/WaterReflectionService";
+import {
+  applyWaterSurfaceOpticsBinding,
+  applyWaterSurfaceReflectionBinding,
+  applyWaterSurfaceTransientOpticalProfile,
+  createWaterSurfaceOpticsBindingState
+} from "../optics/WaterSurfaceOpticsBinding";
+import {
+  type WaterOpticsTier,
+  type WaterSurfaceOpticsBinding,
+  type WaterSurfaceOpticsBindingReadback
+} from "../optics/WaterSurfaceOpticsTypes";
+import { createWaterSpatialFieldShaderDecodeFunctions } from "../spatial/WaterSpatialFieldShaderDecode";
+import { createWaterAnimatedVoronoiF1ShaderFunctions } from "../surface/WaterAnimatedVoronoiF1Shader";
+import { createWaterContactFoamShaderFunctions } from "../surface/WaterContactFoamShader";
 import {
   createWaterSurfaceAppearanceBindingReadback,
   resolveWaterSurfaceAppearanceBinding,
@@ -85,11 +89,10 @@ import {
   writeWaterSurfaceAppearanceBindingReadback
 } from "../surface/WaterSurfaceAppearanceBinding";
 import type {
-  WaterSurfaceAppearanceBindingV2,
-  WaterSurfaceAppearanceBindingReadback
+  WaterSurfaceAppearanceBindingReadback,
+  WaterSurfaceAppearanceBindingV2
 } from "../surface/WaterSurfaceAppearanceRuntimeTypes";
 import { createWaterSurfaceAppearanceShaderFunctions } from "../surface/WaterSurfaceAppearanceShader";
-import { createWaterSurfaceDepthResponseShaderFunctions } from "../surface/WaterSurfaceDepthResponseShader";
 import {
   WATER_SURFACE_APPEARANCE_V2_SHADER_PROPERTY,
   createWaterSurfaceAppearanceV2AlphaInputAssignments,
@@ -105,38 +108,20 @@ import {
   getWaterSurfaceAppearanceV2ShaderSuffix
 } from "../surface/WaterSurfaceAppearanceV2Shader";
 import {
+  applyWaterSurfaceDepthResponseV2Uniforms,
   bindWaterSurfaceAppearanceV2Clock,
-  updateWaterSurfaceAppearanceV2Clock,
-  applyWaterSurfaceDepthResponseV2Uniforms
+  updateWaterSurfaceAppearanceV2Clock
 } from "../surface/WaterSurfaceAppearanceV2UniformBinding";
 import {
   createWaterSurfaceV2EvaluationStatement,
   createWaterSurfaceV2ResolvedOutputStatement,
   getWaterSurfacePrimaryColorClosureModelValue
 } from "../surface/WaterSurfaceClosureShader";
+import { createWaterSurfaceDepthResponseShaderFunctions } from "../surface/WaterSurfaceDepthResponseShader";
 import { createWaterShaderSymbol, createWaterSurfaceGeometryAdapter } from "../surface/WaterSurfaceGeometryAdapter";
 import { createResolvedWaterSurfaceFieldsV2 } from "../surface/WaterSurfaceResolvedFields";
 import { assembleWaterSurfaceShader } from "../surface/WaterSurfaceShaderAssembler";
-import { createWaterContactFoamShaderFunctions } from "../surface/WaterContactFoamShader";
-import { createWaterAnimatedVoronoiF1ShaderFunctions } from "../surface/WaterAnimatedVoronoiF1Shader";
-import { createWaterSpatialFieldShaderDecodeFunctions } from "../spatial/WaterSpatialFieldShaderDecode";
 import {
-  HeightfieldWaterCompositionMode,
-  HeightfieldWaterDebugMode,
-  HeightfieldWaterOpticsCalibrationMode
-} from "./HeightfieldWaterRuntimeEnums";
-import {
-  DEFAULT_HEIGHTFIELD_WATER_REFLECTION_SAMPLING_SETTINGS,
-  type HeightfieldWaterReflectionSamplingConfig,
-  type HeightfieldWaterReflectionSamplingFallbackReason,
-  type HeightfieldWaterReflectionSamplingReadback
-} from "./HeightfieldWaterReflectionSampling";
-import {
-  HEIGHTFIELD_WATER_RAIN_RIPPLE_SHADER_FUNCTIONS,
-  createHeightfieldWaterRainRippleNormalStatements
-} from "./HeightfieldWaterRainRippleShader";
-import {
-  DEFAULT_HEIGHTFIELD_WATER_LOCAL_FOAM_MASK,
   DEFAULT_HEIGHTFIELD_WATER_SURFACE_APPEARANCE_FEATURE_FLAGS,
   HEIGHTFIELD_WATER_SHADER_PROPERTY,
   HEIGHTFIELD_WATER_SURFACE_TUNING,
@@ -145,17 +130,17 @@ import {
 import { bindHeightfieldWaterBaseMaterial, bindHeightfieldWaterWaves } from "./HeightfieldWaterMaterialBinding";
 import { resolveHeightfieldWaterMaterialVariant } from "./HeightfieldWaterMaterialVariant";
 import {
-  createWaterShaderModule,
-  resolveWaterShaderModule,
-  type WaterShaderModule
-} from "../material/WaterShaderModule";
-import { getWaterSurfaceDetailTexture } from "../wave/WaterSurfaceDetailTextureFactory";
+  HEIGHTFIELD_WATER_RAIN_RIPPLE_SHADER_FUNCTIONS,
+  createHeightfieldWaterRainRippleNormalStatements
+} from "./HeightfieldWaterRainRippleShader";
+import {
+  DEFAULT_HEIGHTFIELD_WATER_REFLECTION_SAMPLING_SETTINGS,
+  type HeightfieldWaterReflectionSamplingConfig
+} from "./HeightfieldWaterReflectionSampling";
+import { HeightfieldWaterCompositionMode } from "./HeightfieldWaterRuntimeEnums";
 import type {
   HeightfieldWaterFeatureFlags,
-  HeightfieldWaterLocalFoamMask,
   HeightfieldWaterMaterialState,
-  HeightfieldWaterOpticsCalibrationReadback,
-  HeightfieldWaterScreenSpaceReflectionConsumptionReadback,
   HeightfieldWaterSurfaceAppearanceFeatureFlags,
   MutableHeightfieldWaterSurfaceOpticsBinding
 } from "./types";
@@ -189,18 +174,6 @@ interface NullableTextureShaderData {
   setTexture(propertyName: string, value: Texture | null): void;
 }
 
-type MutableHeightfieldReflectionReadback = {
-  -readonly [Property in keyof HeightfieldWaterReflectionSamplingReadback]: HeightfieldWaterReflectionSamplingReadback[Property];
-};
-
-type MutableHeightfieldWaterOpticsCalibrationReadback = {
-  -readonly [Property in keyof HeightfieldWaterOpticsCalibrationReadback]: HeightfieldWaterOpticsCalibrationReadback[Property];
-};
-
-type MutableHeightfieldWaterScreenSpaceReflectionConsumptionReadback = {
-  -readonly [Property in keyof HeightfieldWaterScreenSpaceReflectionConsumptionReadback]: HeightfieldWaterScreenSpaceReflectionConsumptionReadback[Property];
-};
-
 type MutableWaterSurfaceOpticsBindingReadback = {
   -readonly [Property in keyof WaterSurfaceOpticsBindingReadback]: WaterSurfaceOpticsBindingReadback[Property];
 };
@@ -210,109 +183,18 @@ function resolveHeightfieldOpticsTier(quality: WaterQualityTier, requestedTier: 
   return requestedTier === "experimental" ? "experimental" : "high";
 }
 
-function createHeightfieldReflectionReadback(quality: WaterQualityTier): MutableHeightfieldReflectionReadback {
-  return Object.seal({
-    ...DEFAULT_HEIGHTFIELD_WATER_REFLECTION_SAMPLING_SETTINGS,
-    quality,
-    requestedSource: "sky",
-    bindingResolvedSource: "sky",
-    effectiveSource: "sky",
-    fallbackReason: undefined,
-    textureWidth: 0,
-    textureHeight: 0,
-    filterSampleCount: 1
-  });
-}
-
-function createHeightfieldWaterOpticsCalibrationReadback(): MutableHeightfieldWaterOpticsCalibrationReadback {
-  return Object.seal({
-    mode: HeightfieldWaterOpticsCalibrationMode.None,
-    referenceCompositionEnabled: false,
-    effectiveFresnelOverride: undefined
-  });
-}
-
-function createHeightfieldWaterScreenSpaceReflectionConsumptionReadback(): MutableHeightfieldWaterScreenSpaceReflectionConsumptionReadback {
-  return Object.seal({
-    requested: true,
-    effective: false,
-    requestedIntensity: 1,
-    effectiveIntensity: 0
-  });
-}
-
-function updateHeightfieldWaterScreenSpaceReflectionConsumption(
-  state: HeightfieldWaterMaterialState
-): Readonly<HeightfieldWaterScreenSpaceReflectionConsumptionReadback> {
-  const readback =
-    state.screenSpaceReflectionConsumptionReadback as MutableHeightfieldWaterScreenSpaceReflectionConsumptionReadback;
-  const effectiveIntensity = state.bindingReadback.effectiveSource === "ssr" ? readback.requestedIntensity : 0;
-  readback.requested = readback.requestedIntensity > 0;
-  readback.effective = effectiveIntensity > 0;
-  readback.effectiveIntensity = effectiveIntensity;
-  state.material.shaderData.setFloat(
-    HEIGHTFIELD_WATER_SHADER_PROPERTY.screenSpaceReflectionCompositeIntensity,
-    readback.requestedIntensity
-  );
-  return readback;
-}
-
-function mapHeightfieldReflectionFallback(
-  fallbackReason: WaterSurfaceOpticsReflectionReadback["fallbackReason"]
-): HeightfieldWaterReflectionSamplingFallbackReason | undefined {
-  switch (fallbackReason) {
-    case "water-optics-probe-texture-unavailable":
-      return "heightfield-probe-texture-unavailable";
-    case "water-optics-environment-metadata-invalid":
-      return "heightfield-environment-metadata-invalid";
-    default:
-      return fallbackReason;
-  }
-}
-
-function updateHeightfieldReflectionReadback(
-  state: HeightfieldWaterMaterialState,
-  sharedReadback: Readonly<WaterSurfaceOpticsReflectionReadback>,
-  requestedBinding: Readonly<WaterReflectionBinding> | undefined
-): void {
-  const readback = state.heightfieldReflectionReadback as MutableHeightfieldReflectionReadback;
-  readback.distortionStrength = sharedReadback.distortionStrength;
-  readback.edgeFadeTexels = sharedReadback.edgeFadeTexels;
-  readback.minimumClipW = sharedReadback.minimumClipW;
-  readback.roughnessFootprintTexels = sharedReadback.roughnessFootprintTexels;
-  readback.highFilterSampleCount = sharedReadback.highFilterSampleCount;
-  readback.quality = state.quality;
-  readback.requestedSource = requestedBinding?.requestedSource ?? "sky";
-  readback.bindingResolvedSource = requestedBinding?.resolvedSource ?? "sky";
-  readback.effectiveSource = sharedReadback.effectiveSource;
-  readback.fallbackReason = mapHeightfieldReflectionFallback(
-    sharedReadback.fallbackReason ?? requestedBinding?.fallbackReason
-  );
-  readback.textureWidth = sharedReadback.textureWidth;
-  readback.textureHeight = sharedReadback.textureHeight;
-  readback.filterSampleCount = sharedReadback.filterSampleCount;
-}
-
 function applyCachedHeightfieldWaterSurfaceOpticsBinding(
   state: HeightfieldWaterMaterialState
 ): Readonly<WaterSurfaceOpticsBindingReadback> {
   const cachedBinding = state.surfaceOpticsBinding;
   const requestedReflection = cachedBinding.reflection;
-  const requestedDebugView = cachedBinding.debugView;
-  cachedBinding.debugView = resolveHeightfieldWaterEffectiveDebugView(
-    requestedDebugView,
-    state.surfaceAppearanceReadback.active
-  );
   let readback: Readonly<WaterSurfaceOpticsBindingReadback>;
   try {
     readback = applyWaterSurfaceOpticsBinding(state.material.shaderData, state, cachedBinding);
   } finally {
     cachedBinding.reflection = requestedReflection;
-    cachedBinding.debugView = requestedDebugView;
   }
-  updateHeightfieldReflectionReadback(state, readback, requestedReflection);
   applyHeightfieldWaterScreenSpaceReflectionReceiver(state, readback.effectiveSource === "ssr");
-  updateHeightfieldWaterScreenSpaceReflectionConsumption(state);
   return readback;
 }
 
@@ -336,38 +218,6 @@ function applyHeightfieldWaterScreenSpaceReflectionReceiver(
 /** Clears explicit Core receiver registration before material teardown. */
 export function disableHeightfieldWaterScreenSpaceReflectionReceiver(state: HeightfieldWaterMaterialState): void {
   ScreenSpaceReflection.setMaterialReceiver(state.material, ScreenSpaceReflectionReceiverMode.Disabled, 0);
-}
-
-function resolveHeightfieldWaterEffectiveDebugView(
-  requestedDebugView: number,
-  surfaceAppearanceActive: boolean
-): WaterOpticsDebugView {
-  if (
-    !Number.isInteger(requestedDebugView) ||
-    requestedDebugView < WaterOpticsDebugView.Final ||
-    requestedDebugView > WaterOpticsDebugView.CompositeReflection
-  ) {
-    return WaterOpticsDebugView.Final;
-  }
-  if (
-    requestedDebugView >= WaterOpticsDebugView.DetailNormal &&
-    requestedDebugView <= WaterOpticsDebugView.EffectiveRoughness &&
-    !surfaceAppearanceActive
-  ) {
-    return WaterOpticsDebugView.Final;
-  }
-  return requestedDebugView as WaterOpticsDebugView;
-}
-
-function refreshHeightfieldWaterAppearanceDebugView(state: HeightfieldWaterMaterialState): void {
-  const requestedDebugView = state.surfaceOpticsBinding.debugView;
-  if (requestedDebugView < WaterOpticsDebugView.DetailNormal) return;
-  const effectiveDebugView = resolveHeightfieldWaterEffectiveDebugView(
-    requestedDebugView,
-    state.surfaceAppearanceReadback.active
-  );
-  state.material.shaderData.setFloat(WATER_OPTICS_SHADER_PROPERTY.debugMode, effectiveDebugView);
-  (state.bindingReadback as MutableWaterSurfaceOpticsBindingReadback).debugView = effectiveDebugView;
 }
 
 function applyHeightfieldWaterSurfaceAppearanceFeatureFlags(state: HeightfieldWaterMaterialState): void {
@@ -404,89 +254,16 @@ function glsl(value: number): string {
 
 const HEIGHTFIELD_WATER_PLANAR_TRANSFORM_SHADER_FUNCTIONS = heightfieldPlanarTransformTemplate;
 
-function surfaceLayerCount(quality: WaterQualityTier): number {
-  switch (quality) {
-    case WaterQualityTier.Low:
-      return 1;
-    case WaterQualityTier.Medium:
-      return 2;
-    case WaterQualityTier.High:
-      return 3;
-  }
-}
-
-function flowSurfaceLayerStatements(quality: WaterQualityTier): string {
-  const layerCount = surfaceLayerCount(quality);
-  const {
-    layerScales,
-    layerRates,
-    layerWeights,
-    layerOffsets,
-    layerCycleJumps,
-    layerSpatialPhaseVectors,
-    stillWaterDirections
-  } = HEIGHTFIELD_WATER_SURFACE_TUNING;
-  return renderWaterShaderTemplate(heightfieldFlowSurfaceTemplate, {
-    LAYER_COUNT: layerCount,
-    STILL_DIRECTION_0_X: glsl(stillWaterDirections[0][0]),
-    STILL_DIRECTION_0_Y: glsl(stillWaterDirections[0][1]),
-    STILL_DIRECTION_1_X: glsl(stillWaterDirections[1][0]),
-    STILL_DIRECTION_1_Y: glsl(stillWaterDirections[1][1]),
-    STILL_DIRECTION_2_X: glsl(stillWaterDirections[2][0]),
-    STILL_DIRECTION_2_Y: glsl(stillWaterDirections[2][1]),
-    LAYER_SCALE_0: glsl(layerScales[0]),
-    LAYER_SCALE_1: glsl(layerScales[1]),
-    LAYER_SCALE_2: glsl(layerScales[2]),
-    LAYER_RATE_0: glsl(layerRates[0]),
-    LAYER_RATE_1: glsl(layerRates[1]),
-    LAYER_RATE_2: glsl(layerRates[2]),
-    LAYER_OFFSET_0_X: glsl(layerOffsets[0][0]),
-    LAYER_OFFSET_0_Y: glsl(layerOffsets[0][1]),
-    LAYER_OFFSET_1_X: glsl(layerOffsets[1][0]),
-    LAYER_OFFSET_1_Y: glsl(layerOffsets[1][1]),
-    LAYER_OFFSET_2_X: glsl(layerOffsets[2][0]),
-    LAYER_OFFSET_2_Y: glsl(layerOffsets[2][1]),
-    LAYER_CYCLE_JUMP_0_X: glsl(layerCycleJumps[0][0]),
-    LAYER_CYCLE_JUMP_0_Y: glsl(layerCycleJumps[0][1]),
-    LAYER_CYCLE_JUMP_1_X: glsl(layerCycleJumps[1][0]),
-    LAYER_CYCLE_JUMP_1_Y: glsl(layerCycleJumps[1][1]),
-    LAYER_CYCLE_JUMP_2_X: glsl(layerCycleJumps[2][0]),
-    LAYER_CYCLE_JUMP_2_Y: glsl(layerCycleJumps[2][1]),
-    LAYER_SPATIAL_PHASE_0_X: glsl(layerSpatialPhaseVectors[0][0]),
-    LAYER_SPATIAL_PHASE_0_Y: glsl(layerSpatialPhaseVectors[0][1]),
-    LAYER_SPATIAL_PHASE_1_X: glsl(layerSpatialPhaseVectors[1][0]),
-    LAYER_SPATIAL_PHASE_1_Y: glsl(layerSpatialPhaseVectors[1][1]),
-    LAYER_SPATIAL_PHASE_2_X: glsl(layerSpatialPhaseVectors[2][0]),
-    LAYER_SPATIAL_PHASE_2_Y: glsl(layerSpatialPhaseVectors[2][1]),
-    LAYER_WEIGHT_0: glsl(layerWeights[0]),
-    LAYER_WEIGHT_1: glsl(layerWeights[1]),
-    LAYER_WEIGHT_2: glsl(layerWeights[2]),
-    LAYER_WEIGHT_SUM_1: glsl(layerWeights[0]),
-    LAYER_WEIGHT_SUM_2: glsl(layerWeights[0] + layerWeights[1]),
-    LAYER_WEIGHT_SUM_3: glsl(layerWeights[0] + layerWeights[1] + layerWeights[2])
-  });
-}
-
-function wakeFoamStatements(quality: WaterQualityTier): string {
-  const tuning = HEIGHTFIELD_WATER_SURFACE_TUNING;
-  const tapCount = quality === WaterQualityTier.Low ? 0 : quality === WaterQualityTier.Medium ? 1 : 2;
-  const primaryTapDistance =
-    quality === WaterQualityTier.High ? tuning.highWakeTapDistances[0] : tuning.mediumWakeTapDistance;
-  return renderWaterShaderTemplate(heightfieldWakeFoamTemplate, {
-    WAKE_TAP_COUNT: tapCount,
-    WAKE_TAP_DISTANCE_0: glsl(primaryTapDistance),
-    WAKE_TAP_DISTANCE_1: glsl(tuning.highWakeTapDistances[1]),
-    WAKE_LATERAL_PROBE_DISTANCE: glsl(tuning.wakeLateralProbeDistance),
-    WAKE_LATERAL_WET_SDF_START: glsl(tuning.wakeLateralWetSdfStart),
-    WAKE_LATERAL_WET_SDF_END: glsl(tuning.wakeLateralWetSdfEnd),
-    WAKE_DRY_SDF_START: glsl(tuning.wakeDrySdfStart),
-    WAKE_DRY_SDF_END: glsl(tuning.wakeDrySdfEnd),
-    WAKE_SECONDARY_WEIGHT: glsl(tuning.highWakeSecondaryWeight),
-    WAKE_INTERIOR_SDF_START: glsl(tuning.wakeInteriorSdfStart),
-    WAKE_INTERIOR_SDF_END: glsl(tuning.wakeInteriorSdfEnd),
-    WAKE_DETAIL_NOISE_START: glsl(tuning.wakeDetailNoiseStart),
-    WAKE_DETAIL_NOISE_END: glsl(tuning.wakeDetailNoiseEnd),
-    WAKE_FOAM_STRENGTH: glsl(tuning.wakeFoamStrength)
+/** One normal pipeline for Forward, alpha-only depth and the SSR receiver. */
+function surfaceNormalStatements(
+  quality: WaterQualityTier,
+  appearance: CompiledWaterSurfaceAppearanceV2,
+  connectionBeforeRain: boolean
+): string {
+  return renderWaterShaderTemplate(heightfieldSurfaceNormalTemplate, {
+    APPEARANCE_NORMAL_STATEMENTS: createWaterSurfaceAppearanceV2NormalStatements(appearance, { boundedTime: true }),
+    CONNECTION_BEFORE_RAIN: Number(connectionBeforeRain),
+    RAIN_NORMAL_STATEMENTS: createHeightfieldWaterRainRippleNormalStatements(quality)
   });
 }
 
@@ -500,24 +277,10 @@ function localMapDecodeStatements(useLocalBathymetry: boolean, fragmentStage: bo
 }
 
 function heightfieldGeometryFunctions(): string {
-  const tuning = HEIGHTFIELD_WATER_SURFACE_TUNING;
   return (
     WATER_CONNECTION_SHADER +
     renderWaterShaderTemplate(heightfieldGeometryTemplate, {
-      TIME_PERIOD_SECONDS: HEIGHTFIELD_WATER_TIME_PERIOD_SECONDS.toFixed(1),
-      MINIMUM_FLOW_SPEED: glsl(tuning.minimumFlowSpeed),
-      FLOW_WEIGHT_MAXIMUM_SPEED: glsl(tuning.maximumFlowSpeed * 0.42),
-      MAXIMUM_FLOW_SPEED: glsl(tuning.maximumFlowSpeed),
-      PHASE_RATE: glsl(tuning.phaseRate),
-      STILL_CYCLE_RATE_SCALE: glsl(tuning.stillCycleRateScale),
-      FLOWING_CYCLE_RATE_BASE: glsl(tuning.flowingCycleRateBase),
-      FLOWING_CYCLE_RATE_SPEED_SCALE: glsl(tuning.flowingCycleRateSpeedScale),
-      PHASE_TRAVEL: glsl(tuning.phaseTravel),
-      STILL_PHASE_TRAVEL_SCALE: glsl(tuning.stillPhaseTravelScale),
-      FLOWING_PHASE_TRAVEL_BASE: glsl(tuning.flowingPhaseTravelBase),
-      FLOWING_PHASE_TRAVEL_SPEED_SCALE: glsl(tuning.flowingPhaseTravelSpeedScale),
-      PHASE_B_OFFSET_X: glsl(tuning.phaseBOffset[0]),
-      PHASE_B_OFFSET_Y: glsl(tuning.phaseBOffset[1])
+      TIME_PERIOD_SECONDS: HEIGHTFIELD_WATER_TIME_PERIOD_SECONDS.toFixed(1)
     })
   );
 }
@@ -651,41 +414,6 @@ function surfaceReflectionStatements(_quality: WaterQualityTier): string {
   return heightfieldSurfaceReflectionTemplate;
 }
 
-function heightfieldDebugStatements(useSceneDepth: boolean): string {
-  return renderWaterShaderTemplate(heightfieldDebugTemplate, {
-    FINAL_MODE: HeightfieldWaterDebugMode.Final + 0.5,
-    BASE_HEIGHT_MODE: HeightfieldWaterDebugMode.BaseHeight + 0.5,
-    BASE_NORMAL_MODE: HeightfieldWaterDebugMode.BaseNormal + 0.5,
-    SIGNED_DISTANCE_MODE: HeightfieldWaterDebugMode.SignedDistance + 0.5,
-    DEPTH_MODE: HeightfieldWaterDebugMode.Depth + 0.5,
-    FLOW_MODE: HeightfieldWaterDebugMode.Flow + 0.5,
-    WAVE_DISPLACEMENT_MODE: HeightfieldWaterDebugMode.WaveDisplacement + 0.5,
-    CENTERED_OPAQUE_COLOR_MODE: HeightfieldWaterDebugMode.CenteredOpaqueColor + 0.5,
-    DISPLACED_OPAQUE_COLOR_MODE: HeightfieldWaterDebugMode.DisplacedOpaqueColor + 0.5,
-    REFRACTION_UV_DELTA_MODE: HeightfieldWaterDebugMode.RefractionUvDelta + 0.5,
-    OPTICAL_DEPTH_MODE: HeightfieldWaterDebugMode.OpticalDepth + 0.5,
-    DEPTH_CONTINUITY_MODE: HeightfieldWaterDebugMode.DepthContinuity + 0.5,
-    SAMPLE_VALIDITY_MODE: HeightfieldWaterDebugMode.SampleValidity + 0.5,
-    FRESNEL_MODE: HeightfieldWaterDebugMode.Fresnel + 0.5,
-    SHADER_COMPOSITED_COLOR_MODE: HeightfieldWaterDebugMode.ShaderCompositedColor + 0.5,
-    SURFACE_ALPHA_MODE: HeightfieldWaterDebugMode.SurfaceAlpha + 0.5,
-    REFLECTION_SOURCE_MODE: HeightfieldWaterDebugMode.ReflectionSource + 0.5,
-    REFRACTION_AMOUNT_MODE: HeightfieldWaterDebugMode.RefractionAmount + 0.5,
-    REFRACTION_GATES_MODE: HeightfieldWaterDebugMode.RefractionGates + 0.5,
-    REFLECTION_COLOR_MODE: HeightfieldWaterDebugMode.ReflectionColor + 0.5,
-    NORMAL_DOT_VIEW_MODE: HeightfieldWaterDebugMode.NormalDotView + 0.5,
-    DETAIL_NORMAL_MODE: HeightfieldWaterDebugMode.DetailNormal + 0.5,
-    SCENE_DEPTH_DELTA_MODE: HeightfieldWaterDebugMode.SceneDepthDelta + 0.5,
-    DEPTH_DEBUG_VALUE: useSceneDepth ? "sceneDepthDelta" : "authoredDepth",
-    DEPTH_TINT_MODE: HeightfieldWaterDebugMode.DepthTint + 0.5,
-    CONTACT_FOAM_MODE: HeightfieldWaterDebugMode.ContactFoam + 0.5,
-    COASTAL_ALPHA_MODE: HeightfieldWaterDebugMode.CoastalAlpha + 0.5,
-    DIRECT_SPECULAR_MODE: HeightfieldWaterDebugMode.DirectSpecular + 0.5,
-    EFFECTIVE_ROUGHNESS_MODE: HeightfieldWaterDebugMode.EffectiveRoughness + 0.5,
-    ENVIRONMENT_REFLECTION_MODE: HeightfieldWaterDebugMode.EnvironmentReflection + 0.5
-  });
-}
-
 function surfaceAppearanceV2RequiresSceneDepth(appearance: CompiledWaterSurfaceAppearanceV2): boolean {
   const depthResponseFields = getWaterSurfaceDepthResponseSemantics(appearance.depthResponse);
   return (
@@ -721,7 +449,6 @@ function screenSpaceReflectionSurfacePass(
   appearance: CompiledWaterSurfaceAppearanceV2
 ): string {
   const appearanceUniforms = createWaterSurfaceAppearanceV2UniformDeclarations(appearance);
-  const appearanceNormalStatements = createWaterSurfaceAppearanceV2NormalStatements(appearance, { boundedTime: true });
   const shaderTemplateReplacements: Readonly<Record<string, string | number>> = {
     VALUE_001_SCREENSPACEREFLECTION_MATERIAL_RECEIVER_CONTRACT_TAG:
       ScreenSpaceReflection.MATERIAL_RECEIVER_CONTRACT_TAG,
@@ -776,23 +503,9 @@ function screenSpaceReflectionSurfacePass(
     VALUE_032_GLSL_HEIGHTFIELD_WATER_SURFACE_TUNING_FLOWINGDIRECTIONWE: glsl(
       HEIGHTFIELD_WATER_SURFACE_TUNING.flowingDirectionWeight
     ),
-    VALUE_033_FLOWSURFACELAYERSTATEMENTS_QUALITY: registerGeneratedWaterShaderModule(
-      "HeightfieldSsrFlowSurfaceLayers",
-      flowSurfaceLayerStatements(quality)
-    ),
-    VALUE_034_GLSL_HEIGHTFIELD_WATER_SURFACE_TUNING_MINIMUMNORMALSTREN: glsl(
-      HEIGHTFIELD_WATER_SURFACE_TUNING.minimumNormalStrength
-    ),
-    VALUE_035_GLSL_HEIGHTFIELD_WATER_SURFACE_TUNING_STILLMICRONORMALSC: glsl(
-      HEIGHTFIELD_WATER_SURFACE_TUNING.stillMicroNormalScale
-    ),
-    VALUE_036_APPEARANCENORMALSTATEMENTS: registerGeneratedWaterShaderModule(
-      "HeightfieldSsrAppearanceNormal",
-      appearanceNormalStatements
-    ),
-    VALUE_037_CREATEHEIGHTFIELDWATERRAINRIPPLENORMALSTATEMENTS_QUALITY: registerGeneratedWaterShaderModule(
-      "HeightfieldSsrRainRippleNormal",
-      createHeightfieldWaterRainRippleNormalStatements(quality)
+    SURFACE_NORMAL_STATEMENTS: registerGeneratedWaterShaderModule(
+      "HeightfieldSurfaceNormal",
+      surfaceNormalStatements(quality, appearance, false)
     )
   };
   const {
@@ -966,60 +679,22 @@ export function createHeightfieldWaterShaderSource(
       "HeightfieldForwardGeometryBridge",
       sharedSurfaceAssembly.geometryBridgeSource
     ),
-    VALUE_049_FLOWSURFACELAYERSTATEMENTS_QUALITY: registerGeneratedWaterShaderModule(
-      "HeightfieldForwardFlowSurfaceLayers",
-      flowSurfaceLayerStatements(quality)
+    SURFACE_NORMAL_STATEMENTS: registerGeneratedWaterShaderModule(
+      "HeightfieldSurfaceNormal",
+      surfaceNormalStatements(quality, surfaceAppearanceV2, true)
     ),
-    VALUE_050_GLSL_HEIGHTFIELD_WATER_SURFACE_TUNING_MINIMUMNORMALSTREN: glsl(
-      HEIGHTFIELD_WATER_SURFACE_TUNING.minimumNormalStrength
-    ),
-    VALUE_051_GLSL_HEIGHTFIELD_WATER_SURFACE_TUNING_STILLMICRONORMALSC: glsl(
-      HEIGHTFIELD_WATER_SURFACE_TUNING.stillMicroNormalScale
-    ),
-    VALUE_052_CREATEWATERSURFACEAPPEARANCEV2NORMALSTATEMENTS_SURFACEAP: registerGeneratedWaterShaderModule(
-      "HeightfieldForwardAppearanceNormal",
-      createWaterSurfaceAppearanceV2NormalStatements(surfaceAppearanceV2, { boundedTime: true })
-    ),
-    VALUE_053_CREATEHEIGHTFIELDWATERRAINRIPPLENORMALSTATEMENTS_QUALITY: registerGeneratedWaterShaderModule(
-      "HeightfieldForwardRainRippleNormal",
-      createHeightfieldWaterRainRippleNormalStatements(quality)
+    PRECOMPOSED_REPLACE: Number(surfaceAppearanceV2.composition === WaterSurfaceCompositionV2.PrecomposedReplace),
+    DEPTH_ALPHA_STATEMENTS: registerGeneratedWaterShaderModule(
+      "HeightfieldDepthAlpha",
+      renderWaterShaderTemplate(heightfieldDepthAlphaTemplate, {
+        ALPHA_INPUT_ASSIGNMENTS: createWaterSurfaceAppearanceV2AlphaInputAssignments(surfaceAppearanceV2)
+      })
     ),
     VALUE_054_LOCALBATHYMETRYOPTICALDEPTHREFINEMENT_USELOCALBATHYMETRY: registerGeneratedWaterShaderModule(
       "HeightfieldForwardLocalBathymetryOpticalDepth",
       heightfieldOpticalDepthStatements(1, useSceneDepth, useLocalBathymetry, false)
     ),
-    VALUE_055_GLSL_HEIGHTFIELD_WATER_SURFACE_TUNING_SHOREFOAMWIDTHSCAL: glsl(
-      HEIGHTFIELD_WATER_SURFACE_TUNING.shoreFoamWidthScale
-    ),
-    VALUE_056_GLSL_HEIGHTFIELD_WATER_SURFACE_TUNING_SHOREFOAMNOISESTAR: glsl(
-      HEIGHTFIELD_WATER_SURFACE_TUNING.shoreFoamNoiseStart
-    ),
-    VALUE_057_GLSL_HEIGHTFIELD_WATER_SURFACE_TUNING_SHOREFOAMNOISEEND: glsl(
-      HEIGHTFIELD_WATER_SURFACE_TUNING.shoreFoamNoiseEnd
-    ),
-    VALUE_058_GLSL_HEIGHTFIELD_WATER_SURFACE_TUNING_CRESTFOAMSTART: glsl(
-      HEIGHTFIELD_WATER_SURFACE_TUNING.crestFoamStart
-    ),
-    VALUE_059_GLSL_HEIGHTFIELD_WATER_SURFACE_TUNING_CRESTFOAMEND: glsl(HEIGHTFIELD_WATER_SURFACE_TUNING.crestFoamEnd),
-    VALUE_060_GLSL_HEIGHTFIELD_WATER_SURFACE_TUNING_CURRENTFOAMSPEEDST: glsl(
-      HEIGHTFIELD_WATER_SURFACE_TUNING.currentFoamSpeedStart
-    ),
-    VALUE_061_GLSL_HEIGHTFIELD_WATER_SURFACE_TUNING_CURRENTFOAMSPEEDEN: glsl(
-      HEIGHTFIELD_WATER_SURFACE_TUNING.currentFoamSpeedEnd
-    ),
-    VALUE_062_GLSL_HEIGHTFIELD_WATER_SURFACE_TUNING_CURRENTFOAMNOISEST: glsl(
-      HEIGHTFIELD_WATER_SURFACE_TUNING.currentFoamNoiseStart
-    ),
-    VALUE_063_GLSL_HEIGHTFIELD_WATER_SURFACE_TUNING_CURRENTFOAMNOISEEN: glsl(
-      HEIGHTFIELD_WATER_SURFACE_TUNING.currentFoamNoiseEnd
-    ),
-    VALUE_064_WAKEFOAMSTATEMENTS_QUALITY: registerGeneratedWaterShaderModule(
-      "HeightfieldForwardWakeFoam",
-      wakeFoamStatements(quality)
-    ),
-    VALUE_065_GLSL_HEIGHTFIELD_WATER_SURFACE_TUNING_STILLFOAMSCALE: glsl(
-      HEIGHTFIELD_WATER_SURFACE_TUNING.stillFoamScale
-    ),
+
     VALUE_066_CREATEWATERSURFACEAPPEARANCEV2BOUNDARYSTATEMENTS_SURFACE: registerGeneratedWaterShaderModule(
       "HeightfieldForwardAppearanceBoundaries",
       createWaterSurfaceAppearanceV2BoundaryStatements(surfaceAppearanceV2, resolvedFields, { boundedTime: true })
@@ -1044,10 +719,7 @@ export function createHeightfieldWaterShaderSource(
       "HeightfieldForwardFinalClosure",
       createHeightfieldV2FinalClosureStatements(surfaceAppearanceV2)
     ),
-    VALUE_072_HEIGHTFIELDDEBUGSTATEMENTS: registerGeneratedWaterShaderModule(
-      "HeightfieldForwardDebug",
-      heightfieldDebugStatements(useSceneDepth)
-    ),
+
     VALUE_092_HEIGHTFIELDWATERCOMPOSITIONMODE_ALPHABLEND_0_5: HeightfieldWaterCompositionMode.AlphaBlend + 0.5,
     VALUE_093_CREATEWATERSURFACEV2RESOLVEDOUTPUTSTATEMENT_VEC4_FRAGMEN: registerGeneratedWaterShaderModule(
       "HeightfieldForwardResolvedOutput",
@@ -1101,7 +773,6 @@ function createHeightfieldWaterSurfaceAppearanceV2ShaderModuleFromVariant(
     resolution.variant,
     [
       HEIGHTFIELD_WATER_SHADER_PROPERTY.localMapTexture,
-      HEIGHTFIELD_WATER_SHADER_PROPERTY.surfaceTexture,
       ...getWaterSurfaceAppearanceV2RequiredTextureProperties(appearance)
     ]
   );
@@ -1167,7 +838,6 @@ export function setHeightfieldWaterSurfaceOpticsBinding(
   cachedBinding.refractionEnabled = binding.refractionEnabled;
   cachedBinding.reflection = binding.reflection;
   cachedBinding.reflectionSampling = binding.reflectionSampling;
-  cachedBinding.debugView = binding.debugView;
   return applyCachedHeightfieldWaterSurfaceOpticsBinding(state);
 }
 
@@ -1189,7 +859,7 @@ export function setHeightfieldWaterReflectionBinding(
   state: HeightfieldWaterMaterialState,
   binding?: Readonly<WaterReflectionBinding>,
   config: HeightfieldWaterReflectionSamplingConfig = DEFAULT_HEIGHTFIELD_WATER_REFLECTION_SAMPLING_SETTINGS
-): Readonly<HeightfieldWaterReflectionSamplingReadback> {
+): void {
   state.surfaceOpticsBinding.reflection = binding;
   state.surfaceOpticsBinding.reflectionSampling = config;
   const sharedReadback = applyWaterSurfaceReflectionBinding(
@@ -1199,10 +869,7 @@ export function setHeightfieldWaterReflectionBinding(
     binding,
     config
   );
-  updateHeightfieldReflectionReadback(state, sharedReadback, binding);
   applyHeightfieldWaterScreenSpaceReflectionReceiver(state, sharedReadback.effectiveSource === "ssr");
-  updateHeightfieldWaterScreenSpaceReflectionConsumption(state);
-  return state.heightfieldReflectionReadback;
 }
 
 export function createHeightfieldWaterMaterial(
@@ -1238,10 +905,6 @@ export function createHeightfieldWaterMaterial(
     );
   }
   material.shaderData.setTexture(HEIGHTFIELD_WATER_SHADER_PROPERTY.localMapTexture, localMapTexture);
-  material.shaderData.setTexture(
-    HEIGHTFIELD_WATER_SHADER_PROPERTY.surfaceTexture,
-    getWaterSurfaceDetailTexture(engine)
-  );
   material.shaderData.setFloat(
     HEIGHTFIELD_WATER_SHADER_PROPERTY.maxVerticalDisplacement,
     waveSet.maxVerticalDisplacement
@@ -1256,8 +919,7 @@ export function createHeightfieldWaterMaterial(
     opticalProfile: DEFAULT_WATER_OPTICAL_PROFILE,
     refractionEnabled: true,
     reflection: undefined,
-    reflectionSampling: DEFAULT_HEIGHTFIELD_WATER_REFLECTION_SAMPLING_SETTINGS,
-    debugView: WaterOpticsDebugView.Final
+    reflectionSampling: DEFAULT_HEIGHTFIELD_WATER_REFLECTION_SAMPLING_SETTINGS
   };
   const state = Object.freeze({
     material,
@@ -1266,9 +928,7 @@ export function createHeightfieldWaterMaterial(
     waveSet,
     ...createWaterSurfaceOpticsBindingState(),
     surfaceOpticsBinding: Object.seal(surfaceOpticsBinding),
-    heightfieldReflectionReadback: createHeightfieldReflectionReadback(quality),
-    screenSpaceReflectionConsumptionReadback: createHeightfieldWaterScreenSpaceReflectionConsumptionReadback(),
-    opticsCalibrationReadback: createHeightfieldWaterOpticsCalibrationReadback(),
+
     surfaceAppearanceReadback: createWaterSurfaceAppearanceBindingReadback(),
     surfaceAppearanceFeatureFlags: Object.seal({
       ...DEFAULT_HEIGHTFIELD_WATER_SURFACE_APPEARANCE_FEATURE_FLAGS
@@ -1277,11 +937,10 @@ export function createHeightfieldWaterMaterial(
   bindHeightfieldWaterBaseMaterial(state, config, atlas);
   applyCachedHeightfieldWaterSurfaceOpticsBinding(state);
   setHeightfieldWaterCompositionMode(state, HeightfieldWaterCompositionMode.AlphaBlend);
-  setHeightfieldWaterOpticsCalibrationMode(state, HeightfieldWaterOpticsCalibrationMode.None);
   setHeightfieldWaterDepthWriteEnabled(state, false);
-  setHeightfieldWaterFeatureFlags(state, { waves: true, microNormals: true, foam: true });
+  setHeightfieldWaterFeatureFlags(state, { waves: true, microNormals: true });
+  setHeightfieldWaterScreenSpaceReflectionCompositeIntensity(state, 1);
   setHeightfieldWaterSurfaceAppearanceFeatureFlags(state, DEFAULT_HEIGHTFIELD_WATER_SURFACE_APPEARANCE_FEATURE_FLAGS);
-  setHeightfieldWaterLocalFoamMask(state, DEFAULT_HEIGHTFIELD_WATER_LOCAL_FOAM_MASK);
   setHeightfieldWaterPresentationReveal(state, 1, 0.035);
   setHeightfieldWaterSurfaceTimeOverride(state);
   try {
@@ -1300,11 +959,11 @@ export function createHeightfieldWaterMaterial(
 export function setHeightfieldWaterScreenSpaceReflectionCompositeIntensity(
   state: HeightfieldWaterMaterialState,
   intensity: number
-): Readonly<HeightfieldWaterScreenSpaceReflectionConsumptionReadback> {
-  const readback =
-    state.screenSpaceReflectionConsumptionReadback as MutableHeightfieldWaterScreenSpaceReflectionConsumptionReadback;
-  readback.requestedIntensity = Number.isFinite(intensity) ? Math.min(1, Math.max(0, intensity)) : 0;
-  return updateHeightfieldWaterScreenSpaceReflectionConsumption(state);
+): void {
+  state.material.shaderData.setFloat(
+    HEIGHTFIELD_WATER_SHADER_PROPERTY.screenSpaceReflectionCompositeIntensity,
+    Number.isFinite(intensity) ? Math.min(1, Math.max(0, intensity)) : 0
+  );
 }
 
 function bindHeightfieldWaterSurfaceAppearanceV2(
@@ -1465,7 +1124,6 @@ export function setHeightfieldWaterSurfaceAppearanceBinding(
   bindWaterSurfaceAppearanceV2Clock(state.material, resolvedBinding.appearance);
   writeWaterSurfaceAppearanceBindingReadback(state.surfaceAppearanceReadback, resolution.readback);
   applyHeightfieldWaterSurfaceAppearanceFeatureFlags(state);
-  refreshHeightfieldWaterAppearanceDebugView(state);
   applyHeightfieldWaterScreenSpaceReflectionReceiver(state, state.bindingReadback.effectiveSource === "ssr");
   return state.surfaceAppearanceReadback;
 }
@@ -1481,14 +1139,6 @@ export function setHeightfieldWaterSurfaceAppearanceFeatureFlags(
   retainedFlags.contactFoam = flags.contactFoam === true;
   retainedFlags.directSpecular = flags.directSpecular === true;
   applyHeightfieldWaterSurfaceAppearanceFeatureFlags(state);
-}
-
-export function setHeightfieldWaterDebugMode(
-  state: HeightfieldWaterMaterialState,
-  mode: HeightfieldWaterDebugMode
-): void {
-  state.surfaceOpticsBinding.debugView = mode;
-  applyCachedHeightfieldWaterSurfaceOpticsBinding(state);
 }
 
 export function setHeightfieldWaterRefractionEnabled(state: HeightfieldWaterMaterialState, enabled: boolean): void {
@@ -1508,24 +1158,6 @@ export function setHeightfieldWaterCompositionMode(
   );
 }
 
-export function setHeightfieldWaterOpticsCalibrationMode(
-  state: HeightfieldWaterMaterialState,
-  mode: HeightfieldWaterOpticsCalibrationMode
-): Readonly<HeightfieldWaterOpticsCalibrationReadback> {
-  const resolvedMode =
-    mode === HeightfieldWaterOpticsCalibrationMode.CpuReference ||
-    mode === HeightfieldWaterOpticsCalibrationMode.PureTransmission
-      ? mode
-      : HeightfieldWaterOpticsCalibrationMode.None;
-  state.material.shaderData.setFloat(HEIGHTFIELD_WATER_SHADER_PROPERTY.opticsCalibrationMode, resolvedMode);
-  const readback = state.opticsCalibrationReadback as MutableHeightfieldWaterOpticsCalibrationReadback;
-  readback.mode = resolvedMode;
-  readback.referenceCompositionEnabled = resolvedMode !== HeightfieldWaterOpticsCalibrationMode.None;
-  readback.effectiveFresnelOverride =
-    resolvedMode === HeightfieldWaterOpticsCalibrationMode.PureTransmission ? 0 : undefined;
-  return state.opticsCalibrationReadback;
-}
-
 export function setHeightfieldWaterDepthWriteEnabled(state: HeightfieldWaterMaterialState, enabled: boolean): void {
   state.material.shaderData.setInt(HEIGHTFIELD_WATER_SHADER_PROPERTY.depthWriteEnabled, enabled ? 1 : 0);
 }
@@ -1536,27 +1168,6 @@ export function setHeightfieldWaterFeatureFlags(
 ): void {
   state.material.shaderData.setFloat(HEIGHTFIELD_WATER_SHADER_PROPERTY.wavesEnabled, flags.waves ? 1 : 0);
   state.material.shaderData.setFloat(HEIGHTFIELD_WATER_SHADER_PROPERTY.microNormalsEnabled, flags.microNormals ? 1 : 0);
-  state.material.shaderData.setFloat(HEIGHTFIELD_WATER_SHADER_PROPERTY.foamEnabled, flags.foam ? 1 : 0);
-}
-
-export function setHeightfieldWaterLocalFoamMask(
-  state: HeightfieldWaterMaterialState,
-  mask: Readonly<HeightfieldWaterLocalFoamMask>
-): void {
-  const values = [mask.centerXZ[0], mask.centerXZ[1], mask.halfSizeXZ[0], mask.halfSizeXZ[1], mask.featherMeters];
-  if (values.some((value) => !Number.isFinite(value))) {
-    throw new RangeError("Heightfield local foam mask values must be finite.");
-  }
-  if (mask.halfSizeXZ[0] < 0 || mask.halfSizeXZ[1] < 0 || mask.featherMeters < 0) {
-    throw new RangeError("Heightfield local foam mask extents and feather must be non-negative.");
-  }
-  const shaderData = state.material.shaderData;
-  shaderData.setFloat(HEIGHTFIELD_WATER_SHADER_PROPERTY.localFoamMaskEnabled, mask.enabled ? 1 : 0);
-  shaderData.setVector4(
-    HEIGHTFIELD_WATER_SHADER_PROPERTY.localFoamMaskCenterHalfSize,
-    new Vector4(mask.centerXZ[0], mask.centerXZ[1], mask.halfSizeXZ[0], mask.halfSizeXZ[1])
-  );
-  shaderData.setFloat(HEIGHTFIELD_WATER_SHADER_PROPERTY.localFoamMaskFeather, mask.featherMeters);
 }
 
 /**

@@ -1,9 +1,6 @@
 {
   "name": "lake-water-look-v1",
-  "shader": "AIWorld/HeightfieldWaterSurfaceAppearanceV2ed93d4a81a01602dHybridHigh0",
-  "shaderRef": {
-    "url": "Water/Shaders/lake.shader"
-  },
+  "shader": "Water/Lake.v1",
   "macros": [],
   "shaderData": {
     "material_WaterProfile": {
@@ -78,23 +75,6 @@
       "type": "Float",
       "value": 1
     },
-    "material_Water_look_foam_enabled": {
-      "type": "Boolean",
-      "value": false
-    },
-    "material_Water_look_foam_intensity": {
-      "type": "Float",
-      "value": 0
-    },
-    "material_Water_look_foam_color": {
-      "type": "Color",
-      "value": {
-        "r": 1,
-        "g": 1,
-        "b": 1,
-        "a": 1
-      }
-    },
     "material_Water_appearance_appearance_primaryColorClosure": {
       "type": "Integer",
       "value": 3
@@ -137,12 +117,6 @@
       "type": "Integer",
       "value": 1
     },
-    "material_Water_appearance_appearance_detailLayers_0_texture": {
-      "type": "Texture",
-      "value": {
-        "url": "Water/Textures/grasslands-water-normal-1024.ktx2"
-      }
-    },
     "material_Water_appearance_appearance_detailLayers_1_space": {
       "type": "Integer",
       "value": 0
@@ -180,12 +154,6 @@
     "material_Water_appearance_appearance_detailLayers_1_blend": {
       "type": "Integer",
       "value": 1
-    },
-    "material_Water_appearance_appearance_detailLayers_1_texture": {
-      "type": "Texture",
-      "value": {
-        "url": "Water/Textures/grasslands-water-normal-1024.ktx2"
-      }
     },
     "material_AppearanceV2DepthDistance": {
       "type": "Float",

@@ -18,17 +18,16 @@ import {
 } from "../../authoring/surface/WaterSurfaceAppearanceTypes";
 import { WaterFieldSemantic } from "../../authoring/surface/WaterSurfaceFieldTypes";
 import type { CompiledWaterSurfaceAppearanceV2 } from "../../compiler/surface/CompiledWaterSurfaceAppearanceTypes";
-import { createWaterSurfaceDepthResponseShaderFunctions } from "./WaterSurfaceDepthResponseShader";
-import { WaterDepthResponseDebugView } from "./WaterSurfaceDepthResponse";
-import type { ResolvedWaterSurfaceFieldsV2 } from "./WaterSurfaceResolvedFields";
+import waterSurfaceAppearanceV2BoundaryEffectShaderTemplate from "../../shaders/library/surface/WaterSurfaceAppearanceV2BoundaryEffect.glsl?raw";
+import waterSurfaceAppearanceV2BoundaryEffectsShaderTemplate from "../../shaders/library/surface/WaterSurfaceAppearanceV2BoundaryEffects.glsl?raw";
 import waterSurfaceAppearanceV2CompositionShaderTemplate from "../../shaders/library/surface/WaterSurfaceAppearanceV2Composition.glsl?raw";
 import waterSurfaceAppearanceV2DepthResponseShaderTemplate from "../../shaders/library/surface/WaterSurfaceAppearanceV2DepthResponse.glsl?raw";
-import waterSurfaceAppearanceV2BoundaryEffectsShaderTemplate from "../../shaders/library/surface/WaterSurfaceAppearanceV2BoundaryEffects.glsl?raw";
-import waterSurfaceAppearanceV2BoundaryEffectShaderTemplate from "../../shaders/library/surface/WaterSurfaceAppearanceV2BoundaryEffect.glsl?raw";
-import waterSurfaceAppearanceV2NormalDetailShaderTemplate from "../../shaders/library/surface/WaterSurfaceAppearanceV2NormalDetail.glsl?raw";
 import waterSurfaceAppearanceV2FunctionsShaderTemplate from "../../shaders/library/surface/WaterSurfaceAppearanceV2Functions.glsl?raw";
+import waterSurfaceAppearanceV2NormalDetailShaderTemplate from "../../shaders/library/surface/WaterSurfaceAppearanceV2NormalDetail.glsl?raw";
 import waterSurfaceAppearanceV2UniformsShaderTemplate from "../../shaders/library/surface/WaterSurfaceAppearanceV2Uniforms.glsl?raw";
 import { renderWaterShaderTemplate } from "../material/WaterShaderTemplate";
+import { createWaterSurfaceDepthResponseShaderFunctions } from "./WaterSurfaceDepthResponseShader";
+import type { ResolvedWaterSurfaceFieldsV2 } from "./WaterSurfaceResolvedFields";
 
 export const WATER_SURFACE_APPEARANCE_V2_SHADER_PROPERTY = Object.freeze({
   detailEnabled: "material_AppearanceV2DetailEnabled",
@@ -36,7 +35,7 @@ export const WATER_SURFACE_APPEARANCE_V2_SHADER_PROPERTY = Object.freeze({
   boundaryAlphaEnabled: "material_AppearanceV2BoundaryAlphaEnabled",
   boundaryMaterialEnabled: "material_AppearanceV2BoundaryMaterialEnabled",
   refractionUvScale: "material_AppearanceV2RefractionUvScale",
-  depthDebugView: "material_AppearanceV2DepthDebugView",
+
   macroNormalStrength: "material_AppearanceV2MacroNormalStrength",
   directionalHighlightStrength: "material_AppearanceV2DirectionalHighlightStrength",
   directionalHighlightExponent: "material_AppearanceV2DirectionalHighlightExponent",
@@ -414,9 +413,6 @@ export function createWaterSurfaceAppearanceV2BoundaryStatements(
 function depthResponseTemplateData(
   appearance: CompiledWaterSurfaceAppearanceV2,
   fields: Readonly<ResolvedWaterSurfaceFieldsV2>,
-  section: 0 | 1,
-  outputColorExpression = "waterColor",
-  densityExpression = "appearanceDepthTintFactor",
   boundedTime = false
 ): Readonly<Record<string, string | number>> {
   const depth = appearance.depthResponse;
@@ -435,7 +431,6 @@ function depthResponseTemplateData(
   const colorStopCount = depth.model === WaterSurfaceDepthResponseModelV2.ColorRamp ? depth.colors.length : 0;
 
   return {
-    SECTION: section,
     REFRACTED_ALBEDO: Number(
       appearance.primaryColorClosure === WaterSurfacePrimaryColorClosure.RefractedAlbedoDepthRamp
     ),
@@ -466,17 +461,7 @@ function depthResponseTemplateData(
     SECOND_FIELD: secondField,
     COEFFICIENT_1: getWaterSurfaceAppearanceV2DepthProperty("coefficient1"),
     SHALLOW_COLOR: getWaterSurfaceAppearanceV2DepthProperty("shallowColor"),
-    DEEP_COLOR: getWaterSurfaceAppearanceV2DepthProperty("deepColor"),
-    DEBUG_VIEW: WATER_SURFACE_APPEARANCE_V2_SHADER_PROPERTY.depthDebugView,
-    FINAL_THRESHOLD: WaterDepthResponseDebugView.Final + 0.5,
-    SURFACE_NORMAL_DEPTH_THRESHOLD: WaterDepthResponseDebugView.SurfaceNormalDepth + 0.5,
-    SCENE_RAY_DEPTH: fields.sceneRayDepth.expression,
-    SCENE_RAY_TERM_THRESHOLD: WaterDepthResponseDebugView.SceneRayTerm + 0.5,
-    SURFACE_NORMAL_DEPTH: fields.surfaceNormalDepth.expression,
-    SURFACE_NORMAL_TERM_THRESHOLD: WaterDepthResponseDebugView.SurfaceNormalTerm + 0.5,
-    DENSITY_THRESHOLD: WaterDepthResponseDebugView.Density + 0.5,
-    DENSITY: densityExpression,
-    OUTPUT_COLOR: outputColorExpression
+    DEEP_COLOR: getWaterSurfaceAppearanceV2DepthProperty("deepColor")
   };
 }
 
@@ -487,21 +472,7 @@ export function createWaterSurfaceAppearanceV2DepthResponseStatements(
 ): string {
   return renderWaterShaderTemplate(
     waterSurfaceAppearanceV2DepthResponseShaderTemplate,
-    depthResponseTemplateData(appearance, fields, 0, "waterColor", "appearanceDepthTintFactor", options.boundedTime)
-  );
-}
-
-export function createWaterSurfaceAppearanceV2DepthDebugStatements(
-  appearance: CompiledWaterSurfaceAppearanceV2,
-  fields: Readonly<ResolvedWaterSurfaceFieldsV2>,
-  outputColorExpression: string,
-  densityExpression: string
-): string {
-  const depth = appearance.depthResponse;
-  if (depth.model !== WaterSurfaceDepthResponseModelV2.CompositeExponential) return "";
-  return renderWaterShaderTemplate(
-    waterSurfaceAppearanceV2DepthResponseShaderTemplate,
-    depthResponseTemplateData(appearance, fields, 1, outputColorExpression, densityExpression)
+    depthResponseTemplateData(appearance, fields, options.boundedTime)
   );
 }
 

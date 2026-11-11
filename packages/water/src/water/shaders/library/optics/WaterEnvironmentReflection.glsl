@@ -203,12 +203,5 @@
         return reflectedRadiance;
       }
 
-      float waterBaseReflectionAvailable() {
-        float available = material_EnvironmentReflectionAvailable;
-        #ifdef MATERIAL_WATER_LOCAL_ENVIRONMENT_REFLECTION
-          available = max(available, material_LocalEnvironmentReflectionAvailable);
-        #endif
-        return available;
-      }
 
 #endif

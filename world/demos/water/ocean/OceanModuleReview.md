@@ -12,7 +12,6 @@
 | P3 | 已接入共享光学后，仍绑定旧 shallow color、sun reflection、refraction 参数 | 删除三个未被 Shader 消费的 uniform 及其绑定 |
 | P3 | NormalFadeAndDepth、ReflectionParameters、FarReflection 的名称和向量分量已不符合实际用途 | 分别收敛为 NormalFadeEndDistance、ReflectionNormalBlend、FarReflectionFilter；删除不使用的分量，保留原有效值 |
 | P3 | 近、远材质各自绑定一套相同的近岸纹理、范围和解码数据 | 合并为 `bindOceanNearshoreUniforms`，类型归入 uniform binding 模块 |
-| P3 | 诊断枚举放在近景材质中，远景另写数字范围校验 | 抽到 `OceanDebugView.ts`，近远材质共用枚举和 `assertOceanDebugView`，调用方直接依赖模式定义 |
 | P3 | 契约、组装与 GPU 绑定模块名称过于笼统 | 按实际职责重命名并更新引用；纯契约到 tuning 的映射移出 GPU 绑定模块 |
 | P3 | 重复变量、包装函数、未使用导入、未消费的 optics readback 和重复 Shader 组装 | 移除或合并；远景复用已创建的 assembly；说明文案改为模块级常量 |
 
@@ -21,7 +20,6 @@
 - `OceanSurfaceContract.ts` → `OceanRenderContract.ts`：契约创建、能力校验和 tuning 投影。
 - `OceanSurfaceShader.ts` → `OceanSurfaceShaderAssembly.ts`：共享着色组装和近／远几何适配；参数使用 `"near" | "far"` 代替布尔值。
 - `OceanSurfaceBinding.ts` → `OceanSurfaceUniformBinding.ts`：GPU uniform 与近岸纹理绑定。
-- 新增 `OceanDebugView.ts`；对应契约测试改名为 `OceanRenderContract.test.ts`。
 
 函数采用 `createOceanTuningFromRenderContract`、`assertSupportedOceanRenderContract`、`createOceanSurfaceShaderAssembly`、`bindOceanRenderContractUniforms` 等名称。案例里的 `VIEWS` 改为 `OCEAN_CAMERA_VIEWS`，控制器访问器改为 `getOceanController`。
 

@@ -2,14 +2,13 @@
 import type { ShaderData } from "@galacean/engine-core";
 import { Vector2, Vector4 } from "@galacean/engine-math";
 import oceanFarFieldShaderFunctions from "../../shaders/library/ocean/OceanFarField.glsl?raw";
-import oceanDiagnostics from "../../shaders/library/ocean/OceanDiagnostics.glsl?raw";
 import type { OceanRuntimeTuning } from "./OceanRuntimeTuning";
 
 /**
  * Assumes camera/sun globals plus WaterSurfaceAmbientLighting declarations are in scope.
  * Keeping one source of truth makes the finite far field and projected Horizon radiometrically continuous.
  */
-export const OCEAN_FAR_FIELD_SHADER_FUNCTIONS = oceanDiagnostics + "\n" + oceanFarFieldShaderFunctions;
+export const OCEAN_FAR_FIELD_SHADER_FUNCTIONS = oceanFarFieldShaderFunctions;
 
 // Per-axis second moment of two RNM-blended RoughWaves layers (linear normal data).
 // Calibrated from the bundled 1024px source: 65,536 sample pairs yield 0.1223.

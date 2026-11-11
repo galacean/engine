@@ -1,9 +1,9 @@
-import { RiverRuntimeSubmission, RiverRuntimeSubmissionCancelledError } from "./RiverRuntimeSubmission";
-export { RiverRuntimeSubmissionCancelledError } from "./RiverRuntimeSubmission";
-import { updateRiverFlowClock } from "./RiverMaterialBinding";
-import { updateWaterSurfaceAppearanceV2Clock } from "../surface/WaterSurfaceAppearanceV2UniformBinding";
 import { createWaterConnectionBinding, type WaterConnectionBinding } from "../connections/WaterConnectionBinding";
 import { destroyWaterOwnedMesh } from "../resources/destroyWaterOwnedMesh";
+import { updateWaterSurfaceAppearanceV2Clock } from "../surface/WaterSurfaceAppearanceV2UniformBinding";
+import { updateRiverFlowClock } from "./RiverMaterialBinding";
+import { RiverRuntimeSubmission } from "./RiverRuntimeSubmission";
+export { RiverRuntimeSubmissionCancelledError } from "./RiverRuntimeSubmission";
 /** Internal river runtime lifecycle: chunk renderer creation, GPU upload, cache, swap, and disposal. */
 import { Engine, Entity, Material, MeshRenderer, Script, Texture2D } from "@galacean/engine-core";
 import type { Vector3 } from "@galacean/engine-math";
@@ -11,34 +11,32 @@ import type { RiverAuthoringConfig, RiverMaterialConfig } from "../../authoring/
 import { WaterSurfaceDepthResponseModelV2 } from "../../authoring/surface/WaterSurfaceAppearanceTypes";
 import { RiverChunkSourceKind, RiverLocalMapRegionKind } from "../../compiler/river/RiverGeometryEnums";
 import { cloneCompiledRiverConfig } from "../../compiler/river/RiverNetworkCompiler";
+import {
+  computeRiverSurfaceDomainOffsets,
+  createRiverSurfaceDomainOffsets
+} from "../../compiler/river/RiverSurfaceMotion";
 import type { RiverCompiledChunk, RiverCompiledData, RiverReachArtifact } from "../../compiler/river/types";
-import type { WaterReflectionBinding } from "../optics/WaterReflectionService";
 import type { WaterCameraVisibilityProvider, WaterTerrainOcclusionProvider } from "../body/WaterBackendRegistry";
+import type { WaterReflectionBinding } from "../optics/WaterReflectionService";
 import type { WaterSurfaceOpticsBinding } from "../optics/WaterSurfaceOpticsTypes";
 import type { WaterSurfaceAppearanceBindingV2 } from "../surface/WaterSurfaceAppearanceRuntimeTypes";
 import { applyWaterSurfaceRendererContract } from "../surface/WaterSurfaceRendererContract";
+import { createRiverLocalMapTexture } from "./RiverLocalMapTextureFactory";
+import { setRiverLocalMapRendererBinding, updateRiverSurfaceDomainOffsets } from "./RiverMaterialBinding";
 import {
   createRiverLocalMapMaterial,
   createRiverMaterial,
   setRiverScreenSpaceReflectionCompositeIntensity,
   setRiverScreenSpaceReflectionReceiver,
   setRiverSurfaceAppearanceBinding,
-  setRiverSurfaceDebugMode,
   setRiverSurfaceDepthWriteEnabled,
   setRiverSurfaceFeatureFlags,
   setRiverSurfaceOpticsBinding,
   setRiverSurfaceReflectionBinding,
   setRiverSurfaceTimeOverride,
-  updateRiverSurfaceTransientOpticalProfile,
-  updateRiverMaterial
+  updateRiverMaterial,
+  updateRiverSurfaceTransientOpticalProfile
 } from "./RiverMaterialFactory";
-import {
-  computeRiverSurfaceDomainOffsets,
-  createRiverSurfaceDomainOffsets
-} from "../../compiler/river/RiverSurfaceMotion";
-import { setRiverLocalMapRendererBinding, updateRiverSurfaceDomainOffsets } from "./RiverMaterialBinding";
-import { createRiverLocalMapTexture } from "./RiverLocalMapTextureFactory";
-import { RiverSurfaceDebugMode } from "./RiverRuntimeEnums";
 import { uploadRiverMeshes } from "./RiverMeshUploader";
 import { RiverNetworkQueryService } from "./RiverQueryService";
 import { RiverResource } from "./RiverResource";
@@ -105,11 +103,6 @@ function deriveRiverVisualMaterial(
   });
 }
 
-export interface RiverRuntimeDebugTarget {
-  readonly kind: "network" | "reach" | "junction" | "junctions" | "chunk";
-  readonly id?: string;
-}
-
 interface RiverRuntimeMaterialSet {
   readonly surface: Material;
   readonly surfaceLocalMap?: Material;
@@ -153,8 +146,6 @@ export interface RiverRuntimeActivation {
   reaches: readonly RiverRuntimeReach[];
   queryService: RiverNetworkQueryService;
   spatialFieldProvider: RiverWaterSpatialFieldProvider;
-  submittedChunkCount: number;
-  yieldCount: number;
   maxSliceMs: number;
 }
 
@@ -215,9 +206,7 @@ export class RiverRuntimeController {
   private _activeId?: string;
   private _activeReaches: MutableRiverRuntimeReach[] = [];
   private _activeChunks: MutableRiverRuntimeChunk[] = [];
-  private _terrainOccludedChunkCount = 0;
   private _activeQueryService?: RiverNetworkQueryService;
-  private _surfaceDebugMode = RiverSurfaceDebugMode.Off;
   private _macroDisplacementEnabled = true;
   private _microSurfaceEnabled = true;
   private _depthWriteEnabled = false;
@@ -227,8 +216,6 @@ export class RiverRuntimeController {
   private _reflectionBindingApplied = false;
   private _appliedReflectionBindingRevision?: number;
   private _surfaceAppearanceBinding?: Readonly<WaterSurfaceAppearanceBindingV2>;
-  private _junctionVisibility = true;
-  private _debugTarget: RiverRuntimeDebugTarget = { kind: "network" };
 
   /** Authored native surface shader; runtime bindings remain owned by this controller. */
   surfaceShader?: import("@galacean/engine-core").Shader;
@@ -277,44 +264,13 @@ export class RiverRuntimeController {
     return this._activeReaches;
   }
 
-  /** Scalar diagnostics only: never copy reach geometry just to display a count or width. */
-  get reachSummary() {
-    const reaches = this.activeReaches;
-    const reach = reaches[0];
-    return Object.freeze({
-      reachCount: reaches.length,
-      first:
-        reach &&
-        Object.freeze({
-          pathMode: reach.config.path.mode,
-          controlPointCount: reach.config.path.points.length,
-          segmentLength: reach.config.path.segmentLength,
-          width: reach.config.shape.width,
-          depth: reach.config.shape.depth,
-          flowSpeed: reach.config.flow.speed,
-          sampleCount: reach.artifact.samples.length,
-          compiledLength: reach.artifact.totalLength
-        })
-    });
-  }
-
   get dropCount(): number {
     return this._activeId ? (this._runtimeSets.get(this._activeId)?.resource.data.drops?.length ?? 0) : 0;
-  }
-
-  get activeChunkCount(): number {
-    return this._activeChunks.length;
-  }
-
-  /** Finite surface chunks omitted by the active World's Terrain Horizon. */
-  get terrainOccludedChunkCount(): number {
-    return this._terrainOccludedChunkCount;
   }
 
   /** Applies one shared World Horizon to active finite chunks without changing authored/debug visibility. */
   refreshTerrainOcclusion(provider?: WaterTerrainOcclusionProvider): void {
     const activeId = this._activeId;
-    this._terrainOccludedChunkCount = 0;
     if (!activeId) {
       return;
     }
@@ -328,9 +284,6 @@ export class RiverRuntimeController {
         provider.isOccluded(chunk.terrainOcclusionKey, renderer.bounds);
       if (renderer.enabled === occluded) {
         renderer.enabled = !occluded;
-      }
-      if (occluded) {
-        this._terrainOccludedChunkCount++;
       }
     }
   }
@@ -360,10 +313,6 @@ export class RiverRuntimeController {
     return activeId === undefined ? undefined : this._runtimeSets.get(activeId)?.spatialFieldProvider;
   }
 
-  get surfaceDebugMode(): RiverSurfaceDebugMode {
-    return this._surfaceDebugMode;
-  }
-
   get macroDisplacementEnabled(): boolean {
     return this._macroDisplacementEnabled;
   }
@@ -378,10 +327,6 @@ export class RiverRuntimeController {
 
   get surfaceOpticsBinding(): Readonly<WaterSurfaceOpticsBinding> | undefined {
     return this._surfaceOpticsBinding;
-  }
-
-  get junctionVisibility(): boolean {
-    return this._junctionVisibility;
   }
 
   /**
@@ -431,14 +376,11 @@ export class RiverRuntimeController {
       this._activeQueryService = cached.queryService;
       cached.root.isActive = true;
       this._refreshSurfaceClock();
-      this._applyDebugTarget(cached.chunks);
       return {
         created: false,
         reaches: cached.reaches,
         queryService: cached.queryService,
         spatialFieldProvider: cached.spatialFieldProvider,
-        submittedChunkCount: 0,
-        yieldCount: 0,
         maxSliceMs: 0
       };
     }
@@ -454,8 +396,6 @@ export class RiverRuntimeController {
       reaches: runtimeSet.reaches,
       queryService: runtimeSet.queryService,
       spatialFieldProvider: runtimeSet.spatialFieldProvider,
-      submittedChunkCount: runtimeSet.chunks.length,
-      yieldCount: 0,
       maxSliceMs: 0
     };
   }
@@ -676,8 +616,6 @@ export class RiverRuntimeController {
         reaches,
         queryService: queryService!,
         spatialFieldProvider: spatialFieldProvider!,
-        submittedChunkCount: chunks.length - borrowedChunks.size,
-        yieldCount: submission.yieldCount,
         maxSliceMs: submission.maxSliceMs
       };
     } catch (error) {
@@ -740,28 +678,6 @@ export class RiverRuntimeController {
     }
   }
 
-  setDebugTarget(target: RiverRuntimeDebugTarget): void {
-    this._debugTarget = target;
-    this._applyDebugTarget(this._activeChunks);
-  }
-
-  /** Demo feature A/B hook: preserves all reach chunks while hiding generated junction surfaces. */
-  setJunctionVisibility(visible: boolean): void {
-    if (visible === this._junctionVisibility) return;
-    this._junctionVisibility = visible;
-    this._applyDebugTarget(this._activeChunks);
-  }
-
-  setSurfaceDebugMode(mode: RiverSurfaceDebugMode): void {
-    this._surfaceDebugMode = mode;
-    for (const runtimeSet of this._runtimeSets.values()) {
-      for (const reach of runtimeSet.reaches) {
-        setRiverSurfaceDebugMode(reach.materials.surface, mode);
-        if (reach.materials.surfaceLocalMap) setRiverSurfaceDebugMode(reach.materials.surfaceLocalMap, mode);
-      }
-    }
-  }
-
   setSurfaceFeatureFlags(macroDisplacementEnabled: boolean, microSurfaceEnabled: boolean): void {
     this._macroDisplacementEnabled = macroDisplacementEnabled;
     this._microSurfaceEnabled = microSurfaceEnabled;
@@ -812,8 +728,7 @@ export class RiverRuntimeController {
         opticalProfile: binding.opticalProfile,
         refractionEnabled: binding.refractionEnabled,
         reflection: binding.reflection,
-        reflectionSampling: binding.reflectionSampling,
-        debugView: binding.debugView
+        reflectionSampling: binding.reflectionSampling
       };
       this._surfaceOpticsBinding = cached;
     } else {
@@ -822,7 +737,6 @@ export class RiverRuntimeController {
       cached.refractionEnabled = binding.refractionEnabled;
       cached.reflection = binding.reflection;
       cached.reflectionSampling = binding.reflectionSampling;
-      cached.debugView = binding.debugView;
     }
     for (const runtimeSet of this._runtimeSets.values()) {
       for (const reach of runtimeSet.reaches) {
@@ -834,7 +748,7 @@ export class RiverRuntimeController {
     }
     for (const runtimeSet of this._runtimeSets.values()) {
       for (const chunk of runtimeSet.chunks) {
-        applyWaterSurfaceRendererContract(chunk.surfaceRenderer, !!cached.opticalProfile.surfaceScattering);
+        applyWaterSurfaceRendererContract(chunk.surfaceRenderer);
       }
     }
     this._recordAppliedReflectionBinding(cached.reflection);
@@ -1080,13 +994,11 @@ export class RiverRuntimeController {
           const materials: RiverRuntimeMaterialSet = { surface, surfaceLocalMap };
           pinMaterialSet(materials);
           setRiverSurfaceDepthWriteEnabled(materials.surface, this._depthWriteEnabled);
-          setRiverSurfaceDebugMode(materials.surface, this._surfaceDebugMode);
           setRiverSurfaceFeatureFlags(materials.surface, this._macroDisplacementEnabled, this._microSurfaceEnabled);
           setRiverSurfaceTimeOverride(materials.surface, this._surfaceTimeOverride);
           applyRiverSurfaceOpticsBinding(materials.surface, surfaceOpticsBinding);
           if (materials.surfaceLocalMap) {
             setRiverSurfaceDepthWriteEnabled(materials.surfaceLocalMap, this._depthWriteEnabled);
-            setRiverSurfaceDebugMode(materials.surfaceLocalMap, this._surfaceDebugMode);
             setRiverSurfaceFeatureFlags(
               materials.surfaceLocalMap,
               this._macroDisplacementEnabled,
@@ -1146,10 +1058,7 @@ export class RiverRuntimeController {
           : (compiledData.junctions[chunk.sourceIndex]?.id ?? chunk.id);
       root.transform.setPosition(chunk.localOrigin[0], chunk.localOrigin[1], chunk.localOrigin[2]);
       const surfaceRenderer = root.createChild(`${chunk.id}-water`).addComponent(MeshRenderer);
-      applyWaterSurfaceRendererContract(
-        surfaceRenderer,
-        !!this._surfaceOpticsBinding?.opticalProfile.surfaceScattering
-      );
+      applyWaterSurfaceRendererContract(surfaceRenderer);
       surfaceRenderer.priority = this._renderPriority;
       // Queries read immutable compiled buffers; render-only CPU copies end at upload.
       meshes = uploadRiverMeshes(this._engine, chunk, { releaseCpuData: true });
@@ -1177,32 +1086,12 @@ export class RiverRuntimeController {
         meshes,
         terrainOcclusionKey: `river:${networkId}:${chunk.id}`
       };
-      root.isActive = this._matchesDebugTarget(runtimeChunk);
+      root.isActive = true;
       return runtimeChunk;
     } catch (error) {
       root.destroy();
       destroyWaterOwnedMesh(meshes?.surfaceMesh);
       throw error;
-    }
-  }
-
-  private _applyDebugTarget(chunks: readonly MutableRiverRuntimeChunk[]): void {
-    for (const chunk of chunks) chunk.root.isActive = this._matchesDebugTarget(chunk);
-  }
-
-  private _matchesDebugTarget(chunk: MutableRiverRuntimeChunk): boolean {
-    if (!this._junctionVisibility && chunk.compiled.sourceKind === RiverChunkSourceKind.Junction) return false;
-    switch (this._debugTarget.kind) {
-      case "reach":
-        return chunk.compiled.sourceKind === RiverChunkSourceKind.Reach && chunk.sourceId === this._debugTarget.id;
-      case "junction":
-        return chunk.compiled.sourceKind === RiverChunkSourceKind.Junction && chunk.sourceId === this._debugTarget.id;
-      case "junctions":
-        return chunk.compiled.sourceKind === RiverChunkSourceKind.Junction;
-      case "chunk":
-        return chunk.compiled.id === this._debugTarget.id;
-      default:
-        return true;
     }
   }
 

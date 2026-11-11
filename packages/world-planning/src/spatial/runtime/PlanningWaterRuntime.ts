@@ -1,60 +1,60 @@
-import { scopedLook } from "@galacean/engine-water/water/native/WaterResources";
-import type { PlanningWaterUpdate } from "../hydrology/PlanningWaterEdits";
-import {
-  registerFarmlandsRiverLook,
-  registerRiverWaterBodyPresets,
-  riverQualityPlanIdForQuality,
-  registerRiverValleyLook
-} from "@galacean/engine-water/water/presets/river/index";
-import { planningWaterDependency } from "../../semantic-study/PlanningWaterDependency";
-import { hashStableValue } from "@galacean/engine-water/water/compiler/index";
-import {
-  WaterSystem,
-  type PreparedNativeWaterBatch,
-  WaterBodyComponent,
-  type WaterBodyConfiguration,
-  WaterBodyResource,
-  WaterLookResource,
-  WaterQualityResource
-} from "@galacean/engine-water/water/native/index";
-import { readSeedWorldWaterColor } from "@galacean/engine-water/world/SeedWorldWaterColor";
-import { planningLakeRequests } from "../../semantic-study/PlanningLakeSource";
-import { registerLakeWaterLook } from "@galacean/engine-water/water/presets/lake/index";
-import { createLakeNormalResourceFactory } from "@galacean/engine-water/water/resources/lake/index";
-import { Vector3, Layer, type Camera, type Engine, type Entity, type MeshRenderer } from "@galacean/engine";
+import { Layer, Vector3, type Camera, type Engine, type Entity, type MeshRenderer } from "@galacean/engine";
 import {
   SeedWorldArrayPickBatch,
   type SeedWorldPickVisitor
 } from "@galacean/engine-modify/rendering/SeedWorldPickBatch";
+import { hashStableValue } from "@galacean/engine-water/water/compiler/index";
 import {
-  createWaterBodyAsset,
-  WaterBodySourceKind,
-  WaterBodySourceSchemaVersion,
-  createWaterBodyInstance,
   createRiverWaterBodyAsset,
-  createRiverWaterBodyInstance
+  createRiverWaterBodyInstance,
+  createWaterBodyAsset,
+  createWaterBodyInstance,
+  WaterBodySourceKind,
+  WaterBodySourceSchemaVersion
 } from "@galacean/engine-water/water/index";
-import { registerOceanAuthoring } from "@galacean/engine-water/water/presets/ocean/index";
-
-import waterPresentation from "../../planning-data/water-rendering.json";
 import {
+  WaterBodyComponent,
+  WaterBodyResource,
+  WaterLookResource,
+  WaterQualityResource,
+  WaterSystem,
+  type PreparedNativeWaterBatch,
+  type WaterBodyConfiguration
+} from "@galacean/engine-water/water/native/index";
+import { scopedLook } from "@galacean/engine-water/water/native/WaterResources";
+import { registerLakeWaterLook } from "@galacean/engine-water/water/presets/lake/index";
+import { registerOceanAuthoring } from "@galacean/engine-water/water/presets/ocean/index";
+import {
+  registerFarmlandsRiverLook,
+  registerRiverValleyLook,
+  registerRiverWaterBodyPresets,
+  riverQualityPlanIdForQuality
+} from "@galacean/engine-water/water/presets/river/index";
+import { createLakeNormalResourceFactory } from "@galacean/engine-water/water/resources/lake/index";
+import { readSeedWorldWaterColor } from "@galacean/engine-water/world/SeedWorldWaterColor";
+import { planningLakeRequests } from "../../semantic-study/PlanningLakeSource";
+import { planningWaterDependency } from "../../semantic-study/PlanningWaterDependency";
+import type { PlanningWaterUpdate } from "../hydrology/PlanningWaterEdits";
+
+import {
+  createWaterSpatialFieldSample,
+  createWaterSurfaceSample,
+  resetWaterSurfaceSample,
   WaterSceneRuntimeHost,
   WaterSurfacePickingState,
-  type WaterSceneBodyRequest,
   type PublishedWaterSceneBodySet,
-  createWaterSurfaceSample,
-  createWaterSpatialFieldSample,
-  resetWaterSurfaceSample,
-  type WaterSurfaceSample,
-  type WaterEnvironmentReflectionSource
+  type WaterEnvironmentReflectionSource,
+  type WaterSceneBodyRequest,
+  type WaterSurfaceSample
 } from "@galacean/engine-water/water/runtime/index";
 import { TERRAIN_WATER_SSR_CAMERA_SETTINGS } from "../../integrations/grasslands/GrasslandsWaterPcg";
+import waterPresentation from "../../planning-data/water-rendering.json";
+import { registerSeedWorldAuthoredBasinAuthoringV1 } from "../../runtime/hydrology-v1/SeedWorldWaterAuthoringPresetsV1.ts";
 import type { IslandPlan } from "../../semantic-study/IslandPlanModel";
+import { planningLakeAssets } from "../../semantic-study/PlanningLakeSource";
 import { compilePlanningOcean, planningOceanRepresentation } from "../../semantic-study/PlanningOceanSource";
 import { planningRiverDescriptors } from "../../semantic-study/PlanningRiverSource";
 import { planningWaterRegions } from "./PlanningWaterQueries";
-import { planningLakeAssets } from "../../semantic-study/PlanningLakeSource";
-import { registerSeedWorldAuthoredBasinAuthoringV1 } from "../../runtime/hydrology-v1/SeedWorldWaterAuthoringPresetsV1.ts";
 
 import type { SeedWorldRef } from "../../agent-adapter/ports/SeedWorldEnginePort";
 
@@ -557,26 +557,6 @@ export class PlanningWaterRuntime {
     return body && !body.destroyed && !body.pendingDestroy && config
       ? readSeedWorldWaterColor(scopedLook(config.look, config.material))
       : undefined;
-  }
-
-  /** Inspect real active Water bodies and resource ownership for automated acceptance. */
-  getDiagnostics() {
-    const host = this.system.activeRuntimeHost?.getDiagnostics();
-    return {
-      ...host,
-      host: host ?? null,
-      runtimeState: this.system.runtimeState,
-      environmentReflection: this.system.runtimeState.effectiveEnabled
-        ? (this.system.activeEnvironment?.inspection ?? null)
-        : null,
-      ready: this.system.runtimeState.effectiveEnabled && (host?.activeBodyCount ?? 0) > 0,
-      visible:
-        this.system.runtimeState.effectiveEnabled &&
-        [...this.activeIds].some((id) => (id === "planning-ocean" ? this.oceanVisible : this.riversVisible)),
-      bodyCount: host?.activeBodyCount ?? 0,
-      hostRevision: host?.activeSceneRevision ?? this.publishedRevision,
-      chunkCount: host?.bodies.reduce((sum, body) => sum + body.activation.runtimeMetrics.drawCount, 0) ?? 0
-    };
   }
 
   /** Allocation-free query of the Host's actually published active body set. */

@@ -52,6 +52,5 @@
         sceneDepthDelta = sceneRayDepth * sceneRayEyeScale;
 #endif
         opticalDepth = min(sceneRayDepth, max(material_MaximumSurfaceOpticalDistance, 0.0));
-        depthRatio = saturate(opticalDepth / max(material_LocalMapDecode.y, 0.0001));
 #endif
 #endif

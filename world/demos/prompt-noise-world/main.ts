@@ -1,63 +1,63 @@
-import * as dat from "dat.gui";
-import { OrbitControl } from "@galacean/engine-toolkit-controls";
 import {
   Camera,
-  type Component,
   DirectLight,
-  type Entity,
   Layer,
   ScreenSpaceReflectionQuality,
   Script,
   TonemappingMode,
-  type VolumetricCloudQuality,
   Vector3,
   WeatherPresets,
   WebGLEngine,
-  WebGLMode
+  WebGLMode,
+  type Component,
+  type Entity,
+  type VolumetricCloudQuality
 } from "@galacean/engine";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
 import { TerrainClipmap } from "@galacean/engine-terrain/terrain/clipmap/TerrainClipmap";
-import { WorldEnvironmentRuntime } from "@galacean/engine-world-planning/integrations/terrain/environment/WorldEnvironmentRuntime";
-import type { TerrainRainImpactSurfaceProvider } from "@galacean/engine-world-planning/integrations/terrain/environment/TerrainRainImpactSurface";
-import { TerrainLightingRuntime } from "@galacean/engine-world-planning/integrations/terrain/lighting/TerrainLightingRuntime";
 import { loadTerrainScene } from "@galacean/engine-terrain/terrain/loader/TerrainSceneLoader";
 import { TerrainNavigationRuntime } from "@galacean/engine-terrain/terrain/project/TerrainNavigationRuntime";
 import { TerrainPostProcessRuntime } from "@galacean/engine-terrain/terrain/project/TerrainPostProcessRuntime";
-import { TerrainPerformancePanel } from "@galacean/engine-world-planning/integrations/terrain/performance/TerrainPerformancePanel";
 import { TerrainProjectClipmapRuntime } from "@galacean/engine-terrain/terrain/project/TerrainProjectClipmapRuntime";
 import { TerrainProjectDetailRuntime } from "@galacean/engine-terrain/terrain/project/TerrainProjectDetailRuntime";
 import { TerrainProjectPlacedPrefabRuntime } from "@galacean/engine-terrain/terrain/project/TerrainProjectPlacedPrefabRuntime";
-import { TerrainProjectTreeRuntime } from "@galacean/engine-terrain/terrain/project/TerrainProjectTreeRuntime";
 import { TerrainProjectWorldRuntime } from "@galacean/engine-terrain/terrain/project/TerrainProjectRuntime";
+import { TerrainProjectTreeRuntime } from "@galacean/engine-terrain/terrain/project/TerrainProjectTreeRuntime";
 import { TerrainWindRuntime } from "@galacean/engine-terrain/terrain/project/TerrainWindRuntime";
-import { TerrainWaterRuntime } from "@galacean/engine-world-planning/integrations/terrain/project/TerrainWaterRuntime";
+import { OrbitControl } from "@galacean/engine-toolkit-controls";
 import { WaterSceneRuntimeHost } from "@galacean/engine-water/water/runtime/index";
+import {
+  createPromptNoiseWorldRecipeV3Compatibility,
+  DEFAULT_PROMPT_NOISE_WORLD_RECIPE,
+  migratePromptNoiseWorldCodeV2,
+  PromptNoiseTerrainProgram,
+  type PromptNoiseOperatorTemplateId,
+  type PromptNoiseRiverControlPointV1,
+  type PromptNoiseRiverCurveMode,
+  type PromptNoiseTerrainBaseV1,
+  type PromptNoiseTerrainOperatorKind
+} from "@galacean/engine-world-planning/generation/noise/PromptNoiseTerrainProgram";
+import type { TerrainRainImpactSurfaceProvider } from "@galacean/engine-world-planning/integrations/terrain/environment/TerrainRainImpactSurface";
+import { WorldEnvironmentRuntime } from "@galacean/engine-world-planning/integrations/terrain/environment/WorldEnvironmentRuntime";
+import { TerrainLightingRuntime } from "@galacean/engine-world-planning/integrations/terrain/lighting/TerrainLightingRuntime";
+import { TerrainPerformancePanel } from "@galacean/engine-world-planning/integrations/terrain/performance/TerrainPerformancePanel";
+import { TerrainWaterRuntime } from "@galacean/engine-world-planning/integrations/terrain/project/TerrainWaterRuntime";
+import "@galacean/engine-world-planning/runtime/script-registry";
+import * as dat from "dat.gui";
+import { PromptNoiseDecorationRuntime } from "./src/PromptNoiseDecorationRuntime.ts";
+import { PromptNoiseFreeRoamMode } from "./src/PromptNoiseFreeRoamMode.ts";
 import {
   PromptNoiseGenerationWorkerClient,
   type PromptNoiseWorkerMetrics
 } from "./src/PromptNoiseGenerationWorkerClient.ts";
-import { PromptNoiseDecorationRuntime } from "./src/PromptNoiseDecorationRuntime.ts";
-import { PromptNoiseFreeRoamMode } from "./src/PromptNoiseFreeRoamMode.ts";
+import { PROMPT_NOISE_RIVER_MAX_HALF_WIDTH, PromptNoiseRiverWaterRuntime } from "./src/PromptNoiseRiverWaterRuntime.ts";
 import {
   PromptNoiseTerrainAuthoring,
   type PromptNoiseAuthoringSnapshotV1,
   type PromptNoiseTargetModeV1
 } from "./src/PromptNoiseTerrainAuthoring.ts";
 import { PromptNoiseTerrainBinding, type PromptNoiseTerrainFeature } from "./src/PromptNoiseTerrainBinding.ts";
-import { PROMPT_NOISE_RIVER_MAX_HALF_WIDTH, PromptNoiseRiverWaterRuntime } from "./src/PromptNoiseRiverWaterRuntime.ts";
 import { PromptNoiseWorldRevisionCoordinator } from "./src/PromptNoiseWorldRevisionCoordinator.ts";
-import {
-  DEFAULT_PROMPT_NOISE_WORLD_RECIPE,
-  createPromptNoiseWorldRecipeV3Compatibility,
-  migratePromptNoiseWorldCodeV2,
-  PromptNoiseTerrainProgram,
-  type PromptNoiseOperatorTemplateId,
-  type PromptNoiseRiverControlPointV1,
-  type PromptNoiseRiverCurveMode,
-  type PromptNoiseTerrainOperatorKind,
-  type PromptNoiseTerrainBaseV1
-} from "@galacean/engine-world-planning/generation/noise/PromptNoiseTerrainProgram";
-import "@galacean/engine-world-planning/runtime/script-registry";
 
 const MESH_SIZE = 48;
 const MESH_LODS = 7;
@@ -146,7 +146,7 @@ interface PureNoiseSnapshot {
   readonly activeRegionCount: 0;
   readonly heightmapBytes: 0;
   readonly alphamapBytes: 0;
-  readonly waterBytes: number;
+
   readonly generatedInstanceBytes: number;
   readonly terrainLayerCount: 2;
   readonly textureSourceBytes: number;
@@ -158,8 +158,7 @@ interface PureNoiseSnapshot {
   readonly shadowCascade: ReturnType<TerrainLightingRuntime["getShadowCascadeTuning"]>;
   readonly postProcess: ReturnType<TerrainPostProcessRuntime["getDebugSnapshot"]>;
   readonly environment: ReturnType<WorldEnvironmentRuntime["getSnapshot"]>;
-  readonly riverWater: ReturnType<PromptNoiseRiverWaterRuntime["getSnapshot"]>;
-  readonly waterHost: ReturnType<PromptNoiseRiverWaterRuntime["getHostDiagnostics"]>;
+
   readonly worldRevision: ReturnType<PromptNoiseWorldRevisionCoordinator["getSnapshot"]>;
   readonly decoration: ReturnType<PromptNoiseDecorationRuntime["getSnapshot"]>;
   readonly freeRoam: {
@@ -176,7 +175,6 @@ interface PureNoiseTeardownSnapshot {
   readonly terrain: ReturnType<PromptNoiseTerrainBinding["getTerrainProgram"]>;
   readonly worker: PromptNoiseWorkerMetrics;
   readonly decoration: ReturnType<PromptNoiseDecorationRuntime["getSnapshot"]>;
-  readonly waterHost: ReturnType<PromptNoiseRiverWaterRuntime["getHostDiagnostics"]>;
 }
 
 interface PureNoiseDemoApi {
@@ -332,7 +330,7 @@ class PureNoiseWorldDriver extends Script {
       activeRegionCount: 0,
       heightmapBytes: 0,
       alphamapBytes: 0,
-      waterBytes: this.riverWater.getSnapshot().waterBytes,
+
       generatedInstanceBytes: this.decoration.getSnapshot().generatedInstanceBytes,
       terrainLayerCount: 2,
       textureSourceBytes: TEXTURE_SOURCE_BYTES,
@@ -344,8 +342,7 @@ class PureNoiseWorldDriver extends Script {
       shadowCascade: this.lighting.getShadowCascadeTuning(),
       postProcess: this.postProcess.getDebugSnapshot(),
       environment: this.environment.getSnapshot(),
-      riverWater: this.riverWater.getSnapshot(),
-      waterHost: this.riverWater.getHostDiagnostics(),
+
       worldRevision: this.worldCoordinator.getSnapshot(),
       decoration: this.decoration.getSnapshot(),
       freeRoam: Object.freeze({
@@ -499,7 +496,6 @@ async function boot(): Promise<void> {
   const worldCoordinator = new PromptNoiseWorldRevisionCoordinator(binding, riverWater, generationWorker, decoration);
   clipmap.setWireframe(false);
   performancePanel.setSceneMetricsProvider(() => {
-    const water = riverWater.getSnapshot();
     const sceneObjects = decoration.getSnapshot();
     return {
       clipmapSegments: clipmap.segmentCount,
@@ -514,8 +510,7 @@ async function boot(): Promise<void> {
       treeLodGroups: sceneObjects.treeCount > 0 ? 1 : 0,
       prefabInstances: sceneObjects.prefabCount,
       prefabLodGroups: sceneObjects.prefabCount > 0 ? 1 : 0,
-      waterVisible: water.active,
-      waterChunks: water.chunkCount,
+
       msaaSamples: camera.msaaSamples,
       postProcessEnabled: postProcess.profileEnabled,
       shadowCascadeCount: scene.shadowCascades
@@ -1259,8 +1254,7 @@ async function boot(): Promise<void> {
         authoring: authoring.snapshot(),
         terrain: binding.getTerrainProgram(),
         worker: generationWorker.metrics,
-        decoration: decoration.getSnapshot(),
-        waterHost: waterHost.getDiagnostics()
+        decoration: decoration.getSnapshot()
       });
       window.promptNoiseWorldDemoTeardown = receipt;
       window.promptNoiseWorldDemo = undefined;
@@ -1355,7 +1349,10 @@ async function boot(): Promise<void> {
       orbit.target.z += deltaZ;
     },
     setRiverInspectionView: () => {
-      const bounds = riverWater.getHostDiagnostics().bodies.find(({ kind }) => kind === "river")?.logicalBounds;
+      let bounds: Readonly<{ minX: number; minZ: number; maxX: number; maxZ: number }> | undefined;
+      waterHost.forEachBodyBounds((candidate) => {
+        bounds ??= candidate;
+      });
       if (!bounds) return false;
       const centerX = (bounds.minX + bounds.maxX) * 0.5;
       const centerZ = (bounds.minZ + bounds.maxZ) * 0.5;
@@ -1731,10 +1728,6 @@ function deactivateGrasslandsWorldContent(roots: readonly Entity[]): void {
 
 function renderMetrics(snapshot: PureNoiseSnapshot): void {
   const authoring = snapshot.authoring;
-  const waterDrawCount = snapshot.waterHost.bodies.reduce(
-    (sum, body) => sum + body.activation.runtimeMetrics.drawCount,
-    0
-  );
   document.getElementById("metrics")!.innerHTML =
     `<strong class="good">READY · OPERATOR LAB · DPR ${snapshot.dpr}</strong><pre>${[
       `renderer  ${snapshot.renderer}`,
@@ -1755,7 +1748,6 @@ function renderMetrics(snapshot: PureNoiseSnapshot): void {
       `lighting  ${snapshot.lighting.timeHours.toFixed(1)}h · fog ${snapshot.lighting.fog ? "on" : "off"} · shadow ${snapshot.lighting.shadows ? "on" : "off"} ${snapshot.shadowCascade.distance.toFixed(0)}m`,
       `post      ${snapshot.postProcess.enabled ? "on" : "off"} · tone ${snapshot.postProcess.tonemapping ? "on" : "off"} · bloom ${snapshot.postProcess.bloom.enabled ? "on" : "off"}`,
       `weather   snow ${snapshot.environment.surface.snowCover.toFixed(2)} · rain ${snapshot.environment.weather.precipitation.rainRate.toFixed(2)}`,
-      `water     ${snapshot.riverWater.riverCount} rivers · ${snapshot.riverWater.active ? "active" : snapshot.riverWater.compiling ? "compiling" : "off"} · compile ${snapshot.riverWater.compileCount} · upload ${snapshot.riverWater.chunkCount} · draw ${waterDrawCount} · ${formatBytes(snapshot.riverWater.waterBytes)}${snapshot.riverWater.widthLimitedRiverCount > 0 ? ` · width-limited ${snapshot.riverWater.widthLimitedRiverCount}` : ""}`,
       `scene     ${snapshot.decoration.vegetationCount} vegetation · ${snapshot.decoration.riverBankRockCount} bank rocks · ${snapshot.decoration.bridgeCount} bridge · query ${snapshot.decoration.waterQueryHitCount}/${snapshot.decoration.waterQuerySampleCount}`,
       `status    ${authoring.status}`
     ].join("\n")}</pre>`;

@@ -1,9 +1,5 @@
 import type { TextureCube } from "@galacean/engine-core";
 import type { Vector3, Vector4 } from "@galacean/engine-math";
-import type { WaterOpticalColor, WaterOpticalProfile, WaterOpticalRgb } from "./WaterOpticalProfile";
-import type { WaterSurfaceScattering } from "./WaterOpticalProfile";
-import type { WaterReflectionSource } from "./WaterReflectionPolicy";
-import type { WaterReflectionBinding, WaterReflectionComposition } from "./WaterReflectionService";
 import type { WaterReflectionPolicyMode } from "../../authoring/optics/WaterReflectionPolicy";
 import type {
   WaterReflectionFilterSampleCount,
@@ -14,51 +10,15 @@ import type {
   WaterEnvironmentReflectionColorSpace,
   WaterEnvironmentReflectionVector3
 } from "./WaterEnvironmentReflectionTypes";
+import type { WaterOpticalColor, WaterOpticalProfile, WaterOpticalRgb } from "./WaterOpticalProfile";
+import type { WaterReflectionSource } from "./WaterReflectionPolicy";
+import type { WaterReflectionBinding, WaterReflectionComposition } from "./WaterReflectionService";
 
 export type { WaterReflectionBinding } from "./WaterReflectionService";
 
 /** P1 surface-optics tiers. Experimental deliberately resolves through the High shader path. */
 export type WaterOpticsTier = "medium" | "high" | "experimental";
 export type ResolvedWaterOpticsTier = Exclude<WaterOpticsTier, "experimental">;
-
-/**
- * Shared debug values. Numeric values 0-22 are frozen by the P0 Heightfield shader ABI.
- * Surface Appearance V1 appends 23-29; reflection composition appends 30 and 33.
- * Removed diagnostics retain their numeric holes so existing values stay ABI-compatible.
- */
-export enum WaterOpticsDebugView {
-  Final = 0,
-  BaseHeight = 1,
-  BaseNormal = 2,
-  SignedDistance = 3,
-  Depth = 4,
-  Flow = 5,
-  WaveDisplacement = 6,
-  CenteredOpaqueColor = 7,
-  DisplacedOpaqueColor = 8,
-  RefractionUvDelta = 9,
-  OpticalDepth = 10,
-  DepthContinuity = 11,
-  SampleValidity = 12,
-  Fresnel = 13,
-  ShaderCompositedColor = 14,
-  SurfaceAlpha = 15,
-  ReflectionSource = 16,
-  ClipSide = 18,
-  RefractionAmount = 19,
-  RefractionGates = 20,
-  ReflectionColor = 21,
-  NormalDotView = 22,
-  DetailNormal = 23,
-  SceneDepthDelta = 24,
-  DepthTint = 25,
-  ContactFoam = 26,
-  CoastalAlpha = 27,
-  DirectSpecular = 28,
-  EffectiveRoughness = 29,
-  EnvironmentReflection = 30,
-  CompositeReflection = 33
-}
 
 /** One complete, caller-owned input snapshot. Applying the same mutable object twice still performs every write. */
 export interface WaterSurfaceOpticsBinding {
@@ -67,12 +27,10 @@ export interface WaterSurfaceOpticsBinding {
   readonly refractionEnabled: boolean;
   readonly reflection: Readonly<WaterReflectionBinding> | undefined;
   readonly reflectionSampling?: WaterReflectionSamplingConfig;
-  readonly debugView: WaterOpticsDebugView | number;
 }
 
 /** Cached mutable values owned by one material adapter. This state owns no GPU resources. */
 export interface WaterSurfaceOpticsBindingState {
-  readonly surfaceScatteringCoefficient: Vector3;
   readonly opticalAbsorption: Vector3;
   readonly opticalScatteringColor: Vector3;
   /** cos/sin of inverse Y rotation, exposure*intensity, and source-sRGB flag. */
@@ -99,7 +57,6 @@ export interface WaterSurfaceOpticsBindingState {
 }
 
 export interface ResolvedWaterOpticalProfile {
-  readonly surfaceScattering?: WaterSurfaceScattering;
   readonly absorptionCoefficient: WaterOpticalRgb;
   readonly scatteringColor: WaterOpticalRgb;
   readonly scatteringCoefficient: number;
@@ -178,7 +135,6 @@ export interface WaterSurfaceOpticsReflectionReadback extends WaterReflectionSam
 export interface WaterSurfaceOpticsBindingReadback extends WaterSurfaceOpticsReflectionReadback {
   readonly opticalProfile: Readonly<ResolvedWaterOpticalProfile>;
   readonly refractionEnabled: boolean;
-  readonly debugView: WaterOpticsDebugView;
 }
 
 /** Caller-owned output for the CPU reference implementation of surface optics. */

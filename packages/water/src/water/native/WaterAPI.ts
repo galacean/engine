@@ -1,36 +1,33 @@
-import { waterMaterialKey } from "./WaterMaterial";
 import { resolveWatercourse } from "../authoring/river/Watercourse";
 import { watercourseGeometry } from "../authoring/river/WatercourseGeometry";
-import { sampleWaterTerrainHeight, isWaterTerrainSnapshot } from "../authoring/terrain/WaterTerrainSnapshot";
-import type { WaterBodyAsset } from "../authoring/body/WaterBodyAsset";
-import type { WaterLookAuthoringComponents } from "../authoring/surface/WaterLookAuthoringSnapshot";
-import type { WaterQualityPlanV2 } from "../authoring/quality/WaterQualityPlan";
+import { isWaterTerrainSnapshot, sampleWaterTerrainHeight } from "../authoring/terrain/WaterTerrainSnapshot";
+import type {
+  WaterCommand,
+  WaterCommands,
+  WaterDefinition,
+  WaterErrorCode,
+  WaterInstanceSettings,
+  WaterResult
+} from "./WaterAPIContract";
 import { WaterBodyComponent, type WaterBodyConfiguration } from "./WaterBodyComponent";
+import { waterMaterialKey } from "./WaterMaterial";
 import {
   WaterBodyResource,
   WaterLookResource,
   WaterQualityResource,
+  parseWaterData,
   scopedLook,
-  stringifyWaterData,
-  parseWaterData
+  stringifyWaterData
 } from "./WaterResources";
 import { WaterSystem } from "./WaterSystem";
 
 export type {
-  WaterDefinition,
-  WaterCommands,
   WaterCommand,
-  WaterErrorCode,
-  WaterResult,
-  WaterInstanceSettings
-} from "./WaterAPIContract";
-import type {
-  WaterDefinition,
   WaterCommands,
-  WaterCommand,
+  WaterDefinition,
   WaterErrorCode,
-  WaterResult,
-  WaterInstanceSettings
+  WaterInstanceSettings,
+  WaterResult
 } from "./WaterAPIContract";
 
 /** Runtime-checked metadata: adding an operation requires adding both its implementation and knowledge. */
@@ -131,8 +128,7 @@ export class WaterAPI {
               points: geometry.points,
               drops: geometry.drops
             },
-            requiresHostAcceptance: true,
-            diagnostics: { dropCount: geometry.drops.length, surfaceReachCount: geometry.paths.length }
+            requiresHostAcceptance: true
           };
           break;
         }
@@ -164,8 +160,7 @@ export class WaterAPI {
             kind: body?.configuration?.asset.kind,
             limits: { activeOceansPerScene: 1 },
             unsupported: WATER_KNOWLEDGE.unsupported,
-            terrainMutation: "host-coordinated",
-            query: body ? this.system.inspect(body.waterId).inspection?.capabilities : undefined
+            terrainMutation: "host-coordinated"
           };
           break;
         }
@@ -334,7 +329,7 @@ export class WaterAPI {
   private describeMetadata(body: WaterBodyComponent) {
     const config = body.configuration!;
     return {
-      ...this.system.inspect(body.waterId),
+      ...this.system.getBodyState(body.waterId),
       name: body.entity.name,
       bodyRevision: body.revision,
       terrain: { authority: "host", modifiedByWater: false },

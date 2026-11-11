@@ -83,7 +83,6 @@ export function registerRiverValleyLook(registry: WaterBodyAssetRegistry): void 
     profile: {
       ...base.optics.profile,
       absorptionCoefficient: [0.65, 0.025, 0.015],
-      surfaceScattering: { coefficientPerMeter: [0.02, 0.12, 0.16], phaseG: 0 },
       roughness: 0.28,
       refractionStrength: 0.3
     }

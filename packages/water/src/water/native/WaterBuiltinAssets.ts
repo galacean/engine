@@ -1,7 +1,8 @@
 import { Texture2D, type Engine } from "@galacean/engine-core";
 import type { WaterResourceAssetDescriptorV1 } from "../authoring/body/WaterBodyAuthoringTypes";
-import type { WaterRuntimeResourceFactory } from "../runtime/resources/WaterRuntimeResourceRegistry";
 import { digestSha256Hex } from "../resources/sha256";
+import type { WaterRuntimeResourceFactory } from "../runtime/resources/WaterRuntimeResourceRegistry";
+import conversion from "./assets/conversion.json";
 
 /** Editable Source and native project assets. Camera and Terrain hosts remain application inputs. */
 export const BUILTIN_WATER_PROJECT_URL = new URL("./assets/project.json", import.meta.url).href;
@@ -16,6 +17,20 @@ interface TextureAsset {
 }
 const resolvers = new WeakMap<Engine, (path: string) => string>();
 const converted = new WeakMap<Engine, Promise<TextureAsset[]>>();
+
+/** Identity is the packaged conversion contract, never a second fetch of a loaded texture. */
+export function builtinWaterTextureDescriptor(path: string): WaterResourceAssetDescriptorV1 {
+  const asset = conversion.find((asset) => asset.target === path && ["Texture", "KTX2"].includes(asset.type));
+  if (!asset) throw new Error(`Missing native Water texture '${path}'.`);
+  return Object.freeze({
+    schemaVersion: 1,
+    id: `builtin-water-texture:${asset.sha256}`,
+    kind: "texture",
+    contentHash: asset.sha256,
+    ownership: "shared",
+    fallbackPolicy: "required"
+  });
+}
 
 /** Host-owned delivery URLs for the same immutable native resource closure. */
 export function configureWaterBuiltinAssets(engine: Engine, resolve: (path: string) => string): void {
@@ -43,6 +58,8 @@ async function textures(engine: Engine): Promise<TextureAsset[]> {
 export async function loadBuiltinWaterTexture(engine: Engine, path: string, signal?: AbortSignal): Promise<Texture2D> {
   const asset = (await textures(engine)).find((asset) => asset.target === path);
   if (!asset || !["Texture", "KTX2"].includes(asset.type)) throw new Error(`Missing native Water texture '${path}'.`);
+  if (asset.sha256 !== builtinWaterTextureDescriptor(path).contentHash)
+    throw new Error(`Native Water texture '${path}' does not match the packaged conversion identity.`);
   const url = resolvers.get(engine)?.(path) ?? new URL(path, BUILTIN_WATER_PROJECT_URL).href;
   const response = await fetch(url, { signal });
   if (!response.ok || (await digestSha256Hex(await response.arrayBuffer())) !== asset.sha256)

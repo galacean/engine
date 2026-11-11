@@ -11,9 +11,12 @@ import {
   type WindStandardAcceptanceResult,
   type WindStandardAcceptanceScenarioSnapshot
 } from "@galacean/engine-environment/wind/WindStandardAcceptanceScenario";
+import type {
+  TerrainWindRuntime,
+  TerrainWindRuntimeSnapshot
+} from "@galacean/engine-terrain/terrain/project/TerrainWindRuntime";
 import type { WorldEnvironmentRuntime } from "@galacean/engine-world-planning/integrations/terrain/environment/WorldEnvironmentRuntime";
-import type { TerrainWindRuntime, TerrainWindRuntimeSnapshot } from "@galacean/engine-terrain/terrain/project/TerrainWindRuntime";
-import type { SeedWorldWaterRuntime, SeedWorldWaterRuntimeDiagnostics } from "@galacean/engine-world-planning/runtime/SeedWorldWaterRuntime";
+import type { SeedWorldWaterRuntime } from "@galacean/engine-world-planning/runtime/SeedWorldWaterRuntime";
 
 export type SeedWorldWindConsumerId = "tree" | "grass" | "flower" | "shrub" | "cloud" | "rain" | "snow" | "water";
 
@@ -124,7 +127,7 @@ export interface SeedWorldWindAcceptanceDiagnostics {
   readonly contracts: typeof SEED_WORLD_WIND_CONSUMER_CONTRACTS;
   readonly wind: TerrainWindRuntimeSnapshot;
   readonly environment: ReturnType<WorldEnvironmentRuntime["getSnapshot"]>;
-  readonly water: SeedWorldWaterRuntimeDiagnostics;
+
   readonly population: SeedWorldWindPopulationDiagnostics | null;
   readonly scenario: WindStandardAcceptanceScenarioSnapshot;
   readonly consumerSummaries: Readonly<Record<SeedWorldWindConsumerId, WindAcceptanceSummary>>;
@@ -305,7 +308,7 @@ export class SeedWorldWindAcceptanceRuntime {
       contracts: SEED_WORLD_WIND_CONSUMER_CONTRACTS,
       wind: this._wind.getSnapshot(),
       environment: this._environment.getSnapshot(),
-      water: this._water.getDiagnostics(),
+
       population: this._getPopulation(),
       scenario: this._scenario.getSnapshot(),
       consumerSummaries: freezeConsumerRecord((id) => this._recorders[id].getSummary()),

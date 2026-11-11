@@ -1,41 +1,4 @@
-import { registerWaterSurfacePicking } from "../surface/WaterSurfacePicking";
-import { WATER_CONNECTION_SHADER } from "../connections/WaterConnectionBinding";
-/** Authoritative, render-only Ocean material. */
-import { OceanDebugView, assertOceanDebugView } from "./OceanDebugView";
-import { createWaterSurfaceV2ResolvedOutputStatement } from "../surface/WaterSurfaceClosureShader";
-import type { CompiledWaterRenderContractV1 } from "../../compiler/surface/CompiledWaterRenderContractTypes";
-import { createOceanTuningFromRenderContract, getCanonicalOceanRenderContract } from "./OceanRenderContract";
-import {
-  createOceanSurfaceShaderAssembly,
-  createOceanAppearanceShaderSource,
-  createOceanDepthResponseShaderSource,
-  createOceanBoundaryShaderSource
-} from "./OceanSurfaceShaderAssembly";
-import {
-  bindOceanRenderContractUniforms,
-  bindOceanNearshoreUniforms,
-  type OceanNearshoreBinding
-} from "./OceanSurfaceUniformBinding";
-import oceanSurfaceUniforms from "../../shaders/ocean/SurfaceUniforms.glsl?raw";
-import oceanGeometryTemplate from "../../shaders/ocean/OceanGeometry.glsl?raw";
-import oceanRefractionTemplate from "../../shaders/ocean/OceanRefraction.glsl?raw";
-import oceanSurfaceDetailTemplate from "../../shaders/ocean/OceanSurfaceDetail.glsl?raw";
-import oceanWaveSpectrumTemplate from "../../shaders/ocean/OceanWaveSpectrum.glsl?raw";
-import oceanForwardPassTemplate from "../../shaders/ocean/ForwardPass.glsl?raw";
-import oceanShaderTemplate from "../../shaders/Ocean.shader?raw";
-import { renderWaterShaderTemplate } from "../material/WaterShaderTemplate";
-import {
-  registerGeneratedWaterShaderInclude,
-  registerGeneratedWaterShaderModule,
-  withScopedWaterShaderAssemblyRegistry
-} from "../material/WaterShaderLibrary";
 import { type Engine, Material, type Shader, type Texture } from "@galacean/engine-core";
-import { createWaterMaterialVariant } from "../material/WaterMaterialVariant";
-import {
-  createWaterShaderModule,
-  resolveWaterShaderModule,
-  type WaterShaderModule
-} from "../material/WaterShaderModule";
 import { Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import {
   OCEAN_LOOK,
@@ -44,35 +7,69 @@ import {
   OCEAN_WAVE_KERNEL
 } from "../../authoring/ocean/presets/OceanLook";
 import { hashStableValue } from "../../compiler/shared/determinism";
+import type { CompiledWaterRenderContractV1 } from "../../compiler/surface/CompiledWaterRenderContractTypes";
+import oceanShaderTemplate from "../../shaders/Ocean.shader?raw";
+import oceanForwardPassTemplate from "../../shaders/ocean/ForwardPass.glsl?raw";
+import oceanGeometryTemplate from "../../shaders/ocean/OceanGeometry.glsl?raw";
+import oceanRefractionTemplate from "../../shaders/ocean/OceanRefraction.glsl?raw";
+import oceanSurfaceDetailTemplate from "../../shaders/ocean/OceanSurfaceDetail.glsl?raw";
+import oceanWaveSpectrumTemplate from "../../shaders/ocean/OceanWaveSpectrum.glsl?raw";
+import oceanSurfaceUniforms from "../../shaders/ocean/SurfaceUniforms.glsl?raw";
+import { WATER_CONNECTION_SHADER } from "../connections/WaterConnectionBinding";
+import { createWaterMaterialVariant } from "../material/WaterMaterialVariant";
+import {
+  registerGeneratedWaterShaderInclude,
+  registerGeneratedWaterShaderModule,
+  withScopedWaterShaderAssemblyRegistry
+} from "../material/WaterShaderLibrary";
+import {
+  createWaterShaderModule,
+  resolveWaterShaderModule,
+  type WaterShaderModule
+} from "../material/WaterShaderModule";
+import { renderWaterShaderTemplate } from "../material/WaterShaderTemplate";
 import {
   WATER_ENVIRONMENT_REFLECTION_SHADER_FUNCTIONS,
   WATER_ENVIRONMENT_REFLECTION_UNIFORM_DECLARATIONS
 } from "../optics/WaterEnvironmentReflectionShader";
+import type { WaterReflectionBinding } from "../optics/WaterReflectionService";
 import {
   applyWaterSurfaceOpticsBinding,
   applyWaterSurfaceReflectionBinding,
   createWaterSurfaceOpticsBindingState
 } from "../optics/WaterSurfaceOpticsBinding";
-import type { WaterReflectionBinding } from "../optics/WaterReflectionService";
 import {
-  WaterOpticsDebugView,
   type WaterSurfaceOpticsBindingState,
   type WaterSurfaceOpticsReflectionReadback
 } from "../optics/WaterSurfaceOpticsTypes";
+import { createWaterSpatialFieldShaderDecodeFunctions } from "../spatial/WaterSpatialFieldShaderDecode";
 import {
   WATER_SURFACE_AMBIENT_LIGHTING_SHADER_FUNCTIONS,
   WATER_SURFACE_AMBIENT_LIGHTING_UNIFORM_DECLARATIONS
 } from "../surface/WaterSurfaceAmbientLightingShader";
-import { createWaterSpatialFieldShaderDecodeFunctions } from "../spatial/WaterSpatialFieldShaderDecode";
+import { createWaterSurfaceV2ResolvedOutputStatement } from "../surface/WaterSurfaceClosureShader";
+import { registerWaterSurfacePicking } from "../surface/WaterSurfacePicking";
 import { bindOceanFarFieldTuning, OCEAN_FAR_FIELD_SHADER_FUNCTIONS } from "./OceanFarFieldShader";
-import type { OceanTextures } from "./OceanTextureLibrary";
-import { createOceanRuntimeTuning, type OceanRuntimeTuning } from "./OceanRuntimeTuning";
 import { OCEAN_GEOMETRY_WAVE_BANDLIMIT } from "./OceanGeometryWaveBandlimit";
+import { createOceanTuningFromRenderContract, getCanonicalOceanRenderContract } from "./OceanRenderContract";
+import { createOceanRuntimeTuning, type OceanRuntimeTuning } from "./OceanRuntimeTuning";
 import {
   createOceanSceneFogApplication,
   createOceanSceneFogDeclarations,
   OCEAN_SCENE_FOG_ENABLED_PROPERTY
 } from "./OceanSceneFogShader";
+import {
+  createOceanAppearanceShaderSource,
+  createOceanBoundaryShaderSource,
+  createOceanDepthResponseShaderSource,
+  createOceanSurfaceShaderAssembly
+} from "./OceanSurfaceShaderAssembly";
+import {
+  bindOceanNearshoreUniforms,
+  bindOceanRenderContractUniforms,
+  type OceanNearshoreBinding
+} from "./OceanSurfaceUniformBinding";
+import type { OceanTextures } from "./OceanTextureLibrary";
 
 export const OCEAN_SHADER_NAME = "AIWorld/Ocean";
 export const OCEAN_SHADER_REQUIRED_BINDINGS = Object.freeze([
@@ -92,8 +89,7 @@ export interface OceanMaterialConfig {
   readonly reflection?: Readonly<WaterReflectionBinding>;
   readonly surfaceTimeOverride?: number;
   readonly cameraFeaturesAvailable?: boolean;
-  readonly debugView?: OceanDebugView;
-  readonly lodDebug?: boolean;
+
   readonly sceneFogEnabled: boolean;
   readonly tuning?: Readonly<OceanRuntimeTuning>;
 }
@@ -106,8 +102,7 @@ export interface OceanMaterialState {
   readonly opticsBindingState: WaterSurfaceOpticsBindingState;
   tuning: Readonly<OceanRuntimeTuning>;
   cameraFeaturesAvailable: boolean;
-  debugView: OceanDebugView;
-  lodDebug: boolean;
+
   bandlimitViewportHeight: number;
 }
 
@@ -398,8 +393,6 @@ function initializeOceanMaterialUniforms(state: OceanMaterialState, config: Read
   material.shaderData.setFloat("material_WaterLevel", config.waterLevel);
   material.shaderData.setFloat("material_SurfaceTimeOverride", config.surfaceTimeOverride ?? -1);
   material.shaderData.setFloat("material_CameraFeaturesAvailable", config.cameraFeaturesAvailable === false ? 0 : 1);
-  material.shaderData.setFloat("material_DebugView", config.debugView ?? OceanDebugView.Final);
-  material.shaderData.setFloat("material_LodDebug", config.lodDebug === true ? 1 : 0);
   material.shaderData.setFloat(OCEAN_SCENE_FOG_ENABLED_PROPERTY, config.sceneFogEnabled ? 1 : 0);
   material.shaderData.setFloat("material_OceanBandlimitViewportHeight", state.bandlimitViewportHeight);
   material.shaderData.setVector2(
@@ -425,8 +418,7 @@ export function createOceanMaterial(engine: Engine, config: Readonly<OceanMateri
     tier: "high",
     opticalProfile: contract.optics.profile,
     refractionEnabled: true,
-    reflection: config.reflection,
-    debugView: WaterOpticsDebugView.Final
+    reflection: config.reflection
   });
   const state: OceanMaterialState = {
     renderContract: contract,
@@ -436,8 +428,7 @@ export function createOceanMaterial(engine: Engine, config: Readonly<OceanMateri
     opticsBindingState,
     tuning,
     cameraFeaturesAvailable: config.cameraFeaturesAvailable !== false,
-    debugView: config.debugView ?? OceanDebugView.Final,
-    lodDebug: config.lodDebug === true,
+
     bandlimitViewportHeight: Math.max(engine.canvas.height, 1)
   };
   initializeOceanMaterialUniforms(state, config);
@@ -479,15 +470,4 @@ export function setOceanBandlimitViewportHeight(state: OceanMaterialState, viewp
 export function setOceanCameraFeaturesAvailable(state: OceanMaterialState, available: boolean): void {
   state.cameraFeaturesAvailable = available;
   state.material.shaderData.setFloat("material_CameraFeaturesAvailable", available ? 1 : 0);
-}
-
-export function setOceanDebugView(state: OceanMaterialState, debugView: OceanDebugView): void {
-  assertOceanDebugView(debugView);
-  state.debugView = debugView;
-  state.material.shaderData.setFloat("material_DebugView", debugView);
-}
-
-export function setOceanLodDebug(state: OceanMaterialState, enabled: boolean): void {
-  state.lodDebug = enabled;
-  state.material.shaderData.setFloat("material_LodDebug", enabled ? 1 : 0);
 }

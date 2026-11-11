@@ -1,55 +1,55 @@
 import type { Entity } from "@galacean/engine-core";
 import {
+  createWaterBodyInstance,
   WaterBodySourceKind,
   type WaterBodySourceV1,
-  createWaterBodyInstance,
   type WaterOceanRepresentationStateV1
 } from "@galacean/engine-water/water/index";
 
 import type { WaterBodyAsset } from "@galacean/engine-water/water/index";
-import type {
-  WaterBodyBackend,
-  PreparedWaterSceneBodySetTransaction,
-  WaterSceneBodyRequest,
-  LakeWaterLevelRuntimeReadback,
-  OceanWaterLevelRuntimeReadback
-} from "@galacean/engine-water/water/runtime/index";
 import {
   HEIGHTFIELD_WATER_BACKEND_ID,
   HeightfieldWaterBackend,
   type HeightfieldWaterBackendRuntimeContext
 } from "@galacean/engine-water/water/runtime/heightfield/index";
-import {
-  WaterGenerationPreparerV1,
-  type PreparedWaterGenerationResourcesV1,
-  type WaterGenerationPreparedTransferV1,
-  WaterSceneRuntimeHost
+import type {
+  LakeWaterLevelRuntimeReadback,
+  OceanWaterLevelRuntimeReadback,
+  PreparedWaterSceneBodySetTransaction,
+  WaterBodyBackend,
+  WaterSceneBodyRequest
 } from "@galacean/engine-water/water/runtime/index";
 import {
+  WaterGenerationPreparerV1,
+  WaterSceneRuntimeHost,
+  type PreparedWaterGenerationResourcesV1,
+  type WaterGenerationPreparedTransferV1
+} from "@galacean/engine-water/water/runtime/index";
+import {
+  assertOceanWaterBodyDescriptor,
   OCEAN_WATER_BACKEND_ID,
   OceanWaterBackend,
   type OceanWaterBackendRuntimeContext,
-  assertOceanWaterBodyDescriptor,
   type OceanWaterBodyDescriptorV1
 } from "@galacean/engine-water/water/runtime/ocean/index";
 
-import type { SeedWorldHeightTileSnapshot } from "../../world/SeedWorldGridTileSnapshot.ts";
-import type { SeedWorldHydrologyWaterBody } from "../SeedWorldHydrologyBake.ts";
 import { SeedWorldLakeWaterLevelRuntimeState } from "@galacean/engine-water/world/SeedWorldLakeWaterLevelRuntime";
 import { SeedWorldOceanWaterLevelRuntimeState } from "@galacean/engine-water/world/SeedWorldOceanWaterLevelRuntime";
+import type { SeedWorldHeightTileSnapshot } from "../../world/SeedWorldGridTileSnapshot.ts";
+import type { SeedWorldHydrologyWaterBody } from "../SeedWorldHydrologyBake.ts";
 
+import type { SeedWorldWaterRenderErrorBudgetV1 } from "@galacean/engine-water/world/SeedWorldWaterErrorBudget";
 import type { SeedWorldHydrologyArtifactV1 } from "./SeedWorldHydrologyArtifact.ts";
-import {
-  SEED_WORLD_OCEAN_MAXIMUM_RENDER_BATHYMETRY_DEPTH_METRES,
-  SeedWorldWaterBackendSourceCompilerV1
-} from "./SeedWorldWaterBackendSourceCompiler.ts";
 import {
   registerSeedWorldLakeAuthoringV1,
   registerSeedWorldOceanAuthoringV1,
   type SeedWorldLakeAuthoringIdsV1,
   type SeedWorldOceanAuthoringIdsV1
 } from "./SeedWorldWaterAuthoringPresetsV1.ts";
-import type { SeedWorldWaterRenderErrorBudgetV1 } from "@galacean/engine-water/world/SeedWorldWaterErrorBudget";
+import {
+  SEED_WORLD_OCEAN_MAXIMUM_RENDER_BATHYMETRY_DEPTH_METRES,
+  SeedWorldWaterBackendSourceCompilerV1
+} from "./SeedWorldWaterBackendSourceCompiler.ts";
 import { adaptSeedWorldHydrologyToWaterPcgV1 } from "./SeedWorldWaterPcgAdapter.ts";
 
 export interface PrepareSeedWorldWaterRuntimeGenerationInputV1 {
@@ -177,14 +177,12 @@ export class SeedWorldWaterRuntimeBridgeV1 {
         this._publishedOceanWaterLevelState,
         this._bindings
       );
-      const hostDiagnostics = this._host.getDiagnostics();
       // This bridge owns only generation-published Ocean/Lake slots. Authoring rivers share
       // the page-lifetime Host but must never be interpreted as stale generation bodies.
-      const activeHostBodyIds = new Set(hostDiagnostics.bodies.map(({ bodyId }) => bodyId));
       const activeBodyIds = new Set(
-        [...this._publishedRuntimeAssets.keys()].filter((bodyId) => activeHostBodyIds.has(bodyId))
+        [...this._publishedRuntimeAssets.keys()].filter((bodyId) => this._host.hasBody(bodyId))
       );
-      const sceneRevision = Math.max(input.generationId, hostDiagnostics.activeSceneRevision + 1);
+      const sceneRevision = Math.max(input.generationId, this._host.sceneRevision + 1);
       const transaction = this._host.beginBodySetTransaction(sceneRevision);
       const changes = selectSeedWorldWaterSceneBodyChangesV1(
         resources.runtimeAssetSet.bodies,

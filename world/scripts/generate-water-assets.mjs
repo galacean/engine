@@ -3,6 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createServer } from "vite";
 import { createHash } from "node:crypto";
+import { execFileSync } from "node:child_process";
 import { engineModify } from "../../packages/modify/build/vite.mjs";
 import { cleanWaterShaderSource } from "./water-shader-cleanup.mjs";
 
@@ -107,20 +108,26 @@ try {
   const { createWaterShaderModule, materializeWaterShaderModuleSource } = await load("runtime/material/WaterShaderModule");
   const riverSource = createRiverSurfaceAppearanceV2ShaderSource(contract.data, true);
   const riverName = riverSource.match(/Shader\s+"([^"]+)"/)[1];
-  const nativeRiverSource = materializeWaterShaderModuleSource(createWaterShaderModule(riverName, riverSource, {}, []));
+  const nativeRiverSource = materializeWaterShaderModuleSource(createWaterShaderModule(riverName, riverSource.replace(/\n    Pass "SSR Contribution (Color|Depth)" \{[\s\S]*?\n    \}/g, ""), {}, []));
   shaders.set("river", { name: riverName });
   const { createSeedWorldWaterShaderAotProfiles } = await server.ssrLoadModule("/packages/water/src/world/SeedWorldWaterShaderAotProfiles.ts");
   const modules = createSeedWorldWaterShaderAotProfiles();
+  const { renderWaterShaderTemplate } = await load("runtime/material/WaterShaderTemplate");
+  // Native assets retain their existing Forward/SSR Surface contract. Runtime
+  // factories still expose contribution passes for callers that request them.
+  const nativeSource = module => renderWaterShaderTemplate(materializeWaterShaderModuleSource({ ...module,
+    source: module.source.replace(/\n    Pass "SSR Contribution (Color|Depth)" \{[\s\S]*?\n    \}/g, "")
+  }).replace(/#ifdef SSR_CONTRIBUTION_(CAPTURE|DEPTH)/g, "#if 0")
+    .replace(/#ifndef SSR_CONTRIBUTION_DEPTH/g, "#if 1")
+    .replace(/defined\(SSR_CONTRIBUTION_DEPTH\)/g, "0"), {});
   for (const kind of ["lake", "river", "river-drops", "ocean"]) {
     const profile = kind === "river-drops" ? "river" : kind;
     const original = registry.getLookAuthoringSnapshot(profile === "lake" ? LAKE_WATER_LOOK_PRESET_ID : profile === "river" ? FARMLANDS_RIVER_LOOK_ID : OCEAN_LOOK_ID);
     const { riverDrops: _drops, ...surface } = original.look;
     const look = kind === "river-drops" ? original : { ...original, look: surface };
-    const shader = shaders.get(profile), shaderPath = `Water/Shaders/${profile}.shader`;
-    const material = createWaterMaterialFile(look, profile, { name: shader.name, path: shaderPath }, texturePaths);
-    if (profile === "ocean") for (const slot of ["smoothWaves", "roughWaves", "caustics", "foam", "intersectionNoise"])
-      material.shaderData[`material_Ocean_${slot}`] = { type: "Texture", value: { url: texturePaths.get(`ocean-${slot}`) } };
-    let source = profile === "river" ? nativeRiverSource : materializeWaterShaderModuleSource(modules.find(module => module.id === (profile === "lake" ? "lake-heightfield-high-hybrid-v2" : "ocean-near-detailed")).module);
+    const shaderPath = `Water/Shaders/${profile}.shader`;
+    const material = createWaterMaterialFile(look, profile);
+    let source = profile === "river" ? nativeRiverSource : nativeSource(modules.find(module => module.id === (profile === "lake" ? "lake-heightfield-high-hybrid-v2" : "ocean-near-detailed")).module);
     if (profile === "ocean") {
       const far = materializeWaterShaderModuleSource(modules.find(module => module.id === "ocean-far-graded").module);
       const farSubShader = far.slice(far.indexOf('SubShader '), far.lastIndexOf('}')).replace(/SubShader\s+"[^"]+"/, 'SubShader "WaterFar"');
@@ -137,11 +144,15 @@ try {
     const type = nativeTypes[path.extname(virtualPath)];
     if (!type) throw new Error(`Unsupported generated native Water asset '${virtualPath}'.`);
     return { virtualPath, path: virtualPath, type };
-  })] };
+  }).filter(file => !/^Water\/Shaders\/(lake|river|ocean)\.shader$/.test(file.virtualPath))] };
   for (const [name, value] of Object.entries({ ...files, "project.json": manifest })) {
     const target = path.join(output, name); await fs.mkdir(path.dirname(target), { recursive: true });
     await fs.writeFile(target, value instanceof Uint8Array || typeof value === "string" ? value : JSON.stringify(value, null, 2) + "\n");
   }
   await fs.writeFile(path.join(output, "conversion.json"), JSON.stringify(conversion, null, 2) + "\n");
+  execFileSync(process.execPath, [path.join(root, "packages/water/scripts/prepare-builtin-shaders.mjs")], {
+    cwd: root, env: { ...process.env, WATER_BUILTIN_SHADER_INPUT: path.join(output, "Water/Shaders"),
+      WATER_BUILTIN_SHADER_OUTPUT: path.join(output, "Water/Shaders/builtin") }, stdio: "inherit"
+  });
   console.log(`Wrote ${manifest.files.length} native Water assets, project manifest and verified source hashes.`);
 } finally { await server.close(); }

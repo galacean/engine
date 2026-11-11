@@ -1,5 +1,5 @@
-import type { WaterBodyAssetRegistry } from "@galacean/engine-water/water/runtime/index";
 import { createWaterLookPresetV1, WaterSurfaceDepthResponseModelV2 } from "@galacean/engine-water/water/index";
+import type { WaterBodyAssetRegistry } from "@galacean/engine-water/water/runtime/index";
 
 /** Scene-owned variants; canonical single-water and SeedWorld presets retain their authored values. */
 export function registerWaterIslandLook(
@@ -47,7 +47,6 @@ export function registerWaterIslandLook(
       ...(kind === "river"
         ? {
             absorptionCoefficient: [0.35, 0.09, 0.04] as const,
-            surfaceScattering: { coefficientPerMeter: [0.02, 0.09, 0.12] as const, phaseG: 0 },
             maximumSurfaceOpticalDistance: 8
           }
         : {})

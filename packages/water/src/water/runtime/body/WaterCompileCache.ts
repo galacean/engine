@@ -1,25 +1,9 @@
 /** Bounded, abort-aware cache for immutable compiled Water resources. */
 import type { WaterCompiledResource } from "../../compiler/body/WaterCompiledResource";
-import {
-  addWaterResourceMemoryMetrics,
-  createWaterResourceMemoryMetrics,
-  type WaterResourceMemoryMetrics
-} from "../resources/WaterResourceMetrics";
 
 export interface WaterCompileCacheOptions {
   readonly entryLimit: number;
   readonly budgetBytes: number;
-}
-
-export interface WaterCompileCacheMetrics {
-  readonly cachedResourceCount: number;
-  readonly compileCount: number;
-  readonly cacheHitCount: number;
-  readonly cacheMissCount: number;
-  readonly cacheEvictionCount: number;
-  readonly entryLimit: number;
-  readonly budgetBytes: number;
-  readonly cachedResourceMemory: WaterResourceMemoryMetrics;
 }
 
 export interface WaterCompileCacheRequest {
@@ -91,31 +75,11 @@ export class WaterCompileCache {
   private readonly _cache = new Map<string, WaterCompileCacheEntry>();
   private readonly _pending = new Map<string, PendingWaterCompile>();
   private readonly _compilations = new Set<Promise<void>>();
-  private _compileCount = 0;
-  private _cacheHitCount = 0;
-  private _cacheMissCount = 0;
-  private _cacheEvictionCount = 0;
   private _generation = 0;
 
   constructor(options: Readonly<WaterCompileCacheOptions>) {
     this._entryLimit = requirePositiveInteger(options.entryLimit, "Water body compile-cache entry limit");
     this._budgetBytes = requirePositiveInteger(options.budgetBytes, "Water body compile-cache byte budget");
-  }
-
-  get metrics(): Readonly<WaterCompileCacheMetrics> {
-    return Object.freeze({
-      cachedResourceCount: this._cache.size,
-      compileCount: this._compileCount,
-      cacheHitCount: this._cacheHitCount,
-      cacheMissCount: this._cacheMissCount,
-      cacheEvictionCount: this._cacheEvictionCount,
-      entryLimit: this._entryLimit,
-      budgetBytes: this._budgetBytes,
-      cachedResourceMemory:
-        this._cache.size === 0
-          ? createWaterResourceMemoryMetrics()
-          : addWaterResourceMemoryMetrics([...this._cache.values()].map(({ resource }) => resource.memory))
-    });
   }
 
   acquire(request: Readonly<WaterCompileCacheRequest>): Promise<WaterCompiledResourceLease> {
@@ -124,7 +88,6 @@ export class WaterCompileCache {
       return Promise.reject(new DOMException("Water body activation was aborted.", "AbortError"));
     const cached = this._cache.get(request.key);
     if (cached && !cached.resource.isDisposed && !cached.resource.disposeRequested) {
-      this._cacheHitCount++;
       this._cache.delete(request.key);
       this._cache.set(request.key, cached);
       return Promise.resolve(createLease(cached));
@@ -135,11 +98,8 @@ export class WaterCompileCache {
     }
     const existing = this._pending.get(request.key);
     if (existing && !existing.settled && !existing.abortController.signal.aborted) {
-      this._cacheHitCount++;
       return this._subscribe(existing, request.signal);
     }
-
-    this._cacheMissCount++;
     const generation = this._generation;
     const pending: PendingWaterCompile = {
       promise: Promise.resolve(),
@@ -173,7 +133,6 @@ export class WaterCompileCache {
           entry.cached = true;
           this._cache.set(request.key, entry);
           this._evict(request.key);
-          this._compileCount++;
           pending.settled = true;
           let index = 0;
           for (const consumer of pending.consumers) {
@@ -265,7 +224,6 @@ export class WaterCompileCache {
       this._cache.delete(evictionKey);
       if (entry) {
         releaseCacheEntry(entry);
-        this._cacheEvictionCount++;
       }
     }
   }

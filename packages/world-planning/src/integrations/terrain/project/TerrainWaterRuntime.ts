@@ -1,36 +1,31 @@
 import { AssetPromise, Camera, Layer, Script } from "@galacean/engine";
-import type {
-  WaterBathymetrySourceKind,
-  WaterShoreSdfSourceKind,
-  WaterSpatialFieldSourceSchemaVersion,
-  WaterReflectionPresentationMode
-} from "@galacean/engine-water/water/index";
-import type { GrasslandsTerrainWaterLayoutSpec } from "../../grasslands/GrasslandsWaterDescriptor.ts";
-import type {
-  GrasslandsTerrainWaterPcg,
-  GrasslandsTerrainWaterPcgSnapshot
-} from "../../grasslands/GrasslandsWaterPcg.ts";
 import type { TerrainProjectAsset } from "@galacean/engine-terrain/terrain/project/TerrainProjectAsset";
 import { terrainRasterIndex } from "@galacean/engine-terrain/terrain/project/TerrainProjectCodec";
 import {
   TerrainProjectWorldRuntime,
   type TerrainProjectRegionLease
 } from "@galacean/engine-terrain/terrain/project/TerrainProjectRuntime";
+import type {
+  WaterBathymetrySourceKind,
+  WaterReflectionPresentationMode,
+  WaterShoreSdfSourceKind,
+  WaterSpatialFieldSourceSchemaVersion
+} from "@galacean/engine-water/water/index";
+import type { GrasslandsTerrainWaterLayoutSpec } from "../../grasslands/GrasslandsWaterDescriptor.ts";
+import type { GrasslandsTerrainWaterPcg } from "../../grasslands/GrasslandsWaterPcg.ts";
 
 import type {
-  WaterSceneRuntimeHost,
-  WaterSceneRuntimeDiagnostics,
   WaterDevelopmentTargetSource,
+  WaterSceneRuntimeHost,
   WaterSurfaceSample
 } from "@galacean/engine-water/water/runtime/index";
 
+import type { TerrainClipmap } from "@galacean/engine-terrain/terrain/clipmap/TerrainClipmap";
+import type { RiverTerrainInteractionData } from "@galacean/engine-water/water/compiler/index";
 import type { GrasslandsLakeRiverInspection } from "../../grasslands/GrasslandsLakeRiverScenario.ts";
 import type { GrasslandsRiverTerrainCouplingDiagnostics } from "../../grasslands/GrasslandsRiverTerrainCoupling.ts";
-import type { RiverTerrainInteractionData } from "@galacean/engine-water/water/compiler/index";
-import type { TerrainClipmap } from "@galacean/engine-terrain/terrain/clipmap/TerrainClipmap";
 import type { TerrainWaterRainImpactSurfaceProvider } from "../environment/TerrainWaterRainImpactPolicy.ts";
 
-import { GRASSLANDS_TERRAIN_WATER_INSTANCE_ID } from "../../grasslands/GrasslandsWaterBodyIdentity.ts";
 import {
   LAKE_SCENE_REFLECTION_POLICY,
   LAKE_WATER_LOOK_PRESET_ID,
@@ -42,13 +37,6 @@ export type TerrainWaterScenario = "lake" | "lake-river";
 
 const GRASSLANDS_DEFAULT_REFLECTION_MODE: TerrainWaterReflectionMode =
   LAKE_SCENE_REFLECTION_POLICY.preferred === "analytic" ? "environment" : LAKE_SCENE_REFLECTION_POLICY.preferred;
-
-export interface TerrainWaterRuntimeDiagnostics extends GrasslandsTerrainWaterPcgSnapshot {
-  readonly scenario: TerrainWaterScenario;
-  readonly river: GrasslandsLakeRiverInspection | null;
-  readonly riverTerrain: GrasslandsRiverTerrainCouplingDiagnostics | null;
-  readonly host: WaterSceneRuntimeDiagnostics;
-}
 
 const TERRAIN_REALTIME_IBL_ROTATION_DEGREES = 0;
 const TERRAIN_REALTIME_IBL_EXPOSURE = 1;
@@ -151,23 +139,6 @@ export class TerrainWaterRuntime extends Script {
    */
   waitUntilReady(): AssetPromise<GrasslandsTerrainWaterPcg> {
     return this._ready.then((water) => water);
-  }
-
-  /**
-   * Returns the active water diagnostics, or `null` while compilation is pending.
-   * @returns Detached water snapshot when ready.
-   */
-  getDiagnostics(): TerrainWaterRuntimeDiagnostics | null {
-    const water = this._water;
-    const host = this._host;
-    if (!water || !host) return null;
-    return Object.freeze({
-      ...water.inspect(),
-      scenario: this._scenario,
-      river: this._river,
-      riverTerrain: this._riverTerrain,
-      host: host.getDiagnostics()
-    });
   }
 
   /** Selects the URL-driven acceptance composition before Scene startup. */

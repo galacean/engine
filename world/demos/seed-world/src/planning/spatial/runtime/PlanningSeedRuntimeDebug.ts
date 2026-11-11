@@ -1,16 +1,15 @@
-import { PlanningFarmingControls, type PlanningFarmingControlsOptions } from "../farming/PlanningFarmingControls.ts";
-import { PlanningFarmingPanel } from "../farming/PlanningFarmingPanel.ts";
-import { PlanningAnimalPanel, type PlanningAnimalPanelOptions } from "./PlanningAnimalPanel.ts";
-import { RockFormationPanel } from "@galacean/engine-world-planning/integrations/terrain/rock-formation/Panel";
-import type { PlanningParameterCommand, PlanningSession } from "@galacean/engine-world-planning/spatial/PlanningSession";
 import type { Camera, Engine, Entity } from "@galacean/engine";
-import type { OrbitControl } from "@galacean/engine-toolkit-controls";
 import type { EnvironmentAudioRuntime } from "@galacean/engine-terrain/terrain/audio/EnvironmentAudioRuntime";
-import { createTerrainRuntimeDebugOwner } from "@galacean/engine-world-planning/integrations/terrain/debug/TerrainRuntimeDebugOwnerFactory";
 import {
   applyScreenSpaceReflectionConfiguration,
   inspectScreenSpaceReflectionPanelStatus
 } from "@galacean/engine-terrain/terrain/debug/TerrainScreenSpaceReflectionPanel";
+import type { TerrainNavigationRuntime } from "@galacean/engine-terrain/terrain/project/TerrainNavigationRuntime";
+import type { TerrainPostProcessRuntime } from "@galacean/engine-terrain/terrain/project/TerrainPostProcessRuntime";
+import type { OrbitControl } from "@galacean/engine-toolkit-controls";
+import { SEED_WORLD_SURFACE_PALETTE_PRESETS } from "@galacean/engine-vegetation/world/SeedWorldGrassColorField";
+import { mountWaterDevTools } from "@galacean/engine-water/water/devtools/index";
+import { createTerrainRuntimeDebugOwner } from "@galacean/engine-world-planning/integrations/terrain/debug/TerrainRuntimeDebugOwnerFactory";
 import type { WorldEnvironmentRuntime } from "@galacean/engine-world-planning/integrations/terrain/environment/WorldEnvironmentRuntime";
 import type { TerrainLightingRuntime } from "@galacean/engine-world-planning/integrations/terrain/lighting/TerrainLightingRuntime";
 import {
@@ -21,13 +20,21 @@ import {
   TerrainPerformancePanel,
   type TerrainPerformanceSceneMetrics
 } from "@galacean/engine-world-planning/integrations/terrain/performance/TerrainPerformancePanel";
-import type { TerrainNavigationRuntime } from "@galacean/engine-terrain/terrain/project/TerrainNavigationRuntime";
-import type { TerrainPostProcessRuntime } from "@galacean/engine-terrain/terrain/project/TerrainPostProcessRuntime";
-import { mountWaterDevTools } from "@galacean/engine-water/water/devtools/index";
-import { decodeSeedWorldHeight, seedWorldOriginX, seedWorldOriginZ } from "@galacean/engine-world-planning/runtime/SeedWorldFields";
-import { SEED_WORLD_SURFACE_PALETTE_PRESETS } from "@galacean/engine-vegetation/world/SeedWorldGrassColorField";
-import type { PlanningSeedWorldPublished } from "./PlanningSeedWorldSession.ts";
+import { RockFormationPanel } from "@galacean/engine-world-planning/integrations/terrain/rock-formation/Panel";
+import {
+  decodeSeedWorldHeight,
+  seedWorldOriginX,
+  seedWorldOriginZ
+} from "@galacean/engine-world-planning/runtime/SeedWorldFields";
+import type {
+  PlanningParameterCommand,
+  PlanningSession
+} from "@galacean/engine-world-planning/spatial/PlanningSession";
 import type { PlanningWaterRuntime } from "@galacean/engine-world-planning/spatial/runtime/PlanningWaterRuntime";
+import { PlanningFarmingControls, type PlanningFarmingControlsOptions } from "../farming/PlanningFarmingControls.ts";
+import { PlanningFarmingPanel } from "../farming/PlanningFarmingPanel.ts";
+import { PlanningAnimalPanel, type PlanningAnimalPanelOptions } from "./PlanningAnimalPanel.ts";
+import type { PlanningSeedWorldPublished } from "./PlanningSeedWorldSession.ts";
 import { PlanningTreeAuthoring, type PlanningTreeAuthoringOptions } from "./PlanningTreeAuthoring";
 import { PlanningTreePanel, type PlanningTreePanelState } from "./PlanningTreePanel";
 
@@ -215,7 +222,8 @@ export class PlanningSeedRuntimeDebug {
           probeVolume: this.probe!,
           hiddenCameraControls: ["pose", "movementSpeed", "groundCollision", "groundClearance"],
           detailVisibility: {
-            isVisible: (category) => world.population.isDetailCategoryVisible(category) &&
+            isVisible: (category) =>
+              world.population.isDetailCategoryVisible(category) &&
               (category === "grass" || (published.vegetation?.understoryVisible ?? true)),
             setVisible: (category, visible) => {
               world.population.setDetailCategoryVisible(category, visible);
@@ -334,9 +342,10 @@ export class PlanningSeedRuntimeDebug {
     surfaceFolder.add(surface, "maskSoftnessMetres").name("遮罩柔和范围（m）").onFinishChange(applySurface);
     surfaceHost.addReadout(surfaceFolder, "缓存参数")("CPU 预计算；输入后回车更新，两项为 0 = 原生覆盖，无降采样");
     const gpuReadout = surfaceHost.addReadout(surfaceFolder, "遮罩 + 法线 GPU");
-    const refreshGpu = (): void => gpuReadout(
-      `共用色块 256² R8 · 独立高度纹理 0 B；原生尺寸遮罩与梯度 RGB8 + 重复法线 256² RGB8 = ${(world.surfaceFieldGpuBytes / 1024 ** 2).toFixed(3)} MiB`
-    );
+    const refreshGpu = (): void =>
+      gpuReadout(
+        `共用色块 256² R8 · 独立高度纹理 0 B；原生尺寸遮罩与梯度 RGB8 + 重复法线 256² RGB8 = ${(world.surfaceFieldGpuBytes / 1024 ** 2).toFixed(3)} MiB`
+      );
     refreshGpu();
     surfaceHost.addReadout(surfaceFolder, "Coverage / 土草覆盖")("原生栅格 alphamap · 无额外覆盖贴图");
     surfaceHost.refreshLayout();
@@ -420,7 +429,6 @@ export class PlanningSeedRuntimeDebug {
     const exact = world.getExactInstanceSpatialSnapshot();
     const horizon = world.getTerrainOcclusionDiagnostics();
     const ssr = camera.screenSpaceReflection.metrics;
-    const waterDiagnostics = water.getDiagnostics();
     const detailInstances = compacted.grass + compacted.flower;
     const visibleDetailInstances = submitted.grass + submitted.flower;
     const farm = this.performance.expanded ? this.options.farming?.runtime : undefined;
@@ -490,8 +498,7 @@ export class PlanningSeedRuntimeDebug {
       exactInstanceUpdates: exact.instanceUpdateCount,
       exactStaticReuse: exact.reusedStaticCamera,
       exactSpatialMilliseconds: exact.updateMilliseconds,
-      waterVisible: waterDiagnostics.visible,
-      waterChunks: waterDiagnostics.chunkCount,
+
       msaaSamples: camera.msaaSamples,
       postProcessEnabled: post.profileEnabled,
       screenSpaceReflectionRequested: ssr.requested,
