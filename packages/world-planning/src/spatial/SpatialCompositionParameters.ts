@@ -25,6 +25,9 @@ export const SPATIAL_COMPOSITION_DEFAULTS = {
   reliefSurface: "terrain",
   reliefBandWidthM: 0,
   reliefFrontDepthM: 0,
+  bankReliefM: 0,
+  rearReliefM: 0,
+  rearReliefDepthM: 0,
   reliefInnerHeightRatio: 0,
   reliefFrontHeightRatio: 0,
   reliefTreeDensity: 0,
@@ -35,7 +38,11 @@ export const SPATIAL_COMPOSITION_DEFAULTS = {
   waterfallWidthM: 0,
   treeSpacingM: 0,
   treeBandWidthM: 18,
+  treeHorizontalScale: 1,
+  treeSpeciesGroup: "",
   treeAssetId: "",
+  subjectTerraceHeightM: 0,
+  subjectTerraceRadiusM: 0,
   rockSpacingM: 0,
   rockWidthM: 6,
   rockDepthM: 5,
@@ -84,6 +91,9 @@ const labels: Record<keyof SpatialCompositionParameters, string> = {
   reliefSurface: "岩台生成方式",
   reliefBandWidthM: "岩壁带宽（0 自动）",
   reliefFrontDepthM: "岩壁向前伸出距离",
+  bankReliefM: "近岸岩台高差（0 关闭）",
+  rearReliefM: "后景岩台总高（0 关闭）",
+  rearReliefDepthM: "后景岩台进深（0 关闭）",
   reliefInnerHeightRatio: "岩壁内缘高度比例",
   reliefFrontHeightRatio: "岩壁前缘高度比例",
   reliefTreeDensity: "岩台树木密度",
@@ -94,7 +104,11 @@ const labels: Record<keyof SpatialCompositionParameters, string> = {
   waterfallWidthM: "高岸落水宽度（0 关闭）",
   treeSpacingM: "沿岸树间距（0 关闭）",
   treeBandWidthM: "沿岸植被带宽",
-  treeAssetId: "乔木资产 ID（空为自然物种）",
+  treeHorizontalScale: "岸边乔木横向缩放",
+  treeSpeciesGroup: "乔木物种组（空为全部自然物种）",
+  treeAssetId: "指定乔木资产 ID（空为按物种组选取）",
+  subjectTerraceHeightM: "主体台地高度（0 关闭）",
+  subjectTerraceRadiusM: "主体台地半径（0 关闭）",
   rockSpacingM: "岸石间距（0 关闭）",
   rockWidthM: "岸石宽度",
   rockDepthM: "岸石进深",
@@ -118,6 +132,7 @@ const positive = new Set([
   "bankWidthM",
   "terraceStepHeightM",
   "terraceTreadM",
+  "treeHorizontalScale",
   "rockWidthM",
   "rockDepthM",
   "rockHeightM",
@@ -147,13 +162,13 @@ export const SPATIAL_COMPOSITION_COMPONENT: PlanningComponentDefinition = {
       ? {
           unit: key.endsWith("Degrees")
             ? "°"
-            : ratios.has(key) || key.endsWith("Ratio")
+            : ratios.has(key) || key.endsWith("Ratio") || key === "treeHorizontalScale"
               ? "比例"
               : key === "seed"
                 ? "整数"
                 : "m",
           integer: key === "seed",
-          step: key.endsWith("Ratio") || ratios.has(key) ? 0.05 : 1,
+          step: key.endsWith("Ratio") || ratios.has(key) || key === "treeHorizontalScale" ? 0.05 : 1,
           min: ["centerX", "centerZ", "headingDegrees"].includes(key)
             ? undefined
             : positive.has(key)

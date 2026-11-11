@@ -82,16 +82,16 @@ export function naturalVegetationAt(plan: IslandPlan): (point: PlanPoint) => Nat
   return (point) => distribution.regions[territory(point)[0]?.site.id] ?? world;
 }
 /** Ecology chooses the species by world position before computing its proportional footprint. */
-export function createNaturalTreeSpeciesRegions(seed: number) {
-  const weights = sampleSpeciesGroupWeights(seed, "trees", PLANT_TREE_SPECIES);
+export function createNaturalTreeSpeciesRegions(seed: number, species = PLANT_TREE_SPECIES) {
+  const weights = sampleSpeciesGroupWeights(seed, "trees", species);
   return createVegetationSpeciesRegions(
     seed,
-    PLANT_TREE_SPECIES.map((species) => ({ ...species, weight: weights[species.assetId] })),
+    species.map((member) => ({ ...member, weight: weights[member.assetId] })),
     naturalVegetationSpeciesRegions("trees")
   );
 }
-export function createNaturalTreeDimensions(seed: number) {
-  const speciesAt = createNaturalTreeSpeciesRegions(seed);
+export function createNaturalTreeDimensions(seed: number, species?: typeof PLANT_TREE_SPECIES) {
+  const speciesAt = createNaturalTreeSpeciesRegions(seed, species);
   return (id: string, height: number, point: PlanPoint) => {
     const selected = speciesAt([point.x, point.z], id).member;
     const [width, sourceHeight, depth] = selected.sourceDimensionsM;

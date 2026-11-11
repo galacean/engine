@@ -32,7 +32,7 @@ import {
   createSeedPlanningDocument,
   createSeedPlanningInputs
 } from "@galacean/engine-world-planning/spatial/PlanningInitialization";
-import { overlap } from "@galacean/engine-world-planning/semantic-study/WorldPlanningGeometry";
+import { contains, overlap } from "@galacean/engine-world-planning/semantic-study/WorldPlanningGeometry";
 import { envelope } from "@galacean/engine-world-planning/semantic-study/IslandPlanAtoms";
 import { roadSurfaces } from "@galacean/engine-world-planning/spatial/layout/RoadTopology";
 import {
@@ -61,11 +61,18 @@ import {
   planningGroundSurface,
   planningHeightmap
 } from "@galacean/engine-world-planning/semantic-study/PlanningHeightmap";
-import { compositionTerrain } from "@galacean/engine-world-planning/spatial/SpatialCompositionGeometry";
-import { COMPOSITION_RELIEF_OWNER } from "@galacean/engine-world-planning/spatial/SpatialComposition";
+import { compositionReliefBoxes, compositionTerrain } from "@galacean/engine-world-planning/spatial/SpatialCompositionGeometry";
+import {
+  COMPOSITION_RELIEF_OWNER,
+  COMPOSITION_SUBJECT_TERRACE_OWNER
+} from "@galacean/engine-world-planning/spatial/SpatialComposition";
 import { rockFormationJobs } from "@galacean/engine-world-planning/integrations/terrain/rock-formation/Jobs";
-import { readRockFormationSettings } from "@galacean/engine-world-planning/integrations/terrain/rock-formation/Settings";
+import {
+  readRockFormationSettings,
+  rockSettingsForJob
+} from "@galacean/engine-world-planning/integrations/terrain/rock-formation/Settings";
 import { generateRockFormation } from "@galacean/engine-world-planning/integrations/terrain/rock-formation/Generate";
+import { PLANT_TREE_SPECIES } from "@galacean/engine-vegetation/asset-assembly/PlantSpeciesCatalog";
 
 describe("authored world templates", () => {
   it("幻兽荒原: starts with bounded land and empty automatic water, roads, buildings and vegetation", () => {
@@ -237,16 +244,32 @@ describe("authored world templates", () => {
     }
   });
   it("publishes parameter-derived Sakura roads, water and vegetation consistently on incremental and saved replay", () => {
-    const document = createTemplatePlanningDocument(20261107, "sakura-pearl");
+    const document = createTemplatePlanningDocument(20261110, "sakura-pearl");
     const first = generatePlanningDocument(document);
     expect(first.accepted).toBe(true);
     const relief = first.plan.rocks.filter((rock) => rock.groupId === COMPOSITION_RELIEF_OWNER);
     expect(relief.length).toBeGreaterThan(0);
     const q = first.plan.parameters.spatialComposition!;
+    const withoutSubjectTerrace = { ...q, subjectTerraceHeightM: 0 };
+    const sideRelief = compositionReliefBoxes({ ...withoutSubjectTerrace, rearReliefM: 0, bankReliefM: 0 });
+    const distantRelief = compositionReliefBoxes({ ...withoutSubjectTerrace, bankReliefM: 0 });
+    const allRelief = compositionReliefBoxes(q);
+    expect(allRelief.slice(0, distantRelief.length)).toEqual(distantRelief);
+    const rearRelief = distantRelief.slice(sideRelief.length).flat();
+    expect(rearRelief.length).toBeGreaterThan(0);
+    expect(new Set(rearRelief.map((box) => box.height)).size).toBeGreaterThan(1);
+    const nearBank = compositionReliefBoxes(withoutSubjectTerrace).slice(distantRelief.length).flat();
+    const bankIds = new Set(nearBank.map((_, index) => `${COMPOSITION_RELIEF_OWNER}:volume:${distantRelief.length + index}`));
+    const bankRocks = relief.filter((rock) => bankIds.has(rock.id));
+    expect(bankRocks.some((rock) => rock.center.x < q.centerX!)).toBe(true);
+    expect(bankRocks.some((rock) => rock.center.x > q.centerX!)).toBe(true);
+    expect(new Set(bankRocks.map((rock) => rock.height)).size).toBeGreaterThan(2);
     expect(Math.max(...relief.flatMap((rock) => rock.boxes!.map((box) => box.sizeY)))).toBe(
       Math.max(q.leftReliefM!, q.rightReliefM!)
     );
-    const jobs = rockFormationJobs(first.plan, planningHeightmap(first.plan)).filter((job) =>
+    const heightmap = planningHeightmap(first.plan);
+    const formationJobs = rockFormationJobs(first.plan, heightmap);
+    const jobs = formationJobs.filter((job) =>
       job.id.startsWith(COMPOSITION_RELIEF_OWNER + ":")
     );
     expect(jobs).toHaveLength(relief.reduce((count, rock) => count + rock.boxes!.length, 0));
@@ -256,9 +279,18 @@ describe("authored world templates", () => {
     expect(mesh.mesh.indices.length / 3).toBeLessThanOrEqual(settings.targetTriangles);
     expect(mesh.mesh.positions.every(Number.isFinite)).toBe(true);
     expect(mesh.mesh.normals!.every(Number.isFinite)).toBe(true);
-    // Waterfalls retain their resolved drop while no part of the rock relief,
-    // including the upstream support, is raised through a Terrain height field.
     expect(compositionTerrain(q)).toEqual([]);
+    const terraceJobs = formationJobs.filter((job) => job.id.startsWith(`${COMPOSITION_SUBJECT_TERRACE_OWNER}:`));
+    expect(terraceJobs).toHaveLength(1);
+    const [terrace] = terraceJobs;
+    expect(terrace.guides).toHaveLength(1);
+    expect(terrace.guides[0].size).toEqual([2 * q.subjectTerraceRadiusM!, q.subjectTerraceHeightM, 2 * q.subjectTerraceRadiusM!]);
+    const terraceMesh = generateRockFormation(terrace, rockSettingsForJob(settings, terrace.id));
+    const ground = (x: number, z: number) => heightmap.sample({ x, z });
+    const terrainScene = resolveWorldTemplateScene(first.plan, ground)!;
+    const rockScene = resolveWorldTemplateScene(first.plan, ground, [terraceMesh])!;
+    expect(rockScene.focusBounds.min[1]).toBeGreaterThan(terrainScene.focusBounds.min[1]);
+    expect(rockScene.focusBounds.min[1]).toBeLessThanOrEqual(terrace.origin[1] + q.subjectTerraceHeightM!);
     expect(first.plan.waters.some((water) => water.course?.drops.length)).toBe(true);
     expect(
       first.plan.waters.filter((water) => water.id.startsWith("river:authored:landscape-composition:"))
@@ -270,10 +302,21 @@ describe("authored world templates", () => {
       (item) => item.ownerId === COMPOSITION_RELIEF_OWNER && item.kind === "tree"
     );
     expect(ledgeTrees.length).toBeGreaterThan(0);
+    expect(ledgeTrees.some((tree) => bankRocks.some((rock) => tree.sourceId.startsWith(`${rock.id}:`)))).toBe(true);
+    const size = WORLD_TEMPLATE_ART["sakura-pearl"].landscape!;
+    const middleHeight = (size.treeHeightMinM + size.treeHeightMaxM) / 2;
+    expect(trees.some((tree) => tree.height < middleHeight)).toBe(true);
+    expect(trees.some((tree) => tree.height > middleHeight)).toBe(true);
+    expect(new Set(trees.map((tree) => tree.assetId)).size).toBeGreaterThan(1);
+    expect(new Set(ledgeTrees.map((tree) => tree.assetId)).size).toBeGreaterThan(1);
+    for (const tree of [...trees, ...ledgeTrees]) {
+      const species = PLANT_TREE_SPECIES.find((member) => member.assetId === tree.assetId)!;
+      const spread = tree.ownerId === COMPOSITION_RELIEF_OWNER ? 1 : q.treeHorizontalScale!;
+      expect(species.speciesGroup).toBe(q.treeSpeciesGroup);
+      expect(tree.width / tree.height).toBeCloseTo((species.sourceDimensionsM[0] / species.sourceDimensionsM[1]) * spread);
+    }
     expect(
-      ledgeTrees.every(
-        (tree) => tree.assetId === q.treeAssetId && tree.baseHeight > planningHeightmap(first.plan).sample(tree.center)
-      )
+      ledgeTrees.every((tree) => tree.baseHeight > heightmap.sample(tree.center))
     ).toBe(true);
     expect(Math.min(...relief.flatMap((rock) => rock.boxes!.map((box) => box.center.z - box.sizeZ / 2)))).toBeLessThan(
       q.centerZ!
@@ -346,6 +389,52 @@ describe("authored world templates", () => {
     expect(
       upgradePlanningDocument(retiredDestination).entities.world.components.landscapeComposition.values.destinationId
     ).toBe("");
+    const oldPreset = structuredClone(migrated);
+    const oldValues = oldPreset.entities.world.components.landscapeComposition.values;
+    delete oldValues.rearReliefM;
+    delete oldValues.rearReliefDepthM;
+    delete oldValues.treeSpeciesGroup;
+    delete oldValues.treeHorizontalScale;
+    delete oldValues.bankReliefM;
+    delete oldValues.subjectTerraceHeightM;
+    delete oldValues.subjectTerraceRadiusM;
+    oldValues.treeAssetId = "SM_BirchTree_01";
+    oldValues.roadWidthM = 6;
+    const components = oldPreset.entities.world.components;
+    components.landscape.values.treeHeightMinM = 7;
+    components.landscape.values.treeHeightMaxM = 16;
+    components.lighting = { values: { fogDensity: 0.0002, sunIntensity: 1.75 } };
+    const leaf = "appearance-e832df91cc4eb1a2";
+    const oldPink = [2, 0.3, 0.45];
+    const oldPurple = templateLinearColor("#c179ed");
+    const channels = ["r", "g", "b"] as const;
+    components.plantMaterial = { values: Object.fromEntries(channels.flatMap((channel, index) => [
+      [plantMaterialField("SM_BirchTree_01", leaf, channel), oldPink[index]],
+      [plantMaterialField("SM_BirchTree_02", leaf, channel), oldPurple[index]]
+    ])) };
+    const upgraded = upgradePlanningDocument(oldPreset);
+    expect(upgraded.entities.world.components.landscapeComposition.values).toMatchObject({
+      treeAssetId: "",
+      roadWidthM: 6,
+      treeSpeciesGroup: q.treeSpeciesGroup,
+      treeHorizontalScale: q.treeHorizontalScale,
+      rearReliefM: q.rearReliefM,
+      rearReliefDepthM: q.rearReliefDepthM,
+      bankReliefM: q.bankReliefM,
+      subjectTerraceHeightM: q.subjectTerraceHeightM,
+      subjectTerraceRadiusM: q.subjectTerraceRadiusM
+    });
+    const upgradedWorld = upgraded.entities.world.components;
+    expect(upgradedWorld.landscape.values).toMatchObject(WORLD_TEMPLATE_ART["sakura-pearl"].landscape!);
+    expect(upgradedWorld.lighting.values).toMatchObject({
+      fogExponent: WORLD_TEMPLATE_ART["sakura-pearl"].lighting.fogExponent,
+      sunIntensity: 1.75
+    });
+    expect(channels.map((channel) => upgradedWorld.plantMaterial.values[plantMaterialField("SM_BirchTree_02", leaf, channel)])).toEqual(oldPink);
+    oldValues.treeAssetId = "SM_BirchTree_02";
+    expect(upgradePlanningDocument(oldPreset).entities.world.components.landscapeComposition.values.treeAssetId).toBe(
+      "SM_BirchTree_02"
+    );
     const edited = {
       ...migrated,
       ...applySpatialCommands(
@@ -445,7 +534,8 @@ describe("authored world templates", () => {
     }
     expect(rgb("SM_Mushroom_01", "cap")[0]).toBeGreaterThan(1);
     expect(rgb("SM_Mushroom_01", "stem")).not.toEqual(rgb("SM_Mushroom_01", "cap"));
-    expect(rgb("SM_BirchTree_02", "leaves")).toEqual(templateLinearColor("#c179ed"));
+    expect(rgb("SM_BirchTree_02", "leaves")).toEqual(rgb("SM_BirchTree_01", "leaves"));
+    expect(rgb("SM_BirchTree_07", "leaves")).toEqual(rgb("SM_BirchTree_01", "leaves"));
     expect(rgb("SM_CoverPlant_06", "foliage", "appearance-431c9ee4ddb29dc7")).toEqual(
       templateLinearColor("#66b83f").map((channel) => channel * 1.1)
     );
@@ -629,7 +719,7 @@ describe("authored world templates", () => {
     expect(precipitation[1]).toMatchObject({ rainRate: 0 });
   });
   for (const template of WORLD_TEMPLATES) {
-    it(`${template.name}: fits the complete subject at standing height in landscape and portrait viewports`, () => {
+    it(`${template.name}: applies the authored framing at standing height in landscape and portrait viewports`, () => {
       const plan = createSpatialWorldBase(exportPlanningRecipe(createTemplatePlanningDocument(1, template.id)));
       const authored = plan.parameters.worldTemplate!;
       plan.worldTemplateSite = {
@@ -640,7 +730,9 @@ describe("authored world templates", () => {
       const ground = (x: number, z: number) => 0.015 * x + 0.025 * z;
       const scene = resolveWorldTemplateScene(plan, ground)!;
       for (const aspect of [16 / 9, 9 / 16]) {
-        const { eye, target, fovDegrees } = resolveWorldTemplateView(scene, aspect, 50, 1.8, ground).pose;
+        const { eye, target, fovDegrees, frameFraction } = resolveWorldTemplateView(scene, aspect, 50, 1.8, ground).pose;
+        const frameLimit = Math.max(1, frameFraction);
+        if (aspect < 1) expect(frameFraction).toBeLessThanOrEqual(1);
         expect(eye[1]).toBeCloseTo(ground(eye[0], eye[2]) + 1.8, 6);
         const forward = target.map((v, i) => v - eye[i]);
         const length = Math.hypot(...forward);
@@ -662,8 +754,8 @@ describe("authored world templates", () => {
               expect(depth).toBeGreaterThan(0);
               expect(
                 Math.abs(dot(v, right) / (depth * Math.tan((fovDegrees * Math.PI) / 360) * aspect))
-              ).toBeLessThanOrEqual(1);
-              expect(Math.abs(dot(v, up) / (depth * Math.tan((fovDegrees * Math.PI) / 360)))).toBeLessThanOrEqual(1);
+              ).toBeLessThanOrEqual(frameLimit);
+              expect(Math.abs(dot(v, up) / (depth * Math.tan((fovDegrees * Math.PI) / 360)))).toBeLessThanOrEqual(frameLimit);
             }
       }
     });
@@ -743,11 +835,18 @@ describe("authored world templates", () => {
             : "kind" in object && object.kind === "tree" && object.collisionRadius !== undefined
               ? [envelope(object.center, object.collisionRadius * 2, object.collisionRadius * 2, object.yaw)]
               : [object.outline!];
-        for (const outline of footprints)
-          for (const occupied of site.footprints)
-            expect(overlap(outline, occupied.outline), JSON.stringify({ id: object.id, outline, occupied })).toBe(
-              false
-            );
+        for (const outline of footprints) {
+          for (const occupied of site.footprints) {
+            const supportsSubject =
+              "groupId" in object &&
+              object.groupId === COMPOSITION_SUBJECT_TERRACE_OWNER &&
+              contains(outline, occupied.outline);
+            if (!supportsSubject)
+              expect(overlap(outline, occupied.outline), JSON.stringify({ id: object.id, outline, occupied })).toBe(
+                false
+              );
+          }
+        }
       }
     }, 60000);
     it(`${template.name}: validates native authoring, Scene round-trip and Seed scope restoration`, () => {

@@ -338,6 +338,8 @@ export interface PlanLandscape {
   > & { sourceHeight: number };
   assetId?: string;
   contextWeight?: number;
+  /** Horizontal scale relative to the source proportions of the placed tree. */
+  treeHorizontalScale?: number;
   treeShape?: { trunkWidthRatio: number; crownBaseRatio: number; crownTopRatio: number };
   heightRule?: { heightMultiplier: number; minimumAboveAmbientM: number };
   locked?: boolean;

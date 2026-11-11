@@ -862,6 +862,11 @@ export const PLANNING_COMPONENTS: PlanningComponentDefinition[] = [
         min: 0,
         description:
           "距离雾的密度系数，作用于整个世界，密度越高越快混入大气颜色；不能用加厚雾代替照明或通透感。显式覆盖所选日照资产的雾密度；重置恢复资产曲线。"
+      }),
+      number("fogExponent", "距离雾指数", {
+        step: 0.1,
+        min: Number.EPSILON,
+        description: "控制雾随距离累积的曲线。提高指数可让雾集中在远景，保留近处材质的颜色。"
       })
     ]
   },

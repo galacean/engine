@@ -42,6 +42,7 @@ export type WorldTemplateArtDirection = (WorldTemplatePalette | { grass?: undefi
     population?: import("./PlanningPopulationParameters").PlanningPopulationOptions;
   };
   focus: string[];
+  /** Viewport fraction available to the focus envelope. Wide shots can frame into an oversized envelope. */
   frameFraction: number;
   /** Reserve each subject in a solved POI and publish a clear starting view. */
   plannedSubjects?: boolean;
@@ -97,6 +98,8 @@ export type WorldTemplateArtDirection = (WorldTemplatePalette | { grass?: undefi
   flowerCoverage?: number;
   weather?: {
     cloudCoverage?: number;
+    cloudBaseAltitudeM?: number;
+    cloudFeatureSize?: number;
     rainRate?: number;
     snowRate?: number;
     temperatureCelsius?: number;
@@ -260,6 +263,12 @@ const forestFern = (id: string, x: number, z: number, height: number, yaw: numbe
   assetLeafColor: "#9cbd4c"
 });
 
+const sakuraBirchMaterials = {
+  "appearance-58da25ba7b394497": { color: "#825636", intensity: 1 },
+  "appearance-a8b3441a505dd0f2": { color: "#a06f49", intensity: 1 },
+  "appearance-e832df91cc4eb1a2": { color: "#ff6681", intensity: 2 }
+};
+
 export const WORLD_TEMPLATE_ART: Readonly<Record<string, WorldTemplateArtDirection>> = {
   "sakura-pearl": {
     generation: {
@@ -281,6 +290,9 @@ export const WORLD_TEMPLATE_ART: Readonly<Record<string, WorldTemplateArtDirecti
       reliefSurface: "rocks",
       reliefBandWidthM: 128,
       reliefFrontDepthM: 54,
+      bankReliefM: 26,
+      rearReliefM: 72,
+      rearReliefDepthM: 64,
       reliefInnerHeightRatio: 0.45,
       reliefFrontHeightRatio: 0.65,
       reliefTreeDensity: 0.7,
@@ -291,7 +303,10 @@ export const WORLD_TEMPLATE_ART: Readonly<Record<string, WorldTemplateArtDirecti
       waterfallWidthM: 8,
       treeSpacingM: 19,
       treeBandWidthM: 74,
-      treeAssetId: "SM_BirchTree_01",
+      treeHorizontalScale: 1.6,
+      treeSpeciesGroup: "birch-tree",
+      subjectTerraceHeightM: 12,
+      subjectTerraceRadiusM: 51,
       rockSpacingM: 16,
       rockWidthM: 6,
       rockDepthM: 5,
@@ -300,9 +315,9 @@ export const WORLD_TEMPLATE_ART: Readonly<Record<string, WorldTemplateArtDirecti
     },
     reference: "SeedWorld-01-sakura-pearl.png",
     focus: ["pearl-cherry-tree"],
-    frameFraction: 1,
+    frameFraction: 1.48,
     azimuthDegrees: 0,
-    lookAtOffset: [0, 0, 0],
+    lookAtOffset: [0, -13, 0],
     petals: {
       textureUrl: new URL("../assets/sakura-petal.png", import.meta.url).href,
       count: 280,
@@ -325,9 +340,9 @@ export const WORLD_TEMPLATE_ART: Readonly<Record<string, WorldTemplateArtDirecti
       {
         id: "pearl-cherry-tree",
         // One uniformly fitted source tree supplies the reference's dominant crown.
-        scale: [150, 72, 128],
-        footprint: [24, 20],
-        groundingFootprint: [28, 24],
+        scale: [198, 98, 166],
+        footprint: [32, 27],
+        groundingFootprint: [37, 32],
         grounded: true,
         // Highest vertex of the source root rims, so all cut openings enter the soil.
         assetGroundY: 1.0934512615203857,
@@ -370,11 +385,13 @@ export const WORLD_TEMPLATE_ART: Readonly<Record<string, WorldTemplateArtDirecti
         SM_CoverPlant_06: {
           "appearance-d7b4b46b60c4bf96": { color: "#e01a56", intensity: 15 }
         },
-        SM_BirchTree_01: {
-          "appearance-58da25ba7b394497": { color: "#825636", intensity: 1 },
-          "appearance-a8b3441a505dd0f2": { color: "#a06f49", intensity: 1 },
-          "appearance-e832df91cc4eb1a2": { color: "#ff6681", intensity: 2 }
-        }
+        SM_BirchTree_01: sakuraBirchMaterials,
+        SM_BirchTree_02: {
+          "appearance-296c00a2f4125733": sakuraBirchMaterials["appearance-58da25ba7b394497"],
+          "appearance-60463a2042d1d2fe": sakuraBirchMaterials["appearance-a8b3441a505dd0f2"],
+          "appearance-e832df91cc4eb1a2": sakuraBirchMaterials["appearance-e832df91cc4eb1a2"]
+        },
+        SM_BirchTree_07: sakuraBirchMaterials
       },
       parts: {
         foliage: { color: "#66b83f", intensity: 1.1 },
@@ -429,9 +446,10 @@ export const WORLD_TEMPLATE_ART: Readonly<Record<string, WorldTemplateArtDirecti
     flowers: "#fff4e8",
     stone: "#d2b9ca",
     lighting: {
-      ...lighting(14.5, 2.5, 0.9, 1.1, 0.0002, 0.55),
+      ...lighting(14.5, 2.5, 0.9, 1.1, 0.002, 0.55),
       ...atmosphere([0.22, 0.65, 1.8], [0.75, 1.05, 1.25]),
       iblIntensity: 0.85,
+      fogExponent: 5,
       sunColorR: 1.06,
       sunColorG: 1,
       sunColorB: 0.98
@@ -442,15 +460,15 @@ export const WORLD_TEMPLATE_ART: Readonly<Record<string, WorldTemplateArtDirecti
       bloomThreshold: 1,
       bloomIntensity: 0.65
     },
-    landscape: { treeHeightMinM: 7, treeHeightMaxM: 16 },
+    landscape: { treeHeightMinM: 4.5, treeHeightMaxM: 23 },
     initialLandscape: {
       "vegetation.shrubs": 0.5,
       "vegetation.herbs": 0.7,
       "vegetation.cover": 0.85,
       "vegetation.flowers": 1,
       "vegetation.litter": 0.45,
-      "plantSizes.shrubs.scaleMin": 0.18,
-      "plantSizes.shrubs.scaleMax": 0.35,
+      "plantSizes.shrubs.scaleMin": 0.35,
+      "plantSizes.shrubs.scaleMax": 0.82,
       "plantSizes.cover.scaleMin": 0.55,
       "plantSizes.cover.scaleMax": 0.95,
       "plantSizes.flowers.scaleMin": 0.85,
@@ -463,7 +481,7 @@ export const WORLD_TEMPLATE_ART: Readonly<Record<string, WorldTemplateArtDirecti
     },
     flowerCoverage: 0.9,
     initialFlowers: { densityPerM2: 0.85 },
-    weather: { cloudCoverage: 0.3, rainRate: 0, snowRate: 0 }
+    weather: { cloudCoverage: 0.3, cloudBaseAltitudeM: 520, cloudFeatureSize: 0.72, rainRate: 0, snowRate: 0 }
   },
   "aurora-palace": {
     reference: "SeedWorld-02-aurora-ice-palace.png",

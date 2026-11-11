@@ -7,7 +7,7 @@ import { PLANNING_RUNTIME_OPTIONS } from "../runtime/RuntimeOptions";
 import { worldTemplateEcology } from "../WorldTemplateEcology";
 import {
   compileCompositionGroup,
-  compileCompositionReliefGroup,
+  compileCompositionReliefGroups,
   publishCompositionPaths,
   publishCompositionTrees,
   compositionHydrology
@@ -728,7 +728,7 @@ function* spatialWorldStages(
     );
     groups.push(baseline);
   }
-  const compositionGroups = [compileCompositionGroup(plan, ground), compileCompositionReliefGroup(plan)].filter(
+  const compositionGroups = [compileCompositionGroup(plan, ground), ...compileCompositionReliefGroups(plan)].filter(
     (group): group is LayoutGroup => !!group
   );
   for (const composition of compositionGroups) {

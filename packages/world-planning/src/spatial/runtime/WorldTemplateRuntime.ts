@@ -33,6 +33,9 @@ import {
 } from "@galacean/engine";
 import { usesProjectPlantResources } from "@galacean/engine-vegetation/asset-assembly/PlantSpeciesResources";
 import type { IslandPlan } from "../../semantic-study/IslandPlanModel";
+import type { RockFormationMesh } from "@galacean/engine-terrain/rock-formation/types";
+import { compositionSubjectTerraceBox } from "../SpatialCompositionGeometry";
+import { spatialCompositionParameters } from "../SpatialCompositionParameters";
 import { templateBaseSeed, templateLinearColor, worldTemplate, type WorldTemplate } from "../WorldTemplateCatalog";
 import { WORLD_TEMPLATE_ART, type WorldTemplateArtDirection } from "../WorldTemplateArtDirection";
 import { settlementRandom } from "../../semantic-study/SettlementGeometry";
@@ -60,6 +63,7 @@ export class WorldTemplateRuntime {
   private mesh?: ModelMesh;
   private material?: UnlitMaterial;
   private readonly models: { id: string; url: string; entity: Entity }[] = [];
+  private readonly groundedNodes = new Map<string, Entity>();
   private readonly leafMaterials = new Map<string, Material>();
   private readonly assetMaterials = new Map<string, PBRMaterial | UnlitMaterial>();
   private sporeRenderer?: ParticleRenderer;
@@ -70,7 +74,7 @@ export class WorldTemplateRuntime {
   private petalMaterial?: ParticleMaterial;
   private destroyed = false;
   private readonly anchor: { x: number; y: number; z: number };
-  private readonly focusBounds: ResolvedWorldTemplateScene["focusBounds"];
+  private focusBounds: ResolvedWorldTemplateScene["focusBounds"];
 
   static async create(
     parent: Entity,
@@ -144,6 +148,7 @@ export class WorldTemplateRuntime {
         entity.transform.setPosition(position[0] - x, position[1] - y, position[2] - z);
         entity.transform.setScale(...node.scale);
         entity.transform.setRotation(...node.rotation);
+        if (node.grounded) this.groundedNodes.set(node.id, entity);
         if (node.light) {
           const { offset, color, intensity, rangeM } = node.light;
           if (
@@ -218,6 +223,24 @@ export class WorldTemplateRuntime {
       throw error;
     }
   }
+
+  /** Resolve new vertical supports before the corresponding rock meshes become visible. */
+  prepareRockGrounding(
+    plan: IslandPlan,
+    ground: (x: number, z: number) => number | undefined,
+    formations: readonly RockFormationMesh[]
+  ): (() => void) | undefined {
+    if (!compositionSubjectTerraceBox(spatialCompositionParameters(plan.parameters.spatialComposition))) return;
+    const scene = resolveWorldTemplateScene(plan, ground, formations)!;
+    return () => {
+      for (const { node, position } of scene.nodes) {
+        const entity = this.groundedNodes.get(node.id);
+        if (entity) entity.transform.position.y = position[1] - this.anchor.y;
+      }
+      this.focusBounds = scene.focusBounds;
+    };
+  }
+
   private createPetalParticles(
     petals: NonNullable<WorldTemplateArtDirection["petals"]>,
     ground: (x: number, z: number) => number | undefined,

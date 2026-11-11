@@ -109,7 +109,8 @@ export function planningNaturalTrees(
       const dimensions = [tree.width, tree.height, tree.depth];
       if (![...spans, ...dimensions].every((v) => Number.isFinite(v) && v > 0))
         throw new Error(`Invalid planned tree dimensions: ${tree.id}`);
-      const scale = Math.min(...dimensions.map((v, axis) => v / spans[axis]));
+      const spread = tree.treeHorizontalScale ?? 1;
+      const scale = Math.min(tree.width / spans[0] / spread, tree.height / spans[1], tree.depth / spans[2] / spread);
       const species = PLANT_TREE_SPECIES.find((species) => species.assetId === assetId)!;
       const region = speciesAt([tree.center.x, tree.center.z], tree.id);
       return {
@@ -142,8 +143,9 @@ export function planningNaturalTrees(
         position: [tree.center.x, height.sample(tree.center), tree.center.z],
         yaw: (tree.yaw * 180) / Math.PI,
         scale,
+        ...(spread !== 1 ? { scaleAxes: [scale * spread, scale, scale * spread] as const } : {}),
         height: spans[1] * scale,
-        radius: (Math.hypot(spans[0], spans[2]) * scale) / 2,
+        radius: (Math.hypot(spans[0], spans[2]) * scale * spread) / 2,
         ...(asset.groundingOffset !== undefined ? { groundingOffset: asset.groundingOffset * scale } : {})
       };
     });

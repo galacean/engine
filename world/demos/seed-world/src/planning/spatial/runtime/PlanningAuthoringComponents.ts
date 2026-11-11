@@ -72,6 +72,7 @@ export class PlanningLighting extends VisualParameterAuthoring {
   declare shadowStrength?: number;
   declare fog?: boolean;
   declare fogDensity?: number;
+  declare fogExponent?: number;
   private reference?: PlanningLightingProfileReference;
   /** Atomic binding avoids property-resolution order changing the authored asset identity. */
   get profileReference(): PlanningLightingProfileReference | undefined { return this.reference; }

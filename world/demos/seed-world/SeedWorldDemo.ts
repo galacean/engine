@@ -1110,31 +1110,28 @@ export async function mountSeedWorldDemo(
               JSON.stringify([p.rocks, p.landscapes?.filter((element) => element.kind === "rock")]);
             let solids: ReturnType<typeof current.solids.prepareRocks> | undefined;
             let grass: ReturnType<typeof current.world.population.prepareRockGrass> | undefined;
+            let groundTemplate: (() => void) | undefined;
             try {
               if (rockState(plan) !== rockState(current.plan)) {
                 const meshes = await rockFormations.prepare(plan, readRockFormationSettings(document), signal);
                 await prepareRockTextures(engine!, signal);
                 signal.throwIfAborted();
+                const fields = current.heightTransition?.fields ?? current.data.fields;
+                const presented = planningPresentedSolids(plan, fields, current.data.fields);
                 solids = current.solids.prepareRocks(
                   plan,
-                  planningPresentedSolids(
-                    plan,
-                    current.heightTransition?.fields ?? current.data.fields,
-                    current.data.fields
-                  ),
+                  presented,
                   meshes,
                   readRockFormationSettings(document).textureScale,
                   readRockFormationSettings(document).colorBlend
                 );
+                groundTemplate = current.template?.prepareRockGrounding(
+                  presented,
+                  (x, z) => sampleSeedWorldHeight(fields, x, z),
+                  meshes
+                );
                 grass = current.world.population.prepareRockGrass(
-                  rockFormationPlacements(
-                    planningPresentedSolids(
-                      plan,
-                      current.heightTransition?.fields ?? current.data.fields,
-                      current.data.fields
-                    ),
-                    meshes
-                  ),
+                  rockFormationPlacements(presented, meshes),
                   rockGrassExclusions(plan, current.data.fields, rockGrassWaterTest(water!))
                 );
               }
@@ -1146,6 +1143,7 @@ export async function mountSeedWorldDemo(
                   solids?.commit();
                   vegetation.commit();
                   grass?.commit();
+                  groundTemplate?.();
                   const textureScale = readRockFormationSettings(document).textureScale;
                   current.solids.setRockTextureScale(textureScale);
                   current.vegetation!.setRockTextureScale(textureScale);
@@ -1316,37 +1314,9 @@ export async function mountSeedWorldDemo(
             (x, z) => sampleSeedWorldHeight(candidateData.fields, x, z),
             navigation.eyeHeight
           );
-          const templateScene = resolveWorldTemplateScene(plan, (x, z) =>
-            sampleSeedWorldHeight(candidateData.fields, x, z)
-          );
-          const templateView =
-            templateScene &&
-            resolveWorldTemplateView(
-              templateScene,
-              camera.aspectRatio,
-              camera.fieldOfView,
-              navigation.eyeHeight,
-              (x, z) => sampleSeedWorldHeight(candidateData.fields, x, z)
-            );
           if (presentationPose) {
             const position = new Vector3(...presentationPose.eye),
               target = new Vector3(...presentationPose.target);
-            const matrix = new Matrix();
-            Matrix.lookAt(position, target, new Vector3(0, 1, 0), matrix);
-            matrix.invert();
-            const rotation = new Quaternion();
-            matrix.getRotation(rotation);
-            cameraPose = { position, rotation, orbitTarget: target };
-          }
-          if (
-            !presentationPose &&
-            templateView &&
-            ((initial && !preparedPlayer?.bookmark) ||
-              context.previousDocument.entities.world.components.worldTemplate?.values.id !==
-                plan.parameters.worldTemplate?.id)
-          ) {
-            const position = new Vector3(...templateView.pose.eye),
-              target = new Vector3(...templateView.pose.target);
             const matrix = new Matrix();
             Matrix.lookAt(position, target, new Vector3(0, 1, 0), matrix);
             matrix.invert();
@@ -1405,6 +1375,11 @@ export async function mountSeedWorldDemo(
                     rockGrassExclusions(candidateSolids!.sourcePlan, fields, rockGrassWaterTest(water!))
                   );
                   try {
+                    const groundTemplate = candidateTemplate?.prepareRockGrounding(
+                      presented,
+                      (x, z) => sampleSeedWorldHeight(fields, x, z),
+                      candidateSolids!.formations
+                    );
                     const vegetationFrame = candidateVegetation!.prepareGrounding(fields, signal, {
                     plan: presented,
                     formations: candidateSolids!.formations
@@ -1414,6 +1389,7 @@ export async function mountSeedWorldDemo(
                         solidFrame.commit();
                         vegetationFrame.commit();
                         grassFrame.commit();
+                        groundTemplate?.();
                       },
                       discard: () => {
                         solidFrame.discard();
@@ -1437,10 +1413,39 @@ export async function mountSeedWorldDemo(
             const formationMeshes = await rockFormations.prepare(plan, readRockFormationSettings(document), signal);
             if (formationMeshes.length) await prepareRockTextures(engine!, signal);
             signal.throwIfAborted();
+            const presentedFields = heightTransition?.fields ?? candidateData.fields;
+            const presented = planningPresentedSolids(plan, presentedFields, candidateData.fields);
+            const templateGround = (x: number, z: number) => sampleSeedWorldHeight(candidateData.fields, x, z);
+            const templateScene = resolveWorldTemplateScene(plan, templateGround, formationMeshes);
+            const templateView =
+              templateScene &&
+              resolveWorldTemplateView(
+                templateScene,
+                camera.aspectRatio,
+                camera.fieldOfView,
+                navigation.eyeHeight,
+                templateGround
+              );
+            if (
+              !presentationPose &&
+              templateView &&
+              ((initial && !preparedPlayer?.bookmark) ||
+                context.previousDocument.entities.world.components.worldTemplate?.values.id !==
+                  plan.parameters.worldTemplate?.id)
+            ) {
+              const position = new Vector3(...templateView.pose.eye),
+                target = new Vector3(...templateView.pose.target);
+              const matrix = new Matrix();
+              Matrix.lookAt(position, target, new Vector3(0, 1, 0), matrix);
+              matrix.invert();
+              const rotation = new Quaternion();
+              matrix.getRotation(rotation);
+              cameraPose = { position, rotation, orbitTarget: target };
+            }
             candidateSolids = await createPlanningSeedSolids(
               engine!,
               candidate.root,
-              planningPresentedSolids(plan, heightTransition?.fields ?? candidateData.fields, candidateData.fields),
+              presented,
               {
                 signal,
                 previous: publication!.current?.solids,
@@ -1475,7 +1480,7 @@ export async function mountSeedWorldDemo(
                 signal,
                 generationProfile: readRockGenerationProfile(document),
                 formations: formationMeshes,
-                supportPlan: planningPresentedSolids(plan, heightTransition?.fields ?? candidateData.fields, candidateData.fields)
+                supportPlan: presented
               },
               readPlantMaterialParameters(document),
               candidate,
@@ -1487,7 +1492,7 @@ export async function mountSeedWorldDemo(
                     camera.aspectRatio
                   )
                 : templateView?.landscape,
-              heightTransition?.fields ?? candidateData.fields
+              presentedFields
             );
             signal.throwIfAborted();
             canvas.dataset.rockGeneration = JSON.stringify(rockFormations.generationMetrics);
@@ -1510,10 +1515,16 @@ export async function mountSeedWorldDemo(
             candidateTemplate = await WorldTemplateRuntime.create(
               candidate.root,
               plan,
-              (x, z) => sampleSeedWorldHeight(candidateData.fields, x, z),
+              templateGround,
               templateScene,
               signal
             );
+            if (heightTransition)
+              candidateTemplate?.prepareRockGrounding(
+                presented,
+                (x, z) => sampleSeedWorldHeight(presentedFields, x, z),
+                formationMeshes
+              )?.();
             if (!ready) progress(0.6, `生成真实建筑（${plan.buildings.length} 栋）`);
             progress(0.68, "生成全部房屋与围合构件");
             const buildingTerrain = masonryTerrainSource(
@@ -1532,10 +1543,7 @@ export async function mountSeedWorldDemo(
             candidate.population.setRockGrassGround(readRockFormationSettings(document));
             candidate.population
               .prepareRockGrass(
-                rockFormationPlacements(
-                  planningPresentedSolids(plan, heightTransition?.fields ?? candidateData.fields, candidateData.fields),
-                  formationMeshes
-                ),
+                rockFormationPlacements(presented, formationMeshes),
                 rockGrassExclusions(plan, candidateData.fields, rockGrassWaterTest(water!))
               )
               .commit();
