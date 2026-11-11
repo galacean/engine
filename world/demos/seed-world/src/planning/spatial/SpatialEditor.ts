@@ -8,7 +8,7 @@ import { clearSeedWorldPlayerSave } from "../../../SeedWorldPlayerSave.ts";
 import { PlanningProjectStorage } from "./runtime/PlanningProjectStorage.ts";
 import { seedWorldProjectFormats } from "../../../SeedWorldProjectFormats.ts";
 import { createSeedWorldProjectClose } from "../../../SeedWorldProjectClose.ts";
-import { planningSourceDocument } from "./runtime/PlanningProjectSource.ts";
+import { planningSourceDocument, retainPlanningWaterSource } from "./runtime/PlanningProjectSource.ts";
 import { exportPlanningScene, importPlanningScene } from "./PlanningSceneAsset.ts";
 import { createWorldStylePlanningDocument, removeDesertCamelPreset, worldTemplatePaletteValues } from "@galacean/engine-world-planning/spatial/WorldTemplateAuthoring";
 import { mountWorldTemplatePicker } from "./WorldTemplatePicker.ts";
@@ -104,6 +104,7 @@ export async function mountSpatialEditor(
     const template = initialPlanningTemplate(pageUrl.url.search, parameters.seed,
       saved ? exportPlanningRecipe(saved).parameters.worldTemplate?.id ?? "" : undefined);
     initialDocument = template === undefined && saved ? saved : await client.initialize(parameters.seed, undefined, template);
+    if (template !== undefined) initialDocument = storage.retainWater(initialDocument);
     removeDesertCamelPreset(initialDocument);
     if (template !== undefined) applyPlanningTemplateSurface(initialDocument);
     if (!storageWarning) await storage.migrateToSource(initialDocument, template !== undefined && !!saved);
@@ -133,7 +134,7 @@ export async function mountSpatialEditor(
     async (id, seed) => {
       const document = createWorldStylePlanningDocument(session.document, seed, id, session.recipe().parameters.population);
       applyPlanningTemplateSurface(document);
-      const receipt = await edit((draft) => draft.load(document));
+      const receipt = await edit((draft) => draft.load(retainPlanningWaterSource(document, project.projectPackage)));
       if (receipt?.status !== "accepted") throw new Error(receipt?.message ?? "规划未接受");
       if (storageWarning) throw new Error(storageWarning);
       status(session.document.populationInitialization?.diagnostics.join("；") ?? "");
@@ -591,7 +592,7 @@ export async function mountSpatialEditor(
       const receipt = await edit(async draft => {
         const replacement = await client.initialize(session.recipe().parameters.seed, abort.signal);
         abort.signal.throwIfAborted();
-        return draft.load(replacement, abort.signal);
+        return draft.load(retainPlanningWaterSource(replacement, project.projectPackage), abort.signal);
       }, true);
       if (disposed || receipt?.status !== "accepted") return;
       select(null);

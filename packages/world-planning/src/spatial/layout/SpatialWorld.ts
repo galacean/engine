@@ -452,8 +452,9 @@ function* spatialWorldStages(
       .filter(([, e]) => e.lakes)
       .map(([id, e]) => [id, e.lakes!])
   );
-  Object.assign(localRivers, generatedWater.rivers);
-  Object.assign(localLakes, generatedWater.lakes);
+  // Composition suggests initial water. Native Source edits and deletions take precedence.
+  for (const [id, values] of Object.entries(generatedWater.rivers)) localRivers[id] ??= values;
+  for (const [id, values] of Object.entries(generatedWater.lakes)) localLakes[id] ??= values;
   // Automatic hydrology samples natural Terrain before it publishes any cuts.
   // Authored patches and basin geometry belong to that physical input; appearance
   // does not. Reuse this projection for Terrain invalidation so a colour edit

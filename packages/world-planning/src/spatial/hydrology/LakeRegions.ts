@@ -60,7 +60,12 @@ export function generateLakeRegions(
   plan.waters = plan.waters.filter((w) => w.kind !== "lake");
   plan.planning!.profiles = plan.planning!.profiles.filter((p) => !p.ownerId.startsWith("lake:"));
   const manualIds = Object.keys(local)
-    .filter((id) => id.startsWith("lake:authored:"))
+    .filter(
+      (id) =>
+        id.startsWith("lake:") &&
+        local[id].enabled !== false &&
+        (id.startsWith("lake:authored:") || local[id].shoreline !== undefined)
+    )
     .sort();
   if (!candidateCount && !manualIds.length) return [];
   // Site identity depends on base Terrain and the seeded initial corridors, never current river edits.
@@ -126,6 +131,7 @@ export function generateLakeRegions(
   for (let i = 0; i < sites.length; i++) {
     const id = i < naturalCount ? `lake:${i}` : manualIds[i - naturalCount],
       cfg = { ...config, ...local[id] };
+    if (i < naturalCount && manualIds.includes(id)) continue;
     if (!cfg.enabled) continue;
     const center = { x: sites[i].center.x + cfg.offsetX, z: sites[i].center.z + cfg.offsetZ };
     if (

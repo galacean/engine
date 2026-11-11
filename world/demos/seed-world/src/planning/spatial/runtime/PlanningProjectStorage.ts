@@ -5,7 +5,7 @@ import { planningSeed } from "@galacean/engine-world-planning/spatial/PlanningLa
 import { parsePlanningDocument } from "../PlanningDocumentCodec.ts";
 import { RuntimeProjectEdit, type RuntimeAssetFormat } from "@galacean/engine-project/runtime-editor/project/runtime-project-edit";
 import { nativeAssetFormats } from "@galacean/engine-runtime-editor/project/runtime-native-formats";
-import { planningSourceDocument, writePlanningProjectSource } from "./PlanningProjectSource.ts";
+import { planningSourceDocument, retainPlanningWaterSource, writePlanningProjectSource } from "./PlanningProjectSource.ts";
 import { initializePlanningWater, initializePlanningOcean, installPlanningWaterDefaults, loadPlanningWaterDefaults } from "./PlanningWaterInitialization.ts";
 import type { SemanticResult } from "@galacean/engine-world-planning/semantic-study/WorldPlanningContract";
 
@@ -19,6 +19,10 @@ export class PlanningProjectStorage {
       Partial<Pick<RuntimeProjectSession, "update" | "publicationRevision">>,
     private readonly formats: ReadonlyMap<string, RuntimeAssetFormat> = new Map()
   ) {}
+
+  retainWater(document: PlanningDocument): PlanningDocument {
+    return retainPlanningWaterSource(document, this.project.projectPackage);
+  }
 
   /** New Source authoring baseline is ready before the first Engine Scene load. */
   async initialize(document: PlanningDocument, result: SemanticResult): Promise<PlanningDocument> {

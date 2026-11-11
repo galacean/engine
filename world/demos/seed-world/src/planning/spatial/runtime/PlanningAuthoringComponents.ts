@@ -1,4 +1,5 @@
 import { AssetType, Loader, Script, type Entity, type JSONAsset } from "@galacean/engine";
+import { WaterBodyComponent } from "@galacean/engine-water/water/native/WaterBodyComponent";
 export { PlanningGroundWind } from "./PlanningGroundWind.ts";
 import { exportPlanningAuthoring, type PlanningDocument } from "@galacean/engine-world-planning/spatial/PlanningDocument";
 import {
@@ -15,12 +16,13 @@ import type { SpatialEntity } from "@galacean/engine-world-planning/spatial/Spat
 
 /** Stable identity and only the remaining spatial adapter state. Visual fields live on sibling components. */
 export class PlanningEntityAuthoring extends Script implements PlanningEntityIdentity {
-  declare planningId: string;
-  declare origin?: SpatialEntity["origin"];
-  declare parentId?: string;
+  // Native history can recreate this component before assigning its Source properties.
+  planningId = "";
+  origin?: SpatialEntity["origin"] = undefined;
+  parentId?: string = undefined;
   spatialComponents: SpatialEntity["components"] = {};
   /** Import-only compatibility for Scene files written before native domain components. */
-  declare authoring?: SpatialEntity;
+  authoring?: SpatialEntity = undefined;
 }
 
 /** Base links preserve set/reset/base semantics without filling inherited/default fields. */
@@ -333,7 +335,11 @@ function synchronizeEntities(parent: Entity, entities: Record<string, SpatialEnt
     if (!identity) continue;
     const id = identity.planningId ?? identity.authoring?.id;
     const source = remaining.get(id);
-    if (!source) child.destroy();
+    if (!source) {
+      const water: WaterBodyComponent[] = [];
+      child.getComponentsIncludeChildren(WaterBodyComponent, water);
+      if (!water.length) child.destroy();
+    }
     else { synchronize(child, identity, source); remaining.delete(id); }
   }
   for (const authoring of remaining.values()) {

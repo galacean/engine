@@ -20,6 +20,7 @@ export interface PlanningWorldHandoff {
  */
 export async function createPlanningWorldSource(search: string, handoff: PlanningWorldHandoff | undefined, storage: {
   load(seed: number): Promise<PlanningDocument | undefined>; save(document: PlanningDocument): Promise<void>;
+  retainWater?(document: PlanningDocument): PlanningDocument;
   initialize?(document: PlanningDocument, result: SemanticResult): Promise<PlanningDocument>;
 }) {
   const query = new URLSearchParams(search);
@@ -39,6 +40,7 @@ export async function createPlanningWorldSource(search: string, handoff: Plannin
       replaceSavedTemplate = !!document;
       try {
         document = await client.initialize(seed, undefined, template);
+        document = storage.retainWater?.(document) ?? document;
         applyPlanningTemplateSurface(document);
       }
       catch (error) { client.dispose(); throw error; }
