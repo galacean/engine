@@ -171,7 +171,7 @@ describe("forward declarations for inherited function overrides", () => {
           expect(source).not.toMatch(/\bcolor\s*\(/);
           continue;
         }
-        const prototype = /(?:float|vec4|New|void|ColorData)\s+color\s*\([^;{}]*\)\s*;/.exec(source);
+        const prototype = /(?:float|vec4|New|Varyings|ColorData)\s+color\s*\([^;{}]*\)\s*;/.exec(source);
         expect(prototype, source).not.toBeNull();
         expect(prototype!.index).toBeLessThan(source.indexOf(fixture.source ? "void main" : "getColor"));
         if (fixture.name === "new return struct with a nested type") {
@@ -184,8 +184,8 @@ describe("forward declarations for inherited function overrides", () => {
           expect(source.indexOf("struct Payload")).toBeLessThan(source.indexOf("struct New"));
         }
         if (fixture.name === "flattened interface signature") {
-          expect(source).toMatch(/color\s*\(\s*\)\s*;/);
-          expect(source).not.toMatch(/\bcolor\s*\(\s*a\s*\)/);
+          expect(source).toMatch(/Varyings\s+color\s*\(\s*Attributes\s+a\s*\)\s*;/);
+          expect(source).toMatch(/\bcolor\s*\(\s*a\s*\)/);
         }
         if (fixture.name === "custom struct parameter") {
           expect(source.indexOf("struct ColorData")).toBeLessThan(prototype!.index);
