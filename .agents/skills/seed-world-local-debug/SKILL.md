@@ -14,7 +14,10 @@ description: 准备并启动 Seed World 与 ASAP 的本地 LLM 联调环境，�
 2. **启动调试**：环境已就绪时，完整阅读 [启动与验收](references/start.md)，启动服务、生成地址并完成最小链路核验。
 
 默认 Engine 来源是 `git@github.com:galacean/engine.git` 的远端 `experimental/engine-next`。
-默认 ASAP 来源是 `git@code.alipay.com:recneptune-tenants/asap-service.git` 的远端 **`codex/seed-world-local-debug`**。
+默认 ASAP 来源是 `git@code.alipay.com:recneptune-tenants/asap-service.git` 的远端 **`codex/seed-world-master-sync`**。
+该分支是 ASAP PR !12752 的源分支，包含最新的 ASAP `master`。PR !12752 合并后，把默认 ASAP 来源改成 `master`。
+旧默认分支 `codex/seed-world-local-debug` 是它的祖先，已有 worktree 可以直接 fast-forward。
+默认 ASAP 分支只在这里写明；其他文件引用这里。
 用户明确要调试未提交改动时保留它们，并在交付中说明，不宣称它们是干净远端代码。
 
 默认端口前端 `4173`、后端 `8082`，两侧使用同一个主机名 `127.0.0.1`。

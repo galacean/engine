@@ -47,7 +47,10 @@ python3 "$SKILL_DIR/scripts/preview.py" \
   --frontend-port 4173 --backend-port 8082 --check
 ```
 
-脚本输出两个 checkout 的版本及 URL，`mini_app_url` 与 `app_shell_url` 是同一个直接 Demo 地址，包含 `aiChat=1&agentTrace=1`。
+脚本输出两个 checkout 的版本、与来源分支的差距及 URL。
+`behindSource` 大于 0 表示 checkout 缺少来源分支上已 fetch 的提交；先向用户说明缺少哪些提交，再决定是否更新。
+`behindSource` 为 `null` 表示找不到来源引用；用 `--engine-source` 或 `--asap-source` 指定。
+输出里的 `mini_app_url` 与 `app_shell_url` 是同一个直接 Demo 地址，包含 `aiChat=1&agentTrace=1`。
 每次生成附带新的调试 revision，避免重复使用历史链接；revision 只是缓存标记，不是已验证产物身份。
 不传 `--check` 只生成，不发网络请求。
 HTTP 失败时不要继续宣称可调试；查看对应终端。
@@ -68,6 +71,23 @@ HTTP 失败时不要继续宣称可调试；查看对应终端。
 如果没有实际模型证据，写“模型待验证”，不要推定默认路由正确。
 如需语音，再授权麦克风并按住 Siri 球测试，分别记录 ASR 和 LLM 结果；Web ASR 不可用不代表手机原生壳同样不可用。
 Trace 可能含用户内容和内部信息，只保存/分享必要的脱敏证据。
+
+## 改动后的回归验收
+
+Engine 的 AI Chat 或 ASAP 有改动时，在最小真实验收之后由用户逐条执行。每条都在 Agent Trace 里核对。
+
+| 范围 | 指令或操作 | 通过标准 |
+| --- | --- | --- |
+| 跨指令历史 | 先发“把时间改成下午三点”，再发“再往后调两个小时” | 结果是下午五点 |
+| 多步 Tool | 把天气改成下雨，季节改成秋天，然后告诉我现在的时间、天气和季节 | 每个 Tool Call 都有对应结果，最终回复和画面一致 |
+| 图片 | 拍一张当前画面，告诉我画面里有什么 | 调用了 `snapshot`，回复描述的是当前画面 |
+| 停止 | 发“在我面前种十棵树，每次只种一棵”，等它开始调用 Tool 后点停止 | 立刻停下，之后不再出现迟到的回复或 Tool 结果 |
+| 停止后继续 | 停止后直接发“现在几点？” | 新指令正常执行 |
+| 立即停止 | 再发一次长指令，一秒内点停止 | 停下，不报错，不停留在“执行中” |
+| 上下文压缩 | 先按下面的命令调低预算，再发“把 skills 目录下每个技能的说明文档都读一遍，最后分别用一句话总结” | Trace 计数面板出现 `compacted`，任务仍然完成，总结包含最早读的技能，模型没有把摘要当成新指令 |
+
+调低和恢复压缩预算的控制台命令见 Engine 的 `packages/ai-chat/src/ai-chat/README.md`，搜索 `setContextCompactionBudget`。测完恢复默认。
+429 和超时无法手动触发，由自动测试覆盖；交付时写明这一点。
 
 ## 停止、更新与故障定位
 
