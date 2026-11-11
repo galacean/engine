@@ -17,24 +17,10 @@
     "./geometry/destroyOwnedMesh": "./src/geometry/destroyOwnedMesh.ts",
     "./geometry/surfaceTransitionWeight": "./src/geometry/surfaceTransitionWeight.ts",
     "./index": "./src/index.ts",
-    "./rock-formation/AscendingBoundary": "./src/rock-formation/AscendingBoundary.ts",
-    "./rock-formation/AscentMask": "./src/rock-formation/AscentMask.ts",
-    "./rock-formation/CellularCurvature": "./src/rock-formation/CellularCurvature.ts",
-    "./rock-formation/CellularDisplacementLimits": "./src/rock-formation/CellularDisplacementLimits.ts",
-    "./rock-formation/CellularModule": "./src/rock-formation/CellularModule.ts",
-    "./rock-formation/CellularShading": "./src/rock-formation/CellularShading.ts",
     "./rock-formation/GrassPatches": "./src/rock-formation/GrassPatches.ts",
     "./rock-formation/GrassSurface": "./src/rock-formation/GrassSurface.ts",
-    "./rock-formation/MixedSurface": "./src/rock-formation/MixedSurface.ts",
-    "./rock-formation/PerlinNoise": "./src/rock-formation/PerlinNoise.ts",
-    "./rock-formation/SlabSettings": "./src/rock-formation/SlabSettings.ts",
-    "./rock-formation/Slope": "./src/rock-formation/Slope.ts",
     "./rock-formation/SurfaceAttributes": "./src/rock-formation/SurfaceAttributes.ts",
-    "./rock-formation/SurfaceNormalTransport": "./src/rock-formation/SurfaceNormalTransport.ts",
     "./rock-formation/TransitionCoverage": "./src/rock-formation/TransitionCoverage.ts",
-    "./rock-formation/TriangleSampling": "./src/rock-formation/TriangleSampling.ts",
-    "./rock-formation/VertexSlabs": "./src/rock-formation/VertexSlabs.ts",
-    "./rock-formation/VoronoiOutline": "./src/rock-formation/VoronoiOutline.ts",
     "./rock-formation/math": "./src/rock-formation/math.ts",
     "./rock-formation/types": "./src/rock-formation/types.ts",
     "./terrain/ImmutableData": "./src/terrain/ImmutableData.ts",
@@ -111,7 +97,9 @@
     "./world/SeedWorldSurfaceSnow": "./src/world/SeedWorldSurfaceSnow.ts",
     "./world/SeedWorldTerrainFrameGate": "./src/world/SeedWorldTerrainFrameGate.ts",
     "./world/SeedWorldTerrainGenerationSettings": "./src/world/SeedWorldTerrainGenerationSettings.ts",
-    "./world/SeedWorldTerrainTransition": "./src/world/SeedWorldTerrainTransition.ts"
+    "./world/SeedWorldTerrainTransition": "./src/world/SeedWorldTerrainTransition.ts",
+    "./rock-formation/GrassCoverage": "./src/rock-formation/GrassCoverage.ts",
+    "./rock-formation/Slope": "./src/rock-formation/Slope.ts"
   },
   "scripts": {},
   "dependencies": {
@@ -120,6 +108,7 @@
     "@galacean/engine-math": "workspace:*",
     "@galacean/engine-shader-compiler": "workspace:*",
     "dat.gui": "^0.7.9",
+    "manifold-3d": "3.5.4",
     "@galacean/engine-environment": "workspace:*",
     "@galacean/engine-animals": "workspace:*"
   }

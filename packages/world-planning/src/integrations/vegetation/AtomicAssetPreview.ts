@@ -737,22 +737,26 @@ function createInventoryEntries(sourceLibrary: AssetAssemblySourceLibrary): read
     ...sourceLibrary.flowerFamily.variants.map((source) =>
       atomEntry(`flower-${source.id}`, `FLOWER · ${source.label}`, source, "flower")
     ),
-    ...sourceLibrary.largeRockSurfaceFamilies.grass.variants.map((source) =>
+    ...(sourceLibrary.largeRockSurfaceFamilies.grass?.variants ?? []).map((source) =>
       atomEntry(`rock-grass-${source.id}`, `PARENT ROCK · GRASS · ${source.label}`, source, "rock")
     ),
-    ...sourceLibrary.largeRockSurfaceFamilies.mud.variants.map((source) =>
+    ...(sourceLibrary.largeRockSurfaceFamilies.mud?.variants ?? []).map((source) =>
       atomEntry(`rock-mud-${source.id}`, `PARENT ROCK · MUD · ${source.label}`, source, "rock")
     ),
-    ...sourceLibrary.stoneFamily.variants.map((source) =>
+    ...(sourceLibrary.stoneFamily?.variants ?? []).map((source) =>
       atomEntry(`stone-${source.id}`, `DEBRIS · ${source.label}`, source, "rock")
     ),
-    atomEntry(
-      "debris-cluster",
-      `DEBRIS CLUSTER · ${sourceLibrary.debrisSource.label}`,
-      sourceLibrary.debrisSource,
-      "rock",
-      seedWorldSurfaceDetailLodPolicy(sourceLibrary.debrisSource)
-    ),
+    ...(sourceLibrary.debrisSource
+      ? [
+          atomEntry(
+            "debris-cluster",
+            `DEBRIS CLUSTER · ${sourceLibrary.debrisSource.label}`,
+            sourceLibrary.debrisSource,
+            "rock",
+            seedWorldSurfaceDetailLodPolicy(sourceLibrary.debrisSource)
+          )
+        ]
+      : []),
     atomEntry(
       "mushroom",
       `MUSHROOM · ${sourceLibrary.mushroom.label}`,

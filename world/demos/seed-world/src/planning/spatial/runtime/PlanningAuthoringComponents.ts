@@ -12,7 +12,6 @@ import {
 } from "../PlanningVisualAuthoring.ts";
 import type { PlanningParameterCommand, PlanningSession } from "@galacean/engine-world-planning/spatial/PlanningSession";
 import type { SpatialEntity } from "@galacean/engine-world-planning/spatial/SpatialDocument";
-import type { RockSurfaceMode } from "@galacean/engine-world-planning/integrations/terrain/rock-formation/Settings";
 
 /** Stable identity and only the remaining spatial adapter state. Visual fields live on sibling components. */
 export class PlanningEntityAuthoring extends Script implements PlanningEntityIdentity {
@@ -181,30 +180,26 @@ export class PlanningFlowerInfluence extends VisualParameterAuthoring {
   declare multiplier?: number;
   declare falloff?: number;
 }
-/** Sparse rock surface choice, ascent-mask noise and each surface's controls. */
+/** Sparse procedural rock shape and shared projected material controls. */
 export class PlanningRockFormation extends VisualParameterAuthoring {
-  declare surfaceMode?: RockSurfaceMode;
   declare textureScale?: number;
-  declare palette?: Partial<Record<"spring" | "summer" | "autumn" | "winter", { colorA?: AuthoredColor; colorB?: AuthoredColor }>>;
-  declare colorBalance?: number;
-  declare colorStrength?: number;
-  declare colorSaturation?: number;
-  declare noiseSeed?: number;
-  declare frequency?: number;
-  declare octaves?: number;
-  declare lacunarity?: number;
-  declare persistence?: number;
-  declare maskPower?: number;
-  declare slabSeed?: number;
-  declare slabSize?: number;
-  declare slabCoverage?: number;
-  declare slabDepth?: number;
-  declare slabVariation?: number;
-  declare cellSize?: number;
-  declare cellInset?: number;
-  declare cellDepth?: number;
-  declare cellDetail?: number;
-  declare cellCoverage?: number;
+  declare color?: AuthoredColor;
+  declare topScale?: number;
+  declare bottomScale?: number;
+  declare shoulderScale?: number;
+  declare shoulderHeight?: number;
+  declare topRoughness?: number;
+  declare topSlope?: number;
+  declare topDirection?: number;
+  declare wallCount?: number;
+  declare wallOverlap?: number;
+  declare wallProtrusion?: number;
+  declare wallLength?: number;
+  declare wallTilt?: number;
+  declare wallStrength?: number;
+  declare outlineIrregularity?: number;
+  declare variation?: number;
+  declare targetTriangles?: number;
 }
 export class PlanningSeedArchiveAuthoring extends Script {
   declare metadata: PlanningSeedArchiveMetadata;

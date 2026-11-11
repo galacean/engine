@@ -87,6 +87,10 @@ export interface AtomicManifest {
 }
 
 export interface AtomicLodManifest {
+  readonly geometryBounds?: {
+    readonly min: readonly [number, number, number];
+    readonly max: readonly [number, number, number];
+  };
   readonly id: string;
   readonly label: string;
   readonly lods: readonly { readonly prefabUrl: string }[];

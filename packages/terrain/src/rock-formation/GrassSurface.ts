@@ -1,6 +1,6 @@
-import { smoothstep } from "./CellularCurvature";
-import { sharedRockTransitionCoverage } from "./TransitionCoverage";
+import { smoothstep } from "./math";
 import { hashSeed } from "./math";
+import { buildGrassCoverage } from "./GrassCoverage";
 import type { RockFormationMesh, V3 } from "./types";
 
 /** Smaller than terrain residency cells: one edit/upload never compiles a whole mountain. */
@@ -31,16 +31,28 @@ export interface RockGrassSurface {
 }
 
 /** Worker-only topology preparation; no asset, renderer, DOM or terrain sampling dependencies. */
-export function buildRockGrassSurface(formation: RockFormationMesh, guideNormals: Float32Array): RockGrassSurface {
-  const { positions: p, indices, restPositions = p } = formation.mesh;
+export function buildRockGrassSurface(
+  formation: RockFormationMesh,
+  vertexNormals: Float32Array,
+  authoredCoverage?: Float32Array
+): RockGrassSurface {
+  const { positions: p, indices } = formation.mesh;
   const triangles = indices.length / 3;
   const coverage = new Float32Array(indices.length),
     normals = new Float32Array(indices.length);
   const areas = new Float32Array(triangles),
     seeds = new Uint32Array(triangles);
-  const vertexCount = p.length / 3;
-  const upward = new Float64Array(vertexCount),
-    weights = new Float64Array(vertexCount);
+  const vertexCoverage =
+    authoredCoverage ??
+    buildGrassCoverage({
+      positions: p,
+      indices,
+      normals: vertexNormals,
+      bounds: [
+        [0, 0, 0],
+        [0, 0, 0]
+      ]
+    });
   const patches = new Map<string, Omit<RockGrassPatch, "triangles"> & { triangles: number[] }>();
   for (let t = 0; t < triangles; t++) {
     const a = indices[t * 3] * 3,
@@ -58,33 +70,14 @@ export function buildRockGrassSurface(formation: RockFormationMesh, guideNormals
     const length = Math.hypot(nx, ny, nz);
     if (length < 1e-10) continue;
     normals.set([nx / length, ny / length, nz / length], t * 3);
-    // Coverage belongs to the shared surface, not to a face. Corner angles
-    // prevent thin/large triangles from dominating their neighbors. Average
-    // the upward component itself: normalizing opposed steep normals would
-    // incorrectly turn their ridge into a flat, fully covered meadow.
-    for (let corner = 0; corner < 3; corner++) {
-      const vertex = indices[t * 3 + corner],
-        k = vertex * 3,
-        u = indices[t * 3 + ((corner + 1) % 3)] * 3,
-        v = indices[t * 3 + ((corner + 2) % 3)] * 3;
-      const dot =
-        (p[u] - p[k]) * (p[v] - p[k]) +
-        (p[u + 1] - p[k + 1]) * (p[v + 1] - p[k + 1]) +
-        (p[u + 2] - p[k + 2]) * (p[v + 2] - p[k + 2]);
-      const angle = Math.atan2(length, dot);
-      upward[vertex] += (ny / length) * angle;
-      weights[vertex] += angle;
-    }
     // Physical blade support remains face-specific, including on faces whose
     // material receives a soft fringe from an adjacent meadow.
-    const support = smoothstep(Math.SQRT1_2, Math.cos(Math.PI / 6), ny / length);
+    const support = Math.max(0, ny / length - 0.1);
     if (support === 0) continue;
     areas[t] = length * 0.5;
-    // Rest-space identities survive index reordering/render-only corner expansion.
+    // Position identities survive index reordering and render-only corner expansion.
     const identity = [a, b, c]
-      .map((k) =>
-        [restPositions[k], restPositions[k + 1], restPositions[k + 2]].map((v) => Math.round(v * 10000)).join(",")
-      )
+      .map((k) => [p[k], p[k + 1], p[k + 2]].map((v) => Math.round(v * 10000)).join(","))
       .sort()
       .join("/");
     seeds[t] = hashSeed(0, `${formation.id}/${formation.owners[t]}/${identity}`);
@@ -101,21 +94,6 @@ export function buildRockGrassSurface(formation: RockFormationMesh, guideNormals
         patch.minimumY = Math.min(patch.minimumY, p[a + 1], p[b + 1], p[c + 1]);
         patch.maximumY = Math.max(patch.maximumY, p[a + 1], p[b + 1], p[c + 1]);
       }
-  }
-  const vertexCoverage = new Float32Array(vertexCount);
-  for (let vertex = 0; vertex < vertexCount; vertex++) {
-    if (!weights[vertex]) continue;
-    const support = smoothstep(Math.SQRT1_2, Math.cos(Math.PI / 6), upward[vertex] / weights[vertex]);
-    if (support === 0) continue;
-    const k = vertex * 3;
-    const gy = Math.max(1e-6, guideNormals[k + 1]);
-    const rawRock = smoothstep(0.75, 1.25, Math.hypot(guideNormals[k], guideNormals[k + 2]) / gy);
-    const meadow = 1 - smoothstep(0.12, 0.28, rawRock);
-    const patch = coherentPatch(p[k], p[k + 2]);
-    const ledge = 0.18 * smoothstep(0.35, 0.75, patch);
-    // Dense interiors; coherent variation only in the meadow's transition.
-    const fringe = meadow >= 0.999 ? 1 : meadow * (0.65 + patch * 0.35);
-    vertexCoverage[vertex] = support * Math.max(fringe, ledge);
   }
   for (let corner = 0; corner < indices.length; corner++) coverage[corner] = vertexCoverage[indices[corner]];
   return {
@@ -165,7 +143,6 @@ export function* compileRockGrassPatch(
     throw Error("Invalid rock grass density or scale");
   const grass = formation.grass!,
     { positions: p, indices } = formation.mesh;
-  const continuousCoverage = sharedRockTransitionCoverage(formation);
   let buffer = EMPTY,
     count = 0,
     work = 0;
@@ -194,10 +171,7 @@ export function* compileRockGrassPatch(
       if (x < minX || x >= minX + ROCK_GRASS_PATCH_METRES || z < minZ || z >= minZ + ROCK_GRASS_PATCH_METRES) continue;
       metrics.candidates++;
       const cover = wa * grass.coverage[t * 3] + wb * grass.coverage[t * 3 + 1] + wc * grass.coverage[t * 3 + 2];
-      const painted = !!formation.painted && (!formation.triangleSurfaces || formation.triangleSurfaces[t] === 1);
-      const substrateCoverage = painted
-        ? wa * continuousCoverage[a / 3] + wb * continuousCoverage[b / 3] + wc * continuousCoverage[c / 3]
-        : cover;
+      const substrateCoverage = cover;
       // Finish blades inside the meadow transition, before bare stone. Sparse
       // coverage must not leave isolated clumps with a 55% minimum height.
       const edgeScale = smoothstep(0.25, 0.7, Math.min(cover, substrateCoverage));
@@ -232,10 +206,10 @@ export function* compileRockGrassPatch(
       }
       if (!buffer.length) buffer = new Float32Array(ROCK_GRASS_UPLOAD_INSTANCES * 13);
       const height = scale * (0.55 + 0.45 * Math.sqrt(cover)) * edgeScale;
-      const shadingNormals = painted ? formation.painted!.smoothNormals : formation.mesh.normals!;
-      const normalA = painted ? t * 9 : a;
-      const normalB = painted ? t * 9 + 3 : b;
-      const normalC = painted ? t * 9 + 6 : c;
+      const shadingNormals = formation.mesh.normals!;
+      const normalA = a;
+      const normalB = b;
+      const normalC = c;
       const sx = wa * shadingNormals[normalA] + wb * shadingNormals[normalB] + wc * shadingNormals[normalC];
       const sy = wa * shadingNormals[normalA + 1] + wb * shadingNormals[normalB + 1] + wc * shadingNormals[normalC + 1];
       const sz = wa * shadingNormals[normalA + 2] + wb * shadingNormals[normalB + 2] + wc * shadingNormals[normalC + 2];
@@ -250,8 +224,8 @@ export function* compileRockGrassPatch(
           height,
           scale * edgeScale,
           substrateCoverage,
-          painted ? formation.painted!.cells[t * 2 + 1] : 0,
-          1, // Both slab and cellular substrates sample the shared rock texture.
+          formation.textureScale ?? 0,
+          1, // Shared projected rock substrate.
           sx / normalLength,
           sy / normalLength,
           sz / normalLength
@@ -305,17 +279,6 @@ function random(seed: number, channel: number): number {
   n = Math.imul(n ^ (n >>> 16), 0x21f0aaad);
   n = Math.imul(n ^ (n >>> 15), 0x735a2d97);
   return ((n ^ (n >>> 15)) >>> 0) / 0x100000000;
-}
-
-function coherentPatch(x: number, z: number): number {
-  const ix = Math.floor(x / 3),
-    iz = Math.floor(z / 3);
-  const u = smoothstep(0, 1, x / 3 - ix),
-    v = smoothstep(0, 1, z / 3 - iz);
-  const at = (x: number, z: number) => random(Math.imul(x, 73856093) ^ Math.imul(z, 19349663), 7);
-  return (
-    (at(ix, iz) * (1 - u) + at(ix + 1, iz) * u) * (1 - v) + (at(ix, iz + 1) * (1 - u) + at(ix + 1, iz + 1) * u) * v
-  );
 }
 
 export function rockGrassBuffers(grass?: RockGrassSurface): ArrayBuffer[] {

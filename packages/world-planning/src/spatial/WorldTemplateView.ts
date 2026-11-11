@@ -40,26 +40,27 @@ export function resolveWorldTemplateScene(
     return value;
   };
   const anchor: Position = [site.center.x, sample(site.center.x, site.center.z), site.center.z];
-  const geometry = buildWorldTemplateGeometry(template, plan.parameters.seed);
+  const geometry = buildWorldTemplateGeometry(template, plan.parameters.seed, plan.parameters.spatialComposition);
   const resolution = plan.raster?.heightSamples ?? profile.world.heightmapResolution;
   const spacingX = plan.parameters.width / (resolution - 1);
   const spacingZ = plan.parameters.depth / (resolution - 1);
   const nodes = geometry.nodes.map((node) => {
     const [x, y, z] = node.position,
       [width, height, depth] = node.scale;
-    const corners = templateNodeFootprint(node).map((p) => ({ x: anchor[0] + p.x, z: anchor[2] + p.z }));
+    const corners = templateNodeFootprint(node, true).map((p) => ({ x: anchor[0] + p.x, z: anchor[2] + p.z }));
     let bottom = anchor[1] + y - height / 2;
     if (node.grounded) {
-      const columns = Math.ceil(width / spacingX),
-        rows = Math.ceil(depth / spacingZ);
+      const [supportWidth, supportDepth] = node.groundingFootprint ?? node.footprint ?? [width, depth];
+      const columns = Math.ceil(supportWidth / spacingX),
+        rows = Math.ceil(supportDepth / spacingZ);
       const angle = (node.rotation[1] * Math.PI) / 180,
         c = Math.cos(angle),
         s = Math.sin(angle);
       bottom = Infinity;
       for (let row = 0; row <= rows; row++)
         for (let column = 0; column <= columns; column++) {
-          const dx = (column / columns - 0.5) * width,
-            dz = (row / rows - 0.5) * depth;
+          const dx = (column / columns - 0.5) * supportWidth,
+            dz = (row / rows - 0.5) * supportDepth;
           bottom = Math.min(bottom, sample(anchor[0] + x + dx * c - dz * s, anchor[2] + z + dx * s + dz * c));
         }
       bottom += y;

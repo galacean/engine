@@ -21,7 +21,7 @@ export class PlanningPopulationVisibility {
     const visible = (id: string | undefined) => !id || layers[`object:${id}`] !== false;
     const sites = new Map((this.plan.poiDistribution?.sites ?? []).map((p) => [p.id, p]));
     const ownerVisible = (id: string | undefined) =>
-      visible(id) && (!id || !sites.has(id) || layers[`poi-${sites.get(id)!.tier}`] !== false);
+      visible(id) && (!id || !sites.has(id) || layers["poi-sites"] !== false);
     const trees = (this.plan.landscapes ?? []).filter(
       (p) => p.kind === "tree" && visible(p.id) && ownerVisible(p.ownerId) && ownerVisible(p.poiId)
     );

@@ -217,9 +217,9 @@ export class SeedWorldTerrainRuntime {
   /** Generated single-Region Heightmap Terrain clipmap. */
   readonly clipmap: TerrainClipmap;
   /** Feature-decoration ordinary-stone renderer. */
-  readonly stones: SeedWorldExactPrefabRuntime;
+  readonly stones?: SeedWorldExactPrefabRuntime;
   /** Feature-decoration small-rock renderer. */
-  readonly smallRocks: SeedWorldExactPrefabRuntime;
+  readonly smallRocks?: SeedWorldExactPrefabRuntime;
   /** Sparse accepted mushrooms bound to exact rock edges. */
   readonly mushrooms: SeedWorldExactPrefabRuntime;
   /** Sparse authorized lotus bound only to Artifact Lake shoreline cells. */
@@ -235,6 +235,15 @@ export class SeedWorldTerrainRuntime {
   /** Stable centre point used when entering the generated terrain preview. */
   readonly observationAnchor: Readonly<{ x: number; y: number; z: number }>;
   private readonly _grassAppearanceMaterials = new Map<Material, number>();
+
+  /** Borrow the current native field when creating an external surface material. */
+  getGrassColorFieldBinding(): SeedWorldGrassColorFieldBinding {
+    return {
+      texture: this._terrainMaterialState.grassTexture,
+      vistaFromDetail: this._terrainMaterialState.vistaFromDetail,
+      tuning: this._terrainMaterialState.grassTuning
+    };
+  }
 
   /** Registers runtime-owned grass materials against the live World palette and borrowed Terrain resources. */
   registerGrassAppearanceMaterial(material: Material, brightness = 1): () => void {
@@ -512,8 +521,8 @@ export class SeedWorldTerrainRuntime {
     this.decorations = decorations;
     this.clipmap = clipmap;
     this.exactPrefabs = exactPrefabs;
-    this.stones = exactPrefabs.require("stone");
-    this.smallRocks = exactPrefabs.require("small-rock");
+    this.stones = exactPrefabs.get("stone");
+    this.smallRocks = exactPrefabs.get("small-rock");
     this.mushrooms = exactPrefabs.require("mushroom");
     this.lotus = exactPrefabs.require("lotus");
     this.population = population;

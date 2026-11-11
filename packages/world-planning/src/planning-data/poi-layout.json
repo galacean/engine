@@ -1,18 +1,5 @@
 {
-  "version": 1,
-  "candidateStepM": 16,
-  "maxSitesPerTier": 256,
-  "spacing": {
-    "large": {
-      "minM": 650
-    },
-    "medium": {
-      "minM": 420
-    },
-    "small": {
-      "minM": 210
-    }
-  },
+  "version": 2,
   "content": {
     "villageLimit": 1,
     "villageSiteSpanM": 180,
@@ -42,6 +29,7 @@
     "treeHeightMaxM": 18
   },
   "network": {
+    "enabled": true,
     "widthM": 4,
     "bend": 0.4,
     "loopiness": 0.3
@@ -55,9 +43,6 @@
     "riverWidthM": 9,
     "widthVariation": 0.3
   },
-  "territoryWeights": {
-    "large": 4,
-    "medium": 2,
-    "small": 1
-  }
+  "spacingM": 210,
+  "minAreaM2": 0
 }

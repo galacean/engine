@@ -11,6 +11,8 @@ export interface WaterConnectionBody {
   readonly kind: "lake" | "river" | "ocean";
   readonly bounds: readonly [minX: number, minZ: number, maxX: number, maxZ: number];
   readonly surfaceHeight: (x: number, z: number) => number;
+  /** Optional exact authored footprint; shoreline-field extrapolation remains independent. */
+  readonly containsSurfacePoint?: (x: number, z: number) => boolean;
 }
 
 /** Compiles static connection facts without modifying terrain or backend geometry. */
@@ -50,6 +52,13 @@ export function compileWaterConnections(
     for (const t of [0.1, 0.5, 0.9]) {
       const x = a[0] + (b[0] - a[0]) * t,
         z = a[1] + (b[1] - a[1]) * t;
+      for (const body of [first, second])
+        if (
+          body.containsSurfacePoint
+            ? !body.containsSurfacePoint(x, z)
+            : x < body.bounds[0] || z < body.bounds[1] || x > body.bounds[2] || z > body.bounds[3]
+        )
+          throw new Error(`Connection '${connection.id}' section lies outside its Water footprint.`);
       const left = first.surfaceHeight(x, z),
         right = second.surfaceHeight(x, z),
         bed = bedHeight(x, z);

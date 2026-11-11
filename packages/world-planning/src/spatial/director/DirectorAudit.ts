@@ -123,8 +123,8 @@ export function defaultRoles(plan: IslandPlan, route: DirectorRoute): RoleMap {
     });
   for (const part of planningWhiteboxes(plan, planningGroundSurface(plan).sample))
     if (!roles[part.id] && part.boxes.some((b) => b.occlusion && near(b.center, 40))) {
-      const small = sites.some((p) => p.tier === "small" && poiMemberIds(plan, p).includes(part.id));
-      roles[part.id] = small ? "cue" : "push";
+      const poiContent = sites.some((p) => p.active && poiMemberIds(plan, p).includes(part.id));
+      roles[part.id] = poiContent ? "cue" : "push";
     }
   return roles;
 }

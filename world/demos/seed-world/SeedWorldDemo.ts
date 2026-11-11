@@ -4,6 +4,13 @@ import { buildingScenePreparation, initializeBuildingScene } from "./masonry/Bui
 import { buildingInitializationInputs } from "./masonry/BuildingInitializationInputs.ts";
 import { planningFarmInitializationRequest } from "@galacean/engine-world-planning/spatial/farming/PlanningFarmInitialization";
 import { mountNativeBuildingPanel } from "@galacean/engine-world-planning/masonry/NativeBuildingPanel";
+import { NativeWaterHost } from "@galacean/engine-world-planning/spatial/runtime/NativeWaterHost";
+import { NativeWaterEditor } from "@galacean/engine-world-planning/spatial/runtime/NativeWaterEditor";
+import { createNativeWaterAgentPackage } from "@galacean/engine-world-planning/spatial/runtime/NativeWaterAgent";
+import { WaterBodyComponent } from "@galacean/engine-water/water/native/WaterBodyComponent";
+import { PlanningEntityAuthoring } from "./src/planning/spatial/runtime/PlanningAuthoringComponents.ts";
+import { preparePlanningWaterSource } from "./src/planning/spatial/runtime/PlanningWaterInitialization.ts";
+import { effectivePlanningWaterId } from "./src/planning/spatial/PlanningWaterSource.ts";
 import { RuntimePickPreparation } from "@galacean/engine-runtime-editor/runtime-inspection/runtime-pick-preparation";
 import { RuntimeMeshPickSource } from "@galacean/engine-runtime-editor/runtime-inspection/runtime-mesh-picking";
 import { mountProjectSaveControl } from "@galacean/engine-runtime-editor/project/project-save-control";
@@ -21,6 +28,7 @@ import { readRockGenerationProfile } from "@galacean/engine-world-planning/integ
 import { rockGrassExclusions, rockGrassWaterTest } from "@galacean/engine-world-planning/integrations/terrain/rock-formation/GrassExclusions";
 import {createWaterSurfaceSample} from "@galacean/engine-water/water/runtime/index";
 import {masonryPlacementAnchors,masonryTerrainSource} from "@galacean/engine-world-planning/masonry/MasonryPlacement";
+import { PlanningAnimalProjectAuthoring } from "./src/planning/spatial/runtime/PlanningAnimalAuthoring.ts";
 import { PlanningAnimalHost } from "./src/planning/spatial/runtime/PlanningAnimalHost.ts";
 import { PlanningAnimalFood } from "./src/planning/spatial/runtime/PlanningAnimalFood.ts";
 import { readAnimalPopulationConfig } from "@galacean/engine-world-planning/spatial/AnimalPopulationComponent";
@@ -145,7 +153,7 @@ import type { PlanningSeedObbDebug } from "./src/planning/spatial/runtime/Planni
 import type { PlanningSeedRuntimeDebug } from "./src/planning/spatial/runtime/PlanningSeedRuntimeDebug.ts";
 import type { PlanningSeedDebugSidebar } from "./src/planning/spatial/runtime/PlanningSeedDebugSidebar.ts";
 import { RockFormationClient } from "@galacean/engine-world-planning/integrations/terrain/rock-formation/Client";
-import { preparePaintedRockTexture } from "@galacean/engine-world-planning/integrations/terrain/rock-formation/PaintedRockMaterial";
+import { prepareRockTextures } from "@galacean/engine-world-planning/integrations/terrain/rock-formation/RockMaterial";
 import { readRockFormationSettings, rockGeometrySettings } from "@galacean/engine-world-planning/integrations/terrain/rock-formation/Settings";
 
 /** Original Seed scene/HUD/gameplay host. The spatial planner supplies data, never its preview camera. */
@@ -214,6 +222,8 @@ export async function mountSeedWorldDemo(
   let resizeObserver: ResizeObserver | undefined;
   let nativeBuildingHost: NativeBuildingHost | undefined;
   let nativeBuildingPanel: ReturnType<typeof mountNativeBuildingPanel> | undefined;
+  let nativeWaterHost: NativeWaterHost | undefined;
+  let nativeWaterEditor: NativeWaterEditor | undefined;
   let runtimeProject: RuntimeProjectSession | undefined;
   let unmountProjectSave: (() => void) | undefined;
   let nativeEditor: RuntimeNativeEditor | undefined;
@@ -254,7 +264,7 @@ export async function mountSeedWorldDemo(
     }
   }
   const raster = new PlanningRasterClient();
-  const rockFormations = new RockFormationClient();
+  const rockFormations = new RockFormationClient(pageUrl.searchParams.get("rockUnion") === "1");
   let rockNavigation: RockNavigation | undefined;
   const bootPhases: { phase: string; startMs: number }[] = [];
   const traceBootPhase = (phase: string) => {
@@ -271,62 +281,83 @@ export async function mountSeedWorldDemo(
     orb?.setProgress(value);
   };
   let disconnectEditorAssets: (() => void) | undefined;
+  // Consumers must release overlays and subscriptions while their world still exists.
+  // Advance only after success, so a release retry cannot destroy an earlier owner twice.
+  const runtimeReleaseSteps: readonly [string, () => unknown][] = [
+    ["编辑入口", () => {
+      disposed = true; ready = false; editorLifetime.abort();
+      unmountProjectSave?.(); unmountProjectSave = undefined;
+      pickPreparation?.dispose(); runtimeDebug?.destroy(); unregisterFarmingActivation?.();
+      nativeWaterHost?.dispose();
+    }],
+    ["农场宿主", () => farmingHost?.dispose()],
+    ["建筑宿主", () => nativeBuildingHost?.dispose()],
+    ["场景交互", () => {
+      lassoPanel?.dispose(); viewSnapshots?.dispose(); unbindWorldPick?.(); worldPicker?.dispose(); selection?.dispose();
+      detachWindExposure?.(); detachAnimalLightning?.();
+    }],
+    ["动物", () => animals?.dispose()],
+    ["玩家状态", () => playerState?.dispose()],
+    ["编辑器", () => {
+      lightingProfile?.dispose(); debugSidebar?.destroy(); disconnectEditorAssets?.(); tools?.dispose();
+      nativeBuildingPanel?.destroy(); nativeEditor?.dispose(); retrieval?.dispose();
+    }],
+    ["调试对象", () => obbDebug?.destroy()],
+    ["音频", () => audio?.destroy()],
+    ["作者会话", async () => {
+      if (source) source.dispose();
+      else await sourceTask?.then(value => value.dispose(), () => {});
+      resizeObserver?.disconnect();
+    }],
+    ["已发布场景", () => publication?.destroy()],
+    ["地形任务", () => { raster.dispose(); rockFormations.dispose(); rockNavigation?.dispose(); buildingLongTasks?.disconnect(); }],
+    ["水运行", () => water?.destroy()],
+    ["环境", () => environment?.destroy()],
+    ["光照", () => lighting?.destroy()],
+    ["加载界面", () => orb?.destroy()],
+    ["Scene", () => scene?.destroy()],
+    ["Engine", () => engine?.destroy()]
+  ];
+  let runtimeReleaseIndex = 0;
+  const disposeRuntime = async () => {
+    while (runtimeReleaseIndex < runtimeReleaseSteps.length) {
+      const [name, release] = runtimeReleaseSteps[runtimeReleaseIndex];
+      try { await release(); }
+      catch (error) { throw new Error(`释放${name}失败`, { cause: error }); }
+      runtimeReleaseIndex++;
+    }
+  };
   const dispose = createSeedWorldProjectClose(async () => {
-    disposed = true;
-    editorLifetime.abort();
-    unmountProjectSave?.();
-    unmountProjectSave = undefined;
-    pickPreparation?.dispose();
-    runtimeDebug?.destroy();
-    unregisterFarmingActivation?.();
-    const nativeBuildingCleanup = nativeBuildingHost?.dispose();
-    const farmingCleanup = farmingHost?.dispose();
-    lassoPanel?.dispose();
-    viewSnapshots?.dispose();
-    unbindWorldPick?.();
-    worldPicker?.dispose();
-    selection?.dispose();
-    ready = false;
-    detachWindExposure?.();
-    detachAnimalLightning?.();
-    const animalCleanup = animals?.dispose();
-    const sceneCleanup = publication?.destroy();
-    raster.dispose();
-    rockFormations.dispose();
-    rockNavigation?.dispose();
-    buildingLongTasks?.disconnect();
-    lightingProfile?.dispose();
-    await playerState?.dispose();
-    debugSidebar?.destroy();
-    disconnectEditorAssets?.();
     tools?.dispose();
-    nativeBuildingPanel?.destroy();
-    nativeEditor?.dispose();
-    retrieval?.dispose();
-    await obbDebug?.destroy();
-    audio?.destroy();
-    if (source) source.dispose();
-    else
-      void sourceTask?.then(
-        (value) => value.dispose(),
-        () => {}
-      );
-    resizeObserver?.disconnect();
-    await Promise.all([animalCleanup, sceneCleanup, farmingCleanup, nativeBuildingCleanup]);
-
-    await water?.destroy();
-    environment?.destroy();
-    lighting?.destroy();
-    orb?.destroy();
-    scene?.destroy();
-    engine?.destroy();
-  }, async () => { await runtimeProject?.save(); }, () => { runtimeProject?.dispose(); });
+    await nativeWaterEditor?.stop();
+    editorLifetime.abort();
+    nativeEditor?.editor.dispose();
+    // Runtime errors are diagnostics. Accepted authoring must still be saved.
+    await nativeWaterHost?.flush().catch(() => {});
+    ready = false;
+    engine?.pause();
+    await farmingHost?.runtime?.stop();
+    await playerState?.dispose();
+  }, async () => { await runtimeProject?.save(); }, async () => {
+    await disposeRuntime();
+    runtimeProject?.dispose();
+  });
   const closeFailure = (error: unknown) => {
+    console.error("Seed World close failed", error);
+    canvas.dataset.closeError = JSON.stringify(error, (_key, value) => value instanceof Error
+      ? { name: value.name, message: value.message, stack: value.stack, cause: value.cause,
+        ...(value instanceof AggregateError ? { errors: value.errors } : {}) } : value);
     loading.hidden = false;
     loading.dataset.state = "error";
-    progress(1, "工程保存失败：" + String(error));
+    const reason = (error: unknown): string => error instanceof AggregateError
+      ? error.errors.map(reason).join("；")
+      : error instanceof Error ? error.message + (error.cause ? "：" + reason(error.cause) : "") : String(error);
+    // The loader orb may already be retired when a later release fails.
+    canvas.dataset.bootPhase = "工程关闭失败：" + reason(error);
+    loading.setAttribute("aria-label", canvas.dataset.bootPhase);
+    percent.value = canvas.dataset.bootPhase;
     retry.hidden = false;
-    retry.textContent = "重试保存";
+    retry.textContent = "重试关闭";
     retry.style.pointerEvents = "auto";
     retry.onclick = () => { void dispose().then(() => location.reload()).catch(closeFailure); };
   };
@@ -341,8 +372,8 @@ export async function mountSeedWorldDemo(
     engine = await WebGLEngine.create({
       canvas,
       physics: new PhysXPhysics(PhysXRuntimeMode.Auto, import.meta.env.DEV ? {
-        wasmModeUrl: new URL("../../../packages/modify/assets/physx/physx.release.js", import.meta.url).href,
-        wasmSIMDModeUrl: new URL("../../../packages/modify/assets/physx/physx.release.simd.js", import.meta.url).href
+        wasmModeUrl: new URL("../../../packages/physics-physx/libs/physx.release.js", import.meta.url).href,
+        wasmSIMDModeUrl: new URL("../../../packages/physics-physx/libs/physx.release.simd.js", import.meta.url).href
       } : undefined),
       shaderCompiler: new ShaderCompiler(),
       graphicDeviceOptions: { webGLMode: WebGLMode.WebGL2 }
@@ -372,7 +403,7 @@ export async function mountSeedWorldDemo(
     void sourceTask.catch(() => {});
     await preparePlanningFarmingScene(runtimeProject, { baseUrl: location.href });
     source = await sourceTask;
-    await planningStorage.migrateToSource(source.session.document);
+    await planningStorage.migrateToSource(source.session.document, source.replaceSavedTemplate);
     await installRuntimeProjectScripts(runtimeProject, editorLifetime.signal);
     if (disposed) { runtimeProject.dispose(); throw new Error("Seed page disposed during script preparation"); }
     const resources = await runtimeProject.resources();
@@ -380,7 +411,8 @@ export async function mountSeedWorldDemo(
     engine.resourceManager.registerVirtualResources(resources);
     useProjectPlantResources(engine, planningVegetationReferences(runtimeProject.projectPackage));
     await runtimeProject.save();
-    // Materials resolve the shared Shader registry before loading their declared shaderRef.
+    // Startup registers Water's shared near profiles before scene loading; explicit material shaderRefs
+    // resolve independent authored Shaders even when their names match a startup profile.
     // Loading the entire manifest again would re-create shaders already used by the planning preview.
     registerWindGpuFieldShaders();
     registerTerrainWindGpuExposureShader();
@@ -461,7 +493,22 @@ export async function mountSeedWorldDemo(
     const root = scene!.createRootEntity("Seed World Runtime");
     rockNavigation = new RockNavigation(root, navigation,
       (x, z) => publication?.current?.navigation.sampleHeightInterpolated(x, z));
-    water = new PlanningWaterRuntime({ engine, root, camera });
+    const readWaterBody = (id: string) => {
+      for (const identity of nativeEditor!.editor.projection.queryComponents({ type: "WaterBodyComponent" })) {
+        const body = nativeEditor!.editor.projection.component(identity.id);
+        if (body instanceof WaterBodyComponent && body.authoring) {
+          const planningId = body.entity.getComponent(PlanningEntityAuthoring)?.planningId;
+          if (planningId && effectivePlanningWaterId(identity.scene, identity.id, planningId, body.authoring.shape.kind) === id) return body;
+        }
+      }
+    };
+    water = new PlanningWaterRuntime({ engine, root, camera, readBody: readWaterBody,
+      pickId: id => { const body = readWaterBody(id); return body && nativeEditor!.projection.identityOf(body)?.id; } });
+    nativeWaterHost = new NativeWaterHost(runtimeProject, nativeEditor.editor, water.system, {
+      hostTerrain: true,
+      consumeHostInputs: async () => { if (source?.session.result && publication?.current) await water!.synchronize(publication.current.plan); },
+      physicalPublication: () => { if (publication?.current) farmingHost?.runtime?.refreshWater(publication.current); }
+    });
     const sampleHeight = (x: number, z: number) => {
       const current = publication?.current;
       return current && sampleSeedWorldHeight(current.heightTransition?.fields ?? current.data.fields, x, z);
@@ -496,7 +543,7 @@ export async function mountSeedWorldDemo(
     driver.lateTick = function updateSelectionFrame() {
       publication?.current?.solids.bridgesView.updateLod(camera);
       if ((selectionPublication !== publication?.current && !selectedNativeId) ||
-        (selectedNativeId && !nativeBuildingHost?.system.resolve(selectedNativeId))) {
+        (selectedNativeId && !nativeEditor!.projection.component(selectedNativeId))) {
         selectedNativeId = undefined;
         const hadSelection = selection?.hasSelection;
         selection?.clear(); tools?.application.setUserSelection(undefined); selectionPublication = publication?.current;
@@ -524,6 +571,8 @@ export async function mountSeedWorldDemo(
         debugSidebar?.update(); runtimeDebug?.refresh(); debugReadoutElapsed = 0;
         const current = publication?.current;
         if (current?.vegetation) canvas.dataset.vegetation = JSON.stringify(current.vegetation.getDiagnostics());
+        canvas.dataset.rockGeneration = JSON.stringify(rockFormations.generationMetrics);
+        canvas.dataset.rockUnion = JSON.stringify(rockFormations.publicationMetrics);
         if (current?.template && pageUrl.searchParams.get("debug") === "1") {
           const forward = camera.entity.transform.worldForward;
           canvas.dataset.templateCamera = JSON.stringify({
@@ -607,6 +656,7 @@ export async function mountSeedWorldDemo(
       samplePlayerSupport: (x, z) => rockNavigation?.sampleContactHeight(x, z) });
     const animalPlayerPosition = new Vector3();
     animals = new PlanningAnimalHost(root, () => camera.entity.transform.worldPosition, undefined, {
+      authoring: new PlanningAnimalProjectAuthoring(runtimeProject!),
       player: () => {
         if (!navigation.enabled || navigation.verticalMovementEnabled) return undefined;
         const eye = camera.entity.transform.worldPosition;
@@ -700,13 +750,15 @@ export async function mountSeedWorldDemo(
       }
       if (!context.contentOnly && !context.worldUnchanged && waterFallback) canvas.dataset.waterImpact = JSON.stringify({ mode: "full-native", phase: "preparing", fallback: waterFallback });
       const plannedGeometryUnchanged = !publication!.current || sameMasonryPlan(publication!.current.plan, result.plan);
+      const roadState = (p: typeof result.plan) => JSON.stringify([p.routes, p.roadGraph, p.roadNetwork, p.bridges, p.roadApproaches]);
+      const roadGeometryUnchanged = !publication!.current || roadState(publication!.current.plan) === roadState(result.plan);
       const rockSupportChanged = publication!.current && JSON.stringify([
         result.plan.rocks, result.plan.landscapes?.filter(x => x.kind === "rock"), rockGeometrySettings(readRockFormationSettings(document))
       ]) !== JSON.stringify([
         publication!.current.plan.rocks, publication!.current.plan.landscapes?.filter(x => x.kind === "rock"),
         rockGeometrySettings(readRockFormationSettings(context.previousDocument))
       ]);
-      if (!context.forceFull && !rockSupportChanged && canPublishRockFormationEdit(publication!.current, context.previousDocument, document, result.plan)) {
+      if (!context.forceFull && roadGeometryUnchanged && !rockSupportChanged && canPublishRockFormationEdit(publication!.current, context.previousDocument, document, result.plan)) {
         const started = performance.now(), settings = readRockFormationSettings(document);
         const staged = await publication!.prepareRocks(result.plan, async signal =>
           prepareRockMaterialPublication(publication!.current!, settings, signal), context.signal);
@@ -718,13 +770,13 @@ export async function mountSeedWorldDemo(
       }
       // Mixed content edits still need the full transaction when building supports
       // change. Rock-only edits below stage their dependent supports locally.
-      if (context.contentOnly && plannedGeometryUnchanged && publication!.current?.vegetation
+      if (context.contentOnly && plannedGeometryUnchanged && roadGeometryUnchanged && publication!.current?.vegetation
         && !(rockSupportChanged && result.plan.buildings.length)) {
         const started = performance.now(), plan = result.plan;
         let metrics: Record<string, number> = {};
         const staged = await publication!.prepareContent(plan, async signal => {
           const current = publication!.current!;
-          const vegetation = current.vegetation!.prepareTrees(plan, signal);
+          const vegetation = await current.vegetation!.prepareTrees(plan, signal);
           const rockState = (p: typeof plan) => JSON.stringify([
             p.rocks, p.landscapes?.filter(element => element.kind === "rock")
           ]);
@@ -733,7 +785,7 @@ export async function mountSeedWorldDemo(
           try {
             if (rockState(plan) !== rockState(current.plan)) {
               const meshes = await rockFormations.prepare(plan, readRockFormationSettings(document), signal);
-              await preparePaintedRockTexture(engine!, meshes, signal);
+              await prepareRockTextures(engine!, signal);
               signal.throwIfAborted();
               solids = current.solids.prepareRocks(plan, planningPresentedSolids(plan,
                 current.heightTransition?.fields ?? current.data.fields, current.data.fields), meshes,
@@ -772,7 +824,7 @@ export async function mountSeedWorldDemo(
         // Reuse publication follow-up so mixed animal/lighting/grass edits all reach their consumers.
         return { discard() {}, commit() {}, afterCommit: () => publish(false, context.projectTransaction) };
       }
-      if (!context.forceFull && canPublishRockFormationEdit(publication!.current, context.previousDocument, document, result.plan)) {
+      if (!context.forceFull && roadGeometryUnchanged && canPublishRockFormationEdit(publication!.current, context.previousDocument, document, result.plan)) {
         const started = performance.now(), plan = result.plan;
         let metrics: Record<string, number> = {};
         let summary = "";
@@ -780,20 +832,24 @@ export async function mountSeedWorldDemo(
           const current = publication!.current!, settings = readRockFormationSettings(document);
           const meshes = await rockFormations.prepare(plan, settings, signal, current.solids.formations);
           const preparationMetrics = { ...rockFormations.preparationMetrics };
-          await preparePaintedRockTexture(engine!, meshes, signal);
+          await prepareRockTextures(engine!, signal);
           signal.throwIfAborted();
           const frame = await prepareRockFormationPublication(current, plan, meshes, rockFormations,
             settings, document.revision, signal, readRockGenerationProfile(document));
           metrics = { ...preparationMetrics, ...frame.metrics };
           summary = JSON.stringify({ formations: meshes.length,
             triangles: meshes.reduce((sum, f) => sum + f.mesh.indices.length / 3, 0),
-            slabs: meshes.reduce((sum, f) => sum + f.stats.slabs, 0),
-            deformedVertices: meshes.reduce((sum, f) => sum + f.stats.deformedVertices, 0) });
+            bodies: meshes.reduce((sum, f) => sum + f.stats.bodies, 0),
+            vertices: meshes.reduce((sum, f) => sum + f.stats.vertices, 0),
+            targetTriangles: settings.targetTriangles,
+            overBudgetBodies: meshes.reduce((sum, f) => sum + (f.stats.overBudgetBodies ?? 0), 0) });
           return frame;
         }, context.signal);
         return { discard: () => staged.discard(), commit: () => {
           staged.commit();
           canvas.dataset.rockFormations = summary;
+          canvas.dataset.rockGeneration = JSON.stringify(rockFormations.generationMetrics);
+          canvas.dataset.rockUnion = JSON.stringify(rockFormations.publicationMetrics);
           canvas.dataset.rockEdit = JSON.stringify({ ...metrics, publicationMs: performance.now() - started });
         }, afterCommit: () => publishContentEdit(context.projectTransaction) };
       }
@@ -929,7 +985,7 @@ export async function mountSeedWorldDemo(
             });
           applyPlanningTreeVariations(candidate.population, plan.authoredResources ?? []);
           const formationMeshes = await rockFormations.prepare(plan, readRockFormationSettings(document), signal);
-          await preparePaintedRockTexture(engine!, formationMeshes, signal);
+          await prepareRockTextures(engine!, signal);
           signal.throwIfAborted();
           candidateSolids = await createPlanningSeedSolids(engine!, candidate.root,
             planningPresentedSolids(plan, heightTransition?.fields ?? candidateData.fields, candidateData.fields), {
@@ -941,8 +997,10 @@ export async function mountSeedWorldDemo(
             });
           canvas.dataset.rockFormations = JSON.stringify({ formations: formationMeshes.length,
             triangles: formationMeshes.reduce((sum, f) => sum + f.mesh.indices.length / 3, 0),
-            slabs: formationMeshes.reduce((sum, f) => sum + f.stats.slabs, 0),
-            deformedVertices: formationMeshes.reduce((sum, f) => sum + f.stats.deformedVertices, 0) });
+            bodies: formationMeshes.reduce((sum, f) => sum + f.stats.bodies, 0),
+            vertices: formationMeshes.reduce((sum, f) => sum + f.stats.vertices, 0),
+            targetTriangles: readRockFormationSettings(document).targetTriangles,
+            overBudgetBodies: formationMeshes.reduce((sum, f) => sum + (f.stats.overBudgetBodies ?? 0), 0) });
           candidateVegetation = await PlanningNaturalVegetationRuntime.create(candidate.root, candidate.population.trees,
             candidate.population.details, camera, library, plan, planningHeightmap(plan), candidateData.fields,
             candidateData.population, { client: rockFormations, settings: readRockFormationSettings(document), signal,
@@ -955,20 +1013,23 @@ export async function mountSeedWorldDemo(
               heightTransition?.fields ?? candidateData.fields
             );
             signal.throwIfAborted();
+          canvas.dataset.rockGeneration = JSON.stringify(rockFormations.generationMetrics);
+          canvas.dataset.rockUnion = JSON.stringify(rockFormations.publicationMetrics);
           await candidate.population.applyAuthoringPopulationLayout(planningNaturalGroundPopulation(candidateData.population,
             planningNaturalGrassDensity(library), plan, candidateVegetation.plantAssets),
               { minimumX: 0, minimumZ: 0, maximumX: plan.parameters.width, maximumZ: plan.parameters.depth }
             );
             candidate.setSurfaceColorTuning({
-              roadColor: readSurfacePalette(document, SEED_WORLD_ROAD_COLOR_DEFAULT),
+              roadColor: readSurfacePalette(document, SEED_WORLD_ROAD_COLOR_DEFAULT, "road"),
               groundColor: readSurfacePalette(document, SEED_WORLD_ROAD_COLOR_DEFAULT),
               grass: readGrassAppearance(document)
             });
-            candidateTemplate = WorldTemplateRuntime.create(
+            candidateTemplate = await WorldTemplateRuntime.create(
               candidate.root,
               plan,
               (x, z) => sampleSeedWorldHeight(candidateData.fields, x, z),
-              templateScene
+              templateScene,
+              signal
             );
             if (!ready) progress(0.6, `生成真实建筑（${plan.buildings.length} 栋）`);
             progress(0.68, "生成全部房屋与围合构件");
@@ -978,8 +1039,11 @@ export async function mountSeedWorldDemo(
           // contributed during editor preparation, never from runtime publication.
           if (!ready && !context.projectTransaction)
             await initializeBuildingScene(runtimeProject!, nativeEditor!.editor, plan, buildingTerrain, signal);
+          if (!ready) progress(0.7, "准备原生建筑与水体");
           candidateMasonry = await nativeBuildingHost!.prepare({ terrain: buildingTerrain, signal });
+          canvas.dataset.waterPreparation = "preparing";
           candidateWater = await water!.prepare(plan, signal);
+          canvas.dataset.waterPreparation = "ready";
           candidate.population.setRockGrassGround(readRockFormationSettings(document));
           candidate.population.prepareRockGrass(
             rockFormationPlacements(planningPresentedSolids(plan,
@@ -987,6 +1051,7 @@ export async function mountSeedWorldDemo(
             rockGrassExclusions(plan, candidateData.fields, rockGrassWaterTest(water!))).commit();
           if (precompileShaders) candidate.warmupPopulationDetails();
           const warmupRoots = [candidate.root, ...candidateWater.shaderWarmupRoots];
+          if (!ready) progress(0.78, "预编译场景渲染变体");
           const shaderWarmup = await warmupSeedWorldRendererVariants(engine!, scene!, camera, warmupRoots, {
             enabled: precompileShaders, includeGpuInstancing: true, strict: true,
             activatedLightRoots: warmupRoots, retiredLightRoots: readWorld() ? [readWorld()!.root] : [],
@@ -1135,7 +1200,7 @@ export async function mountSeedWorldDemo(
           source!.session.inspect("world").components.find((c) => c.type === "weather")?.values
         );
         accepted.world.setSurfaceColorTuning({
-          roadColor: readSurfacePalette(source!.session.document, SEED_WORLD_ROAD_COLOR_DEFAULT),
+          roadColor: readSurfacePalette(source!.session.document, SEED_WORLD_ROAD_COLOR_DEFAULT, "road"),
           groundColor: readSurfacePalette(source!.session.document, SEED_WORLD_ROAD_COLOR_DEFAULT),
           grass: readGrassAppearance(source!.session.document)
         });
@@ -1163,6 +1228,7 @@ export async function mountSeedWorldDemo(
     progress(0.2, "准备原 Seed 环境光照");
     await source.initialize(preparePublication);
     const initialBuildingDocument = source.session.export();
+    nativeEditor.editor.registerPreparation(preparePlanningWaterSource(() => runtimeProject!.projectPackage));
     nativeEditor.editor.registerPreparation(validatePlanningSource);
     nativeEditor.editor.registerPreparation(buildingScenePreparation(runtimeProject.projectPackage.project.scene,
       (edit, signal) => buildingInitializationInputs(edit, signal,
@@ -1191,6 +1257,7 @@ export async function mountSeedWorldDemo(
     tools = new PlanningSeedWorldSession({
       nativeEditor,
       editorExtensions: [
+        createNativeWaterAgentPackage(),
         createFarmingComponentExtension(nativeEditor.projection),
         ...(retrieval ? [retrieval.extension] : [])
       ],
@@ -1239,6 +1306,13 @@ export async function mountSeedWorldDemo(
         import("./src/planning/spatial/runtime/PlanningSeedDebugSidebar.ts")
       ]);
       runtimeDebug = await PlanningSeedRuntimeDebug.create({
+        trees: {
+          project: runtimeProject,
+          editor: nativeEditor,
+          application: tools.application,
+          planning: source!.session,
+          readVegetation: () => readPublished()?.vegetation
+        },
         engine,
         root,
         camera,
@@ -1335,7 +1409,11 @@ export async function mountSeedWorldDemo(
           void source!
             .save()
             .then(() => dispose())
-            .then(() => location.reload())
+            .then(() => {
+              const url = new URL(location.href);
+              url.searchParams.delete("view");
+              location.assign(url.href);
+            })
             .catch((error) => {
               if (disposed) closeFailure(error);
               else progress(1, "工程保存失败：" + String(error));
@@ -1364,6 +1442,7 @@ export async function mountSeedWorldDemo(
     orb.suspend();
     ready = true;
     disconnectEditorAssets = tools.application.connectProject(runtimeProject);
+    nativeWaterEditor = new NativeWaterEditor(runtimeProject, nativeEditor.editor);
     const savedEditor = runtimeProject.projectPackage.contents[SEED_WORLD_EDITOR_PATH];
     if (typeof savedEditor === "string") await tools.application.restoreEditorDocument(
       JSON.parse(savedEditor), editorLifetime.signal, { restoreCamera: false }
@@ -1469,7 +1548,8 @@ export async function mountSeedWorldDemo(
           if (objectId) runtimeDebug?.selectRockObb(objectId);
           return;
         }
-        const native = objectId && nativeBuildingHost?.system.resolve(objectId)
+        const pickedComponent = objectId && nativeEditor!.projection.component(objectId);
+        const native = objectId && (nativeBuildingHost?.system.resolve(objectId) || pickedComponent instanceof WaterBodyComponent)
           ? nativeEditor!.projection.queryComponents({ id: objectId })[0] : undefined;
         selectedNativeId = native?.id;
         const ref = objectId && !native

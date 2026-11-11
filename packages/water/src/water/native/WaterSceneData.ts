@@ -1,14 +1,15 @@
 import type { WaterBodyComponent } from "./WaterBodyComponent";
+import type { Material } from "@galacean/engine-core";
 import type { WaterBodyResource, WaterLookResource, WaterQualityResource } from "./WaterResources";
 
 /** Produces the standard engine Component.props block; the host owns Scene/Prefab serialization and URL storage. */
 export function waterBodyComponentData(
   body: WaterBodyComponent,
-  reference: (resource: WaterBodyResource | WaterLookResource | WaterQualityResource) => number
+  reference: (resource: WaterBodyResource | WaterLookResource | WaterQualityResource | Material) => number
 ) {
   const config = body.configuration;
   if (!config) throw new Error("MISSING_DEPENDENCY: Water component has no accepted configuration.");
-  const { asset, look, quality, ...settings } = config;
+  const { asset, look, material, quality, ...settings } = config;
   return {
     type: "WaterBodyComponent",
     props: {
@@ -17,7 +18,7 @@ export function waterBodyComponentData(
       configuration: {
         ...settings,
         asset: { $ref: reference(asset) },
-        look: { $ref: reference(look) },
+        ...(material ? { material: { $ref: reference(material) } } : look ? { look: { $ref: reference(look) } } : {}),
         quality: { $ref: reference(quality) }
       }
     }

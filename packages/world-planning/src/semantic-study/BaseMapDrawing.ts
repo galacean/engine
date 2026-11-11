@@ -1,6 +1,5 @@
 import { ribbonOutline } from "./WorldRibbon";
-import { isGlobalRoadId } from "../spatial/layout/RoadIdentity";
-import { roadSurfaces, roadSurfaceOwners } from "../spatial/layout/RoadTopology";
+import { isGlobalRoadSurface, roadSurfaces, roadSurfaceOwners } from "../spatial/layout/RoadTopology";
 import { drawPoiDistribution, drawPoiTerritories, drawPlanningFarm } from "./PoiPlanDrawing";
 import { PLANNING_SURFACE_CSS, PLANNING_OBJECT_CSS, PLANNING_MAP_WATER_CSS } from "./PlanningSurfacePalette";
 import { drawTerrainBands } from "../spatial/terrain/TerrainBandPreview";
@@ -363,7 +362,7 @@ export function drawBaseMap(plan: IslandPlan, omitRocks = false, groundSurface =
       return layer(
         r.kind === "ridge" ? "ridgeRoad" : "route",
         layer(
-          isGlobalRoadId(r.id) ? "road-world" : "road-local",
+          isGlobalRoadSurface(plan, r) ? "road-world" : "road-local",
           feature(r.id, r.label, surface, r.id, true, roadSurfaceOwners(plan, r))
         )
       );
@@ -511,7 +510,9 @@ export function drawBaseMap(plan: IslandPlan, omitRocks = false, groundSurface =
   );
   return (
     defs +
-    layer("ocean", `<rect x="-4000" y="-4000" width="12000" height="12000" fill="${c.ocean}"/>`) +
+    (plan.parameters.landMode === "continuous"
+      ? ""
+      : layer("ocean", `<rect x="-4000" y="-4000" width="12000" height="12000" fill="${c.ocean}"/>`)) +
     layer("land", land + groundSurface) +
     drawPlanningTerrain(plan) +
     domainHits +

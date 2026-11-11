@@ -213,7 +213,7 @@ function moveWaterJunctionsToBanks(plan: IslandPlan): boolean {
       });
       const options = incident
         .flatMap((edge) => {
-          let at = edge.points.findIndex(dry);
+          const at = edge.points.findIndex(dry);
           if (at < 0) return [];
           if (at === edge.points.length - 1) {
             // Keep a nonzero final edge even for a two-point bank approach.
@@ -778,16 +778,14 @@ export function bridgeGround(
             { ...b.b, y: b.deckY }
           ]);
     const radius = b.width / 2 + 0.001;
-    const segments = points
-      .slice(1)
-      .map((q, i) => ({
-        a: points[i],
-        b: q,
-        minX: Math.min(points[i].x, q.x) - radius,
-        minZ: Math.min(points[i].z, q.z) - radius,
-        maxX: Math.max(points[i].x, q.x) + radius,
-        maxZ: Math.max(points[i].z, q.z) + radius
-      }));
+    const segments = points.slice(1).map((q, i) => ({
+      a: points[i],
+      b: q,
+      minX: Math.min(points[i].x, q.x) - radius,
+      minZ: Math.min(points[i].z, q.z) - radius,
+      maxX: Math.max(points[i].x, q.x) + radius,
+      maxZ: Math.max(points[i].z, q.z) + radius
+    }));
     const segmentBlocks = [];
     // Include the legacy weighted fringe, which extends beyond the solid deck.
     const margin = b.width / 2 + 0.002;

@@ -1,3 +1,4 @@
+import { resolveWaterMaterialProfile, validateWaterWorldTransform } from "./WaterAuthoring";
 import { createFarmlandsWaterResourceFactories } from "../resources/river/FarmlandsWaterRuntimeResources";
 import { sampleRiverDrop, type RiverDrop } from "../authoring/river/RiverDrop";
 import {
@@ -7,7 +8,9 @@ import {
 } from "../runtime/body/WaterPlanarTransform";
 import type { WaterEnvironmentReflectionSource, WaterEnvironmentReflectionProviderHandle } from "../runtime/index";
 import { Vector3 } from "@galacean/engine-math";
-import { Camera, Layer, Script, ignoreClone, type Scene, type Entity } from "@galacean/engine-core";
+import { Camera, Layer, Script, Texture2D, ignoreClone, type Scene, type Entity } from "@galacean/engine-core";
+import { prepareWaterMaterial, waterMaterialFactories, waterMaterialKey } from "./WaterMaterial";
+import { compileNativeWaterConnections } from "./WaterConnections";
 import { createWaterBodyInstance } from "../authoring/body/WaterBodyInstance";
 import { createWaterBodyAsset } from "../authoring/body/WaterBodyAsset";
 import type {
@@ -20,7 +23,7 @@ import { WaterSceneRuntimeHost } from "../runtime/scene/WaterSceneRuntimeHost";
 import { HeightfieldWaterBackend } from "../runtime/heightfield/HeightfieldWaterBackend";
 import { RiverWaterBackend } from "../runtime/river/RiverWaterBackend";
 import { OceanWaterBackend } from "../runtime/ocean/OceanWaterBackend";
-import { OceanTextureLibrary } from "../runtime/ocean/OceanTextureLibrary";
+import { OceanTextureLibrary, describeOceanTextures, type OceanTextures } from "../runtime/ocean/OceanTextureLibrary";
 import { createLakeNormalResourceFactory } from "../resources/lake/LakeNormalRuntimeResource";
 import { createWaterSurfaceSample } from "../runtime/query/WaterSurfaceProvider";
 import { createWaterSpatialFieldSample, WaterSpatialFieldChannel } from "../runtime/spatial/WaterSpatialFieldProvider";
@@ -74,15 +77,17 @@ interface WaterBatchRenderRoots {
 // outside stageBody/prepareBatch so it cannot retain their transaction scopes.
 function nativeWaterRuntimeContext(
   system: WaterSystem,
-  textures: OceanTextureLibrary | undefined,
-  capture?: WaterBatchRenderRoots
+  textures: Readonly<OceanTextures> | undefined,
+  capture?: WaterBatchRenderRoots,
+  surfaceShader?: import("@galacean/engine-core").Shader
 ) {
   return (root: Entity) => {
     capture?.roots?.push(root);
     return {
       engine: system.engine,
       root,
-      textures: textures?.textures,
+      textures,
+      surfaceShader,
       cameraPositionProvider: () => system.camera!.entity.transform.worldPosition,
       sceneFogEnabled: false
     };
@@ -91,6 +96,102 @@ function nativeWaterRuntimeContext(
 
 /** One Scene owner, reusing the existing transactional host and three backends. */
 export class WaterSystem extends Script implements WaterRuntimeControl {
+  private _authoringDepth = 0;
+  private _authoringBodies = new Set<WaterBodyComponent>();
+  private _authoringDirty = false;
+  private _authoringTask?: Promise<void>;
+  private _authoringAbort?: AbortController;
+  private _authoringKeys = new Map<WaterBodyComponent, string>();
+  private _authoringDetaches = new Map<WaterBodyComponent, { resolve(): void; promise: Promise<void> }>();
+
+  /** Public host transaction barrier. Finish installs one complete multi-body candidate. */
+  beginInputUpdate(): void {
+    this.assertLive();
+    this._authoringDepth++;
+    this._authoringAbort?.abort();
+  }
+  endInputUpdate(accept = true, flush = true): void {
+    if (this._authoringDepth === 0) throw new Error("CONFLICT: Water input update was not started.");
+    this._authoringDepth--;
+    if (!accept) {
+      this._authoringDirty = false;
+      this._authoringAbort?.abort();
+    }
+    if (flush && !this._authoringDepth) void this.flushAuthoring().catch(() => {});
+  }
+  requestAuthoringUpdate(body: WaterBodyComponent): Promise<void> {
+    if (body.authoring?.terrain.mode === "host") return Promise.resolve();
+    this.assertLive();
+    this._authoringBodies.add(body);
+    this._authoringDirty = true;
+    this._authoringAbort?.abort();
+    return this._authoringDepth ? Promise.resolve() : this.flushAuthoring();
+  }
+  flushAuthoring(): Promise<void> {
+    if (this._authoringTask) return this._authoringTask;
+    const task = Promise.resolve()
+      .then(async () => {
+        while (this._authoringDirty && !this._authoringDepth && !this._disposed) {
+          this._authoringDirty = false;
+          const pending = (this._authoringAbort = new AbortController());
+          let prepared: PreparedNativeWaterBatch | undefined;
+          try {
+            const updates: WaterBatchUpdate[] = [];
+            const keys = new Map<WaterBodyComponent, string>();
+            for (const body of this._authoringBodies) {
+              if (body.destroyed || body.pendingDestroy || body.entity.scene !== this.entity.scene) {
+                this._authoringBodies.delete(body);
+                this._authoringKeys.delete(body);
+                continue;
+              }
+              if (body.authoring) {
+                const key = body._authoringKey();
+                if (this._authoringKeys.get(body) === key) {
+                  body._clearAuthoringError();
+                  continue;
+                }
+                updates.push({ body, configuration: body._compileAuthoring() });
+                keys.set(body, key);
+              }
+            }
+            const replacing = new Set(updates.map(({ body }) => body.waterId));
+            const removals = [...this._authoringDetaches.keys()].filter(
+              (body) =>
+                !replacing.has(body.waterId) &&
+                (body.destroyed || body.pendingDestroy || body.entity.scene !== this.entity.scene) &&
+                this._bodies.get(body.waterId) === body
+            );
+            if (!updates.length && !removals.length) {
+              for (const [body, detach] of this._authoringDetaches) {
+                this._authoringDetaches.delete(body);
+                detach.resolve();
+              }
+              continue;
+            }
+            prepared = await this.prepareBatch(updates, pending.signal, removals);
+            pending.signal.throwIfAborted();
+            await prepared.commit().retiredCleanup;
+            for (const [body, key] of keys) this._authoringKeys.set(body, key);
+            for (const [body, detach] of this._authoringDetaches) {
+              this._authoringDetaches.delete(body);
+              detach.resolve();
+            }
+          } catch (error) {
+            await prepared?.rollback();
+            if (!pending.signal.aborted || !this._authoringDirty) throw error;
+          } finally {
+            for (const body of this._authoringBodies) body._releaseAuthoringAssets();
+            if (this._authoringAbort === pending) this._authoringAbort = undefined;
+          }
+        }
+      })
+      .finally(() => {
+        if (this._authoringTask === task) this._authoringTask = undefined;
+      });
+    this._authoringTask = task;
+    void task.catch(() => {});
+    return task;
+  }
   readonly developmentTargets = new WaterDevelopmentRelay();
   private readonly _runtimeDrafts = new WaterRuntimeDrafts();
   private readonly _runtimeObservers = new Set<(state: Readonly<WaterRuntimeState>) => void>();
@@ -109,6 +210,16 @@ export class WaterSystem extends Script implements WaterRuntimeControl {
   /** Non-allocating access for disabled queries and diagnostics. */
   get activeRuntimeHost(): WaterSceneRuntimeHost | undefined {
     return this._host;
+  }
+  /** Resolve a generated render descendant to its current author component without exposing backend state. */
+  resolveRenderOwner(entity: Entity): WaterBodyComponent | undefined {
+    if (this._disposed || !this.enabled || !this.entity.isActiveInHierarchy || !this._runtimeState.effectiveEnabled)
+      return undefined;
+    const id = this._host?.resolveRenderBodyId(entity);
+    const body = id === undefined ? undefined : this._bodies.get(id);
+    return body && !body.destroyed && !body.pendingDestroy && body.enabled && body.entity.isActiveInHierarchy
+      ? body
+      : undefined;
   }
   get activeEnvironment(): WaterEnvironmentReflectionProviderHandle | undefined {
     return this._environment;
@@ -146,8 +257,8 @@ export class WaterSystem extends Script implements WaterRuntimeControl {
           this._runtimeDrafts.capture(
             this._host?.loader,
             (id) => {
-              const look = this._bodies.get(id)?.configuration?.look;
-              return look ? scopedLook(look) : undefined;
+              const config = this._bodies.get(id)?.configuration;
+              return config ? scopedLook(config.look, config.material) : undefined;
             },
             (target) =>
               this._presentationVisibility.get(target.bodyKind) === false
@@ -363,7 +474,10 @@ export class WaterSystem extends Script implements WaterRuntimeControl {
   }
   override onDisable(): void {
     this._activation.abort();
-    for (const body of this.bodies) void this.detach(body).catch(() => {});
+    for (const body of this.bodies) {
+      this.withdraw(body);
+      void this.detach(body).catch(() => {});
+    }
   }
   override onUpdate(deltaSeconds: number): void {
     if (!this._runtimeState.effectiveEnabled) return;
@@ -442,16 +556,35 @@ export class WaterSystem extends Script implements WaterRuntimeControl {
       p = t.worldPosition,
       q = t.worldRotationQuaternion,
       scale = t.lossyWorldScale;
-    if (![p.x, p.y, p.z, q.x, q.y, q.z, q.w, scale.x, scale.y, scale.z].every(Number.isFinite))
-      throw new Error("INVALID_ARGUMENT: Water Entity transform must contain finite values.");
-    if ([scale.x - 1, scale.y - 1, scale.z - 1, q.x, q.z].some((v) => Math.abs(v) > 1e-6))
-      throw new Error("NOT_SUPPORTED: Water supports translation and yaw, with unit world scale.");
+    validateWaterWorldTransform(config.asset.kind as "lake" | "river" | "ocean", false, {
+      position: [p.x, p.y, p.z],
+      rotationQuaternion: [q.x, q.y, q.z, q.w],
+      scale: [scale.x, scale.y, scale.z]
+    });
     const host = this.host();
+    if (config.material) {
+      resolveWaterMaterialProfile(
+        config.material.shaderData.getInt("material_WaterProfile"),
+        config.material.shaderData.getInt("material_WaterRiverDrops"),
+        config.asset.kind === "pool" ? "lake" : config.asset.kind
+      );
+      await prepareWaterMaterial(config.material, signal);
+      for (const factory of waterMaterialFactories(config.material)) {
+        host.ensureRuntimeResource(factory);
+        host.registerAuthoringOnce(factory.descriptor.id, factory.descriptor.contentHash, (registry) =>
+          registry.registerResource(factory.descriptor)
+        );
+      }
+    }
     const source = config.asset.runtimeData();
     const asset = createWaterBodyAsset({ ...source, id: `native-body:${config.asset.contentHash}` });
-    const look = scopedLook(config.look);
+    const look = scopedLook(config.look, config.material);
     const quality = { ...config.quality.data, id: `native-quality:${config.quality.contentHash}` };
-    host.registerAuthoringOnce(look.look.id, config.look.contentHash, (registry) => installLook(registry, look));
+    host.registerAuthoringOnce(
+      look.look.id,
+      config.material ? waterMaterialKey(config.material)! : config.look!.contentHash,
+      (registry) => installLook(registry, look)
+    );
     host.registerAuthoringOnce(quality.id, config.quality.contentHash, (registry) =>
       registry.registerQualityPlan(quality)
     );
@@ -460,11 +593,14 @@ export class WaterSystem extends Script implements WaterRuntimeControl {
       assetId: asset.id,
       lookPresetId: look.look.id,
       qualityPlanId: quality.id,
-      transform: {
-        position: [p.x, p.y, p.z],
-        yawDegrees: (Math.atan2(2 * q.w * q.y, 1 - 2 * q.y * q.y) * 180) / Math.PI,
-        scaleXZ: [1, 1]
-      },
+      transform:
+        config.sourceSpace === "world"
+          ? { position: [0, 0, 0], yawDegrees: 0, scaleXZ: [1, 1] }
+          : {
+              position: [p.x, p.y, p.z],
+              yawDegrees: (Math.atan2(2 * q.w * q.y, 1 - 2 * q.y * q.y) * 180) / Math.PI,
+              scaleXZ: [1, 1]
+            },
       visible: (config.visible ?? true) && (this._presentationVisibility.get(source.kind) ?? true),
       priority: config.priority ?? (source.kind === "ocean" ? 0 : 10),
       interaction: config.interaction ?? { query: true, buoyancy: false, wake: false },
@@ -474,20 +610,32 @@ export class WaterSystem extends Script implements WaterRuntimeControl {
       transaction.remove(body.waterId);
       return;
     }
-    if (source.kind === "ocean" && !this._textures) {
+    if (source.kind === "ocean" && !config.material && !this._textures) {
       this._textures = OceanTextureLibrary.create(this.engine).catch((error) => {
         this._textures = undefined;
         throw error;
       });
     }
-    const textures = source.kind === "ocean" ? await this._textures : undefined;
+    const textures =
+      source.kind !== "ocean"
+        ? undefined
+        : config.material
+          ? describeOceanTextures(
+              ["smoothWaves", "roughWaves", "caustics", "foam", "intersectionNoise"].map((slot) => {
+                const texture = config.material!.shaderData.getTexture(`material_Ocean_${slot}`);
+                if (!(texture instanceof Texture2D))
+                  throw new Error(`MISSING_DEPENDENCY: Ocean Material requires '${slot}'.`);
+                return texture;
+              })
+            )
+          : (await this._textures)?.textures;
     signal.throwIfAborted();
     if (body.enabled && body.entity.isActiveInHierarchy && this.enabled && this.entity.isActiveInHierarchy) {
       transaction.stage({
         bodyId: body.waterId,
         asset,
         instance,
-        createRuntimeContext: nativeWaterRuntimeContext(this, textures, renderRoots)
+        createRuntimeContext: nativeWaterRuntimeContext(this, textures, renderRoots, config.material?.shader)
       });
     } else transaction.remove(body.waterId);
   }
@@ -531,7 +679,8 @@ export class WaterSystem extends Script implements WaterRuntimeControl {
         if (body.destroyed || body.entity.scene !== this.entity.scene || members.has(body) || ids.has(body.waterId))
           throw new Error("INVALID_ARGUMENT: Batch requires unique live components in this Scene.");
         const existing = this._bodies.get(body.waterId);
-        if (existing && existing !== body) throw new Error("CONFLICT: Duplicate Water identity.");
+        if (existing && existing !== body && !this._authoringDetaches.has(existing))
+          throw new Error("CONFLICT: Duplicate Water identity.");
         members.add(body);
         ids.add(body.waterId);
       }
@@ -539,13 +688,28 @@ export class WaterSystem extends Script implements WaterRuntimeControl {
         if (
           members.has(body) ||
           ids.has(body.waterId) ||
-          body.destroyed ||
           !body.configuration ||
           this._bodies.get(body.waterId) !== body
         )
           throw new Error("INVALID_ARGUMENT: Removal requires a unique published component.");
         members.add(body);
         ids.add(body.waterId);
+      }
+      const configurations = new Map(
+        this.bodies
+          .filter(
+            (body) =>
+              body.authoring && !removed.includes(body) && !body.destroyed && !body.pendingDestroy && body.configuration
+          )
+          .map((body) => [body, body.configuration!])
+      );
+      for (const update of batch) if (update.body.authoring) configurations.set(update.body, update.configuration);
+      for (const update of compileNativeWaterConnections(
+        [...configurations].map(([body, configuration]) => ({ body, configuration }))
+      )) {
+        const existing = batch.find((entry) => entry.body === update.body);
+        if (existing) existing.configuration = freezeConfiguration(update.configuration);
+        else batch.push({ ...update, configuration: freezeConfiguration(update.configuration) });
       }
       this.validateOceanSet(batch, removed);
       const candidates: Array<{ body: WaterBodyComponent; candidate: PreparedWaterBodyConfiguration }> = [];
@@ -560,6 +724,7 @@ export class WaterSystem extends Script implements WaterRuntimeControl {
         // reused by later activations must never repopulate a retired batch.
         if (renderRoots.roots) renderRoots.roots.length = 0;
         renderRoots.roots = undefined;
+        for (const { body } of batch) body._releaseAuthoringAssets();
         candidates.length = 0;
         batch.length = 0;
         removed.length = 0;
@@ -582,11 +747,13 @@ export class WaterSystem extends Script implements WaterRuntimeControl {
         for (const { body, configuration } of batch)
           candidates.push({ body, candidate: body._prepareConfiguration(this, configuration, signal) });
         for (const body of removed)
-          candidates.push({ body, candidate: body._prepareConfiguration(this, body.configuration!, signal) });
+          if (!body.destroyed && !body.pendingDestroy)
+            candidates.push({ body, candidate: body._prepareConfiguration(this, body.configuration!, signal) });
         combined = AbortSignal.any([signal, ...candidates.map(({ candidate }) => candidate.signal)]);
         combined.addEventListener("abort", aborted, { once: true });
         combined.throwIfAborted();
         transaction = publishRuntime ? this.host().beginBodySetTransaction() : undefined;
+        for (const body of removed) transaction?.remove(body.waterId);
         for (const { body, candidate } of candidates)
           if (transaction) {
             if (removed.includes(body)) transaction.remove(body.waterId);
@@ -620,7 +787,8 @@ export class WaterSystem extends Script implements WaterRuntimeControl {
               for (const { body, candidate } of candidates) {
                 candidate.check();
                 const existing = this._bodies.get(body.waterId);
-                if (existing && existing !== body) throw new Error("CONFLICT: Duplicate Water identity.");
+                if (existing && existing !== body && !this._authoringDetaches.has(existing))
+                  throw new Error("CONFLICT: Duplicate Water identity.");
               }
               const publication = prepared?.commit() ?? {
                 revision: this._revision + 1,
@@ -633,6 +801,16 @@ export class WaterSystem extends Script implements WaterRuntimeControl {
                   this._bodies.delete(body.waterId);
                 } else this._bodies.set(body.waterId, body);
               }
+              for (const body of removed)
+                if (this._bodies.get(body.waterId) === body) this._bodies.delete(body.waterId);
+              // Host retirement may await a destroyed Source component before ending its
+              // input update. Complete its detach at this publication boundary; waiting
+              // for flushAuthoring would make the two lifetimes wait on each other.
+              for (const [body, detach] of this._authoringDetaches) {
+                if (!members.has(body) && this._bodies.get(body.waterId) === body) continue;
+                this._authoringDetaches.delete(body);
+                void publication.retiredCleanup.then(detach.resolve, detach.resolve);
+              }
               if (prepared)
                 this._runtimeDrafts.acceptBaseline(
                   this._host?.loader,
@@ -641,7 +819,6 @@ export class WaterSystem extends Script implements WaterRuntimeControl {
                 );
               finalized = true;
               combined.removeEventListener("abort", aborted);
-              for (const body of removed) void body.dispose().catch(() => {});
               void publication.retiredCleanup.catch(() => {});
               releaseReferences();
               return publication;
@@ -659,7 +836,29 @@ export class WaterSystem extends Script implements WaterRuntimeControl {
     });
   }
 
+  /** Stop participation now; queued authoring publication owns cleanup and future reactivation. */
+  withdraw(body: WaterBodyComponent): void {
+    // Projection may temporarily deactivate or replace components inside a
+    // public input batch. Its final prepared state owns that atomic boundary.
+    if (this._authoringDepth) return;
+    if (this._bodies.get(body.waterId) !== body) return;
+    this._authoringKeys.delete(body);
+    this._host?.withdrawBodyRuntime(body.waterId);
+    this._revision++;
+  }
+
   detach(body: WaterBodyComponent, forget = false): Promise<void> {
+    if (this._authoringDepth && body.authoring) {
+      const existing = this._authoringDetaches.get(body);
+      if (existing) return existing.promise;
+      let resolve!: () => void;
+      const promise = new Promise<void>((complete) => {
+        resolve = complete;
+      });
+      this._authoringDetaches.set(body, { promise, resolve });
+      this._authoringDirty = true;
+      return promise;
+    }
     return this.enqueue(async () => {
       if (this._bodies.get(body.waterId) !== body) return;
       let cleanup: Promise<void> | undefined;
@@ -775,6 +974,9 @@ export class WaterSystem extends Script implements WaterRuntimeControl {
   dispose(): Promise<void> {
     if (this._disposeTask) return this._disposeTask;
     this._disposed = true;
+    this._authoringAbort?.abort();
+    for (const detach of this._authoringDetaches.values()) detach.resolve();
+    this._authoringDetaches.clear();
     ++this._runtimeGeneration;
     this._activation.abort();
     if (this._runtimeRoot) this._runtimeRoot.isActive = false;
@@ -790,7 +992,7 @@ export class WaterSystem extends Script implements WaterRuntimeControl {
     this._lifetime.abort();
     for (const body of this.bodies) body.cancel();
     if (this._scene && nativeWaterOwners.get(this._scene) === this) nativeWaterOwners.delete(this._scene);
-    this._disposeTask = Promise.allSettled([this._tail, this._runtimeTail])
+    this._disposeTask = Promise.allSettled([this._tail, this._runtimeTail, this._authoringTask])
       .catch(() => {})
       .then(async () => {
         try {
@@ -807,6 +1009,8 @@ export class WaterSystem extends Script implements WaterRuntimeControl {
           throw error;
         } finally {
           this._bodies.clear();
+          this._authoringBodies.clear();
+          this._authoringKeys.clear();
           this._runtimeDrafts.clear();
         }
       });
@@ -861,9 +1065,11 @@ export class WaterSystem extends Script implements WaterRuntimeControl {
   }
   private assertLive(): void {
     if (this._disposed) throw new Error("DESTROYED: WaterSystem was destroyed.");
+    if (nativeWaterOwners.get(this.entity.scene!) !== this)
+      throw new Error("CONFLICT: This WaterSystem does not own its Scene.");
   }
   private reconcileMembership(): void {
-    if (this._disposed) return;
+    if (this._disposed || nativeWaterOwners.get(this.entity.scene!) !== this) return;
     // Inactive Entity/Prefab instances do not receive Awake when added to a Scene.
     // Reconcile discovery from the native hierarchy, without activating or compiling them.
     const components: WaterBodyComponent[] = [];
@@ -905,17 +1111,35 @@ export class WaterSystem extends Script implements WaterRuntimeControl {
     host.registerBackend(new HeightfieldWaterBackend());
     host.registerBackend(new RiverWaterBackend());
     host.registerBackend(this._ocean);
-    host.ensureRuntimeResource(createLakeNormalResourceFactory(this.engine));
-    for (const factory of createFarmlandsWaterResourceFactories(this.engine)) host.ensureRuntimeResource(factory);
+    for (const factory of [
+      createLakeNormalResourceFactory(this.engine),
+      ...createFarmlandsWaterResourceFactories(this.engine)
+    ]) {
+      host.ensureRuntimeResource(factory);
+    }
     this._host = host;
     this._runtimeInitialized = true;
     this._runtimeIntegration?.initialize?.(host);
+    host.registerAuthoring((assets) => {
+      for (const factory of [
+        createLakeNormalResourceFactory(this.engine),
+        ...createFarmlandsWaterResourceFactories(this.engine)
+      ])
+        if (!assets.getResource(factory.descriptor.id)) assets.registerResource(factory.descriptor);
+    });
     if (this._runtimeState.effectiveEnabled) this.developmentTargets.bind(host.loader);
     return host;
   }
 }
 
 for (const key of [
+  "_authoringDepth",
+  "_authoringBodies",
+  "_authoringDirty",
+  "_authoringTask",
+  "_authoringAbort",
+  "_authoringKeys",
+  "_authoringDetaches",
   "_presentationVisibility",
   "_bodyPresentationVisibility",
   "_runtimeOptions",

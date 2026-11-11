@@ -301,6 +301,9 @@ export class HeightfieldWaterRuntimeController {
     debugView: HeightfieldWaterDebugMode.Final
   };
 
+  /** Authored native surface shader; runtime bindings remain owned by this controller. */
+  surfaceShader?: import("@galacean/engine-core").Shader;
+
   constructor(
     private readonly _engine: Engine,
     private readonly _root: Entity,
@@ -648,6 +651,7 @@ export class HeightfieldWaterRuntimeController {
         this._depthSource,
         appliedSurfaceAppearanceBinding
       );
+      if (this.surfaceShader) material.material.shader = this.surfaceShader;
       connectionBinding = createWaterConnectionBinding(this._engine, data.connections);
       connectionBinding?.bind(material.material);
       this._materialCreateCount++;

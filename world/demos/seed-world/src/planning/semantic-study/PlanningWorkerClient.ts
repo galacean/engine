@@ -3,6 +3,7 @@ import { planningRuntimeSignature } from "@galacean/engine-world-planning/spatia
 import type { SemanticParameters, SemanticEdit, SemanticResult } from "@galacean/engine-world-planning/semantic-study/WorldPlanningContract";
 import type { PlanningWorkerRequest, PlanningWorkerResponse } from "./WorldPlanning.worker.ts";
 import { adoptPlanningHeightmap, cachedPlanningHeightmap } from "@galacean/engine-world-planning/semantic-study/PlanningHeightmap";
+import type { PlanningDocument } from "@galacean/engine-world-planning/spatial/PlanningDocument";
 let ownerSequence = 0;
 export class PlanningWorkerClient {
   private readonly owner = ++ownerSequence;
@@ -16,22 +17,41 @@ export class PlanningWorkerClient {
   private known = new WeakMap<SemanticResult, number>();
   private base: SemanticResult | undefined;
   private queued: PlanningWorkerRequest | null = null;
-  private active: {
-    id: number;
-    resolve: (result: SemanticResult | undefined) => void;
-    reject: (reason: Error) => void;
-  } | null = null;
+  private active: ({ id: number; reject: (reason: Error) => void } & (
+    { type: "generate"; resolve: (result: SemanticResult | undefined) => void } |
+    { type: "initialize"; resolve: (document: PlanningDocument) => void }
+  )) | null = null;
   get busy(): boolean {
     return this.active !== null;
   }
   invalidate(): void {
     this.sequence++;
-    this.active?.resolve(undefined);
+    if (this.active?.type === "initialize") this.active.reject(new DOMException("规划初始化已取消", "AbortError"));
+    else this.active?.resolve(undefined);
     this.active = null;
     this.queued = null;
     // Generation is synchronous inside the worker. Stop obsolete work rather than
     // letting the newest edit wait for an entire discarded world to finish.
     if (this.inFlight) this.releaseWorker();
+  }
+  /** Initialize default authoring off the main thread, without writing to storage.
+   * @param seed World identity used by the deterministic initializer.
+   * @param signal Optional cancellation; cancellation leaves saved authoring unchanged.
+   * @param templateId Optional registered theme selected before initialization.
+   * @returns Fully initialized author parameters and their population receipt.
+   * @throws When initialization fails or is cancelled.
+   */
+  initialize(seed: number, signal?: AbortSignal, templateId?: string): Promise<PlanningDocument> {
+    signal?.throwIfAborted();
+    this.invalidate();
+    const requestId = this.sequence;
+    const abort = () => { if (this.active?.id === requestId) this.invalidate(); };
+    signal?.addEventListener("abort", abort, { once: true });
+    return new Promise<PlanningDocument>((resolve, reject) => {
+      this.active = { type: "initialize", id: requestId, resolve, reject };
+      this.queued = { type: "initialize", requestId, seed, templateId, runtimeSignature: planningRuntimeSignature() };
+      this.dispatch();
+    }).finally(() => signal?.removeEventListener("abort", abort));
   }
   run(
     parameters: SemanticParameters,
@@ -46,7 +66,7 @@ export class PlanningWorkerClient {
     const abort = () => { if (this.active?.id === requestId) this.invalidate(); };
     signal?.addEventListener("abort", abort, { once: true });
     return new Promise<SemanticResult | undefined>((resolve, reject) => {
-      this.active = { id: requestId, resolve, reject };
+      this.active = { type: "generate", id: requestId, resolve, reject };
       this.queued = {
         requestId,
         parameters,
@@ -76,7 +96,12 @@ export class PlanningWorkerClient {
             const active = this.active;
             this.active = null;
             if (data.type === "error") active.reject(new Error(data.message));
-            else {
+            else if (data.type === "initialized") {
+              if (active.type === "initialize") active.resolve(data.document);
+              else active.reject(new Error("Unexpected planning initialization response"));
+            } else if (active.type !== "generate") {
+              active.reject(new Error("Unexpected planning generation response"));
+            } else {
               try {
                 if (
                   data.type === "water" &&
@@ -123,6 +148,10 @@ export class PlanningWorkerClient {
       const request = this.queued;
       this.queued = null;
       this.inFlight = true;
+      if (request.type === "initialize") {
+        this.worker.postMessage(request);
+        return;
+      }
       this.base = request.previousSnapshot;
       const token = this.base?.planningWorkerToken;
       const previousRequestId =

@@ -42,9 +42,10 @@ export function placePoiLandforms(
       .filter((p) => {
         const current = currentSites.get(p.id);
         // IDs identify sampling slots, not poses. A global spacing edit can reuse an ID
-        // at a different location/tier/domain; that content must pass fresh placement checks.
+        // at a different location/domain; that content must pass fresh placement checks.
         return (
-          current?.tier === p.tier &&
+          current?.active !== false &&
+          !!current &&
           current.domainId === p.domainId &&
           current.center.x === p.center.x &&
           current.center.z === p.center.z &&
@@ -54,7 +55,7 @@ export function placePoiLandforms(
       .map((p) => p.id) ?? [];
   const used = new Set<string>();
   const sites = distribution.sites
-    .filter((p) => recipes.recipes.some((r) => r.kind !== "canyon" && r.tiers.includes(p.tier)) && !p.memberIds.length)
+    .filter((p) => p.active !== false && !p.memberIds.length)
     .sort(
       (a, b) =>
         settlementRandom(plan.parameters.seed, a.id + "landform") -
@@ -80,7 +81,7 @@ export function placePoiLandforms(
       variation > 1
     )
       throw new Error("地貌参数超出支持范围");
-    const eligible = recipes.recipes.filter((r) => r.kind !== "canyon" && r.tiers.includes(site.tier));
+    const eligible = recipes.recipes.filter((r) => r.kind !== "canyon");
     const fresh = eligible.filter((r) => !used.has(r.kind));
     const pool = fresh.length ? fresh : eligible;
     const previousKind =

@@ -14,6 +14,7 @@ export interface SeedWorldAssetSourceLibraryLoadOptions {
   readonly treeRecipeIds?: ReadonlySet<string>;
   /** Loads the authored terminal tree billboard for consumers that expose the full four-level LOD chain. */
   readonly loadTreeImpostor?: boolean;
+  readonly loadRockGeometry?: boolean;
 }
 
 /**
@@ -32,7 +33,8 @@ export async function loadSeedWorldAssetSourceLibrary(
     treeRecipeIds: options.treeRecipeIds,
     shrubSourceFactory: options.shrubSourceFactory,
     legacyRockMode: "large-rock",
-    loadTreeImpostor: options.loadTreeImpostor ?? false
+    loadTreeImpostor: options.loadTreeImpostor ?? false,
+    loadRockGeometry: options.loadRockGeometry
   });
   return sourceLibrary;
 }

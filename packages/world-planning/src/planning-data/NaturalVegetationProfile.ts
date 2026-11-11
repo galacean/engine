@@ -57,15 +57,16 @@ export function publishNaturalVegetation(
     settings.roadsideGrassHeightRatio > 1
   )
     throw new Error("低草高度比例须在0–1之间且大于0，高度变化须小于1，伴生带宽度和倍率须为非负数");
-  const regions = (plan.poiDistribution?.sites ?? []).map((site) => {
-    const q = resolveParameters<Partial<LandscapeConfig>>(
-      config ?? {},
-      config?.tierOverrides?.[site.tier],
-      edits[site.domainId]?.landscape,
-      edits[site.id]?.landscape
-    );
-    return { id: site.id, density: naturalVegetationDensity(q.vegetation) };
-  });
+  const regions = (plan.poiDistribution?.sites ?? [])
+    .filter((site) => site.active)
+    .map((site) => {
+      const q = resolveParameters<Partial<LandscapeConfig>>(
+        config ?? {},
+        edits[site.domainId]?.landscape,
+        edits[site.id]?.landscape
+      );
+      return { id: site.id, density: naturalVegetationDensity(q.vegetation) };
+    });
   return {
     world: naturalVegetationDensity(config?.vegetation),
     regions: Object.fromEntries(regions.map((q) => [q.id, q.density])),

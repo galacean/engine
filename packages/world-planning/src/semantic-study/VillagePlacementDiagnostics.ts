@@ -37,7 +37,7 @@ export const VILLAGE_REASON_LABELS: Record<VillageCandidateReason, string> = {
   placed: "已放置村庄",
   "preserve-site": "保留既有村庄位置，未改用此点"
 };
-/** Initialize one record per large point, including coarse-probe fallbacks awaiting actual geometry. */
+/** Initialize one record per active POI, including coarse probes awaiting actual geometry. */
 export function villagePlacementDiagnostics(
   sites: PoiSite[],
   requested: number,
@@ -48,7 +48,7 @@ export function villagePlacementDiagnostics(
     found: 0,
     siteSpanM: spanM,
     candidates: sites
-      .filter((s) => s.tier === "large")
+      .filter((s) => s.active !== false)
       .map((s) => ({
         siteId: s.id,
         center: { ...s.center },

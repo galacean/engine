@@ -1,4 +1,4 @@
-import { isGlobalRoadId } from "../spatial/layout/RoadIdentity";
+import { isGlobalRoadSurface, roadSurfaces, roadSurfaceOwners } from "../spatial/layout/RoadTopology";
 import presentation from "../planning-data/whitebox-presentation.json";
 import type { TerrainClipmapRegionSource } from "@galacean/engine-terrain/terrain/clipmap/TerrainClipmapSource";
 import type { TerrainLayerResidencyRegionSource } from "@galacean/engine-terrain/terrain/clipmap/TerrainLayerResidency";
@@ -27,12 +27,20 @@ export function planningTerrainSource(
   visibility: Readonly<Record<string, boolean>> = {}
 ): PlanningTerrainSource {
   const shown = (id: string, layer: string) => visibility["object:" + id] !== false && visibility[layer] !== false;
-  const routes = plan.routes.filter((r) =>
-    shown(r.id, plan.poiDistribution ? (isGlobalRoadId(r.id) ? "road-world" : "road-local") : "route")
-  );
+  const surfaces = roadSurfaces(plan);
+  const routes = surfaces.filter((r) => {
+    const owners = roadSurfaceOwners(plan, r);
+    return (
+      visibility.route !== false &&
+      shown(r.id, plan.poiDistribution ? (isGlobalRoadSurface(plan, r) ? "road-world" : "road-local") : "route") &&
+      (!owners.length || owners.some((owner) => visibility[`object:${owner}`] !== false))
+    );
+  });
   const plazas = plan.plazas?.filter((p) => shown(p.id, "route"));
   const surfacePlan =
-    routes.length === plan.routes.length && plazas?.length === plan.plazas?.length ? plan : { ...plan, routes, plazas };
+    !plan.roadGraph && routes.length === plan.routes.length && plazas?.length === plan.plazas?.length
+      ? plan
+      : { ...plan, routes, plazas };
   const height = planningHeightmap(plan),
     alpha = planningAlphamap(surfacePlan);
   const saved = cache.get(height)?.get(alpha);

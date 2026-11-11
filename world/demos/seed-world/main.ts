@@ -1,4 +1,6 @@
 import type { PlanningWorldHandoff } from "./src/planning/spatial/runtime/PlanningWorldSource.ts";
+import { selectPlanningStartupTemplate } from "./src/planning/spatial/PlanningStartupTemplate.ts";
+import { worldTemplate } from "@galacean/engine-world-planning/spatial/WorldTemplateCatalog";
 import { planningPageUrl } from "./src/planning/spatial/PlanningPageUrl.ts";
 
 /** The planning preview and native Seed page have independent renderer lifetimes. */
@@ -31,10 +33,36 @@ async function enterSeedWorld(handoff?: PlanningWorldHandoff): Promise<void> {
 }
 
 async function start(): Promise<void> {
-  if (planningPageUrl().url.searchParams.get("debug") !== "1") {
+  const page = planningPageUrl();
+  const template = page.url.searchParams.get("template");
+  if (template !== "original" && !worldTemplate(template)) {
+    document.body.dataset.mode = "template";
+    const host = document.createElement("div");
+    document.body.append(host);
+    const { mountWorldTemplatePicker } = await import("./src/planning/spatial/WorldTemplatePicker.ts");
+    const choice = await new Promise<{ id: string; seed: number }>(resolve => {
+      const picker = mountWorldTemplatePicker(host, async (id, seed) => {
+        resolve({ id, seed });
+        queueMicrotask(() => { picker.dispose(); host.remove(); });
+      }, undefined, true);
+      const seed = Number(page.url.searchParams.get("seed") ?? "1");
+      picker.update(undefined, Number.isSafeInteger(seed) && seed >= 0 && seed <= 0xffffffff ? seed : 1, false);
+      picker.open();
+    });
+    selectPlanningStartupTemplate(choice.id, choice.seed);
+    page.url.searchParams.set("seed", String(choice.seed));
+    page.url.searchParams.set("template", choice.id || "original");
+    if (page.canReplaceHistory) history.replaceState(null, "", page.url);
+    else {
+      const source = document.querySelector<HTMLMetaElement>('meta[name="flash-app-html-url"]');
+      if (source) source.content = page.url.href;
+    }
+  }
+  if (planningPageUrl().url.searchParams.get("debug") !== "1" || planningPageUrl().url.searchParams.get("view") === "3d") {
     await enterSeedWorld();
     return;
   }
+  document.body.dataset.mode = "planning";
   const styles = document.createElement("link");
   styles.rel = "stylesheet";
   styles.href = new URL("./src/planning/semantic-study/style.css", import.meta.url).href;
@@ -56,6 +84,8 @@ async function start(): Promise<void> {
         url.search = "";
         url.searchParams.set("seed", String(plan.parameters.seed));
         url.searchParams.set("debug", "1");
+        url.searchParams.set("view", "3d");
+        url.searchParams.set("template", plan.parameters.worldTemplate?.id ?? "original");
         if (page.canReplaceHistory) history.replaceState(null, "", url);
         await enterSeedWorld(handoff);
       } catch (error) { showStartupError(error); }

@@ -79,9 +79,7 @@ export function updateSpatialEcology(
     config = worldTemplateEcology(p.worldTemplate?.id, p.poiLayout ?? defaultPoiLayout());
   const initialFlowers = plan.flowerRegions;
   const oldVolumes = new Map(
-    (previous?.plan.spatialLayout?.baselineGroups ?? previous?.plan.spatialLayout?.groups)?.flatMap((g) =>
-      g.volumes.map((v) => [v.id, v] as const)
-    )
+    previous?.plan.spatialLayout?.groups.flatMap((g) => g.volumes.map((v) => [v.id, v] as const))
   );
   const changedFootprints = changedVolumes.filter((v) => !sameVolumeFootprint(v, oldVolumes.get(v.id)));
   const geometryChanged = changedFootprints.length > 0 || removedVolumes.length > 0;

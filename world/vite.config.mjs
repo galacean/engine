@@ -57,7 +57,12 @@ export default {
   },
   esbuild: { tsconfigRaw: { compilerOptions: { experimentalDecorators: true, useDefineForClassFields: false } } },
   // Inline Workers must remain classic-script compatible, as in engine-next.
-  worker: { format: "iife", plugins: [engineModify(), projectAssets(root)] },
+  worker: {
+    format: "iife",
+    plugins: [engineModify(), projectAssets(root)],
+    // WASM loaders may contain conditional imports; classic workers need one chunk.
+    rollupOptions: { output: { inlineDynamicImports: true } }
+  },
   optimizeDeps: { include: ["typescript", "esbuild-wasm", "re2js"] },
   build: {
     target: "esnext",

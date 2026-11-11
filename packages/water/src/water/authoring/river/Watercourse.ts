@@ -58,46 +58,46 @@ function positive(value: number, label: string): number {
   return value;
 }
 
-/** Resolve a locally downhill surface; never turns a concentrated drop into an ordinary steep reach.
- * The host supplies the unmodified terrain and owns application of any resulting bed intent.
- */
-export function resolveWatercourse(
-  source: WatercourseAuthoring,
-  terrain: (x: number, z: number) => number | undefined
-): ResolvedWatercourse {
-  if (!source.id?.trim() || source.points.length < 2)
+/** Validate author intent without inventing a Terrain profile or requiring a GPU. */
+export function validateWatercourseAuthoring(source: WatercourseAuthoring): void {
+  if (!source?.id?.trim() || !Array.isArray(source.points) || source.points.length < 2)
     throw new Error("INVALID_ARGUMENT: A river needs an ID and two points.");
-  const clearance = source.bankClearance ?? 0.05;
-  const dropThreshold = positive(source.dropThreshold ?? 0.5, "dropThreshold");
-  const slopeThreshold = positive(source.slopeThreshold ?? 0.2, "slopeThreshold");
-  const probeSpacing = positive(source.probeSpacing ?? 0.25, "probeSpacing");
-  if (!Number.isFinite(clearance) || clearance < 0)
+  positive(source.dropThreshold ?? 0.5, "dropThreshold");
+  positive(source.slopeThreshold ?? 0.2, "slopeThreshold");
+  positive(source.probeSpacing ?? 0.25, "probeSpacing");
+  if (!Number.isFinite(source.bankClearance ?? 0.05) || (source.bankClearance ?? 0.05) < 0)
     throw new Error("INVALID_ARGUMENT: bankClearance must be nonnegative.");
   const ids = new Set<string>();
-  const points: ResolvedWatercoursePoint[] = source.points.map((point) => {
+  for (const [index, point] of source.points.entries()) {
     if (!point.id?.trim() || ids.has(point.id)) throw new Error("INVALID_ARGUMENT: Point IDs must be unique.");
     ids.add(point.id);
-    if (![point.x, point.z].every(Number.isFinite)) throw new Error("INVALID_ARGUMENT: Invalid point coordinates.");
+    if (
+      ![point.x, point.z].every(Number.isFinite) ||
+      (point.elevation !== undefined && !Number.isFinite(point.elevation))
+    )
+      throw new Error("INVALID_ARGUMENT: Invalid point coordinates or elevation.");
     positive(point.width, "width");
     positive(point.depth, "depth");
-    const height = terrain(point.x, point.z);
-    if (height === undefined || !Number.isFinite(height))
-      throw new Error("MISSING_DEPENDENCY: Terrain does not cover the path.");
-    const elevation = point.elevation ?? height - clearance;
-    if (!Number.isFinite(elevation)) throw new Error("INVALID_ARGUMENT: Invalid surface elevation.");
-    if (elevation > height + 1e-6)
-      throw new Error("INVALID_ARGUMENT: Surface above terrain requires an explicit basin, not terrain filling.");
-    return { ...point, elevation, bedElevation: elevation - point.depth };
-  });
-  const authored = new Map<string, WatercourseSection>();
-  const sectionIds = new Set<string>();
+    if (index) {
+      const previous = source.points[index - 1];
+      positive(Math.hypot(point.x - previous.x, point.z - previous.z), "horizontal section length");
+      if (
+        point.elevation !== undefined &&
+        previous.elevation !== undefined &&
+        point.elevation > previous.elevation + 1e-6
+      )
+        throw new Error("INVALID_ARGUMENT: Authored river flows uphill.");
+    }
+  }
+  const intervals = new Set<string>(),
+    sections = new Set<string>();
   for (const section of source.sections ?? []) {
-    const index = source.points.findIndex((p) => p.id === section.from);
-    if (!section.id?.trim() || sectionIds.has(section.id) || index < 0 || source.points[index + 1]?.id !== section.to)
+    const index = source.points.findIndex((point) => point.id === section.from);
+    if (!section.id?.trim() || sections.has(section.id) || index < 0 || source.points[index + 1]?.id !== section.to)
       throw new Error("INVALID_ARGUMENT: Sections must join consecutive points with unique IDs.");
+    if (intervals.has(section.from)) throw new Error("INVALID_ARGUMENT: Duplicate section interval.");
     if (!["auto", "slope", "waterfall", "steps"].includes(section.form))
       throw new Error("INVALID_ARGUMENT: Unknown section form.");
-    if (authored.has(section.from)) throw new Error("INVALID_ARGUMENT: Duplicate section interval.");
     if (section.carve !== undefined && typeof section.carve !== "boolean")
       throw new Error("INVALID_ARGUMENT: carve must be boolean.");
     if (section.drop !== undefined) positive(section.drop, "drop");
@@ -106,9 +106,39 @@ export function resolveWatercourse(
       (!Number.isSafeInteger(section.stepCount) || section.stepCount < 2 || section.stepCount > 64)
     )
       throw new Error("INVALID_ARGUMENT: stepCount must be an integer between 2 and 64.");
-    sectionIds.add(section.id);
-    authored.set(section.from, section);
+    sections.add(section.id);
+    intervals.add(section.from);
   }
+}
+
+/** Resolve a locally downhill surface; never turns a concentrated drop into an ordinary steep reach.
+ * The host supplies the unmodified terrain and owns application of any resulting bed intent.
+ */
+export function resolveWatercourse(
+  source: WatercourseAuthoring,
+  terrain: (x: number, z: number) => number | undefined,
+  options: { terrainSurface?: "bank" | "bed" } = {}
+): ResolvedWatercourse {
+  validateWatercourseAuthoring(source);
+  if (options.terrainSurface !== undefined && !["bank", "bed"].includes(options.terrainSurface))
+    throw new Error("INVALID_ARGUMENT: Unknown Watercourse Terrain surface.");
+  const clearance = source.bankClearance ?? 0.05;
+  const dropThreshold = source.dropThreshold ?? 0.5;
+  const slopeThreshold = source.slopeThreshold ?? 0.2;
+  const probeSpacing = source.probeSpacing ?? 0.25;
+  const points: ResolvedWatercoursePoint[] = source.points.map((point) => {
+    const height = terrain(point.x, point.z);
+    if (height === undefined || !Number.isFinite(height))
+      throw new Error("MISSING_DEPENDENCY: Terrain does not cover the path.");
+    const elevation = point.elevation ?? (options.terrainSurface === "bed" ? height + point.depth : height - clearance);
+    if (!Number.isFinite(elevation)) throw new Error("INVALID_ARGUMENT: Invalid surface elevation.");
+    if (options.terrainSurface !== "bed" && elevation > height + 1e-6)
+      throw new Error("INVALID_ARGUMENT: Surface above terrain requires an explicit basin, not terrain filling.");
+    if (options.terrainSurface === "bed" && elevation <= height)
+      throw new Error("INVALID_ARGUMENT: River surface must be above the accepted bed.");
+    return { ...point, elevation, bedElevation: elevation - point.depth };
+  });
+  const authored = new Map((source.sections ?? []).map((section) => [section.from, section]));
   const sections: Array<WatercourseSection & { form: Exclude<WatercourseForm, "auto"> }> = [];
   const drops: WatercourseDrop[] = [];
   for (let i = 1; i < points.length; i++) {
@@ -243,7 +273,9 @@ export function resolveWatercourse(
         const height = terrain(x, z);
         if (height === undefined || !Number.isFinite(height))
           throw new Error("MISSING_DEPENDENCY: Terrain does not cover generated platforms.");
-        if (elevation > height + 1e-6)
+        if (options.terrainSurface === "bed" && elevation <= height)
+          throw new Error("TERRAIN_CHANGE_REQUIRED: Accepted bed does not support a wet river surface.");
+        if (options.terrainSurface !== "bed" && elevation > height + 1e-6)
           throw new Error(
             "TERRAIN_CHANGE_REQUIRED: Generated surface lacks ground support; digging cannot create a raised platform. Adjust the path or elevations."
           );

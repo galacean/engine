@@ -148,3 +148,93 @@ export function proceduralPlantAssetLod(asset: ProceduralPlantAsset, lod: number
     throw new RangeError("Procedural plant geometry LOD is unavailable");
   return asset.geometryLods[lod];
 }
+
+/** Author thicker or thinner woody cross-sections without moving their curves or attached organs. */
+export function scaleProceduralPlantWood(
+  asset: ProceduralPlantAsset,
+  materialIds: ReadonlySet<string>,
+  factor: number
+): ProceduralPlantAsset {
+  validateProceduralPlantAsset(asset);
+  if (!Number.isFinite(factor) || factor <= 0) throw new Error("Woody thickness must be finite and positive");
+  const geometryLods = asset.geometryLods.map((structure) => {
+    const shapeIds = (woody: boolean) =>
+      new Set(
+        structure.parts
+          .filter((part) => materialIds.has(part.materialId) === woody)
+          .flatMap((part) => [
+            part.shapeId,
+            ...structure.lods.flatMap((lod) => (lod.shapeIdsByPart?.[part.id] ? [lod.shapeIdsByPart[part.id]] : []))
+          ])
+      );
+    const woodyShapes = shapeIds(true),
+      otherShapes = shapeIds(false);
+    const shapes = { ...structure.shapes };
+    const replacements = new Map<string, string>();
+    for (const id of woodyShapes) {
+      const shape = structure.shapes[id];
+      if (shape.kind !== "tube") continue;
+      // A shape can be reused by unrelated material parts. Split only that shared
+      // authored shape so thickness never alters a non-woody organ.
+      let target = id;
+      if (otherShapes.has(id)) {
+        target = `${id}-wood`;
+        while (shapes[target]) target += "-wood";
+        replacements.set(id, target);
+      }
+      shapes[target] = {
+        ...shape,
+        sections: shape.sections.map((section) => ({
+          ...section,
+          radius: section.radius * factor,
+          ...(section.axisX
+            ? { axisX: section.axisX.map((value) => value * factor) as unknown as typeof section.axisX }
+            : {}),
+          ...(section.axisZ
+            ? { axisZ: section.axisZ.map((value) => value * factor) as unknown as typeof section.axisZ }
+            : {})
+        }))
+      };
+    }
+    const woodyParts = new Set(
+      structure.parts.filter((part) => materialIds.has(part.materialId)).map((part) => part.id)
+    );
+    return {
+      ...structure,
+      shapes,
+      parts: structure.parts.map((part) =>
+        materialIds.has(part.materialId) && replacements.has(part.shapeId)
+          ? { ...part, shapeId: replacements.get(part.shapeId)! }
+          : part
+      ),
+      lods: structure.lods.map((lod) => ({
+        ...lod,
+        ...(lod.shapeIdsByPart
+          ? {
+              shapeIdsByPart: Object.fromEntries(
+                Object.entries(lod.shapeIdsByPart).map(([part, shape]) => [
+                  part,
+                  woodyParts.has(part) ? (replacements.get(shape) ?? shape) : shape
+                ])
+              )
+            }
+          : {}),
+        ...(lod.resolutionsByShape
+          ? {
+              resolutionsByShape: {
+                ...lod.resolutionsByShape,
+                ...Object.fromEntries(
+                  [...replacements]
+                    .filter(([shape]) => lod.resolutionsByShape![shape])
+                    .map(([shape, target]) => [target, lod.resolutionsByShape![shape]])
+                )
+              }
+            }
+          : {})
+      }))
+    };
+  });
+  const next = { ...asset, geometryLods };
+  validateProceduralPlantAsset(next);
+  return next;
+}

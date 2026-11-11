@@ -11,7 +11,6 @@ import {
   type SeedWorldSelector
 } from "./ports/SeedWorldEnginePort";
 import { seedWorldAssetPropertyNames, type SeedWorldAssetKind } from "./contracts/SeedWorldAssetContracts";
-import { resolveSeedWorldFlowingWaterLakeSurrogateRadiusMetres } from "../runtime/hydrology-v1/SeedWorldFlowingWaterLakeSurrogate.ts";
 
 /** Public objects are exactly the runtime kinds backed by the persistent object-removal schema. */
 type PublicObject = Readonly<SeedWorldObject> & Readonly<{ objectKind: SeedWorldRemovableObjectKind }>;
@@ -150,14 +149,7 @@ export class SeedWorldAssetManager {
           ...(position ? { position } : {}),
           ...(bounds ? { bounds } : {}),
           areaSquareMetres: resourceArea(resource),
-          properties: authoredResourceProperties(
-            resource,
-            ref.kind,
-            realizedVegetationMembers.get(resource.resourceId),
-            resource.resourceType === "water-body"
-              ? (this._engine.readAuthoredWaterLevel?.(resource.resourceId) ?? undefined)
-              : undefined
-          )
+          properties: authoredResourceProperties(resource, ref.kind, realizedVegetationMembers.get(resource.resourceId))
         })
       ];
     });
@@ -506,15 +498,6 @@ function authoredResourceRef(
       revision
     });
   }
-  if (resource.resourceType === "water-body" || resource.resourceType === "river") {
-    return freezeRef({
-      id: resource.resourceId,
-      domain: "water",
-      kind: String(resource.properties.kind),
-      source: "authored",
-      revision
-    });
-  }
   if (resource.resourceType === "vegetation-brush") {
     const plant = resource.properties.plantKind;
     const distribution = String(resource.properties.distributionKind ?? "area");
@@ -534,13 +517,7 @@ function authoredResourceRef(
 function authoredResourceProperties(
   resource: Readonly<SeedWorldAuthoringResource>,
   kind: string,
-  realizedVegetationMembers?: readonly SeedWorldObject[],
-  liveWaterLevel?: Readonly<{
-    canonicalWaterLevelMetres: number;
-    minimumWaterLevelMetres: number;
-    maximumWaterLevelMetres: number;
-    waterLevelMetres: number;
-  }>
+  realizedVegetationMembers?: readonly SeedWorldObject[]
 ) {
   if (resource.resourceType === "terrain-feature") {
     const p = resource.properties;
@@ -566,38 +543,6 @@ function authoredResourceProperties(
         roughness: p.roughness,
         erosion: p.erosion,
         seed: p.seed
-      })
-    );
-  }
-  if (resource.resourceType === "water-body") {
-    const p = resource.properties;
-    const level = liveWaterLevel ?? p;
-    return Object.freeze(
-      compact({
-        assetKind: kind,
-        radiusMetres: p.radiusMetres,
-        depthMetres: p.depthMetres,
-        surfaceElevationMetres: level.waterLevelMetres,
-        canonicalWaterLevelMetres: level.canonicalWaterLevelMetres,
-        minimumWaterLevelMetres: level.minimumWaterLevelMetres,
-        maximumWaterLevelMetres: level.maximumWaterLevelMetres,
-        waterLevelMetres: level.waterLevelMetres,
-        shorelineIrregularity: p.shorelineIrregularity,
-        seed: p.seed
-      })
-    );
-  }
-  if (resource.resourceType === "river") {
-    const p = resource.properties;
-    return Object.freeze(
-      compact({
-        assetKind: kind,
-        lengthMetres: p.lengthMetres,
-        widthMetres: p.widthMetres,
-        depthMetres: p.depthMetres,
-        flowSpeed: p.flowSpeed,
-        meander: p.meander,
-        headingDegrees: p.headingDegrees
       })
     );
   }
@@ -704,23 +649,6 @@ function authoredResourceGeometry(resource: Readonly<SeedWorldAuthoringResource>
         lengthMetres: resource.properties.lengthMetres,
         widthMetres: resource.properties.widthMetres,
         elevationDeltaMetres: resource.properties.elevationDeltaMetres
-      });
-    case "water-body":
-      return Object.freeze({
-        x: resource.properties.x,
-        z: resource.properties.z,
-        radiusMetres: resource.properties.radiusMetres,
-        depthMetres: resource.properties.depthMetres
-      });
-    case "river":
-      return Object.freeze({
-        x: resource.properties.x,
-        z: resource.properties.z,
-        radiusMetres: resolveSeedWorldFlowingWaterLakeSurrogateRadiusMetres(
-          resource.properties.lengthMetres,
-          resource.properties.widthMetres
-        ),
-        depthMetres: resource.properties.depthMetres
       });
     case "vegetation-brush":
       return Object.freeze({

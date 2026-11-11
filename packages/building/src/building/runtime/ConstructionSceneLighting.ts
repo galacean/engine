@@ -1,5 +1,6 @@
 import { Shader, ShaderFactory, ShaderLanguage, type ShaderPass } from "@galacean/engine";
 import sceneLighting from "./ConstructionSceneLighting.glsl?raw";
+import { RAW_GLSL_MACROS, rawGlslInstructions } from "./RawGlslInstructions";
 
 type Instructions = ConstructorParameters<typeof ShaderPass>[2];
 export function registerConstructionSceneLighting() {
@@ -57,15 +58,5 @@ export function constructionLightingInstructions(fragment: string): Instructions
     );
   }
   // Append gates AFTER the helper instructions so their absolute jumps stay valid.
-  const n = helpers.length;
-  return [
-    ...helpers,
-    [1, "RENDERER_WORLD_PICK", n + 2],
-    [0, "#define RENDERER_WORLD_PICK\n"],
-    [1, "RENDERER_WORLD_PICK_DEPTH", n + 4],
-    [0, "#define RENDERER_WORLD_PICK_DEPTH\n"],
-    [1, "RENDERER_MASONRY_ENTRANCE", n + 6],
-    [0, "#define RENDERER_MASONRY_ENTRANCE\n"],
-    [0, fragment]
-  ];
+  return [...helpers, ...rawGlslInstructions(RAW_GLSL_MACROS, fragment, helpers.length)];
 }

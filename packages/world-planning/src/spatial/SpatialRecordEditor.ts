@@ -49,7 +49,7 @@ export function spatialRecordEditor(
         input.value = String(record[column.key] ?? "");
         input.setAttribute("aria-label", `${field.label} ${index + 1} ${column.label}`);
         input.style.width = "80px";
-        input.onchange = () => {
+        const read = () => {
           if (column.type === "boolean") {
             record[column.key] = input.checked;
             return;
@@ -60,6 +60,8 @@ export function spatialRecordEditor(
           }
           record[column.key] = column.type === "number" ? Number(input.value) : input.value;
         };
+        input.oninput = read;
+        input.onchange = read;
         label.append(input);
         row.append(label);
       }

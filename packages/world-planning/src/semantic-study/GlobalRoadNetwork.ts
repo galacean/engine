@@ -15,6 +15,8 @@ import { bounds } from "../spatial/layout/Volumes";
 
 /** Semantic network parameters; search budgets and terrain limits are authored separately. */
 export interface RoadNetworkConfig {
+  /** Whether to generate the automatic road network. */
+  enabled?: boolean;
   wayfinding?: WayfindingPolicy;
   sBend?: number;
   widthM: number;
@@ -70,6 +72,10 @@ export function planGlobalRoadNetwork(
   edits: Record<string, SemanticEdit> = {},
   options: { publishMetadata?: boolean; deferCurves?: boolean } = {}
 ): PlanningCheck[] {
+  if (config.enabled === false) {
+    plan.roadNetwork = { geometryVersion: ROAD_GEOMETRY_VERSION, nodes: [], edges: [], domains: [] };
+    return [];
+  }
   if (!Number.isFinite(config.widthM) || config.widthM <= 0) throw new Error("全局路宽须为有限正数");
   if (![config.bend, config.loopiness].every((v) => Number.isFinite(v) && v >= 0 && v <= 1))
     throw new Error("道路曲折和连接冗余须在 0–1 范围内");
@@ -339,12 +345,12 @@ export function planGlobalRoadNetwork(
     const sites = roadInputs.sites
       .filter(
         (p) =>
-          !plan.spatialLayout && p.domainId === domain.id && p.tier !== "small" && !nodes.some((n) => n.poiId === p.id)
+          !plan.spatialLayout && p.active !== false && p.domainId === domain.id && !nodes.some((n) => n.poiId === p.id)
       )
       .sort(
         (a, b) =>
           Number(b.memberIds.length > 0) - Number(a.memberIds.length > 0) ||
-          Number(b.tier === "large") - Number(a.tier === "large") ||
+          (b.sizeWeight ?? 1) - (a.sizeWeight ?? 1) ||
           a.id.localeCompare(b.id)
       );
     for (const site of sites) {

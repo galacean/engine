@@ -48,7 +48,7 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
   constructor(engine: Engine) {
     super(engine);
 
-    const material = new Material(engine, Shader.find(ScalableAmbientObscurancePass.SHADER_NAME));
+    const material = new Material(engine, Shader.find(ScalableAmbientObscurancePass.SHADER_NAME)!);
     material._addReferCount(1);
     this._material = material;
     this.isSupported = this.engine._hardwareRenderer.capability.isFragmentHighPrecision;

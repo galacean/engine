@@ -28,8 +28,11 @@ import { decodeSeedWorldHeight, seedWorldOriginX, seedWorldOriginZ } from "@gala
 import { SEED_WORLD_SURFACE_PALETTE_PRESETS } from "@galacean/engine-vegetation/world/SeedWorldGrassColorField";
 import type { PlanningSeedWorldPublished } from "./PlanningSeedWorldSession.ts";
 import type { PlanningWaterRuntime } from "@galacean/engine-world-planning/spatial/runtime/PlanningWaterRuntime";
+import { PlanningTreeAuthoring, type PlanningTreeAuthoringOptions } from "./PlanningTreeAuthoring";
+import { PlanningTreePanel, type PlanningTreePanelState } from "./PlanningTreePanel";
 
 export interface PlanningSeedRuntimeDebugOptions {
+  readonly trees?: PlanningTreeAuthoringOptions;
   readonly farming?: PlanningFarmingControlsOptions;
   readonly animals?: Omit<PlanningAnimalPanelOptions, "host">;
   readonly rocks?: {
@@ -65,8 +68,14 @@ export class PlanningSeedRuntimeDebug {
   private rocks?: RockFormationPanel;
   private readonly farming?: PlanningFarmingControls;
   private farmingPanel?: PlanningFarmingPanel;
+  private readonly treeAuthoring?: PlanningTreeAuthoring;
+  private treePanel?: PlanningTreePanel;
+  private readonly treePanelState: PlanningTreePanelState = {};
+  private understoryPanel?: PlanningTreePanel;
+  private readonly understoryPanelState: PlanningTreePanelState = {};
 
   private constructor(private readonly options: PlanningSeedRuntimeDebugOptions) {
+    if (options.trees) this.treeAuthoring = new PlanningTreeAuthoring(options.trees);
     if (options.farming) this.farming = new PlanningFarmingControls(options.farming);
     this.performance = new TerrainPerformancePanel(options.engine);
     this.performance.collapse();
@@ -123,6 +132,8 @@ export class PlanningSeedRuntimeDebug {
 
   /** Refresh page-owned debug readouts from the host simulation cadence. */
   refresh(): void {
+    this.treePanel?.refresh();
+    this.understoryPanel?.refresh();
     this.rocks?.refreshGrass();
     this.animals?.refresh();
     if (this.farmingPanel) this.farmingPanel.refresh();
@@ -287,8 +298,20 @@ export class PlanningSeedRuntimeDebug {
     refreshGpu();
     surfaceHost.addReadout(surfaceFolder, "Coverage / 土草覆盖")("原生栅格 alphamap · 无额外覆盖贴图");
     surfaceHost.refreshLayout();
-    session.inspector.treeFolderHost.addReadout(session.inspector.treeFolderHost.folder("Vegetation authoring / 植被编辑"),
-      "Source")("分布与配色编辑 Planning 组件；树形与叶片表面编辑项目结构和原生 Material 资产。修改、撤销与保存共用工程事务。");
+    if (this.treeAuthoring) {
+      this.treePanel = new PlanningTreePanel(session.inspector.treeFolderHost, this.treeAuthoring, this.treePanelState);
+      this.extensions.push(this.treePanel);
+      this.understoryPanel = new PlanningTreePanel(surfaceHost, this.treeAuthoring, this.understoryPanelState, {
+        layers: ["shrubs", "herbs", "cover", "flowers", "litter"],
+        title: "Plant appearance / 花草、灌木与菌类外观",
+        speciesLabel: "植被物种",
+        materialLabel: "植被材质部位",
+        colorLabel: "植被基础色"
+      });
+      this.extensions.push(this.understoryPanel);
+      if (this.treePanelState.categoryOpen) session.inspector.treeFolderHost.gui.open();
+      if (this.understoryPanelState.categoryOpen) surfaceHost.gui.open();
+    }
     if (import.meta.env.DEV)
       this.extensions.push(
         mountWaterDevTools({
@@ -297,12 +320,15 @@ export class PlanningSeedRuntimeDebug {
           folderHost: session.inspector.waterDevToolsFolderHost
         })
       );
-    session.inspector.gui.close();
+    if (this.treePanelState.categoryOpen || this.understoryPanelState.categoryOpen) session.inspector.gui.open();
+    else session.inspector.gui.close();
   }
 
   private releaseSession(): void {
     if (this.world) this.world.terrainOcclusion.profilingEnabled = false;
     for (const extension of this.extensions.splice(0)) extension.destroy();
+    this.treePanel = undefined;
+    this.understoryPanel = undefined;
     this.animals = undefined;
     this.rocks = undefined;
     this.farmingPanel = undefined;
@@ -401,13 +427,13 @@ export class PlanningSeedRuntimeDebug {
       worldHorizonQueryCacheHits: horizon.queryCacheHitCount,
       worldHorizonQueryEvaluationMilliseconds: horizon.queryEvaluationMilliseconds,
       prefabInstances:
-        world.stones.placementCount +
-        world.smallRocks.placementCount +
+        (world.stones?.placementCount ?? 0) +
+        (world.smallRocks?.placementCount ?? 0) +
         world.mushrooms.placementCount +
         world.lotus.placementCount,
       prefabLodGroups:
-        world.stones.placementCount +
-        world.smallRocks.placementCount +
+        (world.stones?.placementCount ?? 0) +
+        (world.smallRocks?.placementCount ?? 0) +
         world.mushrooms.placementCount +
         world.lotus.placementCount,
       exactSpatialMode: exact.mode,

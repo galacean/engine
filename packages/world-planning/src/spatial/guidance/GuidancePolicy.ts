@@ -16,29 +16,29 @@ export interface StudyLink {
 export function studyLinks(plan: IslandPlan): StudyLink[] {
   const sites = plan.poiDistribution?.sites ?? [],
     nodes = plan.roadNetwork?.nodes ?? [];
-  const hasBuilding = (site: PoiSite) => {
+  const buildingCount = (site: PoiSite) => {
     const ids = new Set(poiMemberIds(plan, site));
-    return plan.buildings.some((b) => ids.has(b.id));
+    return plan.buildings.filter((b) => ids.has(b.id)).length;
   };
   const result: StudyLink[] = [];
   for (const edge of plan.roadNetwork?.edges ?? []) {
     const a = sites.find((p) => p.id === nodes.find((n) => n.id === edge.a)?.poiId),
       b = sites.find((p) => p.id === nodes.find((n) => n.id === edge.b)?.poiId);
     if (!a || !b || !a.memberIds.length || !b.memberIds.length || a.id === b.id) continue;
-    const medium = [a, b].find((p) => p.tier === "medium" && hasBuilding(p));
-    const large = [a, b].find((p) => p.tier === "large");
-    if (!medium || !large) continue;
-    const village = hasBuilding(large),
-      from = village ? large : medium,
-      to = village ? medium : large;
+    const countA = buildingCount(a),
+      countB = buildingCount(b);
+    if (!countA && !countB) continue;
+    const from = countA > countB || (countA === countB && a.id.localeCompare(b.id) < 0) ? a : b,
+      to = from === a ? b : a,
+      houses = buildingCount(to) > 0;
     const owned = new Set(poiMemberIds(plan, to));
     // Measure the destination's primary volume, not its ambient landscape or helper occluders.
-    const targetIds = village
+    const targetIds = houses
       ? plan.buildings.filter((p) => owned.has(p.id)).map((p) => p.id)
       : plan.rocks.filter((p) => owned.has(p.id) && plan.mountains.some((m) => m.id === p.groupId)).map((p) => p.id);
     result.push({
       id: edge.routeId,
-      label: village ? "村庄 → 坡上房屋" : "坡上房屋 → 地貌地标",
+      label: houses ? "房屋组 → 房屋组" : "房屋组 → 地貌地标",
       from,
       to,
       routeId: edge.routeId,
@@ -46,9 +46,7 @@ export function studyLinks(plan: IslandPlan): StudyLink[] {
       targetIds
     });
   }
-  return result.sort(
-    (a, b) => Number(b.from.tier === "large") - Number(a.from.tier === "large") || a.id.localeCompare(b.id)
-  );
+  return result.sort((a, b) => (b.from.sizeWeight ?? 1) - (a.from.sizeWeight ?? 1) || a.id.localeCompare(b.id));
 }
 /** Orient a route by its declared POI relationship without changing the physical network. */
 export function linkPoints(plan: IslandPlan, link: StudyLink): PlanPoint[] {
@@ -75,11 +73,11 @@ export function pathSample(points: PlanPoint[], fraction: number): { point: Plan
   }
   throw new Error("实验路线至少需要两个点");
 }
-/** Choose a populated small POI close to the actual route, not an invented marker. */
+/** Choose a populated POI close to the actual route. */
 export function routeCue(plan: IslandPlan, route: PlanPoint[]): PoiSite | undefined {
   const samples = Array.from({ length: 21 }, (_, i) => pathSample(route, i / 20).point);
   return plan.poiDistribution?.sites
-    .filter((p) => p.tier === "small" && p.memberIds.length)
+    .filter((p) => p.active && p.memberIds.length)
     .map((p) => ({ p, d: Math.min(...samples.map((q) => Math.hypot(p.center.x - q.x, p.center.z - q.z))) }))
     .filter((v) => v.d < 120)
     .sort((a, b) => a.d - b.d || a.p.id.localeCompare(b.p.id))[0]?.p;

@@ -19,6 +19,7 @@ export interface OceanWaterSourceConfig {
 
 /** Engine-facing configuration for the finite, render-and-query Ocean runtime. */
 export interface OceanWaterRuntimeConfig extends OceanWaterSourceConfig {
+  readonly surfaceShader?: import("@galacean/engine-core").Shader;
   readonly renderContract?: CompiledWaterRenderContractV1;
   /** Resolved from the published Water Look, never from diagnostic state. */
   readonly color?: OceanRuntimeTuning["color"];

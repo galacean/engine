@@ -1,3 +1,4 @@
+import type { PlanningAnimalAuthoring, PlanningAnimalAddition } from "./PlanningAnimalAuthoring.ts";
 import { FireflyPopulation } from "@galacean/engine-animals/gameplay/animal/FireflyPopulation";
 import { FireflyPresenter } from "@galacean/engine-animals/gameplay/animal/FireflyPresenter";
 import type { Camera } from "@galacean/engine";
@@ -52,6 +53,8 @@ const DISTANT_ANIMAL_UPDATE_SECONDS = 5;
 
 /** Optional scene interactions; the observer camera remains independent of the physical player. */
 export interface PlanningAnimalInteractions {
+  /** Explicit additions share the host project database; generated population remains recipe-derived. */
+  authoring?: PlanningAnimalAuthoring;
   player?: () => Readonly<{ x: number; y?: number; z: number }> | undefined;
   food?: PlanningAnimalFood;
   /** Read-only environment input; the population owns simulation and presentation. */
@@ -122,6 +125,7 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
     }
     return material;
   };
+  private spawnTail: Promise<unknown> = Promise.resolve();
   private requestId = 0;
   private updateMilliseconds = 0;
   private maximumUpdateMilliseconds = 0;
@@ -206,6 +210,7 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
         this.refreshObserver(current, true);
         for (const actor of current.actors) actor.animal?.refreshWorld();
       }
+      this.restoreAdditions(current);
       const activationChanged = current.config.activationDistance !== config.activationDistance;
       current.config = structuredClone(config);
       this.synchronizeFireflies(current);
@@ -276,6 +281,7 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
         spawns: new Map()
       };
       for (const birth of layout.animals) this.addActor(candidate, birth);
+      this.restoreAdditions(candidate);
       this.synchronizeFireflies(candidate);
       this.population = candidate;
       this.errors = layout.diagnostics.map((d) => d.message);
@@ -290,7 +296,15 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
   catalog = querySeedAnimalCatalog;
 
   /** Add one registered identity without rebuilding other actors or downloading inactive alternatives. */
-  spawn(input: SeedWorldAnimalSpawn): SeedWorldAnimalSpawnReceipt {
+  spawn(input: SeedWorldAnimalSpawn): Promise<SeedWorldAnimalSpawnReceipt> {
+    const request = structuredClone(input);
+    const seed = this.population?.plan.parameters.seed;
+    const task = this.spawnTail.then(() => this.spawnAndSave(request, seed));
+    this.spawnTail = task.catch(() => undefined);
+    return task;
+  }
+
+  private async spawnAndSave(input: SeedWorldAnimalSpawn, requestedSeed: number | undefined): Promise<SeedWorldAnimalSpawnReceipt> {
     const p = this.population;
     const reject = (reason: string): SeedWorldAnimalSpawnReceipt => ({
       requestId: input.requestId,
@@ -298,6 +312,9 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
       reason
     });
     if (!p || this.disposed) return reject(this.enabled && !this.disposed ? "not_ready" : "disabled");
+    if (requestedSeed === undefined) return reject("not_ready");
+    if (p.plan.parameters.seed !== requestedSeed) return reject("world_changed");
+    if (!this.interactions.authoring) return reject("persistence_unavailable");
     if (
       typeof input.typeId !== "string" ||
       !input.typeId.trim() ||
@@ -367,17 +384,27 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
       const birth = layout.animals[0];
       if (!birth) receipt = reject("no_safe_spawn_position");
       else {
-        birth.id = `animal:spawn:${p.spawns.size + 1}`;
-        const actor = this.addActor(p, birth);
-        p.layout.animals.push(birth);
-        p.layout.requestedCount++;
-        this.admit(p, actor);
+        birth.id = `animal:authored:${crypto.randomUUID()}`;
+        const asset = this.library.resolve(birth);
+        const addition: PlanningAnimalAddition = {
+          requestId: input.requestId, requestKey: key, behaviorSeed: birth.seed,
+          ...(birth.medium ? { medium: birth.medium } : {}),
+          instance: { version: 1, id: birth.id, typeId: birth.typeId, appearanceId: asset.reference.appearanceId,
+            position: [birth.position.x, birth.position.y, birth.position.z], heading: birth.heading, scale: asset.config.scale }
+        };
+        try {
+          await this.interactions.authoring.save(p.plan.parameters.seed, addition);
+        } catch {
+          return reject("persistence_failed");
+        }
+        // A world switch during the database write keeps the addition in its original seed.
+        if (this.population?.plan.parameters.seed === requestedSeed && !this.disposed) this.restoreAdditions(this.population);
         receipt = {
           requestId: input.requestId,
           status: "accepted",
           id: birth.id,
           typeId: birth.typeId,
-          appearanceId: actor.asset.reference.appearanceId
+          appearanceId: asset.reference.appearanceId
         };
       }
     } catch {
@@ -387,8 +414,26 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
     return { ...receipt };
   }
 
-  private addActor(p: Population, birth: AnimalPopulationInstance): Actor {
-    const asset = this.library.resolve(birth);
+  private restoreAdditions(p: Population): void {
+    for (const addition of this.interactions.authoring?.read(p.plan.parameters.seed) ?? []) {
+      const instance = addition.instance;
+      const receipt: SeedWorldAnimalSpawnReceipt = { requestId: addition.requestId, status: "accepted",
+        id: instance.id, typeId: instance.typeId, appearanceId: instance.appearanceId };
+      p.spawns.set(addition.requestId, { key: addition.requestKey, receipt });
+      if (p.actors.some(actor => actor.birth.id === instance.id)) continue;
+      const birth: AnimalPopulationInstance = { id: instance.id, typeId: instance.typeId, appearanceId: instance.appearanceId,
+        position: { x: instance.position[0], y: instance.position[1], z: instance.position[2] },
+        heading: instance.heading, seed: addition.behaviorSeed, ...(addition.medium ? { medium: addition.medium } : {}) };
+      const actor = this.addActor(p, birth, instance.scale);
+      p.layout.animals.push(birth);
+      p.layout.requestedCount++;
+      this.admit(p, actor);
+    }
+  }
+
+  private addActor(p: Population, birth: AnimalPopulationInstance, scale?: number): Actor {
+    const resolved = this.library.resolve(birth);
+    const asset = scale === undefined ? resolved : { ...resolved, config: { ...resolved.config, scale } };
     const footprint: GroundAnimalBody = {
       active: false,
       layer: birth.medium ?? asset.profile.preferredMedium ?? "ground",
@@ -1132,7 +1177,7 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
     this.disposed = true;
     this.enabled = false;
     this.releasePopulation();
-    await Promise.allSettled([...this.pending]);
+    await Promise.allSettled([this.spawnTail, ...this.pending]);
     for (const material of this.toonMaterials.values()) material.destroy();
     this.toonMaterials.clear();
   }

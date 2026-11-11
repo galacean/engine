@@ -282,9 +282,7 @@ export class ProceduralPlantLibraryRuntime {
    * Consumers must release their renderers before changing the library category/LOD or destroying it.
    * Exhibition-only size copies are excluded; authored variants retain their reusable asset identities.
    */
-  getPlacementSources(
-    compactStaticParts = false
-  ): readonly {
+  getPlacementSources(compactStaticParts = false): readonly {
     entry: ProceduralPlantLibraryEntry;
     bounds: AssetAssemblyStandBounds;
     renderers: readonly MeshRenderer[];

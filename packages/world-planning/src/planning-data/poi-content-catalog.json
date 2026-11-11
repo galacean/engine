@@ -7,10 +7,9 @@
   },
   "recipes": [
     {
-      "id": "large-broken-rocks",
+      "id": "broken-rocks-01",
       "label": "\u5ca9\u7fa4",
       "algorithm": "rock-group",
-      "tiers": ["large"],
       "weight": 1,
       "parameters": {
         "lengthM": [50, 85],
@@ -21,10 +20,9 @@
       }
     },
     {
-      "id": "large-tapered-rocks",
+      "id": "tapered-rocks-01",
       "label": "\u5ca9\u7fa4",
       "algorithm": "rock-group",
-      "tiers": ["large"],
       "weight": 1,
       "parameters": {
         "lengthM": [50, 85],
@@ -35,10 +33,9 @@
       }
     },
     {
-      "id": "medium-broken-rocks",
+      "id": "broken-rocks-02",
       "label": "\u5ca9\u7fa4",
       "algorithm": "rock-group",
-      "tiers": ["medium"],
       "weight": 1,
       "parameters": {
         "lengthM": [23, 42],
@@ -49,10 +46,9 @@
       }
     },
     {
-      "id": "medium-tapered-rocks",
+      "id": "tapered-rocks-02",
       "label": "\u5ca9\u7fa4",
       "algorithm": "rock-group",
-      "tiers": ["medium"],
       "weight": 1,
       "parameters": {
         "lengthM": [23, 42],
@@ -63,10 +59,9 @@
       }
     },
     {
-      "id": "small-broken-rocks",
+      "id": "broken-rocks-03",
       "label": "\u5ca9\u7fa4",
       "algorithm": "rock-group",
-      "tiers": ["small"],
       "weight": 1,
       "parameters": {
         "lengthM": [6, 15],
@@ -78,10 +73,9 @@
       }
     },
     {
-      "id": "small-tapered-rocks",
+      "id": "tapered-rocks-03",
       "label": "\u5ca9\u7fa4",
       "algorithm": "rock-group",
-      "tiers": ["small"],
       "weight": 1,
       "parameters": {
         "lengthM": [6, 15],
@@ -93,10 +87,9 @@
       }
     },
     {
-      "id": "small-tall-tree",
+      "id": "landmark-tree",
       "label": "\u9ad8\u6811",
       "algorithm": "landmark-tree",
-      "tiers": ["small"],
       "weight": 1.1,
       "parameters": {
         "heightMultiplier": 1.8,

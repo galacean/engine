@@ -62,7 +62,7 @@ Shader "Pipeline/ScreenSpaceReflectionSurface" {
         BSDFData bsdfData;
         initBSDFData(surfaceData, bsdfData);
 
-        vec3 responseColor = vec3(material_ScreenSpaceReflectionIntensity);
+        vec3 reflectionResponse = vec3(material_ScreenSpaceReflectionIntensity);
         bool isOpaqueReceiver =
           material_ScreenSpaceReflectionMode < 1.5 || material_ScreenSpaceReflectionMode > 2.5;
         if (isOpaqueReceiver) {
@@ -80,13 +80,13 @@ Shader "Pipeline/ScreenSpaceReflectionSurface" {
           #if SCENE_FOG_MODE != 0
             fogVisibility = getScreenSpaceReflectionFogVisibility(varyings.positionVS);
           #endif
-          responseColor = saturate(baseLobeResponse * material_ScreenSpaceReflectionIntensity * fogVisibility);
+          reflectionResponse = saturate(baseLobeResponse * material_ScreenSpaceReflectionIntensity * fogVisibility);
         }
 
         vec3 viewNormal = normalize(mat3(camera_ViewMat) * surfaceData.normal);
         ScreenSpaceReflectionSurfaceOutput output;
         output.geometry = packScreenSpaceReflectionSurface(viewNormal, bsdfData.roughness, 1.0);
-        output.responseColor = vec4(responseColor, 1.0);
+        output.responseColor = vec4(reflectionResponse, 1.0);
         return output;
       }
     }

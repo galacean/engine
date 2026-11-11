@@ -25,7 +25,8 @@ self.onmessage = ({
     if (data.heightFromBase && !supplied) throw new Error("Missing requested raster height baseline");
     const { sample, ...height } = supplied ? adoptPlanningHeightmap(data.plan, supplied) : planningHeightmap(data.plan);
     const alpha = planningAlphamap(data.plan);
-    const ocean = data.ocean ? compilePlanningOcean(data.plan) : undefined;
+    const ocean =
+      data.ocean && data.plan.parameters.landMode !== "continuous" ? compilePlanningOcean(data.plan) : undefined;
     const previous = data.baseId === undefined ? undefined : nativeSnapshots.get(data.baseId);
     const reuse =
       data.waterImpact &&

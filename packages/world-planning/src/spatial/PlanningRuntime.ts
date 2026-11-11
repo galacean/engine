@@ -53,10 +53,7 @@ export function editableEntity(document: PlanningDocument, scene: SceneEntity, p
         ...(definition.global
           ? {
               base: {
-                entity:
-                  definition.type === "landscape" && scene.components.poi
-                    ? "policy:" + scene.components.poi.tier
-                    : "world",
+                entity: "world",
                 component: definition.type
               }
             }
@@ -67,17 +64,21 @@ export function editableEntity(document: PlanningDocument, scene: SceneEntity, p
       group = plan.spatialLayout?.groups.find((g) => g.id === scene.id);
     entity.components.layout = {
       ...entity.components.layout,
-      base: entity.components.layout?.base ?? { entity: "policy:" + site.tier, component: "layout" },
-      values: { ...(group?.rule ?? initialLayoutRule(plan.parameters.seed, site)), ...entity.components.layout?.values }
+      base: entity.components.layout?.base ?? { entity: "world", component: "layout" },
+      values: {
+        ...(group?.rule ?? initialLayoutRule(plan.parameters.seed, site)),
+        elementProfile: plan.spatialLayout?.elementProfiles?.[site.id],
+        ...entity.components.layout?.values
+      }
     };
     delete entity.components.layout.values.radiusM;
     delete entity.components.layout.values.roadAccess;
     delete entity.components.layout.values.spacingM;
     entity.components.anchor = {
       ...entity.components.anchor,
-      values: { ...site.center, ...entity.components.anchor?.values }
+      values: { ...site.origin, ...entity.components.anchor?.values }
     };
-    entity.components.poi = { ...entity.components.poi, values: { tier: site.tier, ...entity.components.poi?.values } };
+    entity.components.poi = { ...entity.components.poi, values: { ...entity.components.poi?.values } };
   }
   if (scene.id === "world" && scene.components.distributionMetrics)
     entity.components.distribution = {
@@ -125,7 +126,7 @@ export function editableEntity(document: PlanningDocument, scene: SceneEntity, p
       }
     };
   if (scene.components.guidanceMember) entity.components.guidanceMember = { values: scene.components.guidanceMember };
-  if (scene.kind === "route")
+  if (scene.kind === "route" && scene.components.route)
     entity.components.roadWidth = {
       ...entity.components.roadWidth,
       values: { widthM: scene.components.route.width, ...entity.components.roadWidth?.values }
@@ -144,20 +145,34 @@ export function editableEntity(document: PlanningDocument, scene: SceneEntity, p
       !(
         type === "layout" &&
         scene.kind === "poi" &&
-        document.entities[scene.id].components[type].base!.entity === "policy:" + scene.components.poi.tier
+        document.entities[scene.id].components[type].base!.entity === "world"
       )
     )
       entity.components[type] = structuredClone(document.entities[scene.id].components[type]);
   return entity;
 }
-/** Execute registered spatial rules; diagnostics cannot veto geometry or mutate it. */
+/** Optional production stages; all modes preserve the same layout and author-water semantics. */
+export interface PlanningGenerationOptions {
+  /** Set false for initialization evaluation without ambient ecology and visual guidance. Defaults to true. */
+  environment?: boolean;
+}
+
+/** Execute registered spatial rules; diagnostics cannot veto geometry or mutate it.
+ * @param document Current author inputs, including native terrain and water resources.
+ * @param previous Optional accepted result used for incremental computation.
+ * @param scopedExtensions Additional non-blocking diagnostics for this execution.
+ * @param progress Optional stage notifications.
+ * @param options Optional production stages; initialization may omit environment generation.
+ * @returns Generated world, checks and publication acceptance, using the canonical author-water pipeline.
+ */
 export function generatePlanningDocument(
   document: PlanningDocument,
   previous?: SemanticResult,
   scopedExtensions: readonly PlanningExtension[] = [],
-  progress?: (stage: string) => void
+  progress?: (stage: string) => void,
+  options: PlanningGenerationOptions = {}
 ): SemanticResult {
-  const result = generateWaterOverlay(document, previous, progress, planningRuntimeSignature());
+  const result = generateWaterOverlay(document, previous, progress, planningRuntimeSignature(), options);
   const oldResources = new Map(previous?.plan.authoredResources?.map((resource) => [resource.resourceId, resource]));
   const nextResources = new Map(result.plan.authoredResources?.map((resource) => [resource.resourceId, resource]));
   for (const id of new Set([...oldResources.keys(), ...nextResources.keys()]))

@@ -7,8 +7,8 @@
   "distanceMetric": "shortest-reachable-path-between-entrances",
   "roles": [
     {
-      "id": "large-poi",
-      "label": "大型旗帜POI",
+      "id": "destination",
+      "label": "目的地",
       "spacingWalkSeconds": {
         "min": 30,
         "max": 60
@@ -16,8 +16,8 @@
       "intent": "形成可抵达的主要目的地"
     },
     {
-      "id": "medium-poi",
-      "label": "中型旗帜POI",
+      "id": "landmark",
+      "label": "方向地标",
       "spacingWalkSeconds": {
         "min": 15,
         "max": 30
@@ -55,7 +55,7 @@
     {
       "id": "village-destination",
       "unitId": "village",
-      "guidanceRoles": ["large-poi"],
+      "guidanceRoles": ["destination"],
       "geometrySource": "unit-module",
       "geometryStatus": "active",
       "guidanceStatus": "data-only",
@@ -65,7 +65,7 @@
     {
       "id": "landform-destination",
       "unitId": "mountain",
-      "guidanceRoles": ["large-poi", "medium-poi"],
+      "guidanceRoles": ["destination", "landmark"],
       "geometrySource": "unit-module",
       "geometryStatus": "legacy-experiment",
       "guidanceStatus": "data-only",
@@ -76,7 +76,7 @@
       "id": "vertical-landmark",
       "unitId": "lookout",
       "componentUnitIds": ["rock.spire"],
-      "guidanceRoles": ["medium-poi", "large-poi"],
+      "guidanceRoles": ["landmark", "destination"],
       "geometrySource": "unit-module",
       "geometryStatus": "data-only",
       "guidanceStatus": "data-only",
@@ -87,7 +87,7 @@
       "id": "platform-complex",
       "unitId": "plateau",
       "componentUnitIds": ["rock.terrace", "lookout"],
-      "guidanceRoles": ["medium-poi", "large-poi"],
+      "guidanceRoles": ["landmark", "destination"],
       "geometrySource": "unit-module",
       "geometryStatus": "data-only",
       "guidanceStatus": "data-only",
@@ -97,7 +97,7 @@
     {
       "id": "roadside-rock",
       "unitId": "landscape.rock",
-      "guidanceRoles": ["breadcrumb", "medium-poi"],
+      "guidanceRoles": ["breadcrumb", "landmark"],
       "geometrySource": "unit-module",
       "geometryStatus": "active",
       "guidanceStatus": "data-only",
@@ -107,7 +107,7 @@
     {
       "id": "roadside-tree",
       "unitId": "landscape.tree",
-      "guidanceRoles": ["breadcrumb", "medium-poi"],
+      "guidanceRoles": ["breadcrumb", "landmark"],
       "geometrySource": "unit-module",
       "geometryStatus": "active",
       "guidanceStatus": "data-only",

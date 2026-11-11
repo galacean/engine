@@ -1,7 +1,6 @@
 import { watercourseGeometry } from "@galacean/engine-water/water/index";
 import { planningLakeMesh } from "./PlanningLakeMesh";
-import { isGlobalRoadId } from "../spatial/layout/RoadIdentity";
-import { roadSurfaces, roadSurfaceOwners } from "../spatial/layout/RoadTopology";
+import { isGlobalRoadSurface, roadSurfaces, roadSurfaceOwners } from "../spatial/layout/RoadTopology";
 import { poiRangeOutline } from "./PoiFootprint";
 import { planningWaterHeight } from "./WorldPlanningTerrain";
 import { planningWhiteboxes } from "./PlanningWhiteboxes";
@@ -202,7 +201,7 @@ export function compilePlanningScene(plan: IslandPlan): PlanningScenePart[] {
   for (const route of roadSurfaces(plan)) {
     surface(
       route.id,
-      plan.poiDistribution ? (isGlobalRoadId(route.id) ? "road-world" : "road-local") : "route",
+      plan.poiDistribution ? (isGlobalRoadSurface(plan, route) ? "road-world" : "road-local") : "route",
       route.outline ?? ribbonOutline(route.points, [route.width]),
       planningColor(surfaces.soil),
       0.15

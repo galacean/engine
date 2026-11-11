@@ -1,7 +1,7 @@
 import catalog from "./semantic-units.json";
 import rawProfile from "./wayfinding-profile.json";
 
-export type GuidanceRole = "large-poi" | "medium-poi" | "breadcrumb";
+export type GuidanceRole = "destination" | "landmark" | "breadcrumb";
 export interface NumericRange {
   min: number;
   max: number;
@@ -177,7 +177,7 @@ export function validateWayfindingProfile(
     throw new Error("Invalid wayfinding profile metadata");
   const roles = new Set<string>();
   for (const role of profile.roles) {
-    if (!["large-poi", "medium-poi", "breadcrumb"].includes(role.id) || roles.has(role.id))
+    if (!["destination", "landmark", "breadcrumb"].includes(role.id) || roles.has(role.id))
       throw new Error(`Invalid or duplicate guidance role: ${role.id}`);
     roles.add(role.id);
     validateRange(role.spacingWalkSeconds, role.id + ".spacingWalkSeconds", true);

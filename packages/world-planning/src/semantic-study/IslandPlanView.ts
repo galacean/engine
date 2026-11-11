@@ -73,7 +73,7 @@ const number = (value: number): string => String(Math.round(value * 100) / 100);
 const xml = (value: string): string =>
   value.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&apos;" })[c]!);
 const ring = (points: PlanPoint[]): string =>
-  points.map((p, index) => `${index ? "L" : "M"}${number(p.x)},${number(p.z)}`).join(" ") + " Z";
+  points.map((p, index) => `${index ? "L" : "M"}${number(p.x)},${number(p.z)}`).join(" ") + (points.length ? " Z" : "");
 const line = (points: PlanPoint[]): string =>
   points.map((p, index) => `${index ? "L" : "M"}${number(p.x)},${number(p.z)}`).join(" ");
 const point = (p: PlanPoint): string => `${number(p.x)},${number(p.z)}`;
@@ -265,6 +265,7 @@ export class IslandPlanView {
     const { width, depth } = plan.parameters;
     this.svg.dataset.planRevision = String(revision);
     this.svg.dataset.seed = String(plan.parameters.seed);
+    this.svg.dataset.landMode = plan.parameters.landMode ?? "island";
     this.svg.dataset.width = String(width);
     this.svg.dataset.depth = String(depth);
     if (!this.oblique) {

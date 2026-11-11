@@ -1,3 +1,4 @@
+import { initializePlanningPopulation } from "./PlanningPopulationInitialization";
 import { PLANNING_FARMING_PROJECT_PATH } from "./farming/PlanningFarmInitialization";
 import {
   preparePlanningWaterEdit,
@@ -14,6 +15,7 @@ import { awaitPlanningPreparation } from "./PlanningPreparationCancellation";
 import { isRockFormationOnlyEdit, prepareRockFormationEdit } from "../integrations/terrain/rock-formation/Edit.ts";
 import { poiLandscapeConfig } from "../semantic-study/ContextLandscape";
 import { defaultPoiLayout } from "../semantic-study/PoiDistribution";
+import { poiTerritoryAreas, previewPoiTerritories, type PoiTerritoryPreviewEdit } from "./ecology/PoiTerritories";
 import { readPath } from "./PlanningDocument";
 import { resolveLandscapeInfluence } from "./ecology/LandscapeInfluences";
 import { resolveFlowerInfluence } from "./ecology/FlowerInfluences";
@@ -509,7 +511,15 @@ export class PlanningSession {
         id: entity.id,
         name: entity.name,
         parent: entity.parent ?? prior?.parent,
-        kind: prior?.kind ?? (entity.components.rivers ? "water" : entity.components.lakes ? "lake" : "policy"),
+        kind:
+          prior?.kind ??
+          (entity.components.poi
+            ? "poi"
+            : entity.components.rivers
+              ? "water"
+              : entity.components.lakes
+                ? "lake"
+                : "policy"),
         components: { ...prior?.components, ...entity.components }
       });
     }
@@ -586,7 +596,15 @@ export class PlanningSession {
       id,
       name: entity.name,
       parent: scene?.parent,
-      kind: scene?.kind ?? (entity.components.rivers ? "water" : entity.components.lakes ? "lake" : undefined),
+      kind:
+        scene?.kind ??
+        (entity.components.poi
+          ? "poi"
+          : entity.components.rivers
+            ? "water"
+            : entity.components.lakes
+              ? "lake"
+              : undefined),
       components: Object.keys(entity.components).map((type) => {
         const resolved = resolveComponent(temporary, id, type, planningRegistry);
         resolved.sources = resolveComponent(authoring, id, type, planningRegistry).sources;
@@ -666,8 +684,8 @@ export class PlanningSession {
         if (type === "layout" && scene?.components.layout)
           resolved.values.memberCount = scene.components.layout.memberCount;
         if (type === "poi") {
-          resolved.values.radiusM ??= scene?.components.poi?.radiusM;
-          resolved.values.actualRadiusM = scene?.components.poi?.contentRadiusM;
+          resolved.values.active = this.result?.plan.poiDistribution?.sites.find((site) => site.id === id)?.active;
+          resolved.values.actualAreaM2 = this.result ? poiTerritoryAreas(this.result.plan).get(id) : undefined;
         }
         const definition = planningRegistry.get(type);
         const hidden = new Set(definition.fields.filter((field) => field.hidden).map((field) => field.key));
@@ -759,9 +777,6 @@ export class PlanningSession {
           available = scene && editableEntity(draft, scene, this.result!.plan).components[command.component];
         if (!available) throw new Error("该对象未提供组件：" + command.component);
         draft.entities[id].components[command.component] = available;
-        // A radius edit must not freeze the generated tier into a placement override.
-        if (command.op === "set" && command.component === "poi" && command.values.tier === undefined)
-          delete available.values.tier;
         if (
           ["solid", "appearance"].includes(command.component) &&
           (scene?.components.landscapeElement || scene?.components.guidanceMember)
@@ -804,6 +819,16 @@ export class PlanningSession {
       switchPlanningLayoutScope(draft, planningSeed(this.desired));
       applySpatialCommands(draft, [], planningRegistry);
     }
+    // Population is an explicit layout operation. Reloads and local edits preserve
+    // realized author inputs instead of reapplying a lasting capacity restriction.
+    if (
+      commands.some(
+        (command) => "component" in command && command.entity === "world" && command.component === "population"
+      ) &&
+      JSON.stringify(resolveComponent(draft, "world", "population", planningRegistry).values) !==
+        JSON.stringify(resolveComponent(this.desired, "world", "population", planningRegistry).values)
+    )
+      draft = initializePlanningPopulation(draft);
     const farm = resolveComponent(draft, "world", "farming", planningRegistry).values;
     const previousFarm = resolveComponent(this.desired, "world", "farming", planningRegistry).values;
     // Persist the request with authoring, before publication. Replays retain it;
@@ -1183,6 +1208,15 @@ export class PlanningSession {
   }
   export() {
     return exportPlanningAuthoring(this.document);
+  }
+  /** Lightweight, non-persistent preview of accepted POI ownership; commit through parameter authoring.
+   * @param edit Provisional weight and/or world coordinates for one existing POI.
+   * @returns The accepted document revision, edited POI identity and provisional land-clipped cells with actual areas.
+   * @throws If planning is not ready, the POI is absent, or the provisional values are invalid.
+   */
+  previewPoi(edit: PoiTerritoryPreviewEdit) {
+    if (!this.result) throw new Error("规划尚未就绪");
+    return { revision: this.document.revision, poiId: edit.id, cells: previewPoiTerritories(this.result.plan, edit) };
   }
   recipe() {
     return exportPlanningRecipe(this.document);

@@ -1,6 +1,8 @@
 import animalTypes from "../planning-data/animal-types.json";
+import { WORLD_TEMPLATE_ART } from "./WorldTemplateArtDirection";
+import { spatialCompositionParameters } from "./SpatialCompositionParameters";
+import { templateBaseSeed } from "./WorldTemplateCatalog";
 import { defaultPoiLayout } from "../semantic-study/PoiDistribution";
-import { initialLayoutConfiguration } from "./layout/LayoutProfiles";
 import { isGlobalRoadId } from "./layout/RoadIdentity";
 import type { SemanticRecipe, SemanticEdit } from "../semantic-study/WorldPlanningContract";
 import type { IslandPlan } from "../semantic-study/IslandPlanModel";
@@ -27,8 +29,8 @@ export interface PlanningDocument extends SpatialDocument {
   /** Legacy import only. New sessions keep derived snapshots outside the authoring document. */
   placementState?: import("./layout/SpatialWorld").SpatialLayoutState;
   samplingVersion?: number;
-  /** Authoring migration marker for independent organization and internal-road choices. */
-  layoutVersion?: 2;
+  /** Historical initialization receipt; ordinary layout fields are authoritative after creation. */
+  populationInitialization?: import("./PlanningPopulationInitialization").PlanningPopulationReceipt;
   /** Inactive layouts retain instance edits; only entities for the active Seed enter the solver. */
   layoutOverrides?: Record<
     string,
@@ -39,13 +41,9 @@ export interface PlanningDocument extends SpatialDocument {
       placementState?: import("./layout/SpatialWorld").SpatialLayoutState;
       authoredResources?: PlanningResource[];
       waterAuthoringVersion?: 1;
+      populationInitialization?: import("./PlanningPopulationInitialization").PlanningPopulationReceipt;
     }
   >;
-}
-/** Legacy max affected a random stop threshold, not a geometric upper bound. Keep only the authored minimum. */
-function retirePoiSpacingMax(parameters: SemanticRecipe["parameters"] | undefined): void {
-  for (const spacing of Object.values(parameters?.poiLayout?.spacing ?? {}))
-    delete (spacing as { maxM?: unknown }).maxM;
 }
 /** Offshore landmark height overrides were withdrawn; generic POI/solid dimensions remain authored. */
 function retireOffshoreContents(scope: {
@@ -113,127 +111,11 @@ function inheritedSpeciesSizes(
   visiting.delete(id);
   return sizes;
 }
-/** Retire organization aliases and the road boolean at the authoring boundary, including inherited policies. */
-function upgradeLayouts(
-  entities: Record<string, SpatialEntity>,
-  seed: number,
-  legacyDefaults: boolean,
-  placementState?: PlanningDocument["placementState"]
-): void {
-  // Snapshot before mutation: a child's old meaning must not depend on entity iteration order.
-  const resolved = new Map<string, Record<string, unknown>>();
-  const read = (id: string, visiting = new Set<string>()): Record<string, unknown> => {
-    if (resolved.has(id)) return resolved.get(id)!;
-    if (visiting.has(id)) throw new Error("布局参数来源循环：" + id);
-    visiting.add(id);
-    const component = entities[id]?.components.layout;
-    const inherited = component?.base ? read(component.base.entity, visiting) : {};
-    const values = { ...inherited, ...component?.values };
-    resolved.set(id, values);
-    return values;
-  };
-  for (const entity of Object.values(entities)) if (entity.components.layout) read(entity.id);
-  for (const entity of Object.values(entities)) {
-    const values = entity.components.layout?.values;
-    if (!values) continue;
-    const tier = entity.id.split("-")[1] as "large" | "medium" | "small";
-    const policy = entity.id.startsWith("poi-") ? (resolved.get("policy:" + tier) ?? {}) : {};
-    const effective = { ...policy, ...resolved.get(entity.id) };
-    const base = entity.components.layout.base;
-    const inherited = base ? (resolved.get(base.entity) ?? {}) : policy;
-    const initial =
-      (legacyDefaults || inherited.pattern === "scatter" || effective.pattern === "auto") &&
-      ["large", "medium", "small"].includes(tier)
-        ? initialLayoutConfiguration(seed, {
-            id: entity.id,
-            tier,
-            center: { x: 0, z: 0 },
-            domainId: "",
-            radiusM: 0,
-            memberIds: []
-          }).rule
-        : undefined;
-    const oldPattern =
-      effective.pattern && effective.pattern !== "auto"
-        ? effective.pattern
-        : initial?.roadMode === "none"
-          ? "scatter"
-          : initial?.pattern;
-    if (values.pattern === "scatter") {
-      values.pattern = "connected";
-      values.branchShape = "radial";
-      values.roadMode ??= effective.roadMode ?? "none";
-    } else if (
-      (effective.pattern === "scatter" || (legacyDefaults && oldPattern === "scatter")) &&
-      effective.branchShape !== undefined
-    ) {
-      // This field was inactive on scatter, even when inherited from a former curve.
-      values.branchShape = "radial";
-    } else if (values.pattern === "curve") {
-      values.pattern = "connected";
-      values.branchShape = "curve";
-    }
-    if (
-      legacyDefaults &&
-      oldPattern === "scatter" &&
-      effective.memberBranches !== undefined &&
-      effective.roadMode === undefined
-    )
-      values.roadMode = "none";
-    if (values.memberBranches !== undefined && effective.roadMode === undefined)
-      values.roadMode = oldPattern === "scatter" ? "none" : values.memberBranches === false ? "backbone" : "members";
-    // An explicit child organization must not inherit the no-road mode introduced on an old scatter base.
-    if (inherited.pattern === "scatter" && effective.pattern !== "scatter") {
-      values.branchShape ??= effective.branchShape ?? initial?.branchShape ?? "radial";
-    }
-    if (inherited.pattern === "scatter" && effective.pattern !== "scatter" && effective.roadMode === undefined) {
-      values.roadMode =
-        oldPattern === "scatter"
-          ? "none"
-          : effective.memberBranches === true
-            ? "members"
-            : effective.memberBranches === false
-              ? "backbone"
-              : initial?.roadMode === "members"
-                ? "members"
-                : "backbone";
-    }
-    // Former default scatter + an explicit connected/courtyard override had a backbone.
-    // Freeze only this changed default; future edits use the independent road enum.
-    if (legacyDefaults && initial?.roadMode === "none" && oldPattern !== "scatter" && effective.roadMode === undefined)
-      values.roadMode ??= effective.memberBranches === true ? "members" : "backbone";
-    // "auto" was a selection mode, not an organization. Freeze each existing POI's
-    // sampled organization so deleting the token cannot expose a different inherited rule.
-    if (effective.pattern === "auto" && initial) values.pattern = initial.pattern;
-    else if (values.pattern === "auto") delete values.pattern;
-    // Consume retired inputs before dropping them. Export and import share the same
-    // migration, including inactive Seeds; no generated snapshot survives the boundary.
-    let spacing = values.spacingM;
-    if (values.radiusM !== undefined && spacing === undefined && effective.spacingM === undefined) {
-      const old = placementState?.groups.find((g) => g.id === entity.id)?.rule;
-      const n = Number(effective.count ?? (old as { count?: number } | undefined)?.count ?? 1);
-      const w = Number(effective.widthMaxM ?? old?.widthMaxM ?? 12),
-        d = Number(effective.depthMaxM ?? old?.depthMaxM ?? 12);
-      spacing = Math.max(0, Number(values.radiusM) / Math.sqrt(Math.max(1, n) / Math.PI) - Math.hypot(w, d));
-    }
-    if (spacing !== undefined) {
-      values.spacingMinM ??= spacing;
-      values.spacingMaxM ??= spacing;
-    }
-    delete values.radiusM;
-    delete values.spacingM;
-    delete values.elementProfile;
-    delete values.count;
-    delete values.memberCount;
-    delete values.memberBranches;
-  }
-}
 /** Authoring boundary: discard legacy generated caches before copying any parameter data. */
 export function exportPlanningAuthoring(document: PlanningDocument): PlanningDocument {
   const { placementState: _cache, layoutOverrides, ...authoring } = document;
   const result: PlanningDocument = structuredClone({
     ...authoring,
-    layoutVersion: 2,
     ...(layoutOverrides
       ? {
           layoutOverrides: Object.fromEntries(
@@ -245,25 +127,15 @@ export function exportPlanningAuthoring(document: PlanningDocument): PlanningDoc
         }
       : {})
   });
-  retirePoiSpacingMax(result.passthrough.parameters);
   retireOffshoreContents(result.passthrough);
   retireTerrainSampling(result.passthrough);
   for (const scope of [result, ...Object.values(result.layoutOverrides ?? {})]) retireSpeciesSizeFields(scope.entities);
-  for (const [seed, scope] of [[undefined, result], ...Object.entries(result.layoutOverrides ?? {})] as const) {
-    upgradeLayouts(
-      scope.entities,
-      Number(seed ?? result.entities.world.components.world?.values.seed ?? result.passthrough.parameters.seed),
-      document.layoutVersion !== 2,
-      seed === undefined ? document.placementState : document.layoutOverrides?.[seed]?.placementState
-    );
+  for (const scope of [result, ...Object.values(result.layoutOverrides ?? {})]) {
     for (const entity of Object.values(scope.entities)) {
       delete entity.components.offshoreContents;
       delete entity.components.terrainSampling;
-      for (const tier of ["large", "medium", "small"])
-        if (entity.components.distribution) delete entity.components.distribution.values[tier + ".maxM"];
     }
     if ("edits" in scope) {
-      retirePoiSpacingMax(scope.parameters);
       retireOffshoreContents(scope);
       retireTerrainSampling(scope);
     }
@@ -315,7 +187,6 @@ export function componentKind(id: string, edit: SemanticEdit, plan?: IslandPlan)
 function upgradeLandscapeFalloff(recipe: SemanticRecipe): void {
   const configs = [
     recipe.parameters.poiLayout?.landscape,
-    ...Object.values(recipe.parameters.poiLayout?.landscape.tierOverrides ?? {}),
     ...Object.values(recipe.edits).map((edit) => edit.landscape)
   ];
   for (const config of configs)
@@ -424,14 +295,12 @@ export function importPlanningDocument(recipe: SemanticRecipe, plan?: IslandPlan
     delete (recipe.parameters.farming as { riverPreference?: unknown }).riverPreference;
     delete (recipe.parameters.farming as { roadWidthM?: unknown }).roadWidthM;
   }
-  retirePoiSpacingMax(recipe.parameters);
   retireOffshoreContents(recipe);
   upgradeLandscapeFalloff(recipe);
   const passthrough = structuredClone(recipe);
   const document: PlanningDocument = {
     version: 1,
     revision: 0,
-    layoutVersion: 2,
     entities: { world: { id: "world", name: "世界", components: {} } },
     passthrough
   };
@@ -459,38 +328,6 @@ export function importPlanningDocument(recipe: SemanticRecipe, plan?: IslandPlan
   for (const definition of PLANNING_COMPONENTS)
     if ((definition.presentation && !definition.kinds) || definition.runtime)
       document.entities.world.components[definition.type] = { values: {} };
-  for (const tier of ["large", "medium", "small"]) {
-    const id = "policy:" + tier,
-      density = recipe.parameters.poiLayout?.landscape.tierDensity?.[tier as "large"];
-    const values: Record<string, unknown> = density === undefined ? {} : { density };
-    for (const [key, path] of Object.entries(PLANNING_COMPONENTS.find((d) => d.type === "landscape")!.local!)) {
-      const value = readPath(
-        recipe.parameters.poiLayout?.landscape.tierOverrides?.[tier as "large"],
-        path.replace(/^landscape\./, "")
-      );
-      if (value !== undefined) values[key] = value;
-    }
-    document.entities[id] = {
-      id,
-      name:
-        ["large", "medium", "small"].indexOf(tier) === 0
-          ? "大型 POI 景观"
-          : tier === "medium"
-            ? "中型 POI 景观"
-            : "小型 POI 景观",
-      parent: "world",
-      components: {
-        landscape: {
-          base: { entity: "world", component: "landscape" },
-          values
-        }
-      }
-    };
-  }
-  if (passthrough.parameters.poiLayout) {
-    delete passthrough.parameters.poiLayout.landscape.tierDensity;
-    delete passthrough.parameters.poiLayout.landscape.tierOverrides;
-  }
   for (const [id, edit] of Object.entries(recipe.edits)) {
     const kind = componentKind(id, edit, plan),
       entity: SpatialEntity = { id, name: id, components: {} };
@@ -516,8 +353,7 @@ export function importPlanningDocument(recipe: SemanticRecipe, plan?: IslandPlan
             values,
             base: definition.global
               ? {
-                  entity:
-                    definition.type === "landscape" && id.startsWith("poi-") ? "policy:" + id.split("-")[1] : "world",
+                  entity: "world",
                   component: definition.type
                 }
               : undefined
@@ -533,35 +369,17 @@ export function importPlanningDocument(recipe: SemanticRecipe, plan?: IslandPlan
   delete document.passthrough.parameters.terrainPatches;
   return upgradePlanningDocument(document);
 }
-/** The legacy operators already consume the automatic world → tier → POI chain.
- * Alternate explicit bases must instead be resolved into this compile's private recipe;
- * the authoring document remains sparse so future base edits continue to propagate.
- */
-function usesImplicitBase(document: PlanningDocument, entity: SpatialEntity, type: string): boolean {
+/** World defaults remain implicit; explicit alternate bases are compiled once. */
+function usesImplicitBase(_document: PlanningDocument, entity: SpatialEntity, type: string): boolean {
   const component = entity.components[type];
-  if (!component?.base) return false;
-  let source: string | undefined = PLANNING_COMPONENTS.find((d) => d.type === type)?.global ? "world" : undefined;
-  if (type === "landscape" && !entity.id.startsWith("policy:")) {
-    const tier = entity.components.poi
-      ? resolveComponent(document, entity.id, "poi", planningRegistry).values.tier
-      : /^poi-(large|medium|small)-/.exec(entity.id)?.[1];
-    if (tier) source = "policy:" + tier;
-  }
-  return component.base.entity === source && component.base.component === type;
+  return !!component?.base && component.base.entity === "world" && component.base.component === type;
 }
 /** Compile authoring components to the private inputs of the existing geometry operators. */
 export function exportPlanningRecipe(document: PlanningDocument): SemanticRecipe {
-  if (
-    PLANNING_COMPONENTS.some(
-      (d) => (d.global || (d.presentation && !d.kinds) || d.runtime) && !document.entities.world.components[d.type]
-    )
-  )
-    document = upgradePlanningDocument(document);
   const recipe = structuredClone(document.passthrough);
   // Legacy recipes may omit POI configuration. Restore unexposed solver defaults
   // only in the compiled input; authoring components below retain precedence.
   recipe.parameters.poiLayout = { ...defaultPoiLayout(), ...recipe.parameters.poiLayout };
-  retirePoiSpacingMax(recipe.parameters);
   retireOffshoreContents(recipe);
   const patches = Object.values(document.entities)
     .filter((e) => e.components.relief)
@@ -587,27 +405,8 @@ export function exportPlanningRecipe(document: PlanningDocument): SemanticRecipe
     };
     resolveNaturalVegetationSizes(recipe.parameters.poiLayout!.landscape.plantSizes);
   }
-  for (const tier of ["large", "medium", "small"] as const) {
-    const scope = document.entities["policy:" + tier]?.components.landscape;
-    if (scope) {
-      const entity = document.entities["policy:" + tier];
-      const inherited = !!scope.base && !usesImplicitBase(document, entity, "landscape");
-      const effective = resolveComponent(document, entity.id, "landscape", planningRegistry).values;
-      if (scope.values.density !== undefined || (inherited && effective.density !== undefined)) {
-        recipe.parameters.poiLayout!.landscape.tierDensity ??= {};
-        recipe.parameters.poiLayout!.landscape.tierDensity[tier] = Number(effective.density);
-      }
-      for (const [key, path] of Object.entries(PLANNING_COMPONENTS.find((d) => d.type === "landscape")!.local!))
-        if (key !== "density" && (scope.values[key] !== undefined || inherited))
-          writePath(
-            recipe.parameters.poiLayout!.landscape,
-            "tierOverrides." + tier + "." + path.replace(/^landscape\./, ""),
-            effective[key]
-          );
-    }
-  }
   for (const entity of Object.values(document.entities)) {
-    if (entity.id === "world" || entity.id.startsWith("policy:")) continue;
+    if (entity.id === "world") continue;
     for (const definition of PLANNING_COMPONENTS) {
       const component = entity.components[definition.type];
       if (!component || !definition.local) continue;
@@ -616,7 +415,7 @@ export function exportPlanningRecipe(document: PlanningDocument): SemanticRecipe
       const implicitBase = usesImplicitBase(document, entity, definition.type);
       for (const [key, path] of Object.entries(definition.local))
         if (component.values[key] !== undefined || (component.base && !implicitBase)) {
-          let value = effective[key];
+          const value = effective[key];
           writePath(edit, path, value);
         }
     }
@@ -627,6 +426,41 @@ export function exportPlanningRecipe(document: PlanningDocument): SemanticRecipe
 /** Remove retired authoring contracts once, while retaining registered extension components and current overrides. */
 export function upgradePlanningDocument(input: PlanningDocument): PlanningDocument {
   const document = exportPlanningAuthoring(input);
+  for (const scope of [document, ...Object.values(document.layoutOverrides ?? {})]) {
+    const world = scope.entities.world?.components;
+    const legacy = world?.worldTemplate?.values;
+    const id = typeof legacy?.id === "string" ? legacy.id : "";
+    const preset = WORLD_TEMPLATE_ART[id]?.generation;
+    if (!world || !preset) continue;
+    if (!world.landscapeComposition?.base && !Object.keys(world.landscapeComposition?.values ?? {}).length)
+      world.landscapeComposition = {
+        values: spatialCompositionParameters({
+          ...preset,
+          seed: templateBaseSeed(id),
+          ...(typeof legacy?.centerX === "number" ? { centerX: legacy.centerX } : {}),
+          ...(typeof legacy?.centerZ === "number" ? { centerZ: legacy.centerZ } : {})
+        })
+      };
+    // Saved routes must not retain a destination whose template model was removed.
+    const composition = world.landscapeComposition;
+    const destination = composition?.values.destinationId;
+    if (
+      composition &&
+      typeof destination === "string" &&
+      destination &&
+      !WORLD_TEMPLATE_ART[id].models.some((model) => model.id === destination)
+    )
+      composition.values.destinationId = preset.destinationId ?? "";
+    // Retire only resources owned by this template's former instance-table contract.
+    scope.authoredResources = scope.authoredResources?.filter(
+      (resource) =>
+        !["terrain", "vegetation", "water"].some((kind) => resource.resourceId.startsWith(`template:${id}:${kind}:`))
+    );
+    for (const key of Object.keys(scope.entities))
+      if (key.startsWith(`river:authored:template:${id}:`)) delete scope.entities[key];
+    const edits = "edits" in scope ? scope.edits : scope.passthrough.edits;
+    for (const key of Object.keys(edits)) if (key.startsWith(`river:authored:template:${id}:`)) delete edits[key];
+  }
   for (const scope of [document, ...Object.values(document.layoutOverrides ?? {})])
     for (const entity of Object.values(scope.entities)) {
       const rock = entity.components.rockFormation;
@@ -728,8 +562,6 @@ export function upgradePlanningDocument(input: PlanningDocument): PlanningDocume
   const landscape = document.passthrough.parameters.poiLayout?.landscape;
   if (landscape) {
     writePath(landscape, "vegetationAppearance", undefined);
-    for (const scope of Object.values(landscape.tierOverrides ?? {}))
-      writePath(scope, "vegetationAppearance", undefined);
   }
   for (const edits of [
     document.passthrough.edits,
@@ -839,19 +671,6 @@ export function upgradePlanningDocument(input: PlanningDocument): PlanningDocume
   for (const definition of PLANNING_COMPONENTS)
     if (definition.global || (definition.presentation && !definition.kinds) || definition.runtime)
       document.entities.world.components[definition.type] ??= { values: {} };
-  for (const entities of [document.entities, ...Object.values(document.layoutOverrides ?? {}).map((a) => a.entities)]) {
-    for (const tier of ["large", "medium", "small"]) {
-      const id = "policy:" + tier;
-      const entity = (entities[id] ??= {
-        id,
-        name: ({ large: "大型 POI", medium: "中型 POI", small: "小型 POI" } as Record<string, string>)[tier],
-        parent: "world",
-        components: {}
-      });
-      entity.name = ({ large: "大型 POI", medium: "中型 POI", small: "小型 POI" } as Record<string, string>)[tier];
-      entity.components.layout ??= { values: {} };
-    }
-  }
   for (const scope of [document, ...Object.values(document.layoutOverrides ?? {})])
     if (scope.waterAuthoringVersion !== undefined && scope.waterAuthoringVersion !== 1)
       throw new Error("Unsupported water authoring version");

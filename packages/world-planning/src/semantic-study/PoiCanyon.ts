@@ -30,9 +30,7 @@ export function placePoiCanyons(plan: IslandPlan, config: PoiLayoutConfig, edits
   const ground = createPlanningGroundSampler(plan),
     seed = plan.parameters.seed;
   let count = 0;
-  const sites = plan.poiDistribution!.sites.filter(
-    (s) => recipes.recipes.some((r) => r.kind === "canyon" && r.tiers.includes(s.tier)) && !s.memberIds.length
-  );
+  const sites = plan.poiDistribution!.sites.filter((s) => s.active !== false && !s.memberIds.length);
   const primary = sites.map((site) => ({ site, scale: 1, yawOffset: 0 }));
   const fitting = sites.flatMap((site) =>
     recipes.canyonFit.scales.flatMap((scale) =>
@@ -234,6 +232,6 @@ export function placePoiCanyons(plan: IslandPlan, config: PoiLayoutConfig, edits
       owners: [],
       requested: config.content.canyonLimit,
       resolved: count,
-      reason: "大型 POI 的可用空间不足，未强塞峡谷"
+      reason: "POI 的可用空间不足，未强塞峡谷"
     });
 }

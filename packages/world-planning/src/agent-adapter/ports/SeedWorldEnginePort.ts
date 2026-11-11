@@ -30,13 +30,7 @@ export type SeedWorldTerrainFeatureKind =
 export type SeedWorldStandingWaterFeatureKind = "pond" | "lake";
 export type SeedWorldFlowingWaterFeatureKind = "stream" | "river";
 export type SeedWorldWaterFeatureKind = SeedWorldStandingWaterFeatureKind | SeedWorldFlowingWaterFeatureKind;
-export type SeedWorldResourceType =
-  | "terrain-patch"
-  | "terrain-feature"
-  | "water-body"
-  | "river"
-  | "vegetation-brush"
-  | "object-removal";
+export type SeedWorldResourceType = "terrain-patch" | "terrain-feature" | "vegetation-brush" | "object-removal";
 /** Object kinds backed by the persistent object-removal schema. */
 export const SEED_WORLD_REMOVABLE_OBJECT_KINDS = Object.freeze([
   "tree",
@@ -515,70 +509,6 @@ export type SeedWorldTerrainFeatureMutationPatch =
   | Partial<Omit<SeedWorldHillFeatureInput, "kind" | "x" | "z">>
   | Partial<Omit<SeedWorldGenericTerrainFeatureInput, "kind" | "x" | "z">>;
 
-export interface SeedWorldWaterBodyInput {
-  readonly colorRgb?: SeedWorldWaterColorRgb;
-  readonly kind: SeedWorldStandingWaterFeatureKind;
-  readonly x: number;
-  readonly z: number;
-  readonly radiusMetres: number;
-  readonly depthMetres: number;
-  readonly shorelineIrregularity: number;
-  readonly seed: number;
-}
-
-/** Persistent water-level authority projected by every authored pond or lake. */
-export interface SeedWorldWaterLevelState {
-  /** Canonical full-basin surface in absolute world-space metres. */
-  readonly canonicalWaterLevelMetres: number;
-  /** Lowest supported absolute surface; at this level the basin is visually dry. */
-  readonly minimumWaterLevelMetres: number;
-  /** Highest supported absolute surface, equal to the canonical full-basin level. */
-  readonly maximumWaterLevelMetres: number;
-  /** Current effective absolute surface in world-space metres. */
-  readonly waterLevelMetres: number;
-}
-
-export type SeedWorldWaterBodyResourceProperties = SeedWorldWaterBodyInput & SeedWorldWaterLevelState;
-
-/** Public authored pond/lake mutation; water level is absolute world-space Y. */
-export type SeedWorldWaterBodyMutationPatch = Partial<
-  Pick<SeedWorldWaterBodyInput, "radiusMetres" | "depthMetres" | "shorelineIrregularity" | "seed">
-> &
-  Readonly<{ waterLevelMetres?: number; colorRgb?: SeedWorldWaterColorRgb }>;
-
-/** Resolved, serializable river intent. Heading uses 0° = north (-Z), 90° = east (+X). */
-export interface SeedWorldRiverInput {
-  readonly colorRgb?: SeedWorldWaterColorRgb;
-  readonly kind: SeedWorldFlowingWaterFeatureKind;
-  readonly x: number;
-  readonly z: number;
-  readonly headingDegrees: number;
-  readonly lengthMetres: number;
-  readonly widthMetres: number;
-  readonly depthMetres: number;
-  readonly flowSpeed: number;
-  readonly meander: number;
-}
-
-export type SeedWorldRiverDirection =
-  | Readonly<{ kind: "viewer-forward" }>
-  | Readonly<{ kind: "heading"; degrees: number }>;
-
-export interface SeedWorldWaterFeatureCreateInput {
-  readonly edit?: SeedWorldWaterEditOptions;
-  readonly kind: SeedWorldWaterFeatureKind;
-  readonly target: SeedWorldKernelSpatialTarget;
-  readonly direction?: SeedWorldRiverDirection;
-  readonly radiusMetres?: number;
-  readonly lengthMetres?: number;
-  readonly widthMetres?: number;
-  readonly depthMetres?: number;
-  readonly flowSpeed?: number;
-  readonly meander?: number;
-  readonly shorelineIrregularity?: number;
-  readonly seed?: number;
-}
-
 export type SeedWorldVegetationCreateInput = SeedWorldMutationControl &
   Readonly<{
     plant: SeedWorldPlantKind;
@@ -600,17 +530,6 @@ export type SeedWorldVegetationFeaturePatch = Readonly<{
 }>;
 
 export type SeedWorldWaterColorRgb = import("@galacean/engine-water/world/SeedWorldWaterColor").SeedWorldWaterColorRgb;
-export interface SeedWorldWaterColorUpdateResult {
-  readonly status: "applied" | "preview";
-  readonly assetRef: SeedWorldRef;
-  readonly colorRgb: SeedWorldWaterColorRgb;
-  readonly updatedCount: number;
-}
-
-export type SeedWorldWaterFeaturePatch = Readonly<{ colorRgb?: SeedWorldWaterColorRgb }> &
-  SeedWorldWaterBodyMutationPatch &
-  Partial<Omit<SeedWorldRiverInput, "kind" | "x" | "z">>;
-
 export interface SeedWorldVegetationBrushInput {
   readonly category: SeedWorldVegetationKind;
   readonly plantKind: SeedWorldPlantKind;
@@ -682,8 +601,6 @@ interface SeedWorldAuthoringResourceBase<
 export type SeedWorldAuthoringResource =
   | SeedWorldAuthoringResourceBase<"terrain-patch", Readonly<Record<string, unknown>>>
   | SeedWorldAuthoringResourceBase<"terrain-feature", Readonly<SeedWorldTerrainFeatureInput>>
-  | SeedWorldAuthoringResourceBase<"water-body", Readonly<SeedWorldWaterBodyResourceProperties>>
-  | SeedWorldAuthoringResourceBase<"river", Readonly<SeedWorldRiverInput>>
   | SeedWorldAuthoringResourceBase<"vegetation-brush", Readonly<SeedWorldVegetationBrushInput>>
   | SeedWorldAuthoringResourceBase<"object-removal", Readonly<Omit<SeedWorldObjectRemovalInput, "objectId">>>;
 
@@ -737,34 +654,6 @@ export type SeedWorldResourceMutation =
   | Readonly<{
       action: "delete";
       resourceType: "terrain-feature";
-      resourceId: string;
-      expectedContentHash: string;
-    }>
-  | Readonly<{ action: "create"; resourceType: "water-body"; value: SeedWorldWaterBodyInput }>
-  | Readonly<{
-      action: "update";
-      resourceType: "water-body";
-      resourceId: string;
-      expectedContentHash: string;
-      patch: SeedWorldWaterBodyMutationPatch;
-    }>
-  | Readonly<{
-      action: "delete";
-      resourceType: "water-body";
-      resourceId: string;
-      expectedContentHash: string;
-    }>
-  | Readonly<{ action: "create"; resourceType: "river"; value: SeedWorldRiverInput }>
-  | Readonly<{
-      action: "update";
-      resourceType: "river";
-      resourceId: string;
-      expectedContentHash: string;
-      patch: Partial<SeedWorldRiverInput>;
-    }>
-  | Readonly<{
-      action: "delete";
-      resourceType: "river";
       resourceId: string;
       expectedContentHash: string;
     }>
@@ -910,14 +799,7 @@ export interface SeedWorldEnginePort {
     input: Readonly<SeedWorldMountCommandInput>,
     signal: AbortSignal
   ): Promise<SeedWorldMountCommandResult> | SeedWorldMountCommandResult;
-  replaceWaterColors?(colors: SeedWorldEditorSettings["waterColors"], signal: AbortSignal): Promise<void>;
   readWaterColor?(ref: Readonly<SeedWorldRef>): SeedWorldWaterColorRgb | undefined;
-  updateWaterColor?(
-    ref: Readonly<SeedWorldRef>,
-    color: SeedWorldWaterColorRgb,
-    signal: AbortSignal,
-    edit?: SeedWorldWaterEditOptions
-  ): Promise<SeedWorldWaterColorRgb>;
   previewTreeVariationEdit?(
     recipeId: string,
     variationIndex: number,
@@ -939,8 +821,6 @@ export interface SeedWorldEnginePort {
   ): readonly SeedWorldObject[];
   readWorldState(): SeedWorldLiveState | null;
   readAuthoringSnapshot(): SeedWorldAuthoringSnapshot;
-  /** Optional live override used when DevTools changes an authored lake without persisting a transaction. */
-  readAuthoredWaterLevel?(resourceId: string): SeedWorldWaterLevelState | null;
   queryWorldPoints(input: Readonly<SeedWorldPointQueryInput>): unknown;
   queryWorldRegions(kind: SeedWorldRegionKind, limit: number): unknown;
   queryWorldObjects(input: Readonly<SeedWorldObjectQueryInput>): SeedWorldObjectQueryResult;
@@ -968,8 +848,6 @@ export interface SeedWorldEnginePort {
 }
 
 export type SeedWorldEditorCommand =
-  | { kind: "water-colors"; colors: SeedWorldEditorSettings["waterColors"] }
-  | { kind: "water-color"; ref: SeedWorldRef; color: SeedWorldWaterColorRgb }
   | { kind: "teleport"; input: { x: number; z: number; heightOffset: number } }
   | { kind: "camera"; camera: SeedWorldLiveState["camera"] }
   | { kind: "mount"; input: SeedWorldMountCommandInput };
@@ -999,7 +877,6 @@ export interface SeedWorldEngineEdit {
 /** Authoring targets, separate from instantaneous animation/physics state. */
 export interface SeedWorldEditorSettings {
   environment?: SeedWorldEnvironmentUpdateInput;
-  waterColors: { ref: SeedWorldRef; color: SeedWorldWaterColorRgb }[];
   camera?: SeedWorldLiveState["camera"];
   mount?: SeedWorldMountCommandInput;
 }

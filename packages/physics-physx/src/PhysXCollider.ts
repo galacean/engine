@@ -29,8 +29,8 @@ export abstract class PhysXCollider implements ICollider {
   /**
    * {@inheritDoc ICollider.addShape }
    */
-  addShape(shape: PhysXColliderShape): void {
-    if (!this._pxActor.attachShape(shape._pxShape)) {
+  addShape(shape: PhysXColliderShape, layer: number): void {
+    if (!this._pxActor.attachShapeWithLayer(shape._pxShape, layer)) {
       throw new Error("PhysXCollider: failed to attach shape to the native actor.");
     }
     this._shapes.push(shape);

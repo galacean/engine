@@ -1,3 +1,4 @@
+import { waterMaterialKey } from "./WaterMaterial";
 import { resolveWatercourse } from "../authoring/river/Watercourse";
 import { watercourseGeometry } from "../authoring/river/WatercourseGeometry";
 import { sampleWaterTerrainHeight, isWaterTerrainSnapshot } from "../authoring/terrain/WaterTerrainSnapshot";
@@ -9,6 +10,7 @@ import {
   WaterBodyResource,
   WaterLookResource,
   WaterQualityResource,
+  scopedLook,
   stringifyWaterData,
   parseWaterData
 } from "./WaterResources";
@@ -54,7 +56,7 @@ export const WATER_API_CONTRACT = Object.freeze({
 
 export const WATER_KNOWLEDGE = Object.freeze({
   version: 3,
-  entry: "shared/water/native/index.ts",
+  entry: "@galacean/engine-water/water/native/index",
   types: [
     "WaterCommands",
     "WaterCommand",
@@ -77,7 +79,7 @@ export const WATER_KNOWLEDGE = Object.freeze({
   integration:
     "空间布局提供已接受的地形和水体描述。宿主协调地形修改、世界时钟、降雨和存储；原生 prepareBatch 支持宿主准备后统一提交。Terrain 局部精细块替换背景床面，水系统只读。",
   authoring:
-    "resolveRiver 返回 applied:false 的规划结果；坐标单位米，锚点 ID 必须稳定。普通段和台阶平台有水面及水深，水帘用 sampleDrops 查询。Lake 用 createLakeFromTerrain 读取已有床面；LakeTerrainModifier 只描述挖低意图，水位与 referenceLevel 分离。",
+    "resolveRiver 返回 applied:false 的规划结果；坐标单位米，锚点 ID 必须稳定。普通段和台阶平台有水面及水深，水帘用 sampleDrops 查询。Lake 用 createLakeFromTerrain 读取已有床面；LakeTerrainModifier 只描述挖低意图，水位与 referenceLevel 分离。Source 作者水体由宿主公共事务编辑，运行 API 只查询这些对象。",
   riverDropPresentation:
     "definition.look.look.riverDrops 控制落水纹理、水色、速度、泡沫和飞溅；speed:0 冻结动画。只对含 RiverDrop 的河流启用，通过独立 Look 修订及 update/updateMany 发布，不改变地形、水量或查询；sampleDrops 不把装饰泡沫算作湿区。",
   deferredHydrology: ["直接调湖水位=一次补排水", "后台时间继续", "普通湖盆编辑保持水位", "撤销重做保持当前水量"],
@@ -147,15 +149,18 @@ export class WaterAPI {
           const body = command.input.id ? this.find(command.input.id) : undefined;
           value = {
             operations: Object.keys(WATER_API_CONTRACT),
-            editableFields: [
-              "asset",
-              "look",
-              "quality",
-              "settings.visible",
-              "settings.priority",
-              "settings.interaction",
-              "settings.representationState"
-            ],
+            authoringOwner: body?.authoring ? "project" : "runtime",
+            editableFields: body?.authoring
+              ? []
+              : [
+                  "asset",
+                  "look",
+                  "quality",
+                  "settings.visible",
+                  "settings.priority",
+                  "settings.interaction",
+                  "settings.representationState"
+                ],
             kind: body?.configuration?.asset.kind,
             limits: { activeOceansPerScene: 1 },
             unsupported: WATER_KNOWLEDGE.unsupported,
@@ -196,6 +201,7 @@ export class WaterAPI {
           const args = command.input;
           this.keys(args, ["id", "asset", "look", "quality", "settings"]);
           const body = this.find(args.id);
+          this.assertRuntimeOwned(body);
           const allocated: Array<WaterBodyResource | WaterLookResource | WaterQualityResource> = [];
           try {
             const config = this.configuration(args, args.settings, body.configuration, allocated);
@@ -216,6 +222,7 @@ export class WaterAPI {
             const updates = command.input.updates.map((args) => {
               this.keys(args, ["id", "asset", "look", "quality", "settings"]);
               const body = this.find(args.id);
+              this.assertRuntimeOwned(body);
               return { body, configuration: this.configuration(args, args.settings, body.configuration, allocated) };
             });
             prepared = await this.system.prepareBatch(updates, signal);
@@ -231,6 +238,7 @@ export class WaterAPI {
         }
         case "setEnabled": {
           const body = this.find(command.input.id);
+          this.assertRuntimeOwned(body);
           if (typeof command.input.enabled !== "boolean") throw new Error("INVALID_ARGUMENT: enabled must be boolean.");
           const previous = body.enabled;
           const cancel = () => body.cancel();
@@ -250,6 +258,7 @@ export class WaterAPI {
         }
         case "remove": {
           const body = this.find(command.input.id);
+          this.assertRuntimeOwned(body);
           body.destroy();
           await body.dispose();
           await this.system.detach(body);
@@ -300,6 +309,10 @@ export class WaterAPI {
     }
   }
 
+  private assertRuntimeOwned(body: WaterBodyComponent): void {
+    if (body.authoring) throw new Error("NOT_SUPPORTED: Source Water is edited through its host project transaction.");
+  }
+
   private find(id: string): WaterBodyComponent {
     if (typeof id !== "string" || !id) throw new Error("INVALID_ARGUMENT: Water ID must be a nonempty string.");
     const body = this.system.bodies.find((body) => body.waterId === id);
@@ -311,7 +324,11 @@ export class WaterAPI {
       config = body.configuration!;
     return {
       ...this.describeMetadata(body),
-      definition: { asset: config.asset.data, look: config.look.data, quality: config.quality.data }
+      definition: {
+        asset: config.asset.data,
+        look: scopedLook(config.look, config.material),
+        quality: config.quality.data
+      }
     };
   }
   private describeMetadata(body: WaterBodyComponent) {
@@ -323,7 +340,7 @@ export class WaterAPI {
       terrain: { authority: "host", modifiedByWater: false },
       resources: {
         asset: config.asset.contentHash,
-        look: config.look.contentHash,
+        look: config.look?.contentHash ?? waterMaterialKey(config.material),
         quality: config.quality.contentHash
       }
     };

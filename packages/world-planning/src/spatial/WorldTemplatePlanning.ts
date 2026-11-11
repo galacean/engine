@@ -4,6 +4,8 @@ import { buildWorldTemplateGeometry, templateNodeFootprint } from "./WorldTempla
 import { worldTemplate } from "./WorldTemplateCatalog";
 import { envelope } from "../semantic-study/IslandPlanAtoms";
 import { WORLD_TEMPLATE_ART } from "./WorldTemplateArtDirection";
+import { compositionOutline } from "./SpatialCompositionGeometry";
+import { spatialCompositionParameters } from "./SpatialCompositionParameters";
 
 export interface WorldTemplateSite {
   templateId: string;
@@ -11,6 +13,7 @@ export interface WorldTemplateSite {
   radius: number;
   outline: PlanPoint[];
   footprints: { id: string; outline: PlanPoint[] }[];
+  compositionOutline?: PlanPoint[];
 }
 
 /** Choose the authored subject's domain before any ordinary population is constructed.
@@ -21,7 +24,17 @@ export function planWorldTemplateSite(
 ): WorldTemplateSite | undefined {
   const template = worldTemplate(plan.parameters.worldTemplate?.id);
   if (!template) return;
-  const { radius, nodes } = buildWorldTemplateGeometry(template, plan.parameters.seed);
+  const { radius: modelRadius, nodes } = buildWorldTemplateGeometry(
+    template,
+    plan.parameters.seed,
+    plan.parameters.spatialComposition
+  );
+  const q = spatialCompositionParameters(plan.parameters.spatialComposition);
+  const radius = Math.max(
+    modelRadius,
+    q.basinRadiusM,
+    q.enabled ? Math.max(q.widthM / 2, q.frontDepthM, q.backDepthM) : 0
+  );
   // Distant floating props do not evict the landscape below them. Reserve each
   // grounded asset, rather than clearing the empty rectangle between assets.
   const local = nodes
@@ -37,7 +50,7 @@ export function planWorldTemplateSite(
   let best:
     | { center: PlanPoint; outline: PlanPoint[]; score: number; footprints: WorldTemplateSite["footprints"] }
     | undefined;
-  const authored = plan.parameters.worldTemplate;
+  const authored = q.enabled ? { centerX: q.centerX, centerZ: q.centerZ } : plan.parameters.worldTemplate;
   if ((authored?.centerX === undefined) !== (authored?.centerZ === undefined))
     throw new Error("风格主体锚点须同时提供 X 与 Z");
   const fixed = authored?.centerX !== undefined && authored.centerZ !== undefined;
@@ -64,6 +77,16 @@ export function planWorldTemplateSite(
         outline: item.outline.map((p) => ({ x: x + p.x, z: z + p.z }))
       }));
       if (
+        q.basinRadiusM &&
+        !land.containsPolygon(
+          Array.from({ length: 96 }, (_, i) => ({
+            x: x + Math.cos((i * Math.PI) / 48) * q.basinRadiusM,
+            z: z + Math.sin((i * Math.PI) / 48) * q.basinRadiusM
+          }))
+        )
+      )
+        continue;
+      if (
         !land.inside(point) ||
         footprints.some(
           (item) =>
@@ -81,6 +104,25 @@ export function planWorldTemplateSite(
         Math.hypot(x - center.x, z - center.z) / Math.hypot(plan.parameters.width, plan.parameters.depth);
       if (!best || score < best.score) best = { center: point, outline, footprints, score };
     }
-  if (!best) throw new Error("主陆地无法容纳风格主体；请扩大陆域后重试。");
-  return { templateId: template.id, center: best.center, radius, outline: best.outline, footprints: best.footprints };
+  if (!best) {
+    const clashes = fixed
+      ? local.flatMap((item) => {
+          const outline = item.outline.map((p) => ({ x: authored.centerX! + p.x, z: authored.centerZ! + p.z }));
+          return plan.waters
+            .filter((water) => createPlanningRingQuery(water.outline).overlapsPolygon(outline))
+            .map((water) => `${item.id} / ${water.id}`);
+        })
+      : [];
+    throw new Error(
+      "主陆地无法容纳风格主体；请扩大陆域后重试。" + (clashes.length ? ` 水域占地冲突：${clashes.join("，")}` : "")
+    );
+  }
+  return {
+    templateId: template.id,
+    center: best.center,
+    radius,
+    outline: best.outline,
+    footprints: best.footprints,
+    ...(q.enabled && q.replacePopulation ? { compositionOutline: compositionOutline(q) } : {})
+  };
 }

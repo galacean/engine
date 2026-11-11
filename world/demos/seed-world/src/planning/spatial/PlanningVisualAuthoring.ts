@@ -32,9 +32,9 @@ export const PLANNING_VISUAL_AUTHORING: readonly VisualAuthoringDescriptor[] = [
       ...directFields("bandM", "multiplier", "falloff"), enabled: "influenceEnabled"
     } } : {}) })),
   { component: "rockFormation", type: "PlanningRockFormation", fields: directFields(
-    "noiseSeed", "frequency", "octaves", "lacunarity", "persistence", "maskPower",
-    "slabSeed", "slabSize", "slabCoverage", "slabDepth", "slabVariation", "surfaceMode",
-    "cellSize", "cellInset", "cellDepth", "cellDetail", "cellCoverage", "textureScale", ...ROCK_COLOR_FIELDS.map(field => field.key)) },
+    "textureScale", "topScale", "bottomScale", "shoulderScale", "shoulderHeight", "topRoughness", "topSlope", "topDirection",
+    "wallCount", "wallOverlap", "wallProtrusion", "wallLength", "wallTilt", "wallStrength", "outlineIrregularity",
+    "variation", "targetTriangles", ...ROCK_COLOR_FIELDS.map(field => field.key)) },
   { component: "lighting", type: "PlanningLighting", fields: {
     ...directFields("profileUrl", "timeHours", "sunIntensity", "ambientIntensity", "iblIntensity", "direct", "environment",
       "shadows", "shadowStrength", "fog", "fogDensity", "customSkyTintStrength", "skyExposure", "sunSize", "atmosphereThickness",

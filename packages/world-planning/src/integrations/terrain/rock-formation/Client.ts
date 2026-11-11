@@ -1,28 +1,37 @@
 import { planningHeightmap } from "../../../semantic-study/PlanningHeightmap.ts";
 import type { IslandPlan } from "../../../semantic-study/IslandPlanModel.ts";
 import { rockFormationJobs } from "./Jobs.ts";
-import { rockGeometrySettings, type RockFormationSettings } from "./Settings.ts";
+import { rockGeometrySettings, rockSettingsForJob, type RockFormationSettings } from "./Settings.ts";
 import type { RockFormationJob, RockFormationMesh } from "@galacean/engine-terrain/rock-formation/types";
 import { rockGrassBuffers } from "@galacean/engine-terrain/rock-formation/GrassSurface";
+
+import { overlappingRockGroups } from "./OverlapGroups.ts";
 
 const CACHE_BYTES = 64 * 1024 * 1024;
 
 /** One bounded worker and immutable CPU meshes shared by hidden publication candidates. */
 export class RockFormationClient {
   private worker?: Worker;
+  private workerReady?: Promise<void>;
+  private readyResolve?: () => void;
   private id = 0;
   private disposed = false;
   private readonly pending = new Map<
     number,
-    { resolve(result: RockFormationMesh): void; reject(error: unknown): void }
+    { resolve(result: RockFormationMesh[]): void; reject(error: unknown): void }
   >();
-  private readonly cache = new Map<string, { result: RockFormationMesh; bytes: number }>();
+  private readonly cache = new Map<string, { results: RockFormationMesh[]; bytes: number }>();
   private readonly requestedKeys = new Map<string, number>();
   private bytes = 0;
-  private readonly sourceIds = new WeakMap<object, number>();
-  private sourceSequence = 0;
   private readonly resultKeys = new WeakMap<RockFormationMesh, string>();
-  preparationMetrics = { totalMs: 0, generated: 0, cached: 0, generationMs: 0 };
+  /** Cumulative worker CPU work; cache hits do not add generation time. */
+  readonly generationMetrics = { bodies: 0, triangles: 0, generationMs: 0, buildMs: 0, simplifyMs: 0, maxJobMs: 0 };
+  preparationMetrics = { totalMs: 0, generated: 0, cached: 0, generationMs: 0, unionMs: 0 };
+  unionMetrics = { enabled: false, groups: 0, groupedBodies: 0, inputTriangles: 0, outputTriangles: 0 };
+  /** Last planned world publication; streaming ground stones must not overwrite this snapshot. */
+  publicationMetrics = { ...this.unionMetrics, ...this.preparationMetrics };
+  /** Opt-in while intersection shape quality is still under review. */
+  constructor(private readonly unionOverlaps = false) {}
 
   async prepare(
     plan: IslandPlan,
@@ -32,102 +41,69 @@ export class RockFormationClient {
   ): Promise<readonly RockFormationMesh[]> {
     signal.throwIfAborted();
     if (this.disposed) throw new Error("Rock formation client disposed");
-    const terrain = planningHeightmap(plan);
-    const terrainId = this.sourceIdentity(terrain.heights);
-    // Canonical terrain snapshots are immutable. Key their residency plus the
-    // crop inputs instead of stringifying every sample in all ground crops.
-    return this.runJobs(
-      rockFormationJobs(plan, terrain),
-      settings,
-      signal,
-      (job) =>
-        JSON.stringify([
-          "plan",
-          job.id,
-          job.seed,
-          job.origin,
-          job.guides,
-          job.domain,
-          job.surfaceGrass !== false,
-          terrainId,
-          terrain.resolution,
-          terrain.spacingX,
-          terrain.spacingZ,
-          rockGeometrySettings(settings)
-        ]),
-      resident
-    );
+    return this.runJobs(rockFormationJobs(plan, planningHeightmap(plan)), settings, signal, resident, true);
   }
 
-  /** Generate local rock sources through the same worker; ground arrays must be immutable snapshots. */
+  /** Local ground stones use the same generator and cache as published rocks. */
   async prepareJobs(
     jobs: readonly RockFormationJob[],
     settings: RockFormationSettings,
     signal: AbortSignal
   ): Promise<readonly RockFormationMesh[]> {
-    return this.runJobs(jobs, settings, signal, (job) => {
-      const ground = job.ground;
-      return JSON.stringify([
-        "job",
-        job.id,
-        job.seed,
-        job.origin,
-        job.guides,
-        job.domain,
-        job.surfaceGrass !== false,
-        this.sourceIdentity(ground.heights),
-        ground.minX,
-        ground.minZ,
-        ground.spacingX,
-        ground.spacingZ,
-        ground.columns,
-        ground.rows,
-        rockGeometrySettings(settings)
-      ]);
-    });
-  }
-
-  private sourceIdentity(source: object | undefined): number {
-    if (!source) return 0;
-    let id = this.sourceIds.get(source);
-    if (id === undefined) {
-      id = ++this.sourceSequence;
-      this.sourceIds.set(source, id);
-    }
-    return id;
+    return this.runJobs(jobs, settings, signal);
   }
 
   private async runJobs(
     jobs: readonly RockFormationJob[],
     settings: RockFormationSettings,
     signal: AbortSignal,
-    cacheKey: (job: RockFormationJob) => string,
-    resident: readonly RockFormationMesh[] = []
+    resident: readonly RockFormationMesh[] = [],
+    publication = false
   ): Promise<readonly RockFormationMesh[]> {
     signal.throwIfAborted();
     if (this.disposed) throw new Error("Rock formation client disposed");
     const started = performance.now();
     let generated = 0,
       cached = 0,
-      generationMs = 0;
+      generationMs = 0,
+      unionMs = 0;
     const results: RockFormationMesh[] = [];
     // Live scene ownership already retains these meshes. Reuse them even when the
     // optional history cache is full, without extending that cache's byte budget.
-    const live = new Map(resident.map((result) => [this.resultKeys.get(result), result]));
-    const keys = jobs.map(cacheKey),
+    const live = new Map<string | undefined, RockFormationMesh[]>();
+    for (const result of resident) {
+      const key = this.resultKeys.get(result);
+      if (!live.has(key)) live.set(key, []);
+      live.get(key)!.push(result);
+    }
+    const jobSettings = jobs.map((job) => rockSettingsForJob(settings, job.id));
+    const individualKeys = jobs.map((job, index) =>
+      JSON.stringify([
+        job.id,
+        job.seed,
+        job.origin,
+        job.guides,
+        job.surfaceGrass !== false,
+        rockGeometrySettings(jobSettings[index])
+      ])
+    );
+    const groups = this.unionOverlaps ? overlappingRockGroups(jobs) : jobs.map((_, i) => [i]);
+    const keys = groups.map((group) => JSON.stringify(group.map((i) => individualKeys[i]))),
       requested = new Set(keys);
     for (const key of requested) this.requestedKeys.set(key, (this.requestedKeys.get(key) ?? 0) + 1);
     try {
-      for (const [index, job] of jobs.entries()) {
+      for (const [index, group] of groups.entries()) {
+        const job = jobs[group[0]];
         signal.throwIfAborted();
         if (this.disposed) throw new Error("Rock formation client disposed");
         const key = keys[index],
           entry = this.cache.get(key);
-        let result: RockFormationMesh;
-        const retained = live.get(key) ?? entry?.result;
+        let batch: RockFormationMesh[];
+        const residentBatch = live.get(key);
+        const retained = (residentBatch?.length === group.length ? residentBatch : undefined) ?? entry?.results;
         if (retained) {
-          result = retained;
-          cached++;
+          batch = retained;
+          cached += batch.length;
           if (entry) {
             this.cache.delete(key);
             this.cache.set(key, entry);
@@ -135,7 +111,7 @@ export class RockFormationClient {
         } else {
           const id = ++this.id,
             worker = this.getWorker();
-          result = await new Promise<RockFormationMesh>((resolve, reject) => {
+          batch = await new Promise<RockFormationMesh[]>((resolve, reject) => {
             const abort = () => {
               this.pending.delete(id);
               reject(signal.reason);
@@ -155,22 +131,57 @@ export class RockFormationClient {
               }
             });
             signal.addEventListener("abort", abort, { once: true });
-            try {
-              worker.postMessage({ id, job, settings });
-            } catch (error) {
-              this.pending.get(id)?.reject(error);
-              this.pending.delete(id);
-            }
+            const send = () => {
+              if (!this.pending.has(id) || this.worker !== worker) return;
+              try {
+                worker.postMessage({
+                  id,
+                  job,
+                  settings: jobSettings[group[0]],
+                  ...(group.length > 1
+                    ? { members: group.map((i) => ({ job: jobs[i], settings: jobSettings[i] })) }
+                    : {})
+                });
+              } catch (error) {
+                this.pending.get(id)?.reject(error);
+                this.pending.delete(id);
+              }
+            };
+            // Meshopt initializes through top-level await in the shared worker.
+            // Its handler must be installed before the first request is sent.
+            if (this.workerReady) void this.workerReady.then(send);
+            else send();
           });
           signal.throwIfAborted();
-          generated++;
-          generationMs += result.stats.generationMs;
-          this.retain(key, result);
+          generated += batch.length;
+          this.generationMetrics.maxJobMs = Math.max(
+            this.generationMetrics.maxJobMs,
+            batch.reduce((sum, result) => sum + result.stats.generationMs, 0)
+          );
+          for (const result of batch) {
+            generationMs += result.stats.generationMs;
+            unionMs += result.stats.unionMs ?? 0;
+            const metrics = this.generationMetrics;
+            metrics.bodies += result.stats.bodies;
+            metrics.triangles += result.mesh.indices.length / 3;
+            metrics.generationMs += result.stats.generationMs;
+            metrics.buildMs += result.stats.buildMs ?? 0;
+            metrics.simplifyMs += result.stats.simplifyMs ?? 0;
+          }
+          this.retain(key, batch);
         }
-        this.resultKeys.set(result, key);
-        results.push(result);
+        for (const result of batch) this.resultKeys.set(result, key);
+        results.push(...batch);
       }
-      this.preparationMetrics = { totalMs: performance.now() - started, generated, cached, generationMs };
+      this.preparationMetrics = { totalMs: performance.now() - started, generated, cached, generationMs, unionMs };
+      this.unionMetrics = {
+        enabled: this.unionOverlaps,
+        groups: groups.filter((g) => g.length > 1).length,
+        groupedBodies: groups.filter((g) => g.length > 1).reduce((sum, g) => sum + g.length, 0),
+        inputTriangles: results.reduce((sum, r) => sum + (r.stats.unionInputTriangles ?? r.mesh.indices.length / 3), 0),
+        outputTriangles: results.reduce((sum, r) => sum + r.mesh.indices.length / 3, 0)
+      };
+      if (publication) this.publicationMetrics = { ...this.unionMetrics, ...this.preparationMetrics };
       return results;
     } finally {
       for (const key of requested) {
@@ -180,8 +191,8 @@ export class RockFormationClient {
       }
     }
   }
-  private retain(key: string, result: RockFormationMesh): void {
-    const bytes = cacheEntryBytes(key, result);
+  private retain(key: string, results: RockFormationMesh[]): void {
+    const bytes = results.reduce((sum, result) => sum + cacheEntryBytes(key, result), 0);
     if (bytes > CACHE_BYTES) return;
     const previous = this.cache.get(key),
       needed = bytes - (previous?.bytes ?? 0);
@@ -204,30 +215,43 @@ export class RockFormationClient {
     }
     if (previous) this.bytes -= previous.bytes;
     this.cache.delete(key);
-    this.cache.set(key, { result, bytes });
+    this.cache.set(key, { results, bytes });
     this.bytes += bytes;
   }
   private getWorker(): Worker {
     if (this.worker) return this.worker;
-    const worker = (this.worker = new Worker(new URL("./RockFormation.worker.ts", import.meta.url), {
+    const worker = (this.worker = new Worker(new URL("./RockFormation.worker", import.meta.url), {
       type: "module"
     }));
+    this.workerReady = new Promise((resolve) => {
+      this.readyResolve = resolve;
+    });
     worker.onmessage = ({ data }) => {
+      if (this.worker !== worker) return;
+      if (data.ready) {
+        this.readyResolve?.();
+        this.readyResolve = undefined;
+        this.workerReady = undefined;
+        return;
+      }
       const pending = this.pending.get(data.id);
       if (!pending) return;
       this.pending.delete(data.id);
       if (data.error) pending.reject(new Error(data.error));
-      else pending.resolve(data.result);
+      else pending.resolve(data.results);
     };
     worker.onerror = (event) => {
       event.preventDefault();
-      this.resetWorker(new Error(event.message));
+      if (this.worker === worker) this.resetWorker(new Error(event.message));
     };
     return worker;
   }
   private resetWorker(error: unknown): void {
     this.worker?.terminate();
     this.worker = undefined;
+    this.readyResolve?.();
+    this.readyResolve = undefined;
+    this.workerReady = undefined;
     for (const pending of this.pending.values()) pending.reject(error);
     this.pending.clear();
   }
@@ -240,19 +264,10 @@ export class RockFormationClient {
 }
 /** Budget binary payload, 64-bit owner slots and UTF-16 metadata; not a VM-specific heap measurement. */
 function cacheEntryBytes(key: string, result: RockFormationMesh): number {
-  const paintedBytes = result.painted
-    ? Object.values(result.painted).reduce(
-        (sum, value) => sum + (value instanceof Float32Array ? value.byteLength : 0),
-        0
-      )
-    : 0;
   return (
     result.mesh.positions.byteLength +
     result.mesh.indices.byteLength +
     (result.mesh.normals?.byteLength ?? 0) +
-    (result.mesh.restPositions?.byteLength ?? 0) +
-    paintedBytes +
-    (result.triangleSurfaces?.byteLength ?? 0) +
     rockGrassBuffers(result.grass).reduce((sum, buffer) => sum + buffer.byteLength, 0) +
     result.owners.length * Float64Array.BYTES_PER_ELEMENT +
     2 * (key.length + JSON.stringify([result.id, result.origin, result.owners, result.stats]).length)

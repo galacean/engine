@@ -368,7 +368,7 @@ function resolveAcceptedRockSource(
   placement: SeedWorldRockPlacement
 ): AtomicAssemblySource {
   const family = placement.category === "stone" ? sourceLibrary.stoneFamily : sourceLibrary.featureRockFamily;
-  const source = family.variants.find((candidate) => candidate.id.includes(`/${placement.prototypeFamily}/`));
+  const source = family?.variants.find((candidate) => candidate.id.includes(`/${placement.prototypeFamily}/`));
   if (!source) throw new Error(`Seed World accepted rock source is missing "${placement.prototypeFamily}"`);
   return source;
 }

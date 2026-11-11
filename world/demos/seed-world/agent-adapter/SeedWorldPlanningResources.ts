@@ -2,17 +2,12 @@ import { resolveSeedWorldTerrainTransitionDurationSeconds } from "@galacean/engi
 import type { PlanningSession } from "@galacean/engine-world-planning/spatial/PlanningSession";
 import { planningResourceSnapshot, parsePlanningResources } from "@galacean/engine-world-planning/spatial/PlanningResources";
 import { planningGroundSurface } from "@galacean/engine-world-planning/semantic-study/PlanningHeightmap";
-import { captureAuthoredLakeBasin, planningLakeSpillLevel, resolvePlanningLakeBoundary, type AuthoredLakeBasin } from "@galacean/engine-world-planning/semantic-study/PlanningLakeBasin";
-import { planningLakeAssets } from "@galacean/engine-world-planning/semantic-study/PlanningLakeSource";
-import { resolveWaterEditOptions, type WaterEditOptions } from "@galacean/engine-world-planning/spatial/hydrology/PlanningWaterEdits";
+import { type WaterEditOptions } from "@galacean/engine-world-planning/spatial/hydrology/PlanningWaterEdits";
 import { compileAuthoredVegetation } from "@galacean/engine-world-planning/spatial/ecology/AuthoredVegetation";
 import { planningSpatialSnapshotReader } from "../src/planning/spatial/runtime/PlanningSpatialQueries.ts";
 import { planningSolidObjects } from "../src/planning/spatial/runtime/PlanningObjectCatalog.ts";
 import { treeVariationKey } from "@galacean/engine-vegetation/world/SeedWorldTreeShapeControls";
-import { defaultPlanningWaterColor } from "@galacean/engine-world-planning/spatial/runtime/PlanningWaterColors";
-import { validateSeedWorldWaterColor } from "@galacean/engine-water/world/SeedWorldWaterColor";
-import type { SeedWorldEnginePort, SeedWorldResourceMutation, SeedWorldObject, SeedWorldAuthoringResource,
-  SeedWorldWaterBodyResourceProperties } from "@galacean/engine-world-planning/agent-adapter/ports/SeedWorldEnginePort";
+import type { SeedWorldEnginePort, SeedWorldResourceMutation, SeedWorldObject, SeedWorldAuthoringResource } from "@galacean/engine-world-planning/agent-adapter/ports/SeedWorldEnginePort";
 import type { IslandPlan } from "@galacean/engine-world-planning/semantic-study/IslandPlanModel";
 import type { SeedWorldAssetCandidate } from "@galacean/engine-world-planning/agent-adapter/SeedWorldAssetManager";
 
@@ -40,18 +35,15 @@ export function createPlanningResourcePort(base: SeedWorldEnginePort, session: P
   const snapshot = () => planningResourceSnapshot(session.document);
   const mutate = async (mutations: readonly Readonly<SeedWorldResourceMutation>[], signal: AbortSignal, edit?: WaterEditOptions) => {
     signal.throwIfAborted();
+    if (mutations.some(mutation => !["terrain-patch", "terrain-feature", "vegetation-brush", "object-removal", "tree-variation"].includes(mutation.resourceType)))
+      throw new Error("NOT_SUPPORTED: Water authoring uses Source components through water.author.");
     const durations = mutations.flatMap(mutation => mutation.resourceType === "terrain-feature" && mutation.action !== "delete"
       ? [resolveSeedWorldTerrainTransitionDurationSeconds(mutation.transitionDurationSeconds)] : []);
     const duration = durations.length ? Math.max(...durations) : undefined;
     const document = session.export();
-    // Only a proven-compatible loaded world may opt into the new author semantics on a real edit.
-    if (session.result?.waterOverlay?.mode === "overlay" && mutations.some(mutation =>
-      mutation.resourceType === "water-body" || mutation.resourceType === "river")) document.waterAuthoringVersion = 1;
     let resources = document.authoredResources ??= [];
     const results: { action: string; resourceType: string; resourceId: string; resource?: SeedWorldAuthoringResource; realizedPlantCount?: number }[] = [];
-    const physicalIds = new Set<string>();
     for (const mutation of mutations) {
-      let basin: AuthoredLakeBasin | undefined;
       if (mutation.resourceType === "tree-variation") {
         const { recipeId, variationIndex, controls } = mutation.value;
         const resourceId = treeVariationKey(recipeId, variationIndex);
@@ -80,14 +72,6 @@ export function createPlanningResourcePort(base: SeedWorldEnginePort, session: P
       const resourceId = mutation.action === "create" ? `agent-${crypto.randomUUID()}` : mutation.resourceId;
       if (mutation.action === "create") {
         let properties: unknown = structuredClone(mutation.value);
-        if (mutation.resourceType === "water-body") {
-          // The pool surface is the basin spill point so the shoreline necessarily closes.
-          resolveWaterEditOptions(edit, true);
-          basin = captureAuthoredLakeBasin({ ...session.result!.plan, authoredResources: resources }, resourceId, mutation.value);
-          const level = planningLakeSpillLevel(session.result!.plan, resourceId, mutation.value, basin);
-          properties = { ...mutation.value, canonicalWaterLevelMetres: level, waterLevelMetres: level,
-            minimumWaterLevelMetres: level - mutation.value.depthMetres, maximumWaterLevelMetres: level };
-        }
         resources = parsePlanningResources([...resources, { resourceType: mutation.resourceType, resourceId, properties }]);
       }
       else {
@@ -96,38 +80,11 @@ export function createPlanningResourcePort(base: SeedWorldEnginePort, session: P
         else resources = parsePlanningResources(resources.map((resource, i) => {
           if (i !== index) return resource;
           const properties = { ...resource.properties, ...structuredClone(mutation.patch) };
-          if (resource.resourceType === "water-body") {
-            const waterProperties = properties as SeedWorldWaterBodyResourceProperties;
-            // Geometry edits move the spill point; re-derive the basin datum and keep fill inside it.
-            const geometryChanged = resource.properties.radiusMetres !== waterProperties.radiusMetres
-              || resource.properties.shorelineIrregularity !== waterProperties.shorelineIrregularity
-              || resource.properties.seed !== waterProperties.seed;
-            resolveWaterEditOptions(edit, geometryChanged || resource.properties.depthMetres !== waterProperties.depthMetres);
-            if (geometryChanged) {
-              basin = captureAuthoredLakeBasin({ ...session.result!.plan, authoredResources: resources }, resourceId, waterProperties);
-              const level = planningLakeSpillLevel(session.result!.plan, resourceId, waterProperties, basin);
-              Object.assign(waterProperties, { canonicalWaterLevelMetres: level, maximumWaterLevelMetres: level,
-                minimumWaterLevelMetres: level - waterProperties.depthMetres,
-                waterLevelMetres: Math.min(level, Math.max(level - waterProperties.depthMetres, waterProperties.waterLevelMetres ?? level)) });
-            }
-            else Object.assign(waterProperties, {
-              minimumWaterLevelMetres: resource.properties.canonicalWaterLevelMetres - waterProperties.depthMetres
-            });
-          }
           return { ...resource, properties };
         }));
       }
       document.authoredResources = resources;
       const resource = mutation.action === "delete" ? existing! : planningResourceSnapshot(document).resources.find(resource => resource.resourceId === resourceId)!;
-      if (mutation.action !== "delete" && resource.resourceType === "water-body") {
-        const physical = (value: typeof resource.properties) => ({ ...value, colorRgb: undefined });
-        if (existing?.resourceType !== "water-body" || JSON.stringify(physical(existing.properties)) !== JSON.stringify(physical(resource.properties))) {
-          physicalIds.add(resourceId);
-          const fillOnly = existing?.resourceType === "water-body" && JSON.stringify({ ...existing.properties, colorRgb: undefined, waterLevelMetres: undefined })
-            === JSON.stringify({ ...resource.properties, colorRgb: undefined, waterLevelMetres: undefined });
-          if (!fillOnly) assertPlanningLakeBasinCloses({ ...session.result!.plan, authoredResources: resources }, resourceId, resource.properties, basin);
-        }
-      }
       const world = base.readWorldState()!.world;
       for (const resource of resources) {
         if (resource.resourceType === "tree-variation" || resource.resourceType === "object-removal" ||
@@ -143,12 +100,6 @@ export function createPlanningResourcePort(base: SeedWorldEnginePort, session: P
     // edit and a plant edit in one batch must use the same resulting terrain and water mask.
     let realized = results;
     const receipt = await session.load(document, signal, duration, edit, (candidateDocument, candidateResult) => {
-      // Validate on the final solved candidate, including all resources in the batch.
-      // Simple fill was already validated against the accepted bed; colour does no geometry work.
-      if (!candidateResult.waterUpdate && physicalIds.size) {
-        try { planningLakeAssets(candidateResult.plan, physicalIds); }
-        catch (error) { throw new Error(`Water basin does not close on the terrain here. ${String(error)}`); }
-      }
       if (!results.some(result => result.resource?.resourceType === "vegetation-brush")) return;
       const readPopulation = planningSpatialSnapshotReader({ result: candidateResult });
       const atomic = compileAuthoredVegetation((candidateDocument.authoredResources ?? []).filter(resource =>
@@ -248,26 +199,6 @@ export function createPlanningResourcePort(base: SeedWorldEnginePort, session: P
       return { geometry: "point", position: [x, y, z], anchor: { kind: "position" }, relation: target.relation,
         worldRevision: session.document.revision };
     },
-    readWaterColor: ref => {
-      if (ref.source !== "authored") return base.readWaterColor?.(ref);
-      const resource = snapshot().resources.find(resource => resource.resourceId === ref.id);
-      if (ref.domain !== "water" || !resource || (resource.resourceType !== "river" && resource.resourceType !== "water-body")
-        || resource.properties.kind !== ref.kind) return undefined;
-      return resource.properties.colorRgb ?? defaultPlanningWaterColor(resource.resourceType);
-    },
-    updateWaterColor: async (ref, color, signal, edit) => {
-      if (ref.source !== "authored") {
-        if (!base.updateWaterColor) throw new Error("Water color editing is unavailable");
-        return base.updateWaterColor(ref, color, signal, edit);
-      }
-      validateSeedWorldWaterColor(color);
-      const resource = snapshot().resources.find(resource => resource.resourceId === ref.id);
-      if (ref.domain !== "water" || !resource || (resource.resourceType !== "river" && resource.resourceType !== "water-body")
-        || resource.properties.kind !== ref.kind) throw new Error("Authored water color target no longer exists");
-      await mutate([{ action: "update", resourceType: resource.resourceType, resourceId: resource.resourceId,
-        expectedContentHash: resource.contentHash, patch: { colorRgb: [...color] } }], signal, edit);
-      return [...color];
-    },
     previewTreeVariationEdit: base.projectPlanningTrees ? (recipeId, variationIndex, controls) => {
       const current = objects(), next = objects({ recipeId, effectIndex: variationIndex + 1, controls });
       const members = [...current, ...next].filter(object => object.properties.treeRecipeId === recipeId
@@ -333,12 +264,3 @@ function beforeRemoval(document: ReturnType<PlanningSession["export"]>, objectId
 }
 
 /** Reject a basin that cannot close before the transaction is accepted, using the publish-time criterion. */
-function assertPlanningLakeBasinCloses(plan: IslandPlan, resourceId: string, value: SeedWorldWaterBodyResourceProperties, basin?: AuthoredLakeBasin): void {
-  if (value.waterLevelMetres <= value.minimumWaterLevelMetres) return;
-  try {
-    resolvePlanningLakeBoundary(plan, resourceId, value, basin);
-  } catch (error) {
-    throw new Error("Water basin does not close on the terrain here; move the water body or reduce its radius."
-      + (error instanceof Error ? ` ${error.message}` : ""));
-  }
-}

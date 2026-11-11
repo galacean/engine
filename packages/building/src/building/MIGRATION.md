@@ -27,7 +27,7 @@
 产品代码已改用新架构：
 
 - **作者数据：** `BuildingGroupComponent.definition` 是核心组定义（身份、种子、共享值，如房屋轮廓和调色板）；`BuildingPartComponent.definition` 是核心构件定义，`connections` 是这个构件发起的作者连接（依附连接的被依附方、对等连接的第一方）。草案是纯 JSON。
-- **存档：** 作者数据的格式和旧格式不兼容。Seed World 的建筑存档版本已改成 8（`SEED_WORLD_BUILDING_SAVE_VERSION`），存储键是 `v8-groups`。新代码不打开 `v7-groups` 和更早的存档。
+- **存档：** 作者数据的格式和旧格式不兼容。Seed World 的建筑存档版本已改成 9（`SEED_WORLD_BUILDING_SAVE_VERSION`），存储键是 `v9-groups`。`experimental/engine-next` 上的版本 8 存的是旧格式，所以新格式不能沿用 8。打开项目时会删除同一项目其他版本的存档。
 - **生成器：** `application/European.ts` 提供 `buildHouses`、`buildTower`、`buildWall`、`buildFence`、`buildSteps`，参数沿用原有名字。生成器不需要资源包：预制件的尺寸、洞口和沿墙成员在设计时由资源层查询（`environment.asset`）。
 - **运行时：** `BuildingCpu.ts` 用 `designBuildingCore` 设计，用 `render/CoreBuilding.ts` 准备远景和编译常驻细节；Worker 和主线程运行同一套函数（主线程只用于自定义地形函数和测试）。旧的主线程管线（`BuildingPipeline`）不再使用。
 - **组的放置：** 组节点相对编译框架的水平刚体变换由 `placeBuildingGroup` 套到房屋轮廓和围墙、栅栏的中心线上；构件节点不能单独移动。挂件节点单独移动的功能已取消。

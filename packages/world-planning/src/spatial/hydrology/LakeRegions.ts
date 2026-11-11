@@ -1,3 +1,4 @@
+import { planningCandidateCount, type PlanningCountRange } from "../PlanningCountRange";
 import { sampleLakeBoundary } from "@galacean/engine-water/water/compiler/index";
 import { generateRiverRegions, RIVER_DEFAULTS } from "./RiverRegions";
 import type { IslandPlan, PlanPoint } from "../../semantic-study/IslandPlanModel";
@@ -5,10 +6,9 @@ import type { PlanningCheck } from "../../semantic-study/WorldPlanningContract";
 import { createPlanningGroundSampler, createPlanningRingQuery } from "../../semantic-study/WorldPlanningTerrain";
 import { settlementRandom } from "../../semantic-study/SettlementGeometry";
 
-export interface LakeParameters {
+export interface LakeParameters extends PlanningCountRange {
   referenceLevel?: number;
   shoreline?: { id: string; ring: string; x: number; z: number }[];
-  count: number;
   radiusM: number;
   depthM: number;
   bankWidthM: number;
@@ -28,7 +28,8 @@ export interface PlanningLakeShape {
   readonly carved: boolean;
 }
 export const LAKE_DEFAULTS: Readonly<LakeParameters> = Object.freeze({
-  count: 1,
+  countMin: 1,
+  countMax: 1,
   radiusM: 25,
   depthM: 4,
   bankWidthM: 4,
@@ -53,7 +54,7 @@ export function generateLakeRegions(
   config: LakeParameters,
   local: Record<string, Partial<LakeParameters>>
 ): PlanningCheck[] {
-  if (!Number.isSafeInteger(config.count) || config.count < 0) throw new Error("湖泊数量必须为非负整数");
+  const candidateCount = planningCandidateCount(plan.parameters.seed, "lakes:count", config, 1);
   for (const key of ["radiusM", "depthM", "bankWidthM"] as const)
     if (!Number.isFinite(config[key]) || config[key] <= 0) throw new Error(`湖泊 ${key} 必须为正数`);
   plan.waters = plan.waters.filter((w) => w.kind !== "lake");
@@ -61,11 +62,11 @@ export function generateLakeRegions(
   const manualIds = Object.keys(local)
     .filter((id) => id.startsWith("lake:authored:"))
     .sort();
-  if (!config.count && !manualIds.length) return [];
+  if (!candidateCount && !manualIds.length) return [];
   // Site identity depends on base Terrain and the seeded initial corridors, never current river edits.
   const sitePlan: IslandPlan = { ...plan, waters: [], planning: { ...plan.planning!, profiles: [] } };
   const ground = createPlanningGroundSampler(sitePlan, { natural: true });
-  if (config.count) generateRiverRegions(sitePlan, RIVER_DEFAULTS, {});
+  if (candidateCount) generateRiverRegions(sitePlan, RIVER_DEFAULTS, {});
   const initialWaters = sitePlan.waters.map((w) => createPlanningRingQuery(w.outline));
   const lands = [plan.land, ...plan.islands].map((outline) => createPlanningRingQuery(outline));
   const waters = plan.waters.map((w) => createPlanningRingQuery(w.outline));
@@ -73,7 +74,7 @@ export function generateLakeRegions(
   const margin = config.radiusM * 1.15 + config.bankWidthM;
   const step = Math.max(16, config.radiusM);
   const phase = settlementRandom(plan.parameters.seed, "lakes:shape") * Math.PI * 2;
-  for (let z = margin; config.count && z < plan.parameters.depth - margin; z += step) {
+  for (let z = margin; candidateCount && z < plan.parameters.depth - margin; z += step) {
     for (let x = margin; x < plan.parameters.width - margin; x += step) {
       const center = { x, z };
       if (!lands.some((land) => land.inside(center) && land.distance(center, margin) >= margin)) continue;
@@ -102,7 +103,7 @@ export function generateLakeRegions(
   candidates.sort((a, b) => a.score - b.score || a.center.x - b.center.x || a.center.z - b.center.z);
   const sites: typeof candidates = [];
   for (const candidate of candidates) {
-    if (sites.length >= config.count) break;
+    if (sites.length >= candidateCount) break;
     if (sites.some((s) => Math.hypot(s.center.x - candidate.center.x, s.center.z - candidate.center.z) < margin * 2))
       continue;
     sites.push(candidate);
@@ -232,7 +233,7 @@ export function generateLakeRegions(
       }
     );
   }
-  return naturalCount < config.count
+  return naturalCount < candidateCount
     ? [
         {
           id: "lake:count",
@@ -240,9 +241,9 @@ export function generateLakeRegions(
           rule: "lake-generation",
           required: false,
           status: "unknown",
-          message: `请求 ${config.count} 个湖泊，找到 ${naturalCount} 个候选位置；保留请求数量`,
+          message: `请求 ${candidateCount} 个湖泊，找到 ${naturalCount} 个候选位置；保留请求数量`,
           measured: naturalCount,
-          limit: config.count
+          limit: candidateCount
         }
       ]
     : [];
