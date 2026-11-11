@@ -1586,7 +1586,11 @@ export async function mountSeedWorldDemo(
     const inspection = nativeEditor!.inspection;
     tools!.application.runtimeInspection = inspection;
     const snapshotPicks = new RuntimeMeshPickSource(camera, inspection, visitCurrentPickBatches);
+    // Settles when the background warm-up of the capture path has ended, with or without an error.
+    let snapshotWarmup: Promise<void> | undefined;
     viewSnapshots = new SeedWorldViewSnapshots(async (signal, budget) => {
+      // The warm-up and a view capture use the same single frame-capture request.
+      await snapshotWarmup;
       await pickPreparation!.flush(signal);
       return worldPicker!.capture(visitor => snapshotPicks.visit(visitor), batch => inspection.target(batch.renderer), signal, budget, () => pickPreparation!.ready);
     }, () => {
@@ -1652,16 +1656,25 @@ export async function mountSeedWorldDemo(
     loading.hidden = true;
     canvas.dataset.status = "ready";
     document.body.dataset.worldReady = "true";
-    // The world is already visible and navigable. Photo preparation starts now and only
-    // gates the screenshot command: its entry is mounted when preparation has finished.
+    // The world is already visible and navigable. Two independent preparations start now:
+    // 1. The capture path of the world camera. The assistant's snapshot and the user's photo both use it,
+    //    so it runs first and a view capture waits for it.
+    // 2. The instant-camera presentation (models, photo workspace). Only the user's photo needs it,
+    //    so it only gates the screenshot entry, which is mounted when it has finished.
     const photoPreparationStarted = performance.now();
     canvas.dataset.photoPreparation = "loading";
     const preparingLasso = lassoPanel, preparingPicker = worldPicker, preparingPicks = pickPreparation, preparingViews = viewSnapshots;
     const preparingTools = tools;
-    void (async () => {
-      await timed("lassoPanel.prepare", () => preparingLasso.prepare());
+    const capturePathWarmup = (async () => {
       await timed("pickPreparation.flush #1", () => preparingPicks.flush(editorLifetime.signal));
       await timed("worldPicker.prepareSnapshot", () => preparingPicker.prepareSnapshot(visitor => snapshotPicks.visit(visitor), editorLifetime.signal, preparingViews.budget));
+      canvas.dataset.snapshotWarmupMs = String(performance.now() - photoPreparationStarted);
+    })();
+    // A failed warm-up does not block captures: a capture runs the same path and reports its own error.
+    snapshotWarmup = capturePathWarmup.then(() => {}, () => {});
+    void (async () => {
+      await capturePathWarmup;
+      await timed("lassoPanel.prepare", () => preparingLasso.prepare());
       await timed("pickPreparation.flush #2", () => preparingPicks.flush(editorLifetime.signal));
       if (disposed) return;
       if (options.showAssistant !== false)
