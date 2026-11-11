@@ -1849,8 +1849,8 @@ html&gt;body{padding:0}&lt;/style&gt;
       &lt;select class=&quot;form-select&quot; id=&quot;rock-study-case&quot;&gt;
         &lt;option value=&quot;cliff&quot;&gt;1a · Curved cliff&lt;/option&gt;
         &lt;option value=&quot;path&quot;&gt;1b · Uphill path bend&lt;/option&gt;
-        &lt;option value=&quot;island&quot;&gt;2 · Offshore vista&lt;/option&gt;
-        &lt;option value=&quot;peaks&quot; selected&gt;3 · Mountain peaks&lt;/option&gt;
+        &lt;option value=&quot;island&quot; selected&gt;2 · Offshore vista&lt;/option&gt;
+        &lt;option value=&quot;peaks&quot;&gt;3 · Mountain peaks&lt;/option&gt;
         &lt;option value=&quot;platform&quot;&gt;4 · Walkable shelves&lt;/option&gt;
         &lt;option value=&quot;river&quot;&gt;5 · Riverside&lt;/option&gt;
       &lt;/select&gt;
@@ -1862,20 +1862,21 @@ html&gt;body{padding:0}&lt;/style&gt;
         &lt;option value=&quot;plan&quot;&gt;Plan&lt;/option&gt;
         &lt;option value=&quot;low&quot;&gt;Low angle&lt;/option&gt;
         &lt;option value=&quot;close&quot;&gt;Rock close-up&lt;/option&gt;
+        &lt;option value=&quot;compare&quot; selected&gt;Surface comparison&lt;/option&gt;
       &lt;/select&gt;
     &lt;/label&gt;
-    &lt;label class=&quot;form-check&quot;&gt;&lt;input class=&quot;form-check-input&quot; id=&quot;rock-study-guides&quot; type=&quot;checkbox&quot; checked&gt;&lt;span class=&quot;form-check-label&quot;&gt;Show layout&lt;/span&gt;&lt;/label&gt;
+    &lt;label class=&quot;form-check&quot;&gt;&lt;input class=&quot;form-check-input&quot; id=&quot;rock-study-guides&quot; type=&quot;checkbox&quot;&gt;&lt;span class=&quot;form-check-label&quot;&gt;Show layout&lt;/span&gt;&lt;/label&gt;
   &lt;/div&gt;
   &lt;div class=&quot;viz-controls&quot;&gt;
-    &lt;label class=&quot;form-label&quot;&gt;Rock finish &lt;select class=&quot;form-select&quot; id=&quot;rock-study-finish&quot;&gt;&lt;option value=&quot;stone&quot; selected&gt;Fractured stone&lt;/option&gt;&lt;option value=&quot;clay&quot;&gt;Fractured clay&lt;/option&gt;&lt;option value=&quot;original&quot;&gt;Original clay&lt;/option&gt;&lt;/select&gt;&lt;/label&gt;
+    &lt;label class=&quot;form-label&quot;&gt;Rock finish &lt;select class=&quot;form-select&quot; id=&quot;rock-study-finish&quot;&gt;&lt;option value=&quot;stone&quot;&gt;Fractured stone&lt;/option&gt;&lt;option value=&quot;clay&quot; selected&gt;Fractured clay&lt;/option&gt;&lt;option value=&quot;original&quot;&gt;Original clay&lt;/option&gt;&lt;/select&gt;&lt;/label&gt;
   &lt;/div&gt;
   &lt;div class=&quot;viz-row&quot;&gt;
     &lt;div id=&quot;rock-study-seed-controls&quot;&gt;&lt;div class=&quot;viz-row&quot;&gt;
-      &lt;label class=&quot;form-label&quot;&gt;Generation seed &lt;input class=&quot;form-control&quot; id=&quot;rock-study-seed&quot; type=&quot;number&quot; min=&quot;0&quot; max=&quot;4294967295&quot; step=&quot;1&quot; value=&quot;18&quot;&gt;&lt;/label&gt;
+      &lt;label class=&quot;form-label&quot;&gt;Generation seed &lt;input class=&quot;form-control&quot; id=&quot;rock-study-seed&quot; type=&quot;number&quot; min=&quot;0&quot; max=&quot;4294967295&quot; step=&quot;1&quot; value=&quot;425&quot;&gt;&lt;/label&gt;
       &lt;button class=&quot;btn&quot; type=&quot;button&quot; id=&quot;rock-study-next-seed&quot;&gt;Next seed&lt;/button&gt;
     &lt;/div&gt;&lt;/div&gt;
-    &lt;label class=&quot;form-label&quot; for=&quot;rock-study-height&quot;&gt;Height &lt;output id=&quot;rock-study-height-value&quot; for=&quot;rock-study-height&quot; class=&quot;tabular-nums&quot;&gt;130%&lt;/output&gt;
-      &lt;input class=&quot;form-range&quot; id=&quot;rock-study-height&quot; aria-label=&quot;Height&quot; type=&quot;range&quot; min=&quot;25&quot; max=&quot;200&quot; step=&quot;5&quot; value=&quot;130&quot;&gt;
+    &lt;label class=&quot;form-label&quot; for=&quot;rock-study-height&quot;&gt;Height &lt;output id=&quot;rock-study-height-value&quot; for=&quot;rock-study-height&quot; class=&quot;tabular-nums&quot;&gt;145%&lt;/output&gt;
+      &lt;input class=&quot;form-range&quot; id=&quot;rock-study-height&quot; aria-label=&quot;Height&quot; type=&quot;range&quot; min=&quot;25&quot; max=&quot;200&quot; step=&quot;5&quot; value=&quot;145&quot;&gt;
     &lt;/label&gt;
   &lt;/div&gt;
   &lt;div id=&quot;rock-study-authoring&quot;&gt;
@@ -1889,7 +1890,7 @@ html&gt;body{padding:0}&lt;/style&gt;
         &lt;label class=&quot;form-label&quot;&gt;Base frequency &lt;input class=&quot;form-control&quot; id=&quot;rock-study-frequency&quot; aria-label=&quot;Base frequency&quot; type=&quot;number&quot; min=&quot;1&quot; max=&quot;4&quot; step=&quot;.25&quot; value=&quot;4&quot;&gt;&lt;/label&gt;
         &lt;label class=&quot;form-label&quot;&gt;Octaves &lt;input class=&quot;form-control&quot; id=&quot;rock-study-octaves&quot; aria-label=&quot;Octaves&quot; type=&quot;number&quot; min=&quot;1&quot; max=&quot;8&quot; step=&quot;1&quot; value=&quot;5&quot;&gt;&lt;/label&gt;
         &lt;label class=&quot;form-label&quot;&gt;Lacunarity &lt;input class=&quot;form-control&quot; id=&quot;rock-study-lacunarity&quot; aria-label=&quot;Lacunarity&quot; type=&quot;number&quot; min=&quot;1&quot; max=&quot;3&quot; step=&quot;.25&quot; value=&quot;2&quot;&gt;&lt;/label&gt;
-        &lt;label class=&quot;form-label&quot;&gt;Persistence &lt;input class=&quot;form-control&quot; id=&quot;rock-study-persistence&quot; aria-label=&quot;Persistence&quot; type=&quot;number&quot; min=&quot;0&quot; max=&quot;1&quot; step=&quot;.05&quot; value=&quot;.5&quot;&gt;&lt;/label&gt;
+        &lt;label class=&quot;form-label&quot;&gt;Persistence &lt;input class=&quot;form-control&quot; id=&quot;rock-study-persistence&quot; aria-label=&quot;Persistence&quot; type=&quot;number&quot; min=&quot;0&quot; max=&quot;1&quot; step=&quot;.05&quot; value=&quot;.85&quot;&gt;&lt;/label&gt;
       &lt;/div&gt;
     &lt;/details&gt;
   &lt;/div&gt;
@@ -1899,6 +1900,7 @@ html&gt;body{padding:0}&lt;/style&gt;
   &lt;/div&gt;&lt;/div&gt;
   &lt;div class=&quot;rock-stage&quot; id=&quot;rock-study-stage&quot; role=&quot;img&quot; aria-label=&quot;Interactive 3D rock arrangements. Select an arrangement and view above; drag to orbit.&quot;&gt;
     &lt;div class=&quot;rock-label-layer&quot; id=&quot;rock-study-labels&quot;&gt;&lt;/div&gt;
+    &lt;div class=&quot;rock-comparison-labels text-small&quot; id=&quot;rock-study-comparison&quot; hidden&gt;&lt;span&gt;Previous surface&lt;/span&gt;&lt;span&gt;New slab cuts&lt;/span&gt;&lt;/div&gt;
     &lt;div class=&quot;rock-scale text-small&quot; id=&quot;rock-study-scale&quot;&gt;&lt;span&gt;&lt;/span&gt;&lt;div&gt;10 m&lt;/div&gt;&lt;/div&gt;
   &lt;/div&gt;
   &lt;div class=&quot;viz-row text-small&quot; aria-live=&quot;polite&quot;&gt;&lt;span id=&quot;rock-study-detail&quot;&gt;&lt;/span&gt;&lt;span class=&quot;text-muted&quot;&gt;Surface study · upstream base meshes&lt;/span&gt;&lt;/div&gt;
@@ -1911,6 +1913,12 @@ html&gt;body{padding:0}&lt;/style&gt;
   #rock-arrangement-study canvas {display:block;width:100%;touch-action:none;cursor:grab}
   #rock-arrangement-study canvas:active {cursor:grabbing}
   #rock-arrangement-study .rock-label-layer {position:absolute;inset:0;pointer-events:none}
+  #rock-arrangement-study .rock-comparison-labels {position:absolute;inset:0;pointer-events:none;color:var(--foreground)}
+  #rock-arrangement-study .rock-comparison-labels span {position:absolute;top:8px;transform:translateX(-50%);white-space:nowrap}
+  #rock-arrangement-study .rock-comparison-labels span:first-child {left:25%}
+  #rock-arrangement-study .rock-comparison-labels span:last-child {left:75%}
+  #rock-arrangement-study .rock-comparison-labels.stacked span {left:50%}
+  #rock-arrangement-study .rock-comparison-labels.stacked span:last-child {top:calc(50% + 8px)}
   #rock-arrangement-study .rock-label {position:absolute;white-space:nowrap;color:var(--foreground);text-shadow:0 1px 2px var(--background),0 -1px 2px var(--background),1px 0 2px var(--background),-1px 0 2px var(--background)}
   #rock-arrangement-study .rock-scale {position:absolute;left:12px;bottom:8px;color:var(--foreground);pointer-events:none}
   #rock-arrangement-study .rock-scale span {display:block;height:5px;border:1px solid var(--foreground);border-top:0}
@@ -1924,7 +1932,7 @@ html&gt;body{padding:0}&lt;/style&gt;
 (()=&gt;{
  // Study generator: seed -&gt; ridge plan -&gt; atomic-rock assembly -&gt; measured crest.
 // This is a proposal derived from Seed&#x27;s hierarchy/curve concepts, not shipped Seed code.
-const RIDGE_VERSION = &#x27;ridge-vertical-7&#x27;;
+const RIDGE_VERSION = &#x27;ridge-slab-cuts-8&#x27;;
 const DEFAULT_RIDGE_SEED = 382;
 const TAU = Math.PI * 2;
 const clamp = (x, a, b) =&gt; Math.max(a, Math.min(b, x));
@@ -2564,8 +2572,9 @@ function perlinCurvePoint(curve,t){
 }
 
 
-const ROCK_SURFACE_VERSION=&#x27;vertical-fractures-2&#x27;;
-const surfaceCache=new WeakMap();
+const ROCK_SURFACE_VERSION=&#x27;slab-cuts-3&#x27;;
+const PREVIOUS_SURFACE_VERSION=&#x27;vertical-fractures-2&#x27;;
+const surfaceCache=new WeakMap(),previousSurfaceCache=new WeakMap();
 const surfaceBlend=(a,b,x)=&gt;{const t=clamp((x-a)/(b-a),0,1);return t*t*(3-2*t);};
 const surfaceHash=(x,y,z,seed)=&gt;{
  let h=Math.imul(x|0,374761393)^Math.imul(y|0,668265263)^Math.imul(z|0,2147483647)^(seed|0);
@@ -2612,8 +2621,8 @@ function surfaceNormals(vertices,indices){
  return {normals:sums.map(surfaceUnit),weights,faces};
 }
 
-function fractureRockGeometry(g){
- if(surfaceCache.has(g))return surfaceCache.get(g);
+function previousFractureRockGeometry(g){
+ if(previousSurfaceCache.has(g))return previousSurfaceCache.get(g);
  const {vertices,indices}=surfaceSubdivide(g,2),original=surfaceNormals(vertices,indices),seed=g.parameters.seed+92071;
  const size=[g.parameters.obbWidth,g.parameters.obbHeight,g.parameters.obbDepth],minimum=g.bounds[0][1],height=g.bounds[1][1]-minimum;
  const scale=Math.min(size[0],size[2],size[1]*1.5),regions=vertices.map(p=&gt;surfaceRegion(p,size,seed)),patches=new Map();
@@ -2659,7 +2668,57 @@ function fractureRockGeometry(g){
  if(remaining){factors.fill(0);update();throw new Error(&#x27;Rock surface displacement could not preserve source triangle orientation&#x27;);}
  const final=surfaceNormals(result,indices),positions=result.flat(),bounds=[0,1,2].map(d=&gt;[Math.min(...result.map(p=&gt;p[d])),Math.max(...result.map(p=&gt;p[d]))]);
  let anchor=[0,-Infinity,0];for(let i=0;i&lt;g.positions.length;i+=3)if(g.positions[i+1]&gt;=anchor[1])anchor=g.positions.slice(i,i+3);
- const output={...g,positions,indices,normals:final.normals.flat(),rockDetail:details.flat(),bounds:[bounds.map(b=&gt;b[0]),bounds.map(b=&gt;b[1])],stats:{triangles:indices.length/3,method:ROCK_SURFACE_VERSION},surface:{version:ROCK_SURFACE_VERSION,sourceTriangles:g.indices.length/3,anchor,patches:patches.size,limitedVertices:limited,vertices:result.length,maximumDisplacementM:Math.max(...result.map((p,i)=&gt;Math.hypot(...surfaceSub(p,vertices[i])))),protectedVertices:protectedVertices.filter(Boolean).length}};
+ const output={...g,positions,indices,normals:final.normals.flat(),rockDetail:details.flat(),bounds:[bounds.map(b=&gt;b[0]),bounds.map(b=&gt;b[1])],stats:{triangles:indices.length/3,method:PREVIOUS_SURFACE_VERSION},surface:{version:PREVIOUS_SURFACE_VERSION,sourceTriangles:g.indices.length/3,anchor,patches:patches.size,limitedVertices:limited,vertices:result.length,maximumDisplacementM:Math.max(...result.map((p,i)=&gt;Math.hypot(...surfaceSub(p,vertices[i])))),protectedVertices:protectedVertices.filter(Boolean).length}};
+ previousSurfaceCache.set(g,output);return output;
+}
+
+function fractureRockGeometry(g){
+ if(surfaceCache.has(g))return surfaceCache.get(g);
+ const {vertices,indices}=surfaceSubdivide(g,2),original=surfaceNormals(vertices,indices);
+ const seed=g.parameters.seed+54139,lo=g.bounds[0],hi=g.bounds[1],height=hi[1]-lo[1],center=[(lo[0]+hi[0])*.5,(lo[2]+hi[2])*.5],radius=[(hi[0]-lo[0])*.5,(hi[2]-lo[2])*.5];
+ const normalized=vertices.map(p=&gt;[(p[0]-center[0])/radius[0],(p[1]-lo[1])/height,(p[2]-center[1])/radius[1]]),phase=surfaceHash(0,0,0,seed)*Math.PI*2;
+ // Six unequal clipping planes remove the swollen source faces at the scale
+ // of the whole rock. Their slopes follow the source&#x27;s broad taper.
+ const planes=Array.from({length:6},(_,i)=&gt;{
+  const angle=phase+i*Math.PI/3+(surfaceHash(i,0,0,seed)-.5)*.30,n=[Math.cos(angle),Math.sin(angle)];
+  const support=(a,b)=&gt;Math.max(.15,...normalized.filter(p=&gt;p[1]&gt;=a&amp;&amp;p[1]&lt;=b).map(p=&gt;p[0]*n[0]+p[2]*n[1]));
+  const bottom=support(.12,.40),top=support(.64,.86),slope=(top-bottom)/.49,cut=.73+.07*surfaceHash(i,1,0,seed);
+  return {n,offset:bottom-slope*.26,slope,cut,value:surfaceHash(i,2,0,seed)};
+ });
+ // Deep, metre-scale V cuts have independent lengths and unequal spacing.
+ // A continuous central core and the original foot keep every face connected.
+ const fractures=Array.from({length:5},(_,i)=&gt;({angle:phase+.26+i*Math.PI*2/5+(surfaceHash(i,3,0,seed)-.5)*.32,width:.14+.075*surfaceHash(i,4,0,seed),depth:.24+.09*surfaceHash(i,5,0,seed),low:.10+.05*surfaceHash(i,6,0,seed),high:.88+.08*surfaceHash(i,7,0,seed)}));
+ const details=[],protectedVertices=[],deltas=vertices.map((p,i)=&gt;{
+  const [x,y,z]=normalized[i],rho=Math.hypot(x,z),mask=surfaceBlend(.065,.19,y)*(1-surfaceBlend(.94,1,y));
+  const protect=mask===0||(g.parameters.topRoughness===0&amp;&amp;y&gt;.65);protectedVertices.push(protect);
+  let radial=1,faceValue=.5;
+  for(const plane of planes){
+   const distance=x*plane.n[0]+z*plane.n[1],limit=Math.max(.10,plane.offset+plane.slope*y)*plane.cut;
+   if(distance&gt;limit&amp;&amp;limit/distance&lt;radial){radial=limit/distance;faceValue=plane.value;}
+  }
+  let incision=0,joint=0;
+  const angle=Math.atan2(z,x),lean=.045*(y-.5);
+  for(const fracture of fractures){
+   const delta=Math.atan2(Math.sin(angle-fracture.angle-lean),Math.cos(angle-fracture.angle-lean)),v=clamp(1-Math.abs(delta)/fracture.width,0,1);
+   const lengthMask=surfaceBlend(fracture.low,fracture.low+.12,y)*(1-surfaceBlend(fracture.high-.07,fracture.high,y));
+   incision=Math.max(incision,fracture.depth*v*lengthMask);joint=Math.max(joint,v*lengthMask);
+  }
+  const wanted=1-mask*(1-radial*(1-incision));
+  details.push(protect?[0,.5,0]:[joint*mask,.46+faceValue*.10,0]);
+  if(protect||rho&lt;1e-8)return [0,0,0];
+  return [clamp(center[0]+(p[0]-center[0])*wanted,lo[0],hi[0])-p[0],0,clamp(center[1]+(p[2]-center[1])*wanted,lo[2],hi[2])-p[2]];
+ });
+ const factors=new Float64Array(vertices.length).fill(1),result=vertices.map(p=&gt;[...p]);let remaining=0;
+ for(let pass=0;pass&lt;64;pass++){
+  for(let i=0;i&lt;vertices.length;i++)for(let d=0;d&lt;3;d++)result[i][d]=vertices[i][d]+deltas[i][d]*factors[i];
+  const unsafe=new Set();
+  for(let i=0;i&lt;indices.length;i+=3){const [a,b,c]=indices.slice(i,i+3),before=original.faces[i/3],after=surfaceCross(surfaceSub(result[b],result[a]),surfaceSub(result[c],result[a]));if(surfaceDot(before,after)&lt;surfaceDot(before,before)*.08)for(const id of [a,b,c])unsafe.add(id);}
+  remaining=unsafe.size;if(!remaining)break;for(const id of unsafe)factors[id]*=.52;
+ }
+ if(remaining)throw new Error(&#x27;Slab cuts could not preserve triangle orientation&#x27;);
+ const final=surfaceNormals(result,indices),bounds=[0,1,2].map(d=&gt;[Math.min(...result.map(p=&gt;p[d])),Math.max(...result.map(p=&gt;p[d]))]),displacements=result.map((p,i)=&gt;Math.hypot(...surfaceSub(p,vertices[i])));
+ let anchor=[0,-Infinity,0];for(let i=0;i&lt;g.positions.length;i+=3)if(g.positions[i+1]&gt;=anchor[1])anchor=g.positions.slice(i,i+3);
+ const output={...g,positions:result.flat(),indices,normals:final.normals.flat(),rockDetail:details.flat(),bounds:[bounds.map(b=&gt;b[0]),bounds.map(b=&gt;b[1])],stats:{triangles:indices.length/3,method:ROCK_SURFACE_VERSION},surface:{version:ROCK_SURFACE_VERSION,sourceTriangles:g.indices.length/3,anchor,planes:planes.length,fractures:fractures.length,limitedVertices:[...factors].filter(f=&gt;f&lt;1).length,vertices:result.length,maximumDisplacementM:Math.max(...displacements),meanDisplacementM:displacements.reduce((s,v)=&gt;s+v,0)/displacements.length,protectedVertices:protectedVertices.filter(Boolean).length}};
  surfaceCache.set(g,output);return output;
 }
 
@@ -2671,7 +2730,7 @@ function creasedRockAttributes(g){
  const p=g.positions,indices=g.indices,vertices=Array.from({length:p.length/3},(_,i)=&gt;p.slice(i*3,i*3+3));
  const {faces}=surfaceNormals(vertices,indices),unit=faces.map(surfaceUnit),adjacent=vertices.map(()=&gt;[]);
  for(let i=0;i&lt;indices.length;i++)adjacent[indices[i]].push(Math.floor(i/3));
- const positions=[],normals=[],rockDetail=[],threshold=Math.cos(34*Math.PI/180);
+ const positions=[],normals=[],rockDetail=[],threshold=Math.cos((g.surface.version===PREVIOUS_SURFACE_VERSION?34:30)*Math.PI/180);
  for(let i=0;i&lt;indices.length;i++){
   const id=indices[i],face=Math.floor(i/3),sum=[0,0,0];
   for(const j of adjacent[id])if(surfaceDot(unit[face],unit[j])&gt;=threshold)for(let d=0;d&lt;3;d++)sum[d]+=faces[j][d];
@@ -2865,6 +2924,7 @@ function generateRidgeScene(source,geometries,seed=DEFAULT_RIDGE_SEED,options={}
 
  const root=document.getElementById(&#x27;rock-arrangement-study&#x27;);
  const stage=root.querySelector(&#x27;#rock-study-stage&#x27;), labels=root.querySelector(&#x27;#rock-study-labels&#x27;);
+ const comparisonLabels=root.querySelector(&#x27;#rock-study-comparison&#x27;);
  const caseSelect=root.querySelector(&#x27;#rock-study-case&#x27;),viewSelect=root.querySelector(&#x27;#rock-study-view&#x27;),guideInput=root.querySelector(&#x27;#rock-study-guides&#x27;);
  const detail=root.querySelector(&#x27;#rock-study-detail&#x27;),description=root.querySelector(&#x27;#rock-study-description&#x27;),scaleBar=root.querySelector(&#x27;#rock-study-scale span&#x27;);
  const seedInput=root.querySelector(&#x27;#rock-study-seed&#x27;),nextSeed=root.querySelector(&#x27;#rock-study-next-seed&#x27;),seedControls=root.querySelector(&#x27;#rock-study-seed-controls&#x27;);
@@ -2896,22 +2956,24 @@ function generateRidgeScene(source,geometries,seed=DEFAULT_RIDGE_SEED,options={}
  sun.shadow.bias=-.00025;sun.shadow.normalBias=.08;scene.add(sun);
  let activeGeometries=data.geometries,geometryCache={},geometryMode=&#x27;&#x27;;
  const libraryCache=new Map();
+ function rockBuffer(g){
+  const attributes=g.surface?creasedRockAttributes(g):g,geo=new T.BufferGeometry();
+  geo.setAttribute(&#x27;position&#x27;,new T.Float32BufferAttribute(attributes.positions,3));geo.setAttribute(&#x27;normal&#x27;,new T.Float32BufferAttribute(attributes.normals,3));
+  if(g.surface)geo.setAttribute(&#x27;rockDetail&#x27;,new T.Float32BufferAttribute(attributes.rockDetail,3));else geo.setIndex(g.indices);
+  geo.computeBoundingSphere();return geo;
+ }
  function useRockGeometry(){
-  const mode=finishInput.value===&#x27;original&#x27;?&#x27;original&#x27;:&#x27;fractured&#x27;;if(geometryMode===mode)return;
+  const mode=finishInput.value===&#x27;original&#x27;&amp;&amp;viewSelect.value!==&#x27;compare&#x27;?&#x27;original&#x27;:&#x27;fractured&#x27;;if(geometryMode===mode)return;
   if(!libraryCache.has(mode)){
    const library=mode===&#x27;original&#x27;?data.geometries:fracturedRockLibrary(data.geometries),buffers={};
-   for(const [key,g]of Object.entries(library)){
-    const attributes=g.surface?creasedRockAttributes(g):g,geo=new T.BufferGeometry();
-    geo.setAttribute(&#x27;position&#x27;,new T.Float32BufferAttribute(attributes.positions,3));geo.setAttribute(&#x27;normal&#x27;,new T.Float32BufferAttribute(attributes.normals,3));
-    if(g.surface)geo.setAttribute(&#x27;rockDetail&#x27;,new T.Float32BufferAttribute(attributes.rockDetail,3));else geo.setIndex(g.indices);
-    geo.computeBoundingSphere();buffers[key]=geo;
-   }
+   for(const [key,g]of Object.entries(library))buffers[key]=rockBuffer(g);
    libraryCache.set(mode,{library,buffers});
   }
   const cached=libraryCache.get(mode);activeGeometries=cached.library;geometryCache=cached.buffers;geometryMode=mode;
  }
  let current,world=new T.Group(),guideGroup=new T.Group(),target=new T.Vector3(),yaw=0,pitch=.45,span=100,width=700,height=450;
- scene.add(world,guideGroup);
+ const comparisonGroup=new T.Group(),previousBuffers=new Map();let comparisonMeshes=[],comparisonCorners=[],comparisonTarget=new T.Vector3();
+ scene.add(world,guideGroup,comparisonGroup);
  let materials=[],terrainGeometry,waterGeometry,guideGeometries=[],lastColors=&#x27;&#x27;,generatedKey=&#x27;&#x27;,generatedScene;
  function cssColor(name){const probe=document.createElement(&#x27;span&#x27;);probe.style.color=&#x27;var(&#x27;+name+&#x27;)&#x27;;root.appendChild(probe);const value=getComputedStyle(probe).color;probe.remove();return new T.Color(value);}
  function palette(){
@@ -2926,7 +2988,7 @@ function generateRidgeScene(source,geometries,seed=DEFAULT_RIDGE_SEED,options={}
  }
  function mat(color,extra={}){const m=new T.MeshStandardMaterial({color,roughness:1,metalness:0,...extra});materials.push(m);return m;}
  function clearScene(){
-  world.clear();guideGroup.clear();materials.forEach(m=&gt;m.dispose());materials=[];
+  world.clear();guideGroup.clear();comparisonGroup.clear();comparisonMeshes=[];materials.forEach(m=&gt;m.dispose());materials=[];
   terrainGeometry?.dispose();waterGeometry?.dispose();guideGeometries.forEach(g=&gt;g.dispose());guideGeometries=[];labels.replaceChildren();
  }
  function setCamera(){
@@ -2963,9 +3025,21 @@ function generateRidgeScene(source,geometries,seed=DEFAULT_RIDGE_SEED,options={}
   heightValue.value=heightInput.value+&#x27;%&#x27;;
   heightInput.setAttribute(&#x27;aria-valuetext&#x27;,heightInput.value+&#x27; percent of original height&#x27;);
   clearScene();const p=palette();
-  ambient.intensity=finishInput.value===&#x27;stone&#x27;?1.6:2.4;
+  const compare=viewSelect.value===&#x27;compare&#x27;;
+  ambient.intensity=!compare&amp;&amp;finishInput.value===&#x27;stone&#x27;?1.6:2.4;
+  comparisonLabels.hidden=!compare;finishInput.disabled=compare;surfaceInput.disabled=compare;guideInput.disabled=compare;
   renderer.setClearColor(p.bg,0);
   const stone=mat(p.stone),terrain=mat(p.ground,{side:T.DoubleSide});
+  if(compare){
+   const r=current.rocks.find(r=&gt;r.id===current.ridge?.primary.rock)||current.rocks[0],source=data.geometries[r.mesh];
+   if(!previousBuffers.has(r.mesh))previousBuffers.set(r.mesh,rockBuffer(previousFractureRockGeometry(source)));
+   const clay=mat(p.stone);
+   comparisonMeshes=[previousBuffers.get(r.mesh),geometryCache[r.mesh]].map(geometry=&gt;{
+    const mesh=new T.Mesh(geometry,clay);mesh.position.set(r.x,r.y,r.z);mesh.scale.set(r.scale*(r.longitudinalScale??1),r.scale*(r.verticalScale??1),r.scale*(r.lateralScale??1));mesh.rotation.y=-r.yaw;mesh.castShadow=true;mesh.receiveShadow=true;comparisonGroup.add(mesh);mesh.updateMatrixWorld();return mesh;
+   });
+   comparisonCorners=[];for(let x=0;x&lt;2;x++)for(let y=0;y&lt;2;y++)for(let z=0;z&lt;2;z++)comparisonCorners.push(new T.Vector3(source.bounds[x][0],source.bounds[y][1],source.bounds[z][2]).applyMatrix4(comparisonMeshes[0].matrixWorld));
+   comparisonTarget.copy(comparisonCorners.reduce((sum,p)=&gt;sum.add(p),new T.Vector3()).multiplyScalar(1/8));
+  }
   if(finishInput.value===&#x27;stone&#x27;)applyStoneSurface(stone,T,p.stone.clone().lerp(p.route,.22));
   if(!perlin||surfaceInput.value===&#x27;rocks&#x27;)for(const r of current.rocks){const mesh=new T.Mesh(geometryCache[r.mesh],stone);mesh.position.set(r.x,r.y,r.z);mesh.scale.set(r.scale*(r.longitudinalScale??1),r.scale*(r.verticalScale??1),r.scale*(r.lateralScale??1));mesh.rotation.y=-r.yaw;mesh.castShadow=true;mesh.receiveShadow=true;world.add(mesh);}
   if(perlin&amp;&amp;surfaceInput.value!==&#x27;rocks&#x27;){
@@ -3020,11 +3094,17 @@ function generateRidgeScene(source,geometries,seed=DEFAULT_RIDGE_SEED,options={}
   description.textContent=current.notes+(procedural?&#x27; The blue branching ridge network guides broad overlapping rock masses. Whole masses are refitted before adding structure; local differences within &#x27;+current.ridge.policy.curveToleranceM.toFixed(1)+&#x27; meters are tolerated. Small rocks have a separate budget of two and stay at the lower edges. All accepted pieces overlap the connected body in sampled mesh volume. Orange shows the actual surface along each target curve; its measured RMS deviation is &#x27;+current.ridge.fit.rmsM.toFixed(2)+&#x27; meters. Spheres mark peaks and diamonds mark saddles.&#x27;:&#x27;&#x27;)+&#x27; Height scales rocks, terrain and the complete ridge network together. These are proposed arrangements using actual procedural mesh geometry, without Seed materials or runtime navigation. Drag to orbit; side, plan and low angle views are also available.&#x27;;
   if(perlin)description.textContent+=&#x27; Peaks and connecting saddle passes are extracted from a coarse Perlin field. Curves simplify and smooth the traced paths, so intermediate points may depart slightly from the sampled field. Octaves below 24 meters affect only bounded surface detail, not graph topology. The source field views hide the rock meshes and orange comparison lines.&#x27;;
   description.textContent+=finishInput.value===&#x27;original&#x27;?&#x27; Original baked geometry and clay shading.&#x27;:&#x27; Fractured surfaces favor long vertical joints with a slight shared lean, narrow V-shaped recesses and sharp face edges. Crosswise breaks are sparse. The fitter measures the deformed triangles. The clay option exposes those shapes without stone grain or color. Low contact regions and the flat platform caps are protected.&#x27;;
+  if(compare){detail.textContent=&#x27;Same rock, size, camera and light · clay&#x27;;description.textContent=&#x27;The previous vertical fracture surface and the new broad plane cuts on the same atomic rock. Both use identical scale, camera, lighting and untextured clay. Drag either panel to rotate both together.&#x27;;}
   stage.setAttribute(&#x27;aria-describedby&#x27;,&#x27;rock-study-description&#x27;);
   if(resetCamera)setCamera();else setCameraTarget();resize();
  }
  function render(){
   if(!current)return;
+  const compare=viewSelect.value===&#x27;compare&#x27;;world.visible=!compare;comparisonGroup.visible=compare;
+  guideGroup.visible=!compare&amp;&amp;guideInput.checked;labels.hidden=compare||!guideInput.checked;ridgeLegend.hidden=compare||!current.ridge||!guideInput.checked;
+  scaleBar.parentElement.hidden=compare;
+  if(compare){renderComparison();return;}
+  renderer.setScissorTest(false);renderer.setViewport(0,0,width,height);
   let maxX=0,maxY=0;
   const projectExtent=(x,y,z)=&gt;{x-=target.x;y-=target.y;z-=target.z;maxX=Math.max(maxX,Math.abs(x*Math.cos(yaw)-z*Math.sin(yaw)));maxY=Math.max(maxY,Math.abs(-x*Math.sin(yaw)*Math.sin(pitch)+y*Math.cos(pitch)-z*Math.cos(yaw)*Math.sin(pitch)));};
   for(const r of current.rocks){const b=activeGeometries[r.mesh].bounds,c=Math.cos(r.yaw),sn=Math.sin(r.yaw);for(let i=0;i&lt;2;i++)for(let j=0;j&lt;2;j++)for(let k=0;k&lt;2;k++){const x=b[i][0]*r.scale*(r.longitudinalScale??1),z=b[k][2]*r.scale*(r.lateralScale??1);projectExtent(r.x+c*x-sn*z,r.y+b[j][1]*r.scale*(r.verticalScale??1),r.z+sn*x+c*z);}}
@@ -3046,15 +3126,26 @@ function generateRidgeScene(source,geometries,seed=DEFAULT_RIDGE_SEED,options={}
   });
   scaleBar.style.width=(width*10/(camera.right-camera.left))+&#x27;px&#x27;;
  }
- function resize(){width=stage.clientWidth||700;height=Math.max(280,Math.min(520,width*.64));if(current&amp;&amp;viewSelect.value===&#x27;close&#x27;)setCameraTarget();renderer.setSize(width,height);stage.style.height=height+&#x27;px&#x27;;camera.left=-span/2;camera.right=span/2;camera.top=span*height/width/2;camera.bottom=-camera.top;camera.updateProjectionMatrix();render();}
+ function renderComparison(){
+  const stacked=width&lt;540,panelW=stacked?width:Math.floor(width/2),panelH=stacked?Math.floor(height/2):height;
+  comparisonLabels.classList.toggle(&#x27;stacked&#x27;,stacked);
+  let xExtent=0,yExtent=0;for(const p of comparisonCorners){const x=p.x-comparisonTarget.x,y=p.y-comparisonTarget.y,z=p.z-comparisonTarget.z;xExtent=Math.max(xExtent,Math.abs(x*Math.cos(yaw)-z*Math.sin(yaw)));yExtent=Math.max(yExtent,Math.abs(-x*Math.sin(yaw)*Math.sin(pitch)+y*Math.cos(pitch)-z*Math.cos(yaw)*Math.sin(pitch)));}
+  const fit=Math.max(xExtent*2.3,yExtent*2.4*panelW/panelH),distance=Math.max(40,fit*2);
+  camera.left=-fit/2;camera.right=fit/2;camera.top=fit*panelH/panelW/2;camera.bottom=-camera.top;camera.updateProjectionMatrix();
+  camera.position.set(comparisonTarget.x+distance*Math.sin(yaw)*Math.cos(pitch),comparisonTarget.y+distance*Math.sin(pitch),comparisonTarget.z+distance*Math.cos(yaw)*Math.cos(pitch));camera.lookAt(comparisonTarget);camera.updateMatrixWorld();
+  renderer.setScissorTest(true);
+  for(let i=0;i&lt;2;i++){comparisonMeshes.forEach((mesh,j)=&gt;mesh.visible=i===j);const x=stacked?0:i*panelW,y=stacked?(1-i)*panelH:0;renderer.setViewport(x,y,panelW,panelH);renderer.setScissor(x,y,panelW,panelH);renderer.render(scene,camera);}
+  renderer.setScissorTest(false);
+ }
+ function resize(){width=stage.clientWidth||700;height=viewSelect.value===&#x27;compare&#x27;?(width&lt;540?600:440):Math.max(280,Math.min(520,width*.64));if(current&amp;&amp;viewSelect.value===&#x27;close&#x27;)setCameraTarget();renderer.setSize(width,height);stage.style.height=height+&#x27;px&#x27;;camera.left=-span/2;camera.right=span/2;camera.top=span*height/width/2;camera.bottom=-camera.top;camera.updateProjectionMatrix();render();}
  function save(){if(window.openai?.setWidgetState)window.openai.setWidgetState({modelContent:{arrangement:current.id,view:viewSelect.value,showLayout:guideInput.checked,seed:Number(seedInput.value),heightPercent:Number(heightInput.value),ridgeMode:modeInput.value,noise:noiseOptions(),surface:surfaceInput.value,rockFinish:finishInput.value,ridgeVersion:RIDGE_VERSION},privateContent:{yaw,pitch}}).catch(()=&gt;{});}
- function applyState(state){const m=state?.modelContent;if(!m)return false;if(data.scenes.some(s=&gt;s.id===m.arrangement))caseSelect.value=m.arrangement;if([&#x27;plan&#x27;,&#x27;low&#x27;,&#x27;perspective&#x27;,&#x27;side&#x27;,&#x27;close&#x27;].includes(m.view))viewSelect.value=m.view;if(typeof m.showLayout===&#x27;boolean&#x27;)guideInput.checked=m.showLayout;if(Number.isInteger(m.seed)&amp;&amp;m.seed&gt;=0&amp;&amp;m.seed&lt;=4294967295)seedInput.value=m.seed;if(Number.isFinite(m.heightPercent)&amp;&amp;m.heightPercent&gt;=25&amp;&amp;m.heightPercent&lt;=200)heightInput.value=m.heightPercent;if([&#x27;perlin&#x27;,&#x27;direct&#x27;].includes(m.ridgeMode))modeInput.value=m.ridgeMode;if([&#x27;rocks&#x27;,&#x27;coarse&#x27;,&#x27;detail&#x27;].includes(m.surface))surfaceInput.value=m.surface;try{const n=perlinSettings(m.noise);for(const key in noiseInputs)noiseInputs[key].value=n[key];}catch{}return true;}
+ function applyState(state){const m=state?.modelContent;if(!m)return false;if(data.scenes.some(s=&gt;s.id===m.arrangement))caseSelect.value=m.arrangement;if([&#x27;plan&#x27;,&#x27;low&#x27;,&#x27;perspective&#x27;,&#x27;side&#x27;,&#x27;close&#x27;,&#x27;compare&#x27;].includes(m.view))viewSelect.value=m.view;if(typeof m.showLayout===&#x27;boolean&#x27;)guideInput.checked=m.showLayout;if(Number.isInteger(m.seed)&amp;&amp;m.seed&gt;=0&amp;&amp;m.seed&lt;=4294967295)seedInput.value=m.seed;if(Number.isFinite(m.heightPercent)&amp;&amp;m.heightPercent&gt;=25&amp;&amp;m.heightPercent&lt;=200)heightInput.value=m.heightPercent;if([&#x27;perlin&#x27;,&#x27;direct&#x27;].includes(m.ridgeMode))modeInput.value=m.ridgeMode;if([&#x27;rocks&#x27;,&#x27;coarse&#x27;,&#x27;detail&#x27;].includes(m.surface))surfaceInput.value=m.surface;try{const n=perlinSettings(m.noise);for(const key in noiseInputs)noiseInputs[key].value=n[key];}catch{}return true;}
  function restoreState(state){
   const previous={arrangement:caseSelect.value,view:viewSelect.value,seed:seedInput.value,height:heightInput.value,authoring:authoringKey(),surface:surfaceInput.value,finish:finishInput.value};
   if(!applyState(state))return false;
   if([&#x27;stone&#x27;,&#x27;clay&#x27;,&#x27;original&#x27;].includes(state.modelContent?.rockFinish))finishInput.value=state.modelContent.rockFinish;
   const resetCamera=!current||previous.arrangement!==caseSelect.value||previous.view!==viewSelect.value;
-  const rebuild=!current||previous.arrangement!==caseSelect.value||previous.seed!==seedInput.value||previous.height!==heightInput.value||previous.authoring!==authoringKey()||previous.surface!==surfaceInput.value||previous.finish!==finishInput.value;
+  const rebuild=!current||previous.arrangement!==caseSelect.value||previous.seed!==seedInput.value||previous.height!==heightInput.value||previous.authoring!==authoringKey()||previous.surface!==surfaceInput.value||previous.finish!==finishInput.value||(previous.view!==viewSelect.value&amp;&amp;[previous.view,viewSelect.value].includes(&#x27;compare&#x27;));
   // A state echo after pointerup is persistence, not a request for a preset view.
   if(rebuild)createScene(resetCamera);else if(resetCamera)setCamera();
   const orbit=state.privateContent;
@@ -3072,7 +3163,7 @@ function generateRidgeScene(source,geometries,seed=DEFAULT_RIDGE_SEED,options={}
  finishInput.addEventListener(&#x27;change&#x27;,()=&gt;{createScene(false);save();});
  for(const input of [modeInput,surfaceInput,...Object.values(noiseInputs)])input.addEventListener(&#x27;change&#x27;,()=&gt;{for(const [key,field] of Object.entries(noiseInputs))if(!field.value||!field.checkValidity())field.value=PERLIN_DEFAULTS[key];createScene(false);save();});
  caseSelect.addEventListener(&#x27;change&#x27;,()=&gt;{createScene();save();});
- viewSelect.addEventListener(&#x27;change&#x27;,()=&gt;{setCamera();resize();save();});
+ viewSelect.addEventListener(&#x27;change&#x27;,()=&gt;{createScene(viewSelect.value!==&#x27;compare&#x27;);save();});
  guideInput.addEventListener(&#x27;change&#x27;,()=&gt;{guideGroup.visible=guideInput.checked;labels.hidden=!guideInput.checked;ridgeLegend.hidden=!current.ridge||!guideInput.checked;render();save();});
  let drag;
  renderer.domElement.addEventListener(&#x27;pointerdown&#x27;,e=&gt;{drag={x:e.clientX,y:e.clientY,yaw,pitch};renderer.domElement.setPointerCapture(e.pointerId);});

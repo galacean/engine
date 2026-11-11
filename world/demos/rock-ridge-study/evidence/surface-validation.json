@@ -1,6 +1,6 @@
 {
-  "version": "vertical-fractures-2",
-  "generationMs": 1493.5902079999998,
+  "version": "slab-cuts-3",
+  "generationMs": 991.4295,
   "checks": [
     "immutable source and uncached deterministic replay",
     "finite bounded geometry and unit normals",
@@ -19,289 +19,313 @@
     {
       "id": "cliff",
       "triangles": 16000,
-      "version": "vertical-fractures-2",
+      "version": "slab-cuts-3",
       "sourceTriangles": 1000,
       "anchor": [
         5.4125,
         7,
         -0.9971
       ],
-      "patches": 27,
-      "limitedVertices": 462,
+      "planes": 6,
+      "fractures": 5,
+      "limitedVertices": 1684,
       "vertices": 8002,
-      "maximumDisplacementM": 1.0234701921472855,
+      "maximumDisplacementM": 3.7642074887044377,
+      "meanDisplacementM": 0.4683037333702066,
       "protectedVertices": 903,
-      "minProjectedAreaRatio": 0.09828788483985186,
-      "signedVolumeM3": 1404.0303830074656,
+      "minProjectedAreaRatio": 0.08219099809267039,
+      "signedVolumeM3": 1283.135788831449,
       "direction": {
-        "segments": 1641,
-        "contourLengthM": 242.5081492807204,
-        "within30DegreesOfVertical": 0.8213564399805589,
-        "meanVerticalAlignment": 0.9124759191816806
+        "segments": 499,
+        "contourLengthM": 85.88271222399548,
+        "within30DegreesOfVertical": 0.8230305599603731,
+        "meanVerticalAlignment": 0.9052893597490763
       }
     },
     {
       "id": "cliff2",
       "triangles": 16000,
-      "version": "vertical-fractures-2",
+      "version": "slab-cuts-3",
       "sourceTriangles": 1000,
       "anchor": [
         6.1209,
         7,
         -1.1276
       ],
-      "patches": 19,
-      "limitedVertices": 391,
+      "planes": 6,
+      "fractures": 5,
+      "limitedVertices": 739,
       "vertices": 8002,
-      "maximumDisplacementM": 1.0122909932775266,
+      "maximumDisplacementM": 3.516771661711018,
+      "meanDisplacementM": 0.6467927108102124,
       "protectedVertices": 1038,
-      "minProjectedAreaRatio": 0.08085609494649938,
-      "signedVolumeM3": 1400.4748181719688,
+      "minProjectedAreaRatio": 0.0815440955595594,
+      "signedVolumeM3": 1178.5238581777467,
       "direction": {
-        "segments": 1318,
-        "contourLengthM": 192.82347233325686,
-        "within30DegreesOfVertical": 0.7679240564970475,
-        "meanVerticalAlignment": 0.878128065361744
+        "segments": 537,
+        "contourLengthM": 88.93727403329322,
+        "within30DegreesOfVertical": 0.8592266908386388,
+        "meanVerticalAlignment": 0.9232541827470033
       }
     },
     {
       "id": "wall",
       "triangles": 16000,
-      "version": "vertical-fractures-2",
+      "version": "slab-cuts-3",
       "sourceTriangles": 1000,
       "anchor": [
         3.6661,
         7,
         -1.063
       ],
-      "patches": 22,
-      "limitedVertices": 466,
+      "planes": 6,
+      "fractures": 5,
+      "limitedVertices": 872,
       "vertices": 8002,
-      "maximumDisplacementM": 0.5916125675440059,
+      "maximumDisplacementM": 1.8539129820844156,
+      "meanDisplacementM": 0.39456539726689543,
       "protectedVertices": 905,
-      "minProjectedAreaRatio": 0.08566742886415922,
-      "signedVolumeM3": 559.2279974114941,
+      "minProjectedAreaRatio": 0.08152814816513966,
+      "signedVolumeM3": 474.12812451817905,
       "direction": {
-        "segments": 1201,
-        "contourLengthM": 171.97084457528436,
-        "within30DegreesOfVertical": 0.8473362547105141,
-        "meanVerticalAlignment": 0.924535899663856
+        "segments": 553,
+        "contourLengthM": 88.27311364681908,
+        "within30DegreesOfVertical": 0.8795701626516979,
+        "meanVerticalAlignment": 0.9430002006584325
       }
     },
     {
       "id": "wall2",
       "triangles": 15680,
-      "version": "vertical-fractures-2",
+      "version": "slab-cuts-3",
       "sourceTriangles": 980,
       "anchor": [
         2.6348,
         7,
         -0.7639
       ],
-      "patches": 24,
-      "limitedVertices": 604,
+      "planes": 6,
+      "fractures": 5,
+      "limitedVertices": 754,
       "vertices": 7842,
-      "maximumDisplacementM": 0.6400860289034623,
+      "maximumDisplacementM": 1.9864542628649218,
+      "meanDisplacementM": 0.4106940828196464,
       "protectedVertices": 998,
-      "minProjectedAreaRatio": 0.08785611748758537,
-      "signedVolumeM3": 530.190739407399,
+      "minProjectedAreaRatio": 0.12616765479052197,
+      "signedVolumeM3": 443.0157780208024,
       "direction": {
-        "segments": 1748,
-        "contourLengthM": 225.34295686299305,
-        "within30DegreesOfVertical": 0.8655166946904509,
-        "meanVerticalAlignment": 0.9298630282103811
+        "segments": 576,
+        "contourLengthM": 93.81940188940825,
+        "within30DegreesOfVertical": 0.8615131636872938,
+        "meanVerticalAlignment": 0.9262169675303187
       }
     },
     {
       "id": "shoulder",
       "triangles": 14208,
-      "version": "vertical-fractures-2",
+      "version": "slab-cuts-3",
       "sourceTriangles": 888,
       "anchor": [
         3.2327,
         5,
         0.3274
       ],
-      "patches": 17,
-      "limitedVertices": 392,
+      "planes": 6,
+      "fractures": 5,
+      "limitedVertices": 1120,
       "vertices": 7106,
-      "maximumDisplacementM": 0.9604406612687981,
+      "maximumDisplacementM": 2.776566800579297,
+      "meanDisplacementM": 0.44679633579488764,
       "protectedVertices": 1043,
-      "minProjectedAreaRatio": 0.08078860487598409,
-      "signedVolumeM3": 596.8508354778704,
+      "minProjectedAreaRatio": 0.08592784642740346,
+      "signedVolumeM3": 536.1967515161575,
       "direction": {
-        "segments": 1132,
-        "contourLengthM": 122.42599058690445,
-        "within30DegreesOfVertical": 0.6685857579998045,
-        "meanVerticalAlignment": 0.8364454738693679
+        "segments": 516,
+        "contourLengthM": 57.76408914991115,
+        "within30DegreesOfVertical": 0.8350996131129916,
+        "meanVerticalAlignment": 0.9338179372333039
       }
     },
     {
       "id": "shoulder2",
       "triangles": 14752,
-      "version": "vertical-fractures-2",
+      "version": "slab-cuts-3",
       "sourceTriangles": 922,
       "anchor": [
         2.9504,
         5,
         1.3103
       ],
-      "patches": 23,
-      "limitedVertices": 429,
+      "planes": 6,
+      "fractures": 5,
+      "limitedVertices": 1814,
       "vertices": 7378,
-      "maximumDisplacementM": 0.9312018156815618,
+      "maximumDisplacementM": 2.4910092661386565,
+      "meanDisplacementM": 0.3350151385609577,
       "protectedVertices": 1043,
-      "minProjectedAreaRatio": 0.08516536534041867,
-      "signedVolumeM3": 627.8182860339574,
+      "minProjectedAreaRatio": 0.08070763358077185,
+      "signedVolumeM3": 613.4353899986792,
       "direction": {
-        "segments": 1347,
-        "contourLengthM": 139.30555964186044,
-        "within30DegreesOfVertical": 0.6731419893091587,
-        "meanVerticalAlignment": 0.8400931132810601
+        "segments": 501,
+        "contourLengthM": 56.85729971738386,
+        "within30DegreesOfVertical": 0.5984008939445907,
+        "meanVerticalAlignment": 0.8142276363503589
       }
     },
     {
       "id": "peak",
       "triangles": 12224,
-      "version": "vertical-fractures-2",
+      "version": "slab-cuts-3",
       "sourceTriangles": 764,
       "anchor": [
         2.2427,
         12,
         1.079
       ],
-      "patches": 23,
-      "limitedVertices": 302,
+      "planes": 6,
+      "fractures": 5,
+      "limitedVertices": 195,
       "vertices": 6114,
-      "maximumDisplacementM": 1.8799110877298855,
+      "maximumDisplacementM": 4.5698976280100725,
+      "meanDisplacementM": 0.8041496662410035,
       "protectedVertices": 1068,
-      "minProjectedAreaRatio": 0.09849088835855656,
-      "signedVolumeM3": 4600.00830153843,
+      "minProjectedAreaRatio": 0.08149208917547181,
+      "signedVolumeM3": 4059.2038928685597,
       "direction": {
-        "segments": 968,
-        "contourLengthM": 247.23950038896737,
-        "within30DegreesOfVertical": 0.5874896437071977,
-        "meanVerticalAlignment": 0.8241286313851406
+        "segments": 565,
+        "contourLengthM": 158.59547442286578,
+        "within30DegreesOfVertical": 0.8812957583999901,
+        "meanVerticalAlignment": 0.9171071811108615
       }
     },
     {
       "id": "peak2",
       "triangles": 14048,
-      "version": "vertical-fractures-2",
+      "version": "slab-cuts-3",
       "sourceTriangles": 878,
       "anchor": [
         2.6785,
         12,
         0.2939
       ],
-      "patches": 21,
-      "limitedVertices": 248,
+      "planes": 6,
+      "fractures": 5,
+      "limitedVertices": 830,
       "vertices": 7026,
-      "maximumDisplacementM": 1.5520785739399174,
+      "maximumDisplacementM": 4.414716963112324,
+      "meanDisplacementM": 0.7659088687925223,
       "protectedVertices": 1101,
-      "minProjectedAreaRatio": 0.10243813031164462,
-      "signedVolumeM3": 4644.888141894238,
+      "minProjectedAreaRatio": 0.08113702873207337,
+      "signedVolumeM3": 4153.227592975839,
       "direction": {
-        "segments": 1093,
-        "contourLengthM": 247.6335607175663,
-        "within30DegreesOfVertical": 0.6758971899724966,
-        "meanVerticalAlignment": 0.8612230806490662
+        "segments": 560,
+        "contourLengthM": 159.38797008528886,
+        "within30DegreesOfVertical": 0.7776693955807484,
+        "meanVerticalAlignment": 0.8901106090951473
       }
     },
     {
       "id": "slab",
       "triangles": 15136,
-      "version": "vertical-fractures-2",
+      "version": "slab-cuts-3",
       "sourceTriangles": 946,
       "anchor": [
         -0.6824,
         1.2,
         -0.3808
       ],
-      "patches": 24,
-      "limitedVertices": 333,
+      "planes": 6,
+      "fractures": 5,
+      "limitedVertices": 3081,
       "vertices": 7570,
-      "maximumDisplacementM": 0.32492941333224307,
+      "maximumDisplacementM": 2.224589403990633,
+      "meanDisplacementM": 0.13114673286944314,
       "protectedVertices": 4041,
-      "minProjectedAreaRatio": 0.08120495976315872,
-      "signedVolumeM3": 165.1883168310037,
+      "minProjectedAreaRatio": 0.08126669618522821,
+      "signedVolumeM3": 158.52969922130117,
       "direction": {
-        "segments": 757,
-        "contourLengthM": 32.37933088439518,
-        "within30DegreesOfVertical": 0.4706481979474772,
-        "meanVerticalAlignment": 0.6606890035394651
+        "segments": 200,
+        "contourLengthM": 8.242382033838016,
+        "within30DegreesOfVertical": 0.6753418949320965,
+        "meanVerticalAlignment": 0.7447543439361332
       }
     },
     {
       "id": "slab2",
       "triangles": 15424,
-      "version": "vertical-fractures-2",
+      "version": "slab-cuts-3",
       "sourceTriangles": 964,
       "anchor": [
         0.2131,
         1.2,
         -0.5783
       ],
-      "patches": 24,
-      "limitedVertices": 152,
+      "planes": 6,
+      "fractures": 5,
+      "limitedVertices": 2701,
       "vertices": 7714,
-      "maximumDisplacementM": 0.3531614543294141,
+      "maximumDisplacementM": 2.6643073215434265,
+      "meanDisplacementM": 0.11304295431724046,
       "protectedVertices": 4305,
-      "minProjectedAreaRatio": 0.08582906386209842,
-      "signedVolumeM3": 174.7158964523408,
+      "minProjectedAreaRatio": 0.08231652119828016,
+      "signedVolumeM3": 170.38242251672943,
       "direction": {
-        "segments": 672,
-        "contourLengthM": 28.78972652428916,
-        "within30DegreesOfVertical": 0.5094041174874732,
-        "meanVerticalAlignment": 0.7000448228991871
+        "segments": 212,
+        "contourLengthM": 6.908943473958705,
+        "within30DegreesOfVertical": 0.8305038643349932,
+        "meanVerticalAlignment": 0.9050496864476117
       }
     },
     {
       "id": "bank",
       "triangles": 15264,
-      "version": "vertical-fractures-2",
+      "version": "slab-cuts-3",
       "sourceTriangles": 954,
       "anchor": [
         2.3718,
         2.5,
         0.223
       ],
-      "patches": 23,
-      "limitedVertices": 489,
+      "planes": 6,
+      "fractures": 5,
+      "limitedVertices": 1206,
       "vertices": 7634,
-      "maximumDisplacementM": 0.40490318307801776,
+      "maximumDisplacementM": 1.3304605630021347,
+      "meanDisplacementM": 0.24871367060937716,
       "protectedVertices": 1044,
-      "minProjectedAreaRatio": 0.08027467411844913,
-      "signedVolumeM3": 88.7571302002214,
+      "minProjectedAreaRatio": 0.08032669974111034,
+      "signedVolumeM3": 80.0936572123231,
       "direction": {
-        "segments": 1337,
-        "contourLengthM": 69.93215736459649,
-        "within30DegreesOfVertical": 0.7557468373555412,
-        "meanVerticalAlignment": 0.8883175955941355
+        "segments": 542,
+        "contourLengthM": 30.665838348679696,
+        "within30DegreesOfVertical": 0.8910727205939867,
+        "meanVerticalAlignment": 0.9210662494677274
       }
     },
     {
       "id": "bank2",
       "triangles": 15072,
-      "version": "vertical-fractures-2",
+      "version": "slab-cuts-3",
       "sourceTriangles": 942,
       "anchor": [
         1.698,
         2.5,
         0.7003
       ],
-      "patches": 23,
-      "limitedVertices": 458,
+      "planes": 6,
+      "fractures": 5,
+      "limitedVertices": 990,
       "vertices": 7538,
-      "maximumDisplacementM": 0.4156403899573703,
+      "maximumDisplacementM": 1.4155484373482332,
+      "meanDisplacementM": 0.2619468736490919,
       "protectedVertices": 993,
-      "minProjectedAreaRatio": 0.086620086324853,
-      "signedVolumeM3": 91.71077178471465,
+      "minProjectedAreaRatio": 0.08555316775094646,
+      "signedVolumeM3": 81.29807691430217,
       "direction": {
-        "segments": 1211,
-        "contourLengthM": 69.02773391398748,
-        "within30DegreesOfVertical": 0.720146365380656,
-        "meanVerticalAlignment": 0.8723208938482252
+        "segments": 512,
+        "contourLengthM": 30.54075977103072,
+        "within30DegreesOfVertical": 0.8081608510219472,
+        "meanVerticalAlignment": 0.9034941663209407
       }
     }
   ],
@@ -312,12 +336,12 @@
       "options": {
         "mode": "perlin"
       },
-      "structuralMasses": 4,
-      "smallRocks": 2,
-      "verifiedContactEdges": 6,
-      "rmsM": 1.2585230905080078,
-      "maximumDeviationM": 3.747865721760247,
-      "maximumGuideErrorM": 0.000049985416733733246
+      "structuralMasses": 3,
+      "smallRocks": 1,
+      "verifiedContactEdges": 3,
+      "rmsM": 1.3795875298004399,
+      "maximumDeviationM": 4.562571397218459,
+      "maximumGuideErrorM": 0.00004949674768894852
     },
     {
       "scene": "cliff",
@@ -327,10 +351,10 @@
       },
       "structuralMasses": 5,
       "smallRocks": 2,
-      "verifiedContactEdges": 6,
-      "rmsM": 1.362645462111609,
-      "maximumDeviationM": 3.3335221412628044,
-      "maximumGuideErrorM": 0.00004997251430793881
+      "verifiedContactEdges": 7,
+      "rmsM": 1.1996813923661276,
+      "maximumDeviationM": 3.027641433017296,
+      "maximumGuideErrorM": 0.0000498434092524036
     },
     {
       "scene": "island",
@@ -338,12 +362,12 @@
       "options": {
         "mode": "perlin"
       },
-      "structuralMasses": 10,
+      "structuralMasses": 12,
       "smallRocks": 2,
-      "verifiedContactEdges": 20,
-      "rmsM": 2.264800728765297,
-      "maximumDeviationM": 6.351430590554479,
-      "maximumGuideErrorM": 0.00004976449638149916
+      "verifiedContactEdges": 26,
+      "rmsM": 1.4616344247272997,
+      "maximumDeviationM": 3.92138133783285,
+      "maximumGuideErrorM": 0.00004995635373106211
     },
     {
       "scene": "island",
@@ -359,10 +383,10 @@
       },
       "structuralMasses": 10,
       "smallRocks": 1,
-      "verifiedContactEdges": 20,
-      "rmsM": 2.1655055328957173,
-      "maximumDeviationM": 5.489329301640215,
-      "maximumGuideErrorM": 0.000049715456672316805
+      "verifiedContactEdges": 18,
+      "rmsM": 2.1406044183546022,
+      "maximumDeviationM": 6.063293353241812,
+      "maximumGuideErrorM": 0.000049693398135985944
     },
     {
       "scene": "peaks",
@@ -370,12 +394,12 @@
       "options": {
         "mode": "perlin"
       },
-      "structuralMasses": 11,
+      "structuralMasses": 14,
       "smallRocks": 2,
-      "verifiedContactEdges": 25,
-      "rmsM": 2.1131874926311913,
-      "maximumDeviationM": 7.543131202335471,
-      "maximumGuideErrorM": 0.00004999864786014996
+      "verifiedContactEdges": 38,
+      "rmsM": 2.082833456142032,
+      "maximumDeviationM": 6.339300266994034,
+      "maximumGuideErrorM": 0.000049912621825853876
     },
     {
       "scene": "peaks",
@@ -389,12 +413,12 @@
           "persistence": 0.85
         }
       },
-      "structuralMasses": 17,
+      "structuralMasses": 18,
       "smallRocks": 2,
-      "verifiedContactEdges": 40,
-      "rmsM": 2.177861258968336,
-      "maximumDeviationM": 6.025911372665838,
-      "maximumGuideErrorM": 0.00004982195552472035
+      "verifiedContactEdges": 51,
+      "rmsM": 1.7989351319676248,
+      "maximumDeviationM": 4.717044814683881,
+      "maximumGuideErrorM": 0.00004998448719817361
     },
     {
       "scene": "peaks",
@@ -402,12 +426,12 @@
       "options": {
         "mode": "direct"
       },
-      "structuralMasses": 17,
+      "structuralMasses": 23,
       "smallRocks": 2,
-      "verifiedContactEdges": 47,
-      "rmsM": 2.184715644633201,
-      "maximumDeviationM": 5.336632341039191,
-      "maximumGuideErrorM": 0.000049976580624999656
+      "verifiedContactEdges": 77,
+      "rmsM": 1.9251353541212908,
+      "maximumDeviationM": 5.470640832999736,
+      "maximumGuideErrorM": 0.000049924820519464674
     }
   ],
   "platformSamples": 2500,

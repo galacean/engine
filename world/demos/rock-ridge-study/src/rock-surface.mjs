@@ -1,7 +1,8 @@
 import {clamp} from './ridge-utils.mjs';
 
-export const ROCK_SURFACE_VERSION='vertical-fractures-2';
-const surfaceCache=new WeakMap();
+export const ROCK_SURFACE_VERSION='slab-cuts-3';
+const PREVIOUS_SURFACE_VERSION='vertical-fractures-2';
+const surfaceCache=new WeakMap(),previousSurfaceCache=new WeakMap();
 const surfaceBlend=(a,b,x)=>{const t=clamp((x-a)/(b-a),0,1);return t*t*(3-2*t);};
 const surfaceHash=(x,y,z,seed)=>{
  let h=Math.imul(x|0,374761393)^Math.imul(y|0,668265263)^Math.imul(z|0,2147483647)^(seed|0);
@@ -48,8 +49,8 @@ function surfaceNormals(vertices,indices){
  return {normals:sums.map(surfaceUnit),weights,faces};
 }
 
-export function fractureRockGeometry(g){
- if(surfaceCache.has(g))return surfaceCache.get(g);
+export function previousFractureRockGeometry(g){
+ if(previousSurfaceCache.has(g))return previousSurfaceCache.get(g);
  const {vertices,indices}=surfaceSubdivide(g,2),original=surfaceNormals(vertices,indices),seed=g.parameters.seed+92071;
  const size=[g.parameters.obbWidth,g.parameters.obbHeight,g.parameters.obbDepth],minimum=g.bounds[0][1],height=g.bounds[1][1]-minimum;
  const scale=Math.min(size[0],size[2],size[1]*1.5),regions=vertices.map(p=>surfaceRegion(p,size,seed)),patches=new Map();
@@ -95,7 +96,57 @@ export function fractureRockGeometry(g){
  if(remaining){factors.fill(0);update();throw new Error('Rock surface displacement could not preserve source triangle orientation');}
  const final=surfaceNormals(result,indices),positions=result.flat(),bounds=[0,1,2].map(d=>[Math.min(...result.map(p=>p[d])),Math.max(...result.map(p=>p[d]))]);
  let anchor=[0,-Infinity,0];for(let i=0;i<g.positions.length;i+=3)if(g.positions[i+1]>=anchor[1])anchor=g.positions.slice(i,i+3);
- const output={...g,positions,indices,normals:final.normals.flat(),rockDetail:details.flat(),bounds:[bounds.map(b=>b[0]),bounds.map(b=>b[1])],stats:{triangles:indices.length/3,method:ROCK_SURFACE_VERSION},surface:{version:ROCK_SURFACE_VERSION,sourceTriangles:g.indices.length/3,anchor,patches:patches.size,limitedVertices:limited,vertices:result.length,maximumDisplacementM:Math.max(...result.map((p,i)=>Math.hypot(...surfaceSub(p,vertices[i])))),protectedVertices:protectedVertices.filter(Boolean).length}};
+ const output={...g,positions,indices,normals:final.normals.flat(),rockDetail:details.flat(),bounds:[bounds.map(b=>b[0]),bounds.map(b=>b[1])],stats:{triangles:indices.length/3,method:PREVIOUS_SURFACE_VERSION},surface:{version:PREVIOUS_SURFACE_VERSION,sourceTriangles:g.indices.length/3,anchor,patches:patches.size,limitedVertices:limited,vertices:result.length,maximumDisplacementM:Math.max(...result.map((p,i)=>Math.hypot(...surfaceSub(p,vertices[i])))),protectedVertices:protectedVertices.filter(Boolean).length}};
+ previousSurfaceCache.set(g,output);return output;
+}
+
+export function fractureRockGeometry(g){
+ if(surfaceCache.has(g))return surfaceCache.get(g);
+ const {vertices,indices}=surfaceSubdivide(g,2),original=surfaceNormals(vertices,indices);
+ const seed=g.parameters.seed+54139,lo=g.bounds[0],hi=g.bounds[1],height=hi[1]-lo[1],center=[(lo[0]+hi[0])*.5,(lo[2]+hi[2])*.5],radius=[(hi[0]-lo[0])*.5,(hi[2]-lo[2])*.5];
+ const normalized=vertices.map(p=>[(p[0]-center[0])/radius[0],(p[1]-lo[1])/height,(p[2]-center[1])/radius[1]]),phase=surfaceHash(0,0,0,seed)*Math.PI*2;
+ // Six unequal clipping planes remove the swollen source faces at the scale
+ // of the whole rock. Their slopes follow the source's broad taper.
+ const planes=Array.from({length:6},(_,i)=>{
+  const angle=phase+i*Math.PI/3+(surfaceHash(i,0,0,seed)-.5)*.30,n=[Math.cos(angle),Math.sin(angle)];
+  const support=(a,b)=>Math.max(.15,...normalized.filter(p=>p[1]>=a&&p[1]<=b).map(p=>p[0]*n[0]+p[2]*n[1]));
+  const bottom=support(.12,.40),top=support(.64,.86),slope=(top-bottom)/.49,cut=.73+.07*surfaceHash(i,1,0,seed);
+  return {n,offset:bottom-slope*.26,slope,cut,value:surfaceHash(i,2,0,seed)};
+ });
+ // Deep, metre-scale V cuts have independent lengths and unequal spacing.
+ // A continuous central core and the original foot keep every face connected.
+ const fractures=Array.from({length:5},(_,i)=>({angle:phase+.26+i*Math.PI*2/5+(surfaceHash(i,3,0,seed)-.5)*.32,width:.14+.075*surfaceHash(i,4,0,seed),depth:.24+.09*surfaceHash(i,5,0,seed),low:.10+.05*surfaceHash(i,6,0,seed),high:.88+.08*surfaceHash(i,7,0,seed)}));
+ const details=[],protectedVertices=[],deltas=vertices.map((p,i)=>{
+  const [x,y,z]=normalized[i],rho=Math.hypot(x,z),mask=surfaceBlend(.065,.19,y)*(1-surfaceBlend(.94,1,y));
+  const protect=mask===0||(g.parameters.topRoughness===0&&y>.65);protectedVertices.push(protect);
+  let radial=1,faceValue=.5;
+  for(const plane of planes){
+   const distance=x*plane.n[0]+z*plane.n[1],limit=Math.max(.10,plane.offset+plane.slope*y)*plane.cut;
+   if(distance>limit&&limit/distance<radial){radial=limit/distance;faceValue=plane.value;}
+  }
+  let incision=0,joint=0;
+  const angle=Math.atan2(z,x),lean=.045*(y-.5);
+  for(const fracture of fractures){
+   const delta=Math.atan2(Math.sin(angle-fracture.angle-lean),Math.cos(angle-fracture.angle-lean)),v=clamp(1-Math.abs(delta)/fracture.width,0,1);
+   const lengthMask=surfaceBlend(fracture.low,fracture.low+.12,y)*(1-surfaceBlend(fracture.high-.07,fracture.high,y));
+   incision=Math.max(incision,fracture.depth*v*lengthMask);joint=Math.max(joint,v*lengthMask);
+  }
+  const wanted=1-mask*(1-radial*(1-incision));
+  details.push(protect?[0,.5,0]:[joint*mask,.46+faceValue*.10,0]);
+  if(protect||rho<1e-8)return [0,0,0];
+  return [clamp(center[0]+(p[0]-center[0])*wanted,lo[0],hi[0])-p[0],0,clamp(center[1]+(p[2]-center[1])*wanted,lo[2],hi[2])-p[2]];
+ });
+ const factors=new Float64Array(vertices.length).fill(1),result=vertices.map(p=>[...p]);let remaining=0;
+ for(let pass=0;pass<64;pass++){
+  for(let i=0;i<vertices.length;i++)for(let d=0;d<3;d++)result[i][d]=vertices[i][d]+deltas[i][d]*factors[i];
+  const unsafe=new Set();
+  for(let i=0;i<indices.length;i+=3){const [a,b,c]=indices.slice(i,i+3),before=original.faces[i/3],after=surfaceCross(surfaceSub(result[b],result[a]),surfaceSub(result[c],result[a]));if(surfaceDot(before,after)<surfaceDot(before,before)*.08)for(const id of [a,b,c])unsafe.add(id);}
+  remaining=unsafe.size;if(!remaining)break;for(const id of unsafe)factors[id]*=.52;
+ }
+ if(remaining)throw new Error('Slab cuts could not preserve triangle orientation');
+ const final=surfaceNormals(result,indices),bounds=[0,1,2].map(d=>[Math.min(...result.map(p=>p[d])),Math.max(...result.map(p=>p[d]))]),displacements=result.map((p,i)=>Math.hypot(...surfaceSub(p,vertices[i])));
+ let anchor=[0,-Infinity,0];for(let i=0;i<g.positions.length;i+=3)if(g.positions[i+1]>=anchor[1])anchor=g.positions.slice(i,i+3);
+ const output={...g,positions:result.flat(),indices,normals:final.normals.flat(),rockDetail:details.flat(),bounds:[bounds.map(b=>b[0]),bounds.map(b=>b[1])],stats:{triangles:indices.length/3,method:ROCK_SURFACE_VERSION},surface:{version:ROCK_SURFACE_VERSION,sourceTriangles:g.indices.length/3,anchor,planes:planes.length,fractures:fractures.length,limitedVertices:[...factors].filter(f=>f<1).length,vertices:result.length,maximumDisplacementM:Math.max(...displacements),meanDisplacementM:displacements.reduce((s,v)=>s+v,0)/displacements.length,protectedVertices:protectedVertices.filter(Boolean).length}};
  surfaceCache.set(g,output);return output;
 }
 
@@ -107,7 +158,7 @@ export function creasedRockAttributes(g){
  const p=g.positions,indices=g.indices,vertices=Array.from({length:p.length/3},(_,i)=>p.slice(i*3,i*3+3));
  const {faces}=surfaceNormals(vertices,indices),unit=faces.map(surfaceUnit),adjacent=vertices.map(()=>[]);
  for(let i=0;i<indices.length;i++)adjacent[indices[i]].push(Math.floor(i/3));
- const positions=[],normals=[],rockDetail=[],threshold=Math.cos(34*Math.PI/180);
+ const positions=[],normals=[],rockDetail=[],threshold=Math.cos((g.surface.version===PREVIOUS_SURFACE_VERSION?34:30)*Math.PI/180);
  for(let i=0;i<indices.length;i++){
   const id=indices[i],face=Math.floor(i/3),sum=[0,0,0];
   for(const j of adjacent[id])if(surfaceDot(unit[face],unit[j])>=threshold)for(let d=0;d<3;d++)sum[d]+=faces[j][d];
