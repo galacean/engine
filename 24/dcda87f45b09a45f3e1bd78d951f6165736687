@@ -4,6 +4,18 @@ packages/terrain/src/data/seed-world/public/Shader/Terrain.shaderc
   s_0ad7efa77c17be::t_7e032c63b0b327 1
 packages/terrain/src/shaders/terrain/TerrainHeight.glsl
   s_0ad7efa77c17be::t_65fc4b6d30cea2 103-104
+packages/world-planning/src/spatial/WorldTemplateArtDirection.ts
+  s_0ad7efa77c17be::t_42dd353c328116 878,880-881
+packages/world-planning/src/spatial/WorldTemplatePlanning.ts
+  s_0ad7efa77c17be::t_42dd353c328116 62
+packages/world-planning/src/spatial/WorldTemplateCatalog.ts
+  s_0ad7efa77c17be::t_42dd353c328116 137
+packages/world-planning/src/spatial/WorldTemplateGeometry.ts
+  s_0ad7efa77c17be::t_42dd353c328116 150,153-155
+world/tests/seed-world/WorldTemplates.spec.ts
+  s_0ad7efa77c17be::t_42dd353c328116 127,129-132,719-720
+packages/world-planning/src/spatial/WorldTemplateView.ts
+  s_0ad7efa77c17be::t_42dd353c328116 46-47
 ---
 {
   "schema_version": "authorship/3.0.0",
