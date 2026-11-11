@@ -17,7 +17,7 @@ def port_number(value):
     return number
 
 
-def checkout(path, marker):
+def checkout(path, marker, base=None):
     root = Path(path).expanduser().resolve()
     if not (root / marker).is_file():
         raise ValueError(f"Not the expected checkout: {root} (missing {marker})")
@@ -29,12 +29,20 @@ def checkout(path, marker):
 
     if Path(git("rev-parse", "--show-toplevel")).resolve() != root:
         raise ValueError(f"Specify checkout root, not a subdirectory: {root}")
-    return {
+    result = {
         "path": str(root),
         "branch": git("rev-parse", "--abbrev-ref", "HEAD"),
         "commit": git("rev-parse", "HEAD"),
         "dirty": bool(git("status", "--porcelain")),
     }
+    # Compare with the last fetched source ref; this script never fetches.
+    try:
+        source = base or git("rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{upstream}")
+        ahead, behind = git("rev-list", "--left-right", "--count", f"HEAD...{source}").split()
+        result.update(source=source, behindSource=int(behind), aheadSource=int(ahead))
+    except subprocess.CalledProcessError:
+        result.update(source=base, behindSource=None, aheadSource=None)
+    return result
 
 
 def urls(frontend_port, backend_port, revision, uid):
@@ -64,13 +72,16 @@ def main():
     parser.add_argument("--frontend-port", type=port_number, default=4173)
     parser.add_argument("--backend-port", type=port_number, default=8082)
     parser.add_argument("--uid", default="seed-world-local-debug")
+    parser.add_argument("--engine-source", default="origin/experimental/engine-next",
+                        help="ref the Engine checkout is compared with")
+    parser.add_argument("--asap-source", help="ref the ASAP checkout is compared with (default: its upstream)")
     parser.add_argument("--check", action="store_true")
     args = parser.parse_args()
     if args.frontend_port == args.backend_port:
         parser.error("frontend and backend must use different ports")
     try:
-        engine = checkout(args.engine_root, "world/vite.config.mjs")
-        asap = checkout(args.asap_root, "web/app.py")
+        engine = checkout(args.engine_root, "world/vite.config.mjs", args.engine_source)
+        asap = checkout(args.asap_root, "web/app.py", args.asap_source)
     except (ValueError, subprocess.CalledProcessError) as error:
         parser.error(str(error))
     revision = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
@@ -80,10 +91,9 @@ def main():
     print(json.dumps({
         "engine": engine,
         "asap": asap,
-        "requiredAsapRemoteBranch": "codex/seed-world-master-sync",
         "previewUrl": preview,
         "httpChecks": checks,
-        "note": "Checkout inventory only; verify process cwd, remote freshness and actual model/Tool trace separately.",
+        "note": "Checkout inventory only; behindSource uses the last fetched refs. Verify process cwd, a fresh fetch and the actual model/Tool trace separately.",
     }, ensure_ascii=False, indent=2))
     return 1 if any(not item["ok"] for item in checks) else 0
 
