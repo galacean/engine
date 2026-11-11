@@ -72,53 +72,6 @@ export function publishLevelWallProfile(
   };
 }
 
-/** Original 512² unsigned terrain source, sample_at_world_xz 0x1016aa8f0.
- * Source bytes are author/environment data, not generated building meshes.
- * The two coordinate modes intentionally preserve original edge extrapolation.
- */
-export function originalTerrainSampler(
-  values: Uint16Array,
-  minHeight = -2.5,
-  maxHeight = 20,
-  texelCentered = false
-): TerrainHeight {
-  if (values.length !== 512 * 512) throw Error("Original terrain source must have 512² samples");
-  const decode = (i: number) => {
-    const t = div(values[i], 65535);
-    return add(mul(minHeight, sub(1, t)), mul(maxHeight, t));
-  };
-  const mix = (a: number, b: number, t: number) => add(a, mul(sub(b, a), t));
-  return (x, z) => {
-    let u = add(div(x, 130), 0.5),
-      v = add(div(z, 130), 0.5);
-    let ix: number, iz: number, jx: number, jz: number;
-    if (texelCentered) {
-      u = Math.max(0, sub(mul(Math.min(1, u), 512), 0.5));
-      v = Math.max(0, sub(mul(Math.min(1, v), 512), 0.5));
-      ix = Math.floor(u);
-      iz = Math.floor(v);
-      jx = Math.min(ix + 1, 511);
-      jz = Math.min(iz + 1, 511);
-    } else {
-      u = mul(Math.min(1, Math.max(0, u)), 512);
-      v = mul(Math.min(1, Math.max(0, v)), 512);
-      ix = Math.min(Math.floor(u), 510);
-      iz = Math.min(Math.floor(v), 510);
-      jx = ix + 1;
-      jz = iz + 1;
-    }
-    const tx = sub(u, ix),
-      tz = sub(v, iz);
-    ix = Math.min(ix, 511);
-    iz = Math.min(iz, 511);
-    return mix(
-      mix(decode(iz * 512 + ix), decode(jz * 512 + ix), tz),
-      mix(decode(iz * 512 + jx), decode(jz * 512 + jx), tz),
-      tx
-    );
-  };
-}
-
 export interface PublishedWallRoof {
   profile: number;
   height_parameter: number;

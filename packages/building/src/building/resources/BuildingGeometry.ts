@@ -4,8 +4,14 @@ import { createDecorationMesh, type ConstructionDecorationMeshes } from "../runt
 import type { ConstructionStoneGeometry } from "../runtime/ConstructionGeometryAssets";
 import { validateRoofSpireAsset } from "../runtime/RoofSpireAsset";
 import { validateDecorationCollisions } from "../runtime/ConstructionDecorationCollisions";
-import { transformAssemblyAttribute, type BuildingAssembly } from "./BuildingAssembly";
+import {
+  transformAssemblyAttribute,
+  type BuildingAssembly,
+  type BuildingPrefab,
+  type CompiledBuildingPrefab
+} from "./BuildingAssembly";
 import { validateBuildingAssetContract } from "./BuildingAssetContract";
+import { meshOccupancy, type OccupancySolid } from "./BuildingOccupancy";
 
 export type BuildingQueryMesh = Pick<
   BufferMesh,
@@ -41,7 +47,7 @@ type QueryUnit = Pick<
 > & { mesh: BuildingQueryMesh };
 type QueryKit = Pick<
   BuildingAssetKitComponent,
-  "decorationCollisions" | "windowCuts" | "roofSpireColor" | "textures" | "neutralTextures" | "textureColors"
+  "decorationCollisions" | "roofSpireColor" | "textures" | "neutralTextures" | "textureColors"
 > & {
   roofSpireMesh: BuildingQueryMesh | null;
   gothic: Record<
@@ -96,7 +102,8 @@ export function buildingGeometry(
   kit: QueryKit,
   units: Record<string, QueryUnit>,
   decorationUnits: Record<string, QueryUnit>,
-  assemblies: Record<string, BuildingAssembly> = {}
+  assemblies: Record<string, BuildingAssembly> = {},
+  prefabs: Record<string, BuildingPrefab> = {}
 ) {
   validateBuildingAssetContract(kit, units);
   const decorations: ConstructionDecorationMeshes = { meshes: {}, assemblies };
@@ -124,6 +131,49 @@ export function buildingGeometry(
     }
     decorations.meshes[name] = createDecorationMesh(channels, nativeMeshIndices(unit.mesh), box, unit.doubleSided);
   }
+  // A prefab's bounds enclose its baked members and its unit members.
+  const buildingPrefabs: Record<string, CompiledBuildingPrefab> = Object.fromEntries(
+    Object.entries(prefabs).map(([key, prefab]) => {
+      const box = { min: [Infinity, Infinity, Infinity], max: [-Infinity, -Infinity, -Infinity] };
+      const include = (p: readonly number[]) => {
+        for (let axis = 0; axis < 3; axis++) {
+          box.min[axis] = Math.min(box.min[axis], p[axis]);
+          box.max[axis] = Math.max(box.max[axis], p[axis]);
+        }
+      };
+      for (const [name, path] of prefab.members) {
+        if (prefab.sizeMembers && !prefab.sizeMembers.includes(path)) continue;
+        const member = decorations.meshes[name].bounds;
+        include(member.min);
+        include(member.max);
+      }
+      // A unit member counts with the corners of its unit's box in its pose.
+      for (const member of prefab.units) {
+        const b = bounds(units[member.unit].mesh),
+          m = member.matrix;
+        for (let corner = 0; corner < 8; corner++) {
+          const p = [0, 1, 2].map((axis) => ((corner >> axis) & 1 ? b.max[axis] : b.min[axis]));
+          include([0, 1, 2].map((r) => m[r] * p[0] + m[4 + r] * p[1] + m[8 + r] * p[2] + m[12 + r]));
+        }
+      }
+      const occupancy: OccupancySolid[] = [];
+      for (const [name, path] of prefab.members) {
+        const mesh = decorations.meshes[name];
+        occupancy.push(...meshOccupancy(path, mesh.positions, mesh.indices));
+      }
+      for (const member of prefab.units) {
+        const unit = units[member.unit],
+          local = nativeMeshAttribute(unit.mesh, unit.attributeLocations[0]).values,
+          m = member.matrix,
+          placed: number[] = [];
+        for (let i = 0; i < local.length; i += 3)
+          for (let r = 0; r < 3; r++)
+            placed.push(m[r] * local[i] + m[4 + r] * local[i + 1] + m[8 + r] * local[i + 2] + m[12 + r]);
+        occupancy.push(...meshOccupancy(member.path, placed, nativeMeshIndices(unit.mesh), true));
+      }
+      return [key, { ...prefab, bounds: box, occupancy }];
+    })
+  );
   const positionMesh = (unit: QueryUnit) => ({
     positions: nativeMeshAttribute(unit.mesh, unit.attributeLocations[0]).values,
     indices: nativeMeshIndices(unit.mesh)
@@ -180,9 +230,9 @@ export function buildingGeometry(
   validateDecorationCollisions(kit.decorationCollisions);
   return {
     decorations,
+    prefabs: buildingPrefabs,
     decorationCollisions: structuredClone(kit.decorationCollisions),
     stoneGeometry,
-    windowCuts: structuredClone(kit.windowCuts),
     roofSpire,
     gothic,
     woodPillar

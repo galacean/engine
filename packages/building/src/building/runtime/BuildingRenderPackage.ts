@@ -20,11 +20,10 @@ import {
 import { packDecorationStoneInstances } from "./DecorationStoneInstance";
 import { addWoodArchPillarDraws, appendWoodArchRenderPackage } from "./ConstructionWoodArchRender";
 import type { CompiledConstructionDecorations } from "./ConstructionDecorations";
-import type { ConstructionPreviewPart } from "./ProfilePreview";
-import type { encodeCompleteConstructionDormerBins } from "./DormerBins";
+import type { ConstructionPreviewPart } from "./ConstructionPreview";
+import type { encodeConstructionDormerBins } from "./DormerBins";
 import type { MaterialUnit } from "./UnitPlacementStyle";
 import type { SupportCell } from "./PlacementSupport";
-import type { buildDecorationWindowCutBuffer } from "./DecorationWindowCutBuffer";
 
 export interface BuildingUnitDrawGroup {
   id: number;
@@ -39,7 +38,6 @@ export interface BuildingUnitDrawGroup {
   wallRoofJoint?: ConstructionDrawInput["wallRoofJoint"];
   roofApertures?: boolean;
   gravity?: NonNullable<ConstructionDrawInput["feedback"]>["steps"];
-  windowCuts?: ReturnType<typeof buildDecorationWindowCutBuffer>;
 }
 /** Transient implementation output. All ownership and backing choices are
  * explicit; the renderer never discovers a house or interprets geometry names. */
@@ -48,7 +46,7 @@ export interface BuildingRenderInput {
   rawDraws: (ConstructionDrawInput & { pickId?: string })[];
   groups: BuildingUnitDrawGroup[];
   decorations: CompiledConstructionDecorations[];
-  dormerBins: ReturnType<typeof encodeCompleteConstructionDormerBins>;
+  dormerBins: ReturnType<typeof encodeConstructionDormerBins>;
   colorOwners: { id: string; seed: number }[];
   backingParts: ConstructionPreviewPart[];
   surfaceParts: ConstructionPreviewPart[];
@@ -147,7 +145,7 @@ export function buildBuildingRenderPackage(
         builder.addDraw({
           id: "enclosure-" + group.id + "-" + variant,
           ownerId,
-          ...constructionSurfaceUnitDraw(variant, group.units[variant], { windowCuts: group.windowCuts }),
+          ...constructionSurfaceUnitDraw(variant, group.units[variant]),
           wallRoofJoint,
           variant,
           group: group.id

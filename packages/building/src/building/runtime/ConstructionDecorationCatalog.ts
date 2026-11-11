@@ -1,6 +1,3 @@
-import type { ConstructionDecorationMeshes } from "./ConstructionDecorationMeshes";
-import { constructionDecorationRecipe } from "./ConstructionDecorationRecipe";
-
 /** Shared diagnostic codes from placement producers to public API receipts. */
 export const constructionDecorationIssueCodes = [
   "UNSUPPORTED_ATTACHMENT",
@@ -33,18 +30,6 @@ export interface DecorationPlacementConstraint {
   limit: number | null;
   relation: "<=" | "<";
   unit: "m" | "m2";
-}
-export type MeasuredDecorationConstraint = Omit<DecorationPlacementConstraint, "measured" | "limit"> & {
-  measured: number;
-  limit: number;
-};
-/** Normalize only diagnostic transport, after the unchanged geometric test. */
-export function decorationConstraintFact(value: MeasuredDecorationConstraint): DecorationPlacementConstraint {
-  return {
-    ...value,
-    measured: Number.isFinite(value.measured) ? value.measured : null,
-    limit: Number.isFinite(value.limit) ? value.limit : null
-  };
 }
 export interface ConstructionDecorationIssue {
   id: string;
@@ -209,26 +194,6 @@ const constructionDecorationDefinitions: readonly Omit<DecorationTypeInfo, "dime
 ]);
 export function constructionDecorationDefinition(id: string) {
   return constructionDecorationDefinitions.find((type) => type.id === id);
-}
-/** Suggested dimensions come from this project's current mesh vertices. */
-export function constructionDecorationType(
-  assets: ConstructionDecorationMeshes | undefined,
-  id: string
-): DecorationTypeInfo | undefined {
-  const definition = constructionDecorationDefinition(id);
-  if (!definition) return undefined;
-  return {
-    ...definition,
-    dimensions: definition.ranks.flatMap((rank) => {
-      const recipe = constructionDecorationRecipe(assets, id, rank);
-      if (!recipe) return [];
-      const [width, height, depth] = recipe.installationSize;
-      return [{ rank, width, height, depth }];
-    })
-  };
-}
-export function constructionDecorationTypes(assets: ConstructionDecorationMeshes | undefined): DecorationTypeInfo[] {
-  return constructionDecorationDefinitions.map((definition) => constructionDecorationType(assets, definition.id)!);
 }
 
 export type DecorationIntent = "door" | "window" | "wall-lamp" | "lantern" | "opening" | "hatch";

@@ -37,14 +37,6 @@ export interface WallPiece {
   splitY: boolean;
   splitX: boolean;
 }
-export interface WallRow {
-  y0: number;
-  y1: number;
-  u0: number;
-  u1: number;
-  aboveStart: number;
-  aboveEnd: number;
-}
 export interface WallInstance {
   id: string;
   seed_id?: string;

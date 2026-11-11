@@ -7,6 +7,8 @@ const linear = (v: number) => (v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) 
 const paletteGLSL = plasterPalette
   .map((rgb, i) => `if(layer < ${i + 0.5}) return vec3(${rgb.map((v) => linear(v).toFixed(9)).join(",")});`)
   .join("\n");
+/** Height above the ground, in metres, over which plaster builds up to full cover. */
+export const PLASTER_RISE = 4;
 export const constructionPlasterTextureGLSL = `
 uniform highp sampler2DArray material_PlasterColors;
 uniform highp sampler2D material_PlasterMortar;
@@ -42,7 +44,7 @@ vec2 plasterField(vec2 uv,float wear,float wallLength) {
  float seam=smoothstep(max(0.0,wallLength-1.0),wallLength,uv.x);
  float noise=plasterNativeNoise(uv*.5+.5+offset,5);
  if(seam>0.0) noise=mix(noise,plasterNativeNoise(vec2(wallLength-uv.x,uv.y)*.5+.5+offset,5),seam);
- return vec2(noise+wear*.5,smoothstep(0.0,4.0,uv.y));
+ return vec2(noise+wear*.5,smoothstep(0.0,${PLASTER_RISE.toFixed(1)},uv.y));
 }
 // Returns surviving coverage, continuous mortar exposure, rim height field.
 vec3 plasterSurface(vec2 uv,float wear,float wallLength,float boundaryDistance) {

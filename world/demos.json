@@ -18,18 +18,6 @@
     "owner": "animals"
   },
   {
-    "entry": "demos/building-components/index.html",
-    "title": "建筑组件编辑",
-    "mode": "static",
-    "owner": "building"
-  },
-  {
-    "entry": "demos/building-components/recursive.html",
-    "title": "建筑构件 · 欧式生成",
-    "mode": "static",
-    "owner": "building"
-  },
-  {
     "entry": "demos/canyon-shape-study/index.html",
     "title": "峡谷轮廓 · OBB 覆盖实验",
     "mode": "static",

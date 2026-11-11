@@ -1,23 +1,11 @@
-import { European } from "./European";
+// Public building API: the European style generators, the scene manager and components, and
+// the conversion of a draft to a Prefab Source. Drafts are core drafts (see ../../core).
+import { European } from "../../application/European";
 export const Building = { European };
-export * from "./European";
-export * from "./BuildingDraft";
-export * from "./BuildingGenerators";
-export * from "./BuildingDesign";
-export * from "./BuildingImplementation";
+export * from "../../application/European";
+export type { BuildingCoreDraft as BuildingDraft } from "../../core";
+export { validateBuildingDraft } from "./BuildingCpu";
 export * from "./BuildingManager";
 export * from "./BuildingPartComponent";
-export * from "./BuildingSource";
-
-export * from "./Steps";
-import "../supports/PointSupport";
-import "../supports/PathSupport";
-import "../supports/MeshSupport";
-import "../algorithms/PlaceAtPoint";
-import "../algorithms/AlongPath";
-import "../algorithms/SurfaceGrid";
-export * from "./BuildingDesignRules";
-
 export * from "./BuildingGroupComponent";
-
-export * from "./BuildingDesignIdentity";
+export * from "./BuildingSource";

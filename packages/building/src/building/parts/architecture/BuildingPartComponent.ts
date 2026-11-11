@@ -1,11 +1,11 @@
 import { isInGeneratedBuildingOutput } from "../BuildingGeneratedOutput";
 import { buildingAuthorMarker } from "./BuildingAuthorMarker";
-import { copyBuildingValue, retainBuildingResources } from "../BuildingAlgorithms";
 import { Component, Loader, Entity } from "@galacean/engine";
-import type { BuildingBasePart, BuildingRelation } from "./BuildingDraft";
+import type { BuildingPartDef, ConnectionDef } from "../../core";
 import { BuildingManager } from "./BuildingManager";
 
-/** One flat architectural part. Node hierarchy owns grouping; units are not recursively expanded. */
+/** One flat building part: a core part definition and the author connections it starts.
+ * Node hierarchy owns grouping; units are not recursively expanded. */
 export class BuildingPartComponent extends Component {
   readonly [buildingAuthorMarker] = true;
   private _inputRevision = 0;
@@ -28,23 +28,22 @@ export class BuildingPartComponent extends Component {
     this._frame = value;
     this.changed();
   }
-  private _definition: BuildingBasePart | null = null;
-  private _relations: BuildingRelation[] = [];
-  get definition(): BuildingBasePart | null {
-    return copyBuildingValue(this._definition);
+  private _definition: BuildingPartDef | null = null;
+  private _connections: ConnectionDef[] = [];
+  get definition(): BuildingPartDef | null {
+    return structuredClone(this._definition);
   }
-  set definition(value: BuildingBasePart | null) {
-    const next = copyBuildingValue(value);
-    retainBuildingResources(next, 1);
-    retainBuildingResources(this._definition, -1);
-    this._definition = next;
+  set definition(value: BuildingPartDef | null) {
+    this._definition = structuredClone(value);
     this.changed();
   }
-  get relations(): BuildingRelation[] {
-    return structuredClone(this._relations);
+  /** Author connections this part starts: those where it is the guest of an attach, or the
+   * first part of a join. */
+  get connections(): ConnectionDef[] {
+    return structuredClone(this._connections);
   }
-  set relations(value: BuildingRelation[]) {
-    this._relations = structuredClone(value);
+  set connections(value: ConnectionDef[]) {
+    this._connections = structuredClone(value ?? []);
     this.changed();
   }
   _onEnableInScene(): void {
@@ -56,11 +55,7 @@ export class BuildingPartComponent extends Component {
   _onDisableInScene(): void {
     BuildingManager.existing(this.entity.scene!)?.unregister(this);
   }
-  _onClone(target: BuildingPartComponent): void {
-    retainBuildingResources(target._definition, 1);
-  }
   protected override _onDestroy(): void {
-    retainBuildingResources(this._definition, -1);
     this._definition = null;
     if (this.entity.scene && !isInGeneratedBuildingOutput(this.entity))
       BuildingManager.existing(this.entity.scene!)?.invalidate();

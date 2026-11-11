@@ -2,7 +2,7 @@ import * as z from "zod";
 import { defineSeedWorldApiContract } from "../contracts/SeedWorldApiContract.ts";
 import { defineSeedWorldTool } from "./define-seed-world-tool.ts";
 import { jsonObjectSchema } from "./tool-contract.ts";
-import type { BuildingDraft } from "@galacean/engine-building/building/parts/architecture/BuildingDraft";
+import type { BuildingCoreDraft } from "@galacean/engine-building/building/core/index";
 
 const vector3 = z.tuple([z.number(), z.number(), z.number()]);
 export const buildingGenerateContract = defineSeedWorldApiContract({
@@ -46,13 +46,13 @@ export function createSeedWorldBuildingTools() {
         signal.throwIfAborted();
         if (Array.isArray(input.parameters) && input.generator !== "European.buildHouses")
           throw Error("Only European.buildHouses accepts multiple parameter objects");
-        const { European } = await import("@galacean/engine-building/building/parts/architecture/European");
+        const { European } = await import("@galacean/engine-building/building/application/European");
         const { buildingDraftSource } = await import(
           "@galacean/engine-building/building/parts/architecture/BuildingSource"
         );
         signal.throwIfAborted();
         const name = input.generator.slice("European.".length) as keyof typeof European;
-        const build: (parameters: never) => BuildingDraft = European[name];
+        const build: (parameters: never) => BuildingCoreDraft = European[name];
         const source = buildingDraftSource(build(input.parameters as never), input.source);
         return {
           content: JSON.stringify({

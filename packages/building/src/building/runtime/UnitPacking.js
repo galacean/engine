@@ -166,6 +166,8 @@ export async function packUnits(spec) {
     for (const k of ["center", "tangent", "bitangent", "normal", "size"]) vector(c[k], 3);
     if (c.brick_deformation !== undefined) vector(c.brick_deformation, 4);
     if (c.brick_seed !== undefined) uint(c.brick_seed);
+    if (c.brick_accent !== undefined && typeof c.brick_accent !== "boolean") throw Error("Invalid accent flag");
+    if (c.brick_span !== undefined) vector(c.brick_span, 2);
     if (c.logical_id !== undefined && typeof c.logical_id !== "string") throw Error("Invalid logical ID");
     if (c.seed_id !== undefined && (typeof c.seed_id !== "string" || !c.seed_id)) throw Error("Invalid seed identity");
   }
@@ -192,7 +194,14 @@ export async function packUnits(spec) {
     [...mat, ...c.center].forEach((x, i) => bv.setFloat32(i * 4, x, true));
     if (c.brick_deformation) c.brick_deformation.forEach((x, i) => bv.setFloat32(48 + i * 4, x, true));
     [16, 17, 18].forEach((i) => bv.setFloat32(i * 4, -100, true));
-    bv.setUint32(76, c.brick_seed ?? seed, true);
+    // The brick shader draws seeds below 10 as accent stones.
+    const brickSeed = c.brick_seed ?? seed;
+    bv.setUint32(
+      76,
+      c.brick_accent === undefined ? brickSeed : c.brick_accent ? brickSeed % 10 : 10 + (brickSeed % 0x7ffffff0),
+      true
+    );
+    if (c.brick_span) c.brick_span.forEach((x, i) => bv.setFloat32(84 + i * 4, x, true));
     bv.setUint32(80, slot, true);
     bv.setUint32(92, c.brick_flags === undefined ? 0 : uint(c.brick_flags), true);
     result.brick.set(encodeBrick96(b), index * 64);
@@ -202,6 +211,7 @@ export async function packUnits(spec) {
     w.setInt32(48, seed, true);
     w.setInt32(52, seed, true);
     w.setUint32(56, slot, true);
+    if (c.plank_flags !== undefined) w.setUint32(60, uint(c.plank_flags), true);
     if (design) {
       result.roof_tile.set(design.get(c.id), index * 64);
       return;

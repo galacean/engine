@@ -7,19 +7,6 @@ import { constructionWallRoofJoint, wallRoofJointHeight } from "./ConstructionWa
 import { resolveConstructionFoundation } from "./ConstructionFoundation";
 import { publishWallProfile, type TerrainHeight } from "./PublishedWallProfile";
 
-/** Bake an authored horizontal node frame into a profile support. Native scene
- * collection and offline planning use the same arithmetic/order. */
-export function transformProfileFootprint(input: ProfileFootprint, m: ArrayLike<number>): ProfileFootprint {
-  const shape = input.rectangle ?? input.circle;
-  if (!shape) return {};
-  const [x, z] = shape.center;
-  const center = [m[0] * x + m[8] * z + m[12], m[2] * x + m[10] * z + m[14]];
-  const turn = Math.atan2(m[2], m[0]);
-  return input.rectangle
-    ? { rectangle: { ...input.rectangle, center, rotation: input.rectangle.rotation + turn } }
-    : { circle: { ...input.circle!, center, phase: input.circle!.phase + turn } };
-}
-
 export function profileShape(b: ProfileFootprint): WallConnectionShape {
   if (b.circle)
     return {
