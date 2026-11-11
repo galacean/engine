@@ -246,13 +246,15 @@ export class AudioSource extends Component {
     this.stop();
   }
 
+  /**
+   * The gain is set through `AudioParam.value`. The Web Audio spec defines that as `setValueAtTime(value, currentTime)`,
+   * and it is the only form some runtimes provide (Douyin mini-games have no `AudioParam.setValueAtTime`).
+   */
   private _ensureGainNode(): GainNode {
     let gainNode = this._gainNode;
     if (!gainNode) {
       this._gainNode = gainNode = AudioManager.getContext().createGain();
       gainNode.connect(AudioManager.getGainNode());
-      // Setting `value` is equivalent to `setValueAtTime(value, currentTime)` in the Web Audio spec, and is the only
-      // form some runtimes provide (Douyin mini-games have no AudioParam.setValueAtTime)
       gainNode.gain.value = this._volume;
     }
     return gainNode;
