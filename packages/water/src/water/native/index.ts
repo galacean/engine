@@ -72,6 +72,7 @@ export {
 export { compileWaterConnectionGraph, type WaterConnectionAuthoringBody } from "./WaterConnectionAuthoring";
 export type { WaterBodyConnection } from "./WaterConnections";
 export {
+  resolveWaterMaterialFileLook,
   createWaterMaterialDefaults,
   createWaterMaterialFile,
   prepareWaterMaterial,
@@ -80,3 +81,9 @@ export {
   type WaterMaterialFile,
   type WaterMaterialProfile
 } from "./WaterMaterial";
+
+export {
+  getWaterSurfaceAppearanceQualityBudget,
+  resolveWaterSurfaceAppearanceForQuality,
+  type WaterSurfaceAppearanceQualityBudget
+} from "../authoring/quality/WaterSurfaceAppearanceQuality";

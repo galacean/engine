@@ -195,3 +195,54 @@ it("rejects a partial null-target connection without replacing accepted authorin
     await f.close();
   }
 });
+
+it("renders a shared builtin lake at independent tiers and restores high after low and disable", async () => {
+  const f = await fixture("lake");
+  try {
+    const a = f.scene.createRootEntity("Quality lake A").addComponent(WaterBodyComponent);
+    const b = f.scene.createRootEntity("Quality lake B").addComponent(WaterBodyComponent);
+    b.authoring = { ...f.authoring, quality: { ...f.authoring.quality, surfaceShading: "high" } };
+    let highShader: Shader | undefined;
+    const materialFor = (owner: WaterBodyComponent) => {
+      const renderers: MeshRenderer[] = [];
+      for (const root of f.scene.rootEntities) root.getComponentsIncludeChildren(MeshRenderer, renderers);
+      const renderer = renderers.find((renderer) => f.system.resolveRenderOwner(renderer.entity) === owner);
+      expect(renderer).toBeDefined();
+      return renderer!.getMaterial()!;
+    };
+    for (const surfaceShading of ["high", "low", "medium", "high"] as const) {
+      a.authoring = { ...f.authoring, quality: { ...f.authoring.quality, surfaceShading } };
+      await (
+        await f.system.prepareBatch([a, b].map((body) => ({ body, configuration: body._compileAuthoring() })))
+      ).commit().retiredCleanup;
+      const aMaterial = materialFor(a),
+        bMaterial = materialFor(b);
+      expect(bMaterial.shader).toBe(f.material.shader);
+      if (surfaceShading === "high") {
+        highShader ??= aMaterial.shader;
+        expect(aMaterial.shader).toBe(highShader);
+        expect(aMaterial.shader).toBe(f.material.shader);
+      } else expect(aMaterial.shader).not.toBe(f.material.shader);
+      const secondTexture = aMaterial.shaderData.getTexture("material_AppearanceV2Detail1Texture");
+      expect(!!secondTexture).toBe(surfaceShading !== "low");
+      expect(!!bMaterial.shaderData.getTexture("material_AppearanceV2Detail1Texture")).toBe(true);
+      f.engine.update();
+      expect(f.system.sample(0, 0).water).toBe(true);
+      expect(a.lastError).toBeUndefined();
+    }
+    f.resume();
+    await f.system.flushAuthoring();
+    a.authoring = { ...f.authoring, quality: { ...f.authoring.quality, surfaceShading: "low" } };
+    await f.system.flushAuthoring();
+    await f.system.setRuntimeEnabled(false);
+    await f.system.setRuntimeEnabled(true);
+    expect(materialFor(a).shader).not.toBe(highShader);
+    expect(materialFor(a).shaderData.getTexture("material_AppearanceV2Detail1Texture")).toBeFalsy();
+    a.authoring = { ...f.authoring, quality: { ...f.authoring.quality, surfaceShading: "high" } };
+    await f.system.flushAuthoring();
+    expect(materialFor(a).shader).toBe(highShader);
+    f.engine.update();
+  } finally {
+    await f.close();
+  }
+});

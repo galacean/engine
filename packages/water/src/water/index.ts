@@ -124,3 +124,10 @@ export * from "./authoring/river/WatercourseGeometry";
 
 export { evaluateRiverCatmullRom, evaluateRiverCubicBezier } from "./authoring/river/RiverCurve";
 export type { RiverCurvePoint } from "./authoring/river/RiverCurve";
+
+export {
+  getWaterSurfaceAppearanceQualityBudget,
+  resolveWaterSurfaceAppearanceForQuality,
+  type WaterSurfaceAppearanceQualityBudget
+} from "./authoring/quality/WaterSurfaceAppearanceQuality";
+export { resolveWaterMaterialFileLook } from "./native/WaterMaterialFile";
