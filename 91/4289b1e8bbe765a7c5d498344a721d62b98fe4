@@ -11,6 +11,10 @@ packages/world-planning/src/spatial/WorldTemplatePlanning.ts
   s_0ad7efa77c17be::t_f0ec5297d52433 62
 packages/world-planning/src/spatial/WorldTemplateArtDirection.ts
   s_0ad7efa77c17be::t_974f102a8cfca6 878,880-881
+world/demos/seed-world/SeedWorldDemo.ts
+  s_0ad7efa77c17be::t_6724bb6bea0bc5 241,412,1737-1759
+world/demos/seed-world/src/SeedWorldSandstorm.ts
+  s_0ad7efa77c17be::t_6724bb6bea0bc5 1-102
 ---
 {
   "schema_version": "authorship/3.0.0",
