@@ -868,7 +868,7 @@ export const WORLD_TEMPLATE_ART: Readonly<Record<string, WorldTemplateArtDirecti
     grassGroundFusion: false,
     initialPlanning: {
       landMode: "continuous",
-      relief: { reliefNearAmplitudeM: 9, reliefAmplitudeM: 35, reliefFarAmplitudeM: 110, reliefScaleM: 256 },
+      relief: { reliefNearAmplitudeM: 8, reliefAmplitudeM: 26, reliefFarAmplitudeM: 76, reliefScaleM: 256 },
       roadsEnabled: false,
       farmingEnabled: false,
       poiMemberMax: 0,

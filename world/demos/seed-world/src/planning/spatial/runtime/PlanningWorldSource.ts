@@ -1,5 +1,5 @@
 import { createSeedPlanningDocument } from "@galacean/engine-world-planning/spatial/PlanningInitialization";
-import { applyPlanningTemplateSurface, initialPlanningTemplate } from "../PlanningStartupTemplate.ts";
+import { applyPlanningTemplateSurface, initialPlanningTemplate, updateDesertPreviewRelief } from "../PlanningStartupTemplate.ts";
 import { resetPlanningFarmSaveChoice } from "../farming/PlanningFarmSave.ts";
 import { PlanningSession, type PlanningSessionOptions } from "@galacean/engine-world-planning/spatial/PlanningSession";
 import { exportPlanningRecipe, type PlanningDocument } from "@galacean/engine-world-planning/spatial/PlanningDocument";
@@ -21,11 +21,15 @@ export async function createPlanningWorldSource(search: string, handoff: Plannin
   load(seed: number): Promise<PlanningDocument | undefined>; save(document: PlanningDocument): Promise<void>;
   initialize?(document: PlanningDocument, result: SemanticResult): Promise<PlanningDocument>;
 }) {
-  const raw = new URLSearchParams(search).get("seed");
+  const query = new URLSearchParams(search);
+  const raw = query.get("seed");
   const seed = raw !== null && /^\d+$/.test(raw) && Number(raw) <= 0xffffffff ? Number(raw) : SEMANTIC_DEFAULTS.seed;
   let document = handoff?.document ?? await storage.load(seed);
   let replaceSavedTemplate = false;
-  if (!handoff && document) resetPlanningFarmSaveChoice(document);
+  if (!handoff && document) {
+    resetPlanningFarmSaveChoice(document);
+    if (import.meta.env.DEV && query.get("desertSkyLab") === "1") updateDesertPreviewRelief(document);
+  }
   const client = new PlanningWorkerClient();
   if (!handoff) {
     const template = initialPlanningTemplate(search, seed,

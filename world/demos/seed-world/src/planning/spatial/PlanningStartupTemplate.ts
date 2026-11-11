@@ -1,5 +1,6 @@
 import type { PlanningDocument } from "@galacean/engine-world-planning/spatial/PlanningDocument";
 import { worldTemplate } from "@galacean/engine-world-planning/spatial/WorldTemplateCatalog";
+import { WORLD_TEMPLATE_ART } from "@galacean/engine-world-planning/spatial/WorldTemplateArtDirection";
 
 const rippleNormal = new URL("../../../assets/terrain-surface/RippleNormal.png", import.meta.url);
 const microNormal = new URL("../../../assets/terrain-surface/MicroNormal.png", import.meta.url);
@@ -41,4 +42,18 @@ export function applyPlanningTemplateSurface(document: PlanningDocument): void {
     surfaceNormalScale: 1,
     surfaceMicroNormalTextureUrl: microNormal.href
   });
+}
+
+/** Refreshes an older desert preview that still carries the original template relief values. */
+export function updateDesertPreviewRelief(document: PlanningDocument): void {
+  const { worldTemplate, terrain } = document.entities.world.components;
+  if (worldTemplate?.values.id !== "titan-wasteland" || !terrain) return;
+  const values = terrain.values;
+  if (
+    values.reliefNearAmplitudeM !== 9 ||
+    values.reliefAmplitudeM !== 35 ||
+    values.reliefFarAmplitudeM !== 110 ||
+    values.reliefScaleM !== 256
+  ) return;
+  Object.assign(values, WORLD_TEMPLATE_ART["titan-wasteland"].initialPlanning?.relief);
 }

@@ -89,7 +89,7 @@ describe("authored world templates", () => {
     const recipe = exportPlanningRecipe(restored);
     expect(recipe.parameters.landMode).toBe("continuous");
     expect(recipe.parameters).toMatchObject({
-      reliefNearAmplitudeM: 9, reliefAmplitudeM: 35, reliefFarAmplitudeM: 110, reliefScaleM: 256
+      reliefNearAmplitudeM: 8, reliefAmplitudeM: 26, reliefFarAmplitudeM: 76, reliefScaleM: 256
     });
     expect(recipe.parameters.poiLayout?.network.enabled).toBe(false);
     expect(recipe.parameters.farming?.enabled).toBe(false);
@@ -97,10 +97,10 @@ describe("authored world templates", () => {
     const result = generatePlanningDocument(restored);
     expect(result.accepted).toBe(true);
     const { plan } = result;
-    expect(plan.parameters).toMatchObject({ width: 1024, depth: 1024, reliefAmplitudeM: 35, reliefScaleM: 256 });
+    expect(plan.parameters).toMatchObject({ width: 1024, depth: 1024, reliefAmplitudeM: 26, reliefScaleM: 256 });
     const uniformFbm = {
       ...plan,
-      parameters: { ...plan.parameters, reliefNearAmplitudeM: 35, reliefFarAmplitudeM: 35 }
+      parameters: { ...plan.parameters, reliefNearAmplitudeM: 26, reliefFarAmplitudeM: 26 }
     };
     const stepped = planningGroundSurface(plan);
     const uniform = planningGroundSurface(uniformFbm);
@@ -854,7 +854,7 @@ describe("authored world templates", () => {
       expect(() => applySpatialCommands(doc, [], planningRegistry)).not.toThrow();
       const recipe = exportPlanningRecipe(doc);
       expect(recipe.parameters.worldTemplate?.id).toBe(template.id);
-      expect(recipe.parameters.landformSeed).toBe(templateBaseSeed(template.id));
+      expect(recipe.parameters.landformSeed).toBe(art.initialPlanning?.relief ? 7 : templateBaseSeed(template.id));
       const core = structuredClone(doc.authoredResources);
       const restored = importPlanningScene(JSON.parse(JSON.stringify(exportPlanningScene(doc))));
       expect(exportPlanningRecipe(restored)).toEqual(recipe);
@@ -880,9 +880,9 @@ describe("authored world templates", () => {
       sameShape.parameters.landCoverage = a.parameters.landCoverage;
       sameShape.parameters.complexity = a.parameters.complexity;
       expect(createSpatialTerrainPlan(sameShape).land).toEqual(terrainA.land);
-      expect(terrainA.parameters.terrainPatches!.map((p) => [p.x, p.z])).toEqual(
-        terrainB.parameters.terrainPatches!.map((p) => [p.x, p.z])
-      );
+      const anchors = (terrain: typeof terrainA) => terrain.parameters.terrainPatches!.map((p) => [p.x, p.z]);
+      if (art.initialPlanning?.relief) expect(anchors(terrainA)).not.toEqual(anchors(terrainB));
+      else expect(anchors(terrainA)).toEqual(anchors(terrainB));
       expect(a.parameters.terrainSkeleton!.heightM / template.terrain.heightM).toBeGreaterThanOrEqual(0.94);
       expect(a.parameters.terrainSkeleton!.heightM / template.terrain.heightM).toBeLessThanOrEqual(1.06);
       expect(b.parameters.terrainSkeleton!.heightM / template.terrain.heightM).toBeGreaterThanOrEqual(0.94);
