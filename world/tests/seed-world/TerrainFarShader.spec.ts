@@ -11,6 +11,21 @@ const terrain = JSON.parse(
 const forward = terrain.subShaders[0].passes.find((pass) => pass.name === "Forward");
 
 describe("Terrain near/far production shader variants", () => {
+  it("keeps per-pixel baked slopes on distant sand without sampling the micro normal", () => {
+    const macros = new Map([
+      ["GRAPHICS_API_WEBGL2", ""],
+      ["SCENE_FOG_MODE", "1"],
+      ["MATERIAL_TERRAIN_LAYERS", ""],
+      ["MATERIAL_TERRAIN_SAND_RIPPLE", ""],
+      ["MATERIAL_TERRAIN_MICRO_NORMAL", ""],
+      ["MATERIAL_TERRAIN_FAR", ""]
+    ]);
+    const farSand = ShaderMacroProcessor.evaluate(forward.fragmentShaderInstructions, macros);
+    expect(farSand).toMatch(/bakedNormal\s*=\s*terrainProjectGeometryNormalAt\s*\(\s*worldXZ/);
+    expect(farSand).not.toContain("material_TerrainMicroNormal");
+    expect(farSand).not.toContain("material_TerrainSandRippleParams");
+  });
+
   it.each(["untextured", "soil", "multiple-regions"])(
     "preserves layer data and removes distant detail samplers (%s)",
     (layout) => {
