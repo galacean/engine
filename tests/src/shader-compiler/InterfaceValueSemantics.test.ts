@@ -56,9 +56,25 @@ const cases: {
   source: string;
   pixel: number[];
   macros?: Map<string, string>;
+  uniforms?: Record<string, number>;
+  outputName?: string;
   targets?: ShaderLanguage[];
   paths?: CompilationPath[];
 }[] = [
+  {
+    name: "uniform and varying member retain independent identities",
+    source: valueShader("Varyings v; v.a = a; return v;", "float a;"),
+    uniforms: { a: 0.25 },
+    outputName: "io_a",
+    pixel: [64, 0, 0, 255]
+  },
+  {
+    name: "generated outputs avoid uniform names and occupied suffixes",
+    source: valueShader("Varyings v; v.a = a + io_a + io_a_1; return v;", "float a; float io_a; float io_a_1;"),
+    uniforms: { a: 0.125, io_a: 0.25, io_a_1: 0.125 },
+    outputName: "io_a_2",
+    pixel: [128, 0, 0, 255]
+  },
   {
     name: "constructor values reach the fragment interface",
     source: valueShader("Varyings v = Varyings(0.25); return v;"),
@@ -309,7 +325,7 @@ describe.runIf(typeof document !== "undefined")("interface value semantics on We
           (fixture) =>
             (!fixture.targets || fixture.targets.includes(target)) && (!fixture.paths || fixture.paths.includes(path))
         )
-      )(`${path}, target ${target}: $name`, ({ source, pixel: expected, macros = new Map() }) => {
+      )(`${path}, target ${target}: $name`, ({ source, pixel: expected, macros = new Map(), uniforms, outputName }) => {
         const canvas = document.createElement("canvas");
         canvas.width = canvas.height = 1;
         const gl = canvas.getContext(target === ShaderLanguage.GLSLES300 ? "webgl2" : "webgl", {
@@ -321,6 +337,7 @@ describe.runIf(typeof document !== "undefined")("interface value semantics on We
         let vertices: WebGLBuffer | null = null;
         try {
           const program = compile(source, target, path);
+          if (outputName) expect(program.interfaceBindings?.vertexOutputs.a).toBe(outputName);
           for (const [kind, instructions] of [
             [gl.VERTEX_SHADER, program.vertexShaderInstructions!],
             [gl.FRAGMENT_SHADER, program.fragmentShaderInstructions!]
@@ -337,6 +354,11 @@ describe.runIf(typeof document !== "undefined")("interface value semantics on We
           gl.linkProgram(linked);
           expect(gl.getProgramParameter(linked, gl.LINK_STATUS), gl.getProgramInfoLog(linked) ?? "").toBe(true);
           gl.useProgram(linked);
+          for (const [name, value] of Object.entries(uniforms ?? {})) {
+            const location = gl.getUniformLocation(linked, name);
+            expect(location, `uniform ${name} must retain its external binding`).not.toBeNull();
+            gl.uniform1f(location, value);
+          }
           const position = gl.getAttribLocation(linked, "POSITION");
           if (position >= 0) {
             vertices = gl.createBuffer();
