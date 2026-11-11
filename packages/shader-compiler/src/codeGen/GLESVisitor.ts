@@ -24,6 +24,7 @@ import type {
   DeferredDeclarationOwnership
 } from "@galacean/engine-shader-parser/internal";
 import { CodeGenVisitor } from "./CodeGenVisitor";
+import { isUnsafeGLSLIdentifier } from "./NameAllocator";
 import { ICodeSegment } from "./types";
 import type { ShaderBackend } from "../ShaderBackend";
 import { ShaderInstructionEncoder } from "../ShaderInstructionEncoder";
@@ -34,8 +35,10 @@ import { ShaderInstructionEncoder } from "../ShaderInstructionEncoder";
 export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBackend, IPoolElement {
   protected readonly supportsArrayStructReturn: boolean = true;
   protected readonly inlineVoidFragmentEntry: boolean = false;
-  private readonly _varyingAliases = new Map<string, string>();
-  private readonly _wholeStructs = new Set<ASTNode.StructSpecifier>();
+  /** Names of pass-scope declarations, which stage-interface globals must not redeclare. */
+  private readonly _globalNames = new Set<string>();
+  /** Declaration tokens of interface variables whose source names GLSL ES rejects. */
+  private readonly _escapedDeclarations = new Map<BaseToken, string>();
   private readonly _fragmentVaryingProps = new Set<StructProp>();
   private readonly _globalInputs = new Map<EShaderStage, VarSymbol[]>();
   private readonly _inputHelperBodies = new Map<TreeNode, string>();
@@ -78,8 +81,8 @@ export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBacken
   dispose(): void {
     this.context.reset();
     this.context.names.reset();
-    this._wholeStructs.clear();
-    this._varyingAliases.clear();
+    this._globalNames.clear();
+    this._escapedDeclarations.clear();
     this.reset();
   }
 
@@ -111,15 +114,20 @@ export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBacken
   generate(ir: ShaderClueIR, coreInfo: ShaderCoreInfo): IShaderInfo {
     this.context.reset();
     this.context.names.reset();
-    this._wholeStructs.clear();
-    this._varyingAliases.clear();
+    this._globalNames.clear();
+    this._escapedDeclarations.clear();
     this.reset();
 
     const node = ir.program;
     const shaderData = node.shaderData;
     const context = this.context;
     context._passSymbolTable = shaderData.symbolTable;
-    for (const name of ir.source.match(/[A-Za-z_][A-Za-z0-9_]*/g) ?? []) context.names.reserve(name);
+    let hasUnsafeIdentifier = false;
+    for (const name of ir.source.match(/[A-Za-z_][A-Za-z0-9_]*/g) ?? []) {
+      context.names.reserve(name);
+      hasUnsafeIdentifier ||= isUnsafeGLSLIdentifier(name);
+    }
+    shaderData.symbolTable.forEach((symbol) => this._globalNames.add(symbol.ident));
 
     const outerGlobalMacroDeclarations = coreInfo.outerGlobalMacroDeclarations;
     const { io } = coreInfo;
@@ -139,6 +147,7 @@ export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBacken
     io.fragmentStructVariableRoles.forEach((role, variable) => {
       context.registerStructVar(variable, role, EShaderStage.FRAGMENT);
     });
+    if (hasUnsafeIdentifier) this._collectEscapedDeclarations(node);
 
     this._globalInputs.clear();
     for (const [stage, variables] of [
@@ -171,12 +180,9 @@ export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBacken
         }
       }
       if (this._declarationOwners.size) {
+        // `nextInputOwner` already exceeds every owner id and group.
         let nextId = nextInputOwner;
         let nextGroup = nextInputOwner;
-        this._declarationOwners.forEach((owner) => {
-          nextId = Math.max(nextId, owner.id);
-          nextGroup = Math.max(nextGroup, owner.group);
-        });
         // Reachability follows the selected declaration, including dependencies without an override.
         shaderData.symbolTable.forEach((symbol) => {
           if (symbol.astNode && !this._declarationOwners.has(symbol.astNode)) {
@@ -217,11 +223,7 @@ export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBacken
       this._fragmentVaryingProps.clear();
       const fragment = this._fragmentMain(coreInfo.fragmentEntry, shaderData, outerGlobalMacroDeclarations);
       const vertex = this._vertexMain(coreInfo.vertexEntry, shaderData, outerGlobalMacroDeclarations);
-      return {
-        vertex,
-        fragment,
-        interfaceBindings: { vertexOutputs: Object.fromEntries(this._varyingAliases) }
-      };
+      return { vertex, fragment };
     } finally {
       this._sourceIR = undefined;
       this._outerMacroDeclarations = [];
@@ -230,8 +232,8 @@ export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBacken
       context.onReferenceGlobal = undefined;
       context.onReferenceStructProps = undefined;
       this._fragmentVaryingProps.clear();
-      this._wholeStructs.clear();
-      this._varyingAliases.clear();
+      this._globalNames.clear();
+      this._escapedDeclarations.clear();
       context.reset();
       context.names.reset();
     }
@@ -328,12 +330,87 @@ export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBacken
     this._currentDeclaration = undefined;
   }
 
-  /** Resolves the shared wire name for a logical stage-interface member. */
+  /**
+   * Resolves the global name of a varying or fragment output member.
+   * Only generated transfer functions read or write these globals, so source locals cannot shadow them. The member
+   * name stays the external name, for example for Transform Feedback, unless a pass-scope declaration already uses it.
+   * @param prop - Interface member
+   * @returns Name shared by both stages
+   */
   protected interfaceName(prop: StructProp): string {
-    const role = prop.mrtIndex === undefined ? "varying" : "output";
-    const name = this.context.names.allocate(`${role}:${prop.ident.lexeme}`, `io_${prop.ident.lexeme}`);
-    if (role === "varying" && this.context.stage === EShaderStage.VERTEX)
-      this._varyingAliases.set(prop.ident.lexeme, name);
+    const context = this.context;
+    const name = prop.ident.lexeme;
+    const isOutput = prop.mrtIndex !== undefined;
+    const sameName = (item: StructProp) => item.ident.lexeme === name;
+    const conflicts =
+      this._globalNames.has(name) ||
+      // Vertex attributes and fragment outputs share a stage scope with varyings.
+      (!isOutput && (context.attributeList.some(sameName) || context.mrtList.some(sameName)));
+    return conflicts ? context.names.allocate(`${isOutput ? "output" : "varying"}:${name}`, name) : name;
+  }
+
+  /**
+   * Spells an interface-typed variable. The previous lowering erased these variables, so their names never reached
+   * the driver. Names that GLSL ES rejects, such as `input` and `output`, therefore stay legal by escaping.
+   * @param name - Source name
+   * @param structs - Struct declarations of the variable type
+   * @returns The escaped name, or the source name when no escape is necessary
+   */
+  private _interfaceVariableName(name: string, structs: readonly ASTNode.StructSpecifier[] | undefined): string {
+    return structs?.length && this.context.getStructRole(structs) && isUnsafeGLSLIdentifier(name)
+      ? this.context.names.allocate(`variable:${name}`, `${name}_`)
+      : name;
+  }
+
+  private _collectEscapedDeclarations(node: TreeNode): void {
+    let identifier: BaseToken | undefined;
+    let structs: readonly ASTNode.StructSpecifier[] | undefined;
+    if (node instanceof ASTNode.ParameterDeclarator) {
+      identifier = node.ident;
+      structs = node.typeInfo?.structDeclarations;
+    } else {
+      // Local, global and multi-variable declarations share the parser's `declarator` record.
+      const { declarator } = node as {
+        declarator?: { identifier?: BaseToken; typeInfo?: { structDeclarations: readonly ASTNode.StructSpecifier[] } };
+      };
+      identifier = declarator?.identifier;
+      structs = declarator?.typeInfo?.structDeclarations;
+    }
+    if (identifier) {
+      const name = this._interfaceVariableName(identifier.lexeme, structs);
+      if (name !== identifier.lexeme) this._escapedDeclarations.set(identifier, name);
+    }
+    for (const child of node.children) {
+      if (child instanceof TreeNode) this._collectEscapedDeclarations(child);
+    }
+  }
+
+  protected override tokenLexeme(token: BaseToken): string {
+    return this._escapedDeclarations.get(token) ?? token.lexeme;
+  }
+
+  private _escapedReference(node: ASTNode.VariableIdentifier): string | undefined {
+    const token = node.children[0];
+    if (!this._escapedDeclarations.size || !(token instanceof BaseToken) || !isUnsafeGLSLIdentifier(token.lexeme)) {
+      return undefined;
+    }
+    const symbols = node.resolvedValueSymbols();
+    if (!symbols.length) {
+      // Macro values can lack symbols. The stage's unambiguous name-to-role map binds them, as for member access.
+      return this.context.getUnresolvedStructVarRole(token.lexeme)
+        ? this.context.names.allocate(`variable:${token.lexeme}`, `${token.lexeme}_`)
+        : undefined;
+    }
+    let name: string | undefined;
+    for (const symbol of symbols) {
+      const candidate =
+        symbol instanceof VarSymbol
+          ? this._interfaceVariableName(token.lexeme, symbol.dataType?.structDeclarations)
+          : token.lexeme;
+      // Branch candidates must agree, otherwise the reference keeps its source spelling.
+      if (name !== undefined && name !== candidate) return undefined;
+      name = candidate;
+    }
     return name;
   }
 
@@ -373,8 +450,9 @@ export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBacken
           ? context._referencedVaryingList
           : context._referencedMRTList;
     const used = (prop: StructProp) => !!references[prop.ident.lexeme]?.includes(prop);
-    const retain = (prop: StructProp) =>
-      this.supportsArrayStructReturn || !this._containsArray(prop) || used(prop) || this._wholeStructs.has(node);
+    // Interface members have no array wire form, and GLSL ES 1.00 functions cannot return structures that contain
+    // arrays. GLES100 therefore omits array members from interface structures.
+    const retain = (prop: StructProp) => this.supportsArrayStructReturn || !this._containsArray(prop);
     const declaration = (prop: StructProp) =>
       `${prop.typeInfo.typeLexeme} ${prop.ident.lexeme}${prop.typeInfo.arraySpecifier?.codeGen(this) ?? ""};`;
     let structCode: string;
@@ -461,7 +539,6 @@ export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBacken
   }
 
   private _observeWholeStruct(struct: ASTNode.StructSpecifier): void {
-    this._wholeStructs.add(struct);
     const role = this.context.getStructRole([struct]);
     for (const prop of struct.propList) {
       if (role === ShaderStructRole.Attribute) this.context.referenceAttribute(prop.ident);
@@ -479,9 +556,6 @@ export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBacken
 
   override visitFunctionIdentifier(node: ASTNode.FunctionIdentifier): string {
     const call = node.parent;
-    if (call instanceof ASTNode.FunctionCallGeneric && call.fnSymbol?.astNode instanceof ASTNode.StructSpecifier) {
-      this._wholeStructs.add(call.fnSymbol.astNode);
-    }
     if (
       node.lexeme === "main" &&
       this.context.stageEntry === "main" &&
@@ -501,10 +575,14 @@ export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBacken
       fnNode.protoType.returnType.type === Keyword.VOID &&
       !this._hasIncomingCall(fnNode)
     ) {
-      const parameters = (fnNode.protoType.parameterList ?? []).map((parameter) => {
-        const struct = parameter.typeInfo!.structDeclarations[0];
-        return `${struct.ident!.lexeme} ${parameter.ident!.lexeme} = ${this._transferName(struct, true)}();`;
-      });
+      const parameters: string[] = [];
+      for (const parameter of fnNode.protoType.parameterList ?? []) {
+        const struct = parameter.typeInfo?.structDeclarations[0];
+        if (!parameter.ident || !struct) continue;
+        parameters.push(
+          `${struct.ident!.lexeme} ${this.tokenLexeme(parameter.ident)} = ${this._transferName(struct, true)}();`
+        );
+      }
       const inputs = this._initializeGlobalInputs();
       // Keep legacy fragment built-ins in main, including when the resulting GLES100 is loaded on WebGL2.
       return `void main() {\n${inputs.join("\n")}\n${parameters.join("\n")}\n${fnNode.statements.codeGen(this)}\n}`;
@@ -556,9 +634,10 @@ export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBacken
         const name = this.context.names.allocate(`input-initializer:${owner.group}`, `initialize_${variable.ident}`);
         this._inputHelperGroups.set(owner.group, (group = { name, fallback }));
       }
+      const target = this._interfaceVariableName(variable.ident, variable.dataType!.structDeclarations);
       this._inputHelperBodies.set(
         variable.astNode!,
-        `void ${group.name}() { ${variable.ident} = ${this._transferName(struct, true)}(); }`
+        `void ${group.name}() { ${target} = ${this._transferName(struct, true)}(); }`
       );
       calls.add(`${group.name}();`);
     }
@@ -811,7 +890,7 @@ export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBacken
         );
       }
     }
-    return code;
+    return this._escapedReference(node) ?? code;
   }
 
   private _getForwardDeclarations(out: ICodeSegment[]): void {

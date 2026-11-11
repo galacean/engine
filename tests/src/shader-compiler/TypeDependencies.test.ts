@@ -141,16 +141,16 @@ describe("shader declaration type dependencies", () => {
                 ${testCase.helper}
                 #define SURFACE_HOOK shadeSurface
                 Varyings vertexMain(Attributes attributes) {
-                  Varyings stageOutput;
+                  Varyings output;
                   gl_Position = attributes.POSITION;
-                  stageOutput.uv = attributes.POSITION.xy;
-                  return stageOutput;
+                  output.uv = attributes.POSITION.xy;
+                  return output;
                 }
-                vec4 fragmentMain(Varyings stageInput) {
+                vec4 fragmentMain(Varyings input) {
                   #ifdef MATERIAL_TEST_LIGHT
                     ${testCase.fragment}
                   #else
-                    return vec4(stageInput.uv, 0.0, 1.0);
+                    return vec4(input.uv, 0.0, 1.0);
                   #endif
                 }
               } }

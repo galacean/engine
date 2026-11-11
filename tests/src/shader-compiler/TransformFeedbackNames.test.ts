@@ -1,12 +1,12 @@
 import { Shader, ShaderFactory, ShaderLanguage, ShaderPass, ShaderMacroCollection } from "@galacean/engine-core";
 import { WebGLEngine, WebGLMode } from "@galacean/engine";
-import type { IShaderInterfaceBindings } from "@galacean/engine-design";
 import { ShaderMacroProcessor } from "@galacean/engine-core/src/shader/ShaderMacroProcessor";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
 import { ShaderPrecompiler } from "@galacean/engine-shader-compiler/precompile";
 import { ShaderInstructionEncoder } from "@galacean/engine-shader-compiler/src/ShaderInstructionEncoder";
 import { describe, expect, it } from "vitest";
 
+// The local `feedbackValue` shares the member name, which reproduced issue #3160 before value lowering.
 const source = `Shader "feedback-binding" {
   SubShader "s" { Pass "p" {
     struct Varyings { vec4 feedbackValue; };
@@ -27,7 +27,6 @@ async function capture(
   vertex: string,
   fragment: string,
   varying: string,
-  interfaceBindings?: IShaderInterfaceBindings,
   compiledPass?: ShaderPass
 ): Promise<number[]> {
   const engine = await WebGLEngine.create({
@@ -42,9 +41,7 @@ async function capture(
       "feedback",
       ShaderInstructionEncoder.parse(vertex),
       ShaderInstructionEncoder.parse(fragment),
-      ShaderLanguage.GLSLES300,
-      undefined,
-      interfaceBindings
+      ShaderLanguage.GLSLES300
     );
   const shaderProgram = pass._compileShaderProgram(engine, new ShaderMacroCollection(), [varying]);
   const program = shaderProgram["_glProgram"]!;
@@ -76,10 +73,10 @@ async function capture(
   }
 }
 
-describe("transform feedback interface bindings", () => {
+describe("transform feedback captures interface members by source name", () => {
   for (const target of [ShaderLanguage.GLSLES100, ShaderLanguage.GLSLES300]) {
     for (const precompiled of [false, true]) {
-      it(`captures original field names for target ${target}, precompiled=${precompiled}`, async () => {
+      it(`captures the member name for target ${target}, precompiled=${precompiled}`, async () => {
         const compiler = new ShaderCompiler();
         const parsed = compiler._parseShaderSource(source).subShaders[0].passes[0];
         const program = precompiled
@@ -95,39 +92,28 @@ describe("transform feedback interface bindings", () => {
         const macros = new Map<string, string>();
         let vertex = ShaderMacroProcessor.evaluate(program.vertexShaderInstructions, macros);
         let fragment = ShaderMacroProcessor.evaluate(program.fragmentShaderInstructions, macros);
-        const varying = program.interfaceBindings?.vertexOutputs.feedbackValue;
-        expect(varying).toBeDefined();
         if (target === ShaderLanguage.GLSLES100) {
           vertex = ShaderFactory.convertTo300(vertex);
           fragment = ShaderFactory.convertTo300(fragment, true);
         }
-        expect(await capture(vertex, fragment, "feedbackValue", program.interfaceBindings)).toEqual([
-          0.25, 0.5, 0.75, 1
-        ]);
+        expect(await capture(vertex, fragment, "feedbackValue")).toEqual([0.25, 0.5, 0.75, 1]);
       });
     }
   }
 
   for (const target of [ShaderLanguage.GLSLES100, ShaderLanguage.GLSLES300]) {
-    it(`loads serialized bindings through Shader for target ${target}`, async () => {
-      const collisionSource = source.replace(
-        "float feedbackValue = 0.25;",
-        "float io_feedbackValue = 0.125; float feedbackValue = io_feedbackValue + 0.125;"
-      );
-      const data = JSON.parse(JSON.stringify(new ShaderPrecompiler().precompile(collisionSource, target)));
-      expect(data.subShaders[0].passes[0].interfaceBindings.vertexOutputs.feedbackValue).not.toBe("io_feedbackValue");
+    it(`captures through a serialized Shader for target ${target}`, async () => {
+      const data = JSON.parse(JSON.stringify(new ShaderPrecompiler().precompile(source, target)));
       const shader = Shader._createFromPrecompiled(data);
       try {
-        expect(await capture("", "", "feedbackValue", undefined, shader.subShaders[0].passes[0])).toEqual([
-          0.25, 0.5, 0.75, 1
-        ]);
+        expect(await capture("", "", "feedbackValue", shader.subShaders[0].passes[0])).toEqual([0.25, 0.5, 0.75, 1]);
       } finally {
         shader.destroy();
       }
     });
   }
 
-  it("keeps original bindings for raw GLSL instruction streams", async () => {
+  it("captures raw GLSL instruction streams", async () => {
     const vertex = ShaderMacroProcessor.evaluate(
       ShaderInstructionEncoder.parse(
         "out vec4 feedbackValue; void main() { feedbackValue = vec4(0.25, 0.5, 0.75, 1.0); gl_Position = vec4(0.0); }"

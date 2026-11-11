@@ -15,8 +15,8 @@ Shader "frag-return-vec4-test" {
       vec3 SRGBToLinear(vec3 gamma) { return gamma * gamma; }
       vec3 LinearToSRGB(vec3 linear) { return sqrt(linear); }
 
-      vec4 SurfacesFragmentModifyBaseColorAndTransparency(Varyings stageInput) {
-        vec4 color = texture2D(u_texture, stageInput.v_uv);
+      vec4 SurfacesFragmentModifyBaseColorAndTransparency(Varyings input) {
+        vec4 color = texture2D(u_texture, input.v_uv);
         color.rgb = SRGBToLinear(color.rgb);
         return color;
       }
@@ -31,8 +31,8 @@ Shader "frag-return-vec4-test" {
         return o;
       }
 
-      vec4 frag(Varyings stageInput) {
-        vec4 color = SurfacesFragmentModifyBaseColorAndTransparency(stageInput);
+      vec4 frag(Varyings input) {
+        vec4 color = SurfacesFragmentModifyBaseColorAndTransparency(input);
         color.rgb = LinearToSRGB(color.rgb);
         return color;
       }

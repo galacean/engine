@@ -1,4 +1,4 @@
-import type { IShaderInterfaceBindings, ShaderInstruction } from "@galacean/engine-design";
+import type { ShaderInstruction } from "@galacean/engine-design";
 import { Engine } from "../Engine";
 import { InstanceBuffer } from "../RenderPipeline/InstanceBuffer";
 import { PipelineStage } from "../RenderPipeline/enums/PipelineStage";
@@ -41,8 +41,6 @@ export class ShaderPass extends ShaderPart {
   /** @internal */
   _fragmentShaderInstructions: ShaderInstruction[];
 
-  private readonly _interfaceBindings?: IShaderInterfaceBindings;
-
   /** @internal */
   _shaderPassId: number = 0;
 
@@ -60,15 +58,13 @@ export class ShaderPass extends ShaderPart {
    * @param fragmentShaderInstructions - Precompiled fragment instruction array
    * @param platformTarget - Target shader language
    * @param tags - Tags
-   * @param interfaceBindings - Interface bindings emitted with the shader instructions
    */
   constructor(
     name: string,
     vertexShaderInstructions: ShaderInstruction[],
     fragmentShaderInstructions: ShaderInstruction[],
     platformTarget: ShaderLanguage,
-    tags?: Record<string, number | string | boolean>,
-    interfaceBindings?: IShaderInterfaceBindings
+    tags?: Record<string, number | string | boolean>
   ) {
     super();
     this._shaderPassId = ShaderPass._shaderPassCounter++;
@@ -77,7 +73,6 @@ export class ShaderPass extends ShaderPart {
     this._vertexShaderInstructions = vertexShaderInstructions;
     this._fragmentShaderInstructions = fragmentShaderInstructions;
     this._platformTarget = platformTarget;
-    this._interfaceBindings = interfaceBindings;
 
     const mergedTags = { pipelineStage: PipelineStage.Forward, ...tags };
     for (const key in mergedTags) {
@@ -127,9 +122,13 @@ export class ShaderPass extends ShaderPart {
     feedbackVaryings?: string[]
   ): ShaderProgram {
     const isGPUInstance = macroCollection.isEnable(InstanceBuffer.gpuInstanceMacro);
-    const source = this._compileShaderSource(engine, macroCollection, isGPUInstance);
-    const program = new ShaderProgram(engine, source, feedbackVaryings);
-    program._instanceLayout = source.instanceLayout;
+    const { vertexSource, fragmentSource, instanceLayout } = this._compileShaderSource(
+      engine,
+      macroCollection,
+      isGPUInstance
+    );
+    const program = new ShaderProgram(engine, vertexSource, fragmentSource, feedbackVaryings);
+    program._instanceLayout = instanceLayout;
     return program;
   }
 
@@ -137,12 +136,7 @@ export class ShaderPass extends ShaderPart {
     engine: Engine,
     macroCollection: ShaderMacroCollection,
     isGPUInstance: boolean
-  ): {
-    vertexSource: string;
-    fragmentSource: string;
-    interfaceBindings?: IShaderInterfaceBindings;
-    instanceLayout: InstanceBufferLayout | null;
-  } {
+  ): { vertexSource: string; fragmentSource: string; instanceLayout: InstanceBufferLayout | null } {
     const isWebGL2: boolean = engine._hardwareRenderer.isWebGL2;
     const shaderMacroList = ShaderPass._shaderMacroList;
     shaderMacroList.length = 0;
@@ -188,7 +182,6 @@ export class ShaderPass extends ShaderPart {
         ${precisionStr}
         ${fragmentSource}
       `,
-      interfaceBindings: this._interfaceBindings,
       instanceLayout
     };
   }

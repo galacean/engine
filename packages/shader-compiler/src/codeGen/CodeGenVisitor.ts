@@ -37,7 +37,7 @@ export abstract class CodeGenVisitor implements ICodeGenVisitor {
     for (const child of children) {
       if (child instanceof BaseToken) {
         // Legacy opaque `#define` lexemes carry the directive verbatim; expression-style defines use the AST path
-        ret.array.push(child.lexeme);
+        ret.array.push(this.tokenLexeme(child));
       } else {
         ret.array.push(child.codeGen(this));
       }
@@ -46,6 +46,15 @@ export abstract class CodeGenVisitor implements ICodeGenVisitor {
     ret.dispose();
     pool.return(ret);
     return result;
+  }
+
+  /**
+   * Spells a source token in the generated code.
+   * @param token - Source token
+   * @returns Generated text for the token
+   */
+  protected tokenLexeme(token: BaseToken): string {
+    return token.lexeme;
   }
 
   visitPostfixExpression(node: ASTNode.PostfixExpression): string {

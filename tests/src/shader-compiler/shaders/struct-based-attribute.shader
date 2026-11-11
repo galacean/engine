@@ -1,6 +1,6 @@
-// Vertex entry (`mainVert`) takes an attribute-struct `stageInput`; fragment entry (`mainFrag`)
-// takes a varying-struct also named `stageInput`. The two `stageInput`s must be disambiguated per
-// stage so `stageInput.POSITION` in vertex resolves to an attribute reference (emit `attribute
+// Vertex entry (`mainVert`) takes an attribute-struct `input`; fragment entry (`mainFrag`)
+// takes a varying-struct also named `input`. The two `input`s must be disambiguated per
+// stage so `input.POSITION` in vertex resolves to an attribute reference (emit `attribute
 // vec4 POSITION;`) rather than being routed to varying by the fragment binding.
 Shader "Tutorial/04-Outline" {
   SubShader "Default" {
@@ -21,16 +21,16 @@ Shader "Tutorial/04-Outline" {
       VertexShader = mainVert;
       FragmentShader = mainFrag;
 
-      v2f mainVert(a2v stageInput) {
-        v2f stageOutput;
-        gl_Position = renderer_MVPMat * stageInput.POSITION;
-        stageOutput.worldNormal = stageInput.NORMAL;
-        stageOutput.worldPos = stageInput.POSITION.xyz;
-        return stageOutput;
+      v2f mainVert(a2v input) {
+        v2f output;
+        gl_Position = renderer_MVPMat * input.POSITION;
+        output.worldNormal = input.NORMAL;
+        output.worldPos = input.POSITION.xyz;
+        return output;
       }
 
-      void mainFrag(v2f stageInput) {
-        vec3 normal = normalize(stageInput.worldNormal);
+      void mainFrag(v2f input) {
+        vec3 normal = normalize(input.worldNormal);
         gl_FragColor = vec4(normal, 1.0);
       }
     }

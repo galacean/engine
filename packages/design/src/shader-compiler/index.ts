@@ -14,7 +14,6 @@ export type {
 } from "./ICondition";
 export * from "./PreprocessorExpression";
 export * from "./ShaderIncludePath";
-export { NameAllocator } from "./NameAllocator";
 export type { IPrecompiledShader, IPrecompiledSubShader, IPrecompiledPass } from "./IPrecompiledShader";
 export type { IShaderProgramSource as IShaderInfo } from "./IShaderProgramSource";
 export type { IRenderStates } from "./shaderSource/IRenderStates";
@@ -23,5 +22,3 @@ export type { IShaderPosition } from "./shaderSource/IShaderPosition";
 export type { IShaderSource } from "./shaderSource/IShaderSource";
 export type { IStatement } from "./shaderSource/IStatement";
 export type { ISubShaderSource } from "./shaderSource/ISubShaderSource";
-
-export type { IShaderInterfaceBindings } from "./IShaderInterfaceBindings";

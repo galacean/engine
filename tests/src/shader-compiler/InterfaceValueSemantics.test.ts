@@ -62,18 +62,68 @@ const cases: {
   paths?: CompilationPath[];
 }[] = [
   {
-    name: "uniform and varying member retain independent identities",
-    source: valueShader("Varyings v; v.a = a; return v;", "float a;"),
-    uniforms: { a: 0.25 },
-    outputName: "io_a",
+    name: "varying members keep source names when no global uses them",
+    source: valueShader("Varyings v; float a = 0.25; v.a = a; return v;"),
+    outputName: "a",
     pixel: [64, 0, 0, 255]
   },
   {
-    name: "generated outputs avoid uniform names and occupied suffixes",
-    source: valueShader("Varyings v; v.a = a + io_a + io_a_1; return v;", "float a; float io_a; float io_a_1;"),
-    uniforms: { a: 0.125, io_a: 0.25, io_a_1: 0.125 },
-    outputName: "io_a_2",
+    name: "uniform and varying member retain independent identities",
+    source: valueShader("Varyings v; v.a = a; return v;", "float a;"),
+    uniforms: { a: 0.25 },
+    outputName: "a_1",
+    pixel: [64, 0, 0, 255]
+  },
+  {
+    name: "renamed varying members avoid occupied suffixes",
+    source: valueShader("Varyings v; v.a = a + a_1 + a_2; return v;", "float a; float a_1; float a_2;"),
+    uniforms: { a: 0.125, a_1: 0.25, a_2: 0.125 },
+    outputName: "a_3",
     pixel: [128, 0, 0, 255]
+  },
+  {
+    name: "varying members can share attribute names",
+    source: valueShader("Varyings v; v.a = 0.25 + attributes.a * 0.0; return v;")
+      .replace("struct Varyings", "struct Attributes { vec3 POSITION; float a; }; struct Varyings")
+      .replace("Varyings vert()", "Varyings vert(Attributes attributes)")
+      .replace("gl_Position = vec4(0.0, 0.0, 0.0, 1.0);", "gl_Position = vec4(attributes.POSITION, 1.0);"),
+    outputName: "a_1",
+    pixel: [64, 0, 0, 255]
+  },
+  {
+    name: "interface variables may use names that GLSL ES reserves",
+    source: valueShader(
+      "Varyings output; output.a = keep(output, 0.25); return output;",
+      "float keep(Varyings input, float value) { return value; }"
+    ).replace(
+      "void frag(Varyings v) { gl_FragColor = vec4(v.a,",
+      "void frag(Varyings input) { gl_FragColor = vec4(input.a,"
+    ),
+    pixel: [64, 0, 0, 255]
+  },
+  {
+    name: "global interface variables may use names that GLSL ES reserves",
+    source: valueShader("Varyings x; x.a = 0.25; return x;", "Varyings output;\n#define OWNER output")
+      .replace("void frag(Varyings v)", "void frag()")
+      .replace("vec4(v.a,", "vec4(OWNER.a,"),
+    pixel: [64, 0, 0, 255]
+  },
+  {
+    name: "generated names never contain double underscores",
+    source: `Shader "underscores" { SubShader "s" { Pass "p" {
+      struct _Data { float _a; };
+      _Data vert() {
+        gl_Position = vec4(0.0, 0.0, 0.0, 1.0);
+        gl_PointSize = 1.0;
+        _Data _out;
+        _out._a = 0.25;
+        return _out;
+      }
+      vec4 frag(_Data _in) { return vec4(_in._a, 0.0, 0.0, 1.0); }
+      VertexShader = vert;
+      FragmentShader = frag;
+    } } }`,
+    pixel: [64, 0, 0, 255]
   },
   {
     name: "constructor values reach the fragment interface",
@@ -337,7 +387,10 @@ describe.runIf(typeof document !== "undefined")("interface value semantics on We
         let vertices: WebGLBuffer | null = null;
         try {
           const program = compile(source, target, path);
-          if (outputName) expect(program.interfaceBindings?.vertexOutputs.a).toBe(outputName);
+          if (outputName) {
+            const vertex = ShaderMacroProcessor.evaluate(program.vertexShaderInstructions!, macros);
+            expect(vertex).toMatch(new RegExp(`\\b(?:varying|out)\\s+float\\s+${outputName}\\s*;`));
+          }
           for (const [kind, instructions] of [
             [gl.VERTEX_SHADER, program.vertexShaderInstructions!],
             [gl.FRAGMENT_SHADER, program.fragmentShaderInstructions!]

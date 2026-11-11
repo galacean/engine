@@ -12,9 +12,9 @@ return interface_value; }
 struct Varyings {
 vec2 v_uv;
 };
-varying vec2 io_v_uv;
+varying vec2 v_uv;
 void write_Varyings(Varyings interface_value) {
-io_v_uv = interface_value.v_uv;
+v_uv = interface_value.v_uv;
 }
 
 #define ATTR_POS attr.POSITION

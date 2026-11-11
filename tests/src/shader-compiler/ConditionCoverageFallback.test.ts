@@ -382,8 +382,8 @@ VertexShader = vert; FragmentShader = frag;
       for (const mask of rows) {
         const active = mask !== 0;
         const program = evaluate(compiled, macrosFor(mask, 12));
-        expect(program.vertex.match(/(?:varying|out)\s+vec4\s+io_tint\s*;/g) ?? []).toHaveLength(active ? 1 : 0);
-        expect(program.fragment.match(/(?:varying|in)\s+vec4\s+io_tint\s*;/g) ?? []).toHaveLength(active ? 1 : 0);
+        expect(program.vertex.match(/(?:varying|out)\s+vec4\s+tint\s*;/g) ?? []).toHaveLength(active ? 1 : 0);
+        expect(program.fragment.match(/(?:varying|in)\s+vec4\s+tint\s*;/g) ?? []).toHaveLength(active ? 1 : 0);
         expect(program.vertex.match(/struct\s+Varyings/g) ?? []).toHaveLength(active ? 1 : 0);
         expect(program.fragment.match(/struct\s+Varyings/g) ?? []).toHaveLength(active ? 1 : 0);
         expectDriverAcceptance(program, active ? 0.5 : 0.75);

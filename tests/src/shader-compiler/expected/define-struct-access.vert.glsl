@@ -13,11 +13,11 @@ struct Varyings {
 vec2 v_uv;
 vec3 v_normal;
 };
-varying vec2 io_v_uv;
-varying vec3 io_v_normal;
+varying vec2 v_uv;
+varying vec3 v_normal;
 void write_Varyings(Varyings interface_value) {
-io_v_uv = interface_value.v_uv;
-io_v_normal = interface_value.v_normal;
+v_uv = interface_value.v_uv;
+v_normal = interface_value.v_normal;
 }
 Varyings vert ( Attributes attr ) { Varyings o ;
 

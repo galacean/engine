@@ -1,9 +1,9 @@
 struct Varyings {
 vec2 v_uv;
 };
-varying vec2 io_v_uv;
+varying vec2 v_uv;
 Varyings read_Varyings() { Varyings interface_value;
-interface_value.v_uv = io_v_uv;
+interface_value.v_uv = v_uv;
 return interface_value; }
 uniform sampler2D u_texture;
 

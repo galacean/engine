@@ -1,4 +1,4 @@
-import { NameAllocator } from "@galacean/engine-design";
+import { NameAllocator, isUnsafeGLSLIdentifier } from "@galacean/engine-shader-compiler/src/codeGen/NameAllocator";
 import { describe, expect, it } from "vitest";
 
 describe("Shader name allocation", () => {
@@ -6,43 +6,46 @@ describe("Shader name allocation", () => {
     const names = new NameAllocator();
     const first = {};
     const second = {};
-    expect(names.allocate(first, "io_position")).toBe("io_position");
-    expect(names.allocate(second, "io_position")).toBe("io_position_1");
-    expect(names.allocate(first, "different_hint")).toBe("io_position");
+    expect(names.allocate(first, "read_Data")).toBe("read_Data");
+    expect(names.allocate(second, "read_Data")).toBe("read_Data_1");
+    expect(names.allocate(first, "different_hint")).toBe("read_Data");
   });
 
-  it("reserves suffix families without searching every collision", () => {
+  it("skips reserved source names and occupied suffixes", () => {
     const names = new NameAllocator();
-    for (const name of ["io_a", "io_a_1", "io_a_5000", "io_a_5000_1"]) names.reserve(name);
-    expect(names.allocate({}, "io_a")).toBe("io_a_5001");
-    expect(names.allocate({}, "io_a_5000")).toBe("io_a_5000_2");
-    expect(names.allocate({}, "io_a")).toBe("io_a_5002");
+    for (const name of ["a", "a_1"]) names.reserve(name);
+    expect(names.allocate({}, "a")).toBe("a_2");
+    expect(names.allocate({}, "a")).toBe("a_3");
   });
 
   it("appends collision suffixes to the complete original name", () => {
     const names = new NameAllocator();
-    names.reserve("io_a_8");
+    names.reserve("a_8");
     const first = {};
-    expect(names.allocate(first, "io_a_8")).toBe("io_a_8_1");
-    expect(names.allocate({}, "io_a_8")).toBe("io_a_8_2");
-    expect(names.allocate(first, "io_a_8")).toBe("io_a_8_1");
-    expect(names.allocate({}, "io_a_8_1")).toBe("io_a_8_1_1");
+    expect(names.allocate(first, "a_8")).toBe("a_8_1");
+    expect(names.allocate({}, "a_8")).toBe("a_8_2");
+    expect(names.allocate(first, "a_8")).toBe("a_8_1");
+    expect(names.allocate({}, "a_8_1")).toBe("a_8_1_1");
+  });
+
+  it("never produces double underscores", () => {
+    const names = new NameAllocator();
+    expect(names.allocate({}, "read__Data")).toBe("read_Data");
+    names.reserve("output_");
+    expect(names.allocate({}, "output_")).toBe("output_1");
   });
 
   it("releases request identities and naming state on reset", () => {
     const names = new NameAllocator();
     const key = {};
-    names.reserve("io_a");
-    expect(names.allocate(key, "io_a")).toBe("io_a_1");
+    names.reserve("a");
+    expect(names.allocate(key, "a")).toBe("a_1");
     names.reset();
-    expect(names.allocate(key, "io_a")).toBe("io_a");
+    expect(names.allocate(key, "a")).toBe("a");
   });
 
-  it("does not round large source suffixes into an existing name", () => {
-    const names = new NameAllocator();
-    for (const name of ["io_a", "io_a_9007199254740990", "io_a_9007199254740991"]) names.reserve(name);
-    expect(names.allocate({}, "io_a")).toBe("io_a_9007199254740992");
-    names.reserve("io_a_9999999999999999999999999");
-    expect(names.allocate({}, "io_a")).toBe("io_a_10000000000000000000000000");
+  it("detects identifiers that GLSL ES rejects", () => {
+    for (const name of ["input", "output", "sample", "filter", "a__b"]) expect(isUnsafeGLSLIdentifier(name)).toBe(true);
+    for (const name of ["position", "texture", "_a", "a_"]) expect(isUnsafeGLSLIdentifier(name)).toBe(false);
   });
 });

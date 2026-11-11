@@ -93,13 +93,13 @@ struct Varyings { vec4 color; };
 #if defined(USE_TINT)
 vec4 tintColor;
 #endif
-Varyings vert(Attributes stageInput) {
-  Varyings stageOutput;
-  gl_Position = vec4(stageInput.position, 1.0);
-  stageOutput.color = vec4(1.0);
-  return stageOutput;
+Varyings vert(Attributes input) {
+  Varyings output;
+  gl_Position = vec4(input.position, 1.0);
+  output.color = vec4(1.0);
+  return output;
 }
-void frag(Varyings stageInput) { gl_FragColor = stageInput.color; }
+void frag(Varyings input) { gl_FragColor = input.color; }
 `;
     const parsed = parseShaderPass(source, { "common.glsl": "struct Attributes { vec3 position; };" }, new Map());
     expect(parsed.errors).to.have.lengthOf(0);
@@ -325,13 +325,13 @@ FragmentShader = frag;
     Pass "p" {
       struct Attributes { vec3 position; };
       struct Varyings { vec4 color; };
-      Varyings vert(Attributes stageInput) {
-        Varyings stageOutput;
-        gl_Position = vec4(stageInput.position, 1.0);
-        stageOutput.color = vec4(1.0);
-        return stageOutput;
+      Varyings vert(Attributes input) {
+        Varyings output;
+        gl_Position = vec4(input.position, 1.0);
+        output.color = vec4(1.0);
+        return output;
       }
-      void frag(Varyings stageInput) { gl_FragColor = stageInput.missing; }
+      void frag(Varyings input) { gl_FragColor = input.missing; }
       VertexShader = vert;
       FragmentShader = frag;
     }
@@ -443,21 +443,21 @@ FragmentShader = frag;
 struct Attributes { vec3 position; };
 struct Varyings { vec2 uv; };
 #ifdef USE_ALTERNATE
-Varyings vert(Attributes stageInput) {
-  Varyings stageOutput;
-  gl_Position = vec4(stageInput.position, 1.0);
-  stageOutput.uv = vec2(0.0);
-  return stageOutput;
+Varyings vert(Attributes input) {
+  Varyings output;
+  gl_Position = vec4(input.position, 1.0);
+  output.uv = vec2(0.0);
+  return output;
 }
 #else
-Varyings vert(Attributes stageInput) {
-  Varyings stageOutput;
-  gl_Position = vec4(stageInput.position, 1.0);
-  stageOutput.uv = vec2(1.0);
-  return stageOutput;
+Varyings vert(Attributes input) {
+  Varyings output;
+  gl_Position = vec4(input.position, 1.0);
+  output.uv = vec2(1.0);
+  return output;
 }
 #endif
-void frag(Varyings stageInput) { gl_FragColor = vec4(stageInput.uv, 0.0, 1.0); }
+void frag(Varyings input) { gl_FragColor = vec4(input.uv, 0.0, 1.0); }
 `;
     const parsed = parseShaderPass(source, {}, new Map());
     expect(parsed.errors).to.have.lengthOf(0);

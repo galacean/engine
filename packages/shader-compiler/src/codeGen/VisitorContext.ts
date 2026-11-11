@@ -1,10 +1,10 @@
-import { NameAllocator } from "@galacean/engine-design";
 import { BaseToken } from "@galacean/engine-shader-parser/internal";
 import { EShaderStage } from "@galacean/engine-shader-parser/internal";
 import { SymbolTable } from "@galacean/engine-shader-parser/internal";
 import { ASTNode, TreeNode } from "@galacean/engine-shader-parser/internal";
 import { ESymbolType, SymbolInfo, VarSymbol } from "@galacean/engine-shader-parser/internal";
 import { ShaderStructRole, StructProp } from "@galacean/engine-shader-parser/internal";
+import { NameAllocator } from "./NameAllocator";
 
 /** @internal */
 export class VisitorContext {

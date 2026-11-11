@@ -640,10 +640,10 @@ gl_FragColor = vec4(v);
 struct Varyings { vec2 uv; };
 Varyings v;
 Varyings vert() {
-  Varyings stageOutput;
-  stageOutput.uv = vec2(0.5);
+  Varyings output;
+  output.uv = vec2(0.5);
   gl_Position = vec4(0.0);
-  return stageOutput;
+  return output;
 }
 void frag() {
 ${fragmentBody}
@@ -676,7 +676,7 @@ FragmentShader = frag;
             const label = `${pipeline} case=${caseIndex} platform=${platformTarget} LOCAL_SHADOW=${localShadow}`;
 
             expect(fragment, label).to.match(
-              platformTarget === ShaderLanguage.GLSLES100 ? /varying\s+vec2\s+io_uv\s*;/ : /in\s+vec2\s+io_uv\s*;/
+              platformTarget === ShaderLanguage.GLSLES100 ? /varying\s+vec2\s+uv\s*;/ : /in\s+vec2\s+uv\s*;/
             );
             if (usesGlobal) {
               expect(fragment, label).to.match(/vec4\s*\(\s*\(?\s*\w+\s*\)?\s*\.\s*uv\s*,\s*0\.0\s*,\s*1\.0\s*\)/);
@@ -705,10 +705,10 @@ struct Varyings { vec2 uv; };
 struct LocalVaryings { vec2 uv; };
 Varyings v;
 Varyings vert() {
-  Varyings stageOutput;
-  stageOutput.uv = vec2(0.5);
+  Varyings output;
+  output.uv = vec2(0.5);
   gl_Position = vec4(0.0);
-  return stageOutput;
+  return output;
 }
 void frag() {
 #define LOCAL_SHADOW
@@ -766,10 +766,10 @@ struct Varyings { vec2 uv; };
 struct LocalVaryings { vec2 uv; };
 Varyings v;
 Varyings vert() {
-  Varyings stageOutput;
-  stageOutput.uv = vec2(0.5);
+  Varyings output;
+  output.uv = vec2(0.5);
   gl_Position = vec4(0.0);
-  return stageOutput;
+  return output;
 }
 void frag() {
 #ifdef CONFIG
@@ -830,10 +830,10 @@ struct Varyings { vec2 uv; };
 struct LocalVaryings { vec2 uv; };
 Varyings v;
 Varyings vert() {
-  Varyings stageOutput;
-  stageOutput.uv = vec2(0.5);
+  Varyings output;
+  output.uv = vec2(0.5);
   gl_Position = vec4(0.0);
-  return stageOutput;
+  return output;
 }
 void frag() {
 #ifdef LOCAL_SHADOW
@@ -864,10 +864,10 @@ struct Varyings { vec2 uv; };
 struct LocalVaryings { vec2 uv; };
 Varyings v;
 Varyings vert() {
-  Varyings stageOutput;
-  stageOutput.uv = vec2(0.5);
+  Varyings output;
+  output.uv = vec2(0.5);
   gl_Position = vec4(0.0);
-  return stageOutput;
+  return output;
 }
 void frag() {
 #ifdef LOCAL_SHADOW
@@ -954,10 +954,10 @@ struct Varyings { vec2 uv; };
 struct LocalValue { vec2 uv; };
 Varyings v;
 Varyings vert() {
-  Varyings stageOutput;
-  stageOutput.uv = vec2(0.5);
+  Varyings output;
+  output.uv = vec2(0.5);
   gl_Position = vec4(0.0);
-  return stageOutput;
+  return output;
 }
 void frag() {
 #ifdef LOCAL_SHADOW
@@ -990,10 +990,10 @@ struct LocalValue { vec2 uv; };
 Varyings v;
 #define OWNER v
 Varyings vert() {
-  Varyings stageOutput;
-  stageOutput.uv = vec2(0.5);
+  Varyings output;
+  output.uv = vec2(0.5);
   gl_Position = vec4(0.0);
-  return stageOutput;
+  return output;
 }
 void frag() {
 #ifdef LOCAL_SHADOW
@@ -1029,10 +1029,10 @@ Varyings v;
 Ordinary v;
 #endif
 Varyings vert() {
-  Varyings stageOutput;
-  stageOutput.uv = vec2(0.5);
+  Varyings output;
+  output.uv = vec2(0.5);
   gl_Position = vec4(0.0);
-  return stageOutput;
+  return output;
 }
 void frag() { gl_FragColor = vec4(v.uv, 0.0, 1.0); }
 VertexShader = vert;
@@ -1058,10 +1058,10 @@ Varyings v;
 Varyings v;
 #endif
 Varyings vert() {
-  Varyings stageOutput;
-  stageOutput.uv = vec2(0.5);
+  Varyings output;
+  output.uv = vec2(0.5);
   gl_Position = vec4(0.0);
-  return stageOutput;
+  return output;
 }
 void frag() { gl_FragColor = vec4(v.uv, 0.0, 1.0); }
 VertexShader = vert;
@@ -1085,10 +1085,10 @@ struct Ordinary { vec2 uv; };
 Varyings v;
 #define OWNER_UV v.uv
 Varyings vert() {
-  Varyings stageOutput;
-  stageOutput.uv = vec2(0.5);
+  Varyings output;
+  output.uv = vec2(0.5);
   gl_Position = vec4(0.0);
-  return stageOutput;
+  return output;
 }
 void frag() {
 #ifdef LOCAL_SHADOW
@@ -1117,10 +1117,10 @@ struct Varyings { vec2 uv; };
 Varyings v;
 #define GET_UV(x) x.uv
 Varyings vert() {
-  Varyings stageOutput;
-  stageOutput.uv = vec2(0.5);
+  Varyings output;
+  output.uv = vec2(0.5);
   gl_Position = vec4(0.0);
-  return stageOutput;
+  return output;
 }
 void frag() { gl_FragColor = vec4(GET_UV(v), 0.0, 1.0); }
 VertexShader = vert;
@@ -1144,10 +1144,10 @@ Varyings v;
 #define OWNER v
 #define OWNER_UV OWNER.uv
 Varyings vert() {
-  Varyings stageOutput;
-  stageOutput.uv = vec2(0.5);
+  Varyings output;
+  output.uv = vec2(0.5);
   gl_Position = vec4(0.0);
-  return stageOutput;
+  return output;
 }
 void frag() { gl_FragColor = vec4(OWNER_UV, 0.0, 1.0); }
 VertexShader = vert;
@@ -1171,10 +1171,10 @@ Varyings v;
 #define GET_UV(x) x.uv
 #define FORWARD_UV(x) GET_UV(x)
 Varyings vert() {
-  Varyings stageOutput;
-  stageOutput.uv = vec2(0.5);
+  Varyings output;
+  output.uv = vec2(0.5);
   gl_Position = vec4(0.0);
-  return stageOutput;
+  return output;
 }
 void frag() { gl_FragColor = vec4(FORWARD_UV(v), 0.0, 1.0); }
 VertexShader = vert;
@@ -1206,10 +1206,10 @@ struct Varyings { vec2 uv; };
 Varyings v;
 ${definitions}
 Varyings vert() {
-  Varyings stageOutput;
-  stageOutput.uv = vec2(0.5);
+  Varyings output;
+  output.uv = vec2(0.5);
   gl_Position = vec4(0.0);
-  return stageOutput;
+  return output;
 }
 void frag() { gl_FragColor = vec4(${memberExpression}, 0.0, 1.0); }
 VertexShader = vert;
@@ -1309,10 +1309,10 @@ Ordinary ordinary;
 #define OWNER ordinary
 #endif
 Varyings vert() {
-  Varyings stageOutput;
-  stageOutput.uv = vec2(0.5);
+  Varyings output;
+  output.uv = vec2(0.5);
   gl_Position = vec4(0.0);
-  return stageOutput;
+  return output;
 }
 void frag() { gl_FragColor = vec4(OWNER.uv, 0.0, 1.0); }
 VertexShader = vert;
@@ -1367,17 +1367,17 @@ Varyings owner;
 #define OWNER owner
 #ifdef USE_UV
 Varyings vert() {
-  Varyings stageOutput;
-  stageOutput.uv = vec2(0.5);
+  Varyings output;
+  output.uv = vec2(0.5);
   gl_Position = vec4(0.0);
-  return stageOutput;
+  return output;
 }
 #else
 Varyings vert() {
-  Varyings stageOutput;
-  stageOutput.other = vec2(0.5);
+  Varyings output;
+  output.other = vec2(0.5);
   gl_Position = vec4(0.0);
-  return stageOutput;
+  return output;
 }
 #endif
 void frag() { gl_FragColor = vec4(OWNER.uv, 0.0, 1.0); }
@@ -1395,14 +1395,14 @@ struct Varyings {
 Varyings owner;
 #define OWNER owner
 Varyings vert() {
-  Varyings stageOutput;
+  Varyings output;
 #ifdef USE_UV
-  stageOutput.uv = vec2(0.5);
+  output.uv = vec2(0.5);
 #else
-  stageOutput.other = vec2(0.5);
+  output.other = vec2(0.5);
 #endif
   gl_Position = vec4(0.0);
-  return stageOutput;
+  return output;
 }
 void frag() { gl_FragColor = vec4(OWNER.uv, 0.0, 1.0); }
 VertexShader = vert;
@@ -1464,10 +1464,10 @@ Varyings v;
 #define OWNER
 #endif
 Varyings vert() {
-  Varyings stageOutput;
-  stageOutput.uv = vec2(0.5);
+  Varyings output;
+  output.uv = vec2(0.5);
   gl_Position = vec4(0.0);
-  return stageOutput;
+  return output;
 }
 void frag() { gl_FragColor = vec4(OWNER.uv, 0.0, 1.0); }
 VertexShader = vert;
@@ -1542,10 +1542,10 @@ Ordinary ordinary;
 #define OWNER_UV ordinary.uv
 #endif
 Varyings vert() {
-  Varyings stageOutput;
-  stageOutput.uv = vec2(0.5);
+  Varyings output;
+  output.uv = vec2(0.5);
   gl_Position = vec4(0.0);
-  return stageOutput;
+  return output;
 }
 void frag() { gl_FragColor = vec4(OWNER_UV, 0.0, 1.0); }
 VertexShader = vert;
