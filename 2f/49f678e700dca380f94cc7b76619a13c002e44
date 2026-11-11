@@ -8,6 +8,15 @@ world/demos/seed-world/src/planning/spatial/PlanningStartupTemplate.ts
   s_0ad7efa77c17be::t_d816bb551fcde7 59
 packages/world-planning/src/spatial/WorldTemplateArtDirection.ts
   s_0ad7efa77c17be::t_044290fa124916 871
+  s_0ad7efa77c17be::t_ca5b48c37d9030 883
+world/demos/seed-world/src/DesertPresentation.ts
+  s_0ad7efa77c17be::t_ca5b48c37d9030 1-69
+world/demos/seed-world/SeedWorldDemo.ts
+  s_0ad7efa77c17be::t_ca5b48c37d9030 585-587,649,710
+packages/world-planning/src/integrations/terrain/lighting/IntegratedWorldPresentation.ts
+  s_0ad7efa77c17be::t_ca5b48c37d9030 1-7,29-30,33
+packages/world-planning/src/integrations/terrain/lighting/TerrainLightingRuntime.ts
+  s_0ad7efa77c17be::t_ca5b48c37d9030 10,13,638,640-648,672-673
 ---
 {
   "schema_version": "authorship/3.0.0",
