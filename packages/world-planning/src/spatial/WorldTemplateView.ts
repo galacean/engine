@@ -43,6 +43,8 @@ export function resolveWorldTemplateScene(
 ): ResolvedWorldTemplateScene | undefined {
   const template = worldTemplate(plan.parameters.worldTemplate?.id);
   if (!template) return undefined;
+  const geometry = buildWorldTemplateGeometry(template, plan.parameters.seed, plan.parameters.spatialComposition);
+  if (!geometry.nodes.length) return undefined;
   const site = plan.worldTemplateSite;
   if (!site || site.templateId !== template.id) throw new Error("风格主体缺少已发布的规划占地");
   const sample = (x: number, z: number) => {
@@ -51,7 +53,6 @@ export function resolveWorldTemplateScene(
     return value;
   };
   const anchor: Position = [site.center.x, sample(site.center.x, site.center.z), site.center.z];
-  const geometry = buildWorldTemplateGeometry(template, plan.parameters.seed, plan.parameters.spatialComposition);
   const terraceIds = formations?.length
     ? new Set(
         plan.rocks

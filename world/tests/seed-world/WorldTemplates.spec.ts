@@ -124,15 +124,12 @@ describe("authored world templates", () => {
     expect(plan.flowerRegions ?? []).toHaveLength(0);
     expect(Object.values(plan.naturalVegetation!.world).every(density => density === 0)).toBe(true);
     const template = WORLD_TEMPLATES.find(entry => entry.id === "titan-wasteland")!;
-    const nodes = buildWorldTemplateGeometry(template, 110613).nodes;
-    expect(nodes.map((node) => node.id)).toEqual(["ancient-mech-wreck", "broken-stone-arch"]);
-    expect(nodes.every((node) => node.assetUrl)).toBe(true);
-    expect(nodes.map((node) => node.scale)).toEqual([[230, 186, 278], [64, 62, 22]]);
+    expect(buildWorldTemplateGeometry(template, 110613).nodes).toEqual([]);
     const site = plan.worldTemplateSite!;
-    expect(site.footprints.map(({ id, obb, poiId }) => [id, obb.size, Boolean(poiId)]))
-      .toEqual(nodes.map((node) => [node.id, node.scale, true]));
-    expect(plan.spawn).toEqual({ x: 512, z: 512 });
-    expect(plan.spawn).toEqual({ x: site.spawnView!.eye[0], z: site.spawnView!.eye[2] });
+    expect(site.footprints).toEqual([]);
+    expect(site.centeredStart).toEqual({ x: 512, z: 512 });
+    expect(site.spawnView).toBeUndefined();
+    expect(resolveWorldTemplateScene(plan, (x, z) => stepped.sample({ x, z }))).toBeUndefined();
 
     const edited = applySpatialCommands(restored, [
       { op: "set", entity: "world", component: "world", values: { landMode: "island" } },
@@ -719,7 +716,9 @@ describe("authored world templates", () => {
     expect(precipitation[1]).toMatchObject({ rainRate: 0 });
   });
   for (const template of WORLD_TEMPLATES) {
-    it(`${template.name}: applies the authored framing at standing height in landscape and portrait viewports`, () => {
+    const art = WORLD_TEMPLATE_ART[template.id];
+    const subjectTest = art.models.length ? it : it.skip;
+    subjectTest(`${template.name}: applies the authored framing at standing height in landscape and portrait viewports`, () => {
       const plan = createSpatialWorldBase(exportPlanningRecipe(createTemplatePlanningDocument(1, template.id)));
       const authored = plan.parameters.worldTemplate!;
       plan.worldTemplateSite = {
@@ -787,7 +786,7 @@ describe("authored world templates", () => {
       expect(userDensity.trees).toBe(0.4);
       expect(userDensity.shrubs).toBe(0);
     });
-    it(`${template.name}: reserves its subject before publishing buildings, rocks and roads`, () => {
+    subjectTest(`${template.name}: reserves its subject before publishing buildings, rocks and roads`, () => {
       const result = generatePlanningDocument(createTemplatePlanningDocument(20261104, template.id));
       expect(result.accepted).toBe(true);
       const site = result.plan.worldTemplateSite!;
@@ -891,7 +890,7 @@ describe("authored world templates", () => {
       expect(buildWorldTemplateGeometry(template, 0)).toEqual(geometry);
       const other = buildWorldTemplateGeometry(template, 0xffffffff);
       expect(other).toEqual(geometry);
-      expect(geometry.nodes.length).toBeGreaterThan(0);
+      expect(geometry.nodes).toHaveLength(art.models.length);
       const ids = new Set<string>();
       for (const node of geometry.nodes) {
         expect(ids.has(node.id)).toBe(false);

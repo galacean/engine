@@ -147,9 +147,12 @@ export function buildWorldTemplateGeometry(
     });
   }
   const radius = Math.max(
+    0,
     ...nodes.flatMap((node) => templateNodeFootprint(node, true).flatMap((p) => [Math.abs(p.x), Math.abs(p.z)]))
   );
-  const height = Math.max(...nodes.map((node) => node.position[1] + node.scale[1] * (node.grounded ? 1 : 0.5)));
+  const height = nodes.length
+    ? Math.max(...nodes.map((node) => node.position[1] + node.scale[1] * (node.grounded ? 1 : 0.5)))
+    : 0;
   return { nodes, radius, height, targetHeight: height / 2, focusIds: [...art.focus] };
 }
 

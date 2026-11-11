@@ -874,24 +874,11 @@ export const WORLD_TEMPLATE_ART: Readonly<Record<string, WorldTemplateArtDirecti
       poiMemberMax: 0,
       population: { villageMin: 0, villageMax: 0, buildingMin: 0, buildingMax: 0 }
     },
-    plannedSubjects: true,
     centeredStart: true,
-    focus: ["ancient-mech-wreck", "broken-stone-arch"],
+    focus: [],
     frameFraction: 0.85,
-    azimuthDegrees: -7,
-    lookAtOffset: [0, -22, 0],
-    models: [
-      {
-        ...model("ancient-mech-wreck", [64, 0, 313], [230, 186, 278]),
-        label: "巨兽",
-        assetUrl: "https://mdn.alipayobjects.com/rms/afts/file/A*WzQ9Q6me6W8AAAAAgGAAAAgAehQnAQ/jushou.glb"
-      },
-      {
-        ...model("broken-stone-arch", [-104, 0, 212], [64, 62, 22], true, 12),
-        label: "断壁残垣",
-        assetUrl: "https://mdn.alipayobjects.com/rms/afts/file/A*E1bHTKH2busAAAAAgBAAAAgAehQnAQ/shitou2.glb"
-      }
-    ],
+    azimuthDegrees: 0,
+    models: [],
     lighting: { timeHours: 12 },
     postProcess: { contrast: 0 },
     landscape: { treeHeightMinM: 5, treeHeightMaxM: 12 },
