@@ -505,8 +505,8 @@ const cases: Case[] = [
     `,
     vertEntry: "vert",
     fragEntry: "frag",
-    driverExpects: "reject",
-    reason: "entry function must return void or an IO struct"
+    driverExpects: "accept",
+    reason: "the analyzer rejects this ShaderLab entry signature; generated GLSL discards its return value"
   },
   {
     name: "StructRoleConflict (same struct used as vert-out AND frag-out)",

@@ -4,9 +4,11 @@ import { SymbolTable } from "@galacean/engine-shader-parser/internal";
 import { ASTNode, TreeNode } from "@galacean/engine-shader-parser/internal";
 import { ESymbolType, SymbolInfo, VarSymbol } from "@galacean/engine-shader-parser/internal";
 import { ShaderStructRole, StructProp } from "@galacean/engine-shader-parser/internal";
+import { NameAllocator } from "./NameAllocator";
 
 /** @internal */
 export class VisitorContext {
+  readonly names = new NameAllocator();
   private readonly _lookupSymbol = new SymbolInfo("", null);
   private readonly _structRoles = new Map<ASTNode.StructSpecifier, ShaderStructRole>();
   private readonly _vertexUnresolvedVariableRoles = new Map<string, ShaderStructRole>();
@@ -39,8 +41,6 @@ export class VisitorContext {
   /** Receives interface uses so generated fields retain their declaration dependencies. */
   onReferenceStructProps?: (props: readonly StructProp[]) => void;
   readonly codeCache = new Map<TreeNode, string>();
-  private readonly fragmentReturnModes = new Map<ASTNode.JumpStatement, FragmentReturnMode>();
-  private readonly terminalInterfaceReturns = new Set<ASTNode.JumpStatement>();
 
   constructor() {
     this.reset();
@@ -48,8 +48,6 @@ export class VisitorContext {
 
   reset(resetAll = true) {
     this.codeCache.clear();
-    this.fragmentReturnModes.clear();
-    this.terminalInterfaceReturns.clear();
     if (resetAll) {
       this.attributeStructs.length = 0;
       this.attributeList.length = 0;
@@ -168,38 +166,6 @@ export class VisitorContext {
     return resolvedRole;
   }
 
-  /**
-   * Marks a value-return belonging to a fragment entry for backend lowering.
-   * @param statement - Exact return statement identity.
-   * @param mode - Fragment output contract of the containing entry declaration.
-   */
-  registerFragmentReturn(statement: ASTNode.JumpStatement, mode: FragmentReturnMode): void {
-    this.fragmentReturnModes.set(statement, mode);
-  }
-
-  /**
-   * Finds the output contract for a fragment-entry return statement.
-   * @param statement - Return statement identity.
-   * @returns Output mode, or `undefined` for ordinary helper/vertex returns.
-   */
-  getFragmentReturnMode(statement: ASTNode.JumpStatement): FragmentReturnMode | undefined {
-    return this.fragmentReturnModes.get(statement);
-  }
-
-  /** Marks a syntactically final interface return whose control-flow exit can be omitted. */
-  registerTerminalInterfaceReturn(statement: ASTNode.JumpStatement): void {
-    this.terminalInterfaceReturns.add(statement);
-  }
-
-  /**
-   * Tests whether an interface return is the final syntactic statement in its function.
-   * @param statement - Return statement identity.
-   * @returns Whether backend lowering may omit a trailing `return;`.
-   */
-  isTerminalInterfaceReturn(statement: ASTNode.JumpStatement): boolean {
-    return this.terminalInterfaceReturns.has(statement);
-  }
-
   referenceAttribute(ident: BaseToken): void {
     this._referenceProp(ident.lexeme, this.attributeList, this._referencedAttributeList);
   }
@@ -237,6 +203,3 @@ export class VisitorContext {
     this.onReferenceStructProps?.(refList[name]);
   }
 }
-
-/** @internal */
-export type FragmentReturnMode = "color" | "mrt";

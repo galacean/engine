@@ -465,6 +465,6 @@ void frag(Varyings input) { gl_FragColor = vec4(input.uv, 0.0, 1.0); }
     const generated = new ShaderCompiler()._parseShaderPass(source, "vert", "frag", ShaderLanguage.GLSLES100);
     expect(generated).to.not.equal(undefined);
     expect(generated!.vertex.match(/attribute\s+vec3\s+position\s*;/g)).to.have.lengthOf(1);
-    expect(generated!.vertex.match(/varying\s+vec2\s+uv\s*;/g)).to.have.lengthOf(1);
+    expect(generated!.vertex.match(/varying\s+vec2\s+\w+\s*;/g)).to.have.lengthOf(1);
   });
 });

@@ -679,8 +679,8 @@ FragmentShader = frag;
               platformTarget === ShaderLanguage.GLSLES100 ? /varying\s+vec2\s+uv\s*;/ : /in\s+vec2\s+uv\s*;/
             );
             if (usesGlobal) {
-              expect(fragment, label).to.match(/vec4\s*\(\s*uv\s*,\s*0\.0\s*,\s*1\.0\s*\)/);
-              expect(fragment, label).not.to.match(/v\s*\.\s*uv/);
+              expect(fragment, label).to.match(/vec4\s*\(\s*\(?\s*\w+\s*\)?\s*\.\s*uv\s*,\s*0\.0\s*,\s*1\.0\s*\)/);
+              expect(fragment, label).to.match(/v\s*\.\s*uv/);
             } else {
               expect(fragment, label).to.match(/float\s+v\s*=\s*1\.0/);
               expect(fragment, label).to.match(/vec4\s*\(\s*v\s*\)/);
@@ -1236,9 +1236,9 @@ FragmentShader = frag;
           const vertex = ShaderMacroProcessor.evaluate(program.vertexShaderInstructions!, new Map());
           const fragment = ShaderMacroProcessor.evaluate(program.fragmentShaderInstructions!, new Map());
           const label = `${pipeline} ${caseName} target=${target}`;
-          expect(fragment, label).to.match(/vec4\s*\(\s*uv\s*,\s*0\.0\s*,\s*1\.0\s*\)/);
-          expect(fragment, label).not.to.match(/\bv\s*\.\s*uv\b|\(\s*v\s*\)\s*\.\s*uv\b/);
-          expect(fragment, label).not.to.match(/\bVaryings\s+v\b/);
+          expect(fragment, label).to.match(/vec4\s*\(\s*\(?\s*\w+\s*\)?\s*\.\s*uv\s*,\s*0\.0\s*,\s*1\.0\s*\)/);
+          expect(fragment, label).to.match(/\bv\s*\.\s*uv\b|\(\s*v\s*\)\s*\.\s*uv\b/);
+          expect(fragment, label).to.match(/\bVaryings\s+v\b/);
 
           const compiled = compileInWebGL(vertex, fragment, target);
           if (compiled !== "no-webgl") {
@@ -1572,8 +1572,8 @@ FragmentShader = frag;
           const fragment = ShaderMacroProcessor.evaluate(program.fragmentShaderInstructions!, macros);
           const label = `${pipeline} platform=${target} USE_IO=${useIO}`;
           if (useIO) {
-            expect(fragment, label).to.match(/vec4\s*\(\s*uv\s*,\s*0\.0\s*,\s*1\.0\s*\)/);
-            expect(fragment, label).not.to.match(/io\s*\.\s*uv/);
+            expect(fragment, label).to.match(/vec4\s*\(\s*\(?\s*\w+\s*\)?\s*\.\s*uv\s*,\s*0\.0\s*,\s*1\.0\s*\)/);
+            expect(fragment, label).to.match(/io\s*\.\s*uv/);
           } else {
             expect(fragment, label).to.match(/vec4\s*\(\s*ordinary\s*\.\s*uv\s*,\s*0\.0\s*,\s*1\.0\s*\)/);
           }
