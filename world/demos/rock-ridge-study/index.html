@@ -1900,7 +1900,7 @@ html&gt;body{padding:0}&lt;/style&gt;
   &lt;/div&gt;&lt;/div&gt;
   &lt;div class=&quot;rock-stage&quot; id=&quot;rock-study-stage&quot; role=&quot;img&quot; aria-label=&quot;Interactive 3D rock arrangements. Select an arrangement and view above; drag to orbit.&quot;&gt;
     &lt;div class=&quot;rock-label-layer&quot; id=&quot;rock-study-labels&quot;&gt;&lt;/div&gt;
-    &lt;div class=&quot;rock-comparison-labels text-small&quot; id=&quot;rock-study-comparison&quot; hidden&gt;&lt;span&gt;Previous carving&lt;/span&gt;&lt;span&gt;Solid carving&lt;/span&gt;&lt;/div&gt;
+    &lt;div class=&quot;rock-comparison-labels text-small&quot; id=&quot;rock-study-comparison&quot; hidden&gt;&lt;span&gt;Straight cuts&lt;/span&gt;&lt;span&gt;Irregular fractures&lt;/span&gt;&lt;/div&gt;
     &lt;div class=&quot;rock-scale text-small&quot; id=&quot;rock-study-scale&quot;&gt;&lt;span&gt;&lt;/span&gt;&lt;div&gt;10 m&lt;/div&gt;&lt;/div&gt;
   &lt;/div&gt;
   &lt;div class=&quot;viz-row text-small&quot; aria-live=&quot;polite&quot;&gt;&lt;span id=&quot;rock-study-detail&quot;&gt;&lt;/span&gt;&lt;span class=&quot;text-muted&quot;&gt;Surface study · upstream base meshes&lt;/span&gt;&lt;/div&gt;
@@ -1932,7 +1932,7 @@ html&gt;body{padding:0}&lt;/style&gt;
 (()=&gt;{
  // Study generator: seed -&gt; ridge plan -&gt; atomic-rock assembly -&gt; measured crest.
 // This is a proposal derived from Seed&#x27;s hierarchy/curve concepts, not shipped Seed code.
-const RIDGE_VERSION = &#x27;ridge-solid-cuts-9&#x27;;
+const RIDGE_VERSION = &#x27;ridge-irregular-cuts-10&#x27;;
 const DEFAULT_RIDGE_SEED = 382;
 const TAU = Math.PI * 2;
 const clamp = (x, a, b) =&gt; Math.max(a, Math.min(b, x));
@@ -2657,6 +2657,22 @@ function convexCarveCutter(halfspaces,firstTag){
  return {polygons,planes:planes.map((plane,i)=&gt;({...plane,tag:firstTag+i}))};
 }
 
+// A single closed fracture with a piecewise-linear tip path. Fixed, unequal
+// wedge angles make each wall quad planar even as its center and depth change.
+// Adjacent sections share their entire ring: there are no internal end caps.
+function sweptCarveCutter(sections,n,opening,firstTag){
+ const t=[-n[1],n[0]],outer=3,point=(r,y,c)=&gt;[n[0]*r+t[0]*c,y,n[1]*r+t[1]*c];
+ const rings=sections.map(s=&gt;[point(s.tip,s.y,s.center),point(outer,s.y,s.center+opening[0]*(outer-s.tip)),point(outer,s.y,s.center-opening[1]*(outer-s.tip))]);
+ const polygons=[],planes=[],regions=[];
+ const add=(points,role)=&gt;{const tag=firstTag+planes.length,p=carvePolygon(points,tag);if(!p)throw new Error(&#x27;Empty fracture face&#x27;);for(const q of points)if(Math.abs(carveDot(p.plane.n,q)-p.plane.w)&gt;1e-9)throw new Error(&#x27;Nonplanar fracture wall&#x27;);polygons.push(p);planes.push({...p.plane,tag,role});return p.plane;};
+ add([...rings[0]].reverse(),&#x27;end&#x27;);
+ for(let i=1;i&lt;rings.length;i++){
+  const walls=[];for(let j=0;j&lt;3;j++)walls.push(add([rings[i-1][j],rings[i-1][(j+1)%3],rings[i][(j+1)%3],rings[i][j]],j===1?&#x27;back&#x27;:&#x27;wall&#x27;));
+  regions.push([...walls,{n:[0,-1,0],w:-sections[i-1].y},{n:[0,1,0],w:sections[i].y}]);
+ }
+ add(rings.at(-1),&#x27;end&#x27;);return {polygons,planes,regions};
+}
+
 function carveSolidMesh(positions,indices,cutters){
  const vertices=Array.from({length:positions.length/3},(_,i)=&gt;positions.slice(i*3,i*3+3));
  let polygons=[];for(let i=0;i&lt;indices.length;i+=3){const p=carvePolygon(indices.slice(i,i+3).map(id=&gt;vertices[id]),-i/3-1);if(p)polygons.push(p);}
@@ -2696,8 +2712,8 @@ function triangulateCarvePolygons(polygons){
 }
 
 
-const ROCK_SURFACE_VERSION=&#x27;solid-carving-4&#x27;;
-const PREVIOUS_SURFACE_VERSION=&#x27;slab-cuts-3&#x27;;
+const ROCK_SURFACE_VERSION=&#x27;irregular-fractures-5&#x27;;
+const PREVIOUS_SURFACE_VERSION=&#x27;solid-carving-4&#x27;;
 const surfaceCache=new WeakMap(),previousSurfaceCache=new WeakMap();
 const surfaceBlend=(a,b,x)=&gt;{const t=clamp((x-a)/(b-a),0,1);return t*t*(3-2*t);};
 const surfaceHash=(x,y,z,seed)=&gt;{
@@ -2709,17 +2725,6 @@ const surfaceDot=(a,b)=&gt;a[0]*b[0]+a[1]*b[1]+a[2]*b[2];
 const surfaceSub=(a,b)=&gt;a.map((v,i)=&gt;v-b[i]);
 const surfaceUnit=v=&gt;{const l=Math.hypot(...v)||1;return v.map(x=&gt;x/l);};
 
-function surfaceSubdivide(g,levels){
- let vertices=Array.from({length:g.positions.length/3},(_,i)=&gt;g.positions.slice(i*3,i*3+3)),indices=[...g.indices];
- for(let level=0;level&lt;levels;level++){
-  const edgeCache=new Map(),next=[];
-  const middle=(a,b)=&gt;{const key=Math.min(a,b)+&#x27;:&#x27;+Math.max(a,b);if(edgeCache.has(key))return edgeCache.get(key);const id=vertices.length;vertices.push(vertices[a].map((v,d)=&gt;(v+vertices[b][d])*.5));edgeCache.set(key,id);return id;};
-  for(let i=0;i&lt;indices.length;i+=3){const [a,b,c]=indices.slice(i,i+3),ab=middle(a,b),bc=middle(b,c),ca=middle(c,a);next.push(a,ab,ca,ab,b,bc,ca,bc,c,ab,bc,ca);}
-  indices=next;
- }
- return {vertices,indices};
-}
-
 function surfaceNormals(vertices,indices){
  const sums=vertices.map(()=&gt;[0,0,0]),weights=new Float64Array(vertices.length),faces=[];
  for(let i=0;i&lt;indices.length;i+=3){
@@ -2729,60 +2734,17 @@ function surfaceNormals(vertices,indices){
  return {normals:sums.map(surfaceUnit),weights,faces};
 }
 
-// Comparison only: frozen slab-cuts-3 deformation. The active fitter and scene
-// library below use solid subtraction and never enter this backoff path.
+// Comparison uses the exact straight-wedge construction from solid-carving-4.
 function previousFractureRockGeometry(g){
- if(previousSurfaceCache.has(g))return previousSurfaceCache.get(g);
- const {vertices,indices}=surfaceSubdivide(g,2),original=surfaceNormals(vertices,indices);
- const seed=g.parameters.seed+54139,lo=g.bounds[0],hi=g.bounds[1],height=hi[1]-lo[1],center=[(lo[0]+hi[0])*.5,(lo[2]+hi[2])*.5],radius=[(hi[0]-lo[0])*.5,(hi[2]-lo[2])*.5];
- const normalized=vertices.map(p=&gt;[(p[0]-center[0])/radius[0],(p[1]-lo[1])/height,(p[2]-center[1])/radius[1]]),phase=surfaceHash(0,0,0,seed)*Math.PI*2;
- // Six unequal clipping planes remove the swollen source faces at the scale
- // of the whole rock. Their slopes follow the source&#x27;s broad taper.
- const planes=Array.from({length:6},(_,i)=&gt;{
-  const angle=phase+i*Math.PI/3+(surfaceHash(i,0,0,seed)-.5)*.30,n=[Math.cos(angle),Math.sin(angle)];
-  const support=(a,b)=&gt;Math.max(.15,...normalized.filter(p=&gt;p[1]&gt;=a&amp;&amp;p[1]&lt;=b).map(p=&gt;p[0]*n[0]+p[2]*n[1]));
-  const bottom=support(.12,.40),top=support(.64,.86),slope=(top-bottom)/.49,cut=.73+.07*surfaceHash(i,1,0,seed);
-  return {n,offset:bottom-slope*.26,slope,cut,value:surfaceHash(i,2,0,seed)};
- });
- // Deep, metre-scale V cuts have independent lengths and unequal spacing.
- // A continuous central core and the original foot keep every face connected.
- const fractures=Array.from({length:5},(_,i)=&gt;({angle:phase+.26+i*Math.PI*2/5+(surfaceHash(i,3,0,seed)-.5)*.32,width:.14+.075*surfaceHash(i,4,0,seed),depth:.24+.09*surfaceHash(i,5,0,seed),low:.10+.05*surfaceHash(i,6,0,seed),high:.88+.08*surfaceHash(i,7,0,seed)}));
- const details=[],protectedVertices=[],deltas=vertices.map((p,i)=&gt;{
-  const [x,y,z]=normalized[i],rho=Math.hypot(x,z),mask=surfaceBlend(.065,.19,y)*(1-surfaceBlend(.94,1,y));
-  const protect=mask===0||(g.parameters.topRoughness===0&amp;&amp;y&gt;.65);protectedVertices.push(protect);
-  let radial=1,faceValue=.5;
-  for(const plane of planes){
-   const distance=x*plane.n[0]+z*plane.n[1],limit=Math.max(.10,plane.offset+plane.slope*y)*plane.cut;
-   if(distance&gt;limit&amp;&amp;limit/distance&lt;radial){radial=limit/distance;faceValue=plane.value;}
-  }
-  let incision=0,joint=0;
-  const angle=Math.atan2(z,x),lean=.045*(y-.5);
-  for(const fracture of fractures){
-   const delta=Math.atan2(Math.sin(angle-fracture.angle-lean),Math.cos(angle-fracture.angle-lean)),v=clamp(1-Math.abs(delta)/fracture.width,0,1);
-   const lengthMask=surfaceBlend(fracture.low,fracture.low+.12,y)*(1-surfaceBlend(fracture.high-.07,fracture.high,y));
-   incision=Math.max(incision,fracture.depth*v*lengthMask);joint=Math.max(joint,v*lengthMask);
-  }
-  const wanted=1-mask*(1-radial*(1-incision));
-  details.push(protect?[0,.5,0]:[joint*mask,.46+faceValue*.10,0]);
-  if(protect||rho&lt;1e-8)return [0,0,0];
-  return [clamp(center[0]+(p[0]-center[0])*wanted,lo[0],hi[0])-p[0],0,clamp(center[1]+(p[2]-center[1])*wanted,lo[2],hi[2])-p[2]];
- });
- const factors=new Float64Array(vertices.length).fill(1),result=vertices.map(p=&gt;[...p]);let remaining=0;
- for(let pass=0;pass&lt;64;pass++){
-  for(let i=0;i&lt;vertices.length;i++)for(let d=0;d&lt;3;d++)result[i][d]=vertices[i][d]+deltas[i][d]*factors[i];
-  const unsafe=new Set();
-  for(let i=0;i&lt;indices.length;i+=3){const [a,b,c]=indices.slice(i,i+3),before=original.faces[i/3],after=surfaceCross(surfaceSub(result[b],result[a]),surfaceSub(result[c],result[a]));if(surfaceDot(before,after)&lt;surfaceDot(before,before)*.08)for(const id of [a,b,c])unsafe.add(id);}
-  remaining=unsafe.size;if(!remaining)break;for(const id of unsafe)factors[id]*=.52;
- }
- if(remaining)throw new Error(&#x27;Slab cuts could not preserve triangle orientation&#x27;);
- const final=surfaceNormals(result,indices),bounds=[0,1,2].map(d=&gt;[Math.min(...result.map(p=&gt;p[d])),Math.max(...result.map(p=&gt;p[d]))]),displacements=result.map((p,i)=&gt;Math.hypot(...surfaceSub(p,vertices[i])));
- let anchor=[0,-Infinity,0];for(let i=0;i&lt;g.positions.length;i+=3)if(g.positions[i+1]&gt;=anchor[1])anchor=g.positions.slice(i,i+3);
- const output={...g,positions:result.flat(),indices,normals:final.normals.flat(),rockDetail:details.flat(),bounds:[bounds.map(b=&gt;b[0]),bounds.map(b=&gt;b[1])],stats:{triangles:indices.length/3,method:PREVIOUS_SURFACE_VERSION},surface:{version:PREVIOUS_SURFACE_VERSION,sourceTriangles:g.indices.length/3,anchor,planes:planes.length,fractures:fractures.length,limitedVertices:[...factors].filter(f=&gt;f&lt;1).length,vertices:result.length,maximumDisplacementM:Math.max(...displacements),meanDisplacementM:displacements.reduce((s,v)=&gt;s+v,0)/displacements.length,protectedVertices:protectedVertices.filter(Boolean).length}};
- previousSurfaceCache.set(g,output);return output;
+ if(!previousSurfaceCache.has(g))previousSurfaceCache.set(g,solidFractureGeometry(g,false));
+ return previousSurfaceCache.get(g);
 }
-
 function fractureRockGeometry(g){
- if(surfaceCache.has(g))return surfaceCache.get(g);
+ if(!surfaceCache.has(g))surfaceCache.set(g,solidFractureGeometry(g,true));
+ return surfaceCache.get(g);
+}
+function solidFractureGeometry(g,irregular){
+ const version=irregular?ROCK_SURFACE_VERSION:PREVIOUS_SURFACE_VERSION;
  const seed=g.parameters.seed+54139,lo=g.bounds[0],hi=g.bounds[1],height=hi[1]-lo[1],center=[(lo[0]+hi[0])*.5,(lo[2]+hi[2])*.5],radius=[(hi[0]-lo[0])*.5,(hi[2]-lo[2])*.5];
  const normalize=p=&gt;[(p[0]-center[0])/radius[0],(p[1]-lo[1])/height,(p[2]-center[1])/radius[1]],denormalize=p=&gt;[center[0]+p[0]*radius[0],lo[1]+p[1]*height,center[1]+p[2]*radius[1]];
  const normalized=Array.from({length:g.positions.length/3},(_,i)=&gt;normalize(g.positions.slice(i*3,i*3+3))),phase=surfaceHash(0,0,0,seed)*Math.PI*2;
@@ -2806,21 +2768,37 @@ function fractureRockGeometry(g){
   face.offset=Math.max(face.offset,face.n[0]*summit[0]+face.n[1]*summit[2]-face.slope+1e-5);
   if(g.parameters.topRoughness!==0)add([{n:[-face.n[0],face.slope,-face.n[1]],w:-face.offset},{n:[-face.n[0],0,-face.n[1]],w:-.18}],&#x27;face&#x27;);
  }
- const firstJoint=cutters.length;
+ const firstJoint=cutters.length,fracturePaths=[];
  for(let i=0;i&lt;5;i++){
   const angle=phase+.26+i*Math.PI*2/5+(surfaceHash(i,3,0,seed)-.5)*.32,n=[Math.cos(angle),Math.sin(angle)],t=[-n[1],n[0]];
   const face=faces.filter(f=&gt;f.n[0]*n[0]+f.n[1]*n[1]&gt;.1).sort((a,b)=&gt;(a.offset+a.slope*.5)/(a.n[0]*n[0]+a.n[1]*n[1])-(b.offset+b.slope*.5)/(b.n[0]*n[0]+b.n[1]*n[1]))[0];
   const alignment=face.n[0]*n[0]+face.n[1]*n[1],offset=face.offset/alignment-(.20+.07*surfaceHash(i,5,0,seed)),slope=face.slope/alignment,opening=.40+.12*surfaceHash(i,4,0,seed),lean=.025;
   const sides=[-1,1].map(sign=&gt;({n:[sign*t[0]-opening*n[0],opening*slope-sign*lean,sign*t[1]-opening*n[1]],w:-opening*offset-sign*lean*.5}));
-  add([...sides,...ends(n,offset,slope,.08+.04*surfaceHash(i,6,0,seed))],&#x27;joint&#x27;);
+  if(!irregular){add([...sides,...ends(n,offset,slope,.08+.04*surfaceHash(i,6,0,seed))],&#x27;joint&#x27;);continue;}
+  const low=.025+.13*surfaceHash(i,6,0,seed),high=g.parameters.topRoughness===0?.65:.87+.115*surfaceHash(i,7,0,seed),span=high-low;
+  const tangent=face.n[0]*t[0]+face.n[1]*t[1],aspect=Math.min(1,height/Math.hypot(t[0]*radius[0],t[1]*radius[1])*.4),drift=(surfaceHash(i,8,0,seed)-.5)*.25*aspect;
+  const stations=[0,.19+.035*surfaceHash(i,9,0,seed),.40+.06*surfaceHash(i,10,0,seed),.66+.06*surfaceHash(i,11,0,seed),.85+.025*surfaceHash(i,12,0,seed),1];
+  // A few independent geological-scale bends, not vertex-frequency noise.
+  // Depth variation changes the opening width continuously; unequal walls
+  // prevent a repeated symmetric V profile. Both tips exit outside the rock.
+  const centers=stations.map((u,j)=&gt;drift*(u-.5)+(surfaceHash(i,13+j,0,seed)-.5)*.30*aspect);
+  const sections=stations.map((u,j)=&gt;{
+   const y=low+u*span,center=centers[j],skin=(face.offset+face.slope*y-tangent*center)/alignment;
+   const depth=(.20+.07*surfaceHash(i,5,0,seed))*(.65+.60*surfaceHash(i,20+j,0,seed));
+   const exit=g.parameters.topRoughness===0?1.7:skin+.035;
+   return {y,center,tip:Math.max(.22,j===0||j===stations.length-1?exit:skin-depth)};
+  });
+  const asymmetry=.62+.24*surfaceHash(i,27,0,seed),openings=[opening*asymmetry,opening*(1.65-asymmetry)];
+  const cutter=sweptCarveCutter(sections,n,openings,planeInfo.length+1);
+  cutters.push(cutter);planeInfo.push(...cutter.planes.map(p=&gt;({...p,kind:&#x27;joint&#x27;})));fracturePaths.push({n,opening:openings,sections});
  }
  const mesh=carveSolidMesh(normalized.flat(),g.indices,cutters),result=Array.from({length:mesh.positions.length/3},(_,i)=&gt;denormalize(mesh.positions.slice(i*3,i*3+3))),indices=mesh.indices;
  const final=surfaceNormals(result,indices),bounds=[0,1,2].map(d=&gt;[Math.min(...result.map(p=&gt;p[d])),Math.max(...result.map(p=&gt;p[d]))]);
  const details=result.map(p=&gt;{
-  const q=normalize(p);let joint=0;for(const cutter of cutters.slice(firstJoint)){const distance=Math.max(...cutter.planes.map(plane=&gt;surfaceDot(plane.n,q)-plane.w));joint=Math.max(joint,1-surfaceBlend(0,.07,Math.max(0,distance)));}return [joint,.51,0];
+  const q=normalize(p);let joint=0;for(const cutter of cutters.slice(firstJoint)){const distance=Math.min(...(cutter.regions||[cutter.planes]).map(region=&gt;Math.max(...region.map(plane=&gt;surfaceDot(plane.n,q)-plane.w))));joint=Math.max(joint,1-surfaceBlend(0,.07,Math.max(0,distance)));}return [joint,.51,0];
  });
- const output={...g,positions:result.flat(),indices,normals:final.normals.flat(),rockDetail:details.flat(),faceTags:mesh.faceTags,bounds:[bounds.map(b=&gt;b[0]),bounds.map(b=&gt;b[1])],stats:{triangles:indices.length/3,method:ROCK_SURFACE_VERSION},surface:{version:ROCK_SURFACE_VERSION,sourceTriangles:g.indices.length/3,anchor,planes:firstJoint,fractures:5,vertices:result.length,construction:&#x27;solid subtraction&#x27;,cutPlanes:planeInfo,normalizedFrame:{center,radius,minimum:lo[1],height}}};
- surfaceCache.set(g,output);return output;
+ const output={...g,positions:result.flat(),indices,normals:final.normals.flat(),rockDetail:details.flat(),faceTags:mesh.faceTags,bounds:[bounds.map(b=&gt;b[0]),bounds.map(b=&gt;b[1])],stats:{triangles:indices.length/3,method:version},surface:{version,sourceTriangles:g.indices.length/3,anchor,planes:firstJoint,fractures:5,vertices:result.length,construction:&#x27;solid subtraction&#x27;,...(irregular?{fracturePaths}:{}),cutPlanes:planeInfo,normalizedFrame:{center,radius,minimum:lo[1],height}}};
+ return output;
 }
 
 function fracturedRockLibrary(geometries){return Object.fromEntries(Object.entries(geometries).map(([id,g])=&gt;[id,fractureRockGeometry(g)]));}
@@ -3194,8 +3172,8 @@ function generateRidgeScene(source,geometries,seed=DEFAULT_RIDGE_SEED,options={}
   if(perlin&amp;&amp;surfaceInput.value!==&#x27;rocks&#x27;){const count=current.ridge.plan.extraction.selectedPeaks;detail.textContent=count+&#x27; major peak&#x27;+(count===1?&#x27;&#x27;:&#x27;s&#x27;)+&#x27; · &#x27;+current.ridge.plan.curves.length+&#x27; ridges · &#x27;+(surfaceInput.value===&#x27;coarse&#x27;?&#x27;Structural field&#x27;:&#x27;Fine detail; same ridge network&#x27;);}
   description.textContent=current.notes+(procedural?&#x27; The blue branching ridge network guides broad overlapping rock masses. Whole masses are refitted before adding structure; local differences within &#x27;+current.ridge.policy.curveToleranceM.toFixed(1)+&#x27; meters are tolerated. Small rocks have a separate budget of two and stay at the lower edges. All accepted pieces overlap the connected body in sampled mesh volume. Orange shows the actual surface along each target curve; its measured RMS deviation is &#x27;+current.ridge.fit.rmsM.toFixed(2)+&#x27; meters. Spheres mark peaks and diamonds mark saddles.&#x27;:&#x27;&#x27;)+&#x27; Height scales rocks, terrain and the complete ridge network together. These are proposed arrangements using actual procedural mesh geometry, without Seed materials or runtime navigation. Drag to orbit; side, plan and low angle views are also available.&#x27;;
   if(perlin)description.textContent+=&#x27; Peaks and connecting saddle passes are extracted from a coarse Perlin field. Curves simplify and smooth the traced paths, so intermediate points may depart slightly from the sampled field. Octaves below 24 meters affect only bounded surface detail, not graph topology. The source field views hide the rock meshes and orange comparison lines.&#x27;;
-  description.textContent+=finishInput.value===&#x27;original&#x27;?&#x27; Original baked geometry and clay shading.&#x27;:&#x27; Solid wedges carve long vertical joints and broad planar faces into the original rock. Intersection edges define the cuts; the surface uses no vertex displacement or local backoff. The fitter measures those carved triangles. Clay shows the geometry without grain or color. Summit and bottom heights and the platform caps are preserved.&#x27;;
-  if(compare){detail.textContent=&#x27;Same rock, size, camera and light · clay&#x27;;description.textContent=&#x27;The previous vertex deformation and continuous solid-carved faces on the same atomic rock. Both use identical scale, camera, lighting and untextured clay. Drag either panel to rotate both together.&#x27;;}
+  description.textContent+=finishInput.value===&#x27;original&#x27;?&#x27; Original baked geometry and clay shading.&#x27;:&#x27; Continuous solid cuts carve long vertical fractures with uneven bends, asymmetric widths and tapered ends. Broad rock faces remain planar. Intersection edges define the cuts; the surface uses no vertex displacement or local backoff. The fitter measures those carved triangles. Clay shows the geometry without grain or color. Summit and bottom heights and the platform caps are preserved.&#x27;;
+  if(compare){detail.textContent=&#x27;Same rock, size, camera and light · clay&#x27;;description.textContent=&#x27;The previous straight cuts and continuous irregular fractures on the same atomic rock. Both use identical scale, camera, lighting and untextured clay. Drag either panel to rotate both together.&#x27;;}
   stage.setAttribute(&#x27;aria-describedby&#x27;,&#x27;rock-study-description&#x27;);
   if(resetCamera)setCamera();else setCameraTarget();resize();
  }

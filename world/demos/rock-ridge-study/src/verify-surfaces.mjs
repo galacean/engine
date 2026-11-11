@@ -13,7 +13,7 @@ const near=(a,b,t,label)=>assert(Math.abs(a-b)<t,`${label}: ${a} / ${b}`);
 const prototypes=[];
 const directionBaseline=JSON.parse(fs.readFileSync(new URL('../evidence/surface-direction-baseline.json',import.meta.url)));
 for(const [id,g] of Object.entries(library)){
- const source=data.geometries[id],edges=new Map(),frame=g.surface.normalizedFrame,planes=new Map(g.surface.cutPlanes.map(p=>[p.tag,p]));let volume=0,maximumCutPlaneErrorM=0,cutTriangles=0,sourceTriangles=0;
+ const source=data.geometries[id],edges=new Map(),jointWalls=new Set(),frame=g.surface.normalizedFrame,planes=new Map(g.surface.cutPlanes.map(p=>[p.tag,p]));let volume=0,maximumCutPlaneErrorM=0,cutTriangles=0,sourceTriangles=0;
  const normalize=p=>[(p[0]-frame.center[0])/frame.radius[0],(p[1]-frame.minimum)/frame.height,(p[2]-frame.center[1])/frame.radius[1]];
  const sourceBounds=[0,1,2].map(d=>[Math.min(...source.positions.filter((_,i)=>i%3===d)),Math.max(...source.positions.filter((_,i)=>i%3===d))]);
  const retained=new Set(Array.from({length:g.positions.length/3},(_,i)=>vertex(g,i).map(v=>v.toFixed(7)).join(',')));
@@ -33,6 +33,7 @@ for(const [id,g] of Object.entries(library)){
   const tag=g.faceTags[i/3];
   if(tag>0){
    const plane=planes.get(tag),worldNormal=[plane.n[0]/frame.radius[0],plane.n[1]/frame.height,plane.n[2]/frame.radius[1]],length=Math.hypot(...worldNormal);
+   if(plane.kind==='joint'){assert.equal(plane.role,'wall','Fractures expose their connected walls, never end caps or shelves');jointWalls.add(tag);}
    for(const p of [a,b,c])maximumCutPlaneErrorM=Math.max(maximumCutPlaneErrorM,Math.abs(dot(plane.n,normalize(p))-plane.w)/length);
    assert(dot(normal,worldNormal)<0,'Cut faces point into the removed volume');cutTriangles++;
   }else{
@@ -45,6 +46,7 @@ for(const [id,g] of Object.entries(library)){
  }
  assert(volume>0,'Positive signed volume');
  assert(cutTriangles>0&&sourceTriangles>0,'Surface combines original faces and actual cut faces');
+ assert(jointWalls.size>12,'Visible fractures retain multiple wall directions instead of reverting to five straight slots');
  assert(maximumCutPlaneErrorM<1e-7,'Every new cut face lies on one continuous cutter plane');
  assert([...edges.values()].every(e=>e.count===2&&e.direction===0),'Closed consistently wound manifold');
  assert.equal(g.positions.length/3-edges.size+g.indices.length/3,2,'Source sphere topology preserved');
@@ -53,6 +55,8 @@ for(const [id,g] of Object.entries(library)){
  for(let i=0;i<g.indices.length;i++){
   assert.deepEqual(render.positions.slice(i*3,i*3+3),vertex(g,g.indices[i]),'Rendered and measured triangles match exactly');
   near(Math.hypot(...render.normals.slice(i*3,i*3+3)),1,1e-6,'Unit crease normal');
+  const plane=planes.get(g.faceTags[Math.floor(i/3)]);
+  if(plane){const n=[plane.n[0]/frame.radius[0],plane.n[1]/frame.height,plane.n[2]/frame.radius[1]];near(dot(render.normals.slice(i*3,i*3+3),n)/Math.hypot(...n),-1,1e-6,'Cut face shading remains exactly on its plane');}
  }
  assert(render.rockDetail.every(v=>Number.isFinite(v)&&v>=0&&v<=1));
  let sourceVolume=0;for(let i=0;i<source.indices.length;i+=3){const [a,b,c]=source.indices.slice(i,i+3).map(k=>vertex(source,k));sourceVolume+=dot(a,cross(b,c))/6;}
@@ -65,8 +69,8 @@ for(const [id,g] of Object.entries(library)){
   assert(direction.within30DegreesOfVertical>before.within30DegreesOfVertical+.10,`${id}: direction must improve on the previous all-direction pattern`);
   assert(direction.within30DegreesOfVertical>.55,'Vertical joints dominate the steep faces');
  }
- const {cutPlanes,normalizedFrame,...surface}=g.surface;
- prototypes.push({id,triangles:g.indices.length/3,...surface,cutTriangles,sourceTriangles,maximumCutPlaneErrorM,signedVolumeM3:volume,removedVolumeM3:sourceVolume-volume,direction});
+ const {cutPlanes,normalizedFrame,fracturePaths,...surface}=g.surface;
+ prototypes.push({id,triangles:g.indices.length/3,...surface,visibleJointWalls:jointWalls.size,cutTriangles,sourceTriangles,maximumCutPlaneErrorM,signedVolumeM3:volume,removedVolumeM3:sourceVolume-volume,direction});
 }
 assert.equal(JSON.stringify(data.geometries),original,'Upstream geometry is immutable');
 
@@ -122,6 +126,6 @@ let platformSamples=0,maximumPlatformChangeM=0;
 function routeZ(x){let i=1;while(i<platform.route.length-1&&x>platform.route[i][0])i++;const a=platform.route[i-1],b=platform.route[i],t=Math.max(0,Math.min(1,(x-a[0])/(b[0]-a[0])));return a[1]+(b[1]-a[1])*t;}
 for(const offset of [-1.5,-.75,0,.75,1.5])for(let x=-31;x<=19;x+=.1){const slope=(routeZ(x+.05)-routeZ(x-.05))/.1,l=Math.hypot(1,slope),px=x-offset*slope/l,pz=routeZ(x)+offset/l;maximumPlatformChangeM=Math.max(maximumPlatformChangeM,Math.abs(newTop(px,pz)-oldTop(px,pz)));platformSamples++;}
 assert(maximumPlatformChangeM<1e-6,'Entire sampled 3m platform route remains unchanged');
-const output={version:ROCK_SURFACE_VERSION,generationMs,checks:['immutable source and uncached deterministic replay','finite bounded geometry and unit normals','closed wound manifold and nonzero GPU triangles','every generated cut face lies on its cutter plane','retained source faces remain coplanar and consistently wound','original bottom height summit and flat platform caps','render positions equal measured mesh positions','vertical joint contours on non-platform steep faces','independent ridge target unchanged','large connected masses and sparse accents','independent ray parity on carved contact witnesses','dense fit and measured orange guides','carved mesh height scaling including 145 percent','unchanged 3m platform route'],prototypes,assemblies,platformSamples,maximumPlatformChangeM};
+const output={version:ROCK_SURFACE_VERSION,generationMs,checks:['immutable source and uncached deterministic replay','finite bounded geometry and unit normals','closed wound manifold and nonzero GPU triangles','every generated cut face lies on its cutter plane','fractures expose varied connected wall planes without end caps','cut face render normals stay on their analytic planes','retained source faces remain coplanar and consistently wound','original bottom height summit and flat platform caps','render positions equal measured mesh positions','vertical joint contours on non-platform steep faces','independent ridge target unchanged','large connected masses and sparse accents','independent ray parity on carved contact witnesses','dense fit and measured orange guides','carved mesh height scaling including 145 percent','unchanged 3m platform route'],prototypes,assemblies,platformSamples,maximumPlatformChangeM};
 fs.writeFileSync(new URL('../evidence/surface-validation.json',import.meta.url),JSON.stringify(output,null,2)+'\n');
 console.log(JSON.stringify({version:output.version,prototypes:prototypes.length,assemblies:assemblies.length,platformSamples,maximumPlatformChangeM,maxRmsM:Math.max(...assemblies.map(r=>r.rmsM)),maximumDeviationM:Math.max(...assemblies.map(r=>r.maximumDeviationM)),generationMs},null,2));

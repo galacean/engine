@@ -84,6 +84,22 @@ export function convexCarveCutter(halfspaces,firstTag){
  return {polygons,planes:planes.map((plane,i)=>({...plane,tag:firstTag+i}))};
 }
 
+// A single closed fracture with a piecewise-linear tip path. Fixed, unequal
+// wedge angles make each wall quad planar even as its center and depth change.
+// Adjacent sections share their entire ring: there are no internal end caps.
+export function sweptCarveCutter(sections,n,opening,firstTag){
+ const t=[-n[1],n[0]],outer=3,point=(r,y,c)=>[n[0]*r+t[0]*c,y,n[1]*r+t[1]*c];
+ const rings=sections.map(s=>[point(s.tip,s.y,s.center),point(outer,s.y,s.center+opening[0]*(outer-s.tip)),point(outer,s.y,s.center-opening[1]*(outer-s.tip))]);
+ const polygons=[],planes=[],regions=[];
+ const add=(points,role)=>{const tag=firstTag+planes.length,p=carvePolygon(points,tag);if(!p)throw new Error('Empty fracture face');for(const q of points)if(Math.abs(carveDot(p.plane.n,q)-p.plane.w)>1e-9)throw new Error('Nonplanar fracture wall');polygons.push(p);planes.push({...p.plane,tag,role});return p.plane;};
+ add([...rings[0]].reverse(),'end');
+ for(let i=1;i<rings.length;i++){
+  const walls=[];for(let j=0;j<3;j++)walls.push(add([rings[i-1][j],rings[i-1][(j+1)%3],rings[i][(j+1)%3],rings[i][j]],j===1?'back':'wall'));
+  regions.push([...walls,{n:[0,-1,0],w:-sections[i-1].y},{n:[0,1,0],w:sections[i].y}]);
+ }
+ add(rings.at(-1),'end');return {polygons,planes,regions};
+}
+
 export function carveSolidMesh(positions,indices,cutters){
  const vertices=Array.from({length:positions.length/3},(_,i)=>positions.slice(i*3,i*3+3));
  let polygons=[];for(let i=0;i<indices.length;i+=3){const p=carvePolygon(indices.slice(i,i+3).map(id=>vertices[id]),-i/3-1);if(p)polygons.push(p);}

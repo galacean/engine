@@ -37,7 +37,7 @@ node world/demos/rock-ridge-study/src/verify-surfaces.mjs
 
 ## Current fitter
 
-`ridge-solid-cuts-9` generates the full network before reading any rock geometry.
+`ridge-irregular-cuts-10` generates the full network before reading any rock geometry.
 Shared XYZ junctions connect continuous curves with procedural peaks and saddles.
 The blue lines show that exact input; orange lines sample the actual mesh surface
 at the same X/Z positions. Orange is not an extraction of every mesh crest.
@@ -135,12 +135,12 @@ This study interprets those features procedurally on the existing atomic meshes;
 it does not contain the seller's mesh, textures or sculpt data and does not reproduce
 the reference exactly. The original rounded outline still influences the result.
 
-Use **Surface comparison** to see the previous `slab-cuts-3` carving beside
-`solid-carving-4` on the same highest mass. Both panels share the same transform,
+Use **Surface comparison** to see the previous straight `solid-carving-4` cuts beside
+`irregular-fractures-5` on the same highest mass. Both panels share the same transform,
 camera, framing, lighting and untextured clay. Each renders alone, so neither
 casts shadows onto the other. The comparison stacks below 540 px. Entering it
 preserves the viewing angle; choosing Low angle or Side first gives the matching
-paired view. The previous meshes and render normals match commit `15396ae05`
+paired view. The previous meshes and render normals match commit `e788d6e5a`
 exactly across all 12 prototypes.
 
 Use **Rock finish** in an assembly view to compare stone, clay and original
@@ -154,14 +154,24 @@ The earlier displacement method could create fins even while preserving winding:
 its per-vertex backoff factors introduced discontinuities in the intended cut.
 The active generator now constructs the surface by solid subtraction. It does not
 run displacement, local backoff, smoothing, spike removal, or an artifact-repair
-pass. The frozen displacement function exists only for the comparison panel.
+pass. The comparison also uses solid subtraction; the old displacement function
+has been removed.
 
-1. Define six broad plane cutters and five narrow vertical wedge cutters in a
+1. Define six broad plane cutters and five continuous fracture cutters in a
    normalized rock frame. Broad planes run through the foot and crown so their
    stopping points cannot create collars or plinths. They preserve the original
    summit point. Flat platform slabs omit the broad plane cuts to protect their
-   walking surface. Wedges end on inclined planes and leave a central core.
-2. Subtract those closed convex solids from the actual upstream mesh. The BSP
+   walking surface. Each fracture sweeps one unequal V profile along six stations
+   with uneven heights, lateral bends and depth changes. Depth changes also vary
+   the opening width. The two side angles differ but stay constant along that
+   fracture, which makes every wall panel planar. Adjacent panels share their
+   complete section edges; there are no interior end caps. Their ends taper out
+   just beyond the broad face at independently seeded heights, avoiding square
+   slot ends. Lateral variation is scaled to the rock's physical aspect ratio;
+   all cuts leave a central core. Platform cutters exit outside the source body
+   below the protected cap.
+2. Subtract those closed solids from the actual upstream mesh. The fracture
+   sweeps may be non-convex, but every cutter polygon is convex and planar. The BSP
    implementation in `src/solid-carve.mjs` follows
    [Evan Wallace's CSG algorithm](https://evanw.github.io/csg.js/docs/); its MIT
    notice is included. Intersections create new edge vertices. Surviving source
@@ -185,7 +195,8 @@ The surface suite checks all 12 prototypes and eight fitted assemblies, includin
 island seed 425 with both three and five octaves, mountain seed 416, the long cliff
 connection at seed 19, and the earlier seeded graph. It checks closed, consistently
 wound topology; nonzero triangles after Float32 conversion; retained source-plane
-geometry; exact cutter-plane faces; the original summit and bottom heights;
+geometry; exact cutter-plane faces and render normals; varied exposed fracture
+wall directions; no exposed cutter end caps or back faces; the original summit and bottom heights;
 unchanged platform caps; identical rendered/measured positions; deterministic
 replay; connected mass contacts; target independence; and height transforms.
 All 2,500 samples across the 3 m platform route retain their original height.
@@ -198,13 +209,15 @@ vertical-direction acceptance test. Planarity and topology are checked for every
 prototype, including platform slabs. These checks prove construction properties,
 not geological realism or overall artistic quality.
 
-Browser review covered the matched clay comparison at 736 px, the island low-angle
-view at heights 100% and 145%, and platform tops in stone. The final browser
-session reported no JavaScript or shader errors. Native orbit gestures were not
-revalidated in this revision.
+Browser review covered the matched island and uphill-path clay comparisons at
+736 px, the stacked comparison at 320 px, and island seed 425 at 100% and 145%
+height with three octaves and 0.85 persistence. The reviewed cuts have uneven
+planar turns and tapered ends without the earlier triangular fins. The final
+browser session reported no JavaScript or shader errors. Native orbit gestures
+were not revalidated in this revision.
 
-The current library has 8,296–25,372 triangles per prototype. Generating its twelve
-carved meshes took 8.6 seconds in the recorded local Node check; the viewer
+The current library has 14,772–37,864 triangles per prototype. Generating its twelve
+carved meshes took 6.8 seconds in the recorded local Node check; the viewer
 caches them. It has no production LOD or performance acceptance. This is a
 floating-point BSP prototype validated on the twelve closed upstream meshes, not
 a certified robust Boolean kernel for arbitrary degenerate input.
