@@ -1,0 +1,441 @@
+packages/water/src/water/shaders/library/surface/WaterSurfaceClosure.glsl
+  s_5cbb0a25537bde::t_21e6b280ee3c2a 76,83,162
+packages/water/src/water/runtime/spatial/WaterWetNearShoreSearch.ts
+  s_7cd12f44067e0a::t_a32248169dab63 2,6
+  s_7cd12f44067e0a::t_aead8c6925a7af 9
+packages/water/src/water/devtools/WaterPresentationSession.ts
+  s_5cbb0a25537bde::t_c77f17b139b707 5
+  s_7cd12f44067e0a::t_b930292ac67a79 3,11,17
+packages/water/src/water/runtime/river/RiverWaterBackend.ts
+  s_7cd12f44067e0a::t_a32248169dab63 16-20,23,25,27-29,31,38
+  s_5cbb0a25537bde::t_9dd154db97bea2 49
+  s_7cd12f44067e0a::t_9413a52885be36 2,5-8,15,47-48,50,58-59,61,107,443,614,621-622,843,845,852,862
+packages/water/src/water/runtime/optics/CameraWaterFeatureBroker.ts
+  s_7cd12f44067e0a::t_a32248169dab63 9
+  s_7cd12f44067e0a::t_203e8b5d71b4ba 44,395
+packages/water/src/water/native/WaterBuiltinShaderSources.ts
+  s_f3959dcbf2bda2::t_0be722e75d7e1c 4,11
+  s_f3959dcbf2bda2::t_bc95be4dbe942e 1-3,5-10,12-14
+packages/water/tests/WaterNativeMaterial.test.ts
+  s_f3959dcbf2bda2::t_e0344b30cf4068 19-20,23,131,191,202-205
+  s_7cd12f44067e0a::t_56cc5dc7f2ad7a 1,94-99,102-117,119
+  s_f3959dcbf2bda2::t_01864beb52fc28 85
+  s_f3959dcbf2bda2::t_89daef9e6fb8a0 14,126,128,176-190,192-201,206
+  s_7cd12f44067e0a::t_a32248169dab63 2-5,7-12
+  s_f3959dcbf2bda2::t_961fcc2e666981 207-229
+  s_f3959dcbf2bda2::t_23ac99f82e91e6 6,13,21-22,24-66,68,70-72,89,129-130,132-136,141-175
+  s_f3959dcbf2bda2::t_87d22d5fb70ea9 15
+  s_f3959dcbf2bda2::t_68d422e2d85f90 17-18
+  s_f3959dcbf2bda2::t_c07db8daf917aa 73-75
+  s_f3959dcbf2bda2::t_b1df5c00ecbce3 82-84
+  s_f3959dcbf2bda2::t_bce5d914549f67 86
+  s_f3959dcbf2bda2::t_273d8abfbbeab9 124-125
+  s_f3959dcbf2bda2::t_a8eecab9589a88 127
+  s_f3959dcbf2bda2::t_ad7981a332e0cc 137-140
+packages/water/src/water/runtime/heightfield/HeightfieldWaterRuntimeController.ts
+  s_7cd12f44067e0a::t_a32248169dab63 6-8,18-19,27-41,54-55,65-68,70-72
+  s_7cd12f44067e0a::t_4d4f2b8761ffbe 2,5,73,105,115,150-151,225,250,568
+world/demos/water/demo/grasslands/main.ts
+  s_7cd12f44067e0a::t_a32248169dab63 2,5,7-14,16,20-21,28,54-55,59,61,65,68-69,73,76-80,82,85-87,97,102-103
+  s_5cbb0a25537bde::t_9dd154db97bea2 124,303,1096
+  s_5cbb0a25537bde::t_33ed432083a35f 237,247,252-253,430,515-518,996,1050,1055
+  s_5cbb0a25537bde::t_67f5d64788c724 1052
+  s_7cd12f44067e0a::t_9cea0ed1aafd8a 113,115,1111
+packages/water/src/water/runtime/optics/WaterReflectionService.ts
+  s_7cd12f44067e0a::t_a32248169dab63 5-10
+  s_7cd12f44067e0a::t_ad3d78c513ef37 3-4,11
+packages/water/src/water/native/WaterBuiltinShaders.ts
+  s_f3959dcbf2bda2::t_bc95be4dbe942e 1-19,21-22,27-28
+  s_f3959dcbf2bda2::t_23ac99f82e91e6 23-26
+  s_f3959dcbf2bda2::t_d1a16297d9bdf7 20
+packages/water/src/water/runtime/body/WaterBodyAssetRegistry.ts
+  s_7cd12f44067e0a::t_a32248169dab63 2-3,5-6,9,11-21,31-41,43-47,49-51
+  s_7cd12f44067e0a::t_13dc791b069ae4 52
+world/demos/prompt-noise-world/src/PromptNoiseRiverWaterRuntime.ts
+  s_7cd12f44067e0a::t_a32248169dab63 4-5,17
+packages/water/src/water/native/WaterBuiltinAssets.ts
+  s_f3959dcbf2bda2::t_3fd8e3171ce9c4 5,21-34,61-62
+  s_7cd12f44067e0a::t_bbd1fbd86fc4dd 4
+packages/water/src/water/shaders/ocean/FarForwardPass.glsl
+  s_5cbb0a25537bde::t_222f591dc26bad 98
+  s_7cd12f44067e0a::t_464c352da0e1ec 100
+packages/water/src/water/runtime/ocean/OceanTextureLibrary.ts
+  s_f3959dcbf2bda2::t_dd308b91142ecc 11,136,138-142
+packages/world-planning/tests/NativeWaterDrops.test.ts
+  s_7cd12f44067e0a::t_a32248169dab63 4-5,10
+  s_7cd12f44067e0a::t_3ff376e8f0a894 12,46-48
+packages/water/src/water/shaders/library/surface/WaterSurfaceAppearanceV2Composition.glsl
+  s_5cbb0a25537bde::t_21e6b280ee3c2a 22
+packages/water/tests/WaterNativeShader.test.ts
+  s_7cd12f44067e0a::t_a32248169dab63 1,3
+  s_7cd12f44067e0a::t_5cea79b359685d 19-20,31
+  s_5cbb0a25537bde::t_e63aac0aee4b02 4,10
+  s_7cd12f44067e0a::t_7a5c12acc84801 22-23,30
+  s_7cd12f44067e0a::t_7e98ee501127d5 18,21,24,26-27,29
+packages/water/src/water/native/WaterBuiltinShaderNames.ts
+  s_f3959dcbf2bda2::t_bc95be4dbe942e 1-6
+  s_f3959dcbf2bda2::t_0be722e75d7e1c 7-13
+packages/water/src/water/runtime/surface/WaterSurfaceClosureShader.ts
+  s_5cbb0a25537bde::t_c77f17b139b707 159
+  s_7cd12f44067e0a::t_9a018f20c524b9 6,17,46
+world/demos/water/ocean/README.md
+  s_7cd12f44067e0a::t_684d7b956a97d4 7,36
+packages/water/src/water/runtime/ocean/OceanFarMaterial.ts
+  s_7cd12f44067e0a::t_a32248169dab63 1-3,6,8-9,20-25,27,35,40-41,43,50-54
+  s_7cd12f44067e0a::t_1f20500c4435a5 55,72,212,223
+packages/water/src/water/shaders/library/ocean/OceanFarField.glsl
+  s_5cbb0a25537bde::t_222f591dc26bad 71
+  s_5cbb0a25537bde::t_692781f47e76f0 129
+packages/water/src/water/native/assets/Water/Materials/ocean.mat
+  s_f3959dcbf2bda2::t_7946bd8d5d99d7 3
+packages/world-planning/src/integrations/grasslands/GrasslandsWaterPcg.ts
+  s_5cbb0a25537bde::t_9dd154db97bea2 258
+  s_7cd12f44067e0a::t_a32248169dab63 1,11,26,28,30-32,38-40
+  s_7cd12f44067e0a::t_d1f354afa884c6 41,140,250,257,261,330,337,397,407,410,417,422,425,430,433-434
+packages/water/src/water/shaders/library/surface/WaterSurfaceAppearanceV2DepthResponse.glsl
+  s_5cbb0a25537bde::t_ac9c67137398c8 1-2
+packages/water/src/water/runtime/index.ts
+  s_7cd12f44067e0a::t_a32248169dab63 16,34,63-64,73-74,78,80
+packages/water/src/water/native/assets/Water/Shaders/lake.shader
+  s_5cbb0a25537bde::t_532ade816dd4c3 824,830-831,841,1063,1126,1630,1710,1741,1800,1952,2126-2127,2196,2201,2206,2217,2219-2221,2293,2600,2684,2836
+packages/water/src/water/runtime/scene/WaterSceneRuntimeHost.ts
+  s_5cbb0a25537bde::t_c77f17b139b707 316,1076,1808-1824
+  s_7cd12f44067e0a::t_a32248169dab63 1,6-13,19-21,32-33,37,40,43-44
+  s_7cd12f44067e0a::t_1436fe771cce10 63,106,222,1825
+packages/water/src/water/shaders/heightfield/HeightfieldGeometry.glsl
+  s_5cbb0a25537bde::t_222f591dc26bad 26
+packages/world-planning/src/integrations/terrain/project/TerrainWaterRuntime.ts
+  s_7cd12f44067e0a::t_a32248169dab63 9-15,19
+  s_7cd12f44067e0a::t_0298328caba4ac 8,23-24
+packages/water/src/water/runtime/generation/WaterGenerationPreparer.ts
+  s_7cd12f44067e0a::t_a32248169dab63 2-5,22,24
+  s_7cd12f44067e0a::t_c5ad1dc41d7055 1,235,265,354,404
+packages/water/src/water/native/assets/Water/Materials/river-drops.mat
+  s_f3959dcbf2bda2::t_7946bd8d5d99d7 3
+world/demos/seed-world/src/planning/spatial/runtime/PlanningSeedRuntimeDebug.ts
+  s_7cd12f44067e0a::t_a32248169dab63 25-32,34-36
+  s_7cd12f44067e0a::t_85b34f97216ccd 7-12,23-24,37,222-223,303-306,458
+world/demos/water/demo/island/README.md
+  s_7cd12f44067e0a::t_b7ee0ac40be2d0 31
+packages/water/src/water/runtime/optics/WaterSurfaceOpticsBinding.ts
+  s_7cd12f44067e0a::t_a32248169dab63 10-11
+  s_7cd12f44067e0a::t_0684462620041e 9,12-13,15-16,371
+packages/world-planning/tests/WaterEditor.test.ts
+  s_7cd12f44067e0a::t_a32248169dab63 17
+  s_7cd12f44067e0a::t_7bd98a7aa18905 1-3,5,7-9,11-12,76-86,154-158,161-162,164,464-467,473,477,542
+packages/water/src/water/runtime/heightfield/HeightfieldNearShoreQuery.ts
+  s_7cd12f44067e0a::t_a32248169dab63 12-13
+  s_7cd12f44067e0a::t_c4335cd609d9c1 11,14
+packages/water/src/water/runtime/ocean/OceanMaterial.ts
+  s_7cd12f44067e0a::t_a32248169dab63 1-2,4-12,17-19,30,35,45,50-51,54-55,61-70
+  s_7cd12f44067e0a::t_2decdd2cdd56ca 71-72,92,105,421,431
+world/scripts/generate-water-assets.mjs
+  s_5cbb0a25537bde::t_b6b52ec89e9120 111,115-122,130
+  s_f3959dcbf2bda2::t_d1a16297d9bdf7 6,147,153-156
+  s_f3959dcbf2bda2::t_af80a3c79cd023 128
+  s_f3959dcbf2bda2::t_01864beb52fc28 129
+world/demos/seed-world/SeedWorldDemo.ts
+  s_7cd12f44067e0a::t_a32248169dab63 1-2,4-6,8-9,11-12,14-36,38-40,45-49,52-60,62-65,68-70,72,74-96,103-105,108-109,111,119-122,124-128,130,134-135,140-146,148-152,155-156,158-161,168-173,176,178-195,198-202
+  s_7cd12f44067e0a::t_5759244e5a8d97 203,208-213,217-218,301-310,313,342-355,358-369,372-383,386-397,399-407,419-423,427-447,450-460,463-468,476-480,485,492-501,524-527,535-538,540-543,554-556,558-560,564-567,576-579,589,593-596,602-606,631-635,648-650,656-660,664-673,676-681,716-719,722-724,730-731,745,747-749,766-767,772-773,775-781,787-789,803-831,833-843,847-853,857-865,875-878,881-886,890-925,932,936,939-943,948-968,970-976,981-982,984-1022,1024-1029,1031-1074,1078-1086,1088-1124,1126-1150,1152-1154,1156-1167,1170-1183,1187-1193,1196-1238,1243-1293,1331-1337,1345-1404,1406-1431,1433-1455,1462-1470,1488-1489,1491-1540,1548-1555,1563-1575,1577,1579-1593,1595,1597-1598,1602-1613,1619-1625,1627-1633,1638-1653,1655-1658,1663,1665-1668,1672-1675,1725-1743,1758-1768,1808-1817,1819-1828,1833-1837,1876,1878,1884-1889,1897-1899,1902,1911-1912,1914,1945,1957-1959,1995-1998,2008-2024,2026-2054,2056-2058,2060-2079,2086-2101,2104-2124,2130-2134,2144-2150,2156-2159,2168-2171,2173-2174,2187-2188,2196-2198,2232-2234,2249,2287,2301-2303,2308-2310,2312-2320,2327-2331,2347-2348,2355,2358-2360,2365-2367
+world/demos/water/demo/river/RiverHighAcceptance.md
+  s_7cd12f44067e0a::t_b7ee0ac40be2d0 48,72
+packages/water/src/water/native/WaterAPI.ts
+  s_5cbb0a25537bde::t_20c268170a92a8 332
+  s_7cd12f44067e0a::t_a32248169dab63 3-11,13,18,20,27,29-30
+  s_7cd12f44067e0a::t_6a18b7cbdf6d06 131,163
+packages/water/src/water/shaders/river/FinalOutput.glsl
+  s_5cbb0a25537bde::t_222f591dc26bad 57
+  s_5cbb0a25537bde::t_21e6b280ee3c2a 99
+packages/water/src/water/native/assets/Water/Materials/river.mat
+  s_f3959dcbf2bda2::t_7946bd8d5d99d7 3
+packages/water/src/water/native/WaterSystem.ts
+  s_f3959dcbf2bda2::t_8b62faa59df0a4 605,611
+  s_7cd12f44067e0a::t_a32248169dab63 1-6,10-11,13-18,27-36
+  s_5cbb0a25537bde::t_20c268170a92a8 866,886
+packages/water/src/water/shaders/library/surface/WaterSurfaceRawContribution.glsl
+  s_5cbb0a25537bde::t_c4b2afdfc2fd95 110,131,135-141,143-145
+  s_5cbb0a25537bde::t_222f591dc26bad 142,146
+  s_5cbb0a25537bde::t_21e6b280ee3c2a 46,127
+  s_5cbb0a25537bde::t_f921af6f995dde 21,34-35,43,45,109
+packages/water/src/water/native/assets/Water/Materials/lake.mat
+  s_f3959dcbf2bda2::t_7946bd8d5d99d7 3
+world/demos/water/demo/river/RiverDemoLook.ts
+  s_5cbb0a25537bde::t_67f5d64788c724 55-56
+  s_7cd12f44067e0a::t_a32248169dab63 1,11
+  s_7cd12f44067e0a::t_b72cd3a196beaa 17,20,34,37,60,63,121,124,184
+packages/water/src/water/runtime/body/WaterBodyConsumerRuntime.ts
+  s_7cd12f44067e0a::t_a32248169dab63 16-18
+  s_7cd12f44067e0a::t_66c7b4a35759d8 15,19-20
+packages/water/src/water/shaders/heightfield/ScreenSpaceReflectionSurface.glsl
+  s_5cbb0a25537bde::t_c4b2afdfc2fd95 162
+packages/water/src/water/runtime/heightfield/HeightfieldWaterBackend.ts
+  s_7cd12f44067e0a::t_a32248169dab63 26,33
+  s_7cd12f44067e0a::t_eae0affb111a08 1,7-10,13,24,36,52,58,118,420,429-430,692,694,700,711
+packages/world-planning/src/semantic-study/WorldPlanning3DView.ts
+  s_7cd12f44067e0a::t_a32248169dab63 2,4,6,8,12,15-22,26,30-38,40-51
+  s_7cd12f44067e0a::t_7bde81b052283e 493
+packages/world-planning/src/runtime/SeedWorldWaterRuntime.ts
+  s_7cd12f44067e0a::t_a32248169dab63 5-6,8,16,20,23-24,29-30,36-39,44,47,49,58,64-72
+  s_5cbb0a25537bde::t_67f5d64788c724 408
+  s_7cd12f44067e0a::t_c5c3b6546af72e 73,532-533,636
+packages/water/src/water/native/WaterMaterial.ts
+  s_f3959dcbf2bda2::t_23ac99f82e91e6 334,336,338-340,361-375,379-381,387-394
+  s_f3959dcbf2bda2::t_7946bd8d5d99d7 356-360,376
+  s_7cd12f44067e0a::t_a32248169dab63 4-5,7,9,11-13
+  s_7cd12f44067e0a::t_f2a8d3a3f40a32 1,36-38,353-355,378
+  s_f3959dcbf2bda2::t_01864beb52fc28 98
+  s_f3959dcbf2bda2::t_61d8ecb6355e42 14-16,95,102,109-111,126,210,212-213,322-329,331-333,337,341,344,346-348,382,397-401
+  s_f3959dcbf2bda2::t_af80a3c79cd023 335
+  s_7cd12f44067e0a::t_7b01df48b7e7fe 3
+packages/water/src/water/runtime/surface/WaterSurfaceAppearanceV2Shader.ts
+  s_5cbb0a25537bde::t_ac9c67137398c8 475
+  s_7cd12f44067e0a::t_b7579c3d8b9046 21-22,26,29-30,38,464
+packages/water/src/water/runtime/heightfield/HeightfieldWaterMaterialBinding.ts
+  s_7cd12f44067e0a::t_a32248169dab63 11
+  s_7cd12f44067e0a::t_0d3aeae965bda5 83
+world/demos/seed-world/agent-adapter/SeedWorldAgentApplication.ts
+  s_7cd12f44067e0a::t_a32248169dab63 10,12,17,27,31,33,35,39,47,53,56-60,62-70,72-77,132,135
+  s_7cd12f44067e0a::t_686ea58271c98c 1-2,4,7,160-162,170-171,174-178,184-190,194-198,200-210,234-236,248,261-272,276,278-287,290-292,296-298,301-305,309-316,325-331,333-335,340,342-355,358-363,378-380,384-391,396,401-404,407-411,414-417,419-424,426-430,433-447,450-472,484-494,496-498,502-513,517-520,535-537,541-542,561-565,580,582-600,612-620,628-635,642-647,649-674,681-683,700-720,752-756,821-822,824-825,903-905,909-911,997-1044,1067-1071,1155-1158,1224,1410,1413,1415-1416,1429,1449,1465-1473,1479-1488,1490-1494,1498-1524,1526-1540,1554-1559,1598,1600,1610-1614,1676,1777-1779,1832,2019-2020,2022-2023,2065-2071,2073-2080,2132-2138,2207,2217,2334,2863-2865,2870-2871,2875-2878,2881-2883
+packages/water/package.json
+  s_f3959dcbf2bda2::t_7389e3c54c8885 404-411
+world/demos/prompt-noise-world/main.ts
+  s_7cd12f44067e0a::t_a32248169dab63 11-14,25,27,29-48,53
+  s_5cbb0a25537bde::t_38bbb0877fef58 1352-1355
+  s_7cd12f44067e0a::t_e5b519308346da 149,161,333,345,513,1257
+packages/water/src/water/native/assets/Water/Shaders/ocean-near-detailed.shaderc
+  s_5cbb0a25537bde::t_0eb7d8053078c1 1
+packages/water/tests/WaterBuiltinShaders.test.ts
+  s_f3959dcbf2bda2::t_16c5e7f4bbc4f6 10-11
+  s_f3959dcbf2bda2::t_23ac99f82e91e6 18,29-72,74-110
+  s_f3959dcbf2bda2::t_2e085d08a30348 73
+  s_f3959dcbf2bda2::t_d3007c36eb4403 1-9,12-17,19-28,111
+packages/water/src/water/runtime/optics/WaterSurfaceOpticsTypes.ts
+  s_7cd12f44067e0a::t_a32248169dab63 13-15
+packages/water/src/water/runtime/body/WaterWorld.ts
+  s_7cd12f44067e0a::t_bdd592a6bef12a 533
+  s_7cd12f44067e0a::t_1cbe0cf7f853c5 3-4,118,332,361,443
+packages/water/src/water/shaders/heightfield/FinalClosure.glsl
+  s_5cbb0a25537bde::t_222f591dc26bad 24,29,34,45,47-48
+  s_5cbb0a25537bde::t_5816038c6a1f91 49
+packages/water/src/water/shaders/heightfield/ForwardPass.glsl
+  s_5cbb0a25537bde::t_c4b2afdfc2fd95 197,214-219,240,248,250-252,275-276,313
+  s_5cbb0a25537bde::t_222f591dc26bad 247
+  s_5cbb0a25537bde::t_c0b9e3d1ebcb47 301
+packages/water/src/water/runtime/river/RiverNearShoreQuery.ts
+  s_7cd12f44067e0a::t_a32248169dab63 5,8,13-15
+  s_7cd12f44067e0a::t_f7fd061baa5b5b 2
+packages/water/src/water/devtools/WaterTuningAdapters.ts
+  s_5cbb0a25537bde::t_0eb7d8053078c1 74
+  s_7cd12f44067e0a::t_c583bfcf3d20cd 2-3,18,27-28,30-31,43,2037,2058,2080,2090
+packages/water/src/water/native/WaterRuntimeControl.ts
+  s_7cd12f44067e0a::t_a32248169dab63 2-3
+  s_7cd12f44067e0a::t_c393cb8fa2e628 1,4
+packages/water/src/water/runtime/ocean/OceanSceneFieldDemand.ts
+  s_5cbb0a25537bde::t_9dd154db97bea2 32,119,143,146,166
+packages/world-planning/src/runtime/hydrology-v1/SeedWorldWaterRuntimeBridgeV1.ts
+  s_7cd12f44067e0a::t_a32248169dab63 3,15-21,24,26,29,38-39,41,49-51
+  s_7cd12f44067e0a::t_eae6fb3f0a284f 52,183,185
+packages/terrain/src/data/seed-world/source/Shader/Water/LakeHeightfieldHighHybrid.shader
+  s_5cbb0a25537bde::t_b6b52ec89e9120 5,661,667-668,678,900,963,1468,1547,1578,1637,1789,1963-1964,2033,2038,2043,2054,2056-2058,2130,2438,2521,2673
+  s_7cd12f44067e0a::t_fbab8552ef1fee 967,971,1079,1086,1116
+packages/water/src/water/runtime/optics/WaterEnvironmentReflectionProvider.ts
+  s_7cd12f44067e0a::t_a32248169dab63 8-9
+packages/water/src/water/shaders/heightfield/DepthAlpha.glsl
+  s_5cbb0a25537bde::t_222f591dc26bad 7
+  s_5cbb0a25537bde::t_21e6b280ee3c2a 8
+  s_5cbb0a25537bde::t_ed50d12d49a55c 1-6,9-10
+world/demos/water/demo/island/main.ts
+  s_7cd12f44067e0a::t_a32248169dab63 3-4,10-11,14-15,21-26,35,39,47,49,57,60,62,64-66
+  s_5cbb0a25537bde::t_67f5d64788c724 282
+world/demos/integrated-world/main.ts
+  s_7cd12f44067e0a::t_a32248169dab63 8,18,21,30-32,38,44-49,56-66,72-76
+  s_5cbb0a25537bde::t_38bbb0877fef58 456
+  s_7cd12f44067e0a::t_69c99a06653096 77,159,556,582,662
+world/demos/seed-world/src/SeedWorldWindAcceptance.ts
+  s_7cd12f44067e0a::t_a32248169dab63 15-16
+  s_7cd12f44067e0a::t_795e2c52f9018f 14,17,19,130,311
+packages/world-planning/src/spatial/runtime/PlanningWaterRuntime.ts
+  s_7cd12f44067e0a::t_a32248169dab63 1,6,8-9,12-13,15-25,27-37,40-42,46-48
+  s_7cd12f44067e0a::t_856e3b98d523d2 51-52,54
+world/demos/seed-world/systems/runtime-declarations.json
+  s_7cd12f44067e0a::t_a339a47b9bb133 334,344,369-370
+  s_7cd12f44067e0a::t_a0977281ce7acd 395
+world/demos/water/demo/river/RiverDemoEnvironment.ts
+  s_7cd12f44067e0a::t_a32248169dab63 2-3,5,7,10-11,15,17
+  s_7cd12f44067e0a::t_fc91862558945b 19-23
+world/demos/seed-world/src/planning/spatial/runtime/PlanningSeedWorldSession.ts
+  s_7cd12f44067e0a::t_a32248169dab63 1,6-7,12-13,16-18,20-27,29-30,32-38
+  s_7cd12f44067e0a::t_537727f52bd7a8 63-68,98-99,103-110,114-115,122,124-125,132-142,149-159,161-162,188,190-222,225-227,229-232,235-236,257-258,280-284,286,288-292,305-307
+packages/water/src/water/runtime/heightfield/HeightfieldWaterMaterialFactory.ts
+  s_5cbb0a25537bde::t_9dd154db97bea2 862
+  s_5cbb0a25537bde::t_c645dc1b9a412e 51,257-266,283,506-508,682-684,686-691
+  s_7cd12f44067e0a::t_a32248169dab63 14,18-19,31,55-68,70,72,80,82-84,92-93,111,113,120,133-138
+  s_5cbb0a25537bde::t_05dafd10f08cad 962-966
+  s_7cd12f44067e0a::t_8421b689ba43e2 2,4,6,35-50,52-54,139-140,697,722,922,931,941-942
+packages/water/src/water/shaders/heightfield/SurfaceNormal.glsl
+  s_5cbb0a25537bde::t_ed50d12d49a55c 2-9
+  s_5cbb0a25537bde::t_c4b0de39418a63 1
+packages/water/src/water/runtime/surface/WaterSurfaceRendererContract.ts
+  s_5cbb0a25537bde::t_21e6b280ee3c2a 7
+  s_7cd12f44067e0a::t_80a2c929145996 8,10
+world/demos/water/demo/main.ts
+  s_5cbb0a25537bde::t_33ed432083a35f 543
+  s_5cbb0a25537bde::t_67f5d64788c724 425
+  s_7cd12f44067e0a::t_a32248169dab63 1,6,9-14,17,20-21,24,26,31,34,36,46
+  s_7cd12f44067e0a::t_a0908014eb3cfb 50-51,402,480,532
+packages/water/src/water/runtime/ocean/OceanWaterRuntimeController.ts
+  s_5cbb0a25537bde::t_9dd154db97bea2 221,242,250,253,409,513
+  s_7cd12f44067e0a::t_a32248169dab63 3,7,34-35,42
+packages/water/src/water/native/index.ts
+  s_f3959dcbf2bda2::t_bc95be4dbe942e 3,48
+  s_7cd12f44067e0a::t_a32248169dab63 6-15,18-19,23-29,33-34,36-38,42,55,57-58,67-71,75
+  s_7cd12f44067e0a::t_8edfc5b8de0eba 5
+world/demos/seed-world/agent-adapter/runtime/SeedWorldRuntimeEnginePort.ts
+  s_7cd12f44067e0a::t_a32248169dab63 2-3,10,17,37,40,44,48-65
+  s_7cd12f44067e0a::t_3f20a249856fbe 66-67,146-158,163-169,173-178,180-183,186-189,198-201,203-205,209-212,214-241,244-246,249-253,265-281,283-284,286-287,291-298,307-309,311-347,349,357-369,371-375,378-384,386-411,414-417,419-421,424-437,440-444,452-453,463-466,533-534,538,682-684,691-737,762-776,788-795,998-1001,1005-1012,1016-1018,1022-1029,1058-1062,1070-1072,1157-1160,1178-1181,1200-1207,1216-1218,1229-1237,1427-1428,1551,1663-1670,1673-1676,1709,1712,1729-1730,1734-1737
+packages/water/src/water/runtime/optics/WaterReflectionBindingLifecycle.ts
+  s_7cd12f44067e0a::t_a32248169dab63 12
+packages/water/src/water/runtime/river/RiverRuntimeController.ts
+  s_5cbb0a25537bde::t_c77f17b139b707 1089
+  s_7cd12f44067e0a::t_a32248169dab63 15-17,20,24-25,37-38
+  s_5cbb0a25537bde::t_21e6b280ee3c2a 751,1061
+  s_7cd12f44067e0a::t_f365d9e895a14c 14
+packages/water/scripts/prepare-builtin-shaders.mjs
+  s_f3959dcbf2bda2::t_4db483f2a226c1 16-18
+  s_f3959dcbf2bda2::t_0be722e75d7e1c 1,14,22,27-28
+  s_f3959dcbf2bda2::t_16c5e7f4bbc4f6 4,26,30,34
+  s_f3959dcbf2bda2::t_6ad8ad8db9a58d 2-3,7-8
+  s_f3959dcbf2bda2::t_08447e76d776f2 9
+  s_f3959dcbf2bda2::t_bc95be4dbe942e 5-6,10-13,15,19-21,23-25,29,31-33,35
+packages/water/src/water/runtime/body/WaterBodyLoader.ts
+  s_7cd12f44067e0a::t_a32248169dab63 11-14,23-29,32,38,44-53,60-62,66,71,73
+  s_7cd12f44067e0a::t_d38b3991a52a32 9-10,74,219,265,1449
+packages/water/src/water/runtime/effects/WaterContactEffects.ts
+  s_7cd12f44067e0a::t_a32248169dab63 9,13-16,20
+  s_7cd12f44067e0a::t_5c6866d1be4fe6 23,26-27
+world/demos/water/planner/main.ts
+  s_7cd12f44067e0a::t_a32248169dab63 1,4-5,7-9,17
+  s_7cd12f44067e0a::t_09be1edc3217f5 18,154-156,260-265,277-285,302-305,332-334,336-344,529
+packages/water/src/water/ARCHITECTURE.md
+  s_7cd12f44067e0a::t_b7ee0ac40be2d0 76-78
+packages/water/src/water/runtime/optics/WaterSurfaceOpticsMath.ts
+  s_7cd12f44067e0a::t_a32248169dab63 2-5,13
+  s_7cd12f44067e0a::t_ebe03c2e74db45 1,258-265
+world/demos/water/ocean/main.ts
+  s_7cd12f44067e0a::t_a32248169dab63 1
+  s_7cd12f44067e0a::t_83fdaa9b985247 2-4
+packages/water/src/water/shaders/river/ForwardPass.glsl
+  s_5cbb0a25537bde::t_21e6b280ee3c2a 281
+packages/water/src/water/native/WaterBuiltinMaterialTextures.ts
+  s_5cbb0a25537bde::t_618b806e8e5276 1-5,9,14,21-22,34-40
+  s_f3959dcbf2bda2::t_23ac99f82e91e6 6-8,10-13,15-20,23-33
+packages/water/src/water/scripts/generate-native-api.mjs
+  s_5cbb0a25537bde::t_9dd154db97bea2 8,20
+packages/water/src/water/native/assets/Water/Shaders/river.shader
+  s_5cbb0a25537bde::t_6381ff743b11f0 2376
+  s_5cbb0a25537bde::t_7ba41fd36396f4 2373-2375
+  s_5cbb0a25537bde::t_2f520245bfbfdb 2377
+packages/water/src/water/shaders/library/surface/WaterAnimatedVoronoiF1.glsl
+  s_5cbb0a25537bde::t_c4b2afdfc2fd95 25,31-32,42
+packages/water/src/water/shaders/ocean/ForwardPass.glsl
+  s_5cbb0a25537bde::t_222f591dc26bad 532
+  s_5cbb0a25537bde::t_f2274979a82b3f 488
+packages/terrain/src/data/seed-world/project.json
+  s_7cd12f44067e0a::t_fd5b08c790839c 140,145,150,155
+packages/terrain/src/data/seed-world/public/Shader/Water/WaterAotManifest.9f9fd9e44ca00ba45ab6c31d8c3a690b91a243b09133c838e2752725c8103ae7.json
+  s_7cd12f44067e0a::t_2c02128af3d140 28,37-42,76-77,85-90,126-131
+packages/terrain/src/data/seed-world/public/Shader/Water/lake-heightfield-high-hybrid-v2.7875e4392d5511ef4e4223e012a4946421f7f4e3930412a8754c4182b118d016.shaderc
+  s_7cd12f44067e0a::t_788ce69e024604 1
+packages/terrain/src/data/seed-world/public/Shader/Water/ocean-far-graded.e7b41468afb2ead31f3592a9464535ea83fcbe1a95d05bf26fa81ceeed84f933.shaderc
+  s_7cd12f44067e0a::t_99bcf6cda26e71 1
+packages/terrain/src/data/seed-world/public/Shader/Water/ocean-near-detailed.59c70a1db12953c6240e43001cc8890332a8f13740b60b7e7d34d4e6b25de492.shaderc
+  s_7cd12f44067e0a::t_76847dd2a4f918 1
+packages/terrain/src/data/seed-world/source/Shader/Water/OceanFarGraded.shader
+  s_7cd12f44067e0a::t_6bdfec6967508c 384,393,420,437,441,445-455,576,583,616,849,923,1026,1028
+packages/terrain/src/data/seed-world/source/Shader/Water/OceanNearDetailed.shader
+  s_7cd12f44067e0a::t_cd926b9a6b5e9a 650,659,722,739,743,747-757,888,895,970,1247,1321,2044-2045,2228,2272
+packages/terrain/src/terrain/debug/TerrainScreenSpaceReflectionPanel.ts
+  s_7cd12f44067e0a::t_e677c9b1c9ef26 264,307
+packages/water/src/index.ts
+  s_7cd12f44067e0a::t_babd066aecd033 4-5,8
+packages/water/src/water/authoring/heightfield/HeightfieldWaterTypes.ts
+  s_7cd12f44067e0a::t_44a739bf7ecdc0 62
+packages/water/src/water/authoring/river/RiverHighLook.ts
+  s_7cd12f44067e0a::t_1f8d24ae29932c 4-5,7,10
+packages/water/src/water/compiler/generation/WaterFootprintCompiler.ts
+  s_7cd12f44067e0a::t_5beabf900c83e7 2,171
+packages/water/src/water/compiler/surface/WaterRenderContractCompiler.ts
+  s_7cd12f44067e0a::t_e3f3b95278cbff 2-3,40-41
+packages/water/src/water/devtools/WaterDevTools.ts
+  s_7cd12f44067e0a::t_98db6410133e2f 20,140,155,902
+packages/water/src/water/devtools/WaterDevToolsLocalization.ts
+  s_7cd12f44067e0a::t_3683badcc6e971 140,157,263
+packages/water/src/water/devtools/WaterDevToolsTypes.ts
+  s_5cbb0a25537bde::t_9a0d9ac2320348 30,33
+packages/water/src/water/runtime/body/WaterBackendControl.ts
+  s_7cd12f44067e0a::t_fbf8fd2d0f77b9 1,7,20,54
+packages/water/src/water/runtime/body/WaterBodyProviderRegistry.ts
+  s_7cd12f44067e0a::t_db440b49cd9dbd 3
+packages/water/src/water/runtime/body/WaterBodyRuntime.ts
+  s_7cd12f44067e0a::t_cb2bac25e4789c 53
+packages/water/src/water/runtime/body/WaterBodyRuntimeSemantics.ts
+  s_7cd12f44067e0a::t_dc6da864367c83 3
+packages/water/src/water/runtime/body/WaterRuntimeInterfaces.ts
+  s_7cd12f44067e0a::t_e7fe3ed4230b96 13
+packages/water/src/water/runtime/heightfield/types.ts
+  s_7cd12f44067e0a::t_d52fdcd53fa95c 4,31
+packages/water/src/water/runtime/ocean/OceanFarFieldShader.ts
+  s_7cd12f44067e0a::t_14eda07452d3c7 11
+packages/water/src/water/runtime/ocean/OceanRenderContract.ts
+  s_7cd12f44067e0a::t_075e88a79c2045 12,14
+packages/water/src/water/runtime/ocean/OceanWaterBackend.ts
+  s_7cd12f44067e0a::t_b8bee9907ffbce 5,7,37,52,173,202,215-216,371,373,375,394
+packages/water/src/water/runtime/ocean/index.ts
+  s_7cd12f44067e0a::t_35271fc3af5022 14
+packages/water/src/water/runtime/optics/WaterSceneReflectionProbeProvider.ts
+  s_7cd12f44067e0a::t_826b3a9e09576e 65
+packages/water/src/water/runtime/river/RiverSurfaceShader.ts
+  s_7cd12f44067e0a::t_b31f10eac04493 268,439
+packages/water/src/water/runtime/river/constants.ts
+  s_7cd12f44067e0a::t_2392c722d08e32 18
+packages/water/src/water/runtime/surface/WaterSurfaceShaderAssembler.ts
+  s_7cd12f44067e0a::t_94705313a3bc20 3,12,51
+packages/world-planning/src/spatial/runtime/PlanningProductionRuntime.ts
+  s_7cd12f44067e0a::t_5dd13a93683f5e 4-5,80
+world/demos/water/demo/island/WaterIslandLook.ts
+  s_7cd12f44067e0a::t_bb72065374e787 2
+world/demos/water/demo/river/RiverDemoLookPanel.ts
+  s_7cd12f44067e0a::t_8efcf896e26cbc 11,16,82,184
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "651729bfb6bc764901107ff007e752f603a67f2c",
+  "prompts": {},
+  "sessions": {
+    "s_5cbb0a25537bde": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1c543-861a-7bc1-afc3-69603d8b9f84",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "星翊 <sunmingming.smm@antgroup.com>"
+    },
+    "s_7cd12f44067e0a": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1c63a-23df-7b00-8bfb-ffd5608d5c89",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "星翊 <sunmingming.smm@antgroup.com>"
+    },
+    "s_f3959dcbf2bda2": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1c563-3adc-7622-a83b-663cb50c2ea6",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "星翊 <sunmingming.smm@antgroup.com>"
+    }
+  }
+}
