@@ -239,6 +239,7 @@ export async function mountSeedWorldDemo(
   let sourceTask: ReturnType<typeof createPlanningWorldSource> | undefined;
   let publication: PlanningSeedScenePublication | undefined;
   let sandstorm: Entity | undefined;
+  let mojaveLayout: Entity | undefined;
   const readWorld = () => publication?.current?.world;
   const readPublished = () => {
     const current = publication?.current;
@@ -410,6 +411,7 @@ export async function mountSeedWorldDemo(
     ],
     ["水运行", () => water?.destroy()],
     ["沙雾", () => sandstorm?.destroy()],
+    ["Mojave 景观", () => mojaveLayout?.destroy()],
     ["环境", () => environment?.destroy()],
     ["光照", () => lighting?.destroy()],
     ["加载界面", () => orb?.destroy()],
@@ -1712,8 +1714,31 @@ export async function mountSeedWorldDemo(
         phases: publicationPhases
       });
     };
+    const synchronizeMojaveLayout = async (accepted: NonNullable<PlanningSeedScenePublication["current"]>) => {
+      const isCurrent = () => publication!.current === accepted && !disposed;
+      let next: Entity | undefined;
+      if (accepted.plan.parameters.worldTemplate?.id === "titan-wasteland") {
+        try {
+          const { createSeedWorldMojavePreview } = await import("./src/SeedWorldMojavePreview");
+          if (!isCurrent()) return;
+          next = await createSeedWorldMojavePreview(root, accepted.plan, isCurrent);
+        } catch (error) {
+          if (isCurrent()) console.warn("[seed-world] Mojave landscape setup failed", error);
+          return;
+        }
+      }
+      if (!isCurrent()) {
+        next?.destroy();
+        return;
+      }
+      mojaveLayout?.destroy();
+      mojaveLayout = next;
+      canvas.dataset.mojavePreview = String(next?.children.length ?? 0);
+    };
     const publishContentEdit = async (projectTransaction = false) => {
       const accepted = publication!.current!;
+      await synchronizeMojaveLayout(accepted);
+      if (publication!.current !== accepted || disposed) return;
       animals!.synchronize(accepted.plan, readAnimalPopulationConfig(source!.session.document), accepted.navigation, {
         preservePopulation: true,
         surface: accepted.data.surfaceIntent
@@ -1757,6 +1782,8 @@ export async function mountSeedWorldDemo(
         sandstorm = undefined;
       }
       canvas.dataset.sandstorm = sandstorm ? "active" : "off";
+      await synchronizeMojaveLayout(accepted);
+      if (publication!.current !== accepted || disposed) return;
       animals!.synchronize(plan, readAnimalPopulationConfig(source!.session.document), accepted.navigation, {
         surface: accepted.data.surfaceIntent
       });

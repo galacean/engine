@@ -1,4 +1,5 @@
 import { finalizePlanningFarm } from "../farming/PlanningFarmingFinalization";
+import { publishMojaveDesertLayout } from "./MojaveDesertLayout";
 import { PLANNING_REFERENCE } from "../../planning-data/PlanningReference";
 import { planWorldTemplateSite } from "../WorldTemplatePlanning";
 import { resolveWorldTemplateScene, resolveWorldTemplateView } from "../WorldTemplateView";
@@ -1156,6 +1157,11 @@ function* spatialWorldStages(
     mark("guidance");
     landscapeBase = revealSpatialEcology(environment);
     publishCompositionTrees(plan, ground, config.landscape, recipe.edits);
+    const desertLandscape = publishMojaveDesertLayout(plan, ground);
+    if (desertLandscape.length) {
+      plan.landscapes = [...(plan.landscapes ?? []), ...desertLandscape];
+      if (landscapeBase) landscapeBase = { ...landscapeBase, slots: [...landscapeBase.slots, ...desertLandscape] };
+    }
   }
   // Spawn belongs to a populated village when one exists; layout order also includes rock POIs.
   const first =

@@ -17,6 +17,20 @@ import type { PlanningResource } from "./PlanningResources";
 import type { SpatialEntity } from "./SpatialDocument";
 import { LAKE_DEFAULTS } from "./hydrology/LakeRegions";
 import profile from "../planning-data/settlement-profile.json";
+/** Clear the camel preset previously saved by the desert preview. */
+export function removeDesertCamelPreset(document: PlanningDocument): void {
+  const components = document.entities.world.components;
+  const animals = components.animals;
+  if (components.worldTemplate?.values.id !== "titan-wasteland" || !animals || animals.base) return;
+  const { values } = animals;
+  if (
+    values["species.min"] === 1 &&
+    values["species.max"] === 1 &&
+    values["species.camel.min"] === 4 &&
+    values["species.camel.max"] === 4
+  )
+    animals.values = { enabled: false };
+}
 
 /** World material fields shared by first creation and palette-only authoring edits. */
 export function worldTemplatePaletteValues(id: string): Record<string, Record<string, number>> {

@@ -73,9 +73,10 @@ import {
 } from "@galacean/engine-world-planning/integrations/terrain/rock-formation/Settings";
 import { generateRockFormation } from "@galacean/engine-world-planning/integrations/terrain/rock-formation/Generate";
 import { PLANT_TREE_SPECIES } from "@galacean/engine-vegetation/asset-assembly/PlantSpeciesCatalog";
+import { readAnimalPopulationConfig } from "@galacean/engine-world-planning/spatial/AnimalPopulationComponent";
 
 describe("authored world templates", () => {
-  it("幻兽荒原: starts with bounded land and empty automatic water, roads, buildings and vegetation", () => {
+  it("幻兽荒原: publishes Mojave rock envelopes and landscape on bounded land", () => {
     const source = createTemplatePlanningDocument(110613, "titan-wasteland");
     const original = createSeedPlanningInputs(110613).entities.world.components;
     const components = source.entities.world.components;
@@ -85,6 +86,7 @@ describe("authored world templates", () => {
     expect(components.postProcess.values).toEqual({ contrast: 0 });
     expect(source.authoredResources?.filter((resource) => resource.resourceType === "terrain-feature")).toEqual([]);
     const restored = importPlanningScene(exportPlanningScene(source));
+    expect(readAnimalPopulationConfig(restored).enabled).toBe(false);
     expect(restored.entities.world.components.grassAppearance.values.groundFusion).toBe(false);
     const recipe = exportPlanningRecipe(restored);
     expect(recipe.parameters.landMode).toBe("continuous");
@@ -117,8 +119,10 @@ describe("authored world templates", () => {
     expect(plan.waters).toHaveLength(0);
     expect(plan.routes).toHaveLength(0);
     expect(plan.buildings).toHaveLength(0);
-    expect(plan.rocks).toHaveLength(0);
-    expect(plan.landscapes?.filter(({ kind }) => kind === "rock") ?? []).toHaveLength(0);
+    expect(plan.rocks.length).toBeGreaterThan(16);
+    expect(plan.rocks.every((rock) => rock.assetId === "mojave/A01" && rock.obb.length === 4)).toBe(true);
+    expect(plan.landscapes?.filter(({ assetId }) => assetId === "mojave/R03").length).toBeGreaterThan(30);
+    expect(plan.landscapes?.filter(({ kind }) => kind === "tree") ?? []).toHaveLength(0);
     expect(plan.farming).toBeUndefined();
     expect(plan.naturalVegetation?.settings.companionStoneDensity).toBe(0);
     expect(plan.flowerRegions ?? []).toHaveLength(0);

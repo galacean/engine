@@ -1,3 +1,4 @@
+import { MOJAVE_ROCK_GROUP } from "@galacean/engine-world-planning/spatial/layout/MojaveDesertLayout";
 import { applyPlanningTemplateSurface, initialPlanningTemplate } from "./PlanningStartupTemplate.ts";
 import { planningFarmingProjectStatePath } from "./farming/PlanningFarmingScene.ts";
 import { PlanningFarmRepository } from "./farming/PlanningFarmRepository.ts";
@@ -9,7 +10,7 @@ import { seedWorldProjectFormats } from "../../../SeedWorldProjectFormats.ts";
 import { createSeedWorldProjectClose } from "../../../SeedWorldProjectClose.ts";
 import { planningSourceDocument } from "./runtime/PlanningProjectSource.ts";
 import { exportPlanningScene, importPlanningScene } from "./PlanningSceneAsset.ts";
-import { createWorldStylePlanningDocument, worldTemplatePaletteValues } from "@galacean/engine-world-planning/spatial/WorldTemplateAuthoring";
+import { createWorldStylePlanningDocument, removeDesertCamelPreset, worldTemplatePaletteValues } from "@galacean/engine-world-planning/spatial/WorldTemplateAuthoring";
 import { mountWorldTemplatePicker } from "./WorldTemplatePicker.ts";
 import { wayfindingPolicy } from "@galacean/engine-world-planning/spatial/guidance/WayfindingPolicy";
 import { wayfindingHighlights } from "./guidance/WayfindingHighlights.ts";
@@ -103,6 +104,7 @@ export async function mountSpatialEditor(
     const template = initialPlanningTemplate(pageUrl.url.search, parameters.seed,
       saved ? exportPlanningRecipe(saved).parameters.worldTemplate?.id ?? "" : undefined);
     initialDocument = template === undefined && saved ? saved : await client.initialize(parameters.seed, undefined, template);
+    removeDesertCamelPreset(initialDocument);
     if (template !== undefined) applyPlanningTemplateSurface(initialDocument);
     if (!storageWarning) await storage.migrateToSource(initialDocument, template !== undefined && !!saved);
   } catch (error) {
@@ -401,8 +403,9 @@ export async function mountSpatialEditor(
     ui("poi-summary").textContent =
       `POI ${poiSites.filter(site => site.active).length} · ${poiSites.length} 个可调整位置`;
     const layout = r.plan.spatialLayout;
+    const rockGroups = r.plan.rocks.filter(({ assetId }) => assetId === MOJAVE_ROCK_GROUP).length;
     const counts: [string, number][] = [
-      ["体量", layout?.groups.reduce((sum, group) => sum + group.volumes.length, 0) ?? 0],
+      ["体量", (layout?.groups.reduce((sum, group) => sum + group.volumes.length, 0) ?? 0) + rockGroups],
       ["道路", r.plan.routes.length],
       ["景观树", r.plan.landscapes?.filter(item => item.kind === "tree").length ?? 0],
       ["景观石", r.plan.landscapes?.filter(item => item.kind === "rock").length ?? 0],

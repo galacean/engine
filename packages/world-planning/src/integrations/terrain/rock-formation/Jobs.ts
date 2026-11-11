@@ -17,6 +17,7 @@ export function rockFormationJobs(plan: IslandPlan, heightmap: PlanningHeightmap
     }
   >();
   for (const rock of plan.rocks) {
+    if (rock.assetId) continue;
     const boxes = (
       rock.boxes ?? [
         {
@@ -36,7 +37,7 @@ export function rockFormationJobs(plan: IslandPlan, heightmap: PlanningHeightmap
   }
   const removed = planningRemovedObjectIds(plan.authoredResources ?? []);
   for (const rock of plan.landscapes ?? [])
-    if (rock.kind === "rock" && !removed.has(rock.id)) {
+    if (rock.kind === "rock" && !rock.assetId && !removed.has(rock.id)) {
       groups.set(rock.id, {
         surfaceGrass: false,
         boxes: [

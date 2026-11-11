@@ -1,6 +1,7 @@
 import { buildPlanningScene, ancestors, type PlanningScene, type SceneEntity } from "@galacean/engine-world-planning/spatial/PlanningScene";
 import type { IslandPlan } from "@galacean/engine-world-planning/semantic-study/IslandPlanModel";
 import { poiContentLabel } from "@galacean/engine-world-planning/semantic-study/PoiContents";
+import { MOJAVE_ROCK_GROUP, MOJAVE_STONE } from "@galacean/engine-world-planning/spatial/layout/MojaveDesertLayout";
 export interface LayerNode {
   id: string;
   label: string;
@@ -28,11 +29,11 @@ export function elementLabel(plan: IslandPlan, id: string): string {
     ])
       index.set(p.id, p.label ?? p.id);
     for (const p of plan.buildings) index.set(p.id, `建筑 ${p.id.split("-building-").at(-1)}`);
-    plan.rocks.forEach((p, i) => index!.set(p.id, `岩体 ${i + 1}`));
+    plan.rocks.forEach((p, i) => index!.set(p.id, `${p.assetId === MOJAVE_ROCK_GROUP ? "Mojave 岩石组" : "岩体"} ${i + 1}`));
     for (const p of plan.landscapes ?? [])
       index.set(
         p.id,
-        `${p.role === "poi" ? "主体高树" : p.kind === "tree" ? "景观树" : "景观石"} · ${p.height.toFixed(1)} m · (${p.center.x.toFixed(0)}, ${p.center.z.toFixed(0)})`
+        `${p.assetId === MOJAVE_STONE ? "Mojave 景观石" : p.role === "poi" ? "主体高树" : p.kind === "tree" ? "景观树" : "景观石"} · ${p.height.toFixed(1)} m · (${p.center.x.toFixed(0)}, ${p.center.z.toFixed(0)})`
       );
     for (const group of plan.spatialLayout?.groups ?? [])
       group.volumes.forEach((v, i) => index!.set(v.id, `体量 ${i + 1}`));
