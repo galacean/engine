@@ -1,0 +1,30 @@
+world/tests/seed-world/WorldTemplates.spec.ts
+  s_0ad7efa77c17be::t_b3eee236d12fbe 719-720,789,893
+  s_0ad7efa77c17be::t_a67eb845fd3bf5 127,129-132
+packages/world-planning/src/spatial/WorldTemplateGeometry.ts
+  s_0ad7efa77c17be::t_974f102a8cfca6 150,153-155
+packages/world-planning/src/spatial/WorldTemplateCatalog.ts
+  s_0ad7efa77c17be::t_974f102a8cfca6 137
+packages/world-planning/src/spatial/WorldTemplateView.ts
+  s_0ad7efa77c17be::t_974f102a8cfca6 46-47
+packages/world-planning/src/spatial/WorldTemplatePlanning.ts
+  s_0ad7efa77c17be::t_f0ec5297d52433 62
+packages/world-planning/src/spatial/WorldTemplateArtDirection.ts
+  s_0ad7efa77c17be::t_974f102a8cfca6 878,880-881
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "914289b1e8bbe765a7c5d498344a721d62b98fe4",
+  "prompts": {},
+  "sessions": {
+    "s_0ad7efa77c17be": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1c9b0-c1c7-7c20-94e2-5d4a2cc750f7",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}
