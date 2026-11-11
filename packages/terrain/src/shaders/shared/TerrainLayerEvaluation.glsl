@@ -1,6 +1,12 @@
 #ifndef TERRAIN_PROJECT_LAYER_EVALUATION_INCLUDED
 #define TERRAIN_PROJECT_LAYER_EVALUATION_INCLUDED
 #include "shared/TerrainRegions.glsl"
+  #if defined(MATERIAL_TERRAIN_LAYER_NORMAL_TEXTURES) && !(defined(MATERIAL_TERRAIN_FAR) && defined(MATERIAL_TERRAIN_SAND_RIPPLE))
+    #define TERRAIN_PROJECT_SAMPLE_LAYER_NORMALS
+  #endif
+  #if defined(MATERIAL_TERRAIN_SAND_RIPPLE) && !defined(MATERIAL_TERRAIN_FAR)
+    vec3 material_TerrainSandRippleParams; // strength, UV scale relative to layer, fade distance in metres
+  #endif
   #ifdef TERRAIN_GROUND_RENDERER
   vec4 renderer_TerrainFirstAlphamapRect;
   #define GROUND_TerrainFirstAlphamapRect renderer_TerrainFirstAlphamapRect
@@ -197,7 +203,7 @@
     int material_TerrainDetilingLayerMask;
     #define GROUND_TerrainDetilingLayerMask material_TerrainDetilingLayerMask
     #endif
-  #ifdef MATERIAL_TERRAIN_GRASS_SHADING
+  #if defined(MATERIAL_TERRAIN_GRASS_SHADING) || defined(MATERIAL_TERRAIN_ROAD_PALETTE)
     #ifdef TERRAIN_GROUND_RENDERER
     vec4 renderer_TerrainRoadColor;
     #define GROUND_TerrainRoadColor renderer_TerrainRoadColor
@@ -343,7 +349,7 @@
       float appearanceRole = materialScalars.w;
 
       #if defined(MATERIAL_TERRAIN_LAYER_DIFFUSE_TEXTURES) || \
-        defined(MATERIAL_TERRAIN_LAYER_NORMAL_TEXTURES) || defined(MATERIAL_TERRAIN_LAYER_MASK_TEXTURES)
+        defined(TERRAIN_PROJECT_SAMPLE_LAYER_NORMALS) || defined(MATERIAL_TERRAIN_LAYER_MASK_TEXTURES)
       vec4 tiling = terrainProjectLayerMetadataAt(layerIndex, 0);
       vec2 baseUv = (positionWS.xz + tiling.zw) / tiling.xy;
       vec2 sampleUv;
@@ -380,20 +386,24 @@
       vec4 diffuse = diffuseRemapMin;
       #endif
 
-      #ifdef MATERIAL_TERRAIN_LAYER_NORMAL_TEXTURES
       vec3 tangentNormal = vec3(0.0, 0.0, 1.0);
-      if (layerStorage.z >= 0.0) {
-      vec3 normalSample = textureGrad(
-        GROUND_TerrainLayerNormalTextures,
-        vec3(sampleUv, layerStorage.z),
-        sampleDdx,
-        sampleDdy
-      ).xyz;
-      tangentNormal = terrainProjectLayerNormalTangent(normalSample, materialScalars.x);
-      tangentNormal.xy = terrainProjectRotateUv(tangentNormal.xy, tangentCosineSine);
-      }
-      #else
-      vec3 tangentNormal = vec3(0.0, 0.0, 1.0);
+      #ifdef TERRAIN_PROJECT_SAMPLE_LAYER_NORMALS
+        if (layerStorage.z >= 0.0) {
+          float normalScale = materialScalars.x;
+          float normalUvScale = 1.0;
+          #ifdef MATERIAL_TERRAIN_SAND_RIPPLE
+            normalScale = material_TerrainSandRippleParams.x;
+            normalUvScale = material_TerrainSandRippleParams.y;
+          #endif
+          vec3 normalSample = textureGrad(
+            GROUND_TerrainLayerNormalTextures,
+            vec3(sampleUv * normalUvScale, layerStorage.z),
+            sampleDdx * normalUvScale,
+            sampleDdy * normalUvScale
+          ).xyz;
+          tangentNormal = terrainProjectLayerNormalTangent(normalSample, normalScale);
+          tangentNormal.xy = terrainProjectRotateUv(tangentNormal.xy, tangentCosineSine);
+        }
       #endif
 
       #ifdef MATERIAL_TERRAIN_LAYER_MASK_TEXTURES
@@ -579,6 +589,9 @@
       color += (grassColorFromField(field) - vec3(1.0)) * clamp(blend.grassWeight, 0.0, 1.0);
       color += (roadDetailColorFromField(field, GROUND_TerrainRoadColor.rgb, vista) - GROUND_TerrainRoadColor.rgb)
         * clamp(blend.roadWeight, 0.0, 1.0);
+    #elif defined(MATERIAL_TERRAIN_ROAD_PALETTE)
+      float vista = grassColorFieldVistaBlendWeight(positionWS);
+      color = roadDetailColorFromField(terrainProjectGrassSurfaceField(positionWS), GROUND_TerrainRoadColor.rgb, vista);
     #else
       color *= terrainProjectMacroVariation(positionWS.xz);
     #endif

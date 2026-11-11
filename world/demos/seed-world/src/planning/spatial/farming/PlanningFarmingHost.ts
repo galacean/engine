@@ -15,6 +15,7 @@ export class PlanningFarmingHost {
 
   constructor(private readonly options: {
     projection: Pick<RuntimeSceneProjection, "queryComponents" | "resolveComponent" | "readComponent">;
+    isPlannedEnabled(): boolean;
     create(system: FarmingSystem, statePath: string): PlanningFarmingRuntime;
     publish(runtime: PlanningFarmingRuntime): void;
   }) {}
@@ -34,8 +35,9 @@ export class PlanningFarmingHost {
     }
   }
 
-  private async reconcile(enabled: boolean): Promise<void> {
+  private async reconcile(sessionEnabled: boolean): Promise<void> {
     if (this.disposed) return;
+    const enabled = sessionEnabled && this.options.isPlannedEnabled();
     const projection = this.options.projection;
     const identities = projection.queryComponents({ type: "FarmingSystem" });
     for (const identity of identities) (projection.resolveComponent(identity) as FarmingSystem).assertScene();

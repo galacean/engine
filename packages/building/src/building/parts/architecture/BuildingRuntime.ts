@@ -14,13 +14,11 @@ import {
 } from "@galacean/engine";
 import { markGeneratedBuildingOutput } from "../BuildingGeneratedOutput";
 import { BuildingCpuClient, type BuildingCpuHandle } from "./BuildingCpuClient";
-import type { BuildingFocusPose } from "./BuildingPublication";
-import type { BuildingDraft } from "./BuildingDraft";
+import type { BuildingCoreDraft } from "../../core";
 import type { TerrainHeight } from "../../runtime/PublishedWallProfile";
-import { prepareBuilding, type PreparedBuilding } from "./BuildingPipeline";
 import { prepareBuildingTerrain } from "./BuildingTerrain";
 import type { BuildingPlacementFrame } from "./BuildingTerrain";
-import { profileSupportRegion } from "./BuildingProfileTerrain";
+import { buildingWorldRegion, compileBuildingCpu, prepareBuildingOnGround } from "./BuildingCpu";
 import { prepareBuildingDetail } from "./BuildingDetail";
 import { terrainAffectsRegion, validateConstructionTerrain } from "../../runtime/TerrainField";
 import type { ConstructionTerrainSource } from "../../runtime/TerrainField";
@@ -71,7 +69,38 @@ function bindFocus(
   }
   return result;
 }
+/** Where the camera looks at an author part: a point, and a direction to look from. */
+type BuildingFocusPose = {
+  part: string;
+  position: readonly number[];
+  forward?: readonly number[];
+  attachment?: boolean;
+};
 type Candidate = Awaited<ReturnType<typeof prepareBuildingDetail>>;
+/** The main-thread counterpart of a Worker preparation, with the same handle. */
+function localCandidate(
+  draft: BuildingCoreDraft,
+  height: TerrainHeight,
+  grounding: Parameters<typeof prepareBuildingOnGround>[1]["grounding"],
+  assets: Parameters<typeof prepareBuildingOnGround>[2]
+) {
+  const { prepared, ...preview } = prepareBuildingOnGround(draft, { height, grounding }, assets);
+  let disposed = false;
+  const cpu: BuildingCpuHandle = {
+    get valid() {
+      return !disposed;
+    },
+    compile: async (signal) => {
+      if (disposed) throw Error("Building compilation snapshot disposed");
+      signal.throwIfAborted();
+      return compileBuildingCpu(prepared);
+    },
+    dispose: () => {
+      disposed = true;
+    }
+  };
+  return { ...preview, cpu };
+}
 type BuildingObjectBinding = { member: Component; inverse: readonly number[] };
 type BoundLight = { descriptor: ConstructionDecorationLight; member: Component; local: Vector3 };
 function rigidBindings(bindings: ReadonlyMap<string, BuildingObjectBinding>) {
@@ -109,7 +138,7 @@ export type BuildingRuntimeInput = {
   assets?: PrefabResource;
   execution?: "worker" | "main";
   terrainHeight?: TerrainHeight;
-  draft: BuildingDraft;
+  draft: BuildingCoreDraft;
   placement: BuildingPlacementFrame;
   bindings: Map<string, BuildingObjectBinding>;
   bodies: Component[];
@@ -134,44 +163,26 @@ type ProfileView = MasonryResidencyEntry & {
   worldStructure?: ConstructionSurfaceQuery;
   structureMatrix: Float64Array;
   cpu: BuildingCpuHandle;
+  diagnostics: readonly { source: string; message: string }[];
   focus: Map<Component, BoundFocus>;
   inspection?: { controller: AbortController; result: Promise<ReturnType<typeof resolveDocument>["cells"]> };
 };
-type MainView = {
-  kind: "main";
-  focus: Map<Component, BoundFocus>;
-  lights: BoundLight[];
-  frame: Entity;
-  root: Entity;
-  signature: string;
-  bodies: Component[];
-  groupIds: Map<Component, string>;
-  prepared: PreparedBuilding;
-  structure: ConstructionSurfaceQuery;
-  worldStructure?: ConstructionSurfaceQuery;
-  structureMatrix: Float64Array;
-};
-type View = ProfileView | MainView;
+type View = ProfileView;
 function viewRoot(view: View): Entity {
-  return view.kind === "profile" ? view.view.root : view.root;
+  return view.view.root;
 }
 function viewValid(view: View): boolean {
-  return view.kind === "profile" ? view.cpu.valid : !view.root.destroyed;
+  return view.cpu.valid;
 }
 function destroyView(view: View): void {
-  if (view.kind === "main") {
-    view.prepared.destroy();
-    view.root.destroy();
-  } else {
-    view.cpu.dispose();
-    view.inspection?.controller.abort();
-    view.fine?.destroy();
-    view.view.destroy();
-  }
+  view.cpu.dispose();
+  view.inspection?.controller.abort();
+  view.fine?.destroy();
+  view.view.destroy();
 }
 function showView(view: View, visible: boolean): void {
   viewRoot(view).isActive = visible;
-  if (view.kind === "profile" && view.fine) view.fine.runtime.root.isActive = visible;
+  if (view.fine) view.fine.runtime.root.isActive = visible;
 }
 export interface BuildingRuntimeHost {
   camera: Camera;
@@ -350,12 +361,11 @@ export class BuildingRuntime extends Script {
           view.signature = "";
           for (const build of [this.build, this.detailBuild]) if (build?.frame === frame) build.controller.abort();
           const id = view.groupIds.get(component)!;
-          if (view.kind === "profile") view.view.setOwnerVisible(id, false);
-          else view.root.isActive = false;
+          view.view.setOwnerVisible(id, false);
           view.structure = view.structure.withoutOwner(id);
           view.worldStructure = undefined;
           this.surfaceRevision++;
-          for (const draw of (view.kind === "profile" ? view.fine?.runtime.draws.values() : undefined) ?? [])
+          for (const draw of view.fine?.runtime.draws.values() ?? [])
             if (draw.ownerId === id) {
               draw.enabled = false;
               draw.renderer.enabled = draw.lodRenderer.enabled = false;
@@ -549,7 +559,7 @@ export class BuildingRuntime extends Script {
           previous &&
           old.signature === this.input(frame, previous).signature &&
           input.execution !== "main" &&
-          !terrainAffectsRegion(profileSupportRegion(input.draft, input.placement), previous.grid, next.grid);
+          !terrainAffectsRegion(buildingWorldRegion(input.draft, input.placement), previous.grid, next.grid);
         const view = unchanged
           ? old
           : await this.prepareView(frame, input, check, signal ?? new AbortController().signal);
@@ -647,7 +657,6 @@ export class BuildingRuntime extends Script {
     this.detailDirty = true;
   }
   private refreshProbe(view: View): void {
-    if (view.kind === "main") return;
     const matrix = viewRoot(view).transform.worldMatrix,
       elements = matrix.elements;
     if (view.worldMatrix.every((value, i) => value === elements[i])) return;
@@ -663,7 +672,6 @@ export class BuildingRuntime extends Script {
     this.residency!.selectionDirty = true;
   }
   private acceptEntrance(view: View): void {
-    if (view.kind === "main") return;
     for (const [id, range] of view.view.entranceRanges) {
       const key = buildingInstanceKey(view.frame, buildingGroupKey(id));
       if (this.entranceEnabled) this.entrance.accept(key, range.min, range.max, this.entranceStarted);
@@ -681,62 +689,25 @@ export class BuildingRuntime extends Script {
     signal: AbortSignal
   ): Promise<View> {
     const { assets, draft, placement, signature, bindings, bodies, groupIds, terrain } = input;
-    if (input.execution === "main") {
-      const root = frame.createChild("Building output");
-      root.isActive = false;
-      markGeneratedBuildingOutput(root);
-      let prepared: PreparedBuilding | undefined;
-      try {
-        prepared = await prepareBuilding(draft, {
-          parent: root,
-          camera: this.host!.camera,
-          assets,
-          signal,
-          terrain: input.terrainHeight ?? prepareBuildingTerrain(terrain.grid, placement).height
-        });
-        check();
-        const structure = new ConstructionSurfaceQuery(
-          prepared.result.preview.structuralParts ?? prepared.result.preview.parts,
-          [0, 0, 0],
-          (id) => id
-        );
-        const lights = bindLights(
-          constructionDecorationLights(
-            prepared.result.renderInput.decorations.flatMap((decoration) => decoration.parts)
-          ),
-          bindings,
-          frame
-        );
-        prepared.publish();
-        return {
-          kind: "main",
-          focus: bindFocus(prepared.focus, bindings, frame, false),
-          lights,
-          frame,
-          root,
-          signature,
-          bodies,
-          groupIds,
-          prepared,
-          structure,
-          structureMatrix: new Float64Array(16).fill(NaN)
-        };
-      } catch (error) {
-        prepared?.destroy();
-        root.destroy();
-        throw error;
-      }
-    }
-    if (!assets) throw Error("Profile Worker requires a native material library");
+    if (!assets) throw Error("Building parts require a native material library");
     let distance: ProfileView["view"] | undefined;
     let cpu: BuildingCpuHandle | undefined;
     retainBuildingResource(assets, 1);
     try {
       buildingAssets(assets);
       check();
-      const candidate = await this.compiler.prepare(draft, terrain.grid, buildingAssets(assets).compilation, signal, {
-        frame: placement
-      });
+      // A height function runs the same preparation on the main thread; a terrain grid
+      // travels to the Worker.
+      const units = buildingAssets(assets).compilation;
+      const candidate =
+        input.execution === "main"
+          ? localCandidate(
+              draft,
+              input.terrainHeight!,
+              prepareBuildingTerrain(terrain.grid, placement).grounding,
+              units
+            )
+          : await this.compiler.prepare(draft, terrain.grid, units, signal, { frame: placement });
       cpu = candidate.cpu;
       const { preview: geometry, structure: structureData } = candidate;
       check();
@@ -771,6 +742,7 @@ export class BuildingRuntime extends Script {
         groupIds,
         structure,
         cpu,
+        diagnostics: candidate.diagnostics,
         focus: bindFocus(candidate.focus, bindings, frame, true),
         structureMatrix: new Float64Array(16).fill(NaN),
         lod: 2,
@@ -1034,14 +1006,9 @@ export class BuildingRuntime extends Script {
     const append = (box: BoundingBox) =>
       result.push({ min: [box.min.x, box.min.y, box.min.z], max: [box.max.x, box.max.y, box.max.z] });
     for (const view of this.views.values()) {
-      if (view.kind === "profile") {
-        const box = new BoundingBox(new Vector3(...view.view.bounds.min), new Vector3(...view.view.bounds.max));
-        BoundingBox.transform(box, view.view.root.transform.worldMatrix, box);
-        append(box);
-      } else
-        for (const renderer of view.root.getComponentsIncludeChildren(MeshRenderer, [])) {
-          if (renderer.enabled && renderer.mesh) append(renderer.bounds);
-        }
+      const box = new BoundingBox(new Vector3(...view.view.bounds.min), new Vector3(...view.view.bounds.max));
+      BoundingBox.transform(box, view.view.root.transform.worldMatrix, box);
+      append(box);
     }
     return result;
   }
@@ -1079,14 +1046,6 @@ export class BuildingRuntime extends Script {
     if (!view) throw Error("Building surface has no published group");
     this.readTransforms();
     if (this.input(frame).signature !== view.signature) throw Error("Building has unpublished changes");
-    if (view.kind === "main") {
-      const result = view.prepared.result;
-      const cells = resolveDocument(
-        { document: result.placementDocument, plans: result.plans, groups: result.groups },
-        result.placementDocument
-      ).cells;
-      return inspectMasonrySurface(cells, id, polygon);
-    }
     if (view.fine) return view.fine.inspectSurface(id, polygon);
     if (!view.inspection) {
       const input = this.input(view.frame),
@@ -1130,10 +1089,6 @@ export class BuildingRuntime extends Script {
             return id === undefined ? undefined : buildingInstanceKey(view.frame, id);
           }
         });
-      if (view.kind === "main") {
-        view.prepared.visitPickBatches(scopedVisitor);
-        continue;
-      }
       view.view.visitPickBatches(scopedVisitor);
       for (const draw of view.fine?.runtime.draws.values() ?? [])
         for (const renderer of [draw.renderer, draw.lodRenderer]) {
@@ -1156,7 +1111,7 @@ export class BuildingRuntime extends Script {
   }
   metrics() {
     const count = (entity: Entity): number => 1 + entity.children.reduce((sum, child) => sum + count(child), 0);
-    let mainTriangles = 0;
+    const mainTriangles = 0;
     let draws = 0,
       renderers = 0,
       derivedEntities = count(this.entity);
@@ -1171,20 +1126,6 @@ export class BuildingRuntime extends Script {
       draws += coarse.length;
       renderers += coarse.filter((renderer) => renderer.enabled && renderer.entity.isActiveInHierarchy).length;
     }
-    for (const view of this.views.values())
-      if (view.kind === "main") {
-        const all = view.root.getComponentsIncludeChildren(MeshRenderer, []);
-        draws += all.length;
-        renderers += all.filter((r) => r.enabled && r.entity.isActiveInHierarchy).length;
-        derivedEntities += count(view.root);
-        for (const renderer of all)
-          if (renderer.enabled && renderer.entity.isActiveInHierarchy && renderer.mesh) {
-            const mesh = renderer.mesh,
-              count = mesh instanceof BufferMesh ? Math.max(1, mesh.instanceCount) : 1;
-            mainTriangles +=
-              mesh.subMeshes.filter((s) => s.topology === 4).reduce((n, s) => n + s.count / 3, 0) * count;
-          }
-      }
     const bodies = [...this.views.values()].flatMap((view) => view.bodies);
     this.residency?.refreshMetrics();
     return {
@@ -1205,7 +1146,7 @@ export class BuildingRuntime extends Script {
     };
   }
   diagnostics() {
-    return [...this.views.values()].flatMap((v) => (v.kind === "main" ? v.prepared.design.diagnostics : []));
+    return [...this.views.values()].flatMap((v) => v.diagnostics);
   }
   errors() {
     return this.metrics().errors;
@@ -1214,13 +1155,7 @@ export class BuildingRuntime extends Script {
     let profileUnits = 0,
       flatUnits = 0,
       entityInstances = 0;
-    for (const v of this.views.values()) {
-      if (v.kind === "main") {
-        profileUnits += v.prepared.metrics.profileUnits;
-        flatUnits += v.prepared.metrics.flatUnits;
-        entityInstances += v.prepared.metrics.entityInstances;
-      } else profileUnits += v.fine?.unitCount ?? 0;
-    }
+    for (const v of this.views.values()) profileUnits += v.fine?.unitCount ?? 0;
     return { profileUnits, flatUnits, entityInstances };
   }
   onDestroy(): void {

@@ -250,6 +250,7 @@ export function installPlanningWaterDefaults(
 }
 
 export function initializePlanningOcean(draft: RuntimeProjectEdit, plan: IslandPlan): void {
+  if (plan.parameters.landMode === "continuous") return;
   const state = waterInitialization(draft.preview()),
     seed = String(plan.parameters.seed);
   if (state.seeds[seed]?.includes("planning-ocean")) return;

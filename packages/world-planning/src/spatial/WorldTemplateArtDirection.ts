@@ -1,14 +1,52 @@
 import type { TemplateNode, TemplateAssetSlot } from "./WorldTemplateGeometry";
 import type { SpatialCompositionParameters } from "./SpatialCompositionParameters";
 
+interface WorldTemplatePalette {
+  grass: [string, string];
+  ground: string;
+  road?: string;
+  foliage: string;
+  /** Leaf colours keyed by native species identity, independent of catalog order. */
+  treeFoliage?: Readonly<Record<string, string>>;
+  /** Per-part HDR colours for native vegetation layers; species accents retain every model variant. */
+  plantPalette?: {
+    layers: readonly string[];
+    parts: Readonly<Record<string, { color: string; intensity: number }>>;
+    species?: Readonly<Record<string, Readonly<Record<string, { color: string; intensity: number }>>>>;
+    /** Exact native material slots override the part palette, including slots outside its layers. */
+    slots?: Readonly<Record<string, Readonly<Record<string, { color: string; intensity: number }>>>>;
+  };
+  bark: string;
+  flowers: string;
+  stone: string;
+}
+
 /** Authored scene measurements from the fifteen supplied reference images.
  * These are template inputs, not geometry guessed from a Seed or renderer output.
  * Each model entry defines an asset envelope, with a supplied model when available.
  * Camera fitting uses only the focus entries. */
-export interface WorldTemplateArtDirection {
+export type WorldTemplateArtDirection = (WorldTemplatePalette | { grass?: undefined }) & {
   reference: string;
+  grassGroundFusion?: boolean;
+  initialPlanning?: {
+    landMode?: import("../semantic-study/IslandPlanModel").IslandPlanParameters["landMode"];
+    relief?: {
+      reliefNearAmplitudeM: number;
+      reliefAmplitudeM: number;
+      reliefFarAmplitudeM: number;
+      reliefScaleM: number;
+    };
+    roadsEnabled?: boolean;
+    farmingEnabled?: boolean;
+    poiMemberMax?: number;
+    population?: import("./PlanningPopulationParameters").PlanningPopulationOptions;
+  };
   focus: string[];
   frameFraction: number;
+  /** Reserve each subject in a solved POI and publish a clear starting view. */
+  plannedSubjects?: boolean;
+  /** A continuous world framed from its map centre instead of a searched spawn. */
+  centeredStart?: boolean;
   azimuthDegrees: number;
   /** Composition aim relative to the focus envelope; a side subject stays at the side. */
   lookAtOffset?: [number, number, number];
@@ -29,23 +67,6 @@ export interface WorldTemplateArtDirection {
   };
   /** Scalar authoring only; roads, water, relief and populations are derived. */
   generation?: Partial<SpatialCompositionParameters>;
-  grass: [string, string];
-  ground: string;
-  road?: string;
-  foliage: string;
-  /** Leaf colours keyed by native species identity, independent of catalog order. */
-  treeFoliage?: Readonly<Record<string, string>>;
-  /** Per-part HDR colours for native vegetation layers; species accents retain every model variant. */
-  plantPalette?: {
-    layers: readonly string[];
-    parts: Readonly<Record<string, { color: string; intensity: number }>>;
-    species?: Readonly<Record<string, Readonly<Record<string, { color: string; intensity: number }>>>>;
-    /** Exact native material slots override the part palette, including slots outside its layers. */
-    slots?: Readonly<Record<string, Readonly<Record<string, { color: string; intensity: number }>>>>;
-  };
-  bark: string;
-  flowers: string;
-  stone: string;
   lighting: Record<string, number | boolean>;
   postProcess: Record<string, number | boolean>;
   landscape?: Record<string, number>;
@@ -76,7 +97,7 @@ export interface WorldTemplateArtDirection {
     height: number;
     heading: number;
   }[];
-}
+};
 const model = (
   id: string,
   position: [number, number, number],
@@ -666,36 +687,6 @@ export const WORLD_TEMPLATE_ART: Readonly<Record<string, WorldTemplateArtDirecti
     postProcess: post(10),
     terrain: []
   },
-  "amber-dunes": {
-    reference: "SeedWorld-09-amber-sunset-dunes.png",
-    focus: ["weathered-stone-ring"],
-    frameFraction: 0.65,
-    azimuthDegrees: -10,
-    lookAtOffset: [-8, 0, 0],
-    models: [
-      model("weathered-stone-ring", [15, 0, 15], [38, 42, 10]),
-      model("desert-obelisk", [12, 0, -3], [9, 24, 8])
-    ],
-    grass: ["#c58743", "#e8b96e"],
-    ground: "#e1a66b",
-    foliage: "#aa874f",
-    bark: "#826340",
-    flowers: "#e2b25f",
-    stone: "#bd865d",
-    lighting: {
-      ...lighting(17.6, 2.25, 1.55, 1.2, 0.00045, 0.6),
-      ...atmosphere([5, 0.95, 0.18], [3.1, 1.1, 0.2]),
-      sunColorR: 1.6,
-      sunColorG: 0.86,
-      sunColorB: 0.43,
-      sunSize: 0.04,
-      fogTintR: 1.35,
-      fogTintG: 0.9,
-      fogTintB: 0.45
-    },
-    postProcess: post(9, 9, 2),
-    terrain: [ridge("west-dune", -150, 80, 380, 120, 24, 20), ridge("east-dune", 170, 110, 450, 140, 32, -20)]
-  },
   "voxel-arcade": {
     reference: "SeedWorld-10-voxel-arcade-world.png",
     focus: ["giant-voxel-arcade"],
@@ -784,34 +775,48 @@ export const WORLD_TEMPLATE_ART: Readonly<Record<string, WorldTemplateArtDirecti
   },
   "titan-wasteland": {
     reference: "SeedWorld-13-titan-wasteland.png",
-    focus: ["ancient-mech-wreck"],
-    frameFraction: 0.7,
-    azimuthDegrees: -7,
-    models: [
-      model("ancient-mech-wreck", [15, 0, 38], [115, 93, 80]),
-      model("foreground-round-house", [-69, 0, -57], [17, 14, 16])
-    ],
-    grass: ["#bc7339", "#dfaa54"],
-    ground: "#cf9462",
-    foliage: "#ac793d",
-    bark: "#775341",
-    flowers: "#e1b66a",
-    stone: "#9b8583",
-    lighting: {
-      ...lighting(17, 2.3, 1.65, 1.2, 0.0004, 0.6),
-      ...atmosphere([4, 0.85, 0.32], [2.5, 1, 0.4]),
-      sunColorR: 1.5,
-      sunColorG: 0.88,
-      sunColorB: 0.6,
-      sunSize: 0.035,
-      fogTintR: 1.35,
-      fogTintG: 0.95,
-      fogTintB: 0.7
+    grassGroundFusion: false,
+    initialPlanning: {
+      landMode: "continuous",
+      relief: { reliefNearAmplitudeM: 9, reliefAmplitudeM: 35, reliefFarAmplitudeM: 110, reliefScaleM: 256 },
+      roadsEnabled: false,
+      farmingEnabled: false,
+      poiMemberMax: 0,
+      population: { villageMin: 0, villageMax: 0, buildingMin: 0, buildingMax: 0 }
     },
-    postProcess: post(10, 8, 1),
+    plannedSubjects: true,
+    centeredStart: true,
+    focus: ["ancient-mech-wreck", "broken-stone-arch"],
+    frameFraction: 0.85,
+    azimuthDegrees: -7,
+    lookAtOffset: [0, -22, 0],
+    models: [
+      {
+        ...model("ancient-mech-wreck", [64, 0, 313], [230, 186, 278]),
+        label: "巨兽",
+        assetUrl: "https://mdn.alipayobjects.com/rms/afts/file/A*WzQ9Q6me6W8AAAAAgGAAAAgAehQnAQ/jushou.glb"
+      },
+      {
+        ...model("broken-stone-arch", [-104, 0, 212], [64, 62, 22], true, 12),
+        label: "断壁残垣",
+        assetUrl: "https://mdn.alipayobjects.com/rms/afts/file/A*E1bHTKH2busAAAAAgBAAAAgAehQnAQ/shitou2.glb"
+      }
+    ],
+    lighting: { timeHours: 12 },
+    postProcess: { contrast: 0 },
     landscape: { treeHeightMinM: 5, treeHeightMaxM: 12 },
-    flowerCoverage: 0.15,
-    terrain: [ridge("west-red-dune", -220, 80, 450, 140, 30, 20), ridge("east-red-dune", 220, 120, 500, 145, 36, -20)]
+    flowerCoverage: 0,
+    initialLandscape: {
+      density: 0,
+      companionStoneDensity: 0,
+      "vegetation.trees": 0,
+      "vegetation.grass": 0,
+      "vegetation.shrubs": 0,
+      "vegetation.herbs": 0,
+      "vegetation.cover": 0,
+      "vegetation.flowers": 0,
+      "vegetation.litter": 0
+    }
   },
   "luminous-abyss": {
     reference: "SeedWorld-14-bioluminescent-abyss.png",

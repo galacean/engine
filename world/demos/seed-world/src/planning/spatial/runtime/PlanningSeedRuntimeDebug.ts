@@ -57,6 +57,7 @@ export interface PlanningSeedRuntimeDebugOptions {
   readonly environment: WorldEnvironmentRuntime;
   readonly audio?: EnvironmentAudioRuntime;
   readonly water: PlanningWaterRuntime;
+  readonly setGrassGroundFusion?: (enabled: boolean) => Promise<unknown>;
   readonly readSolidsRoot: () => Entity | undefined;
   readonly readPublished: () => PlanningSeedWorldPublished | undefined;
 }
@@ -70,6 +71,7 @@ export class PlanningSeedRuntimeDebug {
   private probeRoot?: Entity;
   private world?: PlanningSeedWorldPublished["world"];
   private pending?: Promise<void>;
+  private refreshGroundFusion?: () => void;
   private disposed = false;
   private animals?: PlanningAnimalPanel;
   private rocks?: RockFormationPanel;
@@ -139,6 +141,7 @@ export class PlanningSeedRuntimeDebug {
 
   /** Refresh page-owned debug readouts from the host simulation cadence. */
   refresh(): void {
+    this.refreshGroundFusion?.();
     this.treePanel?.refresh();
     this.understoryPanel?.refresh();
     this.rocks?.refreshGrass();
@@ -287,8 +290,47 @@ export class PlanningSeedRuntimeDebug {
       this.extensions.push(this.farmingPanel);
     }
     world.terrainOcclusion.profilingEnabled = this.performance.expanded;
+    const authoredSandNormals = world.getSandNormalTuning();
+    if (authoredSandNormals) {
+      const host = session.inspector.terrainFolderHost;
+      const folder = host.folder("沙漠法线", true);
+      const tuning = { ...authoredSandNormals };
+      const apply = () => world.setSandNormalTuning(tuning);
+      const controllers = [
+        folder.add(tuning, "rippleStrength", 0, 2, 0.01).name("沙纹强度"),
+        folder.add(tuning, "rippleTileMetres", 1, 36, 0.1).name("沙纹平铺尺寸（m）"),
+        folder.add(tuning, "rippleFadeDistanceMetres", 5, 150, 1).name("沙纹渐隐距离（m）"),
+        folder.add(tuning, "microStrength", 0, 2, 0.01).name("微法线强度"),
+        folder.add(tuning, "microTileMetres", 0.25, 6, 0.05).name("微法线平铺尺寸（m）"),
+        folder.add(tuning, "microFadeDistanceMetres", 2, 40, 1).name("微法线渐隐距离（m）")
+      ];
+      for (const controller of controllers) controller.onChange(apply);
+      host.addAction(folder, "恢复沙漠法线默认值", () => {
+        Object.assign(tuning, authoredSandNormals);
+        apply();
+        for (const controller of controllers) controller.updateDisplay();
+      });
+      host.refreshLayout();
+    }
     const surfaceHost = session.inspector.grassFolderHost;
     const surfaceFolder = surfaceHost.folder("Surface Normals / 地表法线", true);
+    const setGrassGroundFusion = options.setGrassGroundFusion;
+    if (setGrassGroundFusion) {
+      const fusion = { enabled: world.grassGroundFusion };
+      const controller = surfaceFolder.add(fusion, "enabled").name("草地与地面融合");
+      let pending = false;
+      const refresh = () => {
+        if (!pending && fusion.enabled !== world.grassGroundFusion) controller.setValue(world.grassGroundFusion);
+      };
+      this.refreshGroundFusion = refresh;
+      controller.onChange(async (value: boolean) => {
+        if (pending || value === world.grassGroundFusion) return;
+        pending = true;
+        try { await setGrassGroundFusion(value); }
+        catch (error) { console.warn("[seed-world] grass ground fusion", error); }
+        finally { pending = false; if (this.refreshGroundFusion === refresh) refresh(); }
+      });
+    }
     const surface = { ...world.getSurfaceReliefTuning() };
     const applySurface = (): void => {
       world.setSurfaceReliefTuning(surface);
@@ -334,6 +376,7 @@ export class PlanningSeedRuntimeDebug {
   }
 
   private releaseSession(): void {
+    this.refreshGroundFusion = undefined;
     if (this.world) this.world.terrainOcclusion.profilingEnabled = false;
     for (const extension of this.extensions.splice(0)) extension.destroy();
     this.treePanel = undefined;

@@ -1,0 +1,18 @@
+{
+ "a square house": {
+  "stones": 12,
+  "crown": 2.4895997047424316
+ },
+ "a tall arch": {
+  "stones": 13,
+  "crown": 3.2857775688171387
+ },
+ "a round wall": {
+  "stones": 13,
+  "crown": 2.5791375637054443
+ },
+ "timber": {
+  "frames": 3,
+  "pillars": 2
+ }
+}

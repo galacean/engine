@@ -154,7 +154,8 @@ export class RuntimeSceneEdit {
     const { parentEntityId, prefab, ...props } = input;
     const parent = scene.entities.find((entity) => entity.id === parentEntityId);
     const id = crypto.randomUUID();
-    if (prefab !== undefined && !readSourcePrefab(this.project.preview(), prefab))
+    const template = prefab === undefined ? undefined : readSourcePrefab(this.lookupInstanceAsset, prefab);
+    if (prefab !== undefined && !template)
       throw Error(`Expected an editable Prefab asset '${prefab}'`);
     const entity: GalaceanSourceEntitySchema =
       prefab === undefined
@@ -163,7 +164,7 @@ export class RuntimeSceneEdit {
             id,
             instance: {
               asset: { $ref: prefab },
-              overrides: { entityProps: [{ target: readSourcePrefab(this.project.preview(), prefab)!.root, ...props }] }
+              overrides: { entityProps: [{ target: template!.root, ...props }] }
             }
           };
     if (parentEntityId !== undefined && (!parent || parent.instance)) {
@@ -182,7 +183,7 @@ export class RuntimeSceneEdit {
               instance: {
                 asset: { $ref: prefab },
                 overrides: {
-                  entityProps: [{ target: readSourcePrefab(this.project.preview(), prefab)!.root, ...props }]
+                  entityProps: [{ target: template!.root, ...props }]
                 }
               }
             };
@@ -312,7 +313,7 @@ export class RuntimeSceneEdit {
           removedEntities.add(record.id);
           const { children, components, instance, ...props } = record;
           if (instance) {
-            const template = readSourcePrefab(this.project.preview(), instance.asset.$ref);
+            const template = readSourcePrefab(this.lookupInstanceAsset, instance.asset.$ref);
             if (!template) throw Error("Moving an instance requires editable Prefab Source topology");
             const { id: _, ...rootProps } = props;
             instanceEntityPatch(instance, template.root, rootProps);
@@ -332,7 +333,7 @@ export class RuntimeSceneEdit {
         const inline = convert(sourceEntity);
         if (transform) {
           if (inline.instance) {
-            const target = readSourcePrefab(this.project.preview(), inline.instance.asset.$ref)!.root;
+            const target = readSourcePrefab(this.lookupInstanceAsset, inline.instance.asset.$ref)!.root;
             instanceEntityPatch(inline.instance, target, transform);
           } else Object.assign(inline, transform);
         }
@@ -356,7 +357,7 @@ export class RuntimeSceneEdit {
       else scene.scene.rootEntities.push(id);
       if (transform) {
         if (sourceEntity.instance) {
-          const target = readSourcePrefab(this.project.preview(), sourceEntity.instance.asset.$ref)!.root;
+          const target = readSourcePrefab(this.lookupInstanceAsset, sourceEntity.instance.asset.$ref)!.root;
           instanceEntityPatch(sourceEntity.instance, target, transform);
         } else Object.assign(sourceEntity, transform);
       }
@@ -376,7 +377,7 @@ export class RuntimeSceneEdit {
       }
       if (member.removeAdded) member.removeAdded();
       else {
-        const template = readSourcePrefab(this.project.preview(), member.instance.asset.$ref)!;
+        const template = readSourcePrefab(this.lookupInstanceAsset, member.instance.asset.$ref)!;
         const nodes = new Map(template.entities.map((entity) => [entity.id, entity]));
         const removed = new Set<string>(),
           components = new Set<string>(),
@@ -560,8 +561,10 @@ export class RuntimeSceneEdit {
   private write(scene: GalaceanSourceSceneFile): void {
     this.project.update(this.sceneId, JSON.stringify(scene));
   }
+  private readonly lookupInstanceAsset = (path: string) => this.project.lookupTextAsset(path);
+
   private instances(scene: GalaceanSourceSceneFile) {
-    return new RuntimeInstanceSource(scene, this.project.preview());
+    return new RuntimeInstanceSource(scene, this.lookupInstanceAsset);
   }
   private instanceComponent(scene: GalaceanSourceSceneFile, id: string): InstanceSourceComponent {
     const member = this.instances(scene).components.get(id);
@@ -576,15 +579,15 @@ export class RuntimeSceneEdit {
   private instanceOwner(member: InstanceSourceEntity) {
     const instance = member.inline?.instance ?? member.instance;
     const target = member.inline?.instance
-      ? readSourcePrefab(this.project.preview(), instance.asset.$ref)!.root
+      ? readSourcePrefab(this.lookupInstanceAsset, instance.asset.$ref)!.root
       : member.target;
     return { instance, target };
   }
   private sourceOptions() {
     return {
-      resolveInstanceSourceFile: (path: string) => readSourcePrefab(this.project.preview(), path),
+      resolveInstanceSourceFile: (path: string) => readSourcePrefab(this.lookupInstanceAsset, path),
       resolveInstanceAssetKind: (path: string): "Prefab" | "glTF" =>
-        this.project.preview().project.files.find((file) => file.virtualPath === path)?.type === "glTF"
+        this.lookupInstanceAsset(path)?.type === "glTF"
           ? "glTF"
           : "Prefab"
     };

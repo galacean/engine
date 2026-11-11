@@ -21,28 +21,6 @@ export const cross = (a: number[], b: number[]) => [
 ];
 export const sincos = (x: number) => [f32(Math.sin(f32(x))), f32(Math.cos(f32(x)))];
 
-/** 0x102032a10: keep all 64 seed bits, including through JSON boundaries. */
-export class RoofRandom {
-  private state: bigint;
-  constructor(seed: bigint) {
-    if (typeof seed !== "bigint" || seed < 0n || seed >= 1n << 64n) throw Error("uint64 seed required");
-    this.state = seed;
-  }
-  next(): number {
-    this.state = BigInt.asUintN(64, this.state + 0xa0761d6478bd642fn);
-    const p = this.state * (this.state ^ 0xe7037ed1a0b428dbn);
-    return Number(((p ^ (p >> 64n)) & 0xffffffffn) >> 9n) / 2 ** 23;
-  }
-}
-
-/** 0x101ffc97c: zero jitter still consumes n - 2 random numbers. */
-export function randomSplits(n: number, jitter: number, rng: RoofRandom): number[] {
-  if (!Number.isSafeInteger(n) || n < 2) throw Error("At least two boundaries required");
-  const step = div(1, f32(n - 1)),
-    amp = Math.min(f32(jitter), mul(step, 0.495));
-  return [0, ...Array.from({ length: n - 2 }, (_, i) => add(mul(i + 1, step), mul(sub(rng.next(), 0.5), amp))), 1];
-}
-
 export class RoofCurve {
   readonly points: number[][];
   readonly knots: number[];
@@ -110,11 +88,6 @@ export interface RectangularFootprint {
   center: number[];
   orientation: number[];
   width: number;
-  depth: number;
-}
-export interface UnitMetrics {
-  width: number;
-  height: number;
   depth: number;
 }
 export type RoofFootprint = CircularFootprint | RectangularFootprint;

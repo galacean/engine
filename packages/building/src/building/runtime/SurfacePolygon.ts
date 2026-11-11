@@ -21,83 +21,6 @@ export interface SurfaceBoundary {
   points: number[][];
   constraints?: { vertices: Vertex[]; edges: Edge[] };
 }
-
-/** Exterior of a non-overlapping region tessellation. Signed intervals cancel
- * shared edges, including T junctions. Original line/intersection constraints
- * avoid inventing cracks by rounding clipped vertices. A closed wall chart's
- * u=0 and u=period edges are the same edge, not two exposed boundaries. */
-export function surfaceRegionBoundary(polygons: readonly SurfaceBoundary[], period = 0): number[][][] {
-  const gcd = (a: bigint, b: bigint): bigint => {
-    a = a < 0n ? -a : a;
-    b = b < 0n ? -b : b;
-    while (b) {
-      const r = a % b;
-      a = b;
-      b = r;
-    }
-    return a;
-  };
-  type Event = { n: bigint; d: bigint; point: number[]; delta: number };
-  const lines = new Map<string, Event[]>();
-  const lineKeys = new Map<Line, { key: string; axis: number }>();
-  for (const polygon of polygons) {
-    const c = constraints(polygon);
-    for (let i = 0; i < c.edges.length; i++) {
-      const va = c.vertices[i],
-        vb = c.vertices[(i + 1) % c.vertices.length];
-      const line = c.edges[i].line;
-      let canonical = lineKeys.get(line);
-      if (!canonical) {
-        const l = exactLine(line);
-        let divisor = gcd(gcd(l[0], l[1]), l[2]);
-        if (!divisor) continue;
-        if ((l[0] || l[1]) < 0n) divisor = -divisor;
-        canonical = { key: l.map((v) => v / divisor).join("/"), axis: l[1] === 0n ? 1 : 0 };
-        lineKeys.set(line, canonical);
-      }
-      const seam =
-        period > 0 &&
-        canonical.axis === 1 &&
-        ((va.point[0] === 0 && vb.point[0] === 0) || (va.point[0] === period && vb.point[0] === period));
-      const key = seam ? "1/0/0" : canonical.key;
-      let events = lines.get(key);
-      if (!events) lines.set(key, (events = []));
-      const axis = canonical.axis;
-      const a = exactVertex(va),
-        b = exactVertex(vb);
-      const order = a[axis] * b[2] - b[axis] * a[2];
-      if (!order) continue;
-      for (const [v, h, delta] of [
-        [va, a, 1],
-        [vb, b, -1]
-      ] as const) {
-        // Keep homogeneous fractions unreduced. Sorting/coalescing uses exact
-        // cross-products; repeated per-vertex GCD/string keys add no information.
-        events.push({ n: h[axis], d: h[2], point: seam ? [0, v.point[1]] : v.point.slice(), delta });
-      }
-    }
-  }
-  const result: number[][][] = [];
-  for (const events of lines.values()) {
-    const sorted = events.sort((a, b) => {
-      const d = a.n * b.d - b.n * a.d;
-      return d < 0n ? -1 : d > 0n ? 1 : 0;
-    });
-    let winding = 0,
-      start: number[] | undefined;
-    for (let i = 0; i < sorted.length; i++) {
-      const event = sorted[i];
-      let delta = event.delta;
-      while (i + 1 < sorted.length && event.n * sorted[i + 1].d === sorted[i + 1].n * event.d)
-        delta += sorted[++i].delta;
-      const next = winding + delta;
-      if (winding === 0 && next !== 0) start = event.point;
-      if (winding !== 0 && next === 0 && start) result.push([start, event.point]);
-      winding = next;
-    }
-  }
-  return result;
-}
 const empty = (): SurfaceBoundary => ({ points: [] });
 const machineEpsilon = Number.EPSILON;
 // Derived arithmetic caches are not part of the transferable boundary snapshot.
@@ -297,50 +220,6 @@ export function mapSurfaceBoundary(source: SurfaceBoundary, map: SurfaceAffineMa
   return transformSurfaceBoundary(source, affineMatrix(map), false);
 }
 
-/** Map original triangle correspondences exactly. Each chart may be piecewise
- * affine, but adjacent triangles agree on their common edge and every cut
- * intersection on it. No world-space round trip or rounded affine coefficients.
- * Build once per source triangle, then reuse for all retained fragments. */
-export function surfaceTriangleMapper(from: number[][], to: number[][]): (source: SurfaceBoundary) => SurfaceBoundary {
-  if (from.length !== 3 || to.length !== 3) throw Error("Surface charts require three corresponding vertices");
-  const values = [...from.flat(), ...to.flat()].map(dyadic);
-  const exponent = Math.min(0, ...values.map((v) => v[1]));
-  const k = 1n << BigInt(-exponent);
-  const n = values.map(([v, e]) => v << BigInt(e - exponent));
-  // Equal homogeneous scales are essential: independently reducing matrix
-  // columns would change the affine map, even though individual points agree.
-  const a: Exact[] = [0, 2, 4].map((i) => [n[i], n[i + 1], k]);
-  const b: Exact[] = [6, 8, 10].map((i) => [n[i], n[i + 1], k]);
-  const rows = [crossExact(a[1], a[2]), crossExact(a[2], a[0]), crossExact(a[0], a[1])];
-  let matrix: Exact[] = [0, 1, 2].map(
-    (column) =>
-      [0, 1, 2].map(
-        (row) => b[0][row] * rows[0][column] + b[1][row] * rows[1][column] + b[2][row] * rows[2][column]
-      ) as Exact
-  );
-  if (!matrix[2][2]) throw Error("Source surface chart must be invertible");
-  if (matrix[2][2] < 0n) matrix = matrix.map((column) => column.map((v) => -v) as Exact);
-  // A collapsed physical face contributes no support area. Test exactly, so
-  // representable narrow faces remain valid rather than disappearing by epsilon.
-  const determinant = matrix[0][0] * matrix[1][1] - matrix[1][0] * matrix[0][1];
-  if (!determinant) return () => empty();
-  return (source) => {
-    // Untouched corners already have exact published counterparts. Avoid
-    // reconstructing them (and allocating rational constraints) through a map.
-    // Clipped constraints must never take this path, even if rounded display
-    // coordinates happen to coincide with an original corner.
-    if (!source.constraints && source.points.length === 3) {
-      const indices = source.points.map((p) => from.findIndex((q) => p[0] === q[0] && p[1] === q[1]));
-      if (indices.every((i) => i >= 0)) {
-        const points = indices.map((i) => to[i].slice());
-        if (determinant < 0n) points.reverse();
-        return { points };
-      }
-    }
-    return transformSurfaceBoundary(source, matrix, true);
-  };
-}
-
 function transformSurfaceBoundary(source: SurfaceBoundary, matrix: Exact[], preserveExact: boolean): SurfaceBoundary {
   const determinant = matrix[0][0] * matrix[1][1] - matrix[1][0] * matrix[0][1];
   if (!determinant) throw Error("Surface chart must be invertible");
@@ -469,21 +348,4 @@ export function surfaceMaskTriangles(input: number[][]): SurfaceBoundary[] {
     if (last.points.length) out.push(last);
   }
   return out;
-}
-/** Optional edit-time diagnostics. Peaks describe a single facet's partition
- * worklist, not the complete scene mesh or GPU memory. */
-export interface SurfaceClippingStats {
-  facets: number;
-  operations: number;
-  peakPolygons: number;
-  peakVertices: number;
-}
-export function trackSurfaceClipping(stats: SurfaceClippingStats | undefined, polygons: SurfaceBoundary[]) {
-  if (!stats) return;
-  stats.operations++;
-  stats.peakPolygons = Math.max(stats.peakPolygons, polygons.length);
-  stats.peakVertices = Math.max(
-    stats.peakVertices,
-    polygons.reduce((sum, p) => sum + p.points.length, 0)
-  );
 }

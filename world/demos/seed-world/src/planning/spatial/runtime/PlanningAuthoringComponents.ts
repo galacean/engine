@@ -139,6 +139,7 @@ export class PlanningSubjectView extends VisualParameterAuthoring {
   declare distanceM?: number;
 }
 export class PlanningGrassAppearance extends VisualParameterAuthoring {
+  declare groundFusion?: boolean;
   declare colorA?: AuthoredColor;
   declare colorB?: AuthoredColor;
   declare saturation?: number;

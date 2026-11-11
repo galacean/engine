@@ -1,4 +1,4 @@
-import type { BuildingDraft } from "./BuildingDraft";
+import type { BuildingCoreDraft as BuildingDraft } from "../../core";
 import type { BuildingCpuOptions, BuildingCpuPreparation, compileBuildingCpu } from "./BuildingCpu";
 import type { ConstructionTerrainGrid } from "../../runtime/TerrainField";
 import type { BuildingUnitAssets } from "../../runtime/BuildingUnitAssets";

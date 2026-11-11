@@ -43,7 +43,7 @@ afterEach(() => {
   for (const s of scenes.splice(0)) for (const root of [...s.rootEntities]) root.destroy();
 });
 
-import { European } from "@galacean/engine-building/building/parts/architecture/European.ts";
+import { European } from "@galacean/engine-building/building/application/European.ts";
 import { mountNativeBuildingPanel } from "../src/masonry/NativeBuildingPanel";
 it.each(
   ["window", "wall", "group"].flatMap((kind) =>
@@ -68,7 +68,6 @@ it.each(
           id: "window",
           kind: "window",
           type: "window-cottage",
-          host: "wall",
           u: 0.35,
           bottom: 1.2,
           width: 1.2,
@@ -85,7 +84,7 @@ it.each(
       scene: "Main.scene",
       type: p.constructor.name
     }));
-  const aWindow = manager.get(kind === "window" ? "house/window" : "house-wall", a)!;
+  const aWindow = manager.get(kind === "window" ? "house/window" : "house-wall-0", a)!;
   const selected = kind === "group" ? manager.groupFor(aWindow) : aWindow;
   const window = manager.get("house/window", a)!,
     group = manager.groupFor(window);
@@ -94,16 +93,11 @@ it.each(
   if (state === "hidden-group") group.entity.isActive = false;
   if (state === "hidden-instance") a.isActive = false;
   if (state === "disabled-group") group.enabled = false;
-  const wall = manager.get("house-wall", a)!;
+  const wall = manager.get("house-wall-0", a)!;
   if (state === "disabled-survivor" || state === "hidden-survivor") {
-    wall.relations = [
-      ...wall.relations,
-      {
-        id: "wall-window",
-        from: { part: "house-wall", boundary: "surface" },
-        to: { part: "house/window", boundary: "mount" },
-        rule: "opening"
-      }
+    wall.connections = [
+      ...wall.connections,
+      { kind: "join", id: "wall-window", parts: ["house-wall-0", "house/window"] }
     ];
     if (state === "disabled-survivor") wall.enabled = false;
     else wall.entity.isActive = false;
@@ -169,7 +163,7 @@ it.each(
         definition: p.definition,
         frame: { $entity: String(p.frame!.instanceId) },
         enabled: p.enabled,
-        ...(p instanceof BuildingPartComponent ? { relations: p.relations } : {})
+        ...(p instanceof BuildingPartComponent ? { connections: p.connections } : {})
       }
     }))
   };
@@ -231,7 +225,7 @@ it.each(
       const saved = reopened.readComponent(String(wall.instanceId));
       if (state === "disabled-survivor") expect(saved.props!.enabled).toBe(false);
       else expect(reopened.readEntity(String(wall.entity.instanceId)).isActive).toBe(false);
-      expect(saved.props!.relations).toEqual(wall.relations.filter((r) => r.id !== "wall-window"));
+      expect(saved.props!.connections).toEqual(wall.connections.filter((c) => c.id !== "wall-window"));
     }
     const remaining = reopened.queryComponents().map((r) => r.id);
     expect(remaining.filter((id) => expected.some((p) => String(p.instanceId) === id))).toEqual([]);

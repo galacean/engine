@@ -1,17 +1,6 @@
-import {
-  BufferMesh,
-  BufferUtil,
-  Entity,
-  Material,
-  Mesh,
-  ModelMesh,
-  Vector2,
-  Vector3,
-  type Engine
-} from "@galacean/engine";
+import { BufferMesh, BufferUtil, Mesh, ModelMesh, Vector2, Vector3, type Engine } from "@galacean/engine";
 import { budget, cross, point, positive, type BuildingMeshData, type BuildingPoint } from "./BuildingLayout";
-export { BuildingMeshChart, BuildingPath, beamBetween, buildingPose, surfaceGrid, pathArray } from "./BuildingLayout";
-export type { BuildingMeshData, BuildingPoint, BuildingPose, BuildingSurfaceGrid } from "./BuildingLayout";
+export type { BuildingMeshData, BuildingPoint } from "./BuildingLayout";
 
 /** Read current mesh data on demand. Buffer or mesh edits cannot leave a stale chart cache.
  * A chart selects a triangle submesh with nonoverlapping TEXCOORD_0; atlas islands may be separate surfaces. */
@@ -120,73 +109,5 @@ export function createBuildingPatch(
   } catch (error) {
     mesh.destroy();
     throw error;
-  }
-}
-
-/** A prepared build owns its generated subtree and resources. Publish atomically,
- * then dispose when its runtime view is retired. Borrowed assets are not owned here. */
-export class BuildingPartDraft {
-  readonly root: Entity;
-  private readonly resources = new Set<Mesh | Material>();
-  private readonly templates = new Set<Entity>();
-  private disposed = false;
-  private published = false;
-  constructor(
-    private readonly parent: Entity,
-    name = "Building part"
-  ) {
-    this.root = new Entity(parent.engine, name);
-    this.root.isActive = false;
-  }
-  own<T extends Mesh | Material>(resource: T): T {
-    if (this.disposed || this.published) throw Error("Draft is no longer writable");
-    this.resources.add(resource);
-    return resource;
-  }
-  private readonly disposables: { destroy(): void }[] = [];
-  ownDisposable(resource: { destroy(): void }): void {
-    if (this.disposed || this.published) {
-      resource.destroy();
-      throw Error("Draft is no longer writable");
-    }
-    this.disposables.push(resource);
-  }
-  /** Detached generated templates live as long as their compiled output. */
-  ownTemplate(entity: Entity): Entity {
-    if (this.disposed || this.published || entity.parent || entity.scene) throw Error("Template must be detached");
-    this.templates.add(entity);
-    return entity;
-  }
-  publish(previous?: BuildingPartDraft): void {
-    if (this.disposed || this.published || this.parent.destroyed) throw Error("Cannot publish this building draft");
-    if (previous === this || (previous && previous.parent !== this.parent))
-      throw Error("Replacement must belong to the same parent");
-    try {
-      this.parent.addChild(this.root);
-      this.root.isActive = true;
-      this.published = true;
-    } catch (error) {
-      this.dispose();
-      throw error;
-    }
-    previous?.dispose();
-  }
-  dispose(): void {
-    if (this.disposed) return;
-    this.disposed = true;
-    this.root.destroy();
-    for (const template of this.templates) template.destroy();
-    const release = () => {
-      for (const resource of this.disposables.reverse()) resource.destroy();
-      this.disposables.length = 0;
-      this.templates.clear();
-      for (const resource of this.resources) resource.destroy();
-      this.resources.clear();
-    };
-    // In-frame removal defers renderer destruction. Retire their references
-    // before releasing owned Mesh/Material resources or borrowed asset leases.
-    if (this.root.pendingDestroy || [...this.templates].some((template) => template.pendingDestroy))
-      queueMicrotask(release);
-    else release();
   }
 }

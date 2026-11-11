@@ -21,6 +21,9 @@ import {
 import { RuntimeProjectEdit } from "@galacean/engine-project/runtime-editor/project/runtime-project-edit";
 import { RuntimeSceneEdit } from "@galacean/engine-runtime-editor/runtime-editor/scene/runtime-scene-edit";
 import { PlanningProjectStorage } from "../../demos/seed-world/src/planning/spatial/runtime/PlanningProjectStorage.ts";
+import { initializePlanningOcean } from "../../demos/seed-world/src/planning/spatial/runtime/PlanningWaterInitialization.ts";
+import { exportPlanningRecipe } from "@galacean/engine-world-planning/spatial/PlanningDocument";
+import { createSpatialTerrainPlan } from "@galacean/engine-world-planning/spatial/layout/SpatialTerrain";
 import { createSeedPlanningDocument } from "@galacean/engine-world-planning/spatial/PlanningInitialization";
 import {
   planningSourceDocument,
@@ -40,6 +43,27 @@ const read = (path: string) =>
       "utf8"
     )
   );
+
+it("creates the native Ocean only in island mode", () => {
+  const document = createSeedPlanningDocument(1);
+  const pack: RuntimeProjectPackage = {
+    version: RUNTIME_PROJECT_SAVE_VERSION,
+    project,
+    contents: {
+      [project.scene]: JSON.stringify(importRuntimeHierarchy(read(project.scene), project.scene, project.files, () => true))
+    }
+  };
+  const draft = new RuntimeProjectEdit(pack, formats);
+  writePlanningProjectSource(draft, project.scene, document);
+  const recipe = exportPlanningRecipe(document);
+  const scene = new RuntimeSceneEdit(draft, project.scene);
+  recipe.parameters.landMode = "continuous";
+  initializePlanningOcean(draft, createSpatialTerrainPlan(recipe));
+  expect(scene.queryComponents({ type: "WaterBodyComponent" })).toHaveLength(0);
+  recipe.parameters.landMode = "island";
+  initializePlanningOcean(draft, createSpatialTerrainPlan(recipe));
+  expect(scene.queryComponents({ type: "WaterBodyComponent" })).toHaveLength(1);
+});
 
 describe("production vegetation native asset closure", () => {
   it("opens a version 1 project without a native vegetation namespace and persists the import across refresh", async () => {
@@ -116,11 +140,19 @@ describe("production vegetation native asset closure", () => {
         preserved.contents["World/PlayerState.json"]
       );
       expect(session.projectPackage.documents!["Notes/author.txt"]).toBe(preserved.documents!["Notes/author.txt"]);
+      // An explicit startup choice must replace the current source even after its v2 import marker exists.
+      const selected = structuredClone(authoring);
+      selected.entities.world.components.weather = {
+        values: { ...selected.entities.world.components.weather?.values, cloudCoverage: 0 }
+      };
+      await new PlanningProjectStorage(session, seedWorldProjectFormats).migrateToSource(selected, true);
+      expect(planningSourceDocument(session.projectPackage)).toEqual(selected);
       await session.save();
       session.dispose();
       const reopened = await openSeedWorldProject(new URL("http://localhost/?seed=1"), project);
       opened.push(reopened);
       expect(reopened.projectPackage).toEqual(saved);
+      expect(planningSourceDocument(reopened.projectPackage)).toEqual(selected);
       expect(reopened.projectPackage.project.files.map((file) => file.virtualPath)).toEqual(
         session.projectPackage.project.files.map((file) => file.virtualPath)
       );

@@ -776,10 +776,14 @@ export class PlanningWaterRuntime {
         })
       };
     };
-    const ocean = update ? this.oceanRequest : oceanRequest();
-    if (!ocean) throw new Error("Water edit has no published ocean base");
-    this.oceanRequest = ocean;
-    const requests: WaterSceneBodyRequest[] = [ocean];
+    const requests: WaterSceneBodyRequest[] = [];
+    if (plan.parameters.landMode === "continuous") {
+      this.oceanRequest = undefined;
+    } else {
+      const ocean = update ? this.oceanRequest : oceanRequest();
+      if (!ocean) throw new Error("Water edit has no published ocean base");
+      this.oceanRequest = ocean;
+    }
     const dependencies = new Map(
       plan.waters.map((water) => [
         water.id,
@@ -858,7 +862,7 @@ export class PlanningWaterRuntime {
     // Presentation is per publication. Retain each physical request and its original preset,
     // including when undo removes a colour override or the basin is temporarily dry.
     return [
-      requests[0],
+      ...(this.oceanRequest ? [this.oceanRequest] : []),
       ...plan.waters.flatMap((water) => {
         const cached = this.requestCache.get(water.id);
         if (!cached) return [];

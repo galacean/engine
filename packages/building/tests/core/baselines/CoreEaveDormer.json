@@ -1,0 +1,182 @@
+{
+ "parts": {
+  "Cottage 1": [
+   {
+    "id": "h/h/dormer-cottage-half-1/frame",
+    "floats": 288,
+    "center": [
+     -5.139999866485599,
+     3.819999948143958,
+     0.005000000198682145
+    ]
+   },
+   {
+    "id": "h/h/dormer-cottage-half-1/glass",
+    "floats": 3168,
+    "center": [
+     -5.106464074017908,
+     3.8041131885891786,
+     -0.0010569964242777238
+    ]
+   },
+   {
+    "id": "h/h/dormer-cottage-half-1/half-frame",
+    "floats": 936,
+    "center": [
+     -5.189999860353179,
+     3.8833427305022856,
+     -0.03137239288443172
+    ]
+   }
+  ],
+  "Cottage 3": [
+   {
+    "id": "h/h/dormer-cottage-half-3/frame",
+    "floats": 1080,
+    "center": [
+     -5.381171768241475,
+     3.809999954700477,
+     0.0012434982591208506
+    ]
+   },
+   {
+    "id": "h/h/dormer-cottage-half-3/glass",
+    "floats": 9504,
+    "center": [
+     -5.360856876953385,
+     3.7941131981258747,
+     -0.00035233214142437787
+    ]
+   },
+   {
+    "id": "h/h/dormer-cottage-half-3/half-frame",
+    "floats": 936,
+    "center": [
+     -5.2399998695517915,
+     3.87728846990146,
+     0.0014622727265724972
+    ]
+   }
+  ],
+  "Gothic 1": [
+   {
+    "id": "h/h/dormer-gothic-half-1/frame",
+    "floats": 1332,
+    "center": [
+     -5.139999864941777,
+     3.9339751622698365,
+     -1.6011125107489275e-9
+    ]
+   },
+   {
+    "id": "h/h/dormer-gothic-half-1/glass",
+    "floats": 39,
+    "center": [
+     -5.139999866485596,
+     3.95731546328618,
+     1.2983554752155069e-9
+    ]
+   }
+  ],
+  "Gothic 2": [
+   {
+    "id": "h/h/dormer-gothic-half-2/frame",
+    "floats": 2736,
+    "center": [
+     -5.139999866292175,
+     4.003702552629674,
+     0.00425326978412296
+    ]
+   },
+   {
+    "id": "h/h/dormer-gothic-half-2/glass",
+    "floats": 66,
+    "center": [
+     -5.139999866485595,
+     4.171089462258599,
+     -0.018047896793457318
+    ]
+   }
+  ],
+  "Gothic 3": [
+   {
+    "id": "h/h/dormer-gothic-half-3/frame",
+    "floats": 5418,
+    "center": [
+     -5.140154495344756,
+     3.933238047632,
+     0.0010371716341583692
+    ]
+   },
+   {
+    "id": "h/h/dormer-gothic-half-3/glass",
+    "floats": 66,
+    "center": [
+     -5.139999866485595,
+     4.100816266103225,
+     -0.027044890301625837
+    ]
+   }
+  ],
+  "arrow slit 2": [
+   {
+    "id": "h/h/dormer-arrow-slit-half-2/frame",
+    "floats": 531,
+    "center": [
+     -5.028532913880737,
+     3.5949135926383615,
+     -0.0014477607446833107
+    ]
+   },
+   {
+    "id": "h/h/dormer-arrow-slit-half-2/glass",
+    "floats": 12,
+    "center": [
+     -4.75,
+     3.5980000495910645,
+     -5.551115123125783e-17
+    ]
+   }
+  ],
+  "arrow slit 3": [
+   {
+    "id": "h/h/dormer-arrow-slit-half-3/frame",
+    "floats": 1503,
+    "center": [
+     -5.008000617434164,
+     3.535707378220891,
+     -0.0023878944977129097
+    ]
+   },
+   {
+    "id": "h/h/dormer-arrow-slit-half-3/glass",
+    "floats": 36,
+    "center": [
+     -4.75,
+     3.6119999885559086,
+     -1.1920928960976185e-7
+    ]
+   }
+  ]
+ },
+ "stones": {
+  "Gothic 1": [
+   [
+    "window_gothic_1x1_hat_full",
+    4
+   ]
+  ],
+  "Gothic 2": [
+   [
+    "window_gothic_2x1_hat_full",
+    0
+   ]
+  ],
+  "Gothic 3": [
+   [
+    "window_gothic_3x1_hat_full",
+    0
+   ]
+  ]
+ }
+}

@@ -8,6 +8,9 @@ import type {
   LandscapeFocus,
   LandscapeView
 } from "@galacean/engine-vegetation/world/VegetationLandscapePlan";
+import { planningWhiteboxes } from "../semantic-study/PlanningWhiteboxes";
+import { rayBox } from "./guidance/VisibilityQuery";
+import type { V2Box } from "./V2Model";
 import profile from "../planning-data/settlement-profile.json";
 
 type Position = [number, number, number];
@@ -22,6 +25,9 @@ export interface ResolvedWorldTemplateScene {
   geometry: ReturnType<typeof buildWorldTemplateGeometry>;
   nodes: ResolvedTemplateNode[];
   focusBounds: LandscapeBounds;
+  spawnView?: SubjectViewPose;
+  centeredStart?: Position;
+  occluders?: V2Box[];
   world: { width: number; depth: number; spacingX: number; spacingZ: number };
 }
 
@@ -83,6 +89,16 @@ export function resolveWorldTemplateScene(
     geometry,
     nodes,
     focusBounds,
+    spawnView: site.spawnView,
+    centeredStart: site.centeredStart && [
+      site.centeredStart.x,
+      sample(site.centeredStart.x, site.centeredStart.z),
+      site.centeredStart.z
+    ],
+    occluders:
+      WORLD_TEMPLATE_ART[template.id].plannedSubjects && !site.spawnView
+        ? planningWhiteboxes(plan, (p) => sample(p.x, p.z)).flatMap((part) => part.boxes.filter((box) => box.occlusion))
+        : undefined,
     world: { width: plan.parameters.width, depth: plan.parameters.depth, spacingX, spacingZ }
   };
 }
@@ -161,7 +177,79 @@ export function resolveWorldTemplateView(
   const target = [0, 1, 2].map(
     (axis) => (bounds.min[axis] + bounds.max[axis]) / 2 + (art.lookAtOffset?.[axis] ?? 0) * (axis === 0 ? -1 : 1)
   ) as Position;
-  const angle = (-art.azimuthDegrees * Math.PI) / 180;
+  const centered = scene.centeredStart;
+  const eye =
+    scene.spawnView?.eye ??
+    (centered
+      ? ([centered[0], centered[1] + eyeHeight, centered[2]] as Position)
+      : findTemplateEye(scene, target, aspect, fovDegrees, eyeHeight, ground));
+  if (!eye) throw new Error("地形或体量遮挡参考图主景，无法在当前世界范围内完整取景");
+  const pose: SubjectViewPose = scene.spawnView ?? {
+    subjectId: `world-template:${scene.id}`,
+    eye,
+    target,
+    fovDegrees,
+    frameFraction: art.frameFraction,
+    distanceM: Math.hypot(...target.map((value, axis) => value - eye[axis]))
+  };
+  const view: LandscapeView = {
+    id: pose.subjectId,
+    eye: pose.eye,
+    lookAt: pose.target,
+    weight: 1,
+    depthBreaks: [pose.distanceM / 3, (pose.distanceM * 2) / 3]
+  };
+  const focus: LandscapeFocus = {
+    id: pose.subjectId,
+    objectId: pose.subjectId,
+    kind: "world-template",
+    bounds,
+    clearance: 0,
+    visibility: [{ viewId: view.id, bounds, padding: 0 }]
+  };
+  return { pose, landscape: { view, focus } };
+}
+
+function findTemplateEye(
+  scene: ResolvedWorldTemplateScene,
+  target: Position,
+  aspect: number,
+  fovDegrees: number,
+  eyeHeight: number,
+  ground: (x: number, z: number) => number | undefined
+): Position | undefined {
+  const art = WORLD_TEMPLATE_ART[scene.id];
+  const bearings = art.plannedSubjects ? [0, -15, 15, -30, 30, -45, 45, -60, 60, -90, 90, -135, 135, 180] : [0];
+  let best: { eye: Position; visibility: number; full: boolean } | undefined;
+  for (const offset of bearings) {
+    const result = fitTemplateBearing(
+      scene,
+      target,
+      aspect,
+      fovDegrees,
+      eyeHeight,
+      ground,
+      art.azimuthDegrees + offset
+    );
+    if (!result) continue;
+    if (result.full) return result.eye;
+    if (!best || result.visibility > best.visibility) best = result;
+  }
+  return best?.eye;
+}
+
+function fitTemplateBearing(
+  scene: ResolvedWorldTemplateScene,
+  target: Position,
+  aspect: number,
+  fovDegrees: number,
+  eyeHeight: number,
+  ground: (x: number, z: number) => number | undefined,
+  azimuthDegrees: number
+): { eye: Position; visibility: number; full: boolean } | undefined {
+  const art = WORLD_TEMPLATE_ART[scene.id],
+    bounds = scene.focusBounds;
+  const angle = (-azimuthDegrees * Math.PI) / 180;
   const direction = [Math.sin(angle), -Math.cos(angle)],
     spacing = Math.min(scene.world.spacingX, scene.world.spacingZ);
   const corners: Position[] = [];
@@ -176,7 +264,30 @@ export function resolveWorldTemplateView(
   );
   const tanY = Math.tan((fovDegrees * Math.PI) / 360) * art.frameFraction,
     tanX = tanY * aspect;
-  let eye: Position | undefined;
+  const modelBoxes: V2Box[] = art.plannedSubjects
+    ? scene.nodes.map(({ node, position, bounds }) => ({
+        id: node.id,
+        label: node.label ?? node.id,
+        center: { x: position[0], z: position[2] },
+        sizeX: node.scale[0],
+        sizeY: node.scale[1],
+        sizeZ: node.scale[2],
+        yaw: (node.rotation[1] * Math.PI) / 180,
+        elevation: bounds.min[1],
+        collision: false,
+        occlusion: true
+      }))
+    : [];
+  const visibilityPoints: { id?: string; center: Position; upper?: Position }[] = art.plannedSubjects
+    ? scene.nodes
+        .filter(({ node }) => scene.geometry.focusIds.includes(node.id))
+        .map(({ node, position, bounds }) => ({
+          id: node.id,
+          center: position,
+          upper: [position[0], (position[1] + bounds.max[1]) / 2, position[2]]
+        }))
+    : [target, ...corners.filter((p) => p[1] === bounds.max[1])].map((center) => ({ center }));
+  let best: { eye: Position; visibility: number; full: boolean } | undefined;
   for (let distance = near + spacing; distance <= far; distance += spacing) {
     const x = target[0] + direction[0] * distance,
       z = target[2] + direction[1] * distance,
@@ -196,34 +307,25 @@ export function resolveWorldTemplateView(
       })
     )
       continue;
-    const visible = [target, ...corners.filter((p) => p[1] === bounds.max[1])];
-    if (!visible.every((point) => terrainVisible(candidate, point, scene, ground))) continue;
-    eye = candidate;
-    break;
+    const origin = { x: candidate[0], y: candidate[1], z: candidate[2] };
+    const blockers = scene.occluders;
+    if (blockers?.some((box) => rayBox(origin, { x: 0, y: 0, z: 0 }, box) === 0)) continue;
+    const visible = (point: Position, subjectId?: string) => {
+      const direction = { x: point[0] - origin.x, y: point[1] - origin.y, z: point[2] - origin.z };
+      return (
+        !blockers?.some((box) => rayBox(origin, direction, box) < 1) &&
+        !modelBoxes.some((box) => box.id !== subjectId && rayBox(origin, direction, box) < 1) &&
+        terrainVisible(candidate, point, scene, ground)
+      );
+    };
+    let visibility = 0;
+    for (const { id, center, upper } of visibilityPoints) {
+      if (visible(center, id)) visibility += 2;
+      else if (upper && visible(upper, id)) visibility++;
+    }
+    if (visibility === visibilityPoints.length * 2) return { eye: candidate, visibility, full: true };
+    if (art.plannedSubjects && (!best || visibility > best.visibility))
+      best = { eye: candidate, visibility, full: false };
   }
-  if (!eye) throw new Error("地形遮挡参考图主景，无法在当前世界范围内完整取景");
-  const pose: SubjectViewPose = {
-    subjectId: `world-template:${scene.id}`,
-    eye,
-    target,
-    fovDegrees,
-    frameFraction: art.frameFraction,
-    distanceM: Math.hypot(...target.map((value, axis) => value - eye[axis]))
-  };
-  const view: LandscapeView = {
-    id: pose.subjectId,
-    eye,
-    lookAt: target,
-    weight: 1,
-    depthBreaks: [pose.distanceM / 3, (pose.distanceM * 2) / 3]
-  };
-  const focus: LandscapeFocus = {
-    id: pose.subjectId,
-    objectId: pose.subjectId,
-    kind: "world-template",
-    bounds,
-    clearance: 0,
-    visibility: [{ viewId: view.id, bounds, padding: 0 }]
-  };
-  return { pose, landscape: { view, focus } };
+  return best;
 }

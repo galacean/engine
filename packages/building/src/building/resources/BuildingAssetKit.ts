@@ -1,4 +1,3 @@
-import { validateConstructionWindowCuts } from "../runtime/ConstructionWindowCutAsset";
 import {
   Component,
   Loader,
@@ -10,13 +9,18 @@ import {
   Texture2DArray,
   TextureCube
 } from "@galacean/engine-core";
-import { assemblyEmissionOrigin, assemblyRole, validateAssemblyPart, type BuildingAssembly } from "./BuildingAssembly";
+import {
+  assemblyEmissionOrigin,
+  assemblyRole,
+  validateAssemblyPart,
+  type BuildingAssembly,
+  type BuildingPrefab
+} from "./BuildingAssembly";
 import { PrefabResource } from "@galacean/engine-loader";
 import type { ConstructionResourceRole } from "../runtime/ConstructionBindings";
 import type { ConstructionGeometryAssets } from "./BuildingGeometry";
 import { buildingGeometry, validateBuildingMesh } from "./BuildingGeometry";
 import type { ConstructionDecorationCollisions } from "../runtime/ConstructionDecorationCollisions";
-import type { ConstructionWindowCutAsset } from "../runtime/ConstructionWindowCutAsset";
 
 export interface BuildingUnitBinding {
   kind: "storage" | "uniform";
@@ -83,6 +87,63 @@ export class BuildingUnitComponent extends Component {
 }
 /** Fixed composition lives in this Entity's native child hierarchy. */
 export class BuildingAssemblyComponent extends Component {}
+/** Root of a building prefab: a fixed composition of models placed as one unit, such as a
+ * window, a door, a wall lamp or a roof hatch. Its members are the native child hierarchy;
+ * their poses are part of the asset. The space they occupy decides what a prefab opens. A
+ * window that spans a wall corner has its origin on that corner. */
+export class BuildingPrefabComponent extends Component {
+  /** How far in front of the wall the arch of an eave dormer starts, on a straight and on a
+   * curved wall, in metres. */
+  eaveOut = 0;
+  eaveOutCurved = 0;
+  /** The height of the stone threshold laid under a door that stands on the ground, in metres.
+   * Default: 0, no threshold. */
+  threshold = 0;
+  /** Paths of the members that set the prefab's size. Default: all of them. */
+  sizeMembers: string[] = [];
+  private _roofProfile: [number, number][] = [];
+  /** The outline of the small roof a prefab carries out of a roof slope, such as a dormer's:
+   * its right half from the peak down to the eave, in the prefab's x/y plane. The roof is
+   * the outline mirrored across x = 0. Empty when the prefab carries no roof. */
+  get roofProfile() {
+    return this._roofProfile.map((p) => [p[0], p[1]] as [number, number]);
+  }
+  set roofProfile(value: [number, number][]) {
+    this._roofProfile = (value ?? []).map((p) => [p[0], p[1]]);
+  }
+}
+/** A prefab member drawn with an arrangement unit, such as a stone hat. With a span it bends
+ * along the surface the prefab is mounted on, from x = span[0] to x = span[1] of the
+ * prefab; without one it is placed rigidly. */
+export class BuildingUnitMemberComponent extends Component {
+  private _unit: PrefabResource | null = null;
+  private _onTimber: PrefabResource | null = null;
+  span: [number, number] | null = null;
+  get unit() {
+    return this._unit;
+  }
+  set unit(value: PrefabResource | null) {
+    retainBuildingResource(value, 1);
+    retainBuildingResource(this._unit, -1);
+    this._unit = value;
+  }
+  /** The unit drawn on a timber wall. Default: `unit`. */
+  get onTimber() {
+    return this._onTimber;
+  }
+  set onTimber(value: PrefabResource | null) {
+    retainBuildingResource(value, 1);
+    retainBuildingResource(this._onTimber, -1);
+    this._onTimber = value;
+  }
+  protected override _onDestroy(): void {
+    retainBuildingResource(this._unit, -1);
+    retainBuildingResource(this._onTimber, -1);
+    this._unit = null;
+    this._onTimber = null;
+    super._onDestroy();
+  }
+}
 export interface GothicUnit {
   mesh: BufferMesh;
   frameTemplate: string;
@@ -110,6 +171,7 @@ export class BuildingAssetKitComponent extends Component {
   private _units: Record<string, PrefabResource> = {};
   private _decorations: Record<string, PrefabResource> = {};
   private _assemblies: Record<string, PrefabResource> = {};
+  private _prefabs: Record<string, PrefabResource> = {};
   private _textures: Record<string, BuildingTexture> = {};
   private _neutralTextures: Record<string, BuildingTexture> = {};
   private _gothic: Record<string, GothicUnit> = {};
@@ -140,6 +202,14 @@ export class BuildingAssetKitComponent extends Component {
     const next = { ...value };
     this.replace(this._assemblies, next);
     this._assemblies = next;
+  }
+  get prefabs() {
+    return { ...this._prefabs };
+  }
+  set prefabs(value: Record<string, PrefabResource>) {
+    const next = { ...value };
+    this.replace(this._prefabs, next);
+    this._prefabs = next;
   }
   get textures() {
     return { ...this._textures };
@@ -182,7 +252,6 @@ export class BuildingAssetKitComponent extends Component {
   }
   textureColors: Record<string, number[]> = {};
   decorationCollisions: ConstructionDecorationCollisions = {};
-  windowCuts!: ConstructionWindowCutAsset;
   roofSpireColor: number[] = [];
   frameWords: number[] = [];
   sdfProxyIndices: number[] = [];
@@ -197,6 +266,7 @@ export class BuildingAssetKitComponent extends Component {
       target._units,
       target._decorations,
       target._assemblies,
+      target._prefabs,
       target._textures,
       target._neutralTextures,
       target._gothic,
@@ -211,6 +281,7 @@ export class BuildingAssetKitComponent extends Component {
       this._units,
       this._decorations,
       this._assemblies,
+      this._prefabs,
       this._textures,
       this._neutralTextures,
       this._gothic,
@@ -236,6 +307,8 @@ export function registerBuildingAssetComponents(): void {
   Loader.registerClass("BuildingUnitComponent", BuildingUnitComponent);
   Loader.registerClass("BuildingAssetKitComponent", BuildingAssetKitComponent);
   Loader.registerClass("BuildingAssemblyComponent", BuildingAssemblyComponent);
+  Loader.registerClass("BuildingPrefabComponent", BuildingPrefabComponent);
+  Loader.registerClass("BuildingUnitMemberComponent", BuildingUnitMemberComponent);
 }
 export interface NativeBuildingUnit {
   mesh: BufferMesh;
@@ -375,17 +448,103 @@ export function buildingAssets(source: PrefabResource): BuildingAssets {
         entity.destroy();
       }
     }
+    // A building prefab's members keep their authored poses: each one's world matrix in the
+    // prefab is baked into its mesh, so the prefab places as a single unit.
+    const prefabs: Record<string, BuildingPrefab> = {};
+    for (const [key, prefab] of Object.entries(kit.prefabs)) {
+      const entity = prefab.instantiate();
+      try {
+        const root = entity.getComponent(BuildingPrefabComponent);
+        if (!root) throw Error(`Building prefab "${key}" requires BuildingPrefabComponent on its root`);
+        const members: BuildingPrefab["members"] = [],
+          unitMembers: BuildingPrefab["units"] = [];
+        const paths = new Set<string>();
+        const visit = (node: typeof entity, path: string) => {
+          if (!node.isActive || Math.min(node.transform.scale.x, node.transform.scale.y, node.transform.scale.z) <= 0)
+            throw Error(`Building prefab "${key}" requires active nodes and positive scale`);
+          const metadata = node.getComponent(BuildingUnitComponent),
+            unitMember = node.getComponent(BuildingUnitMemberComponent);
+          if (unitMember) {
+            const unit = unitMember.unit && unitNames.get(unitMember.unit);
+            if (!unit || units[unit]?.family !== "stone-decoration")
+              throw Error(`A unit member of building prefab "${key}" requires a stone-decoration unit of the kit`);
+            const span = unitMember.span;
+            if (span && !(span[1] > span[0]))
+              throw Error(`A unit member of building prefab "${key}" has an empty span`);
+            const onTimber = unitMember.onTimber ? unitNames.get(unitMember.onTimber) : undefined;
+            if (unitMember.onTimber && (!onTimber || units[onTimber]?.family !== "stone-decoration"))
+              throw Error(
+                `A unit member of building prefab "${key}" requires a stone-decoration unit for timber walls`
+              );
+            unitMembers.push({
+              unit,
+              ...(onTimber && { onTimber }),
+              path,
+              matrix: Array.from(node.transform.worldMatrix.elements),
+              ...(span && { span: [span[0], span[1]] as [number, number] })
+            });
+          } else if (node.getComponent(MeshRenderer) || metadata) {
+            if (!metadata?.enabled || metadata.family !== "decoration" || !node.getComponent(MeshRenderer)?.enabled)
+              throw Error(`A member of building prefab "${key}" requires an enabled decoration unit and MeshRenderer`);
+            const name = `prefab/${key}/${path}`,
+              matrix = Array.from(node.transform.worldMatrix.elements);
+            validateAssemblyPart(name, matrix, metadata.surfaceKind);
+            if (decorations[name]) throw Error("Duplicate building prefab member: " + name);
+            decorations[name] = { ...extractEntity(node), localMatrix: matrix };
+            let stoneFrame: { template: string; matrix: number[] } | undefined;
+            if (metadata.stoneFrame) {
+              const template = unitNames.get(metadata.stoneFrame) ?? `stone-frame/${name}`;
+              const unit = units[template] ?? extract(metadata.stoneFrame);
+              if (unit.family !== "stone-decoration")
+                throw Error(`The stone frame of building prefab "${key}" requires a stone-decoration unit`);
+              units[template] = unit;
+              unitNames.set(metadata.stoneFrame, template);
+              stoneFrame = { template, matrix };
+            }
+            const emission = assemblyEmissionOrigin(metadata.emissionOrigin, matrix);
+            members.push(
+              stoneFrame
+                ? [name, path, metadata.surfaceKind, emission, stoneFrame]
+                : [name, path, metadata.surfaceKind, emission]
+            );
+          }
+          for (const child of node.children) {
+            const childPath = path ? `${path}/${child.name}` : child.name;
+            if (!child.name || child.name.includes("/") || paths.has(childPath))
+              throw Error(`Invalid member path in building prefab "${key}"`);
+            paths.add(childPath);
+            visit(child, childPath);
+          }
+        };
+        visit(entity, "");
+        if (!members.length) throw Error(`Empty building prefab "${key}"`);
+        const roofProfile = root.roofProfile;
+        if (
+          roofProfile.length &&
+          (roofProfile.length < 2 ||
+            roofProfile[0][0] !== 0 ||
+            roofProfile.some((p, i) => i > 0 && !(p[0] >= roofProfile[i - 1][0] && p[1] <= roofProfile[i - 1][1])) ||
+            !(roofProfile[0][1] > roofProfile[roofProfile.length - 1][1]))
+        )
+          throw Error(`Building prefab "${key}" needs a roof profile that runs from its peak at x = 0 down and out`);
+        prefabs[key] = {
+          members,
+          units: unitMembers,
+          ...(roofProfile.length && { roofProfile }),
+          ...(root.eaveOut > 0 && { eaveOut: root.eaveOut, eaveOutCurved: root.eaveOutCurved }),
+          ...(root.threshold > 0 && { threshold: root.threshold }),
+          ...(root.sizeMembers.length && { sizeMembers: [...root.sizeMembers] })
+        };
+      } finally {
+        entity.destroy();
+      }
+    }
     for (const [name, unit] of Object.entries(units)) {
       if (!unit.material || ![48, 64, 80, 96, 128].includes(unit.instanceStride))
         throw Error("Invalid arrangement unit: " + name);
     }
     if (!kit.decorationMaterial) throw Error("Building kit requires its decoration Material");
     if (!kit.woodArchMaterial) throw Error("Building kit requires its wood arch Material");
-    const cutTexture = kit.textures[kit.windowCuts?.texture];
-    if (!(cutTexture instanceof Texture2DArray)) throw Error("Window-cut atlas requires a native Texture2DArray");
-    validateConstructionWindowCuts(kit.windowCuts, {
-      [kit.windowCuts.texture]: { width: cutTexture.width, height: cutTexture.height, layers: cutTexture.length }
-    });
     const result: BuildingAssets = {
       source,
       decorationMaterial: kit.decorationMaterial,
@@ -400,7 +559,7 @@ export function buildingAssets(source: PrefabResource): BuildingAssets {
       frame: Uint32Array.from(kit.frameWords).buffer,
       sdfMaterials: { ...kit.sdfMaterials },
       sdfProxyIndices: [...kit.sdfProxyIndices],
-      compilation: freezeGeometry(buildingGeometry(kit, units, decorations, assemblies))
+      compilation: freezeGeometry(buildingGeometry(kit, units, decorations, assemblies, prefabs))
     };
     snapshots.set(source, result);
     return result;

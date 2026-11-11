@@ -71,19 +71,19 @@ export class PlanningProjectStorage {
     });
   }
 
-  /** Import the saved envelope once, before loading the production Scene. */
-  async migrateToSource(document: PlanningDocument): Promise<void> {
+  /** Import the saved envelope before loading the Scene, or replace planning after an explicit template choice. */
+  async migrateToSource(document: PlanningDocument, replacePlanning = false): Promise<void> {
     const build = (pack: RuntimeProjectSession["projectPackage"]) => {
       const marker = `${pack.project.scene}.planning-source.json`;
       if (pack.documents?.[marker] !== undefined) {
         const { version } = JSON.parse(pack.documents[marker]);
-        if (version === 2) return pack;
+        if (version === 2 && !replacePlanning) return pack;
         if (version !== 1 && version !== 2) throw new Error("Unsupported planning Source migration");
         if (!planningSourceDocument(pack)) throw new Error("Imported project requires a PlanningProjectAuthoring owner");
       }
       const draft = new RuntimeProjectEdit(pack, new Map([...nativeAssetFormats(() => ({})), ...this.formats]));
       // Store planning authoring in the Scene before loading its native owners.
-      writePlanningProjectSource(draft, pack.project.scene, planningSourceDocument(pack) ?? document);
+      writePlanningProjectSource(draft, pack.project.scene, replacePlanning ? document : planningSourceDocument(pack) ?? document);
       if (draft.list().some(file => file.virtualPath === PLANNING_PROJECT_PATH)) draft.delete(PLANNING_PROJECT_PATH);
       draft.writeDocument(marker, JSON.stringify({ version: 2 }));
       return draft.finish();

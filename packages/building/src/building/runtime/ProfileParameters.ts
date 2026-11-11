@@ -25,10 +25,6 @@ export interface ProfileFinishParameters {
   color: number;
   tint?: [number, number, number] | null;
 }
-export interface ProfileFloorParameters {
-  enabled: boolean;
-  interval: number;
-}
 
 function record(v: unknown, label: string): Record<string, unknown> {
   if (!v || typeof v !== "object" || Array.isArray(v)) throw Error(label + " must be an object");
@@ -103,33 +99,4 @@ export function normalizeProfileFoundation(input: unknown): ProfileFoundationPar
   if (f.mode !== undefined && !["auto", "pillars", "solid"].includes(f.mode as string))
     throw Error("Unknown foundation mode");
   return { height, ...(f.mode !== undefined ? { mode: f.mode as ProfileFoundationParameters["mode"] } : {}) };
-}
-export function normalizeProfileFinish(input: unknown): ProfileFinishParameters {
-  const p = record(input, "plaster");
-  only(p, ["enabled", "wear", "color", "tint"], "plaster");
-  if (typeof p.enabled !== "boolean") throw Error("Plaster enabled must be boolean");
-  const wear = profileNumber(p.wear, "plaster.wear"),
-    color = uint(p.color, "plaster.color");
-  if (wear < 0 || wear > 1) throw Error("Plaster wear must be in [0,1]");
-  if (color > 7) throw Error("Plaster color outside original palette");
-  const result: ProfileFinishParameters = { enabled: p.enabled, wear, color };
-  if (p.tint !== undefined) {
-    if (
-      p.tint !== null &&
-      (!Array.isArray(p.tint) ||
-        p.tint.length !== 3 ||
-        !p.tint.every((v) => typeof v === "number" && Number.isFinite(v) && v >= 0 && v <= 1))
-    )
-      throw Error("Plaster tint must be three sRGB channels in [0,1] or null");
-    result.tint = p.tint === null ? null : ([...p.tint] as [number, number, number]);
-  }
-  return result;
-}
-export function normalizeProfileFloors(input: unknown): ProfileFloorParameters {
-  const f = record(input, "floors");
-  only(f, ["enabled", "interval"], "floors");
-  if (typeof f.enabled !== "boolean") throw Error("Floor bands enabled must be boolean");
-  const interval = profileNumber(f.interval, "floors.interval");
-  if (!(interval > 0)) throw Error("Invalid floor band spacing");
-  return { enabled: f.enabled, interval };
 }

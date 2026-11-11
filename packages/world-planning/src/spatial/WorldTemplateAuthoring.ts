@@ -22,6 +22,7 @@ import profile from "../planning-data/settlement-profile.json";
 export function worldTemplatePaletteValues(id: string): Record<string, Record<string, number>> {
   if (!worldTemplate(id)) throw new Error("未知世界风格：" + id);
   const art = WORLD_TEMPLATE_ART[id];
+  if (!art.grass) return {};
   const colorFields = (slot: string, hex: string) =>
     Object.fromEntries(
       (["r", "g", "b"] as const).map((channel, i) => [slot + "." + channel, templateLinearColor(hex)[i]])
@@ -76,6 +77,7 @@ function templateCore(template: WorldTemplate) {
       ? { spatialComposition: { ...art.generation, enabled: false, seed: templateBaseSeed(id) } }
       : {}),
     landformSeed: templateBaseSeed(id),
+    landMode: art.initialPlanning?.landMode,
     landCoverage: terrain.coverage,
     complexity: 0.6,
     offshoreCoverage: 0.07,
@@ -177,7 +179,9 @@ export function createTemplatePlanningDocument(
   const terrain = template.terrain;
   Object.assign(recipe.parameters, {
     worldTemplate: { id },
-    landformSeed: templateBaseSeed(id),
+    landformSeed: art.initialPlanning?.relief ? seed : templateBaseSeed(id),
+    landMode: art.initialPlanning?.landMode,
+    ...art.initialPlanning?.relief,
     landCoverage: terrain.coverage * (1 + jitter("coverage") * 0.02),
     complexity: 0.6 + jitter("coast") * 0.03,
     offshoreCoverage: 0.07,
@@ -194,7 +198,7 @@ export function createTemplatePlanningDocument(
     lakes: { countMin: 0, countMax: 0 }
   });
   const { anchor, resources, lakes } = templateCore(template);
-  recipe.parameters.worldTemplate = { id, centerX: anchor.x, centerZ: anchor.z };
+  if (!art.plannedSubjects) recipe.parameters.worldTemplate = { id, centerX: anchor.x, centerZ: anchor.z };
   if (art.generation)
     recipe.parameters.spatialComposition = spatialCompositionParameters({
       ...art.generation,
@@ -206,10 +210,16 @@ export function createTemplatePlanningDocument(
   document.samplingVersion = initial.samplingVersion;
   document.waterAuthoringVersion = 1;
   const components = document.entities.world.components;
+  if (art.initialPlanning?.roadsEnabled !== undefined)
+    components.network.values.enabled = art.initialPlanning.roadsEnabled;
+  if (art.initialPlanning?.farmingEnabled !== undefined)
+    components.farming.values.enabled = art.initialPlanning.farmingEnabled;
   for (const [type, values] of Object.entries(worldTemplatePaletteValues(id)))
     components[type] = { ...components[type], values: { ...components[type]?.values, ...values } };
-  // The user explicitly authorized reference-specific lighting on 2026-11-05.
-  // Time, light energy and material colour have independent artistic meanings.
+  if (art.grassGroundFusion !== undefined) {
+    const appearance = (components.grassAppearance ??= { values: {} });
+    appearance.values.groundFusion = art.grassGroundFusion;
+  }
   components.lighting = { values: { ...art.lighting } };
   components.postProcess = { values: { ...art.postProcess } };
   components.weather = {
@@ -254,7 +264,12 @@ export function createTemplatePlanningDocument(
     values.referenceLevel = Math.fround(level) - 0.001;
     document.entities[lake.id] = lake;
   }
-  return initializePlanningPopulation(document, options);
+  const initialized = initializePlanningPopulation(document, { ...art.initialPlanning?.population, ...options });
+  if (art.initialPlanning?.poiMemberMax !== undefined) {
+    const layout = (initialized.entities.world.components.layout ??= { values: {} });
+    layout.values.memberMax = art.initialPlanning.poiMemberMax;
+  }
+  return initialized;
 }
 
 /** Apply a reference recipe while retaining independently authored plant controls.

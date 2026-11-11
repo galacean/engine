@@ -224,6 +224,16 @@ const landscape = [
   ...(
     [
       {
+        ...number("companionStoneDensity", "地表小石头密度", {
+          min: 0,
+          max: 1,
+          step: 0.01,
+          unit: "%",
+          default: NATURAL_VEGETATION_DEFAULTS.companionStoneDensity
+        }),
+        description: "控制自动散布和树脚伴生的小石头，0 时关闭。"
+      },
+      {
         ...number("grassRelativeHeight", "低草相对花灌木高度", {
           min: 0.05,
           max: 1,
@@ -414,10 +424,19 @@ const wayfindingFields: SpatialField[] = [
   number("cueSpanM", "单处引导最大范围", { unit: "m", step: 2, min: 0.001, default: WAYFINDING_DEFAULTS.cueSpanM }),
   number("spacingM", "引导点内体量间隔", { unit: "m", step: 1, min: 0.001, default: WAYFINDING_DEFAULTS.spacingM })
 ];
-const globals = [
+const globals: SpatialField[] = [
   {
     ...number("seed", "布局种子（Seed）", { unit: "", step: 1, min: 0, max: 4294967295 }),
     randomizeLabel: "换布局（随机 Seed）"
+  },
+  {
+    key: "landMode",
+    label: "陆域模式",
+    type: "string" as const,
+    default: "island",
+    options: ["island", "continuous"],
+    optionLabels: { island: "岛屿", continuous: "整图陆地" },
+    description: "整图陆地铺满规划边界并关闭默认海洋。河流和湖泊仍独立配置。"
   },
   number("landCoverage", "主陆地占比", { unit: "%", step: 0.01, min: 0, max: 1 }),
   number("landAspect", "主岛长宽倾向", { unit: "%", step: 0.01, min: 0, max: 1 }),
@@ -425,7 +444,12 @@ const globals = [
   number("complexity", "海岸轮廓变化", { unit: "%", step: 0.01, min: 0, max: 1 }),
   number("offshoreCoverage", "离岸陆地占比", { unit: "%", step: 0.01, min: 0, max: 1 }),
   number("islandRichness", "离岸岛丰富度", { unit: "%", step: 0.01, min: 0, max: 1 })
-];
+].map(
+  (field): SpatialField =>
+    field.key === "seed" || field.key === "landMode"
+      ? field
+      : { ...field, hiddenWhen: { field: "landMode", values: ["continuous"] } }
+);
 const distributionFields = [
   number("spacingM", "POI 基准间距", {
     unit: "m",
@@ -446,6 +470,7 @@ const distributionFields = [
   number("averageAreaM2", "平均管理面积", { unit: "㎡", readonly: true })
 ];
 const network = [
+  { key: "enabled", label: "生成道路", type: "boolean" as const, default: true, combine: "override" as const },
   number("widthM", "全局道路宽度", { unit: "m", step: 0.5, min: 0.001 }),
   number("bend", "全局道路弯曲", { unit: "%", step: 0.01, min: 0, max: 1 }),
   number("loopiness", "连接冗余", { unit: "%", step: 0.01, min: 0, max: 1 })
@@ -740,6 +765,16 @@ export const PLANNING_COMPONENTS: PlanningComponentDefinition[] = [
         description:
           "可选的海岸、底层起伏及隆起位置随机源；未设置时跟随世界 Seed。风格模板固定此值，仅在作者参数范围内微调地貌。"
       }),
+      number("reliefNearAmplitudeM", "FBM 近处起伏", { unit: "m", min: 0, max: 160, step: 1 }),
+      number("reliefAmplitudeM", "FBM 中距离起伏", {
+        unit: "m",
+        min: 0,
+        max: 160,
+        step: 1,
+        description: "距地图中心半个地图边长的约 60% 处的 FBM 振幅。未单独设置近处或远处时沿用此值。"
+      }),
+      number("reliefFarAmplitudeM", "FBM 远处起伏", { unit: "m", min: 0, max: 160, step: 1 }),
+      number("reliefScaleM", "FBM 起伏尺度", { unit: "m", min: 32, max: 1024, step: 1 }),
       number("countMin", "隆起带数量下限", {
         description: "按地貌 Seed 在范围内确定性采样隆起带数量。",
         unit: "个",
@@ -751,10 +786,26 @@ export const PLANNING_COMPONENTS: PlanningComponentDefinition[] = [
       number("directionDegrees", "主方向", { unit: "°", step: 1, min: 0, default: 45 }),
       number("lengthM", "隆起带长度", { unit: "m", step: 1, min: 0.001, default: 600 }),
       number("heightM", "抬升高度", { unit: "m", step: 1, min: 0, default: 10 }),
-      number("widthM", "两侧过渡宽度", { unit: "m", step: 1, min: 0.001, default: 160 })
+      number("widthM", "两侧过渡宽度", { unit: "m", step: 1, min: 0.001, default: 160 }),
+      { key: "surfaceBaseTextureUrl", label: "地表 Base 纹理 URL", type: "string" },
+      { key: "surfaceNormalTextureUrl", label: "地表 Normal 纹理 URL", type: "string" },
+      number("surfaceTileM", "地表纹理平铺尺寸", { unit: "m", step: 0.5, min: 0.25, default: 8 }),
+      number("surfaceNormalScale", "地表法线强度", { unit: "倍", step: 0.05, min: 0, max: 4, default: 1 }),
+      { key: "surfaceMicroNormalTextureUrl", label: "近景微法线 URL", type: "string" },
+      { key: "roadSurfacePattern", label: "地表道路色块", type: "boolean", default: false }
     ],
     global: {
+      surfaceBaseTextureUrl: "terrainSurface.baseTextureUrl",
+      surfaceNormalTextureUrl: "terrainSurface.normalTextureUrl",
+      surfaceTileM: "terrainSurface.tileMetres",
+      surfaceNormalScale: "terrainSurface.normalScale",
+      roadSurfacePattern: "terrainSurface.roadPattern",
+      surfaceMicroNormalTextureUrl: "terrainSurface.microNormalTextureUrl",
       baseSeed: "landformSeed",
+      reliefNearAmplitudeM: "reliefNearAmplitudeM",
+      reliefAmplitudeM: "reliefAmplitudeM",
+      reliefFarAmplitudeM: "reliefFarAmplitudeM",
+      reliefScaleM: "reliefScaleM",
       countMin: "terrainSkeleton.countMin",
       countMax: "terrainSkeleton.countMax",
       directionDegrees: "terrainSkeleton.directionDegrees",
@@ -874,7 +925,9 @@ export const PLANNING_COMPONENTS: PlanningComponentDefinition[] = [
     version: 1,
     tab: "roads",
     fields: network.map((f) =>
-      f.key === "loopiness" ? { ...f, kinds: ["world"] } : { ...f, label: f.key === "widthM" ? "道路宽度" : "道路弯曲" }
+      f.key === "loopiness" || f.key === "enabled"
+        ? { ...f, kinds: ["world"] }
+        : { ...f, label: f.key === "widthM" ? "道路宽度" : "道路弯曲" }
     ),
     kinds: ["globalRoute"],
     local: { widthM: "road.widthM", bend: "road.bend" },

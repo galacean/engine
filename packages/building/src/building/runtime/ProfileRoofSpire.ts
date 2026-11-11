@@ -102,12 +102,6 @@ export function profileRoofSpirePlacement(roof: { surface: RoofSurface; footprin
     profile: surface.profile
   };
 }
-
-export interface PlacedRoofSpire {
-  part: ConstructionDecorationPart;
-  /** The solved mount used for local roof visibility, distinct from deformed vertices. */
-  anchor: readonly number[];
-}
 export function placeProfileRoofSpire(
   ownerId: string,
   placement: NonNullable<ReturnType<typeof profileRoofSpirePlacement>>,

@@ -2,29 +2,28 @@
   "asset": {
     "version": "2.0"
   },
-  "root": "entity-000000",
+  "root": "circle-circle",
   "entities": [
     {
-      "id": "entity-000000",
+      "id": "circle-circle",
       "name": "双圆屋连接",
-      "position": [
-        0,
-        0,
-        0
-      ],
-      "rotation": [
-        0,
-        0,
-        0
-      ],
       "children": [
-        "entity-000001",
-        "entity-000003"
+        "[\"circle-circle\",\"group-node\",\"round\"]",
+        "[\"circle-circle\",\"group-node\",\"small-round\"]"
       ]
     },
     {
-      "id": "entity-000001",
-      "name": "房屋",
+      "id": "[\"circle-circle\",\"group-node\",\"round\"]",
+      "name": "round",
+      "components": [
+        "[\"circle-circle\",\"group-component\",\"round\"]"
+      ],
+      "children": [
+        "[\"circle-circle\",\"part-node\",\"round-wall\"]",
+        "[\"circle-circle\",\"part-node\",\"round-roof\"]",
+        "[\"circle-circle\",\"part-node\",\"round-spire\"]",
+        "[\"circle-circle\",\"part-node\",\"round/dormer\"]"
+      ],
       "position": [
         0,
         0,
@@ -34,26 +33,47 @@
         0,
         -11.459156073371194,
         0
-      ],
+      ]
+    },
+    {
+      "id": "[\"circle-circle\",\"part-node\",\"round-wall\"]",
+      "name": "wall",
       "components": [
-        "component-000000",
-        "component-000001",
-        "component-000000:group-component"
+        "[\"circle-circle\",\"part-component\",\"round-wall\"]"
+      ]
+    },
+    {
+      "id": "[\"circle-circle\",\"part-node\",\"round-roof\"]",
+      "name": "roof",
+      "components": [
+        "[\"circle-circle\",\"part-component\",\"round-roof\"]"
+      ]
+    },
+    {
+      "id": "[\"circle-circle\",\"part-node\",\"round-spire\"]",
+      "name": "spire",
+      "components": [
+        "[\"circle-circle\",\"part-component\",\"round-spire\"]"
+      ]
+    },
+    {
+      "id": "[\"circle-circle\",\"part-node\",\"round/dormer\"]",
+      "name": "dormer",
+      "components": [
+        "[\"circle-circle\",\"part-component\",\"round/dormer\"]"
+      ]
+    },
+    {
+      "id": "[\"circle-circle\",\"group-node\",\"small-round\"]",
+      "name": "small-round",
+      "components": [
+        "[\"circle-circle\",\"group-component\",\"small-round\"]"
       ],
       "children": [
-        "entity-000002"
-      ]
-    },
-    {
-      "id": "entity-000002",
-      "name": "屋顶窗",
-      "components": [
-        "component-000003"
-      ]
-    },
-    {
-      "id": "entity-000003",
-      "name": "房屋",
+        "[\"circle-circle\",\"part-node\",\"small-round-wall\"]",
+        "[\"circle-circle\",\"part-node\",\"small-round-roof\"]",
+        "[\"circle-circle\",\"part-node\",\"small-round-spire\"]"
+      ],
       "position": [
         3,
         0,
@@ -63,81 +83,51 @@
         0,
         -5.729578036685597,
         0
-      ],
+      ]
+    },
+    {
+      "id": "[\"circle-circle\",\"part-node\",\"small-round-wall\"]",
+      "name": "wall",
       "components": [
-        "component-000004",
-        "component-000005",
-        "component-000004:group-component"
+        "[\"circle-circle\",\"part-component\",\"small-round-wall\"]"
+      ]
+    },
+    {
+      "id": "[\"circle-circle\",\"part-node\",\"small-round-roof\"]",
+      "name": "roof",
+      "components": [
+        "[\"circle-circle\",\"part-component\",\"small-round-roof\"]"
+      ]
+    },
+    {
+      "id": "[\"circle-circle\",\"part-node\",\"small-round-spire\"]",
+      "name": "spire",
+      "components": [
+        "[\"circle-circle\",\"part-component\",\"small-round-spire\"]"
       ]
     }
   ],
   "components": [
     {
-      "id": "component-000000",
-      "type": "BuildingPartComponent",
+      "id": "[\"circle-circle\",\"group-component\",\"round\"]",
+      "type": "BuildingGroupComponent",
       "props": {
         "definition": {
-          "id": "component-000000-wall",
-          "group": "component-000000",
-          "type": "wall",
-          "support": {
-            "generator": "wallProfile",
-            "params": {
-              "circle": {
-                "center": [
-                  0,
-                  0
-                ],
-                "radius": 2.4000000953674316,
-                "phase": 0
+          "id": "round",
+          "seed": 1,
+          "shared": {
+            "house": {
+              "footprint": {
+                "circle": {
+                  "center": [
+                    0,
+                    0
+                  ],
+                  "radius": 2.4000000953674316,
+                  "phase": 0
+                }
               },
               "height": 3.125,
-              "structureMaterial": "masonry"
-            }
-          },
-          "algorithm": {
-            "type": "nativeMasonry"
-          },
-          "unit": "brick",
-          "params": {
-            "footprint": {
-              "width": 0.5,
-              "height": 0.4375,
-              "depth": 0.1
-            },
-            "seed": "source"
-          }
-        },
-        "frame": {
-          "$entity": "entity-000000"
-        },
-        "relations": [
-          {
-            "id": "component-000000/roof-wall",
-            "from": {
-              "part": "component-000000-wall",
-              "boundary": "top"
-            },
-            "to": {
-              "part": "component-000000-roof",
-              "boundary": "base"
-            },
-            "rule": "wallRoofJoint"
-          }
-        ]
-      }
-    },
-    {
-      "id": "component-000001",
-      "type": "BuildingPartComponent",
-      "props": {
-        "definition": {
-          "id": "component-000000-roof",
-          "group": "component-000000",
-          "type": "roof",
-          "support": {
-            "generator": "roofProfile",
-            "params": {
               "roof": {
                 "tip": [
                   0,
@@ -150,152 +140,303 @@
                 "ridge_direction": 0,
                 "flat_rim": 0,
                 "color": 2
+              },
+              "wallUnit": {
+                "width": 0.5,
+                "height": 0.4375,
+                "depth": 0.1
               }
-            }
-          },
-          "algorithm": {
-            "type": "overlap_rows"
-          },
-          "unit": "roof_tile",
-          "regions": [],
-          "params": {
-            "footprint": {
-              "width": 0.5,
-              "height": 0.4375,
-              "depth": 0.1
             },
-            "seed": "source"
+            "brick": {
+              "source": "brick",
+              "bounds": {
+                "min": [
+                  -0.5,
+                  -0.5,
+                  -0.5
+                ],
+                "max": [
+                  0.5,
+                  0.5,
+                  0.5
+                ]
+              },
+              "scale": [
+                0.5,
+                0.4375,
+                0.1
+              ],
+              "range": {
+                "min": [
+                  0.05,
+                  0.05,
+                  1
+                ],
+                "max": [
+                  2.5,
+                  1.8,
+                  8
+                ]
+              }
+            },
+            "courses": {
+              "type": "masonryCourses",
+              "params": {
+                "courseSeed": 1
+              }
+            },
+            "appearance": {
+              "wall": 0,
+              "roof": 2,
+              "wood": 0
+            },
+            "tile": {
+              "source": "roof_tile",
+              "bounds": {
+                "min": [
+                  -0.5,
+                  -0.5,
+                  -0.5
+                ],
+                "max": [
+                  0.5,
+                  0.5,
+                  0.5
+                ]
+              },
+              "scale": [
+                0.5,
+                0.4375,
+                0.1
+              ],
+              "range": {
+                "min": [
+                  0.1,
+                  0.2,
+                  1
+                ],
+                "max": [
+                  1.001,
+                  2.2,
+                  1
+                ]
+              }
+            },
+            "roofTiles": {
+              "type": "ringTiles"
+            }
           }
         },
         "frame": {
-          "$entity": "entity-000000"
+          "$entity": "circle-circle"
         },
-        "relations": []
+        "assetLibrary": {
+          "$ref": "Building/Units/building-kit.prefab"
+        }
       }
     },
     {
-      "id": "component-000003",
+      "id": "[\"circle-circle\",\"part-component\",\"round-wall\"]",
       "type": "BuildingPartComponent",
       "props": {
         "definition": {
-          "id": "component-000000/component-000003",
-          "group": "component-000000",
-          "type": "window",
-          "support": {
-            "generator": "attachmentMount",
+          "id": "round-wall",
+          "group": "round",
+          "type": "wall",
+          "geometry": {
+            "generator": "houseWall",
             "params": {
-              "spec": {
-                "id": "component-000003",
+              "@shared": "house"
+            }
+          },
+          "algorithm": {
+            "@shared": "courses"
+          },
+          "unit": {
+            "@shared": "brick"
+          }
+        },
+        "frame": {
+          "$entity": "circle-circle"
+        },
+        "connections": []
+      }
+    },
+    {
+      "id": "[\"circle-circle\",\"part-component\",\"round-roof\"]",
+      "type": "BuildingPartComponent",
+      "props": {
+        "definition": {
+          "id": "round-roof",
+          "group": "round",
+          "type": "roof",
+          "geometry": {
+            "generator": "houseRoofCone",
+            "params": {
+              "@shared": "house"
+            }
+          },
+          "algorithm": {
+            "@shared": "roofTiles"
+          },
+          "unit": {
+            "@shared": "tile"
+          }
+        },
+        "frame": {
+          "$entity": "circle-circle"
+        },
+        "connections": [
+          {
+            "kind": "attach",
+            "id": "round-roof/on-wall",
+            "guest": "round-roof",
+            "hosts": [
+              {
+                "part": "round-wall"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "[\"circle-circle\",\"part-component\",\"round-spire\"]",
+      "type": "BuildingPartComponent",
+      "props": {
+        "definition": {
+          "id": "round-spire",
+          "group": "round",
+          "type": "spire",
+          "geometry": {
+            "generator": "roofApex"
+          },
+          "algorithm": {
+            "type": "placeAtPoints",
+            "params": {
+              "unitParams": {
+                "radius": 0.25,
+                "profile": 0
+              }
+            }
+          },
+          "unit": {
+            "source": "roofSpire"
+          }
+        },
+        "frame": {
+          "$entity": "circle-circle"
+        },
+        "connections": [
+          {
+            "kind": "attach",
+            "id": "round-spire/on-roof",
+            "guest": "round-spire",
+            "hosts": [
+              {
+                "part": "round-roof"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "[\"circle-circle\",\"part-component\",\"round/dormer\"]",
+      "type": "BuildingPartComponent",
+      "props": {
+        "definition": {
+          "id": "round/dormer",
+          "group": "round",
+          "type": "dormer",
+          "geometry": {
+            "generator": "houseRoofMount",
+            "params": {
+              "prefab": "dormer-gothic/2",
+              "at": [
+                -2.3420089578788965,
+                -0.7516715857421816
+              ],
+              "bottom": 0
+            }
+          },
+          "algorithm": {
+            "type": "mountPrefab",
+            "params": {
+              "unitParams": {
+                "kind": "window",
                 "host": "roof",
-                "uv": [
-                  0.012081486496702987,
-                  0.6565982408069662
-                ],
-                "bottom": 0,
-                "width": 1.2000000476837158,
-                "height": 1.1982831731438637,
                 "woodColor": 0,
                 "lightIntensity": 0
               }
             }
           },
-          "algorithm": {
-            "type": "mountAttachment"
-          },
           "unit": {
-            "nativeAttachment": {
-              "kind": "window",
-              "type": "dormer-gothic",
-              "rank": 2
+            "source": {
+              "prefab": "dormer-gothic/2"
+            },
+            "pivot": [
+              0.5,
+              0.5,
+              0
+            ],
+            "range": {
+              "min": [
+                0.01,
+                0.01,
+                0.01
+              ],
+              "max": [
+                100,
+                100,
+                100
+              ]
             }
-          },
-          "params": {}
+          }
         },
         "frame": {
-          "$entity": "entity-000000"
+          "$entity": "circle-circle"
         },
-        "relations": [
+        "connections": [
           {
-            "id": "component-000000/component-000003/host",
-            "from": {
-              "part": "component-000000/component-000003",
-              "boundary": "mount"
-            },
-            "to": {
-              "part": "component-000000-roof",
-              "boundary": "surface"
-            },
-            "rule": "opening"
+            "kind": "attach",
+            "id": "round/dormer/on-roof",
+            "guest": "round/dormer",
+            "hosts": [
+              {
+                "part": "round-roof"
+              }
+            ],
+            "params": {
+              "tiles": {
+                "row": 0.3,
+                "column": 0.32
+              }
+            }
           }
         ]
       }
     },
     {
-      "id": "component-000004",
-      "type": "BuildingPartComponent",
+      "id": "[\"circle-circle\",\"group-component\",\"small-round\"]",
+      "type": "BuildingGroupComponent",
       "props": {
         "definition": {
-          "id": "component-000004-wall",
-          "group": "component-000004",
-          "type": "wall",
-          "support": {
-            "generator": "wallProfile",
-            "params": {
-              "circle": {
-                "center": [
-                  0,
-                  0
-                ],
-                "radius": 2,
-                "phase": 0
+          "id": "small-round",
+          "seed": 2,
+          "shared": {
+            "house": {
+              "footprint": {
+                "circle": {
+                  "center": [
+                    0,
+                    0
+                  ],
+                  "radius": 2,
+                  "phase": 0
+                }
               },
               "height": 3.125,
-              "structureMaterial": "masonry"
-            }
-          },
-          "algorithm": {
-            "type": "nativeMasonry"
-          },
-          "unit": "brick",
-          "params": {
-            "footprint": {
-              "width": 0.5,
-              "height": 0.4375,
-              "depth": 0.1
-            },
-            "seed": "source"
-          }
-        },
-        "frame": {
-          "$entity": "entity-000000"
-        },
-        "relations": [
-          {
-            "id": "component-000004/roof-wall",
-            "from": {
-              "part": "component-000004-wall",
-              "boundary": "top"
-            },
-            "to": {
-              "part": "component-000004-roof",
-              "boundary": "base"
-            },
-            "rule": "wallRoofJoint"
-          }
-        ]
-      }
-    },
-    {
-      "id": "component-000005",
-      "type": "BuildingPartComponent",
-      "props": {
-        "definition": {
-          "id": "component-000004-roof",
-          "group": "component-000004",
-          "type": "roof",
-          "support": {
-            "generator": "roofProfile",
-            "params": {
               "roof": {
                 "tip": [
                   0,
@@ -308,41 +449,95 @@
                 "ridge_direction": 0,
                 "flat_rim": 0,
                 "color": 2
+              },
+              "wallUnit": {
+                "width": 0.5,
+                "height": 0.4375,
+                "depth": 0.1
               }
-            }
-          },
-          "algorithm": {
-            "type": "overlap_rows"
-          },
-          "unit": "roof_tile",
-          "regions": [],
-          "params": {
-            "footprint": {
-              "width": 0.5,
-              "height": 0.4375,
-              "depth": 0.1
             },
-            "seed": "source"
+            "brick": {
+              "source": "brick",
+              "bounds": {
+                "min": [
+                  -0.5,
+                  -0.5,
+                  -0.5
+                ],
+                "max": [
+                  0.5,
+                  0.5,
+                  0.5
+                ]
+              },
+              "scale": [
+                0.5,
+                0.4375,
+                0.1
+              ],
+              "range": {
+                "min": [
+                  0.05,
+                  0.05,
+                  1
+                ],
+                "max": [
+                  2.5,
+                  1.8,
+                  8
+                ]
+              }
+            },
+            "courses": {
+              "type": "masonryCourses",
+              "params": {
+                "courseSeed": 2
+              }
+            },
+            "appearance": {
+              "wall": 0,
+              "roof": 2,
+              "wood": 0
+            },
+            "tile": {
+              "source": "roof_tile",
+              "bounds": {
+                "min": [
+                  -0.5,
+                  -0.5,
+                  -0.5
+                ],
+                "max": [
+                  0.5,
+                  0.5,
+                  0.5
+                ]
+              },
+              "scale": [
+                0.5,
+                0.4375,
+                0.1
+              ],
+              "range": {
+                "min": [
+                  0.1,
+                  0.2,
+                  1
+                ],
+                "max": [
+                  1.001,
+                  2.2,
+                  1
+                ]
+              }
+            },
+            "roofTiles": {
+              "type": "ringTiles"
+            }
           }
         },
         "frame": {
-          "$entity": "entity-000000"
-        },
-        "relations": []
-      }
-    },
-    {
-      "id": "component-000000:group-component",
-      "type": "BuildingGroupComponent",
-      "props": {
-        "definition": {
-          "id": "component-000000",
-          "seed": 1,
-          "wallColor": 0,
-          "woodColor": 0
-        },
-        "frame": {
-          "$entity": "entity-000000"
+          "$entity": "circle-circle"
         },
         "assetLibrary": {
           "$ref": "Building/Units/building-kit.prefab"
@@ -350,21 +545,109 @@
       }
     },
     {
-      "id": "component-000004:group-component",
-      "type": "BuildingGroupComponent",
+      "id": "[\"circle-circle\",\"part-component\",\"small-round-wall\"]",
+      "type": "BuildingPartComponent",
       "props": {
         "definition": {
-          "id": "component-000004",
-          "seed": 2,
-          "wallColor": 0,
-          "woodColor": 0
+          "id": "small-round-wall",
+          "group": "small-round",
+          "type": "wall",
+          "geometry": {
+            "generator": "houseWall",
+            "params": {
+              "@shared": "house"
+            }
+          },
+          "algorithm": {
+            "@shared": "courses"
+          },
+          "unit": {
+            "@shared": "brick"
+          }
         },
         "frame": {
-          "$entity": "entity-000000"
+          "$entity": "circle-circle"
         },
-        "assetLibrary": {
-          "$ref": "Building/Units/building-kit.prefab"
-        }
+        "connections": []
+      }
+    },
+    {
+      "id": "[\"circle-circle\",\"part-component\",\"small-round-roof\"]",
+      "type": "BuildingPartComponent",
+      "props": {
+        "definition": {
+          "id": "small-round-roof",
+          "group": "small-round",
+          "type": "roof",
+          "geometry": {
+            "generator": "houseRoofCone",
+            "params": {
+              "@shared": "house"
+            }
+          },
+          "algorithm": {
+            "@shared": "roofTiles"
+          },
+          "unit": {
+            "@shared": "tile"
+          }
+        },
+        "frame": {
+          "$entity": "circle-circle"
+        },
+        "connections": [
+          {
+            "kind": "attach",
+            "id": "small-round-roof/on-wall",
+            "guest": "small-round-roof",
+            "hosts": [
+              {
+                "part": "small-round-wall"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "[\"circle-circle\",\"part-component\",\"small-round-spire\"]",
+      "type": "BuildingPartComponent",
+      "props": {
+        "definition": {
+          "id": "small-round-spire",
+          "group": "small-round",
+          "type": "spire",
+          "geometry": {
+            "generator": "roofApex"
+          },
+          "algorithm": {
+            "type": "placeAtPoints",
+            "params": {
+              "unitParams": {
+                "radius": 0.25,
+                "profile": 0
+              }
+            }
+          },
+          "unit": {
+            "source": "roofSpire"
+          }
+        },
+        "frame": {
+          "$entity": "circle-circle"
+        },
+        "connections": [
+          {
+            "kind": "attach",
+            "id": "small-round-spire/on-roof",
+            "guest": "small-round-spire",
+            "hosts": [
+              {
+                "part": "small-round-roof"
+              }
+            ]
+          }
+        ]
       }
     }
   ]

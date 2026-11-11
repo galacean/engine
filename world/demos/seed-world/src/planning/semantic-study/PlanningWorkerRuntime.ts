@@ -1,3 +1,4 @@
+import { createTemplatePlanningDocument } from "@galacean/engine-world-planning/spatial/WorldTemplateAuthoring";
 import {
   planningWaterPatch,
   planningWaterHeightPatch,
@@ -31,6 +32,8 @@ export interface PlanningInitializationRequest {
   runtimeSignature: string;
   /** Deterministic identity for a fresh default world. */
   seed: number;
+  /** Theme selected before any planning work. */
+  templateId?: string;
 }
 /** Requests accepted by the isolated planning worker. */
 export type PlanningWorkerRequest = PlanningGenerationRequest | PlanningInitializationRequest;
@@ -78,8 +81,11 @@ export function createPlanningWorkerRuntime(postMessage: (message: PlanningWorke
       if (request.type === "initialize") {
         postMessage({ type: "progress", requestId: request.requestId, stage: "初始化布局参数" });
         initialized = undefined;
-        const { document, result } = prepareSeedPlanningDocument(request.seed);
-        initialized = { authoring: authoringKey(document), result };
+        const prepared = request.templateId
+          ? { document: createTemplatePlanningDocument(request.seed, request.templateId), result: undefined }
+          : prepareSeedPlanningDocument(request.seed);
+        const { document, result } = prepared;
+        if (result) initialized = { authoring: authoringKey(document), result };
         postMessage({ type: "initialized", requestId: request.requestId, document, elapsedMs: performance.now() - start });
         return;
       }

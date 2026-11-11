@@ -29,6 +29,7 @@
     "treeHeightMaxM": 18
   },
   "network": {
+    "enabled": true,
     "widthM": 4,
     "bend": 0.4,
     "loopiness": 0.3

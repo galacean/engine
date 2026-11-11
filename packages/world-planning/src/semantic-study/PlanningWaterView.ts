@@ -96,7 +96,7 @@ export class PlanningWaterView {
       throw error;
     }
   }
-  private requests(plan: IslandPlan): WaterSceneBodyRequest[] {
+  private oceanRequest(plan: IslandPlan): WaterSceneBodyRequest {
     const data = preparedPlanningOcean(plan),
       oceanId = "planning-ocean";
     const descriptor = { schemaVersion: 2 as const, id: data.data.sourceId, config: data.data.config };
@@ -132,22 +132,23 @@ export class PlanningWaterView {
         finitePatchGridSize: 1
       }
     });
-    const result: WaterSceneBodyRequest[] = [
-      {
-        bodyId: oceanId,
-        asset,
-        instance,
-        bodyOrigin: [0, 0],
-        canonicalDescriptorHash: asset.sourceHash,
-        createRuntimeContext: (root) => ({
-          engine: this.engine,
-          root,
-          textures: this.textures.textures,
-          cameraPositionProvider: () => this.camera.entity.transform.worldPosition,
-          sceneFogEnabled: true
-        })
-      }
-    ];
+    return {
+      bodyId: oceanId,
+      asset,
+      instance,
+      bodyOrigin: [0, 0],
+      canonicalDescriptorHash: asset.sourceHash,
+      createRuntimeContext: (root) => ({
+        engine: this.engine,
+        root,
+        textures: this.textures.textures,
+        cameraPositionProvider: () => this.camera.entity.transform.worldPosition,
+        sceneFogEnabled: true
+      })
+    };
+  }
+  private requests(plan: IslandPlan): WaterSceneBodyRequest[] {
+    const result = plan.parameters.landMode === "continuous" ? [] : [this.oceanRequest(plan)];
     for (const source of planningRiverDescriptors(plan)) {
       const riverAsset = createRiverWaterBodyAsset(source, source.id + ":asset");
       const riverInstance = createRiverWaterBodyInstance({

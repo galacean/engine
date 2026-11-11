@@ -8,6 +8,7 @@
     "instances": 60000
   },
   "planning": {
+    "companionStoneDensity": 1,
     "grassRelativeHeight": 0.65,
     "grassHeightVariation": 0.45,
     "roadsideGrassHeightRatio": 0.65,

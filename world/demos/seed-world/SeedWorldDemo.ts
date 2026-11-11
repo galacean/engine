@@ -40,6 +40,7 @@ import { planningFarmInitializationRequest } from "@galacean/engine-world-planni
 import { planningWaterQueryProjection } from "@galacean/engine-world-planning/spatial/hydrology/PlanningWaterEdits";
 import {
   readGrassAppearance,
+  readGrassGroundFusion,
   readSurfacePalette
 } from "@galacean/engine-world-planning/spatial/PlanningGrassAppearance";
 import {
@@ -530,7 +531,7 @@ export async function mountSeedWorldDemo(
     void sourceTask.catch(() => {});
     await preparePlanningFarmingScene(runtimeProject, { baseUrl: location.href });
     source = await sourceTask;
-    await planningStorage.migrateToSource(source.session.document);
+    await planningStorage.migrateToSource(source.session.document, source.replaceSavedTemplate);
     await installRuntimeProjectScripts(runtimeProject, editorLifetime.signal);
     if (disposed) {
       runtimeProject.dispose();
@@ -885,8 +886,10 @@ export async function mountSeedWorldDemo(
         source: [strike.position.x, strike.position.z]
       });
     });
+    const isFarmingPlanned = () => source!.session.document.entities.world.components.farming?.values.enabled !== false;
     farmingHost = new PlanningFarmingHost({
       projection: nativeEditor.projection,
+      isPlannedEnabled: isFarmingPlanned,
       create: (system, statePath) =>
         new PlanningFarmingRuntime({
           canvas,
@@ -927,7 +930,12 @@ export async function mountSeedWorldDemo(
       }
     });
     const farmingSwitch = farmingHost.switch;
-    const bindFarming = () => farmingSwitch.refresh();
+    let boundFarmingEnabled: boolean | undefined;
+    const bindFarming = async () => {
+      const enabled = isFarmingPlanned();
+      await farmingSwitch.refresh();
+      boundFarmingEnabled = enabled;
+    };
     // Invalid farm assets leave the editor available; Apply reports the consumer failure.
     await bindFarming().catch((error) => console.warn("[seed-world-planner] farming activation failed", error));
     unregisterFarmingActivation = runtimeProject.registerRuntimeActivation({
@@ -1167,8 +1175,9 @@ export async function mountSeedWorldDemo(
         };
       }
       farmingHost?.runtime?.inspectCandidate(result.plan, document.revision);
+      const fusionChanged = readGrassGroundFusion(document) !== readGrassGroundFusion(context.previousDocument);
       if (
-        result.execution === "runtime" &&
+        (result.execution === "runtime" || (result.execution === "presentation" && fusionChanged)) &&
         context.worldUnchanged &&
         !rockSupportChanged &&
         plannedGeometryUnchanged &&
@@ -1275,7 +1284,12 @@ export async function mountSeedWorldDemo(
             plan
           );
           let cameraPose: PlanningPlayerCameraPose | undefined;
-          if (initial && !preparedPlayer?.bookmark && !readSubjectView(document).subjectId) {
+          if (
+            initial &&
+            !plan.worldTemplateSite?.spawnView &&
+            !preparedPlayer?.bookmark &&
+            !readSubjectView(document).subjectId
+          ) {
             const view = spawnView(plan, candidateData, groundPopulation);
             const position = new Vector3(view.eye.x, view.eye.y, view.eye.z);
             const target = new Vector3(view.target.x, view.target.y, view.target.z);
@@ -1358,9 +1372,13 @@ export async function mountSeedWorldDemo(
               candidateData.terrainNormalSamples,
               SEED_WORLD_SURFACE_LOD_CROSS_FADE_DURATION_SECONDS,
               undefined,
-              signal
+              signal,
+              result.recipe.parameters.terrainSurface
             );
             signal.throwIfAborted();
+            const { reliefNearAmplitudeM = 0, reliefAmplitudeM = 0, reliefFarAmplitudeM = 0 } = plan.parameters;
+            if (Math.max(reliefNearAmplitudeM, reliefAmplitudeM, reliefFarAmplitudeM) > 0)
+              candidate.clipmap.setShadowsEnabled(true);
             heightTransition = preparePlanningTerrainPresentation(
               candidate,
               publication!.current?.heightTransition?.fields ?? publication!.current?.data.fields,
@@ -1406,7 +1424,7 @@ export async function mountSeedWorldDemo(
             );
             applyPlanningTreeVariations(candidate.population, plan.authoredResources ?? []);
             const formationMeshes = await rockFormations.prepare(plan, readRockFormationSettings(document), signal);
-            await prepareRockTextures(engine!, signal);
+            if (formationMeshes.length) await prepareRockTextures(engine!, signal);
             signal.throwIfAborted();
             candidateSolids = await createPlanningSeedSolids(
               engine!,
@@ -1472,7 +1490,8 @@ export async function mountSeedWorldDemo(
             );
             candidate.setSurfaceColorTuning({
               roadColor: readSurfacePalette(document, SEED_WORLD_ROAD_COLOR_DEFAULT, "road"),
-              groundColor: readSurfacePalette(document, SEED_WORLD_ROAD_COLOR_DEFAULT),
+              groundColor: readSurfacePalette(document, candidate.defaultGroundColor),
+              groundFusion: readGrassGroundFusion(document),
               grass: readGrassAppearance(document)
             });
             candidateTemplate = await WorldTemplateRuntime.create(
@@ -1681,8 +1700,12 @@ export async function mountSeedWorldDemo(
     };
     const publish = async (restorePlayerState: boolean, projectTransaction = false) => {
       const accepted = publication!.current!;
-      farmingHost?.runtime?.publish(accepted, source!.session.document.revision);
       const plan = accepted.plan;
+      if (isFarmingPlanned() !== boundFarmingEnabled) {
+        await bindFarming().catch((error) => console.warn("[seed-world-planner] farming activation failed", error));
+        if (publication!.current !== accepted || disposed) return;
+      }
+      farmingHost?.runtime?.publish(accepted, source!.session.document.revision);
       accepted.template?.activate(canvas);
       if (!accepted.template) delete canvas.dataset.worldTemplate;
       animals!.synchronize(plan, readAnimalPopulationConfig(source!.session.document), accepted.navigation, {
@@ -1718,10 +1741,13 @@ export async function mountSeedWorldDemo(
         );
         accepted.world.setSurfaceColorTuning({
           roadColor: readSurfacePalette(source!.session.document, SEED_WORLD_ROAD_COLOR_DEFAULT, "road"),
-          groundColor: readSurfacePalette(source!.session.document, SEED_WORLD_ROAD_COLOR_DEFAULT),
+          groundColor: readSurfacePalette(source!.session.document, accepted.world.defaultGroundColor),
+          groundFusion: readGrassGroundFusion(source!.session.document),
           grass: readGrassAppearance(source!.session.document)
         });
-        canvas.dataset.grassAppearance = JSON.stringify(accepted.world.getSurfaceColorTuning().grass);
+        const surfaceTuning = accepted.world.getSurfaceColorTuning();
+        canvas.dataset.grassAppearance = JSON.stringify(surfaceTuning.grass);
+        canvas.dataset.grassGroundFusion = String(surfaceTuning.groundFusion);
         const actualLight = lighting!.getSnapshot();
         const actualTuning = lighting!.getVisualTuning();
         canvas.dataset.presentation = JSON.stringify({
@@ -1869,6 +1895,10 @@ export async function mountSeedWorldDemo(
         environment,
         water,
         audio: audio.audio,
+        setGrassGroundFusion: (enabled) =>
+          tools!.dispatchParameters([
+            { op: "set", entity: "world", component: "grassAppearance", values: { groundFusion: enabled } }
+          ]),
         readSolidsRoot: () => publication?.current?.solids.root,
         readPublished,
         rocks: {
@@ -1922,7 +1952,13 @@ export async function mountSeedWorldDemo(
           },
           returnToSpawn: () => {
             const current = publication!.current!;
-            const view = spawnView(current.plan, current.data);
+            const planned = current.plan.worldTemplateSite?.spawnView;
+            const view = planned
+              ? {
+                  eye: { x: planned.eye[0], y: planned.eye[1], z: planned.eye[2] },
+                  target: { x: planned.target[0], y: planned.target[1], z: planned.target[2] }
+                }
+              : spawnView(current.plan, current.data);
             debugSidebar?.resumeNavigation();
             navigation.setVerticalOffset(0);
             camera.fieldOfView = PLANNING_RUNTIME_OPTIONS.verticalFieldOfView;
@@ -1961,7 +1997,11 @@ export async function mountSeedWorldDemo(
           void source!
             .save()
             .then(() => dispose())
-            .then(() => location.reload())
+            .then(() => {
+              const url = new URL(location.href);
+              url.searchParams.delete("view");
+              location.assign(url.href);
+            })
             .catch((error) => {
               if (disposed) closeFailure(error);
               else progress(1, "工程保存失败：" + String(error));

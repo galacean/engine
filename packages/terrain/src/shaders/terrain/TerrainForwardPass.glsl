@@ -116,7 +116,7 @@ void TerrainFragment(Varyings varyings) {
   #else
     float shadowAttenuation = sampleTerrainProjectShadow(varyings);
   #endif
-  vec3 geometryNormal = normalize(varyings.normalWS);
+  vec3 geometryNormal = terrainProjectShadingGeometryNormal(varyings.positionWS.xz, varyings.normalWS);
   vec3 color = vec3(0.0);
   #ifdef MATERIAL_TERRAIN_LAYERS
     int regionIndex;

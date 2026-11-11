@@ -1,3 +1,4 @@
+import { applyPlanningTemplateSurface, initialPlanningTemplate } from "./PlanningStartupTemplate.ts";
 import { planningFarmingProjectStatePath } from "./farming/PlanningFarmingScene.ts";
 import { PlanningFarmRepository } from "./farming/PlanningFarmRepository.ts";
 import { planningFarmId, resetPlanningFarmSaveChoice } from "./farming/PlanningFarmSave.ts";
@@ -99,8 +100,11 @@ export async function mountSpatialEditor(
   client.onProgress=stage=>{ui("progress").hidden=false;ui("progress").textContent=stage+"…";};
   let initialDocument: PlanningDocument;
   try {
-    initialDocument = saved ?? await client.initialize(parameters.seed);
-    if (!storageWarning) await storage.migrateToSource(initialDocument);
+    const template = initialPlanningTemplate(pageUrl.url.search, parameters.seed,
+      saved ? exportPlanningRecipe(saved).parameters.worldTemplate?.id ?? "" : undefined);
+    initialDocument = template === undefined && saved ? saved : await client.initialize(parameters.seed, undefined, template);
+    if (template !== undefined) applyPlanningTemplateSurface(initialDocument);
+    if (!storageWarning) await storage.migrateToSource(initialDocument, template !== undefined && !!saved);
   } catch (error) {
     client.dispose();
     project.dispose();
@@ -125,7 +129,9 @@ export async function mountSpatialEditor(
   const templatePicker = mountWorldTemplatePicker(
     root.querySelector<HTMLElement>(".ip-topbar nav")!,
     async (id, seed) => {
-      const receipt = await edit((draft) => draft.load(createWorldStylePlanningDocument(session.document, seed, id, session.recipe().parameters.population)));
+      const document = createWorldStylePlanningDocument(session.document, seed, id, session.recipe().parameters.population);
+      applyPlanningTemplateSurface(document);
+      const receipt = await edit((draft) => draft.load(document));
       if (receipt?.status !== "accepted") throw new Error(receipt?.message ?? "规划未接受");
       if (storageWarning) throw new Error(storageWarning);
       status(session.document.populationInitialization?.diagnostics.join("；") ?? "");
@@ -134,6 +140,10 @@ export async function mountSpatialEditor(
       const commands = Object.entries(worldTemplatePaletteValues(id)).map(([component, values]) => ({
         op: "set" as const, entity: "world", component, values
       }));
+      if (!commands.length) {
+        status("此主题沿用原始配色。");
+        return;
+      }
       const receipt = await edit(draft => draft.dispatchParameters(commands));
       if (receipt?.status !== "accepted") throw new Error(receipt?.message ?? "配色未接受");
       if (storageWarning) throw new Error(storageWarning);

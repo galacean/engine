@@ -208,41 +208,6 @@ vec4 masonryGrad_${sampler}(${type} uv,vec2 dx,vec2 dy){return masonryRestore_${
   return fragment;
 }
 
-/** Least-squares Color for G=linear luminance/white point: C=sum(G*RGB)/sum(G²).
- * This restores each source layer's hue and exposure without baking RGB back into
- * the neutral base. A single Color approximates local chromatic variations. */
-export function masonryTextureColors(
-  spec: { width: number; height: number; layers: number; srgb: boolean },
-  source: Uint8Array
-): Float32Array {
-  const pixels = spec.width * spec.height;
-  if (source.length !== pixels * spec.layers * 4) throw Error("Invalid masonry RGBA base size");
-  const decoded = Float64Array.from({ length: 256 }, (_, v) => (spec.srgb ? srgbToLinear(v / 255) : v / 255));
-  const colors = new Float32Array(spec.layers * 4);
-  for (let layer = 0; layer < spec.layers; layer++) {
-    let white = 0,
-      yy = 0;
-    const sums = [0, 0, 0];
-    for (let pixel = 0; pixel < pixels; pixel++) {
-      const i = (layer * pixels + pixel) * 4,
-        weight = source[i + 3] / 255;
-      if (!weight) continue;
-      const r = decoded[source[i]],
-        g = decoded[source[i + 1]],
-        b = decoded[source[i + 2]];
-      const y = luminance(r, g, b);
-      white = Math.max(white, y);
-      yy += weight * y * y;
-      sums[0] += weight * y * r;
-      sums[1] += weight * y * g;
-      sums[2] += weight * y * b;
-    }
-    for (let k = 0; k < 3; k++) colors[layer * 4 + k] = yy > 0 ? (white * sums[k]) / yy : 0;
-    colors[layer * 4 + 3] = 1;
-  }
-  return colors;
-}
-
 export function masonrySourceColorAt(colors: readonly number[], neutral: readonly number[], vertex: number): number[] {
   const i = vertex * 3,
     gray = neutral[i];
@@ -254,46 +219,6 @@ export function masonryVertexTintTag(role: number, color: readonly number[], neu
   const gray = neutral[0],
     white = gray > 0 ? luminance(color[0], color[1], color[2]) / gray : 0;
   return role + 1 + white / (1 + white);
-}
-
-/** Normalize each source layer to its own white point in linear light. Every mip
- * uses that same point, preserving contrast, alpha, layer layout and LOD brightness.
- * This runs once per shared texture lease, never in the frame/update loop. */
-export function whiteMasonryTexture(
-  spec: { width: number; height: number; layers: number; srgb: boolean },
-  levels: readonly Uint8Array[]
-): Uint8Array[] {
-  const decoded = Float64Array.from({ length: 256 }, (_, v) => (spec.srgb ? srgbToLinear(v / 255) : v / 255));
-  const decode = (v: number) => decoded[v];
-  const white = new Float64Array(spec.layers);
-  for (let mip = 0; mip < levels.length; mip++) {
-    const pixels = Math.max(1, spec.width >> mip) * Math.max(1, spec.height >> mip);
-    if (levels[mip].length !== pixels * spec.layers * 4) throw Error("Invalid masonry RGBA mip size");
-    if (mip === 0)
-      for (let layer = 0; layer < spec.layers; layer++) {
-        for (let pixel = 0; pixel < pixels; pixel++) {
-          const i = (layer * pixels + pixel) * 4;
-          if (levels[0][i + 3] === 0) continue;
-          white[layer] = Math.max(
-            white[layer],
-            luminance(decode(levels[0][i]), decode(levels[0][i + 1]), decode(levels[0][i + 2]))
-          );
-        }
-      }
-  }
-  return levels.map((source, mip) => {
-    const pixels = Math.max(1, spec.width >> mip) * Math.max(1, spec.height >> mip);
-    const result = source.slice();
-    for (let layer = 0; layer < spec.layers; layer++)
-      for (let pixel = 0; pixel < pixels; pixel++) {
-        const i = (layer * pixels + pixel) * 4;
-        const value = luminance(decode(source[i]), decode(source[i + 1]), decode(source[i + 2]));
-        const gray = Math.min(1, white[layer] > 0 ? value / white[layer] : value);
-        const byte = Math.round((spec.srgb ? linearToSrgb(gray) : gray) * 255);
-        result[i] = result[i + 1] = result[i + 2] = byte;
-      }
-    return result;
-  });
 }
 
 /** Decoration mesh colors are already linear. Keep the original arrays intact

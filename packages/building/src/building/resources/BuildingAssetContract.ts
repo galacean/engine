@@ -1,8 +1,3 @@
-import {
-  decorationWoodCutTemplate,
-  decorationGableCutTemplate,
-  decorationGableStraightCutTemplate
-} from "../runtime/DecorationWoodCutAssets";
 import { decorationTextureBindings, plasterTextureBindings } from "../runtime/ConstructionBindings";
 import { stoneFloorTextureBindings } from "../runtime/ConstructionStoneFloorAssets";
 
@@ -21,10 +16,7 @@ const baseUnits: Readonly<Record<string, readonly [string, number, boolean]>> = 
   roof: ["roof", 64, true],
   wood: ["wood", 80, false],
   brick_roof: ["brick", 64, false],
-  wood_roof: ["wood", 80, false],
-  [decorationWoodCutTemplate]: ["wood", 80, false],
-  [decorationGableCutTemplate]: ["wood-gable", 96, false],
-  [decorationGableStraightCutTemplate]: ["wood-gable", 96, false]
+  wood_roof: ["wood", 80, false]
 };
 
 /** Shared by detached publication validation and live native resource extraction. */

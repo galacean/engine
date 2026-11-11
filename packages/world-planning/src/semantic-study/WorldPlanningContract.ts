@@ -105,6 +105,10 @@ export interface SemanticParameters {
   worldTemplate?: { id: string; centerX?: number; centerZ?: number };
   spatialComposition?: Partial<import("../spatial/SpatialCompositionParameters").SpatialCompositionParameters>;
   landformSeed?: number;
+  reliefNearAmplitudeM?: number;
+  reliefAmplitudeM?: number;
+  reliefFarAmplitudeM?: number;
+  reliefScaleM?: number;
 }
 export interface SemanticParameters {
   population?: import("../spatial/PlanningPopulationInitialization").PlanningPopulationOptions;
@@ -112,6 +116,7 @@ export interface SemanticParameters {
   suspensionBridge?: import("@galacean/engine-water/bridges/SuspensionBridge").SuspensionBridgeOverrides;
   lakes?: Partial<import("../spatial/hydrology/LakeRegions").LakeParameters>;
   rivers?: Partial<import("../spatial/hydrology/RiverRegions").RiverParameters>;
+  terrainSurface?: import("../runtime/SeedWorldTerrainRuntime").SeedWorldTerrainSurfaceOptions;
   terrainSkeleton?: import("../spatial/PlanningCountRange").PlanningCountRange & {
     directionDegrees: number;
     lengthM?: number;
@@ -130,6 +135,7 @@ export interface SemanticParameters {
   elevation: number;
   landAspect: number;
   landOrientation: number;
+  landMode?: IslandPlan["parameters"]["landMode"];
   landCoverage: number;
   offshoreCoverage: number;
   complexity: number;

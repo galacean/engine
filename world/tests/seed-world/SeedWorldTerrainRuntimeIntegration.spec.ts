@@ -368,6 +368,16 @@ describe("SeedWorldTerrainRuntime production ownership integration", () => {
           expect.objectContaining({ r: 0.6, g: 0.4, b: 0.2, a: 1 })
         );
       }
+      const palette = runtime.getSurfaceColorTuning();
+      runtime.setSurfaceColorTuning({ ...palette, groundFusion: false });
+      expect(runtimeState.layerDiffuseColors.at(-1)).toContainEqual(
+        { regionId: "seed-world", layerId: "layer-00", color: [0, 0.7, 0.9, 1] }
+      );
+      for (const target of [material, runtimeState.clipmapFarMaterials[0]])
+        expect(target.shaderData.disableMacro).toHaveBeenCalledWith("MATERIAL_TERRAIN_GRASS_SHADING");
+      runtime.setSurfaceColorTuning({ ...palette, groundFusion: true });
+      for (const target of [material, runtimeState.clipmapFarMaterials[0]])
+        expect(target.shaderData.enableMacro).toHaveBeenCalledWith("MATERIAL_TERRAIN_GRASS_SHADING");
       runtime.resetSurfaceColorTuning();
       expect(runtime.getSurfaceColorTuning()).toEqual(initial);
       expect(runtimeState.layerDiffuseColors.at(-1)).toEqual([

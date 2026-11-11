@@ -1,3 +1,4 @@
+import { promptNoiseFbmSeedOffset, referenceFbm } from "../generation/noise/PromptNoiseFbm";
 import { bridgeApproachGradingSampler } from "@galacean/engine-water/bridges/BridgeApproach";
 import { planningRiverBankHeight, riverBankReach } from "./PlanningRiverBank";
 import { watercourseGeometry } from "@galacean/engine-water/water/index";
@@ -896,7 +897,32 @@ function createPlanningNaturalGroundSampler(
   registerPreparation?: (prepare: (bounds: GroundBounds) => void) => void,
   baseGround?: (p: PlanPoint) => number
 ): (p: PlanPoint) => number {
-  const reliefAt = createReliefSampler(plan.parameters.landformSeed ?? plan.parameters.seed);
+  const seed = plan.parameters.landformSeed ?? plan.parameters.seed;
+  const basicRelief = createReliefSampler(seed);
+  const { width, depth, landMode } = plan.parameters;
+  const amplitude = plan.parameters.reliefAmplitudeM ?? 0;
+  const nearAmplitude = plan.parameters.reliefNearAmplitudeM ?? amplitude;
+  const farAmplitude = plan.parameters.reliefFarAmplitudeM ?? amplitude;
+  const hasFbm = Math.max(nearAmplitude, amplitude, farAmplitude) > 0;
+  const halfExtent = Math.min(width, depth) / 2;
+  const amplitudeAt =
+    nearAmplitude === amplitude && farAmplitude === amplitude
+      ? () => amplitude
+      : ({ x, z }: PlanPoint) => {
+          const radius = Math.hypot(x - width / 2, z - depth / 2) / halfExtent;
+          if (radius <= 0.6) return nearAmplitude + (amplitude - nearAmplitude) * smooth((radius - 0.25) / 0.35);
+          return amplitude + (farAmplitude - amplitude) * smooth((radius - 0.6) / 0.4);
+        };
+  const wavelength = plan.parameters.reliefScaleM ?? 256;
+  const [offsetX, offsetZ] = promptNoiseFbmSeedOffset(seed);
+  // Sample the old noise terrain while preparing the canonical heightmap.
+  // The clipmap, baked normals and grounding all consume that same result.
+  const reliefAt = hasFbm
+    ? (p: PlanPoint) =>
+        basicRelief(p) +
+        amplitudeAt(p) *
+          referenceFbm((p.x + 0.5 + offsetX * 1024) / wavelength, (p.z + 0.5 + offsetZ * 1024) / wavelength)
+    : basicRelief;
   const terrainResources = [
     ...(plan.authoredResources ?? []),
     ...compositionTerrain(plan.parameters.spatialComposition)
@@ -963,6 +989,8 @@ function createPlanningNaturalGroundSampler(
       bankShoulder = 8 + (plan.parameters.worldElevation?.riseM ?? 0) * 5;
     const gradeBudget = roadLimits.maxSlope * 0.85;
     const rawBase = (p: PlanPoint) => {
+      if (hasFbm && landMode === "continuous" && p.x >= 0 && p.x <= width && p.z >= 0 && p.z <= depth)
+        return 12 + reliefAt(p) + displacement(p);
       let land: (typeof lands)[number] | undefined;
       for (const candidate of lands)
         if (candidate.inside(p)) {

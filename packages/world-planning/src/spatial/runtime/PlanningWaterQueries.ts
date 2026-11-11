@@ -28,7 +28,12 @@ export function createPlanningWaterQuery(plan: IslandPlan, sampleGround: (point:
       const surface = profileHeight(point, water.profile);
       if (surface > ground && (!candidate || surface > candidate.surface)) candidate = { id: water.id, surface };
     }
-    if (!candidate && ground < 0 && !lands.some((land) => land.inside(point)))
+    if (
+      plan.parameters.landMode !== "continuous" &&
+      !candidate &&
+      ground < 0 &&
+      !lands.some((land) => land.inside(point))
+    )
       candidate = { id: "planning-ocean", surface: 0 };
     return candidate
       ? { water: true, bodyId: candidate.id, surfaceElevationMetres: candidate.surface }
@@ -48,7 +53,7 @@ export function planningWaterRegions(
     return {
       kind,
       features:
-        activeIds && !activeIds.has("planning-ocean")
+        plan.parameters.landMode === "continuous" || (activeIds && !activeIds.has("planning-ocean"))
           ? []
           : [
               {

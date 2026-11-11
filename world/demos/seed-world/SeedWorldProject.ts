@@ -26,7 +26,7 @@ import { migrateSeedWorldWaterTextures } from "./SeedWorldWaterTextureMigration"
 
 /** Building author schemas and saved asset catalogs are intentionally incompatible across these save versions.
  * Opening a project deletes saves of any other version before loading, so it starts from the initial world. */
-export const SEED_WORLD_BUILDING_SAVE_VERSION = 8;
+export const SEED_WORLD_BUILDING_SAVE_VERSION = 9;
 export function seedWorldProjectStorageId(seed: number, projectUrl: string): string {
   return `seed-world:native-buildings-v${SEED_WORLD_BUILDING_SAVE_VERSION}-groups:${seed}:${projectUrl}`;
 }

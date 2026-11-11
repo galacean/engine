@@ -1,12 +1,10 @@
-import { ignoreClone, Camera, Entity, Material, Mesh, MeshRenderer, PrefabResource, Script } from '@galacean/engine';
-import { BuildingManager, createBuildingPatch, type BuildingDraft } from '@galacean/seed-world-systems';
+import { ignoreClone, Camera, Entity, Material, Mesh, MeshRenderer, Script } from '@galacean/engine';
+import { Building, BuildingManager, createBuildingPatch } from '@galacean/seed-world-systems';
 
 export default class ShellAssembly extends Script {
   height = 2;
   camera: Camera | null = null;
   material: Material | null = null;
-  tile: PrefabResource | null = null;
-  railingPost: PrefabResource | null = null;
   @ignoreClone private manager?: BuildingManager;
   @ignoreClone private generated?: Entity;
   @ignoreClone private skinUnit?: Entity;
@@ -26,30 +24,18 @@ export default class ShellAssembly extends Script {
         segments: [24, 16], domain: [6, 4],
         point: (u, v) => [u - 3, 2.4 + this.height * Math.sin(Math.PI * u / 6) * (.65 + .35 * v / 4), v - 2]
       });
-      const skin = this.skinUnit = new Entity(this.engine, 'Shell skin Unit');
+      const skin = this.skinUnit = new Entity(this.engine, 'Shell skin');
+      skin.parent = this.entity;
       const renderer = skin.addComponent(MeshRenderer);
       renderer.mesh = mesh;
       renderer.setMaterial(this.material);
-      const group = `shell-${this.instanceId}`;
-      const draft: BuildingDraft = {
-        groups: [{ id: group, seed: 17, wallColor: 0, woodColor: 0 }], relations: [],
-        parts: [{
-          id: `${group}/skin`, type: 'roof', group,
-          support: { generator: 'point', params: {} },
-          algorithm: { type: 'placeAtPoint' }, params: {}, unit: skin
-        }]
-      };
-      // Surface consumes the exact Mesh displayed by the skin Unit.
-      if (this.tile) draft.parts.push({
-        id: `${group}/tiles`, type: 'roof-covering', group,
-        support: { generator: 'meshSurface', params: { mesh } },
-        algorithm: { type: 'staggeredGrid' }, params: { step: [.32, .34], offset: .045 }, unit: this.tile
-      });
-      // A post and its cap may live inside an ordinary Prefab hierarchy.
-      if (this.railingPost) draft.parts.push({
-        id: `${group}/railing`, type: 'railing', group,
-        support: { generator: 'path', params: { points: [[-3, 0, 2.3], [3, 0, 2.3]] } },
-        algorithm: { type: 'alongPath' }, params: { spacing: .6 }, unit: this.railingPost
+      // A house under the shell: the generator returns a plain draft.
+      const draft = Building.European.buildHouses({
+        id: `shell-${this.instanceId}`,
+        height: 2.4,
+        rectangle: { center: [0, 0], size: [6, 4], rotation: 0 },
+        wallColor: 0,
+        woodColor: 0
       });
       this.generated = manager.create(this.entity, draft);
       await manager.flushAsync();

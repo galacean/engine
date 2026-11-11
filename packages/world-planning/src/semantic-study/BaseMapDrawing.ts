@@ -510,7 +510,9 @@ export function drawBaseMap(plan: IslandPlan, omitRocks = false, groundSurface =
   );
   return (
     defs +
-    layer("ocean", `<rect x="-4000" y="-4000" width="12000" height="12000" fill="${c.ocean}"/>`) +
+    (plan.parameters.landMode === "continuous"
+      ? ""
+      : layer("ocean", `<rect x="-4000" y="-4000" width="12000" height="12000" fill="${c.ocean}"/>`)) +
     layer("land", land + groundSurface) +
     drawPlanningTerrain(plan) +
     domainHits +

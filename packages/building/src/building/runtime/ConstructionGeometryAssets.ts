@@ -26,10 +26,3 @@ export function requireConstructionStoneMesh(
 export interface GothicGeometryAssets {
   collision: ConstructionCollisionMesh;
 }
-export type ConstructionGeometryUnit = {
-  frameTemplate: string;
-  glassTemplate: string;
-  glassAlbedoSlot: number;
-  collisionBounds: { min: number[]; max: number[] };
-  geometry: GothicGeometryAssets;
-};

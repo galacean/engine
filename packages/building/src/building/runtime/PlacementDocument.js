@@ -220,6 +220,3 @@ export function resolveDocument(cache, document) {
   });
   return { selections, cells };
 }
-export function resolvePlacements(cache, document) {
-  return resolveDocument(cache, document).selections;
-}

@@ -26,12 +26,3 @@ export function validateDecorationCollisions(value: unknown): asserts value is C
       throw Error("Invalid decoration collision volume: " + name);
   }
 }
-
-export function requireDecorationCollision(
-  volumes: ConstructionDecorationCollisions | undefined,
-  name: string
-): DecorationCollisionBounds {
-  const bounds = volumes && Object.hasOwn(volumes, name) ? volumes[name] : undefined;
-  if (!bounds) throw Error("Missing decoration collision volume in construction VFS: " + name);
-  return bounds;
-}

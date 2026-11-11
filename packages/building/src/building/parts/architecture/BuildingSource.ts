@@ -1,5 +1,6 @@
 import type {} from "@galacean/engine-runtime-editor/runtime-editor/generated/editor-source-schema";
-import { validateBuildingDraft, type BuildingDraft } from "./BuildingDraft";
+import type { BuildingCoreDraft, ConnectionDef } from "../../core";
+import { validateBuildingDraft } from "./BuildingCpu";
 
 export interface BuildingSourceOptions {
   /** Scene identity of the shared compilation frame. */
@@ -11,13 +12,12 @@ export interface BuildingSourceOptions {
   /** Optional native transforms of the ordinary group nodes. Supports remain
    * local to those nodes; generated geometry is never stored here. */
   groupTransforms?: Record<string, Pick<GalaceanSourceEntitySchema, "position" | "rotation" | "scale">>;
-  /** Native part-node transforms. Wall Point mounts may translate relative to
-   * their host; joined structural profiles still share their group frame. */
-  partTransforms?: Record<string, Pick<GalaceanSourceEntitySchema, "position" | "rotation" | "scale">>;
   /** Resolve native resources/nodes through the owning project's Source identity. */
   reference?: (value: object) => GalaceanSourceValue | undefined;
 }
 
+/** The part that stores a connection: the guest of an attach, the first part of a join. */
+const connectionStart = (c: ConnectionDef) => (c.kind === "attach" ? c.guest : c.parts[0]);
 /** Persist author definitions, never a generated mesh or a live engine graph.
  * Runtime Units must have a project reference; JSON cannot silently copy them. */
 function sourceValue(
@@ -53,7 +53,7 @@ function sourceValue(
 /** One native frame with editable group nodes and flat BuildingPartComponents.
  * Node hierarchy owns grouping; there is no recursive architectural recipe. */
 export function buildingDraftSource(
-  draft: BuildingDraft,
+  draft: BuildingCoreDraft,
   options: BuildingSourceOptions
 ): {
   rootEntities: string[];
@@ -63,8 +63,6 @@ export function buildingDraftSource(
   validateBuildingDraft(draft);
   if (Object.keys(options.groupTransforms ?? {}).some((id) => !draft.groups.some((g) => g.id === id)))
     throw Error("Building Source transform references an unknown group");
-  if (Object.keys(options.partTransforms ?? {}).some((id) => !draft.parts.some((p) => p.id === id)))
-    throw Error("Building Source transform references an unknown part");
   if (!options.id?.trim()) throw Error("Building Source requires a frame identity");
   if (options.assetLibrary !== undefined && !options.assetLibrary.trim())
     throw Error("Invalid building library reference");
@@ -109,8 +107,7 @@ export function buildingDraftSource(
       const entity: GalaceanSourceEntitySchema = {
         id: identity("part-node", part.id),
         name: part.type,
-        components: [identity("part-component", part.id)],
-        ...structuredClone(options.partTransforms?.[part.id] ?? {})
+        components: [identity("part-component", part.id)]
       };
       node.children!.push(entity.id);
       entities.push(entity);
@@ -121,7 +118,7 @@ export function buildingDraftSource(
           {
             definition: part,
             frame: { $entity: frame.id },
-            relations: draft.relations.filter((r) => r.from.part === part.id)
+            connections: (draft.connections ?? []).filter((c) => connectionStart(c) === part.id)
           },
           options.reference
         ) as GalaceanSourceValueRecord
