@@ -14,7 +14,7 @@ export class EngineExtension {
   _uiDefaultMaterial: Material;
   _getUIDefaultMaterial(): Material {
     if (!this._uiDefaultMaterial) {
-      const shader = _getOrCreateUIShader();
+      const shader = Shader._findBuiltin("2D/UIDefault")!;
       // @ts-ignore
       const material = new Material(this, shader);
       material.isGCIgnored = true;
@@ -75,9 +75,4 @@ export function registerGUI() {
   for (const key in GUIComponent) {
     Loader.registerClass(key, GUIComponent[key]);
   }
-  _getOrCreateUIShader();
-}
-
-function _getOrCreateUIShader(): Shader {
-  return Shader.find("2D/UIDefault")!;
 }

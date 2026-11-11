@@ -57,7 +57,7 @@ export class UnlitMaterial extends BaseMaterial {
    * @param engine - Engine to which the material belongs
    */
   constructor(engine: Engine) {
-    super(engine, Shader.find("Unlit")!);
+    super(engine, Shader._findBuiltin("Unlit")!);
 
     const shaderData = this.shaderData;
 
