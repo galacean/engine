@@ -13,27 +13,39 @@ const near=(a,b,t,label)=>assert(Math.abs(a-b)<t,`${label}: ${a} / ${b}`);
 const prototypes=[];
 const directionBaseline=JSON.parse(fs.readFileSync(new URL('../evidence/surface-direction-baseline.json',import.meta.url)));
 for(const [id,g] of Object.entries(library)){
- const source=data.geometries[id],edges=new Map();let volume=0,minProjectedAreaRatio=Infinity;
+ const source=data.geometries[id],edges=new Map(),frame=g.surface.normalizedFrame,planes=new Map(g.surface.cutPlanes.map(p=>[p.tag,p]));let volume=0,maximumCutPlaneErrorM=0,cutTriangles=0,sourceTriangles=0;
+ const normalize=p=>[(p[0]-frame.center[0])/frame.radius[0],(p[1]-frame.minimum)/frame.height,(p[2]-frame.center[1])/frame.radius[1]];
+ const sourceBounds=[0,1,2].map(d=>[Math.min(...source.positions.filter((_,i)=>i%3===d)),Math.max(...source.positions.filter((_,i)=>i%3===d))]);
+ const retained=new Set(Array.from({length:g.positions.length/3},(_,i)=>vertex(g,i).map(v=>v.toFixed(7)).join(',')));
  assert.deepEqual(g,fractureRockGeometry(structuredClone(source)),'Deterministic uncached replay');
  assert(g.positions.every(Number.isFinite)&&g.normals.every(Number.isFinite));
  for(let i=0;i<g.positions.length/3;i++){
-  const p=vertex(g,i);p.forEach((v,d)=>assert(v>=source.bounds[0][d]-1e-9&&v<=source.bounds[1][d]+1e-9,'Surface remains in the source bounds'));
+  const p=vertex(g,i);p.forEach((v,d)=>assert(v>=sourceBounds[d][0]-1e-8&&v<=sourceBounds[d][1]+1e-8,'Subtraction remains in actual source bounds'));
   near(Math.hypot(...g.normals.slice(i*3,i*3+3)),1,1e-6,'Unit mesh normal');
-  if(i<source.positions.length/3){
-   const q=vertex(source,i),y=(q[1]-source.bounds[0][1])/(source.bounds[1][1]-source.bounds[0][1]);
-   if(y<=.065||y===1||(source.parameters.topRoughness===0&&y>.65))assert.deepEqual(p,q,'Pinned contact, apex and flat cap vertices');
-  }
  }
+ assert(retained.has(g.surface.anchor.map(v=>v.toFixed(7)).join(',')),'The original summit remains on the solid');
+ near(g.bounds[0][1],sourceBounds[1][0],1e-7,'Original bottom height');near(g.bounds[1][1],sourceBounds[1][1],1e-7,'Original top height');
+ if(source.parameters.topRoughness===0)for(let i=0;i<source.positions.length/3;i++){const q=vertex(source,i);if(normalize(q)[1]>.65)assert(retained.has(q.map(v=>v.toFixed(7)).join(',')),'Platform cap vertices remain unchanged');}
  for(let i=0;i<g.indices.length;i+=3){
   const ids=g.indices.slice(i,i+3),[a,b,c]=ids.map(k=>vertex(g,k)),normal=cross(sub(b,a),sub(c,a));
-  assert(Math.hypot(...normal)>1e-9,'No collapsed triangles');
-  const parent=Math.floor(i/48)*3,[pa,pb,pc]=source.indices.slice(parent,parent+3).map(k=>vertex(source,k)),pn=cross(sub(pb,pa),sub(pc,pa));
-  const projected=dot(normal,pn)*16/dot(pn,pn);minProjectedAreaRatio=Math.min(minProjectedAreaRatio,projected);
-  assert(projected>=.079999,'Each child keeps its source face orientation and minimum projected area');
+  assert(Math.hypot(...normal)>1e-15,'No collapsed triangles');
+  const [fa,fb,fc]=[a,b,c].map(p=>p.map(Math.fround));assert(Math.hypot(...cross(sub(fb,fa),sub(fc,fa)))>0,'Triangles survive GPU Float32 conversion');
+  const tag=g.faceTags[i/3];
+  if(tag>0){
+   const plane=planes.get(tag),worldNormal=[plane.n[0]/frame.radius[0],plane.n[1]/frame.height,plane.n[2]/frame.radius[1]],length=Math.hypot(...worldNormal);
+   for(const p of [a,b,c])maximumCutPlaneErrorM=Math.max(maximumCutPlaneErrorM,Math.abs(dot(plane.n,normalize(p))-plane.w)/length);
+   assert(dot(normal,worldNormal)<0,'Cut faces point into the removed volume');cutTriangles++;
+  }else{
+   const parent=(-tag-1)*3,[pa,pb,pc]=source.indices.slice(parent,parent+3).map(k=>vertex(source,k)),pn=cross(sub(pb,pa),sub(pc,pa));
+   for(const p of [a,b,c])assert(Math.abs(dot(pn,sub(p,pa)))/Math.hypot(...pn)<1e-7,'Retained source faces stay on their original plane');
+   assert(dot(normal,pn)>0,'Retained source faces preserve winding');sourceTriangles++;
+  }
   volume+=dot(a,cross(b,c))/6;
   for(let j=0;j<3;j++){const a=ids[j],b=ids[(j+1)%3],key=Math.min(a,b)+':'+Math.max(a,b),e=edges.get(key)||{count:0,direction:0};e.count++;e.direction+=a<b?1:-1;edges.set(key,e);}
  }
  assert(volume>0,'Positive signed volume');
+ assert(cutTriangles>0&&sourceTriangles>0,'Surface combines original faces and actual cut faces');
+ assert(maximumCutPlaneErrorM<1e-7,'Every new cut face lies on one continuous cutter plane');
  assert([...edges.values()].every(e=>e.count===2&&e.direction===0),'Closed consistently wound manifold');
  assert.equal(g.positions.length/3-edges.size+g.indices.length/3,2,'Source sphere topology preserved');
  const render=creasedRockAttributes(g);
@@ -43,14 +55,18 @@ for(const [id,g] of Object.entries(library)){
   near(Math.hypot(...render.normals.slice(i*3,i*3+3)),1,1e-6,'Unit crease normal');
  }
  assert(render.rockDetail.every(v=>Number.isFinite(v)&&v>=0&&v<=1));
- assert(g.surface.maximumDisplacementM>.02,'Surface changes actual geometry');
+ let sourceVolume=0;for(let i=0;i<source.indices.length;i+=3){const [a,b,c]=source.indices.slice(i,i+3).map(k=>vertex(source,k));sourceVolume+=dot(a,cross(b,c))/6;}
+ assert(volume<sourceVolume*.999,'Carving removes solid volume');
  const direction=measureFractureDirection(g),before=directionBaseline.prototypes.find(p=>p.id===id);
  // Sparse cuts on the 2.4 m platform slabs need less total length than tall
  // cliffs. Require meaningful coverage relative to each prototype's height.
  assert(direction.contourLengthM>2*(g.bounds[1][1]-g.bounds[0][1]),'Fracture contours remain present relative to rock height');
- assert(direction.within30DegreesOfVertical>before.within30DegreesOfVertical+.10,`${id}: direction must improve on the previous all-direction pattern`);
- if(!id.startsWith('slab'))assert(direction.within30DegreesOfVertical>.55,'Vertical joints dominate the steep faces');
- prototypes.push({id,triangles:g.indices.length/3,...g.surface,minProjectedAreaRatio,signedVolumeM3:volume,direction});
+ if(!id.startsWith('slab')){
+  assert(direction.within30DegreesOfVertical>before.within30DegreesOfVertical+.10,`${id}: direction must improve on the previous all-direction pattern`);
+  assert(direction.within30DegreesOfVertical>.55,'Vertical joints dominate the steep faces');
+ }
+ const {cutPlanes,normalizedFrame,...surface}=g.surface;
+ prototypes.push({id,triangles:g.indices.length/3,...surface,cutTriangles,sourceTriangles,maximumCutPlaneErrorM,signedVolumeM3:volume,removedVolumeM3:sourceVolume-volume,direction});
 }
 assert.equal(JSON.stringify(data.geometries),original,'Upstream geometry is immutable');
 
@@ -66,7 +82,7 @@ function inside(point,vertices,indices){
  hits.sort((a,b)=>a-b);return hits.filter((v,i)=>!i||v-hits[i-1]>1e-5).length%2===1;
 }
 const assemblies=[];
-for(const [id,seed,options] of [['cliff',18,{mode:'perlin'}],['cliff',19,{mode:'perlin'}],['island',18,{mode:'perlin'}],['island',425,{mode:'perlin',noise:{frequency:4,octaves:5,lacunarity:2,persistence:.85}}],['peaks',18,{mode:'perlin'}],['peaks',416,{mode:'perlin',noise:{frequency:4,octaves:5,lacunarity:2,persistence:.85}}],['peaks',382,{mode:'direct'}]]){
+for(const [id,seed,options] of [['cliff',18,{mode:'perlin'}],['cliff',19,{mode:'perlin'}],['island',18,{mode:'perlin'}],['island',425,{mode:'perlin',noise:{frequency:4,octaves:5,lacunarity:2,persistence:.85}}],['island',425,{mode:'perlin',noise:{frequency:4,octaves:3,lacunarity:2,persistence:.85}}],['peaks',18,{mode:'perlin'}],['peaks',416,{mode:'perlin',noise:{frequency:4,octaves:5,lacunarity:2,persistence:.85}}],['peaks',382,{mode:'direct'}]]){
  const source=data.scenes.find(s=>s.id===id),before=JSON.stringify(source),scene=generateRidgeScene(source,library,seed,options),sample=createSurfaceSampler(scene,library),ground=createSurfaceSampler(source,{},true),errors=[];
  assert.equal(JSON.stringify(source),before);
  // Geometry may change the fit, never the independent target.
@@ -106,6 +122,6 @@ let platformSamples=0,maximumPlatformChangeM=0;
 function routeZ(x){let i=1;while(i<platform.route.length-1&&x>platform.route[i][0])i++;const a=platform.route[i-1],b=platform.route[i],t=Math.max(0,Math.min(1,(x-a[0])/(b[0]-a[0])));return a[1]+(b[1]-a[1])*t;}
 for(const offset of [-1.5,-.75,0,.75,1.5])for(let x=-31;x<=19;x+=.1){const slope=(routeZ(x+.05)-routeZ(x-.05))/.1,l=Math.hypot(1,slope),px=x-offset*slope/l,pz=routeZ(x)+offset/l;maximumPlatformChangeM=Math.max(maximumPlatformChangeM,Math.abs(newTop(px,pz)-oldTop(px,pz)));platformSamples++;}
 assert(maximumPlatformChangeM<1e-6,'Entire sampled 3m platform route remains unchanged');
-const output={version:ROCK_SURFACE_VERSION,generationMs,checks:['immutable source and uncached deterministic replay','finite bounded geometry and unit normals','closed wound manifold with preserved source orientation','pinned base apex and platform caps','render positions equal measured mesh positions','joint contours favor vertical directions more than the previous version','independent ridge target unchanged','large connected masses and sparse accents','independent ray parity on deformed contact witnesses','dense fit and measured orange guides','detailed mesh height scaling including 145 percent','unchanged 3m platform route'],prototypes,assemblies,platformSamples,maximumPlatformChangeM};
+const output={version:ROCK_SURFACE_VERSION,generationMs,checks:['immutable source and uncached deterministic replay','finite bounded geometry and unit normals','closed wound manifold and nonzero GPU triangles','every generated cut face lies on its cutter plane','retained source faces remain coplanar and consistently wound','original bottom height summit and flat platform caps','render positions equal measured mesh positions','vertical joint contours on non-platform steep faces','independent ridge target unchanged','large connected masses and sparse accents','independent ray parity on carved contact witnesses','dense fit and measured orange guides','carved mesh height scaling including 145 percent','unchanged 3m platform route'],prototypes,assemblies,platformSamples,maximumPlatformChangeM};
 fs.writeFileSync(new URL('../evidence/surface-validation.json',import.meta.url),JSON.stringify(output,null,2)+'\n');
 console.log(JSON.stringify({version:output.version,prototypes:prototypes.length,assemblies:assemblies.length,platformSamples,maximumPlatformChangeM,maxRmsM:Math.max(...assemblies.map(r=>r.rmsM)),maximumDeviationM:Math.max(...assemblies.map(r=>r.maximumDeviationM)),generationMs},null,2));

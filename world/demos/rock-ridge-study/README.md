@@ -37,7 +37,7 @@ node world/demos/rock-ridge-study/src/verify-surfaces.mjs
 
 ## Current fitter
 
-`ridge-slab-cuts-8` generates the full network before reading any rock geometry.
+`ridge-solid-cuts-9` generates the full network before reading any rock geometry.
 Shared XYZ junctions connect continuous curves with procedural peaks and saddles.
 The blue lines show that exact input; orange lines sample the actual mesh surface
 at the same X/Z positions. Orange is not an extraction of every mesh crest.
@@ -71,8 +71,8 @@ checks passed; native drag automation did not establish gesture-level proof.
 
 ## Perlin ridge prototype
 
-The viewer opens the current island comparison at seed 425, height 145%, frequency
-4, five octaves, lacunarity 2 and persistence 0.85. The generator's regression
+The viewer opens the current island comparison at seed 425, height 100%, frequency
+4, three octaves, lacunarity 2 and persistence 0.85. The generator's regression
 baseline remains seed 18 with persistence 0.5. Use **Ridge source** to compare with
 the earlier generator, and **Surface**
 to switch between fitted rocks, the coarse field, and the field with fine detail.
@@ -135,81 +135,79 @@ This study interprets those features procedurally on the existing atomic meshes;
 it does not contain the seller's mesh, textures or sculpt data and does not reproduce
 the reference exactly. The original rounded outline still influences the result.
 
-Use **Surface comparison** to see the previous `vertical-fractures-2` surface beside
-the new `slab-cuts-3` surface on the same highest mass. Both panels share the same
-transform, camera, framing, lighting and untextured clay. Each renders alone, so
-neither casts shadows onto the other. The comparison stacks below 540 px. Entering
-it preserves the viewing angle; choosing Side then Surface comparison gives a
-paired side view. The previous meshes and crease normals were checked against
-commit `ef0f9f437` and match exactly across all 12 prototypes.
+Use **Surface comparison** to see the previous `slab-cuts-3` carving beside
+`solid-carving-4` on the same highest mass. Both panels share the same transform,
+camera, framing, lighting and untextured clay. Each renders alone, so neither
+casts shadows onto the other. The comparison stacks below 540 px. Entering it
+preserves the viewing angle; choosing Low angle or Side first gives the matching
+paired view. The previous meshes and render normals match commit `15396ae05`
+exactly across all 12 prototypes.
 
-Use **Rock finish** in an assembly view to compare stone, clay and original geometry. **Rock close-up**
-frames the highest mass (the first mass in static arrangements); drag still orbits
-that point. Stone and fractured clay share exactly the same geometry and fitted
-assembly. Original clay refits the same independent target using the baked meshes.
-Changing the finish keeps the current orbit angles.
+Use **Rock finish** in an assembly view to compare stone, clay and original
+geometry. **Rock close-up** frames the highest mass. Stone and fractured clay
+share the same carved mesh and fitted assembly. Original clay refits the same
+independent target using the baked meshes. Changing finish keeps the orbit angles.
 
-`src/rock-surface.mjs` adds the surface before fitting:
+### Carving contract
 
-1. Subdivide shared edges twice, retaining one closed mesh. Six unequal clipping
-   planes cut back the rounded source at the scale of the whole rock. Their slopes
-   follow the source's broad taper, producing broad faces rather than shallow
-   plane patches on the existing bulges.
-2. Cut five deep vertical V-shaped recesses with unequal spacing, widths and
-   lengths, and a slight shared lean. Only X/Z contract; Y is unchanged. The core
-   stays connected. Local displacement attenuation preserves each triangle's
-   winding and at least 8% of its original projected area. At the unscaled peak
-   prototypes, mean vertex movement is 0.77–0.80 m and maximum movement is
-   4.41–4.57 m; these include the plane cuts, not just groove depth.
-3. Pin the low contact region, apex and upper platform cap. Preserve the original
-   summit anchor explicitly: new midpoint vertices on a flat crown must not change
-   the fitter's anchor selection. All vertices stay inside the source mesh bounds.
-4. Fit and measure the deformed triangles, including solid contact witnesses and
-   the orange surface guide. Only envelope probes are capped for search cost;
-   surface and interval queries use the full mesh. No visual-only displacement
-   changes the silhouette after fitting.
-5. Split render normals at 30-degree creases without changing triangle positions.
-   The stone material adds object-space grain, subtle weathering color, darker
-   joints, roughness variation and a distance-filtered fine bump. These fine
-   shading details do not enter collision or surface measurements. Fine bump and
-   per-region color contrast are reduced so the structural fractures dominate.
+The earlier displacement method could create fins even while preserving winding:
+its per-vertex backoff factors introduced discontinuities in the intended cut.
+The active generator now constructs the surface by solid subtraction. It does not
+run displacement, local backoff, smoothing, spike removal, or an artifact-repair
+pass. The frozen displacement function exists only for the comparison panel.
 
-The 12 prototypes now have 12,224–16,000 triangles each (16 times the baked count).
-They are cached and reused, but this is a study resolution with no LODs, normal-map
-bake, instancing or production performance acceptance. A production version should
-bake fine grain and shallow cuts while retaining silhouette features in geometry.
-The displacement limiter preserves local orientation and manifold connectivity;
-it is not a general self-intersection proof for arbitrary meshes.
+1. Define six broad plane cutters and five narrow vertical wedge cutters in a
+   normalized rock frame. Broad planes run through the foot and crown so their
+   stopping points cannot create collars or plinths. They preserve the original
+   summit point. Flat platform slabs omit the broad plane cuts to protect their
+   walking surface. Wedges end on inclined planes and leave a central core.
+2. Subtract those closed convex solids from the actual upstream mesh. The BSP
+   implementation in `src/solid-carve.mjs` follows
+   [Evan Wallace's CSG algorithm](https://evanw.github.io/csg.js/docs/); its MIT
+   notice is included. Intersections create new edge vertices. Surviving source
+   polygons remain on their source planes; exposed cutter polygons provide the
+   new fracture faces. No existing vertex is pushed and then partly restored.
+3. Share intersection points across both incident polygon boundaries before
+   triangulation. This constructs a conforming closed mesh without moving its
+   surfaces. Each triangle retains either its original triangle ID or cutter
+   plane ID, allowing independent geometric checks of the construction.
+4. Keep each new cut face's render normal on its plane, including internal
+   triangulation edges. Original surface regions use 30-degree crease normals.
+   Fitting and rendering consume identical triangle positions. Stone shading
+   adds fine grain and joint tone, but does not deform the mesh.
+5. Refit the connected rock assembly against the carved surfaces, including solid
+   overlap witnesses and the measured orange guide. The procedural target is
+   independent of the cutters. Height scales the entire result consistently.
 
-The surface suite verifies all 12 prototypes and seven fitted assemblies, including
-island seed 425 and mountain seed 416 with persistence 0.85, the long cliff connection at seed 19, and the
-older seeded mountain graph. Every checked assembly remains one connected body,
-with 3–23 structural masses and one or two small accents. The worst dense RMS residual is
-2.141 m and the largest local deviation is 6.339 m at 100% height. All 2,500 samples
-across the 3 m platform route retain the original height within floating-point
-precision. See [surface-validation.json](evidence/surface-validation.json).
+### Verification and limits
 
-The direction regression traces the 0.5 joint-intensity contour on actual mesh
-triangles, excluding the pinned foot/crown and near-horizontal caps. Across the
-ten non-platform prototypes, vertical directions dominate the measured contours.
-Every prototype improves by at least ten percentage points relative to the first
-all-direction surface pass. The minimum contour-length check scales with rock
-height, allowing sparse cuts on the short protected platform slabs. This measures fracture direction, not geological
-realism or overall artistic quality. The old measurements are preserved in
-[surface-direction-baseline.json](evidence/surface-direction-baseline.json).
+The surface suite checks all 12 prototypes and eight fitted assemblies, including
+island seed 425 with both three and five octaves, mountain seed 416, the long cliff
+connection at seed 19, and the earlier seeded graph. It checks closed, consistently
+wound topology; nonzero triangles after Float32 conversion; retained source-plane
+geometry; exact cutter-plane faces; the original summit and bottom heights;
+unchanged platform caps; identical rendered/measured positions; deterministic
+replay; connected mass contacts; target independence; and height transforms.
+All 2,500 samples across the 3 m platform route retain their original height.
+See [surface-validation.json](evidence/surface-validation.json).
 
-The preceding vertical-cell pass improved direction metrics, but the user found
-the visual change too small. This revision removes much more of the rounded base
-and makes the larger cuts visible in clay. It was inspected in matched oblique
-and side comparisons and in the island overview at seed 425, persistence 0.85 and
-height 145%. That assembly retains ten connected structural masses and one small
-accent. The geometry suite checks its height transforms, target immutability and
-independent solid-contact witnesses. Browser checks covered the 736 px comparison,
-the stacked 320 px comparison, stone with ridge guides, and height changes from
-145% to 100% and back. No JavaScript or shader errors were reported. Native drag automation did not establish
-gesture-level proof. Some cut endings remain visibly faceted by the source
-triangulation and local displacement limiter; this is a procedural approximation,
-not established reference-level sculpting or texture quality.
+The direction regression remains a check on non-platform steep faces. Short
+platform-side cuts have protected tops and proportionally large termination
+regions, so their contour orientation is recorded but not used as a cliff-style
+vertical-direction acceptance test. Planarity and topology are checked for every
+prototype, including platform slabs. These checks prove construction properties,
+not geological realism or overall artistic quality.
+
+Browser review covered the matched clay comparison at 736 px, the island low-angle
+view at heights 100% and 145%, and platform tops in stone. The final browser
+session reported no JavaScript or shader errors. Native orbit gestures were not
+revalidated in this revision.
+
+The current library has 8,296–25,372 triangles per prototype. Generating its twelve
+carved meshes took 8.6 seconds in the recorded local Node check; the viewer
+caches them. It has no production LOD or performance acceptance. This is a
+floating-point BSP prototype validated on the twelve closed upstream meshes, not
+a certified robust Boolean kernel for arbitrary degenerate input.
 
 ## Perlin lab assessment — 2026-11-09
 
