@@ -68,9 +68,8 @@ export class AudioSource extends Component {
     value = Math.min(Math.max(0, value), 1.0);
     this._volume = value;
     // No node yet -> _ensureGainNode() applies _volume on first play
-    const gainNode = this._gainNode;
-    if (gainNode) {
-      gainNode.gain.value = value;
+    if (this._gainNode) {
+      this._gainNode.gain.value = value;
     }
   }
 
@@ -246,10 +245,6 @@ export class AudioSource extends Component {
     this.stop();
   }
 
-  /**
-   * The gain is set through `AudioParam.value`. The Web Audio spec defines that as `setValueAtTime(value, currentTime)`,
-   * and it is the only form some runtimes provide (Douyin mini-games have no `AudioParam.setValueAtTime`).
-   */
   private _ensureGainNode(): GainNode {
     let gainNode = this._gainNode;
     if (!gainNode) {
