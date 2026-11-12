@@ -52,7 +52,7 @@ export function planWorldTemplateSite(
   if (WORLD_TEMPLATE_CONFIGS[template.id] && !nodes.length) return;
   const art = WORLD_TEMPLATE_ART[template.id];
   const q = spatialCompositionParameters(plan.parameters.spatialComposition);
-  if (!nodes.length && !q.enabled && q.basinRadiusM === 0) return;
+  if (!nodes.length && !q.enabled && q.basinRadiusM === 0 && !art.centeredStart) return;
   const radius = Math.max(
     modelRadius,
     q.basinRadiusM,
