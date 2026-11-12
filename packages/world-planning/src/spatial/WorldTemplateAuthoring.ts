@@ -239,7 +239,14 @@ function createConfiguredTemplate(seed: number, id: string, options?: PlanningPo
     components: {
       anchor: { values: { ...spawn.position } },
       ...(spawnPoi.sizeWeight && { poi: { values: { sizeWeight: sample("sizeWeight", spawnPoi.sizeWeight) } } }),
-      ...(layout && { layout: { values: layout } })
+      ...(layout && { layout: { values: layout } }),
+      ...(spawnPoi.landscape && {
+        landscape: {
+          values: Object.fromEntries(
+            Object.entries(spawnPoi.landscape).map(([key, range]) => [key, sample(`landscape:${key}`, range)])
+          )
+        }
+      })
     }
   };
   const initialized = initializePlanningPopulation(document, options);

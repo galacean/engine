@@ -27,6 +27,7 @@ interface WorldTemplateConfig {
   };
   spawnPoi?: {
     sizeWeight?: readonly [number, number];
+    landscape?: Record<string, readonly [number, number]>;
     layout?: {
       [K in keyof LayoutRule]?: NonNullable<LayoutRule[K]> extends number ? readonly [number, number] : LayoutRule[K];
     } & {
@@ -62,6 +63,7 @@ type RawWorldTemplateConfig = {
   };
   spawnPoi?: {
     sizeWeight?: readonly number[];
+    landscape?: Record<string, readonly number[]>;
     layout?: Record<string, string | boolean | readonly number[]>;
   };
   petals?: RawPetalEffect;
@@ -116,14 +118,24 @@ function readWorldTemplateConfig({
       Object.entries(spawnPoi.layout).map(([key, value]) => [key, typeof value === "object" ? pair(value) : value])
     );
   const sizeWeight = spawnPoi?.sizeWeight && pair(spawnPoi.sizeWeight);
-  const hasSpawnPoi = sizeWeight || (layout && Object.keys(layout).length > 0);
+  const landscape =
+    spawnPoi?.landscape &&
+    Object.fromEntries(Object.entries(spawnPoi.landscape).map(([key, range]) => [key, pair(range)]));
+  const hasSpawnPoi =
+    sizeWeight || (layout && Object.keys(layout).length > 0) || (landscape && Object.keys(landscape).length > 0);
   if (hasSpawnPoi && !spawn) throw new Error("模板配置出生点 POI 时须提供出生点位置");
   return {
     ...(palette && { palette: readPalette(palette) }),
     ...(spawn && {
       spawn: { position: spawn.position, ...(spawn.subject && { subject: readSubject(spawn.subject) }) }
     }),
-    ...(hasSpawnPoi && { spawnPoi: { ...(sizeWeight && { sizeWeight }), ...(layout && { layout }) } }),
+    ...(hasSpawnPoi && {
+      spawnPoi: {
+        ...(sizeWeight && { sizeWeight }),
+        ...(layout && { layout }),
+        ...(landscape && { landscape })
+      }
+    }),
     ...(petals && { petals: readPetals(petals) })
   };
 }

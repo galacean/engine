@@ -78,6 +78,9 @@ describe("authored world templates", () => {
     expect(poi.sizeWeight).toBeGreaterThanOrEqual(config.spawnPoi!.sizeWeight![0]);
     expect(poi.sizeWeight).toBeLessThanOrEqual(config.spawnPoi!.sizeWeight![1]);
     const group = result.plan.spatialLayout!.groups.find((item) => item.id === TEMPLATE_SPAWN_POI_ID)!;
+    const shrubs = result.plan.naturalVegetation!;
+    expect(shrubs.regions[TEMPLATE_SPAWN_POI_ID].shrubs).toBe(authored.landscape.values["vegetation.shrubs"]);
+    expect(shrubs.regions[TEMPLATE_SPAWN_POI_ID].shrubs!).toBeGreaterThan(shrubs.world.shrubs!);
     expect(group.volumes.length).toBeGreaterThan(0);
     expect(group.rule.branchShape).toBe("curve");
     expect(result.plan.rocks.some((rock) => rock.groupId.startsWith("landscape-composition"))).toBe(false);

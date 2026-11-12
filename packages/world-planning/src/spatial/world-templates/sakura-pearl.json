@@ -369,6 +369,12 @@
   },
   "spawnPoi": {
     "sizeWeight": [2, 3.4],
+    "landscape": {
+      "density": [1.7, 2.1],
+      "contexts.openland": [0.45, 0.55],
+      "edgeDensity": [0.42, 0.55],
+      "vegetation.shrubs": [0.16, 0.22]
+    },
     "layout": {
       "pattern": "connected",
       "branchShape": "curve",
@@ -385,8 +391,8 @@
       "widthMaxM": [25, 36],
       "depthMinM": [13, 18],
       "depthMaxM": [24, 34],
-      "heightMinM": [5, 9],
-      "heightMaxM": [13, 22],
+      "heightMinM": [57, 59],
+      "heightMaxM": [63, 66],
       "orientationVariation": [0.08, 0.25]
     }
   }
