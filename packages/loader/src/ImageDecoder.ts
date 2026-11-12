@@ -8,6 +8,11 @@ import { AssetPromise } from "@galacean/engine-core";
  * @internal
  */
 export class ImageDecoder {
+  /**
+   * @remarks
+   * Explicit MIME detection covers PNG, JPEG and WebP, the editor's supported non-HDR image formats.
+   * HDR uses a separate decoder. Other formats return an empty MIME type to preserve browser sniffing.
+   */
   private static _getMimeType(data: ArrayBuffer | Uint8Array): string {
     const bytes = data instanceof Uint8Array ? data : new Uint8Array(data);
     if (bytes.length >= 4 && bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47) {
