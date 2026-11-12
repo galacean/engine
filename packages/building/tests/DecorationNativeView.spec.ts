@@ -156,7 +156,6 @@ describe("native decoration persistent view publication lifetime", () => {
     });
     await view.ready;
     const pack = mock.load.mock.lastCall![0];
-    expect(pack.whiteBase).toBe(true);
     expect(pack.draws[0].attributes.some((a: { location: number }) => a.location === 7)).toBe(true);
     expect(pack.programs[pack.draws[0].program].frag.source).toContain("vertexTintRole");
     view.destroy();

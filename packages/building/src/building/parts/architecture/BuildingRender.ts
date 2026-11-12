@@ -26,7 +26,6 @@ export async function renderBuilding(
       input,
       library,
       buildingGlobals(input.paletteSlots, library.frame),
-      true,
       options.rigidDecorations?.poses,
       library.compilation.stoneGeometry
     );

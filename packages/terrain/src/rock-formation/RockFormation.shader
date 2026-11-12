@@ -23,7 +23,6 @@ Shader "SeedWorld/RockSurface" {
     #include "shared/RockGrassGround.glsl"
     #include "shared/SurfaceClimate.glsl"
    #endif
-   #include "shared/WorldSelection.glsl"
    float material_RockGrassCoveragePreview;
    VertexShader = PBRVertex;
    FragmentShader = SlabFragment;
@@ -81,7 +80,7 @@ Shader "SeedWorld/RockSurface" {
     #if SCENE_FOG_MODE != 0
      color = fog(color, v.positionVS);
     #endif
-    gl_FragColor = worldSelectionColor(color, worldSelectionWeight(v.uv1.x));
+    gl_FragColor = color;
     }
     #endif
    }

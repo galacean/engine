@@ -25,7 +25,7 @@
   "budgets": {
     "maximumProfileArtifactBytes": 600000,
     "maximumTotalArtifactBytes": 1200000,
-    "actualTotalArtifactBytes": 262134
+    "actualTotalArtifactBytes": 259806
   },
   "profiles": [
     {
@@ -34,12 +34,11 @@
       "variantKey": "heightfield:appearanceVariantKey=surface-appearance-v2%3Aed93d4a81a01602d;depthSource=hybrid-optional-scene-depth;quality=high;surfaceAppearance=1;surfaceAppearanceVersion=2;waveSlotCount=0",
       "sourcePath": "source/Shader/Water/LakeHeightfieldHighHybrid.shader",
       "virtualPath": "Shader/Water/lake-heightfield-high-hybrid-v2.shaderc",
-      "path": "public/Shader/Water/lake-heightfield-high-hybrid-v2.7875e4392d5511ef4e4223e012a4946421f7f4e3930412a8754c4182b118d016.shaderc",
-      "cacheKey": "7875e4392d5511ef4e4223e012a4946421f7f4e3930412a8754c4182b118d016",
-      "sourceGraphSha256": "c2cafda7dad514720b0a6951b5fe02d37b5e0ad1c181759a4f27cca7e686706a",
-      "materializedSourceSha256": "56b992ce3b8ac9d53e8d37432e206f66646b56f6779c02baa2488a185bc46164",
-      "artifactSha256": "db5060a07f2ab8ff5c572c39a2e5af679e1cbac55bfa2ab84922136dee972fd9",
-      "artifactBytes": 112223,
+      "path": "public/Shader/Water/lake-heightfield-high-hybrid-v2.dd537fc7e67ee232d8268f0c72b5c4a0dbb3db26f93c2c49e4f761ec32ccf184.shaderc",
+      "cacheKey": "dd537fc7e67ee232d8268f0c72b5c4a0dbb3db26f93c2c49e4f761ec32ccf184",
+      "materializedSourceSha256": "a28ab19bbd13df630853d8d88d537f2b05a25ac6ab8391a80dc5d7c8c1ab03c7",
+      "artifactSha256": "dd537fc7e67ee232d8268f0c72b5c4a0dbb3db26f93c2c49e4f761ec32ccf184",
+      "artifactBytes": 111447,
       "passTopology": [
         [
           {
@@ -74,7 +73,13 @@
           "material_SurfaceTexture"
         ]
       },
-      "compilerSha256": "545f95e3747886d7fa99e053ed38920bde3bc0895ecbd47105945057a16f664f"
+      "compilerSha256": "545f95e3747886d7fa99e053ed38920bde3bc0895ecbd47105945057a16f664f",
+      "postprocess": {
+        "operation": "remove-world-selection-v1",
+        "inputArtifactSha256": "db5060a07f2ab8ff5c572c39a2e5af679e1cbac55bfa2ab84922136dee972fd9",
+        "inputSourceGraphSha256": "c2cafda7dad514720b0a6951b5fe02d37b5e0ad1c181759a4f27cca7e686706a",
+        "preserved": "pass topology, render states, macro instructions and non-selection shader code"
+      }
     },
     {
       "profileId": "ocean-near-detailed",
@@ -82,12 +87,11 @@
       "variantKey": "ocean:sharedClosure=water-surface-material-v1%3A429f59f95557570c;surface=detailed",
       "sourcePath": "source/Shader/Water/OceanNearDetailed.shader",
       "virtualPath": "Shader/Water/ocean-near-detailed.shaderc",
-      "path": "public/Shader/Water/ocean-near-detailed.59c70a1db12953c6240e43001cc8890332a8f13740b60b7e7d34d4e6b25de492.shaderc",
-      "cacheKey": "59c70a1db12953c6240e43001cc8890332a8f13740b60b7e7d34d4e6b25de492",
-      "sourceGraphSha256": "a43c0a246c4780c229dd40c9c8c75861d43a89a59b04f043537c0963634fc152",
-      "materializedSourceSha256": "623c238bdcb5b3650a35275541b287cb70df288841f43ffa3cecf5c2a4593b09",
-      "artifactSha256": "05cb2bc00dad169ea828ad86b173406323e993f1f3d3a4af4104394571e33dfb",
-      "artifactBytes": 103456,
+      "path": "public/Shader/Water/ocean-near-detailed.87949b62cd4f35163ce49163557db7facc50256ad4cea575d8a16e86157ebc61.shaderc",
+      "cacheKey": "87949b62cd4f35163ce49163557db7facc50256ad4cea575d8a16e86157ebc61",
+      "materializedSourceSha256": "f30ec106fb77b7dd64dd28e7bebd3badb686bb2f700ba12df16b221f958e3714",
+      "artifactSha256": "87949b62cd4f35163ce49163557db7facc50256ad4cea575d8a16e86157ebc61",
+      "artifactBytes": 102680,
       "passTopology": [
         [
           {
@@ -115,6 +119,12 @@
           "material_RoughWavesTexture",
           "material_SmoothWavesTexture"
         ]
+      },
+      "postprocess": {
+        "operation": "remove-world-selection-v1",
+        "inputArtifactSha256": "05cb2bc00dad169ea828ad86b173406323e993f1f3d3a4af4104394571e33dfb",
+        "inputSourceGraphSha256": "a43c0a246c4780c229dd40c9c8c75861d43a89a59b04f043537c0963634fc152",
+        "preserved": "pass topology, render states, macro instructions and non-selection shader code"
       }
     },
     {
@@ -123,12 +133,11 @@
       "variantKey": "ocean-far:sharedClosure=water-surface-material-v1%3A7da1b19196761c07;surface=graded",
       "sourcePath": "source/Shader/Water/OceanFarGraded.shader",
       "virtualPath": "Shader/Water/ocean-far-graded.shaderc",
-      "path": "public/Shader/Water/ocean-far-graded.e7b41468afb2ead31f3592a9464535ea83fcbe1a95d05bf26fa81ceeed84f933.shaderc",
-      "cacheKey": "e7b41468afb2ead31f3592a9464535ea83fcbe1a95d05bf26fa81ceeed84f933",
-      "sourceGraphSha256": "15e0c05b0ccdf7ffdec9e0cfa25ecf7e3851deba617dbfebddc589e1a058ba60",
-      "materializedSourceSha256": "2c2b4522fe485865646861744671865fe886cbd95c0fdd7be4ca66ce3a70db61",
-      "artifactSha256": "702ed3cfc721c19a60bf2ff4306b609ce6958edb9699582710c0dfb67206518a",
-      "artifactBytes": 46455,
+      "path": "public/Shader/Water/ocean-far-graded.912d9e549f2d285ed9822e378dd874eb7cf18ff0116e21f7d3caae3446f84e07.shaderc",
+      "cacheKey": "912d9e549f2d285ed9822e378dd874eb7cf18ff0116e21f7d3caae3446f84e07",
+      "materializedSourceSha256": "30d63b37c6409cce0f44188020b9a519ca4092535f7f3f6f0761cbeb475f860f",
+      "artifactSha256": "912d9e549f2d285ed9822e378dd874eb7cf18ff0116e21f7d3caae3446f84e07",
+      "artifactBytes": 45679,
       "passTopology": [
         [
           {
@@ -151,6 +160,12 @@
         "requiredBindings": [
           "material_NearshoreTexture"
         ]
+      },
+      "postprocess": {
+        "operation": "remove-world-selection-v1",
+        "inputArtifactSha256": "702ed3cfc721c19a60bf2ff4306b609ce6958edb9699582710c0dfb67206518a",
+        "inputSourceGraphSha256": "15e0c05b0ccdf7ffdec9e0cfa25ecf7e3851deba617dbfebddc589e1a058ba60",
+        "preserved": "pass topology, render states, macro instructions and non-selection shader code"
       }
     }
   ]

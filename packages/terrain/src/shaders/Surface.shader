@@ -46,9 +46,8 @@ Shader "Terrain/Surface" {
         float renderer_WorldPickBase;
         float renderer_WorldPickInstanced;
       #endif
-      #include "shared/WorldSelection.glsl"
       struct Varyings {
-        float worldSelection;
+
         #ifdef RENDERER_WORLD_PICK
           float worldPickId;
         #endif
@@ -94,11 +93,6 @@ Shader "Terrain/Surface" {
 
       Varyings SurfaceVertex(Attributes attributes) {
         Varyings varyings;
-        #ifdef RENDERER_ASSET_ASSEMBLY_INSTANCE
-          varyings.worldSelection = worldSelectionWeight(float(gl_InstanceID));
-        #else
-          varyings.worldSelection = worldSelectionWeight(0.0);
-        #endif
         #ifdef RENDERER_WORLD_PICK
           varyings.worldPickId = renderer_WorldPickBase + float(gl_InstanceID) * renderer_WorldPickInstanced;
         #endif
@@ -272,7 +266,7 @@ Shader "Terrain/Surface" {
         #if SCENE_FOG_MODE != 0 && !defined(MATERIAL_DISABLE_DISTANCE_FOG)
           color = fog(color, varyings.positionVS);
         #endif
-        gl_FragColor = worldSelectionColor(color, varyings.worldSelection);
+        gl_FragColor = color;
       }
     }
 

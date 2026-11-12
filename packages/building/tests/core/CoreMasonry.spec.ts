@@ -203,8 +203,7 @@ describe("masonryCourses and corner stones", () => {
     const built = buildBuildingRenderPackage(
       input,
       nativeAssets,
-      buildingGlobals(input.paletteSlots, nativeAssets.frame),
-      true
+      buildingGlobals(input.paletteSlots, nativeAssets.frame)
     );
     expect(built.package.draws.length).toBeGreaterThan(0);
   }, 60000);

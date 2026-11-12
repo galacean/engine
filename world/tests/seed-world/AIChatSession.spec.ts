@@ -421,7 +421,7 @@ it("submits two detailed photo annotations through the actual ChatPanel boundary
   const session = new AIChatSession({ agent: createTestAgentLoop({ tools: [], definition: testDefinition([]) }) });
   mockedRequest.mockReset(); mockedRequest.mockResolvedValue(final("Both photos received"));
   const panel = {
-    application: { getUserSelection: () => null, getViewerSnapshot: () => ({}),
+    application: { getViewerSnapshot: () => ({}),
       viewSnapshots: { acquireAttachments: () => ({ export: async () => photos, release }) } },
     _activity: { submit: (...args: Parameters<AIChatSession["submit"]>) => session.submit(...args) },
     session, _state: { kind: "idle" }, _traceStore: { enabled: false },

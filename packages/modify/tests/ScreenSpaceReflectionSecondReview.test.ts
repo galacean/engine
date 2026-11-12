@@ -24,11 +24,12 @@ beforeAll(async () => {
 });
 afterAll(() => engine.destroy());
 
-it("CR2-001 actual picker restores following, dormant override and failure-path snapshots", () => {
+it("CR2-001 photo identity renderer restores following, dormant override and failure-path snapshots", () => {
   const scene = new Scene(engine);
   const camera = scene.createRootEntity().addComponent(Camera);
   scene.screenSpaceReflection.activationMode = Mode.ForceOn;
   const picker = new SeedWorldPicker(camera);
+  const renderIdentity = (visit: () => void) => (picker as any).render(visit, { width: 32, height: 32, consume() {} });
   try {
     for (const state of ["follow", "dormant", "override"]) {
       if (state !== "follow") {
@@ -36,13 +37,13 @@ it("CR2-001 actual picker restores following, dormant override and failure-path 
         if (state === "dormant") camera.screenSpaceReflection.settingsSource = Source.UseSceneSettings;
       }
       const saved = camera.screenSpaceReflectionSettings;
-      picker.warmup(() => {
+      renderIdentity(() => {
         expect(camera.screenSpaceReflectionSettings).toEqual(saved);
         expect(camera.screenSpaceReflection.renderingEnabled).toBe(false);
       });
       expect(camera.screenSpaceReflectionSettings).toEqual(saved);
       expect(() =>
-        picker.warmup(() => {
+        renderIdentity(() => {
           expect(camera.screenSpaceReflectionSettings).toEqual(saved);
           expect(camera.screenSpaceReflection.renderingEnabled).toBe(false);
           throw new Error("pick failure");
@@ -51,7 +52,7 @@ it("CR2-001 actual picker restores following, dormant override and failure-path 
       expect(camera.screenSpaceReflectionSettings).toEqual(saved);
       expect(camera.screenSpaceReflection.renderingEnabled).toBe(true);
       camera.screenSpaceReflection.renderingEnabled = false;
-      picker.warmup(() => {});
+      renderIdentity(() => {});
       expect(camera.screenSpaceReflection.renderingEnabled).toBe(false);
       camera.screenSpaceReflection.renderingEnabled = true;
       scene.screenSpaceReflection.intensity = 0.8;

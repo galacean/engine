@@ -2,7 +2,6 @@ import type { AgentEditTransaction } from "@galacean/engine-ai-chat/ai-chat/agen
 import { AgentToolExecutionError } from "@galacean/engine-ai-chat/ai-chat/agent-types";
 import { RuntimeAssetChanges } from "@galacean/engine-runtime-editor/project/runtime-asset-changes";
 import type { RuntimeProjectSession } from "@galacean/engine-runtime-editor/project/runtime-project-session";
-import type { RuntimeComponentIdentity } from "@galacean/engine-runtime-editor/runtime-editor/scene/runtime-component-identity";
 import type { RuntimeSceneInspection } from "@galacean/engine-runtime-editor/runtime-inspection/runtime-scene-inspection";
 import { resolveSeedWorldTerrainTransitionDurationSeconds } from "@galacean/engine-terrain/world/SeedWorldTerrainTransition";
 import { treeVariationKey } from "@galacean/engine-vegetation/world/SeedWorldTreeShapeControls";
@@ -74,7 +73,6 @@ import { SEED_WORLD_FRONT_RELATION_DISTANCE_METRES } from "./SeedWorldSpatialSem
 import { createSeedWorldTools } from "./SeedWorldToolCatalog.ts";
 import type { SeedWorldParameterAuthoring, SeedWorldParameterReceipts } from "./tools/parameter-tools.ts";
 import { viewerRelativePosition } from "./ViewerRelation.ts";
-type NativeBuildingSelection = { readonly component: RuntimeComponentIdentity };
 
 type SelectionRecord = Readonly<{
   worldRevision: number;
@@ -156,10 +154,7 @@ export class SeedWorldAgentApplication {
   private _lastCreatedRefs: readonly SeedWorldRef[] = Object.freeze([]);
   private _lastSelectedRefs: readonly SeedWorldRef[] = Object.freeze([]);
   private _lastTransactionId: string | undefined;
-  private _userSelection: SeedWorldRef | NativeBuildingSelection | null = null;
-  private _taskViewer:
-    | (Readonly<SeedWorldLiveState["camera"]> & { readonly capturedAt: string; readonly inputId?: string })
-    | undefined;
+  private _taskViewer: (Readonly<SeedWorldLiveState["camera"]> & { readonly capturedAt: string; readonly inputId?: string }) | undefined;
   private _readPublishedViewer = (): Readonly<SeedWorldLiveState["camera"]> => this._requireState().camera;
   private readonly _assets: SeedWorldAssetManager;
   private _editorSettings: SeedWorldEditorSettings = {};
@@ -673,15 +668,6 @@ export class SeedWorldAgentApplication {
       samples: available ? measured!.hits : []
     };
   }
-  /** UI selection is separate from tool query results and transaction memory. */
-  setUserSelection(ref: SeedWorldRef | NativeBuildingSelection | undefined): void {
-    this._userSelection = ref ? freezeClone(ref) : null;
-  }
-
-  getUserSelection(): SeedWorldRef | NativeBuildingSelection | null {
-    return this._userSelection;
-  }
-
   /** Freezes deictic viewer expressions for one Agent task while the player remains free to move. */
   getViewerSnapshot(): Readonly<SeedWorldLiveState["camera"]> & { readonly capturedAt: string } {
     return freezeClone({ ...this._readPublishedViewer(), capturedAt: new Date().toISOString() });

@@ -32,8 +32,7 @@ export function appendDecorationRenderPackage(
   rigidPoses?: ReadonlyMap<string, readonly number[]>
 ): ConstructionRenderResult {
   if (!parts.length) return base;
-  const whiteBase = !!base.package.whiteBase,
-    vertexFloats = whiteBase ? 20 : 16,
+  const vertexFloats = 20,
     stride = vertexFloats * Float32Array.BYTES_PER_ELEMENT;
   const assets = base.package.nativeAssets!;
   const groups = new Map<string, ConstructionDecorationPart[]>();
@@ -81,9 +80,8 @@ export function appendDecorationRenderPackage(
     const define = (source: string) =>
       source.replace(
         "#version 300 es",
-        "#version 300 es\n" +
-          (whiteBase ? "#define BUILDING_WHITE_BASE\n" : "") +
-          (rigidPoses ? "#define BUILDING_RIGID\n" : "")
+        // The native decoration shader keeps its palette tint behind this macro.
+        "#version 300 es\n#define BUILDING_WHITE_BASE\n" + (rigidPoses ? "#define BUILDING_RIGID\n" : "")
       );
     const programId = "host-decoration/" + nativeMaterial.instanceId;
     programs[programId] = {
@@ -104,7 +102,7 @@ export function appendDecorationRenderPackage(
         vertexOffset,
         vertexOffset + part.positions.length / 3
       );
-      const colors = whiteBase && part.tintRole ? whiteMasonryVertexColors(part.colors, part.tintMask) : part.colors;
+      const colors = part.tintRole ? whiteMasonryVertexColors(part.colors, part.tintMask) : part.colors;
       for (let i = 0; i < part.positions.length / 3; i++) {
         const offset = (vertexOffset + i) * vertexFloats;
         vertices.set(part.positions.slice(i * 3, i * 3 + 3), offset);
@@ -117,14 +115,12 @@ export function appendDecorationRenderPackage(
           part.appearance?.colorIds[i] ?? 0
         );
         vertices.set(part.appearance?.centers.slice(i * 3, i * 3 + 3) ?? [0, 0, 0], offset + 13);
-        if (whiteBase)
-          vertices[offset + 16] =
-            part.tintRole && part.tintMask?.[i] !== false ? masonryTintRoles.indexOf(part.tintRole) : -1;
-        if (whiteBase)
-          vertices.set(
-            part.tintRole && part.tintMask?.[i] !== false ? masonrySourceColorAt(part.colors, colors, i) : [1, 1, 1],
-            offset + 17
-          );
+        vertices[offset + 16] =
+          part.tintRole && part.tintMask?.[i] !== false ? masonryTintRoles.indexOf(part.tintRole) : -1;
+        vertices.set(
+          part.tintRole && part.tintMask?.[i] !== false ? masonrySourceColorAt(part.colors, colors, i) : [1, 1, 1],
+          offset + 17
+        );
       }
       for (const i of part.indices) indices[indexOffset++] = vertexOffset + i;
       vertexOffset += part.positions.length / 3;
@@ -180,12 +176,8 @@ export function appendDecorationRenderPackage(
         { location: 4, size: 2, stride, offset: 40, file: vertexFile },
         { location: 5, size: 1, stride, offset: 48, file: vertexFile },
         { location: 6, size: 3, stride, offset: 52, file: vertexFile },
-        ...(whiteBase
-          ? [
-              { location: 7, size: 1, stride, offset: 64, file: vertexFile },
-              { location: 8, size: 3, stride, offset: 68, file: vertexFile }
-            ]
-          : [])
+        { location: 7, size: 1, stride, offset: 64, file: vertexFile },
+        { location: 8, size: 3, stride, offset: 68, file: vertexFile }
       ],
       resources: {
         material_WindowTimber: { kind: "texture", texture: "timberframe", array: true },

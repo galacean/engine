@@ -275,15 +275,6 @@ export function mountNativeBuildingPanel(
     }
   };
   panel.querySelector<HTMLButtonElement>('[data-action="roam"]')!.onclick = roam;
-  const picked = (event: Event) => {
-    const id = (event as CustomEvent).detail?.component?.id;
-    if (id && [...select.options].some((option) => option.value === id)) {
-      select.value = id;
-      show();
-      panel.open = true;
-    }
-  };
-  document.addEventListener("seed-world-picked", picked);
   const unregister = project.registerRuntimeActivation({ before: async () => {}, after: async () => refresh() });
   refresh();
   return {
@@ -292,7 +283,6 @@ export function mountNativeBuildingPanel(
       disposed = true;
       unregister();
       appearance?.destroy();
-      document.removeEventListener("seed-world-picked", picked);
       panel.remove();
     }
   };

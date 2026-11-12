@@ -1,4 +1,4 @@
-import { planningHeightmap } from "../../../semantic-study/PlanningHeightmap.ts";
+import { planningGroundSurface } from "../../../semantic-study/PlanningHeightmap.ts";
 import type { IslandPlan } from "../../../semantic-study/IslandPlanModel.ts";
 import { rockFormationJobs } from "./Jobs.ts";
 import { rockGeometrySettings, rockSettingsForJob, type RockFormationSettings } from "./Settings.ts";
@@ -41,7 +41,9 @@ export class RockFormationClient {
   ): Promise<readonly RockFormationMesh[]> {
     signal.throwIfAborted();
     if (this.disposed) throw new Error("Rock formation client disposed");
-    return this.runJobs(rockFormationJobs(plan, planningHeightmap(plan)), settings, signal, resident, true);
+    // Rock placement only samples OBB centres. Keep the full raster in its worker;
+    // this sparse surface uses the same canonical Float32 grid and triangles.
+    return this.runJobs(rockFormationJobs(plan, planningGroundSurface(plan)), settings, signal, resident, true);
   }
 
   /** Local ground stones use the same generator and cache as published rocks. */

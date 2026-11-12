@@ -21,8 +21,6 @@ import {
   Shader,
   TextureFilterMode,
   TextureWrapMode,
-  Matrix,
-  Vector3,
   Vector4
 } from "@galacean/engine";
 import type { SeedWorldPickBatch, SeedWorldPickSource } from "@galacean/engine-modify/rendering/SeedWorldPickBatch";
@@ -35,18 +33,13 @@ import { RuntimePickOcclusion } from "@galacean/engine-runtime-editor/runtime-in
 const PICK_MACRO = "RENDERER_WORLD_PICK";
 const PICK_BASE = "renderer_WorldPickBase";
 
-/** Point and immutable-view framebuffer picking. IDs and unregistered occluders share one render with the original geometry and coverage. */
+/** Immutable photo identity/depth capture, using the visible geometry and coverage. */
 export class SeedWorldPicker {
-  /** Borrowed world-space fragment from the latest successful pick; copy before the next pick. */
-  hitPosition?: Vector3;
   private texture?: Texture2D;
   private depth?: Texture2D;
   private surfacePack?: Material;
   private target?: RenderTarget;
-  private readonly pixel = new Uint8Array(4);
 
-  private readonly inverse = new Matrix();
-  private readonly position = new Vector3();
   private readonly savedColor = new Color();
   private readonly black = new Color(0, 0, 0, 1);
   private readonly bindings: { batch?: SeedWorldPickBatch; base: number; prepared: boolean }[] = [];
@@ -88,11 +81,6 @@ export class SeedWorldPicker {
     material.shaderData.setFloat("material_WorldPickDepthCompare", CompareFunction.Less);
   }
 
-  /** Render real visible variants without reading pixels or publishing a selection. */
-  warmup(visit: SeedWorldPickSource): void {
-    this.render(0, 0, visit, true);
-  }
-
   /** Exercise the exact photo/identity paths before the screenshot command is exposed. No retained snapshot or readback. */
   async prepareSnapshot(visit: SeedWorldPickSource, signal?: AbortSignal, budget?: ImageResourceBudget): Promise<void> {
     signal?.throwIfAborted();
@@ -111,12 +99,6 @@ export class SeedWorldPicker {
       signal,
       budget
     );
-  }
-
-  /** Coordinates are drawing-buffer pixels, with the same top-left origin as the canvas. */
-  pick(x: number, y: number, visit: SeedWorldPickSource): string | undefined {
-    this.hitPosition = undefined;
-    return this.render(x, y, visit, false);
   }
 
   /** Wait for the next normal camera frame; consume its color and draw IDs without advancing simulation. */
@@ -162,7 +144,7 @@ export class SeedWorldPicker {
     let packed: Texture2D | undefined, packedTarget: RenderTarget | undefined;
     try {
       // No simulation step can separate color, identity and depth.
-      this.render(0, 0, visit, false, {
+      this.render(visit, {
         width,
         height,
         consume: () => {
@@ -259,21 +241,12 @@ export class SeedWorldPicker {
     }
   }
 
-  private render(
-    x: number,
-    y: number,
-    visit: SeedWorldPickSource,
-    warmup: boolean,
-    capture?: { width: number; height: number; consume: () => void; prepare?: () => void }
-  ): string | undefined {
+  private render(visit: SeedWorldPickSource, capture: { width: number; height: number; consume: () => void }): void {
     const camera = this.camera;
-    const canvas = camera.engine.canvas;
     // Color and IDs share the delivered image resolution, avoiding native-DPR readback costs.
-    const width = capture?.width ?? canvas.width;
-    const height = capture?.height ?? canvas.height;
-    if (!Number.isFinite(x) || !Number.isFinite(y) || x < 0 || y < 0 || x >= width || y >= height) return;
-    if (this.rendering) throw new Error("World picking is not reentrant");
-    if (capture && width * height > 16 * 1024 * 1024) throw new Error("Viewport exceeds snapshot memory budget");
+    const { width, height } = capture;
+    if (this.rendering) throw new Error("Photo identity capture is not reentrant");
+    if (width * height > 16 * 1024 * 1024) throw new Error("Viewport exceeds snapshot memory budget");
     this.resize(width, height);
     const background = camera.scene!.background;
     this.rendering = true;
@@ -281,8 +254,8 @@ export class SeedWorldPicker {
     const target = camera.renderTarget,
       clear = camera.clearFlags,
       mask = camera.cullingMask;
-    const capturedProjection = capture ? camera.projectionMatrix.clone() : undefined;
-    const capturedViewport = capture ? camera.viewport.clone() : undefined;
+    const capturedProjection = camera.projectionMatrix.clone();
+    const capturedViewport = camera.viewport.clone();
     const customProjection = (camera as unknown as { _isCustomProjectionMatrix: boolean })._isCustomProjectionMatrix;
     const hdr = camera.enableHDR,
       post = camera.enablePostProcess,
@@ -314,7 +287,7 @@ export class SeedWorldPicker {
       background.solidColor = this.black;
       visit(this.collectBound);
       // Clone unregistered materials before registered batches borrow shared shaders.
-      if (!capture?.prepare) this.occlusion.prepare(camera, this.pickedRenderers);
+      this.occlusion.prepare(camera, this.pickedRenderers);
       for (let i = 0; i < this.bindingCount; i++) {
         const binding = this.bindings[i]!,
           batch = binding.batch!,
@@ -329,59 +302,16 @@ export class SeedWorldPicker {
         renderer.shaderData.setFloat("renderer_WorldPickInstanced", batch.instanced ? 1 : 0);
         renderer.shaderData.enableMacro(PICK_MACRO);
       }
-      if (capture?.prepare) {
-        capture.prepare();
-        return;
-      }
       // A single ID render owns its depth test, including unregistered occluders.
       camera.clearFlags = CameraClearFlags.All;
       camera.render();
-      if (capture) {
-        capture.consume();
-        return;
-      }
-      if (warmup) {
-        for (let i = 0; i < this.bindingCount; i++)
-          this.bindings[i]!.batch!.renderer.shaderData.enableMacro("RENDERER_WORLD_PICK_DEPTH");
-        camera.render();
-        return;
-      }
-      this.texture!.getPixelBuffer(Math.floor(x), Math.floor(y), 1, 1, 0, this.pixel);
-      const id = this.pixel[0]! | (this.pixel[1]! << 8) | (this.pixel[2]! << 16);
-      let hit: (typeof this.bindings)[number] | undefined;
-      for (let i = 0; i < this.bindingCount; i++) {
-        const binding = this.bindings[i]!;
-        if (id >= binding.base && id < binding.base + binding.batch!.count) {
-          hit = binding;
-          break;
-        }
-      }
-      if (!hit) return;
-      for (let i = 0; i < this.bindingCount; i++)
-        this.bindings[i]!.batch!.renderer.shaderData.enableMacro("RENDERER_WORLD_PICK_DEPTH");
-      camera.render();
-      this.texture!.getPixelBuffer(Math.floor(x), Math.floor(y), 1, 1, 0, this.pixel);
-      const depth = (this.pixel[0]! | (this.pixel[1]! << 8) | (this.pixel[2]! << 16)) / 0xffffff;
-      const inverse = this.inverse;
-      Matrix.multiply(camera.projectionMatrix, camera.viewMatrix, inverse);
-      inverse.invert();
-      const viewport = camera.viewport;
-      const position = this.position;
-      position.set(
-        (((Math.floor(x) + 0.5) / width - viewport.x) / viewport.z) * 2 - 1,
-        1 - (((Math.floor(y) + 0.5) / height - viewport.y) / viewport.w) * 2,
-        depth * 2 - 1
-      );
-      Vector3.transformCoordinate(position, inverse, position);
-      this.hitPosition = position;
-      return hit.batch!.resolve(id - hit.base, position);
+      capture.consume();
     } finally {
       for (let i = this.bindingCount - 1; i >= 0; i--) {
         const binding = this.bindings[i]!,
           batch = binding.batch!;
         if (binding.prepared) batch.restore?.();
         batch.renderer.shaderData.disableMacro(PICK_MACRO);
-        batch.renderer.shaderData.disableMacro("RENDERER_WORLD_PICK_DEPTH");
         binding.batch = undefined;
         binding.prepared = false;
       }

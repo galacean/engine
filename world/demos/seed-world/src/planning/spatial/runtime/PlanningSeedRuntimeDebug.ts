@@ -150,14 +150,6 @@ export class PlanningSeedRuntimeDebug {
     else void this.farming?.refresh();
   }
 
-  /** Reveal the selected authored rock inside the existing debug inspector. */
-  selectRockObb(id: string): void {
-    if (this.rocks?.selectObb(id)) {
-      this.owner.current?.inspector.gui.show();
-      this.owner.current?.inspector.gui.open();
-    }
-  }
-
   destroy(): void {
     if (this.disposed) return;
     this.disposed = true;

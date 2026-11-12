@@ -6,7 +6,7 @@ import { planningHeightmap } from "../../../packages/world-planning/src/semantic
 vi.mock("../../../packages/world-planning/src/semantic-study/PlanningHeightmap.ts", () => {
   const heights = new Float32Array(4);
   const map = { heights, resolution: 2, spacingX: 1, spacingZ: 1 };
-  return { planningHeightmap: () => map };
+  return { planningHeightmap: () => map, planningGroundSurface: () => map };
 });
 vi.mock("../../../packages/world-planning/src/integrations/terrain/rock-formation/Jobs.ts", () => ({
   rockFormationJobs: (plan: IslandPlan) => [{ id: String(plan.parameters.seed) }]

@@ -24,6 +24,11 @@ export function constructionAssets(editMesh?:(path:string,bytes:Uint8Array)=>Uin
       const {data}=parseTexturePixelsData(Uint8Array.from(readFileSync(root+path.slice(prefix.length))).buffer);
       value=Object.create((data.dimension==="cube"?TextureCube:data.dimension==="2d-array"?Texture2DArray:Texture2D).prototype);
       for(const [key,v] of Object.entries({width:data.width,height:data.height,length:data.layers,isSRGBColorSpace:data.srgb}))Object.defineProperty(value,key,{value:v});
+    }else if(path.endsWith(".ktx2")){
+      // KTX2 header: pixelWidth, pixelHeight at 20/24, layerCount at 32 (above 0 declares an array), faceCount at 36.
+      const bytes=readFileSync(root+path.slice(prefix.length)),layers=bytes.readUInt32LE(32);
+      value=Object.create((bytes.readUInt32LE(36)===6?TextureCube:layers>0?Texture2DArray:Texture2D).prototype);
+      for(const [key,v] of Object.entries({width:bytes.readUInt32LE(20),height:bytes.readUInt32LE(24),length:layers||1}))Object.defineProperty(value,key,{value:v});
     }else if(path.endsWith(".mat")){
       const material=json(path),shader=json(material.shaderRef.url);
       value={instanceId:cache.size+1,shader:{subShaders:[{passes:[{_vertexShaderInstructions:shader.subShaders[0].passes[0].vertexShaderInstructions,

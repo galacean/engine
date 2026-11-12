@@ -188,19 +188,6 @@ describe("SeedWorldAgentApplication final architecture", () => {
       await edit.discard();
     }
   });
-  it("keeps user selection separate from model queries and clears it explicitly", () => {
-    const { engine } = createHarness();
-    const application = new SeedWorldAgentApplication(engine);
-    const ref = application.selectWorld({ kinds: ["tree"], limit: 1 }).items[0]!.ref;
-    application.setUserSelection(ref);
-    expect(application.getUserSelection()).toEqual(ref);
-    expect(application.getUserSelection()).not.toBe(ref);
-    application.selectWorld({ kinds: ["rock"], limit: 1 });
-    expect(application.getUserSelection()).toEqual(ref);
-    application.setUserSelection(undefined);
-    expect(application.getUserSelection()).toBeNull();
-  });
-
   it("invalidates view state for independently published water and lighting changes", () => {
     const { engine } = createHarness();
     const state = createState();
@@ -425,11 +412,9 @@ describe("SeedWorldAgentApplication final architecture", () => {
       ref: tree.ref,
       relations: { parent: expect.objectContaining({ kind: "forest" }) }
     });
-    const selection = application.getUserSelection();
     const thumbnail = application.getWorldThumbnail() as any;
     for (const item of [tree, forest, river, terrain.items[0]!])
       expect(application.resolvePickedObject(item.ref.id)).toEqual({ ref: item.ref, type: item.ref.kind });
-    expect(application.getUserSelection()).toEqual(selection);
     expect(application.getWorldThumbnail()).toEqual({ ...thumbnail, viewer: { ...thumbnail.viewer,
       current: { ...thumbnail.viewer.current, capturedAt: expect.any(String) } } });
   });

@@ -1267,8 +1267,6 @@ vec4 waterSurfaceEvaluateFinalClosureV2(WaterSurfaceFinalClosureV2Input closure)
 #ifdef RENDERER_WORLD_PICK
 float renderer_WorldPickBase;
 #endif
-float renderer_WorldSelectionMode;
-vec4 renderer_WorldSelectionAppearance;
 vec4 waterSurfaceOutputWithPick(vec4 color) {
 #ifdef RENDERER_WORLD_PICK
   if (color.a <= 0.001) discard;
@@ -1278,21 +1276,6 @@ vec4 waterSurfaceOutputWithPick(vec4 color) {
   #endif
   return vec4(mod(id, 256.0), mod(floor(id / 256.0), 256.0), floor(id / 65536.0), 255.0) / 255.0;
 #else
-  if (renderer_WorldSelectionMode >= 0.5) {
-    vec2 p = gl_FragCoord.xy * renderer_WorldSelectionAppearance.yz * 2.0;
-    float phase = renderer_WorldSelectionAppearance.x * 6.2831853;
-    // Smooth warped colour pools instead of parallel rainbow stripes. Exact 2.4s loop.
-    float field = p.y * 3.0 + sin(p.x * 4.0 + p.y * 2.0) * 0.7;
-    float flow = field + phase + 0.24 * sin(phase + p.x * 5.0);
-    // Match the saturated spectrum used by generation reveal effects.
-    vec3 film = 0.54 + 0.46 * cos(flow + 6.2831853 * vec3(0.03, 0.36, 0.69));
-    float sheen = pow(0.5 + 0.5 * sin(flow + p.x * 1.4), 8.0);
-    // HDR emission feeds the existing scene Bloom before tonemapping.
-    vec3 highlighted = mix(color.rgb, film, 0.82) + film * (1.2 + sheen * 0.8);
-    // Fade the entire highlight, including HDR emission, back to the live material.
-    float breath = 0.5 - 0.5 * cos(phase);
-    color.rgb = mix(color.rgb, highlighted, renderer_WorldSelectionAppearance.w * breath);
-  }
   return color;
 #endif
 }

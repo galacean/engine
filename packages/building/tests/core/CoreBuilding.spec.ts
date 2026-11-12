@@ -71,7 +71,7 @@ const HOUSE_ONLINE = baseline<{
   resident: { draws: number; units: number; backingParts: number };
 }>("CoreBuilding-houses");
 const pack = (input: Parameters<typeof buildBuildingRenderPackage>[0]) =>
-  buildBuildingRenderPackage(input, nativeAssets, buildingGlobals(input.paletteSlots, nativeAssets.frame), true)
+  buildBuildingRenderPackage(input, nativeAssets, buildingGlobals(input.paletteSlots, nativeAssets.frame))
     .package;
 /** Mean coverage of a surface's distance appearance over the pixels its mesh samples: every
  * pixel whose center lies inside a triangle of the mesh in the chart. In [0, 1]. */

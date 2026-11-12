@@ -11,7 +11,6 @@ import {
 import type { PreparedTerrainUpdate } from "@galacean/engine-terrain/terrain/clipmap/TerrainPreparedUpdate";
 import { yieldSeedWorldPreparationTask } from "../world/SeedWorldPreparationTask.ts";
 import { seedWorldWaterDetailCellChanged } from "./SeedWorldPopulationWaterImpact.ts";
-import { updateWorldSelectionBatch } from "@galacean/engine-runtime-editor/selection/WorldSelection";
 import { RockGrassPatches, type RockGrassPlacement } from "@galacean/engine-terrain/rock-formation/GrassPatches";
 import type { RockGrassSampling } from "@galacean/engine-terrain/rock-formation/GrassSurface";
 import { bindRockGrassGroundMaterial } from "../integrations/terrain/rock-formation/RockMaterial";
@@ -4755,15 +4754,6 @@ export class SeedWorldTreeLodRenderer implements RenderViewCullingSource {
         if (viewIndex === POPULATION_CAMERA_VIEW_INDEX) {
           this._lodCounts[recipe.sourceLodIndices[lodIndex]!] += batch.count;
         }
-        if (viewIndex === POPULATION_CAMERA_VIEW_INDEX) {
-          updateWorldSelectionBatch(batch.trunkRenderer, batch.trunkCount, batch.instanceIds);
-          updateWorldSelectionBatch(
-            batch.crownRenderer,
-            batch.crownCount,
-            batch.instanceIds,
-            batch.count - batch.crownCount
-          );
-        }
         if (batch.trunkCount > 0) context.submit(batch.trunkRenderer);
         if (batch.crownCount > 0) context.submit(batch.crownRenderer);
       }
@@ -4792,15 +4782,6 @@ export class SeedWorldTreeLodRenderer implements RenderViewCullingSource {
     for (const recipe of this._batches) {
       for (const lod of recipe.lods) {
         const batch = lod.views[viewIndex]!;
-        if (viewIndex === POPULATION_CAMERA_VIEW_INDEX) {
-          updateWorldSelectionBatch(batch.trunkRenderer, batch.trunkCount, batch.instanceIds);
-          updateWorldSelectionBatch(
-            batch.crownRenderer,
-            batch.crownCount,
-            batch.instanceIds,
-            batch.count - batch.crownCount
-          );
-        }
         if (batch.trunkCount > 0) context.submit(batch.trunkRenderer);
         if (batch.crownCount > 0) context.submit(batch.crownRenderer);
       }
@@ -5337,8 +5318,6 @@ class SeedWorldShrubLodRenderer implements RenderViewCullingSource {
       if (this._owner.isActiveInHierarchy) {
         for (const views of this._batches) {
           const batch = views[viewIndex]!;
-          if (viewIndex === POPULATION_CAMERA_VIEW_INDEX)
-            updateWorldSelectionBatch(batch.renderer, batch.count, this._pickIds.get(batch)!);
           if (batch.count > 0) {
             context.submit(batch.renderer);
           }
@@ -5412,7 +5391,6 @@ class SeedWorldShrubLodRenderer implements RenderViewCullingSource {
       publishPrefabInstanceViewBatch(batch);
       if (viewIndex === POPULATION_CAMERA_VIEW_INDEX) {
         this._lodCounts[lodIndex] = batch.count;
-        updateWorldSelectionBatch(batch.renderer, batch.count, this._pickIds.get(batch)!);
       }
       if (batch.count > 0) {
         context.submit(batch.renderer);

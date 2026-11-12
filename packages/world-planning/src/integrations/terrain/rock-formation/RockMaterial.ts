@@ -14,7 +14,6 @@ import {
 import shadowReceiver from "../../../../../terrain/src/rock-formation/ShadowReceiver.glsl?raw";
 import surface from "../../../../../terrain/src/rock-formation/Projection.glsl?raw";
 import shader from "../../../../../terrain/src/rock-formation/RockFormation.shader?raw";
-import selection from "../../../../../terrain/src/shaders/shared/WorldSelection.glsl?raw";
 import { readRockColorBlend, type RockColorBlend } from "./ColorPalette";
 import { setRockColorBlend } from "./ColorMaterial";
 import grassColorField from "../../../../../terrain/src/shaders/shared/GrassColorField.glsl?raw";
@@ -99,8 +98,6 @@ export function createRockFormationMaterial(
   const texture = textures.get(engine)?.value;
   if (!texture) throw Error("Rock textures must be prepared before publication");
   registerRockSurfaceIncludes();
-  if (!ShaderFactory.includeMap["shared/WorldSelection.glsl"])
-    ShaderFactory.registerInclude("shared/WorldSelection.glsl", selection);
   const material = new PBRMaterial(engine);
   try {
     material.shader = Shader.find("SeedWorld/RockSurface") ?? Shader.create(shader);

@@ -143,22 +143,24 @@ it("deletes saves of other versions before loading contents and restores the cur
   const f = storageFixture();
   const projectUrl = new URL(SEED_WORLD_PRODUCTION_ASSET_CATALOG.projectUrl, f.url).href;
   const oldId = `seed-world:native-buildings-v7-groups:42:${projectUrl}`;
-  const previousId = `seed-world:native-buildings-v8-groups:7:${projectUrl}`;
-  const otherProjectId = "seed-world:native-buildings-v8-groups:42:https://other.test/project.json";
+  const previousId = `seed-world:native-buildings-v10-groups:42:${projectUrl}`;
+  const preMergeId = `seed-world:native-buildings-v11-groups:42:${projectUrl}`;
+  const otherProjectId = "seed-world:native-buildings-v11-groups:42:https://other.test/project.json";
   const unrelatedId = "another-project";
   const legacy = { incompatibleBuildingSave: true } as unknown as RuntimeProjectPackage;
-  for (const id of [oldId, previousId, otherProjectId, unrelatedId]) f.records.set(id, legacy);
+  for (const id of [oldId, previousId, preMergeId, otherProjectId, unrelatedId]) f.records.set(id, legacy);
   const initial = JSON.parse(
     await readCatalogFile(SEED_WORLD_PRODUCTION_ASSET_CATALOG.projectUrl)
   ) as RuntimeProjectManifest;
   const project = await openSeedWorldProject(f.url, initial);
   sessions.push(project);
-  expect(SEED_WORLD_BUILDING_SAVE_VERSION).toBe(9);
+  expect(SEED_WORLD_BUILDING_SAVE_VERSION).toBe(12);
   expect(project.id).toBe(seedWorldProjectStorageId(42, projectUrl));
   expect(f.load.mock.calls).toEqual([[project.id]]);
   expect(project.id).not.toBe(oldId);
   expect(f.records.has(oldId)).toBe(false);
   expect(f.records.has(previousId)).toBe(false);
+  expect(f.records.has(preMergeId)).toBe(false);
   expect(f.records.get(otherProjectId)).toEqual(legacy);
   expect(f.records.get(unrelatedId)).toEqual(legacy);
   await project.update((current) => ({
@@ -171,7 +173,7 @@ it("deletes saves of other versions before loading contents and restores the cur
   const restored = await openSeedWorldProject(f.url, initial);
   sessions.push(restored);
   expect(restored.projectPackage.documents?.["building-save.txt"]).toBe("current building version");
-  expect(f.load.mock.calls.every(([id]) => id !== oldId)).toBe(true);
+  expect(f.load.mock.calls.every(([id]) => id !== oldId && id !== previousId && id !== preMergeId)).toBe(true);
 });
 
 it("restores relocated building assets before hierarchy reads without replacing saved authoring", async () => {
@@ -187,12 +189,12 @@ it("restores relocated building assets before hierarchy reads without replacing 
   const toLegacy = (url: string) => url.replace("/packages/building/src/building/", "/packages/building/src/tiny-glade/");
   const kit = saved.project.files.find((file) => file.virtualPath === "Building/Units/building-kit.prefab")!;
   delete saved.contents[kit.virtualPath];
-  const roof = "Building/Units/Textures/roof_colors.tex";
+  const roof = "Building/Units/Textures/roof_colors-neutral.ktx2";
   saved.contents[roof] = new Uint8Array([1, 2, 3]);
   saved.documents = { ...saved.documents, "Notes/author.txt": "Keep my scene and building edits" };
   saved.project.files = saved.project.files.map((file) => ({ ...file, path: toLegacy(file.path) }));
-  const custom = saved.project.files.find((file) => file.virtualPath === "Building/Units/Textures/brick_colors.tex")!;
-  custom.path = "https://assets.example.test/custom-bricks.tex";
+  const custom = saved.project.files.find((file) => file.virtualPath === "Building/Units/Textures/brick_colors-neutral.ktx2")!;
+  custom.path = "https://assets.example.test/custom-bricks.ktx2";
   const inbound = new Set(saved.project.files.flatMap((file) => file.dependencies ?? []));
   const deleted = saved.project.files.find((file) => file.type === "Prefab" &&
     file.virtualPath.startsWith("Building/") && !inbound.has(file.virtualPath) && file.virtualPath !== kit.virtualPath)!;

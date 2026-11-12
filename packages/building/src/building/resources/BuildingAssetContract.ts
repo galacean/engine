@@ -40,8 +40,10 @@ export function validateBuildingAssetContract(kit: Kit, units: Readonly<Record<s
     ...[...decorationTextureBindings, ...plasterTextureBindings, ...stoneFloorTextureBindings].map(([, name]) => name)
   ]);
   for (const name of textures) if (!kit.textures?.[name]) throw Error("Missing building Texture: " + name);
-  // Palette mode replaces these authored textures with their neutral counterparts.
-  // Its shader uniforms still need the original RGBA colors, even in white mode.
+  // Rendering samples the neutral texture and takes the colour from the palette.
+  // Its shader uniforms still need the RGBA colors of the original authored texture.
+  // The built-in kit no longer ships the authored colour textures: for these names
+  // `textures` and `neutralTextures` reference the same neutral texture.
   for (const name of ["roof_colors", "brick_colors", "timberframe", "plaster_colors", "mortar"]) {
     const colors = kit.textureColors?.[name];
     if (

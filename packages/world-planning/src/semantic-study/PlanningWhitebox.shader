@@ -12,7 +12,6 @@ Shader "Planning/MetreWhitebox" {
    CullMode rasterStateCullMode;
    RasterState = { CullMode = rasterStateCullMode; }
    #include "ShaderLibrary/PBR/ForwardPassPBR.glsl"
-   #include "shared/WorldSelection.glsl"
    sampler2D planning_Surface;
    vec2 planning_WorldSize;
    float planning_Textured;
@@ -62,7 +61,7 @@ Shader "Planning/MetreWhitebox" {
 
     // Water in the planning whitebox is a flat metric surface, independent of sun/shadows.
     if(planning_Unlit>.5){
-     gl_FragColor=worldSelectionColor(vec4(mix(color,color*.32,grid),1.), worldSelectionWeight(objectIndex));
+     gl_FragColor=vec4(mix(color,color*.32,grid),1.);
     }else{
     SurfaceData surface=getSurfaceData(v,v.uv,gl_FrontFacing);
     surface.albedoColor=mix(color,color*.32,grid);
@@ -79,7 +78,7 @@ Shader "Planning/MetreWhitebox" {
     #if SCENE_FOG_MODE != 0
       finalColor=fog(finalColor,v.positionVS);
     #endif
-    gl_FragColor=worldSelectionColor(finalColor, worldSelectionWeight(objectIndex));
+    gl_FragColor=finalColor;
     }
     #endif
    }

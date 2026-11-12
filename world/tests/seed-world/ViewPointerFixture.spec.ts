@@ -47,8 +47,7 @@ function fixture() {
     _engine: {_options: {readContext: () => context}}, viewSnapshots: views,
     requireViewSnapshots: () => views,
     selectWorld: () => ({items: [{ref: {id: "tree-1"}, position: [0, 0, 0]}]}),
-    resolvePickedObject: (id: string) => id === "tree-1" ? {ref: {id, kind: "tree"}} : undefined,
-    getUserSelection: () => []
+    resolvePickedObject: (id: string) => id === "tree-1" ? {ref: {id, kind: "tree"}} : undefined
   }};
   panels.push(panel);
   const setTrace = (path: string, args = JSON.stringify({file_path:path,points:[{x:0,y:0}]})) => {
@@ -85,10 +84,10 @@ for(const args of ['{broken','null','{}','{"file_path":"image-2","points":[null]
   const image=await f.views.snapshot(new AbortController().signal);f.setTrace(image.imagePath,args);
   expect(captureSnapshotPointer(f.panel,"after").samples[0].error).toBeTruthy();f.assertReleased();
 });
-it("releases snapshots even when selection lookup or trace lookup fails",async()=>{
+it("releases snapshots even when trace lookup throws",async()=>{
   const f=fixture();await prepareViewPointerFixture(f.panel);await f.views.snapshot(new AbortController().signal);
-  f.panel.application.getUserSelection=()=>{throw new Error("selection failed");};
-  expect(captureSnapshotPointer(f.panel,"after").errors).toContain("Error: selection failed");f.assertReleased();
+  f.panel.debug.getLastTrace=()=>{throw new Error("trace failed");};
+  expect(captureSnapshotPointer(f.panel,"after").errors).toContain("Error: trace failed");f.assertReleased();
 });
 it("after-phase without a trace still disposes, while before-phase does not",async()=>{
   const f=fixture();await prepareViewPointerFixture(f.panel);

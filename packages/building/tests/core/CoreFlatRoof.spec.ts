@@ -96,8 +96,7 @@ describe("Flat roofs", () => {
     const built = buildBuildingRenderPackage(
       input,
       nativeAssets,
-      buildingGlobals(input.paletteSlots, nativeAssets.frame),
-      true
+      buildingGlobals(input.paletteSlots, nativeAssets.frame)
     );
     expect(built.package.draws.filter((d: { family?: string }) => d.family === "stone-floor")).toHaveLength(1);
   });
