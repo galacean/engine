@@ -1,14 +1,8 @@
 {
   "version": "perlin-ridge-extraction-1",
   "noiseFixtureSamples": 36,
-  "assemblies": 15,
+  "assemblies": 5,
   "controlExtremeAssemblies": 4,
-  "longEdgeRegression": {
-    "scene": "cliff",
-    "seed": 19,
-    "rmsM": 1.0486881373324188,
-    "maximumDeviationM": 2.7278214201777686
-  },
   "detailEnvelopeResponseM": 0.29949120933545714,
   "checks": [
     "actual lab noise parity",
@@ -25,130 +19,9 @@
     "unchanged target during fitting",
     "dense actual-surface residuals",
     "exact full assembly replay",
-    "height scales fields, curves and masses",
-    "long cliff edges grow connected large masses"
+    "height scales fields, curves and masses"
   ],
   "results": [
-    {
-      "scene": "cliff",
-      "seed": 0,
-      "selectedPeaks": 3,
-      "curves": 8,
-      "structuralMasses": 5,
-      "smallRocks": 1,
-      "verifiedContactEdges": 5,
-      "rmsM": 1.4480202497219847,
-      "maximumDeviationM": 3.487858106388419,
-      "maximumGuideErrorM": 0.00004997006904090828
-    },
-    {
-      "scene": "cliff",
-      "seed": 18,
-      "selectedPeaks": 2,
-      "curves": 16,
-      "structuralMasses": 3,
-      "smallRocks": 2,
-      "verifiedContactEdges": 4,
-      "rmsM": 1.334578151530848,
-      "maximumDeviationM": 3.5473055268204945,
-      "maximumGuideErrorM": 0.00004979131030140305
-    },
-    {
-      "scene": "cliff",
-      "seed": 42,
-      "selectedPeaks": 2,
-      "curves": 5,
-      "structuralMasses": 7,
-      "smallRocks": 1,
-      "verifiedContactEdges": 10,
-      "rmsM": 1.3051406782325348,
-      "maximumDeviationM": 3.61011739178889,
-      "maximumGuideErrorM": 0.000049767956175797434
-    },
-    {
-      "scene": "cliff",
-      "seed": 382,
-      "selectedPeaks": 1,
-      "curves": 3,
-      "structuralMasses": 3,
-      "smallRocks": 2,
-      "verifiedContactEdges": 4,
-      "rmsM": 1.5145635546683638,
-      "maximumDeviationM": 4.917725524453143,
-      "maximumGuideErrorM": 0.00004999658500721982
-    },
-    {
-      "scene": "cliff",
-      "seed": 4294967295,
-      "selectedPeaks": 2,
-      "curves": 5,
-      "structuralMasses": 6,
-      "smallRocks": 1,
-      "verifiedContactEdges": 6,
-      "rmsM": 1.148739863384905,
-      "maximumDeviationM": 3.775006020288817,
-      "maximumGuideErrorM": 0.000049858243688236104
-    },
-    {
-      "scene": "island",
-      "seed": 0,
-      "selectedPeaks": 3,
-      "curves": 7,
-      "structuralMasses": 8,
-      "smallRocks": 2,
-      "verifiedContactEdges": 14,
-      "rmsM": 1.8261397037994895,
-      "maximumDeviationM": 4.171133243185189,
-      "maximumGuideErrorM": 0.00004982673065086207
-    },
-    {
-      "scene": "island",
-      "seed": 18,
-      "selectedPeaks": 2,
-      "curves": 5,
-      "structuralMasses": 9,
-      "smallRocks": 2,
-      "verifiedContactEdges": 20,
-      "rmsM": 2.0911927410249747,
-      "maximumDeviationM": 4.863849597071809,
-      "maximumGuideErrorM": 0.00004962733484432935
-    },
-    {
-      "scene": "island",
-      "seed": 42,
-      "selectedPeaks": 2,
-      "curves": 5,
-      "structuralMasses": 9,
-      "smallRocks": 2,
-      "verifiedContactEdges": 19,
-      "rmsM": 1.8336424996879828,
-      "maximumDeviationM": 4.318045271193387,
-      "maximumGuideErrorM": 0.00004997588887974136
-    },
-    {
-      "scene": "island",
-      "seed": 382,
-      "selectedPeaks": 2,
-      "curves": 7,
-      "structuralMasses": 8,
-      "smallRocks": 1,
-      "verifiedContactEdges": 18,
-      "rmsM": 2.07269317781861,
-      "maximumDeviationM": 4.804175020940637,
-      "maximumGuideErrorM": 0.00004976776362582147
-    },
-    {
-      "scene": "island",
-      "seed": 4294967295,
-      "selectedPeaks": 2,
-      "curves": 5,
-      "structuralMasses": 8,
-      "smallRocks": 2,
-      "verifiedContactEdges": 13,
-      "rmsM": 1.9553666224372435,
-      "maximumDeviationM": 5.8151391963557195,
-      "maximumGuideErrorM": 0.00004989709805698628
-    },
     {
       "scene": "peaks",
       "seed": 0,

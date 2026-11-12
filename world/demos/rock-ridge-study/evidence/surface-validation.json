@@ -1,6 +1,6 @@
 {
   "version": "fracture-controls-6",
-  "generationMs": 7731.777833,
+  "generationMs": 13688.8545,
   "checks": [
     "immutable source and uncached deterministic replay",
     "finite bounded geometry and unit normals",
@@ -16,8 +16,7 @@
     "large connected masses and sparse accents",
     "independent ray parity on carved contact witnesses",
     "dense fit and measured orange guides",
-    "carved mesh height scaling including 145 percent",
-    "unchanged 3m platform route"
+    "carved mesh height scaling including 145 percent"
   ],
   "prototypes": [
     {
@@ -395,83 +394,6 @@
   ],
   "assemblies": [
     {
-      "scene": "cliff",
-      "seed": 18,
-      "options": {
-        "mode": "perlin"
-      },
-      "structuralMasses": 4,
-      "smallRocks": 2,
-      "verifiedContactEdges": 5,
-      "rmsM": 1.1850247664704274,
-      "maximumDeviationM": 2.9763878130255037,
-      "maximumGuideErrorM": 0.000049872549555018963
-    },
-    {
-      "scene": "cliff",
-      "seed": 19,
-      "options": {
-        "mode": "perlin"
-      },
-      "structuralMasses": 5,
-      "smallRocks": 2,
-      "verifiedContactEdges": 7,
-      "rmsM": 1.3740394742077562,
-      "maximumDeviationM": 5.058202280905686,
-      "maximumGuideErrorM": 0.00004997251430793881
-    },
-    {
-      "scene": "island",
-      "seed": 18,
-      "options": {
-        "mode": "perlin"
-      },
-      "structuralMasses": 10,
-      "smallRocks": 2,
-      "verifiedContactEdges": 22,
-      "rmsM": 2.053182393057118,
-      "maximumDeviationM": 6.733758513128587,
-      "maximumGuideErrorM": 0.000049682681154905595
-    },
-    {
-      "scene": "island",
-      "seed": 425,
-      "options": {
-        "mode": "perlin",
-        "noise": {
-          "frequency": 4,
-          "octaves": 5,
-          "lacunarity": 2,
-          "persistence": 0.85
-        }
-      },
-      "structuralMasses": 12,
-      "smallRocks": 0,
-      "verifiedContactEdges": 24,
-      "rmsM": 2.082244505139288,
-      "maximumDeviationM": 5.834551974152383,
-      "maximumGuideErrorM": 0.00004996507501431324
-    },
-    {
-      "scene": "island",
-      "seed": 425,
-      "options": {
-        "mode": "perlin",
-        "noise": {
-          "frequency": 4,
-          "octaves": 3,
-          "lacunarity": 2,
-          "persistence": 0.85
-        }
-      },
-      "structuralMasses": 11,
-      "smallRocks": 0,
-      "verifiedContactEdges": 23,
-      "rmsM": 2.0022902280418005,
-      "maximumDeviationM": 4.8670340940307035,
-      "maximumGuideErrorM": 0.00004996507501431324
-    },
-    {
       "scene": "peaks",
       "seed": 18,
       "options": {
@@ -511,12 +433,36 @@
       },
       "structuralMasses": 19,
       "smallRocks": 2,
-      "verifiedContactEdges": 47,
-      "rmsM": 2.228669072024278,
-      "maximumDeviationM": 7.779485141280514,
-      "maximumGuideErrorM": 0.00004995410293595626
+      "verifiedContactEdges": 41,
+      "rmsM": 2.121384114298838,
+      "maximumDeviationM": 5.461841850088206,
+      "maximumGuideErrorM": 0.00004994195040808336
+    },
+    {
+      "scene": "peaks",
+      "seed": 464,
+      "options": {
+        "mode": "direct"
+      },
+      "structuralMasses": 14,
+      "smallRocks": 2,
+      "verifiedContactEdges": 44,
+      "rmsM": 2.675099493640747,
+      "maximumDeviationM": 8.84304273018343,
+      "maximumGuideErrorM": 0.000049984760252197447
+    },
+    {
+      "scene": "peaks",
+      "seed": 465,
+      "options": {
+        "mode": "direct"
+      },
+      "structuralMasses": 21,
+      "smallRocks": 2,
+      "verifiedContactEdges": 64,
+      "rmsM": 2.156346026938361,
+      "maximumDeviationM": 6.55342581454137,
+      "maximumGuideErrorM": 0.00004992891027910673
     }
-  ],
-  "platformSamples": 2500,
-  "maximumPlatformChangeM": 2.435551760271437e-15
+  ]
 }

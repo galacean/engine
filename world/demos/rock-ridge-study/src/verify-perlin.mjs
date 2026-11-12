@@ -5,7 +5,7 @@ import {generateRidgeScene,assembleRidgeTarget,createRidgeField,ridgePointAt,cre
 
 const data=JSON.parse(fs.readFileSync(new URL('./study-data.json',import.meta.url)));
 const fixtures=JSON.parse(fs.readFileSync(new URL('../evidence/perlin-lab-fixtures.json',import.meta.url)));
-const sources=data.scenes.filter(s=>['cliff','island','peaks'].includes(s.id)),seeds=[0,18,42,382,4294967295],results=[];
+const sources=data.scenes,seeds=[0,18,42,382,4294967295],results=[];
 const near=(a,b,tolerance,message)=>assert(Math.abs(a-b)<=tolerance,`${message}: ${a} vs ${b}`);
 for(const f of fixtures.samples)near(perlinLayers(f.seed,f.settings).sample(...f.point),f.value,1e-14,'Port agrees with actual lab generator');
 for(const options of [{frequency:0},{frequency:5},{octaves:1.5},{octaves:9},{lacunarity:0},{persistence:NaN},{persistence:-1}])assert.throws(()=>perlinSettings(options),RangeError);
@@ -116,10 +116,6 @@ for(const settings of [{frequency:1,octaves:1},{frequency:2,octaves:8,lacunarity
 }
 assert.notDeepEqual(checkPlan(mountain,18,{frequency:2,lacunarity:1.5}).nodes,checkPlan(mountain,18,{frequency:2,lacunarity:2}).nodes);
 assert.notDeepEqual(checkPlan(mountain,18,{frequency:2,persistence:0}).nodes,checkPlan(mountain,18,{frequency:2,persistence:1}).nodes);
-const bridge=generateRidgeScene(sources.find(s=>s.id==='cliff'),data.geometries,19,{mode:'perlin'}),bridgeSurface=createSurfaceSampler(bridge,data.geometries),bridgeErrors=[];
-for(const curve of bridge.ridge.plan.curves)for(let t=0;t<=curve.knots.at(-1).t;t+=.15){const p=ridgePointAt(curve,t);bridgeErrors.push(bridgeSurface(p[0],p[2])-p[1]);}
-const longEdgeRegression={scene:'cliff',seed:19,rmsM:Math.sqrt(bridgeErrors.reduce((s,e)=>s+e*e,0)/bridgeErrors.length),maximumDeviationM:Math.max(...bridgeErrors.map(Math.abs))};
-assert(longEdgeRegression.rmsM<1.5&&longEdgeRegression.maximumDeviationM<4,'Large masses must reach the far end of long cliff connections');
-const output={version:'perlin-ridge-extraction-1',noiseFixtureSamples:fixtures.samples.length,assemblies:results.length,controlExtremeAssemblies:4,longEdgeRegression,detailEnvelopeResponseM:detailResponse,checks:['actual lab noise parity','deterministic graph independent of atoms','field-derived maxima and shared nodes','connected noncoplanar tree','monotone C1 simplified curves','fine octaves do not create ridge nodes','coarse octaves and controls alter the network','fine detail reaches fitting envelope','finite bounds and shoreline containment','sparse accents and broad structural scale','independently ray-verified solid contact','unchanged target during fitting','dense actual-surface residuals','exact full assembly replay','height scales fields, curves and masses','long cliff edges grow connected large masses'],results};
+const output={version:'perlin-ridge-extraction-1',noiseFixtureSamples:fixtures.samples.length,assemblies:results.length,controlExtremeAssemblies:4,detailEnvelopeResponseM:detailResponse,checks:['actual lab noise parity','deterministic graph independent of atoms','field-derived maxima and shared nodes','connected noncoplanar tree','monotone C1 simplified curves','fine octaves do not create ridge nodes','coarse octaves and controls alter the network','fine detail reaches fitting envelope','finite bounds and shoreline containment','sparse accents and broad structural scale','independently ray-verified solid contact','unchanged target during fitting','dense actual-surface residuals','exact full assembly replay','height scales fields, curves and masses'],results};
 fs.writeFileSync(new URL('../evidence/perlin-validation.json',import.meta.url),JSON.stringify(output,null,2)+'\n');
-console.log(JSON.stringify({checks:output.checks.length,assemblies:results.length+5,noiseFixtures:fixtures.samples.length,maxRmsM:Math.max(...results.map(r=>r.rmsM)),maximumDeviationM:Math.max(...results.map(r=>r.maximumDeviationM)),detailEnvelopeResponseM:detailResponse,longEdgeRegression},null,2));
+console.log(JSON.stringify({checks:output.checks.length,assemblies:results.length+4,noiseFixtures:fixtures.samples.length,maxRmsM:Math.max(...results.map(r=>r.rmsM)),maximumDeviationM:Math.max(...results.map(r=>r.maximumDeviationM)),detailEnvelopeResponseM:detailResponse},null,2));

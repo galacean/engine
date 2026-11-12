@@ -86,7 +86,7 @@ function inside(point,vertices,indices){
  hits.sort((a,b)=>a-b);return hits.filter((v,i)=>!i||v-hits[i-1]>1e-5).length%2===1;
 }
 const assemblies=[];
-for(const [id,seed,options] of [['cliff',18,{mode:'perlin'}],['cliff',19,{mode:'perlin'}],['island',18,{mode:'perlin'}],['island',425,{mode:'perlin',noise:{frequency:4,octaves:5,lacunarity:2,persistence:.85}}],['island',425,{mode:'perlin',noise:{frequency:4,octaves:3,lacunarity:2,persistence:.85}}],['peaks',18,{mode:'perlin'}],['peaks',416,{mode:'perlin',noise:{frequency:4,octaves:5,lacunarity:2,persistence:.85}}],['peaks',382,{mode:'direct'}]]){
+for(const [id,seed,options] of [['peaks',18,{mode:'perlin'}],['peaks',416,{mode:'perlin',noise:{frequency:4,octaves:5,lacunarity:2,persistence:.85}}],['peaks',382,{mode:'direct'}],['peaks',464,{mode:'direct'}],['peaks',465,{mode:'direct'}]]){
  const source=data.scenes.find(s=>s.id===id),before=JSON.stringify(source),scene=generateRidgeScene(source,library,seed,options),sample=createSurfaceSampler(scene,library),ground=createSurfaceSampler(source,{},true),errors=[];
  assert.equal(JSON.stringify(source),before);
  // Geometry may change the fit, never the independent target.
@@ -111,7 +111,7 @@ for(const [id,seed,options] of [['cliff',18,{mode:'perlin'}],['cliff',19,{mode:'
  let maximumGuideErrorM=0;
  for(const guide of scene.guides.filter(g=>g.kind==='spine'))for(const p of guide.points)maximumGuideErrorM=Math.max(maximumGuideErrorM,Math.abs(p[1]-guide.liftM-sample(p[0],p[2])));
  assert(maximumGuideErrorM<.015,'Orange guide measures the deformed surface');
- if(seed===416||seed===425){
+ if(seed===416||seed===464){
   assert.deepEqual(scene,generateRidgeScene(source,library,seed,options),'Assembly replay with surface detail');
   for(const factor of [.25,1.3,1.45,2]){
    const scaled=withSceneHeight(scene,factor);
@@ -121,11 +121,6 @@ for(const [id,seed,options] of [['cliff',18,{mode:'perlin'}],['cliff',19,{mode:'
  assemblies.push({scene:id,seed,options,structuralMasses:scene.ridge.composition.structuralMasses,smallRocks:scene.ridge.composition.smallRocks,verifiedContactEdges:scene.ridge.composition.contactEdges.length,rmsM,maximumDeviationM,maximumGuideErrorM});
 }
 
-const platform=data.scenes.find(s=>s.id==='platform'),oldTop=createSurfaceSampler(platform,data.geometries),newTop=createSurfaceSampler(platform,library);
-let platformSamples=0,maximumPlatformChangeM=0;
-function routeZ(x){let i=1;while(i<platform.route.length-1&&x>platform.route[i][0])i++;const a=platform.route[i-1],b=platform.route[i],t=Math.max(0,Math.min(1,(x-a[0])/(b[0]-a[0])));return a[1]+(b[1]-a[1])*t;}
-for(const offset of [-1.5,-.75,0,.75,1.5])for(let x=-31;x<=19;x+=.1){const slope=(routeZ(x+.05)-routeZ(x-.05))/.1,l=Math.hypot(1,slope),px=x-offset*slope/l,pz=routeZ(x)+offset/l;maximumPlatformChangeM=Math.max(maximumPlatformChangeM,Math.abs(newTop(px,pz)-oldTop(px,pz)));platformSamples++;}
-assert(maximumPlatformChangeM<1e-6,'Entire sampled 3m platform route remains unchanged');
-const output={version:ROCK_SURFACE_VERSION,generationMs,checks:['immutable source and uncached deterministic replay','finite bounded geometry and unit normals','closed wound manifold and nonzero GPU triangles','every generated cut face lies on its cutter plane','fractures expose varied connected wall planes without end caps','cut face render normals stay on their analytic planes','retained source faces remain coplanar and consistently wound','original bottom height summit and flat platform caps','render positions equal measured mesh positions','vertical joint contours on non-platform steep faces','independent ridge target unchanged','large connected masses and sparse accents','independent ray parity on carved contact witnesses','dense fit and measured orange guides','carved mesh height scaling including 145 percent','unchanged 3m platform route'],prototypes,assemblies,platformSamples,maximumPlatformChangeM};
+const output={version:ROCK_SURFACE_VERSION,generationMs,checks:['immutable source and uncached deterministic replay','finite bounded geometry and unit normals','closed wound manifold and nonzero GPU triangles','every generated cut face lies on its cutter plane','fractures expose varied connected wall planes without end caps','cut face render normals stay on their analytic planes','retained source faces remain coplanar and consistently wound','original bottom height summit and flat platform caps','render positions equal measured mesh positions','vertical joint contours on non-platform steep faces','independent ridge target unchanged','large connected masses and sparse accents','independent ray parity on carved contact witnesses','dense fit and measured orange guides','carved mesh height scaling including 145 percent'],prototypes,assemblies};
 fs.writeFileSync(new URL('../evidence/surface-validation.json',import.meta.url),JSON.stringify(output,null,2)+'\n');
-console.log(JSON.stringify({version:output.version,prototypes:prototypes.length,assemblies:assemblies.length,platformSamples,maximumPlatformChangeM,maxRmsM:Math.max(...assemblies.map(r=>r.rmsM)),maximumDeviationM:Math.max(...assemblies.map(r=>r.maximumDeviationM)),generationMs},null,2));
+console.log(JSON.stringify({version:output.version,prototypes:prototypes.length,assemblies:assemblies.length,maxRmsM:Math.max(...assemblies.map(r=>r.rmsM)),maximumDeviationM:Math.max(...assemblies.map(r=>r.maximumDeviationM)),generationMs},null,2));

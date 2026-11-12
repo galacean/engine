@@ -1,0 +1,36 @@
+{
+  "seeds": 200,
+  "peakCounts": {
+    "1": 43,
+    "2": 40,
+    "3": 47,
+    "4": 37,
+    "5": 33
+  },
+  "spurCounts": {
+    "3": 26,
+    "4": 48,
+    "5": 47,
+    "6": 49,
+    "7": 23,
+    "8": 7
+  },
+  "forkCounts": {
+    "0": 89,
+    "1": 74,
+    "2": 37
+  },
+  "distinctDegreeRoleSignatures": 148,
+  "checks": [
+    "mountain-only source with no baked topology",
+    "exact deterministic replay",
+    "seed-dependent summit and spur counts",
+    "seed-dependent connectivity and forks",
+    "shared XYZ nodes",
+    "finite curves within the footprint",
+    "connected acyclic graph",
+    "dominant summit and separated secondary peaks",
+    "no forced saddle on a single summit",
+    "immutable source"
+  ]
+}

@@ -1,5 +1,6 @@
-import {RIDGE_VERSION,DEFAULT_RIDGE_SEED,random,clamp,point,footprint,createSurfaceSampler,transformedVertices} from './ridge-utils.mjs';
-import {createMainRidgeTarget,planAxis,ridgeHeightAt} from './ridge-base.mjs';
+import {RIDGE_VERSION,DEFAULT_RIDGE_SEED,clamp,point,createSurfaceSampler,transformedVertices} from './ridge-utils.mjs';
+import {ridgeHeightAt} from './ridge-base.mjs';
+import {createMountainNetwork} from './mountain-network.mjs';
 import {fitRockMasses} from './rock-mass-fit.mjs';
 import {extractPerlinRidgeTarget,perlinCurvePoint,createPerlinSource} from './perlin-ridges.mjs';
 export {RIDGE_VERSION,DEFAULT_RIDGE_SEED,createSurfaceSampler,transformedVertices,withSceneHeight} from './ridge-utils.mjs';
@@ -32,54 +33,7 @@ function curveSamples(curve,pitch){
 }
 
 export function createRidgeTarget(source,inputSeed=DEFAULT_RIDGE_SEED){
- const plan=createMainRidgeTarget(source,inputSeed),rng=random(plan.seed,source.id+':ridge-network'),ground=createSurfaceSampler(source,{},true),axis=planAxis(plan);
- const island=source.id==='island',cliff=source.id==='cliff';
- plan.kind='branching-3d-network';
- plan.knots=plan.knots.map((k,i)=>{const [x,z]=axis.at(k.t);return {...k,id:'main-'+i,position:[x,k.y,z]};});
- plan.curves=[{id:'main',kind:'trunk',knots:plan.knots}];
- const peaks=plan.knots.filter(k=>k.role==='peak'),roots=[];
- for(let i=0;i<peaks.length;i++){
-  const root=peaks[i];
-  if(cliff)roots.push({root,side:-1});
-  else if(root.primary)roots.push({root,side:-1},{root,side:1});
-  else roots.push({root,side:i%2?1:-1});
- }
- const primaryT=plan.knots.find(k=>k.primary).t;
- for(const {root,side} of roots){
-  const fan=cliff?0:Math.sign(root.t-primaryT)*(.35+.20*rng());
-  const id='branch-'+(plan.curves.length),heading=curveYaw(plan.curves[0],root.t)+side*(Math.PI/2-fan+(rng()-.5)*.60);
-  let length=cliff?14+rng()*8:island?15+rng()*9:27+rng()*8;
-  const bend=(rng()-.5)*(cliff?3:island?5:9),c=Math.cos(heading),s=Math.sin(heading);
-  const xz=u=>[root.position[0]+c*length*u-s*bend*Math.sin(Math.PI*u),root.position[2]+s*length*u+c*bend*Math.sin(Math.PI*u)];
-  // Keep the complete branch on its own terrain. No camera-facing projection
-  // participates in either network generation or the downstream fitting.
-  for(let attempt=0;attempt<18;attempt++){
-   let valid=true;
-   for(let j=1;j<=8;j++)for(const offset of [-4.5,0,4.5]){
-    const [x,z]=xz(j/8),px=x-s*offset,pz=z+c*offset;
-    if(px<source.extent[0]+6||px>source.extent[1]-6||pz<source.extent[2]+6||pz>source.extent[3]-6||(island&&ground(px,pz)<.35))valid=false;
-   }
-   if(valid)break;length*=.90;
-  }
-  const saddleU=.35+rng()*.07,peakU=.62+rng()*.07;
-  const saddleXZ=xz(saddleU),peakXZ=xz(peakU),tailXZ=xz(1);
-  const peakFloor=ground(...peakXZ),saddleFloor=ground(...saddleXZ);
-  const tailY=ground(...tailXZ)+1.5;
-  const peakY=Math.max(tailY+(cliff?.45:2),peakFloor+Math.max(cliff?1.1:3,root.y-peakFloor)*(cliff?.58:.56+rng()*.12));
-  const saddleY=Math.max(saddleFloor+(cliff?.45:1.8),Math.min(root.y,peakY)-(cliff?.45:2.0+rng()*1.2));
-  const knots=[{...root,t:0},
-   {id:id+'-saddle',t:length*saddleU,y:saddleY,position:[saddleXZ[0],saddleY,saddleXZ[1]],role:'saddle'},
-   {id:id+'-peak',t:length*peakU,y:peakY,position:[peakXZ[0],peakY,peakXZ[1]],role:'peak'},
-   {id:id+'-tail',t:length,y:tailY,position:[tailXZ[0],tailY,tailXZ[1]],role:'tail'}];
-  plan.curves.push({id,kind:'branch',parent:'main',junction:root.id,knots});
- }
- const nodes=new Map();
- for(const curve of plan.curves)for(const knot of curve.knots){
-  if(!nodes.has(knot.id))nodes.set(knot.id,{id:knot.id,position:[...knot.position],y:knot.y,role:knot.role,primary:!!knot.primary,incidentCurves:[]});
-  nodes.get(knot.id).incidentCurves.push(curve.id);
- }
- plan.nodes=[...nodes.values()];
- return plan;
+ return createMountainNetwork(source,inputSeed);
 }
 
 // A radial influence around every network edge makes one XZ-dependent height
@@ -145,13 +99,13 @@ export function assembleRidgeTarget(source,geometries,plan){
  scene.ridge={version:RIDGE_VERSION,seed:plan.seed,plan,primary,saddles:[],target:{source:'generated-before-atoms',interpolation:'C1 XYZ cubic curves; shared graph junctions',knots:plan.nodes.map(n=>({...n,position:point(n.position)}))},stations:plan.nodes.map(n=>({id:n.id,role:n.role,primary:n.primary,junction:n.incidentCurves.length>1,target:point(n.position),base:[n.position[0],ground(n.position[0],n.position[2]),n.position[2]],heightM:n.y-ground(n.position[0],n.position[2])})),field:{gridPitchM:field.pitch,gridSamples:field.gridSamples,bodyFitSamples:bodySites.length},fit:{samplePitchM:.25,samples:allErrors.length,maxUnderM:Math.max(0,...allErrors.map(e=>-e)),maxOverM:Math.max(0,...allErrors),rmsM:Math.sqrt(allErrors.reduce((s,e)=>s+e*e,0)/allErrors.length),atoms:scene.rocks.length,byCurve}};
  scene.ridge.policy=masses.policy;scene.ridge.composition=masses.composition;
  const crown=plan.nodes.find(n=>n.primary),branch=plan.nodes.filter(n=>n.role==='saddle'&&!n.id.startsWith('main')).sort((a,b)=>b.position[2]-a.position[2])[0];
- scene.labels=[{text:plan.noise?'Field peak':'Peak junction',anchor:point(crown.position),position:[crown.position[0],crown.y+2.5,crown.position[2]]}];
- if(branch)scene.labels.push({text:plan.noise?'Field saddle':'Branch saddle',anchor:point(branch.position),position:[branch.position[0],branch.y+2.5,branch.position[2]]});
+ scene.labels=[{text:'Dominant peak',anchor:point(crown.position),position:[crown.position[0],crown.y+2.5,crown.position[2]]}];
+ if(branch)scene.labels.push({text:'Saddle',anchor:point(branch.position),position:[branch.position[0],branch.y+2.5,branch.position[2]]});
  scene.metrics={rocks:scene.rocks.length,triangles:scene.rocks.reduce((sum,r)=>sum+geometries[r.mesh].stats.triangles,0)};
  if(!cliff)scene.camera={...source.camera,yaw:.58,pitch:.52};
  return scene;
 }
 export function generateRidgeScene(source,geometries,seed=DEFAULT_RIDGE_SEED,options={}){
- if(!['cliff','island','peaks'].includes(source.id))return source;
+ if(source.id!=='peaks')throw new RangeError('The ridge study supports mountain peaks only');
  return assembleRidgeTarget(source,geometries,options.mode==='perlin'?extractPerlinRidgeTarget(source,seed,options.noise):createRidgeTarget(source,seed));
 }

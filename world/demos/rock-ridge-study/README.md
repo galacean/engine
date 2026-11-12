@@ -1,23 +1,89 @@
-# Rock ridge arrangement study
+# Procedural mountain peaks
 
-This standalone study arranges baked upstream atomic rocks around an independent,
-seeded 3D ridge network. Perlin mode extracts that network from a
-coarse noise field; Seeded graph builds it from the authored composition rules.
-It includes curved cliffs, an uphill bend, an offshore
-vista, mountain peaks, walkable shelf geometry, and riverbank groups. The cliff,
-island and mountain scenes use the procedural ridge fitter.
+The main demo now generates **mountain peaks only**. Curved cliffs, paths, offshore
+islands, platforms and riverside arrangements have been removed from its source
+and controls. The atomic controls and sandstone studies remain separate tools.
 
-Open `index.html` through a local HTTP server. The checked-in page is ready to run;
-it uses pinned Three.js 0.160.0 from jsDelivr. No Engine build or package install is
-needed for the study. Atomic rock texture, procedural stone, fractured clay and the
-original clay meshes can be compared. This standalone study reuses the
-atomic generator's texture pair and surface projection; the full Engine lighting and runtime navigation are not integrated.
+Open `index.html` through a local HTTP server. Three.js and the original atomic
+rock textures load from pinned jsDelivr URLs; no Engine build is required.
 
-The entry preview retains the latest island settings: seed **462**, **200%** height,
-**Seeded graph**, plan view, with **150% depth, 160% width, and 180% irregularity**.
-The new default finish is **Atomic rock texture · triplanar**. On first load, an older
-saved state retains its arrangement, seed, height, fractures and orbit while adopting
-the new finish. Subsequent finish choices persist normally.
+```sh
+python3 -m http.server 8771 --bind 127.0.0.1 --directory world/demos/rock-ridge-study
+# Open http://127.0.0.1:8771/
+
+# Rebuild only the mountain demo
+node world/demos/rock-ridge-study/build.mjs
+# Mountain topology, persistence, geometry, Perlin and carved-surface checks
+npm run test:mountain --prefix world/demos/rock-ridge-study
+```
+
+The entry defaults are seed **464**, **200%** height, **Seeded graph**, plan view,
+**140% depth / 160% width / 180% irregularity**, and **Atomic rock texture · triplanar**.
+Saved states from the former island entry migrate to mountains while retaining
+seed, height, authoring mode, material, fractures, view and orbit. State echoes
+and seed changes preserve orbit angles. The live count lists target summits,
+terminal spurs, fitted masses and small rocks.
+
+## Seed-generated topology
+
+`seed-grown-mountain-12` replaces the fixed main-ridge/branch construction.
+`src/mountain-network.mjs` uses a seed-local random stream at runtime, before
+reading any atomic mesh:
+
+1. Choose 1–5 requested summits and 3–6 requested descending spurs. Place a dominant
+   summit, then grow additional summits in available X/Z space. Every accepted
+   summit chooses a nearby existing parent; the result can form a chain or fork.
+   Summit spacing is at least 17 m. Counts can be reduced if space is exhausted.
+2. Connect each summit pair with a shared saddle whose location and elevation are
+   also seeded. A one-summit network has no fabricated saddle or secondary peak.
+3. Grow descending spurs into open sectors. Their attachment, direction and length
+   vary with the seed. Some have a shoulder; some descend directly to a tail.
+4. Optionally split up to two shoulders into additional descending branches.
+   Shared nodes have identical XYZ coordinates. Every edge is a continuous cubic
+   curve; peaks and saddles are actual height extrema along their summit links.
+
+There is no stored ridge layout, fixed main axis, alternating branch pattern, or
+mandatory saddle→secondary peak→tail sequence. Size limits, spacing, slope profiles
+and rejection criteria are explicit generation rules, not a library of layouts.
+The supporting ground/footprint and the twelve upstream atomic mesh prototypes
+are still fixed inputs. Changing the mountain seed regenerates topology and
+placement; it does not regenerate the underlying mesh library or fracture seeds.
+
+**Show layout** draws the exact procedural target in blue. Orange measures the
+assembled mesh surface at the same X/Z coordinates; it is not an extraction of
+every exposed crest. Spheres mark peaks and diamonds mark saddles. Height scales
+ground, target, rock geometry and measurements together from 25% to 200%.
+
+## Connected mass fitting
+
+The fitter grows outward from the dominant summit, then refits and prunes whole
+masses. Structural footprints remain at least 12 m long, with a budget of 30.
+A 3.2 m soft curve band at 100% height permits local shape differences; this is a
+loss dead zone, not a maximum error guarantee. The surface between ridges also
+participates in fitting. At most two small accents occupy low edges; there is no
+small-rock ridge-fill or summit-stack pass.
+
+Accepted pieces overlap in sampled solid mesh volume. Independent ray checks
+verify contact witnesses. The resulting mountain is a connected assembly of
+intersecting meshes; Boolean union, collision integration and navigation acceptance
+are outside this study.
+
+## Perlin authoring
+
+**Ridge source → Perlin field** retains the lab-derived alternative. It extracts
+maxima and connecting saddle passes from a masked coarse field, rather than using
+the directly grown network. **Surface** compares the fitted rocks, coarse field,
+and detailed field; the existing frequency, octave, lacunarity and persistence
+controls remain available.
+
+Only wavelengths of at least 24 m determine structural topology. Watershed basins,
+maximum connecting passes and prominence pruning retain up to four major peaks;
+additional transit peaks can remain when needed for connectivity. The graph is
+simplified into shared XYZ nodes and monotone cubic paths. Smaller octaves add
+bounded surface variation, fade out at ridge constraints, and cannot spawn small
+ridge-filling rocks. At frequency 4, increasing octaves changes detail while
+preserving the structural network. The dated lab assessment below records the
+source and limits of this port.
 
 ## Atomic generator texture projection
 
@@ -47,126 +113,6 @@ inverse transpose for nonuniform scale, and the blended detail normal is transfo
 back to view space for Three.js lighting. The maps use repeat wrapping, trilinear
 mipmaps and up to 4× anisotropy. Fracture faces need no UVs, and mesh positions,
 geometry generation and fitting are unchanged by the material.
-
-Validation: build, JavaScript syntax, unchanged base-mesh data, per-rock tiling scale,
-and inline size checks passed. Browser review at seed 462 / 200% height showed the
-new texture and normal detail with no JavaScript or shader errors. Restoring the
-previous saved state retained the seed, height, fractures and view while selecting
-the corrected material.
-
-For individual shape controls, open [Atomic rock controls](atomic-controls/index.html).
-Its 27 parameter choices run the upstream single-rock generator and compare source/reduced
-meshes. Choose one parameter at a time or enable combined edits.
-
-For the sandstone photograph target, open [Procedural sandstone processing](sandstone-study/index.html).
-It cuts a clean upstream atomic mesh into broad buttresses, open vertical joints,
-uneven bed breaks and localized chips. Compare all five stages in clay or sandstone,
-change the seed and dimensions, and replay the versioned recipe. See the
-[pipeline and reproduction commands](sandstone-study/README.md).
-
-```sh
-# From the repository root
-python3 -m http.server 8771 --bind 127.0.0.1 --directory world/demos/rock-ridge-study
-# Open http://127.0.0.1:8771/
-
-# Regenerate the page and run the geometry checks
-node world/demos/rock-ridge-study/build.mjs
-node world/demos/rock-ridge-study/src/verify-ridges.mjs
-node world/demos/rock-ridge-study/src/verify-perlin.mjs
-node world/demos/rock-ridge-study/src/verify-surfaces.mjs
-node world/demos/rock-ridge-study/src/verify-fracture-controls.mjs
-```
-
-## Current fitter
-
-`ridge-fracture-controls-11` generates the full network before reading any rock geometry.
-Shared XYZ junctions connect continuous curves with procedural peaks and saddles.
-The blue lines show that exact input; orange lines sample the actual mesh surface
-at the same X/Z positions. Orange is not an extraction of every mesh crest.
-
-The fitter grows a connected body outward from the dominant peak, using structural
-footprints at least 12 m long. It moves, rotates, scales and replaces whole masses,
-then prunes redundant pieces. Soft curve bands let the meshes retain their shape:
-1.8 m for cliffs, 2.8 m for islands and 3.2 m for mountains at 100% height. These are
-dead zones in the objective, not guaranteed maximum errors. The search also scores
-the surface between branches and penalizes excess volume and piece count.
-
-Small rocks have a separate budget of two, are no taller than 3 m at 100% height,
-and are grounded near low edges. There is no small-rock ridge-fill or summit-stack
-pass. All accepted pieces overlap the connected body in sampled solid mesh volume.
-Independent ray checks verify the stored contact witnesses.
-
-For seed 382:
-
-The counts below describe the **Seeded graph** mode retained from version 4.
-
-| Scene | Previous pieces | Structural masses | Small rocks |
-| --- | ---: | ---: | ---: |
-| Curved cliff | 80 | 9 | 2 |
-| Offshore vista | 105 | 9 | 2 |
-| Mountain peaks | 119 | 14 | 2 |
-
-Height scales the full scene from 25% to 200%. Seed changes regenerate the network;
-orbit, preset views and target/surface overlays remain interactive. Camera state
-echoes no longer reset the view at drag end. The earlier isolated camera-state
-checks passed; native drag automation did not establish gesture-level proof.
-
-## Perlin ridge prototype
-
-The earlier island comparison used seed 425, height 100%, frequency
-4, three octaves, lacunarity 2 and persistence 0.85. The generator's regression
-baseline remains seed 18 with persistence 0.5. Use **Ridge source** to compare with
-the earlier generator, and **Surface**
-to switch between fitted rocks, the coarse field, and the field with fine detail.
-Open **Noise controls** to change the four noise parameters. Height continues to
-scale the entire field, target curves and rock assembly from 25% to 200%.
-
-`src/perlin-ridges.mjs` ports the lab's seeded gradient noise and octave phase
-logic, then adds an extraction stage that the lab did not contain:
-
-1. Sample a masked 65 × 49 field in world X/Z. The noise domain is 100 m; the
-   masks follow each scene's footprint, including the curved cliff band.
-2. Use only wavelengths of at least 24 m for structure. Ascending paths assign
-   cells to local maxima. The highest pass between each pair of adjacent basins
-   supplies a candidate saddle connection.
-3. Build a maximum-pass spanning tree. Keep up to four major peaks by prominence
-   and 12 m separation, then retain the connecting subtree. Smaller transit peaks
-   needed by those connections can remain. Trace outward descending spurs on the
-   same coarse field; do not invent branches from a camera silhouette.
-4. Collapse ordinary degree-two cells, smooth and simplify the paths, and save
-   shared XYZ nodes with peak/saddle/junction/tail roles. Cubic curves interpolate
-   every retained node. Monotone Hermite height interpolation preserves extrema;
-   intermediate bends do not become rock anchors. Smoothing can depart slightly
-   from the sampled field between nodes.
-5. Fit the existing broad connected masses to the graph and its width envelope.
-   Long extracted edges offer intermediate candidate positions at 8 m intervals
-   so large pieces can grow continuously toward distant nodes. Candidate spacing
-   does not set rock size; every accepted structural footprint is still >=12 m.
-   Finer octaves add at most 1.2 m of amplitude-weighted surface variation before
-   height scaling, fading to zero on the target curves. They cannot spawn graph
-   nodes or a small-rock repair pass. Small rocks retain their separate budget of
-   two and structural pieces remain at least 12 m long.
-
-At frequency 4, only the first octave is structural: increasing octaves adds
-detail while preserving identical XYZ curves. At frequency 2 and lacunarity 2,
-the first two octaves are structural; changing from one to two can move peaks and
-saddles. The control summary shows the wavelength and the split. Frequency is
-limited to 1–4 cycles per 100 m so the base layer stays above the structural
-cutoff. A seed with only one significant peak has descending spurs and no invented
-saddle. Parameter changes regenerate topology; this prototype has no node-drag
-editor or manual edit preservation yet.
-
-For default Perlin seed 18 at 100% height with **Original clay**:
-
-| Scene | Structural masses | Small rocks | Ridge edges |
-| --- | ---: | ---: | ---: |
-| Curved cliff | 3 | 2 | 16 |
-| Offshore vista | 9 | 2 | 5 |
-| Mountain peaks | 11 | 2 | 9 |
-
-The differing edge and rock counts are intentional: several short ridge edges
-can guide one large mass. The source field is an authoring reference; pruned hills
-and the full source surface are not all reproduced by the ridge envelope.
 
 ## Fractured slab surface study — 2026-11-11
 
@@ -249,53 +195,38 @@ has been removed.
    overlap witnesses and the measured orange guide. The procedural target is
    independent of the cutters. Height scales the entire result consistently.
 
-### Verification and limits
+## Verification — mountain-only revision
 
-The surface suite checks all 12 prototypes and eight fitted assemblies, including
-island seed 425 with both three and five octaves, mountain seed 416, the long cliff
-connection at seed 19, and the earlier seeded graph. It checks closed, consistently
-wound topology; nonzero triangles after Float32 conversion; retained source-plane
-geometry; exact cutter-plane faces and render normals; varied exposed fracture
-wall directions; no exposed cutter end caps or back faces; the original summit and bottom heights;
-unchanged platform caps; identical rendered/measured positions; deterministic
-replay; connected mass contacts; target independence; and height transforms.
-All 2,500 samples across the 3 m platform route retain their original height.
-See [surface-validation.json](evidence/surface-validation.json).
+- 200 seeds reproduce exactly and form connected trees with shared XYZ junctions.
+  They produce all five summit counts, 3–8 terminal spurs, 0–2 forks, and 148
+  distinct degree/role signatures. This checks topology variation rather than
+  coordinate jitter alone. See [topology evidence](evidence/mountain-topology-validation.json).
+- Seven original-mesh assemblies (seeds 0, 42, 334, 382, 464, 465, and 4294967295)
+  pass finite/bounded geometry, independent contact witnesses, sparse accent and
+  structural-size budgets, exact replay, dense surface measurement, height
+  scaling, and a local branch-height response check. Worst RMS deviation is
+  2.457 m at 100% height. See [ridge evidence](evidence/ridge-validation.json).
+- The retained Perlin path passes five mountain assemblies, four control extremes
+  and 36 numeric fixtures from the lab. Its worst sampled RMS deviation is
+  2.144 m. See [Perlin evidence](evidence/perlin-validation.json).
+- The carved-surface suite checks twelve prototypes and five mountain assemblies:
+  closed, wound solids; finite GPU triangles; cutter-plane faces and normals;
+  preserved source planes, summit/bottom heights and flat caps; independent mesh
+  contacts; target independence; and height scaling. Worst sampled RMS deviation
+  is 2.676 m at 100% height. See [surface evidence](evidence/surface-validation.json).
+- Persistence tests execute the viewer's real state handlers, checking migration
+  from a saved island, retained material/fracture/noise settings, seed rebuilds,
+  and post-drag state echoes without camera resets.
+- Browser review at 200% height and 140%/160%/180% fracture settings confirmed
+  seed 464 changes from one summit to five at seed 465. Textured and clay views,
+  oblique and plan views, restored state, and the Perlin coarse-field view rendered
+  without JavaScript or shader errors. Native drag gestures were not revalidated.
 
-The control suite checks 120 meshes: both disabled-joint settings and the eight
-combinations of 10%/200% depth, 10%/200% width, and 0%/200% irregularity across
-the 12 prototypes. It verifies closed, connected, consistently wound solids,
-nonzero GPU triangles, no exposed end caps, retained summits and platform caps.
-Separate checks confirm that depth and width change actual removed volume,
-irregularity changes geometry, defaults restore correctly, and replay is
-deterministic. See [fracture-controls-validation.json](evidence/fracture-controls-validation.json).
-
-The direction regression remains a check on non-platform steep faces. Short
-platform-side cuts have protected tops and proportionally large termination
-regions, so their contour orientation is recorded but not used as a cliff-style
-vertical-direction acceptance test. Planarity and topology are checked for every
-prototype, including platform slabs. These checks prove construction properties,
-not geological realism or overall artistic quality.
-
-Browser review covered the matched island and uphill-path clay comparisons at
-736 px, the stacked comparison at 320 px, and island seed 425 at 100% and 145%
-height with three octaves and 0.85 persistence. The reviewed cuts have uneven
-planar turns and tapered ends without the earlier triangular fins. The final
-browser session reported no JavaScript or shader errors. Native orbit gestures
-were not revalidated in this revision.
-
-Control review also exercised zero irregularity, combined 150% depth / 60% width /
-180% irregularity, persistence after reload, and the resulting full island refit.
-The comparison retained its left-hand reference and framing during slider changes.
-The controls fit at 736 px and stack at 320 px; the final session had no console
-errors. The tuned island contains 11 structural masses, no small accents and 21
-sampled contact edges; its sampled fit RMS is 2.04 m.
-
-The current library has 14,772–37,864 triangles per prototype. Generating its twelve
-carved meshes took 7.7 seconds in the recorded local Node check; the viewer
-caches them. It has no production LOD or performance acceptance. This is a
-floating-point BSP prototype validated on the twelve closed upstream meshes, not
-a certified robust Boolean kernel for arbitrary degenerate input.
+These samples do not establish a bound for every seed or artistic realism. The
+carved library remains a floating-point BSP prototype without production LOD or
+performance acceptance. The earlier 120-case fracture-control validation is
+preserved in [fracture-controls-validation.json](evidence/fracture-controls-validation.json);
+fracturing itself is unchanged in this revision.
 
 ## Perlin lab assessment — 2026-11-09
 
@@ -329,7 +260,7 @@ The lab paths above are relative to
 algorithm has now been ported into this standalone study. The lab's OBB controls,
 feature graph, triangulator and package engine are unchanged.
 
-### What the existing ridge graph does
+### What the inspected lab ridge graph did
 
 `GeographicFeatureNode.position` is a two-component world X/Z coordinate. Each
 ridge is a quadratic curve with one added-height value, width and sharpness.
@@ -397,51 +328,3 @@ with persistence 0.5. Five octaves at persistence 0.8 produced 1,397. These are
 strict eight-neighbor sample maxima, not geologically significant peaks or a
 ridge extraction result; this one-seed comparison illustrates why scale filtering
 is needed before building topology. The probe values are preserved in the evidence.
-
-## Verification and limits
-
-- The noise port matches 36 numeric fixtures generated directly from the lab's
-  current `PerlinNoise.ts`. Its source hash is recorded in
-  [perlin-lab-fixtures.json](evidence/perlin-lab-fixtures.json).
-- The new Perlin suite checks 15 default assemblies (five seeds across three
-  scenes), four mountain control extremes, and one long-edge cliff regression.
-  It verifies field-derived maxima,
-  shared noncoplanar connected curves, monotone C1 interpolation, source/target
-  immutability, exact replay, octave separation, height scaling, shoreline bounds,
-  broad mass scale and independently ray-checked mesh contact witnesses.
-  The 15 default assemblies use 3–17 structural masses and 1–2 small rocks.
-  Worst RMS deviation is 2.144 m; a local deviation reaches 6.371 m at 100% height.
-  These are measured prototype residuals, not guarantees over every seed or
-  parameter combination. See [perlin-validation.json](evidence/perlin-validation.json).
-- The ridge fitter passed 20 categories of checks over 15 assemblies: five seeds
-  each for cliff, island and mountain. Each has one connected body, 7–21 structural
-  masses and at most two small rocks. Seed 382 input curves exactly match the
-  preceding demo's stored baseline. Height transforms were checked at 25/130/200%.
-- The independent dense fit check samples at 0.15 m. The worst RMS error is
-  2.3023 m; local deviations reach 7.1277 m at 100% height. Five seeds do not prove
-  every seed or a continuous error bound. See [ridge-validation.json](evidence/ridge-validation.json).
-- The lab's current noise, cell-normalization and landform suites passed 63 tests
-  across three files. In the saved build, the stacked mountain with geographic
-  features disabled rendered successfully at two and five octaves, retaining a
-  175.49 m peak through per-OBB calibration.
-- Enabling the feature graph in the inspected mountain setups produced
-  `Could not retain a boundary vertex in its heightfield cell`. The saved combined
-  path therefore needs repair/revalidation before adoption. This assessment did
-  not repair the separate lab checkout.
-- The Perlin update was visually checked at 736 and 320 px, including cliff,
-  island and mountain masses, both source-field views, octave/frequency edits,
-  seed regeneration, height changes and the earlier generator comparison.
-  At 320 px the controls had no horizontal overflow. No runtime JavaScript
-  errors were observed. Native drag automation again did not establish an orbit
-  gesture, so gesture-level acceptance remains unverified.
-  Numerical overlap witnesses do not establish physical
-  stability. The rocks remain overlapping independent meshes, without Boolean
-  union, collision integration or navigation acceptance.
-
-`geometry.json` contains 12 baked meshes from `galacean/engine`, branch
-`codex/procedural-rock-example`, commit
-`b2887feee34df433303d1c3197a679e4c219367d`. The parameters and mesh statistics are
-embedded with each prototype. Rebuilding this study consumes those checked-in
-meshes; it does not require the upstream atomic generator. The standalone shell
-was exported from the inline visualization and is retained as a local template,
-so rebuilding the demo does not depend on a Codex installation.
