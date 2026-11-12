@@ -2,6 +2,7 @@ import { AssetPromise, Engine, TextureCube, TextureCubeFace, TextureFormat } fro
 import { BufferReader } from "../../utils/BufferReader";
 import { decoder } from "../../utils/Decorator";
 import { HDRDecoder } from "../../../HDRDecoder";
+import { ImageDecoder } from "../../../ImageDecoder";
 
 /**
  * Data format: [url] [mipmap(1B)] [filterMode(1B)] [anisoLevel(1B)] [wrapModeU(1B)] [wrapModeV(1B)]
@@ -42,21 +43,13 @@ class TextureCubeDecoder {
       } else {
         let loadedCount = 0;
         for (let i = 0; i < 6; i++) {
-          const blob = new Blob([facesData[i]]);
-          const img = new Image();
-          img.onload = () => {
-            URL.revokeObjectURL(img.src);
+          ImageDecoder._decode(facesData[i], url).then((img) => {
             texture.setImageSource(TextureCubeFace.PositiveX + i, img);
             if (++loadedCount === 6) {
               mipmap && texture.generateMipmaps();
               resolve(texture);
             }
-          };
-          img.onerror = (e) => {
-            URL.revokeObjectURL(img.src);
-            reject(e);
-          };
-          img.src = URL.createObjectURL(blob);
+          }, reject);
         }
       }
     });
