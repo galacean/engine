@@ -332,9 +332,9 @@ export async function createBuildingDistanceView(
       batch.id = p.pickId === undefined ? buildingGroupKey(p.owner) : buildingPartKey(p.pickId);
       batches.push(batch);
     }
-    stoneFloorLease = stoneFloorMaterials.length ? leaseStoneFloorTextures(engine, assets, true) : undefined;
-    textureLease = plasterMaterials.length ? leasePlasterTextures(engine, assets, true) : undefined;
-    decorationTextureLease = decorationMaterials.length ? leaseDecorationTextures(engine, assets, true) : undefined;
+    stoneFloorLease = stoneFloorMaterials.length ? leaseStoneFloorTextures(engine, assets) : undefined;
+    textureLease = plasterMaterials.length ? leasePlasterTextures(engine, assets) : undefined;
+    decorationTextureLease = decorationMaterials.length ? leaseDecorationTextures(engine, assets) : undefined;
     if (
       geometry.decorationParts.length ||
       geometry.retainedWallUnits?.length ||

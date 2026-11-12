@@ -123,8 +123,7 @@ async function verifyCurrentSource(source: GalaceanSourceSceneFile | GalaceanSou
     const rendered = buildBuildingRenderPackage(
       input,
       nativeAssets,
-      buildingGlobals(input.paletteSlots, nativeAssets.frame),
-      true
+      buildingGlobals(input.paletteSlots, nativeAssets.frame)
     );
     expect(rendered.package.draws.length).toBeGreaterThan(0);
     let resourceBytes = 0;

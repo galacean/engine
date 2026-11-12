@@ -4,7 +4,7 @@ import { constructionPlasterWarpGLSL } from "./ConstructionPlasterWarp";
 import type { ConstructionPreviewPart } from "./ConstructionPreview";
 import type { ConstructionRenderResult } from "./ConstructionDecorationRender";
 import { constructionPlasterGLSL, constructionPlasterFinishGLSL } from "./ConstructionPlasterShader";
-const program = (whiteBase: boolean) => ({
+const program = {
   vert: {
     source: `#version 300 es
 precision highp float;
@@ -38,18 +38,18 @@ in vec4 finishParams;
 layout(location=0) out vec4 residentColor;
 ${constructionPlasterGLSL}
 ${constructionPlasterFinishGLSL}
-${whiteBase ? masonryTintGLSL : ""}
+${masonryTintGLSL}
 void original_main(){vec3 finish=plasterSurface(finishUV,finishParams.x,finishParams.y,finishParams.w);
 vec3 n=normalize(vertexNormal);
 vec3 albedo=plasterFinish(finishUV,finishParams,vertexColor,finish,plasterPositionWS,n);
 if(finish.x<.5)discard;
-${whiteBase ? "vec4 tint=masonryMaterialOverride(0.0);if(tint.a>.5)albedo=vec3(dot(albedo,vec3(.2126,.7152,.0722)))*tint.rgb;" : ""}
+vec4 tint=masonryMaterialOverride(0.0);if(tint.a>.5)albedo=vec3(dot(albedo,vec3(.2126,.7152,.0722)))*tint.rgb;
 vec3 v=masonrySceneFog(masonryResidentSceneLight(albedo,n,plasterPositionWS,.9),plasterPositionWS);
 residentColor=vec4(mix(12.92*v,1.055*pow(v,vec3(1.0/2.4))-.055,greaterThan(v,vec3(.0031308))),1.0);
 }
 void main(){original_main();}`
   }
-});
+};
 /** Single shared wall skin source for all LODs. No readback, new captured source,
  * or hidden-region reinterpretation: exact preview polygons reach both paths. */
 export function appendPlasterRenderPackage(
@@ -109,7 +109,7 @@ export function appendPlasterRenderPackage(
   return {
     package: {
       ...base.package,
-      programs: { ...base.package.programs, "host-plaster": program(!!base.package.whiteBase) },
+      programs: { ...base.package.programs, "host-plaster": program },
       draws
     },
     dynamicFiles: [...base.dynamicFiles, ...files.keys()],

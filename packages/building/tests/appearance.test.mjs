@@ -74,10 +74,10 @@ test("merged decorations tint wood/support while retaining glass, emission and s
     parts[0].colors.slice(3, 6)
   );
   const before = structuredClone(parts);
-  for (const whiteBase of [false, true]) {
+  {
     const result = appendDecorationRenderPackage(
       {
-        package: { whiteBase, nativeAssets, programs: {}, draws: [], textures: {} },
+        package: { nativeAssets, programs: {}, draws: [], textures: {} },
         dynamicFiles: [],
         asset: async () => {
           throw Error("Unexpected asset");
@@ -91,19 +91,17 @@ test("merged decorations tint wood/support while retaining glass, emission and s
     assert.equal(draw.attributes.find((a) => a.location === 0).stride, floats * 4);
     const vertices = new Float32Array(await result.asset(draw.attributes.find((a) => a.location === 0).file));
     parts.forEach((part, partIndex) => {
-      const colors = whiteBase && part.tintRole ? whiteMasonryVertexColors(part.colors, part.tintMask) : part.colors;
+      const colors = part.tintRole ? whiteMasonryVertexColors(part.colors, part.tintMask) : part.colors;
       for (let i = 0; i < 3; i++) {
         const start = (partIndex * 3 + i) * floats;
         assert.deepEqual([...vertices.slice(start, start + 3)], positions.slice(i * 3, i * 3 + 3));
         assert.deepEqual([...vertices.slice(start + 3, start + 6)], normals.slice(i * 3, i * 3 + 3));
         for (let k = 0; k < 3; k++) assert.ok(Math.abs(vertices[start + 6 + k] - colors[i * 3 + k]) < 1e-6);
         assert.equal(vertices[start + 9], part.emission[i]);
-        if (whiteBase)
           assert.equal(
             vertices[start + draw.attributes.find((a) => a.location === 7).offset / 4],
             part.tintRole && part.tintMask?.[i] !== false ? masonryTintRoles.indexOf(part.tintRole) : -1
           );
-        if (whiteBase)
           for (let k = 0; k < 3; k++)
             assert.ok(
               Math.abs(
@@ -151,7 +149,6 @@ test("resident decoration geometry stays independent of palette seed and preserv
     appendDecorationRenderPackage(
       {
         package: {
-          whiteBase: true,
           nativeAssets,
           colorOwners: [{ id: "house", seed }],
           programs: {},

@@ -78,7 +78,7 @@ it("renders a village with the same draws and comparable output to the online pa
   const pk = (inputs: any[]) =>
     inputs.map(
       (i) =>
-        buildBuildingRenderPackage(i, nativeAssets, buildingGlobals(i.paletteSlots, nativeAssets.frame), true).package
+        buildBuildingRenderPackage(i, nativeAssets, buildingGlobals(i.paletteSlots, nativeAssets.frame)).package
     );
   const coPk = await time(() => pk(coComp.out), 2);
   const sum = (a: number[]) => a.reduce((x, y) => x + y, 0);

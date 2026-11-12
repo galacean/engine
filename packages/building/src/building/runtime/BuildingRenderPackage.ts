@@ -58,7 +58,6 @@ export function buildBuildingRenderPackage(
   input: BuildingRenderInput,
   assets: BuildingAssets,
   globals: ConstructionBindings,
-  whiteBase = false,
   rigidPoses?: ReadonlyMap<string, readonly number[]>,
   stoneGeometry?: import("./ConstructionGeometryAssets").ConstructionStoneGeometry
 ) {
@@ -193,8 +192,7 @@ export function buildBuildingRenderPackage(
     const group = input.groups.find((group) => group.id === draw.group);
     if (group?.decorationId !== undefined) draw.pickId = group.decorationId;
   }
-  result.package.whiteBase = whiteBase;
-  if (whiteBase) result.package.colorOwners = input.colorOwners.map((o) => ({ ...o }));
+  result.package.colorOwners = input.colorOwners.map((o) => ({ ...o }));
   result.package.dormerGrid = [...input.dormerBins.grid];
   result.package.document = structuredClone(input.placementDocument);
   result.package.groups = input.groups.map(({ id, binding_id, role, cells, materialUnits }) => ({
