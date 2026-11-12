@@ -1,0 +1,41 @@
+packages/world-planning/src/semantic-study/IslandPlanModel.ts
+  s_9cc19efe6cb9e3::t_f56d2ba0694e9a 147-150
+world/demos/seed-world/SeedWorldDemo.ts
+  s_9cc19efe6cb9e3::t_f56d2ba0694e9a 51,827-829,971-972,975-977,1002,1038-1039,1223-1224,1227-1229,1348-1350
+packages/world-planning/src/semantic-study/WorldPlanningContract.ts
+  s_9cc19efe6cb9e3::t_f56d2ba0694e9a 108-111,119
+world/demos/seed-world/src/planning/spatial/SpatialEditor.ts
+  s_9cc19efe6cb9e3::t_f56d2ba0694e9a 1,106,132-134
+packages/world-planning/src/spatial/layout/SpatialWorld.ts
+  s_9cc19efe6cb9e3::t_f56d2ba0694e9a 336-339
+world/tests/seed-world/WorldTemplates.spec.ts
+  s_9cc19efe6cb9e3::t_f56d2ba0694e9a 67,73,76-78,85-95,113,115,119
+world/demos/seed-world/src/planning/spatial/PlanningStartupTemplate.ts
+  s_9cc19efe6cb9e3::t_f56d2ba0694e9a 1,4-6,31-43
+  s_9cc19efe6cb9e3::t_5130f1de628be3 44
+packages/world-planning/src/spatial/PlanningComponents.ts
+  s_9cc19efe6cb9e3::t_f56d2ba0694e9a 768-777,789-795,798-803
+packages/world-planning/src/semantic-study/PlanningHeightmap.ts
+  s_9cc19efe6cb9e3::t_f56d2ba0694e9a 449-452
+world/demos/seed-world/src/planning/spatial/runtime/PlanningWorldSource.ts
+  s_9cc19efe6cb9e3::t_f56d2ba0694e9a 2,35-38
+packages/world-planning/src/semantic-study/WorldPlanningTerrain.ts
+  s_9cc19efe6cb9e3::t_f56d2ba0694e9a 1,900-925,992
+  s_9cc19efe6cb9e3::t_7611d37729411e 993
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "9ecf7a2254f4b386b57368385759d4ebd274f07f",
+  "prompts": {},
+  "sessions": {
+    "s_9cc19efe6cb9e3": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1a5d0-adc0-7cf2-99f0-6032732bfb59",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": null
+    }
+  }
+}

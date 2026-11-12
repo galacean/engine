@@ -1,0 +1,20 @@
+packages/modify/src/native/shader/src/Shaders/Sky/SkyProcedural.shader
+  s_c5192f23876072::t_99d4177b9a416f 8,118-120,162-170,172,174-183,185,187-192,308,575,617,636,651-652,658,686,737,746-748
+  s_c5192f23876072::t_b137ae508bfcf1 6-7,9-11,22,54,82-84,171,173,184,186,650,736,745
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "b6e6ae203c8aedf53aa4b75124ce29272f8331d1",
+  "prompts": {},
+  "sessions": {
+    "s_c5192f23876072": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1be41-d252-7f01-875c-a0a08f6c1c55",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

@@ -1,0 +1,24 @@
+world/demos/seed-world/SeedWorldDemo.ts
+  s_0ad7efa77c17be::t_0ced045b6eb93e 1195-1203,1206-1207,1209-1210
+  s_0ad7efa77c17be::t_07a478db156072 24,191,318,1194,1204-1205,1208,1211-1216
+world/demos/seed-world/src/SeedWorldSandstorm.ts
+  s_0ad7efa77c17be::t_6491d246460d47 83
+  s_0ad7efa77c17be::t_0825a9f87c5465 26-30,44-47,50,54,79,84,90-93,99
+  s_0ad7efa77c17be::t_07a478db156072 1-25,31-43,48-49,51-53,55-78,80-82,85-89,94-98,100-102
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "9504a721442c742724f8fbc6ed8d0e2ef0cc3d96",
+  "prompts": {},
+  "sessions": {
+    "s_0ad7efa77c17be": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1c9b0-c1c7-7c20-94e2-5d4a2cc750f7",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

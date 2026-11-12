@@ -1,0 +1,41 @@
+packages/world-planning/src/semantic-study/GlobalRoadNetwork.ts
+  s_c5192f23876072::t_4577a7f01d59b1 1,121,428-434,436
+  s_c5192f23876072::t_64f855da080496 435
+packages/world-planning/src/spatial/layout/TerrainRoad.ts
+  s_c5192f23876072::t_b6cea9360d3e06 48-50,101-103
+  s_c5192f23876072::t_6f0a53c36eaad6 1-2,4-39,51-52,54-75,78-84,87,90-100,104-110
+  s_c5192f23876072::t_64f855da080496 3,40-47,53,76-77,85-86,88-89
+packages/world-planning/src/index.ts
+  s_c5192f23876072::t_6f0a53c36eaad6 2
+packages/world-planning/src/spatial/layout/TerrainRoadSearch.ts
+  s_c5192f23876072::t_4577a7f01d59b1 1-58,60-118
+  s_c5192f23876072::t_64f855da080496 59
+packages/world-planning/src/runtime/SeedWorldDetailInstancedMesh.ts
+  s_c5192f23876072::t_ddadde114820d1 1-92
+packages/world-planning/src/runtime/SeedWorldPopulationRuntime.ts
+  s_c5192f23876072::t_ddadde114820d1 2-6
+  s_c5192f23876072::t_440d1077c59656 1
+packages/world-planning/package.json
+  s_c5192f23876072::t_6f0a53c36eaad6 362
+packages/world-planning/src/world/RoadSurfaceCoverage.ts
+  s_c5192f23876072::t_64f855da080496 1-170
+packages/world-planning/src/world/SeedWorldFeatureGeometry.ts
+  s_c5192f23876072::t_64f855da080496 1-9
+  s_c5192f23876072::t_6f0a53c36eaad6 84-90
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "5af055aef891ab0d296a990115284d12fcdf12ac",
+  "prompts": {},
+  "sessions": {
+    "s_c5192f23876072": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1be41-d252-7f01-875c-a0a08f6c1c55",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

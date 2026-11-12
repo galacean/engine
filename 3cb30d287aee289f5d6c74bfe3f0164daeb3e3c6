@@ -1,0 +1,19 @@
+packages/world-planning/src/semantic-study/WorldLandDomain.ts
+  s_c5192f23876072::t_7825ec4b8b2421 34-39,42-43,47,131,174-176,182,184-194,228-359
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "3cb30d287aee289f5d6c74bfe3f0164daeb3e3c6",
+  "prompts": {},
+  "sessions": {
+    "s_c5192f23876072": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1be41-d252-7f01-875c-a0a08f6c1c55",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

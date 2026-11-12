@@ -1,0 +1,23 @@
+packages/world-planning/src/spatial/WorldTemplateCatalog.ts
+  s_9cc19efe6cb9e3::t_766a6da610795d 133-138
+packages/world-planning/src/spatial/WorldTemplateArtDirection.ts
+  s_9cc19efe6cb9e3::t_17046def24a967 764-769,771-776,778-779,781,784
+world/tests/seed-world/GentleTerrainDefaults.spec.ts
+  s_9cc19efe6cb9e3::t_f70184141589f7 51
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "0b19f1725bc4e1552cb776650e43b324dcec4642",
+  "prompts": {},
+  "sessions": {
+    "s_9cc19efe6cb9e3": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1a5d0-adc0-7cf2-99f0-6032732bfb59",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}
