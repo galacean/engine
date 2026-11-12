@@ -189,7 +189,8 @@ export interface BuildingRuntimeHost {
   terrain?: ConstructionTerrainSource;
   frame(owner: Component): Entity;
   isBody(member: Component): boolean;
-  kind(owner: Component): string;
+  /** Classify the supplied published groups in order, sharing one author scan. */
+  kinds(owners: readonly Component[]): string[];
   groupIdentity(member: Component): string;
   resolve(id: string): Component | undefined;
   validate(members: Iterable<Component>): void;
@@ -1135,7 +1136,7 @@ export class BuildingRuntime extends Script {
       authoredObjects: this.members.size,
       buildings: bodies.length,
       groups: this.views.size,
-      houses: bodies.filter((body) => this.host!.kind(body) === "house").length,
+      houses: bodies.length ? this.host!.kinds(bodies).filter((kind) => kind === "house").length : 0,
       draws,
       enabledRenderers: renderers,
       derivedEntities,
