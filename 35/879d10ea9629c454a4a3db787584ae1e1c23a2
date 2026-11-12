@@ -1,0 +1,19 @@
+packages/world-planning/src/spatial/WorldTemplatePlanning.ts
+  s_ae6fab0fbe1884::t_9b4b304d362655 55
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "35879d10ea9629c454a4a3db787584ae1e1c23a2",
+  "prompts": {},
+  "sessions": {
+    "s_ae6fab0fbe1884": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1cde9-e5eb-7580-948b-3731733934fb",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}
