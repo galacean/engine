@@ -5,6 +5,7 @@ import { rockFormationGround } from "../integrations/terrain/rock-formation/Plac
 import { COMPOSITION_SUBJECT_TERRACE_OWNER } from "./SpatialComposition";
 import { buildWorldTemplateGeometry, templateNodeFootprint, type TemplateNode } from "./WorldTemplateGeometry";
 import { worldTemplate } from "./WorldTemplateCatalog";
+import { worldTemplateStreet } from "./WorldTemplateStreet";
 import { WORLD_TEMPLATE_ART } from "./WorldTemplateArtDirection";
 import type { SubjectViewPose } from "./PlanningSubjectView";
 import type {
@@ -18,6 +19,46 @@ import type { V2Box } from "./V2Model";
 import profile from "../planning-data/settlement-profile.json";
 
 type Position = [number, number, number];
+
+export function resolveWorldTemplateSpawn(plan: IslandPlan) {
+  const spawn = WORLD_TEMPLATE_ART[plan.parameters.worldTemplate?.id ?? ""]?.spawn;
+  return spawn?.seed === plan.parameters.seed ? spawn : undefined;
+}
+
+export function resolveWorldTemplateStreetView(
+  plan: IslandPlan,
+  ground: (x: number, z: number) => number | undefined,
+  eyeHeight: number
+) {
+  const street = worldTemplateStreet(plan);
+  if (!street) return undefined;
+  const spine = street.construction!.spine!;
+  const stations = street.volumes.map(({ boxes: [box] }) => {
+    let closest = 0;
+    let distance = Infinity;
+    for (const [index, point] of spine.entries()) {
+      const next = Math.hypot(point.x - box.center.x, point.z - box.center.z);
+      if (next < distance) {
+        closest = index;
+        distance = next;
+      }
+    }
+    return closest;
+  });
+  const start = Math.max(0, Math.min(...stations) - 4);
+  const end = Math.max(...stations);
+  if (end <= start) return undefined;
+  const eye = spine[start];
+  const target = spine[Math.min(end, start + 15)];
+  const eyeY = ground(eye.x, eye.z);
+  const targetY = ground(target.x, target.z);
+  if (eyeY === undefined || targetY === undefined) return undefined;
+  return {
+    eye: { ...eye, y: eyeY + eyeHeight },
+    target: { ...target, y: targetY + eyeHeight + 1 }
+  };
+}
+
 export interface ResolvedTemplateNode {
   node: TemplateNode;
   position: Position;

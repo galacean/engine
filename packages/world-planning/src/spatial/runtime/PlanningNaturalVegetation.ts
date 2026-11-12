@@ -57,6 +57,7 @@ import {
 } from "../../world/SeedWorldAssetPlacementProfile";
 import { envelope } from "../../semantic-study/IslandPlanAtoms";
 import { applyLandscapeEdits } from "../layout/DerivedEdits";
+import { worldTemplate } from "../WorldTemplateCatalog";
 
 export interface PlanningPlantAsset extends LandscapePlantAsset {
   readonly bounds: LandscapeBounds;
@@ -289,7 +290,9 @@ export class PlanningNaturalVegetation {
     const stoneDensity =
       plan.naturalVegetation?.settings.companionStoneDensity ?? NATURAL_VEGETATION_DEFAULTS.companionStoneDensity;
     const stones =
-      stoneDensity > 0 ? createNaturalCompanionStoneLayer(assets.filter((asset) => asset.kind === "stone")) : undefined;
+      stoneDensity > 0 && worldTemplate(plan.parameters.worldTemplate?.id)?.vegetation !== "grass"
+        ? createNaturalCompanionStoneLayer(assets.filter((asset) => asset.kind === "stone"))
+        : undefined;
     this.layers = [
       ...(stones ? [stones] : []),
       ...createNaturalVegetationLayers(

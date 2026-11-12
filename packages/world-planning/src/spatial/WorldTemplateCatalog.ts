@@ -19,7 +19,8 @@ export interface WorldTemplate {
   colors: readonly [string, string, string, string];
   subject: string;
   /** Only clearly frozen, arid, bare or submerged references restrict terrestrial plants. */
-  vegetation?: "ice" | "desert" | "bare" | "marine";
+  vegetation?: "ice" | "desert" | "bare" | "marine" | "grass";
+  farming?: false;
   terrain: { heightM: number; widthM: number; count: number; coverage: number };
 }
 const gentleBaseTerrain = { heightM: 10, widthM: 180 };
@@ -120,11 +121,13 @@ export const WORLD_TEMPLATES: readonly WorldTemplate[] = [
   },
   {
     id: "neon-alley",
+    vegetation: "grass",
+    farming: false,
     name: "霓虹雨巷",
     icon: "🌧️",
     family: "alley",
     colors: ["#25314a", "#6586b4", "#ff6eb7", "#111d36"],
-    subject: "立体霓虹街区 · 细雨 · 全息贩卖机",
+    subject: "曲线街区 · 霓虹 · 细雨",
     terrain: { ...gentleBaseTerrain, heightM: 6, widthM: 250, count: 1, coverage: 0.82 }
   },
   {

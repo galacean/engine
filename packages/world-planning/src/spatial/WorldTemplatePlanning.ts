@@ -37,6 +37,7 @@ export function planWorldTemplateSite(
   );
   const art = WORLD_TEMPLATE_ART[template.id];
   const q = spatialCompositionParameters(plan.parameters.spatialComposition);
+  if (!nodes.length && !q.enabled && q.basinRadiusM === 0) return;
   const radius = Math.max(
     modelRadius,
     q.basinRadiusM,

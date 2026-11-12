@@ -32,15 +32,17 @@ import {
   type Material
 } from "@galacean/engine";
 import { usesProjectPlantResources } from "@galacean/engine-vegetation/asset-assembly/PlantSpeciesResources";
-import type { IslandPlan } from "../../semantic-study/IslandPlanModel";
+import type { IslandPlan, PlanPoint } from "../../semantic-study/IslandPlanModel";
 import type { RockFormationMesh } from "@galacean/engine-terrain/rock-formation/types";
 import { compositionSubjectTerraceBox } from "../SpatialCompositionGeometry";
 import { spatialCompositionParameters } from "../SpatialCompositionParameters";
 import { templateBaseSeed, templateLinearColor, worldTemplate, type WorldTemplate } from "../WorldTemplateCatalog";
 import { WORLD_TEMPLATE_ART, type WorldTemplateArtDirection } from "../WorldTemplateArtDirection";
 import { settlementRandom } from "../../semantic-study/SettlementGeometry";
+import { worldTemplateStreet } from "../WorldTemplateStreet";
 import { resolveWorldTemplateScene, type ResolvedWorldTemplateScene } from "../WorldTemplateView";
 import { fitTemplateAsset, type TemplateNode } from "../WorldTemplateGeometry";
+import { StreetFacadeRuntime } from "./StreetFacadeRuntime";
 import translucentShader from "./TemplateTranslucent.shader?raw";
 import fireflyShader from "./TemplateFirefly.shader?raw";
 import petalShader from "./TemplatePetal.shader?raw";
@@ -59,7 +61,8 @@ function modelBounds(entity: Entity): BoundingBox {
 export class WorldTemplateRuntime {
   readonly root: Entity;
   readonly template: WorldTemplate;
-  readonly geometry: ResolvedWorldTemplateScene["geometry"];
+  readonly geometry?: ResolvedWorldTemplateScene["geometry"];
+  private facades?: StreetFacadeRuntime;
   private mesh?: ModelMesh;
   private material?: UnlitMaterial;
   private readonly models: { id: string; url: string; entity: Entity }[] = [];
@@ -74,21 +77,27 @@ export class WorldTemplateRuntime {
   private petalMaterial?: ParticleMaterial;
   private destroyed = false;
   private readonly anchor: { x: number; y: number; z: number };
-  private focusBounds: ResolvedWorldTemplateScene["focusBounds"];
+  private focusBounds?: ResolvedWorldTemplateScene["focusBounds"];
 
   static async create(
     parent: Entity,
     plan: IslandPlan,
     ground: (x: number, z: number) => number | undefined,
     prepared = resolveWorldTemplateScene(plan, ground),
-    signal?: AbortSignal
+    signal?: AbortSignal,
+    viewer?: Entity
   ): Promise<WorldTemplateRuntime | undefined> {
     const template = worldTemplate(plan.parameters.worldTemplate?.id);
-    if (!template || !prepared) return undefined;
+    if (!template) return undefined;
+    const signs = WORLD_TEMPLATE_ART[template.id].streetSigns;
+    const street = worldTemplateStreet(plan);
+    const spine = street?.construction?.spine;
+    if (!prepared && !spine?.length) return undefined;
     signal?.throwIfAborted();
     const assets = new Map<string, GLTFResource>();
-    const urls = new Set(prepared.nodes.flatMap(({ node }) => (node.assetUrl ? [node.assetUrl] : [])));
-    const needsLeafMaterial = prepared.nodes.some(({ node }) => node.assetLeafMaterials?.length);
+    const nodes = prepared?.nodes ?? [];
+    const urls = new Set(nodes.flatMap(({ node }) => (node.assetUrl ? [node.assetUrl] : [])));
+    const needsLeafMaterial = nodes.some(({ node }) => node.assetLeafMaterials?.length);
     const leafTemplateTask = needsLeafMaterial
       ? parent.engine.resourceManager.load<Material>({
           type: AssetType.Material,
@@ -113,37 +122,54 @@ export class WorldTemplateRuntime {
           }
         })
       : Promise.resolve(undefined);
-    await Promise.all([
+    const atlasTask =
+      signs && spine?.length
+        ? parent.engine.resourceManager.load<Texture2D>({ type: AssetType.Texture, url: signs.atlasUrl })
+        : Promise.resolve(undefined);
+    const [leafTemplate, atlas, petalTexture] = await Promise.all([
+      leafTemplateTask,
+      atlasTask,
+      petalTextureTask,
       ...[...urls].map(async (url) => {
         assets.set(url, await parent.engine.resourceManager.load<GLTFResource>({ type: AssetType.GLTF, url }));
-      }),
-      leafTemplateTask,
-      petalTextureTask
+      })
     ]);
-    const leafTemplate = await leafTemplateTask;
-    const petalTexture = await petalTextureTask;
     signal?.throwIfAborted();
     if (parent.destroyed) throw new Error("World template parent was destroyed while loading models");
-    return new WorldTemplateRuntime(parent, template, prepared, assets, ground, leafTemplate, petalTexture);
+    return new WorldTemplateRuntime(
+      parent,
+      template,
+      prepared,
+      assets,
+      ground,
+      leafTemplate,
+      petalTexture,
+      atlas,
+      spine,
+      viewer
+    );
   }
   private constructor(
     parent: Entity,
     template: WorldTemplate,
-    scene: ResolvedWorldTemplateScene,
+    scene: ResolvedWorldTemplateScene | undefined,
     assets: ReadonlyMap<string, GLTFResource>,
     ground: (x: number, z: number) => number | undefined,
     leafTemplate?: Material,
-    petalTexture?: Texture2D
+    petalTexture?: Texture2D,
+    atlas?: Texture2D,
+    spine?: readonly PlanPoint[],
+    viewer?: Entity
   ) {
     this.template = template;
-    this.geometry = scene.geometry;
-    this.focusBounds = scene.focusBounds;
+    this.geometry = scene?.geometry;
+    this.focusBounds = scene?.focusBounds;
     this.root = parent.createChild(`World template: ${template.id}`);
     try {
-      const [x, y, z] = scene.anchor;
+      const [x, y, z] = scene?.anchor ?? [0, 0, 0];
       this.anchor = { x, y, z };
       this.root.transform.setPosition(x, y, z);
-      for (const { node, position } of scene.nodes) {
+      for (const { node, position } of scene?.nodes ?? []) {
         const entity = this.root.createChild(node.id);
         entity.transform.setPosition(position[0] - x, position[1] - y, position[2] - z);
         entity.transform.setScale(...node.scale);
@@ -218,6 +244,9 @@ export class WorldTemplateRuntime {
         if (!petalTexture) throw new Error("Missing template petal texture");
         this.createPetalParticles(petals, ground, petalTexture);
       }
+      const signs = WORLD_TEMPLATE_ART[template.id].streetSigns;
+      if (signs && atlas && spine)
+        this.facades = new StreetFacadeRuntime(this.root, atlas, signs, ground, spine, viewer);
     } catch (error) {
       this.dispose();
       throw error;
@@ -682,7 +711,7 @@ export class WorldTemplateRuntime {
               }
             : undefined
       })),
-      placeholders: this.geometry.nodes.filter((node) => !node.assetUrl).map((node) => node.id),
+      placeholders: (this.geometry?.nodes ?? []).filter((node) => !node.assetUrl).map((node) => node.id),
       models: this.models.map(({ id, url, entity }) => {
         const { min, max } = modelBounds(entity);
         return { id, url, bounds: { min: [min.x, min.y, min.z], max: [max.x, max.y, max.z] } };
@@ -692,6 +721,7 @@ export class WorldTemplateRuntime {
   dispose(): void {
     if (this.destroyed) return;
     this.destroyed = true;
+    this.facades?.dispose();
     this.root.destroy();
     this.leafMaterials.forEach((material) => material.destroy());
     this.leafMaterials.clear();

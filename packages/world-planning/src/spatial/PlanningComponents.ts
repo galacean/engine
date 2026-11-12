@@ -684,6 +684,13 @@ export const PLANNING_COMPONENTS: PlanningComponentDefinition[] = [
       },
       number("curveBendM", "曲线弯曲幅度", { unit: "m", step: 1 }),
       number("curveHeadingDegrees", "曲线方向", { unit: "°", step: 1 }),
+      {
+        key: "curveMemberOrder",
+        label: "曲线体量选位顺序",
+        type: "string",
+        options: ["along-street"],
+        optionLabels: { "along-street": "沿街两侧依次选位" }
+      },
       number("curveGapM", "曲线两侧基础净空", { unit: "m", step: 1, min: 0 }),
       number("curveLateralVariationM", "横向错落幅度", {
         unit: "m",
@@ -1348,6 +1355,7 @@ export function refreshLayoutRuleChoices(): void {
     "branchShape",
     "curveBendM",
     "curveHeadingDegrees",
+    "curveMemberOrder",
     "curveGapM",
     "curveLateralVariationM",
     "curveVariationScaleM",

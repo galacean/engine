@@ -108,7 +108,10 @@ function templateCore(template: WorldTemplate) {
     lakes: { countMin: 0, countMax: 0 }
   });
   const base = createSpatialTerrainPlan(canonical);
-  const anchor = planWorldTemplateSite(base, createPlanningGroundSampler(base, { natural: true }))!.center;
+  const anchor = planWorldTemplateSite(base, createPlanningGroundSampler(base, { natural: true }))?.center ?? {
+    x: base.parameters.width / 2,
+    z: base.parameters.depth / 2
+  };
   const resources: PlanningResource[] = (art.terrain ?? []).map((feature) => ({
     resourceId: `template:${id}:terrain:${feature.id}`,
     resourceType: "terrain-feature" as const,
@@ -220,10 +223,20 @@ export function createTemplatePlanningDocument(
       centerX: anchor.x,
       centerZ: anchor.z
     });
+  if (art.surfaceTextures) {
+    const { baseUrl, normalUrl, tileSizeM, strength } = art.surfaceTextures;
+    recipe.parameters.terrainSurface = {
+      baseTextureUrl: baseUrl,
+      normalTextureUrl: normalUrl,
+      tileMetres: tileSizeM,
+      normalScale: strength
+    };
+  }
   const document = importPlanningDocument(recipe);
   document.samplingVersion = initial.samplingVersion;
   document.waterAuthoringVersion = 1;
   const components = document.entities.world.components;
+  if (art.layout) components.layout = { values: { ...art.layout } };
   if (art.initialPlanning?.roadsEnabled !== undefined)
     components.network.values.enabled = art.initialPlanning.roadsEnabled;
   if (art.initialPlanning?.farmingEnabled !== undefined)
@@ -292,7 +305,7 @@ export function createTemplatePlanningDocument(
  * @param source Existing independent presentation and ecology authoring to retain.
  * @param seed New deterministic world identity.
  * @param id Template identity, or an empty string for the original procedural world.
- * @param options One-time initialization village target and global building upper bound.
+ * @param options Inherited population ranges for fields the new style does not specify.
  * @param retainComposition Preserve the current template's edited composition when varying the Seed.
  * @returns New authoring whose population is controlled by editable per-POI profile and spacing values.
  * @throws For invalid initialization inputs or an unrealizable population request.
@@ -304,7 +317,10 @@ export function createWorldStylePlanningDocument(
   options?: PlanningPopulationOptions,
   retainComposition = false
 ): PlanningDocument {
-  const document = id ? createTemplatePlanningDocument(seed, id, options) : createSeedPlanningDocument(seed, options);
+  const population = { ...options, ...WORLD_TEMPLATE_ART[id]?.initialPlanning?.population };
+  const document = id
+    ? createTemplatePlanningDocument(seed, id, population)
+    : createSeedPlanningDocument(seed, options);
   const copied = new Set<string>();
   const retain = (entityId: string, type: string) => {
     const key = JSON.stringify([entityId, type]);

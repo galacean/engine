@@ -17,7 +17,15 @@ export const PLANNING_WEATHER_COMPONENT: PlanningComponentDefinition = {
     { key: "rainRate", label: "降雨强度", type: "number", min: 0, max: 1, unit: "比例", default: 0 },
     { key: "snowRate", label: "降雪强度", type: "number", min: 0, max: 1, unit: "比例", default: 0 },
     { key: "temperatureCelsius", label: "气温", type: "number", unit: "°C", default: 22 },
-    { key: "relativeHumidity", label: "相对湿度", type: "number", min: 0, max: 1, unit: "比例", default: 0.38 }
+    { key: "relativeHumidity", label: "相对湿度", type: "number", min: 0, max: 1, unit: "比例", default: 0.38 },
+    { key: "surfaceWaterCoverage", label: "地面积水覆盖倍率", type: "number", min: 0, max: 4 },
+    { key: "puddleStorageBias", label: "初始积水储量", type: "number", min: 0, max: 1 },
+    { key: "surfaceReflectionIntensity", label: "地面积水反射强度", type: "number", min: 0, max: 4 },
+    { key: "surfaceSsrMix", label: "地面积水 SSR 混合", type: "number", min: 0, max: 1 },
+    { key: "surfaceRoughness", label: "浅水膜粗糙度", type: "number", min: 0.005, max: 1 },
+    { key: "standingWaterRoughness", label: "低洼积水粗糙度", type: "number", min: 0.005, max: 1 },
+    { key: "surfaceNormalFlattening", label: "水膜法线平滑", type: "number", min: 0, max: 1 },
+    { key: "surfaceRippleStrength", label: "水膜雨纹法线强度", type: "number", min: 0, max: 4 }
   ]
 };
 export const PLANNING_WEATHER_DECLARATION: PlanningSystemDeclaration = {
@@ -34,7 +42,10 @@ export const PLANNING_WEATHER_DECLARATION: PlanningSystemDeclaration = {
     }
   ]
 };
-const applied = new WeakMap<WorldEnvironmentRuntime, { signature: string; cloudScale?: string }>();
+const applied = new WeakMap<
+  WorldEnvironmentRuntime,
+  { signature: string; cloudScale?: string; hasSurfaceTuning: boolean }
+>();
 /** Reapply only changed author inputs; ordinary layout edits do not restart weather transitions. */
 export function applyPlanningWeather(
   environment: WorldEnvironmentRuntime,
@@ -66,5 +77,31 @@ export function applyPlanningWeather(
     temperatureCelsius: Number(values.temperatureCelsius),
     relativeHumidity: Number(values.relativeHumidity)
   });
-  applied.set(environment, { signature, cloudScale });
+  if (previous?.hasSurfaceTuning) environment.resetSurfaceWaterTuning();
+  const tuning = {
+    ...(values.surfaceWaterCoverage === undefined ? {} : { coverageMultiplier: Number(values.surfaceWaterCoverage) }),
+    ...(values.puddleStorageBias === undefined ? {} : { puddleStorageBias: Number(values.puddleStorageBias) }),
+    ...(values.surfaceReflectionIntensity === undefined
+      ? {}
+      : { reflectionIntensity: Number(values.surfaceReflectionIntensity) }),
+    ...(values.surfaceSsrMix === undefined ? {} : { ssrMix: Number(values.surfaceSsrMix) }),
+    ...(values.surfaceRoughness === undefined
+      ? {}
+      : {
+          thinFilmRoughness: Number(values.surfaceRoughness),
+          standingWaterRoughness: Number(values.surfaceRoughness)
+        }),
+    ...(values.standingWaterRoughness === undefined
+      ? {}
+      : { standingWaterRoughness: Number(values.standingWaterRoughness) }),
+    ...(values.surfaceNormalFlattening === undefined
+      ? {}
+      : { normalFlattening: Number(values.surfaceNormalFlattening) }),
+    ...(values.surfaceRippleStrength === undefined
+      ? {}
+      : { rippleNormalStrength: Number(values.surfaceRippleStrength) })
+  };
+  const hasSurfaceTuning = Object.keys(tuning).length > 0;
+  if (hasSurfaceTuning) environment.applySurfaceWaterTuning(tuning);
+  applied.set(environment, { signature, cloudScale, hasSurfaceTuning });
 }

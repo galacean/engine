@@ -34,9 +34,19 @@ export interface TerrainPuddleHydrologyRegion extends TerrainAtlasRectangle {
   readonly worldSize: readonly [x: number, y: number, z: number];
 }
 
-/** Optional thresholds for deterministic tests and future authoring profiles. */
+/** Authored shallow and standing water encoded in the existing RG8 atlas. */
+export interface TerrainAuthoredPuddleCoverage {
+  readonly basinCount: number;
+  sample(
+    worldX: number,
+    worldZ: number
+  ): { fillThreshold: number; depthClass: number; depthMetres: number } | undefined;
+}
+
+/** Optional drainage thresholds and authored coverage. */
 export interface TerrainPuddleHydrologyOptions {
   readonly maximumSpacingMetres?: number;
+  readonly authoredCoverage?: TerrainAuthoredPuddleCoverage;
   readonly maximumDepthMetres?: number;
   readonly minimumAreaSquareMetres?: number;
   readonly maximumAreaSquareMetres?: number;
@@ -87,7 +97,8 @@ export class TerrainPuddleHydrologyField {
     basinCount: number,
     maximumPuddleAreaSquareMetres: number,
     maximumPuddleVolumeCubicMetres: number,
-    drainageAreaSquareMetres: number
+    drainageAreaSquareMetres: number,
+    private readonly _feathered = false
   ) {
     this.width = width;
     this.height = height;
@@ -123,6 +134,12 @@ export class TerrainPuddleHydrologyField {
     const threshold = bilinearChannel(this, region, x0, z0, x1, z1, blendX, blendZ, 0);
     const hydrologyClass = bilinearChannel(this, region, x0, z0, x1, z1, blendX, blendZ, 1);
     const waterStorage = clamp01(storage);
+    if (this._feathered) {
+      const retained = 0.42 * smoothstep(0, 0.39, hydrologyClass);
+      const basin = smoothstep(0.4, 0.97, hydrologyClass);
+      const fill = smoothstep(-0.09, 0.09, waterStorage - threshold) * smoothstep(0.06, 0.3, waterStorage);
+      return (retained * (1 - basin) + basin) * fill;
+    }
     const transition = 1 / 255;
     const retainedSurface = smoothstep(0.25, 0.45, hydrologyClass);
     return retainedSurface * smoothstep(-transition, transition, waterStorage - threshold);
@@ -178,6 +195,7 @@ export function compileTerrainPuddleHydrology(
 export class TerrainPuddleHydrologyCompiler {
   private readonly _options: ResolvedTerrainPuddleHydrologyOptions;
   private readonly _grid: TerrainPuddleHydrologyGrid;
+  private readonly _authoredCoverage?: TerrainAuthoredPuddleCoverage;
 
   /**
    * Creates a reusable compiler for one active Terrain residency set.
@@ -192,11 +210,16 @@ export class TerrainPuddleHydrologyCompiler {
   ) {
     if (!sources.length) throw new Error("Terrain puddle hydrology requires at least one active Region");
     this._options = resolveOptions(options);
+    this._authoredCoverage = options.authoredCoverage;
     this._grid = createHydrologyGrid(sources, this._options.maximumSpacingMetres);
   }
 
   /** @returns A newly compiled static fill-threshold atlas. */
   compile(): TerrainPuddleHydrologyField {
+    const coverage = this._authoredCoverage;
+    if (coverage) {
+      return compileAuthoredCoverage(this._grid, this._maxTextureSize, coverage);
+    }
     const fillElevation = priorityFlood(this._grid, this._grid.elevations);
     const threshold = new Uint8Array(this._grid.width * this._grid.height);
     const hydrologyClass = new Uint8Array(this._grid.width * this._grid.height);
@@ -630,6 +653,43 @@ function encodeBasinThresholds(
   }
 }
 
+function compileAuthoredCoverage(
+  grid: TerrainPuddleHydrologyGrid,
+  maxTextureSize: number,
+  coverage: TerrainAuthoredPuddleCoverage
+): TerrainPuddleHydrologyField {
+  const threshold = new Uint8Array(grid.valid.length);
+  threshold.fill(Math.round(0.72 * 255));
+  const depthClass = new Uint8Array(grid.valid.length);
+  const cellArea = grid.spacing ** 2;
+  let footprint = 0;
+  let volume = 0;
+  for (let z = 0; z < grid.height; z++) {
+    for (let x = 0; x < grid.width; x++) {
+      const index = z * grid.width + x;
+      if (!grid.valid[index]) continue;
+      const sample = coverage.sample(grid.originX + x * grid.spacing, grid.originZ + z * grid.spacing);
+      if (!sample) continue;
+      threshold[index] = Math.round(clamp01(sample.fillThreshold) * 255);
+      depthClass[index] = Math.round(clamp01(sample.depthClass) * 255);
+      footprint += cellArea;
+      volume += sample.depthMetres * cellArea;
+    }
+  }
+  return packHydrologyField(
+    grid,
+    threshold,
+    depthClass,
+    maxTextureSize,
+    {
+      basinCount: coverage.basinCount,
+      maximumPuddleAreaSquareMetres: footprint,
+      maximumPuddleVolumeCubicMetres: volume
+    },
+    true
+  );
+}
+
 function packHydrologyField(
   grid: TerrainPuddleHydrologyGrid,
   threshold: Uint8Array,
@@ -639,7 +699,8 @@ function packHydrologyField(
     basinCount: number;
     maximumPuddleAreaSquareMetres: number;
     maximumPuddleVolumeCubicMetres: number;
-  }
+  },
+  feathered = false
 ): TerrainPuddleHydrologyField {
   const layout = packTerrainAtlasRectangles(
     grid.sourceMappings.map((mapping) => ({ id: mapping.source.id, width: mapping.width, height: mapping.height })),
@@ -672,7 +733,8 @@ function packHydrologyField(
     result.basinCount,
     result.maximumPuddleAreaSquareMetres,
     result.maximumPuddleVolumeCubicMetres,
-    countValidDrainageArea(grid)
+    countValidDrainageArea(grid),
+    feathered
   );
 }
 

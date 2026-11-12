@@ -1,5 +1,6 @@
 import { publishNaturalVegetation } from "../../planning-data/NaturalVegetationProfile";
 import { worldTemplateEcology } from "../WorldTemplateEcology";
+import { worldTemplate } from "../WorldTemplateCatalog";
 import { isGlobalRoadId } from "./RoadIdentity";
 import { createPlanningRingQuery } from "../../semantic-study/WorldPlanningTerrain";
 import { overlap } from "../../semantic-study/WorldPlanningGeometry";
@@ -214,7 +215,8 @@ export function updateSpatialGuidance(context: EnvironmentContext, area: Bounds 
   const p = recipe.parameters,
     checks: PlanningCheck[] = [];
   const ecologyOrder = new Map(plan.landscapes?.map((item, index) => [item.id, index]));
-  const intents = plan.routes
+  const routes = worldTemplate(p.worldTemplate?.id)?.vegetation === "grass" ? [] : plan.routes;
+  const intents = routes
     .filter((route) => isGlobalRoadId(route.id))
     .map((route) => {
       const edge = plan.roadNetwork?.edges.find((edge) => edge.routeId === route.id);

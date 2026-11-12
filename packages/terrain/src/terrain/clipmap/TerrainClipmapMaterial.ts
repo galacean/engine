@@ -340,6 +340,9 @@ export function createTerrainClipmapMaterialBinding(
     }
 
     material = sourceMaterial.clone();
+    if (puddleHydrologyOptions.authoredCoverage) {
+      material.shaderData.enableMacro("MATERIAL_TERRAIN_FEATHERED_PUDDLES");
+    }
     material.name = `${sourceMaterial.name} runtime terrain residency`;
     material.shaderData.setTexture("material_TerrainHeightAtlas", heightAtlas);
     material.shaderData.setVector2("material_TerrainHeightAtlasInvSize", heightAtlasInvSize);
@@ -395,6 +398,11 @@ export function createTerrainClipmapMaterialBinding(
       material.shaderData.setFloatArray("material_TerrainRegionAlphamapRanges", alphamapRanges);
       material.shaderData.setInt("material_TerrainAlphamapCount", layerPacking.alphamaps.length);
       material.shaderData.setInt("material_TerrainLayerCount", layerPacking.layers.length);
+      if (layerPacking.alphamaps.length === 1)
+        material.shaderData.setVector4(
+          "material_TerrainFirstLayerIndices",
+          new Vector4(...layerPacking.alphamaps[0].layerIndices)
+        );
       const textured = layerPacking.layers.filter((layer) => layer.diffuseTextureIndex >= 0);
       const singleDiffuse = layerPacking.singleDiffuseTexture;
       const simple =

@@ -1,4 +1,5 @@
 import type { TemplateNode, TemplateAssetSlot } from "./WorldTemplateGeometry";
+import type { SeedWorldCameraBookmark } from "../world/SeedWorldCameraBookmark";
 import type { SpatialCompositionParameters } from "./SpatialCompositionParameters";
 
 interface WorldTemplatePalette {
@@ -28,6 +29,7 @@ interface WorldTemplatePalette {
 export type WorldTemplateArtDirection = (WorldTemplatePalette | { grass?: undefined }) & {
   reference: string;
   grassGroundFusion?: boolean;
+  spawn?: SeedWorldCameraBookmark & { readonly seed: number };
   initialPlanning?: {
     landMode?: import("../semantic-study/IslandPlanModel").IslandPlanParameters["landMode"];
     relief?: {
@@ -52,6 +54,9 @@ export type WorldTemplateArtDirection = (WorldTemplatePalette | { grass?: undefi
   /** Composition aim relative to the focus envelope; a side subject stays at the side. */
   lookAtOffset?: [number, number, number];
   models: (TemplateNode | TemplateAssetSlot)[];
+  layout?: Record<string, string | number>;
+  streetSigns?: { atlasUrl: string; signIntensity: number; spillIntensity: number; signsPerBuilding: number };
+  surfaceTextures?: { baseUrl: string; normalUrl: string; tileSizeM: number; strength: number };
   /** Infrastructure may be generated around a separately authored set of model poses. */
   modelLayout?: "authored" | "generated";
   spores?: {
@@ -104,6 +109,14 @@ export type WorldTemplateArtDirection = (WorldTemplatePalette | { grass?: undefi
     snowRate?: number;
     temperatureCelsius?: number;
     relativeHumidity?: number;
+    surfaceWaterCoverage?: number;
+    puddleStorageBias?: number;
+    surfaceReflectionIntensity?: number;
+    surfaceSsrMix?: number;
+    surfaceRoughness?: number;
+    standingWaterRoughness?: number;
+    surfaceNormalFlattening?: number;
+    surfaceRippleStrength?: number;
   };
   /** Real native water bodies. Depth/level are independent from their colour. */
   water?: { id: string; x: number; z: number; radius: number; depth: number; color: [number, number, number] }[];
@@ -836,32 +849,84 @@ export const WORLD_TEMPLATE_ART: Readonly<Record<string, WorldTemplateArtDirecti
   },
   "neon-alley": {
     reference: "SeedWorld-12-cyberpunk-alley.png",
-    focus: ["west-street-facade", "east-street-facade"],
+    spawn: {
+      seed: 121119,
+      mode: "roam",
+      position: [672.0089327613628, 12.649446577602424, 139.2752719446587],
+      yawDegrees: 142.1723738744237,
+      pitchDegrees: -1.636329979833703
+    },
+    surfaceTextures: {
+      baseUrl: new URL("./assets/cobblestone_floor_001_diff_1k.jpg", import.meta.url).href,
+      normalUrl: new URL("./assets/cobblestone_floor_001_nor_gl_1k.png", import.meta.url).href,
+      tileSizeM: 4.8,
+      strength: 3.2
+    },
+    initialPlanning: {
+      population: { villageMin: 1, villageMax: 1, buildingMin: 10, buildingMax: 10 }
+    },
+    streetSigns: {
+      atlasUrl: new URL("./assets/neon-sign-atlas.png", import.meta.url).href,
+      signIntensity: 4.2,
+      spillIntensity: 2.25,
+      signsPerBuilding: 2
+    },
+    focus: [],
     frameFraction: 0.8,
     azimuthDegrees: 0,
-    models: [
-      model("west-street-facade", [-25, 0, 15], [22, 38, 65]),
-      model("east-street-facade", [25, 0, 22], [22, 44, 65]),
-      model("overhead-street-bridge", [0, 20, 43], [32, 7, 10], false),
-      model("vending-machine", [-18, 0, -24], [6, 10, 5])
-    ],
+    models: [],
+    layout: {
+      elementProfile: "habitable",
+      pattern: "connected",
+      branchShape: "curve",
+      curveMemberOrder: "along-street",
+      curveBendM: 12,
+      curveVariationScaleM: 90,
+      curveGapM: 11,
+      curveLateralVariationM: 3,
+      orientationVariation: 0.08,
+      spacingMinM: 2,
+      spacingMaxM: 7,
+      widthMinM: 10,
+      widthMaxM: 19,
+      depthMinM: 8,
+      depthMaxM: 13,
+      heightMinM: 12,
+      heightMaxM: 38,
+      pathWidthM: 10,
+      roadMode: "members"
+    },
     grass: ["#31595e", "#597f7b"],
-    ground: "#52638b",
+    ground: "#c0c8d6",
+    road: "#d5dce8",
     foliage: "#4b806c",
     bark: "#53677b",
     flowers: "#d399c9",
     stone: "#667b9c",
     lighting: {
       ...lighting(20.4, 0.2, 3.2, 0.65, 0.0008, 0.5),
+      iblIntensity: 0.45,
       ...atmosphere([1, 1, 1], [1, 1, 1], [1.6, 1.1, 1.4], 0.7),
       fogTintR: 1.15,
       fogTintG: 0.9,
       fogTintB: 1.3
     },
-    postProcess: post(9, 10),
-    flowerCoverage: 0.12,
-    landscape: { treeHeightMinM: 5, treeHeightMaxM: 10 },
-    weather: { cloudCoverage: 0.65, rainRate: 0.28, temperatureCelsius: 14, relativeHumidity: 0.85 }
+    postProcess: { ...post(9, 10), bloomThreshold: 0.95, bloomIntensity: 0.9, bloomScatter: 0.72 },
+    flowerCoverage: 0,
+    weather: {
+      cloudCoverage: 0.65,
+      rainRate: 0.28,
+      temperatureCelsius: 14,
+      relativeHumidity: 0.85,
+      surfaceWaterCoverage: 0.56,
+      puddleStorageBias: 0.58,
+      surfaceReflectionIntensity: 2.25,
+      surfaceSsrMix: 1,
+      surfaceRoughness: 0.16,
+      standingWaterRoughness: 0.05,
+      surfaceNormalFlattening: 0.55,
+      surfaceRippleStrength: 0
+    }
   },
   "titan-wasteland": {
     reference: "SeedWorld-13-titan-wasteland.png",

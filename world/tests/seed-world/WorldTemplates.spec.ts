@@ -776,6 +776,9 @@ describe("authored world templates", () => {
         expect(density.grass).toBe(0);
         expect(density.shrubs).toBeGreaterThan(0);
         expect(density.shrubs).toBe(NATURAL_VEGETATION_CONTROLS.find((layer) => layer.key === "shrubs")!.density);
+      } else if (template.vegetation === "grass") {
+        expect(density.grass).toBeGreaterThan(0);
+        expect(Object.entries(density).every(([key, value]) => key === "grass" || value === 0)).toBe(true);
       } else expect(Object.values(density).every((value) => value === 0)).toBe(true);
       expect(authored).toEqual(before);
       const fresh = createTemplatePlanningDocument(7, template.id);
@@ -793,6 +796,20 @@ describe("authored world templates", () => {
     subjectTest(`${template.name}: reserves its subject before publishing buildings, rocks and roads`, () => {
       const result = generatePlanningDocument(createTemplatePlanningDocument(20261104, template.id));
       expect(result.accepted).toBe(true);
+      if (template.vegetation === "grass") {
+        expect(result.plan.buildings.length).toBeGreaterThan(0);
+        expect(result.plan.worldTemplateSite).toBeUndefined();
+        expect(result.plan.planning!.reservations.some((area) => area.ownerId === "world-template")).toBe(false);
+        expect(result.plan.farming).toBeUndefined();
+        expect(result.plan.rocks).toEqual([]);
+        expect(result.plan.landscapes?.some((plant) => plant.kind === "rock")).toBe(false);
+        expect(result.plan.naturalVegetation!.world.grass).toBeGreaterThan(0);
+        const populated = result.plan.spatialLayout!.groups.filter((group) => group.volumes.length > 0);
+        expect(populated).toHaveLength(1);
+        expect(populated[0].rule.branchShape).toBe("curve");
+        expect(populated[0].paths.length).toBeGreaterThan(0);
+        return;
+      }
       const site = result.plan.worldTemplateSite!;
       expect(site.templateId).toBe(template.id);
       const surface = planningGroundSurface(result.plan),

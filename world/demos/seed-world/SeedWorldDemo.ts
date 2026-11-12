@@ -164,8 +164,10 @@ import type { PlanningSessionOptions } from "@galacean/engine-world-planning/spa
 import {
   PlanningPlayerState,
   planningPlayerCameraPose,
+  restorePlanningPlayerBookmark,
   type PlanningPlayerCameraPose
 } from "@galacean/engine-world-planning/spatial/runtime/PlanningPlayerState";
+import { worldTemplateStreetPuddles } from "@galacean/engine-world-planning/spatial/WorldTemplateStreet";
 import { preparePlanningPopulationResources } from "@galacean/engine-world-planning/spatial/runtime/PlanningPopulationRuntime";
 import { PlanningSeedScenePublication } from "@galacean/engine-world-planning/spatial/runtime/PlanningSeedScenePublication";
 import { createPlanningSeedSolids } from "@galacean/engine-world-planning/spatial/runtime/PlanningSeedSolids";
@@ -180,6 +182,8 @@ import { PLANNING_RUNTIME_OPTIONS } from "@galacean/engine-world-planning/spatia
 import { WorldTemplateRuntime } from "@galacean/engine-world-planning/spatial/runtime/WorldTemplateRuntime";
 import {
   resolveWorldTemplateScene,
+  resolveWorldTemplateSpawn,
+  resolveWorldTemplateStreetView,
   resolveWorldTemplateView
 } from "@galacean/engine-world-planning/spatial/WorldTemplateView";
 import { SeedWorldAudioRuntime } from "@galacean/engine-world-planning/world/SeedWorldAudioRuntime";
@@ -1280,30 +1284,36 @@ export async function mountSeedWorldDemo(
             nativeData
           );
           signal.throwIfAborted();
-          const preparedPlayer = playerState?.prepare(
-            {
-              seed: plan.parameters.seed,
-              width: plan.parameters.width,
-              depth: plan.parameters.depth,
-              groundClearance: navigation.groundClearance,
-              allowOrbit: pageUrl.searchParams.get("debug") === "1",
-              sampleHeight: (x, z) => sampleSeedWorldHeight(candidateData.fields, x, z)
-            },
-            { restoreCamera: !initial }
-          );
+          const playerWorld = {
+            seed: plan.parameters.seed,
+            width: plan.parameters.width,
+            depth: plan.parameters.depth,
+            groundClearance: navigation.groundClearance,
+            allowOrbit: pageUrl.searchParams.get("debug") === "1",
+            sampleHeight: (x: number, z: number) => sampleSeedWorldHeight(candidateData.fields, x, z)
+          };
+          const preparedPlayer = playerState?.prepare(playerWorld, { restoreCamera: !initial });
           const groundPopulation = planningNaturalGroundPopulation(
             candidateData.population,
             planningNaturalGrassDensity(library),
             plan
           );
           let cameraPose: PlanningPlayerCameraPose | undefined;
+          const authoredSpawn = initial
+            ? restorePlanningPlayerBookmark(resolveWorldTemplateSpawn(plan), playerWorld)
+            : undefined;
           if (
             initial &&
             !plan.worldTemplateSite?.spawnView &&
+            !authoredSpawn &&
             !preparedPlayer?.bookmark &&
             !readSubjectView(document).subjectId
           ) {
-            const view = spawnView(plan, candidateData, groundPopulation);
+            const view = resolveWorldTemplateStreetView(
+              plan,
+              (x, z) => sampleSeedWorldHeight(candidateData.fields, x, z),
+              navigation.eyeHeight
+            ) ?? spawnView(plan, candidateData, groundPopulation);
             const position = new Vector3(view.eye.x, view.eye.y, view.eye.z);
             const target = new Vector3(view.target.x, view.target.y, view.target.z);
             const matrix = new Matrix();
@@ -1313,7 +1323,8 @@ export async function mountSeedWorldDemo(
             matrix.getRotation(rotation);
             cameraPose = { position, rotation };
           }
-          if (preparedPlayer?.bookmark) cameraPose = planningPlayerCameraPose(preparedPlayer.bookmark);
+          const bookmark = preparedPlayer?.bookmark ?? authoredSpawn;
+          if (bookmark) cameraPose = planningPlayerCameraPose(bookmark);
           const presentationPose = resolveSubjectView(
             readSubjectView(document),
             plan,
@@ -1358,7 +1369,8 @@ export async function mountSeedWorldDemo(
               SEED_WORLD_SURFACE_LOD_CROSS_FADE_DURATION_SECONDS,
               undefined,
               signal,
-              result.recipe.parameters.terrainSurface
+              result.recipe.parameters.terrainSurface,
+              worldTemplateStreetPuddles(plan)
             );
             signal.throwIfAborted();
             const { reliefNearAmplitudeM = 0, reliefAmplitudeM = 0, reliefFarAmplitudeM = 0 } = plan.parameters;
@@ -1436,7 +1448,7 @@ export async function mountSeedWorldDemo(
             if (
               !presentationPose &&
               templateView &&
-              ((initial && !preparedPlayer?.bookmark) ||
+              ((initial && !bookmark) ||
                 context.previousDocument.entities.world.components.worldTemplate?.values.id !==
                   plan.parameters.worldTemplate?.id)
             ) {
@@ -1524,7 +1536,8 @@ export async function mountSeedWorldDemo(
               plan,
               templateGround,
               templateScene,
-              signal
+              signal,
+              camera.entity
             );
             if (heightTransition)
               candidateTemplate?.prepareRockGrounding(

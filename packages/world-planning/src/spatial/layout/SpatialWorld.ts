@@ -6,6 +6,7 @@ import { resolveWorldTemplateScene, resolveWorldTemplateView } from "../WorldTem
 import { WORLD_TEMPLATE_ART } from "../WorldTemplateArtDirection";
 import { PLANNING_RUNTIME_OPTIONS } from "../runtime/RuntimeOptions";
 import { worldTemplateEcology } from "../WorldTemplateEcology";
+import { worldTemplate } from "../WorldTemplateCatalog";
 import {
   compileCompositionGroup,
   compileCompositionReliefGroups,
@@ -558,9 +559,11 @@ function* spatialWorldStages(
     ]);
   // Farming consumes final world/spawn geometry; it never reserves or rerolls a POI.
   delete plan.farming;
+  const template = worldTemplate(p.worldTemplate?.id);
+  const grassOnly = template?.vegetation === "grass";
   const specifications = plan
     .poiDistribution!.sites.filter((site) => site.active)
-    .map((site) => {
+    .flatMap((site) => {
       const { elementProfile, ...authored } = { ...value("world", "layout"), ...value(site.id, "layout") },
         configuration = initialLayoutConfiguration(
           p.seed,
@@ -568,6 +571,7 @@ function* spatialWorldStages(
           authored.pattern as string | undefined,
           elementProfile as string | undefined
         );
+      if (grassOnly && configuration.presentation === "rock") return [];
       const rule = {
         ...configuration.rule,
         ...authored,
@@ -608,14 +612,7 @@ function* spatialWorldStages(
               components: structuredClone(components),
               random: layoutRandom(p.seed, site.id, 0, 0, rule.variationSeed)
             });
-      return {
-        site,
-        rule,
-        inputSignature,
-        components,
-        construction,
-        exclusions: configuration.exclusions
-      };
+      return [{ site, rule, inputSignature, components, construction, exclusions: configuration.exclusions }];
     });
   const territories = new Map([...territoryOutlines].map(([id, outline]) => [id, createPlanningRingQuery(outline)]));
   const relations = layoutExclusions(
@@ -730,9 +727,11 @@ function* spatialWorldStages(
     );
     groups.push(baseline);
   }
-  const compositionGroups = [compileCompositionGroup(plan, ground), ...compileCompositionReliefGroups(plan)].filter(
-    (group): group is LayoutGroup => !!group
-  );
+  const compositionGroups = grassOnly
+    ? []
+    : [compileCompositionGroup(plan, ground), ...compileCompositionReliefGroups(plan)].filter(
+        (group): group is LayoutGroup => !!group
+      );
   for (const composition of compositionGroups) {
     groups.push(composition);
     appearances[composition.id] = "rock";
@@ -1209,7 +1208,7 @@ function* spatialWorldStages(
     exclusions: relations,
     roads: automaticRoads
   };
-  if (p.farming?.enabled !== false) {
+  if (p.farming?.enabled !== false && template?.farming !== false) {
     const farmSearchStarted = performance.now();
     const farmSignature = JSON.stringify([
       worldSignature,
