@@ -51,8 +51,7 @@ export function engineModify() {
         return shaderEntry;
       }
       if (source === "@galacean/engine-shader/sources") return path.join(packageRoot, ".cache/sources.ts");
-      // Match the original Gallery's release compiler. Loading its TS sources
-      // directly executes _VERBOSE blocks that the native Rollup build removes.
+      // Use the built compiler and its shared parser package, as in native Engine.
       if (source === "@galacean/engine-shader-compiler")
         return path.join(repositoryRoot, "packages/shader-compiler/dist/module.js");
       if (nativePackages.has(source))

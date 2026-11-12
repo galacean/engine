@@ -1,51 +1,33 @@
 import { Vector3, DisorderedArray, Quaternion } from "@galacean/engine";
-import { ICollision, IPhysicsScene, IPhysicsEvents, IContactEvent, ITriggerEvent } from "@galacean/engine-design";
+import { IPhysicsScene, IPhysicsEvents, IContactEvent, ITriggerEvent } from "@galacean/engine-design";
 import { PhysXCharacterController } from "./PhysXCharacterController";
 import { PhysXCollider } from "./PhysXCollider";
 import { PhysXPhysics } from "./PhysXPhysics";
 import { PhysXPhysicsManager } from "./PhysXPhysicsManager";
 
 /**
- * A manager is a collection of colliders and constraints which can interact.
+ * Simulates colliders and runs scene queries through PhysX.
  */
 export class PhysXPhysicsScene implements IPhysicsScene {
-  /** @internal */
-  _pxControllerManager: any = null;
-
   private static _tempPosition: Vector3 = new Vector3();
-  private static _tempQuaternion: Quaternion = new Quaternion();
   private static _tempNormal: Vector3 = new Vector3();
   private static _tempPose: { translation: Vector3; rotation: Quaternion } = {
     translation: new Vector3(),
     rotation: new Quaternion()
   };
-  private static _tempShapeIDs: number[] = [];
 
-  // Cached geometry objects for reuse
+  /** @internal */
+  _pxControllerManager: any = null;
+
   private _boxGeometry: any = null;
   private _sphereGeometry: any = null;
   private _capsuleGeometry: any = null;
 
   private _physXPhysics: PhysXPhysics;
   private _physXManager: PhysXPhysicsManager;
-  private _pxRaycastHit: any;
-  private _pxSweepHit: any;
-  private _pxFilterData: any;
-  private _pxRaycastSweepFilterData: any;
-
   private _pxScene: any;
+  private _pxSceneQueries: any;
   private _physXSimulationCallbackInstance: any;
-
-  // A single persistent PhysX query filter callback is shared by raycast,
-  // sweep and overlap. PhysX SDK guarantees that `postFilter` is only invoked
-  // when `PxQueryFlag::ePOSTFILTER` is set on the query's filter data, so
-  // overlap (whose filter data omits POST_FILTER) safely uses the same
-  // callback that also handles the raycast/sweep initial-overlap skip.
-  // The user-supplied predicate is stored in `_currentOnQuery`; reentrant
-  // calls save the previous value on the call stack via a local in each
-  // query method, recreating C++-style RAII without an explicit stack array.
-  private _pxQueryCallback: any;
-  private _currentOnQuery: ((obj: number) => boolean) | null = null;
 
   private _activeTriggers: DisorderedArray<TriggerEvent> = new DisorderedArray<TriggerEvent>();
   private _contactEvents: ContactEvent[] = [];
@@ -55,30 +37,26 @@ export class PhysXPhysicsScene implements IPhysicsScene {
 
   private _triggerEventPool: TriggerEvent[] = [];
 
+  /**
+   * Creates a PhysX scene with buffered collision and trigger events.
+   * @param physXPhysics - The native physics implementation
+   * @param physicsManager - The manager that tracks collider pairs
+   */
   constructor(physXPhysics: PhysXPhysics, physicsManager: PhysXPhysicsManager) {
     this._physXPhysics = physXPhysics;
     this._physXManager = physicsManager;
 
     const physX = physXPhysics._physX;
 
-    this._pxRaycastHit = new physX.PxRaycastHit();
-    this._pxSweepHit = new physX.PxSweepHit();
-    this._pxFilterData = new physX.PxQueryFilterData();
-    this._pxFilterData.flags = new physX.PxQueryFlags(QueryFlag.STATIC | QueryFlag.DYNAMIC | QueryFlag.PRE_FILTER);
-    this._pxRaycastSweepFilterData = new physX.PxQueryFilterData();
-    this._pxRaycastSweepFilterData.flags = new physX.PxQueryFlags(
-      QueryFlag.STATIC | QueryFlag.DYNAMIC | QueryFlag.PRE_FILTER | QueryFlag.POST_FILTER
-    );
-
-    const triggerCallback = {
-      onContactBegin: (collision) => {
-        this._bufferContactEvent(collision, PhysicsEventState.Enter);
+    const simulationCallback = {
+      onContactBegin: (shape0ID: number, shape1ID: number, contacts: Float32Array) => {
+        this._bufferContactEvent(shape0ID, shape1ID, contacts, PhysicsEventState.Enter);
       },
-      onContactEnd: (collision) => {
-        this._bufferContactEvent(collision, PhysicsEventState.Exit);
+      onContactEnd: (shape0ID: number, shape1ID: number, contacts: Float32Array) => {
+        this._bufferContactEvent(shape0ID, shape1ID, contacts, PhysicsEventState.Exit);
       },
-      onContactPersist: (collision) => {
-        this._bufferContactEvent(collision, PhysicsEventState.Stay);
+      onContactPersist: (shape0ID: number, shape1ID: number, contacts: Float32Array) => {
+        this._bufferContactEvent(shape0ID, shape1ID, contacts, PhysicsEventState.Stay);
       },
       onTriggerBegin: (index1, index2) => {
         const event = index1 < index2 ? this._getTrigger(index1, index2) : this._getTrigger(index2, index1);
@@ -101,7 +79,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     };
 
     const pxPhysics = physXPhysics._pxPhysics;
-    this._physXSimulationCallbackInstance = physX.PxSimulationEventCallback.implement(triggerCallback);
+    this._physXSimulationCallbackInstance = physX.PxSimulationEventCallback.implement(simulationCallback);
     const sceneDesc = physX.getDefaultSceneDesc(
       pxPhysics.getTolerancesScale(),
       0,
@@ -110,13 +88,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     this._pxScene = pxPhysics.createScene(sceneDesc);
     sceneDesc.delete();
 
-    this._pxQueryCallback = physX.PxQueryFilterCallback.implement({
-      preFilter: (_filterData: any, index: number, _actor: any) =>
-        this._currentOnQuery!(index) ? QueryHitType.BLOCK : QueryHitType.NONE,
-      // distance <= 0 means initial overlap — drop the hit so subsequent hits can be considered.
-      // Only invoked when the query's filter data includes POST_FILTER (raycast/sweep, not overlap).
-      postFilter: (_filterData: any, distance: number) => (distance <= 0 ? QueryHitType.NONE : QueryHitType.BLOCK)
-    });
+    this._pxSceneQueries = new physX.PxSceneQueries(this._pxScene);
   }
 
   /**
@@ -238,37 +210,36 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     origin: Vector3,
     direction: Vector3,
     distance: number,
-    onRaycast: (obj: number) => boolean,
+    layerMask: number,
     hit?: (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => void
   ): boolean {
-    const { _pxRaycastHit: pxHitResult } = this;
-    distance = Math.min(distance, 3.4e38); // float32 max value limit in physX raycast.
-
-    const prevOnQuery = this._currentOnQuery;
-    this._currentOnQuery = onRaycast;
-    let result: boolean;
-    try {
-      result = this._pxScene.raycastSingle(
-        origin,
-        direction,
-        distance,
-        pxHitResult,
-        this._pxRaycastSweepFilterData,
-        this._pxQueryCallback
-      );
-    } finally {
-      this._currentOnQuery = prevOnQuery;
+    const hits: Float64Array = this._pxSceneQueries.raycast(origin, direction, Math.min(distance, 3.4e38), layerMask);
+    if (hits.length === 0) {
+      return false;
     }
-
-    if (result && hit != undefined) {
-      const { _tempPosition: position, _tempNormal: normal } = PhysXPhysicsScene;
-      const { position: pxPosition, normal: pxNormal } = pxHitResult;
-      position.set(pxPosition.x, pxPosition.y, pxPosition.z);
-      normal.set(pxNormal.x, pxNormal.y, pxNormal.z);
-
-      hit(pxHitResult.getShape().getUUID(), pxHitResult.distance, position, normal);
+    if (hit) {
+      this._readHit(hits, 0, hit);
     }
-    return result;
+    return true;
+  }
+
+  /**
+   * {@inheritDoc IPhysicsScene.raycastAll }
+   */
+  raycastAll(
+    origin: Vector3,
+    direction: Vector3,
+    distance: number,
+    layerMask: number,
+    onHit: (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => void
+  ): void {
+    // Keep the values stable if a hit callback starts another query
+    const hits: Float64Array = this._pxSceneQueries
+      .raycastAll(origin, direction, Math.min(distance, 3.4e38), layerMask)
+      .slice();
+    for (let i = 0; i < hits.length; i += 8) {
+      this._readHit(hits, i, onHit);
+    }
   }
 
   /**
@@ -280,7 +251,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     halfExtents: Vector3,
     direction: Vector3,
     distance: number,
-    onSweep: (obj: number) => boolean,
+    layerMask: number,
     outHitResult?: (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => void
   ): boolean {
     if (!this._boxGeometry) {
@@ -292,7 +263,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     const pose = PhysXPhysicsScene._tempPose;
     pose.translation.copyFrom(center);
     pose.rotation.copyFrom(orientation);
-    return this._sweepSingle(this._boxGeometry, pose, direction, distance, onSweep, outHitResult);
+    return this._sweepSingle(this._boxGeometry, pose, direction, distance, layerMask, outHitResult);
   }
 
   /**
@@ -303,7 +274,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     radius: number,
     direction: Vector3,
     distance: number,
-    onSweep: (obj: number) => boolean,
+    layerMask: number,
     outHitResult?: (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => void
   ): boolean {
     if (!this._sphereGeometry) {
@@ -312,10 +283,10 @@ export class PhysXPhysicsScene implements IPhysicsScene {
       this._sphereGeometry.radius = radius;
     }
 
-    const tempQuat = PhysXPhysicsScene._tempQuaternion;
-    tempQuat.set(0, 0, 0, 1); // Identity quaternion
-    const pose = { translation: center, rotation: tempQuat };
-    return this._sweepSingle(this._sphereGeometry, pose, direction, distance, onSweep, outHitResult);
+    const pose = PhysXPhysicsScene._tempPose;
+    pose.translation.copyFrom(center);
+    pose.rotation.set(0, 0, 0, 1);
+    return this._sweepSingle(this._sphereGeometry, pose, direction, distance, layerMask, outHitResult);
   }
 
   /**
@@ -328,7 +299,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     orientation: Quaternion,
     direction: Vector3,
     distance: number,
-    onSweep: (obj: number) => boolean,
+    layerMask: number,
     outHitResult?: (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => void
   ): boolean {
     if (!this._capsuleGeometry) {
@@ -341,18 +312,13 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     const pose = PhysXPhysicsScene._tempPose;
     pose.translation.copyFrom(center);
     pose.rotation.copyFrom(orientation);
-    return this._sweepSingle(this._capsuleGeometry, pose, direction, distance, onSweep, outHitResult);
+    return this._sweepSingle(this._capsuleGeometry, pose, direction, distance, layerMask, outHitResult);
   }
 
   /**
    * {@inheritDoc IPhysicsScene.overlapBoxAll }
    */
-  overlapBoxAll(
-    center: Vector3,
-    orientation: Quaternion,
-    halfExtents: Vector3,
-    onOverlap: (obj: number) => boolean
-  ): number[] {
+  overlapBoxAll(center: Vector3, orientation: Quaternion, halfExtents: Vector3, layerMask: number): Uint32Array {
     if (!this._boxGeometry) {
       this._boxGeometry = new this._physXPhysics._physX.PxBoxGeometry(halfExtents.x, halfExtents.y, halfExtents.z);
     } else {
@@ -362,23 +328,23 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     const pose = PhysXPhysicsScene._tempPose;
     pose.translation.copyFrom(center);
     pose.rotation.copyFrom(orientation);
-    return this._overlapMultiple(this._boxGeometry, pose, onOverlap);
+    return this._pxSceneQueries.overlap(this._boxGeometry, pose, layerMask);
   }
 
   /**
    * {@inheritDoc IPhysicsScene.overlapSphereAll }
    */
-  overlapSphereAll(center: Vector3, radius: number, onOverlap: (obj: number) => boolean): number[] {
+  overlapSphereAll(center: Vector3, radius: number, layerMask: number): Uint32Array {
     if (!this._sphereGeometry) {
       this._sphereGeometry = new this._physXPhysics._physX.PxSphereGeometry(radius);
     } else {
       this._sphereGeometry.radius = radius;
     }
 
-    const tempQuat = PhysXPhysicsScene._tempQuaternion;
-    tempQuat.set(0, 0, 0, 1);
-    const pose = { translation: center, rotation: tempQuat };
-    return this._overlapMultiple(this._sphereGeometry, pose, onOverlap);
+    const pose = PhysXPhysicsScene._tempPose;
+    pose.translation.copyFrom(center);
+    pose.rotation.set(0, 0, 0, 1);
+    return this._pxSceneQueries.overlap(this._sphereGeometry, pose, layerMask);
   }
 
   /**
@@ -389,8 +355,8 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     radius: number,
     height: number,
     orientation: Quaternion,
-    onOverlap: (obj: number) => boolean
-  ): number[] {
+    layerMask: number
+  ): Uint32Array {
     if (!this._capsuleGeometry) {
       this._capsuleGeometry = new this._physXPhysics._physX.PxCapsuleGeometry(radius, height * 0.5);
     } else {
@@ -401,7 +367,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     const pose = PhysXPhysicsScene._tempPose;
     pose.translation.copyFrom(center);
     pose.rotation.copyFrom(orientation);
-    return this._overlapMultiple(this._capsuleGeometry, pose, onOverlap);
+    return this._pxSceneQueries.overlap(this._capsuleGeometry, pose, layerMask);
   }
 
   /**
@@ -420,13 +386,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     this._capsuleGeometry?.delete();
 
     this._physXSimulationCallbackInstance.delete();
-    this._pxRaycastHit.delete();
-    this._pxSweepHit.delete();
-    this._pxFilterData.flags.delete();
-    this._pxFilterData.delete();
-    this._pxRaycastSweepFilterData.flags.delete();
-    this._pxRaycastSweepFilterData.delete();
-    this._pxQueryCallback.delete();
+    this._pxSceneQueries.delete();
     // Need to release the controller manager before release the scene.
     this._pxControllerManager?.release();
     this._pxScene.release();
@@ -470,70 +430,39 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     delete eventMap[id];
   }
 
+  private _readHit(
+    hits: Float64Array,
+    offset: number,
+    onHit: (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => void
+  ): void {
+    const { _tempPosition: position, _tempNormal: normal } = PhysXPhysicsScene;
+    position.set(hits[offset + 2], hits[offset + 3], hits[offset + 4]);
+    normal.set(hits[offset + 5], hits[offset + 6], hits[offset + 7]);
+    onHit(hits[offset], hits[offset + 1], position, normal);
+  }
+
   private _sweepSingle(
     geometry: any,
     pose: { translation: Vector3; rotation: Quaternion },
     direction: Vector3,
     distance: number,
-    onSweep: (obj: number) => boolean,
+    layerMask: number,
     outHitResult?: (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => void
   ): boolean {
-    const { _pxSweepHit: pxSweepHit } = this;
-    distance = Math.min(distance, 3.4e38); // float32 max value limit in physx sweep
-
-    const prevOnQuery = this._currentOnQuery;
-    this._currentOnQuery = onSweep;
-    let result: boolean;
-    try {
-      result = this._pxScene.sweepSingle(
-        geometry,
-        pose,
-        direction,
-        distance,
-        pxSweepHit,
-        this._pxRaycastSweepFilterData,
-        this._pxQueryCallback
-      );
-    } finally {
-      this._currentOnQuery = prevOnQuery;
+    const hits: Float64Array = this._pxSceneQueries.sweep(
+      geometry,
+      pose,
+      direction,
+      Math.min(distance, 3.4e38),
+      layerMask
+    );
+    if (hits.length === 0) {
+      return false;
     }
-
-    if (result && outHitResult != undefined) {
-      const { _tempPosition: position, _tempNormal: normal } = PhysXPhysicsScene;
-      const { position: pxPosition, normal: pxNormal } = pxSweepHit;
-      position.set(pxPosition.x, pxPosition.y, pxPosition.z);
-      normal.set(pxNormal.x, pxNormal.y, pxNormal.z);
-      outHitResult(pxSweepHit.getShape().getUUID(), pxSweepHit.distance, position, normal);
+    if (outHitResult) {
+      this._readHit(hits, 0, outHitResult);
     }
-    return result;
-  }
-
-  private _overlapMultiple(
-    geometry: any,
-    pose: { translation: Vector3; rotation: Quaternion },
-    onOverlap: (obj: number) => boolean
-  ): number[] {
-    const prevOnQuery = this._currentOnQuery;
-    this._currentOnQuery = onOverlap;
-    const maxHits = 256;
-    let hits: any;
-    try {
-      hits = (this._pxScene as any).overlapMultiple(geometry, pose, maxHits, this._pxFilterData, this._pxQueryCallback);
-    } finally {
-      this._currentOnQuery = prevOnQuery;
-    }
-
-    const result = PhysXPhysicsScene._tempShapeIDs;
-    result.length = 0;
-    if (hits) {
-      // PhysX overlapMultiple returns a collection with size() method
-      for (let i = 0, n = hits.size(); i < n; i++) {
-        result.push(hits.get(i).getShape().getUUID());
-      }
-    }
-
-    hits?.delete();
-    return result;
+    return true;
   }
 
   private _simulate(elapsedTime: number): void {
@@ -557,49 +486,25 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     return event;
   }
 
-  private _bufferContactEvent(collision: ICollision, state: number): void {
+  private _bufferContactEvent(shape0ID: number, shape1ID: number, contacts: Float32Array, state: number): void {
     const index = this._contactEventCount++;
     const event = (this._contactEvents[index] ||= new ContactEvent());
-    event.shape0Id = collision.shape0Id;
-    event.shape1Id = collision.shape1Id;
+    event.shape0Id = shape0ID;
+    event.shape1Id = shape1ID;
     event.state = state;
 
-    // Copy contact points from PhysX (the native data is only valid during fetchResults)
-    const nativeContacts = collision.getContacts();
-    const count = nativeContacts.size();
+    // Copy the borrowed native values before the next contact pair reuses the buffer
     const bufferedContacts = event._bufferedContacts;
-    bufferedContacts.contactCount = count;
+    const count = (bufferedContacts.contactCount = contacts.length / 10);
     for (let i = 0; i < count; i++) {
-      const src = nativeContacts.get(i);
-      const dst = (bufferedContacts.contacts[i] ||= new BufferedContactPoint());
-      dst.position.copyFrom(src.position);
-      dst.normal.copyFrom(src.normal);
-      dst.impulse.copyFrom(src.impulse);
-      dst.separation = src.separation;
+      const offset = i * 10;
+      const contact = (bufferedContacts.contacts[i] ||= new BufferedContactPoint());
+      contact.position.set(contacts[offset], contacts[offset + 1], contacts[offset + 2]);
+      contact.normal.set(contacts[offset + 3], contacts[offset + 4], contacts[offset + 5]);
+      contact.impulse.set(contacts[offset + 6], contacts[offset + 7], contacts[offset + 8]);
+      contact.separation = contacts[offset + 9];
     }
   }
-}
-
-/**
- * Filtering flags for scene queries.
- */
-enum QueryFlag {
-  STATIC = 1 << 0,
-  DYNAMIC = 1 << 1,
-  PRE_FILTER = 1 << 2,
-  POST_FILTER = 1 << 3,
-  ANY_HIT = 1 << 4,
-  NO_BLOCK = 1 << 5
-}
-
-/**
- * Result returned from a PhysX query filter callback (mirrors `PxQueryHitType`).
- */
-enum QueryHitType {
-  /** Filter the hit out (no further processing). */
-  NONE = 0,
-  /** Treat the hit as a blocking hit (terminates query for single-hit modes). */
-  BLOCK = 2
 }
 
 enum PhysicsEventState {
@@ -634,8 +539,7 @@ class BufferedContactPoint {
 }
 
 /**
- * Contact event buffered from PhysX fetchResults callback.
- * Implements ICollision so it can be passed directly to the core layer.
+ * Contact points retained for a buffered collision event.
  */
 class BufferedContacts {
   contactCount = 0;

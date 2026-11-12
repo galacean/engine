@@ -3,16 +3,15 @@ Shader "macro-value-refs" {
     Pass "test" {
       mat4 renderer_MVPMat;
 
-      // 1) Parenthesized — pre-fix `_defineDirectiveReg` mis-classified this
-      //    as function-like `V_PAREN(u_paren)` with empty value.
+      // Parenthesized object-like replacement.
       #define V_PAREN (u_paren)
-      // 2) Binary operator — old regex anchored `^id(...)?$`, no trailing operand.
+      // Replacement containing a binary expression.
       #define V_OP u_op_a + u_op_b
-      // 3) Fn call — old regex captured `mix` only, missed user args.
+      // Replacement containing a function call.
       #define V_FN mix(u_fn_a, u_fn_b, 0.5)
-      // 4) Unary — old regex failed on leading `-`.
+      // Replacement containing a unary expression.
       #define V_UNARY -u_unary
-      // 5) `SkyProcedural`'s `#define RAYLEIGH …` shape — real-world repro.
+      // Nested replacement matching a built-in shader pattern.
       #define V_SKY (mix(0.0, 0.0025, pow(material_AtmosphereThickness, 2.5)))
 
       // Declarations after the #defines — exercises lazy lookup at call site.

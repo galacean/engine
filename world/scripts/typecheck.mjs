@@ -25,7 +25,11 @@ for (const directory of fs.readdirSync(path.join(root, "packages"))) {
   parsed.options.paths[`${name}/types/*`] = [`packages/${directory}/src/*`];
   parsed.options.paths[`${name}/*`] = [`packages/${directory}/src/*`];
 }
-const nativeNames = new Set(["core", "loader", "rhi-webgl", "galacean", "math", "shader", "shader-compiler", "ui", "physics-physx", "design"]);
+// Parser subpaths have distinct entrypoints; the generic source wildcard cannot resolve them.
+parsed.options.paths["@galacean/engine-shader-parser/internal"] = ["packages/shader-parser/src/runtime.ts"];
+parsed.options.paths["@galacean/engine-shader-parser/internal/analyzer"] = ["packages/shader-parser/src/index.ts"];
+parsed.options.paths["@galacean/engine-shader-parser/shared"] = ["packages/shader-parser/src/shared.ts"];
+const nativeNames = new Set(["core", "loader", "rhi-webgl", "galacean", "math", "shader", "shader-compiler", "shader-parser", "shader-analyzer", "ui", "physics-physx", "design"]);
 const isNative = diagnostic => diagnostic.file && nativeNames.has(path.relative(root, diagnostic.file.fileName).split(path.sep)[1]);
 function compilerHost(options, modified) {
   const host = ts.createCompilerHost(options);

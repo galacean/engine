@@ -30,8 +30,6 @@ const precisionStr = `
 export class ShaderPass extends ShaderPart {
   /** @internal */
   static _shaderPassCounter: number = 0;
-  /** @internal */
-  static _shaderRootPath = "shaders://root/";
 
   /** @internal */
   _platformTarget: ShaderLanguage;
@@ -50,8 +48,10 @@ export class ShaderPass extends ShaderPart {
   _renderStateDataMap: Record<number, ShaderProperty> = {};
   /** @internal */
   _shaderProgramMaps: ShaderProgramMap[] = [];
-  /** @internal Transform feedback output varyings (WebGL2 only). */
+  /** @internal Transform feedback output source names (WebGL2 only). */
   _feedbackVaryings?: string[];
+
+  private readonly _vertexOutputNames?: Readonly<Record<string, string>>;
 
   private static _variantObservers = new WeakMap<
     Engine,
@@ -104,13 +104,15 @@ export class ShaderPass extends ShaderPart {
    * @param fragmentShaderInstructions - Precompiled fragment instruction array
    * @param platformTarget - Target shader language
    * @param tags - Tags
+   * @param vertexOutputNames - Source output names mapped to generated GLSL names
    */
   constructor(
     name: string,
     vertexShaderInstructions: ShaderInstruction[],
     fragmentShaderInstructions: ShaderInstruction[],
     platformTarget: ShaderLanguage,
-    tags?: Record<string, number | string | boolean>
+    tags?: Record<string, number | string | boolean>,
+    vertexOutputNames?: Readonly<Record<string, string>>
   ) {
     super();
     this._shaderPassId = ShaderPass._shaderPassCounter++;
@@ -119,6 +121,7 @@ export class ShaderPass extends ShaderPart {
     this._vertexShaderInstructions = vertexShaderInstructions;
     this._fragmentShaderInstructions = fragmentShaderInstructions;
     this._platformTarget = platformTarget;
+    this._vertexOutputNames = vertexOutputNames;
 
     const mergedTags = { pipelineStage: PipelineStage.Forward, ...tags };
     for (const key in mergedTags) {
@@ -137,18 +140,7 @@ export class ShaderPass extends ShaderPart {
   ): ShaderProgram {
     const deferCompletion = typeof feedbackOrDefer === "boolean" ? feedbackOrDefer : false;
     if (Array.isArray(feedbackOrDefer)) {
-      if (this._feedbackVaryings) {
-        if (
-          this._feedbackVaryings.length !== feedbackOrDefer.length ||
-          this._feedbackVaryings.some((name, index) => name !== feedbackOrDefer[index])
-        ) {
-          throw new Error("Transform feedback outputs cannot change after the pass ABI is configured");
-        }
-      } else {
-        if (this._shaderProgramMaps.length)
-          throw new Error("Configure feedback outputs before compiling the shader pass");
-        this._feedbackVaryings = feedbackOrDefer.slice();
-      }
+      this._configureFeedbackVaryings(feedbackOrDefer);
     }
     const shaderProgramMap = engine._getShaderProgramMap(this._shaderPassId, this._shaderProgramMaps);
     let shaderProgram = shaderProgramMap.get(macroCollection);
@@ -191,9 +183,19 @@ export class ShaderPass extends ShaderPart {
   _compileShaderProgram(
     engine: Engine,
     macroCollection: ShaderMacroCollection,
-    deferCompletion = false,
+    feedbackOrDefer: string[] | boolean = false,
     cacheOnly = false
   ): ShaderProgram {
+    const deferCompletion = typeof feedbackOrDefer === "boolean" ? feedbackOrDefer : false;
+    if (Array.isArray(feedbackOrDefer)) {
+      this._configureFeedbackVaryings(feedbackOrDefer);
+    }
+    // Retain source names for the pass ABI, including ShaderPool's preconfigured
+    // outputs. Only the GL program and its source cache use the lowered names.
+    const names = this._vertexOutputNames;
+    const feedbackVaryings = names
+      ? this._feedbackVaryings?.map((name) => (Object.prototype.hasOwnProperty.call(names, name) ? names[name] : name))
+      : this._feedbackVaryings;
     const isGPUInstance = macroCollection.isEnable(InstanceBuffer.gpuInstanceMacro);
     const { vertexSource, fragmentSource, instanceLayout } = this._compileShaderSource(
       engine,
@@ -207,7 +209,7 @@ export class ShaderPass extends ShaderPart {
     const sourceKey = JSON.stringify([
       vertexSource,
       fragmentSource,
-      this._feedbackVaryings ?? [],
+      feedbackVaryings ?? [],
       instanceLayout && [
         instanceLayout.instanceMaxCount,
         instanceLayout.structSize,
@@ -223,10 +225,25 @@ export class ShaderPass extends ShaderPart {
     const cached = map.getBySource(sourceKey);
     if (cached) return cached;
     if (cacheOnly) throw new Error(`Shader pass '${this.name}' has a program missing from startup warmup`);
-    const program = new ShaderProgram(engine, vertexSource, fragmentSource, this._feedbackVaryings, deferCompletion);
+    const program = new ShaderProgram(engine, vertexSource, fragmentSource, feedbackVaryings, deferCompletion);
     program._instanceLayout = instanceLayout;
     map.cacheBySource(sourceKey, program);
     return program;
+  }
+
+  private _configureFeedbackVaryings(feedbackVaryings: string[]): void {
+    if (this._feedbackVaryings) {
+      if (
+        this._feedbackVaryings.length !== feedbackVaryings.length ||
+        this._feedbackVaryings.some((name, index) => name !== feedbackVaryings[index])
+      ) {
+        throw new Error("Transform feedback outputs cannot change after the pass ABI is configured");
+      }
+    } else {
+      if (this._shaderProgramMaps.length)
+        throw new Error("Configure feedback outputs before compiling the shader pass");
+      this._feedbackVaryings = feedbackVaryings.slice();
+    }
   }
 
   private _compileShaderSource(

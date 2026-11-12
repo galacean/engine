@@ -2,6 +2,8 @@
 
 本分支以 `galacean/engine` 的 `dev/2.0` 提交 `aa195af6d5e07b4006b76ff7d6716ce58fac2580` 为基线，迁入 `engine-next` 的 Seed World 与系统 Demo。来源是本地 `dev/engine-next-experimental` 的有效工作树（含已有合并结果和 `world/engine/overlay`），并非仅复制其 HEAD；源仓库没有被本次迁移修改。逐文件来源见 [migration/files.json](migration/files.json)。
 
+当前开发与同步仓库为 **`galacean/engine`**；`engine-next` 已停用，仅保留上述迁移来源记录。本分支已同步 `dev/2.0@4916add0371a4853ebe8d3c23fcd68cf150038d6`（2.0.0-alpha.56），并在 `modify` 中适配 shader/parser、显式 Shader 引用与变换反馈输出名称的新契约。
+
 ## 目录与所有权
 
 ```text
@@ -73,7 +75,7 @@ pnpm --dir world typecheck
 
 `build` 默认构建 Seed World，输出 `world/dist/seed-world/`；`build:all` 输出 `world/dist/all/`。部署时保留整个输出目录，HTML 位于其 `world/demos/…` 子目录；项目清单与动态资源按原相对结构输出，不能只上传 HTML 或 JS。各 Demo 的辅助 HTML 入口也包含在统一构建中。
 
-首次启动必须执行 `prepare:engine`；修改 shader 替换文件后需要重跑。缓存仅含 shader 编译输入/输出，不生成 Engine 或 Gallery 的副本。所有新包目前是 `private` workspace 源码包，使用显式子路径导出；尚未建设 npm 分发产物。
+首次启动必须执行 `prepare:engine`；该命令先构建原生包（包括 compiler/parser），再编译 World 的 shader 替换文件。只修改 shader 替换文件后可执行 `node packages/modify/build/prepare.mjs`。缓存仅含 shader 编译输入/输出，不生成 Engine 或 Gallery 的副本。所有新包目前是 `private` workspace 源码包，使用显式子路径导出；尚未建设 npm 分发产物。
 
 AI Chat 的真实模型请求沿用业务配置，需要配置可用的 provider/网关。迁移不附带凭证。树木还原页面可静态构建，但上传 FBX 还原依赖开发服务器的本机 API 和 Blender（通过原工具支持的环境配置指定）；静态部署不提供该 API。
 
@@ -126,4 +128,4 @@ AI Chat 的真实模型请求沿用业务配置，需要配置可用的 provider
 - 无消费者的本机 Unity/Editor 路径生成脚本；当前资源生成必需的工具与其依赖才保留。
 - 外部原生建筑 provider、原游戏二进制、私人服务凭证；历史实验需自行提供其输入。
 
-根级改动限于 workspace/锁文件及新源码包的构建隔离。原生 Engine 源码和现有 examples 不变。复核时可执行 `git diff aa195af6 -- packages/core packages/loader packages/rhi-webgl packages/shader examples`，结果应为空。
+根级改动限于 workspace/锁文件及新源码包的构建隔离。原生 Engine 源码和现有 examples 跟随上述 `galacean/engine` 同步提交；复核时可执行 `git diff 4916add0371a4853ebe8d3c23fcd68cf150038d6 -- packages/core/src packages/loader/src packages/rhi-webgl/src packages/shader/src examples/src`，结果应为空。

@@ -63,7 +63,7 @@ export class SkyBoxMaterial extends Material {
   }
 
   constructor(engine: Engine) {
-    super(engine, Shader.find("Sky/Skybox"));
+    super(engine, Shader.find("Sky/Skybox")!);
 
     this.shaderData.setFloat(SkyBoxMaterial._rotationProp, 0);
     this.shaderData.setFloat(SkyBoxMaterial._exposureProp, 1);

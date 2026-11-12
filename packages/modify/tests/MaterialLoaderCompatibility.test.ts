@@ -1,5 +1,6 @@
 import { AssetType, Material, Shader, Texture2D, WebGLEngine } from "@galacean/engine";
 import "@galacean/engine-loader";
+import { ShaderPrecompiler } from "@galacean/engine-shader-compiler/precompile";
 import { afterAll, beforeAll, expect, it } from "vitest";
 
 let engine: WebGLEngine;
@@ -80,6 +81,82 @@ it("loads a referenced shader when the material includes ignored editor metadata
     expect(material.shaderData.getInt("sunMode")).toBeUndefined();
   } finally {
     material.destroy();
+  }
+});
+
+it("keeps explicit shader resources authoritative when authored names collide", async () => {
+  const name = `WorldNamesakeMaterial-${Math.random()}`;
+  const registered = Shader._createFromPrecompiled({ name, platformTarget: 0, subShaders: [] });
+  const paths = ["first", "second"].map((variant) => `WorldMaterialCompatibility/${name}/${variant}`);
+  const precompiler = new ShaderPrecompiler();
+  engine.resourceManager.registerVirtualResources(
+    paths.map((virtualPath, index) => ({
+      virtualPath,
+      path: resource(
+        precompiler.precompile(
+          `Shader "${name}" { SubShader "Default" { Pass "Forward" {
+            void vert() { gl_Position = vec4(0.0); }
+            void frag() { gl_FragColor = vec4(${index}.0, 0.0, 0.0, 1.0); }
+            VertexShader = vert; FragmentShader = frag;
+          } } }`,
+          0
+        ),
+        "shader"
+      ),
+      type: AssetType.Shader
+    }))
+  );
+  const materials: Material[] = [];
+  try {
+    for (const path of [...paths, paths[0]]) {
+      materials.push(
+        await engine.resourceManager.load<Material>({
+          type: AssetType.Material,
+          url: resource(
+            {
+              name: path,
+              shader: name,
+              shaderRef: { url: path },
+              shaderData: { sunMode: { type: "Select", value: 2 } },
+              macros: [],
+              contributeScreenSpaceReflection: true
+            },
+            "mat"
+          )
+        })
+      );
+    }
+    expect(materials[0].shader).not.toBe(registered);
+    expect(materials[1].shader).not.toBe(materials[0].shader);
+    expect(materials[2].shader).toBe(materials[0].shader);
+    for (let index = 0; index < paths.length; index++) {
+      expect(materials[index].shader).toBe(engine.resourceManager.getFromCache(paths[index]));
+      expect(materials[index].shader.name).toBe(name);
+      expect(materials[index].shader.compileVariant(engine, [])).toBe(true);
+      expect(materials[index].shaderData.getInt("sunMode")).toBeUndefined();
+      expect(materials[index].contributeScreenSpaceReflection).toBe(true);
+    }
+  } finally {
+    const shaders = new Set([registered, ...materials.map((material) => material.shader)]);
+    materials.forEach((material) => material.destroy());
+    shaders.forEach((shader) => shader.destroy(true));
+  }
+});
+
+it("continues sharing identical precompiled World programs across resource URLs", async () => {
+  const name = `WorldSharedShader-${Math.random()}`;
+  const data = { name, platformTarget: 0, subShaders: [] };
+  const firstURL = resource(data, "shader");
+  const secondURL = resource(data, "shader");
+  const first = await engine.resourceManager.load<Shader>({ url: firstURL, type: AssetType.Shader });
+  const second = await engine.resourceManager.load<Shader>({ url: secondURL, type: AssetType.Shader });
+  try {
+    expect(second).toBe(first);
+    expect(first.name).toBe(name);
+    expect(engine.resourceManager.getFromCache(firstURL)).toBe(first);
+    expect(engine.resourceManager.getFromCache(secondURL)).toBe(first);
+  } finally {
+    first.destroy(true);
   }
 });
 
