@@ -1,0 +1,28 @@
+packages/world-planning/src/spatial/WorldTemplateConfig.ts
+  s_ae6fab0fbe1884::t_0d028056b56823 30,66,121-125,132-136
+  s_ae6fab0fbe1884::t_0758cb3e857ee7 137-138
+packages/world-planning/src/spatial/WorldTemplateAuthoring.ts
+  s_ae6fab0fbe1884::t_0d028056b56823 242-247
+  s_ae6fab0fbe1884::t_278f60c5810f9f 248-249
+packages/world-planning/src/spatial/world-templates/sakura-pearl.json
+  s_ae6fab0fbe1884::t_b0775a9c9ca365 373-375
+  s_ae6fab0fbe1884::t_0d028056b56823 372,376-377,394-395
+world/tests/seed-world/WorldTemplates.spec.ts
+  s_ae6fab0fbe1884::t_374aed713011f6 81-83
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "d35d1da4374acea9148f29a3f6f8de70abeca013",
+  "prompts": {},
+  "sessions": {
+    "s_ae6fab0fbe1884": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1cde9-e5eb-7580-948b-3731733934fb",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}
