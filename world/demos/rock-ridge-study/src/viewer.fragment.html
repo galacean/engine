@@ -15,9 +15,9 @@
         <option value="perspective">Oblique</option>
         <option value="side">Side</option>
         <option value="plan">Plan</option>
-        <option value="low">Low angle</option>
+        <option value="low" selected>Low angle</option>
         <option value="close">Rock close-up</option>
-        <option value="compare" selected>Surface comparison</option>
+        <option value="compare">Surface comparison</option>
       </select>
     </label>
     <label class="form-check"><input class="form-check-input" id="rock-study-guides" type="checkbox"><span class="form-check-label">Show layout</span></label>
@@ -26,14 +26,14 @@
     <label class="form-label">Rock finish <select class="form-select" id="rock-study-finish"><option value="stone">Fractured stone</option><option value="clay" selected>Fractured clay</option><option value="original">Original clay</option></select></label>
   </div>
   <div class="viz-controls" id="rock-study-fractures">
-    <label class="form-label" for="rock-study-fracture-depth">Fracture depth <output class="tabular-nums" id="rock-study-fracture-depth-value">100%</output>
-      <input class="form-range" id="rock-study-fracture-depth" aria-label="Fracture depth" type="range" min="0" max="200" step="10" value="100">
+    <label class="form-label" for="rock-study-fracture-depth">Fracture depth <output class="tabular-nums" id="rock-study-fracture-depth-value">120%</output>
+      <input class="form-range" id="rock-study-fracture-depth" aria-label="Fracture depth" type="range" min="0" max="200" step="10" value="120">
     </label>
-    <label class="form-label" for="rock-study-fracture-width">Fracture width <output class="tabular-nums" id="rock-study-fracture-width-value">100%</output>
-      <input class="form-range" id="rock-study-fracture-width" aria-label="Fracture width" type="range" min="0" max="200" step="10" value="100">
+    <label class="form-label" for="rock-study-fracture-width">Fracture width <output class="tabular-nums" id="rock-study-fracture-width-value">140%</output>
+      <input class="form-range" id="rock-study-fracture-width" aria-label="Fracture width" type="range" min="0" max="200" step="10" value="140">
     </label>
-    <label class="form-label" for="rock-study-fracture-irregularity">Irregularity <output class="tabular-nums" id="rock-study-fracture-irregularity-value">100%</output>
-      <input class="form-range" id="rock-study-fracture-irregularity" aria-label="Fracture irregularity" type="range" min="0" max="200" step="10" value="100">
+    <label class="form-label" for="rock-study-fracture-irregularity">Irregularity <output class="tabular-nums" id="rock-study-fracture-irregularity-value">130%</output>
+      <input class="form-range" id="rock-study-fracture-irregularity" aria-label="Fracture irregularity" type="range" min="0" max="200" step="10" value="130">
     </label>
   </div>
   <div class="viz-row">
@@ -41,8 +41,8 @@
       <label class="form-label">Generation seed <input class="form-control" id="rock-study-seed" type="number" min="0" max="4294967295" step="1" value="425"></label>
       <button class="btn" type="button" id="rock-study-next-seed">Next seed</button>
     </div></div>
-    <label class="form-label" for="rock-study-height">Height <output id="rock-study-height-value" for="rock-study-height" class="tabular-nums">100%</output>
-      <input class="form-range" id="rock-study-height" aria-label="Height" type="range" min="25" max="200" step="5" value="100">
+    <label class="form-label" for="rock-study-height">Height <output id="rock-study-height-value" for="rock-study-height" class="tabular-nums">145%</output>
+      <input class="form-range" id="rock-study-height" aria-label="Height" type="range" min="25" max="200" step="5" value="145">
     </label>
   </div>
   <div id="rock-study-authoring">
@@ -54,7 +54,7 @@
       <summary class="text-small">Noise controls · <span id="rock-study-noise-summary"></span></summary>
       <div class="viz-controls">
         <label class="form-label">Base frequency <input class="form-control" id="rock-study-frequency" aria-label="Base frequency" type="number" min="1" max="4" step=".25" value="4"></label>
-        <label class="form-label">Octaves <input class="form-control" id="rock-study-octaves" aria-label="Octaves" type="number" min="1" max="8" step="1" value="3"></label>
+        <label class="form-label">Octaves <input class="form-control" id="rock-study-octaves" aria-label="Octaves" type="number" min="1" max="8" step="1" value="5"></label>
         <label class="form-label">Lacunarity <input class="form-control" id="rock-study-lacunarity" aria-label="Lacunarity" type="number" min="1" max="3" step=".25" value="2"></label>
         <label class="form-label">Persistence <input class="form-control" id="rock-study-persistence" aria-label="Persistence" type="number" min="0" max="1" step=".05" value=".85"></label>
       </div>
@@ -97,6 +97,7 @@
 <script>
 (()=>{
  __ROCK_RIDGE_GENERATOR__
+ const DEMO_PRESET='island-425-fractures-145-v1';
  const root=document.getElementById('rock-arrangement-study');
  const stage=root.querySelector('#rock-study-stage'), labels=root.querySelector('#rock-study-labels');
  const comparisonLabels=root.querySelector('#rock-study-comparison');
@@ -323,8 +324,8 @@
   renderer.setScissorTest(false);
  }
  function resize(){width=stage.clientWidth||700;height=viewSelect.value==='compare'?(width<540?600:440):Math.max(280,Math.min(520,width*.64));if(current&&viewSelect.value==='close')setCameraTarget();renderer.setSize(width,height);stage.style.height=height+'px';camera.left=-span/2;camera.right=span/2;camera.top=span*height/width/2;camera.bottom=-camera.top;camera.updateProjectionMatrix();render();}
- function save(){if(window.openai?.setWidgetState)window.openai.setWidgetState({modelContent:{arrangement:current.id,view:viewSelect.value,showLayout:guideInput.checked,seed:Number(seedInput.value),heightPercent:Number(heightInput.value),ridgeMode:modeInput.value,noise:noiseOptions(),surface:surfaceInput.value,rockFinish:finishInput.value,fractures:fractureOptions(),ridgeVersion:RIDGE_VERSION},privateContent:{yaw,pitch}}).catch(()=>{});}
- function applyState(state){const m=state?.modelContent;if(!m)return false;if(data.scenes.some(s=>s.id===m.arrangement))caseSelect.value=m.arrangement;if(['plan','low','perspective','side','close','compare'].includes(m.view))viewSelect.value=m.view;if(typeof m.showLayout==='boolean')guideInput.checked=m.showLayout;if(Number.isInteger(m.seed)&&m.seed>=0&&m.seed<=4294967295)seedInput.value=m.seed;if(Number.isFinite(m.heightPercent)&&m.heightPercent>=25&&m.heightPercent<=200)heightInput.value=m.heightPercent;if(['perlin','direct'].includes(m.ridgeMode))modeInput.value=m.ridgeMode;if(['rocks','coarse','detail'].includes(m.surface))surfaceInput.value=m.surface;try{const n=perlinSettings(m.noise);for(const key in noiseInputs)noiseInputs[key].value=n[key];}catch{}const f=fractureSettings(m.fractures);for(const key in fractureInputs)fractureInputs[key].value=f[key]*100;fractureLabels();return true;}
+ function save(){if(window.openai?.setWidgetState)window.openai.setWidgetState({modelContent:{demoPreset:DEMO_PRESET,arrangement:current.id,view:viewSelect.value,showLayout:guideInput.checked,seed:Number(seedInput.value),heightPercent:Number(heightInput.value),ridgeMode:modeInput.value,noise:noiseOptions(),surface:surfaceInput.value,rockFinish:finishInput.value,fractures:fractureOptions(),ridgeVersion:RIDGE_VERSION},privateContent:{yaw,pitch}}).catch(()=>{});}
+ function applyState(state){const m=state?.modelContent;if(!m||m.demoPreset!==DEMO_PRESET)return false;if(data.scenes.some(s=>s.id===m.arrangement))caseSelect.value=m.arrangement;if(['plan','low','perspective','side','close','compare'].includes(m.view))viewSelect.value=m.view;if(typeof m.showLayout==='boolean')guideInput.checked=m.showLayout;if(Number.isInteger(m.seed)&&m.seed>=0&&m.seed<=4294967295)seedInput.value=m.seed;if(Number.isFinite(m.heightPercent)&&m.heightPercent>=25&&m.heightPercent<=200)heightInput.value=m.heightPercent;if(['perlin','direct'].includes(m.ridgeMode))modeInput.value=m.ridgeMode;if(['rocks','coarse','detail'].includes(m.surface))surfaceInput.value=m.surface;try{const n=perlinSettings(m.noise);for(const key in noiseInputs)noiseInputs[key].value=n[key];}catch{}const f=fractureSettings(m.fractures);for(const key in fractureInputs)fractureInputs[key].value=f[key]*100;fractureLabels();return true;}
  function restoreState(state){
   const previous={arrangement:caseSelect.value,view:viewSelect.value,seed:seedInput.value,height:heightInput.value,authoring:authoringKey(),surface:surfaceInput.value,finish:finishInput.value,fractures:fractureKey()};
   if(!applyState(state))return false;

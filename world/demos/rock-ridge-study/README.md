@@ -13,6 +13,14 @@ needed for the study. Fractured stone, fractured clay and the original clay mesh
 can be compared. This is a standalone surface study; Seed materials and runtime
 navigation are not integrated.
 
+The entry preview opens the complete offshore island at seed **425**, **145%**
+height, in low-angle clay. It applies the current solid fracturing to every rock
+with **120% depth, 140% width, and 130% irregularity**, using the original Perlin
+field settings (frequency 4, five octaves, lacunarity 2, persistence 0.85).
+All arrangement and fracture controls remain available. The entry has a separate
+saved-state revision so the older demo's saved view cannot replace this requested
+starting scene; changes made in this revision persist normally.
+
 For individual shape controls, open [Atomic rock controls](atomic-controls/index.html).
 Its 27 parameter choices run the upstream single-rock generator and compare source/reduced
 meshes. Choose one parameter at a time or enable combined edits.
@@ -165,7 +173,7 @@ tuning; only one mesh is rebuilt. Assembly views rebuild the library and refit
 the masses against the adjusted surface. They may take several seconds to update.
 Obsolete mesh buffers are disposed instead of retaining every slider combination.
 Controls are disabled for Original clay and noise-field views. Settings are saved
-with the seed, height and orbit; older saved states default to 100%.
+with the seed, height and orbit within the current entry's saved-state revision.
 
 ### Carving contract
 
