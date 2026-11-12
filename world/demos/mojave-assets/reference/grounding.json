@@ -1,0 +1,412 @@
+{
+  "method": "Unity instance transforms and source LOD1 vertices, with bilinear TerrainData height at pivot. Approximate burial; not mesh-volume intersection. Includes yellow and red instances.",
+  "assets": {
+    "A01": {
+      "source": "RockAssemble_0",
+      "samples": 202,
+      "fractionQuartiles": [
+        0.4,
+        0.487,
+        0.603
+      ],
+      "adoptedFraction": 0.487,
+      "depthQuartilesM": [
+        3.89,
+        5.53,
+        7.9
+      ],
+      "sizeQuartilesM": [
+        [
+          12.84,
+          6.23,
+          8.55
+        ],
+        [
+          19.73,
+          9.62,
+          13.21
+        ],
+        [
+          41.66,
+          20.18,
+          27.73
+        ]
+      ]
+    },
+    "A02": {
+      "source": "RockAssemble_1",
+      "samples": 196,
+      "fractionQuartiles": [
+        0.407,
+        0.535,
+        0.666
+      ],
+      "adoptedFraction": 0.535,
+      "depthQuartilesM": [
+        3.67,
+        5.12,
+        7.11
+      ],
+      "sizeQuartilesM": [
+        [
+          7.41,
+          5.76,
+          8.82
+        ],
+        [
+          11.32,
+          8.8,
+          13.68
+        ],
+        [
+          24.28,
+          18.88,
+          29.36
+        ]
+      ]
+    },
+    "A03": {
+      "source": "RockAssemble_2",
+      "samples": 174,
+      "fractionQuartiles": [
+        0.371,
+        0.488,
+        0.651
+      ],
+      "adoptedFraction": 0.488,
+      "depthQuartilesM": [
+        4.48,
+        5.64,
+        8.63
+      ],
+      "sizeQuartilesM": [
+        [
+          10.84,
+          6.76,
+          9.23
+        ],
+        [
+          16.21,
+          10.12,
+          13.7
+        ],
+        [
+          34.05,
+          21.25,
+          28.99
+        ]
+      ]
+    },
+    "A04": {
+      "source": "RockAssemble_3",
+      "samples": 224,
+      "fractionQuartiles": [
+        0.351,
+        0.479,
+        0.654
+      ],
+      "adoptedFraction": 0.479,
+      "depthQuartilesM": [
+        4.33,
+        5.23,
+        7.65
+      ],
+      "sizeQuartilesM": [
+        [
+          9.19,
+          6.62,
+          7.79
+        ],
+        [
+          14.32,
+          10.41,
+          12.26
+        ],
+        [
+          29.57,
+          21.32,
+          25.32
+        ]
+      ]
+    },
+    "A05": {
+      "source": "RockAssemble_4",
+      "samples": 225,
+      "fractionQuartiles": [
+        0.358,
+        0.453,
+        0.602
+      ],
+      "adoptedFraction": 0.453,
+      "depthQuartilesM": [
+        4.19,
+        5.51,
+        7.92
+      ],
+      "sizeQuartilesM": [
+        [
+          9.05,
+          6.86,
+          7.81
+        ],
+        [
+          14.42,
+          10.81,
+          12.46
+        ],
+        [
+          28.5,
+          21.37,
+          24.61
+        ]
+      ]
+    },
+    "A06": {
+      "source": "RockAssemble_5",
+      "samples": 193,
+      "fractionQuartiles": [
+        0.382,
+        0.476,
+        0.63
+      ],
+      "adoptedFraction": 0.476,
+      "depthQuartilesM": [
+        4.36,
+        5.53,
+        8.37
+      ],
+      "sizeQuartilesM": [
+        [
+          8.33,
+          6.78,
+          10.24
+        ],
+        [
+          12.6,
+          10.41,
+          15.49
+        ],
+        [
+          24.74,
+          20.38,
+          30.41
+        ]
+      ]
+    },
+    "R01": {
+      "source": "Rock_0",
+      "samples": 1506,
+      "fractionQuartiles": [
+        0.558,
+        0.604,
+        0.698
+      ],
+      "adoptedFraction": 0.604,
+      "depthQuartilesM": [
+        0.79,
+        0.99,
+        1.22
+      ],
+      "sizeQuartilesM": [
+        [
+          1.12,
+          1.17,
+          1.28
+        ],
+        [
+          1.54,
+          1.61,
+          1.76
+        ],
+        [
+          1.96,
+          2.05,
+          2.25
+        ]
+      ]
+    },
+    "R02": {
+      "source": "Rock_1",
+      "samples": 1458,
+      "fractionQuartiles": [
+        0.556,
+        0.598,
+        0.703
+      ],
+      "adoptedFraction": 0.598,
+      "depthQuartilesM": [
+        0.85,
+        1.05,
+        1.33
+      ],
+      "sizeQuartilesM": [
+        [
+          1.4,
+          1.08,
+          1.31
+        ],
+        [
+          1.93,
+          1.5,
+          1.81
+        ],
+        [
+          2.51,
+          1.95,
+          2.36
+        ]
+      ]
+    },
+    "R03": {
+      "source": "Rock_2",
+      "samples": 1506,
+      "fractionQuartiles": [
+        0.545,
+        0.592,
+        0.705
+      ],
+      "adoptedFraction": 0.592,
+      "depthQuartilesM": [
+        0.96,
+        1.21,
+        1.55
+      ],
+      "sizeQuartilesM": [
+        [
+          1.87,
+          1.19,
+          1.39
+        ],
+        [
+          2.57,
+          1.63,
+          1.91
+        ],
+        [
+          3.31,
+          2.11,
+          2.46
+        ]
+      ]
+    },
+    "R04": {
+      "source": "Rock_3",
+      "samples": 1456,
+      "fractionQuartiles": [
+        0.536,
+        0.605,
+        0.768
+      ],
+      "adoptedFraction": 0.605,
+      "depthQuartilesM": [
+        1.31,
+        1.69,
+        2.2
+      ],
+      "sizeQuartilesM": [
+        [
+          2.38,
+          1.73,
+          1.71
+        ],
+        [
+          3.27,
+          2.37,
+          2.35
+        ],
+        [
+          4.24,
+          3.09,
+          3.05
+        ]
+      ]
+    },
+    "R05": {
+      "source": "Rock_4",
+      "samples": 1490,
+      "fractionQuartiles": [
+        0.565,
+        0.606,
+        0.674
+      ],
+      "adoptedFraction": 0.606,
+      "depthQuartilesM": [
+        0.73,
+        0.89,
+        1.09
+      ],
+      "sizeQuartilesM": [
+        [
+          0.83,
+          0.86,
+          1.24
+        ],
+        [
+          1.16,
+          1.2,
+          1.72
+        ],
+        [
+          1.48,
+          1.53,
+          2.2
+        ]
+      ]
+    },
+    "R06": {
+      "source": "Rock_5",
+      "samples": 1495,
+      "fractionQuartiles": [
+        0.534,
+        0.595,
+        0.742
+      ],
+      "adoptedFraction": 0.595,
+      "depthQuartilesM": [
+        1.08,
+        1.36,
+        1.75
+      ],
+      "sizeQuartilesM": [
+        [
+          1.35,
+          1.82,
+          1.62
+        ],
+        [
+          1.88,
+          2.55,
+          2.27
+        ],
+        [
+          2.42,
+          3.27,
+          2.92
+        ]
+      ]
+    }
+  },
+  "groupCount": 1214,
+  "groupSizeQuantilesP10P50P90": [
+    [
+      8.92,
+      6.43,
+      8.54
+    ],
+    [
+      14.92,
+      10.0,
+      13.25
+    ],
+    [
+      30.67,
+      20.55,
+      27.85
+    ]
+  ],
+  "groupNearestCenterDistanceP10P50P90": [
+    5.73,
+    9.79,
+    16.66
+  ]
+}

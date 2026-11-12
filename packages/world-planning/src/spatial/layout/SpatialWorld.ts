@@ -1,5 +1,5 @@
 import { finalizePlanningFarm } from "../farming/PlanningFarmingFinalization";
-import { publishMojaveDesertLayout } from "./MojaveDesertLayout";
+import { applyMojaveDesertAppearance } from "./MojaveDesertLayout";
 import { PLANNING_REFERENCE } from "../../planning-data/PlanningReference";
 import { planWorldTemplateSite, resolveConfiguredTemplateSpawn } from "../WorldTemplatePlanning";
 import { resolveWorldTemplateScene, resolveWorldTemplateView } from "../WorldTemplateView";
@@ -245,6 +245,7 @@ export function tryRevealSpatialWorld(
   plan.landscapes = revealLandscapeBasemap(plan, base, config.landscape, recipe.edits);
   excludePlanningFarmLandscape(plan);
   plan.naturalVegetation = publishNaturalVegetation(plan, config.landscape, recipe.edits);
+  applyMojaveDesertAppearance(plan, recipe);
   const height = cachedPlanningHeightmap(previous.plan);
   inheritPlanningHeightmap(plan, previous.plan);
   // A worker publication may have no main-thread raster. Resolve only requested contact samples.
@@ -1180,11 +1181,7 @@ function* spatialWorldStages(
     mark("guidance");
     landscapeBase = revealSpatialEcology(environment);
     publishCompositionTrees(plan, ground, config.landscape, recipe.edits);
-    const desertLandscape = publishMojaveDesertLayout(plan, ground);
-    if (desertLandscape.length) {
-      plan.landscapes = [...(plan.landscapes ?? []), ...desertLandscape];
-      if (landscapeBase) landscapeBase = { ...landscapeBase, slots: [...landscapeBase.slots, ...desertLandscape] };
-    }
+    applyMojaveDesertAppearance(plan, recipe);
   }
   // Spawn belongs to a populated village when one exists; layout order also includes rock POIs.
   const first =

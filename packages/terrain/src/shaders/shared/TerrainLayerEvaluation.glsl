@@ -446,7 +446,7 @@
       #endif
       blend.snowResponse += snowResponse * weight;
       blend.grassWeight += (appearanceRole == 1.0 ? weight : 0.0);
-      #ifdef MATERIAL_TERRAIN_GRASS_SHADING
+      #if defined(MATERIAL_TERRAIN_GRASS_SHADING) || defined(MATERIAL_TERRAIN_ROAD_PALETTE)
         blend.roadWeight += (appearanceRole == 2.0 ? weight : 0.0);
       #endif
       blend.weight += weight;
@@ -508,6 +508,8 @@
         #ifdef MATERIAL_TERRAIN_GRASS_SHADING
           if (surface.w == 1.0) color.rgb = vec3(1.0);
           if (surface.w == 2.0) color.rgb = GROUND_TerrainRoadColor.rgb;
+        #endif
+        #if defined(MATERIAL_TERRAIN_GRASS_SHADING) || defined(MATERIAL_TERRAIN_ROAD_PALETTE)
           blend.roadWeight += (surface.w == 2.0 ? weight : 0.0);
         #endif
         blend.grassWeight += (surface.w == 1.0 ? weight : 0.0);
@@ -595,7 +597,12 @@
         * clamp(blend.roadWeight, 0.0, 1.0);
     #elif defined(MATERIAL_TERRAIN_ROAD_PALETTE)
       float vista = grassColorFieldVistaBlendWeight(positionWS);
+      #ifdef MATERIAL_TERRAIN_LAYER_PALETTE
+      color = mix(color, roadDetailColorFromField(terrainProjectGrassSurfaceField(positionWS), GROUND_TerrainRoadColor.rgb, vista),
+        clamp(blend.roadWeight, 0.0, 1.0));
+      #else
       color = roadDetailColorFromField(terrainProjectGrassSurfaceField(positionWS), GROUND_TerrainRoadColor.rgb, vista);
+      #endif
     #else
       color *= terrainProjectMacroVariation(positionWS.xz);
     #endif

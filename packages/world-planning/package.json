@@ -145,7 +145,6 @@
     "./runtime/SeedWorldPopulationRuntimeCell": "./src/runtime/SeedWorldPopulationRuntimeCell.ts",
     "./runtime/SeedWorldPopulationWaterImpact": "./src/runtime/SeedWorldPopulationWaterImpact.ts",
     "./runtime/SeedWorldRiverCurves": "./src/runtime/SeedWorldRiverCurves.ts",
-    "./runtime/SeedWorldRockAssemblyRuntime": "./src/runtime/SeedWorldRockAssemblyRuntime.ts",
     "./runtime/SeedWorldRockAssemblySolver": "./src/runtime/SeedWorldRockAssemblySolver.ts",
     "./runtime/SeedWorldRockPlacements": "./src/runtime/SeedWorldRockPlacements.ts",
     "./runtime/SeedWorldRockRaycast": "./src/runtime/SeedWorldRockRaycast.ts",
@@ -452,7 +451,9 @@
     "./world/SeedWorldViewSnapshot": "./src/world/SeedWorldViewSnapshot.ts",
     "./world/SeedWorldWetland": "./src/world/SeedWorldWetland.ts",
     "./world/SeedWorldWorldEdit": "./src/world/SeedWorldWorldEdit.ts",
-    "./masonry/BuildingInitialSource": "./src/masonry/BuildingInitialSource.ts"
+    "./masonry/BuildingInitialSource": "./src/masonry/BuildingInitialSource.ts",
+    "./runtime/SeedWorldRockMaterial": "./src/runtime/SeedWorldRockMaterial.ts",
+    "./runtime/SeedWorldRockSurfaceStyle": "./src/runtime/SeedWorldRockSurfaceStyle.ts"
   },
   "scripts": {},
   "dependencies": {

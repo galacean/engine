@@ -86,8 +86,8 @@ export function uploadRockFormationSurface(
     renderer = entity.addComponent(MeshRenderer);
     renderer.mesh = mesh;
     renderer.setMaterial(material);
-    renderer.shaderData.enableMacro("RENDERER_ROCK_TEXTURE_SCALE");
-    renderer.shaderData.setFloat("renderer_RockTextureScale", formation.textureScale ?? 1);
+    renderer.shaderData.enableMacro("RENDERER_SURFACE_TEXTURE_SIZE");
+    renderer.shaderData.setFloat("renderer_SurfaceTextureSize", formation.textureScale ?? 1);
     renderer.castShadows = true;
     renderer.receiveShadows = true;
     return { renderer, mesh, buffer, ids };
@@ -133,7 +133,7 @@ export class RockFormationView {
     try {
       if (!this.material) {
         this.material = createRockFormationMaterial(this.engine, this.textureScale, this.colorBlend);
-        if (this.grassCoveragePreview) this.material.shaderData.setFloat("material_RockGrassCoveragePreview", 1);
+        if (this.grassCoveragePreview) this.material.shaderData.setFloat("material_SurfaceCoveragePreview", 1);
         if (this.registerGrassAppearance) {
           this.material.shaderData.enableMacro("MATERIAL_GRASS_SHARED_COLOR_FIELD");
           this.releaseAppearance.push(this.registerGrassAppearance(this.material));
@@ -218,7 +218,7 @@ export class RockFormationView {
   }
   setGrassCoveragePreview(enabled: boolean): void {
     this.grassCoveragePreview = enabled;
-    if (this.material) this.material.shaderData.setFloat("material_RockGrassCoveragePreview", Number(enabled));
+    if (this.material) this.material.shaderData.setFloat("material_SurfaceCoveragePreview", Number(enabled));
   }
   setColorBlend(settings: RockColorBlend): void {
     this.colorBlend = settings;

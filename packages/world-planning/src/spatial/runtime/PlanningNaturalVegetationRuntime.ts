@@ -466,7 +466,7 @@ export class PlanningNaturalVegetationRuntime {
               plant.instance.scale
             ];
             batch.renderer.shaderData.setFloat(
-              "renderer_RockTextureScale",
+              "renderer_SurfaceTextureSize",
               Math.max(...source.geometrySize!.map((size, axis) => size * scale[axis])) / 2
             );
           }
@@ -802,9 +802,9 @@ export class PlanningNaturalVegetationRuntime {
         original.shaderData.cloneTo(renderer.shaderData);
         if (source.kind === "stone") {
           const scale = instance.scaleAxes ?? [instance.scale, instance.scale, instance.scale];
-          renderer.shaderData.enableMacro("RENDERER_ROCK_TEXTURE_SCALE");
+          renderer.shaderData.enableMacro("RENDERER_SURFACE_TEXTURE_SIZE");
           renderer.shaderData.setFloat(
-            "renderer_RockTextureScale",
+            "renderer_SurfaceTextureSize",
             Math.max(...source.geometrySize!.map((size, axis) => size * scale[axis])) / 2
           );
         }

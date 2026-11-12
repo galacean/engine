@@ -42,6 +42,7 @@ export type WorldTemplateArtDirection = Partial<WorldTemplatePalette> & {
     roadsEnabled?: boolean;
     farmingEnabled?: boolean;
     poiMemberMax?: number;
+    layout?: Partial<import("./layout/LayoutRules").LayoutRule>;
     population?: import("./PlanningPopulationParameters").PlanningPopulationOptions;
   };
   focus: string[];
@@ -770,23 +771,66 @@ export const WORLD_TEMPLATE_ART: Readonly<Record<string, WorldTemplateArtDirecti
       relief: { reliefNearAmplitudeM: 8, reliefAmplitudeM: 26, reliefFarAmplitudeM: 76, reliefScaleM: 256 },
       roadsEnabled: false,
       farmingEnabled: false,
-      poiMemberMax: 0,
+      layout: {
+        widthMinM: 8,
+        widthMaxM: 38,
+        depthMinM: 7,
+        depthMaxM: 32,
+        heightMinM: 3,
+        heightMaxM: 14,
+        spacingMinM: 1,
+        spacingMaxM: 6,
+        memberMin: 4,
+        memberMax: 10,
+        maxGroundSlopeDegrees: 35
+      },
       population: { villageMin: 0, villageMax: 0, buildingMin: 0, buildingMax: 0 }
     },
-    centeredStart: true,
     focus: [],
     frameFraction: 0.85,
     azimuthDegrees: 0,
     models: [],
-    lighting: { timeHours: 12 },
-    weather: { cloudCoverage: 0 },
-    postProcess: { contrast: 0 },
-    landscape: { treeHeightMinM: 5, treeHeightMaxM: 12 },
+    lighting: {
+      timeHours: 15,
+      sunIntensity: 1,
+      sunColorR: 1,
+      sunColorG: 0.908,
+      sunColorB: 0.78,
+      atmosphereThickness: 0.74,
+      skyExposure: 1,
+      skyTintR: 1,
+      skyTintG: 0.96735,
+      skyTintB: 0.90252,
+      groundTintR: 0.79245,
+      groundTintG: 0.79245,
+      groundTintB: 0.79245,
+      fogDensity: 0.004,
+      fogExponent: 2,
+      fog: true,
+      shadowStrength: 1
+    },
+    weather: { cloudCoverage: 0.287 },
+    postProcess: {
+      enabled: true,
+      tonemapping: true,
+      postExposure: 0.5,
+      temperature: 0,
+      contrast: 25,
+      saturation: 0,
+      bloom: true,
+      bloomThreshold: 0.9,
+      bloomIntensity: 1,
+      bloomScatter: 0.7
+    },
+    landscape: { treeHeightMinM: 2, treeHeightMaxM: 4 },
     flowerCoverage: 0,
     initialLandscape: {
-      density: 0,
+      density: 0.65,
+      "contexts.poi": 1,
+      "contexts.landform": 1,
+      "contexts.openland": 0.35,
       companionStoneDensity: 0,
-      "vegetation.trees": 0,
+      "vegetation.trees": 0.35,
       "vegetation.grass": 0,
       "vegetation.shrubs": 0,
       "vegetation.herbs": 0,

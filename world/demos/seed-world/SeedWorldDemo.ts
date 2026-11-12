@@ -101,6 +101,7 @@ import {
   Camera,
   DirectLight,
   FogMode,
+  ShadowType,
   Matrix,
   Quaternion,
   Ray,
@@ -705,6 +706,7 @@ export async function mountSeedWorldDemo(
       restore?.();
     };
 
+    if (desert) sun.shadowType = ShadowType.SoftHigh;
     lighting = createIntegratedWorldLightingRuntime(sun.entity, scene!, sun, post, desert?.DESERT_SOLAR_POSITION);
     lighting.setTuning({
       playing: false,
@@ -774,8 +776,8 @@ export async function mountSeedWorldDemo(
     const initialWeather = source.session
       .inspect("world")
       .components.find((component) => component.type === "weather")?.values;
-    if (initialWeather?.cloudCoverage === 0) desert?.clearDesertClouds(environment);
     applyPlanningWeather(environment, initialWeather);
+    desert?.configureDesertClouds(environment);
     audio = new SeedWorldAudioRuntime(camera, navigation, environment, wind);
     const windCenter = new Vector3();
     const driver = root.addComponent(SeedDemoFrame);
@@ -1439,7 +1441,9 @@ export async function mountSeedWorldDemo(
               SEED_WORLD_SURFACE_LOD_CROSS_FADE_DURATION_SECONDS,
               undefined,
               signal,
-              result.recipe.parameters.terrainSurface,
+              desert
+                ? desert.desertSurfaceOptions(plan, result.recipe.parameters.terrainSurface, result.recipe.edits)
+                : result.recipe.parameters.terrainSurface,
               worldTemplateStreetPuddles(plan)
             );
             recordBootSpan("SeedWorldTerrainRuntime.create", spanAt);
@@ -1835,7 +1839,13 @@ export async function mountSeedWorldDemo(
         try {
           const { createSeedWorldMojavePreview } = await import("./src/SeedWorldMojavePreview");
           if (!isCurrent()) return;
-          next = await createSeedWorldMojavePreview(root, accepted.plan, isCurrent);
+          next = await createSeedWorldMojavePreview(
+            root,
+            accepted.plan,
+            isCurrent,
+            camera,
+            accepted.world.clipmap.material
+          );
         } catch (error) {
           if (isCurrent()) console.warn("[seed-world] Mojave landscape setup failed", error);
           return;
@@ -1898,7 +1908,6 @@ export async function mountSeedWorldDemo(
         sandstorm = undefined;
       }
       canvas.dataset.sandstorm = sandstorm ? "active" : "off";
-      await synchronizeMojaveLayout(accepted);
       if (publication!.current !== accepted || disposed) return;
       animals!.synchronize(plan, readAnimalPopulationConfig(source!.session.document), accepted.navigation, {
         surface: accepted.data.surfaceIntent
@@ -1928,6 +1937,7 @@ export async function mountSeedWorldDemo(
         debugSidebar?.synchronize(plan);
         await applyPresentation(source!.session, lightingProfile!, post);
         desert?.applyDesertSky(lighting!);
+        if (desert) post.setBloomTint(1, 1, 1);
         applyPlanningWeather(
           environment!,
           source!.session.inspect("world").components.find((c) => c.type === "weather")?.values
@@ -1939,6 +1949,8 @@ export async function mountSeedWorldDemo(
           grass: readGrassAppearance(source!.session.document)
         });
         desert?.applyDesertTerrain(accepted.world);
+        await synchronizeMojaveLayout(accepted);
+        if (publication!.current !== accepted || disposed) return;
         const surfaceTuning = accepted.world.getSurfaceColorTuning();
         canvas.dataset.grassAppearance = JSON.stringify(surfaceTuning.grass);
         canvas.dataset.grassGroundFusion = String(surfaceTuning.groundFusion);
@@ -1991,6 +2003,14 @@ export async function mountSeedWorldDemo(
     );
     progress(0.94, "准备世界画面");
     desert?.applyDesertShadows(lighting);
+    if (desert) {
+      scene!.shadowFadeBorder = 0.2;
+      sun.shadowBias = 1;
+      sun.shadowNormalBias = 1;
+      scene!.ambientOcclusion.enabled = false;
+      scene!.ambientOcclusion.intensity = 0.5;
+      scene!.ambientOcclusion.radius = 0.5;
+    }
     await lighting.waitForEnvironmentIBLIdle();
     if (pageUrl.searchParams.get("debug") === "1") {
       const { PlanningSeedObbDebug } = await import("./src/planning/spatial/runtime/PlanningSeedObbDebug.ts");
@@ -2076,6 +2096,12 @@ export async function mountSeedWorldDemo(
         import("./src/planning/spatial/runtime/PlanningSeedDebugSidebar.ts")
       ]);
       runtimeDebug = await PlanningSeedRuntimeDebug.create({
+        extraControls: desert
+          ? async (gui) => {
+              const { mountMojaveLodControls } = await import("./src/SeedWorldMojavePreview");
+              mountMojaveLodControls(gui, () => mojaveLayout);
+            }
+          : undefined,
         trees: {
           project: runtimeProject,
           editor: nativeEditor,

@@ -21,7 +21,7 @@ import {
   type SeedWorldSmallRockPlacement
 } from "./SeedWorldRockPlacements.ts";
 import { resolveSeedWorldSurfaceDetailTransitionHeights } from "../world/SeedWorldRuntimeLodProfile.ts";
-import { bindSeedWorldRockToonMaterial } from "./SeedWorldRockAssemblyRuntime.ts";
+import { bindSeedWorldRockSurfaceMaterial } from "./SeedWorldRockMaterial.ts";
 
 type ResolvedLodGroup = Extract<TerrainProjectResolvedGeometry, { kind: "lod-group" }>["lodGroup"];
 
@@ -228,7 +228,7 @@ function instantiateSmallRock(
     entity.transform.setScale(...placement.scale);
     // Avoid rock cross-fade flicker while preserving authored LOD selection.
     const lod = new TerrainLodGroupRendererRuntime(entity, camera, geometry, 0);
-    bindSeedWorldRockToonMaterial(engine, entity, false);
+    bindSeedWorldRockSurfaceMaterial(engine, entity);
     lod.snapToCurrentLod(0);
     return { entity, lod };
   } catch (error) {

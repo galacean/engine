@@ -376,6 +376,20 @@ export function createTemplatePlanningDocument(
     const layout = (initialized.entities.world.components.layout ??= { values: {} });
     layout.values.memberMax = art.initialPlanning.poiMemberMax;
   }
+  if (art.initialPlanning?.layout) {
+    const layout = (initialized.entities.world.components.layout ??= { values: {} });
+    Object.assign(layout.values, art.initialPlanning.layout);
+  }
+  if (id === "titan-wasteland") {
+    initialized.entities.world.components.regionalAppearance = { values: { rockMaterial: "yellow" } };
+    for (const entity of Object.values(initialized.entities)) {
+      if (entity.id === "world" || !entity.components.layout) continue;
+      entity.components.regionalAppearance = {
+        base: { entity: "world", component: "regionalAppearance" },
+        values: settlementRandom(seed, `${entity.id}:rock-material`) < 0.5 ? { rockMaterial: "red" } : {}
+      };
+    }
+  }
   return initialized;
 }
 

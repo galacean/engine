@@ -162,7 +162,7 @@ vec3 terrainProjectProceduralTreeRotateY(vec3 value, float angle) {
   );
 }
 
-#ifdef MATERIAL_PROCEDURAL_TREE_DENSITY_TRANSITION
+#if defined(MATERIAL_PROCEDURAL_TREE_DENSITY_TRANSITION) && defined(RENDERER_PROCEDURAL_TREE_VARIATION_CATALOG) && defined(RENDERER_PROCEDURAL_TREE_GPU_VARIATION)
 float terrainProjectProceduralTreeDensityReveal(Attributes attributes) {
   vec4 transition = material_ProceduralTreeDensityTransition[terrainProjectProceduralTreeCatalogIndex(attributes)];
   vec2 targetDensity = vec2(terrainProjectProceduralTreeVariation(attributes).y,

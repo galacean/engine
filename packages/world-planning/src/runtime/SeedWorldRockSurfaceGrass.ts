@@ -10,7 +10,7 @@ import type { SeedWorldPlan } from "../world/SeedWorldPlanner.ts";
 import {
   SEED_WORLD_DEFAULT_ROCK_GRASS_TRANSITION_STYLE,
   type SeedWorldRockGrassTransitionStyle
-} from "./SeedWorldRockAssemblyRuntime.ts";
+} from "./SeedWorldRockSurfaceStyle.ts";
 import type { SeedWorldSolvedRockObb } from "./SeedWorldRockAssemblySolver.ts";
 
 export const SEED_WORLD_ROCK_SURFACE_GRASS_TRANSFORM_FLOATS = 13;

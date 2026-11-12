@@ -187,7 +187,9 @@ export function compilePlanningPopulation(
       colorVariation: 0
     };
   };
-  const treeInstances = (plan.landscapes ?? []).filter((p) => p.kind === "tree" && !removed.has(p.id)).map(projectTree);
+  const treeInstances = (plan.landscapes ?? [])
+    .filter((p) => p.kind === "tree" && p.assetRenderMode !== "prefab" && !removed.has(p.id))
+    .map(projectTree);
   const generatesTrees = plan.authoredResources?.some(
     (resource) =>
       resource.resourceType === "vegetation-brush" &&

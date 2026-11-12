@@ -71,7 +71,7 @@ Shader "Terrain/Vegetation" {
           vec3 assetAssemblyColor;
           float assetAssemblyLodFade;
         #endif
-        #ifdef RENDERER_PROCEDURAL_TREE_LEAF_MASK_LIBRARY
+        #if defined(RENDERER_PROCEDURAL_TREE_LEAF_MASK_LIBRARY) && defined(RENDERER_ASSET_ASSEMBLY_INSTANCE)
           float proceduralLeafShape;
         #endif
         #ifdef RENDERER_PROCEDURAL_TREE_GPU_LEAF_FRAME
@@ -82,7 +82,7 @@ Shader "Terrain/Vegetation" {
         #endif
         #ifdef RENDERER_GENERATION_REVEAL
           vec4 generationRevealData;
-          #ifdef MATERIAL_PROCEDURAL_TREE_DENSITY_TRANSITION
+          #if defined(MATERIAL_PROCEDURAL_TREE_DENSITY_TRANSITION) && defined(RENDERER_PROCEDURAL_TREE_VARIATION_CATALOG) && defined(RENDERER_ASSET_ASSEMBLY_INSTANCE)
             vec3 treeDissolveTint;
           #endif
         #endif
@@ -125,7 +125,7 @@ Shader "Terrain/Vegetation" {
         #include "vegetation/VegetationTranslucency.glsl"
       #endif
 
-      #ifdef RENDERER_PROCEDURAL_TREE_LEAF_BILLBOARD
+      #if defined(RENDERER_PROCEDURAL_TREE_LEAF_BILLBOARD) && defined(RENDERER_PROCEDURAL_TREE_GPU_LEAF_FRAME)
         #include "vegetation/ProceduralTreeLeafBillboard.glsl"
       #endif
 
@@ -183,7 +183,7 @@ Shader "Terrain/Vegetation" {
           #ifdef MATERIAL_PROCEDURAL_TREE_CANOPY_OCCLUSION
             varyings.proceduralTreeCanopyOpticalDepth = proceduralLeafFrame.canopyOpticalDepth;
           #endif
-          #ifdef RENDERER_HAS_TANGENT
+          #ifdef NEED_VERTEX_TANGENT
             tangentOS = vec4(
               renderer_ProceduralTreeLeafNormalField.w > 0.0
                 ? terrainProjectProceduralTreeLeafShadingTangentOS(proceduralLeafFrame, normalOS)
@@ -217,7 +217,7 @@ Shader "Terrain/Vegetation" {
         #else
           varyings.uv = vec2(0.0);
         #endif
-        #ifdef RENDERER_PROCEDURAL_TREE_LEAF_MASK_LIBRARY
+        #if defined(RENDERER_PROCEDURAL_TREE_LEAF_MASK_LIBRARY) && defined(RENDERER_ASSET_ASSEMBLY_INSTANCE)
           varyings.proceduralLeafShape = terrainProjectProceduralTreeLeafShape(attributes);
         #endif
         vec3 tangentWS = vec3(0.0);
@@ -227,7 +227,7 @@ Shader "Terrain/Vegetation" {
         #if defined(MATERIAL_WIND_GROUND_VEGETATION) && (defined(MATERIAL_VEGETATION_CLIMATE_GRASS) || defined(MATERIAL_VEGETATION_CLIMATE_FLOWER))
           vec3 groundWindBaseNormalWS;
         #endif
-        #ifdef RENDERER_PROCEDURAL_TREE_LEAF_BILLBOARD
+        #if defined(RENDERER_PROCEDURAL_TREE_LEAF_BILLBOARD) && defined(RENDERER_PROCEDURAL_TREE_GPU_LEAF_FRAME)
           vec3 leafOriginWS;
           terrainProjectBuildProceduralTreeLeafFrame(
             attributes,
@@ -282,7 +282,7 @@ Shader "Terrain/Vegetation" {
           varyings.groundWindCarrierNormalWS = groundWindCarrierNormalWS;
         #endif
         #ifdef RENDERER_GENERATION_REVEAL
-          #ifdef MATERIAL_PROCEDURAL_TREE_DENSITY_TRANSITION
+          #if defined(MATERIAL_PROCEDURAL_TREE_DENSITY_TRANSITION) && defined(RENDERER_PROCEDURAL_TREE_VARIATION_CATALOG) && defined(RENDERER_ASSET_ASSEMBLY_INSTANCE)
             varyings.treeDissolveTint = material_TreeDissolvePalette[terrainProjectProceduralTreeCatalogIndex(attributes)].rgb;
           #endif
           varyings.generationRevealData = terrainProjectGenerationRevealData(varyings.positionWS.y, attributes);
@@ -301,7 +301,7 @@ Shader "Terrain/Vegetation" {
         #endif
         #ifdef NEED_VERTEX_TANGENT
           varyings.tangentWS = tangentWS;
-          #ifdef RENDERER_PROCEDURAL_TREE_LEAF_BILLBOARD
+          #if defined(RENDERER_PROCEDURAL_TREE_LEAF_BILLBOARD) && defined(RENDERER_PROCEDURAL_TREE_GPU_LEAF_FRAME)
             varyings.bitangentWS = cross(varyings.normalWS, varyings.tangentWS);
           #else
             varyings.bitangentWS = cross(varyings.normalWS, varyings.tangentWS) * tangentOS.w;
@@ -431,7 +431,7 @@ Shader "Terrain/Vegetation" {
           color.rgb = applyTerrainProjectEntranceWave(color.rgb, varyings.positionWS);
         #endif
         #ifdef RENDERER_GENERATION_REVEAL
-          #ifdef MATERIAL_PROCEDURAL_TREE_DENSITY_TRANSITION
+          #if defined(MATERIAL_PROCEDURAL_TREE_DENSITY_TRANSITION) && defined(RENDERER_PROCEDURAL_TREE_VARIATION_CATALOG) && defined(RENDERER_ASSET_ASSEMBLY_INSTANCE)
             color.rgb = terrainProjectApplyGenerationRevealTint(color.rgb, varyings.generationRevealData, varyings.treeDissolveTint);
           #else
             color.rgb = terrainProjectApplyGenerationRevealColor(color.rgb, varyings.generationRevealData);
@@ -505,11 +505,11 @@ Shader "Terrain/Vegetation" {
         #endif
         #ifdef RENDERER_GENERATION_REVEAL
           vec4 generationRevealData;
-          #ifdef MATERIAL_PROCEDURAL_TREE_DENSITY_TRANSITION
+          #if defined(MATERIAL_PROCEDURAL_TREE_DENSITY_TRANSITION) && defined(RENDERER_PROCEDURAL_TREE_VARIATION_CATALOG) && defined(RENDERER_ASSET_ASSEMBLY_INSTANCE)
             vec3 treeDissolveTint;
           #endif
         #endif
-        #ifdef RENDERER_PROCEDURAL_TREE_LEAF_MASK_LIBRARY
+        #if defined(RENDERER_PROCEDURAL_TREE_LEAF_MASK_LIBRARY) && defined(RENDERER_ASSET_ASSEMBLY_INSTANCE)
           float proceduralLeafShape;
         #endif
       };
@@ -520,7 +520,7 @@ Shader "Terrain/Vegetation" {
       #include "shared/EntranceWave.glsl"
       #include "shared/Shadow.glsl"
 
-      #ifdef RENDERER_PROCEDURAL_TREE_LEAF_BILLBOARD
+      #if defined(RENDERER_PROCEDURAL_TREE_LEAF_BILLBOARD) && defined(RENDERER_PROCEDURAL_TREE_GPU_LEAF_FRAME)
         #include "vegetation/ProceduralTreeLeafBillboard.glsl"
       #endif
 
@@ -567,14 +567,7 @@ Shader "Terrain/Vegetation" {
           normalOS = terrainProjectProceduralTreeLeafNormalOS(proceduralLeafFrame, attributes.LEAF_SHAPE_NORMAL);
           normalOS = terrainProjectProceduralTreeLeafShadingNormalOS(positionOS.xyz, normalOS);
           proceduralTreeWindOriginOS = proceduralLeafFrame.pivotOS;
-          #ifdef RENDERER_HAS_TANGENT
-            tangentOS = vec4(
-              renderer_ProceduralTreeLeafNormalField.w > 0.0
-                ? terrainProjectProceduralTreeLeafShadingTangentOS(proceduralLeafFrame, normalOS)
-                : terrainProjectProceduralTreeLeafTangentOS(proceduralLeafFrame),
-              proceduralLeafFrame.tangentHandedness
-            );
-          #endif
+
         #elif defined(MATERIAL_WIND_PROCEDURAL_TREE)
           proceduralTreeWindOriginOS = attributes.LEAF_PIVOT;
         #endif
@@ -596,7 +589,7 @@ Shader "Terrain/Vegetation" {
         #else
           varyings.uv = vec2(0.0);
         #endif
-        #ifdef RENDERER_PROCEDURAL_TREE_LEAF_MASK_LIBRARY
+        #if defined(RENDERER_PROCEDURAL_TREE_LEAF_MASK_LIBRARY) && defined(RENDERER_ASSET_ASSEMBLY_INSTANCE)
           varyings.proceduralLeafShape = terrainProjectProceduralTreeLeafShape(attributes);
         #endif
         vec3 normalWS;
@@ -605,7 +598,7 @@ Shader "Terrain/Vegetation" {
         vec3 groundWindDiagnostics;
         vec3 groundWindCarrierNormalWS;
         vec3 positionWS;
-        #ifdef RENDERER_PROCEDURAL_TREE_LEAF_BILLBOARD
+        #if defined(RENDERER_PROCEDURAL_TREE_LEAF_BILLBOARD) && defined(RENDERER_PROCEDURAL_TREE_GPU_LEAF_FRAME)
           vec3 leafOriginWS;
           terrainProjectBuildProceduralTreeLeafFrame(
             attributes,
@@ -639,7 +632,7 @@ Shader "Terrain/Vegetation" {
         #endif
         varyings.sourcePositionWS = positionWS;
         #ifdef RENDERER_GENERATION_REVEAL
-          #ifdef MATERIAL_PROCEDURAL_TREE_DENSITY_TRANSITION
+          #if defined(MATERIAL_PROCEDURAL_TREE_DENSITY_TRANSITION) && defined(RENDERER_PROCEDURAL_TREE_VARIATION_CATALOG) && defined(RENDERER_ASSET_ASSEMBLY_INSTANCE)
             varyings.treeDissolveTint = material_TreeDissolvePalette[terrainProjectProceduralTreeCatalogIndex(attributes)].rgb;
           #endif
           varyings.generationRevealData = terrainProjectGenerationRevealData(positionWS.y, attributes);
@@ -679,7 +672,7 @@ Shader "Terrain/Vegetation" {
               clamp(material_LeafGlancingAngleCut, 0.0, 1.0)
             );
           #endif
-          #ifdef RENDERER_PROCEDURAL_TREE_LEAF_MASK_LIBRARY
+          #if defined(RENDERER_PROCEDURAL_TREE_LEAF_MASK_LIBRARY) && defined(RENDERER_ASSET_ASSEMBLY_INSTANCE)
             applyVegetationAlphaCutoff(
               sampleProceduralTreeLeafMask(varyings.uv, varyings.proceduralLeafShape).a * alphaCoverage
             );

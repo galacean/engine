@@ -104,14 +104,33 @@ describe("authored world templates", () => {
     expect(spawnPoi()).toEqual(original);
   });
 
+  it("Mojave: persists regional materials without moving POIs and obeys native density", () => {
+    const document = createTemplatePlanningDocument(20261112, "titan-wasteland");
+    const first = generatePlanningDocument(document);
+    const edited = structuredClone(document);
+    for (const entity of Object.values(edited.entities)) {
+      if (entity.components.regionalAppearance) entity.components.regionalAppearance.values.rockMaterial = "red";
+    }
+    const restored = importPlanningScene(exportPlanningScene(edited));
+    const second = generatePlanningDocument(restored, first);
+    expect(second.plan.rocks.map(rock => [rock.id, rock.center, rock.width, rock.depth, rock.height])).toEqual(
+      first.plan.rocks.map(rock => [rock.id, rock.center, rock.width, rock.depth, rock.height]));
+    expect(second.plan.rocks.every(rock => rock.materialVariant === "red")).toBe(true);
+    expect(first.plan.rocks.some(rock => rock.materialVariant === "yellow")).toBe(true);
+    restored.entities.world.components.landscapePopulation = { values: { multiplier: 0 } };
+    const empty = generatePlanningDocument(restored, second);
+    expect(empty.plan.landscapes).toHaveLength(0);
+    expect(empty.plan.rocks.length).toBe(second.plan.rocks.length);
+  });
+
   it("幻兽荒原: publishes Mojave rock envelopes and landscape on bounded land", () => {
     const source = createTemplatePlanningDocument(110613, "titan-wasteland");
     const original = createSeedPlanningInputs(110613).entities.world.components;
     const components = source.entities.world.components;
     for (const type of ["surfacePalette", "rockFormation", "plantMaterial"])
       expect(components[type]).toEqual(original[type]);
-    expect(components.lighting.values).toEqual({ timeHours: 12 });
-    expect(components.postProcess.values).toEqual({ contrast: 0 });
+    expect(components.lighting.values).toMatchObject({ timeHours: 15, fogDensity: .004, fogExponent: 2 });
+    expect(components.postProcess.values).toMatchObject({ contrast: 25, postExposure: .5 });
     expect(source.authoredResources?.filter((resource) => resource.resourceType === "terrain-feature")).toEqual([]);
     const restored = importPlanningScene(exportPlanningScene(source));
     expect(readAnimalPopulationConfig(restored).enabled).toBe(false);
@@ -147,20 +166,20 @@ describe("authored world templates", () => {
     expect(plan.waters).toHaveLength(0);
     expect(plan.routes).toHaveLength(0);
     expect(plan.buildings).toHaveLength(0);
-    expect(plan.rocks.length).toBeGreaterThan(16);
-    expect(plan.rocks.every((rock) => rock.assetId === "mojave/A01" && rock.obb.length === 4)).toBe(true);
-    expect(plan.landscapes?.filter(({ assetId }) => assetId === "mojave/R03").length).toBeGreaterThan(30);
-    expect(plan.landscapes?.filter(({ kind }) => kind === "tree") ?? []).toHaveLength(0);
+    expect(plan.rocks.length).toBeGreaterThan(40);
+    expect(new Set(plan.rocks.map(rock => rock.materialVariant))).toEqual(new Set(["red", "yellow"]));
+    expect(plan.rocks.every((rock) => /^mojave\/A0[1-6]$/.test(rock.assetId ?? "") && rock.obb.length === 4)).toBe(true);
+    expect(plan.landscapes?.filter(({ assetId }) => /^mojave\/R0[1-6]$/.test(assetId ?? "")).length).toBeGreaterThan(100);
+    expect(new Set(plan.rocks.map(rock => rock.assetId)).size).toBe(6);
+    expect(new Set(plan.landscapes?.filter(item => item.kind === "rock").map(item => item.assetId)).size).toBe(6);
+    expect(plan.landscapes?.filter(({ assetId, assetRenderMode }) => assetId === "mojave/J03" && assetRenderMode === "prefab").length).toBeGreaterThan(0);
     expect(plan.farming).toBeUndefined();
     expect(plan.naturalVegetation?.settings.companionStoneDensity).toBe(0);
     expect(plan.flowerRegions ?? []).toHaveLength(0);
-    expect(Object.values(plan.naturalVegetation!.world).every(density => density === 0)).toBe(true);
+    expect(plan.naturalVegetation!.world.trees).toBeGreaterThan(0);
     const template = WORLD_TEMPLATES.find(entry => entry.id === "titan-wasteland")!;
     expect(buildWorldTemplateGeometry(template, 110613).nodes).toEqual([]);
-    const site = plan.worldTemplateSite!;
-    expect(site.footprints).toEqual([]);
-    expect(site.centeredStart).toEqual({ x: 512, z: 512 });
-    expect(site.spawnView).toBeUndefined();
+    expect(plan.worldTemplateSite).toBeUndefined();
     expect(resolveWorldTemplateScene(plan, (x, z) => stepped.sample({ x, z }))).toBeUndefined();
 
     const edited = applySpatialCommands(restored, [

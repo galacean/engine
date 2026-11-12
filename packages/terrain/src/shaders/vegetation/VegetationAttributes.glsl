@@ -6,6 +6,19 @@
 // Ordinary vegetation retains the exact stock layout.
 struct Attributes {
   vec3 POSITION;
+  #ifdef RENDERER_PROCEDURAL_PLANT_CANOPY_OCCLUSION
+    float PLANT_CANOPY_DEPTH;
+  #endif
+  #if defined(MATERIAL_WIND_PROCEDURAL_PLANT) || defined(MATERIAL_WIND_PROCEDURAL_FLOWER)
+    vec4 PLANT_WIND;
+  #endif
+  #if defined(RENDERER_PROCEDURAL_TREE_GPU_VARIATION) || defined(MATERIAL_WIND_PROCEDURAL_TREE)
+    vec4 TREE_VARIATION_ROOT;
+    vec4 TREE_VARIATION_DATA;
+  #endif
+  #if !defined(RENDERER_PROCEDURAL_TREE_GPU_LEAF_FRAME) && defined(MATERIAL_WIND_PROCEDURAL_TREE)
+    vec3 LEAF_PIVOT;
+  #endif
 
   #ifdef RENDERER_HAS_BLENDSHAPE
     #ifndef RENDERER_BLENDSHAPE_USE_TEXTURE
@@ -47,14 +60,17 @@ struct Attributes {
   #ifdef RENDERER_HAS_UV
     vec2 TEXCOORD_0;
   #endif
-  #ifdef RENDERER_HAS_UV1
+  #if defined(RENDERER_HAS_UV1) || defined(MATERIAL_WIND_VERTEX_PIVOT)
     vec2 TEXCOORD_1;
   #endif
-  #if (defined(MATERIAL_WIND_HERO_TREE_HIERARCHY) || defined(MATERIAL_WIND_SLOD_FAR)) && (defined(MATERIAL_VEGETATION_CLIMATE_BRANCH) || defined(MATERIAL_VEGETATION_CLIMATE_LEAF))
+  #if defined(MATERIAL_WIND_HERO_TREE_HIERARCHY) || defined(MATERIAL_WIND_SLOD_FAR)
     // Quantized P3 contract: normalized uint16 element index + normalized uint16
     // element-local compliance progress. Full hierarchy variants resolve pivots from the
     // mechanical textures; LOD2 consumes only the card-coherent ID and root-tip coordinate.
     vec2 TEXCOORD_3;
+  #endif
+  #if defined(MATERIAL_WIND_VERTEX_PIVOT) && !defined(RENDERER_PROCEDURAL_TREE_GPU_LEAF_FRAME)
+    vec2 TEXCOORD_2;
   #endif
   #ifdef RENDERER_HAS_SKIN
     vec4 JOINTS_0;

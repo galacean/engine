@@ -8,9 +8,11 @@ Shader "Terrain/Surface" {
         CompareFunction = material_WorldPickDepthCompare;
         WriteEnabled = true;
       }
-      RasterState = {
-        CullMode = CullMode.Back;
-      }
+      #ifdef MATERIAL_SURFACE_DOUBLE_SIDED
+        RasterState = { CullMode = CullMode.Off; }
+      #else
+        RasterState = { CullMode = CullMode.Back; }
+      #endif
       RenderQueueType = Opaque;
 
       VertexShader = SurfaceVertex;
@@ -18,10 +20,10 @@ Shader "Terrain/Surface" {
 
       #define TERRAIN_PROJECT_FORWARD_PASS
       #if defined(RENDERER_HAS_NORMAL) && defined(RENDERER_HAS_TANGENT) && \
-        (defined(MATERIAL_HAS_NORMALTEXTURE) || defined(MATERIAL_ENABLE_COVERAGE))
+        ((defined(MATERIAL_HAS_NORMALTEXTURE) && !defined(MATERIAL_WORLD_NORMAL)) || defined(MATERIAL_ENABLE_COVERAGE))
         #define NEED_VERTEX_TANGENT
       #endif
-      #if defined(MATERIAL_HAS_NORMALTEXTURE) || defined(MATERIAL_ENABLE_COVERAGE)
+      #if (defined(MATERIAL_HAS_NORMALTEXTURE) && !defined(MATERIAL_WORLD_NORMAL)) || defined(MATERIAL_ENABLE_COVERAGE)
         #define NEED_TANGENT_SPACE
       #endif
 
@@ -32,7 +34,7 @@ Shader "Terrain/Surface" {
         #include "shared/AssetAssemblyAttributes.glsl"
 
         #include "shared/AssetAssemblyInstancing.glsl"
-        #ifdef MATERIAL_WIND_PROCEDURAL_TREE
+        #if defined(MATERIAL_WIND_PROCEDURAL_TREE) && defined(RENDERER_ASSET_ASSEMBLY_INSTANCE)
           #include "shared/ProceduralTreeWind.glsl"
         #endif
       #else
@@ -53,6 +55,9 @@ Shader "Terrain/Surface" {
         #endif
         vec2 uv;
         vec3 sourcePositionOS;
+        #ifdef MATERIAL_COVERAGE_VERTEX_MASK
+          vec4 coverageColor;
+        #endif
         #ifdef MATERIAL_COVERAGE_USE_LOCAL_NORMAL
           vec3 sourceNormalOS;
         #endif
@@ -63,7 +68,7 @@ Shader "Terrain/Surface" {
         #endif
         #ifdef RENDERER_GENERATION_REVEAL
           vec4 generationRevealData;
-          #ifdef MATERIAL_PROCEDURAL_TREE_DENSITY_TRANSITION
+          #if defined(MATERIAL_PROCEDURAL_TREE_DENSITY_TRANSITION) && defined(RENDERER_PROCEDURAL_TREE_VARIATION_CATALOG) && defined(RENDERER_ASSET_ASSEMBLY_INSTANCE)
             vec3 treeDissolveTint;
           #endif
         #endif
@@ -99,7 +104,7 @@ Shader "Terrain/Surface" {
         vec4 positionOS = vec4(attributes.POSITION, 1.0);
         #ifdef RENDERER_HAS_NORMAL
           vec3 normalOS = attributes.NORMAL;
-          #ifdef RENDERER_HAS_TANGENT
+          #if defined(RENDERER_HAS_TANGENT) && defined(RENDERER_HAS_NORMAL)
             vec4 tangentOS = attributes.TANGENT;
           #endif
         #else
@@ -112,7 +117,7 @@ Shader "Terrain/Surface" {
             positionOS
             #ifdef RENDERER_HAS_NORMAL
               , normalOS
-              #ifdef RENDERER_HAS_TANGENT
+              #if defined(RENDERER_HAS_TANGENT) && defined(RENDERER_HAS_NORMAL)
                 , tangentOS
               #endif
             #endif
@@ -124,7 +129,7 @@ Shader "Terrain/Surface" {
           #ifdef RENDERER_HAS_NORMAL
             mat3 skinNormalMatrix = INVERSE_MAT(mat3(skinMatrix));
             normalOS = normalOS * skinNormalMatrix;
-            #ifdef RENDERER_HAS_TANGENT
+            #if defined(RENDERER_HAS_TANGENT) && defined(RENDERER_HAS_NORMAL)
               tangentOS.xyz = tangentOS.xyz * skinNormalMatrix;
             #endif
           #endif
@@ -137,7 +142,7 @@ Shader "Terrain/Surface" {
         #ifdef RENDERER_ASSET_ASSEMBLY_INSTANCE
           positionOS.xyz = terrainProjectAssetAssemblyPositionOS(positionOS.xyz, attributes);
           normalOS = terrainProjectAssetAssemblyNormalOS(normalOS, attributes);
-          #ifdef RENDERER_HAS_TANGENT
+          #if defined(RENDERER_HAS_TANGENT) && defined(RENDERER_HAS_NORMAL)
             tangentOS.xyz = terrainProjectAssetAssemblyTangentOS(tangentOS.xyz, attributes);
           #endif
           varyings.assetAssemblyColor = terrainProjectAssetAssemblyColor(attributes);
@@ -148,6 +153,13 @@ Shader "Terrain/Surface" {
           varyings.uv = attributes.TEXCOORD_0;
         #else
           varyings.uv = vec2(0.0);
+        #endif
+        #ifdef MATERIAL_COVERAGE_VERTEX_MASK
+          #ifdef RENDERER_ENABLE_VERTEXCOLOR
+            varyings.coverageColor = attributes.COLOR_0;
+          #else
+            varyings.coverageColor = vec4(0.0);
+          #endif
         #endif
         #if defined(RENDERER_PROCEDURAL_TREE_BARK_UV_SCALE) && \
           defined(RENDERER_PROCEDURAL_TREE_VARIATION_CATALOG)
@@ -160,7 +172,7 @@ Shader "Terrain/Surface" {
         #ifdef NEED_VERTEX_TANGENT
           proceduralTreeTangentWS = normalize(mat3(renderer_NormalMat) * tangentOS.xyz);
         #endif
-        #ifdef MATERIAL_WIND_PROCEDURAL_TREE
+        #if defined(MATERIAL_WIND_PROCEDURAL_TREE) && defined(RENDERER_ASSET_ASSEMBLY_INSTANCE)
           vec3 proceduralTreeOriginOS = terrainProjectAssetAssemblyOriginOS(attributes);
           vec4 homogeneousProceduralTreeOriginWS = renderer_ModelMat * vec4(proceduralTreeOriginOS, 1.0);
           vec3 proceduralTreeOriginWS =
@@ -180,7 +192,7 @@ Shader "Terrain/Surface" {
           );
         #endif
         #ifdef RENDERER_GENERATION_REVEAL
-          #ifdef MATERIAL_PROCEDURAL_TREE_DENSITY_TRANSITION
+          #if defined(MATERIAL_PROCEDURAL_TREE_DENSITY_TRANSITION) && defined(RENDERER_PROCEDURAL_TREE_VARIATION_CATALOG) && defined(RENDERER_ASSET_ASSEMBLY_INSTANCE)
             varyings.treeDissolveTint = material_TreeDissolvePalette[terrainProjectProceduralTreeCatalogIndex(attributes)].rgb;
           #endif
           varyings.generationRevealData = terrainProjectGenerationRevealData(varyings.positionWS.y, attributes);
@@ -257,7 +269,7 @@ Shader "Terrain/Surface" {
           color.rgb = applyTerrainProjectEntranceWave(color.rgb, varyings.positionWS);
         #endif
         #ifdef RENDERER_GENERATION_REVEAL
-          #ifdef MATERIAL_PROCEDURAL_TREE_DENSITY_TRANSITION
+          #if defined(MATERIAL_PROCEDURAL_TREE_DENSITY_TRANSITION) && defined(RENDERER_PROCEDURAL_TREE_VARIATION_CATALOG) && defined(RENDERER_ASSET_ASSEMBLY_INSTANCE)
             color.rgb = terrainProjectApplyGenerationRevealTint(color.rgb, varyings.generationRevealData, varyings.treeDissolveTint);
           #else
             color.rgb = terrainProjectApplyGenerationRevealColor(color.rgb, varyings.generationRevealData);
@@ -276,9 +288,11 @@ Shader "Terrain/Surface" {
       DepthState = {
         WriteEnabled = true;
       }
-      RasterState = {
-        CullMode = CullMode.Back;
-      }
+      #ifdef MATERIAL_SURFACE_DOUBLE_SIDED
+        RasterState = { CullMode = CullMode.Off; }
+      #else
+        RasterState = { CullMode = CullMode.Back; }
+      #endif
       RenderQueueType = Opaque;
 
       VertexShader = SurfaceShadowVertex;
@@ -291,7 +305,7 @@ Shader "Terrain/Surface" {
         #include "shared/AssetAssemblyAttributes.glsl"
 
         #include "shared/AssetAssemblyInstancing.glsl"
-        #ifdef MATERIAL_WIND_PROCEDURAL_TREE
+        #if defined(MATERIAL_WIND_PROCEDURAL_TREE) && defined(RENDERER_ASSET_ASSEMBLY_INSTANCE)
           #include "shared/ProceduralTreeWind.glsl"
         #endif
       #else
@@ -303,14 +317,21 @@ Shader "Terrain/Surface" {
       #include "shared/EntranceWave.glsl"
       #include "shared/Shadow.glsl"
 
+      #ifdef MATERIAL_SURFACE_ALPHA_CLIP
+        sampler2D material_BaseTexture;
+        float material_Tiling;
+      #endif
       struct SurfaceShadowVaryings {
+        #ifdef MATERIAL_SURFACE_ALPHA_CLIP
+          vec2 uv;
+        #endif
         vec3 sourcePositionWS;
         #ifdef RENDERER_ASSET_ASSEMBLY_INSTANCE
           float assetAssemblyLodFade;
         #endif
         #ifdef RENDERER_GENERATION_REVEAL
           vec4 generationRevealData;
-          #ifdef MATERIAL_PROCEDURAL_TREE_DENSITY_TRANSITION
+          #if defined(MATERIAL_PROCEDURAL_TREE_DENSITY_TRANSITION) && defined(RENDERER_PROCEDURAL_TREE_VARIATION_CATALOG) && defined(RENDERER_ASSET_ASSEMBLY_INSTANCE)
             vec3 treeDissolveTint;
           #endif
         #endif
@@ -318,10 +339,17 @@ Shader "Terrain/Surface" {
 
       SurfaceShadowVaryings SurfaceShadowVertex(Attributes attributes) {
         SurfaceShadowVaryings varyings;
+        #ifdef MATERIAL_SURFACE_ALPHA_CLIP
+          #ifdef RENDERER_HAS_UV
+            varyings.uv = attributes.TEXCOORD_0 * material_Tiling;
+          #else
+            varyings.uv = vec2(0.0);
+          #endif
+        #endif
         vec4 positionOS = vec4(attributes.POSITION, 1.0);
         #ifdef RENDERER_HAS_NORMAL
           vec3 normalOS = attributes.NORMAL;
-          #ifdef RENDERER_HAS_TANGENT
+          #if defined(RENDERER_HAS_TANGENT) && defined(RENDERER_HAS_NORMAL)
             vec4 tangentOS = attributes.TANGENT;
           #endif
         #else
@@ -334,7 +362,7 @@ Shader "Terrain/Surface" {
             positionOS
             #ifdef RENDERER_HAS_NORMAL
               , normalOS
-              #ifdef RENDERER_HAS_TANGENT
+              #if defined(RENDERER_HAS_TANGENT) && defined(RENDERER_HAS_NORMAL)
                 , tangentOS
               #endif
             #endif
@@ -355,7 +383,7 @@ Shader "Terrain/Surface" {
         #endif
         vec3 positionWS = (renderer_ModelMat * positionOS).xyz;
         vec3 normalWS = normalize(mat3(renderer_NormalMat) * normalOS);
-        #ifdef MATERIAL_WIND_PROCEDURAL_TREE
+        #if defined(MATERIAL_WIND_PROCEDURAL_TREE) && defined(RENDERER_ASSET_ASSEMBLY_INSTANCE)
           vec3 proceduralTreeOriginOS = terrainProjectAssetAssemblyOriginOS(attributes);
           vec3 proceduralTreeOriginWS = (renderer_ModelMat * vec4(proceduralTreeOriginOS, 1.0)).xyz;
           vec3 proceduralTreeTangentWS = vec3(0.0);
@@ -375,7 +403,7 @@ Shader "Terrain/Surface" {
         #endif
         varyings.sourcePositionWS = positionWS;
         #ifdef RENDERER_GENERATION_REVEAL
-          #ifdef MATERIAL_PROCEDURAL_TREE_DENSITY_TRANSITION
+          #if defined(MATERIAL_PROCEDURAL_TREE_DENSITY_TRANSITION) && defined(RENDERER_PROCEDURAL_TREE_VARIATION_CATALOG) && defined(RENDERER_ASSET_ASSEMBLY_INSTANCE)
             varyings.treeDissolveTint = material_TreeDissolvePalette[terrainProjectProceduralTreeCatalogIndex(attributes)].rgb;
           #endif
           varyings.generationRevealData = terrainProjectGenerationRevealData(positionWS.y, attributes);
@@ -391,6 +419,9 @@ Shader "Terrain/Surface" {
       }
 
       void SurfaceShadowFragment(SurfaceShadowVaryings varyings) {
+        #ifdef MATERIAL_SURFACE_ALPHA_CLIP
+          if (texture2D(material_BaseTexture, varyings.uv).a < 0.5) discard;
+        #endif
         #ifdef RENDERER_ASSET_ASSEMBLY_INSTANCE
           applyTerrainProjectInstanceLodDither(gl_FragCoord.xy, varyings.assetAssemblyLodFade);
         #else

@@ -116,6 +116,7 @@ export interface SemanticParameters {
   suspensionBridge?: import("@galacean/engine-water/bridges/SuspensionBridge").SuspensionBridgeOverrides;
   lakes?: Partial<import("../spatial/hydrology/LakeRegions").LakeParameters>;
   rivers?: Partial<import("../spatial/hydrology/RiverRegions").RiverParameters>;
+  regionalAppearance?: { rockMaterial?: "yellow" | "red" };
   terrainSurface?: import("../runtime/SeedWorldTerrainRuntime").SeedWorldTerrainSurfaceOptions;
   terrainSkeleton?: import("../spatial/PlanningCountRange").PlanningCountRange & {
     directionDegrees: number;
@@ -148,6 +149,7 @@ export interface SemanticParameters {
 }
 /** Instance controls are only presented for the selected module. */
 export interface SemanticEdit {
+  regionalAppearance?: { rockMaterial?: "yellow" | "red" };
   suspensionBridge?: import("@galacean/engine-water/bridges/SuspensionBridge").SuspensionBridgeOverrides;
   lakes?: Partial<import("../spatial/hydrology/LakeRegions").LakeParameters>;
   rivers?: Partial<import("../spatial/hydrology/RiverRegions").RiverParameters>;
@@ -160,7 +162,13 @@ export interface SemanticEdit {
   wayfinding?: Partial<import("../spatial/guidance/WayfindingPolicy").WayfindingPolicy>;
   flowerInfluence?: Partial<import("../spatial/ecology/FlowerInfluences").FlowerInfluence>;
   flowers?: import("../spatial/ecology/FlowerRegions").FlowerInput;
-  poi?: { radiusM?: number; sizeWeight?: number };
+  poi?: {
+    radiusM?: number;
+    sizeWeight?: number;
+    surfaceLayerId?: string;
+    surfaceRadiusM?: number;
+    surfaceFeatherM?: number;
+  };
   road?: { widthM?: number; bend?: number; keypoints?: { id: string; x: number; z: number }[] };
   landscape?: import("./ParameterScopes").ParameterPatch<import("./ContextLandscape").LandscapeConfig>;
   canyon?: Partial<import("./PoiCanyon").CanyonConfig>;

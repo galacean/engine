@@ -572,6 +572,11 @@ export class TerrainRuntimeDebugInspector {
           runtimeDebug.setFogEnabled(value);
         });
     }
+    const ao = options.postProcess.entity.scene!.ambientOcclusion;
+    const aoFolder = inspector.subfolder(lighting, "SSAO / 屏幕空间遮蔽", false);
+    aoFolder.add(ao, "enabled").name("Enabled / 开启");
+    aoFolder.add(ao, "intensity", 0, 2, 0.01).name("Intensity / 强度");
+    aoFolder.add(ao, "radius", 0.1, 2, 0.01).name("Radius / 半径");
     const shadowCascadeState = options.lighting.getShadowCascadeTuning();
     const shadowCascades = inspector.subfolder(lighting, "Shadow cascades / 级联阴影", true);
     const shadowDistanceController = shadowCascades
@@ -1723,6 +1728,27 @@ function mountLightingAuthoringControls(
   );
 
   const fogFolder = inspector.subfolder(visualFolder, "Fog / 雾", true);
+  const fogAppearance = lighting.getFogAppearance();
+  const fogSource = {
+    skyDriven: fogAppearance.skyDriven,
+    cameraDepth: fogAppearance.cameraDepth,
+    red: fogAppearance.color[0],
+    green: fogAppearance.color[1],
+    blue: fogAppearance.color[2]
+  };
+  fogFolder
+    .add(fogSource, "skyDriven")
+    .name("Sky-driven color / 天空雾色")
+    .onChange((skyDriven: boolean) => lighting.setFogAppearance({ skyDriven }));
+  fogFolder
+    .add(fogSource, "cameraDepth")
+    .name("Camera depth / 相机深度")
+    .onChange((cameraDepth: boolean) => lighting.setFogAppearance({ cameraDepth }));
+  for (const channel of ["red", "green", "blue"] as const)
+    fogFolder
+      .add(fogSource, channel, 0, 1, 0.001)
+      .name(`Custom ${channel} / 自定义雾色`)
+      .onChange(() => lighting.setFogAppearance({ color: [fogSource.red, fogSource.green, fogSource.blue] }));
   let fogExponentController: dat.GUIController | undefined;
   const synchronizeFogExponentAvailability = (fogMode: FogMode): void => {
     if (!fogExponentController) return;

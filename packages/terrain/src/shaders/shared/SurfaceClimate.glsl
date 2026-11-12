@@ -212,7 +212,7 @@ vec2 terrainProjectSurfaceHydrologyMasks(vec3 worldPosition, float response) {
   #ifdef TERRAIN_PROJECT_PUDDLE_HYDROLOGY
     int regionIndex = terrainProjectRegionIndex(worldPosition.xz);
     if (regionIndex < 0) return vec2(0.0);
-    vec4 bounds = material_TerrainRegionWorldBounds[regionIndex];
+    vec4 bounds = GROUND_TerrainRegionWorldBounds[regionIndex];
     vec4 rect = material_TerrainRegionPuddleRects[regionIndex];
     vec2 local = clamp((worldPosition.xz - bounds.xy) / bounds.zw, vec2(0.0), vec2(1.0));
     vec2 atlasTexel = rect.xy + local * (rect.zw - vec2(1.0));

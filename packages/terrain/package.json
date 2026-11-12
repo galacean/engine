@@ -89,7 +89,6 @@
     "./world/SeedWorldFbm": "./src/world/SeedWorldFbm.ts",
     "./world/SeedWorldGeologySeedCodec": "./src/world/SeedWorldGeologySeedCodec.ts",
     "./world/SeedWorldHeightBrush": "./src/world/SeedWorldHeightBrush.ts",
-    "./world/SeedWorldRockToonShader": "./src/world/SeedWorldRockToonShader.ts",
     "./world/SeedWorldSoilMoisture": "./src/world/SeedWorldSoilMoisture.ts",
     "./world/SeedWorldSurfaceColorField": "./src/world/SeedWorldSurfaceColorField.ts",
     "./world/SeedWorldSurfaceNormalBake": "./src/world/SeedWorldSurfaceNormalBake.ts",
@@ -99,7 +98,9 @@
     "./world/SeedWorldTerrainGenerationSettings": "./src/world/SeedWorldTerrainGenerationSettings.ts",
     "./world/SeedWorldTerrainTransition": "./src/world/SeedWorldTerrainTransition.ts",
     "./rock-formation/GrassCoverage": "./src/rock-formation/GrassCoverage.ts",
-    "./rock-formation/Slope": "./src/rock-formation/Slope.ts"
+    "./rock-formation/Slope": "./src/rock-formation/Slope.ts",
+    "./surface/SurfaceMaterial": "./src/surface/SurfaceMaterial.ts",
+    "./surface/SurfaceShader": "./src/surface/SurfaceShader.ts"
   },
   "scripts": {},
   "dependencies": {

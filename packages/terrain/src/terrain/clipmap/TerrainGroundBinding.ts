@@ -67,6 +67,8 @@ export function bindTerrainGroundSurface(
     "LAYER_DIFFUSE_TEXTURES",
     "LAYER_NORMAL_TEXTURES",
     "LAYER_MASK_TEXTURES",
+    "ROAD_PALETTE",
+    "LAYER_PALETTE",
     "GRASS_SHADING"
   ]) {
     const macro = `${prefix.toUpperCase()}_TERRAIN_${name}`;

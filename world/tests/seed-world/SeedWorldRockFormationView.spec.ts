@@ -43,11 +43,11 @@ vi.mock("../../../packages/world-planning/src/integrations/terrain/rock-formatio
   return {
     createRockFormationMaterial: vi.fn((engine, textureScale) => {
       const material = new PBRMaterial(engine);
-    material.shaderData.setFloat("material_OriginalRockTextureScale", textureScale);
+    material.shaderData.setFloat("material_WorldTextureSize", textureScale);
       return material;
     }),
     setRockTextureScale: vi.fn((material, textureScale) =>
-    material.shaderData.setFloat("material_OriginalRockTextureScale", textureScale)
+    material.shaderData.setFloat("material_WorldTextureSize", textureScale)
   ),
     prepareRockTextures: vi.fn()
   };
@@ -244,7 +244,7 @@ it("shares one material while retaining per-OBB scale and picking through geomet
   frame.commit();
   view.visitPickBatches((batch) => {
     expect(batch.renderer.getMaterials()).toEqual([originalMaterial]);
-    expect(batch.renderer.shaderData.setFloat).toHaveBeenCalledWith("renderer_RockTextureScale", 20);
+    expect(batch.renderer.shaderData.setFloat).toHaveBeenCalledWith("renderer_SurfaceTextureSize", 20);
     expect([batch.resolve(0), batch.resolve(1)]).toEqual(changed.owners);
   });
   expect(gpu.buffers[1].data[8]).toBe(0);
@@ -252,17 +252,14 @@ it("shares one material while retaining per-OBB scale and picking through geomet
   const buffers = [...gpu.buffers],
     colliders = [...gpu.colliders];
   view.setTextureScale(0);
-  expect(originalMaterial.shaderData.setFloat).toHaveBeenLastCalledWith("material_OriginalRockTextureScale", 0);
+  expect(originalMaterial.shaderData.setFloat).toHaveBeenLastCalledWith("material_WorldTextureSize", 0);
   view.setTextureScale(24);
-  expect(originalMaterial.shaderData.setFloat).toHaveBeenLastCalledWith("material_OriginalRockTextureScale", 24);
+  expect(originalMaterial.shaderData.setFloat).toHaveBeenLastCalledWith("material_WorldTextureSize", 24);
   const colorBlend = { color: [0.1, 0.2, 0.3] as [number, number, number] };
   view.setColorBlend(colorBlend);
-  expect(originalMaterial.shaderData.setVector3).toHaveBeenLastCalledWith(
-      "material_RockColor",
-      new Vector3(...colorBlend.color)
-    );
+  expect(originalMaterial.baseColor).toMatchObject({r: 0.1, g: 0.2, b: 0.3, a: 1});
   view.setGrassCoveragePreview(true);
-  expect(originalMaterial.shaderData.setFloat).toHaveBeenLastCalledWith("material_RockGrassCoveragePreview", 1);
+  expect(originalMaterial.shaderData.setFloat).toHaveBeenLastCalledWith("material_SurfaceCoveragePreview", 1);
   expect(gpu.buffers).toEqual(buffers);
   expect(gpu.colliders).toEqual(colliders);
   expect(changed).toEqual(snapshot);
@@ -342,7 +339,7 @@ it("generates independent resident stones and replaces them atomically without c
     expect(runtime.sourceForPlant(p.instance, 0).rendererBindings[0].renderer.mesh).toBe(
       p.pickBatches[0].renderer.mesh
     );
-    expect(p.pickBatches[0].renderer.shaderData.setFloat).toHaveBeenCalledWith("renderer_RockTextureScale", 2.4);
+    expect(p.pickBatches[0].renderer.shaderData.setFloat).toHaveBeenCalledWith("renderer_SurfaceTextureSize", 2.4);
   }
   const originalInstances = structuredClone(instances);
   const calls = prepareJobs.mock.calls.length;
@@ -350,7 +347,7 @@ it("generates independent resident stones and replaces them atomically without c
       client,
       { ...settings, textureScale: 24 }, signal, profile)).commit();
   expect(prepareJobs).toHaveBeenCalledTimes(calls);
-    expect(originalMaterial.shaderData.setFloat).toHaveBeenCalledWith("material_OriginalRockTextureScale", 24);
+    expect(originalMaterial.shaderData.setFloat).toHaveBeenCalledWith("material_WorldTextureSize", 24);
   const changed = { ...settings, shape: { ...settings.shape, wallCount: settings.shape.wallCount + 1 } };
     const discarded = await runtime.prepareRocks(client, changed, signal, profile);
     expect(plants.map((p) => p.pickBatches[0].renderer.mesh)).toEqual(originalMeshes);

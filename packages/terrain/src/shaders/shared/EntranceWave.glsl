@@ -86,7 +86,7 @@
   }
 #endif
 
-#ifdef RENDERER_GENERATION_REVEAL
+#if defined(RENDERER_GENERATION_REVEAL) && !defined(TERRAIN_PROJECT_CLIPMAP_GEOMETRY)
   #ifdef MATERIAL_PROCEDURAL_TREE_DENSITY_TRANSITION
     // Linear tint + spectrum blend; relative width, minimum metres, intensity, cycles/metre.
     vec4 material_TreeDissolveColor;
@@ -95,18 +95,18 @@
     vec3 material_TreeDissolvePhase;
   #endif
   float renderer_GenerationRevealLift;
-  #ifdef RENDERER_COMPACT_GENERATION_REVEAL
+  #if defined(RENDERER_COMPACT_GENERATION_REVEAL) && defined(RENDERER_ASSET_ASSEMBLY_INSTANCE) && !defined(RENDERER_ASSET_ASSEMBLY_RENDERER_INSTANCE)
     vec3 renderer_GenerationRevealLocalCenter;
     vec3 renderer_GenerationRevealLocalExtent;
   #endif
-  #ifndef RENDERER_PROCEDURAL_TREE_VARIATION_CATALOG
+  #if !(defined(RENDERER_PROCEDURAL_TREE_VARIATION_CATALOG) && defined(RENDERER_ASSET_ASSEMBLY_INSTANCE) && !defined(RENDERER_ASSET_ASSEMBLY_RENDERER_INSTANCE) && !defined(RENDERER_ASSET_ASSEMBLY_COMPACT_INSTANCE))
     float renderer_GenerationRevealProgress;
     float renderer_GenerationRevealOriginY;
     float renderer_GenerationRevealHeight;
   #endif
 
   vec4 terrainProjectGenerationRevealData(float sourceWorldY, Attributes attributes) {
-    #ifdef RENDERER_COMPACT_GENERATION_REVEAL
+    #if defined(RENDERER_COMPACT_GENERATION_REVEAL) && defined(RENDERER_ASSET_ASSEMBLY_INSTANCE) && !defined(RENDERER_ASSET_ASSEMBLY_RENDERER_INSTANCE)
       vec3 center = terrainProjectAssetAssemblyRotate(attributes.ASSEMBLY_ROTATION,
         renderer_GenerationRevealLocalCenter * attributes.ASSEMBLY_SCALE.xyz);
       vec3 extent = renderer_GenerationRevealLocalExtent * abs(attributes.ASSEMBLY_SCALE.xyz);
@@ -115,9 +115,9 @@
         + abs(terrainProjectAssetAssemblyRotate(attributes.ASSEMBLY_ROTATION, vec3(0.0, 0.0, extent.z)).y);
       return vec4(sourceWorldY, attributes.ASSEMBLY_SCALE.w,
         attributes.ASSEMBLY_POSITION.y + center.y - radiusY, max(radiusY * 2.0, 0.001));
-    #elif defined(RENDERER_PROCEDURAL_TREE_VARIATION_CATALOG)
+    #elif defined(RENDERER_PROCEDURAL_TREE_VARIATION_CATALOG) && defined(RENDERER_ASSET_ASSEMBLY_INSTANCE) && !defined(RENDERER_ASSET_ASSEMBLY_RENDERER_INSTANCE) && !defined(RENDERER_ASSET_ASSEMBLY_COMPACT_INSTANCE)
       vec4 data = vec4(sourceWorldY, attributes.ASSEMBLY_COLOR.yzw);
-      #ifdef MATERIAL_PROCEDURAL_TREE_DENSITY_TRANSITION
+      #if defined(MATERIAL_PROCEDURAL_TREE_DENSITY_TRANSITION) && defined(RENDERER_PROCEDURAL_TREE_GPU_VARIATION)
         float densityProgress = terrainProjectProceduralTreeDensityReveal(attributes);
         float elementDistance = attributes.TREE_VARIATION_DATA.w;
         #ifndef RENDERER_PROCEDURAL_TREE_GPU_BRANCH_VARIATION
@@ -136,7 +136,7 @@
         data.y = min(densityProgress, entranceAmount);
       #endif
       return data;
-    #elif defined(RENDERER_INSTANCE_GENERATION_REVEAL)
+    #elif defined(RENDERER_INSTANCE_GENERATION_REVEAL) && defined(RENDERER_ASSET_ASSEMBLY_INSTANCE)
       return vec4(
         sourceWorldY,
         mix(1.0, renderer_GenerationRevealProgress, attributes.GENERATION_REVEAL.x),

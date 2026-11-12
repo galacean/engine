@@ -19,6 +19,10 @@ export interface PlanRockBox extends V2Box {
 /** A single rock envelope, independently selectable inside a mountain group. */
 export interface PlanRock {
   assetId?: string;
+  /** Explicit prefab rendering excludes the instance from procedural vegetation submission. */
+  assetRenderMode?: "prefab";
+  /** Shared appearance variant, independent of terrain color and model geometry. */
+  materialVariant?: "yellow" | "red";
   /** Unedited generated boxes retained for sparse per-OBB reset and incremental replay. */
   rockObbSource?: { boxes: PlanRockBox[]; outline: PlanPoint[]; obb: PlanPoint[] };
   /** Resolved constituent volumes, in world metres; shared by both views. */
@@ -338,6 +342,10 @@ export interface PlanLandscape {
     "heightMode" | "slopeMode" | "slopeRate" | "slopeVariation" | "heightVariation"
   > & { sourceHeight: number };
   assetId?: string;
+  /** Explicit prefab rendering excludes the instance from procedural vegetation submission. */
+  assetRenderMode?: "prefab";
+  /** Shared appearance variant, independent of terrain color and model geometry. */
+  materialVariant?: "yellow" | "red";
   contextWeight?: number;
   /** Horizontal scale relative to the source proportions of the placed tree. */
   treeHorizontalScale?: number;

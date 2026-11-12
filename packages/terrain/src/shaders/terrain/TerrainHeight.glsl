@@ -1,5 +1,6 @@
 #ifndef TERRAIN_PROJECT_HEIGHT_INCLUDED
 #define TERRAIN_PROJECT_HEIGHT_INCLUDED
+#define TERRAIN_PROJECT_CLIPMAP_GEOMETRY
 
 #include "shared/TerrainHeightField.glsl"
 
@@ -80,7 +81,7 @@ float terrainProjectSolidAt(vec2 worldXZ) {
     return 0.0;
   }
 
-  vec4 bounds = material_TerrainRegionWorldBounds[regionIndex];
+  vec4 bounds = GROUND_TerrainRegionWorldBounds[regionIndex];
   vec4 atlasRect = material_TerrainRegionHolesRects[regionIndex];
   vec2 local = clamp((worldXZ - bounds.xy) / bounds.zw, vec2(0.0), vec2(1.0));
   vec2 cell = min(floor(local * atlasRect.zw), atlasRect.zw - vec2(1.0));

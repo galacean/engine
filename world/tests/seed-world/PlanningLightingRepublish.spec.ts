@@ -19,7 +19,7 @@ function fixture() {
     ]);
   const lighting: TerrainLightingRuntime = Object.assign(Object.create(TerrainLightingRuntime.prototype), {
     system,
-    _scene: { fogStart: 0, fogEnd: 100 },
+    _scene: { fogStart: 0, fogEnd: 100, shaderData: { setFloat() {}, enableMacro() {}, disableMacro() {} } },
     _proceduralSky: { material: { customSkyZenithTint: new Color(), customSkyHorizonTint: new Color() } },
     _moonLighting: { options: { color: new Color() } },
     _atmosphericFog: { tint: new Color(), setTint() {} },

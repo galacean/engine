@@ -2,11 +2,12 @@
 #define TERRAIN_PROJECT_VEGETATION_WIND_INCLUDED
 
 #include "shared/DetailInstancing.glsl"
+#include "shared/SceneWind.glsl"
 
-vec3 scene_WindVelocity;
+
 vec3 scene_WindSpectrumAdvectionOffset;
-float scene_WindAnimationEnabled;
-vec4 scene_WindFieldParams;
+
+
 vec3 scene_WindLayerMultipliers;
 sampler2D scene_WindSpectrumTexture;
 vec4 scene_WindSpectrumParams;
@@ -48,6 +49,10 @@ vec4 scene_WindShrubProfile2;
 vec4 scene_WindBranchProfile0;
 vec4 scene_WindBranchProfile1;
 vec4 scene_WindBranchProfile2;
+#ifdef MATERIAL_WIND_VERTEX_PIVOT
+// Angular amplitude, frequency (Hz), speed at full response (m/s).
+vec3 material_WindPivotFlutter;
+#endif
 vec4 scene_WindBillboardProfile0;
 vec4 scene_WindBillboardProfile1;
 vec4 scene_WindBillboardProfile2;
@@ -314,7 +319,7 @@ TerrainProjectHeroHierarchyData terrainProjectHeroHierarchyData(
   hierarchy.structurePositionWS = positionWS;
   hierarchy.localProgress = clamp(attributes.TEXCOORD_3.y, 0.0, 1.0);
   hierarchy.leafSpanProgress = clamp(attributes.TEXCOORD_3.y, 0.0, 1.0);
-  #if defined(MATERIAL_WIND_HERO_TREE_ATTACHMENT) && defined(MATERIAL_VEGETATION_CLIMATE_LEAF)
+  #if defined(MATERIAL_WIND_HERO_TREE_HIERARCHY) && defined(MATERIAL_WIND_HERO_TREE_ATTACHMENT) && defined(MATERIAL_VEGETATION_CLIMATE_LEAF)
     vec4 terminalTransform = terrainProjectDecodeMechanicalTransform(elementIndex, 3.0);
     vec3 terminalPivotOS = material_WindMechanicalBoundsMin.xyz +
       terminalTransform.xyz * material_WindMechanicalBoundsExtent.xyz;
@@ -573,7 +578,7 @@ float terrainProjectTreePhase(vec3 originWS) {
 
 float terrainProjectWindReceiverPhase(vec3 originWS, Attributes attributes) {
   float phase = terrainProjectTreePhase(originWS);
-  #if defined(MATERIAL_WIND_HERO_TREE_ATTACHMENT) && defined(MATERIAL_VEGETATION_CLIMATE_LEAF)
+  #if defined(MATERIAL_WIND_HERO_TREE_HIERARCHY) && defined(MATERIAL_WIND_HERO_TREE_ATTACHMENT) && defined(MATERIAL_VEGETATION_CLIMATE_LEAF)
     float elementIndex = floor(attributes.TEXCOORD_3.x * 65535.0 + 0.5);
     phase = fract(phase * 0.82 + fract(elementIndex * 0.61803398875) * 0.18);
   #elif defined(MATERIAL_WIND_GROUND_VEGETATION) && defined(RENDERER_ENABLE_VERTEXCOLOR)
@@ -612,7 +617,7 @@ float terrainProjectShrubBranchCompliance(Attributes attributes) {
 }
 
 float terrainProjectHeroLeafSpanWeight(Attributes attributes) {
-  #if defined(MATERIAL_WIND_HERO_TREE_ATTACHMENT) && defined(MATERIAL_VEGETATION_CLIMATE_LEAF)
+  #if defined(MATERIAL_WIND_HERO_TREE_HIERARCHY) && defined(MATERIAL_WIND_HERO_TREE_ATTACHMENT) && defined(MATERIAL_VEGETATION_CLIMATE_LEAF)
     return clamp(attributes.TEXCOORD_3.y, 0.0, 1.0);
   #else
     return 1.0;
@@ -1267,7 +1272,7 @@ TerrainProjectWindSample terrainProjectSampleWind(
     result.micro *= groundGaleMicroWeight *
       mix(0.55, 1.0, clamp(material_WindGroundWaveParams.y, 0.0, 1.0));
   #endif
-  #if defined(MATERIAL_WIND_HERO_TREE_ATTACHMENT) && defined(MATERIAL_VEGETATION_CLIMATE_LEAF) && !defined(MATERIAL_WIND_SLOD_REDUCED)
+  #if defined(MATERIAL_WIND_HERO_TREE_HIERARCHY) && defined(MATERIAL_WIND_HERO_TREE_ATTACHMENT) && defined(MATERIAL_VEGETATION_CLIMATE_LEAF) && !defined(MATERIAL_WIND_SLOD_REDUCED)
     // Card flutter is an aerodynamic instability, not an oscillator that should run at full
     // cadence in every non-zero wind. Keep breeze motion on the advected micro spectrum, then
     // introduce the 4.8-7.2 Hz shedding band continuously only as both speed and turbulence
@@ -2107,7 +2112,7 @@ vec3 terrainProjectApplyVegetationWind(
       TerrainProjectWindReceiverProfile profile = terrainProjectWindReceiverProfile();
       float windWeight = terrainProjectVegetationStructuralWeight(positionWS, originWS, attributes);
       TerrainProjectWindReceiverProfile hierarchyProfile = profile;
-      #ifdef MATERIAL_WIND_GROUND_VEGETATION
+      #if defined(MATERIAL_WIND_GROUND_VEGETATION) || defined(MATERIAL_WIND_ROOT_LOAD)
         // One blade/stem is one cantilever: all of its vertices must observe the same low-order
         // air load. Sampling the travelling gust and height layer independently at every vertex
         // gives adjacent vertices different equilibrium rotations around the same root; that is
@@ -2399,7 +2404,7 @@ vec3 terrainProjectApplyVegetationWind(
           #endif
         #endif
         #ifndef MATERIAL_WIND_GROUND_VEGETATION
-        #if defined(MATERIAL_WIND_HERO_TREE_ATTACHMENT) && defined(MATERIAL_VEGETATION_CLIMATE_LEAF)
+        #if defined(MATERIAL_WIND_HERO_TREE_HIERARCHY) && defined(MATERIAL_WIND_HERO_TREE_ATTACHMENT) && defined(MATERIAL_VEGETATION_CLIMATE_LEAF)
           // Direction, pressure and instability are three observations of the same relative air
           // state. Splitting them between steady and instantaneous wind creates temporal hysteresis
           // with no physical storage term and is visible as a one-frame lighting/pose discontinuity.
@@ -2422,7 +2427,7 @@ vec3 terrainProjectApplyVegetationWind(
         float flutter = wind.micro * profile.microGain * microEnvelope * wind.turbulence * material_WindWavesScale *
           material_WindForce * 0.08 * windWeight * terrainProjectVegetationFlutterWeight(attributes, profile) *
           leafPressureLoad;
-        #if defined(MATERIAL_WIND_HERO_TREE_ATTACHMENT) && defined(MATERIAL_VEGETATION_CLIMATE_LEAF)
+        #if defined(MATERIAL_WIND_HERO_TREE_HIERARCHY) && defined(MATERIAL_WIND_HERO_TREE_ATTACHMENT) && defined(MATERIAL_VEGETATION_CLIMATE_LEAF)
           // The parent-deformed leaf hinge is the kinematic constraint. Aerodynamic-center data
           // may scale the torque, but every local position transform stays rooted here so a card
           // cannot detach from its branch under any wind strength or instance scale.
@@ -2558,6 +2563,28 @@ vec3 terrainProjectApplyVegetationWind(
             ));
           #endif
           #endif
+        #elif defined(MATERIAL_WIND_VERTEX_PIVOT)
+          // Imported foliage supplies one hinge and phase per connected leaf/card.
+          // Follow the shared root bend first, then rotate rigidly around that hinge.
+          vec3 pivotOS = vec3(attributes.TEXCOORD_1.x, attributes.TEXCOORD_2.x, attributes.TEXCOORD_1.y);
+          #ifdef RENDERER_ASSET_ASSEMBLY_INSTANCE
+            pivotOS = terrainProjectAssetAssemblyPositionOS(pivotOS, attributes);
+          #else
+            pivotOS = terrainProjectDetailPositionOS(pivotOS, attributes);
+          #endif
+          vec3 pivotWS = (renderer_ModelMat * vec4(pivotOS, 1.0)).xyz;
+          pivotWS = originWS + terrainProjectRotateAroundAxis(pivotWS - originWS, bendAxis, bendAngle);
+          float pivotPhase = attributes.TEXCOORD_2.y * 6.2831853;
+          float pivotLoad = clamp(horizontalSpeed / max(material_WindPivotFlutter.z, 0.01), 0.0, 1.0);
+          float pivotAngle = sin(scene_WindFieldParams.w * material_WindPivotFlutter.y * 6.2831853 + pivotPhase) *
+            material_WindPivotFlutter.x * pivotLoad * (1.0 - smoothstep(1.0, 2.0, windLod));
+          windPositionWS = pivotWS + terrainProjectRotateAroundAxis(windPositionWS - pivotWS, bendAxis, pivotAngle);
+          windNormalWS = normalize(terrainProjectRotateAroundAxis(windNormalWS, bendAxis, pivotAngle * normalResponse));
+          #ifdef NEED_VERTEX_TANGENT
+            windTangentWS = normalize(terrainProjectRotateAroundAxis(windTangentWS, bendAxis, pivotAngle * normalResponse));
+          #endif
+        #elif defined(MATERIAL_WIND_ROOT_LOAD)
+          // Woody receiver follows the root bend; no unanchored flutter translation.
         #elif defined(MATERIAL_WIND_HERO_TREE_HIERARCHY) && defined(MATERIAL_VEGETATION_CLIMATE_LEAF)
           float signedWindFacing = dot(normalWS, windDirection);
           float windFacing = smoothstep(-0.2, 0.2, signedWindFacing) * 2.0 - 1.0;

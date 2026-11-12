@@ -46,7 +46,11 @@
     #endif
 
     float getSceneFogVisibility(vec3 positionVS) {
-        float fogDepth = length(positionVS);
+        #ifdef SCENE_FOG_CAMERA_DEPTH
+            float fogDepth = max(-positionVS.z, 0.0);
+        #else
+            float fogDepth = length(positionVS);
+        #endif
 
         #if SCENE_FOG_MODE == 1
             // (end-z) / (end-start) = z * (-1/(end-start)) + (end/(end-start))

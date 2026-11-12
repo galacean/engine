@@ -101,6 +101,10 @@ export interface TerrainShadowCascadeTuning {
   readonly distance: number;
   /** Geometric growth ratio between cascades; 1 is uniform and larger values concentrate resolution nearby. */
   readonly distribution: number;
+  /** Explicit cascade count; absent preserves the two-cascade default. */
+  readonly count?: 2 | 4;
+  /** Normalized four-cascade boundaries in increasing order. */
+  readonly splits?: readonly [number, number, number];
 }
 
 /** Canonical Integrated World camera projection retained by every Terrain entry point. */
@@ -755,6 +759,16 @@ export class TerrainLightingRuntime {
     return { ...this._visibility };
   }
 
+  /** Reads fog color-source and distance authoring independently of the light timeline. */
+  getFogAppearance() {
+    return this._atmosphericFog.getAppearance();
+  }
+
+  /** Updates the fog shader variant and custom color without overriding environment radiance. */
+  setFogAppearance(values: Parameters<TerrainAtmosphericFog["setAppearance"]>[0]): void {
+    this._atmosphericFog.setAppearance(values);
+  }
+
   /** Returns the current two-cascade distance and geometric distribution. */
   getShadowCascadeTuning(): TerrainShadowCascadeTuning {
     this._assertAlive();
@@ -771,6 +785,14 @@ export class TerrainLightingRuntime {
     if (!Number.isFinite(next.distribution) || next.distribution < 1) {
       throw new RangeError("Terrain shadow distribution must be finite and at least one");
     }
+    if (next.count !== undefined && next.count !== 2 && next.count !== 4)
+      throw new RangeError("Shadow cascade count must be two or four");
+    if (
+      next.splits &&
+      (next.splits.length !== 3 ||
+        next.splits.some((v, i) => !Number.isFinite(v) || v <= (i ? next.splits![i - 1] : 0) || v >= 1))
+    )
+      throw new RangeError("Shadow cascade splits must increase inside (0, 1)");
     this._shadowCascadeTuning = next;
     this._applyShadowCascadeTuning();
   }
@@ -1922,8 +1944,9 @@ export class TerrainLightingRuntime {
 
   private _applyShadowCascadeTuning(): void {
     const scene = this._scene;
-    const { distance, distribution } = this._shadowCascadeTuning;
-    scene.shadowCascades = ShadowCascadesMode.TwoCascades;
+    const { distance, distribution, count, splits } = this._shadowCascadeTuning;
+    scene.shadowCascades = count === 4 ? ShadowCascadesMode.FourCascades : ShadowCascadesMode.TwoCascades;
+    if (splits) scene.shadowFourCascadeSplits.set(...splits);
     scene.shadowDistance = distance;
     scene.shadowTwoCascadeSplits = 1 / (1 + distribution);
   }

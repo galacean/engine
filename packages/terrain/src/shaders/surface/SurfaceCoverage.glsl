@@ -19,6 +19,10 @@ float material_CoverageBalance;
 float material_CoverageMaskContrast;
 float material_CoverageNormalBlending;
 vec2 material_CoverageMaskTiling;
+#if defined(MATERIAL_COVERAGE_VERTEX_MASK) || defined(MATERIAL_COVERAGE_SLOPE_MASK)
+  vec4 material_CoverageMaskRemap;
+  vec4 material_CoverageVertexChannel;
+#endif
 
 struct TerrainProjectSurfaceCoverageResult {
   vec3 albedoColor;
@@ -203,6 +207,17 @@ TerrainProjectSurfaceCoverageResult terrainProjectApplySurfaceCoverage(
   float metallic,
   float smoothness
 ) {
+  #if defined(MATERIAL_COVERAGE_VERTEX_MASK) || defined(MATERIAL_COVERAGE_SLOPE_MASK)
+    #ifdef MATERIAL_COVERAGE_VERTEX_MASK
+      float authoredMask = dot(varyings.coverageColor, material_CoverageVertexChannel);
+      authoredMask = clamp((pow(abs(authoredMask), material_CoverageMaskRemap.x) - 0.5) * material_CoverageMaskRemap.y + 0.5, 0.0, 1.0);
+      authoredMask *= pow(authoredMask, 1.0 - material_CoverageMaskRemap.z);
+    #else
+      float authoredMask = terrainProjectSampleCoverageNormal(varyings.positionWS, geometryNormalWS).y;
+    #endif
+    float coverageMask = pow(clamp(authoredMask + material_CoverageMaskRemap.z, 0.0, 1.0),
+      max(0.001, material_CoverageMaskRemap.w)) * material_CoverageColor.a;
+  #else
   float coverageNormal = baseNormalWS.y;
   #ifdef MATERIAL_COVERAGE_USE_LOCAL_NORMAL
     coverageNormal = normalize(varyings.sourceNormalOS).y;
@@ -221,11 +236,17 @@ TerrainProjectSurfaceCoverageResult terrainProjectApplySurfaceCoverage(
   float contrastMask = mix(1.0 - maskSample, maskSample, material_CoverageMaskContrast);
   float coverageMask = clamp(slopeCoverage * clamp(contrastMask, 0.0, 1.0), 0.0, 1.0);
 
+  #endif
+
   vec4 coverageColor = terrainProjectSampleCoverageColor(varyings.positionWS, geometryNormalWS);
+  #ifdef MATERIAL_COVERAGE_CONSTANT_PROPERTIES
+    vec4 coverageMetallicSmoothness = vec4(1.0);
+  #else
   vec4 coverageMetallicSmoothness = terrainProjectSampleCoverageMetallicSmoothness(
     varyings.positionWS,
     geometryNormalWS
   );
+  #endif
   float coverageSmoothness = mix(
     coverageMetallicSmoothness.a,
     coverageColor.a,

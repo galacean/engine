@@ -8,11 +8,11 @@ import { templateLinearColor } from "@galacean/engine-world-planning/spatial/Wor
 const sandDark = templateLinearColor("#ad7f62");
 const sandLight = templateLinearColor("#ca9472");
 
-/** Winter-solstice sun path for the desert template. Rotate north so the main dunes are lit from the side. */
+/** Summer sun path for the desert template. Rotate north so the main dunes are lit from the side. */
 export const DESERT_SOLAR_POSITION = {
   ...PROCEDURAL_SKY_SOLAR_POSITION,
   latitude: 32,
-  dayOfYear: 355,
+  dayOfYear: 172,
   northOffset: 88
 } as const;
 
@@ -38,32 +38,46 @@ export function applyDesertTerrain(world: SeedWorldTerrainRuntime): void {
 
 /** Extends the far shadow cascade while keeping the near cascade's range. */
 export function applyDesertShadows(lighting: TerrainLightingRuntime): void {
-  const current = lighting.getShadowCascadeTuning();
-  const nearDistance = current.distance / (1 + current.distribution);
-  const distance = 480;
-  lighting.setShadowCascadeTuning({ distance, distribution: distance / nearDistance - 1 });
+  lighting.setShadowCascadeTuning({ distance: 300, distribution: 15, count: 4, splits: [1 / 15, 3 / 15, 7 / 15] });
+  lighting.setFogAppearance({ cameraDepth: true });
 }
 
-/** Sets the noon sky material gradient to a muted blue with a warmer horizon. */
+/** Tunes the existing sky scattering for a pale desert sky. */
 export function applyDesertSky(lighting: TerrainLightingRuntime): void {
-  lighting.applyVisualTuning({
-    customSkyZenithR: 1.16,
-    customSkyZenithG: 1.46,
-    customSkyZenithB: 1.23,
-    customSkyHorizonR: 1.39,
-    customSkyHorizonG: 1.52,
-    customSkyHorizonB: 1.04
-  }, 12);
+  lighting.applyVisualTuning(
+    {
+      customSkyTintStrength: 0,
+      skyTintR: 0.5,
+      skyTintG: 0.5,
+      skyTintB: 0.5,
+      sunSize: 0
+    },
+    15
+  );
   lighting.requestEnvironmentBake();
 }
 
-/** Starts the desert template with a clear sky. */
-export function clearDesertClouds(environment: WorldEnvironmentRuntime): void {
+/** Uses animated scattered volumetric clouds at the reference cloud-layer altitude. */
+export function configureDesertClouds(environment: WorldEnvironmentRuntime): void {
   const { transitionDuration } = environment.getSnapshot();
   environment.setTransitionDuration(0);
   try {
-    environment.setCloud(WeatherPresets.cloud.clear);
+    environment.setCloud({ ...WeatherPresets.cloud.scattered, cloudCoverage: 0.287 });
+    environment.setCloudScaleSettings({ baseAltitude: 500, thickness: 300 });
   } finally {
     environment.setTransitionDuration(transitionDuration);
   }
+}
+
+/** Keep the accepted broad color fields and only the 512px sand normal detail. */
+export function desertSurfaceOptions(
+  _plan: import("@galacean/engine-world-planning/semantic-study/IslandPlanModel").IslandPlan,
+  options: import("@galacean/engine-world-planning/runtime/SeedWorldTerrainRuntime").SeedWorldTerrainSurfaceOptions = {},
+  _edits: import("@galacean/engine-world-planning/semantic-study/WorldPlanningContract").SemanticRecipe["edits"] = {}
+): import("@galacean/engine-world-planning/runtime/SeedWorldTerrainRuntime").SeedWorldTerrainSurfaceOptions {
+  return {
+    ...options, palette: undefined, baseTextureUrl: undefined, roadPattern: true,
+    normalTextureUrl: new URL("../assets/desert-surface/RippleNormal.png", import.meta.url).href,
+    microNormalTextureUrl: new URL("../assets/desert-surface/MicroNormal.png", import.meta.url).href
+  };
 }

@@ -17,13 +17,16 @@ struct Attributes {
   #ifdef RENDERER_HAS_UV
     vec2 TEXCOORD_0;
   #endif
-  #ifdef RENDERER_HAS_UV1
+  #if defined(RENDERER_HAS_UV1) || defined(MATERIAL_WIND_VERTEX_PIVOT)
     vec2 TEXCOORD_1;
   #endif
-  #if (defined(MATERIAL_WIND_HERO_TREE_HIERARCHY) || defined(MATERIAL_WIND_SLOD_FAR)) && (defined(MATERIAL_VEGETATION_CLIMATE_BRANCH) || defined(MATERIAL_VEGETATION_CLIMATE_LEAF))
+  #if defined(MATERIAL_WIND_HERO_TREE_HIERARCHY) || defined(MATERIAL_WIND_SLOD_FAR)
     // Asset Assembly tree batches retain the direct-Prefab mechanical element/root-tip
     // coordinate. Per-instance transforms remain isolated in the Assembly buffer below.
     vec2 TEXCOORD_3;
+  #endif
+  #if defined(MATERIAL_WIND_VERTEX_PIVOT) && !defined(RENDERER_PROCEDURAL_TREE_GPU_LEAF_FRAME)
+    vec2 TEXCOORD_2;
   #endif
   #ifdef RENDERER_ENABLE_VERTEXCOLOR
     vec4 COLOR_0;

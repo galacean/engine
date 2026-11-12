@@ -1,14 +1,7 @@
 #ifndef TERRAIN_PROJECT_PROCEDURAL_TREE_WIND_INCLUDED
 #define TERRAIN_PROJECT_PROCEDURAL_TREE_WIND_INCLUDED
 
-// Terrain/Vegetation declares these through VegetationWind.glsl. Terrain/Surface owns no
-// vegetation input block, so the shared procedural-tree solver declares only the Scene state it
-// consumes when it is compiled directly into the opaque bark program.
-#ifndef TERRAIN_PROJECT_VEGETATION_WIND_INCLUDED
-vec3 scene_WindVelocity;
-float scene_WindAnimationEnabled;
-vec4 scene_WindFieldParams;
-#endif
+#include "shared/SceneWind.glsl"
 
 /** x: whole-tree limit; y: whole-tree frequency Hz; z: leaf-local limit; w: leaf frequency Hz. */
 vec4 material_ProceduralTreeWindParams;
@@ -26,10 +19,14 @@ vec3 terrainProjectProceduralTreeWindRotate(vec3 value, vec3 axis, float angle) 
 }
 
 vec3 terrainProjectProceduralTreeWindOuterPointWS(vec3 sourcePositionOS, Attributes attributes) {
+  #ifdef RENDERER_ASSET_ASSEMBLY_INSTANCE
   vec3 positionOS = terrainProjectAssetAssemblyRotate(
     terrainProjectAssetAssemblyRotation(attributes),
     sourcePositionOS * terrainProjectAssetAssemblyEmbeddedScale(attributes)
   ) + terrainProjectAssetAssemblyOriginOS(attributes);
+  #else
+    vec3 positionOS = sourcePositionOS;
+  #endif
   vec4 homogeneousPositionWS = renderer_ModelMat * vec4(positionOS, 1.0);
   return homogeneousPositionWS.xyz / homogeneousPositionWS.w;
 }

@@ -6,6 +6,14 @@ const SKY_RADIANCE_PROPERTY = "scene_FogSkySH";
 const FOG_TINT_PROPERTY = "scene_FogTint";
 const SH_ZERO_BAND_BASIS = 0.282095;
 
+/** Artist-authored fog color source and distance metric, independent of extinction density. */
+export interface TerrainFogAppearance {
+  readonly skyDriven: boolean;
+  readonly color: readonly [number, number, number];
+  /** Camera-space depth matches the URP distance-fog projection. */
+  readonly cameraDepth: boolean;
+}
+
 /** Binds fog aerial perspective to the same directional sky radiance used by realtime IBL. */
 export class TerrainAtmosphericFog {
   private readonly _sphericalMean = new Color();
@@ -13,6 +21,32 @@ export class TerrainAtmosphericFog {
   private readonly _effectiveTint = new Color(1, 1, 1, 1);
   private _radianceIntensity = 1;
   private _destroyed = false;
+  private _appearance: TerrainFogAppearance = {
+    skyDriven: true,
+    color: [0.5309734, 0.53028953, 0.6132076],
+    cameraDepth: false
+  };
+
+  /** Returns detached authoring state for the fog controls. */
+  getAppearance(): TerrainFogAppearance {
+    return { ...this._appearance, color: [...this._appearance.color] };
+  }
+
+  /** Selects shader variants without changing the sky or environment lighting. */
+  setAppearance(values: Partial<TerrainFogAppearance>): void {
+    const next = { ...this._appearance, ...values };
+    if (next.color.length !== 3 || next.color.some((v) => !Number.isFinite(v) || v < 0))
+      throw new RangeError("Fog color must contain three non-negative finite channels");
+    this._appearance = { ...next, color: [...next.color] };
+    const data = this._scene.shaderData;
+    if (next.skyDriven) data.enableMacro(DIRECTIONAL_SKY_MACRO);
+    else {
+      data.disableMacro(DIRECTIONAL_SKY_MACRO);
+      this._scene.fogColor.set(...next.color, 1);
+    }
+    if (next.cameraDepth) data.enableMacro("SCENE_FOG_CAMERA_DEPTH");
+    else data.disableMacro("SCENE_FOG_CAMERA_DEPTH");
+  }
 
   /** Enables the directional fog shader path owned by this Scene runtime. */
   constructor(private readonly _scene: Scene) {
@@ -69,7 +103,7 @@ export class TerrainAtmosphericFog {
       Math.max(0, coefficients[2] * SH_ZERO_BAND_BASIS * tint.b * this._radianceIntensity),
       1
     );
-    scene.fogColor.copyFrom(mean);
+    if (this._appearance.skyDriven) scene.fogColor.copyFrom(mean);
     scene.background.solidColor.copyFrom(mean);
     return mean;
   }
@@ -80,6 +114,7 @@ export class TerrainAtmosphericFog {
       return;
     }
     this._scene.shaderData.disableMacro(DIRECTIONAL_SKY_MACRO);
+    this._scene.shaderData.disableMacro("SCENE_FOG_CAMERA_DEPTH");
     this._destroyed = true;
   }
 

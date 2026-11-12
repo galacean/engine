@@ -1,4 +1,4 @@
-import { MOJAVE_ROCK_GROUP } from "@galacean/engine-world-planning/spatial/layout/MojaveDesertLayout";
+import { MOJAVE_ROCK_GROUPS } from "@galacean/engine-world-planning/spatial/layout/MojaveDesertLayout";
 import { applyPlanningTemplateSurface, initialPlanningTemplate } from "./PlanningStartupTemplate.ts";
 import { planningFarmingProjectStatePath } from "./farming/PlanningFarmingScene.ts";
 import { PlanningFarmRepository } from "./farming/PlanningFarmRepository.ts";
@@ -404,7 +404,7 @@ export async function mountSpatialEditor(
     ui("poi-summary").textContent =
       `POI ${poiSites.filter(site => site.active).length} · ${poiSites.length} 个可调整位置`;
     const layout = r.plan.spatialLayout;
-    const rockGroups = r.plan.rocks.filter(({ assetId }) => assetId === MOJAVE_ROCK_GROUP).length;
+    const rockGroups = r.plan.rocks.filter(({ assetId }) => MOJAVE_ROCK_GROUPS.includes(assetId ?? "")).length;
     const counts: [string, number][] = [
       ["体量", (layout?.groups.reduce((sum, group) => sum + group.volumes.length, 0) ?? 0) + rockGroups],
       ["道路", r.plan.routes.length],

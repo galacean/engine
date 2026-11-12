@@ -39,6 +39,8 @@ import { PlanningTreeAuthoring, type PlanningTreeAuthoringOptions } from "./Plan
 import { PlanningTreePanel, type PlanningTreePanelState } from "./PlanningTreePanel";
 
 export interface PlanningSeedRuntimeDebugOptions {
+  /** Page-owned controls mounted with the shared inspector lifecycle. */
+  readonly extraControls?: (gui: import("dat.gui").GUI) => void | Promise<void>;
   readonly trees?: PlanningTreeAuthoringOptions;
   readonly farming?: PlanningFarmingControlsOptions;
   readonly animals?: Omit<PlanningAnimalPanelOptions, "host">;
@@ -268,6 +270,7 @@ export class PlanningSeedRuntimeDebug {
     const session = await creation;
     if (!session || this.disposed) return;
     this.world = world;
+    await options.extraControls?.(session.inspector.gui);
     if (options.rocks && published.sourcePlan) {
       this.rocks = new RockFormationPanel(session.inspector.rockFolderHost, options.rocks.apply, options.rocks.grass);
       this.extensions.push(this.rocks);
@@ -318,9 +321,14 @@ export class PlanningSeedRuntimeDebug {
       controller.onChange(async (value: boolean) => {
         if (pending || value === world.grassGroundFusion) return;
         pending = true;
-        try { await setGrassGroundFusion(value); }
-        catch (error) { console.warn("[seed-world] grass ground fusion", error); }
-        finally { pending = false; if (this.refreshGroundFusion === refresh) refresh(); }
+        try {
+          await setGrassGroundFusion(value);
+        } catch (error) {
+          console.warn("[seed-world] grass ground fusion", error);
+        } finally {
+          pending = false;
+          if (this.refreshGroundFusion === refresh) refresh();
+        }
       });
     }
     const surface = { ...world.getSurfaceReliefTuning() };

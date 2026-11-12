@@ -1,0 +1,20 @@
+[
+  {
+    "mesh": "Joshua3_LOD0",
+    "vertices": 1182,
+    "triangles": 966,
+    "leafComponents": 84
+  },
+  {
+    "mesh": "Joshua3_LOD1",
+    "vertices": 828,
+    "triangles": 482,
+    "leafComponents": 84
+  },
+  {
+    "mesh": "Joshua3_LOD2",
+    "vertices": 341,
+    "triangles": 220,
+    "leafComponents": 35
+  }
+]

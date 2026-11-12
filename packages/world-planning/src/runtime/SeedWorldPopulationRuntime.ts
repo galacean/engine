@@ -225,7 +225,7 @@ import {
 import {
   SEED_WORLD_DEFAULT_ROCK_GRASS_TRANSITION_STYLE,
   type SeedWorldRockGrassTransitionStyle
-} from "./SeedWorldRockAssemblyRuntime.ts";
+} from "./SeedWorldRockSurfaceStyle.ts";
 import type { SeedWorldSolvedRockObb } from "./SeedWorldRockAssemblySolver.ts";
 import {
   compileSeedWorldRockSurfaceTrees,

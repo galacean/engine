@@ -26,7 +26,7 @@ import {
   type SeedWorldAlignedRockPlacement,
   type SeedWorldRockPlacement
 } from "./SeedWorldRockPlacements.ts";
-import { bindSeedWorldRockToonMaterial } from "./SeedWorldRockAssemblyRuntime.ts";
+import { bindSeedWorldRockSurfaceMaterial } from "./SeedWorldRockMaterial.ts";
 import { resolveSeedWorldSurfaceDetailTransitionHeights } from "../world/SeedWorldRuntimeLodProfile.ts";
 
 type ResolvedLodGroup = Extract<TerrainProjectResolvedGeometry, { kind: "lod-group" }>;
@@ -401,7 +401,7 @@ function instantiateAcceptedRock(
       // Avoid rock cross-fade flicker while preserving authored LOD selection.
       0
     );
-    bindSeedWorldRockToonMaterial(engine, entity, false);
+    bindSeedWorldRockSurfaceMaterial(engine, entity);
     lod.snapToCurrentLod(0);
     return { category: placement.category, entity, lod };
   } catch (error) {

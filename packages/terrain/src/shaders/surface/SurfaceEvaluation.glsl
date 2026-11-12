@@ -12,6 +12,17 @@
   #include "surface/SurfaceCoverage.glsl"
 #endif
 
+#if defined(MATERIAL_WORLD_BASE) || defined(MATERIAL_WORLD_NORMAL)
+  #include "surface/SurfaceProjection.glsl"
+#endif
+#ifdef MATERIAL_TERRAIN_COLOR_COVERAGE
+  #include "shared/TerrainLayerEvaluation.glsl"
+  vec2 material_TerrainCoverageSlope;
+  float material_TerrainCoverageInvert;
+  float material_NormalTerrainRegionOnly;
+  float material_NormalBaseRegionOnly;
+  float material_SurfaceCoveragePreview;
+#endif
 vec4 material_BaseColor;
 float material_Tiling;
 #ifdef MATERIAL_HAS_UV_SCALE
@@ -53,9 +64,22 @@ SurfaceData evaluateSurfaceMaterial(Varyings varyings, bool isFrontFacing) {
     !defined(RENDERER_PROCEDURAL_TREE_VARIATION_CATALOG)
     materialUv *= terrainProjectProceduralTreeBarkUvScale();
   #endif
+  float faceSign = isFrontFacing ? 1.0 : -1.0;
+  #ifdef RENDERER_HAS_NORMAL
+    vec3 geometryNormal = normalize(varyings.normalWS) * faceSign;
+  #else
+    vec3 geometryNormal = normalize(cross(dFdx(varyings.positionWS), dFdy(varyings.positionWS))) * faceSign;
+  #endif
   vec4 baseTexture = vec4(1.0);
   #ifdef MATERIAL_HAS_BASETEXTURE
-    baseTexture = texture2DSRGB(material_BaseTexture, materialUv);
+    #ifdef MATERIAL_WORLD_BASE
+      baseTexture = surfaceWorldBase(material_BaseTexture, varyings.positionWS, geometryNormal);
+    #else
+      baseTexture = texture2DSRGB(material_BaseTexture, materialUv);
+    #endif
+  #endif
+  #ifdef MATERIAL_SURFACE_ALPHA_CLIP
+    if (baseTexture.a < 0.5) discard;
   #endif
   vec3 albedoColor = material_BaseColor.rgb * baseTexture.rgb;
 
@@ -76,11 +100,9 @@ SurfaceData evaluateSurfaceMaterial(Varyings varyings, bool isFrontFacing) {
     );
   #endif
 
-  float faceSign = isFrontFacing ? 1.0 : -1.0;
-  vec3 geometryNormal = normalize(varyings.normalWS) * faceSign;
   vec3 shadingNormal = geometryNormal;
   vec3 baseTangentNormal = vec3(0.0, 0.0, 1.0);
-  #if defined(MATERIAL_HAS_NORMALTEXTURE) || defined(MATERIAL_ENABLE_COVERAGE)
+  #if (defined(MATERIAL_HAS_NORMALTEXTURE) && !defined(MATERIAL_WORLD_NORMAL)) || defined(MATERIAL_ENABLE_COVERAGE)
     #ifdef NEED_VERTEX_TANGENT
       mat3 tangentToWorld = mat3(varyings.tangentWS, varyings.bitangentWS, geometryNormal);
     #else
@@ -92,7 +114,7 @@ SurfaceData evaluateSurfaceMaterial(Varyings varyings, bool isFrontFacing) {
       );
     #endif
   #endif
-  #ifdef MATERIAL_HAS_NORMALTEXTURE
+  #if defined(MATERIAL_HAS_NORMALTEXTURE) && !defined(MATERIAL_WORLD_NORMAL)
     baseTangentNormal = texture2D(material_NormalTexture, materialUv).xyz * 2.0 - 1.0;
     baseTangentNormal.xy *= material_NormalScale;
     baseTangentNormal.z = mix(1.0, baseTangentNormal.z, clamp(material_NormalScale, 0.0, 1.0));
@@ -103,6 +125,9 @@ SurfaceData evaluateSurfaceMaterial(Varyings varyings, bool isFrontFacing) {
       materialUv,
       isFrontFacing
     );
+  #endif
+  #if defined(MATERIAL_HAS_NORMALTEXTURE) && defined(MATERIAL_WORLD_NORMAL)
+    shadingNormal = surfaceWorldNormal(material_NormalTexture, varyings.positionWS, geometryNormal, material_NormalScale);
   #endif
   #ifdef MATERIAL_ENABLE_COVERAGE
     TerrainProjectSurfaceCoverageResult coverage = terrainProjectApplySurfaceCoverage(
@@ -119,6 +144,18 @@ SurfaceData evaluateSurfaceMaterial(Varyings varyings, bool isFrontFacing) {
     metallic = coverage.metallic;
     smoothness = coverage.smoothness;
     shadingNormal = coverage.normalWS;
+  #endif
+  #ifdef MATERIAL_TERRAIN_COLOR_COVERAGE
+    float terrainCoverage = smoothstep(material_TerrainCoverageSlope.x,
+      material_TerrainCoverageSlope.x + max(material_TerrainCoverageSlope.y, 0.001), geometryNormal.y);
+    terrainCoverage = mix(terrainCoverage, 1.0 - terrainCoverage, material_TerrainCoverageInvert);
+    shadingNormal = normalize(mix(geometryNormal, shadingNormal,
+      mix(1.0, terrainCoverage, material_NormalTerrainRegionOnly) *
+      mix(1.0, 1.0 - terrainCoverage, material_NormalBaseRegionOnly)));
+    TerrainProjectLayerBlend ground = terrainProjectGroundSurface(varyings.positionWS);
+    albedoColor = mix(albedoColor, terrainProjectGroundColor(ground, varyings.positionWS),
+      terrainCoverage * clamp(ground.weight, 0.0, 1.0));
+    albedoColor = mix(albedoColor, vec3(terrainCoverage), clamp(material_SurfaceCoveragePreview, 0.0, 1.0));
   #endif
   #ifdef RENDERER_ASSET_ASSEMBLY_INSTANCE
     albedoColor *= varyings.assetAssemblyColor;

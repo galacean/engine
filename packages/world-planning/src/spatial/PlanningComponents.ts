@@ -1240,14 +1240,57 @@ export const PLANNING_COMPONENTS: PlanningComponentDefinition[] = [
     kinds: ["poi"]
   },
   {
+    type: "regionalAppearance",
+    label: "区域外观",
+    version: 1,
+    tab: "world",
+    inspectorOrder: 31,
+    kinds: ["poi"],
+    global: { rockMaterial: "regionalAppearance.rockMaterial" },
+    local: { rockMaterial: "regionalAppearance.rockMaterial" },
+    fields: [
+      {
+        key: "rockMaterial",
+        label: "岩石材质",
+        type: "string",
+        default: "yellow",
+        options: ["yellow", "red"],
+        optionLabels: { yellow: "黄色砂岩", red: "红色砂岩" },
+        description: "POI 岩石组和周边散石共用此材质。只影响岩壁颜色；顶部沿用所在地表，地面保持独立配色。"
+      }
+    ]
+  },
+  {
     type: "poi",
     inspectorOrder: 30,
     label: "兴趣点",
     version: 1,
     tab: "world",
     kinds: ["poi"],
-    local: { sizeWeight: "poi.sizeWeight" },
+    local: {
+      sizeWeight: "poi.sizeWeight",
+      surfaceLayerId: "poi.surfaceLayerId",
+      surfaceRadiusM: "poi.surfaceRadiusM",
+      surfaceFeatherM: "poi.surfaceFeatherM"
+    },
     fields: [
+      {
+        key: "surfaceLayerId",
+        label: "地表材质",
+        type: "string",
+        options: ["", "sand-fine", "sand-large", "sand-rubble", "sand-dry"],
+        optionLabels: {
+          "": "自动",
+          "sand-fine": "细沙",
+          "sand-large": "粗沙",
+          "sand-rubble": "碎石沙地",
+          "sand-dry": "干土地面"
+        },
+        description: "选择当前地表纹理调色板中的层。无调色板的主题不使用此参数。"
+      },
+      number("surfaceRadiusM", "材质核心半径", { unit: "m", min: 0, step: 1, default: 35 }),
+      number("surfaceFeatherM", "材质过渡宽度", { unit: "m", min: 1, step: 1, default: 24 }),
+
       {
         key: "active",
         label: "当前活跃",

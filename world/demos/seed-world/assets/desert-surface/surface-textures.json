@@ -1,0 +1,34 @@
+{
+  "sourcePackage": "Pure Nature 2 Mojave Desert 1.1",
+  "unityMaterial": "RockAssemble_0",
+  "unityTextureDirectory": "Assets/BK/PureNature_Mojave/Textures/Surfaces",
+  "textures": [
+    {
+      "file": "SandSurfaceBase.ktx2",
+      "source": "SandLarge_a.png",
+      "colorSpace": "sRGB"
+    },
+    {
+      "file": "SandSurfaceNormal.ktx2",
+      "source": "SandLarge_n.png",
+      "colorSpace": "linear",
+      "channels": "RGB = normal XYZ; not normal_mode RGBA packing"
+    },
+    {
+      "file": "RockTopBase.ktx2",
+      "source": "_Mojave_RockDetail_a.png",
+      "colorSpace": "sRGB",
+      "worldRepeatMetres": 50,
+      "usage": "World-projected rock top; terrain color on sides; no normal map"
+    }
+  ],
+  "size": [
+    512,
+    512
+  ],
+  "mipLevels": 10,
+  "encoding": "UASTC",
+  "unityTiling": 0.3,
+  "worldRepeatMetres": 3.3333333333333335,
+  "conversion": "Resize RGB to 512; toktx --t2 --encode uastc --genmipmap --assign_oetf srgb|linear. No --normal_mode."
+}

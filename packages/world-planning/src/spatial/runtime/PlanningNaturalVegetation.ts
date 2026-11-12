@@ -100,7 +100,7 @@ export function planningNaturalTrees(
   });
   const removed = planningRemovedObjectIds(plan.authoredResources ?? []);
   return (plan.landscapes ?? [])
-    .filter((p) => p.kind === "tree" && !removed.has(p.id))
+    .filter((p) => p.kind === "tree" && p.assetRenderMode !== "prefab" && !removed.has(p.id))
     .map((tree) => {
       const assetId =
         tree.assetId ?? naturalTreeDimensions(plan.parameters.seed, tree.id, tree.height, tree.center).assetId;

@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="zh-CN">
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width,initial-scale=1" /><title>
+    Mojave 岩石素材</title
+  ><style>
+    body {
+      margin: 0;
+      background: #201e1b;
+      color: #eee4d3;
+      font: 15px system-ui;
+    }
+    header {
+      padding: 16px 24px;
+      display: flex;
+      gap: 24px;
+      align-items: center;
+    }
+    h1 {
+      font-size: 20px;
+      margin: 0;
+    }
+    main {
+      display: flex;
+      height: calc(100vh - 72px);
+    }
+    aside {
+      width: 240px;
+      padding: 12px;
+      overflow: auto;
+    }
+    button {
+      display: block;
+      width: 100%;
+      padding: 12px;
+      margin-bottom: 6px;
+      text-align: left;
+      background: #353027;
+      border: 1px solid #63533c;
+      color: inherit;
+      cursor: pointer;
+      border-radius: 6px;
+    }
+    button[aria-pressed="true"] {
+      border-color: #f3bf68;
+      background: #58442a;
+    }
+    canvas {
+      width: calc(100% - 264px);
+      height: 100%;
+      touch-action: none;
+    }
+    #status {
+      color: #c9b697;
+    }
+    small {
+      display: block;
+      margin-top: 4px;
+      color: #bdb09e;
+    }
+  </style>
+  <header>
+    <h1>Mojave · 岩石素材</h1>
+    <span id="status">加载中…</span><span>拖动旋转 · 滚轮缩放</span>
+  </header>
+  <main>
+    <aside id="list"></aside>
+    <canvas id="canvas"></canvas>
+  </main>
+  <script type="module" src="./main.ts"></script>
+</html>

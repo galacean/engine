@@ -1,3 +1,5 @@
+import { bindSurfaceTerrain } from "@galacean/engine-terrain/surface/SurfaceMaterial";
+import { compileSeedWorldSurfacePalette, type SeedWorldSurfacePalette } from "./SeedWorldSurfacePalette";
 import { loadPlanningFarmDirtTexture } from "../spatial/farming/PlanningFarmDirtTexture.ts";
 import {
   reversibleTerrainSteps,
@@ -73,7 +75,7 @@ import {
 import { SeedWorldPopulationRuntime } from "./SeedWorldPopulationRuntime.ts";
 import type { SeedWorldPopulationPreview } from "./SeedWorldPopulationPlan.ts";
 import type { SeedWorldPopulationWorld } from "./SeedWorldPopulationRuntimeCell.ts";
-import { synchronizeSeedWorldRockGroundAppearance } from "./SeedWorldRockAssemblyRuntime.ts";
+import { synchronizeSeedWorldRockGroundAppearance } from "./SeedWorldRockMaterial.ts";
 import type { SeedWorldRuntimeBounds } from "../world/SeedWorldRuntimeBounds.ts";
 import type { SeedWorldSurfaceMaterialIntent } from "./SeedWorldSurfaceIntent.ts";
 import {
@@ -147,6 +149,8 @@ export interface SeedWorldSurfaceColorTuning {
 
 /** Optional authoring inputs for ordinary Terrain layers, independent of the height generator. */
 export interface SeedWorldTerrainSurfaceOptions {
+  /** Optional whole-map texture mixture and POI material influences. */
+  readonly palette?: SeedWorldSurfacePalette;
   readonly baseTextureUrl?: string;
   readonly normalTextureUrl?: string;
   readonly tileMetres?: number;
@@ -165,6 +169,8 @@ export interface SeedWorldSandNormalTuning {
 }
 
 interface SeedWorldTerrainSurface {
+  readonly palette?: SeedWorldSurfacePalette;
+  readonly paletteTextures?: readonly Texture2D[];
   readonly diffuse?: Texture2D;
   readonly normal?: Texture2D;
   readonly tileMetres: number;
@@ -301,6 +307,7 @@ export class SeedWorldTerrainRuntime {
           : varySeedWorldGrassPaletteBrightness(this._terrainMaterialState.grassTuning, brightness)
     });
     bindSeedWorldGrassTerrainMaterial(material, this.clipmap.renderMaterials[0]!);
+    if (material.shader.name === "Terrain/Surface") bindSurfaceTerrain(material, this.clipmap.renderMaterials[0]!);
   }
 
   /** Untextured ground uses the built-in road colour; a base texture starts untinted. */
@@ -492,7 +499,7 @@ export class SeedWorldTerrainRuntime {
       );
       signal?.throwIfAborted();
       const soilTexture = surfaceIntent.soilCoverage
-        ? await loadPlanningFarmDirtTexture(engine, !!surfaceOptions.baseTextureUrl?.trim())
+        ? await loadPlanningFarmDirtTexture(engine, !!surfaceOptions.baseTextureUrl?.trim() || !!surfaceOptions.palette)
         : undefined;
       signal?.throwIfAborted();
       const loadSurfaceTexture = (url: string | undefined, isSRGBColorSpace: boolean) =>
@@ -503,17 +510,20 @@ export class SeedWorldTerrainRuntime {
               params: { isSRGBColorSpace, mipmap: true }
             })
           : undefined;
-      const [diffuse, normal, microNormal] = await Promise.all([
+      const [diffuse, normal, microNormal, paletteTextures] = await Promise.all([
         loadSurfaceTexture(surfaceOptions.baseTextureUrl, true),
         loadSurfaceTexture(surfaceOptions.normalTextureUrl, false),
-        loadSurfaceTexture(surfaceOptions.microNormalTextureUrl, false)
+        loadSurfaceTexture(surfaceOptions.microNormalTextureUrl, false),
+        Promise.all((surfaceOptions.palette?.layers ?? []).map((l) => loadSurfaceTexture(l.textureUrl, true)!))
       ]);
       signal?.throwIfAborted();
       const surface =
-        diffuse || normal
+        diffuse || normal || paletteTextures.length
           ? {
               diffuse,
               normal,
+              palette: surfaceOptions.palette,
+              paletteTextures,
               tileMetres: surfaceOptions.tileMetres ?? 8,
               normalScale: surfaceOptions.normalScale ?? 1,
               street: !!authoredPuddles
@@ -1155,6 +1165,31 @@ function buildLayerSources(
       diffuseRemapMax: [1, 1, 1, 1]
     });
   }
+  const palette = surface?.palette;
+  const mixture = palette
+    ? compileSeedWorldSurfacePalette(
+        palette,
+        surfaceIntent,
+        seedWorldRenderWeights(surfaceIntent),
+        fields.sizeMetres,
+        fields.worldOrigin ?? [-fields.sizeMetres / 2, -fields.sizeMetres / 2]
+      )
+    : undefined;
+  const baseLayerIds = [layers[0].id, layers[1].id, layers[2].id, layers[3]?.id ?? null] as const;
+  if (palette)
+    for (const [index, layer] of palette.layers.entries())
+      layers.push({
+        ...layers[0],
+        id: layer.id,
+        appearance: undefined,
+        diffuse: surface!.paletteTextures![index],
+        normal: surface!.normal,
+        normalScale: surface!.normalScale,
+        tileSize: layer.tileSize,
+        tileOffset: layer.tileOffset ?? [0, 0],
+        diffuseRemapMin: [0, 0, 0, 0],
+        diffuseRemapMax: [1, 1, 1, 1]
+      });
   return Object.freeze([
     Object.freeze({
       id: SEED_WORLD_REGION_ID,
@@ -1162,9 +1197,18 @@ function buildLayerSources(
       alphamaps: [
         {
           sampleSize: [fields.surfaceResolution, fields.surfaceResolution] as const,
-          layers: [layers[0].id, layers[1].id, layers[2].id, layers[3]?.id ?? null] as const,
-          weights: seedWorldRenderWeights(surfaceIntent)
-        }
+          layers: baseLayerIds,
+          weights: mixture?.base ?? seedWorldRenderWeights(surfaceIntent)
+        },
+        ...(palette && mixture
+          ? [
+              {
+                sampleSize: [fields.surfaceResolution, fields.surfaceResolution] as const,
+                layers: palette.layers.map((l) => l.id) as [string, string, string, string],
+                weights: mixture.palette
+              }
+            ]
+          : [])
       ]
     })
   ]);
@@ -1231,6 +1275,7 @@ function bindSeedTerrainMaterialState(material: Material, state: SeedWorldTerrai
     tuning: state.grassTuning
   });
   bindTerrainRoadColor(material, state.roadColor);
+  if (state.surface?.palette) material.shaderData.enableMacro("MATERIAL_TERRAIN_LAYER_PALETTE");
   if (state.roadPattern) material.shaderData.enableMacro("MATERIAL_TERRAIN_ROAD_PALETTE");
   if (state.sandNormals && state.surface) {
     material.shaderData.enableMacro("MATERIAL_TERRAIN_SAND_RIPPLE");

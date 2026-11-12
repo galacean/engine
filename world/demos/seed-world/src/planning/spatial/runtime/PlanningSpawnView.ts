@@ -78,8 +78,11 @@ export function selectPlanningSpawnView(
   const buildings = subjectVolumes(plan)
     .filter((building) => building.kind === "building")
     .filter((building) => visibleBuildings.has(building.id));
-  const local = buildings.filter((building) => building.regionId === village?.id);
-  const candidates = (local.length ? local : buildings).slice().sort((a, b) => a.id.localeCompare(b.id));
+  // Worlds without buildings frame their native POI rock volumes using the same clearance search.
+  const subjects = buildings.length ? buildings : subjectVolumes(plan).filter(volume => volume.kind === "rock");
+  const local = subjects.filter((subject) =>
+    (subject.kind === "building" ? subject.regionId : subject.groupId) === village?.id);
+  const candidates = (local.length ? local : subjects).slice().sort((a, b) => a.id.localeCompare(b.id));
   const waterAt = createPlanningWaterQuery(plan, (point) => ground(point.x, point.z) ?? -Infinity);
   const step = plan.raster.spacing;
   if (!(step > 0) || !Number.isFinite(step)) throw new Error("Spawn view needs the published terrain spacing");
@@ -208,7 +211,7 @@ export function selectPlanningSpawnView(
           }
         }
         if (category) coverage[category] += density / total;
-        if (category === "building" && ownerId === subjectId) visible++;
+        if (ownerId === subjectId) visible++;
       }
     return { coverage, visibility: projected ? visible / projected : 0 };
   };
