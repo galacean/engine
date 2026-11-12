@@ -37,7 +37,11 @@ export class ImageDecoder {
     return new AssetPromise((resolve, reject) => {
       const objectUrl = URL.createObjectURL(new Blob([data], { type: ImageDecoder._getMimeType(data) }));
       const image = new Image();
-      const releaseObjectUrl = () => URL.revokeObjectURL(objectUrl);
+      const releaseObjectUrl = () => {
+        image.onload = null;
+        image.onerror = null;
+        URL.revokeObjectURL(objectUrl);
+      };
       image.onload = () => {
         releaseObjectUrl();
         resolve(image);
