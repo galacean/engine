@@ -5,7 +5,7 @@ import {perlinSettings} from './perlin-ridges.mjs';
 import {fractureSettings} from './rock-surface.mjs';
 import {ORIGINAL_ROCK_PRESENTATION} from './atomic-rock-material.mjs';
 import {mountainCounts} from './mountain-network.mjs';
-import {RUNTIME_ROCK_VERSION} from './runtime-rocks.mjs';
+import {normalizeRockFeatures,RUNTIME_ROCK_VERSION} from './runtime-rocks.mjs';
 import {RIDGE_VERSION} from './ridge-utils.mjs';
 
 // Exercise the actual viewer persistence handlers against legacy saved settings
@@ -15,7 +15,8 @@ const data=JSON.parse(fs.readFileSync(new URL('./study-data.json',import.meta.ur
 const preset=viewer.match(/const DEMO_PRESET='([^']+)'/)[1];
 const field=value=>({get value(){return String(value);},set value(next){value=next;}});
 let saved,rebuilds=0,cameraResets=0;
-const context={DEMO_PRESET:preset,ORIGINAL_ROCK_PRESENTATION,RIDGE_VERSION,RUNTIME_ROCK_VERSION,perlinSettings,fractureSettings,mountainCounts,
+const context={DEMO_PRESET:preset,ORIGINAL_ROCK_PRESENTATION,RIDGE_VERSION,RUNTIME_ROCK_VERSION,normalizeRockFeatures,perlinSettings,fractureSettings,mountainCounts,
+ featureInputs:{arrangement:{checked:true},shaping:{checked:true}},
  generatedKey:'',pendingOrbit:null,seededCounts:{checked:true},peakCountInput:field(3),branchCountInput:field(4),countLabels:()=>{},
  viewSelect:field('plan'),seedInput:field(464),heightInput:field(200),modeInput:field('direct'),surfaceInput:field('rocks'),finishInput:field('textured'),guideInput:{checked:false},
  noiseInputs:Object.fromEntries(['frequency','octaves','lacunarity','persistence'].map(k=>[k,field(1)])),
@@ -28,7 +29,9 @@ context.authoringKey=()=>JSON.stringify({mode:context.modeInput.value,noise:cont
 context.fractureKey=()=>JSON.stringify(context.fractureOptions());
 context.countOptions=()=>mountainCounts({seeded:context.seededCounts.checked,peaks:+context.peakCountInput.value,branches:+context.branchCountInput.value});
 context.countKey=()=>context.seededCounts.checked?'seeded':JSON.stringify(context.countOptions());
-context.runtimeKey=()=>context.seedInput.value+':'+context.countKey();
+context.featureOptions=()=>Object.fromEntries(Object.entries(context.featureInputs).map(([id,input])=>[id,input.checked]));
+context.featureKey=()=>JSON.stringify(context.featureOptions());
+context.runtimeKey=()=>context.featureKey()+':'+context.seedInput.value+':'+context.countKey();
 context.setCamera=()=>{cameraResets++;context.yaw=.58;context.pitch=.52;};
 context.createScene=reset=>{rebuilds++;context.generatedKey=context.runtimeKey();context.current={...data.scenes[0],ridge:{}};if(reset)context.setCamera();};
 vm.createContext(context);
@@ -51,3 +54,13 @@ assert.equal(rebuilds,before[0]+1);assert.equal(cameraResets,before[1],'Changing
 const manual=structuredClone(saved);manual.modelContent.topology={seeded:false,peaks:3,branches:4};context.restoreState(manual);context.save();assert.deepEqual(saved.modelContent.topology,manual.modelContent.topology);
 assert(!viewer.includes('rock-study-case'),'The arrangement picker is removed');
 console.log('Mountain state: legacy migration, parameter retention, seed rebuild and orbit echo passed');
+
+// Independent feature switches persist without overwriting their parameters.
+const disabled=structuredClone(saved);disabled.modelContent.features={arrangement:false,shaping:false};
+context.restoreState(disabled);context.save();assert.deepEqual(saved.modelContent.features,disabled.modelContent.features);
+assert.deepEqual(saved.modelContent.fractures,disabled.modelContent.fractures);
+assert.deepEqual(saved.modelContent.topology,disabled.modelContent.topology);
+const disabledEcho=[rebuilds,cameraResets];context.restoreState(saved);assert.deepEqual([rebuilds,cameraResets],disabledEcho);
+const oldOriginal=structuredClone(legacy);oldOriginal.modelContent.rockFinish='original';context.restoreState(oldOriginal);context.save();
+assert.equal(saved.modelContent.features.shaping,false);assert.equal(saved.modelContent.features.arrangement,true);assert.equal(saved.modelContent.rockFinish,'clay');
+console.log('Feature state: independent switches, parameter retention, legacy original migration and orbit echo passed');

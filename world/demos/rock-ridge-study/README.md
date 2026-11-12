@@ -24,10 +24,61 @@ seed, height, authoring mode, material, fractures, view and orbit. State echoes
 and seed changes preserve orbit angles. The live count lists target summits,
 terminal spurs, fitted masses and small rocks.
 
+## Independent arrangement and shaping features
+
+The demo has two independent switches. Both default to enabled, preserving the
+existing mountain. Switching a feature off retains its settings for re-enabling.
+Material, texture and camera remain presentation choices.
+
+| Arrangement | Shaping / carving | Result |
+| --- | --- | --- |
+| On | On | Carved atomic masses fitted to the mountain ridge network |
+| On | Off | Original seeded atomic masses fitted to that network |
+| Off | On | Eight carved atomic variants shown separately for inspection |
+| Off | Off | Eight original seeded atomic variants shown separately |
+
+The inspection view uses a neutral grid with no ridge extraction, mountain
+fitting or terrain. The same runtime seed generates the input atomic meshes in
+all four combinations; disabling shaping bypasses surface processing, not seeded
+source generation. Legacy **Original clay** states migrate to shaping disabled.
+
+Implementation ownership follows those two features:
+
+- `src/features/shaping/`: seed-generated recipes and atomic mesh source,
+  vertical fracture definitions, Boolean carving and crease attributes.
+- `src/features/arrangement/`: seeded topology, Perlin ridge extraction, mass
+  fitting, scene construction and the inspection bypass.
+- `src/features/pipeline.mjs`: generic stage composition; it contains no
+  carving, ridge, material or view-specific decisions.
+- `src/features/settings.mjs`: feature flag defaults and legacy compatibility.
+- `src/runtime-rocks.mjs`: the default composition and compatibility exports.
+  Previous root module paths remain re-export shims for existing consumers.
+
+Each stage implements `{id, run(request, result, cache), bypass(request, result,
+cache)}`. It owns its settings interpretation, enabled behavior, disabled behavior
+and cache; it returns the next result without mutating the previous stage's
+inputs. `createRuntimeMountainBuilder({source, stages})` accepts a different
+source or ordered stage list. A new surface operation can be supplied through
+`createShapingFeature({carve})`; a new layout strategy through
+`createArrangementFeature({arrange, inspect})`. Register a new stage in the
+composition to introduce another operation without editing the coordinator or
+the other feature's implementation. The scene and mesh library contracts form
+the boundary between the two groups.
+
+The current atomic source and carved library are cached independently of the
+arrangement. Arrangement retains two recent scenes so switching between shaped
+and original meshes can reuse fitted results. Disabled feature parameters do not
+invoke that feature. Cache keys survive the worker's structured message cloning.
+
+`node world/demos/rock-ridge-study/src/verify-feature-pipelines.mjs` checks all four
+combinations, exact full mesh/scene hashes against the pre-refactor seed-482
+baseline, cache reuse across toggles and cloned worker requests, disabled edits,
+seed invalidation, legacy flags and a separately registered extension stage.
+
 ## Seed-generated topology
 
 `runtime-atomic-mountain-13` uses seed-generated topology and atomic meshes.
-`src/mountain-network.mjs` uses a seed-local random stream at runtime, before
+`src/features/arrangement/mountain-network.mjs` uses a seed-local random stream at runtime, before
 reading any atomic mesh:
 
 1. Choose 1–5 requested summits and 3–6 requested descending spurs. Place a dominant
@@ -209,18 +260,16 @@ This study interprets those features procedurally on the existing atomic meshes;
 it does not contain the seller's mesh, textures or sculpt data and does not reproduce
 the reference exactly. The original rounded outline still influences the result.
 
-Use **Surface comparison** to see the previous straight `solid-carving-4` cuts beside
-`fracture-controls-6` on the same highest mass. Both panels share the same transform,
-camera, framing, lighting and untextured clay. Each renders alone, so neither
-casts shadows onto the other. The comparison stacks below 540 px. Entering it
-preserves the viewing angle; choosing Low angle or Side first gives the matching
-paired view. The straight-cut construction retains its historical comparison
-behavior; both sides now use the same newly generated atomic mesh for this seed.
+Use **Before / after shaping** to compare the base atomic mesh with the current
+shaping result. Both panels share transform, camera, framing, lighting and clay
+shading, and render separately so neither casts shadows onto the other. The
+comparison stacks below 540 px and preserves orbit. Both meshes come from the
+worker pipeline; the viewer performs no hidden comparison carving. Disabling
+shaping shows the base mesh in both panels.
 
-Use **Rock finish** in an assembly view to compare stone, clay and original
-geometry. **Rock close-up** frames the highest mass. Stone and fractured clay
-share the same carved mesh and fitted assembly. Original clay refits the same
-independent target using the runtime atomic meshes. Changing finish keeps the orbit angles.
+**Rock finish** selects texture, procedural stone or clay independently of the
+feature switches. **Rock close-up** frames the highest mass, or the first atomic
+variant when arrangement is disabled. Changing finish keeps the orbit angles.
 
 ### Fracture controls
 
@@ -232,13 +281,13 @@ aperture also grows with depth. Irregularity scales lateral bends and depth
 variation. Zero irregularity gives straight tapered paths. Zero depth or width
 removes the joints while retaining the broad face cuts.
 
-In **Surface comparison**, the controls update only the right-hand rock. The
-reference, selected prototype, placement and viewing angle stay fixed while
-tuning; only one mesh is rebuilt. Assembly views rebuild the library and refit
-the masses against the adjusted surface. They may take several seconds to update.
-Obsolete mesh buffers are disposed instead of retaining every slider combination.
-Controls are disabled for Original clay and noise-field views. Settings are saved
-with the seed, height and orbit within the current entry's saved-state revision.
+In **Before / after shaping**, controls update the pipeline's carved library.
+With arrangement enabled, the fitter then places the updated meshes; with it
+disabled, the library can be inspected directly. Carving and fitting may take
+several seconds on uncached settings. Obsolete mesh buffers are disposed instead
+of retaining every slider combination. Shaping controls are hidden when shaping
+is off and disabled in noise-field views. Feature switches and parameters are
+saved with seed, height and orbit.
 
 ### Carving contract
 
@@ -264,7 +313,7 @@ has been removed.
    below the protected cap.
 2. Subtract those closed solids from the actual upstream mesh. The fracture
    sweeps may be non-convex, but every cutter polygon is convex and planar. The BSP
-   implementation in `src/solid-carve.mjs` follows
+   implementation in `src/features/shaping/solid-carve.mjs` follows
    [Evan Wallace's CSG algorithm](https://evanw.github.io/csg.js/docs/); its MIT
    notice is included. Intersections create new edge vertices. Surviving source
    polygons remain on their source planes; exposed cutter polygons provide the

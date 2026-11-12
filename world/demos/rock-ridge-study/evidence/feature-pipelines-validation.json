@@ -1,0 +1,33 @@
+{
+  "date": "2026-11-12",
+  "baselineCommit": "52a7aef2408a82803ccc8a8d72c351bde48ee326",
+  "seed": 482,
+  "heightPercent": 100,
+  "mode": "perlin",
+  "fractures": {
+    "depth": 1.3,
+    "width": 1.6,
+    "irregularity": 1.8
+  },
+  "checks": [
+    "all four independent feature combinations pass runtime and browser checks",
+    "default full meshes and fitted scene match pre-refactor hashes",
+    "70 exact fracture geometry comparisons passed",
+    "seven relocated algorithm modules unchanged except import paths",
+    "stage cache reuse survives toggles and worker message cloning",
+    "disabled parameters skip the disabled processing stage",
+    "registered extension stage runs and bypasses without coordinator edits",
+    "legacy original-clay state migrates to shaping disabled",
+    "saved feature flags retain settings and orbit echoes do not reset camera",
+    "main demo, atomic controls and sandstone consumer builds passed",
+    "browser base-versus-shaped comparison respects shaping flag",
+    "isolated depth control edited to 120 percent and restored to 130 percent",
+    "final browser view restored both flags on with atomic triplanar texture"
+  ],
+  "browserConsoleErrors": [],
+  "browserFinalReadout": "5 peaks \u00b7 4 spurs \u00b7 23 masses \u00b7 2 small rocks; Carving cached \u00b7 Arrangement cached",
+  "limits": [
+    "Browser visual verification covered the selected seed and settings",
+    "Native orbit gestures and narrow viewport layouts were not revalidated"
+  ]
+}

@@ -36,7 +36,7 @@ const summarize=side=>Object.fromEntries(Object.keys(trials[0][side]).map(key=>{
 }));
 const before=summarize('before'),after=summarize('after'),hash=file=>createHash('sha256').update(fs.readFileSync(new URL(file,import.meta.url))).digest('hex');
 const report={date:new Date().toISOString(),environment:{node:process.version,platform:process.platform,arch:process.arch,gcBetweenRuns:!!global.gc},
- referenceCommit:'1326a3fd56cab7013381ed3a168f7e3c1f159b2f',currentCarverSha256:hash('solid-carve.mjs'),referenceCarverSha256:hash('fixtures/solid-carve-before.mjs'),
+ referenceCommit:'1326a3fd56cab7013381ed3a168f7e3c1f159b2f',currentCarverSha256:hash('features/shaping/solid-carve.mjs'),referenceCarverSha256:hash('fixtures/solid-carve-before.mjs'),
  settings,uniqueMeshes:8,totalTriangles,placedRocks,baseMeshFingerprint:fingerprint,
  methodology:'One full warm-up per implementation; three alternating-order paired trials; fresh atomic meshes and uncached fractures in every trial; same Node process, machine and settings; browser transfer, buffers, textures and rendering excluded.',
  exactMeshesAndAssemblies:true,before,after,speedup:{fracture:before.fractureMs.median/after.fractureMs.median,total:before.totalMs.median/after.totalMs.median},trials};
