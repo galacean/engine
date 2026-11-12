@@ -37,20 +37,21 @@ export class ImageDecoder {
     return new AssetPromise((resolve, reject) => {
       const objectUrl = URL.createObjectURL(new Blob([data], { type: ImageDecoder._getMimeType(data) }));
       const image = new Image();
-      const releaseObjectUrl = () => {
-        image.onload = null;
-        image.onerror = null;
-        URL.revokeObjectURL(objectUrl);
-      };
       image.onload = () => {
-        releaseObjectUrl();
+        ImageDecoder._releaseObjectUrl(image, objectUrl);
         resolve(image);
       };
       image.onerror = () => {
-        releaseObjectUrl();
+        ImageDecoder._releaseObjectUrl(image, objectUrl);
         reject(new Error(`TextureLoader: failed to decode texture "${url}" (${data.byteLength} bytes).`));
       };
       image.src = objectUrl;
     });
+  }
+
+  private static _releaseObjectUrl(image: HTMLImageElement, objectUrl: string): void {
+    image.onload = null;
+    image.onerror = null;
+    URL.revokeObjectURL(objectUrl);
   }
 }
