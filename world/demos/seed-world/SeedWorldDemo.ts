@@ -70,6 +70,7 @@ import { buildingInitializationInputs } from "./masonry/BuildingInitializationIn
 import { buildingScenePreparation, initializeBuildingScene } from "./masonry/BuildingSceneInitialization.ts";
 import type { SeedWorldPickVisitor } from "@galacean/engine-modify/rendering/SeedWorldPickBatch";
 import { bindWorldClickInput } from "./src/SeedWorldClickInput.ts";
+import { waitForSnapshotWarmup } from "./src/SeedWorldSnapshotWarmup.ts";
 import { openSeedWorldProject } from "./SeedWorldProject.ts";
 import { createSeedWorldProjectClose } from "./SeedWorldProjectClose.ts";
 import { SEED_WORLD_EDITOR_PATH, seedWorldProjectFormats } from "./SeedWorldProjectFormats.ts";
@@ -2328,7 +2329,7 @@ export async function mountSeedWorldDemo(
     viewSnapshots = new SeedWorldViewSnapshots(
       async (signal, budget) => {
         // The warm-up and a view capture use the same single frame-capture request.
-        await snapshotWarmup;
+        await waitForSnapshotWarmup(snapshotWarmup, signal);
         await pickPreparation!.flush(signal);
         return worldPicker!.capture(
           (visitor) => snapshotPicks.visit(visitor),
