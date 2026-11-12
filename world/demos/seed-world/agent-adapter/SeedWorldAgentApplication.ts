@@ -3,8 +3,6 @@ import { SEED_WORLD_EDITOR_PATH } from "../SeedWorldProjectFormats.ts";
 import { PLANNING_PROJECT_PATH } from "../src/planning/spatial/runtime/PlanningProjectStorage.ts";
 import { planningSourceDocument, planningVegetationReferences } from "../src/planning/spatial/runtime/PlanningProjectSource.ts";
 import { RuntimeAssetChanges } from "@galacean/engine-runtime-editor/project/runtime-asset-changes";
-import type { RuntimeComponentIdentity } from "@galacean/engine-runtime-editor/runtime-editor/scene/runtime-component-identity";
-type NativeBuildingSelection = { readonly component: RuntimeComponentIdentity };
 import type { RuntimeSceneInspection } from "@galacean/engine-runtime-editor/runtime-inspection/runtime-scene-inspection";
 import { viewerRelativePosition } from "./ViewerRelation.ts";
 import type { SeedWorldPlanningService } from "./SeedWorldPlanningService.ts";
@@ -150,7 +148,6 @@ export class SeedWorldAgentApplication {
   private _lastCreatedRefs: readonly SeedWorldRef[] = Object.freeze([]);
   private _lastSelectedRefs: readonly SeedWorldRef[] = Object.freeze([]);
   private _lastTransactionId: string | undefined;
-  private _userSelection: SeedWorldRef | NativeBuildingSelection | null = null;
   private _taskViewer: (Readonly<SeedWorldLiveState["camera"]> & { readonly capturedAt: string; readonly inputId?: string }) | undefined;
   private _readPublishedViewer = (): Readonly<SeedWorldLiveState["camera"]> => this._requireState().camera;
   private readonly _assets: SeedWorldAssetManager;
@@ -485,13 +482,6 @@ export class SeedWorldAgentApplication {
     return {available,geometryState:!measured||measured.publicationRevision===undefined||measured.hits.length!==count
       ?"unavailable" as const:available?"current" as const:"stale" as const,samples:available?measured!.hits:[]};
   }
-  /** UI selection is separate from tool query results and transaction memory. */
-  setUserSelection(ref: SeedWorldRef | NativeBuildingSelection | undefined): void {
-    this._userSelection = ref ? freezeClone(ref) : null;
-  }
-
-  getUserSelection(): SeedWorldRef | NativeBuildingSelection | null { return this._userSelection; }
-
   /** Freezes deictic viewer expressions for one Agent task while the player remains free to move. */
   getViewerSnapshot(): Readonly<SeedWorldLiveState["camera"]> & { readonly capturedAt: string } {
     return freezeClone({ ...this._readPublishedViewer(), capturedAt: new Date().toISOString() });

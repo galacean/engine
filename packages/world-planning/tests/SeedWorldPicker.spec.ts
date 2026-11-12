@@ -34,7 +34,7 @@ it("reuses scratch capacity and restores camera, layers and materials after a re
   const batch: any = { renderer, count: 1, resolve() {}, prepare: vi.fn(), restore: vi.fn() };
   function visit(visitor: any) { visitor(batch); }
   const picker: any = new SeedWorldPicker(camera);
-  expect(() => picker.pick(1, 1, visit)).toThrow("render failed");
+  expect(() => picker.render(visit, { width: 10, height: 10, consume() {} })).toThrow("render failed");
   expect(batch.restore).toHaveBeenCalledTimes(1);
   expect(sibling.enabled).toBe(true);
   expect(entity.layer).toBe(1);
@@ -47,9 +47,9 @@ it("reuses scratch capacity and restores camera, layers and materials after a re
   expect(entity.layer).toBe(1);
   expect(macros.size).toBe(0);
   throwAt = -1;
-  picker.warmup(visit); // A failed capture releases scratch attachments; warmup re-establishes them.
+  picker.render(visit, { width: 10, height: 10, consume() {} }); // A failed capture releases scratch attachments; the next identity render re-establishes them.
   const record = picker.bindings[0], textures = counters.textures, targets = counters.targets;
-  for (let i = 0; i < 20; i++) picker.warmup(visit);
+  for (let i = 0; i < 20; i++) picker.render(visit, { width: 10, height: 10, consume() {} });
   expect(picker.bindings[0]).toBe(record);
   expect(record.batch).toBeUndefined();
   expect(picker.materials[0]).toBeUndefined();

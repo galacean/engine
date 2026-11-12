@@ -50,9 +50,8 @@ Shader "Terrain/Vegetation" {
         float renderer_WorldPickInstanced;
       #endif
 
-      #include "shared/WorldSelection.glsl"
       struct Varyings {
-        float worldSelection;
+
         #ifdef RENDERER_WORLD_PICK
           float worldPickId;
         #endif
@@ -132,11 +131,6 @@ Shader "Terrain/Vegetation" {
 
       Varyings VegetationVertex(Attributes attributes) {
         Varyings varyings;
-        #if defined(RENDERER_ASSET_ASSEMBLY_INSTANCE) || defined(RENDERER_DETAIL_INSTANCE) || defined(RENDERER_SEED_WORLD_DETAIL_COMPACT)
-          varyings.worldSelection = worldSelectionWeight(float(gl_InstanceID));
-        #else
-          varyings.worldSelection = worldSelectionWeight(0.0);
-        #endif
         #ifdef RENDERER_WORLD_PICK
           varyings.worldPickId = renderer_WorldPickBase + float(gl_InstanceID) * renderer_WorldPickInstanced;
         #endif
@@ -464,7 +458,7 @@ Shader "Terrain/Vegetation" {
         #if SCENE_FOG_MODE != 0
           color = fog(color, varyings.positionVS);
         #endif
-        gl_FragColor = worldSelectionColor(color, varyings.worldSelection);
+        gl_FragColor = color;
       }
     }
 

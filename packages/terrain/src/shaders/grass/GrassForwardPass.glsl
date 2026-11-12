@@ -40,7 +40,6 @@ struct Attributes {
 #ifdef RENDERER_WORLD_PICK
   float renderer_WorldPickBase;
 #endif
-#include "shared/WorldSelection.glsl"
 #if defined(TERRAIN_PROJECT_GROUND_MATERIAL_BINDING) || (defined(RENDERER_SEED_WORLD_DETAIL_COMPACT) && !defined(RENDERER_SURFACE_GRASS_ATTACHMENT))
   #define TERRAIN_PROJECT_GRASS_TERRAIN_SURFACE
   #if !defined(MATERIAL_GRASS_GROUND_SURFACE) && (defined(RENDERER_TERRAIN_UNTEXTURED_SINGLE_MAP) || defined(RENDERER_TERRAIN_SINGLE_DIFFUSE_SINGLE_MAP))
@@ -52,7 +51,7 @@ struct Varyings {
     vec4 rockAppearance;
     vec4 rockAppearanceNormalSnow;
   #endif
-  float worldSelection;
+
   #ifdef RENDERER_WORLD_PICK
     float worldPickId;
   #endif
@@ -168,7 +167,6 @@ vec3 grassWindPosition(
 
 Varyings GrassVertex(Attributes attributes) {
   Varyings output;
-  output.worldSelection = worldSelectionWeight(float(gl_InstanceID));
   #ifdef RENDERER_WORLD_PICK
     output.worldPickId = renderer_WorldPickBase + float(gl_InstanceID);
   #endif
@@ -491,6 +489,6 @@ void GrassFragment(Varyings input) {
   #if SCENE_FOG_MODE != 0
     color = fog(vec4(color, 1.0), input.positionVS).rgb;
   #endif
-  gl_FragColor = worldSelectionColor(vec4(color, 1.0), input.worldSelection);
+  gl_FragColor = vec4(color, 1.0);
   #endif
 }

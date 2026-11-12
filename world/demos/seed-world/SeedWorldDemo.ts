@@ -54,12 +54,10 @@ import {
 import { applyPlanningWeather } from "@galacean/engine-world-planning/spatial/PlanningWeather";
 import { readPlantMaterialParameters } from "@galacean/engine-world-planning/spatial/PlantMaterialParameters";
 import { planningPresentedSolids } from "@galacean/engine-world-planning/spatial/runtime/PlanningPresentedSolids";
-import { planningSelectionRegion } from "./src/planning/spatial/runtime/PlanningSelectionRegion.ts";
-import { WorldSelection } from "@galacean/engine-runtime-editor/selection/WorldSelection";
 import { visitPlanningWorldPickBatches } from "@galacean/engine-world-planning/spatial/runtime/PlanningWorldPicking";
 import { SeedWorldPicker } from "@galacean/engine-world-planning/world/SeedWorldPicker";
-import type { SeedWorldPickBatch, SeedWorldPickVisitor } from "@galacean/engine-modify/rendering/SeedWorldPickBatch";
-import { bindWorldPickInput } from "./src/SeedWorldPickInput.ts";
+import type { SeedWorldPickVisitor } from "@galacean/engine-modify/rendering/SeedWorldPickBatch";
+import { bindWorldClickInput } from "./src/SeedWorldClickInput.ts";
 import { openSeedWorldProject } from "./SeedWorldProject.ts";
 import { PlanningProjectStorage } from "./src/planning/spatial/runtime/PlanningProjectStorage.ts";
 import { RuntimeNativeEditor } from "@galacean/engine-runtime-editor/runtime-editor-agent/runtime-native-editor";
@@ -235,11 +233,7 @@ export async function mountSeedWorldDemo(
   let lassoPanel: SeedWorldLassoPanel | undefined;
   let lassoFrozen = false;
   let assistantInputEnabled = true;
-  let selection: WorldSelection | undefined;
-  let worldPickingEnabled = false;
-  let selectionPublication: unknown;
-  let selectedNativeId: string | undefined;
-  let unbindWorldPick: (() => void) | undefined;
+  let unbindWorldClick: (() => void) | undefined;
   const editorLifetime = new AbortController();
   let pickPreparation: RuntimePickPreparation | undefined;
   let disposed = false;
@@ -315,7 +309,7 @@ export async function mountSeedWorldDemo(
     ["农场宿主", () => farmingHost?.dispose()],
     ["建筑宿主", () => nativeBuildingHost?.dispose()],
     ["场景交互", () => {
-      lassoPanel?.dispose(); viewSnapshots?.dispose(); unbindWorldPick?.(); worldPicker?.dispose(); selection?.dispose();
+      lassoPanel?.dispose(); viewSnapshots?.dispose(); unbindWorldClick?.(); worldPicker?.dispose();
       detachWindExposure?.(); detachAnimalLightning?.();
     }],
     ["动物", () => animals?.dispose()],
@@ -558,27 +552,12 @@ export async function mountSeedWorldDemo(
     const windCenter = new Vector3();
     const driver = root.addComponent(SeedDemoFrame);
     let debugReadoutElapsed = 0;
-    function applySelectionBatch(batch: SeedWorldPickBatch): void {
-      if (batch.needsPosition) selection!.applyRegion(batch.renderer);
-      else selection!.apply(batch.renderer, batch.count, batch);
-    }
     function visitCurrentPickBatches(visitor: SeedWorldPickVisitor): void {
       const current = publication?.current;
       if (current && water) visitPlanningWorldPickBatches(current, water, visitor);
     }
-    driver.lateTick = function updateSelectionFrame() {
+    driver.lateTick = () => {
       publication?.current?.solids.bridgesView.updateLod(camera);
-      if ((selectionPublication !== publication?.current && !selectedNativeId) ||
-        (selectedNativeId && !nativeEditor!.projection.component(selectedNativeId))) {
-        selectedNativeId = undefined;
-        const hadSelection = selection?.hasSelection;
-        selection?.clear(); tools?.application.setUserSelection(undefined); selectionPublication = publication?.current;
-        if (hadSelection) canvas.dispatchEvent(new CustomEvent("seed-world-picked", { detail: null, bubbles: true }));
-      }
-      selectionPublication = publication?.current;
-      selection?.sweep();
-      const current = publication?.current;
-      if (current && water && selection?.hasSelection) visitPlanningWorldPickBatches(current, water, applySelectionBatch);
     };
     driver.tick = (dt) => {
       farmingHost?.runtime?.update(dt);
@@ -894,7 +873,12 @@ export async function mountSeedWorldDemo(
       let staged: Awaited<ReturnType<PlanningSeedScenePublication["prepare"]>> | undefined = await publication!.prepare(plan, async (signal) => {
 
         progress(0.25, "准备规划贴图");
-        await timed("raster.run", () => raster.run(plan, true, true));
+        // Both workers consume the immutable plan. Join before creating GPU/scene
+        // owners; publication aborts outstanding rock work if either task fails.
+        const [, formationMeshes] = await Promise.all([
+          timed("raster.run", () => raster.run(plan, true, true)),
+          timed("rockFormations.prepare", () => rockFormations.prepare(plan, readRockFormationSettings(document), signal))
+        ]);
         // Superseded raster calls resolve undefined; only the request revision decides acceptance.
         signal.throwIfAborted();
         const nativeData = raster.takeNativeData(plan);
@@ -1031,9 +1015,6 @@ export async function mountSeedWorldDemo(
           spanAt = performance.now();
           applyPlanningTreeVariations(candidate.population, plan.authoredResources ?? []);
           recordBootSpan("applyPlanningTreeVariations", spanAt);
-          spanAt = performance.now();
-          const formationMeshes = await rockFormations.prepare(plan, readRockFormationSettings(document), signal);
-          recordBootSpan("rockFormations.prepare", spanAt);
           spanAt = performance.now();
           if (formationMeshes.length) await prepareRockTextures(engine!, signal);
           recordBootSpan("prepareRockTextures", spanAt);
@@ -1476,14 +1457,6 @@ export async function mountSeedWorldDemo(
       });
       debugSidebar = new PlanningSeedDebugSidebar({
         host: shell,
-        setWorldPickingEnabled: enabled => {
-          worldPickingEnabled = enabled;
-          if (!enabled) {
-            selection?.clear();
-            tools?.application.setUserSelection(undefined);
-            canvas.dispatchEvent(new CustomEvent("seed-world-picked", { detail: null, bubbles: true }));
-          }
-        },
         camera,
         navigation,
         orbit,
@@ -1509,14 +1482,8 @@ export async function mountSeedWorldDemo(
       if (bookmark) debugSidebar.restoreCameraMode(bookmark.mode);
       if (obbDebug) debugSidebar.mountObbControl(obbDebug.button);
     }
-    const selectionWorld = publication.current;
-    if (selectionWorld && water) {
-      progress(0.98, "准备拾取与选中效果");
-      selectionWorld.world.warmupPopulationDetails();
-      worldPicker = new SeedWorldPicker(camera);
-      worldPicker.warmup(visitCurrentPickBatches);
-      if (disposed) throw new Error("Seed page disposed during selection warmup");
-    }
+    // Dense visible details belong to the world presentation, including photo captures.
+    publication.current?.world.warmupPopulationDetails();
 
     progress(1, "Seed World 已就绪");
     await timed("orb.reveal", () => orb!.reveal(() => {
@@ -1601,56 +1568,17 @@ export async function mountSeedWorldDemo(
     {
       lassoPanel = new SeedWorldLassoPanel(viewSnapshots, frozen => {
         lassoFrozen = frozen;
-        if (frozen) { selection?.clear(); tools!.application.setUserSelection(undefined); }
         const enabled = ready && !disposed && assistantInputEnabled && !frozen;
         if (restoreMasonryView) { orbit.enabled = enabled; navigation.enabled = false; navigation.setInputEnabled(false); }
         else if (debugSidebar) debugSidebar.setInputEnabled(enabled);
         else { navigation.enabled = enabled; navigation.setInputEnabled(enabled); }
       }, new SeedWorldInstantCamera(engine, canvas, camera, viewSnapshots.budget));
     }
-    selection = new WorldSelection(engine);
-    unbindWorldPick = bindWorldPickInput(canvas, navigation, function pickWorldObject(x, y) {
+    unbindWorldClick = bindWorldClickInput(canvas, navigation, function interactWithAnimal(x, y) {
       if (!ready || disposed || lassoFrozen || runtimeDebug?.farmingPicking) return;
       const ray = new Ray();
       camera.screenPointToRay(new Vector2(x, y), ray);
-      if (animals?.shoo(ray, distance => rockNavigation?.raycastWorld(ray, distance) ?? root.scene!.physics.raycast(ray, distance))) return;
-      if ((!worldPickingEnabled && !runtimeDebug) || farmingHost?.runtime?.consumesWorldClick(x, y)) return;
-      const published = publication?.current;
-      if (!published || !water) return;
-      try {
-        if (worldPickingEnabled) {
-          if (selectionPublication !== published && !selectedNativeId) { selection!.clear(); tools?.application.setUserSelection(undefined); }
-          selectionPublication = published;
-        }
-        const objectId = worldPicker!.pick(x, y, visitCurrentPickBatches);
-        if (!worldPickingEnabled) {
-          if (objectId) runtimeDebug?.selectRockObb(objectId);
-          return;
-        }
-        const pickedComponent = objectId && nativeEditor!.projection.component(objectId);
-        const native = objectId && (nativeBuildingHost?.system.resolve(objectId) || pickedComponent instanceof WaterBodyComponent)
-          ? nativeEditor!.projection.queryComponents({ id: objectId })[0] : undefined;
-        selectedNativeId = native?.id;
-        const ref = objectId && !native
-          ? tools!.application.selectWorld({ ids: [objectId], limit: 1 }).items[0]?.ref
-          : undefined;
-        if (objectId && !ref && !native) throw new Error(`Picked world object '${objectId}' has no active identity`);
-        tools!.application.setUserSelection(native ? { component: native } : ref);
-        if (ref) runtimeDebug?.selectRockObb(ref.id);
-        const changedSelection = selection!.select(native?.id ?? ref?.id);
-        const region = changedSelection && ref && planningSelectionRegion(published.plan, ref);
-        if (region && changedSelection) selection!.setRegion(region);
-        const result = native ? { id: native.id, component: native } : ref ? { id: ref.id, ref } : null;
-        canvas.dispatchEvent(new CustomEvent("seed-world-picked", { detail: result, bubbles: true }));
-        if (pageUrl.searchParams.get("agentTrace") === "1") console.info("[SeedWorld pick]", result);
-      } catch (error) {
-        if (worldPickingEnabled) {
-          selectedNativeId = undefined;
-          selection?.clear(); tools?.application.setUserSelection(undefined);
-          canvas.dispatchEvent(new CustomEvent("seed-world-picked", { detail: null, bubbles: true }));
-        }
-        console.error("[SeedWorld pick]", error);
-      }
+      animals?.shoo(ray, distance => rockNavigation?.raycastWorld(ray, distance) ?? root.scene!.physics.raycast(ray, distance));
     });
     if (options.showAssistant !== false) tools.show();
     loading.hidden = true;

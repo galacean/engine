@@ -689,7 +689,6 @@ async function createControllerFixture(realSession?: AIChatSession, activity?: S
     destroy: vi.fn()
   };
   const application = {
-    getUserSelection: () => null,
     getWorldContext: () => ({ world: { rootSeed: 1729 } }),
     getViewerSnapshot: () => ({ position: { x: 1, y: 2, z: 3 } }),
     captureTaskViewerSnapshot: vi.fn(() => vi.fn())

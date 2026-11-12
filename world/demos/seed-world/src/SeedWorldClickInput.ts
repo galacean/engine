@@ -1,7 +1,7 @@
-interface WorldPickInput { onWorldPointerClick?: () => void }
+interface WorldClickInput { onWorldPointerClick?: () => void }
 
 /** Native events measure cumulative CSS movement; engine UI grants world click ownership. */
-class WorldPickInputBinding implements EventListenerObject {
+class WorldClickInputBinding implements EventListenerObject {
   private readonly pointers = new Set<number>();
   private pointerId = -1;
   private x = 0;
@@ -12,8 +12,8 @@ class WorldPickInputBinding implements EventListenerObject {
   private pendingY = 0;
   private readonly clickBound = this.click.bind(this);
   readonly disposeBound = this.dispose.bind(this);
-  constructor(private readonly canvas: HTMLCanvasElement, private readonly input: WorldPickInput,
-    private readonly pick: (x: number, y: number) => void) {
+  constructor(private readonly canvas: HTMLCanvasElement, private readonly input: WorldClickInput,
+    private readonly clickWorld: (x: number, y: number) => void) {
     input.onWorldPointerClick = this.clickBound;
     const document = canvas.ownerDocument;
     document.addEventListener("pointerdown", this, true);
@@ -34,7 +34,7 @@ class WorldPickInputBinding implements EventListenerObject {
   private click(): void {
     if (!this.pending) return;
     this.pending = false;
-    this.pick(this.pendingX, this.pendingY);
+    this.clickWorld(this.pendingX, this.pendingY);
   }
   private down(event: PointerEvent): void {
     this.pending = false;
@@ -78,6 +78,6 @@ class WorldPickInputBinding implements EventListenerObject {
   }
 }
 
-export function bindWorldPickInput(canvas: HTMLCanvasElement, input: WorldPickInput, pick: (x: number, y: number) => void): () => void {
-  return new WorldPickInputBinding(canvas, input, pick).disposeBound;
+export function bindWorldClickInput(canvas: HTMLCanvasElement, input: WorldClickInput, clickWorld: (x: number, y: number) => void): () => void {
+  return new WorldClickInputBinding(canvas, input, clickWorld).disposeBound;
 }

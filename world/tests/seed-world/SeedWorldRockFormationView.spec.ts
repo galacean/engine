@@ -111,7 +111,7 @@ vi.mock("@galacean/engine", async (importOriginal) => {
       destroy() {}
     },
     Shader: { find: () => ({}) },
-    ShaderFactory: { includeMap: { "shared/WorldSelection.glsl": "registered" }, registerInclude() {} }
+    ShaderFactory: { includeMap: {}, registerInclude() {} }
   };
 });
 import { RockFormationView } from "../../../packages/world-planning/src/integrations/terrain/rock-formation/View.ts";

@@ -6,7 +6,7 @@ import { rockObbId } from "./Authoring.ts";
 import type { RockFormationJob, RockObb, V3 } from "@galacean/engine-terrain/rock-formation/types";
 
 /** Published OBBs are the sole input; no preset, automatic template, or fitted rock asset. */
-export function rockFormationJobs(plan: IslandPlan, heightmap: PlanningHeightmap): RockFormationJob[] {
+export function rockFormationJobs(plan: IslandPlan, heightmap: Pick<PlanningHeightmap, "sample">): RockFormationJob[] {
   const groups = new Map<
     string,
     {

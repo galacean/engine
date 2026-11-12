@@ -188,7 +188,7 @@ it("actual ChatPanel registers the input before export, so its public Stop gestu
   const gate = Promise.withResolvers<Awaited<ReturnType<typeof frame.image.export>>>();
   frame.image.export.mockImplementationOnce(() => gate.promise);
   const panel = {
-    application: { getUserSelection: () => null, getViewerSnapshot: () => ({}), viewSnapshots: views },
+    application: { getViewerSnapshot: () => ({}), viewSnapshots: views },
     _activity: { submit: (...args: Parameters<AIChatSession["submit"]>) => session.submit(...args) },
     session, _state: { kind: "agent" }, _traceStore: { enabled: false }, _waitForAsrCleanup: async () => {},
     _clearResultTimer() {}, _showFeedback: vi.fn(), _cancelListening() {},

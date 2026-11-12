@@ -24,9 +24,10 @@ import { nativeAssetFormats } from "@galacean/engine-runtime-editor/project/runt
 import { registerNativeWater } from "@galacean/engine-water/water/native/index";
 import { migrateSeedWorldWaterTextures } from "./SeedWorldWaterTextureMigration";
 
-/** Building author schemas and saved asset catalogs are intentionally incompatible across these save versions.
+/** Author schemas and saved asset catalogs are intentionally incompatible across these save versions.
  * Opening a project deletes saves of any other version before loading, so it starts from the initial world. */
-export const SEED_WORLD_BUILDING_SAVE_VERSION = 10;
+// Version 11 retires the point-selection shader assets referenced by version 10 saves.
+export const SEED_WORLD_BUILDING_SAVE_VERSION = 11;
 export function seedWorldProjectStorageId(seed: number, projectUrl: string): string {
   return `seed-world:native-buildings-v${SEED_WORLD_BUILDING_SAVE_VERSION}-groups:${seed}:${projectUrl}`;
 }
