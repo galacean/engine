@@ -88,6 +88,58 @@ previous carving and fitting tests. The original thread-local `bake.mjs` now ser
 only as an optional diagnostic export of `generateRuntimeRocks(seed)`; the viewer
 does not load its output.
 
+## Fracture runtime optimization — 2026-11-12
+
+`bsp-runtime-optimization-1` preserves the existing cutter definitions, arithmetic
+tolerances, polygon order and triangulation. It adds conservative polygon bounds
+to reject wholly separated plane tests, skips empty BSP branches, delays split
+arrays until a polygon actually crosses a plane, accumulates tree traversal
+results without repeated array concatenation, and uses numeric spatial-cell maps
+and scalar vector math in welding and boundary stitching.
+
+All 70 before/after cases reproduce positions, indices, face tags, normals, surface
+attributes and irregular fracture paths exactly. The rendered crease attributes
+also match on all eight seed-482 meshes. Existing checks cover 120 control extremes,
+closed/wound GPU meshes, continuous cutter walls without exposed end caps, sharp
+planar cut normals, and connected fitted assemblies. The frozen reference in
+`src/fixtures/solid-carve-before.mjs` comes from commit `1326a3fd5` and is used only
+for tests and timings; it is never bundled into the demo. See
+[exact geometry parity](evidence/carve-optimization-parity.json).
+
+The demo now shows the last build's carving and fitting time. Count edits report
+**Carving cached**; height edits do not rebuild the carved library. The readout
+measures CPU generation phases, excluding worker transfer, GPU buffers, texture
+loading and drawing. The single-rock comparison hides this assembly readout.
+
+Reproduce the quality checks and run the timing comparison separately from other
+CPU-heavy work:
+
+```sh
+npm run test:fractures --prefix world/demos/rock-ridge-study
+npm run benchmark:fractures --prefix world/demos/rock-ridge-study
+```
+
+The benchmark warms both complete paths, then runs three alternating-order paired
+trials with fresh atomic meshes and empty fracture caches. It asserts identical
+geometry and fitted mountains for every pair. See the settings, source hashes and
+individual trials in [performance evidence](evidence/fracture-performance.json).
+
+On this machine (Node 20.18.1, macOS arm64), seed 482 with 130% depth, 160% width,
+180% irregularity and the Perlin field at 100% height measured:
+
+| CPU phase | Before median | After median | Speedup |
+| --- | ---: | ---: | ---: |
+| Carve eight unique meshes | 6.407 s | 2.434 s | 2.63× |
+| Generate, carve and fit the mountain | 9.087 s | 5.496 s | 1.65× |
+
+Carving ranges were 6.402–6.558 s before and 2.178–2.502 s after. The eight meshes
+retain exactly 169,198 triangles; the speedup does not reduce mesh detail or alter
+fracture shape. Browser transfer and rendering remain additional costs.
+The browser check at the same settings verified clay and triplanar views, live
+timing, cached reuse and depth edits; no JavaScript errors were recorded. Its
+single uncached carving observation was 1.409 s, recorded separately from the
+paired Node comparison in [browser evidence](evidence/carve-optimization-browser.json).
+
 ## Connected mass fitting
 
 The fitter grows outward from the dominant summit, then refits and prunes whole

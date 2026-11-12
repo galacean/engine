@@ -72,6 +72,7 @@
     <div class="rock-scale text-small" id="rock-study-scale"><span></span><div>10 m</div></div>
   </div>
   <div class="viz-row text-small" aria-live="polite"><span id="rock-study-detail"></span></div>
+  <div class="text-small" id="rock-study-timing"></div>
   <div class="sr-only" id="rock-study-description"></div>
 </div>
 <style>
@@ -104,7 +105,7 @@
  const stage=root.querySelector('#rock-study-stage'), labels=root.querySelector('#rock-study-labels');
  const comparisonLabels=root.querySelector('#rock-study-comparison');
  const viewSelect=root.querySelector('#rock-study-view'),guideInput=root.querySelector('#rock-study-guides');
- const detail=root.querySelector('#rock-study-detail'),description=root.querySelector('#rock-study-description'),scaleBar=root.querySelector('#rock-study-scale span');
+ const detail=root.querySelector('#rock-study-detail'),description=root.querySelector('#rock-study-description'),scaleBar=root.querySelector('#rock-study-scale span'),timing=root.querySelector('#rock-study-timing');
  const seedInput=root.querySelector('#rock-study-seed'),nextSeed=root.querySelector('#rock-study-next-seed');
  const heightInput=root.querySelector('#rock-study-height'),heightValue=root.querySelector('#rock-study-height-value');
  const ridgeLegend=root.querySelector('#rock-study-ridge-legend');
@@ -152,7 +153,7 @@
  const comparisonGroup=new T.Group(),previousBuffers=new Map();let comparisonMeshes=[],comparisonCorners=[],comparisonTarget=new T.Vector3(),adjustedBuffer,adjustedKey='';
  scene.add(world,guideGroup,comparisonGroup);
  let materials=[],terrainGeometry,guideGeometries=[],lastColors='',generatedKey='',generatedScene;
- let requestedKey='',requestedFlags,pendingOrbit,worker,workerJob,fallbackKernel;
+ let requestedKey='',requestedFlags,pendingOrbit,worker,workerJob,fallbackKernel,lastTimings;
  const fallbackCache={};
  let readyResolve;const workerReady=new Promise(resolve=>{readyResolve=resolve;});
  async function fallbackBuild(request){stage.dataset.generationBackend='main';fallbackKernel??=atomicRockKernel();await fallbackKernel.ready;return buildRuntimeMountain(fallbackKernel,request,fallbackCache);}
@@ -181,6 +182,8 @@
   requestedKey='';if(request.key!==runtimeKey())return;
   if(baseSeed!==request.seed){for(const g of previousBuffers.values())g.dispose();previousBuffers.clear();adjustedBuffer?.dispose();adjustedBuffer=null;adjustedKey='';baseSeed=request.seed;}
   baseGeometries=result.baseGeometries;
+  lastTimings=result.timings;stage.dataset.carveVersion=lastTimings.implementation;
+  stage.dataset.fractureMs=String(lastTimings.fractureMs);stage.dataset.fitMs=String(lastTimings.fitMs);
   stage.dataset.rockSeed=String(result.generation.seed);stage.dataset.baseMeshFingerprint=result.generation.fingerprint;
   if(geometryMode!==result.libraryKey){
    for(const g of Object.values(geometryCache))g.dispose();geometryCache={};activeGeometries=result.geometries;
@@ -197,7 +200,7 @@
   const settings=runtimeSettings(),key=JSON.stringify(settings);
   if(requestedKey===key){requestedFlags.resetCamera||=resetCamera;requestedFlags.persist||=persist;return;}
   requestedKey=key;requestedFlags={resetCamera,persist};
-  stage.setAttribute('aria-busy','true');detail.textContent='Generating mountain rocks…';
+  stage.setAttribute('aria-busy','true');detail.textContent='Generating mountain rocks…';timing.textContent='';
   jobs.schedule({...settings,key,flags:requestedFlags,source:data.scenes[0]});
  }
  function cssColor(name){const probe=document.createElement('span');probe.style.color='var('+name+')';root.appendChild(probe);const value=getComputedStyle(probe).color;probe.remove();return new T.Color(value);}
@@ -309,6 +312,8 @@
   const peakCount=current.ridge.plan.nodes.filter(n=>n.role==='peak').length,spurs=current.ridge.plan.nodes.filter(n=>n.role==='tail').length;
   const counted=(n,label)=>n+' '+label+(n===1?'':'s');
   detail.textContent=counted(peakCount,'peak')+' · '+counted(spurs,'spur')+' · '+current.ridge.composition.structuralMasses+' masses · '+counted(current.ridge.composition.smallRocks,'small rock');
+  timing.hidden=compare||(perlin&&surfaceInput.value!=='rocks');
+  if(lastTimings){const t=lastTimings;timing.textContent='Last build · Carving '+(!t.fractureEnabled?'off':t.fractureCached?'cached':(t.fractureMs/1000).toFixed(2)+' s')+' · Fitting '+(t.fitMs/1000).toFixed(2)+' s';}
   if(perlin){const n=current.ridge.plan.noise;noiseSummary.textContent=(100/n.frequency).toFixed(1)+' m base · '+n.coarseOctaves+' structural / '+n.fineOctaves+' detail octaves';}
   if(perlin&&surfaceInput.value!=='rocks'){const count=current.ridge.plan.extraction.selectedPeaks;detail.textContent=count+' major peak'+(count===1?'':'s')+' · '+current.ridge.plan.curves.length+' ridges · '+(surfaceInput.value==='coarse'?'Structural field':'Fine detail; same ridge network');}
   description.textContent=current.notes+' The blue branching ridge network guides broad overlapping rock masses. Whole masses are refitted before adding structure; local differences within '+current.ridge.policy.curveToleranceM.toFixed(1)+' meters are tolerated. Small rocks have a separate budget of two and stay at the lower edges. All accepted pieces overlap the connected body in sampled mesh volume. Orange shows the actual surface along each target curve; its measured RMS deviation is '+current.ridge.fit.rmsM.toFixed(2)+' meters. Spheres mark peaks and diamonds mark saddles.'+' Height scales rocks, terrain and the complete ridge network together. The mountain topology is generated at runtime from the seed before fitting the atomic rock meshes. Peak counts, connections, spurs and forks can change. Atomic recipes and meshes are generated from the current seed at runtime; the full Seed rendering pipeline is not integrated. Drag to orbit; side, plan and low angle views are also available.';

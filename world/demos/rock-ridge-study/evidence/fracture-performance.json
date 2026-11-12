@@ -1,0 +1,134 @@
+{
+  "date": "2026-11-12T10:29:23.978Z",
+  "environment": {
+    "node": "v20.18.1",
+    "platform": "darwin",
+    "arch": "arm64",
+    "gcBetweenRuns": true
+  },
+  "referenceCommit": "1326a3fd56cab7013381ed3a168f7e3c1f159b2f",
+  "currentCarverSha256": "dd9c78233189d0538087d3eabba4eec1a5a5d82a86bfa7b79a7232068d57808f",
+  "referenceCarverSha256": "cbb88cf83fdf2ee45faabcdd2af659eeda9d48606cb2d30562ab0a3b82477ece",
+  "settings": {
+    "seed": 482,
+    "fractures": {
+      "depth": 1.3,
+      "width": 1.6,
+      "irregularity": 1.8
+    },
+    "heightPercent": 100,
+    "mode": "perlin",
+    "noise": {
+      "frequency": 4,
+      "octaves": 5,
+      "lacunarity": 2,
+      "persistence": 0.85
+    },
+    "topology": {
+      "seeded": false,
+      "peaks": 5,
+      "branches": 8
+    }
+  },
+  "uniqueMeshes": 8,
+  "totalTriangles": 169198,
+  "placedRocks": 25,
+  "baseMeshFingerprint": "41914f2b",
+  "methodology": "One full warm-up per implementation; three alternating-order paired trials; fresh atomic meshes and uncached fractures in every trial; same Node process, machine and settings; browser transfer, buffers, textures and rendering excluded.",
+  "exactMeshesAndAssemblies": true,
+  "before": {
+    "baseMs": {
+      "min": 259.6012919999994,
+      "median": 284.49120799999946,
+      "max": 288.4833749999998
+    },
+    "fractureMs": {
+      "min": 6401.601999999999,
+      "median": 6407.225458000001,
+      "max": 6557.842084000002
+    },
+    "fitAndHeightMs": {
+      "min": 2371.4205,
+      "median": 2400.8348750000005,
+      "max": 3088.1228329999976
+    },
+    "totalMs": {
+      "min": 9038.24725,
+      "median": 9086.928082999999,
+      "max": 9934.448292
+    }
+  },
+  "after": {
+    "baseMs": {
+      "min": 281.70179199999984,
+      "median": 295.7452919999996,
+      "max": 446.5282079999961
+    },
+    "fractureMs": {
+      "min": 2177.944583000004,
+      "median": 2433.555375,
+      "max": 2502.007458
+    },
+    "fitAndHeightMs": {
+      "min": 2293.653916999996,
+      "median": 2547.244292000003,
+      "max": 4219.751
+    },
+    "totalMs": {
+      "min": 4753.300292,
+      "median": 5495.779957999999,
+      "max": 6949.051667
+    }
+  },
+  "speedup": {
+    "fracture": 2.632866103570789,
+    "total": 1.6534373924073327
+  },
+  "trials": [
+    {
+      "trial": 1,
+      "before": {
+        "baseMs": 288.4833749999998,
+        "fractureMs": 6557.842084000002,
+        "fitAndHeightMs": 3088.1228329999976,
+        "totalMs": 9934.448292
+      },
+      "after": {
+        "baseMs": 295.7452919999996,
+        "fractureMs": 2433.555375,
+        "fitAndHeightMs": 4219.751,
+        "totalMs": 6949.051667
+      }
+    },
+    {
+      "trial": 2,
+      "before": {
+        "baseMs": 259.6012919999994,
+        "fractureMs": 6407.225458000001,
+        "fitAndHeightMs": 2371.4205,
+        "totalMs": 9038.24725
+      },
+      "after": {
+        "baseMs": 446.5282079999961,
+        "fractureMs": 2502.007458,
+        "fitAndHeightMs": 2547.244292000003,
+        "totalMs": 5495.779957999999
+      }
+    },
+    {
+      "trial": 3,
+      "before": {
+        "baseMs": 284.49120799999946,
+        "fractureMs": 6401.601999999999,
+        "fitAndHeightMs": 2400.8348750000005,
+        "totalMs": 9086.928082999999
+      },
+      "after": {
+        "baseMs": 281.70179199999984,
+        "fractureMs": 2177.944583000004,
+        "fitAndHeightMs": 2293.653916999996,
+        "totalMs": 4753.300292
+      }
+    }
+  ]
+}

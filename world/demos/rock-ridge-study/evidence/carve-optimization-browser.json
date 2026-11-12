@@ -1,0 +1,28 @@
+{
+  "date": "2026-11-12",
+  "environment": "Standalone iframe in the in-app browser on localhost",
+  "implementation": "bsp-runtime-optimization-1",
+  "backend": "worker",
+  "seed": 482,
+  "heightPercent": 100,
+  "mode": "perlin",
+  "noise": {"frequency": 4, "octaves": 5, "lacunarity": 2, "persistence": 0.85},
+  "fractures": {"depth": 1.3, "width": 1.6, "irregularity": 1.8},
+  "baseMeshFingerprint": "41914f2b",
+  "peaks": 5,
+  "sideRidges": 4,
+  "structuralMasses": 23,
+  "smallRocks": 2,
+  "observedUncachedCarvingMs": 1409,
+  "observedFittingMs": 1892.4000000059605,
+  "checks": [
+    "clay close-up renders sharp planar facets and irregular fracture walls",
+    "original atomic texture and normal map render with triplanar projection",
+    "fracture depth edits trigger regeneration and return to the selected 130 percent",
+    "live timing readout reports uncached carving and cached reuse",
+    "worker geometry fingerprint matches Node",
+    "final seed, height, Perlin controls and fracture settings match the selected example"
+  ],
+  "recordedJavaScriptErrors": [],
+  "limits": ["Selected views and settings only", "This browser observation is not a paired performance comparison; use fracture-performance.json for matched before/after measurements"]
+}

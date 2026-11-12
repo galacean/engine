@@ -1,0 +1,717 @@
+{
+  "referenceCommit": "1326a3fd56cab7013381ed3a168f7e3c1f159b2f",
+  "cases": 70,
+  "currentCarverSha256": "dd9c78233189d0538087d3eabba4eec1a5a5d82a86bfa7b79a7232068d57808f",
+  "referenceCarverSha256": "cbb88cf83fdf2ee45faabcdd2af659eeda9d48606cb2d30562ab0a3b82477ece",
+  "checks": [
+    "exact positions and triangle indices",
+    "exact mesh connectivity",
+    "exact source and cutter face tags",
+    "exact normals and per-vertex attributes",
+    "exact irregular vertical cutter paths",
+    "exact rendered crease normals on seed 482",
+    "disabled controls, straight paths, narrow and maximum cuts"
+  ],
+  "samples": [
+    {
+      "label": "historical:cliff",
+      "settings": {
+        "depth": 1,
+        "width": 1,
+        "irregularity": 1
+      },
+      "triangles": 23310,
+      "renderCompared": false
+    },
+    {
+      "label": "historical:cliff2",
+      "settings": {
+        "depth": 1,
+        "width": 1,
+        "irregularity": 1
+      },
+      "triangles": 22472,
+      "renderCompared": false
+    },
+    {
+      "label": "historical:wall",
+      "settings": {
+        "depth": 1,
+        "width": 1,
+        "irregularity": 1
+      },
+      "triangles": 20762,
+      "renderCompared": false
+    },
+    {
+      "label": "historical:wall2",
+      "settings": {
+        "depth": 1,
+        "width": 1,
+        "irregularity": 1
+      },
+      "triangles": 18958,
+      "renderCompared": false
+    },
+    {
+      "label": "historical:shoulder",
+      "settings": {
+        "depth": 1,
+        "width": 1,
+        "irregularity": 1
+      },
+      "triangles": 19772,
+      "renderCompared": false
+    },
+    {
+      "label": "historical:shoulder2",
+      "settings": {
+        "depth": 1,
+        "width": 1,
+        "irregularity": 1
+      },
+      "triangles": 24044,
+      "renderCompared": false
+    },
+    {
+      "label": "historical:peak",
+      "settings": {
+        "depth": 1,
+        "width": 1,
+        "irregularity": 1
+      },
+      "triangles": 14772,
+      "renderCompared": false
+    },
+    {
+      "label": "historical:peak2",
+      "settings": {
+        "depth": 1,
+        "width": 1,
+        "irregularity": 1
+      },
+      "triangles": 22386,
+      "renderCompared": false
+    },
+    {
+      "label": "historical:slab",
+      "settings": {
+        "depth": 1,
+        "width": 1,
+        "irregularity": 1
+      },
+      "triangles": 32746,
+      "renderCompared": false
+    },
+    {
+      "label": "historical:slab2",
+      "settings": {
+        "depth": 1,
+        "width": 1,
+        "irregularity": 1
+      },
+      "triangles": 37864,
+      "renderCompared": false
+    },
+    {
+      "label": "historical:bank",
+      "settings": {
+        "depth": 1,
+        "width": 1,
+        "irregularity": 1
+      },
+      "triangles": 19146,
+      "renderCompared": false
+    },
+    {
+      "label": "historical:bank2",
+      "settings": {
+        "depth": 1,
+        "width": 1,
+        "irregularity": 1
+      },
+      "triangles": 24428,
+      "renderCompared": false
+    },
+    {
+      "label": "runtime:0:peak",
+      "settings": {
+        "depth": 1.3,
+        "width": 1.6,
+        "irregularity": 1.8
+      },
+      "triangles": 22306,
+      "renderCompared": false
+    },
+    {
+      "label": "runtime:0:peak2",
+      "settings": {
+        "depth": 1.3,
+        "width": 1.6,
+        "irregularity": 1.8
+      },
+      "triangles": 18228,
+      "renderCompared": false
+    },
+    {
+      "label": "runtime:0:shoulder",
+      "settings": {
+        "depth": 1.3,
+        "width": 1.6,
+        "irregularity": 1.8
+      },
+      "triangles": 13846,
+      "renderCompared": false
+    },
+    {
+      "label": "runtime:0:shoulder2",
+      "settings": {
+        "depth": 1.3,
+        "width": 1.6,
+        "irregularity": 1.8
+      },
+      "triangles": 18450,
+      "renderCompared": false
+    },
+    {
+      "label": "runtime:0:cliff",
+      "settings": {
+        "depth": 1.3,
+        "width": 1.6,
+        "irregularity": 1.8
+      },
+      "triangles": 18682,
+      "renderCompared": false
+    },
+    {
+      "label": "runtime:0:cliff2",
+      "settings": {
+        "depth": 1.3,
+        "width": 1.6,
+        "irregularity": 1.8
+      },
+      "triangles": 33910,
+      "renderCompared": false
+    },
+    {
+      "label": "runtime:0:bank",
+      "settings": {
+        "depth": 1.3,
+        "width": 1.6,
+        "irregularity": 1.8
+      },
+      "triangles": 21290,
+      "renderCompared": false
+    },
+    {
+      "label": "runtime:0:bank2",
+      "settings": {
+        "depth": 1.3,
+        "width": 1.6,
+        "irregularity": 1.8
+      },
+      "triangles": 17562,
+      "renderCompared": false
+    },
+    {
+      "label": "runtime:480:peak",
+      "settings": {
+        "depth": 1.3,
+        "width": 1.6,
+        "irregularity": 1.8
+      },
+      "triangles": 18610,
+      "renderCompared": false
+    },
+    {
+      "label": "runtime:480:peak2",
+      "settings": {
+        "depth": 1.3,
+        "width": 1.6,
+        "irregularity": 1.8
+      },
+      "triangles": 17970,
+      "renderCompared": false
+    },
+    {
+      "label": "runtime:480:shoulder",
+      "settings": {
+        "depth": 1.3,
+        "width": 1.6,
+        "irregularity": 1.8
+      },
+      "triangles": 20056,
+      "renderCompared": false
+    },
+    {
+      "label": "runtime:480:shoulder2",
+      "settings": {
+        "depth": 1.3,
+        "width": 1.6,
+        "irregularity": 1.8
+      },
+      "triangles": 17812,
+      "renderCompared": false
+    },
+    {
+      "label": "runtime:480:cliff",
+      "settings": {
+        "depth": 1.3,
+        "width": 1.6,
+        "irregularity": 1.8
+      },
+      "triangles": 21722,
+      "renderCompared": false
+    },
+    {
+      "label": "runtime:480:cliff2",
+      "settings": {
+        "depth": 1.3,
+        "width": 1.6,
+        "irregularity": 1.8
+      },
+      "triangles": 23570,
+      "renderCompared": false
+    },
+    {
+      "label": "runtime:480:bank",
+      "settings": {
+        "depth": 1.3,
+        "width": 1.6,
+        "irregularity": 1.8
+      },
+      "triangles": 20504,
+      "renderCompared": false
+    },
+    {
+      "label": "runtime:480:bank2",
+      "settings": {
+        "depth": 1.3,
+        "width": 1.6,
+        "irregularity": 1.8
+      },
+      "triangles": 22610,
+      "renderCompared": false
+    },
+    {
+      "label": "runtime:481:peak",
+      "settings": {
+        "depth": 1.3,
+        "width": 1.6,
+        "irregularity": 1.8
+      },
+      "triangles": 20608,
+      "renderCompared": false
+    },
+    {
+      "label": "runtime:481:peak2",
+      "settings": {
+        "depth": 1.3,
+        "width": 1.6,
+        "irregularity": 1.8
+      },
+      "triangles": 20116,
+      "renderCompared": false
+    },
+    {
+      "label": "runtime:481:shoulder",
+      "settings": {
+        "depth": 1.3,
+        "width": 1.6,
+        "irregularity": 1.8
+      },
+      "triangles": 21318,
+      "renderCompared": false
+    },
+    {
+      "label": "runtime:481:shoulder2",
+      "settings": {
+        "depth": 1.3,
+        "width": 1.6,
+        "irregularity": 1.8
+      },
+      "triangles": 18332,
+      "renderCompared": false
+    },
+    {
+      "label": "runtime:481:cliff",
+      "settings": {
+        "depth": 1.3,
+        "width": 1.6,
+        "irregularity": 1.8
+      },
+      "triangles": 23036,
+      "renderCompared": false
+    },
+    {
+      "label": "runtime:481:cliff2",
+      "settings": {
+        "depth": 1.3,
+        "width": 1.6,
+        "irregularity": 1.8
+      },
+      "triangles": 19474,
+      "renderCompared": false
+    },
+    {
+      "label": "runtime:481:bank",
+      "settings": {
+        "depth": 1.3,
+        "width": 1.6,
+        "irregularity": 1.8
+      },
+      "triangles": 23146,
+      "renderCompared": false
+    },
+    {
+      "label": "runtime:481:bank2",
+      "settings": {
+        "depth": 1.3,
+        "width": 1.6,
+        "irregularity": 1.8
+      },
+      "triangles": 24826,
+      "renderCompared": false
+    },
+    {
+      "label": "runtime:482:peak",
+      "settings": {
+        "depth": 1.3,
+        "width": 1.6,
+        "irregularity": 1.8
+      },
+      "triangles": 23922,
+      "renderCompared": true
+    },
+    {
+      "label": "runtime:482:peak2",
+      "settings": {
+        "depth": 1.3,
+        "width": 1.6,
+        "irregularity": 1.8
+      },
+      "triangles": 22128,
+      "renderCompared": true
+    },
+    {
+      "label": "runtime:482:shoulder",
+      "settings": {
+        "depth": 1.3,
+        "width": 1.6,
+        "irregularity": 1.8
+      },
+      "triangles": 18426,
+      "renderCompared": true
+    },
+    {
+      "label": "runtime:482:shoulder2",
+      "settings": {
+        "depth": 1.3,
+        "width": 1.6,
+        "irregularity": 1.8
+      },
+      "triangles": 16446,
+      "renderCompared": true
+    },
+    {
+      "label": "runtime:482:cliff",
+      "settings": {
+        "depth": 1.3,
+        "width": 1.6,
+        "irregularity": 1.8
+      },
+      "triangles": 24678,
+      "renderCompared": true
+    },
+    {
+      "label": "runtime:482:cliff2",
+      "settings": {
+        "depth": 1.3,
+        "width": 1.6,
+        "irregularity": 1.8
+      },
+      "triangles": 22194,
+      "renderCompared": true
+    },
+    {
+      "label": "runtime:482:bank",
+      "settings": {
+        "depth": 1.3,
+        "width": 1.6,
+        "irregularity": 1.8
+      },
+      "triangles": 21304,
+      "renderCompared": true
+    },
+    {
+      "label": "runtime:482:bank2",
+      "settings": {
+        "depth": 1.3,
+        "width": 1.6,
+        "irregularity": 1.8
+      },
+      "triangles": 20100,
+      "renderCompared": true
+    },
+    {
+      "label": "runtime:4294967295:peak",
+      "settings": {
+        "depth": 1.3,
+        "width": 1.6,
+        "irregularity": 1.8
+      },
+      "triangles": 22286,
+      "renderCompared": false
+    },
+    {
+      "label": "runtime:4294967295:peak2",
+      "settings": {
+        "depth": 1.3,
+        "width": 1.6,
+        "irregularity": 1.8
+      },
+      "triangles": 23382,
+      "renderCompared": false
+    },
+    {
+      "label": "runtime:4294967295:shoulder",
+      "settings": {
+        "depth": 1.3,
+        "width": 1.6,
+        "irregularity": 1.8
+      },
+      "triangles": 16340,
+      "renderCompared": false
+    },
+    {
+      "label": "runtime:4294967295:shoulder2",
+      "settings": {
+        "depth": 1.3,
+        "width": 1.6,
+        "irregularity": 1.8
+      },
+      "triangles": 22490,
+      "renderCompared": false
+    },
+    {
+      "label": "runtime:4294967295:cliff",
+      "settings": {
+        "depth": 1.3,
+        "width": 1.6,
+        "irregularity": 1.8
+      },
+      "triangles": 20608,
+      "renderCompared": false
+    },
+    {
+      "label": "runtime:4294967295:cliff2",
+      "settings": {
+        "depth": 1.3,
+        "width": 1.6,
+        "irregularity": 1.8
+      },
+      "triangles": 18856,
+      "renderCompared": false
+    },
+    {
+      "label": "runtime:4294967295:bank",
+      "settings": {
+        "depth": 1.3,
+        "width": 1.6,
+        "irregularity": 1.8
+      },
+      "triangles": 15058,
+      "renderCompared": false
+    },
+    {
+      "label": "runtime:4294967295:bank2",
+      "settings": {
+        "depth": 1.3,
+        "width": 1.6,
+        "irregularity": 1.8
+      },
+      "triangles": 20386,
+      "renderCompared": false
+    },
+    {
+      "label": "boundary:peak",
+      "settings": {
+        "depth": 0,
+        "width": 1,
+        "irregularity": 1
+      },
+      "triangles": 13042,
+      "renderCompared": false
+    },
+    {
+      "label": "boundary:peak",
+      "settings": {
+        "depth": 1,
+        "width": 0,
+        "irregularity": 1
+      },
+      "triangles": 13042,
+      "renderCompared": false
+    },
+    {
+      "label": "boundary:peak",
+      "settings": {
+        "depth": 0.1,
+        "width": 0.1,
+        "irregularity": 0
+      },
+      "triangles": 19734,
+      "renderCompared": false
+    },
+    {
+      "label": "boundary:peak",
+      "settings": {
+        "depth": 0.1,
+        "width": 2,
+        "irregularity": 2
+      },
+      "triangles": 23806,
+      "renderCompared": false
+    },
+    {
+      "label": "boundary:peak",
+      "settings": {
+        "depth": 2,
+        "width": 0.1,
+        "irregularity": 0
+      },
+      "triangles": 24722,
+      "renderCompared": false
+    },
+    {
+      "label": "boundary:peak",
+      "settings": {
+        "depth": 2,
+        "width": 2,
+        "irregularity": 2
+      },
+      "triangles": 22136,
+      "renderCompared": false
+    },
+    {
+      "label": "boundary:cliff",
+      "settings": {
+        "depth": 0,
+        "width": 1,
+        "irregularity": 1
+      },
+      "triangles": 13216,
+      "renderCompared": false
+    },
+    {
+      "label": "boundary:cliff",
+      "settings": {
+        "depth": 1,
+        "width": 0,
+        "irregularity": 1
+      },
+      "triangles": 13216,
+      "renderCompared": false
+    },
+    {
+      "label": "boundary:cliff",
+      "settings": {
+        "depth": 0.1,
+        "width": 0.1,
+        "irregularity": 0
+      },
+      "triangles": 19258,
+      "renderCompared": false
+    },
+    {
+      "label": "boundary:cliff",
+      "settings": {
+        "depth": 0.1,
+        "width": 2,
+        "irregularity": 2
+      },
+      "triangles": 23098,
+      "renderCompared": false
+    },
+    {
+      "label": "boundary:cliff",
+      "settings": {
+        "depth": 2,
+        "width": 0.1,
+        "irregularity": 0
+      },
+      "triangles": 23662,
+      "renderCompared": false
+    },
+    {
+      "label": "boundary:cliff",
+      "settings": {
+        "depth": 2,
+        "width": 2,
+        "irregularity": 2
+      },
+      "triangles": 23302,
+      "renderCompared": false
+    },
+    {
+      "label": "boundary:flat slab",
+      "settings": {
+        "depth": 0,
+        "width": 1,
+        "irregularity": 1
+      },
+      "triangles": 2838,
+      "renderCompared": false
+    },
+    {
+      "label": "boundary:flat slab",
+      "settings": {
+        "depth": 1,
+        "width": 0,
+        "irregularity": 1
+      },
+      "triangles": 2838,
+      "renderCompared": false
+    },
+    {
+      "label": "boundary:flat slab",
+      "settings": {
+        "depth": 0.1,
+        "width": 0.1,
+        "irregularity": 0
+      },
+      "triangles": 27674,
+      "renderCompared": false
+    },
+    {
+      "label": "boundary:flat slab",
+      "settings": {
+        "depth": 0.1,
+        "width": 2,
+        "irregularity": 2
+      },
+      "triangles": 33234,
+      "renderCompared": false
+    },
+    {
+      "label": "boundary:flat slab",
+      "settings": {
+        "depth": 2,
+        "width": 0.1,
+        "irregularity": 0
+      },
+      "triangles": 28024,
+      "renderCompared": false
+    },
+    {
+      "label": "boundary:flat slab",
+      "settings": {
+        "depth": 2,
+        "width": 2,
+        "irregularity": 2
+      },
+      "triangles": 33450,
+      "renderCompared": false
+    }
+  ]
+}

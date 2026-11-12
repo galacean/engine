@@ -1,6 +1,6 @@
 {
   "version": "fracture-controls-6",
-  "generationMs": 8974.117625,
+  "generationMs": 2980.9256250000003,
   "checks": [
     "immutable source and uncached deterministic replay",
     "finite bounded geometry and unit normals",

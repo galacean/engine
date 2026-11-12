@@ -17,27 +17,52 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+export const CARVE_VERSION='bsp-runtime-optimization-1';
 const carveEpsilon=1e-10;
 const carveDot=(a,b)=>a[0]*b[0]+a[1]*b[1]+a[2]*b[2];
-const carveSub=(a,b)=>a.map((v,k)=>v-b[k]);
+const carveSub=(a,b)=>[a[0]-b[0],a[1]-b[1],a[2]-b[2]];
 const carveCross=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]];
-const carveUnit=a=>{const l=Math.hypot(...a);return a.map(v=>v/l);};
+const carveUnit=a=>{const l=Math.hypot(a[0],a[1],a[2]);return [a[0]/l,a[1]/l,a[2]/l];};
 function carvePolygon(points,tag,plane){
- const loop=points.filter((p,i)=>Math.hypot(...carveSub(p,points[(i+points.length-1)%points.length]))>carveEpsilon);
+ const loop=[];let minX=Infinity,minY=Infinity,minZ=Infinity,maxX=-Infinity,maxY=-Infinity,maxZ=-Infinity;
+ for(let i=0;i<points.length;i++){
+  const p=points[i],q=points[(i+points.length-1)%points.length];
+  if(Math.hypot(p[0]-q[0],p[1]-q[1],p[2]-q[2])>carveEpsilon){
+   loop.push(p);minX=Math.min(minX,p[0]);minY=Math.min(minY,p[1]);minZ=Math.min(minZ,p[2]);
+   maxX=Math.max(maxX,p[0]);maxY=Math.max(maxY,p[1]);maxZ=Math.max(maxZ,p[2]);
+  }
+ }
  if(loop.length<3)return null;
- let area=[0,0,0];for(let i=1;i<loop.length-1;i++){const n=carveCross(carveSub(loop[i],loop[0]),carveSub(loop[i+1],loop[0]));area=area.map((v,k)=>v+n[k]);}
- if(Math.hypot(...area)<1e-20)return null;
- const n=plane?.n||carveUnit(area);return {points:loop,tag,plane:plane||{n,w:carveDot(n,loop[0])}};
+ let ax=0,ay=0,az=0;const p=loop[0];
+ for(let i=1;i<loop.length-1;i++){
+  const b=loop[i],c=loop[i+1],ux=b[0]-p[0],uy=b[1]-p[1],uz=b[2]-p[2],vx=c[0]-p[0],vy=c[1]-p[1],vz=c[2]-p[2];
+  ax+=uy*vz-uz*vy;ay+=uz*vx-ux*vz;az+=ux*vy-uy*vx;
+ }
+ const area=[ax,ay,az];if(Math.hypot(ax,ay,az)<1e-20)return null;
+ const n=plane?.n||carveUnit(area);return {points:loop,tag,plane:plane||{n,w:carveDot(n,loop[0])},bounds:[minX,minY,minZ,maxX,maxY,maxZ]};
 }
 function carveSplit(poly,plane,same,opposite,front,back){
- const distances=poly.points.map(p=>carveDot(plane.n,p)-plane.w),types=distances.map(d=>d>carveEpsilon?1:d< -carveEpsilon?2:0),kind=types.reduce((a,b)=>a|b,0);
+ // A bounding box wholly on one side proves the same classification as testing
+ // every vertex. Boxes crossing the plane still use the exact vertex test.
+ const n=plane.n,bounds=poly.bounds,x=n[0]>=0?0:3,y=n[1]>=0?1:4,z=n[2]>=0?2:5;
+ if(n[0]*bounds[x]+n[1]*bounds[y]+n[2]*bounds[z]-plane.w>carveEpsilon){front.push(poly);return;}
+ if(n[0]*bounds[(x+3)%6]+n[1]*bounds[(y+3)%6]+n[2]*bounds[(z+3)%6]-plane.w< -carveEpsilon){back.push(poly);return;}
+ const count=poly.points.length;let kind=0;
+ // Most visits classify a polygon wholly to one side. Only a spanning polygon
+ // needs per-vertex distance/type arrays; keep those allocations off that path.
+ for(let i=0;i<count;i++){
+  const d=carveDot(plane.n,poly.points[i])-plane.w,type=d>carveEpsilon?1:d< -carveEpsilon?2:0;
+  kind|=type;if(kind===3)break;
+ }
  if(!kind){(carveDot(poly.plane.n,plane.n)>0?same:opposite).push(poly);return;}
  if(kind===1){front.push(poly);return;}if(kind===2){back.push(poly);return;}
+ const distances=new Array(count),types=new Array(count);
+ for(let i=0;i<count;i++){const d=carveDot(plane.n,poly.points[i])-plane.w;distances[i]=d;types[i]=d>carveEpsilon?1:d< -carveEpsilon?2:0;}
  const a=[],b=[];
  for(let i=0;i<poly.points.length;i++){
   const j=(i+1)%poly.points.length,p=poly.points[i],q=poly.points[j];
   if(types[i]!==2)a.push(p);if(types[i]!==1)b.push(p);
-  if((types[i]|types[j])===3){const t=distances[i]/(distances[i]-distances[j]),hit=p.map((v,k)=>v+(q[k]-v)*t);a.push(hit);b.push(hit);}
+  if((types[i]|types[j])===3){const t=distances[i]/(distances[i]-distances[j]),hit=[p[0]+(q[0]-p[0])*t,p[1]+(q[1]-p[1])*t,p[2]+(q[2]-p[2])*t];a.push(hit);b.push(hit);}
  }
  const pa=carvePolygon(a,poly.tag,poly.plane),pb=carvePolygon(b,poly.tag,poly.plane);if(pa)front.push(pa);if(pb)back.push(pb);
 }
@@ -52,13 +77,18 @@ class CarveTree{
   this.polygons=this.polygons.map(p=>({...p,points:[...p.points].reverse(),plane:{n:p.plane.n.map(v=>-v),w:-p.plane.w}}));
   if(this.plane)this.plane={n:this.plane.n.map(v=>-v),w:-this.plane.w};this.front?.flip();this.back?.flip();[this.front,this.back]=[this.back,this.front];
  }
- outside(polygons){
-  if(!this.plane)return polygons;let front=[],back=[];
+ outside(polygons,output=[]){
+  // Empty branches cannot contribute a polygon. Accumulate in the same front /
+  // back order instead of recursively copying concatenated polygon arrays.
+  if(!polygons.length)return output;
+  if(!this.plane){for(const p of polygons)output.push(p);return output;}
+  const front=[],back=[];
   for(const p of polygons)carveSplit(p,this.plane,front,back,front,back);
-  if(this.front)front=this.front.outside(front);back=this.back?this.back.outside(back):[];return front.concat(back);
+  if(this.front)this.front.outside(front,output);else for(const p of front)output.push(p);
+  if(this.back)this.back.outside(back,output);return output;
  }
  clip(other){this.polygons=other.outside(this.polygons);this.front?.clip(other);this.back?.clip(other);}
- collect(){return this.polygons.concat(this.front?.collect()||[],this.back?.collect()||[]);}
+ collect(output=[]){for(const p of this.polygons)output.push(p);this.front?.collect(output);this.back?.collect(output);return output;}
 }
 function carveSubtract(source,cutter){
  const body=new CarveTree(source),tool=new CarveTree(cutter);
@@ -107,16 +137,31 @@ export function carveSolidMesh(positions,indices,cutters){
  return triangulateCarvePolygons(polygons);
 }
 
+// Numeric cell coordinates preserve the existing neighboring-cell search order
+// without allocating a string and temporary coordinate array for every lookup.
+function carveGridPush(grid,x,y,z,id){
+ let column=grid.get(x);if(!column){column=new Map();grid.set(x,column);}
+ let row=column.get(y);if(!row){row=new Map();column.set(y,row);}
+ let cell=row.get(z);if(!cell){cell=[];row.set(z,cell);}cell.push(id);
+}
 function triangulateCarvePolygons(polygons){
  const vertices=[],bins=new Map(),tolerance=carveEpsilon*4;
- const key=p=>p.map(v=>Math.floor(v/tolerance)).join(',');
  const vertex=p=>{
-  const cell=p.map(v=>Math.floor(v/tolerance));
-  for(let x=-1;x<=1;x++)for(let y=-1;y<=1;y++)for(let z=-1;z<=1;z++)for(const id of bins.get([cell[0]+x,cell[1]+y,cell[2]+z].join(','))||[])if(Math.hypot(...carveSub(p,vertices[id]))<tolerance)return id;
-  const id=vertices.length;vertices.push(p);const bin=key(p);if(!bins.has(bin))bins.set(bin,[]);bins.get(bin).push(id);return id;
+  const cx=Math.floor(p[0]/tolerance),cy=Math.floor(p[1]/tolerance),cz=Math.floor(p[2]/tolerance);
+  for(let x=-1;x<=1;x++){
+   const column=bins.get(cx+x);if(!column)continue;
+   for(let y=-1;y<=1;y++){
+    const row=column.get(cy+y);if(!row)continue;
+    for(let z=-1;z<=1;z++){
+     const cell=row.get(cz+z);if(!cell)continue;
+     for(const id of cell){const q=vertices[id];if(Math.hypot(p[0]-q[0],p[1]-q[1],p[2]-q[2])<tolerance)return id;}
+    }
+   }
+  }
+  const id=vertices.length;vertices.push(p);carveGridPush(bins,cx,cy,cz,id);return id;
  };
  const loops=polygons.map(p=>p.points.map(vertex)),grid=new Map(),step=.12;
- for(let i=0;i<vertices.length;i++){const key=vertices[i].map(v=>Math.floor(v/step)).join(',');if(!grid.has(key))grid.set(key,[]);grid.get(key).push(i);}
+ for(let i=0;i<vertices.length;i++){const p=vertices[i];carveGridPush(grid,Math.floor(p[0]/step),Math.floor(p[1]/step),Math.floor(p[2]/step),i);}
  const indices=[],faceTags=[];
  // BSP intersection points must appear on BOTH incident polygon boundaries.
  // Build a conforming polygon mesh before triangulating; no vertices move.
@@ -124,15 +169,27 @@ function triangulateCarvePolygons(polygons){
   const loop=loops[poly],loopVertices=new Set(loop),boundary=[];
   for(let j=0;j<loop.length;j++){
    const a=loop[j],b=loop[(j+1)%loop.length];if(a===b)continue;
-   const p=vertices[a],q=vertices[b],d=carveSub(q,p),l2=carveDot(d,d),hits=[{id:a,t:0}],low=p.map((v,k)=>Math.floor((Math.min(v,q[k])-tolerance)/step)),high=p.map((v,k)=>Math.floor((Math.max(v,q[k])+tolerance)/step));
-   for(let x=low[0];x<=high[0];x++)for(let y=low[1];y<=high[1];y++)for(let z=low[2];z<=high[2];z++)for(const id of grid.get([x,y,z].join(','))||[]){
-    if(loopVertices.has(id))continue;const delta=carveSub(vertices[id],p),t=carveDot(delta,d)/l2;
-    if(t<=0||t>=1)continue;if(Math.hypot(...delta.map((v,k)=>v-t*d[k]))<tolerance)hits.push({id,t});
+   const p=vertices[a],q=vertices[b],dx=q[0]-p[0],dy=q[1]-p[1],dz=q[2]-p[2],l2=dx*dx+dy*dy+dz*dz,hits=[{id:a,t:0}];
+   const lx=Math.floor((Math.min(p[0],q[0])-tolerance)/step),ly=Math.floor((Math.min(p[1],q[1])-tolerance)/step),lz=Math.floor((Math.min(p[2],q[2])-tolerance)/step);
+   const hx=Math.floor((Math.max(p[0],q[0])+tolerance)/step),hy=Math.floor((Math.max(p[1],q[1])+tolerance)/step),hz=Math.floor((Math.max(p[2],q[2])+tolerance)/step);
+   for(let x=lx;x<=hx;x++){
+    const column=grid.get(x);if(!column)continue;
+    for(let y=ly;y<=hy;y++){
+     const row=column.get(y);if(!row)continue;
+     for(let z=lz;z<=hz;z++){
+      const cell=row.get(z);if(!cell)continue;
+      for(const id of cell){
+       if(loopVertices.has(id))continue;const v=vertices[id],vx=v[0]-p[0],vy=v[1]-p[1],vz=v[2]-p[2],t=(vx*dx+vy*dy+vz*dz)/l2;
+       if(t<=0||t>=1)continue;if(Math.hypot(vx-t*dx,vy-t*dy,vz-t*dz)<tolerance)hits.push({id,t});
+      }
+     }
+    }
    }
    hits.sort((a,b)=>a.t-b.t);boundary.push(...hits.map(h=>h.id));
   }
   const unique=boundary.filter((v,i)=>v!==boundary[(i+boundary.length-1)%boundary.length]);if(unique.length<3)continue;
-  const center=vertex([0,1,2].map(d=>unique.reduce((s,id)=>s+vertices[id][d],0)/unique.length));
+  let x=0,y=0,z=0;for(const id of unique){const p=vertices[id];x+=p[0];y+=p[1];z+=p[2];}
+  const center=vertex([x/unique.length,y/unique.length,z/unique.length]);
   for(let i=0;i<unique.length;i++){const a=unique[i],b=unique[(i+1)%unique.length];if(a===b||a===center||b===center)continue;indices.push(center,a,b);faceTags.push(polygons[poly].tag);}
  }
  return {positions:vertices.flat(),indices,faceTags};

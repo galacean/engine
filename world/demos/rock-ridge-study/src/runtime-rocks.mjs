@@ -1,6 +1,7 @@
 import {random} from './ridge-utils.mjs';
 import {fracturedRockLibrary,fractureSettings} from './rock-surface.mjs';
 import {generateRidgeScene} from './ridge.mjs';
+import {CARVE_VERSION} from './solid-carve.mjs';
 
 export const RUNTIME_ROCK_VERSION='seeded-atomic-rocks-1';
 export const RUNTIME_ROCK_SLOTS=['peak','peak2','shoulder','shoulder2','cliff','cliff2','bank','bank2'];
@@ -49,13 +50,14 @@ export function runtimeRockFingerprint(geometries){
 // Runs in the worker in the viewer, and directly in Node verification. Cache only
 // the current seed and fracture settings; never fall back to geometry.json.
 export function buildRuntimeMountain(kernel,request,cache={}){
- const seed=Number(request.seed)>>>0;
+ const started=performance.now(),seed=Number(request.seed)>>>0,baseCached=cache.seed===seed&&!!cache.base;
  if(cache.seed!==seed||!cache.base){cache.base=generateRuntimeRocks(kernel,seed);cache.seed=seed;cache.surfaceKey=null;cache.fractured=null;
   cache.generation={version:RUNTIME_ROCK_VERSION,seed,variants:Object.keys(cache.base).length,fingerprint:runtimeRockFingerprint(cache.base)};}
- const settings=fractureSettings(request.fractures),surfaceKey=JSON.stringify(settings);
+ const generated=performance.now(),settings=fractureSettings(request.fractures),surfaceKey=JSON.stringify(settings),fractureCached=!request.original&&cache.surfaceKey===surfaceKey;
  if(!request.original&&cache.surfaceKey!==surfaceKey){cache.fractured=fracturedRockLibrary(cache.base,settings);cache.surfaceKey=surfaceKey;}
- const geometries=request.original?cache.base:cache.fractured;
+ const carved=performance.now(),geometries=request.original?cache.base:cache.fractured;
  const scene=generateRidgeScene(request.source,geometries,seed,{mode:request.mode,noise:request.noise,topology:request.topology});
+ const finished=performance.now();
  return {scene,geometries,baseGeometries:cache.base,libraryKey:RUNTIME_ROCK_VERSION+':'+seed+':'+(request.original?'original':surfaceKey),
-  generation:cache.generation};
+  generation:cache.generation,timings:{implementation:CARVE_VERSION,baseMs:generated-started,fractureMs:carved-generated,fitMs:finished-carved,totalMs:finished-started,baseCached,fractureCached,fractureEnabled:!request.original}};
 }
