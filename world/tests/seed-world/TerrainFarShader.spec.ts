@@ -11,6 +11,49 @@ const terrain = JSON.parse(
 const forward = terrain.subShaders[0].passes.find((pass) => pass.name === "Forward");
 
 describe("Terrain near/far production shader variants", () => {
+  it("keeps per-pixel baked slopes on distant sand without sampling the micro normal", () => {
+    const macros = new Map([
+      ["GRAPHICS_API_WEBGL2", ""],
+      ["SCENE_FOG_MODE", "1"],
+      ["MATERIAL_TERRAIN_LAYERS", ""],
+      ["MATERIAL_TERRAIN_SAND_RIPPLE", ""],
+      ["MATERIAL_TERRAIN_MICRO_NORMAL", ""],
+      ["MATERIAL_TERRAIN_FAR", ""]
+    ]);
+    const farSand = ShaderMacroProcessor.evaluate(forward.fragmentShaderInstructions, macros);
+    expect(farSand).toMatch(/bakedNormal\s*=\s*terrainProjectGeometryNormalAt\s*\(\s*worldXZ/);
+    expect(farSand).not.toContain("material_TerrainMicroNormal");
+    expect(farSand).not.toContain("material_TerrainSandRippleParams");
+  });
+  it.each(["Forward", "ScreenSpaceReflectionSurface"])(
+    "uses the same opt-in puddle edge in %s",
+    (name) => {
+      const pass = terrain.subShaders[0].passes.find((entry) => entry.name === name);
+      const macros = new Map([["GRAPHICS_API_WEBGL2", ""], ["MATERIAL_TERRAIN_LAYERS", ""]]);
+      const native = ShaderMacroProcessor.evaluate(pass.fragmentShaderInstructions, macros);
+      macros.set("MATERIAL_TERRAIN_FEATHERED_PUDDLES", "");
+      const feathered = ShaderMacroProcessor.evaluate(pass.fragmentShaderInstructions, macros);
+      expect(native).toContain("return step ( 0.5 , standingWaterShare )");
+      expect(feathered).toContain("float shorelineWidth = 0.09");
+      expect(feathered).toContain("return clamp ( standingWaterShare , 0.0 , 1.0 )");
+      expect(feathered).not.toContain("return step ( 0.5 , standingWaterShare )");
+    }
+  );
+
+  it.each(["Forward", "ScreenSpaceReflectionSurface"])("binds the textured single alphamap in %s", (name) => {
+    const pass = terrain.subShaders[0].passes.find((entry) => entry.name === name);
+    const macros = new Map([
+      ["GRAPHICS_API_WEBGL2", ""],
+      ["MATERIAL_TERRAIN_LAYERS", ""],
+      ["MATERIAL_TERRAIN_SINGLE_ALPHAMAP", ""],
+      ["MATERIAL_TERRAIN_LAYER_DIFFUSE_TEXTURES", ""],
+      ["MATERIAL_TERRAIN_LAYER_NORMAL_TEXTURES", ""]
+    ]);
+    const source = ShaderMacroProcessor.evaluate(pass.fragmentShaderInstructions, macros);
+    expect(source).toMatch(/uniform vec4 material_TerrainFirstLayerIndices\s*;/);
+    expect(source).toMatch(/vec4 layerIndices\s*=\s*material_TerrainFirstLayerIndices\s*;/);
+  });
+
   it.each(["untextured", "soil", "multiple-regions"])(
     "preserves layer data and removes distant detail samplers (%s)",
     (layout) => {

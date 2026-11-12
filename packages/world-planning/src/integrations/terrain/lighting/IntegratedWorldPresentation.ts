@@ -1,4 +1,10 @@
-import { type DirectLight, type Entity, type Scene } from "@galacean/engine";
+import type {
+  DayNightMoonPositionConfig,
+  DayNightSolarPositionConfig,
+  DirectLight,
+  Entity,
+  Scene
+} from "@galacean/engine";
 import { INTEGRATED_WORLD_POST_PROCESS_PROFILE } from "@galacean/engine-terrain/terrain/project/IntegratedWorldPostProcessPreset";
 import type { TerrainPostProcessRuntime } from "@galacean/engine-terrain/terrain/project/TerrainPostProcessRuntime";
 import {
@@ -20,10 +26,11 @@ export function createIntegratedWorldLightingRuntime(
   driverEntity: Entity,
   scene: Scene,
   directLight: DirectLight,
-  postProcess: TerrainPostProcessRuntime
+  postProcess: TerrainPostProcessRuntime,
+  celestialPosition?: Readonly<DayNightSolarPositionConfig & DayNightMoonPositionConfig>
 ): TerrainLightingRuntime {
   postProcess.applyAuthoringProfile(INTEGRATED_WORLD_POST_PROCESS_PROFILE);
-  const lighting = new TerrainLightingRuntime(driverEntity, scene, directLight, postProcess);
+  const lighting = new TerrainLightingRuntime(driverEntity, scene, directLight, postProcess, celestialPosition);
   lighting.setTimeOfDayLightingProfile(INTEGRATED_WORLD_TIME_OF_DAY_LIGHTING_PROFILE);
   lighting.applyVisualTuning(INTEGRATED_WORLD_DEFAULT_VISUAL_LIGHTING_TUNING);
   lighting.setTuning({ playing: false, timeHours: INTEGRATED_WORLD_DEFAULT_TIME_HOURS });

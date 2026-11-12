@@ -9,10 +9,10 @@ import {
   WaterSurfaceDepthResponseModelV2,
   WaterSurfacePrimaryColorClosure
 } from "../../authoring/surface/WaterSurfaceAppearanceTypes";
-import { WaterRenderContractCompiler } from "../../compiler/surface/WaterRenderContractCompiler";
-import type { CompiledWaterRenderContractV1 } from "../../compiler/surface/CompiledWaterRenderContractTypes";
-import { WaterBodyAssetRegistry } from "../body/WaterBodyAssetRegistry";
 import { WaterFieldSemantic } from "../../authoring/surface/WaterSurfaceFieldTypes";
+import type { CompiledWaterRenderContractV1 } from "../../compiler/surface/CompiledWaterRenderContractTypes";
+import { WaterRenderContractCompiler } from "../../compiler/surface/WaterRenderContractCompiler";
+import { WaterBodyAssetRegistry } from "../body/WaterBodyAssetRegistry";
 
 import { createOceanRuntimeTuning, type OceanRuntimeTuning } from "./OceanRuntimeTuning";
 
@@ -62,11 +62,6 @@ export function assertSupportedOceanRenderContract(contract: CompiledWaterRender
   ) {
     throw new Error(
       "Ocean supports one shared shoreline boundary response; patterned or multiple boundary effects are not supported."
-    );
-  }
-  if (contract.optics.profile.surfaceScattering) {
-    throw new Error(
-      "Ocean does not yet support surfaceScattering: its scene-texture-free far field requires a medium integration policy. Use the bounded shared stylized translucency capability."
     );
   }
   if (

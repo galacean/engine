@@ -22,13 +22,14 @@ float waterAnimatedVoronoiF1Candidate(
   vec2 randomOffset = waterAnimatedVoronoiF1Hash(cell + cellOffset);
   vec2 animatedOffset = sin(time + randomOffset * 6.2831) * 0.5 + 0.5;
   vec2 delta = localPosition - cellOffset - animatedOffset;
-  return 0.707 * sqrt(dot(delta, delta));
+  return dot(delta, delta);
 }
 
 float waterAnimatedVoronoiF1(vec2 position, float time) {
   vec2 cell = floor(position);
   vec2 localPosition = fract(position);
-  float f1 = 8.0;
+  // Compare squared distances before the single square root per octave.
+  float f1 = 128.0;
   f1 = min(f1, waterAnimatedVoronoiF1Candidate(cell, localPosition, vec2(-1.0, -1.0), time));
   f1 = min(f1, waterAnimatedVoronoiF1Candidate(cell, localPosition, vec2(0.0, -1.0), time));
   f1 = min(f1, waterAnimatedVoronoiF1Candidate(cell, localPosition, vec2(1.0, -1.0), time));
@@ -38,7 +39,7 @@ float waterAnimatedVoronoiF1(vec2 position, float time) {
   f1 = min(f1, waterAnimatedVoronoiF1Candidate(cell, localPosition, vec2(-1.0, 1.0), time));
   f1 = min(f1, waterAnimatedVoronoiF1Candidate(cell, localPosition, vec2(0.0, 1.0), time));
   f1 = min(f1, waterAnimatedVoronoiF1Candidate(cell, localPosition, vec2(1.0, 1.0), time));
-  return clamp(f1, 0.0, 1.0);
+  return clamp(0.707 * sqrt(f1), 0.0, 1.0);
 }
 
 float evaluateWaterAnimatedVoronoiF1(

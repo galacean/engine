@@ -13,6 +13,7 @@ import { PLANNING_VISUAL_AUTHORING, visualAuthoringProperties } from "../Plannin
 import { WATER_COMPONENT, planningWaterFrame, transformPlanningWater, planningWaterSourceId } from "../PlanningWaterSource.ts";
 import type { WaterSourceAuthoring } from "@galacean/engine-world-planning/spatial/runtime/NativeWaterEditor";
 import { retainRemovedWater } from "./PlanningWaterInitialization.ts";
+import { planningSeed } from "@galacean/engine-world-planning/spatial/PlanningLayoutScope";
 
 const ownedProperties = new Map<string, readonly string[]>([
   [WATER_COMPONENT, ["authoring", "enabled"]],
@@ -84,6 +85,18 @@ export function planningSourceDocument(pack: RuntimeProjectPackage): PlanningDoc
   return readPlanningProjectSource(new RuntimeProjectEdit(pack, nativeAssetFormats(() => ({}))), pack.project.scene);
 }
 
+/** Replacing planning inputs does not replace native Water authoring or deletion intent. */
+export function retainPlanningWaterSource(document: PlanningDocument, pack: RuntimeProjectPackage): PlanningDocument {
+  const source = planningSourceDocument(pack);
+  if (!source || planningSeed(source) !== planningSeed(document)) return document;
+  const next = structuredClone(document);
+  for (const entity of Object.values(source.entities)) {
+    if (entity.id === "planning-ocean" || entity.id.startsWith("river:") || entity.id.startsWith("lake:"))
+      next.entities[entity.id] = structuredClone(entity);
+  }
+  return next;
+}
+
 /** Read the planning subtree through the same Source/Prefab identities as the editor. */
 export function readPlanningProjectSource(draft: RuntimeProjectEdit, path: string): PlanningDocument | undefined {
   const scene = new RuntimeSceneEdit(draft, path);
@@ -153,6 +166,13 @@ export function writePlanningProjectSource(draft: RuntimeProjectEdit, path: stri
   }
   const existing = scene.queryComponents({ type: PLANNING_PROJECT_COMPONENT });
   if (existing.length > 1) throw new Error("Scene requires one planning authoring owner");
+  // Water objects own their Source independently of the planning snapshot. This
+  // also protects template-owned Prefab members without detaching their identities.
+  const parents = new Map(scene.list().flatMap(entity => (entity.children ?? []).map(child => [child, entity.id] as const)));
+  const waterOwners = new Set<string>();
+  for (const body of scene.queryComponents({ type: WATER_COMPONENT })) {
+    for (let id: string | undefined = body.entityId; id && !waterOwners.has(id); id = parents.get(id)) waterOwners.add(id);
+  }
   const references = (value: unknown): unknown => {
     if (!value || typeof value !== "object") return value;
     if ("$ref" in value && typeof value.$ref === "number") return { $ref: desired.refs[value.$ref].url };
@@ -209,8 +229,8 @@ export function writePlanningProjectSource(draft: RuntimeProjectEdit, path: stri
       remaining.delete(component.type);
     }
     for (const record of remaining.values()) {
-      if (record.type === WATER_COMPONENT &&
-        (scene.readComponent(record.id).props?.authoring as { shape?: { kind?: string } })?.shape?.kind === "ocean") continue;
+      // Component removal belongs to the native Water edit transaction.
+      if (record.type === WATER_COMPONENT) continue;
       scene.removeComponent(record.id);
     }
     const children = new Map((scene.readEntity(id).children ?? []).map(child => {
@@ -224,7 +244,7 @@ export function writePlanningProjectSource(draft: RuntimeProjectEdit, path: stri
       synchronize(child, current ?? scene.create({ name: desired.entities[child].name, parentEntityId: id }).id);
       children.delete(identity as string);
     }
-    for (const [identity, child] of children) if (identity !== undefined) scene.delete(child);
+    for (const [identity, child] of children) if (identity !== undefined && !waterOwners.has(child)) scene.delete(child);
   };
   synchronize(0, existing[0]?.entityId ?? scene.create({ name: "Planning authoring" }).id);
 }

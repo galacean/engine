@@ -45,6 +45,7 @@ import { playAssetEntranceEffect as playRendererAssetEntranceEffect } from "@gal
 import { ASSET_ASSEMBLY_ENTRANCE_DURATION_MS } from "@galacean/engine-vegetation/asset-assembly/AssetAssemblyRenderProfile";
 import type { AssetAssemblySourceLibrary } from "@galacean/engine-vegetation/asset-assembly/AssetAssemblySourceLibrary";
 import type { ProceduralTreeRuntimeAuthoringProfile } from "@galacean/engine-vegetation/asset-assembly/ProceduralTreeAuthoringState";
+import type { TerrainAuthoredPuddleCoverage } from "@galacean/engine-terrain/terrain/clipmap/TerrainPuddleHydrology";
 import { TerrainClipmap } from "@galacean/engine-terrain/terrain/clipmap/TerrainClipmap";
 import { seedWorldRenderWeights } from "../world/SeedWorldRenderWeights.ts";
 import type {
@@ -168,6 +169,7 @@ interface SeedWorldTerrainSurface {
   readonly normal?: Texture2D;
   readonly tileMetres: number;
   readonly normalScale: number;
+  readonly street?: boolean;
 }
 
 interface SeedWorldTerrainMaterialState {
@@ -344,7 +346,10 @@ export class SeedWorldTerrainRuntime {
           : layerId === SEED_WORLD_ROAD_LAYER_ID
             ? nextRoadColor
             : (nextGroundColor ?? this.defaultGroundColor);
-        const tint = this._terrainMaterialState.surface?.diffuse && layerId !== SEED_WORLD_ROAD_LAYER_ID;
+        const surface = this._terrainMaterialState.surface;
+        const tint =
+          surface?.diffuse &&
+          (surface.street ? layerId !== SEED_WORLD_SURFACE_LAYER_IDS[0] : layerId !== SEED_WORLD_ROAD_LAYER_ID);
         return {
           regionId: SEED_WORLD_REGION_ID,
           layerId,
@@ -458,7 +463,8 @@ export class SeedWorldTerrainRuntime {
     surfaceLodCrossFadeDurationSeconds: number,
     inspectionTile?: SeedWorldTerrainInspectionTile,
     signal?: AbortSignal,
-    surfaceOptions: SeedWorldTerrainSurfaceOptions = {}
+    surfaceOptions: SeedWorldTerrainSurfaceOptions = {},
+    authoredPuddles?: TerrainAuthoredPuddleCoverage
   ): Promise<SeedWorldTerrainRuntime> {
     signal?.throwIfAborted();
     const root = parent.createChild(`Seed World ${plan.rootSeed}`);
@@ -509,7 +515,8 @@ export class SeedWorldTerrainRuntime {
               diffuse,
               normal,
               tileMetres: surfaceOptions.tileMetres ?? 8,
-              normalScale: surfaceOptions.normalScale ?? 1
+              normalScale: surfaceOptions.normalScale ?? 1,
+              street: !!authoredPuddles
             }
           : undefined;
       const layers = buildLayerSources(fields, surfaceIntent, soilTexture, surface);
@@ -558,7 +565,7 @@ export class SeedWorldTerrainRuntime {
         SEED_WORLD_CLIPMAP_MESH_SIZE,
         terrainSettings.clipmapLodCount,
         layers,
-        undefined,
+        authoredPuddles ? { maximumSpacingMetres: 1.25, authoredCoverage: authoredPuddles } : undefined,
         undefined,
         {
           firstLod: farLod,
@@ -1109,7 +1116,8 @@ function buildLayerSources(
   }
   const layers: TerrainLayerResolvedSource<Texture2D>[] = SEED_WORLD_SURFACE_LAYER_IDS.map((layerId, index) => {
     const profile = SEED_WORLD_SURFACE_LAYER_PROFILES[index];
-    const ground = layerId === SEED_WORLD_ROAD_LAYER_ID ? undefined : surface;
+    const textured = surface?.street ? index > 0 : layerId !== SEED_WORLD_ROAD_LAYER_ID;
+    const ground = textured ? surface : undefined;
     return {
       id: layerId,
       appearance: profile.appearance,

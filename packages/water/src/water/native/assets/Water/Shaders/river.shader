@@ -18,14 +18,6 @@ float material_Water_look_oceanResponse_microDetailResponse_0_speedRatio;
 float material_Water_look_oceanResponse_microDetailResponse_1_speedMetresPerSecond;
 float material_Water_look_oceanResponse_microDetailResponse_1_strengthRatio;
 float material_Water_look_oceanResponse_microDetailResponse_1_speedRatio;
-sampler2D material_Water_look_riverDrops_textures_directional;
-sampler2D material_Water_look_riverDrops_textures_cloud;
-sampler2D material_Water_look_riverDrops_textures_lines;
-sampler2D material_Water_look_riverDrops_textures_edge;
-sampler2D material_Water_look_riverDrops_textures_voronoi;
-sampler2D material_Water_look_riverDrops_textures_foam;
-sampler2D material_Water_look_riverDrops_textures_mist;
-sampler2D material_Water_look_riverDrops_textures_splash;
 vec2 material_Water_look_riverDrops_layers_directional_scale;
 vec2 material_Water_look_riverDrops_layers_directional_velocity;
 vec2 material_Water_look_riverDrops_layers_cloud_scale;
@@ -80,7 +72,6 @@ float material_Water_appearance_appearance_detailLayers_0_rotationDegrees;
 int material_Water_appearance_appearance_detailLayers_0_normalConvention;
 int material_Water_appearance_appearance_detailLayers_0_strengthMode;
 int material_Water_appearance_appearance_detailLayers_0_blend;
-sampler2D material_Water_appearance_appearance_detailLayers_0_texture;
 vec2 material_Water_appearance_appearance_detailLayers_1_scale;
 vec2 material_Water_appearance_appearance_detailLayers_1_velocity;
 int material_Water_appearance_appearance_detailLayers_1_space;
@@ -89,7 +80,6 @@ float material_Water_appearance_appearance_detailLayers_1_rotationDegrees;
 int material_Water_appearance_appearance_detailLayers_1_normalConvention;
 int material_Water_appearance_appearance_detailLayers_1_strengthMode;
 int material_Water_appearance_appearance_detailLayers_1_blend;
-sampler2D material_Water_appearance_appearance_detailLayers_1_texture;
 float material_Water_appearance_appearance_depthResponse_colorCoefficientPerMeter;
 float material_Water_appearance_appearance_depthResponse_opacityCoefficientPerMeter;
 float material_Water_appearance_appearance_depthResponse_maximumOpacity;
@@ -120,7 +110,6 @@ float material_Water_appearance_appearance_caustics_parallaxOffset;
 float material_Water_appearance_appearance_caustics_parallaxBias;
 float material_Water_appearance_appearance_caustics_fadeCoefficientPerMeter;
 float material_Water_appearance_appearance_caustics_opacityContribution;
-sampler2D material_Water_appearance_appearance_caustics_texture;
 int material_Water_appearance_featureFlags_externalNormal;
 int material_Water_appearance_featureFlags_depthTint;
 int material_Water_appearance_featureFlags_coastalAlpha;
@@ -164,14 +153,6 @@ material_Water_look_oceanResponse_microDetailResponse_0_speedRatio("material_Wat
 material_Water_look_oceanResponse_microDetailResponse_1_speedMetresPerSecond("material_Water_look_oceanResponse_microDetailResponse_1_speedMetresPerSecond", Float) = 100;
 material_Water_look_oceanResponse_microDetailResponse_1_strengthRatio("material_Water_look_oceanResponse_microDetailResponse_1_strengthRatio", Float) = 1;
 material_Water_look_oceanResponse_microDetailResponse_1_speedRatio("material_Water_look_oceanResponse_microDetailResponse_1_speedRatio", Float) = 1;
-material_Water_look_riverDrops_textures_directional("material_Water_look_riverDrops_textures_directional", Texture2D);
-material_Water_look_riverDrops_textures_cloud("material_Water_look_riverDrops_textures_cloud", Texture2D);
-material_Water_look_riverDrops_textures_lines("material_Water_look_riverDrops_textures_lines", Texture2D);
-material_Water_look_riverDrops_textures_edge("material_Water_look_riverDrops_textures_edge", Texture2D);
-material_Water_look_riverDrops_textures_voronoi("material_Water_look_riverDrops_textures_voronoi", Texture2D);
-material_Water_look_riverDrops_textures_foam("material_Water_look_riverDrops_textures_foam", Texture2D);
-material_Water_look_riverDrops_textures_mist("material_Water_look_riverDrops_textures_mist", Texture2D);
-material_Water_look_riverDrops_textures_splash("material_Water_look_riverDrops_textures_splash", Texture2D);
 material_Water_look_riverDrops_layers_directional_scale("material_Water_look_riverDrops_layers_directional_scale", Vector2) = (1, 2);
 material_Water_look_riverDrops_layers_directional_velocity("material_Water_look_riverDrops_layers_directional_velocity", Vector2) = (0, -0.94);
 material_Water_look_riverDrops_layers_cloud_scale("material_Water_look_riverDrops_layers_cloud_scale", Vector2) = (0.2, 0.5);
@@ -226,7 +207,6 @@ material_Water_appearance_appearance_detailLayers_0_rotationDegrees("material_Wa
 material_Water_appearance_appearance_detailLayers_0_normalConvention("material_Water_appearance_appearance_detailLayers_0_normalConvention", Enum(opengl:0, directx:1)) = 0;
 material_Water_appearance_appearance_detailLayers_0_strengthMode("material_Water_appearance_appearance_detailLayers_0_strengthMode", Enum(reconstruct-after-scale:0, preserve-source-z:1)) = 1;
 material_Water_appearance_appearance_detailLayers_0_blend("material_Water_appearance_appearance_detailLayers_0_blend", Enum(whiteout:0, partial-derivative:1, reoriented:2, add-slope:3)) = 0;
-material_Water_appearance_appearance_detailLayers_0_texture("material_Water_appearance_appearance_detailLayers_0_texture", Texture2D);
 material_Water_appearance_appearance_detailLayers_1_scale("material_Water_appearance_appearance_detailLayers_1_scale", Vector2) = (0.01, 0.01);
 material_Water_appearance_appearance_detailLayers_1_velocity("material_Water_appearance_appearance_detailLayers_1_velocity", Vector2) = (0.02, 0.02);
 material_Water_appearance_appearance_detailLayers_1_space("material_Water_appearance_appearance_detailLayers_1_space", Enum(world-xz:0, object-xz:1, mesh-uv:2, flow-advected:3)) = 0;
@@ -235,7 +215,6 @@ material_Water_appearance_appearance_detailLayers_1_rotationDegrees("material_Wa
 material_Water_appearance_appearance_detailLayers_1_normalConvention("material_Water_appearance_appearance_detailLayers_1_normalConvention", Enum(opengl:0, directx:1)) = 0;
 material_Water_appearance_appearance_detailLayers_1_strengthMode("material_Water_appearance_appearance_detailLayers_1_strengthMode", Enum(reconstruct-after-scale:0, preserve-source-z:1)) = 1;
 material_Water_appearance_appearance_detailLayers_1_blend("material_Water_appearance_appearance_detailLayers_1_blend", Enum(whiteout:0, partial-derivative:1, reoriented:2, add-slope:3)) = 0;
-material_Water_appearance_appearance_detailLayers_1_texture("material_Water_appearance_appearance_detailLayers_1_texture", Texture2D);
 material_Water_appearance_appearance_depthResponse_colorCoefficientPerMeter("material_Water_appearance_appearance_depthResponse_colorCoefficientPerMeter", Float) = 0.09;
 material_Water_appearance_appearance_depthResponse_opacityCoefficientPerMeter("material_Water_appearance_appearance_depthResponse_opacityCoefficientPerMeter", Float) = 0.53;
 material_Water_appearance_appearance_depthResponse_maximumOpacity("material_Water_appearance_appearance_depthResponse_maximumOpacity", Float) = 0.844;
@@ -270,7 +249,6 @@ material_Water_appearance_appearance_caustics_parallaxOffset("material_Water_app
 material_Water_appearance_appearance_caustics_parallaxBias("material_Water_appearance_appearance_caustics_parallaxBias", Float) = 0.42;
 material_Water_appearance_appearance_caustics_fadeCoefficientPerMeter("material_Water_appearance_appearance_caustics_fadeCoefficientPerMeter", Float) = 1.1;
 material_Water_appearance_appearance_caustics_opacityContribution("material_Water_appearance_appearance_caustics_opacityContribution", Float) = 0;
-material_Water_appearance_appearance_caustics_texture("material_Water_appearance_appearance_caustics_texture", Texture2D);
 material_Water_appearance_featureFlags_externalNormal("material_Water_appearance_featureFlags_externalNormal", Boolean) = false;
 material_Water_appearance_featureFlags_depthTint("material_Water_appearance_featureFlags_depthTint", Boolean) = true;
 material_Water_appearance_featureFlags_coastalAlpha("material_Water_appearance_featureFlags_coastalAlpha", Boolean) = false;
@@ -380,16 +358,11 @@ material_Water_renderState_blendMode("material_Water_renderState_blendMode", Enu
       float material_SurfaceTurbulence;
       float material_CrestIntensity;
       float material_FlowNormalStrength;
-      float material_SurfaceDebugMode;
       float material_MacroDisplacementEnabled;
       float material_MicroSurfaceEnabled;
       float material_SurfaceTimeOverride;
       float material_RefractionEnabled;
       vec3 material_AbsorptionCoefficient;
-#ifdef MATERIAL_WATER_SURFACE_SCATTERING
-      vec3 material_SurfaceScatteringCoefficient;
-      float material_SurfaceScatteringPhaseG;
-#endif
       vec3 material_ScatteringColor;
       float material_ScatteringCoefficient;
       float material_MaximumSurfaceOpticalDistance;
@@ -460,7 +433,6 @@ material_Water_renderState_blendMode("material_Water_renderState_blendMode", Enu
       float material_AppearanceV2DepthCoefficient1;
       vec4 material_AppearanceV2DepthShallowColor;
       vec4 material_AppearanceV2DepthDeepColor;
-      float material_AppearanceV2DepthDebugView;
 
       float material_AppearanceV2Boundary0Range;
       float material_AppearanceV2Boundary0Alpha;
@@ -905,6 +877,7 @@ struct WaterSurfaceRawFoamFactsV2 {
   float enabled;
 };
 
+
 struct WaterSurfaceRawContributionPolicyV2 {
   float primaryColorClosureModel;
   float refractionEnabled;
@@ -913,7 +886,7 @@ struct WaterSurfaceRawContributionPolicyV2 {
   float reflectionSource;
   float ssrCompositeIntensity;
   float foamIntensity;
-  float calibrationMode;
+
 };
 
 struct WaterSurfaceResolvedRawContributionsV2 {
@@ -976,13 +949,10 @@ vec3 waterSurfaceResolveAnalyticReflectionFallbackV2(
   ) * max(environmentIntensity, 0.0);
 }
 
-WaterSurfaceResolvedRawContributionsV2 waterSurfaceResolveRawContributionsV2(
-  WaterSurfaceRawRefractionFactsV2 refraction,
-  WaterSurfaceRawReflectionFactsV2 reflection,
+float waterSurfaceResolveRawFoamWeightV2(
   WaterSurfaceRawFoamFactsV2 foam,
   WaterSurfaceRawContributionPolicyV2 policy
 ) {
-  WaterSurfaceResolvedRawContributionsV2 resolved;
   float proceduralSignal = max(
     max(
       max(foam.surfaceSignal, foam.shoreSignal),
@@ -996,14 +966,25 @@ WaterSurfaceResolvedRawContributionsV2 waterSurfaceResolveRawContributionsV2(
       max(foam.localSignal, 0.0)
     )
       * step(0.5, foam.enabled)
-      * (1.0 - step(0.5, policy.calibrationMode)),
+     ,
     0.0,
     1.0
   );
-  resolved.foamWeight = max(
+  return max(
     smoothstep(0.02, 0.78, foamSignal),
     clamp(foam.contactSignal, 0.0, 1.0)
   );
+}
+
+
+WaterSurfaceResolvedRawContributionsV2 waterSurfaceResolveRawContributionsV2(
+  WaterSurfaceRawRefractionFactsV2 refraction,
+  WaterSurfaceRawReflectionFactsV2 reflection,
+  float foamWeight,
+  WaterSurfaceRawContributionPolicyV2 policy
+) {
+  WaterSurfaceResolvedRawContributionsV2 resolved;
+  resolved.foamWeight = clamp(foamWeight, 0.0, 1.0);
 
   float displacedValidity = clamp(
     refraction.displacedSampleValidity
@@ -1047,41 +1028,6 @@ WaterSurfaceResolvedRawContributionsV2 waterSurfaceResolveRawContributionsV2(
   return resolved;
 }
 
-#endif
-
-#ifndef WATER_SURFACE_SINGLE_SCATTERING_INCLUDED
-#define WATER_SURFACE_SINGLE_SCATTERING_INCLUDED
-struct WaterSingleScatteringResult {
-  vec3 transmittance;
-  vec3 lightTransmittance;
-  vec3 scattering;
-};
-
-float waterScatteringPhase(float phaseG, float cosine) {
-  float g = clamp(phaseG, -0.95, 0.95);
-  // UE Schlick approximation with a positivity guard at the authoring limits.
-  float k = clamp(1.55 * g - 0.55 * g * g * g, -0.99, 0.99);
-  float denominator = 1.0 + k * clamp(cosine, -1.0, 1.0);
-  return (1.0 - k * k) / (12.5663706144 * denominator * denominator);
-}
-
-WaterSingleScatteringResult waterEvaluateSingleScattering(
-  vec3 absorption, vec3 scatteringCoefficient, float phaseG,
-  float opticalDistance, float lightDistance, float phaseCosine,
-  vec3 sunRadiance, vec3 ambientRadiance
-) {
-  WaterSingleScatteringResult result;
-  vec3 sigmaS = max(scatteringCoefficient, vec3(0.0));
-  vec3 sigmaT = max(absorption, vec3(0.0)) + sigmaS;
-  result.transmittance = exp(-sigmaT * max(opticalDistance, 0.0));
-  result.lightTransmittance = exp(-sigmaT * max(lightDistance, 0.0));
-  vec3 incoming = max(sunRadiance, vec3(0.0)) * waterScatteringPhase(phaseG, phaseCosine)
-    + max(ambientRadiance, vec3(0.0)) / 12.5663706144;
-  result.scattering = incoming * clamp(
-    sigmaS * (1.0 - result.transmittance) / max(sigmaT, vec3(0.00001)), vec3(0.0), vec3(1.0)
-  );
-  return result;
-}
 #endif
 
 #ifndef WATER_SURFACE_CLOSURE_INCLUDED
@@ -1146,28 +1092,19 @@ float waterSurfaceResolveAlphaV2(
   float opticalDepth,
   float fresnel,
   float foamWeight,
-  float calibrationMode,
+
   float coastalAlpha,
   float coastalAlphaWeight
 ) {
   float absorptionAlpha = 1.0 - exp(-mix(0.48, 0.13, clamp(clarity, 0.0, 1.0)) * max(opticalDepth, 0.0));
   float alpha = baseAlpha * mix(0.18, 0.94, absorptionAlpha);
   alpha += clamp(fresnel, 0.0, 1.0) * (1.0 - alpha) * 0.48;
-  alpha += clamp(foamWeight, 0.0, 1.0) * 0.3 * (1.0 - step(0.5, calibrationMode));
+  alpha += clamp(foamWeight, 0.0, 1.0) * 0.3;
   alpha = mix(alpha, coastalAlpha, clamp(coastalAlphaWeight, 0.0, 1.0));
   return clamp(alpha, 0.0, 1.0);
 }
 
 struct WaterSurfaceFinalClosureV2Input {
-#ifdef MATERIAL_WATER_SURFACE_SCATTERING
-  vec3 surfaceScatteringCoefficient;
-  float surfaceScatteringPhaseG;
-  float sceneToSurfaceDistance;
-  float phaseCosine;
-  vec3 sunRadiance;
-  vec3 ambientRadiance;
-  float opticalDebugMode;
-#endif
   vec3 primarySceneColor;
   vec3 surfaceColor;
   vec3 depthColor;
@@ -1192,7 +1129,7 @@ struct WaterSurfaceFinalClosureV2Input {
   float foamWeight;
   float baseAlpha;
   float clarity;
-  float calibrationMode;
+
   float coastalAlpha;
   float coastalAlphaWeight;
   float coverage;
@@ -1261,28 +1198,6 @@ vec4 waterSurfaceEvaluateFinalClosureV2(
     1.0,
     closure.normalDotView
   );
-#ifdef MATERIAL_WATER_SURFACE_SCATTERING
-  WaterSingleScatteringResult medium = waterEvaluateSingleScattering(
-    closure.absorptionCoefficient, closure.surfaceScatteringCoefficient, closure.surfaceScatteringPhaseG,
-    closure.opticalDepth, closure.sceneToSurfaceDistance, closure.phaseCosine,
-    closure.sunRadiance, closure.ambientRadiance
-  );
-  vec3 tint = mix(closure.surfaceColor, closure.depthColor, clamp(closure.depthFactor, 0.0, 1.0));
-  vec3 volume = closure.refractionColor * medium.transmittance * medium.lightTransmittance
-    + medium.scattering * max(tint, vec3(0.0));
-  vec3 reflectionWeight = waterSurfaceEnvironmentSpecularWeight(
-    closure.fresnelF0, closure.perceptualRoughness, closure.normalDotView
-  );
-  vec3 lit = volume * (1.0 - fresnel)
-    + closure.reflectionRadiance * reflectionWeight * max(closure.reflectionIntensity, 0.0)
-    + closure.directSpecularRadiance
-    + closure.boundaryColor * max(closure.diffuseLighting, vec3(0.0));
-  lit = mix(lit, closure.foamColor * max(closure.diffuseLighting, vec3(0.0)), clamp(foamColorWeight, 0.0, 1.0));
-  if (closure.opticalDebugMode > 13.5 && closure.opticalDebugMode < 14.5) return vec4(medium.transmittance, 1.0);
-  if (closure.opticalDebugMode > 14.5 && closure.opticalDebugMode < 15.5) return vec4(medium.scattering, 1.0);
-  // The volume already contains the background. Coverage alone blends its geometric boundary.
-  return vec4(mix(closure.compositionSceneColor, lit, clamp(closure.coverage, 0.0, 1.0)), 1.0);
-#endif
   vec3 primaryColor = waterSurfaceResolvePrimaryColor(
     closure.primarySceneColor,
     closure.surfaceColor,
@@ -1347,7 +1262,6 @@ vec4 waterSurfaceEvaluateFinalClosureV2(
     closure.opticalDepth,
     fresnel,
     closure.foamWeight,
-    closure.calibrationMode,
     closure.coastalAlpha,
     closure.coastalAlphaWeight
   ) * clamp(closure.coverage, 0.0, 1.0);
@@ -1516,13 +1430,14 @@ float waterAnimatedVoronoiF1Candidate(
   vec2 randomOffset = waterAnimatedVoronoiF1Hash(cell + cellOffset);
   vec2 animatedOffset = sin(time + randomOffset * 6.2831) * 0.5 + 0.5;
   vec2 delta = localPosition - cellOffset - animatedOffset;
-  return 0.707 * sqrt(dot(delta, delta));
+  return dot(delta, delta);
 }
 
 float waterAnimatedVoronoiF1(vec2 position, float time) {
   vec2 cell = floor(position);
   vec2 localPosition = fract(position);
-  float f1 = 8.0;
+  // Compare squared distances before the single square root per octave.
+  float f1 = 128.0;
   f1 = min(f1, waterAnimatedVoronoiF1Candidate(cell, localPosition, vec2(-1.0, -1.0), time));
   f1 = min(f1, waterAnimatedVoronoiF1Candidate(cell, localPosition, vec2(0.0, -1.0), time));
   f1 = min(f1, waterAnimatedVoronoiF1Candidate(cell, localPosition, vec2(1.0, -1.0), time));
@@ -1532,7 +1447,7 @@ float waterAnimatedVoronoiF1(vec2 position, float time) {
   f1 = min(f1, waterAnimatedVoronoiF1Candidate(cell, localPosition, vec2(-1.0, 1.0), time));
   f1 = min(f1, waterAnimatedVoronoiF1Candidate(cell, localPosition, vec2(0.0, 1.0), time));
   f1 = min(f1, waterAnimatedVoronoiF1Candidate(cell, localPosition, vec2(1.0, 1.0), time));
-  return clamp(f1, 0.0, 1.0);
+  return clamp(0.707 * sqrt(f1), 0.0, 1.0);
 }
 
 float evaluateWaterAnimatedVoronoiF1(
@@ -1893,49 +1808,8 @@ struct RiverSceneSample {
 };
 
 // Four matching depth/color samples emulate UE's depth-constrained gather on WebGL2.
-RiverSceneSample riverSampleScene(vec2 uv, float waterEyeDepth, float slopeTolerance) {
-  vec2 size = min(vec2(textureSize(camera_DepthTexture, 0)), vec2(textureSize(camera_OpaqueTexture, 0)));
-  vec2 texel = 1.0 / max(size, vec2(1.0));
-  vec2 safeUv = clamp(uv, texel * 0.5, vec2(1.0) - texel * 0.5);
-  vec2 pixel = safeUv * size - 0.5;
-  vec2 fraction = fract(pixel);
-  vec2 base = (floor(pixel) + 0.5) * texel;
-  RiverSceneSample result;
-  result.color = vec3(0.0);
-  result.eyeDepth = 0.0;
-  result.validity = 0.0;
-  for (int index = 0; index < 4; index++) {
-    float x = mod(float(index), 2.0);
-    float y = floor(float(index) * 0.5);
-    vec2 coordinate = clamp(base + vec2(x, y) * texel, texel * 0.5, vec2(1.0) - texel * 0.5);
-    float deviceDepth = texture2D(camera_DepthTexture, coordinate).r;
-    float eyeDepth = remapDepthBufferEyeDepth(deviceDepth);
-    float valid = step(0.0, deviceDepth) * (1.0 - step(0.999999, deviceDepth))
-      * step(waterEyeDepth, eyeDepth + slopeTolerance);
-    float weight = mix(1.0 - fraction.x, fraction.x, x) * mix(1.0 - fraction.y, fraction.y, y) * valid;
-    result.color += texture2D(camera_OpaqueTexture, coordinate).rgb * weight;
-    result.eyeDepth += eyeDepth * weight;
-    result.validity += weight;
-  }
-  float inverseWeight = 1.0 / max(result.validity, 0.00001);
-  result.color *= inverseWeight;
-  result.eyeDepth *= inverseWeight;
-  return result;
-}
 
-vec3 riverScenePositionWS(vec2 uv, float eyeDepth) {
-  vec2 projectionScale = vec2(camera_ProjMat[0][0], camera_ProjMat[1][1]);
-#ifdef CAMERA_ORTHOGRAPHIC
-  vec2 viewXY = (uv * 2.0 - 1.0 - vec2(camera_ProjMat[3][0], camera_ProjMat[3][1])) / projectionScale;
-#else
-  vec2 viewXY = (uv * 2.0 - 1.0 + vec2(camera_ProjMat[2][0], camera_ProjMat[2][1])) * eyeDepth / projectionScale;
-#endif
-  return (camera_ViewInvMat * vec4(viewXY, -eyeDepth, 1.0)).xyz;
-}
 
-#ifdef MATERIAL_WATER_SURFACE_SCATTERING
-      #include "ShaderLibrary/Shadow/Shadow.glsl"
-#endif
       Varyings vert(Attributes attr) {
         Varyings output;
         RiverGeometryVertex geometry = evaluateRiverGeometry(attr);
@@ -2164,9 +2038,6 @@ vec3 riverScenePositionWS(vec2 uv, float eyeDepth) {
         float sunlightAvailable = step(0.000001, sunlightDirectionLengthSquared);
         vec3 lightDirection = sunlightDirectionVector / max(sqrt(sunlightDirectionLengthSquared), 0.000001);
         float directShadow = 1.0;
-#if defined(MATERIAL_WATER_SURFACE_SCATTERING) && defined(NEED_CALCULATE_SHADOWS)
-        directShadow = sampleShadowMap(input.worldPosition, getShadowCoord(input.worldPosition));
-#endif
         vec3 sunlightColor = max(scene_SunlightColor.rgb, vec3(0.0)) * directShadow
           * sunlightAvailable
           * sampleVolumetricCloudShadow(input.worldPosition);
@@ -2183,13 +2054,7 @@ vec3 riverScenePositionWS(vec2 uv, float eyeDepth) {
         // The reference uses separate regular/slope samples and an additive dissolve mask.
         // Foam texture pixels are linear, matching Unity's sRGB texture decoding.
         float transportGate = step(0.0001, input.localFlowSpeed);
-#ifdef MATERIAL_WATER_SURFACE_SCATTERING
-        // Grade is rise/run, not radians. Reserve whitewater for rapids and drops;
-        // gentle reaches must not receive a full-width foam sheet.
-        float foamSlopeMask = smoothstep(0.08, 0.45, length(input.macroNormalWS.xz) / max(abs(input.macroNormalWS.y), 0.05));
-#else
         float foamSlopeMask = saturate(slopeMask * 3.0);
-#endif
         float regularFoam = 0.0;
         float slopeFoam = 0.0;
 #ifdef MATERIAL_RIVER_FOAM
@@ -2202,65 +2067,20 @@ vec3 riverScenePositionWS(vec2 uv, float eyeDepth) {
         slopeFoam = texture2D(material_RiverFoamTexture, slopeFoamUv.xy).r
           + texture2D(material_RiverFoamTexture, slopeFoamUv.zw).r;
 #endif
-#ifdef MATERIAL_WATER_SURFACE_SCATTERING
-        // Average the transported layers before thresholding. Saturating their sum
-        // erased the texture gaps and produced broad opaque patches.
-        regularFoam *= 0.5;
-        slopeFoam *= 0.5;
-#else
         regularFoam = saturate(regularFoam);
         slopeFoam = saturate(slopeFoam);
-#endif
         float foamNoise = mix(regularFoam, slopeFoam, foamSlopeMask);
-#ifdef MATERIAL_WATER_SURFACE_SCATTERING
-        // The imported foam is linear, so its useful contrast is below 0.5.
-        float foamBreakup = smoothstep(0.15, 0.4, foamNoise);
-        float crestFoam = foamSlopeMask * foamBreakup * shoreDamping;
-        float shoreFoam = shoreEnvelope * shoreEnvelope * foamBreakup * 0.42;
-#else
         float foamBreakup = smoothstep(0.25, 0.8, foamNoise);
         float foamThreshold = 1.0 - foamSlopeMask;
         float crestFoam = smoothstep(foamThreshold, foamThreshold + 1.0, foamNoise) * shoreDamping;
         float shoreFoam = shoreEnvelope * foamBreakup * 0.42;
-#endif
         float currentFoam = 0.0;
         float localConfluenceFoam = localFoamSource * (1.0 - obstacleRegionWeight) * foamBreakup * 0.6;
         float localWakeFoam = localFoamSource * obstacleRegionWeight * foamBreakup;
         float obstacleEdge = 1.0 - smoothstep(0.0, 0.5, abs(localSignedDistance));
         float obstacleEdgeFoam = obstacleEdge * obstacleRegionWeight * mix(0.25, 0.85, foamBreakup);
-        // V2 keeps only a neutral debug value; final color is evaluated
         // from raw Render Contract inputs by the shared Closure.
         vec3 color = material_BaseColor.rgb;
-#ifdef MATERIAL_WATER_SURFACE_SCATTERING
-        float slopeTolerance = max(abs(dFdx(input.surfaceEyeDepth)), abs(dFdy(input.surfaceEyeDepth)));
-        RiverSceneSample centeredSample = riverSampleScene(screenUv, input.surfaceEyeDepth, slopeTolerance);
-        vec3 centeredSceneColor = centeredSample.validity > 0.00001
-          ? centeredSample.color : texture2D(camera_OpaqueTexture, screenUv).rgb;
-#ifdef CAMERA_ORTHOGRAPHIC
-        vec3 incidentVS = vec3(0.0, 0.0, -1.0);
-        float refractionProjectionDepth = 1.0;
-#else
-        vec3 incidentVS = safeNormalize3(mat3(camera_ViewMat) * -viewDirection, vec3(0.0, 0.0, -1.0));
-        float refractionProjectionDepth = max(centeredSample.eyeDepth, 0.001);
-#endif
-        vec3 surfaceNormalVS = normalize(mat3(camera_ViewMat) * surfaceNormalWS);
-        vec3 refractedRayVS = refract(incidentVS, surfaceNormalVS, 1.0 / max(material_IndexOfRefraction, 1.0));
-        float refractionDepthWeight = smoothstep(0.0, 0.3, max(centeredSample.eyeDepth - input.surfaceEyeDepth, 0.0));
-        vec2 slopeDelta = refractedRayVS.xy / max(-refractedRayVS.z, 0.05)
-          - incidentVS.xy / max(-incidentVS.z, 0.05);
-        vec2 offset = slopeDelta * vec2(camera_ProjMat[0][0], camera_ProjMat[1][1]) * 0.5
-          * max(centeredSample.eyeDepth - input.surfaceEyeDepth, 0.0) / refractionProjectionDepth
-          * max(material_RefractionStrength, 0.0) * refractionDepthWeight * shoreDamping
-          * step(0.5, material_RefractionEnabled);
-        vec2 sceneTexel = 1.0 / vec2(textureSize(camera_OpaqueTexture, 0));
-        vec2 displacedScreenUv = screenUv + offset;
-        vec2 edgeDistanceTexels = min(displacedScreenUv, vec2(1.0) - displacedScreenUv) / sceneTexel;
-        float refractionScreenInterior = smoothstep(0.5, 2.5, min(edgeDistanceTexels.x, edgeDistanceTexels.y));
-        vec2 refractedScreenUv = clamp(displacedScreenUv, sceneTexel * 0.5, vec2(1.0) - sceneTexel * 0.5);
-        RiverSceneSample displacedSample = riverSampleScene(refractedScreenUv, input.surfaceEyeDepth, slopeTolerance);
-        float refractionSampleValidity = smoothstep(0.0, 0.25, displacedSample.validity) * refractionScreenInterior;
-        vec3 displacedSceneColor = displacedSample.color;
-#else
         vec3 macroNormalVS = normalize(mat3(camera_ViewMat) * input.macroNormalWS);
         vec3 surfaceNormalVS = normalize(mat3(camera_ViewMat) * surfaceNormalWS);
         vec2 refractionNormalDelta = appearanceLayerNormal0.xy;
@@ -2299,7 +2119,6 @@ vec3 riverScenePositionWS(vec2 uv, float eyeDepth) {
           * refractedGeometryBehindSurface;
         vec3 centeredSceneColor = texture2D(camera_OpaqueTexture, screenUv).rgb;
         vec3 displacedSceneColor = texture2D(camera_OpaqueTexture, refractedScreenUv).rgb;
-#endif
         // Boundary masks use centered fields: refraction suppression must not depend on
         // the optical path that it is about to select. Depth tint uses the selected path below.
         float centeredDepthBehind = smoothstep(0.03, 0.22, sampledOpticalDepth);
@@ -2366,18 +2185,6 @@ vec3 riverScenePositionWS(vec2 uv, float eyeDepth) {
 #endif
 
         float refractionSampleWeight = refractionSampleValidity;
-#ifdef MATERIAL_WATER_SURFACE_SCATTERING
-        // Apply boundary suppression once to the shared color/depth selection, not as opacity.
-        refractionSampleWeight *= step(0.5, material_RefractionEnabled)
-          * (1.0 - clamp(appearanceBoundaryRefractionSuppression, 0.0, 1.0));
-        float selectedEyeDepth = mix(centeredSample.eyeDepth, displacedSample.eyeDepth, refractionSampleWeight);
-        vec2 selectedUv = mix(screenUv, refractedScreenUv, refractionSampleWeight);
-        vec3 refractedOpaquePositionWS = riverScenePositionWS(selectedUv, max(selectedEyeDepth, input.surfaceEyeDepth));
-        float selectedDepthValid = step(0.00001, max(centeredSample.validity, refractionSampleWeight));
-        float selectedOpticalDepth = length(refractedOpaquePositionWS - input.worldPosition);
-        opticalDepth = clamp(mix(sampledOpticalDepth, selectedOpticalDepth, selectedDepthValid), 0.0, material_MaximumSurfaceOpticalDistance);
-        refractedOpaquePositionWS = mix(opaquePositionWS, refractedOpaquePositionWS, selectedDepthValid);
-#endif
         vec3 rawAnalyticReflectionSample = waterSurfaceResolveAnalyticReflectionFallbackV2(
           surfaceNormalWS.y,
           effectiveSurfaceRoughness,
@@ -2406,47 +2213,7 @@ vec3 riverScenePositionWS(vec2 uv, float eyeDepth) {
           );
         }
         float reflectionIntensity = max(material_ReflectionIntensity, 0.0);
-        if (material_SurfaceDebugMode > 0.5) {
-          if (material_SurfaceDebugMode > 11.5) {
-            if (material_SurfaceDebugMode < 12.5) color = vec3(max(input.authoredDepth, 0.0) / 4.0);
-            else if (material_SurfaceDebugMode < 13.5) color = vec3(opticalDepth / 4.0);
-            else if (material_SurfaceDebugMode < 16.5) color = vec3(refractionSampleWeight);
-            else if (material_SurfaceDebugMode < 17.5) color = vec3(rawSsrReflectionValidity);
-            else if (material_SurfaceDebugMode < 18.5) color = vec3(shoreFoam, crestFoam, max(localWakeFoam, obstacleEdgeFoam));
-            else if (material_SurfaceDebugMode < 19.5) color = surfaceNormalWS * 0.5 + 0.5;
-            else if (material_SurfaceDebugMode < 20.5) color = vec3(directShadow);
-            else if (material_SurfaceDebugMode < 21.5) color = vec3(normalDotView);
-            else if (material_SurfaceDebugMode < 22.5) color = centeredSceneColor;
-            else if (material_SurfaceDebugMode < 23.5) color = mix(centeredSceneColor, displacedSceneColor, refractionSampleWeight);
-            else color = rawSsrReflectionPremultipliedSample;
-          } else if (material_SurfaceDebugMode < 1.5) {
-            color = vec3(
-              fract(input.motionCoordinates.x * 0.1),
-              fract(input.motionCoordinates.y * 0.1 + material_FlowNormalOffsets.z),
-              0.2
-            );
-          } else if (material_SurfaceDebugMode < 2.5) {
-            color = vec3(saturate(input.macroHeight / max(material_SurfaceMaxDisplacement, 0.001) * 0.5 + 0.5));
-          } else if (material_SurfaceDebugMode < 3.5) {
-            color = vec3(crestMask);
-          } else if (material_SurfaceDebugMode < 4.5) {
-            color = vec3((surfaceNormalWS.xz - input.macroNormalWS.xz) * 0.5 + 0.5, 1.0);
-          } else if (material_SurfaceDebugMode < 5.5) {
-            color = vec3(shoreDamping);
-          } else if (material_SurfaceDebugMode < 6.5) {
-            color = vec3(localFlow * 0.5 + 0.5, 0.5);
-          } else if (material_SurfaceDebugMode < 7.5) {
-            color = vec3(localFoamSource);
-          } else if (material_SurfaceDebugMode < 8.5) {
-            color = vec3(localSignedDistance * 0.5 + 0.5);
-          } else if (material_SurfaceDebugMode < 9.5) {
-            color = vec3(atlasRectMask, 1.0 - atlasRectMask, 0.0);
-          } else if (material_SurfaceDebugMode < 10.5) {
-            color = vec3(baseFlow * 0.5 + 0.5, 0.5);
-          } else {
-            color = vec3(flowDirection * 0.5 + 0.5, 0.5);
-          }
-        }
+
 #ifndef WATER_SURFACE_GEOMETRY_BRIDGE_INCLUDED
 #define WATER_SURFACE_GEOMETRY_BRIDGE_INCLUDED
 
@@ -2482,12 +2249,11 @@ float waterSurface_waveCrest = crestMask;
         vec3 waterDiffuseLighting = max(resolvedLighting.diffuseRadiance, vec3(0.0));
         float coverage = shoreDamping;
         float material_Alpha = 1.0;
-        float material_OpticsCalibrationMode = 0.0;
         float depthRatio = saturate(
           opticalDepth / max(material_MaximumSurfaceOpticalDistance, 0.0001)
         );
-#ifndef WATER_SURFACE_APPEARANCE_V2_DEPTH_RESPONSE_0_INCLUDED
-#define WATER_SURFACE_APPEARANCE_V2_DEPTH_RESPONSE_0_INCLUDED
+#ifndef WATER_SURFACE_APPEARANCE_V2_DEPTH_RESPONSE_INCLUDED
+#define WATER_SURFACE_APPEARANCE_V2_DEPTH_RESPONSE_INCLUDED
         float appearanceDepthTintFactor = min(max(sampledOpticalDepth, 0.0) * material_AppearanceV2DepthCoefficient1, material_AppearanceV2DepthMaximumOpacity);
         vec3 appearanceDepthTintColor = mix(material_AppearanceV2DepthShallowColor.rgb, material_AppearanceV2DepthDeepColor.rgb, clamp(max(sampledOpticalDepth, 0.0) * material_AppearanceV2DepthCoefficient0, 0.0, 1.0));
         appearanceDepthTintColor = appearanceDepthTintColor * (1.0 - appearanceBoundaryAlbedoWeight) + appearanceBoundaryAlbedo;
@@ -2535,24 +2301,13 @@ float waterSurface_waveCrest = crestMask;
         rawContributionPolicy.reflectionSource = material_ReflectionSource;
         rawContributionPolicy.ssrCompositeIntensity = material_WaterScreenSpaceReflectionCompositeIntensity;
         rawContributionPolicy.foamIntensity = material_FoamIntensity;
-        rawContributionPolicy.calibrationMode = 0.0;
         WaterSurfaceResolvedRawContributionsV2 resolvedContributions = waterSurfaceResolveRawContributionsV2(
           rawRefractionFacts,
           rawReflectionFacts,
-          rawFoamFacts,
+          waterSurfaceResolveRawFoamWeightV2(rawFoamFacts, rawContributionPolicy),
           rawContributionPolicy
         );
         WaterSurfaceFinalClosureV2Input closureInput;
-#ifdef MATERIAL_WATER_SURFACE_SCATTERING
-        closureInput.surfaceScatteringCoefficient = material_SurfaceScatteringCoefficient;
-        closureInput.surfaceScatteringPhaseG = material_SurfaceScatteringPhaseG;
-        closureInput.sceneToSurfaceDistance = max(input.worldPosition.y - refractedOpaquePositionWS.y, 0.0);
-        vec3 volumeRayDirection = safeNormalize3(refract(-viewDirection, surfaceNormalWS, 1.0 / max(material_IndexOfRefraction, 1.0)), -viewDirection);
-        closureInput.phaseCosine = dot(lightDirection, volumeRayDirection);
-        closureInput.sunRadiance = sunlightColor;
-        closureInput.ambientRadiance = waterSurfaceAmbientDiffuseRadiance(input.macroNormalWS);
-        closureInput.opticalDebugMode = material_SurfaceDebugMode;
-#endif
         closureInput.primarySceneColor = resolvedContributions.refractionSceneColor;
         closureInput.surfaceColor = material_BaseColor.rgb;
         closureInput.depthColor = appearanceDepthTintColor;
@@ -2578,7 +2333,6 @@ float waterSurface_waveCrest = crestMask;
         closureInput.foamWeight = resolvedContributions.foamWeight;
         closureInput.baseAlpha = material_Alpha;
         closureInput.clarity = clarity;
-        closureInput.calibrationMode = material_OpticsCalibrationMode;
         #ifndef WATER_SURFACE_APPEARANCE_V2_COMPOSITION_0_INCLUDED
 #define WATER_SURFACE_APPEARANCE_V2_COMPOSITION_0_INCLUDED
 closureInput.coastalAlpha = appearanceCoastalAlpha;
@@ -2597,10 +2351,13 @@ closureInput.coastalAlpha = appearanceCoastalAlpha;
         closureInput.perceptualRoughness = mix(0.1, closureInput.perceptualRoughness, connectionWeight);
 #endif
         vec4 resolvedWaterClosure = waterSurfaceEvaluateFinalClosureV2(closureInput);
-        if (material_SurfaceDebugMode > 0.5 && (material_SurfaceDebugMode < 13.5 || material_SurfaceDebugMode > 15.5)) {
-          resolvedWaterClosure = vec4(color, 1.0);
-        }
-        gl_FragColor = waterSurfaceOutputWithPick(resolvedWaterClosure);
+
+        #ifdef SSR_CONTRIBUTION_CAPTURE
+          if (resolvedWaterClosure.a <= 0.0001) discard;
+        #endif
+        #ifndef SSR_CONTRIBUTION_DEPTH
+          gl_FragColor = waterSurfaceOutputWithPick(resolvedWaterClosure);
+        #endif
         }
 
       }
@@ -2683,7 +2440,6 @@ closureInput.coastalAlpha = appearanceCoastalAlpha;
       float material_AppearanceV2DepthCoefficient1;
       vec4 material_AppearanceV2DepthShallowColor;
       vec4 material_AppearanceV2DepthDeepColor;
-      float material_AppearanceV2DepthDebugView;
 
       float material_AppearanceV2Boundary0Range;
       float material_AppearanceV2Boundary0Alpha;

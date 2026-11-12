@@ -37,6 +37,7 @@ export function planWorldTemplateSite(
   );
   const art = WORLD_TEMPLATE_ART[template.id];
   const q = spatialCompositionParameters(plan.parameters.spatialComposition);
+  if (!nodes.length && !q.enabled && q.basinRadiusM === 0) return;
   const radius = Math.max(
     modelRadius,
     q.basinRadiusM,
@@ -59,7 +60,7 @@ export function planWorldTemplateSite(
     }));
   const margin = local.length
     ? Math.max(...local.flatMap((item) => item.outline.flatMap((p) => [Math.abs(p.x), Math.abs(p.z)])))
-    : radius;
+    : radius || 32;
   const land = createPlanningRingQuery(plan.land),
     waters = plan.waters.map((w) => createPlanningRingQuery(w.outline));
   const center = { x: plan.parameters.width / 2, z: plan.parameters.depth / 2 };

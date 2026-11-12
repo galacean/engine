@@ -108,6 +108,7 @@ export function buildCurveLayout(c: LayoutBuildContext): LayoutConstruction {
     };
   });
   const result: LayoutConstruction = { center, members: [], spine };
+  const stations: { station: number; box: VolumeBox }[] = [];
   const min = q.spacingMinM ?? q.spacingM ?? 0,
     max = q.spacingMaxM ?? q.spacingM ?? min;
   const sample = (i: number, key: string, a: number, b: number) => a + (b - a) * c.random(`owner:curve:${i}:${key}`);
@@ -166,9 +167,11 @@ export function buildCurveLayout(c: LayoutBuildContext): LayoutConstruction {
           clearance + 2 * (q.curveLateralVariationM ?? 12)
         ) ?? preferred;
       box.center = { x: origin.x + direction.x * distance, z: origin.z + direction.z * distance };
-      if (region.inside(box.center)) result.members.push([box]);
+      if (region.inside(box.center)) stations.push({ station: x, box });
     }
   }
+  if (q.curveMemberOrder === "along-street") stations.sort((a, b) => a.station - b.station);
+  result.members = stations.map(({ box }) => [box]);
   result.limited = sampled >= LAYOUT_CANDIDATE_BUDGET || steps === LAYOUT_CANDIDATE_BUDGET;
   return result;
 }

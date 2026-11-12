@@ -45,7 +45,6 @@
       float material_AppearanceV2DepthCoefficient1;
       vec4 material_AppearanceV2DepthShallowColor;
       vec4 material_AppearanceV2DepthDeepColor;
-      float material_AppearanceV2DepthDebugView;
 #elif {{DEPTH_RESPONSE_MODEL}} != 0
       float material_AppearanceV2DepthDistance;
 #if {{DEPTH_RESPONSE_MODEL}} == 1

@@ -247,10 +247,6 @@ export class PlanningWaterView {
   update(): void {
     if (this.destroyed) return;
     this.ocean.updateRuntime("planning-ocean", 0);
-    this.host.setViewportSize(this.engine.canvas.width, this.engine.canvas.height);
-  }
-  get diagnostics() {
-    return this.host.getDiagnostics();
   }
   async dispose(): Promise<void> {
     this.destroyed = true;

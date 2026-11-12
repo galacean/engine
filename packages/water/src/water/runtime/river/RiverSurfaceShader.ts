@@ -84,7 +84,6 @@ import {
 } from "../surface/WaterSurfaceShaderAssembler";
 import { RIVER_SHADER_PROPERTY, RIVER_SURFACE_SHADER_TUNING } from "./constants";
 import { resolveRiverMaterialVariant } from "./RiverMaterialVariant";
-import { RiverSurfaceDebugMode } from "./RiverRuntimeEnums";
 
 export function glsl(value: number, digits = 8): string {
   return value.toFixed(digits);
@@ -266,7 +265,7 @@ export function createRiverFinalOutputStatements(appearance: CompiledWaterSurfac
         ? `mix(${getWaterSurfaceAppearanceV2DepthProperty("shallowColor")}.a, ${getWaterSurfaceAppearanceV2DepthProperty("deepColor")}.a, appearanceDepthTintFactor)`
         : undefined
     ),
-    VALUE_014_RIVERSURFACEDEBUGMODE_OFF_0_5: RiverSurfaceDebugMode.Off + 0.5,
+
     VALUE_015_CREATEWATERSURFACEV2RESOLVEDOUTPUTSTATEMENT_RESOLVED:
       createWaterSurfaceV2ResolvedOutputStatement("resolvedWaterClosure")
   });
@@ -374,7 +373,6 @@ export function createSurfaceShaderSource(
       createRiverResolvedSurfaceFields(),
       { output: "surface", boundedTime: true }
     ),
-    SURFACE_SCATTERING_ENABLED: renderContract.optics.profile.surfaceScattering ? 1 : 0,
     REFRACTION_NORMAL_SOURCE:
       appearance.refraction.normalSource === WaterRefractionNormalSourceV2.FirstDetailLayer
         ? 2
@@ -438,17 +436,7 @@ export function createSurfaceShaderSource(
     VALUE_167_GLSL_RIVER_SURFACE_SHADER_TUNING_REFRACTIONDEPTHTOLERANC: glsl(
       RIVER_SURFACE_SHADER_TUNING.refractionDepthToleranceScale
     ),
-    VALUE_168_RIVERSURFACEDEBUGMODE_OFF_0_5: RiverSurfaceDebugMode.Off + 0.5,
-    VALUE_169_RIVERSURFACEDEBUGMODE_MACROHEIGHT_0_5: RiverSurfaceDebugMode.MacroHeight - 0.5,
-    VALUE_170_RIVERSURFACEDEBUGMODE_CRESTMASK_0_5: RiverSurfaceDebugMode.CrestMask - 0.5,
-    VALUE_171_RIVERSURFACEDEBUGMODE_MICRONORMAL_0_5: RiverSurfaceDebugMode.MicroNormal - 0.5,
-    VALUE_172_RIVERSURFACEDEBUGMODE_SHOREDAMPING_0_5: RiverSurfaceDebugMode.ShoreDamping - 0.5,
-    VALUE_173_RIVERSURFACEDEBUGMODE_LOCALFLOW_0_5: RiverSurfaceDebugMode.LocalFlow - 0.5,
-    VALUE_174_RIVERSURFACEDEBUGMODE_LOCALFOAM_0_5: RiverSurfaceDebugMode.LocalFoam - 0.5,
-    VALUE_175_RIVERSURFACEDEBUGMODE_LOCALSIGNEDDISTANCE_0_5: RiverSurfaceDebugMode.LocalSignedDistance - 0.5,
-    VALUE_176_RIVERSURFACEDEBUGMODE_ATLASRECT_0_5: RiverSurfaceDebugMode.AtlasRect - 0.5,
-    VALUE_177_RIVERSURFACEDEBUGMODE_BASEFLOW_0_5: RiverSurfaceDebugMode.BaseFlow - 0.5,
-    VALUE_178_RIVERSURFACEDEBUGMODE_FINALFLOW_0_5: RiverSurfaceDebugMode.FinalFlow - 0.5,
+
     VALUE_179_ASSEMBLY_GEOMETRYBRIDGESOURCE: registerGeneratedWaterShaderModule(
       "RiverForwardGeometryBridge",
       assembly.geometryBridgeSource

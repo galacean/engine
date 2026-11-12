@@ -26,8 +26,8 @@ import { migrateSeedWorldWaterTextures } from "./SeedWorldWaterTextureMigration"
 
 /** Author schemas and saved asset catalogs are intentionally incompatible across these save versions.
  * Opening a project deletes saves of any other version before loading, so it starts from the initial world. */
-// Version 11 retires the point-selection shader assets referenced by version 10 saves.
-export const SEED_WORLD_BUILDING_SAVE_VERSION = 11;
+// Version 12 resets catalogs after merging updated terrain and water shader assets.
+export const SEED_WORLD_BUILDING_SAVE_VERSION = 12;
 export function seedWorldProjectStorageId(seed: number, projectUrl: string): string {
   return `seed-world:native-buildings-v${SEED_WORLD_BUILDING_SAVE_VERSION}-groups:${seed}:${projectUrl}`;
 }

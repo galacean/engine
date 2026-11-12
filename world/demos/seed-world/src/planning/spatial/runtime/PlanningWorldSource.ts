@@ -1,5 +1,6 @@
 import { createSeedPlanningDocument } from "@galacean/engine-world-planning/spatial/PlanningInitialization";
-import { applyPlanningTemplateSurface, initialPlanningTemplate } from "../PlanningStartupTemplate.ts";
+import { applyPlanningTemplateSurface, initialPlanningTemplate, updateDesertPreviewRelief } from "../PlanningStartupTemplate.ts";
+import { removeDesertCamelPreset } from "@galacean/engine-world-planning/spatial/WorldTemplateAuthoring";
 import { resetPlanningFarmSaveChoice } from "../farming/PlanningFarmSave.ts";
 import { PlanningSession, type PlanningSessionOptions } from "@galacean/engine-world-planning/spatial/PlanningSession";
 import { exportPlanningRecipe, type PlanningDocument } from "@galacean/engine-world-planning/spatial/PlanningDocument";
@@ -19,13 +20,18 @@ export interface PlanningWorldHandoff {
  */
 export async function createPlanningWorldSource(search: string, handoff: PlanningWorldHandoff | undefined, storage: {
   load(seed: number): Promise<PlanningDocument | undefined>; save(document: PlanningDocument): Promise<void>;
+  retainWater?(document: PlanningDocument): PlanningDocument;
   initialize?(document: PlanningDocument, result: SemanticResult): Promise<PlanningDocument>;
 }) {
-  const raw = new URLSearchParams(search).get("seed");
+  const query = new URLSearchParams(search);
+  const raw = query.get("seed");
   const seed = raw !== null && /^\d+$/.test(raw) && Number(raw) <= 0xffffffff ? Number(raw) : SEMANTIC_DEFAULTS.seed;
   let document = handoff?.document ?? await storage.load(seed);
   let replaceSavedTemplate = false;
-  if (!handoff && document) resetPlanningFarmSaveChoice(document);
+  if (!handoff && document) {
+    resetPlanningFarmSaveChoice(document);
+    if (import.meta.env.DEV && query.get("desertSkyLab") === "1") updateDesertPreviewRelief(document);
+  }
   const client = new PlanningWorkerClient();
   if (!handoff) {
     const template = initialPlanningTemplate(search, seed,
@@ -34,11 +40,13 @@ export async function createPlanningWorldSource(search: string, handoff: Plannin
       replaceSavedTemplate = !!document;
       try {
         document = await client.initialize(seed, undefined, template);
+        document = storage.retainWater?.(document) ?? document;
         applyPlanningTemplateSurface(document);
       }
       catch (error) { client.dispose(); throw error; }
     }
   }
+  if (document) removeDesertCamelPreset(document);
   let accepted = handoff?.result;
   if (storage.initialize) {
     try {

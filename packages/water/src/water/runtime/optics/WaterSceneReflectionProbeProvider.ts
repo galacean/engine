@@ -26,8 +26,6 @@ const DEFAULT_RESOLUTION = 128;
 const DEFAULT_NEAR_CLIP = 0.3;
 const DEFAULT_FAR_CLIP = 1000;
 const CUBE_FACE_COUNT = 6;
-const LDR_BYTES_PER_PIXEL = 4;
-const HDR_BYTES_PER_PIXEL = 8;
 
 const CUBE_FACE_BASIS = Object.freeze([
   Object.freeze({ face: TextureCubeFace.PositiveX, direction: [1, 0, 0] as const, up: [0, -1, 0] as const }),
@@ -58,34 +56,13 @@ export interface WaterSceneReflectionProbeProviderOptions {
   readonly excludedLayerMask?: Layer;
 }
 
-export interface WaterSceneReflectionProbeProviderInspection {
-  readonly id: string;
-  readonly captured: boolean;
-  readonly captureCount: number;
-  readonly publishCount: number;
-  readonly refreshCount: number;
-  readonly published: boolean;
-  readonly destroyed: boolean;
-  readonly resolution: number;
-  readonly requestedHDR: boolean;
-  readonly effectiveHDR: boolean;
-  readonly colorFormat: "r16g16b16a16-float" | "r8g8b8a8-unorm";
-  readonly cullingMask: number;
-  readonly excludedLayerMask: number;
-  readonly excludedLayersAbsent: boolean;
-  readonly maximumMipLevel: number;
-  readonly estimatedTextureBytes: number;
-  readonly intensity: number;
-  readonly projection: Readonly<WaterEnvironmentReflectionBoxProjection>;
-}
-
 interface WaterSceneReflectionProbeResource {
   readonly entity: Entity;
   readonly camera: Camera;
   readonly texture: TextureCube;
   readonly renderTarget: RenderTarget;
   readonly hdr: boolean;
-  readonly colorFormat: WaterSceneReflectionProbeProviderInspection["colorFormat"];
+  readonly colorFormat: "r16g16b16a16-float" | "r8g8b8a8-unorm";
 }
 
 function requireFinite(name: string, value: number, minimum: number): number {
@@ -97,17 +74,6 @@ function requireFinite(name: string, value: number, minimum: number): number {
 
 function readFiniteValue(name: string, value: number | (() => number), minimum: number): number {
   return requireFinite(name, typeof value === "function" ? value() : value, minimum);
-}
-
-function estimatedCubeTextureBytes(resolution: number, bytesPerPixel: number): number {
-  let size = resolution;
-  let faceBytes = 0;
-  while (size >= 1) {
-    faceBytes += size * size * bytesPerPixel;
-    if (size === 1) break;
-    size = Math.max(1, Math.floor(size / 2));
-  }
-  return faceBytes * CUBE_FACE_COUNT;
 }
 
 /**
@@ -134,9 +100,6 @@ export class WaterSceneReflectionProbeProvider {
   private readonly _viewMatrix = new Matrix();
   private _revision?: number;
   private _binding?: Readonly<WaterEnvironmentReflectionBinding>;
-  private _captureCount = 0;
-  private _publishCount = 0;
-  private _refreshCount = 0;
   private _captured = false;
   private _restorePending = false;
   private readonly _onDeviceRestored = () => {
@@ -190,34 +153,6 @@ export class WaterSceneReflectionProbeProvider {
     this._engine.on(EngineEventType.DeviceRestored, this._onDeviceRestored);
   }
 
-  get inspection(): Readonly<WaterSceneReflectionProbeProviderInspection> {
-    const resource = this._resource;
-    const cullingMask = resource.camera.cullingMask;
-    return Object.freeze({
-      id: this._id,
-      captured: this._captured,
-      captureCount: this._captureCount,
-      publishCount: this._publishCount,
-      refreshCount: this._refreshCount,
-      published: this._revision !== undefined && !this._destroyed,
-      destroyed: this._destroyed,
-      resolution: resource.texture.width,
-      requestedHDR: this._requestedHDR,
-      effectiveHDR: resource.hdr,
-      colorFormat: resource.colorFormat,
-      cullingMask,
-      excludedLayerMask: this._excludedLayerMask,
-      excludedLayersAbsent: (cullingMask & this._excludedLayerMask) === 0,
-      maximumMipLevel: Math.max(0, resource.texture.mipmapCount - 1),
-      estimatedTextureBytes: estimatedCubeTextureBytes(
-        resource.texture.width,
-        resource.hdr ? HDR_BYTES_PER_PIXEL : LDR_BYTES_PER_PIXEL
-      ),
-      intensity: this._binding?.intensity ?? 0,
-      projection: this._projection
-    });
-  }
-
   /** Synchronous six-face capture. Call only after the scene contents are ready. */
   capture(): Readonly<WaterEnvironmentReflectionBinding> {
     this._assertActive();
@@ -256,7 +191,6 @@ export class WaterSceneReflectionProbeProvider {
       projection: this._projection
     });
     this._publish(binding);
-    this._captureCount++;
     this._captured = true;
     return binding;
   }
@@ -264,7 +198,6 @@ export class WaterSceneReflectionProbeProvider {
   /** Republishes numeric scene state without recapturing or replacing the cubemap. */
   refresh(): Readonly<WaterEnvironmentReflectionBinding> | undefined {
     this._assertActive();
-    this._refreshCount++;
     const previous = this._binding;
     if (!previous) return undefined;
     const intensity = readFiniteValue("Water scene reflection probe intensity", this._intensitySource, 0);
@@ -381,6 +314,5 @@ export class WaterSceneReflectionProbeProvider {
         binding
       })
     );
-    this._publishCount++;
   }
 }

@@ -39,8 +39,10 @@ export function splitPlanningEntity(entity: SpatialEntity): { identity: Planning
     delete spatialComponents[descriptor.component];
   }
   const water = planningWaterSource(entity);
-  if (entity.id.startsWith("lake:")) delete spatialComponents.lakes;
-  if (entity.id.startsWith("river:")) delete spatialComponents.rivers;
+  // A disabled suggestion can be removed before it has a native shape. Preserve
+  // that explicit intent without inventing a WaterBodyComponent.
+  if (entity.id.startsWith("lake:") && (water || spatialComponents.lakes?.values.enabled !== false)) delete spatialComponents.lakes;
+  if (entity.id.startsWith("river:") && (water || spatialComponents.rivers?.values.enabled !== false)) delete spatialComponents.rivers;
   if (water) {
     delete spatialComponents[water.shape.kind === "lake" ? "lakes" : "rivers"];
     const enabled = entity.components[water.shape.kind === "lake" ? "lakes" : "rivers"].values.enabled;

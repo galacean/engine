@@ -13,11 +13,17 @@ export function worldTemplateEcology(id: unknown, authored: PoiLayoutConfig): Po
   const vegetation = Object.fromEntries(
     NATURAL_VEGETATION_CONTROLS.map((layer) => [
       layer.key,
-      habitat === "desert" && layer.key === "shrubs" ? layer.density : 0
+      (habitat === "desert" && layer.key === "shrubs") || (habitat === "grass" && layer.key === "grass")
+        ? layer.density
+        : 0
     ])
   );
   return {
     ...authored,
-    landscape: { ...authored.landscape, vegetation: { ...vegetation, ...authored.landscape.vegetation } }
+    landscape: {
+      ...authored.landscape,
+      ...(habitat === "grass" ? { density: 0 } : {}),
+      vegetation: { ...vegetation, ...authored.landscape.vegetation }
+    }
   };
 }

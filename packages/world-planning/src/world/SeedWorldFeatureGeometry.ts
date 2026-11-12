@@ -1,3 +1,12 @@
+import {
+  clamp,
+  mix,
+  pointSegmentDistance,
+  rasterizeRoadSurfaceCoverage,
+  smootherstep,
+  type IndexedRoadSegment,
+  type IndexedSegment
+} from "./RoadSurfaceCoverage";
 import type { SeedWorldFields } from "../runtime/SeedWorldFields.ts";
 import type { SeedWorldPlan } from "./SeedWorldPlanner";
 import { seedWorldRiverBankRadius } from "../runtime/SeedWorldRiverCurves.ts";
@@ -6,20 +15,6 @@ import { seedWorldRiverBankRadius } from "../runtime/SeedWorldRiverCurves.ts";
 export const SEED_WORLD_ROAD_HALF_WIDTH_METRES = 8;
 
 const SEGMENT_INDEX_CELL_METRES = 128;
-
-interface IndexedSegment {
-  readonly startX: number;
-  readonly startZ: number;
-  readonly endX: number;
-  readonly endZ: number;
-}
-
-interface IndexedRoadSegment extends IndexedSegment {
-  readonly startHalfWidthMetres: number;
-  readonly endHalfWidthMetres: number;
-  readonly startShoulderWidthMetres: number;
-  readonly endShoulderWidthMetres: number;
-}
 
 interface IndexedRiverSegment extends IndexedSegment {
   readonly startWidthMetres: number;
@@ -85,73 +80,14 @@ export function compileSeedWorldRoadSurfaceCoverage(
   resolution: number,
   samplesPerAxis = 4
 ): Float32Array {
-  if (!Number.isInteger(resolution) || resolution < 1) {
-    throw new RangeError("Seed World road coverage resolution must be a positive integer");
-  }
-  if (!Number.isInteger(samplesPerAxis) || samplesPerAxis < 4) {
-    throw new RangeError("Seed World road coverage requires at least four samples per texel axis");
-  }
-  const field = new Float32Array(resolution * resolution);
-  const index = roadIndex(plan);
-  if (index.segments.length === 0) return field;
   const cellMetres = plan.sizeMetres / resolution;
-  const halfWorldMetres = plan.sizeMetres * 0.5;
-  const candidatesByPixel = new Map<number, number[]>();
-  for (let segmentIndex = 0; segmentIndex < index.segments.length; segmentIndex++) {
-    const segment = index.segments[segmentIndex]!;
-    const expansion = Math.max(
-      segment.startHalfWidthMetres + segment.startShoulderWidthMetres,
-      segment.endHalfWidthMetres + segment.endShoulderWidthMetres
-    );
-    const minimumX = clamp(
-      Math.floor((Math.min(segment.startX, segment.endX) - expansion + halfWorldMetres) / cellMetres),
-      0,
-      resolution - 1
-    );
-    const maximumX = clamp(
-      Math.floor((Math.max(segment.startX, segment.endX) + expansion + halfWorldMetres) / cellMetres),
-      0,
-      resolution - 1
-    );
-    const minimumZ = clamp(
-      Math.floor((Math.min(segment.startZ, segment.endZ) - expansion + halfWorldMetres) / cellMetres),
-      0,
-      resolution - 1
-    );
-    const maximumZ = clamp(
-      Math.floor((Math.max(segment.startZ, segment.endZ) + expansion + halfWorldMetres) / cellMetres),
-      0,
-      resolution - 1
-    );
-    for (let z = minimumZ; z <= maximumZ; z++) {
-      for (let x = minimumX; x <= maximumX; x++) {
-        const pixel = z * resolution + x;
-        const candidates = candidatesByPixel.get(pixel);
-        if (candidates) candidates.push(segmentIndex);
-        else candidatesByPixel.set(pixel, [segmentIndex]);
-      }
-    }
-  }
-  const inverseSampleCount = 1 / (samplesPerAxis * samplesPerAxis);
-  for (const [pixel, segmentIndexes] of candidatesByPixel) {
-    const pixelX = pixel % resolution;
-    const pixelZ = Math.floor(pixel / resolution);
-    let coverage = 0;
-    for (let sampleZ = 0; sampleZ < samplesPerAxis; sampleZ++) {
-      const worldZ = -halfWorldMetres + (pixelZ + (sampleZ + 0.5) / samplesPerAxis) * cellMetres;
-      for (let sampleX = 0; sampleX < samplesPerAxis; sampleX++) {
-        const worldX = -halfWorldMetres + (pixelX + (sampleX + 0.5) / samplesPerAxis) * cellMetres;
-        let influence = 0;
-        for (const segmentIndex of segmentIndexes) {
-          influence = Math.max(influence, roadSurfaceInfluence(index.segments[segmentIndex]!, worldX, worldZ));
-          if (influence >= 1) break;
-        }
-        coverage += influence;
-      }
-    }
-    field[pixel] = coverage * inverseSampleCount;
-  }
-  return field;
+  return rasterizeRoadSurfaceCoverage(
+    roadIndex(plan).segments,
+    resolution,
+    cellMetres,
+    -plan.sizeMetres * 0.5,
+    samplesPerAxis
+  );
 }
 
 /**
@@ -685,41 +621,6 @@ function segmentsIntersect(
   return firstProgress >= 0 && firstProgress <= 1 && secondProgress >= 0 && secondProgress <= 1;
 }
 
-function pointSegmentDistance(
-  pointX: number,
-  pointZ: number,
-  startX: number,
-  startZ: number,
-  endX: number,
-  endZ: number
-): { readonly distance: number; readonly progress: number } {
-  const directionX = endX - startX;
-  const directionZ = endZ - startZ;
-  const lengthSquared = directionX * directionX + directionZ * directionZ;
-  const progress =
-    lengthSquared > 0
-      ? clamp(((pointX - startX) * directionX + (pointZ - startZ) * directionZ) / lengthSquared, 0, 1)
-      : 0;
-  return {
-    distance: Math.hypot(pointX - mix(startX, endX, progress), pointZ - mix(startZ, endZ, progress)),
-    progress
-  };
-}
-
-function roadSurfaceInfluence(segment: IndexedRoadSegment, worldX: number, worldZ: number): number {
-  const projection = pointSegmentDistance(worldX, worldZ, segment.startX, segment.startZ, segment.endX, segment.endZ);
-  const coreHalfWidthMetres = mix(segment.startHalfWidthMetres, segment.endHalfWidthMetres, projection.progress);
-  const signedDistanceMetres = projection.distance - coreHalfWidthMetres;
-  if (signedDistanceMetres <= 0) return 1;
-  const shoulderWidthMetres = mix(
-    segment.startShoulderWidthMetres,
-    segment.endShoulderWidthMetres,
-    projection.progress
-  );
-  if (signedDistanceMetres >= shoulderWidthMetres) return 0;
-  return 1 - smootherstep(signedDistanceMetres / Math.max(shoulderWidthMetres, 0.001));
-}
-
 function roadVegetationWeight(
   signedCoreDistanceMetres: number,
   shoulderWidthMetres: number,
@@ -755,17 +656,4 @@ function normalizedToWorld(point: Readonly<{ x: number; y: number }>, sizeMetres
 
 function cross(leftX: number, leftZ: number, rightX: number, rightZ: number): number {
   return leftX * rightZ - leftZ * rightX;
-}
-
-function mix(left: number, right: number, amount: number): number {
-  return left + (right - left) * amount;
-}
-
-function clamp(value: number, minimum: number, maximum: number): number {
-  return Math.min(maximum, Math.max(minimum, value));
-}
-
-function smootherstep(value: number): number {
-  const amount = clamp(value, 0, 1);
-  return amount * amount * amount * (amount * (amount * 6 - 15) + 10);
 }

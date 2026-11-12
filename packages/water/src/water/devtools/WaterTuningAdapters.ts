@@ -1,14 +1,8 @@
-import type { RiverDropLook } from "../authoring/river/RiverDropLook";
-import { createPresentationWaterTuningSession } from "./WaterPresentationSession";
-import { createWaterReflectionPresentationPolicy } from "../authoring/optics/WaterReflectionPolicy";
 import type { WaterBodyRuntimeVariant } from "../authoring/body/WaterBodyAuthoringTypes";
-import {
-  resolveWaterReflectionSamplingSettings,
-  type WaterReflectionSamplingSettings
-} from "../authoring/optics/WaterReflectionSampling";
+import { createWaterReflectionPresentationPolicy } from "../authoring/optics/WaterReflectionPolicy";
+import type { RiverDropLook } from "../authoring/river/RiverDropLook";
 import {
   WaterSurfaceAppearanceSchemaVersion,
-  WaterSurfacePrimaryColorClosure,
   type WaterBoundaryEffectV2,
   type WaterExponentialDepthTermV2,
   type WaterPatternV2,
@@ -19,32 +13,22 @@ import {
 } from "../authoring/surface/WaterSurfaceAppearanceTypes";
 import type { CompiledWaterSurfaceAppearanceV2 } from "../compiler/surface/CompiledWaterSurfaceAppearanceTypes";
 import { WaterSurfaceAppearanceCompiler } from "../compiler/surface/WaterSurfaceAppearanceCompiler";
-import type { WaterBodyActivationHandle, WaterDevelopmentTarget } from "../runtime/body/WaterBodyLoader";
 import { isLakeWaterLevelRuntimeDevelopmentPort } from "../runtime/body/LakeWaterLevelRuntimeDevelopmentPort";
 import { isOceanWaterLevelRuntimeDevelopmentPort } from "../runtime/body/OceanWaterLevelRuntimeDevelopmentPort";
-import type { WaterLookAuthoringPort } from "../runtime/state/WaterLookAuthoringPort";
+import type { WaterDevelopmentTarget } from "../runtime/body/WaterBodyLoader";
 import { HEIGHTFIELD_WATER_BACKEND_ID } from "../runtime/heightfield/HeightfieldWaterBackend";
 import type { HeightfieldWaterRuntimeController } from "../runtime/heightfield/HeightfieldWaterRuntimeController";
-import { HeightfieldWaterDebugMode } from "../runtime/heightfield/HeightfieldWaterRuntimeEnums";
 import type { HeightfieldWaterSurfaceAppearanceFeatureFlags } from "../runtime/heightfield/types";
-import { OCEAN_WATER_BACKEND_ID } from "../runtime/ocean/OceanWaterBackend";
-import type { OceanWaterRuntimeController } from "../runtime/ocean/OceanWaterRuntimeController";
-import { OceanDebugView } from "../runtime/ocean/OceanDebugView";
 import {
   OCEAN_TUNING_LIMITS,
   type OceanRuntimeTuning,
   type OceanTuningRange
 } from "../runtime/ocean/OceanRuntimeTuning";
-import { RIVER_WATER_BACKEND_ID } from "../runtime/river/RiverWaterBackend";
+import { OCEAN_WATER_BACKEND_ID } from "../runtime/ocean/OceanWaterBackend";
+import type { OceanWaterRuntimeController } from "../runtime/ocean/OceanWaterRuntimeController";
 import type { RiverRuntimeController } from "../runtime/river/RiverRuntimeController";
-import { RiverSurfaceDebugMode } from "../runtime/river/RiverRuntimeEnums";
-import { DEFAULT_WATER_OPTICAL_PROFILE, type WaterOpticalProfile } from "../runtime/optics/WaterOpticalProfile";
-import {
-  MAX_WATER_OPTICAL_COEFFICIENT,
-  MAX_WATER_REFLECTION_INTENSITY,
-  MAX_WATER_REFRACTION_STRENGTH
-} from "../runtime/optics/WaterSurfaceOpticsMath";
-import { type WaterReflectionSource } from "../runtime/optics/WaterReflectionPolicy";
+import { RIVER_WATER_BACKEND_ID } from "../runtime/river/RiverWaterBackend";
+import type { WaterLookAuthoringPort } from "../runtime/state/WaterLookAuthoringPort";
 import type { WaterSurfaceAppearanceBindingV2 } from "../runtime/surface/WaterSurfaceAppearanceRuntimeTypes";
 import type {
   WaterBooleanControl,
@@ -56,31 +40,13 @@ import type {
   WaterTuningAdapter,
   WaterTuningSession
 } from "./WaterDevToolsTypes";
-
-const WATER_OPTICS_LIMITS = Object.freeze({
-  absorption: Object.freeze([0, 10, 0.001] as const),
-  scatteringCoefficient: Object.freeze([0, 10, 0.001] as const),
-  maximumViewDistance: Object.freeze([0, 1_000, 0.001] as const),
-  indexOfRefraction: Object.freeze([1, 4, 0.001] as const),
-  maximumSurfaceOpticalDistance: Object.freeze([0, 1_000, 0.001] as const),
-  refractionStrength: Object.freeze([0, MAX_WATER_REFRACTION_STRENGTH, 0.01] as const),
-  roughness: Object.freeze([0, 1, 0.01] as const),
-  reflectionIntensity: Object.freeze([0, MAX_WATER_REFLECTION_INTENSITY, 0.01] as const)
-});
-
-const WATER_REFLECTION_SAMPLING_LIMITS = Object.freeze({
-  screenSpaceCompositeIntensity: Object.freeze([0, 1, 0.01] as const),
-  environmentFallbackIntensity: Object.freeze([0, 4, 0.01] as const)
-});
+import { createPresentationWaterTuningSession } from "./WaterPresentationSession";
 
 const MINIMUM_DEPTH_RESPONSE_SLIDER_MAXIMUM_METRES = 32;
 
 function depthResponseSliderMaximum(distanceMeters: number): number {
   return Math.min(100_000, Math.max(MINIMUM_DEPTH_RESPONSE_SLIDER_MAXIMUM_METRES, Math.ceil(distanceMeters * 4)));
 }
-
-const RESIDENT_BATCHES_DESCRIPTION =
-  "Resident geometry batches; excludes SSR receiver/Forward multi-pass submission and camera culling; not actual per-frame draws. 常驻几何批次，不含 SSR receiver/Forward 多 pass 与相机剔除，不等于每帧实际绘制数。";
 
 const NO_SHARED_LOOK_AUTHORING_REASON =
   "The active body has no shared Water Look authoring port; this control is read-only.";
@@ -105,8 +71,7 @@ function readonlyControl(control: Omit<WaterReadonlyControl, "kind" | "updateMod
   return Object.freeze({
     kind: "readonly",
     updateMode: "readonly",
-    description:
-      control.description ?? "Read-only diagnostic or authoring value; no safe runtime write contract is exposed.",
+    description: control.description ?? "Read-only authoring value; no runtime write contract is exposed.",
     ...control
   });
 }
@@ -411,520 +376,15 @@ function createCommonControls(
       label: "Source kind",
       group: "Authoring (read-only)",
       read: () => target.sourceKind
-    }),
-    readonlyControl({
-      id: "backend.drawCount",
-      label: "Resident batches",
-      description: RESIDENT_BATCHES_DESCRIPTION,
-      group: "Backend",
-      read: () => target.handle.body.metrics.drawCount
-    }),
-    readonlyControl({
-      id: "backend.triangleCount",
-      label: "Triangles",
-      group: "Backend",
-      read: () => target.handle.body.metrics.triangleCount
-    }),
-    readonlyControl({
-      id: "backend.meshUploads",
-      label: "Mesh uploads",
-      group: "Backend",
-      read: () => target.handle.body.metrics.meshUploadCount
-    }),
-    readonlyControl({
-      id: "backend.resourceBytes",
-      label: "Owned bytes",
-      group: "Backend",
-      read: () => target.handle.body.metrics.memory.totalBytes
     })
   );
   return controls;
-}
-
-interface WaterOpticsPort {
-  readProfile(): Readonly<WaterOpticalProfile>;
-  readEffectiveProfile?(): Readonly<WaterOpticalProfile>;
-  writeProfile(profile: Readonly<WaterOpticalProfile>): void | Promise<void>;
-  readonly authoringWritable?: boolean;
-  readonly authoringReadonlyReason?: string;
-  readRefraction(): boolean;
-  readonly refractionWritable: boolean;
-  readonly refractionReadonlyReason?: string;
-  writeRefraction(enabled: boolean): void | Promise<void>;
-  readonly maximumViewDistanceWritable?: boolean;
-  readonly maximumViewDistanceReadonlyReason?: string;
-  readonly refractionStrengthWritable?: boolean;
-  readonly refractionStrengthReadonlyReason?: string;
-  readProfileControlAccess?(key: keyof WaterOpticalProfile): Readonly<{ writable: boolean; reason?: string }>;
-  readEffectiveReflectionSource?(): WaterReflectionSource;
-  readReflectionSampling?(): Readonly<WaterReflectionSamplingSettings>;
-  writeReflectionSampling?(settings: Readonly<WaterReflectionSamplingSettings>): void;
-}
-
-const WATER_OPTICAL_PROFILE_CONTROL_KEY_BY_SUFFIX = Object.freeze({
-  absorptionR: "absorptionCoefficient",
-  absorptionG: "absorptionCoefficient",
-  absorptionB: "absorptionCoefficient",
-  scatteringColor: "scatteringColor",
-  scatteringCoefficient: "scatteringCoefficient",
-  maximumViewDistance: "maximumViewDistance",
-  indexOfRefraction: "indexOfRefraction",
-  maximumSurfaceOpticalDistance: "maximumSurfaceOpticalDistance",
-  refractionStrength: "refractionStrength",
-  roughness: "roughness",
-  reflectionIntensity: "reflectionIntensity"
-} as const satisfies Readonly<Record<string, keyof WaterOpticalProfile>>);
-
-function createOpticsControls(idPrefix: string, port: WaterOpticsPort): WaterControlDescriptor[] {
-  const readEffectiveProfile = (): Readonly<WaterOpticalProfile> => port.readEffectiveProfile?.() ?? port.readProfile();
-  const updateProfile = (patch: Partial<WaterOpticalProfile>): void | Promise<void> => {
-    const profile = port.readProfile();
-    return port.writeProfile(
-      Object.freeze({
-        ...profile,
-        ...patch
-      })
-    );
-  };
-  const updateAbsorption = (index: 0 | 1 | 2, value: number): void | Promise<void> => {
-    const profile = port.readProfile();
-    const absorption = [...profile.absorptionCoefficient] as [number, number, number];
-    absorption[index] = value;
-    return updateProfile({ absorptionCoefficient: Object.freeze(absorption) });
-  };
-  const profileValue = <Key extends keyof WaterOpticalProfile>(
-    key: Key,
-    fallback: NonNullable<WaterOpticalProfile[Key]>
-  ): NonNullable<WaterOpticalProfile[Key]> =>
-    (port.readProfile()[key] ?? fallback) as NonNullable<WaterOpticalProfile[Key]>;
-  const refractionControl: WaterControlDescriptor = port.refractionWritable
-    ? booleanControl({
-        id: `${idPrefix}.refractionEnabled`,
-        label: "Refraction",
-        group: "Optics",
-        updateMode: "commit",
-        description: "Updates the shared Water Look optics gate and camera feature request transactionally.",
-        read: () => port.readRefraction(),
-        write: (value) => port.writeRefraction(value)
-      })
-    : readonlyControl({
-        id: `${idPrefix}.refractionEnabled`,
-        label: "Refraction",
-        group: "Optics",
-        description:
-          port.refractionReadonlyReason ??
-          "The active optics preset does not allow a refraction override; switch a registered runtime variant.",
-        availability: "unavailable",
-        availabilityReason:
-          port.refractionReadonlyReason ??
-          "The active optics preset does not allow a refraction override; switch a registered runtime variant.",
-        read: () => port.readRefraction()
-      });
-  const maximumViewDistanceControl: WaterControlDescriptor =
-    port.maximumViewDistanceWritable === false
-      ? readonlyControl({
-          id: `${idPrefix}.maximumViewDistance`,
-          label: "Max view distance",
-          group: "Optics",
-          owner: "optical-profile",
-          availability: "unavailable",
-          availabilityReason:
-            port.maximumViewDistanceReadonlyReason ??
-            "The active body has no underwater-volume consumer for maximum view distance.",
-          read: () => port.readProfile().maximumViewDistance,
-          readEffective: () => readEffectiveProfile().maximumViewDistance
-        })
-      : numberControl({
-          id: `${idPrefix}.maximumViewDistance`,
-          label: "Max view distance",
-          group: "Optics",
-          updateMode: "frame",
-          minimum: WATER_OPTICS_LIMITS.maximumViewDistance[0],
-          maximum: WATER_OPTICS_LIMITS.maximumViewDistance[1],
-          step: WATER_OPTICS_LIMITS.maximumViewDistance[2],
-          read: () => port.readProfile().maximumViewDistance,
-          readEffective: () => readEffectiveProfile().maximumViewDistance,
-          write: (value) => updateProfile({ maximumViewDistance: value })
-        });
-  const refractionStrengthControl: WaterControlDescriptor =
-    port.refractionStrengthWritable === false
-      ? readonlyControl({
-          id: `${idPrefix}.refractionStrength`,
-          label: "Refraction strength",
-          group: "Optics",
-          owner: "optical-profile",
-          availability: "unavailable",
-          availabilityReason:
-            port.refractionStrengthReadonlyReason ??
-            "The active surface closure does not consume optical-profile refraction strength.",
-          read: () => profileValue("refractionStrength", DEFAULT_WATER_OPTICAL_PROFILE.refractionStrength ?? 1),
-          readEffective: () =>
-            readEffectiveProfile().refractionStrength ?? DEFAULT_WATER_OPTICAL_PROFILE.refractionStrength ?? 1
-        })
-      : numberControl({
-          id: `${idPrefix}.refractionStrength`,
-          label: "Refraction strength",
-          group: "Optics",
-          updateMode: "frame",
-          minimum: WATER_OPTICS_LIMITS.refractionStrength[0],
-          maximum: WATER_OPTICS_LIMITS.refractionStrength[1],
-          step: WATER_OPTICS_LIMITS.refractionStrength[2],
-          read: () => profileValue("refractionStrength", DEFAULT_WATER_OPTICAL_PROFILE.refractionStrength ?? 1),
-          readEffective: () =>
-            readEffectiveProfile().refractionStrength ?? DEFAULT_WATER_OPTICAL_PROFILE.refractionStrength ?? 1,
-          write: (value) => updateProfile({ refractionStrength: value })
-        });
-  const controls: WaterControlDescriptor[] = [
-    refractionControl,
-    numberControl({
-      id: `${idPrefix}.absorptionR`,
-      label: "Absorption R",
-      group: "Optics",
-      updateMode: "frame",
-      minimum: WATER_OPTICS_LIMITS.absorption[0],
-      maximum: WATER_OPTICS_LIMITS.absorption[1],
-      step: WATER_OPTICS_LIMITS.absorption[2],
-      read: () => port.readProfile().absorptionCoefficient[0],
-      readEffective: () => readEffectiveProfile().absorptionCoefficient[0],
-      write: (value) => updateAbsorption(0, value)
-    }),
-    numberControl({
-      id: `${idPrefix}.absorptionG`,
-      label: "Absorption G",
-      group: "Optics",
-      updateMode: "frame",
-      minimum: WATER_OPTICS_LIMITS.absorption[0],
-      maximum: WATER_OPTICS_LIMITS.absorption[1],
-      step: WATER_OPTICS_LIMITS.absorption[2],
-      read: () => port.readProfile().absorptionCoefficient[1],
-      readEffective: () => readEffectiveProfile().absorptionCoefficient[1],
-      write: (value) => updateAbsorption(1, value)
-    }),
-    numberControl({
-      id: `${idPrefix}.absorptionB`,
-      label: "Absorption B",
-      group: "Optics",
-      updateMode: "frame",
-      minimum: WATER_OPTICS_LIMITS.absorption[0],
-      maximum: WATER_OPTICS_LIMITS.absorption[1],
-      step: WATER_OPTICS_LIMITS.absorption[2],
-      read: () => port.readProfile().absorptionCoefficient[2],
-      readEffective: () => readEffectiveProfile().absorptionCoefficient[2],
-      write: (value) => updateAbsorption(2, value)
-    }),
-    colorControl({
-      id: `${idPrefix}.scatteringColor`,
-      label: "Scattering color",
-      group: "Optics",
-      updateMode: "frame",
-      read: () => linearRgbToHex(port.readProfile().scatteringColor),
-      readEffective: () => linearRgbToHex(readEffectiveProfile().scatteringColor),
-      write: (value) => updateProfile({ scatteringColor: hexToLinearRgb(value) })
-    }),
-    numberControl({
-      id: `${idPrefix}.scatteringCoefficient`,
-      label: "Scattering",
-      group: "Optics",
-      updateMode: "frame",
-      minimum: WATER_OPTICS_LIMITS.scatteringCoefficient[0],
-      maximum: WATER_OPTICS_LIMITS.scatteringCoefficient[1],
-      step: WATER_OPTICS_LIMITS.scatteringCoefficient[2],
-      read: () => port.readProfile().scatteringCoefficient,
-      readEffective: () => readEffectiveProfile().scatteringCoefficient,
-      write: (value) => updateProfile({ scatteringCoefficient: value })
-    }),
-    maximumViewDistanceControl,
-    numberControl({
-      id: `${idPrefix}.indexOfRefraction`,
-      label: "IOR",
-      group: "Optics",
-      updateMode: "frame",
-      minimum: WATER_OPTICS_LIMITS.indexOfRefraction[0],
-      maximum: WATER_OPTICS_LIMITS.indexOfRefraction[1],
-      step: WATER_OPTICS_LIMITS.indexOfRefraction[2],
-      read: () => profileValue("indexOfRefraction", DEFAULT_WATER_OPTICAL_PROFILE.indexOfRefraction ?? 1.333),
-      readEffective: () =>
-        readEffectiveProfile().indexOfRefraction ?? DEFAULT_WATER_OPTICAL_PROFILE.indexOfRefraction ?? 1.333,
-      write: (value) => updateProfile({ indexOfRefraction: value })
-    }),
-    numberControl({
-      id: `${idPrefix}.maximumSurfaceOpticalDistance`,
-      label: "Surface distance",
-      group: "Optics",
-      updateMode: "frame",
-      minimum: WATER_OPTICS_LIMITS.maximumSurfaceOpticalDistance[0],
-      maximum: WATER_OPTICS_LIMITS.maximumSurfaceOpticalDistance[1],
-      step: WATER_OPTICS_LIMITS.maximumSurfaceOpticalDistance[2],
-      read: () =>
-        profileValue(
-          "maximumSurfaceOpticalDistance",
-          DEFAULT_WATER_OPTICAL_PROFILE.maximumSurfaceOpticalDistance ?? 64
-        ),
-      readEffective: () =>
-        readEffectiveProfile().maximumSurfaceOpticalDistance ??
-        DEFAULT_WATER_OPTICAL_PROFILE.maximumSurfaceOpticalDistance ??
-        64,
-      write: (value) => updateProfile({ maximumSurfaceOpticalDistance: value })
-    }),
-    refractionStrengthControl,
-    numberControl({
-      id: `${idPrefix}.roughness`,
-      label: "Reflection roughness",
-      group: "Optics",
-      updateMode: "frame",
-      minimum: WATER_OPTICS_LIMITS.roughness[0],
-      maximum: WATER_OPTICS_LIMITS.roughness[1],
-      step: WATER_OPTICS_LIMITS.roughness[2],
-      read: () => profileValue("roughness", DEFAULT_WATER_OPTICAL_PROFILE.roughness ?? 0),
-      readEffective: () => readEffectiveProfile().roughness ?? DEFAULT_WATER_OPTICAL_PROFILE.roughness ?? 0,
-      write: (value) => updateProfile({ roughness: value })
-    }),
-    numberControl({
-      id: `${idPrefix}.reflectionIntensity`,
-      label: "Reflection intensity",
-      group: "Optics",
-      updateMode: "frame",
-      minimum: WATER_OPTICS_LIMITS.reflectionIntensity[0],
-      maximum: WATER_OPTICS_LIMITS.reflectionIntensity[1],
-      step: WATER_OPTICS_LIMITS.reflectionIntensity[2],
-      read: () => profileValue("reflectionIntensity", DEFAULT_WATER_OPTICAL_PROFILE.reflectionIntensity ?? 1),
-      readEffective: () =>
-        readEffectiveProfile().reflectionIntensity ?? DEFAULT_WATER_OPTICAL_PROFILE.reflectionIntensity ?? 1,
-      write: (value) => updateProfile({ reflectionIntensity: value })
-    })
-  ];
-  if (port.readProfile().surfaceScattering) {
-    for (const [axis, name] of ["R", "G", "B"].entries())
-      controls.push(
-        numberControl({
-          id: `${idPrefix}.surfaceScattering.${axis}`,
-          label: `Surface scattering ${name} / m`,
-          group: "Optics",
-          updateMode: "frame",
-          minimum: 0,
-          maximum: MAX_WATER_OPTICAL_COEFFICIENT,
-          step: 0.001,
-          inputOnly: true,
-          read: () => port.readProfile().surfaceScattering!.coefficientPerMeter[axis],
-          write: (value) => {
-            const current = port.readProfile().surfaceScattering!,
-              coefficientPerMeter: [number, number, number] = [...current.coefficientPerMeter];
-            coefficientPerMeter[axis] = value;
-            return updateProfile({ surfaceScattering: { ...current, coefficientPerMeter } });
-          }
-        })
-      );
-    controls.push(
-      numberControl({
-        id: `${idPrefix}.surfaceScattering.phaseG`,
-        label: "Scattering anisotropy",
-        group: "Optics",
-        updateMode: "frame",
-        minimum: -0.95,
-        maximum: 0.95,
-        step: 0.001,
-        read: () => port.readProfile().surfaceScattering!.phaseG,
-        write: (value) =>
-          updateProfile({ surfaceScattering: { ...port.readProfile().surfaceScattering!, phaseG: value } })
-      })
-    );
-  }
-  if (port.readProfile().fresnelF0 !== undefined)
-    controls.push(
-      numberControl({
-        id: `${idPrefix}.fresnelF0`,
-        label: "Fresnel F0",
-        group: "Optics",
-        updateMode: "frame",
-        minimum: 0,
-        maximum: 1,
-        step: 0.001,
-        read: () => port.readProfile().fresnelF0!,
-        write: (value) => updateProfile({ fresnelF0: value })
-      })
-    );
-  const readReflectionSampling = port.readReflectionSampling;
-  const writeReflectionSampling = port.writeReflectionSampling;
-  if (port.readEffectiveReflectionSource)
-    controls.push(
-      readonlyControl({
-        id: `${idPrefix}.effectiveReflectionSource`,
-        label: "Effective reflection",
-        group: "Optics",
-        owner: "reflection-provider",
-        effect: "diagnostic",
-        read: () => port.readEffectiveReflectionSource!()
-      })
-    );
-  if (readReflectionSampling && writeReflectionSampling) {
-    const updateReflectionSampling = (patch: Partial<WaterReflectionSamplingSettings>): void => {
-      writeReflectionSampling(
-        Object.freeze({
-          ...readReflectionSampling(),
-          ...patch
-        })
-      );
-    };
-    const reflectionNumber = (
-      key: "screenSpaceCompositeIntensity" | "environmentFallbackIntensity",
-      label: string
-    ): WaterNumberControl => {
-      const limits = WATER_REFLECTION_SAMPLING_LIMITS[key];
-      const screenSpaceOnly = key === "screenSpaceCompositeIntensity";
-      return numberControl({
-        id: `${idPrefix}.reflectionSampling.${key}`,
-        label,
-        group: "Optics",
-        owner: "reflection-provider",
-        updateMode: "commit",
-        description: screenSpaceOnly
-          ? "Updates the Water Forward SSR contribution owned by the shared Water Look."
-          : "Updates the borrowed Environment fallback intensity after slider commit.",
-        availability: screenSpaceOnly ? "conditional" : "active",
-        availabilityReason: screenSpaceOnly ? "Consumed only while the effective reflection source is SSR." : undefined,
-        prerequisites: screenSpaceOnly ? Object.freeze(["Effective reflection source is SSR"]) : undefined,
-        minimum: limits[0],
-        maximum: limits[1],
-        step: limits[2],
-        read: () => readReflectionSampling()[key],
-        readEffective: () =>
-          !screenSpaceOnly || (screenSpaceOnly && port.readEffectiveReflectionSource?.() === "ssr")
-            ? readReflectionSampling()[key]
-            : "not currently consumed",
-        write: (value) => updateReflectionSampling({ [key]: value })
-      });
-    };
-    controls.push(
-      reflectionNumber("screenSpaceCompositeIntensity", "SSR composite intensity"),
-      reflectionNumber("environmentFallbackIntensity", "Environment fallback intensity")
-    );
-  }
-  return controls.map((sourceControl) => {
-    // Every value produced by this adapter is authored in one shared
-    // WaterLook. Backend/provider names are consumers, not parameter owners.
-    const control =
-      sourceControl.kind === "readonly"
-        ? sourceControl
-        : (Object.freeze({ ...sourceControl, owner: "water-look" as const }) as WaterControlDescriptor);
-    if (control.kind === "readonly") return control;
-    if (port.authoringWritable === false) {
-      return unavailableReadonlyControl(control, port.authoringReadonlyReason ?? NO_SHARED_LOOK_AUTHORING_REASON);
-    }
-    const suffix = control.id.startsWith(`${idPrefix}.`) ? control.id.slice(idPrefix.length + 1) : "";
-    const key =
-      WATER_OPTICAL_PROFILE_CONTROL_KEY_BY_SUFFIX[suffix as keyof typeof WATER_OPTICAL_PROFILE_CONTROL_KEY_BY_SUFFIX];
-    if (!key) return control;
-    const access = port.readProfileControlAccess?.(key);
-    if (!access || access.writable) return control;
-    const reason = access.reason ?? `The active Water Look does not expose a runtime override for '${String(key)}'.`;
-    return unavailableReadonlyControl(control, reason);
-  });
 }
 
 function requireLookAuthoringPort(target: WaterDevelopmentTarget): WaterLookAuthoringPort {
   const port = target.lookAuthoring;
   if (!port) throw new Error(`Water body '${target.bodyId}' has no shared Water Look authoring port.`);
   return port;
-}
-
-function readTargetOpticalProfileControlAccess(
-  target: WaterDevelopmentTarget,
-  key: keyof WaterOpticalProfile
-): Readonly<{ writable: boolean; reason?: string }> {
-  const look = target.lookAuthoring?.read();
-  if (look) {
-    const physical = look.appearance.appearance.primaryColorClosure === WaterSurfacePrimaryColorClosure.PhysicalVolume;
-    const singleScattering = look.optics.profile.surfaceScattering !== undefined;
-    if (
-      (key === "absorptionCoefficient" && !physical && !singleScattering) ||
-      ((key === "scatteringColor" || key === "scatteringCoefficient") && (!physical || singleScattering))
-    )
-      return { writable: false, reason: "The current surface closure does not consume this optical-volume parameter." };
-    if (key === "indexOfRefraction" && look.optics.profile.fresnelF0 !== undefined)
-      return { writable: false, reason: "The current profile uses an explicit Fresnel F0." };
-  }
-  return target.lookAuthoring
-    ? Object.freeze({ writable: true })
-    : Object.freeze({ writable: false, reason: "The active body has no shared Water Look authoring port." });
-}
-
-function readTargetOpticalProfile(
-  target: WaterDevelopmentTarget,
-  fallback: () => Readonly<WaterOpticalProfile>
-): Readonly<WaterOpticalProfile> {
-  return target.lookAuthoring?.read().optics.profile ?? target.handle.effectiveState?.optics ?? fallback();
-}
-
-function readTargetRefractionEnabled(target: WaterDevelopmentTarget, fallback: () => boolean): boolean {
-  return (
-    target.lookAuthoring?.read().optics.refractionEnabled ??
-    target.handle.effectiveState?.refractionEnabled ??
-    fallback()
-  );
-}
-
-function writeTargetOpticalProfile(
-  target: WaterDevelopmentTarget,
-  profile: Readonly<WaterOpticalProfile>
-): Promise<void> {
-  return requireLookAuthoringPort(target)
-    .update((current) =>
-      Object.freeze({
-        ...current,
-        optics: Object.freeze({
-          ...current.optics,
-          profile: Object.freeze({
-            ...current.optics.profile,
-            surfaceScattering: profile.surfaceScattering ?? current.optics.profile.surfaceScattering,
-            fresnelF0: profile.fresnelF0 ?? current.optics.profile.fresnelF0,
-            ...profile,
-            indexOfRefraction: profile.indexOfRefraction ?? current.optics.profile.indexOfRefraction,
-            maximumSurfaceOpticalDistance:
-              profile.maximumSurfaceOpticalDistance ?? current.optics.profile.maximumSurfaceOpticalDistance,
-            refractionStrength: profile.refractionStrength ?? current.optics.profile.refractionStrength,
-            roughness: profile.roughness ?? current.optics.profile.roughness,
-            reflectionIntensity: profile.reflectionIntensity ?? current.optics.profile.reflectionIntensity
-          })
-        })
-      })
-    )
-    .then(() => undefined);
-}
-
-function updateRefractionOverride(target: WaterDevelopmentTarget, enabled: boolean): Promise<void> {
-  return requireLookAuthoringPort(target)
-    .update((current) =>
-      Object.freeze({
-        ...current,
-        optics: Object.freeze({ ...current.optics, refractionEnabled: enabled })
-      })
-    )
-    .then(() => undefined);
-}
-
-function readTargetReflectionSampling(
-  target: WaterDevelopmentTarget,
-  fallback: () => Readonly<WaterReflectionSamplingSettings>
-): Readonly<WaterReflectionSamplingSettings> {
-  return (
-    target.lookAuthoring?.read().look.reflectionSampling ??
-    target.handle.effectiveState?.reflectionSampling ??
-    fallback()
-  );
-}
-
-function writeTargetReflectionSampling(
-  target: WaterDevelopmentTarget,
-  settings: Readonly<WaterReflectionSamplingSettings>
-): Promise<void> {
-  return requireLookAuthoringPort(target)
-    .update((current) =>
-      Object.freeze({
-        ...current,
-        look: Object.freeze({ ...current.look, reflectionSampling: settings })
-      })
-    )
-    .then(() => undefined);
 }
 
 function requireAppearanceBindingV2(
@@ -1823,144 +1283,9 @@ function createHeightfieldControls(
     );
   }
   const lookAuthoring = target.lookAuthoring;
-  let lastCompiled = controller.activeData;
-  const compiled = () => {
-    const current = controller.activeData;
-    if (current) lastCompiled = current;
-    return lastCompiled;
-  };
-  const publishingLabel = "Publishing runtime generation…";
   const appearanceV2 = requireAppearanceBindingV2(controller);
 
   controls.push(...createSharedSurfaceControls(target, appearanceV2));
-
-  controls.push(
-    ...createOpticsControls("heightfield.optics", {
-      readProfile: () => readTargetOpticalProfile(target, () => controller.opticalProfile),
-      readEffectiveProfile: () => controller.activeSurfaceOpticsReadback?.opticalProfile ?? controller.opticalProfile,
-      writeProfile: (profile) => writeTargetOpticalProfile(target, profile),
-      authoringWritable: lookAuthoring !== undefined,
-      authoringReadonlyReason: NO_SHARED_LOOK_AUTHORING_REASON,
-      readProfileControlAccess: (key) => readTargetOpticalProfileControlAccess(target, key),
-      readRefraction: () => readTargetRefractionEnabled(target, () => controller.refractionEnabled),
-      refractionWritable: lookAuthoring !== undefined && appearanceV2.appearance.refraction.enabled,
-      ...(lookAuthoring ? {} : { refractionReadonlyReason: NO_SHARED_LOOK_AUTHORING_REASON }),
-      writeRefraction: (enabled) => updateRefractionOverride(target, enabled),
-      maximumViewDistanceWritable: target.handle.body.capabilities.underwaterVolume,
-      maximumViewDistanceReadonlyReason:
-        "This water body has no underwater-volume provider; maximum view distance has no active consumer.",
-      refractionStrengthWritable: false,
-      refractionStrengthReadonlyReason:
-        "Surface Appearance V2 owns displacement through Refraction UV scale; optical-profile refraction strength is not consumed.",
-      readEffectiveReflectionSource: () => controller.activeSurfaceOpticsReadback?.effectiveSource ?? "sky",
-      readReflectionSampling: () =>
-        readTargetReflectionSampling(
-          target,
-          () => controller.reflectionSamplingSettings ?? resolveWaterReflectionSamplingSettings()
-        ),
-      writeReflectionSampling: (settings) => writeTargetReflectionSampling(target, settings)
-    }),
-    enumControl({
-      id: "heightfield.debugMode",
-      label: "Debug view",
-      group: "Backend",
-      updateMode: "live",
-      options: Object.freeze({
-        Final: HeightfieldWaterDebugMode.Final,
-        "Detail normal": HeightfieldWaterDebugMode.DetailNormal,
-        "Depth tint": HeightfieldWaterDebugMode.DepthTint,
-        "Contact foam": HeightfieldWaterDebugMode.ContactFoam,
-        "Coastal alpha": HeightfieldWaterDebugMode.CoastalAlpha,
-        "Direct specular": HeightfieldWaterDebugMode.DirectSpecular,
-        "Refraction amount": HeightfieldWaterDebugMode.RefractionAmount,
-        "Reflection color": HeightfieldWaterDebugMode.ReflectionColor,
-        "Effective roughness": HeightfieldWaterDebugMode.EffectiveRoughness,
-        "Environment reflection": HeightfieldWaterDebugMode.EnvironmentReflection,
-        "Composite reflection": HeightfieldWaterDebugMode.CompositeReflection
-      }),
-      read: () => controller.debugMode,
-      write: (value) => controller.setDebugMode(Number(value) as HeightfieldWaterDebugMode)
-    }),
-    booleanControl({
-      id: "heightfield.animate",
-      label: "Use scene time",
-      group: "Backend",
-      updateMode: "live",
-      read: () => controller.surfaceTimeOverride === undefined,
-      write: (value) => controller.setSurfaceTimeOverride(value ? undefined : 0)
-    }),
-    numberControl({
-      id: "heightfield.surfaceTime",
-      label: "Surface time",
-      group: "Backend",
-      updateMode: "frame",
-      minimum: 0,
-      maximum: 120,
-      step: 0.01,
-      read: () => controller.surfaceTimeOverride ?? 0,
-      write: (value) => controller.setSurfaceTimeOverride(value)
-    }),
-    readonlyControl({
-      id: "heightfield.gridResolution",
-      label: "Source grid",
-      group: "Authoring (read-only)",
-      description: "Grid topology is immutable after Heightfield compilation.",
-      read: () => {
-        const data = compiled();
-        return data ? `${data.grid.width} × ${data.grid.height}` : publishingLabel;
-      }
-    }),
-    readonlyControl({
-      id: "heightfield.cellSize",
-      label: "Cell size XZ",
-      group: "Authoring (read-only)",
-      description: "Changing cell size requires a new compiled spatial field.",
-      read: () => {
-        const data = compiled();
-        return data ? `${data.grid.cellSizeXZ[0]} × ${data.grid.cellSizeXZ[1]}` : publishingLabel;
-      }
-    }),
-    readonlyControl({
-      id: "heightfield.aggregationScale",
-      label: "Aggregation",
-      group: "Authoring (read-only)",
-      read: () => compiled()?.aggregationScale ?? publishingLabel
-    }),
-    readonlyControl({
-      id: "heightfield.componentCount",
-      label: "Components",
-      group: "Authoring (read-only)",
-      read: () => compiled()?.components.length ?? publishingLabel
-    }),
-    readonlyControl({
-      id: "heightfield.chunkCount",
-      label: "Chunks",
-      group: "Authoring (read-only)",
-      read: () => compiled()?.chunks.length ?? publishingLabel
-    }),
-    readonlyControl({
-      id: "heightfield.localMapAtlas",
-      label: "Local map atlas",
-      group: "Authoring (read-only)",
-      description: "Bathymetry, flow and shore distance share this immutable compiled atlas.",
-      read: () => {
-        const data = compiled();
-        return data ? `${data.localMapAtlas.width} × ${data.localMapAtlas.height}` : publishingLabel;
-      }
-    }),
-    readonlyControl({
-      id: "heightfield.maximumDepth",
-      label: "Max bathymetry depth",
-      group: "Authoring (read-only)",
-      read: () => compiled()?.localMapAtlas.maxDepth ?? publishingLabel
-    }),
-    readonlyControl({
-      id: "heightfield.shoreDistanceRange",
-      label: "Shore SDF range",
-      group: "Authoring (read-only)",
-      read: () => compiled()?.localMapAtlas.signedDistanceRange ?? publishingLabel
-    })
-  );
   return controls;
 }
 
@@ -2177,157 +1502,6 @@ function createRiverControls(
       })
     );
   }
-  const reach = () => {
-    const value = controller.reachSummary.first;
-    if (!value) throw new Error("River runtime has no active reach.");
-    return value;
-  };
-  controls.push(
-    readonlyControl({
-      id: "river.macroDisplacement",
-      label: "Macro displacement",
-      group: "Authoring (read-only)",
-      read: () => controller.macroDisplacementEnabled
-    }),
-    readonlyControl({
-      id: "river.microSurface",
-      label: "Micro surface",
-      group: "Authoring (read-only)",
-      read: () => controller.microSurfaceEnabled
-    }),
-    readonlyControl({
-      id: "river.junctions",
-      label: "Junction surfaces",
-      group: "Authoring (read-only)",
-      read: () => controller.junctionVisibility
-    }),
-    enumControl({
-      id: "river.debugMode",
-      label: "Debug view",
-      group: "Backend",
-      updateMode: "live",
-      options: Object.freeze({
-        Final: RiverSurfaceDebugMode.Off,
-        "Flow coordinate": RiverSurfaceDebugMode.FlowCoordinate,
-        "Macro height": RiverSurfaceDebugMode.MacroHeight,
-        "Crest mask": RiverSurfaceDebugMode.CrestMask,
-        "Micro normal": RiverSurfaceDebugMode.MicroNormal,
-        "Shore damping": RiverSurfaceDebugMode.ShoreDamping,
-        "Local flow": RiverSurfaceDebugMode.LocalFlow,
-        "Local foam": RiverSurfaceDebugMode.LocalFoam,
-        "Water depth": RiverSurfaceDebugMode.WaterDepth,
-        "Surface normal": RiverSurfaceDebugMode.SurfaceNormal,
-        "Refraction validity": RiverSurfaceDebugMode.RefractionValidity,
-        "Refracted scene": RiverSurfaceDebugMode.DisplacedScene,
-        "SSR validity": RiverSurfaceDebugMode.SsrValidity,
-        "SSR radiance": RiverSurfaceDebugMode.SsrRadiance
-      }),
-      read: () => controller.surfaceDebugMode,
-      write: (value) => controller.setSurfaceDebugMode(Number(value) as RiverSurfaceDebugMode)
-    }),
-    booleanControl({
-      id: "river.animate",
-      label: "Use scene time",
-      group: "Backend",
-      updateMode: "live",
-      read: () => controller.surfaceTimeOverride === undefined,
-      write: (value) => controller.setSurfaceTimeOverride(value ? undefined : 0)
-    }),
-    numberControl({
-      id: "river.surfaceTime",
-      label: "Surface time",
-      group: "Backend",
-      updateMode: "frame",
-      minimum: 0,
-      maximum: 120,
-      step: 0.01,
-      read: () => controller.surfaceTimeOverride ?? 0,
-      write: (value) => controller.setSurfaceTimeOverride(value)
-    }),
-    ...createOpticsControls("river.optics", {
-      readProfile: () =>
-        readTargetOpticalProfile(
-          target,
-          () => controller.surfaceOpticsBinding?.opticalProfile ?? DEFAULT_WATER_OPTICAL_PROFILE
-        ),
-      writeProfile: (profile) => writeTargetOpticalProfile(target, profile),
-      authoringWritable: target.lookAuthoring !== undefined,
-      authoringReadonlyReason: NO_SHARED_LOOK_AUTHORING_REASON,
-      readProfileControlAccess: (key) => readTargetOpticalProfileControlAccess(target, key),
-      readRefraction: () =>
-        readTargetRefractionEnabled(target, () => controller.surfaceOpticsBinding?.refractionEnabled ?? false),
-      refractionWritable:
-        target.lookAuthoring !== undefined && target.lookAuthoring.read().appearance.appearance.refraction.enabled,
-      ...(target.lookAuthoring ? {} : { refractionReadonlyReason: NO_SHARED_LOOK_AUTHORING_REASON }),
-      refractionStrengthWritable: false,
-      refractionStrengthReadonlyReason: "Surface Appearance V2 consumes Refraction UV scale.",
-      maximumViewDistanceWritable: target.handle.body.capabilities.underwaterVolume,
-      maximumViewDistanceReadonlyReason:
-        "This water body has no underwater-volume provider; maximum view distance has no active consumer.",
-      writeRefraction: (enabled) => updateRefractionOverride(target, enabled),
-      readReflectionSampling: () =>
-        readTargetReflectionSampling(target, () =>
-          resolveWaterReflectionSamplingSettings(controller.surfaceOpticsBinding?.reflectionSampling)
-        ),
-      readEffectiveReflectionSource: () => controller.surfaceOpticsBinding?.reflection?.resolvedSource ?? "sky",
-      writeReflectionSampling: (settings) => writeTargetReflectionSampling(target, settings)
-    }),
-    readonlyControl({
-      id: "river.reachCount",
-      label: "Reach count",
-      group: "Authoring (read-only)",
-      read: () => controller.reachSummary.reachCount
-    }),
-    readonlyControl({
-      id: "river.pathMode",
-      label: "Path mode",
-      group: "Authoring (read-only)",
-      read: () => reach().pathMode
-    }),
-    readonlyControl({
-      id: "river.controlPointCount",
-      label: "Control points",
-      group: "Authoring (read-only)",
-      read: () => reach().controlPointCount
-    }),
-    readonlyControl({
-      id: "river.segmentLength",
-      label: "Sample spacing",
-      group: "Authoring (read-only)",
-      description: "Longitudinal sampling density is fixed by authoring, quality and compile budgets.",
-      read: () => reach().segmentLength
-    }),
-    readonlyControl({
-      id: "river.width",
-      label: "Authored width",
-      group: "Authoring (read-only)",
-      read: () => reach().width
-    }),
-    readonlyControl({
-      id: "river.depth",
-      label: "Authored depth",
-      group: "Authoring (read-only)",
-      read: () => reach().depth
-    }),
-    readonlyControl({
-      id: "river.flowSpeed",
-      label: "Authored flow speed",
-      group: "Authoring (read-only)",
-      read: () => reach().flowSpeed
-    }),
-    readonlyControl({
-      id: "river.sampleCount",
-      label: "Compiled samples",
-      group: "Authoring (read-only)",
-      read: () => reach().sampleCount
-    }),
-    readonlyControl({
-      id: "river.compiledLength",
-      label: "Compiled length",
-      group: "Authoring (read-only)",
-      read: () => reach().compiledLength
-    })
-  );
   return controls;
 }
 
@@ -2848,161 +2022,6 @@ function createOceanControls(
     );
   }
   controls.push(...createOceanRuntimeTuningControls(controller));
-  controls.push(
-    readonlyControl({
-      id: "ocean.responseModel",
-      label: "Response model",
-      group: "Authoring (read-only)",
-      read: () => controller.metrics.responseModel
-    }),
-    readonlyControl({
-      id: "ocean.lookId",
-      label: "Fixed Look",
-      group: "Authoring (read-only)",
-      read: () => controller.metrics.lookId
-    }),
-    readonlyControl({
-      id: "ocean.parameterHash",
-      label: "Parameter hash",
-      group: "Authoring (read-only)",
-      read: () => controller.metrics.parameterHash
-    }),
-    readonlyControl({
-      id: "ocean.waterLevel",
-      label: "Water level",
-      group: "Authoring (read-only)",
-      read: () => controller.config.waterLevel
-    }),
-    readonlyControl({
-      id: "ocean.topology",
-      label: "Topology",
-      group: "Authoring (read-only)",
-      read: () => controller.metrics.surfaceTopology
-    }),
-    readonlyControl({
-      id: "ocean.reflection",
-      label: "Reflection",
-      group: "Authoring (read-only)",
-      read: () => controller.metrics.reflectionSource
-    }),
-    readonlyControl({
-      id: "ocean.refraction",
-      label: "Refraction",
-      group: "Authoring (read-only)",
-      read: () =>
-        `${controller.metrics.refractionEnabled ? "enabled" : "disabled"} / camera-fields=${controller.metrics.cameraFeaturesAvailable ? "ready" : "unavailable"}`
-    }),
-    readonlyControl({
-      id: "ocean.foam",
-      label: "Foam model",
-      group: "Authoring (read-only)",
-      read: () =>
-        `surface=${controller.tuning.surfaceFoam.enabled}; intersection=${controller.tuning.intersection.enabled}`
-    }),
-    readonlyControl({
-      id: "ocean.capabilities",
-      label: "Runtime capabilities",
-      group: "Authoring (read-only)",
-      read: () =>
-        Object.entries(target.handle.body.capabilities)
-          .filter(([, enabled]) => enabled)
-          .map(([key]) => key)
-          .join(" · ") || "none"
-    }),
-    booleanControl({
-      id: "ocean.lodDebug",
-      label: "LOD debug",
-      group: "Backend",
-      owner: "runtime-diagnostics",
-      effect: "diagnostic",
-      updateMode: "live",
-      sessionScope: "transient",
-      read: () => controller.lodDebugEnabled,
-      write: (value) => controller.setLodDebug(value)
-    }),
-    booleanControl({
-      id: "ocean.animate",
-      label: "Use scene time",
-      group: "Backend",
-      owner: "runtime-diagnostics",
-      effect: "state",
-      updateMode: "live",
-      sessionScope: "transient",
-      read: () => controller.surfaceTimeOverride === undefined,
-      write: (value) => controller.setSurfaceTimeOverride(value ? undefined : 0)
-    }),
-    numberControl({
-      id: "ocean.surfaceTime",
-      label: "Surface time",
-      group: "Backend",
-      owner: "runtime-diagnostics",
-      effect: "state",
-      updateMode: "frame",
-      sessionScope: "transient",
-      minimum: 0,
-      maximum: 120,
-      step: 0.01,
-      read: () => controller.surfaceTimeOverride ?? 0,
-      write: (value) => controller.setSurfaceTimeOverride(value)
-    }),
-    enumControl({
-      id: "ocean.debugView",
-      label: "Debug view",
-      group: "Backend",
-      owner: "runtime-diagnostics",
-      effect: "diagnostic",
-      updateMode: "live",
-      sessionScope: "transient",
-      options: Object.freeze({
-        Final: OceanDebugView.Final,
-        "Macro normal": OceanDebugView.MacroNormal,
-        "Detail normal": OceanDebugView.DetailNormal,
-        "Depth density": OceanDebugView.DepthDensity,
-        "Shore distance": OceanDebugView.ShoreDistance,
-        Refraction: OceanDebugView.Refraction,
-        "Environment reflection": OceanDebugView.EnvironmentReflection,
-        Foam: OceanDebugView.Foam,
-        Caustics: OceanDebugView.Caustics,
-        Lighting: OceanDebugView.Lighting,
-        Coverage: OceanDebugView.Coverage
-      }),
-      read: () => controller.debugView,
-      write: (value) => controller.setDebugView(Number(value) as OceanDebugView)
-    }),
-    readonlyControl({
-      id: "ocean.draws",
-      label: "Resident batches / triangles",
-      description: RESIDENT_BATCHES_DESCRIPTION,
-      group: "Backend",
-      read: () => `${controller.metrics.drawCount} / ${controller.metrics.triangleCount}`
-    }),
-    readonlyControl({
-      id: "ocean.geometryCells",
-      label: "Near cells / far quads",
-      group: "Backend",
-      read: () => `${controller.metrics.nearFieldCellCount} / ${controller.metrics.farFieldQuadCount}`
-    }),
-    readonlyControl({
-      id: "ocean.rings",
-      label: "Far rings / edge segments / meshes",
-      group: "Backend",
-      read: () =>
-        `${controller.metrics.farFieldRingCount} / ${controller.metrics.farFieldSegmentsPerEdge} / ${controller.metrics.activeMeshCount}`
-    }),
-    readonlyControl({
-      id: "ocean.resources",
-      label: "KTX2 textures (compressed/fallback) / texture / atlas / total GPU bytes",
-      group: "Backend",
-      read: () =>
-        `${controller.metrics.textureCount} (${controller.metrics.compressedTextureCount}/${controller.metrics.uncompressedTextureFallbackCount}) / ${controller.metrics.textureResourceBytes} / ${controller.metrics.nearshoreResourceBytes} / ${controller.metrics.ownedGpuBytes}`
-    }),
-    readonlyControl({
-      id: "ocean.frameUploads",
-      label: "Per-frame mesh upload",
-      group: "Backend",
-      read: () => controller.metrics.perFrameMeshUpload
-    })
-  );
   return controls;
 }
 
@@ -3015,8 +2034,7 @@ class HeightfieldWaterTuningAdapter implements WaterTuningAdapter {
       target.development?.backendId === this.id &&
       typeof adapter === "object" &&
       adapter !== null &&
-      "surfaceAppearanceBinding" in adapter &&
-      "activeData" in adapter
+      "surfaceAppearanceBinding" in adapter
     );
   }
 
@@ -3037,7 +2055,7 @@ class RiverWaterTuningAdapter implements WaterTuningAdapter {
       target.development?.backendId === this.id &&
       typeof adapter === "object" &&
       adapter !== null &&
-      "reachSummary" in adapter
+      "tuning" in adapter
     );
   }
 
@@ -3059,7 +2077,7 @@ class OceanWaterTuningAdapter implements WaterTuningAdapter {
       typeof adapter === "object" &&
       adapter !== null &&
       "config" in adapter &&
-      "metrics" in adapter
+      "tuning" in adapter
     );
   }
 
@@ -3069,17 +2087,7 @@ class OceanWaterTuningAdapter implements WaterTuningAdapter {
       throw new Error("Ocean Water DevTools target is missing its adapter DTO.");
     return Object.freeze({
       target,
-      controls: Object.freeze(createOceanControls(target, controller)),
-      exportDraft: () =>
-        Object.freeze({
-          schemaVersion: 2,
-          responseModel: controller.metrics.responseModel,
-          lookId: controller.metrics.lookId,
-          parameterHash: controller.metrics.parameterHash,
-          waterLevel: controller.config.waterLevel,
-          nearshoreSourceHash: controller.metrics.nearshoreSourceHash,
-          tuning: controller.tuning
-        })
+      controls: Object.freeze(createOceanControls(target, controller))
     });
   }
 }

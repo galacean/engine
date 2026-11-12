@@ -11,13 +11,15 @@ import { RIVER_DEFAULTS } from "@galacean/engine-world-planning/spatial/hydrolog
 import { RuntimeSceneEdit } from "@galacean/engine-runtime-editor/runtime-editor/scene/runtime-scene-edit";
 import { planningOceanRepresentation } from "@galacean/engine-world-planning/semantic-study/PlanningOceanSource";
 import type { RuntimeEditPreparation } from "@galacean/engine-runtime-editor/runtime-editor/runtime-editor";
-import { planningWaterFrame, transformPlanningWater } from "../PlanningWaterSource.ts";
+import { planningWaterFrame, planningWaterSourceId, transformPlanningWater } from "../PlanningWaterSource.ts";
 import type { WaterSourceAuthoring } from "@galacean/engine-world-planning/spatial/runtime/NativeWaterEditor";
 
 export const waterInitializationPath = (scene: string) => `${scene}.water-authoring.json`;
 interface WaterInitialization {
   version: 1;
   seeds: Record<string, string[]>;
+  /** Explicit native removals; initialization alone does not prove deletion intent. */
+  removed?: Record<string, string[]>;
 }
 
 /** Native creation joins the existing planning owner in the same public author transaction. */
@@ -29,18 +31,29 @@ export const preparePlanningWaterSource =
       const owner = scene.queryComponents({ type: "PlanningProjectAuthoring" })[0];
       if (!owner) return;
       const before = readBefore(),
-        previous = new Set(
-          new RuntimeSceneEdit(
-            new RuntimeProjectEdit(
-              before,
-              nativeAssetFormats(() => ({}))
-            ),
-            before.project.scene
-          )
-            .queryComponents({ type: "WaterBodyComponent" })
-            .map((body) => body.id)
-        );
+        previousScene = new RuntimeSceneEdit(new RuntimeProjectEdit(before, nativeAssetFormats(() => ({}))), before.project.scene),
+        previousBodies = previousScene.queryComponents({ type: "WaterBodyComponent" }),
+        previous = new Set(previousBodies.map(body => body.id));
       const bodies = scene.queryComponents({ type: "WaterBodyComponent" });
+      const current = new Set(bodies.map(body => body.id));
+      const removed = previousBodies.filter(body => !current.has(body.id)).flatMap(body => {
+        const input = previousScene.readComponent(body.id).props?.authoring as unknown as WaterSourceAuthoring | undefined;
+        const id = planningWaterSourceId(previousScene, body.entityId);
+        return input?.terrain.mode === "host" && id ? [id] : [];
+      });
+      if (removed.length) {
+        const world = previousScene.queryComponents({ type: "PlanningEntityAuthoring" })
+          .find(identity => previousScene.readComponent(identity.id).props?.planningId === "world");
+        const components = world && previousScene.readComponent(world.id).props?.spatialComponents as
+          { world?: { values?: { seed?: number } } } | undefined;
+        const seed = components?.world?.values?.seed;
+        if (!Number.isSafeInteger(seed)) throw new Error("Water removal requires the planning seed.");
+        const state = waterInitialization(draft.preview());
+        state.removed ??= {};
+        state.removed[String(seed)] = [...new Set([...(state.removed[String(seed)] ?? []), ...removed])];
+        draft.writeDocument(waterInitializationPath(draft.preview().project.scene), JSON.stringify(state));
+        edited();
+      }
       const labels = bodies.flatMap((body) => {
         const identity = scene.queryComponents({ entityId: body.entityId, type: "PlanningEntityAuthoring" })[0];
         return identity && !body.id.startsWith("@instance:")
@@ -97,7 +110,9 @@ export function waterInitialization(pack: RuntimeProjectPackage): WaterInitializ
   if (
     value?.version !== 1 ||
     !value.seeds ||
-    Object.values(value.seeds).some((ids) => !Array.isArray(ids) || ids.some((id) => typeof id !== "string"))
+    Object.values(value.seeds).some((ids) => !Array.isArray(ids) || ids.some((id) => typeof id !== "string")) ||
+    (value.removed !== undefined && (!value.removed || typeof value.removed !== "object" || Array.isArray(value.removed) ||
+      Object.values(value.removed).some(ids => !Array.isArray(ids) || ids.some(id => typeof id !== "string"))))
   )
     throw new Error("Invalid Water authoring initialization state");
   return value;
@@ -112,10 +127,13 @@ export function initializePlanningWater(
   const next = structuredClone(document),
     state = waterInitialization(draft.preview());
   const seed = String(planningSeed(document)),
-    known = new Set(state.seeds[seed] ?? []);
+    known = new Set(state.seeds[seed] ?? []),
+    removed = new Set(state.removed?.[seed] ?? []);
   for (const water of plan.waters) {
-    if (known.has(water.id) || !["lake", "river"].includes(water.kind)) continue;
     const existing = next.entities[water.id];
+    const component = water.kind === "lake" ? "lakes" : "rivers";
+    if (!["lake", "river"].includes(water.kind) || removed.has(water.id) ||
+      (known.has(water.id) && existing?.components[component])) continue;
     if (water.kind === "lake" && water.lake) {
       const shape = water.lake;
       next.entities[water.id] = {
@@ -187,9 +205,14 @@ export function initializePlanningWater(
   return next;
 }
 
-/** A removed generated object is a removed author object, not a request to run its generator again. */
+/** Only explicit native removal suppresses generation; a legacy reset could also lose initialized objects. */
 export function retainRemovedWater(document: PlanningDocument, pack: RuntimeProjectPackage): PlanningDocument {
-  for (const id of waterInitialization(pack).seeds[String(planningSeed(document))] ?? []) {
+  const state = waterInitialization(pack), seed = String(planningSeed(document));
+  const removed = new Set(state.removed?.[seed] ?? []);
+  // Legacy component removal leaves the original author identity. Synthetic
+  // tombstones for a lost subtree had no origin and do not prove a native removal.
+  for (const id of state.seeds[seed] ?? []) if (document.entities[id]?.origin) removed.add(id);
+  for (const id of removed) {
     if (id === "planning-ocean") continue;
     const component = id.startsWith("lake:") ? "lakes" : "rivers";
     if (document.entities[id]?.components[component]) continue;
@@ -253,7 +276,7 @@ export function initializePlanningOcean(draft: RuntimeProjectEdit, plan: IslandP
   if (plan.parameters.landMode === "continuous") return;
   const state = waterInitialization(draft.preview()),
     seed = String(plan.parameters.seed);
-  if (state.seeds[seed]?.includes("planning-ocean")) return;
+  if (state.removed?.[seed]?.includes("planning-ocean")) return;
   const scene = new RuntimeSceneEdit(draft, draft.preview().project.scene);
   const existing = scene
     .queryComponents({ type: "WaterBodyComponent" })
@@ -262,6 +285,11 @@ export function initializePlanningOcean(draft: RuntimeProjectEdit, plan: IslandP
         (scene.readComponent(identity.id).props?.authoring as { shape?: { kind?: string } })?.shape?.kind === "ocean"
     );
   if (existing.length > 1) throw new Error("Seed World requires one Source Ocean");
+  // Legacy Ocean component removal retained its identity, unlike the reset
+  // bug that deleted the entire authoring entity.
+  if (!existing.length && state.seeds[seed]?.includes("planning-ocean") &&
+    scene.queryComponents({ type: "PlanningEntityAuthoring" })
+      .some(identity => scene.readComponent(identity.id).props?.planningId === "planning-ocean")) return;
   if (!existing.length) {
     const parent = scene.queryComponents({ type: "PlanningProjectAuthoring" })[0];
     const entity = scene.create({ name: "Ocean", parentEntityId: parent.entityId });
@@ -287,6 +315,6 @@ export function initializePlanningOcean(draft: RuntimeProjectEdit, plan: IslandP
       }
     });
   }
-  state.seeds[seed] = [...(state.seeds[seed] ?? []), "planning-ocean"];
+  state.seeds[seed] = [...new Set([...(state.seeds[seed] ?? []), "planning-ocean"])];
   draft.writeDocument(waterInitializationPath(draft.preview().project.scene), JSON.stringify(state));
 }

@@ -1,21 +1,24 @@
-import { createFarmlandsWaterResourceFactories } from "../../resources/river/FarmlandsWaterRuntimeResources";
-import { FARMLANDS_DROP_ASSETS } from "../../resources/river/FarmlandsDropAssets";
-import { createWaterBackendDiagnosticsAdapter } from "../body/WaterBackendDiagnosticsAdapter";
-import { supportsWaterSurfacePicking } from "../surface/WaterSurfacePicking";
-import { Camera, type Engine, Entity, Layer, MeshRenderer, type Scene } from "@galacean/engine-core";
-import { markWaterSceneMutationSafe } from "../body/WaterMutationFailure";
+import { Camera, Entity, Layer, MeshRenderer, type Engine, type Scene } from "@galacean/engine-core";
 import { BoundingFrustum, Matrix, type BoundingBox } from "@galacean/engine-math";
 import type { WaterBodyAsset } from "../../authoring/body/WaterBodyAsset";
 import type { WaterBodySourceV1 } from "../../authoring/body/WaterBodyAuthoringTypes";
-import { isWaterBodyKind, type WaterBodyKind } from "../../authoring/body/WaterBodyRepresentation";
 import { createWaterBodyInstance, type WaterBodyInstance } from "../../authoring/body/WaterBodyInstance";
+import { isWaterBodyKind, type WaterBodyKind } from "../../authoring/body/WaterBodyRepresentation";
+import {
+  createWaterEnvironmentSnapshot,
+  DEFAULT_WATER_ENVIRONMENT_SNAPSHOT,
+  type WaterEnvironmentSnapshot,
+  type WaterEnvironmentSnapshotInput
+} from "../../authoring/environment/WaterEnvironmentSnapshot";
+import { createImmutableWaterSnapshot } from "../../authoring/identity/WaterImmutableSnapshot";
 import {
   computeWaterLookAuthoringContentHash,
   type WaterLookAuthoringSnapshot
 } from "../../authoring/surface/WaterLookAuthoringSnapshot";
-import type { WaterCompiledResource } from "../../compiler/body/WaterCompiledResource";
 import { hashStableValue } from "../../compiler/shared/determinism";
-import { createImmutableWaterSnapshot } from "../../authoring/identity/WaterImmutableSnapshot";
+import { FARMLANDS_DROP_ASSETS } from "../../resources/river/FarmlandsDropAssets";
+import { createFarmlandsWaterResourceFactories } from "../../resources/river/FarmlandsWaterRuntimeResources";
+import { createWaterBackendControl } from "../body/WaterBackendControl";
 import type {
   WaterBackendReflectionContext,
   WaterBodyBackend,
@@ -26,21 +29,21 @@ import { WaterBackendRegistry } from "../body/WaterBackendRegistry";
 import { WaterBodyAssetRegistry } from "../body/WaterBodyAssetRegistry";
 import {
   WaterBodyLoader,
-  type WaterBodyActivationHandle,
-  type WaterBodyActivationInspection,
-  type WaterBodyActivationUpdate,
-  type WaterBodyInstanceLoadOptions,
   type PreparedWaterBodyInstanceActivation,
   type PreparedWaterBodyReplacement,
-  type WaterDevelopmentTargetSource,
+  type WaterBodyActivationHandle,
+  type WaterBodyActivationUpdate,
+  type WaterBodyInstanceLoadOptions,
+  type WaterDevelopmentHandle,
   type WaterDevelopmentObserver,
   type WaterDevelopmentTarget,
-  type WaterDevelopmentHandle
+  type WaterDevelopmentTargetSource
 } from "../body/WaterBodyLoader";
 import { WaterBodyProviderRegistry, type WaterBodySourceProviderFactory } from "../body/WaterBodyProviderRegistry";
+import { markWaterSceneMutationSafe } from "../body/WaterMutationFailure";
+import { createWaterRuntimeInterfacesView, type WaterRuntimeInterfaces } from "../body/WaterRuntimeInterfaces";
 import { WaterWorld } from "../body/WaterWorld";
 import type { WaterSurfaceInteractionSink } from "../interaction/WaterSurfaceInteractionSink";
-import { createWaterRuntimeInterfacesView, type WaterRuntimeInterfaces } from "../body/WaterRuntimeInterfaces";
 import { CameraWaterFeatureBroker, type WaterCameraFeatureRequest } from "../optics/CameraWaterFeatureBroker";
 import {
   WaterEnvironmentReflectionProvider,
@@ -56,18 +59,8 @@ import {
   WaterRuntimeResourceRegistry,
   type WaterRuntimeResourceFactory
 } from "../resources/WaterRuntimeResourceRegistry";
-import type {
-  WaterSceneBodyInspection,
-  WaterSceneRuntimeDiagnostics,
-  WaterSceneRuntimeLifecycleState
-} from "./WaterSceneRuntimeDiagnostics";
 import type { WaterLookAuthoringPort, WaterLookAuthoringUpdater } from "../state/WaterLookAuthoringPort";
-import {
-  createWaterEnvironmentSnapshot,
-  DEFAULT_WATER_ENVIRONMENT_SNAPSHOT,
-  type WaterEnvironmentSnapshot,
-  type WaterEnvironmentSnapshotInput
-} from "../../authoring/environment/WaterEnvironmentSnapshot";
+import { supportsWaterSurfacePicking } from "../surface/WaterSurfacePicking";
 
 const MAXIMUM_CONCURRENT_BODY_PREPARATIONS = 6;
 
@@ -84,7 +77,6 @@ async function yieldWaterScenePreparationFrame(signal: AbortSignal): Promise<voi
 }
 
 const WATER_AUTHORING_REGISTRATION_KEYS = new Set<PropertyKey>([
-  "metrics",
   "getAsset",
   "getAppearancePreset",
   "getOpticsPreset",
@@ -111,7 +103,7 @@ const WATER_AUTHORING_REGISTRATION_KEYS = new Set<PropertyKey>([
 
 function createWaterDevelopmentAdapterView(adapter: unknown): unknown {
   if (typeof adapter !== "object" || adapter === null) return undefined;
-  return createWaterBackendDiagnosticsAdapter(adapter);
+  return createWaterBackendControl(adapter);
 }
 
 export interface WaterSceneRuntimeHostReflectionOptions {
@@ -203,7 +195,6 @@ export interface WaterSceneBodyHandle {
   readonly buoyancyEnabled: boolean;
   readonly wakeEnabled: boolean;
   readonly runtimeInterfaces: WaterRuntimeInterfaces;
-  inspect(): Readonly<WaterBodyActivationInspection>;
   setVisible(visible: boolean): void;
   setQueryEnabled(enabled: boolean): void;
   setBuoyancyEnabled(enabled: boolean): void;
@@ -219,7 +210,6 @@ export type WaterEnvironmentSnapshotUpdate = Readonly<Partial<Omit<WaterEnvironm
 export type WaterBodyAssetRegistryReadPort = Readonly<
   Pick<
     WaterBodyAssetRegistry,
-    | "metrics"
     | "getAsset"
     | "getLookPreset"
     | "getLookAuthoringSnapshot"
@@ -229,11 +219,10 @@ export type WaterBodyAssetRegistryReadPort = Readonly<
   >
 >;
 
-export type WaterWorldQueryPort = Readonly<Pick<WaterWorld, "metrics" | "bodyMetrics" | "sampleSurface">>;
+export type WaterWorldQueryPort = Readonly<Pick<WaterWorld, "sampleSurface">>;
 
 export interface WaterEnvironmentReflectionProviderHandle {
   readonly id: string;
-  readonly inspection: WaterEnvironmentReflectionProvider["inspection"];
   setSource(source: Parameters<WaterEnvironmentReflectionProvider["setSource"]>[0]): void;
   setActive(active: boolean): void;
   destroy(): void;
@@ -324,13 +313,9 @@ export class WaterSceneRuntimeHost {
   private _mutationTail: Promise<unknown> = Promise.resolve();
   private _mutationRunning = false;
   private _floatingOrigin: readonly [x: number, z: number] = Object.freeze([0, 0]);
-  private _lifecycle: WaterSceneRuntimeLifecycleState = "active";
+  private _lifecycle: "active" | "destroying" | "destroyed" = "active";
   private _activeSceneRevision = 0;
   private _stagingSceneRevision?: number;
-  private _abortedTransactionCount = 0;
-  private _staleTransactionCount = 0;
-  private _rolledBackTransactionCount = 0;
-  private _lastCurrentRevisionError: string | null = null;
   private _destroyPromise?: Promise<void>;
   private _withdrawn = false;
 
@@ -357,9 +342,6 @@ export class WaterSceneRuntimeHost {
     const assets = this._assets;
     const world = this._world;
     this.assets = Object.freeze({
-      get metrics() {
-        return assets.metrics;
-      },
       getAsset: (assetId: string) => assets.getAsset(assetId),
       getLookPreset: (id: string) => assets.getLookPreset(id),
       getLookAuthoringSnapshot: (id: string) => assets.getLookAuthoringSnapshot(id),
@@ -368,15 +350,8 @@ export class WaterSceneRuntimeHost {
       getRuntimeVariants: (assetId: string) => assets.getRuntimeVariants(assetId)
     });
     this.world = Object.freeze({
-      get metrics() {
-        return world.metrics;
-      },
-      get bodyMetrics() {
-        return world.bodyMetrics;
-      },
       sampleSurface: (...args: Parameters<WaterWorld["sampleSurface"]>) => world.sampleSurface(...args)
     });
-    this._cameraFeatures.setViewportSize(options.engine.canvas.width, options.engine.canvas.height);
 
     let reflectionContext: WaterBackendReflectionContext | undefined;
     if (options.reflection) {
@@ -413,7 +388,6 @@ export class WaterSceneRuntimeHost {
           }
         },
         onError: (error) => {
-          this._lastCurrentRevisionError = error instanceof Error ? error.message : String(error);
           console.error("[water-scene-host] reflection update failed", error);
         }
       });
@@ -441,9 +415,6 @@ export class WaterSceneRuntimeHost {
     });
     const loader = this._loader;
     this.loader = Object.freeze({
-      get metrics() {
-        return loader.metrics;
-      },
       observeDevelopmentTargets: (observer: WaterDevelopmentObserver) =>
         loader.observeDevelopmentTargets({
           attach: (target) => observer.attach(this._adaptDevelopmentTarget(target)),
@@ -879,9 +850,6 @@ export class WaterSceneRuntimeHost {
     const host = this;
     return Object.freeze({
       id: options.id,
-      get inspection() {
-        return provider.inspection;
-      },
       setSource: (source: Parameters<WaterEnvironmentReflectionProvider["setSource"]>[0]) => {
         host._assertEnvironmentProviderOwner(options.id, provider);
         provider.setSource(source);
@@ -942,10 +910,6 @@ export class WaterSceneRuntimeHost {
     return true;
   }
 
-  getReflectionMetrics(): Readonly<WaterReflectionService["metrics"]> | undefined {
-    return this._reflectionService?.metrics;
-  }
-
   loadBody(request: WaterSceneBodyRequest, signal?: AbortSignal): Promise<WaterSceneBodyHandle> {
     const snapshot = this._snapshotRequest(request);
     return this._enqueueMutation(async () => {
@@ -1001,9 +965,6 @@ export class WaterSceneRuntimeHost {
         interactionSink,
         get capabilities() {
           return raw.body.capabilities;
-        },
-        get metrics() {
-          return raw.body.metrics;
         }
       }),
       setVisible: (visible: boolean) => this._setBodyVisibility(target.bodyId, visible),
@@ -1112,7 +1073,7 @@ export class WaterSceneRuntimeHost {
       get runtimeInterfaces() {
         return createWaterRuntimeInterfacesView(() => requireBody().handle.body);
       },
-      inspect: () => requireBody().handle.inspect(),
+
       setVisible: (visible: boolean) => this._setBodyVisibility(bodyId, visible),
       setQueryEnabled: (enabled: boolean) => this._setBodyInteraction(bodyId, "query", enabled),
       setBuoyancyEnabled: (enabled: boolean) => this._setBodyInteraction(bodyId, "buoyancy", enabled),
@@ -1312,7 +1273,6 @@ export class WaterSceneRuntimeHost {
         await this._rollbackBarrier;
         if (signal?.aborted) throw new DOMException("Water Scene transaction was aborted.", "AbortError");
         if (this._stagingSceneRevision !== revision) {
-          this._staleTransactionCount++;
           throw new DOMException("Water Scene transaction is stale.", "AbortError");
         }
         const stagedAssets = new Map<string, WaterBodyAsset>();
@@ -1401,7 +1361,6 @@ export class WaterSceneRuntimeHost {
           }
         }
         if (this._stagingSceneRevision !== revision) {
-          this._staleTransactionCount++;
           throw new DOMException("Water Scene transaction became stale before commit.", "AbortError");
         }
         active = false;
@@ -1414,7 +1373,6 @@ export class WaterSceneRuntimeHost {
             this._assertActive();
             if (!preparedActive) throw new Error(`Prepared Water Scene transaction ${revision} is inactive.`);
             if (this._stagingSceneRevision !== revision) {
-              this._staleTransactionCount++;
               throw new DOMException("Prepared Water Scene transaction is stale.", "AbortError");
             }
             const cleanup: Promise<unknown>[] = [];
@@ -1526,7 +1484,6 @@ export class WaterSceneRuntimeHost {
                   `Water Scene transaction ${revision} publication rollback cleanup failed.`
                 );
                 publicationRollbackFailure = rollbackError;
-                this._lastCurrentRevisionError = rollbackError.message;
                 console.error("[water-scene-host] publication rollback cleanup failed", rollbackError);
               });
               this._retiredCleanup.add(rollbackCleanup);
@@ -1546,8 +1503,6 @@ export class WaterSceneRuntimeHost {
                 }
               }
               this._stagingSceneRevision = undefined;
-              this._lastCurrentRevisionError = error instanceof Error ? error.message : String(error);
-              this._rolledBackTransactionCount++;
               preparedActive = false;
               publicationRolledBack = true;
               throw error;
@@ -1581,7 +1536,6 @@ export class WaterSceneRuntimeHost {
             }
             this._activeSceneRevision = revision;
             this._stagingSceneRevision = undefined;
-            this._lastCurrentRevisionError = null;
             preparedActive = false;
             const retiredCleanup = Promise.allSettled(cleanup).then((cleanupResults) => {
               this._flushBackendInstallations();
@@ -1593,7 +1547,6 @@ export class WaterSceneRuntimeHost {
                 cleanupErrors,
                 `Water Scene transaction ${revision} published, but retired-resource cleanup failed.`
               );
-              this._lastCurrentRevisionError = cleanupError.message;
               console.error("[water-scene-host] retired generation cleanup failed", cleanupError);
             });
             this._retiredCleanup.add(retiredCleanup);
@@ -1603,7 +1556,6 @@ export class WaterSceneRuntimeHost {
           rollback: async () => {
             if (!preparedActive) return;
             await rollbackPrepared();
-            this._rolledBackTransactionCount++;
           }
         });
       } catch (error) {
@@ -1613,7 +1565,6 @@ export class WaterSceneRuntimeHost {
         if (preparedActive) {
           try {
             await rollbackPrepared();
-            this._rolledBackTransactionCount++;
           } catch (rollbackError) {
             rollbackSucceeded = false;
             error = new AggregateError(
@@ -1622,10 +1573,8 @@ export class WaterSceneRuntimeHost {
             );
           }
         }
-        if (error instanceof DOMException && error.name === "AbortError") this._abortedTransactionCount++;
         if (failedCurrentRevision) {
           if (this._stagingSceneRevision === revision) this._stagingSceneRevision = undefined;
-          this._lastCurrentRevisionError = error instanceof Error ? error.message : String(error);
         }
         active = false;
         if (rollbackSucceeded) throw markWaterSceneMutationSafe(error);
@@ -1678,7 +1627,6 @@ export class WaterSceneRuntimeHost {
         if (!active) return;
         active = false;
         if (this._stagingSceneRevision === revision) this._stagingSceneRevision = undefined;
-        this._rolledBackTransactionCount++;
       }
     });
   }
@@ -1745,11 +1693,6 @@ export class WaterSceneRuntimeHost {
       const instance = body.handle.instance;
       if (instance) body.request = Object.freeze({ ...body.request, instance });
     }
-  }
-
-  setViewportSize(width: number, height: number): void {
-    this._assertActive();
-    this._cameraFeatures.setViewportSize(width, height);
   }
 
   setSurfaceTimeOverride(timeSeconds: number | undefined): void {
@@ -1862,56 +1805,24 @@ export class WaterSceneRuntimeHost {
     }
   }
 
-  getDiagnostics(): WaterSceneRuntimeDiagnostics {
-    const bodies: WaterSceneBodyInspection[] = [...this._activeBodies.values()]
-      .map(({ request, handle }) => {
-        const bodyOrigin = request.bodyOrigin ?? [0, 0];
-        const activation = handle.inspect();
-        const kind = activation.bodyKind;
-        if (!kind || !activation.resolvedBackendId) {
-          throw new Error(`Water body '${request.bodyId}' is missing authoritative route inspection.`);
-        }
-        return Object.freeze({
-          bodyId: request.bodyId,
-          kind,
-          resolvedBackendId: activation.resolvedBackendId,
-          assetId: request.asset.id,
-          profileId: request.profileId,
-          profileVersion: request.profileVersion,
-          descriptorSchemaVersion: request.descriptorSchemaVersion,
-          compilerSemanticVersion: request.compilerSemanticVersion,
-          canonicalDescriptorHash: request.canonicalDescriptorHash,
-          logicalBounds: request.logicalBounds,
-          bodyOrigin: Object.freeze([bodyOrigin[0], bodyOrigin[1]] as const),
-          renderOffset: Object.freeze([
-            bodyOrigin[0] - this._floatingOrigin[0],
-            bodyOrigin[1] - this._floatingOrigin[1]
-          ] as const),
-          activation
-        });
-      })
-      .sort((left, right) => left.bodyId.localeCompare(right.bodyId));
-    return Object.freeze({
-      lifecycle: this._lifecycle,
-      activeSceneRevision: this._activeSceneRevision,
-      stagingSceneRevision: this._stagingSceneRevision,
-      activeBodyCount: bodies.length,
-      bodies: Object.freeze(bodies),
-      assets: this._assets.metrics,
-      providers: this._providers.metrics,
-      loader: this._loader.metrics,
-      world: this._world.metrics,
-      cameraFeatures: this._cameraFeatures.metrics,
-      runtimeResources: this._runtimeResources.metrics,
-      reflection: this._reflectionService?.metrics ?? null,
-      reflectionServiceCreated: this._reflectionService !== undefined,
-      environmentProviderCount: this._environmentProviders.size,
-      abortedTransactionCount: this._abortedTransactionCount,
-      staleTransactionCount: this._staleTransactionCount,
-      rolledBackTransactionCount: this._rolledBackTransactionCount,
-      lastCurrentRevisionError: this._lastCurrentRevisionError,
-      platformValidation: "not-assessed-by-runtime"
-    });
+  get sceneRevision(): number {
+    return this._activeSceneRevision;
+  }
+
+  get destroyed(): boolean {
+    return this._lifecycle !== "active";
+  }
+
+  hasBody(bodyId: string): boolean {
+    return this._activeBodies.has(bodyId);
+  }
+
+  forEachBodyBounds(
+    visit: (bounds: Readonly<{ minX: number; minZ: number; maxX: number; maxZ: number }>) => void
+  ): void {
+    for (const body of this._activeBodies.values()) {
+      if (body.request.logicalBounds) visit(body.request.logicalBounds);
+    }
   }
 
   /** Read only: resolve only descendants of a currently published, visible render root. */

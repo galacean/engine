@@ -1,9 +1,8 @@
-import type {
-  WaterOpticalColor,
-  WaterOpticalProfile,
-  WaterOpticalRgb,
-  WaterSurfaceScattering
-} from "./WaterOpticalProfile";
+import {
+  MAX_WATER_REFLECTION_INTENSITY,
+  MAX_WATER_REFRACTION_STRENGTH
+} from "../../authoring/optics/WaterOpticalLimits";
+import type { WaterOpticalColor, WaterOpticalProfile } from "./WaterOpticalProfile";
 import type { WaterSurfaceOpticsResult } from "./WaterSurfaceOpticsTypes";
 
 export const MIN_WATER_INDEX_OF_REFRACTION = 1;
@@ -11,11 +10,7 @@ export const MAX_WATER_INDEX_OF_REFRACTION = 4;
 export const MAX_WATER_LINEAR_COLOR = 65_504;
 export const MAX_WATER_OPTICAL_COEFFICIENT = 1_000_000;
 export const MAX_WATER_OPTICAL_DISTANCE = 1_000_000;
-import {
-  MAX_WATER_REFRACTION_STRENGTH,
-  MAX_WATER_REFLECTION_INTENSITY
-} from "../../authoring/optics/WaterOpticalLimits";
-export { MAX_WATER_REFRACTION_STRENGTH, MAX_WATER_REFLECTION_INTENSITY };
+export { MAX_WATER_REFLECTION_INTENSITY, MAX_WATER_REFRACTION_STRENGTH };
 export const MAX_WATER_FRESNEL_F0 = 1;
 
 /** Existing surface shaders use F0=0.022; this IOR preserves that baseline. */
@@ -30,7 +25,6 @@ export const DEFAULT_WATER_SCATTERING_COLOR = Object.freeze([0.06, 0.28, 0.32] a
 export const DEFAULT_WATER_SCATTERING_COEFFICIENT = 0.16;
 
 export interface MutableResolvedWaterOpticalProfile {
-  surfaceScattering?: { coefficientPerMeter: [number, number, number]; phaseG: number };
   absorptionCoefficient: [red: number, green: number, blue: number];
   scatteringColor: [red: number, green: number, blue: number];
   scatteringCoefficient: number;
@@ -99,18 +93,6 @@ export function sanitizeWaterOpticalProfileInto(
   const absorption = profile.absorptionCoefficient;
   const scatteringColor = profile.scatteringColor;
   const resolvedIor = resolveWaterIndexOfRefraction(profile.indexOfRefraction);
-
-  if (profile.surfaceScattering) {
-    const scattering = (outProfile.surfaceScattering ??= { coefficientPerMeter: [0, 0, 0], phaseG: 0 });
-    for (let channel = 0; channel < 3; channel++) {
-      scattering.coefficientPerMeter[channel] = sanitizeOpticalCoefficient(
-        profile.surfaceScattering.coefficientPerMeter[channel]
-      );
-    }
-    scattering.phaseG = clampWaterOpticsFinite(profile.surfaceScattering.phaseG, 0, -0.95, 0.95);
-  } else {
-    outProfile.surfaceScattering = undefined;
-  }
 
   outProfile.absorptionCoefficient[0] = sanitizeOpticalCoefficient(
     absorption[0],
@@ -226,44 +208,6 @@ export function evaluateWaterFresnelFromF0(fresnelF0: number, normalDotView: num
   return resolvedF0 + (1 - resolvedF0) * Math.pow(1 - resolvedNormalDotView, 5);
 }
 
-/** Schlick's bounded approximation, with the same ray/light convention as UE Single Layer Water. */
-export function evaluateWaterScatteringPhase(phaseG: number, cosine: number): number {
-  const g = clampWaterOpticsFinite(phaseG, 0, -0.95, 0.95);
-  // The UE polynomial slightly exceeds |k|=1 near |g|=0.95; keep the editable range positive and bounded.
-  const k = Math.max(-0.99, Math.min(0.99, 1.55 * g - 0.55 * g * g * g));
-  const denominator = 1 + k * clampWaterOpticsFinite(cosine, 0, -1, 1);
-  return (1 - k * k) / (4 * Math.PI * denominator * denominator);
-}
-
-/** Pure reference for surface optical integration. No camera depth is used as authoritative bed depth. */
-export function evaluateWaterSingleScattering(input: {
-  readonly absorptionCoefficient: WaterOpticalRgb;
-  readonly surfaceScattering: WaterSurfaceScattering;
-  readonly opticalDistance: number;
-  readonly sceneToSurfaceDistance?: number;
-  readonly phaseCosine?: number;
-  readonly sunRadiance?: WaterOpticalRgb;
-  readonly ambientRadiance?: WaterOpticalRgb;
-}) {
-  const distance = clampWaterOpticsFinite(input.opticalDistance, 0, 0, MAX_WATER_OPTICAL_DISTANCE);
-  const lightDistance = clampWaterOpticsFinite(input.sceneToSurfaceDistance, 0, 0, MAX_WATER_OPTICAL_DISTANCE);
-  const phase = evaluateWaterScatteringPhase(input.surfaceScattering.phaseG, input.phaseCosine ?? 0);
-  const transmittance: [number, number, number] = [0, 0, 0];
-  const lightTransmittance: [number, number, number] = [0, 0, 0];
-  const scattering: [number, number, number] = [0, 0, 0];
-  for (let channel = 0; channel < 3; channel++) {
-    const sigmaS = sanitizeOpticalCoefficient(input.surfaceScattering.coefficientPerMeter[channel]);
-    const sigmaT = sanitizeOpticalCoefficient(input.absorptionCoefficient[channel]) + sigmaS;
-    transmittance[channel] = Math.exp(-sigmaT * distance);
-    lightTransmittance[channel] = Math.exp(-sigmaT * lightDistance);
-    const incoming =
-      sanitizeLinearColor(input.sunRadiance?.[channel] ?? 0) * phase +
-      sanitizeLinearColor(input.ambientRadiance?.[channel] ?? 1) / (4 * Math.PI);
-    scattering[channel] = incoming * Math.min(1, (sigmaS * (1 - transmittance[channel])) / Math.max(sigmaT, 1e-5));
-  }
-  return { transmittance, lightTransmittance, scattering };
-}
-
 /** Allocates one result for callers to retain and reuse across evaluations. */
 export function createWaterSurfaceOpticsResult(): WaterSurfaceOpticsResult {
   return {
@@ -311,29 +255,14 @@ export function evaluateWaterSurfaceOptics(
   outResult.refractionStrength = refractionStrength;
   outResult.roughness = roughness;
   outResult.reflectionIntensity = reflectionIntensity;
-  if (profile.surfaceScattering) {
-    // The compact surface reference uses isotropic unit ambient illumination.
-    const medium = evaluateWaterSingleScattering({
-      absorptionCoefficient: profile.absorptionCoefficient,
-      surfaceScattering: profile.surfaceScattering,
-      opticalDistance: resolvedDistance
-    });
-    (["red", "green", "blue"] as const).forEach((channel, index) => {
-      outResult.transmittance[channel] = medium.transmittance[index];
-      outResult.scattering[channel] = medium.scattering[index];
-      outResult.transmittedColor[channel] =
-        sanitizeLinearColor(sourceColor[channel]) * medium.transmittance[index] + medium.scattering[index];
-    });
-  } else {
-    evaluateMediumTerms(
-      profile,
-      resolvedDistance,
-      sourceColor,
-      outResult.transmittedColor,
-      outResult.transmittance,
-      outResult.scattering
-    );
-  }
+  evaluateMediumTerms(
+    profile,
+    resolvedDistance,
+    sourceColor,
+    outResult.transmittedColor,
+    outResult.transmittance,
+    outResult.scattering
+  );
 
   const transmissionWeight = 1 - fresnel;
   const reflectionWeight = fresnel * reflectionIntensity;

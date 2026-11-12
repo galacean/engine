@@ -1,24 +1,5 @@
 import type * as dat from "dat.gui";
-import { RiverSurfaceDebugMode } from "@galacean/engine-water/water/runtime/river/index";
 import { validateRiverDemoLook, type RiverDemoLook } from "./RiverDemoLook.ts";
-
-export const RIVER_DEBUG_VIEWS = {
-  关闭: RiverSurfaceDebugMode.Off,
-  真实水深: RiverSurfaceDebugMode.WaterDepth,
-  视线光程: RiverSurfaceDebugMode.OpticalPath,
-  透射率: RiverSurfaceDebugMode.Transmittance,
-  散射: RiverSurfaceDebugMode.Scattering,
-  折射有效性: RiverSurfaceDebugMode.RefractionValidity,
-  法线: RiverSurfaceDebugMode.SurfaceNormal,
-  SSR有效性: RiverSurfaceDebugMode.SsrValidity,
-  SSR辐亮度: RiverSurfaceDebugMode.SsrRadiance,
-  泡沫来源: RiverSurfaceDebugMode.FoamSources,
-  直接光阴影: RiverSurfaceDebugMode.DirectShadow,
-  流向: RiverSurfaceDebugMode.FinalFlow,
-  分块边界: RiverSurfaceDebugMode.AtlasRect,
-  中心背景: RiverSurfaceDebugMode.CenteredScene,
-  折射背景: RiverSurfaceDebugMode.DisplacedScene
-} as const;
 
 export function createRiverDemoLookPanel(
   gui: dat.GUI,
@@ -27,12 +8,12 @@ export function createRiverDemoLookPanel(
     readLookName?(): string;
     readDefaultLook(): RiverDemoLook;
     readSurfaceTime(): number | undefined;
-    readDebugView(): RiverSurfaceDebugMode;
+
     applyLook(look: RiverDemoLook): Promise<void>;
     patchLook(patch: Partial<RiverDemoLook>): Promise<void>;
     exportLook(): string;
     importLook(json: string): Promise<void>;
-    setDebugView(mode: RiverSurfaceDebugMode): void;
+
     setSurfaceTime(time?: number): void;
     setEnvironmentEnabled(enabled: boolean): void;
   }
@@ -55,7 +36,6 @@ export function createRiverDemoLookPanel(
     const time = options.readSurfaceTime();
     controls.frozen = time !== undefined;
     if (time !== undefined) controls.time = time;
-    controls.debug = options.readDebugView();
     const update = (folder: dat.GUI) => {
       folder.__controllers.forEach((c) => c.updateDisplay());
       Object.values(folder.__folders).forEach(update);
@@ -99,8 +79,7 @@ export function createRiverDemoLookPanel(
   for (const [key, label, max] of [
     ["shallowColor", "浅水色调", 1],
     ["deepColor", "深水色调", 1],
-    ["absorption", "吸收 / 米", 1],
-    ["scattering", "散射 / 米", 1]
+    ["absorption", "吸收 / 米", 1]
   ] as const) {
     const rgbFolder = color.addFolder(label);
     // RGB arrays are retained by dat.GUI, so use proxies to keep import/reset bindings current.
@@ -116,7 +95,6 @@ export function createRiverDemoLookPanel(
       bindLookControl(rgbFolder.add(proxy, "value", 0, max, 0.005).name(["R", "G", "B"][channel]), key);
     }
   }
-  bindLookControl(color.add(editing, "phaseG", -0.95, 0.95, 0.01).name("Phase G"), "phaseG");
   color.open();
   const optics = gui.addFolder("折射与反射");
   bindLookControl(optics.add(editing, "indexOfRefraction", 1, 2, 0.001).name("IOR"), "indexOfRefraction");
@@ -203,7 +181,7 @@ export function createRiverDemoLookPanel(
   const controls = {
     frozen: options.readSurfaceTime() !== undefined,
     time: options.readSurfaceTime() ?? 0,
-    debug: options.readDebugView(),
+
     environment: true,
     restore: preset.restore,
     export: () => {
@@ -233,10 +211,6 @@ export function createRiverDemoLookPanel(
   observation.add(controls, "export").name("导出外观 JSON");
   observation.add(controls, "import").name("导入外观 JSON");
   const diagnostics = gui.addFolder("诊断");
-  diagnostics
-    .add(controls, "debug", RIVER_DEBUG_VIEWS)
-    .name("GPU 分量")
-    .onChange((mode) => options.setDebugView(Number(mode)));
   diagnostics.add(controls, "environment").name("环境提供者").onChange(options.setEnvironmentEnabled);
   return {
     refresh,

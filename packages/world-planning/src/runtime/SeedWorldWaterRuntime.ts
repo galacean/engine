@@ -1,12 +1,11 @@
-import { SeedWorldWaterColorRuntime } from "@galacean/engine-water/world/SeedWorldWaterColorRuntime";
 import { Layer, type Camera, type Engine, type Entity, type Scene } from "@galacean/engine-core";
 import {
-  createWaterBodyAsset,
-  createWaterBodyInstance,
-  RiverQualityLevel,
   createRiverWaterBodyAsset,
   createRiverWaterBodyInstance,
+  createWaterBodyAsset,
+  createWaterBodyInstance,
   createWaterReflectionPresentationPolicy,
+  RiverQualityLevel,
   type WaterReflectionPresentationMode
 } from "@galacean/engine-water/water/index";
 import {
@@ -14,83 +13,64 @@ import {
   RIVER_CANONICAL_LOOK_PRESET_ID,
   riverQualityPlanIdForQuality
 } from "@galacean/engine-water/water/presets/river/index";
+import { SeedWorldWaterColorRuntime } from "@galacean/engine-water/world/SeedWorldWaterColorRuntime";
 
 import type { WaterBodyKind } from "@galacean/engine-water/water/index";
 
+import { hashStableValue } from "@galacean/engine-water/water/compiler/index";
 import {
   LAKE_WATER_LOOK_PRESET_ID,
-  registerLakeWaterLook,
-  LAKE_WATER_OPTICAL_PROFILE
+  LAKE_WATER_OPTICAL_PROFILE,
+  registerLakeWaterLook
 } from "@galacean/engine-water/water/presets/lake/index";
-import { hashStableValue } from "@galacean/engine-water/water/compiler/index";
 
 import {
-  applyLakeWaterPresentation,
-  createLakeWaterPresentationState,
   HeightfieldWaterBackend,
-  type HeightfieldWaterBackendRuntimeContext,
-  HeightfieldWaterCompileWorkerClient
+  HeightfieldWaterCompileWorkerClient,
+  type HeightfieldWaterBackendRuntimeContext
 } from "@galacean/engine-water/water/runtime/heightfield/index";
 import type {
-  WaterDevelopmentTargetSource,
-  WaterTerrainOcclusionProvider,
   LakeWaterLevelRuntimeReadback,
   OceanWaterLevelRuntimeReadback,
-  WaterReflectionSource,
-  WaterEnvironmentReflectionSource,
   PreparedWaterGenerationResourcesV1,
-  WaterSceneRuntimeDiagnostics
+  WaterDevelopmentTargetSource,
+  WaterEnvironmentReflectionSource,
+  WaterReflectionSource,
+  WaterTerrainOcclusionProvider
 } from "@galacean/engine-water/water/runtime/index";
 
 import HeightfieldWaterCompileWorker from "@galacean/engine-water/water/compiler/heightfield/HeightfieldWaterCompileWorker.ts?worker&inline";
-import {
-  HeightfieldWaterCompositionMode,
-  HeightfieldWaterDebugMode
-} from "@galacean/engine-water/water/runtime/heightfield/config";
-import type { HeightfieldWaterSurfaceAppearanceFeatureFlags } from "@galacean/engine-water/water/runtime/heightfield/config";
 
-import { RiverWaterBackend } from "@galacean/engine-water/water/runtime/river/index";
+import { WaterSceneRuntimeHost, type PublishedWaterSceneBodySet } from "@galacean/engine-water/water/runtime/index";
 import {
-  DEFAULT_WATER_REFLECTION_INTENSITY,
-  DEFAULT_WATER_REFRACTION_STRENGTH,
-  DEFAULT_WATER_ROUGHNESS,
-  WaterSceneRuntimeHost,
-  type PublishedWaterSceneBodySet
-} from "@galacean/engine-water/water/runtime/index";
-import {
-  OCEAN_WATER_BACKEND_ID,
   OceanWaterBackend,
-  type OceanWaterBackendRuntimeContext,
-  OceanDebugView
+  type OceanWaterBackendRuntimeContext
 } from "@galacean/engine-water/water/runtime/ocean/index";
-import type {
-  OceanWaterRuntimeController,
-  OceanWaterRuntimeMetrics
-} from "@galacean/engine-water/water/runtime/ocean/index";
+import { RiverWaterBackend } from "@galacean/engine-water/water/runtime/river/index";
 
 import { OceanTextureLibrary } from "@galacean/engine-water/water/resources/ocean/index";
 
 import { createLakeNormalResourceFactory } from "@galacean/engine-water/water/resources/lake/index";
-import { TERRAIN_WATER_SSR_CAMERA_SETTINGS } from "../integrations/grasslands/GrasslandsWaterPcg.ts";
-import {
-  SEED_WORLD_PRIMARY_OCEAN_SCENE_BODY_ID_V1,
-  SeedWorldWaterRuntimeBridgeV1,
-  type PrepareSeedWorldWaterRuntimeGenerationInputV1
-} from "./hydrology-v1/SeedWorldWaterRuntimeBridgeV1.ts";
-import { registerSeedWorldAuthoredBasinAuthoringV1 } from "./hydrology-v1/SeedWorldWaterAuthoringPresetsV1.ts";
-import { createSeedWorldAuthoredRiverWaterV1 } from "./SeedWorldAuthoredRiverWater.ts";
-import { createSeedWorldAuthoredBasinWaterV1, isSeedWorldWaterBasinPatchV1 } from "./SeedWorldAuthoredBasinWater.ts";
-import { SeedWorldLakeWaterLevelRuntimeState } from "@galacean/engine-water/world/SeedWorldLakeWaterLevelRuntime";
 import {
   SeedWorldAuthoredWaterQueryRegistryV1,
   type SeedWorldAuthoredWaterQueryResultV1
 } from "@galacean/engine-water/world/SeedWorldAuthoredWaterQuery";
-import type { SeedWorldRiverV1, SeedWorldTerrainPatchV1 } from "../world/SeedWorldWorldEdit.ts";
+import { SeedWorldLakeWaterLevelRuntimeState } from "@galacean/engine-water/world/SeedWorldLakeWaterLevelRuntime";
 import {
   resolveSeedWorldOceanPresentationTopology,
   type SeedWorldOceanPresentationMode
 } from "@galacean/engine-water/world/SeedWorldOceanPresentation";
 import { registerSeedWorldWaterStartupShaders } from "@galacean/engine-water/world/SeedWorldWaterStartupShaders";
+import { TERRAIN_WATER_SSR_CAMERA_SETTINGS } from "../integrations/grasslands/GrasslandsWaterPcg.ts";
+import type { SeedWorldRiverV1, SeedWorldTerrainPatchV1 } from "../world/SeedWorldWorldEdit.ts";
+import { registerSeedWorldAuthoredBasinAuthoringV1 } from "./hydrology-v1/SeedWorldWaterAuthoringPresetsV1.ts";
+import {
+  SEED_WORLD_PRIMARY_OCEAN_SCENE_BODY_ID_V1,
+  SeedWorldWaterRuntimeBridgeV1,
+  type PrepareSeedWorldWaterRuntimeGenerationInputV1
+} from "./hydrology-v1/SeedWorldWaterRuntimeBridgeV1.ts";
+import { createSeedWorldAuthoredBasinWaterV1, isSeedWorldWaterBasinPatchV1 } from "./SeedWorldAuthoredBasinWater.ts";
+import { createSeedWorldAuthoredRiverWaterV1 } from "./SeedWorldAuthoredRiverWater.ts";
 
 export { registerSeedWorldWaterStartupShaders } from "@galacean/engine-water/world/SeedWorldWaterStartupShaders";
 
@@ -136,106 +116,6 @@ export interface PreparedSeedWorldAuthoritativeWaterCandidateV1 {
     readonly scene: number;
     readonly total: number;
   }>;
-}
-
-export interface SeedWorldWaterRuntimeDiagnostics {
-  readonly ready: boolean;
-  readonly visible: boolean;
-  readonly reflectionMode: WaterReflectionPresentationMode;
-  readonly effectiveReflectionSource: WaterReflectionSource;
-  readonly reflectionFallbackReason?: string;
-  readonly bodyCount: number;
-  readonly chunkCount: number;
-  readonly triangleCount: number;
-  readonly queryRegisteredBodyCount: number;
-  readonly terrainOcclusion: Readonly<{
-    /** Lake and River surface chunks eligible for the shared Terrain Horizon. */
-    readonly eligibleChunkCount: number;
-    /** Eligible chunks currently omitted by terrain occlusion. */
-    readonly occludedChunkCount: number;
-    /** Heightfield surface regions used for fine Camera and Terrain Horizon visibility. */
-    readonly eligibleSurfaceBoundsCount: number;
-    /** Heightfield surface regions currently omitted from Camera demand by terrain occlusion. */
-    readonly occludedSurfaceBoundsCount: number;
-  }>;
-  readonly ocean: SeedWorldOceanDiagnostics | null;
-  readonly oceanWaterLevel: Readonly<OceanWaterLevelRuntimeReadback> | null;
-  readonly lakeWaterLevels: readonly Readonly<LakeWaterLevelRuntimeReadback>[];
-  readonly heightfieldPresentations: readonly SeedWorldHeightfieldPresentationDiagnostics[];
-  readonly interaction: Readonly<{
-    readonly mode: "render-only";
-    readonly query: false;
-    readonly buoyancy: false;
-    readonly wake: false;
-    readonly rainImpact: false;
-  }>;
-  readonly wind: Readonly<{
-    readonly source: "none";
-    readonly oceanMacroWaveCoupling: false;
-    readonly additionalPassCount: 0;
-    readonly additionalTextureSampleCount: 0;
-  }>;
-  readonly hostRevision: number;
-  readonly host: WaterSceneRuntimeDiagnostics;
-}
-
-export interface SeedWorldOceanDiagnostics {
-  /** Stable page-lifetime Water instance slot. */
-  readonly bodyId: string;
-  /** Hydrology catalog/Asset identity of the currently published generation. */
-  readonly authoritativeBodyId: string;
-  readonly waterLevel: number;
-  readonly surfaceTopology: "finite";
-  readonly lookPresetId?: string;
-  readonly appearanceAssetId?: string;
-  readonly qualityPlanId?: string;
-  readonly opticalProfile: Readonly<{
-    roughness: number;
-    reflectionIntensity: number;
-    refractionStrength: number;
-  }>;
-  readonly metrics: Readonly<OceanWaterRuntimeMetrics>;
-}
-
-export interface SeedWorldHeightfieldPresentationDiagnostics {
-  readonly bodyId: string;
-  readonly effectiveReflectionSource: WaterReflectionSource;
-  readonly compositionMode: HeightfieldWaterCompositionMode;
-  readonly depthWriteEnabled: boolean;
-  readonly debugMode: HeightfieldWaterDebugMode;
-  readonly surfaceTimeOverride: number | undefined;
-  readonly screenSpaceReflectionCompositeIntensity: number;
-  readonly appearanceFeatures: Readonly<HeightfieldWaterSurfaceAppearanceFeatureFlags>;
-  readonly reflectionSampling: Readonly<{
-    environmentFallbackIntensity: number;
-    distortionStrength: number;
-    maximumDistortionPixels: number;
-    edgeFadeTexels: number;
-    minimumClipW: number;
-    roughnessFootprintTexels: number;
-    highFilterSampleCount: number;
-  }>;
-  readonly appearance: Readonly<{
-    active: boolean;
-    fallbackReason: string | undefined;
-    appearanceAssetId: string | undefined;
-    appearanceHash: string | undefined;
-    normalAssetId: string | undefined;
-    normalContentHash: string | undefined;
-    normalLayerCount: number;
-    detailLayerIds: readonly string[];
-    detailLayerVelocities: readonly (readonly [number, number])[];
-    detailLayerRotationsDegrees: readonly number[];
-    boundaryEffectIds: readonly string[];
-    primaryColorClosure: string | undefined;
-    depthResponseField: string | undefined;
-    composition: string | undefined;
-  }> | null;
-  readonly optics: Readonly<{
-    roughness: number;
-    reflectionIntensity: number;
-    environmentFallbackIntensity: number;
-  }> | null;
 }
 
 /** Page-lifetime Water host shared by every generated Seed World revision. */
@@ -443,7 +323,6 @@ export class SeedWorldWaterRuntime {
     if (!Number.isInteger(width) || width <= 0 || !Number.isInteger(height) || height <= 0) {
       throw new RangeError("Seed World Water viewport must contain positive integer dimensions.");
     }
-    this._host.setViewportSize(width, height);
   }
 
   setSurfaceTimeOverride(elapsedTime?: number): void {
@@ -489,23 +368,6 @@ export class SeedWorldWaterRuntime {
     return this._authoritativeBridge.getOceanWaterLevelReadback();
   }
 
-  /** Development-only render-channel inspection; never changes the authored Ocean contract. */
-  setOceanDebugView(view: OceanDebugView): void {
-    if (!Number.isInteger(view) || view < OceanDebugView.Final || view > OceanDebugView.Coverage) {
-      throw new RangeError(`Unsupported Seed World Ocean debug view: ${view}`);
-    }
-    const controller = this._oceanBackend.getRuntimeDiagnostics(SEED_WORLD_PRIMARY_OCEAN_SCENE_BODY_ID_V1)?.controller;
-    if (!controller) throw new Error("Seed World Ocean runtime is not ready.");
-    controller.setDebugView(view);
-  }
-
-  /** Development-only LOD visualization; finite geometry and budgets remain unchanged. */
-  setOceanLodDebug(enabled: boolean): void {
-    const controller = this._oceanBackend.getRuntimeDiagnostics(SEED_WORLD_PRIMARY_OCEAN_SCENE_BODY_ID_V1)?.controller;
-    if (!controller) throw new Error("Seed World Ocean runtime is not ready.");
-    controller.setLodDebug(enabled);
-  }
-
   /** Publishes one persistent Authoring river without rebuilding unrelated Water bodies. */
   async upsertAuthoredRiver(
     river: Readonly<SeedWorldRiverV1>,
@@ -543,7 +405,7 @@ export class SeedWorldWaterRuntime {
           surfaceTimeOverride: this._surfaceTimeOverride
         }),
         setSurfaceTimeOverride: (timeSeconds) =>
-          this._riverBackend.getRuntimeDiagnostics(bodyId)?.controller.setSurfaceTimeOverride(timeSeconds)
+          this._riverBackend.getRuntimeController(bodyId)?.setSurfaceTimeOverride(timeSeconds)
       },
       signal
     );
@@ -667,9 +529,8 @@ export class SeedWorldWaterRuntime {
   }
 
   private async _removeAuthoredBody(bodyId: string, signal?: AbortSignal): Promise<void> {
-    const diagnostics = this._host.getDiagnostics();
-    if (diagnostics.bodies.some((body) => body.bodyId === bodyId)) {
-      const transaction = this._host.beginBodySetTransaction(diagnostics.activeSceneRevision + 1);
+    if (this._host.hasBody(bodyId)) {
+      const transaction = this._host.beginBodySetTransaction(this._host.sceneRevision + 1);
       transaction.remove(bodyId);
       await transaction.commit(signal);
     }
@@ -726,51 +587,6 @@ export class SeedWorldWaterRuntime {
     this._host.setTerrainOcclusionProvider(provider);
   }
 
-  getDiagnostics(): SeedWorldWaterRuntimeDiagnostics {
-    const host = this._host.getDiagnostics();
-    const reflection = resolveEffectiveReflectionSource(host, this.reflectionMode);
-    const ocean = this._inspectOcean(host);
-    const terrainOcclusion = this._inspectTerrainOcclusion(host);
-    let chunkCount = 0;
-    let triangleCount = 0;
-    for (const body of host.bodies) {
-      const metrics = ocean?.bodyId === body.bodyId ? ocean.metrics : body.activation.runtimeMetrics;
-      chunkCount += metrics.drawCount;
-      triangleCount += metrics.triangleCount;
-    }
-    return Object.freeze({
-      ready: host.activeBodyCount > 0,
-      visible: this.visible,
-      reflectionMode: this.reflectionMode,
-      effectiveReflectionSource: reflection.source,
-      ...(reflection.fallbackReason ? { reflectionFallbackReason: reflection.fallbackReason } : {}),
-      bodyCount: host.activeBodyCount,
-      chunkCount,
-      triangleCount,
-      queryRegisteredBodyCount: host.world.queryRegisteredBodyCount,
-      terrainOcclusion,
-      ocean,
-      oceanWaterLevel: this._authoritativeBridge.getOceanWaterLevelReadback(),
-      lakeWaterLevels: this.getLakeWaterLevelReadbacks(),
-      heightfieldPresentations: this._inspectHeightfieldPresentations(host),
-      interaction: Object.freeze({
-        mode: "render-only",
-        query: false,
-        buoyancy: false,
-        wake: false,
-        rainImpact: false
-      }),
-      wind: Object.freeze({
-        source: "none",
-        oceanMacroWaveCoupling: false,
-        additionalPassCount: 0,
-        additionalTextureSampleCount: 0
-      }),
-      hostRevision: host.activeSceneRevision,
-      host
-    });
-  }
-
   destroy(): Promise<void> {
     if (this._destroyPromise) return this._destroyPromise;
     this._destroyPromise = (async () => {
@@ -817,7 +633,7 @@ export class SeedWorldWaterRuntime {
       engine: this._engine,
       root: bodyRoot,
       submission: Object.freeze({ frameBudgetMs: 4, releaseMeshCpuData: true }),
-      debugMode: createLakeWaterPresentationState(this._surfaceTimeOverride).debugMode,
+
       surfaceTimeOverride: this._surfaceTimeOverride,
       surfaceLevelOffsetMetres
     });
@@ -887,141 +703,6 @@ export class SeedWorldWaterRuntime {
       throw error;
     }
   }
-
-  private _inspectHeightfieldPresentations(
-    host: WaterSceneRuntimeDiagnostics
-  ): readonly SeedWorldHeightfieldPresentationDiagnostics[] {
-    return Object.freeze(
-      host.bodies.flatMap(({ bodyId, activation }) => {
-        const controller = this._heightfieldBackend.getRuntimeDiagnostics(bodyId)?.controller;
-        if (!controller) return [];
-        const appearance = controller.activeSurfaceAppearanceReadback;
-        const appearanceBinding = controller.surfaceAppearanceBinding;
-        const optics = controller.activeSurfaceOpticsReadback;
-        const reflectionSampling = controller.reflectionSamplingSettings;
-        return [
-          Object.freeze({
-            bodyId,
-            effectiveReflectionSource: waterReflectionModeToRuntimeSource(
-              activation?.effectiveSnapshot?.effectiveReflectionSource ?? "analytic"
-            ),
-            compositionMode: controller.compositionMode,
-            depthWriteEnabled: controller.depthWriteEnabled,
-            debugMode: controller.debugMode,
-            surfaceTimeOverride: controller.surfaceTimeOverride,
-            screenSpaceReflectionCompositeIntensity: controller.screenSpaceReflectionCompositeIntensity,
-            appearanceFeatures: Object.freeze({ ...controller.surfaceAppearanceFeatureFlags }),
-            reflectionSampling: Object.freeze({
-              environmentFallbackIntensity: reflectionSampling.environmentFallbackIntensity,
-              distortionStrength: reflectionSampling.distortionStrength,
-              maximumDistortionPixels: reflectionSampling.maximumDistortionPixels,
-              edgeFadeTexels: reflectionSampling.edgeFadeTexels,
-              minimumClipW: reflectionSampling.minimumClipW,
-              roughnessFootprintTexels: reflectionSampling.roughnessFootprintTexels,
-              highFilterSampleCount: reflectionSampling.highFilterSampleCount
-            }),
-            appearance: appearance
-              ? Object.freeze({
-                  active: appearance.active,
-                  fallbackReason: appearance.fallbackReason,
-                  appearanceAssetId: appearance.appearanceAssetId,
-                  appearanceHash: appearance.appearanceHash,
-                  normalAssetId: appearance.normalAssetId,
-                  normalContentHash: appearance.normalContentHash,
-                  normalLayerCount: appearance.normalLayerCount,
-                  detailLayerIds: Object.freeze([...(appearance.detailLayerIds ?? [])]),
-                  detailLayerVelocities: Object.freeze(
-                    appearanceBinding?.appearance.schemaVersion === 2
-                      ? appearanceBinding.appearance.detailLayers.map(({ velocity }) =>
-                          Object.freeze([velocity[0], velocity[1]] as const)
-                        )
-                      : []
-                  ),
-                  detailLayerRotationsDegrees: Object.freeze(
-                    appearanceBinding?.appearance.schemaVersion === 2
-                      ? appearanceBinding.appearance.detailLayers.map(({ rotationDegrees }) => rotationDegrees)
-                      : []
-                  ),
-                  boundaryEffectIds: Object.freeze([...(appearance.boundaryEffectIds ?? [])]),
-                  primaryColorClosure: appearance.primaryColorClosure,
-                  depthResponseField: appearance.depthResponseField,
-                  composition: appearance.compositionV2
-                })
-              : null,
-            optics: optics
-              ? Object.freeze({
-                  roughness: optics.opticalProfile.roughness,
-                  reflectionIntensity: optics.opticalProfile.reflectionIntensity,
-                  environmentFallbackIntensity: optics.environmentFallbackIntensity
-                })
-              : null
-          })
-        ];
-      })
-    );
-  }
-
-  private _inspectOcean(host: WaterSceneRuntimeDiagnostics): SeedWorldOceanDiagnostics | null {
-    const body = host.bodies.find(
-      ({ kind, resolvedBackendId }) => kind === "ocean" && resolvedBackendId === OCEAN_WATER_BACKEND_ID
-    );
-    if (!body) return null;
-    const controller = this._oceanBackend.getRuntimeDiagnostics(body.bodyId)?.controller;
-    if (!controller) return null;
-    const config = controller.config;
-    const lookPresetId = body.activation.lookPresetId;
-    const appearanceAssetId = lookPresetId
-      ? this._host.assets.getLookPreset(lookPresetId)?.appearanceAssetId
-      : undefined;
-    return Object.freeze({
-      bodyId: body.bodyId,
-      authoritativeBodyId: body.assetId,
-      waterLevel:
-        this._authoritativeBridge.getOceanWaterLevelReadback()?.effectiveWaterLevelMetres ?? config.waterLevel,
-      surfaceTopology: config.surfaceTopology,
-      lookPresetId,
-      appearanceAssetId,
-      qualityPlanId: body.activation.qualityPlan?.id,
-      opticalProfile: Object.freeze({
-        roughness: controller.opticalProfile.roughness ?? DEFAULT_WATER_ROUGHNESS,
-        reflectionIntensity: controller.opticalProfile.reflectionIntensity ?? DEFAULT_WATER_REFLECTION_INTENSITY,
-        refractionStrength: controller.opticalProfile.refractionStrength ?? DEFAULT_WATER_REFRACTION_STRENGTH
-      }),
-      metrics: controller.metrics
-    });
-  }
-
-  private _inspectTerrainOcclusion(host: WaterSceneRuntimeDiagnostics): Readonly<{
-    eligibleChunkCount: number;
-    occludedChunkCount: number;
-    eligibleSurfaceBoundsCount: number;
-    occludedSurfaceBoundsCount: number;
-  }> {
-    let eligibleChunkCount = 0;
-    let occludedChunkCount = 0;
-    let eligibleSurfaceBoundsCount = 0;
-    let occludedSurfaceBoundsCount = 0;
-    for (const body of host.bodies) {
-      const heightfield = this._heightfieldBackend.getRuntimeDiagnostics(body.bodyId)?.controller;
-      if (heightfield) {
-        eligibleChunkCount += heightfield.activeChunkCount;
-        occludedChunkCount += heightfield.terrainOccludedChunkCount;
-        eligibleSurfaceBoundsCount += heightfield.activeVisibilityBoundsCount;
-        occludedSurfaceBoundsCount += heightfield.terrainOccludedVisibilityBoundsCount;
-        continue;
-      }
-      const river = this._riverBackend.getRuntimeDiagnostics(body.bodyId)?.controller;
-      if (!river) continue;
-      eligibleChunkCount += river.activeChunkCount;
-      occludedChunkCount += river.terrainOccludedChunkCount;
-    }
-    return Object.freeze({
-      eligibleChunkCount,
-      occludedChunkCount,
-      eligibleSurfaceBoundsCount,
-      occludedSurfaceBoundsCount
-    });
-  }
 }
 
 function authoredRiverBodyId(riverId: string): string {
@@ -1030,24 +711,6 @@ function authoredRiverBodyId(riverId: string): string {
 
 function authoredWaterBasinBodyId(patchId: string): string {
   return `seed-world-authored-water-basin:${patchId}`;
-}
-
-function resolveEffectiveReflectionSource(
-  diagnostics: WaterSceneRuntimeDiagnostics,
-  mode: WaterReflectionPresentationMode
-): Readonly<{ source: WaterReflectionSource; fallbackReason?: string }> {
-  const representative = diagnostics.bodies.find(({ kind }) => kind === "lake") ?? diagnostics.bodies[0];
-  const effectiveMode = representative?.activation.effectiveSnapshot?.effectiveReflectionSource;
-  if (!effectiveMode) {
-    return { source: "sky", fallbackReason: "Seed World Water has no active EffectiveSnapshot." };
-  }
-  const source = waterReflectionModeToRuntimeSource(effectiveMode);
-  return effectiveMode === mode
-    ? { source }
-    : {
-        source,
-        fallbackReason: `Requested '${mode}' resolved to '${effectiveMode}' in '${representative.bodyId}'.`
-      };
 }
 
 function waterReflectionModeToRuntimeSource(mode: "analytic" | "environment" | "ssr"): WaterReflectionSource {

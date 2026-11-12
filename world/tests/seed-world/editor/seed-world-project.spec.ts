@@ -144,21 +144,23 @@ it("deletes saves of other versions before loading contents and restores the cur
   const projectUrl = new URL(SEED_WORLD_PRODUCTION_ASSET_CATALOG.projectUrl, f.url).href;
   const oldId = `seed-world:native-buildings-v7-groups:42:${projectUrl}`;
   const previousId = `seed-world:native-buildings-v10-groups:42:${projectUrl}`;
-  const otherProjectId = "seed-world:native-buildings-v10-groups:42:https://other.test/project.json";
+  const preMergeId = `seed-world:native-buildings-v11-groups:42:${projectUrl}`;
+  const otherProjectId = "seed-world:native-buildings-v11-groups:42:https://other.test/project.json";
   const unrelatedId = "another-project";
   const legacy = { incompatibleBuildingSave: true } as unknown as RuntimeProjectPackage;
-  for (const id of [oldId, previousId, otherProjectId, unrelatedId]) f.records.set(id, legacy);
+  for (const id of [oldId, previousId, preMergeId, otherProjectId, unrelatedId]) f.records.set(id, legacy);
   const initial = JSON.parse(
     await readCatalogFile(SEED_WORLD_PRODUCTION_ASSET_CATALOG.projectUrl)
   ) as RuntimeProjectManifest;
   const project = await openSeedWorldProject(f.url, initial);
   sessions.push(project);
-  expect(SEED_WORLD_BUILDING_SAVE_VERSION).toBe(11);
+  expect(SEED_WORLD_BUILDING_SAVE_VERSION).toBe(12);
   expect(project.id).toBe(seedWorldProjectStorageId(42, projectUrl));
   expect(f.load.mock.calls).toEqual([[project.id]]);
   expect(project.id).not.toBe(oldId);
   expect(f.records.has(oldId)).toBe(false);
   expect(f.records.has(previousId)).toBe(false);
+  expect(f.records.has(preMergeId)).toBe(false);
   expect(f.records.get(otherProjectId)).toEqual(legacy);
   expect(f.records.get(unrelatedId)).toEqual(legacy);
   await project.update((current) => ({
@@ -171,7 +173,7 @@ it("deletes saves of other versions before loading contents and restores the cur
   const restored = await openSeedWorldProject(f.url, initial);
   sessions.push(restored);
   expect(restored.projectPackage.documents?.["building-save.txt"]).toBe("current building version");
-  expect(f.load.mock.calls.every(([id]) => id !== oldId && id !== previousId)).toBe(true);
+  expect(f.load.mock.calls.every(([id]) => id !== oldId && id !== previousId && id !== preMergeId)).toBe(true);
 });
 
 it("restores relocated building assets before hierarchy reads without replacing saved authoring", async () => {

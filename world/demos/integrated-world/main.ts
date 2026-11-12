@@ -5,6 +5,7 @@ import {
   ScreenSpaceReflectionQuality,
   ScreenSpaceReflectionReceiverMode,
   ScreenSpaceReflectionReceiverPolicy,
+  WebGLEngine,
   type Component,
   type Entity,
   type ScreenSpaceReflectionTraceSettings,
@@ -14,13 +15,11 @@ import {
   type WeatherPrecipitationState,
   type WeatherSkyLightingState,
   type WeatherState,
-  type WeatherWindState,
-  WebGLEngine
+  type WeatherWindState
 } from "@galacean/engine";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
+import type { TerrainClipmap } from "@galacean/engine-terrain/terrain/clipmap/TerrainClipmap";
 import { TerrainRuntimeDebug } from "@galacean/engine-terrain/terrain/debug/TerrainRuntimeDebug";
-import type { TerrainDemoCameraPose, TerrainDemoControls } from "@galacean/engine-world-planning/integrations/terrain/debug/TerrainDemoControls";
-import { createTerrainRuntimeDebugOwner } from "@galacean/engine-world-planning/integrations/terrain/debug/TerrainRuntimeDebugOwnerFactory";
 import {
   applyAutomaticScreenSpaceReflectionConfiguration,
   applyScreenSpaceReflectionConfiguration,
@@ -28,50 +27,54 @@ import {
   TERRAIN_SCREEN_SPACE_REFLECTION_CONFIGURATION,
   type TerrainScreenSpaceReflectionPanelConfiguration
 } from "@galacean/engine-terrain/terrain/debug/TerrainScreenSpaceReflectionPanel";
-import { TerrainPerformancePanel } from "@galacean/engine-world-planning/integrations/terrain/performance/TerrainPerformancePanel";
-import type { TerrainClipmap } from "@galacean/engine-terrain/terrain/clipmap/TerrainClipmap";
+import { loadTerrainScene } from "@galacean/engine-terrain/terrain/loader/TerrainSceneLoader";
+import { TerrainNavigationRuntime } from "@galacean/engine-terrain/terrain/project/TerrainNavigationRuntime";
+import { TerrainPostProcessRuntime } from "@galacean/engine-terrain/terrain/project/TerrainPostProcessRuntime";
 import { TerrainProjectClipmapRuntime } from "@galacean/engine-terrain/terrain/project/TerrainProjectClipmapRuntime";
 import { TerrainProjectDetailRuntime } from "@galacean/engine-terrain/terrain/project/TerrainProjectDetailRuntime";
-import { TerrainNavigationRuntime } from "@galacean/engine-terrain/terrain/project/TerrainNavigationRuntime";
 import { TerrainProjectPlacedPrefabRuntime } from "@galacean/engine-terrain/terrain/project/TerrainProjectPlacedPrefabRuntime";
-import { TerrainPostProcessRuntime } from "@galacean/engine-terrain/terrain/project/TerrainPostProcessRuntime";
 import { TerrainProjectWorldRuntime } from "@galacean/engine-terrain/terrain/project/TerrainProjectRuntime";
 import { TerrainProjectTreeRuntime } from "@galacean/engine-terrain/terrain/project/TerrainProjectTreeRuntime";
+import { isTerrainSsrAcceptanceEnabled } from "@galacean/engine-terrain/terrain/project/TerrainSsrAcceptanceMode";
 import {
   TerrainSsrReflectionTarget,
   type TerrainSsrReflectionTargetSnapshot
 } from "@galacean/engine-terrain/terrain/project/TerrainSsrReflectionTarget";
-import { isTerrainSsrAcceptanceEnabled } from "@galacean/engine-terrain/terrain/project/TerrainSsrAcceptanceMode";
-import {
-  TerrainWaterRuntime,
-  type TerrainWaterReflectionMode,
-  type TerrainWaterScenario
-} from "@galacean/engine-world-planning/integrations/terrain/project/TerrainWaterRuntime";
 import { TerrainWindRuntime } from "@galacean/engine-terrain/terrain/project/TerrainWindRuntime";
+import type {
+  TerrainDemoCameraPose,
+  TerrainDemoControls
+} from "@galacean/engine-world-planning/integrations/terrain/debug/TerrainDemoControls";
+import { createTerrainRuntimeDebugOwner } from "@galacean/engine-world-planning/integrations/terrain/debug/TerrainRuntimeDebugOwnerFactory";
+import { TerrainProjectRainImpactSurface } from "@galacean/engine-world-planning/integrations/terrain/environment/TerrainRainImpactSurface";
+import { TerrainWindGpuExposureProvider } from "@galacean/engine-world-planning/integrations/terrain/environment/TerrainWindGpuExposureProvider";
+import {
+  WorldEnvironmentRuntime,
+  type TerrainSeason,
+  type TerrainSurfaceWaterTuning
+} from "@galacean/engine-world-planning/integrations/terrain/environment/WorldEnvironmentRuntime";
+import {
+  INTEGRATED_WORLD_CAMERA_POSE,
+  INTEGRATED_WORLD_RENDER_PIXEL_RATIO
+} from "@galacean/engine-world-planning/integrations/terrain/lighting/IntegratedWorldLightingPreset";
+import { createIntegratedWorldLightingRuntime } from "@galacean/engine-world-planning/integrations/terrain/lighting/IntegratedWorldPresentation";
 import {
   TERRAIN_DEFAULT_CAMERA_CONFIGURATION,
   TerrainLightingRuntime,
   type TerrainBakeLightingTuning,
   type TerrainLightingClockTuning
 } from "@galacean/engine-world-planning/integrations/terrain/lighting/TerrainLightingRuntime";
-import { createIntegratedWorldLightingRuntime } from "@galacean/engine-world-planning/integrations/terrain/lighting/IntegratedWorldPresentation";
-import { TerrainWindGpuExposureProvider } from "@galacean/engine-world-planning/integrations/terrain/environment/TerrainWindGpuExposureProvider";
-import {
-  INTEGRATED_WORLD_CAMERA_POSE,
-  INTEGRATED_WORLD_RENDER_PIXEL_RATIO
-} from "@galacean/engine-world-planning/integrations/terrain/lighting/IntegratedWorldLightingPreset";
-import { loadTerrainScene } from "@galacean/engine-terrain/terrain/loader/TerrainSceneLoader";
-import {
-  WorldEnvironmentRuntime,
-  type TerrainSeason,
-  type TerrainSurfaceWaterTuning
-} from "@galacean/engine-world-planning/integrations/terrain/environment/WorldEnvironmentRuntime";
-import { TerrainProjectRainImpactSurface } from "@galacean/engine-world-planning/integrations/terrain/environment/TerrainRainImpactSurface";
 import {
   createTerrainProjectProbeVolumeRegionSourceProvider,
   TerrainProbeVolumeAuthoring,
   type TerrainProbeVolumeScenario
 } from "@galacean/engine-world-planning/integrations/terrain/lighting/TerrainProbeVolumeAuthoring";
+import { TerrainPerformancePanel } from "@galacean/engine-world-planning/integrations/terrain/performance/TerrainPerformancePanel";
+import {
+  TerrainWaterRuntime,
+  type TerrainWaterReflectionMode,
+  type TerrainWaterScenario
+} from "@galacean/engine-world-planning/integrations/terrain/project/TerrainWaterRuntime";
 import "@galacean/engine-world-planning/runtime/script-registry";
 
 interface TerrainScreenSpaceReflectionResolvedSettings {
@@ -153,7 +156,7 @@ interface TerrainDemoDiagnosticsSnapshot {
   details: ReturnType<TerrainProjectDetailRuntime["getDiagnostics"]>;
   trees: ReturnType<TerrainProjectTreeRuntime["getDiagnostics"]>;
   placedPrefabs: ReturnType<TerrainProjectPlacedPrefabRuntime["getDiagnostics"]>;
-  water: ReturnType<TerrainWaterRuntime["getDiagnostics"]>;
+
   controls: ReturnType<TerrainDemoControls["getSnapshot"]>;
   readonly waterReflectionMode: TerrainWaterReflectionMode;
   screenSpaceReflection: TerrainScreenSpaceReflectionSnapshot;
@@ -450,7 +453,7 @@ async function boot(): Promise<void> {
       probeVolume
     },
     screenSpaceReflection: {
-      readStatus: () => inspectScreenSpaceReflectionPanelStatus(camera, water),
+      readStatus: () => inspectScreenSpaceReflectionPanelStatus(camera),
       applyConfiguration: (configuration) => applyScreenSpaceReflectionConfiguration(camera, configuration)
     },
     environment
@@ -527,7 +530,6 @@ async function boot(): Promise<void> {
     const detailSnapshot = details.getDiagnostics();
     const treeSnapshot = trees.getDiagnostics();
     const prefabSnapshot = placedPrefabs.getDiagnostics();
-    const waterSnapshot = water.getDiagnostics();
     const screenSpaceReflection = camera.screenSpaceReflection.metrics;
     const visibleDetailInstances = TERRAIN_ONLY_MODE
       ? 0
@@ -551,8 +553,7 @@ async function boot(): Promise<void> {
       treeLodGroups: TERRAIN_ONLY_MODE ? 0 : treeSnapshot.lodGroups,
       prefabInstances: TERRAIN_ONLY_MODE ? 0 : prefabSnapshot.instances,
       prefabLodGroups: TERRAIN_ONLY_MODE ? 0 : prefabSnapshot.lodGroups,
-      waterVisible: TERRAIN_ONLY_MODE ? false : (waterSnapshot?.visible ?? false),
-      waterChunks: TERRAIN_ONLY_MODE ? 0 : (waterSnapshot?.chunkCount ?? 0),
+
       msaaSamples: camera.msaaSamples,
       postProcessEnabled: postProcess.profileEnabled,
       screenSpaceReflectionRequested: screenSpaceReflection.requested,
@@ -578,9 +579,7 @@ async function boot(): Promise<void> {
     details: detailDiagnostics,
     trees: treeDiagnostics,
     placedPrefabs: placedPrefabDiagnostics,
-    get water() {
-      return water.getDiagnostics();
-    },
+
     get controls() {
       return controls.getSnapshot();
     },
@@ -660,7 +659,7 @@ async function boot(): Promise<void> {
         details: details.getDiagnostics(),
         trees: trees.getDiagnostics(),
         placedPrefabs: placedPrefabs.getDiagnostics(),
-        water: water.getDiagnostics(),
+
         controls: controls.getSnapshot(),
         waterReflectionMode: water.reflectionMode,
         screenSpaceReflection: inspectScreenSpaceReflection(camera),

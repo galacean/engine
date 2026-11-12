@@ -1,18 +1,18 @@
-import { sampleWaterTerrainHeight } from "../../authoring/terrain/WaterTerrainSnapshot";
 import { insideRiverDropFootprint } from "../../authoring/river/RiverDrop";
-import { minimumWaterTerrainHeight, WaterWetNearShoreSearch } from "../spatial/WaterWetNearShoreSearch";
-import type { RiverCompiledData, ReadonlyVector3Tuple } from "../../compiler/river/types";
+import { sampleWaterTerrainHeight } from "../../authoring/terrain/WaterTerrainSnapshot";
 import { RIVER_QUERY_SAMPLE_COMPONENT } from "../../compiler/river/constants";
-import { RIVER_QUERY_EPSILON } from "./constants";
 import { RiverQueryPrimitiveKind } from "../../compiler/river/RiverGeometryEnums";
-import { clipRiverTriangle, riverTriangleIntersectsBounds, riverTriangleQueryVertices } from "./RiverTriangleQuery";
+import type { ReadonlyVector3Tuple, RiverCompiledData } from "../../compiler/river/types";
 import {
-  WATER_NEAR_SHORE_RADIUS_M,
   resetWaterNearShoreSample,
+  WATER_NEAR_SHORE_RADIUS_M,
   waterNearShoreTask,
   type WaterNearShoreQuery,
   type WaterNearShoreSample
 } from "../spatial/WaterNearShoreQuery";
+import { minimumWaterTerrainHeight, WaterWetNearShoreSearch } from "../spatial/WaterWetNearShoreSearch";
+import { RIVER_QUERY_EPSILON } from "./constants";
+import { clipRiverTriangle, riverTriangleIntersectsBounds, riverTriangleQueryVertices } from "./RiverTriangleQuery";
 
 type Triangle = [ReadonlyVector3Tuple, ReadonlyVector3Tuple, ReadonlyVector3Tuple];
 type ShoreSample = { position: [number, number, number]; width: number; depth: number };
@@ -177,10 +177,6 @@ function boundsDistanceSquared(node: Bounds, x: number, z: number): number {
 export class RiverNearShoreQuery implements WaterNearShoreQuery {
   readonly radiusM = WATER_NEAR_SHORE_RADIUS_M;
   private root?: Node;
-  private builds = 0;
-  private tests = 0;
-  private count = 0;
-  private nativeReads = 0;
   private readonly wetHeight: (x: number, z: number) => number | undefined;
   private candidateX = 0;
   private candidateZ = 0;
@@ -205,8 +201,6 @@ export class RiverNearShoreQuery implements WaterNearShoreQuery {
   private triCursor = 0;
   private triNodes: TriangleNode[] = [];
   private triNodeCursor = 0;
-  private preparedPrimitives = 0;
-  private preparedTriangles = 0;
   private triLevelA: TriangleNode[] = [];
   private triLevelB: TriangleNode[] = [];
   private readonly support: Bounds = { minX: Infinity, minZ: Infinity, maxX: -Infinity, maxZ: -Infinity };
@@ -226,13 +220,11 @@ export class RiverNearShoreQuery implements WaterNearShoreQuery {
         const bed = sampleWaterTerrainHeight(this.data.terrain, x, z);
         if (bed === undefined || bed >= this.constantHeight) return undefined;
       }
-      this.nativeReads++;
       return wetHeight(x, z);
     };
     // Set up span metadata; triangle storage remains lazy until geometry is needed.
     this.layoutSlots();
     this.warmupNativeQuery();
-    this.nativeReads = 0;
     // The first optimizing compile of the span walker is a multi-millisecond pause.
     // Pay it while the query is constructed, then leave the rest of the index cooperative.
     this.warmupPreparation();
@@ -244,7 +236,6 @@ export class RiverNearShoreQuery implements WaterNearShoreQuery {
       if (!next.done) continue;
       this.root = next.value;
       this.preparation = undefined;
-      this.builds++;
       return;
     }
   }
@@ -271,7 +262,6 @@ export class RiverNearShoreQuery implements WaterNearShoreQuery {
       if (next.done) {
         this.root = next.value;
         this.preparation = undefined;
-        this.builds++;
         return true;
       }
       if (now() - start >= budgetMs) break;
@@ -557,8 +547,6 @@ export class RiverNearShoreQuery implements WaterNearShoreQuery {
     slot.list.length = produced;
     slot.tree = produced ? this.buildTriangleTree(slot) : undefined;
     slot.filled = true;
-    this.preparedPrimitives++;
-    this.preparedTriangles += produced;
   }
   private isDry(slot: Slot): boolean {
     return (slot.dry ??= !!this.data.terrain && minimumWaterTerrainHeight(this.data.terrain, slot, 64) >= slot.height);
@@ -742,7 +730,6 @@ export class RiverNearShoreQuery implements WaterNearShoreQuery {
         // A compiled span has a bounded cross-section (32 native triangles).
         // Materialize only visited spans, then reuse the domains for hot queries.
         yield slot;
-        this.count++;
       } else {
         const junction = this.data.junctions[sourceIndex],
           geometry = junction.surfaceGeometry,
@@ -794,7 +781,6 @@ export class RiverNearShoreQuery implements WaterNearShoreQuery {
           slot.height = maxY;
           slot.flat = a[1] === b[1] && b[1] === c[1];
           yield slot;
-          this.count++;
         }
       }
     }
@@ -1045,18 +1031,6 @@ export class RiverNearShoreQuery implements WaterNearShoreQuery {
     }
     if (current) yield [point(current[0]), point(current[1])];
   }
-  diagnostics() {
-    return {
-      builds: this.builds,
-      nativeReads: this.nativeReads,
-      primitiveCount: this.count,
-      preparedPrimitives: this.preparedPrimitives,
-      preparedTriangles: this.preparedTriangles,
-      triangleCapacity: this.triPool.length,
-      lastPrimitiveTests: this.tests,
-      wet: this.wetSearch?.diagnostics()
-    };
-  }
 
   createTask(x: number, z: number, out: WaterNearShoreSample) {
     return waterNearShoreTask(this.search(x, z, out));
@@ -1071,7 +1045,6 @@ export class RiverNearShoreQuery implements WaterNearShoreQuery {
   private *search(x: number, z: number, out: WaterNearShoreSample): Generator<void, boolean> {
     resetWaterNearShoreSample(out);
     yield;
-    this.tests = 0;
     if (!Number.isFinite(x) || !Number.isFinite(z)) return false;
     while (!this.prepare()) {
       yield;
@@ -1115,7 +1088,6 @@ export class RiverNearShoreQuery implements WaterNearShoreQuery {
             minimum = Math.min(minimum, boundsDistanceSquared(p, x, z));
             continue;
           }
-          this.tests++;
           if (!p.filled) yield* this.ensureFilled(p);
           yield;
           if (this.constantHeight !== undefined && this.data.terrain) {

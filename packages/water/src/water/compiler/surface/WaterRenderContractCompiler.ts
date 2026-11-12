@@ -1,6 +1,6 @@
 import {
-  MAX_WATER_REFRACTION_STRENGTH,
-  MAX_WATER_REFLECTION_INTENSITY
+  MAX_WATER_REFLECTION_INTENSITY,
+  MAX_WATER_REFRACTION_STRENGTH
 } from "../../authoring/optics/WaterOpticalLimits";
 /** Pure Water Look -> Render Contract compiler. It never creates Engine objects. */
 import {
@@ -37,13 +37,13 @@ import {
   type WaterRenderContractDiagnostic
 } from "./CompiledWaterRenderContractTypes";
 import type { CompiledWaterSurfaceAppearanceV2 } from "./CompiledWaterSurfaceAppearanceTypes";
+import { validateWaterSurfaceAppearanceV2Asset } from "./WaterSurfaceAppearanceV2Validator";
+import { WaterSurfaceClosureCompiler, getRequiredWaterSurfaceV2Semantics } from "./WaterSurfaceClosureCompiler";
 import {
   collectWaterSurfaceTextureReferences,
   waterSurfaceTextureReferencePath,
   waterTextureResourceIssue
 } from "./WaterSurfaceTextureReferences";
-import { WaterSurfaceClosureCompiler, getRequiredWaterSurfaceV2Semantics } from "./WaterSurfaceClosureCompiler";
-import { validateWaterSurfaceAppearanceV2Asset } from "./WaterSurfaceAppearanceV2Validator";
 
 const WATER_RENDER_CONTRACT_COMPILER_VERSION = 1;
 const SHA_256_PATTERN = /^[a-f0-9]{64}$/i;
@@ -96,24 +96,7 @@ function snapshotOptics(profile: Readonly<WaterOpticalProfileV1>): Readonly<Wate
     assertRange(profile.scatteringColor[1], 0, 1, "$.optics.profile.scatteringColor[1]"),
     assertRange(profile.scatteringColor[2], 0, 1, "$.optics.profile.scatteringColor[2]")
   ] as const);
-  const sourceScattering = profile.surfaceScattering;
-  let surfaceScattering: WaterOpticalProfileV1["surfaceScattering"];
-  if (sourceScattering !== undefined) {
-    const coefficients = sourceScattering?.coefficientPerMeter;
-    if (!Array.isArray(coefficients) || coefficients.length !== 3) {
-      throw new TypeError("$.optics.profile.surfaceScattering.coefficientPerMeter must contain three values.");
-    }
-    surfaceScattering = Object.freeze({
-      coefficientPerMeter: Object.freeze([
-        assertRange(coefficients[0], 0, 1_000, "$.optics.profile.surfaceScattering.coefficientPerMeter[0]"),
-        assertRange(coefficients[1], 0, 1_000, "$.optics.profile.surfaceScattering.coefficientPerMeter[1]"),
-        assertRange(coefficients[2], 0, 1_000, "$.optics.profile.surfaceScattering.coefficientPerMeter[2]")
-      ] as const),
-      phaseG: assertRange(sourceScattering.phaseG, -0.95, 0.95, "$.optics.profile.surfaceScattering.phaseG")
-    });
-  }
   return Object.freeze({
-    ...(surfaceScattering ? { surfaceScattering } : {}),
     absorptionCoefficient,
     scatteringColor,
     scatteringCoefficient: assertRange(
@@ -518,7 +501,6 @@ export class WaterRenderContractCompiler {
       compilerVersion: WATER_RENDER_CONTRACT_COMPILER_VERSION,
       surfaceClosureVariantKey: closureResult.data.variantKey,
       ...(look.riverDrops ? { riverDrops: "textured-curtain-foam-spray-v1" } : {}),
-      ...(optics.profile.surfaceScattering ? { surfaceScattering: true } : {}),
       reflectionSourceChain: reflectionIntent.sourceChain,
       renderState: {
         depthWriteEnabled: renderState.depthWriteEnabled,

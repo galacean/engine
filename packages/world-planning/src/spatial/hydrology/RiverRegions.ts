@@ -11,6 +11,7 @@ import { createPlanningGroundSampler, createPlanningRingQuery } from "../../sema
 import { settlementRandom } from "../../semantic-study/SettlementGeometry";
 import { ribbonOutline } from "../../semantic-study/WorldRibbon";
 import { territoryLookup } from "../ecology/PoiTerritories";
+import { compositionReliefGround } from "../SpatialCompositionGeometry";
 
 /** World hydrology preferences. All lengths and levels are metres. Each river publishes its own longitudinal profile. */
 export interface RiverParameters extends PlanningCountRange {
@@ -93,7 +94,7 @@ export function generateRiverRegions(
   plan.bridges = [];
   plan.roadApproaches = []; // Derived road grading must never feed back into hydrology.
   plan.planning!.profiles = plan.planning!.profiles.filter((p) => !previousWaterIds.has(p.ownerId));
-  const ground = createPlanningGroundSampler(plan),
+  const ground = compositionReliefGround(plan.parameters.spatialComposition, createPlanningGroundSampler(plan)),
     owner = territoryLookup(plan),
     checks: PlanningCheck[] = [];
   const rules = (p: PlanPoint, base = config): RiverParameters => {
@@ -123,16 +124,18 @@ export function generateRiverRegions(
     .slice()
     .sort((a, b) => extent(b.outline) - extent(a.outline) || a.id.localeCompare(b.id));
   const requested = [
-    ...Array.from({ length: candidateCount }, (_, i) => `river:${i}`),
-    ...Object.keys(local)
-      .filter((id) => id.startsWith("river:authored:"))
-      .sort()
+    ...new Set([
+      ...Array.from({ length: candidateCount }, (_, i) => `river:${i}`),
+      ...Object.keys(local)
+        .filter((id) => id.startsWith("river:") && (id.startsWith("river:authored:") || local[id].points !== undefined))
+        .sort()
+    ])
   ];
   for (const [river, id] of requested.entries()) {
     const riverConfig = { ...config, ...local[id] };
+    if (riverConfig.enabled === false) continue;
     if (id.startsWith("river:authored:") && !riverConfig.points)
       throw new Error("INVALID_ARGUMENT: 自定义河流缺少控制点");
-    if (riverConfig.enabled === false) continue;
     if (riverConfig.points !== undefined) {
       // Author overrides retain Watercourse defaults: 0.25 m probes and 0.05 m bank clearance.
       const probeSpacing = riverConfig.probeSpacing ?? 0.25;

@@ -8,6 +8,7 @@ import profile from "../planning-data/settlement-profile.json";
 import type { IslandPlan, PlanPoint } from "./IslandPlanModel";
 import { createPlanningGroundSampler, createPlanningRingQuery } from "./WorldPlanningTerrain";
 import { sampleFloat32GridTriangle as sampleTerrainGrid } from "@galacean/engine-terrain/geometry/GridInterpolation";
+import { worldTemplateStreet, worldTemplateStreetPuddles } from "../spatial/WorldTemplateStreet";
 import { planningTerrainAuthoringInputs } from "../spatial/PlanningResources";
 
 /** Metre heights on an inclusive grid; rows advance along world +Z. */
@@ -99,6 +100,7 @@ function groundSurface(plan: IslandPlan): GroundSurface {
     sparse = new Map<number, number | (() => number)>(),
     measured = { backgroundSamples: 0 };
   seedBridgeLandingVertices(plan, ground, sparse, resolution, spacingX, spacingZ, () => measured.backgroundSamples++);
+  const streetPuddles = worldTemplateStreetPuddles(plan);
   const surface: GroundSurface = {
     spacingX,
     spacingZ,
@@ -115,7 +117,9 @@ function groundSurface(plan: IslandPlan): GroundSurface {
       if (surface.raster) return surface.raster[index];
       let value = sparse.get(index);
       if (value === undefined) {
-        value = Math.fround(ground({ x: x * spacingX, z: z * spacingZ }));
+        const point = { x: x * spacingX, z: z * spacingZ };
+        const depth = streetPuddles?.sample(point.x, point.z)?.depthMetres ?? 0;
+        value = Math.fround(ground(point) - depth);
         measured.backgroundSamples++;
         if (!surface.materializing) sparse.set(index, value);
       } else if (typeof value === "function") {
@@ -435,10 +439,16 @@ export function compilePlanningWaterHeightmap(
 }
 
 function heightKey(plan: IslandPlan, resolution: number): string {
+  const street = plan.parameters.worldTemplate?.id === "neon-alley" ? worldTemplateStreet(plan) : undefined;
   return JSON.stringify([
     "canonical-float32-v1",
     RIVER_BANK_PROFILE_VERSION,
     plan.authoredWaterLayer,
+    street && [
+      street.construction?.spine,
+      street.rule.pathWidthM,
+      street.volumes.map(({ boxes: [box] }) => box.center)
+    ],
     resolution,
     plan.roadApproaches?.map((a) => [a.approach?.grading, a.approach?.gradingWeights, a.approach?.landings]),
     planningTerrainAuthoringInputs(plan.authoredResources),

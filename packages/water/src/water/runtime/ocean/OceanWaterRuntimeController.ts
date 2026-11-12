@@ -1,10 +1,10 @@
 import { Shader, ShaderPass } from "@galacean/engine-core";
 import type { Vector3 } from "@galacean/engine-math";
+import { createWaterConnectionBinding, type WaterConnectionBinding } from "../connections/WaterConnectionBinding";
 import type { WaterSurfaceSample } from "../query/WaterSurfaceProvider";
 import { resetWaterSurfaceSample } from "../query/WaterSurfaceProvider";
-import { OceanWaterSurfaceProvider } from "./OceanWaterSurfaceProvider";
 import { resolveFiniteOceanSurfaceEnvelope } from "./FiniteOceanSurfaceGeometry";
-import { createWaterConnectionBinding, type WaterConnectionBinding } from "../connections/WaterConnectionBinding";
+import { OceanWaterSurfaceProvider } from "./OceanWaterSurfaceProvider";
 /** Runtime owner for one finite-authority Ocean rendered by a camera-relative near grid and graded far rings. */
 import type { Engine, Entity, Texture2D } from "@galacean/engine-core";
 import {
@@ -17,39 +17,29 @@ import type { WaterReflectionBinding } from "../optics/WaterReflectionService";
 import { FiniteOceanSurfaceGeometry } from "./FiniteOceanSurfaceGeometry";
 import {
   createOceanFarMaterial,
-  setOceanFarDebugView,
-  setOceanFarLodDebug,
   setOceanFarReflectionBinding,
   setOceanFarRuntimeTuning,
   setOceanFarViewportHeight,
   type OceanFarMaterialState
 } from "./OceanFarMaterial";
-import { createOceanNearshoreFieldTexture } from "./OceanNearshoreFieldTextureFactory";
-import type { OceanNearshoreFieldResource } from "./OceanNearshoreFieldResource";
 import {
   createOceanMaterial,
   setOceanBandlimitViewportHeight,
   setOceanCameraFeaturesAvailable,
-  setOceanDebugView,
-  setOceanLodDebug,
   setOceanReflectionBinding,
   setOceanRuntimeTuning,
   setOceanSurfaceTime,
   type OceanMaterialState
 } from "./OceanMaterial";
-import { OceanDebugView } from "./OceanDebugView";
+import type { OceanNearshoreFieldResource } from "./OceanNearshoreFieldResource";
+import { createOceanNearshoreFieldTexture } from "./OceanNearshoreFieldTextureFactory";
 import { OCEAN_TUNING_LIMITS, type OceanRuntimeTuning } from "./OceanRuntimeTuning";
 import {
-  OCEAN_SCENE_FIELD_DEMAND_BUDGET,
   OceanSceneFieldDemandResolver,
   type OceanSceneFieldCameraPosition,
   type OceanSceneFieldDemandResult
 } from "./OceanSceneFieldDemand";
-import type {
-  OceanWaterRuntimeConfig,
-  OceanWaterRuntimeFeatureAvailability,
-  OceanWaterRuntimeMetrics
-} from "./OceanWaterRuntimeTypes";
+import type { OceanWaterRuntimeConfig, OceanWaterRuntimeFeatureAvailability } from "./OceanWaterRuntimeTypes";
 
 export interface OceanWaterRuntimeCompiledInput {
   readonly physicalSurfaceHash: string;
@@ -135,17 +125,14 @@ export class OceanWaterRuntimeController {
   private readonly _engine: Engine;
   private readonly _cameraPositionProvider: OceanCameraPositionProvider;
   private readonly _geometry: FiniteOceanSurfaceGeometry;
-  private readonly _geometryMetrics: FiniteOceanSurfaceGeometry["metrics"];
   private readonly _nearshoreTexture: Texture2D;
   private readonly _materialState: OceanMaterialState;
   private readonly _farMaterialState: OceanFarMaterialState;
-  private readonly _ownedGpuBytes: number;
   private readonly _connectionBinding: WaterConnectionBinding | undefined;
   private readonly _maximumDisplacement: Readonly<{ readonly x: number; readonly y: number; readonly z: number }>;
   private readonly _sceneFieldDemandResolver: OceanSceneFieldDemandResolver;
   private _bandlimitViewportHeight: number;
   private _config: OceanWaterRuntimeConfig;
-  private _reflectionSource: OceanWaterRuntimeMetrics["reflectionSource"] = "sky";
   private _externalCameraFeaturesAvailable = true;
   private _cameraFeaturesAvailable = true;
   private _cameraSceneFieldDemand: Readonly<OceanSceneFieldDemandResult>;
@@ -153,8 +140,6 @@ export class OceanWaterRuntimeController {
   private _cameraSceneFieldTransitionCount = 0;
   private _lastCameraPosition: Readonly<OceanCameraPosition>;
   private _frameCount = 0;
-  private _meshDestroyCount = 0;
-  private _materialDestroyCount = 0;
   private _surfaceLevelOffsetMetres = 0;
   private _destroyed = false;
   private _authoredFarShader?: Shader;
@@ -233,8 +218,7 @@ export class OceanWaterRuntimeController {
         initialCameraPosition.y,
         initialCameraPosition.z,
         config.waterLevel,
-        true,
-        (config.debugView !== undefined && config.debugView !== OceanDebugView.Final) || config.lodDebug === true
+        true
       );
       this._cameraFeaturesAvailable = this._cameraSceneFieldDemand.required;
       const nearshoreBinding = {
@@ -255,8 +239,7 @@ export class OceanWaterRuntimeController {
         nearshore: nearshoreBinding,
         surfaceTimeOverride: config.surfaceTimeOverride,
         cameraFeaturesAvailable: this._cameraFeaturesAvailable,
-        debugView: config.debugView,
-        lodDebug: config.lodDebug,
+
         sceneFogEnabled: config.sceneFogEnabled
       });
       if (config.surfaceShader) materialState.material.shader = config.surfaceShader;
@@ -264,10 +247,10 @@ export class OceanWaterRuntimeController {
         renderContract: config.renderContract,
         waterLevel: config.waterLevel,
         viewportHeight: this._bandlimitViewportHeight,
-        debugView: config.debugView,
+
         nearshore: nearshoreBinding,
         tuning,
-        lodDebug: config.lodDebug,
+
         sceneFogEnabled: config.sceneFogEnabled
       });
       if (config.surfaceShader) {
@@ -354,8 +337,6 @@ export class OceanWaterRuntimeController {
       this._materialState = materialState;
       this._farMaterialState = farMaterialState;
       this._geometry = geometry;
-      this._geometryMetrics = geometry.metrics;
-      this._ownedGpuBytes = ownedGpuBytes;
       this._connectionBinding = connectionBinding;
     } catch (error) {
       cleanupRuntime(
@@ -410,144 +391,8 @@ export class OceanWaterRuntimeController {
     return this._cameraSceneFieldDemand.required;
   }
 
-  get lodDebugEnabled(): boolean {
-    return this._materialState.lodDebug;
-  }
-
-  get debugView(): OceanDebugView {
-    return this._materialState.debugView;
-  }
-
   get tuning(): Readonly<OceanRuntimeTuning> {
     return this._materialState.tuning;
-  }
-
-  get metrics(): Readonly<OceanWaterRuntimeMetrics> {
-    const geometry = this._geometryMetrics;
-    const materialCount = 2;
-    const nearshore = this.nearshoreFieldResource.isDisposed ? undefined : this.nearshoreFieldResource.data;
-    return Object.freeze({
-      responseModel: "ocean",
-      lookId: this._materialState.lookId,
-      parameterHash: this._materialState.parameterHash,
-      waterLevel: this._config.waterLevel + this._surfaceLevelOffsetMetres,
-      surfaceTopology: "finite",
-      cameraRelative: true,
-      capabilityMode: "render-and-query",
-      sceneFogEnabled: this._config.sceneFogEnabled,
-      reflectionSource: this._reflectionSource,
-      screenSpaceReflectionEnabled: false,
-      crestFoamEnabled: false,
-      windFieldEnabled: false,
-      surfaceQueryEnabled: true,
-      interactionEnabled: false,
-      temporalFoamEnabled: false,
-      waveGroupCount: 3,
-      sourceWaveCount: OCEAN_LOOK.wave.count,
-      geometryWaveBandlimitEnabled: true,
-      maximumGeometryWaveTrigonometricEvaluationsPerVertex: 24,
-      bandlimitViewportHeight: this._bandlimitViewportHeight,
-      farFieldPresentation: "camera-relative-graded-rings",
-      farFieldMaximumTextureSampleCount: OCEAN_RENDER_BUDGET.farFieldMaximumTextureSampleCount,
-      farFieldAdditionalRenderTargetCount: 0,
-      farFieldUsesSceneTextures: false,
-      farFieldClosureTransitionStartMetres: OCEAN_RENDER_BUDGET.farFieldClosureTransitionStartMetres,
-      farFieldClosureTransitionEndMetres: OCEAN_RENDER_BUDGET.farFieldClosureTransitionEndMetres,
-      farFieldRingCount: geometry.farFieldRingCount,
-      farFieldSegmentsPerEdge: geometry.farFieldSegmentsPerEdge,
-      farFieldInnerHalfExtentMetres: geometry.farFieldInnerHalfExtentMetres,
-      farFieldActualDepthOuterHalfExtentMetres: geometry.farFieldActualDepthOuterHalfExtentMetres,
-      farFieldProjectionMarkerHalfExtentMetres: geometry.farFieldProjectionMarkerHalfExtentMetres,
-      farFieldProjectionMinimumDistanceMetres: geometry.farFieldProjectionMinimumDistanceMetres,
-      farFieldProjectionMaximumDistanceMetres: geometry.farFieldProjectionMaximumDistanceMetres,
-      farFieldProjectionMaximumErrorPixels: geometry.farFieldProjectionMaximumErrorPixels,
-      farFieldQuadCount: geometry.farFieldQuadCount,
-      presentationPath: this._geometry.presentationPath,
-      presentationPathTransitionCount: this._geometry.presentationPathTransitionCount,
-      detailedPathDrawCount: geometry.detailedPathDrawCount,
-      detailedPathVertexCount: geometry.detailedPathVertexCount,
-      detailedPathTriangleCount: geometry.detailedPathTriangleCount,
-      farOnlyPathDrawCount: geometry.farOnlyPathDrawCount,
-      farOnlyPathVertexCount: geometry.farOnlyPathVertexCount,
-      farOnlyPathTriangleCount: geometry.farOnlyPathTriangleCount,
-      farOnlyFillDrawCount: geometry.farOnlyFillDrawCount,
-      farOnlyFillVertexCount: geometry.farOnlyFillVertexCount,
-      farOnlyFillTriangleCount: geometry.farOnlyFillTriangleCount,
-      textureCount: this._config.textures.textureCount,
-      textureContainerFormat: this._config.textures.containerFormat,
-      compressedTextureCount: this._config.textures.compressedTextureCount,
-      uncompressedTextureFallbackCount: this._config.textures.uncompressedFallbackTextureCount,
-      textureResourceBytes: this._config.textures.resourceBytes,
-      geometryResourceBytes: this._destroyed ? 0 : geometry.vertexBufferBytes + geometry.indexBufferBytes,
-      ownedGpuBytes: this._destroyed ? 0 : this._ownedGpuBytes,
-      maximumOwnedGpuBytes: OCEAN_RENDER_BUDGET.maximumOwnedGpuBytes,
-      gpuBudgetHeadroomBytes: this._destroyed
-        ? OCEAN_RENDER_BUDGET.maximumOwnedGpuBytes
-        : OCEAN_RENDER_BUDGET.maximumOwnedGpuBytes - this._ownedGpuBytes,
-      nearshoreEnabled: true,
-      outsidePolicy: this._config.nearshoreDescriptor.outsidePolicy,
-      nearshoreSourceHash: nearshore?.sourceHash ?? "disposed",
-      nearshoreWetTexelCount: nearshore?.stats.wetTexelCount ?? 0,
-      nearshoreDryTexelCount: nearshore?.stats.dryTexelCount ?? 0,
-      nearshoreResourceBytes: nearshore?.stats.atlasByteLength ?? 0,
-      nearshoreQueryResourceBytes: 0,
-      drawCount: this._destroyed ? 0 : this._geometry.activeDrawCount,
-      triangleCount: this._destroyed ? 0 : this._geometry.activeTriangleCount,
-      vertexCount: this._destroyed ? 0 : this._geometry.activeVertexCount,
-      residentMeshCount: this._destroyed ? 0 : geometry.residentMeshCount,
-      residentTriangleCount: this._destroyed ? 0 : geometry.residentTriangleCount,
-      residentVertexCount: this._destroyed ? 0 : geometry.residentVertexCount,
-      meshCreateCount: geometry.meshCreateCount,
-      meshDestroyCount: this._meshDestroyCount,
-      meshUploadCount: geometry.meshUploadCount,
-      activeMeshCount: this._destroyed ? 0 : geometry.meshCreateCount - this._meshDestroyCount,
-      materialCreateCount: materialCount,
-      materialDestroyCount: this._materialDestroyCount,
-      activeMaterialCount: this._destroyed ? 0 : materialCount - this._materialDestroyCount,
-      vertexBufferBytes: this._destroyed ? 0 : geometry.vertexBufferBytes,
-      indexBufferBytes: this._destroyed ? 0 : geometry.indexBufferBytes,
-      nearFieldWindowSizeMetres: geometry.nearFieldWindowSizeMetres,
-      nearFieldCellSizeMetres: geometry.nearFieldCellSizeMetres,
-      nearFieldSnapSizeMetres: geometry.nearFieldSnapSizeMetres,
-      nearFieldMinimumGuaranteedRadiusMetres: geometry.nearFieldMinimumGuaranteedRadiusMetres,
-      nearFieldCellCount: geometry.nearFieldCellCount,
-      nearFieldCenterX: this._geometry.nearFieldCenterX,
-      nearFieldCenterZ: this._geometry.nearFieldCenterZ,
-      nearFieldRelocationCount: this._geometry.nearFieldRelocationCount,
-      nearFieldDrawCount: geometry.nearFieldDrawCount,
-      nearFieldVertexCount: geometry.nearFieldVertexCount,
-      nearFieldTriangleCount: geometry.nearFieldTriangleCount,
-      activeNearFieldDrawCount: this._destroyed ? 0 : this._geometry.activeNearFieldDrawCount,
-      activeNearFieldVertexCount: this._destroyed ? 0 : this._geometry.activeNearFieldVertexCount,
-      activeNearFieldTriangleCount: this._destroyed ? 0 : this._geometry.activeNearFieldTriangleCount,
-      activeFarOnlyFillDrawCount: this._destroyed ? 0 : this._geometry.activeFarOnlyFillDrawCount,
-      activeFarOnlyFillVertexCount: this._destroyed ? 0 : this._geometry.activeFarOnlyFillVertexCount,
-      activeFarOnlyFillTriangleCount: this._destroyed ? 0 : this._geometry.activeFarOnlyFillTriangleCount,
-      farFieldDrawCount: geometry.farFieldDrawCount,
-      farFieldVertexCount: geometry.farFieldVertexCount,
-      farFieldTriangleCount: geometry.farFieldTriangleCount,
-      minimumCellSize: geometry.minimumCellSize,
-      maximumActualCellSize: geometry.maximumActualCellSize,
-      worldMinimumX: geometry.authorityWorldMinimumX,
-      worldMinimumZ: geometry.authorityWorldMinimumZ,
-      worldMaximumX: geometry.authorityWorldMaximumX,
-      worldMaximumZ: geometry.authorityWorldMaximumZ,
-      cameraFeatureRequested: this._cameraSceneFieldDemand.required,
-      cameraFeaturesAvailable: this._cameraFeaturesAvailable,
-      cameraSceneFieldsRequired: this._cameraSceneFieldDemand.required,
-      cameraSceneFieldDemandReason: this._cameraSceneFieldDemand.reason,
-      cameraSceneFieldMinimumDistanceMetres: this._cameraSceneFieldDemand.minimumWetSurfaceDistanceMetres,
-      cameraSceneFieldReleaseDistanceMetres:
-        OCEAN_SCENE_FIELD_DEMAND_BUDGET.detailedClosureEndMetres + OCEAN_SCENE_FIELD_DEMAND_BUDGET.releaseMarginMetres,
-      cameraSceneFieldReacquireDistanceMetres:
-        OCEAN_SCENE_FIELD_DEMAND_BUDGET.detailedClosureEndMetres +
-        OCEAN_SCENE_FIELD_DEMAND_BUDGET.reacquireMarginMetres,
-      cameraSceneFieldTransitionCount: this._cameraSceneFieldTransitionCount,
-      refractionEnabled: this.tuning.refraction.enabled,
-      surfaceTimeOverride: this._config.surfaceTimeOverride,
-      frameCount: this._frameCount,
-      perFrameMeshUpload: false
-    });
   }
 
   /** Queries remain available when presentation is hidden; destruction ends access. */
@@ -561,9 +406,8 @@ export class OceanWaterRuntimeController {
 
   setReflectionBinding(binding?: Readonly<WaterReflectionBinding>): void {
     this._assertActive();
-    const readback = setOceanReflectionBinding(this._materialState, binding);
+    setOceanReflectionBinding(this._materialState, binding);
     setOceanFarReflectionBinding(this._farMaterialState, binding);
-    this._reflectionSource = readback.effectiveSource;
   }
 
   setSurfaceTimeOverride(elapsedTime?: number): void {
@@ -606,20 +450,6 @@ export class OceanWaterRuntimeController {
     this._geometry.setRenderPriority(priority);
   }
 
-  setLodDebug(enabled: boolean): void {
-    this._assertActive();
-    setOceanLodDebug(this._materialState, enabled);
-    setOceanFarLodDebug(this._farMaterialState, enabled);
-    this._refreshCameraSceneFieldDemand(this._lastCameraPosition);
-  }
-
-  setDebugView(view: OceanDebugView): void {
-    this._assertActive();
-    setOceanDebugView(this._materialState, view);
-    setOceanFarDebugView(this._farMaterialState, view);
-    this._refreshCameraSceneFieldDemand(this._lastCameraPosition);
-  }
-
   setTuning(tuning: Readonly<OceanRuntimeTuning>): void {
     this._assertActive();
     setOceanRuntimeTuning(this._materialState, tuning);
@@ -653,18 +483,15 @@ export class OceanWaterRuntimeController {
       () => this._connectionBinding?.unbind(this._farMaterialState.material),
       () => {
         this._farMaterialState.material.destroy(true);
-        this._materialDestroyCount++;
       },
       () => this._connectionBinding?.unbind(this._materialState.material),
       () => {
         this._materialState.material.destroy(true);
-        this._materialDestroyCount++;
       },
       () => this._authoredFarShader?.destroy(),
       () => this._connectionBinding?.destroy(),
       () => {
         this._geometry.destroy();
-        this._meshDestroyCount += this._geometryMetrics.meshCreateCount;
       },
       () => this._nearshoreTexture.destroy(true),
       () => this.root.destroy(),
@@ -683,8 +510,7 @@ export class OceanWaterRuntimeController {
       cameraPosition.y,
       cameraPosition.z,
       this._config.waterLevel + this._surfaceLevelOffsetMetres,
-      previousRequired,
-      this.debugView !== OceanDebugView.Final || this.lodDebugEnabled
+      previousRequired
     );
     if (next.required !== previousRequired) {
       this._cameraSceneFieldDemandListener?.(next.required);

@@ -8,14 +8,12 @@
       vec3 material_WindVelocity;
       float material_WindVelocityOverride;
       sampler2D material_LocalMapTexture;
-      sampler2D material_SurfaceTexture;
 {{VALUE_004_APPEARANCEUNIFORMS}}
       vec4 material_LocalMapDecode;
       vec4 material_WaterWorldToLocalPlanar;
       float material_TimeScale;
       float material_WaveStrength;
       float material_WavesEnabled;
-      float material_MicroNormalStrength;
       float material_ShoreDampingWidth;
       float material_SurfaceTimeOverride;
       float material_MicroNormalsEnabled;
@@ -161,26 +159,7 @@
           stillWaterDirection
         );
         vec3 baseWorldPosition = input.worldPosition - input.baseNormalWS * input.waveOffset;
-{{VALUE_033_FLOWSURFACELAYERSTATEMENTS_QUALITY}}
-        float detailStrength = max(
-          material_MicroNormalStrength,
-          {{VALUE_034_GLSL_HEIGHTFIELD_WATER_SURFACE_TUNING_MINIMUMNORMALSTREN}}
-        ) * material_MicroNormalsEnabled * mix(
-          {{VALUE_035_GLSL_HEIGHTFIELD_WATER_SURFACE_TUNING_STILLMICRONORMALSC}},
-          1.0,
-          flowWeight
-        );
-        vec2 worldDetailSlopeXZ = waterLocalDirectionToWorldXZ(flowSurface.xy);
-        vec3 worldDetailSlope = vec3(worldDetailSlopeXZ.x, 0.0, worldDetailSlopeXZ.y);
-        vec3 tangentDetailSlope = worldDetailSlope
-          - input.macroNormalWS * dot(worldDetailSlope, input.macroNormalWS);
-        vec3 surfaceNormalWS = safeNormalize3(
-          input.macroNormalWS + tangentDetailSlope * detailStrength,
-          input.macroNormalWS
-        );
-{{VALUE_036_APPEARANCENORMALSTATEMENTS}}
-{{VALUE_037_CREATEHEIGHTFIELDWATERRAINRIPPLENORMALSTATEMENTS_QUALITY}}
-        surfaceNormalWS = waterConnectionNormal(input.worldPosition.xz, surfaceNormalWS);
+{{SURFACE_NORMAL_STATEMENTS}}
         vec3 viewDirection = safeNormalize3(camera_Position - input.worldPosition, vec3(0.0, 1.0, 0.0));
         surfaceNormalWS *= step(0.0, dot(surfaceNormalWS, viewDirection)) * 2.0 - 1.0;
         vec3 viewNormal = safeNormalize3(

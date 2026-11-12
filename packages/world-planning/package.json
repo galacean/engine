@@ -359,6 +359,7 @@
     "./spatial/layout/LayoutRules": "./src/spatial/layout/LayoutRules.ts",
     "./spatial/layout/RadialLayout": "./src/spatial/layout/RadialLayout.ts",
     "./spatial/layout/RoadAttachments": "./src/spatial/layout/RoadAttachments.ts",
+    "./spatial/layout/TerrainRoad": "./src/spatial/layout/TerrainRoad.ts",
     "./spatial/layout/RoadGeometry": "./src/spatial/layout/RoadGeometry.ts",
     "./spatial/layout/RoadGraphSplines": "./src/spatial/layout/RoadGraphSplines.ts",
     "./spatial/layout/RoadIdentity": "./src/spatial/layout/RoadIdentity.ts",

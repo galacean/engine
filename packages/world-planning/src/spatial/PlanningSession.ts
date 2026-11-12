@@ -873,13 +873,11 @@ export class PlanningSession {
         diagnostics: [],
         message: "水体不存在"
       });
-    // Generated identities retain an explicit suppression author value; authored identities can be deleted.
-    return this.document.entities[id]?.origin === "authored"
-      ? this.dispatch([{ op: "remove", entity: id }], expectedRevision)
-      : this.dispatchParameters(
-          [{ op: "set", entity: id, component: kind === "lake" ? "lakes" : "rivers", values: { enabled: false } }],
-          expectedRevision
-        );
+    // This planning API suppresses water. Source removal belongs to the native Scene transaction.
+    return this.dispatchParameters(
+      [{ op: "set", entity: id, component: kind === "lake" ? "lakes" : "rivers", values: { enabled: false } }],
+      expectedRevision
+    );
   }
   /** Validate the complete public batch before solving; unsupported operations cannot partly apply. */
   async dispatchParameters(

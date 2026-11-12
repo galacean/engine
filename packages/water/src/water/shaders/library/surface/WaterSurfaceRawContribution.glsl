@@ -18,6 +18,7 @@ struct WaterSurfaceRawReflectionFactsV2 {
   float ssrValidity;
 };
 
+#if {{SURFACE_FOAM_FACTS}}
 struct WaterSurfaceRawFoamFactsV2 {
   float surfaceSignal;
   float shoreSignal;
@@ -30,6 +31,8 @@ struct WaterSurfaceRawFoamFactsV2 {
   float enabled;
 };
 
+#endif
+
 struct WaterSurfaceRawContributionPolicyV2 {
   float primaryColorClosureModel;
   float refractionEnabled;
@@ -37,8 +40,10 @@ struct WaterSurfaceRawContributionPolicyV2 {
   float boundaryRefractionSuppression;
   float reflectionSource;
   float ssrCompositeIntensity;
+#if {{SURFACE_FOAM_FACTS}}
   float foamIntensity;
-  float calibrationMode;
+#endif
+
 };
 
 struct WaterSurfaceResolvedRawContributionsV2 {
@@ -101,13 +106,11 @@ vec3 waterSurfaceResolveAnalyticReflectionFallbackV2(
   ) * max(environmentIntensity, 0.0);
 }
 
-WaterSurfaceResolvedRawContributionsV2 waterSurfaceResolveRawContributionsV2(
-  WaterSurfaceRawRefractionFactsV2 refraction,
-  WaterSurfaceRawReflectionFactsV2 reflection,
+#if {{SURFACE_FOAM_FACTS}}
+float waterSurfaceResolveRawFoamWeightV2(
   WaterSurfaceRawFoamFactsV2 foam,
   WaterSurfaceRawContributionPolicyV2 policy
 ) {
-  WaterSurfaceResolvedRawContributionsV2 resolved;
   float proceduralSignal = max(
     max(
       max(foam.surfaceSignal, foam.shoreSignal),
@@ -121,14 +124,26 @@ WaterSurfaceResolvedRawContributionsV2 waterSurfaceResolveRawContributionsV2(
       max(foam.localSignal, 0.0)
     )
       * step(0.5, foam.enabled)
-      * (1.0 - step(0.5, policy.calibrationMode)),
+     ,
     0.0,
     1.0
   );
-  resolved.foamWeight = max(
+  return max(
     smoothstep(0.02, 0.78, foamSignal),
     clamp(foam.contactSignal, 0.0, 1.0)
   );
+}
+
+#endif
+
+WaterSurfaceResolvedRawContributionsV2 waterSurfaceResolveRawContributionsV2(
+  WaterSurfaceRawRefractionFactsV2 refraction,
+  WaterSurfaceRawReflectionFactsV2 reflection,
+  float foamWeight,
+  WaterSurfaceRawContributionPolicyV2 policy
+) {
+  WaterSurfaceResolvedRawContributionsV2 resolved;
+  resolved.foamWeight = clamp(foamWeight, 0.0, 1.0);
 
   float displacedValidity = clamp(
     refraction.displacedSampleValidity

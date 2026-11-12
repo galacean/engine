@@ -5,7 +5,8 @@ import {
   ROCK_GRASS_UPLOAD_INSTANCES
 } from "../../../packages/terrain/src/rock-formation/GrassSurface.ts";
 import { RockGrassPatches } from "../../../packages/terrain/src/rock-formation/GrassPatches.ts";
-import { rockFormationPlacements } from "../../../packages/world-planning/src/integrations/terrain/rock-formation/Placement.ts";
+import { rockFormationPlacements, rockFormationGround } from "../../../packages/world-planning/src/integrations/terrain/rock-formation/Placement.ts";
+import { prepareRockFormationPublication } from "../../../packages/world-planning/src/integrations/terrain/rock-formation/Publication.ts";
 import { rockGrassExclusions } from "../../../packages/world-planning/src/integrations/terrain/rock-formation/GrassExclusions.ts";
 import { rockSurfaceAttributes } from "../../../packages/terrain/src/rock-formation/SurfaceAttributes.ts";
 import { sharedRockTransitionCoverage } from "../../../packages/terrain/src/rock-formation/TransitionCoverage.ts";
@@ -38,6 +39,30 @@ function plane(id = "a", y = 0, width = 8): RockFormationMesh {
 }
 const sampling = { density: 15, minimumScale: 0.2, maximumScale: 0.4, allowed: () => true };
 describe("shared rock shading coverage", () => {
+  it.each(["commit", "discard"])("stages vegetation rock support until rock publication %s", async (action) => {
+    const events: string[] = [];
+    const frame = (name: string) => ({ metrics: {}, commit: vi.fn(() => events.push(name)), discard: vi.fn() });
+    const rocks = frame("rocks"), vegetation = frame("vegetation"), grounding = frame("grounding"), grass = frame("grass");
+    const fields = {};
+    const plan = { parameters: { seed: 1 }, rocks: [], buildings: [], routes: [], landscapes: [] } as any;
+    const current = {
+      plan, data: { fields },
+      solids: { prepareRocks: vi.fn(() => rocks) },
+      vegetation: { prepareRocks: vi.fn(async () => vegetation), prepareGrounding: vi.fn(() => grounding) },
+      world: { population: { prepareRockGrass: vi.fn(() => grass), setRockGrassGround: vi.fn() } },
+      navigation: { samplePointIsUnderwater: () => false }
+    } as any;
+    const meshes = [plane()];
+    const publication = await prepareRockFormationPublication(current, plan, meshes, {} as any, {} as any, 2, new AbortController().signal);
+    expect(current.vegetation.prepareGrounding).toHaveBeenCalledWith(fields, expect.any(AbortSignal), { plan, formations: meshes });
+    expect(events).toEqual([]);
+    publication[action]();
+    if (action === "commit") expect(events).toEqual(["rocks", "vegetation", "grounding", "grass"]);
+    else {
+      expect(events).toEqual([]);
+      expect(grounding.discard).toHaveBeenCalledOnce();
+    }
+  });
   it("joins incident faces without changing grass sampling coverage", () => {
     const formation = plane();
     formation.grass!.coverage.set([1, 1, 1, 0, 0, 0]);
@@ -156,6 +181,21 @@ describe("generated rock surface grass", () => {
     expect(new Set(result.records.map((r) => Math.round(r[1] * 1000)))).toEqual(new Set([12015, 17015]));
     expect(result.records.every((r) => r[10] === 0 && r[11] === 1 && r[12] === 0)).toBe(true);
     expect(result.chunks.every((chunk) => chunk.length <= ROCK_GRASS_UPLOAD_INSTANCES * 13)).toBe(true);
+  });
+
+  it("grounds vegetation on final translated rock triangles and follows rock placement edits", () => {
+    const rock = plane("a"), upper = plane("upper", 5);
+    rock.origin = [40, 8, -20];
+    upper.origin = [40, 20, -20];
+    const plan = { rocks: [{ groupId: "a", baseHeight: 12 }] } as any;
+    const ground = rockFormationGround(plan, [rock, upper]);
+    expect(ground(44, -16, 0)).toBe(25);
+    expect(ground(44, -16, 30)).toBe(30);
+    expect(ground(100, 100, 3)).toBe(3);
+    expect(rockFormationGround(plan, [rock])(44, -16, 0)).toBe(12);
+    const moved = { rocks: [{ groupId: "a", baseHeight: 22 }] } as any;
+    expect(rockFormationGround(moved, [rock])(44, -16, 0)).toBe(22);
+    expect(rock.origin).toEqual([40, 8, -20]);
   });
 
   it("requires a supported root footprint without reserving the whole blade's swept area", () => {

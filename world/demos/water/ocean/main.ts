@@ -1,21 +1,20 @@
+import { Camera, DirectLight, Layer, Script, ShadowType, Vector3, WebGLEngine, WebGLMode } from "@galacean/engine";
+import { ShaderCompiler } from "@galacean/engine-shader-compiler";
+import { INTEGRATED_WORLD_POST_PROCESS_PROFILE } from "@galacean/engine-terrain/terrain/project/IntegratedWorldPostProcessPreset";
+import { TerrainPostProcessRuntime } from "@galacean/engine-terrain/terrain/project/TerrainPostProcessRuntime";
+import { TerrainWindRuntime } from "@galacean/engine-terrain/terrain/project/TerrainWindRuntime";
 import {
-  OceanDebugView,
   OceanWaterBackend,
   type OceanWaterBackendRuntimeContext
 } from "@galacean/engine-water/water/runtime/ocean/index";
-import { Camera, DirectLight, Layer, Script, ShadowType, Vector3, WebGLEngine, WebGLMode } from "@galacean/engine";
-import { ShaderCompiler } from "@galacean/engine-shader-compiler";
-import { createIntegratedWorldLightingRuntime } from "@galacean/engine-world-planning/integrations/terrain/lighting/IntegratedWorldPresentation";
+import { SeedWorldOceanWaterLevelRuntimeState } from "@galacean/engine-water/world/SeedWorldOceanWaterLevelRuntime";
+import { WorldEnvironmentRuntime } from "@galacean/engine-world-planning/integrations/terrain/environment/WorldEnvironmentRuntime";
 import {
   INTEGRATED_WORLD_DAYLIGHT_REFERENCE_TIME_HOURS,
   INTEGRATED_WORLD_RENDER_PIXEL_RATIO
 } from "@galacean/engine-world-planning/integrations/terrain/lighting/IntegratedWorldLightingPreset";
+import { createIntegratedWorldLightingRuntime } from "@galacean/engine-world-planning/integrations/terrain/lighting/IntegratedWorldPresentation";
 import { TERRAIN_DEFAULT_CAMERA_CONFIGURATION } from "@galacean/engine-world-planning/integrations/terrain/lighting/TerrainLightingRuntime";
-import { INTEGRATED_WORLD_POST_PROCESS_PROFILE } from "@galacean/engine-terrain/terrain/project/IntegratedWorldPostProcessPreset";
-import { TerrainPostProcessRuntime } from "@galacean/engine-terrain/terrain/project/TerrainPostProcessRuntime";
-import { TerrainWindRuntime } from "@galacean/engine-terrain/terrain/project/TerrainWindRuntime";
-import { WorldEnvironmentRuntime } from "@galacean/engine-world-planning/integrations/terrain/environment/WorldEnvironmentRuntime";
-import { SeedWorldOceanWaterLevelRuntimeState } from "@galacean/engine-water/world/SeedWorldOceanWaterLevelRuntime";
 import { resizeEngineCanvasByClientSize } from "../demo/resizeEngineCanvas.ts";
 import {
   createShowcaseCameraController,
@@ -41,15 +40,6 @@ const OCEAN_CAMERA_VIEWS = {
 } as const;
 type OceanCameraView = keyof typeof OCEAN_CAMERA_VIEWS;
 
-const OCEAN_DIAGNOSTIC_DESCRIPTIONS: Partial<Record<OceanDebugView, string>> = {
-  [OceanDebugView.DepthDensity]: "颜色表示深度产生的水色密度，不是水深米数；远海按深水饱和显示。",
-  [OceanDebugView.Refraction]: "近处显示折射采样；远处紫灰斜纹表示不提供场景折射数据。",
-  [OceanDebugView.EnvironmentReflection]: "显示环境反射；远海使用较平滑的反射采样。",
-  [OceanDebugView.Foam]: "白色表示泡沫较强；远处紫灰斜纹表示未计算泡沫。",
-  [OceanDebugView.Caustics]: "显示水底焦散；远处紫灰斜纹表示未计算焦散。",
-  [OceanDebugView.DetailNormal]: "RGB 表示法线方向；远处渐变为平面法线。"
-};
-
 async function bootstrap(): Promise<void> {
   const engine = await WebGLEngine.create({
     canvas: "canvas",
@@ -72,7 +62,6 @@ async function bootstrap(): Promise<void> {
     destroyed = true;
     ready = false;
     engine.pause();
-    Reflect.deleteProperty(window, "oceanGalleryDebug");
     for (const release of cleanup.reverse()) {
       try {
         await release();
@@ -133,7 +122,7 @@ async function bootstrap(): Promise<void> {
     const body = host.registerAuthoring((assets) => createIslandOceanBody(assets, descriptor));
     let currentView: OceanCameraView = "island";
     const pauseButton = document.getElementById("pause") as HTMLButtonElement;
-    const getOceanController = () => backend.getRuntimeDiagnostics(ISLAND_OCEAN_BODY_ID)?.controller;
+    const getOceanController = () => backend.getRuntimeController(ISLAND_OCEAN_BODY_ID);
     const syncPauseButton = (): void => {
       const paused = getOceanController()?.surfaceTimeOverride !== undefined;
       if (pauseButton.getAttribute("aria-pressed") === String(paused)) return;
@@ -158,7 +147,6 @@ async function bootstrap(): Promise<void> {
     };
     const resize = (): void => {
       resizeEngineCanvasByClientSize(engine, "canvas", INTEGRATED_WORLD_RENDER_PIXEL_RATIO);
-      host.setViewportSize(engine.canvas.width, engine.canvas.height);
     };
     resize();
     setView("island");
@@ -216,16 +204,6 @@ async function bootstrap(): Promise<void> {
     ready = true;
     await lighting.waitForEnvironmentIBLIdle();
     if (destroyed) return;
-    const surfaceViewSelect = document.getElementById("surface-view") as HTMLSelectElement;
-    surfaceViewSelect.disabled = false;
-    surfaceViewSelect.onchange = () => {
-      const view = Number(surfaceViewSelect.value) as OceanDebugView;
-      getOceanController()?.setDebugView(view);
-      document.getElementById("diagnostic-legend")!.hidden = view === OceanDebugView.Final;
-      document.getElementById("density-legend")!.hidden = view !== OceanDebugView.DepthDensity;
-
-      document.getElementById("diagnostic-description")!.textContent = OCEAN_DIAGNOSTIC_DESCRIPTIONS[view] ?? "";
-    };
     pauseButton.onclick = () => {
       backend.setRuntimeSurfaceTimeOverride(
         ISLAND_OCEAN_BODY_ID,
@@ -256,46 +234,6 @@ async function bootstrap(): Promise<void> {
     }
     document.getElementById("status")!.hidden = true;
     document.body.dataset.ready = "true";
-    const debug = {
-      getDiagnostics: () => ({
-        ready,
-        view: currentView,
-        paused: getOceanController()?.surfaceTimeOverride !== undefined,
-        debugView: getOceanController()?.debugView,
-        sharedSurface: {
-          contractHash: getOceanController()?.config.renderContract?.contentHash,
-          closureVariant: getOceanController()?.config.renderContract?.variantKey,
-          geometry: "gerstner-nearshore / projected-horizon",
-          optics: "WaterSurfaceShaderAssembler / FinalClosureV2",
-          mediumPolicy: "stylized-depth-ramp; physical single-scattering unsupported"
-        },
-        camera: {
-          position: [
-            camera.entity.transform.worldPosition.x,
-            camera.entity.transform.worldPosition.y,
-            camera.entity.transform.worldPosition.z
-          ],
-          target: [viewTarget.x, viewTarget.y, viewTarget.z],
-          forward: [
-            camera.entity.transform.worldForward.x,
-            camera.entity.transform.worldForward.y,
-            camera.entity.transform.worldForward.z
-          ]
-        },
-        ocean: backend.getRuntimeDiagnostics(ISLAND_OCEAN_BODY_ID)?.controller.metrics,
-        tuning: getOceanController()?.tuning,
-        waterLevel: waterLevel.readback,
-        host: host.getDiagnostics(),
-        lighting: lighting.getSnapshot()
-      }),
-      setView,
-      setSurfaceTime: (seconds: number) => {
-        if (!Number.isFinite(seconds) || seconds < 0) throw new RangeError("Ocean time must be non-negative.");
-        backend.setRuntimeSurfaceTimeOverride(ISLAND_OCEAN_BODY_ID, seconds);
-        syncPauseButton();
-      }
-    };
-    Object.assign(window, { oceanGalleryDebug: debug });
   } catch (error) {
     const cancelled = destroyed;
     await dispose();

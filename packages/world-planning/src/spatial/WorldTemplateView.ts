@@ -1,6 +1,11 @@
 import type { IslandPlan } from "../semantic-study/IslandPlanModel";
+import type { RockFormationMesh } from "@galacean/engine-terrain/rock-formation/types";
+import { rockObbId } from "../integrations/terrain/rock-formation/Authoring";
+import { rockFormationGround } from "../integrations/terrain/rock-formation/Placement";
+import { COMPOSITION_SUBJECT_TERRACE_OWNER } from "./SpatialComposition";
 import { buildWorldTemplateGeometry, templateNodeFootprint, type TemplateNode } from "./WorldTemplateGeometry";
 import { worldTemplate } from "./WorldTemplateCatalog";
+import { worldTemplateStreet } from "./WorldTemplateStreet";
 import { WORLD_TEMPLATE_ART } from "./WorldTemplateArtDirection";
 import type { SubjectViewPose } from "./PlanningSubjectView";
 import type {
@@ -14,6 +19,46 @@ import type { V2Box } from "./V2Model";
 import profile from "../planning-data/settlement-profile.json";
 
 type Position = [number, number, number];
+
+export function resolveWorldTemplateSpawn(plan: IslandPlan) {
+  const spawn = WORLD_TEMPLATE_ART[plan.parameters.worldTemplate?.id ?? ""]?.spawn;
+  return spawn?.seed === plan.parameters.seed ? spawn : undefined;
+}
+
+export function resolveWorldTemplateStreetView(
+  plan: IslandPlan,
+  ground: (x: number, z: number) => number | undefined,
+  eyeHeight: number
+) {
+  const street = worldTemplateStreet(plan);
+  if (!street) return undefined;
+  const spine = street.construction!.spine!;
+  const stations = street.volumes.map(({ boxes: [box] }) => {
+    let closest = 0;
+    let distance = Infinity;
+    for (const [index, point] of spine.entries()) {
+      const next = Math.hypot(point.x - box.center.x, point.z - box.center.z);
+      if (next < distance) {
+        closest = index;
+        distance = next;
+      }
+    }
+    return closest;
+  });
+  const start = Math.max(0, Math.min(...stations) - 4);
+  const end = Math.max(...stations);
+  if (end <= start) return undefined;
+  const eye = spine[start];
+  const target = spine[Math.min(end, start + 15)];
+  const eyeY = ground(eye.x, eye.z);
+  const targetY = ground(target.x, target.z);
+  if (eyeY === undefined || targetY === undefined) return undefined;
+  return {
+    eye: { ...eye, y: eyeY + eyeHeight },
+    target: { ...target, y: targetY + eyeHeight + 1 }
+  };
+}
+
 export interface ResolvedTemplateNode {
   node: TemplateNode;
   position: Position;
@@ -34,10 +79,13 @@ export interface ResolvedWorldTemplateScene {
 /** One grounded scene description for rendering, first-person framing and vegetation visibility. */
 export function resolveWorldTemplateScene(
   plan: IslandPlan,
-  ground: (x: number, z: number) => number | undefined
+  ground: (x: number, z: number) => number | undefined,
+  formations?: readonly RockFormationMesh[]
 ): ResolvedWorldTemplateScene | undefined {
   const template = worldTemplate(plan.parameters.worldTemplate?.id);
   if (!template) return undefined;
+  const geometry = buildWorldTemplateGeometry(template, plan.parameters.seed, plan.parameters.spatialComposition);
+  if (!geometry.nodes.length) return undefined;
   const site = plan.worldTemplateSite;
   if (!site || site.templateId !== template.id) throw new Error("风格主体缺少已发布的规划占地");
   const sample = (x: number, z: number) => {
@@ -46,7 +94,20 @@ export function resolveWorldTemplateScene(
     return value;
   };
   const anchor: Position = [site.center.x, sample(site.center.x, site.center.z), site.center.z];
-  const geometry = buildWorldTemplateGeometry(template, plan.parameters.seed, plan.parameters.spatialComposition);
+  const terraceIds = formations?.length
+    ? new Set(
+        plan.rocks
+          .filter((rock) => rock.groupId === COMPOSITION_SUBJECT_TERRACE_OWNER)
+          .flatMap((rock) => (rock.boxes ?? [rock]).map((box) => rockObbId(rock.id, box.id)))
+      )
+    : undefined;
+  const terraceGround =
+    formations && terraceIds?.size
+      ? rockFormationGround(
+          plan,
+          formations.filter(({ id }) => terraceIds.has(id))
+        )
+      : undefined;
   const resolution = plan.raster?.heightSamples ?? profile.world.heightmapResolution;
   const spacingX = plan.parameters.width / (resolution - 1);
   const spacingZ = plan.parameters.depth / (resolution - 1);
@@ -67,7 +128,10 @@ export function resolveWorldTemplateScene(
         for (let column = 0; column <= columns; column++) {
           const dx = (column / columns - 0.5) * supportWidth,
             dz = (row / rows - 0.5) * supportDepth;
-          bottom = Math.min(bottom, sample(anchor[0] + x + dx * c - dz * s, anchor[2] + z + dx * s + dz * c));
+          const px = anchor[0] + x + dx * c - dz * s,
+            pz = anchor[2] + z + dx * s + dz * c;
+          const floor = sample(px, pz);
+          bottom = Math.min(bottom, terraceGround?.(px, pz, floor) ?? floor);
         }
       bottom += y;
     }
@@ -177,19 +241,22 @@ export function resolveWorldTemplateView(
   const target = [0, 1, 2].map(
     (axis) => (bounds.min[axis] + bounds.max[axis]) / 2 + (art.lookAtOffset?.[axis] ?? 0) * (axis === 0 ? -1 : 1)
   ) as Position;
+  // A wide composition can frame into the subject's planning envelope. Ease
+  // back to full containment as the viewport approaches a square.
+  const frameFraction = Math.min(art.frameFraction, Math.max(1, aspect));
   const centered = scene.centeredStart;
   const eye =
     scene.spawnView?.eye ??
     (centered
       ? ([centered[0], centered[1] + eyeHeight, centered[2]] as Position)
-      : findTemplateEye(scene, target, aspect, fovDegrees, eyeHeight, ground));
+      : findTemplateEye(scene, target, aspect, fovDegrees, eyeHeight, ground, frameFraction));
   if (!eye) throw new Error("地形或体量遮挡参考图主景，无法在当前世界范围内完整取景");
   const pose: SubjectViewPose = scene.spawnView ?? {
     subjectId: `world-template:${scene.id}`,
     eye,
     target,
     fovDegrees,
-    frameFraction: art.frameFraction,
+    frameFraction,
     distanceM: Math.hypot(...target.map((value, axis) => value - eye[axis]))
   };
   const view: LandscapeView = {
@@ -216,7 +283,8 @@ function findTemplateEye(
   aspect: number,
   fovDegrees: number,
   eyeHeight: number,
-  ground: (x: number, z: number) => number | undefined
+  ground: (x: number, z: number) => number | undefined,
+  frameFraction: number
 ): Position | undefined {
   const art = WORLD_TEMPLATE_ART[scene.id];
   const bearings = art.plannedSubjects ? [0, -15, 15, -30, 30, -45, 45, -60, 60, -90, 90, -135, 135, 180] : [0];
@@ -229,7 +297,8 @@ function findTemplateEye(
       fovDegrees,
       eyeHeight,
       ground,
-      art.azimuthDegrees + offset
+      art.azimuthDegrees + offset,
+      frameFraction
     );
     if (!result) continue;
     if (result.full) return result.eye;
@@ -245,7 +314,8 @@ function fitTemplateBearing(
   fovDegrees: number,
   eyeHeight: number,
   ground: (x: number, z: number) => number | undefined,
-  azimuthDegrees: number
+  azimuthDegrees: number,
+  frameFraction: number
 ): { eye: Position; visibility: number; full: boolean } | undefined {
   const art = WORLD_TEMPLATE_ART[scene.id],
     bounds = scene.focusBounds;
@@ -262,7 +332,7 @@ function fitTemplateBearing(
       d === 0 ? Infinity : ((d > 0 ? [scene.world.width, scene.world.depth][i] : 0) - target[i === 0 ? 0 : 2]) / d
     )
   );
-  const tanY = Math.tan((fovDegrees * Math.PI) / 360) * art.frameFraction,
+  const tanY = Math.tan((fovDegrees * Math.PI) / 360) * frameFraction,
     tanX = tanY * aspect;
   const modelBoxes: V2Box[] = art.plannedSubjects
     ? scene.nodes.map(({ node, position, bounds }) => ({

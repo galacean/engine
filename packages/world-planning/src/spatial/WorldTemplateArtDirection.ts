@@ -1,4 +1,5 @@
 import type { TemplateNode, TemplateAssetSlot } from "./WorldTemplateGeometry";
+import type { SeedWorldCameraBookmark } from "../world/SeedWorldCameraBookmark";
 import type { SpatialCompositionParameters } from "./SpatialCompositionParameters";
 
 interface WorldTemplatePalette {
@@ -28,6 +29,7 @@ interface WorldTemplatePalette {
 export type WorldTemplateArtDirection = (WorldTemplatePalette | { grass?: undefined }) & {
   reference: string;
   grassGroundFusion?: boolean;
+  spawn?: SeedWorldCameraBookmark & { readonly seed: number };
   initialPlanning?: {
     landMode?: import("../semantic-study/IslandPlanModel").IslandPlanParameters["landMode"];
     relief?: {
@@ -42,6 +44,7 @@ export type WorldTemplateArtDirection = (WorldTemplatePalette | { grass?: undefi
     population?: import("./PlanningPopulationParameters").PlanningPopulationOptions;
   };
   focus: string[];
+  /** Viewport fraction available to the focus envelope. Wide shots can frame into an oversized envelope. */
   frameFraction: number;
   /** Reserve each subject in a solved POI and publish a clear starting view. */
   plannedSubjects?: boolean;
@@ -51,6 +54,9 @@ export type WorldTemplateArtDirection = (WorldTemplatePalette | { grass?: undefi
   /** Composition aim relative to the focus envelope; a side subject stays at the side. */
   lookAtOffset?: [number, number, number];
   models: (TemplateNode | TemplateAssetSlot)[];
+  layout?: Record<string, string | number>;
+  streetSigns?: { atlasUrl: string; signIntensity: number; spillIntensity: number; signsPerBuilding: number };
+  surfaceTextures?: { baseUrl: string; normalUrl: string; tileSizeM: number; strength: number };
   /** Infrastructure may be generated around a separately authored set of model poses. */
   modelLayout?: "authored" | "generated";
   spores?: {
@@ -65,6 +71,27 @@ export type WorldTemplateArtDirection = (WorldTemplatePalette | { grass?: undefi
     driftM: number;
     periodSeconds: number;
   };
+  /** Textured native billboard particles; motion and scale use metres and seconds. */
+  petals?: {
+    textureUrl: string;
+    count: number;
+    center: [number, number, number];
+    extent: [number, number, number];
+    sizeM: [number, number];
+    lifetimeSeconds: number;
+    fallSpeedMps: [number, number];
+    windMps: [number, number, number];
+    flutterMps: number;
+    flutterWavelengthM: number;
+    spinDegreesPerSecond: [number, number];
+    /** Submission order within the transparent queue. */
+    renderPriority: number;
+    /** Foreground petals may opt out of scene occlusion while retaining perspective motion. */
+    depthTest: boolean;
+    color: string;
+    intensity: number;
+    emission?: { color: string; intensity: number };
+  };
   /** Scalar authoring only; roads, water, relief and populations are derived. */
   generation?: Partial<SpatialCompositionParameters>;
   lighting: Record<string, number | boolean>;
@@ -76,10 +103,20 @@ export type WorldTemplateArtDirection = (WorldTemplatePalette | { grass?: undefi
   flowerCoverage?: number;
   weather?: {
     cloudCoverage?: number;
+    cloudBaseAltitudeM?: number;
+    cloudFeatureSize?: number;
     rainRate?: number;
     snowRate?: number;
     temperatureCelsius?: number;
     relativeHumidity?: number;
+    surfaceWaterCoverage?: number;
+    puddleStorageBias?: number;
+    surfaceReflectionIntensity?: number;
+    surfaceSsrMix?: number;
+    surfaceRoughness?: number;
+    standingWaterRoughness?: number;
+    surfaceNormalFlattening?: number;
+    surfaceRippleStrength?: number;
   };
   /** Real native water bodies. Depth/level are independent from their colour. */
   water?: { id: string; x: number; z: number; radius: number; depth: number; color: [number, number, number] }[];
@@ -239,54 +276,112 @@ const forestFern = (id: string, x: number, z: number, height: number, yaw: numbe
   assetLeafColor: "#9cbd4c"
 });
 
+const sakuraBirchMaterials = {
+  "appearance-58da25ba7b394497": { color: "#825636", intensity: 1 },
+  "appearance-a8b3441a505dd0f2": { color: "#a06f49", intensity: 1 },
+  "appearance-e832df91cc4eb1a2": { color: "#ff6681", intensity: 2 }
+};
+
 export const WORLD_TEMPLATE_ART: Readonly<Record<string, WorldTemplateArtDirection>> = {
   "sakura-pearl": {
     generation: {
       enabled: true,
-      roadWidthM: 10,
-      roadBendM: 18,
-      roadWavelengthM: 220,
+      widthM: 440,
+      frontDepthM: 270,
+      backDepthM: 180,
+      roadWidthM: 7,
+      roadBendM: 14,
+      roadWavelengthM: 210,
+      roadEndWidthRatio: 0.5,
       destinationId: "",
-      forecourtDepthM: 30,
-      streamWidthM: 24,
-      bankWidthM: 7,
-      leftReliefM: 60,
-      rightReliefM: 70,
-      waterfallWidthM: 0,
-      treeSpacingM: 22,
-      treeBandWidthM: 65,
-      treeAssetId: "SM_BirchTree_01",
-      rockSpacingM: 18,
+      forecourtDepthM: 14,
+      streamWidthM: 14,
+      streamDepthM: 0.9,
+      bankWidthM: 12,
+      leftReliefM: 104,
+      rightReliefM: 108,
+      reliefSurface: "rocks",
+      reliefBandWidthM: 128,
+      reliefFrontDepthM: 54,
+      bankReliefM: 26,
+      rearReliefM: 72,
+      rearReliefDepthM: 64,
+      reliefInnerHeightRatio: 0.45,
+      reliefFrontHeightRatio: 0.65,
+      reliefTreeDensity: 0.7,
+      terraceStepHeightM: 20,
+      terraceTreadM: 32,
+      cliffSharpness: 1,
+      terrainRoughness: 0.22,
+      waterfallWidthM: 8,
+      treeSpacingM: 19,
+      treeBandWidthM: 74,
+      treeHorizontalScale: 1.6,
+      treeSpeciesGroup: "birch-tree",
+      subjectTerraceHeightM: 12,
+      subjectTerraceRadiusM: 51,
+      rockSpacingM: 16,
+      rockWidthM: 6,
+      rockDepthM: 5,
+      rockHeightM: 3.5,
       replacePopulation: true
     },
     reference: "SeedWorld-01-sakura-pearl.png",
     focus: ["pearl-cherry-tree"],
-    frameFraction: 0.8,
+    frameFraction: 1.48,
     azimuthDegrees: 0,
     lookAtOffset: [0, -13, 0],
+    petals: {
+      textureUrl: new URL("../assets/sakura-petal.png", import.meta.url).href,
+      count: 280,
+      center: [0, 18, -95],
+      extent: [96, 28, 210],
+      sizeM: [0.45, 1.1],
+      lifetimeSeconds: 22,
+      fallSpeedMps: [0.3, 0.65],
+      windMps: [0.7, 0, 0.25],
+      flutterMps: 0.2,
+      flutterWavelengthM: 3,
+      spinDegreesPerSecond: [-45, 45],
+      renderPriority: 1000,
+      depthTest: false,
+      color: "#ffffff",
+      intensity: 1.15,
+      emission: { color: "#ff9dcc", intensity: 4 }
+    },
     models: [
       {
         id: "pearl-cherry-tree",
-        // Preserve the existing footprint; source proportions determine the height.
-        scale: [92, 43, 70],
+        // One uniformly fitted source tree supplies the reference's dominant crown.
+        scale: [198, 98, 166],
+        footprint: [32, 27],
+        groundingFootprint: [37, 32],
         grounded: true,
         // Highest vertex of the source root rims, so all cut openings enter the soil.
         assetGroundY: 1.0934512615203857,
         assetYawDegrees: -155,
+        // The atlas is white RGB with an alpha silhouette. Use the source canopy
+        // normals on both sides and keep the HDR pigment outside the overlay clamp.
         assetLeafMaterials: ["Foliage_PBR_512"],
-        assetLeafColor: "#ff2f70",
+        assetLeafColor: "#ff82a4",
+        assetLeafIntensity: 1.6,
+        assetLeafTextureBlend: 0,
+        assetMaterials: {
+          Bark_PBR_512: { color: "#f2e9e1", intensity: 1.1 }
+        },
         assetUrl: new URL("../assets/pink-tree.glb", import.meta.url).href
       }
     ],
-    grass: ["#e55959", "#fc5a7a"],
-    ground: "#f2dfe8",
-    road: "#c7b9ad",
-    foliage: "#f8b8cb",
+    // Vivid rose and fresh green retain their colour through the lit HDR pipeline.
+    grass: ["#ff64a8", "#79c846"],
+    ground: "#f0bfd6",
+    road: "#dbbeaa",
+    foliage: "#e6a0cb",
     treeFoliage: {
       SM_BirchTree_01: "#ff8ea0",
-      SM_BirchTree_02: "#f78f95",
-      SM_BirchTree_07: "#ffa0c1",
-      "cartoon/tree/highlands-fir-3-candidate/v1": "#ffa0c1"
+      SM_BirchTree_02: "#c179ed",
+      SM_BirchTree_07: "#ff9fcb",
+      "cartoon/tree/highlands-fir-3-candidate/v1": "#da96c7"
     },
     plantPalette: {
       layers: ["shrubs", "herbs", "cover", "flowers", "litter"],
@@ -303,47 +398,49 @@ export const WORLD_TEMPLATE_ART: Readonly<Record<string, WorldTemplateArtDirecti
         SM_CoverPlant_06: {
           "appearance-d7b4b46b60c4bf96": { color: "#e01a56", intensity: 15 }
         },
-        SM_BirchTree_01: {
-          "appearance-58da25ba7b394497": { color: "#825636", intensity: 1 },
-          "appearance-a8b3441a505dd0f2": { color: "#a06f49", intensity: 1 },
-          "appearance-e832df91cc4eb1a2": { color: "#ff6681", intensity: 2 }
-        }
+        SM_BirchTree_01: sakuraBirchMaterials,
+        SM_BirchTree_02: {
+          "appearance-296c00a2f4125733": sakuraBirchMaterials["appearance-58da25ba7b394497"],
+          "appearance-60463a2042d1d2fe": sakuraBirchMaterials["appearance-a8b3441a505dd0f2"],
+          "appearance-e832df91cc4eb1a2": sakuraBirchMaterials["appearance-e832df91cc4eb1a2"]
+        },
+        SM_BirchTree_07: sakuraBirchMaterials
       },
       parts: {
-        foliage: { color: "#e48bb5", intensity: 1.2 },
-        leaves: { color: "#e18bbb", intensity: 1.15 },
-        blades: { color: "#eda0b9", intensity: 1.15 },
-        stem: { color: "#8fa77f", intensity: 1.05 },
-        petals: { color: "#ff7cb6", intensity: 1.3 },
-        cap: { color: "#ff9bbe", intensity: 1.2 },
+        foliage: { color: "#66b83f", intensity: 1.1 },
+        leaves: { color: "#93cf50", intensity: 1.1 },
+        blades: { color: "#83c747", intensity: 1.1 },
+        stem: { color: "#509633", intensity: 1.05 },
+        petals: { color: "#ff75bd", intensity: 5 },
+        cap: { color: "#f4b3cf", intensity: 1.35 },
         bark: { color: "#c5a3b0", intensity: 1 }
       },
       species: {
         // Native recipe inputs multiply the original material hue. This HDR swatch is
         // rose foliage / the evaluated blue base of highlands-bush-2-leaves.mat.
         "cartoon/shrub/highlands-bush-2/v1": { foliage: { color: "#ff414e", intensity: 9.26 } },
-        SM_Flower_01_01: { petals: { color: "#fff0da", intensity: 1.15 } },
-        SM_Flower_01_02: { petals: { color: "#fff0da", intensity: 1.15 } },
-        SM_Flower_01_03: { petals: { color: "#fff0da", intensity: 1.15 } },
-        SM_Flower_02_01: { petals: { color: "#ffb6d3", intensity: 1.2 } },
-        SM_Flower_02_02: { petals: { color: "#ffb6d3", intensity: 1.2 } },
-        SM_Flower_02_03: { petals: { color: "#ffb6d3", intensity: 1.2 } },
-        SM_Flower_03_01: { petals: { color: "#c18aee", intensity: 1.25 } },
-        SM_Flower_03_02: { petals: { color: "#c18aee", intensity: 1.25 } },
-        SM_Flower_03_03: { petals: { color: "#c18aee", intensity: 1.25 } },
-        SM_Flower_04_01: { petals: { color: "#e798d7", intensity: 1.2 } },
-        SM_Flower_04_02: { petals: { color: "#e798d7", intensity: 1.2 } },
-        SM_Flower_04_03: { petals: { color: "#e798d7", intensity: 1.2 } },
-        SM_Flower_06_01: { petals: { color: "#ffd0ac", intensity: 1.15 } },
-        SM_Flower_06_02: { petals: { color: "#ffd0ac", intensity: 1.15 } },
-        SM_Flower_06_03: { petals: { color: "#ffd0ac", intensity: 1.15 } },
-        SM_Flower_07_01: { petals: { color: "#ffa2c2", intensity: 1.2 } },
-        SM_Flower_07_02: { petals: { color: "#ffa2c2", intensity: 1.2 } },
-        SM_Flower_07_03: { petals: { color: "#ffa2c2", intensity: 1.2 } },
-        SM_Flower_09_01: { petals: { color: "#b77ee8", intensity: 1.25 } },
-        SM_Flower_09_02: { petals: { color: "#b77ee8", intensity: 1.25 } },
-        SM_Flower_09_03: { petals: { color: "#b77ee8", intensity: 1.25 } },
-        SM_Flower_10_01: { petals: { color: "#fff0da", intensity: 1.15 } },
+        SM_Flower_01_01: { petals: { color: "#fff0da", intensity: 4 } },
+        SM_Flower_01_02: { petals: { color: "#fff0da", intensity: 4 } },
+        SM_Flower_01_03: { petals: { color: "#fff0da", intensity: 4 } },
+        SM_Flower_02_01: { petals: { color: "#ffb6d3", intensity: 4.5 } },
+        SM_Flower_02_02: { petals: { color: "#ffb6d3", intensity: 4.5 } },
+        SM_Flower_02_03: { petals: { color: "#ffb6d3", intensity: 4.5 } },
+        SM_Flower_03_01: { petals: { color: "#c18aee", intensity: 6 } },
+        SM_Flower_03_02: { petals: { color: "#c18aee", intensity: 6 } },
+        SM_Flower_03_03: { petals: { color: "#c18aee", intensity: 6 } },
+        SM_Flower_04_01: { petals: { color: "#e798d7", intensity: 5 } },
+        SM_Flower_04_02: { petals: { color: "#e798d7", intensity: 5 } },
+        SM_Flower_04_03: { petals: { color: "#e798d7", intensity: 5 } },
+        SM_Flower_06_01: { petals: { color: "#ffd0ac", intensity: 4 } },
+        SM_Flower_06_02: { petals: { color: "#ffd0ac", intensity: 4 } },
+        SM_Flower_06_03: { petals: { color: "#ffd0ac", intensity: 4 } },
+        SM_Flower_07_01: { petals: { color: "#ffa2c2", intensity: 4.5 } },
+        SM_Flower_07_02: { petals: { color: "#ffa2c2", intensity: 4.5 } },
+        SM_Flower_07_03: { petals: { color: "#ffa2c2", intensity: 4.5 } },
+        SM_Flower_09_01: { petals: { color: "#b77ee8", intensity: 6 } },
+        SM_Flower_09_02: { petals: { color: "#b77ee8", intensity: 6 } },
+        SM_Flower_09_03: { petals: { color: "#b77ee8", intensity: 6 } },
+        SM_Flower_10_01: { petals: { color: "#fff0da", intensity: 4 } },
         SM_Mushroom_01: { stem: { color: "#ffe4cf", intensity: 1.1 } },
         SM_Mushroom_02: { stem: { color: "#ffe4cf", intensity: 1.1 } },
         SM_Mushroom_03: { stem: { color: "#ffe4cf", intensity: 1.1 } },
@@ -359,39 +456,45 @@ export const WORLD_TEMPLATE_ART: Readonly<Record<string, WorldTemplateArtDirecti
       }
     },
     bark: "#e4dce8",
-    flowers: "#fff2fa",
-    stone: "#c9bfd3",
+    flowers: "#fff4e8",
+    stone: "#d2b9ca",
     lighting: {
-      ...lighting(15, 2.1, 1.15, 0.9, 0.00025, 0.7),
-      ...atmosphere([0.765, 1.6, 1.6], [1.1, 1.15, 1.2]),
-      skyTintR: 0.557,
-      skyTintG: 0.626,
-      skyTintB: 0.747,
-      sunColorR: 1.04,
+      ...lighting(14.5, 2.5, 0.9, 1.1, 0.002, 0.55),
+      ...atmosphere([0.22, 0.65, 1.8], [0.75, 1.05, 1.25]),
+      iblIntensity: 0.85,
+      fogExponent: 5,
+      sunColorR: 1.06,
       sunColorG: 1,
-      sunColorB: 0.97
+      sunColorB: 0.98
     },
-    postProcess: post(8, 7),
-    landscape: { treeHeightMinM: 8, treeHeightMaxM: 18 },
+    postProcess: {
+      ...post(10, 25),
+      postExposure: 0.15,
+      bloomThreshold: 1,
+      bloomIntensity: 0.65
+    },
+    landscape: { treeHeightMinM: 4.5, treeHeightMaxM: 23 },
     initialLandscape: {
-      "vegetation.shrubs": 0.7,
-      "vegetation.herbs": 0.15,
-      "vegetation.cover": 0.8,
-      "vegetation.flowers": 0.8,
-      "vegetation.litter": 1,
-      "plantSizes.shrubs.scaleMin": 0.2,
-      "plantSizes.cover.scaleMin": 0.9,
-      "plantSizes.cover.scaleMax": 1.6,
-      "plantSizes.flowers.scaleMin": 0.75,
-      "plantSizes.flowers.scaleMax": 1.25,
-      "plantSizes.litter.scaleMin": 1,
-      "plantSizes.litter.scaleMax": 1.4,
-      roadsideDensityMultiplier: 20,
-      grassRelativeHeight: 0.4,
-      roadsideGrassHeightRatio: 0.45
+      "vegetation.shrubs": 0.5,
+      "vegetation.herbs": 0.7,
+      "vegetation.cover": 0.85,
+      "vegetation.flowers": 1,
+      "vegetation.litter": 0.45,
+      "plantSizes.shrubs.scaleMin": 0.35,
+      "plantSizes.shrubs.scaleMax": 0.82,
+      "plantSizes.cover.scaleMin": 0.55,
+      "plantSizes.cover.scaleMax": 0.95,
+      "plantSizes.flowers.scaleMin": 0.85,
+      "plantSizes.flowers.scaleMax": 1.3,
+      "plantSizes.litter.scaleMin": 0.7,
+      "plantSizes.litter.scaleMax": 1,
+      roadsideDensityMultiplier: 8,
+      grassRelativeHeight: 0.22,
+      roadsideGrassHeightRatio: 0.4
     },
-    flowerCoverage: 0.85,
-    initialFlowers: { densityPerM2: 0.7 }
+    flowerCoverage: 0.9,
+    initialFlowers: { densityPerM2: 0.85 },
+    weather: { cloudCoverage: 0.3, cloudBaseAltitudeM: 520, cloudFeatureSize: 0.72, rainRate: 0, snowRate: 0 }
   },
   "aurora-palace": {
     reference: "SeedWorld-02-aurora-ice-palace.png",
@@ -746,63 +849,103 @@ export const WORLD_TEMPLATE_ART: Readonly<Record<string, WorldTemplateArtDirecti
   },
   "neon-alley": {
     reference: "SeedWorld-12-cyberpunk-alley.png",
-    focus: ["west-street-facade", "east-street-facade"],
+    spawn: {
+      seed: 121119,
+      mode: "roam",
+      position: [672.0089327613628, 12.649446577602424, 139.2752719446587],
+      yawDegrees: 142.1723738744237,
+      pitchDegrees: -1.636329979833703
+    },
+    surfaceTextures: {
+      baseUrl: new URL("./assets/cobblestone_floor_001_diff_1k.jpg", import.meta.url).href,
+      normalUrl: new URL("./assets/cobblestone_floor_001_nor_gl_1k.png", import.meta.url).href,
+      tileSizeM: 4.8,
+      strength: 3.2
+    },
+    initialPlanning: {
+      population: { villageMin: 1, villageMax: 1, buildingMin: 10, buildingMax: 10 }
+    },
+    streetSigns: {
+      atlasUrl: new URL("./assets/neon-sign-atlas.png", import.meta.url).href,
+      signIntensity: 4.2,
+      spillIntensity: 2.25,
+      signsPerBuilding: 2
+    },
+    focus: [],
     frameFraction: 0.8,
     azimuthDegrees: 0,
-    models: [
-      model("west-street-facade", [-25, 0, 15], [22, 38, 65]),
-      model("east-street-facade", [25, 0, 22], [22, 44, 65]),
-      model("overhead-street-bridge", [0, 20, 43], [32, 7, 10], false),
-      model("vending-machine", [-18, 0, -24], [6, 10, 5])
-    ],
+    models: [],
+    layout: {
+      elementProfile: "habitable",
+      pattern: "connected",
+      branchShape: "curve",
+      curveMemberOrder: "along-street",
+      curveBendM: 12,
+      curveVariationScaleM: 90,
+      curveGapM: 11,
+      curveLateralVariationM: 3,
+      orientationVariation: 0.08,
+      spacingMinM: 2,
+      spacingMaxM: 7,
+      widthMinM: 10,
+      widthMaxM: 19,
+      depthMinM: 8,
+      depthMaxM: 13,
+      heightMinM: 12,
+      heightMaxM: 38,
+      pathWidthM: 10,
+      roadMode: "members"
+    },
     grass: ["#31595e", "#597f7b"],
-    ground: "#52638b",
+    ground: "#c0c8d6",
+    road: "#d5dce8",
     foliage: "#4b806c",
     bark: "#53677b",
     flowers: "#d399c9",
     stone: "#667b9c",
     lighting: {
       ...lighting(20.4, 0.2, 3.2, 0.65, 0.0008, 0.5),
+      iblIntensity: 0.45,
       ...atmosphere([1, 1, 1], [1, 1, 1], [1.6, 1.1, 1.4], 0.7),
       fogTintR: 1.15,
       fogTintG: 0.9,
       fogTintB: 1.3
     },
-    postProcess: post(9, 10),
-    flowerCoverage: 0.12,
-    landscape: { treeHeightMinM: 5, treeHeightMaxM: 10 },
-    weather: { cloudCoverage: 0.65, rainRate: 0.28, temperatureCelsius: 14, relativeHumidity: 0.85 }
+    postProcess: { ...post(9, 10), bloomThreshold: 0.95, bloomIntensity: 0.9, bloomScatter: 0.72 },
+    flowerCoverage: 0,
+    weather: {
+      cloudCoverage: 0.65,
+      rainRate: 0.28,
+      temperatureCelsius: 14,
+      relativeHumidity: 0.85,
+      surfaceWaterCoverage: 0.56,
+      puddleStorageBias: 0.58,
+      surfaceReflectionIntensity: 2.25,
+      surfaceSsrMix: 1,
+      surfaceRoughness: 0.16,
+      standingWaterRoughness: 0.05,
+      surfaceNormalFlattening: 0.55,
+      surfaceRippleStrength: 0
+    }
   },
   "titan-wasteland": {
     reference: "SeedWorld-13-titan-wasteland.png",
     grassGroundFusion: false,
     initialPlanning: {
       landMode: "continuous",
-      relief: { reliefNearAmplitudeM: 9, reliefAmplitudeM: 35, reliefFarAmplitudeM: 110, reliefScaleM: 256 },
+      relief: { reliefNearAmplitudeM: 8, reliefAmplitudeM: 26, reliefFarAmplitudeM: 76, reliefScaleM: 256 },
       roadsEnabled: false,
       farmingEnabled: false,
       poiMemberMax: 0,
       population: { villageMin: 0, villageMax: 0, buildingMin: 0, buildingMax: 0 }
     },
-    plannedSubjects: true,
     centeredStart: true,
-    focus: ["ancient-mech-wreck", "broken-stone-arch"],
+    focus: [],
     frameFraction: 0.85,
-    azimuthDegrees: -7,
-    lookAtOffset: [0, -22, 0],
-    models: [
-      {
-        ...model("ancient-mech-wreck", [64, 0, 313], [230, 186, 278]),
-        label: "巨兽",
-        assetUrl: "https://mdn.alipayobjects.com/rms/afts/file/A*WzQ9Q6me6W8AAAAAgGAAAAgAehQnAQ/jushou.glb"
-      },
-      {
-        ...model("broken-stone-arch", [-104, 0, 212], [64, 62, 22], true, 12),
-        label: "断壁残垣",
-        assetUrl: "https://mdn.alipayobjects.com/rms/afts/file/A*E1bHTKH2busAAAAAgBAAAAgAehQnAQ/shitou2.glb"
-      }
-    ],
+    azimuthDegrees: 0,
+    models: [],
     lighting: { timeHours: 12 },
+    weather: { cloudCoverage: 0 },
     postProcess: { contrast: 0 },
     landscape: { treeHeightMinM: 5, treeHeightMaxM: 12 },
     flowerCoverage: 0,

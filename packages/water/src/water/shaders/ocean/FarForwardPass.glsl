@@ -14,8 +14,6 @@
       vec2 material_NearshoreCellSize;
       float material_WaterLevel;
       vec4 material_OceanFarProjection;
-      float material_OceanFarLodDebug;
-      float material_DebugView;
       vec4 material_OceanDeepColor;
       vec4 material_OceanHorizonColor;
       vec2 material_OceanFarReflectionFilter;
@@ -97,15 +95,10 @@
         if (coverage <= 0.001) discard;
 
         vec3 finalColor;
-        if (material_DebugView > 0.5) {
-          finalColor = oceanFarFieldDiagnostic(material_DebugView, input.worldPosition, coverage, shoreDistance);
-        } else {
+
           finalColor = oceanFarFieldRadiance(input.worldPosition);
-        }
-        if (material_OceanFarLodDebug > 0.5) finalColor = vec3(0.92, 0.24, 0.18);
-        if (material_DebugView < 0.5) {
+
 {{VALUE_011_CREATEOCEANSCENEFOGAPPLICATION_FINALCOLOR}}
-        }
         vec4 resolvedWaterClosure = vec4(finalColor, coverage);
 {{SHARED_RESOLVED_OUTPUT}}
       }

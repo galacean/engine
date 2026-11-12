@@ -26,6 +26,7 @@ function validateSlope(id: string, slopeMode: unknown, slopeRate: unknown, slope
 export function applyRockObbSizes(plan: IslandPlan, document: PlanningDocument): void {
   const profile = readRockGenerationProfile(document);
   plan.rocks = plan.rocks.map((rock) => {
+    if (rock.assetId) return rock;
     const boxes: PlanRockBox[] = rock.rockObbSource?.boxes ??
       rock.boxes ?? [
         {
@@ -154,7 +155,7 @@ export function applyLandscapeRockGeneration(plan: IslandPlan, document: Plannin
   const baseline = new Map(plan.spatialLayout?.baselineLandscapes?.map((rock) => [rock.id, rock]));
   let changed = false;
   const landscapes = plan.landscapes.map((rock) => {
-    if (rock.kind !== "rock") return rock;
+    if (rock.kind !== "rock" || rock.assetId) return rock;
     const kind = rockGenerationKind(plan.parameters.seed, rock.id, profile);
     const { heightScale, ...shape } = rockGenerationShape(kind, profile);
     const sourceHeight = rock.rockGeneration?.sourceHeight ?? baseline.get(rock.id)?.height ?? rock.height;

@@ -102,6 +102,8 @@ import {
 import { prepareRockTextures, setRockTextureScale } from "../../integrations/terrain/rock-formation/RockMaterial";
 import type { RockColorBlend } from "../../integrations/terrain/rock-formation/ColorPalette.ts";
 import { setRockColorBlend } from "../../integrations/terrain/rock-formation/ColorMaterial";
+import { rockFormationGround } from "../../integrations/terrain/rock-formation/Placement";
+import type { RockFormationMesh } from "@galacean/engine-terrain/rock-formation/types";
 
 type PlantSource = ReturnType<ProceduralPlantLibraryRuntime["getPlacementSources"]>[number];
 type Source = Pick<PlantSource, "bounds" | "rendererBindings"> & {
@@ -183,6 +185,8 @@ export class PlanningNaturalVegetationRuntime {
   private disposed = false;
   private error?: string;
   private preparedGroundingFields?: SeedWorldFields;
+  private rockGround?: ReturnType<typeof rockFormationGround>;
+  private preparedRockGround?: ReturnType<typeof rockFormationGround>;
   private readonly grassMaterials = new Set<Material>();
   private readonly groundCoverMaterials = new Map<Material, Map<string, Material>>();
   private readonly groundCoverBrightness: Record<string, number> = {};
@@ -306,6 +310,8 @@ export class PlanningNaturalVegetationRuntime {
       settings: RockFormationSettings;
       signal: AbortSignal;
       generationProfile?: RockGenerationProfile;
+      formations?: readonly RockFormationMesh[];
+      supportPlan?: IslandPlan;
     },
     materialParameters: PlantMaterialParameters = {},
     terrain?: Pick<SeedWorldTerrainRuntime, "registerGrassAppearanceMaterial">,
@@ -323,6 +329,7 @@ export class PlanningNaturalVegetationRuntime {
       validatePlantMaterialParameters(materialParameters),
       presentation
     );
+    runtime.rockGround = rockFormationGround(rocks.supportPlan ?? plan, rocks.formations ?? []);
     if (terrain) runtime.rockGrassAppearance = (material) => terrain.registerGrassAppearanceMaterial(material);
     try {
       runtime.materials = await loadProceduralPlantMaterialBindings(
@@ -606,7 +613,7 @@ export class PlanningNaturalVegetationRuntime {
           JSON.stringify(before.scaleAxes) !== JSON.stringify(instance.scaleAxes);
         const ground =
           transformed || !plant.root.isActive
-            ? naturalPlantGroundHeight(this.groundingFields, instance, this.sources[0].get(instance.assetId))
+            ? this.plantGroundHeight(this.groundingFields, instance, this.sources[0].get(instance.assetId))
             : plant.groundHeight;
         transformed ||= plant.root.transform.position.y !== ground;
         // Regional colour follows the edited location through the same native
@@ -757,9 +764,9 @@ export class PlanningNaturalVegetationRuntime {
       : source.entry.category === "Trees"
         ? profile.shrub.shadows
         : profile.shadows;
-    const ground = naturalPlantGroundHeight(fields, instance, source);
+    const ground = this.plantGroundHeight(fields, instance, source);
     const groundHeight = this.preparedGroundingFields
-      ? naturalPlantGroundHeight(this.preparedGroundingFields, instance, source)
+      ? this.plantGroundHeight(this.preparedGroundingFields, instance, source)
       : ground;
     const grassRootPositions: Vector4[] = [];
     const foliageRenderers: MeshRenderer[] = [];
@@ -1083,7 +1090,7 @@ export class PlanningNaturalVegetationRuntime {
       for (const instance of desired) {
         const old = this.treePool.get(instance.id),
           source = this.sources[0].get(instance.assetId);
-        const ground = naturalPlantGroundHeight(fields, instance, source);
+        const ground = this.plantGroundHeight(fields, instance, source);
         if (old && JSON.stringify(old.instance) === JSON.stringify(instance) && old.groundHeight === ground)
           nextTrees.push(old);
         else {
@@ -1241,23 +1248,34 @@ export class PlanningNaturalVegetationRuntime {
    * Plant identities, XZ, species proportions, scale and streamed cell membership are retained.
    * Heights are stored on existing plants; preparation allocates no per-plant arrays or renderers.
    */
-  prepareGrounding(fields: SeedWorldFields, signal?: AbortSignal): { commit(): void; discard(): void } {
+  private plantGroundHeight(fields: SeedWorldFields, instance: LandscapePlantInstance, source?: Source): number {
+    return naturalPlantGroundHeight(fields, instance, source, this.preparedRockGround ?? this.rockGround);
+  }
+
+  prepareGrounding(
+    fields: SeedWorldFields,
+    signal?: AbortSignal,
+    rocks?: { plan: IslandPlan; formations: readonly RockFormationMesh[] }
+  ): { commit(): void; discard(): void } {
     if (this.disposed) throw new Error("Native vegetation is disposed");
     if (this.preparedGroundingFields) throw new Error("Native vegetation grounding is already prepared");
     signal?.throwIfAborted();
     this.preparedGroundingFields = fields;
+    const rockGround = rocks ? rockFormationGround(rocks.plan, rocks.formations) : this.rockGround;
+    this.preparedRockGround = rockGround;
     try {
       for (const tree of this.trees)
-        tree.groundHeight = naturalPlantGroundHeight(fields, tree.instance, this.sources[0].get(tree.instance.assetId));
+        tree.groundHeight = this.plantGroundHeight(fields, tree.instance, this.sources[0].get(tree.instance.assetId));
       for (const cell of this.cells.values())
         for (const plant of cell.plants)
-          plant.groundHeight = naturalPlantGroundHeight(
+          plant.groundHeight = this.plantGroundHeight(
             fields,
             plant.instance,
             this.sources[0].get(plant.instance.assetId)
           );
     } catch (error) {
       this.preparedGroundingFields = undefined;
+      this.preparedRockGround = undefined;
       throw error;
     }
     let consumed = false;
@@ -1269,12 +1287,15 @@ export class PlanningNaturalVegetationRuntime {
         for (const tree of this.trees) commitPlantGrounding(tree);
         for (const cell of this.cells.values()) for (const plant of cell.plants) commitPlantGrounding(plant);
         this.groundingFields = fields;
+        this.rockGround = rockGround;
         this.preparedGroundingFields = undefined;
+        this.preparedRockGround = undefined;
         consumed = true;
       },
       discard: () => {
         if (consumed) return;
         this.preparedGroundingFields = undefined;
+        this.preparedRockGround = undefined;
         consumed = true;
       }
     };
@@ -1516,8 +1537,17 @@ export function planningNaturalPlantOrigin(source: Pick<Source, "bounds" | "kind
   origin.elements[14] = -(b.min[2] + b.max[2]) / 2;
   return origin;
 }
-function naturalPlantGroundHeight(fields: SeedWorldFields, instance: LandscapePlantInstance, source?: Source): number {
-  let height = sampleSeedWorldHeight(fields, instance.position[0], instance.position[2]) ?? instance.position[1];
+function naturalPlantGroundHeight(
+  fields: SeedWorldFields,
+  instance: LandscapePlantInstance,
+  source?: Source,
+  rockGround?: ReturnType<typeof rockFormationGround>
+): number {
+  const sample = (x: number, z: number) => {
+    const terrain = sampleSeedWorldHeight(fields, x, z);
+    return terrain === undefined ? undefined : (rockGround?.(x, z, terrain) ?? terrain);
+  };
+  let height = sample(instance.position[0], instance.position[2]) ?? instance.position[1];
   if (source?.kind === "stone") {
     const scale = instance.scaleAxes ?? [instance.scale, instance.scale, instance.scale];
     const halfX = ((source.bounds.max[0] - source.bounds.min[0]) * scale[0]) / 2;
@@ -1528,11 +1558,7 @@ function naturalPlantGroundHeight(fields: SeedWorldFields, instance: LandscapePl
     // Ground the actual rotated footprint at its lowest corner, matching published solids.
     for (const x of [-halfX, halfX])
       for (const z of [-halfZ, halfZ]) {
-        const y = sampleSeedWorldHeight(
-          fields,
-          instance.position[0] + x * cos + z * sin,
-          instance.position[2] - x * sin + z * cos
-        );
+        const y = sample(instance.position[0] + x * cos + z * sin, instance.position[2] - x * sin + z * cos);
         if (y === undefined || !Number.isFinite(y)) throw new Error(`Invalid companion stone ground: ${instance.id}`);
         height = Math.min(height!, y);
       }

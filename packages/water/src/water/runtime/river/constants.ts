@@ -15,7 +15,7 @@ export const RIVER_SHADER_PROPERTY = {
   surfaceTurbulence: "material_SurfaceTurbulence",
   crestIntensity: "material_CrestIntensity",
   flowNormalStrength: "material_FlowNormalStrength",
-  surfaceDebugMode: "material_SurfaceDebugMode",
+
   macroDisplacementEnabled: "material_MacroDisplacementEnabled",
   microSurfaceEnabled: "material_MicroSurfaceEnabled",
   surfaceDomainOffsets: "material_SurfaceDomainOffsets",

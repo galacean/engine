@@ -1,18 +1,22 @@
-import { resolveWaterMaterialProfile, validateWaterWorldTransform } from "./WaterAuthoring";
+import { isWaterBuiltinShader } from "./WaterBuiltinShaders";
+import { Camera, ignoreClone, Layer, Script, type Entity, type Scene } from "@galacean/engine-core";
+import { Vector3 } from "@galacean/engine-math";
+import { createWaterBodyAsset } from "../authoring/body/WaterBodyAsset";
+import { createWaterBodyInstance } from "../authoring/body/WaterBodyInstance";
+import { sampleRiverDrop } from "../authoring/river/RiverDrop";
+import { createLakeNormalResourceFactory } from "../resources/lake/LakeNormalRuntimeResource";
 import { createFarmlandsWaterResourceFactories } from "../resources/river/FarmlandsWaterRuntimeResources";
-import { sampleRiverDrop, type RiverDrop } from "../authoring/river/RiverDrop";
 import {
   compileWaterPlanarTransform,
-  waterWorldPointToLocal,
-  waterLocalPointToWorld
+  waterLocalPointToWorld,
+  waterWorldPointToLocal
 } from "../runtime/body/WaterPlanarTransform";
-import type { WaterEnvironmentReflectionSource, WaterEnvironmentReflectionProviderHandle } from "../runtime/index";
-import { Vector3 } from "@galacean/engine-math";
-import { Camera, Layer, Script, Texture2D, ignoreClone, type Scene, type Entity } from "@galacean/engine-core";
-import { prepareWaterMaterial, waterMaterialFactories, waterMaterialKey } from "./WaterMaterial";
-import { compileNativeWaterConnections } from "./WaterConnections";
-import { createWaterBodyInstance } from "../authoring/body/WaterBodyInstance";
-import { createWaterBodyAsset } from "../authoring/body/WaterBodyAsset";
+import { HeightfieldWaterBackend } from "../runtime/heightfield/HeightfieldWaterBackend";
+import type { WaterEnvironmentReflectionProviderHandle, WaterEnvironmentReflectionSource } from "../runtime/index";
+import { OceanTextureLibrary, type OceanTextures } from "../runtime/ocean/OceanTextureLibrary";
+import { OceanWaterBackend } from "../runtime/ocean/OceanWaterBackend";
+import { createWaterSurfaceSample } from "../runtime/query/WaterSurfaceProvider";
+import { RiverWaterBackend } from "../runtime/river/RiverWaterBackend";
 import type {
   PreparedWaterSceneBodySetTransaction,
   PublishedWaterSceneBodySet,
@@ -20,13 +24,17 @@ import type {
   WaterSceneRuntimeHostOptions
 } from "../runtime/scene/WaterSceneRuntimeHost";
 import { WaterSceneRuntimeHost } from "../runtime/scene/WaterSceneRuntimeHost";
-import { HeightfieldWaterBackend } from "../runtime/heightfield/HeightfieldWaterBackend";
-import { RiverWaterBackend } from "../runtime/river/RiverWaterBackend";
-import { OceanWaterBackend } from "../runtime/ocean/OceanWaterBackend";
-import { OceanTextureLibrary, describeOceanTextures, type OceanTextures } from "../runtime/ocean/OceanTextureLibrary";
-import { createLakeNormalResourceFactory } from "../resources/lake/LakeNormalRuntimeResource";
-import { createWaterSurfaceSample } from "../runtime/query/WaterSurfaceProvider";
 import { createWaterSpatialFieldSample, WaterSpatialFieldChannel } from "../runtime/spatial/WaterSpatialFieldProvider";
+import { resolveWaterMaterialProfile, validateWaterWorldTransform } from "./WaterAuthoring";
+import {
+  freezeConfiguration,
+  nativeWaterOwners,
+  WaterBodyComponent,
+  type PreparedWaterBodyConfiguration,
+  type WaterBodyConfiguration
+} from "./WaterBodyComponent";
+import { compileNativeWaterConnections } from "./WaterConnections";
+import { prepareWaterMaterial, waterMaterialFactories, waterMaterialKey } from "./WaterMaterial";
 import { installLook, scopedLook } from "./WaterResources";
 import {
   WaterDevelopmentRelay,
@@ -34,13 +42,6 @@ import {
   type WaterRuntimeControl,
   type WaterRuntimeState
 } from "./WaterRuntimeControl";
-import {
-  nativeWaterOwners,
-  WaterBodyComponent,
-  freezeConfiguration,
-  type PreparedWaterBodyConfiguration,
-  type WaterBodyConfiguration
-} from "./WaterBodyComponent";
 
 export interface WaterBatchUpdate {
   readonly body: WaterBodyComponent;
@@ -258,7 +259,7 @@ export class WaterSystem extends Script implements WaterRuntimeControl {
             this._host?.loader,
             (id) => {
               const config = this._bodies.get(id)?.configuration;
-              return config ? scopedLook(config.look, config.material) : undefined;
+              return config ? scopedLook(config.look, config.material, config.quality.data) : undefined;
             },
             (target) =>
               this._presentationVisibility.get(target.bodyKind) === false
@@ -361,14 +362,6 @@ export class WaterSystem extends Script implements WaterRuntimeControl {
     const facts: string[] = [];
     if (this._host) {
       facts.push("Host retained / Host 保留待清理");
-      try {
-        const diagnostic = this._host.getDiagnostics();
-        facts.push(
-          `bodies ${diagnostic.activeBodyCount} · cache ${diagnostic.loader.cachedResourceCount} · leases ${diagnostic.runtimeResources.activeLeaseCount} · camera ${diagnostic.cameraFeatures.activeConsumerCount}`
-        );
-      } catch {
-        facts.push("Host diagnostics unavailable / Host 诊断不可用");
-      }
     }
     if (this._textures) facts.push("Ocean texture owner retained / Ocean 纹理所有者引用保留");
     if (this._runtimeRoot && !this._runtimeRoot.destroyed) facts.push("Runtime root retained / 运行实体保留");
@@ -578,7 +571,7 @@ export class WaterSystem extends Script implements WaterRuntimeControl {
     }
     const source = config.asset.runtimeData();
     const asset = createWaterBodyAsset({ ...source, id: `native-body:${config.asset.contentHash}` });
-    const look = scopedLook(config.look, config.material);
+    const look = scopedLook(config.look, config.material, config.quality.data);
     const quality = { ...config.quality.data, id: `native-quality:${config.quality.contentHash}` };
     host.registerAuthoringOnce(
       look.look.id,
@@ -610,32 +603,29 @@ export class WaterSystem extends Script implements WaterRuntimeControl {
       transaction.remove(body.waterId);
       return;
     }
-    if (source.kind === "ocean" && !config.material && !this._textures) {
+    if (source.kind === "ocean" && !this._textures) {
       this._textures = OceanTextureLibrary.create(this.engine).catch((error) => {
         this._textures = undefined;
         throw error;
       });
     }
-    const textures =
-      source.kind !== "ocean"
-        ? undefined
-        : config.material
-          ? describeOceanTextures(
-              ["smoothWaves", "roughWaves", "caustics", "foam", "intersectionNoise"].map((slot) => {
-                const texture = config.material!.shaderData.getTexture(`material_Ocean_${slot}`);
-                if (!(texture instanceof Texture2D))
-                  throw new Error(`MISSING_DEPENDENCY: Ocean Material requires '${slot}'.`);
-                return texture;
-              })
-            )
-          : (await this._textures)?.textures;
+    const textures = source.kind !== "ocean" ? undefined : (await this._textures)?.textures;
     signal.throwIfAborted();
     if (body.enabled && body.entity.isActiveInHierarchy && this.enabled && this.entity.isActiveInHierarchy) {
       transaction.stage({
         bodyId: body.waterId,
         asset,
         instance,
-        createRuntimeContext: nativeWaterRuntimeContext(this, textures, renderRoots, config.material?.shader)
+        // Built-ins are precompiled at full complexity. Lower tiers must retain the
+        // backend shader compiled from the derived appearance, rather than overwrite it.
+        createRuntimeContext: nativeWaterRuntimeContext(
+          this,
+          textures,
+          renderRoots,
+          config.material && (quality.surfaceShading === "high" || !isWaterBuiltinShader(config.material.shader))
+            ? config.material.shader
+            : undefined
+        )
       });
     } else transaction.remove(body.waterId);
   }
@@ -883,7 +873,7 @@ export class WaterSystem extends Script implements WaterRuntimeControl {
     });
   }
 
-  inspect(id: string) {
+  getBodyState(id: string) {
     if (!this._bodies.has(id)) this.reconcileMembership();
     const body = this._bodies.get(id);
     if (!body || body.destroyed) throw new Error("NOT_FOUND: Water body does not exist in this Scene.");
@@ -897,14 +887,13 @@ export class WaterSystem extends Script implements WaterRuntimeControl {
       active: this._runtimeState.effectiveEnabled && (handle?.active ?? false),
       revision: this._revision,
       instance: handle?.active ? handle.instance : undefined,
-      inspection: handle?.active ? handle.inspect() : undefined,
       lastError: body.lastError
     };
   }
 
   sampleDrops(x: number, y: number, z: number, id?: string) {
     if (![x, y, z].every(Number.isFinite)) throw new Error("INVALID_ARGUMENT: Query coordinates must be finite.");
-    if (id !== undefined) this.inspect(id);
+    if (id !== undefined) this.getBodyState(id);
     if (!this._runtimeState.effectiveEnabled) return { revision: this._revision, drops: [] };
     const hits = [];
     for (const body of this.bodies) {

@@ -1,21 +1,21 @@
-import { WebGLEngine, Camera, Vector3, type Entity } from "@galacean/engine";
+import { Camera, WebGLEngine, type Entity } from "@galacean/engine";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
 import { registerNativeWater } from "@galacean/engine-water/water/native/index";
+import type { IslandPlan } from "@galacean/engine-world-planning/semantic-study/IslandPlanModel";
+import { planningHeightmap } from "@galacean/engine-world-planning/semantic-study/PlanningHeightmap";
 import { PlanningTerrainView } from "@galacean/engine-world-planning/semantic-study/PlanningTerrainView";
+import { isGlobalRoadId } from "@galacean/engine-world-planning/spatial/layout/RoadIdentity";
+import { planningRegistry } from "@galacean/engine-world-planning/spatial/PlanningComponents";
+import type { PlanningSession } from "@galacean/engine-world-planning/spatial/PlanningSession";
 import {
   PlanningWaterRuntime,
   type PreparedPlanningWater
 } from "@galacean/engine-world-planning/spatial/runtime/PlanningWaterRuntime";
-import { planningHeightmap } from "@galacean/engine-world-planning/semantic-study/PlanningHeightmap";
-import type { IslandPlan } from "@galacean/engine-world-planning/semantic-study/IslandPlanModel";
-import type { PlanningSession } from "@galacean/engine-world-planning/spatial/PlanningSession";
-import { planningRegistry } from "@galacean/engine-world-planning/spatial/PlanningComponents";
 import { spatialRecordEditor } from "@galacean/engine-world-planning/spatial/SpatialRecordEditor";
-import { WaterPreviewWorkerClient } from "./WaterPreviewWorkerClient.ts";
 import { WaterPreviewCamera } from "./WaterPreviewCamera.ts";
-import { WaterPreviewEnvironment, type WaterPreviewLightingMode } from "./WaterPreviewEnvironment.ts";
 import { WaterPreviewCrossings } from "./WaterPreviewCrossings.ts";
-import { isGlobalRoadId } from "@galacean/engine-world-planning/spatial/layout/RoadIdentity";
+import { WaterPreviewEnvironment, type WaterPreviewLightingMode } from "./WaterPreviewEnvironment.ts";
+import { WaterPreviewWorkerClient } from "./WaterPreviewWorkerClient.ts";
 
 const element = <T extends HTMLElement>(id: string) => document.getElementById(id)! as T;
 const seed = element<HTMLInputElement>("seed"),
@@ -151,7 +151,9 @@ async function publishCandidate(plan: IslandPlan, combined: AbortSignal, accept:
     await view.setProduction(true, plan.parameters.seed);
     combined.throwIfAborted();
     view.setPlan(plan, { route: roadToggle.checked });
-    nextCrossings = crossings?.matches(plan) ? crossings : await WaterPreviewCrossings.create(engine!, root, plan, combined);
+    nextCrossings = crossings?.matches(plan)
+      ? crossings
+      : await WaterPreviewCrossings.create(engine!, root, plan, combined);
     if (nextCrossings !== crossings) nextCrossings.setVisible(crossingToggle.checked);
     view.setVisible(terrainToggle.checked);
     combined.throwIfAborted();
@@ -255,7 +257,12 @@ async function edit(values: Record<string, unknown>) {
   const id = bodySelect.value,
     body = currentPlan!.waters.find((w) => w.id === id);
   const receipt = await session!.dispatchParameters([
-    { op: "set", entity: id, component: body ? body.kind === "lake" ? "lakes" : "rivers" : "suspensionBridge", values }
+    {
+      op: "set",
+      entity: id,
+      component: body ? (body.kind === "lake" ? "lakes" : "rivers") : "suspensionBridge",
+      values
+    }
   ]);
   if (receipt.status !== "accepted") throw new Error(receipt.message ?? receipt.status);
 }
@@ -267,11 +274,15 @@ function numeric(label: string, value: number, field: string) {
   input.step = "0.1";
   input.value = Number.isFinite(value) ? String(value) : "";
   input.setAttribute("aria-label", label);
-  input.onchange = () => run(async () => {
-    if (input.value.trim() || currentPlan!.waters.some((w) => w.id === bodySelect.value)) return edit({ [field]: Number(input.value) });
-    const receipt = await session!.dispatchParameters([{ op: "reset", entity: bodySelect.value, component: "suspensionBridge", fields: [field] }]);
-    if (receipt.status !== "accepted") throw new Error(receipt.message ?? receipt.status);
-  });
+  input.onchange = () =>
+    run(async () => {
+      if (input.value.trim() || currentPlan!.waters.some((w) => w.id === bodySelect.value))
+        return edit({ [field]: Number(input.value) });
+      const receipt = await session!.dispatchParameters([
+        { op: "reset", entity: bodySelect.value, component: "suspensionBridge", fields: [field] }
+      ]);
+      if (receipt.status !== "accepted") throw new Error(receipt.message ?? receipt.status);
+    });
   row.append(input);
   return row;
 }
@@ -288,10 +299,10 @@ function renderEditor() {
       "独立空间元素 · 河流与湖泊",
       currentPlan!.waters.map((w) => new Option(session!.document.entities[w.id]?.name ?? w.label, w.id))
     ),
-    group(
-      "独立空间元素 · 跨河连接",
-      [new Option("木吊桥默认设置", "world"), ...currentPlan!.bridges.map((b, i) => new Option(`跨河连接 ${i + 1} · ${b.label}`, b.id))]
-    ),
+    group("独立空间元素 · 跨河连接", [
+      new Option("木吊桥默认设置", "world"),
+      ...currentPlan!.bridges.map((b, i) => new Option(`跨河连接 ${i + 1} · ${b.label}`, b.id))
+    ]),
     group(
       "全局道路",
       currentPlan!.routes
@@ -318,13 +329,19 @@ function renderEditor() {
       const id = bridge?.id ?? "world";
       const values = session!.inspect(id).components.find((c) => c.type === "suspensionBridge")!.values;
       if (id === "world") p.textContent = "新旧跨河连接共用默认配置；单桥显式设置优先。留空恢复自动适配。";
-      for (const field of planningRegistry.get("suspensionBridge").fields.filter((f) => id !== "world" || !f.kinds || f.kinds.includes("world")))
+      for (const field of planningRegistry
+        .get("suspensionBridge")
+        .fields.filter((f) => id !== "world" || !f.kinds || f.kinds.includes("world")))
         element("parameters").append(numeric(field.label + "（米）", Number(values[field.key]), field.key));
-      const reset = document.createElement("button"); reset.textContent = "恢复自动适配";
-      reset.onclick = () => run(async () => {
-        const receipt = await session!.dispatchParameters([{ op: "reset", entity: id, component: "suspensionBridge" }]);
-        if (receipt.status !== "accepted") throw new Error(receipt.message ?? receipt.status);
-      });
+      const reset = document.createElement("button");
+      reset.textContent = "恢复自动适配";
+      reset.onclick = () =>
+        run(async () => {
+          const receipt = await session!.dispatchParameters([
+            { op: "reset", entity: id, component: "suspensionBridge" }
+          ]);
+          if (receipt.status !== "accepted") throw new Error(receipt.message ?? receipt.status);
+        });
       element("parameters").append(reset);
     }
     element("facts").textContent = JSON.stringify(
@@ -509,7 +526,7 @@ try {
         return water!.system;
       },
       get environment() {
-        return { ...environment?.snapshot, reflection: water!.system.environment.inspection };
+        return environment?.snapshot;
       },
       get camera() {
         const p = camera.entity.transform.worldPosition,

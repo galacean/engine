@@ -2,12 +2,14 @@ import {
   AssetType,
   BlendMode,
   BoundingBox,
+  BoxShape,
   Color,
   GradientAlphaKey,
   GradientColorKey,
   MeshShape,
   MeshRenderer,
   ModelMesh,
+  ParticleCompositeCurve,
   ParticleCompositeGradient,
   ParticleCurveMode,
   ParticleGradient,
@@ -30,14 +32,20 @@ import {
   type Material
 } from "@galacean/engine";
 import { usesProjectPlantResources } from "@galacean/engine-vegetation/asset-assembly/PlantSpeciesResources";
-import type { IslandPlan } from "../../semantic-study/IslandPlanModel";
+import type { IslandPlan, PlanPoint } from "../../semantic-study/IslandPlanModel";
+import type { RockFormationMesh } from "@galacean/engine-terrain/rock-formation/types";
+import { compositionSubjectTerraceBox } from "../SpatialCompositionGeometry";
+import { spatialCompositionParameters } from "../SpatialCompositionParameters";
 import { templateBaseSeed, templateLinearColor, worldTemplate, type WorldTemplate } from "../WorldTemplateCatalog";
 import { WORLD_TEMPLATE_ART, type WorldTemplateArtDirection } from "../WorldTemplateArtDirection";
 import { settlementRandom } from "../../semantic-study/SettlementGeometry";
+import { worldTemplateStreet } from "../WorldTemplateStreet";
 import { resolveWorldTemplateScene, type ResolvedWorldTemplateScene } from "../WorldTemplateView";
 import { fitTemplateAsset, type TemplateNode } from "../WorldTemplateGeometry";
+import { StreetFacadeRuntime } from "./StreetFacadeRuntime";
 import translucentShader from "./TemplateTranslucent.shader?raw";
 import fireflyShader from "./TemplateFirefly.shader?raw";
+import petalShader from "./TemplatePetal.shader?raw";
 
 function modelBounds(entity: Entity): BoundingBox {
   const bounds = new BoundingBox(
@@ -53,33 +61,43 @@ function modelBounds(entity: Entity): BoundingBox {
 export class WorldTemplateRuntime {
   readonly root: Entity;
   readonly template: WorldTemplate;
-  readonly geometry: ResolvedWorldTemplateScene["geometry"];
+  readonly geometry?: ResolvedWorldTemplateScene["geometry"];
+  private facades?: StreetFacadeRuntime;
   private mesh?: ModelMesh;
   private material?: UnlitMaterial;
   private readonly models: { id: string; url: string; entity: Entity }[] = [];
+  private readonly groundedNodes = new Map<string, Entity>();
   private readonly leafMaterials = new Map<string, Material>();
   private readonly assetMaterials = new Map<string, PBRMaterial | UnlitMaterial>();
   private sporeRenderer?: ParticleRenderer;
   private sporeEmissionMesh?: ModelMesh;
   private sporeMaterial?: ParticleMaterial;
   private sporeTexture?: Texture2D;
+  private petalRenderer?: ParticleRenderer;
+  private petalMaterial?: ParticleMaterial;
   private destroyed = false;
   private readonly anchor: { x: number; y: number; z: number };
-  private readonly focusBounds: ResolvedWorldTemplateScene["focusBounds"];
+  private focusBounds?: ResolvedWorldTemplateScene["focusBounds"];
 
   static async create(
     parent: Entity,
     plan: IslandPlan,
     ground: (x: number, z: number) => number | undefined,
     prepared = resolveWorldTemplateScene(plan, ground),
-    signal?: AbortSignal
+    signal?: AbortSignal,
+    viewer?: Entity
   ): Promise<WorldTemplateRuntime | undefined> {
     const template = worldTemplate(plan.parameters.worldTemplate?.id);
-    if (!template || !prepared) return undefined;
+    if (!template) return undefined;
+    const signs = WORLD_TEMPLATE_ART[template.id].streetSigns;
+    const street = worldTemplateStreet(plan);
+    const spine = street?.construction?.spine;
+    if (!prepared && !spine?.length) return undefined;
     signal?.throwIfAborted();
     const assets = new Map<string, GLTFResource>();
-    const urls = new Set(prepared.nodes.flatMap(({ node }) => (node.assetUrl ? [node.assetUrl] : [])));
-    const needsLeafMaterial = prepared.nodes.some(({ node }) => node.assetLeafMaterials?.length);
+    const nodes = prepared?.nodes ?? [];
+    const urls = new Set(nodes.flatMap(({ node }) => (node.assetUrl ? [node.assetUrl] : [])));
+    const needsLeafMaterial = nodes.some(({ node }) => node.assetLeafMaterials?.length);
     const leafTemplateTask = needsLeafMaterial
       ? parent.engine.resourceManager.load<Material>({
           type: AssetType.Material,
@@ -91,38 +109,72 @@ export class WorldTemplateRuntime {
               ).href
         })
       : Promise.resolve(undefined);
-    await Promise.all([
+    const petalTextureUrl = WORLD_TEMPLATE_ART[template.id].petals?.textureUrl;
+    const petalTextureTask = petalTextureUrl
+      ? parent.engine.resourceManager.load<Texture2D>({
+          type: AssetType.Texture,
+          url: petalTextureUrl,
+          params: {
+            isSRGBColorSpace: true,
+            mipmap: true,
+            wrapModeU: TextureWrapMode.Clamp,
+            wrapModeV: TextureWrapMode.Clamp
+          }
+        })
+      : Promise.resolve(undefined);
+    const atlasTask =
+      signs && spine?.length
+        ? parent.engine.resourceManager.load<Texture2D>({ type: AssetType.Texture, url: signs.atlasUrl })
+        : Promise.resolve(undefined);
+    const [leafTemplate, atlas, petalTexture] = await Promise.all([
+      leafTemplateTask,
+      atlasTask,
+      petalTextureTask,
       ...[...urls].map(async (url) => {
         assets.set(url, await parent.engine.resourceManager.load<GLTFResource>({ type: AssetType.GLTF, url }));
-      }),
-      leafTemplateTask
+      })
     ]);
-    const leafTemplate = await leafTemplateTask;
     signal?.throwIfAborted();
     if (parent.destroyed) throw new Error("World template parent was destroyed while loading models");
-    return new WorldTemplateRuntime(parent, template, prepared, assets, ground, leafTemplate);
+    return new WorldTemplateRuntime(
+      parent,
+      template,
+      prepared,
+      assets,
+      ground,
+      leafTemplate,
+      petalTexture,
+      atlas,
+      spine,
+      viewer
+    );
   }
   private constructor(
     parent: Entity,
     template: WorldTemplate,
-    scene: ResolvedWorldTemplateScene,
+    scene: ResolvedWorldTemplateScene | undefined,
     assets: ReadonlyMap<string, GLTFResource>,
     ground: (x: number, z: number) => number | undefined,
-    leafTemplate?: Material
+    leafTemplate?: Material,
+    petalTexture?: Texture2D,
+    atlas?: Texture2D,
+    spine?: readonly PlanPoint[],
+    viewer?: Entity
   ) {
     this.template = template;
-    this.geometry = scene.geometry;
-    this.focusBounds = scene.focusBounds;
+    this.geometry = scene?.geometry;
+    this.focusBounds = scene?.focusBounds;
     this.root = parent.createChild(`World template: ${template.id}`);
     try {
-      const [x, y, z] = scene.anchor;
+      const [x, y, z] = scene?.anchor ?? [0, 0, 0];
       this.anchor = { x, y, z };
       this.root.transform.setPosition(x, y, z);
-      for (const { node, position } of scene.nodes) {
+      for (const { node, position } of scene?.nodes ?? []) {
         const entity = this.root.createChild(node.id);
         entity.transform.setPosition(position[0] - x, position[1] - y, position[2] - z);
         entity.transform.setScale(...node.scale);
         entity.transform.setRotation(...node.rotation);
+        if (node.grounded) this.groundedNodes.set(node.id, entity);
         if (node.light) {
           const { offset, color, intensity, rangeM } = node.light;
           if (
@@ -149,7 +201,7 @@ export class WorldTemplateRuntime {
           const normalized = entity.createChild("Model fit");
           normalized.addChild(model);
           if (node.assetLeafMaterials?.length)
-            this.bindLeafMaterials(model, node.assetLeafMaterials, leafTemplate!, node.assetLeafColor);
+            this.bindLeafMaterials(model, node.assetLeafMaterials, leafTemplate!, node);
           if (node.assetMaterials) this.bindAssetMaterials(model, node.assetMaterials);
           const fit = fitTemplateAsset(
             node.scale,
@@ -187,10 +239,135 @@ export class WorldTemplateRuntime {
       }
       const spores = WORLD_TEMPLATE_ART[template.id].spores;
       if (spores) this.createSporeParticles(spores, ground);
+      const petals = WORLD_TEMPLATE_ART[template.id].petals;
+      if (petals) {
+        if (!petalTexture) throw new Error("Missing template petal texture");
+        this.createPetalParticles(petals, ground, petalTexture);
+      }
+      const signs = WORLD_TEMPLATE_ART[template.id].streetSigns;
+      if (signs && atlas && spine)
+        this.facades = new StreetFacadeRuntime(this.root, atlas, signs, ground, spine, viewer);
     } catch (error) {
       this.dispose();
       throw error;
     }
+  }
+
+  /** Resolve new vertical supports before the corresponding rock meshes become visible. */
+  prepareRockGrounding(
+    plan: IslandPlan,
+    ground: (x: number, z: number) => number | undefined,
+    formations: readonly RockFormationMesh[]
+  ): (() => void) | undefined {
+    if (!compositionSubjectTerraceBox(spatialCompositionParameters(plan.parameters.spatialComposition))) return;
+    const scene = resolveWorldTemplateScene(plan, ground, formations)!;
+    return () => {
+      for (const { node, position } of scene.nodes) {
+        const entity = this.groundedNodes.get(node.id);
+        if (entity) entity.transform.position.y = position[1] - this.anchor.y;
+      }
+      this.focusBounds = scene.focusBounds;
+    };
+  }
+
+  private createPetalParticles(
+    petals: NonNullable<WorldTemplateArtDirection["petals"]>,
+    ground: (x: number, z: number) => number | undefined,
+    texture: Texture2D
+  ): void {
+    const positiveRange = (range: readonly number[]) =>
+      range.length === 2 && range.every((value) => Number.isFinite(value) && value > 0) && range[0] <= range[1];
+    if (
+      !Number.isSafeInteger(petals.count) ||
+      petals.count <= 0 ||
+      ![...petals.center, ...petals.windMps, ...petals.spinDegreesPerSecond].every(Number.isFinite) ||
+      !petals.extent.every((value) => Number.isFinite(value) && value > 0) ||
+      !positiveRange(petals.sizeM) ||
+      !positiveRange(petals.fallSpeedMps) ||
+      ![petals.lifetimeSeconds, petals.flutterWavelengthM].every((value) => Number.isFinite(value) && value > 0) ||
+      ![petals.flutterMps, petals.intensity].every((value) => Number.isFinite(value) && value >= 0) ||
+      !Number.isFinite(petals.renderPriority) ||
+      typeof petals.depthTest !== "boolean" ||
+      (petals.emission !== undefined &&
+        (!Number.isFinite(petals.emission.intensity) || petals.emission.intensity < 0)) ||
+      petals.spinDegreesPerSecond[0] > petals.spinDegreesPerSecond[1]
+    )
+      throw new Error("Invalid template petal parameters");
+
+    const { engine } = this.root,
+      { x, y, z } = this.anchor;
+    const floor = ground(x - petals.center[0], z + petals.center[2]);
+    if (floor === undefined) return;
+    const shape = new BoxShape();
+    shape.size.set(...petals.extent);
+    const shader = Shader.find("Planning/PetalParticle") ?? Shader.create(petalShader);
+    const material = (this.petalMaterial = new ParticleMaterial(engine, shader));
+    material.name = "Sakura petal pigment";
+    material.shaderData.setInt("depthTestEnabled", petals.depthTest ? 1 : 0);
+    material.baseTexture = texture;
+    const [r, g, b] = templateLinearColor(petals.color).map((channel) => channel * petals.intensity);
+    material.baseColor = new Color(r, g, b, 1);
+    if (petals.emission) {
+      const { color, intensity } = petals.emission;
+      const [r, g, b] = templateLinearColor(color).map((channel) => channel * intensity);
+      material.emissiveColor = new Color(r, g, b, 1);
+      material.emissiveTexture = texture;
+    }
+    const renderer = (this.petalRenderer = this.root.createChild("Drifting petals").addComponent(ParticleRenderer));
+    renderer.entity.transform.setPosition(-petals.center[0], floor - y + petals.center[1], petals.center[2]);
+    renderer.renderMode = ParticleRenderMode.Billboard;
+    renderer.priority = petals.renderPriority;
+    renderer.setMaterial(material);
+    renderer.castShadows = renderer.receiveShadows = false;
+    const generator = renderer.generator,
+      main = generator.main;
+    generator.randomSeed = templateBaseSeed(this.template.id);
+    main.playOnEnabled = false;
+    main.isLoop = true;
+    main.duration = petals.lifetimeSeconds;
+    main.maxParticles = petals.count;
+    main.simulationSpace = ParticleSimulationSpace.World;
+    main.startSpeed.constant = 0;
+    main.startSize = new ParticleCompositeCurve(...petals.sizeM);
+    main.startLifetime = new ParticleCompositeCurve(petals.lifetimeSeconds * 0.75, petals.lifetimeSeconds * 1.25);
+    main.gravityModifier.constant = 0;
+    main.startRotation3D = false;
+    main.startRotationZ = new ParticleCompositeCurve(0, 360);
+    generator.emission.shape = shape;
+    generator.emission.rateOverTime.constant = petals.count / petals.lifetimeSeconds;
+    generator.velocityOverLifetime.enabled = true;
+    generator.velocityOverLifetime.space = ParticleSimulationSpace.World;
+    generator.velocityOverLifetime.velocityX = new ParticleCompositeCurve(0, 0);
+    generator.velocityOverLifetime.velocityY = new ParticleCompositeCurve(
+      -petals.fallSpeedMps[1],
+      -petals.fallSpeedMps[0]
+    );
+    generator.velocityOverLifetime.velocityZ = new ParticleCompositeCurve(0, 0);
+    generator.windOverLifetime.enabled = true;
+    generator.windOverLifetime.targetVelocity.set(...petals.windMps);
+    generator.windOverLifetime.influence.set(1, 0, 1);
+    generator.noise.enabled = true;
+    generator.noise.strengthX.constant = petals.flutterMps;
+    generator.noise.frequency = 1 / petals.flutterWavelengthM;
+    generator.noise.scrollSpeed = Math.hypot(...petals.windMps) / petals.flutterWavelengthM;
+    generator.rotationOverLifetime.enabled = true;
+    generator.rotationOverLifetime.separateAxes = false;
+    generator.rotationOverLifetime.rotationZ = new ParticleCompositeCurve(...petals.spinDegreesPerSecond);
+    generator.colorOverLifetime.enabled = true;
+    const white = new Color(1, 1, 1, 1);
+    generator.colorOverLifetime.color = new ParticleCompositeGradient(
+      new ParticleGradient(
+        [new GradientColorKey(0, white), new GradientColorKey(1, white)],
+        [
+          new GradientAlphaKey(0, 0),
+          new GradientAlphaKey(0.1, 1),
+          new GradientAlphaKey(0.85, 1),
+          new GradientAlphaKey(1, 0)
+        ]
+      )
+    );
+    generator.play(false);
+    generator.emit(Math.ceil(petals.count / 2));
   }
   private createSporeParticles(
     spores: NonNullable<WorldTemplateArtDirection["spores"]>,
@@ -358,8 +535,18 @@ export class WorldTemplateRuntime {
     for (const slot of Object.keys(overrides))
       if (!found.has(slot)) throw new Error(`Missing template material slot: ${slot}`);
   }
-  private bindLeafMaterials(model: Entity, slots: readonly string[], template: Material, leafColor?: string): void {
+  private bindLeafMaterials(model: Entity, slots: readonly string[], template: Material, node: TemplateNode): void {
     if (template.shader.name !== "Terrain/Vegetation") throw new Error("Template foliage requires Terrain/Vegetation");
+    const intensity = node.assetLeafIntensity ?? 1;
+    const textureBlend = node.assetLeafTextureBlend ?? 1;
+    if (
+      !Number.isFinite(intensity) ||
+      intensity < 0 ||
+      !Number.isFinite(textureBlend) ||
+      textureBlend < 0 ||
+      textureBlend > 1
+    )
+      throw new Error("Invalid template foliage pigment");
     const requested = new Set(slots);
     const found = new Set<string>();
     for (const renderer of model.getComponentsIncludeChildren(MeshRenderer, [])) {
@@ -367,8 +554,10 @@ export class WorldTemplateRuntime {
         if (!source || !requested.has(source.name)) return;
         if (!(source instanceof PBRMaterial)) throw new Error(`Template foliage slot requires PBR: ${source.name}`);
         found.add(source.name);
-        const color = leafColor ? new Color(...templateLinearColor(leafColor), source.baseColor.a) : source.baseColor;
-        const key = JSON.stringify([source.instanceId, color.r, color.g, color.b, color.a]);
+        const color = node.assetLeafColor
+          ? new Color(...templateLinearColor(node.assetLeafColor), source.baseColor.a)
+          : source.baseColor;
+        const key = JSON.stringify([source.instanceId, color.r, color.g, color.b, color.a, intensity, textureBlend]);
         let material = this.leafMaterials.get(key);
         if (!material) {
           material = template.clone();
@@ -394,12 +583,12 @@ export class WorldTemplateRuntime {
           data.setTexture("material_BaseTexture", texture);
           if (texture) data.enableMacro("MATERIAL_HAS_BASETEXTURE");
           else data.disableMacro("MATERIAL_HAS_BASETEXTURE");
-          // The leaf shader's lower overlay branch evaluates 2 * tint * texture.
-          // Halving the linear source tint preserves the original PBR colour multiplication.
-          const gain = texture ? 0.5 : 1;
+          // The low overlay branch has gain 1 + blend for a white atlas. Coverage-only
+          // uses the unmodified HDR pigment, outside that branch's [0, 1] clamp.
+          const gain = intensity / (texture ? 1 + textureBlend : 1);
           data.setColor("material_BaseColor", new Color(color.r * gain, color.g * gain, color.b * gain, color.a));
           data.setColor("material_TranslucencyColor", new Color(1, 1, 1, 1));
-          data.setFloat("material_LeafAlbedoTextureBlend", texture ? 1 : 0);
+          data.setFloat("material_LeafAlbedoTextureBlend", texture ? textureBlend : 0);
           data.setFloat("material_LeafAlbedoBrightness", 1);
           data.setFloat("material_LeafAlbedoDesaturation", 0);
           data.setFloat("material_LeafFlipBackfaceNormals", 0);
@@ -446,6 +635,43 @@ export class WorldTemplateRuntime {
               .some((macro) => macro.name === "RENDERER_TRANSFORM_FEEDBACK")
           }
         : undefined,
+      petals: this.petalRenderer
+        ? {
+            renderer: "ParticleRenderer",
+            renderMode: "Billboard",
+            renderPriority: this.petalRenderer.priority,
+            depthTest: Boolean(this.petalMaterial!.shaderData.getInt("depthTestEnabled")),
+            depthWrite: Boolean(this.petalMaterial!.shaderData.getInt("depthWriteEnabled")),
+            shader: this.petalMaterial!.shader.name,
+            emission: [
+              this.petalMaterial!.emissiveColor.r,
+              this.petalMaterial!.emissiveColor.g,
+              this.petalMaterial!.emissiveColor.b
+            ],
+            emissiveTexture: Boolean(this.petalMaterial!.emissiveTexture),
+            capacity: this.petalRenderer.generator.main.maxParticles,
+            active: this.petalRenderer.generator.isAlive,
+            texture: {
+              name: this.petalMaterial!.baseTexture.name,
+              width: this.petalMaterial!.baseTexture.width,
+              height: this.petalMaterial!.baseTexture.height
+            },
+            emissionRate: this.petalRenderer.generator.emission.rateOverTime.constant,
+            sizeM: [
+              this.petalRenderer.generator.main.startSize.constantMin,
+              this.petalRenderer.generator.main.startSize.constantMax
+            ],
+            fallSpeedMps: [
+              -this.petalRenderer.generator.velocityOverLifetime.velocityY.constantMax,
+              -this.petalRenderer.generator.velocityOverLifetime.velocityY.constantMin
+            ],
+            windMps: this.petalRenderer.generator.windOverLifetime.targetVelocity,
+            spin: this.petalRenderer.generator.rotationOverLifetime.enabled,
+            gpuSimulation: this.petalRenderer.shaderData
+              .getMacros()
+              .some((macro) => macro.name === "RENDERER_TRANSFORM_FEEDBACK")
+          }
+        : undefined,
       lights: this.root.getComponentsIncludeChildren(PointLight, []).map((light) => ({
         name: light.entity.name,
         color: [light.color.r, light.color.g, light.color.b],
@@ -455,7 +681,10 @@ export class WorldTemplateRuntime {
       leafMaterials: [...this.leafMaterials.values()].map((material) => ({
         name: material.name,
         shader: material.shader.name,
-        flipBackfaceNormals: material.shaderData.getFloat("material_LeafFlipBackfaceNormals")
+        flipBackfaceNormals: material.shaderData.getFloat("material_LeafFlipBackfaceNormals"),
+        pigment: material.shaderData.getColor("material_BaseColor"),
+        textureBlend: material.shaderData.getFloat("material_LeafAlbedoTextureBlend"),
+        alphaCutoff: material.shaderData.getFloat("material_AlphaCutoff")
       })),
       assetMaterials: [...this.assetMaterials.values()].map((material) => ({
         name: material.name,
@@ -482,7 +711,7 @@ export class WorldTemplateRuntime {
               }
             : undefined
       })),
-      placeholders: this.geometry.nodes.filter((node) => !node.assetUrl).map((node) => node.id),
+      placeholders: (this.geometry?.nodes ?? []).filter((node) => !node.assetUrl).map((node) => node.id),
       models: this.models.map(({ id, url, entity }) => {
         const { min, max } = modelBounds(entity);
         return { id, url, bounds: { min: [min.x, min.y, min.z], max: [max.x, max.y, max.z] } };
@@ -492,6 +721,7 @@ export class WorldTemplateRuntime {
   dispose(): void {
     if (this.destroyed) return;
     this.destroyed = true;
+    this.facades?.dispose();
     this.root.destroy();
     this.leafMaterials.forEach((material) => material.destroy());
     this.leafMaterials.clear();
@@ -500,6 +730,7 @@ export class WorldTemplateRuntime {
     this.sporeMaterial?.destroy();
     this.sporeTexture?.destroy();
     this.sporeEmissionMesh?.destroy();
+    this.petalMaterial?.destroy();
     this.material?.destroy();
     this.mesh?.destroy();
   }

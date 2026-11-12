@@ -1,12 +1,15 @@
 import { finalizePlanningFarm } from "../farming/PlanningFarmingFinalization";
+import { publishMojaveDesertLayout } from "./MojaveDesertLayout";
 import { PLANNING_REFERENCE } from "../../planning-data/PlanningReference";
 import { planWorldTemplateSite } from "../WorldTemplatePlanning";
 import { resolveWorldTemplateScene, resolveWorldTemplateView } from "../WorldTemplateView";
 import { WORLD_TEMPLATE_ART } from "../WorldTemplateArtDirection";
 import { PLANNING_RUNTIME_OPTIONS } from "../runtime/RuntimeOptions";
 import { worldTemplateEcology } from "../WorldTemplateEcology";
+import { worldTemplate } from "../WorldTemplateCatalog";
 import {
   compileCompositionGroup,
+  compileCompositionReliefGroups,
   publishCompositionPaths,
   publishCompositionTrees,
   compositionHydrology
@@ -450,8 +453,9 @@ function* spatialWorldStages(
       .filter(([, e]) => e.lakes)
       .map(([id, e]) => [id, e.lakes!])
   );
-  Object.assign(localRivers, generatedWater.rivers);
-  Object.assign(localLakes, generatedWater.lakes);
+  // Composition suggests initial water. Native Source edits and deletions take precedence.
+  for (const [id, values] of Object.entries(generatedWater.rivers)) localRivers[id] ??= values;
+  for (const [id, values] of Object.entries(generatedWater.lakes)) localLakes[id] ??= values;
   // Automatic hydrology samples natural Terrain before it publishes any cuts.
   // Authored patches and basin geometry belong to that physical input; appearance
   // does not. Reuse this projection for Terrain invalidation so a colour edit
@@ -555,9 +559,11 @@ function* spatialWorldStages(
     ]);
   // Farming consumes final world/spawn geometry; it never reserves or rerolls a POI.
   delete plan.farming;
+  const template = worldTemplate(p.worldTemplate?.id);
+  const grassOnly = template?.vegetation === "grass";
   const specifications = plan
     .poiDistribution!.sites.filter((site) => site.active)
-    .map((site) => {
+    .flatMap((site) => {
       const { elementProfile, ...authored } = { ...value("world", "layout"), ...value(site.id, "layout") },
         configuration = initialLayoutConfiguration(
           p.seed,
@@ -565,6 +571,7 @@ function* spatialWorldStages(
           authored.pattern as string | undefined,
           elementProfile as string | undefined
         );
+      if (grassOnly && configuration.presentation === "rock") return [];
       const rule = {
         ...configuration.rule,
         ...authored,
@@ -605,14 +612,7 @@ function* spatialWorldStages(
               components: structuredClone(components),
               random: layoutRandom(p.seed, site.id, 0, 0, rule.variationSeed)
             });
-      return {
-        site,
-        rule,
-        inputSignature,
-        components,
-        construction,
-        exclusions: configuration.exclusions
-      };
+      return [{ site, rule, inputSignature, components, construction, exclusions: configuration.exclusions }];
     });
   const territories = new Map([...territoryOutlines].map(([id, outline]) => [id, createPlanningRingQuery(outline)]));
   const relations = layoutExclusions(
@@ -727,8 +727,12 @@ function* spatialWorldStages(
     );
     groups.push(baseline);
   }
-  const composition = compileCompositionGroup(plan, ground);
-  if (composition) {
+  const compositionGroups = grassOnly
+    ? []
+    : [compileCompositionGroup(plan, ground), ...compileCompositionReliefGroups(plan)].filter(
+        (group): group is LayoutGroup => !!group
+      );
+  for (const composition of compositionGroups) {
     groups.push(composition);
     appearances[composition.id] = "rock";
   }
@@ -757,7 +761,7 @@ function* spatialWorldStages(
       groups[i] = { ...group, paths: [], connectionBounds: undefined, connectionSignature: undefined };
       continue;
     }
-    if (group === composition) continue;
+    if (compositionGroups.includes(group)) continue;
     if (!group.volumes.length && compositionArea?.inside(group.center)) {
       groups[i] = { ...group, paths: [], ports: [] };
       continue;
@@ -1153,6 +1157,11 @@ function* spatialWorldStages(
     mark("guidance");
     landscapeBase = revealSpatialEcology(environment);
     publishCompositionTrees(plan, ground, config.landscape, recipe.edits);
+    const desertLandscape = publishMojaveDesertLayout(plan, ground);
+    if (desertLandscape.length) {
+      plan.landscapes = [...(plan.landscapes ?? []), ...desertLandscape];
+      if (landscapeBase) landscapeBase = { ...landscapeBase, slots: [...landscapeBase.slots, ...desertLandscape] };
+    }
   }
   // Spawn belongs to a populated village when one exists; layout order also includes rock POIs.
   const first =
@@ -1199,7 +1208,7 @@ function* spatialWorldStages(
     exclusions: relations,
     roads: automaticRoads
   };
-  if (p.farming?.enabled !== false) {
+  if (p.farming?.enabled !== false && template?.farming !== false) {
     const farmSearchStarted = performance.now();
     const farmSignature = JSON.stringify([
       worldSignature,

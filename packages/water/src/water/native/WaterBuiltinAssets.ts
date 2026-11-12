@@ -1,7 +1,9 @@
+import { builtinWaterTextureDescriptor } from "./WaterBuiltinTextureIdentity";
+export { builtinWaterTextureDescriptor } from "./WaterBuiltinTextureIdentity";
 import { Texture2D, type Engine } from "@galacean/engine-core";
 import type { WaterResourceAssetDescriptorV1 } from "../authoring/body/WaterBodyAuthoringTypes";
-import type { WaterRuntimeResourceFactory } from "../runtime/resources/WaterRuntimeResourceRegistry";
 import { digestSha256Hex } from "../resources/sha256";
+import type { WaterRuntimeResourceFactory } from "../runtime/resources/WaterRuntimeResourceRegistry";
 
 /** Editable Source and native project assets. Camera and Terrain hosts remain application inputs. */
 export const BUILTIN_WATER_PROJECT_URL = new URL("./assets/project.json", import.meta.url).href;
@@ -43,6 +45,8 @@ async function textures(engine: Engine): Promise<TextureAsset[]> {
 export async function loadBuiltinWaterTexture(engine: Engine, path: string, signal?: AbortSignal): Promise<Texture2D> {
   const asset = (await textures(engine)).find((asset) => asset.target === path);
   if (!asset || !["Texture", "KTX2"].includes(asset.type)) throw new Error(`Missing native Water texture '${path}'.`);
+  if (asset.sha256 !== builtinWaterTextureDescriptor(path).contentHash)
+    throw new Error(`Native Water texture '${path}' does not match the packaged conversion identity.`);
   const url = resolvers.get(engine)?.(path) ?? new URL(path, BUILTIN_WATER_PROJECT_URL).href;
   const response = await fetch(url, { signal });
   if (!response.ok || (await digestSha256Hex(await response.arrayBuffer())) !== asset.sha256)

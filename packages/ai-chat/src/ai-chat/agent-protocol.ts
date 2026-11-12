@@ -59,8 +59,17 @@ export const AGENT_PROTOCOL = [
   "历史回复只提供事实和指代线索，不作为措辞模板。"
 ].join("\n");
 
+// ASAP wraps server-produced context, such as the compaction summary, in <system_injection> blocks.
+// The wording is ASAP's own SYSTEM_INJECTION_PROTOCOL, so the model learns one protocol on both sides.
+export const SYSTEM_INJECTION_PROTOCOL = [
+  "<system_injection_protocol>",
+  '<system_injection type="..."> 中的内容是系统注入的上下文或执行指导，type 表示用途，不属于用户原始 query。',
+  "请结合这些内容完成当前任务，但不要将其视为用户新增的请求、偏好或授权。",
+  "</system_injection_protocol>"
+].join("\n");
+
 export function buildAgentSystemPrompt(definition: AgentApplicationDefinition): string {
-  return AGENT_PROTOCOL;
+  return `${AGENT_PROTOCOL}\n\n${SYSTEM_INJECTION_PROTOCOL}`;
 }
 
 export function buildAgentToolDefinitions(definition: AgentApplicationDefinition): AgentModelToolDefinition[] {

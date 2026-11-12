@@ -10,12 +10,6 @@ export interface WaterWorldSpatialIndexOptions {
   readonly maximumCellsPerBody: number;
 }
 
-export interface WaterWorldSpatialIndexMetrics {
-  readonly cellCount: number;
-  readonly indexedBodyCount: number;
-  readonly globalBodyCount: number;
-}
-
 interface OrderedEntry<TEntry> {
   readonly entry: TEntry;
   readonly order: number;
@@ -50,14 +44,6 @@ export class WaterWorldSpatialIndex<TEntry extends WaterWorldSpatialIndexEntry> 
     if (!Number.isInteger(_options.maximumCellsPerBody) || _options.maximumCellsPerBody <= 0) {
       throw new RangeError("WaterWorld spatial-index maximum cells per body must be a positive integer.");
     }
-  }
-
-  get metrics(): WaterWorldSpatialIndexMetrics {
-    return Object.freeze({
-      cellCount: this._cellCount,
-      indexedBodyCount: this._indexedBodyCount,
-      globalBodyCount: this._globalEntries.length
-    });
   }
 
   rebuild(entries: readonly TEntry[]): void {

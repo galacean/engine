@@ -221,14 +221,27 @@ vec2 terrainProjectSurfaceHydrologyMasks(vec3 worldPosition, float response) {
       (atlasTexel + vec2(0.5)) * material_TerrainPuddleAtlasInvSize
     ).rg;
     float fillDistance = storage - hydrology.r;
+#ifdef MATERIAL_TERRAIN_FEATHERED_PUDDLES
+    // The authored RG8 stores continuous fill thresholds and depth classes.
+    // Let the water advance gradually across the baked contour as storage rises.
+    float shorelineWidth = 0.09;
+#else
     float shorelineWidth = 1.0 / 255.0;
+#endif
     float classWidth = 0.02;
     #ifdef HAS_DERIVATIVES
       shorelineWidth = max(fwidth(fillDistance) * 1.25, shorelineWidth);
       classWidth = max(fwidth(hydrology.g) * 1.25, classWidth);
     #endif
+#ifdef MATERIAL_TERRAIN_FEATHERED_PUDDLES
+    // Reserve shallow-film coverage below 0.5 so a basin shoulder cannot
+    // briefly become more opaque than the shallow film that surrounds it.
+    float retainedSurface = 0.42 * smoothstep(0.0, 0.37 + classWidth, hydrology.g);
+    float resolvedBasin = smoothstep(0.42 - classWidth, 0.97, hydrology.g);
+#else
     float retainedSurface = smoothstep(0.25 - classWidth, 0.45 + classWidth, hydrology.g);
     float resolvedBasin = smoothstep(0.75 - classWidth, 0.95 + classWidth, hydrology.g);
+#endif
     float filled = smoothstep(-shorelineWidth, shorelineWidth, fillDistance);
     float hydrologyCoverage = filled * smoothstep(0.06, 0.3, storage);
     return vec2(
@@ -273,7 +286,11 @@ vec2 terrainProjectSurfaceHydrologyMasks(vec3 worldPosition, float response) {
     // The mobile path carries one water GGX lobe. Pick the lobe with the greater physical
     // coverage instead of rotating its normal through a direction that no water surface owns.
     float standingWaterShare = standingWaterCoverage / max(waterCoverage, 1e-4);
+#ifdef MATERIAL_TERRAIN_FEATHERED_PUDDLES
+    return clamp(standingWaterShare, 0.0, 1.0);
+#else
     return step(0.5, standingWaterShare);
+#endif
   }
 #endif
 
@@ -364,6 +381,9 @@ void terrainProjectApplyTopSnowLayer(
       scene_TerrainWaterSurfaceParams.z
     ));
     vec3 waterNormal = mix(thinFilmNormal, vec3(0.0, 1.0, 0.0), standingWaterLobe);
+#ifdef MATERIAL_TERRAIN_FEATHERED_PUDDLES
+    waterNormal = normalize(waterNormal);
+#endif
     float rainStrength = smoothstep(0.04, 0.72, scene_SurfaceClimate.w);
     float thinFilmRoughness = clamp(
       scene_TerrainWaterSurfaceParams.x + rainStrength * 0.02,
