@@ -109,26 +109,6 @@ export interface TerrainScreenSpaceReflectionPanelStatus {
   readonly transparentSurfacePassDrawCount: number;
   readonly inactiveReason: string | null;
   readonly unsupportedReason: string | null;
-  readonly water: {
-    readonly requestedMode: "environment" | "ssr";
-    readonly effectiveSource: "sky" | "probe" | "ssr";
-    readonly fallbackReason?: string;
-  } | null;
-}
-
-/** Water reflection readback consumed by the shared SSR status panel. */
-export interface TerrainScreenSpaceReflectionPanelWater {
-  /** Requested Water reflection mode. */
-  readonly reflectionMode: "environment" | "ssr";
-
-  /**
-   * Returns the current effective reflection source.
-   * @returns Water reflection diagnostics, or `null` before Water is ready.
-   */
-  getDiagnostics(): {
-    readonly effectiveReflectionSource: "sky" | "probe" | "ssr";
-    readonly reflectionFallbackReason?: string;
-  } | null;
 }
 
 /**
@@ -281,13 +261,9 @@ export function applyAutomaticScreenSpaceReflectionConfiguration(
  * @returns Detached browser-stable panel status.
  * @throws If the Camera does not expose SSR.
  */
-export function inspectScreenSpaceReflectionPanelStatus(
-  camera: Camera,
-  water: TerrainScreenSpaceReflectionPanelWater | null = null
-): TerrainScreenSpaceReflectionPanelStatus {
+export function inspectScreenSpaceReflectionPanelStatus(camera: Camera): TerrainScreenSpaceReflectionPanelStatus {
   const target = cameraScreenSpaceReflection(camera);
   const metrics = target.metrics;
-  const waterSnapshot = water?.getDiagnostics() ?? null;
   return Object.freeze({
     configuration: Object.freeze({
       globalEnabled: metrics.globalEnabled,
@@ -328,15 +304,7 @@ export function inspectScreenSpaceReflectionPanelStatus(
     opaqueSurfacePassDrawCount: metrics.opaqueSurfacePassDrawCount,
     transparentSurfacePassDrawCount: metrics.transparentSurfacePassDrawCount,
     inactiveReason: metrics.inactiveReason,
-    unsupportedReason: metrics.unsupportedReason,
-    water:
-      water && waterSnapshot
-        ? Object.freeze({
-            requestedMode: water.reflectionMode,
-            effectiveSource: waterSnapshot.effectiveReflectionSource,
-            fallbackReason: waterSnapshot.reflectionFallbackReason
-          })
-        : null
+    unsupportedReason: metrics.unsupportedReason
   });
 }
 
@@ -370,7 +338,6 @@ export class TerrainScreenSpaceReflectionPanel {
   private readonly _updatePipelineStatus: (value: string) => void;
   private readonly _updateResolvedStatus: (value: string) => void;
   private readonly _updateResourceStatus: (value: string) => void;
-  private readonly _updateWaterStatus: (value: string) => void;
   private _updateTimer = 0;
   private _destroyed = false;
 
@@ -543,7 +510,6 @@ export class TerrainScreenSpaceReflectionPanel {
     this._updatePipelineStatus = inspector.addReadout(runtime, "Pipeline / 管线", "ssr-status-activation");
     this._updateResolvedStatus = inspector.addReadout(runtime, "Resolved Settings / 生效参数", "ssr-status-resolved");
     this._updateResourceStatus = inspector.addReadout(runtime, "Resources / 资源", "ssr-status-resources");
-    this._updateWaterStatus = inspector.addReadout(runtime, "Water Integration / 水体接入", "ssr-status-fallback");
 
     this.refresh();
     this._updateTimer = window.setInterval(() => this.refresh(), PANEL_UPDATE_INTERVAL_MS);
@@ -580,7 +546,6 @@ export class TerrainScreenSpaceReflectionPanel {
         `receivers · opaque ${status.opaqueSurfacePassDrawCount} · transparent ${status.transparentSurfacePassDrawCount}\n` +
         `${status.effective ? "scene color + depth captured" : "scene capture paused"}`
     );
-    this._updateWaterStatus(formatWaterFallback(status));
   }
 
   /** Stops status polling; the shared Terrain inspector owns DOM teardown. */
@@ -644,17 +609,6 @@ function formatRenderTargets(status: TerrainScreenSpaceReflectionPanelStatus): s
   return status.renderTargetCount > 0
     ? `RT ${status.renderTargetCount} · ${status.width}×${status.height} · ${formatBytes(status.estimatedBytes)}`
     : "RT 0 · released";
-}
-
-function formatWaterFallback(status: TerrainScreenSpaceReflectionPanelStatus): string {
-  const water = status.water;
-  if (!water) return "Water runtime unavailable";
-  const source = formatReflectionSource(water.effectiveSource);
-  if (water.requestedMode === "ssr" && water.effectiveSource !== "ssr") {
-    const reason = water.fallbackReason ? ` · ${water.fallbackReason}` : "";
-    return `Water requests SSR → ${source}${reason}`;
-  }
-  return "Water uses SSR · miss fallback Environment/Probe";
 }
 
 function resolveScreenSpaceReflectionReceiverPolicy(
@@ -772,19 +726,6 @@ function resolveScreenSpaceReflectionQualityTuning(quality: ScreenSpaceReflectio
       return { maxRaySteps: 64, hitRefinementSteps: 5 };
     default:
       return { maxRaySteps: 32, hitRefinementSteps: 3 };
-  }
-}
-
-function formatReflectionSource(
-  source: NonNullable<TerrainScreenSpaceReflectionPanelStatus["water"]>["effectiveSource"]
-): string {
-  switch (source) {
-    case "sky":
-      return "Environment";
-    case "probe":
-      return "Probe";
-    default:
-      return "SSR";
   }
 }
 

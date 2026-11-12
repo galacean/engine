@@ -183,7 +183,10 @@ export function nativeAssetFormats(
   formats.get("Buffer")!.validateImport = (content) => {
     if (!(content instanceof Uint8Array)) throw new Error("Buffer import requires binary bytes");
   };
+  // Buffer has no internal references. Domains validate the meaning of replacement bytes.
+  formats.get("Buffer")!.validate = formats.get("Buffer")!.validateImport!;
   formats.get("Shader")!.validateImport = (content) => {
+    if (typeof content === "string" && /^\s*Shader\s+"[^"\n]+"\s*\{/.test(content)) return;
     const shader = json(content);
     if (
       typeof shader.name !== "string" ||
@@ -243,6 +246,27 @@ export function nativeAssetFormats(
     const jpeg = content.length >= 4 && content[0] === 255 && content[1] === 216 && content[2] === 255;
     if (!png && !jpeg) throw new Error("Texture import requires PNG or JPEG bytes");
   };
+  formats.get("KTX2")!.validateImport = (content) => {
+    const identifier = [0xab, 0x4b, 0x54, 0x58, 0x20, 0x32, 0x30, 0xbb, 0x0d, 0x0a, 0x1a, 0x0a];
+    if (
+      !(content instanceof Uint8Array) ||
+      content.length < 104 ||
+      !identifier.every((byte, index) => content[index] === byte)
+    )
+      throw new Error("KTX2 requires native KTX 2 bytes.");
+    const header = new DataView(content.buffer, content.byteOffset, content.byteLength),
+      levels = header.getUint32(40, true);
+    if (!header.getUint32(20, true) || !header.getUint32(24, true) || !levels || 80 + levels * 24 > content.length)
+      throw new Error("Invalid KTX2 dimensions or mip index.");
+    for (let level = 0; level < levels; level++)
+      if (
+        header.getBigUint64(80 + level * 24, true) + header.getBigUint64(88 + level * 24, true) >
+        BigInt(content.length)
+      )
+        throw new Error("Invalid KTX2 mip range.");
+  };
+  // Replacements use the same native encoding and validation as imports.
+  for (const type of ["Texture", "KTX2", "Shader"]) formats.get(type)!.validate = formats.get(type)!.validateImport!;
   for (const type of ["JSON", "Scene", "Prefab", "AnimatorController", "PrimitiveMesh", "Material", "Shader"])
     formats.get(type)!.read = readAssetJson;
   for (const type of ["script", "ShaderChunk"]) formats.get(type)!.read = readAssetText;

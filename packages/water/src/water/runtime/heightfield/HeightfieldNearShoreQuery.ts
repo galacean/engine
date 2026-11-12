@@ -1,10 +1,6 @@
 import { sampleWaterTerrainHeight } from "../../authoring/terrain/WaterTerrainSnapshot";
 import type { HeightfieldWaterCompiledData } from "../../compiler/heightfield/HeightfieldWaterCompiledTypes";
 import {
-  HeightfieldWaterBaseQueryService,
-  createHeightfieldWaterBaseQueryResult
-} from "./HeightfieldWaterQueryService";
-import {
   WATER_NEAR_SHORE_RADIUS_M,
   resetWaterNearShoreSample,
   waterNearShoreTask,
@@ -12,6 +8,10 @@ import {
   type WaterNearShoreSample
 } from "../spatial/WaterNearShoreQuery";
 import { WaterWetNearShoreSearch, type NearShorePoint } from "../spatial/WaterWetNearShoreSearch";
+import {
+  HeightfieldWaterBaseQueryService,
+  createHeightfieldWaterBaseQueryResult
+} from "./HeightfieldWaterQueryService";
 /** Positive-depth source support intersected with the authored/compiled Lake rings.
  * The extracted wet contour and its BVH belong to this immutable compilation.
  */
@@ -245,9 +245,6 @@ class HeightfieldNearShoreQuery implements WaterNearShoreQuery {
     );
     yield* search.prepare();
     return search;
-  }
-  diagnostics() {
-    return this.contour?.diagnostics();
   }
   createTask(x: number, z: number, out: WaterNearShoreSample) {
     return waterNearShoreTask(this.search(x, z, out));

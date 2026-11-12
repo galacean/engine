@@ -4,7 +4,6 @@ import { resolveComponent } from "../SpatialDocument";
 import { planningRegistry } from "../PlanningComponents";
 import { planningGroundSurface, inheritPlanningHeightmap } from "../../semantic-study/PlanningHeightmap";
 import { planningLakeBoundary } from "../../semantic-study/PlanningLakeBoundary";
-import { planningLakeAssets } from "../../semantic-study/PlanningLakeSource";
 import type { SemanticResult } from "../../semantic-study/WorldPlanningContract";
 import { inheritPlanningQueryData } from "../PlanningQueryDataOwner";
 
@@ -66,67 +65,6 @@ export function classifyPlanningWaterEdit(
   a.revision = b.revision = 0;
   const changes = new Map<string, { appearance: boolean; surface: boolean }>();
   let terrainRequired = false;
-  const oldResources = new Map((a.authoredResources ?? []).map((resource) => [resource.resourceId, resource]));
-  const newResources = new Map((b.authoredResources ?? []).map((resource) => [resource.resourceId, resource]));
-  for (const id of new Set([...oldResources.keys(), ...newResources.keys()])) {
-    const old = oldResources.get(id),
-      next = newResources.get(id);
-    if (equal(old, next)) continue;
-    if (
-      old?.resourceType !== "water-body" &&
-      old?.resourceType !== "river" &&
-      next?.resourceType !== "water-body" &&
-      next?.resourceType !== "river"
-    )
-      continue;
-    if (!old || !next || old.resourceType !== next.resourceType) {
-      terrainRequired = true;
-      continue;
-    }
-    const oldPhysical: Record<string, unknown> = { ...old.properties },
-      newPhysical: Record<string, unknown> = { ...next.properties };
-    const appearance = !equal(oldPhysical.colorRgb, newPhysical.colorRgb);
-    delete oldPhysical.colorRgb;
-    delete newPhysical.colorRgb;
-    let surface = false;
-    if (old.resourceType === "water-body" && next.resourceType === "water-body") {
-      surface = old.properties.waterLevelMetres !== next.properties.waterLevelMetres;
-      // Only current fill is permitted: datum, limits, shape and depth must all match.
-      Object.assign(oldPhysical, { waterLevelMetres: undefined });
-      Object.assign(newPhysical, { waterLevelMetres: undefined });
-    }
-    const changedPhysical = [...new Set([...Object.keys(oldPhysical), ...Object.keys(newPhysical)])].filter(
-      (key) => !equal(oldPhysical[key], newPhysical[key])
-    );
-    if (
-      changedPhysical.some((key) =>
-        [
-          "kind",
-          "x",
-          "z",
-          "radiusMetres",
-          "depthMetres",
-          "shorelineIrregularity",
-          "seed",
-          "canonicalWaterLevelMetres",
-          "minimumWaterLevelMetres",
-          "maximumWaterLevelMetres",
-          "lengthMetres",
-          "widthMetres",
-          "headingDegrees",
-          "meander"
-        ].includes(key)
-      )
-    )
-      terrainRequired = true;
-    if (!terrainRequired && !changedPhysical.length) {
-      changes.set(id, { appearance, surface });
-      // Normalize only known mutable fields; the rest of the document must still match.
-      Object.assign(next.properties, { colorRgb: Reflect.get(old.properties, "colorRgb") });
-      if (old.resourceType === "water-body" && next.resourceType === "water-body")
-        Object.assign(next.properties, { waterLevelMetres: old.properties.waterLevelMetres });
-    }
-  }
   for (const id of new Set([...Object.keys(a.entities), ...Object.keys(b.entities)])) {
     const old = a.entities[id]?.components.lakes,
       next = b.entities[id]?.components.lakes;
@@ -233,15 +171,10 @@ export function preparePlanningWaterEdit(
           throw new Error(`EMPTY_WATER: 湖泊 ${water.id} 在当前水位没有实际水域`);
         throw error;
       }
-    } else {
-      const resource = plan.authoredResources?.find((resource) => resource.resourceId === water.id);
-      if (resource?.resourceType !== "water-body") throw new Error("Authored lake base is unavailable");
-      level = resource.properties.waterLevelMetres;
-    }
+    } else throw new Error("Source lake base is unavailable");
     for (const profile of plan.planning?.profiles ?? [])
       if (profile.ownerId === water.id && profile.kind === "water")
         profile.points = profile.points.map((point) => ({ ...point, y: level }));
-    if (!water.lake) planningLakeAssets(plan, new Set([water.id]));
   }
   inheritPlanningQueryData(plan, base);
   return {

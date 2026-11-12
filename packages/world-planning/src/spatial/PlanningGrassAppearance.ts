@@ -18,6 +18,13 @@ export const GRASS_APPEARANCE_COMPONENT: PlanningComponentDefinition = {
   description:
     "Terrain/Grass 的两个线性 RGB 色场端点，仅地表草层与低草叶片共同使用。高草与杂草、匍匐地被、花茎叶、树冠及灌木使用独立 plantMaterial，不继承这两个颜色；完整植被集合可用 world.parameters.materials.inspect/apply 按真实生态层和部位编辑。",
   fields: [
+    {
+      key: "groundFusion",
+      label: "草地与地面融合",
+      type: "boolean",
+      default: true,
+      description: "开启地形的草地与道路共享色块和近景凹凸着色。关闭后地形使用裸地与道路固有色。"
+    },
     ...(["colorA", "colorB"] as const).flatMap((slot) =>
       (["r", "g", "b"] as const).map((channel, index) => ({
         key: `${slot}.${channel}`,
@@ -92,6 +99,13 @@ export function readSurfacePalette(
     Number(values[slot + "." + channel] ?? values["color." + channel] ?? inherited[i])
   ) as [number, number, number];
 }
+export function readGrassGroundFusion(document: PlanningDocument): boolean {
+  return (
+    !document.entities.world?.components.grassAppearance ||
+    resolveComponent(document, "world", "grassAppearance", registry).values.groundFusion === true
+  );
+}
+
 export function readGrassAppearance(document: PlanningDocument): SeedWorldGrassColorFieldTuning {
   const resolved = document.entities.world?.components.grassAppearance
     ? resolveComponent(document, "world", "grassAppearance", registry)

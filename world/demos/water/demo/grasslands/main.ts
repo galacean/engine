@@ -1,32 +1,31 @@
-import { createLakeEditRevision, LakeEditSession, type LakeEditRevision } from "./landscape/LakeEditSession.ts";
-import type { LakeTerrainPreset } from "./landscape/LakeBasinTerrain.ts";
 import {
-  sampleWaterTerrainHeight,
-  createHeightfieldWaterBodySourceDescriptorV1,
-  createHeightfieldWaterRepresentationDataV1,
-  WaterQualityTier,
-  WaterFieldProviderKind
-} from "@galacean/engine-water/water/index";
-import {
+  hashStableValue,
   sampleLakeBoundary,
   sampleLakeTerrainHeight,
-  validateHeightfieldWaterDescriptor,
-  hashStableValue
+  validateHeightfieldWaterDescriptor
 } from "@galacean/engine-water/water/compiler/index";
-
 import {
-  HeightfieldWaterBaseQueryService,
+  createHeightfieldWaterBodySourceDescriptorV1,
+  createHeightfieldWaterRepresentationDataV1,
+  sampleWaterTerrainHeight,
+  WaterQualityTier
+} from "@galacean/engine-water/water/index";
+import type { LakeTerrainPreset } from "./landscape/LakeBasinTerrain.ts";
+import { createLakeEditRevision, LakeEditSession, type LakeEditRevision } from "./landscape/LakeEditSession.ts";
+
+import type { LakeBoundaryV1 } from "@galacean/engine-water/water/index";
+import {
   createHeightfieldWaterBaseQueryResult,
-  HeightfieldWaterCompileWorkerClient,
   HeightfieldWaterBackend,
+  HeightfieldWaterBaseQueryService,
+  HeightfieldWaterCompileWorkerClient,
   type HeightfieldWaterBackendRuntimeContext
 } from "@galacean/engine-water/water/runtime/heightfield/index";
-import type { LakeBoundaryV1 } from "@galacean/engine-water/water/index";
-import { GrasslandsLakeShorelineMarkers } from "./GrasslandsLakeShorelineMarkers.ts";
 import {
   createGrasslandsLakeAuthoringControls,
   withLakeTerrainEditAvailability
 } from "./GrasslandsLakeAuthoringControls.ts";
+import { GrasslandsLakeShorelineMarkers } from "./GrasslandsLakeShorelineMarkers.ts";
 
 import {
   BloomEffect,
@@ -46,55 +45,46 @@ import {
   Vector4,
   WebGLEngine,
   WebGLMode,
-  type Camera,
   type Entity
 } from "@galacean/engine";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
 import { resizeEngineCanvasByClientSize } from "../resizeEngineCanvas.ts";
 
 import type {
-  WaterCompiledResourceReadPort,
-  HeightfieldWaterCompiledData
+  HeightfieldWaterCompiledData,
+  WaterCompiledResourceReadPort
 } from "@galacean/engine-water/water/compiler/index";
 
+import type { HeightfieldWaterSurfaceAppearanceFeatureFlags } from "@galacean/engine-water/water/runtime/heightfield/config";
 import type { HeightfieldWaterRuntimeController } from "@galacean/engine-water/water/runtime/heightfield/index";
 import {
-  HeightfieldWaterCompositionMode,
-  HeightfieldWaterDebugMode
-} from "@galacean/engine-water/water/runtime/heightfield/config";
-import type { HeightfieldWaterSurfaceAppearanceFeatureFlags } from "@galacean/engine-water/water/runtime/heightfield/config";
-import {
+  CameraWaterFeatureBroker,
   WaterBackendRegistry,
-  resolveWaterBodyQualityTier,
   WaterBodyAssetRegistry,
   WaterBodyLoader,
-  type WaterBodyActivationHandle,
-  WaterWorld,
-  CameraWaterFeatureBroker,
+  WaterEnvironmentReflectionProvider,
   WaterReflectionPreRenderSynchronizer,
   WaterReflectionService,
-  WaterEnvironmentReflectionProvider,
-  calculateWaterFresnelF0
+  WaterWorld,
+  type WaterBodyActivationHandle
 } from "@galacean/engine-water/water/runtime/index";
 
-import { WaterRuntimeResourceRegistry } from "@galacean/engine-water/water/runtime/resources/index";
 import type { WaterOpticalProfile, WaterSurfaceAppearanceBindingV2 } from "@galacean/engine-water/water/runtime/index";
+import { WaterRuntimeResourceRegistry } from "@galacean/engine-water/water/runtime/resources/index";
 
+import {
+  LAKE_SHOWCASE_OPTICAL_PROFILE,
+  lakeLookPresetIdForQuality
+} from "@galacean/engine-water/water/presets/lake/index";
+import {
+  LAKE_NORMAL_RESOURCE,
+  LakeNormalAssetLoader,
+  type LakeNormalAssetSource
+} from "@galacean/engine-water/water/resources/lake/index";
+import { WaterLandscapeAssets } from "../shared/WaterLandscapeAssets.ts";
 import { createShowcaseCameraController, type ShowcaseCameraController } from "../showcase/ShowcaseCameraControl.ts";
 import { resolveShowcaseCameraMode, SHOWCASE_CAMERA_MOVEMENT_SPEED } from "../showcase/ShowcaseCameraPolicy.ts";
-import { type WaterShowcaseAcceptanceSnapshot } from "../showcase/WaterShowcaseAcceptance.ts";
-import {
-  LakeNormalAssetLoader,
-  LAKE_NORMAL_ASSET_ID,
-  LAKE_NORMAL_CONTENT_HASH,
-  LAKE_NORMAL_HEIGHT,
-  LAKE_NORMAL_WIDTH,
-  type LakeNormalAssetSource,
-  LAKE_NORMAL_RESOURCE
-} from "@galacean/engine-water/water/resources/lake/index";
 import { GrasslandsAsyncTeardownBarrier } from "./GrasslandsAsyncTeardownBarrier.ts";
-import { WaterLandscapeAssets } from "../shared/WaterLandscapeAssets.ts";
-import { LAKE_LANDSCAPE_ASSET_HASH } from "./landscape/LakeLandscapeAssetCatalog.ts";
 import {
   GRASSLANDS_ENVIRONMENT_REFLECTION_EXPOSURE,
   GRASSLANDS_ENVIRONMENT_REFLECTION_HDR,
@@ -103,24 +93,14 @@ import {
 import { createGrasslandsPcgFixture } from "./GrasslandsPcgFixture.ts";
 import {
   GRASSLANDS_LAKE_MAX_BASIN_DEPTH,
-  grasslandsQualityPresetIdForQuality,
   GRASSLANDS_STYLIZED_WATER_INSTANCE_ID,
+  grasslandsQualityPresetIdForQuality,
   registerGrasslandsStylizedWaterBodyAuthoring
 } from "./GrasslandsWaterBodyAuthoring.ts";
-import {
-  lakeOpticsPresetIdForQuality,
-  lakeLookPresetIdForQuality,
-  LAKE_HYBRID_APPEARANCE_PRESET_ID,
-  LAKE_SURFACE_FIELD_DEPENDENCIES_V2,
-  LAKE_LOCAL_LOW_SURFACE_FIELDS_V2,
-  LAKE_LOCAL_MEDIUM_SURFACE_FIELDS_V2,
-  LAKE_SHOWCASE_OPTICAL_PROFILE,
-  LAKE_COMPILED_SURFACE_APPEARANCE_V2
-} from "@galacean/engine-water/water/presets/lake/index";
 
 import {
-  GrasslandsLightingController,
-  createGrasslandsReferenceLightingReadback
+  createGrasslandsReferenceLightingReadback,
+  GrasslandsLightingController
 } from "./GrasslandsLightingController.ts";
 import { GRASSLANDS_PCG_PRESET, GRASSLANDS_SHARED_SHOWCASE_CAPTURE_POSES } from "./GrasslandsPcgPreset.ts";
 
@@ -129,30 +109,10 @@ import {
   PROCEDURAL_SKY_SOLAR_POSITION
 } from "@galacean/engine-environment/lighting/ProceduralSkyLightingProfile";
 
-import {
-  GrasslandsSceneController,
-  type GrasslandsAnchorRockReadback,
-  type GrasslandsDirectLightState
-} from "./GrasslandsSceneController.ts";
-import {
-  createGrasslandsShowcaseAcceptanceApi,
-  createGrasslandsSharedAcceptanceSnapshot,
-  createGrasslandsSharedShowcaseCaptureApi,
-  type GrasslandsAcceptanceRuntimeReadback,
-  type GrasslandsReflectionScenario,
-  type GrasslandsSharedCaptureState,
-  type GrasslandsShowcaseAcceptanceApi,
-  type GrasslandsShowcaseAcceptanceSnapshot
-} from "./GrasslandsShowcaseAcceptance.ts";
-import {
-  GRASSLANDS_FIXED_SURFACE_TIME,
-  resolveGrasslandsSurfaceTimeOverride,
-  resolveGrasslandsSurfaceTimeReadback
-} from "./GrasslandsSurfaceTimePolicy.ts";
 import type { GrasslandsVector3 } from "./GrasslandsPcgTypes.ts";
-import { isGrasslandsExclusionClean, observeGrasslandsExcludedResources } from "./GrasslandsRuntimeObservation.ts";
+import { GrasslandsSceneController } from "./GrasslandsSceneController.ts";
 
-const GRASSLANDS_LIFECYCLE_JOURNAL_KEY = "water-pcg-grasslands-last-dispose";
+import { resolveGrasslandsSurfaceTimeOverride } from "./GrasslandsSurfaceTimePolicy.ts";
 const SCENE_WEATHER_STATE = ShaderProperty.getByName("scene_WeatherState");
 const SCENE_WEATHER_TIME = ShaderProperty.getByName("scene_WeatherTime");
 const GRASSLANDS_INITIAL_LIGHTING_READBACK = createGrasslandsReferenceLightingReadback();
@@ -161,7 +121,7 @@ const GRASSLANDS_TOP_DOWN_CAMERA_POSE = Object.freeze({
   target: Object.freeze([0, 0, 0] as const),
   worldUp: Object.freeze([0, 0, -1] as const)
 });
-type GrasslandsCameraPose = GrasslandsSharedCaptureState | "top-down";
+type GrasslandsCameraPose = keyof typeof GRASSLANDS_SHARED_SHOWCASE_CAPTURE_POSES | "top-down";
 const GRASSLANDS_DEVTOOLS_CAMERA_POSES = Object.freeze({
   "Hero view": "hero",
   "Interaction view": "interaction",
@@ -243,12 +203,10 @@ async function bootstrapGrasslandsShowcase(): Promise<void> {
   let activeResource: WaterCompiledResourceReadPort<HeightfieldWaterCompiledData> | undefined;
   let appearanceBinding: Readonly<WaterSurfaceAppearanceBindingV2> | undefined;
   let currentQuality = WaterQualityTier.High;
-  let currentDebugMode = HeightfieldWaterDebugMode.Final;
   let appearanceEnabled = true;
   let reflectionEnabled = true;
   let runtimeOperationalReady = false;
   let runtimeError: string | null = null;
-  let phase: GrasslandsAcceptanceRuntimeReadback["phase"] = "initializing";
   let cameraMode: "free" | "fixed" = "fixed";
   let currentCameraPose: GrasslandsCameraPose = "hero";
   let automation = false;
@@ -265,8 +223,6 @@ async function bootstrapGrasslandsShowcase(): Promise<void> {
   let environmentAssetsDestroyed = false;
   let rootDestroyed = false;
   let engineDestroyed = false;
-  let perFrameMeshUploadDetected = false;
-  let lastStableMeshUploadCount = 0;
   let engineUpdateCount = 0;
   let weatherTime = 0;
   let lifecycleDisposeMode: "manual" | "failure" = "manual";
@@ -274,12 +230,11 @@ async function bootstrapGrasslandsShowcase(): Promise<void> {
   let currentAppearanceFeatureFlags: Readonly<HeightfieldWaterSurfaceAppearanceFeatureFlags> =
     DEFAULT_APPEARANCE_FEATURE_FLAGS;
   let refractionEnabled = true;
-  let reflectionScenario: GrasslandsReflectionScenario = "environment";
   let beforeUnloadHandler: (() => void) | undefined;
   let compileAndActivateImpl: (quality: WaterQualityTier) => Promise<void> = async () => {
     throw new Error("Grasslands runtime is not initialized.");
   };
-  let cleanupImpl: (mode?: "manual" | "failure") => GrasslandsShowcaseAcceptanceSnapshot;
+  let cleanupImpl: (mode?: "manual" | "failure") => void;
   let finalizeEngineTeardown: (() => void) | undefined;
   const teardownBarrier = new GrasslandsAsyncTeardownBarrier(() => finalizeEngineTeardown?.());
 
@@ -289,566 +244,17 @@ async function bootstrapGrasslandsShowcase(): Promise<void> {
   };
 
   const synchronizePublishedRuntime = (): HeightfieldWaterRuntimeController | undefined => {
-    const nextRuntime = waterBackend?.getRuntimeDiagnostics(GRASSLANDS_STYLIZED_WATER_INSTANCE_ID);
+    const nextRuntime = waterBackend?.getRuntimeController(GRASSLANDS_STYLIZED_WATER_INSTANCE_ID);
     const nextResource = waterBodyHandle?.resource as
       | WaterCompiledResourceReadPort<HeightfieldWaterCompiledData>
       | undefined;
     if (!nextRuntime || !nextResource) return runtimeController;
-    if (nextRuntime.controller === runtimeController && nextResource === activeResource) return runtimeController;
-    runtimeController = nextRuntime.controller;
+    if (nextRuntime === runtimeController && nextResource === activeResource) return runtimeController;
+    runtimeController = nextRuntime;
     appearanceBinding = runtimeController.surfaceAppearanceBinding;
     publishWaterResource(nextResource);
-    const resolvedQuality = waterBodyHandle?.inspect().quality?.tier;
-    if (resolvedQuality !== undefined) {
-      currentQuality = resolvedQuality;
-    }
     runtimeController.flushDeferredResources();
-    lastStableMeshUploadCount = runtimeController.meshUploadCount;
     return runtimeController;
-  };
-
-  const readRuntime = (): GrasslandsAcceptanceRuntimeReadback => {
-    synchronizePublishedRuntime();
-    const appearance = runtimeController?.activeSurfaceAppearanceReadback;
-    const optics = runtimeController?.activeSurfaceOpticsReadback;
-    const runtimeResources = runtimeController?.resourceMetrics;
-    const appearanceFlags = runtimeController?.surfaceAppearanceFeatureFlags;
-    const broker = cameraFeatureBroker?.metrics;
-    const scene = sceneController?.metrics;
-    const loader = assetLoader?.readback;
-    const environment = environmentAssets?.metrics;
-    const reflectionMetrics = reflectionService?.metrics;
-    const lighting = lightingController?.readback ?? GRASSLANDS_INITIAL_LIGHTING_READBACK;
-    const activeScene = engine && !engineDestroyed ? engine.sceneManager.activeScene! : undefined;
-    const exclusionResources = observeGrasslandsExcludedResources(activeScene, sceneController?.camera, optics);
-    const activeSetCount = runtimeResources?.activeRuntimeSetCount ?? 0;
-    const opaqueTextureRequested = broker?.opaqueTextureRequested ?? false;
-    const depthTextureRequested = broker?.depthTextureRequested ?? false;
-    const fieldGraph = broker?.surfaceFieldGraphs.length === 1 ? broker.surfaceFieldGraphs[0]?.graph : undefined;
-    const effectiveDepth = (broker?.totalDepthCopyPassCount ?? 0) === 1;
-    const effectiveOpaque = (broker?.totalColorCopyPassCount ?? 0) === 1;
-    const effectiveDownsampling = downsamplingLabel(
-      broker?.opaqueTextureDownsampling ?? Downsampling.None,
-      effectiveOpaque
-    );
-    const actualPosition = sceneController?.cameraEntity.transform.worldPosition;
-    const actualForward = sceneController?.cameraEntity.transform.worldForward;
-    const cameraPosition = actualPosition
-      ? freezeVector3(actualPosition.x, actualPosition.y, actualPosition.z)
-      : fixture.camera.position;
-    const cameraForward = actualForward
-      ? freezeVector3(actualForward.x, actualForward.y, actualForward.z)
-      : fixture.camera.forward;
-    const fallbackReason = appearance?.fallbackReason ?? loader?.fallbackReason ?? null;
-    const activeV2Appearance = appearanceBinding?.appearance;
-    const firstV2Detail = activeV2Appearance?.detailLayers[0];
-    const v2Depth = activeV2Appearance?.depthResponse;
-    const v2Coastal = activeV2Appearance?.boundaryEffects.find(({ id }) => id === "coastal-alpha");
-    const v2Contact = activeV2Appearance?.boundaryEffects.find(({ id }) => id === "contact-foam");
-    const materialActive = appearance?.active === true && appearance.normalContentHash === fixture.externalAssetHash;
-    const allAppearanceFeaturesEnabled =
-      appearanceFlags?.externalNormal === true &&
-      appearanceFlags.depthTint === true &&
-      appearanceFlags.coastalAlpha === true &&
-      appearanceFlags.contactFoam === true &&
-      appearanceFlags.directSpecular === true;
-    const strictAppearanceParameters =
-      activeV2Appearance?.sourceId === LAKE_COMPILED_SURFACE_APPEARANCE_V2.sourceId &&
-      appearance?.normalTextureWidth === LAKE_NORMAL_WIDTH &&
-      appearance.normalTextureHeight === LAKE_NORMAL_HEIGHT &&
-      appearance.normalLayerCount === 2 &&
-      activeV2Appearance.detailLayers.length === 2 &&
-      activeV2Appearance.detailLayers.every(
-        (layer) =>
-          layer.scale[0] === 0.05 &&
-          layer.scale[1] === 0.05 &&
-          layer.velocity[0] === 0.02 &&
-          layer.velocity[1] === 0.02 &&
-          layer.strength === 0.2 &&
-          layer.normalConvention === "opengl" &&
-          layer.strengthMode === "preserve-source-z" &&
-          layer.blend === "partial-derivative"
-      ) &&
-      v2Depth?.model === "power-ramp" &&
-      v2Depth.field === "vertical-depth" &&
-      v2Depth.distanceMeters === 3.6 &&
-      v2Depth.exponent === 1.1 &&
-      v2Coastal?.field === "scene-ray-depth" &&
-      v2Coastal.rangeMeters ===
-        LAKE_COMPILED_SURFACE_APPEARANCE_V2.boundaryEffects.find(({ id }) => id === "coastal-alpha")?.rangeMeters &&
-      v2Contact?.field === "obstacle-contact" &&
-      v2Contact.rangeMeters === 0.1791 &&
-      v2Contact.pattern?.model === "animated-voronoi-f1" &&
-      v2Contact.pattern.worldScale === 2.5 &&
-      v2Contact.pattern.timeRate === 1 &&
-      v2Contact.pattern.opacity === 0.453 &&
-      v2Contact.pattern.octaves.count === 3 &&
-      v2Contact.pattern.octaves.weights[0] === 0.5 &&
-      v2Contact.pattern.octaves.weights[1] === 0.25 &&
-      v2Contact.pattern.octaves.weights[2] === 0.125 &&
-      v2Contact.pattern.lacunarity === 2 &&
-      v2Contact.pattern.response === "power" &&
-      v2Contact.pattern.invert === true &&
-      v2Contact.pattern.exponent === -1.5 &&
-      v2Contact.pattern.combine === "signed-boundary-add-saturate" &&
-      v2Contact.outputs.refractionSuppression === undefined &&
-      v2Contact.outputs.roughness === 1 &&
-      activeV2Appearance.refraction.uvScale === LAKE_COMPILED_SURFACE_APPEARANCE_V2.refraction.uvScale &&
-      activeV2Appearance.refraction.normalSource === "tangent-space" &&
-      activeV2Appearance.refraction.validation === "shifted-scene-depth" &&
-      activeV2Appearance.composition === "precomposed-replace";
-    const actualCompositionMode = runtimeController?.compositionMode ?? HeightfieldWaterCompositionMode.AlphaBlend;
-    const actualDepthWriteEnabled = runtimeController?.depthWriteEnabled ?? false;
-    const actualSurfaceTime = resolveGrasslandsSurfaceTimeReadback(
-      runtimeController?.surfaceTimeOverride,
-      engine?.time.elapsedTime
-    );
-    const surfaceTimeReady = automation
-      ? runtimeController?.surfaceTimeOverride === GRASSLANDS_FIXED_SURFACE_TIME
-      : runtimeController?.surfaceTimeOverride === undefined && actualSurfaceTime >= 0;
-    const gameplayQueryRegistered =
-      waterBodyHandle?.queryEnabled === true && (waterWorld?.metrics.registeredBodyCount ?? 0) > 0;
-    const directLightEnabled = scene?.directLight.enabled === true;
-    const directLightMatchesFixture =
-      directLightEnabled &&
-      scene?.directLight.state === "default" &&
-      vectorsMatch(scene.directLight.color, fixture.directLight.color) &&
-      Math.abs(scene.directLight.intensity - fixture.directLight.intensity) <= 1e-6 &&
-      vectorsMatch(
-        scene.directLight.effectiveColor,
-        freezeVector3(
-          fixture.directLight.color[0] * fixture.directLight.intensity,
-          fixture.directLight.color[1] * fixture.directLight.intensity,
-          fixture.directLight.color[2] * fixture.directLight.intensity
-        )
-      ) &&
-      vectorsMatch(scene.directLight.forward, fixture.directLight.forward);
-    const sceneReady =
-      scene?.destroyed === false &&
-      scene.finite &&
-      scene.environmentReady &&
-      scene.environmentAssetSetHash === LAKE_LANDSCAPE_ASSET_HASH &&
-      scene.terrainMaterialRegionCount === 3 &&
-      scene.terrainMaterialRegionIds.join(",") === "mud-stones,sand,grass-mud" &&
-      scene.rockModelResourceCount === 5 &&
-      scene.largeRockVariantCount === 2 &&
-      scene.smallRockVariantCount === 3 &&
-      scene.sharedRockMeshCount === 5 &&
-      scene.proxyRockMeshCount === 0 &&
-      environment?.ready === true &&
-      isGrasslandsExclusionClean(exclusionResources);
-    const highFieldGraphReady =
-      fieldGraph?.active === true &&
-      fieldGraph.failed === false &&
-      fieldGraph.quality === WaterQualityTier.High &&
-      fieldGraph.bindings.length === LAKE_SURFACE_FIELD_DEPENDENCIES_V2.bindings.length &&
-      fieldGraph.bindings.every((binding) => binding.status === "resolved") &&
-      fieldGraph.bindings.find((binding) => binding.consumerId === "contact-foam")?.resolvedProvider ===
-        WaterFieldProviderKind.CameraDepth &&
-      fieldGraph.bindings.find((binding) => binding.consumerId === "water-column-depth")?.resolvedProvider ===
-        WaterFieldProviderKind.CompiledSpatialField;
-    const mediumFieldGraphReady =
-      fieldGraph?.sourceId === LAKE_LOCAL_MEDIUM_SURFACE_FIELDS_V2.id &&
-      fieldGraph.active === true &&
-      fieldGraph.failed === false &&
-      fieldGraph.quality === WaterQualityTier.Medium &&
-      fieldGraph.cameraDepthRequested === false &&
-      fieldGraph.cameraOpaqueColorRequested === true &&
-      fieldGraph.bindings.length === LAKE_LOCAL_MEDIUM_SURFACE_FIELDS_V2.bindings.length &&
-      fieldGraph.bindings.every((binding) => binding.status === "resolved") &&
-      fieldGraph.bindings.find((binding) => binding.consumerId === "water-column-depth")?.resolvedProvider ===
-        WaterFieldProviderKind.CompiledSpatialField &&
-      fieldGraph.bindings.find((binding) => binding.consumerId === "scene-composition-color")?.resolvedProvider ===
-        WaterFieldProviderKind.CameraOpaqueColor;
-    const brokerReady =
-      currentQuality === WaterQualityTier.Low
-        ? (broker?.activeConsumerCount ?? 0) === 0 &&
-          (broker?.surfaceFieldGraphs.length ?? 0) === 0 &&
-          LAKE_LOCAL_LOW_SURFACE_FIELDS_V2.bindings.length === 2
-        : currentQuality === WaterQualityTier.High
-          ? broker?.depthTextureRequested === true &&
-            broker.opaqueTextureRequested === true &&
-            broker.depthCopyPassCount === 1 &&
-            broker.colorCopyPassCount === 1 &&
-            broker.surfaceFieldGraphs.length === 1 &&
-            highFieldGraphReady
-          : broker?.depthTextureRequested === false &&
-            broker.opaqueTextureRequested === true &&
-            broker.depthCopyPassCount === 0 &&
-            broker.colorCopyPassCount === 1 &&
-            broker.surfaceFieldGraphs.length === 1 &&
-            mediumFieldGraphReady;
-    const operationalReady =
-      runtimeOperationalReady &&
-      activeSetCount === 1 &&
-      sceneReady &&
-      brokerReady &&
-      runtimeError === null &&
-      !lifecycleDisposed;
-    const strictMaterialReady =
-      operationalReady &&
-      currentQuality === WaterQualityTier.High &&
-      materialActive &&
-      appearanceEnabled &&
-      allAppearanceFeaturesEnabled &&
-      strictAppearanceParameters &&
-      runtimeController?.refractionEnabled === true &&
-      reflectionEnabled &&
-      optics?.requestedSource === "ssr" &&
-      optics.effectiveSource === "ssr" &&
-      optics.requestedMode === "ssr" &&
-      optics.effectiveMode === "ssr" &&
-      optics.environmentProviderId === "water-pcg-grasslands-scene-environment" &&
-      optics.environmentOwnership === "borrowed" &&
-      optics.environmentRotationDegrees === GRASSLANDS_ENVIRONMENT_REFLECTION_ROTATION_DEGREES &&
-      optics.environmentExposure === GRASSLANDS_ENVIRONMENT_REFLECTION_EXPOSURE &&
-      optics.environmentIntensity === 1 &&
-      optics.environmentColorSpace === "linear" &&
-      optics.environmentHDR === GRASSLANDS_ENVIRONMENT_REFLECTION_HDR &&
-      (optics.environmentMaximumMipLevel ?? 0) > 0 &&
-      optics.opticalProfile.fresnelF0 ===
-        calculateWaterFresnelF0(LAKE_SHOWCASE_OPTICAL_PROFILE.indexOfRefraction ?? 1.333) &&
-      optics.opticalProfile.reflectionIntensity === LAKE_SHOWCASE_OPTICAL_PROFILE.reflectionIntensity &&
-      optics.fallbackReason === undefined &&
-      reflectionMetrics?.borrowedEnvironmentTextureCount === 1 &&
-      reflectionMetrics.ownedEnvironmentTextureCount === 0 &&
-      reflectionMetrics.boundEnvironmentConsumerCount === 1 &&
-      exclusionResources.auxiliaryCameraCount === 0 &&
-      exclusionResources.renderTargetCount === 0 &&
-      directLightMatchesFixture &&
-      actualCompositionMode === HeightfieldWaterCompositionMode.PrecomposedReplace &&
-      actualDepthWriteEnabled &&
-      surfaceTimeReady &&
-      !gameplayQueryRegistered &&
-      loader?.ready === true &&
-      assetLoader?.resource?.texture.destroyed === false &&
-      loader.actualContentHash === loader.expectedContentHash &&
-      appearance?.normalContentHash === LAKE_NORMAL_CONTENT_HASH &&
-      loader.width === LAKE_NORMAL_WIDTH &&
-      loader.height === LAKE_NORMAL_HEIGHT &&
-      loader.colorSpace === "linear" &&
-      loader.wrapU === "repeat" &&
-      loader.wrapV === "repeat" &&
-      loader.filter === "bilinear" &&
-      loader.mipmaps === true &&
-      loader.anisotropy === 1 &&
-      fallbackReason === null;
-    const finiteValues = [
-      fixture.seed,
-      fixture.wetTexelCount,
-      runtimeController?.meshUploadCount ?? 0,
-      scene?.sceneMeshUploadCount ?? 0,
-      environment?.sourceByteLength ?? 0,
-      actualSurfaceTime,
-      activeResource?.memory.cpuStaticBytes ?? 0,
-      engine?.renderingStatistics.bufferMemory ?? 0,
-      engine?.renderingStatistics.textureMemory ?? 0,
-      engine?.renderingStatistics.totalMemory ?? 0,
-      ...cameraPosition,
-      ...cameraForward,
-      ...(scene?.directLight.effectiveColor ?? [0, 0, 0])
-    ];
-    const finite =
-      runtimeError === null && finiteValues.every(Number.isFinite) && (scene?.finite ?? phase === "initializing");
-    const normalOwnership = appearance?.ownership === "borrowed" ? "borrowed" : "unavailable";
-    const sceneBounds =
-      scene?.terrainBounds ??
-      Object.freeze({
-        minimum: Object.freeze([0, 0, 0] as const),
-        maximum: Object.freeze([0, 0, 0] as const)
-      });
-
-    return Object.freeze({
-      phase,
-      ready: operationalReady,
-      strictMaterialReady,
-      finite,
-      runtimeError,
-      disposed: lifecycleDisposed,
-      qualityTier: currentQuality,
-      opticsTier: qualityOpticsTier(currentQuality),
-      surfaceTime: actualSurfaceTime,
-      runtimeCompiledHash: activeResource?.identity.compiledHash ?? "",
-      lakeBoundary: activeResource?.data.lakeBoundary
-        ? Object.freeze({
-            waterLevel: activeResource.data.lakeBoundary.waterLevel,
-            ringCount: activeResource.data.lakeBoundary.rings.length,
-            sampledPointCount: activeResource.data.lakeBoundary.rings.reduce((sum, r) => sum + r.length, 0),
-            sampleMarkerCount: lakeShorelineMarkers?.sampleCount ?? 0,
-            triangleCount: activeResource.data.stats.triangleCount,
-            vertexCount: activeResource.data.stats.vertexCount,
-            queryCoverage: activeResource.data.lakeBoundary.queryCoverage
-          })
-        : undefined,
-      effectiveDebugMode: (optics?.debugView as HeightfieldWaterDebugMode | undefined) ?? currentDebugMode,
-      appearanceFallbackReason: fallbackReason,
-      foamOctaveCount: v2Contact?.pattern?.octaves.count ?? 0,
-      refractionEnabled: runtimeController?.refractionEnabled === true,
-      normal: Object.freeze({
-        requested: appearance?.requested ?? false,
-        active: appearance?.active ?? false,
-        source: normalSource,
-        assetId: appearance?.normalAssetId ?? loader?.assetId ?? LAKE_NORMAL_ASSET_ID,
-        contentHash: appearance?.normalContentHash ?? loader?.actualContentHash ?? "",
-        expectedContentHash: fixture.externalAssetHash,
-        width: appearance?.normalTextureWidth ?? loader?.width ?? 0,
-        height: appearance?.normalTextureHeight ?? loader?.height ?? 0,
-        colorSpace: loader?.colorSpace ?? "unavailable",
-        wrapU: loader?.wrapU ?? "unavailable",
-        wrapV: loader?.wrapV ?? "unavailable",
-        filter: loader?.filter ?? "unavailable",
-        mipmaps: loader?.mipmaps === true,
-        anisotropy: loader?.anisotropy ?? 0,
-        textureDestroyed: assetLoader?.resource?.texture.destroyed ?? true,
-        flipGreen: firstV2Detail?.normalConvention === "directx",
-        layerCount: appearance?.normalLayerCount ?? 0,
-        tiling: firstV2Detail?.scale[0] ?? 0,
-        scrollUvPerSecond: firstV2Detail?.velocity[0] ?? 0,
-        strength: firstV2Detail?.strength ?? 0,
-        ownership: normalOwnership,
-        fallbackReason: appearance?.fallbackReason ?? loader?.fallbackReason ?? null
-      }),
-      appearance: Object.freeze({
-        requested: appearance?.requested ?? false,
-        active: appearance?.active ?? false,
-        enabled: appearanceEnabled,
-        assetId: appearance?.appearanceAssetId ?? "",
-        appearanceHash: appearance?.appearanceHash ?? "",
-        variantKey: appearance?.variantKey ?? "",
-        featureFlags: Object.freeze({
-          externalNormal: appearanceFlags?.externalNormal ?? false,
-          depthTint: appearanceFlags?.depthTint ?? false,
-          coastalAlpha: appearanceFlags?.coastalAlpha ?? false,
-          contactFoam: appearanceFlags?.contactFoam ?? false,
-          directSpecular: appearanceFlags?.directSpecular ?? false
-        }),
-        depthTint: Object.freeze({
-          model: v2Depth?.model ?? "unavailable",
-          enabled: v2Depth !== undefined,
-          color: Object.freeze(
-            v2Depth && "color" in v2Depth ? [...v2Depth.color] : ([0, 0, 0, 0] as [number, number, number, number])
-          ) as readonly [number, number, number, number],
-          distance: v2Depth && "distanceMeters" in v2Depth ? v2Depth.distanceMeters : 0,
-          exponent: v2Depth && "exponent" in v2Depth ? v2Depth.exponent : 0
-        }),
-        coastalAlpha: Object.freeze({
-          model: v2Coastal?.field ?? "unavailable",
-          enabled: v2Coastal !== undefined,
-          distance: v2Coastal?.rangeMeters ?? 0
-        }),
-        contactFoam: Object.freeze({
-          model: v2Contact?.pattern?.model ?? "unavailable",
-          enabled: v2Contact?.pattern !== undefined,
-          worldScale: v2Contact?.pattern?.worldScale ?? 0,
-          timeRate: v2Contact?.pattern?.timeRate ?? 0,
-          opacity: v2Contact?.pattern?.opacity ?? 0,
-          contactDistance: v2Contact?.rangeMeters ?? 0,
-          octaveCount: v2Contact?.pattern?.octaves.count ?? 0,
-          weights: Object.freeze([...(v2Contact?.pattern?.octaves.weights ?? [])]),
-          lacunarity: v2Contact?.pattern?.lacunarity ?? 0,
-          suppressRefraction: v2Contact?.outputs.refractionSuppression ?? 0,
-          smoothnessReduction: v2Contact?.outputs.roughness ?? 0
-        }),
-        fallbackReason: appearance?.fallbackReason ?? null
-      }),
-      cameraFeatures: Object.freeze({
-        fieldGraph: fieldGraph ?? null,
-        requested: Object.freeze({
-          depthTexture: depthTextureRequested,
-          opaqueTexture: opaqueTextureRequested,
-          quality: qualityOpticsTier(currentQuality),
-          opaqueDownsampling:
-            currentQuality === WaterQualityTier.High
-              ? "none"
-              : currentQuality === WaterQualityTier.Medium
-                ? "2x"
-                : "off"
-        }),
-        effective: Object.freeze({
-          depthTexture: effectiveDepth,
-          opaqueTexture: effectiveOpaque,
-          activeConsumerCount: broker?.activeConsumerCount ?? 0,
-          depthCopyPassCount: broker?.depthCopyPassCount ?? 0,
-          colorCopyPassCount: broker?.colorCopyPassCount ?? 0,
-          opaqueDownsampling: effectiveDownsampling,
-          incrementalEstimatedRenderTargetBytes: broker?.incrementalEstimatedRenderTargetBytes ?? 0,
-          totalEstimatedRenderTargetBytes: broker?.totalEstimatedRenderTargetBytes ?? 0
-        })
-      }),
-      directLight: Object.freeze({
-        bound: materialActive && exclusionResources.directLightComponentCount === 1 && directLightEnabled,
-        matchesFixture: directLightMatchesFixture,
-        count: exclusionResources.directLightComponentCount,
-        state: scene?.directLight.state ?? "disabled",
-        enabled: directLightEnabled,
-        color: scene?.directLight.color ?? fixture.directLight.color,
-        effectiveColor: scene?.directLight.effectiveColor ?? fixture.directLight.color,
-        intensity: scene?.directLight.intensity ?? fixture.directLight.intensity,
-        forward: scene?.directLight.forward ?? fixture.directLight.forward
-      }),
-      compositionMode:
-        actualCompositionMode === HeightfieldWaterCompositionMode.PrecomposedReplace
-          ? "precomposed-replace"
-          : "alpha-blend",
-      depthWriteEnabled: actualDepthWriteEnabled,
-      reflection: Object.freeze({
-        contributionEnabled:
-          reflectionEnabled &&
-          (optics?.effectiveMode !== "environment" || (optics.environmentIntensity ?? 0) > 0) &&
-          (optics?.opticalProfile.reflectionIntensity ?? 0) > 0,
-        requestedSource: optics?.requestedSource ?? "sky",
-        effectiveSource: optics?.effectiveSource ?? "sky",
-        requestedMode: optics?.requestedMode ?? "analytic",
-        effectiveMode: optics?.effectiveMode ?? "analytic",
-        environmentProviderId: reflectionMetrics?.selectedEnvironmentProviderId ?? null,
-        environmentOwnership: reflectionMetrics?.environmentAvailable ? "borrowed" : "unavailable",
-        environmentRotationDegrees: reflectionMetrics?.environmentRotationDegrees ?? 0,
-        environmentExposure: reflectionMetrics?.environmentExposure ?? 0,
-        environmentIntensity: reflectionMetrics?.environmentIntensity ?? 0,
-        environmentColorSpace: reflectionMetrics?.environmentColorSpace ?? "linear",
-        environmentHDR: reflectionMetrics?.environmentHDR ?? false,
-        environmentMaximumMipLevel: reflectionMetrics?.environmentMaximumMipLevel ?? 0,
-        borrowedEnvironmentTextureCount: reflectionMetrics?.borrowedEnvironmentTextureCount ?? 0,
-        ownedEnvironmentTextureCount: 0,
-        boundEnvironmentConsumerCount: reflectionMetrics?.boundEnvironmentConsumerCount ?? 0,
-        ownerCount: reflectionMetrics?.boundEnvironmentConsumerCount ?? 0,
-        intensity: optics?.opticalProfile.reflectionIntensity ?? 0,
-        effectiveIntensity: reflectionEnabled
-          ? (optics?.opticalProfile.reflectionIntensity ?? 0) *
-            (optics?.effectiveMode === "environment"
-              ? (optics.environmentExposure ?? 0) * (optics.environmentIntensity ?? 0)
-              : 1)
-          : 0,
-        fallbackReason: optics?.fallbackReason ?? null,
-        cameraCount: exclusionResources.auxiliaryCameraCount,
-        renderTargetCount: exclusionResources.renderTargetCount
-      }),
-      runtimeSet: Object.freeze({
-        activeSetCount: activeSetCount as 0 | 1,
-        activeId: runtimeController?.activeId ?? null,
-        compiledHash: activeResource?.identity.compiledHash ?? "",
-        chunkCount: runtimeController?.activeChunkCount ?? 0,
-        drawCount: runtimeResources?.activeDrawCount ?? 0,
-        meshUploadCount: runtimeController?.meshUploadCount ?? 0,
-        perFrameMeshUpload: perFrameMeshUploadDetected,
-        activeWaveCount: runtimeController?.activeData?.waveSet.activeWaveCount ?? 0,
-        waveStrength: runtimeController?.activeData?.surfaceMotion.waveStrength ?? 0,
-        gameplayQueryRegistered
-      }),
-      resources: Object.freeze({
-        bufferMemory: engine?.renderingStatistics.bufferMemory ?? 0,
-        textureMemory: engine?.renderingStatistics.textureMemory ?? 0,
-        totalMemory: engine?.renderingStatistics.totalMemory ?? 0,
-        liveRenderTargets: exclusionResources.renderTargetCount,
-        liveReflectionCameras: exclusionResources.auxiliaryCameraCount,
-        meshUploadCount: (runtimeController?.meshUploadCount ?? 0) + (scene?.sceneMeshUploadCount ?? 0),
-        perFrameMeshUpload: perFrameMeshUploadDetected,
-        ownedTextureCount:
-          Math.max(0, (loader?.textureCreateCount ?? 0) - (loader?.textureDestroyCount ?? 0)) +
-          (runtimeResources?.retainedLocalMapTextureCount ?? 0) +
-          Math.max(0, (environment?.textureCreateCount ?? 0) - (environment?.textureDestroyCount ?? 0)),
-        borrowedTextureCount:
-          (loader?.activeRuntimeBorrowCount ?? 0) + (reflectionMetrics?.borrowedEnvironmentTextureCount ?? 0),
-        textureCreateCount:
-          (loader?.textureCreateCount ?? 0) +
-          (runtimeResources?.localMapTextureCreateCount ?? 0) +
-          (environment?.textureCreateCount ?? 0),
-        textureDestroyCount:
-          (loader?.textureDestroyCount ?? 0) +
-          (runtimeResources?.localMapTextureDestroyCount ?? 0) +
-          (environment?.textureDestroyCount ?? 0),
-        materialCount:
-          (runtimeResources?.retainedMaterialCount ?? 0) +
-          Math.max(0, (environment?.materialCreateCount ?? 0) - (environment?.materialDestroyCount ?? 0)),
-        runtimeSetCreateCount: runtimeResources?.runtimeSetCreateCount ?? 0,
-        runtimeSetDestroyCount: runtimeResources?.runtimeSetDestroyCount ?? 0,
-        materialCreateCount: (runtimeResources?.materialCreateCount ?? 0) + (environment?.materialCreateCount ?? 0),
-        materialDestroyCount: (runtimeResources?.materialDestroyCount ?? 0) + (environment?.materialDestroyCount ?? 0),
-        localMapTextureCreateCount: runtimeResources?.localMapTextureCreateCount ?? 0,
-        localMapTextureDestroyCount: runtimeResources?.localMapTextureDestroyCount ?? 0,
-        meshCreateCount: (runtimeResources?.meshCreateCount ?? 0) + (scene?.meshCreateCount ?? 0),
-        meshDestroyCount: (runtimeResources?.meshDestroyCount ?? 0) + (scene?.meshDestroyCount ?? 0),
-        sceneMeshCreateCount: scene?.meshCreateCount ?? 0,
-        sceneMeshDestroyCount: scene?.meshDestroyCount ?? 0,
-        sceneMaterialCreateCount: scene?.materialCreateCount ?? 0,
-        sceneMaterialDestroyCount: scene?.materialDestroyCount ?? 0,
-        sceneEntityCreateCount: scene?.entityCreateCount ?? 0,
-        sceneEntityDestroyCount: scene?.entityDestroyCount ?? 0,
-        sceneMeshUploadCount: scene?.sceneMeshUploadCount ?? 0,
-        environmentTextureCreateCount: environment?.textureCreateCount ?? 0,
-        environmentTextureDestroyCount: environment?.textureDestroyCount ?? 0,
-        environmentTextures: environment?.textures ?? [],
-        environmentMaterialCreateCount: environment?.materialCreateCount ?? 0,
-        environmentMaterialDestroyCount: environment?.materialDestroyCount ?? 0,
-        environmentGltfResourceCreateCount: environment?.gltfResourceCreateCount ?? 0,
-        environmentGltfResourceDestroyCount: environment?.gltfResourceDestroyCount ?? 0,
-        environmentMeshCreateCount: environment?.meshCreateCount ?? 0,
-        environmentMeshDestroyCount: environment?.meshDestroyCount ?? 0,
-        environmentTemplateEntityCreateCount: environment?.templateEntityCreateCount ?? 0,
-        environmentTemplateEntityDestroyCount: environment?.templateEntityDestroyCount ?? 0,
-        environmentActiveRockInstanceCount: environment?.activeRockInstanceCount ?? 0,
-        environmentRockInstanceCreateCount: environment?.rockInstanceCreateCount ?? 0,
-        environmentRockInstanceDestroyCount: environment?.rockInstanceDestroyCount ?? 0,
-        renderTargetCount: exclusionResources.renderTargetCount,
-        reflectionCameraCount: exclusionResources.auxiliaryCameraCount,
-        cameraCount: exclusionResources.cameraComponentCount
-      }),
-      frame: Object.freeze({
-        engineUpdateCount
-      }),
-      camera: Object.freeze({
-        mode: cameraMode,
-        freeControlActive: cameraController?.freeControlActive ?? false,
-        movementSpeed: SHOWCASE_CAMERA_MOVEMENT_SPEED.grasslands,
-        position: cameraPosition,
-        forward: cameraForward
-      }),
-      scene: Object.freeze({
-        ready: sceneReady,
-        finite: scene?.finite ?? false,
-        cameraMode,
-        fixtureId: scene?.fixtureId ?? fixture.fixtureId,
-        fixtureHash: scene?.fixtureHash ?? fixture.fixtureHash,
-        bounds: sceneBounds,
-        terrainEntityCount: scene?.terrainEntityCount ?? 0,
-        anchorRockCount: scene?.anchorRockCount ?? 0,
-        activeRockCount: scene?.activeRockCount ?? 0,
-        scenicRockCount: scene?.scenicRockCount ?? 0,
-        submergedScenicRockCount: scene?.submergedScenicRockCount ?? 0,
-        shoreScenicRockCount: scene?.shoreScenicRockCount ?? 0,
-        contactProbeCount: scene?.contactProbeCount ?? 0,
-        terrainIndexCount: scene?.terrainIndexCount ?? 0,
-        terrainMudStonesIndexCount: scene?.terrainMudStonesIndexCount ?? 0,
-        terrainSandIndexCount: scene?.terrainSandIndexCount ?? 0,
-        terrainGrassMudIndexCount: scene?.terrainGrassMudIndexCount ?? 0,
-        terrainBedIndexCount: scene?.terrainBedIndexCount ?? 0,
-        terrainBankIndexCount: scene?.terrainBankIndexCount ?? 0,
-        terrainShorelineSampleCount: scene?.terrainShorelineSampleCount ?? 0,
-        terrainDegenerateTriangleCount: scene?.terrainDegenerateTriangleCount ?? 0,
-        terrainDirectMudGrassAdjacencyCount: scene?.terrainDirectMudGrassAdjacencyCount ?? 0,
-        environmentReady: scene?.environmentReady ?? false,
-        environmentAssetSetHash: scene?.environmentAssetSetHash ?? "",
-        terrainMaterialRegionCount: scene?.terrainMaterialRegionCount ?? 0,
-        terrainMaterialRegionIds: scene?.terrainMaterialRegionIds ?? Object.freeze([]),
-        rockModelResourceCount: scene?.rockModelResourceCount ?? 0,
-        largeRockVariantCount: scene?.largeRockVariantCount ?? 0,
-        smallRockVariantCount: scene?.smallRockVariantCount ?? 0,
-        sharedRockMeshCount: scene?.sharedRockMeshCount ?? 0,
-        proxyRockMeshCount: scene?.proxyRockMeshCount ?? 0,
-        sceneMeshUploadCount: scene?.sceneMeshUploadCount ?? 0,
-        connectedWaterBodyCount: scene?.connectedWaterBodyCount ?? 0,
-        landscapeRegionCount: scene?.landscapeRegionCount ?? 0,
-        landscapeRegionIds: scene?.landscapeRegionIds ?? Object.freeze([]),
-        landscapeExtentScaleXZ: scene?.landscapeExtentScaleXZ ?? Object.freeze([0, 0] as const),
-        directLightCount: exclusionResources.directLightComponentCount,
-        skyboxCount: exclusionResources.skyboxCount,
-        auxiliaryCameraCount: exclusionResources.auxiliaryCameraCount,
-        reflectionProbeCount: exclusionResources.reflectionProbeCount,
-        renderTargetCount: exclusionResources.renderTargetCount,
-        anchorRocks: scene?.anchorRocks ?? Object.freeze([])
-      }),
-      exclusionResources
-    });
   };
 
   const requireRuntime = (): HeightfieldWaterRuntimeController => {
@@ -894,140 +300,12 @@ async function bootstrapGrasslandsShowcase(): Promise<void> {
     });
     controller.setOpticalProfile(opticalProfile);
     controller.setRefractionEnabled(refractionEnabled && quality !== WaterQualityTier.Low);
-    if (reflectionScenario === "environment") {
-      waterBodyHandle?.refreshReflectionBinding();
-    } else if (reflectionScenario === "analytic-sky") {
-      controller.setReflectionBinding(undefined);
-    } else {
-      // Explicit diagnostics boundary: isolate an unavailable legacy probe.
-      controller.setReflectionBinding(
-        Object.freeze({
-          requestedSource: "probe",
-          resolvedSource: "sky",
-          fallbackReason: "environment-unavailable"
-        })
-      );
-    }
-  };
-
-  const bridge = {
-    readRuntime,
-    readLighting: () => lightingController?.readback ?? GRASSLANDS_INITIAL_LIGHTING_READBACK,
-    setSurfaceAppearanceFeatureFlags(flags: Readonly<HeightfieldWaterSurfaceAppearanceFeatureFlags>): void {
-      currentAppearanceFeatureFlags = flags;
-      requireRuntime().setSurfaceAppearanceFeatureFlags(flags);
-    },
-    setAppearanceEnabled(enabled: boolean): void {
-      appearanceEnabled = enabled;
-      requireRuntime().setSurfaceAppearanceFeatureFlags(
-        enabled
-          ? currentAppearanceFeatureFlags
-          : { externalNormal: false, depthTint: false, coastalAlpha: false, contactFoam: false, directSpecular: false }
-      );
-    },
-    setRefractionEnabled(enabled: boolean): void {
-      refractionEnabled = enabled;
-      requireRuntime().setRefractionEnabled(enabled && currentQuality !== WaterQualityTier.Low);
-    },
-    setReflectionEnabled(enabled: boolean): void {
-      reflectionEnabled = enabled;
-      applyOpticalPresentation(requireRuntime());
-    },
-    setReflectionScenario(scenario: GrasslandsReflectionScenario): void {
-      reflectionScenario = scenario;
-      applyOpticalPresentation(requireRuntime());
-    },
-    setDebugMode(mode: HeightfieldWaterDebugMode): void {
-      currentDebugMode = mode;
-      requireRuntime().setDebugMode(mode);
-    },
-    setDirectLightState(state: GrasslandsDirectLightState): void {
-      if (!lightingController) throw new Error("Grasslands Lighting Controller is unavailable.");
-      lightingController.setDirectLightState(state);
-    },
-    setLightingPreset(preset: Parameters<GrasslandsLightingController["applyPreset"]>[0]): void {
-      if (!lightingController) throw new Error("Grasslands Lighting Controller is unavailable.");
-      lightingController.applyPreset(preset);
-    },
-    setQuality(quality: WaterQualityTier): Promise<void> {
-      return compileAndActivateImpl(quality);
-    },
-    resetHeroCamera,
-    raiseContactProbe(id: string): GrasslandsAnchorRockReadback {
-      return requireScene().raiseContactProbe(id);
-    },
-    removeContactProbe(id: string): GrasslandsAnchorRockReadback {
-      return requireScene().removeContactProbe(id);
-    },
-    restoreContactProbe(id: string): GrasslandsAnchorRockReadback {
-      return requireScene().restoreContactProbe(id);
-    },
-    restoreAllContactProbes,
-    async dispose(): Promise<GrasslandsShowcaseAcceptanceSnapshot> {
-      cleanupImpl();
-      await teardownBarrier.whenFinalized();
-      return acceptanceApi.snapshot();
-    }
-  };
-
-  const acceptanceApi = createGrasslandsShowcaseAcceptanceApi(fixture, bridge);
-  const acceptanceGetter = (): Readonly<WaterShowcaseAcceptanceSnapshot> =>
-    createGrasslandsSharedAcceptanceSnapshot(acceptanceApi.snapshot());
-  const applySharedCaptureState = (state: GrasslandsSharedCaptureState): void => {
-    acceptanceApi.setCaptureState("hero");
-    applyCameraPose(state, false);
-  };
-  const resetSharedCaptureState = (): void => {
-    acceptanceApi.setCaptureState("hero");
-    applyCameraPose("hero", true);
-  };
-  const sharedShowcaseApi = createGrasslandsSharedShowcaseCaptureApi(applySharedCaptureState, resetSharedCaptureState);
-  window.waterPcgGrasslands = acceptanceApi;
-  window.waterPcgShowcase = sharedShowcaseApi;
-  Object.defineProperty(window, "waterPcgAcceptance", {
-    configurable: true,
-    enumerable: true,
-    get: acceptanceGetter
-  });
-
-  const removeAcceptanceProperties = (): void => {
-    if (window.waterPcgGrasslands === acceptanceApi) delete window.waterPcgGrasslands;
-    if (window.waterPcgShowcase === sharedShowcaseApi) delete window.waterPcgShowcase;
-    const descriptor = Object.getOwnPropertyDescriptor(window, "waterPcgAcceptance");
-    if (descriptor?.get === acceptanceGetter) delete window.waterPcgAcceptance;
+    waterBodyHandle?.refreshReflectionBinding();
   };
 
   const recordCleanupError = (stage: string, error: unknown): void => {
     const details = error instanceof Error ? (error.stack ?? error.message) : String(error);
     runtimeError ??= `Grasslands cleanup ${stage} failed: ${details}`;
-  };
-
-  const writeLifecycleJournal = (stage: "interim" | "final"): GrasslandsShowcaseAcceptanceSnapshot => {
-    let snapshot = acceptanceApi.snapshot();
-    try {
-      window.sessionStorage.setItem(
-        GRASSLANDS_LIFECYCLE_JOURNAL_KEY,
-        JSON.stringify({
-          schemaVersion: 1,
-          stage,
-          mode: lifecycleDisposeMode,
-          seed: snapshot.seed,
-          fixtureHash: snapshot.fixtureHash,
-          phase: snapshot.phase,
-          disposed: snapshot.disposed,
-          runtimeError: snapshot.runtimeError,
-          engineDestroyed,
-          pendingAsyncOperationCount: teardownBarrier.pendingCount,
-          resources: snapshot.resources,
-          runtimeSet: snapshot.runtimeSet,
-          cameraFeatures: snapshot.cameraFeatures
-        })
-      );
-    } catch (error) {
-      recordCleanupError("lifecycle-journal", error);
-      snapshot = acceptanceApi.snapshot();
-    }
-    return snapshot;
   };
 
   finalizeEngineTeardown = (): void => {
@@ -1082,7 +360,6 @@ async function bootstrapGrasslandsShowcase(): Promise<void> {
       }
       delete document.documentElement.dataset.waterPcgAutomation;
     }
-    writeLifecycleJournal("final");
   };
 
   const destroyWaterRuntimeOwned = async (): Promise<void> => {
@@ -1150,23 +427,20 @@ async function bootstrapGrasslandsShowcase(): Promise<void> {
     });
   };
 
-  cleanupImpl = (mode = "manual"): GrasslandsShowcaseAcceptanceSnapshot => {
+  cleanupImpl = (mode = "manual"): void => {
     lifecycleDisposeMode = mode;
     const firstTeardownRequest = !lifecycleDisposed;
     if (firstTeardownRequest) {
       rebuildRevision++;
       lifecycleDisposed = true;
       runtimeOperationalReady = false;
-      phase = mode === "failure" ? "error" : "disposed";
       window.removeEventListener("resize", resizeCanvas);
       if (beforeUnloadHandler) window.removeEventListener("beforeunload", beforeUnloadHandler);
       lakeEditSession?.cancel();
       delete (window as Window & { lakeDemo?: unknown }).lakeDemo;
       activeLoadAbort?.abort();
     } else if (mode === "failure") {
-      phase = "error";
     } else if (mode === "manual") {
-      phase = "disposed";
     }
 
     if (engine && !engineDestroyed) engine.pause();
@@ -1175,15 +449,10 @@ async function bootstrapGrasslandsShowcase(): Promise<void> {
       void teardownBarrier.track(destroyWaterRuntimeOwned());
     }
     teardownBarrier.requestFinalize();
-
-    const snapshot = writeLifecycleJournal(teardownBarrier.finalized ? "final" : "interim");
-    if (mode === "manual") removeAcceptanceProperties();
-    return snapshot;
   };
 
   const resizeCanvas = (): void => {
     if (engine) resizeEngineCanvasByClientSize(engine);
-    if (engine) cameraFeatureBroker?.setViewportSize(engine.canvas.width, engine.canvas.height);
   };
 
   beforeUnloadHandler = () => {
@@ -1243,7 +512,10 @@ async function bootstrapGrasslandsShowcase(): Promise<void> {
       source: normalSource,
       sourceUrl:
         normalSource === "local-override"
-          ? new URL("../../../../../packages/water/src/water/resources/lake/assets/grasslands-water-normal-1024.png", import.meta.url).href
+          ? new URL(
+              "../../../../../packages/water/src/water/resources/lake/assets/grasslands-water-normal-1024.png",
+              import.meta.url
+            ).href
           : undefined,
       enableDevelopmentLocalOverride:
         normalSource === "local-override" && search.get("developmentLocalOverride") === "1"
@@ -1299,7 +571,6 @@ async function bootstrapGrasslandsShowcase(): Promise<void> {
     });
 
     cameraFeatureBroker = new CameraWaterFeatureBroker(sceneController.camera);
-    cameraFeatureBroker.setViewportSize(engine.canvas.width, engine.canvas.height);
     reflectionServiceLease = WaterReflectionService.acquire(engine, root, sceneController.camera);
     reflectionService = reflectionServiceLease.service;
     environmentReflectionProvider = new WaterEnvironmentReflectionProvider({
@@ -1550,7 +821,6 @@ async function bootstrapGrasslandsShowcase(): Promise<void> {
         };
       }
     };
-    Object.defineProperty(window, "lakeDemo", { configurable: true, value: lakeDemoApi });
     if (import.meta.env.DEV) {
       const { mountWaterDevTools } = await import("@galacean/engine-water/water/devtools/index");
       const { createGrasslandsLightingSceneControls } = await import("./GrasslandsLightingDevTools.ts");
@@ -1723,7 +993,7 @@ async function bootstrapGrasslandsShowcase(): Promise<void> {
       submission: {
         frameBudgetMs: 4
       },
-      debugMode: currentDebugMode,
+
       surfaceTimeOverride
     });
 
@@ -1743,7 +1013,6 @@ async function bootstrapGrasslandsShowcase(): Promise<void> {
       currentQuality = quality;
       runtimeOperationalReady = false;
       runtimeError = null;
-      phase = "initializing";
       const operation = rebuildQueue
         .catch(() => {})
         .then(async () => {
@@ -1778,27 +1047,24 @@ async function bootstrapGrasslandsShowcase(): Promise<void> {
             if (revision !== rebuildRevision || lifecycleDisposed || loadAbort.signal.aborted) {
               return;
             }
-            const runtime = backend.getRuntimeDiagnostics(GRASSLANDS_STYLIZED_WATER_INSTANCE_ID);
+            const runtime = backend.getRuntimeController(GRASSLANDS_STYLIZED_WATER_INSTANCE_ID);
             const resource = handle.resource as WaterCompiledResourceReadPort<HeightfieldWaterCompiledData> | undefined;
-            if (!runtime || !resource || runtime.activation.submittedChunkCount !== resource.data.chunks.length) {
+            if (!runtime || !resource) {
               throw new Error("Grasslands Heightfield Loader activation did not publish a complete runtime.");
             }
-            runtimeController = runtime.controller;
+            runtimeController = runtime;
             appearanceBinding = runtimeController.surfaceAppearanceBinding;
             if (!appearanceBinding) {
               throw new Error("Grasslands appearance binding is unavailable after activation.");
             }
             publishWaterResource(resource);
             runtimeController.flushDeferredResources();
-            lastStableMeshUploadCount = runtimeController.meshUploadCount;
             runtimeOperationalReady = true;
-            phase = "ready";
           } catch (error) {
             if (revision !== rebuildRevision || lifecycleDisposed || loadAbort.signal.aborted) {
               return;
             }
             runtimeError = readErrorMessage(error);
-            phase = "error";
             runtimeOperationalReady = false;
             throw error;
           } finally {
@@ -1827,14 +1093,11 @@ async function bootstrapGrasslandsShowcase(): Promise<void> {
       service: reflectionService,
       beforeUpdate: () => environmentReflectionProvider?.refresh(),
       afterUpdate: () => {
-        if (reflectionScenario === "environment") {
-          waterBodyHandle?.refreshReflectionBinding();
-        }
+        waterBodyHandle?.refreshReflectionBinding();
       },
       onError: (error: unknown) => {
         runtimeError = readErrorMessage(error);
         runtimeOperationalReady = false;
-        phase = "error";
       }
     });
 
@@ -1845,15 +1108,10 @@ async function bootstrapGrasslandsShowcase(): Promise<void> {
           weatherTime += deltaTime;
           scene.shaderData.setFloat(SCENE_WEATHER_TIME, weatherTime);
           engineUpdateCount++;
-          const meshUploadCount = synchronizePublishedRuntime()?.meshUploadCount ?? 0;
-          if (runtimeOperationalReady && meshUploadCount !== lastStableMeshUploadCount) {
-            perFrameMeshUploadDetected = true;
-          }
-          lastStableMeshUploadCount = meshUploadCount;
+          synchronizePublishedRuntime();
         } catch (error) {
           runtimeError = readErrorMessage(error);
           runtimeOperationalReady = false;
-          phase = "error";
         }
       }
     }
@@ -1861,7 +1119,6 @@ async function bootstrapGrasslandsShowcase(): Promise<void> {
     engine.run();
   } catch (error) {
     runtimeError = readErrorMessage(error);
-    phase = "error";
     runtimeOperationalReady = false;
     cleanupImpl("failure");
     throw error;

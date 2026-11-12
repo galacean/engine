@@ -6,24 +6,29 @@ vi.mock("@galacean/engine", async () => ({
 }));
 import { Entity, Vector3 } from "@galacean/engine";
 import { BuildingPartComponent } from "../src/building/parts/architecture/BuildingPartComponent";
-import { European } from "../src/building/parts/architecture/European";
-import {
-  buildingPlacementFootprint,
-  placeBuildingOnLand
-} from "../src/building/components/BuildingPlacement";
+import { BuildingGroupComponent } from "../src/building/parts/architecture/BuildingGroupComponent";
+import { European } from "../src/building/application/European";
+import type { BuildingCoreDraft } from "../src/building/core";
+import { buildingPlacementFootprint, placeBuildingOnLand } from "../src/building/components/BuildingPlacement";
 
+/** A group node with its group component and one child node per part. */
+function author(entity: Entity, draft: BuildingCoreDraft) {
+  const group = entity.addComponent(BuildingGroupComponent);
+  group.definition = draft.groups[0];
+  for (const definition of draft.parts)
+    entity.createChild(definition.id).addComponent(BuildingPartComponent).definition = definition;
+  return group;
+}
 // Detached native Entities need no renderer or Scene for transform/shape queries.
 function fixture() {
   const root = new Entity(undefined!, "Group");
   root.transform.setPosition(2, 0, 3);
   const house = root.createChild("House");
   house.transform.setPosition(1, 0, 0);
-  const body = house.addComponent(BuildingPartComponent);
-  body.definition = European.buildTower({ id: "house", circle: { center: [0, 0], radius: 1, phase: 0 } }).parts[0];
+  const body = author(house, European.buildTower({ id: "house", circle: { center: [0, 0], radius: 1, phase: 0 } }));
   const wall = root.createChild("Wall");
   wall.transform.setPosition(-3, 0, 0);
-  const wallBody = wall.addComponent(BuildingPartComponent);
-  wallBody.definition = European.buildWall({ id: "wall", length: 2, depth: 0.25 }).parts[0];
+  const wallBody = author(wall, European.buildWall({ id: "wall", length: 2, depth: 0.25 }));
   return { root, house, body, wall, wallBody };
 }
 const land = { sampleHeight: () => 12, isWater: () => false };
@@ -76,12 +81,12 @@ describe("native building land placement", () => {
     expect(() => buildingPlacementFootprint(root)).toThrow("No active");
   });
   it("reads component and shape defaults rather than duplicating their decoding", () => {
-    const root = new Entity(undefined!),
-      wall = root.createChild().addComponent(BuildingPartComponent);
-    wall.definition = European.buildWall({ id: "wall" }).parts[0];
+    const root = new Entity(undefined!);
+    author(root.createChild(), European.buildWall({ id: "wall" }));
     expect(Math.max(...buildingPlacementFootprint(root).points.map((p) => p[1]))).toBeCloseTo(0.225);
-    wall.definition = European.buildWall({ id: "wall", depth: 6 }).parts[0];
-    expect(Math.max(...buildingPlacementFootprint(root).points.map((p) => p[1]))).toBe(3);
+    const deep = new Entity(undefined!);
+    author(deep.createChild(), European.buildWall({ id: "wall", depth: 6 }));
+    expect(Math.max(...buildingPlacementFootprint(deep).points.map((p) => p[1]))).toBe(3);
   });
   it("rejects failed bounded searches and singular parents without moving the object", () => {
     const { root } = fixture(),
@@ -109,7 +114,7 @@ describe("native building land placement", () => {
         query
       )[0]
     ).toBe(0);
-    body.definition = European.buildTower({ id: "house", circle: { center: [0, 0], radius: 3, phase: 0 } }).parts[0];
+    body.definition = European.buildTower({ id: "house", circle: { center: [0, 0], radius: 3, phase: 0 } }).groups[0];
     expect(
       placeBuildingOnLand(
         root,

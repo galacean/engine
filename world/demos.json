@@ -18,18 +18,6 @@
     "owner": "animals"
   },
   {
-    "entry": "demos/building-components/index.html",
-    "title": "建筑组件编辑",
-    "mode": "static",
-    "owner": "building"
-  },
-  {
-    "entry": "demos/building-components/recursive.html",
-    "title": "建筑构件 · 欧式生成",
-    "mode": "static",
-    "owner": "building"
-  },
-  {
     "entry": "demos/canyon-shape-study/index.html",
     "title": "峡谷轮廓 · OBB 覆盖实验",
     "mode": "static",
@@ -186,6 +174,12 @@
     "owner": "water"
   },
   {
+    "entry": "demos/water/editor/index.html",
+    "title": "Water native editor",
+    "mode": "static",
+    "owner": "water"
+  },
+  {
     "entry": "demos/water/island/index.html",
     "title": "岚湾岛 · Water Island",
     "mode": "static",
@@ -214,5 +208,11 @@
     "title": "P3 Tree 千树风增量与资产性能门禁",
     "mode": "static",
     "owner": "vegetation / environment"
+  },
+  {
+    "entry": "demos/procedural-rock/index.html",
+    "title": "程序化岩石 · 3D 与 2D 轮廓",
+    "mode": "static",
+    "owner": "terrain"
   }
 ]

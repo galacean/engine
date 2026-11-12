@@ -5,6 +5,7 @@ import {
   assertAssetPath,
   assetMetadata,
   projectDocuments,
+  lookupRuntimeProjectTextAsset,
   runtimeProjectFiles,
   validateRuntimeProject,
   type RuntimeProjectManifest,
@@ -90,6 +91,12 @@ export class RuntimeProjectEdit {
         return provider.read(path);
       }
     };
+  }
+
+  /** Read source resolution inputs from the current draft without exposing mutable project data. */
+  lookupTextAsset(path: string): ReturnType<typeof lookupRuntimeProjectTextAsset> {
+    this.assertOpen();
+    return lookupRuntimeProjectTextAsset(this.draft, path);
   }
 
   preview(): RuntimeProjectPackage {

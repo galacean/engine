@@ -9,7 +9,7 @@
 | 仓库 | 来源 | 默认远端分支 |
 | --- | --- | --- |
 | Engine | `git@github.com:galacean/engine.git` | `experimental/engine-next` |
-| ASAP | `git@code.alipay.com:recneptune-tenants/asap-service.git` | `codex/seed-world-local-debug` |
+| ASAP | `git@code.alipay.com:recneptune-tenants/asap-service.git` | 见 [SKILL.md](../SKILL.md) 的默认 ASAP 来源 |
 
 Engine 可正常 clone/fetch。
 ASAP 的远端操作遵守其仓库规则，使用 `antcode`，不要用 `gh`。
@@ -21,10 +21,12 @@ ASAP 的远端操作遵守其仓库规则，使用 `antcode`，不要用 `gh`。
 ```bash
 # 分别在对应仓库执行；目录由用户选择，分支已存在时先检查而非覆盖。
 git worktree add -b codex/seed-world-local-debug /chosen/path/engine-debug origin/experimental/engine-next
-git worktree add -b codex/seed-world-local-debug /chosen/path/asap-debug origin/codex/seed-world-local-debug
+git worktree add -b codex/seed-world-local-debug /chosen/path/asap-debug origin/<默认 ASAP 远端分支>
 ```
 
 本地分支名不要求与远端一致；基线与同步目标必须明确。
+默认 ASAP 分支变化后，已有 worktree 在 fetch 后 fast-forward 到新的默认分支，并把它设为上游。
+ASAP 基线变化后，按第 3 节重新安装依赖，并按第 4 节检查本地配置。
 后续更新用 fetch 后 fast-forward；有分叉或未提交改动时停下说明，不自动丢弃或合并。
 记录 fetch 时间和两个 HEAD；未 fetch 时不能称“远端最新”。
 

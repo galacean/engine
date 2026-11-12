@@ -50,6 +50,7 @@ export interface LayoutRule {
   branchShape?: "radial" | "curve";
   curveBendM?: number;
   curveHeadingDegrees?: number;
+  curveMemberOrder?: "along-street";
   /** Base clear corridor between banks, independent of pavement width. */
   curveGapM?: number;
   /** Outward lateral variation (0 to twice the amplitude); zero keeps the base corridor. */
@@ -154,6 +155,7 @@ registerLayoutRule({
     "branchShape",
     "curveBendM",
     "curveHeadingDegrees",
+    "curveMemberOrder",
     "curveGapM",
     "curveLateralVariationM",
     "curveVariationScaleM",

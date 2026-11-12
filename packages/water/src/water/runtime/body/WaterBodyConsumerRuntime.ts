@@ -1,12 +1,6 @@
 /** Consumer-facing capability negotiation for one resolved WaterBody instance. */
 import type { WaterBodyCapabilityRequirementsV1 } from "../../authoring/body/WaterBodyAuthoringTypes";
 import {
-  createWaterBodyCapabilitySnapshot,
-  type WaterBodyCapabilitySnapshot,
-  type WaterSurfaceProviderFeatures
-} from "./WaterBodyCapabilities";
-import type { WaterBodyRuntime } from "./WaterBodyRuntime";
-import {
   WaterLocalModifierChannel,
   type WaterLocalFieldProvider,
   type WaterLocalFieldSample
@@ -18,6 +12,12 @@ import {
   type WaterSpatialFieldProvider,
   type WaterSpatialFieldSample
 } from "../spatial/WaterSpatialFieldProvider";
+import {
+  createWaterBodyCapabilitySnapshot,
+  type WaterBodyCapabilitySnapshot,
+  type WaterSurfaceProviderFeatures
+} from "./WaterBodyCapabilities";
+import type { WaterBodyRuntime } from "./WaterBodyRuntime";
 
 const CURRENT_LOCAL_CHANNELS = WaterLocalModifierChannel.CurrentLarge | WaterLocalModifierChannel.CurrentRipple;
 const SHORE_SPATIAL_CHANNELS = WaterSpatialFieldChannel.ShoreSignedDistance | WaterSpatialFieldChannel.ShoreNormal;
@@ -176,7 +176,6 @@ class ConsumerWaterBodyRuntime implements WaterBodyRuntime {
   readonly bounds;
   readonly exclusionBounds;
   readonly priority;
-  readonly metrics;
 
   constructor(
     private readonly _source: WaterBodyRuntime,
@@ -204,7 +203,6 @@ class ConsumerWaterBodyRuntime implements WaterBodyRuntime {
     this.bounds = _source.bounds;
     this.exclusionBounds = _source.exclusionBounds;
     this.priority = _source.priority;
-    this.metrics = _source.metrics;
     this.capabilities = createWaterBodyCapabilitySnapshot(this);
   }
 

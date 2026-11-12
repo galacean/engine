@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="zh">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" href="data:," />
+    <title>建筑渲染 · 每帧开销</title>
+    <style>
+      body {
+        margin: 0;
+        background: #1d2428;
+        color: #e8ecea;
+        font:
+          14px/1.5 system-ui,
+          "PingFang SC",
+          sans-serif;
+      }
+      canvas {
+        width: 100vw;
+        height: 60vh;
+        display: block;
+      }
+      pre {
+        margin: 0;
+        padding: 12px 16px;
+        font:
+          12.5px/1.6 ui-monospace,
+          Menlo,
+          monospace;
+        white-space: pre-wrap;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas></canvas>
+    <pre id="out">加载中…</pre>
+    <script type="module" src="./frame.ts"></script>
+  </body>
+</html>

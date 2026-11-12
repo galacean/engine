@@ -3,5 +3,4 @@ export { commitRiverEdit } from "./commitRiverEdit";
 export { RiverCompileWorkerClient } from "./RiverCompileWorkerClient";
 export { RiverEditSession } from "./RiverEditSession";
 export type { RiverEditPublication } from "./RiverEditSession";
-export { RiverSurfaceDebugMode } from "./RiverRuntimeEnums";
 export { RIVER_WATER_BACKEND_ID, RiverWaterBackend } from "./RiverWaterBackend";

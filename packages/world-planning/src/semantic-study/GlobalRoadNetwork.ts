@@ -1,3 +1,4 @@
+import { searchTerrainRoadGrid, terrainRoadSegmentGrade } from "../spatial/layout/TerrainRoadSearch";
 import { riverRoadQueries } from "../spatial/hydrology/RiverCrossings";
 import { buildPlanningScene, roadComponents } from "../spatial/PlanningScene";
 import { overlap, inRing } from "./WorldPlanningGeometry";
@@ -15,6 +16,8 @@ import { bounds } from "../spatial/layout/Volumes";
 
 /** Semantic network parameters; search budgets and terrain limits are authored separately. */
 export interface RoadNetworkConfig {
+  /** Whether to generate the automatic road network. */
+  enabled?: boolean;
   wayfinding?: WayfindingPolicy;
   sBend?: number;
   widthM: number;
@@ -70,6 +73,10 @@ export function planGlobalRoadNetwork(
   edits: Record<string, SemanticEdit> = {},
   options: { publishMetadata?: boolean; deferCurves?: boolean } = {}
 ): PlanningCheck[] {
+  if (config.enabled === false) {
+    plan.roadNetwork = { geometryVersion: ROAD_GEOMETRY_VERSION, nodes: [], edges: [], domains: [] };
+    return [];
+  }
   if (!Number.isFinite(config.widthM) || config.widthM <= 0) throw new Error("全局路宽须为有限正数");
   if (![config.bend, config.loopiness].every((v) => Number.isFinite(v) && v >= 0 && v <= 1))
     throw new Error("道路曲折和连接冗余须在 0–1 范围内");
@@ -111,21 +118,7 @@ export function planGlobalRoadNetwork(
     z: (Math.floor(id / columns) + 0.5) * step
   });
   const routes: PlanRoute[] = [];
-  // Sample the actual ground along edges. Grade is a route cost and diagnostic, never a volume-placement gate.
-  const segmentGrade = (a: PlanPoint, b: PlanPoint) => {
-    const length = distance(a, b);
-    if (length <= 1e-6) return 0;
-    const steps = Math.max(1, Math.ceil(length / 2));
-    let previousHeight = ground(a),
-      steepest = 0;
-    for (let i = 1; i <= steps; i++) {
-      const t = i / steps;
-      const height = ground({ x: a.x + (b.x - a.x) * t, z: a.z + (b.z - a.z) * t });
-      steepest = Math.max(steepest, Math.abs(height - previousHeight) / (length / steps));
-      previousHeight = height;
-    }
-    return steepest;
-  };
+  const segmentGrade = (a: PlanPoint, b: PlanPoint) => terrainRoadSegmentGrade(a, b, ground);
   const routeGrade = (points: PlanPoint[]) => Math.max(0, ...points.slice(1).map((p, i) => segmentGrade(points[i], p)));
   const geometryKey = JSON.stringify([
     plan.parameters,
@@ -432,57 +425,15 @@ export function planGlobalRoadNetwork(
         !villagesAt(box).some((v) => v.ring.touchesSegment(pa, pb, r))
       );
     };
-    const path = (start: number, end: number, settings: RoadNetworkConfig): number[] | undefined => {
-      const costs = new Float64Array(valid.length).fill(Infinity),
-        parent = new Int32Array(valid.length).fill(-1),
-        queue = new Heap();
-      costs[start] = 0;
-      queue.push(start, distance(gridPoint(start), gridPoint(end)));
-      const done = new Set<number>();
-      let visits = 0;
-      while (queue.size && visits++ < limits.maxSearchVisits) {
-        const at = queue.pop();
-        if (done.has(at)) continue;
-        done.add(at);
-        if (at === end) {
-          const route = [at];
-          while (route.at(-1) !== start) route.push(parent[route.at(-1)!]);
-          return route.reverse();
-        }
-        const x = at % columns,
-          z = Math.floor(at / columns);
-        for (const [dx, dz] of [
-          [-1, 0],
-          [1, 0],
-          [0, -1],
-          [0, 1],
-          [-1, -1],
-          [-1, 1],
-          [1, -1],
-          [1, 1]
-        ]) {
-          if (x + dx < 0 || x + dx >= columns || z + dz < 0 || z + dz >= rows) continue;
-          const next = (z + dz) * columns + x + dx;
-          if (!valid[next] || done.has(next) || !edgeClear(at, next, settings.widthM)) continue;
-          const incoming = parent[at] >= 0 ? gridPoint(parent[at]) : undefined;
-          const bendCos = incoming
-            ? ((gridPoint(at).x - incoming.x) * dx + (gridPoint(at).z - incoming.z) * dz) /
-              (distance(gridPoint(at), incoming) * Math.hypot(dx, dz))
-            : 1;
-          const turnCost = step * limits.turnPenalty * (1 - bendCos) ** 2;
-          const cost =
-            costs[at] +
-            turnCost +
-            Math.hypot(dx, dz) *
-              step *
-              (1 + limits.slopePenalty * Math.max(0, (edgeGrades.get(edgeKey(at, next)) ?? 0) / limits.maxSlope) ** 2);
-          if (cost >= costs[next]) continue;
-          costs[next] = cost;
-          parent[next] = at;
-          queue.push(next, cost + distance(gridPoint(next), gridPoint(end)));
-        }
-      }
-    };
+    const path = (start: number, end: number, settings: RoadNetworkConfig) =>
+      searchTerrainRoadGrid(start, end, {
+        columns,
+        rows,
+        step,
+        point: gridPoint,
+        edgeGrade: (at, next) =>
+          valid[next] && edgeClear(at, next, settings.widthM) ? (edgeGrades.get(edgeKey(at, next)) ?? 0) : undefined
+      });
     const portMap = new Map<number, string>();
     for (const n of nodes) if (distance(n.position, gridPoint(n.grid)) < 1e-6) portMap.set(n.grid, n.portId);
     const addGridPort = (grid: number) => {
@@ -846,40 +797,4 @@ export function finalRoadGradeChecks(plan: IslandPlan): PlanningCheck[] {
       });
   }
   return checks;
-}
-
-class Heap {
-  private entries: { id: number; cost: number }[] = [];
-  get size() {
-    return this.entries.length;
-  }
-  push(id: number, cost: number) {
-    const q = this.entries;
-    let i = q.length;
-    q.push({ id, cost });
-    while (i) {
-      const p = (i - 1) >> 1;
-      if (q[p].cost <= cost) break;
-      q[i] = q[p];
-      i = p;
-    }
-    q[i] = { id, cost };
-  }
-  pop() {
-    const q = this.entries,
-      first = q[0].id,
-      last = q.pop()!;
-    if (q.length) {
-      let i = 0;
-      while (i * 2 + 1 < q.length) {
-        let c = i * 2 + 1;
-        if (c + 1 < q.length && q[c + 1].cost < q[c].cost) c++;
-        if (q[c].cost >= last.cost) break;
-        q[i] = q[c];
-        i = c;
-      }
-      q[i] = last;
-    }
-    return first;
-  }
 }

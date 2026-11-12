@@ -22,6 +22,7 @@ export default defineConfig({
     include: [
       "../packages/modify/tests/MaterialLoaderCompatibility.test.ts",
       "../packages/modify/tests/ShaderPassCompatibility.test.ts",
+      "../packages/modify/tests/ResourceLoadingCompatibility.test.ts",
       "src/core/Shader.test.ts",
       "src/core/ShaderIdentity.test.ts",
       "src/loader/ShaderLoader.test.ts",

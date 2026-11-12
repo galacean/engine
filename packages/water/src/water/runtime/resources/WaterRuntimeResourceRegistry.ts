@@ -20,16 +20,6 @@ export interface WaterRuntimeResourceLease<TResource = unknown> {
   destroy(): Promise<void>;
 }
 
-export interface WaterRuntimeResourceRegistryMetrics {
-  readonly registeredResourceCount: number;
-  readonly loadedResourceCount: number;
-  readonly pendingLoadCount: number;
-  readonly activeLeaseCount: number;
-  readonly loadCount: number;
-  readonly cacheHitCount: number;
-  readonly optionalFallbackCount: number;
-}
-
 interface LoadedWaterResource {
   readonly factory: WaterRuntimeResourceFactory;
   readonly resource: unknown;
@@ -59,24 +49,8 @@ export class WaterRuntimeResourceRegistry {
   private readonly _loads = new Set<Promise<void>>();
   private readonly _retirements = new Set<Promise<void>>();
   private readonly _cleanupErrors: unknown[] = [];
-  private _activeLeaseCount = 0;
-  private _loadCount = 0;
-  private _cacheHitCount = 0;
-  private _optionalFallbackCount = 0;
   private _destroyed = false;
   private _destroyPromise?: Promise<void>;
-
-  get metrics(): WaterRuntimeResourceRegistryMetrics {
-    return Object.freeze({
-      registeredResourceCount: this._factories.size,
-      loadedResourceCount: this._loaded.size,
-      pendingLoadCount: this._pending.size,
-      activeLeaseCount: this._activeLeaseCount,
-      loadCount: this._loadCount,
-      cacheHitCount: this._cacheHitCount,
-      optionalFallbackCount: this._optionalFallbackCount
-    });
-  }
 
   register(factory: WaterRuntimeResourceFactory): void {
     this._assertAvailable();
@@ -117,6 +91,9 @@ export class WaterRuntimeResourceRegistry {
         `Water runtime resource '${right.id}' is already registered with a different descriptor.`
       );
     }
+    // Equal content may be supplied by a new native resource after an asset reload.
+    // Existing leases keep their original factory; the next load borrows the current handle.
+    this._factories.set(factory.descriptor.id, factory);
     return false;
   }
 
@@ -129,7 +106,6 @@ export class WaterRuntimeResourceRegistry {
     const factory = this._factories.get(descriptor.id);
     if (!factory) {
       if (descriptor.fallbackPolicy === "optional") {
-        this._optionalFallbackCount++;
         return undefined;
       }
       throw new WaterBodyRegistryError(
@@ -148,12 +124,10 @@ export class WaterRuntimeResourceRegistry {
 
     const loaded = this._loaded.get(descriptor.id);
     if (loaded) {
-      this._cacheHitCount++;
       return this._acquireLoaded<TResource>(loaded);
     }
     const existing = this._pending.get(descriptor.id);
     if (existing && !existing.settled && !existing.abortController.signal.aborted) {
-      this._cacheHitCount++;
       return this._subscribe<TResource>(existing, context.signal);
     }
     const pending: PendingWaterResource = {
@@ -183,7 +157,6 @@ export class WaterRuntimeResourceRegistry {
       await Promise.allSettled([...this._loads]);
       const loaded = [...this._loaded.values()];
       this._loaded.clear();
-      this._activeLeaseCount = 0;
       for (const { factory, resource } of loaded) this._retire(factory, resource);
       await Promise.allSettled([...this._retirements]);
       this._factories.clear();
@@ -210,7 +183,6 @@ export class WaterRuntimeResourceRegistry {
       // No instance resource can become visible with a zero-reference handoff gap.
       const deliveries = [...pending.consumers].map((consumer) => ({ consumer, lease: this._acquireLoaded(loaded) }));
       this._loaded.set(factory.descriptor.id, loaded);
-      this._loadCount++;
       pending.settled = true;
       for (const { consumer, lease } of deliveries) {
         consumer.detach();
@@ -234,7 +206,6 @@ export class WaterRuntimeResourceRegistry {
         !cancelled &&
         !(failure instanceof DOMException && failure.name === "AbortError") &&
         !rollbackFailed;
-      if (optional) this._optionalFallbackCount++;
       pending.settled = true;
       for (const consumer of pending.consumers) {
         consumer.detach();
@@ -274,7 +245,6 @@ export class WaterRuntimeResourceRegistry {
 
   private _acquireLoaded<TResource = unknown>(loaded: LoadedWaterResource): WaterRuntimeResourceLease<TResource> {
     loaded.referenceCount++;
-    this._activeLeaseCount++;
     return this._createLease<TResource>(loaded);
   }
 
@@ -293,7 +263,6 @@ export class WaterRuntimeResourceRegistry {
         destroyPromise = (async () => {
           if (!active) return;
           active = false;
-          this._activeLeaseCount = Math.max(0, this._activeLeaseCount - 1);
           loaded.referenceCount = Math.max(0, loaded.referenceCount - 1);
           if (
             loaded.referenceCount === 0 &&

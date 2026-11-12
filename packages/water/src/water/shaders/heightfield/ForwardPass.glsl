@@ -22,7 +22,6 @@
       vec4 camera_DepthBufferParams;
 #endif
       sampler2D material_LocalMapTexture;
-      sampler2D material_SurfaceTexture;
 {{VALUE_008_CREATEWATERSURFACEAPPEARANCEV2UNIFORMDECLARATIONS_SURFAC}}
       vec4 material_LocalMapWorldToUv;
       vec4 material_WaterWorldToLocalPlanar;
@@ -30,25 +29,16 @@
       vec4 material_LocalMapDecode;
       vec4 material_ShallowColor;
       vec4 material_DeepColor;
-      vec4 material_FoamColor;
       float material_Alpha;
       float material_Clarity;
       float material_TimeScale;
       float material_WaveStrength;
-      float material_MicroNormalStrength;
-      float material_FoamIntensity;
       float material_ShoreDampingWidth;
       float material_SurfaceTimeOverride;
-      float material_DebugMode;
       float material_RefractionEnabled;
       float material_CompositionMode;
-      float material_OpticsCalibrationMode;
       float material_WavesEnabled;
       float material_MicroNormalsEnabled;
-      float material_FoamEnabled;
-      float material_LocalFoamMaskEnabled;
-      vec4 material_LocalFoamMaskCenterHalfSize;
-      float material_LocalFoamMaskFeather;
 #ifdef MATERIAL_WATER_PRESENTATION_REVEAL
       float material_PresentationRevealProgress;
       float material_PresentationRevealBand;
@@ -115,7 +105,6 @@
         vec3 macroNormalWS;
         vec3 tangentWS;
         vec2 atlasUv;
-        float baseSurfaceHeight;
         float waveOffset;
         float surfaceEyeDepth;
         float shoreDamping;
@@ -196,7 +185,6 @@
         output.macroNormalWS = computedMacroNormalWS;
         output.tangentWS = computedBaseTangentWS;
         output.atlasUv = computedAtlasUv;
-        output.baseSurfaceHeight = baseWorldPosition.y;
         output.waveOffset = waveOffset;
         output.surfaceEyeDepth = -(camera_ViewMat * vec4(displacedWorldPosition, 1.0)).z;
         output.shoreDamping = shoreDamping;
@@ -206,7 +194,7 @@
 
       void frag(Varyings input) {
         if (waterConnectionFacts(input.worldPosition.xz).w < 0.5) discard;
-        float elapsedTime = surfaceTime();
+
         vec4 localMap = texture2D(material_LocalMapTexture, input.atlasUv);
         vec2 flowXZ = (localMap.rg * 2.0 - 1.0) * material_LocalMapDecode.x;
 {{VALUE_042_USELOCALBATHYMETRY_FLOAT_AUTHOREDDEPTH_MAX_WATERSPATIALF}}
@@ -223,9 +211,14 @@
           )
         );
         float coverage = smoothstep(-coverageHalfWidth, coverageHalfWidth, signedDistance);
+#if defined(SSR_CONTRIBUTION_DEPTH) && {{PRECOMPOSED_REPLACE}}
+        // The shared precomposed closure always returns alpha=1. Color cannot
+        // affect depth; only geometric coverage, connections and reveal clip it.
+        float fragmentAlpha = 1.0;
+#else
+        float elapsedTime = surfaceTime();
 {{VALUE_043_OPTICALDEPTHCALCULATION_USESCENEDEPTH_USECOMPOSITEDEPTHR}}
         opticalDepth = min(opticalDepth, max(material_MaximumSurfaceOpticalDistance, 0.0));
-        float depthRatio = saturate(opticalDepth / max(material_LocalMapDecode.y, 0.0001));
         float flowSpeed = length(flowXZ);
         float flowWeight = smoothstep(
           {{VALUE_045_GLSL_HEIGHTFIELD_WATER_SURFACE_TUNING_MINIMUMFLOWSPEED}},
@@ -244,85 +237,19 @@
         signedDistance = waterConnectionShore(baseWorldPosition.xz, signedDistance);
         float heightfieldObstacleContact = opticalDepth;
 {{VALUE_048_SHAREDSURFACEASSEMBLY_GEOMETRYBRIDGESOURCE}}
-{{VALUE_049_FLOWSURFACELAYERSTATEMENTS_QUALITY}}
-        float detailStrength = max(
-          material_MicroNormalStrength,
-          {{VALUE_050_GLSL_HEIGHTFIELD_WATER_SURFACE_TUNING_MINIMUMNORMALSTREN}}
-        ) * material_MicroNormalsEnabled * mix(
-          {{VALUE_051_GLSL_HEIGHTFIELD_WATER_SURFACE_TUNING_STILLMICRONORMALSC}},
-          1.0,
-          flowWeight
-        );
-        vec2 worldDetailSlopeXZ = waterLocalDirectionToWorldXZ(flowSurface.xy);
-        vec3 worldDetailSlope = vec3(worldDetailSlopeXZ.x, 0.0, worldDetailSlopeXZ.y);
-        vec3 tangentDetailSlope = worldDetailSlope
-          - input.macroNormalWS * dot(worldDetailSlope, input.macroNormalWS);
-        vec3 surfaceNormalWS = safeNormalize3(
-          input.macroNormalWS + tangentDetailSlope * detailStrength,
-          input.macroNormalWS
-        );
-{{VALUE_052_CREATEWATERSURFACEAPPEARANCEV2NORMALSTATEMENTS_SURFACEAP}}
-        surfaceNormalWS = waterConnectionNormal(input.worldPosition.xz, surfaceNormalWS);
-{{VALUE_053_CREATEHEIGHTFIELDWATERRAINRIPPLENORMALSTATEMENTS_QUALITY}}
+{{SURFACE_NORMAL_STATEMENTS}}
         vec3 viewDirection = safeNormalize3(camera_Position - input.worldPosition, input.baseNormalWS);
         float normalFacing = step(0.0, dot(surfaceNormalWS, viewDirection)) * 2.0 - 1.0;
         surfaceNormalWS *= normalFacing;
         float normalDotView = saturate(dot(surfaceNormalWS, viewDirection));
 {{VALUE_054_LOCALBATHYMETRYOPTICALDEPTHREFINEMENT_USELOCALBATHYMETRY}}
         float fresnelF0 = clamp(material_FresnelF0, 0.0, 1.0);
-        // Diagnostics-only; final Fresnel evaluation remains inside the shared Closure.
-        float effectiveFresnel = waterSurfaceSchlick(fresnelF0, 1.0, normalDotView);
-        float shoreEnvelope = 1.0 - smoothstep(
-          0.0,
-          max(
-            material_ShoreDampingWidth * {{VALUE_055_GLSL_HEIGHTFIELD_WATER_SURFACE_TUNING_SHOREFOAMWIDTHSCAL}},
-            0.0001
-          ),
-          max(signedDistance, 0.0)
-        );
-        float foamNoise = saturate(flowSurface.z * 0.62 + flowSurface.w * 0.38);
-        float foamBreakup = smoothstep(
-          {{VALUE_056_GLSL_HEIGHTFIELD_WATER_SURFACE_TUNING_SHOREFOAMNOISESTAR}},
-          {{VALUE_057_GLSL_HEIGHTFIELD_WATER_SURFACE_TUNING_SHOREFOAMNOISEEND}},
-          foamNoise + (1.0 - abs(flowSurface.z - flowSurface.w)) * 0.08
-        );
-        float shoreFoam = shoreEnvelope * foamBreakup;
-        float macroSlope = 1.0 - saturate(dot(input.baseNormalWS, input.macroNormalWS));
-        float crestFoam = smoothstep(
-          {{VALUE_058_GLSL_HEIGHTFIELD_WATER_SURFACE_TUNING_CRESTFOAMSTART}},
-          {{VALUE_059_GLSL_HEIGHTFIELD_WATER_SURFACE_TUNING_CRESTFOAMEND}},
-          macroSlope + max(input.waveOffset, 0.0) * 0.22
-        ) * smoothstep(0.49, 0.78, foamNoise);
-        float currentFoam = smoothstep(
-          {{VALUE_060_GLSL_HEIGHTFIELD_WATER_SURFACE_TUNING_CURRENTFOAMSPEEDST}},
-          {{VALUE_061_GLSL_HEIGHTFIELD_WATER_SURFACE_TUNING_CURRENTFOAMSPEEDEN}},
-          flowSpeed
-        ) * smoothstep(
-          {{VALUE_062_GLSL_HEIGHTFIELD_WATER_SURFACE_TUNING_CURRENTFOAMNOISEST}},
-          {{VALUE_063_GLSL_HEIGHTFIELD_WATER_SURFACE_TUNING_CURRENTFOAMNOISEEN}},
-          flowSurface.w
-        ) * input.shoreDamping;
-{{VALUE_064_WAKEFOAMSTATEMENTS_QUALITY}}
-        vec2 localFoamMaskDelta = abs(
-          input.worldPosition.xz - material_LocalFoamMaskCenterHalfSize.xy
-        ) - material_LocalFoamMaskCenterHalfSize.zw;
-        float localFoamMaskSignedDistance = max(localFoamMaskDelta.x, localFoamMaskDelta.y);
-        // The local mask is a real foam feature, not an independent invisible
-        // refraction kill switch. Disabling the master foam feature therefore
-        // disables both its visible contribution and its refraction suppression.
-        float localFoamMask = material_LocalFoamMaskEnabled * material_FoamEnabled * (
-          1.0 - smoothstep(
-            -max(material_LocalFoamMaskFeather, 0.0001),
-            max(material_LocalFoamMaskFeather, 0.0001),
-            localFoamMaskSignedDistance
-          )
-        );
-        float foamMotionScale = mix(
-          {{VALUE_065_GLSL_HEIGHTFIELD_WATER_SURFACE_TUNING_STILLFOAMSCALE}},
-          1.0,
-          flowWeight
-        );
+#if defined(SSR_CONTRIBUTION_DEPTH)
+#endif
 {{VALUE_066_CREATEWATERSURFACEAPPEARANCEV2BOUNDARYSTATEMENTS_SURFACE}}
+#ifdef SSR_CONTRIBUTION_DEPTH
+{{DEPTH_ALPHA_STATEMENTS}}
+#else
 {{VALUE_067_WATERDIFFUSELIGHTINGSTATEMENTS_LITSCENECOLORCLOSURE}}
         float clarity = saturate(material_Clarity);
         // Authored color is resolved only by the shared V2 Closure below.
@@ -345,6 +272,8 @@
         float surfaceAlpha = resolvedWaterClosure.a;
         vec3 fragmentColor = shaderCompositedColor;
         float fragmentAlpha = surfaceAlpha;
+#endif
+#endif
 #ifdef MATERIAL_WATER_PRESENTATION_REVEAL
         float presentationBand = max(material_PresentationRevealBand, 0.0001);
         vec2 presentationTileUv = fract(input.atlasUv * max(material_PresentationRevealRepeat, vec2(1.0)));
@@ -369,6 +298,7 @@
           presentationProgress
         );
         if (presentationVisibility <= 0.001) discard;
+#ifndef SSR_CONTRIBUTION_DEPTH
         float presentationCrest = 1.0 - smoothstep(
           0.0,
           presentationBand * 1.8,
@@ -380,9 +310,9 @@
           presentationNoise
         );
         fragmentColor = mix(fragmentColor, presentationCrestColor, presentationCrest * 0.72);
+#endif
         fragmentAlpha *= presentationVisibility;
 #endif
-{{VALUE_072_HEIGHTFIELDDEBUGSTATEMENTS}}
         if (material_CompositionMode > {{VALUE_092_HEIGHTFIELDWATERCOMPOSITIONMODE_ALPHABLEND_0_5}}) {
           if (coverage <= 0.001) discard;
           // Precomposed-replace writes complete C. Blend is disabled by the

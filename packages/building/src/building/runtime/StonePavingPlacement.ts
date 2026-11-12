@@ -8,9 +8,6 @@ export interface StonePavingPlacement {
   uvTransform: [number, number, number, number];
   color: number;
 }
-export function usesStonePaving(binding: MasonryBinding): boolean {
-  return binding.unit_id === "brick" && binding.rule.type === "auto";
-}
 export function stonePavingPlacement(
   binding: MasonryBinding,
   width: number,

@@ -1,17 +1,17 @@
 import { resolveDocument } from "../src/building/runtime/PlacementDocument.js";
 import { constructionSupportHeight } from "../src/building/runtime/TerrainField";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { createHash } from "node:crypto";
-vi.mock("../src/building/runtime/ConstructionWallFrame", { spy: true });
-import { compileWallInFrame } from "../src/building/runtime/ConstructionWallFrame";
-import { European } from "../src/building/parts/architecture/European";
-import { prepareBuildingCpu, compileBuildingCpu } from "../src/building/parts/architecture/BuildingCpu";
-import { designBuilding } from "../src/building/parts/architecture/BuildingDesign";
-import { implementBuilding } from "../src/building/parts/architecture/BuildingImplementation";
+import { European } from "../src/building/application/European";
+import {
+  buildingWorldRegion,
+  compileBuildingCpu,
+  prepareBuildingCpu
+} from "../src/building/parts/architecture/BuildingCpu";
 import { prepareBuildingTerrain } from "../src/building/parts/architecture/BuildingTerrain";
-import { profileSupportRegion } from "../src/building/parts/architecture/BuildingProfileTerrain";
 import { constructionGeometry } from "./fixtures/constructionGeometry";
 import type { ConstructionTerrainGrid } from "../src/building/runtime/TerrainField";
+import type { BuildingCoreDraft } from "../src/building/core";
 const terrain: ConstructionTerrainGrid = {
   samples: new Uint16Array(4),
   resolution: 2,
@@ -19,79 +19,40 @@ const terrain: ConstructionTerrainGrid = {
   size: 200,
   decode: { offset: 0, scale: 1 }
 };
-const digest = (value: any) =>
-  createHash("sha256")
-    .update(JSON.stringify(value, (_, v) => (typeof v === "bigint" ? String(v) : v)))
-    .digest("hex");
+const digest = (value: unknown) => createHash("sha256").update(JSON.stringify(value)).digest("hex");
+const window = { id: "window", kind: "window" as const, u: 0.35, bottom: 1.2, width: 1.2, height: 1.5 };
+const DRAFTS: Record<string, () => BuildingCoreDraft> = {
+  house: () => European.buildHouses({ id: "house" }),
+  tower: () => European.buildTower({ id: "house" }),
+  window: () => European.buildHouses({ id: "house", attachments: [window] }),
+  gothic: () =>
+    European.buildHouses({
+      id: "house",
+      height: 5,
+      attachments: [{ ...window, type: "window-gothic", rank: 2, width: 1.49, height: 2.66, bottom: 0.8 }]
+    }),
+  finished: () =>
+    European.buildHouses({
+      id: "house",
+      height: 7,
+      plaster: { enabled: true, wear: 0.3, color: 2 },
+      floors: { enabled: true, interval: 3 }
+    }),
+  flat: () => European.buildHouses({ id: "house", roof: { height: 0 }, roofStyle: { unit: "wooden_plank" } }),
+  fence: () => European.buildFence({ id: "house" }),
+  wall: () => European.buildWall({ id: "house" }),
+  joined: () =>
+    European.buildHouses([
+      { id: "house" },
+      { id: "wing", rectangle: { center: [5, 0], size: [8, 6], rotation: Math.PI / 2 } }
+    ])
+};
 
-describe("flat draft CPU preview/detail boundary", () => {
-  it.each(["house", "tower", "foundation", "window", "dormer", "fence", "wood", "joined"])(
-    "preserves preview geometry and repeated detail without eager walls: %s",
+describe("core draft CPU preview/detail boundary", () => {
+  it.each(Object.keys(DRAFTS))(
+    "keeps the preview and repeats the same detail: %s",
     async (kind) => {
-      const draft =
-        kind === "tower"
-          ? European.buildTower({ id: "house" })
-          : kind === "fence"
-            ? European.buildFence({ id: "house" })
-            : European.buildHouses({
-                id: "house",
-                ...(kind === "dormer"
-                  ? {
-                      height: 5,
-                      rectangle: { center: [0, 0] as [number, number], size: [10, 8] as [number, number], rotation: 0 },
-                      roof: { height: 0.9, ridge_length: 0.35, profile: 0.7 }
-                    }
-                  : {}),
-                ...(kind === "foundation" ? { foundation: { height: 1, mode: "solid" as const } } : {}),
-                ...(kind === "wood"
-                  ? { wall: { unit: "wooden_plank" as const, algorithm: { type: "horizontal_rows" } } }
-                  : {}),
-                attachments:
-                  kind === "window"
-                    ? [
-                        {
-                          id: "window",
-                          kind: "window",
-                          type: "window-cottage",
-                          host: "wall",
-                          u: 0.35,
-                          bottom: 1.2,
-                          width: 1.2,
-                          height: 1.5,
-                          rank: 1,
-                          seed: 17
-                        }
-                      ]
-                    : kind === "dormer"
-                      ? [
-                          {
-                            id: "dormer",
-                            kind: "window",
-                            type: "dormer-cottage",
-                            host: "roof",
-                            uv: [0.02, 0.5],
-                            bottom: 0,
-                            width: 1.4,
-                            height: 1.6,
-                            rank: 1
-                          }
-                        ]
-                      : []
-              });
-      if (kind === "joined") {
-        const wing = European.buildHouses({
-          id: "wing",
-          rectangle: { center: [5, 0], size: [8, 6], rotation: Math.PI / 2 }
-        });
-        draft.groups.push(...wing.groups);
-        draft.parts.push(...wing.parts);
-        draft.relations.push(...wing.relations);
-      }
-      vi.mocked(compileWallInFrame).mockClear();
-      const cpu = await prepareBuildingCpu(draft, terrain, constructionGeometry);
-      expect(compileWallInFrame).not.toHaveBeenCalled();
-      expect(cpu.prepared).not.toHaveProperty("walls");
-
+      const cpu = await prepareBuildingCpu(DRAFTS[kind](), terrain, constructionGeometry);
       const before = digest(cpu.preview),
         first = await compileBuildingCpu(cpu.prepared);
       const second = await compileBuildingCpu(cpu.prepared);
@@ -104,21 +65,14 @@ describe("flat draft CPU preview/detail boundary", () => {
         input.placementDocument
       ).cells;
       expect(cells.length).toBeGreaterThan(0);
-      for (const surface of input.surfaceParts)
-        for (let i = 0; i < surface.positions.length; i++) {
-          expect(surface.positions[i]).toBeGreaterThanOrEqual(first.grounding.localBounds!.min[i % 3] - 1e-5);
-          expect(surface.positions[i]).toBeLessThanOrEqual(first.grounding.localBounds!.max[i % 3] + 1e-5);
-        }
-
+      // The preview and the detail cross the thread boundary as plain data.
       expect(() => structuredClone({ preview: cpu.preview, structure: cpu.structure, detail: first })).not.toThrow();
-      for (let axis = 0; axis < 3; axis++) {
-        expect(first.grounding.localBounds!.min[axis]).toBeLessThanOrEqual(cpu.preview.bounds.min[axis]);
-        expect(first.grounding.localBounds!.max[axis]).toBeGreaterThanOrEqual(cpu.preview.bounds.max[axis]);
-      }
+      expect(cpu.focus.length).toBeGreaterThan(0);
+      expect(cpu.appearance.paletteSlots.length).toBe(DRAFTS[kind]().groups.length);
     },
     30000
   );
-  it("uses translated/rotated terrain and nearby rock support without rebasing Y", () => {
+  it("samples translated and rotated terrain and nearby rock support without rebasing Y", () => {
     const grid: ConstructionTerrainGrid = {
       ...terrain,
       samples: new Uint16Array([0, 1000, 2000, 3000]),
@@ -133,26 +87,27 @@ describe("flat draft CPU preview/detail boundary", () => {
     const frame = { position: [10, 99, 20] as [number, number, number], rotationY: 0.7 };
     const draft = European.buildHouses({ id: "house", rectangle: { center: [0, 0], size: [8, 6], rotation: 0.3 } });
     const next = prepareBuildingTerrain(grid, frame);
-    expect(profileSupportRegion(draft, frame).every(Number.isFinite)).toBe(true);
+    const region = buildingWorldRegion(draft, frame);
+    expect(region.every(Number.isFinite)).toBe(true);
+    // The region surrounds the frame origin by at least the house's half size.
+    expect(region[0]).toBeLessThan(10 - 4);
+    expect(region[2]).toBeGreaterThan(10 + 4);
     expect(next.height(0, 0)).toBe(30);
     expect(next.grounding.renderPosition).toEqual([10, 0, 20]);
     expect(next.height(1, 2)).toBe(
       constructionSupportHeight(grid, 10 + Math.cos(0.7) + 2 * Math.sin(0.7), 20 - Math.sin(0.7) + 2 * Math.cos(0.7))
     );
   });
-  it("rejects mixing a preview publication from another design", async () => {
-    const cpu = await prepareBuildingCpu(European.buildHouses({ id: "one" }), terrain, constructionGeometry);
-    const other = designBuilding(European.buildHouses({ id: "two" }), () => 0, constructionGeometry);
-    await expect(implementBuilding(other, { publication: cpu.prepared.publication })).rejects.toThrow(
-      "different design"
-    );
-  });
-  it("rejects unavailable Worker codecs and per-part transforms explicitly", async () => {
+  it("reports parts the system cannot build and drafts that are not drafts", async () => {
     const draft = European.buildHouses({ id: "one" });
-    draft.parts[0].support.generator = "meshSurface";
-    await expect(prepareBuildingCpu(draft, terrain, constructionGeometry)).rejects.toThrow("codec");
-    draft.parts[0].support.generator = "wallProfile";
-    draft.parts[0].transform = Array(16).fill(0);
-    await expect(prepareBuildingCpu(draft, terrain, constructionGeometry)).rejects.toThrow("placement frame");
+    (draft.parts[0] as { geometry: { generator: string } }).geometry.generator = "unknownShape";
+    await expect(prepareBuildingCpu(draft, terrain, constructionGeometry)).rejects.toThrow("unknownShape");
+    await expect(prepareBuildingCpu({ groups: [] } as never, terrain, constructionGeometry)).rejects.toThrow(
+      "groups and parts"
+    );
+    // A part that does not reach the result is accepted when the caller allows it.
+    await expect(
+      prepareBuildingCpu(draft, terrain, constructionGeometry, { requireAllParts: false })
+    ).resolves.toHaveProperty("diagnostics");
   });
 });

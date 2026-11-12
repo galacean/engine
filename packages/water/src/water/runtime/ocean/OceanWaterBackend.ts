@@ -1,9 +1,10 @@
 import { assertSupportedOceanRenderContract } from "./OceanRenderContract";
 /** WaterBody backend for the finite Ocean with published surface queries. */
 import type { Engine, Entity } from "@galacean/engine-core";
-import { WaterBodySourceKind } from "../../authoring/body/WaterBodyAuthoringTypes";
 import type { ResolvedWaterBodyInstance } from "../../authoring/body/ResolvedWaterBodyInstance";
+import { WaterBodySourceKind } from "../../authoring/body/WaterBodyAuthoringTypes";
 import type { WaterCompiledResource } from "../../compiler/body/WaterCompiledResource";
+import { createWaterBackendControl } from "../body/WaterBackendControl";
 import type {
   WaterBackendCompileIdentityContext,
   WaterBackendRuntime,
@@ -12,7 +13,6 @@ import type {
   WaterBackendUpdateRequest,
   WaterBodyBackend
 } from "../body/WaterBackendRegistry";
-import { createWaterBackendDiagnosticsAdapter } from "../body/WaterBackendDiagnosticsAdapter";
 import { WaterBodyRuntimeAdapter } from "../body/WaterBodyRuntime";
 import { WaterReflectionBindingLifecycle } from "../optics/WaterReflectionBindingLifecycle";
 import type { EffectiveWaterRuntimeSnapshot } from "../state/EffectiveWaterRuntimeSnapshot";
@@ -34,22 +34,22 @@ import {
   type OceanCameraPositionProvider,
   type OceanWaterRuntimeCompiledInput
 } from "./OceanWaterRuntimeController";
-import type { OceanWaterRuntimeConfig, OceanWaterRuntimeMetrics } from "./OceanWaterRuntimeTypes";
+import type { OceanWaterRuntimeConfig } from "./OceanWaterRuntimeTypes";
 
 export const OCEAN_WATER_BACKEND_ID = "ocean";
 
 export interface OceanWaterBackendRuntimeContext {
   readonly engine: Engine;
+  readonly surfaceShader?: import("@galacean/engine-core").Shader;
   readonly root: Entity;
   readonly textures: Readonly<OceanTextures>;
   readonly cameraPositionProvider: OceanCameraPositionProvider;
   readonly sceneFogEnabled: boolean;
-  readonly lodDebug?: boolean;
   readonly surfaceTimeOverride?: number;
   readonly surfaceLevelOffsetMetres?: number;
 }
 
-export interface OceanWaterBackendRuntimeDiagnostics {
+interface OceanWaterRuntimeState {
   readonly instanceId: string;
   readonly parentRoot: Entity;
   readonly controller: OceanWaterRuntimeController;
@@ -64,26 +64,6 @@ export interface OceanWaterBackendOptions {
     compiled: Readonly<OceanWaterRuntimeCompiledInput>,
     cameraPositionProvider: OceanCameraPositionProvider
   ) => OceanWaterRuntimeController;
-}
-
-/** Freezes the maximum submitted path for WaterBody activation/resource diagnostics. */
-export function resolveOceanWaterBodyActivationGeometryMetrics(
-  metrics: Readonly<
-    Pick<
-      OceanWaterRuntimeMetrics,
-      | "meshUploadCount"
-      | "detailedPathDrawCount"
-      | "detailedPathTriangleCount"
-      | "farOnlyPathDrawCount"
-      | "farOnlyPathTriangleCount"
-    >
-  >
-): Readonly<{ meshUploadCount: number; drawCount: number; triangleCount: number }> {
-  return Object.freeze({
-    meshUploadCount: metrics.meshUploadCount,
-    drawCount: Math.max(metrics.detailedPathDrawCount, metrics.farOnlyPathDrawCount),
-    triangleCount: Math.max(metrics.detailedPathTriangleCount, metrics.farOnlyPathTriangleCount)
-  });
 }
 
 function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {
@@ -106,7 +86,6 @@ function isRuntimeContext(value: unknown): value is OceanWaterBackendRuntimeCont
     Number.isFinite(value.textures.resourceBytes) &&
     typeof value.cameraPositionProvider === "function" &&
     typeof value.sceneFogEnabled === "boolean" &&
-    (value.lodDebug === undefined || typeof value.lodDebug === "boolean") &&
     (value.surfaceLevelOffsetMetres === undefined ||
       (typeof value.surfaceLevelOffsetMetres === "number" && Number.isFinite(value.surfaceLevelOffsetMetres))) &&
     (value.surfaceTimeOverride === undefined ||
@@ -179,6 +158,7 @@ function createRuntimeConfig(
   const representation = effective.instance.representationState!;
   return Object.freeze({
     renderContract: effective.renderContract,
+    surfaceShader: runtime.surfaceShader,
     waterLevel: resource.data.config.waterLevel,
     nearshoreDescriptor: resource.data.config.nearshoreDescriptor,
     connections: resource.data.config.connections,
@@ -190,8 +170,7 @@ function createRuntimeConfig(
     capabilityMode: "render-and-query",
     textures: runtime.textures,
     sceneFogEnabled: runtime.sceneFogEnabled,
-    surfaceTimeOverride: runtime.surfaceTimeOverride,
-    lodDebug: runtime.lodDebug
+    surfaceTimeOverride: runtime.surfaceTimeOverride
   });
 }
 
@@ -220,7 +199,7 @@ export class OceanWaterBackend implements WaterBodyBackend {
   ]);
 
   private readonly _createController: NonNullable<OceanWaterBackendOptions["createController"]>;
-  private readonly _runtimes = new Map<string, OceanWaterBackendRuntimeDiagnostics>();
+  private readonly _runtimes = new Map<string, OceanWaterRuntimeState>();
 
   constructor(options: OceanWaterBackendOptions = {}) {
     this._createController =
@@ -233,8 +212,8 @@ export class OceanWaterBackend implements WaterBodyBackend {
     return this._runtimes.size;
   }
 
-  getRuntimeDiagnostics(instanceId: string): OceanWaterBackendRuntimeDiagnostics | undefined {
-    return this._runtimes.get(instanceId);
+  getRuntimeController(instanceId: string): OceanWaterRuntimeController | undefined {
+    return this._runtimes.get(instanceId)?.controller;
   }
 
   setRuntimeSurfaceTimeOverride(instanceId: string, timeSeconds: number | undefined): boolean {
@@ -379,9 +358,6 @@ export class OceanWaterBackend implements WaterBodyBackend {
       });
       controller.setCameraSceneFieldDemandListener((required) => reflection!.setCameraSurfaceFieldsRequired(required));
 
-      const atlas = resource.nearshoreResource.data;
-      const metrics = controller.metrics;
-      const activationGeometryMetrics = resolveOceanWaterBodyActivationGeometryMetrics(metrics);
       const body = new WaterBodyRuntimeAdapter({
         id: instanceId,
         resolvedBackendId: this.id,
@@ -392,32 +368,11 @@ export class OceanWaterBackend implements WaterBodyBackend {
         surface: controller,
         spatialField: controller.spatialField,
         opticalProfile: controller.opticalProfile,
-        bounds: {
-          minX: metrics.worldMinimumX,
-          minZ: metrics.worldMinimumZ,
-          maxX: metrics.worldMaximumX,
-          maxZ: metrics.worldMaximumZ
-        },
+        bounds: controller.spatialField.metadata.bounds,
         priority: effective.instance.priority,
-        enabled: effective.instance.interaction.query,
-        metrics: {
-          ...activationGeometryMetrics,
-          workload: {
-            wetElementCount: atlas.stats.wetTexelCount,
-            cpuQueryElementCount: atlas.stats.texelCount,
-            gpuAtlasPixelCount: atlas.stats.texelCount
-          },
-          memory: {
-            ...resource.memory,
-            // The backend permits one Ocean, so the shared Ocean texture bundle
-            // belongs to this Body's unified footprint without double counting.
-            gpuBytes: metrics.ownedGpuBytes,
-            historyBytes: 0,
-            reflectionBytes: 0
-          }
-        }
+        enabled: effective.instance.interaction.query
       });
-      const record: OceanWaterBackendRuntimeDiagnostics = Object.freeze({
+      const record: OceanWaterRuntimeState = Object.freeze({
         instanceId,
         parentRoot,
         controller,
@@ -436,7 +391,7 @@ export class OceanWaterBackend implements WaterBodyBackend {
         reflection,
         development: Object.freeze({
           backendId: this.id,
-          adapter: createWaterBackendDiagnosticsAdapter(controller),
+          adapter: createWaterBackendControl(controller),
           reflection
         }),
         setVisible: (visible) => {

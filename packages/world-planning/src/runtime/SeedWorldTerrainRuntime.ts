@@ -38,12 +38,14 @@ import {
   ShaderProperty,
   Texture2D,
   Vector2,
+  Vector3,
   Vector4
 } from "@galacean/engine";
 import { playAssetEntranceEffect as playRendererAssetEntranceEffect } from "@galacean/engine-vegetation/asset-assembly/AssetEntranceEffect";
 import { ASSET_ASSEMBLY_ENTRANCE_DURATION_MS } from "@galacean/engine-vegetation/asset-assembly/AssetAssemblyRenderProfile";
 import type { AssetAssemblySourceLibrary } from "@galacean/engine-vegetation/asset-assembly/AssetAssemblySourceLibrary";
 import type { ProceduralTreeRuntimeAuthoringProfile } from "@galacean/engine-vegetation/asset-assembly/ProceduralTreeAuthoringState";
+import type { TerrainAuthoredPuddleCoverage } from "@galacean/engine-terrain/terrain/clipmap/TerrainPuddleHydrology";
 import { TerrainClipmap } from "@galacean/engine-terrain/terrain/clipmap/TerrainClipmap";
 import { seedWorldRenderWeights } from "../world/SeedWorldRenderWeights.ts";
 import type {
@@ -98,6 +100,7 @@ const SEED_WORLD_ROAD_LAYER_ID = "layer-02";
 const SEED_WORLD_SURFACE_LAYER_IDS = Object.freeze(["layer-00", "layer-04", SEED_WORLD_ROAD_LAYER_ID] as const);
 const SEED_WORLD_STYLIZED_LAYER_TILE_SIZE_METRES = 2;
 const SEED_WORLD_TERRAIN_MATERIAL_URL = "Material/Terrain/seed-world.mat";
+const MATERIAL_TERRAIN_GRASS_SHADING = "MATERIAL_TERRAIN_GRASS_SHADING";
 const MATERIAL_GRASS_COLOR_A = ShaderProperty.getByName("material_GrassColorA");
 const MATERIAL_GRASS_COLOR_B = ShaderProperty.getByName("material_GrassColorB");
 const MATERIAL_GRASS_COLOR_FIELD_TRANSFORM = ShaderProperty.getByName("material_GrassColorFieldTransform");
@@ -137,10 +140,43 @@ export interface SeedWorldSurfaceColorTuning {
   readonly roadColor: readonly [red: number, green: number, blue: number];
   /** Absent preserves the source non-grass layer colours, including on reset. */
   readonly groundColor?: readonly [red: number, green: number, blue: number];
+  /** Omitted palette edits preserve the current Terrain shader mode. */
+  readonly groundFusion?: boolean;
   readonly grass: SeedWorldGrassColorFieldTuning;
 }
 
+/** Optional authoring inputs for ordinary Terrain layers, independent of the height generator. */
+export interface SeedWorldTerrainSurfaceOptions {
+  readonly baseTextureUrl?: string;
+  readonly normalTextureUrl?: string;
+  readonly tileMetres?: number;
+  readonly normalScale?: number;
+  readonly roadPattern?: boolean;
+  readonly microNormalTextureUrl?: string;
+}
+
+export interface SeedWorldSandNormalTuning {
+  rippleStrength: number;
+  rippleTileMetres: number;
+  rippleFadeDistanceMetres: number;
+  microStrength: number;
+  microTileMetres: number;
+  microFadeDistanceMetres: number;
+}
+
+interface SeedWorldTerrainSurface {
+  readonly diffuse?: Texture2D;
+  readonly normal?: Texture2D;
+  readonly tileMetres: number;
+  readonly normalScale: number;
+  readonly street?: boolean;
+}
+
 interface SeedWorldTerrainMaterialState {
+  readonly surface?: SeedWorldTerrainSurface;
+  readonly roadPattern?: boolean;
+  readonly microNormal?: Texture2D;
+  sandNormals?: SeedWorldSandNormalTuning;
   readonly grassTexture: Texture2D;
   readonly soilTexture?: Texture2D;
   readonly vistaFromDetail?: boolean;
@@ -148,6 +184,7 @@ interface SeedWorldTerrainMaterialState {
   roadColor: readonly [red: number, green: number, blue: number];
   groundColor?: readonly [red: number, green: number, blue: number];
   readonly farLod: number;
+  groundFusion?: boolean;
 }
 
 /**
@@ -217,9 +254,9 @@ export class SeedWorldTerrainRuntime {
   /** Generated single-Region Heightmap Terrain clipmap. */
   readonly clipmap: TerrainClipmap;
   /** Feature-decoration ordinary-stone renderer. */
-  readonly stones: SeedWorldExactPrefabRuntime;
+  readonly stones?: SeedWorldExactPrefabRuntime;
   /** Feature-decoration small-rock renderer. */
-  readonly smallRocks: SeedWorldExactPrefabRuntime;
+  readonly smallRocks?: SeedWorldExactPrefabRuntime;
   /** Sparse accepted mushrooms bound to exact rock edges. */
   readonly mushrooms: SeedWorldExactPrefabRuntime;
   /** Sparse authorized lotus bound only to Artifact Lake shoreline cells. */
@@ -235,6 +272,15 @@ export class SeedWorldTerrainRuntime {
   /** Stable centre point used when entering the generated terrain preview. */
   readonly observationAnchor: Readonly<{ x: number; y: number; z: number }>;
   private readonly _grassAppearanceMaterials = new Map<Material, number>();
+
+  /** Borrow the current native field when creating an external surface material. */
+  getGrassColorFieldBinding(): SeedWorldGrassColorFieldBinding {
+    return {
+      texture: this._terrainMaterialState.grassTexture,
+      vistaFromDetail: this._terrainMaterialState.vistaFromDetail,
+      tuning: this._terrainMaterialState.grassTuning
+    };
+  }
 
   /** Registers runtime-owned grass materials against the live World palette and borrowed Terrain resources. */
   registerGrassAppearanceMaterial(material: Material, brightness = 1): () => void {
@@ -257,6 +303,15 @@ export class SeedWorldTerrainRuntime {
     bindSeedWorldGrassTerrainMaterial(material, this.clipmap.renderMaterials[0]!);
   }
 
+  /** Untextured ground uses the built-in road colour; a base texture starts untinted. */
+  get defaultGroundColor(): readonly [number, number, number] {
+    return this._terrainMaterialState.surface?.diffuse ? [1, 1, 1] : SEED_WORLD_ROAD_COLOR_DEFAULT;
+  }
+
+  get grassGroundFusion(): boolean {
+    return this._terrainMaterialState.groundFusion ?? true;
+  }
+
   /** @returns Detached road and grass colour controls for the current runtime. */
   getSurfaceColorTuning(): SeedWorldSurfaceColorTuning {
     return Object.freeze({
@@ -264,6 +319,7 @@ export class SeedWorldTerrainRuntime {
       ...(this._terrainMaterialState.groundColor
         ? { groundColor: freezeSeedWorldRoadColor(this._terrainMaterialState.groundColor) }
         : {}),
+      groundFusion: this.grassGroundFusion,
       grass: freezeSeedWorldGrassColorFieldTuning(this._terrainMaterialState.grassTuning)
     });
   }
@@ -277,23 +333,82 @@ export class SeedWorldTerrainRuntime {
     const nextRoadColor = freezeSeedWorldRoadColor(tuning.roadColor);
     const nextGroundColor = tuning.groundColor === undefined ? undefined : freezeSeedWorldRoadColor(tuning.groundColor);
     const nextGrass = freezeSeedWorldGrassColorFieldTuning(tuning.grass);
+    const previousFusion = this.grassGroundFusion;
+    const groundFusion = tuning.groundFusion ?? previousFusion;
+    const layerIds =
+      groundFusion && previousFusion ? SEED_WORLD_SURFACE_LAYER_IDS.slice(1) : SEED_WORLD_SURFACE_LAYER_IDS;
     this.clipmap.setLayerDiffuseColors(
-      SEED_WORLD_SURFACE_LAYER_IDS.slice(1).map((layerId) => ({
-        regionId: SEED_WORLD_REGION_ID,
-        layerId,
-        color: nextGroundColor ? ([...nextGroundColor, 1] as const) : undefined
-      }))
+      layerIds.map((layerId) => {
+        const color = groundFusion
+          ? layerId === SEED_WORLD_SURFACE_LAYER_IDS[0]
+            ? undefined
+            : nextGroundColor
+          : layerId === SEED_WORLD_ROAD_LAYER_ID
+            ? nextRoadColor
+            : (nextGroundColor ?? this.defaultGroundColor);
+        const surface = this._terrainMaterialState.surface;
+        const tint =
+          surface?.diffuse &&
+          (surface.street ? layerId !== SEED_WORLD_SURFACE_LAYER_IDS[0] : layerId !== SEED_WORLD_ROAD_LAYER_ID);
+        return {
+          regionId: SEED_WORLD_REGION_ID,
+          layerId,
+          color: color ? ([...color, 1] as const) : undefined,
+          ...(tint ? { tint: true } : {})
+        };
+      })
     );
     this._setGrassColorFieldTuning(nextGrass);
     for (const material of this.clipmap.renderMaterials) {
+      if (groundFusion !== previousFusion) {
+        if (groundFusion) material.shaderData.enableMacro(MATERIAL_TERRAIN_GRASS_SHADING);
+        else material.shaderData.disableMacro(MATERIAL_TERRAIN_GRASS_SHADING);
+      }
       bindTerrainRoadColor(material, nextRoadColor);
     }
+    this._terrainMaterialState.groundFusion = groundFusion;
+    synchronizeSeedWorldRockGroundAppearance(this._engine, this.clipmap.renderMaterials[0]!);
     this.population.setGrassRoadColor(nextRoadColor);
     this.population.setGrassTerrainSurface(this.clipmap.renderMaterials[0]!);
     this._terrainMaterialState.roadColor = nextRoadColor;
     this._terrainMaterialState.groundColor = nextGroundColor;
     for (const [material, brightness] of this._grassAppearanceMaterials)
       this._bindGrassAppearanceMaterial(material, brightness);
+  }
+
+  /** Returns the live sand normal controls when the surface has a ripple texture. */
+  getSandNormalTuning(): SeedWorldSandNormalTuning | undefined {
+    const tuning = this._terrainMaterialState.sandNormals;
+    return tuning && { ...tuning };
+  }
+
+  /** Update only the shader uniforms, keeping the terrain, texture residency and camera in place. */
+  setSandNormalTuning(tuning: SeedWorldSandNormalTuning): void {
+    const { surface, sandNormals } = this._terrainMaterialState;
+    if (!sandNormals || !surface) return;
+    const values = [
+      tuning.rippleStrength,
+      tuning.rippleTileMetres,
+      tuning.rippleFadeDistanceMetres,
+      tuning.microStrength,
+      tuning.microTileMetres,
+      tuning.microFadeDistanceMetres
+    ];
+    if (
+      !values.every(Number.isFinite) ||
+      tuning.rippleStrength < 0 ||
+      tuning.microStrength < 0 ||
+      Math.min(
+        tuning.rippleTileMetres,
+        tuning.rippleFadeDistanceMetres,
+        tuning.microTileMetres,
+        tuning.microFadeDistanceMetres
+      ) <= 0
+    )
+      throw new RangeError("Invalid sand normal tuning");
+    for (const material of this.clipmap.renderMaterials)
+      bindSeedTerrainSandNormals(material, tuning, surface.tileMetres);
+    this._terrainMaterialState.sandNormals = { ...tuning };
   }
 
   /** Restores the authored road colour and complete shared grass colour field. */
@@ -307,7 +422,6 @@ export class SeedWorldTerrainRuntime {
   /** Publishes one validated colour-field value to Terrain and all grass batches. */
   private _setGrassColorFieldTuning(tuning: SeedWorldGrassColorFieldTuning): void {
     for (const material of this.clipmap.renderMaterials) bindTerrainGrassColorFieldTuning(material, tuning);
-    synchronizeSeedWorldRockGroundAppearance(this._engine, this.clipmap.renderMaterials[0]!);
     this.population.setGrassColorFieldTuning(tuning);
     this._terrainMaterialState.grassTuning = tuning;
   }
@@ -329,6 +443,7 @@ export class SeedWorldTerrainRuntime {
    * @param surfaceLodCrossFadeDurationSeconds Authored Seed World LOD cross-fade duration.
    * @param inspectionTile Optional one-Tile diagnostic scope; normal worlds omit it.
    * @param signal Optional generation cancellation checked before and after asynchronous resource preparation.
+   * @param surfaceOptions Optional texture and colour-field inputs for the ordinary terrain layers.
    * @returns Runtime owner for the generated Terrain and cliff population.
    * @throws When any generated child runtime or required Terrain source cannot be created.
    */
@@ -347,7 +462,9 @@ export class SeedWorldTerrainRuntime {
     terrainNormalSamples: Uint8Array,
     surfaceLodCrossFadeDurationSeconds: number,
     inspectionTile?: SeedWorldTerrainInspectionTile,
-    signal?: AbortSignal
+    signal?: AbortSignal,
+    surfaceOptions: SeedWorldTerrainSurfaceOptions = {},
+    authoredPuddles?: TerrainAuthoredPuddleCoverage
   ): Promise<SeedWorldTerrainRuntime> {
     signal?.throwIfAborted();
     const root = parent.createChild(`Seed World ${plan.rootSeed}`);
@@ -374,13 +491,53 @@ export class SeedWorldTerrainRuntime {
         signal
       );
       signal?.throwIfAborted();
-      const soilTexture = surfaceIntent.soilCoverage ? await loadPlanningFarmDirtTexture(engine) : undefined;
+      const soilTexture = surfaceIntent.soilCoverage
+        ? await loadPlanningFarmDirtTexture(engine, !!surfaceOptions.baseTextureUrl?.trim())
+        : undefined;
       signal?.throwIfAborted();
-      const layers = buildLayerSources(fields, surfaceIntent, soilTexture);
+      const loadSurfaceTexture = (url: string | undefined, isSRGBColorSpace: boolean) =>
+        url?.trim()
+          ? engine.resourceManager.load<Texture2D>({
+              url,
+              type: AssetType.Texture,
+              params: { isSRGBColorSpace, mipmap: true }
+            })
+          : undefined;
+      const [diffuse, normal, microNormal] = await Promise.all([
+        loadSurfaceTexture(surfaceOptions.baseTextureUrl, true),
+        loadSurfaceTexture(surfaceOptions.normalTextureUrl, false),
+        loadSurfaceTexture(surfaceOptions.microNormalTextureUrl, false)
+      ]);
+      signal?.throwIfAborted();
+      const surface =
+        diffuse || normal
+          ? {
+              diffuse,
+              normal,
+              tileMetres: surfaceOptions.tileMetres ?? 8,
+              normalScale: surfaceOptions.normalScale ?? 1,
+              street: !!authoredPuddles
+            }
+          : undefined;
+      const layers = buildLayerSources(fields, surfaceIntent, soilTexture, surface);
       const farLod = resolveSeedWorldTerrainFarLod(terrainSettings.clipmapLodCount);
       const terrainMaterialState: SeedWorldTerrainMaterialState = {
         grassTexture: grassColorFieldTexture,
         soilTexture,
+        surface,
+        microNormal,
+        sandNormals:
+          surfaceOptions.roadPattern && surface?.normal
+            ? {
+                rippleStrength: surface.normalScale,
+                rippleTileMetres: surface.tileMetres,
+                rippleFadeDistanceMetres: 115,
+                microStrength: 0.55,
+                microTileMetres: 2,
+                microFadeDistanceMetres: 18
+              }
+            : undefined,
+        roadPattern: surfaceOptions.roadPattern,
         vistaFromDetail: true,
         grassTuning: SEED_WORLD_GRASS_COLOR_FIELD_DEFAULTS,
         roadColor: SEED_WORLD_ROAD_COLOR_DEFAULT,
@@ -408,7 +565,7 @@ export class SeedWorldTerrainRuntime {
         SEED_WORLD_CLIPMAP_MESH_SIZE,
         terrainSettings.clipmapLodCount,
         layers,
-        undefined,
+        authoredPuddles ? { maximumSpacingMetres: 1.25, authoredCoverage: authoredPuddles } : undefined,
         undefined,
         {
           firstLod: farLod,
@@ -512,8 +669,8 @@ export class SeedWorldTerrainRuntime {
     this.decorations = decorations;
     this.clipmap = clipmap;
     this.exactPrefabs = exactPrefabs;
-    this.stones = exactPrefabs.require("stone");
-    this.smallRocks = exactPrefabs.require("small-rock");
+    this.stones = exactPrefabs.get("stone");
+    this.smallRocks = exactPrefabs.get("small-rock");
     this.mushrooms = exactPrefabs.require("mushroom");
     this.lotus = exactPrefabs.require("lotus");
     this.population = population;
@@ -747,7 +904,12 @@ export class SeedWorldTerrainRuntime {
    * XZ, scale, yaw, semantic identity, and non-terrain-anchored assets remain unchanged.
    */
   waterGrassCoverage(fields: SeedWorldFields, intent: SeedWorldSurfaceMaterialIntent) {
-    const layers = buildLayerSources(fields, intent, this._terrainMaterialState.soilTexture)[0];
+    const layers = buildLayerSources(
+      fields,
+      intent,
+      this._terrainMaterialState.soilTexture,
+      this._terrainMaterialState.surface
+    )[0];
     return createSeedWorldGrassCoverageSampler(layers.alphamaps[0], [
       seedWorldOriginX(fields),
       seedWorldOriginZ(fields),
@@ -765,7 +927,12 @@ export class SeedWorldTerrainRuntime {
   ): PreparedTerrainUpdate {
     if (this._destroyed || this._heightTransition) throw Error("Terrain is not available for a local water edit");
     const source = buildTerrainSources(fields, settings, normals);
-    const layers = buildLayerSources(fields, intent, this._terrainMaterialState.soilTexture);
+    const layers = buildLayerSources(
+      fields,
+      intent,
+      this._terrainMaterialState.soilTexture,
+      this._terrainMaterialState.surface
+    );
     const terrain = this.clipmap.prepareRegionUpdate({
       sources: source,
       alphamaps: layers.flatMap((region) =>
@@ -938,7 +1105,8 @@ function buildTerrainSources(
 function buildLayerSources(
   fields: SeedWorldFields,
   surfaceIntent: SeedWorldSurfaceMaterialIntent,
-  soilTexture?: Texture2D
+  soilTexture?: Texture2D,
+  surface?: SeedWorldTerrainSurface
 ): readonly TerrainLayerResidencyRegionSource<Texture2D>[] {
   if (
     surfaceIntent.resolution !== fields.surfaceResolution ||
@@ -948,6 +1116,8 @@ function buildLayerSources(
   }
   const layers: TerrainLayerResolvedSource<Texture2D>[] = SEED_WORLD_SURFACE_LAYER_IDS.map((layerId, index) => {
     const profile = SEED_WORLD_SURFACE_LAYER_PROFILES[index];
+    const textured = surface?.street ? index > 0 : layerId !== SEED_WORLD_ROAD_LAYER_ID;
+    const ground = textured ? surface : undefined;
     return {
       id: layerId,
       appearance: profile.appearance,
@@ -961,7 +1131,16 @@ function buildLayerSources(
       metallic: 0,
       smoothness: 0,
       specular: [0, 0, 0, 0],
-      snowResponse: profile.snowResponse
+      snowResponse: profile.snowResponse,
+      ...(ground
+        ? {
+            tileSize: [ground.tileMetres, ground.tileMetres],
+            diffuse: ground.diffuse,
+            normal: ground.normal,
+            normalScale: ground.normal ? ground.normalScale : 0,
+            ...(ground.diffuse ? { diffuseRemapMin: [0, 0, 0, 0], diffuseRemapMax: [1, 1, 1, 1] } : {})
+          }
+        : {})
     };
   });
   if (surfaceIntent.soilCoverage) {
@@ -1035,7 +1214,7 @@ function bindTerrainRoadColor(material: Material, color: readonly [number, numbe
  * @param field Shared grass colour field used by both ground and vegetation.
  */
 export function applySeedWorldTerrainAppearance(material: Material, field: SeedWorldGrassColorFieldBinding): void {
-  material.shaderData.enableMacro("MATERIAL_TERRAIN_GRASS_SHADING");
+  material.shaderData.enableMacro(MATERIAL_TERRAIN_GRASS_SHADING);
   bindSeedTerrainMaterialState(material, {
     grassTexture: field.texture,
     vistaFromDetail: field.vistaFromDetail,
@@ -1052,7 +1231,33 @@ function bindSeedTerrainMaterialState(material: Material, state: SeedWorldTerrai
     tuning: state.grassTuning
   });
   bindTerrainRoadColor(material, state.roadColor);
+  if (state.roadPattern) material.shaderData.enableMacro("MATERIAL_TERRAIN_ROAD_PALETTE");
+  if (state.sandNormals && state.surface) {
+    material.shaderData.enableMacro("MATERIAL_TERRAIN_SAND_RIPPLE");
+    bindSeedTerrainSandNormals(material, state.sandNormals, state.surface.tileMetres);
+  }
+  if (state.microNormal) {
+    material.shaderData.enableMacro("MATERIAL_TERRAIN_MICRO_NORMAL");
+    material.shaderData.setTexture("material_TerrainMicroNormal", state.microNormal);
+    if (!state.sandNormals)
+      material.shaderData.setVector3("material_TerrainSandMicroParams", new Vector3(0.55, 0.5, 18));
+  }
   material.shaderData.setFloat(MATERIAL_TERRAIN_FAR_LOD, state.farLod);
+}
+
+function bindSeedTerrainSandNormals(
+  material: Material,
+  tuning: SeedWorldSandNormalTuning,
+  authoredTileMetres: number
+): void {
+  material.shaderData.setVector3(
+    "material_TerrainSandRippleParams",
+    new Vector3(tuning.rippleStrength, authoredTileMetres / tuning.rippleTileMetres, tuning.rippleFadeDistanceMetres)
+  );
+  material.shaderData.setVector3(
+    "material_TerrainSandMicroParams",
+    new Vector3(tuning.microStrength, 1 / tuning.microTileMetres, tuning.microFadeDistanceMetres)
+  );
 }
 
 function freezeSeedWorldRoadColor(color: readonly [number, number, number]): readonly [number, number, number] {

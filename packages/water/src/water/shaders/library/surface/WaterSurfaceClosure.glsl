@@ -73,14 +73,14 @@ float waterSurfaceResolveAlphaV2(
   float opticalDepth,
   float fresnel,
   float foamWeight,
-  float calibrationMode,
+
   float coastalAlpha,
   float coastalAlphaWeight
 ) {
   float absorptionAlpha = 1.0 - exp(-mix(0.48, 0.13, clamp(clarity, 0.0, 1.0)) * max(opticalDepth, 0.0));
   float alpha = baseAlpha * mix(0.18, 0.94, absorptionAlpha);
   alpha += clamp(fresnel, 0.0, 1.0) * (1.0 - alpha) * 0.48;
-  alpha += clamp(foamWeight, 0.0, 1.0) * 0.3 * (1.0 - step(0.5, calibrationMode));
+  alpha += clamp(foamWeight, 0.0, 1.0) * 0.3;
   alpha = mix(alpha, coastalAlpha, clamp(coastalAlphaWeight, 0.0, 1.0));
   return clamp(alpha, 0.0, 1.0);
 }
@@ -135,15 +135,6 @@ struct WaterSurfaceFinalClosureV2Input {
 #if {{ADDITIONAL_TRANSMISSION_ENABLED}} == 1
   vec3 additionalTransmissionRadiance;
 #endif
-#ifdef MATERIAL_WATER_SURFACE_SCATTERING
-  vec3 surfaceScatteringCoefficient;
-  float surfaceScatteringPhaseG;
-  float sceneToSurfaceDistance;
-  float phaseCosine;
-  vec3 sunRadiance;
-  vec3 ambientRadiance;
-  float opticalDebugMode;
-#endif
   vec3 primarySceneColor;
   vec3 surfaceColor;
   vec3 depthColor;
@@ -168,7 +159,7 @@ struct WaterSurfaceFinalClosureV2Input {
   float foamWeight;
   float baseAlpha;
   float clarity;
-  float calibrationMode;
+
   float coastalAlpha;
   float coastalAlphaWeight;
   float coverage;
@@ -237,28 +228,6 @@ vec4 waterSurfaceEvaluateFinalClosureV2(
     1.0,
     closure.normalDotView
   );
-#ifdef MATERIAL_WATER_SURFACE_SCATTERING
-  WaterSingleScatteringResult medium = waterEvaluateSingleScattering(
-    closure.absorptionCoefficient, closure.surfaceScatteringCoefficient, closure.surfaceScatteringPhaseG,
-    closure.opticalDepth, closure.sceneToSurfaceDistance, closure.phaseCosine,
-    closure.sunRadiance, closure.ambientRadiance
-  );
-  vec3 tint = mix(closure.surfaceColor, closure.depthColor, clamp(closure.depthFactor, 0.0, 1.0));
-  vec3 volume = closure.refractionColor * medium.transmittance * medium.lightTransmittance
-    + medium.scattering * max(tint, vec3(0.0));
-  vec3 reflectionWeight = waterSurfaceEnvironmentSpecularWeight(
-    closure.fresnelF0, closure.perceptualRoughness, closure.normalDotView
-  );
-  vec3 lit = volume * (1.0 - fresnel)
-    + closure.reflectionRadiance * reflectionWeight * max(closure.reflectionIntensity, 0.0)
-    + closure.directSpecularRadiance
-    + closure.boundaryColor * max(closure.diffuseLighting, vec3(0.0));
-  lit = mix(lit, closure.foamColor * max(closure.diffuseLighting, vec3(0.0)), clamp(foamColorWeight, 0.0, 1.0));
-  if (closure.opticalDebugMode > 13.5 && closure.opticalDebugMode < 14.5) return vec4(medium.transmittance, 1.0);
-  if (closure.opticalDebugMode > 14.5 && closure.opticalDebugMode < 15.5) return vec4(medium.scattering, 1.0);
-  // The volume already contains the background. Coverage alone blends its geometric boundary.
-  return vec4(mix(closure.compositionSceneColor, lit, clamp(closure.coverage, 0.0, 1.0)), 1.0);
-#endif
   vec3 primaryColor = waterSurfaceResolvePrimaryColor(
     closure.primarySceneColor,
     closure.surfaceColor,
@@ -346,7 +315,6 @@ vec4 waterSurfaceEvaluateFinalClosureV2(
     closure.opticalDepth,
     fresnel,
     closure.foamWeight,
-    closure.calibrationMode,
     closure.coastalAlpha,
     closure.coastalAlphaWeight
   ) * clamp(closure.coverage, 0.0, 1.0);
@@ -376,8 +344,6 @@ vec4 waterSurfaceEvaluateFinalClosureV2(WaterSurfaceFinalClosureV2Input closure)
 #ifdef RENDERER_WORLD_PICK
 float renderer_WorldPickBase;
 #endif
-float renderer_WorldSelectionMode;
-vec4 renderer_WorldSelectionAppearance;
 vec4 waterSurfaceOutputWithPick(vec4 color) {
 #ifdef RENDERER_WORLD_PICK
   if (color.a <= 0.001) discard;
@@ -387,21 +353,6 @@ vec4 waterSurfaceOutputWithPick(vec4 color) {
   #endif
   return vec4(mod(id, 256.0), mod(floor(id / 256.0), 256.0), floor(id / 65536.0), 255.0) / 255.0;
 #else
-  if (renderer_WorldSelectionMode >= 0.5) {
-    vec2 p = gl_FragCoord.xy * renderer_WorldSelectionAppearance.yz * 2.0;
-    float phase = renderer_WorldSelectionAppearance.x * 6.2831853;
-    // Smooth warped colour pools instead of parallel rainbow stripes. Exact 2.4s loop.
-    float field = p.y * 3.0 + sin(p.x * 4.0 + p.y * 2.0) * 0.7;
-    float flow = field + phase + 0.24 * sin(phase + p.x * 5.0);
-    // Match the saturated spectrum used by generation reveal effects.
-    vec3 film = 0.54 + 0.46 * cos(flow + 6.2831853 * vec3(0.03, 0.36, 0.69));
-    float sheen = pow(0.5 + 0.5 * sin(flow + p.x * 1.4), 8.0);
-    // HDR emission feeds the existing scene Bloom before tonemapping.
-    vec3 highlighted = mix(color.rgb, film, 0.82) + film * (1.2 + sheen * 0.8);
-    // Fade the entire highlight, including HDR emission, back to the live material.
-    float breath = 0.5 - 0.5 * cos(phase);
-    color.rgb = mix(color.rgb, highlighted, renderer_WorldSelectionAppearance.w * breath);
-  }
   return color;
 #endif
 }

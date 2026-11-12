@@ -1,15 +1,15 @@
 /** Deterministic assembly plan joining one geometry adapter to the shared Water fragment closure. */
 import { WaterSurfacePrimaryColorClosure } from "../../authoring/surface/WaterSurfaceAppearanceTypes";
+import { hashStableValue } from "../../compiler/shared/determinism";
 import type { CompiledWaterRenderContractV1 } from "../../compiler/surface/CompiledWaterRenderContractTypes";
 import type { CompiledWaterSurfaceAppearanceV2 } from "../../compiler/surface/CompiledWaterSurfaceAppearanceTypes";
-import { hashStableValue } from "../../compiler/shared/determinism";
 import { createWaterSurfaceBrdfShaderFunctions } from "./WaterSurfaceBrdfShader";
 import { createWaterSurfaceClosureShaderFunctions, type WaterSurfaceClosurePolicy } from "./WaterSurfaceClosureShader";
-import { createWaterSurfaceRawContributionShaderFunctions } from "./WaterSurfaceRawContributionShader";
 import {
   createWaterSurfaceGeometryAdapterBridge,
   type WaterSurfaceGeometryAdapter
 } from "./WaterSurfaceGeometryAdapter";
+import { createWaterSurfaceRawContributionShaderFunctions } from "./WaterSurfaceRawContributionShader";
 
 export interface WaterSurfaceShaderAssemblyV1 {
   readonly schemaVersion: 1;
@@ -48,7 +48,7 @@ export function assembleWaterSurfaceShader(
     adapterId: adapter.id,
     closureVariantKey: contract.variantKey,
     materialVariantKey: createWaterSurfaceMaterialVariantKey(contract.variantKey, adapter.variantKey, policy),
-    sharedFunctionSource: `${createWaterSurfaceBrdfShaderFunctions()}\n${createWaterSurfaceRawContributionShaderFunctions()}\n${createWaterSurfaceClosureShaderFunctions(
+    sharedFunctionSource: `${createWaterSurfaceBrdfShaderFunctions()}\n${createWaterSurfaceRawContributionShaderFunctions(adapter.id !== "heightfield")}\n${createWaterSurfaceClosureShaderFunctions(
       appearance?.directionalHighlight !== undefined || appearance?.macroNormalStrength !== undefined,
       appearance?.primaryColorClosure === WaterSurfacePrimaryColorClosure.SceneColorCompositeDepthRamp,
       policy

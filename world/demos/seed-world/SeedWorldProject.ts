@@ -11,7 +11,7 @@ import { registerPlanningFarmingAssets } from "./src/planning/spatial/farming/Pl
 import { seedWorldProjectFormats } from "./SeedWorldProjectFormats.ts";
 import { seedWorldScriptModules } from "./systems/SeedWorldScriptModules.ts";
 import { RuntimeProjectSession } from "@galacean/engine-runtime-editor/project/runtime-project-session";
-import type { RuntimeProjectManifest } from "@galacean/engine-project/runtime-editor/project/runtime-project";
+import { RuntimeProjectStorage, type RuntimeProjectManifest } from "@galacean/engine-project/runtime-editor/project/runtime-project";
 import { SEED_WORLD_PRODUCTION_ASSET_CATALOG } from "@galacean/engine-vegetation/asset-assembly/SeedWorldProductionAssetCatalog";
 import { SEMANTIC_DEFAULTS } from "@galacean/engine-world-planning/semantic-study/WorldPlanningContract";
 import { PLANT_PROJECT_ROOT, PLANT_PROJECT_PRODUCTION, PLANT_PROJECT_CATALOG } from "@galacean/engine-vegetation/asset-assembly/PlantSpeciesResources";
@@ -21,12 +21,34 @@ import { compileProjectResource } from "@galacean/engine-project/runtime-editor/
 import { validatePlanningProject } from "./src/planning/spatial/runtime/PlanningProjectSource.ts";
 import { registerPlantProjectAssets } from "@galacean/engine-world-planning/integrations/vegetation/PlantProjectFormats";
 import { nativeAssetFormats } from "@galacean/engine-runtime-editor/project/runtime-native-formats";
+import { registerNativeWater } from "@galacean/engine-water/water/native/index";
+import { migrateSeedWorldWaterTextures } from "./SeedWorldWaterTextureMigration";
 
-/** Building author schemas are intentionally incompatible across these save versions.
- * The storage key excludes older saves before any contents are loaded. */
-export const SEED_WORLD_BUILDING_SAVE_VERSION = 7;
+/** Author schemas and saved asset catalogs are intentionally incompatible across these save versions.
+ * Opening a project deletes saves of any other version before loading, so it starts from the initial world. */
+// Version 12 resets catalogs after merging updated terrain and water shader assets.
+export const SEED_WORLD_BUILDING_SAVE_VERSION = 12;
 export function seedWorldProjectStorageId(seed: number, projectUrl: string): string {
   return `seed-world:native-buildings-v${SEED_WORLD_BUILDING_SAVE_VERSION}-groups:${seed}:${projectUrl}`;
+}
+
+const SEED_WORLD_SAVE_ID = /^seed-world:native-buildings-v(\d+)-[^:]*:\d+:(.+)$/;
+
+/** Stale data must not block startup: the storage key already keeps it from being loaded. */
+async function deleteRetiredSeedWorldSaves(projectUrl: string): Promise<void> {
+  try {
+    const storage = await RuntimeProjectStorage.open();
+    try {
+      await storage.deleteMatching((id) => {
+        const match = SEED_WORLD_SAVE_ID.exec(id);
+        return match !== null && match[2] === projectUrl && Number(match[1]) !== SEED_WORLD_BUILDING_SAVE_VERSION;
+      });
+    } finally {
+      storage.close();
+    }
+  } catch (error) {
+    console.warn("Seed World could not delete retired saves", error);
+  }
 }
 
 /** Open a project ready for authoring in both the runtime and the planning editor. */
@@ -43,15 +65,19 @@ export async function openSeedWorldProject(
     initial = (await response.json()) as RuntimeProjectManifest;
   }
   initial = { ...initial, files: [...initial.files, ...builtinBuildingAssetFiles, ...builtinBuildingPresetFiles] };
+  await deleteRetiredSeedWorldSaves(projectUrl);
   const project = await RuntimeProjectSession.open(seedWorldProjectStorageId(seed, projectUrl), initial, projectUrl, {
     scriptModules: seedWorldScriptModules
   });
   try {
     registerNativeFarming();
+    registerNativeWater();
     registerPlanningFarmingAssets();
     registerBuildingAssetComponents();
     registerPlantProjectAssets();
     project.registerAssetFormats(seedWorldProjectFormats);
+    await migrateBuildingAssetPaths(project, initial, projectUrl);
+    await migrateSeedWorldWaterTextures(project);
     await project.prepareEditableHierarchies((name) => Boolean(Loader.getClass(name)));
     await project.initializeDependencies();
     await migrateVegetationAssets(project, initial, projectUrl);
@@ -62,6 +88,49 @@ export async function openSeedWorldProject(
     project.dispose();
     throw error;
   }
+}
+
+/** Rebase known built-in locations before any restored hierarchy can fetch the retired folder. */
+async function migrateBuildingAssetPaths(
+  project: RuntimeProjectSession,
+  initial: RuntimeProjectManifest,
+  baseUrl: string
+): Promise<void> {
+  const locations = new Map(initial.files.map((file) => [file.virtualPath, file]));
+  const relocate = (file: RuntimeProjectManifest["files"][number]) => {
+    const current = locations.get(file.virtualPath);
+    if (!current || current.type !== file.type) return file;
+    const path = new URL(current.path, baseUrl).href;
+    const legacy = path.replace("/packages/building/src/building/", "/packages/building/src/tiny-glade/");
+    return legacy !== path && new URL(file.path, baseUrl).href === legacy ? { ...file, path } : file;
+  };
+  const current = project.projectPackage;
+  const files = current.project.files.map(relocate);
+  const changed = files.filter((file, index) => file !== current.project.files[index]);
+  if (!changed.length) return;
+  // A URL change invalidates dependency metadata. Hydrate only reference-bearing
+  // sources at their new locations; saved edits always retain their own bytes.
+  const formats = new Map([...nativeAssetFormats(() => ({})), ...seedWorldProjectFormats]);
+  const contents: Record<string, string> = {};
+  for (const file of changed) {
+    if (current.contents[file.virtualPath] !== undefined || formats.get(file.type)?.referenceTypes?.length === 0) continue;
+    const response = await fetch(file.path);
+    if (!response.ok) throw new Error(`Building migration read failed (${response.status}): ${file.virtualPath}`);
+    const text = await response.text();
+    if (file.type !== "Prefab" && file.type !== "Scene") { contents[file.virtualPath] = text; continue; }
+    const original = JSON.parse(text);
+    const converted = original.asset ? original : importRuntimeHierarchy(original, file.virtualPath, files, name => Boolean(Loader.getClass(name)));
+    contents[file.virtualPath] = JSON.stringify(converted);
+    if (!original.asset) {
+      const candidate = { ...current, project: { ...current.project, files }, contents: { ...current.contents, ...contents } };
+      assertRuntimeHierarchyEquivalent(original, JSON.parse(compileProjectResource(candidate, file.virtualPath) as string));
+    }
+  }
+  await project.update((pack) => ({
+    ...pack,
+    project: { ...pack.project, files: pack.project.files.map(relocate) },
+    contents: { ...contents, ...pack.contents }
+  }));
 }
 
 /** Versioned import preserves saved asset edits and intentionally deleted resources after migration. */

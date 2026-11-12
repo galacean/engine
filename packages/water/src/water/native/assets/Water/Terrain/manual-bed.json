@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "format": "float64-le",
+  "layout": "row-major-x-fast-positive-z",
+  "byteLength": 648,
+  "sha256": "4d8e8f43382f59924974ab15fcd0a96889ef8b3a5018d7ccb07917d59b0c8e12",
+  "grid": {
+    "id": "manual-bed",
+    "revision": 1,
+    "origin": [
+      0,
+      0
+    ],
+    "spacing": 1,
+    "columns": 9,
+    "rows": 9,
+    "byteOffset": 0
+  }
+}

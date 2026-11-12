@@ -53,7 +53,7 @@ Agent 通过 `world.parameters.describe/query/inspect` 发现可用能力和当�
 
 “全局规划 → 清空存档”清除当前 Seed 的玩家视角记录，以及对应项目 `World/Editor.json` 中的 `settings.camera`（包括离地高度）；保留规划参数、场景、建筑、农场和其他编辑设置。项目清理通过 Runtime Project 的串行更新保存，成功后再删除玩家视角记录并刷新回规划页；失败显示错误并允许重试。清理期间禁止编辑和生成 3D，切换 Seed 后按当前 Seed 定位项目。
 
-“重置规划参数”在后台初始化默认作者参数，通过现有工程事务保存并更新当前规划，不刷新整页；场景及其他资产保留。它与“清空存档”的范围不同。
+“重置规划参数”以当前 Seed 和当前模板重新初始化作者参数，通过现有工程事务保存并更新当前规划。其他 Seed 的规划归档、场景和其他资产保留。JSON 模板的可选配置叠加在普通 Seed 参数上，空模板只记录模板身份。
 
 ## 参数和初始化配置
 
@@ -521,10 +521,16 @@ Tiny-glade 负责开洞、几何编译、精细排列、批量渲染及表面查
 `planningGroundSurface(plan)` 提供与实际 Float32 三角网格一致的局部接地查询；只有需要完整贴图/几何的发布消费者调用 `planningHeightmap(plan)`。禁止为了一个对象或作者查询预先分配整图。完整图、Water、建筑 worker、农田和运行时均消费同一高度表示。
 
 
-### 2026-10-19 水体简单编辑（#78 A）
+### 2026-11-05 Water Source 作者链
+
+具体水体以 Scene/Prefab 的 `WaterBodyComponent.authoring` 为持久源，PlanningDocument 仅投影算法 DTO。UI 与 Agent 的 `water.author` 共用 RuntimeEditor 公共事务、历史和保存；旧语义水体 create/update 工具、raw authoredResources 水体及独立 waterColors 写入口已删除。单份原生 Material/Texture 持有外观值与策略，固定编译结构从 Shader 家族代码推导，不再持久化 Look 作者资产。Quality 预算保存为组件类型化值，Prefab 继承与局部补丁生效，不要求质量资源引用。局部水位发布、Terrain/Water 同版发布和下游刷新继续由原有运行 owner 承担，普通生成不覆盖人工形状。实现和本次证据见 [Water 实施记录](../../../water/EDITOR_MIGRATION_IMPLEMENTATION.md)。
+
+以下 #78 A/B/C 段落是历史设计记录，其中旧作者覆盖层和迁移兼容描述不再是当前项目合同；本次不实现旧档转换，也不沿用历史测试或性能结论。
+
+### 2026-10-19 水体简单编辑（#78 A，历史设计）
 
 `PlanningSession.dispatchParameters(commands, expectedRevision?, { water?: { mode?, rebuildShoreVegetation?, affectTerrain? } })`
-与 `water.create/update` 的顶层 `edit` 使用同一策略。颜色/固定床面水位默认 simple，两个布尔项 false；创建、删盆、深度/形态默认 complex。simple 请求改床明确 `TERRAIN_CHANGE_REQUIRED`；显式 simple+true 拒绝。省略 mode、显式 true 选择 complex。A 的 complex 暂用全量发布，无法遵守 false 的请求明确拒绝。
+旧语义工具当时使用顶层 `edit` 的同一策略；这些工具现已退役。颜色/固定床面水位默认 simple，两个布尔项 false；创建、删盆、深度/形态默认 complex。simple 请求改床明确 `TERRAIN_CHANGE_REQUIRED`；显式 simple+true 拒绝。省略 mode、显式 true 选择 complex。A 的 complex 暂用全量发布，无法遵守 false 的请求明确拒绝。
 
 简单通道只更新一个水体的外观，或水面/岸线/HF/SDF/查询，保留 Terrain、植被（含水掩膜/资格/贴地）、农场区域/服务/存档与其它场景 owner。按 2026-10-19 A3 补充要求，水位原子发布后轻量刷新农场水体 grounding 和 ground revision；物理地面与占地检查延后到下一次查询，不通知表现层同步重算全部格子，颜色-only 不刷新。既有设施的保留政策不变，新扩建仍检查最新物理水域。颜色不做水盆闭合采样；fill 保留严格最终 Float32 床面的实际岸线校验；自然湖仍拒绝漫岸/空水域，作者湖可在 minimum 干涸。独立 `waterUpdate` 由完整前后作者值分类，未知/多水体/混合编辑记录 `waterFallbackReason` 并回退全量；不改变 `contentUpdate` 契约。
 

@@ -19,7 +19,8 @@ export interface WorldTemplate {
   colors: readonly [string, string, string, string];
   subject: string;
   /** Only clearly frozen, arid, bare or submerged references restrict terrestrial plants. */
-  vegetation?: "ice" | "desert" | "bare" | "marine";
+  vegetation?: "ice" | "desert" | "bare" | "marine" | "grass";
+  farming?: false;
   terrain: { heightM: number; widthM: number; count: number; coverage: number };
 }
 const gentleBaseTerrain = { heightM: 10, widthM: 180 };
@@ -101,16 +102,6 @@ export const WORLD_TEMPLATES: readonly WorldTemplate[] = [
     terrain: { ...gentleBaseTerrain, heightM: 4, widthM: 240, count: 1, coverage: 0.72 }
   },
   {
-    id: "amber-dunes",
-    name: "落日余晖沙漠",
-    icon: "🍊",
-    family: "desert",
-    vegetation: "desert",
-    colors: ["#d89756", "#f4c781", "#ffc474", "#7d456b"],
-    subject: "暖橙沙丘 · 风化石雕 · 悬浮落日",
-    terrain: { ...gentleBaseTerrain, widthM: 270, count: 4, coverage: 0.85 }
-  },
-  {
     id: "voxel-arcade",
     name: "像素潮玩",
     icon: "🛹",
@@ -130,21 +121,24 @@ export const WORLD_TEMPLATES: readonly WorldTemplate[] = [
   },
   {
     id: "neon-alley",
+    vegetation: "grass",
+    farming: false,
     name: "霓虹雨巷",
     icon: "🌧️",
     family: "alley",
     colors: ["#25314a", "#6586b4", "#ff6eb7", "#111d36"],
-    subject: "立体霓虹街区 · 细雨 · 全息贩卖机",
+    subject: "曲线街区 · 霓虹 · 细雨",
     terrain: { ...gentleBaseTerrain, heightM: 6, widthM: 250, count: 1, coverage: 0.82 }
   },
   {
     id: "titan-wasteland",
     name: "幻兽荒原",
-    icon: "🌿",
-    family: "titan",
-    colors: ["#ac6548", "#a29688", "#75e6ff", "#543e60"],
-    subject: "巨型机甲残骸 · 红沙丘 · 呼吸核心",
-    terrain: { ...gentleBaseTerrain, widthM: 240, count: 4, coverage: 0.84 }
+    icon: "🏜️",
+    family: "desert",
+    vegetation: "desert",
+    colors: ["#d89756", "#f4c781", "#ffc474", "#7d456b"],
+    subject: "整图荒原 · 连绵沙丘",
+    terrain: { ...gentleBaseTerrain, widthM: 270, count: 4, coverage: 0.85 }
   },
   {
     id: "luminous-abyss",

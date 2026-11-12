@@ -10,6 +10,7 @@ import type { RockFormationMesh } from "@galacean/engine-terrain/rock-formation/
 import { rockFormationPlacements } from "./Placement.ts";
 import { rockGrassExclusions } from "./GrassExclusions.ts";
 import { ROCK_GENERATION_DEFAULTS, type RockGenerationProfile } from "./GenerationProfile.ts";
+import { sampleSeedWorldHeight } from "../../../runtime/SeedWorldFields.ts";
 
 /** Shared by publication routing and render-pause policy. Buildings may be present;
  * only a change to their authored layout requires the full scene transaction. */
@@ -59,14 +60,16 @@ export async function prepareRockFormationPublication(
   generationProfile: RockGenerationProfile = ROCK_GENERATION_DEFAULTS
 ) {
   signal.throwIfAborted();
-  const rocks = current.solids.prepareRocks(
-    plan,
-    planningPresentedSolids(plan, current.heightTransition?.fields ?? current.data.fields, current.data.fields),
-    meshes,
-    settings.textureScale,
-    settings.colorBlend
+  const fields = current.heightTransition?.fields ?? current.data.fields;
+  const presented = planningPresentedSolids(plan, fields, current.data.fields);
+  const groundTemplate = current.template?.prepareRockGrounding(
+    presented,
+    (x, z) => sampleSeedWorldHeight(fields, x, z),
+    meshes
   );
+  const rocks = current.solids.prepareRocks(plan, presented, meshes, settings.textureScale, settings.colorBlend);
   let vegetation: Awaited<ReturnType<NonNullable<typeof current.vegetation>["prepareRocks"]>> | undefined;
+  let grounding: ReturnType<NonNullable<typeof current.vegetation>["prepareGrounding"]> | undefined;
   let masonry: Awaited<ReturnType<NonNullable<typeof current.masonry>["prepareRockSupports"]>> | undefined;
   let grass: ReturnType<typeof current.world.population.prepareRockGrass> | undefined;
   let consumed = false;
@@ -75,19 +78,21 @@ export async function prepareRockFormationPublication(
     consumed = true;
     rocks.discard();
     vegetation?.discard();
+    grounding?.discard();
     masonry?.discard();
     grass?.discard();
   };
   try {
     vegetation = await current.vegetation?.prepareRocks(client, settings, signal, generationProfile);
     signal.throwIfAborted();
+    grounding = current.vegetation?.prepareGrounding(fields, signal, {
+      plan: presented,
+      formations: meshes
+    });
     masonry = await current.masonry?.prepareRockSupports(plan, meshes, revision, signal);
     signal.throwIfAborted();
     grass = current.world.population.prepareRockGrass(
-      rockFormationPlacements(
-        planningPresentedSolids(plan, current.heightTransition?.fields ?? current.data.fields, current.data.fields),
-        meshes
-      ),
+      rockFormationPlacements(presented, meshes),
       rockGrassExclusions(plan, current.data.fields, (x, y, z) => current.navigation.samplePointIsUnderwater(x, y, z))
     );
     return {
@@ -101,9 +106,11 @@ export async function prepareRockFormationPublication(
           masonry?.commit();
           rocks.commit();
           vegetation?.commit();
+          grounding?.commit();
           grass!.commit();
           masonry?.finalize();
           current.world.population.setRockGrassGround(settings);
+          groundTemplate?.();
           consumed = true;
         } catch (error) {
           masonry?.rollback();

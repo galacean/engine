@@ -1,19 +1,10 @@
 import type { PreparedTerrainUpdate } from "@galacean/engine-terrain/terrain/clipmap/TerrainPreparedUpdate";
 import bridgePickShader from "./PlanningBridgePick.shader?raw";
-import selectionShader from "@galacean/engine-terrain/shaders/shared/WorldSelection.glsl?raw";
 import {
   SeedWorldArrayPickBatch,
   type SeedWorldPickVisitor
 } from "@galacean/engine-modify/rendering/SeedWorldPickBatch";
-import {
-  CompareFunction,
-  MeshRenderer,
-  Shader,
-  ShaderFactory,
-  type Engine,
-  type Entity,
-  type Material
-} from "@galacean/engine";
+import { CompareFunction, MeshRenderer, Shader, type Engine, type Entity, type Material } from "@galacean/engine";
 import type { IslandPlan } from "../../semantic-study/IslandPlanModel";
 import { RockFormationView } from "../../integrations/terrain/rock-formation/View.ts";
 import type { RockFormationMesh } from "@galacean/engine-terrain/rock-formation/types";
@@ -63,8 +54,6 @@ export async function createPlanningSeedSolids(
   let rocks: RockFormationView | undefined;
   const bridgeKey = JSON.stringify(plan.bridges);
   try {
-    if (!ShaderFactory.includeMap["shared/WorldSelection.glsl"])
-      ShaderFactory.registerInclude("shared/WorldSelection.glsl", selectionShader);
     bridgesView =
       options.previous?.bridgeKey === bridgeKey
         ? options.previous.bridgesView.retain()

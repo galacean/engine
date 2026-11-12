@@ -99,4 +99,14 @@ vec3 terrainProjectClipmapGeometryNormal(TerrainProjectClipmapVertex center) {
   return terrainProjectGeometryNormalAt(center.positionWS.xz, valid);
 }
 
+vec3 terrainProjectShadingGeometryNormal(vec2 worldXZ, vec3 vertexNormal) {
+  #if defined(MATERIAL_TERRAIN_SAND_RIPPLE) && !defined(MATERIAL_TERRAIN_FIXED_SURFACE)
+    // Use the baked slope even on coarse rings, where vertex interpolation can reveal the mesh.
+    float valid;
+    vec3 bakedNormal = terrainProjectGeometryNormalAt(worldXZ, valid);
+    if (valid > 0.5) return bakedNormal;
+  #endif
+  return normalize(vertexNormal);
+}
+
 #endif

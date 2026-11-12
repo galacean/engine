@@ -1,6 +1,12 @@
 #ifndef TERRAIN_PROJECT_LAYER_EVALUATION_INCLUDED
 #define TERRAIN_PROJECT_LAYER_EVALUATION_INCLUDED
 #include "shared/TerrainRegions.glsl"
+  #if defined(MATERIAL_TERRAIN_LAYER_NORMAL_TEXTURES) && !(defined(MATERIAL_TERRAIN_FAR) && defined(MATERIAL_TERRAIN_SAND_RIPPLE))
+    #define TERRAIN_PROJECT_SAMPLE_LAYER_NORMALS
+  #endif
+  #if defined(MATERIAL_TERRAIN_SAND_RIPPLE) && !defined(MATERIAL_TERRAIN_FAR)
+    vec3 material_TerrainSandRippleParams; // strength, UV scale relative to layer, fade distance in metres
+  #endif
   #ifdef TERRAIN_GROUND_RENDERER
   vec4 renderer_TerrainFirstAlphamapRect;
   #define GROUND_TerrainFirstAlphamapRect renderer_TerrainFirstAlphamapRect
@@ -23,6 +29,7 @@
     vec4 material_TerrainSimpleSurfaces[4];
     #define GROUND_TerrainSimpleSurfaces material_TerrainSimpleSurfaces
     #endif
+  #endif
     #ifdef TERRAIN_GROUND_RENDERER
     vec4 renderer_TerrainFirstLayerIndices;
     #define GROUND_TerrainFirstLayerIndices renderer_TerrainFirstLayerIndices
@@ -30,7 +37,6 @@
     vec4 material_TerrainFirstLayerIndices;
     #define GROUND_TerrainFirstLayerIndices material_TerrainFirstLayerIndices
     #endif
-  #endif
   #ifdef MATERIAL_TERRAIN_LAYER_SINGLE_DIFFUSE
     #ifdef TERRAIN_GROUND_RENDERER
     sampler2D renderer_TerrainLayerSingleDiffuse;
@@ -197,7 +203,7 @@
     int material_TerrainDetilingLayerMask;
     #define GROUND_TerrainDetilingLayerMask material_TerrainDetilingLayerMask
     #endif
-  #ifdef MATERIAL_TERRAIN_GRASS_SHADING
+  #if defined(MATERIAL_TERRAIN_GRASS_SHADING) || defined(MATERIAL_TERRAIN_ROAD_PALETTE)
     #ifdef TERRAIN_GROUND_RENDERER
     vec4 renderer_TerrainRoadColor;
     #define GROUND_TerrainRoadColor renderer_TerrainRoadColor
@@ -343,7 +349,7 @@
       float appearanceRole = materialScalars.w;
 
       #if defined(MATERIAL_TERRAIN_LAYER_DIFFUSE_TEXTURES) || \
-        defined(MATERIAL_TERRAIN_LAYER_NORMAL_TEXTURES) || defined(MATERIAL_TERRAIN_LAYER_MASK_TEXTURES)
+        defined(TERRAIN_PROJECT_SAMPLE_LAYER_NORMALS) || defined(MATERIAL_TERRAIN_LAYER_MASK_TEXTURES)
       vec4 tiling = terrainProjectLayerMetadataAt(layerIndex, 0);
       vec2 baseUv = (positionWS.xz + tiling.zw) / tiling.xy;
       vec2 sampleUv;
@@ -380,20 +386,24 @@
       vec4 diffuse = diffuseRemapMin;
       #endif
 
-      #ifdef MATERIAL_TERRAIN_LAYER_NORMAL_TEXTURES
       vec3 tangentNormal = vec3(0.0, 0.0, 1.0);
-      if (layerStorage.z >= 0.0) {
-      vec3 normalSample = textureGrad(
-        GROUND_TerrainLayerNormalTextures,
-        vec3(sampleUv, layerStorage.z),
-        sampleDdx,
-        sampleDdy
-      ).xyz;
-      tangentNormal = terrainProjectLayerNormalTangent(normalSample, materialScalars.x);
-      tangentNormal.xy = terrainProjectRotateUv(tangentNormal.xy, tangentCosineSine);
-      }
-      #else
-      vec3 tangentNormal = vec3(0.0, 0.0, 1.0);
+      #ifdef TERRAIN_PROJECT_SAMPLE_LAYER_NORMALS
+        if (layerStorage.z >= 0.0) {
+          float normalScale = materialScalars.x;
+          float normalUvScale = 1.0;
+          #ifdef MATERIAL_TERRAIN_SAND_RIPPLE
+            normalScale = material_TerrainSandRippleParams.x;
+            normalUvScale = material_TerrainSandRippleParams.y;
+          #endif
+          vec3 normalSample = textureGrad(
+            GROUND_TerrainLayerNormalTextures,
+            vec3(sampleUv * normalUvScale, layerStorage.z),
+            sampleDdx * normalUvScale,
+            sampleDdy * normalUvScale
+          ).xyz;
+          tangentNormal = terrainProjectLayerNormalTangent(normalSample, normalScale);
+          tangentNormal.xy = terrainProjectRotateUv(tangentNormal.xy, tangentCosineSine);
+        }
       #endif
 
       #ifdef MATERIAL_TERRAIN_LAYER_MASK_TEXTURES
@@ -418,7 +428,7 @@
           diffuse.rgb = vec3(1.0);
         } else if (appearanceRole == 2.0) {
           // Recolour explicitly tagged layers while preserving their PBR and climate parameters.
-          diffuse.rgb = GROUND_TerrainRoadColor.rgb;
+          diffuse.rgb = layerStorage.y >= 0.0 ? diffuse.rgb * GROUND_TerrainRoadColor.rgb : GROUND_TerrainRoadColor.rgb;
         }
       #endif
 
@@ -548,7 +558,11 @@
     blend.weight = 0.0;
     if (alphamapIndex < 0 || alphamapIndex >= GROUND_TerrainAlphamapCount) return false;
     vec4 weights = terrainProjectSampleAlphamap(alphamapIndex, positionWS.xz, regionIndex);
+    #ifdef MATERIAL_TERRAIN_SINGLE_ALPHAMAP
+    vec4 layerIndices = GROUND_TerrainFirstLayerIndices;
+    #else
     vec4 layerIndices = texelFetch(GROUND_TerrainAlphamapMetadata, ivec2(1, alphamapIndex), 0);
+    #endif
     for (int channel = 0; channel < 4; channel++) {
       terrainProjectAccumulateLayer(blend, int(floor(layerIndices[channel] + 0.5)), weights[channel], positionWS);
     }
@@ -579,6 +593,9 @@
       color += (grassColorFromField(field) - vec3(1.0)) * clamp(blend.grassWeight, 0.0, 1.0);
       color += (roadDetailColorFromField(field, GROUND_TerrainRoadColor.rgb, vista) - GROUND_TerrainRoadColor.rgb)
         * clamp(blend.roadWeight, 0.0, 1.0);
+    #elif defined(MATERIAL_TERRAIN_ROAD_PALETTE)
+      float vista = grassColorFieldVistaBlendWeight(positionWS);
+      color = roadDetailColorFromField(terrainProjectGrassSurfaceField(positionWS), GROUND_TerrainRoadColor.rgb, vista);
     #else
       color *= terrainProjectMacroVariation(positionWS.xz);
     #endif

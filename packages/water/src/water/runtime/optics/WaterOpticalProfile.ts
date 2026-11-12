@@ -13,12 +13,8 @@ import {
 } from "./WaterSurfaceOpticsMath";
 
 export type WaterOpticalRgb = readonly [red: number, green: number, blue: number];
-export type { WaterSurfaceScattering } from "../../authoring/optics/WaterSurfaceScattering";
-import type { WaterSurfaceScattering } from "../../authoring/optics/WaterSurfaceScattering";
 
 export interface WaterOpticalProfile {
-  /** Replaces legacy surface in-scattering when present; fullscreen media retain their existing model. */
-  readonly surfaceScattering?: WaterSurfaceScattering;
   /** Beer-Lambert extinction coefficients in inverse metres. */
   readonly absorptionCoefficient: WaterOpticalRgb;
   /** Asymptotic in-scattering colour in linear space. */

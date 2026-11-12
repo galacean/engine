@@ -47,24 +47,6 @@ test("shared immutable GPU leases survive one scene retirement and release only 
   assert.equal(destroyed, 1);
 });
 
-test("concave UV masks are partitioned without cutting the convex hull", async () => {
-  const { triangulateUVPolygon, area } = await import("@galacean/engine-building/building/runtime/RecoveredRoofGeometry.ts");
-  const p = [
-      [0, 0],
-      [3, 0],
-      [3, 1],
-      [1, 1],
-      [1, 3],
-      [0, 3]
-    ],
-    t = triangulateUVPolygon(p);
-  assert.equal(t.length, 4);
-  assert.equal(
-    t.reduce((s, p) => s + area(p), 0),
-    5
-  );
-});
-
 test("content-only planning may reuse masonry only when houses and enclosures are unchanged", () => {
   const original = plan();
   const vegetation = structuredClone(original);

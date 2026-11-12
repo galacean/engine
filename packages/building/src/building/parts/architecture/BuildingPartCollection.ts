@@ -1,17 +1,15 @@
 import { isGeneratedBuildingOutput, isInGeneratedBuildingOutput } from "../BuildingGeneratedOutput";
 import { buildingPartKey, buildingGroupKey } from "../../runtime/BuildingObjectIdentity";
-import { attachmentFrameDefinition } from "./BuildingAttachmentFrame";
-import { buildingWorkerAlgorithmIssue } from "./BuildingExecution";
 import { Matrix, Entity, ReferResource, type PrefabResource, type Component } from "@galacean/engine";
 import { BuildingGroupComponent } from "./BuildingGroupComponent";
 import { BuildingPartComponent } from "./BuildingPartComponent";
-import { profileSupportGenerators, validateBuildingDraft, type BuildingDraft } from "./BuildingDraft";
+import { validateBuildingDraft } from "./BuildingCpu";
+import type { BuildingGroupDef, BuildingPartDef, ConnectionDef } from "../../core";
+import { buildingDraftRegion, placeBuildingGroup } from "../../partTypes";
 import type { BuildingRuntimeInput } from "./BuildingRuntime";
 import type { ConstructionTerrainSource } from "../../runtime/TerrainField";
 import type { BuildingPlacementFrame } from "./BuildingTerrain";
-import { profileSupportRegion } from "./BuildingProfileTerrain";
 import type { TerrainHeight } from "../../runtime/PublishedWallProfile";
-import { transformProfileFootprint } from "../../runtime/ProfileGeometry";
 
 /** Native ownership is independent of enabled/isActive and is never a runtime registry. */
 export function authoredBuildingMembers(root: Entity): (BuildingGroupComponent | BuildingPartComponent)[] {
@@ -94,7 +92,7 @@ export function validatePartCollection(members: Iterable<Component>) {
     validateBuildingDraft({
       groups: groups.map((g) => g.definition!),
       parts: parts.map((p) => p.definition!),
-      relations: parts.flatMap((p) => p.relations)
+      connections: parts.flatMap((p) => p.connections)
     });
 }
 /** Native references contribute identities, not mutable engine object graphs. */
@@ -105,7 +103,16 @@ export function buildingInputSignature(value: unknown): string {
       : value
   );
 }
-/** Native frames, flat component definitions and resource references are the only author inputs. */
+/** The parts a connection names. */
+export function connectionParts(connection: ConnectionDef): string[] {
+  return connection.kind === "attach"
+    ? [connection.guest, ...connection.hosts.map((h) => h.part)]
+    : [...connection.parts];
+}
+const identity = (m: Matrix) => Array.from(m.elements).every((v, i) => Math.abs(v - (i % 5 === 0 ? 1 : 0)) < 1e-9);
+/** Native frames, flat component definitions and the asset kit are the only author inputs.
+ * Each group's node places its group in the frame: a horizontal rigid move of its
+ * footprints. Parts stay where their group is. */
 export function collectBuildingParts(
   frame: Entity,
   bodies: Component[],
@@ -114,7 +121,9 @@ export function collectBuildingParts(
   defaultLibrary?: PrefabResource,
   terrainHeight?: TerrainHeight
 ): BuildingRuntimeInput {
-  const primary = bodies as BuildingGroupComponent[];
+  const primary = (bodies as BuildingGroupComponent[])
+    .slice()
+    .sort((a, b) => a.definition!.id.localeCompare(b.definition!.id));
   const activeGroups = new Set(primary.map((g) => g.definition!.id));
   const parts = [...members]
     .filter(
@@ -124,63 +133,52 @@ export function collectBuildingParts(
         partFrame(p) === frame &&
         activeGroups.has(p.definition.group)
     )
-    .sort((a, b) => a.definition!.group.localeCompare(b.definition!.group));
+    .sort((a, b) => a.definition!.id.localeCompare(b.definition!.id));
   const activeParts = new Set(parts.map((p) => p.definition!.id));
   const libraries = primary.map((p) => p.assetLibrary ?? defaultLibrary).filter((v): v is PrefabResource => !!v);
   const assets = libraries[0];
   if (libraries.some((l) => l !== assets || l.destroyed || l.engine !== frame.engine))
     throw Error("A compiled frame requires one live native material library");
-  const draft: BuildingDraft = {
-    groups: primary.map((p) => p.definition!).sort((a, b) => a.id.localeCompare(b.id)),
+  const draft: { groups: BuildingGroupDef[]; parts: BuildingPartDef[]; connections: ConnectionDef[] } = {
+    groups: [],
     parts: [],
-    relations: []
+    connections: []
   };
-  const bindings: BuildingRuntimeInput["bindings"] = new Map(),
-    matrices = new Map<string, string>();
-  let hasProfile = false,
-    worker = !terrainHeight;
-  for (const p of parts) {
-    const attachment =
-      p.definition!.support.generator === "attachmentMount" ? attachmentFrameDefinition(p, parts) : undefined;
-    const d = attachment?.definition ?? p.definition!,
-      matrix = partFrameMatrix(attachment?.host.entity ?? p.entity, frame),
-      m = matrix.elements;
-    if (profileSupportGenerators.has(d.support.generator)) {
-      hasProfile = true;
-      horizontalFrame(matrix);
-      const signature = Array.from(m).join(","),
-        previous = matrices.get(d.group);
-      if (previous !== undefined && previous !== signature)
-        throw Error("Connected profile parts share a group frame; move the group or edit support geometry");
-      matrices.set(d.group, signature);
-      Object.assign(d.support.params, transformProfileFootprint(d.support.params, m));
-      if (d.transform || (typeof d.unit !== "string" && !(d.unit && "nativeAttachment" in d.unit))) worker = false;
-    } else {
-      worker = false;
-      if (d.transform) {
-        const local = new Matrix();
-        local.elements.set(d.transform);
-        Matrix.multiply(matrix, local, matrix);
-      }
-      d.transform = Array.from(matrix.elements);
-    }
-    draft.parts.push(d);
-    // Author relations remain intact. The execution graph contains only active endpoints.
-    draft.relations.push(...p.relations.filter((r) => activeParts.has(r.from.part) && activeParts.has(r.to.part)));
-    const inverse = partFrameInverse(p.entity, frame);
-    bindings.set(buildingPartKey(d.id), { member: p, inverse: Array.from(inverse.elements) });
-  }
+  const bindings: BuildingRuntimeInput["bindings"] = new Map();
   for (const group of primary) {
-    const inverse = partFrameInverse(group.entity, frame);
-    bindings.set(buildingGroupKey(group.definition!.id), { member: group, inverse: Array.from(inverse.elements) });
+    const own = parts.filter((p) => p.definition!.group === group.definition!.id);
+    const matrix = partFrameMatrix(group.entity, frame);
+    horizontalFrame(matrix);
+    for (const part of own)
+      if (part.entity !== group.entity && !identity(partFrameMatrix(part.entity, group.entity)))
+        throw Error(`Move the group "${group.definition!.id}", not its part "${part.definition!.id}"`);
+    const placed = placeBuildingGroup(
+      group.definition!,
+      own.map((p) => p.definition!),
+      matrix.elements
+    );
+    draft.groups.push(placed.group);
+    draft.parts.push(...placed.parts);
+    bindings.set(buildingGroupKey(group.definition!.id), {
+      member: group,
+      inverse: Array.from(partFrameInverse(group.entity, frame).elements)
+    });
+    for (const part of own)
+      bindings.set(buildingPartKey(part.definition!.id), {
+        member: part,
+        inverse: Array.from(partFrameInverse(part.entity, frame).elements)
+      });
   }
+  // Author connections stay intact; the design gets those whose parts are all active.
+  for (const part of parts)
+    draft.connections.push(...part.connections.filter((c) => connectionParts(c).every((id) => activeParts.has(id))));
   validateBuildingDraft(draft);
-  if (hasProfile && !assets) throw Error("Profile parts require a native material library");
-  const worldFrame = terrain && hasProfile ? frame.transform.worldMatrix.clone() : undefined;
+  if (draft.parts.length && !assets) throw Error("Building parts require a native material library");
+  const worldFrame = terrain && draft.parts.length ? frame.transform.worldMatrix.clone() : undefined;
   const placement = worldFrame
     ? horizontalFrame(worldFrame)
     : { position: [0, 0, 0] as [number, number, number], rotationY: 0 };
-  const region = hasProfile ? profileSupportRegion(draft) : [0, 0, 0, 0];
+  const region = buildingDraftRegion(draft) ?? [0, 0, 0, 0];
   const extent = Math.max(1, ...region.map(Math.abs)) + 2;
   const ground = terrain ?? {
     revision: 0,
@@ -193,7 +191,8 @@ export function collectBuildingParts(
     }
   };
   const groupIds = new Map(bodies.map((b) => [b, (b as BuildingGroupComponent).definition!.id]));
-  const execution = hasProfile && worker && !buildingWorkerAlgorithmIssue(draft) ? "worker" : "main";
+  // A height function lives on the main thread; terrain grids travel to the Worker.
+  const execution = terrainHeight ? "main" : "worker";
   return {
     assets,
     draft,

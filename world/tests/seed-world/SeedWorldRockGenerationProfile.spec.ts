@@ -27,8 +27,6 @@ import { rockFormationJobs } from "@galacean/engine-world-planning/integrations/
 import { rockFormationPlacements } from "@galacean/engine-world-planning/integrations/terrain/rock-formation/Placement";
 import { readRockFormationSettings } from "@galacean/engine-world-planning/integrations/terrain/rock-formation/Settings";
 import { canPublishRockFormationEdit } from "@galacean/engine-world-planning/integrations/terrain/rock-formation/Publication";
-import { seedAscentProfile } from "@galacean/engine-terrain/rock-formation/AscentMask";
-import { ascendingBoundary } from "@galacean/engine-terrain/rock-formation/AscendingBoundary";
 import {
   DEFAULT_ROCK_HEIGHT_MODE,
   DEFAULT_ROCK_HEIGHT_VARIATION,
@@ -161,13 +159,15 @@ it("projects the shared shape into scattered-rock volumes and worker jobs withou
     expect(published.outline).toEqual(source.outline);
     expect(job.origin).toEqual([source.center.x, source.baseHeight, source.center.z]);
     expect(job.guides[0]).toMatchObject({
-      size: [source.width, published.height, source.depth],
+      size: [source.width, published.height, source.depth]
+    });
+    expect(published.rockGeneration).toMatchObject({
       slopeMode: "manual",
       slopeRate: profile.platformSlopeRate,
       slopeVariation: profile.platformSlopeVariation,
       heightVariation: profile.platformHeightVariation
     });
-    expect(job.guides[0].heightMode ?? DEFAULT_ROCK_HEIGHT_MODE).toBe("random-ascent");
+    expect(published.rockGeneration?.heightMode ?? DEFAULT_ROCK_HEIGHT_MODE).toBe("random-ascent");
   }
   const landscape = f.plan.landscapes,
     tree = landscape![2],
@@ -302,25 +302,6 @@ it("defaults to blunt tops at the original height and keeps an authored mixture 
   expect(Array.from({ length: 32 }, (_, i) => rockGenerationKind(2, f.id(i), profile))).not.toEqual(
     Array.from({ length: 32 }, (_, i) => rockGenerationKind(1, f.id(i), profile))
   );
-});
-
-it("produces broad platform tops using the actual ascent geometry", () => {
-  const f = fixture();
-  f.document.entities.world.components.rockGeneration.values = { platformShare: 1 };
-  const plan = f.compile(),
-    jobs = rockFormationJobs(plan, planningHeightmap(plan));
-  const area = (ring: number[][]) =>
-    Math.abs(
-      ring.reduce((sum, a, i) => {
-        const b = ring[(i + 1) % ring.length];
-        return sum + a[0] * b[2] - b[0] * a[2];
-      }, 0)
-    ) / 2;
-  for (const job of jobs) {
-    expect(job.surfaceGrass).toBe(true);
-    const { geometry } = ascendingBoundary(seedAscentProfile(job.guides[0], job.seed));
-    expect(area(geometry.upperBoundary!) / area(geometry.bottom)).toBeGreaterThan(0.6);
-  }
 });
 
 it("recomputes from the original height without cumulative scaling and honors 0/1 share and zero variation", () => {
@@ -481,20 +462,29 @@ it("validates profile and OBB variation inputs without replacing the accepted wo
 it("regenerates exactly one OBB job while retaining sibling meshes, domains, seeds and placements", async () => {
   const requests: RockFormationJob[] = [];
   class WorkerStub {
-    onmessage?: (event: { data: { id: number; result: RockFormationMesh } }) => void;
+    private handler?: (event: { data: unknown }) => void;
+    get onmessage() {
+      return this.handler;
+    }
+    set onmessage(handler: ((event: { data: unknown }) => void) | undefined) {
+      this.handler = handler;
+      handler?.({ data: { ready: true } });
+    }
     postMessage({ id, job }: { id: number; job: RockFormationJob }) {
       requests.push(job);
       queueMicrotask(() =>
         this.onmessage?.({
           data: {
             id,
-            result: {
-              id: job.id,
-              origin: job.origin,
-              owners: [],
-              mesh: { positions: new Float32Array(0), indices: new Uint32Array(0) },
-              stats: { slabs: 0, deformedVertices: 0, generationMs: 1 }
-            }
+            results: [
+              {
+                id: job.id,
+                origin: job.origin,
+                owners: [],
+                mesh: { positions: new Float32Array(0), indices: new Uint32Array(0) },
+                stats: { bodies: 0, vertices: 0, generationMs: 1 }
+              } satisfies RockFormationMesh
+            ]
           }
         })
       );
@@ -545,7 +535,7 @@ it("regenerates exactly one OBB job while retaining sibling meshes, domains, see
     }))
   };
   expect(rockFormationPlacements(presented, after).map((p) => p.origin[1])).toEqual([20, 21, 22, 23]);
-  // A percentage-only edit takes the same local path, without rebuilding the scene.
+  // Legacy planning-only height variation preserves the same published OBB geometry cache.
   expect(
     (
       await f.session.dispatchParameters([
@@ -554,9 +544,9 @@ it("regenerates exactly one OBB job while retaining sibling meshes, domains, see
     ).status
   ).toBe("accepted");
   const heightEdited = await client.prepare(f.session.result!.plan, settings, signal, after);
-  expect(client.preparationMetrics).toMatchObject({ generated: 1, cached: 3 });
-  expect(requests).toHaveLength(6);
-  expect(heightEdited[0]).not.toBe(after[0]);
+  expect(client.preparationMetrics).toMatchObject({ generated: 0, cached: 4 });
+  expect(requests).toHaveLength(5);
+  expect(heightEdited[0]).toBe(after[0]);
   for (let i = 1; i < 4; i++) expect(heightEdited[i]).toBe(after[i]);
   expect(rockFormationJobs(f.session.result!.plan, planningHeightmap(f.plan)).slice(1)).toEqual(original.slice(1));
   expect(f.session.result!.plan.routes).toBe(f.plan.routes);

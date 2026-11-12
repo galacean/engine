@@ -1,6 +1,8 @@
 import { add, sub, f32, type RoofCurve } from "./RecoveredRoofMath";
 import { wallArclengthFromWorld } from "./RecoveredWallSpace";
-import type { PlankBounds } from "./RecoveredWoodPlank";
+
+/** Wall-space rectangle: min arclength, min height, max arclength, max height. */
+export type PlankBounds = readonly [number, number, number, number];
 
 export interface WoodArchOpening {
   points: readonly (readonly [number, number, number])[];

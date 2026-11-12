@@ -14,8 +14,11 @@ import {
   collectBuildingParts,
   validatePartCollection
 } from "@galacean/engine-building/building/parts/architecture/BuildingPartCollection.ts";
-import { designBuilding } from "@galacean/engine-building/building/parts/architecture/BuildingDesign.ts";
-import { implementBuilding } from "@galacean/engine-building/building/parts/architecture/BuildingImplementation.ts";
+import {
+  compileBuildingCpu,
+  prepareBuildingCpu
+} from "@galacean/engine-building/building/parts/architecture/BuildingCpu.ts";
+import type { BuildingCoreDraft } from "@galacean/engine-building/building/core/index.ts";
 import { initialBuildingSource } from "@galacean/engine-world-planning/masonry/BuildingInitialSource.ts";
 import { buildingGenerationPlan } from "../../demos/building-components/BuildingGenerationFixture";
 import { nativeAssets } from "../../../packages/building/tests/fixtures/constructionAssets";
@@ -71,7 +74,7 @@ function sourceFrames(source: GalaceanSourceSceneFile | GalaceanSourcePrefabFile
         frame: { value: entities.get(p.frame.$entity) },
         assetLibrary: { value: p.assetLibrary ? library : null },
         definition: { get: () => structuredClone(p.definition) },
-        relations: { get: () => structuredClone(p.relations) }
+        connections: { get: () => structuredClone(p.connections) }
       });
       return part as BuildingPartComponent;
     });
@@ -96,22 +99,31 @@ function sourceFrames(source: GalaceanSourceSceneFile | GalaceanSourcePrefabFile
     })
   );
 }
+const terrain = {
+  samples: new Uint16Array(4),
+  resolution: 2,
+  origin: [-1024, -1024] as [number, number],
+  size: 2048,
+  decode: { offset: 0, scale: 1 }
+};
+/** The resident render input of a draft, through the same CPU stages as the product. */
+async function compile(draft: BuildingCoreDraft) {
+  const cpu = await prepareBuildingCpu(draft, terrain, nativeAssets.compilation);
+  expect(cpu.diagnostics).toEqual([]);
+  return (await compileBuildingCpu(cpu.prepared)).renderInput;
+}
 async function verifyCurrentSource(source: GalaceanSourceSceneFile | GalaceanSourcePrefabFile) {
   const original = sourceFrames(source);
   const saved = sourceFrames(JSON.parse(JSON.stringify(source)));
   expect(original.size).toBeGreaterThan(0);
   for (const [id, draft] of original) {
-    const design = designBuilding(draft, () => 0, nativeAssets.compilation);
-    expect(design.diagnostics).toEqual([]);
-    const input = (await implementBuilding(design)).renderInput;
-    expect(input.rawDraws.length + input.surfaceParts.length + input.backingParts.length).toBeGreaterThan(0);
-    const replay = await implementBuilding(designBuilding(saved.get(id)!, () => 0, nativeAssets.compilation));
-    expect(hash(replay.renderInput)).toBe(hash(input));
+    const input = await compile(draft);
+    expect(input.groups.length + input.surfaceParts.length + input.backingParts.length).toBeGreaterThan(0);
+    expect(hash(await compile(saved.get(id)!))).toBe(hash(input));
     const rendered = buildBuildingRenderPackage(
       input,
       nativeAssets,
-      buildingGlobals(input.paletteSlots, nativeAssets.frame),
-      true
+      buildingGlobals(input.paletteSlots, nativeAssets.frame)
     );
     expect(rendered.package.draws.length).toBeGreaterThan(0);
     let resourceBytes = 0;
@@ -128,7 +140,10 @@ it.each(["circle-circle", "gable-junction", "round-gothic"])(
   "current %s preset preserves render data through save/reload",
   async (name) => {
     const source = JSON.parse(
-      readFileSync(new URL(`../../../packages/building/src/building/assets/prefabs/${name}.prefab`, import.meta.url), "utf8")
+      readFileSync(
+        new URL(`../../../packages/building/src/building/assets/prefabs/${name}.prefab`, import.meta.url),
+        "utf8"
+      )
     );
     await verifyCurrentSource(source);
   },
@@ -162,7 +177,10 @@ it.each(["disabled-group", "hidden-frame"])(
   "multi-instance Prefab preserves %s and visible render data through copy/save/reload",
   async (state) => {
     const original = JSON.parse(
-      readFileSync(new URL("../../../packages/building/src/building/assets/prefabs/gable-junction.prefab", import.meta.url), "utf8")
+      readFileSync(
+        new URL("../../../packages/building/src/building/assets/prefabs/gable-junction.prefab", import.meta.url),
+        "utf8"
+      )
     );
     const a = copyBuildingPrefab(original, "a"),
       b = copyBuildingPrefab(original, "b");
@@ -181,8 +199,7 @@ it.each(["disabled-group", "hidden-frame"])(
     const after = sourceFrames(loaded);
     expect(after.get("saved/" + a.root)!.parts).toEqual([]);
     expect(after.get("saved/" + b.root)).toEqual(before.get(b.root));
-    const renderHash = async (draft: any) =>
-      hash((await implementBuilding(designBuilding(draft, () => 0, nativeAssets.compilation))).renderInput);
+    const renderHash = async (draft: BuildingCoreDraft) => hash(await compile(draft));
     expect(await renderHash(after.get("saved/" + b.root))).toBe(await renderHash(before.get(b.root)));
     if (state === "disabled-group") {
       for (const c of loaded.components) if (c.type === "BuildingGroupComponent") c.props!.enabled = true;

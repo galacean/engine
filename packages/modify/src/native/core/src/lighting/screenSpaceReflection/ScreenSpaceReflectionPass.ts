@@ -513,6 +513,8 @@ export class ScreenSpaceReflectionPass {
 
   /** Stop borrowing the internal Forward depth once Transparent consumers have rendered. */
   endFrame(): void {
+    this._material?.shaderData.setTexture(ScreenSpaceReflectionPass._sceneDepthProperty, null);
+    this._material?.shaderData.setTexture(ScreenSpaceReflectionPass._opaqueDepthProperty, null);
     if (this._sceneColorTarget && this._surfaceTarget && this._traceTarget) {
       this._publishRenderStats();
     }

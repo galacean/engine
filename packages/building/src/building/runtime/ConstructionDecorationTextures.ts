@@ -5,7 +5,7 @@ import { masonryAppearance, masonryBaseColorUniform } from "./MasonryAppearance"
 import { leaseBuildingTexture, textureSourceColors } from "../resources/BuildingTextures";
 import { decorationTextureBindings as bindings } from "./ConstructionBindings";
 /** All owners/LODs lease the same engine texture cache; original complete mips. */
-export function leaseDecorationTextures(engine: Engine, assets: PrefabResource, whiteBase = false) {
+export function leaseDecorationTextures(engine: Engine, assets: PrefabResource) {
   let disposed = false;
   const leases: Array<{ destroy(): void }> = [];
   const ready = Promise.resolve().then(async () => {
@@ -19,7 +19,7 @@ export function leaseDecorationTextures(engine: Engine, assets: PrefabResource, 
     if (disposed) return;
     const textures = await Promise.all(
       bindings.map(([, name, array]) => {
-        const lease = leaseBuildingTexture(engine, name, source(name), whiteBase && name === "timberframe");
+        const lease = leaseBuildingTexture(engine, name, source(name), name === "timberframe");
         leases.push(lease);
         return lease.value;
       })
@@ -27,17 +27,15 @@ export function leaseDecorationTextures(engine: Engine, assets: PrefabResource, 
     if (disposed) return;
     return (material: Material) => {
       bindings.forEach(([uniform], i) => material.shaderData.setTexture(uniform, textures[i]));
-      if (whiteBase) {
-        const source = textureSourceColors.get(textures[0])!;
-        leases.push(
-          masonryAppearance(engine).subscribe(() =>
-            material.shaderData.setFloatArray(
-              masonryBaseColorUniform("material_WindowTimber"),
-              masonryAppearance(engine).textureColors("timberframe", source, true)
-            )
+      const source = textureSourceColors.get(textures[0])!;
+      leases.push(
+        masonryAppearance(engine).subscribe(() =>
+          material.shaderData.setFloatArray(
+            masonryBaseColorUniform("material_WindowTimber"),
+            masonryAppearance(engine).textureColors("timberframe", source, true)
           )
-        );
-      }
+        )
+      );
     };
   });
   return {

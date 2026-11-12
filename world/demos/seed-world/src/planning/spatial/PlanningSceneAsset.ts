@@ -1,6 +1,8 @@
 import { exportPlanningAuthoring, type PlanningDocument } from "@galacean/engine-world-planning/spatial/PlanningDocument";
 import { decodeVisualAuthoring, encodeVisualAuthoring, PLANNING_VISUAL_AUTHORING, RETIRED_PLANNING_VISUAL_AUTHORING } from "./PlanningVisualAuthoring.ts";
 import type { SpatialEntity } from "@galacean/engine-world-planning/spatial/SpatialDocument";
+import { WATER_COMPONENT, planningWaterSource, planningWaterParameters } from "./PlanningWaterSource.ts";
+import type { WaterSourceAuthoring } from "@galacean/engine-world-planning/spatial/runtime/NativeWaterEditor";
 
 export const PLANNING_PROJECT_COMPONENT = "PlanningProjectAuthoring";
 export const PLANNING_ENTITY_COMPONENT = "PlanningEntityAuthoring";
@@ -36,6 +38,16 @@ export function splitPlanningEntity(entity: SpatialEntity): { identity: Planning
     visual.push({ type: descriptor.type, props: encodeVisualAuthoring(descriptor, source) });
     delete spatialComponents[descriptor.component];
   }
+  const water = planningWaterSource(entity);
+  // A disabled suggestion can be removed before it has a native shape. Preserve
+  // that explicit intent without inventing a WaterBodyComponent.
+  if (entity.id.startsWith("lake:") && (water || spatialComponents.lakes?.values.enabled !== false)) delete spatialComponents.lakes;
+  if (entity.id.startsWith("river:") && (water || spatialComponents.rivers?.values.enabled !== false)) delete spatialComponents.rivers;
+  if (water) {
+    delete spatialComponents[water.shape.kind === "lake" ? "lakes" : "rivers"];
+    const enabled = entity.components[water.shape.kind === "lake" ? "lakes" : "rivers"].values.enabled;
+    visual.push({ type: WATER_COMPONENT, props: { authoring: water, ...(enabled === undefined ? {} : { enabled }) } });
+  }
   return { identity: { planningId: entity.id, ...(entity.origin !== undefined ? { origin: entity.origin } : {}),
     ...(entity.parent !== undefined ? { parentId: entity.parent } : {}), spatialComponents }, visual };
 }
@@ -51,6 +63,13 @@ export function restorePlanningEntity(name: string, identity: Record<string, unk
   };
   for (const retired of RETIRED_PLANNING_VISUAL_AUTHORING) delete entity.components[retired.component];
   for (const record of visual) {
+    if (record.type === WATER_COMPONENT) {
+      const water = planningWaterParameters(record.props.authoring as WaterSourceAuthoring, record.props.enabled !== false);
+      if (Object.keys(water).some(key => Object.hasOwn(entity.components, key)))
+        throw new Error(`Duplicate native and planning Water authoring for '${entity.id}'`);
+      Object.assign(entity.components, water);
+      continue;
+    }
     if (RETIRED_PLANNING_VISUAL_AUTHORING.some(retired => retired.type === record.type)) continue;
     const descriptor = PLANNING_VISUAL_AUTHORING.find(item => item.type === record.type)!;
     if (Object.hasOwn(entity.components, descriptor.component)) throw new Error("Duplicate native planning component");
@@ -82,7 +101,17 @@ export function exportPlanningScene(document: PlanningDocument): PlanningSceneAs
         delete record.props.profileUrl;
         record.props.profileReference = { url, asset: { $ref: ref } };
       }
-      const records = [{ type: PLANNING_ENTITY_COMPONENT, props: identity as unknown as Record<string, unknown> }, ...visual];
+      const nativeRefs = (value: unknown): unknown => {
+        if (!value || typeof value !== "object") return value;
+        if ("$ref" in value && typeof value.$ref === "string") {
+          let index = scene.refs.findIndex(ref => ref.url === value.$ref);
+          if (index < 0) index = scene.refs.push({ url: value.$ref }) - 1;
+          return { $ref: index };
+        }
+        return Array.isArray(value) ? value.map(nativeRefs) : Object.fromEntries(Object.entries(value).map(([key, item]) => [key, nativeRefs(item)]));
+      };
+      const records = [{ type: PLANNING_ENTITY_COMPONENT, props: identity as unknown as Record<string, unknown> },
+        ...visual.map(record => record.type === WATER_COMPONENT ? { ...record, props: nativeRefs(record.props) as Record<string, unknown> } : record)];
       scene.entities[parent].children!.push(scene.entities.length);
       scene.entities.push({ name: entity.name, components: records.map(record => scene.components.push(record) - 1) });
     }
@@ -140,7 +169,19 @@ export function importPlanningScene(value: unknown): PlanningDocument {
       for (const componentIndex of node.components)
         if (file.components[componentIndex].type === PLANNING_ENTITY_COMPONENT ||
           [...PLANNING_VISUAL_AUTHORING, ...RETIRED_PLANNING_VISUAL_AUTHORING].some(item => item.type === file.components[componentIndex].type)) consumed.add(componentIndex);
-      const visual = records.filter(record => PLANNING_VISUAL_AUTHORING.some(item => item.type === record.type)).map(record => {
+      const visual = records.filter(record => record.type === WATER_COMPONENT || PLANNING_VISUAL_AUTHORING.some(item => item.type === record.type)).map(record => {
+        if (record.type === WATER_COMPONENT) {
+          const paths = (value: unknown): unknown => {
+            if (!value || typeof value !== "object") return value;
+            if ("$ref" in value && typeof value.$ref === "number") {
+              const ref = file.refs[value.$ref];
+              if (!ref) throw new Error("Invalid Water asset reference");
+              return { $ref: ref.url };
+            }
+            return Array.isArray(value) ? value.map(paths) : Object.fromEntries(Object.entries(value).map(([key, item]) => [key, paths(item)]));
+          };
+          return { ...record, props: paths(record.props) as Record<string, unknown> };
+        }
         if (record.type !== "PlanningLighting" || (record.props.profile === undefined && record.props.profileReference === undefined)) return record;
         const binding = record.props.profileReference as { url?: string; asset?: { $ref?: number } } | undefined;
         const ref = binding ? binding.asset?.$ref : (record.props.profile as { $ref?: number }).$ref;

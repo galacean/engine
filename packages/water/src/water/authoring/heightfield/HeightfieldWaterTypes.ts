@@ -59,12 +59,7 @@ export interface HeightfieldWaterVisualUniformConfig {
   readonly shallowColor: HeightfieldWaterColor;
   readonly deepColor: HeightfieldWaterColor;
   readonly opacity: number;
-  readonly shoreFoamWidth: number;
-  /** Optional runtime foam color. */
-  readonly foamColor?: HeightfieldWaterColor;
-  /** Optional runtime foam intensity. */
-  readonly foamIntensity?: number;
-  readonly microNormalStrength: number;
+  readonly shoreDampingWidth: number;
   readonly waveStrength: number;
 }
 

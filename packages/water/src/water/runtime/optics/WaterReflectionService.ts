@@ -1,5 +1,14 @@
 /** Per-camera reflection binding owner for shared environment and SSR resources. */
 import { Camera, Engine, Entity, TextureCube } from "@galacean/engine-core";
+import type { WaterReflectionPolicyMode } from "../../authoring/optics/WaterReflectionPolicy";
+import type {
+  WaterEnvironmentReflectionFrame,
+  WaterEnvironmentReflectionProviderRequest
+} from "./WaterEnvironmentReflectionTypes";
+import {
+  isValidWaterEnvironmentReflectionFrame,
+  isValidWaterEnvironmentReflectionProjection
+} from "./WaterEnvironmentReflectionTypes";
 import {
   normalizeWaterReflectionRequestPolicy,
   resolveWaterReflectionAvailableMode,
@@ -11,15 +20,6 @@ import {
   type WaterReflectionResolution,
   type WaterReflectionSource
 } from "./WaterReflectionPolicy";
-import type { WaterReflectionPolicyMode } from "../../authoring/optics/WaterReflectionPolicy";
-import type {
-  WaterEnvironmentReflectionFrame,
-  WaterEnvironmentReflectionProviderRequest
-} from "./WaterEnvironmentReflectionTypes";
-import {
-  isValidWaterEnvironmentReflectionFrame,
-  isValidWaterEnvironmentReflectionProjection
-} from "./WaterEnvironmentReflectionTypes";
 
 type WaterCameraScreenSpaceReflectionAvailability = Pick<
   Camera["screenSpaceReflection"],
@@ -78,37 +78,6 @@ interface WaterReflectionServiceRegistryEntry {
 
 const WATER_REFLECTION_SERVICE_REGISTRY = new WeakMap<Camera, WaterReflectionServiceRegistryEntry>();
 
-export interface WaterReflectionServiceMetrics {
-  readonly activeConsumerCount: number;
-  readonly environmentProviderCount: number;
-  readonly selectedEnvironmentProviderId?: string;
-  readonly selectedLocalEnvironmentProviderId?: string;
-  readonly environmentAvailable: boolean;
-  readonly distantEnvironmentAvailable: boolean;
-  readonly localEnvironmentAvailable: boolean;
-  readonly ssrAvailable: boolean;
-  readonly ssrSupported: boolean;
-  readonly ssrUnsupportedReason?: string | null;
-  /** Environment cubemaps remain scene-owned and are only borrowed here. */
-  readonly borrowedEnvironmentTextureCount: number;
-  readonly ownedEnvironmentTextureCount: 0;
-  readonly boundEnvironmentConsumerCount: number;
-  readonly environmentRotationDegrees: number;
-  readonly environmentExposure: number;
-  readonly environmentIntensity: number;
-  readonly environmentColorSpace?: "linear" | "srgb";
-  readonly environmentHDR: boolean;
-  readonly environmentMaximumMipLevel: number;
-  readonly environmentRevision: number;
-  readonly environmentSecondaryWeight: number;
-  readonly environmentSecondaryMaximumMipLevel: number;
-  readonly environmentProjectionMode: "infinite" | "box";
-  readonly environmentProbePosition?: readonly [x: number, y: number, z: number];
-  readonly environmentBoxMinimum?: readonly [x: number, y: number, z: number];
-  readonly environmentBoxMaximum?: readonly [x: number, y: number, z: number];
-  readonly composition: WaterReflectionComposition;
-}
-
 export class WaterReflectionService {
   static acquire(
     engine: Engine,
@@ -157,65 +126,6 @@ export class WaterReflectionService {
       );
     }
     WATER_REFLECTION_SERVICE_REGISTRY.set(_sourceCamera, { service: this, referenceCount: 1 });
-  }
-
-  get metrics(): WaterReflectionServiceMetrics {
-    this.update();
-    let boundEnvironmentConsumerCount = 0;
-    let hasVisibleSsrBinding = false;
-    const requests = this._requestList;
-    const bindings = this._bindingList;
-    for (let index = 0; index < requests.length; index++) {
-      const request = requests[index]!;
-      const binding = bindings[index]!;
-      if (request.visible && (binding.environment !== undefined || binding.localEnvironment !== undefined)) {
-        boundEnvironmentConsumerCount++;
-      }
-      if (request.visible && binding.resolvedSource === "ssr") {
-        hasVisibleSsrBinding = true;
-      }
-    }
-    const environment = this._environmentBinding;
-    const localEnvironment = this._localEnvironmentBinding;
-    const primaryEnvironment = environment?.primary;
-    const screenSpaceReflection = cameraScreenSpaceReflection(this._sourceCamera);
-    return Object.freeze({
-      activeConsumerCount: requests.length,
-      environmentProviderCount: this._environmentProviders.size,
-      selectedEnvironmentProviderId: this._selectedEnvironmentProviderId,
-      selectedLocalEnvironmentProviderId: this._selectedLocalEnvironmentProviderId,
-      environmentAvailable: environment !== undefined || localEnvironment !== undefined,
-      distantEnvironmentAvailable: environment !== undefined,
-      localEnvironmentAvailable: localEnvironment !== undefined,
-      ssrAvailable: this._availability.ssr,
-      ssrSupported: screenSpaceReflection?.supported ?? false,
-      ssrUnsupportedReason: screenSpaceReflection
-        ? screenSpaceReflection.unsupportedReason
-        : "camera-screen-space-reflection-unavailable",
-      borrowedEnvironmentTextureCount:
-        (environment ? (environment.secondary ? 2 : 1) : 0) +
-        (localEnvironment ? (localEnvironment.secondary ? 2 : 1) : 0),
-      ownedEnvironmentTextureCount: 0,
-      boundEnvironmentConsumerCount,
-      environmentRotationDegrees: primaryEnvironment?.rotationDegrees ?? 0,
-      environmentExposure: primaryEnvironment?.exposure ?? 0,
-      environmentIntensity: primaryEnvironment?.intensity ?? 0,
-      environmentColorSpace: primaryEnvironment?.colorSpace,
-      environmentHDR: primaryEnvironment?.hdr ?? false,
-      environmentMaximumMipLevel: primaryEnvironment?.maximumMipLevel ?? 0,
-      environmentRevision: environment?.revision ?? 0,
-      environmentSecondaryWeight: environment?.secondaryWeight ?? 0,
-      environmentSecondaryMaximumMipLevel: environment?.secondary?.maximumMipLevel ?? 0,
-      environmentProjectionMode: primaryEnvironment?.projection?.mode ?? "infinite",
-      environmentProbePosition: primaryEnvironment?.projection?.probePosition,
-      environmentBoxMinimum: primaryEnvironment?.projection?.boxMinimum,
-      environmentBoxMaximum: primaryEnvironment?.projection?.boxMaximum,
-      composition: hasVisibleSsrBinding
-        ? "ssr-over-environment"
-        : environment || localEnvironment
-          ? "environment"
-          : "analytic"
-    });
   }
 
   setEnvironmentProvider(request: WaterEnvironmentReflectionProviderRequest): number {

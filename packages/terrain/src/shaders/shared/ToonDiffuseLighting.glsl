@@ -61,7 +61,13 @@ TerrainProjectToonDiffuseLighting terrainProjectEvaluateToonDiffuseLighting(
   #ifdef SCENE_DIRECT_LIGHT_COUNT
     for (int lightIndex = 0; lightIndex < SCENE_DIRECT_LIGHT_COUNT; lightIndex++) {
       if (!isRendererCulledByLight(renderer_Layer.xy, scene_DirectLightCullingMask[lightIndex])) {
-        DirectLight directLight = getDirectLight(lightIndex);
+        #ifdef GRAPHICS_API_WEBGL2
+          DirectLight directLight = getDirectLight(lightIndex);
+        #else
+          DirectLight directLight;
+          directLight.color = scene_DirectLightColor[lightIndex];
+          directLight.direction = scene_DirectLightDirection[lightIndex];
+        #endif
         vec3 lightColor = max(directLight.color, vec3(0.0));
         float lightWeight = dot(lightColor, vec3(0.2126, 0.7152, 0.0722));
         float visibility = lightIndex == 0 ? shadowAttenuation : 1.0;

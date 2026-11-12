@@ -1,4 +1,3 @@
-import { waterColorRgbSchema } from "@galacean/engine-world-planning/agent-adapter/contracts/SeedWorldWaterColorContract";
 import * as z from "zod";
 import { treeShapePatchSchema } from "@galacean/engine-world-planning/agent-adapter/contracts/SeedWorldTreeShapeContract";
 
@@ -14,27 +13,16 @@ import { spatialTargetSchema } from "./spatial-tool-input.ts";
 import { defineSeedWorldTool } from "./define-seed-world-tool.ts";
 import { SEED_WORLD_MAXIMUM_EXACT_VEGETATION_INSTANCES } from "@galacean/engine-world-planning/world/SeedWorldPlanner";
 import {
-  SEED_WORLD_AUTHORED_BASIN_CREATE_MINIMUM_DEPTH_METRES,
-  SEED_WORLD_AUTHORED_BASIN_CREATE_MINIMUM_RADIUS_METRES,
-  SEED_WORLD_AUTHORED_BASIN_MAXIMUM_DEPTH_METRES,
-  SEED_WORLD_AUTHORED_BASIN_MAXIMUM_RADIUS_METRES,
-  SEED_WORLD_AUTHORED_BASIN_MAXIMUM_SHORELINE_IRREGULARITY,
-  SEED_WORLD_AUTHORED_BASIN_MINIMUM_SHORELINE_IRREGULARITY,
-  SEED_WORLD_AUTHORED_BASIN_UPDATE_MINIMUM_DEPTH_METRES
-} from "@galacean/engine-world-planning/runtime/SeedWorldAuthoredBasinWater";
-import {
   authoringResultSchema,
   appliedAssetMutationResultSchema,
   assetMutationResultSchema,
   mutationControlShape,
   previewAssetMutationResultSchema,
   terrainRefSchema,
-  vegetationRefSchema,
-  waterRefSchema
+  vegetationRefSchema
 } from "./tool-contract.ts";
 
 export const terrainFeatureRefSchema = terrainRefSchema;
-export const waterFeatureRefSchema = waterRefSchema;
 export const vegetationFeatureRefSchema = vegetationRefSchema;
 
 const terrainTransitionControlShape = {
@@ -200,133 +188,6 @@ export const hillFeaturePatchSchema = z
       .describe("新的世界航向角，单位为度；运行时归一化到 0 到 360 度；省略时保持不变")
   })
   .refine((value) => Object.values(value).some((entry) => entry !== undefined), { message: "patch 不能为空" });
-
-const standingWaterKindSchema = z.enum(["pond", "lake"]);
-const flowingWaterKindSchema = z.enum(["stream", "river"]);
-const authoredStandingWaterRefSchema = z
-  .intersection(waterRefSchema, z.object({ kind: standingWaterKindSchema, source: z.literal("authored") }))
-  .describe("water.create 返回的玩家池塘或湖泊引用");
-const authoredFlowingWaterRefSchema = z
-  .intersection(waterRefSchema, z.object({ kind: flowingWaterKindSchema, source: z.literal("authored") }))
-  .describe("water.create 返回的玩家溪流或河流引用");
-const waterEditSchema = z.strictObject({
-  mode: z.enum(["simple", "complex"]).optional().describe("颜色/水位默认 simple；创建/深度/形态默认 complex。simple 只改水，湖床、地形、植被及农场不更新。"),
-  rebuildShoreVegetation: z.boolean().optional().describe("simple 必须 false；complex 默认 true，A 阶段全量发布要求 true。"),
-  affectTerrain: z.boolean().optional().describe("允许必要的地形变化；simple 必须 false。创建/深度/形态等需要改床时 false 会明确拒绝；A 阶段 complex 全量发布要求 true。")
-}).optional();
-const standingWaterCreateSchema = z.strictObject({
-  kind: standingWaterKindSchema.describe("要创建的静态水体类型；pond 使用较小默认尺寸，lake 使用较大默认尺寸"),
-  target: spatialTargetSchema.describe("水体中心的空间目标；运行时同时创建湖盆与水面，不改变玩家 Pose"),
-  radiusMetres: z
-    .number()
-    .min(SEED_WORLD_AUTHORED_BASIN_CREATE_MINIMUM_RADIUS_METRES)
-    .max(SEED_WORLD_AUTHORED_BASIN_MAXIMUM_RADIUS_METRES)
-    .optional()
-    .describe("水面代表半径，单位为米；省略时 pond 为 14 米、lake 为 55 米"),
-  depthMetres: z
-    .number()
-    .min(SEED_WORLD_AUTHORED_BASIN_CREATE_MINIMUM_DEPTH_METRES)
-    .max(SEED_WORLD_AUTHORED_BASIN_MAXIMUM_DEPTH_METRES)
-    .optional()
-    .describe("湖盆最大下切深度，单位为米；省略时 pond 为 2.2 米、lake 为 8 米"),
-  shorelineIrregularity: z
-    .number()
-    .min(SEED_WORLD_AUTHORED_BASIN_MINIMUM_SHORELINE_IRREGULARITY)
-    .max(SEED_WORLD_AUTHORED_BASIN_MAXIMUM_SHORELINE_IRREGULARITY)
-    .optional()
-    .describe("岸线不规则程度；0 接近圆形，1 最不规则；省略时 pond 为 0.38、lake 为 0.58"),
-  seed: z
-    .number()
-    .int()
-    .min(0)
-    .max(0xffff_ffff)
-    .optional()
-    .describe("控制岸线细节的无符号 32 位随机种子；省略时由世界种子、kind 和创建序号稳定派生"),
-  edit: waterEditSchema,
-  ...mutationControlShape
-});
-const flowingWaterCreateSchema = z.strictObject({
-  kind: flowingWaterKindSchema.describe("要创建的流水类型；stream 使用较窄较短默认值，river 使用较宽较长默认值"),
-  target: spatialTargetSchema.describe("水道起点的空间目标；运行时同时创建河床、水体并清理冲突植被"),
-  direction: directionSchema,
-  lengthMetres: z
-    .number()
-    .min(10)
-    .max(1_000)
-    .optional()
-    .describe("水道中心线长度，单位为米；省略时 stream 为 90 米、river 为 220 米"),
-  widthMetres: z
-    .number()
-    .min(1)
-    .max(100)
-    .optional()
-    .describe("水道代表宽度，单位为米；省略时 stream 为 3 米、river 为 14 米"),
-  depthMetres: z
-    .number()
-    .min(0.2)
-    .max(30)
-    .optional()
-    .describe("河床下切深度，单位为米；省略时 stream 为 0.8 米、river 为 3.5 米"),
-  flowSpeed: z
-    .number()
-    .min(0.1)
-    .max(10)
-    .optional()
-    .describe("水流速度，单位为米每秒；省略时 stream 为 1.1、river 为 2"),
-  meander: z
-    .number()
-    .min(0)
-    .max(1)
-    .optional()
-    .describe("水道蜿蜒程度；0 接近直线，1 最蜿蜒；省略时 stream 为 0.65、river 为 0.42"),
-  edit: waterEditSchema,
-  ...mutationControlShape
-});
-export const waterFeatureCreateSchema = z.union([standingWaterCreateSchema, flowingWaterCreateSchema]);
-const standingWaterPatchSchema = z
-  .strictObject({
-    radiusMetres: z
-      .number()
-      .min(SEED_WORLD_AUTHORED_BASIN_CREATE_MINIMUM_RADIUS_METRES)
-      .max(SEED_WORLD_AUTHORED_BASIN_MAXIMUM_RADIUS_METRES)
-      .optional()
-      .describe("新的水面代表半径，单位为米；省略时保持不变"),
-    depthMetres: z
-      .number()
-      .min(SEED_WORLD_AUTHORED_BASIN_UPDATE_MINIMUM_DEPTH_METRES)
-      .max(SEED_WORLD_AUTHORED_BASIN_MAXIMUM_DEPTH_METRES)
-      .optional()
-      .describe("新的湖盆最大深度，单位为米；省略时保持不变"),
-    shorelineIrregularity: z
-      .number()
-      .min(SEED_WORLD_AUTHORED_BASIN_MINIMUM_SHORELINE_IRREGULARITY)
-      .max(SEED_WORLD_AUTHORED_BASIN_MAXIMUM_SHORELINE_IRREGULARITY)
-      .optional()
-      .describe("新的岸线不规则程度；省略时保持不变"),
-    waterLevelMetres: z
-      .number()
-      .finite()
-      .optional()
-      .describe(
-        "新的绝对世界水位，单位为米；必须位于目标资产的 minimumWaterLevelMetres 与 maximumWaterLevelMetres 之间。设置为 minimumWaterLevelMetres 可把水抽干；省略时保持当前水位"
-      ),
-    seed: z.number().int().min(0).max(0xffff_ffff).optional().describe("新的无符号 32 位岸线随机种子；省略时保持不变")
-  })
-  .refine((value) => Object.values(value).some((entry) => entry !== undefined), { message: "patch 不能为空" });
-const flowingWaterPatchSchema = z
-  .strictObject({
-    lengthMetres: z.number().min(10).max(1_000).optional().describe("新的水道中心线长度，单位为米；省略时保持不变"),
-    widthMetres: z.number().min(1).max(100).optional().describe("新的水道代表宽度，单位为米；省略时保持不变"),
-    depthMetres: z.number().min(0.2).max(30).optional().describe("新的河床深度，单位为米；省略时保持不变"),
-    flowSpeed: z.number().min(0.1).max(10).optional().describe("新的水流速度，单位为米每秒；省略时保持不变"),
-    meander: z.number().min(0).max(1).optional().describe("新的蜿蜒程度；省略时保持不变"),
-    headingDegrees: z
-      .number()
-      .optional()
-      .describe("新的世界航向角，单位为度；运行时归一化到 0 到 360 度；省略时保持不变")
-  })
-  .refine((value) => Object.values(value).some((entry) => entry !== undefined), { message: "patch 不能为空" });
-export const waterFeaturePatchSchema = z.union([standingWaterPatchSchema, flowingWaterPatchSchema]);
 
 const plantKindSchema = z.enum(["tree", "shrub", "grass", "flower", "aquatic-grass"]);
 const vegetationAssetKindSchema = z.enum([
@@ -592,26 +453,6 @@ export const terrainFeatureUpdateInputSchema = z.union([
     ...terrainTransitionControlShape
   })
 ]);
-export const waterFeatureUpdateInputSchema = z.union([
-  z.strictObject({
-    ref: waterRefSchema.describe("world.query 或 world.inspect 返回的水体 Ref；颜色支持自然湖泊、海洋及玩家创建的水体。"),
-    patch: z.strictObject({ colorRgb: waterColorRgbSchema }).describe("仅修改目标水体的本色；颜色与几何修改分开调用。"),
-    edit: waterEditSchema,
-  ...mutationControlShape
-  }),
-  z.strictObject({
-    ref: authoredStandingWaterRefSchema,
-    patch: standingWaterPatchSchema.describe("只包含需要修改的池塘或湖泊属性；未提供的属性保持不变"),
-    edit: waterEditSchema,
-  ...mutationControlShape
-  }),
-  z.strictObject({
-    ref: authoredFlowingWaterRefSchema,
-    patch: flowingWaterPatchSchema.describe("只包含需要修改的溪流或河流属性；未提供的属性保持不变"),
-    edit: waterEditSchema,
-  ...mutationControlShape
-  })
-]);
 export const vegetationUpdateInputSchema = z.union([
   z.strictObject({
     ref: z.intersection(vegetationRefSchema, z.object({ kind: z.literal("tree") }))
@@ -670,40 +511,6 @@ export const terrainFeatureUpdateContract = defineSeedWorldApiContract({
   input: terrainFeatureUpdateInputSchema,
   output: assetMutationResultSchema
 });
-export const waterFeatureCreateContract = defineSeedWorldApiContract({
-  name: "water.create",
-  domain: "water",
-  description: "创建池塘、湖泊、溪流或河流资产，并同时生成所需湖盆或河床。",
-  inputDescription: "水系类型、空间目标和控制形态的可选参数。pond/lake 的水位取创建时中心地表高度，湖盆只下切，不抬高周边堤岸；地形必须能围合水面，坡地下坡侧外泄会在编辑准备阶段拒绝并回滚。此时应如实说明位置约束，不通过更换种子或擅改用户位置绕过；改变地形或位置需要符合用户意图。",
-  outputDescription:
-    "assetRef 是新水系可直接复用的稳定引用；另返回事务标识和实际效果摘要。preview 仅返回影响估算，不证明水岸可闭合；最终是否提交以 execute.receipt 为准。",
-  input: waterFeatureCreateSchema,
-  output: z.discriminatedUnion("status", [
-    appliedAssetMutationResultSchema.extend({
-      assetRef: z.intersection(waterRefSchema, z.object({
-        kind: z.enum(["pond", "lake", "stream", "river"]), source: z.literal("authored")
-      })).describe("新建水体的稳定引用；status 为 applied 时可直接传给 water.update 或 world.inspect。")
-    }),
-    previewAssetMutationResultSchema
-  ])
-});
-export const waterFeatureUpdateContract = defineSeedWorldApiContract({
-  name: "water.update",
-  domain: "water",
-  description:
-    "修改目标水体颜色，或修改玩家水系的尺寸、水位、流速、方向与岸线；抽干或排空池塘/湖泊也属于水位更新。",
-  inputDescription:
-    "颜色使用 world.query/inspect 的 Ref 和 patch.colorRgb，支持自然湖泊、海洋及玩家水体，只影响该水体。颜色与几何参数不能混用；edit 的 simple 只更新水体及查询，不更新地形、植被和农场；水位/颜色默认 simple，深度/形态默认 complex，创建默认 complex；simple 下需要改床的输入明确拒绝。颜色先写入编辑草稿，提交后同步个人世界存档，支持整次 execute 的 editor.history.undo。几何修改只接受 authored Ref。抽干湖泊时先读取资产的 minimumWaterLevelMetres，再将 waterLevelMetres 更新为该值。",
-  outputDescription:
-    "颜色返回 assetRef、status 和草稿 colorRgb；preview 不修改世界。以 execute.receipt 判断提交，提交后的运行失败进入 runtimeErrors。几何修改另返回操作事务标识。",
-  input: waterFeatureUpdateInputSchema,
-  output: z.union([assetMutationResultSchema, z.strictObject({
-    status: z.enum(["applied", "preview"]),
-    assetRef: waterRefSchema,
-    colorRgb: waterColorRgbSchema,
-    updatedCount: z.number().int().nonnegative()
-  })])
-});
 export const vegetationCreateContract = defineSeedWorldApiContract({
   name: "vegetation.create",
   domain: "vegetation",
@@ -732,7 +539,6 @@ export const SEED_WORLD_TERRAIN_CONTRACTS = Object.freeze([
   terrainFeatureCreateContract,
   terrainFeatureUpdateContract
 ]);
-export const SEED_WORLD_WATER_CONTRACTS = Object.freeze([waterFeatureCreateContract, waterFeatureUpdateContract]);
 export const SEED_WORLD_VEGETATION_CONTRACTS = Object.freeze([vegetationCreateContract, vegetationUpdateContract]);
 
 export function createSeedWorldLandscapeTools(application: SeedWorldAgentApplication): readonly AgentTool[] {
@@ -745,12 +551,6 @@ export function createSeedWorldLandscapeTools(application: SeedWorldAgentApplica
     }),
     defineSeedWorldTool(terrainFeatureUpdateContract, {
       execute: ({ ref, patch, ...control }, { signal }) => application.updateTerrainFeature(ref, patch, control, signal)
-    }),
-    defineSeedWorldTool(waterFeatureCreateContract, {
-      execute: (input, { signal }) => application.createWaterFeature(input, signal)
-    }),
-    defineSeedWorldTool(waterFeatureUpdateContract, {
-      execute: ({ ref, patch, ...control }, { signal }) => application.updateWaterFeature(ref, patch, control, signal)
     }),
     defineSeedWorldTool(vegetationCreateContract, {
       execute: (input, { signal }) => application.createVegetation(input, signal)

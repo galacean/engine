@@ -193,12 +193,11 @@ export function captureSnapshotPointer(panel: SeedWorldChatPanel, phase: "before
   const fixture = fixtures.get(panel);
   if (!fixture) throw new Error("Pointer fixture missing");
   const base = { width: fixture.width, height: fixture.height, viewer: fixture.viewer,
-    selection: [] as unknown, target: fixture.target,
+    target: fixture.target,
     resources: panel.application.requireViewSnapshots().resourceStats };
-  if (phase === "before") return { ...base, selection: panel.application.getUserSelection(), samples: [], errors: [...fixture.errors] };
+  if (phase === "before") return { ...base, samples: [], errors: [...fixture.errors] };
   let samples: any[] = [];
   try {
-    base.selection = panel.application.getUserSelection();
     const trace = panel.debug.getCurrentTrace?.() ?? panel.debug.getLastTrace();
     if (!trace) throw new Error("Task trace missing");
     const evidence = collectCallEvidence(trace);

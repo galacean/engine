@@ -16,7 +16,6 @@ export type ConstructionResourceRole =
   | "domainRoof"
   | "domainCounts"
   | "domainHoles"
-  | "windowCuts"
   | "plasterVertices";
 export type ConstructionAssetLoader = (name: string) => Promise<ArrayBuffer>;
 

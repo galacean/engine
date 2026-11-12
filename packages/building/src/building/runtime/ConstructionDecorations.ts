@@ -1,8 +1,4 @@
 export { parseDecorationSpecs as parseConstructionDecorations } from "./DecorationParameters";
-import type { DecorationWindowCut } from "./DecorationWindowCutBuffer.ts";
-import { type DecorationRoofOpening } from "./ConstructionRoofDecorations.ts";
-import type { PublishedWallProfile } from "./PublishedWallProfile.ts";
-import type { WallConnectionWipHole } from "./WallConnectionTypes.ts";
 import {
   type DecorationIntent,
   type DecorationHost,
@@ -11,8 +7,6 @@ import {
 import { type ConstructionDecorationFrame } from "./ConstructionDecorationFrames.ts";
 import type { DecorationStoneInstance } from "./DecorationStoneInstance.ts";
 import type { ConstructionWoodArchPillar, ConstructionWoodArchPart } from "./ConstructionWoodArchRender.ts";
-import type { WoodArchOpening } from "./RecoveredWoodArchCutouts.ts";
-import type { WallInstance } from "./WallTypes.ts";
 
 /** Stable wall attachment, independent of render slots and material instances.
  * u is normalized wall arclength; bottom is metres above the published wall base.
@@ -45,9 +39,6 @@ export interface ConstructionDecorationSpec {
   /** Original lantern palette, 0..4. Independent of timber color. */
   lightColor?: number;
 }
-/** Transient producer input; authoring keeps omitted defaults omitted. */
-export type ResolvedConstructionDecorationSpec = ConstructionDecorationSpec &
-  Required<Pick<ConstructionDecorationSpec, "type" | "host" | "rank">>;
 
 /** Appearance coordinates are original model UVs, never wall editing coordinates.
  * kinds use ConstructionDecorationMaterial; colors belong to that material.
@@ -80,18 +71,8 @@ export interface ConstructionDecorationPart {
   lightPosition?: [number, number, number];
 }
 export interface CompiledConstructionDecorations {
-  /** Ground-open structural openings publish one lower boundary for all consumers. */
-  wallProfile?: PublishedWallProfile;
-  archInstances?: (WallInstance & { decorationId: string })[];
-  archOpenings?: WoodArchOpening[];
   woodArchFrames?: ConstructionWoodArchPart[];
   woodArchPillars?: ConstructionWoodArchPillar[];
-  roofUnits: import("./ConstructionSettledRoof").SettledRoofUnit[];
-  holes: WallConnectionWipHole[];
-  /** Stable attachment identity plus its producer-owned SDF pose. These are
-   * geometry intents; the selected material determines whether to consume them. */
-  windowCuts: { id: string; cut: DecorationWindowCut }[];
-  roofOpenings: DecorationRoofOpening[];
   parts: ConstructionDecorationPart[];
   stones: ConstructionDecorationStone[];
   frames: ConstructionDecorationFrame[];

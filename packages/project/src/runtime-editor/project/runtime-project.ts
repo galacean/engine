@@ -35,6 +35,17 @@ export interface RuntimeProjectPackage {
   documents?: Record<string, string>;
 }
 
+/** Asset identity and embedded text for source resolvers. Binary payloads stay with the package owner. */
+export function lookupRuntimeProjectTextAsset(
+  pack: RuntimeProjectPackage,
+  path: string
+): { readonly type: string; readonly text?: string } | undefined {
+  const file = pack.project.files.find((entry) => entry.virtualPath === path);
+  if (!file) return undefined;
+  const content = pack.contents[path];
+  return { type: file.type, text: typeof content === "string" ? content : undefined };
+}
+
 /** Text is immutable. Copy only containers and mutable bytes at ownership boundaries. */
 export function cloneRuntimeProjectContent(content: string | Uint8Array): string | Uint8Array {
   if (typeof content === "string") return content;
@@ -414,6 +425,42 @@ export class RuntimeProjectStorage {
       });
       // Failed/aborted transactions must never advance the diff baseline or expected revision.
       if (!this.closed) this.snapshots.set(id, { revision: header.storageRevision, split: true, contents, documents });
+    });
+  }
+
+  /**
+   * Removes every matching project, with its header and file records, in one transaction.
+   * @param matches - Selects the project ids to remove.
+   * @returns The removed project ids.
+   */
+  deleteMatching(matches: (id: string) => boolean): Promise<string[]> {
+    if (this.closed) return Promise.reject(new Error("Project storage is closed"));
+    return new Promise<string[]>((resolve, reject) => {
+      const transaction = this.database.transaction(["projects", "projectFiles"], "readwrite");
+      const projects = transaction.objectStore("projects"),
+        files = transaction.objectStore("projectFiles");
+      const request = projects.getAllKeys();
+      const removed: string[] = [];
+      let failure: unknown;
+      request.onsuccess = () => {
+        try {
+          for (const id of request.result) {
+            if (typeof id !== "string" || !matches(id)) continue;
+            projects.delete(id);
+            // All second key components are strings; an array is a strict upper bound.
+            files.delete(IDBKeyRange.bound([id], [id, []]));
+            removed.push(id);
+          }
+        } catch (error) {
+          failure = error;
+          transaction.abort();
+        }
+      };
+      transaction.oncomplete = () => {
+        for (const id of removed) this.snapshots.delete(id);
+        resolve(removed);
+      };
+      transaction.onabort = () => reject(failure ?? transaction.error ?? new Error("Project deletion aborted"));
     });
   }
 

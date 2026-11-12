@@ -1,4 +1,5 @@
 import { Matrix, Vector3 } from "@galacean/engine-math";
+import type { OccupancySolid } from "./BuildingOccupancy";
 import { validDecorationMaterial } from "../runtime/ConstructionDecorationMaterial";
 
 /** Read-only compilation output of a native prefab hierarchy. */
@@ -13,6 +14,46 @@ export function assemblyRole(value: string): AssemblyBinding["role"] {
 }
 export interface BuildingAssembly {
   selected: [name: string, suffix: string, material: number, emissionOrigin?: number[], binding?: AssemblyBinding][];
+}
+/** A member drawn with an arrangement unit, such as a stone hat. `matrix` is its pose in
+ * the prefab. With a span it bends along the surface the prefab is mounted on, from
+ * x = span[0] to x = span[1] of the prefab; without one it is placed rigidly. */
+export interface BuildingPrefabUnitMember {
+  unit: string;
+  path: string;
+  /** The stone unit drawn on a timber wall. Default: `unit`. */
+  onTimber?: string;
+  matrix: number[];
+  span?: [number, number];
+}
+/** Read-only compilation output of a building prefab: its members, with the prefab's poses
+ * baked into their meshes, and its unit members. */
+export interface BuildingPrefab {
+  /** `stoneFrame` is the frame's stone alternative, drawn when the frame takes the wall's
+   * material: a stone unit of the kit and the member's pose in the prefab. */
+  members: [
+    name: string,
+    suffix: string,
+    material: number,
+    emissionOrigin?: number[],
+    stoneFrame?: { template: string; matrix: number[] }
+  ][];
+  units: BuildingPrefabUnitMember[];
+  /** The right half of the small roof the prefab carries out of a roof slope, from its peak
+   * at x = 0 down to its eave, in the prefab's x/y plane. */
+  roofProfile?: [number, number][];
+  /** How far in front of the wall the arch of an eave dormer starts. */
+  eaveOut?: number;
+  eaveOutCurved?: number;
+  /** The height of the stone threshold laid under a door that stands on the ground. */
+  threshold?: number;
+  /** Paths of the members that set the prefab's size. Default: all of them. */
+  sizeMembers?: string[];
+}
+/** A building prefab with the bounds of its baked members and the space its members occupy. */
+export interface CompiledBuildingPrefab extends BuildingPrefab {
+  bounds: { min: number[]; max: number[] };
+  occupancy: OccupancySolid[];
 }
 
 export function assemblyEmissionOrigin(origin: number[] | undefined, matrix: readonly number[]): number[] | undefined {

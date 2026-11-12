@@ -12,9 +12,9 @@ Demo 的页面、UI 编排和私有配置位于仓库 `world/demos/`；公共包
 
 修改层保留原项目粒子模块及其配套 GLSL 顶点布局；`native-overrides.json` 同时登记两端依赖，不能只升级其中一端。Vite 插件对原生 Engine 源码使用与 release 相同的 ES5 类转换，以兼容 toolkit 的构造函数继承方式；模块路径仍使用原生身份，避免双份 Engine 类。
 
-MaterialLoader 保留迁移前的字段读取行为：忽略不支持的字段类型，包括编辑器 `Select` / `Toggle` 元数据，不将其转换成 Integer 或 Boolean。该兼容逻辑只在 modify 中启用，原生 Engine 保留严格校验。ShaderLoader 保留按内容共享相同预编译程序的行为；不同内容的同名 Shader 使用原生 Engine 的独立实例契约，MaterialLoader 优先绑定显式 `shaderRef`。
+MaterialLoader 保留迁移前的字段读取行为：忽略不支持的字段类型，包括编辑器 `Select` / `Toggle` 元数据，不将其转换成 Integer 或 Boolean。该兼容逻辑只在 modify 中启用，原生 Engine 保留严格校验。ShaderLoader 保留按内容共享相同预编译程序及同来源源码程序的行为；不同内容的同名 Shader 使用原生 Engine 的独立实例契约，MaterialLoader 优先绑定显式 `shaderRef`，仅当引用解析为空时按旧材质名称回退；加载错误仍传播。
 
-同步 `galacean/engine` 的 `dev/2.0` 后，执行 `pnpm --dir world prepare:engine`，再运行 `pnpm --dir tests exec vitest run --config ../packages/modify/tests/vitest.compat.config.mjs`。兼容性测试直接安装 World 使用的 `engineModify()` 插件，验证 Shader 实例、材质引用、MRT 与变换反馈读回，不使用另一份 Engine 副本。
+同步 `galacean/engine` 的 `experimental/engine-next` 后，执行 `pnpm --dir world prepare:engine`，再运行 `pnpm --dir tests exec vitest run --config ../packages/modify/tests/vitest.compat.config.mjs`。兼容性测试直接安装 World 使用的 `engineModify()` 插件，验证 Shader 实例、材质引用、MRT 与变换反馈读回，不使用另一份 Engine 副本。
 
 材质字段、宏解析或纹理依赖加载失败时，修改层销毁本次创建的材质并传播原错误。纹理绑定在全部依赖加载成功后写入，避免失败后的异步回调写入已销毁材质；共享纹理仍由资源管理器管理。未知字段类型的忽略行为保持不变。
 

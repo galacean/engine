@@ -4,7 +4,7 @@ import type { PrefabResource } from "@galacean/engine";
 import { masonryAppearance, masonryBaseColorUniform } from "./MasonryAppearance";
 import { leaseBuildingTexture, textureSourceColors } from "../resources/BuildingTextures";
 import { stoneFloorTextureBindings } from "./ConstructionStoneFloorAssets";
-export function leaseStoneFloorTextures(engine: Engine, assets: PrefabResource, whiteBase = false) {
+export function leaseStoneFloorTextures(engine: Engine, assets: PrefabResource) {
   let disposed = false;
   const leases: Array<{ destroy(): void }> = [];
   const ready = Promise.resolve().then(async () => {
@@ -18,7 +18,7 @@ export function leaseStoneFloorTextures(engine: Engine, assets: PrefabResource, 
     if (disposed) return;
     const textures = await Promise.all(
       stoneFloorTextureBindings.map(([, name, array]) => {
-        const lease = leaseBuildingTexture(engine, name, source(name), whiteBase && name === "brick_colors");
+        const lease = leaseBuildingTexture(engine, name, source(name), name === "brick_colors");
         leases.push(lease);
         return lease.value;
       })

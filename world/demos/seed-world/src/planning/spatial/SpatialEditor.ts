@@ -1,3 +1,5 @@
+import { MOJAVE_ROCK_GROUP } from "@galacean/engine-world-planning/spatial/layout/MojaveDesertLayout";
+import { applyPlanningTemplateSurface, initialPlanningTemplate } from "./PlanningStartupTemplate.ts";
 import { planningFarmingProjectStatePath } from "./farming/PlanningFarmingScene.ts";
 import { PlanningFarmRepository } from "./farming/PlanningFarmRepository.ts";
 import { planningFarmId, resetPlanningFarmSaveChoice } from "./farming/PlanningFarmSave.ts";
@@ -6,9 +8,9 @@ import { clearSeedWorldPlayerSave } from "../../../SeedWorldPlayerSave.ts";
 import { PlanningProjectStorage } from "./runtime/PlanningProjectStorage.ts";
 import { seedWorldProjectFormats } from "../../../SeedWorldProjectFormats.ts";
 import { createSeedWorldProjectClose } from "../../../SeedWorldProjectClose.ts";
-import { planningSourceDocument } from "./runtime/PlanningProjectSource.ts";
+import { planningSourceDocument, retainPlanningWaterSource } from "./runtime/PlanningProjectSource.ts";
 import { exportPlanningScene, importPlanningScene } from "./PlanningSceneAsset.ts";
-import { createWorldStylePlanningDocument, worldTemplatePaletteValues } from "@galacean/engine-world-planning/spatial/WorldTemplateAuthoring";
+import { createWorldStylePlanningDocument, removeDesertCamelPreset, worldTemplatePaletteValues } from "@galacean/engine-world-planning/spatial/WorldTemplateAuthoring";
 import { mountWorldTemplatePicker } from "./WorldTemplatePicker.ts";
 import { wayfindingPolicy } from "@galacean/engine-world-planning/spatial/guidance/WayfindingPolicy";
 import { wayfindingHighlights } from "./guidance/WayfindingHighlights.ts";
@@ -99,8 +101,13 @@ export async function mountSpatialEditor(
   client.onProgress=stage=>{ui("progress").hidden=false;ui("progress").textContent=stage+"…";};
   let initialDocument: PlanningDocument;
   try {
-    initialDocument = saved ?? await client.initialize(parameters.seed);
-    if (!storageWarning) await storage.migrateToSource(initialDocument);
+    const template = initialPlanningTemplate(pageUrl.url.search, parameters.seed,
+      saved ? exportPlanningRecipe(saved).parameters.worldTemplate?.id ?? "" : undefined);
+    initialDocument = template === undefined && saved ? saved : await client.initialize(parameters.seed, undefined, template);
+    if (template !== undefined) initialDocument = storage.retainWater(initialDocument);
+    removeDesertCamelPreset(initialDocument);
+    if (template !== undefined) applyPlanningTemplateSurface(initialDocument);
+    if (!storageWarning) await storage.migrateToSource(initialDocument, template !== undefined && !!saved);
   } catch (error) {
     client.dispose();
     project.dispose();
@@ -125,7 +132,9 @@ export async function mountSpatialEditor(
   const templatePicker = mountWorldTemplatePicker(
     root.querySelector<HTMLElement>(".ip-topbar nav")!,
     async (id, seed) => {
-      const receipt = await edit((draft) => draft.load(createWorldStylePlanningDocument(session.document, seed, id, session.recipe().parameters.population)));
+      const document = createWorldStylePlanningDocument(session.document, seed, id, session.recipe().parameters.population);
+      applyPlanningTemplateSurface(document);
+      const receipt = await edit((draft) => draft.load(retainPlanningWaterSource(document, project.projectPackage)));
       if (receipt?.status !== "accepted") throw new Error(receipt?.message ?? "规划未接受");
       if (storageWarning) throw new Error(storageWarning);
       status(session.document.populationInitialization?.diagnostics.join("；") ?? "");
@@ -134,6 +143,10 @@ export async function mountSpatialEditor(
       const commands = Object.entries(worldTemplatePaletteValues(id)).map(([component, values]) => ({
         op: "set" as const, entity: "world", component, values
       }));
+      if (!commands.length) {
+        status("此主题沿用原始配色。");
+        return;
+      }
       const receipt = await edit(draft => draft.dispatchParameters(commands));
       if (receipt?.status !== "accepted") throw new Error(receipt?.message ?? "配色未接受");
       if (storageWarning) throw new Error(storageWarning);
@@ -391,8 +404,9 @@ export async function mountSpatialEditor(
     ui("poi-summary").textContent =
       `POI ${poiSites.filter(site => site.active).length} · ${poiSites.length} 个可调整位置`;
     const layout = r.plan.spatialLayout;
+    const rockGroups = r.plan.rocks.filter(({ assetId }) => assetId === MOJAVE_ROCK_GROUP).length;
     const counts: [string, number][] = [
-      ["体量", layout?.groups.reduce((sum, group) => sum + group.volumes.length, 0) ?? 0],
+      ["体量", (layout?.groups.reduce((sum, group) => sum + group.volumes.length, 0) ?? 0) + rockGroups],
       ["道路", r.plan.routes.length],
       ["景观树", r.plan.landscapes?.filter(item => item.kind === "tree").length ?? 0],
       ["景观石", r.plan.landscapes?.filter(item => item.kind === "rock").length ?? 0],
@@ -576,9 +590,12 @@ export async function mountSpatialEditor(
     updateGenerateControl();
     try {
       const receipt = await edit(async draft => {
-        const replacement = await client.initialize(session.recipe().parameters.seed, abort.signal);
+        const { seed, worldTemplate } = draft.recipe().parameters;
+        const replacement = await client.initialize(seed, abort.signal, worldTemplate?.id);
         abort.signal.throwIfAborted();
-        return draft.load(replacement, abort.signal);
+        replacement.layoutOverrides = draft.document.layoutOverrides;
+        applyPlanningTemplateSurface(replacement);
+        return draft.load(retainPlanningWaterSource(replacement, project.projectPackage), abort.signal);
       }, true);
       if (disposed || receipt?.status !== "accepted") return;
       select(null);

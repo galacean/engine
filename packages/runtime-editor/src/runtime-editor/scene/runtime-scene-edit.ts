@@ -40,7 +40,12 @@ export class RuntimeSceneEdit {
   ) {}
 
   list(): GalaceanSourceEntitySchema[] {
-    const source = this.read(),
+    return structuredClone(this.records());
+  }
+
+  /** Entity records of the shared parse. Callers must copy a record before returning it. */
+  private records(): GalaceanSourceEntitySchema[] {
+    const source = this.shared(),
       members = this.instances(source).entities;
     const records = source.entities.map((record) => {
       const member = members.get(record.id);
@@ -57,7 +62,7 @@ export class RuntimeSceneEdit {
   }
 
   page(options: QueryPageOptions & { name?: string; parentId?: string | null } = {}) {
-    const records = this.list();
+    const records = this.records();
     const parents = new Map(
       records.flatMap((record) => (record.children ?? []).map((child) => [child, record.id] as const))
     );
@@ -83,13 +88,13 @@ export class RuntimeSceneEdit {
   }
 
   readEntity(id: string) {
-    const entity = this.list().find((record) => record.id === id);
+    const entity = this.records().find((record) => record.id === id);
     if (!entity) throw new Error(`Unknown entity '${id}'`);
-    return entity;
+    return structuredClone(entity);
   }
 
   queryComponents(selector: RuntimeComponentSelector = {}) {
-    const source = this.read();
+    const source = this.shared();
     return [
       ...runtimeComponentIdentities(source, this.sceneId, selector),
       ...Array.from(this.instances(source).components.values())
@@ -104,11 +109,50 @@ export class RuntimeSceneEdit {
   }
 
   readComponent(id: string) {
-    const source = this.read();
+    const source = this.shared();
     const identity = runtimeComponentIdentities(source, this.sceneId, { id })[0];
-    if (identity) return { ...source.components.find((component) => component.id === id)!, ...identity };
+    if (identity)
+      return { ...structuredClone(source.components.find((component) => component.id === id)!), ...identity };
     const member = this.instanceComponent(source, id);
-    return { ...member.record, scene: this.sceneId, entityId: member.entityId };
+    return { ...structuredClone(member.record), scene: this.sceneId, entityId: member.entityId };
+  }
+
+  /** Resolve native references in the owner's template scope, or explicit Scene/instance scope. */
+  resolveComponentReference(reference: GalaceanComponentRef, ownerId?: string): string | undefined {
+    const source = this.shared(),
+      instances = this.instances(source),
+      target = reference.$component;
+    if (typeof target === "string") {
+      const owner = ownerId && instances.components.get(ownerId);
+      const scope =
+        owner &&
+        (owner.nested
+          ? [owner.nested.rootSceneEntityId, ...owner.nested.sourceEntityPath]
+          : instances.entities.get(owner.entityId)?.scope);
+      if (scope) {
+        const member = instances.components.get(instanceMemberId(scope, target));
+        if (member) return member.id;
+      }
+      return source.components.some((component) => component.id === target) || instances.components.has(target)
+        ? target
+        : undefined;
+    }
+    if (!target || typeof target.instance !== "string" || typeof target.target !== "string") return;
+    const members = [...instances.components.values()].filter(
+      (member) => instances.entities.get(member.entityId)?.root === target.instance && member.target === target.target
+    );
+    return members.length === 1 ? members[0].id : undefined;
+  }
+
+  /** Convert a public identity into the existing native Source reference layout. */
+  componentReference(id: string): GalaceanComponentRef {
+    const source = this.shared();
+    if (source.components.some((component) => component.id === id)) return { $component: id };
+    const member = this.instanceComponent(source, id);
+    if (member.nested) throw new Error("A nested template reference must be authored in its local component scope.");
+    return {
+      $component: { instance: this.instances(source).entities.get(member.entityId)!.root, target: member.target }
+    };
   }
 
   create(input: RuntimeEntityPatch & { name: string; parentEntityId?: string; prefab?: string }): { id: string } {
@@ -116,8 +160,8 @@ export class RuntimeSceneEdit {
     const { parentEntityId, prefab, ...props } = input;
     const parent = scene.entities.find((entity) => entity.id === parentEntityId);
     const id = crypto.randomUUID();
-    if (prefab !== undefined && !readSourcePrefab(this.project.preview(), prefab))
-      throw Error(`Expected an editable Prefab asset '${prefab}'`);
+    const template = prefab === undefined ? undefined : readSourcePrefab(this.lookupInstanceAsset, prefab);
+    if (prefab !== undefined && !template) throw Error(`Expected an editable Prefab asset '${prefab}'`);
     const entity: GalaceanSourceEntitySchema =
       prefab === undefined
         ? { ...props, id, components: [] }
@@ -125,7 +169,7 @@ export class RuntimeSceneEdit {
             id,
             instance: {
               asset: { $ref: prefab },
-              overrides: { entityProps: [{ target: readSourcePrefab(this.project.preview(), prefab)!.root, ...props }] }
+              overrides: { entityProps: [{ target: template!.root, ...props }] }
             }
           };
     if (parentEntityId !== undefined && (!parent || parent.instance)) {
@@ -144,7 +188,7 @@ export class RuntimeSceneEdit {
               instance: {
                 asset: { $ref: prefab },
                 overrides: {
-                  entityProps: [{ target: readSourcePrefab(this.project.preview(), prefab)!.root, ...props }]
+                  entityProps: [{ target: template!.root, ...props }]
                 }
               }
             };
@@ -274,7 +318,7 @@ export class RuntimeSceneEdit {
           removedEntities.add(record.id);
           const { children, components, instance, ...props } = record;
           if (instance) {
-            const template = readSourcePrefab(this.project.preview(), instance.asset.$ref);
+            const template = readSourcePrefab(this.lookupInstanceAsset, instance.asset.$ref);
             if (!template) throw Error("Moving an instance requires editable Prefab Source topology");
             const { id: _, ...rootProps } = props;
             instanceEntityPatch(instance, template.root, rootProps);
@@ -294,7 +338,7 @@ export class RuntimeSceneEdit {
         const inline = convert(sourceEntity);
         if (transform) {
           if (inline.instance) {
-            const target = readSourcePrefab(this.project.preview(), inline.instance.asset.$ref)!.root;
+            const target = readSourcePrefab(this.lookupInstanceAsset, inline.instance.asset.$ref)!.root;
             instanceEntityPatch(inline.instance, target, transform);
           } else Object.assign(inline, transform);
         }
@@ -318,7 +362,7 @@ export class RuntimeSceneEdit {
       else scene.scene.rootEntities.push(id);
       if (transform) {
         if (sourceEntity.instance) {
-          const target = readSourcePrefab(this.project.preview(), sourceEntity.instance.asset.$ref)!.root;
+          const target = readSourcePrefab(this.lookupInstanceAsset, sourceEntity.instance.asset.$ref)!.root;
           instanceEntityPatch(sourceEntity.instance, target, transform);
         } else Object.assign(sourceEntity, transform);
       }
@@ -338,7 +382,7 @@ export class RuntimeSceneEdit {
       }
       if (member.removeAdded) member.removeAdded();
       else {
-        const template = readSourcePrefab(this.project.preview(), member.instance.asset.$ref)!;
+        const template = readSourcePrefab(this.lookupInstanceAsset, member.instance.asset.$ref)!;
         const nodes = new Map(template.entities.map((entity) => [entity.id, entity]));
         const removed = new Set<string>(),
           components = new Set<string>(),
@@ -428,7 +472,13 @@ export class RuntimeSceneEdit {
     else {
       const member = this.instanceComponent(scene, id);
       if (member.nested) {
-        this.editNested(scene, member, "component.update", { props });
+        if (member.added) this.editNested(scene, member, "component.update", { props });
+        else {
+          const values = sourceOverrideValue(member.base.props ?? {}, props) as GalaceanSourceValueRecord | undefined;
+          const inherited = Object.keys(props).filter((key) => !Object.hasOwn(values ?? {}, key));
+          if (inherited.length) this.editNested(scene, member, "component.revert", { keys: inherited });
+          if (values) this.editNested(this.read(), member, "component.update", { props: values });
+        }
         return;
       }
       if (member.added) member.added.props = { ...member.added.props, ...structuredClone(props) };
@@ -438,8 +488,8 @@ export class RuntimeSceneEdit {
         const values: GalaceanSourceValueRecord = {};
         for (const [key, value] of Object.entries(props)) {
           for (const patch of patches) if (patch.target === member.target) delete patch.props?.[key];
-          // Only a value explicitly supplied by the template can be compared in a detached draft.
-          if (!sameSourceValue(value, member.base.props?.[key])) values[key] = structuredClone(value);
+          const override = sourceOverrideValue(member.base.props?.[key], value);
+          if (override !== undefined) values[key] = override;
         }
         // Property edits retain explicit method calls; only a full revert removes them.
         if (Object.keys(values).length) patches.push({ target: member.target, props: values });
@@ -499,9 +549,26 @@ export class RuntimeSceneEdit {
     this.write(scene);
   }
 
+  /** Detached, mutable Source for an edit that ends in write(). */
   private read(): GalaceanSourceSceneFile {
+    return this.parse(this.content());
+  }
+  /**
+   * Parsed Source of the current draft text, reused by queries until the text changes.
+   * Queries only read it and return copies, so a caller cannot change later results.
+   */
+  private shared(): GalaceanSourceSceneFile {
+    const content = this.content();
+    if (this.parsed?.content !== content) this.parsed = { content, scene: this.parse(content) };
+    return this.parsed.scene;
+  }
+  private parsed?: { content: string; scene: GalaceanSourceSceneFile };
+  private content(): string {
     const content = this.project.read(this.sceneId);
     if (typeof content !== "string") throw new Error("Scene source is not text");
+    return content;
+  }
+  private parse(content: string): GalaceanSourceSceneFile {
     const scene = JSON.parse(content);
     if (
       scene.asset?.version !== "2.0" ||
@@ -516,8 +583,10 @@ export class RuntimeSceneEdit {
   private write(scene: GalaceanSourceSceneFile): void {
     this.project.update(this.sceneId, JSON.stringify(scene));
   }
+  private readonly lookupInstanceAsset = (path: string) => this.project.lookupTextAsset(path);
+
   private instances(scene: GalaceanSourceSceneFile) {
-    return new RuntimeInstanceSource(scene, this.project.preview());
+    return new RuntimeInstanceSource(scene, this.lookupInstanceAsset);
   }
   private instanceComponent(scene: GalaceanSourceSceneFile, id: string): InstanceSourceComponent {
     const member = this.instances(scene).components.get(id);
@@ -532,17 +601,15 @@ export class RuntimeSceneEdit {
   private instanceOwner(member: InstanceSourceEntity) {
     const instance = member.inline?.instance ?? member.instance;
     const target = member.inline?.instance
-      ? readSourcePrefab(this.project.preview(), instance.asset.$ref)!.root
+      ? readSourcePrefab(this.lookupInstanceAsset, instance.asset.$ref)!.root
       : member.target;
     return { instance, target };
   }
   private sourceOptions() {
     return {
-      resolveInstanceSourceFile: (path: string) => readSourcePrefab(this.project.preview(), path),
+      resolveInstanceSourceFile: (path: string) => readSourcePrefab(this.lookupInstanceAsset, path),
       resolveInstanceAssetKind: (path: string): "Prefab" | "glTF" =>
-        this.project.preview().project.files.find((file) => file.virtualPath === path)?.type === "glTF"
-          ? "glTF"
-          : "Prefab"
+        this.lookupInstanceAsset(path)?.type === "glTF" ? "glTF" : "Prefab"
     };
   }
   private editNested(
@@ -647,4 +714,23 @@ function sameSourceValue(a: unknown, b: unknown): boolean {
         sameSourceValue((a as Record<string, unknown>)[key], (b as Record<string, unknown>)[key])
     )
   );
+}
+
+/** Match Source's deep merge: arrays and reference/sentinel records are atomic values. */
+function sourceOverrideValue(
+  base: GalaceanSourceValue | undefined,
+  value: GalaceanSourceValue
+): GalaceanSourceValue | undefined {
+  if (value === undefined || sameSourceValue(base, value)) return;
+  const record = (value: unknown): value is GalaceanSourceValueRecord =>
+    value !== null && typeof value === "object" && !Array.isArray(value);
+  const sentinel = (value: GalaceanSourceValueRecord) =>
+    ["$ref", "$entity", "$component", "$signal", "$type", "$class", "$number"].some((key) => key in value);
+  if (!record(base) || !record(value) || sentinel(base) || sentinel(value)) return structuredClone(value);
+  const result: GalaceanSourceValueRecord = {};
+  for (const [key, child] of Object.entries(value)) {
+    const override = sourceOverrideValue(base[key], child);
+    if (override !== undefined) result[key] = override;
+  }
+  return Object.keys(result).length ? result : undefined;
 }

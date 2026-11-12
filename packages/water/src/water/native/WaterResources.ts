@@ -1,13 +1,6 @@
+import { resolveWaterSurfaceAppearanceForQuality } from "../authoring/quality/WaterSurfaceAppearanceQuality";
 import type { RiverDrop } from "../authoring/river/RiverDrop";
-import {
-  AssetPromise,
-  Loader,
-  ReferResource,
-  resourceLoader,
-  type Engine,
-  type LoadItem,
-  type ResourceManager
-} from "@galacean/engine-core";
+import { ReferResource, Material, type Engine } from "@galacean/engine-core";
 import {
   computeWaterBodyAssetContentHash,
   createWaterBodyAsset,
@@ -19,6 +12,7 @@ import type { WaterLookAuthoringComponents } from "../authoring/surface/WaterLoo
 import { WaterBodyAssetRegistry } from "../runtime/body/WaterBodyAssetRegistry";
 import { hashStableValue } from "../compiler/shared/determinism";
 import { isOceanWaterCompiledTransferV1 } from "../runtime/ocean/OceanWaterCompiledResource";
+import { resolveWaterMaterialLook, waterMaterialKey } from "./WaterMaterial";
 
 /** Native resources own immutable authoring data, never compiled or scene-owned objects. */
 abstract class WaterResource<T> extends ReferResource {
@@ -85,7 +79,7 @@ export class WaterBodyResource extends WaterResource<WaterBodyAsset> {
   }
 }
 
-/** A Look includes all referenced appearance/optics definitions, not just their IDs. */
+/** Internal immutable compiler input for runtime API callers without a native Material. */
 export class WaterLookResource extends WaterResource<WaterLookAuthoringComponents> {
   constructor(engine: Engine, data: WaterLookAuthoringComponents) {
     const registry = new WaterBodyAssetRegistry();
@@ -111,9 +105,24 @@ export function installLook(registry: WaterBodyAssetRegistry, data: WaterLookAut
 }
 
 /** Namespace private revisions so editing one instance never mutates another shared Look. */
-export function scopedLook(resource: WaterLookResource): WaterLookAuthoringComponents {
-  const data = resource.data;
-  const id = `native-look:${resource.contentHash}`;
+export function scopedLook(
+  resource?: WaterLookResource,
+  material?: Material,
+  quality?: Pick<WaterQualityPlanV2, "surfaceShading">
+): WaterLookAuthoringComponents {
+  const authored = material ? resolveWaterMaterialLook(material) : resource?.data;
+  const data =
+    authored && quality
+      ? {
+          ...authored,
+          appearance: {
+            ...authored.appearance,
+            appearance: resolveWaterSurfaceAppearanceForQuality(authored.appearance.appearance, quality)
+          }
+        }
+      : authored;
+  if (!data) throw new TypeError("Water requires a native Material or runtime Look input.");
+  const id = `native-look:${material ? waterMaterialKey(material) : resource!.contentHash}${quality ? `:surface-${quality.surfaceShading}` : ""}`;
   return {
     appearance: {
       ...data.appearance,
@@ -132,20 +141,6 @@ export function scopedLook(resource: WaterLookResource): WaterLookAuthoringCompo
       renderStatePresetId: `${id}:render`
     }
   };
-}
-
-export type WaterResourceFile =
-  | { version: 1; kind: "body"; data: WaterBodyAsset }
-  | { version: 1; kind: "look"; data: WaterLookAuthoringComponents }
-  | { version: 1; kind: "quality"; data: WaterQualityPlanV2 };
-
-/** Resource payload only; Entity/Component/Scene references use the engine's existing schema. */
-export function serializeWaterResource(resource: WaterBodyResource | WaterLookResource | WaterQualityResource): string {
-  return stringifyWaterData({
-    version: 1,
-    kind: resource instanceof WaterBodyResource ? "body" : resource instanceof WaterLookResource ? "look" : "quality",
-    data: resource.data
-  });
 }
 
 export function stringifyWaterData(data: unknown): string {
@@ -181,54 +176,4 @@ export function parseWaterData(text: string): unknown {
     }
     return value;
   });
-}
-
-export function parseWaterResource(
-  engine: Engine,
-  text: string
-): WaterBodyResource | WaterLookResource | WaterQualityResource {
-  const file = parseWaterData(text) as WaterResourceFile;
-  if (file?.version !== 1) throw new RangeError("Unsupported Water resource version.");
-  switch (file.kind) {
-    case "body":
-      return new WaterBodyResource(engine, file.data);
-    case "look":
-      return new WaterLookResource(engine, file.data);
-    case "quality":
-      return new WaterQualityResource(engine, file.data);
-    default:
-      throw new TypeError("Unsupported Water resource kind.");
-  }
-}
-
-export class WaterResourceLoader extends Loader<ReferResource> {
-  load(item: LoadItem, manager: ResourceManager): AssetPromise<ReferResource> {
-    return new AssetPromise((resolve, reject, _complete, _detail, onCancel) => {
-      let cancelled = false;
-      // Engine Loader extension point, matching built-in loaders.
-      const request = (manager as unknown as { _request(url: string, config: unknown): AssetPromise<string> })._request(
-        item.url!,
-        { ...item, type: "text" }
-      );
-      onCancel?.(() => {
-        cancelled = true;
-        request.cancel?.();
-      });
-      request
-        .then((text) => {
-          if (cancelled) return;
-          if (manager.engine.destroyed)
-            reject?.(new DOMException("Engine was destroyed during Water loading.", "AbortError"));
-          else resolve(parseWaterResource(manager.engine, text));
-        })
-        .catch((error) => reject?.(error));
-    });
-  }
-}
-
-let registered = false;
-export function registerWaterResourceLoader(): void {
-  if (registered) return;
-  registered = true;
-  resourceLoader("WaterResource", ["water"], true)(WaterResourceLoader);
 }

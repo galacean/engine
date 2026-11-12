@@ -5,7 +5,7 @@ vi.mock("@galacean/engine", async () => ({
   ...(await import("@galacean/engine-math"))
 }));
 import { createSeedWorldBuildingTools } from "../../demos/seed-world/agent-adapter/tools/building-tools";
-import { European } from "@galacean/engine-building/building/parts/architecture/European.ts";
+import { European } from "@galacean/engine-building/building/application/European.ts";
 import { buildingDraftSource } from "@galacean/engine-building/building/parts/architecture/BuildingSource.ts";
 import { nativeAssetFormats } from "@galacean/engine-runtime-editor/project/runtime-native-formats.ts";
 import { RuntimeProjectEdit } from "@galacean/engine-project/runtime-editor/project/runtime-project-edit.ts";
@@ -113,18 +113,19 @@ it("creates generated Prefabs through the editor and persists isolated instance 
   const scene = new RuntimeSceneEdit(edit, "Main.scene");
   const a = scene.create({ name: "A", prefab: "Tower.prefab", position: [512, 0, 512] });
   const b = scene.create({ name: "B", prefab: "Tower.prefab", position: [520, 0, 512] });
-  const wall = (root: string) =>
-    scene
-      .queryComponents({ type: "BuildingPartComponent" })
-      .find((c) => c.id.includes(root) && (scene.readComponent(c.id).props!.definition as any).type === "wall")!;
-  const aWall = wall(a.id),
-    bWall = wall(b.id);
-  expect(aWall).toBeDefined();
-  expect(bWall).toBeDefined();
-  const definition = scene.readComponent(aWall.id).props!.definition as any;
-  definition.support.params.height = 10;
-  scene.updateComponent(aWall.id, { definition });
-  expect((scene.readComponent(bWall.id).props!.definition as any).support.params.height).toBe(9);
+  // A house's walls take their height from the group's shared house.
+  const group = (root: string) =>
+    scene.queryComponents({ type: "BuildingGroupComponent" }).find((c) => c.id.includes(root))!;
+  const height = (sceneEdit: RuntimeSceneEdit, id: string) =>
+    (sceneEdit.readComponent(id).props!.definition as any).shared.house.height;
+  const aGroup = group(a.id),
+    bGroup = group(b.id);
+  expect(aGroup).toBeDefined();
+  expect(bGroup).toBeDefined();
+  const definition = scene.readComponent(aGroup.id).props!.definition as any;
+  definition.shared.house.height = 10;
+  scene.updateComponent(aGroup.id, { definition });
+  expect(height(scene, bGroup.id)).toBe(9);
   // The exact tool output is accepted; no repair of asset/root or copied parts.
   expect(edit.read("Tower.prefab")).toBe(result.content);
   const undo = edit.captureUndo(original);
@@ -132,9 +133,10 @@ it("creates generated Prefabs through the editor and persists isolated instance 
   expect(() => compileProjectResource(saved, "Main.scene")).not.toThrow();
   const reloaded = new RuntimeProjectEdit(JSON.parse(JSON.stringify(saved)), formats);
   const restoredScene = new RuntimeSceneEdit(reloaded, "Main.scene");
-  expect(restoredScene.queryComponents({ type: "BuildingPartComponent" })).toHaveLength(4);
-  expect((restoredScene.readComponent(aWall.id).props!.definition as any).support.params.height).toBe(10);
-  expect((restoredScene.readComponent(bWall.id).props!.definition as any).support.params.height).toBe(9);
+  const parts = European.buildTower({ id: "tower", height: 9, circle: { center: [0, 0], radius: 2.5, phase: 0 } }).parts;
+  expect(restoredScene.queryComponents({ type: "BuildingPartComponent" })).toHaveLength(2 * parts.length);
+  expect(height(restoredScene, aGroup.id)).toBe(10);
+  expect(height(restoredScene, bGroup.id)).toBe(9);
   reloaded.restore(undo);
   const undone = reloaded.finish();
   expect(undone.contents).toEqual(original.contents);

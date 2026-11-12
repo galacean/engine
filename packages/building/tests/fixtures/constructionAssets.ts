@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { BufferMesh, Texture2D, Texture2DArray, TextureCube, MeshRenderer } from "@galacean/engine-core";
 import { PrefabResource, parseBufferMeshData, parseTexturePixelsData } from "@galacean/engine-loader";
-import { buildingAssets, BuildingAssetKitComponent, BuildingUnitComponent, BuildingAssemblyComponent } from "../../src/building/resources/BuildingAssetKit";
+import { buildingAssets, BuildingAssetKitComponent, BuildingUnitComponent, BuildingAssemblyComponent, BuildingPrefabComponent, BuildingUnitMemberComponent } from "../../src/building/resources/BuildingAssetKit";
 const root=process.env.BUILDING_TEST_ASSETS ?? fileURLToPath(new URL("../../src/building/assets/native/", import.meta.url)),prefix="Building/Units/";
 const json=(path:string)=>JSON.parse(readFileSync(root+path.slice(prefix.length),"utf8"));
 /** CPU tests replace GPU allocation only. Inputs and native decoding are the same
@@ -24,6 +24,11 @@ export function constructionAssets(editMesh?:(path:string,bytes:Uint8Array)=>Uin
       const {data}=parseTexturePixelsData(Uint8Array.from(readFileSync(root+path.slice(prefix.length))).buffer);
       value=Object.create((data.dimension==="cube"?TextureCube:data.dimension==="2d-array"?Texture2DArray:Texture2D).prototype);
       for(const [key,v] of Object.entries({width:data.width,height:data.height,length:data.layers,isSRGBColorSpace:data.srgb}))Object.defineProperty(value,key,{value:v});
+    }else if(path.endsWith(".ktx2")){
+      // KTX2 header: pixelWidth, pixelHeight at 20/24, layerCount at 32 (above 0 declares an array), faceCount at 36.
+      const bytes=readFileSync(root+path.slice(prefix.length)),layers=bytes.readUInt32LE(32);
+      value=Object.create((bytes.readUInt32LE(36)===6?TextureCube:layers>0?Texture2DArray:Texture2D).prototype);
+      for(const [key,v] of Object.entries({width:bytes.readUInt32LE(20),height:bytes.readUInt32LE(24),length:layers||1}))Object.defineProperty(value,key,{value:v});
     }else if(path.endsWith(".mat")){
       const material=json(path),shader=json(material.shaderRef.url);
       value={instanceId:cache.size+1,shader:{subShaders:[{passes:[{_vertexShaderInstructions:shader.subShaders[0].passes[0].vertexShaderInstructions,
@@ -38,10 +43,10 @@ export function constructionAssets(editMesh?:(path:string,bytes:Uint8Array)=>Uin
         Quaternion.rotationEuler(rotation.x*Math.PI/180,rotation.y*Math.PI/180,rotation.z*Math.PI/180,q);
         Matrix.affineTransformation(scale,q,vector(e.position,[0,0,0]),local);Matrix.multiply(parent,local,world);
         return {name:e.name,isActive:e.isActive!==false,transform:{localMatrix:local,worldMatrix:world,scale},children:(e.children??[]).map((id:string)=>instantiate(id,world)),getComponent(type:unknown){
-          const name=type===BuildingAssetKitComponent?"BuildingAssetKitComponent":type===BuildingUnitComponent?"BuildingUnitComponent":type===BuildingAssemblyComponent?"BuildingAssemblyComponent":type===MeshRenderer?"MeshRenderer":"";
+          const name=type===BuildingAssetKitComponent?"BuildingAssetKitComponent":type===BuildingUnitComponent?"BuildingUnitComponent":type===BuildingAssemblyComponent?"BuildingAssemblyComponent":type===BuildingPrefabComponent?"BuildingPrefabComponent":type===BuildingUnitMemberComponent?"BuildingUnitMemberComponent":type===MeshRenderer?"MeshRenderer":"";
           const config=members.find((c:any)=>c.type===name);if(!config)return null;
           if(type===MeshRenderer)return {enabled:config.props?.enabled!==false,mesh:native(config.props.mesh.$ref),getMaterial:()=>native(config.calls[0].args[0].$ref)};
-          return {enabled:true,assemblies:{},family:"",instanceStride:0,directInstances:false,bindings:{},attributeLocations:{},integerAttributes:[],textureSlots:{},doubleSided:false,lodMesh:null,sdfMaterial:null,stoneFrame:null,attachment:"body",surfaceKind:0,...resolve(config.props)};
+          return {enabled:true,assemblies:{},family:"",instanceStride:0,directInstances:false,bindings:{},attributeLocations:{},integerAttributes:[],textureSlots:{},doubleSided:false,lodMesh:null,sdfMaterial:null,stoneFrame:null,attachment:"body",surfaceKind:0,eaveOut:0,eaveOutCurved:0,sizeMembers:[],roofProfile:[],onTimber:null,unit:null,span:null,...resolve(config.props)};
         },destroy(){}};
       };
       value=Object.create(PrefabResource.prototype);

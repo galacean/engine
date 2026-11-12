@@ -1,32 +1,32 @@
-import { registerWaterContentRestorer } from "../resources/WaterContentRestorer";
-import { registerWaterMeshContentRestorer } from "../resources/WaterMeshContentRestorer";
 import {
-  VertexAttribute,
-  type Engine,
-  type Entity,
   Material,
   MeshRenderer,
   ModelMesh,
   Script,
   Shader,
   Texture2D,
-  TextureFormat,
   TextureFilterMode,
+  TextureFormat,
   TextureWrapMode,
   Vector2,
   Vector3,
-  Vector4
+  Vector4,
+  VertexAttribute,
+  type Engine,
+  type Entity
 } from "@galacean/engine";
 import {
-  WATER_CONTACT_EFFECT_KINDS,
   resolveWaterContactEffectsLook,
+  WATER_CONTACT_EFFECT_KINDS,
   type WaterContactEffectsLook
 } from "../../authoring/effects/WaterContactEffectsLook";
+import shaderSource from "../../shaders/effects/WaterContactEffects.shader?raw";
 import { createWaterSurfaceSample, type WaterSurfaceProvider } from "../query/WaterSurfaceProvider";
 import { destroyWaterOwnedMesh } from "../resources/destroyWaterOwnedMesh";
+import { registerWaterContentRestorer } from "../resources/WaterContentRestorer";
+import { registerWaterMeshContentRestorer } from "../resources/WaterMeshContentRestorer";
 import { waterContactEffectActivation, type WaterContactEffectSource } from "./WaterContactEffectSource";
 import { createWaterContactSurfaceMask, WATER_CONTACT_MASK_SIZE } from "./WaterContactSurfaceMask";
-import shaderSource from "../../shaders/effects/WaterContactEffects.shader?raw";
 
 /** Generic visual consumer of a published water provider. Never mutates water or terrain. */
 export class WaterContactEffects {
@@ -49,7 +49,6 @@ export class WaterContactEffects {
   private destroyed = false;
   private fixedTime?: number;
   private visible = true;
-  private activeCount = 0;
   constructor(
     private readonly engine: Engine,
     parent: Entity,
@@ -195,18 +194,8 @@ export class WaterContactEffects {
     this.visible = visible;
     this.update();
   }
-  get metrics() {
-    return {
-      emitterCount: this.emitters.length,
-      activeEmitterCount: this.activeCount,
-      particleCapacity: this.emitters.length * 24,
-      time: this.fixedTime ?? this.engine.time.elapsedTime,
-      destroyed: this.destroyed
-    };
-  }
   private update() {
     if (this.destroyed) return;
-    this.activeCount = 0;
     const time = this.fixedTime ?? this.engine.time.elapsedTime;
     for (const emitter of this.emitters) {
       const { source, entity, material } = emitter;
@@ -223,7 +212,6 @@ export class WaterContactEffects {
         : 0;
       entity.isActive = activation > 0;
       if (!entity.isActive) continue;
-      this.activeCount++;
       this.origin.copyFrom(this.sample.surfacePosition);
       this.origin.x += source.offset[0];
       this.origin.y += source.offset[1];
@@ -265,7 +253,6 @@ export class WaterContactEffects {
   destroy() {
     if (this.destroyed) return;
     this.destroyed = true;
-    this.activeCount = 0;
     this.root.destroy();
     this.emitters.forEach((e) => {
       e.material.destroy();

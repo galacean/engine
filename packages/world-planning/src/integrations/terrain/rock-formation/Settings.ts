@@ -1,49 +1,41 @@
 import type { PlanningComponentDefinition } from "../../../spatial/PlanningComponents.ts";
 import type { PlanningDocument } from "../../../spatial/PlanningDocument.ts";
 import { ComponentRegistry, resolveComponent } from "../../../spatial/SpatialDocument.ts";
-import { defaultSlabSettings, type SlabSettings } from "@galacean/engine-terrain/rock-formation/SlabSettings";
-import type { NoiseSettings } from "@galacean/engine-terrain/rock-formation/PerlinNoise";
-import type { CellularCurvatureSettings } from "@galacean/engine-terrain/rock-formation/CellularCurvature";
-import {
-  DEFAULT_ROCK_HEIGHT_MODE,
-  DEFAULT_ROCK_HEIGHT_VARIATION,
-  type RockSurfaceMode
-} from "@galacean/engine-terrain/rock-formation/types";
+import { DEFAULT_ROCK_HEIGHT_MODE, DEFAULT_ROCK_HEIGHT_VARIATION } from "@galacean/engine-terrain/rock-formation/types";
 import { DEFAULT_ROCK_SLOPE_VARIATION } from "@galacean/engine-terrain/rock-formation/Slope";
 import { readRockColorBlend, ROCK_COLOR_FIELDS, type RockColorBlend } from "./ColorPalette.ts";
 
-export type { RockSurfaceMode } from "@galacean/engine-terrain/rock-formation/types";
-export const DEFAULT_ROCK_SURFACE_MODE: RockSurfaceMode = "vertex-slabs";
-export const DEFAULT_ROCK_TEXTURE_SCALE = 60;
-/** Both surfaces consume each OBB's selected ascent or ascent-masked Perlin guide. */
+/** Zero selects a world-space repeat of half the longest published OBB dimension. */
+export const DEFAULT_ROCK_TEXTURE_SCALE = 0;
+export const ROCK_SHAPE_DEFAULTS = {
+  topScale: 1,
+  bottomScale: 0.95,
+  shoulderScale: 0.95,
+  shoulderHeight: 0.5,
+  topRoughness: 0.65,
+  topSlope: 15,
+  wallCount: 14,
+  wallOverlap: 0.65,
+  wallProtrusion: 1,
+  wallLength: 2.35,
+  wallTilt: 30,
+  wallStrength: 0.92,
+  outlineIrregularity: 0.6
+};
 export interface RockFormationSettings {
-  surfaceMode: RockSurfaceMode;
-  /** Painted-rock texture repeat size in metres; does not change geometry. */
   textureScale: number;
-  /** Single linear RGB multiplier for the grayscale rock texture. */
   colorBlend: RockColorBlend;
-  perlin: NoiseSettings & { maskPower: number };
-  slabs: SlabSettings;
-  curvature: CellularCurvatureSettings;
+  shape: typeof ROCK_SHAPE_DEFAULTS & { topDirection?: number };
+  /** Sparse, independently authored shapes; resolved only for the requested rock. */
+  overrides?: Record<string, Partial<typeof ROCK_FORMATION_DEFAULTS> & { topDirection?: number }>;
+  variation: number;
+  targetTriangles: number;
 }
 export const ROCK_FORMATION_DEFAULTS = {
-  noiseSeed: 18,
-  frequency: 4,
-  octaves: 5,
-  lacunarity: 2,
-  persistence: 0.5,
-  maskPower: 1,
-  slabSeed: 17,
-  slabSize: 28,
-  slabCoverage: 0.65,
-  slabDepth: 2,
-  slabVariation: 0.85,
-  cellSize: 24,
-  cellInset: 0.35,
-  cellDepth: 0.6,
-  cellDetail: 0.2,
-  cellCoverage: 1,
-  textureScale: DEFAULT_ROCK_TEXTURE_SCALE
+  ...ROCK_SHAPE_DEFAULTS,
+  textureScale: DEFAULT_ROCK_TEXTURE_SCALE,
+  variation: 0.65,
+  targetTriangles: 1000
 };
 const field = (
   key: keyof typeof ROCK_FORMATION_DEFAULTS,
@@ -51,61 +43,50 @@ const field = (
   min: number,
   max: number,
   step: number,
-  integer = false
-) => ({ key, label, type: "number" as const, min, max, step, integer, default: ROCK_FORMATION_DEFAULTS[key] });
+  unit?: string
+) => ({ key, label, type: "number" as const, min, max, step, unit, default: ROCK_FORMATION_DEFAULTS[key] });
 export const ROCK_FORMATION_COMPONENT: PlanningComponentDefinition = {
   type: "rockFormation",
-  label: "Rock surface & Perlin / 岩石表面与 Perlin 参数",
+  label: "Procedural rocks / 程序化岩石",
   version: 1,
   tab: "world",
   sparseGlobal: true,
   presentation: true,
   description:
-    "各 OBB 独立选择高度生成和表面形变；未指定表面的 OBB 使用这里的默认表面。Perlin、顶点岩层和蜂窝曲率的细节参数共享。纹理尺寸以米计，仅改变绘制岩石材质。",
+    "所有岩石共用受约束轮廓、连续岩肩与切削生成器。仅改变 OBB 内部造型，布局和尺寸不变；同种子及对象身份可重复生成。",
   fields: [
+    field("topScale", "Top section / 顶部截面范围", 0.08, 1, 0.01),
+    field("bottomScale", "Bottom section / 底部截面范围", 0, 1, 0.01),
+    field("shoulderScale", "Shoulder width / 肩部宽度", 0.08, 1, 0.01),
+    field("shoulderHeight", "Shoulder height / 肩部高度", 0.15, 0.9, 0.01),
+    field("topRoughness", "Top relief / 顶部起伏", 0, 1, 0.01),
+    field("topSlope", "Top inclination / 顶部倾斜", 0, 75, 1, "°"),
     {
-      key: "surfaceMode",
-      label: "Default rock surface / 默认岩石表面",
-      type: "string",
-      default: DEFAULT_ROCK_SURFACE_MODE,
-      options: ["vertex-slabs", "cellular-curvature"],
-      optionLabels: {
-        "vertex-slabs": "Vertex-defined slabs / 顶点定义岩层",
-        "cellular-curvature": "Cellular curvature · rock faces / 蜂窝曲率·岩面"
-      }
-    },
-    field("noiseSeed", "Perlin seed / Perlin 种子", 0, 0xffffffff, 1, true),
-    field("frequency", "Perlin frequency / Perlin 频率", 0.25, 32, 0.25),
-    field("octaves", "Perlin octaves / Perlin 层数", 1, 8, 1, true),
-    field("lacunarity", "Lacunarity / 频率倍率", 1, 4, 0.1),
-    field("persistence", "Persistence / 振幅衰减", 0, 1, 0.05),
-    field("maskPower", "Ascent mask power / 上升遮罩指数", 0.1, 8, 0.1),
-    field("slabSeed", "Slab vertex seed / 岩层顶点种子", 0, 0xffffffff, 1, true),
-    field("slabSize", "Slab size / 岩层尺寸 (m)", 2, 120, 1),
-    field("slabCoverage", "Slab coverage / 岩层覆盖", 0, 1, 0.05),
-    field("slabDepth", "Slab deformation depth / 岩层形变深度 (m)", 0.1, 20, 0.1),
-    field("slabVariation", "Slab variation / 岩层变化", 0, 1, 0.05),
-    { ...field("cellSize", "Cell size / 蜂窝尺寸 (m)", 4, 80, 1), unit: "m" },
-    field("cellInset", "Cell inset / 蜂窝内缩", 0, 1, 0.05),
-    field("cellDepth", "Cell depth multiplier / 蜂窝深度倍率", 0.1, 2, 0.1),
-    field("cellDetail", "Cell detail multiplier / 蜂窝细节倍率", 0, 2, 0.1),
-    field("cellCoverage", "Cell coverage / 蜂窝覆盖", 0, 1, 0.05),
-    {
-      key: "textureScale",
-      label: "Texture scale / 纹理尺寸 (m)",
+      key: "topDirection",
+      label: "Top direction / 顶部坡向",
       type: "number",
-      unit: "m",
-      default: DEFAULT_ROCK_TEXTURE_SCALE,
       min: 0,
+      max: 360,
       step: 1,
-      affectsLayout: false
+      unit: "°",
+      description: "未指定时按 Seed 生成坡向；指定后使用 OBB 内的固定方向。"
     },
-    ...ROCK_COLOR_FIELDS
-  ],
-  validate(values) {
-    if (values.textureScale !== undefined && !(Number(values.textureScale) > 0))
-      throw new Error("Rock texture scale must be positive / 岩石纹理尺寸必须大于 0");
-  }
+    field("outlineIrregularity", "Outline variation / 整体轮廓变化", 0, 1, 0.01),
+    field("wallCount", "Wall contours / 岩壁组合轮廓数", 4, 28, 1),
+    field("wallOverlap", "Face width / 岩块横向宽度", 0, 1, 0.01),
+    field("wallProtrusion", "Shoulder relief / 岩块伸出高度", 0, 1, 0.01),
+    field("wallLength", "Face length / 岩块纵向长度", 0.5, 3, 0.05),
+    field("wallTilt", "Face inclination / 岩块倾斜", -35, 35, 1, "°"),
+    field("wallStrength", "Cut strength / 切削强度", 0, 1, 0.01),
+    field("variation", "Per-rock variation / 单石变化范围", 0, 1, 0.01),
+    field("targetTriangles", "Triangles per rock / 单石目标面数", 500, 10000, 100),
+    {
+      ...field("textureScale", "Texture repeat / 纹理平铺米数（0 自动）", 0, 2048, 1, "m"),
+      affectsLayout: false,
+      kinds: ["world"]
+    },
+    ...ROCK_COLOR_FIELDS.map((field) => ({ ...field, kinds: ["world"] }))
+  ]
 };
 export const ROCK_OBB_COMPONENT: PlanningComponentDefinition = {
   type: "rockObb",
@@ -185,39 +166,39 @@ export function readRockFormationSettings(document: PlanningDocument): RockForma
   const values = document.entities.world?.components.rockFormation
     ? resolveComponent(document, "world", "rockFormation", rockFormationRegistry).values
     : {};
-  const d = ROCK_FORMATION_DEFAULTS;
-  const read = (key: keyof typeof d) => Number(values[key] ?? d[key]);
+  const read = (key: keyof typeof ROCK_FORMATION_DEFAULTS) => Number(values[key] ?? ROCK_FORMATION_DEFAULTS[key]);
   return {
-    surfaceMode: (values.surfaceMode ?? DEFAULT_ROCK_SURFACE_MODE) as RockSurfaceMode,
     textureScale: read("textureScale"),
     colorBlend: readRockColorBlend(values),
-    perlin: {
-      seed: read("noiseSeed"),
-      frequency: read("frequency"),
-      octaves: read("octaves"),
-      lacunarity: read("lacunarity"),
-      persistence: read("persistence"),
-      maskPower: read("maskPower")
+    shape: {
+      ...(Object.fromEntries(
+        Object.keys(ROCK_SHAPE_DEFAULTS).map((key) => [key, read(key as keyof typeof ROCK_SHAPE_DEFAULTS)])
+      ) as typeof ROCK_SHAPE_DEFAULTS),
+      ...(values.topDirection !== undefined ? { topDirection: Number(values.topDirection) } : {})
     },
-    slabs: {
-      ...defaultSlabSettings(),
-      seed: read("slabSeed"),
-      size: read("slabSize"),
-      coverage: read("slabCoverage"),
-      depth: read("slabDepth"),
-      variation: read("slabVariation")
-    },
-    curvature: {
-      cellSize: read("cellSize"),
-      inset: read("cellInset"),
-      depth: read("cellDepth"),
-      detail: read("cellDetail"),
-      coverage: read("cellCoverage")
-    }
+    overrides: Object.fromEntries(
+      Object.values(document.entities).flatMap((entity) => {
+        if (entity.id === "world" || !entity.components.rockFormation) return [];
+        const resolved = resolveComponent(document, entity.id, "rockFormation", rockFormationRegistry);
+        return [
+          [
+            entity.id,
+            Object.fromEntries(
+              Object.entries(resolved.values).filter(
+                ([key]) =>
+                  resolved.sources[key]?.some((source) => source !== "world") &&
+                  (key in ROCK_SHAPE_DEFAULTS || ["topDirection", "variation", "targetTriangles"].includes(key))
+              )
+            )
+          ]
+        ];
+      })
+    ),
+    variation: read("variation"),
+    targetTriangles: read("targetTriangles")
   };
 }
-
-/** Material edits must not invalidate worker meshes or building-support geometry. */
+/** Material edits retain geometry, collision and worker caches. */
 export function rockGeometrySettings(
   settings: RockFormationSettings
 ): Omit<RockFormationSettings, "textureScale" | "colorBlend"> {
@@ -228,3 +209,18 @@ export function rockGeometrySettings(
 export const rockFormationRegistry = new ComponentRegistry();
 rockFormationRegistry.register(ROCK_FORMATION_COMPONENT);
 rockFormationRegistry.register(ROCK_OBB_COMPONENT);
+
+/** A job is one editable OBB. Local shape edits cannot invalidate its siblings' caches. */
+export function rockSettingsForJob(settings: RockFormationSettings, id: string): RockFormationSettings {
+  const ownerEnd = id.lastIndexOf(":obb:");
+  const owner = ownerEnd < 0 ? id : id.slice(0, ownerEnd);
+  const patch = { ...settings.overrides?.[owner], ...settings.overrides?.[id] };
+  const { variation, targetTriangles, ...shape } = patch;
+  const { overrides: _overrides, ...base } = settings;
+  return {
+    ...base,
+    shape: { ...base.shape, ...shape },
+    variation: variation ?? base.variation,
+    targetTriangles: targetTriangles ?? base.targetTriangles
+  };
+}

@@ -1,7 +1,7 @@
 import animalTypes from "../planning-data/animal-types.json";
 import { WORLD_TEMPLATE_ART } from "./WorldTemplateArtDirection";
 import { spatialCompositionParameters } from "./SpatialCompositionParameters";
-import { templateBaseSeed } from "./WorldTemplateCatalog";
+import { templateBaseSeed, templateLinearColor } from "./WorldTemplateCatalog";
 import { defaultPoiLayout } from "../semantic-study/PoiDistribution";
 import { isGlobalRoadId } from "./layout/RoadIdentity";
 import type { SemanticRecipe, SemanticEdit } from "../semantic-study/WorldPlanningContract";
@@ -9,7 +9,7 @@ import type { IslandPlan } from "../semantic-study/IslandPlanModel";
 import { PLANNING_COMPONENTS, planningRegistry } from "./PlanningComponents";
 import { resolveComponent, type SpatialDocument, type SpatialEntity, type SpatialComponent } from "./SpatialDocument";
 import { validatePlanningResources, type PlanningResource } from "./PlanningResources";
-import { normalizePlantMaterialFields } from "./PlantMaterialParameters";
+import { normalizePlantMaterialFields, PLANT_MATERIAL_SLOTS, plantMaterialField } from "./PlantMaterialParameters";
 import { retireRockPaletteFields } from "../integrations/terrain/rock-formation/ColorPalette.ts";
 import type { LegacyFlowerContext } from "./ecology/FlowerInfluences";
 import {
@@ -441,6 +441,84 @@ export function upgradePlanningDocument(input: PlanningDocument): PlanningDocume
           ...(typeof legacy?.centerZ === "number" ? { centerZ: legacy.centerZ } : {})
         })
       };
+    const composition = world.landscapeComposition;
+    if (
+      id === "sakura-pearl" &&
+      composition &&
+      !composition.base &&
+      composition.values.treeSpeciesGroup === undefined
+    ) {
+      // Earlier Sakura documents materialized the single-tree template default.
+      // Preserve different authored asset choices and subsequent saved values.
+      const previousTree = "SM_BirchTree_01";
+      if (composition.values.treeAssetId === previousTree) composition.values.treeAssetId = "";
+      for (const key of ["treeSpeciesGroup", "treeHorizontalScale", "rearReliefM", "rearReliefDepthM"] as const)
+        composition.values[key] ??= preset[key];
+
+      const materials = world.plantMaterial;
+      const art = WORLD_TEMPLATE_ART[id];
+      const landscape = world.landscape;
+      if (
+        landscape &&
+        !landscape.base &&
+        landscape.values.treeHeightMinM === 7 &&
+        landscape.values.treeHeightMaxM === 16
+      ) {
+        landscape.values.treeHeightMinM = art.landscape?.treeHeightMinM;
+        landscape.values.treeHeightMaxM = art.landscape?.treeHeightMaxM;
+      }
+      const light = world.lighting;
+      if (light && !light.base && light.values.fogDensity === 0.0002 && light.values.fogExponent === undefined) {
+        light.values.fogDensity = art.lighting.fogDensity;
+        light.values.fogExponent = art.lighting.fogExponent;
+      }
+      const weather = world.weather;
+      if (weather && !weather.base)
+        for (const key of ["cloudBaseAltitudeM", "cloudFeatureSize"] as const)
+          weather.values[key] ??= art.weather?.[key];
+      if (materials && !materials.base && art.grass && !composition.values.treeAssetId) {
+        const colors = normalizePlantMaterialFields(materials.values);
+        for (const slot of PLANT_MATERIAL_SLOTS) {
+          if (slot.assetId === previousTree || !slot.layers.includes("trees")) continue;
+          const swatch = art.plantPalette?.slots?.[slot.assetId]?.[slot.materialId];
+          if (!swatch) continue;
+          const channels = ["r", "g", "b"] as const;
+          const fields = channels.map((channel) => plantMaterialField(slot.assetId, slot.materialId, channel));
+          const priorColor = slot.role === "leaf" ? (art.treeFoliage?.[slot.assetId] ?? art.foliage) : art.bark;
+          if (!priorColor) continue;
+          const prior = templateLinearColor(priorColor);
+          if (!fields.every((field, index) => colors[field] === prior[index])) continue;
+          const rgb = templateLinearColor(swatch.color);
+          fields.forEach((field, index) => {
+            const shared = plantMaterialField(previousTree, slot.materialId, channels[index]);
+            colors[field] = colors[shared] ?? rgb[index] * swatch.intensity;
+          });
+        }
+        materials.values = colors;
+      }
+    }
+    if (id === "sakura-pearl" && composition && !composition.base && composition.values.bankReliefM === undefined) {
+      for (const key of ["bankReliefM", "subjectTerraceHeightM", "subjectTerraceRadiusM"] as const)
+        composition.values[key] ??= preset[key];
+      const landscape = world.landscape;
+      const art = WORLD_TEMPLATE_ART[id];
+      if (landscape && !landscape.base) {
+        const values = landscape.values;
+        if (values.treeHeightMinM === 10 && values.treeHeightMaxM === 19) Object.assign(values, art.landscape);
+        if (values["plantSizes.shrubs.scaleMin"] === 0.18 && values["plantSizes.shrubs.scaleMax"] === 0.35)
+          for (const key of ["plantSizes.shrubs.scaleMin", "plantSizes.shrubs.scaleMax"])
+            values[key] = art.initialLandscape?.[key];
+      }
+    }
+    // Saved routes must not retain a destination whose template model was removed.
+    const destination = composition?.values.destinationId;
+    if (
+      composition &&
+      typeof destination === "string" &&
+      destination &&
+      !WORLD_TEMPLATE_ART[id].models.some((model) => model.id === destination)
+    )
+      composition.values.destinationId = preset.destinationId ?? "";
     // Retire only resources owned by this template's former instance-table contract.
     scope.authoredResources = scope.authoredResources?.filter(
       (resource) =>

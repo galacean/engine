@@ -22,6 +22,15 @@ export const SPATIAL_COMPOSITION_DEFAULTS = {
   bankWidthM: 7,
   leftReliefM: 0,
   rightReliefM: 0,
+  reliefSurface: "terrain",
+  reliefBandWidthM: 0,
+  reliefFrontDepthM: 0,
+  bankReliefM: 0,
+  rearReliefM: 0,
+  rearReliefDepthM: 0,
+  reliefInnerHeightRatio: 0,
+  reliefFrontHeightRatio: 0,
+  reliefTreeDensity: 0,
   terraceStepHeightM: 20,
   terraceTreadM: 32,
   cliffSharpness: 1,
@@ -29,7 +38,11 @@ export const SPATIAL_COMPOSITION_DEFAULTS = {
   waterfallWidthM: 0,
   treeSpacingM: 0,
   treeBandWidthM: 18,
+  treeHorizontalScale: 1,
+  treeSpeciesGroup: "",
   treeAssetId: "",
+  subjectTerraceHeightM: 0,
+  subjectTerraceRadiusM: 0,
   rockSpacingM: 0,
   rockWidthM: 6,
   rockDepthM: 5,
@@ -75,6 +88,15 @@ const labels: Record<keyof SpatialCompositionParameters, string> = {
   bankWidthM: "道路与水岸间距",
   leftReliefM: "左侧岩台总高",
   rightReliefM: "右侧岩台总高",
+  reliefSurface: "岩台生成方式",
+  reliefBandWidthM: "岩壁带宽（0 自动）",
+  reliefFrontDepthM: "岩壁向前伸出距离",
+  bankReliefM: "近岸岩台高差（0 关闭）",
+  rearReliefM: "后景岩台总高（0 关闭）",
+  rearReliefDepthM: "后景岩台进深（0 关闭）",
+  reliefInnerHeightRatio: "岩壁内缘高度比例",
+  reliefFrontHeightRatio: "岩壁前缘高度比例",
+  reliefTreeDensity: "岩台树木密度",
   terraceStepHeightM: "岩台单级高度",
   terraceTreadM: "岩台单级进深",
   cliffSharpness: "岩台边缘锐度",
@@ -82,7 +104,11 @@ const labels: Record<keyof SpatialCompositionParameters, string> = {
   waterfallWidthM: "高岸落水宽度（0 关闭）",
   treeSpacingM: "沿岸树间距（0 关闭）",
   treeBandWidthM: "沿岸植被带宽",
-  treeAssetId: "乔木资产 ID（空为自然物种）",
+  treeHorizontalScale: "岸边乔木横向缩放",
+  treeSpeciesGroup: "乔木物种组（空为全部自然物种）",
+  treeAssetId: "指定乔木资产 ID（空为按物种组选取）",
+  subjectTerraceHeightM: "主体台地高度（0 关闭）",
+  subjectTerraceRadiusM: "主体台地半径（0 关闭）",
   rockSpacingM: "岸石间距（0 关闭）",
   rockWidthM: "岸石宽度",
   rockDepthM: "岸石进深",
@@ -106,12 +132,19 @@ const positive = new Set([
   "bankWidthM",
   "terraceStepHeightM",
   "terraceTreadM",
+  "treeHorizontalScale",
   "rockWidthM",
   "rockDepthM",
   "rockHeightM",
   "basinDepthM"
 ]);
-const ratios = new Set(["cliffSharpness", "terrainRoughness"]);
+const ratios = new Set([
+  "cliffSharpness",
+  "terrainRoughness",
+  "reliefInnerHeightRatio",
+  "reliefFrontHeightRatio",
+  "reliefTreeDensity"
+]);
 export const SPATIAL_COMPOSITION_COMPONENT: PlanningComponentDefinition = {
   type: "landscapeComposition",
   label: "景观布局生成",
@@ -129,13 +162,13 @@ export const SPATIAL_COMPOSITION_COMPONENT: PlanningComponentDefinition = {
       ? {
           unit: key.endsWith("Degrees")
             ? "°"
-            : ratios.has(key) || key.endsWith("Ratio")
+            : ratios.has(key) || key.endsWith("Ratio") || key === "treeHorizontalScale"
               ? "比例"
               : key === "seed"
                 ? "整数"
                 : "m",
           integer: key === "seed",
-          step: key.endsWith("Ratio") || ratios.has(key) ? 0.05 : 1,
+          step: key.endsWith("Ratio") || ratios.has(key) || key === "treeHorizontalScale" ? 0.05 : 1,
           min: ["centerX", "centerZ", "headingDegrees"].includes(key)
             ? undefined
             : positive.has(key)
@@ -145,7 +178,10 @@ export const SPATIAL_COMPOSITION_COMPONENT: PlanningComponentDefinition = {
         }
       : {}),
     ...(key === "subjectSide" ? { options: ["left", "right", "both"] } : {}),
-    ...(key === "primaryPattern" ? { options: ["row", "depth"] } : {})
+    ...(key === "primaryPattern" ? { options: ["row", "depth"] } : {}),
+    ...(key === "reliefSurface"
+      ? { options: ["terrain", "rocks"], optionLabels: { terrain: "地形台地", rocks: "程序化岩石" } }
+      : {})
   })),
   global: Object.fromEntries(
     Object.keys(SPATIAL_COMPOSITION_DEFAULTS).map((key) => [key, "spatialComposition." + key])
@@ -154,6 +190,7 @@ export const SPATIAL_COMPOSITION_COMPONENT: PlanningComponentDefinition = {
     const q = spatialCompositionParameters(values as Partial<SpatialCompositionParameters>);
     if (q.subjectArcDegrees >= 180) throw new Error("附属资产展开角须小于 180 度");
     if (!Number.isSafeInteger(q.seed) || q.seed > 0xffffffff) throw new Error("布局 Seed 须为 32 位无符号整数");
+    if (!["terrain", "rocks"].includes(q.reliefSurface)) throw new Error("未知岩台生成方式");
   }
 };
 export const SPATIAL_COMPOSITION_DECLARATION: PlanningSystemDeclaration = {

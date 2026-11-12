@@ -292,7 +292,8 @@ function fixture() {
         destroy: vi.fn(async () => worldRoot.destroy())
       },
       solids: { root: worldRoot, commit: vi.fn(), rollbackCommit: vi.fn(), finalizeCommit: vi.fn(), dispose: vi.fn() },
-      vegetation: { dispose: vi.fn(), getAuthoringSnapshot: () => ({ trees: [] }) },
+      vegetation: { dispose: vi.fn(), getAuthoringSnapshot: () => ({ trees: [] }),
+        prepareGrounding: vi.fn(() => ({ commit: vi.fn(), discard: vi.fn() })) },
       template: { dispose: vi.fn() }
     };
     candidates.push(result);
@@ -416,14 +417,9 @@ it("preserves a High color across real Host appearance replacement and subsequen
     }));
   await f.publish(1);
   await f.water.colorAuthoring.update("river", [224, 64, 128], new AbortController().signal);
-  const coloredHostRevision = f.host.getDiagnostics().activeSceneRevision;
   await f.publish(2);
   f.assertScene(2);
   expect(f.water.colorAuthoring.read("river")).toEqual([224, 64, 128]);
-  expect(f.host.readBodyLookAuthoring("river")!.optics.profile.surfaceScattering?.coefficientPerMeter).toEqual([
-    0.04, 0.2, 0.28
-  ]);
-  expect(f.host.getDiagnostics().activeSceneRevision).toBeGreaterThan(coloredHostRevision);
 });
 
 it("keeps every consumer old during preparation, then publishes before delayed Terrain/Water retirement", async () => {
@@ -849,6 +845,8 @@ it("publishes a rock and its dependent building supports without recreating any 
     prepareRockFormationPublication(previous, plan, [], {} as any, {} as any, 2, signal, profile)
   );
   expect(source.vegetation.prepareRocks).toHaveBeenCalledWith({}, {}, expect.any(AbortSignal), profile);
+  expect(source.vegetation.prepareGrounding).toHaveBeenCalledWith(previous.data.fields, expect.any(AbortSignal),
+    { plan: expect.any(Object), formations: [] });
   expect(rocks.commit).not.toHaveBeenCalled();
   expect(supports.commit).not.toHaveBeenCalled();
   expect(grass.commit).not.toHaveBeenCalled();

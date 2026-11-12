@@ -1,14 +1,15 @@
-import { attachmentFrameDefinition } from "./BuildingAttachmentFrame";
 import { isInGeneratedBuildingOutput } from "../BuildingGeneratedOutput";
 import { planBuildingRemoval } from "./BuildingRemoval";
 import { buildingPartKey, buildingGroupKey } from "../../runtime/BuildingObjectIdentity";
-import { Entity, Matrix, Component, Vector3, type Camera, type PrefabResource, type Scene } from "@galacean/engine";
+import { Entity, Component, Vector3, type Camera, type PrefabResource, type Scene } from "@galacean/engine";
 import { retainBuildingResource } from "../../resources/BuildingAssetKit";
 import type { TerrainHeight } from "../../runtime/PublishedWallProfile";
 import type { ConstructionTerrainSource } from "../../runtime/TerrainField";
 import { BuildingGroupComponent } from "./BuildingGroupComponent";
 import { BuildingPartComponent } from "./BuildingPartComponent";
-import { validateBuildingDraft, profileSupportGenerators, type BuildingDraft } from "./BuildingDraft";
+import { validateBuildingDraft } from "./BuildingCpu";
+import type { BuildingCoreDraft, BuildingPartDef, ConnectionDef } from "../../core";
+import { placeBuildingGroup } from "../../partTypes";
 import { BuildingRuntime, buildingInstanceKey } from "./BuildingRuntime";
 import {
   authoredBuildingMembers,
@@ -18,6 +19,8 @@ import {
   validatePartCollection
 } from "./BuildingPartCollection";
 const managers = new WeakMap<Scene, BuildingManager>();
+/** The part that stores a connection: the guest of an attach, the first part of a join. */
+const connectionStart = (c: ConnectionDef) => (c.kind === "attach" ? c.guest : c.parts[0]);
 const flatTerrain: TerrainHeight = () => 0;
 
 /** Public CRUD and author identity. One shared runtime owns group publication,
@@ -90,13 +93,14 @@ export class BuildingManager extends BuildingRuntime {
       frame: (part) => partFrame(part as BuildingPartComponent | BuildingGroupComponent),
       isBody: (part) => part instanceof BuildingGroupComponent && !!part.definition,
       kind: (part) => {
-        const d = this.list().find(
-          (p) =>
-            partFrame(p) === partFrame(part as BuildingGroupComponent) &&
-            p.definition?.group === (part as BuildingGroupComponent).definition?.id &&
-            ["wallProfile", "wallStrip"].includes(p.definition?.support.generator ?? "")
-        )?.definition;
-        return d?.support.generator === "wallProfile" ? "house" : (d?.type ?? "");
+        const types = this.list()
+          .filter(
+            (p) =>
+              partFrame(p) === partFrame(part as BuildingGroupComponent) &&
+              p.definition?.group === (part as BuildingGroupComponent).definition?.id
+          )
+          .map((p) => p.definition!.type);
+        return types.includes("wall") ? "house" : (types.sort()[0] ?? "");
       },
       groupIdentity: (part) =>
         buildingInstanceKey(
@@ -200,7 +204,7 @@ export class BuildingManager extends BuildingRuntime {
     }
     return this.identities.get(id);
   }
-  create(parent: Entity, draft: BuildingDraft): Entity {
+  create(parent: Entity, draft: BuildingCoreDraft): Entity {
     if (parent.destroyed || parent.scene !== this.entity.scene)
       throw Error("Building parent belongs to another scene or is destroyed");
     if (isInGeneratedBuildingOutput(parent)) throw Error("Cannot create author buildings under generated output");
@@ -220,7 +224,7 @@ export class BuildingManager extends BuildingRuntime {
         const part = groups.get(definition.group)!.createChild(definition.id).addComponent(BuildingPartComponent);
         part.frame = root;
         part.definition = definition;
-        part.relations = draft.relations.filter((r) => r.from.part === definition.id);
+        part.connections = (draft.connections ?? []).filter((c) => connectionStart(c) === definition.id);
       }
       parent.addChild(root);
       return root;
@@ -250,52 +254,37 @@ export class BuildingManager extends BuildingRuntime {
       authoredBuildingMembers(frame).filter((member) => partFrame(member) === frame)
     );
     const plan = planBuildingRemoval(members, requested);
-    for (const [part, relations] of plan.relations) part.relations = relations;
+    for (const [part, connections] of plan.connections) part.connections = connections;
     for (const member of plan.targets) if (!member.destroyed) member.destroy();
     if (target instanceof Entity) target.destroy();
   }
-  /** World-space authored snapshot for inspection/export. Generated cuts are absent. */
-  snapshot(frame: Entity): BuildingDraft {
+  /** World-space authored snapshot for inspection/export: each group placed by its node's
+   * world transform. Generated geometry is absent. */
+  snapshot(frame: Entity): BuildingCoreDraft {
     if (frame.destroyed || frame.scene !== this.entity.scene || isInGeneratedBuildingOutput(frame))
       throw Error("Building frame is not an authored frame in this scene");
     const authored = authoredBuildingMembers(frame).filter((p) => partFrame(p) === frame);
-    const draft: BuildingDraft = {
-      groups: authored
-        .filter((g): g is BuildingGroupComponent => g instanceof BuildingGroupComponent)
-        .map((g) => g.definition!)
-        .filter(Boolean),
+    const parts = authored.filter((p): p is BuildingPartComponent => p instanceof BuildingPartComponent);
+    const draft: {
+      groups: BuildingCoreDraft["groups"][number][];
+      parts: BuildingPartDef[];
+      connections: ConnectionDef[];
+    } = {
+      groups: [],
       parts: [],
-      relations: []
+      connections: parts.flatMap((p) => p.connections)
     };
-    const members = authored.filter((p): p is BuildingPartComponent => p instanceof BuildingPartComponent);
-    for (const part of members) {
-      const authored = part.definition;
-      if (!authored) continue;
-      const attachment =
-        authored.support.generator === "attachmentMount" ? attachmentFrameDefinition(part, members) : undefined;
-      const d = attachment?.definition ?? authored;
-      const world = (attachment?.host.entity ?? part.entity).transform.worldMatrix,
-        m = world.elements;
-      if (profileSupportGenerators.has(d.support.generator)) {
-        horizontalFrame(world);
-        const shape = d.support.params.rectangle ?? d.support.params.circle;
-        if (shape) {
-          const [x, z] = shape.center;
-          shape.center = [m[0] * x + m[8] * z + m[12], m[2] * x + m[10] * z + m[14]];
-          if (d.support.params.rectangle) shape.rotation += Math.atan2(m[2], m[0]);
-          else shape.phase += Math.atan2(m[2], m[0]);
-        }
-      } else {
-        const result = world.clone();
-        if (d.transform) {
-          const local = new Matrix();
-          local.elements.set(d.transform);
-          Matrix.multiply(result, local, result);
-        }
-        d.transform = Array.from(result.elements);
-      }
-      draft.parts.push(d);
-      draft.relations.push(...part.relations);
+    for (const group of authored.filter((g): g is BuildingGroupComponent => g instanceof BuildingGroupComponent)) {
+      if (!group.definition) continue;
+      const world = group.entity.transform.worldMatrix;
+      horizontalFrame(world);
+      const placed = placeBuildingGroup(
+        group.definition,
+        parts.flatMap((p) => (p.definition?.group === group.definition!.id ? [p.definition] : [])),
+        world.elements
+      );
+      draft.groups.push(placed.group);
+      draft.parts.push(...placed.parts);
     }
     return draft;
   }

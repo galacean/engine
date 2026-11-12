@@ -4,7 +4,6 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import {
-  whiteMasonryTexture,
   whiteMasonryVertexColors,
   srgbToLinear,
   masonryAppearance,
@@ -13,7 +12,6 @@ import {
   injectMasonryTint,
   restoreMasonryTextureSamples,
   masonryFamilyTint,
-  masonryTextureColors,
   masonryVertexTintTag
 } from "../src/building/runtime/MasonryAppearance.ts";
 import { appendDecorationRenderPackage } from "../src/building/runtime/ConstructionDecorationRender.ts";
@@ -21,39 +19,6 @@ import { injectConstructionDecorationLighting } from "../src/building/runtime/Co
 import { masonrySourcePalette, masonryColorSeed } from "../src/building/runtime/MasonryColorRules.ts";
 import { constructionPlasterFinishGLSL } from "../src/building/runtime/ConstructionPlasterShader.ts";
 import { constructionDecorationGLSL } from "../src/building/runtime/ConstructionDecorationShader.ts";
-
-test("white base preserves relative linear texture detail, layer white point and mip exposure", () => {
-  const spec = { width: 2, height: 1, layers: 2, srgb: true };
-  const source = [
-    new Uint8Array([200, 100, 50, 255, 100, 50, 25, 128, 20, 80, 160, 255, 10, 40, 80, 255]),
-    new Uint8Array([150, 75, 37, 200, 15, 60, 120, 255])
-  ];
-  const before = source.map((x) => x.slice());
-  const gray = whiteMasonryTexture(spec, source);
-  const luma = (data, i) =>
-    [0.2126, 0.7152, 0.0722].reduce((sum, weight, k) => sum + weight * srgbToLinear(data[i + k] / 255), 0);
-  for (let mip = 0; mip < source.length; mip++)
-    for (let layer = 0; layer < 2; layer++) {
-      const pixels = mip === 0 ? 2 : 1;
-      for (let p = 0; p < pixels; p++) {
-        const i = (layer * pixels + p) * 4;
-        assert.equal(gray[mip][i], gray[mip][i + 1]);
-        assert.equal(gray[mip][i], gray[mip][i + 2]);
-        assert.equal(gray[mip][i + 3], source[mip][i + 3]);
-        assert.ok(
-          Math.abs(srgbToLinear(gray[mip][i] / 255) - luma(source[mip], i) / luma(source[0], layer * 8)) < 0.005
-        );
-      }
-    }
-  assert.equal(gray[0][0], 255);
-  assert.ok(gray[0][4] < 255 && gray[0][4] > 0);
-  assert.deepEqual(source, before);
-  assert.throws(() => whiteMasonryTexture(spec, [new Uint8Array(3)]), /mip size/);
-  assert.deepEqual(
-    whiteMasonryTexture({ width: 1, height: 1, layers: 1, srgb: false }, [new Uint8Array([0, 0, 0, 255])])[0],
-    new Uint8Array([0, 0, 0, 255])
-  );
-});
 
 test("scene tint defaults to source colors, survives late subscriptions and releases consumers independently", () => {
   const scope = {},
@@ -109,10 +74,10 @@ test("merged decorations tint wood/support while retaining glass, emission and s
     parts[0].colors.slice(3, 6)
   );
   const before = structuredClone(parts);
-  for (const whiteBase of [false, true]) {
+  {
     const result = appendDecorationRenderPackage(
       {
-        package: { whiteBase, nativeAssets, programs: {}, draws: [], textures: {} },
+        package: { nativeAssets, programs: {}, draws: [], textures: {} },
         dynamicFiles: [],
         asset: async () => {
           throw Error("Unexpected asset");
@@ -122,23 +87,21 @@ test("merged decorations tint wood/support while retaining glass, emission and s
     );
     assert.equal(result.package.draws.length, 1);
     const draw = result.package.draws[0],
-      floats = draw.attributes.find(a => a.location === 0).stride / Float32Array.BYTES_PER_ELEMENT;
-    assert.equal(draw.attributes.find(a => a.location === 0).stride, floats * 4);
-    const vertices = new Float32Array(await result.asset(draw.attributes.find(a => a.location === 0).file));
+      floats = draw.attributes.find((a) => a.location === 0).stride / Float32Array.BYTES_PER_ELEMENT;
+    assert.equal(draw.attributes.find((a) => a.location === 0).stride, floats * 4);
+    const vertices = new Float32Array(await result.asset(draw.attributes.find((a) => a.location === 0).file));
     parts.forEach((part, partIndex) => {
-      const colors = whiteBase && part.tintRole ? whiteMasonryVertexColors(part.colors, part.tintMask) : part.colors;
+      const colors = part.tintRole ? whiteMasonryVertexColors(part.colors, part.tintMask) : part.colors;
       for (let i = 0; i < 3; i++) {
         const start = (partIndex * 3 + i) * floats;
         assert.deepEqual([...vertices.slice(start, start + 3)], positions.slice(i * 3, i * 3 + 3));
         assert.deepEqual([...vertices.slice(start + 3, start + 6)], normals.slice(i * 3, i * 3 + 3));
         for (let k = 0; k < 3; k++) assert.ok(Math.abs(vertices[start + 6 + k] - colors[i * 3 + k]) < 1e-6);
         assert.equal(vertices[start + 9], part.emission[i]);
-        if (whiteBase)
           assert.equal(
             vertices[start + draw.attributes.find((a) => a.location === 7).offset / 4],
             part.tintRole && part.tintMask?.[i] !== false ? masonryTintRoles.indexOf(part.tintRole) : -1
           );
-        if (whiteBase)
           for (let k = 0; k < 3; k++)
             assert.ok(
               Math.abs(
@@ -151,24 +114,6 @@ test("merged decorations tint wood/support while retaining glass, emission and s
     });
   }
   assert.deepEqual(parts, before);
-});
-
-
-
-test("neutral texture times extracted Color reconstructs a separable source, including independent layers", () => {
-  const spec = { width: 3, height: 1, layers: 2, srgb: false };
-  const source = new Uint8Array([
-    200, 100, 50, 255, 100, 50, 25, 255, 40, 20, 10, 255, 25, 75, 125, 255, 50, 150, 250, 255, 10, 30, 50, 255
-  ]);
-  const white = whiteMasonryTexture(spec, [source])[0],
-    colors = masonryTextureColors(spec, source);
-  for (let layer = 0; layer < spec.layers; layer++)
-    for (let p = 0; p < 3; p++)
-      for (let k = 0; k < 3; k++) {
-        const i = (layer * 3 + p) * 4;
-        assert.ok(Math.abs((white[i] / 255) * colors[layer * 4 + k] - source[i + k] / 255) < 1 / 255);
-      }
-  assert.notDeepEqual([...colors.slice(0, 3)], [...colors.slice(4, 7)]);
 });
 
 test("distance decoration metadata recovers neutral brightness without changing original colors", () => {
@@ -187,8 +132,6 @@ test("distance decoration metadata recovers neutral brightness without changing 
     }
 });
 
-
-
 test("resident decoration geometry stays independent of palette seed and preserves source/glass fallback", async () => {
   const part = {
     id: "frame",
@@ -205,7 +148,13 @@ test("resident decoration geometry stays independent of palette seed and preserv
   const build = (seed) =>
     appendDecorationRenderPackage(
       {
-        package: { whiteBase: true, nativeAssets, colorOwners: [{ id: "house", seed }], programs: {}, draws: [], textures: {} },
+        package: {
+          nativeAssets,
+          colorOwners: [{ id: "house", seed }],
+          programs: {},
+          draws: [],
+          textures: {}
+        },
         dynamicFiles: [],
         asset: async () => {
           throw Error("unexpected");
@@ -215,10 +164,15 @@ test("resident decoration geometry stays independent of palette seed and preserv
     );
   const result = build(42),
     other = build(0xffffffff);
-  const vertices = new Float32Array(await result.asset(result.package.draws[0].attributes.find(a => a.location === 0).file));
-  assert.deepEqual(vertices, new Float32Array(await other.asset(other.package.draws[0].attributes.find(a => a.location === 0).file)));
+  const vertices = new Float32Array(
+    await result.asset(result.package.draws[0].attributes.find((a) => a.location === 0).file)
+  );
+  assert.deepEqual(
+    vertices,
+    new Float32Array(await other.asset(other.package.draws[0].attributes.find((a) => a.location === 0).file))
+  );
   const attributes = result.package.draws[0].attributes;
-  const stride = attributes.find(a => a.location === 0).stride / 4;
+  const stride = attributes.find((a) => a.location === 0).stride / 4;
   const sourceOffset = attributes.find((a) => a.location === 8).offset / 4;
   const roleOffset = attributes.find((a) => a.location === 7).offset / 4;
   for (const i of [0, 2])

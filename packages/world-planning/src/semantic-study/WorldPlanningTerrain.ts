@@ -1,10 +1,10 @@
+import { promptNoiseFbmSeedOffset, referenceFbm } from "../generation/noise/PromptNoiseFbm";
 import { bridgeApproachGradingSampler } from "@galacean/engine-water/bridges/BridgeApproach";
 import { planningRiverBankHeight, riverBankReach } from "./PlanningRiverBank";
 import { watercourseGeometry } from "@galacean/engine-water/water/index";
 import { fitFoundationLevels, gradeLimitedBed } from "../spatial/terrain/TerrainGrade";
 import { compositionTerrain } from "../spatial/SpatialCompositionGeometry";
 import { authoredTerrainDisplacement } from "../spatial/terrain/AuthoredTerrain";
-import { planningLakeGround } from "../spatial/hydrology/AuthoredLakes";
 import { isPlanningTerrainResource } from "../spatial/PlanningResources";
 import roadLimits from "../planning-data/road-network.json";
 import { worldElevationField } from "../spatial/terrain/WorldElevation";
@@ -369,9 +369,7 @@ export function samplePlanningGround(plan: IslandPlan, p: PlanPoint): number {
     plan.settlementLayout ||
     plan.canyonStudy ||
     plan.landformStudy ||
-    plan.authoredResources?.some(
-      (resource) => isPlanningTerrainResource(resource) || resource.resourceType === "water-body"
-    )
+    plan.authoredResources?.some(isPlanningTerrainResource)
   )
     return createPlanningGroundSampler(plan)(p);
   const lands = [plan.land, ...plan.islands],
@@ -859,52 +857,8 @@ export function createPlanningRingQuery(ring: PlanPoint[]) {
 /** Natural banks are the immutable input to bridge placement; derived fill never feeds back into compilation. */
 export function createPlanningGroundSampler(
   plan: IslandPlan,
-  options: { natural?: boolean; excludeWaterBodyId?: string } = {}
+  options: { natural?: boolean } = {}
 ): PlanningGroundSampler {
-  if (plan.authoredWaterLayer === 1) {
-    const isAuthored = (id: string) =>
-      plan.waters.some((w) => w.id === id && w.systemId?.startsWith("agent-authored-"));
-    const basePlan: IslandPlan = {
-      ...plan,
-      authoredWaterLayer: undefined,
-      authoredResources: plan.authoredResources?.filter(
-        (r) => r.resourceType !== "water-body" && r.resourceType !== "river"
-      ),
-      waters: plan.waters.filter((w) => !isAuthored(w.id)),
-      planning: plan.planning && {
-        ...plan.planning,
-        profiles: plan.planning.profiles.filter((p) => !isAuthored(p.ownerId))
-      }
-    };
-    const base = createPlanningGroundSampler(basePlan, { natural: options.natural });
-    const preparations: ((bounds: GroundBounds) => void)[] = [(b) => base.prepareBounds?.(b)];
-    const query = (ring: PlanPoint[]) => {
-      const q = createPlanningRingQuery(ring);
-      preparations.push(q.prepareBounds);
-      return q;
-    };
-    const project = (points: PlanningProfile["points"]) => {
-      const p = indexedProfileProjection(points);
-      preparations.push(p.prepareBounds);
-      return p;
-    };
-    const rivers = {
-      ...basePlan,
-      authoredResources: [],
-      waters: plan.waters.filter((w) => w.systemId === "agent-authored-rivers"),
-      planning: plan.planning
-    };
-    const riverGround = createPlanningNaturalGroundSampler(rivers, query, project, (p) => preparations.push(p), base);
-    const ground = planningLakeGround(
-      (plan.authoredResources ?? []).filter((r) => r.resourceId !== options.excludeWaterBodyId),
-      riverGround
-    );
-    return Object.assign(ground, {
-      prepareBounds: (bounds: GroundBounds) => {
-        for (const prepare of preparations) prepare(bounds);
-      }
-    });
-  }
   const preparations: ((bounds: GroundBounds) => void)[] = [];
   const query = (ring: PlanPoint[]) => {
     const q = createPlanningRingQuery(ring);
@@ -922,19 +876,7 @@ export function createPlanningGroundSampler(
         for (const prepare of preparations) prepare(bounds);
       }
     });
-  // Excluding one authored basin keeps its current carve out of a new level derivation.
-  const authored = (plan.authoredResources ?? []).filter(
-    (resource) =>
-      !(
-        options.excludeWaterBodyId &&
-        resource.resourceType === "water-body" &&
-        resource.resourceId === options.excludeWaterBodyId
-      )
-  );
-  const natural = planningLakeGround(
-    authored,
-    createPlanningNaturalGroundSampler(plan, query, project, (prepare) => preparations.push(prepare))
-  );
+  const natural = createPlanningNaturalGroundSampler(plan, query, project, (prepare) => preparations.push(prepare));
   if (options.natural || !plan.roadApproaches?.some((a) => a.approach?.grading)) return prepared(natural);
   const fill = bridgeApproachGradingSampler(plan.roadApproaches, natural);
   const waters = plan.waters.map((w) => ({ ring: query(w.outline), holes: (w.lake?.holes ?? []).map(query) }));
@@ -955,7 +897,32 @@ function createPlanningNaturalGroundSampler(
   registerPreparation?: (prepare: (bounds: GroundBounds) => void) => void,
   baseGround?: (p: PlanPoint) => number
 ): (p: PlanPoint) => number {
-  const reliefAt = createReliefSampler(plan.parameters.landformSeed ?? plan.parameters.seed);
+  const seed = plan.parameters.landformSeed ?? plan.parameters.seed;
+  const basicRelief = createReliefSampler(seed);
+  const { width, depth, landMode } = plan.parameters;
+  const amplitude = plan.parameters.reliefAmplitudeM ?? 0;
+  const nearAmplitude = plan.parameters.reliefNearAmplitudeM ?? amplitude;
+  const farAmplitude = plan.parameters.reliefFarAmplitudeM ?? amplitude;
+  const hasFbm = Math.max(nearAmplitude, amplitude, farAmplitude) > 0;
+  const halfExtent = Math.min(width, depth) / 2;
+  const amplitudeAt =
+    nearAmplitude === amplitude && farAmplitude === amplitude
+      ? () => amplitude
+      : ({ x, z }: PlanPoint) => {
+          const radius = Math.hypot(x - width / 2, z - depth / 2) / halfExtent;
+          if (radius <= 0.6) return nearAmplitude + (amplitude - nearAmplitude) * smooth((radius - 0.25) / 0.35);
+          return amplitude + (farAmplitude - amplitude) * smooth((radius - 0.6) / 0.4);
+        };
+  const wavelength = plan.parameters.reliefScaleM ?? 256;
+  const [offsetX, offsetZ] = promptNoiseFbmSeedOffset(seed);
+  // Sample the old noise terrain while preparing the canonical heightmap.
+  // The clipmap, baked normals and grounding all consume that same result.
+  const reliefAt = hasFbm
+    ? (p: PlanPoint) =>
+        basicRelief(p) +
+        amplitudeAt(p) *
+          referenceFbm((p.x + 0.5 + offsetX * 1024) / wavelength, (p.z + 0.5 + offsetZ * 1024) / wavelength)
+    : basicRelief;
   const terrainResources = [
     ...(plan.authoredResources ?? []),
     ...compositionTerrain(plan.parameters.spatialComposition)
@@ -1022,6 +989,8 @@ function createPlanningNaturalGroundSampler(
       bankShoulder = 8 + (plan.parameters.worldElevation?.riseM ?? 0) * 5;
     const gradeBudget = roadLimits.maxSlope * 0.85;
     const rawBase = (p: PlanPoint) => {
+      if (hasFbm && landMode === "continuous" && p.x >= 0 && p.x <= width && p.z >= 0 && p.z <= depth)
+        return 12 + reliefAt(p) + displacement(p);
       let land: (typeof lands)[number] | undefined;
       for (const candidate of lands)
         if (candidate.inside(p)) {

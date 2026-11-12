@@ -237,10 +237,10 @@ export function mountNativeBuildingPanel(
       for (const { record, member } of members) {
         if (plan.targets.has(member))
           commands.push({ name: "component.remove", value: { scene: record.scene, id: record.id } });
-        else if (member instanceof BuildingPartComponent && plan.relations.has(member))
+        else if (member instanceof BuildingPartComponent && plan.connections.has(member))
           commands.push({
             name: "component.update",
-            value: { scene: record.scene, id: record.id, props: { relations: plan.relations.get(member)! } }
+            value: { scene: record.scene, id: record.id, props: { connections: plan.connections.get(member)! } }
           });
       }
       await mutate(commands);
@@ -275,15 +275,6 @@ export function mountNativeBuildingPanel(
     }
   };
   panel.querySelector<HTMLButtonElement>('[data-action="roam"]')!.onclick = roam;
-  const picked = (event: Event) => {
-    const id = (event as CustomEvent).detail?.component?.id;
-    if (id && [...select.options].some((option) => option.value === id)) {
-      select.value = id;
-      show();
-      panel.open = true;
-    }
-  };
-  document.addEventListener("seed-world-picked", picked);
   const unregister = project.registerRuntimeActivation({ before: async () => {}, after: async () => refresh() });
   refresh();
   return {
@@ -292,7 +283,6 @@ export function mountNativeBuildingPanel(
       disposed = true;
       unregister();
       appearance?.destroy();
-      document.removeEventListener("seed-world-picked", picked);
       panel.remove();
     }
   };

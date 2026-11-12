@@ -1,0 +1,368 @@
+{
+  "name": "lake-water-look-v1",
+  "shader": "Water/Lake.v1",
+  "macros": [],
+  "shaderData": {
+    "material_WaterProfile": {
+      "type": "Integer",
+      "value": 0
+    },
+    "material_WaterRiverDrops": {
+      "type": "Boolean",
+      "value": false
+    },
+    "material_Water_look_reflectionSampling_screenSpaceCompositeIntensity": {
+      "type": "Float",
+      "value": 1
+    },
+    "material_Water_look_reflectionSampling_environmentFallbackIntensity": {
+      "type": "Float",
+      "value": 1
+    },
+    "material_Water_look_reflectionSampling_distortionStrength": {
+      "type": "Float",
+      "value": 0.09
+    },
+    "material_Water_look_reflectionSampling_maximumDistortionPixels": {
+      "type": "Float",
+      "value": 32
+    },
+    "material_Water_look_reflectionSampling_edgeFadeTexels": {
+      "type": "Float",
+      "value": 23
+    },
+    "material_Water_look_reflectionSampling_minimumClipW": {
+      "type": "Float",
+      "value": 0.001
+    },
+    "material_Water_look_reflectionSampling_roughnessFootprintTexels": {
+      "type": "Float",
+      "value": 3
+    },
+    "material_Water_look_reflectionSampling_highFilterSampleCount": {
+      "type": "Float",
+      "value": 1
+    },
+    "material_Water_look_environmentResponse_surfaceNormalVarianceToRoughness": {
+      "type": "Float",
+      "value": 0
+    },
+    "material_Water_look_oceanResponse_timeScale": {
+      "type": "Float",
+      "value": 1
+    },
+    "material_Water_look_oceanResponse_microDetailResponse_0_speedMetresPerSecond": {
+      "type": "Float",
+      "value": 0
+    },
+    "material_Water_look_oceanResponse_microDetailResponse_0_strengthRatio": {
+      "type": "Float",
+      "value": 1
+    },
+    "material_Water_look_oceanResponse_microDetailResponse_0_speedRatio": {
+      "type": "Float",
+      "value": 1
+    },
+    "material_Water_look_oceanResponse_microDetailResponse_1_speedMetresPerSecond": {
+      "type": "Float",
+      "value": 100
+    },
+    "material_Water_look_oceanResponse_microDetailResponse_1_strengthRatio": {
+      "type": "Float",
+      "value": 1
+    },
+    "material_Water_look_oceanResponse_microDetailResponse_1_speedRatio": {
+      "type": "Float",
+      "value": 1
+    },
+    "material_Water_appearance_appearance_primaryColorClosure": {
+      "type": "Integer",
+      "value": 3
+    },
+    "material_Water_appearance_appearance_detailLayers_0_space": {
+      "type": "Integer",
+      "value": 0
+    },
+    "material_Water_appearance_appearance_detailLayers_0_scale": {
+      "type": "Vector2",
+      "value": {
+        "x": 0.05,
+        "y": 0.05
+      }
+    },
+    "material_Water_appearance_appearance_detailLayers_0_velocity": {
+      "type": "Vector2",
+      "value": {
+        "x": 0.02,
+        "y": 0.02
+      }
+    },
+    "material_Water_appearance_appearance_detailLayers_0_rotationDegrees": {
+      "type": "Float",
+      "value": 0
+    },
+    "material_Water_appearance_appearance_detailLayers_0_strength": {
+      "type": "Float",
+      "value": 0.2
+    },
+    "material_Water_appearance_appearance_detailLayers_0_normalConvention": {
+      "type": "Integer",
+      "value": 0
+    },
+    "material_Water_appearance_appearance_detailLayers_0_strengthMode": {
+      "type": "Integer",
+      "value": 1
+    },
+    "material_Water_appearance_appearance_detailLayers_0_blend": {
+      "type": "Integer",
+      "value": 1
+    },
+    "material_Water_appearance_appearance_detailLayers_1_space": {
+      "type": "Integer",
+      "value": 0
+    },
+    "material_Water_appearance_appearance_detailLayers_1_scale": {
+      "type": "Vector2",
+      "value": {
+        "x": 0.05,
+        "y": 0.05
+      }
+    },
+    "material_Water_appearance_appearance_detailLayers_1_velocity": {
+      "type": "Vector2",
+      "value": {
+        "x": 0.02,
+        "y": 0.02
+      }
+    },
+    "material_Water_appearance_appearance_detailLayers_1_rotationDegrees": {
+      "type": "Float",
+      "value": 180
+    },
+    "material_Water_appearance_appearance_detailLayers_1_strength": {
+      "type": "Float",
+      "value": 0.2
+    },
+    "material_Water_appearance_appearance_detailLayers_1_normalConvention": {
+      "type": "Integer",
+      "value": 0
+    },
+    "material_Water_appearance_appearance_detailLayers_1_strengthMode": {
+      "type": "Integer",
+      "value": 1
+    },
+    "material_Water_appearance_appearance_detailLayers_1_blend": {
+      "type": "Integer",
+      "value": 1
+    },
+    "material_AppearanceV2DepthDistance": {
+      "type": "Float",
+      "value": 3.6
+    },
+    "material_AppearanceV2DepthExponent": {
+      "type": "Float",
+      "value": 1.1
+    },
+    "material_AppearanceV2DepthColor": {
+      "type": "Vector4",
+      "value": {
+        "x": 0,
+        "y": 0.16451614,
+        "z": 0.34,
+        "w": 1
+      }
+    },
+    "material_Water_appearance_appearance_boundaryEffects_0_rangeMeters": {
+      "type": "Float",
+      "value": 1.5
+    },
+    "material_Water_appearance_appearance_boundaryEffects_0_invert": {
+      "type": "Boolean",
+      "value": false
+    },
+    "material_Water_appearance_appearance_boundaryEffects_0_outputs_alpha": {
+      "type": "Float",
+      "value": 1
+    },
+    "material_Water_appearance_appearance_boundaryEffects_1_rangeMeters": {
+      "type": "Float",
+      "value": 0.1791
+    },
+    "material_Water_appearance_appearance_boundaryEffects_1_invert": {
+      "type": "Boolean",
+      "value": true
+    },
+    "material_Water_appearance_appearance_boundaryEffects_1_pattern_worldScale": {
+      "type": "Float",
+      "value": 2.5
+    },
+    "material_Water_appearance_appearance_boundaryEffects_1_pattern_timeRate": {
+      "type": "Float",
+      "value": 1
+    },
+    "material_Water_appearance_appearance_boundaryEffects_1_pattern_opacity": {
+      "type": "Float",
+      "value": 0.453
+    },
+    "material_Water_appearance_appearance_boundaryEffects_1_pattern_octaves_count": {
+      "type": "Float",
+      "value": 3
+    },
+    "material_Water_appearance_appearance_boundaryEffects_1_pattern_octaves_weights": {
+      "type": "Vector3",
+      "value": {
+        "x": 0.5,
+        "y": 0.25,
+        "z": 0.125
+      }
+    },
+    "material_Water_appearance_appearance_boundaryEffects_1_pattern_lacunarity": {
+      "type": "Float",
+      "value": 2
+    },
+    "material_Water_appearance_appearance_boundaryEffects_1_pattern_invert": {
+      "type": "Boolean",
+      "value": true
+    },
+    "material_Water_appearance_appearance_boundaryEffects_1_pattern_exponent": {
+      "type": "Float",
+      "value": -1.5
+    },
+    "material_Water_appearance_appearance_boundaryEffects_1_outputs_color": {
+      "type": "Vector3",
+      "value": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      }
+    },
+    "material_Water_appearance_appearance_boundaryEffects_1_outputs_roughness": {
+      "type": "Float",
+      "value": 1
+    },
+    "material_Water_appearance_appearance_refraction_enabled": {
+      "type": "Boolean",
+      "value": true
+    },
+    "material_AppearanceV2RefractionUvScale": {
+      "type": "Float",
+      "value": 0.17
+    },
+    "material_Water_appearance_appearance_refraction_normalSource": {
+      "type": "Integer",
+      "value": 1
+    },
+    "material_Water_appearance_appearance_refraction_validation": {
+      "type": "Integer",
+      "value": 1
+    },
+    "material_Water_appearance_appearance_composition": {
+      "type": "Integer",
+      "value": 1
+    },
+    "material_Water_appearance_featureFlags_externalNormal": {
+      "type": "Boolean",
+      "value": true
+    },
+    "material_Water_appearance_featureFlags_depthTint": {
+      "type": "Boolean",
+      "value": true
+    },
+    "material_Water_appearance_featureFlags_coastalAlpha": {
+      "type": "Boolean",
+      "value": true
+    },
+    "material_Water_appearance_featureFlags_contactFoam": {
+      "type": "Boolean",
+      "value": true
+    },
+    "material_Water_appearance_featureFlags_directSpecular": {
+      "type": "Boolean",
+      "value": true
+    },
+    "material_Water_optics_profile_absorptionCoefficient": {
+      "type": "Vector3",
+      "value": {
+        "x": 0.21,
+        "y": 0.085,
+        "z": 0.04
+      }
+    },
+    "material_Water_optics_profile_scatteringColor": {
+      "type": "Vector3",
+      "value": {
+        "x": 0.06,
+        "y": 0.28,
+        "z": 0.32
+      }
+    },
+    "material_Water_optics_profile_scatteringCoefficient": {
+      "type": "Float",
+      "value": 0.16
+    },
+    "material_Water_optics_profile_maximumViewDistance": {
+      "type": "Float",
+      "value": 36
+    },
+    "material_Water_optics_profile_indexOfRefraction": {
+      "type": "Float",
+      "value": 1.333
+    },
+    "material_Water_optics_profile_maximumSurfaceOpticalDistance": {
+      "type": "Float",
+      "value": 4
+    },
+    "material_Water_optics_profile_refractionStrength": {
+      "type": "Float",
+      "value": 0.05
+    },
+    "material_Water_optics_profile_roughness": {
+      "type": "Float",
+      "value": 0.02
+    },
+    "material_Water_optics_profile_reflectionIntensity": {
+      "type": "Float",
+      "value": 1
+    },
+    "material_Water_optics_refractionEnabled": {
+      "type": "Boolean",
+      "value": true
+    },
+    "material_Water_optics_caustics": {
+      "type": "Boolean",
+      "value": false
+    },
+    "material_Water_reflectionPolicy_policy_preferred": {
+      "type": "Integer",
+      "value": 1
+    },
+    "material_WaterReflectionFallback0": {
+      "type": "Integer",
+      "value": 0
+    },
+    "material_WaterReflectionFallback1": {
+      "type": "Integer",
+      "value": 2
+    },
+    "material_Water_renderState_depthWriteEnabled": {
+      "type": "Boolean",
+      "value": true
+    },
+    "material_Water_renderState_queue": {
+      "type": "Integer",
+      "value": 2
+    },
+    "material_Water_renderState_priorityOffset": {
+      "type": "Float",
+      "value": 0
+    },
+    "material_Water_renderState_cullMode": {
+      "type": "Integer",
+      "value": 0
+    },
+    "material_Water_renderState_blendMode": {
+      "type": "Integer",
+      "value": 1
+    }
+  }
+}

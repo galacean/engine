@@ -1,5 +1,6 @@
-import { AssetType, Material, Shader, Texture2D, WebGLEngine } from "@galacean/engine";
+import { AssetType, Material, Shader, ShaderFactory, Texture2D, WebGLEngine } from "@galacean/engine";
 import "@galacean/engine-loader";
+import { ShaderCompiler } from "@galacean/engine-shader-compiler";
 import { ShaderPrecompiler } from "@galacean/engine-shader-compiler/precompile";
 import { afterAll, beforeAll, expect, it } from "vitest";
 
@@ -157,6 +158,91 @@ it("continues sharing identical precompiled World programs across resource URLs"
     expect(engine.resourceManager.getFromCache(secondURL)).toBe(first);
   } finally {
     first.destroy(true);
+  }
+});
+
+it("uses the registered fallback only for an unmapped World shader reference", async () => {
+  const material = await engine.resourceManager.load<Material>({
+    type: AssetType.Material,
+    url: resource(
+      {
+        name: "unmapped-reference-fallback",
+        shader: shaderName,
+        shaderRef: { url: `WorldMaterialCompatibility/unmapped-${Math.random()}` },
+        shaderData: { material_Exposure: { type: "Float", value: 1.5 } },
+        macros: []
+      },
+      "mat"
+    )
+  });
+  try {
+    expect(material.shader).toBe(Shader.find(shaderName));
+    expect(material.shaderData.getFloat("material_Exposure")).toBe(1.5);
+  } finally {
+    material.destroy();
+  }
+});
+
+it.each([AssetType.JSON, AssetType.Shader])(
+  "does not hide an invalid mapped %s shader reference with a fallback",
+  async (type) => {
+    const virtualPath = `WorldMaterialCompatibility/invalid-${type}-${Math.random()}`;
+    engine.resourceManager.registerVirtualResources([{ virtualPath, path: resource({ invalid: true }, "json"), type }]);
+    await expect(
+      engine.resourceManager.load<Material>({
+        type: AssetType.Material,
+        url: resource(
+          {
+            name: "invalid-reference",
+            shader: shaderName,
+            shaderRef: { url: virtualPath },
+            shaderData: {},
+            macros: []
+          },
+          "mat"
+        )
+      })
+    ).rejects.toBeDefined();
+  }
+);
+
+it("shares source programs only when their canonical include namespaces match", async () => {
+  const name = `WorldSourceShader-${Math.random()}`;
+  const paths = [`${name}/left/Main.shader`, `${name}/left/Main.shader`, `${name}/right/Main.shader`];
+  const includes = [`${name}/left/Common.glsl`, `${name}/right/Common.glsl`];
+  includes.forEach((key, index) =>
+    ShaderFactory.registerInclude(key, `vec4 includedColor() { return vec4(${index === 0 ? "0.25" : "0.75"}); }`)
+  );
+  const source = `Shader "${name}" { SubShader "Default" { Pass "Forward" {
+    #include "./Common.glsl"
+    void vert() { gl_Position = vec4(0.0); }
+    void frag() { gl_FragColor = includedColor(); }
+    VertexShader = vert; FragmentShader = frag;
+  } } }`;
+  const remoteURL = URL.createObjectURL(new Blob([source], { type: "text/plain" }));
+  urls.push(remoteURL);
+  const engines: WebGLEngine[] = [];
+  const shaders = [Shader._createFromPrecompiled({ name, platformTarget: 0, subShaders: [] })];
+  try {
+    for (const virtualPath of paths) {
+      const sourceEngine = await WebGLEngine.create({
+        canvas: document.createElement("canvas"),
+        shaderCompiler: new ShaderCompiler()
+      });
+      engines.push(sourceEngine);
+      sourceEngine.resourceManager.registerVirtualResources([{ virtualPath, path: remoteURL, type: AssetType.Shader }]);
+      const shader = await sourceEngine.resourceManager.load<Shader>(virtualPath);
+      shaders.push(shader);
+      expect(shader.name).toBe(name);
+      expect(shader.compileVariant(sourceEngine, [])).toBe(true);
+    }
+    expect(shaders[1]).not.toBe(shaders[0]);
+    expect(shaders[2]).toBe(shaders[1]);
+    expect(shaders[3]).not.toBe(shaders[1]);
+  } finally {
+    engines.forEach((sourceEngine) => sourceEngine.destroy());
+    new Set(shaders).forEach((shader) => shader.destroy(true));
+    includes.forEach((key) => ShaderFactory.unregisterInclude(key));
   }
 });
 

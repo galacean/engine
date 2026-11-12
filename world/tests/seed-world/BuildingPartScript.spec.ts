@@ -33,14 +33,11 @@ it("typechecks the flat European generator and part manager through actual host 
   const files = { ...engine, ...sdk, ...host.declarations },
     libraries = { ...agentTypecheckLibraries, "/lib.dom.d.ts": dom };
   const source = `import {Script,Camera,PrefabResource} from "@galacean/engine";
-import {Building,BuildingManager,BuildingGroupComponent,BuildingPartComponent,buildingPlacementAlgorithms,buildingGeometryAlgorithms,type BuildingGeometryDefinition} from "@galacean/seed-world-systems";
-const grid=buildingPlacementAlgorithms.resolve("grid");
-const geometry: BuildingGeometryDefinition = { generator: "example.geometry", materials: [] };
-buildingPlacementAlgorithms.register("example.grid", (support,params,context)=>grid(support,params,context), {profile:{basis:"grid"}});
+import {Building,BuildingManager,BuildingGroupComponent,BuildingPartComponent} from "@galacean/seed-world-systems";
 export default class Example extends Script {
   camera!:Camera; assets!:PrefabResource;
   async onAwake() {
-    const draft=Building.European.buildHouses({id:"house",height:4,roofStyle:{algorithm:{type:"example.grid"}}});
+    const draft=Building.European.buildHouses({id:"house",height:4});
     const manager=BuildingManager.forScene(this.entity.scene);
     manager.camera=this.camera;manager.assets=this.assets;
     const frame=manager.create(this.entity,draft);
@@ -51,28 +48,13 @@ export default class Example extends Script {
     const part: BuildingPartComponent | undefined = manager.get(draft.parts[0].id, frame);
     const owner: BuildingGroupComponent | undefined = part ? manager.groupFor(part) : undefined;
     const groups: number = manager.listGroups().length;
-    if (owner) owner.definition = { ...owner.definition!, wallColor: 1 };
+    if (owner) owner.definition = { ...owner.definition!, seed: 1 };
     if(part && state.parts.length && groups) part.rebuild();
   }
 }`;
   expect(() => checkRuntimeScripts({ "Example.ts": source }, files, libraries)).not.toThrow();
   expect(() =>
-    checkRuntimeScripts(
-      {
-        "Example.ts": source.replace(
-          'generator: "example.geometry"',
-          'generator: buildingGeometryAlgorithms.register("example.geometry", () => null as any)'
-        )
-      },
-      files,
-      libraries
-    )
-  ).toThrow();
-  expect(() =>
     checkRuntimeScripts({ "Example.ts": source.replace("height:4", 'height:"bad"') }, files, libraries)
-  ).toThrow();
-  expect(() =>
-    checkRuntimeScripts({ "Example.ts": source.replace('basis:"grid"', 'basis:"unknown"') }, files, libraries)
   ).toThrow();
 });
 

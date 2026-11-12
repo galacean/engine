@@ -472,6 +472,14 @@ export class Scene extends EngineObject {
   /**
    * @internal
    */
+  _updateRendering(deltaTime: number): void {
+    this._componentsManager.callRendererOnUpdate(deltaTime);
+    this._updateShaderData();
+  }
+
+  /**
+   * @internal
+   */
   _updateShaderData(): void {
     const shaderData = this.shaderData;
     const engine = this._engine;

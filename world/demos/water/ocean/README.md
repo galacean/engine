@@ -4,7 +4,7 @@ Gallery 的 **Water → Ocean · 海洋** 独立案例。直接入口为 `demos/
 
 场景中央是一座有沙滩、草坡和岩质山顶的岛屿，周围依次是浅水陆架、深海和远海地平线。提供环岛全景、近岸浅水、远海地平线三个观察视角，以及海浪暂停／继续控制。与湖泊、河流共用桌面相机操作：点击画面后 WASD 移动、Q/E 升降、拖动查看方向；调参输入框获得焦点时停止移动。
 
-开发模式下右侧提供 SeedWorld 同款 Water DevTools，默认折叠，入口加 `?debug=1` 可展开。可调海平面、波浪、法线、深浅水颜色、反射、折射、泡沫、焦散与透光参数，也支持重置和复制调参 JSON。海平面复用 SeedWorld 的运行时偏移控制，范围为基准上下 10 米；左侧暂停按钮与 DevTools 的场景时间／固定时间共用同一状态。调参仅作用于当前页面，生产构建与 SeedWorld 一样不包含 DevTools。左侧“观察内容”可直接切换深度、折射、反射、泡沫、焦散和法线视图。
+开发模式下右侧提供 SeedWorld 同款 Water DevTools，默认折叠，入口加 `?debug=1` 可展开。可调海平面、波浪、法线、深浅水颜色、反射、折射、泡沫、焦散与透光参数，也支持重置和复制调参 JSON。海平面复用 SeedWorld 的运行时偏移控制，范围为基准上下 10 米；左侧暂停按钮与 DevTools 的场景时间／固定时间共用同一状态。调参仅作用于当前页面，生产构建与 SeedWorld 一样不包含 DevTools。
 
 ## 复用边界
 
@@ -20,12 +20,9 @@ Gallery 的 **Water → Ocean · 海洋** 独立案例。直接入口为 `demos/
 
 Ocean 保留波浪、法线纹理、近岸场、纹理泡沫、焦散采样，以及无场景纹理的远海降级策略。焦散与受限风格化透光以附加透射辐射进入共享合成，再受到 Fresnel 和泡沫遮蔽；粗糙透射策略用共享 DFG 反射权重补偿远海掠射角的能量。这两个可选策略按需生成，Lake/River 默认不包含其 Shader 代码。
 
-目前支持双项 `CompositeExponential`（SceneRayDepth、SurfaceNormalDepth）、`SceneColorCompositeDepthRamp` 和 `PrecomposedReplace`。物理体积散射、`surfaceScattering`、多边界／图案边界、材质细节层，以及 SSR 等能力会明确拒绝。旧 `depth.exponent` 与 `reflection.fresnelExponent` 参数已退役，调参面板移除对应控件，传入非默认旧值会报错。
 
 此次验收和成本边界见 [OceanSharedSurfaceAcceptance.md](./OceanSharedSurfaceAcceptance.md)。
 模块冗余、命名收敛和待处理问题见 [OceanModuleReview.md](./OceanModuleReview.md)。
-
-观察模式同时作用于近海和远海，并保留两者的平滑过渡。水色密度用青色（0）到深蓝（1）表示深度响应，远海采用深水饱和值；它不是以米为单位的水深。远海未计算的折射、泡沫、焦散用紫灰斜纹标记，面板同步解释其含义。法线和环境反射使用远海对应的简化输入。诊断颜色不受水面透明度或场景雾调制，避免误读为水面消失。
 
 ## 开发与验证
 
@@ -36,7 +33,7 @@ pnpm typecheck:water
 node scripts/run-engine.mjs pnpm --dir world-gallery exec vitest run demos/water/tests/demo/IslandOceanSource.test.ts --config vitest.config.ts
 ```
 
-浏览器通过 `window.oceanGalleryDebug.getDiagnostics()` 读取 Body、Look、环境反射、纹理、近岸／远海几何和摄像机状态。`setView("island" | "shore" | "horizon")` 和 `setSurfaceTime(seconds)` 用于复现视角与暂停帧。
+通过左侧按钮切换环岛全景、近岸浅水和远海地平线，并暂停／恢复海浪；开发模式下通过 Water DevTools 调整水体外观。
 
 验收应实际进入 Gallery 菜单并切换三个视角，检查岸线、浅海折射／焦散、远海连续性、暂停／恢复、浏览器控制台和失败请求；桌面结果不代表移动真机验收。
 

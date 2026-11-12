@@ -1,7 +1,7 @@
 import type { RockFormationMesh } from "./types";
 const cache = new WeakMap<RockFormationMesh, Float32Array>();
 
-/** Area-weighted visual coverage shared by painted rock vertices and grass roots.
+/** Area-weighted visual coverage shared by rock vertices and grass roots.
  * Formation snapshots are immutable; the cache follows their lifetime. Sampling
  * coverage stays separate so shading changes do not alter placement or support.
  */

@@ -1,0 +1,263 @@
+{
+  "scene": "Water/Scenes/lake.scene",
+  "files": [
+    {
+      "virtualPath": "Water/Textures/grasslands-water-normal-1024.ktx2",
+      "path": "Water/Textures/grasslands-water-normal-1024.ktx2",
+      "type": "KTX2",
+      "params": {
+        "isSRGBColorSpace": false,
+        "mipmap": true,
+        "wrapModeU": 1,
+        "wrapModeV": 1,
+        "filterMode": 1,
+        "anisoLevel": 1
+      }
+    },
+    {
+      "virtualPath": "Water/Textures/farmlands-wave-large-normal.ktx2",
+      "path": "Water/Textures/farmlands-wave-large-normal.ktx2",
+      "type": "KTX2",
+      "params": {
+        "isSRGBColorSpace": false,
+        "mipmap": true,
+        "wrapModeU": 1,
+        "wrapModeV": 1,
+        "filterMode": 1,
+        "anisoLevel": 1
+      }
+    },
+    {
+      "virtualPath": "Water/Textures/farmlands-caustics-color.ktx2",
+      "path": "Water/Textures/farmlands-caustics-color.ktx2",
+      "type": "KTX2",
+      "params": {
+        "isSRGBColorSpace": true,
+        "mipmap": true,
+        "wrapModeU": 1,
+        "wrapModeV": 1,
+        "filterMode": 1,
+        "anisoLevel": 1
+      }
+    },
+    {
+      "virtualPath": "Water/Textures/farmlands-drop-directional.ktx2",
+      "path": "Water/Textures/farmlands-drop-directional.ktx2",
+      "type": "KTX2",
+      "params": {
+        "isSRGBColorSpace": true,
+        "mipmap": true,
+        "wrapModeU": 1,
+        "wrapModeV": 1,
+        "filterMode": 1,
+        "anisoLevel": 1
+      }
+    },
+    {
+      "virtualPath": "Water/Textures/farmlands-drop-cloud.ktx2",
+      "path": "Water/Textures/farmlands-drop-cloud.ktx2",
+      "type": "KTX2",
+      "params": {
+        "isSRGBColorSpace": false,
+        "mipmap": true,
+        "wrapModeU": 1,
+        "wrapModeV": 1,
+        "filterMode": 1,
+        "anisoLevel": 1
+      }
+    },
+    {
+      "virtualPath": "Water/Textures/farmlands-drop-lines.ktx2",
+      "path": "Water/Textures/farmlands-drop-lines.ktx2",
+      "type": "KTX2",
+      "params": {
+        "isSRGBColorSpace": true,
+        "mipmap": true,
+        "wrapModeU": 1,
+        "wrapModeV": 1,
+        "filterMode": 1,
+        "anisoLevel": 1
+      }
+    },
+    {
+      "virtualPath": "Water/Textures/farmlands-drop-edge.ktx2",
+      "path": "Water/Textures/farmlands-drop-edge.ktx2",
+      "type": "KTX2",
+      "params": {
+        "isSRGBColorSpace": true,
+        "mipmap": true,
+        "wrapModeU": 1,
+        "wrapModeV": 1,
+        "filterMode": 1,
+        "anisoLevel": 1
+      }
+    },
+    {
+      "virtualPath": "Water/Textures/farmlands-drop-voronoi.ktx2",
+      "path": "Water/Textures/farmlands-drop-voronoi.ktx2",
+      "type": "KTX2",
+      "params": {
+        "isSRGBColorSpace": true,
+        "mipmap": true,
+        "wrapModeU": 1,
+        "wrapModeV": 1,
+        "filterMode": 1,
+        "anisoLevel": 1
+      }
+    },
+    {
+      "virtualPath": "Water/Textures/farmlands-drop-foam.ktx2",
+      "path": "Water/Textures/farmlands-drop-foam.ktx2",
+      "type": "KTX2",
+      "params": {
+        "isSRGBColorSpace": true,
+        "mipmap": true,
+        "wrapModeU": 1,
+        "wrapModeV": 1,
+        "filterMode": 1,
+        "anisoLevel": 1
+      }
+    },
+    {
+      "virtualPath": "Water/Textures/farmlands-drop-mist.ktx2",
+      "path": "Water/Textures/farmlands-drop-mist.ktx2",
+      "type": "KTX2",
+      "params": {
+        "isSRGBColorSpace": true,
+        "mipmap": true,
+        "wrapModeU": 1,
+        "wrapModeV": 1,
+        "filterMode": 1,
+        "anisoLevel": 1
+      }
+    },
+    {
+      "virtualPath": "Water/Textures/farmlands-drop-splash.ktx2",
+      "path": "Water/Textures/farmlands-drop-splash.ktx2",
+      "type": "KTX2",
+      "params": {
+        "isSRGBColorSpace": true,
+        "mipmap": true,
+        "wrapModeU": 1,
+        "wrapModeV": 1,
+        "filterMode": 1,
+        "anisoLevel": 1
+      }
+    },
+    {
+      "virtualPath": "Water/Textures/ocean-smoothWaves.ktx2",
+      "path": "Water/Textures/ocean-smoothWaves.ktx2",
+      "type": "KTX2",
+      "params": {
+        "isSRGBColorSpace": false,
+        "mipmap": true,
+        "wrapModeU": 1,
+        "wrapModeV": 1,
+        "filterMode": 2,
+        "anisoLevel": 4
+      }
+    },
+    {
+      "virtualPath": "Water/Textures/ocean-roughWaves.ktx2",
+      "path": "Water/Textures/ocean-roughWaves.ktx2",
+      "type": "KTX2",
+      "params": {
+        "isSRGBColorSpace": false,
+        "mipmap": true,
+        "wrapModeU": 1,
+        "wrapModeV": 1,
+        "filterMode": 2,
+        "anisoLevel": 4
+      }
+    },
+    {
+      "virtualPath": "Water/Textures/ocean-caustics.ktx2",
+      "path": "Water/Textures/ocean-caustics.ktx2",
+      "type": "KTX2",
+      "params": {
+        "isSRGBColorSpace": true,
+        "mipmap": true,
+        "wrapModeU": 1,
+        "wrapModeV": 1,
+        "filterMode": 2,
+        "anisoLevel": 2
+      }
+    },
+    {
+      "virtualPath": "Water/Textures/ocean-foam.ktx2",
+      "path": "Water/Textures/ocean-foam.ktx2",
+      "type": "KTX2",
+      "params": {
+        "isSRGBColorSpace": true,
+        "mipmap": true,
+        "wrapModeU": 1,
+        "wrapModeV": 1,
+        "filterMode": 2,
+        "anisoLevel": 2
+      }
+    },
+    {
+      "virtualPath": "Water/Textures/ocean-intersectionNoise.ktx2",
+      "path": "Water/Textures/ocean-intersectionNoise.ktx2",
+      "type": "KTX2",
+      "params": {
+        "isSRGBColorSpace": true,
+        "mipmap": true,
+        "wrapModeU": 1,
+        "wrapModeV": 1,
+        "filterMode": 2,
+        "anisoLevel": 2
+      }
+    },
+    {
+      "virtualPath": "Water/Shaders/lake-heightfield-high-hybrid-v2.shaderc",
+      "path": "Water/Shaders/lake-heightfield-high-hybrid-v2.shaderc",
+      "type": "Shader"
+    },
+    {
+      "virtualPath": "Water/Shaders/ocean-near-detailed.shaderc",
+      "path": "Water/Shaders/ocean-near-detailed.shaderc",
+      "type": "Shader"
+    },
+    {
+      "virtualPath": "Water/Terrain/manual-bed.json",
+      "path": "Water/Terrain/manual-bed.json",
+      "type": "JSON"
+    },
+    {
+      "virtualPath": "Water/Terrain/manual-bed.bin",
+      "path": "Water/Terrain/manual-bed.bin",
+      "type": "Buffer"
+    },
+    {
+      "virtualPath": "Water/Presets/lake.prefab",
+      "path": "Water/Presets/lake.prefab",
+      "type": "Prefab"
+    },
+    {
+      "virtualPath": "Water/Scenes/lake.scene",
+      "path": "Water/Scenes/lake.scene",
+      "type": "Scene"
+    },
+    {
+      "virtualPath": "Water/Materials/lake.mat",
+      "path": "Water/Materials/lake.mat",
+      "type": "Material"
+    },
+    {
+      "virtualPath": "Water/Materials/river.mat",
+      "path": "Water/Materials/river.mat",
+      "type": "Material"
+    },
+    {
+      "virtualPath": "Water/Materials/river-drops.mat",
+      "path": "Water/Materials/river-drops.mat",
+      "type": "Material"
+    },
+    {
+      "virtualPath": "Water/Materials/ocean.mat",
+      "path": "Water/Materials/ocean.mat",
+      "type": "Material"
+    }
+  ]
+}

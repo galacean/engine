@@ -5,6 +5,7 @@ import type { ConstructionWallRoofJoint } from "./ConstructionWallRoofJoint";
 import { entranceBinding, injectConstructionEntrance } from "./ConstructionEntranceShader";
 import type { ConstructionEntranceState } from "./ConstructionEntrance";
 import { constructionLightingInstructions } from "./ConstructionSceneLighting";
+import { rawGlslInstructions } from "./RawGlslInstructions";
 import { leaseBuildingTexture, textureSourceColors } from "../resources/BuildingTextures";
 import type { BuildingAssets, NativeBuildingUnit } from "../resources/BuildingAssetKit";
 import { scaledNativeAttribute } from "../resources/BuildingGeometry";
@@ -81,11 +82,7 @@ function residentShader(vertex: string, fragment: string) {
       // feature macros and the existing raw picking/deformation ABI.
       const pass = new ShaderPass(
         "Forward",
-        [
-          [1, "RENDERER_MASONRY_ENTRANCE", 2],
-          [0, "#define RENDERER_MASONRY_ENTRANCE\n"],
-          [0, vertex]
-        ],
+        rawGlslInstructions(["RENDERER_MASONRY_ENTRANCE"], vertex),
         constructionLightingInstructions(fragment),
         ShaderLanguage.GLSLES300
       );
@@ -209,8 +206,6 @@ export interface ResidentDraw {
   indirection?: string;
 }
 export interface ResidentPackage {
-  /** Production material preview; omitted for immutable source-parity packages. */
-  whiteBase?: boolean;
   /** Dense slot order matches the compiler's construction owners. */
   colorOwners?: Array<{ id: string; seed: number }>;
   dormerGrid?: import("./DormerBins").DormerGrid;
@@ -399,11 +394,11 @@ export class EngineResidentScene {
     script.sync(camera);
   }
   private texture(name: string, array: boolean, pack: ResidentPackage) {
-    const whiteBase = !!pack.whiteBase && isMasonryBaseTexture(name);
-    const key = `${array}:${name}:${whiteBase}`;
+    const key = `${array}:${name}`;
     let p = this.textureCache.get(key);
     if (!p) {
-      const lease = leaseBuildingTexture(this.engine, name, pack.textures[name], whiteBase);
+      // An albedo map is leased as its neutral texture: the palette supplies the colour.
+      const lease = leaseBuildingTexture(this.engine, name, pack.textures[name], isMasonryBaseTexture(name));
       this.resources.push(lease);
       p = lease.value;
       this.textureCache.set(key, p);
@@ -499,7 +494,7 @@ export class EngineResidentScene {
       (d.family === "wood" || d.family === "wood-gable") && !!d.lod && !d.instance_buffer && !d.resources.domain_roof;
     const isUnit = isBrick || isWood;
     // Host plaster owns its albedo stage; native programs use the recovered G-buffer ABI.
-    const tintRole = pack.whiteBase && d.family !== "plaster" ? masonryFamilyTint(d.family) : undefined;
+    const tintRole = d.family !== "plaster" ? masonryFamilyTint(d.family) : undefined;
     const baseBindings = Object.entries(d.resources).flatMap(([sampler, r]) =>
       r.kind === "texture" && isMasonryBaseTexture(r.texture!)
         ? [
@@ -547,7 +542,6 @@ export class EngineResidentScene {
         material.shaderData.setVector4("material_WallJointSection", new Vector4(j.bottom - j.top, j.base, 0, 0));
         material.shaderData.setFloatArray("material_WallJointHeights", Float32Array.from(j.heights));
       }
-      if (!pack.whiteBase) return;
       const appearance = masonryAppearance(this.engine);
       if (tintRole)
         this.resources.push(
@@ -573,9 +567,7 @@ export class EngineResidentScene {
       f = engineShaderSource(
         tintRole
           ? injectMasonryTint(lit.fragment, baseBindings)
-          : pack.whiteBase
-            ? restoreMasonryTextureSamples(lit.fragment, baseBindings)
-            : lit.fragment
+          : restoreMasonryTextureSamples(lit.fragment, baseBindings)
       ),
       entrance = injectConstructionEntrance(v.source, f.source, d.family);
     // Engine owns the model/view/projection and depth convention. The recovered

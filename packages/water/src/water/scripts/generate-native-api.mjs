@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 
 // Extract the transitive type declarations from the actual command contract, not a second handwritten schema.
 const entry = fileURLToPath(new URL("../native/WaterAPIContract.ts", import.meta.url));
+const waterRoot = fileURLToPath(new URL("../", import.meta.url));
 const output = fileURLToPath(new URL("../native/WaterAPIDeclarations.ts", import.meta.url));
 const program = ts.createProgram([entry], { target: ts.ScriptTarget.ESNext, module: ts.ModuleKind.ESNext, moduleResolution: ts.ModuleResolutionKind.Bundler, skipLibCheck: true });
 const checker = program.getTypeChecker();
@@ -16,7 +17,7 @@ function collect(symbol) {
   for (let node of symbol.declarations ?? []) {
     if (ts.isEnumMember(node)) node = node.parent;
     const source = node.getSourceFile();
-    if (!source.fileName.includes("/shared/water/")) continue;
+    if (!source.fileName.startsWith(waterRoot)) continue;
     if (!(ts.isInterfaceDeclaration(node) || ts.isTypeAliasDeclaration(node) || ts.isEnumDeclaration(node) || ts.isVariableDeclaration(node))) continue;
     const name = node.name.getText(source);
     if (declarations.has(name)) {

@@ -2,18 +2,38 @@ import type { IslandPlan, PlanPoint } from "../semantic-study/IslandPlanModel";
 import { createPlanningRingQuery } from "../semantic-study/WorldPlanningTerrain";
 import { buildWorldTemplateGeometry, templateNodeFootprint } from "./WorldTemplateGeometry";
 import { worldTemplate } from "./WorldTemplateCatalog";
-import { envelope } from "../semantic-study/IslandPlanAtoms";
 import { WORLD_TEMPLATE_ART } from "./WorldTemplateArtDirection";
-import { compositionOutline } from "./SpatialCompositionGeometry";
+import { poiTerritories } from "./ecology/PoiTerritories";
+import type { SubjectViewPose } from "./PlanningSubjectView";
 import { spatialCompositionParameters } from "./SpatialCompositionParameters";
+import { TEMPLATE_SPAWN_POI_ID, WORLD_TEMPLATE_CONFIGS } from "./WorldTemplateConfig";
 
 export interface WorldTemplateSite {
   templateId: string;
   center: PlanPoint;
-  radius: number;
-  outline: PlanPoint[];
-  footprints: { id: string; outline: PlanPoint[] }[];
-  compositionOutline?: PlanPoint[];
+  footprints: {
+    id: string;
+    outline: PlanPoint[];
+    obb: { center: PlanPoint; size: [number, number, number]; yawDegrees: number; outline: PlanPoint[] };
+    label?: string;
+    poiId?: string;
+    containedInPoi?: boolean;
+  }[];
+  spawnView?: SubjectViewPose;
+  spawnPoiId?: string;
+  centeredStart?: PlanPoint;
+}
+
+/** Resolve the configured start against the published POI when the template supplies one.
+ * @param plan Current world plan, after POI distribution.
+ * @returns The authored start and its POI, if configured.
+ */
+export function resolveConfiguredTemplateSpawn(plan: IslandPlan): { position: PlanPoint; poiId?: string } | undefined {
+  const config = WORLD_TEMPLATE_CONFIGS[plan.parameters.worldTemplate?.id ?? ""];
+  if (!config?.spawn) return;
+  const poi = config.spawnPoi && plan.poiDistribution?.sites.find((site) => site.id === TEMPLATE_SPAWN_POI_ID);
+  if (poi && !poi.active) throw new Error("模板出生点 POI 未能获得有效管理区");
+  return poi ? { position: poi.center, poiId: poi.id } : { position: config.spawn.position };
 }
 
 /** Choose the authored subject's domain before any ordinary population is constructed.
@@ -29,7 +49,10 @@ export function planWorldTemplateSite(
     plan.parameters.seed,
     plan.parameters.spatialComposition
   );
+  if (WORLD_TEMPLATE_CONFIGS[template.id] && !nodes.length) return;
+  const art = WORLD_TEMPLATE_ART[template.id];
   const q = spatialCompositionParameters(plan.parameters.spatialComposition);
+  if (!nodes.length && !q.enabled && q.basinRadiusM === 0 && !art.centeredStart) return;
   const radius = Math.max(
     modelRadius,
     q.basinRadiusM,
@@ -39,18 +62,48 @@ export function planWorldTemplateSite(
   // grounded asset, rather than clearing the empty rectangle between assets.
   const local = nodes
     .filter((node) => node.grounded)
-    .map((node) => ({ id: node.id, outline: templateNodeFootprint(node) }));
+    .map((node) => ({
+      id: node.id,
+      label: node.label,
+      outline: templateNodeFootprint(node),
+      obb: {
+        center: { x: node.position[0], z: node.position[2] },
+        size: node.scale,
+        yawDegrees: node.rotation[1],
+        outline: templateNodeFootprint(node, true)
+      }
+    }));
   const margin = local.length
     ? Math.max(...local.flatMap((item) => item.outline.flatMap((p) => [Math.abs(p.x), Math.abs(p.z)])))
-    : radius;
+    : radius || 32;
   const land = createPlanningRingQuery(plan.land),
     waters = plan.waters.map((w) => createPlanningRingQuery(w.outline));
   const center = { x: plan.parameters.width / 2, z: plan.parameters.depth / 2 };
-  const stride = margin / 2;
+  const territories =
+    art.plannedSubjects && plan.poiDistribution
+      ? poiTerritories(plan)
+          .filter((cell) => cell.outline.length >= 3)
+          .map((cell) => ({ poiId: cell.poiId, ring: createPlanningRingQuery(cell.outline) }))
+      : undefined;
+  const stride = margin / (territories ? 6 : 2);
   let best:
-    | { center: PlanPoint; outline: PlanPoint[]; score: number; footprints: WorldTemplateSite["footprints"] }
+    | {
+        center: PlanPoint;
+        score: number;
+        crossings: number;
+        footprints: WorldTemplateSite["footprints"];
+      }
     | undefined;
-  const authored = q.enabled ? { centerX: q.centerX, centerZ: q.centerZ } : plan.parameters.worldTemplate;
+  const spawn = resolveConfiguredTemplateSpawn(plan);
+  const centeredStart =
+    spawn?.position ?? (art.centeredStart && plan.parameters.landMode === "continuous" ? center : undefined);
+  const authored = q.enabled
+    ? { centerX: q.centerX, centerZ: q.centerZ }
+    : plan.parameters.worldTemplate?.centerX !== undefined ||
+        plan.parameters.worldTemplate?.centerZ !== undefined ||
+        !centeredStart
+      ? plan.parameters.worldTemplate
+      : { centerX: center.x, centerZ: center.z };
   if ((authored?.centerX === undefined) !== (authored?.centerZ === undefined))
     throw new Error("风格主体锚点须同时提供 X 与 Z");
   const fixed = authored?.centerX !== undefined && authored.centerZ !== undefined;
@@ -68,14 +121,23 @@ export function planWorldTemplateSite(
       );
   for (const z of zs)
     for (const x of xs) {
-      const point = { x, z },
-        outline = envelope(point, radius * 2, radius * 2, 0);
-      if (outline.some((p) => p.x < 0 || p.z < 0 || p.x > plan.parameters.width || p.z > plan.parameters.depth))
+      if (x < radius || z < radius || x + radius > plan.parameters.width || z + radius > plan.parameters.depth)
         continue;
-      const footprints = local.map((item) => ({
-        id: item.id,
-        outline: item.outline.map((p) => ({ x: x + p.x, z: z + p.z }))
-      }));
+      const point = { x, z };
+      const translate = (p: PlanPoint) => ({ x: x + p.x, z: z + p.z });
+      const footprints = local.map((item) => {
+        const obb = { ...item.obb, center: translate(item.obb.center), outline: item.obb.outline.map(translate) };
+        const poi = territories?.find(({ ring }) => ring.inside(obb.center));
+        return {
+          ...item,
+          outline: item.outline.map(translate),
+          obb,
+          poiId: poi?.poiId,
+          containedInPoi: poi?.ring.containsPolygon(obb.outline)
+        };
+      });
+      const crossings = territories ? footprints.filter((item) => !item.containedInPoi).length : 0;
+      if (best && crossings > best.crossings) continue;
       if (
         q.basinRadiusM &&
         !land.containsPolygon(
@@ -91,8 +153,7 @@ export function planWorldTemplateSite(
         footprints.some(
           (item) =>
             !land.containsPolygon(item.outline) ||
-            (WORLD_TEMPLATE_ART[template.id].support !== "submerged" &&
-              waters.some((w) => w.overlapsPolygon(item.outline)))
+            (art.support !== "submerged" && waters.some((w) => w.overlapsPolygon(item.outline)))
         )
       )
         continue;
@@ -102,7 +163,8 @@ export function planWorldTemplateSite(
       const score =
         relief / margin +
         Math.hypot(x - center.x, z - center.z) / Math.hypot(plan.parameters.width, plan.parameters.depth);
-      if (!best || score < best.score) best = { center: point, outline, footprints, score };
+      if (!best || crossings < best.crossings || score < best.score)
+        best = { center: point, footprints, score, crossings };
     }
   if (!best) {
     const clashes = fixed
@@ -120,9 +182,8 @@ export function planWorldTemplateSite(
   return {
     templateId: template.id,
     center: best.center,
-    radius,
-    outline: best.outline,
     footprints: best.footprints,
-    ...(q.enabled && q.replacePopulation ? { compositionOutline: compositionOutline(q) } : {})
+    ...(spawn?.poiId ? { spawnPoiId: spawn.poiId } : {}),
+    centeredStart
   };
 }

@@ -126,6 +126,8 @@ export interface TerrainLayerDiffuseColorPatch {
   readonly regionId: string;
   readonly layerId: string;
   readonly color?: readonly [number, number, number, number];
+  /** Multiply the authored remap range for a textured layer. */
+  readonly tint?: boolean;
 }
 
 /** Stable GPU height-atlas view shared without coupling consumers to the Terrain Material clone. */
@@ -338,6 +340,9 @@ export function createTerrainClipmapMaterialBinding(
     }
 
     material = sourceMaterial.clone();
+    if (puddleHydrologyOptions.authoredCoverage) {
+      material.shaderData.enableMacro("MATERIAL_TERRAIN_FEATHERED_PUDDLES");
+    }
     material.name = `${sourceMaterial.name} runtime terrain residency`;
     material.shaderData.setTexture("material_TerrainHeightAtlas", heightAtlas);
     material.shaderData.setVector2("material_TerrainHeightAtlasInvSize", heightAtlasInvSize);
@@ -393,6 +398,11 @@ export function createTerrainClipmapMaterialBinding(
       material.shaderData.setFloatArray("material_TerrainRegionAlphamapRanges", alphamapRanges);
       material.shaderData.setInt("material_TerrainAlphamapCount", layerPacking.alphamaps.length);
       material.shaderData.setInt("material_TerrainLayerCount", layerPacking.layers.length);
+      if (layerPacking.alphamaps.length === 1)
+        material.shaderData.setVector4(
+          "material_TerrainFirstLayerIndices",
+          new Vector4(...layerPacking.alphamaps[0].layerIndices)
+        );
       const textured = layerPacking.layers.filter((layer) => layer.diffuseTextureIndex >= 0);
       const singleDiffuse = layerPacking.singleDiffuseTexture;
       const simple =
@@ -579,8 +589,20 @@ export function createTerrainClipmapMaterialBinding(
         )
           throw RangeError("Terrain diffuse colours must be finite linear RGBA in [0, 1]");
         const offset = layer.index * layerPacking.layerMetadataWidth * 4;
-        next.set(patch.color ?? layer.diffuseRemapMin, offset + 4);
-        next.set(patch.color ?? layer.diffuseRemapMax, offset + 8);
+        const color = patch.color;
+        if (patch.tint && color) {
+          next.set(
+            layer.diffuseRemapMin.map((value, i) => value * color[i]),
+            offset + 4
+          );
+          next.set(
+            layer.diffuseRemapMax.map((value, i) => value * color[i]),
+            offset + 8
+          );
+        } else {
+          next.set(color ?? layer.diffuseRemapMin, offset + 4);
+          next.set(color ?? layer.diffuseRemapMax, offset + 8);
+        }
       }
       if (next.every((value, i) => value === pixels[i])) return;
       const texture = ownedLayerResources.layerMetadata as Texture2D;

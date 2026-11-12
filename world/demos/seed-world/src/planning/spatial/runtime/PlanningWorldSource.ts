@@ -1,5 +1,7 @@
-import { resetPlanningFarmSaveChoice } from "../farming/PlanningFarmSave.ts";
 import { createSeedPlanningDocument } from "@galacean/engine-world-planning/spatial/PlanningInitialization";
+import { applyPlanningTemplateSurface, initialPlanningTemplate, updateDesertPreviewRelief } from "../PlanningStartupTemplate.ts";
+import { removeDesertCamelPreset } from "@galacean/engine-world-planning/spatial/WorldTemplateAuthoring";
+import { resetPlanningFarmSaveChoice } from "../farming/PlanningFarmSave.ts";
 import { PlanningSession, type PlanningSessionOptions } from "@galacean/engine-world-planning/spatial/PlanningSession";
 import { exportPlanningRecipe, type PlanningDocument } from "@galacean/engine-world-planning/spatial/PlanningDocument";
 import { PlanningWorkerClient } from "../../semantic-study/PlanningWorkerClient.ts";
@@ -18,13 +20,43 @@ export interface PlanningWorldHandoff {
  */
 export async function createPlanningWorldSource(search: string, handoff: PlanningWorldHandoff | undefined, storage: {
   load(seed: number): Promise<PlanningDocument | undefined>; save(document: PlanningDocument): Promise<void>;
+  retainWater?(document: PlanningDocument): PlanningDocument;
+  initialize?(document: PlanningDocument, result: SemanticResult): Promise<PlanningDocument>;
 }) {
-  const raw = new URLSearchParams(search).get("seed");
+  const query = new URLSearchParams(search);
+  const raw = query.get("seed");
   const seed = raw !== null && /^\d+$/.test(raw) && Number(raw) <= 0xffffffff ? Number(raw) : SEMANTIC_DEFAULTS.seed;
-  const document = handoff?.document ?? await storage.load(seed);
-  if (!handoff && document) resetPlanningFarmSaveChoice(document);
+  let document = handoff?.document ?? await storage.load(seed);
+  let replaceSavedTemplate = false;
+  if (!handoff && document) {
+    resetPlanningFarmSaveChoice(document);
+    if (import.meta.env.DEV && query.get("desertSkyLab") === "1") updateDesertPreviewRelief(document);
+  }
   const client = new PlanningWorkerClient();
+  if (!handoff) {
+    const template = initialPlanningTemplate(search, seed,
+      document ? exportPlanningRecipe(document).parameters.worldTemplate?.id ?? "" : undefined);
+    if (template !== undefined) {
+      replaceSavedTemplate = !!document;
+      try {
+        document = await client.initialize(seed, undefined, template);
+        document = storage.retainWater?.(document) ?? document;
+        applyPlanningTemplateSurface(document);
+      }
+      catch (error) { client.dispose(); throw error; }
+    }
+  }
+  if (document) removeDesertCamelPreset(document);
   let accepted = handoff?.result;
+  if (storage.initialize) {
+    try {
+      document ??= createSeedPlanningDocument(seed);
+      const recipe = exportPlanningRecipe(document);
+      accepted ??= await client.run(recipe.parameters, recipe.edits, undefined, document);
+      if (!accepted?.accepted) throw new Error("Water authoring initialization requires an accepted planning result");
+      document = await storage.initialize(document, accepted);
+    } catch (error) { client.dispose(); throw error; }
+  }
   // Source/project history owns undo; the runtime session is a derived consumer.
   const options: PlanningSessionOptions = { history: false };
   let disposed = false, started = false;
@@ -44,6 +76,7 @@ export async function createPlanningWorldSource(search: string, handoff: Plannin
   const dispose = () => { if (!disposed) { disposed = true; client.dispose(); } };
   return {
     session,
+    replaceSavedTemplate,
     async initialize(preparePublication?: PlanningSessionOptions["preparePublication"]) {
       if (disposed) throw new Error("Planning world source disposed");
       if (started) throw new Error("Planning world source initialization already started");

@@ -94,15 +94,13 @@ River 保留所有已发布高程/宽度锚点，以 `resolved-path + Polyline` 
 
 `planning-data/water-rendering.json` 当前选择 Farmlands River Look，Lake/Ocean 使用共享预设；灯光与相机由宿主拥有。水色为独立 Look 修订，基础 Look 不同不复用旧覆盖；当前 Planning 水色不随作者工程持久化，重载恢复预设。材质编辑不改变水位、几何或查询。
 
-## 对象点选
+## 照片圈选与场景交互
 
-WORLD CONTROLS 的“点击选中场景”开关继续按原有规则控制所有对象（包括岩石）的 AI 目标与场景高亮。点击岩石同时选择 debug 面板中的对应 OBB；开关关闭时只更新该面板，不创建通用选择。开关开启时保留原有 Ref、轮廓/高亮及事件，不因面板忙碌或不可用而改变通用选择。农具交互和种植选择优先消费手势，拖动和 UI 点击不触发岩石点选。
+场景对象点选、名称标签和选中彩虹高亮已移除；WORLD CONTROLS 不再提供“点击选中场景”开关。单击仍可驱赶动物，农具交互保留各自的输入所有权。
 
-单指/鼠标 click 且累计位移不超过 10 CSS px 才拾取；UI、多指、拖动、取消不触发。`seed-world-picked` 返回 `{id,ref}`，未命中为 null；Ref 与原生选择/inspect 目录同源，选中真实几何保留色膜高亮，点空白或重新发布清除选择。
+照片圈选与 AI 图中定位保留。`SeedWorldPicker` 仅负责冻结照片的 ID／深度捕获；`RuntimePickPreparation` 和网格替换 Shader 是该捕获路径的共享资源。启动不再执行全画布点选预热，照片路径在世界就绪后按现有流程准备。
 
-拾取适配位于 `PlanningWorldPicking`，输入/批次/深度 ID 与反投影位于 `src/SeedWorldPick*`，选中高亮位于 `shared/selection`。场景不显示物体名称、圆点或指示线标注；选中身份继续用于编辑与交互。树/灌木按实例、草按覆盖场、花按随密度重采样传递的 FlowerRegion 归属、水按水体；道路与 Clipmap 地形按实际命中识别。特效不参加水体拾取。临时纹理和 framebuffer 由所属消费者释放，移动端性能未验收。
-
-发送文本/语音时冻结完整 Ref 到 `agent_task.context.user_selection_at_submission`；每条补充和排队消息分别携带提交时的选择与视角快照；next-step 投递后更新任务 viewer，正在执行的脚本不受中途输入影响。查询不覆盖用户点选。浏览器回归入口 `demos/terrain/e2e/tree-pick.playwright.config.ts`，`TERRAIN_E2E_URL` 可指定已有服务。历史截图、日志和源码包从当前交付清理，必要回归夹具仍保留；旧记录可从 Git 历史追溯。
+发送文本／语音不再携带场景点选目标，`user_selection_at_submission` 为 null；照片附件仍携带自己的圈选和视图信息。临时查询、命名选择集、公共编辑器事务及农具选择不受影响。
 
 ## 截屏标记与可查询截图
 

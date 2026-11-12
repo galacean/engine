@@ -67,30 +67,6 @@
         background: transparent;
         cursor: pointer;
       }
-      select {
-        margin-top: 12px;
-        padding: 6px 8px;
-        border-radius: 5px;
-        color: #eff8f7;
-        background: #163c3b;
-        border: 1px solid #709e9d;
-      }
-      .diagnostic-legend {
-        max-width: 340px;
-        margin-top: 12px;
-        font-size: 12px;
-        line-height: 1.6;
-        color: #c3d9d6;
-      }
-      .density-scale {
-        height: 7px;
-        border-radius: 4px;
-        background: linear-gradient(90deg, #61e7d7, #162f7c);
-      }
-      .density-labels {
-        display: flex;
-        justify-content: space-between;
-      }
       button:hover,
       button:focus-visible {
         background: #ffffff20;
@@ -155,23 +131,6 @@
         <button data-view="horizon" aria-pressed="false" disabled>远海地平线</button>
         <button id="pause" aria-pressed="false" disabled>暂停海浪</button>
       </nav>
-      <label for="surface-view">观察内容</label>
-      <select id="surface-view" disabled>
-        <option value="0">完整效果</option>
-        <option value="3">水色密度（深度响应）</option>
-        <option value="5">折射采样</option>
-        <option value="6">环境反射</option>
-        <option value="7">海面与岸边泡沫</option>
-        <option value="8">焦散</option>
-        <option value="2">细节法线</option>
-      </select>
-      <div id="diagnostic-legend" class="diagnostic-legend" role="status" hidden>
-        <div id="density-legend" hidden>
-          <div class="density-scale"></div>
-          <div class="density-labels"><span>0 · 通透</span><span>1 · 深水饱和</span></div>
-        </div>
-        <span id="diagnostic-description"></span>
-      </div>
     </section>
     <div class="hint">点击画面 · WASD 移动 · Q/E 升降 · 拖动查看方向</div>
     <div id="status" role="status">正在准备岛屿与海洋…</div>

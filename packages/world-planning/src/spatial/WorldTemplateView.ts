@@ -1,6 +1,11 @@
 import type { IslandPlan } from "../semantic-study/IslandPlanModel";
+import type { RockFormationMesh } from "@galacean/engine-terrain/rock-formation/types";
+import { rockObbId } from "../integrations/terrain/rock-formation/Authoring";
+import { rockFormationGround } from "../integrations/terrain/rock-formation/Placement";
+import { COMPOSITION_SUBJECT_TERRACE_OWNER } from "./SpatialComposition";
 import { buildWorldTemplateGeometry, templateNodeFootprint, type TemplateNode } from "./WorldTemplateGeometry";
 import { worldTemplate } from "./WorldTemplateCatalog";
+import { worldTemplateStreet } from "./WorldTemplateStreet";
 import { WORLD_TEMPLATE_ART } from "./WorldTemplateArtDirection";
 import type { SubjectViewPose } from "./PlanningSubjectView";
 import type {
@@ -8,9 +13,52 @@ import type {
   LandscapeFocus,
   LandscapeView
 } from "@galacean/engine-vegetation/world/VegetationLandscapePlan";
+import { planningWhiteboxes } from "../semantic-study/PlanningWhiteboxes";
+import { rayBox } from "./guidance/VisibilityQuery";
+import type { V2Box } from "./V2Model";
 import profile from "../planning-data/settlement-profile.json";
 
 type Position = [number, number, number];
+
+export function resolveWorldTemplateSpawn(plan: IslandPlan) {
+  const spawn = WORLD_TEMPLATE_ART[plan.parameters.worldTemplate?.id ?? ""]?.spawn;
+  return spawn?.seed === plan.parameters.seed ? spawn : undefined;
+}
+
+export function resolveWorldTemplateStreetView(
+  plan: IslandPlan,
+  ground: (x: number, z: number) => number | undefined,
+  eyeHeight: number
+) {
+  const street = worldTemplateStreet(plan);
+  if (!street) return undefined;
+  const spine = street.construction!.spine!;
+  const stations = street.volumes.map(({ boxes: [box] }) => {
+    let closest = 0;
+    let distance = Infinity;
+    for (const [index, point] of spine.entries()) {
+      const next = Math.hypot(point.x - box.center.x, point.z - box.center.z);
+      if (next < distance) {
+        closest = index;
+        distance = next;
+      }
+    }
+    return closest;
+  });
+  const start = Math.max(0, Math.min(...stations) - 4);
+  const end = Math.max(...stations);
+  if (end <= start) return undefined;
+  const eye = spine[start];
+  const target = spine[Math.min(end, start + 15)];
+  const eyeY = ground(eye.x, eye.z);
+  const targetY = ground(target.x, target.z);
+  if (eyeY === undefined || targetY === undefined) return undefined;
+  return {
+    eye: { ...eye, y: eyeY + eyeHeight },
+    target: { ...target, y: targetY + eyeHeight + 1 }
+  };
+}
+
 export interface ResolvedTemplateNode {
   node: TemplateNode;
   position: Position;
@@ -22,16 +70,22 @@ export interface ResolvedWorldTemplateScene {
   geometry: ReturnType<typeof buildWorldTemplateGeometry>;
   nodes: ResolvedTemplateNode[];
   focusBounds: LandscapeBounds;
+  spawnView?: SubjectViewPose;
+  centeredStart?: Position;
+  occluders?: V2Box[];
   world: { width: number; depth: number; spacingX: number; spacingZ: number };
 }
 
 /** One grounded scene description for rendering, first-person framing and vegetation visibility. */
 export function resolveWorldTemplateScene(
   plan: IslandPlan,
-  ground: (x: number, z: number) => number | undefined
+  ground: (x: number, z: number) => number | undefined,
+  formations?: readonly RockFormationMesh[]
 ): ResolvedWorldTemplateScene | undefined {
   const template = worldTemplate(plan.parameters.worldTemplate?.id);
   if (!template) return undefined;
+  const geometry = buildWorldTemplateGeometry(template, plan.parameters.seed, plan.parameters.spatialComposition);
+  if (!geometry.nodes.length) return undefined;
   const site = plan.worldTemplateSite;
   if (!site || site.templateId !== template.id) throw new Error("风格主体缺少已发布的规划占地");
   const sample = (x: number, z: number) => {
@@ -40,27 +94,44 @@ export function resolveWorldTemplateScene(
     return value;
   };
   const anchor: Position = [site.center.x, sample(site.center.x, site.center.z), site.center.z];
-  const geometry = buildWorldTemplateGeometry(template, plan.parameters.seed, plan.parameters.spatialComposition);
+  const terraceIds = formations?.length
+    ? new Set(
+        plan.rocks
+          .filter((rock) => rock.groupId === COMPOSITION_SUBJECT_TERRACE_OWNER)
+          .flatMap((rock) => (rock.boxes ?? [rock]).map((box) => rockObbId(rock.id, box.id)))
+      )
+    : undefined;
+  const terraceGround =
+    formations && terraceIds?.size
+      ? rockFormationGround(
+          plan,
+          formations.filter(({ id }) => terraceIds.has(id))
+        )
+      : undefined;
   const resolution = plan.raster?.heightSamples ?? profile.world.heightmapResolution;
   const spacingX = plan.parameters.width / (resolution - 1);
   const spacingZ = plan.parameters.depth / (resolution - 1);
   const nodes = geometry.nodes.map((node) => {
     const [x, y, z] = node.position,
       [width, height, depth] = node.scale;
-    const corners = templateNodeFootprint(node).map((p) => ({ x: anchor[0] + p.x, z: anchor[2] + p.z }));
+    const corners = templateNodeFootprint(node, true).map((p) => ({ x: anchor[0] + p.x, z: anchor[2] + p.z }));
     let bottom = anchor[1] + y - height / 2;
     if (node.grounded) {
-      const columns = Math.ceil(width / spacingX),
-        rows = Math.ceil(depth / spacingZ);
+      const [supportWidth, supportDepth] = node.groundingFootprint ?? node.footprint ?? [width, depth];
+      const columns = Math.ceil(supportWidth / spacingX),
+        rows = Math.ceil(supportDepth / spacingZ);
       const angle = (node.rotation[1] * Math.PI) / 180,
         c = Math.cos(angle),
         s = Math.sin(angle);
       bottom = Infinity;
       for (let row = 0; row <= rows; row++)
         for (let column = 0; column <= columns; column++) {
-          const dx = (column / columns - 0.5) * width,
-            dz = (row / rows - 0.5) * depth;
-          bottom = Math.min(bottom, sample(anchor[0] + x + dx * c - dz * s, anchor[2] + z + dx * s + dz * c));
+          const dx = (column / columns - 0.5) * supportWidth,
+            dz = (row / rows - 0.5) * supportDepth;
+          const px = anchor[0] + x + dx * c - dz * s,
+            pz = anchor[2] + z + dx * s + dz * c;
+          const floor = sample(px, pz);
+          bottom = Math.min(bottom, terraceGround?.(px, pz, floor) ?? floor);
         }
       bottom += y;
     }
@@ -82,6 +153,16 @@ export function resolveWorldTemplateScene(
     geometry,
     nodes,
     focusBounds,
+    spawnView: site.spawnView,
+    centeredStart: site.centeredStart && [
+      site.centeredStart.x,
+      sample(site.centeredStart.x, site.centeredStart.z),
+      site.centeredStart.z
+    ],
+    occluders:
+      WORLD_TEMPLATE_ART[template.id].plannedSubjects && !site.spawnView
+        ? planningWhiteboxes(plan, (p) => sample(p.x, p.z)).flatMap((part) => part.boxes.filter((box) => box.occlusion))
+        : undefined,
     world: { width: plan.parameters.width, depth: plan.parameters.depth, spacingX, spacingZ }
   };
 }
@@ -160,7 +241,85 @@ export function resolveWorldTemplateView(
   const target = [0, 1, 2].map(
     (axis) => (bounds.min[axis] + bounds.max[axis]) / 2 + (art.lookAtOffset?.[axis] ?? 0) * (axis === 0 ? -1 : 1)
   ) as Position;
-  const angle = (-art.azimuthDegrees * Math.PI) / 180;
+  // A wide composition can frame into the subject's planning envelope. Ease
+  // back to full containment as the viewport approaches a square.
+  const frameFraction = Math.min(art.frameFraction, Math.max(1, aspect));
+  const centered = scene.centeredStart;
+  const eye =
+    scene.spawnView?.eye ??
+    (centered
+      ? ([centered[0], centered[1] + eyeHeight, centered[2]] as Position)
+      : findTemplateEye(scene, target, aspect, fovDegrees, eyeHeight, ground, frameFraction));
+  if (!eye) throw new Error("地形或体量遮挡参考图主景，无法在当前世界范围内完整取景");
+  const pose: SubjectViewPose = scene.spawnView ?? {
+    subjectId: `world-template:${scene.id}`,
+    eye,
+    target,
+    fovDegrees,
+    frameFraction,
+    distanceM: Math.hypot(...target.map((value, axis) => value - eye[axis]))
+  };
+  const view: LandscapeView = {
+    id: pose.subjectId,
+    eye: pose.eye,
+    lookAt: pose.target,
+    weight: 1,
+    depthBreaks: [pose.distanceM / 3, (pose.distanceM * 2) / 3]
+  };
+  const focus: LandscapeFocus = {
+    id: pose.subjectId,
+    objectId: pose.subjectId,
+    kind: "world-template",
+    bounds,
+    clearance: 0,
+    visibility: [{ viewId: view.id, bounds, padding: 0 }]
+  };
+  return { pose, landscape: { view, focus } };
+}
+
+function findTemplateEye(
+  scene: ResolvedWorldTemplateScene,
+  target: Position,
+  aspect: number,
+  fovDegrees: number,
+  eyeHeight: number,
+  ground: (x: number, z: number) => number | undefined,
+  frameFraction: number
+): Position | undefined {
+  const art = WORLD_TEMPLATE_ART[scene.id];
+  const bearings = art.plannedSubjects ? [0, -15, 15, -30, 30, -45, 45, -60, 60, -90, 90, -135, 135, 180] : [0];
+  let best: { eye: Position; visibility: number; full: boolean } | undefined;
+  for (const offset of bearings) {
+    const result = fitTemplateBearing(
+      scene,
+      target,
+      aspect,
+      fovDegrees,
+      eyeHeight,
+      ground,
+      art.azimuthDegrees + offset,
+      frameFraction
+    );
+    if (!result) continue;
+    if (result.full) return result.eye;
+    if (!best || result.visibility > best.visibility) best = result;
+  }
+  return best?.eye;
+}
+
+function fitTemplateBearing(
+  scene: ResolvedWorldTemplateScene,
+  target: Position,
+  aspect: number,
+  fovDegrees: number,
+  eyeHeight: number,
+  ground: (x: number, z: number) => number | undefined,
+  azimuthDegrees: number,
+  frameFraction: number
+): { eye: Position; visibility: number; full: boolean } | undefined {
+  const art = WORLD_TEMPLATE_ART[scene.id],
+    bounds = scene.focusBounds;
+  const angle = (-azimuthDegrees * Math.PI) / 180;
   const direction = [Math.sin(angle), -Math.cos(angle)],
     spacing = Math.min(scene.world.spacingX, scene.world.spacingZ);
   const corners: Position[] = [];
@@ -173,9 +332,32 @@ export function resolveWorldTemplateView(
       d === 0 ? Infinity : ((d > 0 ? [scene.world.width, scene.world.depth][i] : 0) - target[i === 0 ? 0 : 2]) / d
     )
   );
-  const tanY = Math.tan((fovDegrees * Math.PI) / 360) * art.frameFraction,
+  const tanY = Math.tan((fovDegrees * Math.PI) / 360) * frameFraction,
     tanX = tanY * aspect;
-  let eye: Position | undefined;
+  const modelBoxes: V2Box[] = art.plannedSubjects
+    ? scene.nodes.map(({ node, position, bounds }) => ({
+        id: node.id,
+        label: node.label ?? node.id,
+        center: { x: position[0], z: position[2] },
+        sizeX: node.scale[0],
+        sizeY: node.scale[1],
+        sizeZ: node.scale[2],
+        yaw: (node.rotation[1] * Math.PI) / 180,
+        elevation: bounds.min[1],
+        collision: false,
+        occlusion: true
+      }))
+    : [];
+  const visibilityPoints: { id?: string; center: Position; upper?: Position }[] = art.plannedSubjects
+    ? scene.nodes
+        .filter(({ node }) => scene.geometry.focusIds.includes(node.id))
+        .map(({ node, position, bounds }) => ({
+          id: node.id,
+          center: position,
+          upper: [position[0], (position[1] + bounds.max[1]) / 2, position[2]]
+        }))
+    : [target, ...corners.filter((p) => p[1] === bounds.max[1])].map((center) => ({ center }));
+  let best: { eye: Position; visibility: number; full: boolean } | undefined;
   for (let distance = near + spacing; distance <= far; distance += spacing) {
     const x = target[0] + direction[0] * distance,
       z = target[2] + direction[1] * distance,
@@ -195,34 +377,25 @@ export function resolveWorldTemplateView(
       })
     )
       continue;
-    const visible = [target, ...corners.filter((p) => p[1] === bounds.max[1])];
-    if (!visible.every((point) => terrainVisible(candidate, point, scene, ground))) continue;
-    eye = candidate;
-    break;
+    const origin = { x: candidate[0], y: candidate[1], z: candidate[2] };
+    const blockers = scene.occluders;
+    if (blockers?.some((box) => rayBox(origin, { x: 0, y: 0, z: 0 }, box) === 0)) continue;
+    const visible = (point: Position, subjectId?: string) => {
+      const direction = { x: point[0] - origin.x, y: point[1] - origin.y, z: point[2] - origin.z };
+      return (
+        !blockers?.some((box) => rayBox(origin, direction, box) < 1) &&
+        !modelBoxes.some((box) => box.id !== subjectId && rayBox(origin, direction, box) < 1) &&
+        terrainVisible(candidate, point, scene, ground)
+      );
+    };
+    let visibility = 0;
+    for (const { id, center, upper } of visibilityPoints) {
+      if (visible(center, id)) visibility += 2;
+      else if (upper && visible(upper, id)) visibility++;
+    }
+    if (visibility === visibilityPoints.length * 2) return { eye: candidate, visibility, full: true };
+    if (art.plannedSubjects && (!best || visibility > best.visibility))
+      best = { eye: candidate, visibility, full: false };
   }
-  if (!eye) throw new Error("地形遮挡参考图主景，无法在当前世界范围内完整取景");
-  const pose: SubjectViewPose = {
-    subjectId: `world-template:${scene.id}`,
-    eye,
-    target,
-    fovDegrees,
-    frameFraction: art.frameFraction,
-    distanceM: Math.hypot(...target.map((value, axis) => value - eye[axis]))
-  };
-  const view: LandscapeView = {
-    id: pose.subjectId,
-    eye,
-    lookAt: target,
-    weight: 1,
-    depthBreaks: [pose.distanceM / 3, (pose.distanceM * 2) / 3]
-  };
-  const focus: LandscapeFocus = {
-    id: pose.subjectId,
-    objectId: pose.subjectId,
-    kind: "world-template",
-    bounds,
-    clearance: 0,
-    visibility: [{ viewId: view.id, bounds, padding: 0 }]
-  };
-  return { pose, landscape: { view, focus } };
+  return best;
 }

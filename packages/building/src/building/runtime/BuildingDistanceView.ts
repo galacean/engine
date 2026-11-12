@@ -49,7 +49,6 @@ import {
   type Engine,
   type Entity
 } from "@galacean/engine";
-import selectionShader from "@galacean/engine-terrain/shaders/shared/WorldSelection.glsl?raw";
 import shader from "./MasonryDistanceSurface.shader?raw";
 import {
   addV2Surface,
@@ -62,7 +61,7 @@ import {
   type SeedWorldPickVisitor
 } from "@galacean/engine-modify/rendering/SeedWorldPickBatch";
 import { plasterPalette, plasterLinearColor } from "./ConstructionPlasterPalette";
-import { type profilePreview, constructionBrickLayer, woodPalette, wallPalette } from "./ProfilePreview";
+import { type ConstructionPreview, constructionBrickLayer, woodPalette, wallPalette } from "./ConstructionPreview";
 import type { BuildingPaletteSlot } from "./BuildingGlobals";
 import { createDecorationNativeView } from "./DecorationNativeView";
 export interface BuildingDistanceInput {
@@ -75,7 +74,7 @@ export async function createBuildingDistanceView(
   engine: Engine,
   parent: Entity,
   group: BuildingDistanceInput,
-  geometry: ReturnType<typeof profilePreview>,
+  geometry: ConstructionPreview,
   assets: PrefabResource,
   camera?: import("@galacean/engine").Camera,
   signal: AbortSignal = new AbortController().signal
@@ -91,8 +90,6 @@ export async function createBuildingDistanceView(
   if (group.rigidDecorations && geometry.parts.some((part) => part.decoration && !part.roofSpire))
     throw Error("Scene-bound distance geometry must retain native decoration parts");
   const entranceRanges = constructionEntranceRanges(geometry.parts);
-  if (!ShaderFactory.includeMap["shared/WorldSelection.glsl"])
-    ShaderFactory.registerInclude("shared/WorldSelection.glsl", selectionShader);
   if (!ShaderFactory.includeMap["Masonry/LodDither.glsl"])
     ShaderFactory.registerInclude("Masonry/LodDither.glsl", lodDither);
   if (!ShaderFactory.includeMap["Masonry/Plaster.glsl"])
@@ -332,9 +329,9 @@ export async function createBuildingDistanceView(
       batch.id = p.pickId === undefined ? buildingGroupKey(p.owner) : buildingPartKey(p.pickId);
       batches.push(batch);
     }
-    stoneFloorLease = stoneFloorMaterials.length ? leaseStoneFloorTextures(engine, assets, true) : undefined;
-    textureLease = plasterMaterials.length ? leasePlasterTextures(engine, assets, true) : undefined;
-    decorationTextureLease = decorationMaterials.length ? leaseDecorationTextures(engine, assets, true) : undefined;
+    stoneFloorLease = stoneFloorMaterials.length ? leaseStoneFloorTextures(engine, assets) : undefined;
+    textureLease = plasterMaterials.length ? leasePlasterTextures(engine, assets) : undefined;
+    decorationTextureLease = decorationMaterials.length ? leaseDecorationTextures(engine, assets) : undefined;
     if (
       geometry.decorationParts.length ||
       geometry.retainedWallUnits?.length ||

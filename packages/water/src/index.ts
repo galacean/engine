@@ -1,9 +1,8 @@
-export * from "./water/index";
 export {
   ScreenSpaceReflection,
-  ScreenSpaceReflectionDebugMode,
   ScreenSpaceReflectionQuality,
-  ScreenSpaceReflectionUpsamplingMode,
-  ScreenSpaceReflectionReceiverMode
+  ScreenSpaceReflectionReceiverMode,
+  ScreenSpaceReflectionUpsamplingMode
 } from "@galacean/engine";
 export type { ScreenSpaceReflectionProfiler } from "@galacean/engine";
+export * from "./water/index";

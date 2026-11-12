@@ -1,0 +1,288 @@
+[
+  {
+    "source": "packages/water/src/water/resources/lake/assets/grasslands-water-normal-512.ktx2",
+    "target": "Water/Textures/grasslands-water-normal-1024.ktx2",
+    "sha256": "4ba55626a9d761edf5d5beb7d71eafdf2e9d393e3029b33491b0dd3d44159594",
+    "byteLength": 271969,
+    "type": "KTX2",
+    "width": 512,
+    "height": 512,
+    "params": {
+      "isSRGBColorSpace": false,
+      "mipmap": true,
+      "wrapModeU": 1,
+      "wrapModeV": 1,
+      "filterMode": 1,
+      "anisoLevel": 1
+    }
+  },
+  {
+    "source": "packages/water/src/water/resources/river/assets/ktx2/farmlands-wave-large.ktx2",
+    "target": "Water/Textures/farmlands-wave-large-normal.ktx2",
+    "sha256": "39097a84df4789b069d7bc83f45a48e71f42bed1bc88c3d68de7bccee8be0e83",
+    "byteLength": 300633,
+    "type": "KTX2",
+    "width": 512,
+    "height": 512,
+    "params": {
+      "isSRGBColorSpace": false,
+      "mipmap": true,
+      "wrapModeU": 1,
+      "wrapModeV": 1,
+      "filterMode": 1,
+      "anisoLevel": 1
+    }
+  },
+  {
+    "source": "packages/water/src/water/resources/river/assets/ktx2/farmlands-caustics.ktx2",
+    "target": "Water/Textures/farmlands-caustics-color.ktx2",
+    "sha256": "d1b3fd2596e94cc49f470121b7a203d8294cba392692ecde5aa2dc74d6bfbc29",
+    "byteLength": 1203810,
+    "type": "KTX2",
+    "width": 1024,
+    "height": 1024,
+    "params": {
+      "isSRGBColorSpace": true,
+      "mipmap": true,
+      "wrapModeU": 1,
+      "wrapModeV": 1,
+      "filterMode": 1,
+      "anisoLevel": 1
+    }
+  },
+  {
+    "source": "packages/water/src/water/resources/river/assets/ktx2/drops/directional.ktx2",
+    "target": "Water/Textures/farmlands-drop-directional.ktx2",
+    "sha256": "61d6ce74a2edbc06a7a7bf33f40c8472f8f1a796ca21d44a0007541a4c9b64b7",
+    "byteLength": 2897729,
+    "type": "KTX2",
+    "width": 2048,
+    "height": 2048,
+    "params": {
+      "isSRGBColorSpace": true,
+      "mipmap": true,
+      "wrapModeU": 1,
+      "wrapModeV": 1,
+      "filterMode": 1,
+      "anisoLevel": 1
+    }
+  },
+  {
+    "source": "packages/water/src/water/resources/river/assets/ktx2/drops/cloud-linear.ktx2",
+    "target": "Water/Textures/farmlands-drop-cloud.ktx2",
+    "sha256": "672b20eb92cb3c9f5974b0a7309efc136a4a5be9fbb02a4fb937b94c9b337b68",
+    "byteLength": 4882529,
+    "type": "KTX2",
+    "width": 2048,
+    "height": 2048,
+    "params": {
+      "isSRGBColorSpace": false,
+      "mipmap": true,
+      "wrapModeU": 1,
+      "wrapModeV": 1,
+      "filterMode": 1,
+      "anisoLevel": 1
+    }
+  },
+  {
+    "source": "packages/water/src/water/resources/river/assets/ktx2/drops/lines.ktx2",
+    "target": "Water/Textures/farmlands-drop-lines.ktx2",
+    "sha256": "1781030f6bae4d8ec0d0ace26a418a02ca60d82178f73f96dcd646d0e48c2d6d",
+    "byteLength": 312710,
+    "type": "KTX2",
+    "width": 512,
+    "height": 512,
+    "params": {
+      "isSRGBColorSpace": true,
+      "mipmap": true,
+      "wrapModeU": 1,
+      "wrapModeV": 1,
+      "filterMode": 1,
+      "anisoLevel": 1
+    }
+  },
+  {
+    "source": "packages/water/src/water/resources/river/assets/ktx2/drops/edge.ktx2",
+    "target": "Water/Textures/farmlands-drop-edge.ktx2",
+    "sha256": "63574983fc6725ab0237d83e4ae303d3fb01949b94efc7fde619ac27f58b626b",
+    "byteLength": 19524,
+    "type": "KTX2",
+    "width": 256,
+    "height": 512,
+    "params": {
+      "isSRGBColorSpace": true,
+      "mipmap": true,
+      "wrapModeU": 1,
+      "wrapModeV": 1,
+      "filterMode": 1,
+      "anisoLevel": 1
+    }
+  },
+  {
+    "source": "packages/water/src/water/resources/river/assets/ktx2/drops/voronoi.ktx2",
+    "target": "Water/Textures/farmlands-drop-voronoi.ktx2",
+    "sha256": "bcea4cf48f5a90d41992569d7c20b1fbd15a11fd17b0f0e0eb8ade7490e6ae3b",
+    "byteLength": 2816091,
+    "type": "KTX2",
+    "width": 2048,
+    "height": 2048,
+    "params": {
+      "isSRGBColorSpace": true,
+      "mipmap": true,
+      "wrapModeU": 1,
+      "wrapModeV": 1,
+      "filterMode": 1,
+      "anisoLevel": 1
+    }
+  },
+  {
+    "source": "packages/water/src/water/resources/river/assets/ktx2/drops/foam.ktx2",
+    "target": "Water/Textures/farmlands-drop-foam.ktx2",
+    "sha256": "529a0527aab0931441d8a2994b568afda121bc6b014c5ce77d3a4541fb386696",
+    "byteLength": 259649,
+    "type": "KTX2",
+    "width": 512,
+    "height": 512,
+    "params": {
+      "isSRGBColorSpace": true,
+      "mipmap": true,
+      "wrapModeU": 1,
+      "wrapModeV": 1,
+      "filterMode": 1,
+      "anisoLevel": 1
+    }
+  },
+  {
+    "source": "packages/water/src/water/resources/river/assets/ktx2/drops/mist.ktx2",
+    "target": "Water/Textures/farmlands-drop-mist.ktx2",
+    "sha256": "203a2a5471dd6f6e75eca5279126a009609ec5dc2431188fba852784b03a19a4",
+    "byteLength": 497052,
+    "type": "KTX2",
+    "width": 1024,
+    "height": 1024,
+    "params": {
+      "isSRGBColorSpace": true,
+      "mipmap": true,
+      "wrapModeU": 1,
+      "wrapModeV": 1,
+      "filterMode": 1,
+      "anisoLevel": 1
+    }
+  },
+  {
+    "source": "packages/water/src/water/resources/river/assets/ktx2/drops/splash.ktx2",
+    "target": "Water/Textures/farmlands-drop-splash.ktx2",
+    "sha256": "bcd4bc2c15efc4850b472e431f5a6df387b3913503d822971da7dcd3b7ae5868",
+    "byteLength": 9459,
+    "type": "KTX2",
+    "width": 256,
+    "height": 256,
+    "params": {
+      "isSRGBColorSpace": true,
+      "mipmap": true,
+      "wrapModeU": 1,
+      "wrapModeV": 1,
+      "filterMode": 1,
+      "anisoLevel": 1
+    }
+  },
+  {
+    "source": "packages/water/src/water/resources/ocean/textures/Normals/SmoothWaves.ktx2",
+    "target": "Water/Textures/ocean-smoothWaves.ktx2",
+    "sha256": "bd94e75f43569ad0bcd91fd1501a764a7494f58917b4d4fdeeb6910af0d5befa",
+    "byteLength": 281210,
+    "type": "KTX2",
+    "width": 512,
+    "height": 512,
+    "params": {
+      "isSRGBColorSpace": false,
+      "mipmap": true,
+      "wrapModeU": 1,
+      "wrapModeV": 1,
+      "filterMode": 2,
+      "anisoLevel": 4
+    }
+  },
+  {
+    "source": "packages/water/src/water/resources/ocean/textures/Normals/RoughWaves.ktx2",
+    "target": "Water/Textures/ocean-roughWaves.ktx2",
+    "sha256": "da14041d0a05f4fb140c61d9a5f05a09f1b5b57d1dd9bafa8ae1155bf11134c5",
+    "byteLength": 317838,
+    "type": "KTX2",
+    "width": 512,
+    "height": 512,
+    "params": {
+      "isSRGBColorSpace": false,
+      "mipmap": true,
+      "wrapModeU": 1,
+      "wrapModeV": 1,
+      "filterMode": 2,
+      "anisoLevel": 4
+    }
+  },
+  {
+    "source": "packages/water/src/water/resources/ocean/textures/Caustics/Caustics_1.ktx2",
+    "target": "Water/Textures/ocean-caustics.ktx2",
+    "sha256": "a28dacc3fc5e44171c260eb883aad18b459525e8937394fb2432d875762d52b6",
+    "byteLength": 303869,
+    "type": "KTX2",
+    "width": 512,
+    "height": 512,
+    "params": {
+      "isSRGBColorSpace": true,
+      "mipmap": true,
+      "wrapModeU": 1,
+      "wrapModeV": 1,
+      "filterMode": 2,
+      "anisoLevel": 2
+    }
+  },
+  {
+    "source": "packages/water/src/water/resources/ocean/textures/Foam/Foam1.ktx2",
+    "target": "Water/Textures/ocean-foam.ktx2",
+    "sha256": "5317854e2beec731f7421fe9068733cdd0da4ff82304c3fb04501aa51a4a4ad3",
+    "byteLength": 278154,
+    "type": "KTX2",
+    "width": 512,
+    "height": 512,
+    "params": {
+      "isSRGBColorSpace": true,
+      "mipmap": true,
+      "wrapModeU": 1,
+      "wrapModeV": 1,
+      "filterMode": 2,
+      "anisoLevel": 2
+    }
+  },
+  {
+    "source": "packages/water/src/water/resources/ocean/textures/IntersectionNoise.ktx2",
+    "target": "Water/Textures/ocean-intersectionNoise.ktx2",
+    "sha256": "88f78af80bc3eda5442073c2f50be8cbe6ca2eed629852c41d17386d74d88a59",
+    "byteLength": 223429,
+    "type": "KTX2",
+    "width": 512,
+    "height": 512,
+    "params": {
+      "isSRGBColorSpace": true,
+      "mipmap": true,
+      "wrapModeU": 1,
+      "wrapModeV": 1,
+      "filterMode": 2,
+      "anisoLevel": 2
+    }
+  },
+  {
+    "source": "packages/terrain/src/data/seed-world/public/Shader/Water/lake-heightfield-high-hybrid-v2.dd537fc7e67ee232d8268f0c72b5c4a0dbb3db26f93c2c49e4f761ec32ccf184.shaderc",
+    "target": "Water/Shaders/lake-heightfield-high-hybrid-v2.shaderc",
+    "sha256": "dd537fc7e67ee232d8268f0c72b5c4a0dbb3db26f93c2c49e4f761ec32ccf184",
+    "byteLength": 111447,
+    "type": "Shader"
+  },
+  {
+    "source": "packages/terrain/src/data/seed-world/public/Shader/Water/ocean-near-detailed.87949b62cd4f35163ce49163557db7facc50256ad4cea575d8a16e86157ebc61.shaderc",
+    "target": "Water/Shaders/ocean-near-detailed.shaderc",
+    "sha256": "87949b62cd4f35163ce49163557db7facc50256ad4cea575d8a16e86157ebc61",
+    "byteLength": 102680,
+    "type": "Shader"
+  }
+]

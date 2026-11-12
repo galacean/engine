@@ -22,6 +22,11 @@ export interface ComponentRuntimeCapabilitySnapshot {
 }
 export function getBuiltinComponentRuntimeCapabilitySnapshot(): ComponentRuntimeCapabilitySnapshot;
 
+export function mergeSourceValueRecords(
+  base: GalaceanSourceValueRecord,
+  override?: GalaceanSourceValueRecord
+): GalaceanSourceValueRecord;
+
 export function runtimeSourceReferenceIds(
   source: unknown,
   options?: SourceCompileOptions

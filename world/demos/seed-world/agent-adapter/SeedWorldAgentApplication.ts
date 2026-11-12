@@ -1,29 +1,19 @@
-import type { RuntimeProjectSession } from "@galacean/engine-runtime-editor/project/runtime-project-session";
-import { SEED_WORLD_EDITOR_PATH } from "../SeedWorldProjectFormats.ts";
-import { PLANNING_PROJECT_PATH } from "../src/planning/spatial/runtime/PlanningProjectStorage.ts";
-import { planningSourceDocument, planningVegetationReferences } from "../src/planning/spatial/runtime/PlanningProjectSource.ts";
+import type { AgentEditTransaction } from "@galacean/engine-ai-chat/ai-chat/agent-types";
+import { AgentToolExecutionError } from "@galacean/engine-ai-chat/ai-chat/agent-types";
 import { RuntimeAssetChanges } from "@galacean/engine-runtime-editor/project/runtime-asset-changes";
-import type { RuntimeComponentIdentity } from "@galacean/engine-runtime-editor/runtime-editor/scene/runtime-component-identity";
-type NativeBuildingSelection = { readonly component: RuntimeComponentIdentity };
+import type { RuntimeProjectSession } from "@galacean/engine-runtime-editor/project/runtime-project-session";
 import type { RuntimeSceneInspection } from "@galacean/engine-runtime-editor/runtime-inspection/runtime-scene-inspection";
-import { viewerRelativePosition } from "./ViewerRelation.ts";
-import { resolveWaterEditOptions } from "@galacean/engine-world-planning/spatial/hydrology/PlanningWaterEdits";
-import type { SeedWorldPlanningService } from "./SeedWorldPlanningService.ts";
-import { planningPickAssets } from "@galacean/engine-world-planning/spatial/runtime/PlanningWorldPicking";
-import type { SeedWorldParameterAuthoring, SeedWorldParameterReceipts } from "./tools/parameter-tools.ts";
-import type { SeedWorldViewSnapshots } from "@galacean/engine-world-planning/world/SeedWorldViewSnapshot";
-import type { SeedWorldAnimalService } from "./ports/SeedWorldAnimalService.ts";
-import { validateSeedWorldWaterColor } from "@galacean/engine-water/world/SeedWorldWaterColor";
-import type { SeedWorldWaterColorUpdateResult } from "@galacean/engine-world-planning/agent-adapter/ports/SeedWorldEnginePort";
+import { resolveSeedWorldTerrainTransitionDurationSeconds } from "@galacean/engine-terrain/world/SeedWorldTerrainTransition";
 import { treeVariationKey } from "@galacean/engine-vegetation/world/SeedWorldTreeShapeControls";
-import { SEED_WORLD_FRONT_RELATION_DISTANCE_METRES } from "./SeedWorldSpatialSemantics.ts";
 import type {
-  SeedWorldAtmosphereUpdateRequest,
+  SeedWorldAssetDomain,
   SeedWorldAssetMutationResult,
+  SeedWorldAtmosphereUpdateRequest,
   SeedWorldAuthoringResource,
   SeedWorldAuthoringResourceOf,
   SeedWorldAuthoringResult,
   SeedWorldBounds,
+  SeedWorldEditorSettings,
   SeedWorldEnginePort,
   SeedWorldEnvironmentUpdateInput,
   SeedWorldGenericTerrainFeatureInput,
@@ -31,24 +21,21 @@ import type {
   SeedWorldKernelSpatialAnchor,
   SeedWorldKernelSpatialTarget,
   SeedWorldLiveState,
-  SeedWorldMutationControl,
   SeedWorldMountCommandInput,
   SeedWorldMountCommandResult,
+  SeedWorldMutationControl,
   SeedWorldObject,
   SeedWorldObjectKind,
-  SeedWorldRemovableObjectKind,
-  SeedWorldPointOrderField,
   SeedWorldPlantKind,
-  SeedWorldQueryInput,
+  SeedWorldPointOrderField,
   SeedWorldQueriedAsset,
+  SeedWorldQueryInput,
   SeedWorldRef,
-  SeedWorldAssetDomain,
-  SeedWorldRiverInput,
+  SeedWorldRemovableObjectKind,
   SeedWorldResourceMutation,
-  SeedWorldWaterMutationControl,
   SeedWorldSelectionItem,
-  SeedWorldSelectionSummary,
   SeedWorldSelectionResult,
+  SeedWorldSelectionSummary,
   SeedWorldSelector,
   SeedWorldSelectorAnchor,
   SeedWorldTerrainFeatureCreateInput,
@@ -56,28 +43,36 @@ import type {
   SeedWorldTerrainFeaturePatch,
   SeedWorldTerrainMutationControl,
   SeedWorldTimeUpdateInput,
+  SeedWorldVegetationBrushInput,
   SeedWorldVegetationCreateInput,
   SeedWorldVegetationCreateResult,
   SeedWorldVegetationFeaturePatch,
   SeedWorldVegetationKind,
   SeedWorldVegetationUpdateResult,
-  SeedWorldVegetationBrushInput,
-  SeedWorldWaterBodyInput,
-  SeedWorldWaterBodyMutationPatch,
-  SeedWorldWaterFeatureCreateInput,
-  SeedWorldWaterFeaturePatch
+  SeedWorldWaterMutationControl
 } from "@galacean/engine-world-planning/agent-adapter/ports/SeedWorldEnginePort";
 import { SEED_WORLD_REMOVABLE_OBJECT_KINDS } from "@galacean/engine-world-planning/agent-adapter/ports/SeedWorldEnginePort";
-import { SeedWorldAssetManager, type SeedWorldAssetCandidate } from "@galacean/engine-world-planning/agent-adapter/SeedWorldAssetManager";
-import { resolveSeedWorldHillAtom } from "@galacean/engine-world-planning/world/SeedWorldHillAtom";
+import {
+  SeedWorldAssetManager,
+  type SeedWorldAssetCandidate
+} from "@galacean/engine-world-planning/agent-adapter/SeedWorldAssetManager";
+import { planningPickAssets } from "@galacean/engine-world-planning/spatial/runtime/PlanningWorldPicking";
 import { getSeedWorldAssetPlacementProfile } from "@galacean/engine-world-planning/world/SeedWorldAssetPlacementProfile";
-import { resolveSeedWorldTerrainTransitionDurationSeconds } from "@galacean/engine-terrain/world/SeedWorldTerrainTransition";
-import { resolveSeedWorldFlowingWaterLakeSurrogateRadiusMetres } from "@galacean/engine-world-planning/runtime/hydrology-v1/SeedWorldFlowingWaterLakeSurrogate";
-import { AgentToolExecutionError } from "@galacean/engine-ai-chat/ai-chat/agent-types";
-import type { AgentEditTransaction } from "@galacean/engine-ai-chat/ai-chat/agent-types";
-import type { SeedWorldEditorSettings } from "@galacean/engine-world-planning/agent-adapter/ports/SeedWorldEnginePort";
-import { createSeedWorldTools } from "./SeedWorldToolCatalog.ts";
+import { resolveSeedWorldHillAtom } from "@galacean/engine-world-planning/world/SeedWorldHillAtom";
+import type { SeedWorldViewSnapshots } from "@galacean/engine-world-planning/world/SeedWorldViewSnapshot";
+import { SEED_WORLD_EDITOR_PATH } from "../SeedWorldProjectFormats.ts";
+import {
+  planningSourceDocument,
+  planningVegetationReferences
+} from "../src/planning/spatial/runtime/PlanningProjectSource.ts";
+import { PLANNING_PROJECT_PATH } from "../src/planning/spatial/runtime/PlanningProjectStorage.ts";
+import type { SeedWorldAnimalService } from "./ports/SeedWorldAnimalService.ts";
 import { createSeedWorldEngineDraft } from "./SeedWorldEngineDraft.ts";
+import type { SeedWorldPlanningService } from "./SeedWorldPlanningService.ts";
+import { SEED_WORLD_FRONT_RELATION_DISTANCE_METRES } from "./SeedWorldSpatialSemantics.ts";
+import { createSeedWorldTools } from "./SeedWorldToolCatalog.ts";
+import type { SeedWorldParameterAuthoring, SeedWorldParameterReceipts } from "./tools/parameter-tools.ts";
+import { viewerRelativePosition } from "./ViewerRelation.ts";
 
 type SelectionRecord = Readonly<{
   worldRevision: number;
@@ -132,10 +127,10 @@ const MAX_AUTHORING_RESULT_REFS = 64;
 const MAX_WORLD_QUERY_RESULT_BYTES = 48 * 1024;
 
 /** The only Agent-facing application boundary. Runtime Resource shapes never cross this class. */
-import { createPlanningResourcePort, type PlanningResourcePortOptions } from "./SeedWorldPlanningResources.ts";
+import type { IslandPlan } from "@galacean/engine-world-planning/semantic-study/IslandPlanModel";
 import { planningHeightmap } from "@galacean/engine-world-planning/semantic-study/PlanningHeightmap";
 import { bridgeGround } from "@galacean/engine-world-planning/spatial/hydrology/RiverCrossings";
-import type { IslandPlan } from "@galacean/engine-world-planning/semantic-study/IslandPlanModel";
+import { createPlanningResourcePort, type PlanningResourcePortOptions } from "./SeedWorldPlanningResources.ts";
 export class SeedWorldAgentApplication {
   /** Host-owned view evidence; shared read-only by editor drafts, never persisted. */
   viewSnapshots?: SeedWorldViewSnapshots;
@@ -159,38 +154,55 @@ export class SeedWorldAgentApplication {
   private _lastCreatedRefs: readonly SeedWorldRef[] = Object.freeze([]);
   private _lastSelectedRefs: readonly SeedWorldRef[] = Object.freeze([]);
   private _lastTransactionId: string | undefined;
-  private _userSelection: SeedWorldRef | NativeBuildingSelection | null = null;
   private _taskViewer: (Readonly<SeedWorldLiveState["camera"]> & { readonly capturedAt: string; readonly inputId?: string }) | undefined;
   private _readPublishedViewer = (): Readonly<SeedWorldLiveState["camera"]> => this._requireState().camera;
   private readonly _assets: SeedWorldAssetManager;
-  private _editorSettings: SeedWorldEditorSettings = { waterColors: [] };
+  private _editorSettings: SeedWorldEditorSettings = {};
   private _editorRevision = 0;
   private _editorProjectionDirty = false;
   private _planningProjectionDirty = false;
 
-
-  constructor(private readonly _engine: SeedWorldEnginePort,
+  constructor(
+    private readonly _engine: SeedWorldEnginePort,
     private readonly planning?: SeedWorldPlanningService,
     private readonly _additionalAssets: () => readonly SeedWorldAssetCandidate[] = () => [],
-    readonly parameterAuthoring?: SeedWorldParameterAuthoring, private readonly planningResources?: PlanningResourcePortOptions,
-    readonly animals?: SeedWorldAnimalService, readonly parameterReceipts: SeedWorldParameterReceipts = {}) {
+    readonly parameterAuthoring?: SeedWorldParameterAuthoring,
+    private readonly planningResources?: PlanningResourcePortOptions,
+    readonly animals?: SeedWorldAnimalService,
+    readonly parameterReceipts: SeedWorldParameterReceipts = {}
+  ) {
     this._assets = new SeedWorldAssetManager(_engine, this._additionalAssets);
   }
 
   /** Serializable authoring targets; live animation and physics do not belong to this document. */
   getEditorDocument() {
-    return structuredClone({ format: "seed-world-editor", version: 2, revision: this._editorRevision,
-      settings: this._editorSettings, memory: authoringMemory(this._captureEditorMemory()) });
+    return structuredClone({
+      format: "seed-world-editor",
+      version: 2,
+      revision: this._editorRevision,
+      settings: this._editorSettings,
+      memory: authoringMemory(this._captureEditorMemory())
+    });
   }
 
   /** Startup restoration; saved authoring data is already committed in the project. */
-  async restoreEditorDocument(document: Omit<ReturnType<SeedWorldAgentApplication["getEditorDocument"]>, "memory"> & { memory: AuthoringMemory }, signal: AbortSignal, options: { restoreCamera?: boolean } = {}): Promise<void> {
+  async restoreEditorDocument(
+    document: Omit<ReturnType<SeedWorldAgentApplication["getEditorDocument"]>, "memory"> & { memory: AuthoringMemory },
+    signal: AbortSignal,
+    options: { restoreCamera?: boolean } = {}
+  ): Promise<void> {
     signal.throwIfAborted();
-    if (document?.format !== "seed-world-editor" || document.version !== 2
-      || !Number.isSafeInteger(document.revision) || document.revision < 0
-      || !document.settings || !Array.isArray(document.settings.waterColors)
-      || !document.memory || !Number.isSafeInteger(document.memory.semanticSerial) || document.memory.semanticSerial < 0
-      || ![document.memory.tags, document.memory.namedSelections].every(Array.isArray)) {
+    if (
+      document?.format !== "seed-world-editor" ||
+      document.version !== 2 ||
+      !Number.isSafeInteger(document.revision) ||
+      document.revision < 0 ||
+      !document.settings ||
+      !document.memory ||
+      !Number.isSafeInteger(document.memory.semanticSerial) ||
+      document.memory.semanticSerial < 0 ||
+      ![document.memory.tags, document.memory.namedSelections].every(Array.isArray)
+    ) {
       throw new Error("Invalid world editor document");
     }
     const edit = this._engine.beginEdit?.("restore-project", this._editorSettings);
@@ -214,7 +226,9 @@ export class SeedWorldAgentApplication {
       this._editorRevision = document.revision;
       await edit.activate(signal);
     } finally {
-      if (!published) { edit.discard(); }
+      if (!published) {
+        edit.discard();
+      }
     }
   }
 
@@ -226,7 +240,7 @@ export class SeedWorldAgentApplication {
 
   stageProjectEdit(edit: ReturnType<SeedWorldAgentApplication["beginEdit"]>): () => void {
     if (this._preparedAssetEdit) throw new Error("A world asset projection is already staged");
-    const prepared = {editor: edit.getPreparedDocument(), planning: edit.getPreparedPlanningDocument(), edit};
+    const prepared = { editor: edit.getPreparedDocument(), planning: edit.getPreparedPlanningDocument(), edit };
     this._preparedAssetEdit = prepared;
     return () => {
       if (this._preparedAssetEdit === prepared) this._preparedAssetEdit = undefined;
@@ -236,42 +250,65 @@ export class SeedWorldAgentApplication {
 
   /** World configuration is an asset consumer, regardless of which UI authored it. */
   connectProject(project: RuntimeProjectSession): () => void {
-    const defaults = this._engine.readEditorDefaults?.() ?? {waterColors: []};
+    const defaults = this._engine.readEditorDefaults?.() ?? {};
     const initialEditor = this.getEditorDocument();
     const initialPlanning = this.planning?.document();
-    const comparable = (value: unknown) => JSON.stringify(value, (key, item) => key === "revision" ? undefined
-      : item && typeof item === "object" && !Array.isArray(item)
-        ? Object.fromEntries(Object.keys(item).sort().map(key => [key, item[key]])) : item);
+    const comparable = (value: unknown) =>
+      JSON.stringify(value, (key, item) =>
+        key === "revision"
+          ? undefined
+          : item && typeof item === "object" && !Array.isArray(item)
+            ? Object.fromEntries(
+                Object.keys(item)
+                  .sort()
+                  .map((key) => [key, item[key]])
+              )
+            : item
+      );
     const resourceChanges = new RuntimeAssetChanges(project.projectPackage);
     const unobserve = project.observeAssetReads((file, content) => resourceChanges.recordRead(file, content));
     let assetReferences = planningVegetationReferences(project.projectPackage);
-    let pending: {activate(signal: AbortSignal): Promise<void>; discard(): void} | undefined;
+    let pending: { activate(signal: AbortSignal): Promise<void>; discard(): void } | undefined;
     const effective = (settings: SeedWorldEditorSettings): SeedWorldEditorSettings => ({
-      ...defaults, ...settings,
-      environment: {...defaults.environment, ...settings.environment,
-        weatherChannels: {...defaults.environment?.weatherChannels, ...settings.environment?.weatherChannels},
-        atmosphere: {...defaults.environment?.atmosphere, ...settings.environment?.atmosphere},
-        transitionDuration: 0, waitForIbl: false},
-      waterColors: settings.waterColors
+      ...defaults,
+      ...settings,
+      environment: {
+        ...defaults.environment,
+        ...settings.environment,
+        weatherChannels: { ...defaults.environment?.weatherChannels, ...settings.environment?.weatherChannels },
+        atmosphere: { ...defaults.environment?.atmosphere, ...settings.environment?.atmosphere },
+        transitionDuration: 0,
+        waitForIbl: false
+      }
     });
     const unregister = project.registerRuntimeActivation({
-      before: async signal => {
-        pending?.discard(); pending = undefined;
+      before: async (signal) => {
+        pending?.discard();
+        pending = undefined;
         const editorContent = project.projectPackage.contents[SEED_WORLD_EDITOR_PATH];
         const planningContent = project.projectPackage.contents[PLANNING_PROJECT_PATH];
         const editor = typeof editorContent === "string" ? JSON.parse(editorContent) : initialEditor;
-        const planning = planningSourceDocument(project.projectPackage)
-          ?? (typeof planningContent === "string" ? JSON.parse(planningContent) : initialPlanning);
+        const planning =
+          planningSourceDocument(project.projectPackage) ??
+          (typeof planningContent === "string" ? JSON.parse(planningContent) : initialPlanning);
         const references = planningVegetationReferences(project.projectPackage);
         const affected = resourceChanges.affected(project.projectPackage);
-        const resourcesChanged = !!references && (JSON.stringify(references) !== JSON.stringify(assetReferences)
-          || Object.values(references).some(path => affected.has(path))) && !!this.planning?.invalidateAssets(references);
+        const resourcesChanged =
+          !!references &&
+          (JSON.stringify(references) !== JSON.stringify(assetReferences) ||
+            Object.values(references).some((path) => affected.has(path))) &&
+          !!this.planning?.invalidateAssets(references);
         const prepared = this._preparedAssetEdit;
         this._preparedAssetEdit = undefined;
         if (prepared && !resourcesChanged) {
-          if (comparable(prepared.editor) === comparable(editor)
-            && (!prepared.planning || comparable(prepared.planning) === comparable(planning))) {
-            pending = {activate: signal => Promise.resolve(prepared.edit.activate!(signal)), discard: () => prepared.edit.discard()};
+          if (
+            comparable(prepared.editor) === comparable(editor) &&
+            (!prepared.planning || comparable(prepared.planning) === comparable(planning))
+          ) {
+            pending = {
+              activate: (signal) => Promise.resolve(prepared.edit.activate!(signal)),
+              discard: () => prepared.edit.discard()
+            };
             prepared.edit.commit();
             this._editorProjectionDirty = true;
             this._planningProjectionDirty ||= Boolean(prepared.planning);
@@ -280,25 +317,49 @@ export class SeedWorldAgentApplication {
           prepared.edit.discard();
         }
         if (prepared && resourcesChanged) prepared.edit.discard();
-        const editorChanged = this._editorProjectionDirty || comparable(editor) !== comparable(this.getEditorDocument());
-        const planningChanged = planning && (resourcesChanged || this._planningProjectionDirty || comparable(planning) !== comparable(this.planning?.document()));
+        const editorChanged =
+          this._editorProjectionDirty || comparable(editor) !== comparable(this.getEditorDocument());
+        const planningChanged =
+          planning &&
+          (resourcesChanged ||
+            this._planningProjectionDirty ||
+            comparable(planning) !== comparable(this.planning?.document()));
         if (!editorChanged && !planningChanged) return;
-        const engineEdit = editorChanged ? this._engine.beginEdit?.("project-assets", effective(this._editorSettings)) : undefined;
+        const engineEdit = editorChanged
+          ? this._engine.beginEdit?.("project-assets", effective(this._editorSettings))
+          : undefined;
         const planningEdit = planningChanged ? this.planning?.beginEdit() : undefined;
         if (resourcesChanged) planningEdit?.invalidateResources();
         let committed = false;
         pending = {
-          activate: async activationSignal => {
+          activate: async (activationSignal) => {
             const errors: unknown[] = [];
-            try { await planningEdit?.activate(activationSignal); this._planningProjectionDirty = false; } catch (error) { this._planningProjectionDirty = true; errors.push(error); }
-            try { await engineEdit?.activate(activationSignal); this._editorProjectionDirty = false; } catch (error) { this._editorProjectionDirty = true; errors.push(error); }
+            try {
+              await planningEdit?.activate(activationSignal);
+              this._planningProjectionDirty = false;
+            } catch (error) {
+              this._planningProjectionDirty = true;
+              errors.push(error);
+            }
+            try {
+              await engineEdit?.activate(activationSignal);
+              this._editorProjectionDirty = false;
+            } catch (error) {
+              this._editorProjectionDirty = true;
+              errors.push(error);
+            }
             if (errors.length) throw new AggregateError(errors, errors.map(String).join("\n"));
           },
-          discard: () => { if (!committed) { engineEdit?.discard(); void planningEdit?.discard(); } }
+          discard: () => {
+            if (!committed) {
+              engineEdit?.discard();
+              void planningEdit?.discard();
+            }
+          }
         };
         if (editorChanged) {
           if (!engineEdit) throw new Error("World asset consumer cannot apply editor settings");
-          if (editor.format !== "seed-world-editor" || editor.version !== 2 || !editor.memory || !Array.isArray(editor.settings?.waterColors))
+          if (editor.format !== "seed-world-editor" || editor.version !== 2 || !editor.memory || !editor.settings)
             throw new Error("Invalid world editor document");
           await engineEdit.restoreSettings(effective(editor.settings), signal, this._editorProjectionDirty);
           await engineEdit.prepare(signal);
@@ -309,52 +370,101 @@ export class SeedWorldAgentApplication {
           await planningEdit.prepare(signal);
         }
         signal.throwIfAborted();
-        planningEdit?.commit(); engineEdit?.seal(); committed = true;
+        planningEdit?.commit();
+        engineEdit?.seal();
+        committed = true;
         this._planningProjectionDirty ||= Boolean(planningEdit);
         this._editorProjectionDirty ||= Boolean(engineEdit);
         if (editorChanged) {
-          const currentMemory = this._captureEditorMemory(), restored = restoreAuthoringMemory(editor.memory);
-          this._restoreEditorMemory({...currentMemory, tags: restored.tags, namedSelections: restored.namedSelections,
-            selections: [...new Map([...currentMemory.selections, ...restored.selections])]});
+          const currentMemory = this._captureEditorMemory(),
+            restored = restoreAuthoringMemory(editor.memory);
+          this._restoreEditorMemory({
+            ...currentMemory,
+            tags: restored.tags,
+            namedSelections: restored.namedSelections,
+            selections: [...new Map([...currentMemory.selections, ...restored.selections])]
+          });
           this._editorSettings = structuredClone(editor.settings);
           this._editorRevision = editor.revision;
         }
       },
-      apply: async signal => {
+      apply: async (signal) => {
         await pending?.activate(signal);
         resourceChanges.accept(project.projectPackage);
         assetReferences = planningVegetationReferences(project.projectPackage);
       },
-      finish: () => { pending?.discard(); pending = undefined; },
+      finish: () => {
+        pending?.discard();
+        pending = undefined;
+      },
       after: async () => {}
     });
-    return () => { unregister(); unobserve(); pending?.discard(); };
+    return () => {
+      unregister();
+      unobserve();
+      pending?.discard();
+    };
   }
 
-  beginEdit(executionId: string, signal: AbortSignal): AgentEditTransaction & {
+  beginEdit(
+    executionId: string,
+    signal: AbortSignal
+  ): AgentEditTransaction & {
     getPreparedDocument(): ReturnType<SeedWorldAgentApplication["getEditorDocument"]>;
-    getPreparedPlanningDocument(): import("@galacean/engine-world-planning/spatial/PlanningDocument").PlanningDocument | undefined;
+    getPreparedPlanningDocument():
+      | import("@galacean/engine-world-planning/spatial/PlanningDocument").PlanningDocument
+      | undefined;
+    getPreparedPlanningResult():
+      | import("@galacean/engine-world-planning/semantic-study/WorldPlanningContract").SemanticResult
+      | undefined;
     beforePlanningDocument?: import("@galacean/engine-world-planning/spatial/PlanningDocument").PlanningDocument;
-    runPlanning<T>(operation: (session: import("@galacean/engine-world-planning/spatial/PlanningSession").PlanningSession) => Promise<T>): Promise<T>;
+    runPlanning<T>(
+      operation: (
+        session: import("@galacean/engine-world-planning/spatial/PlanningSession").PlanningSession
+      ) => Promise<T>
+    ): Promise<T>;
   } {
     signal.throwIfAborted();
-    const unavailable = (): never => { throw new Error("NOT_SUPPORTED: This Engine port cannot prepare that editor operation"); };
-    const engineEdit = this._engine.beginEdit?.(executionId, this._editorSettings) ?? createSeedWorldEngineDraft(this._engine, {
-      environment: unavailable, teleport: unavailable, restoreCamera: unavailable, validateMount: unavailable
-    }, executionId);
+    const unavailable = (): never => {
+      throw new Error("NOT_SUPPORTED: This Engine port cannot prepare that editor operation");
+    };
+    const engineEdit =
+      this._engine.beginEdit?.(executionId, this._editorSettings) ??
+      createSeedWorldEngineDraft(
+        this._engine,
+        {
+          environment: unavailable,
+          teleport: unavailable,
+          restoreCamera: unavailable,
+          validateMount: unavailable
+        },
+        executionId
+      );
     const planningEdit = this.planning?.beginEdit();
     let navigation: { plan: IslandPlan; sample: ReturnType<typeof bridgeGround> } | undefined;
-    if (planningEdit) engineEdit.setNavigationGround?.((x, z) => {
-      const plan = planningEdit.session.result!.plan;
-      // A draft can publish several snapshots before commit. Reuse only within
-      // one snapshot, so subsequent moves observe edited terrain and bridges.
-      if (navigation?.plan !== plan) navigation = { plan, sample: bridgeGround(plan, planningHeightmap(plan).sample) };
-      return navigation.sample({ x, z });
-    });
-    const resourcePort = planningEdit ? createPlanningResourcePort(engineEdit.port, planningEdit.session, executionId, this.planningResources) : engineEdit.port;
-    const draft = new SeedWorldAgentApplication(resourcePort, planningEdit?.service,
-      planningEdit ? () => planningEdit.session.result ? planningPickAssets(planningEdit.session.result.plan) : [] : this._additionalAssets,
-      planningEdit ? this.parameterAuthoring?.forSession?.(planningEdit.session) : undefined, this.planningResources, this.animals, this.parameterReceipts);
+    if (planningEdit)
+      engineEdit.setNavigationGround?.((x, z) => {
+        const plan = planningEdit.session.result!.plan;
+        // A draft can publish several snapshots before commit. Reuse only within
+        // one snapshot, so subsequent moves observe edited terrain and bridges.
+        if (navigation?.plan !== plan)
+          navigation = { plan, sample: bridgeGround(plan, planningHeightmap(plan).sample) };
+        return navigation.sample({ x, z });
+      });
+    const resourcePort = planningEdit
+      ? createPlanningResourcePort(engineEdit.port, planningEdit.session, executionId, this.planningResources)
+      : engineEdit.port;
+    const draft = new SeedWorldAgentApplication(
+      resourcePort,
+      planningEdit?.service,
+      planningEdit
+        ? () => (planningEdit.session.result ? planningPickAssets(planningEdit.session.result.plan) : [])
+        : this._additionalAssets,
+      planningEdit ? this.parameterAuthoring?.forSession?.(planningEdit.session) : undefined,
+      this.planningResources,
+      this.animals,
+      this.parameterReceipts
+    );
     const initialMemory = this._captureEditorMemory();
     const initialState = JSON.stringify({ memory: authoringMemory(initialMemory), settings: this._editorSettings });
     draft._restoreEditorMemory(initialMemory);
@@ -366,28 +476,43 @@ export class SeedWorldAgentApplication {
     draft._lastTransactionId = this._lastTransactionId;
     let phase: "open" | "prepared" | "committed" | "discarded" = "open";
     let preparedChanges = false;
-    const hasChanges = () => phase === "open"
-      ? Boolean(engineEdit.changes.length || planningEdit?.hasEdits()
-        || JSON.stringify({ memory: authoringMemory(draft._captureEditorMemory()), settings: engineEdit.settings }) !== initialState)
-      : preparedChanges;
+    const hasChanges = () =>
+      phase === "open"
+        ? Boolean(
+            engineEdit.changes.length ||
+              planningEdit?.hasEdits() ||
+              JSON.stringify({
+                memory: authoringMemory(draft._captureEditorMemory()),
+                settings: engineEdit.settings
+              }) !== initialState
+          )
+        : preparedChanges;
     let publication: { memory: EditorMemory; settings: SeedWorldEditorSettings } | undefined;
-    const check = () => { if (phase !== "open") throw new Error("Editor draft no longer accepts changes"); };
+    const check = () => {
+      if (phase !== "open") throw new Error("Editor draft no longer accepts changes");
+    };
     // A draft is one ordered editor state. Reads participate in the same queue
     // so they observe all earlier accepted writes, even when JS uses Promise.all.
     let toolTail: Promise<unknown> = Promise.resolve();
-    const tools = createSeedWorldTools(draft).map(tool => ({ ...tool, execute: (input: unknown, context: { signal: AbortSignal }) => {
-      const result = toolTail.then(() => {
-        check(); context.signal.throwIfAborted();
-        return tool.execute(input, context);
-      });
-      toolTail = result.catch(() => undefined);
-      return result;
-    } }));
+    const tools = createSeedWorldTools(draft).map((tool) => ({
+      ...tool,
+      execute: (input: unknown, context: { signal: AbortSignal }) => {
+        const result = toolTail.then(() => {
+          check();
+          context.signal.throwIfAborted();
+          return tool.execute(input, context);
+        });
+        toolTail = result.catch(() => undefined);
+        return result;
+      }
+    }));
     return {
       tools,
       beforePlanningDocument: planningEdit?.before,
-      runPlanning: async operation => {
-        await toolTail; check(); signal.throwIfAborted();
+      runPlanning: async (operation) => {
+        await toolTail;
+        check();
+        signal.throwIfAborted();
         if (!planningEdit) throw new Error("Planning editor is not mounted");
         return operation(planningEdit.session);
       },
@@ -402,12 +527,14 @@ export class SeedWorldAgentApplication {
         for (const [id, selection] of observed) this._rememberSelection(id, selection);
         if (observed.length) this._lastSelectedRefs = draft._lastSelectedRefs;
       },
-      prepare: async prepareSignal => {
-        check(); prepareSignal.throwIfAborted();
+      prepare: async (prepareSignal) => {
+        check();
+        prepareSignal.throwIfAborted();
         await engineEdit.prepare(prepareSignal);
         check();
         await planningEdit?.prepare(prepareSignal);
-        check(); prepareSignal.throwIfAborted();
+        check();
+        prepareSignal.throwIfAborted();
         // All data copying is done before changing the live presentation.
         const memory = draft._captureEditorMemory();
         const settings = engineEdit.settings;
@@ -419,11 +546,18 @@ export class SeedWorldAgentApplication {
         if (phase !== "prepared") throw new Error("Editor transaction was not prepared");
         return planningEdit?.hasEdits() ? planningEdit.document() : undefined;
       },
+      getPreparedPlanningResult: () => {
+        if (phase !== "prepared") throw new Error("Editor transaction was not prepared");
+        return planningEdit?.session.result;
+      },
       getPreparedDocument: () => {
         if (phase !== "prepared" || !publication) throw new Error("Editor transaction was not prepared");
         return structuredClone({
-          format: "seed-world-editor", version: 2, revision: this._editorRevision + Number(preparedChanges),
-          settings: publication.settings, memory: authoringMemory(publication.memory)
+          format: "seed-world-editor",
+          version: 2,
+          revision: this._editorRevision + Number(preparedChanges),
+          settings: publication.settings,
+          memory: authoringMemory(publication.memory)
         });
       },
       commit: () => {
@@ -438,12 +572,27 @@ export class SeedWorldAgentApplication {
         phase = "committed";
         return { transactionId: executionId, revision: this._editorRevision };
       },
-      activate: async activationSignal => {
+      activate: async (activationSignal) => {
         const errors: unknown[] = [];
-        try { await planningEdit?.activate(activationSignal); this._planningProjectionDirty = false; } catch (error) { this._planningProjectionDirty = true; errors.push(error); }
-        try { await engineEdit.activate(activationSignal); this._editorProjectionDirty = false; } catch (error) { this._editorProjectionDirty = true; errors.push(error); }
-        if (errors.length) throw new AggregateError(errors,
-          `Committed world activation failed: ${errors.map(error => error instanceof Error ? error.message : String(error)).join("; ")}`);
+        try {
+          await planningEdit?.activate(activationSignal);
+          this._planningProjectionDirty = false;
+        } catch (error) {
+          this._planningProjectionDirty = true;
+          errors.push(error);
+        }
+        try {
+          await engineEdit.activate(activationSignal);
+          this._editorProjectionDirty = false;
+        } catch (error) {
+          this._editorProjectionDirty = true;
+          errors.push(error);
+        }
+        if (errors.length)
+          throw new AggregateError(
+            errors,
+            `Committed world activation failed: ${errors.map((error) => (error instanceof Error ? error.message : String(error))).join("; ")}`
+          );
       },
       discard: () => {
         if (phase === "committed" || phase === "discarded") return;
@@ -455,9 +604,15 @@ export class SeedWorldAgentApplication {
   }
 
   private _captureEditorMemory(): EditorMemory {
-    return structuredClone({ semanticSerial: this._semanticFeatureSerial, selectionSerial: this._selectionSerial,
-      selections: [...this._selections], tags: [...this._tagsByRef].map(([key, tags]) => [key, [...tags]] as [string, string[]]),
-      namedSelections: [...this._namedSelections], lastCreatedRefs: this._lastCreatedRefs, lastSelectedRefs: this._lastSelectedRefs });
+    return structuredClone({
+      semanticSerial: this._semanticFeatureSerial,
+      selectionSerial: this._selectionSerial,
+      selections: [...this._selections],
+      tags: [...this._tagsByRef].map(([key, tags]) => [key, [...tags]] as [string, string[]]),
+      namedSelections: [...this._namedSelections],
+      lastCreatedRefs: this._lastCreatedRefs,
+      lastSelectedRefs: this._lastSelectedRefs
+    });
   }
 
   private _restoreEditorMemory(memory: EditorMemory): void {
@@ -465,38 +620,54 @@ export class SeedWorldAgentApplication {
     // silently resolve to a different selection or authored feature later.
     this._semanticFeatureSerial = Math.max(this._semanticFeatureSerial, memory.semanticSerial);
     this._selectionSerial = Math.max(this._selectionSerial, memory.selectionSerial);
-    this._selections.clear(); for (const [id, selection] of memory.selections) this._selections.set(id, selection);
-    this._tagsByRef.clear(); for (const [id, tags] of memory.tags) this._tagsByRef.set(id, new Set(tags));
-    this._namedSelections.clear(); for (const [name, id] of memory.namedSelections) this._namedSelections.set(name, id);
-    this._lastCreatedRefs = memory.lastCreatedRefs; this._lastSelectedRefs = memory.lastSelectedRefs;
+    this._selections.clear();
+    for (const [id, selection] of memory.selections) this._selections.set(id, selection);
+    this._tagsByRef.clear();
+    for (const [id, tags] of memory.tags) this._tagsByRef.set(id, new Set(tags));
+    this._namedSelections.clear();
+    for (const [name, id] of memory.namedSelections) this._namedSelections.set(name, id);
+    this._lastCreatedRefs = memory.lastCreatedRefs;
+    this._lastSelectedRefs = memory.lastSelectedRefs;
   }
 
   /** Visual invalidation reads live state, not the task's frozen deictic viewer. */
   getViewState() {
     const state = this._requireState();
     const authoring = this._engine.readAuthoringSnapshot();
-    return { state, authoringStateHash: authoring.authoringStateHash,
-      activeRevision: authoring.activeRevision, buildings: this._additionalAssets().filter(asset => asset.ref.kind === "building") };
+    return {
+      state,
+      authoringStateHash: authoring.authoringStateHash,
+      activeRevision: authoring.activeRevision,
+      buildings: this._additionalAssets().filter((asset) => asset.ref.kind === "building")
+    };
   }
-  querySubjectSegments(segments:readonly import("@galacean/engine-world-planning/agent-adapter/ports/SeedWorldEnginePort").SeedWorldSurfaceSegment[]) {
-    return this._surfaceMeasurements(this._engine.querySubjectSegments?.(segments),segments.length);
+  querySubjectSegments(
+    segments: readonly import("@galacean/engine-world-planning/agent-adapter/ports/SeedWorldEnginePort").SeedWorldSurfaceSegment[]
+  ) {
+    return this._surfaceMeasurements(this._engine.querySubjectSegments?.(segments), segments.length);
   }
-  querySubjectCapsules(capsules:readonly import("@galacean/engine-world-planning/agent-adapter/ports/SeedWorldEnginePort").SeedWorldSurfaceCapsule[]) {
-    return this._surfaceMeasurements(this._engine.querySubjectCapsules?.(capsules),capsules.length);
+  querySubjectCapsules(
+    capsules: readonly import("@galacean/engine-world-planning/agent-adapter/ports/SeedWorldEnginePort").SeedWorldSurfaceCapsule[]
+  ) {
+    return this._surfaceMeasurements(this._engine.querySubjectCapsules?.(capsules), capsules.length);
   }
-  private _surfaceMeasurements<T>(measured:{publicationRevision?:number;hits:(T|null)[]}|undefined,count:number) {
-    const revision=this._engine.readAuthoringSnapshot().activeRevision;
-    const available=!!measured&&measured.publicationRevision===revision&&measured.hits.length===count;
-    return {available,geometryState:!measured||measured.publicationRevision===undefined||measured.hits.length!==count
-      ?"unavailable" as const:available?"current" as const:"stale" as const,samples:available?measured!.hits:[]};
+  private _surfaceMeasurements<T>(
+    measured: { publicationRevision?: number; hits: (T | null)[] } | undefined,
+    count: number
+  ) {
+    const revision = this._engine.readAuthoringSnapshot().activeRevision;
+    const available = !!measured && measured.publicationRevision === revision && measured.hits.length === count;
+    return {
+      available,
+      geometryState:
+        !measured || measured.publicationRevision === undefined || measured.hits.length !== count
+          ? ("unavailable" as const)
+          : available
+            ? ("current" as const)
+            : ("stale" as const),
+      samples: available ? measured!.hits : []
+    };
   }
-  /** UI selection is separate from tool query results and transaction memory. */
-  setUserSelection(ref: SeedWorldRef | NativeBuildingSelection | undefined): void {
-    this._userSelection = ref ? freezeClone(ref) : null;
-  }
-
-  getUserSelection(): SeedWorldRef | NativeBuildingSelection | null { return this._userSelection; }
-
   /** Freezes deictic viewer expressions for one Agent task while the player remains free to move. */
   getViewerSnapshot(): Readonly<SeedWorldLiveState["camera"]> & { readonly capturedAt: string } {
     return freezeClone({ ...this._readPublishedViewer(), capturedAt: new Date().toISOString() });
@@ -512,13 +683,27 @@ export class SeedWorldAgentApplication {
     const { mode, position, forward } = this.getViewerSnapshot();
     const [x, y, z] = forward;
     const horizontalLength = Math.hypot(x, z);
-    const headingDegrees = horizontalLength > 1e-8 ? (Math.atan2(x, -z) * 180 / Math.PI + 360) % 360 : null;
-    const pitchDegrees = Math.hypot(x, y, z) > 1e-8 ? Math.atan2(y, horizontalLength) * 180 / Math.PI : null;
-    const nearestHorizontalAxis = headingDegrees === null ? null : Math.abs(x) >= Math.abs(z)
-      ? x >= 0 ? "+X" as const : "-X" as const
-      : z >= 0 ? "+Z" as const : "-Z" as const;
-    return { source: "published" as const, mode, position, forward,
-      headingDegrees, pitchDegrees, nearestHorizontalAxis };
+    const headingDegrees = horizontalLength > 1e-8 ? ((Math.atan2(x, -z) * 180) / Math.PI + 360) % 360 : null;
+    const pitchDegrees = Math.hypot(x, y, z) > 1e-8 ? (Math.atan2(y, horizontalLength) * 180) / Math.PI : null;
+    const nearestHorizontalAxis =
+      headingDegrees === null
+        ? null
+        : Math.abs(x) >= Math.abs(z)
+          ? x >= 0
+            ? ("+X" as const)
+            : ("-X" as const)
+          : z >= 0
+            ? ("+Z" as const)
+            : ("-Z" as const);
+    return {
+      source: "published" as const,
+      mode,
+      position,
+      forward,
+      headingDegrees,
+      pitchDegrees,
+      nearestHorizontalAxis
+    };
   }
 
   captureTaskViewerSnapshot(camera = this.getViewerSnapshot(), inputId?: string): () => void {
@@ -550,7 +735,11 @@ export class SeedWorldAgentApplication {
         sizeMetres,
         bounds: Object.freeze({
           minimum: Object.freeze(state.world.origin ? [...state.world.origin] : [-sizeMetres * 0.5, -sizeMetres * 0.5]),
-          maximum: Object.freeze(state.world.origin ? state.world.origin.map((value) => value + sizeMetres) : [sizeMetres * 0.5, sizeMetres * 0.5])
+          maximum: Object.freeze(
+            state.world.origin
+              ? state.world.origin.map((value) => value + sizeMetres)
+              : [sizeMetres * 0.5, sizeMetres * 0.5]
+          )
         })
       }),
       camera: freezeClone(state.camera),
@@ -615,10 +804,11 @@ export class SeedWorldAgentApplication {
         roadCount: state.plan.roadCount,
         poiCount: state.plan.poiCount,
         authoredFeatureCount: authoring.resources.length,
-        visibleWaterBodyCount: state.water.visible ? state.water.bodyCount : 0,
-        residentVegetation: { scope: "currently-resident-instances",
+        residentVegetation: {
+          scope: "currently-resident-instances",
           description: "当前驻留的植被实例数量；不是整个世界的总数，0 不代表项目中不存在该植被。",
-          counts: freezeClone(state.population.residentAcceptedCounts) },
+          counts: freezeClone(state.population.residentAcceptedCounts)
+        },
         decorations: freezeClone(state.decorations)
       })
     });
@@ -696,11 +886,15 @@ export class SeedWorldAgentApplication {
   }
 
   /** Host visual observations use this without issuing or remembering a selection. */
-  get observationRevision(): number { return this._currentRevision(); }
+  get observationRevision(): number {
+    return this._currentRevision();
+  }
 
   resolvePickedObject(objectId: string): Readonly<Pick<SeedWorldSelectionItem, "ref" | "type">> | undefined {
     const candidate = this._selectCandidates({ ids: [objectId] }, 0)[0];
-    return candidate && Object.freeze({ ref: candidate.ref, type: candidate.ref.kind as SeedWorldSelectionItem["type"] });
+    return (
+      candidate && Object.freeze({ ref: candidate.ref, type: candidate.ref.kind as SeedWorldSelectionItem["type"] })
+    );
   }
 
   inspectWorld(ref: Readonly<SeedWorldRef>): Readonly<SeedWorldSelectionItem> {
@@ -786,39 +980,54 @@ export class SeedWorldAgentApplication {
     };
     if (!Array.isArray(raw.samples) || raw.samples.length !== input.positions.length)
       throw new Error("Terrain samples unavailable; no suitability verdict was produced");
-    return { items: raw.samples.map((sample, i) => {
-      const position = input.positions[i];
-      if (typeof sample?.insideWorld !== "boolean")
-        throw new Error("Terrain sample unavailable; no suitability verdict was produced");
-      if (!sample.insideWorld) return { position, matches: false, failedConstraints: ["outside_world"], surface: null };
-      const surface = {
-        elevationMetres: sample.water ? sample.waterSurfaceElevationMetres ?? sample.height! : sample.height!,
-        slopeDegrees: sample.slope! * 90,
-        moisture: sample.moisture!,
-        water: sample.water!,
-        riverDistanceMetres: sample.riverDistanceMetres!,
-        roadDistanceMetres: sample.roadDistanceMetres!
-      };
-      if (typeof surface.water !== "boolean" || Object.values(surface).some(v => typeof v !== "boolean" && !Number.isFinite(v)))
-        throw new Error("Terrain sample incomplete; no suitability verdict was produced");
-      const constraints = input.constraints ?? {};
-      const tests: Record<keyof NonNullable<typeof input.constraints>, (value: number | boolean) => boolean> = {
-        minimumElevationMetres: v => surface.elevationMetres >= Number(v),
-        maximumElevationMetres: v => surface.elevationMetres <= Number(v),
-        minimumSlopeDegrees: v => surface.slopeDegrees >= Number(v),
-        maximumSlopeDegrees: v => surface.slopeDegrees <= Number(v),
-        minimumMoisture: v => surface.moisture >= Number(v),
-        maximumMoisture: v => surface.moisture <= Number(v),
-        water: v => surface.water === v,
-        maximumRiverDistanceMetres: v => surface.riverDistanceMetres <= Number(v),
-        maximumRoadDistanceMetres: v => surface.roadDistanceMetres <= Number(v)
-      };
-      const failedConstraints = (Object.keys(constraints) as (keyof typeof constraints)[])
-        .filter(key => constraints[key] !== undefined && !tests[key](constraints[key]!));
-      // The engine measures inland water, excluding the ocean. Keep the all-water distance explicitly unknown.
-      return { position, matches: failedConstraints.length === 0, failedConstraints,
-        surface: { ...surface, riverDistanceScope: "inland-water-excluding-ocean" as const, nearestWaterDistanceMetres: null } };
-    }) };
+    return {
+      items: raw.samples.map((sample, i) => {
+        const position = input.positions[i];
+        if (typeof sample?.insideWorld !== "boolean")
+          throw new Error("Terrain sample unavailable; no suitability verdict was produced");
+        if (!sample.insideWorld)
+          return { position, matches: false, failedConstraints: ["outside_world"], surface: null };
+        const surface = {
+          elevationMetres: sample.water ? (sample.waterSurfaceElevationMetres ?? sample.height!) : sample.height!,
+          slopeDegrees: sample.slope! * 90,
+          moisture: sample.moisture!,
+          water: sample.water!,
+          riverDistanceMetres: sample.riverDistanceMetres!,
+          roadDistanceMetres: sample.roadDistanceMetres!
+        };
+        if (
+          typeof surface.water !== "boolean" ||
+          Object.values(surface).some((v) => typeof v !== "boolean" && !Number.isFinite(v))
+        )
+          throw new Error("Terrain sample incomplete; no suitability verdict was produced");
+        const constraints = input.constraints ?? {};
+        const tests: Record<keyof NonNullable<typeof input.constraints>, (value: number | boolean) => boolean> = {
+          minimumElevationMetres: (v) => surface.elevationMetres >= Number(v),
+          maximumElevationMetres: (v) => surface.elevationMetres <= Number(v),
+          minimumSlopeDegrees: (v) => surface.slopeDegrees >= Number(v),
+          maximumSlopeDegrees: (v) => surface.slopeDegrees <= Number(v),
+          minimumMoisture: (v) => surface.moisture >= Number(v),
+          maximumMoisture: (v) => surface.moisture <= Number(v),
+          water: (v) => surface.water === v,
+          maximumRiverDistanceMetres: (v) => surface.riverDistanceMetres <= Number(v),
+          maximumRoadDistanceMetres: (v) => surface.roadDistanceMetres <= Number(v)
+        };
+        const failedConstraints = (Object.keys(constraints) as (keyof typeof constraints)[]).filter(
+          (key) => constraints[key] !== undefined && !tests[key](constraints[key]!)
+        );
+        // The engine measures inland water, excluding the ocean. Keep the all-water distance explicitly unknown.
+        return {
+          position,
+          matches: failedConstraints.length === 0,
+          failedConstraints,
+          surface: {
+            ...surface,
+            riverDistanceScope: "inland-water-excluding-ocean" as const,
+            nearestWaterDistanceMetres: null
+          }
+        };
+      })
+    };
   }
 
   searchSpatial(
@@ -841,9 +1050,11 @@ export class SeedWorldAgentApplication {
     }>
   ): unknown {
     const constraints = input.constraints ?? {};
-    const nearestTo = input.nearestTo ?? (input.sort === "nearest"
-      ? { x: this._viewerCamera().position[0], z: this._viewerCamera().position[2] }
-      : undefined);
+    const nearestTo =
+      input.nearestTo ??
+      (input.sort === "nearest"
+        ? { x: this._viewerCamera().position[0], z: this._viewerCamera().position[2] }
+        : undefined);
     const order = spatialSearchOrder(input.sort);
     const raw = this._engine.queryWorldPoints({
       mode: "search",
@@ -927,7 +1138,10 @@ export class SeedWorldAgentApplication {
    * @param signal - Cancellation before dispatch.
    * @returns An accepted behavior receipt, not animation completion.
    */
-  commandMount(input: Readonly<SeedWorldMountCommandInput>, signal: AbortSignal): Promise<SeedWorldMountCommandResult> | SeedWorldMountCommandResult {
+  commandMount(
+    input: Readonly<SeedWorldMountCommandInput>,
+    signal: AbortSignal
+  ): Promise<SeedWorldMountCommandResult> | SeedWorldMountCommandResult {
     signal.throwIfAborted();
     if (!this._engine.commandMount) throw new Error("Mount system is unavailable");
     return this._engine.commandMount(input, signal);
@@ -993,9 +1207,7 @@ export class SeedWorldAgentApplication {
     signal: AbortSignal
   ): Promise<SeedWorldAssetMutationResult> {
     const resolved = this._resolveSpatialTarget(input.target);
-    const transitionDurationSeconds = resolveSeedWorldTerrainTransitionDurationSeconds(
-      input.transitionDurationSeconds
-    );
+    const transitionDurationSeconds = resolveSeedWorldTerrainTransitionDurationSeconds(input.transitionDurationSeconds);
     const transitionControl = { transitionDurationSeconds };
     const direction = input.direction ?? { kind: "viewer-forward" as const };
     const headingDegrees =
@@ -1162,159 +1374,6 @@ export class SeedWorldAgentApplication {
     return singleAssetMutationResult(result, "update");
   }
 
-  async createWaterFeature(
-    input: Readonly<SeedWorldWaterFeatureCreateInput> & SeedWorldMutationControl,
-    signal: AbortSignal
-  ): Promise<SeedWorldAssetMutationResult> {
-    resolveWaterEditOptions(input.edit, true);
-    const defaults = waterFeatureDefaults(input.kind);
-    if (input.kind === "pond" || input.kind === "lake") {
-      const placement = this._resolveAreaPlacement(input.target, input.radiusMetres ?? defaults.radiusMetres!);
-      const value = {
-        kind: input.kind,
-        ...placement,
-        depthMetres: input.depthMetres ?? defaults.depthMetres,
-        shorelineIrregularity: input.shorelineIrregularity ?? defaults.shorelineIrregularity!,
-        seed:
-          input.seed ??
-          deriveSemanticFeatureSeed(this._requireState().world.rootSeed, input.kind, ++this._semanticFeatureSerial)
-      };
-      const result = await this._executeMutations(
-        [{ action: "create", resourceType: "water-body", value }],
-        input,
-        mutationEffect(value.x, value.z, value.radiusMetres, value.depthMetres),
-        signal,
-        value
-      );
-      return singleAssetMutationResult(result, "create");
-    }
-    const resolved = this._resolveSpatialTarget(input.target);
-    const direction = input.direction ?? { kind: "viewer-forward" as const };
-    const headingDegrees =
-      direction.kind === "heading"
-        ? normalizeHeadingDegrees(direction.degrees)
-        : headingFromForward(this._viewerCamera().forward);
-    const value = {
-      kind: input.kind,
-      x: resolved.position[0],
-      z: resolved.position[2],
-      headingDegrees,
-      lengthMetres: input.lengthMetres ?? defaults.lengthMetres!,
-      widthMetres: input.widthMetres ?? defaults.widthMetres!,
-      depthMetres: input.depthMetres ?? defaults.depthMetres,
-      flowSpeed: input.flowSpeed ?? defaults.flowSpeed!,
-      meander: input.meander ?? defaults.meander!
-    };
-    const result = await this._executeMutations(
-      [{ action: "create", resourceType: "river", value }],
-      input,
-      mutationEffect(
-        value.x,
-        value.z,
-        resolveSeedWorldFlowingWaterLakeSurrogateRadiusMetres(value.lengthMetres, value.widthMetres),
-        value.depthMetres
-      ),
-      signal,
-      value
-    );
-    return singleAssetMutationResult(result, "create");
-  }
-
-  async updateWaterFeature(
-    ref: Readonly<SeedWorldRef>,
-    patch: Readonly<SeedWorldWaterFeaturePatch>,
-    control: SeedWorldWaterMutationControl,
-    signal: AbortSignal
-  ): Promise<SeedWorldAssetMutationResult | SeedWorldWaterColorUpdateResult> {
-    if (patch.colorRgb !== undefined) {
-      resolveWaterEditOptions(control.edit, false);
-      validateSeedWorldWaterColor(patch.colorRgb);
-      if (ref.domain !== "water" || Object.keys(patch).some((key) => key !== "colorRgb")) {
-        throw new Error("INVALID_INPUT: colorRgb must be a separate water-only patch");
-      }
-      const asset = this._assets.get(ref);
-      if (!asset) throw new Error(`WorldRef '${ref.id}' no longer exists`);
-      if (!this._engine.readWaterColor?.(ref) || !this._engine.updateWaterColor) {
-        throw new Error("NOT_EDITABLE: target has no published water color authoring");
-      }
-      if (signal.aborted) throw new DOMException("Water color update aborted", "AbortError");
-      this._validateMutationControl(control, {
-        areaSquareMetres: asset.areaSquareMetres ?? (asset.bounds ? (asset.bounds.maximum[0] - asset.bounds.minimum[0]) * (asset.bounds.maximum[2] - asset.bounds.minimum[2]) : 0),
-        objectCount: 1, terrainDeltaMetres: 0, bounds: asset.bounds
-      });
-      const preview = control.executionMode === "preview";
-      const colorRgb = preview ? Object.freeze([...patch.colorRgb] as [number, number, number])
-        : control.edit ? await this._engine.updateWaterColor(ref, patch.colorRgb, signal, control.edit)
-          : await this._engine.updateWaterColor(ref, patch.colorRgb, signal);
-      return Object.freeze({ status: preview ? "preview" : "applied", assetRef: asset.ref, colorRgb, updatedCount: preview ? 0 : 1 });
-    }
-    const resource = this._requireFeatureResource(ref, "water");
-    if (resource.resourceType === "river") {
-      const riverPatch: Partial<SeedWorldRiverInput> = compactDefined({
-        lengthMetres: patch.lengthMetres,
-        widthMetres: patch.widthMetres,
-        depthMetres: patch.depthMetres,
-        flowSpeed: patch.flowSpeed,
-        meander: patch.meander,
-        headingDegrees: patch.headingDegrees === undefined ? undefined : normalizeHeadingDegrees(patch.headingDegrees)
-      });
-      if (Object.keys(riverPatch).length === 0) throw new Error("River patch contains no river properties");
-      resolveWaterEditOptions(control.edit, Object.entries(riverPatch).some(([key, value]) => value !== Reflect.get(resource.properties, key)));
-      const properties: SeedWorldRiverInput = { ...resource.properties, ...riverPatch };
-      const result = await this._executeMutations(
-        [
-          {
-            action: "update",
-            resourceType: "river",
-            resourceId: resource.resourceId,
-            expectedContentHash: resource.contentHash,
-            patch: riverPatch
-          }
-        ],
-        control,
-        mutationEffect(
-          properties.x,
-          properties.z,
-          resolveSeedWorldFlowingWaterLakeSurrogateRadiusMetres(
-            properties.lengthMetres,
-            properties.widthMetres
-          ),
-          properties.depthMetres
-        ),
-        signal,
-        riverPatch
-      );
-      return singleAssetMutationResult(result, "update");
-    }
-    const waterBodyPatch: SeedWorldWaterBodyMutationPatch = compactDefined({
-      radiusMetres: patch.radiusMetres,
-      depthMetres: patch.depthMetres,
-      shorelineIrregularity: patch.shorelineIrregularity,
-      waterLevelMetres: patch.waterLevelMetres,
-      seed: patch.seed
-    });
-    if (Object.keys(waterBodyPatch).length === 0)
-      throw new Error("Standing-water patch contains no standing-water properties");
-    resolveWaterEditOptions(control.edit, Object.entries(waterBodyPatch).some(([key, value]) => key !== "waterLevelMetres" && value !== Reflect.get(resource.properties, key)));
-    const properties: SeedWorldWaterBodyInput = { ...resource.properties, ...waterBodyPatch };
-    const result = await this._executeMutations(
-      [
-        {
-          action: "update",
-          resourceType: "water-body",
-          resourceId: resource.resourceId,
-          expectedContentHash: resource.contentHash,
-          patch: waterBodyPatch
-        }
-      ],
-      control,
-      mutationEffect(properties.x, properties.z, properties.radiusMetres, properties.depthMetres),
-      signal,
-      waterBodyPatch
-    );
-    return singleAssetMutationResult(result, "update");
-  }
-
   async createVegetation(
     input: SeedWorldVegetationCreateInput,
     signal: AbortSignal
@@ -1334,17 +1393,13 @@ export class SeedWorldAgentApplication {
       radiusMetres ?? vegetationDefaultRadius(input.plant, distribution.kind)
     );
     const requestedPlantCount =
-      distribution.kind === "single"
-        ? 1
-        : "count" in distribution
-          ? distribution.count
-          : undefined;
+      distribution.kind === "single" ? 1 : "count" in distribution ? distribution.count : undefined;
     const internalDistributionKind =
       distribution.kind === "single"
-        ? "single" as const
+        ? ("single" as const)
         : requestedPlantCount === undefined
-          ? "area" as const
-          : "cluster" as const;
+          ? ("area" as const)
+          : ("cluster" as const);
     const value: SeedWorldVegetationBrushInput = {
       category,
       plantKind: input.plant,
@@ -1357,13 +1412,7 @@ export class SeedWorldAgentApplication {
     const mutationResult = await this._executeMutations(
       [{ action: "create", resourceType: "vegetation-brush", value }],
       input,
-      mutationEffect(
-        value.x,
-        value.z,
-        value.radiusMetres,
-        0,
-        requestedPlantCount ?? 1
-      ),
+      mutationEffect(value.x, value.z, value.radiusMetres, 0, requestedPlantCount ?? 1),
       signal,
       { ...value }
     );
@@ -1383,7 +1432,7 @@ export class SeedWorldAgentApplication {
                 ? requireRealizedPlantCount(result, requestedPlantCount!)
                 : readRealizedPlantCount(result)
           }
-          : { realizedPlantCount: null }),
+        : { realizedPlantCount: null }),
       requestedPlantCount: requestedPlantCount ?? null
     });
     return Object.freeze({
@@ -1399,33 +1448,82 @@ export class SeedWorldAgentApplication {
     signal: AbortSignal
   ): Promise<SeedWorldVegetationUpdateResult> {
     if (patch.treeShape !== undefined) {
-      if (ref.domain !== "vegetation" || ref.kind !== "tree" || patch.treeShapeScope !== "shared-effect" ||
-        Object.keys(patch).some((key) => !["treeShape", "treeShapeScope", "treeEffectIndex"].includes(key))) {
-        throw new Error("INVALID_INPUT: treeShape edits require shared-effect scope and cannot include distribution edits");
+      if (
+        ref.domain !== "vegetation" ||
+        ref.kind !== "tree" ||
+        patch.treeShapeScope !== "shared-effect" ||
+        Object.keys(patch).some((key) => !["treeShape", "treeShapeScope", "treeEffectIndex"].includes(key))
+      ) {
+        throw new Error(
+          "INVALID_INPUT: treeShape edits require shared-effect scope and cannot include distribution edits"
+        );
       }
       const asset = this._assets.get(ref);
       if (!asset) throw new Error(`WorldRef '${ref.id}' does not exist`);
       const recipeId = asset.properties.treeRecipeId;
       const effectIndex = patch.treeEffectIndex ?? asset.properties.treeEffectIndex;
-      if (typeof recipeId !== "string" || typeof effectIndex !== "number" || !Number.isInteger(effectIndex) || effectIndex < 1 || effectIndex > 7) {
-        throw new Error("Tree shape requires an editable shared effect 1 through 7; the measured source slot 0 is not editable");
+      if (
+        typeof recipeId !== "string" ||
+        typeof effectIndex !== "number" ||
+        !Number.isInteger(effectIndex) ||
+        effectIndex < 1 ||
+        effectIndex > 7
+      ) {
+        throw new Error(
+          "Tree shape requires an editable shared effect 1 through 7; the measured source slot 0 is not editable"
+        );
       }
-      const members = this._engine.queryWorldObjects({ kinds: ["tree"], orderBy: [], limit: 1_000_000 }).objects
-        .filter((object) => object.properties.treeRecipeId === recipeId && object.properties.treeEffectIndex === effectIndex);
+      const members = this._engine
+        .queryWorldObjects({ kinds: ["tree"], orderBy: [], limit: 1_000_000 })
+        .objects.filter(
+          (object) => object.properties.treeRecipeId === recipeId && object.properties.treeEffectIndex === effectIndex
+        );
       if (members.length === 0) throw new Error("Shared tree effect has no current instances");
       if (!this._engine.previewTreeVariationEdit) throw new Error("Runtime does not support shared tree effects");
       const bounds = this._engine.previewTreeVariationEdit(recipeId, effectIndex - 1, patch.treeShape);
-      const result = singleAssetMutationResult(await this._executeMutations(
-        [{ action: "update", resourceType: "tree-variation", value: { recipeId, variationIndex: effectIndex - 1, controls: patch.treeShape } }],
-        control,
-        { areaSquareMetres: (bounds.maximum[0] - bounds.minimum[0]) * (bounds.maximum[2] - bounds.minimum[2]), objectCount: members.length, terrainDeltaMetres: 0, bounds },
-        signal,
-        { scope: "shared-effect", recipeId, effectIndex, treeShape: patch.treeShape, affectedTreeCount: members.length }
-      ), "update");
+      const result = singleAssetMutationResult(
+        await this._executeMutations(
+          [
+            {
+              action: "update",
+              resourceType: "tree-variation",
+              value: { recipeId, variationIndex: effectIndex - 1, controls: patch.treeShape }
+            }
+          ],
+          control,
+          {
+            areaSquareMetres: (bounds.maximum[0] - bounds.minimum[0]) * (bounds.maximum[2] - bounds.minimum[2]),
+            objectCount: members.length,
+            terrainDeltaMetres: 0,
+            bounds
+          },
+          signal,
+          {
+            scope: "shared-effect",
+            recipeId,
+            effectIndex,
+            treeShape: patch.treeShape,
+            affectedTreeCount: members.length
+          }
+        ),
+        "update"
+      );
       return Object.freeze({
-        ...result, matchedCount: members.length,
-        ...(result.status === "applied" ? { resolvedEffect: { ...result.resolvedEffect, treeShape: this._assets.get(result.assetRef)?.properties.treeShape } } : {}),
-        updated: Object.freeze({ plant: "tree" as const, assetKind: "tree" as const, realizedPlantCount: result.status === "applied" ? result.updatedCount : null })
+        ...result,
+        matchedCount: members.length,
+        ...(result.status === "applied"
+          ? {
+              resolvedEffect: {
+                ...result.resolvedEffect,
+                treeShape: this._assets.get(result.assetRef)?.properties.treeShape
+              }
+            }
+          : {}),
+        updated: Object.freeze({
+          plant: "tree" as const,
+          assetKind: "tree" as const,
+          realizedPlantCount: result.status === "applied" ? result.updatedCount : null
+        })
       });
     }
     const resource = this._requireFeatureResource(ref, "vegetation");
@@ -1439,9 +1537,12 @@ export class SeedWorldAgentApplication {
       throw new Error("INVALID_INPUT: count is only available for authored forests and shrublands");
     }
     const placement = target
-      ? this._resolveAreaPlacement(internalDistribution === "single"
-          ? { ...target, placement: { snapTo: "terrain", collision: "allow" } }
-          : target, radiusMetres ?? resource.properties.radiusMetres)
+      ? this._resolveAreaPlacement(
+          internalDistribution === "single"
+            ? { ...target, placement: { snapTo: "terrain", collision: "allow" } }
+            : target,
+          radiusMetres ?? resource.properties.radiusMetres
+        )
       : undefined;
     const resourcePatch: Partial<SeedWorldVegetationBrushInput> = {
       ...(placement ? { x: placement.x, z: placement.z } : {}),
@@ -1480,11 +1581,9 @@ export class SeedWorldAgentApplication {
       ...(result.status === "applied" && (plant === "tree" || plant === "shrub")
         ? {
             realizedPlantCount:
-              count !== undefined
-                ? requireRealizedPlantCount(result, count)
-                : readRealizedPlantCount(result)
+              count !== undefined ? requireRealizedPlantCount(result, count) : readRealizedPlantCount(result)
           }
-          : { realizedPlantCount: null })
+        : { realizedPlantCount: null })
     });
     return Object.freeze({ ...result, updated });
   }
@@ -1494,10 +1593,11 @@ export class SeedWorldAgentApplication {
     signal: AbortSignal
   ): Promise<SeedWorldAuthoringResult> {
     const requestedRefs = input.refs ?? this._selectMutationRefs(input.selector!);
-    if (requestedRefs.some(ref => ref.kind === "building"))
-      throw new Error("Use the native Entity/Component editor for buildings; landscape deletion does not edit buildings");
-    if (requestedRefs.length === 0)
-      return unchangedAuthoringResult(this._currentRevision(), "没有匹配到可删除内容");
+    if (requestedRefs.some((ref) => ref.kind === "building"))
+      throw new Error(
+        "Use the native Entity/Component editor for buildings; landscape deletion does not edit buildings"
+      );
+    if (requestedRefs.length === 0) return unchangedAuthoringResult(this._currentRevision(), "没有匹配到可删除内容");
     const { refs, aggregateRefs } = this._expandAggregateDeletionRefs(requestedRefs);
     const authoredResourceIds = new Set(
       this._engine.readAuthoringSnapshot().resources.map(({ resourceId }) => resourceId)
@@ -1559,9 +1659,7 @@ export class SeedWorldAgentApplication {
         retryable: false,
         executed: false,
         details: Object.freeze({
-          skippedRefs: Object.freeze(
-            requestedRefs.slice(0, MAX_AUTHORING_RESULT_REFS)
-          ),
+          skippedRefs: Object.freeze(requestedRefs.slice(0, MAX_AUTHORING_RESULT_REFS)),
           refsTruncated: requestedRefs.length > MAX_AUTHORING_RESULT_REFS,
           warnings: Object.freeze(warnings)
         })
@@ -1662,8 +1760,9 @@ export class SeedWorldAgentApplication {
     }
 
     filtered.sort((left, right) => compareCandidates(left, right, selector.sort));
-    return filtered.map(candidate => candidate.position ? {...candidate,
-      viewerRelation: this.viewerRelationFor(candidate.position)} : candidate);
+    return filtered.map((candidate) =>
+      candidate.position ? { ...candidate, viewerRelation: this.viewerRelationFor(candidate.position) } : candidate
+    );
   }
 
   /** Mutation selectors are always exhaustive; pagination belongs only to world.query. */
@@ -1716,7 +1815,7 @@ export class SeedWorldAgentApplication {
         `SpatialTarget expected revision ${target.expectedWorldRevision}, current revision is ${revision}`
       );
     }
-    const frame = target.relation.kind === "front" ? "anchor-local" : target.frame ?? "anchor-local";
+    const frame = target.relation.kind === "front" ? "anchor-local" : (target.frame ?? "anchor-local");
     const origin = target.origin ?? "surface";
     const anchor = this._resolveKernelAnchor(target.anchor, origin);
     const placement = target.placement ?? { snapTo: "terrain" as const };
@@ -1903,9 +2002,11 @@ export class SeedWorldAgentApplication {
       });
     }
     const raw = (await (mutations.length === 1
-      ? control.edit ? this._engine.mutateWorldResource(mutations[0]!, signal, control.edit)
+      ? control.edit
+        ? this._engine.mutateWorldResource(mutations[0]!, signal, control.edit)
         : this._engine.mutateWorldResource(mutations[0]!, signal)
-      : control.edit ? this._engine.mutateWorldResources(mutations, signal, control.edit)
+      : control.edit
+        ? this._engine.mutateWorldResources(mutations, signal, control.edit)
         : this._engine.mutateWorldResources(mutations, signal))) as MutationReceipt;
     const result = this._authoringResultFromReceipt(raw, mutations, {
       matchedCount: mutations.length,
@@ -1947,13 +2048,22 @@ export class SeedWorldAgentApplication {
       if (entry.resourceType === "tree-variation") {
         const objects = this._engine.queryWorldObjects({ kinds: ["tree"], orderBy: [], limit: 1_000_000 }).objects;
         const resources = this._engine.readAuthoringSnapshot().resources;
-        return objects.filter((object) => typeof object.properties.treeRecipeId === "string" &&
-          treeVariationKey(object.properties.treeRecipeId, Number(object.properties.treeEffectIndex) - 1) === entry.resourceId)
+        return objects
+          .filter(
+            (object) =>
+              typeof object.properties.treeRecipeId === "string" &&
+              treeVariationKey(object.properties.treeRecipeId, Number(object.properties.treeEffectIndex) - 1) ===
+                entry.resourceId
+          )
           .map((object) => {
-            const owner = object.source.kind === "authoring" ? resources.find((resource) => resource.resourceId === object.source.sourceId) : undefined;
-            const ref = owner?.resourceType === "vegetation-brush" && owner.properties.distributionKind === "single"
-              ? this._assets.refForAuthoringResource(owner, revision)!
-              : this._assets.refForObject(object);
+            const owner =
+              object.source.kind === "authoring"
+                ? resources.find((resource) => resource.resourceId === object.source.sourceId)
+                : undefined;
+            const ref =
+              owner?.resourceType === "vegetation-brush" && owner.properties.distributionKind === "single"
+                ? this._assets.refForAuthoringResource(owner, revision)!
+                : this._assets.refForObject(object);
             return { entry: { ...entry, action: "update" as const }, ref };
           });
       }
@@ -2005,12 +2115,13 @@ export class SeedWorldAgentApplication {
       (items) => items.length > MAX_AUTHORING_RESULT_REFS
     );
     const realizedPlantCount = entries.length === 1 ? entries[0]?.realizedPlantCount : undefined;
-    const resolvedEffect = extra.resolvedEffect || realizedPlantCount !== undefined
-      ? freezeJsonObject({
-          ...(extra.resolvedEffect ?? {}),
-          ...(realizedPlantCount !== undefined ? { realizedPlantCount } : {})
-        })
-      : undefined;
+    const resolvedEffect =
+      extra.resolvedEffect || realizedPlantCount !== undefined
+        ? freezeJsonObject({
+            ...(extra.resolvedEffect ?? {}),
+            ...(realizedPlantCount !== undefined ? { realizedPlantCount } : {})
+          })
+        : undefined;
     return Object.freeze({
       status: "applied" as const,
       transactionId,
@@ -2063,10 +2174,6 @@ export class SeedWorldAgentApplication {
   ): SeedWorldAuthoringResourceOf<"terrain-feature">;
   private _requireFeatureResource(
     ref: Readonly<SeedWorldRef>,
-    expectedDomain: "water"
-  ): SeedWorldAuthoringResourceOf<"water-body" | "river">;
-  private _requireFeatureResource(
-    ref: Readonly<SeedWorldRef>,
     expectedDomain: "vegetation"
   ): SeedWorldAuthoringResourceOf<"vegetation-brush">;
   private _requireFeatureResource(
@@ -2083,12 +2190,7 @@ export class SeedWorldAgentApplication {
     if (resource.resourceType === "terrain-patch" || resource.resourceType === "object-removal") {
       throw new Error(`WorldRef '${ref.id}' is not an editable semantic asset`);
     }
-    const actualDomain =
-      resource.resourceType === "terrain-feature"
-        ? "terrain"
-        : resource.resourceType === "water-body" || resource.resourceType === "river"
-          ? "water"
-          : "vegetation";
+    const actualDomain = resource.resourceType === "terrain-feature" ? "terrain" : "vegetation";
     if (actualDomain !== expectedDomain) {
       throw new Error(`WorldRef '${ref.id}' resolves to ${actualDomain}, not ${expectedDomain}`);
     }
@@ -2098,7 +2200,7 @@ export class SeedWorldAgentApplication {
   private _rememberSelection(selectionId: string, selection: SelectionRecord): void {
     this._selections.set(selectionId, selection);
     const saved = new Set(this._namedSelections.values());
-    const transient = [...this._selections.keys()].filter(id => !saved.has(id));
+    const transient = [...this._selections.keys()].filter((id) => !saved.has(id));
     for (const id of transient.slice(0, Math.max(0, transient.length - 64))) this._selections.delete(id);
   }
 
@@ -2215,7 +2317,7 @@ function publicSelectionSummary(candidate: Readonly<Candidate>): Readonly<SeedWo
   return Object.freeze({
     type: candidate.ref.kind as SeedWorldSelectionSummary["type"],
     ref: candidate.ref,
-    ...(candidate.viewerRelation ? {viewerRelation:candidate.viewerRelation} : {}),
+    ...(candidate.viewerRelation ? { viewerRelation: candidate.viewerRelation } : {}),
     ...(candidate.position ? { position: Object.freeze([...candidate.position] as [number, number, number]) } : {}),
     ...(candidate.bounds ? { bounds: freezeClone(candidate.bounds) } : {}),
     ...(candidate.tags ? { tags: Object.freeze([...candidate.tags]) } : {}),
@@ -2292,7 +2394,6 @@ function matchesSelectorIdentity(candidate: Candidate, selector: Readonly<SeedWo
   if (selector.sources && !selector.sources.includes(candidate.ref.source)) return false;
   return true;
 }
-
 
 function isAddressableObjectRef(ref: Readonly<SeedWorldRef>): boolean {
   return ref.domain === "object" || (ref.domain === "vegetation" && (ref.kind === "tree" || ref.kind === "shrub"));
@@ -2503,10 +2604,6 @@ function deleteMutation(resource: Readonly<SeedWorldAuthoringResource>): SeedWor
   switch (resource.resourceType) {
     case "terrain-feature":
       return { ...identity, resourceType: "terrain-feature" };
-    case "water-body":
-      return { ...identity, resourceType: "water-body" };
-    case "river":
-      return { ...identity, resourceType: "river" };
     case "vegetation-brush":
       return { ...identity, resourceType: "vegetation-brush" };
     case "terrain-patch":
@@ -2733,27 +2830,6 @@ function terrainFeatureDefaults(kind: SeedWorldGenericTerrainFeatureInput["kind"
   }
 }
 
-function waterFeatureDefaults(kind: SeedWorldWaterFeatureCreateInput["kind"]): Readonly<{
-  radiusMetres?: number;
-  lengthMetres?: number;
-  widthMetres?: number;
-  depthMetres: number;
-  flowSpeed?: number;
-  meander?: number;
-  shorelineIrregularity?: number;
-}> {
-  switch (kind) {
-    case "stream":
-      return { lengthMetres: 90, widthMetres: 3, depthMetres: 0.8, flowSpeed: 1.1, meander: 0.65 };
-    case "river":
-      return { lengthMetres: 220, widthMetres: 14, depthMetres: 3.5, flowSpeed: 2, meander: 0.42 };
-    case "pond":
-      return { radiusMetres: 14, depthMetres: 2.2, shorelineIrregularity: 0.38 };
-    case "lake":
-      return { radiusMetres: 55, depthMetres: 8, shorelineIrregularity: 0.58 };
-  }
-}
-
 function deriveSemanticFeatureSeed(rootSeed: number, kind: string, serial: number): number {
   let hash = (rootSeed ^ serial ^ 0x811c9dc5) >>> 0;
   for (let index = 0; index < kind.length; index++) {
@@ -2770,17 +2846,25 @@ function compactDefined<T extends Record<string, unknown>>(value: T): T {
 /** Snapshot named selections independently of the bounded transient query cache. */
 function authoringMemory(memory: EditorMemory): AuthoringMemory {
   const selections = new Map(memory.selections);
-  return { semanticSerial: memory.semanticSerial, tags: memory.tags,
+  return {
+    semanticSerial: memory.semanticSerial,
+    tags: memory.tags,
     namedSelections: memory.namedSelections.map(([name, id]) => {
       const selection = selections.get(id);
       if (!selection) throw new Error(`Saved selection '${name}' has no selection record`);
       return [name, { id, selection }];
-    }) };
+    })
+  };
 }
 
 function restoreAuthoringMemory(memory: AuthoringMemory): EditorMemory {
-  return { semanticSerial: memory.semanticSerial, selectionSerial: 0, tags: memory.tags,
+  return {
+    semanticSerial: memory.semanticSerial,
+    selectionSerial: 0,
+    tags: memory.tags,
     namedSelections: memory.namedSelections.map(([name, value]) => [name, value.id]),
     selections: memory.namedSelections.map(([, value]) => [value.id, value.selection]),
-    lastCreatedRefs: [], lastSelectedRefs: [] };
+    lastCreatedRefs: [],
+    lastSelectedRefs: []
+  };
 }

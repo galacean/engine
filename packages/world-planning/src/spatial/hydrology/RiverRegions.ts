@@ -11,12 +11,18 @@ import { createPlanningGroundSampler, createPlanningRingQuery } from "../../sema
 import { settlementRandom } from "../../semantic-study/SettlementGeometry";
 import { ribbonOutline } from "../../semantic-study/WorldRibbon";
 import { territoryLookup } from "../ecology/PoiTerritories";
+import { compositionReliefGround } from "../SpatialCompositionGeometry";
 
 /** World hydrology preferences. All lengths and levels are metres. Each river publishes its own longitudinal profile. */
 export interface RiverParameters extends PlanningCountRange {
   /** Flat garden channels may derive a dig-only level from their complete path.
    * Explicit point elevations always retain precedence. */
   levelMode?: "terrain" | "minimum";
+  speed?: number;
+  bankClearance?: number;
+  dropThreshold?: number;
+  slopeThreshold?: number;
+  probeSpacing?: number;
   points?: WatercoursePoint[];
   sections?: WatercourseSection[];
   enabled?: boolean;
@@ -77,7 +83,8 @@ function smoothPath(input: PlanPoint[]): PlanPoint[] {
 export function generateRiverRegions(
   plan: IslandPlan,
   config: RiverParameters,
-  local: Record<string, Partial<RiverParameters>>
+  local: Record<string, Partial<RiverParameters>>,
+  reservations: readonly ReturnType<typeof createPlanningRingQuery>[] = []
 ): PlanningCheck[] {
   const candidateCount = planningCandidateCount(plan.parameters.seed, "rivers:count", config, 1);
   // This stage rebuilds the complete water set. Retire profiles by the actual
@@ -88,7 +95,7 @@ export function generateRiverRegions(
   plan.bridges = [];
   plan.roadApproaches = []; // Derived road grading must never feed back into hydrology.
   plan.planning!.profiles = plan.planning!.profiles.filter((p) => !previousWaterIds.has(p.ownerId));
-  const ground = createPlanningGroundSampler(plan),
+  const ground = compositionReliefGround(plan.parameters.spatialComposition, createPlanningGroundSampler(plan)),
     owner = territoryLookup(plan),
     checks: PlanningCheck[] = [];
   const rules = (p: PlanPoint, base = config): RiverParameters => {
@@ -118,18 +125,21 @@ export function generateRiverRegions(
     .slice()
     .sort((a, b) => extent(b.outline) - extent(a.outline) || a.id.localeCompare(b.id));
   const requested = [
-    ...Array.from({ length: candidateCount }, (_, i) => `river:${i}`),
-    ...Object.keys(local)
-      .filter((id) => id.startsWith("river:authored:"))
-      .sort()
+    ...new Set([
+      ...Array.from({ length: candidateCount }, (_, i) => `river:${i}`),
+      ...Object.keys(local)
+        .filter((id) => id.startsWith("river:") && (id.startsWith("river:authored:") || local[id].points !== undefined))
+        .sort()
+    ])
   ];
   for (const [river, id] of requested.entries()) {
     const riverConfig = { ...config, ...local[id] };
+    if (riverConfig.enabled === false) continue;
     if (id.startsWith("river:authored:") && !riverConfig.points)
       throw new Error("INVALID_ARGUMENT: 自定义河流缺少控制点");
-    if (riverConfig.enabled === false) continue;
     if (riverConfig.points !== undefined) {
-      const probeSpacing = 0.25; // Watercourse's native terrain probe interval, in metres.
+      // Author overrides retain Watercourse defaults: 0.25 m probes and 0.05 m bank clearance.
+      const probeSpacing = riverConfig.probeSpacing ?? 0.25;
       let pointsInput = riverConfig.points;
       if (riverConfig.levelMode === "minimum") {
         // Each explicitly carved drop separates two ordinary water platforms.
@@ -159,13 +169,22 @@ export function generateRiverRegions(
         // Use the native bank clearance; it is not a new water-depth policy.
         pointsInput = pointsInput.map((point, i) => ({
           ...point,
-          elevation: point.elevation ?? levels[groups[i]] - 0.05
+          elevation: point.elevation ?? levels[groups[i]] - (riverConfig.bankClearance ?? 0.05)
         }));
       }
       let course: ReturnType<typeof resolveWatercourse>;
       try {
-        course = resolveWatercourse({ id, points: pointsInput, sections: riverConfig.sections, probeSpacing }, (x, z) =>
-          ground({ x, z })
+        course = resolveWatercourse(
+          {
+            id,
+            points: pointsInput,
+            sections: riverConfig.sections,
+            bankClearance: riverConfig.bankClearance,
+            dropThreshold: riverConfig.dropThreshold,
+            slopeThreshold: riverConfig.slopeThreshold,
+            probeSpacing
+          },
+          (x, z) => ground({ x, z })
         );
       } catch (error) {
         throw new Error(`${id}: ${error instanceof Error ? error.message : String(error)}`);
@@ -229,7 +248,12 @@ export function generateRiverRegions(
       for (let r = 0; r < rows; r++)
         for (let c = 0; c < cols; c++) {
           const p = point(r, c);
-          if (!land.inside(p) || land.distance(p, margin) < margin) continue;
+          if (
+            !land.inside(p) ||
+            land.distance(p, margin) < margin ||
+            reservations.some((area) => area.inside(p) || area.distance(p, margin) < margin)
+          )
+            continue;
           const height = ground(p);
           if (height < 1) continue;
           heights[r * cols + c] = height;
@@ -365,6 +389,20 @@ export function generateRiverRegions(
       }
       const outline = ribbonOutline(points, widths, undefined, true);
       if (!land.containsPolygon(outline)) continue;
+      if (
+        reservations.length &&
+        reservations.some((area) =>
+          area.overlapsPolygon(
+            ribbonOutline(
+              points,
+              widths.map((width, i) => width + 2 * banks[i]),
+              undefined,
+              true
+            )
+          )
+        )
+      )
+        continue;
       // A flat level must fit every bank, including the end caps. Never raise dry terrain to hide overflow.
       for (const p of outline) ceiling = Math.min(ceiling, ground(p) - 0.5);
       const crossed = new Set(points.flatMap((p) => owner(p, 0).map((n) => n.site.id)));
@@ -482,8 +520,17 @@ export function generateRiverRegions(
         width: water.widths![i],
         depth: depths[i]
       }));
-      const course = resolveWatercourse({ id: water.id, points: anchors, sections: cfg.sections }, (x, z) =>
-        ground({ x, z })
+      const course = resolveWatercourse(
+        {
+          id: water.id,
+          points: anchors,
+          sections: cfg.sections,
+          bankClearance: cfg.bankClearance,
+          dropThreshold: cfg.dropThreshold,
+          slopeThreshold: cfg.slopeThreshold,
+          probeSpacing: cfg.probeSpacing
+        },
+        (x, z) => ground({ x, z })
       );
       const geometry = watercourseGeometry(course);
       water.course = course;
@@ -493,6 +540,7 @@ export function generateRiverRegions(
       depths.splice(0, depths.length, ...geometry.points.map((p) => p.depth));
       levels = geometry.points.map((p) => p.elevation);
     }
+    water.flowSpeed = { ...config, ...local[water.id] }.speed ?? 1;
     plan.waters.push(water);
     const points = water.centerline!,
       width = Math.max(...water.widths!);

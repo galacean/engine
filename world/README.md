@@ -2,7 +2,7 @@
 
 本分支以 `galacean/engine` 的 `dev/2.0` 提交 `aa195af6d5e07b4006b76ff7d6716ce58fac2580` 为基线，迁入 `engine-next` 的 Seed World 与系统 Demo。来源是本地 `dev/engine-next-experimental` 的有效工作树（含已有合并结果和 `world/engine/overlay`），并非仅复制其 HEAD；源仓库没有被本次迁移修改。逐文件来源见 [migration/files.json](migration/files.json)。
 
-当前开发与同步仓库为 **`galacean/engine`**；`engine-next` 已停用，仅保留上述迁移来源记录。本分支已同步 `dev/2.0@4916add0371a4853ebe8d3c23fcd68cf150038d6`（2.0.0-alpha.56），并在 `modify` 中适配 shader/parser、显式 Shader 引用与变换反馈输出名称的新契约。
+当前开发与同步仓库为 **`galacean/engine`**；`engine-next` 已停用，仅保留上述迁移来源记录。当前实验同步目标为 `experimental/engine-next@79c8a42d20b1623d6c3c4d0ee6e07b1d46101661`。原生 Engine 保留先前合入的 `dev/2.0@4916add0371a4853ebe8d3c23fcd68cf150038d6`（2.0.0-alpha.56）；`modify` 同时适配其 shader/parser、显式 Shader 引用与变换反馈输出名称契约。
 
 ## 目录与所有权
 
@@ -89,13 +89,13 @@ AI Chat 的真实模型请求沿用业务配置，需要配置可用的 provider
 
 ## Demo 归属
 
-当前 [demos.json](demos.json) 登记了 36 个静态构建入口。`static` 表示构建模式，不代表所有在线 API 功能都能离线运行。
+当前 [demos.json](demos.json) 登记了 36 个静态构建入口。`static` 表示构建模式，不代表所有在线 API 功能都能离线运行。`demos/building-core-preview/` 的四个开发页（新建筑系统的预览和 GPU 铺设原型）不登记在其中。
 
 | Demo 目录 | 系统归属 |
 | --- | --- |
 | `demos/agent-trajectory/` | ai-chat |
 | `demos/animals/` | animals |
-| `demos/building-components/` | building |
+| `demos/building-core-preview/` | building（开发页；`demos/building-components/` 只放 world 测试用的建筑夹具） |
 | `demos/canyon-shape-study/` | world-planning / terrain |
 | `demos/day-night-system/` | environment |
 | `demos/farming/` | farming |

@@ -623,7 +623,6 @@ export class SeedWorldVoiceHudController implements SeedWorldChatPanel {
   ): Promise<void> {
     const task = text.trim();
     if (!task || this._destroyed) return;
-    const selection = structuredClone(this.application.getUserSelection());
     const viewer = this.application.getViewerSnapshot();
     const attachment = this.application.viewSnapshots?.acquireAttachments();
 
@@ -632,8 +631,7 @@ export class SeedWorldVoiceHudController implements SeedWorldChatPanel {
       const completion = this._activity.submit(task, {
         ...(this._contextCompactionBudget ? { contextCompaction: this._contextCompactionBudget } : {}),
         model: SEED_WORLD_MODEL,
-        context: { user_selection_at_submission: attachment || !selection ? null
-          : "component" in selection ? { component: { ...selection.component } } : { ...selection },
+        context: { user_selection_at_submission: null,
           viewer_at_submission: viewer as unknown as AgentValue },
         debugMode: this._traceStore.enabled,
         inputSource

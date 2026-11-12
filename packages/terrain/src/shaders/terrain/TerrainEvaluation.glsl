@@ -69,6 +69,24 @@ void terrainProjectApplyTerrainClimate(
   #ifndef MATERIAL_TERRAIN_FAR
     #include "shared/SurfaceRelief.glsl"
   #endif
+  #if defined(MATERIAL_TERRAIN_MICRO_NORMAL) && !defined(MATERIAL_TERRAIN_FAR)
+    sampler2D material_TerrainMicroNormal;
+    vec3 material_TerrainSandMicroParams; // strength, repeats per metre, fade distance in metres
+    vec3 terrainProjectAddMicroNormal(vec3 normalTS, vec3 positionWS, float lodWeight) {
+      float distanceLimit = material_TerrainSandMicroParams.z;
+      vec2 uv = positionWS.xz * material_TerrainSandMicroParams.y;
+      vec2 dx = dFdx(uv), dy = dFdy(uv);
+      vec2 texels = vec2(textureSize(material_TerrainMicroNormal, 0));
+      float footprint = max(length(dx * texels), length(dy * texels));
+      float weight = lodWeight * (1.0 - smoothstep(1.25, 6.0, footprint)) *
+        (1.0 - smoothstep(distanceLimit / 3.0, distanceLimit, distance(positionWS, camera_Position)));
+      weight *= material_TerrainSandMicroParams.x;
+      if (weight <= 0.0) return normalTS;
+      vec3 detail = textureGrad(material_TerrainMicroNormal, uv, dx, dy).rgb * 2.0 - 1.0;
+      normalTS.xy += detail.xy / max(detail.z, 0.1) * normalTS.z * weight;
+      return normalTS;
+    }
+  #endif
   SurfaceData evaluateTerrainLayerSurface(
     Varyings varyings,
     vec3 geometryNormal,
@@ -79,7 +97,23 @@ void terrainProjectApplyTerrainClimate(
   ) {
     vec3 terrainAlbedo = terrainProjectGroundColor(layerBlend, varyings.positionWS);
     float grassCoverage = clamp(layerBlend.grassWeight, 0.0, 1.0);
-    vec3 shadingNormal = terrainProjectLayerNormalToWorld(layerBlend.tangentNormal, geometryNormal);
+    vec3 tangentNormal = layerBlend.tangentNormal;
+    #ifndef MATERIAL_TERRAIN_FAR
+      float detailVisibility = 1.0;
+      #ifdef MATERIAL_TERRAIN_DETAIL_TRANSITION
+        detailVisibility = terrainProjectFarDetailVisibility(varyings);
+      #endif
+      #ifdef MATERIAL_TERRAIN_SAND_RIPPLE
+        float fadeEnd = material_TerrainSandRippleParams.z;
+        float rippleWeight = detailVisibility *
+          (1.0 - smoothstep(fadeEnd * (35.0 / 115.0), fadeEnd, distance(varyings.positionWS, camera_Position)));
+        tangentNormal = mix(vec3(0.0, 0.0, 1.0), tangentNormal, rippleWeight);
+      #endif
+      #ifdef MATERIAL_TERRAIN_MICRO_NORMAL
+        tangentNormal = terrainProjectAddMicroNormal(tangentNormal, varyings.positionWS, detailVisibility);
+      #endif
+    #endif
+    vec3 shadingNormal = terrainProjectLayerNormalToWorld(tangentNormal, geometryNormal);
     #if defined(MATERIAL_TERRAIN_GRASS_SHADING) && !defined(MATERIAL_TERRAIN_FAR)
       float surfaceReliefWeight = terrainProjectSurfaceReliefWeight(varyings.positionWS);
       #ifdef MATERIAL_TERRAIN_DETAIL_TRANSITION

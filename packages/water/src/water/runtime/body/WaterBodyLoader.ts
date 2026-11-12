@@ -5,8 +5,13 @@ import { WaterMutationRollbackError } from "./WaterMutationFailure";
  * This module intentionally contains no water algorithms and creates no meshes,
  * materials, queries, or spatial fields itself.
  */
-import type { WaterBodyAsset } from "../../authoring/body/WaterBodyAsset";
 import type { ResolvedWaterBodyInstance } from "../../authoring/body/ResolvedWaterBodyInstance";
+import type { WaterBodyAsset } from "../../authoring/body/WaterBodyAsset";
+import {
+  WaterBodySourceKind,
+  type WaterBodyRuntimeVariant,
+  type WaterBodySourceV1
+} from "../../authoring/body/WaterBodyAuthoringTypes";
 import {
   createWaterBodyInstance,
   WATER_BODY_INSTANCE_SCHEMA_VERSION,
@@ -14,67 +19,59 @@ import {
   type WaterInteractionRequestV1,
   type WaterPlanarTransformV1
 } from "../../authoring/body/WaterBodyInstance";
-import {
-  WaterBodySourceKind,
-  type WaterBodyRuntimeVariant,
-  type WaterBodySourceV1
-} from "../../authoring/body/WaterBodyAuthoringTypes";
 import type { WaterBodyDiagnostic } from "../../authoring/body/WaterBodySchemaDecoder";
+import {
+  DEFAULT_WATER_ENVIRONMENT_SNAPSHOT,
+  type WaterEnvironmentSnapshot
+} from "../../authoring/environment/WaterEnvironmentSnapshot";
+import { createWaterRevision, nextWaterRevision } from "../../authoring/identity/WaterIdentity";
+import { createImmutableWaterSnapshot } from "../../authoring/identity/WaterImmutableSnapshot";
+import type { WaterLookAuthoringSnapshot } from "../../authoring/surface/WaterLookAuthoringSnapshot";
 import type { WaterCompiledResource, WaterCompiledResourceReadPort } from "../../compiler/body/WaterCompiledResource";
 import { createWaterCompiledDataSnapshot } from "../../compiler/body/WaterCompiledResource";
-import type { WaterResourceMemoryMetrics } from "../resources/WaterResourceMetrics";
+import { hashStableValue } from "../../compiler/shared/determinism";
 import type {
   CameraWaterFeatureBroker,
   WaterCameraFeatureRequest,
   WaterCameraFeatureRequestLease
 } from "../optics/CameraWaterFeatureBroker";
+import { deriveWaterCameraFeatureRequest } from "../optics/WaterCameraFeatureDerivation";
 import type {
   WaterReflectionBindingLifecycle,
   WaterReflectionCameraOwnership,
   WaterReflectionCameraOwnershipState
 } from "../optics/WaterReflectionBindingLifecycle";
-import type {
-  WaterBackendDevelopmentContext,
-  WaterBackendReflectionContext,
-  WaterBackendRuntime,
-  WaterCameraVisibilityProvider,
-  WaterTerrainOcclusionProvider,
-  WaterBackendUpdateField,
-  WaterBackendUpdateMode,
-  WaterBodyBackend
-} from "./WaterBackendRegistry";
-import { WaterBackendRegistry } from "./WaterBackendRegistry";
-import { WaterBodyAssetRegistry } from "./WaterBodyAssetRegistry";
-import { WaterBodyProviderRegistry } from "./WaterBodyProviderRegistry";
-import type { WaterBodyRuntime } from "./WaterBodyRuntime";
-import { createWaterRuntimeInterfacesView, type WaterRuntimeInterfaces } from "./WaterRuntimeInterfaces";
-import { createImmutableWaterSnapshot } from "../../authoring/identity/WaterImmutableSnapshot";
-import { createWaterRevision, nextWaterRevision } from "../../authoring/identity/WaterIdentity";
-import type { WaterLookAuthoringPort } from "../state/WaterLookAuthoringPort";
-import {
-  DEFAULT_WATER_ENVIRONMENT_SNAPSHOT,
-  type WaterEnvironmentSnapshot
-} from "../../authoring/environment/WaterEnvironmentSnapshot";
-import type { WaterLookAuthoringSnapshot } from "../../authoring/surface/WaterLookAuthoringSnapshot";
-import { hashStableValue } from "../../compiler/shared/determinism";
-import { resolveEffectiveWaterRuntimeSnapshot } from "../state/WaterEffectiveStateResolver";
-import type { EffectiveWaterRuntimeSnapshot } from "../state/EffectiveWaterRuntimeSnapshot";
-import { createWaterRuntimeAvailabilitySnapshot } from "../state/WaterRuntimeAvailabilitySnapshot";
-import { planWaterRuntimeUpdate } from "../state/WaterRuntimeUpdatePlan";
-import { createNegotiatedWaterBodyRuntime, type WaterBodyCapabilityNegotiation } from "./WaterBodyConsumerRuntime";
-import type { WaterWorldInteractionChannels, WaterWorldRegistration } from "./WaterWorld";
-import { WaterWorld } from "./WaterWorld";
-import { deriveWaterCameraFeatureRequest } from "../optics/WaterCameraFeatureDerivation";
 import {
   WaterRuntimeResourceRegistry,
   type WaterRuntimeResourceLease
 } from "../resources/WaterRuntimeResourceRegistry";
+import type { EffectiveWaterRuntimeSnapshot } from "../state/EffectiveWaterRuntimeSnapshot";
+import { resolveEffectiveWaterRuntimeSnapshot } from "../state/WaterEffectiveStateResolver";
+import type { WaterLookAuthoringPort } from "../state/WaterLookAuthoringPort";
+import { createWaterRuntimeAvailabilitySnapshot } from "../state/WaterRuntimeAvailabilitySnapshot";
+import { planWaterRuntimeUpdate } from "../state/WaterRuntimeUpdatePlan";
+import { WaterActivationTransaction, type WaterActivationGeneration } from "./WaterActivationTransaction";
+import type {
+  WaterBackendDevelopmentContext,
+  WaterBackendReflectionContext,
+  WaterBackendRuntime,
+  WaterBackendUpdateField,
+  WaterBackendUpdateMode,
+  WaterBodyBackend,
+  WaterCameraVisibilityProvider,
+  WaterTerrainOcclusionProvider
+} from "./WaterBackendRegistry";
+import { WaterBackendRegistry } from "./WaterBackendRegistry";
+import { WaterBodyAssetRegistry } from "./WaterBodyAssetRegistry";
+import { createNegotiatedWaterBodyRuntime, type WaterBodyCapabilityNegotiation } from "./WaterBodyConsumerRuntime";
+import { WaterBodyProviderRegistry } from "./WaterBodyProviderRegistry";
+import type { WaterBodyRuntime } from "./WaterBodyRuntime";
 import { resolveWaterBodyCapabilityRequirements } from "./WaterBodyRuntimeSemantics";
 import { WaterCompileCache, type WaterCompiledResourceLease } from "./WaterCompileCache";
-import { WaterActivationTransaction, type WaterActivationGeneration } from "./WaterActivationTransaction";
+import { createWaterRuntimeInterfacesView, type WaterRuntimeInterfaces } from "./WaterRuntimeInterfaces";
 import { WaterRuntimeLeaseCoordinator } from "./WaterRuntimeLeaseCoordinator";
-import { WaterRuntimeInspectionStore, type WaterBodyActivationInspection } from "./WaterRuntimeInspectionStore";
-export type { WaterBodyActivationInspection, WaterBodySpatialFieldInspection } from "./WaterRuntimeInspectionStore";
+import type { WaterWorldInteractionChannels, WaterWorldRegistration } from "./WaterWorld";
+import { WaterWorld } from "./WaterWorld";
 
 function applyCameraRequestOverrides(
   request: WaterCameraFeatureRequest | undefined,
@@ -146,7 +143,6 @@ export interface WaterBodyActivationHandle {
   readonly queryEnabled: boolean;
   readonly buoyancyEnabled: boolean;
   readonly wakeEnabled: boolean;
-  inspect(): Readonly<WaterBodyActivationInspection>;
   setVisible(visible: boolean): void;
   setQueryEnabled(enabled: boolean): void;
   setBuoyancyEnabled(enabled: boolean): void;
@@ -220,8 +216,7 @@ function createWaterBodyRuntimeReadPort(read: () => WaterBodyRuntime): WaterBody
     "simulation",
     "interactionSink",
     "bounds",
-    "exclusionBounds",
-    "metrics"
+    "exclusionBounds"
   ] as const) {
     Object.defineProperty(port, key, {
       enumerable: true,
@@ -267,7 +262,7 @@ export interface WaterDevelopmentHandle {
   readonly queryEnabled: boolean;
   readonly buoyancyEnabled: boolean;
   readonly wakeEnabled: boolean;
-  readonly body: Pick<WaterBodyRuntimeReadPort, "interactionSink" | "capabilities" | "metrics">;
+  readonly body: Pick<WaterBodyRuntimeReadPort, "interactionSink" | "capabilities">;
   readonly instance: WaterBodyActivationHandle["instance"];
   readonly effectiveState: WaterBodyActivationHandle["effectiveState"];
   setVisible(visible: boolean): void;
@@ -299,7 +294,6 @@ export interface WaterDevelopmentObserver {
 
 /** Read-only discovery port for DevTools; activation and registry mutation remain Host-private. */
 export interface WaterDevelopmentTargetSource {
-  readonly metrics: Readonly<WaterBodyLoaderMetrics>;
   observeDevelopmentTargets(observer: WaterDevelopmentObserver): () => void;
 }
 
@@ -373,19 +367,6 @@ export interface WaterBodyLoaderOptions {
   readonly compileCacheEntryLimit?: number;
   /** Maximum retained immutable compiled bytes. */
   readonly compileCacheBudgetBytes?: number;
-}
-
-export interface WaterBodyLoaderMetrics {
-  readonly activeBodyCount: number;
-  readonly cachedResourceCount: number;
-  readonly compileCount: number;
-  readonly cacheHitCount: number;
-  readonly cacheMissCount: number;
-  readonly failedActivationCount: number;
-  readonly cacheEvictionCount: number;
-  readonly compileCacheEntryLimit: number;
-  readonly compileCacheBudgetBytes: number;
-  readonly cachedResourceMemory: WaterResourceMemoryMetrics;
 }
 
 interface MutableActivationState {
@@ -535,7 +516,6 @@ export class WaterBodyLoader {
   private readonly _readEnvironmentSnapshot: () => Readonly<WaterEnvironmentSnapshot>;
   private readonly _compileCache: WaterCompileCache;
   private readonly _leaseCoordinator: WaterRuntimeLeaseCoordinator;
-  private readonly _inspectionStore = new WaterRuntimeInspectionStore();
   private readonly _lifetimeAbort = new AbortController();
   private readonly _inFlightLoads = new Set<Promise<unknown>>();
   private readonly _preparedInitialActivations = new Set<PreparedWaterBodyInstanceActivation>();
@@ -546,7 +526,6 @@ export class WaterBodyLoader {
   private readonly _developmentObservers = new Set<WaterDevelopmentObserver>();
   private readonly _developmentTargets = new Map<WaterBodyActivationHandle, WaterDevelopmentTarget>();
   private _nextCompileGenerationId = 1;
-  private _failedActivationCount = 0;
   private _destroyed = false;
 
   constructor(options: WaterBodyLoaderOptions) {
@@ -569,22 +548,6 @@ export class WaterBodyLoader {
       budgetBytes: options.compileCacheBudgetBytes ?? 256 * 1024 * 1024
     });
     this._leaseCoordinator = new WaterRuntimeLeaseCoordinator(this._cameraFeatures, this._resources);
-  }
-
-  get metrics(): WaterBodyLoaderMetrics {
-    const cache = this._compileCache.metrics;
-    return Object.freeze({
-      activeBodyCount: this._active.size,
-      cachedResourceCount: cache.cachedResourceCount,
-      compileCount: cache.compileCount,
-      cacheHitCount: cache.cacheHitCount,
-      cacheMissCount: cache.cacheMissCount,
-      failedActivationCount: this._failedActivationCount,
-      cacheEvictionCount: cache.cacheEvictionCount,
-      compileCacheEntryLimit: cache.entryLimit,
-      compileCacheBudgetBytes: cache.budgetBytes,
-      cachedResourceMemory: cache.cachedResourceMemory
-    });
   }
 
   observeDevelopmentTargets(observer: WaterDevelopmentObserver): () => void {
@@ -639,7 +602,6 @@ export class WaterBodyLoader {
     try {
       return prepared.commit();
     } catch (error) {
-      this._failedActivationCount++;
       await prepared.rollback();
       throw error;
     }
@@ -866,7 +828,6 @@ export class WaterBodyLoader {
         }
       };
     } catch (error) {
-      this._failedActivationCount++;
       try {
         await this._rollback(state);
       } catch (rollbackError) {
@@ -914,33 +875,46 @@ export class WaterBodyLoader {
   }
 
   /** Terminal withdrawal bypasses editing locks and never rolls gameplay routes back on failure. */
+  withdrawBodyRuntime(bodyId: string): void {
+    const errors: unknown[] = [];
+    for (const current of this._committed) {
+      if (current.prepared.body.id !== bodyId) continue;
+      current.revision++;
+      this._withdrawActivation(current, errors);
+    }
+    if (errors.length) throw new AggregateError(errors, "Water body withdrawal failed.");
+  }
+
+  /** Terminal withdrawal bypasses editing locks and never rolls gameplay routes back on failure. */
   withdrawRuntime(): void {
     this._withdrawn = true;
     const errors: unknown[] = [];
-    for (const current of this._committed) {
-      current.prepared.body.enabled = false;
-      current.interaction = freezeInteraction({ query: false, buoyancy: false, wake: false });
-      current.visible = false;
-      for (const release of [
-        () => {
-          current.state.registration?.destroy();
-          current.state.registration = undefined;
-        },
-        () => current.prepared.setVisible?.(false),
-        () => this._releaseCameraLeases(current.state)
-      ]) {
-        try {
-          release();
-        } catch (error) {
-          errors.push(error);
-        }
-      }
-      this._updateResolvedVisibility(current, false);
-      this._updateResolvedInteraction(current, current.interaction);
-      this._synchronizeEffectiveInstanceSnapshot(current);
-    }
+    for (const current of this._committed) this._withdrawActivation(current, errors);
     this.abortPendingOperations();
     if (errors.length) throw new AggregateError(errors, "Water runtime withdrawal failed.");
+  }
+
+  private _withdrawActivation(current: MutableCommittedActivation, errors: unknown[]): void {
+    current.prepared.body.enabled = false;
+    current.interaction = freezeInteraction({ query: false, buoyancy: false, wake: false });
+    current.visible = false;
+    for (const release of [
+      () => {
+        current.state.registration?.destroy();
+        current.state.registration = undefined;
+      },
+      () => current.prepared.setVisible?.(false),
+      () => this._releaseCameraLeases(current.state)
+    ]) {
+      try {
+        release();
+      } catch (error) {
+        errors.push(error);
+      }
+    }
+    this._updateResolvedVisibility(current, false);
+    this._updateResolvedInteraction(current, current.interaction);
+    this._synchronizeEffectiveInstanceSnapshot(current);
   }
 
   /** Cancels all current and future backend operations before lifecycle drain. */
@@ -1322,7 +1296,6 @@ export class WaterBodyLoader {
         this._synchronizeEffectiveReflectionSnapshot(current, false);
       }
     } catch (error) {
-      this._failedActivationCount++;
       const rollbackErrors: unknown[] = [];
       try {
         state.registration?.destroy();
@@ -1473,7 +1446,7 @@ export class WaterBodyLoader {
       get wakeEnabled() {
         return current.interaction.wake;
       },
-      inspect: () => this._inspectActivation(current, active),
+
       setVisible: (nextVisible: boolean) => {
         requireActive();
         if (current.visible === nextVisible) return;
@@ -1880,28 +1853,6 @@ export class WaterBodyLoader {
     } catch (error) {
       console.error("[water-development] observer failed.", error);
     }
-  }
-
-  private _inspectActivation(
-    current: MutableCommittedActivation,
-    active: boolean
-  ): Readonly<WaterBodyActivationInspection> {
-    return this._inspectionStore.capture({
-      active,
-      visible: current.visible,
-      interaction: current.interaction,
-      revision: current.revision,
-      lastUpdateMode: current.lastUpdateMode,
-      body: current.prepared.body,
-      registration: current.state.registration,
-      resolvedInstance: current.state.resolvedInstance,
-      effectiveSnapshot: current.state.effectiveSnapshot,
-      resource: current.state.resource,
-      resourceLeases: current.state.resourceLeases,
-      cameraLeases: current.state.cameraLeases,
-      runtime: current.state.runtime,
-      capabilityNegotiation: current.state.capabilityNegotiation
-    });
   }
 
   private _setVisibility(current: MutableCommittedActivation, nextVisible: boolean): void {
@@ -2751,7 +2702,6 @@ export class WaterBodyLoader {
         }
       };
     } catch (error) {
-      this._failedActivationCount++;
       try {
         await this._rollback(state);
       } catch (rollbackError) {
@@ -2820,7 +2770,6 @@ export class WaterBodyLoader {
       }
       next.state.runtime?.refreshReflectionBinding?.();
     } catch (error) {
-      this._failedActivationCount++;
       const rollbackErrors: unknown[] = [];
 
       // Restore the committed gameplay route synchronously before beginning

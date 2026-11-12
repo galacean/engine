@@ -469,6 +469,7 @@ export class FarmingActionCoordinator {
     this.cancel();
     await this.active?.task.catch(() => {});
     await this.assistedTask?.catch(() => {});
+    this.presentation = undefined;
   }
 }
 

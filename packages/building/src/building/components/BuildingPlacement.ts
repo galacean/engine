@@ -1,5 +1,7 @@
 import { Component, Matrix, Vector3, type Entity } from "@galacean/engine";
 import { BuildingPartComponent } from "../parts/architecture/BuildingPartComponent";
+import { BuildingGroupComponent } from "../parts/architecture/BuildingGroupComponent";
+import { buildingFootprints } from "../partTypes";
 import { normalizeProfileFootprint, type ProfileFootprint } from "../runtime/ProfileParameters";
 
 export interface BuildingLandQuery {
@@ -18,21 +20,28 @@ export function buildingPlacementFootprint(root: Entity) {
     if (!ancestor.isActive) throw Error("No active finite building footprint to place");
     ancestor = ancestor.parent;
   }
+  const groups: BuildingGroupComponent[] = [],
+    parts: BuildingPartComponent[] = [];
   const visit = (entity: Entity) => {
     if (!entity.isActive || entity.destroyed || entity.pendingDestroy) return;
-    for (const component of entity.getComponents(Component, [])) {
-      if (!(component instanceof BuildingPartComponent) || !component.enabled) continue;
-      const definition = component.definition;
-      if (!definition || !["wallProfile", "wallStrip"].includes(definition.support.generator)) continue;
-      for (const [x, z] of footprint(normalizeProfileFootprint(definition.support.params))) {
-        const point = new Vector3(x, 0, z);
-        Vector3.transformCoordinate(point, entity.transform.worldMatrix, point);
-        points.push([point.x - origin.x, point.z - origin.z]);
-      }
-    }
+    for (const component of entity.getComponents(Component, []))
+      if (component.enabled && component instanceof BuildingGroupComponent && component.definition)
+        groups.push(component);
+      else if (component.enabled && component instanceof BuildingPartComponent && component.definition)
+        parts.push(component);
     for (const child of entity.children) visit(child);
   };
   visit(root);
+  // A group's footprints are in its node's coordinates.
+  for (const group of groups) {
+    const own = parts.flatMap((p) => (p.definition!.group === group.definition!.id ? [p.definition!] : []));
+    for (const shape of buildingFootprints(group.definition!, own))
+      for (const [x, z] of footprint(normalizeProfileFootprint(shape as unknown as ProfileFootprint))) {
+        const point = new Vector3(x, 0, z);
+        Vector3.transformCoordinate(point, group.entity.transform.worldMatrix, point);
+        points.push([point.x - origin.x, point.z - origin.z]);
+      }
+  }
   if (!points.length || points.some((point) => !point.every(Number.isFinite)))
     throw Error("No active finite building footprint to place");
   return { points, origin, parentMatrix };

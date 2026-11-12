@@ -1,6 +1,3 @@
-/** Recovered RoofShingle64 gravity equations; no GPU ownership or scheduling. */
-export const ROOF_INSTANCE_STRIDE = 64;
-
 export const gravityVertexSource = `#version 300 es
 precision highp float;
 precision highp int;

@@ -1,13 +1,16 @@
+import { assertWaterConnectionTransform } from "../../authoring/connections/WaterConnection";
 import { WaterFieldConsumerActivation, WaterFieldSemantic } from "../../authoring/surface/WaterSurfaceFieldTypes";
 import { resolveWaterSurfaceFieldGraph } from "../surface/WaterSurfaceFieldResolver";
-import { assertWaterConnectionTransform } from "../../authoring/connections/WaterConnection";
 /** Real WaterBody backend adapter for the existing Heightfield compiler/runtime. */
 import type { Engine, Entity, Texture2D } from "@galacean/engine-core";
-import type { HeightfieldWaterDescriptorV1 } from "../../authoring/heightfield/HeightfieldWaterDescriptor";
-import { WaterBodySourceKind } from "../../authoring/body/WaterBodyAuthoringTypes";
 import { createPhysicalSurfaceIdentity } from "../../authoring/body/PhysicalSurfaceIdentity";
+import { WaterBodySourceKind } from "../../authoring/body/WaterBodyAuthoringTypes";
+import type { HeightfieldWaterDescriptorV1 } from "../../authoring/heightfield/HeightfieldWaterDescriptor";
+import type { HeightfieldWaterDiagnostic } from "../../authoring/heightfield/HeightfieldWaterTypes";
+import { WaterSurfaceDepthSource } from "../../authoring/surface/enums/WaterSurfaceDepthSource";
 import { WaterSurfaceCompositionV2 } from "../../authoring/surface/WaterSurfaceAppearanceTypes";
 import { WaterQualityTier } from "../../authoring/wave/enums/WaterQualityTier";
+import type { WaterCompiledResource } from "../../compiler/body/WaterCompiledResource";
 import {
   HeightfieldWaterCompiler,
   compileHashFromSourceHash,
@@ -16,46 +19,43 @@ import {
   resolveHeightfieldWaterQueryRepresentation
 } from "../../compiler/heightfield/HeightfieldWaterCompiler";
 import { validateHeightfieldWaterDescriptor } from "../../compiler/heightfield/HeightfieldWaterValidator";
-import type { WaterCompiledResource } from "../../compiler/body/WaterCompiledResource";
 import { hashStableValue } from "../../compiler/shared/determinism";
 import type { CompiledWaterRenderStateV1 } from "../../compiler/surface/CompiledWaterRenderContractTypes";
-import type { HeightfieldWaterDiagnostic } from "../../authoring/heightfield/HeightfieldWaterTypes";
+import { createWaterBackendControl } from "../body/WaterBackendControl";
 import type {
+  ResolvedWaterBodyInstance,
   WaterBackendCompileContext,
   WaterBackendCompileIdentityContext,
   WaterBackendRuntime,
   WaterBackendRuntimeContext,
   WaterBackendUpdateDecision,
   WaterBackendUpdateRequest,
-  WaterBodyBackend,
-  ResolvedWaterBodyInstance
+  WaterBodyBackend
 } from "../body/WaterBackendRegistry";
-import { resolveWaterBodyQualityTier } from "../body/WaterBodyRuntimeSemantics";
 import { WaterBodyRuntimeAdapter } from "../body/WaterBodyRuntime";
+import { resolveWaterBodyQualityTier } from "../body/WaterBodyRuntimeSemantics";
 import {
   compileWaterPlanarTransform,
   waterPlanarTransformIsIdentity,
   type CompiledWaterPlanarTransformV1
 } from "../body/WaterPlanarTransform";
 import type { WaterOpticalProfile } from "../optics/WaterOpticalProfile";
-import { WaterSurfaceDepthSource } from "../../authoring/surface/enums/WaterSurfaceDepthSource";
 import { WaterReflectionBindingLifecycle } from "../optics/WaterReflectionBindingLifecycle";
 import { waterReflectionPolicyModeToSource } from "../optics/WaterReflectionPolicy";
 import type { WaterRuntimeResourceLease } from "../resources/WaterRuntimeResourceRegistry";
 import type { EffectiveWaterRuntimeSnapshot } from "../state/EffectiveWaterRuntimeSnapshot";
-import { createWaterBackendDiagnosticsAdapter } from "../body/WaterBackendDiagnosticsAdapter";
 import type { WaterSurfaceAppearanceBindingV2 } from "../surface/WaterSurfaceAppearanceRuntimeTypes";
-import { HeightfieldWaterResource } from "./HeightfieldWaterResource";
 import {
   readHeightfieldWaterPreparedCompilerIdentityV1,
   type HeightfieldWaterPreparedCompilerIdentityV1
 } from "./HeightfieldWaterPreparedCompilerIdentity";
-import { HeightfieldWaterCompositionMode, HeightfieldWaterDebugMode } from "./HeightfieldWaterRuntimeEnums";
+import { HeightfieldWaterResource } from "./HeightfieldWaterResource";
 import {
   HeightfieldWaterRuntimeController,
   type HeightfieldWaterRuntimeActivation,
   type HeightfieldWaterRuntimeSubmissionOptions
 } from "./HeightfieldWaterRuntimeController";
+import { HeightfieldWaterCompositionMode } from "./HeightfieldWaterRuntimeEnums";
 
 export const HEIGHTFIELD_WATER_BACKEND_ID = "heightfield";
 
@@ -106,39 +106,22 @@ export function assertHeightfieldWaterRenderSurfaceDepthSource(
 
 export interface HeightfieldWaterBackendRuntimeContext {
   readonly engine: Engine;
+  readonly surfaceShader?: import("@galacean/engine-core").Shader;
   readonly root: Entity;
   readonly submission?: Omit<HeightfieldWaterRuntimeSubmissionOptions, "shouldCancel">;
   /** Runtime-only render offset; it does not alter the immutable Heightfield source or WaterBody transform. */
   readonly surfaceLevelOffsetMetres?: number;
   /** Demo/developer presentation hooks; authoring semantics are applied first. */
-  readonly debugMode?: HeightfieldWaterDebugMode;
   readonly surfaceTimeOverride?: number;
-  /** Explicit detached data projection for diagnostics/acceptance; never exposes the compiled resource owner. */
-  readonly compiledDiagnostics?: boolean;
 }
 
-export interface HeightfieldWaterCompiledDiagnostics {
-  readonly stats: HeightfieldWaterResource["data"]["stats"];
-  readonly chunkCount: number;
-  readonly compiledHash: string;
-  readonly totalBytes: number;
-  readonly localMapAtlas: Readonly<{
-    width: number;
-    height: number;
-    pixels: Uint8Array;
-    maxDepth: number;
-    signedDistanceRange: number;
-  }>;
-}
-
-export interface HeightfieldWaterBackendRuntimeDiagnostics {
+interface HeightfieldWaterRuntimeState {
   readonly instanceId: string;
   readonly controller: HeightfieldWaterRuntimeController;
   readonly activation: HeightfieldWaterRuntimeActivation;
   readonly root: Entity;
   readonly planarTransform: Readonly<CompiledWaterPlanarTransformV1>;
   readonly reflection?: WaterReflectionBindingLifecycle;
-  readonly compiledDiagnostics?: Readonly<HeightfieldWaterCompiledDiagnostics>;
 }
 
 export interface HeightfieldWaterBackendOptions {
@@ -434,7 +417,7 @@ export class HeightfieldWaterBackend implements WaterBodyBackend {
 
   private readonly _compile: NonNullable<HeightfieldWaterBackendOptions["compile"]>;
   private readonly _createController: NonNullable<HeightfieldWaterBackendOptions["createController"]>;
-  private readonly _runtimes = new Map<string, HeightfieldWaterBackendRuntimeDiagnostics>();
+  private readonly _runtimes = new Map<string, HeightfieldWaterRuntimeState>();
 
   constructor(options: HeightfieldWaterBackendOptions = {}) {
     this._compile = options.compile ?? compileHeightfieldWater;
@@ -443,8 +426,8 @@ export class HeightfieldWaterBackend implements WaterBodyBackend {
       ((engine, root, materialQuality) => new HeightfieldWaterRuntimeController(engine, root, materialQuality));
   }
 
-  getRuntimeDiagnostics(instanceId: string): HeightfieldWaterBackendRuntimeDiagnostics | undefined {
-    return this._runtimes.get(instanceId);
+  getRuntimeController(instanceId: string): HeightfieldWaterRuntimeController | undefined {
+    return this._runtimes.get(instanceId)?.controller;
   }
 
   get activeRuntimeCount(): number {
@@ -641,6 +624,7 @@ export class HeightfieldWaterBackend implements WaterBodyBackend {
     );
     let reflection: WaterReflectionBindingLifecycle | undefined;
     try {
+      controller.surfaceShader = runtimeContext.surfaceShader;
       controller.setDepthSource(effective.lookRuntimeFeatures.depthSource);
       controller.setOpticalProfile(resolveEffectiveOpticalProfile(effective));
       controller.setRefractionEnabled(effective.refractionEnabled);
@@ -650,7 +634,6 @@ export class HeightfieldWaterBackend implements WaterBodyBackend {
       controller.setSurfaceAppearanceBinding(
         resolveAppearanceBinding(effective, context.resourceLeases ?? Object.freeze([]))
       );
-      if (runtimeContext.debugMode !== undefined) controller.setDebugMode(runtimeContext.debugMode);
       if (runtimeContext.surfaceTimeOverride !== undefined) {
         controller.setSurfaceTimeOverride(runtimeContext.surfaceTimeOverride);
       }
@@ -706,41 +689,15 @@ export class HeightfieldWaterBackend implements WaterBodyBackend {
         opticalProfile: resolveEffectiveOpticalProfile(effective),
         bounds: activation.spatialFieldProvider.metadata.bounds,
         priority: effective.instance.priority,
-        enabled: effective.instance.interaction.query,
-        metrics: {
-          meshUploadCount: activation.meshUploadCount,
-          drawCount: resource.data.chunks.length,
-          triangleCount: resource.data.stats.triangleCount,
-          workload: {
-            wetElementCount: resource.data.stats.sourceWetTexelCount,
-            cpuQueryElementCount: resource.data.queryGrid?.wetMask.length ?? 0,
-            gpuAtlasPixelCount: resource.data.stats.mapPixelCount
-          },
-          memory: resource.memory
-        }
+        enabled: effective.instance.interaction.query
       });
-      const record: HeightfieldWaterBackendRuntimeDiagnostics = Object.freeze({
+      const record: HeightfieldWaterRuntimeState = Object.freeze({
         instanceId,
         controller,
         activation,
         root: instanceRoot,
         planarTransform,
-        reflection,
-        compiledDiagnostics: runtimeContext.compiledDiagnostics
-          ? Object.freeze({
-              stats: Object.freeze({ ...resource.data.stats }),
-              chunkCount: resource.data.chunks.length,
-              compiledHash: resource.metadata.compiledHash,
-              totalBytes: resource.byteLength,
-              localMapAtlas: Object.freeze({
-                width: resource.data.localMapAtlas.width,
-                height: resource.data.localMapAtlas.height,
-                pixels: resource.data.localMapAtlas.pixels.toTypedArray(),
-                maxDepth: resource.data.localMapAtlas.maxDepth,
-                signedDistanceRange: resource.data.localMapAtlas.signedDistanceRange
-              })
-            })
-          : undefined
+        reflection
       });
       if (!staged) this._runtimes.set(instanceId, record);
       let active = true;
@@ -751,7 +708,7 @@ export class HeightfieldWaterBackend implements WaterBodyBackend {
         reflection,
         development: Object.freeze({
           backendId: this.id,
-          adapter: createWaterBackendDiagnosticsAdapter(controller),
+          adapter: createWaterBackendControl(controller),
           planarTransform,
           reflection
         }),

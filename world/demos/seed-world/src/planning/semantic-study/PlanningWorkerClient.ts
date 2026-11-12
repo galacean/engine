@@ -37,10 +37,11 @@ export class PlanningWorkerClient {
   /** Initialize default authoring off the main thread, without writing to storage.
    * @param seed World identity used by the deterministic initializer.
    * @param signal Optional cancellation; cancellation leaves saved authoring unchanged.
+   * @param templateId Optional registered theme selected before initialization.
    * @returns Fully initialized author parameters and their population receipt.
    * @throws When initialization fails or is cancelled.
    */
-  initialize(seed: number, signal?: AbortSignal): Promise<PlanningDocument> {
+  initialize(seed: number, signal?: AbortSignal, templateId?: string): Promise<PlanningDocument> {
     signal?.throwIfAborted();
     this.invalidate();
     const requestId = this.sequence;
@@ -48,7 +49,7 @@ export class PlanningWorkerClient {
     signal?.addEventListener("abort", abort, { once: true });
     return new Promise<PlanningDocument>((resolve, reject) => {
       this.active = { type: "initialize", id: requestId, resolve, reject };
-      this.queued = { type: "initialize", requestId, seed, runtimeSignature: planningRuntimeSignature() };
+      this.queued = { type: "initialize", requestId, seed, templateId, runtimeSignature: planningRuntimeSignature() };
       this.dispatch();
     }).finally(() => signal?.removeEventListener("abort", abort));
   }

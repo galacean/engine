@@ -52,7 +52,8 @@ function circle(center: PlanPoint, radius: number, phase: number): PlanPoint[] {
 export function generateLakeRegions(
   plan: IslandPlan,
   config: LakeParameters,
-  local: Record<string, Partial<LakeParameters>>
+  local: Record<string, Partial<LakeParameters>>,
+  reservations: readonly ReturnType<typeof createPlanningRingQuery>[] = []
 ): PlanningCheck[] {
   const candidateCount = planningCandidateCount(plan.parameters.seed, "lakes:count", config, 1);
   for (const key of ["radiusM", "depthM", "bankWidthM"] as const)
@@ -60,13 +61,18 @@ export function generateLakeRegions(
   plan.waters = plan.waters.filter((w) => w.kind !== "lake");
   plan.planning!.profiles = plan.planning!.profiles.filter((p) => !p.ownerId.startsWith("lake:"));
   const manualIds = Object.keys(local)
-    .filter((id) => id.startsWith("lake:authored:"))
+    .filter(
+      (id) =>
+        id.startsWith("lake:") &&
+        local[id].enabled !== false &&
+        (id.startsWith("lake:authored:") || local[id].shoreline !== undefined)
+    )
     .sort();
   if (!candidateCount && !manualIds.length) return [];
   // Site identity depends on base Terrain and the seeded initial corridors, never current river edits.
   const sitePlan: IslandPlan = { ...plan, waters: [], planning: { ...plan.planning!, profiles: [] } };
   const ground = createPlanningGroundSampler(sitePlan, { natural: true });
-  if (candidateCount) generateRiverRegions(sitePlan, RIVER_DEFAULTS, {});
+  if (candidateCount) generateRiverRegions(sitePlan, RIVER_DEFAULTS, {}, reservations);
   const initialWaters = sitePlan.waters.map((w) => createPlanningRingQuery(w.outline));
   const lands = [plan.land, ...plan.islands].map((outline) => createPlanningRingQuery(outline));
   const waters = plan.waters.map((w) => createPlanningRingQuery(w.outline));
@@ -78,6 +84,7 @@ export function generateLakeRegions(
     for (let x = margin; x < plan.parameters.width - margin; x += step) {
       const center = { x, z };
       if (!lands.some((land) => land.inside(center) && land.distance(center, margin) >= margin)) continue;
+      if (reservations.some((area) => area.inside(center) || area.distance(center, margin) < margin)) continue;
       if (initialWaters.some((water) => water.inside(center) || water.distance(center, margin) < margin)) continue;
       const shore = circle(center, config.radiusM, phase);
       const heights = shore.map(ground);
@@ -126,6 +133,7 @@ export function generateLakeRegions(
   for (let i = 0; i < sites.length; i++) {
     const id = i < naturalCount ? `lake:${i}` : manualIds[i - naturalCount],
       cfg = { ...config, ...local[id] };
+    if (i < naturalCount && manualIds.includes(id)) continue;
     if (!cfg.enabled) continue;
     const center = { x: sites[i].center.x + cfg.offsetX, z: sites[i].center.z + cfg.offsetZ };
     if (

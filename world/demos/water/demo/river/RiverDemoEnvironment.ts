@@ -1,28 +1,28 @@
 import {
+  AntiAliasing,
+  BackgroundMode,
   type Camera,
+  Color,
   type DirectLight,
+  FogMode,
   type Scene,
   Script,
-  WeatherPresets,
-  BackgroundMode,
-  AntiAliasing,
-  FogMode,
-  Color,
-  Vector3
+  Vector3,
+  WeatherPresets
 } from "@galacean/engine";
 import { VolumetricCloudSkyRuntime } from "@galacean/engine-environment/lighting/VolumetricCloudSkyRuntime";
-import { createIntegratedWorldLightingRuntime } from "@galacean/engine-world-planning/integrations/terrain/lighting/IntegratedWorldPresentation";
-import { INTEGRATED_WORLD_DAYLIGHT_REFERENCE_TIME_HOURS } from "@galacean/engine-world-planning/integrations/terrain/lighting/IntegratedWorldLightingPreset";
-import { TerrainPostProcessRuntime } from "@galacean/engine-terrain/terrain/project/TerrainPostProcessRuntime";
-import { INTEGRATED_WORLD_POST_PROCESS_PROFILE } from "@galacean/engine-terrain/terrain/project/IntegratedWorldPostProcessPreset";
 import {
+  TERRAIN_CLEAR_VOLUMETRIC_CLOUD_LIGHTING_PROFILE,
   TERRAIN_CLEAR_VOLUMETRIC_CLOUD_SCALE_SETTINGS,
-  TERRAIN_CLEAR_VOLUMETRIC_CLOUD_SHAPE_PROFILE,
-  TERRAIN_CLEAR_VOLUMETRIC_CLOUD_LIGHTING_PROFILE
+  TERRAIN_CLEAR_VOLUMETRIC_CLOUD_SHAPE_PROFILE
 } from "@galacean/engine-environment/terrain/environment/TerrainVolumetricCloudPreset";
+import { INTEGRATED_WORLD_POST_PROCESS_PROFILE } from "@galacean/engine-terrain/terrain/project/IntegratedWorldPostProcessPreset";
+import { TerrainPostProcessRuntime } from "@galacean/engine-terrain/terrain/project/TerrainPostProcessRuntime";
+import type { WaterSceneRuntimeHost } from "@galacean/engine-water/water/runtime/index";
+import { INTEGRATED_WORLD_DAYLIGHT_REFERENCE_TIME_HOURS } from "@galacean/engine-world-planning/integrations/terrain/lighting/IntegratedWorldLightingPreset";
+import { createIntegratedWorldLightingRuntime } from "@galacean/engine-world-planning/integrations/terrain/lighting/IntegratedWorldPresentation";
 import type { RiverValleyAssets } from "./RiverValleyAssets.ts";
 import { RIVER_VALLEY_MANIFEST } from "./RiverValleyScene.ts";
-import type { WaterSceneRuntimeHost } from "@galacean/engine-water/water/runtime/index";
 
 /** Ocean's shared daylight sky and clouds, with the same sky feeding Water's HDR reflection. */
 export async function createRiverDemoEnvironment(
@@ -149,9 +149,6 @@ export async function createRiverDemoEnvironment(
   }
   return {
     setScenario,
-    get inspection() {
-      return enabled ? provider.inspection : undefined;
-    },
     waitForReady: () => lighting.waitForEnvironmentIBLIdle(),
     setEnabled(value: boolean) {
       if (destroyed || value === enabled) return;

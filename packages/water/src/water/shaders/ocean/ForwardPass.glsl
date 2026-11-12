@@ -25,8 +25,6 @@
       float material_WaterLevel;
       float material_SurfaceTimeOverride;
       float material_CameraFeaturesAvailable;
-      float material_DebugView;
-      float material_LodDebug;
       float material_OceanBandlimitViewportHeight;
       vec2 material_OceanFarTransition;
       vec4 material_OceanWaveParameters;
@@ -220,8 +218,6 @@
         );
         if (
           farFieldWeight >= 0.999
-          && material_DebugView < 0.5
-          && material_LodDebug < 0.5
         ) {
           vec3 farFieldColor = oceanFarFieldRadiance(input.worldPosition);
 {{VALUE_030_CREATEOCEANSCENEFOGAPPLICATION_FARFIELDCOLOR}}
@@ -489,8 +485,7 @@
         rawContributionPolicy.reflectionSource = 1.0;
         rawContributionPolicy.ssrCompositeIntensity = 0.0;
         rawContributionPolicy.foamIntensity = material_OceanFoamIntensity;
-        rawContributionPolicy.calibrationMode = 0.0;
-        WaterSurfaceResolvedRawContributionsV2 resolvedContributions = waterSurfaceResolveRawContributionsV2(rawRefractionFacts, rawReflectionFacts, rawFoamFacts, rawContributionPolicy);
+        WaterSurfaceResolvedRawContributionsV2 resolvedContributions = waterSurfaceResolveRawContributionsV2(rawRefractionFacts, rawReflectionFacts, waterSurfaceResolveRawFoamWeightV2(rawFoamFacts, rawContributionPolicy), rawContributionPolicy);
         WaterSurfaceFinalClosureV2Input closureInput;
         closureInput.additionalTransmissionRadiance = (caustics + translucencyRadiance) * waterConnectionFacts(input.worldPosition.xz).x;
         closureInput.primarySceneColor = resolvedContributions.refractionSceneColor;
@@ -517,7 +512,6 @@
         closureInput.foamWeight = resolvedContributions.foamWeight;
         closureInput.baseAlpha = 1.0;
         closureInput.clarity = 1.0;
-        closureInput.calibrationMode = 0.0;
         closureInput.coastalAlpha = edgeFade * appearanceCoastalAlpha;
         closureInput.coastalAlphaWeight = 1.0;
         closureInput.coverage = waterSurface_coverage;
@@ -535,36 +529,12 @@
         vec3 finalColor = resolvedWaterClosure.rgb;
         float finalAlpha = resolvedWaterClosure.a;
 
-        if (farFieldWeight > 0.0 && material_DebugView < 0.5 && material_LodDebug < 0.5) {
+        if (farFieldWeight > 0.0) {
           finalColor = mix(finalColor, oceanFarFieldRadiance(input.worldPosition), farFieldWeight);
           finalAlpha = mix(finalAlpha, coverage, farFieldWeight);
         }
 
-        if (material_DebugView > 0.5 && material_DebugView < 1.5) finalColor = macroNormal * 0.5 + 0.5;
-        else if (material_DebugView < 2.5 && material_DebugView > 1.5) finalColor = detailNormal * 0.5 + 0.5;
-        else if (material_DebugView < 3.5 && material_DebugView > 2.5) finalColor = oceanDepthDensityColor(waterDensity);
-        else if (material_DebugView < 4.5 && material_DebugView > 3.5) finalColor = vec3(
-          clamp(shoreDistance / max(material_NearshoreDecode.y, 0.001) * 0.5 + 0.5, 0.0, 1.0)
-        );
-        else if (material_DebugView < 5.5 && material_DebugView > 4.5) finalColor = refractedSceneColor;
-        else if (material_DebugView < 6.5 && material_DebugView > 5.5) finalColor = environmentReflection;
-        else if (material_DebugView < 7.5 && material_DebugView > 6.5) finalColor = vec3(max(surfaceFoam, intersection));
-        else if (material_DebugView < 8.5 && material_DebugView > 7.5) finalColor = caustics;
-        else if (material_DebugView < 9.5 && material_DebugView > 8.5) finalColor = diffuseLighting;
-        else if (material_DebugView > 9.5) finalColor = vec3(coverage);
-        if (material_DebugView > 0.5) {
-          finalColor = mix(finalColor, oceanFarFieldDiagnostic(material_DebugView, input.worldPosition, coverage, shoreDistance), farFieldWeight);
-          finalAlpha = coverage;
-        }
-        if (material_LodDebug > 0.5) {
-          vec3 lodColor = input.lod < 0.5
-            ? vec3(0.16, 0.92, 0.7)
-            : (input.lod < 1.5 ? vec3(0.98, 0.7, 0.16) : vec3(0.92, 0.24, 0.18));
-          finalColor = mix(finalColor, lodColor, 0.82);
-        }
-        if (material_DebugView < 0.5) {
 {{VALUE_031_CREATEOCEANSCENEFOGAPPLICATION_FINALCOLOR}}
-        }
           resolvedWaterClosure = vec4(finalColor, finalAlpha);
 {{SHARED_RESOLVED_OUTPUT}}
         }

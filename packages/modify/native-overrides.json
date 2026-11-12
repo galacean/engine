@@ -744,6 +744,10 @@
     "replacement": "packages/modify/src/native/loader/src/schema/MaterialSchema.ts"
   },
   {
+    "original": "packages/loader/src/ktx2/KTX2Loader.ts",
+    "replacement": "packages/modify/src/native/loader/src/ktx2/KTX2Loader.ts"
+  },
+  {
     "original": "packages/core/src/shader/state/DepthState.ts",
     "replacement": "packages/modify/src/native/core/src/shader/state/DepthState.ts"
   },

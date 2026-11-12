@@ -1,40 +1,20 @@
-import { SEED_WORLD_PRIMARY_OCEAN_SCENE_BODY_ID_V1 } from "@galacean/engine-world-planning/runtime/hydrology-v1/SeedWorldWaterRuntimeBridgeV1";
-import type { SeedWorldRef, SeedWorldWaterColorRgb } from "@galacean/engine-world-planning/agent-adapter/ports/SeedWorldEnginePort";
-import { createSeedWorldEngineDraft } from "../SeedWorldEngineDraft.ts";
 import {
+  Vector3,
+  WeatherPresets,
   type Camera,
   type WeatherCloudState,
   type WeatherLightningState,
   type WeatherPrecipitationState,
   type WeatherSkyLightingState,
-  type WeatherWindState,
   type WeatherState,
-  Vector3,
-  WeatherPresets
+  type WeatherWindState
 } from "@galacean/engine";
-import type { OrbitControl } from "@galacean/engine-toolkit-controls";
-import {
-  TERRAIN_SEASON_DEFAULT_COMPOSITIONS,
-  type WorldEnvironmentRuntime
-} from "@galacean/engine-world-planning/integrations/terrain/environment/WorldEnvironmentRuntime";
-import type { TerrainLightingRuntime } from "@galacean/engine-world-planning/integrations/terrain/lighting/TerrainLightingRuntime";
 import {
   captureTerrainIBLRevisionBarrier,
   hasPublishedTerrainIBLRevision
 } from "@galacean/engine-environment/terrain/lighting/TerrainIBLRevisionBarrier";
 import type { TerrainNavigationRuntime } from "@galacean/engine-terrain/terrain/project/TerrainNavigationRuntime";
-import {
-  sampleSeedWorldHeight,
-  sampleSeedWorldPopulation,
-  SEED_WORLD_HEIGHT_RANGE,
-  seedWorldOriginX, seedWorldOriginZ,
-  type SeedWorldFields
-} from "@galacean/engine-world-planning/runtime/SeedWorldFields";
-import { SeedWorldLandCover, type SeedWorldPoint } from "@galacean/engine-world-planning/world/SeedWorldPlanner";
-import type { SeedWorldRuntimePlan as SeedWorldPlan } from "@galacean/engine-world-planning/world/SeedWorldRuntimePlan";
-import type { SeedWorldTerrainRuntime } from "@galacean/engine-world-planning/runtime/SeedWorldTerrainRuntime";
-import type { SeedWorldWaterRuntime } from "@galacean/engine-world-planning/runtime/SeedWorldWaterRuntime";
-import type { SeedWorldHydrologyArtifactV1 } from "@galacean/engine-world-planning/runtime/hydrology-v1/SeedWorldHydrologyArtifact";
+import type { OrbitControl } from "@galacean/engine-toolkit-controls";
 import type {
   SeedWorldAtmosphereInput,
   SeedWorldAuthoringSnapshot,
@@ -54,25 +34,44 @@ import type {
   SeedWorldPointQueryFilter,
   SeedWorldPointQueryInput,
   SeedWorldPrecipitationInput,
+  SeedWorldRef,
   SeedWorldRegionKind,
-  SeedWorldResourceMutation,
   SeedWorldResolvedSpatialTarget,
-  SeedWorldSeason,
+  SeedWorldResourceMutation,
   SeedWorldSpatialAnchor,
   SeedWorldSpatialTarget,
   SeedWorldTerrainPatchConstraints,
+  SeedWorldWaterColorRgb,
   SeedWorldWeatherPreset,
   SeedWorldWindInput
 } from "@galacean/engine-world-planning/agent-adapter/ports/SeedWorldEnginePort";
+import {
+  TERRAIN_SEASON_DEFAULT_COMPOSITIONS,
+  type WorldEnvironmentRuntime
+} from "@galacean/engine-world-planning/integrations/terrain/environment/WorldEnvironmentRuntime";
+import type { TerrainLightingRuntime } from "@galacean/engine-world-planning/integrations/terrain/lighting/TerrainLightingRuntime";
+import {
+  sampleSeedWorldHeight,
+  sampleSeedWorldPopulation,
+  SEED_WORLD_HEIGHT_RANGE,
+  seedWorldOriginX,
+  seedWorldOriginZ,
+  type SeedWorldFields
+} from "@galacean/engine-world-planning/runtime/SeedWorldFields";
+import type { SeedWorldTerrainRuntime } from "@galacean/engine-world-planning/runtime/SeedWorldTerrainRuntime";
+import type { SeedWorldWaterRuntime } from "@galacean/engine-world-planning/runtime/SeedWorldWaterRuntime";
+import type { SeedWorldHydrologyArtifactV1 } from "@galacean/engine-world-planning/runtime/hydrology-v1/SeedWorldHydrologyArtifact";
+import { SEED_WORLD_PRIMARY_OCEAN_SCENE_BODY_ID_V1 } from "@galacean/engine-world-planning/runtime/hydrology-v1/SeedWorldWaterRuntimeBridgeV1";
+import { SeedWorldLandCover, type SeedWorldPoint } from "@galacean/engine-world-planning/world/SeedWorldPlanner";
+import type { SeedWorldRuntimePlan as SeedWorldPlan } from "@galacean/engine-world-planning/world/SeedWorldRuntimePlan";
+import { createSeedWorldEngineDraft } from "../SeedWorldEngineDraft.ts";
 
 const IBL_WAIT_TIMEOUT_MILLISECONDS = 70_000;
 const ENVIRONMENT_TRANSITION_GRACE_MILLISECONDS = 5_000;
 
 /** Required scene water facts; optional level controls exist only for supported backend bodies. */
 export type SeedWorldRuntimeWater = Pick<SeedWorldWaterRuntime, "queryAuthoredSurface"> & {
-  readonly colorAuthoring: Pick<SeedWorldWaterRuntime["colorAuthoring"], "read" | "update" | "snapshot"> & {
-    clear(bodyId: string, signal: AbortSignal): Promise<void>;
-  };
+  readColor(bodyId: string): SeedWorldWaterColorRgb | undefined;
 } & Partial<
     Pick<
       SeedWorldWaterRuntime,
@@ -81,10 +80,6 @@ export type SeedWorldRuntimeWater = Pick<SeedWorldWaterRuntime, "queryAuthoredSu
   > & {
     /** Complete published Water query; false is authoritative when this port exists. */
     querySurface?: SeedWorldWaterRuntime["queryAuthoredSurface"];
-    getDiagnostics(): Pick<
-      ReturnType<SeedWorldWaterRuntime["getDiagnostics"]>,
-      "ready" | "visible" | "bodyCount" | "chunkCount" | "hostRevision"
-    > & { host: ReturnType<SeedWorldWaterRuntime["getDiagnostics"]>["host"] | null };
   };
 
 export interface SeedWorldRuntimeContext {
@@ -148,31 +143,50 @@ export class SeedWorldRuntimeEnginePort implements SeedWorldEnginePort {
   private _catalog: ReadonlyMap<string, SeedWorldObject> = new Map();
 
   constructor(private readonly _options: SeedWorldRuntimeEnginePortOptions) {}
-  createSpatialQueryPort(read: Parameters<NonNullable<SeedWorldEnginePort["createSpatialQueryPort"]>>[0], revision: () => number) {
-    const draft = new SeedWorldRuntimeEnginePort({ ...this._options,
-      queryWaterRegions: (kind, limit) => read().queryWaterRegions?.(kind, limit) ?? this.queryWorldRegions(kind, limit),
-      readAuthoringSnapshot: () => ({ ...this._options.readAuthoringSnapshot(), activeRevision: revision(), draftRevision: revision() }),
+  createSpatialQueryPort(
+    read: Parameters<NonNullable<SeedWorldEnginePort["createSpatialQueryPort"]>>[0],
+    revision: () => number
+  ) {
+    const draft = new SeedWorldRuntimeEnginePort({
+      ...this._options,
+      queryWaterRegions: (kind, limit) =>
+        read().queryWaterRegions?.(kind, limit) ?? this.queryWorldRegions(kind, limit),
+      readAuthoringSnapshot: () => ({
+        ...this._options.readAuthoringSnapshot(),
+        activeRevision: revision(),
+        draftRevision: revision()
+      }),
       readContext: () => {
         const live = this._options.readContext();
         if (!live) return null;
         const snapshot = read();
-        const water = new Proxy(live.water, { get(target, property) {
-          if (property === "querySurface" || property === "queryAuthoredSurface") return snapshot.queryWater;
-          const value = Reflect.get(target, property, target);
-          return typeof value === "function" ? value.bind(target) : value;
-        } });
+        const water = new Proxy(live.water, {
+          get(target, property) {
+            if (property === "querySurface" || property === "queryAuthoredSurface") return snapshot.queryWater;
+            const value = Reflect.get(target, property, target);
+            return typeof value === "function" ? value.bind(target) : value;
+          }
+        });
         return { ...live, plan: snapshot.plan, fields: snapshot.fields, water };
       }
     });
-    return { queryWorldPoints: draft.queryWorldPoints.bind(draft), queryWorldRegions: draft.queryWorldRegions.bind(draft),
-      resolveSpatialTarget: draft.resolveSpatialTarget.bind(draft), readTerrainPatchConstraints: draft.readTerrainPatchConstraints.bind(draft) };
+    return {
+      queryWorldPoints: draft.queryWorldPoints.bind(draft),
+      queryWorldRegions: draft.queryWorldRegions.bind(draft),
+      resolveSpatialTarget: draft.resolveSpatialTarget.bind(draft),
+      readTerrainPatchConstraints: draft.readTerrainPatchConstraints.bind(draft)
+    };
   }
-  querySubjectCapsules(capsules:readonly import("@galacean/engine-world-planning/agent-adapter/ports/SeedWorldEnginePort").SeedWorldSurfaceCapsule[]) {
-    if(!this._options.readContext()||this._options.isDestroyed())return undefined;
+  querySubjectCapsules(
+    capsules: readonly import("@galacean/engine-world-planning/agent-adapter/ports/SeedWorldEnginePort").SeedWorldSurfaceCapsule[]
+  ) {
+    if (!this._options.readContext() || this._options.isDestroyed()) return undefined;
     return this._options.querySubjectCapsules?.(capsules);
   }
-  querySubjectSegments(segments:readonly import("@galacean/engine-world-planning/agent-adapter/ports/SeedWorldEnginePort").SeedWorldSurfaceSegment[]) {
-    if(!this._options.readContext()||this._options.isDestroyed())return undefined;
+  querySubjectSegments(
+    segments: readonly import("@galacean/engine-world-planning/agent-adapter/ports/SeedWorldEnginePort").SeedWorldSurfaceSegment[]
+  ) {
+    if (!this._options.readContext() || this._options.isDestroyed()) return undefined;
     return this._options.querySubjectSegments?.(segments);
   }
 
@@ -180,46 +194,63 @@ export class SeedWorldRuntimeEnginePort implements SeedWorldEnginePort {
     const state = this.readWorldState();
     if (!state) throw new Error("World is not ready");
     return {
-      waterColors: [], camera: structuredClone(state.camera),
-      environment: {timeHours: state.lighting.timeHours, season: state.environment.season,
-        atmosphere: {skyColorRgb: state.environment.skyColorRgb ?? null},
+      camera: structuredClone(state.camera),
+      environment: {
+        timeHours: state.lighting.timeHours,
+        season: state.environment.season,
+        atmosphere: { skyColorRgb: state.environment.skyColorRgb ?? null },
         weatherChannels: structuredClone(this._requireContext().environment.weatherSystem.getTargetSnapshot()),
-        transitionDuration: 0, waitForIbl: false}
+        transitionDuration: 0,
+        waitForIbl: false
+      }
     };
   }
 
-  beginEdit(executionId: string, settings?: import("@galacean/engine-world-planning/agent-adapter/ports/SeedWorldEnginePort").SeedWorldEditorSettings) {
+  beginEdit(
+    executionId: string,
+    settings?: import("@galacean/engine-world-planning/agent-adapter/ports/SeedWorldEnginePort").SeedWorldEditorSettings
+  ) {
     let weather: WeatherState | undefined;
-    return createSeedWorldEngineDraft(this, {
-      environment: (state, input) => {
-        weather ??= this._requireContext().environment.weatherSystem.getTargetSnapshot();
-        const projected = this._projectEnvironmentEdit(state, input, weather);
-        weather = projected.weather;
-        return projected;
-      },
-      teleport: input => this._previewTeleport(input),
-      restoreCamera: snapshot => {
-        const { camera, navigation, orbit } = this._requireContext();
-        const current = camera.entity.transform.worldPosition;
-        const distance = Vector3.distance(current, orbit.target);
-        const [x, y, z] = snapshot.position, [fx, fy, fz] = snapshot.forward;
-        if (snapshot.navigation) {
-          navigation.setEyeHeight(snapshot.navigation.eyeHeight);
-          navigation.setVerticalOffset(snapshot.navigation.verticalOffset);
+    return createSeedWorldEngineDraft(
+      this,
+      {
+        environment: (state, input) => {
+          weather ??= this._requireContext().environment.weatherSystem.getTargetSnapshot();
+          const projected = this._projectEnvironmentEdit(state, input, weather);
+          weather = projected.weather;
+          return projected;
+        },
+        teleport: (input) => this._previewTeleport(input),
+        restoreCamera: (snapshot) => {
+          const { camera, navigation, orbit } = this._requireContext();
+          const current = camera.entity.transform.worldPosition;
+          const distance = Vector3.distance(current, orbit.target);
+          const [x, y, z] = snapshot.position,
+            [fx, fy, fz] = snapshot.forward;
+          if (snapshot.navigation) {
+            navigation.setEyeHeight(snapshot.navigation.eyeHeight);
+            navigation.setVerticalOffset(snapshot.navigation.verticalOffset);
+          }
+          camera.entity.transform.setWorldPosition(x, y, z);
+          camera.entity.transform.lookAt(new Vector3(x + fx * 36, y + fy * 36, z + fz * 36));
+          if (snapshot.mode === "orbit") orbit.target.set(x + fx * distance, y + fy * distance, z + fz * distance);
+          navigation.synchronizeView();
+        },
+        validateMount: () => {
+          this._requireContext();
+          if (!this._options.commandMount) throw new Error("Mount runtime is unavailable");
         }
-        camera.entity.transform.setWorldPosition(x, y, z);
-        camera.entity.transform.lookAt(new Vector3(x + fx * 36, y + fy * 36, z + fz * 36));
-        if (snapshot.mode === "orbit") orbit.target.set(x + fx * distance, y + fy * distance, z + fz * distance);
-        navigation.synchronizeView();
       },
-      validateMount: () => {
-        this._requireContext();
-        if (!this._options.commandMount) throw new Error("Mount runtime is unavailable");
-      }
-    }, executionId, settings);
+      executionId,
+      settings
+    );
   }
 
-  private _projectEnvironmentEdit(state: SeedWorldLiveState, input: SeedWorldEnvironmentUpdateInput, current: WeatherState) {
+  private _projectEnvironmentEdit(
+    state: SeedWorldLiveState,
+    input: SeedWorldEnvironmentUpdateInput,
+    current: WeatherState
+  ) {
     const { lighting, environment } = this._requireContext();
     if (input.waitForIbl) requireIblBaking(lighting);
     const windState = environment.getSnapshot().wind;
@@ -231,28 +262,40 @@ export class SeedWorldRuntimeEnginePort implements SeedWorldEnginePort {
       Object.assign(channels, { [key]: structuredClone(value) });
     };
     // Run exactly the same channel setters as activation against detached data.
-    applyEnvironmentChannels({
-      getSnapshot: () => ({ weather, wind: windState }),
-      setSeason: season => {
-        const defaults = TERRAIN_SEASON_DEFAULT_COMPOSITIONS[season];
-        set("cloud", WeatherPresets.cloud[defaults.cloud]);
-        set("skyLighting", WeatherPresets.skyLighting[defaults.skyLighting]);
-        set("precipitation", WeatherPresets.precipitation[defaults.precipitation]);
+    applyEnvironmentChannels(
+      {
+        getSnapshot: () => ({ weather, wind: windState }),
+        setSeason: (season) => {
+          const defaults = TERRAIN_SEASON_DEFAULT_COMPOSITIONS[season];
+          set("cloud", WeatherPresets.cloud[defaults.cloud]);
+          set("skyLighting", WeatherPresets.skyLighting[defaults.skyLighting]);
+          set("precipitation", WeatherPresets.precipitation[defaults.precipitation]);
+        },
+        setWeatherState: (value) => {
+          for (const key of Object.keys(value) as (keyof WeatherState)[]) set(key, value[key]);
+        },
+        setCloud: (value) => set("cloud", value),
+        setSkyLighting: (value) => set("skyLighting", value),
+        setPrecipitation: (value) => set("precipitation", value),
+        setWind: (value) => set("wind", value),
+        setLightning: (value) => set("lightning", value)
       },
-      setWeatherState: value => {
-        for (const key of Object.keys(value) as (keyof WeatherState)[]) set(key, value[key]);
-      },
-      setCloud: value => set("cloud", value), setSkyLighting: value => set("skyLighting", value),
-      setPrecipitation: value => set("precipitation", value), setWind: value => set("wind", value),
-      setLightning: value => set("lightning", value)
-    }, input);
+      input
+    );
     const previous = state.environment;
-    const targetTime = input.timeHours === undefined ? undefined : lighting.system.profile.createState(input.timeHours / 24);
+    const targetTime =
+      input.timeHours === undefined ? undefined : lighting.system.profile.createState(input.timeHours / 24);
     const skyColor = input.atmosphere?.skyColorRgb;
     const channelNames = Object.keys(channels) as (keyof WeatherState)[];
     const forward: SeedWorldEnvironmentUpdateInput = {
-      transitionDuration: input.transitionDuration, waitForIbl: input.waitForIbl,
-      ...(targetTime ? { timeHours: targetTime.timeHours, ...(input.fromTimeHours === undefined ? {} : { fromTimeHours: input.fromTimeHours }) } : {}),
+      transitionDuration: input.transitionDuration,
+      waitForIbl: input.waitForIbl,
+      ...(targetTime
+        ? {
+            timeHours: targetTime.timeHours,
+            ...(input.fromTimeHours === undefined ? {} : { fromTimeHours: input.fromTimeHours })
+          }
+        : {}),
       ...(input.season === undefined ? {} : { season: input.season }),
       ...(skyColor === undefined ? {} : { atmosphere: { skyColorRgb: skyColor } }),
       ...(channelNames.length ? { weatherChannels: channels } : {})
@@ -261,27 +304,49 @@ export class SeedWorldRuntimeEnginePort implements SeedWorldEnginePort {
       ...(targetTime ? { timeHours: state.lighting.timeHours } : {}),
       ...(input.season === undefined ? {} : { season: previous.season }),
       ...(skyColor === undefined ? {} : { atmosphere: { skyColorRgb: previous.skyColorRgb ?? null } }),
-      ...(channelNames.length ? { weatherChannels: Object.fromEntries(channelNames.map(key => [key, structuredClone(current[key])])) } : {})
+      ...(channelNames.length
+        ? { weatherChannels: Object.fromEntries(channelNames.map((key) => [key, structuredClone(current[key])])) }
+        : {})
     };
-    const rainIntensity = weather.precipitation.rainRate, snowIntensity = weather.precipitation.snowRate;
-    return { forward, previous: previousTargets, weather, state: {
-      ...state,
-      lighting: { ...state.lighting, ...(targetTime ? { timeHours: targetTime.timeHours, phase: targetTime.phase } : {}) },
-      environment: {
-        ...previous,
-        season: input.season ?? previous.season,
-        seasonTransitionProgress: input.season === undefined ? previous.seasonTransitionProgress : 1,
-        skyColorRgb: skyColor === undefined ? previous.skyColorRgb : skyColor,
-        rainIntensity, snowIntensity,
-        precipitation: snowIntensity > 0 ? `snow:${snowIntensity.toFixed(2)}` : rainIntensity > 0 ? `rain:${rainIntensity.toFixed(2)}` : "none",
-        cloudCoverage: weather.cloud.cloudCoverage,
-        fogIntensity: clamp01((weather.skyLighting.fogDensityMultiplier - 1) / 7),
-        windSpeed: baseSpeed * weather.wind.forceMultiplier, windIntensity: clamp01(weather.wind.forceMultiplier / 2.4),
-        windDirectionDegrees: wrapWindHeading(windHeading(windState.baseDirection) - weather.wind.directionOffsetDegrees),
-        windGustiness: clamp01(weather.wind.gustStrength / 0.6), windTurbulence: weather.wind.turbulence,
-        lightningFrequency: clamp01(weather.lightning.frequency), lightningIntensity: clamp01(weather.lightning.strength / 4)
+    const rainIntensity = weather.precipitation.rainRate,
+      snowIntensity = weather.precipitation.snowRate;
+    return {
+      forward,
+      previous: previousTargets,
+      weather,
+      state: {
+        ...state,
+        lighting: {
+          ...state.lighting,
+          ...(targetTime ? { timeHours: targetTime.timeHours, phase: targetTime.phase } : {})
+        },
+        environment: {
+          ...previous,
+          season: input.season ?? previous.season,
+          seasonTransitionProgress: input.season === undefined ? previous.seasonTransitionProgress : 1,
+          skyColorRgb: skyColor === undefined ? previous.skyColorRgb : skyColor,
+          rainIntensity,
+          snowIntensity,
+          precipitation:
+            snowIntensity > 0
+              ? `snow:${snowIntensity.toFixed(2)}`
+              : rainIntensity > 0
+                ? `rain:${rainIntensity.toFixed(2)}`
+                : "none",
+          cloudCoverage: weather.cloud.cloudCoverage,
+          fogIntensity: clamp01((weather.skyLighting.fogDensityMultiplier - 1) / 7),
+          windSpeed: baseSpeed * weather.wind.forceMultiplier,
+          windIntensity: clamp01(weather.wind.forceMultiplier / 2.4),
+          windDirectionDegrees: wrapWindHeading(
+            windHeading(windState.baseDirection) - weather.wind.directionOffsetDegrees
+          ),
+          windGustiness: clamp01(weather.wind.gustStrength / 0.6),
+          windTurbulence: weather.wind.turbulence,
+          lightningFrequency: clamp01(weather.lightning.frequency),
+          lightningIntensity: clamp01(weather.lightning.strength / 4)
+        }
       }
-    } };
+    };
   }
 
   private _previewTeleport(input: Readonly<{ x: number; z: number; heightOffset: number }>) {
@@ -289,39 +354,94 @@ export class SeedWorldRuntimeEnginePort implements SeedWorldEnginePort {
     const surface = this._options.sampleNavigationHeight(plan, fields, input.x, input.z);
     if (surface === undefined) throw new RangeError("传送坐标位于 Seed World 边界之外");
     const previous = camera.entity.transform.worldPosition;
-    const cameraPosition: [number, number, number] = cameraMode === "orbit"
-      ? [input.x + previous.x - orbit.target.x, surface + previous.y - orbit.target.y, input.z + previous.z - orbit.target.z]
-      : [input.x, surface + input.heightOffset, input.z];
-    return { mode: cameraMode, requested: { ...input }, navigationSurfaceHeight: surface, cameraPosition,
+    const cameraPosition: [number, number, number] =
+      cameraMode === "orbit"
+        ? [
+            input.x + previous.x - orbit.target.x,
+            surface + previous.y - orbit.target.y,
+            input.z + previous.z - orbit.target.z
+          ]
+        : [input.x, surface + input.heightOffset, input.z];
+    return {
+      mode: cameraMode,
+      requested: { ...input },
+      navigationSurfaceHeight: surface,
+      cameraPosition,
       ...(cameraMode !== "orbit" && navigation?.groundCollision && !navigation.locomotionOwner
-        ? { navigation: { eyeHeight: input.heightOffset, verticalOffset: 0 } } : {}),
-      orbitTarget: cameraMode === "orbit" ? [input.x, surface, input.z] : [orbit.target.x, orbit.target.y, orbit.target.z] };
+        ? { navigation: { eyeHeight: input.heightOffset, verticalOffset: 0 } }
+        : {}),
+      orbitTarget:
+        cameraMode === "orbit" ? [input.x, surface, input.z] : [orbit.target.x, orbit.target.y, orbit.target.z]
+    };
   }
 
-  projectPlanningTrees: NonNullable<SeedWorldEnginePort["projectPlanningTrees"]> = (instances, ground, size, revision, patch) => {
+  projectPlanningTrees: NonNullable<SeedWorldEnginePort["projectPlanningTrees"]> = (
+    instances,
+    ground,
+    size,
+    revision,
+    patch
+  ) => {
     const context = this._requireContext();
-    return context.world.population.readPlanningTreeInstances(instances, ground, size, patch).map(({ instance, tree }) => ({
-      worldId: `seed-world-${context.plan.rootSeed}`, worldRevision: revision, objectId: instance.id, objectKind: "tree" as const,
-      position: tree.position, footprintMetres: treeQueryFootprint(tree.bounds),
-      source: instance.authoringBrushId ? { kind: "authoring" as const, sourceId: instance.authoringBrushId }
-        : { kind: "population" as const, sourceId: instance.sourceCellId },
-      properties: { prototypeFamily: instance.prototypeFamily, assetRecipeId: instance.assetRecipeId,
-        treeSpeciesProfileKey: instance.treeSpeciesProfileKey, treeCohortProfileKey: instance.treeCohortProfileKey,
-        treeShape: tree.treeShape, treeRecipeId: tree.recipeId, treeRecipeLabel: tree.recipeLabel,
-        treeEffectIndex: tree.effectIndex, bounds: tree.bounds, scale: tree.scale, yawRadians: tree.yawRadians }
-    }));
+    return context.world.population
+      .readPlanningTreeInstances(instances, ground, size, patch)
+      .map(({ instance, tree }) => ({
+        worldId: `seed-world-${context.plan.rootSeed}`,
+        worldRevision: revision,
+        objectId: instance.id,
+        objectKind: "tree" as const,
+        position: tree.position,
+        footprintMetres: treeQueryFootprint(tree.bounds),
+        source: instance.authoringBrushId
+          ? { kind: "authoring" as const, sourceId: instance.authoringBrushId }
+          : { kind: "population" as const, sourceId: instance.sourceCellId },
+        properties: {
+          prototypeFamily: instance.prototypeFamily,
+          assetRecipeId: instance.assetRecipeId,
+          treeSpeciesProfileKey: instance.treeSpeciesProfileKey,
+          treeCohortProfileKey: instance.treeCohortProfileKey,
+          treeShape: tree.treeShape,
+          treeRecipeId: tree.recipeId,
+          treeRecipeLabel: tree.recipeLabel,
+          treeEffectIndex: tree.effectIndex,
+          bounds: tree.bounds,
+          scale: tree.scale,
+          yawRadians: tree.yawRadians
+        }
+      }));
   };
 
-  projectTreeVariationObject(object: SeedWorldObject, controls: import("@galacean/engine-vegetation/world/SeedWorldTreeShapeControls").SeedWorldTreeShapePatch): SeedWorldObject {
+  projectTreeVariationObject(
+    object: SeedWorldObject,
+    controls: import("@galacean/engine-vegetation/world/SeedWorldTreeShapeControls").SeedWorldTreeShapePatch
+  ): SeedWorldObject {
     const context = this._requireContext();
-    const instance = context.world.population.getExactPopulationInstances().find(instance => instance.id === object.objectId);
+    const instance = context.world.population
+      .getExactPopulationInstances()
+      .find((instance) => instance.id === object.objectId);
     if (!instance) throw new Error("Tree shape target has no published instance");
     const next = context.world.population.readProceduralTreeInstance(instance, object.position, controls);
-    return { ...object, footprintMetres: treeQueryFootprint(next.bounds), properties: { ...object.properties, treeShape: next.treeShape, treeRecipeId: next.recipeId,
-      treeRecipeLabel: next.recipeLabel, treeEffectIndex: next.effectIndex, bounds: next.bounds, scale: next.scale, yawRadians: next.yawRadians } };
+    return {
+      ...object,
+      footprintMetres: treeQueryFootprint(next.bounds),
+      properties: {
+        ...object.properties,
+        treeShape: next.treeShape,
+        treeRecipeId: next.recipeId,
+        treeRecipeLabel: next.recipeLabel,
+        treeEffectIndex: next.effectIndex,
+        bounds: next.bounds,
+        scale: next.scale,
+        yawRadians: next.yawRadians
+      }
+    };
   }
 
-  previewTreeVariationEdit(recipeId: string, variationIndex: number, controls: import("@galacean/engine-vegetation/world/SeedWorldTreeShapeControls").SeedWorldTreeShapePatch) {
+  previewTreeVariationEdit(
+    recipeId: string,
+    variationIndex: number,
+    controls: import("@galacean/engine-vegetation/world/SeedWorldTreeShapeControls").SeedWorldTreeShapePatch
+  ) {
     const context = this._requireContext();
     const objects = this._readObjectCatalog(context, this._options.readAuthoringSnapshot().activeRevision);
     const minimum = [Infinity, Infinity, Infinity];
@@ -329,7 +449,8 @@ export class SeedWorldRuntimeEnginePort implements SeedWorldEnginePort {
     let count = 0;
     for (const instance of context.world.population.getExactPopulationInstances()) {
       const object = objects.get(instance.id);
-      if (object?.properties.treeRecipeId !== recipeId || object.properties.treeEffectIndex !== variationIndex + 1) continue;
+      if (object?.properties.treeRecipeId !== recipeId || object.properties.treeEffectIndex !== variationIndex + 1)
+        continue;
       const next = context.world.population.readProceduralTreeInstance(instance, object.position, controls).bounds;
       const current = object.properties.bounds as { minimum: readonly number[]; maximum: readonly number[] };
       for (let axis = 0; axis < 3; axis++) {
@@ -339,45 +460,15 @@ export class SeedWorldRuntimeEnginePort implements SeedWorldEnginePort {
       count++;
     }
     if (count === 0) throw new Error("Shared tree effect has no current instances");
-    return Object.freeze({ minimum: Object.freeze(minimum as [number, number, number]), maximum: Object.freeze(maximum as [number, number, number]) });
+    return Object.freeze({
+      minimum: Object.freeze(minimum as [number, number, number]),
+      maximum: Object.freeze(maximum as [number, number, number])
+    });
   }
 
   readWaterColor(ref: Readonly<SeedWorldRef>): SeedWorldWaterColorRgb | undefined {
     const bodyId = this._waterColorBodyId(ref);
-    return bodyId ? this._requireContext().water.colorAuthoring.read(bodyId) : undefined;
-  }
-
-  async updateWaterColor(ref: Readonly<SeedWorldRef>, color: SeedWorldWaterColorRgb, signal: AbortSignal) {
-    const bodyId = this._waterColorBodyId(ref);
-    if (!bodyId) throw new Error("NOT_EDITABLE: water asset has no rendered color target");
-    const update = async () => {
-      const resolved = await this._requireContext().water.colorAuthoring.update(bodyId, color, signal);
-      await this._options.onWorldAppearanceChanged?.();
-      return resolved;
-    };
-    return this._options.runWorldAppearanceMutation ? this._options.runWorldAppearanceMutation(update) : update();
-  }
-
-  async replaceWaterColors(colors: import("@galacean/engine-world-planning/agent-adapter/ports/SeedWorldEnginePort").SeedWorldEditorSettings["waterColors"], signal: AbortSignal): Promise<void> {
-    const desired = new Map(colors.map(({ref, color}) => {
-      const id = this._waterColorBodyId(ref);
-      if (!id) throw new Error("NOT_EDITABLE: water asset has no rendered color target");
-      return [id, color] as const;
-    }));
-    const update = async () => {
-      const authoring = this._requireContext().water.colorAuthoring;
-      let changed = false;
-      const current = new Map(authoring.snapshot().map(item => [item.bodyId, item.colorRgb]));
-      for (const bodyId of current.keys()) if (!desired.has(bodyId)) {
-        await authoring.clear(bodyId, signal); changed = true;
-      }
-      for (const [id, color] of desired) if (JSON.stringify(current.get(id)) !== JSON.stringify(color) || JSON.stringify(authoring.read(id)) !== JSON.stringify(color)) {
-        await authoring.update(id, color, signal); changed = true;
-      }
-      if (changed) await this._options.onWorldAppearanceChanged?.();
-    };
-    if (this._options.runWorldAppearanceMutation) await this._options.runWorldAppearanceMutation(update);
-    else await update();
+    return bodyId ? this._requireContext().water.readColor(bodyId) : undefined;
   }
 
   private _waterColorBodyId(ref: Readonly<SeedWorldRef>): string | undefined {
@@ -392,11 +483,7 @@ export class SeedWorldRuntimeEnginePort implements SeedWorldEnginePort {
       );
       return exists ? (ref.kind === "ocean" ? SEED_WORLD_PRIMARY_OCEAN_SCENE_BODY_ID_V1 : id) : undefined;
     }
-    const resource = this._options.readAuthoringSnapshot().resources.find((item) =>
-      item.resourceId === ref.id && (item.resourceType === "water-body" || item.resourceType === "river") && item.properties.kind === ref.kind
-    );
-    if (!resource) return undefined;
-    return resource.resourceType === "river" ? `seed-world-authored-river:${ref.id}` : `seed-world-authored-water-basin:${ref.id}`;
+    return undefined;
   }
 
   readWorldState(): SeedWorldLiveState | null {
@@ -407,10 +494,6 @@ export class SeedWorldRuntimeEnginePort implements SeedWorldEnginePort {
     const cameraForward = camera.entity.transform.worldForward;
     const lightingSnapshot = lighting.getSnapshot();
     const environmentSnapshot = environment.getSnapshot();
-    const waterDiagnostics = water.getDiagnostics();
-    const authoredRiverCount = this._options
-      .readAuthoringSnapshot()
-      .resources.filter(({ resourceType }) => resourceType === "river").length;
     const precipitation = environmentSnapshot.weather.precipitation;
     const precipitationLabel =
       precipitation.snowRate > 0
@@ -426,7 +509,7 @@ export class SeedWorldRuntimeEnginePort implements SeedWorldEnginePort {
       },
       plan: {
         summitCount: plan.summits.length,
-        riverReachCount: fields.riverCurves.length + authoredRiverCount,
+        riverReachCount: fields.riverCurves.length,
         roadCount: plan.roads.length,
         poiCount: plan.pois.length
       },
@@ -447,22 +530,12 @@ export class SeedWorldRuntimeEnginePort implements SeedWorldEnginePort {
         submittedCounts: { ...world.population.submittedCounts }
       },
       decorations: {
-        rocks: world.stones.placementCount,
-        smallRocks: world.smallRocks.placementCount,
+        rocks: world.stones?.placementCount ?? 0,
+        smallRocks: world.smallRocks?.placementCount ?? 0,
         mushrooms: world.mushrooms.placementCount,
         lotus: world.lotus.placementCount
       },
-      water: {
-        colors: (waterDiagnostics.host?.bodies ?? []).map(({ bodyId }) => ({
-          bodyId,
-          colorRgb: water.colorAuthoring.read(bodyId) ?? null
-        })),
-        ready: waterDiagnostics.ready,
-        visible: waterDiagnostics.visible,
-        bodyCount: waterDiagnostics.bodyCount,
-        chunkCount: waterDiagnostics.chunkCount,
-        hostRevision: waterDiagnostics.hostRevision
-      },
+
       lighting: {
         timeHours: canonicalSemanticNumber(lightingSnapshot.timeHours),
         phase: lightingSnapshot.phase,
@@ -499,18 +572,6 @@ export class SeedWorldRuntimeEnginePort implements SeedWorldEnginePort {
 
   readAuthoringSnapshot(): SeedWorldAuthoringSnapshot {
     return this._options.readAuthoringSnapshot();
-  }
-
-  readAuthoredWaterLevel(resourceId: string) {
-    const readback = this._requireContext().water.getAuthoredWaterLevelReadback?.(resourceId);
-    return readback
-      ? Object.freeze({
-          canonicalWaterLevelMetres: readback.canonicalWaterLevelMetres,
-          minimumWaterLevelMetres: readback.minimumWaterLevelMetres,
-          maximumWaterLevelMetres: readback.maximumWaterLevelMetres,
-          waterLevelMetres: readback.effectiveWaterLevelMetres
-        })
-      : null;
   }
 
   queryWorldPoints(input: Readonly<SeedWorldPointQueryInput>): unknown {
@@ -618,55 +679,62 @@ export class SeedWorldRuntimeEnginePort implements SeedWorldEnginePort {
       case "lake": {
         const { hydrologyArtifact } = this._requireContext();
         if (!hydrologyArtifact) return Object.freeze({ kind, features: Object.freeze([]) });
-        const lakeLevels = new Map((water.getLakeWaterLevelReadbacks?.() ?? []).map((readback) => [readback.bodyId, readback]));
+        const lakeLevels = new Map(
+          (water.getLakeWaterLevelReadbacks?.() ?? []).map((readback) => [readback.bodyId, readback])
+        );
         const oceanLevel = water.getOceanWaterLevelReadback?.();
         const worldMinimumX = hydrologyArtifact.lakeBasinSupport.transform.worldMinXMillimetres / 1_000;
         const worldMinimumZ = hydrologyArtifact.lakeBasinSupport.transform.worldMinZMillimetres / 1_000;
         return Object.freeze({
           kind,
           features: Object.freeze(
-            hydrologyArtifact.waterBodyCatalog.flatMap((body, index) => {
-              if (body.waterType !== kind) return [];
-              const surfaceElevationMetres = (body.uniformSurfaceHeightMillimetres ?? 0) / 1_000;
-              const waterLevel =
-                kind === "lake"
-                  ? lakeLevels.get(body.bodyId)
-                  : oceanLevel
-                    ? Object.freeze({
-                        canonicalWaterLevelMetres: oceanLevel.defaultWaterLevelMetres,
-                        minimumWaterLevelMetres: oceanLevel.minimumWaterLevelMetres,
-                        maximumWaterLevelMetres: oceanLevel.maximumWaterLevelMetres,
-                        effectiveWaterLevelMetres: oceanLevel.effectiveWaterLevelMetres
-                      })
-                    : undefined;
-              const effectiveSurfaceElevationMetres = waterLevel?.effectiveWaterLevelMetres ?? surfaceElevationMetres;
-              const lakeBounds = kind === "lake" ? hydrologyArtifact.lakeBasinSupport.boundsMillimetres(index + 1) : undefined;
-              const minimumX = lakeBounds ? worldMinimumX + lakeBounds.minX / 1_000 : -fields.sizeMetres * 0.5;
-              const maximumX = lakeBounds ? worldMinimumX + lakeBounds.maxX / 1_000 : fields.sizeMetres * 0.5;
-              const minimumZ = lakeBounds ? worldMinimumZ + lakeBounds.minZ / 1_000 : -fields.sizeMetres * 0.5;
-              const maximumZ = lakeBounds ? worldMinimumZ + lakeBounds.maxZ / 1_000 : fields.sizeMetres * 0.5;
-              return [Object.freeze({
-                id: body.bodyId,
-                position: Object.freeze([
-                  (minimumX + maximumX) * 0.5,
-                  effectiveSurfaceElevationMetres,
-                  (minimumZ + maximumZ) * 0.5
-                ]),
-                surfaceElevationMetres: effectiveSurfaceElevationMetres,
-                ...(waterLevel
-                  ? {
-                      canonicalWaterLevelMetres: waterLevel.canonicalWaterLevelMetres,
-                      minimumWaterLevelMetres: waterLevel.minimumWaterLevelMetres,
-                      maximumWaterLevelMetres: waterLevel.maximumWaterLevelMetres,
-                      waterLevelMetres: waterLevel.effectiveWaterLevelMetres
-                    }
-                  : {}),
-                bounds: Object.freeze({
-                  minimum: Object.freeze([minimumX, effectiveSurfaceElevationMetres, minimumZ]),
-                  maximum: Object.freeze([maximumX, effectiveSurfaceElevationMetres, maximumZ])
-                })
-              })];
-            }).slice(0, limit)
+            hydrologyArtifact.waterBodyCatalog
+              .flatMap((body, index) => {
+                if (body.waterType !== kind) return [];
+                const surfaceElevationMetres = (body.uniformSurfaceHeightMillimetres ?? 0) / 1_000;
+                const waterLevel =
+                  kind === "lake"
+                    ? lakeLevels.get(body.bodyId)
+                    : oceanLevel
+                      ? Object.freeze({
+                          canonicalWaterLevelMetres: oceanLevel.defaultWaterLevelMetres,
+                          minimumWaterLevelMetres: oceanLevel.minimumWaterLevelMetres,
+                          maximumWaterLevelMetres: oceanLevel.maximumWaterLevelMetres,
+                          effectiveWaterLevelMetres: oceanLevel.effectiveWaterLevelMetres
+                        })
+                      : undefined;
+                const effectiveSurfaceElevationMetres = waterLevel?.effectiveWaterLevelMetres ?? surfaceElevationMetres;
+                const lakeBounds =
+                  kind === "lake" ? hydrologyArtifact.lakeBasinSupport.boundsMillimetres(index + 1) : undefined;
+                const minimumX = lakeBounds ? worldMinimumX + lakeBounds.minX / 1_000 : -fields.sizeMetres * 0.5;
+                const maximumX = lakeBounds ? worldMinimumX + lakeBounds.maxX / 1_000 : fields.sizeMetres * 0.5;
+                const minimumZ = lakeBounds ? worldMinimumZ + lakeBounds.minZ / 1_000 : -fields.sizeMetres * 0.5;
+                const maximumZ = lakeBounds ? worldMinimumZ + lakeBounds.maxZ / 1_000 : fields.sizeMetres * 0.5;
+                return [
+                  Object.freeze({
+                    id: body.bodyId,
+                    position: Object.freeze([
+                      (minimumX + maximumX) * 0.5,
+                      effectiveSurfaceElevationMetres,
+                      (minimumZ + maximumZ) * 0.5
+                    ]),
+                    surfaceElevationMetres: effectiveSurfaceElevationMetres,
+                    ...(waterLevel
+                      ? {
+                          canonicalWaterLevelMetres: waterLevel.canonicalWaterLevelMetres,
+                          minimumWaterLevelMetres: waterLevel.minimumWaterLevelMetres,
+                          maximumWaterLevelMetres: waterLevel.maximumWaterLevelMetres,
+                          waterLevelMetres: waterLevel.effectiveWaterLevelMetres
+                        }
+                      : {}),
+                    bounds: Object.freeze({
+                      minimum: Object.freeze([minimumX, effectiveSurfaceElevationMetres, minimumZ]),
+                      maximum: Object.freeze([maximumX, effectiveSurfaceElevationMetres, maximumZ])
+                    })
+                  })
+                ];
+              })
+              .slice(0, limit)
           )
         });
       }
@@ -691,19 +759,21 @@ export class SeedWorldRuntimeEnginePort implements SeedWorldEnginePort {
         return Object.freeze({
           kind,
           features: Object.freeze(
-            plan.roads.flatMap((road) =>
-              road.bridgeIntervals.map((interval, index) => {
-                const middleArcMetres = (interval.startArcMetres + interval.endArcMetres) * 0.5;
-                return Object.freeze({
-                  id: `${road.id}:${index}`,
-                  roadId: road.id,
-                  startArcMetres: interval.startArcMetres,
-                  endArcMetres: interval.endArcMetres,
-                  lengthMetres: interval.endArcMetres - interval.startArcMetres,
-                  position: toPosition(roadPointAtArc(road.points, middleArcMetres, fields.sizeMetres))
-                });
-              })
-            ).slice(0, limit)
+            plan.roads
+              .flatMap((road) =>
+                road.bridgeIntervals.map((interval, index) => {
+                  const middleArcMetres = (interval.startArcMetres + interval.endArcMetres) * 0.5;
+                  return Object.freeze({
+                    id: `${road.id}:${index}`,
+                    roadId: road.id,
+                    startArcMetres: interval.startArcMetres,
+                    endArcMetres: interval.endArcMetres,
+                    lengthMetres: interval.endArcMetres - interval.startArcMetres,
+                    position: toPosition(roadPointAtArc(road.points, middleArcMetres, fields.sizeMetres))
+                  });
+                })
+              )
+              .slice(0, limit)
           )
         });
       case "grassland":
@@ -715,12 +785,14 @@ export class SeedWorldRuntimeEnginePort implements SeedWorldEnginePort {
             plan.detailBrushOperations
               .filter((operation) => operation.distribution === "habitat-fill" && operation.category === category)
               .slice(0, limit)
-              .map((operation) => Object.freeze({
-                id: operation.id,
-                distribution: operation.distribution,
-                density: operation.targetDensityPerSquareMetre,
-                seed: operation.seed
-              }))
+              .map((operation) =>
+                Object.freeze({
+                  id: operation.id,
+                  distribution: operation.distribution,
+                  density: operation.targetDensityPerSquareMetre,
+                  seed: operation.seed
+                })
+              )
           )
         });
       }
@@ -923,19 +995,38 @@ export class SeedWorldRuntimeEnginePort implements SeedWorldEnginePort {
         // The shared transition includes target-cloud/IBL preparation. Do not start a shorter weather
         // timeout while the visible environment is deliberately held at A.
         await lighting.transitionTime(
-          input.timeHours, input.transitionDuration, transitionController.signal, input.fromTimeHours
+          input.timeHours,
+          input.transitionDuration,
+          transitionController.signal,
+          input.fromTimeHours
         );
       }
       if (input.weatherPreset !== undefined) {
-        transitions.push(this._waitForEnvironmentTransition(environment, "weather", input.transitionDuration, transitionController.signal));
+        transitions.push(
+          this._waitForEnvironmentTransition(
+            environment,
+            "weather",
+            input.transitionDuration,
+            transitionController.signal
+          )
+        );
       } else {
         const channels = resolveEnvironmentChannels(input);
         if (channels.length > 0) {
-          transitions.push(this._waitForWeatherChannels(environment, channels, input.transitionDuration, transitionController.signal));
+          transitions.push(
+            this._waitForWeatherChannels(environment, channels, input.transitionDuration, transitionController.signal)
+          );
         }
       }
       if (input.season !== undefined) {
-        transitions.push(this._waitForEnvironmentTransition(environment, "season", input.transitionDuration, transitionController.signal));
+        transitions.push(
+          this._waitForEnvironmentTransition(
+            environment,
+            "season",
+            input.transitionDuration,
+            transitionController.signal
+          )
+        );
       }
       await Promise.all(transitions);
       if (input.waitForIbl) await this._waitForIbl(lighting, signal);
@@ -964,7 +1055,11 @@ export class SeedWorldRuntimeEnginePort implements SeedWorldEnginePort {
 
   private _readObjectCatalog(context: SeedWorldRuntimeContext, revision: number): ReadonlyMap<string, SeedWorldObject> {
     const appearanceRevision = context.world.population.treeAppearanceRevision ?? 0;
-    if (this._catalogWorld !== context.world || this._catalogRevision !== revision || this._catalogTreeAppearanceRevision !== appearanceRevision) {
+    if (
+      this._catalogWorld !== context.world ||
+      this._catalogRevision !== revision ||
+      this._catalogTreeAppearanceRevision !== appearanceRevision
+    ) {
       const authoring = this._options.readAuthoringSnapshot();
       const removedObjectIds = new Set(authoring.removedObjectIds);
       const authoredVegetationFeatureIds = new Set(
@@ -972,7 +1067,9 @@ export class SeedWorldRuntimeEnginePort implements SeedWorldEnginePort {
           .filter(({ resourceType }) => resourceType === "vegetation-brush")
           .map(({ resourceId }) => resourceId)
       );
-      const catalog = new Map(buildWorldObjectCatalog(context, revision, removedObjectIds, authoredVegetationFeatureIds));
+      const catalog = new Map(
+        buildWorldObjectCatalog(context, revision, removedObjectIds, authoredVegetationFeatureIds)
+      );
       for (const object of this._options.readAdditionalObjects?.(revision) ?? [])
         if (!removedObjectIds.has(object.objectId)) addCatalogObject(catalog, object);
       this._catalog = catalog;
@@ -1057,7 +1154,10 @@ function roadPointAtArc(
     const length = Math.hypot(current.x - previous.x, current.y - previous.y) * sizeMetres;
     if (traversed + length >= targetArcMetres) {
       const t = length <= 1e-6 ? 0 : (targetArcMetres - traversed) / length;
-      return Object.freeze({ x: previous.x + (current.x - previous.x) * t, y: previous.y + (current.y - previous.y) * t });
+      return Object.freeze({
+        x: previous.x + (current.x - previous.x) * t,
+        y: previous.y + (current.y - previous.y) * t
+      });
     }
     traversed += length;
   }
@@ -1075,7 +1175,10 @@ type CatalogAnchor = Readonly<{
 }>;
 
 /** Public occupancy is the current world-space envelope, not the producer's original placement dimensions. */
-function treeQueryFootprint(bounds: { minimum: readonly number[]; maximum: readonly number[] }): readonly [number, number] {
+function treeQueryFootprint(bounds: {
+  minimum: readonly number[];
+  maximum: readonly number[];
+}): readonly [number, number] {
   return Object.freeze([bounds.maximum[0] - bounds.minimum[0], bounds.maximum[2] - bounds.minimum[2]]);
 }
 
@@ -1094,9 +1197,14 @@ function buildWorldObjectCatalog(
     const z = instance.normalizedPosition.y * context.fields.sizeMetres + seedWorldOriginZ(context.fields);
     const y = sampleSeedWorldHeight(context.fields, x, z);
     if (y === undefined) continue;
-    const authoringOwnerId = instance.authoringBrushId && authoredVegetationFeatureIds.has(instance.authoringBrushId)
-      ? instance.authoringBrushId : undefined;
-    const tree = instance.category === "tree" ? context.world.population.readProceduralTreeInstance?.(instance, [x, y, z]) : undefined;
+    const authoringOwnerId =
+      instance.authoringBrushId && authoredVegetationFeatureIds.has(instance.authoringBrushId)
+        ? instance.authoringBrushId
+        : undefined;
+    const tree =
+      instance.category === "tree"
+        ? context.world.population.readProceduralTreeInstance?.(instance, [x, y, z])
+        : undefined;
     addCatalogObject(
       objects,
       Object.freeze({
@@ -1105,7 +1213,9 @@ function buildWorldObjectCatalog(
         objectKind: instance.category,
         worldRevision,
         position: tree?.position ?? Object.freeze([x, y, z] as const),
-        footprintMetres: tree ? treeQueryFootprint(tree.bounds) : Object.freeze([...instance.footprintMetres] as [number, number]),
+        footprintMetres: tree
+          ? treeQueryFootprint(tree.bounds)
+          : Object.freeze([...instance.footprintMetres] as [number, number]),
         source: authoringOwnerId
           ? Object.freeze({ kind: "authoring" as const, sourceId: authoringOwnerId })
           : Object.freeze({ kind: "population" as const, sourceId: instance.sourceCellId }),
@@ -1116,7 +1226,15 @@ function buildWorldObjectCatalog(
           treeCohortProfileKey: instance.treeCohortProfileKey,
           yawRadians: tree?.yawRadians ?? instance.yawRadians,
           scale: tree?.scale ?? Object.freeze([...instance.scale]),
-          ...(tree ? { treeShape: tree.treeShape, treeRecipeId: tree.recipeId, treeRecipeLabel: tree.recipeLabel, treeEffectIndex: tree.effectIndex, bounds: tree.bounds } : {})
+          ...(tree
+            ? {
+                treeShape: tree.treeShape,
+                treeRecipeId: tree.recipeId,
+                treeRecipeLabel: tree.recipeLabel,
+                treeEffectIndex: tree.effectIndex,
+                bounds: tree.bounds
+              }
+            : {})
         })
       })
     );
@@ -1306,7 +1424,8 @@ function searchWorldPoints(
   // Keep a general semantic query bounded on the main thread. The returned spacing
   // makes the resolution explicit instead of pretending a sampled query was exact.
   const effectiveSpacingMetres = Math.max(input.spacingMetres, fields.sizeMetres / 255);
-  const originX = seedWorldOriginX(fields), originZ = seedWorldOriginZ(fields);
+  const originX = seedWorldOriginX(fields),
+    originZ = seedWorldOriginZ(fields);
   const points: SearchablePoint[] = [];
   for (let z = originZ; z <= originZ + fields.sizeMetres; z += effectiveSpacingMetres) {
     for (let x = originX; x <= originX + fields.sizeMetres; x += effectiveSpacingMetres) {
@@ -1429,7 +1548,7 @@ function isWorseElevationCandidate(
 function encodeHeightBound(fields: SeedWorldFields, value: number | undefined, fallback: number): number {
   if (value === undefined) return fallback;
   const offset = fields.heightDecode?.offset ?? SEED_WORLD_HEIGHT_RANGE.minimum;
-  const scale = fields.heightDecode?.scale ?? (SEED_WORLD_HEIGHT_RANGE.maximum - SEED_WORLD_HEIGHT_RANGE.minimum);
+  const scale = fields.heightDecode?.scale ?? SEED_WORLD_HEIGHT_RANGE.maximum - SEED_WORLD_HEIGHT_RANGE.minimum;
   const normalized = (value - offset) / scale;
   return Math.round(normalized * 0xffff);
 }
@@ -1541,12 +1660,20 @@ function resolveEnvironmentChannels(input: Readonly<SeedWorldEnvironmentUpdateIn
   return channels;
 }
 
-type WeatherEditTarget = Pick<WorldEnvironmentRuntime,
-  "setSeason" | "setWeatherState" | "setWind" | "setCloud" | "setSkyLighting" | "setPrecipitation" | "setLightning"> & {
-  getSnapshot(): { weather: WeatherState; wind: { baseSpeedMps: number; baseDirection: readonly [number, number, number] } };
+type WeatherEditTarget = Pick<
+  WorldEnvironmentRuntime,
+  "setSeason" | "setWeatherState" | "setWind" | "setCloud" | "setSkyLighting" | "setPrecipitation" | "setLightning"
+> & {
+  getSnapshot(): {
+    weather: WeatherState;
+    wind: { baseSpeedMps: number; baseDirection: readonly [number, number, number] };
+  };
 };
 
-function applyEnvironmentChannels(environment: WeatherEditTarget, input: Readonly<SeedWorldEnvironmentUpdateInput>): void {
+function applyEnvironmentChannels(
+  environment: WeatherEditTarget,
+  input: Readonly<SeedWorldEnvironmentUpdateInput>
+): void {
   const preset = input.weatherPreset === undefined ? undefined : resolveSeedWorldWeatherPreset(input.weatherPreset);
   const seasonDefaults = input.season === undefined ? undefined : TERRAIN_SEASON_DEFAULT_COMPOSITIONS[input.season];
   if (input.season !== undefined) environment.setSeason(input.season);
@@ -1579,10 +1706,10 @@ function applyEnvironmentChannels(environment: WeatherEditTarget, input: Readonl
 
 /** Clockwise heading of the direction the wind blows TOWARD: -Z=0, +X=90. */
 function windHeading(direction: readonly number[]): number {
-  return wrapWindHeading(Math.atan2(direction[0]!, -direction[2]!) * 180 / Math.PI);
+  return wrapWindHeading((Math.atan2(direction[0]!, -direction[2]!) * 180) / Math.PI);
 }
 function wrapWindHeading(degrees: number): number {
-  const result = ((degrees + 180) % 360 + 360) % 360 - 180;
+  const result = ((((degrees + 180) % 360) + 360) % 360) - 180;
   return Object.is(result, -0) ? 0 : result;
 }
 
@@ -1599,14 +1726,15 @@ function applyWind(
     if (baseSpeedMetresPerSecond <= Number.EPSILON && input.speedMetresPerSecond > 0) {
       throw new Error("Seed World physical wind baseline is zero; a positive wind speed cannot be applied");
     }
-    forceMultiplier = baseSpeedMetresPerSecond <= Number.EPSILON
-      ? 0
-      : input.speedMetresPerSecond / baseSpeedMetresPerSecond;
+    forceMultiplier =
+      baseSpeedMetresPerSecond <= Number.EPSILON ? 0 : input.speedMetresPerSecond / baseSpeedMetresPerSecond;
   }
   environment.setWind({
     forceMultiplier,
-    directionOffsetDegrees: input.directionDegrees === undefined ? fallback.directionOffsetDegrees
-      : wrapWindHeading(windHeading(snapshot.wind.baseDirection) - input.directionDegrees),
+    directionOffsetDegrees:
+      input.directionDegrees === undefined
+        ? fallback.directionOffsetDegrees
+        : wrapWindHeading(windHeading(snapshot.wind.baseDirection) - input.directionDegrees),
     gustStrength: input.gustiness === undefined ? fallback.gustStrength : input.gustiness * 0.6,
     turbulence: input.turbulence ?? fallback.turbulence
   });

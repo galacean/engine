@@ -302,10 +302,14 @@ Shader "Lighting/ScreenSpaceReflection" {
               hit = hitDepthSample.y > 0.0 && hitDifference <= hitThickness;
             }
             if (hit) break;
+            // A depth discontinuity can belong to a thin foreground object that the ray misses.
+            // Keep the measured sign after rejecting it. A new bracket requires a real
+            // front-to-back crossing, not another sample behind the same foreground surface.
+            previousScreenFraction = currentScreenFraction;
+            previousDifference = difference;
+            continue;
           }
 
-          // Keep the measured sign even after rejecting a thin foreground hit. A new bracket
-          // requires a real front-to-back crossing, not another sample behind the same surface.
           previousScreenFraction = currentScreenFraction;
           previousDifference = difference;
         }

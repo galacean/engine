@@ -1,10 +1,9 @@
 /** Shared optical-volume, composition, and final-output primitives for every Water backend. */
-import waterSurfaceBoundedTranslucency from "../../shaders/library/surface/WaterSurfaceBoundedTranslucency.glsl?raw";
 import {
   WaterSurfaceCompositionV2,
   WaterSurfacePrimaryColorClosure
 } from "../../authoring/surface/WaterSurfaceAppearanceTypes";
-import waterSingleScatteringShader from "../../shaders/library/surface/WaterSurfaceSingleScattering.glsl?raw";
+import waterSurfaceBoundedTranslucency from "../../shaders/library/surface/WaterSurfaceBoundedTranslucency.glsl?raw";
 import waterSurfaceClosureShaderTemplate from "../../shaders/library/surface/WaterSurfaceClosure.glsl?raw";
 import {
   renderWaterShaderFunctionAssignment,
@@ -12,13 +11,10 @@ import {
   renderWaterShaderValueAssignment
 } from "../material/WaterShaderTemplate";
 
-import { evaluateWaterSingleScattering } from "../optics/WaterSurfaceOpticsMath";
-import type { WaterSurfaceScattering } from "../../authoring/optics/WaterSurfaceScattering";
-
 export interface WaterSurfaceClosureCpuInput {
   readonly roughTransmission?: boolean;
   readonly additionalTransmissionRadiance?: readonly [number, number, number];
-  readonly surfaceScattering?: WaterSurfaceScattering;
+
   readonly sceneToSurfaceDistance?: number;
   readonly phaseCosine?: number;
   readonly sunRadiance?: readonly [number, number, number];
@@ -34,7 +30,6 @@ export interface WaterSurfaceClosureCpuInput {
   readonly transmissionFresnelWeight?: number;
   /** Single scattering consumes the selected background paired with opticalDepth. */
   readonly refractionColor?: readonly [number, number, number];
-  /** Legacy color-closure blend; single scattering selects color and depth before integration. */
   readonly refractionWeight?: number;
   readonly reflectionRadiance?: readonly [number, number, number];
   readonly reflectionBrdfWeight?: readonly [number, number, number];
@@ -48,7 +43,7 @@ export interface WaterSurfaceClosureCpuInput {
   readonly foamColorWeight?: number;
   readonly coverage?: number;
   readonly clarity?: number;
-  readonly calibrationMode?: number;
+
   readonly coastalAlpha?: number;
   readonly coastalAlphaWeight?: number;
   readonly primaryColorClosure?: WaterSurfacePrimaryColorClosure;
@@ -84,44 +79,6 @@ export function evaluateWaterSurfaceClosureCpu(
   const diffuseLighting = Math.max(0, Number.isFinite(input.diffuseLighting) ? input.diffuseLighting! : 1);
   const fresnel = saturate(input.fresnel ?? 0);
   const depthColor = input.depthColor ?? input.surfaceColor;
-  if (input.surfaceScattering) {
-    const medium = evaluateWaterSingleScattering({
-      ...input,
-      surfaceScattering: input.surfaceScattering,
-      opticalDistance: opticalDepth
-    });
-    const primaryColor = input.surfaceColor.map((value, channel) =>
-      mixChannel(value, depthColor[channel], depthFactor)
-    ) as [number, number, number];
-    const background = input.refractionColor ?? input.sceneColor;
-    const volumeColor = primaryColor.map(
-      (tint, channel) =>
-        background[channel] * medium.transmittance[channel] * medium.lightTransmittance[channel] +
-        medium.scattering[channel] * tint
-    ) as [number, number, number];
-    const finalRgb = volumeColor.map((value, channel) => {
-      const lit =
-        value * (1 - fresnel) +
-        (input.reflectionRadiance?.[channel] ?? 0) *
-          (input.reflectionBrdfWeight?.[channel] ?? 0) *
-          (input.reflectionIntensity ?? 1) +
-        (input.directSpecularRadiance?.[channel] ?? 0) +
-        (input.boundaryContribution?.[channel] ?? 0);
-      const foamed = mixChannel(
-        lit,
-        input.foamColor?.[channel] ?? lit,
-        saturate(input.foamColorWeight ?? input.foamWeight ?? 0)
-      );
-      return mixChannel(input.sceneColor[channel], foamed, saturate(input.coverage ?? 1));
-    });
-    return Object.freeze({
-      primaryColor: Object.freeze(primaryColor),
-      transmittance: Object.freeze(medium.transmittance),
-      scattering: Object.freeze(medium.scattering),
-      volumeColor: Object.freeze(volumeColor),
-      finalColor: Object.freeze([...finalRgb, 1] as [number, number, number, number])
-    });
-  }
   const primaryColor = input.surfaceColor.map((component, index) => {
     const litDepthColor = depthColor[index] * diffuseLighting;
     switch (input.primaryColorClosure ?? WaterSurfacePrimaryColorClosure.PhysicalVolume) {
@@ -199,7 +156,7 @@ export function evaluateWaterSurfaceClosureCpu(
   const absorptionAlpha = 1 - Math.exp(-mixChannel(0.48, 0.13, clarity) * opticalDepth);
   let alpha = saturate(input.alpha) * mixChannel(0.18, 0.94, absorptionAlpha);
   alpha += fresnel * (1 - alpha) * 0.48;
-  alpha += foamWeight * 0.3 * (1 - ((input.calibrationMode ?? 0) >= 0.5 ? 1 : 0));
+  alpha += foamWeight * 0.3;
   alpha = mixChannel(alpha, input.coastalAlpha ?? 0, saturate(input.coastalAlphaWeight ?? 0));
   alpha = saturate(alpha) * saturate(input.coverage ?? 1);
   const composedColor =
@@ -236,8 +193,6 @@ export function createWaterSurfaceClosureShaderFunctions(
 ): string {
   return (
     (policy.additionalTransmissionRadiance ? waterSurfaceBoundedTranslucency + "\n" : "") +
-    waterSingleScatteringShader +
-    "\n" +
     renderWaterShaderTemplate(waterSurfaceClosureShaderTemplate, {
       ADDITIONAL_TRANSMISSION_ENABLED: policy.additionalTransmissionRadiance ? 1 : 0,
       ROUGH_TRANSMISSION_ENABLED: policy.integratedRoughTransmission ? 1 : 0,

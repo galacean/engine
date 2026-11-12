@@ -1,4 +1,3 @@
-#include "shared/WorldSelection.glsl"
 #ifdef RENDERER_WORLD_PICK
 float renderer_WorldPickBase;
 #endif
@@ -116,7 +115,7 @@ void TerrainFragment(Varyings varyings) {
   #else
     float shadowAttenuation = sampleTerrainProjectShadow(varyings);
   #endif
-  vec3 geometryNormal = normalize(varyings.normalWS);
+  vec3 geometryNormal = terrainProjectShadingGeometryNormal(varyings.positionWS.xz, varyings.normalWS);
   vec3 color = vec3(0.0);
   #ifdef MATERIAL_TERRAIN_LAYERS
     int regionIndex;
@@ -221,7 +220,7 @@ void TerrainFragment(Varyings varyings) {
   #if SCENE_FOG_MODE != 0
     color = fog(vec4(color, 1.0), varyings.positionVS).rgb;
   #endif
-  gl_FragColor = worldSelectionColor(vec4(color, 1.0), worldSelectionRegionWeight(varyings.positionWS.xz));
+  gl_FragColor = vec4(color, 1.0);
   #endif
 }
 

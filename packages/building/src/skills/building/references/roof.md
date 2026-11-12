@@ -2,44 +2,22 @@
 
 ## 欧式屋顶
 
-欧式 buildHouses 和 buildTower 使用 roof 参数和 overlap_rows Unit。设计阶段解析墙顶和屋顶的关系。精确屋瓦算法保留边缘补片、压脊、裁剪面和 GPU feedback，不能用普通盒子近似后宣称等效。
+`roof` 参数决定屋顶形状，见[流程](planning.md)。坡屋顶每个坡面是一个构件，坡面之间的斜脊和屋脊由连接规则派生。圆形房屋是圆锥屋顶。`roof.height` 为 0 时是平屋顶：一个屋面构件，`flat_rim` 为 0 时四周有女儿墙和城垛。圆屋顶和收成方顶的四坡屋顶自动加尖顶。
 
-## 瓦色
-
-原生屋瓦外观用 `part.appearance.roofColor`（整数 0–12）配置，或用生成器的 `style.appearance`、`roofStyle.appearance`。通用瓦默认为 0。profile 屋顶优先使用明确提供的外观，否则使用已有的 roof.color。修改调色不改变放置和身份。Prefab 材质保留自己的外观。
-
-## 自定义屋面
-
-提供真实 Mesh，support 用 meshSurface，params 指定 mesh 和 subMesh。铺设算法使用网格 UV 和切向约定。buildRoof 也接受显式的 support 和 style。任意屋面都不要求具备 ridge_length 等欧式参数。
-
-附加曲面使用独立的基础构件。连接要明确写出参与的部位，并调用具体的求解算法。只凭两个屋顶类型，不能保证交线可求或收口合理。
+瓦片颜色用 `roof.color`（整数 0–12）。改颜色不改变放置和身份。
 
 ## 老虎窗和屋顶挂件
 
-平顶舱门和屋顶灯使用设计阶段解算的 Point，由注册的 `mountAttachment` 生成资产几何。开口和安装占位属于设计阶段。
+屋顶挂件写在 `attachments` 中，`host: "roof"` 或给出 `uv`。`uv` 是房屋轮廓外接矩形内的位置，`bottom`、`width`、`height` 的单位是米。
 
-| 类型 | 窗体 | 小屋面 |
+| 类型 | 屋顶 | 说明 |
 | --- | --- | --- |
-| 乡村式老虎窗 `dormer-cottage` | `mountAttachment` | 派生独立 Surface 构件，用 `cottageDormerCourses` 生成 |
-| 哥特式老虎窗 | `mountAttachment` | `profiledDormerRoof + profiledDormerCourses` |
-| 半老虎窗（cottage/gothic/arrow-slit） | 发布窗体及附属成员挂点、墙和屋顶双开口 | 派生小屋面，复用 `cottageDormerCourses` 或 `profiledDormerCourses` |
+| `dormer-gothic` | 坡屋顶、圆锥 | 窗体加一个尖拱形小屋顶和屋脊 |
+| `dormer-cottage` | 坡屋顶 | 一到三个窗体并排，上面一个单坡小屋顶 |
+| `hatch-cottage`、`hatch-gothic` | 平屋顶 | 活板门，在屋面上开洞 |
+| `roof-lantern` | 平屋顶 | 屋顶灯，不开洞 |
 
-- 可以在附件构件的 `params.roofAlgorithm` 指定替代注册算法，返回 `dormer-roof/v1`。替代排列沿用已规划的开口和占位，几何开口不会自动改变。要扩大几何范围，需要修改对应的 support 或避让设计。
-- 小屋面材质沿用宿主屋顶的绑定。
-- 哥特式老虎窗的精确避让包络依赖瓦带的尺寸、倾角和搭接。设计阶段采样占用体积，但不生成实例字节，也不保留瓦片数组。实施阶段才打包渲染实例。
-
-## 屋顶尖饰
-
-屋顶尖饰是派生的 Point 构件，引用 `{libraryMesh:"roofSpire"}`，由 `placeRoofSpire` 生成。设计阶段只确定挂点和收口参数。
-
-屋顶构件可以用 `params.spireAlgorithm` 指定替代注册算法，返回 `roof-spire/v1`，允许零个或一个明确归属的尖饰及其挂点。预览不会在零输出时重新生成。局部隐藏和屋面开口使用同一个挂点。派生数据不写入 Source。
-
-## 自定义铺设
-
-原生 profile 上也可以注册自定义铺设：`buildingPlacementAlgorithms.register(id, callback, {profile:{basis:"grid"}})`。
-
-- basis 声明原生几何准备约定，实际执行的仍是 callback。
-- callback 要返回完整的 profile 铺设输出，并同步绘制 cells 和编辑 plans。
-- 动态函数走主线程原生实例渲染，不自动生成远景替身。默认实现已打包进 Worker。
-- 任意形状继续使用 Mesh support。
-- 重新加载已保存的项目前，算法注册名必须可解析。
+- 只给 kind 时：平屋顶上的窗和活板门是 `hatch-cottage`，灯是 `roof-lantern`；坡屋顶上的窗是 `dormer-cottage`。坡屋顶上放活板门或灯会报错。
+- 老虎窗从所在坡面切掉占地，小屋顶用宿主屋顶的瓦片铺设。小屋顶属于老虎窗，不另存。
+- 老虎窗要能落在一个坡面上。跨出坡面边缘报错 `The dormer crosses an edge of its roof`，小屋顶碰不到屋面报错 `The dormer reaches above its roof`。
+- 半老虎窗立在墙上、穿过屋檐，见[墙](wall.md)。

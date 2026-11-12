@@ -1,4 +1,4 @@
-import type { BuildingDraft } from "./BuildingDraft";
+import type { BuildingCoreDraft as BuildingDraft } from "../../core";
 import type { BuildingCpuOptions } from "./BuildingCpu";
 import type {
   BuildingWorkerRequest,
@@ -43,7 +43,8 @@ export class BuildingCpuClient {
         if (!request) return;
         this.pending.delete(data.id);
         request.cleanup();
-        data.ok ? request.resolve(data.result) : request.reject(Error(data.error));
+        if (data.ok === true) request.resolve(data.result);
+        else request.reject(Error(data.error));
       };
       worker.onerror = (e) => {
         if (this.worker === worker)

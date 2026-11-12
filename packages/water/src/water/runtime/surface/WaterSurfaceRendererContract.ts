@@ -4,11 +4,8 @@ export interface WaterSurfaceRendererShadowState {
   receiveShadows: boolean;
 }
 
-/** Water never casts opaque shadows. Single-scattering surfaces may shadow their direct light only. */
-export function applyWaterSurfaceRendererContract(
-  renderer: WaterSurfaceRendererShadowState,
-  receiveDirectLightShadows = false
-): void {
+/** Water surfaces do not cast or receive opaque shadows. */
+export function applyWaterSurfaceRendererContract(renderer: WaterSurfaceRendererShadowState): void {
   renderer.castShadows = false;
-  renderer.receiveShadows = receiveDirectLightShadows;
+  renderer.receiveShadows = false;
 }

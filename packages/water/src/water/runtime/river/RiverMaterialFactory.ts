@@ -57,7 +57,6 @@ import {
   updateRiverMaterial,
   updateRiverSurfaceMotion
 } from "./RiverMaterialBinding";
-import { RiverSurfaceDebugMode } from "./RiverRuntimeEnums";
 
 export { hexToColor, updateRiverMaterial, updateRiverSurfaceMotion } from "./RiverMaterialBinding";
 const RIVER_SCREEN_SPACE_REFLECTION_COMPOSITE_INTENSITY_PROPERTY =
@@ -122,7 +121,6 @@ function configureSurfaceMaterial(
   updateRiverMaterial(material, config, flowSpeedMultiplier);
   setRiverSurfaceDepthWriteEnabled(material, false);
   updateRiverSurfaceMotion(material, motion);
-  setRiverSurfaceDebugMode(material, RiverSurfaceDebugMode.Off);
   setRiverSurfaceFeatureFlags(material, true, true);
   setRiverSurfaceTimeOverride(material);
   bindRiverFlowClock(material);
@@ -340,10 +338,6 @@ export function setRiverScreenSpaceReflectionCompositeIntensity(material: Materi
 
 export function setRiverSurfaceDepthWriteEnabled(material: Material, enabled: boolean): void {
   material.shaderData.setInt(RIVER_SHADER_PROPERTY.depthWriteEnabled, enabled ? 1 : 0);
-}
-
-export function setRiverSurfaceDebugMode(material: Material, mode: RiverSurfaceDebugMode): void {
-  material.shaderData.setFloat(RIVER_SHADER_PROPERTY.surfaceDebugMode, mode);
 }
 
 export function setRiverSurfaceFeatureFlags(

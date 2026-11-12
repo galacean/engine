@@ -13,7 +13,6 @@ interface PlanningSeedDebugSidebarOptions {
   sampleHeight: (x: number, z: number) => number | undefined;
   beforeCameraMove: () => void;
   returnToPlanning: () => void;
-  setWorldPickingEnabled: (enabled: boolean) => void;
 }
 
 /** Original Seed camera controls, displaying the published spatial plan instead of the retired generator. */
@@ -24,7 +23,6 @@ export class PlanningSeedDebugSidebar {
   private plan?: IslandPlan;
   private mode: "orbit" | "roam" = "roam";
   private inputEnabled = true;
-  private worldPickingEnabled = false;
   private cameraMarker = document.createElementNS("http://www.w3.org/2000/svg", "circle");
   private readonly cameraView = document.createElementNS("http://www.w3.org/2000/svg", "path");
   private markerPosition = "";
@@ -41,7 +39,6 @@ export class PlanningSeedDebugSidebar {
     this.element.innerHTML = `<button id="world-sidebar-toggle" class="world-sidebar-toggle glass-panel" type="button" aria-expanded="false"><span>WORLD CONTROLS</span><i aria-hidden="true">▸</i></button>
       <div class="world-sidebar-content"><section class="world-sidebar-controls glass-panel">
         <div class="world-sidebar-actions"><button type="button" data-action="layout">布局</button><button id="camera-bookmark-copy" type="button">复制视角</button><button id="roam-input-mode" class="world-control-switch roam-input-mode-switch" type="button" role="switch" aria-checked="false"><span class="world-control-switch-track" aria-hidden="true"><i></i></span><span id="roam-input-mode-label" class="world-control-switch-label">WASD</span></button><span data-obb-control></span></div>
-        <div class="world-sidebar-actions"><button id="world-picking-toggle" class="world-control-switch" style="grid-column: 1 / -1" type="button" role="switch" aria-checked="false" title="开启后点击地面、植被等场景对象，为 AI 局部修改选择目标；不影响农具拾取。"><span class="world-control-switch-track" aria-hidden="true"><i></i></span><span class="world-control-switch-label">点击选中场景</span></button></div>
         <label class="seed-readout"><span>ROOT SEED</span><output id="world-seed"></output></label>
         <div class="segmented" aria-label="相机控制"><button id="orbit-mode" type="button" data-active="false">ORBIT</button><button id="roam-mode" type="button" data-active="true">ROAM</button></div>
         <section class="world-navigation-tuning" aria-label="漫游参数">
@@ -79,11 +76,6 @@ export class PlanningSeedDebugSidebar {
       if (expanded) this.update();
     };
     this.button('[data-action="layout"]').onclick = options.returnToPlanning;
-    this.button("#world-picking-toggle").onclick = () => {
-      this.worldPickingEnabled = !this.worldPickingEnabled;
-      options.setWorldPickingEnabled(this.worldPickingEnabled);
-      this.button("#world-picking-toggle").setAttribute("aria-checked", String(this.worldPickingEnabled));
-    };
     this.button("#camera-bookmark-copy").onclick = () => {
       const position = options.camera.entity.transform.worldPosition;
       const forward = options.camera.entity.transform.worldForward;

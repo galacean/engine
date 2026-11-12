@@ -5,7 +5,9 @@ import { planningSeed } from "@galacean/engine-world-planning/spatial/PlanningLa
 import { parsePlanningDocument } from "../PlanningDocumentCodec.ts";
 import { RuntimeProjectEdit, type RuntimeAssetFormat } from "@galacean/engine-project/runtime-editor/project/runtime-project-edit";
 import { nativeAssetFormats } from "@galacean/engine-runtime-editor/project/runtime-native-formats";
-import { planningSourceDocument, writePlanningProjectSource } from "./PlanningProjectSource.ts";
+import { planningSourceDocument, retainPlanningWaterSource, writePlanningProjectSource } from "./PlanningProjectSource.ts";
+import { initializePlanningWater, initializePlanningOcean, installPlanningWaterDefaults, loadPlanningWaterDefaults } from "./PlanningWaterInitialization.ts";
+import type { SemanticResult } from "@galacean/engine-world-planning/semantic-study/WorldPlanningContract";
 
 export const PLANNING_PROJECT_PATH = "World/Planning.json";
 export const PLANNING_PROJECT_TYPE = "SeedWorldPlanning";
@@ -17,6 +19,27 @@ export class PlanningProjectStorage {
       Partial<Pick<RuntimeProjectSession, "update" | "publicationRevision">>,
     private readonly formats: ReadonlyMap<string, RuntimeAssetFormat> = new Map()
   ) {}
+
+  retainWater(document: PlanningDocument): PlanningDocument {
+    return retainPlanningWaterSource(document, this.project.projectPackage);
+  }
+
+  /** New Source authoring baseline is ready before the first Engine Scene load. */
+  async initialize(document: PlanningDocument, result: SemanticResult): Promise<PlanningDocument> {
+    const defaults = await loadPlanningWaterDefaults();
+    const build = (pack: RuntimeProjectSession["projectPackage"]) => {
+      const draft = new RuntimeProjectEdit(pack, new Map([...nativeAssetFormats(() => ({})), ...this.formats]));
+      installPlanningWaterDefaults(draft, defaults);
+      const next = initializePlanningWater(draft, document, result.plan);
+      writePlanningProjectSource(draft, pack.project.scene, next);
+      initializePlanningOcean(draft, result.plan);
+      draft.writeDocument(`${pack.project.scene}.planning-source.json`, JSON.stringify({ version: 1 }));
+      return draft.finish();
+    };
+    if (this.project.update) await this.project.update(build);
+    else await this.project.publish(build(this.project.projectPackage));
+    return planningSourceDocument(this.project.projectPackage)!;
+  }
 
   async load(seed: number): Promise<PlanningDocument | undefined> {
     const source = planningSourceDocument(this.project.projectPackage);
@@ -52,19 +75,19 @@ export class PlanningProjectStorage {
     });
   }
 
-  /** Import the saved envelope once, before loading the production Scene. */
-  async migrateToSource(document: PlanningDocument): Promise<void> {
+  /** Import the saved envelope before loading the Scene, or replace planning after an explicit template choice. */
+  async migrateToSource(document: PlanningDocument, replacePlanning = false): Promise<void> {
     const build = (pack: RuntimeProjectSession["projectPackage"]) => {
       const marker = `${pack.project.scene}.planning-source.json`;
       if (pack.documents?.[marker] !== undefined) {
         const { version } = JSON.parse(pack.documents[marker]);
-        if (version === 2) return pack;
+        if (version === 2 && !replacePlanning) return pack;
         if (version !== 1 && version !== 2) throw new Error("Unsupported planning Source migration");
         if (!planningSourceDocument(pack)) throw new Error("Imported project requires a PlanningProjectAuthoring owner");
       }
       const draft = new RuntimeProjectEdit(pack, new Map([...nativeAssetFormats(() => ({})), ...this.formats]));
       // Store planning authoring in the Scene before loading its native owners.
-      writePlanningProjectSource(draft, pack.project.scene, planningSourceDocument(pack) ?? document);
+      writePlanningProjectSource(draft, pack.project.scene, replacePlanning ? document : planningSourceDocument(pack) ?? document);
       if (draft.list().some(file => file.virtualPath === PLANNING_PROJECT_PATH)) draft.delete(PLANNING_PROJECT_PATH);
       draft.writeDocument(marker, JSON.stringify({ version: 2 }));
       return draft.finish();

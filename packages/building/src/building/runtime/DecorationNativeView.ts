@@ -142,7 +142,6 @@ export function createDecorationNativeView(
     }
     addWoodArchPillarDraws(builder, options.woodArchPillars ?? [], globals);
     const basePackage = builder.build();
-    basePackage.package.whiteBase = true;
     const built = appendDecorationRenderPackage(
       appendWoodArchRenderPackage(basePackage, options.woodArchFrames ?? [], globals),
       options.parts ?? [],

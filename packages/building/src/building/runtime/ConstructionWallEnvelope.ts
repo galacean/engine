@@ -2,7 +2,6 @@ import type { ProfileFootprint } from "./ProfileParameters";
 import type { MaterialFootprint } from "./MaterialFootprint";
 import type { WallConnectionShape } from "./WallConnectionTypes.ts";
 import { unitFootprintScale } from "./MaterialFootprint.ts";
-import type { RoofCurve } from "./RecoveredRoofMath.ts";
 
 /** Resolved geometry, not author state. The wall curve is the structural datum,
  * not the visible facade. Native producers have different depth conventions:
@@ -44,27 +43,6 @@ export function profileWallEnvelope(
     // Native recipes use fixed wall thickness; unit resizing is a host extension.
     // Keep the native default and its shape-specific inset, including small circles.
     mountOffset: nominal * (scale.depth - 1)
-  };
-}
-
-/** Rigid installation frame for a single wall attachment. Preserve the source
- * arclength chart exactly: expanding/resampling a circle would move its holes,
- * edit anchors and random phase. Native consumers read this translated frame
- * before producing geometry, bones, glass origins, light emitters and SDF cuts.
- */
-export function constructionWallMount(curve: RoofCurve, u: number, offset: number): RoofCurve {
-  if (offset === 0) return curve;
-  const [tx, tz] = curve.tangent(u);
-  const dx = -tz * offset,
-    dz = tx * offset;
-  const move = (p: readonly number[]) => [p[0] + dx, p[1] + dz];
-  return {
-    points: curve.points.map(move),
-    knots: curve.knots.slice(),
-    length: curve.length,
-    coord: (v) => curve.coord(v),
-    sample: (v) => move(curve.sample(v)),
-    tangent: (v) => curve.tangent(v)
   };
 }
 

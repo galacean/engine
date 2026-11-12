@@ -17,13 +17,12 @@ Shader "SeedWorld/RockSurface" {
    #include "shared/RockTerrainContact.glsl"
    #include "SeedWorld/RockSurface/Forward.glsl"
    #include "SeedWorld/RockSurface/ShadowReceiver.glsl"
-   #include "SeedWorld/RockSurface/Original.glsl"
+   #include "SeedWorld/RockSurface/Projection.glsl"
    #include "SeedWorld/RockSurface/ColorBlend.glsl"
    #ifdef MATERIAL_GRASS_SHARED_COLOR_FIELD
     #include "shared/RockGrassGround.glsl"
     #include "shared/SurfaceClimate.glsl"
    #endif
-   #include "shared/WorldSelection.glsl"
    float material_RockGrassCoveragePreview;
    VertexShader = PBRVertex;
    FragmentShader = SlabFragment;
@@ -39,32 +38,23 @@ Shader "SeedWorld/RockSurface" {
       gl_FragColor = vec4(mix(vec3(0.22, 0.08, 0.04), vec3(0.1, 0.85, 0.15), clamp(v.uv1.y, 0.0, 1.0)), 1.0);
     } else {
     SurfaceData surface = getSurfaceData(v, v.uv, gl_FrontFacing);
-    bool grassGround = false;
+    originalRockSurface(surface, v);
+    surface.albedoColor = rockPaletteStone(surface.albedoColor);
     vec3 climateNormal = normalize(v.normalWS);
+    float grassCoverage = 0.0;
     #ifdef MATERIAL_GRASS_SHARED_COLOR_FIELD
-     float grassCoverage = clamp(v.uv1.y, 0.0, 1.0);
+     float slopeCoverage = smoothstep(material_WorldGrassSlope, min(1.0, material_WorldGrassSlope + 0.06), climateNormal.y);
+     grassCoverage = material_WorldGrassEnable * mix(slopeCoverage, clamp(v.uv1.y, 0.0, 1.0), material_WorldGrassCoverageFromMesh);
      if (grassCoverage > 0.0) {
-      grassGround = true;
-      vec3 groundNormal = normalize(v.normalWS);
-      vec3 descriptor = vec3(grassCoverage, 0.0, 1.0);
-      #ifdef SEED_ROCK_ORIGINAL_SURFACE
-       groundNormal = normalize(v.rockSmoothNormal);
-       descriptor.yz = vec2(v.rockBarycentrics.w, 1.0);
-      #endif
-      vec4 ground = terrainProjectRockGrassGround(v.positionWS, groundNormal, descriptor,
+      vec4 ground = terrainProjectRockGrassGround(v.positionWS, climateNormal, vec3(1.0, rockLocalTextureScale(), 1.0),
         terrainProjectGrassSurfaceColor(v.positionWS));
-      surface.albedoColor = ground.rgb;
-      surface.roughness = ground.a;
-      surface.ambientOcclusion = 1.0;
-      surface.normal = terrainProjectAttachedReliefNormal(v.positionWS, groundNormal, grassCoverage);
+      surface.albedoColor = mix(surface.albedoColor, ground.rgb, grassCoverage);
+      surface.roughness = mix(surface.roughness, ground.a, grassCoverage);
+      surface.normal = normalize(mix(surface.normal,
+        terrainProjectAttachedReliefNormal(v.positionWS, climateNormal, grassCoverage), grassCoverage));
       surface.dotNV = saturate(dot(surface.normal, surface.viewDir));
-      climateNormal = groundNormal;
      }
     #endif
-    if (!grassGround) {
-     originalRockSurface(surface, v);
-    surface.albedoColor = rockPaletteStone(surface.albedoColor);
-    }
     float snowResponse = 0.72;
     float contact = 0.0;
     #ifdef MATERIAL_TERRAIN_HEIGHT_FIELD
@@ -78,8 +68,8 @@ Shader "SeedWorld/RockSurface" {
       surface.dotNV = saturate(dot(surface.normal, surface.viewDir));
     #endif
     #ifdef MATERIAL_GRASS_SHARED_COLOR_FIELD
-      if (grassGround || contact > 0.0)
-        terrainProjectApplySurfaceClimate(surface, climateNormal, vec3(1.0, 0.0, snowResponse));
+      if (grassCoverage > 0.0 || contact > 0.0)
+        terrainProjectApplySurfaceClimate(surface, climateNormal, vec3(max(grassCoverage, contact), 0.0, snowResponse));
     #endif
     float shadow = 1.;
     #if defined(SCENE_DIRECT_LIGHT_COUNT) && defined(NEED_CALCULATE_SHADOWS)
@@ -90,7 +80,7 @@ Shader "SeedWorld/RockSurface" {
     #if SCENE_FOG_MODE != 0
      color = fog(color, v.positionVS);
     #endif
-    gl_FragColor = worldSelectionColor(color, worldSelectionWeight(v.uv1.x));
+    gl_FragColor = color;
     }
     #endif
    }

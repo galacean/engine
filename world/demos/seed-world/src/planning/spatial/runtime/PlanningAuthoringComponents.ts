@@ -1,4 +1,5 @@
 import { AssetType, Loader, Script, type Entity, type JSONAsset } from "@galacean/engine";
+import { WaterBodyComponent } from "@galacean/engine-water/water/native/WaterBodyComponent";
 export { PlanningGroundWind } from "./PlanningGroundWind.ts";
 import { exportPlanningAuthoring, type PlanningDocument } from "@galacean/engine-world-planning/spatial/PlanningDocument";
 import {
@@ -12,16 +13,16 @@ import {
 } from "../PlanningVisualAuthoring.ts";
 import type { PlanningParameterCommand, PlanningSession } from "@galacean/engine-world-planning/spatial/PlanningSession";
 import type { SpatialEntity } from "@galacean/engine-world-planning/spatial/SpatialDocument";
-import type { RockSurfaceMode } from "@galacean/engine-world-planning/integrations/terrain/rock-formation/Settings";
 
 /** Stable identity and only the remaining spatial adapter state. Visual fields live on sibling components. */
 export class PlanningEntityAuthoring extends Script implements PlanningEntityIdentity {
-  declare planningId: string;
-  declare origin?: SpatialEntity["origin"];
-  declare parentId?: string;
+  // Native history can recreate this component before assigning its Source properties.
+  planningId = "";
+  origin?: SpatialEntity["origin"] = undefined;
+  parentId?: string = undefined;
   spatialComponents: SpatialEntity["components"] = {};
   /** Import-only compatibility for Scene files written before native domain components. */
-  declare authoring?: SpatialEntity;
+  authoring?: SpatialEntity = undefined;
 }
 
 /** Base links preserve set/reset/base semantics without filling inherited/default fields. */
@@ -73,6 +74,7 @@ export class PlanningLighting extends VisualParameterAuthoring {
   declare shadowStrength?: number;
   declare fog?: boolean;
   declare fogDensity?: number;
+  declare fogExponent?: number;
   private reference?: PlanningLightingProfileReference;
   /** Atomic binding avoids property-resolution order changing the authored asset identity. */
   get profileReference(): PlanningLightingProfileReference | undefined { return this.reference; }
@@ -140,6 +142,7 @@ export class PlanningSubjectView extends VisualParameterAuthoring {
   declare distanceM?: number;
 }
 export class PlanningGrassAppearance extends VisualParameterAuthoring {
+  declare groundFusion?: boolean;
   declare colorA?: AuthoredColor;
   declare colorB?: AuthoredColor;
   declare saturation?: number;
@@ -181,30 +184,26 @@ export class PlanningFlowerInfluence extends VisualParameterAuthoring {
   declare multiplier?: number;
   declare falloff?: number;
 }
-/** Sparse rock surface choice, ascent-mask noise and each surface's controls. */
+/** Sparse procedural rock shape and shared projected material controls. */
 export class PlanningRockFormation extends VisualParameterAuthoring {
-  declare surfaceMode?: RockSurfaceMode;
   declare textureScale?: number;
-  declare palette?: Partial<Record<"spring" | "summer" | "autumn" | "winter", { colorA?: AuthoredColor; colorB?: AuthoredColor }>>;
-  declare colorBalance?: number;
-  declare colorStrength?: number;
-  declare colorSaturation?: number;
-  declare noiseSeed?: number;
-  declare frequency?: number;
-  declare octaves?: number;
-  declare lacunarity?: number;
-  declare persistence?: number;
-  declare maskPower?: number;
-  declare slabSeed?: number;
-  declare slabSize?: number;
-  declare slabCoverage?: number;
-  declare slabDepth?: number;
-  declare slabVariation?: number;
-  declare cellSize?: number;
-  declare cellInset?: number;
-  declare cellDepth?: number;
-  declare cellDetail?: number;
-  declare cellCoverage?: number;
+  declare color?: AuthoredColor;
+  declare topScale?: number;
+  declare bottomScale?: number;
+  declare shoulderScale?: number;
+  declare shoulderHeight?: number;
+  declare topRoughness?: number;
+  declare topSlope?: number;
+  declare topDirection?: number;
+  declare wallCount?: number;
+  declare wallOverlap?: number;
+  declare wallProtrusion?: number;
+  declare wallLength?: number;
+  declare wallTilt?: number;
+  declare wallStrength?: number;
+  declare outlineIrregularity?: number;
+  declare variation?: number;
+  declare targetTriangles?: number;
 }
 export class PlanningSeedArchiveAuthoring extends Script {
   declare metadata: PlanningSeedArchiveMetadata;
@@ -336,7 +335,11 @@ function synchronizeEntities(parent: Entity, entities: Record<string, SpatialEnt
     if (!identity) continue;
     const id = identity.planningId ?? identity.authoring?.id;
     const source = remaining.get(id);
-    if (!source) child.destroy();
+    if (!source) {
+      const water: WaterBodyComponent[] = [];
+      child.getComponentsIncludeChildren(WaterBodyComponent, water);
+      if (!water.length) child.destroy();
+    }
     else { synchronize(child, identity, source); remaining.delete(id); }
   }
   for (const authoring of remaining.values()) {

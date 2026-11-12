@@ -5,7 +5,7 @@ import { masonryAppearance, masonryBaseColorUniform } from "./MasonryAppearance"
 import { leaseBuildingTexture, textureSourceColors } from "../resources/BuildingTextures";
 import { plasterTextureBindings } from "./ConstructionBindings";
 /** Lease immediately, publish only after both complete mip chains are ready. */
-export function leasePlasterTextures(engine: Engine, assets: PrefabResource, whiteBase = false) {
+export function leasePlasterTextures(engine: Engine, assets: PrefabResource) {
   let disposed = false;
   const leases: Array<{ destroy(): void }> = [];
   const ready = Promise.resolve().then(async () => {
@@ -19,7 +19,7 @@ export function leasePlasterTextures(engine: Engine, assets: PrefabResource, whi
     if (disposed) return;
     const textures = await Promise.all(
       plasterTextureBindings.map(([, name]) => {
-        const lease = leaseBuildingTexture(engine, name, source(name), whiteBase);
+        const lease = leaseBuildingTexture(engine, name, source(name), true);
         leases.push(lease);
         return lease.value;
       })
@@ -27,18 +27,17 @@ export function leasePlasterTextures(engine: Engine, assets: PrefabResource, whi
     if (disposed) return;
     return (material: Material) => {
       plasterTextureBindings.forEach(([uniform], i) => material.shaderData.setTexture(uniform, textures[i]));
-      if (whiteBase)
-        for (const [i, [uniform, name]] of plasterTextureBindings.entries()) {
-          const source = textureSourceColors.get(textures[i])!;
-          leases.push(
-            masonryAppearance(engine).subscribe(() =>
-              material.shaderData.setFloatArray(
-                masonryBaseColorUniform(uniform),
-                masonryAppearance(engine).textureColors(name, source)
-              )
+      for (const [i, [uniform, name]] of plasterTextureBindings.entries()) {
+        const source = textureSourceColors.get(textures[i])!;
+        leases.push(
+          masonryAppearance(engine).subscribe(() =>
+            material.shaderData.setFloatArray(
+              masonryBaseColorUniform(uniform),
+              masonryAppearance(engine).textureColors(name, source)
             )
-          );
-        }
+          )
+        );
+      }
     };
   });
   return {

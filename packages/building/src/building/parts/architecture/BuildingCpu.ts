@@ -1,76 +1,129 @@
-import { buildingWorkerAlgorithmIssue } from "./BuildingExecution";
-import { buildingPalette } from "./BuildingPalette";
-import { profileSupportRegion } from "./BuildingProfileTerrain";
-import { groundSupportsInRegion } from "../../runtime/TerrainField";
-import { buildingGrounding } from "./BuildingGrounding";
-import { designBuilding } from "./BuildingDesign";
-import { prepareBuildingPublication, buildingPreviewInput, buildingFocusPoses } from "./BuildingPublication";
-import { implementBuilding } from "./BuildingImplementation";
-import { prepareBuildingTerrain, type BuildingPlacementFrame } from "./BuildingTerrain";
-import { profileSupportGenerators, validateBuildingDraft, type BuildingDraft } from "./BuildingDraft";
-import { profilePreview } from "../../runtime/ProfilePreview";
-import { ConstructionSurfaceQuery } from "../../runtime/ConstructionSurfaceQuery";
+// CPU side of the building runtime: design a core draft and prepare what the main thread
+// draws. The same functions run in the Worker and, for tests and custom terrain, on the main
+// thread. Inputs and outputs are plain data.
+import { designBuildingCore, type BuildingCoreDraft, type HostRef } from "../../core";
+import { buildingDraftRegion, createBuildingTypeRegistry } from "../../partTypes";
+import {
+  coreBuildingEnvironment,
+  coreBuildingFocus,
+  coreBuildingGrounding,
+  coreBuildingLayout,
+  coreBuildingPalette,
+  coreBuildingRenderInput,
+  coreBuildingView,
+  coreBuildingDiagnostics
+} from "../../render/CoreBuilding";
+import { groundSupportsInRegion, type ConstructionGrounding } from "../../runtime/TerrainField";
 import type { ConstructionTerrainGrid } from "../../runtime/TerrainField";
+import { ConstructionSurfaceQuery } from "../../runtime/ConstructionSurfaceQuery";
 import type { BuildingUnitAssets } from "../../runtime/BuildingUnitAssets";
+import type { TerrainHeight } from "../../runtime/PublishedWallProfile";
+import { prepareBuildingTerrain, type BuildingPlacementFrame } from "./BuildingTerrain";
 
-/** Current Worker capability: data-only profile parts and native attachment
- * descriptors. Native Entity/Prefab/Mesh references must not cross postMessage.
- * Unsupported supports fail explicitly; no local fallback. */
-export function validateBuildingWorkerDraft(draft: BuildingDraft) {
-  validateBuildingDraft(draft);
-  for (const part of draft.parts) {
-    if (part.transform) throw Error("Profile Worker requires geometry in the declared placement frame: " + part.id);
-    if (!profileSupportGenerators.has(part.support.generator))
-      throw Error("Support has no Worker geometry codec: " + part.support.generator);
-    if (typeof part.unit !== "string" && !(part.unit && "nativeAttachment" in part.unit))
-      throw Error("Worker parts require a transferable Unit descriptor: " + part.id);
+const registry = createBuildingTypeRegistry();
+
+/** A draft is plain data: groups, parts and connections. */
+export function validateBuildingDraft(draft: BuildingCoreDraft): void {
+  if (!draft || !Array.isArray(draft.groups) || !Array.isArray(draft.parts))
+    throw Error("A building draft has groups and parts");
+  if (draft.connections !== undefined && !Array.isArray(draft.connections))
+    throw Error("Building draft connections must be a list");
+  for (const [name, items] of [
+    ["group", draft.groups],
+    ["part", draft.parts],
+    ["connection", draft.connections ?? []]
+  ] as const) {
+    const ids = items.map((x) => x.id);
+    if (ids.some((id) => typeof id !== "string" || !id) || new Set(ids).size !== ids.length)
+      throw Error(`Invalid or duplicate building ${name} identity`);
   }
-  const issue = buildingWorkerAlgorithmIssue(draft);
-  if (issue) throw Error(issue);
+  const groups = new Set(draft.groups.map((g) => g.id)),
+    parts = new Set(draft.parts.map((p) => p.id));
+  for (const part of draft.parts) if (!groups.has(part.group)) throw Error(`Missing group for ${part.id}`);
+  for (const c of draft.connections ?? [])
+    for (const id of c.kind === "attach" ? [c.guest, ...c.hosts.map((h: HostRef) => h.part)] : c.parts)
+      if (!parts.has(id)) throw Error(`Missing connection endpoint "${id}" in ${c.id}`);
 }
 export interface BuildingCpuOptions {
   frame?: BuildingPlacementFrame;
-  includeStructure?: boolean;
-  retainDecorationParts?: boolean;
-  requireAllDecorations?: boolean;
+  /** Fail when any part or connection reports a diagnostic. Default: true. */
+  requireAllParts?: boolean;
+}
+/** The ground a draft stands on in world coordinates, [minX, minZ, maxX, maxZ]: the
+ * region around its footprints, through the frame. */
+export function buildingWorldRegion(
+  draft: BuildingCoreDraft,
+  frame: BuildingPlacementFrame = { position: [0, 0, 0], rotationY: 0 }
+): number[] {
+  const local = buildingDraftRegion(draft) ?? [0, 0, 0, 0];
+  const c = Math.cos(frame.rotationY),
+    s = Math.sin(frame.rotationY);
+  const region = [Infinity, Infinity, -Infinity, -Infinity];
+  for (const x of [local[0], local[2]])
+    for (const z of [local[1], local[3]]) {
+      const wx = frame.position[0] + c * x + s * z,
+        wz = frame.position[2] - s * x + c * z;
+      region[0] = Math.min(region[0], wx);
+      region[1] = Math.min(region[1], wz);
+      region[2] = Math.max(region[2], wx);
+      region[3] = Math.max(region[3], wz);
+    }
+  return region;
+}
+/** The ground a draft samples: the terrain grid around its footprints, in the frame. */
+export function buildingGround(
+  draft: BuildingCoreDraft,
+  terrain: ConstructionTerrainGrid,
+  frame: BuildingPlacementFrame = { position: [0, 0, 0], rotationY: 0 }
+) {
+  const region = buildingWorldRegion(draft, frame);
+  return prepareBuildingTerrain({ ...terrain, supports: groundSupportsInRegion(terrain, region) }, frame);
+}
+/** Designs a draft on a ground and prepares the distance view, structure queries, palette
+ * and focus poses. The design stays in the result for the later detail. */
+export function prepareBuildingOnGround(
+  draft: BuildingCoreDraft,
+  ground: { height: TerrainHeight; grounding: ConstructionGrounding },
+  assets: BuildingUnitAssets,
+  options: Pick<BuildingCpuOptions, "requireAllParts"> = {}
+) {
+  validateBuildingDraft(draft);
+  const environment = coreBuildingEnvironment(ground.height, assets);
+  const result = designBuildingCore(draft, registry, { environment });
+  if (options.requireAllParts !== false && result.diagnostics.length)
+    throw Error(result.diagnostics.map((d) => d.source + ": " + d.message).join("\n"));
+  const layout = coreBuildingLayout(result, registry, { environment });
+  const preview = coreBuildingView(layout, {
+    assets,
+    includeAppearance: true,
+    includeStructure: true,
+    retainDecorationParts: true
+  });
+  const structure =
+    preview.structuralParts && new ConstructionSurfaceQuery(preview.structuralParts, [0, 0, 0], (id) => id).snapshot();
+  return {
+    prepared: { layout, preview, ground, assets },
+    preview,
+    structure,
+    appearance: coreBuildingPalette(layout),
+    focus: coreBuildingFocus(layout),
+    diagnostics: [...result.diagnostics, ...coreBuildingDiagnostics(layout)]
+  };
 }
 export async function prepareBuildingCpu(
-  draft: BuildingDraft,
+  draft: BuildingCoreDraft,
   terrain: ConstructionTerrainGrid,
   assets: BuildingUnitAssets,
   options: BuildingCpuOptions = {}
 ) {
-  validateBuildingWorkerDraft(draft);
-  const region = profileSupportRegion(draft, options.frame);
-  const ground = prepareBuildingTerrain(
-    { ...terrain, supports: groundSupportsInRegion(terrain, region) },
-    options.frame
-  );
-  const design = designBuilding(draft, ground.height, assets);
-  if (options.requireAllDecorations !== false && design.diagnostics.length)
-    throw Error(design.diagnostics.map((d) => d.part + ": " + d.reason).join("\n"));
-  const publication = await prepareBuildingPublication(design);
-  const preview = profilePreview(buildingPreviewInput(design, publication), ground.height, {
-    assets,
-    includeStructure: options.includeStructure ?? true,
-    includeAppearance: true,
-    retainDecorationParts: options.retainDecorationParts ?? true
-  });
-  const structure =
-    preview.structuralParts && new ConstructionSurfaceQuery(preview.structuralParts, [0, 0, 0], (id) => id).snapshot();
-  // The complete solved geometry stays in the Worker for later detail, not in
-  // the author scene or the response sent to the main thread.
-  return {
-    prepared: { design, publication, ground },
-    preview,
-    structure,
-    appearance: buildingPalette(design),
-    focus: buildingFocusPoses(design, preview.parts),
-    diagnostics: design.diagnostics
-  };
+  return prepareBuildingOnGround(draft, buildingGround(draft, terrain, options.frame), assets, options);
 }
-export type BuildingCpuPreparation = Awaited<ReturnType<typeof prepareBuildingCpu>>;
+export type BuildingCpuPreparation = ReturnType<typeof prepareBuildingOnGround>;
+/** The resident detail of a prepared design: render input and ground contact. */
 export async function compileBuildingCpu(prepared: BuildingCpuPreparation["prepared"]) {
-  const result = await implementBuilding(prepared.design, { publication: prepared.publication });
-  return { renderInput: result.renderInput, grounding: buildingGrounding(result, prepared.ground) };
+  const { layout, preview, ground, assets } = prepared;
+  return {
+    renderInput: await coreBuildingRenderInput(layout, preview, assets),
+    grounding: coreBuildingGrounding(layout, preview, ground)
+  };
 }

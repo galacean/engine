@@ -7,8 +7,10 @@ import {
   type DayNightLightingReference,
   DayNightMoonLighting,
   DayNightMoonPosition,
+  type DayNightMoonPositionConfig,
   DayNightProceduralSky,
   DayNightSolarPosition,
+  type DayNightSolarPositionConfig,
   DayNightSystem,
   DirectLight,
   Entity,
@@ -633,8 +635,17 @@ export class TerrainLightingRuntime {
    * @param scene Loaded Scene receiving environment and probe state.
    * @param directLight Scene-authored directional light.
    * @param postProcess Scene-authored post-processing runtime.
+   * @param celestialPosition Geographic and calendar inputs shared by the sky and directional lights.
    */
-  constructor(driverEntity: Entity, scene: Scene, directLight: DirectLight, postProcess: TerrainPostProcessRuntime) {
+  constructor(
+    driverEntity: Entity,
+    scene: Scene,
+    directLight: DirectLight,
+    postProcess: TerrainPostProcessRuntime,
+    celestialPosition: Readonly<
+      DayNightSolarPositionConfig & DayNightMoonPositionConfig
+    > = PROCEDURAL_SKY_SOLAR_POSITION
+  ) {
     this._scene = scene;
     this._directLight = directLight;
     this._postProcess = postProcess;
@@ -658,8 +669,8 @@ export class TerrainLightingRuntime {
     this._initialBackgroundColor = scene.background.solidColor.clone();
     this._initialSun = scene.sun ?? null;
     this._atmosphericFog = new TerrainAtmosphericFog(scene);
-    const solarPosition = new DayNightSolarPosition(PROCEDURAL_SKY_SOLAR_POSITION);
-    const moonPosition = new DayNightMoonPosition(PROCEDURAL_SKY_SOLAR_POSITION);
+    const solarPosition = new DayNightSolarPosition(celestialPosition);
+    const moonPosition = new DayNightMoonPosition(celestialPosition);
     this._proceduralSky = new DayNightProceduralSky(scene, solarPosition, "TerrainProceduralSky");
     const postProcessSnapshot = postProcess.getDebugSnapshot();
     this._initialPostProcess = postProcessSnapshot;

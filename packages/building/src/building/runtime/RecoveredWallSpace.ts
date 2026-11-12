@@ -1,50 +1,5 @@
 import { add, sub, mul, div, sqrt, f32, lerp, type RoofCurve } from "./RecoveredRoofMath";
 
-/** Host author scaling must not alias one attachment onto multiple wall laps.
- * This validates an interval before native endpoint projection; it does not
- * change project_clamp, which also handles legitimate seam-crossing points. */
-export class ClosedWallSpanError extends RangeError {
-  constructor(
-    readonly span: number,
-    readonly length: number
-  ) {
-    super("Decoration attachment span must be smaller than the closed wall perimeter");
-  }
-}
-export function assertClosedWallSpan(span: number, length: number, closed: boolean): void {
-  if (closed && !(f32(span) < f32(length))) throw new ClosedWallSpanError(f32(span), f32(length));
-}
-
-/** Native WallSpace::project_clamp (0x102000d34). Its length belongs to
- * WallSpace, independently of the polyline's length used by to_world_space. */
-export function projectWallArclength(arclength: number, wallSpaceLength: number, closed: boolean): number {
-  const x = f32(arclength),
-    span = f32(wallSpaceLength);
-  if (!Number.isFinite(x) || !Number.isFinite(span) || span <= 0)
-    throw Error("Finite arclength and positive wall-space length required");
-  let projected = closed ? f32(x % span) : Math.min(span, Math.max(0, x));
-  if (closed && projected < 0) projected = add(projected, span);
-  return projected;
-}
-
-/** Original to_world_space (0x102000a14). Projection and sampling are separate:
- * values outside the polyline extrapolate along its twice-normalized tangent.
- * The negative branch deliberately subtracts x (original direct-call oracle);
- * normal Cottage endpoints are projected nonnegative before reaching it. */
-export function sampleWallArclength(curve: RoofCurve, arclength: number): number[] {
-  const x = f32(arclength);
-  if (!Number.isFinite(x)) throw Error("Finite wall arclength required");
-  const u = div(x, curve.length),
-    point = curve.sample(u);
-  if (x >= 0 && x <= curve.length) return point;
-  const tangent = curve.tangent(u);
-  const inverse = div(1, sqrt(add(mul(tangent[0], tangent[0]), mul(tangent[1], tangent[1]))));
-  const delta = x > curve.length ? sub(x, curve.length) : x;
-  return point.map((p, i) =>
-    x > curve.length ? add(p, mul(mul(tangent[i], inverse), delta)) : sub(p, mul(mul(tangent[i], inverse), delta))
-  );
-}
-
 /** Original planar get_approx_u_from_pos (0x1011168ac). Tangent consumers
  * resolve this returned knot coordinate again; a shared vertex can select the
  * next segment rather than the closest-point search's earlier tie winner. */

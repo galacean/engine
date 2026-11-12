@@ -1,8 +1,5 @@
 /** Shared shader ABI for surface-water optical consumers. */
 export const WATER_OPTICS_SHADER_PROPERTY = {
-  surfaceScatteringCoefficient: "material_SurfaceScatteringCoefficient",
-  surfaceScatteringPhaseG: "material_SurfaceScatteringPhaseG",
-  debugMode: "material_DebugMode",
   refractionEnabled: "material_RefractionEnabled",
   absorptionCoefficient: "material_AbsorptionCoefficient",
   scatteringColor: "material_ScatteringColor",

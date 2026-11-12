@@ -3,6 +3,12 @@
 
 Shader "Sky/SkyProcedural" {
   Editor {
+    Macros {
+      Header("Base") {
+        /** Follows the scene's main light as the Sun or Moon, or uses the authored directions. */
+        [On] [OffValue(0)] MATERIAL_SKY_MAIN_LIGHT("shader.material.sky-direction-source", Enum(shader.material.sky-main-sun:1, shader.material.sky-main-moon:2, shader.material.sky-custom-direction:0)) = 1;
+      }
+    }
     Properties {
       Header("Base") {
         /** Linear brightness multiplier for the sky and ground colors. */
@@ -13,6 +19,7 @@ Shader "Sky/SkyProcedural" {
         material_SunSize("SunSize", Range(0, 1, 0.01)) = 0.04;
         /** Controls sun-disk focus in HighQuality mode. */
         material_SunSizeConvergence("SunSizeConvergence", Range(0, 20, 0.1)) = 5;
+        [ShowIf(MATERIAL_SKY_MAIN_LIGHT, 0)] material_SunDirection("SunDirection", Vector3) = (0, -1, 0);
         material_SunAtmosphereColor("SunAtmosphereColor", Color) = (1, 1, 1, 1);
         /** Relative atmosphere density used for Rayleigh scattering. */
         material_AtmosphereThickness("AtmosphereThickness", Range(0, 5, 0.1)) = 1;
@@ -44,6 +51,7 @@ Shader "Sky/SkyProcedural" {
         material_AirglowIntensity("AirglowIntensity", Range(0, 8, 0.1)) = 1;
       }
       Header("Moon") {
+        [ShowIf(MATERIAL_SKY_MAIN_LIGHT, 0)] material_MoonDirection("MoonDirection", Vector3) = (0, -1, 0);
         material_MoonColor("MoonColor", Color) = (1, 1, 1, 1);
         material_MoonDiskIntensity("MoonDiskIntensity", Range(0, 8, 0.1)) = 0;
         material_MoonAtmosphereIntensity("MoonAtmosphereIntensity", Range(0, 8, 0.1)) = 0;
@@ -70,6 +78,9 @@ Shader "Sky/SkyProcedural" {
       #ifdef MATERIAL_VOLUMETRIC_CLOUDS
         #include "ShaderLibrary/Lighting/VolumetricCloudComposition.glsl"
       #endif
+
+      #define SKY_MAIN_LIGHT_SUN 1
+      #define SKY_MAIN_LIGHT_MOON 2
 
       #define INNER_RADIUS 1.0
       #define MAX_SCATTER 50.0
@@ -104,6 +115,9 @@ Shader "Sky/SkyProcedural" {
       };
 
       mat4 camera_VPMat;
+      #ifdef MATERIAL_SKY_MAIN_LIGHT
+        vec3 scene_SunlightDirection;
+      #endif
       vec3 material_SkyTint;
       vec3 material_GroundTint;
       vec3 material_CustomSkyZenithTint;
@@ -144,6 +158,37 @@ Shader "Sky/SkyProcedural" {
       #define GAMMA 2.2
       #define COLOR_2_GAMMA(color) pow(color, vec3(1.0 / GAMMA))
       #define COLOR_2_LINEAR(color) color
+
+      #ifdef MATERIAL_SKY_MAIN_LIGHT
+        vec3 getDirectionToMainLight() {
+          float lengthSquared = dot(scene_SunlightDirection, scene_SunlightDirection);
+          if (lengthSquared < 1.0e-10) return vec3(0.0, -1.0, 0.0);
+          return -scene_SunlightDirection * inversesqrt(lengthSquared);
+        }
+      #endif
+
+      vec3 getSkySunDirection() {
+        #if MATERIAL_SKY_MAIN_LIGHT == SKY_MAIN_LIGHT_SUN
+          return getDirectionToMainLight();
+        #elif MATERIAL_SKY_MAIN_LIGHT == SKY_MAIN_LIGHT_MOON
+          // Keep the inferred Sun below astronomical twilight, even with a low Moon.
+          vec3 sun = -getDirectionToMainLight();
+          sun.y = min(sun.y, -0.35);
+          return normalize(sun);
+        #else
+          return -material_SunDirection;
+        #endif
+      }
+
+      vec3 getSkyMoonDirection() {
+        #if MATERIAL_SKY_MAIN_LIGHT == SKY_MAIN_LIGHT_SUN
+          return vec3(0.0, -1.0, 0.0);
+        #elif MATERIAL_SKY_MAIN_LIGHT == SKY_MAIN_LIGHT_MOON
+          return getDirectionToMainLight();
+        #else
+          return material_MoonDirection / max(length(material_MoonDirection), 1.0e-5);
+        #endif
+      }
 
       float getRayleighPhase(vec3 light, vec3 ray) {
         float eyeCos = dot(light, ray);
@@ -260,7 +305,7 @@ Shader "Sky/SkyProcedural" {
         vec3 mieIntegral = vec3(0.0);
         vec3 moonRayleighIntegral = vec3(0.0);
         vec3 moonMieIntegral = vec3(0.0);
-        vec3 moonDirection = material_MoonDirection / max(length(material_MoonDirection), 1.0e-5);
+        vec3 moonDirection = getSkyMoonDirection();
         for (int sampleIndex = 0; sampleIndex < 8; sampleIndex++) {
           if (float(sampleIndex) >= atmosphereSamples) break;
           float altitude = max(length(samplePosition) - innerRadius, 0.0);
@@ -527,7 +572,7 @@ Shader "Sky/SkyProcedural" {
         vec3 viewTransmittance,
         float starPixelFootprintVariance
       ) {
-        vec3 sunDirection = -material_SunDirection;
+        vec3 sunDirection = getSkySunDirection();
         float sunElevation = asin(clamp(sunDirection.y, -1.0, 1.0)) * (180.0 / 3.14159265);
         float solarDepression = max(-sunElevation, 0.0);
         float afterSunset = smoothstep(0.0, 0.75, solarDepression);
@@ -569,7 +614,7 @@ Shader "Sky/SkyProcedural" {
       }
 
       vec3 getMoonAtmosphereRadiance(vec3 viewDirection) {
-        vec3 moonDirection = material_MoonDirection / max(length(material_MoonDirection), 1.0e-5);
+        vec3 moonDirection = getSkyMoonDirection();
         float moonAboveHorizon = smoothstep(-0.02, 0.08, moonDirection.y);
         float skyMask = smoothstep(-0.02, 0.03, viewDirection.y);
         float horizon = pow(1.0 - clamp(viewDirection.y, 0.0, 1.0), 2.0);
@@ -588,7 +633,7 @@ Shader "Sky/SkyProcedural" {
       }
 
       vec4 getMoonDisk(vec3 viewDirection) {
-        vec3 moonDirection = material_MoonDirection / max(length(material_MoonDirection), 1.0e-5);
+        vec3 moonDirection = getSkyMoonDirection();
         vec3 referenceUp = abs(moonDirection.y) < 0.99 ? vec3(0.0, 1.0, 0.0) : vec3(1.0, 0.0, 0.0);
         vec3 diskRight = normalize(cross(referenceUp, moonDirection));
         vec3 diskUp = cross(moonDirection, diskRight);
@@ -602,12 +647,15 @@ Shader "Sky/SkyProcedural" {
         #endif
         float diskMask = 1.0 - smoothstep(1.0 - edgeWidth, 1.0 + edgeWidth, radialDistance);
         diskMask *= step(1.0e-5, material_MoonDiskIntensity);
+        #if MATERIAL_SKY_MAIN_LIGHT == SKY_MAIN_LIGHT_MOON
+          diskMask *= step(0.0, dot(viewDirection, moonDirection));
+        #endif
 
         float surfaceDepth = sqrt(max(1.0 - radialDistance * radialDistance, 0.0));
         vec3 surfaceNormal = normalize(
           diskRight * diskPosition.x + diskUp * diskPosition.y - moonDirection * surfaceDepth
         );
-        vec3 sunDirection = normalize(-material_SunDirection);
+        vec3 sunDirection = normalize(getSkySunDirection());
         float lunarDiffuse = max(dot(surfaceNormal, sunDirection), 0.0);
         float earthshine = 0.002;
         vec3 diskRadiance = material_MoonColor * material_MoonDiskIntensity * (earthshine + lunarDiffuse);
@@ -635,7 +683,7 @@ Shader "Sky/SkyProcedural" {
         vec3 invWavelength = 1.0 / pow(scatteringWavelength, vec3(4.0));
         vec3 cameraPos = vec3(0.0, innerRadius + cameraHeight, 0.0);
         vec3 eyeRay = normalize(attributes.POSITION.xyz);
-        vec3 sunDirection = normalize(-material_SunDirection);
+        vec3 sunDirection = normalize(getSkySunDirection());
         vec3 atmosphereRadiance;
         vec3 viewTransmittance;
         float groundMask;
@@ -685,9 +733,8 @@ Shader "Sky/SkyProcedural" {
             (dot(starDirectionDx, starDirectionDx) + dot(starDirectionDy, starDirectionDy)) / 24.0;
         #endif
 
-        #if defined(MATERIAL_SUN_HIGH_QUALITY) || defined(MATERIAL_SUN_SIMPLE)
-          col +=
-            varyings.v_SunColor * calcSunAttenuation(-material_SunDirection, viewRay) * skyVisibility;
+        #if (defined(MATERIAL_SUN_HIGH_QUALITY) || defined(MATERIAL_SUN_SIMPLE)) && (MATERIAL_SKY_MAIN_LIGHT != SKY_MAIN_LIGHT_MOON)
+          col += varyings.v_SunColor * calcSunAttenuation(getSkySunDirection(), viewRay) * skyVisibility;
         #endif
 
         col +=
@@ -695,8 +742,10 @@ Shader "Sky/SkyProcedural" {
           (getTwilightAndNightRadiance(viewRay, varyings.v_ViewTransmittance, starPixelFootprintVariance) +
             getMoonAtmosphereRadiance(viewRay));
 
-        vec4 moonDisk = getMoonDisk(viewRay);
-        col = mix(col, moonDisk.rgb * varyings.v_ViewTransmittance, moonDisk.a * skyVisibility);
+        #if MATERIAL_SKY_MAIN_LIGHT != SKY_MAIN_LIGHT_SUN
+          vec4 moonDisk = getMoonDisk(viewRay);
+          col = mix(col, moonDisk.rgb * varyings.v_ViewTransmittance, moonDisk.a * skyVisibility);
+        #endif
 
         #ifdef MATERIAL_VOLUMETRIC_CLOUDS
           vec4 cloud = sampleVolumetricCloudComposition(viewRay);

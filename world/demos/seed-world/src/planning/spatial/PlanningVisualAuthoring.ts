@@ -32,12 +32,12 @@ export const PLANNING_VISUAL_AUTHORING: readonly VisualAuthoringDescriptor[] = [
       ...directFields("bandM", "multiplier", "falloff"), enabled: "influenceEnabled"
     } } : {}) })),
   { component: "rockFormation", type: "PlanningRockFormation", fields: directFields(
-    "noiseSeed", "frequency", "octaves", "lacunarity", "persistence", "maskPower",
-    "slabSeed", "slabSize", "slabCoverage", "slabDepth", "slabVariation", "surfaceMode",
-    "cellSize", "cellInset", "cellDepth", "cellDetail", "cellCoverage", "textureScale", ...ROCK_COLOR_FIELDS.map(field => field.key)) },
+    "textureScale", "topScale", "bottomScale", "shoulderScale", "shoulderHeight", "topRoughness", "topSlope", "topDirection",
+    "wallCount", "wallOverlap", "wallProtrusion", "wallLength", "wallTilt", "wallStrength", "outlineIrregularity",
+    "variation", "targetTriangles", ...ROCK_COLOR_FIELDS.map(field => field.key)) },
   { component: "lighting", type: "PlanningLighting", fields: {
     ...directFields("profileUrl", "timeHours", "sunIntensity", "ambientIntensity", "iblIntensity", "direct", "environment",
-      "shadows", "shadowStrength", "fog", "fogDensity", "customSkyTintStrength", "skyExposure", "sunSize", "atmosphereThickness",
+      "shadows", "shadowStrength", "fog", "fogDensity", "fogExponent", "customSkyTintStrength", "skyExposure", "sunSize", "atmosphereThickness",
       "starIntensity", "moonLightIntensity", "moonDiskIntensity", "moonAtmosphereIntensityScale", "twilightIntensity",
       "airglowIntensity", "fogRadianceIntensity"),
     sunColorR: "sunColor.r", sunColorG: "sunColor.g", sunColorB: "sunColor.b",
@@ -57,7 +57,7 @@ export const PLANNING_VISUAL_AUTHORING: readonly VisualAuthoringDescriptor[] = [
     directFields("coverage", "densityPerM2", "patchSizeM", "maxSlopeDegrees"), collection: "assetWeights" },
   { component: "subjectView", type: "PlanningSubjectView", fields: directFields("subjectId", "frameFraction", "fovDegrees", "azimuthDegrees", "distanceM") },
   { component: "grassAppearance", type: "PlanningGrassAppearance", fields: {
-    ...directFields("saturation"),
+    ...directFields("saturation", "groundFusion"),
     ...Object.fromEntries(["colorA", "colorB"].flatMap(slot => ["r", "g", "b"].map(channel => [`${slot}.${channel}`, `${slot}.${channel}`])))
   } },
   { component: "plantMaterial", type: "PlanningPlantMaterials", fields: {}, collection: "materialSlots" }

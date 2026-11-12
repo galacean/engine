@@ -11,6 +11,7 @@ import {
   sampleTerrainLightingProfile
 } from "../integrations/terrain/lighting/TerrainLightingProfile.ts";
 import seedLightingProfile from "@galacean/engine-environment/terrain/lighting/SeedWorldLightingProfile.json";
+import { SEED_WORLD_DEFAULT_FOG_VALUES } from "@galacean/engine-environment/terrain/lighting/SeedWorldLightingPreset";
 
 const seedLightingSamples = seedLightingProfile.samples.map((sample) => ({
   timeHours: sample.timeHours,
@@ -100,7 +101,8 @@ function validateLightingExecution(
   effective: Readonly<Record<string, unknown>>
 ): string | undefined {
   let reason: string | undefined;
-  if (patch.fogDensity !== undefined && effective.fog === false) reason = "大气雾关闭；请显式开启 fog 后调整雾密度";
+  if ((patch.fogDensity !== undefined || patch.fogExponent !== undefined) && effective.fog === false)
+    reason = "大气雾关闭；请显式开启 fog 后调整距离雾";
   if (patch.shadowStrength !== undefined && (effective.shadows === false || effective.direct === false))
     reason = "太阳月光或实时阴影关闭；请显式开启 direct 和 shadows 后调整阴影强度";
   if (
@@ -240,18 +242,20 @@ export function applyPlanningLightSources(
   sourceProfile: readonly TerrainTimeOfDayLightingSample[],
   applyTime = true
 ): void {
-  const visual: Partial<TerrainLightingVisualTuning> = {};
+  const visual: Partial<TerrainLightingVisualTuning> = { fogExponent: SEED_WORLD_DEFAULT_FOG_VALUES.fogExponent };
   const overrideKeys = [
     ...PLANNING_LIGHT_SOURCE_FIELDS.map((field) => field.key),
     ...PLANNING_SKY_FIELDS.map((field) => field.key),
     "shadowStrength",
-    "fogDensity"
+    "fogDensity",
+    "fogExponent"
   ];
   for (const key of overrideKeys) {
     const value = values[key];
     if (value === undefined) continue;
     if (typeof value !== "number" || !Number.isFinite(value) || value < 0) throw new Error(`光源参数无效：${key}`);
     if (key === "customSkyTintStrength" && value > 1) throw new Error(`天空混合权重须在 0–1 之间`);
+    if (key === "fogExponent" && value === 0) throw new Error("距离雾指数须大于 0");
     Object.assign(visual, { [key]: value });
   }
   lighting.setTimeOfDayLightingProfile(sourceProfile);
