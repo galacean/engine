@@ -1,0 +1,14 @@
+packages/loader/src/ImageDecoder.ts
+  h_ddbf152d31b140 11-15
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "b7ddbeeb75f092970343663ea992102af7b14aa8",
+  "prompts": {},
+  "humans": {
+    "h_ddbf152d31b140": {
+      "author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}
