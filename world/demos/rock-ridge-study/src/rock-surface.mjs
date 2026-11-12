@@ -1,7 +1,9 @@
 import {clamp} from './ridge-utils.mjs';
 import {convexCarveCutter,sweptCarveCutter,carveSolidMesh} from './solid-carve.mjs';
 
-export const ROCK_SURFACE_VERSION='irregular-fractures-5';
+export const ROCK_SURFACE_VERSION='fracture-controls-6';
+export const FRACTURE_DEFAULTS=Object.freeze({depth:1,width:1,irregularity:1});
+export function fractureSettings(options={}){return Object.fromEntries(Object.entries(FRACTURE_DEFAULTS).map(([key,value])=>[key,Number.isFinite(options?.[key])?clamp(options[key],0,2):value]));}
 const PREVIOUS_SURFACE_VERSION='solid-carving-4';
 const surfaceCache=new WeakMap(),previousSurfaceCache=new WeakMap();
 const surfaceBlend=(a,b,x)=>{const t=clamp((x-a)/(b-a),0,1);return t*t*(3-2*t);};
@@ -28,11 +30,12 @@ export function previousFractureRockGeometry(g){
  if(!previousSurfaceCache.has(g))previousSurfaceCache.set(g,solidFractureGeometry(g,false));
  return previousSurfaceCache.get(g);
 }
-export function fractureRockGeometry(g){
- if(!surfaceCache.has(g))surfaceCache.set(g,solidFractureGeometry(g,true));
- return surfaceCache.get(g);
+export function fractureRockGeometry(g,options){
+ const settings=fractureSettings(options),key=JSON.stringify(settings),cached=surfaceCache.get(g);
+ if(cached?.key===key)return cached.geometry;
+ const geometry=solidFractureGeometry(g,true,settings);surfaceCache.set(g,{key,geometry});return geometry;
 }
-function solidFractureGeometry(g,irregular){
+function solidFractureGeometry(g,irregular,settings=FRACTURE_DEFAULTS){
  const version=irregular?ROCK_SURFACE_VERSION:PREVIOUS_SURFACE_VERSION;
  const seed=g.parameters.seed+54139,lo=g.bounds[0],hi=g.bounds[1],height=hi[1]-lo[1],center=[(lo[0]+hi[0])*.5,(lo[2]+hi[2])*.5],radius=[(hi[0]-lo[0])*.5,(hi[2]-lo[2])*.5];
  const normalize=p=>[(p[0]-center[0])/radius[0],(p[1]-lo[1])/height,(p[2]-center[1])/radius[1]],denormalize=p=>[center[0]+p[0]*radius[0],lo[1]+p[1]*height,center[1]+p[2]*radius[1]];
@@ -59,6 +62,7 @@ function solidFractureGeometry(g,irregular){
  }
  const firstJoint=cutters.length,fracturePaths=[];
  for(let i=0;i<5;i++){
+  if(irregular&&(!settings.depth||!settings.width))break;
   const angle=phase+.26+i*Math.PI*2/5+(surfaceHash(i,3,0,seed)-.5)*.32,n=[Math.cos(angle),Math.sin(angle)],t=[-n[1],n[0]];
   const face=faces.filter(f=>f.n[0]*n[0]+f.n[1]*n[1]>.1).sort((a,b)=>(a.offset+a.slope*.5)/(a.n[0]*n[0]+a.n[1]*n[1])-(b.offset+b.slope*.5)/(b.n[0]*n[0]+b.n[1]*n[1]))[0];
   const alignment=face.n[0]*n[0]+face.n[1]*n[1],offset=face.offset/alignment-(.20+.07*surfaceHash(i,5,0,seed)),slope=face.slope/alignment,opening=.40+.12*surfaceHash(i,4,0,seed),lean=.025;
@@ -70,14 +74,14 @@ function solidFractureGeometry(g,irregular){
   // A few independent geological-scale bends, not vertex-frequency noise.
   // Depth variation changes the opening width continuously; unequal walls
   // prevent a repeated symmetric V profile. Both tips exit outside the rock.
-  const centers=stations.map((u,j)=>drift*(u-.5)+(surfaceHash(i,13+j,0,seed)-.5)*.30*aspect);
+  const centers=stations.map((u,j)=>(drift*(u-.5)+(surfaceHash(i,13+j,0,seed)-.5)*.30*aspect)*settings.irregularity);
   const sections=stations.map((u,j)=>{
    const y=low+u*span,center=centers[j],skin=(face.offset+face.slope*y-tangent*center)/alignment;
-   const depth=(.20+.07*surfaceHash(i,5,0,seed))*(.65+.60*surfaceHash(i,20+j,0,seed));
+   const variation=.65+.60*surfaceHash(i,20+j,0,seed),depth=(.20+.07*surfaceHash(i,5,0,seed))*(settings.irregularity===1?variation:.95+(variation-.95)*settings.irregularity)*settings.depth;
    const exit=g.parameters.topRoughness===0?1.7:skin+.035;
    return {y,center,tip:Math.max(.22,j===0||j===stations.length-1?exit:skin-depth)};
   });
-  const asymmetry=.62+.24*surfaceHash(i,27,0,seed),openings=[opening*asymmetry,opening*(1.65-asymmetry)];
+  const asymmetry=.62+.24*surfaceHash(i,27,0,seed),openings=[opening*asymmetry*settings.width,opening*(1.65-asymmetry)*settings.width];
   const cutter=sweptCarveCutter(sections,n,openings,planeInfo.length+1);
   cutters.push(cutter);planeInfo.push(...cutter.planes.map(p=>({...p,kind:'joint'})));fracturePaths.push({n,opening:openings,sections});
  }
@@ -86,11 +90,11 @@ function solidFractureGeometry(g,irregular){
  const details=result.map(p=>{
   const q=normalize(p);let joint=0;for(const cutter of cutters.slice(firstJoint)){const distance=Math.min(...(cutter.regions||[cutter.planes]).map(region=>Math.max(...region.map(plane=>surfaceDot(plane.n,q)-plane.w))));joint=Math.max(joint,1-surfaceBlend(0,.07,Math.max(0,distance)));}return [joint,.51,0];
  });
- const output={...g,positions:result.flat(),indices,normals:final.normals.flat(),rockDetail:details.flat(),faceTags:mesh.faceTags,bounds:[bounds.map(b=>b[0]),bounds.map(b=>b[1])],stats:{triangles:indices.length/3,method:version},surface:{version,sourceTriangles:g.indices.length/3,anchor,planes:firstJoint,fractures:5,vertices:result.length,construction:'solid subtraction',...(irregular?{fracturePaths}:{}),cutPlanes:planeInfo,normalizedFrame:{center,radius,minimum:lo[1],height}}};
+ const output={...g,positions:result.flat(),indices,normals:final.normals.flat(),rockDetail:details.flat(),faceTags:mesh.faceTags,bounds:[bounds.map(b=>b[0]),bounds.map(b=>b[1])],stats:{triangles:indices.length/3,method:version},surface:{version,sourceTriangles:g.indices.length/3,anchor,planes:firstJoint,fractures:irregular?fracturePaths.length:5,vertices:result.length,construction:'solid subtraction',...(irregular?{fracturePaths,settings}:{}),cutPlanes:planeInfo,normalizedFrame:{center,radius,minimum:lo[1],height}}};
  return output;
 }
 
-export function fracturedRockLibrary(geometries){return Object.fromEntries(Object.entries(geometries).map(([id,g])=>[id,fractureRockGeometry(g)]));}
+export function fracturedRockLibrary(geometries,options){return Object.fromEntries(Object.entries(geometries).map(([id,g])=>[id,fractureRockGeometry(g,options)]));}
 
 // Split only the render normals at physical creases. Geometry used by fitting
 // and contact measurements stays welded and has identical triangle positions.

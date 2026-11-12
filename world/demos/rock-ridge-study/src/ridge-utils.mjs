@@ -1,6 +1,6 @@
 // Study generator: seed -> ridge plan -> atomic-rock assembly -> measured crest.
 // This is a proposal derived from Seed's hierarchy/curve concepts, not shipped Seed code.
-export const RIDGE_VERSION = 'ridge-irregular-cuts-10';
+export const RIDGE_VERSION = 'ridge-fracture-controls-11';
 export const DEFAULT_RIDGE_SEED = 382;
 const TAU = Math.PI * 2;
 export const clamp = (x, a, b) => Math.max(a, Math.min(b, x));

@@ -1,0 +1,893 @@
+{
+  "version": "fracture-controls-6",
+  "cases": [
+    {
+      "id": "cliff",
+      "depth": 0,
+      "width": 1,
+      "irregularity": 1,
+      "triangles": 13214
+    },
+    {
+      "id": "cliff",
+      "depth": 1,
+      "width": 0,
+      "irregularity": 1,
+      "triangles": 13214
+    },
+    {
+      "id": "cliff",
+      "depth": 0.1,
+      "width": 0.1,
+      "irregularity": 0,
+      "triangles": 17546
+    },
+    {
+      "id": "cliff",
+      "depth": 0.1,
+      "width": 0.1,
+      "irregularity": 2,
+      "triangles": 24396
+    },
+    {
+      "id": "cliff",
+      "depth": 0.1,
+      "width": 2,
+      "irregularity": 0,
+      "triangles": 17630
+    },
+    {
+      "id": "cliff",
+      "depth": 0.1,
+      "width": 2,
+      "irregularity": 2,
+      "triangles": 22614
+    },
+    {
+      "id": "cliff",
+      "depth": 2,
+      "width": 0.1,
+      "irregularity": 0,
+      "triangles": 21434
+    },
+    {
+      "id": "cliff",
+      "depth": 2,
+      "width": 0.1,
+      "irregularity": 2,
+      "triangles": 27342
+    },
+    {
+      "id": "cliff",
+      "depth": 2,
+      "width": 2,
+      "irregularity": 0,
+      "triangles": 19124
+    },
+    {
+      "id": "cliff",
+      "depth": 2,
+      "width": 2,
+      "irregularity": 2,
+      "triangles": 24314
+    },
+    {
+      "id": "cliff2",
+      "depth": 0,
+      "width": 1,
+      "irregularity": 1,
+      "triangles": 10632
+    },
+    {
+      "id": "cliff2",
+      "depth": 1,
+      "width": 0,
+      "irregularity": 1,
+      "triangles": 10632
+    },
+    {
+      "id": "cliff2",
+      "depth": 0.1,
+      "width": 0.1,
+      "irregularity": 0,
+      "triangles": 15728
+    },
+    {
+      "id": "cliff2",
+      "depth": 0.1,
+      "width": 0.1,
+      "irregularity": 2,
+      "triangles": 21308
+    },
+    {
+      "id": "cliff2",
+      "depth": 0.1,
+      "width": 2,
+      "irregularity": 0,
+      "triangles": 15694
+    },
+    {
+      "id": "cliff2",
+      "depth": 0.1,
+      "width": 2,
+      "irregularity": 2,
+      "triangles": 19744
+    },
+    {
+      "id": "cliff2",
+      "depth": 2,
+      "width": 0.1,
+      "irregularity": 0,
+      "triangles": 19438
+    },
+    {
+      "id": "cliff2",
+      "depth": 2,
+      "width": 0.1,
+      "irregularity": 2,
+      "triangles": 23746
+    },
+    {
+      "id": "cliff2",
+      "depth": 2,
+      "width": 2,
+      "irregularity": 0,
+      "triangles": 18954
+    },
+    {
+      "id": "cliff2",
+      "depth": 2,
+      "width": 2,
+      "irregularity": 2,
+      "triangles": 23666
+    },
+    {
+      "id": "wall",
+      "depth": 0,
+      "width": 1,
+      "irregularity": 1,
+      "triangles": 11186
+    },
+    {
+      "id": "wall",
+      "depth": 1,
+      "width": 0,
+      "irregularity": 1,
+      "triangles": 11186
+    },
+    {
+      "id": "wall",
+      "depth": 0.1,
+      "width": 0.1,
+      "irregularity": 0,
+      "triangles": 15204
+    },
+    {
+      "id": "wall",
+      "depth": 0.1,
+      "width": 0.1,
+      "irregularity": 2,
+      "triangles": 20980
+    },
+    {
+      "id": "wall",
+      "depth": 0.1,
+      "width": 2,
+      "irregularity": 0,
+      "triangles": 15202
+    },
+    {
+      "id": "wall",
+      "depth": 0.1,
+      "width": 2,
+      "irregularity": 2,
+      "triangles": 19272
+    },
+    {
+      "id": "wall",
+      "depth": 2,
+      "width": 0.1,
+      "irregularity": 0,
+      "triangles": 19124
+    },
+    {
+      "id": "wall",
+      "depth": 2,
+      "width": 0.1,
+      "irregularity": 2,
+      "triangles": 23280
+    },
+    {
+      "id": "wall",
+      "depth": 2,
+      "width": 2,
+      "irregularity": 0,
+      "triangles": 15666
+    },
+    {
+      "id": "wall",
+      "depth": 2,
+      "width": 2,
+      "irregularity": 2,
+      "triangles": 20192
+    },
+    {
+      "id": "wall2",
+      "depth": 0,
+      "width": 1,
+      "irregularity": 1,
+      "triangles": 8746
+    },
+    {
+      "id": "wall2",
+      "depth": 1,
+      "width": 0,
+      "irregularity": 1,
+      "triangles": 8746
+    },
+    {
+      "id": "wall2",
+      "depth": 0.1,
+      "width": 0.1,
+      "irregularity": 0,
+      "triangles": 14636
+    },
+    {
+      "id": "wall2",
+      "depth": 0.1,
+      "width": 0.1,
+      "irregularity": 2,
+      "triangles": 19116
+    },
+    {
+      "id": "wall2",
+      "depth": 0.1,
+      "width": 2,
+      "irregularity": 0,
+      "triangles": 14414
+    },
+    {
+      "id": "wall2",
+      "depth": 0.1,
+      "width": 2,
+      "irregularity": 2,
+      "triangles": 18886
+    },
+    {
+      "id": "wall2",
+      "depth": 2,
+      "width": 0.1,
+      "irregularity": 0,
+      "triangles": 17664
+    },
+    {
+      "id": "wall2",
+      "depth": 2,
+      "width": 0.1,
+      "irregularity": 2,
+      "triangles": 21768
+    },
+    {
+      "id": "wall2",
+      "depth": 2,
+      "width": 2,
+      "irregularity": 0,
+      "triangles": 14200
+    },
+    {
+      "id": "wall2",
+      "depth": 2,
+      "width": 2,
+      "irregularity": 2,
+      "triangles": 18970
+    },
+    {
+      "id": "shoulder",
+      "depth": 0,
+      "width": 1,
+      "irregularity": 1,
+      "triangles": 9294
+    },
+    {
+      "id": "shoulder",
+      "depth": 1,
+      "width": 0,
+      "irregularity": 1,
+      "triangles": 9294
+    },
+    {
+      "id": "shoulder",
+      "depth": 0.1,
+      "width": 0.1,
+      "irregularity": 0,
+      "triangles": 14462
+    },
+    {
+      "id": "shoulder",
+      "depth": 0.1,
+      "width": 0.1,
+      "irregularity": 2,
+      "triangles": 19862
+    },
+    {
+      "id": "shoulder",
+      "depth": 0.1,
+      "width": 2,
+      "irregularity": 0,
+      "triangles": 14340
+    },
+    {
+      "id": "shoulder",
+      "depth": 0.1,
+      "width": 2,
+      "irregularity": 2,
+      "triangles": 17790
+    },
+    {
+      "id": "shoulder",
+      "depth": 2,
+      "width": 0.1,
+      "irregularity": 0,
+      "triangles": 19404
+    },
+    {
+      "id": "shoulder",
+      "depth": 2,
+      "width": 0.1,
+      "irregularity": 2,
+      "triangles": 23178
+    },
+    {
+      "id": "shoulder",
+      "depth": 2,
+      "width": 2,
+      "irregularity": 0,
+      "triangles": 15844
+    },
+    {
+      "id": "shoulder",
+      "depth": 2,
+      "width": 2,
+      "irregularity": 2,
+      "triangles": 18222
+    },
+    {
+      "id": "shoulder2",
+      "depth": 0,
+      "width": 1,
+      "irregularity": 1,
+      "triangles": 12480
+    },
+    {
+      "id": "shoulder2",
+      "depth": 1,
+      "width": 0,
+      "irregularity": 1,
+      "triangles": 12480
+    },
+    {
+      "id": "shoulder2",
+      "depth": 0.1,
+      "width": 0.1,
+      "irregularity": 0,
+      "triangles": 18006
+    },
+    {
+      "id": "shoulder2",
+      "depth": 0.1,
+      "width": 0.1,
+      "irregularity": 2,
+      "triangles": 23928
+    },
+    {
+      "id": "shoulder2",
+      "depth": 0.1,
+      "width": 2,
+      "irregularity": 0,
+      "triangles": 17994
+    },
+    {
+      "id": "shoulder2",
+      "depth": 0.1,
+      "width": 2,
+      "irregularity": 2,
+      "triangles": 22420
+    },
+    {
+      "id": "shoulder2",
+      "depth": 2,
+      "width": 0.1,
+      "irregularity": 0,
+      "triangles": 22118
+    },
+    {
+      "id": "shoulder2",
+      "depth": 2,
+      "width": 0.1,
+      "irregularity": 2,
+      "triangles": 26796
+    },
+    {
+      "id": "shoulder2",
+      "depth": 2,
+      "width": 2,
+      "irregularity": 0,
+      "triangles": 20454
+    },
+    {
+      "id": "shoulder2",
+      "depth": 2,
+      "width": 2,
+      "irregularity": 2,
+      "triangles": 23932
+    },
+    {
+      "id": "peak",
+      "depth": 0,
+      "width": 1,
+      "irregularity": 1,
+      "triangles": 6360
+    },
+    {
+      "id": "peak",
+      "depth": 1,
+      "width": 0,
+      "irregularity": 1,
+      "triangles": 6360
+    },
+    {
+      "id": "peak",
+      "depth": 0.1,
+      "width": 0.1,
+      "irregularity": 0,
+      "triangles": 10334
+    },
+    {
+      "id": "peak",
+      "depth": 0.1,
+      "width": 0.1,
+      "irregularity": 2,
+      "triangles": 13152
+    },
+    {
+      "id": "peak",
+      "depth": 0.1,
+      "width": 2,
+      "irregularity": 0,
+      "triangles": 10188
+    },
+    {
+      "id": "peak",
+      "depth": 0.1,
+      "width": 2,
+      "irregularity": 2,
+      "triangles": 12632
+    },
+    {
+      "id": "peak",
+      "depth": 2,
+      "width": 0.1,
+      "irregularity": 0,
+      "triangles": 13438
+    },
+    {
+      "id": "peak",
+      "depth": 2,
+      "width": 0.1,
+      "irregularity": 2,
+      "triangles": 16314
+    },
+    {
+      "id": "peak",
+      "depth": 2,
+      "width": 2,
+      "irregularity": 0,
+      "triangles": 11360
+    },
+    {
+      "id": "peak",
+      "depth": 2,
+      "width": 2,
+      "irregularity": 2,
+      "triangles": 12270
+    },
+    {
+      "id": "peak2",
+      "depth": 0,
+      "width": 1,
+      "irregularity": 1,
+      "triangles": 12000
+    },
+    {
+      "id": "peak2",
+      "depth": 1,
+      "width": 0,
+      "irregularity": 1,
+      "triangles": 12000
+    },
+    {
+      "id": "peak2",
+      "depth": 0.1,
+      "width": 0.1,
+      "irregularity": 0,
+      "triangles": 16160
+    },
+    {
+      "id": "peak2",
+      "depth": 0.1,
+      "width": 0.1,
+      "irregularity": 2,
+      "triangles": 21626
+    },
+    {
+      "id": "peak2",
+      "depth": 0.1,
+      "width": 2,
+      "irregularity": 0,
+      "triangles": 16096
+    },
+    {
+      "id": "peak2",
+      "depth": 0.1,
+      "width": 2,
+      "irregularity": 2,
+      "triangles": 20396
+    },
+    {
+      "id": "peak2",
+      "depth": 2,
+      "width": 0.1,
+      "irregularity": 0,
+      "triangles": 20074
+    },
+    {
+      "id": "peak2",
+      "depth": 2,
+      "width": 0.1,
+      "irregularity": 2,
+      "triangles": 25716
+    },
+    {
+      "id": "peak2",
+      "depth": 2,
+      "width": 2,
+      "irregularity": 0,
+      "triangles": 17328
+    },
+    {
+      "id": "peak2",
+      "depth": 2,
+      "width": 2,
+      "irregularity": 2,
+      "triangles": 20838
+    },
+    {
+      "id": "slab",
+      "depth": 0,
+      "width": 1,
+      "irregularity": 1,
+      "triangles": 2838
+    },
+    {
+      "id": "slab",
+      "depth": 1,
+      "width": 0,
+      "irregularity": 1,
+      "triangles": 2838
+    },
+    {
+      "id": "slab",
+      "depth": 0.1,
+      "width": 0.1,
+      "irregularity": 0,
+      "triangles": 27674
+    },
+    {
+      "id": "slab",
+      "depth": 0.1,
+      "width": 0.1,
+      "irregularity": 2,
+      "triangles": 32936
+    },
+    {
+      "id": "slab",
+      "depth": 0.1,
+      "width": 2,
+      "irregularity": 0,
+      "triangles": 28922
+    },
+    {
+      "id": "slab",
+      "depth": 0.1,
+      "width": 2,
+      "irregularity": 2,
+      "triangles": 33234
+    },
+    {
+      "id": "slab",
+      "depth": 2,
+      "width": 0.1,
+      "irregularity": 0,
+      "triangles": 28024
+    },
+    {
+      "id": "slab",
+      "depth": 2,
+      "width": 0.1,
+      "irregularity": 2,
+      "triangles": 33342
+    },
+    {
+      "id": "slab",
+      "depth": 2,
+      "width": 2,
+      "irregularity": 0,
+      "triangles": 27946
+    },
+    {
+      "id": "slab",
+      "depth": 2,
+      "width": 2,
+      "irregularity": 2,
+      "triangles": 33450
+    },
+    {
+      "id": "slab2",
+      "depth": 0,
+      "width": 1,
+      "irregularity": 1,
+      "triangles": 2892
+    },
+    {
+      "id": "slab2",
+      "depth": 1,
+      "width": 0,
+      "irregularity": 1,
+      "triangles": 2892
+    },
+    {
+      "id": "slab2",
+      "depth": 0.1,
+      "width": 0.1,
+      "irregularity": 0,
+      "triangles": 27768
+    },
+    {
+      "id": "slab2",
+      "depth": 0.1,
+      "width": 0.1,
+      "irregularity": 2,
+      "triangles": 33692
+    },
+    {
+      "id": "slab2",
+      "depth": 0.1,
+      "width": 2,
+      "irregularity": 0,
+      "triangles": 31804
+    },
+    {
+      "id": "slab2",
+      "depth": 0.1,
+      "width": 2,
+      "irregularity": 2,
+      "triangles": 36984
+    },
+    {
+      "id": "slab2",
+      "depth": 2,
+      "width": 0.1,
+      "irregularity": 0,
+      "triangles": 28972
+    },
+    {
+      "id": "slab2",
+      "depth": 2,
+      "width": 0.1,
+      "irregularity": 2,
+      "triangles": 35546
+    },
+    {
+      "id": "slab2",
+      "depth": 2,
+      "width": 2,
+      "irregularity": 0,
+      "triangles": 30806
+    },
+    {
+      "id": "slab2",
+      "depth": 2,
+      "width": 2,
+      "irregularity": 2,
+      "triangles": 35616
+    },
+    {
+      "id": "bank",
+      "depth": 0,
+      "width": 1,
+      "irregularity": 1,
+      "triangles": 7874
+    },
+    {
+      "id": "bank",
+      "depth": 1,
+      "width": 0,
+      "irregularity": 1,
+      "triangles": 7874
+    },
+    {
+      "id": "bank",
+      "depth": 0.1,
+      "width": 0.1,
+      "irregularity": 0,
+      "triangles": 14266
+    },
+    {
+      "id": "bank",
+      "depth": 0.1,
+      "width": 0.1,
+      "irregularity": 2,
+      "triangles": 19408
+    },
+    {
+      "id": "bank",
+      "depth": 0.1,
+      "width": 2,
+      "irregularity": 0,
+      "triangles": 14190
+    },
+    {
+      "id": "bank",
+      "depth": 0.1,
+      "width": 2,
+      "irregularity": 2,
+      "triangles": 18238
+    },
+    {
+      "id": "bank",
+      "depth": 2,
+      "width": 0.1,
+      "irregularity": 0,
+      "triangles": 17634
+    },
+    {
+      "id": "bank",
+      "depth": 2,
+      "width": 0.1,
+      "irregularity": 2,
+      "triangles": 22284
+    },
+    {
+      "id": "bank",
+      "depth": 2,
+      "width": 2,
+      "irregularity": 0,
+      "triangles": 14784
+    },
+    {
+      "id": "bank",
+      "depth": 2,
+      "width": 2,
+      "irregularity": 2,
+      "triangles": 18798
+    },
+    {
+      "id": "bank2",
+      "depth": 0,
+      "width": 1,
+      "irregularity": 1,
+      "triangles": 14018
+    },
+    {
+      "id": "bank2",
+      "depth": 1,
+      "width": 0,
+      "irregularity": 1,
+      "triangles": 14018
+    },
+    {
+      "id": "bank2",
+      "depth": 0.1,
+      "width": 0.1,
+      "irregularity": 0,
+      "triangles": 18206
+    },
+    {
+      "id": "bank2",
+      "depth": 0.1,
+      "width": 0.1,
+      "irregularity": 2,
+      "triangles": 23494
+    },
+    {
+      "id": "bank2",
+      "depth": 0.1,
+      "width": 2,
+      "irregularity": 0,
+      "triangles": 18134
+    },
+    {
+      "id": "bank2",
+      "depth": 0.1,
+      "width": 2,
+      "irregularity": 2,
+      "triangles": 20860
+    },
+    {
+      "id": "bank2",
+      "depth": 2,
+      "width": 0.1,
+      "irregularity": 0,
+      "triangles": 21978
+    },
+    {
+      "id": "bank2",
+      "depth": 2,
+      "width": 0.1,
+      "irregularity": 2,
+      "triangles": 26362
+    },
+    {
+      "id": "bank2",
+      "depth": 2,
+      "width": 2,
+      "irregularity": 0,
+      "triangles": 19736
+    },
+    {
+      "id": "bank2",
+      "depth": 2,
+      "width": 2,
+      "irregularity": 2,
+      "triangles": 23938
+    }
+  ],
+  "sensitivity": [
+    {
+      "id": "wall",
+      "control": "depth",
+      "volumeAt50Percent": 452.7173220275655,
+      "volumeAt150Percent": 427.6508103038192
+    },
+    {
+      "id": "wall",
+      "control": "width",
+      "volumeAt50Percent": 449.48334554421484,
+      "volumeAt150Percent": 437.67397672592426
+    },
+    {
+      "id": "peak",
+      "control": "depth",
+      "volumeAt50Percent": 4082.0131600375316,
+      "volumeAt150Percent": 3865.2666533961433
+    },
+    {
+      "id": "peak",
+      "control": "width",
+      "volumeAt50Percent": 4052.9009819944085,
+      "volumeAt150Percent": 3948.8646972351567
+    },
+    {
+      "id": "slab",
+      "control": "depth",
+      "volumeAt50Percent": 167.07416519735992,
+      "volumeAt150Percent": 159.49868610415413
+    },
+    {
+      "id": "slab",
+      "control": "width",
+      "volumeAt50Percent": 167.25539504699904,
+      "volumeAt150Percent": 160.5243292123127
+    }
+  ],
+  "checks": [
+    "120 boundary and disabled-control meshes",
+    "closed connected wound solids and nonzero GPU triangles",
+    "no exposed fracture end caps",
+    "summits and platform caps retained",
+    "depth and width change actual removed volume",
+    "irregularity changes geometry",
+    "deterministic replay and default restoration",
+    "immutable sources and sanitized settings"
+  ]
+}

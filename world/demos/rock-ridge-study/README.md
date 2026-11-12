@@ -33,11 +33,12 @@ node world/demos/rock-ridge-study/build.mjs
 node world/demos/rock-ridge-study/src/verify-ridges.mjs
 node world/demos/rock-ridge-study/src/verify-perlin.mjs
 node world/demos/rock-ridge-study/src/verify-surfaces.mjs
+node world/demos/rock-ridge-study/src/verify-fracture-controls.mjs
 ```
 
 ## Current fitter
 
-`ridge-irregular-cuts-10` generates the full network before reading any rock geometry.
+`ridge-fracture-controls-11` generates the full network before reading any rock geometry.
 Shared XYZ junctions connect continuous curves with procedural peaks and saddles.
 The blue lines show that exact input; orange lines sample the actual mesh surface
 at the same X/Z positions. Orange is not an extraction of every mesh crest.
@@ -136,7 +137,7 @@ it does not contain the seller's mesh, textures or sculpt data and does not repr
 the reference exactly. The original rounded outline still influences the result.
 
 Use **Surface comparison** to see the previous straight `solid-carving-4` cuts beside
-`irregular-fractures-5` on the same highest mass. Both panels share the same transform,
+`fracture-controls-6` on the same highest mass. Both panels share the same transform,
 camera, framing, lighting and untextured clay. Each renders alone, so neither
 casts shadows onto the other. The comparison stacks below 540 px. Entering it
 preserves the viewing angle; choosing Low angle or Side first gives the matching
@@ -147,6 +148,24 @@ Use **Rock finish** in an assembly view to compare stone, clay and original
 geometry. **Rock close-up** frames the highest mass. Stone and fractured clay
 share the same carved mesh and fitted assembly. Original clay refits the same
 independent target using the baked meshes. Changing finish keeps the orbit angles.
+
+### Fracture controls
+
+**Depth**, **Width**, and **Irregularity** range from 0% to 200% and update when
+the slider is released. All three at 100% exactly reproduce the preceding
+`irregular-fractures-5` geometry and render attributes across all 12 prototypes.
+Depth scales the inward incision; width scales the V opening, so its visible
+aperture also grows with depth. Irregularity scales lateral bends and depth
+variation. Zero irregularity gives straight tapered paths. Zero depth or width
+removes the joints while retaining the broad face cuts.
+
+In **Surface comparison**, the controls update only the right-hand rock. The
+reference, selected prototype, placement and viewing angle stay fixed while
+tuning; only one mesh is rebuilt. Assembly views rebuild the library and refit
+the masses against the adjusted surface. They may take several seconds to update.
+Obsolete mesh buffers are disposed instead of retaining every slider combination.
+Controls are disabled for Original clay and noise-field views. Settings are saved
+with the seed, height and orbit; older saved states default to 100%.
 
 ### Carving contract
 
@@ -202,6 +221,14 @@ replay; connected mass contacts; target independence; and height transforms.
 All 2,500 samples across the 3 m platform route retain their original height.
 See [surface-validation.json](evidence/surface-validation.json).
 
+The control suite checks 120 meshes: both disabled-joint settings and the eight
+combinations of 10%/200% depth, 10%/200% width, and 0%/200% irregularity across
+the 12 prototypes. It verifies closed, connected, consistently wound solids,
+nonzero GPU triangles, no exposed end caps, retained summits and platform caps.
+Separate checks confirm that depth and width change actual removed volume,
+irregularity changes geometry, defaults restore correctly, and replay is
+deterministic. See [fracture-controls-validation.json](evidence/fracture-controls-validation.json).
+
 The direction regression remains a check on non-platform steep faces. Short
 platform-side cuts have protected tops and proportionally large termination
 regions, so their contour orientation is recorded but not used as a cliff-style
@@ -216,8 +243,15 @@ planar turns and tapered ends without the earlier triangular fins. The final
 browser session reported no JavaScript or shader errors. Native orbit gestures
 were not revalidated in this revision.
 
+Control review also exercised zero irregularity, combined 150% depth / 60% width /
+180% irregularity, persistence after reload, and the resulting full island refit.
+The comparison retained its left-hand reference and framing during slider changes.
+The controls fit at 736 px and stack at 320 px; the final session had no console
+errors. The tuned island contains 11 structural masses, no small accents and 21
+sampled contact edges; its sampled fit RMS is 2.04 m.
+
 The current library has 14,772–37,864 triangles per prototype. Generating its twelve
-carved meshes took 6.8 seconds in the recorded local Node check; the viewer
+carved meshes took 7.7 seconds in the recorded local Node check; the viewer
 caches them. It has no production LOD or performance acceptance. This is a
 floating-point BSP prototype validated on the twelve closed upstream meshes, not
 a certified robust Boolean kernel for arbitrary degenerate input.

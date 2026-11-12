@@ -1,6 +1,6 @@
 {
-  "version": "irregular-fractures-5",
-  "generationMs": 6767.302,
+  "version": "fracture-controls-6",
+  "generationMs": 7731.777833,
   "checks": [
     "immutable source and uncached deterministic replay",
     "finite bounded geometry and unit normals",
@@ -23,7 +23,7 @@
     {
       "id": "cliff",
       "triangles": 23310,
-      "version": "irregular-fractures-5",
+      "version": "fracture-controls-6",
       "sourceTriangles": 18261,
       "anchor": [
         5.4125,
@@ -34,6 +34,11 @@
       "fractures": 5,
       "vertices": 11657,
       "construction": "solid subtraction",
+      "settings": {
+        "depth": 1,
+        "width": 1,
+        "irregularity": 1
+      },
       "visibleJointWalls": 50,
       "cutTriangles": 5049,
       "maximumCutPlaneErrorM": 3.3315473005035894e-15,
@@ -49,7 +54,7 @@
     {
       "id": "cliff2",
       "triangles": 22472,
-      "version": "irregular-fractures-5",
+      "version": "fracture-controls-6",
       "sourceTriangles": 17052,
       "anchor": [
         6.1209,
@@ -60,6 +65,11 @@
       "fractures": 5,
       "vertices": 11238,
       "construction": "solid subtraction",
+      "settings": {
+        "depth": 1,
+        "width": 1,
+        "irregularity": 1
+      },
       "visibleJointWalls": 50,
       "cutTriangles": 5420,
       "maximumCutPlaneErrorM": 4.201278261252917e-15,
@@ -75,7 +85,7 @@
     {
       "id": "wall",
       "triangles": 20762,
-      "version": "irregular-fractures-5",
+      "version": "fracture-controls-6",
       "sourceTriangles": 16076,
       "anchor": [
         3.6661,
@@ -86,6 +96,11 @@
       "fractures": 5,
       "vertices": 10383,
       "construction": "solid subtraction",
+      "settings": {
+        "depth": 1,
+        "width": 1,
+        "irregularity": 1
+      },
       "visibleJointWalls": 50,
       "cutTriangles": 4686,
       "maximumCutPlaneErrorM": 2.48969982544637e-15,
@@ -101,7 +116,7 @@
     {
       "id": "wall2",
       "triangles": 18958,
-      "version": "irregular-fractures-5",
+      "version": "fracture-controls-6",
       "sourceTriangles": 13947,
       "anchor": [
         2.6348,
@@ -112,6 +127,11 @@
       "fractures": 5,
       "vertices": 9481,
       "construction": "solid subtraction",
+      "settings": {
+        "depth": 1,
+        "width": 1,
+        "irregularity": 1
+      },
       "visibleJointWalls": 50,
       "cutTriangles": 5011,
       "maximumCutPlaneErrorM": 2.614059666024409e-15,
@@ -127,7 +147,7 @@
     {
       "id": "shoulder",
       "triangles": 19772,
-      "version": "irregular-fractures-5",
+      "version": "fracture-controls-6",
       "sourceTriangles": 14798,
       "anchor": [
         3.2327,
@@ -138,6 +158,11 @@
       "fractures": 5,
       "vertices": 9888,
       "construction": "solid subtraction",
+      "settings": {
+        "depth": 1,
+        "width": 1,
+        "irregularity": 1
+      },
       "visibleJointWalls": 50,
       "cutTriangles": 4974,
       "maximumCutPlaneErrorM": 3.914192367528841e-15,
@@ -153,7 +178,7 @@
     {
       "id": "shoulder2",
       "triangles": 24044,
-      "version": "irregular-fractures-5",
+      "version": "fracture-controls-6",
       "sourceTriangles": 18972,
       "anchor": [
         2.9504,
@@ -164,6 +189,11 @@
       "fractures": 5,
       "vertices": 12024,
       "construction": "solid subtraction",
+      "settings": {
+        "depth": 1,
+        "width": 1,
+        "irregularity": 1
+      },
       "visibleJointWalls": 50,
       "cutTriangles": 5072,
       "maximumCutPlaneErrorM": 2.9470034891217092e-15,
@@ -179,7 +209,7 @@
     {
       "id": "peak",
       "triangles": 14772,
-      "version": "irregular-fractures-5",
+      "version": "fracture-controls-6",
       "sourceTriangles": 10557,
       "anchor": [
         2.2427,
@@ -190,6 +220,11 @@
       "fractures": 5,
       "vertices": 7388,
       "construction": "solid subtraction",
+      "settings": {
+        "depth": 1,
+        "width": 1,
+        "irregularity": 1
+      },
       "visibleJointWalls": 48,
       "cutTriangles": 4215,
       "maximumCutPlaneErrorM": 5.266895332059773e-15,
@@ -205,7 +240,7 @@
     {
       "id": "peak2",
       "triangles": 22386,
-      "version": "irregular-fractures-5",
+      "version": "fracture-controls-6",
       "sourceTriangles": 17280,
       "anchor": [
         2.6785,
@@ -216,6 +251,11 @@
       "fractures": 5,
       "vertices": 11195,
       "construction": "solid subtraction",
+      "settings": {
+        "depth": 1,
+        "width": 1,
+        "irregularity": 1
+      },
       "visibleJointWalls": 50,
       "cutTriangles": 5106,
       "maximumCutPlaneErrorM": 6.920547036129068e-15,
@@ -231,7 +271,7 @@
     {
       "id": "slab",
       "triangles": 32746,
-      "version": "irregular-fractures-5",
+      "version": "fracture-controls-6",
       "sourceTriangles": 29263,
       "anchor": [
         -0.6824,
@@ -242,6 +282,11 @@
       "fractures": 5,
       "vertices": 16375,
       "construction": "solid subtraction",
+      "settings": {
+        "depth": 1,
+        "width": 1,
+        "irregularity": 1
+      },
       "visibleJointWalls": 50,
       "cutTriangles": 3483,
       "maximumCutPlaneErrorM": 2.1341305476135133e-15,
@@ -257,7 +302,7 @@
     {
       "id": "slab2",
       "triangles": 37864,
-      "version": "irregular-fractures-5",
+      "version": "fracture-controls-6",
       "sourceTriangles": 34244,
       "anchor": [
         0.2131,
@@ -268,6 +313,11 @@
       "fractures": 5,
       "vertices": 18934,
       "construction": "solid subtraction",
+      "settings": {
+        "depth": 1,
+        "width": 1,
+        "irregularity": 1
+      },
       "visibleJointWalls": 50,
       "cutTriangles": 3620,
       "maximumCutPlaneErrorM": 2.5342355277887227e-15,
@@ -283,7 +333,7 @@
     {
       "id": "bank",
       "triangles": 19146,
-      "version": "irregular-fractures-5",
+      "version": "fracture-controls-6",
       "sourceTriangles": 14736,
       "anchor": [
         2.3718,
@@ -294,6 +344,11 @@
       "fractures": 5,
       "vertices": 9575,
       "construction": "solid subtraction",
+      "settings": {
+        "depth": 1,
+        "width": 1,
+        "irregularity": 1
+      },
       "visibleJointWalls": 50,
       "cutTriangles": 4410,
       "maximumCutPlaneErrorM": 1.4324035359169417e-15,
@@ -309,7 +364,7 @@
     {
       "id": "bank2",
       "triangles": 24428,
-      "version": "irregular-fractures-5",
+      "version": "fracture-controls-6",
       "sourceTriangles": 19941,
       "anchor": [
         1.698,
@@ -320,6 +375,11 @@
       "fractures": 5,
       "vertices": 12216,
       "construction": "solid subtraction",
+      "settings": {
+        "depth": 1,
+        "width": 1,
+        "irregularity": 1
+      },
       "visibleJointWalls": 50,
       "cutTriangles": 4487,
       "maximumCutPlaneErrorM": 3.0529259333485473e-15,
