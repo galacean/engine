@@ -25,6 +25,7 @@ it("loads every native Water KTX2 with its original dimensions, color space and 
       const header = new DataView(bytes);
       const texture = await loadBuiltinWaterTexture(engine, file.virtualPath);
       try {
+        expect(Math.max(texture.width, texture.height)).toBeLessThanOrEqual(512);
         expect(texture.width).toBe(header.getUint32(20, true));
         expect(texture.height).toBe(header.getUint32(24, true));
         expect(texture.mipmapCount).toBe(header.getUint32(40, true));

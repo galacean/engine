@@ -13,7 +13,7 @@
 | mist.png | SharedResources/Textures/ParticleEffects/T_SmokeFlipbook.tga | 1024²，2×2 | sRGB |
 | splash.png | Farmlands/Textures/Water/T_WaterSplashes2.png | 256²，2×2 | sRGB |
 
-除 EXR/TGA 外均按原始字节复制；TGA 通过 Pillow `Image.open(source).save(target_png)` 无缩放转换 RGBA PNG；原始 PNG 保留为制作源，源 SHA-256 与派生 KTX2 SHA-256 分别记录在 `../ktx2-manifest.json`；`FarmlandsDropAssets.ts` 登记运行用 KTX2 的内容哈希，加载时验证。EXR 用 Blender 5.2.1 以 Non-Color 读取并保存为同尺寸 RGBA16 PNG，不施加显示变换。运行资产由项目公共 `NodeKtx2Encoder` 转为同尺寸 UASTC KTX2，并保留颜色空间、透明通道和完整 mip 链。编码输入沿用原先浏览器 RGBA8 的精度，因此不是原始 EXR 浮点精度；此处的 RGBA16 PNG 仍保留。生成方式见 [KTX2 配方](../KTX2.md)。复现转换：
+除 EXR/TGA 外均按原始字节复制；TGA 通过 Pillow `Image.open(source).save(target_png)` 无缩放转换 RGBA PNG；原始 PNG 保留为制作源，源 SHA-256 与派生 KTX2 SHA-256 分别记录在 `../ktx2-manifest.json`；`FarmlandsDropAssets.ts` 登记运行用 KTX2 的内容哈希，加载时验证。EXR 用 Blender 5.2.1 以 Non-Color 读取并保存为同尺寸 RGBA16 PNG，不施加显示变换。运行资产由项目公共 `NodeKtx2Encoder` 转为最长边不超过 512 的 UASTC KTX2（复用编码后的 512 级及后续 mip，不放大较小纹理），并保留颜色空间、透明通道和完整 mip 链。编码输入沿用原先浏览器 RGBA8 的精度，因此不是原始 EXR 浮点精度；此处的 RGBA16 PNG 仍保留。生成方式见 [KTX2 配方](../KTX2.md)。复现转换：
 
 ```python
 import bpy

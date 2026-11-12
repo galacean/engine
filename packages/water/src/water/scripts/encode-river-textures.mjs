@@ -6,6 +6,21 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const require = createRequire(import.meta.url);
+const { read, write } = createRequire(new URL("../../../../../world/package.json", import.meta.url))("ktx-parse");
+
+// Retain the encoded 512 mip and all smaller levels without recompressing texels.
+function limitTextureSize(encoded) {
+  const texture = read(encoded);
+  if (Math.max(texture.pixelWidth, texture.pixelHeight) <= 512) return encoded;
+  if (texture.supercompressionScheme !== 2) throw new Error("Expected independent Zstd mip levels.");
+  while (Math.max(texture.pixelWidth, texture.pixelHeight) > 512) {
+    texture.pixelWidth = Math.max(1, texture.pixelWidth >> 1);
+    texture.pixelHeight = Math.max(1, texture.pixelHeight >> 1);
+    texture.levels.shift();
+  }
+  texture.levelCount = texture.levels.length;
+  return write(texture, { keepWriter: true });
+}
 // Use the same public encoder as Editor/CLI. A source checkout can be supplied
 // without making Engine depend on Editor or vendoring another codec/WASM copy.
 const entry = process.env.WATER_KTX2_ENCODER ?? require.resolve("@galacean/tools-ktx2-encoder");
@@ -75,7 +90,7 @@ try {
       isPerceptual: srgb,
       isSetKTX2SRGBTransferFunc: srgb
     };
-    const encoded = await encoder.encode(new Uint8Array(png), options);
+    const encoded = limitTextureSize(await encoder.encode(new Uint8Array(png), options));
     writeFileSync(destination, encoded);
     const bytes = readFileSync(destination);
     textures[id] = {
@@ -89,8 +104,8 @@ try {
       sourceSha256: expected,
       sourceByteLength: png.length,
       output: file,
-      width,
-      height,
+      width: bytes.readUInt32LE(20),
+      height: bytes.readUInt32LE(24),
       format,
       isSRGBColorSpace: srgb,
       alpha,
@@ -111,7 +126,7 @@ try {
           quality: 3,
           supercompression: "Zstd",
           mipmaps: true,
-          dimensions: "preserved",
+          dimensions: "maximum-512-from-existing-mips",
           orientation: "top-left"
         },
         textures

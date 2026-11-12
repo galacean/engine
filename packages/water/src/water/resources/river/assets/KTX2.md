@@ -6,7 +6,10 @@ project. Lake and Ocean already provide six KTX2 assets and remain unchanged.
 
 Encoding uses the project's public `@galacean/tools-ktx2-encoder`:
 `NodeKtx2Encoder.encode()`, UASTC quality 3, Zstd supercompression, full mip chain,
-no resize, no Y flip and no RDO. Wave normals use normal-map mode. Wave and cloud
+no Y flip and no RDO. Outputs larger than 512 retain their existing 512 mip
+and all smaller levels, with rebuilt KTX2 indices. Independent Zstd-compressed
+UASTC level payloads, DFD color/alpha semantics and metadata remain unchanged.
+The original PNG artwork stays at its authored resolution. Wave normals use normal-map mode. Wave and cloud
 retain linear sampling; the other eight inputs retain sRGB sampling. The cloud,
 mist and splash alpha channels and their atlas layouts are preserved. KTX2 is
 lossy; it is not a lossless replacement for the source artwork. Some individual
@@ -28,7 +31,7 @@ node world/scripts/generate-water-assets.mjs --textures-only
 node --test world/scripts/tests/generate-water-assets.test.mjs
 ```
 
-`ktx2-manifest.json` records each original PNG hash, derived KTX2 hash, dimensions,
+`ktx2-manifest.json` records each original PNG hash, derived KTX2 hash, output dimensions,
 input format, color space and mip count. The resource descriptors identify the
 KTX2 bytes, not the retained PNG. `--check` regenerates in a temporary directory
 and requires identical bytes and manifest. `--textures-only` preserves the

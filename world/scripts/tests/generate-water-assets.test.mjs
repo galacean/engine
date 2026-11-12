@@ -130,6 +130,7 @@ test("all sixteen native textures use KTX2 and river metadata preserves source a
     const bytes = await readFile(path.join(output, file.path));
     assert.equal(bytes.subarray(0, 12).toString("hex"), "ab4b5458203230bb0d0a1a0a");
     const width = bytes.readUInt32LE(20), height = bytes.readUInt32LE(24);
+    assert.ok(Math.max(width, height) <= 512, file.path);
     assert.equal(bytes.readUInt32LE(40), Math.floor(Math.log2(Math.max(width, height))) + 1);
     const dfd = bytes.readUInt32LE(48);
     assert.equal(bytes[dfd + 14], file.params.isSRGBColorSpace ? 2 : 1);
@@ -139,7 +140,9 @@ test("all sixteen native textures use KTX2 and river metadata preserves source a
     assert.equal(sha(bytes), entry.sha256);
     const source = await readFile(path.join(root, "packages/water/src/water/resources/river/assets", entry.source));
     assert.equal(sha(source), entry.sourceSha256);
-    assert.deepEqual([source.readUInt32BE(16), source.readUInt32BE(20)], [width, height]);
+    const sourceWidth = source.readUInt32BE(16), sourceHeight = source.readUInt32BE(20);
+    const scale = Math.min(1, 512 / Math.max(sourceWidth, sourceHeight));
+    assert.deepEqual([width, height], [sourceWidth * scale, sourceHeight * scale]);
     if (["farmlands-drop-cloud", "farmlands-drop-mist", "farmlands-drop-splash"].includes(entry.id))
       assert.equal(bytes[dfd + 31], 3, "UASTC RGBA must retain the non-opaque alpha channel");
   }

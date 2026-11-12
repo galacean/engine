@@ -17,12 +17,12 @@ function texture(id: string, contentHash: string): WaterResourceAssetDescriptorV
 export const FARMLANDS_DROP_ASSETS = {
   directional: {
     descriptor: texture("directional", manifest.textures.directional.sha256),
-    size: 2048,
+    size: 512,
     srgb: true
   },
   cloud: {
     descriptor: texture("cloud", manifest.textures.cloud.sha256),
-    size: 2048,
+    size: 512,
     srgb: false
   },
   lines: {
@@ -38,7 +38,7 @@ export const FARMLANDS_DROP_ASSETS = {
   },
   voronoi: {
     descriptor: texture("voronoi", manifest.textures.voronoi.sha256),
-    size: 2048,
+    size: 512,
     srgb: true
   },
   foam: {
@@ -48,7 +48,7 @@ export const FARMLANDS_DROP_ASSETS = {
   },
   mist: {
     descriptor: texture("mist", manifest.textures.mist.sha256),
-    size: 1024,
+    size: 512,
     srgb: true
   },
   splash: {

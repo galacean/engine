@@ -6,7 +6,7 @@
     "quality": 3,
     "supercompression": "Zstd",
     "mipmaps": true,
-    "dimensions": "preserved",
+    "dimensions": "maximum-512-from-existing-mips",
     "orientation": "top-left"
   },
   "textures": {
@@ -31,14 +31,14 @@
       "sourceSha256": "82024c671895a0a84b362cb2d5170d1ae1ab78139a022dcfc9d00f77bfde299f",
       "sourceByteLength": 1063137,
       "output": "ktx2/farmlands-caustics.ktx2",
-      "width": 1024,
-      "height": 1024,
+      "width": 512,
+      "height": 512,
       "format": "R8G8B8A8_SRGB",
       "isSRGBColorSpace": true,
       "alpha": true,
-      "mipLevels": 11,
-      "sha256": "d1b3fd2596e94cc49f470121b7a203d8294cba392692ecde5aa2dc74d6bfbc29",
-      "byteLength": 1203810
+      "mipLevels": 10,
+      "sha256": "c37448dfe9540ae5e109598b89a128300d79f33297faf40ffcd06277d97aa9e5",
+      "byteLength": 317387
     },
     "directional": {
       "id": "farmlands-drop-directional",
@@ -46,14 +46,14 @@
       "sourceSha256": "4304ca4bdf11e1cc0d1073018480339874ae0506f0adbe74e2983c3601784f9f",
       "sourceByteLength": 908195,
       "output": "ktx2/drops/directional.ktx2",
-      "width": 2048,
-      "height": 2048,
+      "width": 512,
+      "height": 512,
       "format": "R8G8B8_SRGB",
       "isSRGBColorSpace": true,
       "alpha": false,
-      "mipLevels": 12,
-      "sha256": "61d6ce74a2edbc06a7a7bf33f40c8472f8f1a796ca21d44a0007541a4c9b64b7",
-      "byteLength": 2897729
+      "mipLevels": 10,
+      "sha256": "ee6f6fa0a83b2ed017d48e459962b79eecac00ee76cc211788dfcf53c6c5a6d8",
+      "byteLength": 302880
     },
     "cloud": {
       "id": "farmlands-drop-cloud",
@@ -61,14 +61,14 @@
       "sourceSha256": "b22b11325d1c8e9bc4d3171d27b63e40356c4c2fec46e9b8e21f7e43564807d9",
       "sourceByteLength": 16101078,
       "output": "ktx2/drops/cloud-linear.ktx2",
-      "width": 2048,
-      "height": 2048,
+      "width": 512,
+      "height": 512,
       "format": "R8G8B8A8_UNORM",
       "isSRGBColorSpace": false,
       "alpha": true,
-      "mipLevels": 12,
-      "sha256": "672b20eb92cb3c9f5974b0a7309efc136a4a5be9fbb02a4fb937b94c9b337b68",
-      "byteLength": 4882529
+      "mipLevels": 10,
+      "sha256": "dfb62aac6395caf317f0b3c7cde794f1908e3a90566e423867136d4f6cef3560",
+      "byteLength": 323043
     },
     "lines": {
       "id": "farmlands-drop-lines",
@@ -106,14 +106,14 @@
       "sourceSha256": "51c2adc8a4fc854a39eecad6f834bd11a2718dc52e1125c8abe09f49de7f80ef",
       "sourceByteLength": 6106539,
       "output": "ktx2/drops/voronoi.ktx2",
-      "width": 2048,
-      "height": 2048,
+      "width": 512,
+      "height": 512,
       "format": "R8G8B8_SRGB",
       "isSRGBColorSpace": true,
       "alpha": false,
-      "mipLevels": 12,
-      "sha256": "bcea4cf48f5a90d41992569d7c20b1fbd15a11fd17b0f0e0eb8ade7490e6ae3b",
-      "byteLength": 2816091
+      "mipLevels": 10,
+      "sha256": "4568e3fdad92d4729aae0650b4010ececcb52221e1353ff6122ae8842f24917f",
+      "byteLength": 283813
     },
     "foam": {
       "id": "farmlands-drop-foam",
@@ -136,14 +136,14 @@
       "sourceSha256": "a9a0dc6664305b58139f3fe736fee3d10f1f022131e524f06b222fdf2d54a705",
       "sourceByteLength": 324663,
       "output": "ktx2/drops/mist.ktx2",
-      "width": 1024,
-      "height": 1024,
+      "width": 512,
+      "height": 512,
       "format": "R8G8B8A8_SRGB",
       "isSRGBColorSpace": true,
       "alpha": true,
-      "mipLevels": 11,
-      "sha256": "203a2a5471dd6f6e75eca5279126a009609ec5dc2431188fba852784b03a19a4",
-      "byteLength": 497052
+      "mipLevels": 10,
+      "sha256": "37444bf3158efff49df947af5e6b3922e4308570a4dfd737b310c25bf96bcb76",
+      "byteLength": 132444
     },
     "splash": {
       "id": "farmlands-drop-splash",
