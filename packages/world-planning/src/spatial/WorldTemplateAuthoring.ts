@@ -9,6 +9,8 @@ import { PLANT_MATERIAL_SLOTS, plantMaterialField } from "./PlantMaterialParamet
 import { settlementRandom } from "../semantic-study/SettlementGeometry";
 import { templateBaseSeed, templateLinearColor, worldTemplate, type WorldTemplate } from "./WorldTemplateCatalog";
 import { WORLD_TEMPLATE_ART } from "./WorldTemplateArtDirection";
+import { TEMPLATE_SPAWN_POI_ID, WORLD_TEMPLATE_CONFIGS } from "./WorldTemplateConfig";
+import { defaultPoiLayout, distributePois } from "../semantic-study/PoiDistribution";
 import { spatialCompositionParameters } from "./SpatialCompositionParameters";
 import { createSpatialTerrainPlan } from "./layout/SpatialTerrain";
 import { createPlanningGroundSampler } from "../semantic-study/WorldPlanningTerrain";
@@ -33,18 +35,28 @@ export function removeDesertCamelPreset(document: PlanningDocument): void {
 }
 
 /** World material fields shared by first creation and palette-only authoring edits. */
-export function worldTemplatePaletteValues(id: string): Record<string, Record<string, number>> {
+export function worldTemplatePaletteValues(id: string, seed?: number): Record<string, Record<string, number>> {
   if (!worldTemplate(id)) throw new Error("未知世界风格：" + id);
   const art = WORLD_TEMPLATE_ART[id];
-  if (!art.grass) return {};
-  const colorFields = (slot: string, hex: string) =>
-    Object.fromEntries(
-      (["r", "g", "b"] as const).map((channel, i) => [slot + "." + channel, templateLinearColor(hex)[i]])
-    );
-  return {
-    rockFormation: colorFields("color", art.stone),
-    grassAppearance: { ...colorFields("colorA", art.grass[0]), ...colorFields("colorB", art.grass[1]), saturation: 1 },
-    surfacePalette: { ...colorFields("color", art.ground), ...(art.road ? colorFields("road", art.road) : {}) },
+  const colorFields = (slot: string, hex?: string, key?: "ground" | "road" | "stone") => {
+    const range = key && WORLD_TEMPLATE_CONFIGS[id]?.palette?.ranges?.[key];
+    const base = hex ?? (range ? range[0] : undefined);
+    if (!base) return {};
+    let color: readonly number[] = templateLinearColor(base);
+    if (range && seed !== undefined) {
+      const from = templateLinearColor(range[0]);
+      const to = templateLinearColor(range[1]);
+      const t = settlementRandom(seed, `template:${id}:palette:${key}`);
+      color = from.map((value, i) => value + (to[i] - value) * t);
+    }
+    return Object.fromEntries(["r", "g", "b"].map((channel, i) => [slot + "." + channel, color[i]]));
+  };
+  const groups = {
+    rockFormation: colorFields("color", art.stone, "stone"),
+    grassAppearance: art.grass
+      ? { ...colorFields("colorA", art.grass[0]), ...colorFields("colorB", art.grass[1]), saturation: 1 }
+      : {},
+    surfacePalette: { ...colorFields("color", art.ground, "ground"), ...colorFields("road", art.road, "road") },
     plantMaterial: Object.fromEntries(
       PLANT_MATERIAL_SLOTS.flatMap((slot) => {
         const palette = art.plantPalette;
@@ -61,9 +73,9 @@ export function worldTemplatePaletteValues(id: string): Record<string, Record<st
               : slot.role === "leaf" && slot.layers.includes("trees")
                 ? (art.treeFoliage?.[slot.assetId] ?? art.foliage)
                 : art.foliage;
-        const color = templateLinearColor(swatch?.color ?? fallback).map(
-          (channel) => channel * (swatch?.intensity ?? 1)
-        );
+        const base = swatch?.color ?? fallback;
+        if (!base) return [];
+        const color = templateLinearColor(base).map((channel) => channel * (swatch?.intensity ?? 1));
         return (["r", "g", "b"] as const).map((channel, i) => [
           plantMaterialField(slot.assetId, slot.materialId, channel),
           color[i]
@@ -71,6 +83,7 @@ export function worldTemplatePaletteValues(id: string): Record<string, Record<st
       })
     )
   };
+  return Object.fromEntries(Object.entries(groups).filter(([, fields]) => Object.keys(fields).length > 0));
 }
 
 /** The canonical physical recipe is common to every Seed variation. Retain only
@@ -174,12 +187,71 @@ function templateCore(template: WorldTemplate) {
   return core;
 }
 
+function createConfiguredTemplate(seed: number, id: string, options?: PlanningPopulationOptions): PlanningDocument {
+  const { spawn, spawnPoi } = WORLD_TEMPLATE_CONFIGS[id]!;
+  const document = createSeedPlanningInputs(seed);
+  const components = document.entities.world.components;
+  const subject = spawn?.subject;
+  components.worldTemplate = {
+    values: { id, ...(subject && { centerX: subject.position.x, centerZ: subject.position.z }) }
+  };
+  for (const [type, values] of Object.entries(worldTemplatePaletteValues(id, seed)))
+    components[type] = { ...components[type], values: { ...components[type]?.values, ...values } };
+  if (!spawn || !spawnPoi) return initializePlanningPopulation(document, options);
+
+  const recipe = exportPlanningRecipe(document);
+  const terrain = createSpatialTerrainPlan(recipe);
+  const poiLayout = recipe.parameters.poiLayout ?? defaultPoiLayout();
+  const { candidates } = distributePois(
+    {
+      width: terrain.parameters.width,
+      depth: terrain.parameters.depth,
+      seed,
+      domains: [
+        { id: "land-main", outline: terrain.land },
+        ...terrain.islands.map((outline, i) => ({ id: `offshore-${i}`, outline }))
+      ]
+    },
+    poiLayout
+  );
+  const sample = (key: string, [min, max]: readonly number[]) => {
+    if (!Number.isFinite(min) || !Number.isFinite(max) || min > max)
+      throw new Error(`模板出生点 POI 参数范围无效：${key}`);
+    return min + (max - min) * settlementRandom(seed, `template:${id}:spawnPoi:${key}`);
+  };
+  document.passthrough.parameters.poiLayout!.candidates = [
+    ...candidates,
+    { id: TEMPLATE_SPAWN_POI_ID, origin: spawn.position, domainId: "land-main" }
+  ];
+  const layout =
+    spawnPoi.layout &&
+    Object.fromEntries(
+      Object.entries(spawnPoi.layout).map(([key, value]) => [
+        key,
+        typeof value === "object" ? sample(key, value) : value
+      ])
+    );
+  document.entities[TEMPLATE_SPAWN_POI_ID] = {
+    id: TEMPLATE_SPAWN_POI_ID,
+    name: "出生点",
+    parent: "world",
+    origin: "generated",
+    components: {
+      anchor: { values: { ...spawn.position } },
+      ...(spawnPoi.sizeWeight && { poi: { values: { sizeWeight: sample("sizeWeight", spawnPoi.sizeWeight) } } }),
+      ...(layout && { layout: { values: layout } })
+    }
+  };
+  const initialized = initializePlanningPopulation(document, options);
+  if (layout) Object.assign(initialized.entities[TEMPLATE_SPAWN_POI_ID].components.layout.values, layout);
+  return initialized;
+}
+
 /** Create template authoring with a one-time editable initial population.
  * @param seed Deterministic world identity.
  * @param id Registered template identity.
  * @param options Initial population request, applied after template terrain and resources are installed.
- * @returns Authoring for ordinary Session publication; later edits do not reapply the budget.
- * @throws For invalid template/seed or an unrealizable population request.
+ * @returns Authoring for ordinary Session publication.
  */
 export function createTemplatePlanningDocument(
   seed: number,
@@ -190,6 +262,7 @@ export function createTemplatePlanningDocument(
   if (!template) throw new Error("未知世界风格：" + id);
   const art = WORLD_TEMPLATE_ART[id];
   if (!Number.isSafeInteger(seed) || seed < 0 || seed > 0xffffffff) throw new Error("Seed 须为 0–4294967295 的整数");
+  if (WORLD_TEMPLATE_CONFIGS[id]) return createConfiguredTemplate(seed, id, options);
   const initial = createSeedPlanningInputs(seed);
   const recipe = exportPlanningRecipe(initial);
   const jitter = (field: string) => settlementRandom(seed, `template:${id}:${field}`) * 2 - 1;
@@ -215,7 +288,7 @@ export function createTemplatePlanningDocument(
     lakes: { countMin: 0, countMax: 0 }
   });
   const { anchor, resources, lakes } = templateCore(template);
-  if (!art.plannedSubjects) recipe.parameters.worldTemplate = { id, centerX: anchor.x, centerZ: anchor.z };
+  if (!art.plannedSubjects) Object.assign(recipe.parameters.worldTemplate!, { centerX: anchor.x, centerZ: anchor.z });
   if (art.generation)
     recipe.parameters.spatialComposition = spatialCompositionParameters({
       ...art.generation,
@@ -338,7 +411,11 @@ export function createWorldStylePlanningDocument(
   };
   for (const type of [...(id ? [] : ["lighting", "postProcess"]), "landscape", "landscapePopulation", "flowers"])
     retain("world", type);
-  if (retainComposition && source.entities.world.components.worldTemplate?.values.id === id)
+  if (
+    retainComposition &&
+    !WORLD_TEMPLATE_CONFIGS[id] &&
+    source.entities.world.components.worldTemplate?.values.id === id
+  )
     retain("world", "landscapeComposition");
   if (id) {
     const art = WORLD_TEMPLATE_ART[id],

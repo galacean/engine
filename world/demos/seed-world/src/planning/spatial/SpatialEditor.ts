@@ -590,8 +590,11 @@ export async function mountSpatialEditor(
     updateGenerateControl();
     try {
       const receipt = await edit(async draft => {
-        const replacement = await client.initialize(session.recipe().parameters.seed, abort.signal);
+        const { seed, worldTemplate } = draft.recipe().parameters;
+        const replacement = await client.initialize(seed, abort.signal, worldTemplate?.id);
         abort.signal.throwIfAborted();
+        replacement.layoutOverrides = draft.document.layoutOverrides;
+        applyPlanningTemplateSurface(replacement);
         return draft.load(retainPlanningWaterSource(replacement, project.projectPackage), abort.signal);
       }, true);
       if (disposed || receipt?.status !== "accepted") return;

@@ -6,6 +6,7 @@ import { WORLD_TEMPLATE_ART } from "./WorldTemplateArtDirection";
 import { poiTerritories } from "./ecology/PoiTerritories";
 import type { SubjectViewPose } from "./PlanningSubjectView";
 import { spatialCompositionParameters } from "./SpatialCompositionParameters";
+import { TEMPLATE_SPAWN_POI_ID, WORLD_TEMPLATE_CONFIGS } from "./WorldTemplateConfig";
 
 export interface WorldTemplateSite {
   templateId: string;
@@ -19,7 +20,20 @@ export interface WorldTemplateSite {
     containedInPoi?: boolean;
   }[];
   spawnView?: SubjectViewPose;
+  spawnPoiId?: string;
   centeredStart?: PlanPoint;
+}
+
+/** Resolve the configured start against the published POI when the template supplies one.
+ * @param plan Current world plan, after POI distribution.
+ * @returns The authored start and its POI, if configured.
+ */
+export function resolveConfiguredTemplateSpawn(plan: IslandPlan): { position: PlanPoint; poiId?: string } | undefined {
+  const config = WORLD_TEMPLATE_CONFIGS[plan.parameters.worldTemplate?.id ?? ""];
+  if (!config?.spawn) return;
+  const poi = config.spawnPoi && plan.poiDistribution?.sites.find((site) => site.id === TEMPLATE_SPAWN_POI_ID);
+  if (poi && !poi.active) throw new Error("模板出生点 POI 未能获得有效管理区");
+  return poi ? { position: poi.center, poiId: poi.id } : { position: config.spawn.position };
 }
 
 /** Choose the authored subject's domain before any ordinary population is constructed.
@@ -35,6 +49,7 @@ export function planWorldTemplateSite(
     plan.parameters.seed,
     plan.parameters.spatialComposition
   );
+  if (WORLD_TEMPLATE_CONFIGS[template.id] && !nodes.length) return;
   const art = WORLD_TEMPLATE_ART[template.id];
   const q = spatialCompositionParameters(plan.parameters.spatialComposition);
   if (!nodes.length && !q.enabled && q.basinRadiusM === 0) return;
@@ -79,7 +94,9 @@ export function planWorldTemplateSite(
         footprints: WorldTemplateSite["footprints"];
       }
     | undefined;
-  const centeredStart = art.centeredStart && plan.parameters.landMode === "continuous" ? center : undefined;
+  const spawn = resolveConfiguredTemplateSpawn(plan);
+  const centeredStart =
+    spawn?.position ?? (art.centeredStart && plan.parameters.landMode === "continuous" ? center : undefined);
   const authored = q.enabled
     ? { centerX: q.centerX, centerZ: q.centerZ }
     : plan.parameters.worldTemplate?.centerX !== undefined ||
@@ -166,6 +183,7 @@ export function planWorldTemplateSite(
     templateId: template.id,
     center: best.center,
     footprints: best.footprints,
+    ...(spawn?.poiId ? { spawnPoiId: spawn.poiId } : {}),
     centeredStart
   };
 }

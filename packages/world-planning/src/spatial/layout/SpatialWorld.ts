@@ -1,7 +1,7 @@
 import { finalizePlanningFarm } from "../farming/PlanningFarmingFinalization";
 import { publishMojaveDesertLayout } from "./MojaveDesertLayout";
 import { PLANNING_REFERENCE } from "../../planning-data/PlanningReference";
-import { planWorldTemplateSite } from "../WorldTemplatePlanning";
+import { planWorldTemplateSite, resolveConfiguredTemplateSpawn } from "../WorldTemplatePlanning";
 import { resolveWorldTemplateScene, resolveWorldTemplateView } from "../WorldTemplateView";
 import { WORLD_TEMPLATE_ART } from "../WorldTemplateArtDirection";
 import { PLANNING_RUNTIME_OPTIONS } from "../runtime/RuntimeOptions";
@@ -440,6 +440,27 @@ function* spatialWorldStages(
     plan.poiDistribution.candidates.map((c) => [c.id, { center: { ...c.origin }, domainId: c.domainId }])
   );
   const domains = plan.poiDistribution!.domains.map((d) => ({ ...d, query: createPlanningRingQuery(d.outline) }));
+  const configuredSpawn = resolveConfiguredTemplateSpawn(plan);
+  const spawnOutline =
+    configuredSpawn &&
+    boxOutline({
+      center: configuredSpawn.position,
+      width: 2 * PLANNING_REFERENCE.actor.radiusM,
+      depth: 2 * PLANNING_REFERENCE.actor.radiusM,
+      elevation: 0,
+      height: PLANNING_REFERENCE.actor.heightM,
+      yaw: 0
+    });
+  if (spawnOutline && !domains.some((domain) => domain.query.containsPolygon(spawnOutline)))
+    throw new Error("模板出生点必须位于陆地");
+  const templateFootprints = spawnOutline
+    ? planWorldTemplateSite({ ...plan, waters: [] }, createPlanningGroundSampler(plan, { natural: true }))?.footprints
+    : undefined;
+  const reservedOutlines = spawnOutline
+    ? [spawnOutline, ...(templateFootprints ?? []).map((item) => item.outline)]
+    : [];
+  const waterReservations = reservedOutlines.map(createPlanningRingQuery);
+  const spawnReservation = waterReservations[0];
   const generatedWater = compositionHydrology(plan);
   const riverConfig = { ...RIVER_DEFAULTS, ...p.rivers };
   const localRivers = Object.fromEntries(
@@ -469,6 +490,7 @@ function* spatialWorldStages(
     plan.parameters,
     plan.land,
     plan.islands,
+    reservedOutlines,
     { ...riverConfig, waterY: riverConfig.automaticLevel ? undefined : riverConfig.waterY },
     localRivers,
     plan.poiDistribution!.sites.map((s) => [s.id, s.center, s.domainId, s.weightM2, s.active])
@@ -481,8 +503,8 @@ function* spatialWorldStages(
       )
     );
   else {
-    checks.push(...generateRiverRegions(plan, riverConfig, localRivers));
-    checks.push(...generateLakeRegions(plan, lakeConfig, localLakes));
+    checks.push(...generateRiverRegions(plan, riverConfig, localRivers, waterReservations));
+    checks.push(...generateLakeRegions(plan, lakeConfig, localLakes, waterReservations));
   }
   const terrainSignature = JSON.stringify([plan.parameters, terrainInputs]);
   const riverSignature = JSON.stringify([
@@ -704,6 +726,7 @@ function* spatialWorldStages(
       !riverRings.some((w) => w.overlapsPolygon(outline));
     const clearGeneratedFootprint = (outline: PlanPoint[]) =>
       clear(outline) &&
+      !spawnReservation?.overlapsPolygon(outline) &&
       !templateAreas.some((area) => area.overlapsPolygon(outline)) &&
       !compositionArea?.overlapsPolygon(outline);
     // Reconstruct the same unedited baseline for cold and incremental generation.
@@ -1177,8 +1200,13 @@ function* spatialWorldStages(
       first.ports[0];
     plan.spawn = { ...port.position };
   }
+  if (configuredSpawn) plan.spawn = { ...configuredSpawn.position };
   const templateSite = plan.worldTemplateSite;
-  if (options.environment !== false && templateSite && WORLD_TEMPLATE_ART[templateSite.templateId].plannedSubjects) {
+  if (
+    options.environment !== false &&
+    templateSite &&
+    (configuredSpawn || WORLD_TEMPLATE_ART[templateSite.templateId].plannedSubjects)
+  ) {
     const surface = planningGroundSurface(plan);
     const sample = (x: number, z: number) => surface.sample({ x, z });
     const scene = resolveWorldTemplateScene(plan, sample)!;

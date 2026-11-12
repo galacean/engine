@@ -1,8 +1,9 @@
 import type { TemplateNode, TemplateAssetSlot } from "./WorldTemplateGeometry";
 import type { SeedWorldCameraBookmark } from "../world/SeedWorldCameraBookmark";
 import type { SpatialCompositionParameters } from "./SpatialCompositionParameters";
+import { WORLD_TEMPLATE_CONFIGS } from "./WorldTemplateConfig";
 
-interface WorldTemplatePalette {
+export interface WorldTemplatePalette {
   grass: [string, string];
   ground: string;
   road?: string;
@@ -26,7 +27,7 @@ interface WorldTemplatePalette {
  * These are template inputs, not geometry guessed from a Seed or renderer output.
  * Each model entry defines an asset envelope, with a supplied model when available.
  * Camera fitting uses only the focus entries. */
-export type WorldTemplateArtDirection = (WorldTemplatePalette | { grass?: undefined }) & {
+export type WorldTemplateArtDirection = Partial<WorldTemplatePalette> & {
   reference: string;
   grassGroundFusion?: boolean;
   spawn?: SeedWorldCameraBookmark & { readonly seed: number };
@@ -276,225 +277,58 @@ const forestFern = (id: string, x: number, z: number, height: number, yaw: numbe
   assetLeafColor: "#9cbd4c"
 });
 
-const sakuraBirchMaterials = {
-  "appearance-58da25ba7b394497": { color: "#825636", intensity: 1 },
-  "appearance-a8b3441a505dd0f2": { color: "#a06f49", intensity: 1 },
-  "appearance-e832df91cc4eb1a2": { color: "#ff6681", intensity: 2 }
+const sakura = WORLD_TEMPLATE_CONFIGS["sakura-pearl"]!;
+const sakuraSubject = sakura.spawn?.subject;
+const templateAssets: Readonly<Record<string, string>> = {
+  "pink-tree": new URL("../assets/pink-tree.glb", import.meta.url).href,
+  "sakura-petal": new URL("../assets/sakura-petal.png", import.meta.url).href
 };
+const sakuraPetals =
+  sakura.petals &&
+  (() => {
+    const { texture, ...effect } = sakura.petals;
+    const textureUrl = templateAssets[texture];
+    if (!textureUrl) throw new Error(`未知花瓣粒子贴图：${texture}`);
+    return { ...effect, textureUrl };
+  })();
 
 export const WORLD_TEMPLATE_ART: Readonly<Record<string, WorldTemplateArtDirection>> = {
   "sakura-pearl": {
-    generation: {
-      enabled: true,
-      widthM: 440,
-      frontDepthM: 270,
-      backDepthM: 180,
-      roadWidthM: 7,
-      roadBendM: 14,
-      roadWavelengthM: 210,
-      roadEndWidthRatio: 0.5,
-      destinationId: "",
-      forecourtDepthM: 14,
-      streamWidthM: 14,
-      streamDepthM: 0.9,
-      bankWidthM: 12,
-      leftReliefM: 104,
-      rightReliefM: 108,
-      reliefSurface: "rocks",
-      reliefBandWidthM: 128,
-      reliefFrontDepthM: 54,
-      bankReliefM: 26,
-      rearReliefM: 72,
-      rearReliefDepthM: 64,
-      reliefInnerHeightRatio: 0.45,
-      reliefFrontHeightRatio: 0.65,
-      reliefTreeDensity: 0.7,
-      terraceStepHeightM: 20,
-      terraceTreadM: 32,
-      cliffSharpness: 1,
-      terrainRoughness: 0.22,
-      waterfallWidthM: 8,
-      treeSpacingM: 19,
-      treeBandWidthM: 74,
-      treeHorizontalScale: 1.6,
-      treeSpeciesGroup: "birch-tree",
-      subjectTerraceHeightM: 12,
-      subjectTerraceRadiusM: 51,
-      rockSpacingM: 16,
-      rockWidthM: 6,
-      rockDepthM: 5,
-      rockHeightM: 3.5,
-      replacePopulation: true
-    },
+    ...sakura.palette,
     reference: "SeedWorld-01-sakura-pearl.png",
-    focus: ["pearl-cherry-tree"],
+    focus: sakuraSubject ? [sakuraSubject.id] : [],
     frameFraction: 1.48,
     azimuthDegrees: 0,
     lookAtOffset: [0, -13, 0],
-    petals: {
-      textureUrl: new URL("../assets/sakura-petal.png", import.meta.url).href,
-      count: 280,
-      center: [0, 18, -95],
-      extent: [96, 28, 210],
-      sizeM: [0.45, 1.1],
-      lifetimeSeconds: 22,
-      fallSpeedMps: [0.3, 0.65],
-      windMps: [0.7, 0, 0.25],
-      flutterMps: 0.2,
-      flutterWavelengthM: 3,
-      spinDegreesPerSecond: [-45, 45],
-      renderPriority: 1000,
-      depthTest: false,
-      color: "#ffffff",
-      intensity: 1.15,
-      emission: { color: "#ff9dcc", intensity: 4 }
-    },
-    models: [
-      {
-        id: "pearl-cherry-tree",
-        // One uniformly fitted source tree supplies the reference's dominant crown.
-        scale: [198, 98, 166],
-        footprint: [32, 27],
-        groundingFootprint: [37, 32],
-        grounded: true,
-        // Highest vertex of the source root rims, so all cut openings enter the soil.
-        assetGroundY: 1.0934512615203857,
-        assetYawDegrees: -155,
-        // The atlas is white RGB with an alpha silhouette. Use the source canopy
-        // normals on both sides and keep the HDR pigment outside the overlay clamp.
-        assetLeafMaterials: ["Foliage_PBR_512"],
-        assetLeafColor: "#ff82a4",
-        assetLeafIntensity: 1.6,
-        assetLeafTextureBlend: 0,
-        assetMaterials: {
-          Bark_PBR_512: { color: "#f2e9e1", intensity: 1.1 }
-        },
-        assetUrl: new URL("../assets/pink-tree.glb", import.meta.url).href
-      }
-    ],
-    // Vivid rose and fresh green retain their colour through the lit HDR pipeline.
-    grass: ["#ff64a8", "#79c846"],
-    ground: "#f0bfd6",
-    road: "#dbbeaa",
-    foliage: "#e6a0cb",
-    treeFoliage: {
-      SM_BirchTree_01: "#ff8ea0",
-      SM_BirchTree_02: "#c179ed",
-      SM_BirchTree_07: "#ff9fcb",
-      "cartoon/tree/highlands-fir-3-candidate/v1": "#da96c7"
-    },
-    plantPalette: {
-      layers: ["shrubs", "herbs", "cover", "flowers", "litter"],
-      slots: {
-        SM_Flower_08_01: {
-          "appearance-540a4c6f542dc7f0": { color: "#ff006f", intensity: 20 }
-        },
-        SM_Flower_08_02: {
-          "appearance-540a4c6f542dc7f0": { color: "#ff006b", intensity: 20 }
-        },
-        SM_Flower_08_03: {
-          "appearance-540a4c6f542dc7f0": { color: "#ff0268", intensity: 20 }
-        },
-        SM_CoverPlant_06: {
-          "appearance-d7b4b46b60c4bf96": { color: "#e01a56", intensity: 15 }
-        },
-        SM_BirchTree_01: sakuraBirchMaterials,
-        SM_BirchTree_02: {
-          "appearance-296c00a2f4125733": sakuraBirchMaterials["appearance-58da25ba7b394497"],
-          "appearance-60463a2042d1d2fe": sakuraBirchMaterials["appearance-a8b3441a505dd0f2"],
-          "appearance-e832df91cc4eb1a2": sakuraBirchMaterials["appearance-e832df91cc4eb1a2"]
-        },
-        SM_BirchTree_07: sakuraBirchMaterials
-      },
-      parts: {
-        foliage: { color: "#66b83f", intensity: 1.1 },
-        leaves: { color: "#93cf50", intensity: 1.1 },
-        blades: { color: "#83c747", intensity: 1.1 },
-        stem: { color: "#509633", intensity: 1.05 },
-        petals: { color: "#ff75bd", intensity: 5 },
-        cap: { color: "#f4b3cf", intensity: 1.35 },
-        bark: { color: "#c5a3b0", intensity: 1 }
-      },
-      species: {
-        // Native recipe inputs multiply the original material hue. This HDR swatch is
-        // rose foliage / the evaluated blue base of highlands-bush-2-leaves.mat.
-        "cartoon/shrub/highlands-bush-2/v1": { foliage: { color: "#ff414e", intensity: 9.26 } },
-        SM_Flower_01_01: { petals: { color: "#fff0da", intensity: 4 } },
-        SM_Flower_01_02: { petals: { color: "#fff0da", intensity: 4 } },
-        SM_Flower_01_03: { petals: { color: "#fff0da", intensity: 4 } },
-        SM_Flower_02_01: { petals: { color: "#ffb6d3", intensity: 4.5 } },
-        SM_Flower_02_02: { petals: { color: "#ffb6d3", intensity: 4.5 } },
-        SM_Flower_02_03: { petals: { color: "#ffb6d3", intensity: 4.5 } },
-        SM_Flower_03_01: { petals: { color: "#c18aee", intensity: 6 } },
-        SM_Flower_03_02: { petals: { color: "#c18aee", intensity: 6 } },
-        SM_Flower_03_03: { petals: { color: "#c18aee", intensity: 6 } },
-        SM_Flower_04_01: { petals: { color: "#e798d7", intensity: 5 } },
-        SM_Flower_04_02: { petals: { color: "#e798d7", intensity: 5 } },
-        SM_Flower_04_03: { petals: { color: "#e798d7", intensity: 5 } },
-        SM_Flower_06_01: { petals: { color: "#ffd0ac", intensity: 4 } },
-        SM_Flower_06_02: { petals: { color: "#ffd0ac", intensity: 4 } },
-        SM_Flower_06_03: { petals: { color: "#ffd0ac", intensity: 4 } },
-        SM_Flower_07_01: { petals: { color: "#ffa2c2", intensity: 4.5 } },
-        SM_Flower_07_02: { petals: { color: "#ffa2c2", intensity: 4.5 } },
-        SM_Flower_07_03: { petals: { color: "#ffa2c2", intensity: 4.5 } },
-        SM_Flower_09_01: { petals: { color: "#b77ee8", intensity: 6 } },
-        SM_Flower_09_02: { petals: { color: "#b77ee8", intensity: 6 } },
-        SM_Flower_09_03: { petals: { color: "#b77ee8", intensity: 6 } },
-        SM_Flower_10_01: { petals: { color: "#fff0da", intensity: 4 } },
-        SM_Mushroom_01: { stem: { color: "#ffe4cf", intensity: 1.1 } },
-        SM_Mushroom_02: { stem: { color: "#ffe4cf", intensity: 1.1 } },
-        SM_Mushroom_03: { stem: { color: "#ffe4cf", intensity: 1.1 } },
-        SM_Mushroom_04: { stem: { color: "#ffe4cf", intensity: 1.1 } },
-        SM_Mushroom_05: { stem: { color: "#ffe4cf", intensity: 1.1 } },
-        SM_Mushroom_06: { stem: { color: "#ffe4cf", intensity: 1.1 } },
-        SM_Mushroom_07: { stem: { color: "#ffe4cf", intensity: 1.1 } },
-        SM_Mushroom_08: { stem: { color: "#ffe4cf", intensity: 1.1 } },
-        SM_Mushroom_09: { stem: { color: "#ffe4cf", intensity: 1.1 } },
-        SM_Mushroom_10: { stem: { color: "#ffe4cf", intensity: 1.1 } },
-        SM_Mushroom_11: { stem: { color: "#ffe4cf", intensity: 1.1 } },
-        SM_Mushroom_12: { stem: { color: "#ffe4cf", intensity: 1.1 } }
-      }
-    },
-    bark: "#e4dce8",
-    flowers: "#fff4e8",
-    stone: "#d2b9ca",
-    lighting: {
-      ...lighting(14.5, 2.5, 0.9, 1.1, 0.002, 0.55),
-      ...atmosphere([0.22, 0.65, 1.8], [0.75, 1.05, 1.25]),
-      iblIntensity: 0.85,
-      fogExponent: 5,
-      sunColorR: 1.06,
-      sunColorG: 1,
-      sunColorB: 0.98
-    },
-    postProcess: {
-      ...post(10, 25),
-      postExposure: 0.15,
-      bloomThreshold: 1,
-      bloomIntensity: 0.65
-    },
-    landscape: { treeHeightMinM: 4.5, treeHeightMaxM: 23 },
-    initialLandscape: {
-      "vegetation.shrubs": 0.5,
-      "vegetation.herbs": 0.7,
-      "vegetation.cover": 0.85,
-      "vegetation.flowers": 1,
-      "vegetation.litter": 0.45,
-      "plantSizes.shrubs.scaleMin": 0.35,
-      "plantSizes.shrubs.scaleMax": 0.82,
-      "plantSizes.cover.scaleMin": 0.55,
-      "plantSizes.cover.scaleMax": 0.95,
-      "plantSizes.flowers.scaleMin": 0.85,
-      "plantSizes.flowers.scaleMax": 1.3,
-      "plantSizes.litter.scaleMin": 0.7,
-      "plantSizes.litter.scaleMax": 1,
-      roadsideDensityMultiplier: 8,
-      grassRelativeHeight: 0.22,
-      roadsideGrassHeightRatio: 0.4
-    },
-    flowerCoverage: 0.9,
-    initialFlowers: { densityPerM2: 0.85 },
-    weather: { cloudCoverage: 0.3, cloudBaseAltitudeM: 520, cloudFeatureSize: 0.72, rainRate: 0, snowRate: 0 }
+    petals: sakuraPetals,
+    models: sakuraSubject
+      ? [
+          {
+            id: sakuraSubject.id,
+            position: [0, 0, 0],
+            rotation: [0, 0, 0],
+            scale: sakuraSubject.size,
+            footprint: sakuraSubject.footprint,
+            groundingFootprint: sakuraSubject.groundingFootprint,
+            grounded: true,
+            assetGroundY: sakuraSubject.assetGroundY,
+            assetYawDegrees: sakuraSubject.assetYawDegrees,
+            assetLeafMaterials: sakuraSubject.leaf.materials,
+            assetLeafColor: sakuraSubject.leaf.color,
+            assetLeafIntensity: sakuraSubject.leaf.intensity,
+            assetLeafTextureBlend: sakuraSubject.leaf.textureBlend,
+            assetMaterials: sakuraSubject.bark && {
+              [sakuraSubject.bark.material]: {
+                color: sakuraSubject.bark.color,
+                intensity: sakuraSubject.bark.intensity
+              }
+            },
+            assetUrl: templateAssets[sakuraSubject.asset]
+          }
+        ]
+      : [],
+    lighting: {},
+    postProcess: {}
   },
   "aurora-palace": {
     reference: "SeedWorld-02-aurora-ice-palace.png",

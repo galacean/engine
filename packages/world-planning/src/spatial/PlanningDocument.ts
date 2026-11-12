@@ -484,9 +484,9 @@ export function upgradePlanningDocument(input: PlanningDocument): PlanningDocume
           if (!swatch) continue;
           const channels = ["r", "g", "b"] as const;
           const fields = channels.map((channel) => plantMaterialField(slot.assetId, slot.materialId, channel));
-          const prior = templateLinearColor(
-            slot.role === "leaf" ? (art.treeFoliage?.[slot.assetId] ?? art.foliage) : art.bark
-          );
+          const priorColor = slot.role === "leaf" ? (art.treeFoliage?.[slot.assetId] ?? art.foliage) : art.bark;
+          if (!priorColor) continue;
+          const prior = templateLinearColor(priorColor);
           if (!fields.every((field, index) => colors[field] === prior[index])) continue;
           const rgb = templateLinearColor(swatch.color);
           fields.forEach((field, index) => {

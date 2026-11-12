@@ -83,7 +83,8 @@ function smoothPath(input: PlanPoint[]): PlanPoint[] {
 export function generateRiverRegions(
   plan: IslandPlan,
   config: RiverParameters,
-  local: Record<string, Partial<RiverParameters>>
+  local: Record<string, Partial<RiverParameters>>,
+  reservations: readonly ReturnType<typeof createPlanningRingQuery>[] = []
 ): PlanningCheck[] {
   const candidateCount = planningCandidateCount(plan.parameters.seed, "rivers:count", config, 1);
   // This stage rebuilds the complete water set. Retire profiles by the actual
@@ -247,7 +248,12 @@ export function generateRiverRegions(
       for (let r = 0; r < rows; r++)
         for (let c = 0; c < cols; c++) {
           const p = point(r, c);
-          if (!land.inside(p) || land.distance(p, margin) < margin) continue;
+          if (
+            !land.inside(p) ||
+            land.distance(p, margin) < margin ||
+            reservations.some((area) => area.inside(p) || area.distance(p, margin) < margin)
+          )
+            continue;
           const height = ground(p);
           if (height < 1) continue;
           heights[r * cols + c] = height;
@@ -383,6 +389,20 @@ export function generateRiverRegions(
       }
       const outline = ribbonOutline(points, widths, undefined, true);
       if (!land.containsPolygon(outline)) continue;
+      if (
+        reservations.length &&
+        reservations.some((area) =>
+          area.overlapsPolygon(
+            ribbonOutline(
+              points,
+              widths.map((width, i) => width + 2 * banks[i]),
+              undefined,
+              true
+            )
+          )
+        )
+      )
+        continue;
       // A flat level must fit every bank, including the end caps. Never raise dry terrain to hide overflow.
       for (const p of outline) ceiling = Math.min(ceiling, ground(p) - 0.5);
       const crossed = new Set(points.flatMap((p) => owner(p, 0).map((n) => n.site.id)));

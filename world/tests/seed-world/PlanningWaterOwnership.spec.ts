@@ -139,7 +139,10 @@ it("solves replacement inputs with current Source water and its deletion intent"
 });
 
 it("does not let landscape composition recreate a removed Source river", () => {
-  const document = createTemplatePlanningDocument(20261110, "sakura-pearl");
+  const document = createSeedPlanningDocument(20261110);
+  document.entities.world.components.landscapeComposition = {
+    values: { enabled: true, streamWidthM: 14, streamDepthM: 0.9 }
+  };
   const id = "river:authored:landscape-composition:-1";
   document.entities[id] = {
     id,
