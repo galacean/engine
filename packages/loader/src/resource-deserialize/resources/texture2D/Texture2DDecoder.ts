@@ -41,7 +41,7 @@ class Texture2DDecoder {
         mipmap && texture.generateMipmaps();
         resolve(texture);
       } else {
-        ImageDecoder.decode(imageData, url).then((img) => {
+        ImageDecoder._decode(imageData, url).then((img) => {
           texture.setImageSource(img);
           mipmap && texture.generateMipmaps();
           resolve(texture);

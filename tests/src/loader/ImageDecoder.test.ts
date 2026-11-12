@@ -94,24 +94,33 @@ afterAll(() => {
 });
 
 describe("ImageDecoder", () => {
-  it("detects the MIME type from the leading bytes", () => {
-    expect(ImageDecoder.getMimeType(pngBytes)).toBe("image/png");
-    expect(ImageDecoder.getMimeType(jpegBytes)).toBe("image/jpeg");
-    expect(ImageDecoder.getMimeType(webpBytes)).toBe("image/webp");
-    expect(ImageDecoder.getMimeType(pngBytes.buffer as ArrayBuffer)).toBe("image/png");
+  it("decodes supported image formats with the detected MIME type", async () => {
+    const types = spyObjectUrlTypes();
+    for (const data of [pngBytes, jpegBytes, webpBytes, pngBytes.buffer as ArrayBuffer]) {
+      const image = await ImageDecoder._decode(data, "image-decoder/supported");
+      expect(image.naturalWidth).toBe(1);
+      expect(image.naturalHeight).toBe(1);
+    }
+    expect(types).toEqual(["image/png", "image/jpeg", "image/webp", "image/png"]);
   });
 
-  it("returns an empty type for unknown or truncated data", () => {
-    expect(ImageDecoder.getMimeType(new Uint8Array([1, 2, 3, 4]))).toBe("");
-    expect(ImageDecoder.getMimeType(new Uint8Array([0x89, 0x50]))).toBe("");
-    expect(ImageDecoder.getMimeType(new Uint8Array(0))).toBe("");
+  it("rejects unknown or truncated image data without declaring a MIME type", async () => {
+    const types = spyObjectUrlTypes();
+    for (const data of [new Uint8Array([1, 2, 3, 4]), new Uint8Array([0x89, 0x50]), new Uint8Array(0)]) {
+      await expect(ImageDecoder._decode(data, "image-decoder/invalid")).rejects.toThrow("failed to decode texture");
+    }
+    expect(types).toEqual(["", "", ""]);
   });
 
-  it("reads the view, not the start of its underlying buffer", () => {
+  it("decodes the view, not the start of its underlying buffer", async () => {
+    const types = spyObjectUrlTypes();
     const backing = new Uint8Array(8 + pngBytes.length);
     backing.set(jpegBytes.subarray(0, 8), 0);
     backing.set(pngBytes, 8);
-    expect(ImageDecoder.getMimeType(backing.subarray(8))).toBe("image/png");
+    const image = await ImageDecoder._decode(backing.subarray(8), "image-decoder/view");
+    expect(image.naturalWidth).toBe(1);
+    expect(image.naturalHeight).toBe(1);
+    expect(types).toEqual(["image/png"]);
   });
 
   it("decodes a PNG texture through a typed blob", async () => {

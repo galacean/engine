@@ -8,12 +8,7 @@ import { AssetPromise } from "@galacean/engine-core";
  * @internal
  */
 export class ImageDecoder {
-  /**
-   * Detect the image MIME type from the leading bytes.
-   * @param data - Encoded image bytes
-   * @returns The MIME type, or an empty string when the format is not recognized
-   */
-  static getMimeType(data: ArrayBuffer | Uint8Array): string {
+  private static _getMimeType(data: ArrayBuffer | Uint8Array): string {
     const bytes = data instanceof Uint8Array ? data : new Uint8Array(data);
     if (bytes.length >= 4 && bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47) {
       return "image/png";
@@ -38,14 +33,9 @@ export class ImageDecoder {
     return "";
   }
 
-  /**
-   * Decode encoded image bytes into an image element.
-   * @param data - Encoded image bytes
-   * @param url - Source url, used in the error message
-   */
-  static decode(data: ArrayBuffer | Uint8Array, url: string): AssetPromise<HTMLImageElement> {
+  static _decode(data: ArrayBuffer | Uint8Array, url: string): AssetPromise<HTMLImageElement> {
     return new AssetPromise((resolve, reject) => {
-      const objectUrl = URL.createObjectURL(new Blob([data], { type: ImageDecoder.getMimeType(data) }));
+      const objectUrl = URL.createObjectURL(new Blob([data], { type: ImageDecoder._getMimeType(data) }));
       const image = new Image();
       const releaseObjectUrl = () => URL.revokeObjectURL(objectUrl);
       image.onload = () => {

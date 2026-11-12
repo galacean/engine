@@ -73,7 +73,7 @@ class TextureLoader extends Loader<Texture> {
   }
 
   private _decodeImage(buffer: ArrayBuffer, item: LoadItem, resourceManager: ResourceManager): AssetPromise<Texture2D> {
-    return ImageDecoder.decode(buffer, item.url!).then((img) => {
+    return ImageDecoder._decode(buffer, item.url!).then((img) => {
       const {
         format = TextureFormat.R8G8B8A8,
         isSRGBColorSpace = true,
@@ -141,7 +141,7 @@ class TextureContentRestorer extends ContentRestorer<Texture> {
           return texture;
         }
 
-        return ImageDecoder.decode(buffer, this.url).then((img) => {
+        return ImageDecoder._decode(buffer, this.url).then((img) => {
           texture.setImageSource(img);
           texture.mipmapCount > 1 && texture.generateMipmaps();
           return texture;

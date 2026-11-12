@@ -43,7 +43,7 @@ class TextureCubeDecoder {
       } else {
         let loadedCount = 0;
         for (let i = 0; i < 6; i++) {
-          ImageDecoder.decode(facesData[i], url).then((img) => {
+          ImageDecoder._decode(facesData[i], url).then((img) => {
             texture.setImageSource(TextureCubeFace.PositiveX + i, img);
             if (++loadedCount === 6) {
               mipmap && texture.generateMipmaps();
