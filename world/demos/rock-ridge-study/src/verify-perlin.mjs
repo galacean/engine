@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import {createPerlinSource,extractPerlinRidgeTarget,perlinLayers,perlinSettings} from './perlin-ridges.mjs';
 import {generateRidgeScene,assembleRidgeTarget,createRidgeField,ridgePointAt,createSurfaceSampler,transformedVertices,withSceneHeight} from './ridge.mjs';
 
-const data=JSON.parse(fs.readFileSync(new URL('./study-data.json',import.meta.url)));
+// Frozen meshes remain only as historical geometry regression fixtures.
+const data={...JSON.parse(fs.readFileSync(new URL('./geometry.json',import.meta.url))),...JSON.parse(fs.readFileSync(new URL('./study-data.json',import.meta.url)))};
 const fixtures=JSON.parse(fs.readFileSync(new URL('../evidence/perlin-lab-fixtures.json',import.meta.url)));
 const sources=data.scenes,seeds=[0,18,42,382,4294967295],results=[];
 const near=(a,b,tolerance,message)=>assert(Math.abs(a-b)<=tolerance,`${message}: ${a} vs ${b}`);

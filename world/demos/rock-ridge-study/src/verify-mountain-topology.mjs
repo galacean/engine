@@ -38,7 +38,21 @@ for(let seed=0;seed<200;seed++){
 assert.equal(JSON.stringify(source),before,'Runtime generation cannot mutate the source');
 assert.equal(Object.keys(peakCounts).length,5,'The seed varies summit count across the entire supported range');
 assert(Object.keys(spurCounts).length>=4&&Object.keys(forkCounts).length>=2&&signatures.size>=20,'Topology changes, not just coordinate jitter');
-const result={seeds:200,peakCounts,spurCounts,forkCounts,distinctDegreeRoleSignatures:signatures.size,
+let manualCountCases=0;
+for(const seed of [0,42,147,464,465,480,4294967295])for(let peaks=1;peaks<=5;peaks++)for(let branches=3;branches<=8;branches++){
+ const plan=createRidgeTarget(source,seed,{seeded:false,peaks,branches});
+ assert.equal(plan.nodes.filter(n=>n.role==='peak').length,peaks,'Main peak slider count');
+ assert.equal(plan.nodes.filter(n=>n.role==='tail').length,branches,'Side ridge slider includes forks');
+ assert.deepEqual(plan,createRidgeTarget(source,seed,{seeded:false,peaks,branches}),'Manual counts replay exactly');manualCountCases++;
+}
+let crowdedCountCases=0;
+for(let seed=0;seed<200;seed++)for(const peaks of [1,5]){
+ const plan=createRidgeTarget(source,seed,{seeded:false,peaks,branches:8});
+ assert.equal(plan.topology.peaks,peaks,`Crowded main peak count, seed ${seed}`);
+ assert.equal(plan.topology.spurs+plan.topology.forks,8,`Crowded side ridge count, seed ${seed}`);crowdedCountCases++;
+}
+assert.deepEqual(createRidgeTarget(source,480,{seeded:true,peaks:1,branches:3}).nodes,createRidgeTarget(source,480,{seeded:true,peaks:5,branches:8}).nodes,'Automatic counts ignore old slider values');
+const result={seeds:200,manualCountCases,crowdedCountCases,peakCounts,spurCounts,forkCounts,distinctDegreeRoleSignatures:signatures.size,
  checks:['mountain-only source with no baked topology','exact deterministic replay','seed-dependent summit and spur counts','seed-dependent connectivity and forks','shared XYZ nodes','finite curves within the footprint','connected acyclic graph','dominant summit and separated secondary peaks','no forced saddle on a single summit','immutable source']};
 fs.writeFileSync(new URL('../evidence/mountain-topology-validation.json',import.meta.url),JSON.stringify(result,null,2)+'\n');
 console.log(JSON.stringify(result,null,2));

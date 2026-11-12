@@ -2,7 +2,13 @@ import {RIDGE_VERSION,DEFAULT_RIDGE_SEED,random,clamp,createSurfaceSampler} from
 
 // Grow a spatial tree before any mesh is read. Limits express the footprint and
 // minimum useful mass size; there is no stored layout, main axis or branch motif.
-export function createMountainNetwork(source,inputSeed=DEFAULT_RIDGE_SEED){
+export function mountainCounts(input={}){
+ const seeded=input?.seeded!==false;
+ const count=(key,lo,hi,fallback)=>Number.isFinite(input?.[key])?clamp(Math.round(input[key]),lo,hi):fallback;
+ return {seeded,peaks:count('peaks',1,5,3),branches:count('branches',3,8,4)};
+}
+export function createMountainNetwork(source,inputSeed=DEFAULT_RIDGE_SEED,options={}){
+ const counts=mountainCounts(options);
  const seed=Number(inputSeed)>>>0,rng=random(seed,'mountain-topology-1');
  const ground=createSurfaceSampler(source,{},true),[x0,x1,z0,z1]=source.extent;
  const cx=(x0+x1)/2,cz=(z0+z1)/2,rx=(x1-x0)/2-14,rz=(z1-z0)/2-12;
@@ -17,14 +23,17 @@ export function createMountainNetwork(source,inputSeed=DEFAULT_RIDGE_SEED){
   const knots=points.map((n,i)=>{if(i){t+=distance(n.position,points[i-1].position);links.get(n.id).push(points[i-1]);links.get(points[i-1].id).push(n);}n.incidentCurves.push(id);return {...n,position:[...n.position],t};});
   const edge={id,kind:curves.length?'branch':'trunk',type,knots};curves.push(edge);return edge;
  }
- const requestedPeaks=1+Math.floor(rng()*5),requestedSpurs=3+Math.floor(rng()*4);
+ const seededPeaks=1+Math.floor(rng()*5),seededSpurs=3+Math.floor(rng()*4);
+ const requestedPeaks=counts.seeded?seededPeaks:counts.peaks,requestedSpurs=counts.seeded?seededSpurs:Math.min(counts.branches,6);
  const x=cx+(rng()-.5)*12,z=cz+(rng()-.5)*8,crown=26+rng()*7;
  const primary=node('peak',x,z,ground(x,z)+crown,true),peaks=[primary];
  // A new summit chooses a nearby existing summit as parent. Rejection is spatial:
  // the same count can produce a chain, a fork, or several asymmetric arms.
  for(let i=1;i<requestedPeaks;i++){
   let best;
-  for(let attempt=0;attempt<100;attempt++){
+  // Manual counts get a longer search only if the normal sample found no room.
+  // Keep the same spacing and bounds, and preserve automatic seed layouts.
+  for(let attempt=0;attempt<100||(!counts.seeded&&!best&&attempt<1000);attempt++){
    const parent=peaks[Math.floor(rng()*peaks.length)],angle=rng()*Math.PI*2,run=19+rng()*12;
    const p=[parent.position[0]+Math.cos(angle)*run,0,parent.position[2]+Math.sin(angle)*run];
    if(!inside(p,.79))continue;
@@ -43,19 +52,19 @@ export function createMountainNetwork(source,inputSeed=DEFAULT_RIDGE_SEED){
  }
  // Descending spurs compete for empty angular sectors and room inside the
  // footprint. Their count, parent, direction, length and shoulder are seeded.
- function spurCandidate(parents){
+ function spurCandidate(parents,compact=false){
   let best;
-  for(let attempt=0;attempt<100;attempt++){
-   const root=parents[Math.floor(rng()*parents.length)],angle=rng()*Math.PI*2,run=20+rng()*15;
+  for(let attempt=0;attempt<(compact?400:100);attempt++){
+   const root=parents[Math.floor(rng()*parents.length)],angle=rng()*Math.PI*2,run=(compact?15:20)+rng()*15;
    const p=[root.position[0]+Math.cos(angle)*run,0,root.position[2]+Math.sin(angle)*run];
    if(!inside(p))continue;
    const neighbors=links.get(root.id),clearance=neighbors.length?Math.min(...neighbors.map(n=>{
     const a=Math.atan2(n.position[2]-root.position[2],n.position[0]-root.position[0]);
     return Math.acos(clamp(Math.cos(a-angle),-1,1));
    })):Math.PI;
-   if(clearance<.68)continue;
+   if(clearance<(compact?.52:.68))continue;
    const separation=Math.min(...nodes.filter(n=>n!==root).map(n=>distance(p,n.position)),30);
-   if(separation<10)continue;
+   if(separation<(compact?7.5:10))continue;
    // Keep a spur away from existing nonincident ridges, not just their ends.
    let edgeGap=Infinity;
    for(const edge of curves)for(let k=1;k<edge.knots.length;k++){
@@ -67,14 +76,14 @@ export function createMountainNetwork(source,inputSeed=DEFAULT_RIDGE_SEED){
      edgeGap=Math.min(edgeGap,Math.hypot(q[0]-a.position[0]-t*dx,q[2]-a.position[2]-t*dz));
     }
    }
-   if(edgeGap<6)continue;
+   if(edgeGap<(compact?4.5:6))continue;
    const score=Math.min(clearance,2.5)*3+separation*.13+rng()*2-neighbors.length*.5;
    if(!best||score>best.score)best={root,p,run,score};
   }
   return best;
  }
  for(let i=0;i<requestedSpurs;i++){
-  const candidate=spurCandidate(peaks);if(!candidate)break;
+  const candidate=spurCandidate(peaks)||(!counts.seeded&&spurCandidate(peaks,true));if(!candidate)break;
   const {root,p,run}=candidate,tailY=ground(p[0],p[2])+1.2+rng()*1.4;
   const points=[root];
   if(rng()<.6){
@@ -86,7 +95,7 @@ export function createMountainNetwork(source,inputSeed=DEFAULT_RIDGE_SEED){
  }
  // Some shoulders split again. Others remain unbranched, and a spur never has
  // to invent another summit/saddle just to satisfy a fixed four-knot recipe.
- const forkBudget=Math.floor(rng()*3),shoulders=nodes.filter(n=>n.role==='shoulder');
+ const seededForkBudget=Math.floor(rng()*3),forkBudget=counts.seeded?seededForkBudget:counts.branches-requestedSpurs,shoulders=nodes.filter(n=>n.role==='shoulder');
  let forks=0;
  for(let i=0;i<forkBudget&&shoulders.length;i++){
   const candidate=spurCandidate(shoulders);if(!candidate)break;
@@ -95,8 +104,15 @@ export function createMountainNetwork(source,inputSeed=DEFAULT_RIDGE_SEED){
   curve([root,node('tail',p[0],p[2],ground(p[0],p[2])+1.2+rng())],'fork-spur');
   shoulders.splice(shoulders.indexOf(root),1);forks++;
  }
+ // If a requested split has no room, grow the remaining side ridge from an
+ // available summit. The slider controls the total, including split branches.
+ if(!counts.seeded)for(let i=0;i<counts.branches;i++){
+  if(nodes.filter(n=>n.role==='tail').length>=counts.branches)break;
+  const candidate=spurCandidate(peaks)||spurCandidate(peaks,true);if(!candidate)break;
+  const {root,p}=candidate;curve([root,node('tail',p[0],p[2],ground(p[0],p[2])+1.2+rng())],'descending-spur');
+ }
  return {version:RIDGE_VERSION,seed,kind:'seed-grown-mountain-network',nodes,curves,
-  topology:{requestedPeaks,requestedSpurs,peaks:peaks.length,saddles:nodes.filter(n=>n.role==='saddle').length,
+  topology:{counts,requestedPeaks,requestedSpurs,requestedBranches:counts.seeded?null:counts.branches,peaks:peaks.length,saddles:nodes.filter(n=>n.role==='saddle').length,
    spurs:curves.filter(c=>c.type==='descending-spur').length,forks,
    minimumPeakSpacingM:17,method:'spatial summit growth / shared saddle links / descending spurs / optional forks'}};
 }

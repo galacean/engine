@@ -32,8 +32,8 @@ function curveSamples(curve,pitch){
  return [...new Set(times)].sort((a,b)=>a-b).map(t=>({t,position:ridgePointAt(curve,t),yaw:curveYaw(curve,t),curveId:curve.id}));
 }
 
-export function createRidgeTarget(source,inputSeed=DEFAULT_RIDGE_SEED){
- return createMountainNetwork(source,inputSeed);
+export function createRidgeTarget(source,inputSeed=DEFAULT_RIDGE_SEED,options={}){
+ return createMountainNetwork(source,inputSeed,options);
 }
 
 // A radial influence around every network edge makes one XZ-dependent height
@@ -107,5 +107,5 @@ export function assembleRidgeTarget(source,geometries,plan){
 }
 export function generateRidgeScene(source,geometries,seed=DEFAULT_RIDGE_SEED,options={}){
  if(source.id!=='peaks')throw new RangeError('The ridge study supports mountain peaks only');
- return assembleRidgeTarget(source,geometries,options.mode==='perlin'?extractPerlinRidgeTarget(source,seed,options.noise):createRidgeTarget(source,seed));
+ return assembleRidgeTarget(source,geometries,options.mode==='perlin'?extractPerlinRidgeTarget(source,seed,options.noise):createRidgeTarget(source,seed,options.topology));
 }

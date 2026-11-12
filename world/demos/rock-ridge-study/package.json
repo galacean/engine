@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "build": "node build.mjs && node atomic-controls/build.mjs && node sandstone-study/build.mjs",
-    "test:mountain": "node build.mjs && node src/verify-mountain-topology.mjs && node src/verify-mountain-state.mjs && node src/verify-ridges.mjs && node src/verify-perlin.mjs && node src/verify-surfaces.mjs",
+    "test:mountain": "node build.mjs && node src/verify-mountain-topology.mjs && node src/verify-mountain-state.mjs && node src/verify-mountain-jobs.mjs && node src/verify-runtime-rocks.mjs && node src/verify-ridges.mjs && node src/verify-perlin.mjs && node src/verify-surfaces.mjs",
     "test": "npm run test:mountain && node atomic-controls/build.mjs && node sandstone-study/build.mjs && node atomic-controls/verify.mjs && node sandstone-study/verify.mjs"
   }
 }

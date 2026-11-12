@@ -1,11 +1,14 @@
 import fs from 'node:fs';
+import {buildAtomicKernel} from '../atomic-controls/kernel-bundle.mjs';
 const template=fs.readFileSync(new URL('./viewer.fragment.html',import.meta.url),'utf8');
 const source=JSON.parse(fs.readFileSync(new URL('./study-data.json',import.meta.url),'utf8'));
 source.scenes=source.scenes.map(s=>({...s,rocks:[],guides:[],labels:[],ridge:undefined}));
 const data=JSON.stringify(source);
 const utils=fs.readFileSync(new URL('./ridge-utils.mjs',import.meta.url),'utf8').replace(/^export /gm,'');
-const ridge=utils+'\n'+['ridge-base.mjs','mountain-network.mjs','rock-mass-fit.mjs','perlin-ridges.mjs','solid-carve.mjs','rock-surface.mjs','atomic-rock-material.mjs','ridge.mjs'].map(file=>fs.readFileSync(new URL(file,import.meta.url),'utf8').replace(/^import .*;\n/gm,'').replace(/^export \{.*;\n/gm,'').replace(/^export /gm,'')).join('\n');
-const result=template.replace('__ROCK_STUDY_DATA__',data.replace(/</g,'\\u003c')).replace('__ROCK_RIDGE_GENERATOR__',ridge);
+const ridge=utils+'\n'+['ridge-base.mjs','mountain-network.mjs','rock-mass-fit.mjs','perlin-ridges.mjs','solid-carve.mjs','rock-surface.mjs','atomic-rock-material.mjs','ridge.mjs','runtime-rocks.mjs','mountain-jobs.mjs'].map(file=>fs.readFileSync(new URL(file,import.meta.url),'utf8').replace(/^import .*;\n/gm,'').replace(/^export \{.*;\n/gm,'').replace(/^export /gm,'')).join('\n');
+const worker=ridge+'\nconst workerKernel=atomicRockKernel(),workerCache={};\nworkerKernel.ready.then(()=>postMessage({ready:true})).catch(error=>postMessage({fatal:error.message}));\nonmessage=({data})=>{try{postMessage({id:data.id,result:buildRuntimeMountain(workerKernel,data,workerCache)});}catch(error){postMessage({id:data.id,error:error.message});}};';
+const generator=buildAtomicKernel()+'\n'+ridge+'\nconst MOUNTAIN_WORKER_BODY='+JSON.stringify(worker).replace(/</g,'\\u003c')+';';
+const result=template.replace('__ROCK_STUDY_DATA__',()=>data.replace(/</g,'\\u003c')).replace('__ROCK_RIDGE_GENERATOR__',()=>generator);
 if(Buffer.byteLength(result)>1_000_000)throw new Error('Inline study exceeds the 1 MB limit');
 fs.writeFileSync(new URL('../rock-arrangement-study.html',import.meta.url),result);
 console.log('inline bytes',Buffer.byteLength(result));

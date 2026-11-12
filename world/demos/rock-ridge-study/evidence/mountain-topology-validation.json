@@ -1,5 +1,7 @@
 {
   "seeds": 200,
+  "manualCountCases": 210,
+  "crowdedCountCases": 400,
   "peakCounts": {
     "1": 43,
     "2": 40,

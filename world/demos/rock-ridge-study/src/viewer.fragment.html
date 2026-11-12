@@ -29,12 +29,23 @@
   </div>
   <div class="viz-row">
     <div id="rock-study-seed-controls"><div class="viz-row">
-      <label class="form-label">Generation seed <input class="form-control" id="rock-study-seed" type="number" min="0" max="4294967295" step="1" value="464"></label>
+      <label class="form-label">Generation seed <input class="form-control" id="rock-study-seed" type="number" min="0" max="4294967295" step="1" value="480"></label>
       <button class="btn" type="button" id="rock-study-next-seed">Next seed</button>
     </div></div>
-    <label class="form-label" for="rock-study-height">Height <output id="rock-study-height-value" for="rock-study-height" class="tabular-nums">200%</output>
-      <input class="form-range" id="rock-study-height" aria-label="Height" type="range" min="25" max="200" step="5" value="200">
+    <label class="form-label" for="rock-study-height">Height <output id="rock-study-height-value" for="rock-study-height" class="tabular-nums">100%</output>
+      <input class="form-range" id="rock-study-height" aria-label="Height" type="range" min="25" max="200" step="5" value="100">
     </label>
+  </div>
+  <div id="rock-study-counts">
+    <label class="form-check"><input class="form-check-input" id="rock-study-seeded-counts" type="checkbox" checked><span class="form-check-label">Seed controls counts</span></label>
+    <div class="viz-controls">
+      <label class="form-label" for="rock-study-peak-count">Main peaks <output class="tabular-nums" id="rock-study-peak-count-value">3</output>
+        <input class="form-range" id="rock-study-peak-count" aria-label="Main peaks" type="range" min="1" max="5" step="1" value="3">
+      </label>
+      <label class="form-label" for="rock-study-branch-count">Side ridges <output class="tabular-nums" id="rock-study-branch-count-value">4</output>
+        <input class="form-range" id="rock-study-branch-count" aria-label="Side ridges" type="range" min="3" max="8" step="1" value="4">
+      </label>
+    </div>
   </div>
   <div id="rock-study-authoring">
     <div class="viz-controls">
@@ -107,6 +118,10 @@
  const noiseInputs=Object.fromEntries(Object.keys(PERLIN_DEFAULTS).map(key=>[key,root.querySelector('#rock-study-'+key)]));
  const noiseOptions=()=>Object.fromEntries(Object.entries(noiseInputs).map(([key,input])=>[key,Number(input.value)]));
  const authoringKey=()=>JSON.stringify({mode:modeInput.value,noise:noiseOptions()});
+ const countsPanel=root.querySelector('#rock-study-counts'),seededCounts=root.querySelector('#rock-study-seeded-counts'),peakCountInput=root.querySelector('#rock-study-peak-count'),branchCountInput=root.querySelector('#rock-study-branch-count');
+ const countOptions=()=>mountainCounts({seeded:seededCounts.checked,peaks:Number(peakCountInput.value),branches:Number(branchCountInput.value)});
+ const countKey=()=>seededCounts.checked?'seeded':JSON.stringify(countOptions());
+ function countLabels(){root.querySelector('#rock-study-peak-count-value').value=peakCountInput.value;root.querySelector('#rock-study-branch-count-value').value=branchCountInput.value;}
  const data=JSON.parse(document.getElementById('rock-study-data').textContent);
  if(typeof THREE==='undefined'){detail.textContent='The 3D renderer could not load.';detail.setAttribute('role','alert');return;}
  const T=THREE,scene=new T.Scene();
@@ -126,31 +141,65 @@
  const sun=new T.DirectionalLight();sun.intensity=3.3;sun.position.set(-60,115,70);sun.castShadow=true;
  sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-120,right:120,top:120,bottom:-120,near:1,far:350});
  sun.shadow.bias=-.00025;sun.shadow.normalBias=.08;scene.add(sun);
- let activeGeometries=data.geometries,geometryCache={},geometryMode='';
- const libraryCache=new Map();
+ let baseGeometries={},activeGeometries={},geometryCache={},geometryMode='',baseSeed;
  function rockBuffer(g){
   const attributes=g.surface?creasedRockAttributes(g):g,geo=new T.BufferGeometry();
   geo.setAttribute('position',new T.Float32BufferAttribute(attributes.positions,3));geo.setAttribute('normal',new T.Float32BufferAttribute(attributes.normals,3));
   if(g.surface)geo.setAttribute('rockDetail',new T.Float32BufferAttribute(attributes.rockDetail,3));else geo.setIndex(g.indices);
   geo.computeBoundingSphere();return geo;
  }
- function useRockGeometry(){
-  // Hold the assembly used to frame a comparison while tuning its right-hand
-  // mesh. This rebuilds one prototype instead of refitting the whole mountain.
-  const compare=viewSelect.value==='compare';if(compare&&geometryMode.startsWith('fractured:'))return;
-  const options=compare?FRACTURE_DEFAULTS:fractureOptions(),mode=finishInput.value==='original'&&!compare?'original':'fractured:'+JSON.stringify(options);if(geometryMode===mode)return;
-  if(!libraryCache.has(mode)){
-   const library=mode==='original'?data.geometries:fracturedRockLibrary(data.geometries,options),buffers={};
-   for(const [key,g]of Object.entries(library))buffers[key]=rockBuffer(g);
-   for(const [key,old]of libraryCache)if(key.startsWith('fractured:')){for(const g of Object.values(old.buffers))g.dispose();libraryCache.delete(key);}
-   libraryCache.set(mode,{library,buffers});
-  }
-  const cached=libraryCache.get(mode);activeGeometries=cached.library;geometryCache=cached.buffers;geometryMode=mode;
- }
  let current,world=new T.Group(),guideGroup=new T.Group(),target=new T.Vector3(),yaw=0,pitch=.45,span=100,width=700,height=450;
  const comparisonGroup=new T.Group(),previousBuffers=new Map();let comparisonMeshes=[],comparisonCorners=[],comparisonTarget=new T.Vector3(),adjustedBuffer,adjustedKey='';
  scene.add(world,guideGroup,comparisonGroup);
  let materials=[],terrainGeometry,guideGeometries=[],lastColors='',generatedKey='',generatedScene;
+ let requestedKey='',requestedFlags,pendingOrbit,worker,workerJob,fallbackKernel;
+ const fallbackCache={};
+ let readyResolve;const workerReady=new Promise(resolve=>{readyResolve=resolve;});
+ async function fallbackBuild(request){stage.dataset.generationBackend='main';fallbackKernel??=atomicRockKernel();await fallbackKernel.ready;return buildRuntimeMountain(fallbackKernel,request,fallbackCache);}
+ function workerFailed(){
+  worker?.terminate();worker=null;readyResolve();
+  if(workerJob){const job=workerJob;workerJob=null;fallbackBuild(job.request).then(job.resolve,job.reject);}
+ }
+ try{
+  const code=atomicRockKernel.toString()+'\n'+MOUNTAIN_WORKER_BODY,url=URL.createObjectURL(new Blob([code],{type:'text/javascript'}));
+  worker=new Worker(url);URL.revokeObjectURL(url);
+  worker.onmessage=({data:message})=>{
+   if(message.ready){stage.dataset.generationBackend='worker';readyResolve();return;}
+   if(message.fatal){workerFailed();return;}
+   if(workerJob&&message.id===workerJob.request.id){const job=workerJob;workerJob=null;if(message.error)job.reject(new Error(message.error));else job.resolve(message.result);}
+  };
+  worker.onerror=workerFailed;
+ }catch{readyResolve();}
+ async function runBuild(request){await workerReady;return worker?new Promise((resolve,reject)=>{workerJob={request,resolve,reject};worker.postMessage(request);}):fallbackBuild(request);}
+ function runtimeSettings(){
+  const compare=viewSelect.value==='compare',counts=countOptions();
+  return {seed:Number(seedInput.value)>>>0,mode:modeInput.value,noise:noiseOptions(),topology:counts.seeded?{seeded:true}:counts,
+   fractures:compare?FRACTURE_DEFAULTS:fractureOptions(),original:finishInput.value==='original'&&!compare};
+ }
+ const runtimeKey=()=>JSON.stringify(runtimeSettings());
+ const jobs=createMountainJobs(runBuild,(result,request)=>{
+  requestedKey='';if(request.key!==runtimeKey())return;
+  if(baseSeed!==request.seed){for(const g of previousBuffers.values())g.dispose();previousBuffers.clear();adjustedBuffer?.dispose();adjustedBuffer=null;adjustedKey='';baseSeed=request.seed;}
+  baseGeometries=result.baseGeometries;
+  stage.dataset.rockSeed=String(result.generation.seed);stage.dataset.baseMeshFingerprint=result.generation.fingerprint;
+  if(geometryMode!==result.libraryKey){
+   for(const g of Object.values(geometryCache))g.dispose();geometryCache={};activeGeometries=result.geometries;
+   for(const [key,g]of Object.entries(activeGeometries))geometryCache[key]=rockBuffer(g);
+   geometryMode=result.libraryKey;
+  }
+  generatedScene=result.scene;generatedKey=request.key;
+  createScene(request.flags.resetCamera);
+  if(pendingOrbit){yaw=pendingOrbit.yaw;pitch=pendingOrbit.pitch;pendingOrbit=null;render();}
+  stage.setAttribute('aria-busy','false');detail.removeAttribute('role');
+  if(request.flags.persist)save();
+ },error=>{requestedKey='';stage.setAttribute('aria-busy','false');detail.textContent='Unable to generate this mountain. Change the seed or settings to retry.';detail.setAttribute('role','alert');console.error(error);});
+ function requestBuild(resetCamera,persist){
+  const settings=runtimeSettings(),key=JSON.stringify(settings);
+  if(requestedKey===key){requestedFlags.resetCamera||=resetCamera;requestedFlags.persist||=persist;return;}
+  requestedKey=key;requestedFlags={resetCamera,persist};
+  stage.setAttribute('aria-busy','true');detail.textContent='Generating mountain rocks…';
+  jobs.schedule({...settings,key,flags:requestedFlags,source:data.scenes[0]});
+ }
  function cssColor(name){const probe=document.createElement('span');probe.style.color='var('+name+')';root.appendChild(probe);const value=getComputedStyle(probe).color;probe.remove();return new T.Color(value);}
  function palette(){
   const bg=cssColor('--background'),fg=cssColor('--foreground'),green=cssColor('--green'),blue=cssColor('--blue'),orange=cssColor('--orange');
@@ -183,18 +232,17 @@
   target.set(r.x+c*x-s*z,r.y+(b[0][1]+b[1][1])*.5*r.scale*(r.verticalScale??1),r.z+s*x+c*z);
   span=Math.max(h*width/height,g.parameters.obbWidth*r.scale*(r.longitudinalScale??1))*1.18;
  }
- function createScene(resetCamera=true){
-  useRockGeometry();
-  current=data.scenes[0];
+ function createScene(resetCamera=true,persist=false){
+  const key=runtimeKey();
+  countsPanel.hidden=modeInput.value==='perlin';
+  if(generatedKey!==key){requestBuild(resetCamera,persist);return false;}
+  if(requestedKey){jobs.invalidate();requestedKey='';stage.setAttribute('aria-busy','false');}
+  current=generatedScene;
   const perlin=modeInput.value==='perlin';
   root.querySelector('#rock-study-surface-legend').hidden=perlin&&surfaceInput.value!=='rocks';
   noiseControls.hidden=!perlin;surfaceControl.hidden=!perlin;
   ridgeLegend.hidden=!guideInput.checked;
-  {
-   const key=current.id+':'+seedInput.value+':'+authoringKey()+':'+geometryMode;
-   if(key!==generatedKey){generatedScene=generateRidgeScene(current,activeGeometries,Number(seedInput.value),{mode:modeInput.value,noise:noiseOptions()});generatedKey=key;}
-   current=generatedScene;
-  }
+  if(!perlin&&seededCounts.checked){peakCountInput.value=current.ridge.plan.topology.peaks;branchCountInput.value=current.ridge.plan.topology.spurs+current.ridge.plan.topology.forks;countLabels();}
   current=withSceneHeight(current,Number(heightInput.value)/100);
   heightValue.value=heightInput.value+'%';
   heightInput.setAttribute('aria-valuetext',heightInput.value+' percent of original height');
@@ -206,7 +254,7 @@
   renderer.setClearColor(p.bg,0);
   const stone=mat(p.stone),terrain=mat(p.ground,{side:T.DoubleSide});
   if(compare){
-   const r=current.rocks.find(r=>r.id===current.ridge?.primary.rock)||current.rocks[0],source=data.geometries[r.mesh];
+   const r=current.rocks.find(r=>r.id===current.ridge?.primary.rock)||current.rocks[0],source=baseGeometries[r.mesh];
    if(!previousBuffers.has(r.mesh))previousBuffers.set(r.mesh,rockBuffer(previousFractureRockGeometry(source)));
    const key=r.mesh+':'+fractureKey();if(key!==adjustedKey){const next=rockBuffer(fractureRockGeometry(source,fractureOptions()));adjustedBuffer?.dispose();adjustedBuffer=next;adjustedKey=key;}
    const clay=mat(p.stone);
@@ -263,13 +311,13 @@
   detail.textContent=counted(peakCount,'peak')+' · '+counted(spurs,'spur')+' · '+current.ridge.composition.structuralMasses+' masses · '+counted(current.ridge.composition.smallRocks,'small rock');
   if(perlin){const n=current.ridge.plan.noise;noiseSummary.textContent=(100/n.frequency).toFixed(1)+' m base · '+n.coarseOctaves+' structural / '+n.fineOctaves+' detail octaves';}
   if(perlin&&surfaceInput.value!=='rocks'){const count=current.ridge.plan.extraction.selectedPeaks;detail.textContent=count+' major peak'+(count===1?'':'s')+' · '+current.ridge.plan.curves.length+' ridges · '+(surfaceInput.value==='coarse'?'Structural field':'Fine detail; same ridge network');}
-  description.textContent=current.notes+' The blue branching ridge network guides broad overlapping rock masses. Whole masses are refitted before adding structure; local differences within '+current.ridge.policy.curveToleranceM.toFixed(1)+' meters are tolerated. Small rocks have a separate budget of two and stay at the lower edges. All accepted pieces overlap the connected body in sampled mesh volume. Orange shows the actual surface along each target curve; its measured RMS deviation is '+current.ridge.fit.rmsM.toFixed(2)+' meters. Spheres mark peaks and diamonds mark saddles.'+' Height scales rocks, terrain and the complete ridge network together. The mountain topology is generated at runtime from the seed before fitting the atomic rock meshes. Peak counts, connections, spurs and forks can change. The fixed atomic mesh library is reused; the full Seed rendering pipeline is not integrated. Drag to orbit; side, plan and low angle views are also available.';
+  description.textContent=current.notes+' The blue branching ridge network guides broad overlapping rock masses. Whole masses are refitted before adding structure; local differences within '+current.ridge.policy.curveToleranceM.toFixed(1)+' meters are tolerated. Small rocks have a separate budget of two and stay at the lower edges. All accepted pieces overlap the connected body in sampled mesh volume. Orange shows the actual surface along each target curve; its measured RMS deviation is '+current.ridge.fit.rmsM.toFixed(2)+' meters. Spheres mark peaks and diamonds mark saddles.'+' Height scales rocks, terrain and the complete ridge network together. The mountain topology is generated at runtime from the seed before fitting the atomic rock meshes. Peak counts, connections, spurs and forks can change. Atomic recipes and meshes are generated from the current seed at runtime; the full Seed rendering pipeline is not integrated. Drag to orbit; side, plan and low angle views are also available.';
   if(perlin)description.textContent+=' Peaks and connecting saddle passes are extracted from a coarse Perlin field. Curves simplify and smooth the traced paths, so intermediate points may depart slightly from the sampled field. Octaves below 24 meters affect only bounded surface detail, not graph topology. The source field views hide the rock meshes and orange comparison lines.';
   if(finishInput.value==='textured')description.textContent+=' The atomic generator’s Marble Cliff 05 base color and normal maps use world-space triplanar projection. Each rock repeats over half its longest fitted OBB dimension, with the generator’s gray tint and 0.35 normal strength.';
-  description.textContent+=finishInput.value==='original'?' Original baked geometry and clay shading.':' Continuous solid cuts carve long vertical fractures with uneven bends, asymmetric widths and tapered ends. Broad rock faces remain planar. Intersection edges define the cuts; the surface uses no vertex displacement or local backoff. The fitter measures those carved triangles. Clay shows the geometry without grain or color. Summit and bottom heights are preserved.';
+  description.textContent+=finishInput.value==='original'?' Runtime atomic geometry without fracture carving, with clay shading.':' Continuous solid cuts carve long vertical fractures with uneven bends, asymmetric widths and tapered ends. Broad rock faces remain planar. Intersection edges define the cuts; the surface uses no vertex displacement or local backoff. The fitter measures those carved triangles. Clay shows the geometry without grain or color. Summit and bottom heights are preserved.';
   if(compare){detail.textContent='Same rock, size, camera and light · clay';description.textContent='The previous straight cuts and adjusted fractures on the same atomic rock. Fracture controls update the right-hand rock when released. Both use identical scale, camera, lighting and untextured clay. Drag either panel to rotate both together.';}
   stage.setAttribute('aria-describedby','rock-study-description');
-  if(resetCamera)setCamera();else setCameraTarget();resize();
+  if(resetCamera)setCamera();else setCameraTarget();resize();if(persist)save();return true;
  }
  function render(){
   if(!current)return;
@@ -311,35 +359,32 @@
   renderer.setScissorTest(false);
  }
  function resize(){width=stage.clientWidth||700;height=viewSelect.value==='compare'?(width<540?600:440):Math.max(280,Math.min(520,width*.64));if(current&&viewSelect.value==='close')setCameraTarget();renderer.setSize(width,height);stage.style.height=height+'px';camera.left=-span/2;camera.right=span/2;camera.top=span*height/width/2;camera.bottom=-camera.top;camera.updateProjectionMatrix();render();}
- function save(){if(window.openai?.setWidgetState)window.openai.setWidgetState({modelContent:{demoPreset:DEMO_PRESET,surfacePresentation:ORIGINAL_ROCK_PRESENTATION,arrangement:current.id,view:viewSelect.value,showLayout:guideInput.checked,seed:Number(seedInput.value),heightPercent:Number(heightInput.value),ridgeMode:modeInput.value,noise:noiseOptions(),surface:surfaceInput.value,rockFinish:finishInput.value,fractures:fractureOptions(),ridgeVersion:RIDGE_VERSION},privateContent:{yaw,pitch}}).catch(()=>{});}
- function applyState(state){const m=state?.modelContent;if(!m||![DEMO_PRESET,'island-425-fractures-145-v1'].includes(m.demoPreset))return false;if(['plan','low','perspective','side','close','compare'].includes(m.view))viewSelect.value=m.view;if(typeof m.showLayout==='boolean')guideInput.checked=m.showLayout;if(Number.isInteger(m.seed)&&m.seed>=0&&m.seed<=4294967295)seedInput.value=m.seed;if(Number.isFinite(m.heightPercent)&&m.heightPercent>=25&&m.heightPercent<=200)heightInput.value=m.heightPercent;if(['perlin','direct'].includes(m.ridgeMode))modeInput.value=m.ridgeMode;if(['rocks','coarse','detail'].includes(m.surface))surfaceInput.value=m.surface;try{const n=perlinSettings(m.noise);for(const key in noiseInputs)noiseInputs[key].value=n[key];}catch{}const f=fractureSettings(m.fractures);for(const key in fractureInputs)fractureInputs[key].value=f[key]*100;fractureLabels();return true;}
+ function save(){if(!current||generatedKey!==runtimeKey())return;if(window.openai?.setWidgetState)window.openai.setWidgetState({modelContent:{demoPreset:DEMO_PRESET,surfacePresentation:ORIGINAL_ROCK_PRESENTATION,arrangement:current.id,view:viewSelect.value,showLayout:guideInput.checked,seed:Number(seedInput.value),heightPercent:Number(heightInput.value),ridgeMode:modeInput.value,topology:countOptions(),rockGeneration:RUNTIME_ROCK_VERSION,noise:noiseOptions(),surface:surfaceInput.value,rockFinish:finishInput.value,fractures:fractureOptions(),ridgeVersion:RIDGE_VERSION},privateContent:{yaw,pitch}}).catch(()=>{});}
+ function applyState(state){const m=state?.modelContent;if(!m||![DEMO_PRESET,'island-425-fractures-145-v1'].includes(m.demoPreset))return false;if(['plan','low','perspective','side','close','compare'].includes(m.view))viewSelect.value=m.view;if(typeof m.showLayout==='boolean')guideInput.checked=m.showLayout;if(Number.isInteger(m.seed)&&m.seed>=0&&m.seed<=4294967295)seedInput.value=m.seed;if(Number.isFinite(m.heightPercent)&&m.heightPercent>=25&&m.heightPercent<=200)heightInput.value=m.heightPercent;if(['perlin','direct'].includes(m.ridgeMode))modeInput.value=m.ridgeMode;if(['rocks','coarse','detail'].includes(m.surface))surfaceInput.value=m.surface;try{const n=perlinSettings(m.noise);for(const key in noiseInputs)noiseInputs[key].value=n[key];}catch{}const f=fractureSettings(m.fractures);for(const key in fractureInputs)fractureInputs[key].value=f[key]*100;fractureLabels();const counts=mountainCounts(m.topology);seededCounts.checked=counts.seeded;peakCountInput.value=counts.peaks;branchCountInput.value=counts.branches;countLabels();return true;}
  function restoreState(state){
-  const previous={view:viewSelect.value,seed:seedInput.value,height:heightInput.value,authoring:authoringKey(),surface:surfaceInput.value,finish:finishInput.value,fractures:fractureKey()};
+  const previous={view:viewSelect.value,seed:seedInput.value,height:heightInput.value,authoring:authoringKey(),counts:countKey(),surface:surfaceInput.value,finish:finishInput.value,fractures:fractureKey()};
   if(!applyState(state))return false;
   // Legacy arrangement states now open the mountain generator. Preserve their
   // seed, height, fracture/material settings and orbit, never their removed preset.
   const m=state.modelContent;
   finishInput.value=m.surfacePresentation===ORIGINAL_ROCK_PRESENTATION&&['textured','stone','clay','original'].includes(m.rockFinish)?m.rockFinish:'textured';
   const resetCamera=!current||previous.view!==viewSelect.value;
-  const rebuild=!current||previous.seed!==seedInput.value||previous.height!==heightInput.value||previous.authoring!==authoringKey()||previous.surface!==surfaceInput.value||previous.finish!==finishInput.value||previous.fractures!==fractureKey()||(previous.view!==viewSelect.value&&[previous.view,viewSelect.value].includes('compare'));
+  const rebuild=!current||previous.seed!==seedInput.value||previous.height!==heightInput.value||previous.authoring!==authoringKey()||previous.counts!==countKey()||previous.surface!==surfaceInput.value||previous.finish!==finishInput.value||previous.fractures!==fractureKey()||(previous.view!==viewSelect.value&&[previous.view,viewSelect.value].includes('compare'));
   // A state echo after pointerup is persistence, not a request for a preset view.
   if(rebuild)createScene(resetCamera);else if(resetCamera)setCamera();
   const orbit=state.privateContent;
   if(!drag&&Number.isFinite(orbit?.yaw)&&Number.isFinite(orbit?.pitch)){
-   yaw=orbit.yaw;pitch=Math.max(.08,Math.min(Math.PI/2-.0001,orbit.pitch));
+   yaw=orbit.yaw;pitch=Math.max(.08,Math.min(Math.PI/2-.0001,orbit.pitch));if(generatedKey!==runtimeKey())pendingOrbit={yaw,pitch};
   }
-  guideGroup.visible=guideInput.checked;labels.hidden=!guideInput.checked;ridgeLegend.hidden=!current.ridge||!guideInput.checked;render();
+  guideGroup.visible=guideInput.checked;labels.hidden=!guideInput.checked;ridgeLegend.hidden=!current?.ridge||!guideInput.checked;render();
   return true;
  }
- let sceneTimer;
- function queueScene(resetCamera=false){
-  clearTimeout(sceneTimer);fractureLabels();detail.textContent='Updating rocks…';stage.setAttribute('aria-busy','true');
-  sceneTimer=setTimeout(()=>{
-   try{createScene(resetCamera);detail.removeAttribute('role');save();}
-   catch(error){detail.textContent='Unable to generate this mountain. Change the seed or settings to retry.';detail.setAttribute('role','alert');console.error(error);}
-   finally{stage.setAttribute('aria-busy','false');}
-  },32);
+ function queueScene(resetCamera=false){fractureLabels();countLabels();createScene(resetCamera,true);}
+ for(const input of [peakCountInput,branchCountInput]){
+  input.addEventListener('input',()=>{seededCounts.checked=false;countLabels();});
+  input.addEventListener('change',()=>queueScene(false));
  }
+ seededCounts.addEventListener('change',()=>queueScene(false));
  for(const input of Object.values(fractureInputs)){
   input.addEventListener('input',fractureLabels);
   input.addEventListener('change',()=>queueScene(false));
@@ -351,8 +396,8 @@
  nextSeed.addEventListener('click',()=>{seedInput.value=(Number(seedInput.value)+1)>>>0;queueScene(false);});
  finishInput.addEventListener('change',()=>queueScene(false));
  for(const input of [modeInput,surfaceInput,...Object.values(noiseInputs)])input.addEventListener('change',()=>{for(const [key,field] of Object.entries(noiseInputs))if(!field.value||!field.checkValidity())field.value=PERLIN_DEFAULTS[key];queueScene(false);});
- viewSelect.addEventListener('change',()=>queueScene(viewSelect.value!=='compare'));
- guideInput.addEventListener('change',()=>{guideGroup.visible=guideInput.checked;labels.hidden=!guideInput.checked;ridgeLegend.hidden=!current.ridge||!guideInput.checked;render();save();});
+ viewSelect.addEventListener('change',()=>{pendingOrbit=null;queueScene(viewSelect.value!=='compare');});
+ guideInput.addEventListener('change',()=>{guideGroup.visible=guideInput.checked;labels.hidden=!guideInput.checked;ridgeLegend.hidden=!current?.ridge||!guideInput.checked;render();save();});
  let drag;
  renderer.domElement.addEventListener('pointerdown',e=>{drag={x:e.clientX,y:e.clientY,yaw,pitch};renderer.domElement.setPointerCapture(e.pointerId);});
  renderer.domElement.addEventListener('pointermove',e=>{if(!drag)return;yaw=drag.yaw-(e.clientX-drag.x)*.006;pitch=Math.max(.08,Math.min(Math.PI/2-.001,drag.pitch+(e.clientY-drag.y)*.006));render();});

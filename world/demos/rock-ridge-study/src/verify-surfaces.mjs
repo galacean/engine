@@ -4,7 +4,8 @@ import {fracturedRockLibrary,fractureRockGeometry,creasedRockAttributes,ROCK_SUR
 import {generateRidgeScene,createSurfaceSampler,transformedVertices,ridgePointAt,withSceneHeight} from './ridge.mjs';
 import {measureFractureDirection} from './measure-fracture-direction.mjs';
 
-const data=JSON.parse(fs.readFileSync(new URL('./study-data.json',import.meta.url)));
+// Frozen meshes remain only as historical geometry regression fixtures.
+const data={...JSON.parse(fs.readFileSync(new URL('./geometry.json',import.meta.url))),...JSON.parse(fs.readFileSync(new URL('./study-data.json',import.meta.url)))};
 const original=JSON.stringify(data.geometries),started=performance.now(),library=fracturedRockLibrary(data.geometries),generationMs=performance.now()-started;
 const sub=(a,b)=>a.map((v,d)=>v-b[d]),dot=(a,b)=>a.reduce((s,v,d)=>s+v*b[d],0);
 const cross=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]];

@@ -1,0 +1,20 @@
+{
+  "date": "2026-11-12",
+  "version": "runtime-atomic-mountain-13",
+  "runtimeRockVersion": "seeded-atomic-rocks-1",
+  "environment": "Standalone iframe on localhost in the in-app browser",
+  "generationBackend": "worker",
+  "heightPercent": 100,
+  "fractures": {"depth": 1.4, "width": 1.6, "irregularity": 1.8},
+  "finish": "Atomic rock texture · triplanar",
+  "observations": [
+    {"seed": 480, "automaticCounts": false, "peaks": 3, "sideRidges": 4, "masses": 17, "baseMeshFingerprint": "874d3c61"},
+    {"seed": 480, "automaticCounts": false, "peaks": 5, "sideRidges": 8, "masses": 25, "baseMeshFingerprint": "874d3c61"},
+    {"seed": 481, "automaticCounts": false, "peaks": 5, "sideRidges": 8, "masses": 26, "baseMeshFingerprint": "cdcc7e6e"},
+    {"seed": 481, "automaticCounts": true, "peaks": 5, "sideRidges": 5, "masses": 22}
+  ],
+  "fingerprintsMatchNode": true,
+  "manualCountsAndSeedRestoredOnReload": true,
+  "recordedJavaScriptErrors": [],
+  "limits": ["Selected seeds and slider combinations only", "Native orbit behavior was not conclusively validated; state-echo camera checks passed separately"]
+}

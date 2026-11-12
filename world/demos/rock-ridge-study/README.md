@@ -17,7 +17,7 @@ node world/demos/rock-ridge-study/build.mjs
 npm run test:mountain --prefix world/demos/rock-ridge-study
 ```
 
-The entry defaults are seed **464**, **200%** height, **Seeded graph**, plan view,
+The entry defaults are seed **480**, **100%** height, **Seeded graph**, plan view,
 **140% depth / 160% width / 180% irregularity**, and **Atomic rock texture · triplanar**.
 Saved states from the former island entry migrate to mountains while retaining
 seed, height, authoring mode, material, fractures, view and orbit. State echoes
@@ -26,7 +26,7 @@ terminal spurs, fitted masses and small rocks.
 
 ## Seed-generated topology
 
-`seed-grown-mountain-12` replaces the fixed main-ridge/branch construction.
+`runtime-atomic-mountain-13` uses seed-generated topology and atomic meshes.
 `src/mountain-network.mjs` uses a seed-local random stream at runtime, before
 reading any atomic mesh:
 
@@ -45,14 +45,48 @@ reading any atomic mesh:
 There is no stored ridge layout, fixed main axis, alternating branch pattern, or
 mandatory saddle→secondary peak→tail sequence. Size limits, spacing, slope profiles
 and rejection criteria are explicit generation rules, not a library of layouts.
-The supporting ground/footprint and the twelve upstream atomic mesh prototypes
-are still fixed inputs. Changing the mountain seed regenerates topology and
-placement; it does not regenerate the underlying mesh library or fracture seeds.
+The supporting ground and footprint remain fixed inputs. Changing the mountain
+seed regenerates topology, atomic recipes, atomic meshes, fracture seeds and fitting.
+
+**Main peaks** (1–5) and **Side ridges** (3–8) control the summit and total terminal
+spur counts, including forked spurs. Moving either slider switches off **Seed
+controls counts** and keeps those counts across seed changes. Re-enable the
+checkbox to let the seed choose counts again; the sliders then display the
+generated counts. Summit links through saddles are additional network edges, not
+side ridges. Manual counts use a more compact spatial search when necessary;
+placement still rejects intersecting or crowded candidates. The status shows
+actual accepted counts if a requested count cannot fit. These controls apply to
+**Seeded graph**; Perlin mode derives its counts from the field and hides them.
 
 **Show layout** draws the exact procedural target in blue. Orange measures the
 assembled mesh surface at the same X/Z coordinates; it is not an extraction of
 every exposed crest. Spheres mark peaks and diamonds mark saddles. Height scales
 ground, target, rock geometry and measurements together from 25% to 200%.
+
+## Runtime atomic recipes
+
+`src/runtime-rocks.mjs` replaces the old `bake.mjs` recipe table. Each seed creates
+eight atomic variants using the upstream `buildRock` and `simplifyRock` kernel
+already vendored for the atomic controls study. Dimensions, profiles, top slope,
+outline, wear, wall parameters and each mesh's own seed vary continuously within
+the fitting roles' ranges. `peak`, `shoulder`, `cliff` and `bank` are role handles,
+not stored rock shapes. Resolution remains 24 and the simplifier targets 1,000
+triangles per base mesh. The original export's 0.1 mm position grid is retained
+before carving to avoid nearly coplanar Float32 input noise producing tiny BSP
+slivers. No post-carve displacement or surface repair is added.
+
+Topology and atomic recipes use independent deterministic streams. Editing counts
+reuses the current seed's atoms; changing the seed rebuilds them. Carving and mass
+fitting run in a Web Worker, with one running job and only the latest pending edit.
+The current mountain stays visible until the replacement is ready. If the host
+blocks workers, the same generator runs on the main thread and can briefly block
+interaction. Both paths produce the same data and have no baked fallback.
+
+The live build embeds the kernel and supporting ground, not an atomic mesh library.
+`src/geometry.json` is retained only as a historical regression fixture for the
+previous carving and fitting tests. The original thread-local `bake.mjs` now serves
+only as an optional diagnostic export of `generateRuntimeRocks(seed)`; the viewer
+does not load its output.
 
 ## Connected mass fitting
 
@@ -128,19 +162,19 @@ Use **Surface comparison** to see the previous straight `solid-carving-4` cuts b
 camera, framing, lighting and untextured clay. Each renders alone, so neither
 casts shadows onto the other. The comparison stacks below 540 px. Entering it
 preserves the viewing angle; choosing Low angle or Side first gives the matching
-paired view. The previous meshes and render normals match commit `e788d6e5a`
-exactly across all 12 prototypes.
+paired view. The straight-cut construction retains its historical comparison
+behavior; both sides now use the same newly generated atomic mesh for this seed.
 
 Use **Rock finish** in an assembly view to compare stone, clay and original
 geometry. **Rock close-up** frames the highest mass. Stone and fractured clay
 share the same carved mesh and fitted assembly. Original clay refits the same
-independent target using the baked meshes. Changing finish keeps the orbit angles.
+independent target using the runtime atomic meshes. Changing finish keeps the orbit angles.
 
 ### Fracture controls
 
 **Depth**, **Width**, and **Irregularity** range from 0% to 200% and update when
 the slider is released. All three at 100% exactly reproduce the preceding
-`irregular-fractures-5` geometry and render attributes across all 12 prototypes.
+`irregular-fractures-5` geometry and render attributes on the 12 historical fixtures.
 Depth scales the inward incision; width scales the V opening, so its visible
 aperture also grows with depth. Irregularity scales lateral bends and depth
 variation. Zero irregularity gives straight tapered paths. Zero depth or width
@@ -195,13 +229,27 @@ has been removed.
    overlap witnesses and the measured orange guide. The procedural target is
    independent of the cutters. Height scales the entire result consistently.
 
-## Verification — mountain-only revision
+## Verification
 
 - 200 seeds reproduce exactly and form connected trees with shared XYZ junctions.
   They produce all five summit counts, 3–8 terminal spurs, 0–2 forks, and 148
   distinct degree/role signatures. This checks topology variation rather than
   coordinate jitter alone. See [topology evidence](evidence/mountain-topology-validation.json).
-- Seven original-mesh assemblies (seeds 0, 42, 334, 382, 464, 465, and 4294967295)
+- 210 manual count combinations across seven seeds reach the requested 1–5 main
+  peaks and 3–8 side ridges and replay exactly. Automatic counts ignore old slider
+  values. A further 400 crowded cases cover 1 or 5 peaks with 8 side ridges.
+  Persistence checks include manual counts, and job-queue checks cover
+  stale results, stale failures, cancellation and rapid edits.
+- Runtime mesh and assembly checks are separate from the historical fixture tests
+  below; see [runtime evidence](evidence/runtime-rock-validation.json). The live
+  scene payload is checked to contain no baked atomic meshes. Seeds regenerate
+  each variant, same-seed buffers replay exactly, and count edits reuse atoms.
+  Thirty-two base meshes across four seeds and sixteen carved meshes across two
+  seeds pass closed-solid and GPU-triangle checks. Four runtime assemblies pass
+  independent contact witnesses, mass budgets, replay and height scaling. Their
+  worst RMS deviation is 2.694 m; one narrow fracture gives a local under-target
+  residual of 12.956 m, so the soft fitting band is not a per-point bound.
+- Seven historical original-mesh assemblies (seeds 0, 42, 334, 382, 464, 465, and 4294967295)
   pass finite/bounded geometry, independent contact witnesses, sparse accent and
   structural-size budgets, exact replay, dense surface measurement, height
   scaling, and a local branch-height response check. Worst RMS deviation is
@@ -217,7 +265,12 @@ has been removed.
 - Persistence tests execute the viewer's real state handlers, checking migration
   from a saved island, retained material/fracture/noise settings, seed rebuilds,
   and post-drag state echoes without camera resets.
-- Browser review at 200% height and 140%/160%/180% fracture settings confirmed
+- The runtime browser review confirmed worker generation, 3/4 and 5/8 manual
+  counts, seed changes with manual counts retained, automatic count selection,
+  and saved counts restored on reload. Seeds 480 and 481 produced different mesh
+  fingerprints matching Node; count edits kept the fingerprint unchanged. No
+  browser JavaScript errors were recorded. See [browser evidence](evidence/runtime-browser-validation.json).
+- The preceding revision's browser review at 200% height and 140%/160%/180% fracture settings confirmed
   seed 464 changes from one summit to five at seed 465. Textured and clay views,
   oblique and plan views, restored state, and the Perlin coarse-field view rendered
   without JavaScript or shader errors. Native drag gestures were not revalidated.
@@ -226,7 +279,8 @@ These samples do not establish a bound for every seed or artistic realism. The
 carved library remains a floating-point BSP prototype without production LOD or
 performance acceptance. The earlier 120-case fracture-control validation is
 preserved in [fracture-controls-validation.json](evidence/fracture-controls-validation.json);
-fracturing itself is unchanged in this revision.
+fracture cutter construction itself is unchanged in this revision. Runtime mesh
+sampling checks selected seeds, not all possible recipes or slider combinations.
 
 ## Perlin lab assessment — 2026-11-09
 

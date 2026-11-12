@@ -4,6 +4,8 @@ import assert from 'node:assert/strict';
 import {perlinSettings} from './perlin-ridges.mjs';
 import {fractureSettings} from './rock-surface.mjs';
 import {ORIGINAL_ROCK_PRESENTATION} from './atomic-rock-material.mjs';
+import {mountainCounts} from './mountain-network.mjs';
+import {RUNTIME_ROCK_VERSION} from './runtime-rocks.mjs';
 import {RIDGE_VERSION} from './ridge-utils.mjs';
 
 // Exercise the actual viewer persistence handlers against legacy saved settings
@@ -13,7 +15,8 @@ const data=JSON.parse(fs.readFileSync(new URL('./study-data.json',import.meta.ur
 const preset=viewer.match(/const DEMO_PRESET='([^']+)'/)[1];
 const field=value=>({get value(){return String(value);},set value(next){value=next;}});
 let saved,rebuilds=0,cameraResets=0;
-const context={DEMO_PRESET:preset,ORIGINAL_ROCK_PRESENTATION,RIDGE_VERSION,perlinSettings,fractureSettings,
+const context={DEMO_PRESET:preset,ORIGINAL_ROCK_PRESENTATION,RIDGE_VERSION,RUNTIME_ROCK_VERSION,perlinSettings,fractureSettings,mountainCounts,
+ generatedKey:'',pendingOrbit:null,seededCounts:{checked:true},peakCountInput:field(3),branchCountInput:field(4),countLabels:()=>{},
  viewSelect:field('plan'),seedInput:field(464),heightInput:field(200),modeInput:field('direct'),surfaceInput:field('rocks'),finishInput:field('textured'),guideInput:{checked:false},
  noiseInputs:Object.fromEntries(['frequency','octaves','lacunarity','persistence'].map(k=>[k,field(1)])),
  fractureInputs:Object.fromEntries(['depth','width','irregularity'].map(k=>[k,field(100)])),
@@ -23,10 +26,13 @@ context.noiseOptions=()=>Object.fromEntries(Object.entries(context.noiseInputs).
 context.fractureOptions=()=>fractureSettings(Object.fromEntries(Object.entries(context.fractureInputs).map(([k,v])=>[k,+v.value/100])));
 context.authoringKey=()=>JSON.stringify({mode:context.modeInput.value,noise:context.noiseOptions()});
 context.fractureKey=()=>JSON.stringify(context.fractureOptions());
+context.countOptions=()=>mountainCounts({seeded:context.seededCounts.checked,peaks:+context.peakCountInput.value,branches:+context.branchCountInput.value});
+context.countKey=()=>context.seededCounts.checked?'seeded':JSON.stringify(context.countOptions());
+context.runtimeKey=()=>context.seedInput.value+':'+context.countKey();
 context.setCamera=()=>{cameraResets++;context.yaw=.58;context.pitch=.52;};
-context.createScene=reset=>{rebuilds++;context.current={...data.scenes[0],ridge:{}};if(reset)context.setCamera();};
+context.createScene=reset=>{rebuilds++;context.generatedKey=context.runtimeKey();context.current={...data.scenes[0],ridge:{}};if(reset)context.setCamera();};
 vm.createContext(context);
-vm.runInContext(viewer.slice(viewer.indexOf(' function save()'),viewer.indexOf(' let sceneTimer;')),context);
+vm.runInContext(viewer.slice(viewer.indexOf(' function save()'),viewer.indexOf(' function queueScene(')),context);
 const legacy={modelContent:{demoPreset:'island-425-fractures-145-v1',arrangement:'island',view:'side',seed:464,heightPercent:200,
  ridgeMode:'direct',noise:{frequency:4,octaves:5,lacunarity:2,persistence:.85},surface:'rocks',rockFinish:'textured',surfacePresentation:ORIGINAL_ROCK_PRESENTATION,
  fractures:{depth:1.4,width:1.6,irregularity:1.8},showLayout:true},privateContent:{yaw:1.23,pitch:.71}};
@@ -42,5 +48,6 @@ assert.deepEqual([rebuilds,cameraResets],before,'A state echo must not rebuild o
 assert.equal(context.yaw,2.1);assert.equal(context.pitch,.4);
 const reseeded=structuredClone(saved);reseeded.modelContent.seed=465;context.restoreState(reseeded);
 assert.equal(rebuilds,before[0]+1);assert.equal(cameraResets,before[1],'Changing a seed preserves the orbit');
+const manual=structuredClone(saved);manual.modelContent.topology={seeded:false,peaks:3,branches:4};context.restoreState(manual);context.save();assert.deepEqual(saved.modelContent.topology,manual.modelContent.topology);
 assert(!viewer.includes('rock-study-case'),'The arrangement picker is removed');
 console.log('Mountain state: legacy migration, parameter retention, seed rebuild and orbit echo passed');

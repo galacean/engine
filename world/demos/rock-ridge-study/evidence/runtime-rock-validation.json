@@ -1,0 +1,82 @@
+{
+  "version": "seeded-atomic-rocks-1",
+  "generatedBaseMeshes": 32,
+  "fingerprints": {
+    "0": "807ff933",
+    "480": "874d3c61",
+    "481": "cdcc7e6e",
+    "4294967295": "40ea5ca3"
+  },
+  "assemblies": [
+    {
+      "seed": 480,
+      "mode": "direct",
+      "topology": {
+        "seeded": false,
+        "peaks": 3,
+        "branches": 4
+      },
+      "fingerprint": "874d3c61",
+      "masses": 17,
+      "smallRocks": 2,
+      "rmsM": 2.3018449057183044,
+      "maximumUnderM": 12.956410044347683,
+      "maximumOverM": 4.4078357832445185
+    },
+    {
+      "seed": 480,
+      "mode": "direct",
+      "topology": {
+        "seeded": false,
+        "peaks": 5,
+        "branches": 8
+      },
+      "fingerprint": "874d3c61",
+      "masses": 25,
+      "smallRocks": 2,
+      "rmsM": 2.1496662624099208,
+      "maximumUnderM": 5.781634710398766,
+      "maximumOverM": 4.0876384101373375
+    },
+    {
+      "seed": 481,
+      "mode": "direct",
+      "topology": {
+        "seeded": true
+      },
+      "fingerprint": "cdcc7e6e",
+      "masses": 22,
+      "smallRocks": 1,
+      "rmsM": 1.9656259929478224,
+      "maximumUnderM": 6.941766295729213,
+      "maximumOverM": 5.6480320082721285
+    },
+    {
+      "seed": 481,
+      "mode": "perlin",
+      "topology": {
+        "seeded": true
+      },
+      "fingerprint": "cdcc7e6e",
+      "masses": 16,
+      "smallRocks": 2,
+      "rmsM": 2.6935005797372265,
+      "maximumUnderM": 5.749198519842199,
+      "maximumOverM": 5.24887151201462
+    }
+  ],
+  "checks": [
+    "no baked mesh input",
+    "seed generates recipes and every mesh variant",
+    "exact recipe and mesh replay",
+    "finite bounded closed wound geometry",
+    "carved runtime solids",
+    "target independent from atoms",
+    "count edits reuse generated atoms",
+    "large connected masses and sparse accents",
+    "independent contact witnesses",
+    "bounded RMS fit",
+    "complete assembly replay",
+    "height scales runtime geometry"
+  ]
+}
