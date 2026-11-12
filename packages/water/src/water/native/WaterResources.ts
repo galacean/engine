@@ -1,3 +1,4 @@
+import { resolveWaterSurfaceAppearanceForQuality } from "../authoring/quality/WaterSurfaceAppearanceQuality";
 import type { RiverDrop } from "../authoring/river/RiverDrop";
 import { ReferResource, Material, type Engine } from "@galacean/engine-core";
 import {
@@ -104,10 +105,24 @@ export function installLook(registry: WaterBodyAssetRegistry, data: WaterLookAut
 }
 
 /** Namespace private revisions so editing one instance never mutates another shared Look. */
-export function scopedLook(resource?: WaterLookResource, material?: Material): WaterLookAuthoringComponents {
-  const data = material ? resolveWaterMaterialLook(material) : resource?.data;
+export function scopedLook(
+  resource?: WaterLookResource,
+  material?: Material,
+  quality?: Pick<WaterQualityPlanV2, "surfaceShading">
+): WaterLookAuthoringComponents {
+  const authored = material ? resolveWaterMaterialLook(material) : resource?.data;
+  const data =
+    authored && quality
+      ? {
+          ...authored,
+          appearance: {
+            ...authored.appearance,
+            appearance: resolveWaterSurfaceAppearanceForQuality(authored.appearance.appearance, quality)
+          }
+        }
+      : authored;
   if (!data) throw new TypeError("Water requires a native Material or runtime Look input.");
-  const id = `native-look:${material ? waterMaterialKey(material) : resource!.contentHash}`;
+  const id = `native-look:${material ? waterMaterialKey(material) : resource!.contentHash}${quality ? `:surface-${quality.surfaceShading}` : ""}`;
   return {
     appearance: {
       ...data.appearance,

@@ -1,5 +1,5 @@
-import { builtinWaterTextureDescriptor } from "./WaterBuiltinAssets";
-import type { WaterMaterialProfile } from "./WaterMaterial";
+import { builtinWaterTextureDescriptor } from "./WaterBuiltinTextureIdentity";
+import type { WaterMaterialProfile } from "./WaterMaterialFile";
 
 /** Frozen from the native preset .mat texture slots before removing author texture support. */
 export const WATER_BUILTIN_MATERIAL_TEXTURE_PATHS = {

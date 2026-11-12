@@ -1,3 +1,4 @@
+import { getWaterSurfaceAppearanceQualityBudget } from "../../authoring/quality/WaterSurfaceAppearanceQuality";
 import { getRequiredWaterSurfaceV2Semantics } from "../../compiler/surface/WaterSurfaceClosureCompiler";
 import { WATER_CONNECTION_SHADER } from "../connections/WaterConnectionBinding";
 import { bindWaterSurfaceCaustics } from "../surface/WaterSurfaceCausticsBinding";
@@ -1084,9 +1085,8 @@ export function setHeightfieldWaterSurfaceAppearanceBinding(
   if (!binding || !("textureBindings" in binding)) {
     throw new TypeError("Heightfield water requires a Surface Appearance V2 binding; detach is unsupported.");
   }
-  const maximumContactFoamOctaves: 1 | 2 | 3 =
-    state.quality === WaterQualityTier.Low ? 1 : state.quality === WaterQualityTier.Medium ? 2 : 3;
-  const maximumDetailLayers: 1 | 2 = state.quality === WaterQualityTier.Low ? 1 : 2;
+  const { maximumPatternOctaves: maximumContactFoamOctaves, maximumDetailLayers } =
+    getWaterSurfaceAppearanceQualityBudget(state.quality);
   const sceneDepthAvailable = state.depthSource !== WaterSurfaceDepthSource.LocalBathymetry;
   const qualitySupported = true;
   const fieldGraph = resolveWaterSurfaceAppearanceFields(binding, {

@@ -1,3 +1,4 @@
+import { isWaterBuiltinShader } from "./WaterBuiltinShaders";
 import { Camera, ignoreClone, Layer, Script, type Entity, type Scene } from "@galacean/engine-core";
 import { Vector3 } from "@galacean/engine-math";
 import { createWaterBodyAsset } from "../authoring/body/WaterBodyAsset";
@@ -258,7 +259,7 @@ export class WaterSystem extends Script implements WaterRuntimeControl {
             this._host?.loader,
             (id) => {
               const config = this._bodies.get(id)?.configuration;
-              return config ? scopedLook(config.look, config.material) : undefined;
+              return config ? scopedLook(config.look, config.material, config.quality.data) : undefined;
             },
             (target) =>
               this._presentationVisibility.get(target.bodyKind) === false
@@ -570,7 +571,7 @@ export class WaterSystem extends Script implements WaterRuntimeControl {
     }
     const source = config.asset.runtimeData();
     const asset = createWaterBodyAsset({ ...source, id: `native-body:${config.asset.contentHash}` });
-    const look = scopedLook(config.look, config.material);
+    const look = scopedLook(config.look, config.material, config.quality.data);
     const quality = { ...config.quality.data, id: `native-quality:${config.quality.contentHash}` };
     host.registerAuthoringOnce(
       look.look.id,
@@ -615,7 +616,16 @@ export class WaterSystem extends Script implements WaterRuntimeControl {
         bodyId: body.waterId,
         asset,
         instance,
-        createRuntimeContext: nativeWaterRuntimeContext(this, textures, renderRoots, config.material?.shader)
+        // Built-ins are precompiled at full complexity. Lower tiers must retain the
+        // backend shader compiled from the derived appearance, rather than overwrite it.
+        createRuntimeContext: nativeWaterRuntimeContext(
+          this,
+          textures,
+          renderRoots,
+          config.material && (quality.surfaceShading === "high" || !isWaterBuiltinShader(config.material.shader))
+            ? config.material.shader
+            : undefined
+        )
       });
     } else transaction.remove(body.waterId);
   }

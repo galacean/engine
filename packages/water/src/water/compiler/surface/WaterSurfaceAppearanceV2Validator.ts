@@ -388,7 +388,16 @@ function decodeOctaves(
   const weights = source.weights.map((weight, index) =>
     finite(weight, `${path}.weights[${index}]`, 0, Number.MAX_VALUE, diagnostics)
   );
-  if (weights.some((weight) => weight === undefined) || weights.every((weight) => weight === 0)) return undefined;
+  if (weights.some((weight) => weight === undefined)) return undefined;
+  if (weights.every((weight) => weight === 0)) {
+    addError(
+      diagnostics,
+      WaterSurfaceAppearanceDiagnosticCode.ValueOutOfRange,
+      `${path}.weights`,
+      "Expected at least one positive octave weight."
+    );
+    return undefined;
+  }
   if (count === 1) {
     const normalizedWeights: readonly [number] = Object.freeze([weights[0] as number]);
     return Object.freeze({ count: 1, weights: normalizedWeights });

@@ -96,3 +96,27 @@ WaterStartup 回归覆盖真实注册顺序、作者 `WaterFar` 消费、查询�
 最终消费必须同时遵循 `engine-water-native.pair.json` 的 archive 与 native 目录哈希，不能仅凭
 `frozen-v4` 路径判断 Water bundle 内容改变。服务切换由 Editor owner 执行，Engine Agent 不改写
 Editor 工作区、不操作其服务。完整 Editor/OasisBE/真实 sandbox 验收由协调方在统一阶段安排。
+
+## Water Material × Quality 派生外观
+
+`native/WaterMaterialFile.ts` 的 `resolveWaterMaterialFileLook(file)` 是无 GPU 的 `.mat` 解码与原始
+外观校验入口。它与原生 Material 解码共享实现：octave weights 始终使用固定 Vector3 存储，
+按合法的 count=1/2/3 消费前 N 项；所有存储分量必须有限且非负，消费项不能全零。
+保存/构建预检应先调用此函数，再适配质量，不能先裁剪而隐藏非法作者值。
+
+`authoring/quality/WaterSurfaceAppearanceQuality.ts` 导出
+`getWaterSurfaceAppearanceQualityBudget(surfaceShading)` 和
+`resolveWaterSurfaceAppearanceForQuality(appearance, { surfaceShading })`，两者亦从 native/index
+和 water/index 导出。预算为 low=1细节层/1噪声 octave，medium=2/2，high=2/3。
+派生只裁剪细节层和各边界 pattern 的 octave；颜色、深度来源、折射、composition 与岸边响应均保留。
+如果所有保留 octave 权重为零而作者在后续 octave 有能量，低档近似把最大作者权重放入第一个
+保留 octave，避免生成全零非法噪声；high 保持完整原值。
+
+Engine 在解码后、编译前自动派生；派生 Look 身份包含 surfaceShading，作者 Material 身份不变。
+内置 Shader 的 low/medium 使用 backend 按派生外观生成的 Shader，high 保留原内置 Shader。
+外部自定义 Shader 保留作者实现，其内部采样预算仍由该 Shader 作者负责。
+Editor 仅复用预检函数，不保存派生 Look、不写回降级材质，也不复制预算或校验规则。
+
+纯 CPU 的材质编解码从 `native/WaterMaterialFile` 导入；`native/WaterMaterial` 仅为旧调用者重导出，
+该运行时模块还包含 Material/纹理工厂功能，不用于 CJS 元数据构建的 authoring 入口。
+纹理身份来自静态 conversion 描述，解码不触发运行时资产 URL 初始化或纹理加载。

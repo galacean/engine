@@ -26,3 +26,8 @@ export function registerWaterBuiltinShaders(): void {
     );
   }
 }
+
+/** Identity check: foreign shaders with the same name keep their authored implementation. */
+export function isWaterBuiltinShader(shader: Shader): boolean {
+  return registered.get(shader.name) === shader;
+}
