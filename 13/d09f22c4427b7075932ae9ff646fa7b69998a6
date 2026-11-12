@@ -1,6 +1,7 @@
 packages/terrain/src/surface/SurfaceShader.ts
   s_0ad7efa77c17be::t_7567070b7553e8 2,23-27,47,51
   s_0ad7efa77c17be::t_c844fbcc88a733 3-9,12-21,28-34,37-46
+  s_0ad7efa77c17be::t_0e1f98d74e995a 1,10-11,22,35-36,48-50,52
 packages/world-planning/src/runtime/SeedWorldRockSurfaceGrass.ts
   s_0ad7efa77c17be::t_7567070b7553e8 13
 packages/world-planning/src/integrations/terrain/debug/TerrainRuntimeDebugInspector.ts
@@ -18,6 +19,7 @@ packages/world-planning/src/spatial/WorldTemplateArtDirection.ts
   s_0ad7efa77c17be::t_55d206eb065fbf 777-780
   s_0ad7efa77c17be::t_f20a38eb2d1584 786
   s_0ad7efa77c17be::t_7cbfe1287b9e3a 813-815
+  s_0ad7efa77c17be::t_0e1f98d74e995a 45,816-825,828-831,833
 world/demos/seed-world/src/DesertPresentation.ts
   s_0ad7efa77c17be::t_3ede1947af44cb 11,45,50-52,60
   s_0ad7efa77c17be::t_4a684a96ce8e60 15,41-42,49,53-56,61,65-66
@@ -59,6 +61,7 @@ world/demos/seed-world/SeedWorldDemo.ts
   s_0ad7efa77c17be::t_4a684a96ce8e60 780,2006-2013
   s_0ad7efa77c17be::t_3ede1947af44cb 1940
   s_0ad7efa77c17be::t_cf3121bea220db 104,639-642,709,776-778,1444-1445,1479-1481,1545-1553,1842-1848,1888-1890,1952-1953,2099-2104
+  s_0ad7efa77c17be::t_0ce38ca84ddbbb 1446
 packages/terrain/src/shaders/Surface.shader
   s_0ad7efa77c17be::t_ac9208c9e130ba 23,26
   s_0ad7efa77c17be::t_547aac14e18683 58-60,71,107,120,132,145,157-163,327,345,347-348,424
@@ -96,6 +99,7 @@ packages/world-planning/src/spatial/layout/MojaveDesertLayout.ts
   s_0ad7efa77c17be::t_58691c0dbd7700 4,13
   s_0ad7efa77c17be::t_7480a920970eca 10-12
   s_0ad7efa77c17be::t_d75697806678b4 32-33
+  s_0ad7efa77c17be::t_0e1f98d74e995a 1-2,35
 packages/world-planning/src/runtime/SeedWorldRockRuntime.ts
   s_0ad7efa77c17be::t_7567070b7553e8 29,404
 world/demos/seed-world/src/MojaveGrounding.ts
@@ -122,6 +126,7 @@ world/demos/mojave-assets/assets/catalog.json
   s_c5192f23876072::t_35d546a9bad7e6 1,3-4,6-8,11-13,15,18-19,21-23,26-28,30,33-34,36-38,41-43,45,48-49,51-53,56-58,60,63-64,66-68,71-73,75,78-79,81-83,86-88,90,93-94,96-98,101-103,105,108-109,111-113,116-118,120,123-124,126-128,131-133,135,138-139,141-143,146-148,150,153-154,156-158,161-163,165,168-169,171-173,176-178,180,196-197
 packages/world-planning/src/runtime/SeedWorldRockSurfaceStyle.ts
   s_0ad7efa77c17be::t_7567070b7553e8 12
+  s_0ad7efa77c17be::t_0e1f98d74e995a 1-11,13
 world/demos/mojave-assets/assets/wind/catalog.json
   s_0ad7efa77c17be::t_ac5d3cfb93637d 1-20
 world/demos/mojave-assets/index.html
@@ -141,6 +146,7 @@ packages/terrain/src/shaders/shared/ProceduralTreeWind.glsl
   s_0ad7efa77c17be::t_cefcb308c10a22 4,22,27-29
 packages/terrain/src/shaders/shared/SceneWind.glsl
   s_0ad7efa77c17be::t_7eac899c9f0e41 1-5
+  s_0ad7efa77c17be::t_0e1f98d74e995a 6
 packages/terrain/src/shaders/shared/Shadow.glsl
   s_0ad7efa77c17be::t_1797c3f24cbe94 4
 packages/terrain/src/shaders/shared/SurfaceClimate.glsl
@@ -189,6 +195,20 @@ world/tests/seed-world/SurfacePalette.spec.ts
   s_0ad7efa77c17be::t_aedf1bed88e072 1-59
 world/tests/seed-world/WorldTemplates.spec.ts
   s_0ad7efa77c17be::t_84282a06767b7f 107-125,132-133,169-175,179,184
+world/demos/mojave-assets/assets/geometry/catalog.json
+  s_0ad7efa77c17be::t_0e1f98d74e995a 1-818
+packages/terrain/src/data/seed-world/public/Shader/Vegetation.shaderc
+  s_0ad7efa77c17be::t_0ce38ca84ddbbb 1
+packages/world-planning/src/spatial/PlanningComponents.ts
+  s_0ad7efa77c17be::t_0e1f98d74e995a 1243-1262,1270-1275,1277-1293
+packages/world-planning/src/spatial/runtime/PlanningPopulationData.ts
+  s_0ad7efa77c17be::t_0e1f98d74e995a 190-192
+packages/world-planning/src/spatial/WorldTemplateAuthoring.ts
+  s_0ad7efa77c17be::t_0e1f98d74e995a 379-392
+packages/terrain/src/data/seed-world/public/Shader/Surface.shaderc
+  s_0ad7efa77c17be::t_0ce38ca84ddbbb 1
+packages/terrain/src/data/seed-world/public/Shader/Terrain.shaderc
+  s_0ad7efa77c17be::t_0ce38ca84ddbbb 1
 ---
 {
   "schema_version": "authorship/3.0.0",
