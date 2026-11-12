@@ -1,25 +1,58 @@
 # Rock ridge arrangement study
 
 This standalone study arranges baked upstream atomic rocks around an independent,
-seeded 3D ridge network. The default Perlin mode extracts that network from a
-coarse noise field; the previous seeded graph remains available for comparison.
+seeded 3D ridge network. Perlin mode extracts that network from a
+coarse noise field; Seeded graph builds it from the authored composition rules.
 It includes curved cliffs, an uphill bend, an offshore
 vista, mountain peaks, walkable shelf geometry, and riverbank groups. The cliff,
 island and mountain scenes use the procedural ridge fitter.
 
 Open `index.html` through a local HTTP server. The checked-in page is ready to run;
 it uses pinned Three.js 0.160.0 from jsDelivr. No Engine build or package install is
-needed for the study. Fractured stone, fractured clay and the original clay meshes
-can be compared. This is a standalone surface study; Seed materials and runtime
-navigation are not integrated.
+needed for the study. Atomic rock texture, procedural stone, fractured clay and the
+original clay meshes can be compared. This standalone study reuses the
+atomic generator's texture pair and surface projection; the full Engine lighting and runtime navigation are not integrated.
 
-The entry preview opens the complete offshore island at seed **425**, **145%**
-height, in low-angle clay. It applies the current solid fracturing to every rock
-with **120% depth, 140% width, and 130% irregularity**, using the original Perlin
-field settings (frequency 4, five octaves, lacunarity 2, persistence 0.85).
-All arrangement and fracture controls remain available. The entry has a separate
-saved-state revision so the older demo's saved view cannot replace this requested
-starting scene; changes made in this revision persist normally.
+The entry preview retains the latest island settings: seed **462**, **200%** height,
+**Seeded graph**, plan view, with **150% depth, 160% width, and 180% irregularity**.
+The new default finish is **Atomic rock texture · triplanar**. On first load, an older
+saved state retains its arrangement, seed, height, fractures and orbit while adopting
+the new finish. Subsequent finish choices persist normally.
+
+## Atomic generator texture projection
+
+The texture source is the **new atomic rock generator**,
+`galacean/engine` branch `codex/procedural-rock-example`, commit
+`b2887feee34df433303d1c3197a679e4c219367d`. Both the standalone page and inline
+preview load its original **1024×1024** maps from commit-pinned jsDelivr URLs:
+
+- `world/demos/procedural-rock/assets/marble_cliff_05_disp_1k.png` is used as sRGB
+  grayscale base color, just as upstream. It does not displace geometry.
+  SHA-256: `ff42aabd9538c79e6b433b4669c855f4101a7661faf2c2905cb011a1fd3c59ef`.
+- `world/demos/procedural-rock/assets/marble_cliff_05_nor_gl_1k.png` is the linear
+  OpenGL normal map. SHA-256:
+  `d15777107c9c5da1382e6e64635898ab67615cf1b970f5f8ee577a081a4adbf3`.
+
+The upstream credits [Marble Cliff 05](https://polyhaven.com/a/marble_cliff_05)
+by Amal Kumar / Poly Haven under [CC0](https://polyhaven.com/license).
+The shader port is covered by the upstream Galacean MIT license.
+
+`src/atomic-rock-material.mjs` ports the generator's `RockSurfaceColor.glsl` and
+`Projection.glsl`: signed world-space YZ/XZ/XY projections, fourth-power normal
+weights, luminance base color, and surface-gradient blending of the normal map.
+The original defaults are retained: **#b8bcc2 tint**, **0.35 normal strength**,
+**roughness 1**, and a repeat of **half each rock's longest fitted OBB dimension**.
+The maps are shared; each rock gets its own repeat uniform. World normals use the
+inverse transpose for nonuniform scale, and the blended detail normal is transformed
+back to view space for Three.js lighting. The maps use repeat wrapping, trilinear
+mipmaps and up to 4× anisotropy. Fracture faces need no UVs, and mesh positions,
+geometry generation and fitting are unchanged by the material.
+
+Validation: build, JavaScript syntax, unchanged base-mesh data, per-rock tiling scale,
+and inline size checks passed. Browser review at seed 462 / 200% height showed the
+new texture and normal detail with no JavaScript or shader errors. Restoring the
+previous saved state retained the seed, height, fractures and view while selecting
+the corrected material.
 
 For individual shape controls, open [Atomic rock controls](atomic-controls/index.html).
 Its 27 parameter choices run the upstream single-rock generator and compare source/reduced
@@ -80,7 +113,7 @@ checks passed; native drag automation did not establish gesture-level proof.
 
 ## Perlin ridge prototype
 
-The viewer opens the current island comparison at seed 425, height 100%, frequency
+The earlier island comparison used seed 425, height 100%, frequency
 4, three octaves, lacunarity 2 and persistence 0.85. The generator's regression
 baseline remains seed 18 with persistence 0.5. Use **Ridge source** to compare with
 the earlier generator, and **Surface**

@@ -14,8 +14,8 @@
       <select class="form-select" id="rock-study-view">
         <option value="perspective">Oblique</option>
         <option value="side">Side</option>
-        <option value="plan">Plan</option>
-        <option value="low" selected>Low angle</option>
+        <option value="plan" selected>Plan</option>
+        <option value="low">Low angle</option>
         <option value="close">Rock close-up</option>
         <option value="compare">Surface comparison</option>
       </select>
@@ -23,31 +23,31 @@
     <label class="form-check"><input class="form-check-input" id="rock-study-guides" type="checkbox"><span class="form-check-label">Show layout</span></label>
   </div>
   <div class="viz-controls">
-    <label class="form-label">Rock finish <select class="form-select" id="rock-study-finish"><option value="stone">Fractured stone</option><option value="clay" selected>Fractured clay</option><option value="original">Original clay</option></select></label>
+    <label class="form-label">Rock finish <select class="form-select" id="rock-study-finish"><option value="textured" selected>Atomic rock texture · triplanar</option><option value="stone">Procedural stone</option><option value="clay">Fractured clay</option><option value="original">Original clay</option></select></label>
   </div>
   <div class="viz-controls" id="rock-study-fractures">
-    <label class="form-label" for="rock-study-fracture-depth">Fracture depth <output class="tabular-nums" id="rock-study-fracture-depth-value">120%</output>
-      <input class="form-range" id="rock-study-fracture-depth" aria-label="Fracture depth" type="range" min="0" max="200" step="10" value="120">
+    <label class="form-label" for="rock-study-fracture-depth">Fracture depth <output class="tabular-nums" id="rock-study-fracture-depth-value">150%</output>
+      <input class="form-range" id="rock-study-fracture-depth" aria-label="Fracture depth" type="range" min="0" max="200" step="10" value="150">
     </label>
-    <label class="form-label" for="rock-study-fracture-width">Fracture width <output class="tabular-nums" id="rock-study-fracture-width-value">140%</output>
-      <input class="form-range" id="rock-study-fracture-width" aria-label="Fracture width" type="range" min="0" max="200" step="10" value="140">
+    <label class="form-label" for="rock-study-fracture-width">Fracture width <output class="tabular-nums" id="rock-study-fracture-width-value">160%</output>
+      <input class="form-range" id="rock-study-fracture-width" aria-label="Fracture width" type="range" min="0" max="200" step="10" value="160">
     </label>
-    <label class="form-label" for="rock-study-fracture-irregularity">Irregularity <output class="tabular-nums" id="rock-study-fracture-irregularity-value">130%</output>
-      <input class="form-range" id="rock-study-fracture-irregularity" aria-label="Fracture irregularity" type="range" min="0" max="200" step="10" value="130">
+    <label class="form-label" for="rock-study-fracture-irregularity">Irregularity <output class="tabular-nums" id="rock-study-fracture-irregularity-value">180%</output>
+      <input class="form-range" id="rock-study-fracture-irregularity" aria-label="Fracture irregularity" type="range" min="0" max="200" step="10" value="180">
     </label>
   </div>
   <div class="viz-row">
     <div id="rock-study-seed-controls"><div class="viz-row">
-      <label class="form-label">Generation seed <input class="form-control" id="rock-study-seed" type="number" min="0" max="4294967295" step="1" value="425"></label>
+      <label class="form-label">Generation seed <input class="form-control" id="rock-study-seed" type="number" min="0" max="4294967295" step="1" value="462"></label>
       <button class="btn" type="button" id="rock-study-next-seed">Next seed</button>
     </div></div>
-    <label class="form-label" for="rock-study-height">Height <output id="rock-study-height-value" for="rock-study-height" class="tabular-nums">145%</output>
-      <input class="form-range" id="rock-study-height" aria-label="Height" type="range" min="25" max="200" step="5" value="145">
+    <label class="form-label" for="rock-study-height">Height <output id="rock-study-height-value" for="rock-study-height" class="tabular-nums">200%</output>
+      <input class="form-range" id="rock-study-height" aria-label="Height" type="range" min="25" max="200" step="5" value="200">
     </label>
   </div>
   <div id="rock-study-authoring">
     <div class="viz-controls">
-      <label class="form-label">Ridge source <select class="form-select" id="rock-study-mode"><option value="perlin" selected>Perlin field</option><option value="direct">Seeded graph</option></select></label>
+      <label class="form-label">Ridge source <select class="form-select" id="rock-study-mode"><option value="perlin">Perlin field</option><option value="direct" selected>Seeded graph</option></select></label>
       <label class="form-label" id="rock-study-surface-control">Surface <select class="form-select" id="rock-study-surface"><option value="rocks">Rock masses</option><option value="coarse">Coarse noise field</option><option value="detail">Detailed noise field</option></select></label>
     </div>
     <details id="rock-study-noise-controls">
@@ -130,6 +130,7 @@
  renderer.shadowMap.enabled=true;
  renderer.shadowMap.type=T.PCFSoftShadowMap;
  stage.insertBefore(renderer.domElement,labels);
+ const atomicRockTextures=loadAtomicRockTextures(T,renderer.capabilities.getMaxAnisotropy(),()=>{if(current)render();},error=>{detail.textContent='The atomic rock textures could not load.';detail.setAttribute('role','alert');console.error(error);});
  const ambient=new T.HemisphereLight();ambient.intensity=2.4;scene.add(ambient);
  const sun=new T.DirectionalLight();sun.intensity=3.3;sun.position.set(-60,115,70);sun.castShadow=true;
  sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-120,right:120,top:120,bottom:-120,near:1,far:350});
@@ -227,7 +228,7 @@
    comparisonTarget.copy(comparisonCorners.reduce((sum,p)=>sum.add(p),new T.Vector3()).multiplyScalar(1/8));
   }
   if(finishInput.value==='stone')applyStoneSurface(stone,T,p.stone.clone().lerp(p.route,.22));
-  if(!compare&&(!perlin||surfaceInput.value==='rocks'))for(const r of current.rocks){const mesh=new T.Mesh(geometryCache[r.mesh],stone);mesh.position.set(r.x,r.y,r.z);mesh.scale.set(r.scale*(r.longitudinalScale??1),r.scale*(r.verticalScale??1),r.scale*(r.lateralScale??1));mesh.rotation.y=-r.yaw;mesh.castShadow=true;mesh.receiveShadow=true;world.add(mesh);}
+  if(!compare&&(!perlin||surfaceInput.value==='rocks'))for(const r of current.rocks){const rockMaterial=finishInput.value==='textured'?applyAtomicRockTexture(mat(p.stone),atomicRockTextures,atomicRockTileMeters(r,activeGeometries[r.mesh])):stone;const mesh=new T.Mesh(geometryCache[r.mesh],rockMaterial);mesh.position.set(r.x,r.y,r.z);mesh.scale.set(r.scale*(r.longitudinalScale??1),r.scale*(r.verticalScale??1),r.scale*(r.lateralScale??1));mesh.rotation.y=-r.yaw;mesh.castShadow=true;mesh.receiveShadow=true;world.add(mesh);}
   if(perlin&&surfaceInput.value!=='rocks'){
    const field=current.ridge.plan.sourceField,positions=field.positions.map((v,i)=>i%3===1?v+.04+(surfaceInput.value==='detail'?field.detailOffsets[(i-1)/3]:0):v);
    const geo=new T.BufferGeometry();geo.setAttribute('position',new T.Float32BufferAttribute(positions,3));geo.setIndex(field.indices);geo.computeVertexNormals();guideGeometries.push(geo);
@@ -277,8 +278,9 @@
   detail.textContent=procedural?current.ridge.composition.structuralMasses+' masses · '+current.ridge.composition.smallRocks+' small rocks · '+current.ridge.plan.curves.length+' ridges':current.metrics.rocks+' rocks · '+(current.id==='platform'?'3 m route · '+current.validation.maxSampledRiseM.toFixed(2)+' m maximum sampled rise':current.notes);
   if(perlin){const n=current.ridge.plan.noise;noiseSummary.textContent=(100/n.frequency).toFixed(1)+' m base · '+n.coarseOctaves+' structural / '+n.fineOctaves+' detail octaves';}
   if(perlin&&surfaceInput.value!=='rocks'){const count=current.ridge.plan.extraction.selectedPeaks;detail.textContent=count+' major peak'+(count===1?'':'s')+' · '+current.ridge.plan.curves.length+' ridges · '+(surfaceInput.value==='coarse'?'Structural field':'Fine detail; same ridge network');}
-  description.textContent=current.notes+(procedural?' The blue branching ridge network guides broad overlapping rock masses. Whole masses are refitted before adding structure; local differences within '+current.ridge.policy.curveToleranceM.toFixed(1)+' meters are tolerated. Small rocks have a separate budget of two and stay at the lower edges. All accepted pieces overlap the connected body in sampled mesh volume. Orange shows the actual surface along each target curve; its measured RMS deviation is '+current.ridge.fit.rmsM.toFixed(2)+' meters. Spheres mark peaks and diamonds mark saddles.':'')+' Height scales rocks, terrain and the complete ridge network together. These are proposed arrangements using actual procedural mesh geometry, without Seed materials or runtime navigation. Drag to orbit; side, plan and low angle views are also available.';
+  description.textContent=current.notes+(procedural?' The blue branching ridge network guides broad overlapping rock masses. Whole masses are refitted before adding structure; local differences within '+current.ridge.policy.curveToleranceM.toFixed(1)+' meters are tolerated. Small rocks have a separate budget of two and stay at the lower edges. All accepted pieces overlap the connected body in sampled mesh volume. Orange shows the actual surface along each target curve; its measured RMS deviation is '+current.ridge.fit.rmsM.toFixed(2)+' meters. Spheres mark peaks and diamonds mark saddles.':'')+' Height scales rocks, terrain and the complete ridge network together. These are proposed arrangements using actual procedural mesh geometry, without the full Seed rendering pipeline or runtime navigation. Drag to orbit; side, plan and low angle views are also available.';
   if(perlin)description.textContent+=' Peaks and connecting saddle passes are extracted from a coarse Perlin field. Curves simplify and smooth the traced paths, so intermediate points may depart slightly from the sampled field. Octaves below 24 meters affect only bounded surface detail, not graph topology. The source field views hide the rock meshes and orange comparison lines.';
+  if(finishInput.value==='textured')description.textContent+=' The atomic generator’s Marble Cliff 05 base color and normal maps use world-space triplanar projection. Each rock repeats over half its longest fitted OBB dimension, with the generator’s gray tint and 0.35 normal strength.';
   description.textContent+=finishInput.value==='original'?' Original baked geometry and clay shading.':' Continuous solid cuts carve long vertical fractures with uneven bends, asymmetric widths and tapered ends. Broad rock faces remain planar. Intersection edges define the cuts; the surface uses no vertex displacement or local backoff. The fitter measures those carved triangles. Clay shows the geometry without grain or color. Summit and bottom heights and the platform caps are preserved.';
   if(compare){detail.textContent='Same rock, size, camera and light · clay';description.textContent='The previous straight cuts and adjusted fractures on the same atomic rock. Fracture controls update the right-hand rock when released. Both use identical scale, camera, lighting and untextured clay. Drag either panel to rotate both together.';}
   stage.setAttribute('aria-describedby','rock-study-description');
@@ -324,12 +326,14 @@
   renderer.setScissorTest(false);
  }
  function resize(){width=stage.clientWidth||700;height=viewSelect.value==='compare'?(width<540?600:440):Math.max(280,Math.min(520,width*.64));if(current&&viewSelect.value==='close')setCameraTarget();renderer.setSize(width,height);stage.style.height=height+'px';camera.left=-span/2;camera.right=span/2;camera.top=span*height/width/2;camera.bottom=-camera.top;camera.updateProjectionMatrix();render();}
- function save(){if(window.openai?.setWidgetState)window.openai.setWidgetState({modelContent:{demoPreset:DEMO_PRESET,arrangement:current.id,view:viewSelect.value,showLayout:guideInput.checked,seed:Number(seedInput.value),heightPercent:Number(heightInput.value),ridgeMode:modeInput.value,noise:noiseOptions(),surface:surfaceInput.value,rockFinish:finishInput.value,fractures:fractureOptions(),ridgeVersion:RIDGE_VERSION},privateContent:{yaw,pitch}}).catch(()=>{});}
+ function save(){if(window.openai?.setWidgetState)window.openai.setWidgetState({modelContent:{demoPreset:DEMO_PRESET,surfacePresentation:ORIGINAL_ROCK_PRESENTATION,arrangement:current.id,view:viewSelect.value,showLayout:guideInput.checked,seed:Number(seedInput.value),heightPercent:Number(heightInput.value),ridgeMode:modeInput.value,noise:noiseOptions(),surface:surfaceInput.value,rockFinish:finishInput.value,fractures:fractureOptions(),ridgeVersion:RIDGE_VERSION},privateContent:{yaw,pitch}}).catch(()=>{});}
  function applyState(state){const m=state?.modelContent;if(!m||m.demoPreset!==DEMO_PRESET)return false;if(data.scenes.some(s=>s.id===m.arrangement))caseSelect.value=m.arrangement;if(['plan','low','perspective','side','close','compare'].includes(m.view))viewSelect.value=m.view;if(typeof m.showLayout==='boolean')guideInput.checked=m.showLayout;if(Number.isInteger(m.seed)&&m.seed>=0&&m.seed<=4294967295)seedInput.value=m.seed;if(Number.isFinite(m.heightPercent)&&m.heightPercent>=25&&m.heightPercent<=200)heightInput.value=m.heightPercent;if(['perlin','direct'].includes(m.ridgeMode))modeInput.value=m.ridgeMode;if(['rocks','coarse','detail'].includes(m.surface))surfaceInput.value=m.surface;try{const n=perlinSettings(m.noise);for(const key in noiseInputs)noiseInputs[key].value=n[key];}catch{}const f=fractureSettings(m.fractures);for(const key in fractureInputs)fractureInputs[key].value=f[key]*100;fractureLabels();return true;}
  function restoreState(state){
   const previous={arrangement:caseSelect.value,view:viewSelect.value,seed:seedInput.value,height:heightInput.value,authoring:authoringKey(),surface:surfaceInput.value,finish:finishInput.value,fractures:fractureKey()};
   if(!applyState(state))return false;
-  if(['stone','clay','original'].includes(state.modelContent?.rockFinish))finishInput.value=state.modelContent.rockFinish;
+  // Upgrade only the material on first open; preserve the saved layout and orbit.
+  const m=state.modelContent;
+  finishInput.value=m.surfacePresentation===ORIGINAL_ROCK_PRESENTATION&&['textured','stone','clay','original'].includes(m.rockFinish)?m.rockFinish:'textured';
   const resetCamera=!current||previous.arrangement!==caseSelect.value||previous.view!==viewSelect.value;
   const rebuild=!current||previous.arrangement!==caseSelect.value||previous.seed!==seedInput.value||previous.height!==heightInput.value||previous.authoring!==authoringKey()||previous.surface!==surfaceInput.value||previous.finish!==finishInput.value||previous.fractures!==fractureKey()||(previous.view!==viewSelect.value&&[previous.view,viewSelect.value].includes('compare'));
   // A state echo after pointerup is persistence, not a request for a preset view.

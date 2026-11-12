@@ -4,7 +4,7 @@ const source=JSON.parse(fs.readFileSync(new URL('./study-data.json',import.meta.
 source.scenes=source.scenes.map(s=>['cliff','island','peaks'].includes(s.id)?{...s,rocks:[],guides:[],labels:[],ridge:undefined}:s);
 const data=JSON.stringify(source);
 const utils=fs.readFileSync(new URL('./ridge-utils.mjs',import.meta.url),'utf8').replace(/^export /gm,'');
-const ridge=utils+'\n'+['ridge-base.mjs','rock-mass-fit.mjs','perlin-ridges.mjs','solid-carve.mjs','rock-surface.mjs','ridge.mjs'].map(file=>fs.readFileSync(new URL(file,import.meta.url),'utf8').replace(/^import .*;\n/gm,'').replace(/^export \{.*;\n/gm,'').replace(/^export /gm,'')).join('\n');
+const ridge=utils+'\n'+['ridge-base.mjs','rock-mass-fit.mjs','perlin-ridges.mjs','solid-carve.mjs','rock-surface.mjs','atomic-rock-material.mjs','ridge.mjs'].map(file=>fs.readFileSync(new URL(file,import.meta.url),'utf8').replace(/^import .*;\n/gm,'').replace(/^export \{.*;\n/gm,'').replace(/^export /gm,'')).join('\n');
 const result=template.replace('__ROCK_STUDY_DATA__',data.replace(/</g,'\\u003c')).replace('__ROCK_RIDGE_GENERATOR__',ridge);
 if(Buffer.byteLength(result)>1_000_000)throw new Error('Inline study exceeds the 1 MB limit');
 fs.writeFileSync(new URL('../rock-arrangement-study.html',import.meta.url),result);
