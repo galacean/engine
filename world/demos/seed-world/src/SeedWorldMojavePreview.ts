@@ -28,8 +28,8 @@ import type {
 } from "@galacean/engine-world-planning/semantic-study/IslandPlanModel";
 import { planningRemovedObjectIds } from "@galacean/engine-world-planning/spatial/PlanningResources";
 import { fitContainedPrefab, fitGroundedPrefabHeight } from "./MojaveGrounding";
-import catalog from "../../mojave-assets/assets/catalog.json";
-import geometryCatalog from "../../mojave-assets/assets/geometry/catalog.json";
+import mojaveAssets from "./MojaveAssets.json";
+const { models: catalog, geometry: geometryCatalog } = mojaveAssets;
 
 const geometryModels = new Map(geometryCatalog.map(item => [item.id, item]));
 const models = new Map(catalog.map((item) => [`mojave/${item.id}`, item]));
@@ -147,9 +147,7 @@ export async function createSeedWorldMojavePreview(
             id,
             await parent.engine.resourceManager.load<GLTFResource>({
               type: AssetType.GLTF,
-              url: geometryModels.has(models.get(id)!.id)
-                ? new URL(`../../mojave-assets/assets/geometry/${models.get(id)!.id}.glb`, import.meta.url).href
-                : new URL("../../mojave-assets/assets/wind/J03.glb", import.meta.url).href
+              url: models.get(id)!.url
             })
           ] as const
       )
@@ -169,7 +167,7 @@ export async function createSeedWorldMojavePreview(
   }
   const base = await parent.engine.resourceManager.load<Texture2D>({
     type: AssetType.KTX2,
-    url: new URL("../assets/desert-surface/SandSurfaceBase.ktx2", import.meta.url).href
+    url: mojaveAssets.surface.base
   });
   if (!isCurrent()) {
     group.destroy();

@@ -51,13 +51,4 @@ describe("Common Surface rock integration", () => {
     for (let i = 0; i < 3; i++) expect([...data.slice(i * stride + 3, i * stride + 6)]).toEqual([0, 0, 1]);
   });
 
-  it("ships both shared desert textures as 512 KTX2 with mipmaps", () => {
-    for (const name of ["SandSurfaceBase", "SandSurfaceNormal"]) {
-      const data = fs.readFileSync(path.join(root, `world/demos/seed-world/assets/desert-surface/${name}.ktx2`));
-      expect(data.subarray(1, 7).toString()).toBe("KTX 20");
-      expect(data.readUInt32LE(20)).toBe(512);
-      expect(data.readUInt32LE(24)).toBe(512);
-      expect(data.readUInt32LE(40)).toBe(10);
-    }
-  });
 });

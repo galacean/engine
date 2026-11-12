@@ -2,8 +2,7 @@ import type { PlanningDocument } from "@galacean/engine-world-planning/spatial/P
 import { worldTemplate } from "@galacean/engine-world-planning/spatial/WorldTemplateCatalog";
 import { WORLD_TEMPLATE_ART } from "@galacean/engine-world-planning/spatial/WorldTemplateArtDirection";
 
-const rippleNormal = new URL("../../../assets/terrain-surface/RippleNormal.png", import.meta.url);
-const microNormal = new URL("../../../assets/terrain-surface/MicroNormal.png", import.meta.url);
+import mojaveAssets from "../../MojaveAssets.json";
 
 let selection: { id: string; seed: number } | undefined;
 
@@ -37,10 +36,10 @@ export function applyPlanningTemplateSurface(document: PlanningDocument): void {
   const terrain = (components.terrain ??= { values: {} });
   Object.assign(terrain.values, {
     roadSurfacePattern: true,
-    surfaceNormalTextureUrl: rippleNormal.href,
+    surfaceNormalTextureUrl: mojaveAssets.surface.rippleNormal,
     surfaceTileM: 12,
     surfaceNormalScale: 1,
-    surfaceMicroNormalTextureUrl: microNormal.href
+    surfaceMicroNormalTextureUrl: mojaveAssets.surface.microNormal
   });
 }
 

@@ -23,16 +23,16 @@ export async function prepareRockTextures(engine: Engine, signal: AbortSignal): 
   let entry = textures.get(engine);
   if (!entry) {
     const next = { task: undefined! as Promise<RockTextures>, value: undefined as RockTextures | undefined };
-    const load = async (url: URL) => {
-      const texture = await engine.resourceManager.load<Texture2D>({ type: AssetType.KTX2, url: url.href });
+    const load = async (url: string) => {
+      const texture = await engine.resourceManager.load<Texture2D>({ type: AssetType.KTX2, url });
       texture.wrapModeU = texture.wrapModeV = TextureWrapMode.Repeat;
       texture.filterMode = TextureFilterMode.Trilinear;
       texture.anisoLevel = 4;
       return texture;
     };
     next.task = Promise.all([
-      load(new URL("../../../../../terrain/src/rock-formation/assets/rock-base-512.ktx2", import.meta.url)),
-      load(new URL("../../../../../terrain/src/rock-formation/assets/rock-normal-512.ktx2", import.meta.url))
+      load("https://mdn.alipayobjects.com/rms/afts/img/A*m5CnSbky1bIAAAAAVWAAAAgAehQnAQ/original/rock-base-512.ktx2"),
+      load("https://mdn.alipayobjects.com/rms/afts/img/A*_w9gTJBzZcYAAAAAVWAAAAgAehQnAQ/original/rock-normal-512.ktx2")
     ])
       .then(([base, normal]) => (next.value = { base, normal }))
       .catch((error) => {

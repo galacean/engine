@@ -5,7 +5,6 @@ import assetAssemblyInstancingSource from "../shaders/shared/AssetAssemblyInstan
 import instancingSource from "../shaders/shared/Instancing.glsl?raw";
 import proceduralTreeWindSource from "../shaders/shared/ProceduralTreeWind.glsl?raw";
 import sceneWindSource from "../shaders/shared/SceneWind.glsl?raw";
-import worldSelectionSource from "../shaders/shared/WorldSelection.glsl?raw";
 import surfaceEvaluationSource from "../shaders/surface/SurfaceEvaluation.glsl?raw";
 import sceneSeasonSource from "../shaders/shared/SceneSeason.glsl?raw";
 import surfaceClimateSource from "../shaders/shared/SurfaceClimate.glsl?raw";
@@ -30,7 +29,6 @@ export function registerSurfaceShader(): Shader {
     "shared/Instancing.glsl": instancingSource,
     "shared/ProceduralTreeWind.glsl": proceduralTreeWindSource,
     "shared/SceneWind.glsl": sceneWindSource,
-    "shared/WorldSelection.glsl": worldSelectionSource,
     "surface/SurfaceEvaluation.glsl": surfaceEvaluationSource,
     "shared/SceneSeason.glsl": sceneSeasonSource,
     "shared/SurfaceClimate.glsl": surfaceClimateSource,

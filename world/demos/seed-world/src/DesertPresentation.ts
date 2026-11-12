@@ -1,3 +1,4 @@
+import mojaveAssets from "./MojaveAssets.json";
 import { WeatherPresets } from "@galacean/engine";
 import { PROCEDURAL_SKY_SOLAR_POSITION } from "@galacean/engine-environment/lighting/ProceduralSkyLightingProfile";
 import type { WorldEnvironmentRuntime } from "@galacean/engine-world-planning/integrations/terrain/environment/WorldEnvironmentRuntime";
@@ -77,7 +78,7 @@ export function desertSurfaceOptions(
 ): import("@galacean/engine-world-planning/runtime/SeedWorldTerrainRuntime").SeedWorldTerrainSurfaceOptions {
   return {
     ...options, palette: undefined, baseTextureUrl: undefined, roadPattern: true,
-    normalTextureUrl: new URL("../assets/desert-surface/RippleNormal.png", import.meta.url).href,
-    microNormalTextureUrl: new URL("../assets/desert-surface/MicroNormal.png", import.meta.url).href
+    normalTextureUrl: mojaveAssets.surface.rippleNormal,
+    microNormalTextureUrl: mojaveAssets.surface.microNormal
   };
 }

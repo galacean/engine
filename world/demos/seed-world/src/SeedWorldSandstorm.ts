@@ -20,7 +20,7 @@ import {
   type Texture2D
 } from "@galacean/engine";
 
-const ATLAS_URL = new URL("../assets/sandstorm-448.png", import.meta.url).href;
+const ATLAS_URL = "https://mdn.alipayobjects.com/rms/afts/img/A*kavuQ53dG1MAAAAATiAAAAgAehQnAQ/original/sandstorm-448.png";
 const EMISSION_RATE = 500;
 const MAX_LIFETIME = 10;
 const REGION_SIZE = 400;
