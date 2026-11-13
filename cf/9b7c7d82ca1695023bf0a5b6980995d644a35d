@@ -1,0 +1,14 @@
+world/demos/seed-world/SeedWorldDemo.ts
+  h_171a11afaf879a 550,552-553
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "cf9b7c7d82ca1695023bf0a5b6980995d644a35d",
+  "prompts": {},
+  "humans": {
+    "h_171a11afaf879a": {
+      "author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}
