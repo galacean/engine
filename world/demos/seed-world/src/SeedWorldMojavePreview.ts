@@ -48,7 +48,7 @@ interface RockInstance {
 export const mojaveLodTuning = {
   enabled: true,
   fadeSeconds: 0.45,
-  groups: { near: 95.7, far: 382.8, cull: 1196 },
+  groups: { near: 29, far: 382.8, cull: 1196 },
   stones: { near: 29, far: 116, cull: 363 },
   plants: { near: 20, far: 60, cull: 150 }
 };
