@@ -3,9 +3,6 @@ import { createMountainNetwork } from "./mountain-network.mjs";
 import { assembleRidgeTarget } from "./ridge.mjs";
 
 export const MOUNTAIN_PROFILE_VERSION = "seeded-mountain-profile-1";
-export function mountainAtomicSeed(profileSeed) {
-  return Math.floor(random(Number(profileSeed) >>> 0, "mountain-atomic-parameters-1")() * 4294967296);
-}
 // Shared authoring domain for candidate comparison and native publication.
 export const MOUNTAIN_PROFILE_SOURCE = {
   id: "peaks",
@@ -89,6 +86,6 @@ export function createMountainProfile(source, inputSeed, options = {}) {
 }
 
 export function generateMountainProfileScene(source, geometries, seed, options = {}) {
-  const scene = assembleRidgeTarget(source, geometries, createMountainProfile(source, seed, options));
+  const scene = assembleRidgeTarget(source, geometries, createMountainProfile(source, seed, options), options);
   return { ...scene, fitMode: "contain", name: "Mountain peak variation" };
 }

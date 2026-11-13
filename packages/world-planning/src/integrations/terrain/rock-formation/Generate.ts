@@ -7,6 +7,7 @@ import { hashSeed, random, clamp } from "@galacean/engine-terrain/rock-formation
 import type { RockFormationSettings } from "./Settings.ts";
 import type { RockFormationJob, RockFormationMesh, RockObb } from "@galacean/engine-terrain/rock-formation/types";
 import { generateMountainSurface } from "./MountainSurface.ts";
+import { allocateMountainTriangles } from "./MountainBudget.ts";
 
 /** Stable, correlated variations of one parameter family; never changes a published OBB. */
 export function rockParameters(obb: RockObb, seed: number, settings: RockFormationSettings) {
@@ -72,6 +73,7 @@ export function generateRockFormation(job: RockFormationJob, settings: RockForma
   const started = performance.now();
   let bodies = 0,
     fractureMs = 0,
+    carvedTriangles = 0,
     arrangementMs = 0,
     ridgePeaks = 0,
     ridgeBranches = 0;
@@ -80,8 +82,21 @@ export function generateRockFormation(job: RockFormationJob, settings: RockForma
     buildMs = 0,
     simplifyMs = 0,
     simplifyAttempts = 0;
-  const surfaces = job.guides.map((guide) => {
-    const mountain = generateMountainSurface(job, guide, settings);
+  if (job.triangleBudget !== undefined && job.kind !== "mountain")
+    throw new RangeError("Formation triangle budgets apply to mountain jobs");
+  const budgets =
+    job.triangleBudget === undefined
+      ? undefined
+      : allocateMountainTriangles(
+          job.guides.map(({ size: [x, y, z] }) => x * y + x * z + y * z),
+          job.triangleBudget
+        );
+  const surfaces = job.guides.map((guide, index) => {
+    const mountain = generateMountainSurface(
+      budgets ? { ...job, triangleBudget: budgets[index] } : job,
+      guide,
+      settings
+    );
     const source =
       mountain ??
       simplifyRock(buildRock(rockParameters(guide, job.seed, settings)), {
@@ -89,6 +104,7 @@ export function generateRockFormation(job: RockFormationJob, settings: RockForma
       });
     bodies += mountain?.stats.bodies ?? 1;
     fractureMs += mountain?.stats.fractureMs ?? 0;
+    carvedTriangles += mountain?.stats.carvedTriangles ?? 0;
     arrangementMs += mountain?.stats.arrangementMs ?? 0;
     ridgePeaks += mountain?.stats.ridgePeaks ?? 0;
     ridgeBranches += mountain?.stats.ridgeBranches ?? 0;
@@ -144,18 +160,21 @@ export function generateRockFormation(job: RockFormationJob, settings: RockForma
       bodies,
       vertices: positions.length / 3,
       rawTriangles,
-      targetTriangles: settings.targetTriangles,
+      targetTriangles: job.triangleBudget ?? settings.targetTriangles,
       overBudgetBodies,
       buildMs,
       simplifyMs,
       simplifyAttempts,
       fractureMs,
+      carvedTriangles,
       arrangementMs,
       ridgePeaks,
       ridgeBranches,
       generationMs: 0
     }
   };
+  if (job.triangleBudget !== undefined && indices.length / 3 > job.triangleBudget)
+    throw new Error(`Mountain ${job.id} exceeds its complete formation triangle budget`);
   if (job.surfaceGrass !== false) result.grass = buildRockGrassSurface(result, normals, coverage);
   result.stats.generationMs = performance.now() - started;
   return result;

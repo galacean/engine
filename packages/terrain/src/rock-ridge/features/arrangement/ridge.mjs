@@ -66,9 +66,9 @@ export function createRidgeEnvelope(source,plan){
  }
  return {direct,ground};
 }
-export function createRidgeField(source,plan){
+export function createRidgeField(source,plan,pitch=.75){
  const {direct,ground}=createRidgeEnvelope(source,plan);
- const pitch=.75,[x0,x1,z0,z1]=source.extent,nx=Math.ceil((x1-x0)/pitch)+1,nz=Math.ceil((z1-z0)/pitch)+1,px=(x1-x0)/(nx-1),pz=(z1-z0)/(nz-1),values=new Float32Array(nx*nz);
+ const [x0,x1,z0,z1]=source.extent,nx=Math.ceil((x1-x0)/pitch)+1,nz=Math.ceil((z1-z0)/pitch)+1,px=(x1-x0)/(nx-1),pz=(z1-z0)/(nz-1),values=new Float32Array(nx*nz);
  for(let j=0;j<nz;j++)for(let i=0;i<nx;i++)values[j*nx+i]=direct(x0+i*px,z0+j*pz).height;
  function sample(x,z){
   const u=clamp((x-x0)/px,0,nx-1.00001),v=clamp((z-z0)/pz,0,nz-1.00001),i=Math.floor(u),j=Math.floor(v),fx=u-i,fz=v-j;
@@ -77,8 +77,8 @@ export function createRidgeField(source,plan){
  return {sample,direct,ground,pitch,gridSamples:values.length};
 }
 
-export function assembleRidgeTarget(source,geometries,plan){
- const scene={...source,rocks:[],guides:[],labels:[]},field=createRidgeField(source,plan),ground=field.ground;
+export function assembleRidgeTarget(source,geometries,plan,options={}){
+ const scene={...source,rocks:[],guides:[],labels:[]},field=createRidgeField(source,plan,options.fieldPitch??.75),ground=field.ground;
  const cliff=source.id==='cliff',island=source.id==='island',highest=Math.max(...plan.nodes.map(n=>n.y));
  const networkSites=plan.curves.flatMap(curve=>curveSamples(curve,1.5).map(s=>({...s,kind:'ridge'})));
  const bodySites=[];
@@ -90,8 +90,8 @@ export function assembleRidgeTarget(source,geometries,plan){
  const masses=fitRockMasses(source,geometries,plan,field,networkSites,bodySites,nodeSites);
  scene.rocks=masses.rocks;
  if(!scene.rocks.length)throw new Error('Ridge network fitting produced no masses');
- const measured=createSurfaceSampler(scene,geometries),allErrors=[],byCurve=[];
- for(const curve of plan.curves){
+ const measured=options.measure===false?null:createSurfaceSampler(scene,geometries),allErrors=[],byCurve=[];
+ if(measured)for(const curve of plan.curves){
   const targets=curveSamples(curve,.25).map(s=>({...s,position:point(s.position)})),surfacePoints=targets.map(s=>[s.position[0],measured(s.position[0],s.position[2])+.08,s.position[2]]);
   const errors=targets.map((s,i)=>surfacePoints[i][1]-.08-s.position[1]);allErrors.push(...errors);
   scene.guides.push({kind:'target',curveId:curve.id,branch:curve.kind==='branch',source:'procedural-network-before-atoms',liftM:0,points:targets.map(s=>point(s.position))});
@@ -101,6 +101,7 @@ export function assembleRidgeTarget(source,geometries,plan){
  let primary={position:[0,-Infinity,0],rock:null};
  for(const r of scene.rocks)for(const v of transformedVertices(r,geometries[r.mesh]))if(v[1]>primary.position[1])primary={position:point(v),rock:r.id};
  scene.ridge={version:RIDGE_VERSION,seed:plan.seed,plan,primary,saddles:[],target:{source:'generated-before-atoms',interpolation:'C1 XYZ cubic curves; shared graph junctions',knots:plan.nodes.map(n=>({...n,position:point(n.position)}))},stations:plan.nodes.map(n=>({id:n.id,role:n.role,primary:n.primary,junction:n.incidentCurves.length>1,target:point(n.position),base:[n.position[0],ground(n.position[0],n.position[2]),n.position[2]],heightM:n.y-ground(n.position[0],n.position[2])})),field:{gridPitchM:field.pitch,gridSamples:field.gridSamples,bodyFitSamples:bodySites.length},fit:{samplePitchM:.25,samples:allErrors.length,maxUnderM:Math.max(0,...allErrors.map(e=>-e)),maxOverM:Math.max(0,...allErrors),rmsM:Math.sqrt(allErrors.reduce((s,e)=>s+e*e,0)/allErrors.length),atoms:scene.rocks.length,byCurve}};
+ if(!measured)scene.ridge.fit={measured:false,atoms:scene.rocks.length};
  scene.ridge.policy=masses.policy;scene.ridge.composition=masses.composition;
  const crown=plan.nodes.find(n=>n.primary),branch=plan.nodes.filter(n=>n.role==='saddle'&&!n.id.startsWith('main')).sort((a,b)=>b.position[2]-a.position[2])[0];
  scene.labels=[{text:'Dominant peak',anchor:point(crown.position),position:[crown.position[0],crown.y+2.5,crown.position[2]]}];

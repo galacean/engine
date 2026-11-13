@@ -37,10 +37,12 @@ export interface RockFormationJob {
   seed: number;
   /** Explicit planning role; streamed and decorative stones never receive ridge arrangements. */
   kind?: "mountain";
-  /** Fallback atomic library seed for standard ridges; profile variations own individual libraries. */
+  /** Shared atomic library seed; each formation still has its own ridge/profile seed. */
   worldSeed?: number;
   /** Optional explicit atomic parameter seed, overriding the arrangement strategy's default. */
   atomicSeed?: number;
+  /** Hard triangle limit across the complete mountain, including every placed rock. */
+  triangleBudget?: number;
   /** Enables both grass substrate coverage and blade support; omitted keeps terrain-rock grass. */
   surfaceGrass?: boolean;
   origin: V3;
@@ -65,6 +67,8 @@ export interface RockFormationMesh {
     simplifyMs?: number;
     simplifyAttempts?: number;
     fractureMs?: number;
+    /** Actual carved-wall triangles retained in the published mountain LOD. */
+    carvedTriangles?: number;
     arrangementMs?: number;
     ridgePeaks?: number;
     ridgeBranches?: number;

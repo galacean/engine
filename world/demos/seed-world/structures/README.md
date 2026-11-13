@@ -13,16 +13,22 @@ Implementation:
 - `ridge.mjs` exposes the shared envelope independently of rasterization; ordinary ridge generation retains its existing behavior.
 - The native `RockFormationClient` / `MountainSurface` owns atomic generation, optional carving, corner normals, OBB publication and materials.
 
-Each mountain owns a separate eight-rock atomic library and parameter set. Independent deterministic streams generate its ridge seed and atomic seed; width, height, crown scale, wear, wall relief and the other atomic parameters vary per example. The gallery lists primary-rock parameters for comparison. Arrangement and shaping/carving remain independently switchable; fracture controls are shared adjustments across the set. A per-job `atomicSeed` overrides `worldSeed` for the atomic library and participates in the native mesh cache key. Without an explicit override, mountain profile mode derives an individual library from each formation seed; standard ridge mode retains existing world-level sharing. Full-world mountains can use the same bounded variations through **Mountain profile variation**. The internal `seededShapes` setting key is retained for saved-document compatibility; it now selects the mountain profile strategy.
+The ten mountains share one eight-rock atomic library, generated and carved from the set seed at initialization. Each mountain has its own ridge seed and profile parameters, shown in the comparison table. Arrangement and shaping/carving remain independently switchable. A per-job `atomicSeed` can override `worldSeed`; individual libraries are supported but are not required by this gallery. Full-world mountains use the same bounded profile strategy through **Mountain profile variation**. The internal `seededShapes` key is retained for saved-document compatibility.
+
+The gallery sets `RockFormationJob.triangleBudget` to **1,000 for each complete mountain**, including every placed mass. The ten examples therefore publish at most 10,000 triangles in total; the ground planes are separate preview furniture. This is distinct from the existing `targetTriangles` setting per atomic rock. The native adapter divides a formation budget across bounds and then across masses by placed surface area, retaining supporting pieces. Both the job budget and atomic seed participate in the mesh cache key.
+
+The budgeted path reduces the generated source to 128 triangles before running the existing irregular solid-fracture algorithm. A 192-triangle proxy supports fitting, with a 1.5 m ridge raster and the study-only dense ridge-error measurement disabled. Final per-mass LODs are reduced directly from the carved source, preserving extrema and the floor/lips of the larger joints. Cut normals are reconstructed on the actual retained planes. Smaller fracture detail can disappear at this budget; carving itself is not bypassed. Jobs without a formation budget retain the existing full-quality path.
 
 The gallery retains individual inspection, shared orbit, clay / original triplanar material, front / side / top views, live height and fracture controls. Regeneration preserves the camera. The preview uniformly fits each mountain into its OBB so its generated proportions remain visible.
+
+The initialization target is **10 seconds for all ten mountains**, from page navigation through module/engine/worker startup, seed selection, atomic generation, carving, fitting, final LODs, upload, texture readiness and the first rendered frame. The page reports the actual time and triangle counts, including an explicit over-target state. Candidate selection overlaps engine initialization; the first load does not reuse generated geometry. `#initialization.dataset.stages` records the measured breakdown, and each card records its final triangle count and retained carved-wall triangle count. Regeneration is measured separately. Performance depends on the machine and serving mode; a CPU-only benchmark is not end-to-end acceptance.
 
 Selection compares the procedural envelope before fitting actual atoms. It is a diversity heuristic within the mountain family, not a guarantee of ten equally distinct final silhouettes for every seed. Final rocks overlap as individual meshes, not a boolean union.
 
 Validation:
 
 ```sh
-pnpm exec vitest run --config world/tests/seed-world/vitest.config.mjs SeedWorldMountainProfiles SeedWorldMountainFeatures SeedWorldRockPanel SeedWorldRockFormationClient
+pnpm exec vitest run --config world/tests/seed-world/vitest.config.mjs SeedWorldMountainProfiles SeedWorldMountainBudget SeedWorldMountainFeatures SeedWorldRockPanel SeedWorldRockFormationClient
 WORLD_DEMO=seed-world/structures pnpm --dir world build
 pnpm --dir world check:boundaries
 ```

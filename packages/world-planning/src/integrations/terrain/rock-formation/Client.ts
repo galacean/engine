@@ -98,6 +98,7 @@ export class RockFormationClient {
         job.kind,
         job.worldSeed,
         job.atomicSeed,
+        job.triangleBudget,
         job.origin,
         job.guides,
         job.surfaceGrass !== false,

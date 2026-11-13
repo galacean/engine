@@ -10,10 +10,8 @@ import {
   creasedRockAttributes
 } from "@galacean/engine-terrain/rock-ridge/features/shaping/rock-surface.mjs";
 import { transformedVertices } from "@galacean/engine-terrain/rock-ridge/ridge-utils.mjs";
-import {
-  MOUNTAIN_PROFILE_SOURCE,
-  mountainAtomicSeed
-} from "@galacean/engine-terrain/rock-ridge/features/arrangement/mountain-profile.mjs";
+import { MOUNTAIN_PROFILE_SOURCE } from "@galacean/engine-terrain/rock-ridge/features/arrangement/mountain-profile.mjs";
+import { arrangeRockStructure } from "@galacean/engine-terrain/rock-ridge/features/arrangement/strategies.mjs";
 import {
   fractureSmoothing,
   smoothFractureNormals
@@ -26,6 +24,7 @@ import type {
 } from "@galacean/engine-terrain/rock-formation/types";
 import type { RockFormationSettings } from "./Settings.ts";
 import { reduceMountainRock } from "./MountainRockReduction.ts";
+import { budgetMountainRock, mountainMassBudgets } from "./MountainBudget.ts";
 
 // This is a dimensionless authoring domain, not a stored mountain recipe. Each
 // topology is grown from its job seed, then mapped into the published OBB.
@@ -43,14 +42,29 @@ function reduceCarvedLibrary(geometries: Record<string, any>, fractures: unknown
   );
 }
 
-function createMountainPipeline(budget: number) {
+function createMountainPipeline(budget: number, formationBudget?: number) {
+  const workingTriangles = formationBudget ? 192 : budget;
   const build = createRuntimeMountainBuilder({
     stages: [
       createShapingFeature({
         carve: (geometries: Record<string, any>, fractures: unknown) =>
-          reduceCarvedLibrary(geometries, fractures, budget)
+          formationBudget
+            ? Object.fromEntries(
+                Object.entries(fracturedRockLibrary(geometries, fractures)).map(([id, geometry]) => [
+                  id,
+                  { ...budgetMountainRock(geometry, workingTriangles), lodSource: geometry }
+                ])
+              )
+            : reduceCarvedLibrary(geometries, fractures, budget)
       }),
       createArrangementFeature({
+        arrange: (input: any, geometries: any, seed: number, options: any) =>
+          arrangeRockStructure(
+            input,
+            geometries,
+            seed,
+            formationBudget ? { ...options, fieldPitch: 1.5, measure: false } : options
+          ),
         inspect: (input: any, geometries: any) => ({
           ...input,
           rocks: [{ id: "summit", mesh: "peak", x: 0, y: -geometries.peak.bounds[0][1], z: 0, yaw: 0, scale: 1 }]
@@ -60,15 +74,17 @@ function createMountainPipeline(budget: number) {
   });
   return {
     budget,
+    formationBudget,
     build,
     cache: {},
     kernel: {
       buildRock,
-      simplifyRock: (raw: ReturnType<typeof buildRock>) => simplifyRock(raw, { targetTriangles: budget })
+      simplifyRock: (raw: ReturnType<typeof buildRock>) =>
+        formationBudget ? budgetMountainRock(raw, 128) : simplifyRock(raw, { targetTriangles: budget })
     }
   };
 }
-// One world library + bounded stage caches. This lives in the existing worker,
+// One seeded library + bounded stage caches. This lives in the existing worker,
 // never the render loop. Changing counts does not rebuild/carve the atoms.
 let pipeline: ReturnType<typeof createMountainPipeline> | undefined;
 const cornerNormalCache = new WeakMap<object, { hard: number[]; amount: number; normals: number[] }>();
@@ -102,17 +118,21 @@ export function generateMountainSurface(
   if (
     job.kind !== "mountain" ||
     !controls ||
-    (!controls.ridgeArrangement && !controls.rockShaping && !controls.seededShapes && job.atomicSeed === undefined)
+    (!controls.ridgeArrangement &&
+      !controls.rockShaping &&
+      !controls.seededShapes &&
+      job.atomicSeed === undefined &&
+      job.triangleBudget === undefined)
   )
     return;
-  if (!pipeline || pipeline.budget !== settings.targetTriangles)
-    pipeline = createMountainPipeline(settings.targetTriangles);
+  if (!pipeline || pipeline.budget !== settings.targetTriangles || !!pipeline.formationBudget !== !!job.triangleBudget)
+    pipeline = createMountainPipeline(settings.targetTriangles, job.triangleBudget);
   const result = pipeline.build(
     pipeline.kernel,
     {
       source,
       seed: job.seed,
-      atomSeed: job.atomicSeed ?? (controls.seededShapes ? mountainAtomicSeed(job.seed) : (job.worldSeed ?? job.seed)),
+      atomSeed: job.atomicSeed ?? job.worldSeed ?? job.seed,
       arrangementMethod: controls.seededShapes ? "profile" : "ridge",
       mode: controls.ridgePerlin ? "perlin" : "direct",
       topology: { seeded: controls.ridgeSeededCounts, peaks: controls.ridgePeaks, branches: controls.ridgeBranches },
@@ -131,11 +151,15 @@ export function generateMountainSurface(
     },
     pipeline.cache
   );
-  const bodies = result.scene.rocks.map((rock: any) => ({
-    rock,
-    geometry: result.geometries[rock.mesh],
-    vertices: transformedVertices(rock, result.geometries[rock.mesh])
-  }));
+  const budgets = job.triangleBudget
+    ? mountainMassBudgets(result.scene.rocks, result.geometries, job.triangleBudget)
+    : undefined;
+  const bodies = result.scene.rocks.map((rock: any, index: number) => {
+    const geometry = budgets
+      ? budgetMountainRock(result.geometries[rock.mesh].lodSource ?? result.geometries[rock.mesh], budgets[index])
+      : result.geometries[rock.mesh];
+    return { rock, geometry, vertices: transformedVertices(rock, geometry) };
+  });
   const low = [Infinity, Infinity, Infinity],
     high = [-Infinity, -Infinity, -Infinity];
   for (const body of bodies)
@@ -220,6 +244,10 @@ export function generateMountainSurface(
         .length,
       buildMs: result.timings.baseMs,
       fractureMs: result.timings.fractureMs,
+      carvedTriangles: bodies.reduce(
+        (sum: number, body: any) => sum + (body.geometry.faceTags?.filter((tag: number) => tag > 0).length ?? 0),
+        0
+      ),
       arrangementMs: result.timings.fitMs,
       ridgePeaks: plan?.nodes.filter((n: any) => n.role === "peak").length ?? 0,
       ridgeBranches: plan?.curves.filter((c: any) => c.kind === "branch").length ?? 0

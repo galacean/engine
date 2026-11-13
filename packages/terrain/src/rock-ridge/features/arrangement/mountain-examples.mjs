@@ -1,6 +1,6 @@
 import { random } from "../../ridge-utils.mjs";
 import { createRidgeEnvelope } from "./ridge.mjs";
-import { createMountainProfile, MOUNTAIN_PROFILE_SOURCE, mountainAtomicSeed } from "./mountain-profile.mjs";
+import { createMountainProfile, MOUNTAIN_PROFILE_SOURCE } from "./mountain-profile.mjs";
 
 const GRID = 32;
 const bits = () => new Uint32Array(Math.ceil((GRID * GRID) / 32));
@@ -115,7 +115,7 @@ export function generateMountainExamples(inputSeed, count = 10, candidateCount =
       plan = createMountainProfile(MOUNTAIN_PROFILE_SOURCE, exampleSeed),
       signature = mountainSignature(MOUNTAIN_PROFILE_SOURCE, plan);
     if (signature.filled && !seen.has(exampleSeed)) {
-      candidates.push({ seed: exampleSeed, signature });
+      candidates.push({ seed: exampleSeed, signature, profile: plan.profile });
       seen.add(exampleSeed);
     }
   }
@@ -144,7 +144,8 @@ export function generateMountainExamples(inputSeed, count = 10, candidateCount =
     examples: selected.map((s, index) => ({
       index,
       seed: s.seed,
-      atomicSeed: mountainAtomicSeed(s.seed)
+      atomicSeed: seed,
+      profile: s.profile
     }))
   };
 }

@@ -27,14 +27,18 @@ import {
 import { MOUNTAIN_DEFAULTS } from "@galacean/engine-world-planning/integrations/terrain/rock-formation/MountainSettings";
 import { readRockColorBlend } from "@galacean/engine-world-planning/integrations/terrain/rock-formation/ColorPalette";
 import type { RockFormationJob, RockFormationMesh } from "@galacean/engine-terrain/rock-formation/types";
-import { runtimeRockRecipes } from "@galacean/engine-terrain/rock-ridge/features/shaping/atomic-rocks.mjs";
 import "./style.css";
 
 type Examples = {
   seed: number;
   candidateCount: number;
   minimumSeparation: number;
-  examples: Array<{ index: number; seed: number; atomicSeed: number }>;
+  examples: Array<{
+    index: number;
+    seed: number;
+    atomicSeed: number;
+    profile: { along: number; across: number; height: number; flankWidth: number };
+  }>;
 };
 type Entry = {
   entity: Entity;
@@ -47,6 +51,7 @@ type Entry = {
 /** A native Seed World inspection page. The same worker, publication mesh,
  * materials, corner normals and settings are used by the full world. */
 export async function mountStructureGallery(): Promise<void> {
+  const mountedAt = performance.now();
   document.title = "Seed World · Mountain peak variations";
   document.body.innerHTML = `<main id="structures">
     <header><h1>Mountain peak variations</h1><a href="../index.html?seed=498&template=original&debug=1&view=3d" id="world-link">Seed World</a></header>
@@ -67,12 +72,13 @@ export async function mountStructureGallery(): Promise<void> {
       <label>Normal smoothing <output id="smoothing-value">100%</output><input id="smoothing" aria-label="Normal smoothing" type="range" min="0" max="100" step="5" value="100"></label>
     </div></details>
     <p id="status" role="status" aria-live="polite">Generating ten mountain profiles…</p>
-    <details id="atomic-parameters"><summary>Individual rock parameter sets</summary>
-      <p>Each mountain owns eight atomic rock variants. These are the primary rock's parameters before fitting. Fracture sliders adjust all ten mountains.</p>
-      <div class="parameter-table"><table><thead><tr><th>Mountain</th><th>Rock seed</th><th>Width</th><th>Height</th><th>Crown scale</th><th>Wear</th><th>Wall count</th></tr></thead><tbody id="parameter-rows"></tbody></table></div>
+    <p id="initialization" role="status">Initializing · 1,000 triangles per complete mountain · 10 s target</p>
+    <details id="atomic-parameters"><summary>Mountain parameter sets</summary>
+      <p>Ten independent mountain profiles share eight seeded atomic rocks. The 1,000-triangle cap includes every mass in each mountain.</p>
+      <div class="parameter-table"><table><thead><tr><th>Mountain</th><th>Profile seed</th><th>Length</th><th>Depth</th><th>Height</th><th>Flank width</th></tr></thead><tbody id="parameter-rows"></tbody></table></div>
     </details>
     <div id="viewport"><canvas id="structures-canvas" aria-label="Ten seeded mountain peak variations"></canvas><div id="labels"></div></div>
-    <p class="hint">Each mountain has its own seeded rock shapes and ridge profile. Drag to orbit; select an example to inspect it. The same set seed reproduces all ten.</p>
+    <p class="hint">Each mountain has its own seeded ridge profile. Drag to orbit; select an example to inspect it. The same set seed reproduces all ten.</p>
   </main>`;
   const root = document.getElementById("structures")!;
   const input = (id: string) => root.querySelector<HTMLInputElement>(`#${id}`)!;
@@ -82,7 +88,8 @@ export async function mountStructureGallery(): Promise<void> {
     labels = root.querySelector<HTMLElement>("#labels")!;
   const initial = new URL(location.href).searchParams.get("seed");
   if (initial !== null && Number.isInteger(Number(initial))) input("set-seed").value = String(Number(initial) >>> 0);
-  const worldUrl = new URL("../index.html", import.meta.url);
+  const worldUrl = new URL(location.href);
+  worldUrl.pathname = worldUrl.pathname.replace(/\/structures\/index\.html$/, "/index.html");
   worldUrl.search = "?template=original&debug=1&view=3d";
   worldUrl.searchParams.set("seed", input("set-seed").value);
   (root.querySelector("#world-link") as HTMLAnchorElement).href = worldUrl.href;
@@ -117,6 +124,10 @@ export async function mountStructureGallery(): Promise<void> {
       selectionJobs.set(id, { resolve, reject });
       selector.postMessage({ id, seed });
     });
+  const initialSeed = Number(input("set-seed").value) >>> 0;
+  const initialExamples = choose(initialSeed);
+  void initialExamples.catch(() => {});
+  let initialized = false;
   let engine: WebGLEngine;
   try {
     engine = await WebGLEngine.create({ canvas: "structures-canvas", shaderCompiler: new ShaderCompiler() });
@@ -128,6 +139,7 @@ export async function mountStructureGallery(): Promise<void> {
     return;
   }
   engine.canvas.setAutoResolution();
+  const engineReadyAt = performance.now();
   const scene = engine.sceneManager.activeScene!,
     sceneRoot = scene.createRootEntity("Mountain peak variations");
   scene.background.solidColor = new Color(0.015, 0.02, 0.025, 1);
@@ -262,6 +274,7 @@ export async function mountStructureGallery(): Promise<void> {
     while (pending && !disposed) {
       pending = false;
       const request = sequence,
+        started = performance.now(),
         seed = Number(input("set-seed").value) >>> 0,
         configuration = settings();
       generationAbort = new AbortController();
@@ -271,7 +284,7 @@ export async function mountStructureGallery(): Promise<void> {
       try {
         if (examples?.seed !== seed) {
           status.textContent = "Growing and comparing mountain profiles…";
-          const next = await choose(seed);
+          const next = await (!initialized && seed === initialSeed ? initialExamples : choose(seed));
           if (request !== sequence) continue;
           examples = next;
         }
@@ -282,6 +295,7 @@ export async function mountStructureGallery(): Promise<void> {
           seed: e.seed,
           worldSeed: seed,
           atomicSeed: e.atomicSeed,
+          triangleBudget: 1000,
           surfaceGrass: false,
           origin: [0, 0, 0],
           guides: [
@@ -298,7 +312,8 @@ export async function mountStructureGallery(): Promise<void> {
             }
           ]
         }));
-        const result: RockFormationMesh[] = [];
+        const workerStartedAt = performance.now(),
+          result: RockFormationMesh[] = [];
         for (let i = 0; i < jobs.length; i++) {
           if (request !== sequence || disposed) break;
           status.textContent = `Generating mountain ${i + 1} / ${jobs.length}…`;
@@ -306,6 +321,7 @@ export async function mountStructureGallery(): Promise<void> {
           result.push(formation);
         }
         if (request !== sequence || disposed) continue;
+        const publicationStartedAt = performance.now();
         for (let i = 0; i < entries.length; i++) {
           const e = entries[i];
           release(e);
@@ -316,13 +332,17 @@ export async function mountStructureGallery(): Promise<void> {
           e.label.querySelector("button small")!.textContent = `Seed ${examples.examples[i].seed}`;
           const count = result[i].stats.bodies;
           const peaks = result[i].stats.ridgePeaks;
+          const triangles = result[i].mesh.indices.length / 3;
+          if (triangles > 1000) throw new Error(`Mountain ${i + 1} exceeds its 1,000-triangle budget`);
+          e.label.dataset.triangles = String(triangles);
+          e.label.dataset.carvedTriangles = String(result[i].stats.carvedTriangles ?? 0);
           e.label.querySelector(".stats")!.textContent =
-            `${peaks ? `${peaks} ${peaks === 1 ? "peak" : "peaks"} · ` : ""}${count} ${count === 1 ? "mass" : "masses"}`;
+            `${peaks ? `${peaks} ${peaks === 1 ? "peak" : "peaks"} · ` : ""}${count} ${count === 1 ? "mass" : "masses"} · ${triangles} / 1,000 tris`;
         }
         root.querySelector("#parameter-rows")!.innerHTML = examples.examples
           .map((example) => {
-            const p = runtimeRockRecipes(example.atomicSeed).peak;
-            return `<tr><td>${String(example.index + 1).padStart(2, "0")}</td><td>${example.atomicSeed}</td><td>${p.obbWidth.toFixed(1)} m</td><td>${p.obbHeight.toFixed(1)} m</td><td>${Math.round(p.topScale * 100)}%</td><td>${Math.round(p.wear * 100)}%</td><td>${p.wallCount}</td></tr>`;
+            const p = example.profile;
+            return `<tr><td>${String(example.index + 1).padStart(2, "0")}</td><td>${example.seed}</td>${[p.along, p.across, p.height, p.flankWidth].map((v) => `<td>${Math.round(v * 100)}%</td>`).join("")}</tr>`;
           })
           .join("");
         finish();
@@ -335,6 +355,31 @@ export async function mountStructureGallery(): Promise<void> {
         history.replaceState(null, "", url);
         worldUrl.searchParams.set("seed", String(seed));
         (root.querySelector("#world-link") as HTMLAnchorElement).href = worldUrl.href;
+        await textureReady;
+        // Include native mesh upload, texture readiness, shader compilation and
+        // the following rendered frame. The initial clock starts at navigation,
+        // before module loading, workers and engine creation, not at generation.
+        await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+        if (request !== sequence || disposed) continue;
+        const elapsed = performance.now() - (initialized ? started : 0);
+        const triangles = result.reduce((sum, r) => sum + r.mesh.indices.length / 3, 0);
+        const timing = root.querySelector<HTMLElement>("#initialization")!;
+        timing.textContent = `${initialized ? "Regeneration" : "Initialization"}: ${(elapsed / 1000).toFixed(2)} s / 10 s · ${triangles.toLocaleString()} total triangles · ${elapsed < 10000 ? "within target" : "over target"}`;
+        timing.dataset.elapsedMs = String(elapsed);
+        timing.dataset.totalTriangles = String(triangles);
+        timing.dataset.cold = String(!initialized);
+        timing.dataset.stages = JSON.stringify({
+          moduleReadyMs: mountedAt,
+          engineMs: engineReadyAt - mountedAt,
+          selectionWaitMs: workerStartedAt - started,
+          workerMs: publicationStartedAt - workerStartedAt,
+          uploadTextureFrameMs: performance.now() - publicationStartedAt,
+          atomicMs: result.reduce((sum, r) => sum + (r.stats.buildMs ?? 0), 0),
+          carvingMs: result.reduce((sum, r) => sum + (r.stats.fractureMs ?? 0), 0),
+          fittingMs: result.reduce((sum, r) => sum + (r.stats.arrangementMs ?? 0), 0),
+          carvedTriangles: result.reduce((sum, r) => sum + (r.stats.carvedTriangles ?? 0), 0)
+        });
+        initialized = true;
       } catch (error) {
         if (!disposed) {
           status.textContent = `Generation failed: ${String(error)}`;

@@ -9,11 +9,7 @@ import {
   mountainSignature,
   mountainDistance
 } from "@galacean/engine-terrain/rock-ridge/features/arrangement/mountain-examples.mjs";
-import {
-  generateRuntimeRocks,
-  runtimeRockRecipes,
-  runtimeRockFingerprint
-} from "@galacean/engine-terrain/rock-ridge/features/shaping/atomic-rocks.mjs";
+import { generateRuntimeRocks } from "@galacean/engine-terrain/rock-ridge/features/shaping/atomic-rocks.mjs";
 import { buildRock } from "@galacean/engine-terrain/rock-formation/generator/rock-body.js";
 import { simplifyRock } from "@galacean/engine-terrain/rock-formation/generator/simplify-rock.js";
 import { simplifierReady } from "@galacean/engine-terrain/rock-formation/generator/simplify-rock.js";
@@ -42,6 +38,7 @@ const job: RockFormationJob = {
   worldSeed: 498,
   seed: examples.examples[0].seed,
   atomicSeed: examples.examples[0].atomicSeed,
+  triangleBudget: 1000,
   origin: [400, 12, 300],
   surfaceGrass: false,
   guides: [
@@ -64,7 +61,8 @@ it("replays an entire diverse set from one seed and generates a new set when it 
   const changed = generateMountainExamples(499);
   expect(examples.examples).toHaveLength(10);
   expect(new Set(examples.examples.map((e) => e.seed)).size).toBe(10);
-  expect(new Set(examples.examples.map((e) => e.atomicSeed)).size).toBe(10);
+  expect(new Set(examples.examples.map((e) => e.atomicSeed))).toEqual(new Set([498]));
+  expect(new Set(examples.examples.map((e) => JSON.stringify(e.profile))).size).toBe(10);
   expect(changed.examples.some((e) => examples.examples.some((old) => e.seed === old.seed))).toBe(false);
   // The set is selected using all three projections, after principal-axis alignment.
   expect(examples.minimumSeparation).toBeGreaterThan(0.2);
@@ -138,12 +136,8 @@ it("keeps every seeded profile within a connected mountain ridge family", () => 
 });
 
 it("uses the original fitter to make one connected mass with sparse small rocks", async () => {
-  const fingerprints = new Set<string>();
-  const parameterSets = new Set<string>();
+  const library = generateRuntimeRocks({ buildRock, simplifyRock }, examples.seed);
   for (const example of examples.examples) {
-    const library = generateRuntimeRocks({ buildRock, simplifyRock }, example.atomicSeed);
-    fingerprints.add(runtimeRockFingerprint(library));
-    parameterSets.add(JSON.stringify(runtimeRockRecipes(example.atomicSeed)));
     const scene = generateMountainProfileScene(MOUNTAIN_PROFILE_SOURCE, library, example.seed);
     expect(scene.ridge.composition.components).toBe(1);
     expect(scene.ridge.composition.smallRocks).toBeLessThanOrEqual(2);
@@ -151,8 +145,6 @@ it("uses the original fitter to make one connected mass with sparse small rocks"
     expect(scene.ridge.plan.profile.version).toBe("seeded-mountain-profile-1");
     await new Promise<void>((resolve) => setTimeout(resolve, 0));
   }
-  expect(fingerprints.size).toBe(10);
-  expect(parameterSets.size).toBe(10);
 }, 120000);
 
 it("publishes ten distinct carved meshes in native rotated OBBs, retaining their proportions", async () => {
@@ -160,6 +152,9 @@ it("publishes ten distinct carved meshes in native rotated OBBs, retaining their
   const bodies = new Set<number>();
   for (const example of examples.examples) {
     const result = generateRockFormation({ ...job, seed: example.seed, atomicSeed: example.atomicSeed }, settings);
+    expect(result.mesh.indices.length / 3).toBeLessThanOrEqual(1000);
+    expect(result.mesh.indices.length / 3).toBeGreaterThan(850);
+    expect(result.stats.carvedTriangles).toBeGreaterThan(10);
     const low = [Infinity, Infinity, Infinity],
       high = [-Infinity, -Infinity, -Infinity];
     const obb = job.guides[0],
@@ -223,7 +218,7 @@ it("keeps the new arrangement independent from carving and preserves exact repla
 
 it("uses the individual atom seed independently of the ridge and world seeds", () => {
   const first = generateRockFormation(job, settings);
-  const changed = generateRockFormation({ ...job, atomicSeed: examples.examples[1].atomicSeed }, settings);
+  const changed = generateRockFormation({ ...job, atomicSeed: 499 }, settings);
   expect(changed.mesh.positions).not.toEqual(first.mesh.positions);
   expect(changed.stats.ridgePeaks).toBe(first.stats.ridgePeaks);
   expect(changed.stats.ridgeBranches).toBe(first.stats.ridgeBranches);
