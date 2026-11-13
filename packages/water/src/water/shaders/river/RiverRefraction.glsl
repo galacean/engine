@@ -34,13 +34,3 @@ RiverSceneSample riverSampleScene(vec2 uv, float waterEyeDepth, float slopeToler
   result.eyeDepth *= inverseWeight;
   return result;
 }
-
-vec3 riverScenePositionWS(vec2 uv, float eyeDepth) {
-  vec2 projectionScale = vec2(camera_ProjMat[0][0], camera_ProjMat[1][1]);
-#ifdef CAMERA_ORTHOGRAPHIC
-  vec2 viewXY = (uv * 2.0 - 1.0 - vec2(camera_ProjMat[3][0], camera_ProjMat[3][1])) / projectionScale;
-#else
-  vec2 viewXY = (uv * 2.0 - 1.0 + vec2(camera_ProjMat[2][0], camera_ProjMat[2][1])) * eyeDepth / projectionScale;
-#endif
-  return (camera_ViewInvMat * vec4(viewXY, -eyeDepth, 1.0)).xyz;
-}

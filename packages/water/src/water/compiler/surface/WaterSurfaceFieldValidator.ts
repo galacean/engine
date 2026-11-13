@@ -13,7 +13,6 @@ import {
   WaterSurfaceFieldDiagnosticCode,
   WaterSurfaceFieldDiagnosticSeverity,
   WaterSurfaceFieldSchemaVersion,
-  type WaterSurfaceFieldDependencyAssetV2,
   type WaterSurfaceFieldDependencyV2,
   type WaterSurfaceFieldDiagnostic,
   type WaterSurfaceFieldValidationResult

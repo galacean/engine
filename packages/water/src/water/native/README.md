@@ -67,6 +67,6 @@ node world/scripts/run-engine.mjs pnpm --dir world-gallery water:native-api:gene
 node world/scripts/run-engine.mjs pnpm --dir world-gallery water:native-api:check
 ```
 
-generate通过WORLD_GALLERY_SOURCE_ROOT同步权威源码，--check只读；禁止手改WaterAPIDeclarations。作者编辑/同床发布见 [M1_AUTHORING](M1_AUTHORING.md)；阶段记录见 [M0](M0_IMPLEMENTATION.md)/[M1](M1_IMPLEMENTATION.md)，当前验证见 [PR记录](../../../demos/terrain/seed-world-planner/V2_IMPLEMENTATION.md)。
+generate通过WORLD_GALLERY_SOURCE_ROOT同步权威源码，--check只读；禁止手改WaterAPIDeclarations。作者接口见本目录的 `WaterAuthoring.ts` 与 `Watercourse` 类型。
 
 M0/M1不实现出水口CRUD、有限水量、降雨/灌溉演算或游泳；时间、Terrain接受与存储由宿主负责。后续保留调水位一次补排、后台时间继续、普通湖盆编辑保水位和撤销保当前水量的决策，不宣称已执行。真实模型、Editor面板、美术、性能和移动端分别验收。

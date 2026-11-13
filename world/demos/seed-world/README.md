@@ -88,7 +88,7 @@ Terrain、Water、桥/实体、导航、音频与玩家状态先准备隐藏候�
 
 `PlanningHeightmap` 是背景和精细顶点共同编码/解码后的 R16 规范床面。背景保留原双线性契约，精细块与实际提交三角面使用同一插值；原点 [0,0]、行序 +Z，X/Z 间距独立。Water 拥有不可变快照，裁切保留晶格/细化块；内容身份随实际床面变化，Worker adopt 与主线程共用同一结果。河床不能读取桥面通行高度，水域重建先清除旧派生引道。
 
-River 保留所有已发布高程/宽度锚点，以 `resolved-path + Polyline` 接入生产编译；作者 depth 是挖床意图，实际水深始终为 `max(0, waterY-bedY)`。精度决定补点，显式预算不足报错，不简化锚点或钳制实际深度。湖岸、岛洞和白盒读取最终床面；完整作者接入见 [M1 契约](../../../shared/water/native/M1_AUTHORING.md)。
+River 保留所有已发布高程/宽度锚点，以 `resolved-path + Polyline` 接入生产编译；作者 depth 是挖床意图，实际水深始终为 `max(0, waterY-bedY)`。精度决定补点，显式预算不足报错，不简化锚点或钳制实际深度。湖岸、岛洞和白盒读取最终床面。
 
 查询只消费成功发布的原生水体，准备中不替换活跃 WaterWorld。桥面高于水面时导航按桥面接触，桥下水仍可查询；Ocean 视觉波浪不进入导航，远岸代理值须检查 quality，见 [Ocean 查询](../../water/ocean/README.md)。
 

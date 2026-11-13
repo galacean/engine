@@ -19,7 +19,6 @@ import type { HeightfieldWaterDescriptorV1 } from "../../authoring/heightfield/H
 import type {
   HeightfieldWaterBudgetConfig,
   HeightfieldWaterBasinTerrainCoverageV1,
-  HeightfieldWaterColor,
   HeightfieldWaterDiagnostic,
   HeightfieldWaterGridConfig,
   HeightfieldWaterSpatialFieldConfig,
@@ -142,25 +141,6 @@ function readGrid(
   return originXZ && cellSizeXZ && width !== undefined && height !== undefined
     ? Object.freeze({ originXZ, cellSizeXZ, width, height })
     : undefined;
-}
-
-function readColor(
-  value: unknown,
-  path: string,
-  diagnostics: HeightfieldWaterDiagnostic[]
-): HeightfieldWaterColor | undefined {
-  if (
-    !Array.isArray(value) ||
-    value.length !== 4 ||
-    !value.every((component) => typeof component === "number" && Number.isFinite(component))
-  ) {
-    push(diagnostics, HeightfieldWaterDiagnosticCode.InvalidType, path, "Expected four finite RGBA numbers.");
-    return undefined;
-  }
-  if (value.some((component) => (component as number) < 0 || (component as number) > 1)) {
-    push(diagnostics, HeightfieldWaterDiagnosticCode.ValueOutOfRange, path, "RGBA values must be in [0, 1].");
-  }
-  return Object.freeze([value[0] as number, value[1] as number, value[2] as number, value[3] as number] as const);
 }
 
 function readSurfaceMotion(

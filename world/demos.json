@@ -162,32 +162,8 @@
     "owner": "environment"
   },
   {
-    "entry": "demos/water/index.html",
-    "title": "Water",
-    "mode": "static",
-    "owner": "water"
-  },
-  {
     "entry": "demos/water/editor/index.html",
     "title": "Water native editor",
-    "mode": "static",
-    "owner": "water"
-  },
-  {
-    "entry": "demos/water/island/index.html",
-    "title": "岚湾岛 · Water Island",
-    "mode": "static",
-    "owner": "water"
-  },
-  {
-    "entry": "demos/water/ocean/index.html",
-    "title": "Ocean · 环岛海洋",
-    "mode": "static",
-    "owner": "water"
-  },
-  {
-    "entry": "demos/water/planner/index.html",
-    "title": "Water · Planner 水体联调",
     "mode": "static",
     "owner": "water"
   },

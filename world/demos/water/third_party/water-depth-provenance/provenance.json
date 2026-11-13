@@ -32,7 +32,7 @@
     "document": "MAPPING.md",
     "rawVendorSourceIncluded": false,
     "galaceanPorts": [
-      "runtime/surface/WaterSurfaceDepthResponse.ts",
+      "shaders/library/surface/WaterSurfaceDepthResponse.glsl",
       "runtime/surface/WaterSurfaceDepthResponseShader.ts"
     ],
     "note": "The active runtime depends on Galacean-owned shared depth-response ports, not on a Stylized Water 3 Ocean runtime or retained vendor assets."

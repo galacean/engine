@@ -181,27 +181,4 @@
       }
       #endif
 
-      vec3 sampleWaterBaseReflectionRadiance(
-        vec3 analyticFallbackRadiance,
-        vec3 directionWS,
-        vec3 positionWS,
-        float roughness
-      ) {
-        vec3 reflectedRadiance = analyticFallbackRadiance;
-        if (material_EnvironmentReflectionAvailable > 0.5) {
-          reflectedRadiance = sampleWaterDistantEnvironmentReflection(directionWS, positionWS, roughness);
-        }
-        #ifdef MATERIAL_WATER_LOCAL_ENVIRONMENT_REFLECTION
-        if (material_LocalEnvironmentReflectionAvailable > 0.5) {
-          float localWeight = waterLocalEnvironmentWeight(positionWS);
-          if (localWeight > 0.0) {
-            vec3 localRadiance = sampleWaterLocalEnvironmentReflection(directionWS, positionWS, roughness);
-            reflectedRadiance = mix(reflectedRadiance, localRadiance, localWeight);
-          }
-        }
-        #endif
-        return reflectedRadiance;
-      }
-
-
 #endif

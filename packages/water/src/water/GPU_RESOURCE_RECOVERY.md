@@ -21,7 +21,6 @@
 | runtime/wave/WaterSurfaceDetailTextureFactory.ts | Lake 程序细节纹理 / Ocean 双斜率纹理 | 缺 | 均从 descriptor 重算像素并生成 mipmap，额外长期像素 0 B |
 | runtime/ocean/FiniteOceanSurfaceGeometry.ts | Ocean 近场、远场、中心填充网格及内部 Buffer | 缺 | 保留近场/远场 layout 参数重新生成拓扑，额外长期几何数组 0 B |
 | runtime/ocean/OceanNearshoreFieldTextureFactory.ts | Ocean 近岸 RGBA 图集 | 缺 | 借用 atlas.pixels，额外长期数组 0 B |
-| runtime/optics/WaterSceneReflectionProbeProvider.ts | 通用静态反射 CubeTexture 和捕获 RenderTarget | 缺；只捕获一次或显式 recapture，并非每帧重绘 | Cube restorer 标记重捕获，DeviceRestored（全部异步恢复完成）后重绘六面和 mipmap；长期像素 0 B。RenderTarget 附件由引擎重建，无内容副本 |
 | runtime/ocean/OceanTextureLibrary.ts | Ocean 五张 KTX2 法线/焦散/泡沫/交界噪声纹理 | 已由引擎加载管线覆盖 | ResourceManager.load(AssetType.KTX2) → KTX2Loader 注册 KTX2ContentRestorer；不重复注册 |
 | resources/lake/LakeNormalAssetLoader.ts | Lake 外部法线 Texture/KTX2 | 已由引擎加载管线覆盖 | ResourceManager.load → TextureLoader / KTX2Loader 注册对应 restorer；不重复注册 |
 

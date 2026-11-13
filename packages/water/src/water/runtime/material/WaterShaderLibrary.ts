@@ -57,13 +57,6 @@ export function waterShaderInclude(path: string): string {
   return `#include "${path}"`;
 }
 
-/** Snapshot used by standalone ShaderCompiler tests and raw WebGL calibration expansion. */
-export function getRegisteredWaterShaderIncludes(): Readonly<Record<string, string>> {
-  return Object.freeze(
-    Object.fromEntries([...registeredWaterShaderIncludes].sort(([left], [right]) => left.localeCompare(right)))
-  );
-}
-
 /**
  * Bounds generated assembly chunks to one lazy module build. The returned module keeps its own frozen
  * closure, so newly generated registry entries are no longer needed after the factory returns.
@@ -127,19 +120,4 @@ export function withWaterShaderIncludeClosure<T>(includes: WaterShaderIncludeClo
       ShaderFactory.unRegisterInclude(added[index]);
     }
   }
-}
-
-/** Adds the currently registered Water chunks to an Engine ShaderLibrary include map. */
-export function withRegisteredWaterShaderIncludes(
-  includeMap: Readonly<Record<string, string>>
-): Readonly<Record<string, string>> {
-  const combined = { ...includeMap };
-  for (const [path, source] of Object.entries(getRegisteredWaterShaderIncludes())) {
-    const existing = combined[path];
-    if (existing !== undefined && existing !== source) {
-      throw new Error(`Water shader include collision at '${path}'.`);
-    }
-    combined[path] = source;
-  }
-  return Object.freeze(combined);
 }

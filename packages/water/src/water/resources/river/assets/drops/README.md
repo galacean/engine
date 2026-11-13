@@ -31,4 +31,4 @@ image.save()
 
 mistOpacity/sprayOpacity独立；speed=0冻结全部落水动画，隐藏/禁用停止清空、恢复发射；销毁/回滚释放拥有组件/材质，贴图由WaterRuntimeResourceRegistry按Scene共享租约释放。普通无drops河流不请求素材。
 
-这是通用River移植，未逐项复刻源起始噪声、第二泡沫、深度软接触和完整Unity光照；功能不等同逐像素/美术验收。作者与查询边界见 [M1契约](../../../../native/M1_AUTHORING.md)。
+这是通用River移植，未逐项复刻源起始噪声、第二泡沫、深度软接触和完整Unity光照；功能不等同逐像素/美术验收。。

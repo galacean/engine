@@ -7,11 +7,7 @@ import {
   RiverPathMode
 } from "../../authoring/river/RiverAuthoringEnums";
 import { RIVER_LIMITS } from "../../authoring/river/RiverAuthoringLimits";
-import type {
-  RiverNetworkBudgetConfig,
-  RiverValidationResult,
-  Vector3Tuple
-} from "../../authoring/river/RiverAuthoringTypes";
+import type { RiverNetworkBudgetConfig, RiverValidationResult } from "../../authoring/river/RiverAuthoringTypes";
 import type { RiverNetworkDescriptor } from "../../authoring/river/RiverDescriptor";
 import { decodeRiverNetworkDescriptor } from "../../authoring/river/RiverSchemaDecoder";
 import { RiverDiagnosticCode, RiverDiagnosticSeverity, type RiverDiagnostic } from "../shared/diagnostics";

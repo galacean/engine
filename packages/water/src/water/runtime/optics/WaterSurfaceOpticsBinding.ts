@@ -392,15 +392,6 @@ export function createWaterSurfaceOpticsBindingState(): WaterSurfaceOpticsBindin
   });
 }
 
-/** Pure allocating resolver for diagnostics; hot material updates use caller-owned state instead. */
-export function resolveWaterSurfaceOpticalProfile(profile: WaterOpticalProfile): Readonly<ResolvedWaterOpticalProfile> {
-  const resolved = createMutableResolvedProfile();
-  sanitizeWaterOpticalProfileInto(profile, resolved);
-  Object.freeze(resolved.absorptionCoefficient);
-  Object.freeze(resolved.scatteringColor);
-  return Object.freeze(resolved);
-}
-
 /** Writes the shared Beer-Lambert/Fresnel inputs while reusing the caller-owned vectors/readback. */
 export function applyWaterSurfaceOpticalProfile(
   shaderData: ShaderData,
@@ -458,17 +449,6 @@ export function applyWaterSurfaceTransientOpticalProfile(
   }
   (state.bindingReadback as MutableBindingReadback).opticalProfile = resolved;
   return resolved;
-}
-
-/** Pure allocating resource/tier resolver for tests and diagnostics. */
-export function resolveWaterSurfaceOpticsReflection(
-  tier: WaterOpticsTier,
-  binding?: Readonly<WaterReflectionBinding>,
-  config: WaterReflectionSamplingConfig = EMPTY_REFLECTION_SAMPLING_CONFIG
-): Readonly<WaterSurfaceOpticsReflectionReadback> {
-  const readback = createMutableReflectionReadback();
-  writeReflectionReadback(readback, tier, binding, config);
-  return Object.freeze(readback);
 }
 
 /** Always performs all writes while reusing the state readback, including clearing stale textures and identity VP. */

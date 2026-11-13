@@ -138,22 +138,5 @@ float waterSurfaceLitDirectSpecular(
 
 // Mobile Lit environment term: perceptual roughness controls both the
 // prefiltered probe mip and the F0-to-grazing interpolation (Pow4).
-float waterSurfaceLitEnvironmentSpecularWeight(
-  float f0,
-  float perceptualRoughness,
-  float dotNV
-) {
-  float resolvedPerceptualRoughness =
-    waterSurfaceResolvePerceptualRoughness(perceptualRoughness);
-  float roughness = resolvedPerceptualRoughness * resolvedPerceptualRoughness;
-  float surfaceReduction = 1.0 / (roughness * roughness + 1.0);
-  float grazingTerm = clamp(
-    1.0 - resolvedPerceptualRoughness + clamp(f0, 0.0, 1.0),
-    0.0,
-    1.0
-  );
-  float fresnelTerm = pow(1.0 - clamp(dotNV, 0.0, 1.0), 4.0);
-  return surfaceReduction * mix(clamp(f0, 0.0, 1.0), grazingTerm, fresnelTerm);
-}
 
 #endif

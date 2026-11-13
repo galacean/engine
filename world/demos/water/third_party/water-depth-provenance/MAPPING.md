@@ -8,7 +8,7 @@ This document records the narrow licensed-source provenance for the shared Water
 | --- | --- | --- | --- |
 | Sample opaque-scene depth | Camera depth and projection parameters | `runtime/surface/WaterSurfaceDepthResponseShader.ts` | Invalid, non-finite, clear, or foreground samples are rejected before fallback. |
 | Reconstruct opaque world position | Camera matrices and projection mode | `waterSurfaceReconstructOpaquePositionWS` | Galacean eye depth and `camera_ViewInvMat` support perspective and orthographic cameras explicitly. |
-| Compute scene-ray water depth | Water fragment depth and opaque depth | `runtime/surface/WaterSurfaceDepthResponse.ts` / `waterSurfaceResolveSceneRayDepth` | Runtime publishes metres instead of exposing renderer-specific depth encodings. |
+| Compute scene-ray water depth | Water fragment depth and opaque depth | `shaders/library/surface/WaterSurfaceDepthResponse.glsl` / `waterSurfaceResolveSceneRayDepth` | Runtime publishes metres instead of exposing renderer-specific depth encodings. |
 | Compute normal-projected water depth | Reconstructed opaque position and macro normal | `waterSurfaceResolveSurfaceNormalDepth` | The projection uses the physical geometry normal; moving detail normals remain visual only. |
 | Resolve the shallow/deep ramp | Scene-ray depth, normal depth, coefficients, absorption | `waterSurfaceDepthTintFactor` and `waterSurfaceCompositeDepthResponse` | Source coefficients are normalized to inverse metres and compiled into the shared appearance closure. |
 

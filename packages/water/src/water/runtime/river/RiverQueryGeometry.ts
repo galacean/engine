@@ -26,7 +26,6 @@ export function maximumGeometryHeightInBounds(
   end = geometry.drawStart + geometry.drawCount
 ): number {
   let maximum = -Infinity;
-  const indices = geometry.indices.borrowTypedArray();
   for (let i = start; i + 2 < end; i += 3) {
     const domain = riverGeometryTriangleDomain(geometry, i);
     if (!domain) continue;

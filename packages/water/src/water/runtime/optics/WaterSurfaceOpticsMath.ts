@@ -2,8 +2,7 @@ import {
   MAX_WATER_REFLECTION_INTENSITY,
   MAX_WATER_REFRACTION_STRENGTH
 } from "../../authoring/optics/WaterOpticalLimits";
-import type { WaterOpticalColor, WaterOpticalProfile } from "./WaterOpticalProfile";
-import type { WaterSurfaceOpticsResult } from "./WaterSurfaceOpticsTypes";
+import type { WaterOpticalProfile } from "./WaterOpticalProfile";
 
 export const MIN_WATER_INDEX_OF_REFRACTION = 1;
 export const MAX_WATER_INDEX_OF_REFRACTION = 4;
@@ -133,61 +132,6 @@ export function sanitizeWaterOpticalProfileInto(
   return outProfile;
 }
 
-function resolveOpticalDistance(
-  distance: number,
-  maximumDistance: number | undefined,
-  fallbackMaximum: number
-): number {
-  const resolvedMaximum = clampWaterOpticsFinite(maximumDistance, fallbackMaximum, 0, MAX_WATER_OPTICAL_DISTANCE);
-  return clampWaterOpticsFinite(distance, resolvedMaximum, 0, resolvedMaximum);
-}
-
-function evaluateMediumTerms(
-  profile: WaterOpticalProfile,
-  opticalDistance: number,
-  source: Readonly<WaterOpticalColor>,
-  outColor: WaterOpticalColor,
-  outTransmittance?: WaterOpticalColor,
-  outScattering?: WaterOpticalColor
-): WaterOpticalColor {
-  const scatteringCoefficient = sanitizeOpticalCoefficient(
-    profile.scatteringCoefficient,
-    DEFAULT_WATER_SCATTERING_COEFFICIENT
-  );
-  const scatteringWeight = 1 - Math.exp(-scatteringCoefficient * opticalDistance);
-  const absorption = profile.absorptionCoefficient;
-  const scatteringColor = profile.scatteringColor;
-
-  const transmittanceRed = Math.exp(
-    -sanitizeOpticalCoefficient(absorption[0], DEFAULT_WATER_ABSORPTION_COEFFICIENT[0]) * opticalDistance
-  );
-  const transmittanceGreen = Math.exp(
-    -sanitizeOpticalCoefficient(absorption[1], DEFAULT_WATER_ABSORPTION_COEFFICIENT[1]) * opticalDistance
-  );
-  const transmittanceBlue = Math.exp(
-    -sanitizeOpticalCoefficient(absorption[2], DEFAULT_WATER_ABSORPTION_COEFFICIENT[2]) * opticalDistance
-  );
-  const scatteringRed = sanitizeLinearColor(scatteringColor[0], DEFAULT_WATER_SCATTERING_COLOR[0]) * scatteringWeight;
-  const scatteringGreen = sanitizeLinearColor(scatteringColor[1], DEFAULT_WATER_SCATTERING_COLOR[1]) * scatteringWeight;
-  const scatteringBlue = sanitizeLinearColor(scatteringColor[2], DEFAULT_WATER_SCATTERING_COLOR[2]) * scatteringWeight;
-
-  if (outTransmittance) {
-    outTransmittance.red = transmittanceRed;
-    outTransmittance.green = transmittanceGreen;
-    outTransmittance.blue = transmittanceBlue;
-  }
-  if (outScattering) {
-    outScattering.red = scatteringRed;
-    outScattering.green = scatteringGreen;
-    outScattering.blue = scatteringBlue;
-  }
-
-  outColor.red = sanitizeLinearColor(sanitizeLinearColor(source.red) * transmittanceRed + scatteringRed);
-  outColor.green = sanitizeLinearColor(sanitizeLinearColor(source.green) * transmittanceGreen + scatteringGreen);
-  outColor.blue = sanitizeLinearColor(sanitizeLinearColor(source.blue) * transmittanceBlue + scatteringBlue);
-  return outColor;
-}
-
 /** Normal-incidence reflectance for an air-to-water dielectric boundary. */
 export function calculateWaterFresnelF0(indexOfRefraction: number): number {
   const resolvedIor = resolveWaterIndexOfRefraction(indexOfRefraction);
@@ -195,84 +139,9 @@ export function calculateWaterFresnelF0(indexOfRefraction: number): number {
   return ratio * ratio;
 }
 
-/** Schlick Fresnel using a finite, saturated N dot V input. */
-export function evaluateWaterFresnel(indexOfRefraction: number, normalDotView: number): number {
-  const fresnelF0 = calculateWaterFresnelF0(indexOfRefraction);
-  return evaluateWaterFresnelFromF0(fresnelF0, normalDotView);
-}
-
 /** Schlick Fresnel from an explicit dielectric F0. */
 export function evaluateWaterFresnelFromF0(fresnelF0: number, normalDotView: number): number {
   const resolvedF0 = clampWaterOpticsFinite(fresnelF0, 0, 0, MAX_WATER_FRESNEL_F0);
   const resolvedNormalDotView = clampWaterOpticsFinite(normalDotView, 1, 0, 1);
   return resolvedF0 + (1 - resolvedF0) * Math.pow(1 - resolvedNormalDotView, 5);
-}
-
-/** Allocates one result for callers to retain and reuse across evaluations. */
-export function createWaterSurfaceOpticsResult(): WaterSurfaceOpticsResult {
-  return {
-    opticalDistance: 0,
-    fresnelF0: 0,
-    fresnel: 0,
-    refractionStrength: DEFAULT_WATER_REFRACTION_STRENGTH,
-    roughness: DEFAULT_WATER_ROUGHNESS,
-    reflectionIntensity: DEFAULT_WATER_REFLECTION_INTENSITY,
-    transmittance: { red: 1, green: 1, blue: 1 },
-    scattering: { red: 0, green: 0, blue: 0 },
-    transmittedColor: { red: 0, green: 0, blue: 0 },
-    finalColor: { red: 0, green: 0, blue: 0 }
-  };
-}
-
-/**
- * Pure CPU reference for the surface shader's transmission/reflection contract.
- * `sourceColor` and `reflectionColor` are expected in linear space. The result,
- * including its nested colours, is caller-owned and is never replaced.
- */
-export function evaluateWaterSurfaceOptics(
-  profile: WaterOpticalProfile,
-  opticalDistance: number,
-  normalDotView: number,
-  sourceColor: Readonly<WaterOpticalColor>,
-  reflectionColor: Readonly<WaterOpticalColor>,
-  outResult: WaterSurfaceOpticsResult
-): WaterSurfaceOpticsResult {
-  const resolvedDistance = resolveOpticalDistance(
-    opticalDistance,
-    profile.maximumSurfaceOpticalDistance,
-    DEFAULT_WATER_MAXIMUM_SURFACE_OPTICAL_DISTANCE
-  );
-  const resolvedIor = resolveWaterIndexOfRefraction(profile.indexOfRefraction);
-  const fresnelF0 = resolveWaterFresnelF0(profile.fresnelF0, resolvedIor);
-  const fresnel = evaluateWaterFresnelFromF0(fresnelF0, normalDotView);
-  const refractionStrength = resolveWaterRefractionStrength(profile.refractionStrength);
-  const roughness = resolveWaterRoughness(profile.roughness);
-  const reflectionIntensity = resolveWaterReflectionIntensity(profile.reflectionIntensity);
-
-  outResult.opticalDistance = resolvedDistance;
-  outResult.fresnelF0 = fresnelF0;
-  outResult.fresnel = fresnel;
-  outResult.refractionStrength = refractionStrength;
-  outResult.roughness = roughness;
-  outResult.reflectionIntensity = reflectionIntensity;
-  evaluateMediumTerms(
-    profile,
-    resolvedDistance,
-    sourceColor,
-    outResult.transmittedColor,
-    outResult.transmittance,
-    outResult.scattering
-  );
-
-  const transmissionWeight = 1 - fresnel;
-  const reflectionWeight = fresnel * reflectionIntensity;
-  const reflectedRed = sanitizeLinearColor(reflectionColor.red) * reflectionWeight;
-  const reflectedGreen = sanitizeLinearColor(reflectionColor.green) * reflectionWeight;
-  const reflectedBlue = sanitizeLinearColor(reflectionColor.blue) * reflectionWeight;
-  outResult.finalColor.red = sanitizeLinearColor(outResult.transmittedColor.red * transmissionWeight + reflectedRed);
-  outResult.finalColor.green = sanitizeLinearColor(
-    outResult.transmittedColor.green * transmissionWeight + reflectedGreen
-  );
-  outResult.finalColor.blue = sanitizeLinearColor(outResult.transmittedColor.blue * transmissionWeight + reflectedBlue);
-  return outResult;
 }

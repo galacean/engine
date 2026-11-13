@@ -5,7 +5,6 @@ import {
   WaterPatternBoundaryCombineV2,
   WaterPatternModelV2,
   WaterPatternResponseV2,
-  WaterSurfaceCompositionV2,
   WaterSurfaceDepthResponseModelV2,
   WaterSurfaceDetailBlend,
   WaterSurfaceDetailSource,
@@ -476,20 +475,6 @@ export function createWaterSurfaceAppearanceV2DepthResponseStatements(
   );
 }
 
-function renderCompositionSection(
-  section: 0 | 1 | 2 | 3 | 4,
-  inputExpression = "closureInput",
-  coastalAlphaExpression = "0.0",
-  coastalAlphaWeightExpression = "0.0"
-): string {
-  return renderWaterShaderTemplate(waterSurfaceAppearanceV2CompositionShaderTemplate, {
-    SECTION: section,
-    INPUT: inputExpression,
-    COASTAL_ALPHA: coastalAlphaExpression,
-    COASTAL_ALPHA_WEIGHT: coastalAlphaWeightExpression
-  });
-}
-
 /** Supplies authored alpha-policy inputs; the shared final Closure evaluates alpha exactly once. */
 export function createWaterSurfaceAppearanceV2AlphaInputAssignments(
   appearance: CompiledWaterSurfaceAppearanceV2,
@@ -505,44 +490,11 @@ export function createWaterSurfaceAppearanceV2AlphaInputAssignments(
     throw new TypeError("Water V2 alpha input and source expressions must be non-empty.");
   }
   const hasAlpha = appearance.boundaryEffects.some((effect) => effect.outputs.alpha !== undefined);
-  return renderCompositionSection(
-    0,
-    inputExpression,
-    hasAlpha ? coastalAlphaExpression : "0.0",
-    hasAlpha ? coastalAlphaWeightExpression : "0.0"
-  );
-}
-
-export function createWaterSurfaceAppearanceV2BoundaryColorStatements(
-  _appearance: CompiledWaterSurfaceAppearanceV2
-): string {
-  return renderCompositionSection(1);
-}
-
-export function createWaterSurfaceAppearanceV2ClosureLightingStatements(
-  appearance: CompiledWaterSurfaceAppearanceV2
-): string {
-  return appearance.primaryColorClosure === WaterSurfacePrimaryColorClosure.LitSceneColorDepthRamp ||
-    appearance.primaryColorClosure === WaterSurfacePrimaryColorClosure.SceneColorCompositeDepthRamp
-    ? renderCompositionSection(2)
-    : "";
-}
-
-export function createWaterSurfaceAppearanceV2AlphaStatements(appearance: CompiledWaterSurfaceAppearanceV2): string {
-  const hasAlpha = appearance.boundaryEffects.some((effect) => effect.outputs.alpha !== undefined);
-  return renderCompositionSection(
-    3,
-    "closureInput",
-    hasAlpha ? "appearanceCoastalAlpha" : "0.0",
-    hasAlpha ? WATER_SURFACE_APPEARANCE_V2_SHADER_PROPERTY.boundaryAlphaEnabled : "0.0"
-  );
-}
-
-export function createWaterSurfaceAppearanceV2PrecompositionStatements(
-  appearance: CompiledWaterSurfaceAppearanceV2
-): string {
-  if (appearance.composition !== WaterSurfaceCompositionV2.PrecomposedReplace) return "";
-  return renderCompositionSection(4);
+  return renderWaterShaderTemplate(waterSurfaceAppearanceV2CompositionShaderTemplate, {
+    INPUT: inputExpression,
+    COASTAL_ALPHA: hasAlpha ? coastalAlphaExpression : "0.0",
+    COASTAL_ALPHA_WEIGHT: hasAlpha ? coastalAlphaWeightExpression : "0.0"
+  });
 }
 
 export function getWaterSurfaceAppearanceV2RequiredTextureProperties(
