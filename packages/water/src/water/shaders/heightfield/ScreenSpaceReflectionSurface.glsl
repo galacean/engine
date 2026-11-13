@@ -162,13 +162,9 @@
 {{SURFACE_NORMAL_STATEMENTS}}
         vec3 viewDirection = safeNormalize3(camera_Position - input.worldPosition, vec3(0.0, 1.0, 0.0));
         surfaceNormalWS *= step(0.0, dot(surfaceNormalWS, viewDirection)) * 2.0 - 1.0;
-        vec3 viewNormal = safeNormalize3(
-          mat3(camera_ViewMat) * surfaceNormalWS,
-          vec3(0.0, 0.0, 1.0)
-        );
         HeightfieldScreenSpaceReflectionSurfaceOutput surfaceOutput;
         surfaceOutput.geometry = packScreenSpaceReflectionSurface(
-          viewNormal,
+          surfaceNormalWS,
           rainRippleSurfaceRoughness,
           1.0
         );

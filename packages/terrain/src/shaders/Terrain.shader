@@ -22,7 +22,7 @@ Shader "Terrain/Terrain" {
     Pass "ScreenSpaceReflectionSurface" {
       Tags {
         pipelineStage = "ScreenSpaceReflectionSurface",
-        screenSpaceReflectionReceiver = "ColorResponseV2"
+        screenSpaceReflectionReceiver = "ColorResponseV3"
       }
 
       DepthState = {

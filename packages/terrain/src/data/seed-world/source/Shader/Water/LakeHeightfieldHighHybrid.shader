@@ -484,8 +484,6 @@ Shader "AIWorld/HeightfieldWaterSurfaceAppearanceV2ed93d4a81a01602dHybridHigh0" 
       }
       #endif
 
-
-
 #endif
 
 #ifndef WATER_SPATIAL_FIELD_DECODE_INCLUDED
@@ -565,9 +563,6 @@ float waterSurfaceAppearanceDepthTintFactor(
     max(exponent, 0.0001)
   );
 }
-
-
-
 
 #endif
 
@@ -2118,7 +2113,7 @@ closureInput.coastalAlpha = appearanceCoastalAlpha;
     Pass "ScreenSpaceReflectionSurface" {
       Tags {
         pipelineStage = "ScreenSpaceReflectionSurface",
-        screenSpaceReflectionReceiver = "ColorResponseV2"
+        screenSpaceReflectionReceiver = "ColorResponseV3"
       }
       DepthState ssrSurfaceDepthState {
         WriteEnabled = true;
@@ -2323,9 +2318,6 @@ vec3 waterSurfaceAppearanceBlendTangentNormalsPartialDerivative(
 
 
 #endif
-
-
-
 
 
 #endif
@@ -2656,13 +2648,9 @@ vec3 waterConnectionNormal(vec2 p, vec3 normal) {
 
         vec3 viewDirection = safeNormalize3(camera_Position - input.worldPosition, vec3(0.0, 1.0, 0.0));
         surfaceNormalWS *= step(0.0, dot(surfaceNormalWS, viewDirection)) * 2.0 - 1.0;
-        vec3 viewNormal = safeNormalize3(
-          mat3(camera_ViewMat) * surfaceNormalWS,
-          vec3(0.0, 0.0, 1.0)
-        );
         HeightfieldScreenSpaceReflectionSurfaceOutput surfaceOutput;
         surfaceOutput.geometry = packScreenSpaceReflectionSurface(
-          viewNormal,
+          surfaceNormalWS,
           rainRippleSurfaceRoughness,
           1.0
         );

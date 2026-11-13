@@ -218,8 +218,8 @@ material_Water_appearance_appearance_detailLayers_1_blend("material_Water_appear
 material_Water_appearance_appearance_depthResponse_colorCoefficientPerMeter("material_Water_appearance_appearance_depthResponse_colorCoefficientPerMeter", Float) = 0.09;
 material_Water_appearance_appearance_depthResponse_opacityCoefficientPerMeter("material_Water_appearance_appearance_depthResponse_opacityCoefficientPerMeter", Float) = 0.53;
 material_Water_appearance_appearance_depthResponse_maximumOpacity("material_Water_appearance_appearance_depthResponse_maximumOpacity", Float) = 0.844;
-material_AppearanceV2DepthShallowColor("material_AppearanceV2DepthShallowColor", Vector4) = (0.006074269400017052, 0.2966979803815373, 0.9162945912785126, 1);
-material_AppearanceV2DepthDeepColor("material_AppearanceV2DepthDeepColor", Vector4) = (0.009610201956499068, 0.1290884565842658, 0.3837282394757702, 1);
+material_AppearanceV2DepthShallowColor("material_AppearanceV2DepthShallowColor", Vector4) = (0.006074269400017053, 0.2966979803815373, 0.9162945912785126, 1);
+material_AppearanceV2DepthDeepColor("material_AppearanceV2DepthDeepColor", Vector4) = (0.009610201956499068, 0.1290884565842658, 0.38372823947577017, 1);
 material_Water_appearance_appearance_boundaryEffects_0_rangeMeters("material_Water_appearance_appearance_boundaryEffects_0_rangeMeters", Float) = 0.3546099290780142;
 material_Water_appearance_appearance_boundaryEffects_0_invert("material_Water_appearance_appearance_boundaryEffects_0_invert", Boolean) = false;
 material_Water_appearance_appearance_boundaryEffects_0_outputs_alpha("material_Water_appearance_appearance_boundaryEffects_0_outputs_alpha", Float) = 1;
@@ -697,8 +697,6 @@ material_Water_renderState_blendMode("material_Water_renderState_blendMode", Enu
         return reflectedRadiance * max(material_LocalEnvironmentReflectionParameters.z, 0.0);
       }
       #endif
-
-
 
 #endif
 
@@ -1342,9 +1340,6 @@ vec3 waterSurfaceAppearanceBlendTangentNormals(
 
 
 
-
-
-
 #endif
 
 #ifndef WATER_SURFACE_APPEARANCE_V2_FUNCTIONS_INCLUDED
@@ -1808,7 +1803,6 @@ struct RiverSceneSample {
 };
 
 // Four matching depth/color samples emulate UE's depth-constrained gather on WebGL2.
-
 
       Varyings vert(Attributes attr) {
         Varyings output;
@@ -2367,7 +2361,7 @@ closureInput.coastalAlpha = appearanceCoastalAlpha;
     Pass "ScreenSpaceReflectionSurface" {
       Tags {
         pipelineStage = "ScreenSpaceReflectionSurface",
-        screenSpaceReflectionReceiver = "ColorResponseV2"
+        screenSpaceReflectionReceiver = "ColorResponseV3"
       }
       DepthState ssrSurfaceDepthState {
         WriteEnabled = true;
@@ -2990,13 +2984,9 @@ vec3 waterSurfaceAppearanceBlendTangentNormals(
           effectiveSurfaceRoughness = resolvedBoundaryRoughness;
         }
 
-        vec3 viewNormal = safeNormalize3(
-          mat3(camera_ViewMat) * surfaceNormalWS,
-          vec3(0.0, 0.0, 1.0)
-        );
         RiverScreenSpaceReflectionSurfaceOutput surfaceOutput;
         surfaceOutput.geometry = packScreenSpaceReflectionSurface(
-          viewNormal,
+          surfaceNormalWS,
           effectiveSurfaceRoughness,
           1.0
         );

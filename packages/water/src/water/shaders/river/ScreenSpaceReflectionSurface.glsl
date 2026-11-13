@@ -103,13 +103,9 @@
         vec2 screenUv = input.clipPosition.xy / input.clipPosition.w * 0.5 + 0.5;
 {{ROUGHNESS_DEPTH_MODULE}}
 {{SURFACE_ROUGHNESS_STATEMENTS}}
-        vec3 viewNormal = safeNormalize3(
-          mat3(camera_ViewMat) * surfaceNormalWS,
-          vec3(0.0, 0.0, 1.0)
-        );
         RiverScreenSpaceReflectionSurfaceOutput surfaceOutput;
         surfaceOutput.geometry = packScreenSpaceReflectionSurface(
-          viewNormal,
+          surfaceNormalWS,
           effectiveSurfaceRoughness,
           1.0
         );

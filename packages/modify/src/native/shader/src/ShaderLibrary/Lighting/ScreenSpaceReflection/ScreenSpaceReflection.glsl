@@ -19,8 +19,14 @@ vec3 decodeScreenSpaceReflectionNormal(vec2 encoded) {
   return normalize(normal);
 }
 
-vec4 packScreenSpaceReflectionSurface(vec3 viewNormal, float roughness, float responseWeight) {
-  return vec4(encodeScreenSpaceReflectionNormal(normalize(viewNormal)), saturate(roughness), saturate(responseWeight));
+// RG stores an oct8 world-space normal. Camera rotation must not move a static
+// surface across quantization bins; B/A retain roughness and response weight.
+vec4 packScreenSpaceReflectionSurface(vec3 worldNormal, float roughness, float responseWeight) {
+  return vec4(encodeScreenSpaceReflectionNormal(normalize(worldNormal)), saturate(roughness), saturate(responseWeight));
+}
+
+vec3 decodeScreenSpaceReflectionViewNormal(vec2 encoded) {
+  return normalize(mat3(camera_ViewMat) * decodeScreenSpaceReflectionNormal(encoded));
 }
 
 vec3 reconstructScreenSpaceReflectionViewPositionFromEyeDepth(vec2 uv, float eyeDepth) {

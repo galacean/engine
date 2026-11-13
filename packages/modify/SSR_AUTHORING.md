@@ -22,7 +22,9 @@ Auto 使用有效 consumer 请求的整组参数。ForceOn 使用作者的相机
 
 ## Shader 契约与透明贡献
 
-- 接收 Surface 声明 `screenSpaceReflectionReceiver = "ColorResponseV2"`。
+- Surface 几何附件保持 RGBA8：RG 是世界空间法线的 oct8 编码，B 是粗糙度，A 是响应权重；独立的响应颜色附件不变。所有 Surface 生产者必须传入最终世界空间法线，Trace、Upsample 和 Composite 解码后再转到视空间。ReceiverNormal Debug 仍显示视空间法线颜色。
+- 固定的世界空间法线不会因相机旋转跨越量化档；这不消除 oct8 的静态角误差（世界向上法线约 0.226°），也不提高动态波浪、法线贴图或物体旋转造成的真实法线变化精度。真实法线仍会跨量化档，未增加时域纹理或改变显存预算。水体原有面向视线的法线翻面规则保留。
+- 接收 Surface 声明 `screenSpaceReflectionReceiver = "ColorResponseV3"`，明确 RG 使用世界空间 oct8。旧视空间 `ColorResponseV2` 资产仍可加载并执行 Forward，但接收能力检查会拒绝它，显式注册、作者 On 和 Auto 均不会执行其 Surface/Trace；需重建 Shader 后才能重新接收 SSR。
 - 透明接收还需 Forward 声明 `screenSpaceReflectionTransparentSample = "SampleV1"`，并实际采样 SSR。普通 PBR 不支持透明接收；River / Heightfield 支持。
 - Scene / Camera 的 `reflectionContent` 默认为 `OpaqueOnly`；选择 `OpaqueAndTransparent` 后，才捕获显式开启贡献的透明材质。
 - 贡献 Shader 同时提供 `ScreenSpaceReflectionContributionColor` / `ScreenSpaceReflectionContributionDepth`，声明 `screenSpaceReflectionContribution = "ColorDepthV1"`，两个 Pass 都解析为透明队列。
