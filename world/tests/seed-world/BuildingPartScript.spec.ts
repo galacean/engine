@@ -39,6 +39,9 @@ export default class Example extends Script {
   async onAwake() {
     const draft=Building.European.buildHouses({id:"house",height:4});
     const manager=BuildingManager.forScene(this.entity.scene);
+    const occupied = manager.captureOccupancyQuery();
+    const hit = occupied.intersectBounds([0, 0, 0], [1, 1, 1]);
+    if (hit) console.log(hit.building, hit.subject);
     manager.camera=this.camera;manager.assets=this.assets;
     const frame=manager.create(this.entity,draft);
     await manager.flushAsync();
@@ -53,6 +56,9 @@ export default class Example extends Script {
   }
 }`;
   expect(() => checkRuntimeScripts({ "Example.ts": source }, files, libraries)).not.toThrow();
+  expect(() =>
+    checkRuntimeScripts({ "Example.ts": source.replace("captureOccupancyQuery()", "captureSurfaceQuery()") }, files, libraries)
+  ).toThrow();
   expect(() =>
     checkRuntimeScripts({ "Example.ts": source.replace("height:4", 'height:"bad"') }, files, libraries)
   ).toThrow();

@@ -20,6 +20,7 @@ type Runtime = Pick<
   | "spawn"
   | "synchronize"
   | "update"
+  | "preparePresentation"
   | "dispose"
   | "query"
   | "describe"
@@ -57,6 +58,7 @@ export class PlanningAnimalHost implements SeedWorldAnimalService {
   private runtime?: Runtime;
   private module?: RuntimeModule;
   private loading = false;
+  private loadingTask?: Promise<void>;
   private attempted = false;
   private errors: string[] = [];
   private readonly cleanups = new Set<Promise<void>>();
@@ -91,6 +93,14 @@ export class PlanningAnimalHost implements SeedWorldAnimalService {
     this.advance = (seconds) => this.update(seconds);
   }
 
+  /** Startup may join current local presentation demand without loading distant catalog alternatives. */
+  async preparePresentation(): Promise<void> {
+    this.update(0);
+    await this.loadingTask;
+    this.update(0);
+    if (this.enabled && !this.disposed) await this.runtime?.preparePresentation();
+  }
+
   private update(seconds: number): void {
     if (!this.enabled || this.disposed) return;
     if (!this.runtime) {
@@ -105,7 +115,7 @@ export class PlanningAnimalHost implements SeedWorldAnimalService {
         if (!this.loading && !this.attempted) {
           this.loading = this.attempted = true;
           try {
-            void this.load()
+            this.loadingTask = this.load()
               .then((module) => {
                 // Importing cannot be aborted; construction and resource loading remain guarded by current demand.
                 if (!this.disposed) this.module = module;
