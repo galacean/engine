@@ -12,8 +12,13 @@ export class PlanningNavigationSurface {
   private cacheActive = false;
 
   beginAnimalUpdate(): void {
-    (this.animalCache ??= new AnimalSupportCache()).clear();
+    (this.animalCache ??= new AnimalSupportCache()).clear(!this.immutableHeightSource);
     this.cacheActive = true;
+  }
+
+  /** Invalidate retained samples when a publication changes a reused provider. */
+  invalidateAnimalSupport(): void {
+    this.animalCache?.clear(true);
   }
 
   endAnimalUpdate(): void {
@@ -24,7 +29,9 @@ export class PlanningNavigationSurface {
     plan: IslandPlan,
     sampleTerrain: (x: number, z: number) => number,
     private readonly water: Pick<PlanningWaterRuntime, "sampleSurface">,
-    private readonly samplePlayerSupport?: (x: number, z: number) => number | undefined
+    private readonly samplePlayerSupport?: (x: number, z: number) => number | undefined,
+    /** Opt in only when terrain and bridge heights belong to an immutable scene snapshot. */
+    private readonly immutableHeightSource = false
   ) {
     this.ground = bridgeGround(plan, (p) => sampleTerrain(p.x, p.z));
   }
@@ -96,7 +103,7 @@ export class PlanningNavigationSurface {
 }
 
 /** Bounded, allocation-free during updates. Hash collisions only evict; coordinates are never rounded.
- * Clearing each host update also invalidates changing water/terrain, without revision polling per query. */
+ * Water is refreshed each update, including animated surfaces. Snapshot heights can survive updates. */
 class AnimalSupportCache {
   private readonly xs = new Float64Array(8192);
   private readonly zs = new Float64Array(8192);
@@ -105,8 +112,8 @@ class AnimalSupportCache {
   readonly heightReady = new Uint8Array(8192);
   readonly waterReady = new Uint8Array(8192);
 
-  clear(): void {
-    this.heightReady.fill(0);
+  clear(height = true): void {
+    if (height) this.heightReady.fill(0);
     this.waterReady.fill(0);
   }
 

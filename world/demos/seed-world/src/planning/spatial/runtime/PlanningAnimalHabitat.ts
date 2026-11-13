@@ -427,10 +427,13 @@ export class PlanningAnimalHabitat {
 
 class SpatialBins<T extends PlanningAnimalBounds & { seen: number }> {
   private readonly bins = new Map<string, T[]>();
+  // Sorted occupied cells are shared by all animals and belong to this immutable habitat.
+  private rows?: { x: number; cells: { z: number; items: T[] }[] }[];
   private stamp = 0;
   private readonly cellM = 32;
 
   add(item: T): void {
+    this.rows = undefined;
     for (let x = Math.floor(item.minX / this.cellM); x <= Math.floor(item.maxX / this.cellM); x++) {
       for (let z = Math.floor(item.minZ / this.cellM); z <= Math.floor(item.maxZ / this.cellM); z++) {
         const key = `${x}:${z}`,
@@ -442,10 +445,17 @@ class SpatialBins<T extends PlanningAnimalBounds & { seen: number }> {
   }
 
   some(bounds: PlanningAnimalBounds, predicate: (item: T) => boolean): boolean {
+    const minX = Math.floor(bounds.minX / this.cellM),
+      maxX = Math.floor(bounds.maxX / this.cellM),
+      minZ = Math.floor(bounds.minZ / this.cellM),
+      maxZ = Math.floor(bounds.maxZ / this.cellM);
+    const rows = (this.rows ??= this.occupiedRows());
     const stamp = ++this.stamp;
-    for (let x = Math.floor(bounds.minX / this.cellM); x <= Math.floor(bounds.maxX / this.cellM); x++) {
-      for (let z = Math.floor(bounds.minZ / this.cellM); z <= Math.floor(bounds.maxZ / this.cellM); z++) {
-        for (const item of this.bins.get(`${x}:${z}`) ?? []) {
+    // Keep the old x-then-z discovery order, including ties, while skipping empty cells.
+    for (let i = firstCoordinate(rows, minX, (row) => row.x); i < rows.length && rows[i].x <= maxX; i++) {
+      const cells = rows[i].cells;
+      for (let j = firstCoordinate(cells, minZ, (cell) => cell.z); j < cells.length && cells[j].z <= maxZ; j++) {
+        for (const item of cells[j].items) {
           if (item.seen === stamp) continue;
           item.seen = stamp;
           if (item.minX > bounds.maxX || item.maxX < bounds.minX || item.minZ > bounds.maxZ || item.maxZ < bounds.minZ)
@@ -456,6 +466,28 @@ class SpatialBins<T extends PlanningAnimalBounds & { seen: number }> {
     }
     return false;
   }
+
+  private occupiedRows(): { x: number; cells: { z: number; items: T[] }[] }[] {
+    const rows = new Map<number, { z: number; items: T[] }[]>();
+    for (const [key, items] of this.bins) {
+      const [x, z] = key.split(":").map(Number);
+      let cells = rows.get(x);
+      if (!cells) rows.set(x, (cells = []));
+      cells.push({ z, items });
+    }
+    return [...rows].sort(([a], [b]) => a - b).map(([x, cells]) => ({ x, cells: cells.sort((a, b) => a.z - b.z) }));
+  }
+}
+
+function firstCoordinate<T>(values: readonly T[], minimum: number, coordinate: (value: T) => number): number {
+  let low = 0,
+    high = values.length;
+  while (low < high) {
+    const middle = (low + high) >>> 1;
+    if (coordinate(values[middle]) < minimum) low = middle + 1;
+    else high = middle;
+  }
+  return low;
 }
 
 function segmentBoxEntry(ax: number, az: number, bx: number, bz: number, halfX: number, halfZ: number): number {

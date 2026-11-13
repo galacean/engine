@@ -60,7 +60,8 @@ function prepareSceneReaders(
     plan,
     (x, z) => sampleSeedWorldHeight(fields, x, z) ?? 0,
     water,
-    samplePlayerSupport
+    samplePlayerSupport,
+    true
   );
   const audio = audioRuntime.prepareWorld({
     fields,
@@ -189,6 +190,7 @@ export class PlanningSeedScenePublication {
             if (consumed) throw Error("Content scene candidate already consumed");
             check();
             prepared.commit();
+            next.navigation.invalidateAnimalSupport();
             this.published = next;
             if (audio) {
               this.options.audio.publishWorld(audio);
@@ -272,6 +274,7 @@ export class PlanningSeedScenePublication {
             try {
               this.options.canvas.dataset.publicationRevision = String(revision);
               publication = prepared.commit();
+              next.navigation.invalidateAnimalSupport();
             } catch (error) {
               if (oldRevision === undefined) delete this.options.canvas.dataset.publicationRevision;
               else this.options.canvas.dataset.publicationRevision = oldRevision;
