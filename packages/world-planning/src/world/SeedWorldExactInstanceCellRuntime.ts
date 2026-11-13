@@ -87,6 +87,7 @@ const DEFAULT_CELL_SIZE_METRES = 64;
  * @param category Semantic Prefab category used only for diagnostics.
  * @param entity Root entity containing every authored LOD renderer for the instance.
  * @param lod Existing authored per-instance LOD controller.
+ * @param isInRange Optional additional visibility constraint evaluated during LOD updates.
  * @returns Immutable spatial entry whose mutable bounds are refreshed only through its synchronization callback.
  * @throws When the instance contains no MeshRenderer or exposes non-finite bounds.
  */
@@ -94,7 +95,8 @@ export function createSeedWorldExactInstanceLodEntry(
   id: string,
   category: SeedWorldExactInstanceCategory,
   entity: Entity,
-  lod: TerrainLodGroupRendererRuntime
+  lod: TerrainLodGroupRendererRuntime,
+  isInRange?: () => boolean
 ): SeedWorldExactInstanceSpatialEntry {
   const renderers = entity.getComponentsIncludeChildren(MeshRenderer, []);
   if (renderers.length === 0) throw new Error(`Seed World exact instance "${id}" has no authored MeshRenderer`);
@@ -110,7 +112,7 @@ export function createSeedWorldExactInstanceLodEntry(
   };
   refreshBounds();
   const controller: SeedWorldExactInstanceSpatialController = {
-    update: (timeSeconds, cellVisible) => lod.updateRenderers(timeSeconds, cellVisible),
+    update: (timeSeconds, cellVisible) => lod.updateRenderers(timeSeconds, cellVisible && (isInRange?.() ?? true)),
     setAuthoringVisible: (visible) => lod.setAuthoringVisible(visible)
   };
   return Object.freeze({
@@ -129,8 +131,8 @@ export function createSeedWorldExactInstanceLodEntry(
 }
 
 /**
- * Schedules visibility and optional authored LOD work for every exact generated Prefab through one XZ Cell index.
- * Cells are a CPU broad phase only: renderer submission, shadows, and final frustum culling remain engine-owned.
+ * Reuses settled authored LOD results and optionally queries an XZ Cell index for visibility candidates.
+ * Renderer submission, shadows, and final frustum culling remain engine-owned.
  */
 export class SeedWorldExactInstanceCellRuntime {
   private readonly _cameraViewProjection = new Matrix();
@@ -154,14 +156,17 @@ export class SeedWorldExactInstanceCellRuntime {
   /**
    * Builds the shared Cell index for all supplied exact Prefab categories.
    * @param camera Camera driving Cell-frustum queries and optional authored LOD projection.
-   * @param entries Exact Prefab instances whose bounds may be explicitly refreshed after Authoring transactions.
+   * @param _entries Exact Prefab instances whose bounds may be explicitly refreshed after Authoring transactions.
+   * @param _terrainOcclusion Optional terrain visibility query.
+   * @param _frustumCulling Disable to retain engine-owned visibility, including offscreen shadow casters.
    */
   constructor(
     private readonly _camera: Camera,
-    private readonly _entries: readonly SeedWorldExactInstanceSpatialEntry[],
-    private readonly _terrainOcclusion?: SeedWorldTerrainOcclusionReadPort
+    private _entries: readonly SeedWorldExactInstanceSpatialEntry[],
+    private readonly _terrainOcclusion?: SeedWorldTerrainOcclusionReadPort,
+    private readonly _frustumCulling = true
   ) {
-    this._cells = buildCells(_entries, this._cellSizeMetres);
+    if (_frustumCulling) this._cells = buildCells(_entries, this._cellSizeMetres);
     this._snapshot = createSnapshotState(this._mode, this._cellSizeMetres, _entries.length, this._cells.length);
   }
 
@@ -182,7 +187,7 @@ export class SeedWorldExactInstanceCellRuntime {
    */
   setMode(mode: SeedWorldExactInstanceSpatialMode): void {
     if (mode === this._mode) return;
-    if (mode === "cell") {
+    if (mode === "cell" && this._frustumCulling) {
       // Linear mode marks every entry Cell-visible, so the next Cell query must retire
       // every entry that falls outside its candidate set, not only the old Cell candidates.
       this._candidates.length = 0;
@@ -206,7 +211,7 @@ export class SeedWorldExactInstanceCellRuntime {
     }
     if (cellSizeMetres === this._cellSizeMetres) return;
     this._cellSizeMetres = cellSizeMetres;
-    this._cells = buildCells(this._entries, cellSizeMetres);
+    if (this._frustumCulling) this._cells = buildCells(this._entries, cellSizeMetres);
     this.invalidate();
   }
 
@@ -215,10 +220,26 @@ export class SeedWorldExactInstanceCellRuntime {
    * This is the publication boundary used after local terrain grounding changes.
    */
   rebuildSpatialIndex(): void {
-    for (const entry of this._entries) entry.refreshBounds?.();
-    this._cells = buildCells(this._entries, this._cellSizeMetres);
+    if (this._frustumCulling) {
+      for (const entry of this._entries) entry.refreshBounds?.();
+      this._cells = buildCells(this._entries, this._cellSizeMetres);
+    }
     this._snapshot = createSnapshotState(this._mode, this._cellSizeMetres, this._entries.length, this._cells.length);
     this.invalidate();
+  }
+
+  /**
+   * Publishes changed membership. The owner is responsible for hiding or disposing removed entries.
+   * @param entries New live instances, including any retained instances.
+   */
+  replaceEntries(entries: readonly SeedWorldExactInstanceSpatialEntry[]): void {
+    if (this._frustumCulling) {
+      const live = new Set(entries);
+      this._candidates = this._candidates.filter((entry) => live.has(entry));
+      this._candidateScratch.length = 0;
+    }
+    this._entries = entries;
+    this.rebuildSpatialIndex();
   }
 
   /** Forces the next Cell frame to refresh its camera query and all visible instance states. */
@@ -274,7 +295,7 @@ export class SeedWorldExactInstanceCellRuntime {
     let testedCellCount = 0;
     let visibleCellCount = snapshot.visibleCellCount;
     let retiredInstanceUpdateCount = 0;
-    if (cameraChanged || invalidated) {
+    if (this._frustumCulling && (cameraChanged || invalidated)) {
       this._cameraFrustum.calculateFromMatrix(this._cameraViewProjection);
       const visibleCells = this._frustumVisibleCells;
       visibleCells.length = 0;
@@ -296,7 +317,8 @@ export class SeedWorldExactInstanceCellRuntime {
     const terrainOcclusionQueryable = terrainOcclusion?.horizonQueryableThisFrame === true;
     const confirmTerrainOcclusion = terrainOcclusionQueryable && this._terrainOcclusionConfirmationFrames > 0;
     const resolveCandidates =
-      cameraChanged || invalidated || terrainOcclusionVisibilityChanged || confirmTerrainOcclusion;
+      this._frustumCulling &&
+      (cameraChanged || invalidated || terrainOcclusionVisibilityChanged || confirmTerrainOcclusion);
     if (resolveCandidates) {
       const nextCandidates = this._candidateScratch;
       nextCandidates.length = 0;
@@ -348,17 +370,18 @@ export class SeedWorldExactInstanceCellRuntime {
       this._candidateScratch = previousCandidates;
     }
 
+    const activeEntries = this._frustumCulling ? this._candidates : this._entries;
     const shouldUpdate = cameraChanged || invalidated || candidatesChanged || this._transitionActive;
     this._invalidated = false;
-    const instanceUpdateCount = (shouldUpdate ? this._candidates.length : 0) + retiredInstanceUpdateCount;
-    if (shouldUpdate) this._transitionActive = updateEntries(this._candidates, timeSeconds);
+    const instanceUpdateCount = (shouldUpdate ? activeEntries.length : 0) + retiredInstanceUpdateCount;
+    if (shouldUpdate) this._transitionActive = updateEntries(activeEntries, timeSeconds);
     snapshot.mode = this._mode;
     snapshot.cellSizeMetres = this._cellSizeMetres;
     snapshot.totalInstanceCount = this._entries.length;
     snapshot.occupiedCellCount = this._cells.length;
     snapshot.testedCellCount = testedCellCount;
     snapshot.visibleCellCount = visibleCellCount;
-    snapshot.candidateInstanceCount = this._candidates.length;
+    snapshot.candidateInstanceCount = activeEntries.length;
     snapshot.terrainOcclusionTestedCellCount = terrainOcclusionTestedCellCount;
     snapshot.terrainOccludedCellCount = terrainOccludedCellCount;
     snapshot.terrainOcclusionTestedInstanceCount = terrainOcclusionTestedInstanceCount;

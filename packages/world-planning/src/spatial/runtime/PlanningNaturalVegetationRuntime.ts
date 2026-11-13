@@ -104,6 +104,11 @@ import type { RockColorBlend } from "../../integrations/terrain/rock-formation/C
 import { setRockColorBlend } from "../../integrations/terrain/rock-formation/ColorMaterial";
 import { rockFormationGround } from "../../integrations/terrain/rock-formation/Placement";
 import type { RockFormationMesh } from "@galacean/engine-terrain/rock-formation/types";
+import {
+  createSeedWorldExactInstanceLodEntry,
+  SeedWorldExactInstanceCellRuntime,
+  type SeedWorldExactInstanceSpatialEntry
+} from "../../world/SeedWorldExactInstanceCellRuntime";
 
 type PlantSource = ReturnType<ProceduralPlantLibraryRuntime["getPlacementSources"]>[number];
 type Source = Pick<PlantSource, "bounds" | "rendererBindings"> & {
@@ -163,6 +168,12 @@ export class PlanningNaturalVegetationRuntime {
   private height!: PlanningHeightmap;
   private readonly cells = new Map<string, Cell>();
   private detailTask?: Promise<void>;
+  private readonly plantLodEntries = new WeakMap<Plant, SeedWorldExactInstanceSpatialEntry>();
+  private readonly lodCells: SeedWorldExactInstanceCellRuntime;
+  private lodMembershipDirty = true;
+  private streamX = NaN;
+  private streamZ = NaN;
+  private pendingCells: { key: string; x: number; z: number; distance: number }[] = [];
   private readonly groundExclusions = new Map<string, readonly PlanPoint[][]>();
   private foliageColors?: FoliageColors;
   private barkColors?: FoliageColors;
@@ -203,6 +214,8 @@ export class PlanningNaturalVegetationRuntime {
     private readonly materialParameters: PlantMaterialParameters,
     private readonly presentation?: { view: LandscapeView; focus: LandscapeFocus }
   ) {
+    // Renderer visibility and shadow culling still belong to the engine for these plants.
+    this.lodCells = new SeedWorldExactInstanceCellRuntime(camera, [], undefined, false);
     this.treeRoot = treeParent.createChild("Natural meadow trees");
     this.detailRoot = detailParent.createChild("Natural meadow understory");
     this.resourceRoot = owner.createChild("Natural meadow sources");
@@ -471,6 +484,7 @@ export class PlanningNaturalVegetationRuntime {
             );
           }
         }
+      this.lodMembershipDirty = true;
     };
     if (previous?.settingsKey === companionRockGeometryKey(settings, profile)) {
       await previous.prepareInstances(
@@ -706,6 +720,8 @@ export class PlanningNaturalVegetationRuntime {
         for (const { plant } of updates) this.trees.push(plant);
         this.plan = plan;
         this.planner = nextPlanner;
+        this.lodMembershipDirty = true;
+        this.streamX = NaN;
         for (const [key, cell] of replacements) {
           const previous = this.cells.get(key);
           this.detailRoot.addChild(cell.root);
@@ -960,14 +976,103 @@ export class PlanningNaturalVegetationRuntime {
     };
     for (const tree of this.trees) refresh(tree);
     for (const cell of this.cells.values()) for (const plant of cell.plants) refresh(plant);
+    this.lodCells.invalidate();
     if (this.error) throw new Error(this.error);
   }
   update(dt: number): void {
     if (this.disposed) return;
     this.time += dt;
+    if (!this.error) this.updateDetailStreaming();
+    if (this.lodMembershipDirty) {
+      const entries = this.trees.map((tree) => this.plantLodEntry(tree, false));
+      for (const cell of this.cells.values())
+        for (const plant of cell.plants) entries.push(this.plantLodEntry(plant, true));
+      this.lodCells.replaceEntries(entries);
+      this.lodMembershipDirty = false;
+    }
+    this.lodCells.update(this.time);
+  }
+
+  private plantLodEntry(plant: Plant, detail: boolean): SeedWorldExactInstanceSpatialEntry {
+    let entry = this.plantLodEntries.get(plant);
+    if (!entry) {
+      const distance = SEED_WORLD_POPULATION_RUNTIME_PROFILE.detail.materialFade.maximumDistanceMetres;
+      entry = createSeedWorldExactInstanceLodEntry(
+        plant.instance.id,
+        plant.instance.layerId,
+        plant.root,
+        plant.lod,
+        detail
+          ? () => {
+              const camera = this.camera.entity.transform.worldPosition;
+              const [x, , z] = plant.instance.position;
+              return Math.hypot(x - camera.x, z - camera.z) <= distance;
+            }
+          : undefined
+      );
+      this.plantLodEntries.set(plant, entry);
+    }
+    return entry;
+  }
+
+  private updateDetailStreaming(): void {
     const position = this.camera.entity.transform.worldPosition;
-    for (const tree of this.trees) tree.lod.updateRenderers(this.time);
-    if (this.error) return;
+    if (this.streamX !== position.x || this.streamZ !== position.z) {
+      this.streamX = position.x;
+      this.streamZ = position.z;
+      this.refreshDetailResidency(position);
+    }
+    if (this.detailTask) return;
+    let item = this.pendingCells.shift();
+    while (item && this.cells.has(item.key)) item = this.pendingCells.shift();
+    if (item) {
+      const { key, x, z } = item;
+      const streamX = this.streamX,
+        streamZ = this.streamZ;
+      const planner = this.planner,
+        rocks = this.rockSources;
+      const load = async () => {
+        const result = planner.compileCell(x, z);
+        await rocks?.prepareInstances(result.instances, this.rockGenerationProfile);
+        if (this.disposed || this.planner !== planner || this.rockSources !== rocks) return;
+        const root = this.detailRoot.createChild(`Natural cell ${key}`);
+        try {
+          const plants = result.instances.map((instance) => this.plant(root, instance, false));
+          this.cells.set(key, {
+            root,
+            plants,
+            counts: result.diagnostics.layers,
+            populations: result.diagnostics.populations,
+            decorations: result.diagnostics.decorations,
+            visibilityRejected: result.diagnostics.rejected.visibility ?? 0
+          });
+          this.foliageColors = undefined;
+          this.lodMembershipDirty = true;
+        } catch (error) {
+          destroyTree(root);
+          throw error;
+        }
+      };
+      this.detailTask = load()
+        .catch((error) => {
+          if (this.disposed || this.planner !== planner || this.rockSources !== rocks) return;
+          this.error = String(error);
+          console.error("[planning-natural-vegetation]", error);
+        })
+        .finally(() => {
+          this.detailTask = undefined;
+          if (
+            this.planner !== planner ||
+            this.rockSources !== rocks ||
+            this.streamX !== streamX ||
+            this.streamZ !== streamZ
+          )
+            this.streamX = NaN;
+        });
+    }
+  }
+
+  private refreshDetailResidency(position: Vector3): void {
     const profile = SEED_WORLD_POPULATION_RUNTIME_PROFILE,
       cellSize = profile.cellMetres;
     const distance = profile.detail.materialFade.maximumDistanceMetres;
@@ -999,51 +1104,14 @@ export class PlanningNaturalVegetationRuntime {
       if (cellDistance(x, z) > retain) {
         destroyTree(cell.root);
         this.cells.delete(key);
+        this.lodMembershipDirty = true;
         this.rockSources?.releaseInstances(cell.plants.map((p) => p.instance));
         this.foliageColors = undefined;
       }
     }
-    const item = wanted.find((item) => !this.cells.has(item.key));
-    if (item && !this.detailTask && !this.error) {
-      const planner = this.planner,
-        rocks = this.rockSources;
-      const load = async () => {
-        const result = planner.compileCell(item.x, item.z);
-        await rocks?.prepareInstances(result.instances, this.rockGenerationProfile);
-        if (this.disposed || this.planner !== planner || this.rockSources !== rocks) return;
-        const root = this.detailRoot.createChild(`Natural cell ${item.key}`);
-        try {
-          const plants = result.instances.map((instance) => this.plant(root, instance, false));
-          this.cells.set(item.key, {
-            root,
-            plants,
-            counts: result.diagnostics.layers,
-            populations: result.diagnostics.populations,
-            decorations: result.diagnostics.decorations,
-            visibilityRejected: result.diagnostics.rejected.visibility ?? 0
-          });
-          this.foliageColors = undefined;
-        } catch (error) {
-          destroyTree(root);
-          throw error;
-        }
-      };
-      this.detailTask = load()
-        .catch((error) => {
-          if (this.disposed || this.planner !== planner || this.rockSources !== rocks) return;
-          this.error = String(error);
-          console.error("[planning-natural-vegetation]", error);
-        })
-        .finally(() => {
-          this.detailTask = undefined;
-        });
-    }
-    for (const cell of this.cells.values())
-      for (const plant of cell.plants) {
-        const p = plant.instance.position;
-        plant.lod.updateRenderers(this.time, Math.hypot(p[0] - position.x, p[2] - position.z) <= distance);
-      }
+    this.pendingCells = wanted.filter((item) => !this.cells.has(item.key));
   }
+
   /** Detached replacements for changed woody plants and affected resident/visible understory cells. */
   async prepareWaterImpact(
     plan: IslandPlan,
@@ -1147,6 +1215,8 @@ export class PlanningNaturalVegetationRuntime {
       ].map((root) => [root, root.isActive])
     );
     const resetDiagnostics = () => {
+      this.lodMembershipDirty = true;
+      this.streamX = NaN;
       this.treeRegions = undefined;
       this.foliageColors = undefined;
       this.barkColors = undefined;
@@ -1286,6 +1356,7 @@ export class PlanningNaturalVegetationRuntime {
         signal?.throwIfAborted();
         for (const tree of this.trees) commitPlantGrounding(tree);
         for (const cell of this.cells.values()) for (const plant of cell.plants) commitPlantGrounding(plant);
+        this.lodMembershipDirty = true;
         this.groundingFields = fields;
         this.rockGround = rockGround;
         this.preparedGroundingFields = undefined;
@@ -1501,6 +1572,8 @@ export class PlanningNaturalVegetationRuntime {
     this.cells.clear();
     this.trees.length = 0;
     this.treePool.clear();
+    this.pendingCells.length = 0;
+    this.lodCells.replaceEntries([]);
     this.groundExclusions.clear();
     for (const library of this.libraries) library.destroy();
     for (const release of this.releaseGrassAppearance) release();
