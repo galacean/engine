@@ -1,0 +1,1114 @@
+tests/src/core/physics/MeshColliderShape.test.ts
+  s_e8846e01229aa6::t_2c6b48ce5740e0 546,751,912,915-920,952,955,957
+tests/src/core/physics/PhysicsScene.test.ts
+  s_e8846e01229aa6::t_9129006a3da501 514,930-936
+  s_e8846e01229aa6::t_ce058afb890c4c 1,16,19,474-513,515-929,937-1000,1144-1146,1633-1666
+.github/workflows/ci.yml
+  s_e8846e01229aa6::t_b05271b3c45bee 57-59,78-79,115,123
+codecov.yml
+  s_e8846e01229aa6::t_b8cf8935a060af 4-5
+docs/en/graphics/2D/spine/add-and-use.mdx
+  s_e8846e01229aa6::t_f60d2f1fd2827d 9,11,13,15-26,28,30,32-43,45,47-50,52,54,57-61,63,65,67,69,71-73,75-77,80,82,85-88,90-91,94-97,99-107,110-112,114-121,124-130,133,135,137,139,142-143,146,148-156,158,160-167,169,171,173,175,177,180-187,190,192,194,196,198,200,203-205,209
+docs/en/graphics/2D/spine/editor.mdx
+  s_e8846e01229aa6::t_21edc3675f07fa 9-10
+docs/en/graphics/2D/spine/example.mdx
+  s_e8846e01229aa6::t_fd8943a85e40f3 9-10
+docs/en/graphics/2D/spine/other.mdx
+  s_e8846e01229aa6::t_6332c5dc16ac25 9-21,42
+docs/en/physics/query/raycast.mdx
+  s_e8846e01229aa6::t_127c76c138610f 195-221
+docs/zh/graphics/2D/spine/add-and-use.mdx
+  s_e8846e01229aa6::t_20e8fd7a726382 9,11,13,15-24,26,28,30,33-43,45,47-50,52,54,56-60,63,65,67,69,72-77,80,82,85-88,90-92,94,96,99-107,110,112,114,116-121,123-131,133,135,137,139,141-144,146,149-152,154-155,158,161-165,169,171,173-175,177,180,182-186,190,192,194,196,198,200,202-206,209
+docs/zh/graphics/2D/spine/editor.mdx
+  s_e8846e01229aa6::t_79b52bf77dadc8 9-10
+docs/zh/graphics/2D/spine/example.mdx
+  s_e8846e01229aa6::t_93e3714b3a10ba 9-10
+docs/zh/graphics/2D/spine/other.mdx
+  s_e8846e01229aa6::t_e27f80e11bc1bd 9-20,39
+docs/zh/physics/query/raycast.mdx
+  s_e8846e01229aa6::t_3d60306fffc9cf 195-221
+e2e/.dev/physx.release.js
+  s_e8846e01229aa6::t_42ae72c2e29f74 1
+e2e/.dev/physx.release.simd.js
+  s_e8846e01229aa6::t_3a8a0035b387db 1
+e2e/.dev/public/spineboy.atlas
+  s_e8846e01229aa6::t_0f88927aa5b131 1-94
+e2e/.dev/public/spineboy.json
+  s_e8846e01229aa6::t_adb7e91abc9b7c 1-8723
+e2e/.dev/public/tank-pro.atlas
+  s_e8846e01229aa6::t_47cc1d5404d4b2 1-65
+e2e/.dev/public/tank-pro.json
+  s_e8846e01229aa6::t_12b72f450de71a 1
+e2e/case/particleRenderer-inherit-velocity-stretched.ts
+  s_e8846e01229aa6::t_6a5f5f0d6df16d 1-110
+e2e/case/particleRenderer-sub-emitter.ts
+  s_e8846e01229aa6::t_c60ec25ae483d0 30-31,36-37,87,141-147,154
+e2e/case/spine-spineboy.ts
+  s_e8846e01229aa6::t_7c6b491e0d2a7b 1-35
+e2e/case/spine-tint-black.ts
+  s_e8846e01229aa6::t_766811db220d7c 1-40
+e2e/config.ts
+  s_e8846e01229aa6::t_5bdf5da2c4561f 2-15,454-459
+e2e/fixtures/originImage/Particle_particleRenderer-horizontal-billboard.jpg
+  s_e8846e01229aa6::t_3733bbb287ed4c 2-3
+e2e/fixtures/originImage/Particle_particleRenderer-inherit-velocity-stretched.jpg
+  s_e8846e01229aa6::t_cd4179c3d963dc 1-3
+e2e/fixtures/originImage/Particle_particleRenderer-noise.jpg
+  s_e8846e01229aa6::t_0a6a539e038ac5 2-3
+e2e/fixtures/originImage/Particle_particleRenderer-sub-emitter.jpg
+  s_e8846e01229aa6::t_2334631e574ef5 2-3
+e2e/fixtures/originImage/Particle_particleRenderer-velocity-orbital-constant.jpg
+  s_e8846e01229aa6::t_d495305ed23c43 2-3
+e2e/fixtures/originImage/Spine_spine-spineboy.jpg
+  s_e8846e01229aa6::t_bf396c92333b02 1-3
+e2e/fixtures/originImage/Spine_spine-tint-black.jpg
+  s_e8846e01229aa6::t_f296f7def568ee 1-3
+e2e/package.json
+  s_e8846e01229aa6::t_de17ea66f0ecb9 4,22-23
+examples/package.json
+  s_e8846e01229aa6::t_e27f66e33d293a 3,22,24-26
+examples/src/shader-playground.ts
+  s_e8846e01229aa6::t_b527d2a2666632 1-148
+examples/src/shader-playground/samples.ts
+  s_e8846e01229aa6::t_38f3ca9e785ef0 1-1083
+examples/src/spine-keli-4.2.ts
+  s_e8846e01229aa6::t_3340192b578740 1-61
+examples/src/spine-otakugirl-3.8.ts
+  s_e8846e01229aa6::t_f145e02c3fbaeb 1-56
+examples/vite.config.js
+  s_e8846e01229aa6::t_e098e07929942c 71
+package.json
+  s_e8846e01229aa6::t_8082c5563bf996 3,13,24,30,37-38
+packages/core/package.json
+  s_e8846e01229aa6::t_5499cc876afa62 3,24
+packages/core/src/2d/text/TextRenderer.ts
+  s_e8846e01229aa6::t_89a8bd9e29b480 419-421
+packages/core/src/Background.ts
+  s_e8846e01229aa6::t_6c2b88fd40d7db 166
+packages/core/src/BasicResources.ts
+  s_e8846e01229aa6::t_928948a3f2fc62 152,155,202-203,315,322
+packages/core/src/ComponentsManager.ts
+  s_e8846e01229aa6::t_6559194b4818ea 4,14-15
+packages/core/src/Engine.ts
+  s_e8846e01229aa6::t_d05d9f74d45531 566,571
+packages/core/src/RenderPipeline/RenderElement.ts
+  s_e8846e01229aa6::t_daf3056c4410eb 33-34,40,55-63
+packages/core/src/RenderPipeline/RenderQueue.ts
+  s_e8846e01229aa6::t_b240d97dc7a937 202-203
+packages/core/src/Renderer.ts
+  s_e8846e01229aa6::t_d002fa6c1e8ce0 67,90
+packages/core/src/Scene.ts
+  s_e8846e01229aa6::t_f22334e3cd572d 468-472
+packages/core/src/Signal.ts
+  s_e8846e01229aa6::t_b8ae5d543068a4 17-21
+packages/core/src/audio/AudioSource.ts
+  s_e8846e01229aa6::t_29e386ed0c5805 71-73,253
+packages/core/src/graphic/ElementRangeMapping.ts
+  s_e8846e01229aa6::t_bb2057785eceb7 2,5-8
+packages/core/src/graphic/TransformFeedbackPrimitive.ts
+  s_e8846e01229aa6::t_0398dd4b91792a 1,3-4,6,9,12,19-20,23,36,38,44-45,52,54-59,61-74,78,81-82,84,87,90,95-97,111-116,123,138-149,152-155
+packages/core/src/graphic/TransformFeedbackSimulator.ts
+  s_e8846e01229aa6::t_ae4eb35c9286b1 1-2,5-8,16-18,30-32,34-41,43,49,51-52,59-60,65,68-75,81,103
+packages/core/src/lighting/ambientOcclusion/ScalableAmbientObscurancePass.ts
+  s_e8846e01229aa6::t_e5e2f83bd4ff1a 51
+packages/core/src/material/BlinnPhongMaterial.ts
+  s_e8846e01229aa6::t_545734ba2075c0 163,179
+packages/core/src/material/PBRMaterial.ts
+  s_e8846e01229aa6::t_871ed5d8c8b0c0 770
+packages/core/src/material/UnlitMaterial.ts
+  s_e8846e01229aa6::t_db2164cb709c9f 60
+packages/core/src/particle/ParticleBounds.ts
+  s_e8846e01229aa6::t_d5ea8f539980ed 1-966
+packages/core/src/particle/ParticleBufferUtils.ts
+  s_e8846e01229aa6::t_291b8067b09704 1,19-31,33-34,39-42,45-49,51-56,58-62,64-68,70-71,78-81,85-92,95-112,164
+packages/core/src/particle/ParticleGenerator.ts
+  s_e8846e01229aa6::t_367ce11efa6d20 2,5-6,16,18-19,21-22,30,34,43-44,50-61,65-73,98-99,126,129,134,137-138,141,143,145-150,154,196,200,208,259,270,282-287,294-297,302-313,315-317,322-325,327-334,336-345,347-348,350-352,359-401,404-405,408-414,417-418,420-423,428-473,475-489,496-497,505-518,520-542,545-547,551,558-562,569-574,576-584,589,591,608,627,631-637,642-657,661-665,674-683,689-692,699-700,708-709,721,724-741,743-746,748,750-762,764-774,776,778-779,781-782,784-846,848-851,853-855,857-866,868-874,876-882,884-901,903-912,919-920,922-931,941-965,967-970,972-977,979,989-997,1000,1032-1034,1036,1040,1045,1048,1054,1057,1061,1063,1068,1074,1081-1083,1086,1088,1090-1091,1097-1098,1100,1102-1104,1106-1109,1112-1113,1119-1121,1129-1130,1133-1152,1166-1168,1174-1204,1207-1219,1221,1224-1270,1272,1274-1276,1279,1281,1283-1284,1286-1288,1291-1326,1328,1332-1337,1339-1355,1360-1380,1385-1388,1391-1397,1399,1401-1411,1413-1415,1417-1423,1425-1434,1437-1444,1447-1451,1453-1456,1458-1463,1466-1474,1476-1493,1495-1496,1499-1500,1504,1518,1532,1546-1548,1551,1561,1568,1572-1575,1578-1580,1590-1592,1597,1601,1618-1620
+packages/core/src/particle/ParticleMaterial.ts
+  s_e8846e01229aa6::t_aaed7bc80a755c 14
+packages/core/src/particle/ParticleRenderer.ts
+  s_e8846e01229aa6::t_4e64adc556626a 2-3,8,11,15,41,44-50,58,92-97,121-123,131-133,169,173-190,209,211,215,232,257-258,277,284,301-303,310-311
+packages/core/src/particle/ParticleSubEmitterSpawnState.ts
+  s_e8846e01229aa6::t_94214d52818b25 1-271
+packages/core/src/particle/ParticleSystemManager.ts
+  s_e8846e01229aa6::t_ef24cc299c5170 1-147
+packages/core/src/particle/ParticleTransformFeedbackSimulator.ts
+  s_e8846e01229aa6::t_e4bdb60fe29d18 1-2,5-6,8,13,21-36,45-52,60-75,78-81,88,90-91,98,100,102-105,110,112-116,119-141,143,145-146,148,157
+packages/core/src/particle/enums/ParticleInheritVelocityMode.ts
+  s_e8846e01229aa6::t_b6d6cb2e677647 1-14
+packages/core/src/particle/enums/ParticleRandomSubSeeds.ts
+  s_e8846e01229aa6::t_1e5b4cc1642519 24-25
+packages/core/src/particle/enums/ParticleSubEmitterType.ts
+  s_e8846e01229aa6::t_fd4401480da10c 5-8
+packages/core/src/particle/enums/attributes/ParticleFeedbackVertexAttribute.ts
+  s_e8846e01229aa6::t_b5db7dcb890f5e 7-9
+packages/core/src/particle/enums/attributes/ParticleInstanceVertexAttribute.ts
+  s_e8846e01229aa6::t_3c1556c0631a44 8-10,12-18
+packages/core/src/particle/index.ts
+  s_e8846e01229aa6::t_1ef8d0ce70707d 12,17
+packages/core/src/particle/modules/BirthSubEmitterCommand.ts
+  s_e8846e01229aa6::t_b59068d7f8634a 1-103
+packages/core/src/particle/modules/BirthSubEmitterState.ts
+  s_e8846e01229aa6::t_61dc92feeba6f2 1-15
+packages/core/src/particle/modules/DeathSubEmitterCommand.ts
+  s_e8846e01229aa6::t_25890ce39d450a 1-38
+packages/core/src/particle/modules/EmissionModule.ts
+  s_e8846e01229aa6::t_c782286e321a8d 3-4,8-10,13,22,38,42,132-133,135-150,166,169-171,173,175-185,200-201,207-208,210,216,228-230,237-239,241-242,250,253-272,283,288-296,299-301,303-304,306-313,315-316,320-332,334-337,341-342,345-348,350-358,362-372
+packages/core/src/particle/modules/EmissionState.ts
+  s_e8846e01229aa6::t_fcbf5ee6b603b4 1-31
+packages/core/src/particle/modules/InheritVelocityModule.ts
+  s_e8846e01229aa6::t_f79104a1176141 1-260
+packages/core/src/particle/modules/MainModule.ts
+  s_e8846e01229aa6::t_82a0dc41fe6e30 5,7,15,77-79,91-107,224-227,239-243,276,282,307,309-313,315,323-324,328-330,334,353
+packages/core/src/particle/modules/ParticleCompositeCurve.ts
+  s_e8846e01229aa6::t_e52bf1cd381458 258-266
+packages/core/src/particle/modules/SubEmitter.ts
+  s_e8846e01229aa6::t_228ab182791a1b 3,16,19-20,23,31,38-40,43,54-56,58
+packages/core/src/particle/modules/SubEmittersModule.ts
+  s_e8846e01229aa6::t_99fc0bd0244af5 1,3-4,8-12,17,19,21-30,32,34-57,60-68,82-84,91-94,96,102,105-106,114-124,131-132,136-141,144-172,179-193,195-202,204-213,215-233,235-245,247-249,253-259,261-271,273-321,323-324,332,338-341,344-353,358-367,372-379,383-480
+packages/core/src/particle/modules/VelocityOverLifetimeModule.ts
+  s_e8846e01229aa6::t_eb1960db281d6c 4,9,81,98,115,121-132,246,250-252,277-281,349-351,397-398,436,492-496,502-504,507-515,517-521
+packages/core/src/physics/Collider.ts
+  s_e8846e01229aa6::t_bc748e30005074 77,90,103,156,166-167,177,204
+packages/core/src/physics/DynamicCollider.ts
+  s_e8846e01229aa6::t_e186d1c9616b69 122-123,140,158-159,176,468-473,480,514-516,519-520
+packages/core/src/physics/PhysicsScene.ts
+  s_e8846e01229aa6::t_6c42cc3f138e5b 21-22,194,205-301,415,522,654,681,704,731,846-847,856-857,962,966-980
+packages/core/src/physics/shape/ColliderShape.ts
+  s_e8846e01229aa6::t_43847a6c0784e9 30,38-39,41-50,230,238,245,251
+packages/core/src/physics/shape/MeshColliderShape.ts
+  s_e8846e01229aa6::t_0523debd11a4ce 183
+packages/core/src/postProcess/FinalPass.ts
+  s_e8846e01229aa6::t_cf48b3eb2f8441 26,31
+packages/core/src/postProcess/PostProcessUberPass.ts
+  s_e8846e01229aa6::t_1d7c4618f754ce 28,32
+packages/core/src/renderingHardwareInterface/IPlatformTransformFeedbackPrimitive.ts
+  s_e8846e01229aa6::t_4a0dd21efa09a0 1-4,11,13-14,16-17,20-28,44
+packages/core/src/shader/Shader.ts
+  s_e8846e01229aa6::t_3b18147852c974 31,49,54,60,62,68,70,74-85,87-88,90-96,98-115,117-122,124-131,133-135,137-144,146-151,153,156-157,159,165-166,168-170,174-175,178,190-191,207,216-228,398,405,409,422,424-431,438-440,443,456-458
+packages/core/src/shader/ShaderData.ts
+  s_e8846e01229aa6::t_ab5e0f2e8b2706 614-618,620-626,630-633
+packages/core/src/shader/ShaderFactory.ts
+  s_e8846e01229aa6::t_9fe6cb85e78f55 2,25,153,156-158,160-174,180-181,184,398
+packages/core/src/shader/ShaderMacroProcessor.ts
+  s_e8846e01229aa6::t_50ca3e52a8f768 1-9,17-30,38-43,47-55,61,70-75,80-85,103-138,171,187,196-238,251,261,263-272,274-279,281,292-314,316,319-322,324,326,328,330,332,334,336
+packages/core/src/shader/ShaderPass.ts
+  s_e8846e01229aa6::t_61e651dd98ff48 33-34,54,63,70-71,80,91-95,102,124-134,141
+packages/core/src/shader/ShaderProgramMap.ts
+  s_e8846e01229aa6::t_b27cffadc85678 65,71,83,93
+packages/core/src/shader/enums/ShaderPreprocessorDirective.ts
+  s_e8846e01229aa6::t_53e1349f7717b7 15-21
+packages/core/src/shader/index.ts
+  s_e8846e01229aa6::t_c8610cd2565251 10
+packages/core/src/shader/state/BlendState.ts
+  s_e8846e01229aa6::t_68ff886d38ed4d 11,86-90,108-109,113-114,119-121,126-128
+packages/core/src/shader/state/RenderState.ts
+  s_e8846e01229aa6::t_55a0e38a746804 36-37,39
+packages/core/src/sky/SkyBoxMaterial.ts
+  s_e8846e01229aa6::t_daeee0c1291607 66
+packages/core/src/sky/SkyProceduralMaterial.ts
+  s_e8846e01229aa6::t_5419489fc18bf4 134
+packages/core/src/trail/TrailMaterial.ts
+  s_e8846e01229aa6::t_2447577dc289d1 14
+packages/design/package.json
+  s_e8846e01229aa6::t_ff74d3db9dae9d 3,14
+packages/design/src/index.ts
+  s_e8846e01229aa6::t_aeb6bf8ac50eb2 7
+packages/design/src/physics/ICollider.ts
+  s_1269dd6d04f18b::t_351bffc17567f6 8-10,14
+packages/design/src/physics/IDynamicCollider.ts
+  s_1269dd6d04f18b::t_0978f2ebbc384f 13,17
+packages/design/src/physics/IPhysicsScene.ts
+  s_e8846e01229aa6::t_3271eb8ad52df9 59-65,71,76-100,108,113-120,127,132-141,150,155-160,162,165-169,171,174-180,187-188
+packages/design/src/physics/IStaticCollider.ts
+  s_1269dd6d04f18b::t_2cb4f2f2620852 13,17
+packages/design/src/physics/shape/IColliderShape.ts
+  s_e8846e01229aa6::t_1e00173e49fb0e 44-49
+packages/design/src/shader-compiler/ICondition.ts
+  s_e8846e01229aa6::t_7cc5943664afb7 2,5,7,12,15,17,22,25,27,29-31,35-37,39,41,43,47-49,51,53,55,59-61,63,65,71,74,76,80-138,146-151,154
+packages/design/src/shader-compiler/IPrecompiledShader.ts
+  s_e8846e01229aa6::t_27d34ee3148dcc 1,15-16
+packages/design/src/shader-compiler/IShaderCompiler.ts
+  s_e8846e01229aa6::t_c5f1f936f678d8 8-14,18-20,27-33,40-41
+packages/design/src/shader-compiler/IShaderProgramSource.ts
+  s_e8846e01229aa6::t_c07c3d32e8ad60 3,5,7,9-11,13
+packages/design/src/shader-compiler/PreprocessorExpression.ts
+  s_e8846e01229aa6::t_509d496bdad511 1-1175
+packages/design/src/shader-compiler/ShaderIncludePath.ts
+  s_e8846e01229aa6::t_8d4228ad696ccf 1-22
+packages/design/src/shader-compiler/index.ts
+  s_e8846e01229aa6::t_0dd1971a07a167 8-12,15-16,19-21,23-24
+packages/design/src/shader-compiler/shaderSource/IShaderPassSource.ts
+  s_e8846e01229aa6::t_e5bd48c6c20a05 2,5,7,9,11,13,15,19-21,23,25-28
+packages/design/src/spine/ISpineAnimation.ts
+  s_e8846e01229aa6::t_304247f1a240f4 1-4
+packages/design/src/spine/ISpineAnimationState.ts
+  s_e8846e01229aa6::t_8082c93f11f7fb 1-18
+packages/design/src/spine/ISpineAnimationStateData.ts
+  s_e8846e01229aa6::t_d61c3185e9e0b6 1-5
+packages/design/src/spine/ISpineAnimationStateListener.ts
+  s_e8846e01229aa6::t_4748c4edfd7a97 1-11
+packages/design/src/spine/ISpineBone.ts
+  s_e8846e01229aa6::t_e25671e0155692 1-22
+packages/design/src/spine/ISpineBoneData.ts
+  s_e8846e01229aa6::t_17d0cfc0399a90 1-3
+packages/design/src/spine/ISpineConstraint.ts
+  s_e8846e01229aa6::t_782291f3840c33 1-6
+packages/design/src/spine/ISpineConstraintData.ts
+  s_e8846e01229aa6::t_256c12fc5cf771 1-3
+packages/design/src/spine/ISpineEvent.ts
+  s_e8846e01229aa6::t_92f2a7675c3447 1-7
+packages/design/src/spine/ISpineGeometry.ts
+  s_e8846e01229aa6::t_5faf0ed827eda4 1-27
+packages/design/src/spine/ISpinePhysics.ts
+  s_e8846e01229aa6::t_363a24959e9e10 1-8
+packages/design/src/spine/ISpinePhysicsConstraint.ts
+  s_e8846e01229aa6::t_f95bf637e1d066 1-12
+packages/design/src/spine/ISpineRuntime.ts
+  s_e8846e01229aa6::t_98b291c8c94229 1-70
+packages/design/src/spine/ISpineSkeleton.ts
+  s_e8846e01229aa6::t_3728715bc308bb 1-22
+packages/design/src/spine/ISpineSkeletonData.ts
+  s_e8846e01229aa6::t_30200b72260bdf 1-16
+packages/design/src/spine/ISpineSkin.ts
+  s_e8846e01229aa6::t_9c11e5d5e2e8c1 1-5
+packages/design/src/spine/ISpineSlot.ts
+  s_e8846e01229aa6::t_56d790d7ec475a 1-8
+packages/design/src/spine/ISpineTextureAtlas.ts
+  s_e8846e01229aa6::t_53c1756cae2e94 1-4
+packages/design/src/spine/ISpineTrackEntry.ts
+  s_e8846e01229aa6::t_fbd7a681f7f7a6 1-24
+packages/design/src/spine/SpineCapability.ts
+  s_e8846e01229aa6::t_96ff7dae7f610c 1-4
+packages/design/src/spine/index.ts
+  s_e8846e01229aa6::t_49fcc27bb6764b 1-21
+packages/galacean/package.json
+  s_e8846e01229aa6::t_18c13bc62adb89 3
+packages/galacean/skills/engine-knowledge/SKILL.md
+  s_e8846e01229aa6::t_7b81eb3f1d7943 3,8,10,12,14,16-23
+packages/galacean/skills/engine-knowledge/references/mesh-geometry.md
+  s_e8846e01229aa6::t_040d4c1cef1223 1,3,32-51
+packages/galacean/skills/engine-knowledge/references/physics-setup.md
+  s_e8846e01229aa6::t_e249737d7ea18e 30-55
+packages/galacean/skills/engine-knowledge/references/rendering-and-color.md
+  s_e8846e01229aa6::t_35c2b459f4edaf 3,25,29,31-90
+packages/galacean/skills/engine-knowledge/references/resource-ownership.md
+  s_e8846e01229aa6::t_fe80cb7e830ffd 16
+packages/galacean/skills/engine-knowledge/references/spine.md
+  s_e8846e01229aa6::t_cebc1d6de0a550 3,7-10,15-17,25-26,30-34,36-39
+packages/galacean/src/ShaderPool.ts
+  s_e8846e01229aa6::t_dfd16b30d5f21a 12,46,69
+packages/galacean/tests/EngineKnowledgeSkill.test.ts
+  s_e8846e01229aa6::t_67f988114aff33 21-22,32-33,120-129,134-139,141,143,151,155-157,168,170,181-183,185-189,191-203,205-209,211-213
+packages/galacean/tests/EntityLookupTypes.test.ts
+  s_e8846e01229aa6::t_f3141b8ba2c006 36-39,46-47
+packages/loader/package.json
+  s_e8846e01229aa6::t_1db5867ea4cbae 3
+packages/loader/src/ImageDecoder.ts
+  s_e8846e01229aa6::t_61dcf17b9b232b 1-57
+packages/loader/src/MaterialLoader.ts
+  s_e8846e01229aa6::t_17b381ff572ce0 14,31-37,39-41,45-49,51,54-64,67,69-103,106-112,114-118
+packages/loader/src/ShaderLoader.ts
+  s_e8846e01229aa6::t_9c481af573703c 11-30,37,39
+packages/loader/src/TextureLoader.ts
+  s_e8846e01229aa6::t_536bd2336a3d90 21,76,144
+packages/loader/src/resource-deserialize/resources/texture2D/Texture2DDecoder.ts
+  s_e8846e01229aa6::t_6a04a8d15be569 5,44,48
+packages/loader/src/resource-deserialize/resources/textureCube/TextureCubeDecoder.ts
+  s_e8846e01229aa6::t_2490c875be2d11 5,46,52
+packages/loader/src/schema/MaterialSchema.ts
+  s_e8846e01229aa6::t_969c2fbe11f4da 2,4,6,8-17,19-20,23-35
+packages/loader/tests/MaterialSchemaTypes.test.ts
+  s_e8846e01229aa6::t_07e20b608e3cb8 1-67
+packages/math/package.json
+  s_e8846e01229aa6::t_68d65ffa74c0e8 3
+packages/physics-physx/libs/physx.release.js
+  s_e8846e01229aa6::t_93af5f09c83409 1
+packages/physics-physx/libs/physx.release.simd.js
+  s_e8846e01229aa6::t_5f12e9fd4d6b36 1
+packages/physics-physx/package.json
+  s_e8846e01229aa6::t_85b1a60612a1b0 3
+packages/physics-physx/src/PhysXCharacterController.ts
+  s_1269dd6d04f18b::t_d81c6f6c769e99 27,91-92,117,167-168
+packages/physics-physx/src/PhysXCollider.ts
+  s_1269dd6d04f18b::t_ae16ed96e93716 32-33,54-55
+packages/physics-physx/src/PhysXPhysics.ts
+  s_1269dd6d04f18b::t_ca05b080427427 69,72
+packages/physics-physx/src/PhysXPhysicsScene.ts
+  s_e8846e01229aa6::t_43729498c5466d 2,9,19-21,29,40-44,51-53,55-56,58-59,82,91,213,216-218,220-224,226-241,254,266,277,286-289,302,315,321,331,337,344-347,358-359,370,389,433-443,449,452-460,462-463,465,489,492-493,496,498,500-505,542
+packages/physics-physx/src/shape/PhysXColliderShape.ts
+  s_e8846e01229aa6::t_27728665d54c8f 141-151
+packages/rhi-webgl/package.json
+  s_e8846e01229aa6::t_f026aa57f9ba94 3
+packages/rhi-webgl/src/GLBuffer.ts
+  s_e8846e01229aa6::t_e487e71b0d87c2 2
+packages/rhi-webgl/src/GLCapability.ts
+  s_e8846e01229aa6::t_7ebf6cd1e11fd7 224-227
+packages/rhi-webgl/src/GLTransformFeedbackPrimitive.ts
+  s_e8846e01229aa6::t_de0f999d5ff7b0 1-3,8,11,15,21-24,26-28,30-54,56-57,88,95,103-105,107-116,122-128
+packages/shader-analyzer/README.md
+  s_e8846e01229aa6::t_2194a1d51c6a5d 1-89
+packages/shader-analyzer/package.json
+  s_e8846e01229aa6::t_7316ff080b429b 1-39
+packages/shader-analyzer/src/Diagnostic.ts
+  s_e8846e01229aa6::t_214a32d3fe59cc 1-46
+packages/shader-analyzer/src/DiagnosticCategory.ts
+  s_e8846e01229aa6::t_75aaf056eb5032 1-78
+packages/shader-analyzer/src/DiagnosticType.ts
+  s_e8846e01229aa6::t_ac1d38502a6bcc 1-68
+packages/shader-analyzer/src/ShaderAnalysisInfo.ts
+  s_e8846e01229aa6::t_c9d920a994141c 1-790
+packages/shader-analyzer/src/ShaderAnalyzer.ts
+  s_e8846e01229aa6::t_290e7c36ffe6e5 1-242
+packages/shader-analyzer/src/ShaderConditionDiagram.ts
+  s_e8846e01229aa6::t_01dbe0157c037b 1-573
+packages/shader-analyzer/src/ShaderIOValidator.ts
+  s_e8846e01229aa6::t_9841ad5f42c6ac 1-331
+packages/shader-analyzer/src/ShaderValidator.ts
+  s_e8846e01229aa6::t_622f09e6f5f46c 1-784
+packages/shader-analyzer/src/cli.ts
+  s_e8846e01229aa6::t_336324c62483cf 1-166
+packages/shader-analyzer/src/convert.ts
+  s_e8846e01229aa6::t_4a165cfd9b64d3 1-57
+packages/shader-analyzer/src/index.ts
+  s_e8846e01229aa6::t_00b7fe55e2c09f 1-6
+packages/shader-analyzer/src/sourcePosition.ts
+  s_e8846e01229aa6::t_12b13492da45c2 1-22
+packages/shader-analyzer/tsconfig.json
+  s_e8846e01229aa6::t_0c7a58854cb16d 1-18
+packages/shader-compiler/.gitignore
+  s_e8846e01229aa6::t_46d4cb0b6d1323 2
+packages/shader-compiler/README.md
+  s_e8846e01229aa6::t_8ac00805490aa8 10,24-27,34-45,47,49-54,57-72
+packages/shader-compiler/package.json
+  s_e8846e01229aa6::t_06a39e278a279b 3,24-28,46,59,64-66,68-79
+packages/shader-compiler/rollup.config.js
+  s_e8846e01229aa6::t_a4a32881991fce 1-6,10,13,18-19,36,42-57,60-74,81-96,98,100,126
+packages/shader-compiler/src/GLESBackend.ts
+  s_e8846e01229aa6::t_5ed051396bb84e 1-69
+packages/shader-compiler/src/ShaderBackend.ts
+  s_e8846e01229aa6::t_4c5b732e5f1375 1-16
+packages/shader-compiler/src/ShaderCompilation.ts
+  s_e8846e01229aa6::t_cb25da37f9d4ac 1-127
+packages/shader-compiler/src/ShaderCompiler.ts
+  s_e8846e01229aa6::t_da1e30b1c2c2ec 2,4-23,27-29,31-35,37,41-47,49-50,53-63,69-70,72,75-79,81,85-89,91-93
+packages/shader-compiler/src/ShaderInstructionEncoder.ts
+  s_e8846e01229aa6::t_f49bac936126f0 1-4,15-72,76,83,88,91-92,95-109,113,134,148,194-195,200-201,229-243,256,265-291,294-300,303-307
+packages/shader-compiler/src/ShaderPrecompiler.ts
+  s_e8846e01229aa6::t_244eb1f565dd98 1-125
+packages/shader-compiler/src/bundler/precompile.ts
+  s_e8846e01229aa6::t_9d66fda2eb1777 5-9,54,64,70,74-76,79-84,95,99-104,122,129,139-144,149-152,154,165-169,184,186,190-217,222-231,235,239,243-244,246-251,255,257-258,263,271-276,279,285,293,304-316,342,373,402,421-431
+packages/shader-compiler/src/bundler/rollup.ts
+  s_e8846e01229aa6::t_27e85f9047ff0b 3,19,39-52,73-75,77,93-94
+packages/shader-compiler/src/codeGen/CodeGenVisitor.ts
+  s_e8846e01229aa6::t_5da9648fc1d6eb 1-8,16,22-31,39-40,45-46,48-61,67,74-89,92-94,97,104,112-115,121-126,130-131,143,174,198-201,209,213,221,228-229,232-233,236-237
+packages/shader-compiler/src/codeGen/GLES100.ts
+  s_e8846e01229aa6::t_dc7395845b8edd 1,5,11,14-15,18-19,22-23
+packages/shader-compiler/src/codeGen/GLES300.ts
+  s_e8846e01229aa6::t_b0ecc3b9bd0ee8 1-9,12-13,16-22,27-30,36-43,52-53,57,63-65,95-96,98-105,110-125,127-158,160-194,197-200
+packages/shader-compiler/src/codeGen/GLESVisitor.ts
+  s_e8846e01229aa6::t_80120d5bc2906f 2-26,28,30-31,36-46,48-58,60-62,66-88,91-95,97-104,110-121,124,126,128-133,135-153,155-167,169-182,185-196,198-205,207-210,212-224,226-242,247,249,251,253-254,256,262,264-265,271,278,285,287,289,291-292,294-295,299,301-302,308,315-318,324-331,333-390,392-468,470-558,560-653,662,676-677,679,685-738,740-795,797,799,801-815,817-1067,1072,1076,1081-1082,1086-1087,1134-1138,1140,1145-1150,1153,1155-1158,1161,1169,1171-1176,1188-1215
+packages/shader-compiler/src/codeGen/NameAllocator.ts
+  s_e8846e01229aa6::t_8d83509fb7c73c 1-84
+packages/shader-compiler/src/codeGen/VisitorContext.ts
+  s_e8846e01229aa6::t_5a2b455778b3dc 1-7,11-17,33-34,36,38-47,50,58-62,69-70,73-74,78-100,103-112,115-137,140-150,153-166,169-170,173-174,177-178,182-196,199-203
+packages/shader-compiler/src/codeGen/types.ts
+  s_e8846e01229aa6::t_3d5534b587230d 5
+packages/shader-compiler/src/index.ts
+  s_e8846e01229aa6::t_e127d7f72318ea 1-2,5,7-9,12
+packages/shader-compiler/src/precompile.ts
+  s_e8846e01229aa6::t_69dd3648dfb697 1
+packages/shader-parser/internal/analyzer/package.json
+  s_e8846e01229aa6::t_5f7a18947e4b9e 1-5
+packages/shader-parser/internal/package.json
+  s_e8846e01229aa6::t_4638e01c641e08 1-5
+packages/shader-parser/package.json
+  s_e8846e01229aa6::t_5a48018a4dfa34 1-45
+packages/shader-parser/shared/package.json
+  s_e8846e01229aa6::t_228046b3e76d5d 1-5
+packages/shader-parser/src/GSError.ts
+  s_e8846e01229aa6::t_2b10709d261365 3,5,7-15,20-22,28-31,33-35,39
+packages/shader-parser/src/ParsedShaderPass.ts
+  s_e8846e01229aa6::t_e9839d84b5936e 1-11
+packages/shader-parser/src/ParserObjectPool.ts
+  s_e8846e01229aa6::t_e845fd21f86fff 1-102
+packages/shader-parser/src/ParserUtils.ts
+  s_e8846e01229aa6::t_6156af5dec175f 1,4,7-8,11-12,82-85,87-100,102-111,114-130,132-149,152-185,189-193,196-345,347-353,355-375,378-379,381-475
+packages/shader-parser/src/Preprocessor.ts
+  s_e8846e01229aa6::t_f612012e5d3c03 1,4-17,20,24-43,67-69,75-77,79-86,88-89,92-105,108-128,130,132-150,152-462,464-482,484-494,496-498
+packages/shader-parser/src/PreprocessorExpression.ts
+  s_e8846e01229aa6::t_1bc97e64842680 1
+packages/shader-parser/src/ShaderCompilerUtils.ts
+  s_e8846e01229aa6::t_a2ae645589d21b 7-10,13-16,22,24,26-27
+packages/shader-parser/src/backends/GLESShaderInfo.ts
+  s_e8846e01229aa6::t_8a84b465d36be5 1-452
+packages/shader-parser/src/common/BaseLexer.ts
+  s_e8846e01229aa6::t_b5b116a2aa1d3c 1,5,105-109,119-145,164,240,275-277
+packages/shader-parser/src/common/BaseToken.ts
+  s_e8846e01229aa6::t_a31d54e714b303 3-4,14-40,43-66,76-84,88,90,92-98,107-110,112-114,118-125,128-134,136-139,143-144
+packages/shader-parser/src/common/BranchAnalysis.ts
+  s_e8846e01229aa6::t_dc1069cc688913 1-1043
+packages/shader-parser/src/common/BranchIdentity.ts
+  s_e8846e01229aa6::t_272edfcf12a1d2 1-29,31,34-58,61-73,76-109,112-135,138-139,141-142,144,147-169,172-188,190-191,193
+packages/shader-parser/src/common/BranchSemantics.ts
+  s_e8846e01229aa6::t_bdc266c2595c4f 1-55
+packages/shader-parser/src/common/IBaseSymbol.ts
+  s_e8846e01229aa6::t_042658f3621d55 1-2,5-7
+packages/shader-parser/src/common/PreprocessorCondition.ts
+  s_e8846e01229aa6::t_995895f4b6e0e8 1-138
+packages/shader-parser/src/common/ShaderPosition.ts
+  s_e8846e01229aa6::t_f51eb6afe8d419 1-6,8,10,13-20
+packages/shader-parser/src/common/ShaderRange.ts
+  s_e8846e01229aa6::t_cceffe4c51827e 3-8,10,13-19
+packages/shader-parser/src/common/SymbolTable.ts
+  s_e8846e01229aa6::t_d715d2efc89158 1-5,11-24,26,29-51,53-59,61,63-66,71-87,90-130,135-139,152-161,164-165,167-173,179-185
+packages/shader-parser/src/common/SymbolTableStack.ts
+  s_e8846e01229aa6::t_ebb405cbb30bb3 1-3,15-23,38-41,48-58,61,64,70-86,90-93,97-148
+packages/shader-parser/src/formatDiagnostic.ts
+  s_e8846e01229aa6::t_e03f3af9e9c44d 1-35
+packages/shader-parser/src/index.ts
+  s_e8846e01229aa6::t_a8dd89c096a445 1-43
+packages/shader-parser/src/ir/ShaderBuiltinSemantic.ts
+  s_e8846e01229aa6::t_4386b450ba3f7d 1-13
+packages/shader-parser/src/ir/ShaderClueIR.ts
+  s_e8846e01229aa6::t_2f3563c3cbbb26 1-55
+packages/shader-parser/src/ir/ShaderCoreInfo.ts
+  s_e8846e01229aa6::t_c003e1e3ab8055 1-419
+packages/shader-parser/src/ir/ShaderDeclarationOwnership.ts
+  s_e8846e01229aa6::t_92941db4ea5c2b 1-146
+packages/shader-parser/src/ir/ShaderStructOwnership.ts
+  s_e8846e01229aa6::t_5479d440162c68 1-223
+packages/shader-parser/src/ir/index.ts
+  s_e8846e01229aa6::t_24af1af04488a7 1-4
+packages/shader-parser/src/lalr/CFG.ts
+  s_e8846e01229aa6::t_3a6db061d829b5 14,29,57,63,77,86,98,104,110,116,122,131,143,153,163,215,231,237,246,252,264,267,270,273,276,279,282,285,288,310,316,337,346,358,373,382,388,397,403,422,425,437,440,446,449,455,458,464,467,473,476,482,485,491,494,501,504,513,516,523,526,533,536,544,547,555,558,561,575,588,597,606,609,624,630,645,656,668,677,689,695,701,707,713,719,730,742,751,763,774,783,789,792,795,804,807,813,816,829,846,855,874,897,900,906,909,912,915,918,922,936,939,952,965,968,971,974,980,983,989,992,995,1007,1010,1015,1021,1031,1043,1053-1054,1056
+packages/shader-parser/src/lalr/LALR1.ts
+  s_e8846e01229aa6::t_f289fd39e06afa 65-66,71-75,188
+packages/shader-parser/src/lalr/Utils.ts
+  s_e8846e01229aa6::t_6cf174ab591ab7 1,7,10-11,28-53,55-56,65-66,71-72,78-81
+packages/shader-parser/src/lexer/AnalyzerLexer.ts
+  s_e8846e01229aa6::t_5c88aa628a3519 1-748
+packages/shader-parser/src/lexer/Lexer.ts
+  s_e8846e01229aa6::t_660673a2a1b20d 1,4,7-18,24-25,57-62,124,134,138-140,143-146,149-153,156-207,211,215,219,223-224,227-228,231-246,249,251-259,261,266-298,303-305,307,330,351,602-605,610,612,624,651,656,660-667,712,718-721,723,752,794-795,808,820,855,889-890,931,960,968,990,995-1006,1008-1021,1023-1024,1030,1060-1074,1076-1080,1092,1129-1131,1136-1148,1171,1191,1197,1205,1211
+packages/shader-parser/src/parser/AST.ts
+  s_e8846e01229aa6::t_aa605352d514e2 1,3,6,12-36,44,48,50-59,68,83-86,90-98,101-102,110-111,120-272,282,291-292,294-303,305-306,329-330,347-351,391-412,416,418-420,425-426,438-439,441-442,444-450,452-454,457-463,465-471,474-475,483-484,488,543-546,550-551,564-587,594-598,600-601,603-621,627,708-715,722-729,733,738-756,758-764,768-780,813-826,834,841,858,861,877-878,919-920,939-940,945,967-968,983-988,1006-1007,1023-1032,1036-1037,1047-1048,1055-1060,1065,1082-1181,1185,1187-1193,1195-1205,1208-1217,1235,1240,1282-1283,1294-1295,1301,1347-1349,1352,1359-1435,1455-1460,1471-1476,1602-1604,1614-1615,1688,1692-1694,1700-1706,1826-1827,1831,1839-1868,1875,1879,1907,1923-1929,1933-1958,1962-1964,1967,1971-1997,1999-2026,2028-2031,2033-2038,2040-2090,2093-2111,2115-2135,2138-2151,2153-2158,2161-2166,2168-2211,2213-2235,2237-2238,2240-2271,2275-2292,2308-2319,2324-2325,2327-2328,2338-2345,2347,2349-2380,2383-2399,2403-2413,2416-2425,2429-2489,2492-2504,2554-2555,2565-2566,2576-2577,2583-2584,2590-2591,2615,2618,2620,2685-2689,2691,2700-2701,2708,2710,2712,2725-2729,2735,2737-2743,2745-2753,2757-2758,2761-2813,2816-2818,2821-2901,2909-2919,2926-2930,2932,2935,2940-2942,2945,2952-2962,2964-2967,2970,2973,2976-2977,3041,3069-3070,3074-3075
+packages/shader-parser/src/parser/AnalyzerSemanticDiagnostics.ts
+  s_e8846e01229aa6::t_c699639f968df5 1-111
+packages/shader-parser/src/parser/ICodeGenVisitor.ts
+  s_e8846e01229aa6::t_d90973bbe0f988 1-30
+packages/shader-parser/src/parser/MacroExpansionFacts.ts
+  s_e8846e01229aa6::t_d9b05d0ac2a5ec 1-306
+packages/shader-parser/src/parser/ParsedShaderPass.ts
+  s_e8846e01229aa6::t_95a8e5359f6946 1-253
+packages/shader-parser/src/parser/ParsedShaderPassHandle.ts
+  s_e8846e01229aa6::t_dd72a9da3cd793 1-48
+packages/shader-parser/src/parser/ParserSemanticValidation.ts
+  s_e8846e01229aa6::t_7a5d874670a722 1-513
+packages/shader-parser/src/parser/PassParser.ts
+  s_e8846e01229aa6::t_6ca0ff8c9054b7 1-51
+packages/shader-parser/src/parser/RuntimePassParser.ts
+  s_e8846e01229aa6::t_533153c7c6f299 1-95
+packages/shader-parser/src/parser/SemanticAnalyzer.ts
+  s_e8846e01229aa6::t_527eb0da394946 1-4,7,10,14-16,18-25,34-46,48,51,54,56,58-60,65-68,78-97,108-113,124-321,324-326,329-331,334-336
+packages/shader-parser/src/parser/SemanticDiagnostics.ts
+  s_e8846e01229aa6::t_aeab9e82e40cb7 1-108
+packages/shader-parser/src/parser/ShaderIncludePath.ts
+  s_e8846e01229aa6::t_9acfb493f87396 1-71
+packages/shader-parser/src/parser/ShaderInfo.ts
+  s_e8846e01229aa6::t_96e390a2096d9f 1-2,4-39,44-45,51-62
+packages/shader-parser/src/parser/ShaderTargetParser.ts
+  s_e8846e01229aa6::t_84a932c291af36 3,14-16,19-20,23-24,30-31,44-48,50,53-57,59-78,82-86,89-101,104-114,118-123,126-150,152-155,158-176,178-179,181-231,234-238
+packages/shader-parser/src/parser/TargetParser.y
+  s_e8846e01229aa6::t_4f67e1084f354a 522
+packages/shader-parser/src/parser/TypeSystem.ts
+  s_e8846e01229aa6::t_fcc3c89f5a83c4 1-314
+packages/shader-parser/src/parser/ValidatedPassParser.ts
+  s_e8846e01229aa6::t_1748dbf70681ac 1-65
+packages/shader-parser/src/parser/builtin/functions.ts
+  s_e8846e01229aa6::t_0e9189ff9f62c0 159-166,172-179,213-219
+packages/shader-parser/src/parser/builtin/variables.ts
+  s_e8846e01229aa6::t_195eace7bf62e7 4,12,14,18,21-27,38,43-54,56-67
+packages/shader-parser/src/parser/index.ts
+  s_e8846e01229aa6::t_a191796161d13b 3-7
+packages/shader-parser/src/parser/symbolTable/FnSymbol.ts
+  s_e8846e01229aa6::t_83c195fd123ff4 4,8-9,11-16,19-21,24-25
+packages/shader-parser/src/parser/symbolTable/SymbolDataType.ts
+  s_e8846e01229aa6::t_b44044aead3a51 2,8-10
+packages/shader-parser/src/parser/symbolTable/SymbolInfo.ts
+  s_e8846e01229aa6::t_f784926c4e4f2b 2,23-33
+packages/shader-parser/src/parser/symbolTable/VarSymbol.ts
+  s_e8846e01229aa6::t_9f1acad5d7189e 13-20,30-32,36-37
+packages/shader-parser/src/parser/types.ts
+  s_e8846e01229aa6::t_f3d8322967790b 4-30,34,41-43
+packages/shader-parser/src/preprocessor/PreprocessorCondition.ts
+  s_e8846e01229aa6::t_468241e70601a1 1-324
+packages/shader-parser/src/preprocessor/PreprocessorConditionDiagram.ts
+  s_e8846e01229aa6::t_f4179fea28bce9 1-248
+packages/shader-parser/src/preprocessor/PreprocessorConditionNormalization.ts
+  s_e8846e01229aa6::t_57ee90414f9f50 1-266
+packages/shader-parser/src/preprocessor/PreprocessorMacroState.ts
+  s_e8846e01229aa6::t_11e927ac9e45fc 1-519
+packages/shader-parser/src/runtime.ts
+  s_e8846e01229aa6::t_b61f2719cff43d 1-42
+packages/shader-parser/src/shared.ts
+  s_e8846e01229aa6::t_8a509096ae7e7a 1
+packages/shader-parser/src/sourceParser/ShaderSourceFactory.ts
+  s_e8846e01229aa6::t_d0dceb0b17fcd5 34-35,37-41,48,51-55
+packages/shader-parser/src/sourceParser/ShaderSourceParser.ts
+  s_e8846e01229aa6::t_7d2909be7ce195 22,25,31-48,50,54-58,60-108,136-142,146-164,167,172,183-188,194,218,230,243-249,258,274,282,287,291,294,298,302-304,307,311,313-314,316-318,325,338-342,353-358,373,388,390-392,401-405,410,412-414,430-435,449,461-465,470,477-481,484,490,502,517-522,524,528-529,535,558,577,592-596,598,602-612,614-616,619,623,630-636,653-670,689
+packages/shader-parser/src/sourceParser/ShaderSourceParser.y
+  s_e8846e01229aa6::t_0a3705ad6fcfaf 1-2,23,57-61,68-69,146-151
+packages/shader-parser/src/sourceParser/ShaderSourceSymbol.ts
+  s_e8846e01229aa6::t_8ba74339d0e17d 1,6
+packages/shader-parser/src/sourceParser/SourceLexer.ts
+  s_e8846e01229aa6::t_2ab4a8a9455f7d 12-16,100,131,148,158-159,162,164,167,172-173,191-192
+packages/shader-parser/src/sourceParser/index.ts
+  s_e8846e01229aa6::t_e0edfc811fa41a 1
+packages/shader-parser/tsconfig.json
+  s_e8846e01229aa6::t_d63c783fb256c3 1-17
+packages/shader/package.json
+  s_e8846e01229aa6::t_a425732e048c2f 3,43-50
+packages/shader/src/ShaderLibrary/Common/Fog.glsl
+  s_e8846e01229aa6::t_12bd06d9fd21d8 21-22,32
+packages/shader/src/ShaderLibrary/Lighting/AmbientOcclusion/BilateralBlur.glsl
+  s_e8846e01229aa6::t_69147ea973277a 16-17
+packages/shader/src/ShaderLibrary/Lighting/AmbientOcclusion/ScalableAmbientOcclusion.glsl
+  s_e8846e01229aa6::t_f52e5837174664 28-31
+packages/shader/src/ShaderLibrary/Particle/Billboard/HorizontalBillboard.glsl
+  s_e8846e01229aa6::t_757b29a11865ca 14,16
+packages/shader/src/ShaderLibrary/Particle/Billboard/SphereBillboard.glsl
+  s_e8846e01229aa6::t_17c177f9dc2878 11,14,23,25-26
+packages/shader/src/ShaderLibrary/Particle/Billboard/VerticalBillboard.glsl
+  s_e8846e01229aa6::t_ce127574bf07f3 9
+packages/shader/src/ShaderLibrary/Particle/Module/ColorOverLifetime.glsl
+  s_e8846e01229aa6::t_21b5fd6c431cdd 23
+packages/shader/src/ShaderLibrary/Particle/Module/ForceOverLifetime.glsl
+  s_e8846e01229aa6::t_339dac0923a17e 69,85-87,90
+packages/shader/src/ShaderLibrary/Particle/Module/InheritVelocity.glsl
+  s_e8846e01229aa6::t_87ff98e7bf5bb9 1-112
+packages/shader/src/ShaderLibrary/Particle/Module/NoiseModule.glsl
+  s_e8846e01229aa6::t_d3f96fc18affea 72,78-79,88
+packages/shader/src/ShaderLibrary/Particle/Module/RotationOverLifetime.glsl
+  s_e8846e01229aa6::t_feab13d7ea7d04 32,38,52,64,66,68,79,90
+packages/shader/src/ShaderLibrary/Particle/Module/SizeOverLifetime.glsl
+  s_e8846e01229aa6::t_6dbb33cf936ec3 24,30,45,52-53
+packages/shader/src/ShaderLibrary/Particle/Module/TextureSheetAnimation.glsl
+  s_e8846e01229aa6::t_03aa0984f3e0db 20
+packages/shader/src/ShaderLibrary/Particle/Module/VelocityOverLifetime.glsl
+  s_e8846e01229aa6::t_f76affb16a0098 46,60,72,91-92,142,155,167,173
+packages/shader/src/ShaderLibrary/Particle/ParticleCommon.glsl
+  s_e8846e01229aa6::t_47a9d2b2e24fd3 4-15,24-57,106,108-115,117,119-124
+packages/shader/src/ShaderLibrary/Particle/ParticleMesh.glsl
+  s_e8846e01229aa6::t_d5f5b3d9594974 19,22,28,30
+packages/shader/src/ShaderLibrary/Particle/ParticleVert.glsl
+  s_e8846e01229aa6::t_de280bfc1b7806 4-7,56,67-70,72-74,78-80,83-91,95-104,110,117-123,130-133,159-169,174,181,187-189,197-199,209-221,223-229,236,253-254,257-259,263-266,269-300,308,311,314,323,325-326,332,342,351,355,359,361,369,374,379,381,386,395-396,398,403,405,432,435-437
+packages/shader/src/ShaderLibrary/index.ts
+  s_e8846e01229aa6::t_8b137fe579415d 33,95
+packages/shader/src/Shaders/2D/Spine.shader
+  s_e8846e01229aa6::t_3fcf2a6d22be92 1-79
+packages/shader/src/Shaders/Effect/Particle.shader
+  s_e8846e01229aa6::t_485607ea40c18f 84
+packages/shader/src/Shaders/Effect/ParticleFeedback.shader
+  s_e8846e01229aa6::t_5650994ca8cd0c 19-23,28-30,33-37,39-40,45-59,61,67-70,75,81-86,94,109,116-129,131-132,134-158,161,191-192,194-196,198-200,203-224,227-232,236,238,240,245,248-249,251,255-257,259-261,264,270,273-276,287,290-336,338-342,345-370,373-377,386-415
+packages/shader/src/Shaders/index.ts
+  s_e8846e01229aa6::t_153b1cdd69b517 3,34
+packages/spine-core-3.8/package.json
+  s_e8846e01229aa6::t_0f9ce48745ec98 1-39
+packages/spine-core-3.8/src/Spine38Runtime.ts
+  s_e8846e01229aa6::t_23977929ffe8f4 1-116
+packages/spine-core-3.8/src/SpineGenerator.ts
+  s_e8846e01229aa6::t_0d42ba20dcfbdc 1-184
+packages/spine-core-3.8/src/SpineTexture.ts
+  s_e8846e01229aa6::t_59a9ac88ac0230 1-49
+packages/spine-core-3.8/src/index.ts
+  s_e8846e01229aa6::t_e12c08d2370d0c 1-4
+packages/spine-core-3.8/src/spine-core/Animation.ts
+  s_e8846e01229aa6::t_0ede211786aa9b 1-1828
+packages/spine-core-3.8/src/spine-core/AnimationState.ts
+  s_e8846e01229aa6::t_a6968f5b3b28c2 1-1193
+packages/spine-core-3.8/src/spine-core/AnimationStateData.ts
+  s_e8846e01229aa6::t_3f3a3ca1f8403e 1-48
+packages/spine-core-3.8/src/spine-core/AtlasAttachmentLoader.ts
+  s_e8846e01229aa6::t_3686e2233cf01a 1-55
+packages/spine-core-3.8/src/spine-core/BlendMode.ts
+  s_e8846e01229aa6::t_14274453d790b0 1-7
+packages/spine-core-3.8/src/spine-core/Bone.ts
+  s_e8846e01229aa6::t_18571ff7aba43b 1-391
+packages/spine-core-3.8/src/spine-core/BoneData.ts
+  s_e8846e01229aa6::t_b00db35b549ec7 1-66
+packages/spine-core-3.8/src/spine-core/ConstraintData.ts
+  s_e8846e01229aa6::t_96fa082c00e517 1-8
+packages/spine-core-3.8/src/spine-core/Event.ts
+  s_e8846e01229aa6::t_5c103b3b65856f 1-22
+packages/spine-core-3.8/src/spine-core/EventData.ts
+  s_e8846e01229aa6::t_956ae50c744ba3 1-16
+packages/spine-core-3.8/src/spine-core/IkConstraint.ts
+  s_e8846e01229aa6::t_51ca50d1a3f474 1-346
+packages/spine-core-3.8/src/spine-core/IkConstraintData.ts
+  s_e8846e01229aa6::t_805ca638889a68 1-37
+packages/spine-core-3.8/src/spine-core/PathConstraint.ts
+  s_e8846e01229aa6::t_898904373c86e9 1-500
+packages/spine-core-3.8/src/spine-core/PathConstraintData.ts
+  s_e8846e01229aa6::t_40abafb284d0c2 1-68
+packages/spine-core-3.8/src/spine-core/Skeleton.ts
+  s_e8846e01229aa6::t_518e443e4bf48b 1-592
+packages/spine-core-3.8/src/spine-core/SkeletonBinary.ts
+  s_e8846e01229aa6::t_9ebfe40b5c4d19 1-942
+packages/spine-core-3.8/src/spine-core/SkeletonBounds.ts
+  s_e8846e01229aa6::t_89df6cb6cd14e8 1-215
+packages/spine-core-3.8/src/spine-core/SkeletonClipping.ts
+  s_e8846e01229aa6::t_a3c04e3531e424 1-363
+packages/spine-core-3.8/src/spine-core/SkeletonData.ts
+  s_e8846e01229aa6::t_6bf28f376420d7 1-198
+packages/spine-core-3.8/src/spine-core/SkeletonJson.ts
+  s_e8846e01229aa6::t_7fa496f7b05dc3 1-906
+packages/spine-core-3.8/src/spine-core/Skin.ts
+  s_e8846e01229aa6::t_4582597df5eaaa 1-182
+packages/spine-core-3.8/src/spine-core/Slot.ts
+  s_e8846e01229aa6::t_52c788fe65f14c 1-86
+packages/spine-core-3.8/src/spine-core/SlotData.ts
+  s_e8846e01229aa6::t_17e99ecac10257 1-38
+packages/spine-core-3.8/src/spine-core/Texture.ts
+  s_e8846e01229aa6::t_9ed87a59aa3101 1-96
+packages/spine-core-3.8/src/spine-core/TextureAtlas.ts
+  s_e8846e01229aa6::t_72a3f9b0ce8096 1-187
+packages/spine-core-3.8/src/spine-core/TransformConstraint.ts
+  s_e8846e01229aa6::t_49910c42da64c4 1-296
+packages/spine-core-3.8/src/spine-core/TransformConstraintData.ts
+  s_e8846e01229aa6::t_e032258a5c77d4 1-50
+packages/spine-core-3.8/src/spine-core/Triangulator.ts
+  s_e8846e01229aa6::t_e94bad23657521 1-269
+packages/spine-core-3.8/src/spine-core/Updatable.ts
+  s_e8846e01229aa6::t_a774c79a9bdaf6 1-10
+packages/spine-core-3.8/src/spine-core/Utils.ts
+  s_e8846e01229aa6::t_6e06b454268989 1-417
+packages/spine-core-3.8/src/spine-core/VertexEffect.ts
+  s_e8846e01229aa6::t_1bc39f5c7c62e0 1-8
+packages/spine-core-3.8/src/spine-core/attachments/Attachment.ts
+  s_e8846e01229aa6::t_764fc6889a4c8b 1-147
+packages/spine-core-3.8/src/spine-core/attachments/AttachmentLoader.ts
+  s_e8846e01229aa6::t_1a008e71cd6031 1-31
+packages/spine-core-3.8/src/spine-core/attachments/AttachmentType.ts
+  s_e8846e01229aa6::t_5708f4711c7de7 1-9
+packages/spine-core-3.8/src/spine-core/attachments/BoundingBoxAttachment.ts
+  s_e8846e01229aa6::t_8bd281ed494837 1-22
+packages/spine-core-3.8/src/spine-core/attachments/ClippingAttachment.ts
+  s_e8846e01229aa6::t_3888362f00c6b6 1-27
+packages/spine-core-3.8/src/spine-core/attachments/MeshAttachment.ts
+  s_e8846e01229aa6::t_d27eb24151e5c1 1-175
+packages/spine-core-3.8/src/spine-core/attachments/PathAttachment.ts
+  s_e8846e01229aa6::t_d860dea8d69ef9 1-36
+packages/spine-core-3.8/src/spine-core/attachments/PointAttachment.ts
+  s_e8846e01229aa6::t_53cde2262d4e01 1-46
+packages/spine-core-3.8/src/spine-core/attachments/RegionAttachment.ts
+  s_e8846e01229aa6::t_f9cd4d66db0858 1-211
+packages/spine-core-3.8/src/spine-core/index.ts
+  s_e8846e01229aa6::t_8e69793c4c76c9 1-50
+packages/spine-core-3.8/src/spine-core/polyfills.ts
+  s_e8846e01229aa6::t_f0e2bf2ea295ef 1-13
+packages/spine-core-3.8/src/spine-core/vertexeffects/JitterEffect.ts
+  s_e8846e01229aa6::t_12b915c6eb181f 1-22
+packages/spine-core-3.8/src/spine-core/vertexeffects/SwirlEffect.ts
+  s_e8846e01229aa6::t_e8e6a1533ec024 1-38
+packages/spine-core-3.8/tsconfig.json
+  s_e8846e01229aa6::t_2494f8d630ea3e 1-18
+packages/spine-core-4.2/package.json
+  s_e8846e01229aa6::t_abdb9995db4738 1-40
+packages/spine-core-4.2/src/Spine42Runtime.ts
+  s_e8846e01229aa6::t_f1f2256bae5723 1-122
+packages/spine-core-4.2/src/SpineGenerator.ts
+  s_e8846e01229aa6::t_ae0dd33dd839d9 1-168
+packages/spine-core-4.2/src/SpineTexture.ts
+  s_e8846e01229aa6::t_f3a583c3bcb1f8 1-48
+packages/spine-core-4.2/src/index.ts
+  s_e8846e01229aa6::t_e1c0226d3250f1 1-4
+packages/spine-core-4.2/tsconfig.json
+  s_e8846e01229aa6::t_611d4b59a43155 1-18
+packages/spine/README.md
+  s_e8846e01229aa6::t_9a669c2fb3c82b 1-193
+packages/spine/package.json
+  s_e8846e01229aa6::t_81c25a058e5bbb 2-10,12-19,21-37
+packages/spine/src/SpineAnimation.ts
+  s_e8846e01229aa6::t_cef021d8315d70 1-5
+packages/spine/src/SpineAnimationState.ts
+  s_e8846e01229aa6::t_de4b1c36575664 1-186
+packages/spine/src/SpineAnimationStateData.ts
+  s_e8846e01229aa6::t_f913b94e173187 1-28
+packages/spine/src/SpineAnimationStateListener.ts
+  s_e8846e01229aa6::t_436e4fa998e405 1-20
+packages/spine/src/SpineBone.ts
+  s_e8846e01229aa6::t_353994d4c43cca 1-81
+packages/spine/src/SpineConstant.ts
+  s_e8846e01229aa6::t_8781f5eca133fe 1-12
+packages/spine/src/SpinePhysics.ts
+  s_e8846e01229aa6::t_19c9f8674ff4ee 1-27
+packages/spine/src/SpinePhysicsConstraint.ts
+  s_e8846e01229aa6::t_5f8d89a50f5970 1-62
+packages/spine/src/SpineSkeleton.ts
+  s_e8846e01229aa6::t_e0b0f99203ddff 1-81
+packages/spine/src/SpineSkeletonData.ts
+  s_e8846e01229aa6::t_303ec70cb7a130 1-63
+packages/spine/src/SpineSkin.ts
+  s_e8846e01229aa6::t_0649c2097b3b43 1-30
+packages/spine/src/SpineSlot.ts
+  s_e8846e01229aa6::t_d4b6519ccc02af 1-30
+packages/spine/src/SpineTrackEntry.ts
+  s_e8846e01229aa6::t_d314186ad638d3 1-132
+packages/spine/src/enums/SpineBlendMode.ts
+  s_e8846e01229aa6::t_6be180c657fdf0 1-14
+packages/spine/src/index.ts
+  s_e8846e01229aa6::t_efc9bd353b764d 1-29
+packages/spine/src/loader/LoaderUtils.ts
+  s_e8846e01229aa6::t_17a8c35c42a1c6 1-113
+packages/spine/src/loader/SpineLoader.ts
+  s_e8846e01229aa6::t_fc234205710bd9 1-173
+packages/spine/src/loader/SpineResource.ts
+  s_e8846e01229aa6::t_6a2b1c89a4f577 1-118
+packages/spine/src/loader/SpineVersion.ts
+  s_e8846e01229aa6::t_7c181d3d06d3a5 1-37
+packages/spine/src/loader/index.ts
+  s_e8846e01229aa6::t_357adbd65fac43 1-3
+packages/spine/src/renderer/SpineAnimationRenderer.ts
+  s_e8846e01229aa6::t_777b242d1c076d 1-562
+packages/spine/src/renderer/SpineGeometry.ts
+  s_e8846e01229aa6::t_c2d138fde7a4a7 1-121
+packages/spine/src/renderer/SpineMaterial.ts
+  s_e8846e01229aa6::t_c2c2411bd9c2fb 1-18
+packages/spine/src/renderer/index.ts
+  s_e8846e01229aa6::t_b0f669f7945349 1-2
+packages/spine/src/runtime/ISpineRuntime.ts
+  s_e8846e01229aa6::t_6b2f3aa67c5c59 1-5
+packages/spine/tsconfig.json
+  s_e8846e01229aa6::t_d7cc8cac71017f 1-18
+packages/ui/package.json
+  s_e8846e01229aa6::t_6a6a213904ce35 3
+packages/ui/src/component/advanced/Text.ts
+  s_e8846e01229aa6::t_bb6139e02afba3 343-345
+packages/ui/src/index.ts
+  s_e8846e01229aa6::t_a8bfb79c96f958 75,82
+packages/xr-webxr/package.json
+  s_e8846e01229aa6::t_cb7ae76f0e1592 3
+packages/xr/package.json
+  s_e8846e01229aa6::t_2787f7af753393 3
+pnpm-lock.yaml
+  s_e8846e01229aa6::t_c20269c83293ff 140-145,182-184,188-196,219-221,289-297,303-305,309-311,315-342,344-349,353-359,394-396,421-423,427-435,927-929,2540,3672,3863,4504-4505
+rollup.config.js
+  s_e8846e01229aa6::t_991a9942ae996f 13-17,30,49-52,70-71,75-77,79,94,114-115,118,140,156-167,199-264,305,307,315-319
+tests/fixtures/shader-loader/protocol.shader
+  s_e8846e01229aa6::t_07720aa6f5ff51 1-8
+tests/fixtures/shader-loader/relative.shader
+  s_e8846e01229aa6::t_3cd40e08eca20f 1-8
+tests/fixtures/shader-loader/root.shader
+  s_e8846e01229aa6::t_a4d3a0b65ea81c 1-8
+tests/package-consumer/PublishedShaderPackages.test.ts
+  s_e8846e01229aa6::t_095e722ee194ba 1-746
+tests/package-consumer/fixtures/DeferredOwnershipRoundTrip.js
+  s_e8846e01229aa6::t_8e5458be084f11 1-147
+tests/package.json
+  s_e8846e01229aa6::t_e29d82f7d890e8 4,24,26,30-33
+tests/package/spine/README.md
+  s_e8846e01229aa6::t_34036a0b7950da 1-17
+tests/package/spine/browser.js
+  s_e8846e01229aa6::t_a72d50d5492081 1-79
+tests/package/spine/check.cjs
+  s_e8846e01229aa6::t_96b3e6903d5866 1-260
+tests/package/spine/consumer.ts
+  s_e8846e01229aa6::t_abbdfafdd70e56 1-74
+tests/src/core/Clone.test.ts
+  s_e8846e01229aa6::t_262abec819e2a2 2118-2119
+tests/src/core/Entity.test.ts
+  s_e8846e01229aa6::t_2ccba7c552a244 1,10
+tests/src/core/RenderPipeline/TextBatching.test.ts
+  s_e8846e01229aa6::t_26a2411819b65b 1-59
+tests/src/core/Shader.test.ts
+  s_e8846e01229aa6::t_21542277851958 19,22,24,29-42,50-53,221-323,451,453-455
+tests/src/core/ShaderDataClone.test.ts
+  s_e8846e01229aa6::t_8fd0ee5e6aef2b 1-246
+tests/src/core/ShaderDataRefCount.test.ts
+  s_e8846e01229aa6::t_40b6b6c757b87a 161,175,179
+tests/src/core/ShaderIdentity.test.ts
+  s_e8846e01229aa6::t_7b3c072e1ad721 1-137
+tests/src/core/Signal.test.ts
+  s_e8846e01229aa6::t_460ad8dea3a7d5 79,81
+tests/src/core/audio/AudioSourcePendingPlayback.test.ts
+  s_e8846e01229aa6::t_ca11e8fc2cdb0d 6,9,193-209
+tests/src/core/input/InputManager.test.ts
+  s_e8846e01229aa6::t_aada1237aab2a8 1,24
+tests/src/core/particle/InheritVelocity.test.ts
+  s_e8846e01229aa6::t_dd52677330f68c 1-596
+tests/src/core/particle/ParticleRenderer.test.ts
+  s_e8846e01229aa6::t_5761daf0f28bc8 5,7,11,14,18,74-302,320-335,437,440,443-449,452
+tests/src/core/particle/RateOverDistance.test.ts
+  s_e8846e01229aa6::t_441dc2e2c1ce9b 12-14,98,102,195,198,232,249,253-254,261,265,267-268,270,418
+tests/src/core/particle/RateOverTimeReplay.test.ts
+  s_e8846e01229aa6::t_54974f043a5147 2,6,19-21,23,146-210
+tests/src/core/particle/SizeOverLifetime.test.ts
+  s_e8846e01229aa6::t_13b9a5875ca6d8 24,120,134-135,145,159,186-187,221-222
+tests/src/core/particle/SubEmitter.test.ts
+  s_e8846e01229aa6::t_ce199c5915a231 2,10-11,18,24-29,31-33,37,52-53,56-88,94-2233,2235-2239,2241-2243,2245-2259,2262-2272,2275,2277,2282-2292,2298-2308,2312-2315,2317-2318,2320-2323,2329-2333,2336,2338,2340,2343-2346,2352-2359,2362-2366,2368-2388,2393-2412,2426,2442,2463,2481-2508,2514,2528,2552-2765,2784,2786-2789,2792,2794,2797-2800,2802-2805,2864,2867,2872,2898-2901,2916,2930,2934-2935,2976-2977,2994-2995,3020-3023,3026-3029,3037,3042-3044,3051-3053,3055-3057,3062,3065-3068,3070-3073,3081-3115,3181,3191-3196,3205-3440
+tests/src/core/particle/SubEmitterRendering.test.ts
+  s_e8846e01229aa6::t_3578324fc306b2 1-274
+tests/src/core/particle/VelocityOverLifetime.test.ts
+  s_e8846e01229aa6::t_fe6a55f8c18323 91-105,112,116,119,122,126-167,304,306,310,314,318,322
+tests/src/core/physics/ColliderLayer.test.ts
+  s_e8846e01229aa6::t_3644035b652389 1-167
+tests/src/core/physics/MeshColliderLayer.test.ts
+  s_e8846e01229aa6::t_116595df3339a7 1-150
+tests/src/core/postProcess/PostProcess.test.ts
+  s_e8846e01229aa6::t_308badebe00690 1,349
+tests/src/core/resource/ResourceManager.test.ts
+  s_e8846e01229aa6::t_3931ad67600991 208-209,318-393
+tests/src/core/shader/state/RenderState.test.ts
+  s_e8846e01229aa6::t_efc08b41471c81 8-9,46-67
+tests/src/loader/ImageDecoder.test.ts
+  s_e8846e01229aa6::t_0c6ebe54047030 1-172
+tests/src/loader/MaterialLoader.test.ts
+  s_e8846e01229aa6::t_8bf677f67ca50d 1,3,13,39-76,80-89,106-162,177-234,250,255,277-301
+tests/src/loader/ShaderLoader.test.ts
+  s_e8846e01229aa6::t_7fc9568600ef20 1-97
+tests/src/rhi-webgl/GLCapability.test.ts
+  s_e8846e01229aa6::t_785ea94d883c7e 1-33
+tests/src/shader-analyzer/AssignmentTargetScope.test.ts
+  s_e8846e01229aa6::t_afe180402a24d3 1-122
+tests/src/shader-analyzer/BranchAwareLookup.test.ts
+  s_e8846e01229aa6::t_f37743d89e3ac6 1-569
+tests/src/shader-analyzer/BranchDeclarationConflict.test.ts
+  s_e8846e01229aa6::t_712dbf0d5998ab 1-544
+tests/src/shader-analyzer/BranchResolutionAmbiguity.test.ts
+  s_e8846e01229aa6::t_7dfa0fd71eb959 1-199
+tests/src/shader-analyzer/BuiltinShaderSmoke.test.ts
+  s_e8846e01229aa6::t_36d58cfb0e8662 1-28
+tests/src/shader-analyzer/CallGraphCompleteness.test.ts
+  s_e8846e01229aa6::t_7e228509078e5b 1-171
+tests/src/shader-analyzer/DiagnosticCoverage.test.ts
+  s_e8846e01229aa6::t_c4edfb24d49a67 1-340
+tests/src/shader-analyzer/DiagnosticSmoke.test.ts
+  s_e8846e01229aa6::t_a6cdd1266ea2ec 1-427
+tests/src/shader-analyzer/InheritedStructVisibility.test.ts
+  s_e8846e01229aa6::t_eea1e84bb9516c 1-49
+tests/src/shader-analyzer/LoopReturnCoverage.test.ts
+  s_e8846e01229aa6::t_e4468aa2759697 1-67
+tests/src/shader-analyzer/MacroBranchMatrix.test.ts
+  s_e8846e01229aa6::t_3fb9a824e2f974 1-554
+tests/src/shader-analyzer/MacroProofBudget.test.ts
+  s_e8846e01229aa6::t_a189a83755702b 1-135
+tests/src/shader-analyzer/PreprocessorExpressionDiagnostics.test.ts
+  s_e8846e01229aa6::t_ff445727c6848a 1-178
+tests/src/shader-analyzer/ReviewRegression.test.ts
+  s_e8846e01229aa6::t_c4c451edb5f116 1-727
+tests/src/shader-analyzer/ShaderAnalyzer.test.ts
+  s_e8846e01229aa6::t_86b8249dcbbbe7 1-1558
+tests/src/shader-analyzer/ShaderIOAnalyzer.test.ts
+  s_e8846e01229aa6::t_db1cdce6546df3 1-396
+tests/src/shader-analyzer/ShaderPlayground.test.ts
+  s_e8846e01229aa6::t_2ed11fa226b17b 1-223
+tests/src/shader-analyzer/SymbolicReachability.test.ts
+  s_e8846e01229aa6::t_4d4dc6596d1452 1-319
+tests/src/shader-compiler/BranchCoverageScaling.test.ts
+  s_e8846e01229aa6::t_06c814156ee897 1-135
+tests/src/shader-compiler/CollectiveInheritance.test.ts
+  s_e8846e01229aa6::t_89cc2e41890bcd 1-367
+tests/src/shader-compiler/ConditionCoverageErrors.test.ts
+  s_e8846e01229aa6::t_c6621d7b30d974 1-54
+tests/src/shader-compiler/ConditionCoverageFallback.test.ts
+  s_e8846e01229aa6::t_3331a3d8711c15 1-528
+tests/src/shader-compiler/ConditionImplicationInheritance.test.ts
+  s_e8846e01229aa6::t_3656cd3436c611 1-677
+tests/src/shader-compiler/ConditionalIOCoverage.test.ts
+  s_e8846e01229aa6::t_e984d22c435eda 1-212
+tests/src/shader-compiler/ConditionalInheritance.test.ts
+  s_e8846e01229aa6::t_0d3c1539f2e7b6 1-311
+tests/src/shader-compiler/ConditionalOutputArguments.test.ts
+  s_e8846e01229aa6::t_c82af7f25ea5fa 1-174
+tests/src/shader-compiler/DeclarationIdentity.test.ts
+  s_e8846e01229aa6::t_cb4af739963b09 1-96
+tests/src/shader-compiler/DeferredStructOwnership.test.ts
+  s_e8846e01229aa6::t_44f2f7cbe65bcf 1-280
+tests/src/shader-compiler/DiagnosticDriverConsistency.test.ts
+  s_e8846e01229aa6::t_87b6fdf3339759 1-895
+tests/src/shader-compiler/DiscardStageDiagnostic.test.ts
+  s_e8846e01229aa6::t_ce6ded769a29ab 1-329
+tests/src/shader-compiler/ExternalConditionInheritance.test.ts
+  s_e8846e01229aa6::t_d424763233ca17 1-431
+tests/src/shader-compiler/ExternalMacroPrecedence.test.ts
+  s_e8846e01229aa6::t_9357242ccf34b1 1-103
+tests/src/shader-compiler/ForwardFunctionDeclarations.test.ts
+  s_e8846e01229aa6::t_707b9672edd409 1-315
+tests/src/shader-compiler/FunctionPrototypeLifetime.test.ts
+  s_e8846e01229aa6::t_ac9adb9a17b017 1-217
+tests/src/shader-compiler/HeadlessRegression.test.ts
+  s_e8846e01229aa6::t_aaa651f73d1f0f 1-204
+tests/src/shader-compiler/IncludeExpansionLimits.test.ts
+  s_e8846e01229aa6::t_1685bf8a4c16cb 1-84
+tests/src/shader-compiler/InterfaceMRTConversion.test.ts
+  s_e8846e01229aa6::t_186694cb623f3c 1-137
+tests/src/shader-compiler/InterfaceValueSemantics.test.ts
+  s_e8846e01229aa6::t_94ffd44394ddae 1-508
+tests/src/shader-compiler/LayeredInheritanceCoverage.test.ts
+  s_e8846e01229aa6::t_9cb3a323d7871e 1-137
+tests/src/shader-compiler/MacroBodyWriteEffects.test.ts
+  s_e8846e01229aa6::t_f8a17e69d9e8e6 1-217
+tests/src/shader-compiler/MacroBranchRuntime.test.ts
+  s_e8846e01229aa6::t_564cee8fac8c60 1-1592
+tests/src/shader-compiler/MacroTextExpansion.test.ts
+  s_e8846e01229aa6::t_6c6c0e38d110b1 1-151
+tests/src/shader-compiler/NameAllocator.test.ts
+  s_e8846e01229aa6::t_80688fd878e683 1-63
+tests/src/shader-compiler/ParticleFeedbackReturn.test.ts
+  s_e8846e01229aa6::t_62448d9852035d 1-96
+tests/src/shader-compiler/PlaygroundDiagnostics.test.ts
+  s_e8846e01229aa6::t_000f3d58e7b9ae 1-87
+tests/src/shader-compiler/Precompile.test.ts
+  s_e8846e01229aa6::t_46ab656a2f2ac5 1-8,11,27,37,331-336,398-399,477-481,523-535,895,918,935,937,939,948,980,987,1000,1002,1007-1011,1018,1037,1052,1068,1080,1125,1128,1169,1172,1195,1204,1212,1216,1222,1235-1237,1247,1260,1276,1294,1316,1328,1338-1341,1346-1347,1350-1351,1356,1380,1407,1432-1433,1439,1449,1458
+tests/src/shader-compiler/PrecompileABTest.test.ts
+  s_e8846e01229aa6::t_270ace93438f0c 19-20,23,35,119-120,122-123,143,169,189-210,222,309-319,332-394,413,483,510,536,571,601,624,626,631-634,656,658,663-666
+tests/src/shader-compiler/PrecompileBenchmark.test.ts
+  s_e8846e01229aa6::t_af1abc7b17c6d4 16,36,135-136,165,167,176,184,193,243,281,286-288,292,298,303,327
+tests/src/shader-compiler/PreprocessorCacheIdentity.test.ts
+  s_e8846e01229aa6::t_2c371755510ae5 1-209
+tests/src/shader-compiler/PreprocessorConditionConformance.test.ts
+  s_e8846e01229aa6::t_d57d8e4a0cfe1c 1-722
+tests/src/shader-compiler/PreprocessorReachability.test.ts
+  s_e8846e01229aa6::t_cc524459c0e87b 1-406
+tests/src/shader-compiler/ReturnStatementInvariant.test.ts
+  s_e8846e01229aa6::t_e4f7171a7d789b 1-64
+tests/src/shader-compiler/ShaderCompiler.test.ts
+  s_e8846e01229aa6::t_028d6c8cc0e588 8,13-15,18-29,37-42,52-229,231,288,388-391,406-408,423-425,450,457,473-500,507,509,518-519,526,528,538,541,544,546-555,557-561,564,568-569,571,585-586,593-607,638,640,644-651,654-658,661-665,668-672,695,700,710,715,740,743-959,983,985,1022,1024,1036,1049,1051,1060-1363
+tests/src/shader-compiler/ShaderConditionDiagram.test.ts
+  s_e8846e01229aa6::t_4427ec29b1fa4e 1-248
+tests/src/shader-compiler/ShaderMacroProcessorOwnership.test.ts
+  s_e8846e01229aa6::t_410dcb7a660764 1-323
+tests/src/shader-compiler/ShaderNeutralIR.test.ts
+  s_e8846e01229aa6::t_a323ff7b939644 1-470
+tests/src/shader-compiler/StandaloneAnalyzer.test.ts
+  s_e8846e01229aa6::t_1eb31c9fd44096 1-118
+tests/src/shader-compiler/StateIsolation.test.ts
+  s_e8846e01229aa6::t_0d5414615a9d5a 1-196
+tests/src/shader-compiler/TransformFeedbackNames.test.ts
+  s_e8846e01229aa6::t_8820c89df1edc2 1-166
+tests/src/shader-compiler/TypeDependencies.test.ts
+  s_e8846e01229aa6::t_28b8040094c24e 1-176
+tests/src/shader-compiler/expected/define-struct-access-global.frag.glsl
+  s_e8846e01229aa6::t_9a77488d8af3b6 1-3,5-7,10-11,13,16,18-19,21-22
+tests/src/shader-compiler/expected/define-struct-access-global.vert.glsl
+  s_e8846e01229aa6::t_e2d2c45fc73cea 2-5,8-14,16-18,20,23,26,28,30-35
+tests/src/shader-compiler/expected/define-struct-access.frag.glsl
+  s_e8846e01229aa6::t_4d6e69b8a13812 1-4,7-10,13-14,17,20-24
+tests/src/shader-compiler/expected/define-struct-access.vert.glsl
+  s_e8846e01229aa6::t_244d1b9c4879b5 2-5,8-15,18-22,24,27,30,33,35-39
+tests/src/shader-compiler/shaders/define-comment-with-dot.shader
+  s_e8846e01229aa6::t_f7b79b0933e803 10
+tests/src/shader-compiler/shaders/define-elif-polarity.shader
+  s_e8846e01229aa6::t_540b54c466549e 10
+tests/src/shader-compiler/shaders/define-in-comment-repro.shader
+  s_e8846e01229aa6::t_47b9060cf98264 4
+tests/src/shader-compiler/shaders/define-line-continuation-member-access.shader
+  s_e8846e01229aa6::t_4d6704bf9de00f 10
+tests/src/shader-compiler/shaders/define-line-continuation-repro.shader
+  s_e8846e01229aa6::t_3c64ce13114652 4
+tests/src/shader-compiler/shaders/define-mixed-form-repro.shader
+  s_e8846e01229aa6::t_8e6b4eef117d35 4-5
+tests/src/shader-compiler/shaders/define-multiline-params.shader
+  s_e8846e01229aa6::t_03bfa26c8fd6be 10
+tests/src/shader-compiler/shaders/digit-ending-id-repro.shader
+  s_e8846e01229aa6::t_38daee5d5a4ae6 4
+tests/src/shader-compiler/shaders/helper-signature-struct.shader
+  s_e8846e01229aa6::t_16ba3630f4a99a 1-34
+tests/src/shader-compiler/shaders/macro-member-access-builtin-arg.shader
+  s_e8846e01229aa6::t_0288ffcb9b0dd7 16
+tests/src/shader-compiler/shaders/macro-token-fragment-trailing-comma.shader
+  s_e8846e01229aa6::t_f2d3ac24d6da0d 1,6
+tests/src/shader-compiler/shaders/macro-token-fragment-unbalanced-bracket.shader
+  s_e8846e01229aa6::t_a8d7ca8aee2de5 1,6
+tests/src/shader-compiler/shaders/macro-token-fragment-unbalanced-paren.shader
+  s_e8846e01229aa6::t_34459ed6bdbf87 1,6
+tests/src/shader-compiler/shaders/macro-value-refs-with-comments.shader
+  s_e8846e01229aa6::t_6ffb93f0a57c0c 6
+tests/src/shader-compiler/shaders/macro-value-refs.shader
+  s_e8846e01229aa6::t_2ec050ba8a3abf 6,8,10,12,14
+tests/src/shader-compiler/shaders/multi-pass.shader
+  s_e8846e01229aa6::t_30427f595d4b4f 147
+tests/src/shader-compiler/shaders/paren-member-access-repro.shader
+  s_e8846e01229aa6::t_5a2c5237578135 9
+tests/src/shader-compiler/shaders/struct-based-attribute.shader
+  s_e8846e01229aa6::t_156119d727f279 1-38
+tests/src/shader-compiler/shaders/waterfull.shader
+  s_e8846e01229aa6::t_780f3def0e3dd2 258,268,294,305,401
+tests/src/spine/LoaderUtils.test.ts
+  s_e8846e01229aa6::t_1674750767247c 1-16
+tests/src/spine/SpineAlpha.test.ts
+  s_e8846e01229aa6::t_257ca7e54801e2 1-188
+tests/src/spine/SpineAnimationRenderer.test.ts
+  s_e8846e01229aa6::t_6ea6b0bbc5a710 1-59
+tests/src/spine/SpineConstant.test.ts
+  s_e8846e01229aa6::t_29f26c5b40bfa7 1-20
+tests/src/spine/SpineLoader.test.ts
+  s_e8846e01229aa6::t_08736dda105810 1-66
+tests/src/spine/SpineLoaderRuntime.test.ts
+  s_e8846e01229aa6::t_1c780c70d708db 1-108
+tests/src/spine/SpineMaterial.test.ts
+  s_e8846e01229aa6::t_8bccdbaccffd9e 1-26
+tests/src/spine/SpineResource.test.ts
+  s_e8846e01229aa6::t_e4e7ddc2048292 1-1205
+tests/src/spine/SpineTexture.test.ts
+  s_e8846e01229aa6::t_d9e0d5b2a4e038 1-44
+tests/src/spine/fixtures/3.8.atlas
+  s_e8846e01229aa6::t_3f989de50f1196 1-25
+tests/src/spine/fixtures/3.8.json
+  s_e8846e01229aa6::t_80a478a696dfad 1-74
+tests/src/spine/fixtures/4.2.atlas
+  s_e8846e01229aa6::t_4789313b7bc55b 1-25
+tests/src/spine/fixtures/4.2.json
+  s_e8846e01229aa6::t_8402d016ad1245 1-74
+tests/src/spine/fixtures/README.md
+  s_e8846e01229aa6::t_9b207cc011b1e6 1-7
+tests/src/spine/fixtures/alpha-3.8.json
+  s_e8846e01229aa6::t_85588561375084 1-174
+tests/src/spine/fixtures/alpha-4.2.json
+  s_e8846e01229aa6::t_296d293a8ac1db 1-174
+tests/src/spine/fixtures/alpha-straight.atlas
+  s_e8846e01229aa6::t_53cc880b4fb3cb 1-20
+tests/src/spine/fixtures/alpha.atlas
+  s_e8846e01229aa6::t_8341ba7f0f2e34 1-27
+tests/src/spine/fixtures/physics.atlas
+  s_e8846e01229aa6::t_af14a1294eb6f1 1-25
+tests/src/spine/fixtures/physics.json
+  s_e8846e01229aa6::t_fa73629447913c 1-69
+tests/src/spine/fixtures/sequence.atlas
+  s_e8846e01229aa6::t_4261503f6c998f 1-25
+tests/src/spine/fixtures/sequence.json
+  s_e8846e01229aa6::t_43fa2c71f9daf7 1-55
+tests/src/spine/fixtures/whitespace.atlas
+  s_e8846e01229aa6::t_0e1ee564fcfa29 1-25
+tests/src/spine/fixtures/whitespace.skel
+  s_e8846e01229aa6::t_bb6af6855442ca 1-62
+tests/src/utils/physics.ts
+  s_1269dd6d04f18b::t_57212babc57418 3-11,13-14
+tests/vitest.config.ts
+  s_e8846e01229aa6::t_f8f9b9b254c6bd 3,6,12,17-26,30,34,40
+tests/vitest.package-consumer.config.ts
+  s_e8846e01229aa6::t_02108ab95ed5b8 1-10
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "29ca08e7cec073e8713ffd1c9157e2ebf2b68b78",
+  "prompts": {},
+  "sessions": {
+    "s_1269dd6d04f18b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "a31010ab-a517-4d72-a2d4-926788c1898e",
+        "model": "claude-sonnet-5-5"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    },
+    "s_e8846e01229aa6": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "01a1d316-7cde-72de-a219-c1d0098585cf",
+        "model": "Kimi-K3.1-Pro:glink_domestic"
+      },
+      "human_author": null
+    }
+  }
+}
