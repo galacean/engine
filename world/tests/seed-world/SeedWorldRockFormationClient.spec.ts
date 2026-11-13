@@ -153,6 +153,22 @@ it("retains main and companion geometry when texture scale or rock color changes
   client.dispose();
 });
 
+it("caches individual atomic parameter seeds separately and reuses their exact replay", async () => {
+  vi.stubGlobal("Worker", TestWorker);
+  const client = new RockFormationClient(), signal = new AbortController().signal, current = settings();
+  const job: RockFormationJob = { ...localJob(), kind: "mountain", worldSeed: 499, atomicSeed: 11 };
+  const first = client.prepareJobs([job], current, signal), worker = TestWorker.instances[0];
+  worker.complete(0);
+  const original = await first;
+  const changed = client.prepareJobs([{ ...job, atomicSeed: 12 }], current, signal);
+  expect(worker.requests).toHaveLength(2);
+  worker.complete(1);
+  expect((await changed)[0]).not.toBe(original[0]);
+  expect((await client.prepareJobs([job], current, signal))[0]).toBe(original[0]);
+  expect(worker.requests).toHaveLength(2);
+  client.dispose();
+});
+
 it("reuses live scene meshes outside the history cache budget without hiding parameter changes", async () => {
   vi.stubGlobal("Worker", TestWorker);
   const client = new RockFormationClient(), signal = new AbortController().signal, current = settings();

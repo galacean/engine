@@ -97,6 +97,7 @@ export class RockFormationClient {
         job.seed,
         job.kind,
         job.worldSeed,
+        job.atomicSeed,
         job.origin,
         job.guides,
         job.surfaceGrass !== false,

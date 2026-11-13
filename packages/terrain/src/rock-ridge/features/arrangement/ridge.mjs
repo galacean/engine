@@ -39,13 +39,13 @@ export function createRidgeTarget(source,inputSeed=DEFAULT_RIDGE_SEED,options={}
 // A radial influence around every network edge makes one XZ-dependent height
 // envelope. It has falling flanks in both directions, rather than an extrusion
 // of the main profile. Near an edge its exact target height constrains the field.
-export function createRidgeField(source,plan){
+export function createRidgeEnvelope(source,plan){
  const ground=createSurfaceSampler(source,{},true),segments=[],cliff=source.id==='cliff',island=source.id==='island';
  const noise=plan.noise?createPerlinSource(source,plan.seed,plan.noise):null;
  for(const curve of plan.curves){
   const samples=curveSamples(curve,.85).map(s=>{
    const relief=Math.max(0,s.position[1]-ground(s.position[0],s.position[2]));
-   const width=(cliff?6+relief*.48:Math.min(island?18:27,(island?5:7)+relief*(island?.52:.66)))*(curve.kind==='branch'?.84:1);
+   const width=(cliff?6+relief*.48:Math.min(island?18:27,(island?5:7)+relief*(island?.52:.66)))*(curve.kind==='branch'?.84:1)*(plan.profile?.flankWidth??1);
    return {...s,relief,width};
   });
   for(let i=1;i<samples.length;i++)segments.push({a:samples[i-1],b:samples[i]});
@@ -64,6 +64,10 @@ export function createRidgeField(source,plan){
   if(noise)height+=noise.detail(x,z)*smooth01(nearest/5)*clamp((height-base)/4,0,1);
   return {height:Math.max(base,height),distance:nearest,yaw:nearYaw};
  }
+ return {direct,ground};
+}
+export function createRidgeField(source,plan){
+ const {direct,ground}=createRidgeEnvelope(source,plan);
  const pitch=.75,[x0,x1,z0,z1]=source.extent,nx=Math.ceil((x1-x0)/pitch)+1,nz=Math.ceil((z1-z0)/pitch)+1,px=(x1-x0)/(nx-1),pz=(z1-z0)/(nz-1),values=new Float32Array(nx*nz);
  for(let j=0;j<nz;j++)for(let i=0;i<nx;i++)values[j*nx+i]=direct(x0+i*px,z0+j*pz).height;
  function sample(x,z){

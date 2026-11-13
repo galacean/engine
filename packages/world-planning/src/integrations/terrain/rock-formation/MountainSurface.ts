@@ -11,6 +11,10 @@ import {
 } from "@galacean/engine-terrain/rock-ridge/features/shaping/rock-surface.mjs";
 import { transformedVertices } from "@galacean/engine-terrain/rock-ridge/ridge-utils.mjs";
 import {
+  MOUNTAIN_PROFILE_SOURCE,
+  mountainAtomicSeed
+} from "@galacean/engine-terrain/rock-ridge/features/arrangement/mountain-profile.mjs";
+import {
   fractureSmoothing,
   smoothFractureNormals
 } from "@galacean/engine-terrain/rock-ridge/features/shaping/rock-normals.mjs";
@@ -25,15 +29,7 @@ import { reduceMountainRock } from "./MountainRockReduction.ts";
 
 // This is a dimensionless authoring domain, not a stored mountain recipe. Each
 // topology is grown from its job seed, then mapped into the published OBB.
-const source = {
-  id: "peaks",
-  extent: [-56, 56, -41, 42],
-  rocks: [],
-  guides: [],
-  labels: [],
-  terrain: { positions: [-56, 0, -41, 56, 0, -41, 56, 0, 42, -56, 0, 42], indices: [0, 2, 1, 0, 3, 2] },
-  camera: { target: [0, 15, 0] }
-};
+const source = MOUNTAIN_PROFILE_SOURCE;
 
 /** BSP fragments are reduced without moving vertices. A 0.05% relative error
  * ceiling and explicit cut seams protect the rounded body and vertical cuts.
@@ -103,7 +99,12 @@ export function generateMountainSurface(
   settings: RockFormationSettings
 ): MountainSurface | undefined {
   const controls = settings.mountain;
-  if (job.kind !== "mountain" || !controls || (!controls.ridgeArrangement && !controls.rockShaping)) return;
+  if (
+    job.kind !== "mountain" ||
+    !controls ||
+    (!controls.ridgeArrangement && !controls.rockShaping && !controls.seededShapes && job.atomicSeed === undefined)
+  )
+    return;
   if (!pipeline || pipeline.budget !== settings.targetTriangles)
     pipeline = createMountainPipeline(settings.targetTriangles);
   const result = pipeline.build(
@@ -111,8 +112,8 @@ export function generateMountainSurface(
     {
       source,
       seed: job.seed,
-      atomSeed: job.worldSeed ?? job.seed,
-      arrangementMethod: controls.seededShapes ? "growth" : "ridge",
+      atomSeed: job.atomicSeed ?? (controls.seededShapes ? mountainAtomicSeed(job.seed) : (job.worldSeed ?? job.seed)),
+      arrangementMethod: controls.seededShapes ? "profile" : "ridge",
       mode: controls.ridgePerlin ? "perlin" : "direct",
       topology: { seeded: controls.ridgeSeededCounts, peaks: controls.ridgePeaks, branches: controls.ridgeBranches },
       noise: {
@@ -171,9 +172,7 @@ export function generateMountainSurface(
       const x = sourceNormals[i * 3] / (rock.longitudinalScale ?? 1);
       const y = sourceNormals[i * 3 + 1] / (rock.verticalScale ?? 1);
       const z = sourceNormals[i * 3 + 2] / (rock.lateralScale ?? 1);
-      const n = rock.frame
-        ? [0, 1, 2].map((d) => (rock.frame[0][d] * x + rock.frame[1][d] * y + rock.frame[2][d] * z) / scale[d])
-        : [(c * x - s * z) / scale[0], y / scale[1], (s * x + c * z) / scale[2]];
+      const n = [(c * x - s * z) / scale[0], y / scale[1], (s * x + c * z) / scale[2]];
       const length = Math.hypot(...n) || 1;
       for (let d = 0; d < 3; d++) cornerNormals[index * 3 + d] = n[d] / length;
       indices[index++] = vertex + body.geometry.indices[i];

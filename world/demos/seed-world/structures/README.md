@@ -1,29 +1,28 @@
-# Seeded structure examples
+# Seeded mountain peak variations
 
-Open `seed-world/index.html?view=structures&seed=498`, or use **10 seeded examples** in Seed World's rock formation panel. The standalone development entry is `seed-world/structures/index.html?seed=498`.
+Open `seed-world/index.html?view=structures&seed=499`, or use **10 mountain variations** in Seed World's rock formation panel. The standalone development entry is `seed-world/structures/index.html?seed=499`.
 
-A set seed generates 64 candidate spatial structures at runtime. A deterministic farthest-point selection chooses ten candidates using front, side and top silhouettes of their mass envelopes. Principal-axis alignment and coherent reflections prevent yaw-only copies from counting as different shapes. This is a diversity heuristic, not a guarantee that every seed yields ten equally interesting compositions.
+Every example stays within the existing mountain peak profile. One seed generates 64 mountain candidates at runtime, then chooses ten with different front, side and top silhouettes. There is no list of ten shape types or stored layouts. Reusing the set seed reproduces the ten results.
 
-There is no list of shape types or stored arrangement recipes. One stochastic graph-growth process varies node count, footprint anisotropy, radial concentration, height, breadth, connection density, fragmentation, curvature and clearance. Loops, branches, gaps and overhead connections emerge from those values. All supporting masses reach a common ground plane.
+The existing mountain network generates a dominant crown, lower secondary peaks, shared saddles, descending spurs and optional forks. A bounded profile variation changes footprint proportions, peak heights, saddle depth and flank width. The existing connected-rock fitter arranges broad atomic masses along that network; its contact checks and two-small-rock budget remain active. Arches, rings, detached towers and freeform graph structures are outside this generator's domain.
 
-The implementation is divided by responsibility:
+Implementation:
 
-- `packages/terrain/src/rock-ridge/features/arrangement/growth/plan.mjs`: seeded spatial graph and mass envelopes.
-- `diversity.mjs`: inexpensive three-view comparison and set selection, run in `Examples.worker.ts`.
-- `assemble.mjs`: fitting complete atomic rocks to the generated envelopes, including tilted 3D frames.
-- `features/arrangement/strategies.mjs`: injectable algorithm registry. The existing ridge algorithm remains available.
-- Seed World's existing `RockFormationClient` / `MountainSurface`: atomic generation, optional carving, corner normals, native OBB publication and materials.
+- `packages/terrain/src/rock-ridge/features/arrangement/mountain-profile.mjs` varies the existing mountain network and calls its existing fitter.
+- `mountain-examples.mjs` compares the same ridge envelopes used by the fitter, after principal-axis alignment, and selects runtime seeds. `Examples.worker.ts` runs selection off the UI thread.
+- `ridge.mjs` exposes the shared envelope independently of rasterization; ordinary ridge generation retains its existing behavior.
+- The native `RockFormationClient` / `MountainSurface` owns atomic generation, optional carving, corner normals, OBB publication and materials.
 
-All ten examples share the set's atomic library. Changing an arrangement seed does not rebuild or carve that library. Arrangement and shaping/carving remain independent. The **Seeded spatial shapes** setting also makes full-world mountain formations use this same growth algorithm; ordinary rocks retain their existing path. The generated proportions are uniformly fitted inside the published OBB, rather than stretched separately to fill its three axes.
+Each mountain owns a separate eight-rock atomic library and parameter set. Independent deterministic streams generate its ridge seed and atomic seed; width, height, crown scale, wear, wall relief and the other atomic parameters vary per example. The gallery lists primary-rock parameters for comparison. Arrangement and shaping/carving remain independently switchable; fracture controls are shared adjustments across the set. A per-job `atomicSeed` overrides `worldSeed` for the atomic library and participates in the native mesh cache key. Without an explicit override, mountain profile mode derives an individual library from each formation seed; standard ridge mode retains existing world-level sharing. Full-world mountains can use the same bounded variations through **Mountain profile variation**. The internal `seededShapes` setting key is retained for saved-document compatibility; it now selects the mountain profile strategy.
 
-The gallery offers a shared orbit camera, individual inspection, clay / original triplanar material, front / side / top views, live height, and the existing fracture controls. Generating again preserves the current camera and reproduces the set. **Next seed** generates a fresh set.
+The gallery retains individual inspection, shared orbit, clay / original triplanar material, front / side / top views, live height and fracture controls. Regeneration preserves the camera. The preview uniformly fits each mountain into its OBB so its generated proportions remain visible.
 
-The diversity proxy uses rounded mass envelopes, before costly carving. Final rocks remain overlapping individual meshes, not a boolean union. Visual inspection of the actual native meshes is still required when assessing a new generator revision.
+Selection compares the procedural envelope before fitting actual atoms. It is a diversity heuristic within the mountain family, not a guarantee of ten equally distinct final silhouettes for every seed. Final rocks overlap as individual meshes, not a boolean union.
 
 Validation:
 
 ```sh
-pnpm exec vitest run --config world/tests/seed-world/vitest.config.mjs SeedWorldSeededStructures SeedWorldMountainFeatures SeedWorldRockPanel
+pnpm exec vitest run --config world/tests/seed-world/vitest.config.mjs SeedWorldMountainProfiles SeedWorldMountainFeatures SeedWorldRockPanel SeedWorldRockFormationClient
 WORLD_DEMO=seed-world/structures pnpm --dir world build
 pnpm --dir world check:boundaries
 ```

@@ -27,13 +27,14 @@ import {
 import { MOUNTAIN_DEFAULTS } from "@galacean/engine-world-planning/integrations/terrain/rock-formation/MountainSettings";
 import { readRockColorBlend } from "@galacean/engine-world-planning/integrations/terrain/rock-formation/ColorPalette";
 import type { RockFormationJob, RockFormationMesh } from "@galacean/engine-terrain/rock-formation/types";
+import { runtimeRockRecipes } from "@galacean/engine-terrain/rock-ridge/features/shaping/atomic-rocks.mjs";
 import "./style.css";
 
 type Examples = {
   seed: number;
   candidateCount: number;
   minimumSeparation: number;
-  examples: Array<{ index: number; seed: number }>;
+  examples: Array<{ index: number; seed: number; atomicSeed: number }>;
 };
 type Entry = {
   entity: Entity;
@@ -46,9 +47,9 @@ type Entry = {
 /** A native Seed World inspection page. The same worker, publication mesh,
  * materials, corner normals and settings are used by the full world. */
 export async function mountStructureGallery(): Promise<void> {
-  document.title = "Seed World · Seeded structures";
+  document.title = "Seed World · Mountain peak variations";
   document.body.innerHTML = `<main id="structures">
-    <header><h1>Seeded rock structures</h1><a href="../index.html?seed=498&template=original&debug=1&view=3d" id="world-link">Seed World</a></header>
+    <header><h1>Mountain peak variations</h1><a href="../index.html?seed=498&template=original&debug=1&view=3d" id="world-link">Seed World</a></header>
     <div class="toolbar">
       <label>Set seed <input id="set-seed" aria-label="Set seed" type="number" min="0" max="4294967295" step="1" value="498"></label>
       <button id="generate">Generate 10</button><button id="next">Next seed</button>
@@ -65,9 +66,13 @@ export async function mountStructureGallery(): Promise<void> {
       <label>Irregularity <output id="irregularity-value">180%</output><input id="irregularity" aria-label="Fracture irregularity" type="range" min="0" max="200" step="10" value="180"></label>
       <label>Normal smoothing <output id="smoothing-value">100%</output><input id="smoothing" aria-label="Normal smoothing" type="range" min="0" max="100" step="5" value="100"></label>
     </div></details>
-    <p id="status" role="status" aria-live="polite">Generating ten different structures…</p>
-    <div id="viewport"><canvas id="structures-canvas" aria-label="Ten procedurally generated rock structures"></canvas><div id="labels"></div></div>
-    <p class="hint">Drag to orbit all views. Select an example to inspect it. The same seed reproduces the same ten structures.</p>
+    <p id="status" role="status" aria-live="polite">Generating ten mountain profiles…</p>
+    <details id="atomic-parameters"><summary>Individual rock parameter sets</summary>
+      <p>Each mountain owns eight atomic rock variants. These are the primary rock's parameters before fitting. Fracture sliders adjust all ten mountains.</p>
+      <div class="parameter-table"><table><thead><tr><th>Mountain</th><th>Rock seed</th><th>Width</th><th>Height</th><th>Crown scale</th><th>Wear</th><th>Wall count</th></tr></thead><tbody id="parameter-rows"></tbody></table></div>
+    </details>
+    <div id="viewport"><canvas id="structures-canvas" aria-label="Ten seeded mountain peak variations"></canvas><div id="labels"></div></div>
+    <p class="hint">Each mountain has its own seeded rock shapes and ridge profile. Drag to orbit; select an example to inspect it. The same set seed reproduces all ten.</p>
   </main>`;
   const root = document.getElementById("structures")!;
   const input = (id: string) => root.querySelector<HTMLInputElement>(`#${id}`)!;
@@ -124,7 +129,7 @@ export async function mountStructureGallery(): Promise<void> {
   }
   engine.canvas.setAutoResolution();
   const scene = engine.sceneManager.activeScene!,
-    sceneRoot = scene.createRootEntity("Seeded structure examples");
+    sceneRoot = scene.createRootEntity("Mountain peak variations");
   scene.background.solidColor = new Color(0.015, 0.02, 0.025, 1);
   scene.ambientLight.diffuseSolidColor = new Color(0.72, 0.76, 0.82, 1);
   scene.ambientLight.diffuseIntensity = 0.45;
@@ -265,17 +270,18 @@ export async function mountStructureGallery(): Promise<void> {
       viewport.setAttribute("aria-busy", "true");
       try {
         if (examples?.seed !== seed) {
-          status.textContent = "Growing and comparing seeded shapes…";
+          status.textContent = "Growing and comparing mountain profiles…";
           const next = await choose(seed);
           if (request !== sequence) continue;
           examples = next;
         }
-        status.textContent = "Building the ten rock structures…";
+        status.textContent = "Fitting connected rock masses to ten mountains…";
         const jobs: RockFormationJob[] = examples.examples.map((e) => ({
           id: `example-${e.index}`,
           kind: "mountain",
           seed: e.seed,
           worldSeed: seed,
+          atomicSeed: e.atomicSeed,
           surfaceGrass: false,
           origin: [0, 0, 0],
           guides: [
@@ -292,7 +298,13 @@ export async function mountStructureGallery(): Promise<void> {
             }
           ]
         }));
-        const result = await client.prepareJobs(jobs, configuration, generationAbort.signal);
+        const result: RockFormationMesh[] = [];
+        for (let i = 0; i < jobs.length; i++) {
+          if (request !== sequence || disposed) break;
+          status.textContent = `Generating mountain ${i + 1} / ${jobs.length}…`;
+          const [formation] = await client.prepareJobs([jobs[i]], configuration, generationAbort.signal);
+          result.push(formation);
+        }
         if (request !== sequence || disposed) continue;
         for (let i = 0; i < entries.length; i++) {
           const e = entries[i];
@@ -300,15 +312,24 @@ export async function mountStructureGallery(): Promise<void> {
           e.formation = result[i];
           e.surface = uploadRockFormationSurface(engine, e.entity, result[i], clay);
           e.label.dataset.seed = String(examples.examples[i].seed);
+          e.label.dataset.atomicSeed = String(examples.examples[i].atomicSeed);
           e.label.querySelector("button small")!.textContent = `Seed ${examples.examples[i].seed}`;
           const count = result[i].stats.bodies;
-          e.label.querySelector(".stats")!.textContent = `${count} ${count === 1 ? "mass" : "masses"}`;
+          const peaks = result[i].stats.ridgePeaks;
+          e.label.querySelector(".stats")!.textContent =
+            `${peaks ? `${peaks} ${peaks === 1 ? "peak" : "peaks"} · ` : ""}${count} ${count === 1 ? "mass" : "masses"}`;
         }
+        root.querySelector("#parameter-rows")!.innerHTML = examples.examples
+          .map((example) => {
+            const p = runtimeRockRecipes(example.atomicSeed).peak;
+            return `<tr><td>${String(example.index + 1).padStart(2, "0")}</td><td>${example.atomicSeed}</td><td>${p.obbWidth.toFixed(1)} m</td><td>${p.obbHeight.toFixed(1)} m</td><td>${Math.round(p.topScale * 100)}%</td><td>${Math.round(p.wear * 100)}%</td><td>${p.wallCount}</td></tr>`;
+          })
+          .join("");
         finish();
         cameras();
         viewport.dataset.setSeed = String(seed);
         viewport.dataset.exampleCount = "10";
-        status.textContent = `10 generated structures · Set ${seed} · ${configuration.mountain!.ridgeArrangement ? "Arrangement on" : "Arrangement off"} · ${configuration.mountain!.rockShaping ? "Carving on" : "Carving off"}`;
+        status.textContent = `10 mountain variations · Set ${seed} · ${configuration.mountain!.ridgeArrangement ? "Arrangement on" : "Arrangement off"} · ${configuration.mountain!.rockShaping ? "Carving on" : "Carving off"}`;
         const url = new URL(location.href);
         url.searchParams.set("seed", String(seed));
         history.replaceState(null, "", url);

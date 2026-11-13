@@ -37,8 +37,10 @@ export interface RockFormationJob {
   seed: number;
   /** Explicit planning role; streamed and decorative stones never receive ridge arrangements. */
   kind?: "mountain";
-  /** Atomic library seed shared by the world's mountains; topology still uses the job seed. */
+  /** Fallback atomic library seed for standard ridges; profile variations own individual libraries. */
   worldSeed?: number;
+  /** Optional explicit atomic parameter seed, overriding the arrangement strategy's default. */
+  atomicSeed?: number;
   /** Enables both grass substrate coverage and blade support; omitted keeps terrain-rock grass. */
   surfaceGrass?: boolean;
   origin: V3;
