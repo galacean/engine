@@ -84,7 +84,8 @@ export function generateRiverRegions(
   plan: IslandPlan,
   config: RiverParameters,
   local: Record<string, Partial<RiverParameters>>,
-  reservations: readonly ReturnType<typeof createPlanningRingQuery>[] = []
+  reservations: readonly ReturnType<typeof createPlanningRingQuery>[] = [],
+  baseGround?: (p: PlanPoint) => number
 ): PlanningCheck[] {
   const candidateCount = planningCandidateCount(plan.parameters.seed, "rivers:count", config, 1);
   // This stage rebuilds the complete water set. Retire profiles by the actual
@@ -95,7 +96,10 @@ export function generateRiverRegions(
   plan.bridges = [];
   plan.roadApproaches = []; // Derived road grading must never feed back into hydrology.
   plan.planning!.profiles = plan.planning!.profiles.filter((p) => !previousWaterIds.has(p.ownerId));
-  const ground = compositionReliefGround(plan.parameters.spatialComposition, createPlanningGroundSampler(plan)),
+  const ground = compositionReliefGround(
+      plan.parameters.spatialComposition,
+      createPlanningGroundSampler(plan, { baseGround })
+    ),
     owner = territoryLookup(plan),
     checks: PlanningCheck[] = [];
   const rules = (p: PlanPoint, base = config): RiverParameters => {
@@ -121,7 +125,12 @@ export function generateRiverRegions(
       Math.max(...outline.map((p) => p.x)) - Math.min(...outline.map((p) => p.x)),
       Math.max(...outline.map((p) => p.z)) - Math.min(...outline.map((p) => p.z))
     );
-  const domains = (plan.poiDistribution?.domains ?? [{ id: "land-main", outline: plan.land }])
+  const domains = (
+    plan.poiDistribution?.domains ??
+    (baseGround
+      ? [plan.land, ...plan.islands].map((outline, i) => ({ id: `land-${i}`, outline }))
+      : [{ id: "land-main", outline: plan.land }])
+  )
     .slice()
     .sort((a, b) => extent(b.outline) - extent(a.outline) || a.id.localeCompare(b.id));
   const requested = [

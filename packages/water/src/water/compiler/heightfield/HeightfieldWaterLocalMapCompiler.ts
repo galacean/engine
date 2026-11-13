@@ -115,6 +115,8 @@ export function compileHeightfieldWaterLocalMap(
   }
 
   if (descriptor.bedTerrain && descriptor.lakeBoundary) {
+    // This canonical pass replaces every raster depth, including its decode range.
+    maxDepth = 0;
     // GPU data remains a quantized raster field. Sample the canonical mixed-topology bed
     // at each texel centre; never reinterpret refinement vertices as bilinear cells.
     const minX = grid.originXZ[0] - grid.cellSizeXZ[0] * 0.5;
@@ -123,7 +125,14 @@ export function compileHeightfieldWaterLocalMap(
       sz = (grid.height * grid.cellSizeXZ[1]) / height;
     for (let z = 0; z < height; z++)
       for (let x = 0; x < width; x++) {
-        const bed = sampleWaterTerrainHeight(descriptor.bedTerrain, minX + (x + 0.5) * sx, minZ + (z + 0.5) * sz);
+        const px = minX + (x + 0.5) * sx,
+          pz = minZ + (z + 0.5) * sz;
+        // Only texels that can contribute to a rendered Lake sample need a depth range.
+        // Preserve a full bilinear footprint around the shore (including holes); distant
+        // neighbouring basins must not consume this Lake's RGBA8 depth precision.
+        const outsideSupport =
+          sampledLakeBoundary && sampleLakeSignedShoreDistance(sampledLakeBoundary.rings, px, pz) < -Math.hypot(sx, sz);
+        const bed = outsideSupport ? undefined : sampleWaterTerrainHeight(descriptor.bedTerrain, px, pz);
         const depth = bed === undefined ? 0 : Math.max(0, descriptor.lakeBoundary.waterLevel - bed);
         atlasDepth[z * width + x] = depth;
         maxDepth = Math.max(maxDepth, depth);

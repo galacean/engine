@@ -53,7 +53,8 @@ export function generateLakeRegions(
   plan: IslandPlan,
   config: LakeParameters,
   local: Record<string, Partial<LakeParameters>>,
-  reservations: readonly ReturnType<typeof createPlanningRingQuery>[] = []
+  reservations: readonly ReturnType<typeof createPlanningRingQuery>[] = [],
+  baseGround?: (p: PlanPoint) => number
 ): PlanningCheck[] {
   const candidateCount = planningCandidateCount(plan.parameters.seed, "lakes:count", config, 1);
   for (const key of ["radiusM", "depthM", "bankWidthM"] as const)
@@ -71,9 +72,23 @@ export function generateLakeRegions(
   if (!candidateCount && !manualIds.length) return [];
   // Site identity depends on base Terrain and the seeded initial corridors, never current river edits.
   const sitePlan: IslandPlan = { ...plan, waters: [], planning: { ...plan.planning!, profiles: [] } };
-  const ground = createPlanningGroundSampler(sitePlan, { natural: true });
-  if (candidateCount) generateRiverRegions(sitePlan, RIVER_DEFAULTS, {}, reservations);
-  const initialWaters = sitePlan.waters.map((w) => createPlanningRingQuery(w.outline));
+  // External generation must choose its datum after river mouths and their bank grading.
+  // Legacy editing retains its seeded, river-edit-independent site identity.
+  const ground = createPlanningGroundSampler(baseGround ? plan : sitePlan, { natural: true, baseGround });
+  const rimHeights = (ring: PlanPoint[]) => {
+    if (!baseGround) return ring.map(ground);
+    // Check between authored vertices too; the caller's external field can contain
+    // low saddles along an edge. Keep the same half-metre sampling for site and edit validation.
+    return ring.flatMap((a, i) => {
+      const b = ring[(i + 1) % ring.length];
+      const count = Math.max(1, Math.ceil(Math.hypot(b.x - a.x, b.z - a.z) / 0.5));
+      return Array.from({ length: count }, (_, j) =>
+        ground({ x: a.x + ((b.x - a.x) * j) / count, z: a.z + ((b.z - a.z) * j) / count })
+      );
+    });
+  };
+  if (candidateCount && !baseGround) generateRiverRegions(sitePlan, RIVER_DEFAULTS, {}, reservations);
+  const initialWaters = (baseGround ? plan.waters : sitePlan.waters).map((w) => createPlanningRingQuery(w.outline));
   const lands = [plan.land, ...plan.islands].map((outline) => createPlanningRingQuery(outline));
   const waters = plan.waters.map((w) => createPlanningRingQuery(w.outline));
   const candidates: Array<{ center: PlanPoint; level: number; score: number }> = [];
@@ -87,12 +102,12 @@ export function generateLakeRegions(
       if (reservations.some((area) => area.inside(center) || area.distance(center, margin) < margin)) continue;
       if (initialWaters.some((water) => water.inside(center) || water.distance(center, margin) < margin)) continue;
       const shore = circle(center, config.radiusM, phase);
-      const heights = shore.map(ground);
+      const heights = rimHeights(shore);
       // Keep a dry rim above the datum. Equality at the lowest rim creates a flat
       // spill saddle that R16 quantization can connect to neighbouring lowlands.
       // This chooses the initial automatic datum; edits never adjust an explicit datum.
       const level = Math.min(...heights) - 0.1;
-      if (level <= 0.1) continue;
+      if (!baseGround && level <= 0.1) continue;
       const basin = level - ground(center);
       if (!config.allowCarving && basin < config.depthM) continue;
       candidates.push({
@@ -193,7 +208,7 @@ export function generateLakeRegions(
       carved: cfg.allowCarving
     };
     if (shape.waterLevel > referenceLevel + 1e-6) throw new Error("M1 不支持超出湖岸的漫岸演算");
-    if (shape.waterLevel > Math.min(...outline.map(ground)) + 1e-6)
+    if (shape.waterLevel > Math.min(...rimHeights(outline)) + 1e-6)
       throw new Error(`湖泊 ${id} 的修改使水位高于岸顶；请显式降低水位`);
     for (const hole of holes) {
       const query = createPlanningRingQuery(hole),

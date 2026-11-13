@@ -88,11 +88,16 @@ export function compileNativeWaterConnections(inputs: readonly Input[]): Input[]
     const asset = configuration.asset.data,
       source = asset.source as { descriptor: Record<string, unknown> };
     const next: readonly WaterConnectionPort[] | undefined = ports[body.waterId];
-    if (hashStableValue(source.descriptor.connections ?? []) === hashStableValue(next ?? [])) return [];
-    const { connections: _old, ...descriptor } = source.descriptor;
+    // Ocean owns connection ports in its source config; River/Lake own them on the descriptor.
+    // Use the same location for comparison, publication and removal so disconnect also retires old ports.
+    const container =
+      asset.kind === "ocean" ? (source.descriptor.config as Record<string, unknown>) : source.descriptor;
+    if (hashStableValue(container.connections ?? []) === hashStableValue(next ?? [])) return [];
+    const { connections: _old, ...base } = container;
+    const connected = { ...base, ...(next?.length ? { connections: next } : {}) };
     const connectedSource = {
       ...source,
-      descriptor: { ...descriptor, ...(next?.length ? { connections: next } : {}) }
+      descriptor: asset.kind === "ocean" ? { ...source.descriptor, config: connected } : connected
     };
     const resource = new WaterBodyResource(
       body.engine,

@@ -1,3 +1,9 @@
+import generatedLake from "./fixtures/terrain-hydrology-lake.json";
+import { compileWaterShape, type WaterShapeAuthoring } from "../src/water/native/WaterAuthoring";
+import type { WaterTerrainSnapshot } from "../src/water/authoring/terrain/WaterTerrainSnapshot";
+import type { HeightfieldWaterDescriptorV1 } from "../src/water/authoring/heightfield/HeightfieldWaterDescriptor";
+import { WaterQualityTier } from "../src/water/authoring/wave/enums/WaterQualityTier";
+import { createLakeSpatialFieldBudget } from "../src/water/presets/lake/LakeWaterLook";
 import { expect, it, vi } from "vitest";
 import {
   AssetType,
@@ -241,6 +247,124 @@ it("renders a shared builtin lake at independent tiers and restores high after l
     a.authoring = { ...f.authoring, quality: { ...f.authoring.quality, surfaceShading: "high" } };
     await f.system.flushAuthoring();
     expect(materialFor(a).shader).toBe(highShader);
+    f.engine.update();
+  } finally {
+    await f.close();
+  }
+});
+
+it("activates a connected native river and Ocean, and removes the Ocean port on disconnect", async () => {
+  const f = await fixture("river");
+  try {
+    const file = await (await fetch(new URL("Water/Materials/ocean.mat", BUILTIN_WATER_PROJECT_URL))).json();
+    const material = await f.engine.resourceManager.load<Material>({
+      type: AssetType.Material,
+      url: "data:application/json," + encodeURIComponent(JSON.stringify(file))
+    });
+    const encoded = encodeWaterTerrainAssets({
+      id: "connected-bed",
+      revision: 1,
+      origin: [-64, -64],
+      spacing: 1,
+      columns: 129,
+      rows: 129,
+      heights: Array(129 * 129).fill(-2)
+    });
+    const description = new JSONAsset(f.engine),
+      heights = new BufferAsset(f.engine);
+    description.data = encoded.description;
+    heights.buffer = encoded.heights.buffer;
+    const accepted = { mode: "asset" as const, description, heights };
+    const ocean = f.scene.createRootEntity("Connected Ocean").addComponent(WaterBodyComponent);
+    ocean.authoring = {
+      ...f.authoring,
+      shape: {
+        kind: "ocean",
+        waterLevel: 0,
+        boundaryConnected: true,
+        layout: {
+          schemaVersion: 1,
+          kind: "ocean-surface-layout",
+          centerXZ: [0, 0],
+          size: 130,
+          surfaceTopology: "finite",
+          finitePatchGridSize: 16
+        }
+      },
+      material,
+      terrain: accepted,
+      quality: createWaterQualitySettings("ocean", { geometry: "low", surfaceShading: "low", query: "dense" })
+    };
+    const river = f.scene.createRootEntity("Connected River").addComponent(WaterBodyComponent);
+    river.authoring = {
+      ...f.authoring,
+      terrain: accepted,
+      connections: [
+        {
+          id: "mouth",
+          target: ocean,
+          section: [
+            [3, 5],
+            [5, 3]
+          ],
+          transitionLengths: [2, 2]
+        }
+      ]
+    };
+    f.resume();
+    await f.system.flushAuthoring();
+    await Promise.all([river.ready, ocean.ready]);
+    expect(river.lastError).toBeUndefined();
+    expect(ocean.lastError).toBeUndefined();
+    const connectedSource = ocean.configuration!.asset.data.source as any;
+    expect(connectedSource.descriptor.connections).toBeUndefined();
+    expect(connectedSource.descriptor.config.connections).toHaveLength(1);
+    f.engine.update();
+    expect(f.system.sample(4, 4).water).toBe(true);
+    river.authoring = { ...river.authoring!, connections: [] };
+    await f.system.flushAuthoring();
+    await Promise.all([river.ready, ocean.ready]);
+    expect(ocean.lastError).toBeUndefined();
+    expect((ocean.configuration!.asset.data.source as any).descriptor.config.connections).toBeUndefined();
+    expect(f.system.sample(10, 10).water).toBe(true);
+    f.engine.update();
+  } finally {
+    await f.close();
+  }
+});
+
+it("activates the real RG16 generated Lake with its data-derived precision budget", async () => {
+  const f = await fixture("lake");
+  try {
+    const bed = generatedLake.bed as unknown as WaterTerrainSnapshot;
+    const shape = generatedLake.shape as WaterShapeAuthoring;
+    const asset = compileWaterShape(shape, bed, generatedLake.id);
+    const source = asset.source as any,
+      representation = asset.representationData as any;
+    const descriptor = {
+      ...source.descriptor,
+      spatialField: representation.spatialField,
+      renderSurface: representation.renderSurface,
+      quality: WaterQualityTier.High
+    } as HeightfieldWaterDescriptorV1;
+    const budget = createLakeSpatialFieldBudget(descriptor);
+    expect(budget.maximumGpuDepthDecodeError).toBeGreaterThan(0.02);
+    const encoded = encodeWaterTerrainAssets(bed);
+    const description = new JSONAsset(f.engine),
+      heights = new BufferAsset(f.engine);
+    description.data = encoded.description;
+    heights.buffer = encoded.heights.buffer;
+    const body = f.scene.createRootEntity("Generated Lake").addComponent(WaterBodyComponent);
+    body.authoring = {
+      ...f.authoring,
+      shape,
+      terrain: { mode: "asset", description, heights },
+      quality: createWaterQualitySettings("lake", { spatialField: budget })
+    };
+    f.resume();
+    await f.system.flushAuthoring();
+    await body.ready;
+    expect(body.lastError).toBeUndefined();
     f.engine.update();
   } finally {
     await f.close();
