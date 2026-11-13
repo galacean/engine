@@ -40,7 +40,7 @@ beforeAll(async function () {
   @registerGLTFParser(GLTFParserType.Schema)
   class GLTFCustomJSONParser extends GLTFParser {
     parse(context: GLTFParserContext) {
-      if (context.glTFResource.url === "Assets/Models/Hero.gltf") {
+      if (context.glTFResource.url === "Assets/Models/Hero.gltf" || context.glTFResource.url.startsWith("blob:")) {
         return new GLTFSchemaParser().parse(context);
       }
 
@@ -649,6 +649,46 @@ describe("glTF Loader test", function () {
       delete (resourceManager as any)._virtualPathResourceMap[glTFVirtualPath];
       delete (resourceManager as any)._virtualPathResourceMap[bufferVirtualPath];
       requestSpy.mockRestore();
+    }
+  });
+
+  it("applies KHR_materials_emissive_strength to linear emissive RGB", async () => {
+    const extension = "KHR_materials_emissive_strength";
+    const emissiveFactor = [0.25, 0.5, 1];
+    const image = document.createElement("canvas");
+    image.width = image.height = 1;
+    const glTF = {
+      asset: { version: "2.0" },
+      extensionsUsed: [extension],
+      images: [{ uri: image.toDataURL() }],
+      textures: [{ source: 0 }],
+      materials: [
+        { emissiveFactor, emissiveTexture: { index: 0 }, extensions: { [extension]: { emissiveStrength: 4 } } },
+        { emissiveFactor, extensions: { [extension]: {} } },
+        { emissiveFactor, extensions: { [extension]: { emissiveStrength: 0 } } },
+        { extensions: { [extension]: { emissiveStrength: 4 } } },
+        { emissiveFactor }
+      ]
+    };
+    const url = URL.createObjectURL(new Blob([JSON.stringify(glTF)], { type: "model/gltf+json" }));
+    let resource: GLTFResource;
+
+    try {
+      resource = await engine.resourceManager.load<GLTFResource>({ type: AssetType.GLTF, url });
+      const materials = resource.materials as PBRMaterial[];
+
+      expect(materials.map((material) => material.emissiveColor)).toEqual([
+        new Color(1, 2, 4, 1),
+        new Color(0.25, 0.5, 1, 1),
+        new Color(0, 0, 0, 1),
+        new Color(0, 0, 0, 1),
+        new Color(0.25, 0.5, 1, 1)
+      ]);
+      expect(materials[0].emissiveTexture).toBe(resource.textures[0]);
+      expect(materials[0].emissiveTexture.isSRGBColorSpace).toBe(true);
+    } finally {
+      resource?.destroy();
+      URL.revokeObjectURL(url);
     }
   });
 

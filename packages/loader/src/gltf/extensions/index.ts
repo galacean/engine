@@ -1,5 +1,6 @@
 import "./KHR_lights_punctual";
 import "./KHR_materials_clearcoat";
+import "./KHR_materials_emissive_strength";
 import "./KHR_materials_ior";
 import "./KHR_materials_sheen";
 import "./KHR_materials_transmission";
