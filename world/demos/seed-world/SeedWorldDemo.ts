@@ -547,15 +547,10 @@ export async function mountSeedWorldDemo(
     engine.sceneManager.activeScene!?.destroy();
     const resize = () => {
       if (!canvas.clientWidth || !canvas.clientHeight) return;
-      // Keep the view's aspect ratio and small-screen pixel density, but bound
-      // HDR, bloom and reflection render targets on large Retina displays.
-      const dpr = Math.min(
-        window.devicePixelRatio || 1,
-        Math.sqrt(PLANNING_RUNTIME_OPTIONS.maxRenderPixels / (canvas.clientWidth * canvas.clientHeight))
-      );
+      const dpr = window.devicePixelRatio || 1;
       engine!.canvas.setResolution(
-        Math.max(1, Math.floor(canvas.clientWidth * dpr)),
-        Math.max(1, Math.floor(canvas.clientHeight * dpr))
+        Math.max(1, Math.round(canvas.clientWidth * dpr)),
+        Math.max(1, Math.round(canvas.clientHeight * dpr))
       );
       orb?.resize();
     };
