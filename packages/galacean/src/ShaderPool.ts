@@ -38,15 +38,13 @@ export class ShaderPool {
   }
 
   static createShaders(): BuiltinShaders {
-    const blit = Shader._createFromPrecompiled(BlitSource);
-    const blitScreen = Shader._createFromPrecompiled(BlitScreenSource);
     // Material shaders resolve UsePass references during creation
     Shader._createFromPrecompiled(ShadowCasterSource);
     Shader._createFromPrecompiled(DepthOnlySource);
 
     return {
-      blit,
-      blitScreen,
+      blit: Shader._createFromPrecompiled(BlitSource),
+      blitScreen: Shader._createFromPrecompiled(BlitScreenSource),
       pbr: Shader._createFromPrecompiled(PBRSource),
       blinnPhong: Shader._createFromPrecompiled(BlinnPhongSource),
       unlit: Shader._createFromPrecompiled(UnlitSource),
