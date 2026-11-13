@@ -336,36 +336,6 @@ export class WaterBodyAssetRegistry {
     return this._createLookAuthoringSnapshot(look, this._lookRevisions.get(id) ?? 0);
   }
 
-  /**
-   * Atomically publishes one complete shared Look revision. Component identities
-   * must stay stable; changing a referenced id is a structural Look replacement,
-   * not a live edit of the existing definition.
-   */
-  publishLookAuthoring(
-    draft: Readonly<WaterLookAuthoringDraft>,
-    expectedRevision: number
-  ): Readonly<WaterLookAuthoringSnapshot> {
-    const previous = this.getLookAuthoringSnapshot(draft.look.id);
-    if (!previous) {
-      throw new WaterBodyRegistryError(
-        WaterBodyRegistryErrorCode.MissingLookPreset,
-        "$.look.id",
-        `Water Look '${draft.look.id}' is not registered.`
-      );
-    }
-    if (previous.revision !== expectedRevision) {
-      throw new WaterBodyRegistryError(
-        WaterBodyRegistryErrorCode.LookRevisionConflict,
-        "$.revision",
-        `Water Look '${draft.look.id}' revision ${expectedRevision} is stale; active revision is ${previous.revision}.`
-      );
-    }
-    const normalized = this._normalizeLookAuthoringDraft(draft, previous);
-    const nextRevision = expectedRevision + 1;
-    this._publishNormalizedLookAuthoring(normalized, nextRevision);
-    return this._createLookAuthoringSnapshot(normalized.look, nextRevision);
-  }
-
   /** Validates and freezes a future Look revision without changing the active registry. */
   prepareLookAuthoring(
     draft: Readonly<WaterLookAuthoringDraft>,

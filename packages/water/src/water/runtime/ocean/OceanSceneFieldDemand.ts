@@ -16,17 +16,6 @@ export interface OceanSceneFieldCameraPosition {
   readonly z: number;
 }
 
-export interface OceanSceneFieldDemandInput {
-  readonly atlas: Readonly<OceanNearshoreStaticAtlas>;
-  readonly cameraPosition: Readonly<OceanSceneFieldCameraPosition>;
-  readonly waterLevel: number;
-  readonly maximumDisplacement: Readonly<{
-    readonly horizontalMagnitude: number;
-    readonly vertical: number;
-  }>;
-  readonly currentlyRequired: boolean;
-}
-
 export interface OceanSceneFieldDemandResult {
   readonly required: boolean;
   readonly reason: "detailed-closure" | "far-only";

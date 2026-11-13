@@ -128,13 +128,6 @@ export function waterSpatialFieldSnapshot(provider: WaterSpatialFieldSnapshot): 
   });
 }
 
-export interface WaterSpatialFieldOutsideEdges {
-  readonly negativeX: boolean;
-  readonly positiveX: boolean;
-  readonly negativeZ: boolean;
-  readonly positiveZ: boolean;
-}
-
 export const WATER_SPATIAL_FIELD_OUTSIDE_UNRESOLVED: WaterSpatialFieldOutsidePolicies = Object.freeze({
   negativeX: "unresolved",
   positiveX: "unresolved",
@@ -174,22 +167,4 @@ export function resetWaterSpatialFieldSample(sample: WaterSpatialFieldSample): v
   sample.shoreNormalZ = 0;
   sample.currentX = 0;
   sample.currentZ = 0;
-}
-
-/**
- * Deterministic corner rule: dry dominates wet, explicit wet dominates
- * unresolved, and an all-unresolved edge set remains unresolved.
- */
-export function resolveWaterSpatialFieldOutsidePolicy(
-  policies: WaterSpatialFieldOutsidePolicies,
-  outside: WaterSpatialFieldOutsideEdges
-): WaterSpatialFieldOutsidePolicy {
-  const selected: WaterSpatialFieldOutsidePolicy[] = [];
-  if (outside.negativeX) selected.push(policies.negativeX);
-  if (outside.positiveX) selected.push(policies.positiveX);
-  if (outside.negativeZ) selected.push(policies.negativeZ);
-  if (outside.positiveZ) selected.push(policies.positiveZ);
-  if (selected.includes("dry")) return "dry";
-  if (selected.includes("wet")) return "wet";
-  return "unresolved";
 }

@@ -28,20 +28,3 @@ export interface RiverNetworkQueryResult {
   flowVector: Vector3;
   surfaceNormal: Vector3;
 }
-
-/** Caller-owned structure-of-arrays output for allocation-free batch queries. */
-export interface RiverNetworkQueryBatchOutput {
-  readonly hits: Uint8Array;
-  readonly sourceKinds: Uint8Array;
-  readonly sourceIndices: Int32Array;
-  readonly insideFootprints: Uint8Array;
-  readonly insideVolumes: Uint8Array;
-  readonly surfaceHeights: Float32Array;
-  readonly surfaceVerticalVelocities: Float32Array;
-  readonly signedSurfaceDistances: Float32Array;
-  readonly submergedDepths: Float32Array;
-  readonly waterDepths: Float32Array;
-  readonly distancesToBank: Float32Array;
-  readonly flowVectors: Float32Array;
-  readonly surfaceNormals: Float32Array;
-}

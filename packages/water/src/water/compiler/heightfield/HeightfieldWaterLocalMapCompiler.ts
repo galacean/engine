@@ -1,3 +1,4 @@
+import { WaterReadonlyUint8Buffer } from "../shared/ReadonlyNumericBuffer";
 import { compileHeightfieldWaterShoreDistances } from "./HeightfieldWaterShoreDistanceCompiler";
 import { sampleWaterTerrainHeight } from "../../authoring/terrain/WaterTerrainSnapshot";
 import { sampleLakeSignedShoreDistance } from "../lake/LakeBoundaryCompiler";
@@ -5,7 +6,7 @@ import type { SampledLakeBoundary } from "../../authoring/lake/LakeBoundary";
 /** Deterministic RGBA8 flow/depth/signed-distance atlas compilation. */
 import type { HeightfieldWaterBasinTerrainCoverageV1 } from "../../authoring/heightfield/HeightfieldWaterTypes";
 import type { HeightfieldWaterDescriptorV1 } from "../../authoring/heightfield/HeightfieldWaterDescriptor";
-import { HeightfieldReadonlyUint8Buffer } from "./HeightfieldNumericBuffer";
+
 import { WaterBufferOwnership } from "../shared/WaterBufferOwnership";
 import type { HeightfieldWaterLocalMapAtlas } from "./HeightfieldWaterCompiledTypes";
 import { HEIGHTFIELD_WATER_ATLAS_MAX_EDGE } from "./constants";
@@ -202,7 +203,7 @@ export function compileHeightfieldWaterLocalMap(
   return Object.freeze({
     width,
     height,
-    pixels: new HeightfieldReadonlyUint8Buffer(pixels, WaterBufferOwnership.Transfer),
+    pixels: new WaterReadonlyUint8Buffer(pixels, WaterBufferOwnership.Transfer),
     worldToUv: Object.freeze([
       1 / worldWidth,
       1 / worldHeight,

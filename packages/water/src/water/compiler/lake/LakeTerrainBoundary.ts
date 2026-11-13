@@ -2,7 +2,6 @@ import { float32GridCell, sampleFloat32GridTriangle } from "@galacean/engine-ter
 import { LAKE_BOUNDARY_EPSILON } from "./LakeBoundaryCompiler";
 import {
   sampleBilinearGridHeight,
-  sampleWaterTerrainHeight,
   resolveWaterTerrainGrid,
   type WaterTerrainSnapshot
 } from "../../authoring/terrain/WaterTerrainSnapshot";
@@ -364,28 +363,4 @@ export function resolveLakeTerrainBoundary(
     maxSegmentLength: 2,
     queryCoverage: "boundary"
   };
-}
-
-/** Canonical bed height, including replacement triangles, edges and corners. Outside is invalid. */
-export function sampleLakeTerrainHeight(terrain: LakeTerrainView, x: number, z: number): number {
-  const { grid, heights } = terrain;
-  if (terrain.bedTerrain) {
-    if (
-      x < grid.originXZ[0] ||
-      z < grid.originXZ[1] ||
-      x > grid.originXZ[0] + (grid.width - 1) * grid.cellSizeXZ[0] ||
-      z > grid.originXZ[1] + (grid.height - 1) * grid.cellSizeXZ[1]
-    )
-      return Number.NaN;
-    return sampleWaterTerrainHeight(terrain.bedTerrain, x, z) ?? Number.NaN;
-  }
-  return (
-    sampleBilinearGridHeight(
-      heights,
-      grid.width,
-      grid.height,
-      (x - grid.originXZ[0]) / grid.cellSizeXZ[0],
-      (z - grid.originXZ[1]) / grid.cellSizeXZ[1]
-    ) ?? Number.NaN
-  );
 }

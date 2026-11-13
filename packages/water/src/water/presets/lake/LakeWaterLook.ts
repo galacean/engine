@@ -18,30 +18,16 @@ import { WaterSurfaceDepthSource } from "../../authoring/surface/enums/WaterSurf
 import { WaterQualityTier } from "../../authoring/wave/enums/WaterQualityTier";
 import { HEIGHTFIELD_WATER_AGGREGATION_SCALE } from "../../compiler/heightfield/constants";
 import { WaterBodyAssetRegistry } from "../../runtime/body/WaterBodyAssetRegistry";
-import {
-  LAKE_LOCAL_LOW_SURFACE_APPEARANCE_V2_ASSET,
-  LAKE_LOCAL_LOW_SURFACE_FIELDS_V2,
-  LAKE_LOCAL_MEDIUM_SURFACE_APPEARANCE_V2_ASSET,
-  LAKE_LOCAL_MEDIUM_SURFACE_FIELDS_V2
-} from "./LakeLocalBathymetryAppearanceV2";
-import { LAKE_SHOWCASE_OPTICAL_PROFILE } from "./LakeShowcaseOpticalProfile";
 import { LAKE_SURFACE_APPEARANCE_V2_ASSET } from "./LakeSurfaceAppearanceV2";
 import { LAKE_SURFACE_FIELD_DEPENDENCIES_V2 } from "./LakeSurfaceFieldDependencies";
 import { LAKE_WATER_OPTICAL_PROFILE, LAKE_WATER_REFLECTION_SAMPLING } from "./LakeWaterDefaults";
 import { LAKE_NORMAL_RESOURCE } from "../../resources/lake/LakeNormalAssetIdentity";
 
 export const LAKE_HYBRID_APPEARANCE_PRESET_ID = "grasslands-hybrid-surface-appearance-v2";
-export const LAKE_HYBRID_OPTICS_PRESET_ID = "grasslands-hybrid-optics-high-v2";
 export const LAKE_TERRAIN_OPTICS_PRESET_ID = "grasslands-terrain-optics-v1";
-export const LAKE_LOCAL_OPTICS_LOW_PRESET_ID = "grasslands-local-bathymetry-optics-low-v1";
-export const LAKE_LOCAL_OPTICS_MEDIUM_PRESET_ID = "grasslands-local-bathymetry-optics-medium-v1";
 export const LAKE_WATER_LOOK_PRESET_ID = "lake-water-look-v1";
-export const LAKE_LOW_WATER_LOOK_PRESET_ID = "lake-low-water-look-v1";
-export const LAKE_MEDIUM_WATER_LOOK_PRESET_ID = "lake-medium-water-look-v1";
 export const LAKE_WATER_REFLECTION_POLICY_PRESET_ID = "grasslands-reflection-policy-v1";
 export const LAKE_WATER_RENDER_STATE_PRESET_ID = "grasslands-render-state-v1";
-export const LAKE_LOCAL_LOW_APPEARANCE_V2_PRESET_ID = "grasslands-local-low-appearance-v2";
-export const LAKE_LOCAL_MEDIUM_APPEARANCE_V2_PRESET_ID = "grasslands-local-medium-appearance-v2";
 
 /** Integrated World and Seed World share SSR with Environment/IBL fallback. */
 export const LAKE_SCENE_REFLECTION_POLICY = createWaterReflectionPresentationPolicy("ssr");
@@ -75,82 +61,6 @@ function registerLakeAppearance(assets: WaterBodyAssetRegistry): void {
       directSpecular: true
     }
   });
-  assets.registerAppearancePreset({
-    schemaVersion: WaterBodyPresetSchemaVersion.V1,
-    id: LAKE_LOCAL_LOW_APPEARANCE_V2_PRESET_ID,
-    appearance: LAKE_LOCAL_LOW_SURFACE_APPEARANCE_V2_ASSET,
-    fieldDependencies: LAKE_LOCAL_LOW_SURFACE_FIELDS_V2,
-    featureFlags: {
-      externalNormal: true,
-      depthTint: true,
-      coastalAlpha: true,
-      contactFoam: true,
-      directSpecular: true
-    }
-  });
-  assets.registerAppearancePreset({
-    schemaVersion: WaterBodyPresetSchemaVersion.V1,
-    id: LAKE_LOCAL_MEDIUM_APPEARANCE_V2_PRESET_ID,
-    appearance: LAKE_LOCAL_MEDIUM_SURFACE_APPEARANCE_V2_ASSET,
-    fieldDependencies: LAKE_LOCAL_MEDIUM_SURFACE_FIELDS_V2,
-    featureFlags: {
-      externalNormal: true,
-      depthTint: true,
-      coastalAlpha: true,
-      contactFoam: true,
-      directSpecular: true
-    }
-  });
-}
-
-export function lakeOpticsPresetIdForQuality(tier: WaterQualityTier): string {
-  switch (tier) {
-    case WaterQualityTier.Low:
-      return LAKE_LOCAL_OPTICS_LOW_PRESET_ID;
-    case WaterQualityTier.Medium:
-      return LAKE_LOCAL_OPTICS_MEDIUM_PRESET_ID;
-    case WaterQualityTier.High:
-      return LAKE_HYBRID_OPTICS_PRESET_ID;
-  }
-}
-
-export function lakeLookPresetIdForQuality(tier: WaterQualityTier): string {
-  switch (tier) {
-    case WaterQualityTier.Low:
-      return LAKE_LOW_WATER_LOOK_PRESET_ID;
-    case WaterQualityTier.Medium:
-      return LAKE_MEDIUM_WATER_LOOK_PRESET_ID;
-    case WaterQualityTier.High:
-      return LAKE_WATER_LOOK_PRESET_ID;
-  }
-}
-
-export function registerLakeOptics(assets: WaterBodyAssetRegistry, tier: WaterQualityTier): string {
-  const id = lakeOpticsPresetIdForQuality(tier);
-  const optical = LAKE_SHOWCASE_OPTICAL_PROFILE;
-  assets.registerOpticsPreset({
-    schemaVersion: WaterBodyPresetSchemaVersion.V1,
-    id,
-    depthSource:
-      tier === WaterQualityTier.High
-        ? WaterSurfaceDepthSource.HybridOptionalSceneDepth
-        : WaterSurfaceDepthSource.LocalBathymetry,
-    profile: {
-      absorptionCoefficient: optical.absorptionCoefficient,
-      scatteringColor: optical.scatteringColor,
-      scatteringCoefficient: optical.scatteringCoefficient,
-      maximumViewDistance: optical.maximumViewDistance,
-      indexOfRefraction: optical.indexOfRefraction ?? 1.333,
-      fresnelF0: optical.fresnelF0,
-      maximumSurfaceOpticalDistance: optical.maximumSurfaceOpticalDistance ?? 64,
-      refractionStrength: optical.refractionStrength ?? 1,
-      roughness: optical.roughness ?? 0,
-      reflectionIntensity: optical.reflectionIntensity ?? 1
-    },
-    refractionEnabled: tier !== WaterQualityTier.Low,
-    caustics: false
-  });
-  return id;
 }
 
 function registerLakeTerrainOptics(assets: WaterBodyAssetRegistry): void {
@@ -196,7 +106,7 @@ function registerCanonicalLakeLook(assets: WaterBodyAssetRegistry): void {
   );
 }
 
-/** Canonical Lake Look shared by Gallery, Integrated World and SeedWorld; callers own Quality Plans. */
+/** Canonical Lake Look shared by Integrated World and SeedWorld; callers own Quality Plans. */
 export function registerLakeWaterLook(assets: WaterBodyAssetRegistry): void {
   registerLakeAppearance(assets);
   registerLakeTerrainOptics(assets);

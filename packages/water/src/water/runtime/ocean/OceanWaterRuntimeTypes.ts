@@ -4,9 +4,6 @@ import type { CompiledWaterRenderContractV1 } from "../../compiler/surface/Compi
 import type { OceanRuntimeTuning } from "./OceanRuntimeTuning";
 import type { OceanTextures } from "./OceanTextureLibrary";
 
-export type OceanSurfaceTopology = "finite";
-export type OceanCapabilityMode = "render-and-query";
-
 /** Engine-object-free Body source. Rendering parameters belong to the one canonical Look. */
 export interface OceanWaterSourceConfig {
   readonly connections?: readonly WaterConnectionPort[];
@@ -28,19 +25,4 @@ export interface OceanWaterRuntimeConfig extends OceanWaterSourceConfig {
   readonly textures: Readonly<OceanTextures>;
   readonly sceneFogEnabled: boolean;
   readonly surfaceTimeOverride?: number;
-}
-
-export interface OceanWaterRuntimeFeatureAvailability {
-  readonly environmentReflection: true;
-  readonly refraction: true;
-  readonly surfaceFoam: true;
-  readonly intersectionFoam: true;
-  readonly caustics: true;
-  readonly translucency: true;
-  readonly screenSpaceReflection: false;
-  readonly crestFoam: false;
-  readonly windField: false;
-  readonly surfaceQuery: true;
-  readonly temporalFoam: false;
-  readonly interaction: false;
 }

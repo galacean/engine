@@ -38,19 +38,9 @@ function smoothstep(edge0: number, edge1: number, value: number): number {
 
 export class RiverLocalCurrentSampler {
   private readonly _pixels: Uint8Array;
-  private _sampleCount = 0;
-  private _appliedCount = 0;
 
   constructor(private readonly _atlas: RiverLocalMapAtlasData) {
     this._pixels = _atlas.pixels.borrowTypedArray();
-  }
-
-  get sampleCount(): number {
-    return this._sampleCount;
-  }
-
-  get appliedCount(): number {
-    return this._appliedCount;
   }
 
   sample(
@@ -62,7 +52,6 @@ export class RiverLocalCurrentSampler {
     baseFlowZ: number,
     out: RiverLocalCurrentSample
   ): boolean {
-    this._sampleCount++;
     const baseSpeed = Math.hypot(baseFlowX, baseFlowZ);
     const inverseBaseSpeed = baseSpeed > 1e-8 ? 1 / baseSpeed : 0;
     const baseDirectionX = baseSpeed > 1e-8 ? baseFlowX * inverseBaseSpeed : 0;
@@ -113,7 +102,6 @@ export class RiverLocalCurrentSampler {
     out.finalFlowZ = finalDirectionZ * baseSpeed;
     out.localFlowWeight = localFlowWeight;
     out.normalizedSignedDistance = normalizedSignedDistance;
-    if (localFlowWeight > 0) this._appliedCount++;
     return true;
   }
 

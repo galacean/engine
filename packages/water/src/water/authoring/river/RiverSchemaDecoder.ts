@@ -4,9 +4,7 @@ import { decodeWaterConnectionPorts } from "../connections/WaterConnection";
  * Strict river input decoding and typed value normalization.
  *
  * External JSON is decoded from unknown before it can reach runtime code. Typed
- * normalization is a separate stage: Strict is the default and never mutates bad
- * data; PreviewRepair is opt-in and records every clamp, generated id, or dropped
- * point as a stable diagnostic.
+ * normalization validates values and reports invalid input without repairing it.
  */
 import {
   RiverDirectionMode,
@@ -15,14 +13,12 @@ import {
   RiverNetworkSchemaVersion,
   RiverNodeKind,
   RiverPathMode,
-  RiverQualityLevel,
-  RiverValidationMode
+  RiverQualityLevel
 } from "./RiverAuthoringEnums";
 import { RIVER_LIMITS, RIVER_MATERIAL_PRESET_CONFIG } from "./RiverAuthoringLimits";
 import {
   RiverAuthoringConfig,
   RiverPathControlPoint,
-  RiverValidationOptions,
   RiverValidationResult,
   Vector3Tuple
 } from "./RiverAuthoringTypes";
@@ -427,19 +423,14 @@ function sanitizeTuple(point: Vector3Tuple): Vector3Tuple {
   ];
 }
 
-function normalizeTuple(
-  point: Vector3Tuple,
-  path: string,
-  diagnostics: RiverDiagnostic[],
-  mode: RiverValidationMode
-): Vector3Tuple {
+function normalizeTuple(point: Vector3Tuple, path: string, diagnostics: RiverDiagnostic[]): Vector3Tuple {
   const repaired = sanitizeTuple(point);
   for (let i = 0; i < point.length; i++) {
     if (!Number.isFinite(point[i])) {
       pushDiagnostic(
         diagnostics,
         RiverDiagnosticCode.InvalidNumber,
-        mode === RiverValidationMode.Strict ? RiverDiagnosticSeverity.Error : RiverDiagnosticSeverity.Warning,
+        RiverDiagnosticSeverity.Error,
         `${path}[${i}]`,
         "Expected a finite coordinate.",
         point[i],
@@ -447,21 +438,14 @@ function normalizeTuple(
       );
     }
   }
-  return mode === RiverValidationMode.PreviewRepair ? repaired : [point[0], point[1], point[2]];
+  return [point[0], point[1], point[2]];
 }
 
 function distanceXZ(a: RiverPathControlPoint, b: RiverPathControlPoint): number {
   return Math.hypot(a.position[0] - b.position[0], a.position[2] - b.position[2]);
 }
 
-function repairNumber(
-  value: number,
-  min: number,
-  max: number,
-  path: string,
-  diagnostics: RiverDiagnostic[],
-  mode: RiverValidationMode
-): number {
+function repairNumber(value: number, min: number, max: number, path: string, diagnostics: RiverDiagnostic[]): number {
   if (Number.isFinite(value) && value >= min && value <= max) {
     return value;
   }
@@ -469,29 +453,25 @@ function repairNumber(
   pushDiagnostic(
     diagnostics,
     Number.isFinite(value) ? RiverDiagnosticCode.ValueOutOfRange : RiverDiagnosticCode.InvalidNumber,
-    mode === RiverValidationMode.Strict ? RiverDiagnosticSeverity.Error : RiverDiagnosticSeverity.Warning,
+    RiverDiagnosticSeverity.Error,
     path,
     `Expected a finite value in [${min}, ${max}].`,
     value,
     repaired
   );
-  return mode === RiverValidationMode.PreviewRepair ? repaired : value;
+  return value;
 }
 
 function isHexColor(value: string): boolean {
   return /^#[0-9a-fA-F]{6}$/.test(value);
 }
 
-function normalizeTypedRiverConfig(
-  config: RiverAuthoringConfig,
-  mode: RiverValidationMode,
-  diagnostics: RiverDiagnostic[]
-): RiverAuthoringConfig {
-  let points: RiverPathControlPoint[] = config.path.points.map((point, index) => ({
+function normalizeTypedRiverConfig(config: RiverAuthoringConfig, diagnostics: RiverDiagnostic[]): RiverAuthoringConfig {
+  const points: RiverPathControlPoint[] = config.path.points.map((point, index) => ({
     ...point,
-    position: normalizeTuple(point.position, `path.points[${index}].position`, diagnostics, mode),
-    in: point.in ? normalizeTuple(point.in, `path.points[${index}].in`, diagnostics, mode) : undefined,
-    out: point.out ? normalizeTuple(point.out, `path.points[${index}].out`, diagnostics, mode) : undefined
+    position: normalizeTuple(point.position, `path.points[${index}].position`, diagnostics),
+    in: point.in ? normalizeTuple(point.in, `path.points[${index}].in`, diagnostics) : undefined,
+    out: point.out ? normalizeTuple(point.out, `path.points[${index}].out`, diagnostics) : undefined
   }));
   if (points.length < RIVER_LIMITS.minPointCount) {
     pushDiagnostic(
@@ -515,43 +495,40 @@ function normalizeTypedRiverConfig(
   const normalizedPoints: RiverPathControlPoint[] = [];
   for (let i = 0; i < points.length; i++) {
     const point = points[i];
-    let id = point.id.trim();
+    const id = point.id.trim();
     if (!id) {
       const repairedId = `river-point-${i}`;
       pushDiagnostic(
         diagnostics,
         RiverDiagnosticCode.ControlPointRepaired,
-        mode === RiverValidationMode.Strict ? RiverDiagnosticSeverity.Error : RiverDiagnosticSeverity.Warning,
+        RiverDiagnosticSeverity.Error,
         `path.points[${i}].id`,
         "Control point id is empty.",
         point.id,
         repairedId
       );
-      if (mode === RiverValidationMode.PreviewRepair) id = repairedId;
     }
     if (usedIds.has(id)) {
       const repairedId = `${id}-${i}`;
       pushDiagnostic(
         diagnostics,
         RiverDiagnosticCode.DuplicateId,
-        mode === RiverValidationMode.Strict ? RiverDiagnosticSeverity.Error : RiverDiagnosticSeverity.Warning,
+        RiverDiagnosticSeverity.Error,
         `path.points[${i}].id`,
         "Control point id is duplicated.",
         id,
         repairedId
       );
-      if (mode === RiverValidationMode.PreviewRepair) id = repairedId;
     }
     usedIds.add(id);
     if (i > 0 && distanceXZ(points[i - 1], point) <= 0.001) {
       pushDiagnostic(
         diagnostics,
         RiverDiagnosticCode.DegenerateControlPoint,
-        mode === RiverValidationMode.Strict ? RiverDiagnosticSeverity.Error : RiverDiagnosticSeverity.Warning,
+        RiverDiagnosticSeverity.Error,
         `path.points[${i}].position`,
         "Adjacent control points are coincident."
       );
-      if (mode === RiverValidationMode.PreviewRepair && i < points.length - 1) continue;
     }
     normalizedPoints.push({
       ...point,
@@ -567,8 +544,7 @@ function normalizeTypedRiverConfig(
               config.path.semantics === "resolved-path" ? Number.MIN_VALUE : RIVER_LIMITS.minWidth,
               RIVER_LIMITS.maxWidth,
               `path.points[${i}].width`,
-              diagnostics,
-              mode
+              diagnostics
             ),
       depth:
         point.depth === undefined
@@ -578,8 +554,7 @@ function normalizeTypedRiverConfig(
               RIVER_LIMITS.minDepth,
               RIVER_LIMITS.maxDepth,
               `path.points[${i}].depth`,
-              diagnostics,
-              mode
+              diagnostics
             ),
       flowSpeed:
         point.flowSpeed === undefined
@@ -589,8 +564,7 @@ function normalizeTypedRiverConfig(
               RIVER_LIMITS.minFlowSpeed,
               RIVER_LIMITS.maxFlowSpeed,
               `path.points[${i}].flowSpeed`,
-              diagnostics,
-              mode
+              diagnostics
             ),
       bankFeather:
         point.bankFeather === undefined
@@ -600,8 +574,7 @@ function normalizeTypedRiverConfig(
               RIVER_LIMITS.minBankFeather,
               RIVER_LIMITS.maxBankFeather,
               `path.points[${i}].bankFeather`,
-              diagnostics,
-              mode
+              diagnostics
             )
     });
   }
@@ -615,7 +588,7 @@ function normalizeTypedRiverConfig(
     pushDiagnostic(
       diagnostics,
       RiverDiagnosticCode.InvalidType,
-      mode === RiverValidationMode.Strict ? RiverDiagnosticSeverity.Error : RiverDiagnosticSeverity.Warning,
+      RiverDiagnosticSeverity.Error,
       "material.baseColor",
       "Expected #RRGGBB color.",
       config.material.baseColor,
@@ -626,7 +599,7 @@ function normalizeTypedRiverConfig(
     pushDiagnostic(
       diagnostics,
       RiverDiagnosticCode.InvalidType,
-      mode === RiverValidationMode.Strict ? RiverDiagnosticSeverity.Error : RiverDiagnosticSeverity.Warning,
+      RiverDiagnosticSeverity.Error,
       "material.foamColor",
       "Expected #RRGGBB color.",
       config.material.foamColor,
@@ -643,34 +616,18 @@ function normalizeTypedRiverConfig(
         Number.MIN_VALUE,
         Number.MAX_VALUE,
         "path.segmentLength",
-        diagnostics,
-        mode
+        diagnostics
       )
     },
     shape: {
-      width: repairNumber(
-        config.shape.width,
-        RIVER_LIMITS.minWidth,
-        RIVER_LIMITS.maxWidth,
-        "shape.width",
-        diagnostics,
-        mode
-      ),
-      depth: repairNumber(
-        config.shape.depth,
-        RIVER_LIMITS.minDepth,
-        RIVER_LIMITS.maxDepth,
-        "shape.depth",
-        diagnostics,
-        mode
-      ),
+      width: repairNumber(config.shape.width, RIVER_LIMITS.minWidth, RIVER_LIMITS.maxWidth, "shape.width", diagnostics),
+      depth: repairNumber(config.shape.depth, RIVER_LIMITS.minDepth, RIVER_LIMITS.maxDepth, "shape.depth", diagnostics),
       bankFeather: repairNumber(
         config.shape.bankFeather,
         RIVER_LIMITS.minBankFeather,
         RIVER_LIMITS.maxBankFeather,
         "shape.bankFeather",
-        diagnostics,
-        mode
+        diagnostics
       )
     },
     flow: {
@@ -680,29 +637,26 @@ function normalizeTypedRiverConfig(
         RIVER_LIMITS.minFlowSpeed,
         RIVER_LIMITS.maxFlowSpeed,
         "flow.speed",
-        diagnostics,
-        mode
+        diagnostics
       )
     },
     material: {
       ...config.material,
-      baseColor: mode === RiverValidationMode.PreviewRepair ? baseColor : config.material.baseColor,
-      foamColor: mode === RiverValidationMode.PreviewRepair ? foamColor : config.material.foamColor,
+      baseColor: config.material.baseColor,
+      foamColor: config.material.foamColor,
       foamIntensity: repairNumber(
         config.material.foamIntensity,
         RIVER_LIMITS.minFoamIntensity,
         RIVER_LIMITS.maxFoamIntensity,
         "material.foamIntensity",
-        diagnostics,
-        mode
+        diagnostics
       ),
       clarity: repairNumber(
         config.material.clarity,
         RIVER_LIMITS.minClarity,
         RIVER_LIMITS.maxClarity,
         "material.clarity",
-        diagnostics,
-        mode
+        diagnostics
       )
     },
     quality: {
@@ -718,8 +672,7 @@ function normalizeTypedRiverConfig(
                   1,
                   Number.MAX_SAFE_INTEGER,
                   "quality.geometry.maxSegmentCount",
-                  diagnostics,
-                  mode
+                  diagnostics
                 )
               ),
         maxChordError: repairNumber(
@@ -727,8 +680,7 @@ function normalizeTypedRiverConfig(
           Number.MIN_VALUE,
           Number.MAX_VALUE,
           "quality.geometry.maxChordError",
-          diagnostics,
-          mode
+          diagnostics
         )
       }
     }
@@ -741,13 +693,9 @@ export function estimateRiverLength(points: RiverPathControlPoint[]): number {
   return length;
 }
 
-export function validateRiverConfig(
-  config: RiverAuthoringConfig,
-  options: RiverValidationOptions = {}
-): RiverValidationResult<RiverAuthoringConfig> {
-  const mode = options.mode ?? RiverValidationMode.Strict;
+export function validateRiverConfig(config: RiverAuthoringConfig): RiverValidationResult<RiverAuthoringConfig> {
   const diagnostics: RiverDiagnostic[] = [];
-  const value = normalizeTypedRiverConfig(config, mode, diagnostics);
+  const value = normalizeTypedRiverConfig(config, diagnostics);
   const length = estimateRiverLength(value.path.points);
   if (length < value.shape.width * RIVER_LIMITS.minRiverLengthFactor) {
     pushDiagnostic(
@@ -759,31 +707,9 @@ export function validateRiverConfig(
     );
   }
   return {
-    value: hasErrors(diagnostics) && mode === RiverValidationMode.Strict ? undefined : value,
+    value: hasErrors(diagnostics) ? undefined : value,
     diagnostics,
     valid: !hasErrors(diagnostics)
-  };
-}
-
-/** Explicit preview-only repair retained for GUI authoring. Runtime ingestion should use validateRiverConfig. */
-export function normalizeRiverConfig(config: RiverAuthoringConfig): RiverAuthoringConfig {
-  const result = validateRiverConfig(config, { mode: RiverValidationMode.PreviewRepair });
-  if (!result.value) throw new Error("Preview repair could not produce a river config.");
-  return result.value;
-}
-
-export function decodeRiverConfig(
-  input: unknown,
-  options: RiverValidationOptions = {}
-): RiverValidationResult<RiverAuthoringConfig> {
-  const diagnostics: RiverDiagnostic[] = [];
-  validateRiverConfigShape(input, "$", diagnostics);
-  if (hasErrors(diagnostics)) return { diagnostics, valid: false };
-  const typedResult = validateRiverConfig(input as RiverAuthoringConfig, options);
-  return {
-    value: typedResult.value,
-    diagnostics: [...diagnostics, ...typedResult.diagnostics],
-    valid: typedResult.valid
   };
 }
 
@@ -823,10 +749,4 @@ export function decodeRiverNetworkDescriptor(input: unknown): RiverValidationRes
     value = { ...value, surfaceAuthority: "water-resolved" };
   }
   return { value, diagnostics, valid: true };
-}
-
-export function getRiverConfigWarnings(config: RiverAuthoringConfig): string[] {
-  return validateRiverConfig(config)
-    .diagnostics.filter((diagnostic) => diagnostic.severity !== RiverDiagnosticSeverity.Info)
-    .map((diagnostic) => `${diagnostic.code}: ${diagnostic.message}`);
 }

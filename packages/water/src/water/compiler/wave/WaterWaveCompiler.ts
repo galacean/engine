@@ -1,3 +1,4 @@
+import { WaterReadonlyFloat32Buffer } from "../shared/ReadonlyNumericBuffer";
 /** Deterministic WaterWaveAsset compiler shared by CPU queries and GPU materials. */
 import {
   WATER_WAVE_COMPILER_VERSION,
@@ -16,7 +17,7 @@ import type {
   WaterWaveAssetV1,
   WaterWaveDiagnostic
 } from "../../authoring/wave/WaterWaveTypes";
-import { RiverReadonlyFloat32Buffer } from "../shared/ReadonlyNumericBuffer";
+
 import { WaterBufferOwnership } from "../shared/WaterBufferOwnership";
 import { hashStableValue } from "../shared/determinism";
 import { generateGerstnerWaveCandidates } from "./GerstnerWaveGenerator";
@@ -136,7 +137,7 @@ function compileNone(asset: WaterWaveAssetV1, diagnostics: readonly WaterWaveDia
     activeWaveCount: 0,
     shaderWaveCount: 0,
     waves,
-    packedShaderData: new RiverReadonlyFloat32Buffer([]),
+    packedShaderData: new WaterReadonlyFloat32Buffer([]),
     maxVerticalDisplacement: 0,
     maxHorizontalDisplacement: 0,
     sourceHash: hashStableValue({
@@ -198,7 +199,7 @@ function compilePhysicalWaterWaveAssetWithinLimit(
     activeWaveCount: waves.length,
     shaderWaveCount,
     waves,
-    packedShaderData: new RiverReadonlyFloat32Buffer(packed, WaterBufferOwnership.Transfer),
+    packedShaderData: new WaterReadonlyFloat32Buffer(packed, WaterBufferOwnership.Transfer),
     maxVerticalDisplacement,
     maxHorizontalDisplacement,
     sourceHash: hashStableValue({

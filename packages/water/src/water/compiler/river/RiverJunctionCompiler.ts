@@ -1,8 +1,9 @@
+import { WaterReadonlyUint32Buffer } from "../shared/ReadonlyNumericBuffer";
 /** Compiles confluences into stitched CPU surface patches, motion attributes, and query boundaries. */
 import { Vector3 } from "@galacean/engine-math";
 import { RiverNodeKind, RiverQualityLevel } from "../../authoring/river/RiverAuthoringEnums";
 import type { RiverMaterialConfig, RiverNetworkBudgetConfig } from "../../authoring/river/RiverAuthoringTypes";
-import { RiverReadonlyUint32Buffer } from "../shared/ReadonlyNumericBuffer";
+
 import { RiverDiagnosticCode, RiverDiagnosticSeverity, type RiverDiagnostic } from "../shared/diagnostics";
 import {
   RIVER_FLOW_UV_SCALE,
@@ -573,8 +574,8 @@ export function compileRiverJunctions(
         nodeIndex,
         position: tuple3(node.position[0], node.position[1], node.position[2]),
         mergeRadius: node.mergeRadius ?? 0,
-        incomingReachIndices: new RiverReadonlyUint32Buffer(incomingReachIndices),
-        outgoingReachIndices: new RiverReadonlyUint32Buffer(outgoingReachIndices),
+        incomingReachIndices: new WaterReadonlyUint32Buffer(incomingReachIndices),
+        outgoingReachIndices: new WaterReadonlyUint32Buffer(outgoingReachIndices),
         materialSourceReachIndex,
         flowDirection: patchData.flowDirection,
         flowSpeed: patchData.averageFlowSpeed,

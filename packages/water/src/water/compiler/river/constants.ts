@@ -18,7 +18,6 @@ export const RIVER_QUERY_SAMPLE_COMPONENT = {
 export const RIVER_QUERY_SAMPLE_STRIDE = 10;
 
 export const RIVER_QUERY_BOUNDS_STRIDE = 4;
-export const RIVER_QUERY_CELL_COORDINATE_STRIDE = 2;
 export const RIVER_QUERY_CELL_SIZE_BY_QUALITY = {
   high: 8
 } as const;

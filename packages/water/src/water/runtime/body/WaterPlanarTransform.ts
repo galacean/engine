@@ -18,12 +18,6 @@ export interface WaterPlanarPoint3 {
   readonly z: number;
 }
 
-export interface WaterPlanarVector3 {
-  readonly x: number;
-  readonly y: number;
-  readonly z: number;
-}
-
 export interface WaterPlanarBounds3 {
   readonly minimum: WaterPlanarPoint3;
   readonly maximum: WaterPlanarPoint3;
@@ -94,28 +88,6 @@ export function waterWorldPointToLocal(
     x * transform.cosine - z * transform.sine,
     point.y - position[1],
     x * transform.sine + z * transform.cosine
-  );
-}
-
-export function waterLocalVectorToWorld(
-  transform: Readonly<CompiledWaterPlanarTransformV1>,
-  vector: Readonly<WaterPlanarVector3>
-): Readonly<WaterPlanarVector3> {
-  return freezePoint(
-    vector.x * transform.cosine + vector.z * transform.sine,
-    vector.y,
-    -vector.x * transform.sine + vector.z * transform.cosine
-  );
-}
-
-export function waterWorldVectorToLocal(
-  transform: Readonly<CompiledWaterPlanarTransformV1>,
-  vector: Readonly<WaterPlanarVector3>
-): Readonly<WaterPlanarVector3> {
-  return freezePoint(
-    vector.x * transform.cosine - vector.z * transform.sine,
-    vector.y,
-    vector.x * transform.sine + vector.z * transform.cosine
   );
 }
 

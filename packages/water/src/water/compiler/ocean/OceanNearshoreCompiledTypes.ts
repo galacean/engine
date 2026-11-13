@@ -1,3 +1,4 @@
+import type { ReadonlyNumericBuffer } from "../shared/ReadonlyNumericBuffer";
 /** Engine-object-free, render-only output of the Ocean shore-field compiler. */
 import type {
   OceanNearshoreDiagnostic,
@@ -7,13 +8,7 @@ import type {
   OceanNearshoreVector4
 } from "../../authoring/ocean/OceanNearshoreTypes";
 
-export interface OceanNearshoreReadonlyUint8Buffer extends Iterable<number> {
-  readonly length: number;
-  readonly byteLength: number;
-  at(index: number): number | undefined;
-  borrowTypedArray(): Uint8Array;
-  toTypedArray(): Uint8Array;
-}
+export type OceanNearshoreReadonlyUint8Buffer = ReadonlyNumericBuffer<Uint8Array>;
 
 /**
  * Static RGBA8 field sampled by the dedicated Ocean shader.

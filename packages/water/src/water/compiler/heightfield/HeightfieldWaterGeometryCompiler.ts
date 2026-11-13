@@ -1,10 +1,11 @@
+import { WaterReadonlyFloat32Buffer, WaterReadonlyUint16Buffer } from "../shared/ReadonlyNumericBuffer";
 /** Deterministic curved mesh generation using centre vertices and component-scoped shared corners. */
 import type { HeightfieldWaterDescriptorV1 } from "../../authoring/heightfield/HeightfieldWaterDescriptor";
 import type {
   HeightfieldWaterBudgetConfig,
   HeightfieldWaterGridConfig
 } from "../../authoring/heightfield/HeightfieldWaterTypes";
-import { HeightfieldReadonlyFloat32Buffer, HeightfieldReadonlyUint16Buffer } from "./HeightfieldNumericBuffer";
+
 import type {
   HeightfieldWaterCompiledChunk,
   HeightfieldWaterGeometryData,
@@ -374,11 +375,11 @@ function createGeometry(
     }
   }
   return Object.freeze({
-    positions: new HeightfieldReadonlyFloat32Buffer(positions),
-    normals: new HeightfieldReadonlyFloat32Buffer(normals),
-    tangents: new HeightfieldReadonlyFloat32Buffer(tangents),
-    uvs: new HeightfieldReadonlyFloat32Buffer(uvs),
-    indices: new HeightfieldReadonlyUint16Buffer(indices),
+    positions: new WaterReadonlyFloat32Buffer(positions),
+    normals: new WaterReadonlyFloat32Buffer(normals),
+    tangents: new WaterReadonlyFloat32Buffer(tangents),
+    uvs: new WaterReadonlyFloat32Buffer(uvs),
+    indices: new WaterReadonlyUint16Buffer(indices),
     vertexCount: vertexIndices.size,
     indexCount: indices.length,
     bounds: Object.freeze({
@@ -682,11 +683,11 @@ export function compileHeightfieldWaterRenderSurfaceChunks(
           (maxWorldZ - gridMinZ) * inverseHeight
         ),
         geometry: Object.freeze({
-          positions: new HeightfieldReadonlyFloat32Buffer(positions.subarray(0, vertexCount * 3)),
-          normals: new HeightfieldReadonlyFloat32Buffer(normals.subarray(0, vertexCount * 3)),
-          tangents: new HeightfieldReadonlyFloat32Buffer(tangents.subarray(0, vertexCount * 4)),
-          uvs: new HeightfieldReadonlyFloat32Buffer(uvs.subarray(0, vertexCount * 2)),
-          indices: new HeightfieldReadonlyUint16Buffer(indices),
+          positions: new WaterReadonlyFloat32Buffer(positions.subarray(0, vertexCount * 3)),
+          normals: new WaterReadonlyFloat32Buffer(normals.subarray(0, vertexCount * 3)),
+          tangents: new WaterReadonlyFloat32Buffer(tangents.subarray(0, vertexCount * 4)),
+          uvs: new WaterReadonlyFloat32Buffer(uvs.subarray(0, vertexCount * 2)),
+          indices: new WaterReadonlyUint16Buffer(indices),
           vertexCount,
           indexCount: chunkTriangleCount * 3,
           bounds: Object.freeze({

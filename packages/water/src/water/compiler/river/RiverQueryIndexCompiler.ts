@@ -1,9 +1,10 @@
-import { RiverQualityLevel } from "../../authoring/river/RiverAuthoringEnums";
 import {
-  RiverReadonlyFloat32Buffer,
-  RiverReadonlyInt32Buffer,
-  RiverReadonlyUint32Buffer
+  WaterReadonlyFloat32Buffer,
+  WaterReadonlyInt32Buffer,
+  WaterReadonlyUint32Buffer
 } from "../shared/ReadonlyNumericBuffer";
+import { RiverQualityLevel } from "../../authoring/river/RiverAuthoringEnums";
+
 import { WaterBufferOwnership } from "../shared/WaterBufferOwnership";
 import { RiverQueryPrimitiveKind } from "./RiverGeometryEnums";
 import { RIVER_QUERY_BOUNDS_STRIDE, RIVER_QUERY_CELL_SIZE_BY_QUALITY, RIVER_QUERY_SAMPLE_STRIDE } from "./constants";
@@ -160,12 +161,12 @@ export function compileRiverQueryIndex(
     cellSize,
     primitiveCount: primitives.length,
     cellCount: cells.length,
-    primitiveKinds: new RiverReadonlyUint32Buffer(primitiveKinds, WaterBufferOwnership.Transfer),
-    primitiveSourceIndices: new RiverReadonlyUint32Buffer(primitiveSourceIndices, WaterBufferOwnership.Transfer),
-    primitiveLocalIndices: new RiverReadonlyUint32Buffer(primitiveLocalIndices, WaterBufferOwnership.Transfer),
-    primitiveBounds: new RiverReadonlyFloat32Buffer(primitiveBounds, WaterBufferOwnership.Transfer),
-    cellCoordinates: new RiverReadonlyInt32Buffer(cellCoordinates, WaterBufferOwnership.Transfer),
-    cellOffsets: new RiverReadonlyUint32Buffer(cellOffsets, WaterBufferOwnership.Transfer),
-    cellPrimitiveIndices: new RiverReadonlyUint32Buffer(cellPrimitiveIndices)
+    primitiveKinds: new WaterReadonlyUint32Buffer(primitiveKinds, WaterBufferOwnership.Transfer),
+    primitiveSourceIndices: new WaterReadonlyUint32Buffer(primitiveSourceIndices, WaterBufferOwnership.Transfer),
+    primitiveLocalIndices: new WaterReadonlyUint32Buffer(primitiveLocalIndices, WaterBufferOwnership.Transfer),
+    primitiveBounds: new WaterReadonlyFloat32Buffer(primitiveBounds, WaterBufferOwnership.Transfer),
+    cellCoordinates: new WaterReadonlyInt32Buffer(cellCoordinates, WaterBufferOwnership.Transfer),
+    cellOffsets: new WaterReadonlyUint32Buffer(cellOffsets, WaterBufferOwnership.Transfer),
+    cellPrimitiveIndices: new WaterReadonlyUint32Buffer(cellPrimitiveIndices)
   });
 }

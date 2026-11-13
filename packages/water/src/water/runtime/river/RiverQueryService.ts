@@ -31,10 +31,10 @@ import {
 import type { RiverCompiledData, RiverGeometryData } from "../../compiler/river/types";
 import type { WaterBoundsXZ } from "../body/WaterBodyRuntime";
 import { assertWaterQueryBounds } from "../spatial/WaterBoundsQuery";
-import { RIVER_QUERY_EPSILON, RIVER_QUERY_NO_SOURCE_INDEX, RIVER_QUERY_NO_SOURCE_KIND } from "./constants";
+import { RIVER_QUERY_EPSILON, RIVER_QUERY_NO_SOURCE_INDEX } from "./constants";
 import { createRiverLocalCurrentSample, RiverLocalCurrentSampler } from "./RiverLocalCurrentSampler";
 import { riverNearShoreQuery } from "./RiverNearShoreQuery";
-import type { RiverNetworkQueryBatchOutput, RiverNetworkQueryResult } from "./types";
+import type { RiverNetworkQueryResult } from "./types";
 
 function interpolateSampleValue(a: number, b: number, t: number): number {
   return a + (b - a) * t;
@@ -60,28 +60,6 @@ export function createRiverNetworkQueryResult(): RiverNetworkQueryResult {
     localFlowWeight: 0,
     flowVector: new Vector3(),
     surfaceNormal: new Vector3(0, 1, 0)
-  };
-}
-
-export function createRiverNetworkQueryBatchOutput(capacity: number): RiverNetworkQueryBatchOutput {
-  const sourceKinds = new Uint8Array(capacity);
-  sourceKinds.fill(RIVER_QUERY_NO_SOURCE_KIND);
-  const sourceIndices = new Int32Array(capacity);
-  sourceIndices.fill(RIVER_QUERY_NO_SOURCE_INDEX);
-  return {
-    hits: new Uint8Array(capacity),
-    sourceKinds,
-    sourceIndices,
-    insideFootprints: new Uint8Array(capacity),
-    insideVolumes: new Uint8Array(capacity),
-    surfaceHeights: new Float32Array(capacity),
-    surfaceVerticalVelocities: new Float32Array(capacity),
-    signedSurfaceDistances: new Float32Array(capacity),
-    submergedDepths: new Float32Array(capacity),
-    waterDepths: new Float32Array(capacity),
-    distancesToBank: new Float32Array(capacity),
-    flowVectors: new Float32Array(capacity * 3),
-    surfaceNormals: new Float32Array(capacity * 3)
   };
 }
 
@@ -122,7 +100,6 @@ export class RiverNetworkQueryService {
   private readonly _localCurrentSampler?: RiverLocalCurrentSampler;
   private readonly _localCurrentScratch = createRiverLocalCurrentSample();
   private _localCurrentEnabled = true;
-  private readonly _batchScratch = createRiverNetworkQueryResult();
   private readonly _motionScratch = createRiverSurfaceMotionSampleOutput();
   private readonly _motionDomainOffsets = createRiverSurfaceDomainOffsets();
   private readonly _motionCoordinates = {
@@ -172,18 +149,6 @@ export class RiverNetworkQueryService {
         distanceToPolygonBankXZ(this._junctionBoundaries[index], junction.position[0], junction.position[2])
       );
     }
-  }
-
-  get localCurrentSampleCount(): number {
-    return this._localCurrentSampler?.sampleCount ?? 0;
-  }
-
-  get localCurrentAppliedCount(): number {
-    return this._localCurrentSampler?.appliedCount ?? 0;
-  }
-
-  get localCurrentEnabled(): boolean {
-    return this._localCurrentEnabled;
   }
 
   setLocalCurrentEnabled(enabled: boolean): void {
@@ -245,118 +210,35 @@ export class RiverNetworkQueryService {
   }
 
   sampleSurface(worldPosition: Vector3, outResult: RiverNetworkQueryResult): boolean {
-    return this._sample(worldPosition.x, worldPosition.y, worldPosition.z, outResult, true);
+    return this._sample(worldPosition.x, worldPosition.y, worldPosition.z, outResult);
   }
 
   sampleSurfaceAtTime(worldPosition: Vector3, elapsedTime: number, outResult: RiverNetworkQueryResult): boolean {
-    return this._sample(worldPosition.x, worldPosition.y, worldPosition.z, outResult, true, Math.max(0, elapsedTime));
+    return this._sample(worldPosition.x, worldPosition.y, worldPosition.z, outResult, Math.max(0, elapsedTime));
   }
 
-  containsVolume(worldPosition: Vector3, outResult: RiverNetworkQueryResult): boolean {
-    this.sampleSurface(worldPosition, outResult);
-    return outResult.insideVolume;
-  }
-
-  /** Diagnostic reference path used to verify the compiled index. */
-  sampleSurfaceBruteForce(worldPosition: Vector3, outResult: RiverNetworkQueryResult): boolean {
-    return this._sample(worldPosition.x, worldPosition.y, worldPosition.z, outResult, false);
-  }
-
-  queryBatch(positions: Float32Array, out: RiverNetworkQueryBatchOutput): number {
-    return this._queryBatch(positions, out);
-  }
-
-  queryBatchAtTime(positions: Float32Array, elapsedTime: number, out: RiverNetworkQueryBatchOutput): number {
-    return this._queryBatch(positions, out, Math.max(0, elapsedTime));
-  }
-
-  private _queryBatch(positions: Float32Array, out: RiverNetworkQueryBatchOutput, elapsedTime?: number): number {
-    const count = Math.floor(positions.length / 3);
-    if (!this._hasBatchCapacity(out, count)) {
-      throw new RangeError("River query batch output capacity is smaller than the position count.");
-    }
-    for (let index = 0; index < count; index++) {
-      const offset = index * 3;
-      const result = this._batchScratch;
-      this._sample(positions[offset], positions[offset + 1], positions[offset + 2], result, true, elapsedTime);
-      out.hits[index] = result.hit ? 1 : 0;
-      out.sourceKinds[index] = result.hit
-        ? result.sourceKind === RiverChunkSourceKind.Junction
-          ? RiverQueryPrimitiveKind.Junction
-          : RiverQueryPrimitiveKind.ReachSpan
-        : RIVER_QUERY_NO_SOURCE_KIND;
-      out.sourceIndices[index] = result.sourceIndex;
-      out.insideFootprints[index] = result.insideFootprint ? 1 : 0;
-      out.insideVolumes[index] = result.insideVolume ? 1 : 0;
-      out.surfaceHeights[index] = result.surfaceHeight;
-      out.surfaceVerticalVelocities[index] = result.surfaceVerticalVelocity;
-      out.signedSurfaceDistances[index] = result.signedSurfaceDistance;
-      out.submergedDepths[index] = result.submergedDepth;
-      out.waterDepths[index] = result.waterDepth;
-      out.distancesToBank[index] = result.distanceToBank;
-      out.flowVectors[offset] = result.flowVector.x;
-      out.flowVectors[offset + 1] = result.flowVector.y;
-      out.flowVectors[offset + 2] = result.flowVector.z;
-      out.surfaceNormals[offset] = result.surfaceNormal.x;
-      out.surfaceNormals[offset + 1] = result.surfaceNormal.y;
-      out.surfaceNormals[offset + 2] = result.surfaceNormal.z;
-    }
-    return count;
-  }
-
-  private _hasBatchCapacity(out: RiverNetworkQueryBatchOutput, count: number): boolean {
-    return (
-      out.hits.length >= count &&
-      out.sourceKinds.length >= count &&
-      out.sourceIndices.length >= count &&
-      out.insideFootprints.length >= count &&
-      out.insideVolumes.length >= count &&
-      out.surfaceHeights.length >= count &&
-      out.surfaceVerticalVelocities.length >= count &&
-      out.signedSurfaceDistances.length >= count &&
-      out.submergedDepths.length >= count &&
-      out.waterDepths.length >= count &&
-      out.distancesToBank.length >= count &&
-      out.flowVectors.length >= count * 3 &&
-      out.surfaceNormals.length >= count * 3
-    );
-  }
-
-  private _sample(
-    x: number,
-    y: number,
-    z: number,
-    outResult: RiverNetworkQueryResult,
-    useIndex: boolean,
-    elapsedTime?: number
-  ): boolean {
+  private _sample(x: number, y: number, z: number, outResult: RiverNetworkQueryResult, elapsedTime?: number): boolean {
     resetNetworkResult(outResult, this._data.sourceId);
     if (this._data.drops?.some((drop) => insideRiverDropFootprint(drop, x, z))) return false;
     if (!sampleWaterConnection(this._data.connections, x, z).covered) return false;
     this._selectedGeometryTriangle = false;
     let bestDistanceToBank = Number.NEGATIVE_INFINITY;
-    if (useIndex) {
-      const cellX = Math.floor(x / this._data.queryIndex.cellSize);
-      const cellZ = Math.floor(z / this._data.queryIndex.cellSize);
-      const cellIndex = this._findCell(cellX, cellZ);
-      if (cellIndex < 0) return false;
-      const start = this._cellOffsets[cellIndex];
-      const end = this._cellOffsets[cellIndex + 1];
-      for (let offset = start; offset < end; offset++) {
-        bestDistanceToBank = this._samplePrimitive(
-          this._cellPrimitiveIndices[offset],
-          x,
-          y,
-          z,
-          bestDistanceToBank,
-          outResult,
-          elapsedTime
-        );
-      }
-    } else {
-      for (let primitiveIndex = 0; primitiveIndex < this._primitiveKinds.length; primitiveIndex++) {
-        bestDistanceToBank = this._samplePrimitive(primitiveIndex, x, y, z, bestDistanceToBank, outResult, elapsedTime);
-      }
+    const cellX = Math.floor(x / this._data.queryIndex.cellSize);
+    const cellZ = Math.floor(z / this._data.queryIndex.cellSize);
+    const cellIndex = this._findCell(cellX, cellZ);
+    if (cellIndex < 0) return false;
+    const start = this._cellOffsets[cellIndex];
+    const end = this._cellOffsets[cellIndex + 1];
+    for (let offset = start; offset < end; offset++) {
+      bestDistanceToBank = this._samplePrimitive(
+        this._cellPrimitiveIndices[offset],
+        x,
+        y,
+        z,
+        bestDistanceToBank,
+        outResult,
+        elapsedTime
+      );
     }
     if (outResult.hit && this._data.terrain) {
       const bedHeight = sampleWaterTerrainHeight(this._data.terrain, x, z);

@@ -1,13 +1,14 @@
-import { RiverNetworkSchemaVersion } from "../../authoring/river/RiverAuthoringEnums";
 import {
-  RiverReadonlyFloat32Buffer,
-  RiverReadonlyInt32Buffer,
-  RiverReadonlyUint32Buffer,
-  RiverReadonlyUint8Buffer
+  WaterReadonlyFloat32Buffer,
+  WaterReadonlyInt32Buffer,
+  WaterReadonlyUint32Buffer,
+  WaterReadonlyUint8Buffer
 } from "../shared/ReadonlyNumericBuffer";
+import { RiverNetworkSchemaVersion } from "../../authoring/river/RiverAuthoringEnums";
+
 import { WaterBufferOwnership } from "../shared/WaterBufferOwnership";
 import type { RiverCompiledData } from "./types";
-import type { RiverResourceMetadata } from "./RiverResourceSerializer";
+import type { RiverResourceMetadata } from "./RiverResourceMetadata";
 
 type NumericArray = Uint8Array | Uint16Array | Uint32Array | Int32Array | Float32Array | Float64Array;
 type TransferValue =
@@ -46,10 +47,10 @@ export function assertRiverResourceTransferVersion(resource: RiverResourceTransf
 /** Borrow compiler-owned arrays; the Worker relinquishes them in postMessage. */
 export function createRiverCompiledTransfer(data: RiverCompiledData): TransferValue {
   const visit = (value: unknown): TransferValue => {
-    if (value instanceof RiverReadonlyUint8Buffer) return { __riverBuffer: "u8", values: value.borrowTypedArray() };
-    if (value instanceof RiverReadonlyUint32Buffer) return { __riverBuffer: "u32", values: value.borrowTypedArray() };
-    if (value instanceof RiverReadonlyInt32Buffer) return { __riverBuffer: "i32", values: value.borrowTypedArray() };
-    if (value instanceof RiverReadonlyFloat32Buffer) return { __riverBuffer: "f32", values: value.borrowTypedArray() };
+    if (value instanceof WaterReadonlyUint8Buffer) return { __riverBuffer: "u8", values: value.borrowTypedArray() };
+    if (value instanceof WaterReadonlyUint32Buffer) return { __riverBuffer: "u32", values: value.borrowTypedArray() };
+    if (value instanceof WaterReadonlyInt32Buffer) return { __riverBuffer: "i32", values: value.borrowTypedArray() };
+    if (value instanceof WaterReadonlyFloat32Buffer) return { __riverBuffer: "f32", values: value.borrowTypedArray() };
     if (ArrayBuffer.isView(value)) return value as NumericArray;
     if (Array.isArray(value)) return value.map(visit);
     if (value !== null && typeof value === "object") {
@@ -78,82 +79,14 @@ export function restoreRiverCompiledTransfer(data: TransferValue): RiverCompiled
     const record = value as { readonly [key: string]: TransferValue };
     const values = record.values;
     if (record.__riverBuffer === "u8" && values instanceof Uint8Array)
-      return new RiverReadonlyUint8Buffer(values, WaterBufferOwnership.Transfer);
+      return new WaterReadonlyUint8Buffer(values, WaterBufferOwnership.Transfer);
     if (record.__riverBuffer === "u32" && values instanceof Uint32Array)
-      return new RiverReadonlyUint32Buffer(values, WaterBufferOwnership.Transfer);
+      return new WaterReadonlyUint32Buffer(values, WaterBufferOwnership.Transfer);
     if (record.__riverBuffer === "i32" && values instanceof Int32Array)
-      return new RiverReadonlyInt32Buffer(values, WaterBufferOwnership.Transfer);
+      return new WaterReadonlyInt32Buffer(values, WaterBufferOwnership.Transfer);
     if (record.__riverBuffer === "f32" && values instanceof Float32Array)
-      return new RiverReadonlyFloat32Buffer(values, WaterBufferOwnership.Transfer);
+      return new WaterReadonlyFloat32Buffer(values, WaterBufferOwnership.Transfer);
     return Object.freeze(Object.fromEntries(Object.entries(record).map(([key, entry]) => [key, visit(entry)])));
   };
   return visit(data) as RiverCompiledData;
-}
-
-const MAGIC = 0x32525652;
-const constructors = { Uint8Array, Uint16Array, Uint32Array, Int32Array, Float32Array, Float64Array };
-
-/** Explicit byte exports use a JSON structure header followed by aligned binary arrays. */
-export function encodeRiverTransfer(resource: RiverResourceTransfer): Uint8Array {
-  const blocks: Uint8Array[] = [];
-  let offset = 0;
-  const header = new TextEncoder().encode(
-    JSON.stringify(resource, (_key, value: unknown) => {
-      if (!ArrayBuffer.isView(value)) return value;
-      const array = value as NumericArray;
-      const block = new Uint8Array(array.buffer, array.byteOffset, array.byteLength);
-      const reference = { __riverArray: array.constructor.name, offset, length: array.length };
-      blocks.push(block);
-      offset += Math.ceil(block.byteLength / 8) * 8;
-      return reference;
-    })
-  );
-  const bodyStart = Math.ceil((8 + header.byteLength) / 8) * 8;
-  const bytes = new Uint8Array(bodyStart + offset);
-  const view = new DataView(bytes.buffer);
-  view.setUint32(0, MAGIC, true);
-  view.setUint32(4, header.byteLength, true);
-  bytes.set(header, 8);
-  let cursor = bodyStart;
-  for (const block of blocks) {
-    bytes.set(block, cursor);
-    cursor += Math.ceil(block.byteLength / 8) * 8;
-  }
-  return bytes;
-}
-
-export function decodeRiverTransfer(bytes: Uint8Array): RiverResourceTransfer {
-  if (
-    bytes.byteLength < 8 ||
-    new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength).getUint32(0, true) !== MAGIC
-  ) {
-    throw new Error("River resource format 不兼容，请重新编译。");
-  }
-  const headerLength = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength).getUint32(4, true);
-  const bodyStart = Math.ceil((8 + headerLength) / 8) * 8;
-  if (bodyStart > bytes.byteLength) throw new Error("Malformed river resource header.");
-  return JSON.parse(
-    new TextDecoder("utf-8", { fatal: true }).decode(bytes.subarray(8, 8 + headerLength)),
-    (_key, value: unknown) => {
-      if (value === null || typeof value !== "object") return value;
-      const ref = value as { __riverArray?: keyof typeof constructors; offset: number; length: number };
-      if (!ref.__riverArray) return value;
-      const constructor = constructors[ref.__riverArray];
-      if (
-        !constructor ||
-        !Number.isInteger(ref.offset) ||
-        ref.offset < 0 ||
-        !Number.isInteger(ref.length) ||
-        ref.length < 0
-      ) {
-        throw new Error("Malformed river numeric array.");
-      }
-      const end = bodyStart + ref.offset + ref.length * constructor.BYTES_PER_ELEMENT;
-      if (end > bytes.byteLength) throw new Error("Truncated river numeric array.");
-      // Byte imports own their arrays independently of the caller's transport allocation.
-      const storage = new ArrayBuffer(ref.length * constructor.BYTES_PER_ELEMENT);
-      new Uint8Array(storage).set(bytes.subarray(bodyStart + ref.offset, end));
-      return new constructor(storage);
-    }
-  ) as RiverResourceTransfer;
 }

@@ -11,6 +11,4 @@ export {
   HeightfieldWaterBaseQueryService,
   createHeightfieldWaterBaseQueryResult
 } from "./HeightfieldWaterQueryService";
-export type { HeightfieldWaterReflectionSamplingSettings } from "./HeightfieldWaterReflectionSampling";
 export { HeightfieldWaterRuntimeController } from "./HeightfieldWaterRuntimeController";
-export { applyLakeWaterPresentation, createLakeWaterPresentationState } from "./LakeWaterPresentation";

@@ -107,7 +107,7 @@ Planner 的 Water 分类下并列放置“水系统”和“地表水文”。�
 
 ## River 编译传输与激活
 
-River Worker 直接转移编译结果中的 TypedArray buffer，并携带在 Worker 内计算的资源哈希；主线程只接管数组、恢复只读包装，不解析 JSON 或重算编译内容哈希。`lastDeserializeMs` 保留，表示接管与资源包装耗时。显式 `serialize()` 导出采用 JSON 结构头与对齐二进制数组块，导入独立拥有数组并校验内容哈希；不支持旧 JSON 格式。传输 schema 与编译数据 schema 不匹配时要求重新编译，暂不增加索引／引用关系校验。
+River Worker 直接转移编译结果中的 TypedArray buffer，并携带在 Worker 内计算的资源哈希；主线程只接管数组、恢复只读包装，不解析 JSON 或重算编译内容哈希。传输 schema 与编译数据 schema 不匹配时要求重新编译，暂不增加索引／引用关系校验。
 
 `replaceActiveIncremental` 在同一个 Controller 内按河段 ID 匹配，并精确比较配置、几何、关联 chunk、图集采样区域和连接／宏面依赖。未变河段复用材质、纹理和网格；图集其他区域变化时，未变河段可继续借用原图集。候选完成前旧集保持可用，发布时转移复用对象所有权，之后分步释放旧资源；请求版本号阻止已取消或被替代的候选重新发布。不同 Controller 仍各自拥有资源，保持后端 staged publication 的隔离语义。
 
@@ -115,7 +115,7 @@ River Worker 直接转移编译结果中的 TypedArray buffer，并携带在 Wor
 
 ## 验证
 
-从仓库根执行 `pnpm --dir world typecheck:water`、test:water、test:water:architecture、test:water:shader、test:water:bundle。同步/检查同一物化目录串行；架构组核对依赖/公共入口/资源URL，浏览器与各宿主集成分别验收。当前结果见 [PR实施记录](../../demos/terrain/seed-world-planner/V2_IMPLEMENTATION.md)，旧记录不作为全量通过证明。
+从仓库根执行 `pnpm --dir world typecheck` 和 `pnpm exec vitest run --config packages/water/vitest.config.mjs`，检查类型及 Water 浏览器回归。
 
 ## 潜在缺陷：首次激活前的 SSR 合成强度（R-4-01，暂不修）
 

@@ -1,7 +1,6 @@
-/** Deterministic CPU geometry and query-source compilation. No GPU objects are created here. */
-import { Vector3 } from "@galacean/engine-math";
+import { WaterReadonlyFloat32Buffer, WaterReadonlyUint32Buffer } from "../shared/ReadonlyNumericBuffer";
 import { RiverQualityLevel } from "../../authoring/river/RiverAuthoringEnums";
-import { RiverReadonlyFloat32Buffer, RiverReadonlyUint32Buffer } from "../shared/ReadonlyNumericBuffer";
+
 import { WaterBufferOwnership } from "../shared/WaterBufferOwnership";
 import { RiverDiagnosticCode, RiverDiagnosticSeverity, type RiverDiagnostic } from "../shared/diagnostics";
 import {
@@ -90,7 +89,7 @@ export function createRiverGeometryData(
     uv3s: attributes.uv3s ? Object.freeze(attributes.uv3s) : undefined,
     motionGradients: attributes.motionGradients ? Object.freeze(attributes.motionGradients) : undefined,
     colors: colors ? Object.freeze(colors) : undefined,
-    indices: new RiverReadonlyUint32Buffer(indices),
+    indices: new WaterReadonlyUint32Buffer(indices),
     bounds: createBounds(positions, maxDisplacement),
     maxDisplacement,
     drawStart: 0,
@@ -266,7 +265,7 @@ function createQuerySource(samples: readonly RiverSamplePoint[]): RiverQuerySour
     data[offset + RIVER_QUERY_SAMPLE_COMPONENT.flowTravelTime] = sample.flowTravelTime;
   }
   return Object.freeze({
-    samples: new RiverReadonlyFloat32Buffer(data, WaterBufferOwnership.Transfer),
+    samples: new WaterReadonlyFloat32Buffer(data, WaterBufferOwnership.Transfer),
     stride: RIVER_QUERY_SAMPLE_STRIDE,
     sampleCount: samples.length
   });
@@ -287,19 +286,6 @@ function compileSamples(samples: readonly RiverSamplePoint[]): readonly RiverCom
       })
     )
   );
-}
-
-export function decodeRiverSamplePoints(samples: readonly RiverCompiledSample[]): RiverSamplePoint[] {
-  return samples.map((sample) => ({
-    position: new Vector3(sample.position[0], sample.position[1], sample.position[2]),
-    tangent: new Vector3(sample.tangent[0], sample.tangent[1], sample.tangent[2]),
-    distance: sample.distance,
-    flowTravelTime: sample.flowTravelTime,
-    width: sample.width,
-    depth: sample.depth,
-    flowSpeed: sample.flowSpeed,
-    bankFeather: sample.bankFeather
-  }));
 }
 
 export class RiverGeometryCompiler {

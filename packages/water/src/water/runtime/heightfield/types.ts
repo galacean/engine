@@ -10,10 +10,6 @@ export type MutableHeightfieldWaterSurfaceOpticsBinding = {
   -readonly [Property in keyof WaterSurfaceOpticsBinding]: WaterSurfaceOpticsBinding[Property];
 };
 
-export type HeightfieldVector2Tuple = readonly [number, number];
-export type HeightfieldVector3Tuple = readonly [number, number, number];
-export type HeightfieldVector4Tuple = readonly [number, number, number, number];
-
 export interface HeightfieldWaterMeshBuildResult {
   readonly surfaceMesh: ModelMesh;
   /** Buffers allocated by this mesh upload and destroyed with the runtime set. */

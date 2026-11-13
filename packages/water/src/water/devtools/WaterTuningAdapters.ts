@@ -40,7 +40,6 @@ import type {
   WaterTuningAdapter,
   WaterTuningSession
 } from "./WaterDevToolsTypes";
-import { createPresentationWaterTuningSession } from "./WaterPresentationSession";
 
 const MINIMUM_DEPTH_RESPONSE_SLIDER_MAXIMUM_METRES = 32;
 
@@ -2135,14 +2134,11 @@ function controlSection(control: WaterControlDescriptor): readonly string[] | un
   return undefined;
 }
 
-export function createWaterTuningSession(
-  target: WaterDevelopmentTarget,
-  mode: "full" | "presentation" = "full"
-): WaterTuningSession {
+export function createWaterTuningSession(target: WaterDevelopmentTarget): WaterTuningSession {
   const adapter = WATER_TUNING_ADAPTERS.find((candidate) => candidate.supports(target));
   if (!adapter) throw new Error(`No Water tuning adapter supports '${target.backendId}'.`);
   const created = adapter.createSession(target);
-  const session = Object.freeze({
+  return Object.freeze({
     ...created,
     controls: Object.freeze(
       created.controls
@@ -2179,5 +2175,4 @@ export function createWaterTuningSession(
         })
     )
   });
-  return mode === "presentation" ? createPresentationWaterTuningSession(session) : session;
 }

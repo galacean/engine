@@ -60,12 +60,6 @@ export class WaterGenerationResourceLeasePool<TResource extends WaterGenerationC
     return this._entries.size;
   }
 
-  get activeLeaseCount(): number {
-    let count = 0;
-    for (const entry of this._entries.values()) count += entry.referenceCount;
-    return count;
-  }
-
   private _createLease(entry: ResourceEntry<TResource>, reused: boolean): WaterGenerationResourceLease<TResource> {
     let released = false;
     return Object.freeze({

@@ -101,12 +101,3 @@ export function resolveRiverRibbonJoinFrames(samples: readonly RiverRibbonSample
   }
   return frames;
 }
-
-/** Single-point access for junction endpoints. Whole-reach consumers use the batch function. */
-export function resolveRiverRibbonJoinFrame(
-  samples: readonly RiverRibbonSample[],
-  sampleIndex: number
-): RiverRibbonJoinFrame {
-  if (isCorner(samples, sampleIndex)) return resolveLocalJoinFrame(samples, sampleIndex);
-  return resolveRiverRibbonJoinFrames(samples)[sampleIndex];
-}

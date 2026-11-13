@@ -66,18 +66,7 @@ export class OceanNearshoreFieldResource extends WaterReferenceCountedCompiledRe
     return this.memory.cpuStaticBytes;
   }
 
-  /** Render-only Ocean never materializes a CPU surface-query grid. */
-  get hasCpuQueryGrid(): false {
-    return false;
-  }
-
   get atlasByteLength(): number {
     return this.data.stats.atlasByteLength;
   }
-
-  get queryByteLength(): 0 {
-    return 0;
-  }
-
-  protected override onFinalizeDispose(): void {}
 }

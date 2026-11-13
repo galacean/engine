@@ -16,7 +16,6 @@ import {
 import { GRASSLANDS_TERRAIN_WATER_INSTANCE_ID } from "./GrasslandsWaterBodyIdentity";
 
 import {
-  createLakeWaterPresentationState,
   HeightfieldWaterBackend,
   HeightfieldWaterCompileWorkerClient
 } from "@galacean/engine-water/water/runtime/heightfield/index";
@@ -199,7 +198,7 @@ export class GrasslandsTerrainWaterPcg {
     );
     const backend = backendLease.backend;
     const presentation: GrasslandsRuntimePresentationState = {
-      ...createLakeWaterPresentationState()
+      surfaceTimeOverride: undefined
     };
     let runtimeRoot: Entity | undefined;
     let environmentReflectionProvider: WaterEnvironmentReflectionProviderHandle | undefined;

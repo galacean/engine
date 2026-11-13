@@ -45,24 +45,6 @@ export function encodeRatioPpm(value: number, field = "ratio"): number {
   return encodeScaledInt32(value, WATER_METRIC_PPM_PER_UNIT, field);
 }
 
-/**
- * Compares an integer millimetre surface against an R16 bed without decoding
- * the bed through floating point.
- */
-export function compareSurfaceMillimetresToR16Bed(
-  surfaceHeightMillimetres: number,
-  bedSample: number,
-  clearanceMillimetres = 0
-): -1 | 0 | 1 {
-  requireInt32(surfaceHeightMillimetres, "surfaceHeightMillimetres");
-  requireUint16(bedSample, "bedSample");
-  requireUint32(clearanceMillimetres, "clearanceMillimetres");
-  const scaledSurface =
-    BigInt(surfaceHeightMillimetres - clearanceMillimetres - SEED_WORLD_R16_MINIMUM_HEIGHT_MILLIMETRES) * 65_535n;
-  const scaledBed = BigInt(bedSample) * BigInt(SEED_WORLD_R16_HEIGHT_SPAN_MILLIMETRES);
-  return scaledSurface < scaledBed ? -1 : scaledSurface > scaledBed ? 1 : 0;
-}
-
 function encodeScaledUint32(value: number, scale: number, field: string): number {
   requireFiniteCanonicalNumber(value, field);
   if (value < 0) throw outOfRange(field, value, "a non-negative value");
@@ -89,10 +71,6 @@ function requireFiniteCanonicalNumber(value: number, field: string): void {
       `${field} must not be negative zero.`
     );
   }
-}
-
-function requireUint16(value: number, field: string): void {
-  if (!Number.isInteger(value) || value < 0 || value > 0xffff) throw outOfRange(field, value, "Uint16");
 }
 
 function requireUint32(value: number, field: string, source = value): void {

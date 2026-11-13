@@ -76,7 +76,7 @@ export const WATER_KNOWLEDGE = Object.freeze({
   integration:
     "空间布局提供已接受的地形和水体描述。宿主协调地形修改、世界时钟、降雨和存储；原生 prepareBatch 支持宿主准备后统一提交。Terrain 局部精细块替换背景床面，水系统只读。",
   authoring:
-    "resolveRiver 返回 applied:false 的规划结果；坐标单位米，锚点 ID 必须稳定。普通段和台阶平台有水面及水深，水帘用 sampleDrops 查询。Lake 用 createLakeFromTerrain 读取已有床面；LakeTerrainModifier 只描述挖低意图，水位与 referenceLevel 分离。Source 作者水体由宿主公共事务编辑，运行 API 只查询这些对象。",
+    "resolveRiver 返回 applied:false 的规划结果；坐标单位米，锚点 ID 必须稳定。普通段和台阶平台有水面及水深，水帘用 sampleDrops 查询。Lake 用 createLakeFromTerrain 读取已有床面；Source 作者水体由宿主公共事务编辑，运行 API 只查询这些对象。",
   riverDropPresentation:
     "definition.look.look.riverDrops 控制落水纹理、水色、速度、泡沫和飞溅；speed:0 冻结动画。只对含 RiverDrop 的河流启用，通过独立 Look 修订及 update/updateMany 发布，不改变地形、水量或查询；sampleDrops 不把装饰泡沫算作湿区。",
   deferredHydrology: ["直接调湖水位=一次补排水", "后台时间继续", "普通湖盆编辑保持水位", "撤销重做保持当前水量"],

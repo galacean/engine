@@ -39,7 +39,6 @@ export const RIVER_LOCAL_MAP_COORDINATE_CONTRACT_VERSION = 2 as const;
 export const RIVER_LOCAL_MAP_SHADER_NAME = "AIWorld/RiverSurfaceLocalMapBodyLocalV2" as const;
 
 export const RIVER_QUERY_NO_SOURCE_INDEX = -1;
-export const RIVER_QUERY_NO_SOURCE_KIND = 255;
 export const RIVER_QUERY_EPSILON = 1e-6;
 export const RIVER_RESOURCE_SUBMISSION_BUDGET_MS = 4;
 

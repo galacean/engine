@@ -10,7 +10,7 @@ import type {
   WaterEnvironmentReflectionColorSpace,
   WaterEnvironmentReflectionVector3
 } from "./WaterEnvironmentReflectionTypes";
-import type { WaterOpticalColor, WaterOpticalProfile, WaterOpticalRgb } from "./WaterOpticalProfile";
+import type { WaterOpticalProfile, WaterOpticalRgb } from "./WaterOpticalProfile";
 import type { WaterReflectionSource } from "./WaterReflectionPolicy";
 import type { WaterReflectionBinding, WaterReflectionComposition } from "./WaterReflectionService";
 

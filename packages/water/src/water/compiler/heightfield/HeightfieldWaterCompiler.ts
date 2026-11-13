@@ -126,13 +126,6 @@ export interface HeightfieldWaterCompileOptions {
   readonly queryQuality?: WaterQueryQualityV2;
 }
 
-export function computeHeightfieldWaterCompileHash(
-  descriptor: HeightfieldWaterDescriptorV1,
-  queryQuality: WaterQueryQualityV2 = "dense"
-): string {
-  return compileHashFromSourceHash(computeHeightfieldWaterSourceHash(descriptor), queryQuality);
-}
-
 /** HF currently stores every non-off query request as the same dense grid. */
 export function resolveHeightfieldWaterQueryRepresentation(queryQuality: WaterQueryQualityV2): "off" | "dense" {
   if (queryQuality === "off") return "off";

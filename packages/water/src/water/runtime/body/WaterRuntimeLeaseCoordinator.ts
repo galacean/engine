@@ -25,10 +25,6 @@ export class WaterRuntimeLeaseCoordinator {
     this.cameraFeatures = Object.freeze([...new Set(cameraFeatures)]);
   }
 
-  get runtimeResourcesAvailable(): boolean {
-    return this._runtimeResources !== undefined;
-  }
-
   async acquireRuntimeResourcesInto(
     target: WaterRuntimeResourceLease[],
     descriptors: readonly WaterResourceAssetDescriptorV1[],

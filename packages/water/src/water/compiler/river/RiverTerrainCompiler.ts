@@ -1,4 +1,5 @@
-import { RiverReadonlyFloat32Buffer } from "../shared/ReadonlyNumericBuffer";
+import { WaterReadonlyFloat32Buffer } from "../shared/ReadonlyNumericBuffer";
+
 import { WaterBufferOwnership } from "../shared/WaterBufferOwnership";
 import { RiverTerrainMaskChannel, RiverTerrainSurfaceOwnership } from "./RiverGeometryEnums";
 import { RIVER_TERRAIN_CORRIDOR_COMPONENT, RIVER_TERRAIN_CORRIDOR_STRIDE } from "./constants";
@@ -31,7 +32,7 @@ function compileReachCorridor(reach: RiverCompiledReach, reachIndex: number): Ri
   return Object.freeze({
     id: reach.id,
     reachIndex,
-    samples: new RiverReadonlyFloat32Buffer(data, WaterBufferOwnership.Transfer),
+    samples: new WaterReadonlyFloat32Buffer(data, WaterBufferOwnership.Transfer),
     stride: RIVER_TERRAIN_CORRIDOR_STRIDE,
     sampleCount: reach.artifact.samples.length
   });

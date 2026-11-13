@@ -38,8 +38,7 @@ WaterBodySource -> WaterBodyAsset -> WaterBodyInstance
 - **Ocean（海洋）** retains its world-space Ocean representation and Look.
 - Lake shorelines use the [closed-spline authoring/compiler](authoring/lake/README.md): XZ boundary rings plus one horizontal base water level; bathymetry and optional waves remain independent. Generated Lake adapters derive their rings from existing authoritative coverage.
 - `heightfield` describes the Lake backend/grid representation. It is not a water category or a Look name; compiler, shader and representation identifiers remain technical implementation names.
-- Gallery Lake (High), Integrated World and SeedWorld Lake register the same `lake-water-look-v1` through `registerLakeWaterLook`. The local Low/Medium variants are named `lake-low-water-look-v1` and `lake-medium-water-look-v1`. Each scene still owns its boundary, bathymetry and quality budget.
-- Gallery exposes separate `#water/lake`, `#water/river` and `#water/ocean` menus. Lake and River select separate runtimes through the shared Water HTML shell. Existing Water scene links remain accepted.
+- Integrated World and SeedWorld Lake register the same `lake-water-look-v1` through `registerLakeWaterLook`. Each scene still owns its boundary, bathymetry and quality budget.
 
 ## Model boundaries
 

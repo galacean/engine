@@ -39,7 +39,7 @@ import {
   type OceanSceneFieldCameraPosition,
   type OceanSceneFieldDemandResult
 } from "./OceanSceneFieldDemand";
-import type { OceanWaterRuntimeConfig, OceanWaterRuntimeFeatureAvailability } from "./OceanWaterRuntimeTypes";
+import type { OceanWaterRuntimeConfig } from "./OceanWaterRuntimeTypes";
 
 export interface OceanWaterRuntimeCompiledInput {
   readonly physicalSurfaceHash: string;
@@ -83,21 +83,6 @@ export function computeOceanOwnedGpuBytes(input: Readonly<OceanGpuFootprintInput
   return values.reduce((total, value) => total + value, 0);
 }
 
-const FEATURE_AVAILABILITY: Readonly<OceanWaterRuntimeFeatureAvailability> = Object.freeze({
-  environmentReflection: true,
-  refraction: true,
-  surfaceFoam: true,
-  intersectionFoam: true,
-  caustics: true,
-  translucency: true,
-  screenSpaceReflection: false,
-  crestFoam: false,
-  windField: false,
-  surfaceQuery: true,
-  temporalFoam: false,
-  interaction: false
-});
-
 function cleanupRuntime(actions: readonly (() => void)[], errors: unknown[] = []): void {
   for (const action of actions) {
     try {
@@ -119,7 +104,6 @@ export class OceanWaterRuntimeController {
   get opticalProfile() {
     return this._materialState.renderContract.optics.profile;
   }
-  readonly featureAvailability = FEATURE_AVAILABILITY;
 
   private readonly _surfaceProvider: OceanWaterSurfaceProvider;
   private readonly _engine: Engine;
@@ -385,10 +369,6 @@ export class OceanWaterRuntimeController {
 
   get surfaceLevelOffsetMetres(): number {
     return this._surfaceLevelOffsetMetres;
-  }
-
-  get cameraSceneFieldsRequired(): boolean {
-    return this._cameraSceneFieldDemand.required;
   }
 
   get tuning(): Readonly<OceanRuntimeTuning> {
