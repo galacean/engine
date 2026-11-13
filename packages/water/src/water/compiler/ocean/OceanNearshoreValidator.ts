@@ -1,5 +1,3 @@
-/** Strict, render-only validation for the finite Ocean bathymetry and shore SDF. */
-import type { OceanNearshoreDescriptorV1 } from "../../authoring/ocean/OceanNearshoreDescriptor";
 import {
   OceanNearshoreDiagnosticCode,
   OceanNearshoreDiagnosticSeverity,
@@ -451,11 +449,4 @@ export function validateOceanNearshoreDescriptor(
     budget
   });
   return Object.freeze({ valid: true, value, diagnostics: Object.freeze(diagnostics) });
-}
-
-export function assertOceanNearshoreDescriptor(value: unknown): asserts value is OceanNearshoreDescriptorV1 {
-  const result = validateOceanNearshoreDescriptor(value);
-  if (!result.valid) {
-    throw new Error(result.diagnostics.map((entry) => `${entry.path}: ${entry.message}`).join("; "));
-  }
 }

@@ -1,5 +1,3 @@
-/** Stable registry identity for an engine-object-free reflection policy. */
-import { hashStableValue } from "../../compiler/shared/determinism";
 import { normalizeWaterReflectionPolicy, type WaterReflectionPolicy } from "./WaterReflectionPolicy";
 
 export const WATER_REFLECTION_POLICY_PRESET_SCHEMA_VERSION = 1 as const;
@@ -20,8 +18,4 @@ export function createWaterReflectionPolicyPresetV1(
     id,
     policy: normalizeWaterReflectionPolicy(policy)
   });
-}
-
-export function computeWaterReflectionPolicyPresetContentHash(preset: Readonly<WaterReflectionPolicyPresetV1>): string {
-  return hashStableValue(preset);
 }

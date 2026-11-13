@@ -37,12 +37,6 @@ export interface WaterOpticalProfile {
   readonly reflectionIntensity?: number;
 }
 
-export interface WaterOpticalColor {
-  red: number;
-  green: number;
-  blue: number;
-}
-
 export const DEFAULT_WATER_OPTICAL_PROFILE: WaterOpticalProfile = Object.freeze({
   absorptionCoefficient: DEFAULT_WATER_ABSORPTION_COEFFICIENT,
   scatteringColor: DEFAULT_WATER_SCATTERING_COLOR,

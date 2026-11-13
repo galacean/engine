@@ -1,6 +1,3 @@
-/** Diagnostic capability snapshots derived from the providers a runtime actually owns. */
-import type { WaterBodySourceKind } from "../../authoring/body/WaterBodyAuthoringTypes";
-import type { WaterBodyKind, WaterRepresentationV1 } from "../../authoring/body/WaterBodyRepresentation";
 import { WaterLocalModifierChannel, type WaterLocalFieldProvider } from "../interaction/WaterLocalFieldProvider";
 import type { BatchWaterSurfaceProvider, WaterSurfaceProvider } from "../query/WaterSurfaceProvider";
 import { WaterSpatialFieldChannel, type WaterSpatialFieldProvider } from "../spatial/WaterSpatialFieldProvider";
@@ -39,21 +36,6 @@ export interface WaterBodyCapabilitySource {
   readonly localField?: WaterLocalFieldProvider;
   readonly volume?: WaterVolumeProvider;
   readonly simulation?: WaterSimulationHandle;
-}
-
-export interface WaterSurfaceLayerDescription {
-  readonly baseSurface: string;
-  readonly visibleMacroSurface: string;
-  readonly microNormal: string;
-}
-
-export interface WaterBodyCapabilityEntry {
-  readonly id: string;
-  readonly resolvedBackendId: string;
-  readonly kind: WaterBodyKind;
-  readonly representation: WaterRepresentationV1;
-  readonly sourceKind: WaterBodySourceKind;
-  readonly capabilities: WaterBodyCapabilitySnapshot;
 }
 
 export const DEFAULT_WATER_SURFACE_PROVIDER_FEATURES: WaterSurfaceProviderFeatures = Object.freeze({

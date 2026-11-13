@@ -1046,9 +1046,9 @@ export class ConfiguredAnimal implements AnimalAgent {
       const arrived = advanceGroundAnimalMotion(proposed, points[cursor], speed, length, 1 / 15, speed, steering);
       const dx = points[cursor][0] - motion.x,
         dz = points[cursor][1] - motion.z;
-      const checkedX = proposed.x,
-        checkedZ = proposed.z;
-      const supported = query.canTraverse(from, [checkedX, checkedZ]);
+      const proposedX = proposed.x,
+        proposedZ = proposed.z;
+      const supported = query.canTraverse(from, [proposedX, proposedZ]);
       const closeBehind =
         Math.hypot(dx, dz) < length * 1.5 && dx * Math.sin(motion.heading) + dz * Math.cos(motion.heading) < 0;
       if (medium !== "air" && !arrived && (recovery.recovering || !supported || closeBehind)) {
@@ -1061,7 +1061,11 @@ export class ConfiguredAnimal implements AnimalAgent {
       Object.assign(motion, proposed);
       // A clear waypoint chord does not guarantee a clear slow-turning arc.
       // Validate the actual planned curve against the same decision-time footprints.
-      if (!(motion.x === checkedX && motion.z === checkedZ ? supported : query.canTraverse(from, [motion.x, motion.z])))
+      // The initial support check already validated this segment. Only recovery
+      // can replace its endpoint during this synchronous preview step.
+      if (
+        !(motion.x === proposedX && motion.z === proposedZ ? supported : query.canTraverse(from, [motion.x, motion.z]))
+      )
         return false;
       if (medium === "air" && ground.canTraverseAir) {
         let wanted = ground.heightAt(motion.x, motion.z, "air") ?? y;

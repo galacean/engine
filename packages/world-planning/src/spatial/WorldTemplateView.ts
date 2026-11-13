@@ -278,12 +278,20 @@ export function resolveWorldTemplateView(
       target[2] = ahead.z;
     }
   }
+  const offset = art.spawnOffset;
+  const spawn = offset && {
+    x: scene.anchor[0] - offset[0],
+    z: scene.anchor[2] + offset[1] / Math.min(1, aspect)
+  };
+  const spawnHeight = spawn && ground(spawn.x, spawn.z);
   const eye =
     scene.spawnView?.eye ??
     trailEye ??
-    (centered
-      ? ([centered[0], centered[1] + eyeHeight, centered[2]] as Position)
-      : findTemplateEye(scene, target, aspect, fovDegrees, eyeHeight, ground, frameFraction));
+    (spawn && spawnHeight !== undefined && Number.isFinite(spawnHeight)
+      ? ([spawn.x, spawnHeight + eyeHeight, spawn.z] as Position)
+      : centered
+        ? ([centered[0], centered[1] + eyeHeight, centered[2]] as Position)
+        : findTemplateEye(scene, target, aspect, fovDegrees, eyeHeight, ground, frameFraction));
   if (!eye) throw new Error("地形或体量遮挡参考图主景，无法在当前世界范围内完整取景");
   const pose: SubjectViewPose = scene.spawnView ?? {
     subjectId: `world-template:${scene.id}`,

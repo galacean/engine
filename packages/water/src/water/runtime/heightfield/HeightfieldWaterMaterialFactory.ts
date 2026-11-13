@@ -129,7 +129,7 @@ import {
   HEIGHTFIELD_WATER_RAIN_RIPPLE_SHADER_FUNCTIONS,
   createHeightfieldWaterRainRippleNormalStatements
 } from "./HeightfieldWaterRainRippleShader";
-import { DEFAULT_HEIGHTFIELD_WATER_REFLECTION_SAMPLING_SETTINGS } from "./HeightfieldWaterReflectionSampling";
+import { DEFAULT_WATER_REFLECTION_SAMPLING_SETTINGS } from "../../authoring/optics/WaterReflectionSampling";
 import { HeightfieldWaterCompositionMode } from "./HeightfieldWaterRuntimeEnums";
 import type {
   HeightfieldWaterFeatureFlags,
@@ -887,7 +887,7 @@ export function createHeightfieldWaterMaterial(
     opticalProfile: DEFAULT_WATER_OPTICAL_PROFILE,
     refractionEnabled: true,
     reflection: undefined,
-    reflectionSampling: DEFAULT_HEIGHTFIELD_WATER_REFLECTION_SAMPLING_SETTINGS
+    reflectionSampling: DEFAULT_WATER_REFLECTION_SAMPLING_SETTINGS
   };
   const state = Object.freeze({
     material,

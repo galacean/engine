@@ -5,7 +5,7 @@ import {
 } from "./RiverResourceTransfer";
 import type { RiverNetworkDescriptor } from "../../authoring/river/RiverDescriptor";
 import { RiverNetworkCompiler } from "./RiverNetworkCompiler";
-import { createRiverResourceMetadata } from "./RiverResourceSerializer";
+import { createRiverResourceMetadata } from "./RiverResourceMetadata";
 import {
   RiverCompileWorkerMessageKind,
   type RiverCompileWorkerFailure,

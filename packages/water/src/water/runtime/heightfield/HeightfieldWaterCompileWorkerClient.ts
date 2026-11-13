@@ -1,3 +1,10 @@
+import {
+  WaterReadonlyFloat32Buffer,
+  WaterReadonlyInt32Buffer,
+  WaterReadonlyUint16Buffer,
+  WaterReadonlyUint32Buffer,
+  WaterReadonlyUint8Buffer
+} from "../../compiler/shared/ReadonlyNumericBuffer";
 import { copyWaterTerrainSnapshot } from "../../authoring/terrain/WaterTerrainSnapshot";
 /** Main-thread client that revives transferred compiler buffers without GPU work. */
 import type { HeightfieldWaterDiagnostic } from "../../authoring/heightfield/HeightfieldWaterTypes";
@@ -11,14 +18,7 @@ import {
   type HeightfieldWaterCompileWorkerSerializedError
 } from "../../compiler/heightfield/HeightfieldWaterCompileWorkerProtocol";
 import type { HeightfieldWaterCompiledData } from "../../compiler/heightfield/HeightfieldWaterCompiledTypes";
-import {
-  HeightfieldReadonlyFloat32Buffer,
-  HeightfieldReadonlyInt32Buffer,
-  HeightfieldReadonlyUint16Buffer,
-  HeightfieldReadonlyUint32Buffer,
-  HeightfieldReadonlyUint8Buffer
-} from "../../compiler/heightfield/HeightfieldNumericBuffer";
-import { RiverReadonlyFloat32Buffer } from "../../compiler/shared/ReadonlyNumericBuffer";
+
 import { WaterBufferOwnership } from "../../compiler/shared/WaterBufferOwnership";
 import { preflightHeightfieldWaterDescriptorAllocation } from "../../compiler/heightfield/HeightfieldWaterValidator";
 import { HeightfieldWaterResource } from "./HeightfieldWaterResource";
@@ -80,22 +80,22 @@ export function reviveHeightfieldWaterCompiledData(
       : undefined,
     components: transferred.components.map((component) => ({
       ...component,
-      wetTexelIndices: new HeightfieldReadonlyUint32Buffer(component.wetTexelIndices, WaterBufferOwnership.Transfer)
+      wetTexelIndices: new WaterReadonlyUint32Buffer(component.wetTexelIndices, WaterBufferOwnership.Transfer)
     })),
     chunks: transferred.chunks.map((chunk) => ({
       ...chunk,
       geometry: {
         ...chunk.geometry,
-        positions: new HeightfieldReadonlyFloat32Buffer(chunk.geometry.positions, WaterBufferOwnership.Transfer),
-        normals: new HeightfieldReadonlyFloat32Buffer(chunk.geometry.normals, WaterBufferOwnership.Transfer),
-        tangents: new HeightfieldReadonlyFloat32Buffer(chunk.geometry.tangents, WaterBufferOwnership.Transfer),
-        uvs: new HeightfieldReadonlyFloat32Buffer(chunk.geometry.uvs, WaterBufferOwnership.Transfer),
-        indices: new HeightfieldReadonlyUint16Buffer(chunk.geometry.indices, WaterBufferOwnership.Transfer)
+        positions: new WaterReadonlyFloat32Buffer(chunk.geometry.positions, WaterBufferOwnership.Transfer),
+        normals: new WaterReadonlyFloat32Buffer(chunk.geometry.normals, WaterBufferOwnership.Transfer),
+        tangents: new WaterReadonlyFloat32Buffer(chunk.geometry.tangents, WaterBufferOwnership.Transfer),
+        uvs: new WaterReadonlyFloat32Buffer(chunk.geometry.uvs, WaterBufferOwnership.Transfer),
+        indices: new WaterReadonlyUint16Buffer(chunk.geometry.indices, WaterBufferOwnership.Transfer)
       }
     })),
     localMapAtlas: {
       ...transferred.localMapAtlas,
-      pixels: new HeightfieldReadonlyUint8Buffer(transferred.localMapAtlas.pixels, WaterBufferOwnership.Transfer)
+      pixels: new WaterReadonlyUint8Buffer(transferred.localMapAtlas.pixels, WaterBufferOwnership.Transfer)
     },
     queryGrid: transferred.queryGrid
       ? {
@@ -103,23 +103,20 @@ export function reviveHeightfieldWaterCompiledData(
           ...(transferred.queryGrid.bedTerrain
             ? { bedTerrain: copyWaterTerrainSnapshot(transferred.queryGrid.bedTerrain) }
             : {}),
-          wetMask: new HeightfieldReadonlyUint8Buffer(transferred.queryGrid.wetMask, WaterBufferOwnership.Transfer),
+          wetMask: new WaterReadonlyUint8Buffer(transferred.queryGrid.wetMask, WaterBufferOwnership.Transfer),
           shoreDistances: transferred.queryGrid.shoreDistances
-            ? new HeightfieldReadonlyFloat32Buffer(transferred.queryGrid.shoreDistances, WaterBufferOwnership.Transfer)
+            ? new WaterReadonlyFloat32Buffer(transferred.queryGrid.shoreDistances, WaterBufferOwnership.Transfer)
             : undefined,
-          componentIndices: new HeightfieldReadonlyInt32Buffer(
+          componentIndices: new WaterReadonlyInt32Buffer(
             transferred.queryGrid.componentIndices,
             WaterBufferOwnership.Transfer
           ),
-          surfaceHeights: new HeightfieldReadonlyFloat32Buffer(
+          surfaceHeights: new WaterReadonlyFloat32Buffer(
             transferred.queryGrid.surfaceHeights,
             WaterBufferOwnership.Transfer
           ),
-          bedHeights: new HeightfieldReadonlyFloat32Buffer(
-            transferred.queryGrid.bedHeights,
-            WaterBufferOwnership.Transfer
-          ),
-          flowVectorsXZ: new HeightfieldReadonlyFloat32Buffer(
+          bedHeights: new WaterReadonlyFloat32Buffer(transferred.queryGrid.bedHeights, WaterBufferOwnership.Transfer),
+          flowVectorsXZ: new WaterReadonlyFloat32Buffer(
             transferred.queryGrid.flowVectorsXZ,
             WaterBufferOwnership.Transfer
           )
@@ -127,7 +124,7 @@ export function reviveHeightfieldWaterCompiledData(
       : undefined,
     waveSet: {
       ...transferred.waveSet,
-      packedShaderData: new RiverReadonlyFloat32Buffer(
+      packedShaderData: new WaterReadonlyFloat32Buffer(
         transferred.waveSet.packedShaderData,
         WaterBufferOwnership.Transfer
       )

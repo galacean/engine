@@ -1,6 +1,5 @@
 /** Immutable bundle of reusable Water appearance, optics, reflection, and render-state identities. */
 import { resolveWaterContactEffectsLook, type WaterContactEffectsLook } from "../effects/WaterContactEffectsLook";
-import { hashStableValue } from "../../compiler/shared/determinism";
 import { resolveRiverDropLook, type RiverDropLook } from "../river/RiverDropLook";
 import {
   DEFAULT_WATER_REFLECTION_SAMPLING_SETTINGS,
@@ -172,9 +171,4 @@ export function createWaterLookPresetV1(source: Readonly<WaterLookPresetInputV1>
     ...(source.riverDrops === undefined ? {} : { riverDrops: resolveRiverDropLook(source.riverDrops) }),
     foam: resolveWaterLookFoam(source.foam)
   });
-}
-
-/** Depends only on immutable Look data. Quality plans and runtime capability resolution are excluded. */
-export function computeWaterLookPresetContentHash(preset: Readonly<WaterLookPresetV1>): string {
-  return hashStableValue(preset);
 }

@@ -89,22 +89,6 @@ export function createWaterSurfaceQueryStatus(): WaterSurfaceQueryStatus {
   };
 }
 
-export function createWaterSurfaceBatchOutput(capacity: number): WaterSurfaceBatchOutput {
-  const safeCapacity = Math.max(0, Math.floor(capacity));
-  return {
-    hits: new Uint8Array(safeCapacity),
-    converged: new Uint8Array(safeCapacity),
-    iterations: new Uint8Array(safeCapacity),
-    capabilityFallbacks: new Uint8Array(safeCapacity),
-    horizontalErrors: new Float32Array(safeCapacity),
-    surfacePositions: new Float32Array(safeCapacity * 3),
-    surfaceNormals: new Float32Array(safeCapacity * 3),
-    waterVelocities: new Float32Array(safeCapacity * 3),
-    waterDepths: new Float32Array(safeCapacity),
-    waterBodyIds: Array.from({ length: safeCapacity }, () => "")
-  };
-}
-
 /** Restores a caller-owned sample without replacing its vector instances. */
 export function resetWaterSurfaceSample(sample: WaterSurfaceSample): void {
   sample.waterBodyId = "";

@@ -87,6 +87,10 @@ async function start(): Promise<void> {
         url.searchParams.set("view", "3d");
         url.searchParams.set("template", plan.parameters.worldTemplate?.id ?? "original");
         if (page.canReplaceHistory) history.replaceState(null, "", url);
+        else {
+          const source = document.querySelector<HTMLMetaElement>('meta[name="flash-app-html-url"]');
+          if (source) source.content = url.href;
+        }
         await enterSeedWorld(handoff);
       } catch (error) { showStartupError(error); }
     }

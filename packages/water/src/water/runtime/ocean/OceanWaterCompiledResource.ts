@@ -1,3 +1,4 @@
+import { WaterReadonlyUint8Buffer } from "../../compiler/shared/ReadonlyNumericBuffer";
 import { decodeWaterConnectionPorts } from "../../authoring/connections/WaterConnection";
 /** Immutable compiler output for the finite, render-only Ocean backend. */
 import { createPhysicalSurfaceIdentity } from "../../authoring/body/PhysicalSurfaceIdentity";
@@ -14,7 +15,7 @@ import type {
   OceanNearshoreCompiledData,
   OceanNearshoreStaticAtlas
 } from "../../compiler/ocean/OceanNearshoreCompiledTypes";
-import { OceanNearshoreReadonlyUint8Buffer } from "../../compiler/ocean/OceanNearshoreNumericBuffer";
+
 import { WaterBufferOwnership } from "../../compiler/shared/WaterBufferOwnership";
 import { hashStableValue } from "../../compiler/shared/determinism";
 import { createWaterResourceMemoryMetrics, measureWaterOwnedCpuBytes } from "../resources/WaterResourceMetrics";
@@ -309,7 +310,7 @@ export class OceanWaterCompiledResource extends WaterReferenceCountedCompiledRes
       ...transferred.nearshoreData,
       staticAtlas: Object.freeze({
         ...transferred.nearshoreData.staticAtlas,
-        pixels: new OceanNearshoreReadonlyUint8Buffer(pixels, WaterBufferOwnership.Transfer)
+        pixels: new WaterReadonlyUint8Buffer(pixels, WaterBufferOwnership.Transfer)
       })
     });
     const nearshoreResource = OceanNearshoreFieldResource.create(nearshoreData, route);

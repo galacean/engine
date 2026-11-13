@@ -1,5 +1,3 @@
-import { roundTiesToEven } from "./WaterMetricEncodingV1";
-
 /** Structural river geometry input kept independent from the Authoring aggregate to avoid a module cycle. */
 export interface SeedWorldAuthoredRiverGeometryInputV1 {
   readonly startXOffsetMillimetres: number;
@@ -74,55 +72,4 @@ export function seedWorldAuthoredRiverBoundsV1(
     maximumX: Math.max(...points.map(({ x }) => x)) + padding,
     maximumZ: Math.max(...points.map(({ z }) => z)) + padding
   });
-}
-
-/** Smooth channel profile: full authored depth on centerline, zero outside water plus bank feather. */
-export function sampleSeedWorldAuthoredRiverHeightDeltaMillimetresV1(
-  river: Readonly<SeedWorldAuthoredRiverGeometryInputV1>,
-  sizeMetres: number,
-  xOffsetMillimetres: number,
-  zOffsetMillimetres: number
-): number {
-  const halfMillimetres = sizeMetres * 500;
-  const x = (xOffsetMillimetres - halfMillimetres) / 1_000;
-  const z = (zOffsetMillimetres - halfMillimetres) / 1_000;
-  const distance = seedWorldAuthoredRiverDistanceV1(river, sizeMetres, x, z);
-  const halfWidth = river.widthMillimetres / 2_000;
-  const feather = Math.min(10, Math.max(1, river.widthMillimetres / 1_000));
-  if (distance >= halfWidth + feather) return 0;
-  if (distance <= halfWidth) return -river.depthMillimetres;
-  const ratio = 1 - (distance - halfWidth) / feather;
-  const smooth = ratio * ratio * (3 - 2 * ratio);
-  return roundTiesToEven(-river.depthMillimetres * smooth, "riverChannelDelta");
-}
-
-/** Shortest world-space distance to the authored centerline. */
-export function seedWorldAuthoredRiverDistanceV1(
-  river: Readonly<SeedWorldAuthoredRiverGeometryInputV1>,
-  sizeMetres: number,
-  worldX: number,
-  worldZ: number
-): number {
-  const points = resolveSeedWorldAuthoredRiverCenterlineV1(river, sizeMetres);
-  let distance = Number.POSITIVE_INFINITY;
-  for (let index = 1; index < points.length; index++) {
-    distance = Math.min(distance, distanceToSegment(worldX, worldZ, points[index - 1]!, points[index]!));
-  }
-  return distance;
-}
-
-function distanceToSegment(
-  x: number,
-  z: number,
-  start: Readonly<SeedWorldAuthoredRiverPointV1>,
-  end: Readonly<SeedWorldAuthoredRiverPointV1>
-): number {
-  const deltaX = end.x - start.x;
-  const deltaZ = end.z - start.z;
-  const lengthSquared = deltaX * deltaX + deltaZ * deltaZ;
-  const t =
-    lengthSquared <= 1e-9
-      ? 0
-      : Math.min(1, Math.max(0, ((x - start.x) * deltaX + (z - start.z) * deltaZ) / lengthSquared));
-  return Math.hypot(x - (start.x + deltaX * t), z - (start.z + deltaZ * t));
 }

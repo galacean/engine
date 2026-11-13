@@ -1,15 +1,16 @@
+import {
+  WaterReadonlyFloat32Buffer,
+  WaterReadonlyInt32Buffer,
+  WaterReadonlyUint32Buffer,
+  WaterReadonlyUint8Buffer
+} from "../shared/ReadonlyNumericBuffer";
 import type { SampledLakeBoundary } from "../../authoring/lake/LakeBoundary";
 import { compileHeightfieldWaterShoreDistances } from "./HeightfieldWaterShoreDistanceCompiler";
 /** Four-neighbour component resolution and dense CPU query-grid preparation. */
 import type { HeightfieldWaterDescriptorV1 } from "../../authoring/heightfield/HeightfieldWaterDescriptor";
 import type { HeightfieldWaterBudgetConfig } from "../../authoring/heightfield/HeightfieldWaterTypes";
 import type { HeightfieldWaterCompiledComponent } from "./HeightfieldWaterCompiledTypes";
-import {
-  HeightfieldReadonlyFloat32Buffer,
-  HeightfieldReadonlyInt32Buffer,
-  HeightfieldReadonlyUint32Buffer,
-  HeightfieldReadonlyUint8Buffer
-} from "./HeightfieldNumericBuffer";
+
 import { WaterBufferOwnership } from "../shared/WaterBufferOwnership";
 import { HEIGHTFIELD_WATER_DEFAULT_DEPTH } from "./constants";
 import { HeightfieldWaterGeneratedBudgetExceededError, type PreparedHeightfieldWaterData } from "./internalTypes";
@@ -115,7 +116,7 @@ export function prepareHeightfieldWaterData(
       id: `${descriptor.id}:component:${componentIndex}`,
       index: componentIndex,
       wetTexelCount: texels.length,
-      wetTexelIndices: new HeightfieldReadonlyUint32Buffer(texels),
+      wetTexelIndices: new WaterReadonlyUint32Buffer(texels),
       minTexel: freezeVector2(minX, minZ),
       maxTexel: freezeVector2(maxX, maxZ),
       bounds: Object.freeze({
@@ -150,18 +151,18 @@ export function createHeightfieldWaterQueryGrid(
   return Object.freeze({
     grid: prepared.descriptor.grid,
     ...(prepared.descriptor.bedTerrain ? { bedTerrain: prepared.descriptor.bedTerrain } : {}),
-    wetMask: new HeightfieldReadonlyUint8Buffer(prepared.wetMask, WaterBufferOwnership.Transfer),
+    wetMask: new WaterReadonlyUint8Buffer(prepared.wetMask, WaterBufferOwnership.Transfer),
     ...(boundary?.queryCoverage === "boundary"
       ? {}
       : {
-          shoreDistances: new HeightfieldReadonlyFloat32Buffer(
+          shoreDistances: new WaterReadonlyFloat32Buffer(
             compileHeightfieldWaterShoreDistances(prepared.wetMask, prepared.descriptor.grid),
             WaterBufferOwnership.Transfer
           )
         }),
-    componentIndices: new HeightfieldReadonlyInt32Buffer(prepared.componentIndices, WaterBufferOwnership.Transfer),
-    surfaceHeights: new HeightfieldReadonlyFloat32Buffer(prepared.surfaceHeights, WaterBufferOwnership.Transfer),
-    bedHeights: new HeightfieldReadonlyFloat32Buffer(prepared.bedHeights, WaterBufferOwnership.Transfer),
-    flowVectorsXZ: new HeightfieldReadonlyFloat32Buffer(prepared.flowVectorsXZ, WaterBufferOwnership.Transfer)
+    componentIndices: new WaterReadonlyInt32Buffer(prepared.componentIndices, WaterBufferOwnership.Transfer),
+    surfaceHeights: new WaterReadonlyFloat32Buffer(prepared.surfaceHeights, WaterBufferOwnership.Transfer),
+    bedHeights: new WaterReadonlyFloat32Buffer(prepared.bedHeights, WaterBufferOwnership.Transfer),
+    flowVectorsXZ: new WaterReadonlyFloat32Buffer(prepared.flowVectorsXZ, WaterBufferOwnership.Transfer)
   });
 }

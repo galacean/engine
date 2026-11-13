@@ -130,6 +130,9 @@ export class NativeBuildingWorld {
   get publicationRevision() {
     return this.system.publicationRevision;
   }
+  get presentationRevision() {
+    return `${this.system.generation}:${this.system.publicationRevision}`;
+  }
   get enabled() {
     return !this.closed && this.system.visible;
   }
@@ -148,14 +151,10 @@ export class NativeBuildingWorld {
   get bounds() {
     return this.accepted || !this.prepared ? this.system.bounds : this.prepared.bounds;
   }
-  captureSurfaceQuery() {
-    return this.accepted || !this.prepared ? this.system.captureSurfaceQuery() : this.prepared.captureSurfaceQuery();
-  }
-  intersectSegment(...args: Parameters<BuildingManager["intersectSegment"]>) {
-    return this.system.intersectSegment(...args);
-  }
-  intersectCapsule(...args: Parameters<BuildingManager["intersectCapsule"]>) {
-    return this.system.intersectCapsule(...args);
+  captureOccupancyQuery() {
+    return this.accepted || !this.prepared
+      ? this.system.captureOccupancyQuery()
+      : this.prepared.captureOccupancyQuery();
   }
   visitPickBatches(visitor: SeedWorldPickVisitor) {
     if (this.accepted && this.isCurrent()) this.system.visitPickBatches(visitor);

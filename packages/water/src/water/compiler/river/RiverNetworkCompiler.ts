@@ -1,3 +1,4 @@
+import { WaterReadonlyFloat32Buffer, WaterReadonlyUint32Buffer } from "../shared/ReadonlyNumericBuffer";
 /**
  * Deterministic river-network compiler.
  *
@@ -17,7 +18,7 @@ import type {
 } from "../../authoring/river/RiverAuthoringTypes";
 import type { RiverNetworkDescriptor, RiverSegmentConfig } from "../../authoring/river/RiverDescriptor";
 import { validateRiverConfig } from "../../authoring/river/RiverSchemaDecoder";
-import { RiverReadonlyFloat32Buffer, RiverReadonlyUint32Buffer } from "../shared/ReadonlyNumericBuffer";
+
 import { WaterBufferOwnership } from "../shared/WaterBufferOwnership";
 import { RiverDiagnosticCode, RiverDiagnosticSeverity, type RiverDiagnostic } from "../shared/diagnostics";
 import { RiverGeometryCompiler } from "./RiverGeometryCompiler";
@@ -327,8 +328,8 @@ function createCompiledNodes(
       mergeRadius: node.mergeRadius,
       authoredElevation: node.elevation ?? node.position[1],
       waterSurfaceElevation: waterSurfaceElevations[nodeIndex],
-      incomingReachIndices: new RiverReadonlyUint32Buffer(incomingReachIndices[nodeIndex]),
-      outgoingReachIndices: new RiverReadonlyUint32Buffer(outgoingReachIndices[nodeIndex])
+      incomingReachIndices: new WaterReadonlyUint32Buffer(incomingReachIndices[nodeIndex]),
+      outgoingReachIndices: new WaterReadonlyUint32Buffer(outgoingReachIndices[nodeIndex])
     })
   );
 }
@@ -824,8 +825,8 @@ export class RiverNetworkCompiler {
       terrainInteraction: budgeted.terrainInteraction,
       surfaceMotion,
       disturbances,
-      topologicalNodeIndices: new RiverReadonlyUint32Buffer(topologicalNodeIndices, WaterBufferOwnership.Transfer),
-      waterSurfaceElevations: new RiverReadonlyFloat32Buffer(
+      topologicalNodeIndices: new WaterReadonlyUint32Buffer(topologicalNodeIndices, WaterBufferOwnership.Transfer),
+      waterSurfaceElevations: new WaterReadonlyFloat32Buffer(
         new Float32Array(waterSurfaceElevations),
         WaterBufferOwnership.Transfer
       ),

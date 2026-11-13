@@ -22,7 +22,7 @@ import { buildingWorldRegion, compileBuildingCpu, prepareBuildingOnGround } from
 import { prepareBuildingDetail } from "./BuildingDetail";
 import { terrainAffectsRegion, validateConstructionTerrain } from "../../runtime/TerrainField";
 import type { ConstructionTerrainSource } from "../../runtime/TerrainField";
-import { ConstructionSurfaceQuery } from "../../runtime/ConstructionSurfaceQuery";
+import { BuildingOccupancyQuery } from "../../runtime/BuildingOccupancyQuery";
 import { ConstructionEntrance, type ConstructionEntranceState } from "../../runtime/ConstructionEntrance";
 import { createBuildingDistanceView } from "../../runtime/BuildingDistanceView";
 import {
@@ -159,9 +159,9 @@ type ProfileView = MasonryResidencyEntry & {
   groupIds: Map<Component, string>;
   worldMatrix: Float64Array;
   retryAt?: number;
-  structure: ConstructionSurfaceQuery;
-  worldStructure?: ConstructionSurfaceQuery;
-  structureMatrix: Float64Array;
+  occupancy: BuildingOccupancyQuery;
+  worldOccupancy?: BuildingOccupancyQuery;
+  occupancyMatrix: Float64Array;
   cpu: BuildingCpuHandle;
   diagnostics: readonly { source: string; message: string }[];
   focus: Map<Component, BoundFocus>;
@@ -189,7 +189,8 @@ export interface BuildingRuntimeHost {
   terrain?: ConstructionTerrainSource;
   frame(owner: Component): Entity;
   isBody(member: Component): boolean;
-  kind(owner: Component): string;
+  /** Classify the supplied published groups in order, sharing one author scan. */
+  kinds(owners: readonly Component[]): string[];
   groupIdentity(member: Component): string;
   resolve(id: string): Component | undefined;
   validate(members: Iterable<Component>): void;
@@ -284,7 +285,7 @@ export class BuildingRuntime extends Script {
     this.updateLights(0);
   }
   get publicationRevision(): number {
-    this.surfaceQueries();
+    this.occupancyQueries();
     return this.surfaceRevision;
   }
 
@@ -362,8 +363,8 @@ export class BuildingRuntime extends Script {
           for (const build of [this.build, this.detailBuild]) if (build?.frame === frame) build.controller.abort();
           const id = view.groupIds.get(component)!;
           view.view.setOwnerVisible(id, false);
-          view.structure = view.structure.withoutOwner(id);
-          view.worldStructure = undefined;
+          view.occupancy = view.occupancy.withoutOwner(id);
+          view.worldOccupancy = undefined;
           this.surfaceRevision++;
           for (const draw of view.fine?.runtime.draws.values() ?? [])
             if (draw.ownerId === id) {
@@ -581,7 +582,7 @@ export class BuildingRuntime extends Script {
             .reduce((sum, view) => sum + view.bodies.length, 0)
         },
         bounds: queries.flatMap((query) => query.bounds),
-        captureSurfaceQuery: () => this.captureQueries(queries),
+        captureOccupancyQuery: () => this.captureQueries(queries),
         assertCurrent: check,
         commit: () => {
           check();
@@ -709,9 +710,9 @@ export class BuildingRuntime extends Script {
             )
           : await this.compiler.prepare(draft, terrain.grid, units, signal, { frame: placement });
       cpu = candidate.cpu;
-      const { preview: geometry, structure: structureData } = candidate;
+      const { preview: geometry, occupancy: occupancyData } = candidate;
       check();
-      const structure = ConstructionSurfaceQuery.fromSnapshot(structureData!);
+      const occupancy = BuildingOccupancyQuery.fromSnapshot(occupancyData!);
       distance = await createBuildingDistanceView(
         this.engine,
         frame,
@@ -740,11 +741,11 @@ export class BuildingRuntime extends Script {
         lights,
         bodies,
         groupIds,
-        structure,
+        occupancy,
         cpu,
         diagnostics: candidate.diagnostics,
         focus: bindFocus(candidate.focus, bindings, frame, true),
-        structureMatrix: new Float64Array(16).fill(NaN),
+        occupancyMatrix: new Float64Array(16).fill(NaN),
         lod: 2,
         transition: new MasonryLodTransition(),
         prefetch: false,
@@ -802,7 +803,7 @@ export class BuildingRuntime extends Script {
               build.controller.signal
             );
             this.acceptEntrance(candidate);
-            if (!old || !old.structure.hasSameGeometry(candidate.structure)) this.surfaceRevision++;
+            if (!old || !old.occupancy.hasSameGeometry(candidate.occupancy)) this.surfaceRevision++;
             if (old) this.retire(old);
             this.views.set(frame, candidate);
             if (candidate.kind === "profile") this.entries.push(candidate);
@@ -968,36 +969,36 @@ export class BuildingRuntime extends Script {
     if (!this.lights && this.lightDescriptors.length) this.lights = new ConstructionDecorationLights(this.entity, 4);
     this.lights?.update(this.lightDescriptors, this.host.camera, deltaSeconds);
   }
-  private surfaceQueries(): ConstructionSurfaceQuery[] {
+  private occupancyQueries(): BuildingOccupancyQuery[] {
     if (!this.shown || !this.enabled || !this.entity.isActiveInHierarchy) return [];
     if (
       [...this.views.values()].some(
-        (view) => !view.structureMatrix.every((value, i) => value === viewRoot(view).transform.worldMatrix.elements[i])
+        (view) => !view.occupancyMatrix.every((value, i) => value === viewRoot(view).transform.worldMatrix.elements[i])
       )
     )
       this.surfaceRevision++;
     return this.queriesFor([...this.views.values()].filter((view) => viewRoot(view).isActiveInHierarchy));
   }
-  private queriesFor(entries: readonly View[]): ConstructionSurfaceQuery[] {
+  private queriesFor(entries: readonly View[]): BuildingOccupancyQuery[] {
     return entries.map((view) => {
       const matrix = viewRoot(view).transform.worldMatrix,
         elements = matrix.elements;
-      if (!view.worldStructure || !view.structureMatrix.every((value, index) => value === elements[index])) {
-        view.worldStructure = ConstructionSurfaceQuery.fromSnapshot(
-          view.structure
+      if (!view.worldOccupancy || !view.occupancyMatrix.every((value, index) => value === elements[index])) {
+        view.worldOccupancy = BuildingOccupancyQuery.fromSnapshot(
+          view.occupancy
             .transformed(matrix)
             .snapshot()
             .map((part) => ({ ...part, owner: buildingInstanceKey(view.frame, buildingGroupKey(part.owner)) }))
         );
-        view.structureMatrix.set(elements);
+        view.occupancyMatrix.set(elements);
       }
-      return view.worldStructure;
+      return view.worldOccupancy;
     });
   }
-  /** Structural surfaces from the published component geometry, including openings.
+  /** Occupied envelopes of the currently published component geometry.
    * Independent of GPU residency and entrance animation; no planning OBB approximation. */
   get bounds() {
-    return this.surfaceQueries().flatMap((query) => query.bounds);
+    return this.occupancyQueries().flatMap((query) => query.bounds);
   }
   /** Presentation bounds include the roof and generated units even while hidden
    * for a comparison or an atomic publication. Collision bounds stay separate. */
@@ -1012,10 +1013,10 @@ export class BuildingRuntime extends Script {
     }
     return result;
   }
-  captureSurfaceQuery() {
-    return this.captureQueries(this.surfaceQueries());
+  captureOccupancyQuery() {
+    return this.captureQueries(this.occupancyQueries());
   }
-  private captureQueries(queries: readonly ConstructionSurfaceQuery[]) {
+  private captureQueries(queries: readonly BuildingOccupancyQuery[]) {
     return Object.freeze({
       intersectBounds(min: [number, number, number], max: [number, number, number]) {
         for (const query of queries) {
@@ -1025,21 +1026,6 @@ export class BuildingRuntime extends Script {
         return null;
       }
     });
-  }
-  intersectSegment(start: [number, number, number], end: [number, number, number]) {
-    let closest: ReturnType<ConstructionSurfaceQuery["intersectSegment"]> = null;
-    for (const query of this.surfaceQueries()) {
-      const hit = query.intersectSegment(start, end);
-      if (hit && (!closest || hit.fraction < closest.fraction)) closest = hit;
-    }
-    return closest;
-  }
-  intersectCapsule(start: [number, number, number], end: [number, number, number], radius: number) {
-    for (const query of this.surfaceQueries()) {
-      const hit = query.intersectCapsule(start, end, radius);
-      if (hit) return hit;
-    }
-    return null;
   }
   async inspectBinding(frame: Entity, id: string, polygon?: number[][]) {
     const view = this.views.get(frame);
@@ -1135,7 +1121,7 @@ export class BuildingRuntime extends Script {
       authoredObjects: this.members.size,
       buildings: bodies.length,
       groups: this.views.size,
-      houses: bodies.filter((body) => this.host!.kind(body) === "house").length,
+      houses: bodies.length ? this.host!.kinds(bodies).filter((kind) => kind === "house").length : 0,
       draws,
       enabledRenderers: renderers,
       derivedEntities,

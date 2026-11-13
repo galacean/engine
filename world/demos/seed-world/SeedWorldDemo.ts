@@ -1,3 +1,4 @@
+import { SeedWorldVisualQuery } from "@galacean/engine-world-planning/world/SeedWorldVisualQuery";
 import type { ProjectFileProvider } from "@galacean/engine-project/project-files/virtual-project-files";
 import retrievalCatalog from "@galacean/engine-retrieval/retrieval/catalog.json";
 import { createFarmingComponentExtension } from "@galacean/engine-runtime-editor/farming/FarmingComponentEditor";
@@ -268,6 +269,7 @@ export async function mountSeedWorldDemo(
   let animals: PlanningAnimalHost | undefined;
   let detachAnimalLightning: (() => void) | undefined;
   let farmingHost: PlanningFarmingHost | undefined;
+  let visualQuery: SeedWorldVisualQuery | undefined;
   let unregisterFarmingActivation: (() => void) | undefined;
 
   let audio: SeedWorldAudioRuntime | undefined;
@@ -327,7 +329,7 @@ export async function mountSeedWorldDemo(
     }
   }
   const raster = new PlanningRasterClient();
-  const rockFormations = new RockFormationClient(pageUrl.searchParams.get("rockUnion") === "1");
+  const rockFormations = new RockFormationClient(pageUrl.searchParams.get("rockUnion") === "1", () => engine!);
   let rockNavigation: RockNavigation | undefined;
   const bootPhases: { phase: string; startMs: number }[] = [];
   const traceBootPhase = (phase: string) => {
@@ -394,6 +396,7 @@ export async function mountSeedWorldDemo(
       }
     ],
     ["农场宿主", () => farmingHost?.dispose()],
+    ["Visual query", () => visualQuery?.dispose()],
     ["建筑宿主", () => nativeBuildingHost?.dispose()],
     [
       "场景交互",
@@ -676,6 +679,7 @@ export async function mountSeedWorldDemo(
     const sun = requiredComponent(scene!.rootEntities, DirectLight, "DirectLight");
     const navigation = requiredComponent(scene!.rootEntities, TerrainNavigationRuntime, "TerrainNavigationRuntime");
     const post = requiredComponent(scene!.rootEntities, TerrainPostProcessRuntime, "TerrainPostProcessRuntime");
+    const resetPostProcess = post.captureDebugReset();
     const wind = requiredComponent(scene!.rootEntities, TerrainWindRuntime, "TerrainWindRuntime");
     detachWindExposure = () => wind.setGpuExposureProvider(null);
     navigation.enabled = false;
@@ -713,7 +717,7 @@ export async function mountSeedWorldDemo(
       shadowStrength: SEED_WORLD_DEFAULT_SHADOW_STRENGTH
     });
     lightingProfile = new PlanningLightingProfileRuntime(engine, lighting);
-    await applyPresentation(source!.session, lightingProfile, post);
+    await applyPresentation(source!.session, lightingProfile, post, resetPostProcess);
     orb.attachWorldUnderlay(scene!);
     const root = scene!.createRootEntity("Seed World Runtime");
     rockNavigation = new RockNavigation(root, navigation, (x, z) =>
@@ -942,15 +946,18 @@ export async function mountSeedWorldDemo(
       });
     });
     const isFarmingPlanned = () => source!.session.document.entities.world.components.farming?.values.enabled !== false;
+    visualQuery = new SeedWorldVisualQuery(camera,
+      () => publication?.current,
+      () => `${publication?.current?.revision}:${publication?.current?.masonry?.presentationRevision}`,
+      visitor => { const current = publication?.current; if (current) visitPlanningWorldPickBatches(current, water!, visitor); });
     farmingHost = new PlanningFarmingHost({
       projection: nativeEditor.projection,
       isPlannedEnabled: isFarmingPlanned,
       create: (system, statePath) =>
         new PlanningFarmingRuntime({
           canvas,
+          visualQuery,
           isInputEnabled: () => ready && !disposed && !tools?.listening && !runtimeDebug?.farmingPicking,
-          raycastWorld: (ray, distance) =>
-            rockNavigation?.raycastWorld(ray, distance) ?? root.scene!.physics.raycast(ray, distance),
           system,
           statePath: statePath!,
           camera,
@@ -1167,7 +1174,7 @@ export async function mountSeedWorldDemo(
             try {
               if (rockState(plan) !== rockState(current.plan)) {
                 const meshes = await rockFormations.prepare(plan, readRockFormationSettings(document), signal);
-                await prepareRockTextures(engine!, signal);
+                if (meshes.some((mesh) => !mesh.variant)) await prepareRockTextures(engine!, signal);
                 signal.throwIfAborted();
                 const fields = current.heightTransition?.fields ?? current.data.fields;
                 const presented = planningPresentedSolids(plan, fields, current.data.fields);
@@ -1275,7 +1282,7 @@ export async function mountSeedWorldDemo(
               settings = readRockFormationSettings(document);
             const meshes = await rockFormations.prepare(plan, settings, signal, current.solids.formations);
             const preparationMetrics = { ...rockFormations.preparationMetrics };
-            await prepareRockTextures(engine!, signal);
+            if (meshes.some((mesh) => !mesh.variant)) await prepareRockTextures(engine!, signal);
             signal.throwIfAborted();
             const frame = await prepareRockFormationPublication(
               current,
@@ -1504,7 +1511,7 @@ export async function mountSeedWorldDemo(
             applyPlanningTreeVariations(candidate.population, plan.authoredResources ?? []);
             recordBootSpan("applyPlanningTreeVariations", spanAt);
             spanAt = performance.now();
-            if (formationMeshes.length) await prepareRockTextures(engine!, signal);
+            if (formationMeshes.some((mesh) => !mesh.variant)) await prepareRockTextures(engine!, signal);
             recordBootSpan("prepareRockTextures", spanAt);
             signal.throwIfAborted();
             const presentedFields = heightTransition?.fields ?? candidateData.fields;
@@ -1662,12 +1669,12 @@ export async function mountSeedWorldDemo(
               .commit();
             recordBootSpan("rock grass prepare + commit", spanAt);
             spanAt = performance.now();
-            if (precompileShaders) candidate.warmupPopulationDetails();
+            if (precompileShaders && ready) candidate.warmupPopulationDetails();
             recordBootSpan("warmupPopulationDetails", spanAt);
             const warmupRoots = [candidate.root, ...candidateWater.shaderWarmupRoots];
-            if (!ready) progress(0.78, "预编译场景渲染变体");
             const shaderWarmup = await warmupSeedWorldRendererVariants(engine!, scene!, camera, warmupRoots, {
-              enabled: precompileShaders,
+              // Startup publishes additional owners below; collect their final state together before reveal.
+              enabled: precompileShaders && ready,
               includeGpuInstancing: true,
               strict: true,
               activatedLightRoots: warmupRoots,
@@ -1930,7 +1937,7 @@ export async function mountSeedWorldDemo(
         await runtimeDebug?.synchronize();
         if (publication!.current !== accepted || disposed) return;
         debugSidebar?.synchronize(plan);
-        await applyPresentation(source!.session, lightingProfile!, post);
+        await applyPresentation(source!.session, lightingProfile!, post, resetPostProcess);
         desert?.applyDesertSky(lighting!);
         if (desert) post.setBloomTint(1, 1, 1);
         applyPlanningWeather(
@@ -2044,28 +2051,6 @@ export async function mountSeedWorldDemo(
       environment,
       water,
       readPublished,
-      querySubjectCapsules: (capsules) => {
-        const scene = publication?.current,
-          runtime = scene?.masonry;
-        if (!runtime) return undefined;
-        const hits = capsules.map(({ start, end, radius }) => runtime.intersectCapsule(start, end, radius));
-        if (hits.some((hit) => hit === undefined)) return undefined;
-        return {
-          publicationRevision: scene!.authoringRevision,
-          hits: hits as Exclude<(typeof hits)[number], undefined>[]
-        };
-      },
-      querySubjectSegments: (segments) => {
-        const scene = publication?.current,
-          runtime = scene?.masonry;
-        if (!runtime) return undefined;
-        const hits = segments.map(({ start, end }) => runtime.intersectSegment(start, end));
-        if (hits.some((hit) => hit === undefined)) return undefined;
-        return {
-          publicationRevision: scene!.authoringRevision,
-          hits: hits as Exclude<(typeof hits)[number], undefined>[]
-        };
-      },
       setWorldInputEnabled: (enabled) => {
         assistantInputEnabled = enabled;
         enabled = enabled && !lassoFrozen;
@@ -2240,6 +2225,33 @@ export async function mountSeedWorldDemo(
     // Dense visible details belong to the world presentation, including photo captures.
     publication.current?.world.warmupPopulationDetails();
 
+    if (precompileShaders) {
+      // IBL generation above needs normal rendering; stop world draws only after it has settled.
+      camera.enabled = false;
+      progress(0.96, "准备世界渲染资源");
+      await Promise.all([farmingHost?.runtime?.preparePresentation(), animals?.preparePresentation()]);
+      if (disposed) throw new DOMException("Seed page disposed during shader preparation", "AbortError");
+      await publication.current?.vegetation?.preparePresentation();
+      if (disposed) throw new DOMException("Seed page disposed during shader preparation", "AbortError");
+      progress(0.98, "预编译场景渲染变体");
+      const shaderWarmup = await warmupSeedWorldRendererVariants(engine, scene!, camera, scene!.rootEntities, {
+        strict: true,
+        includeInactiveEntities: false,
+        includeGpuInstancing: true,
+        postProcessState: post.getShaderWarmupState(),
+        additionalBackgroundMaterials: environment!.shaderWarmupBackgroundMaterials,
+        onVariants:
+          pageUrl.searchParams.get("agentTrace") === "1"
+            ? (variants) => {
+                canvas.dataset.buildingShaderWarmupVariants = JSON.stringify(variants);
+              }
+            : undefined
+      });
+      if (pageUrl.searchParams.get("agentTrace") === "1")
+        canvas.dataset.buildingShaderWarmup = JSON.stringify(shaderWarmup);
+    }
+
+    camera.enabled = true;
     progress(1, "Seed World 已就绪");
     await timed("orb.reveal", () =>
       orb!.reveal(() => {
@@ -2429,6 +2441,7 @@ export async function mountSeedWorldDemo(
     void (async () => {
       await capturePathWarmup;
       await timed("lassoPanel.prepare", () => preparingLasso.prepare());
+      await timed("farmingInteraction.prepare", () => farmingHost?.runtime?.prepareInteraction());
       await timed("pickPreparation.flush #2", () => preparingPicks.flush(editorLifetime.signal));
       if (disposed) return;
       if (options.showAssistant !== false)
@@ -2485,25 +2498,28 @@ async function applyPresentation(
   session: import("@galacean/engine-world-planning/spatial/PlanningSession").PlanningSession,
   lightingProfile: PlanningLightingProfileRuntime,
   post: TerrainPostProcessRuntime,
+  resetPostProcess: () => void,
   components = session.inspect("world").components
 ): Promise<void> {
+  resetPostProcess();
   const light = components.find((component) => component.type === "lighting")?.values;
   if (light) {
     if (!(await lightingProfile.apply(light))) return;
   }
-  const p = components.find((component) => component.type === "postProcess")?.values;
-  if (p) {
+  const settings = components.find((component) => component.type === "postProcess");
+  if (settings) {
+    const { values: p, sources } = settings;
     post.setProfileEnabled(Boolean(p.enabled));
     post.setColorAdjustmentsEnabled(p.colorAdjustments !== false);
     post.setTonemappingEnabled(Boolean(p.tonemapping));
-    post.setPostExposure(Number(p.postExposure));
-    post.setTemperature(Number(p.temperature));
-    post.setContrast(Number(p.contrast));
-    post.setSaturation(Number(p.saturation));
+    if (sources.postExposure?.length) post.setPostExposure(Number(p.postExposure));
+    if (sources.temperature?.length) post.setTemperature(Number(p.temperature));
+    if (sources.contrast?.length) post.setContrast(Number(p.contrast));
+    if (sources.saturation?.length) post.setSaturation(Number(p.saturation));
     post.setBloomEnabled(Boolean(p.bloom));
-    post.setBloomThreshold(Number(p.bloomThreshold));
-    post.setBloomIntensity(Number(p.bloomIntensity));
-    post.setBloomScatter(Number(p.bloomScatter));
+    if (sources.bloomThreshold?.length) post.setBloomThreshold(Number(p.bloomThreshold));
+    if (sources.bloomIntensity?.length) post.setBloomIntensity(Number(p.bloomIntensity));
+    if (sources.bloomScatter?.length) post.setBloomScatter(Number(p.bloomScatter));
   }
 }
 

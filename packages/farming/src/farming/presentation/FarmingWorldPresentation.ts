@@ -83,7 +83,9 @@ export class FarmingWorldPresentation {
   private manualTarget = false;
   private lockedTarget: { plotId: string | null; ground: GroundTarget | null } | null = null;
   private targetGroundRevision = -1;
-  private playerOccluded?: (ray: Ray, distance: number) => boolean;
+  private playerOccluded?: (ray: Ray, distance: number, ignoredRoot?: Entity) => boolean;
+  private preparePlayerOcclusion?: (ray: Ray, ignoredRoot?: Entity) => Promise<boolean>;
+  private playerHintOccluded?: (ray: Ray, distance: number, target: string, ignoredRoot?: Entity) => boolean;
   private playerActionTarget?: FarmWorkSelection;
   private playerTargetKey = "";
   private playerTargetCheckedAt = -Infinity;
@@ -254,6 +256,17 @@ export class FarmingWorldPresentation {
     this.actionMotion = motion;
     try {
       const prepared = await cancellable(this.prepareActionAnimation(input, signal), signal);
+      if (prepared && this.playerActionTarget && this.preparePlayerOcclusion) {
+        // Tool animations outlive a hint sample. Confirm the original work ray
+        // again immediately before the coordinator's synchronous commit check.
+        const ray = new Ray(motion.origin.clone(), new Vector3(...this.playerActionTarget.position));
+        ray.direction.subtract(ray.origin).normalize();
+        if (
+          !(await this.preparePlayerOcclusion(ray, this.getGroundOcclusionRoot(this.playerActionTarget.ground))) ||
+          signal.aborted
+        )
+          return false;
+      }
       if (prepared) motion.progress = 1;
       return prepared && this.actionMotion === motion && !this.cancelIfMoved();
     } catch (error) {
@@ -316,12 +329,45 @@ export class FarmingWorldPresentation {
     return this.items.prepareUse(input.type === "plant" ? 0.45 : 0.35, signal);
   }
 
-  setPlayerOcclusionQuery(query?: (ray: Ray, distance: number) => boolean): void {
+  setPlayerOcclusionQuery(
+    query?: (ray: Ray, distance: number, ignoredRoot?: Entity) => boolean,
+    hintQuery?: (ray: Ray, distance: number, target: string, ignoredRoot?: Entity) => boolean,
+    prepare?: (ray: Ray, ignoredRoot?: Entity) => Promise<boolean>
+  ): void {
     this.playerOccluded = query;
+    this.playerHintOccluded = hintQuery;
+    this.preparePlayerOcclusion = prepare;
     this.playerTargetKey = "";
     if (this.hintOcclusion) this.hintOcclusion.checkedAt = -Infinity;
   }
   private hintOccluded(point: Vector3): boolean {
+    // The drawn ring is lifted above the surface. Share the work target's actual
+    // endpoint so the hint and selection consume a single depth sample.
+    if (this.playerHintOccluded) {
+      const target = this.target.ground ?? this.snapshot.plots.find((plot) => plot.plotId === this.target.plotId);
+      const work =
+        this.playerActionTarget ??
+        (isNearbyFarmTool(carriedItem(this.snapshot.items)?.type) ? this.playerTarget : null);
+      const matches =
+        work &&
+        target &&
+        work.ground.groundId === target.groundId &&
+        work.ground.cellX === target.cellX &&
+        work.ground.cellZ === target.cellZ;
+      const position = matches ? work.position : undefined;
+      this.workPoint.set(position?.[0] ?? point.x, position?.[1] ?? point.y, position?.[2] ?? point.z);
+      this.workRay.origin.copyFrom(this.camera.entity.transform.worldPosition);
+      this.workRay.direction.copyFrom(this.workPoint).subtract(this.workRay.origin);
+      const distance = this.workRay.direction.length();
+      if (distance < 0.001) return false;
+      this.workRay.direction.scale(1 / distance);
+      return this.playerHintOccluded(
+        this.workRay,
+        distance,
+        `${this.workPoint.x},${this.workPoint.y},${this.workPoint.z}`,
+        this.getGroundOcclusionRoot(target)
+      );
+    }
     const eye = this.camera.entity.transform.worldPosition;
     const ground = this.ground.capture();
     const now = performance.now();
@@ -368,13 +414,18 @@ export class FarmingWorldPresentation {
     this.hintOcclusion = result;
     return blocked;
   }
-  private playerTargetReachable(selected: FarmWorkSelection, selecting = true, origin?: Vector3): boolean {
+  private playerTargetReachable(
+    selected: FarmWorkSelection,
+    selecting = true,
+    origin?: Vector3,
+    visibility: "strict" | "hint" | "none" = "strict"
+  ): boolean {
     const eye = origin ?? this.camera.entity.transform.worldPosition;
     const rx = selected.position[0] - eye.x,
       rz = selected.position[2] - eye.z;
     const horizontalDistance = Math.hypot(rx, rz);
     if (horizontalDistance < FARM_WORK_REACH.minimum || horizontalDistance > FARM_WORK_REACH.maximum) return false;
-    if (!selecting && !this.service.inspectCultivation(selected.ground).canCultivate) return false;
+
     this.workPoint.set(...selected.position);
     if (selecting) {
       const forward = this.camera.entity.transform.worldForward;
@@ -395,18 +446,57 @@ export class FarmingWorldPresentation {
       )
         return false;
     }
+    // Reject reach/screen/action failures before either cultivation inspection or GPU work.
+    if (!this.service.inspectCultivation(selected.ground).canCultivate) return false;
+    if (visibility === "none") return true;
     this.workRay.origin.copyFrom(eye);
     this.workRay.direction.copyFrom(this.workPoint).subtract(eye);
     const distance = this.workRay.direction.length();
     this.workRay.direction.normalize();
-    return !this.playerOccluded?.(this.workRay, Math.max(0, distance - 0.06));
+    if (visibility === "hint" && this.playerHintOccluded)
+      return !this.playerHintOccluded(
+        this.workRay,
+        distance,
+        selected.position.join(","),
+        this.getGroundOcclusionRoot(selected.ground)
+      );
+    return !this.playerOccluded?.(
+      this.workRay,
+      Math.max(0, distance - 0.06),
+      this.getGroundOcclusionRoot(selected.ground)
+    );
   }
+  /** The operated crop belongs to the target; it cannot occlude its own ground. Other crops remain occluders. */
+  getGroundOcclusionRoot(target: GroundTarget | null | undefined): Entity | undefined {
+    const anchor = target ? this.surfaces.get(plotIdForTarget(target))?.cropAnchor : undefined;
+    // Empty anchors contain no crop geometry and need no distinct rendering policy.
+    return anchor && anchor.childCount !== 0 ? anchor : undefined;
+  }
+
+  /** Candidate probes never replace the displayed target or its refresh cache. */
+  getPlayerWorkCandidate(): FarmWorkSelection | null {
+    return this.playerWorkCandidates().next().value ?? null;
+  }
+
+  /** Bounded by the neighbouring grid cells; only needed for a click without a confirmed target. */
+  getPlayerWorkCandidates(): FarmWorkSelection[] {
+    return Array.from(this.playerWorkCandidates());
+  }
+
+  /** Read the displayed identity without scheduling a new hint or replacing it during a click. */
+  capturePlayerWorkTarget(): FarmWorkSelection | null {
+    return (
+      this.playerActionTarget ?? (isNearbyFarmTool(carriedItem(this.snapshot.items)?.type) ? this.playerTarget : null)
+    );
+  }
+
   getPlayerWorkTarget(): FarmWorkSelection | null {
     if (this.playerActionTarget) return this.playerActionTarget;
     const held = carriedItem(this.snapshot.items);
-    if (!isNearbyFarmTool(held?.type)) return null;
-    const eye = this.camera.entity.transform.worldPosition;
-    const forward = this.camera.entity.transform.worldForward;
+    if (!isNearbyFarmTool(held?.type)) {
+      this.playerTargetKey = "";
+      return (this.playerTarget = null);
+    }
     const view = this.ground.capture();
     const key = `${held!.id}/${this.snapshot.revision}/${view.revision}/${this.camera.aspectRatio}/${this.camera.fieldOfView}`;
     const now = performance.now();
@@ -414,8 +504,19 @@ export class FarmingWorldPresentation {
       return this.playerTarget;
     this.playerTargetKey = key;
     this.playerTargetCheckedAt = now;
+    for (const selected of this.playerWorkCandidates("hint")) {
+      return (this.playerTarget = selected);
+    }
+    return (this.playerTarget = null);
+  }
+
+  private *playerWorkCandidates(visibility: "hint" | "none" = "none"): Generator<FarmWorkSelection, void> {
+    const held = carriedItem(this.snapshot.items);
+    if (!isNearbyFarmTool(held?.type)) return;
+    const eye = this.camera.entity.transform.worldPosition;
+    const forward = this.camera.entity.transform.worldForward;
+    const view = this.ground.capture();
     const previous = this.playerTarget;
-    this.playerTarget = null;
     const candidates = farmWorkCandidates(
       this.snapshot.grid,
       held!.groundId,
@@ -438,11 +539,9 @@ export class FarmingWorldPresentation {
       const sample = view.sample(target.groundId, x, z);
       if (!sample) continue;
       const selected = { ground: target, plotId: plot?.plotId ?? null, position: sample.position };
-      if (!this.playerTargetReachable(selected) || !this.service.inspectCultivation(target).canCultivate) continue;
-      this.playerTarget = selected;
-      break;
+      if (!this.playerTargetReachable(selected, true, undefined, visibility)) continue;
+      yield selected;
     }
-    return this.playerTarget;
   }
   beginPlayerWork(target: FarmWorkSelection): boolean {
     if (this.playerActionTarget || !this.playerTargetReachable(target)) return false;
@@ -507,6 +606,8 @@ export class FarmingWorldPresentation {
       this.refreshSelection();
       return;
     }
+    this.playerTarget = null;
+    this.playerTargetKey = "";
     this.camera.viewportPointToRay(this.viewportCenter, this.viewRay);
     const { origin: o, direction: d } = this.viewRay,
       previous = this.previousRay;
@@ -635,6 +736,10 @@ export class FarmingWorldPresentation {
   }
   private sync(snapshot: FarmSnapshot, changes: readonly FarmChange[], groundChanged = false): void {
     if (this.disposed) return;
+    if (snapshot.items.carried?.itemId !== this.snapshot.items.carried?.itemId) {
+      this.playerTarget = null;
+      this.playerTargetKey = "";
+    }
     for (const id of Object.keys(this.snapshot.crops))
       if (!snapshot.crops[id]) {
         if (

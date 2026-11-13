@@ -138,10 +138,3 @@ export function calculateWaterFresnelF0(indexOfRefraction: number): number {
   const ratio = (1 - resolvedIor) / (1 + resolvedIor);
   return ratio * ratio;
 }
-
-/** Schlick Fresnel from an explicit dielectric F0. */
-export function evaluateWaterFresnelFromF0(fresnelF0: number, normalDotView: number): number {
-  const resolvedF0 = clampWaterOpticsFinite(fresnelF0, 0, 0, MAX_WATER_FRESNEL_F0);
-  const resolvedNormalDotView = clampWaterOpticsFinite(normalDotView, 1, 0, 1);
-  return resolvedF0 + (1 - resolvedF0) * Math.pow(1 - resolvedNormalDotView, 5);
-}

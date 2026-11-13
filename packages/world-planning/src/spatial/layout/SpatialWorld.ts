@@ -1203,10 +1203,11 @@ function* spatialWorldStages(
   }
   if (configuredSpawn) plan.spawn = { ...configuredSpawn.position };
   const templateSite = plan.worldTemplateSite;
+  const templateArt = templateSite && WORLD_TEMPLATE_ART[templateSite.templateId];
   if (
     options.environment !== false &&
     templateSite &&
-    (configuredSpawn || WORLD_TEMPLATE_ART[templateSite.templateId].plannedSubjects)
+    (configuredSpawn || templateArt?.plannedSubjects || templateArt?.spawnOffset)
   ) {
     const surface = planningGroundSurface(plan);
     const sample = (x: number, z: number) => surface.sample({ x, z });

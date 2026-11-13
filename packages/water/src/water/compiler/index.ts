@@ -23,9 +23,8 @@ export {
 } from "./lake/LakeBoundaryCompiler";
 export { attachLakeGridBoundary } from "./lake/LakeGridBoundaryAdapter";
 export { captureLakeTerrain } from "./lake/LakeTerrainAdapter";
-export { sampleLakeTerrainHeight, resolveLakeTerrainBoundary } from "./lake/LakeTerrainBoundary";
+export { resolveLakeTerrainBoundary } from "./lake/LakeTerrainBoundary";
 export type { LakeTerrainSnapshot, LakeTerrainView } from "./lake/LakeTerrainBoundary";
-export { applyLakeTerrainPatches, compileLakeTerrainModifier } from "./lake/LakeTerrainModifierCompiler";
 export {
   OCEAN_NEARSHORE_GPU_SHORE_DISTANCE_RANGE_MAXIMUM_METRES,
   OCEAN_NEARSHORE_HARD_BUDGET
@@ -37,7 +36,6 @@ export {
   RIVER_TERRAIN_CORRIDOR_COMPONENT
 } from "./river/constants";
 export { resolveRiverRibbonJoinFrames } from "./river/RiverRibbonJoinResolver";
-export { riverTerrainContentHash } from "./river/RiverTerrainModifierCompiler";
 export type { RiverTerrainInteractionData, RiverTerrainReachCorridorData } from "./river/types";
 export {
   CANONICAL_WATER_ENCODING_VERSION,

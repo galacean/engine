@@ -1,3 +1,4 @@
+import type { ReadonlyNumericBuffer } from "../shared/ReadonlyNumericBuffer";
 import type { RiverDrop } from "../../authoring/river/RiverDrop";
 import type { WaterConnectionPort } from "../../authoring/connections/WaterConnection";
 /** Engine-object-free contracts produced and consumed by river compilation. */
@@ -18,41 +19,13 @@ import type {
   RiverTerrainSurfaceOwnership
 } from "./RiverGeometryEnums";
 
-export interface ReadonlyUint32Buffer extends Iterable<number> {
-  readonly length: number;
-  readonly byteLength: number;
-  at(index: number): number | undefined;
-  /** Internal borrowed view; never mutate or retain past the compiled resource lifetime. */
-  borrowTypedArray(): Uint32Array;
-  toTypedArray(): Uint32Array;
-}
+export type ReadonlyUint32Buffer = ReadonlyNumericBuffer<Uint32Array>;
 
-export interface ReadonlyUint8Buffer extends Iterable<number> {
-  readonly length: number;
-  readonly byteLength: number;
-  at(index: number): number | undefined;
-  /** Internal borrowed view; never mutate or retain past the compiled resource lifetime. */
-  borrowTypedArray(): Uint8Array;
-  toTypedArray(): Uint8Array;
-}
+export type ReadonlyUint8Buffer = ReadonlyNumericBuffer<Uint8Array>;
 
-export interface ReadonlyFloat32Buffer extends Iterable<number> {
-  readonly length: number;
-  readonly byteLength: number;
-  at(index: number): number | undefined;
-  /** Internal borrowed view; never mutate or retain past the compiled resource lifetime. */
-  borrowTypedArray(): Float32Array;
-  toTypedArray(): Float32Array;
-}
+export type ReadonlyFloat32Buffer = ReadonlyNumericBuffer<Float32Array>;
 
-export interface ReadonlyInt32Buffer extends Iterable<number> {
-  readonly length: number;
-  readonly byteLength: number;
-  at(index: number): number | undefined;
-  /** Internal borrowed view; never mutate or retain past the compiled resource lifetime. */
-  borrowTypedArray(): Int32Array;
-  toTypedArray(): Int32Array;
-}
+export type ReadonlyInt32Buffer = ReadonlyNumericBuffer<Int32Array>;
 
 export type DeepReadonly<T> = T extends readonly [infer A, infer B, infer C]
   ? readonly [DeepReadonly<A>, DeepReadonly<B>, DeepReadonly<C>]

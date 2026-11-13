@@ -1,3 +1,5 @@
+import type { RockVariantAsset } from "@galacean/engine-terrain/rock-formation/types";
+import { rockVariantTextures } from "./Variants";
 import {
   AssetType,
   TextureFilterMode,
@@ -98,4 +100,12 @@ export function bindRockGrassGroundMaterial(
   if (texture) material.shaderData.setTexture("material_OriginalRockTexture", texture.base);
   material.shaderData.setFloat("material_OriginalRockTextureScale", Math.max(0, settings.textureScale));
   material.shaderData.setVector3("material_RockColor", new Vector3(...settings.colorBlend.color));
+}
+
+/** Creates a surface using the asset UVs and the live terrain color on upper faces. */
+export function createRockVariantMaterial(engine: Engine, asset: RockVariantAsset, tint: RockColorBlend): PBRMaterial {
+  const [baseTexture, normalTexture] = rockVariantTextures(engine, asset);
+  const material = createSurfaceMaterial(engine, { baseTexture, normalTexture, normalInBaseRegionOnly: true });
+  setRockColorBlend(material, tint);
+  return material;
 }

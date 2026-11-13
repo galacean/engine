@@ -8,10 +8,10 @@ import { createPlanningFarmingTerrainQuery } from "./PlanningFarmingTerrain.ts";
 import { createPlanningFarmingWaterInspection } from "./PlanningFarmingWater.ts";
 import type { WaterSpatialFieldSnapshot } from "@galacean/engine-water/water/runtime/index";
 
-/** Accepted structural surfaces; independent of the building generator and renderer. */
-export interface PlanningBuildingSurfaceOwner {
+/** Accepted building occupancy; independent of the building generator and renderer. */
+export interface PlanningBuildingOccupancyOwner {
   readonly bounds: readonly { readonly max: readonly [number, number, number] }[];
-  captureSurfaceQuery(): { intersectBounds(min: [number, number, number], max: [number, number, number]): { building: string; subject: string } | null } | undefined;
+  captureOccupancyQuery(): { intersectBounds(min: [number, number, number], max: [number, number, number]): { building: string; subject: string } | null } | undefined;
 }
 
 export type PlanningFarmingTerrain = Pick<
@@ -34,7 +34,7 @@ export function publishedPlanningFarmingGround(
   revision: number,
   underwater: (x: number, z: number, terrainHeight: number) => boolean,
   additionalBlocked: (bounds: GroundBounds) => boolean = () => false,
-  buildings?: PlanningBuildingSurfaceOwner,
+  buildings?: PlanningBuildingOccupancyOwner,
   waterFields?: readonly WaterSpatialFieldSnapshot[],
   restrictToManagement = true
 ) {
@@ -57,16 +57,16 @@ export function publishedPlanningFarmingGround(
       }))
     }))
   );
-  const surfaces = buildings?.captureSurfaceQuery();
+  const occupancy = buildings?.captureOccupancyQuery();
   const maximumBuildingHeight = Math.max(-Infinity, ...(buildings?.bounds ?? []).map((b) => b.max[1]));
   const buildingBlocked = (bounds: GroundBounds) => {
-    if (!surfaces || !Number.isFinite(maximumBuildingHeight)) return false;
+    if (!occupancy || !Number.isFinite(maximumBuildingHeight)) return false;
     const minimumGround = terrain.inspectBounds(bounds).minimumHeight;
     return (
       Number.isFinite(minimumGround) &&
       minimumGround <= maximumBuildingHeight &&
       Boolean(
-        surfaces.intersectBounds(
+        occupancy.intersectBounds(
           [bounds.minimumX, minimumGround, bounds.minimumZ],
           [bounds.maximumX, maximumBuildingHeight, bounds.maximumZ]
         )

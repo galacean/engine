@@ -92,15 +92,30 @@ export class BuildingManager extends BuildingRuntime {
       terrain: options.terrain,
       frame: (part) => partFrame(part as BuildingPartComponent | BuildingGroupComponent),
       isBody: (part) => part instanceof BuildingGroupComponent && !!part.definition,
-      kind: (part) => {
-        const types = this.list()
-          .filter(
-            (p) =>
-              partFrame(p) === partFrame(part as BuildingGroupComponent) &&
-              p.definition?.group === (part as BuildingGroupComponent).definition?.id
-          )
-          .map((p) => p.definition!.type);
-        return types.includes("wall") ? "house" : (types.sort()[0] ?? "");
+      kinds: (groups) => {
+        // Rebuild only this small per-read index, so diagnostics reflect edits,
+        // activation and reparenting without a second invalidation lifecycle.
+        // Only primitive classification fields are needed; keep the public
+        // definition getter's owned-copy contract out of this diagnostic path.
+        const types = new Map<Entity, Map<string, string>>();
+        for (const part of this.list()) {
+          const groupId = part._groupId,
+            type = part._partType;
+          if (groupId === undefined || type === undefined) continue;
+          const frame = partFrame(part);
+          let frameTypes = types.get(frame);
+          if (!frameTypes) types.set(frame, (frameTypes = new Map()));
+          const previous = frameTypes.get(groupId);
+          // Walls take precedence; otherwise retain the original lexical minimum.
+          if (previous !== "wall" && (type === "wall" || previous === undefined || type < previous))
+            frameTypes.set(groupId, type);
+        }
+        return groups.map((owner) => {
+          const group = owner as BuildingGroupComponent,
+            groupId = group._groupId;
+          const type = groupId === undefined ? undefined : types.get(partFrame(group))?.get(groupId);
+          return type === "wall" ? "house" : (type ?? "");
+        });
       },
       groupIdentity: (part) =>
         buildingInstanceKey(

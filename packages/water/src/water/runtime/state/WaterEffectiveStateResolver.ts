@@ -3,11 +3,7 @@ import type { ResolvedWaterBodyInstance } from "../../authoring/body/ResolvedWat
 import { createWaterBodyInstance } from "../../authoring/body/WaterBodyInstance";
 import { createWaterRepresentationV1 } from "../../authoring/body/WaterBodyRepresentation";
 import type { WaterEnvironmentSnapshot } from "../../authoring/environment/WaterEnvironmentSnapshot";
-import {
-  createWaterContentHash,
-  createWaterRevision,
-  type WaterContentHash
-} from "../../authoring/identity/WaterIdentity";
+import { createWaterContentHash, createWaterRevision } from "../../authoring/identity/WaterIdentity";
 import { resolveWaterReflectionSamplingSettings } from "../../authoring/optics/WaterReflectionSampling";
 import type { WaterReflectionPolicyMode } from "../../authoring/optics/WaterReflectionPolicy";
 import { waterReflectionPolicySourceChain } from "../../authoring/optics/WaterReflectionPolicy";
@@ -212,10 +208,4 @@ export function resolveEffectiveWaterRuntimeSnapshot(
     environmentResponse: response,
     provenance: parameterProvenance
   });
-}
-
-export function effectiveSnapshotContentHash(
-  snapshot: Readonly<EffectiveWaterRuntimeSnapshot>
-): WaterContentHash<"effective-water-runtime"> {
-  return snapshot.contentHash;
 }

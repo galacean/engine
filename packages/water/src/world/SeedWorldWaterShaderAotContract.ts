@@ -30,7 +30,3 @@ export const SEED_WORLD_WATER_SHADER_AOT_CONTRACT: readonly SeedWorldWaterShader
 ]);
 
 export type SeedWorldWaterShaderAotProfileId = SeedWorldWaterShaderAotContractEntry["id"];
-
-export const SEED_WORLD_WATER_SHADER_AOT_NAMES: readonly string[] = Object.freeze(
-  SEED_WORLD_WATER_SHADER_AOT_CONTRACT.map(({ shaderName }) => shaderName)
-);

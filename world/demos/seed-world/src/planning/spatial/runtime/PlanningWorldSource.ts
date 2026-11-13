@@ -1,5 +1,5 @@
 import { createSeedPlanningDocument } from "@galacean/engine-world-planning/spatial/PlanningInitialization";
-import { applyPlanningTemplateSurface, initialPlanningTemplate, updateDesertPreviewRelief } from "../PlanningStartupTemplate.ts";
+import { applyPlanningTemplateSurface, initialPlanningTemplate, refreshLowPolyPreview, updateDesertPreviewRelief } from "../PlanningStartupTemplate.ts";
 import { removeDesertCamelPreset } from "@galacean/engine-world-planning/spatial/WorldTemplateAuthoring";
 import { resetPlanningFarmSaveChoice } from "../farming/PlanningFarmSave.ts";
 import { PlanningSession, type PlanningSessionOptions } from "@galacean/engine-world-planning/spatial/PlanningSession";
@@ -29,6 +29,7 @@ export async function createPlanningWorldSource(search: string, handoff: Plannin
   let document = handoff?.document ?? await storage.load(seed);
   let replaceSavedTemplate = false;
   if (!handoff && document) {
+    refreshLowPolyPreview(document);
     resetPlanningFarmSaveChoice(document);
     if (import.meta.env.DEV && query.get("desertSkyLab") === "1") updateDesertPreviewRelief(document);
   }

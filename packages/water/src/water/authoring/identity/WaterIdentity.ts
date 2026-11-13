@@ -4,7 +4,6 @@ const DETERMINISTIC_HASH_PATTERN = /^(?:[a-f0-9]{16}|[a-f0-9]{64})$/;
 
 declare const WATER_REVISION_BRAND: unique symbol;
 declare const WATER_CONTENT_HASH_BRAND: unique symbol;
-declare const WATER_GENERATION_BRAND: unique symbol;
 
 export type WaterRevision<Scope extends string> = number & {
   readonly [WATER_REVISION_BRAND]: Scope;
@@ -12,10 +11,6 @@ export type WaterRevision<Scope extends string> = number & {
 
 export type WaterContentHash<Scope extends string> = string & {
   readonly [WATER_CONTENT_HASH_BRAND]: Scope;
-};
-
-export type WaterGenerationId = number & {
-  readonly [WATER_GENERATION_BRAND]: "water-generation";
 };
 
 function requireNonNegativeSafeInteger(value: number, path: string): number {
@@ -38,10 +33,6 @@ export function nextWaterRevision<Scope extends string>(
 ): WaterRevision<Scope> {
   if (current >= Number.MAX_SAFE_INTEGER) throw new RangeError(`${path} exhausted the safe integer range.`);
   return createWaterRevision<Scope>(current + 1, path);
-}
-
-export function createWaterGenerationId(value: number, path = "Water generation id"): WaterGenerationId {
-  return requireNonNegativeSafeInteger(value, path) as WaterGenerationId;
 }
 
 export function createWaterContentHash<Scope extends string>(

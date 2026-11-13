@@ -33,6 +33,14 @@ export class BuildingPartComponent extends Component {
   get definition(): BuildingPartDef | null {
     return structuredClone(this._definition);
   }
+  /** @internal Read classification without copying or exposing the author definition. */
+  get _groupId(): string | undefined {
+    return this._definition?.group;
+  }
+  /** @internal */
+  get _partType(): string | undefined {
+    return this._definition?.type;
+  }
   set definition(value: BuildingPartDef | null) {
     this._definition = structuredClone(value);
     this.changed();

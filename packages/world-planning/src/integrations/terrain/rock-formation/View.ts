@@ -1,8 +1,10 @@
+import { acquireRockVariantMesh } from "./Variants";
 import {
   Buffer,
   BufferBindFlag,
   BufferMesh,
   BufferUsage,
+  Matrix,
   MeshRenderer,
   PBRMaterial,
   VertexElement,
@@ -15,10 +17,10 @@ import {
   type SeedWorldPickVisitor
 } from "@galacean/engine-modify/rendering/SeedWorldPickBatch";
 import type { IslandPlan } from "../../../semantic-study/IslandPlanModel.ts";
-import type { RockFormationMesh } from "@galacean/engine-terrain/rock-formation/types";
+import type { RockFormationMesh, RockVariantAsset } from "@galacean/engine-terrain/rock-formation/types";
 import { createRockCollider, disabledRockCollisionOwners } from "./Collider.ts";
 import { rockSurfaceAttributes } from "@galacean/engine-terrain/rock-formation/SurfaceAttributes";
-import { createRockFormationMaterial, setRockTextureScale } from "./RockMaterial";
+import { createRockFormationMaterial, createRockVariantMaterial, setRockTextureScale } from "./RockMaterial";
 export { createRockFormationMaterial } from "./RockMaterial";
 import { DEFAULT_ROCK_TEXTURE_SCALE } from "./Settings.ts";
 import { rockFormationPlacements } from "./Placement.ts";
@@ -33,6 +35,7 @@ interface RockViewEntry {
   batch?: SeedWorldArrayPickBatch;
   collider?: ReturnType<typeof createRockCollider>;
   collisionKey: string;
+  releaseVariant?: () => void;
 }
 
 export interface RockFormationSurface {
@@ -104,6 +107,10 @@ export class RockFormationView {
   readonly root: Entity;
   private entries = new Map<string, RockViewEntry>();
   private material?: PBRMaterial;
+  private readonly variantMaterials = new Map<
+    RockVariantAsset,
+    Map<boolean, { material: PBRMaterial; release?: () => void; users: number }>
+  >();
   private readonly releaseAppearance: Array<() => void> = [];
   private disposed = false;
   private grassCoveragePreview = false;
@@ -131,6 +138,11 @@ export class RockFormationView {
     entity.isActive = false;
     const entry: RockViewEntry = { formation, entity, collisionKey };
     try {
+      if (formation.variant) {
+        this.uploadVariant(entry);
+        entry.collider = createRockCollider(this.engine, entity, formation, disabled);
+        return entry;
+      }
       if (!this.material) {
         this.material = createRockFormationMaterial(this.engine, this.textureScale, this.colorBlend);
         if (this.grassCoveragePreview) this.material.shaderData.setFloat("material_SurfaceCoveragePreview", 1);
@@ -152,6 +164,51 @@ export class RockFormationView {
       this.release(entry);
       throw error;
     }
+  }
+
+  private uploadVariant(entry: RockViewEntry): void {
+    const { asset, matrix } = entry.formation.variant!;
+    const grass = !!entry.formation.grass;
+    let roles = this.variantMaterials.get(asset);
+    if (!roles) this.variantMaterials.set(asset, (roles = new Map()));
+    let shared = roles.get(grass);
+    if (!shared) {
+      const material = createRockVariantMaterial(this.engine, asset, this.colorBlend);
+      try {
+        const release = grass ? this.registerGrassAppearance?.(material) : undefined;
+        material.shaderData.setFloat("material_SurfaceCoveragePreview", Number(this.grassCoveragePreview));
+        roles.set(grass, (shared = { material, release, users: 0 }));
+      } catch (error) {
+        material.destroy();
+        throw error;
+      }
+    }
+    const materialEntry = shared;
+    materialEntry.users++;
+    const releaseMaterial = () => {
+      if (--materialEntry.users !== 0) return;
+      materialEntry.release?.();
+      materialEntry.material.destroy();
+      roles.delete(grass);
+      if (!roles.size) this.variantMaterials.delete(asset);
+    };
+    entry.releaseVariant = releaseMaterial;
+    const geometry = acquireRockVariantMesh(this.engine, asset);
+    entry.releaseVariant = () => {
+      geometry.release();
+      releaseMaterial();
+    };
+    const child = entry.entity.createChild(asset.id);
+    const transform = new Matrix();
+    transform.elements.set(matrix);
+    child.transform.localMatrix = transform;
+    const renderer = child.addComponent(MeshRenderer);
+    renderer.mesh = geometry.mesh;
+    renderer.setMaterial(materialEntry.material);
+    renderer.castShadows = renderer.receiveShadows = true;
+    entry.batch = new SeedWorldArrayPickBatch(renderer);
+    entry.batch.id = entry.formation.owners[0];
+    entry.batch.count = 1;
   }
 
   prepareFormations(plan: IslandPlan, formations: readonly RockFormationMesh[]) {
@@ -219,10 +276,15 @@ export class RockFormationView {
   setGrassCoveragePreview(enabled: boolean): void {
     this.grassCoveragePreview = enabled;
     if (this.material) this.material.shaderData.setFloat("material_SurfaceCoveragePreview", Number(enabled));
+    for (const roles of this.variantMaterials.values())
+      for (const { material } of roles.values())
+        material.shaderData.setFloat("material_SurfaceCoveragePreview", Number(enabled));
   }
   setColorBlend(settings: RockColorBlend): void {
     this.colorBlend = settings;
     if (this.material) setRockColorBlend(this.material, settings);
+    for (const roles of this.variantMaterials.values())
+      for (const { material } of roles.values()) setRockColorBlend(material, settings);
   }
   prepare(plan: IslandPlan) {
     return { commit: this.placement(plan) };
@@ -233,6 +295,7 @@ export class RockFormationView {
   private release(entry: RockViewEntry): void {
     entry.collider?.dispose();
     entry.entity.destroy();
+    entry.releaseVariant?.();
     entry.mesh?.destroy();
     if (entry.buffer && !entry.buffer.destroyed) entry.buffer.destroy();
   }

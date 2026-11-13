@@ -91,43 +91,6 @@ function hashSeedWorldWaterGridTransform(
   return hash.digestHex();
 }
 
-export function hfinalVertexWorldXZ(
-  transform: SeedWorldWaterGridTransformV1,
-  x: number,
-  z: number
-): readonly [number, number] {
-  requireGridIndex(x, transform.hfinalResolution, "Hfinal x");
-  requireGridIndex(z, transform.hfinalResolution, "Hfinal z");
-  return Object.freeze([
-    (transform.worldMinXMillimetres + x * transform.hfinalSpacingMillimetres) / 1_000,
-    (transform.worldMinZMillimetres + z * transform.hfinalSpacingMillimetres) / 1_000
-  ] as const);
-}
-
-export function ownershipCellAtWorldXZ(
-  transform: SeedWorldWaterGridTransformV1,
-  worldXMetres: number,
-  worldZMetres: number
-): readonly [number, number] | undefined {
-  if (!Number.isFinite(worldXMetres) || !Number.isFinite(worldZMetres)) {
-    throw new RangeError("Ownership lookup coordinates must be finite.");
-  }
-  const xMillimetres = encodeVerticalMetres(worldXMetres, "worldXMetres") - transform.worldMinXMillimetres;
-  const zMillimetres = encodeVerticalMetres(worldZMetres, "worldZMetres") - transform.worldMinZMillimetres;
-  if (
-    xMillimetres < 0 ||
-    zMillimetres < 0 ||
-    xMillimetres >= transform.worldSizeXMillimetres ||
-    zMillimetres >= transform.worldSizeZMillimetres
-  ) {
-    return undefined;
-  }
-  return Object.freeze([
-    Math.floor(xMillimetres / transform.ownershipCellMillimetres),
-    Math.floor(zMillimetres / transform.ownershipCellMillimetres)
-  ] as const);
-}
-
 export function maximumFootprintHorizontalErrorMetres(transform: SeedWorldWaterGridTransformV1): number {
   return (0.5 * Math.SQRT2 * Math.max(transform.hfinalSpacingMillimetres, transform.ownershipCellMillimetres)) / 1_000;
 }
@@ -162,11 +125,5 @@ function requireSupportedResolution<T extends number>(
 ): asserts value is T {
   if (!supported.includes(value as T)) {
     throw new RangeError(`${label} resolution ${value} is not part of the frozen Grid Profile.`);
-  }
-}
-
-function requireGridIndex(value: number, resolution: number, label: string): void {
-  if (!Number.isInteger(value) || value < 0 || value >= resolution) {
-    throw new RangeError(`${label} must be an integer within [0, ${resolution - 1}].`);
   }
 }

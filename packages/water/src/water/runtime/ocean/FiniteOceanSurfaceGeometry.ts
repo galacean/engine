@@ -615,9 +615,7 @@ export class FiniteOceanSurfaceGeometry {
   private readonly _chunks: OceanGeometryChunk[] = [];
   private _nearFieldCenterX: number;
   private _nearFieldCenterZ: number;
-  private _nearFieldRelocationCount = 0;
   private _presentationPath: FiniteOceanPresentationPath;
-  private _presentationPathTransitionCount = 0;
   private _destroyed = false;
 
   constructor(
@@ -813,72 +811,6 @@ export class FiniteOceanSurfaceGeometry {
     });
   }
 
-  get nearFieldCenterXZ(): readonly [number, number] {
-    return Object.freeze([this._nearFieldCenterX, this._nearFieldCenterZ] as const);
-  }
-
-  get nearFieldCenterX(): number {
-    return this._nearFieldCenterX;
-  }
-
-  get nearFieldCenterZ(): number {
-    return this._nearFieldCenterZ;
-  }
-
-  get nearFieldRelocationCount(): number {
-    return this._nearFieldRelocationCount;
-  }
-
-  get presentationPath(): FiniteOceanPresentationPath {
-    return this._presentationPath;
-  }
-
-  get presentationPathTransitionCount(): number {
-    return this._presentationPathTransitionCount;
-  }
-
-  get activeDrawCount(): number {
-    return this._presentationPath === "detailed"
-      ? this.metrics.detailedPathDrawCount
-      : this.metrics.farOnlyPathDrawCount;
-  }
-
-  get activeVertexCount(): number {
-    return this._presentationPath === "detailed"
-      ? this.metrics.detailedPathVertexCount
-      : this.metrics.farOnlyPathVertexCount;
-  }
-
-  get activeTriangleCount(): number {
-    return this._presentationPath === "detailed"
-      ? this.metrics.detailedPathTriangleCount
-      : this.metrics.farOnlyPathTriangleCount;
-  }
-
-  get activeNearFieldDrawCount(): number {
-    return this._presentationPath === "detailed" ? this.metrics.nearFieldDrawCount : 0;
-  }
-
-  get activeNearFieldVertexCount(): number {
-    return this._presentationPath === "detailed" ? this.metrics.nearFieldVertexCount : 0;
-  }
-
-  get activeNearFieldTriangleCount(): number {
-    return this._presentationPath === "detailed" ? this.metrics.nearFieldTriangleCount : 0;
-  }
-
-  get activeFarOnlyFillDrawCount(): number {
-    return this._presentationPath === "far-only" ? this.metrics.farOnlyFillDrawCount : 0;
-  }
-
-  get activeFarOnlyFillVertexCount(): number {
-    return this._presentationPath === "far-only" ? this.metrics.farOnlyFillVertexCount : 0;
-  }
-
-  get activeFarOnlyFillTriangleCount(): number {
-    return this._presentationPath === "far-only" ? this.metrics.farOnlyFillTriangleCount : 0;
-  }
-
   /** Switches immutable Mesh visibility only; no buffer or material is recreated or uploaded. */
   setPresentationPath(path: FiniteOceanPresentationPath): boolean {
     if (this._destroyed) throw new Error("Finite Ocean geometry has been destroyed.");
@@ -888,7 +820,6 @@ export class FiniteOceanSurfaceGeometry {
     if (path === this._presentationPath) return false;
     this._presentationPath = path;
     this._applyPresentationPath();
-    this._presentationPathTransitionCount++;
     return true;
   }
 
@@ -921,7 +852,6 @@ export class FiniteOceanSurfaceGeometry {
     this._nearFieldCenterX = centerX;
     this._nearFieldCenterZ = centerZ;
     this._cameraRelativeRoot.transform.setPosition(centerX, 0, centerZ);
-    this._nearFieldRelocationCount++;
     return true;
   }
 

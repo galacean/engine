@@ -1,3 +1,4 @@
+import type { Renderer } from "../Renderer";
 import type { Plane } from "@galacean/engine-math";
 import { Vector2 } from "@galacean/engine-math";
 import { SpriteMaskInteraction } from "../2d/enums/SpriteMaskInteraction";
@@ -105,6 +106,7 @@ export class BasicRenderPipeline {
   private _finalPass: FinalPass;
   private _copyBackgroundTexture: Texture2D | null;
   private readonly _afterCullingPasses: RegisteredPipelinePass[] = [];
+  private readonly _submittedViewRenderers: Renderer[] = [];
   private readonly _renderViewCullingSources: RegisteredRenderViewCullingSource[] = [];
   private readonly _renderViewCullingContext = new RenderViewCullingContextImpl();
   private _canUseBlitFrameBuffer = false;
@@ -150,6 +152,7 @@ export class BasicRenderPipeline {
       renderViewCullingSources[i].source = null;
     }
     renderViewCullingSources.length = 0;
+    this._submittedViewRenderers.length = 0;
 
     const pool = this._camera.engine._renderTargetPool;
 
@@ -471,9 +474,20 @@ export class BasicRenderPipeline {
     };
   }
 
+  /** @internal */
+  _recordRenderViewRenderer(renderer: Renderer): void {
+    this._submittedViewRenderers.push(renderer);
+  }
+
+  /** Borrow the last main-view batches without rebuilding or changing their LOD state. @internal */
+  _visitRenderViewRenderers(visitor: (renderer: Renderer) => void): void {
+    for (const renderer of this._submittedViewRenderers) visitor(renderer);
+  }
+
   /** Runs registered batch sources for the main Camera view. @internal */
   _prepareCameraRenderViewCulling(context: RenderContext): void {
     const cullingContext = this._renderViewCullingContext;
+    this._submittedViewRenderers.length = 0;
     cullingContext._setCamera(context);
     this._cullRegisteredRenderViewSources(cullingContext);
   }
@@ -1020,8 +1034,9 @@ export class BasicRenderPipeline {
           continue;
         }
       }
+      if (camera.renderFilter && !camera.renderFilter(renderer)) continue;
       renderer._prepareRender(context);
-      renderer._renderFrameCount = engine.time.frameCount;
+      if (camera.updateRendererVisibility) renderer._renderFrameCount = engine.time.frameCount;
     }
 
     const canvasesElements = canvases._elements;
@@ -1034,6 +1049,7 @@ export class BasicRenderPipeline {
       if (!canvas._canRender(camera)) {
         continue;
       }
+      if (camera.renderFilter && !camera.renderFilter(canvas)) continue;
       canvas._prepareRender(context);
       const canvasElements = canvas._batchedRenderElements;
       for (let j = 0, m = canvasElements.length; j < m; j++) {

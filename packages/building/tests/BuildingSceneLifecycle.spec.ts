@@ -492,3 +492,118 @@ it("rejects an invalid deletion plan before destroying objects or editing connec
   manager.remove(window.entity);
   expect(window.destroyed).toBe(true);
 });
+
+/** Supply accepted group membership without compiling geometry; the real metrics
+ * implementation still reads current author definitions and active parts. */
+function readGroupMetrics(manager: BuildingManager, groups: BuildingGroupComponent[]) {
+  const views: Map<Entity, any> = (manager as any).views;
+  try {
+    for (const group of groups) {
+      const frame = group.frame ?? group.entity.parent ?? group.entity;
+      let view = views.get(frame);
+      if (!view) views.set(frame, (view = { bodies: [] }));
+      view.bodies.push(group);
+    }
+    return manager.metrics();
+  } finally {
+    views.clear();
+  }
+}
+function metricGroup(frame: Entity, id: string) {
+  const group = frame.createChild(id).addComponent(BuildingGroupComponent);
+  group.frame = frame;
+  group.definition = { id, seed: 0, shared: { nested: { value: 1 } } };
+  return group;
+}
+function metricPart(group: BuildingGroupComponent, type: string) {
+  const part = group.entity.createChild(type).addComponent(BuildingPartComponent);
+  part.frame = group.frame;
+  part.definition = {
+    id: String(part.instanceId),
+    group: group.definition!.id,
+    type,
+    geometry: { generator: "test", params: { value: 1 } }
+  };
+  return part;
+}
+function metricManager() {
+  const s = scene(),
+    manager = BuildingManager.forScene(s);
+  manager.bind({ camera: { engine, destroyed: false } as any });
+  return { s, manager };
+}
+
+it("counts houses within their frame and preserves wall precedence and custom type ordering", () => {
+  const { s, manager } = metricManager();
+  const a = metricGroup(s.createRootEntity(), "same"),
+    b = metricGroup(s.createRootEntity(), "same");
+  metricPart(a, "wall");
+  metricPart(a, "wall");
+  metricPart(a, "arch");
+  metricPart(b, "roof");
+  const custom = metricGroup(a.frame!, "custom"),
+    empty = metricGroup(a.frame!, "empty");
+  metricPart(custom, "house");
+  expect(readGroupMetrics(manager, [a, b, custom, empty])).toMatchObject({ houses: 2, buildings: 4, groups: 2 });
+  metricPart(custom, "arch");
+  expect(readGroupMetrics(manager, [a, b, custom, empty]).houses).toBe(1);
+  expect(readGroupMetrics(manager, []).houses).toBe(0);
+});
+
+it("refreshes diagnostics after definition, membership and frame changes without exposing mutable definitions", () => {
+  const { s, manager } = metricManager();
+  const a = metricGroup(s.createRootEntity(), "a"),
+    b = metricGroup(s.createRootEntity(), "b");
+  const part = metricPart(a, "wall");
+  const read = () => readGroupMetrics(manager, [a, b]).houses;
+  const partCopy = part.definition!,
+    groupCopy = a.definition!;
+  (partCopy as any).type = "roof";
+  (partCopy.geometry.params as any).value = 2;
+  (groupCopy.shared!.nested as any).value = 2;
+  expect(read()).toBe(1);
+  expect(part.definition!.geometry.params!.value).toBe(1);
+  expect((a.definition!.shared!.nested as any).value).toBe(1);
+  part.definition = { ...part.definition!, type: "roof" };
+  expect(read()).toBe(0);
+  part.definition = { ...part.definition!, type: "wall" };
+  expect(read()).toBe(1);
+  part.enabled = false;
+  expect(read()).toBe(0);
+  part.enabled = true;
+  expect(read()).toBe(1);
+  a.entity.isActive = false;
+  expect(read()).toBe(0);
+  a.entity.isActive = true;
+  expect(read()).toBe(1);
+  part.definition = { ...part.definition!, group: "b" };
+  expect(read()).toBe(0);
+  b.entity.addChild(part.entity);
+  part.frame = b.frame;
+  expect(read()).toBe(1);
+  b.definition = { ...b.definition!, id: "renamed" };
+  expect(read()).toBe(0);
+  part.definition = { ...part.definition!, group: "renamed" };
+  expect(read()).toBe(1);
+  part.definition = null;
+  expect(read()).toBe(0);
+  const replacement = metricPart(b, "wall");
+  expect(read()).toBe(1);
+  replacement.destroy();
+  expect(read()).toBe(0);
+});
+
+it("collects group diagnostics without cloning author definitions", () => {
+  const { s, manager } = metricManager(),
+    frame = s.createRootEntity();
+  const groups = Array.from({ length: 20 }, (_, i) => metricGroup(frame, String(i)));
+  const parts = groups.flatMap((g) => Array.from({ length: 10 }, () => metricPart(g, "wall")));
+  const reads = [...groups, ...parts].map((p) => vi.spyOn(p, "definition", "get"));
+  try {
+    expect(readGroupMetrics(manager, groups)).toMatchObject({ houses: 20, buildings: 20, authoredObjects: 220 });
+    // Reading metadata must not copy arbitrary geometry or shared author data.
+    expect(reads.reduce((sum, spy) => sum + spy.mock.calls.length, 0)).toBe(0);
+  } finally {
+    reads.forEach((spy) => spy.mockRestore());
+  }
+});

@@ -11,10 +11,7 @@ import type { HeightfieldWaterVisualUniformConfig } from "../../authoring/height
 import { WaterSurfaceDepthSource } from "../../authoring/surface/enums/WaterSurfaceDepthSource";
 import { WaterSurfaceDepthResponseModelV2 } from "../../authoring/surface/WaterSurfaceAppearanceTypes";
 import { WaterQualityTier } from "../../authoring/wave/enums/WaterQualityTier";
-import type {
-  HeightfieldWaterCompiledChunk,
-  HeightfieldWaterCompiledData
-} from "../../compiler/heightfield/HeightfieldWaterCompiledTypes";
+import type { HeightfieldWaterCompiledChunk } from "../../compiler/heightfield/HeightfieldWaterCompiledTypes";
 import type { WaterCameraVisibilityProvider, WaterTerrainOcclusionProvider } from "../body/WaterBackendRegistry";
 import { compileWaterPlanarTransform, type CompiledWaterPlanarTransformV1 } from "../body/WaterPlanarTransform";
 import { DEFAULT_WATER_OPTICAL_PROFILE, type WaterOpticalProfile } from "../optics/WaterOpticalProfile";
@@ -57,11 +54,11 @@ import {
 import { uploadHeightfieldWaterMesh } from "./HeightfieldWaterMeshUploader";
 import { HeightfieldWaterBaseQueryService } from "./HeightfieldWaterQueryService";
 import {
-  DEFAULT_HEIGHTFIELD_WATER_REFLECTION_SAMPLING_SETTINGS,
-  writeHeightfieldWaterReflectionSamplingSettings,
-  type HeightfieldWaterReflectionSamplingConfig,
-  type HeightfieldWaterReflectionSamplingSettings
-} from "./HeightfieldWaterReflectionSampling";
+  DEFAULT_WATER_REFLECTION_SAMPLING_SETTINGS,
+  writeWaterReflectionSamplingSettings,
+  type WaterReflectionSamplingConfig,
+  type WaterReflectionSamplingSettings
+} from "../../authoring/optics/WaterReflectionSampling";
 import { HeightfieldWaterResource } from "./HeightfieldWaterResource";
 import { HeightfieldWaterCompositionMode } from "./HeightfieldWaterRuntimeEnums";
 import { HeightfieldWaterSpatialFieldProvider } from "./HeightfieldWaterSpatialFieldProvider";
@@ -104,16 +101,6 @@ interface MutableHeightfieldWaterRuntimeSet {
   visibilityWorldMatrixInitialized: boolean;
 
   surfaceOpticsReadback: Readonly<WaterSurfaceOpticsBindingReadback>;
-}
-
-function createHeightfieldWaterMaterialSnapshot(
-  config: HeightfieldWaterVisualUniformConfig
-): Readonly<HeightfieldWaterVisualUniformConfig> {
-  return Object.freeze({
-    ...config,
-    shallowColor: Object.freeze([...config.shallowColor] as [number, number, number, number]),
-    deepColor: Object.freeze([...config.deepColor] as [number, number, number, number])
-  });
 }
 
 function deriveHeightfieldVisualUniforms(
@@ -236,18 +223,17 @@ export class HeightfieldWaterRuntimeController {
   private _reflectionBindingApplied = false;
   private _appliedReflectionBindingRevision?: number;
   private _surfaceAppearanceBinding?: Readonly<WaterSurfaceAppearanceBindingV2>;
-  private _activeMaterialConfig?: Readonly<HeightfieldWaterVisualUniformConfig>;
   private _surfaceAppearanceFeatureFlags: Readonly<HeightfieldWaterSurfaceAppearanceFeatureFlags> =
     DEFAULT_HEIGHTFIELD_WATER_SURFACE_APPEARANCE_FEATURE_FLAGS;
-  private readonly _reflectionSamplingSettings: HeightfieldWaterReflectionSamplingSettings = {
-    ...DEFAULT_HEIGHTFIELD_WATER_REFLECTION_SAMPLING_SETTINGS
+  private readonly _reflectionSamplingSettings: WaterReflectionSamplingSettings = {
+    ...DEFAULT_WATER_REFLECTION_SAMPLING_SETTINGS
   };
   private readonly _surfaceOpticsBinding: MutableHeightfieldWaterSurfaceOpticsBinding = {
     tier: "medium",
     opticalProfile: DEFAULT_WATER_OPTICAL_PROFILE,
     refractionEnabled: true,
     reflection: undefined,
-    reflectionSampling: DEFAULT_HEIGHTFIELD_WATER_REFLECTION_SAMPLING_SETTINGS
+    reflectionSampling: DEFAULT_WATER_REFLECTION_SAMPLING_SETTINGS
   };
 
   /** Authored native surface shader; runtime bindings remain owned by this controller. */
@@ -290,20 +276,8 @@ export class HeightfieldWaterRuntimeController {
     return this._activeId;
   }
 
-  get activeData(): HeightfieldWaterCompiledData | undefined {
-    return this._activeSet?.resource.data;
-  }
-
-  get activeMaterialConfig(): Readonly<HeightfieldWaterVisualUniformConfig> | undefined {
-    return this._activeMaterialConfig;
-  }
-
   get activeQueryService(): HeightfieldWaterBaseQueryService | undefined {
     return this._activeSet?.queryService;
-  }
-
-  get activeSurfaceProvider(): HeightfieldWaterSurfaceProvider | undefined {
-    return this._activeSet?.surfaceProvider;
   }
 
   get activeSpatialFieldProvider(): HeightfieldWaterSpatialFieldProvider | undefined {
@@ -380,23 +354,9 @@ export class HeightfieldWaterRuntimeController {
     return this._refractionEnabled;
   }
 
-  /** Exact service binding reference most recently applied to every retained runtime set. */
-  get reflectionBinding(): Readonly<WaterReflectionBinding> | undefined {
-    return this._reflectionBinding;
-  }
-
   /** Requested Water Forward composite weight; Camera SSR and its lease are intentionally independent. */
   get screenSpaceReflectionCompositeIntensity(): number {
     return this._screenSpaceReflectionCompositeIntensity;
-  }
-
-  get screenSpaceReflectionConsumptionEnabled(): boolean {
-    return this._screenSpaceReflectionCompositeIntensity > 0;
-  }
-
-  /** Sanitized requested sampling settings, including the High-only filter request. */
-  get reflectionSamplingSettings(): Readonly<HeightfieldWaterReflectionSamplingSettings> {
-    return this._reflectionSamplingSettings;
   }
 
   /** Stable shared P1 readback owned by the active Heightfield material. */
@@ -581,9 +541,6 @@ export class HeightfieldWaterRuntimeController {
       this._activeId = waterBodyId;
       this._activeSet = runtimeSet;
       this._refreshWaveClock();
-      this._activeMaterialConfig = createHeightfieldWaterMaterialSnapshot(
-        deriveHeightfieldVisualUniforms(appliedSurfaceAppearanceBinding, data.surfaceMotion.waveStrength)
-      );
       activated = true;
       if (previous) {
         this._destroyRuntimeSet(previous);
@@ -655,12 +612,8 @@ export class HeightfieldWaterRuntimeController {
     }
   }
 
-  setScreenSpaceReflectionConsumptionEnabled(enabled: boolean): void {
-    this.setScreenSpaceReflectionCompositeIntensity(enabled ? 1 : 0);
-  }
-
-  setReflectionSamplingConfig(config: HeightfieldWaterReflectionSamplingConfig): void {
-    writeHeightfieldWaterReflectionSamplingSettings(config, this._reflectionSamplingSettings);
+  setReflectionSamplingConfig(config: WaterReflectionSamplingConfig): void {
+    writeWaterReflectionSamplingSettings(config, this._reflectionSamplingSettings);
     this._refreshSurfaceOpticsBindings();
   }
 
@@ -712,8 +665,8 @@ export class HeightfieldWaterRuntimeController {
     this._opticalProfile = binding.opticalProfile;
     this._refractionEnabled = binding.refractionEnabled;
     this._reflectionBinding = binding.reflection;
-    writeHeightfieldWaterReflectionSamplingSettings(
-      binding.reflectionSampling ?? DEFAULT_HEIGHTFIELD_WATER_REFLECTION_SAMPLING_SETTINGS,
+    writeWaterReflectionSamplingSettings(
+      binding.reflectionSampling ?? DEFAULT_WATER_REFLECTION_SAMPLING_SETTINGS,
       this._reflectionSamplingSettings
     );
     this._refreshSurfaceOpticsBindings();
@@ -734,7 +687,6 @@ export class HeightfieldWaterRuntimeController {
       const visual = deriveHeightfieldVisualUniforms(binding, runtimeSet.resource.data.surfaceMotion.waveStrength);
       updateHeightfieldWaterMaterial(runtimeSet.material, visual, runtimeSet.resource.data.localMapAtlas);
       runtimeSet.surfaceProvider.setSurfaceMotion(runtimeSet.resource.data.surfaceMotion);
-      if (runtimeSet === this._activeSet) this._activeMaterialConfig = createHeightfieldWaterMaterialSnapshot(visual);
     }
     this._updateWaveClock(true);
   }
@@ -788,15 +740,6 @@ export class HeightfieldWaterRuntimeController {
     }
   }
 
-  setFeatureFlags(flags: HeightfieldWaterFeatureFlags): void {
-    this._featureFlags = Object.freeze({ ...flags });
-    for (const runtimeSet of this._runtimeSets.values()) {
-      setHeightfieldWaterFeatureFlags(runtimeSet.material, flags);
-      runtimeSet.surfaceProvider.setWavesEnabled(flags.waves);
-    }
-    this._updateWaveClock(true);
-  }
-
   setSurfaceTimeOverride(elapsedTime?: number): void {
     this._surfaceTimeOverride = elapsedTime;
     for (const runtimeSet of this._runtimeSets.values()) {
@@ -840,7 +783,6 @@ export class HeightfieldWaterRuntimeController {
     this._runtimeSets.clear();
     this._activeId = undefined;
     this._activeSet = undefined;
-    this._activeMaterialConfig = undefined;
     this._surfaceAppearanceBinding = undefined;
     cleanupRuntime([
       () => clock?.destroy(),

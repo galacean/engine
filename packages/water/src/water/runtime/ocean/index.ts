@@ -1,4 +1,3 @@
-export { OceanEditSession, createOceanEditRevision } from "./OceanEditSession";
 export { createOceanFarShaderModule, resolveOceanFarShader } from "./OceanFarMaterial";
 export { createOceanShaderModule, resolveOceanShader } from "./OceanMaterial";
 export { OCEAN_WATER_BACKEND_ID, OceanWaterBackend } from "./OceanWaterBackend";

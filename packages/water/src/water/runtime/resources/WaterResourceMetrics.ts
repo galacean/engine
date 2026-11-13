@@ -39,30 +39,6 @@ export function createWaterResourceMemoryMetrics(
   });
 }
 
-export function addWaterResourceMemoryMetrics(
-  values: readonly WaterResourceMemoryMetrics[]
-): WaterResourceMemoryMetrics {
-  let cpuStaticBytes = 0;
-  let cpuDynamicBytes = 0;
-  let gpuBytes = 0;
-  let historyBytes = 0;
-  let reflectionBytes = 0;
-  for (const value of values) {
-    cpuStaticBytes += value.cpuStaticBytes;
-    cpuDynamicBytes += value.cpuDynamicBytes;
-    gpuBytes += value.gpuBytes;
-    historyBytes += value.historyBytes;
-    reflectionBytes += value.reflectionBytes;
-  }
-  return createWaterResourceMemoryMetrics({
-    cpuStaticBytes,
-    cpuDynamicBytes,
-    gpuBytes,
-    historyBytes,
-    reflectionBytes
-  });
-}
-
 /**
  * Counts uniquely owned ArrayBuffers reachable from immutable compiled data.
  * Plain JS object/tuple overhead is deliberately excluded and reported

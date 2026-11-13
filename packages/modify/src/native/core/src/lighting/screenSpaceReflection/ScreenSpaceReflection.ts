@@ -411,8 +411,8 @@ export class ScreenSpaceReflection {
   /** Active SubShader opt-in: Forward and Surface share the built-in Auto response model. */
   static readonly MATERIAL_AUTO_RECEIVER_TAG = "screenSpaceReflectionAuto";
   static readonly MATERIAL_AUTO_RECEIVER_CONTRACT = "PbrV1";
-  /** Current MRT surface contract preserving a colored material response. */
-  static readonly MATERIAL_RECEIVER_CONTRACT = "ColorResponseV2";
+  /** RGBA8 world-space oct8 normal, roughness/weight and a separate colored response. V2 used view-space normals. */
+  static readonly MATERIAL_RECEIVER_CONTRACT = "ColorResponseV3";
   /** Forward implements sampling of the published camera SSR texture. */
   static readonly MATERIAL_TRANSPARENT_SAMPLE_TAG = "screenSpaceReflectionTransparentSample";
   static readonly MATERIAL_TRANSPARENT_SAMPLE_CONTRACT = "SampleV1";

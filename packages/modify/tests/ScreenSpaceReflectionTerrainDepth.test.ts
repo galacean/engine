@@ -24,6 +24,8 @@ import {
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
 import { TerrainClipmap } from "../../terrain/src/terrain/clipmap/TerrainClipmap";
 import terrainSource from "../../terrain/src/shaders/Terrain.shader?raw";
+import seedTerrain from "../../terrain/src/data/seed-world/public/Shader/Terrain.shaderc?raw";
+import grasslandsTerrain from "../../terrain/src/data/grasslands/public/Shader/Terrain.shaderc?raw";
 import { expect, it } from "vitest";
 
 const SIZE = 256;
@@ -36,9 +38,16 @@ const includes = import.meta.glob<string>("../../terrain/src/shaders/**/*.glsl",
   eager: true
 });
 let includesRegistered = false;
-it.each([1, 4])(
-  "keeps Terrain Forward and Surface depth coverage consistent at %ix MSAA",
-  async (samples) => {
+it.each([
+  ["source", 1],
+  ["source", 4],
+  ["seed", 1],
+  ["seed", 4],
+  ["grasslands", 1],
+  ["grasslands", 4]
+] as const)(
+  "keeps %s Terrain Forward and Surface depth coverage consistent at %ix MSAA",
+  async (profile, samples) => {
     const canvas = document.createElement("canvas");
     canvas.width = canvas.height = SIZE;
     const engine = await WebGLEngine.create({ canvas, shaderCompiler: new ShaderCompiler() });
@@ -68,10 +77,15 @@ it.each([1, 4])(
       camera.entity.transform.lookAt(new Vector3(0, 0.5, 0));
       const output = new Texture2D(engine, SIZE, SIZE, TextureFormat.R8G8B8A8, false, false);
       camera.renderTarget = new RenderTarget(engine, SIZE, SIZE, output, TextureFormat.Depth24Stencil8, samples);
-      const source = new Material(
-        engine,
-        Shader.find("Terrain/Terrain") ?? Shader.create(terrainSource, ShaderLanguage.GLSLES300)!
-      );
+      const snapshot = JSON.parse(profile === "seed" ? seedTerrain : grasslandsTerrain);
+      const shader =
+        profile === "source"
+          ? (Shader.find("Terrain/Terrain") ?? Shader.create(terrainSource, ShaderLanguage.GLSLES300)!)
+          : Shader._createFromPrecompiled({
+              ...snapshot,
+              name: `SSRWorldNormalTerrain/${profile}/${samples}`
+            } as unknown as Parameters<typeof Shader._createFromPrecompiled>[0]);
+      const source = new Material(engine, shader);
       source.shaderData.setColor("material_BaseColor", new Color(0.2, 0.2, 0.2, 1));
       source.shaderData.setFloat("material_Smoothness", 0.5);
       source.shaderData.setInt("material_WorldPickDepthCompare", CompareFunction.Less);

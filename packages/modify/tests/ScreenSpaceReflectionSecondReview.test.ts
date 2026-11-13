@@ -123,13 +123,13 @@ it("CR2-003 repeated authored receiver queries do not rewrite uniforms and inval
     material.shader = Shader.find("PBR")!;
     expect(SSR.getMaterialReceiverMode(material)).toBe(Receiver.OpaqueComposite);
     const pass = material.shader.subShaders[0].passes.find(
-      (p) => p.getTagValue("screenSpaceReflectionReceiver") === "ColorResponseV2"
+      (p) => p.getTagValue("screenSpaceReflectionReceiver") === SSR.MATERIAL_RECEIVER_CONTRACT
     )!;
     try {
       pass.setTag("screenSpaceReflectionReceiver", "incompatible");
       expect(SSR.getMaterialReceiverMode(material)).toBe(Receiver.Disabled);
     } finally {
-      pass.setTag("screenSpaceReflectionReceiver", "ColorResponseV2");
+      pass.setTag("screenSpaceReflectionReceiver", SSR.MATERIAL_RECEIVER_CONTRACT);
     }
     expect(SSR.getMaterialReceiverMode(material)).toBe(Receiver.OpaqueComposite);
     material.screenSpaceReflection = { mode: "Off", intensity: 0.4 };

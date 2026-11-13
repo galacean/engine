@@ -1,3 +1,4 @@
+import { WaterReadonlyUint8Buffer } from "../shared/ReadonlyNumericBuffer";
 /** Deterministic render compiler for Ocean bathymetry, wet coverage, and shore SDF. */
 import {
   OceanNearshoreDiagnosticCode,
@@ -15,7 +16,7 @@ import type {
   OceanNearshoreCompiledData,
   OceanNearshoreStaticAtlas
 } from "./OceanNearshoreCompiledTypes";
-import { OceanNearshoreReadonlyUint8Buffer } from "./OceanNearshoreNumericBuffer";
+
 import { validateOceanNearshoreDescriptor } from "./OceanNearshoreValidator";
 import {
   OCEAN_NEARSHORE_COMPILER_VERSION,
@@ -193,7 +194,7 @@ function compileAtlas(
   const atlas: OceanNearshoreStaticAtlas = Object.freeze({
     width: source.grid.width,
     height: source.grid.height,
-    pixels: new OceanNearshoreReadonlyUint8Buffer(pixels, WaterBufferOwnership.Transfer),
+    pixels: new WaterReadonlyUint8Buffer(pixels, WaterBufferOwnership.Transfer),
     worldToUv: createWorldToUv(source.grid),
     maximumDepth,
     shoreDistanceRange,

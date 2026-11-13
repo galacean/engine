@@ -66,32 +66,6 @@ export class HeightfieldWaterBaseQueryService {
     return this._planarTransform;
   }
 
-  /** Samples the undisplaced water surface from world XZ and returns world-space vectors/heights. */
-  sampleBaseSurface(
-    worldX: number,
-    worldZ: number,
-    out: HeightfieldWaterBaseQueryResult
-  ): HeightfieldWaterBaseQueryResult {
-    this._reset(out);
-    if (!Number.isFinite(worldX) || !Number.isFinite(worldZ)) return out;
-    const transform = this._planarTransform;
-    const deltaX = worldX - transform.source.position[0];
-    const deltaZ = worldZ - transform.source.position[2];
-    const localX = deltaX * transform.cosine - deltaZ * transform.sine;
-    const localZ = deltaX * transform.sine + deltaZ * transform.cosine;
-    this.sampleBaseSurfaceLocal(localX, localZ, out);
-    if (Number.isFinite(out.surfaceHeight)) out.surfaceHeight += transform.source.position[1];
-    const normalX = out.surfaceNormal[0];
-    const normalZ = out.surfaceNormal[2];
-    out.surfaceNormal[0] = normalX * transform.cosine + normalZ * transform.sine;
-    out.surfaceNormal[2] = -normalX * transform.sine + normalZ * transform.cosine;
-    const flowX = out.flowVectorXZ[0];
-    const flowZ = out.flowVectorXZ[1];
-    out.flowVectorXZ[0] = flowX * transform.cosine + flowZ * transform.sine;
-    out.flowVectorXZ[1] = -flowX * transform.sine + flowZ * transform.cosine;
-    return out;
-  }
-
   /** Asset-local sampling seam shared by surface and spatial providers. */
   sampleBaseSurfaceLocal(
     localX: number,
