@@ -1,0 +1,24 @@
+packages/terrain/package.json
+  s_c5192f23876072::t_a3704eba6d6360 88
+world/tests/seed-world/TerrainTextureGenerator.spec.ts
+  s_c5192f23876072::t_a618cee147bb40 1-19
+packages/terrain/src/terrain/tools/TerrainTextureGenerator.ts
+  s_c5192f23876072::t_a3704eba6d6360 1-13,15-30,35-56
+  s_c5192f23876072::t_910098d3dbb56e 14,31-34
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "0a20f9c4f0df6625e02ae6f4bfc293b9e20b18b6",
+  "prompts": {},
+  "sessions": {
+    "s_c5192f23876072": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1be41-d252-7f01-875c-a0a08f6c1c55",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}
