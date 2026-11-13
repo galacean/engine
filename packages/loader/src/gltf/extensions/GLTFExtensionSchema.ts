@@ -35,6 +35,13 @@ export interface IKHRMaterialsClearcoat {
 }
 
 /**
+ * Interfaces from the KHR_materials_emissive_strength extension
+ */
+export interface IKHRMaterialsEmissiveStrength {
+  emissiveStrength?: number;
+}
+
+/**
  * Interfaces from the KHR_materials_ior extension
  */
 export interface IKHRMaterialsIor {
@@ -190,6 +197,7 @@ export interface IKHRMaterialsVolume {
 export type GLTFExtensionSchema =
   | IKHRLightsPunctual_Light
   | IKHRMaterialsClearcoat
+  | IKHRMaterialsEmissiveStrength
   | IKHRMaterialsIor
   | IKHRMaterialsUnlit
   | IKHRMaterialsSheen
