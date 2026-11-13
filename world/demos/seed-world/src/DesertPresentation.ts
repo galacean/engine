@@ -14,7 +14,7 @@ export const DESERT_SOLAR_POSITION = {
   ...PROCEDURAL_SKY_SOLAR_POSITION,
   latitude: 32,
   dayOfYear: 172,
-  northOffset: 88
+  northOffset: 64
 } as const;
 
 /** Applies the accepted sand colors and distance tuning to a published desert template. */
@@ -51,7 +51,10 @@ export function applyDesertSky(lighting: TerrainLightingRuntime): void {
       skyTintR: 0.5,
       skyTintG: 0.5,
       skyTintB: 0.5,
-      sunSize: 0
+      sunSize: 0,
+      sunIntensity: 1.5,
+      ambientIntensity: 1.2,
+      skyExposure: 0.48
     },
     15
   );
@@ -63,8 +66,8 @@ export function configureDesertClouds(environment: WorldEnvironmentRuntime): voi
   const { transitionDuration } = environment.getSnapshot();
   environment.setTransitionDuration(0);
   try {
-    environment.setCloud({ ...WeatherPresets.cloud.scattered, cloudCoverage: 0.287 });
-    environment.setCloudScaleSettings({ baseAltitude: 500, thickness: 300 });
+    environment.setCloud({ ...WeatherPresets.cloud.scattered, cloudCoverage: 0.19, cloudDensityMultiplier: 0.12 });
+    environment.setCloudScaleSettings({ baseAltitude: 950, thickness: 170 });
   } finally {
     environment.setTransitionDuration(transitionDuration);
   }

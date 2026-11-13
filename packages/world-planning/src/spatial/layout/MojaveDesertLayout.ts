@@ -28,7 +28,7 @@ export function applyMojaveDesertAppearance(plan: IslandPlan, recipe: SemanticRe
     return {
       ...item,
       poiId: owner,
-      assetId: item.kind === "tree" ? "mojave/J03" : select(MOJAVE_STONES, item.id),
+      assetId: item.kind === "tree" ? undefined : select(MOJAVE_STONES, item.id),
       assetRenderMode: "prefab",
       ...(item.kind === "rock" ? { materialVariant: variant(owner) } : {})
     };

@@ -1,6 +1,9 @@
-import type { PlanningDocument } from "@galacean/engine-world-planning/spatial/PlanningDocument";
+import { exportPlanningRecipe, type PlanningDocument } from "@galacean/engine-world-planning/spatial/PlanningDocument";
 import { templateLinearColor, worldTemplate } from "@galacean/engine-world-planning/spatial/WorldTemplateCatalog";
 import { WORLD_TEMPLATE_ART } from "@galacean/engine-world-planning/spatial/WorldTemplateArtDirection";
+import { defaultPoiLayout, distributePois } from "@galacean/engine-world-planning/semantic-study/PoiDistribution";
+import { settlementRandom } from "@galacean/engine-world-planning/semantic-study/SettlementGeometry";
+import { createSpatialTerrainPlan } from "@galacean/engine-world-planning/spatial/layout/SpatialTerrain";
 
 import mojaveAssets from "../../MojaveAssets.json";
 
@@ -41,6 +44,7 @@ export function applyPlanningTemplateSurface(document: PlanningDocument): void {
     surfaceNormalScale: 1,
     surfaceMicroNormalTextureUrl: mojaveAssets.surface.microNormal
   });
+  applyDesertLayout(document);
 }
 
 /** Refresh local saves from the unreleased Low Poly preview without replacing edited values. */
@@ -95,6 +99,83 @@ export function updateDesertPreviewRelief(document: PlanningDocument): void {
     values.reliefAmplitudeM !== 35 ||
     values.reliefFarAmplitudeM !== 110 ||
     values.reliefScaleM !== 256
-  ) return;
+  )
+    return;
   Object.assign(values, WORLD_TEMPLATE_ART["titan-wasteland"].initialPlanning?.relief);
+}
+
+/** Author a richer starting area on top of the ordinary Seed planner. */
+function applyDesertLayout(document: PlanningDocument): void {
+  const components = document.entities.world.components;
+  if (components.worldTemplate?.values.id !== "titan-wasteland") return;
+  const terrain = (components.terrain ??= { values: {} });
+  Object.assign(terrain.values, {
+    reliefNearAmplitudeM: 13,
+    reliefAmplitudeM: 16,
+    reliefFarAmplitudeM: 24,
+    reliefScaleM: 80
+  });
+
+  const recipe = exportPlanningRecipe(document);
+  const plan = createSpatialTerrainPlan(recipe);
+  const { width, depth, seed } = plan.parameters;
+  const centerX = width / 2;
+  const centerZ = depth / 2;
+  const { candidates } = distributePois(
+    {
+      width,
+      depth,
+      seed,
+      domains: [
+        { id: "land-main", outline: plan.land },
+        ...plan.islands.map((outline, index) => ({ id: `offshore-${index}`, outline }))
+      ]
+    },
+    recipe.parameters.poiLayout ?? defaultPoiLayout()
+  );
+  for (const { id, origin, domainId } of candidates) {
+    if (domainId !== "land-main" || Math.hypot(origin.x - centerX, origin.z - centerZ) > 190) continue;
+    const poi = (document.entities[id] ??= { id, name: id, parent: "world", origin: "generated", components: {} });
+    const layout = (poi.components.layout ??= { values: {} });
+    Object.assign(layout.values, {
+      widthMinM: 16,
+      widthMaxM: 42,
+      depthMinM: 13,
+      depthMaxM: 34,
+      heightMinM: 7,
+      heightMaxM: 18
+    });
+  }
+
+  // Seeded terrain features form a distant skyline from the central starting area.
+  const mountainPrefix = "template:titan-wasteland:ridge:";
+  const resources = (document.authoredResources ?? []).filter((item) => !item.resourceId.startsWith(mountainPrefix));
+  const range = (id: string, axis: string, minimum: number, maximum: number) =>
+    minimum + (maximum - minimum) * settlementRandom(seed, `${id}:${axis}`);
+  const ridgeCount = 7;
+  for (let index = 0; index < ridgeCount; index++) {
+    const id = mountainPrefix + index;
+    const bearing = (index * 360) / ridgeCount + range(id, "bearing", -12, 12);
+    const angle = (bearing * Math.PI) / 180;
+    const distance = range(id, "distance", 235, 290);
+    resources.push({
+      resourceId: id,
+      resourceType: "terrain-feature",
+      properties: {
+        kind: "ridge",
+        x: centerX + Math.cos(angle) * distance,
+        z: centerZ + Math.sin(angle) * distance,
+        headingDegrees: (360 - bearing) % 360,
+        lengthMetres: range(id, "length", 100, 175),
+        widthMetres: range(id, "width", 52, 88),
+        elevationDeltaMetres: range(id, "height", 31, 49),
+        sharpness: 0.56,
+        asymmetry: 0.48,
+        roughness: 0.29,
+        erosion: 0.24,
+        seed: Math.floor(range(id, "shape", 0, 0x1_0000_0000))
+      }
+    });
+  }
+  document.authoredResources = resources;
 }

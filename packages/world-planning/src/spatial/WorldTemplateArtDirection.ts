@@ -1029,12 +1029,13 @@ export const WORLD_TEMPLATE_ART: Readonly<Record<string, WorldTemplateArtDirecti
     models: [],
     lighting: {
       timeHours: 15,
-      sunIntensity: 1,
+      sunIntensity: 1.5,
+      ambientIntensity: 1.2,
       sunColorR: 1,
       sunColorG: 0.908,
       sunColorB: 0.78,
       atmosphereThickness: 0.74,
-      skyExposure: 1,
+      skyExposure: 0.48,
       skyTintR: 1,
       skyTintG: 0.96735,
       skyTintB: 0.90252,
@@ -1046,7 +1047,7 @@ export const WORLD_TEMPLATE_ART: Readonly<Record<string, WorldTemplateArtDirecti
       fog: true,
       shadowStrength: 1
     },
-    weather: { cloudCoverage: 0.287 },
+    weather: { cloudCoverage: 0.19 },
     postProcess: {
       enabled: true,
       tonemapping: true,
@@ -1067,7 +1068,7 @@ export const WORLD_TEMPLATE_ART: Readonly<Record<string, WorldTemplateArtDirecti
       "contexts.landform": 1,
       "contexts.openland": 0.35,
       companionStoneDensity: 0,
-      "vegetation.trees": 0.35,
+      "vegetation.trees": 0,
       "vegetation.grass": 0,
       "vegetation.shrubs": 0,
       "vegetation.herbs": 0,

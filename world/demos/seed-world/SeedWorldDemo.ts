@@ -705,7 +705,7 @@ export async function mountSeedWorldDemo(
       restore?.();
     };
 
-    if (desert) sun.shadowType = ShadowType.SoftHigh;
+    if (desert) sun.shadowType = ShadowType.SoftLow;
     lighting = createIntegratedWorldLightingRuntime(sun.entity, scene!, sun, post, desert?.DESERT_SOLAR_POSITION);
     lighting.setTuning({
       playing: false,
@@ -899,7 +899,8 @@ export async function mountSeedWorldDemo(
         aspect: camera.aspectRatio,
         verticalFovDegrees: PLANNING_RUNTIME_OPTIONS.verticalFieldOfView,
         eyeHeight: navigation.eyeHeight,
-        farClip: camera.farClipPlane
+        farClip: camera.farClipPlane,
+        desertComposition: plan.parameters.worldTemplate?.id === "titan-wasteland"
       };
       const key = JSON.stringify(options);
       const cached = spawnViews.get(plan);
@@ -1848,7 +1849,15 @@ export async function mountSeedWorldDemo(
             camera,
             accepted.world.clipmap.material
           );
+          if (isCurrent()) {
+            const { mountDesertVegetation } = await import("./src/DesertVegetation");
+            if (isCurrent()) {
+              next ??= root.createChild("Mojave desert layout");
+              mountDesertVegetation(next, accepted.plan, accepted.data, spawnView(accepted.plan, accepted.data));
+            }
+          }
         } catch (error) {
+          next?.destroy();
           if (isCurrent()) console.warn("[seed-world] Mojave landscape setup failed", error);
           return;
         }
@@ -2002,8 +2011,8 @@ export async function mountSeedWorldDemo(
     desert?.applyDesertShadows(lighting);
     if (desert) {
       scene!.shadowFadeBorder = 0.2;
-      sun.shadowBias = 1;
-      sun.shadowNormalBias = 1;
+      sun.shadowBias = 0.5;
+      sun.shadowNormalBias = 0.5;
       scene!.ambientOcclusion.enabled = false;
       scene!.ambientOcclusion.intensity = 0.5;
       scene!.ambientOcclusion.radius = 0.5;
