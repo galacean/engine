@@ -9,6 +9,8 @@ export interface TemplateNode {
   label?: string;
   /** Supplied model fitted to this node's authored envelope. */
   assetUrl?: string;
+  /** Stretch the asset along each axis to match the authored envelope. */
+  stretchToEnvelope?: boolean;
   /** Planting plane in the imported model's metre coordinates; defaults to its lowest point. */
   assetGroundY?: number;
   /** Model-only heading around its authored root; placement and camera envelope stay fixed. */
@@ -65,11 +67,11 @@ export type TemplateAssetSlot = Omit<TemplateNode, "position" | "rotation">;
 
 /** Uniform containment keeps the source XZ origin and grounds its planting plane.
  * The envelope is centred in XZ, so an off-centre crown must fit on both sides. */
-export function fitTemplateAsset(
+function templateAssetOccupiedSize(
   size: readonly number[],
   bounds: { min: readonly number[]; max: readonly number[] },
-  groundY = bounds.min[1]
-): { scale: number; offset: Vec3 } {
+  groundY: number
+): Vec3 {
   const dimensions = bounds.max.map((value, axis) => value - bounds.min[axis]);
   if (
     size.length !== 3 ||
@@ -81,13 +83,32 @@ export function fitTemplateAsset(
     groundY >= bounds.max[1]
   )
     throw new Error("Invalid template asset bounds");
-  const occupied = [
+  return [
     Math.max(Math.abs(bounds.min[0]), Math.abs(bounds.max[0])) * 2,
     bounds.max[1] - groundY,
     Math.max(Math.abs(bounds.min[2]), Math.abs(bounds.max[2])) * 2
   ];
-  const scale = Math.min(...size.map((value, axis) => value / occupied[axis]));
+}
+
+export function fitTemplateAsset(
+  size: readonly number[],
+  bounds: { min: readonly number[]; max: readonly number[] },
+  groundY = bounds.min[1]
+): { scale: number; offset: Vec3 } {
+  const occupied = templateAssetOccupiedSize(size, bounds, groundY);
+  const scale = Math.min(size[0] / occupied[0], size[1] / occupied[1], size[2] / occupied[2]);
   return { scale, offset: [0, -size[1] / 2 - groundY * scale, 0] };
+}
+
+/** Fit a reusable mesh to an envelope while keeping its origin and planting plane. */
+export function stretchTemplateAsset(
+  size: Vec3,
+  bounds: { min: Vec3; max: Vec3 },
+  groundY = bounds.min[1]
+): { scale: Vec3; offset: Vec3 } {
+  const occupied = templateAssetOccupiedSize(size, bounds, groundY);
+  const scale: Vec3 = [size[0] / occupied[0], size[1] / occupied[1], size[2] / occupied[2]];
+  return { scale, offset: [0, -size[1] / 2 - groundY * scale[1], 0] };
 }
 
 /** Reference assets share the same authored layout envelopes as missing models.

@@ -41,7 +41,7 @@ import { WORLD_TEMPLATE_ART, type WorldTemplateArtDirection } from "../WorldTemp
 import { settlementRandom } from "../../semantic-study/SettlementGeometry";
 import { worldTemplateStreet } from "../WorldTemplateStreet";
 import { resolveWorldTemplateScene, type ResolvedWorldTemplateScene } from "../WorldTemplateView";
-import { fitTemplateAsset, type TemplateNode } from "../WorldTemplateGeometry";
+import { fitTemplateAsset, stretchTemplateAsset, type TemplateNode } from "../WorldTemplateGeometry";
 import { mountOilPaintGround, oilPaintMaterial } from "./OilPaintMesh";
 import { StreetFacadeRuntime } from "./StreetFacadeRuntime";
 import translucentShader from "./TemplateTranslucent.shader?raw";
@@ -190,6 +190,8 @@ export class WorldTemplateRuntime {
           this.groundPaintMaterial
         );
       }
+      const shareVertexColorMaterial = WORLD_TEMPLATE_ART[template.id].sharedVertexColorMaterial;
+      let vertexColorMaterial: Material | null = null;
       for (const { node, position } of scene?.nodes ?? []) {
         const entity = this.root.createChild(node.id);
         entity.transform.setPosition(position[0] - x, position[1] - y, position[2] - z);
@@ -215,6 +217,16 @@ export class WorldTemplateRuntime {
         }
         if (node.assetUrl) {
           const model = assets.get(node.assetUrl)!.instantiateSceneRoot();
+          if (shareVertexColorMaterial) {
+            for (const renderer of model.getComponentsIncludeChildren(MeshRenderer, [])) {
+              if (!renderer.enableVertexColor) continue;
+              renderer.getMaterials().forEach((material, index) => {
+                if (material?.name !== shareVertexColorMaterial) return;
+                vertexColorMaterial ??= material;
+                renderer.setMaterial(index, vertexColorMaterial);
+              });
+            }
+          }
           // Measure the detached instance so imported node transforms are included,
           // before the template's placement, rotation and metre dimensions apply.
           const bounds = modelBounds(model);
@@ -224,21 +236,16 @@ export class WorldTemplateRuntime {
           if (node.assetLeafMaterials?.length)
             this.bindLeafMaterials(model, node.assetLeafMaterials, leafTemplate!, node);
           if (node.assetMaterials) this.bindAssetMaterials(model, node.assetMaterials);
-          const fit = fitTemplateAsset(
-            node.scale,
-            {
-              min: [bounds.min.x, bounds.min.y, bounds.min.z],
-              max: [bounds.max.x, bounds.max.y, bounds.max.z]
-            },
-            node.assetGroundY
-          );
-          // Cancel the envelope's per-axis scale before applying one uniform
-          // model scale. Keep the authored root origin at the planned ground.
-          normalized.transform.setScale(
-            fit.scale / node.scale[0],
-            fit.scale / node.scale[1],
-            fit.scale / node.scale[2]
-          );
+          const meshBounds = {
+            min: [bounds.min.x, bounds.min.y, bounds.min.z] as [number, number, number],
+            max: [bounds.max.x, bounds.max.y, bounds.max.z] as [number, number, number]
+          };
+          const fit = node.stretchToEnvelope
+            ? stretchTemplateAsset(node.scale, meshBounds, node.assetGroundY)
+            : fitTemplateAsset(node.scale, meshBounds, node.assetGroundY);
+          const scale = typeof fit.scale === "number" ? [fit.scale, fit.scale, fit.scale] : fit.scale;
+          // The parent carries the envelope scale, while the mesh is fitted in source units.
+          normalized.transform.setScale(scale[0] / node.scale[0], scale[1] / node.scale[1], scale[2] / node.scale[2]);
           normalized.transform.setPosition(
             fit.offset[0] / node.scale[0],
             fit.offset[1] / node.scale[1],
@@ -740,7 +747,15 @@ export class WorldTemplateRuntime {
       placeholders: (this.geometry?.nodes ?? []).filter((node) => !node.assetUrl).map((node) => node.id),
       models: this.models.map(({ id, url, entity }) => {
         const { min, max } = modelBounds(entity);
-        return { id, url, bounds: { min: [min.x, min.y, min.z], max: [max.x, max.y, max.z] } };
+        const renderer = WORLD_TEMPLATE_ART[this.template.id].sharedVertexColorMaterial
+          ? entity.getComponentsIncludeChildren(MeshRenderer, [])[0]
+          : undefined;
+        return {
+          id,
+          url,
+          bounds: { min: [min.x, min.y, min.z], max: [max.x, max.y, max.z] },
+          ...(renderer && { meshId: renderer.mesh?.instanceId, materialId: renderer.getMaterial()?.instanceId })
+        };
       })
     });
   }

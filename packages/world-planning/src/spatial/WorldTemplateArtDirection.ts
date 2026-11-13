@@ -2,6 +2,7 @@ import type { TemplateNode, TemplateAssetSlot } from "./WorldTemplateGeometry";
 import type { SeedWorldCameraBookmark } from "../world/SeedWorldCameraBookmark";
 import type { SpatialCompositionParameters } from "./SpatialCompositionParameters";
 import { WORLD_TEMPLATE_CONFIGS } from "./WorldTemplateConfig";
+import { LOW_POLY_VALLEY } from "./world-templates/LowPolyValley";
 
 /** Display RGB mixtures authored on the source canvas, not diffuse reflectance. */
 type OilPaintColor = readonly [r: number, g: number, b: number];
@@ -34,6 +35,8 @@ export interface WorldTemplatePalette {
 export type WorldTemplateArtDirection = Partial<WorldTemplatePalette> & {
   reference: string;
   grassGroundFusion?: boolean;
+  /** Name of the equivalent opaque vertex-color material shared by the template's model assets. */
+  sharedVertexColorMaterial?: string;
   spawn?: SeedWorldCameraBookmark & { readonly seed: number };
   initialPlanning?: {
     landMode?: import("../semantic-study/IslandPlanModel").IslandPlanParameters["landMode"];
@@ -47,6 +50,7 @@ export type WorldTemplateArtDirection = Partial<WorldTemplatePalette> & {
     farmingEnabled?: boolean;
     poiMemberMax?: number;
     layout?: Partial<import("./layout/LayoutRules").LayoutRule>;
+    wayfinding?: import("./guidance/WayfindingPolicy").WayfindingPolicyInput;
     population?: import("./PlanningPopulationParameters").PlanningPopulationOptions;
   };
   focus: string[];
@@ -54,6 +58,8 @@ export type WorldTemplateArtDirection = Partial<WorldTemplatePalette> & {
   frameFraction: number;
   /** Reserve each subject in a solved POI and publish a clear starting view. */
   plannedSubjects?: boolean;
+  /** Standing spawn relative to the authored scene anchor in screen-right X and forward Z metres. */
+  spawnOffset?: [number, number];
   /** A continuous world framed from its map centre instead of a searched spawn. */
   centeredStart?: boolean;
   /** Frame a walkable composition path from a point inside its entrance. */
@@ -64,7 +70,12 @@ export type WorldTemplateArtDirection = Partial<WorldTemplatePalette> & {
   models: (TemplateNode | TemplateAssetSlot)[];
   layout?: Record<string, string | number>;
   streetSigns?: { atlasUrl: string; signIntensity: number; spillIntensity: number; signsPerBuilding: number };
-  surfaceTextures?: { baseUrl: string; normalUrl: string; tileSizeM: number; strength: number };
+  surfaceTextures?: {
+    baseUrl: string;
+    normalUrl?: string;
+    tileSizeM: number;
+    strength: number;
+  };
   /** Infrastructure may be generated around a separately authored set of model poses. */
   modelLayout?: "authored" | "generated";
   /** Pigment swatches and physical stroke scale for an opaque brush-painted woodland. */
@@ -312,6 +323,7 @@ const sakuraPetals =
   })();
 
 export const WORLD_TEMPLATE_ART: Readonly<Record<string, WorldTemplateArtDirection>> = {
+  "low-poly": LOW_POLY_VALLEY,
   "sakura-pearl": {
     ...sakura.palette,
     reference: "SeedWorld-01-sakura-pearl.png",

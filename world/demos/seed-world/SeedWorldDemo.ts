@@ -679,6 +679,7 @@ export async function mountSeedWorldDemo(
     const sun = requiredComponent(scene!.rootEntities, DirectLight, "DirectLight");
     const navigation = requiredComponent(scene!.rootEntities, TerrainNavigationRuntime, "TerrainNavigationRuntime");
     const post = requiredComponent(scene!.rootEntities, TerrainPostProcessRuntime, "TerrainPostProcessRuntime");
+    const resetPostProcess = post.captureDebugReset();
     const wind = requiredComponent(scene!.rootEntities, TerrainWindRuntime, "TerrainWindRuntime");
     detachWindExposure = () => wind.setGpuExposureProvider(null);
     navigation.enabled = false;
@@ -716,7 +717,7 @@ export async function mountSeedWorldDemo(
       shadowStrength: SEED_WORLD_DEFAULT_SHADOW_STRENGTH
     });
     lightingProfile = new PlanningLightingProfileRuntime(engine, lighting);
-    await applyPresentation(source!.session, lightingProfile, post);
+    await applyPresentation(source!.session, lightingProfile, post, resetPostProcess);
     orb.attachWorldUnderlay(scene!);
     const root = scene!.createRootEntity("Seed World Runtime");
     rockNavigation = new RockNavigation(root, navigation, (x, z) =>
@@ -1936,7 +1937,7 @@ export async function mountSeedWorldDemo(
         await runtimeDebug?.synchronize();
         if (publication!.current !== accepted || disposed) return;
         debugSidebar?.synchronize(plan);
-        await applyPresentation(source!.session, lightingProfile!, post);
+        await applyPresentation(source!.session, lightingProfile!, post, resetPostProcess);
         desert?.applyDesertSky(lighting!);
         if (desert) post.setBloomTint(1, 1, 1);
         applyPlanningWeather(
@@ -2497,25 +2498,28 @@ async function applyPresentation(
   session: import("@galacean/engine-world-planning/spatial/PlanningSession").PlanningSession,
   lightingProfile: PlanningLightingProfileRuntime,
   post: TerrainPostProcessRuntime,
+  resetPostProcess: () => void,
   components = session.inspect("world").components
 ): Promise<void> {
+  resetPostProcess();
   const light = components.find((component) => component.type === "lighting")?.values;
   if (light) {
     if (!(await lightingProfile.apply(light))) return;
   }
-  const p = components.find((component) => component.type === "postProcess")?.values;
-  if (p) {
+  const settings = components.find((component) => component.type === "postProcess");
+  if (settings) {
+    const { values: p, sources } = settings;
     post.setProfileEnabled(Boolean(p.enabled));
     post.setColorAdjustmentsEnabled(p.colorAdjustments !== false);
     post.setTonemappingEnabled(Boolean(p.tonemapping));
-    post.setPostExposure(Number(p.postExposure));
-    post.setTemperature(Number(p.temperature));
-    post.setContrast(Number(p.contrast));
-    post.setSaturation(Number(p.saturation));
+    if (sources.postExposure?.length) post.setPostExposure(Number(p.postExposure));
+    if (sources.temperature?.length) post.setTemperature(Number(p.temperature));
+    if (sources.contrast?.length) post.setContrast(Number(p.contrast));
+    if (sources.saturation?.length) post.setSaturation(Number(p.saturation));
     post.setBloomEnabled(Boolean(p.bloom));
-    post.setBloomThreshold(Number(p.bloomThreshold));
-    post.setBloomIntensity(Number(p.bloomIntensity));
-    post.setBloomScatter(Number(p.bloomScatter));
+    if (sources.bloomThreshold?.length) post.setBloomThreshold(Number(p.bloomThreshold));
+    if (sources.bloomIntensity?.length) post.setBloomIntensity(Number(p.bloomIntensity));
+    if (sources.bloomScatter?.length) post.setBloomScatter(Number(p.bloomScatter));
   }
 }
 

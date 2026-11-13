@@ -99,6 +99,36 @@ describe("authored world templates", () => {
     expect(original.plan.landscapes).toEqual(initialTrees);
     expect(generatePlanningDocument(document, incremental).plan.landscapes).toEqual(initialTrees);
   });
+  it.each([1, 42, 20261113])("Low Poly publishes a native valley for Seed %i", (seed) => {
+    const source = createTemplatePlanningDocument(seed, "low-poly");
+    const result = generatePlanningDocument(importPlanningScene(exportPlanningScene(source)));
+    expect(result.accepted).toBe(true);
+    const { plan } = result;
+    expect(plan.parameters.landMode).toBe("continuous");
+    expect(plan.buildings).toHaveLength(0);
+    expect(plan.rocks).toHaveLength(0);
+    expect(plan.landscapes.filter(({ kind }) => kind === "tree" || kind === "rock")).toHaveLength(0);
+    expect(plan.naturalVegetation?.world.trees).toBe(0);
+    expect(plan.naturalVegetation?.world.shrubs).toBe(0);
+    expect(plan.naturalVegetation?.settings.companionStoneDensity).toBe(0);
+    expect(plan.waters.some((water) => water.id.endsWith(":valley-pond") && water.kind === "lake")).toBe(true);
+    expect(plan.routes.some((route) => route.id.startsWith("landscape-composition:path"))).toBe(true);
+    expect(plan.worldTemplateSite?.footprints.map((item) => item.id)).toEqual(
+      expect.arrayContaining(["stone-arch-west", "stone-arch-east", "lakeside-cottage", "farm-barn"])
+    );
+    const { center, spawnView } = plan.worldTemplateSite!;
+    expect(spawnView?.eye[0]).toBe(center.x);
+    expect(spawnView?.eye[2]).toBe(center.z - 32);
+    expect(plan.farming?.placementCheck.state).toBe("ready");
+    const nodes = buildWorldTemplateGeometry(WORLD_TEMPLATES.find(({ id }) => id === "low-poly")!, seed).nodes;
+    expect(nodes.every(({ assetUrl }) => assetUrl?.endsWith(".glb"))).toBe(true);
+    expect(nodes.map(({ id }) => id)).toEqual(expect.arrayContaining(["east-mountain", "valley-boulder-1", "ridge-pine-1"]));
+    expect(source.entities.world.components.weather.values).toMatchObject({ rainRate: 0, cloudCoverage: 0.24 });
+    expect(result.recipe.parameters.terrainSurface?.baseTextureUrl).toMatch(/meadow-blocks\.jpg/);
+    expect(source.entities.world.components.lighting.values).toEqual({ timeHours: 14.6 });
+    expect(source.entities.world.components.postProcess.values).toEqual({});
+    expect(nodes.every(({ assetUrl }) => assetUrl?.startsWith("https://mdn.alipayobjects.com/"))).toBe(true);
+  }, 60_000);
 
   it.each([1, 7, 42, 110513, 20261110])("publishes the configured Sakura spawn POI for Seed %i", (seed) => {
     const config = WORLD_TEMPLATE_CONFIGS["sakura-pearl"]!;
@@ -430,6 +460,7 @@ describe("authored world templates", () => {
       source.entities.world.components.landscape = {
         base: { entity: "plant-controls", component: "landscape" },
         values: {
+          ...source.entities.world.components.landscape.values,
           ...Object.fromEntries(
             NATURAL_VEGETATION_CONTROLS.filter((layer) => layer.key !== "litter").map((layer, i) => [
               "vegetation." + layer.key,
@@ -448,6 +479,13 @@ describe("authored world templates", () => {
       source.entities.world.components.flowers = { values: { coverage: 0.3, densityPerM2: 0.25 } };
       const before = structuredClone(source);
       const styled = createWorldStylePlanningDocument(source, 8, id);
+      if (id === "low-poly") {
+        const switched = generatePlanningDocument(styled);
+        expect(switched.accepted).toBe(true);
+        expect(switched.plan.buildings).toHaveLength(0);
+        expect(switched.plan.rocks).toHaveLength(0);
+        expect(switched.plan.naturalVegetation?.world).toMatchObject({ trees: 0, shrubs: 0 });
+      }
       const ice = createWorldStylePlanningDocument(styled, 9, "aurora-glacier");
       const restored = createWorldStylePlanningDocument(ice, 10, "sakura-pearl");
       restored.entities.world.components.world.values.seed = 11;
@@ -460,8 +498,10 @@ describe("authored world templates", () => {
         );
         const landscape = doc.entities.world.components.landscape;
         expect(landscape.base).toEqual(source.entities.world.components.landscape.base);
-        for (const key of [...NATURAL_VEGETATION_CONTROLS.map((layer) => "vegetation." + layer.key), "maxSlopeDegrees"])
-          expect(landscape.values[key]).toEqual(source.entities.world.components.landscape.values[key]);
+        for (const key of [...NATURAL_VEGETATION_CONTROLS.map((layer) => "vegetation." + layer.key), "maxSlopeDegrees"]) {
+          const fromStyle = doc === styled || id === "low-poly" ? WORLD_TEMPLATE_ART[id]?.landscape?.[key] : undefined;
+          expect(landscape.values[key]).toEqual(fromStyle ?? source.entities.world.components.landscape.values[key]);
+        }
         expect(doc.entities.world.components.flowers.values.densityPerM2).toBe(0.25);
         expect(doc.entities["plant-controls"]).toEqual(source.entities["plant-controls"]);
         expect(doc.entities.world.components.landscape.base?.entity).toBe("plant-controls");
@@ -519,7 +559,7 @@ describe("authored world templates", () => {
     });
   }
   it("round-trips independent material and atmosphere controls for every supplied reference", () => {
-    expect(new Set(Object.values(WORLD_TEMPLATE_ART).map((art) => art.reference)).size).toBe(15);
+    expect(new Set(Object.values(WORLD_TEMPLATE_ART).map((art) => art.reference)).size).toBe(WORLD_TEMPLATES.length);
     for (const template of WORLD_TEMPLATES) {
       const styled = createTemplatePlanningDocument(7, template.id);
       const light = structuredClone(styled.entities.world.components.lighting);
@@ -704,7 +744,9 @@ describe("authored world templates", () => {
         for (const lake of lakes) expect(planningLakeBoundary(result.plan, lake).boundary.rings.length).toBeGreaterThan(0);
       }
       const vegetation = result.plan.naturalVegetation!.world;
-      if (!template.vegetation) {
+      if (template.id === "low-poly") {
+        expect(vegetation.trees).toBe(0);
+      } else if (!template.vegetation) {
         expect(vegetation.trees).toBeGreaterThan(0);
         expect(result.plan.landscapes!.some((plant) => plant.kind === "tree")).toBe(true);
       } else if (template.vegetation === "desert") {

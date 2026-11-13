@@ -1,5 +1,5 @@
 import type { PlanningDocument } from "@galacean/engine-world-planning/spatial/PlanningDocument";
-import { worldTemplate } from "@galacean/engine-world-planning/spatial/WorldTemplateCatalog";
+import { templateLinearColor, worldTemplate } from "@galacean/engine-world-planning/spatial/WorldTemplateCatalog";
 import { WORLD_TEMPLATE_ART } from "@galacean/engine-world-planning/spatial/WorldTemplateArtDirection";
 
 import mojaveAssets from "../../MojaveAssets.json";
@@ -41,6 +41,48 @@ export function applyPlanningTemplateSurface(document: PlanningDocument): void {
     surfaceNormalScale: 1,
     surfaceMicroNormalTextureUrl: mojaveAssets.surface.microNormal
   });
+}
+
+/** Refresh local saves from the unreleased Low Poly preview without replacing edited values. */
+export function refreshLowPolyPreview(document: PlanningDocument): void {
+  const { worldTemplate, lighting, postProcess, terrain, layout, landscape, wayfinding, surfacePalette } =
+    document.entities.world.components;
+  if (worldTemplate?.values.id !== "low-poly") return;
+  const previousLight = {
+    sunIntensity: 1.75, sunColorR: 1, sunColorG: 0.95, sunColorB: 0.86,
+    ambientIntensity: 1.48, iblIntensity: 1.12, skyExposure: 1.02,
+    skyTintR: 0.214, skyTintG: 0.214, skyTintB: 0.214,
+    groundTintR: 0.18, groundTintG: 0.18, groundTintB: 0.2,
+    customSkyTintStrength: 1, customSkyZenithR: 0.61, customSkyZenithG: 1.17, customSkyZenithB: 1.76,
+    customSkyHorizonR: 0.95, customSkyHorizonG: 1.37, customSkyHorizonB: 1.72,
+    shadowStrength: 0.72, fogDensity: 0.0034, fogExponent: 2
+  };
+  const previousPost = {
+    enabled: true, tonemapping: true, bloom: false, postExposure: 0.13, temperature: 17,
+    contrast: 12, saturation: 5
+  };
+  const art = WORLD_TEMPLATE_ART["low-poly"];
+  const texture = terrain?.values.surfaceBaseTextureUrl;
+  if (terrain && !terrain.base && typeof texture === "string" &&
+      /\/(painted-meadow|matte-meadow|meadow-blocks)(?:-[\w-]+)?\.jpg(?:\?.*)?$/.test(texture))
+    terrain.values.surfaceBaseTextureUrl = art.surfaceTextures!.baseUrl;
+  // Only the preview carried the explicit atmosphere gradient. Fresh saves already inherit the curve.
+  if (lighting?.base || lighting?.values.customSkyTintStrength !== 1 ||
+      lighting.values.customSkyZenithB !== 1.76) return;
+  for (const [key, value] of Object.entries(previousLight))
+    if (lighting.values[key] === value) delete lighting.values[key];
+  if (postProcess && !postProcess.base)
+    for (const [key, value] of Object.entries(previousPost))
+      if (postProcess.values[key] === value) delete postProcess.values[key];
+  const components = document.entities.world.components;
+  if (!layout?.base) (components.layout ??= { values: {} }).values.memberMax ??= art.initialPlanning?.poiMemberMax;
+  if (!wayfinding?.base)
+    (components.wayfinding ??= { values: {} }).values.routeCoverage ??= art.initialPlanning?.wayfinding?.routeCoverage;
+  if (landscape && !landscape.base && landscape.values.density === 0.65) landscape.values.density = 0;
+  const roadFields = ["road.r", "road.g", "road.b"];
+  if (surfacePalette && !surfacePalette.base &&
+      templateLinearColor("#dc8b54").every((value, i) => value === surfacePalette.values[roadFields[i]]))
+    templateLinearColor(art.road!).forEach((value, i) => (surfacePalette.values[roadFields[i]] = value));
 }
 
 /** Refreshes an older desert preview that still carries the original template relief values. */

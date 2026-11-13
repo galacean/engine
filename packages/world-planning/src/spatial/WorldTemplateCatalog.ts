@@ -15,6 +15,7 @@ export interface WorldTemplate {
     | "desert"
     | "arcade"
     | "alley"
+    | "low-poly"
     | "titan";
   colors: readonly [string, string, string, string];
   subject: string;
@@ -138,6 +139,15 @@ export const WORLD_TEMPLATES: readonly WorldTemplate[] = [
     colors: ["#25314a", "#6586b4", "#ff6eb7", "#111d36"],
     subject: "曲线街区 · 霓虹 · 细雨",
     terrain: { ...gentleBaseTerrain, heightM: 6, widthM: 250, count: 1, coverage: 0.82 }
+  },
+  {
+    id: "low-poly",
+    name: "Low Poly",
+    icon: "🌲",
+    family: "low-poly",
+    colors: ["#8e9b47", "#ce985c", "#c8683d", "#70adce"],
+    subject: "石拱溪谷 · 橙瓦村庄 · 湖岸麦田",
+    terrain: { heightM: 12, widthM: 190, count: 3, coverage: 0.86 }
   },
   {
     id: "titan-wasteland",

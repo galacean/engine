@@ -519,15 +519,18 @@ export function upgradePlanningDocument(input: PlanningDocument): PlanningDocume
       !WORLD_TEMPLATE_ART[id].models.some((model) => model.id === destination)
     )
       composition.values.destinationId = preset.destinationId ?? "";
-    // Retire only resources owned by this template's former instance-table contract.
-    scope.authoredResources = scope.authoredResources?.filter(
-      (resource) =>
-        !["terrain", "vegetation", "water"].some((kind) => resource.resourceId.startsWith(`template:${id}:${kind}:`))
-    );
-    for (const key of Object.keys(scope.entities))
-      if (key.startsWith(`river:authored:template:${id}:`)) delete scope.entities[key];
-    const edits = "edits" in scope ? scope.edits : scope.passthrough.edits;
-    for (const key of Object.keys(edits)) if (key.startsWith(`river:authored:template:${id}:`)) delete edits[key];
+    // Only these templates shipped the retired instance tables. A new template
+    // can use generated paths and still own editable native terrain resources.
+    if (id === "sakura-pearl" || id === "emerald-forest") {
+      scope.authoredResources = scope.authoredResources?.filter(
+        (resource) =>
+          !["terrain", "vegetation", "water"].some((kind) => resource.resourceId.startsWith(`template:${id}:${kind}:`))
+      );
+      for (const key of Object.keys(scope.entities))
+        if (key.startsWith(`river:authored:template:${id}:`)) delete scope.entities[key];
+      const edits = "edits" in scope ? scope.edits : scope.passthrough.edits;
+      for (const key of Object.keys(edits)) if (key.startsWith(`river:authored:template:${id}:`)) delete edits[key];
+    }
   }
   for (const scope of [document, ...Object.values(document.layoutOverrides ?? {})])
     for (const entity of Object.values(scope.entities)) {

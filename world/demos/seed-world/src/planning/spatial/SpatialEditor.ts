@@ -1,5 +1,5 @@
 import { MOJAVE_ROCK_GROUPS } from "@galacean/engine-world-planning/spatial/layout/MojaveDesertLayout";
-import { applyPlanningTemplateSurface, initialPlanningTemplate } from "./PlanningStartupTemplate.ts";
+import { applyPlanningTemplateSurface, initialPlanningTemplate, refreshLowPolyPreview } from "./PlanningStartupTemplate.ts";
 import { planningFarmingProjectStatePath } from "./farming/PlanningFarmingScene.ts";
 import { PlanningFarmRepository } from "./farming/PlanningFarmRepository.ts";
 import { planningFarmId, resetPlanningFarmSaveChoice } from "./farming/PlanningFarmSave.ts";
@@ -93,7 +93,10 @@ export async function mountSpatialEditor(
   let saved: PlanningDocument | undefined;
   try {
     saved = await storage.load(parameters.seed);
-    if (saved) resetPlanningFarmSaveChoice(saved);
+    if (saved) {
+      refreshLowPolyPreview(saved);
+      resetPlanningFarmSaveChoice(saved);
+    }
   } catch (error) {
     storageWarning = "本地数据读取失败：" + String(error);
   }
