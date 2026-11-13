@@ -1,0 +1,31 @@
+packages/building/tests/BuildingSceneLifecycle.spec.ts
+  s_2bcbbfbc740f10::t_e9203241923c6b 495-595,597-599,602-603,606,608-609
+  s_2bcbbfbc740f10::t_c0985f14a02b8f 596,604-605
+  s_2bcbbfbc740f10::t_028c6bbea21462 600-601,607
+packages/building/src/building/parts/architecture/BuildingManager.ts
+  s_2bcbbfbc740f10::t_843cd8bcbce12b 102-103
+  s_2bcbbfbc740f10::t_c0985f14a02b8f 98-99,104,108,111,115-116
+  s_2bcbbfbc740f10::t_e166a95ddb9d23 95-97,100-101,105-107,109-110,112-114,117-118
+packages/building/src/building/parts/architecture/BuildingGroupComponent.ts
+  s_2bcbbfbc740f10::t_c0985f14a02b8f 18-21
+packages/building/src/building/parts/architecture/BuildingPartComponent.ts
+  s_2bcbbfbc740f10::t_c0985f14a02b8f 36-43
+packages/building/src/building/parts/architecture/BuildingRuntime.ts
+  s_2bcbbfbc740f10::t_e166a95ddb9d23 192-193,1139
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "80ab4d9dc58b67cafa0ff88c6d20e4ef539267ea",
+  "prompts": {},
+  "sessions": {
+    "s_2bcbbfbc740f10": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1ce36-cadb-72f0-9a4c-e7c8e10b95dc",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}
