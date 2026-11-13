@@ -1,4 +1,18 @@
 export const E2E_CONFIG = {
+  Spine: {
+    spineboy: {
+      category: "Spine",
+      caseFileName: "spine-spineboy",
+      threshold: 0,
+      diffPercentage: 0.05
+    },
+    tintBlack: {
+      category: "Spine",
+      caseFileName: "spine-tint-black",
+      threshold: 0,
+      diffPercentage: 0.05
+    }
+  },
   Animator: {
     additive: {
       category: "Animator",
@@ -436,6 +450,12 @@ export const E2E_CONFIG = {
       caseFileName: "particleRenderer-emit-billboard-stretched",
       threshold: 0,
       diffPercentage: 0.0
+    },
+    inheritVelocityStretched: {
+      category: "Particle",
+      caseFileName: "particleRenderer-inherit-velocity-stretched",
+      threshold: 0,
+      diffPercentage: 0
     },
     particleHorizontalBillboard: {
       category: "Particle",

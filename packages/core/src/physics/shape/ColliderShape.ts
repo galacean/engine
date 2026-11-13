@@ -7,7 +7,6 @@ import { Collider } from "../Collider";
 import { assignmentClone, ignoreClone } from "../../clone/CloneDecorators";
 import type { ICloneHook } from "../../clone/ICloneHook";
 import { Engine } from "../../Engine";
-import { ColliderShapeChangeFlag } from "../enums/ColliderShapeChangeFlag";
 
 /**
  * Abstract class for collider shapes.
@@ -28,6 +27,7 @@ export abstract class ColliderShape extends DataObject implements ICloneHook<Col
   @ignoreClone
   private _materialInstanced: boolean = false;
   private _isTrigger: boolean = false;
+  private _isSceneQuery: boolean = true;
   private _rotation: Vector3 = new Vector3();
   private _position: Vector3 = new Vector3();
   private _contactOffset: number = 0.02;
@@ -35,9 +35,19 @@ export abstract class ColliderShape extends DataObject implements ICloneHook<Col
   /**
    * @internal
    * @beta
-   * Whether raycast can select it.
+   * Whether this shape participates in scene queries, including raycasts, shape casts, and overlap queries.
+   * This does not affect collision response.
    */
-  isSceneQuery: boolean = true;
+  get isSceneQuery(): boolean {
+    return this._isSceneQuery;
+  }
+
+  set isSceneQuery(value: boolean) {
+    if (this._isSceneQuery !== value) {
+      this._isSceneQuery = value;
+      this._nativeShape?.setIsSceneQuery(value);
+    }
+  }
 
   /**
    * Collider owner of this shape.
@@ -217,7 +227,7 @@ export abstract class ColliderShape extends DataObject implements ICloneHook<Col
     }
     this._syncNativeShape(nativeShape);
 
-    this._collider?._handleShapesChanged(ColliderShapeChangeFlag.Property);
+    this._collider?._handleShapesChanged();
   }
 
   protected _syncNativeShape(nativeShape: IColliderShape): void {
@@ -225,18 +235,19 @@ export abstract class ColliderShape extends DataObject implements ICloneHook<Col
     nativeShape.setRotation(this._rotation);
     nativeShape.setContactOffset(this._contactOffset);
     nativeShape.setIsTrigger(this._isTrigger);
+    nativeShape.setIsSceneQuery(this._isSceneQuery);
     nativeShape.setMaterial(this._getNativeMaterial());
   }
 
   @ignoreClone
   private _setPosition(): void {
     this._nativeShape?.setPosition(this._position);
-    this._collider?._handleShapesChanged(ColliderShapeChangeFlag.Property);
+    this._collider?._handleShapesChanged();
   }
 
   @ignoreClone
   private _setRotation(): void {
     this._nativeShape?.setRotation(this._rotation);
-    this._collider?._handleShapesChanged(ColliderShapeChangeFlag.Property);
+    this._collider?._handleShapesChanged();
   }
 }

@@ -4,7 +4,6 @@ import { Engine } from "../../Engine";
 import { ignoreClone } from "../../clone/CloneDecorators";
 import { ModelMesh } from "../../mesh/ModelMesh";
 import { DynamicCollider } from "../DynamicCollider";
-import { ColliderShapeChangeFlag } from "../enums/ColliderShapeChangeFlag";
 import { MeshColliderShapeCookingFlag } from "../enums/MeshColliderShapeCookingFlag";
 import { ColliderShape } from "./ColliderShape";
 
@@ -181,7 +180,7 @@ export class MeshColliderShape extends ColliderShape {
       if (!nativeShape.setMeshData(positions, this._isConvex ? null : indices, cookingFlags)) {
         return false;
       }
-      this._collider?._handleShapesChanged(ColliderShapeChangeFlag.Property);
+      this._collider?._handleShapesChanged();
     } else {
       const newShape = this._createNativeShape(positions, indices, this._isConvex, cookingFlags);
       if (!newShape) {

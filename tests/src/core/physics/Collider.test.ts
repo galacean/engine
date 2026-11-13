@@ -1,3 +1,4 @@
+import { createPhysics } from "../../utils/physics";
 import {
   BoxColliderShape,
   Collision,
@@ -10,7 +11,6 @@ import {
   StaticCollider
 } from "@galacean/engine-core";
 import { Vector3 } from "@galacean/engine-math";
-import { createPhysics } from "./PhysicsTestUtils";
 import { WebGLEngine } from "@galacean/engine";
 import { vi, describe, beforeAll, beforeEach, expect, it, afterEach } from "vitest";
 

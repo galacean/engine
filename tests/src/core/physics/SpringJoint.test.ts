@@ -1,7 +1,7 @@
+import { createPhysics } from "../../utils/physics";
 import { Entity, DynamicCollider, StaticCollider, BoxColliderShape, Engine, SpringJoint } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine";
 import { Vector3 } from "@galacean/engine-math";
-import { createPhysics } from "./PhysicsTestUtils";
 import { describe, beforeAll, beforeEach, expect, it } from "vitest";
 
 describe("SpringJoint", function () {

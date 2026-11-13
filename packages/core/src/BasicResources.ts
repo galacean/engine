@@ -149,10 +149,10 @@ export class BasicResources {
       -1, -1, 0, 0, // left-bottom
       -1, 3, 0, 2]); // left-top
 
-    const blitMaterial = new Material(engine, Shader.find("Blit/Blit"));
+    const blitMaterial = new Material(engine, Shader.find("Blit/Blit")!);
     blitMaterial._addReferCount(1);
 
-    const blitScreenMaterial = new Material(engine, Shader.find("Blit/BlitScreen"));
+    const blitScreenMaterial = new Material(engine, Shader.find("Blit/BlitScreen")!);
     blitScreenMaterial._addReferCount(1);
 
     this.blitMaterial = blitMaterial;
@@ -199,8 +199,8 @@ export class BasicResources {
       );
     }
 
-    this.spriteDefaultMaterial = this._create2DMaterial(engine, Shader.find("2D/Sprite"));
-    this.textDefaultMaterial = this._create2DMaterial(engine, Shader.find("2D/Text"));
+    this.spriteDefaultMaterial = this._create2DMaterial(engine, Shader.find("2D/Sprite")!);
+    this.textDefaultMaterial = this._create2DMaterial(engine, Shader.find("2D/Text")!);
     this.spriteMaskDefaultMaterial = this._createSpriteMaskMaterial(engine);
 
     this.meshMagentaMaterial = this._createMagentaMaterial(engine, "Unlit");
@@ -312,14 +312,14 @@ export class BasicResources {
   }
 
   private _createMagentaMaterial(engine: Engine, shaderName: string): BaseMaterial {
-    const material = new BaseMaterial(engine, Shader.find(shaderName));
+    const material = new BaseMaterial(engine, Shader.find(shaderName)!);
     material.isGCIgnored = true;
     material.shaderData.setColor("material_BaseColor", new Color(1.0, 0.0, 1.01, 1.0));
     return material;
   }
 
   private _createSpriteMaskMaterial(engine: Engine): Material {
-    const material = new Material(engine, Shader.find("2D/SpriteMask"));
+    const material = new Material(engine, Shader.find("2D/SpriteMask")!);
     material.isGCIgnored = true;
     return material;
   }

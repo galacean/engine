@@ -1,3 +1,4 @@
+import { createPhysics } from "../../utils/physics";
 import {
   HingeJoint,
   JointLimits,
@@ -11,7 +12,6 @@ import {
 } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine";
 import { Vector3 } from "@galacean/engine-math";
-import { createPhysics } from "./PhysicsTestUtils";
 import { describe, beforeAll, beforeEach, expect, it } from "vitest";
 
 describe("HingeJoint", function () {

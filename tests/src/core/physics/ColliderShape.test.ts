@@ -1,3 +1,4 @@
+import { createPhysics } from "../../utils/physics";
 import {
   Entity,
   BoxColliderShape,
@@ -10,7 +11,6 @@ import {
 } from "@galacean/engine-core";
 import { Vector3 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine";
-import { createPhysics } from "./PhysicsTestUtils";
 import { describe, beforeAll, beforeEach, expect, it } from "vitest";
 
 describe("ColliderShape PhysX", () => {

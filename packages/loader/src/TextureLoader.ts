@@ -18,6 +18,7 @@ import {
 import { decode } from "./resource-deserialize";
 import { FileHeader } from "./resource-deserialize/utils/FileHeader";
 import { HDRDecoder } from "./HDRDecoder";
+import { ImageDecoder } from "./ImageDecoder";
 
 @resourceLoader(AssetType.Texture, ["tex", "png", "jpg", "webp", "jpeg", "hdr"])
 class TextureLoader extends Loader<Texture> {
@@ -72,7 +73,7 @@ class TextureLoader extends Loader<Texture> {
   }
 
   private _decodeImage(buffer: ArrayBuffer, item: LoadItem, resourceManager: ResourceManager): AssetPromise<Texture2D> {
-    return decodeImage(buffer, item.url!).then((img) => {
+    return ImageDecoder._decode(buffer, item.url!).then((img) => {
       const {
         format = TextureFormat.R8G8B8A8,
         isSRGBColorSpace = true,
@@ -140,30 +141,13 @@ class TextureContentRestorer extends ContentRestorer<Texture> {
           return texture;
         }
 
-        return decodeImage(buffer, this.url).then((img) => {
+        return ImageDecoder._decode(buffer, this.url).then((img) => {
           texture.setImageSource(img);
           texture.mipmapCount > 1 && texture.generateMipmaps();
           return texture;
         });
       });
   }
-}
-
-function decodeImage(buffer: ArrayBuffer, url: string): AssetPromise<HTMLImageElement> {
-  return new AssetPromise((resolve, reject) => {
-    const objectUrl = URL.createObjectURL(new Blob([buffer]));
-    const image = new Image();
-    const releaseObjectUrl = () => URL.revokeObjectURL(objectUrl);
-    image.onload = () => {
-      releaseObjectUrl();
-      resolve(image);
-    };
-    image.onerror = () => {
-      releaseObjectUrl();
-      reject(new Error(`TextureLoader: failed to decode texture "${url}" (${buffer.byteLength} bytes).`));
-    };
-    image.src = objectUrl;
-  });
 }
 
 /**

@@ -9,6 +9,7 @@ import {
   TextSource,
   TrailSource,
   UIDefaultSource,
+  SpineSource,
   SkyboxSource,
   BackgroundTextureSource,
   SkyProceduralSource,
@@ -42,8 +43,7 @@ export class ShaderPool {
   }
 
   /**
-   * Register all built-in shaders from precompiled `.shaderc` sources, plus
-   * configure the particle feedback pass's transform-feedback varyings.
+   * Register all built-in shaders from precompiled `.shaderc` sources.
    */
   static registerShaders(): void {
     const sources = [
@@ -66,6 +66,7 @@ export class ShaderPool {
       TextSource,
       TrailSource,
       UIDefaultSource,
+      SpineSource,
       // Particle shaders
       ParticleSource,
       ParticleFeedbackSource,
@@ -81,11 +82,5 @@ export class ShaderPool {
     for (const source of sources) {
       Shader._createFromPrecompiled(source);
     }
-
-    // Configure the particle feedback pass's transform-feedback varyings.
-    // The pass itself is later looked up via `Shader.find` inside
-    // `ParticleTransformFeedbackSimulator`, so no caching needed here.
-    const feedbackPass = Shader.find("Effect/ParticleFeedback").subShaders[0].passes[0];
-    feedbackPass._feedbackVaryings = ["v_FeedbackPosition", "v_FeedbackVelocity"];
   }
 }

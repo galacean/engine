@@ -1,0 +1,5 @@
+{
+  "main": "../../dist/main.analyzer.js",
+  "module": "../../dist/module.analyzer.js",
+  "types": "../../types/index.d.ts"
+}

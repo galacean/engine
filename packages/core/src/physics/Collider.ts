@@ -7,7 +7,6 @@ import { DependentMode, dependentComponents } from "../ComponentsDependencies";
 import { Entity } from "../Entity";
 import { Layer } from "../Layer";
 import { Transform } from "../Transform";
-import { ColliderShapeChangeFlag } from "./enums/ColliderShapeChangeFlag";
 import { ColliderShape } from "./shape/ColliderShape";
 import type { MeshColliderShape } from "./shape/MeshColliderShape";
 
@@ -75,7 +74,7 @@ export class Collider extends Component implements ICloneHook<Collider> {
       }
       this._addNativeShape(shape);
       this._shapes.push(shape);
-      this._handleShapesChanged(ColliderShapeChangeFlag.Count);
+      this._handleShapesChanged();
     }
   }
 
@@ -88,7 +87,7 @@ export class Collider extends Component implements ICloneHook<Collider> {
     if (index !== -1) {
       this._shapes.splice(index, 1);
       this._removeNativeShape(shape);
-      this._handleShapesChanged(ColliderShapeChangeFlag.Count);
+      this._handleShapesChanged();
     }
   }
 
@@ -101,7 +100,7 @@ export class Collider extends Component implements ICloneHook<Collider> {
       this._removeNativeShape(shapes[i]);
     }
     shapes.length = 0;
-    this._handleShapesChanged(ColliderShapeChangeFlag.Count);
+    this._handleShapesChanged();
   }
 
   /**
@@ -154,11 +153,7 @@ export class Collider extends Component implements ICloneHook<Collider> {
   /**
    * @internal
    */
-  _handleShapesChanged(changeType: ColliderShapeChangeFlag): void {
-    if (changeType & ColliderShapeChangeFlag.Count) {
-      this._setCollisionLayer();
-    }
-  }
+  _handleShapesChanged(): void {}
 
   /**
    * @internal
@@ -168,8 +163,8 @@ export class Collider extends Component implements ICloneHook<Collider> {
     const nativeCollider = <IStaticCollider | IDynamicCollider>this._nativeCollider;
     if (nativeShape) {
       const attached = previousShape
-        ? nativeCollider.replaceShape(previousShape, nativeShape)
-        : nativeCollider.addShape(nativeShape);
+        ? nativeCollider.replaceShape(previousShape, nativeShape, this._collisionLayerIndex)
+        : nativeCollider.addShape(nativeShape, this._collisionLayerIndex);
       if (!attached) {
         nativeShape.destroy();
         throw new Error("Collider: failed to attach replacement shape to the native actor.");
@@ -179,17 +174,13 @@ export class Collider extends Component implements ICloneHook<Collider> {
     }
     shape._nativeShape = nativeShape;
     previousShape?.destroy();
-    if (nativeShape) {
-      this._setCollisionLayer();
-    }
-    this._handleShapesChanged(ColliderShapeChangeFlag.Property);
+    this._handleShapesChanged();
   }
 
   protected _syncNative(): void {
     for (let i = 0, n = this.shapes.length; i < n; i++) {
       this._addNativeShape(this.shapes[i]);
     }
-    this._setCollisionLayer();
   }
 
   /**
@@ -210,7 +201,7 @@ export class Collider extends Component implements ICloneHook<Collider> {
   protected _addNativeShape(shape: ColliderShape): void {
     if (shape._nativeShape) {
       shape._nativeShape.setWorldScale(this.entity.transform.lossyWorldScale);
-      if (!this._nativeCollider.addShape(shape._nativeShape)) {
+      if (!this._nativeCollider.addShape(shape._nativeShape, this._collisionLayerIndex)) {
         throw new Error("Collider: failed to attach shape to the native actor.");
       }
     }
@@ -222,9 +213,5 @@ export class Collider extends Component implements ICloneHook<Collider> {
       this._nativeCollider.removeShape(shape._nativeShape);
     }
     shape._collider = null;
-  }
-
-  private _setCollisionLayer(): void {
-    this._nativeCollider.setCollisionLayer(this._collisionLayerIndex);
   }
 }

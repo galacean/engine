@@ -1,3 +1,4 @@
+import { createPhysics } from "../../utils/physics";
 import {
   DynamicCollider,
   PhysicsMaterial,
@@ -22,7 +23,6 @@ import {
   ParserContext,
   ParserType
 } from "../../../../packages/loader/src/resource-deserialize/resources/parser/ParserContext";
-import { createPhysics } from "./PhysicsTestUtils";
 import { Vector3 } from "@galacean/engine-math";
 import { describe, beforeAll, beforeEach, afterAll, expect, it, vi } from "vitest";
 
@@ -645,7 +645,8 @@ describe.each(runtimeModes)("PhysicsMaterial (%s)", (runtimeMode) => {
 
     // @ts-ignore
     engine.sceneManager.activeScene.physics._update(2);
-    expect(boxEntity.transform.position.y).toBeCloseTo(5.16451, 4);
+    // Standard and SIMD solvers differ in the last few float32 bits
+    expect(boxEntity.transform.position.y).closeTo(5.16451, 0.00002);
   });
 
   it("bounceCombine Multiply", () => {

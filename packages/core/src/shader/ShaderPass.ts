@@ -30,8 +30,8 @@ const precisionStr = `
 export class ShaderPass extends ShaderPart {
   /** @internal */
   static _shaderPassCounter: number = 0;
-  /** @internal */
-  static _shaderRootPath = "shaders://root/";
+  private static _shaderMacroList: ShaderMacro[] = [];
+  private static _macroMap: Map<string, string> = new Map();
 
   /** @internal */
   _platformTarget: ShaderLanguage;
@@ -50,11 +50,8 @@ export class ShaderPass extends ShaderPart {
   _renderStateDataMap: Record<number, ShaderProperty> = {};
   /** @internal */
   _shaderProgramMaps: ShaderProgramMap[] = [];
-  /** @internal Transform feedback output varyings (WebGL2 only). */
-  _feedbackVaryings?: string[];
 
-  private static _shaderMacroList: ShaderMacro[] = [];
-  private static _macroMap: Map<string, string> = new Map();
+  private readonly _vertexOutputNames?: Readonly<Record<string, string>>;
 
   /**
    * Create a shader pass from precompiled instructions.
@@ -63,13 +60,15 @@ export class ShaderPass extends ShaderPart {
    * @param fragmentShaderInstructions - Precompiled fragment instruction array
    * @param platformTarget - Target shader language
    * @param tags - Tags
+   * @param vertexOutputNames - Source output names mapped to generated GLSL names
    */
   constructor(
     name: string,
     vertexShaderInstructions: ShaderInstruction[],
     fragmentShaderInstructions: ShaderInstruction[],
     platformTarget: ShaderLanguage,
-    tags?: Record<string, number | string | boolean>
+    tags?: Record<string, number | string | boolean>,
+    vertexOutputNames?: Readonly<Record<string, string>>
   ) {
     super();
     this._shaderPassId = ShaderPass._shaderPassCounter++;
@@ -78,6 +77,7 @@ export class ShaderPass extends ShaderPart {
     this._vertexShaderInstructions = vertexShaderInstructions;
     this._fragmentShaderInstructions = fragmentShaderInstructions;
     this._platformTarget = platformTarget;
+    this._vertexOutputNames = vertexOutputNames;
 
     const mergedTags = { pipelineStage: PipelineStage.Forward, ...tags };
     for (const key in mergedTags) {
@@ -88,14 +88,18 @@ export class ShaderPass extends ShaderPart {
   /**
    * @internal
    */
-  _getShaderProgram(engine: Engine, macroCollection: ShaderMacroCollection): ShaderProgram {
+  _getShaderProgram(
+    engine: Engine,
+    macroCollection: ShaderMacroCollection,
+    feedbackVaryings?: string[]
+  ): ShaderProgram {
     const shaderProgramMap = engine._getShaderProgramMap(this._shaderPassId, this._shaderProgramMaps);
     let shaderProgram = shaderProgramMap.get(macroCollection);
     if (shaderProgram) {
       return shaderProgram;
     }
 
-    shaderProgram = this._compileShaderProgram(engine, macroCollection);
+    shaderProgram = this._compileShaderProgram(engine, macroCollection, feedbackVaryings);
 
     shaderProgramMap.cache(shaderProgram);
     return shaderProgram;
@@ -117,14 +121,24 @@ export class ShaderPass extends ShaderPart {
   /**
    * @internal
    */
-  _compileShaderProgram(engine: Engine, macroCollection: ShaderMacroCollection): ShaderProgram {
+  _compileShaderProgram(
+    engine: Engine,
+    macroCollection: ShaderMacroCollection,
+    feedbackVaryings?: string[]
+  ): ShaderProgram {
+    const names = this._vertexOutputNames;
+    if (names && feedbackVaryings?.length) {
+      feedbackVaryings = feedbackVaryings.map((name) =>
+        Object.prototype.hasOwnProperty.call(names, name) ? names[name] : name
+      );
+    }
     const isGPUInstance = macroCollection.isEnable(InstanceBuffer.gpuInstanceMacro);
     const { vertexSource, fragmentSource, instanceLayout } = this._compileShaderSource(
       engine,
       macroCollection,
       isGPUInstance
     );
-    const program = new ShaderProgram(engine, vertexSource, fragmentSource, this._feedbackVaryings);
+    const program = new ShaderProgram(engine, vertexSource, fragmentSource, feedbackVaryings);
     program._instanceLayout = instanceLayout;
     return program;
   }

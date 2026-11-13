@@ -29,8 +29,8 @@ export abstract class PhysXCollider implements ICollider {
   /**
    * {@inheritDoc ICollider.addShape }
    */
-  addShape(shape: PhysXColliderShape): boolean {
-    if (!this._pxActor.attachShape(shape._pxShape)) {
+  addShape(shape: PhysXColliderShape, layer: number): boolean {
+    if (!this._pxActor.attachShapeWithLayer(shape._pxShape, layer)) {
       return false;
     }
     this._shapes.push(shape);
@@ -51,8 +51,8 @@ export abstract class PhysXCollider implements ICollider {
   /**
    * {@inheritDoc IStaticCollider.replaceShape }
    */
-  replaceShape(previousShape: PhysXColliderShape, newShape: PhysXColliderShape): boolean {
-    if (!this._pxActor.attachShape(newShape._pxShape)) {
+  replaceShape(previousShape: PhysXColliderShape, newShape: PhysXColliderShape, layer: number): boolean {
+    if (!this._pxActor.attachShapeWithLayer(newShape._pxShape, layer)) {
       return false;
     }
     this._shapes[this._shapes.indexOf(previousShape)] = newShape;

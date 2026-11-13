@@ -1,6 +1,6 @@
 {
   "name": "@galacean/engine-shader-compiler",
-  "version": "2.0.0-alpha.50",
+  "version": "2.0.0-alpha.56",
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org"
@@ -21,6 +21,11 @@
       "require": "./dist/main.js",
       "types": "./types/index.d.ts"
     },
+    "./precompile": {
+      "import": "./dist/precompile.module.js",
+      "require": "./dist/precompile.main.js",
+      "types": "./types/precompile.d.ts"
+    },
     "./bundler/rollup": {
       "import": "./bundler/rollup.js",
       "require": "./bundler/rollup.cjs.js",
@@ -31,11 +36,6 @@
       "require": "./bundler/precompile.cjs.js",
       "types": "./types/bundler/precompile.d.ts"
     },
-    "./verbose": {
-      "import": "./dist/module.verbose.js",
-      "require": "./dist/main.verbose.js",
-      "types": "./types/index.d.ts"
-    },
     "./src/*": "./src/*.ts",
     "./package.json": "./package.json"
   },
@@ -43,7 +43,7 @@
     "shader-compiler-precompile": "./bundler/cli.js"
   },
   "scripts": {
-    "build": "rollup -c rollup.config.js && node -e \"require('fs').chmodSync('bundler/cli.js', 0o755)\"",
+    "build": "rollup -c rollup.config.js",
     "b:types": "tsc"
   },
   "umd": {
@@ -56,15 +56,26 @@
   "files": [
     "dist/**/*",
     "bundler/**/*",
-    "types/**/*",
-    "verbose/package.json"
+    "types/**/*"
   ],
   "dependencies": {
     "@rollup/pluginutils": "^5.0.0",
     "@galacean/engine-math": "workspace:*",
-    "@galacean/engine-core": "workspace:*"
+    "@galacean/engine-core": "workspace:*",
+    "@galacean/engine-design": "workspace:*",
+    "@galacean/engine-shader-parser": "workspace:*"
   },
-  "devDependencies": {
-    "@galacean/engine-design": "workspace:*"
+  "typesVersions": {
+    "*": {
+      "precompile": [
+        "types/precompile.d.ts"
+      ],
+      "bundler/rollup": [
+        "types/bundler/rollup.d.ts"
+      ],
+      "bundler/precompile": [
+        "types/bundler/precompile.d.ts"
+      ]
+    }
   }
 }

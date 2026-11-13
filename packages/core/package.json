@@ -1,6 +1,6 @@
 {
   "name": "@galacean/engine-core",
-  "version": "2.0.0-alpha.50",
+  "version": "2.0.0-alpha.56",
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org"
@@ -21,9 +21,7 @@
     "types/**/*"
   ],
   "dependencies": {
+    "@galacean/engine-design": "workspace:*",
     "@galacean/engine-math": "workspace:*"
-  },
-  "devDependencies": {
-    "@galacean/engine-design": "workspace:*"
   }
 }

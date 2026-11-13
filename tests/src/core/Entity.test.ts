@@ -1,13 +1,13 @@
+import { createPhysics } from "../utils/physics";
 import { Quaternion } from "@galacean/engine";
 import { DynamicCollider, Entity, EntityModifyFlags, Scene, Script } from "@galacean/engine-core";
-import { PhysXPhysics } from "@galacean/engine-physics-physx";
 import { WebGLEngine } from "@galacean/engine";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 class TestComponent extends Script {}
 
 describe("Entity", async () => {
-  const engine = await WebGLEngine.create({ canvas: document.createElement("canvas"), physics: new PhysXPhysics() });
+  const engine = await WebGLEngine.create({ canvas: document.createElement("canvas"), physics: createPhysics() });
   const scene = engine.sceneManager.activeScene;
   engine.run();
   beforeEach(() => {

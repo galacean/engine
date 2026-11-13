@@ -1,3 +1,4 @@
+import { createPhysics } from "../../utils/physics";
 import {
   Entity,
   MeshColliderShape,
@@ -15,7 +16,6 @@ import {
 import { Ray, Vector3 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine";
 import { PhysXRuntimeMode } from "@galacean/engine-physics-physx";
-import { createPhysics } from "./PhysicsTestUtils";
 import { describe, beforeAll, beforeEach, afterAll, expect, it, vi } from "vitest";
 
 class CollisionScript extends Script {
@@ -543,7 +543,7 @@ describe.each(runtimeModes)("MeshColliderShape PhysX (%s)", (runtimeMode) => {
       const pxShape = firstNativeShape._pxShape;
       const actor = (staticCollider as any)._nativeCollider._pxActor;
       const createShapeSpy = vi.spyOn(firstNativeShape._physXPhysics._pxPhysics, "createShape");
-      const attachSpy = vi.spyOn(actor, "attachShape");
+      const attachSpy = vi.spyOn(actor, "attachShapeWithLayer");
       const detachSpy = vi.spyOn(actor, "detachShape");
       const ray = new Ray(new Vector3(1.5, 3, 0), new Vector3(0, -1, 0));
       const hit = new HitResult();
@@ -748,7 +748,7 @@ describe.each(runtimeModes)("MeshColliderShape PhysX (%s)", (runtimeMode) => {
       const oldNativeShape = (meshShape as any)._nativeShape;
       const nativeCollider = (staticCollider as any)._nativeCollider;
       const oldDestroySpy = vi.spyOn(oldNativeShape, "destroy");
-      const actorAttachSpy = vi.spyOn(nativeCollider._pxActor, "attachShape");
+      const actorAttachSpy = vi.spyOn(nativeCollider._pxActor, "attachShapeWithLayer");
       const actorDetachSpy = vi.spyOn(nativeCollider._pxActor, "detachShape");
       const cookSpy = vi.spyOn(oldNativeShape._physXPhysics._pxCooking, "createConvexMesh").mockReturnValueOnce(null);
       const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
@@ -909,13 +909,15 @@ describe.each(runtimeModes)("MeshColliderShape PhysX (%s)", (runtimeMode) => {
       collider.addShape(shape);
       const nativeCollider = (collider as any)._nativeCollider;
       const nativeShape = (shape as any)._nativeShape;
-      const attachSpy = vi.spyOn(nativeCollider._pxActor, "attachShape").mockReturnValueOnce(false);
+      const attachSpy = vi.spyOn(nativeCollider._pxActor, "attachShapeWithLayer").mockReturnValueOnce(false);
       const originalReplaceShape = nativeCollider.replaceShape.bind(nativeCollider);
       let candidateDestroySpy: ReturnType<typeof vi.spyOn>;
-      const replaceSpy = vi.spyOn(nativeCollider, "replaceShape").mockImplementationOnce((previousShape, newShape) => {
-        candidateDestroySpy = vi.spyOn(newShape, "destroy");
-        return originalReplaceShape(previousShape, newShape);
-      });
+      const replaceSpy = vi
+        .spyOn(nativeCollider, "replaceShape")
+        .mockImplementationOnce((previousShape, newShape, layer) => {
+          candidateDestroySpy = vi.spyOn(newShape, "destroy");
+          return originalReplaceShape(previousShape, newShape, layer);
+        });
 
       try {
         expect(() => (shape.isConvex = true)).toThrowError(
@@ -947,12 +949,12 @@ describe.each(runtimeModes)("MeshColliderShape PhysX (%s)", (runtimeMode) => {
       collider.addShape(shape);
       const mesh = createModelMesh(engine, [-1, 0, -1, 1, 0, -1, 0, 0, 1], [0, 1, 2]);
       const nativeCollider = (collider as any)._nativeCollider;
-      const attachSpy = vi.spyOn(nativeCollider._pxActor, "attachShape").mockReturnValueOnce(false);
+      const attachSpy = vi.spyOn(nativeCollider._pxActor, "attachShapeWithLayer").mockReturnValueOnce(false);
       const originalAddShape = nativeCollider.addShape.bind(nativeCollider);
       let candidateDestroySpy: any;
-      const addSpy = vi.spyOn(nativeCollider, "addShape").mockImplementationOnce((nativeShape) => {
+      const addSpy = vi.spyOn(nativeCollider, "addShape").mockImplementationOnce((nativeShape, layer) => {
         candidateDestroySpy = vi.spyOn(nativeShape, "destroy");
-        return originalAddShape(nativeShape);
+        return originalAddShape(nativeShape, layer);
       });
 
       try {
@@ -985,7 +987,7 @@ describe.each(runtimeModes)("MeshColliderShape PhysX (%s)", (runtimeMode) => {
       const collider = entity.addComponent(StaticCollider);
       const shape = new BoxColliderShape();
       const nativeCollider = (collider as any)._nativeCollider;
-      const attachSpy = vi.spyOn(nativeCollider._pxActor, "attachShape").mockReturnValue(false);
+      const attachSpy = vi.spyOn(nativeCollider._pxActor, "attachShapeWithLayer").mockReturnValue(false);
 
       try {
         expect(() => collider.addShape(shape)).toThrowError("Collider: failed to attach shape to the native actor.");

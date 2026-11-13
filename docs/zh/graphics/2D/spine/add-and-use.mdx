@@ -6,377 +6,204 @@ group: Spine
 label: Graphics/2D/Spine/add-and-use
 ---
 
-完成资产上传后，点击 SpineSkeletonData 资产，按住后拖动到视图区，就能快速将 Spine 添加至场景中了。
+本页介绍 Engine 2.0 的 Spine 运行时 API。编辑器的导入界面和资产命名见[资产导入](/docs/graphics/2D/spine/editor)；编辑器接入单独迁移。
 
-<Image src="https://mdn.alipayobjects.com/huamei_irlgws/afts/img/A*2s_oTZ4sIU0AAAAAAAAAAAAADvX8AQ/original" width="992" alt="Drag Spine skeleton data asset into viewport"/>
+## 安装与配置
 
+业务代码使用 `@galacean/engine-spine` 提供的对象。按资产版本安装对应后端，创建 Engine 时传入一个 runtime。创建之前需要导入 `engine-spine`，让 SpineLoader 接收初始化配置：
 
-本质上，上述操作是创建了一个新的实体，添加了 SpineAnimationRenderer 组件，并设置了组件的 SpineSkeletonData 资产。我们也可以手动执行这些步骤：
-<Image src="https://mdn.alipayobjects.com/huamei_irlgws/afts/img/A*PO1FQ7rjMOkAAAAAAAAAAAAADvX8AQ/original" width="342" alt="Use add component to add spine animation renderer"/>
-
-
-## SpineAnimationRenderer 组件
-
-组件的配置如下：
-
-<Image src="https://mdn.alipayobjects.com/huamei_kz4wfo/afts/img/A*OUfSSZtovAYAAAAAAAAAAAAAesp6AQ/original" width="503" alt="Spine animation renderer component config"/>
-
-- 资源：Spine 动画的资源 ( SpineSkeletonData 资产 )
-- 循环：默认播放的动画是否循环
-- 初始动画：默认播放的动画名称
-- 皮肤：默认的皮肤名称
-- 渲染优先级
-- 预乘Alpha: 是否以预乘alpha的模式渲染动画
-
-如果你希望动态加载 Spine 动画，或进行更多操作（如控制动画播放、修改骨骼状态、切换皮肤等），就需要通过脚本来实现。下面将介绍如何在脚本中完成这些功能。
-
-## 在脚本中使用
-### 动态创建
-通过脚本可实现 Spine 资源的运行时加载与动画创建，推荐流程如下：
 ```typescript
-import { Script } from '@galacean/engine';
-import { SpineAnimationRenderer } from '@galacean/engine-spine';
+import { WebGLEngine } from "@galacean/engine";
+import "@galacean/engine-spine";
+import { Spine38Runtime } from "@galacean/engine-spine-core-3.8";
 
-class YourAmazingScript extends Script {
+const engine = await WebGLEngine.create({
+  canvas: "canvas",
+  spine: new Spine38Runtime()
+});
+```
 
-  onStart() {
+后端配置按 Engine 隔离，加载时检查资产的主次版本是否与配置的后端匹配。只需安装资产对应的后端。仅导入后端包不会完成配置；未配置匹配版本时明确报错，不会自动下载其他后端。业务代码通过创建 Engine 时的 `spine` 配置选择后端，注册由内部完成。
 
-    // 加载并创建 Spine 动画资产
-    const spineResource = await engine.resourceManager.load(
-      {
-        // 在资产面板中，右键点击 SpineSkeletonData 资产“复制相对路径”，粘贴路径到这里
-        url: './spine.json',
-        type: 'Spine',
-      },
-    );
+## 加载和创建角色
 
-    // 通过 Spine 资产的实例化方法，创建 Spine 动画实体
-    const spineEntity = spineResource.instantiate();
+下面的 `engine` 是已创建且具有活动场景的引擎实例。场景中的相机需要覆盖角色所在位置。
 
-     // 添加 Spine 动画实体到当前实体下
-    this.entity.addChild(spineEntity);
+```typescript
+import { SpineAnimationRenderer, SpineResource } from "@galacean/engine-spine";
 
+const resource = await engine.resourceManager.load<SpineResource>({
+  url: "/spine/character.skel",
+  type: "Spine"
+});
+const entity = resource.instantiate();
+engine.sceneManager.activeScene!.addRootEntity(entity);
+const renderer = entity.getComponent(SpineAnimationRenderer)!;
+renderer.state.setAnimation(0, "idle", true);
+```
+
+示例中的动画、皮肤、插槽和附件名称需要替换为资产中实际存在的名称。
+
+| 输入            | 加载方式                                              |
+| --------------- | ----------------------------------------------------- |
+| `.skel`         | 可自动选择 Spine loader，也可显式指定 `type: "Spine"` |
+| `.json`、`.bin` | 显式指定 `type: "Spine"`                              |
+
+加载器支持 Spine JSON 和二进制骨骼数据，按内容识别格式。文件后缀用于选择 loader，不代表文件内容一定是二进制。
+
+单 URL 加载时，优先使用资产依赖提供的 atlas 地址；没有依赖信息时推导同名 `.atlas`。例如 `character.skel?v=2` 对应 `character.atlas`，推导地址不会继承骨骼 URL 的查询参数。需要指定 atlas 或贴图地址时使用 `urls`：
+
+```typescript
+const explicitResource = await engine.resourceManager.load<SpineResource>({
+  type: "Spine",
+  urls: ["/spine/character.json?v=2", "/spine/character.atlas?v=3", "/spine/body.png?v=4", "/spine/weapon.png?v=5"]
+});
+```
+
+通常只需提供骨骼和 atlas，贴图会根据 atlas 页名加载。显式贴图地址应与 atlas 页名匹配；贴图被重命名而无法按页名匹配时，使用列表中对应页位置的地址。请求仍使用完整地址。
+
+`SpineResource` 共享骨骼数据、皮肤、混合配置和贴图；每次 `instantiate()` 都创建独立的骨骼姿态和播放状态。下面的示例沿用 `resource` 和 `renderer`。
+
+## 编排动画、控制时间
+
+`renderer.state` 是当前实例的 `SpineAnimationState`。用 `setAnimation` 替换指定轨道的动画，用 `addAnimation` 排队；引擎自动推进动画，不需要手动调用 `update`。
+
+```typescript
+resource.stateData.defaultMix = 0.2;
+resource.stateData.setMix("attack", "idle", 0.15);
+
+const state = renderer.state;
+state.setAnimation(0, "attack", false);
+state.addAnimation(0, "idle", true, 0);
+```
+
+轨道可以并行播放，按索引从低到高应用；高轨道上的动画可以覆盖或混合低轨道的姿态。混合时长配置属于资源，影响该资源的所有实例。
+
+`setAnimation`、`addAnimation` 返回 `SpineTrackEntry`，表示一次播放安排。它可控制单条播放的混合权重、时间和回调。它不是可长期复用的动画资产。
+
+```typescript
+renderer.timeScale = 0.5; // 动画与骨骼时间（包括 4.2 物理）统一减半。
+const previousTimeScale = renderer.timeScale;
+renderer.timeScale = 0; // 暂停时间推进，仍应用姿态和绘制。
+renderer.timeScale = previousTimeScale;
+
+const entry = renderer.state.getCurrent(0);
+if (entry) entry.trackTime = 1.5; // 下一次更新时应用动画的 1.5 秒位置。
+```
+
+`state.timeScale` 和 `entry.timeScale` 是额外的动画时间控制，不缩放骨骼物理时间。通常使用 `renderer.timeScale` 即可。跳转动画时间不会重建物理模拟历史。
+
+已知的播放顺序优先用队列；需要接收单次播放通知时使用 `entry.listener`：
+
+```typescript
+const attack = renderer.state.setAnimation(0, "attack", false);
+attack.listener = {
+  complete(entry) {
+    console.log("完成一次播放", entry.animation?.name);
+  },
+  event(entry, event) {
+    console.log("动画事件", event.data.name, event.stringValue);
   }
+};
+```
+
+也可以使用 `state.addListener(listener)` 监听整个状态，并用 `removeListener` 移除。循环动画每完成一轮都会通知 `complete`。`dispose` 回调结束后，该 `TrackEntry` 失效，不应继续使用；动画事件值是可以保留的快照。命令产生的回调同步派发；命令返回后才设置的 listener 不会收到已经发生的 `start`。
+
+## 姿态更新信号
+
+通过 Renderer 上的 Signal，在明确的阶段操作本帧姿态：
+
+| Signal             | 时机与用途                                               |
+| ------------------ | -------------------------------------------------------- |
+| `onBeforeApply`    | 时间推进后、动画应用前，准备基础姿态。                   |
+| `onUpdateLocal`    | 动画应用后、骨骼世界变换和约束求解前，修改局部骨骼属性。 |
+| `onUpdateWorld`    | 初步求解世界变换后，根据计算结果修正局部骨骼属性。       |
+| `onUpdateComplete` | 最终求解后、生成几何前，读取最终姿态以同步跟随对象。     |
+
+```typescript
+const aim = (source: SpineAnimationRenderer) => {
+  const head = source.skeleton.findBone("head");
+  if (head) head.rotation += 15;
+};
+renderer.onUpdateLocal.on(aim);
+// 不再需要时移除：
+renderer.onUpdateLocal.off(aim);
+```
+
+信号按上述顺序同步触发，`timeScale = 0` 时仍会执行。只有 `onUpdateWorld` 存在监听时才增加一次姿态求解，4.2 物理模拟仍只推进一次。`onUpdateComplete` 中修改局部骨骼属性不会再次求解。骨骼的世界变换属于骨骼坐标系，同步场景对象时还需要应用 Entity 的世界变换。
+
+Spine 更新发生在脚本 `onLateUpdate` 之后，需要精确姿态时机时使用这些信号。切换资源会保留 Renderer 的监听，因此回调中应访问当前的 skeleton。销毁 Renderer 会清空监听。克隆遵循 Signal 规则：组件/方法绑定会映射到克隆对象，函数监听不会复制。
+
+## 皮肤、骨骼与插槽
+
+`renderer.skeleton` 是此实例的 `SpineSkeleton`。切换皮肤后，恢复插槽初始姿态，使附件使用新皮肤的配置：
+
+```typescript
+renderer.skeleton.setSkinByName("winter");
+renderer.skeleton.setSlotsToSetupPose();
+```
+
+通过资源创建组合皮肤，再加入同一资源里的皮肤：
+
+```typescript
+const outfit = resource.createSkin("outfit");
+for (const name of ["base", "hair/brown", "clothes/winter"]) {
+  const skin = resource.skeletonData.findSkin(name);
+  if (skin) outfit.addSkin(skin);
+}
+renderer.skeleton.setSkin(outfit);
+renderer.skeleton.setSlotsToSetupPose();
+```
+
+皮肤属于资源，可以被它的多个实例共享。不能跨资源组合皮肤。使用 `findBone(name)`、`findSlot(name)` 获取稳定复用的实例对象；名称不存在时返回 `null`。
+
+```typescript
+const weapon = renderer.skeleton.findSlot("weapon");
+if (weapon) {
+  weapon.setAttachment("sword");
+  weapon.setAttachment(null); // 隐藏附件。
+  weapon.setToSetupPose(); // 恢复初始配置。
 }
 ```
 
+附件名称从当前皮肤查找，并回退到默认皮肤。`skeleton.slots` 按初始顺序排列，不随动画绘制顺序变化。骨骼的局部变换可读写，但动画驱动的属性会在动画应用阶段被重新赋值。
 
-### 动画控制 - AnimationState
+公共 API 提供皮肤组合和按名称替换附件；原生 `TextureAtlas`、`RegionAttachment`、`MeshAttachment` 不属于这套公共接口。额外加载 atlas 并直接修改原生 attachment 的旧示例不适用于本版本。
 
-SpineAnimationRenderer 组件通过 state 属性暴露了
- [AnimationState API](https://zh.esotericsoftware.com/spine-api-reference#AnimationState) 。
-使用 AnimationState 对象能够实现更加复杂的动画操作。
+## 材质与透明度
 
-在脚本中，你能够通过以下方式获取到 AnimationState 对象：
+同一引擎中的角色默认共享 `SpineMaterial`。使用 `setMaterial(material)` 设置默认材质，或用 `getInstanceMaterial()` 获取独立副本。`setMaterial(0, material)` 与默认材质对应；数字不是插槽编号或内部绘制批次编号。
+
+按插槽覆盖材质时，传入这个角色自己的 `SpineSlot`：
+
 ```typescript
-import { Script } from '@galacean/engine';
-import { SpineAnimationRenderer } from '@galacean/engine-spine';
+import { SpineMaterial } from "@galacean/engine-spine";
 
-class YourAmazingScript extends Script {
-
-  onStart() {
-    const spine = this.entity.getComponent(SpineAnimationRenderer);
-    const { state } = spine; // AnimationState 对象
-  }
-  
-}
-```
-#### **播放动画**
-首先，我们来介绍一下最常用的 API：[setAnimation](https://zh.esotericsoftware.com/spine-api-reference#AnimationState-setAnimation)
-```typescript
-state.setAnimation(0, 'animationName', true)
-```
-setAnimation 函数接受三个参数：
-
-- TrackIndex：动画轨道序号
-- animationName：动画名称
-- loop：是否循环播放
-
-后两个参数很好理解，第一个参数则包含了 Spine 动画的一个概念：**Track** （轨道）
-> Spine 动画在播放时，需要指定一个动画轨道。借助动画轨道，Spine 能够分层应用动画，每一个轨道都能够存储动画与播放参数，轨道的编号从 0 开始累加。在动画应用后，Spine 会从低轨道到高轨道依次应用动画，高轨道上的动画将会覆盖低轨道上的动画。
-
-#### **动画混合**
-上面提到的轨道覆盖机制，大有用途。例如，轨道 0 可以有行走、奔跑、游泳或其他动画，轨道 1 可以有一个只为手臂和开枪设置了关键帧的射击动画。此外，为高层轨道设置TrackEntry alpha可使其与下面的轨道混合。例如，轨道 0 可以有一个行走动画，轨道 1 可以有一个跛行动画。当玩家受伤时，增加轨道 1 的alpha值，跛行就会加重。
-比如：
-```typescript
-// 此时动画会边走路，边射击
-state.setAnimation(0, 'walk', true);
-state.setAnimation(1, 'shoot', true);
-```
-
-#### **动画过渡**
-调用 setAnimation 方法后，会立即切换当前轨道的动画。如果你需要动画切换时有过渡效果，需要设置过渡的持续时间。可以通过 [AnimationStateData](https://zh.esotericsoftware.com/spine-api-reference#AnimationStateData) 的 API 来进行设置：
-```typescript
-import { Script } from '@galacean/engine';
-import { SpineAnimationRenderer } from '@galacean/engine-spine';
-
-class YourAmazingScript extends Script {
-
-  onStart() {
-    const spine = this.entity.getComponent(SpineAnimationRenderer);
-    const { state } = spine; // AnimationState 对象
-    const { data } = state; // AnimationStateData 对象
-    data.defaultMix = 0.2; // 设置默认过渡持续时间
-    data.setMix('animationA', 'animationB', 0.3); // 设置两个指定动画的过渡持续时间
-  }
-  
+const material = new SpineMaterial(engine);
+const weapon = renderer.skeleton.findSlot("weapon");
+if (weapon) {
+  renderer.setMaterial(weapon, material);
+  renderer.setMaterial(weapon, null); // 移除覆盖，恢复默认材质。
 }
 ```
 
-- defaultMix 是当两个动画间没有定义混合持续时间时的默认持续时间
-- setMix 函数接受三个参数，前两个是需要设置过渡时间的动画名称，第三个则是动画混合的持续时间
-#### **动画队列**
-Spine 还提供了 [addAnimation](https://zh.esotericsoftware.com/spine-api-reference#AnimationState-addAnimation2) 方法来实现动画的队列播放：
+`new SpineMaterial(engine, customShader)` 支持自定义 shader。启用 `renderer.tintBlack` 可渲染资产的双色 tint。自定义 shader 需匹配 Spine 顶点格式，并按批次读取贴图和混合参数；使用内置混合参数时，在线性空间完成 tint 后，将最终 RGB 乘最终 alpha。详细输入见 [Spine 包说明](https://github.com/galacean/engine/blob/dev/2.0/packages/spine/README.md#materials)。
+
+Spine 使用引擎的线性渲染流程，要求输入 **Straight Alpha（未预乘）贴图**。在 Spine 的 Texture Packer 中关闭 **Premultiply alpha**，开启 **Bleed（颜色扩边）**。颜色扩边会把邻近颜色填入透明像素的 RGB，保持 Alpha 不变，减少纹理过滤时的黑边。Shader 仍会在输出前对最终线性颜色进行预乘，以匹配混合参数。
+
+Loader 会拒绝标记为 `pma: true` 的 atlas 页，以及 `isSRGBColorSpace: false` 的纹理。普通图片默认启用 sRGB 采样；导出 `.tex` 或压缩纹理时也需要启用 sRGB，并基于扩边后的未预乘图片生成压缩数据和 mipmap。纹理沿用现有资源加载、共享和设备恢复流程，不进行 GPU 回读，也不创建转换纹理。
+
+旧 atlas 缺少 `pma` 时，按未预乘资产处理。已有 PMA 图片需要重新导出，不能仅修改 atlas 标记。加载器没有 Alpha 模式覆盖参数，组件上也没有 `premultipliedAlpha` 开关。
+
+## 物理能力和解绑
+
+4.2 后端提供 Spine 物理约束；3.8 会明确返回不支持。先检查能力，再使用：
+
 ```typescript
-state.setAnimation(0, 'animationA', false); // 在轨道 0 播放动画 A
-state.addAnimation(0, 'animationB', true, 0); // 在动画 A 之后后，添加动画 B，并循环播放
-```
-addAnimation 接受 4 个参数：
-
-- TrackIndex：动画轨道
-- animationName：动画名称
-- loop：是否循环播放
-- delay：延迟时间
-
-前三个参数很好理解，这里解释一下第四个参数：
-delay 代表了前一个动画的持续时间。
-
-当 delay > 0 时（假设 delay 为 1），前一个动画会在播放 1 秒后，切换到下一个动画。如下图所示：
-
-<Image src="https://mdn.alipayobjects.com/huamei_irlgws/afts/img/A*-sY9TrNI8L8AAAAAAAAAAAAADvX8AQ/original" width="350" />
-
-如果动画 A 的时长小于 1 秒，则会根据是否设置了循环播放：循环播放直至 1 秒，或者播放完毕后，保持在动画播放完毕的状态直至 1 秒。
-
-当 delay = 0 时，下一个动画会在前一个动画播放完毕后播放，如下图所示：
-
-<Image src="https://mdn.alipayobjects.com/huamei_irlgws/afts/img/A*jk2VRaHwUXMAAAAAAAAAAAAADvX8AQ/original" width="350" />
-
-假设动画 A 的时长为 1 秒，过渡持续时间为 0.2 秒，当 delay 设置为 0 时，动画 B 会从 1 - 0.2 也就是 0.8 秒开始过渡到动画 B。
-
-当 delay < 0 时，上一个动画未播放完毕前，下一个动画就会开始播放，如下图所示：
-同样假设动画 A 的时长为 1 秒，过渡持续时间为 0.2 秒，动画 B 则会从 0.6 秒开始过渡到动画 B。
-
-<Image src="https://mdn.alipayobjects.com/huamei_irlgws/afts/img/A*1xJDTLr0ygAAAAAAAAAAAAAADvX8AQ/original" width="350" />
-
-除了 addAnimation 外，还能够通过 [addEmptyAnimation](https://zh.esotericsoftware.com/spine-api-reference#AnimationState-addEmptyAnimation) 方法添加空动画。空动画能够让动画回到初始状态。
-
-addEmptyAnimation 接受三个参数：TrackIndex，mixDuration 和 delay。TrackIndex 和 delay 参数与 addAnimation 一样。 mixDuration 是过渡持续时间，动画会在 mixDuration 时间内逐渐回到初始状态。如下图所示（右侧棕色区域即是空动画），
-
-<Image src="https://mdn.alipayobjects.com/huamei_irlgws/afts/img/A*UdLBR4xoXAEAAAAAAAAAAAAADvX8AQ/original" width="267" />
-
-#### **轨道参数**
-setAnimation 和 addAnimation 方法都会返回一个对象：TrackEntry。TrackEntry 提供了更多的参数来进行动画控制。
-例如：
-
-- timeScale：控制动画播放的速度
-- animationStart：控制动画播放的开始时间
-- apha：当前动画应用轨道的混合系数
-- ...
-
-更多参数可以参考 [TrackEntry 官方文档](https://zh.esotericsoftware.com/spine-api-reference#TrackEntry)
-#### **动画事件**
-
-<Image src="https://mdn.alipayobjects.com/huamei_irlgws/afts/img/A*j4SmSKjherYAAAAAAAAAAAAADvX8AQ/original" width="681" alt="Animation event diagram" />
-
-当调用 AnimationState API 进行动画控制时，会触发如上图所示的事件。
-在新的动画开始播放时，会触发 Start 事件，当动画在动画队列中移除或者中断时，会触发 End 事件。当动画播放完毕时，无论是否循环，都会触发 Complete 事件。
-
-全部的事件以及详细解释请参考：[Spine 动画事件官方文档](https://zh.esotericsoftware.com/spine-unity-events)
-
-这些事件能够通过 [AnimationState.addListener](https://zh.esotericsoftware.com/spine-api-reference#AnimationState-addListener) 进行监听。
-```typescript
-import { Script } from '@galacean/engine';
-import { SpineAnimationRenderer } from '@galacean/engine-spine';
-
-class YourAmazingScript extends Script {
-
-  onStart() {
-    const spine = this.entity.getComponent(SpineAnimationRenderer);
-    const { state } = spine; // AnimationState 对象
-    state.addListener({
-      start: (entry: TrackEntry) => {
-        // call back function
-      },
-      complete: (entry: TrackEntry) => {
-        // call back function
-      },
-      end: (entry: TrackEntry) => {
-        // call back function
-      },
-      interrupt: (entry: TrackEntry) => {
-        // call back function
-      },
-      dispose: (entry: TrackEntry) => {
-        // call back function
-      },
-      event: (entry: TrackEntry) => {
-        // call back function
-      },
-    })
-  }
-  
+const physics = renderer.physics;
+if (physics?.supported) {
+  for (const constraint of physics.value.physicsConstraints) constraint.reset();
 }
 ```
 
-### 骨架操作 - Skeleton
-SpineAnimationRenderer 组件通过 skeleton 属性暴露了[Skeleton API](https://zh.esotericsoftware.com/spine-api-reference#Skeleton)。 使用 Skeleton 对象能够实现更加复杂的骨架操作。 
-
-在脚本中，你能够通过以下方式获取到 Skeleton 对象，来访问骨骼、插槽、附件等，并进行骨架操作。
-```typescript
-import { Script } from '@galacean/engine';
-import { SpineAnimationRenderer } from '@galacean/engine-spine';
-
-class YourAmazingScript extends Script {
-
-  onStart() {
-    const spine = this.entity.getComponent(SpineAnimationRenderer);
-    const { skeleton } = spine; // Skeleton 对象
-  }
-  
-}
-```
-下面是一些常用的操作：
-#### **修改骨骼位置**
-通过 Skeleton API 能够修改 Spine 骨骼的位置，比较常见的应用是：可以通过设置 IK 的目标骨骼，来实现瞄准/跟随效果。
-```typescript
-import { Script } from '@galacean/engine';
-import { SpineAnimationRenderer } from '@galacean/engine-spine';
-
-class YourAmazingScript extends Script {
-
-  onStart() {
-    const spine = this.entity.getComponent(SpineAnimationRenderer);
-    const { skeleton } = spine; // Skeleton 对象
-    const bone = skeleton.findBone('boneName');
-    bone.x = targetX;
-    bone.y = targetY;
-  }
-  
-}
-```
-
-#### **附件更换**
-通过 Skeleton API 能够替换[插槽](https://zh.esotericsoftware.com/spine-slots)内的[附件](https://zh.esotericsoftware.com/spine-attachments)。通过切换附件，能够实现局部换装的效果。
-```typescript
-import { Script } from '@galacean/engine';
-import { SpineAnimationRenderer } from '@galacean/engine-spine';
-
-class YourAmazingScript extends Script {
-
-  onStart() {
-    const spine = this.entity.getComponent(SpineAnimationRenderer);
-    const { skeleton } = spine; // Skeleton 对象
-    // 根据名称查找插槽
-    const slot = skeleton.findSlot('slotName');
-    // 按名称从骨架皮肤或默认皮肤获取附件
-    const attachment = skeleton.getAttachment(slot.index, 'attachmentName');
-    // 设置插槽附件
-    slot.attachment = attachment;
-    // 或者由骨架setAttachment方法来设置插槽附件
-    skeleton.setAttachment('slotName', 'attachmentName');
-  }
-}
-```
-
-#### **换肤与混搭**
-**换肤**
-
-通过 Skeleton 的 [setSkin](https://zh.esotericsoftware.com/spine-api-reference#Skeleton-setSkin) API 能够根据皮肤名称实现整体换肤。
-```typescript
-import { Script } from '@galacean/engine';
-import { SpineAnimationRenderer } from '@galacean/engine-spine';
-
-class YourAmazingScript extends Script {
-
-  onStart() {
-    const spine = this.entity.getComponent(SpineAnimationRenderer);
-    const { skeleton } = spine; // Skeleton 对象
-    // 根据皮肤名称设置皮肤
-    skeleton.setSkinByName("skinName");
-    // 回到初始位置
-    skeleton.setSlotsToSetupPose();
-  }
-
-}
-```
-**混搭**
-
-在 Spine 编辑器中，设计师可以为每一个外观和装备准备皮肤，然后在运行时把他们组合成一个新的皮肤。下面的代码展示了如果通过 addSkin 来添加选定的皮肤的：
-```typescript
-import { Script } from '@galacean/engine';
-import { SpineAnimationRenderer } from '@galacean/engine-spine';
-
-class YourAmazingScript extends Script {
-
-  onStart() {
-    const spine = this.entity.getComponent(SpineAnimationRenderer);
-    const { skeleton } = spine; // Skeleton 对象
-    const mixAndMatchSkin = new spine.Skin("custom-girl");
-    mixAndMatchSkin.addSkin(skeletonData.findSkin("skin-base"));
-    mixAndMatchSkin.addSkin(skeletonData.findSkin("nose/short"));
-    mixAndMatchSkin.addSkin(skeletonData.findSkin("eyelids/girly"));
-    mixAndMatchSkin.addSkin(skeletonData.findSkin("eyes/violet"));
-    mixAndMatchSkin.addSkin(skeletonData.findSkin("hair/brown"));
-    mixAndMatchSkin.addSkin(skeletonData.findSkin("clothes/hoodie-orange"));
-    mixAndMatchSkin.addSkin(skeletonData.findSkin("legs/pants-jeans"));
-    mixAndMatchSkin.addSkin(skeletonData.findSkin("accessories/bag"));
-    mixAndMatchSkin.addSkin(skeletonData.findSkin("accessories/hat-red-yellow"));
-    this.skeleton.setSkin(mixAndMatchSkin);
-  }
-
-}
-```
-代码中皮肤的名称来自 mix-and-match 示例，在下一个章节中能够看到。
-
-
-#### **动态加载图集并替换附件**
-在传统 Spine 项目中，不同的皮肤通常会被打包到同一个图集中。但是，随着皮肤数量的不断增加，图集纹理数量的增长会导致加载耗时不断上涨。
-
-为了解决这一问题，可以通过在运行时加载额外的 Atlas 文件，并基于新图集创建附件并替换原有附件，从而灵活支持大规模皮肤扩展，同时避免对初始加载性能的影响。
-比如，我们可以把不同皮肤的武器，头饰，眼镜等配件打包到一个额外的图集中，在运行时进行替换。
-
-```typescript
-import { Script } from '@galacean/engine';
-import { SpineAnimationRenderer } from '@galacean/engine-spine';
-
-class extends YourAmazingScript {
-  async onStart() 
-    // 加载额外的图集文件
-    const extraAtlas = await this.engine.resourceManager.load('/extra.atlas') as TextureAtlas;
-    const { skeleton } = this.entity.getComponent(SpineAnimationRenderer);
-    // 待替换附件所在的插槽
-    const slot = skeleton.findSlot(slotName);
-    // 用于创建新附件的图集区域
-    const region = extraAtlas.findRegion(regionName);
-    // 基于原本的附件进行克隆出新附件，新附件的图集区域来自于额外的图集文件
-    const clone = this.cloneAttachmentWithRegion(slot.attachment, region);
-    // 替换附件
-    slot.attachment = clone;
-  }
-
-  // 附件克隆方法
-  cloneAttachmentWithRegion(
-    attachment: RegionAttachment | MeshAttachment | Attachment,
-    atlasRegion: TextureAtlasRegion,
-  ): Attachment {
-    let newAttachment: RegionAttachment | MeshAttachment;
-    switch (attachment.constructor) {
-      case RegionAttachment:
-        newAttachment = attachment.copy() as RegionAttachment;
-        newAttachment.region = atlasRegion;
-        newAttachment.updateRegion();
-        break;
-      case MeshAttachment:
-        const meshAttachment = attachment as MeshAttachment;
-        newAttachment = meshAttachment.newLinkedMesh();
-        newAttachment.region = atlasRegion;
-        newAttachment.updateRegion();
-        break;
-      default:
-        return attachment.copy();
-    }
-    return newAttachment;
-  }
-```
-
-下一个章节会给大家展示 [Spine示例](/docs/graphics/2D/spine/example)
+`renderer.resource = null` 可清空资源。解绑后不要再访问 `state` 或 `skeleton`；重新绑定资源会创建新的实例状态，并清理插槽材质覆盖。实体销毁后，不要继续持有其播放对象来控制动画。

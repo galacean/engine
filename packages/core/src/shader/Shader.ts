@@ -28,7 +28,7 @@ export class Shader implements IReferable {
   /** @internal */
   static _shaderCompiler?: IShaderCompiler;
 
-  private static _shaderMap: Record<string, Shader> = Object.create(null);
+  private static _shaderMap: Record<string, Shader[]> = Object.create(null);
 
   /**
    * Create a shader by source code.
@@ -46,138 +46,136 @@ export class Shader implements IReferable {
    *
    * @param shaderSource - Shader code
    * @param platformTarget - Shader platform target, @defaultValue ShaderLanguage.GLSLES100
-   * @param path - Shader location path, used to resolve relative `#include` paths in ShaderLab source
-   * @returns The shader, or `undefined` if its name already exists.
+   * @returns A new shader. Shaders with the same name remain independent objects.
    *
    * @throws
    * Throw string exception if the shader compiler has not been enabled properly.
    */
-  static create(shaderSource: string, platformTarget?: ShaderLanguage, path?: string): Shader | undefined;
+  static create(shaderSource: string, platformTarget?: ShaderLanguage): Shader;
 
   /**
    * Create a shader.
    * @param name - Name of the shader
    * @param shaderPasses - Shader passes
-   * @returns The shader, or `undefined` if its name already exists.
+   * @returns A new shader. Shaders with the same name remain independent objects.
    */
-  static create(name: string, shaderPasses: ShaderPass[]): Shader | undefined;
+  static create(name: string, shaderPasses: ShaderPass[]): Shader;
 
   /**
    * Create a shader.
    * @param name - Name of the shader
    * @param subShaders - Sub shaders
-   * @returns The shader, or `undefined` if its name already exists.
+   * @returns A new shader. Shaders with the same name remain independent objects.
    */
-  static create(name: string, subShaders: SubShader[]): Shader | undefined;
+  static create(name: string, subShaders: SubShader[]): Shader;
 
   static create(
     nameOrShaderSource: string,
-    shaderPassesOrSubShadersOrPlatformTarget?: ShaderLanguage | SubShader[] | ShaderPass[],
-    path?: string
-  ): Shader | undefined {
-    let shader: Shader;
-    const shaderMap = Shader._shaderMap;
-
-    if (shaderPassesOrSubShadersOrPlatformTarget == undefined) {
-      shaderPassesOrSubShadersOrPlatformTarget = ShaderLanguage.GLSLES100;
+    shaderPassesOrSubShadersOrPlatformTarget?: ShaderLanguage | SubShader[] | ShaderPass[]
+  ): Shader {
+    if (
+      shaderPassesOrSubShadersOrPlatformTarget == undefined ||
+      typeof shaderPassesOrSubShadersOrPlatformTarget === "number"
+    ) {
+      const platformTarget =
+        typeof shaderPassesOrSubShadersOrPlatformTarget === "number"
+          ? shaderPassesOrSubShadersOrPlatformTarget
+          : ShaderLanguage.GLSLES100;
+      return Shader._createFromSource(nameOrShaderSource, platformTarget);
     }
 
-    if (typeof shaderPassesOrSubShadersOrPlatformTarget === "number") {
-      const shaderCompiler = Shader._shaderCompiler;
-      if (!shaderCompiler) {
-        throw "ShaderCompiler has not been set up yet.";
-      }
+    if (shaderPassesOrSubShadersOrPlatformTarget.length === 0) {
+      throw "SubShader or ShaderPass count must large than 0.";
+    }
+    if (shaderPassesOrSubShadersOrPlatformTarget[0].constructor === ShaderPass) {
+      return new Shader(nameOrShaderSource, [
+        new SubShader("Default", <ShaderPass[]>shaderPassesOrSubShadersOrPlatformTarget)
+      ]);
+    }
+    return new Shader(nameOrShaderSource, <SubShader[]>shaderPassesOrSubShadersOrPlatformTarget.slice());
+  }
 
-      const shaderSource = shaderCompiler._parseShaderSource(nameOrShaderSource);
-      if (shaderMap[shaderSource.name]) {
-        console.error(`Shader named "${shaderSource.name}" already exists.`);
-        return;
-      }
+  /**
+   * Creates a shader while retaining loader-owned source location metadata for relative includes.
+   * @param shaderSource - Complete ShaderLab source.
+   * @param platformTarget - Shader backend target.
+   * @param sourceFile - Canonical source location supplied by an asset loader or authoring tool.
+   * @returns A new shader.
+   * @throws When the shader compiler is unavailable or a pass cannot be compiled.
+   * @internal
+   */
+  static _createFromSource(
+    shaderSource: string,
+    platformTarget: ShaderLanguage = ShaderLanguage.GLSLES100,
+    sourceFile?: string
+  ): Shader {
+    const shaderCompiler = Shader._shaderCompiler;
+    if (!shaderCompiler) {
+      throw "ShaderCompiler has not been set up yet.";
+    }
 
-      const basePathForIncludeKey = new URL(path ?? "", ShaderPass._shaderRootPath).href;
+    const parsedSource = shaderCompiler._parseShaderSource(shaderSource);
+    const subShaderList = parsedSource.subShaders.map((subShaderSource) => {
+      const passList = subShaderSource.passes.map((passSource) => {
+        if (passSource.isUsePass) {
+          return Shader._resolveUsePass(passSource.name);
+        }
 
-      const subShaderList = shaderSource.subShaders.map((subShaderSource) => {
-        const passList = subShaderSource.passes.map((passSource) => {
-          if (passSource.isUsePass) {
-            return Shader._resolveUsePass(passSource.name);
-          }
+        const shaderPassSource = shaderCompiler._parseShaderPass(
+          passSource.contents,
+          passSource.vertexEntry,
+          passSource.fragmentEntry,
+          platformTarget,
+          sourceFile,
+          passSource.contentScopeStarts
+        );
 
-          const shaderPassSource = Shader._shaderCompiler!._parseShaderPass(
-            passSource.contents,
-            passSource.vertexEntry,
-            passSource.fragmentEntry,
-            shaderPassesOrSubShadersOrPlatformTarget,
-            basePathForIncludeKey
-          );
+        if (!shaderPassSource) {
+          throw `Shader pass "${parsedSource.name}.${subShaderSource.name}.${passSource.name}" parse failed, please check the shader source code.`;
+        }
 
-          if (!shaderPassSource) {
-            throw `Shader pass "${shaderSource.name}.${subShaderSource.name}.${passSource.name}" parse failed, please check the shader source code.`;
-          }
+        const shaderPass = new ShaderPass(
+          passSource.name,
+          shaderPassSource.vertexShaderInstructions!,
+          shaderPassSource.fragmentShaderInstructions!,
+          platformTarget,
+          passSource.tags,
+          shaderPassSource.vertexOutputNames
+        );
 
-          const shaderPass = new ShaderPass(
-            passSource.name,
-            shaderPassSource.vertexShaderInstructions!,
-            shaderPassSource.fragmentShaderInstructions!,
-            shaderPassesOrSubShadersOrPlatformTarget as ShaderLanguage,
-            passSource.tags
-          );
+        Shader._applyRenderStates(
+          shaderPass,
+          passSource.renderStates.constantMap,
+          passSource.renderStates.variableMap,
+          false
+        );
 
-          Shader._applyRenderStates(
-            shaderPass,
-            passSource.renderStates.constantMap,
-            passSource.renderStates.variableMap,
-            false
-          );
-
-          return shaderPass;
-        });
-
-        return new SubShader(subShaderSource.name, passList, subShaderSource.tags);
+        return shaderPass;
       });
 
-      shader = new Shader(shaderSource.name, subShaderList);
-      shaderMap[shaderSource.name] = shader;
-      return shader;
-    } else {
-      if (shaderMap[nameOrShaderSource]) {
-        console.error(`Shader named "${nameOrShaderSource}" already exists.`);
-        return;
-      }
-      if (shaderPassesOrSubShadersOrPlatformTarget.length > 0) {
-        if (shaderPassesOrSubShadersOrPlatformTarget[0].constructor === ShaderPass) {
-          shader = new Shader(nameOrShaderSource, [
-            new SubShader("Default", <ShaderPass[]>shaderPassesOrSubShadersOrPlatformTarget)
-          ]);
-        } else {
-          shader = new Shader(nameOrShaderSource, <SubShader[]>shaderPassesOrSubShadersOrPlatformTarget.slice());
-        }
-      } else {
-        throw "SubShader or ShaderPass count must large than 0.";
-      }
-    }
+      return new SubShader(subShaderSource.name, passList, subShaderSource.tags);
+    });
 
-    shaderMap[nameOrShaderSource] = shader;
-    return shader;
+    return new Shader(parsedSource.name, subShaderList);
   }
 
   /**
    * Find a shader by name.
    * @param name - Name of the shader
+   * @returns The most recently registered live shader with this name, or `undefined` if none exists.
+   * @remarks Retain the shader object when a material must use a specific shader among namesakes.
    */
-  static find(name: string): Shader {
-    return Shader._shaderMap[name];
+  static find(name: string): Shader | undefined {
+    const shaders = Shader._shaderMap[name];
+    return shaders?.[shaders.length - 1];
   }
 
   /**
+   * Create a shader from precompiled instructions.
+   * @param data - Precompiled shader data
    * @internal
    */
-  static _createFromPrecompiled(data: IPrecompiledShader): Shader | undefined {
-    const shaderMap = Shader._shaderMap;
-    if (shaderMap[data.name]) {
-      console.error(`Shader named "${data.name}" already exists.`);
-      return;
-    }
-
+  static _createFromPrecompiled(data: IPrecompiledShader): Shader {
     const subShaderList = data.subShaders.map((subData) => {
       const passList = subData.passes.map((passData) => {
         if (passData.isUsePass) {
@@ -189,7 +187,8 @@ export class Shader implements IReferable {
           passData.vertexShaderInstructions!,
           passData.fragmentShaderInstructions!,
           data.platformTarget as ShaderLanguage,
-          passData.tags
+          passData.tags,
+          passData.vertexOutputNames
         );
 
         Shader._applyRenderStates(
@@ -205,9 +204,7 @@ export class Shader implements IReferable {
       return new SubShader(subData.name, passList, subData.tags);
     });
 
-    const shader = new Shader(data.name, subShaderList);
-    shaderMap[data.name] = shader;
-    return shader;
+    return new Shader(data.name, subShaderList);
   }
 
   /**
@@ -216,18 +213,19 @@ export class Shader implements IReferable {
   static _clear(engine: Engine): void {
     const shaderMap = Shader._shaderMap;
     for (const key in shaderMap) {
-      const shader = shaderMap[key];
-      const subShaders = shader._subShaders;
-      for (let i = 0, n = subShaders.length; i < n; i++) {
-        const passes = subShaders[i].passes;
-        for (let j = 0, m = passes.length; j < m; j++) {
-          const pass = passes[j];
-          const passShaderProgramMaps = pass._shaderProgramMaps;
-          for (let k = passShaderProgramMaps.length - 1; k >= 0; k--) {
-            const map = passShaderProgramMaps[k];
-            if (map.engine !== engine) continue;
-            map.destroy();
-            passShaderProgramMaps.splice(k, 1);
+      for (const shader of shaderMap[key]) {
+        const subShaders = shader._subShaders;
+        for (let i = 0, n = subShaders.length; i < n; i++) {
+          const passes = subShaders[i].passes;
+          for (let j = 0, m = passes.length; j < m; j++) {
+            const pass = passes[j];
+            const passShaderProgramMaps = pass._shaderProgramMaps;
+            for (let k = passShaderProgramMaps.length - 1; k >= 0; k--) {
+              const map = passShaderProgramMaps[k];
+              if (map.engine !== engine) continue;
+              map.destroy();
+              passShaderProgramMaps.splice(k, 1);
+            }
           }
         }
       }
@@ -396,19 +394,19 @@ export class Shader implements IReferable {
     public readonly name: string,
     subShaders: SubShader[]
   ) {
-    this.name = name;
     this._subShaders = subShaders;
+    (Shader._shaderMap[name] ??= []).push(this);
   }
 
   /**
    * Compile shader variant by macro name list.
    *
    * @remarks
-   * Usually a shader contains some macros,any combination of macros is called shader variant.
+   * Skips Transform Feedback passes, which require a runtime-provided output layout.
    *
    * @param engine - Engine to which the shader variant belongs
    * @param macros - Macro name list
-   * @returns Is the compiled shader variant valid
+   * @returns Whether the variant is valid; false if all passes are skipped.
    */
   compileVariant(engine: Engine, macros: string[]): boolean {
     const compileMacros = Shader._compileMacros;
@@ -421,20 +419,28 @@ export class Shader implements IReferable {
     const subShaders = this._subShaders;
     for (let i = 0, n = subShaders.length; i < n; i++) {
       const { passes } = subShaders[i];
+      let isFirstCompiledPass = true;
       for (let j = 0, m = passes.length; j < m; j++) {
-        const shaderProgram = passes[j]._getShaderProgram(engine, compileMacros);
-        isValid = j === 0 ? shaderProgram.isValid : isValid && shaderProgram.isValid;
+        const pass = passes[j];
+        // Transform Feedback outputs are configured by the runtime simulator before Program linking
+        if (pass.getTagValue("pipelineStage") === "TransformFeedback") {
+          continue;
+        }
+        const shaderProgram = pass._getShaderProgram(engine, compileMacros);
+        isValid = isFirstCompiledPass ? shaderProgram.isValid : isValid && shaderProgram.isValid;
+        isFirstCompiledPass = false;
       }
     }
     return isValid;
   }
 
   /**
-   * Destroy the shader.
-   * @param force - Whether to force the destruction, if it is false, refCount = 0 can be released successfully.
-   * @returns Whether the release was successful.
+   * Destroy this shader and remove it from name lookup.
+   * @param force - Whether to destroy the shader even while it is in use
+   * @returns Whether the shader was destroyed or had already been destroyed.
    */
   destroy(force: boolean = false): boolean {
+    if (this._destroyed) return true;
     if (!force && this._refCount !== 0) {
       return false;
     }
@@ -447,7 +453,9 @@ export class Shader implements IReferable {
       }
     }
 
-    delete Shader._shaderMap[this.name];
+    const shaders = Shader._shaderMap[this.name];
+    shaders.splice(shaders.indexOf(this), 1);
+    if (shaders.length === 0) delete Shader._shaderMap[this.name];
     this._destroyed = true;
     return true;
   }

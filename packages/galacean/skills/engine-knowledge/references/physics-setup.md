@@ -27,3 +27,29 @@ This ordering means a pose or force chosen in `onPhysicsUpdate` affects the upco
 ## Decision rule
 
 Choose one motion owner per body: simulation for non-kinematic dynamics, application path motion for kinematics, or Transform teleportation for explicit repositioning. Mixing owners produces discontinuities and missed path behavior.
+
+## Physics-backed screen picking
+
+Built-in callbacks and manual raycasts share the selection rules above. In Editor-managed projects, configure the target and attach the Script through the Editor API. See [coordinates-and-space.md](coordinates-and-space.md) for screen coordinates and [mesh-geometry.md](mesh-geometry.md) for visual/collider dimensions.
+
+```ts
+import { Camera, HitResult, Layer, PointerEventData, Ray, Scene, Script, Vector2 } from "@galacean/engine";
+
+export class Pickable extends Script {
+  onPointerDown(event: PointerEventData): void {
+    console.log(this.entity.name, event.worldPosition);
+  }
+}
+
+export function pickFromScreen(
+  camera: Camera,
+  scene: Scene,
+  point: Vector2,
+  outHit: HitResult,
+  maxDistance: number = camera.farClipPlane,
+  layerMask: Layer = camera.cullingMask
+): boolean {
+  const ray = camera.screenPointToRay(point, new Ray());
+  return scene.physics.raycast(ray, maxDistance, layerMask, outHit);
+}
+```

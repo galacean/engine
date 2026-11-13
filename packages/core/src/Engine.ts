@@ -563,13 +563,12 @@ export class Engine extends EventDispatcher {
    * @internal
    */
   _render(scenes: ReadonlyArray<Scene>): void {
-    // Update `Renderer` logic and shader data
+    // Update all scenes before rendering any camera
     const deltaTime = this.time.deltaTime;
     for (let i = 0, n = scenes.length; i < n; i++) {
       const scene = scenes[i];
       if (!scene.isActive || scene.destroyed) continue;
-      scene._componentsManager.callRendererOnUpdate(deltaTime);
-      scene._updateShaderData();
+      scene._updateRendering(deltaTime);
     }
 
     // Fire script `onBeginRender` and `onEndRender`
@@ -641,8 +640,6 @@ export class Engine extends EventDispatcher {
       // shader-compiler defaults to an empty map and stays free of any direct
       // ShaderFactory dependency, so the binding has to be wired here at the
       // runtime boundary.
-      // @ts-ignore — `_setIncludeMap` is shader-compiler @internal; `includeMap`
-      // is `ShaderFactory` @internal. Both intentionally cross-package wired.
       shaderCompiler._setIncludeMap(ShaderFactory.includeMap);
       Shader._shaderCompiler = shaderCompiler;
     }

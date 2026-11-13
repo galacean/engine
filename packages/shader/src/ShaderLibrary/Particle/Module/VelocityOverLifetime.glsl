@@ -43,7 +43,7 @@
         #ifdef RENDERER_VOL_CONSTANT_MODE
             velocity = renderer_VOLMaxConst;
             #ifdef RENDERER_VOL_IS_RANDOM_TWO
-                velocity = mix(renderer_VOLMinConst, velocity, attributes.a_Random1.yzw);
+                velocity = mix(renderer_VOLMinConst, velocity, attributes.a_VelocityRandomTSA.xyz);
             #endif
         #endif
 
@@ -57,7 +57,7 @@
                     evaluateParticleCurve(renderer_VOLMinGradientX, normalizedAge),
                     evaluateParticleCurve(renderer_VOLMinGradientY, normalizedAge),
                     evaluateParticleCurve(renderer_VOLMinGradientZ, normalizedAge));
-                velocity = mix(minVelocity, velocity, attributes.a_Random1.yzw);
+                velocity = mix(minVelocity, velocity, attributes.a_VelocityRandomTSA.xyz);
             #endif
         #endif
         return velocity;
@@ -69,7 +69,7 @@
         #ifdef RENDERER_VOL_CONSTANT_MODE
             currentVelocity = renderer_VOLMaxConst;
             #ifdef RENDERER_VOL_IS_RANDOM_TWO
-                currentVelocity = mix(renderer_VOLMinConst, currentVelocity, attributes.a_Random1.yzw);
+                currentVelocity = mix(renderer_VOLMinConst, currentVelocity, attributes.a_VelocityRandomTSA.xyz);
             #endif
 
             velocityPosition = currentVelocity * age;
@@ -88,8 +88,8 @@
                     evaluateParticleCurveCumulative(renderer_VOLMinGradientY, normalizedAge, minCurrentVelocity.y),
                     evaluateParticleCurveCumulative(renderer_VOLMinGradientZ, normalizedAge, minCurrentVelocity.z));
 
-                currentVelocity = mix(minCurrentVelocity, currentVelocity, attributes.a_Random1.yzw);
-                velocityPosition = mix(minVelocityPosition, velocityPosition, attributes.a_Random1.yzw);
+                currentVelocity = mix(minCurrentVelocity, currentVelocity, attributes.a_VelocityRandomTSA.xyz);
+                velocityPosition = mix(minVelocityPosition, velocityPosition, attributes.a_VelocityRandomTSA.xyz);
             #endif
 
             velocityPosition *= vec3(attributes.a_ShapePositionStartLifeTime.w);
@@ -139,7 +139,7 @@
             #ifdef RENDERER_VOL_ORBITAL_CONSTANT_MODE
                 vec3 orbital = renderer_VOLOrbitalMaxConst;
                 #ifdef RENDERER_VOL_ORBITAL_IS_RANDOM_TWO
-                    orbital = mix(renderer_VOLOrbitalMinConst, orbital, attributes.a_Random1.yzw);
+                    orbital = mix(renderer_VOLOrbitalMinConst, orbital, attributes.a_VelocityRandomTSA.xyz);
                 #endif
                 return orbital;
             #else
@@ -152,7 +152,7 @@
                         evaluateParticleCurve(renderer_VOLOrbitalMinCurveX, normalizedAge),
                         evaluateParticleCurve(renderer_VOLOrbitalMinCurveY, normalizedAge),
                         evaluateParticleCurve(renderer_VOLOrbitalMinCurveZ, normalizedAge));
-                    orbital = mix(minOrbital, orbital, attributes.a_Random1.yzw);
+                    orbital = mix(minOrbital, orbital, attributes.a_VelocityRandomTSA.xyz);
                 #endif
                 return orbital;
             #endif
@@ -164,13 +164,13 @@
             #ifdef RENDERER_VOL_RADIAL_CONSTANT_MODE
                 float radial = renderer_VOLRadialMaxConst;
                 #ifdef RENDERER_VOL_RADIAL_IS_RANDOM_TWO
-                    radial = mix(renderer_VOLRadialMinConst, radial, attributes.a_Random1.y);
+                    radial = mix(renderer_VOLRadialMinConst, radial, attributes.a_VelocityRandomTSA.x);
                 #endif
                 return radial;
             #else
                 float radial = evaluateParticleCurve(renderer_VOLRadialMaxCurve, normalizedAge);
                 #ifdef RENDERER_VOL_RADIAL_IS_RANDOM_TWO
-                    radial = mix(evaluateParticleCurve(renderer_VOLRadialMinCurve, normalizedAge), radial, attributes.a_Random1.y);
+                    radial = mix(evaluateParticleCurve(renderer_VOLRadialMinCurve, normalizedAge), radial, attributes.a_VelocityRandomTSA.x);
                 #endif
                 return radial;
             #endif

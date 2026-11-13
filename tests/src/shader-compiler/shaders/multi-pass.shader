@@ -21,7 +21,6 @@ Shader "multi-pass-test" {
        mat3 v_TBN;
       };
 
-      mat4 renderer_MVPMat;
       mat4 renderer_MVMat;
 
       sampler2D material_BaseTexture;

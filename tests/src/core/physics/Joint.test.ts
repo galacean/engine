@@ -1,7 +1,7 @@
+import { createPhysics } from "../../utils/physics";
 import { FixedJoint, Entity, DynamicCollider, StaticCollider, BoxColliderShape, Engine } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine";
 import { Vector3 } from "@galacean/engine-math";
-import { createPhysics } from "./PhysicsTestUtils";
 import { vi, describe, beforeAll, beforeEach, expect, it } from "vitest";
 
 describe("Joint", function () {

@@ -1,9 +1,9 @@
+import { createPhysics } from "../../utils/physics";
 import { BoxColliderShape, Engine, PhysicsMaterial, StaticCollider } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine";
 import { Ray, Vector3 } from "@galacean/engine-math";
 import { PhysXRuntimeMode } from "@galacean/engine-physics-physx";
 import { describe, expect, it, vi } from "vitest";
-import { createPhysics } from "./PhysicsTestUtils";
 
 const runtimeModes = [PhysXRuntimeMode.WebAssembly, PhysXRuntimeMode.WebAssemblySIMD];
 
