@@ -96,17 +96,30 @@ it("keeps decorative and streamed stones on their existing generation path", () 
   );
 });
 
+it("changes only render normals when fracture smoothing changes", () => {
+  const controls = settings(true, true);
+  const hard = generateRockFormation(job, { ...controls, mountain: { ...controls.mountain, fractureSmoothing: 0 } });
+  const smooth = generateRockFormation(job, { ...controls, mountain: { ...controls.mountain, fractureSmoothing: 1 } });
+  expect(smooth.mesh.cornerNormals).not.toEqual(hard.mesh.cornerNormals);
+  expect({ ...smooth.mesh, cornerNormals: undefined }).toEqual({ ...hard.mesh, cornerNormals: undefined });
+  expect(smooth.owners).toEqual(hard.owners);
+  expect(smooth.grass).toEqual(hard.grass);
+  for (let i = 0; i < smooth.mesh.cornerNormals!.length; i += 3)
+    expect(Math.hypot(...smooth.mesh.cornerNormals!.subarray(i, i + 3))).toBeCloseTo(1, 4);
+});
+
 it("reads independently persisted controls without adding overrides to legacy documents", () => {
   expect(defaults.mountain).toMatchObject({ ridgeArrangement: false, rockShaping: false });
   const saved = structuredClone(document);
   saved.entities.world.components.rockFormation = {
-    values: { ridgeArrangement: true, rockShaping: false, ridgePeaks: 5, fractureDepth: 0.7 }
+    values: { ridgeArrangement: true, rockShaping: false, ridgePeaks: 5, fractureDepth: 0.7, fractureSmoothing: 0.8 }
   };
   expect(readRockFormationSettings(JSON.parse(JSON.stringify(saved))).mountain).toMatchObject({
     ridgeArrangement: true,
     rockShaping: false,
     ridgePeaks: 5,
-    fractureDepth: 0.7
+    fractureDepth: 0.7,
+    fractureSmoothing: 0.8
   });
   const descriptor = PLANNING_VISUAL_AUTHORING.find((d) => d.component === "rockFormation")!;
   const component = saved.entities.world.components.rockFormation;

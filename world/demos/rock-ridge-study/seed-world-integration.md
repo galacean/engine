@@ -10,9 +10,9 @@ atomic profiles and carving; cold seeded replay replaces the old fixed hashes.
 - Applied to planned mountain rock volumes. Decorative and streamed ground stones
   retain their existing meshes and cache keys when mountain controls change.
 - Independent arrangement/shaping switches; seeded or manual graph counts; optional
-  Perlin field; fracture depth, width, irregularity; existing OBB height/size edits.
+  Perlin field; fracture depth, width, irregularity, normal smoothing; existing OBB height/size edits.
 - Flags are opt-in for existing worlds and persist through native scene properties.
-- Native projected rock textures, smooth body / hard cut normals, indexed collision mesh,
+- Native projected rock textures, smooth body / adjustable cut normals, indexed collision mesh,
   owner IDs, grass support and building support all use the published surface.
 - Generation uses the current atomic terrain generator. One seeded atom library is
   reused across the world's mountain topology seeds. Native carving reduction uses
@@ -112,3 +112,26 @@ of CPU time during the full world build (not an isolated benchmark).
 Seam preservation has a measured cost: the eight seed-1 carved atoms reduce to
 1,162–1,216 triangles at the 1,000 target. The target remains soft under the
 0.0005 error ceiling; the adapter keeps the original body and fracture edges.
+
+## Fracture normal smoothing — 2026-11-13
+
+A separate render-only normal stage adds **Fracture normal smoothing** under
+Mountain shaping. The range is 0–1 (0–100% in the study), default 0.65. Zero
+recovers the hard plane normals; one shares angle-weighted normals across cut
+edges. The amount does not change carved vertices, triangles, collision, grass
+support, or arrangement, and it is excluded from the expensive stage cache keys.
+The standalone/inline slider updates GPU normal buffers while dragging, without
+rebuilding the scene or resetting its orbit. Native Seed World uses Apply.
+
+Validation: 16 focused tests passed across four suites, covering shared-normal
+continuity, triangulation independence, unchanged native positions/indices/grass,
+saved settings, panel payloads, and rounded-body regression checks. The viewer
+state verifier passed normal-only updates and orbit retention. World typechecking
+and package boundaries passed; the production build completed successfully in
+`/private/tmp/seed-world-fracture-normals-build`.
+
+Browser checks: the seed-425 clay comparison was inspected at 0%, 100%, and 65%.
+Its last-build carving/fitting diagnostics and base fingerprint stayed unchanged
+while smoothing changed. Seed World seed 1 loaded with both mountain features
+enabled, exposed the 0.65 control, and the selected textured mountain was framed
+and inspected. The inline artifact was refreshed from the same packed viewer.

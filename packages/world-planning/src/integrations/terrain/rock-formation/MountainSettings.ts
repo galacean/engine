@@ -14,7 +14,8 @@ export const MOUNTAIN_DEFAULTS = {
   ridgePersistence: 0.5,
   fractureDepth: 1.3,
   fractureWidth: 1.6,
-  fractureIrregularity: 1.8
+  fractureIrregularity: 1.8,
+  fractureSmoothing: 0.65
 };
 export type MountainSettings = typeof MOUNTAIN_DEFAULTS;
 export const MOUNTAIN_FIELD_KEYS = new Set(Object.keys(MOUNTAIN_DEFAULTS));
@@ -48,7 +49,8 @@ export const MOUNTAIN_FIELDS: PlanningComponentDefinition["fields"] = [
   number("ridgePersistence", "Persistence / 振幅衰减", 0, 1, 0.05),
   number("fractureDepth", "Fracture depth / 裂隙深度", 0, 2, 0.05),
   number("fractureWidth", "Fracture width / 裂隙宽度", 0, 2, 0.05),
-  number("fractureIrregularity", "Fracture irregularity / 裂隙不规则度", 0, 2, 0.05)
+  number("fractureIrregularity", "Fracture irregularity / 裂隙不规则度", 0, 2, 0.05),
+  number("fractureSmoothing", "Fracture normal smoothing / 裂面法线平滑", 0, 1, 0.05)
 ];
 export function readMountainSettings(values: Record<string, unknown>): MountainSettings {
   return Object.fromEntries(

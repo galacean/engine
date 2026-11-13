@@ -181,8 +181,9 @@ it("submits independent mountain toggles and a zero fracture depth through nativ
   arrangement.dispatchEvent(new Event("change"));
   f.input('field="fractureDepth"', "0");
   f.actions.get("Apply formation settings / 应用形态设置")!.click();
-  expect(f.apply).toHaveBeenCalledWith([{ op: "set", entity: "world", component: "rockFormation",
-    values: { ridgeArrangement: true, fractureDepth: 0 } }]);
+  expect(f.apply).toHaveBeenCalledWith([
+    { op: "set", entity: "world", component: "rockFormation", values: { ridgeArrangement: true, fractureDepth: 0 } }
+  ]);
   await settled();
   f.panel.destroy();
 });
@@ -265,5 +266,16 @@ it("resets one OBB and reports failed edits without disabling future edits", asy
   await settled();
   expect(f.readouts.get("Edit status / 编辑状态")).toContain("publication failed");
   expect(f.control('size="height"').disabled).toBe(false);
+  f.panel.destroy();
+});
+
+it("submits fracture normal smoothing as an independent shaping control", async () => {
+  const f = fixture();
+  f.input('field="fractureSmoothing"', "0.8");
+  f.actions.get("Apply formation settings / 应用形态设置")!.click();
+  expect(f.apply).toHaveBeenCalledExactlyOnceWith([
+    { op: "set", entity: "world", component: "rockFormation", values: { fractureSmoothing: 0.8 } }
+  ]);
+  await settled();
   f.panel.destroy();
 });

@@ -10,6 +10,10 @@ import {
   creasedRockAttributes
 } from "@galacean/engine-terrain/rock-ridge/features/shaping/rock-surface.mjs";
 import { transformedVertices } from "@galacean/engine-terrain/rock-ridge/ridge-utils.mjs";
+import {
+  fractureSmoothing,
+  smoothFractureNormals
+} from "@galacean/engine-terrain/rock-ridge/features/shaping/rock-normals.mjs";
 import type {
   RockFormationJob,
   RockFormationMesh,
@@ -71,14 +75,20 @@ function createMountainPipeline(budget: number) {
 // One world library + bounded stage caches. This lives in the existing worker,
 // never the render loop. Changing counts does not rebuild/carve the atoms.
 let pipeline: ReturnType<typeof createMountainPipeline> | undefined;
-const cornerNormalCache = new WeakMap<object, number[]>();
-function rockCornerNormals(geometry: any) {
-  let normals = cornerNormalCache.get(geometry);
-  if (!normals) {
-    normals = creasedRockAttributes(geometry).normals;
-    cornerNormalCache.set(geometry, normals!);
+const cornerNormalCache = new WeakMap<object, { hard: number[]; amount: number; normals: number[] }>();
+function rockCornerNormals(geometry: any, smoothing: number) {
+  const amount = fractureSmoothing(smoothing);
+  let cached = cornerNormalCache.get(geometry);
+  if (!cached) {
+    const hard = creasedRockAttributes(geometry).normals;
+    cached = { hard, amount: 0, normals: hard };
+    cornerNormalCache.set(geometry, cached);
   }
-  return normals!;
+  if (cached.amount !== amount) {
+    cached.normals = smoothFractureNormals(geometry, cached.hard, amount);
+    cached.amount = amount;
+  }
+  return cached.normals;
 }
 
 export interface MountainSurface extends RockSurface {
@@ -143,13 +153,13 @@ export function generateMountainSurface(
     for (let i = 0; i < body.vertices.length; i++)
       for (let d = 0; d < 3; d++)
         positions[(vertex + i) * 3 + d] = (body.vertices[i][d] - low[d]) * scale[d] - guide.size[d] / 2;
-    const sourceNormals = rockCornerNormals(body.geometry),
+    const sourceNormals = rockCornerNormals(body.geometry, controls.fractureSmoothing),
       rock = body.rock;
     const c = Math.cos(rock.yaw),
       s = Math.sin(rock.yaw);
     for (let i = 0; i < body.geometry.indices.length; i++) {
       // Inverse transpose of atom stretch, yaw and final OBB scaling. Preserve
-      // smooth body shading and split cut normals even in a tall/narrow OBB.
+      // the authored body/cut shading even in a tall/narrow OBB.
       const x = sourceNormals[i * 3] / (rock.longitudinalScale ?? 1);
       const y = sourceNormals[i * 3 + 1] / (rock.verticalScale ?? 1);
       const z = sourceNormals[i * 3 + 2] / (rock.lateralScale ?? 1);

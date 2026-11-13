@@ -14,7 +14,8 @@ Seed World's native adapter is
 `packages/world-planning/src/integrations/terrain/rock-formation/MountainSurface.ts`.
 It uses the current terrain atomic generator, carves and reduces the library once,
 fits connected masses, and maps the result into each authored mountain OBB. It
-keeps smooth body normals and hard fracture normals separate from the indexed physics surface. Shaping
+keeps render normals separate from the indexed physics surface, with adjustable
+fracture smoothing and the original smooth body field. Shaping
 and arrangement are independent. Both off restores the existing atomic path;
 shaping alone displays a carved summit in each mountain envelope. Decorative and
 streamed stones retain their previous generation path.
@@ -34,7 +35,7 @@ scene properties. In Seed World debug mode open **05 Rocks > Rock formation**:
   or use Perlin frequency/octave controls. Manual counts apply to direct growth;
   Perlin topology is extracted from the field.
 - **Mountain shaping**: independently enable sharp-face carving and tune fracture
-  depth, width, and irregularity.
+  depth, width, irregularity, and normal smoothing (0–1, default 0.65).
 - **Apply formation settings** publishes through the existing worker transaction.
 - **Individual OBB** controls width, height, and depth; **View selected mountain**
   frames the selected surface without changing its geometry.
@@ -54,5 +55,11 @@ outside the body, so no horizontal end cap can become a shelf. Zero depth or
 width retains the exact source positions and indices.
 
 Body normals are interpolated from the original atomic triangles at new Boolean
-vertices. Only cutter faces use hard plane normals. The native adapter applies
-the inverse-transpose normal transform through each fitted stretch and OBB scale.
+vertices. Cutter faces start with hard plane normals. `rock-normals.mjs` blends
+fracture-adjacent corner normals toward an angle-weighted shared normal; 0 retains
+hard cuts, 1 fully smooths their lighting. Pure body vertices are unchanged.
+This render-only stage changes no positions, topology, bounds, collision, or
+arrangement and is excluded from the carving/fitting cache keys. The native
+adapter applies the inverse-transpose normal transform through each fitted
+stretch and OBB scale. The study updates existing GPU normal buffers live;
+Seed World publishes the setting through its normal Apply transaction.

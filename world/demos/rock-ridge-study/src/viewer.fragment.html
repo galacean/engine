@@ -64,6 +64,9 @@
     <label class="form-label" for="rock-study-fracture-irregularity">Irregularity <output class="tabular-nums" id="rock-study-fracture-irregularity-value">180%</output>
       <input class="form-range" id="rock-study-fracture-irregularity" aria-label="Fracture irregularity" type="range" min="0" max="200" step="10" value="180">
     </label>
+    <label class="form-label" for="rock-study-fracture-smoothing">Fracture normal smoothing <output class="tabular-nums" id="rock-study-fracture-smoothing-value">65%</output>
+      <input class="form-range" id="rock-study-fracture-smoothing" aria-label="Fracture normal smoothing" type="range" min="0" max="100" step="5" value="65">
+    </label>
   </div>
     </div>
   </section>
@@ -123,6 +126,9 @@
  const fractureOptions=()=>fractureSettings(Object.fromEntries(Object.entries(fractureInputs).map(([key,input])=>[key,Number(input.value)/100])));
  const fractureKey=()=>JSON.stringify(fractureOptions());
  function fractureLabels(){for(const [key,input]of Object.entries(fractureInputs)){root.querySelector('#rock-study-fracture-'+key+'-value').value=input.value+'%';input.setAttribute('aria-valuetext',input.value+' percent');}}
+ const normalInput=root.querySelector('#rock-study-fracture-smoothing'),normalValue=root.querySelector('#rock-study-fracture-smoothing-value');
+ const normalAmount=()=>fractureSmoothing(Number(normalInput.value)/100);
+ function normalLabels(){normalValue.value=normalInput.value+'%';normalInput.setAttribute('aria-valuetext',normalInput.value+' percent smoothing');stage.dataset.fractureSmoothing=String(normalAmount());}
  const modeInput=root.querySelector('#rock-study-mode'),surfaceInput=root.querySelector('#rock-study-surface'),surfaceControl=root.querySelector('#rock-study-surface-control');
  const noiseControls=root.querySelector('#rock-study-noise-controls'),noiseSummary=root.querySelector('#rock-study-noise-summary');
  const noiseInputs=Object.fromEntries(Object.keys(PERLIN_DEFAULTS).map(key=>[key,root.querySelector('#rock-study-'+key)]));
@@ -154,9 +160,18 @@
  let baseGeometries={},activeGeometries={},geometryCache={},geometryMode='',baseSeed;
  function rockBuffer(g){
   const attributes=g.surface?creasedRockAttributes(g):g,geo=new T.BufferGeometry();
-  geo.setAttribute('position',new T.Float32BufferAttribute(attributes.positions,3));geo.setAttribute('normal',new T.Float32BufferAttribute(attributes.normals,3));
-  if(g.surface)geo.setAttribute('rockDetail',new T.Float32BufferAttribute(attributes.rockDetail,3));else geo.setIndex(g.indices);
+  const normals=g.surface?smoothFractureNormals(g,attributes.normals,normalAmount()):attributes.normals;
+  geo.setAttribute('position',new T.Float32BufferAttribute(attributes.positions,3));geo.setAttribute('normal',new T.Float32BufferAttribute(normals,3));
+  if(g.surface){geo.setAttribute('rockDetail',new T.Float32BufferAttribute(attributes.rockDetail,3));geo.userData.normalSource=g;geo.userData.hardNormals=attributes.normals;}else geo.setIndex(g.indices);
   geo.computeBoundingSphere();return geo;
+ }
+ function updateFractureNormals(){
+  normalLabels();
+  for(const geo of Object.values(geometryCache)){
+   const {normalSource,hardNormals}=geo.userData;if(!normalSource)continue;
+   const attribute=geo.getAttribute('normal');attribute.array.set(smoothFractureNormals(normalSource,hardNormals,normalAmount()));attribute.needsUpdate=true;
+  }
+  render();
  }
  let current,world=new T.Group(),guideGroup=new T.Group(),target=new T.Vector3(),yaw=0,pitch=.45,span=100,width=700,height=450;
  const comparisonGroup=new T.Group(),baseBuffers=new Map();let comparisonMeshes=[],comparisonCorners=[],comparisonTarget=new T.Vector3();
@@ -261,6 +276,7 @@
   clearScene();const p=palette();
   const compare=viewSelect.value==='compare';
   fractureLabels();for(const input of Object.values(fractureInputs))input.disabled=!features.shaping||(!compare&&perlin&&surfaceInput.value!=='rocks');
+  normalLabels();normalInput.disabled=fractureInputs.depth.disabled;
   ambient.intensity=!compare&&finishInput.value==='stone'?1.6:2.4;
   comparisonLabels.hidden=!compare;finishInput.disabled=compare;surfaceInput.disabled=compare;guideInput.disabled=compare;
   renderer.setClearColor(p.bg,0);
@@ -329,8 +345,8 @@
   description.textContent=current.ridge?current.notes+' The blue branching ridge network guides broad overlapping rock masses. Whole masses are refitted before adding structure; local differences within '+current.ridge.policy.curveToleranceM.toFixed(1)+' meters are tolerated. Small rocks have a separate budget of two and stay at the lower edges. All accepted pieces overlap the connected body in sampled mesh volume. Orange shows the actual surface along each target curve; its measured RMS deviation is '+current.ridge.fit.rmsM.toFixed(2)+' meters. Spheres mark peaks and diamonds mark saddles.'+' Height scales rocks, terrain and the complete ridge network together. The mountain topology is generated at runtime from the seed before fitting the atomic rock meshes. Peak counts, connections, spurs and forks can change. Atomic recipes and meshes are generated from the current seed at runtime; the full Seed rendering pipeline is not integrated. Drag to orbit; side, plan and low angle views are also available.':current.notes;
   if(perlin)description.textContent+=' Peaks and connecting saddle passes are extracted from a coarse Perlin field. Curves simplify and smooth the traced paths, so intermediate points may depart slightly from the sampled field. Octaves below 24 meters affect only bounded surface detail, not graph topology. The source field views hide the rock meshes and orange comparison lines.';
   if(finishInput.value==='textured')description.textContent+=' The atomic generator’s Marble Cliff 05 base color and normal maps use world-space triplanar projection. Each rock repeats over half its longest fitted OBB dimension, with the generator’s gray tint and 0.35 normal strength.';
-  description.textContent+=!features.shaping?' Runtime atomic geometry without shaping or carving.':' Continuous solid cuts carve long vertical fractures with uneven bends, asymmetric widths and tapered ends. The rounded atomic body is retained; only fracture walls have hard planar faces. Intersection edges define the cuts; the surface uses no vertex displacement or local backoff. The fitter measures those carved triangles. Clay shows the geometry without grain or color. Summit and bottom heights are preserved.';
-  if(compare){detail.textContent='Same rock, size, camera and light · clay';description.textContent='The base atomic mesh and current shaping result on the same rock. Shaping controls update the right-hand rock when released; disabling shaping shows the base on both sides. Both use identical scale, camera, lighting and untextured clay. Drag either panel to rotate both together.';}
+  description.textContent+=!features.shaping?' Runtime atomic geometry without shaping or carving.':' Continuous solid cuts carve long vertical fractures with uneven bends, asymmetric widths and tapered ends. The rounded atomic body is retained; fracture walls retain planar geometry, with independently adjustable normal smoothing. Intersection edges define the cuts; the surface uses no vertex displacement or local backoff. The fitter measures those carved triangles. Clay shows the geometry without grain or color. Summit and bottom heights are preserved.';
+  if(compare){detail.textContent='Same rock, size, camera and light · clay';description.textContent='The base atomic mesh and current shaping result on the same rock. Fracture geometry updates when released; normal smoothing updates live. Disabling shaping shows the base on both sides. Both use identical scale, camera, lighting and untextured clay. Drag either panel to rotate both together.';}
   stage.setAttribute('aria-label',features.arrangement?'Procedural mountain peaks; drag to orbit.':'Individual atomic rocks; arrangement is off; drag to orbit.');
   stage.setAttribute('aria-describedby','rock-study-description');
   if(resetCamera)setCamera();else setCameraTarget();resize();if(persist)save();return true;
@@ -375,10 +391,10 @@
   renderer.setScissorTest(false);
  }
  function resize(){width=stage.clientWidth||700;height=viewSelect.value==='compare'?(width<540?600:440):Math.max(280,Math.min(520,width*.64));if(current&&viewSelect.value==='close')setCameraTarget();renderer.setSize(width,height);stage.style.height=height+'px';camera.left=-span/2;camera.right=span/2;camera.top=span*height/width/2;camera.bottom=-camera.top;camera.updateProjectionMatrix();render();}
- function save(){if(!current||generatedKey!==runtimeKey())return;if(window.openai?.setWidgetState)window.openai.setWidgetState({modelContent:{demoPreset:DEMO_PRESET,surfacePresentation:ORIGINAL_ROCK_PRESENTATION,arrangement:current.id,view:viewSelect.value,showLayout:guideInput.checked,seed:Number(seedInput.value),heightPercent:Number(heightInput.value),ridgeMode:modeInput.value,topology:countOptions(),rockGeneration:RUNTIME_ROCK_VERSION,features:featureOptions(),noise:noiseOptions(),surface:surfaceInput.value,rockFinish:finishInput.value,fractures:fractureOptions(),ridgeVersion:RIDGE_VERSION},privateContent:{yaw,pitch}}).catch(()=>{});}
- function applyState(state){const m=state?.modelContent;if(!m||![DEMO_PRESET,'island-425-fractures-145-v1'].includes(m.demoPreset))return false;if(['plan','low','perspective','side','close','compare'].includes(m.view))viewSelect.value=m.view;if(typeof m.showLayout==='boolean')guideInput.checked=m.showLayout;if(Number.isInteger(m.seed)&&m.seed>=0&&m.seed<=4294967295)seedInput.value=m.seed;if(Number.isFinite(m.heightPercent)&&m.heightPercent>=25&&m.heightPercent<=200)heightInput.value=m.heightPercent;if(['perlin','direct'].includes(m.ridgeMode))modeInput.value=m.ridgeMode;if(['rocks','coarse','detail'].includes(m.surface))surfaceInput.value=m.surface;try{const n=perlinSettings(m.noise);for(const key in noiseInputs)noiseInputs[key].value=n[key];}catch{}const f=fractureSettings(m.fractures);for(const key in fractureInputs)fractureInputs[key].value=f[key]*100;fractureLabels();const counts=mountainCounts(m.topology);seededCounts.checked=counts.seeded;peakCountInput.value=counts.peaks;branchCountInput.value=counts.branches;countLabels();return true;}
+ function save(){if(!current||generatedKey!==runtimeKey())return;if(window.openai?.setWidgetState)window.openai.setWidgetState({modelContent:{demoPreset:DEMO_PRESET,surfacePresentation:ORIGINAL_ROCK_PRESENTATION,arrangement:current.id,view:viewSelect.value,showLayout:guideInput.checked,seed:Number(seedInput.value),heightPercent:Number(heightInput.value),ridgeMode:modeInput.value,topology:countOptions(),rockGeneration:RUNTIME_ROCK_VERSION,features:featureOptions(),noise:noiseOptions(),surface:surfaceInput.value,rockFinish:finishInput.value,fractures:fractureOptions(),fractureSmoothing:normalAmount(),ridgeVersion:RIDGE_VERSION},privateContent:{yaw,pitch}}).catch(()=>{});}
+ function applyState(state){const m=state?.modelContent;if(!m||![DEMO_PRESET,'island-425-fractures-145-v1'].includes(m.demoPreset))return false;if(['plan','low','perspective','side','close','compare'].includes(m.view))viewSelect.value=m.view;if(typeof m.showLayout==='boolean')guideInput.checked=m.showLayout;if(Number.isInteger(m.seed)&&m.seed>=0&&m.seed<=4294967295)seedInput.value=m.seed;if(Number.isFinite(m.heightPercent)&&m.heightPercent>=25&&m.heightPercent<=200)heightInput.value=m.heightPercent;if(['perlin','direct'].includes(m.ridgeMode))modeInput.value=m.ridgeMode;if(['rocks','coarse','detail'].includes(m.surface))surfaceInput.value=m.surface;try{const n=perlinSettings(m.noise);for(const key in noiseInputs)noiseInputs[key].value=n[key];}catch{}const f=fractureSettings(m.fractures);for(const key in fractureInputs)fractureInputs[key].value=f[key]*100;fractureLabels();normalInput.value=fractureSmoothing(m.fractureSmoothing)*100;normalLabels();const counts=mountainCounts(m.topology);seededCounts.checked=counts.seeded;peakCountInput.value=counts.peaks;branchCountInput.value=counts.branches;countLabels();return true;}
  function restoreState(state){
-  const previous={view:viewSelect.value,seed:seedInput.value,height:heightInput.value,authoring:authoringKey(),counts:countKey(),surface:surfaceInput.value,finish:finishInput.value,fractures:fractureKey(),features:featureKey()};
+  const previous={view:viewSelect.value,seed:seedInput.value,height:heightInput.value,authoring:authoringKey(),counts:countKey(),surface:surfaceInput.value,finish:finishInput.value,fractures:fractureKey(),features:featureKey(),smoothing:normalAmount()};
   if(!applyState(state))return false;
   // Legacy arrangement states now open the mountain generator. Preserve their
   // seed, height, fracture/material settings and orbit, never their removed preset.
@@ -389,6 +405,7 @@
   const rebuild=!current||previous.seed!==seedInput.value||previous.height!==heightInput.value||previous.authoring!==authoringKey()||previous.counts!==countKey()||previous.surface!==surfaceInput.value||previous.finish!==finishInput.value||previous.fractures!==fractureKey()||previous.features!==featureKey()||(previous.view!==viewSelect.value&&[previous.view,viewSelect.value].includes('compare'));
   // A state echo after pointerup is persistence, not a request for a preset view.
   if(rebuild)createScene(resetCamera);else if(resetCamera)setCamera();
+  if(previous.smoothing!==normalAmount())updateFractureNormals();
   const orbit=state.privateContent;
   if(!drag&&Number.isFinite(orbit?.yaw)&&Number.isFinite(orbit?.pitch)){
    yaw=orbit.yaw;pitch=Math.max(.08,Math.min(Math.PI/2-.0001,orbit.pitch));if(generatedKey!==runtimeKey())pendingOrbit={yaw,pitch};
@@ -407,6 +424,9 @@
   input.addEventListener('input',fractureLabels);
   input.addEventListener('change',()=>queueScene(false));
  }
+ let normalFrame;
+ normalInput.addEventListener('input',()=>{normalLabels();if(normalFrame)cancelAnimationFrame(normalFrame);normalFrame=requestAnimationFrame(()=>{normalFrame=0;updateFractureNormals();});});
+ normalInput.addEventListener('change',()=>{if(normalFrame){cancelAnimationFrame(normalFrame);normalFrame=0;}updateFractureNormals();save();});
  let heightFrame;
  heightInput.addEventListener('input',()=>{heightValue.value=heightInput.value+'%';if(heightFrame)cancelAnimationFrame(heightFrame);heightFrame=requestAnimationFrame(()=>{heightFrame=0;createScene(false);});});
  heightInput.addEventListener('change',()=>{if(heightFrame){cancelAnimationFrame(heightFrame);heightFrame=0;createScene(false);}save();});

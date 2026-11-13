@@ -3,6 +3,7 @@ import vm from 'node:vm';
 import assert from 'node:assert/strict';
 import {perlinSettings} from './perlin-ridges.mjs';
 import {fractureSettings} from './rock-surface.mjs';
+import {fractureSmoothing} from '../../../../packages/terrain/src/rock-ridge/features/shaping/rock-normals.mjs';
 import {ORIGINAL_ROCK_PRESENTATION} from './atomic-rock-material.mjs';
 import {mountainCounts} from './mountain-network.mjs';
 import {normalizeRockFeatures,RUNTIME_ROCK_VERSION} from './runtime-rocks.mjs';
@@ -14,8 +15,9 @@ const viewer=fs.readFileSync(new URL('./viewer.fragment.html',import.meta.url),'
 const data=JSON.parse(fs.readFileSync(new URL('./study-data.json',import.meta.url)));
 const preset=viewer.match(/const DEMO_PRESET='([^']+)'/)[1];
 const field=value=>({get value(){return String(value);},set value(next){value=next;}});
-let saved,rebuilds=0,cameraResets=0;
-const context={DEMO_PRESET:preset,ORIGINAL_ROCK_PRESENTATION,RIDGE_VERSION,RUNTIME_ROCK_VERSION,normalizeRockFeatures,perlinSettings,fractureSettings,mountainCounts,
+let saved,rebuilds=0,cameraResets=0,normalUpdates=0;
+const context={DEMO_PRESET:preset,ORIGINAL_ROCK_PRESENTATION,RIDGE_VERSION,RUNTIME_ROCK_VERSION,normalizeRockFeatures,perlinSettings,fractureSettings,fractureSmoothing,mountainCounts,
+ normalInput:field(65),normalLabels:()=>{},updateFractureNormals:()=>normalUpdates++,
  featureInputs:{arrangement:{checked:true},shaping:{checked:true}},
  generatedKey:'',pendingOrbit:null,seededCounts:{checked:true},peakCountInput:field(3),branchCountInput:field(4),countLabels:()=>{},
  viewSelect:field('plan'),seedInput:field(464),heightInput:field(200),modeInput:field('direct'),surfaceInput:field('rocks'),finishInput:field('textured'),guideInput:{checked:false},
@@ -23,6 +25,7 @@ const context={DEMO_PRESET:preset,ORIGINAL_ROCK_PRESENTATION,RIDGE_VERSION,RUNTI
  fractureInputs:Object.fromEntries(['depth','width','irregularity'].map(k=>[k,field(100)])),
  fractureLabels:()=>{},guideGroup:{},labels:{},ridgeLegend:{},render:()=>{},current:null,drag:null,yaw:0,pitch:.5,
  window:{openai:{setWidgetState:state=>{saved=structuredClone(state);return Promise.resolve();}}}};
+context.normalAmount=()=>fractureSmoothing(+context.normalInput.value/100);
 context.noiseOptions=()=>Object.fromEntries(Object.entries(context.noiseInputs).map(([k,v])=>[k,+v.value]));
 context.fractureOptions=()=>fractureSettings(Object.fromEntries(Object.entries(context.fractureInputs).map(([k,v])=>[k,+v.value/100])));
 context.authoringKey=()=>JSON.stringify({mode:context.modeInput.value,noise:context.noiseOptions()});
@@ -64,3 +67,14 @@ const disabledEcho=[rebuilds,cameraResets];context.restoreState(saved);assert.de
 const oldOriginal=structuredClone(legacy);oldOriginal.modelContent.rockFinish='original';context.restoreState(oldOriginal);context.save();
 assert.equal(saved.modelContent.features.shaping,false);assert.equal(saved.modelContent.features.arrangement,true);assert.equal(saved.modelContent.rockFinish,'clay');
 console.log('Feature state: independent switches, parameter retention, legacy original migration and orbit echo passed');
+
+// Normal-only edits update buffers without rebuilding geometry or resetting orbit.
+const smoothState=structuredClone(saved);smoothState.modelContent.fractureSmoothing=.85;
+const beforeNormals=[rebuilds,cameraResets,normalUpdates];
+context.restoreState(smoothState);context.save();
+assert.equal(saved.modelContent.fractureSmoothing,.85);
+assert.deepEqual([rebuilds,cameraResets],beforeNormals.slice(0,2));
+assert.equal(normalUpdates,beforeNormals[2]+1);
+assert.deepEqual(saved.privateContent,smoothState.privateContent);
+context.restoreState(saved);assert.equal(normalUpdates,beforeNormals[2]+1);
+console.log('Fracture normals: persisted smoothing changes only normal buffers, preserving geometry and orbit');
