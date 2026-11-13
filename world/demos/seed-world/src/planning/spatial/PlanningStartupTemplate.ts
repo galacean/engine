@@ -32,6 +32,7 @@ export function initialPlanningTemplate(search: string, seed: number, savedTempl
 
 /** Author the sand surface on new desert template documents. */
 export function applyPlanningTemplateSurface(document: PlanningDocument): void {
+  applyPlanningMountainSet(document);
   const components = document.entities.world.components;
   if (components.worldTemplate?.values.id !== "titan-wasteland") return;
   const terrain = (components.terrain ??= { values: {} });
@@ -41,6 +42,21 @@ export function applyPlanningTemplateSurface(document: PlanningDocument): void {
     surfaceTileM: 12,
     surfaceNormalScale: 1,
     surfaceMicroNormalTextureUrl: microNormal.href
+  });
+}
+
+/** New worlds use the same ten carved mountain profiles as the structure gallery.
+ * The explicit preview link also enables them in an existing world. */
+export function applyPlanningMountainSet(document: PlanningDocument): void {
+  const rock = (document.entities.world.components.rockFormation ??= { values: {} });
+  Object.assign(rock.values, {
+    ridgeArrangement: true,
+    seededShapes: true,
+    rockShaping: true,
+    fractureDepth: 0.7,
+    fractureWidth: 1.9,
+    fractureIrregularity: 1.8,
+    fractureSmoothing: 1
   });
 }
 

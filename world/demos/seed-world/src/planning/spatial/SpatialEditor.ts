@@ -1,5 +1,5 @@
 import { MOJAVE_ROCK_GROUP } from "@galacean/engine-world-planning/spatial/layout/MojaveDesertLayout";
-import { applyPlanningTemplateSurface, initialPlanningTemplate } from "./PlanningStartupTemplate.ts";
+import { applyPlanningTemplateSurface, applyPlanningMountainSet, initialPlanningTemplate } from "./PlanningStartupTemplate.ts";
 import { planningFarmingProjectStatePath } from "./farming/PlanningFarmingScene.ts";
 import { PlanningFarmRepository } from "./farming/PlanningFarmRepository.ts";
 import { planningFarmId, resetPlanningFarmSaveChoice } from "./farming/PlanningFarmSave.ts";
@@ -107,6 +107,7 @@ export async function mountSpatialEditor(
     if (template !== undefined) initialDocument = storage.retainWater(initialDocument);
     removeDesertCamelPreset(initialDocument);
     if (template !== undefined) applyPlanningTemplateSurface(initialDocument);
+    if (pageUrl.url.searchParams.get("mountains") === "10") applyPlanningMountainSet(initialDocument);
     if (!storageWarning) await storage.migrateToSource(initialDocument, template !== undefined && !!saved);
   } catch (error) {
     client.dispose();

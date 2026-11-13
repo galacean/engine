@@ -6,6 +6,7 @@ import type { RockFormationJob, RockFormationMesh } from "@galacean/engine-terra
 import { rockGrassBuffers } from "@galacean/engine-terrain/rock-formation/GrassSurface";
 
 import { overlappingRockGroups } from "./OverlapGroups.ts";
+import { assignMountainVariants } from "./MountainVariants.ts";
 
 const CACHE_BYTES = 64 * 1024 * 1024;
 
@@ -52,7 +53,11 @@ export class RockFormationClient {
     if (this.disposed) throw new Error("Rock formation client disposed");
     // Rock placement only samples OBB centres. Keep the full raster in its worker;
     // this sparse surface uses the same canonical Float32 grid and triangles.
-    return this.runJobs(rockFormationJobs(plan, planningGroundSurface(plan)), settings, signal, resident, true);
+    const jobs = assignMountainVariants(
+      rockFormationJobs(plan, planningGroundSurface(plan)),
+      settings.mountain?.seededShapes === true
+    );
+    return this.runJobs(jobs, settings, signal, resident, true);
   }
 
   /** Local ground stones use the same generator and cache as published rocks. */
@@ -99,6 +104,8 @@ export class RockFormationClient {
         job.worldSeed,
         job.atomicSeed,
         job.triangleBudget,
+        job.mountainVariant,
+        job.mountainTransform,
         job.origin,
         job.guides,
         job.surfaceGrass !== false,

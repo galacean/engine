@@ -16,7 +16,7 @@ export function createRockLibraryScene(source,geometries){
 
 // A new arrangement strategy supplies arrange with this same scene contract.
 // It receives meshes, not carving settings or the carving implementation.
-export function createArrangementFeature({arrange=arrangeRockStructure,inspect=createRockLibraryScene}={}){
+export function createArrangementFeature({arrange=arrangeRockStructure,inspect=createRockLibraryScene,cacheSize=2}={}){
  return {
   id:'arrangement',
   run(request,result,cache){
@@ -29,7 +29,7 @@ export function createArrangementFeature({arrange=arrangeRockStructure,inspect=c
    cache.scenes.delete(key);cache.scenes.set(key,{sourceKey,scene});
    // Keep the current shaped and unshaped arrangements across toggles, bounded
    // so exploration cannot accumulate every generated mountain in memory.
-   if(cache.scenes.size>2)cache.scenes.delete(cache.scenes.keys().next().value);
+   if(cache.scenes.size>cacheSize)cache.scenes.delete(cache.scenes.keys().next().value);
    return {...result,scene,timings:{...result.timings,fitMs:performance.now()-started,arrangementCached,arrangementEnabled:true}};
   },
   bypass(request,result){

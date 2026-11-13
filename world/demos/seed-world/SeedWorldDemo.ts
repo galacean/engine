@@ -17,6 +17,7 @@ import {
   rockGrassWaterTest
 } from "@galacean/engine-world-planning/integrations/terrain/rock-formation/GrassExclusions";
 import { rockFormationPlacements } from "@galacean/engine-world-planning/integrations/terrain/rock-formation/Placement";
+import { mountainVariantSummary } from "@galacean/engine-world-planning/integrations/terrain/rock-formation/MountainVariants";
 import {
   canPublishRockFormationEdit,
   prepareRockFormationPublication,
@@ -1297,7 +1298,8 @@ export async function mountSeedWorldDemo(
               bodies: meshes.reduce((sum, f) => sum + f.stats.bodies, 0),
               vertices: meshes.reduce((sum, f) => sum + f.stats.vertices, 0),
               targetTriangles: settings.targetTriangles,
-              overBudgetBodies: meshes.reduce((sum, f) => sum + (f.stats.overBudgetBodies ?? 0), 0)
+              overBudgetBodies: meshes.reduce((sum, f) => sum + (f.stats.overBudgetBodies ?? 0), 0),
+              mountainVariants: mountainVariantSummary(meshes)
             });
             return frame;
           },
@@ -1554,7 +1556,8 @@ export async function mountSeedWorldDemo(
               bodies: formationMeshes.reduce((sum, f) => sum + f.stats.bodies, 0),
               vertices: formationMeshes.reduce((sum, f) => sum + f.stats.vertices, 0),
               targetTriangles: readRockFormationSettings(document).targetTriangles,
-              overBudgetBodies: formationMeshes.reduce((sum, f) => sum + (f.stats.overBudgetBodies ?? 0), 0)
+              overBudgetBodies: formationMeshes.reduce((sum, f) => sum + (f.stats.overBudgetBodies ?? 0), 0),
+              mountainVariants: mountainVariantSummary(formationMeshes)
             });
             spanAt = performance.now();
             candidateVegetation = await PlanningNaturalVegetationRuntime.create(

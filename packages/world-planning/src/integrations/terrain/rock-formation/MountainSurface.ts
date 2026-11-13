@@ -58,6 +58,7 @@ function createMountainPipeline(budget: number, formationBudget?: number) {
             : reduceCarvedLibrary(geometries, fractures, budget)
       }),
       createArrangementFeature({
+        cacheSize: formationBudget ? 20 : 2,
         arrange: (input: any, geometries: any, seed: number, options: any) =>
           arrangeRockStructure(
             input,
@@ -158,7 +159,14 @@ export function generateMountainSurface(
     const geometry = budgets
       ? budgetMountainRock(result.geometries[rock.mesh].lodSource ?? result.geometries[rock.mesh], budgets[index])
       : result.geometries[rock.mesh];
-    return { rock, geometry, vertices: transformedVertices(rock, geometry) };
+    const vertices = transformedVertices(rock, geometry);
+    const skew = job.mountainTransform?.skew;
+    if (skew)
+      for (const point of vertices) {
+        point[0] += skew[0] * point[1];
+        point[2] += skew[1] * point[1];
+      }
+    return { rock, geometry, vertices };
   });
   const low = [Infinity, Infinity, Infinity],
     high = [-Infinity, -Infinity, -Infinity];
@@ -173,6 +181,12 @@ export function generateMountainSurface(
   // turn a broad, low structure and a narrow, tall one into the same silhouette.
   const preserveProportions = result.scene.fitMode === "contain";
   if (preserveProportions) scale.fill(Math.min(...scale));
+  if (job.mountainTransform) {
+    const { zoom, skew } = job.mountainTransform;
+    if (!Number.isFinite(zoom) || zoom <= 0 || zoom > 1 || !skew.every(Number.isFinite))
+      throw new RangeError("Mountain placement requires a finite skew and zoom in (0, 1]");
+    for (let d = 0; d < 3; d++) scale[d] *= zoom;
+  }
   const placement = guide.size.map((size, d) =>
     preserveProportions && d !== 1 ? (-(high[d] - low[d]) * scale[d]) / 2 : -size / 2
   );
@@ -196,7 +210,10 @@ export function generateMountainSurface(
       const x = sourceNormals[i * 3] / (rock.longitudinalScale ?? 1);
       const y = sourceNormals[i * 3 + 1] / (rock.verticalScale ?? 1);
       const z = sourceNormals[i * 3 + 2] / (rock.lateralScale ?? 1);
-      const n = [(c * x - s * z) / scale[0], y / scale[1], (s * x + c * z) / scale[2]];
+      const nx = c * x - s * z,
+        nz = s * x + c * z;
+      const skew = job.mountainTransform?.skew ?? [0, 0];
+      const n = [nx / scale[0], (y - skew[0] * nx - skew[1] * nz) / scale[1], nz / scale[2]];
       const length = Math.hypot(...n) || 1;
       for (let d = 0; d < 3; d++) cornerNormals[index * 3 + d] = n[d] / length;
       indices[index++] = vertex + body.geometry.indices[i];

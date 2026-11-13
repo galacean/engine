@@ -153,7 +153,7 @@ it("retains main and companion geometry when texture scale or rock color changes
   client.dispose();
 });
 
-it("caches atomic seeds and formation triangle budgets separately and reuses their exact replay", async () => {
+it("caches atomic seeds, formation budgets and placement variations separately and reuses their exact replay", async () => {
   vi.stubGlobal("Worker", TestWorker);
   const client = new RockFormationClient(), signal = new AbortController().signal, current = settings();
   const job: RockFormationJob = { ...localJob(), kind: "mountain", worldSeed: 499, atomicSeed: 11 };
@@ -170,6 +170,15 @@ it("caches atomic seeds and formation triangle budgets separately and reuses the
   expect(worker.requests).toHaveLength(3);
   worker.complete(2);
   expect((await budgeted)[0]).not.toBe(original[0]);
+  for (const patch of [
+    { mountainVariant: 1 },
+    { mountainTransform: { zoom: 0.9, skew: [0.1, -0.1] as [number, number] } }
+  ]) {
+    const varied = client.prepareJobs([{ ...job, ...patch }], current, signal);
+    worker.complete(worker.requests.length - 1);
+    expect((await varied)[0]).not.toBe(original[0]);
+  }
+  expect(worker.requests).toHaveLength(5);
   expect((await client.prepareJobs([job], current, signal))[0]).toBe(original[0]);
   client.dispose();
 });

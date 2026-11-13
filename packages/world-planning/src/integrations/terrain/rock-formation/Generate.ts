@@ -8,6 +8,7 @@ import type { RockFormationSettings } from "./Settings.ts";
 import type { RockFormationJob, RockFormationMesh, RockObb } from "@galacean/engine-terrain/rock-formation/types";
 import { generateMountainSurface } from "./MountainSurface.ts";
 import { allocateMountainTriangles } from "./MountainBudget.ts";
+import { resolveMountainVariant } from "./MountainVariants.ts";
 
 /** Stable, correlated variations of one parameter family; never changes a published OBB. */
 export function rockParameters(obb: RockObb, seed: number, settings: RockFormationSettings) {
@@ -71,6 +72,7 @@ export function placeRockInObb(source: RockSurface & { cornerNormals?: Float32Ar
 /** One generator and reduction path for both planned formations and streamed ground stones. */
 export function generateRockFormation(job: RockFormationJob, settings: RockFormationSettings): RockFormationMesh {
   const started = performance.now();
+  job = resolveMountainVariant(job);
   let bodies = 0,
     fractureMs = 0,
     carvedTriangles = 0,
@@ -167,6 +169,9 @@ export function generateRockFormation(job: RockFormationJob, settings: RockForma
       simplifyAttempts,
       fractureMs,
       carvedTriangles,
+      ...(job.mountainVariant !== undefined
+        ? { mountainVariant: job.mountainVariant, mountainProfileSeed: job.seed }
+        : {}),
       arrangementMs,
       ridgePeaks,
       ridgeBranches,

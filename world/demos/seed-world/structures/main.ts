@@ -90,7 +90,7 @@ export async function mountStructureGallery(): Promise<void> {
   if (initial !== null && Number.isInteger(Number(initial))) input("set-seed").value = String(Number(initial) >>> 0);
   const worldUrl = new URL(location.href);
   worldUrl.pathname = worldUrl.pathname.replace(/\/structures\/index\.html$/, "/index.html");
-  worldUrl.search = "?template=original&debug=1&view=3d";
+  worldUrl.search = "?template=original&debug=1&view=3d&mountains=10";
   worldUrl.searchParams.set("seed", input("set-seed").value);
   (root.querySelector("#world-link") as HTMLAnchorElement).href = worldUrl.href;
   const abort = new AbortController(),

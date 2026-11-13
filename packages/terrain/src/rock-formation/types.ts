@@ -43,6 +43,10 @@ export interface RockFormationJob {
   atomicSeed?: number;
   /** Hard triangle limit across the complete mountain, including every placed rock. */
   triangleBudget?: number;
+  /** Index in the runtime-generated ten-member world mountain set. */
+  mountainVariant?: number;
+  /** Seeded placement variation; carving and topology remain shared. */
+  mountainTransform?: { zoom: number; skew: [number, number] };
   /** Enables both grass substrate coverage and blade support; omitted keeps terrain-rock grass. */
   surfaceGrass?: boolean;
   origin: V3;
@@ -69,6 +73,8 @@ export interface RockFormationMesh {
     fractureMs?: number;
     /** Actual carved-wall triangles retained in the published mountain LOD. */
     carvedTriangles?: number;
+    mountainVariant?: number;
+    mountainProfileSeed?: number;
     arrangementMs?: number;
     ridgePeaks?: number;
     ridgeBranches?: number;
