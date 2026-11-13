@@ -1,5 +1,5 @@
 /** Deterministic hashes used by fixtures, caches, and regression tests. */
-import type { RiverGeometryData, RiverSamplePoint } from "../river/types";
+import type { RiverGeometryData } from "../river/types";
 
 function hashNumber(hash: number, value: number): number {
   const normalized = Number.isFinite(value) ? Math.round(value * 100000) : 0x7fffffff;
@@ -14,27 +14,6 @@ function hashNumber(hash: number, value: number): number {
 
 function toHex(hash: number): string {
   return (hash >>> 0).toString(16).padStart(8, "0");
-}
-
-export function hashString(value: string): string {
-  let low = 0x811c9dc5;
-  let high = 0x9e3779b9;
-  for (let index = 0; index < value.length; index++) {
-    const code = value.charCodeAt(index);
-    const lowByte = code & 0xff;
-    const highByte = code >>> 8;
-    low = Math.imul(low ^ lowByte, 0x01000193) >>> 0;
-    low = Math.imul(low ^ highByte, 0x01000193) >>> 0;
-    high = Math.imul(high ^ lowByte, 0x5bd1e995) >>> 0;
-    high ^= high >>> 15;
-    high = Math.imul(high ^ highByte, 0x5bd1e995) >>> 0;
-    high ^= high >>> 15;
-  }
-  return `${toHex(high)}${toHex(low)}`;
-}
-
-export function hashRiverString(value: string): string {
-  return hashString(value);
 }
 
 function writeStableValue(value: unknown, write: (chunk: string) => void): void {
@@ -121,27 +100,6 @@ export function hashStableValue(value: unknown): string {
 
 export function hashRiverStableValue(value: unknown): string {
   return hashStableValue(value);
-}
-
-export function hashRiverSamples(samples: RiverSamplePoint[]): string {
-  let hash = 0x811c9dc5;
-  for (const sample of samples) {
-    const values = [
-      sample.position.x,
-      sample.position.y,
-      sample.position.z,
-      sample.tangent.x,
-      sample.tangent.z,
-      sample.distance,
-      sample.flowTravelTime,
-      sample.width,
-      sample.depth,
-      sample.flowSpeed,
-      sample.bankFeather
-    ];
-    for (const value of values) hash = hashNumber(hash, value);
-  }
-  return toHex(hash);
 }
 
 export function hashRiverGeometryData(data: RiverGeometryData): string {

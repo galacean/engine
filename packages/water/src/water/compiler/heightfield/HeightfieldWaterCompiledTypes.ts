@@ -1,3 +1,4 @@
+import type { ReadonlyNumericBuffer } from "../shared/ReadonlyNumericBuffer";
 import type { WaterTerrainSnapshot } from "../../authoring/terrain/WaterTerrainSnapshot";
 import type { WaterConnectionPort } from "../../authoring/connections/WaterConnection";
 import type { SampledLakeBoundary } from "../../authoring/lake/LakeBoundary";
@@ -13,41 +14,11 @@ import type {
   HeightfieldWaterVector2
 } from "../../authoring/heightfield/HeightfieldWaterTypes";
 
-export interface HeightfieldReadonlyUint8Buffer extends Iterable<number> {
-  readonly length: number;
-  readonly byteLength: number;
-  at(index: number): number | undefined;
-  borrowTypedArray(): Uint8Array;
-  toTypedArray(): Uint8Array;
-}
-export interface HeightfieldReadonlyUint16Buffer extends Iterable<number> {
-  readonly length: number;
-  readonly byteLength: number;
-  at(index: number): number | undefined;
-  borrowTypedArray(): Uint16Array;
-  toTypedArray(): Uint16Array;
-}
-export interface HeightfieldReadonlyUint32Buffer extends Iterable<number> {
-  readonly length: number;
-  readonly byteLength: number;
-  at(index: number): number | undefined;
-  borrowTypedArray(): Uint32Array;
-  toTypedArray(): Uint32Array;
-}
-export interface HeightfieldReadonlyInt32Buffer extends Iterable<number> {
-  readonly length: number;
-  readonly byteLength: number;
-  at(index: number): number | undefined;
-  borrowTypedArray(): Int32Array;
-  toTypedArray(): Int32Array;
-}
-export interface HeightfieldReadonlyFloat32Buffer extends Iterable<number> {
-  readonly length: number;
-  readonly byteLength: number;
-  at(index: number): number | undefined;
-  borrowTypedArray(): Float32Array;
-  toTypedArray(): Float32Array;
-}
+export type HeightfieldReadonlyUint8Buffer = ReadonlyNumericBuffer<Uint8Array>;
+export type HeightfieldReadonlyUint16Buffer = ReadonlyNumericBuffer<Uint16Array>;
+export type HeightfieldReadonlyUint32Buffer = ReadonlyNumericBuffer<Uint32Array>;
+export type HeightfieldReadonlyInt32Buffer = ReadonlyNumericBuffer<Int32Array>;
+export type HeightfieldReadonlyFloat32Buffer = ReadonlyNumericBuffer<Float32Array>;
 
 export type HeightfieldWaterVector3 = readonly [number, number, number];
 export type HeightfieldWaterVector4 = readonly [number, number, number, number];
@@ -170,14 +141,4 @@ export interface HeightfieldWaterCompileResult {
   readonly valid: boolean;
   readonly data?: HeightfieldWaterCompiledData;
   readonly diagnostics: readonly HeightfieldWaterDiagnostic[];
-}
-
-export interface HeightfieldWaterQuerySample {
-  readonly inside: boolean;
-  readonly componentIndex: number;
-  readonly surfaceHeight: number;
-  readonly normal: HeightfieldWaterVector3;
-  readonly depth: number;
-  readonly shoreDistance: number;
-  readonly flowVectorXZ: HeightfieldWaterVector2;
 }

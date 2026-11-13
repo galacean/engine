@@ -1,4 +1,5 @@
-import { RiverReadonlyFloat32Buffer } from "../shared/ReadonlyNumericBuffer";
+import { WaterReadonlyFloat32Buffer } from "../shared/ReadonlyNumericBuffer";
+
 import { WaterBufferOwnership } from "../shared/WaterBufferOwnership";
 import { RIVER_TERRAIN_CORRIDOR_COMPONENT, RIVER_QUERY_SAMPLE_COMPONENT } from "./constants";
 import {
@@ -59,7 +60,7 @@ export function compileRiverBedDepths(
                 )
             );
           }
-          return { ...source, samples: new RiverReadonlyFloat32Buffer(samples, WaterBufferOwnership.Transfer) };
+          return { ...source, samples: new WaterReadonlyFloat32Buffer(samples, WaterBufferOwnership.Transfer) };
         })(),
         surfaceGeometry: withBedDepths(reach.artifact.surfaceGeometry)
       }
@@ -87,7 +88,7 @@ export function compileRiverBedDepths(
             samples[offset + RIVER_TERRAIN_CORRIDOR_COMPONENT.z]
           );
         }
-        return { ...corridor, samples: new RiverReadonlyFloat32Buffer(samples, WaterBufferOwnership.Transfer) };
+        return { ...corridor, samples: new WaterReadonlyFloat32Buffer(samples, WaterBufferOwnership.Transfer) };
       }),
       junctionCorridors: compiledRiver.terrainInteraction.junctionCorridors.map((corridor) => {
         const position = compiledRiver.junctions[corridor.junctionIndex].position;

@@ -1,3 +1,4 @@
+import { WaterReadonlyFloat32Buffer, WaterReadonlyUint8Buffer } from "../../compiler/shared/ReadonlyNumericBuffer";
 import { assertWaterConnectionTransform } from "../../authoring/connections/WaterConnection";
 import { RiverDropRenderer } from "./RiverDropRenderer";
 /** Real WaterBody backend adapter for the existing River compiler/runtime. */
@@ -25,7 +26,7 @@ import { RiverNetworkCompiler } from "../../compiler/river/RiverNetworkCompiler"
 import type { RiverTerrainInteractionData } from "../../compiler/river/types";
 import { hashRiverStableValue } from "../../compiler/shared/determinism";
 import type { RiverDiagnostic } from "../../compiler/shared/diagnostics";
-import { RiverReadonlyFloat32Buffer, RiverReadonlyUint8Buffer } from "../../compiler/shared/ReadonlyNumericBuffer";
+
 import { createWaterBackendControl } from "../body/WaterBackendControl";
 import type {
   ResolvedWaterBodyInstance,
@@ -139,7 +140,7 @@ function createRiverTerrainInteractionSnapshot(
           Object.freeze({
             id: corridor.id,
             reachIndex: corridor.reachIndex,
-            samples: new RiverReadonlyFloat32Buffer(corridor.samples.toTypedArray()),
+            samples: new WaterReadonlyFloat32Buffer(corridor.samples.toTypedArray()),
             stride: corridor.stride,
             sampleCount: corridor.sampleCount
           })
@@ -153,7 +154,7 @@ function createRiverTerrainInteractionSnapshot(
             height: source.localMapAtlas.height,
             padding: source.localMapAtlas.padding,
             tiles: createImmutableWaterSnapshot(source.localMapAtlas.tiles),
-            pixels: new RiverReadonlyUint8Buffer(source.localMapAtlas.pixels.toTypedArray())
+            pixels: new WaterReadonlyUint8Buffer(source.localMapAtlas.pixels.toTypedArray())
           })
         : undefined
     })

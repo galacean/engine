@@ -51,14 +51,3 @@ export function createWaterRuntimeAvailabilitySnapshot(
     resolvedReflectionSource: input.resolvedReflectionSource
   });
 }
-
-export const UNAVAILABLE_WATER_RUNTIME_SNAPSHOT: Readonly<WaterRuntimeAvailabilitySnapshot> =
-  createWaterRuntimeAvailabilitySnapshot({
-    revision: 0,
-    reflectionBindingRevision: 0,
-    sceneColor: false,
-    sceneDepth: false,
-    environmentReflection: false,
-    screenSpaceReflection: false,
-    resolvedReflectionSource: "analytic"
-  });

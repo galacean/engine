@@ -22,11 +22,6 @@ export enum RiverQualityLevel {
   High = "high"
 }
 
-export enum RiverValidationMode {
-  Strict = "strict",
-  PreviewRepair = "previewRepair"
-}
-
 export enum RiverNetworkSchemaVersion {
   V2 = 2
 }

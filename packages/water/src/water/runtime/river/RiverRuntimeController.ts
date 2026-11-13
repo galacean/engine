@@ -260,10 +260,6 @@ export class RiverRuntimeController {
     this._updateSurfaceClock(true);
   }
 
-  get activeReaches(): readonly RiverRuntimeReach[] {
-    return this._activeReaches;
-  }
-
   get dropCount(): number {
     return this._activeId ? (this._runtimeSets.get(this._activeId)?.resource.data.drops?.length ?? 0) : 0;
   }
@@ -640,30 +636,6 @@ export class RiverRuntimeController {
     }
   }
 
-  updateReach(
-    reachIndex: number,
-    config: RiverAuthoringConfig,
-    artifact: RiverReachArtifact,
-    materialDirty: boolean
-  ): RiverRuntimeReach | undefined {
-    const reach = this._activeReaches[reachIndex];
-    if (!reach) return undefined;
-    reach.config = config;
-    reach.artifact = artifact;
-    if (materialDirty) {
-      const appearanceBinding = this._surfaceAppearanceBinding;
-      if (!appearanceBinding) throw new Error("Active River runtime lost its required V2 Surface Appearance binding.");
-      const visualMaterial = deriveRiverVisualMaterial(appearanceBinding, config.material);
-      updateRiverMaterial(reach.materials.surface, visualMaterial, 1);
-      if (reach.materials.surfaceLocalMap) updateRiverMaterial(reach.materials.surfaceLocalMap, visualMaterial, 1);
-      setRiverSurfaceAppearanceBinding(reach.materials.surface, appearanceBinding);
-      if (reach.materials.surfaceLocalMap) {
-        setRiverSurfaceAppearanceBinding(reach.materials.surfaceLocalMap, appearanceBinding);
-      }
-    }
-    return reach;
-  }
-
   applyPresentation(reachIndex: number, presentation: RiverRuntimePresentation): void {
     const reach = this._activeReaches[reachIndex];
     if (!reach) return;
@@ -676,20 +648,6 @@ export class RiverRuntimeController {
           : presentation.surfaceMaterial) ?? this._selectSurfaceMaterial(chunk.compiled, reach)
       );
     }
-  }
-
-  setSurfaceFeatureFlags(macroDisplacementEnabled: boolean, microSurfaceEnabled: boolean): void {
-    this._macroDisplacementEnabled = macroDisplacementEnabled;
-    this._microSurfaceEnabled = microSurfaceEnabled;
-    for (const runtimeSet of this._runtimeSets.values()) {
-      for (const reach of runtimeSet.reaches) {
-        setRiverSurfaceFeatureFlags(reach.materials.surface, macroDisplacementEnabled, microSurfaceEnabled);
-        if (reach.materials.surfaceLocalMap) {
-          setRiverSurfaceFeatureFlags(reach.materials.surfaceLocalMap, macroDisplacementEnabled, microSurfaceEnabled);
-        }
-      }
-    }
-    this._updateSurfaceClock(true);
   }
 
   /** Keeps overlapping Water bodies on one explicit transparent-render ordering contract. */

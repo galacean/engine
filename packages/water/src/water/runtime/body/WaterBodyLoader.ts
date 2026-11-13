@@ -382,7 +382,6 @@ interface MutableActivationState {
   providerContext?: unknown;
   developmentRuntime?: unknown;
   capabilityNegotiation?: WaterBodyCapabilityNegotiation;
-  stagedRuntime?: boolean;
 }
 
 interface MutableCommittedActivation {
@@ -563,15 +562,6 @@ export class WaterBodyLoader {
     return () => this._removeDevelopmentObserver(observer);
   }
 
-  loadInstance(source: unknown, options: WaterBodyInstanceLoadOptions = {}): Promise<WaterBodyActivationHandle> {
-    this._assertAvailable();
-    const operation = this._loadInstance(source, {
-      ...options,
-      signal: this._combineWithLifetimeSignal(options.signal)
-    });
-    return this._trackOperation(operation);
-  }
-
   prepareInstance(
     source: unknown,
     options: WaterBodyInstanceLoadOptions = {}
@@ -592,19 +582,6 @@ export class WaterBodyLoader {
       () => this._inFlightLoads.delete(operation)
     );
     return operation;
-  }
-
-  private async _loadInstance(
-    source: unknown,
-    options: WaterBodyInstanceLoadOptions
-  ): Promise<WaterBodyActivationHandle> {
-    const prepared = await this._prepareInstanceActivation(source, options, false);
-    try {
-      return prepared.commit();
-    } catch (error) {
-      await prepared.rollback();
-      throw error;
-    }
   }
 
   private _resolveInstance(
@@ -642,14 +619,13 @@ export class WaterBodyLoader {
 
   private async _prepareInstanceActivation(
     source: unknown,
-    options: WaterBodyInstanceLoadOptions,
-    stageRuntime = true
+    options: WaterBodyInstanceLoadOptions
   ): Promise<PreparedWaterBodyInstanceActivation> {
     if (!this._assets) {
       throw new WaterBodyLoaderError(
         WaterBodyLoaderErrorCode.AuthoringRegistryUnavailable,
         "$",
-        "WaterBodyLoader.loadInstance() requires an authoring asset registry."
+        "WaterBodyLoader.prepareInstance() requires an authoring asset registry."
       );
     }
     const resolved = this._resolveInstance(source, "WaterBody instance", options.assetOverride);
@@ -680,8 +656,7 @@ export class WaterBodyLoader {
         registerInWorld: resolved.instance.interaction.query
       },
       resolved,
-      sourceOverride,
-      stageRuntime
+      sourceOverride
     );
     let active = true;
     let preparedActivation!: PreparedWaterBodyInstanceActivation;
@@ -712,8 +687,7 @@ export class WaterBodyLoader {
     asset: WaterBodyAsset<WaterBodySourceV1>,
     options: WaterBodyLoadOptions,
     resolvedInstance: ResolvedWaterBodyInstance,
-    sourceOverride?: { readonly value: unknown },
-    stageRuntime = false
+    sourceOverride?: { readonly value: unknown }
   ): Promise<{
     readonly state: MutableActivationState;
     readonly prepared: WaterBodyActivationCommit;
@@ -724,8 +698,7 @@ export class WaterBodyLoader {
       resolvedInstance,
       runtimeContext: options.runtimeContext,
       providerContext: options.providerContext,
-      developmentRuntime: options.developmentRuntime,
-      stagedRuntime: stageRuntime
+      developmentRuntime: options.developmentRuntime
     };
     try {
       this._assertAvailable();
@@ -777,7 +750,7 @@ export class WaterBodyLoader {
         effectiveSnapshot: state.effectiveSnapshot,
         resourceLeases: Object.freeze([...state.resourceLeases]),
         reflection: this._reflection,
-        activationMode: stageRuntime ? "replacement-staging" : "initial"
+        activationMode: "replacement-staging"
       });
       state.runtime = runtime;
       this._assertAvailable();
@@ -1290,11 +1263,9 @@ export class WaterBodyLoader {
         state.registration = this._world.register(prepared.body, current.interaction);
       }
       prepared.setVisible?.(current.visible);
-      if (state.stagedRuntime) {
-        state.runtime?.commitReplacement?.();
-        state.runtime?.refreshReflectionBinding?.();
-        this._synchronizeEffectiveReflectionSnapshot(current, false);
-      }
+      state.runtime?.commitReplacement?.();
+      state.runtime?.refreshReflectionBinding?.();
+      this._synchronizeEffectiveReflectionSnapshot(current, false);
     } catch (error) {
       const rollbackErrors: unknown[] = [];
       try {

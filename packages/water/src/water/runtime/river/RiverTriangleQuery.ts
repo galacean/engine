@@ -46,19 +46,6 @@ export function sampleRiverTriangle(
   return true;
 }
 
-/** Exact geometric domain of weights >= -epsilon, clipped by the native primitive
- * broad phase. This is derived from query semantics, not a world-distance margin.
- */
-export function riverTriangleQueryDomain(
-  a: ReadonlyVector3Tuple,
-  b: ReadonlyVector3Tuple,
-  c: ReadonlyVector3Tuple,
-  bounds: RiverQueryBounds
-): RiverQueryTriangle[] {
-  if (Math.abs(determinant(a, b, c)) <= RIVER_QUERY_EPSILON) return [];
-  return clipRiverTriangle(riverTriangleQueryVertices(a, b, c), bounds);
-}
-
 /** One canonical expanded domain also drives native boundary ownership. */
 export function riverTriangleQueryVertices(
   a: ReadonlyVector3Tuple,

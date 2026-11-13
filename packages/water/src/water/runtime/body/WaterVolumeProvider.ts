@@ -22,27 +22,3 @@ export interface WaterVolumeSample {
 export interface WaterVolumeProvider {
   sampleVolume(worldPosition: Vector3, outSample: WaterVolumeSample): boolean;
 }
-
-export function createWaterVolumeSample(): WaterVolumeSample {
-  return {
-    waterBodyId: "",
-    insideFootprint: false,
-    insideVolume: false,
-    surfaceHeight: 0,
-    bottomHeight: 0,
-    signedSurfaceDistance: 0,
-    submergedDepth: 0,
-    waterDepth: 0
-  };
-}
-
-export function resetWaterVolumeSample(sample: WaterVolumeSample): void {
-  sample.waterBodyId = "";
-  sample.insideFootprint = false;
-  sample.insideVolume = false;
-  sample.surfaceHeight = 0;
-  sample.bottomHeight = 0;
-  sample.signedSurfaceDistance = 0;
-  sample.submergedDepth = 0;
-  sample.waterDepth = 0;
-}

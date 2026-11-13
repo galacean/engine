@@ -62,24 +62,6 @@ edit(
   "Resolve migrated catalog resource paths against their real owner."
 );
 edit(
-  "demos/water/tests/demo/GrasslandsShowcaseAcceptance.test.ts",
-  "../../../../shared/controls/FreeControl",
-  "@galacean/engine-animals/controls/FreeControl",
-  "Preserve controller ownership assertion under its workspace package name."
-);
-edit(
-  "shared/water/tests/resources/LakeNormalAssetLoader.test.ts",
-  'manifestPath: fileURLToPath(new URL("../../resources/lake/assets/manifest.json", import.meta.url)),',
-  'manifestPath: globalThis.__migrationRepositoryRoot + "/packages/water/src/water/resources/lake/assets/manifest.json",',
-  "Assert the actual migrated manifest path while retaining byte/hash checks."
-);
-edit(
-  "shared/water/tests/resources/LakeNormalAssetLoader.test.ts",
-  "expect(copied).toMatchObject({",
-  'expect({ ...copied, manifestPath: await (await import("node:fs/promises")).realpath(copied.manifestPath) }).toMatchObject({',
-  "Resolve the test-view symlink before comparing the manifest owner."
-);
-edit(
   "demos/terrain/project-tests/AssetAssembly.spec.ts",
   "../../../shared/lighting/VolumetricCloudSkyRuntime",
   "@galacean/engine-environment/lighting/VolumetricCloudSkyRuntime",

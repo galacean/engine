@@ -1,6 +1,3 @@
-/** Engine-object-free render-state preset referenced by a Water Look. */
-import { hashStableValue } from "../../compiler/shared/determinism";
-
 export const WATER_RENDER_STATE_PRESET_SCHEMA_VERSION = 1 as const;
 
 export type WaterRenderQueueV1 = "opaque" | "alpha-test" | "transparent";
@@ -54,8 +51,4 @@ export function createWaterRenderStatePresetV1(
     cullMode: source.cullMode,
     blendMode: source.blendMode
   });
-}
-
-export function computeWaterRenderStatePresetContentHash(preset: Readonly<WaterRenderStatePresetV1>): string {
-  return hashStableValue(preset);
 }

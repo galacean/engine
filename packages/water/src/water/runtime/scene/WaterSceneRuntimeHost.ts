@@ -50,11 +50,7 @@ import {
   type WaterEnvironmentReflectionProviderOptions
 } from "../optics/WaterEnvironmentReflectionProvider";
 import { WaterReflectionPreRenderSynchronizer } from "../optics/WaterReflectionPreRenderSynchronizer";
-import {
-  WaterReflectionService,
-  type WaterReflectionServiceLease,
-  type WaterReflectionServiceOptions
-} from "../optics/WaterReflectionService";
+import { WaterReflectionService, type WaterReflectionServiceLease } from "../optics/WaterReflectionService";
 import {
   WaterRuntimeResourceRegistry,
   type WaterRuntimeResourceFactory
@@ -110,7 +106,6 @@ export interface WaterSceneRuntimeHostReflectionOptions {
   readonly cullingMask: number;
   readonly waterLayerMask?: number;
   readonly screenSpaceReflection?: WaterCameraFeatureRequest["screenSpaceReflection"];
-  readonly service?: WaterReflectionServiceOptions;
 }
 
 export interface WaterSceneRuntimeHostOptions {
@@ -355,12 +350,7 @@ export class WaterSceneRuntimeHost {
 
     let reflectionContext: WaterBackendReflectionContext | undefined;
     if (options.reflection) {
-      this._reflectionServiceLease = WaterReflectionService.acquire(
-        options.engine,
-        this._root,
-        options.camera,
-        options.reflection.service
-      );
+      this._reflectionServiceLease = WaterReflectionService.acquire(options.engine, this._root, options.camera);
       this._reflectionService = this._reflectionServiceLease.service;
       reflectionContext = {
         service: this._reflectionService,
@@ -520,11 +510,6 @@ export class WaterSceneRuntimeHost {
     this._backends.requireBackend(asset);
   }
 
-  registerProvider(provider: WaterBodySourceProviderFactory): void {
-    this._assertActive();
-    this._providers.register(provider);
-  }
-
   registerProviderOnce(installationId: string, contentHash: string, provider: WaterBodySourceProviderFactory): boolean {
     this._assertActive();
     const existing = this._providerInstallations.get(installationId);
@@ -538,17 +523,6 @@ export class WaterSceneRuntimeHost {
     this._providers.register(provider);
     this._providerInstallations.set(installationId, Object.freeze({ contentHash, providerId: provider.id }));
     return true;
-  }
-
-  unregisterProvider(providerId: string): boolean {
-    this._assertActive();
-    const removed = this._providers.unregister(providerId);
-    if (removed) {
-      for (const [installationId, installation] of this._providerInstallations) {
-        if (installation.providerId === providerId) this._providerInstallations.delete(installationId);
-      }
-    }
-    return removed;
   }
 
   registerRuntimeResource(factory: WaterRuntimeResourceFactory): void {
@@ -882,12 +856,6 @@ export class WaterSceneRuntimeHost {
     return handle;
   }
 
-  removeEnvironmentReflectionProvider(providerId: string): boolean {
-    const provider = this._environmentProviders.get(providerId);
-    if (!provider) return false;
-    return this._removeEnvironmentReflectionProvider(providerId, provider);
-  }
-
   private _assertEnvironmentProviderOwner(providerId: string, provider: WaterEnvironmentReflectionProvider): void {
     this._assertActive();
     if (this._environmentProviders.get(providerId) !== provider) {
@@ -919,11 +887,6 @@ export class WaterSceneRuntimeHost {
       await transaction.commit(signal);
       return this._getOrCreateBodyHandle(snapshot.bodyId);
     });
-  }
-
-  async replaceBody(bodyId: string, request: WaterSceneBodyRequest, signal: AbortSignal): Promise<void> {
-    if (bodyId !== request.bodyId) throw new Error("Water Scene body replacement must preserve the stable body id.");
-    await this.loadBody(request, signal);
   }
 
   private _adaptDevelopmentTarget(target: WaterDevelopmentTarget): WaterDevelopmentTarget {
@@ -1162,39 +1125,6 @@ export class WaterSceneRuntimeHost {
   readBodyLookAuthoring(bodyId: string): Readonly<WaterLookAuthoringSnapshot> | undefined {
     const instance = this._activeBodies.get(bodyId)?.handle.instance;
     return instance ? this._assets.getLookAuthoringSnapshot(instance.lookPresetId) : undefined;
-  }
-
-  /** Atomically replaces one active Body's immutable authoring asset while preserving its scene request. */
-  replaceBodyAsset(
-    bodyId: string,
-    update: (asset: Readonly<WaterSceneBodyRequest["asset"]>) => Readonly<WaterSceneBodyRequest["asset"]>,
-    signal?: AbortSignal
-  ): Promise<void> {
-    return this._enqueueMutation(() => this._replaceBodyAsset(bodyId, update, signal));
-  }
-
-  private async _replaceBodyAsset(
-    bodyId: string,
-    update: (asset: Readonly<WaterSceneBodyRequest["asset"]>) => Readonly<WaterSceneBodyRequest["asset"]>,
-    signal?: AbortSignal
-  ): Promise<void> {
-    this._assertActive();
-    const active = this._requireBody(bodyId);
-    const authoritativeAsset = active.request.asset;
-    const asset = createImmutableWaterSnapshot(update(createImmutableWaterSnapshot(authoritativeAsset)));
-    if (asset.id !== active.request.asset.id) {
-      throw new Error("Water Scene authoring Draft must preserve the active Asset id.");
-    }
-    if (this._assetsEqual(asset, authoritativeAsset)) return;
-    const consumers = [...this._activeBodies.values()].filter((body) => body.request.asset.id === asset.id);
-    const revision = Math.max(this._activeSceneRevision + 1, (this._stagingSceneRevision ?? 0) + 1);
-    const transaction = this._beginBodySetTransaction(revision, true);
-    for (const consumer of consumers) {
-      const instance = consumer.handle.instance;
-      if (!instance) throw new Error(`Water Scene body '${consumer.request.bodyId}' has no instance snapshot.`);
-      transaction.stage(Object.freeze({ ...consumer.request, asset, instance }));
-    }
-    await transaction.commit(signal);
   }
 
   beginBodySetTransaction(

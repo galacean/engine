@@ -65,9 +65,9 @@
         "anisotropy": 1
       },
       "ownership": {
-        "creator": "LakeNormalAssetLoader",
-        "runtime": "borrowed",
-        "destroyer": "LakeNormalAssetLoader"
+        "creator": "builtinWaterTextureFactory",
+        "runtime": "shared-resource-lease",
+        "destroyer": "builtinWaterTextureFactory"
       }
     }
   ],

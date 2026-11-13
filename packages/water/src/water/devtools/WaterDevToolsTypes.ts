@@ -1,22 +1,12 @@
 import type { WaterDevelopmentTarget } from "../runtime/body/WaterBodyLoader";
 
-export type WaterControlGroup =
-  | "Camera"
-  | "Lighting"
-  | "Lake"
-  | "Body"
-  | "Surface"
-  | "Optics"
-  | "Backend"
-  | "Authoring (read-only)"
-  | "Session";
+export type WaterControlGroup = "Body" | "Surface" | "Optics" | "Backend" | "Authoring (read-only)" | "Session";
 
 export type WaterControlUpdateMode = "live" | "frame" | "commit" | "replace" | "readonly";
 
 export type WaterControlValue = string | number | boolean;
 
 export type WaterControlOwner =
-  | "scene"
   | "interaction"
   | "physical-wave"
   | "foam-system"

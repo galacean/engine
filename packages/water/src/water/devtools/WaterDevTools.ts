@@ -1,4 +1,4 @@
-import * as dat from "dat.gui";
+import type * as dat from "dat.gui";
 import type { WaterRuntimeControl } from "../native/WaterRuntimeControl";
 import type {
   WaterDevelopmentHandle,
@@ -14,13 +14,10 @@ import type {
   WaterControlGroup,
   WaterControlOwner,
   WaterControlValue,
-  WaterEnumControl,
   WaterTuningSession
 } from "./WaterDevToolsTypes";
 import { createWaterTuningSession, getActiveWaterRuntimeVariantId } from "./WaterTuningAdapters";
 
-const PANEL_WIDTH = 420;
-const AUTO_PLACE_GAP = 8;
 const POLL_INTERVAL_MS = 250;
 const PANEL_STATE_KEY = "water-devtools:panel-open";
 const CONTROL_GROUPS: readonly WaterControlGroup[] = Object.freeze([
@@ -43,7 +40,6 @@ interface DatGuiControllerRuntime {
 interface DatGuiRuntime extends dat.GUI {
   readonly domElement: HTMLElement;
   closed: boolean;
-  useLocalStorage: boolean;
   close(): void;
   removeFolder(folder: dat.GUI): void;
 }
@@ -78,36 +74,11 @@ export interface WaterDevToolsFolderHost {
   subfolder(parent: dat.GUI, title: string, open?: boolean): dat.GUI;
 }
 
-export interface WaterDevToolsCameraOptions {
-  /** Display label to stable pose id map shown by the Camera pose selector. */
-  readonly poses: Readonly<Record<string, string>>;
-  /** Reads the last selected named pose. */
-  readPose(): string;
-  /** Applies one registered named pose. */
-  setPose(pose: string): void | Promise<void>;
-}
-
 export interface WaterDevToolsOptions {
   /** Scene-wide authoritative control, independent of body discovery and panel lifetime. */
   readonly runtime?: WaterRuntimeControl;
-  /** Presentation mode excludes source replacement, authoring and session replay. */
-  readonly mode?: "full" | "presentation";
   readonly loader: WaterDevelopmentTargetSource;
-  /** Optional initial visibility for a dedicated tuning showcase; omitted preserves the session preference. */
-  readonly initiallyOpen?: boolean;
-  /** Optional scene camera poses shown independently from water tuning state. */
-  readonly camera?: WaterDevToolsCameraOptions;
-  /** Optional transient scene controls that never enter Water baseline, patches, Reset, or JSON export. */
-  readonly sceneControls?: readonly WaterControlDescriptor[];
-  readonly sceneActions?: readonly {
-    readonly group: WaterControlDescriptor["group"];
-    readonly label: string;
-    readonly run: () => void | Promise<void>;
-  }[];
-  /** Optional custom host. Omit to use dat.gui's standard top-right placement. */
-  readonly host?: HTMLElement;
-  /** Optional existing folder tree. Mutually exclusive with `host`. */
-  readonly folderHost?: WaterDevToolsFolderHost;
+  readonly folderHost: WaterDevToolsFolderHost;
 }
 
 export interface WaterDevToolsHandle {
@@ -125,9 +96,6 @@ function readControlValue(control: WaterControlDescriptor): WaterControlValue {
 function resolveControlOwner(control: WaterControlDescriptor): WaterControlOwner {
   if (control.owner) return control.owner;
   switch (control.group) {
-    case "Camera":
-    case "Lighting":
-      return "scene";
     case "Body":
       return "interaction";
     case "Surface":
@@ -138,7 +106,6 @@ function resolveControlOwner(control: WaterControlDescriptor): WaterControlOwner
     case "Backend":
     case "Session":
       return "runtime";
-    case "Lake":
     case "Authoring (read-only)":
       return "authoring";
   }
@@ -153,11 +120,8 @@ function resolveControlEffect(control: WaterControlDescriptor): WaterControlEffe
     case "Backend":
     case "Session":
       return "state";
-    case "Lake":
     case "Authoring (read-only)":
       return "authoring";
-    case "Camera":
-    case "Lighting":
     case "Body":
       return "state";
   }
@@ -229,57 +193,6 @@ function captureBaseline(session: WaterTuningSession): ReadonlyMap<string, Water
   return values;
 }
 
-function createCameraPoseControl(camera: WaterDevToolsCameraOptions): WaterEnumControl {
-  const poseIds = Object.values(camera.poses);
-  if (poseIds.length < 2) {
-    throw new Error("Water DevTools camera requires at least two named poses.");
-  }
-  if (new Set(poseIds).size !== poseIds.length) {
-    throw new Error("Water DevTools camera pose ids must be unique.");
-  }
-  const requirePose = (pose: string): string => {
-    if (!poseIds.includes(pose)) {
-      throw new RangeError(`Water DevTools camera pose '${pose}' is not registered.`);
-    }
-    return pose;
-  };
-  requirePose(camera.readPose());
-  return Object.freeze({
-    kind: "enum",
-    id: "camera.pose",
-    label: "Camera pose",
-    group: "Camera",
-    updateMode: "live",
-    description: "Switches to a repeatable authored viewpoint without changing water tuning values.",
-    sessionScope: "transient",
-    options: Object.freeze({ ...camera.poses }),
-    read: () => requirePose(camera.readPose()),
-    write: (value: string | number) => {
-      if (typeof value !== "string") throw new TypeError("Water DevTools camera pose id must be a string.");
-      return camera.setPose(requirePose(value));
-    }
-  });
-}
-
-function validateSceneControls(
-  controls: readonly WaterControlDescriptor[],
-  cameraControl: WaterEnumControl | undefined
-): readonly WaterControlDescriptor[] {
-  const reservedIds = new Set(["body.selector"]);
-  if (cameraControl) reservedIds.add(cameraControl.id);
-  const ids = new Set<string>();
-  for (const control of controls) {
-    if (control.sessionScope !== "transient") {
-      throw new Error(`Water DevTools scene control '${control.id}' must use sessionScope='transient'.`);
-    }
-    if (reservedIds.has(control.id) || ids.has(control.id)) {
-      throw new Error(`Water DevTools scene control id '${control.id}' is reserved or duplicated.`);
-    }
-    ids.add(control.id);
-  }
-  return Object.freeze([...controls]);
-}
-
 function formatError(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
@@ -300,15 +213,6 @@ function installStyles(): void {
   style.textContent = `
     .water-devtools {
       max-width: calc(100vw - 16px);
-    }
-
-    .water-devtools--standalone {
-      z-index: 10020 !important;
-    }
-
-    .water-devtools--standalone .close-button {
-      font-weight: 600;
-      letter-spacing: 0.01em;
     }
 
     .water-devtools .property-name {
@@ -416,12 +320,7 @@ class WaterDevToolsPanel implements WaterDevToolsHandle, WaterDevelopmentObserve
   private readonly _baselines = new Map<string, ReadonlyMap<string, WaterControlValue>>();
   private _selectedBodyId?: string;
   private readonly _loader: WaterDevelopmentTargetSource;
-  private readonly _presentationOnly: boolean;
-  private readonly _cameraPoseControl?: WaterEnumControl;
-  private readonly _sceneControls: readonly WaterControlDescriptor[];
-  private readonly _sceneActions: NonNullable<WaterDevToolsOptions["sceneActions"]>;
-  private readonly _host?: HTMLElement;
-  private readonly _folderHost?: WaterDevToolsFolderHost;
+  private readonly _folderHost: WaterDevToolsFolderHost;
   private readonly _records = new Map<WaterDevelopmentHandle, WaterTargetRecord>();
   private readonly _bindings = new Map<string, WaterControlBinding>();
   private readonly _folders = new Map<WaterControlGroup, DatGuiRuntime>();
@@ -441,7 +340,6 @@ class WaterDevToolsPanel implements WaterDevToolsHandle, WaterDevelopmentObserve
   private _activeKey?: string;
   private _frameRequest?: number;
   private _pollTimer?: number;
-  private _autoPlaceObserver?: MutationObserver;
   private _generation = 0;
   private _destroyed = false;
   private _statusModel: Record<string, WaterControlValue> = { status: "Waiting for a water body…" };
@@ -451,13 +349,8 @@ class WaterDevToolsPanel implements WaterDevToolsHandle, WaterDevelopmentObserve
     installStyles();
     this._loader = options.loader;
     this._runtime = options.runtime;
-    this._presentationOnly = options.mode === "presentation";
-    this._cameraPoseControl = options.camera ? createCameraPoseControl(options.camera) : undefined;
-    this._sceneActions = options.sceneActions ?? [];
-    this._sceneControls = validateSceneControls(options.sceneControls ?? [], this._cameraPoseControl);
-    this._host = options.host;
     this._folderHost = options.folderHost;
-    this._createRoot(options.initiallyOpen);
+    this._createRoot();
     this._rebuildContents();
     this._unsubscribeRuntime = this._runtime?.observeRuntimeState(() => this._rebuildContents()) ?? (() => undefined);
     this._unsubscribe = this._loader.observeDevelopmentTargets(this);
@@ -595,7 +488,7 @@ class WaterDevToolsPanel implements WaterDevToolsHandle, WaterDevelopmentObserve
     key?: string,
     baseline?: ReadonlyMap<string, WaterControlValue>
   ): WaterTargetRecord {
-    const session = createWaterTuningSession(target, this._presentationOnly ? "presentation" : "full");
+    const session = createWaterTuningSession(target);
     const initial = baseline ?? this._baselines.get(target.bodyId) ?? captureBaseline(session);
     this._baselines.set(target.bodyId, initial);
     return {
@@ -606,69 +499,23 @@ class WaterDevToolsPanel implements WaterDevToolsHandle, WaterDevelopmentObserve
     };
   }
 
-  private _createRoot(initiallyOpen?: boolean): void {
-    const shouldOpen = initiallyOpen ?? this._readPanelOpenState();
-    const embedded = this._folderHost !== undefined;
-    const gui = runtimeGui(
-      this._folderHost
-        ? this._folderHost.folder("Water System / 水系统", shouldOpen)
-        : new dat.GUI({
-            name: "Water DevTools",
-            width: PANEL_WIDTH,
-            autoPlace: this._host === undefined
-          })
-    );
-    if (!embedded) gui.useLocalStorage = false;
-    gui.domElement.classList.add(
-      "water-devtools",
-      embedded ? "water-devtools--embedded" : "water-devtools--standalone"
-    );
+  private _createRoot(): void {
+    const shouldOpen = this._readPanelOpenState();
+    const gui = runtimeGui(this._folderHost.folder("Water System / 水系统", shouldOpen));
+    gui.domElement.classList.add("water-devtools", "water-devtools--embedded");
     gui.domElement.dataset.status = "idle";
     gui.domElement.setAttribute("aria-label", "Water development controls");
     gui.domElement.addEventListener("click", this._handleRootClick);
-    if (this._host) this._host.append(gui.domElement);
     if (shouldOpen) gui.open();
     else gui.close();
     this._gui = gui;
-    this._bindAutoPlacePosition();
     this._syncPanelOpenState();
   }
 
   private _destroyRoot(): void {
-    this._autoPlaceObserver?.disconnect();
-    this._autoPlaceObserver = undefined;
-    const element = this._gui.domElement;
-    element.removeEventListener("click", this._handleRootClick);
-    if (this._folderHost) {
-      runtimeGui(this._folderHost.gui).removeFolder(this._gui);
-    } else {
-      this._gui.destroy();
-      element.remove();
-    }
+    this._gui.domElement.removeEventListener("click", this._handleRootClick);
+    runtimeGui(this._folderHost.gui).removeFolder(this._gui);
     this._folders.clear();
-  }
-
-  private _bindAutoPlacePosition(): void {
-    if (this._host || this._folderHost) return;
-    const parent = this._gui.domElement.parentElement;
-    if (!parent) return;
-    this._syncAutoPlacePosition();
-    this._autoPlaceObserver = new MutationObserver(() => this._syncAutoPlacePosition());
-    this._autoPlaceObserver.observe(parent, { childList: true });
-  }
-
-  private _syncAutoPlacePosition(): void {
-    if (this._host || this._folderHost) return;
-    const element = this._gui.domElement;
-    const parent = element.parentElement;
-    if (!parent) return;
-    const siblingWidth = [...parent.children].reduce((maximum, sibling) => {
-      if (sibling === element || !(sibling instanceof HTMLElement)) return maximum;
-      return Math.max(maximum, sibling.getBoundingClientRect().width);
-    }, 0);
-    element.style.position = "fixed";
-    element.style.top = "0";
-    element.style.right = siblingWidth > 0 ? `${siblingWidth + AUTO_PLACE_GAP}px` : "0";
   }
 
   private _rebuildContents(): void {
@@ -737,59 +584,6 @@ class WaterDevToolsPanel implements WaterDevToolsHandle, WaterDevelopmentObserve
 
     const active = this._activeRecord();
     if (this._records.size > 0) this._addBodySelector();
-    if (this._cameraPoseControl) {
-      const cameraFolder = this._addFolder("Camera");
-      this._addControl(cameraFolder, this._cameraPoseControl, (control, value) =>
-        this._applyStandaloneControl(control, value)
-      );
-    }
-    const waterControlIds = new Set(active?.session.controls.map(({ id }) => id) ?? []);
-    for (const control of this._sceneControls) {
-      if (waterControlIds.has(control.id)) {
-        throw new Error(`Water DevTools scene control id '${control.id}' conflicts with a Water control.`);
-      }
-    }
-    for (const groupName of [...new Set(this._sceneControls.map(({ group }) => group))]) {
-      if (this._folders.has(groupName)) {
-        throw new Error(`Water DevTools scene control group '${groupName}' conflicts with another scene group.`);
-      }
-      const folder = this._addFolder(groupName);
-      for (const control of this._sceneControls.filter(({ group }) => group === groupName)) {
-        this._addControl(folder, control, (descriptor, value) => this._applyStandaloneControl(descriptor, value));
-      }
-    }
-    for (const action of this._sceneActions) {
-      const folder = this._folders.get(action.group) ?? this._addFolder(action.group);
-      const model = {
-        run: async () => {
-          try {
-            await action.run();
-            this._refreshAllBindings();
-            this._setStatus("Ready", "idle");
-          } catch (error) {
-            this._setStatus(`Error: ${formatError(error)}`, "error");
-          }
-        }
-      };
-      const controller = folder.add(model, "run").name(action.label);
-      const button = controller.domElement.querySelector<HTMLElement>(".button");
-      if (button) {
-        button.textContent = action.label;
-        button.setAttribute("role", "button");
-        button.tabIndex = 0;
-        // dat.GUI also forwards row clicks to the function button.
-        button.addEventListener("click", (event) => event.stopPropagation());
-        button.addEventListener("keydown", (event) => {
-          if (event.key === "Enter" || event.key === " ") {
-            event.preventDefault();
-            button.click();
-          }
-        });
-        controller.domElement.style.width = "100%";
-        const label = controller.domElement.previousElementSibling as HTMLElement | null;
-        if (label) label.hidden = true;
-      }
-    }
     if (!active) {
       delete this._gui.domElement.dataset.waterBodyId;
       delete this._gui.domElement.dataset.waterBackendId;
@@ -801,15 +595,7 @@ class WaterDevToolsPanel implements WaterDevToolsHandle, WaterDevelopmentObserve
 
     for (const groupName of CONTROL_GROUPS) {
       const controls = active.session.controls.filter(
-        (control) =>
-          control.group === groupName &&
-          !control.hidden &&
-          control.availability !== "unavailable" &&
-          !(
-            this._presentationOnly &&
-            control.kind === "readonly" &&
-            (groupName === "Surface" || groupName === "Optics")
-          )
+        (control) => control.group === groupName && !control.hidden && control.availability !== "unavailable"
       );
       if (controls.length === 0) continue;
       const folder = this._folders.get(groupName) ?? this._addFolder(groupName);
@@ -821,7 +607,7 @@ class WaterDevToolsPanel implements WaterDevToolsHandle, WaterDevelopmentObserve
           path += `/${title}`;
           let section = sections.get(path);
           if (!section) {
-            section = this._folderHost ? this._folderHost.subfolder(parent, title, false) : parent.addFolder(title);
+            section = this._folderHost.subfolder(parent, title, false);
             section.close();
             sections.set(path, section);
           }
@@ -830,7 +616,7 @@ class WaterDevToolsPanel implements WaterDevToolsHandle, WaterDevelopmentObserve
         this._addControl(parent, control);
       }
     }
-    if (!this._presentationOnly) this._addSessionFolder(active);
+    this._addSessionFolder(active);
     if ((this._busyCounts.get(active.target.handle) ?? 0) > 0) {
       this._setWritableControlsBusy(true);
       this._setStatus("Applying…", "busy");
@@ -854,14 +640,8 @@ class WaterDevToolsPanel implements WaterDevToolsHandle, WaterDevelopmentObserve
   private _addFolder(groupName: WaterControlGroup): DatGuiRuntime {
     const open = this._folderOpenStates.get(groupName) === true;
     const title = getWaterDevToolsDisplayLabel(groupName);
-    const folder = runtimeGui(
-      this._folderHost ? this._folderHost.subfolder(this._gui, title, open) : this._gui.addFolder(title)
-    );
+    const folder = runtimeGui(this._folderHost.subfolder(this._gui, title, open));
     this._folders.set(groupName, folder);
-    if (!this._folderHost) {
-      if (open) folder.open();
-      else folder.close();
-    }
     return folder;
   }
 
@@ -905,11 +685,7 @@ class WaterDevToolsPanel implements WaterDevToolsHandle, WaterDevelopmentObserve
     }
   }
 
-  private _addControl(
-    folder: dat.GUI,
-    descriptor: WaterControlDescriptor,
-    applyControl?: (control: WaterControlDescriptor, value: WaterControlValue) => void | Promise<void>
-  ): void {
+  private _addControl(folder: dat.GUI, descriptor: WaterControlDescriptor): void {
     const model: Record<string, WaterControlValue> = {
       [descriptor.id]: readControlValue(descriptor)
     };
@@ -962,10 +738,10 @@ class WaterDevToolsPanel implements WaterDevToolsHandle, WaterDevelopmentObserve
         if (!isWritableControl(descriptor)) return;
         try {
           const nextValue = coerceControlValue(descriptor, value);
-          if (descriptor.updateMode === "frame" && !applyControl) {
+          if (descriptor.updateMode === "frame") {
             this._scheduleFrameWrite(descriptor.id, nextValue);
           } else {
-            void (applyControl ? applyControl(descriptor, nextValue) : this._applyControl(descriptor, nextValue));
+            void this._applyControl(descriptor, nextValue);
           }
         } catch (error) {
           this._setStatus(`Error: ${formatError(error)}`, "error");
@@ -990,18 +766,6 @@ class WaterDevToolsPanel implements WaterDevToolsHandle, WaterDevelopmentObserve
     const binding = Object.freeze({ descriptor, controller, model });
     this._bindings.set(descriptor.id, binding);
     this._syncControlAvailability(binding);
-  }
-
-  private async _applyStandaloneControl(control: WaterControlDescriptor, value: WaterControlValue): Promise<void> {
-    if (!isWritableControl(control)) return;
-    try {
-      await writeControlValue(control, value);
-      this._refreshAllBindings();
-      this._setStatus(this._activeRecord() ? "Ready" : "Waiting for a water body…", "idle");
-    } catch (error) {
-      this._setStatus(`Error: ${formatError(error)}`, "error");
-      this._refreshBinding(control.id);
-    }
   }
 
   private _disableController(controller: DatGuiControllerRuntime): void {
@@ -1460,7 +1224,6 @@ class WaterDevToolsPanel implements WaterDevToolsHandle, WaterDevelopmentObserve
     this._statusModel.status = status;
     this._statusController?.updateDisplay();
     this._gui.domElement.dataset.status = kind;
-    this._syncPanelTitle();
   }
 
   private _readPanelOpenState(): boolean {
@@ -1482,7 +1245,6 @@ class WaterDevToolsPanel implements WaterDevToolsHandle, WaterDevelopmentObserve
   private _syncPanelOpenState(): void {
     this._writePanelOpenState(!this._gui.closed);
     this._syncPolling();
-    this._syncPanelTitle();
   }
 
   private _syncPolling(): void {
@@ -1494,12 +1256,6 @@ class WaterDevToolsPanel implements WaterDevToolsHandle, WaterDevelopmentObserve
       this._pollTimer = undefined;
     }
   }
-
-  private _syncPanelTitle(): void {
-    const closeButton = this._gui.domElement.querySelector<HTMLElement>(".close-button");
-    if (!closeButton) return;
-    closeButton.textContent = this._gui.closed ? "Water DevTools" : "Close Water DevTools";
-  }
 }
 
 /**
@@ -1507,9 +1263,6 @@ class WaterDevToolsPanel implements WaterDevToolsHandle, WaterDevelopmentObserve
  * loader return the existing panel so a Demo can safely compose setup helpers.
  */
 export function mountWaterDevTools(options: WaterDevToolsOptions): WaterDevToolsHandle {
-  if (options.host && options.folderHost) {
-    throw new Error("Water DevTools options 'host' and 'folderHost' are mutually exclusive.");
-  }
   const existing = mountedPanels.get(options.loader);
   if (existing) return existing;
   const panel = new WaterDevToolsPanel(options);

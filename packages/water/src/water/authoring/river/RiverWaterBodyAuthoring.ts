@@ -283,24 +283,6 @@ export function registerRiverWaterBodyPresets(registry: WaterBodyAssetRegistry):
   });
 }
 
-export function replaceRiverWaterBodyAsset(registry: WaterBodyAssetRegistry, descriptor: RiverNetworkDescriptor): void {
-  registry.unregisterAsset(RIVER_WATER_BODY_ASSET_ID);
-  registerRiverWaterBodyAsset(registry, descriptor);
-}
-
-/**
- * Registers one immutable source variant without replacing the currently
- * active asset. Callers can stage a same-ID WaterBody replacement against this
- * id and unregister the previous variant only after the runtime commit.
- */
-export function registerRiverWaterBodyAsset(
-  registry: WaterBodyAssetRegistry,
-  descriptor: RiverNetworkDescriptor,
-  assetId: string = RIVER_WATER_BODY_ASSET_ID
-): void {
-  registry.registerAsset(createRiverWaterBodyAsset(descriptor, assetId));
-}
-
 /** Canonical River source; geometry/flow stay backend-owned while Look is selected by the instance. */
 export function createRiverWaterBodyAsset(
   descriptor: RiverNetworkDescriptor,

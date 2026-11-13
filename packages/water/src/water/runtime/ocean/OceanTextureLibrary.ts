@@ -23,31 +23,6 @@ export interface OceanTextures {
   readonly resourceBytes: number;
 }
 
-/** Borrow native project textures. The Material and render materials retain their own references. */
-export function describeOceanTextures(resources: readonly Texture2D[]): Readonly<OceanTextures> {
-  if (resources.length !== 5) throw new Error("Ocean requires five native Texture2D slots.");
-  for (const [index, texture] of resources.entries()) {
-    if (texture.destroyed || texture.isSRGBColorSpace !== index >= 2)
-      throw new Error(`Ocean texture slot ${index} has an invalid color space.`);
-    if (texture.mipmapCount !== Math.floor(Math.log2(Math.max(texture.width, texture.height))) + 1)
-      throw new Error(`Ocean texture slot ${index} requires a complete mip chain.`);
-  }
-  const [smoothWaves, roughWaves, caustics, foam, intersectionNoise] = resources;
-  return Object.freeze({
-    smoothWaves,
-    roughWaves,
-    caustics,
-    foam,
-    intersectionNoise,
-    textureCount: 5,
-    containerFormat: "ktx2",
-    compressedTextureCount: resources.filter((texture) => isOceanTextureCompressedFormat(texture.format)).length,
-    uncompressedFallbackTextureCount: resources.filter((texture) => !isOceanTextureCompressedFormat(texture.format))
-      .length,
-    resourceBytes: resources.reduce((bytes, texture) => bytes + computeOceanTextureResourceBytes(texture), 0)
-  });
-}
-
 async function loadTexture(
   engine: Engine,
   url: string,

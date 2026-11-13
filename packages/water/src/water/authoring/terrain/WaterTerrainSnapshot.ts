@@ -155,22 +155,6 @@ function terrainBounds(grid: WaterTerrainSnapshot): readonly [number, number, nu
   ];
 }
 
-/** Inclusive vertices inside world-space bounds, clipped to this grid. Empty ranges have min > max.
- * Used only when compiling terrain edits; continuous interpolation is unchanged.
- */
-export function waterTerrainVertexRange(
-  grid: WaterTerrainSnapshot,
-  bounds: readonly [number, number, number, number]
-): readonly [minColumn: number, maxColumn: number, minRow: number, maxRow: number] {
-  const spacingZ = grid.spacingZ ?? grid.spacing;
-  return [
-    Math.max(0, Math.ceil((bounds[0] - grid.origin[0]) / grid.spacing)),
-    Math.min(grid.columns - 1, Math.floor((bounds[2] - grid.origin[0]) / grid.spacing)),
-    Math.max(0, Math.ceil((bounds[1] - grid.origin[1]) / spacingZ)),
-    Math.min(grid.rows - 1, Math.floor((bounds[3] - grid.origin[1]) / spacingZ))
-  ];
-}
-
 /** Own immutable copies across Worker/API boundaries; nested refinement trees are deliberately unsupported. */
 export function copyWaterTerrainSnapshot(terrain: WaterTerrainSnapshot): WaterTerrainSnapshot {
   if (!isWaterTerrainSnapshot(terrain)) throw new Error("Invalid Water terrain snapshot or refinements.");

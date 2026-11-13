@@ -1,5 +1,6 @@
+import { WaterReadonlyUint8Buffer } from "../shared/ReadonlyNumericBuffer";
 import { RiverQualityLevel } from "../../authoring/river/RiverAuthoringEnums";
-import { RiverReadonlyUint8Buffer } from "../shared/ReadonlyNumericBuffer";
+
 import { WaterBufferOwnership } from "../shared/WaterBufferOwnership";
 import { RiverLocalMapRegionKind, RiverPackedLocalMapChannel } from "./RiverGeometryEnums";
 import {
@@ -398,7 +399,7 @@ function buildAtlas(drafts: RiverLocalMapTileDraft[]): RiverLocalMapAtlasData | 
     height,
     padding: RIVER_LOCAL_MAP_PADDING,
     tiles: Object.freeze(tiles),
-    pixels: new RiverReadonlyUint8Buffer(pixels, WaterBufferOwnership.Transfer)
+    pixels: new WaterReadonlyUint8Buffer(pixels, WaterBufferOwnership.Transfer)
   });
 }
 

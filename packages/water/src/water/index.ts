@@ -73,13 +73,8 @@ export {
 export { RIVER_LIMITS, RIVER_QUALITY_PRESET } from "./authoring/river/RiverAuthoringLimits";
 export type { RiverPathControlPoint } from "./authoring/river/RiverAuthoringTypes";
 export type { RiverNetworkDescriptor } from "./authoring/river/RiverDescriptor";
-export type { RiverEditablePoint } from "./authoring/river/RiverEditDocument";
-export { RIVER_GENERATION_MAX_POINT_COUNT } from "./authoring/river/RiverGenerationParameters";
-export type { RiverGenerationParameters } from "./authoring/river/RiverGenerationParameters";
 export { resolveContinuousRiverDownstreamHeight } from "./authoring/river/RiverHydrologyResolver";
 export { computeRiverPhysicalSourceHash } from "./authoring/river/RiverPhysicalSourceIdentity";
-export { createRiverTerrainModifier } from "./authoring/river/RiverTerrainModifier";
-export type { RiverTerrainModifier } from "./authoring/river/RiverTerrainModifier";
 export {
   RIVER_WATER_BODY_ASSET_ID,
   createRiverWaterBodyAsset,

@@ -17,7 +17,6 @@ import {
   waterReflectionRequestSource,
   type WaterReflectionFallbackReason,
   type WaterReflectionRequest,
-  type WaterReflectionResolution,
   type WaterReflectionSource
 } from "./WaterReflectionPolicy";
 
@@ -40,7 +39,7 @@ export interface WaterReflectionBinding {
   readonly resolvedSource: WaterReflectionSource;
   readonly requestedMode?: WaterReflectionPolicyMode;
   readonly resolvedMode?: WaterReflectionPolicyMode;
-  readonly fallbackReason?: WaterReflectionResolution["fallbackReason"];
+  readonly fallbackReason?: WaterReflectionFallbackReason;
   readonly composition?: WaterReflectionComposition;
   readonly environment?: Readonly<WaterEnvironmentReflectionFrame>;
   readonly localEnvironment?: Readonly<WaterEnvironmentReflectionFrame>;
@@ -55,15 +54,12 @@ interface MutableWaterReflectionBinding {
   resolvedSource: WaterReflectionSource;
   requestedMode?: WaterReflectionPolicyMode;
   resolvedMode?: WaterReflectionPolicyMode;
-  fallbackReason?: WaterReflectionResolution["fallbackReason"];
+  fallbackReason?: WaterReflectionFallbackReason;
   composition?: WaterReflectionComposition;
   environment?: Readonly<WaterEnvironmentReflectionFrame>;
   localEnvironment?: Readonly<WaterEnvironmentReflectionFrame>;
   probeTexture?: TextureCube;
 }
-
-/** Reserved for future shared reflection-service options. */
-export interface WaterReflectionServiceOptions {}
 
 /** Reference-counted access to the single reflection service owned by a Camera. */
 export interface WaterReflectionServiceLease {
@@ -79,19 +75,14 @@ interface WaterReflectionServiceRegistryEntry {
 const WATER_REFLECTION_SERVICE_REGISTRY = new WeakMap<Camera, WaterReflectionServiceRegistryEntry>();
 
 export class WaterReflectionService {
-  static acquire(
-    engine: Engine,
-    parent: Entity,
-    sourceCamera: Camera,
-    options: WaterReflectionServiceOptions = {}
-  ): WaterReflectionServiceLease {
+  static acquire(engine: Engine, parent: Entity, sourceCamera: Camera): WaterReflectionServiceLease {
     const existing = WATER_REFLECTION_SERVICE_REGISTRY.get(sourceCamera);
     if (existing) {
-      existing.service._assertCompatibleAcquisition(engine, parent, options);
+      existing.service._assertCompatibleAcquisition(engine, parent);
       existing.referenceCount++;
       return existing.service._createLease();
     }
-    const service = new WaterReflectionService(engine, parent, sourceCamera, options);
+    const service = new WaterReflectionService(engine, parent, sourceCamera);
     service._directOwnerState = "none";
     return service._createLease();
   }
@@ -115,8 +106,7 @@ export class WaterReflectionService {
   constructor(
     private readonly _engine: Engine,
     private readonly _parent: Entity,
-    private readonly _sourceCamera: Camera,
-    _options: WaterReflectionServiceOptions = {}
+    private readonly _sourceCamera: Camera
   ) {
     if (WATER_REFLECTION_SERVICE_REGISTRY.has(_sourceCamera)) {
       throw new Error(
@@ -209,7 +199,7 @@ export class WaterReflectionService {
     return this._bindings.get(requestId);
   }
 
-  update(_frameIndex?: number): void {
+  update(): void {
     if (this._destroyed) return;
     if (this._refreshAvailability()) this._synchronizeBindings();
   }
@@ -261,7 +251,7 @@ export class WaterReflectionService {
     this._destroyNow();
   }
 
-  private _assertCompatibleAcquisition(engine: Engine, parent: Entity, _options: WaterReflectionServiceOptions): void {
+  private _assertCompatibleAcquisition(engine: Engine, parent: Entity): void {
     if (this._destroyed) throw new Error("Water reflection service has been destroyed.");
     if (engine !== this._engine || parent !== this._parent) {
       throw new Error(

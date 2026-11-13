@@ -36,7 +36,7 @@ export class WaterReflectionPreRenderSynchronizer extends Script {
 
     try {
       options.beforeUpdate?.();
-      options.service.update(this.engine.time.frameCount);
+      options.service.update();
       options.afterUpdate?.();
     } catch (error) {
       if (options.onError) {

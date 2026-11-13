@@ -4,12 +4,7 @@ import {
   type RiverResourceTransfer
 } from "../../compiler/river/RiverResourceTransfer";
 import type { RiverNetworkDescriptor } from "../../authoring/river/RiverDescriptor";
-import {
-  deserializeRiverResource,
-  createRiverResourceMetadata,
-  encodeRiverResource,
-  type RiverResourceMetadata
-} from "../../compiler/river/RiverResourceSerializer";
+import { createRiverResourceMetadata, type RiverResourceMetadata } from "../../compiler/river/RiverResourceMetadata";
 import type { RiverCompiledData } from "../../compiler/river/types";
 import {
   WaterReferenceCountedCompiledResource,
@@ -21,7 +16,6 @@ import { createPhysicalSurfaceIdentity } from "../../authoring/body/PhysicalSurf
 import { hashStableValue } from "../../compiler/shared/determinism";
 import { createWaterRepresentationV1 } from "../../authoring/body/WaterBodyRepresentation";
 import { createWaterResourceMemoryMetrics, measureWaterOwnedCpuBytes } from "../resources/WaterResourceMetrics";
-import { WaterBufferOwnership } from "../../compiler/shared/WaterBufferOwnership";
 
 export class RiverResource extends WaterReferenceCountedCompiledResource<RiverCompiledData> {
   readonly metadata: RiverResourceMetadata;
@@ -74,21 +68,6 @@ export class RiverResource extends WaterReferenceCountedCompiledResource<RiverCo
     return new RiverResource(createRiverResourceMetadata(descriptor, data), data, route, physicalSourceHash);
   }
 
-  static deserialize(
-    bytes: Uint8Array,
-    _ownership = WaterBufferOwnership.Copy,
-    route: Readonly<WaterCompiledBackendRouteIdentity> = Object.freeze({
-      resolvedBackendId: "river",
-      representation: createWaterRepresentationV1({ domain: "spline-network", macroSurface: "flow-deformed" }),
-      sourceKind: WaterBodySourceKind.SplineProfile
-    }),
-    physicalSourceHash?: string
-  ): RiverResource {
-    // Binary decoding owns the reconstructed data; neither ownership mode retains input bytes.
-    const deserialized = deserializeRiverResource(bytes);
-    return new RiverResource(deserialized.metadata, deserialized.data, route, physicalSourceHash);
-  }
-
   /** Trusted same-build Worker result: metadata was computed before transferring ownership. */
   static fromWorkerTransfer(transfer: RiverResourceTransfer, physicalSourceHash?: string): RiverResource {
     assertRiverResourceTransferVersion(transfer);
@@ -106,10 +85,5 @@ export class RiverResource extends WaterReferenceCountedCompiledResource<RiverCo
 
   get byteLength(): number {
     return this.memory.totalBytes;
-  }
-
-  serialize(): Uint8Array {
-    if (this.isDisposed) throw new Error("River resource has been disposed.");
-    return encodeRiverResource(this.data, this.metadata);
   }
 }

@@ -34,7 +34,6 @@ export class RiverCompileWorkerClient {
   private readonly _pending = new Map<number, PendingCompile>();
   private _nextRequestId = 1;
   private _disposed = false;
-  private _lastDeserializeMs = 0;
 
   constructor(
     createWorker: () => Worker = () =>
@@ -97,10 +96,6 @@ export class RiverCompileWorkerClient {
     });
   }
 
-  get lastDeserializeMs(): number {
-    return this._lastDeserializeMs;
-  }
-
   dispose(): void {
     if (this._disposed) return;
     this._disposed = true;
@@ -119,9 +114,7 @@ export class RiverCompileWorkerClient {
       return;
     }
     try {
-      const start = performance.now();
       const resource = RiverResource.fromWorkerTransfer(response.resource, pending.physicalSourceHash);
-      this._lastDeserializeMs = performance.now() - start;
       pending.resolve(resource);
     } catch (error) {
       pending.reject(error instanceof Error ? error : new Error("Failed to deserialize river worker output."));

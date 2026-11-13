@@ -4,8 +4,7 @@ import {
   RiverDisturbanceKind,
   RiverMaterialPreset,
   RiverPathMode,
-  RiverQualityLevel,
-  RiverValidationMode
+  RiverQualityLevel
 } from "./RiverAuthoringEnums";
 import type { RiverDiagnostic } from "../../compiler/shared/diagnostics";
 
@@ -129,10 +128,6 @@ export interface RiverAuthoringConfig {
   flow: RiverFlowConfig;
   material: RiverMaterialConfig;
   quality: RiverQualityConfig;
-}
-
-export interface RiverValidationOptions {
-  mode?: RiverValidationMode;
 }
 
 export interface RiverValidationResult<T> {

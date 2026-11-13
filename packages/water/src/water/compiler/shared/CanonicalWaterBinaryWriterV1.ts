@@ -14,8 +14,6 @@ export interface CanonicalUint64Lanes {
   readonly high: number;
 }
 
-export interface CanonicalInt64Lanes extends CanonicalUint64Lanes {}
-
 export interface CanonicalWaterByteSink {
   update(bytes: Uint8Array): void;
 }
@@ -226,14 +224,6 @@ export class CanonicalWaterBinaryWriterV1 {
     return this._emit(8);
   }
 
-  writeInt64(value: CanonicalInt64Lanes): this {
-    requireUint32(value.low, "Int64 low lane");
-    requireUint32(value.high, "Int64 high lane");
-    this._view.setUint32(0, value.low, true);
-    this._view.setUint32(4, value.high, true);
-    return this._emit(8);
-  }
-
   writeBoolean(value: boolean): this {
     if (typeof value !== "boolean") throw new TypeError("Canonical Boolean must be true or false.");
     return this.writeUint8(value ? 1 : 0);
@@ -270,13 +260,6 @@ export class CanonicalWaterBinaryWriterV1 {
   writeArray<T>(values: readonly T[], write: (writer: this, value: T, index: number) => void): this {
     this.writeUint32(values.length);
     for (let index = 0; index < values.length; index++) write(this, values[index]!, index);
-    return this;
-  }
-
-  writeUint16Array(values: Uint16Array): this {
-    if (!(values instanceof Uint16Array)) throw new TypeError("Expected Uint16Array.");
-    this.writeUint8(2).writeUint32(values.length);
-    for (const value of values) this.writeUint16(value);
     return this;
   }
 

@@ -32,36 +32,3 @@ export interface WaterLocalFieldProvider {
   /** Returns true when the world-XZ position overlaps this provider's actual field. */
   sampleLocalField(worldX: number, worldZ: number, outSample: WaterLocalFieldSample): boolean;
 }
-
-export function createWaterLocalFieldSample(): WaterLocalFieldSample {
-  return {
-    displacementY: 0,
-    displacementX: 0,
-    displacementZ: 0,
-    surfaceVelocityY: 0,
-    gradientX: 0,
-    gradientZ: 0,
-    currentLargeX: 0,
-    currentLargeZ: 0,
-    currentRippleX: 0,
-    currentRippleZ: 0,
-    foamSource: 0,
-    simulationMask: 1
-  };
-}
-
-/** Restores a caller-owned sample without replacing its identity. */
-export function resetWaterLocalFieldSample(sample: WaterLocalFieldSample): void {
-  sample.displacementY = 0;
-  sample.displacementX = 0;
-  sample.displacementZ = 0;
-  sample.surfaceVelocityY = 0;
-  sample.gradientX = 0;
-  sample.gradientZ = 0;
-  sample.currentLargeX = 0;
-  sample.currentLargeZ = 0;
-  sample.currentRippleX = 0;
-  sample.currentRippleZ = 0;
-  sample.foamSource = 0;
-  sample.simulationMask = 1;
-}
