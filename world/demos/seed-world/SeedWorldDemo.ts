@@ -1892,16 +1892,11 @@ export async function mountSeedWorldDemo(
           );
           if (publication!.current !== accepted || disposed) return;
           const { x, z } = plan.spawn;
-          const ground = sampleSeedWorldHeight(accepted.data.fields, x, z);
-          if (ground === undefined) throw new Error("Sandstorm spawn terrain is unavailable");
-          if (sandstorm) {
-            placeSeedSandstorm(sandstorm, x, ground, z);
-          } else {
-            const atlas = await loadSeedSandstormAtlas(engine!);
-            if (publication!.current !== accepted || disposed) return;
-            if (sandstorm) placeSeedSandstorm(sandstorm, x, ground, z);
-            else sandstorm = createSeedSandstorm(root, atlas, x, ground, z);
-          }
+          const atlas = sandstorm ? undefined : await loadSeedSandstormAtlas(engine!);
+          if (publication!.current !== accepted || disposed) return;
+          const fields = accepted.heightTransition?.fields ?? accepted.data.fields;
+          if (sandstorm) placeSeedSandstorm(sandstorm, x, z, fields);
+          else sandstorm = createSeedSandstorm(root, atlas!, x, z, fields);
         } catch (error) {
           if (!disposed) console.warn("[seed-world] sandstorm setup failed", error);
         }
