@@ -1,0 +1,16 @@
+packages/loader/src/MaterialLoader.ts
+  h_bd4dd7d663e619 45-49,51,54-64,67-74,76-103,106-112,114-118
+tests/src/loader/MaterialLoader.test.ts
+  h_bd4dd7d663e619 133-162,277-301
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "c0a407a076882f8ec81ac55c4a9a777633e6de36",
+  "prompts": {},
+  "humans": {
+    "h_bd4dd7d663e619": {
+      "author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}

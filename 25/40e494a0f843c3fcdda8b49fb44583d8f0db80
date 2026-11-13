@@ -1,0 +1,95 @@
+packages/world-planning/src/spatial/PlanningDocument.ts
+  s_ae6fab0fbe1884::t_4715f4504cd783 487-489
+packages/world-planning/src/spatial/WorldTemplateArtDirection.ts
+  s_ae6fab0fbe1884::t_94f34ae394525c 5
+  s_ae6fab0fbe1884::t_4e58b643df4b4e 270-271,273-278
+  s_ae6fab0fbe1884::t_5f2b83d9495f5a 302-307
+  s_ae6fab0fbe1884::t_29e7d1f91f2113 3,267,269,290-297,308,310-311
+  s_ae6fab0fbe1884::t_0ffdf8f2520a82 298-301
+  s_ae6fab0fbe1884::t_4715f4504cd783 29,268,284,309
+  s_0ad7efa77c17be::t_75c600ec4a1597 279-280,286,312-318
+packages/world-planning/src/spatial/hydrology/RiverRegions.ts
+  s_ae6fab0fbe1884::t_90a44f17be93c8 86-87,249-250
+  s_0ad7efa77c17be::t_7354efad653ced 251-254,390-403
+packages/world-planning/src/spatial/WorldTemplateConfig.ts
+  s_ae6fab0fbe1884::t_e2e8df16a7c94f 105-106
+  s_ae6fab0fbe1884::t_0ffdf8f2520a82 12,24
+  s_ae6fab0fbe1884::t_5f2b83d9495f5a 25
+  s_ae6fab0fbe1884::t_0d93482ff52bf6 1-2,4-5,9,14,16-23,26-27,32-33,35-36,123-124,126-128
+  s_ae6fab0fbe1884::t_2c44017b77ef8b 37-39,85-86,122
+  s_ae6fab0fbe1884::t_4e58b643df4b4e 3,7,34,48-51,65,87-102,104,118-119
+  s_ae6fab0fbe1884::t_87a02ba140d64d 10,13,15,28-31,42-43,45-47,52-64,66-69,71,73-84,107-117,120-121,125
+  s_ae6fab0fbe1884::t_798941337a054a 6,8,11,40-41,44,70,72
+  s_ae6fab0fbe1884::t_9ca1e16d978e16 103
+  s_0ad7efa77c17be::t_d500657380dd10 129-136
+world/demos/seed-world/src/planning/spatial/SpatialEditor.ts
+  s_ae6fab0fbe1884::t_b0f7e7b477f283 592-593,595-596
+packages/world-planning/src/spatial/README.md
+  s_ae6fab0fbe1884::t_9aba4a508265e9 56
+packages/world-planning/src/spatial/WorldTemplateEcology.ts
+  s_ae6fab0fbe1884::t_9ca1e16d978e16 4,12-13
+packages/world-planning/src/spatial/layout/SpatialWorld.ts
+  s_ae6fab0fbe1884::t_90a44f17be93c8 443,445-446,449-450,456,458-459
+  s_ae6fab0fbe1884::t_3224ce49b50c2f 447-448
+  s_ae6fab0fbe1884::t_b0f7e7b477f283 4,442,444,451-455,457
+  s_ae6fab0fbe1884::t_ab7d4be5922293 1203
+  s_ae6fab0fbe1884::t_9f2c3f6452d2ce 460
+  s_0ad7efa77c17be::t_606340e8730c90 461-462,491,504-505,731,1205-1209
+packages/world-planning/src/spatial/world-templates/sakura-pearl.json
+  s_ae6fab0fbe1884::t_aaae0457b35d96 380
+  s_ae6fab0fbe1884::t_0d93482ff52bf6 1-2,329-346,350-351,370-377,381-393
+  s_ae6fab0fbe1884::t_5f2b83d9495f5a 348-349
+  s_ae6fab0fbe1884::t_6dcdb388eb77d0 4-328
+  s_ae6fab0fbe1884::t_4e58b643df4b4e 352-369
+  s_ae6fab0fbe1884::t_2974dec15fb145 378-379
+  s_ae6fab0fbe1884::t_0ffdf8f2520a82 3,347
+world/tests/seed-world/WorldTemplates.spec.ts
+  s_ae6fab0fbe1884::t_7b92a7e190d55f 95,99,102-103
+  s_ae6fab0fbe1884::t_9be47067c8509f 17-18,57,61-64,66-69,71-72,74,76-77,80-86,89-94,96-98,100-101,340,651,666-668,694-706
+  s_ae6fab0fbe1884::t_9aba4a508265e9 65,73,75,78-79,350
+  s_ae6fab0fbe1884::t_29c9e510776e79 70,87-88
+packages/world-planning/src/spatial/WorldTemplateAuthoring.ts
+  s_ae6fab0fbe1884::t_0ffdf8f2520a82 38,46-53,55
+  s_ae6fab0fbe1884::t_4f6c7ef163bf6d 232
+  s_ae6fab0fbe1884::t_872b53d05272b5 237-238
+  s_ae6fab0fbe1884::t_ccdeb0e5bc933b 12-13,187,189,199-210,216-219,221-229,233-234,236,239,402
+  s_ae6fab0fbe1884::t_560c17f37f2b3b 235
+  s_ae6fab0fbe1884::t_a74307e92da4a1 243-244
+  s_ae6fab0fbe1884::t_4715f4504cd783 41-45,54,56-59,76-78,86,190-198,220,230-231
+  s_ae6fab0fbe1884::t_798941337a054a 211-215
+  s_ae6fab0fbe1884::t_ab7d4be5922293 188
+  s_0ad7efa77c17be::t_db919f77aab721 240-242,245-246,251,262,288,398-401
+world/tests/seed-world/EmptyWorldTemplate.spec.ts
+  s_ae6fab0fbe1884::t_9ca1e16d978e16 14-17
+  s_ae6fab0fbe1884::t_560c17f37f2b3b 1-13,18-29
+packages/world-planning/src/spatial/WorldTemplatePlanning.ts
+  s_ae6fab0fbe1884::t_b0f7e7b477f283 27-38,52,96-97
+  s_ae6fab0fbe1884::t_ab7d4be5922293 9,23
+  s_0ad7efa77c17be::t_e6e8d3d187bc99 98,185
+packages/world-planning/src/spatial/hydrology/LakeRegions.ts
+  s_ae6fab0fbe1884::t_90a44f17be93c8 55-56,70,82
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "2540e494a0f843c3fcdda8b49fb44583d8f0db80",
+  "prompts": {},
+  "sessions": {
+    "s_0ad7efa77c17be": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1c9b0-c1c7-7c20-94e2-5d4a2cc750f7",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    },
+    "s_ae6fab0fbe1884": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1cde9-e5eb-7580-948b-3731733934fb",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

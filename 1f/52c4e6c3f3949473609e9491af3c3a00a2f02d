@@ -1,0 +1,41 @@
+packages/modify/tests/ScreenSpaceReflectionContribution.test.ts
+  s_064d97775ce9bf::t_64ecf61e40df53 13,21-23,212,218,220,222,263,265,279,367,374-375,494
+  s_064d97775ce9bf::t_376468838eff14 206-211,213-214
+packages/farming/src/farming/procedural/runtime/preparePlantShaderPrograms.ts
+  s_064d97775ce9bf::t_a4f909b1d61bd4 51-52
+packages/modify/src/native/shader/src/Shaders/Lighting/ScreenSpaceReflection.shader
+  s_064d97775ce9bf::t_a4f909b1d61bd4 307-308
+packages/terrain/src/data/grasslands/public/Shader/Terrain.shaderc
+  s_064d97775ce9bf::t_b4c99bf75222b8 1
+packages/modify/src/native/core/src/RenderPipeline/BasicRenderPipeline.ts
+  s_064d97775ce9bf::t_a4f909b1d61bd4 867
+packages/terrain/src/data/seed-world/public/Shader/Terrain.shaderc
+  s_064d97775ce9bf::t_b4c99bf75222b8 1
+packages/modify/tests/ScreenSpaceReflectionAutoTag.test.ts
+  s_064d97775ce9bf::t_376468838eff14 16,50-51,53
+  s_064d97775ce9bf::t_8cf534cbb13e34 32,41,47-49,52,54
+packages/modify/tests/ScreenSpaceReflectionProfile.test.ts
+  s_064d97775ce9bf::t_64ecf61e40df53 99-103,105,190,211-219,221-223
+  s_064d97775ce9bf::t_376468838eff14 106,110-160,162-189,192-209
+  s_064d97775ce9bf::t_4dc755a17183a0 191
+packages/modify/src/native/core/src/lighting/screenSpaceReflection/ScreenSpaceReflection.ts
+  s_064d97775ce9bf::t_a4f909b1d61bd4 455,457
+packages/terrain/src/data/grasslands/source/public/Shader/Terrain.shaderc
+  s_064d97775ce9bf::t_b4c99bf75222b8 1
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "1f52c4e6c3f3949473609e9491af3c3a00a2f02d",
+  "prompts": {},
+  "sessions": {
+    "s_064d97775ce9bf": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1b62a-e8c5-7620-af93-7aaacae137d2",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "星翊 <sunmingming.smm@antgroup.com>"
+    }
+  }
+}

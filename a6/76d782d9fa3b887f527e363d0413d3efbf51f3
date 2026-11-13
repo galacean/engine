@@ -1,0 +1,19 @@
+tests/src/core/ShaderIdentity.test.ts
+  s_cffae7f0e2aa5c::t_0db5b2d37fb6a2 1-157
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "a676d782d9fa3b887f527e363d0413d3efbf51f3",
+  "prompts": {},
+  "sessions": {
+    "s_cffae7f0e2aa5c": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a19b50-610e-7b00-86e9-4fb2ee8311b4",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}

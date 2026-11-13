@@ -1,0 +1,21 @@
+packages/world-planning/src/spatial/WorldTemplateArtDirection.ts
+  s_9cc19efe6cb9e3::t_245c5f2729f4fe 800
+world/tests/seed-world/WorldTemplates.spec.ts
+  s_9cc19efe6cb9e3::t_12c2706dd37c3d 65
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "8b8048d1a808331c46499b5d65b2136107a7896b",
+  "prompts": {},
+  "sessions": {
+    "s_9cc19efe6cb9e3": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1a5d0-adc0-7cf2-99f0-6032732bfb59",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

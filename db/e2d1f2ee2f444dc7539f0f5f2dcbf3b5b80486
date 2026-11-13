@@ -1,0 +1,25 @@
+world/demos/seed-world/src/SeedWorldMojavePreview.ts
+  s_0ad7efa77c17be::t_94693a4700a862 1-53
+world/demos/seed-world/src/planning/semantic-study/PlanningLayerTree.ts
+  s_0ad7efa77c17be::t_5657eedaaa0078 4,32,36
+world/demos/seed-world/src/planning/spatial/SpatialEditor.ts
+  s_0ad7efa77c17be::t_376c44d04388c8 1,13,107,406,408
+world/tests/seed-world/WorldTemplates.spec.ts
+  s_0ad7efa77c17be::t_882e37c1809a42 76,79,89,122-125
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "dbe2d1f2ee2f444dc7539f0f5f2dcbf3b5b80486",
+  "prompts": {},
+  "sessions": {
+    "s_0ad7efa77c17be": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1c9b0-c1c7-7c20-94e2-5d4a2cc750f7",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

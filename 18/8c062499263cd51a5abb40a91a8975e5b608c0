@@ -1,0 +1,163 @@
+packages/design/src/shader-compiler/index.ts
+  s_94724eedbeb654::t_3c027792675d2e 17
+packages/design/src/shader-compiler/ICondition.ts
+  s_94724eedbeb654::t_00833eef556b22 156
+tests/src/shader-compiler/GuardedText.test.ts
+  s_94724eedbeb654::t_96c7edf7e92700 36-39
+  s_94724eedbeb654::t_6575ef0d098cff 1-35,40-41,57
+  s_94724eedbeb654::t_68e684d254799b 42-56
+packages/core/src/shader/ShaderFactory.ts
+  s_94724eedbeb654::t_f5963af4f383f2 2,205-206,211,213-215,388,398,400
+  s_94724eedbeb654::t_958c4e487bbbac 401-402
+tests/src/shader-compiler/expected/define-struct-access-global.vert.glsl
+  s_94724eedbeb654::t_aa2c34307aa79b 2-5,8-18,20,23,28,30-31
+  s_94724eedbeb654::t_c2c735fa71f365 32-35
+tests/src/shader-compiler/ForwardFunctionDeclarations.test.ts
+  s_94724eedbeb654::t_25821b8a8fc586 174
+  s_94724eedbeb654::t_773fd698d51176 187-188
+tests/src/shader-compiler/expected/define-struct-access.frag.glsl
+  s_94724eedbeb654::t_c2c735fa71f365 21-24
+  s_94724eedbeb654::t_aa2c34307aa79b 1-10,14,17,20
+  s_94724eedbeb654::t_c6f5ba08b496bc 13
+tests/src/shader-compiler/Precompile.test.ts
+  s_94724eedbeb654::t_bbfa1fe67e6fed 1000,1007-1012,1223,1236-1238
+  s_94724eedbeb654::t_e934db070e0149 1213
+  s_94724eedbeb654::t_aa2c34307aa79b 1-8
+tests/src/shader-compiler/HeadlessRegression.test.ts
+  s_94724eedbeb654::t_bbfa1fe67e6fed 165-167
+packages/shader-compiler/src/codeGen/CodeGenVisitor.ts
+  s_94724eedbeb654::t_c3700711c67e53 22,24-36
+  s_94724eedbeb654::t_ab935a1488cb10 41,178,254-261
+  s_94724eedbeb654::t_d5ef8b05f87e3d 213,278,286,290,298,310,314
+  s_94724eedbeb654::t_51e2851444f7c2 3,38-39,42,45-46,54,63-73,76-79,176-177,179-184,187,244,276
+  s_94724eedbeb654::t_4b64c9897db48f 23,43-44,49,59,185
+  s_94724eedbeb654::t_57d0001ed8f897 81-83,89
+  s_94724eedbeb654::t_2ae9e67abe2006 40,47-48,50-53,62,74-75,84-88,107-111,147-148,155,186
+  s_94724eedbeb654::t_bbfa1fe67e6fed 55-58,60-61
+  s_94724eedbeb654::t_1ecd23c01ae72b 80
+packages/shader-compiler/src/ShaderInstructionEncoder.ts
+  s_94724eedbeb654::t_00833eef556b22 109,149-150,335,339-354,359,361-363
+  s_94724eedbeb654::t_39d7cbeacd3b93 33-38
+  s_94724eedbeb654::t_3c027792675d2e 16-19,21-23,30-32,40-41,85-87,89-90,130,141
+  s_94724eedbeb654::t_864eee3e1ca33e 20,24-29,39,131-140
+  s_94724eedbeb654::t_1054f951430840 88
+  s_94724eedbeb654::t_96c7edf7e92700 355
+  s_94724eedbeb654::t_7dd772af4e7fe3 15
+packages/core/src/shader/enums/ShaderPreprocessorDirective.ts
+  s_94724eedbeb654::t_00833eef556b22 23-25
+  s_94724eedbeb654::t_864eee3e1ca33e 22
+  s_94724eedbeb654::t_3c027792675d2e 21
+tests/src/core/Shader.test.ts
+  s_94724eedbeb654::t_f04efa8c627565 451,454
+tests/src/shader-compiler/PrecompileABTest.test.ts
+  s_94724eedbeb654::t_bbfa1fe67e6fed 19-20,624,631-635,657,664-668
+tests/src/shader-compiler/ParticleFeedbackReturn.test.ts
+  s_94724eedbeb654::t_bbfa1fe67e6fed 85
+tests/src/shader-compiler/expected/define-struct-access-global.frag.glsl
+  s_94724eedbeb654::t_aa2c34307aa79b 1-7,16-18
+  s_94724eedbeb654::t_c2c735fa71f365 19,21-22
+tests/src/shader-compiler/expected/define-struct-access.vert.glsl
+  s_94724eedbeb654::t_aa2c34307aa79b 2-5,8-22,24,27,30,33,35
+  s_94724eedbeb654::t_c2c735fa71f365 36-39
+tests/src/shader-compiler/MacroBranchRuntime.test.ts
+  s_94724eedbeb654::t_bbfa1fe67e6fed 679,682-683,1239-1241,1575-1576
+packages/shader-parser/src/parser/AST.ts
+  s_94724eedbeb654::t_3ca6755a708325 1430
+tests/src/shader-compiler/InterfaceValueSemantics.test.ts
+  s_94724eedbeb654::t_911babacdfc125 1-53,62,126-165,284-287,295,297-322,383-384,395-398
+  s_94724eedbeb654::t_7d52a229796abf 60,99-101,323-325
+  s_94724eedbeb654::t_6f7aa55251606c 242-255
+  s_94724eedbeb654::t_073c6f5438a3f5 111-125
+  s_94724eedbeb654::t_cb55100a15e6d7 54-57,61,166-180,199-224,241,256-283,288-294,296,326-327,385-388,390-394
+  s_94724eedbeb654::t_773fd698d51176 232-236,240
+  s_94724eedbeb654::t_a0d89598bdd6b6 186-187
+  s_94724eedbeb654::t_860c18d019b9fd 63-98,102-110
+  s_94724eedbeb654::t_a80238b0d33ac2 181-185,188-198,328-382
+  s_94724eedbeb654::t_beed3957ecf345 225-231
+  s_94724eedbeb654::t_3e18c848a47634 58-59,237-239,389,399-400
+packages/shader-compiler/src/codeGen/VisitorContext.ts
+  s_94724eedbeb654::t_2e172a9d64b2fa 1
+  s_94724eedbeb654::t_31d29e462a9ae2 11
+tests/src/shader-compiler/ConditionalIOCoverage.test.ts
+  s_94724eedbeb654::t_25821b8a8fc586 149-154
+packages/core/src/shader/ShaderPass.ts
+  s_94724eedbeb654::t_4559dd3681cbaa 125,129-130,132-135,143-144,164
+tests/src/shader-compiler/TransformFeedbackNames.test.ts
+  s_94724eedbeb654::t_0db026ba7345d9 1-125
+packages/shader-compiler/src/codeGen/GLES100.ts
+  s_94724eedbeb654::t_d5ef8b05f87e3d 18-19,22-23
+  s_94724eedbeb654::t_86239ab6a0b88a 5,11
+tests/src/shader-compiler/GeneratedNames.test.ts
+  s_94724eedbeb654::t_60c08225da7779 77-80
+  s_94724eedbeb654::t_4aa91cc42af432 91-97
+  s_94724eedbeb654::t_364140d90b1ab7 1-11,60-76,81-85,106-134
+  s_94724eedbeb654::t_5db0308329fb48 86-90,98-105
+  s_94724eedbeb654::t_785e45dd536080 14-16
+  s_94724eedbeb654::t_0e2f59eabb398e 12-13,17-59
+tests/src/shader-compiler/InterfaceOutputConversion.test.ts
+  s_94724eedbeb654::t_5619af64805f22 2-23,27-44
+  s_94724eedbeb654::t_cc301a6ba80321 1
+  s_94724eedbeb654::t_ec63ce5cb000ce 24-26
+packages/shader-compiler/src/codeGen/GLESVisitor.ts
+  s_94724eedbeb654::t_00b5ffd6666130 206,208-209,217
+  s_94724eedbeb654::t_5b67d9ec08da5f 404-406,408-411,512
+  s_94724eedbeb654::t_4559dd3681cbaa 36,77,100-102,211-216,228,326-329
+  s_94724eedbeb654::t_6881b1a5aa48f1 370,372,375-381
+  s_94724eedbeb654::t_31d29e462a9ae2 20,109,303,318-319,321,323-325,330-345,347,349-351,354-357,359-367,391-394,396-402,412-416,451,462-463,476,486-491,493-496,500-501,505-511,525,951
+  s_94724eedbeb654::t_4b64c9897db48f 130
+  s_94724eedbeb654::t_ba0e8e5343c9c9 230
+  s_94724eedbeb654::t_688911243afeb1 382-388,390,395,407
+  s_94724eedbeb654::t_1f96d5e81a2e53 151,154-157,159-160
+  s_94724eedbeb654::t_a066fd75e9fe9f 39,131,136,143-144,222,453-454,465-466,468-473,483-485,502,504
+  s_94724eedbeb654::t_65f0295245e06f 162-163
+  s_94724eedbeb654::t_2232c18c08bf42 132-135,137-142,152-153,158,467,477-482,513-516,518-523
+  s_94724eedbeb654::t_80fa885c81ddd0 346,368-369,371,403,424,498,503
+  s_94724eedbeb654::t_e98f7d2f51d4cc 316,353,373,417-423,425-426,437-446
+  s_94724eedbeb654::t_990ccb44d73ede 35,37-38,75-76,205,207,226-227,229,242,252,288,301-302,304,310-315,317,320,322,348,352,358,374,389,427-436,447-450,452,455-461,464,474-475,492,497,499,517,524,526
+packages/shader-compiler/src/codeGen/GLES300.ts
+  s_94724eedbeb654::t_a066fd75e9fe9f 52,56,62
+  s_94724eedbeb654::t_d5ef8b05f87e3d 117-120,122-123,127,131,193
+  s_94724eedbeb654::t_e43186abbaf57a 97,104,124-126,128-130,135-136,192,197
+tests/src/shader-compiler/ShaderNeutralIR.test.ts
+  s_94724eedbeb654::t_25821b8a8fc586 468
+tests/src/shader-compiler/ShaderCompiler.test.ts
+  s_94724eedbeb654::t_aa2c34307aa79b 585-586,589,604-605,765-767,798-799,851-853,1346
+  s_94724eedbeb654::t_c6f5ba08b496bc 538
+  s_94724eedbeb654::t_56c6b85357d8cd 936-937,956-957
+packages/design/src/shader-compiler/NameAllocator.ts
+  s_94724eedbeb654::t_382e4df024ec59 8,34-37,53,58-67
+  s_94724eedbeb654::t_04daaabea1b202 1-7,9-33,38-52,54-57,68-77
+tests/src/shader-compiler/ConditionCoverageFallback.test.ts
+  s_94724eedbeb654::t_56c6b85357d8cd 522
+  s_94724eedbeb654::t_bbfa1fe67e6fed 385-388
+tests/src/shader-compiler/NameAllocator.test.ts
+  s_94724eedbeb654::t_4f490a545c66de 23-32
+  s_94724eedbeb654::t_0a1ebccff35de4 1-22,33-42,51
+  s_94724eedbeb654::t_5a8b4792e1b92e 43-50
+packages/core/src/shader/ShaderMacroProcessor.ts
+  s_94724eedbeb654::t_00833eef556b22 158-159,260-261,265,276-277,283-289,292-293
+  s_94724eedbeb654::t_3c027792675d2e 2,101,106,110,118,135-137,273
+  s_94724eedbeb654::t_96c7edf7e92700 262-264,278-282,290-291
+  s_94724eedbeb654::t_864eee3e1ca33e 65,68-73,128-131
+  s_94724eedbeb654::t_4aa91cc42af432 111-114
+  s_94724eedbeb654::t_39d7cbeacd3b93 107-109,115-117,119-127,134
+  s_94724eedbeb654::t_1054f951430840 274
+  s_94724eedbeb654::t_60c08225da7779 275
+  s_94724eedbeb654::t_f52d3bfab4c3eb 132-133
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "188c062499263cd51a5abb40a91a8975e5b608c0",
+  "prompts": {},
+  "sessions": {
+    "s_94724eedbeb654": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a079fa-a13e-79b1-bf89-79e33fe3774e",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

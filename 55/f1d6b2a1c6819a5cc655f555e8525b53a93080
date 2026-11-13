@@ -1,0 +1,20 @@
+packages/water/tests/WaterStandaloneLifecycle.test.ts
+  s_f3959dcbf2bda2::t_21af991497d0f8 78,80-160
+  s_f3959dcbf2bda2::t_503144eb0ffa5c 1-77,79,161-197
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "55f1d6b2a1c6819a5cc655f555e8525b53a93080",
+  "prompts": {},
+  "sessions": {
+    "s_f3959dcbf2bda2": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1c563-3adc-7622-a83b-663cb50c2ea6",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "星翊 <sunmingming.smm@antgroup.com>"
+    }
+  }
+}

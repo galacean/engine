@@ -1,0 +1,42 @@
+packages/modify/src/native/core/src/Scene.ts
+  s_a9821ab7ed7f5a::t_b984df75577276 15
+packages/world-planning/src/world/SeedWorldPicker.ts
+  s_a9821ab7ed7f5a::t_b984df75577276 308,321,414
+packages/modify/src/native/core/src/material/Material.ts
+  s_a9821ab7ed7f5a::t_b984df75577276 4-5,29-31
+packages/modify/src/native/core/src/lighting/screenSpaceReflection/ScreenSpaceReflectionSettings.ts
+  s_a9821ab7ed7f5a::t_b984df75577276 33-38,43-44,47,51-59
+packages/modify/src/native/core/src/lighting/screenSpaceReflection/ScreenSpaceReflection.ts
+  s_a9821ab7ed7f5a::t_b984df75577276 513-515,519-528,981-989,1004,1007-1009,1011-1023,1026-1027,1033-1035,1037-1047,1050,1061-1063,1073,1187-1190,1347-1348
+  s_a9821ab7ed7f5a::t_4718a47eccabd3 536-545,548,551
+packages/modify/SSR_AUTHORING.md
+  s_a9821ab7ed7f5a::t_0a26e921ccdc49 19,21,36,61
+packages/modify/src/native/core/src/RenderPipeline/BasicRenderPipeline.ts
+  s_a9821ab7ed7f5a::t_ad331e8a553efe 586-597
+packages/modify/src/native/loader/src/schema/MaterialSchema.ts
+  s_a9821ab7ed7f5a::t_f482aea11aece1 7
+packages/modify/tests/ScreenSpaceReflectionAuthoring.test.ts
+  s_a9821ab7ed7f5a::t_5c817d0a67391b 136,144-146,155-162,331-345
+packages/modify/tests/ScreenSpaceReflectionContribution.test.ts
+  s_a9821ab7ed7f5a::t_578a356f40f628 21,140-158,404-407
+packages/modify/tests/ScreenSpaceReflectionSecondReview.test.ts
+  s_a9821ab7ed7f5a::t_bb69368501bd56 39-42,46-47,52-56,112
+packages/modify/tests/vitest.config.mjs
+  s_a9821ab7ed7f5a::t_959eb7d2f47c97 7-9
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "7f812d0f4bdab94a56bdfb21c9103ff741ba760b",
+  "prompts": {},
+  "sessions": {
+    "s_a9821ab7ed7f5a": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1aad4-47c5-71b3-8961-5d5d0b89b80c",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "星翊 <sunmingming.smm@antgroup.com>"
+    }
+  }
+}

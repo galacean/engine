@@ -1,0 +1,58 @@
+packages/galacean/src/index.ts
+  s_215c0b0d399b2f::t_f2c3ecf477120f 21-22
+packages/core/src/material/PBRMaterial.ts
+  s_215c0b0d399b2f::t_c761ce32a12805 770
+packages/core/src/particle/ParticleMaterial.ts
+  s_215c0b0d399b2f::t_c761ce32a12805 14
+packages/core/src/BasicResources.ts
+  s_215c0b0d399b2f::t_c761ce32a12805 143,146,193-194,306,313
+packages/core/src/Background.ts
+  s_215c0b0d399b2f::t_c761ce32a12805 166
+packages/core/src/material/BlinnPhongMaterial.ts
+  s_215c0b0d399b2f::t_c761ce32a12805 163
+packages/core/src/postProcess/PostProcessUberPass.ts
+  s_215c0b0d399b2f::t_c761ce32a12805 28,32
+packages/spine/src/renderer/SpineMaterial.ts
+  s_215c0b0d399b2f::t_c761ce32a12805 9
+packages/galacean/src/ShaderPool.ts
+  s_215c0b0d399b2f::t_f2c3ecf477120f 83
+packages/core/src/particle/ParticleSubEmitterSpawnState.ts
+  s_215c0b0d399b2f::t_c761ce32a12805 51
+packages/core/src/lighting/ambientOcclusion/ScalableAmbientObscurancePass.ts
+  s_215c0b0d399b2f::t_c761ce32a12805 51
+packages/ui/src/index.ts
+  s_215c0b0d399b2f::t_f2c3ecf477120f 17
+packages/core/src/material/UnlitMaterial.ts
+  s_215c0b0d399b2f::t_c761ce32a12805 60
+packages/core/src/sky/SkyBoxMaterial.ts
+  s_215c0b0d399b2f::t_c761ce32a12805 66
+packages/core/src/shader/Shader.ts
+  s_215c0b0d399b2f::t_f2c3ecf477120f 31,168,172-181,185,188,216-220,229,411-412,470-471,473-475
+tests/src/core/BuiltinShaderIdentity.test.ts
+  s_215c0b0d399b2f::t_c5dff5ff30a942 58,67,80,83,89,99,111,117,119-133
+  s_215c0b0d399b2f::t_4bd830915b9a21 1-57,59-66,68-79,81-82,84-88,90-98,100-110,112-116,118,134-136
+packages/core/src/particle/ParticleTransformFeedbackSimulator.ts
+  s_215c0b0d399b2f::t_c761ce32a12805 53
+packages/core/src/postProcess/FinalPass.ts
+  s_215c0b0d399b2f::t_c761ce32a12805 26,31
+packages/core/src/sky/SkyProceduralMaterial.ts
+  s_215c0b0d399b2f::t_c761ce32a12805 134
+packages/core/src/trail/TrailMaterial.ts
+  s_215c0b0d399b2f::t_c761ce32a12805 14
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "4bc292d7eff9848af077ad8d3aa0f705068f386d",
+  "prompts": {},
+  "sessions": {
+    "s_215c0b0d399b2f": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a18d8e-4ddf-7c00-89b3-270764b3b8b9",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}

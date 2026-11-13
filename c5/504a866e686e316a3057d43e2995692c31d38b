@@ -1,0 +1,60 @@
+world/tests/seed-world/editor/seed-world-project.spec.ts
+  s_ad31577d195071::t_b3207c7ad9f784 23-24,222-274,279
+  s_ad31577d195071::t_0ffcec6ea55fd5 275-278,280-284
+packages/water/src/water/native/assets/Water/Materials/river-drops.mat
+  s_ad31577d195071::t_01cd9737207444 84,90,96,102,108,114,120,126,414,458,624
+packages/water/src/water/native/assets/Water/Materials/river.mat
+  s_ad31577d195071::t_01cd9737207444 143,187,353
+packages/water/src/water/native/assets/project.json
+  s_ad31577d195071::t_01cd9737207444 18-20,31-33,44-46,57-59,70-72,83-85,96-98,109-111,122-124,135-137
+packages/water/src/water/resources/river/assets/ktx2-manifest.json
+  s_ad31577d195071::t_b7c9b957bfd4c1 1-164
+packages/water/tests/WaterBuiltinTextures.test.ts
+  s_ad31577d195071::t_d9de9171d08711 1-5,8,13-29,31-39
+  s_ad31577d195071::t_b26d529a6b1432 6-7,9-12,30
+  s_ad31577d195071::t_3161d2a2cb6515 40-44
+packages/water/src/water/native/assets/conversion.json
+  s_ad31577d195071::t_01cd9737207444 20-24,37-41,54-58,71-75,88-92,105-109,122-126,139-143,156-160,173-177
+world/scripts/tests/generate-water-assets.test.mjs
+  s_ad31577d195071::t_b26d529a6b1432 102-114
+  s_ad31577d195071::t_d9de9171d08711 81-101,115-116
+packages/water/src/water/resources/river/FarmlandsWaterRuntimeResources.ts
+  s_ad31577d195071::t_e38190d011f11b 12
+packages/water/src/water/scripts/encode-river-textures.mjs
+  s_ad31577d195071::t_13246b48509981 2-7,16-31,33-42,48,50-54,57-61,63-65
+  s_ad31577d195071::t_5426cb7aeccd38 1,8-15,32,43-47,49,55-56,62,66-129
+world/demos/seed-world/SeedWorldWaterTextureMigration.ts
+  s_ad31577d195071::t_86e61381fac2f6 1-35
+  s_ad31577d195071::t_f0318f2e65b327 36-45
+packages/water/src/water/resources/river/FarmlandsWaterAssets.ts
+  s_ad31577d195071::t_e38190d011f11b 1,11,19
+packages/water/src/water/resources/river/assets/KTX2.md
+  s_ad31577d195071::t_8269559c4da4ad 1-47
+world/scripts/generate-water-assets.mjs
+  s_ad31577d195071::t_cf0c3a4011ace4 10-12,125-127
+  s_ad31577d195071::t_e38190d011f11b 66-67,69
+world/demos/seed-world/SeedWorldProject.ts
+  s_ad31577d195071::t_86e61381fac2f6 25,59
+packages/world-planning/tests/WaterEditor.test.ts
+  s_ad31577d195071::t_e38190d011f11b 156,173-175,180,197
+packages/water/src/water/resources/river/FarmlandsDropAssets.ts
+  s_ad31577d195071::t_e38190d011f11b 1,19,24,29,34,40,45,50,55
+packages/water/src/water/resources/river/assets/drops/README.md
+  s_ad31577d195071::t_7fd77341818198 16
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "c5504a866e686e316a3057d43e2995692c31d38b",
+  "prompts": {},
+  "sessions": {
+    "s_ad31577d195071": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1bb0b-6dfd-7122-816b-54fbba5355f3",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "星翊 <sunmingming.smm@antgroup.com>"
+    }
+  }
+}
