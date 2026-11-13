@@ -19,6 +19,7 @@ import {
   type ShaderRange
 } from "@galacean/engine-shader-parser/internal/analyzer";
 import { ShaderConditionDiagram } from "./ShaderConditionDiagram";
+import { getFallthroughCondition } from "./ShaderReturnFlow";
 import type { MacroExpansionSyntax } from "@galacean/engine-shader-parser/internal/analyzer";
 
 /**
@@ -127,16 +128,18 @@ export class ShaderAnalysisInfo {
   }
 
   /**
-   * Classifies whether a function returns under every macro configuration reaching its declaration.
+   * Classifies whether a function can reach its end without returning a value.
    * @param functionNode - Function whose body is inspected.
-   * @returns Proven return coverage, a missing-return configuration, or unresolved coverage.
+   * @returns Proven coverage, a missing-return configuration, or unresolved coverage.
    */
   getReturnCoverage(functionNode: ASTNode.FunctionDefinition): BranchCoverage {
-    const returns = this._returnCondition(functionNode.statements);
-    // A body with no possible return is invalid whenever its declaration is selected.
-    return returns === ShaderConditionDiagram.FALSE
-      ? "uncovered"
-      : this._conditions.coverage(returns, this._conditions.branch(functionNode.protoType.ident.branch, true));
+    const fallthrough = getFallthroughCondition(functionNode.statements, this._conditions);
+    // Unconditional fallthrough is invalid even under an unresolved declaration guard
+    if (fallthrough === ShaderConditionDiagram.TRUE) return "uncovered";
+    const reachable = this._conditions.reachability(
+      this._conditions.and(fallthrough, this._conditions.branch(functionNode.protoType.ident.branch, true))
+    );
+    return reachable === "unknown" ? "unknown" : reachable === "reachable" ? "uncovered" : "covered";
   }
 
   /**
@@ -395,53 +398,6 @@ export class ShaderAnalysisInfo {
       this._recordOutputParameterWrites(caller, call, candidate, branch);
     }
     this._callFacts.set(caller, facts);
-  }
-
-  private _returnCondition(root: TreeNode): number {
-    type Visit = { node: TreeNode; returns: number[] } | { left: number[]; right: number[]; returns: number[] };
-    const diagram = this._conditions;
-    const returns: number[] = [];
-    const pending: Visit[] = [{ node: root, returns }];
-    while (pending.length) {
-      const current = pending.pop()!;
-      if ("left" in current) {
-        // A runtime if/else guarantees a return only where both arms terminate.
-        current.returns.push(diagram.and(diagram.orAll(current.left), diagram.orAll(current.right)));
-        continue;
-      }
-      const { node, returns } = current;
-      const branch = diagram.branch(node._branch, true);
-      if (branch === ShaderConditionDiagram.FALSE) continue;
-      if (node instanceof ASTNode.JumpStatement) {
-        const keyword = node.children[0];
-        if (keyword instanceof BaseToken && keyword.type === Keyword.RETURN) returns.push(branch);
-      } else if (node instanceof ASTNode.SelectionStatement) {
-        if (node.children.length !== 7) continue;
-        const left: number[] = [],
-          right: number[] = [];
-        pending.push({ left, right, returns });
-        pending.push({ node: node.children[6] as TreeNode, returns: right });
-        pending.push({ node: node.children[4] as TreeNode, returns: left });
-      } else if (node instanceof ASTNode.IterationStatement) {
-        // Loop termination is not proven here, so missing return coverage remains unknown
-        returns.push(diagram.and(branch, ShaderConditionDiagram.UNKNOWN));
-      } else if (
-        node instanceof ASTNode.Statement ||
-        node instanceof ASTNode.SimpleStatement ||
-        node instanceof ASTNode.CompoundStatement ||
-        node instanceof ASTNode.CompoundStatementNoScope ||
-        node instanceof ASTNode.StatementList ||
-        node instanceof ASTNode.MacroIfStatement ||
-        node instanceof ASTNode.MacroBranch
-      ) {
-        // Flatten sequential containers before unioning, including left-recursive statement lists.
-        for (let index = node.children.length - 1; index >= 0; index--) {
-          const child = node.children[index];
-          if (child instanceof TreeNode) pending.push({ node: child, returns });
-        }
-      }
-    }
-    return diagram.orAll(returns);
   }
 
   private _getReachableConditions(entry: ShaderEntryPointInfo): ReachableConditions {
