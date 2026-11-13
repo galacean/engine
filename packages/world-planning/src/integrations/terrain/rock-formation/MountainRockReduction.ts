@@ -34,26 +34,41 @@ export function reduceMountainRock(geometry: any, budget: number) {
     Math.min(splitIndices.length, budget * 3),
     0.0005
   );
+  // Edge collapses can leave an opposite triangle pair attached along a seam.
+  // It encloses no volume; cancel both sides before welding/compacting so the
+  // canonical physics surface remains manifold and has no dangling vertices.
+  const triangles = new Map<string, { ids: number[]; winding: number }>();
+  for (let i = 0; i < reduced.length; i += 3) {
+    const ids = Array.from(reduced.slice(i, i + 3));
+    const source = ids.map((id) => sourceIds[id]);
+    const key = [...source].sort((a, b) => a - b).join(":");
+    const winding = (Number(source[0] > source[1]) + Number(source[0] > source[2]) + Number(source[1] > source[2])) % 2;
+    const previous = triangles.get(key);
+    if (previous && previous.winding !== winding) triangles.delete(key);
+    else triangles.set(key, { ids, winding });
+  }
   const welded = new Map<string, number>();
   const compactPositions: number[] = [],
     compactNormals: number[] = [],
     bodyNormals: number[] = [],
     rockDetail: number[] = [],
     faceTags: number[] = [];
-  const indices = Array.from(reduced, (id, corner) => {
-    const old = sourceIds[id];
-    const position = geometry.positions.slice(old * 3, old * 3 + 3).map(Math.fround);
-    const key = position.join(":");
-    if (corner % 3 === 0) faceTags.push(groups[id]);
-    if (!welded.has(key)) {
-      welded.set(key, welded.size);
-      compactPositions.push(...position);
-      compactNormals.push(...geometry.normals.slice(old * 3, old * 3 + 3));
-      bodyNormals.push(...(geometry.bodyNormals ?? geometry.normals).slice(old * 3, old * 3 + 3));
-      rockDetail.push(...(geometry.rockDetail?.slice(old * 3, old * 3 + 3) ?? [0, 0.51, 0]));
-    }
-    return welded.get(key)!;
-  });
+  const indices = [...triangles.values()]
+    .flatMap((triangle) => triangle.ids)
+    .map((id, corner) => {
+      const old = sourceIds[id];
+      const position = geometry.positions.slice(old * 3, old * 3 + 3).map(Math.fround);
+      const key = position.join(":");
+      if (corner % 3 === 0) faceTags.push(groups[id]);
+      if (!welded.has(key)) {
+        welded.set(key, welded.size);
+        compactPositions.push(...position);
+        compactNormals.push(...geometry.normals.slice(old * 3, old * 3 + 3));
+        bodyNormals.push(...(geometry.bodyNormals ?? geometry.normals).slice(old * 3, old * 3 + 3));
+        rockDetail.push(...(geometry.rockDetail?.slice(old * 3, old * 3 + 3) ?? [0, 0.51, 0]));
+      }
+      return welded.get(key)!;
+    });
   return {
     ...geometry,
     positions: compactPositions,

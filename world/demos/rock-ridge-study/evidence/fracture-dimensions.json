@@ -1,0 +1,417 @@
+{
+  "referenceCommit": "004f06e21cc3e657646ffe7c303f3771e3b0d17d",
+  "version": "independent-fracture-depth-8",
+  "seed": 487,
+  "width": 0.8,
+  "irregularity": 1.8,
+  "stationIndex": 2,
+  "units": "normalized radial coordinates",
+  "measurement": "Triangle ray intersections for penetration; source/cut seam intersections for aperture",
+  "samples": [
+    {
+      "role": "peak",
+      "depth": 0.4,
+      "fracture": 0,
+      "mouthWidth": 0.06766037701571459,
+      "actualDepth": 0.04548280591793752,
+      "previousMouthWidth": 0.02744492092122114,
+      "previousActualDepth": 0.0454828059179373
+    },
+    {
+      "role": "peak",
+      "depth": 0.4,
+      "fracture": 1,
+      "mouthWidth": 0.0807373829074027,
+      "actualDepth": 0.057838554998390745,
+      "previousMouthWidth": 0.03261008169839358,
+      "previousActualDepth": 0.057838554998390745
+    },
+    {
+      "role": "peak",
+      "depth": 0.4,
+      "fracture": 2,
+      "mouthWidth": 0.080543503675338,
+      "actualDepth": 0.06322300588172713,
+      "previousMouthWidth": 0.03354986954618135,
+      "previousActualDepth": 0.0632230058817268
+    },
+    {
+      "role": "peak",
+      "depth": 0.4,
+      "fracture": 3,
+      "mouthWidth": 0.0817553533048776,
+      "actualDepth": 0.050511914223636434,
+      "previousMouthWidth": 0.030812927494891895,
+      "previousActualDepth": 0.050511914223636434
+    },
+    {
+      "role": "peak",
+      "depth": 0.4,
+      "fracture": 4,
+      "mouthWidth": 0.09090463065768867,
+      "actualDepth": 0.05465575647229848,
+      "previousMouthWidth": 0.0346693812274011,
+      "previousActualDepth": 0.05465575647229837
+    },
+    {
+      "role": "peak",
+      "depth": 1.3,
+      "fracture": 0,
+      "mouthWidth": 0.06878980489981712,
+      "actualDepth": 0.14781911923329727,
+      "previousMouthWidth": 0.08919599299396819,
+      "previousActualDepth": 0.14781911923329727
+    },
+    {
+      "role": "peak",
+      "depth": 1.3,
+      "fracture": 1,
+      "mouthWidth": 0.08179808431950089,
+      "actualDepth": 0.1879753037447699,
+      "previousMouthWidth": 0.10621994952857411,
+      "previousActualDepth": 0.1879753037447699
+    },
+    {
+      "role": "peak",
+      "depth": 1.3,
+      "fracture": 2,
+      "mouthWidth": 0.08475679373057325,
+      "actualDepth": 0.2054747691156137,
+      "previousMouthWidth": 0.11021188179292533,
+      "previousActualDepth": 0.2054747691156139
+    },
+    {
+      "role": "peak",
+      "depth": 1.3,
+      "fracture": 3,
+      "mouthWidth": 0.07674631488111017,
+      "actualDepth": 0.16416372122681855,
+      "previousMouthWidth": 0.10014201435839765,
+      "previousActualDepth": 0.16416372122681855
+    },
+    {
+      "role": "peak",
+      "depth": 1.3,
+      "fracture": 4,
+      "mouthWidth": 0.08573864766160061,
+      "actualDepth": 0.17763120853496994,
+      "previousMouthWidth": 0.11142193719883997,
+      "previousActualDepth": 0.17763120853497005
+    },
+    {
+      "role": "peak",
+      "depth": 2,
+      "fracture": 0,
+      "mouthWidth": 0.06900778240935651,
+      "actualDepth": 0.22741402958968748,
+      "previousMouthWidth": 0.1372246046061042,
+      "previousActualDepth": 0.22741402958968782
+    },
+    {
+      "role": "peak",
+      "depth": 2,
+      "fracture": 1,
+      "mouthWidth": 0.0820243077423754,
+      "actualDepth": 0.28919277499195384,
+      "previousMouthWidth": 0.16365943900471014,
+      "previousActualDepth": 0.28919277499195384
+    },
+    {
+      "role": "peak",
+      "depth": 2,
+      "fracture": 2,
+      "mouthWidth": 0.08548744271675891,
+      "actualDepth": 0.31611502940863656,
+      "previousMouthWidth": 0.1710272339537889,
+      "previousActualDepth": 0.3161150294086368
+    },
+    {
+      "role": "peak",
+      "depth": 2,
+      "fracture": 3,
+      "mouthWidth": 0.07654740341362876,
+      "actualDepth": 0.2525595711181825,
+      "previousMouthWidth": 0.15254295405813673,
+      "previousActualDepth": 0.2525595711181825
+    },
+    {
+      "role": "peak",
+      "depth": 2,
+      "fracture": 4,
+      "mouthWidth": 0.08545599414260685,
+      "actualDepth": 0.27327878236149317,
+      "previousMouthWidth": 0.1705262342547545,
+      "previousActualDepth": 0.27327878236149317
+    },
+    {
+      "role": "cliff",
+      "depth": 0.4,
+      "fracture": 0,
+      "mouthWidth": 0.11312920187723674,
+      "actualDepth": 0.06682892485836645,
+      "previousMouthWidth": 0.04485655478746217,
+      "previousActualDepth": 0.06682892485836633
+    },
+    {
+      "role": "cliff",
+      "depth": 0.4,
+      "fracture": 1,
+      "mouthWidth": 0.19177147387348908,
+      "actualDepth": 0.1303038878631655,
+      "previousMouthWidth": 0.08804830585055815,
+      "previousActualDepth": 0.14069380824722544
+    },
+    {
+      "role": "cliff",
+      "depth": 0.4,
+      "fracture": 2,
+      "mouthWidth": 0.09884164196042562,
+      "actualDepth": 0.059514713139916964,
+      "previousMouthWidth": 0.035640857333925996,
+      "previousActualDepth": 0.059514713139916964
+    },
+    {
+      "role": "cliff",
+      "depth": 0.4,
+      "fracture": 3,
+      "mouthWidth": 0.0657744328127029,
+      "actualDepth": 0.04456839165124171,
+      "previousMouthWidth": 0.029686402733483164,
+      "previousActualDepth": 0.04456839165124182
+    },
+    {
+      "role": "cliff",
+      "depth": 0.4,
+      "fracture": 4,
+      "mouthWidth": 0.11107953217194022,
+      "actualDepth": 0.08741951099842571,
+      "previousMouthWidth": 0.04612880607843872,
+      "previousActualDepth": 0.08741951099842571
+    },
+    {
+      "role": "cliff",
+      "depth": 1.3,
+      "fracture": 0,
+      "mouthWidth": 0.11206490302040872,
+      "actualDepth": 0.2171940057896915,
+      "previousMouthWidth": 0.14365909501059954,
+      "previousActualDepth": 0.2171940057896916
+    },
+    {
+      "role": "cliff",
+      "depth": 1.3,
+      "fracture": 1,
+      "mouthWidth": 0.2008992862387433,
+      "actualDepth": 0.42348763555528846,
+      "previousMouthWidth": 0.2774762041508644,
+      "previousActualDepth": 0.4572548768034828
+    },
+    {
+      "role": "cliff",
+      "depth": 1.3,
+      "fracture": 2,
+      "mouthWidth": 0.08827524861190265,
+      "actualDepth": 0.19342281770473035,
+      "previousMouthWidth": 0.11496768597603292,
+      "previousActualDepth": 0.19342281770473035
+    },
+    {
+      "role": "cliff",
+      "depth": 1.3,
+      "fracture": 3,
+      "mouthWidth": 0.07093450735153894,
+      "actualDepth": 0.14484727286653598,
+      "previousMouthWidth": 0.09003379963660607,
+      "previousActualDepth": 0.1448472728665361
+    },
+    {
+      "role": "cliff",
+      "depth": 1.3,
+      "fracture": 4,
+      "mouthWidth": 0.11490869702170592,
+      "actualDepth": 0.2841134107448835,
+      "previousMouthWidth": 0.14849453441296073,
+      "previousActualDepth": 0.2841134107448836
+    },
+    {
+      "role": "cliff",
+      "depth": 2,
+      "fracture": 0,
+      "mouthWidth": 0.11190548805387099,
+      "actualDepth": 0.334144624291833,
+      "previousMouthWidth": 0.21412666695356208,
+      "previousActualDepth": 0.3341446242918331
+    },
+    {
+      "role": "cliff",
+      "depth": 2,
+      "fracture": 1,
+      "mouthWidth": 0.20298295577152597,
+      "actualDepth": 0.6515194393158282,
+      "previousMouthWidth": 0.39373462503335555,
+      "previousActualDepth": 0.6515194393158282
+    },
+    {
+      "role": "cliff",
+      "depth": 2,
+      "fracture": 2,
+      "mouthWidth": 0.08789757217601318,
+      "actualDepth": 0.2975735656995856,
+      "previousMouthWidth": 0.1800327311603462,
+      "previousActualDepth": 0.2975735656995856
+    },
+    {
+      "role": "cliff",
+      "depth": 2,
+      "fracture": 3,
+      "mouthWidth": 0.07209503415562019,
+      "actualDepth": 0.22284195825620934,
+      "previousMouthWidth": 0.13654402898405676,
+      "previousActualDepth": 0.22284195825620945
+    },
+    {
+      "role": "cliff",
+      "depth": 2,
+      "fracture": 4,
+      "mouthWidth": 0.11553038898379381,
+      "actualDepth": 0.43709755499212877,
+      "previousMouthWidth": 0.22540121285948672,
+      "previousActualDepth": 0.43709755499212877
+    },
+    {
+      "role": "shoulder",
+      "depth": 0.4,
+      "fracture": 0,
+      "mouthWidth": 0.16292836962237678,
+      "actualDepth": 0.1159019991193293,
+      "previousMouthWidth": 0.06918292705364118,
+      "previousActualDepth": 0.11590199911932908
+    },
+    {
+      "role": "shoulder",
+      "depth": 0.4,
+      "fracture": 1,
+      "mouthWidth": 0.09965236921578052,
+      "actualDepth": 0.055854792575340984,
+      "previousMouthWidth": 0.03415073045204353,
+      "previousActualDepth": 0.05585479257534087
+    },
+    {
+      "role": "shoulder",
+      "depth": 0.4,
+      "fracture": 2,
+      "mouthWidth": 0.1657334913603381,
+      "actualDepth": 0.10553317689614694,
+      "previousMouthWidth": 0.0671540269081046,
+      "previousActualDepth": 0.10553317689614683
+    },
+    {
+      "role": "shoulder",
+      "depth": 0.4,
+      "fracture": 3,
+      "mouthWidth": 0.16098656071468254,
+      "actualDepth": 0.10122710925396294,
+      "previousMouthWidth": 0.06375699627499076,
+      "previousActualDepth": 0.10122710925396294
+    },
+    {
+      "role": "shoulder",
+      "depth": 0.4,
+      "fracture": 4,
+      "mouthWidth": 0.07005671160888288,
+      "actualDepth": 0.0507236518514218,
+      "previousMouthWidth": 0.027137968841955185,
+      "previousActualDepth": 0.05072365185142158
+    },
+    {
+      "role": "shoulder",
+      "depth": 1.3,
+      "fracture": 0,
+      "mouthWidth": 0.17345774431801114,
+      "actualDepth": 0.37668149713782106,
+      "previousMouthWidth": 0.2233549387979612,
+      "previousActualDepth": 0.37668149713782106
+    },
+    {
+      "role": "shoulder",
+      "depth": 1.3,
+      "fracture": 1,
+      "mouthWidth": 0.08409704529931145,
+      "actualDepth": 0.18152807586985842,
+      "previousMouthWidth": 0.11130754657520148,
+      "previousActualDepth": 0.18152807586985853
+    },
+    {
+      "role": "shoulder",
+      "depth": 1.3,
+      "fracture": 2,
+      "mouthWidth": 0.16606450980025983,
+      "actualDepth": 0.34298282491247745,
+      "previousMouthWidth": 0.21317263203968806,
+      "previousActualDepth": 0.34298282491247745
+    },
+    {
+      "role": "shoulder",
+      "depth": 1.3,
+      "fracture": 3,
+      "mouthWidth": 0.15863561659223518,
+      "actualDepth": 0.3289881050753798,
+      "previousMouthWidth": 0.20511319680894247,
+      "previousActualDepth": 0.3289881050753798
+    },
+    {
+      "role": "shoulder",
+      "depth": 1.3,
+      "fracture": 4,
+      "mouthWidth": 0.06755489749167576,
+      "actualDepth": 0.16485186851712152,
+      "previousMouthWidth": 0.08792299193351594,
+      "previousActualDepth": 0.16485186851712164
+    },
+    {
+      "role": "shoulder",
+      "depth": 2,
+      "fracture": 0,
+      "mouthWidth": 0.1752330966915232,
+      "actualDepth": 0.5795099955966478,
+      "previousMouthWidth": 0.336016611659248,
+      "previousActualDepth": 0.5795099955966481
+    },
+    {
+      "role": "shoulder",
+      "depth": 2,
+      "fracture": 1,
+      "mouthWidth": 0.0825244648367724,
+      "actualDepth": 0.2792739628767055,
+      "previousMouthWidth": 0.168602325195828,
+      "previousActualDepth": 0.2792739628767057
+    },
+    {
+      "role": "shoulder",
+      "depth": 2,
+      "fracture": 2,
+      "mouthWidth": 0.16621486755272225,
+      "actualDepth": 0.5276658844807346,
+      "previousMouthWidth": 0.32147653530554576,
+      "previousActualDepth": 0.5276658844807348
+    },
+    {
+      "role": "shoulder",
+      "depth": 2,
+      "fracture": 3,
+      "mouthWidth": 0.1588708181659345,
+      "actualDepth": 0.5061355462698152,
+      "previousMouthWidth": 0.31505625856741915,
+      "previousActualDepth": 0.5061355462698152
+    },
+    {
+      "role": "shoulder",
+      "depth": 2,
+      "fracture": 4,
+      "mouthWidth": 0.06732263269376038,
+      "actualDepth": 0.2536182592571097,
+      "previousMouthWidth": 0.13457072462462655,
+      "previousActualDepth": 0.25361825925711023
+    }
+  ]
+}

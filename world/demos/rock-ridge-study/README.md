@@ -124,7 +124,8 @@ the fitting roles' ranges. `peak`, `shoulder`, `cliff` and `bank` are role handl
 not stored rock shapes. Resolution remains 24 and the simplifier targets 1,000
 triangles per base mesh. The original export's 0.1 mm position grid is retained
 before carving to avoid nearly coplanar Float32 input noise producing tiny BSP
-slivers. No post-carve displacement or surface repair is added.
+slivers. GPU-indistinguishable intersections are welded, and collapsed fan edges
+are removed only when connectivity and all incident planes are preserved.
 
 Topology and atomic recipes use independent deterministic streams. Editing counts
 reuses the current seed's atoms; changing the seed rebuilds them. Carving and mass
@@ -274,12 +275,35 @@ variant when arrangement is disabled. Changing finish keeps the orbit angles.
 ### Fracture controls
 
 **Depth**, **Width**, and **Irregularity** range from 0% to 200% and update when
-the slider is released. All three at 100% exactly reproduce the preceding
-`irregular-fractures-5` geometry and render attributes on the 12 historical fixtures.
-Depth scales the inward incision; width scales the V opening, so its visible
-aperture also grows with depth. Irregularity scales lateral bends and depth
-variation. Zero irregularity gives straight tapered paths. Zero depth or width
-removes the joints while retaining the broad face cuts.
+the slider is released. `independent-fracture-depth-8` separates penetration from
+aperture: depth moves the inner tip, while the V-wall slope compensates inversely
+for depth. Width scales the aperture without moving the tip. A seeded width
+profile still varies along the fracture; unequal wall angles and lateral bends
+keep it irregular. Each wall retains one slope along the sweep so all panels
+remain planar, with no internal end caps or twisted ledges.
+
+The aperture is referenced to the sampled source skin. Its actual intersection
+with a curved face can drift slightly as depth changes; it no longer scales
+with depth. At seed 487, width 80%, irregularity 180%, the first peak fracture at
+its third station measured:
+
+| Depth | Old mouth width | New mouth width | Inward penetration |
+| --- | ---: | ---: | ---: |
+| 40% | 0.02744 | 0.06766 | 0.04548 |
+| 130% | 0.08920 | 0.06879 | 0.14782 |
+| 200% | 0.13722 | 0.06901 | 0.22741 |
+
+Units are normalized radial coordinates, measured from the actual mesh triangles
+and source/cut seams. Fivefold penetration changes the opening by 2.0% in this
+sample, versus fivefold previously. Regression tests also measure all five joints
+on the peak, cliff and shoulder, and check that width changes leave penetration
+unchanged. See `SeedWorldFractureDimensions.spec.ts` and
+[measurements](evidence/fracture-dimensions.json). The original atomic silhouette,
+sharp planar walls and independently adjustable normal smoothing are retained.
+
+Irregularity scales lateral bends and the seeded width/depth profile. Zero
+irregularity gives straight lateral paths with tapered ends. Zero depth or width
+returns the exact rounded atomic body without any cuts.
 
 In **Before / after shaping**, controls update the pipeline's carved library.
 With arrangement enabled, the fitter then places the updated meshes; with it
@@ -294,23 +318,19 @@ saved with seed, height and orbit.
 The earlier displacement method could create fins even while preserving winding:
 its per-vertex backoff factors introduced discontinuities in the intended cut.
 The active generator now constructs the surface by solid subtraction. It does not
-run displacement, local backoff, smoothing, spike removal, or an artifact-repair
-pass. The comparison also uses solid subtraction; the old displacement function
+run displacement, local backoff, geometric smoothing, or spike removal. The comparison also uses solid subtraction; the old displacement function
 has been removed.
 
-1. Define six broad plane cutters and five continuous fracture cutters in a
-   normalized rock frame. Broad planes run through the foot and crown so their
-   stopping points cannot create collars or plinths. They preserve the original
-   summit point. Flat platform slabs omit the broad plane cuts to protect their
-   walking surface. Each fracture sweeps one unequal V profile along six stations
-   with uneven heights, lateral bends and depth changes. Depth changes also vary
-   the opening width. The two side angles differ but stay constant along that
-   fracture, which makes every wall panel planar. Adjacent panels share their
-   complete section edges; there are no interior end caps. Their ends taper out
-   just beyond the broad face at independently seeded heights, avoiding square
-   slot ends. Lateral variation is scaled to the rock's physical aspect ratio;
-   all cuts leave a central core. Platform cutters exit outside the source body
-   below the protected cap.
+1. Define five continuous fracture cutters in a normalized rock frame. The live
+   generator retains the rounded atomic body; six whole-body plane cutters belong
+   only to the historical comparison. Each fracture sweeps one unequal V profile
+   along six stations with uneven heights, lateral bends and a seeded aperture
+   profile. The depth slider moves the inner tips and compensates the wall slopes
+   to keep the mouth approximately fixed. Side angles differ but stay constant
+   along each fracture, making every wall panel planar. Adjacent panels share
+   complete section edges with no interior end caps. End rings exit outside the
+   source body at seeded heights; platform cuts exit below the protected cap.
+   Lateral variation follows physical aspect ratio, and cuts reserve a solid core.
 2. Subtract those closed solids from the actual upstream mesh. The fracture
    sweeps may be non-convex, but every cutter polygon is convex and planar. The BSP
    implementation in `src/features/shaping/solid-carve.mjs` follows
@@ -320,10 +340,13 @@ has been removed.
    new fracture faces. No existing vertex is pushed and then partly restored.
 3. Share intersection points across both incident polygon boundaries before
    triangulation. This constructs a conforming closed mesh without moving its
-   surfaces. Each triangle retains either its original triangle ID or cutter
-   plane ID, allowing independent geometric checks of the construction.
+   surfaces. Float32-coincident intersections are welded; degenerate fan edges
+   collapse only when the manifold link condition and all incident plane tags are
+   preserved. Native reduction cancels opposite, zero-volume triangle pairs
+   before compaction. Each triangle retains its source or cutter plane identity.
 4. Keep each new cut face's render normal on its plane, including internal
-   triangulation edges. Original surface regions use 30-degree crease normals.
+   triangulation edges. Original regions interpolate the upstream smooth normals;
+   the independent fracture-normal control blends only normals, never positions.
    Fitting and rendering consume identical triangle positions. Stone shading
    adds fine grain and joint tone, but does not deform the mesh.
 5. Refit the connected rock assembly against the carved surfaces, including solid

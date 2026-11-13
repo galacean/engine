@@ -56,6 +56,7 @@ it("retains rounded source mass while cutting local vertical joints, including a
       expect(carved.surface.planes).toBe(0); // no whole-body planar hull cuts
       expect(volume(carved) / volume(base)).toBeGreaterThan(0.88);
       expect(volume(carved)).toBeLessThan(volume(base) * 0.995);
+      closed(carved);
       const reduced = reduceMountainRock(carved, 1000);
       closed(reduced);
       const render = creasedRockAttributes(reduced),

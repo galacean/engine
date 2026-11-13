@@ -1,5 +1,5 @@
 {
-  "version": "rounded-body-fractures-7",
+  "version": "independent-fracture-depth-8",
   "cases": [
     {
       "id": "cliff",
@@ -20,56 +20,56 @@
       "depth": 0.1,
       "width": 0.1,
       "irregularity": 0,
-      "triangles": 32194
+      "triangles": 31550
     },
     {
       "id": "cliff",
       "depth": 0.1,
       "width": 0.1,
       "irregularity": 2,
-      "triangles": 39074
+      "triangles": 37018
     },
     {
       "id": "cliff",
       "depth": 0.1,
       "width": 2,
       "irregularity": 0,
-      "triangles": 31356
+      "triangles": 31328
     },
     {
       "id": "cliff",
       "depth": 0.1,
       "width": 2,
       "irregularity": 2,
-      "triangles": 35142
+      "triangles": 32100
     },
     {
       "id": "cliff",
       "depth": 2,
       "width": 0.1,
       "irregularity": 0,
-      "triangles": 37594
+      "triangles": 37532
     },
     {
       "id": "cliff",
       "depth": 2,
       "width": 0.1,
       "irregularity": 2,
-      "triangles": 44516
+      "triangles": 45814
     },
     {
       "id": "cliff",
       "depth": 2,
       "width": 2,
       "irregularity": 0,
-      "triangles": 36484
+      "triangles": 38612
     },
     {
       "id": "cliff",
       "depth": 2,
       "width": 2,
       "irregularity": 2,
-      "triangles": 42510
+      "triangles": 43358
     },
     {
       "id": "cliff2",
@@ -90,56 +90,56 @@
       "depth": 0.1,
       "width": 0.1,
       "irregularity": 0,
-      "triangles": 31546
+      "triangles": 31400
     },
     {
       "id": "cliff2",
       "depth": 0.1,
       "width": 0.1,
       "irregularity": 2,
-      "triangles": 39058
+      "triangles": 37598
     },
     {
       "id": "cliff2",
       "depth": 0.1,
       "width": 2,
       "irregularity": 0,
-      "triangles": 31022
+      "triangles": 32578
     },
     {
       "id": "cliff2",
       "depth": 0.1,
       "width": 2,
       "irregularity": 2,
-      "triangles": 36856
+      "triangles": 33002
     },
     {
       "id": "cliff2",
       "depth": 2,
       "width": 0.1,
       "irregularity": 0,
-      "triangles": 36500
+      "triangles": 36622
     },
     {
       "id": "cliff2",
       "depth": 2,
       "width": 0.1,
       "irregularity": 2,
-      "triangles": 44544
+      "triangles": 44982
     },
     {
       "id": "cliff2",
       "depth": 2,
       "width": 2,
       "irregularity": 0,
-      "triangles": 42800
+      "triangles": 47992
     },
     {
       "id": "cliff2",
       "depth": 2,
       "width": 2,
       "irregularity": 2,
-      "triangles": 43962
+      "triangles": 47732
     },
     {
       "id": "wall",
@@ -160,56 +160,56 @@
       "depth": 0.1,
       "width": 0.1,
       "irregularity": 0,
-      "triangles": 32984
+      "triangles": 32764
     },
     {
       "id": "wall",
       "depth": 0.1,
       "width": 0.1,
       "irregularity": 2,
-      "triangles": 40950
+      "triangles": 39418
     },
     {
       "id": "wall",
       "depth": 0.1,
       "width": 2,
       "irregularity": 0,
-      "triangles": 32596
+      "triangles": 30834
     },
     {
       "id": "wall",
       "depth": 0.1,
       "width": 2,
       "irregularity": 2,
-      "triangles": 38654
+      "triangles": 31512
     },
     {
       "id": "wall",
       "depth": 2,
       "width": 0.1,
       "irregularity": 0,
-      "triangles": 39444
+      "triangles": 39520
     },
     {
       "id": "wall",
       "depth": 2,
       "width": 0.1,
       "irregularity": 2,
-      "triangles": 46960
+      "triangles": 47862
     },
     {
       "id": "wall",
       "depth": 2,
       "width": 2,
       "irregularity": 0,
-      "triangles": 35082
+      "triangles": 38928
     },
     {
       "id": "wall",
       "depth": 2,
       "width": 2,
       "irregularity": 2,
-      "triangles": 38716
+      "triangles": 39894
     },
     {
       "id": "wall2",
@@ -230,56 +230,56 @@
       "depth": 0.1,
       "width": 0.1,
       "irregularity": 0,
-      "triangles": 30904
+      "triangles": 30186
     },
     {
       "id": "wall2",
       "depth": 0.1,
       "width": 0.1,
       "irregularity": 2,
-      "triangles": 36886
+      "triangles": 36290
     },
     {
       "id": "wall2",
       "depth": 0.1,
       "width": 2,
       "irregularity": 0,
-      "triangles": 30038
+      "triangles": 29224
     },
     {
       "id": "wall2",
       "depth": 0.1,
       "width": 2,
       "irregularity": 2,
-      "triangles": 35392
+      "triangles": 31394
     },
     {
       "id": "wall2",
       "depth": 2,
       "width": 0.1,
       "irregularity": 0,
-      "triangles": 34740
+      "triangles": 34752
     },
     {
       "id": "wall2",
       "depth": 2,
       "width": 0.1,
       "irregularity": 2,
-      "triangles": 43604
+      "triangles": 44300
     },
     {
       "id": "wall2",
       "depth": 2,
       "width": 2,
       "irregularity": 0,
-      "triangles": 35680
+      "triangles": 40254
     },
     {
       "id": "wall2",
       "depth": 2,
       "width": 2,
       "irregularity": 2,
-      "triangles": 38614
+      "triangles": 39438
     },
     {
       "id": "shoulder",
@@ -300,56 +300,56 @@
       "depth": 0.1,
       "width": 0.1,
       "irregularity": 0,
-      "triangles": 27140
+      "triangles": 26948
     },
     {
       "id": "shoulder",
       "depth": 0.1,
       "width": 0.1,
       "irregularity": 2,
-      "triangles": 32058
+      "triangles": 31764
     },
     {
       "id": "shoulder",
       "depth": 0.1,
       "width": 2,
       "irregularity": 0,
-      "triangles": 26934
+      "triangles": 23196
     },
     {
       "id": "shoulder",
       "depth": 0.1,
       "width": 2,
       "irregularity": 2,
-      "triangles": 30632
+      "triangles": 23522
     },
     {
       "id": "shoulder",
       "depth": 2,
       "width": 0.1,
       "irregularity": 0,
-      "triangles": 30720
+      "triangles": 30806
     },
     {
       "id": "shoulder",
       "depth": 2,
       "width": 0.1,
       "irregularity": 2,
-      "triangles": 37394
+      "triangles": 37838
     },
     {
       "id": "shoulder",
       "depth": 2,
       "width": 2,
       "irregularity": 0,
-      "triangles": 26958
+      "triangles": 30900
     },
     {
       "id": "shoulder",
       "depth": 2,
       "width": 2,
       "irregularity": 2,
-      "triangles": 31826
+      "triangles": 33932
     },
     {
       "id": "shoulder2",
@@ -370,56 +370,56 @@
       "depth": 0.1,
       "width": 0.1,
       "irregularity": 0,
-      "triangles": 30626
+      "triangles": 30448
     },
     {
       "id": "shoulder2",
       "depth": 0.1,
       "width": 0.1,
       "irregularity": 2,
-      "triangles": 35404
+      "triangles": 34204
     },
     {
       "id": "shoulder2",
       "depth": 0.1,
       "width": 2,
       "irregularity": 0,
-      "triangles": 29270
+      "triangles": 26830
     },
     {
       "id": "shoulder2",
       "depth": 0.1,
       "width": 2,
       "irregularity": 2,
-      "triangles": 32268
+      "triangles": 25120
     },
     {
       "id": "shoulder2",
       "depth": 2,
       "width": 0.1,
       "irregularity": 0,
-      "triangles": 34016
+      "triangles": 34294
     },
     {
       "id": "shoulder2",
       "depth": 2,
       "width": 0.1,
       "irregularity": 2,
-      "triangles": 40160
+      "triangles": 40840
     },
     {
       "id": "shoulder2",
       "depth": 2,
       "width": 2,
       "irregularity": 0,
-      "triangles": 29488
+      "triangles": 31170
     },
     {
       "id": "shoulder2",
       "depth": 2,
       "width": 2,
       "irregularity": 2,
-      "triangles": 32626
+      "triangles": 37022
     },
     {
       "id": "peak",
@@ -440,56 +440,56 @@
       "depth": 0.1,
       "width": 0.1,
       "irregularity": 0,
-      "triangles": 20698
+      "triangles": 20700
     },
     {
       "id": "peak",
       "depth": 0.1,
       "width": 0.1,
       "irregularity": 2,
-      "triangles": 24556
+      "triangles": 23628
     },
     {
       "id": "peak",
       "depth": 0.1,
       "width": 2,
       "irregularity": 0,
-      "triangles": 20462
+      "triangles": 18022
     },
     {
       "id": "peak",
       "depth": 0.1,
       "width": 2,
       "irregularity": 2,
-      "triangles": 22688
+      "triangles": 19292
     },
     {
       "id": "peak",
       "depth": 2,
       "width": 0.1,
       "irregularity": 0,
-      "triangles": 23162
+      "triangles": 23188
     },
     {
       "id": "peak",
       "depth": 2,
       "width": 0.1,
       "irregularity": 2,
-      "triangles": 28588
+      "triangles": 28894
     },
     {
       "id": "peak",
       "depth": 2,
       "width": 2,
       "irregularity": 0,
-      "triangles": 21762
+      "triangles": 22392
     },
     {
       "id": "peak",
       "depth": 2,
       "width": 2,
       "irregularity": 2,
-      "triangles": 23444
+      "triangles": 26462
     },
     {
       "id": "peak2",
@@ -510,56 +510,56 @@
       "depth": 0.1,
       "width": 0.1,
       "irregularity": 0,
-      "triangles": 28204
+      "triangles": 28114
     },
     {
       "id": "peak2",
       "depth": 0.1,
       "width": 0.1,
       "irregularity": 2,
-      "triangles": 33794
+      "triangles": 32520
     },
     {
       "id": "peak2",
       "depth": 0.1,
       "width": 2,
       "irregularity": 0,
-      "triangles": 28040
+      "triangles": 26670
     },
     {
       "id": "peak2",
       "depth": 0.1,
       "width": 2,
       "irregularity": 2,
-      "triangles": 31750
+      "triangles": 27518
     },
     {
       "id": "peak2",
       "depth": 2,
       "width": 0.1,
       "irregularity": 0,
-      "triangles": 31850
+      "triangles": 31854
     },
     {
       "id": "peak2",
       "depth": 2,
       "width": 0.1,
       "irregularity": 2,
-      "triangles": 39076
+      "triangles": 39516
     },
     {
       "id": "peak2",
       "depth": 2,
       "width": 2,
       "irregularity": 0,
-      "triangles": 29018
+      "triangles": 33174
     },
     {
       "id": "peak2",
       "depth": 2,
       "width": 2,
       "irregularity": 2,
-      "triangles": 36280
+      "triangles": 37518
     },
     {
       "id": "slab",
@@ -580,56 +580,56 @@
       "depth": 0.1,
       "width": 0.1,
       "irregularity": 0,
-      "triangles": 26518
+      "triangles": 26686
     },
     {
       "id": "slab",
       "depth": 0.1,
       "width": 0.1,
       "irregularity": 2,
-      "triangles": 31218
+      "triangles": 29284
     },
     {
       "id": "slab",
       "depth": 0.1,
       "width": 2,
       "irregularity": 0,
-      "triangles": 26416
+      "triangles": 28976
     },
     {
       "id": "slab",
       "depth": 0.1,
       "width": 2,
       "irregularity": 2,
-      "triangles": 27792
+      "triangles": 28974
     },
     {
       "id": "slab",
       "depth": 2,
       "width": 0.1,
       "irregularity": 0,
-      "triangles": 31848
+      "triangles": 31754
     },
     {
       "id": "slab",
       "depth": 2,
       "width": 0.1,
       "irregularity": 2,
-      "triangles": 32908
+      "triangles": 34076
     },
     {
       "id": "slab",
       "depth": 2,
       "width": 2,
       "irregularity": 0,
-      "triangles": 34688
+      "triangles": 34920
     },
     {
       "id": "slab",
       "depth": 2,
       "width": 2,
       "irregularity": 2,
-      "triangles": 33754
+      "triangles": 33964
     },
     {
       "id": "slab2",
@@ -650,56 +650,56 @@
       "depth": 0.1,
       "width": 0.1,
       "irregularity": 0,
-      "triangles": 27292
+      "triangles": 27514
     },
     {
       "id": "slab2",
       "depth": 0.1,
       "width": 0.1,
       "irregularity": 2,
-      "triangles": 32878
+      "triangles": 30778
     },
     {
       "id": "slab2",
       "depth": 0.1,
       "width": 2,
       "irregularity": 0,
-      "triangles": 27636
+      "triangles": 32500
     },
     {
       "id": "slab2",
       "depth": 0.1,
       "width": 2,
       "irregularity": 2,
-      "triangles": 29686
+      "triangles": 32108
     },
     {
       "id": "slab2",
       "depth": 2,
       "width": 0.1,
       "irregularity": 0,
-      "triangles": 32854
+      "triangles": 32758
     },
     {
       "id": "slab2",
       "depth": 2,
       "width": 0.1,
       "irregularity": 2,
-      "triangles": 34680
+      "triangles": 35192
     },
     {
       "id": "slab2",
       "depth": 2,
       "width": 2,
       "irregularity": 0,
-      "triangles": 41340
+      "triangles": 38390
     },
     {
       "id": "slab2",
       "depth": 2,
       "width": 2,
       "irregularity": 2,
-      "triangles": 38028
+      "triangles": 38934
     },
     {
       "id": "bank",
@@ -720,56 +720,56 @@
       "depth": 0.1,
       "width": 0.1,
       "irregularity": 0,
-      "triangles": 28098
+      "triangles": 28246
     },
     {
       "id": "bank",
       "depth": 0.1,
       "width": 0.1,
       "irregularity": 2,
-      "triangles": 33056
+      "triangles": 31950
     },
     {
       "id": "bank",
       "depth": 0.1,
       "width": 2,
       "irregularity": 0,
-      "triangles": 27304
+      "triangles": 24418
     },
     {
       "id": "bank",
       "depth": 0.1,
       "width": 2,
       "irregularity": 2,
-      "triangles": 30376
+      "triangles": 23886
     },
     {
       "id": "bank",
       "depth": 2,
       "width": 0.1,
       "irregularity": 0,
-      "triangles": 31578
+      "triangles": 31642
     },
     {
       "id": "bank",
       "depth": 2,
       "width": 0.1,
       "irregularity": 2,
-      "triangles": 37946
+      "triangles": 38142
     },
     {
       "id": "bank",
       "depth": 2,
       "width": 2,
       "irregularity": 0,
-      "triangles": 28194
+      "triangles": 30262
     },
     {
       "id": "bank",
       "depth": 2,
       "width": 2,
       "irregularity": 2,
-      "triangles": 26650
+      "triangles": 31608
     },
     {
       "id": "bank2",
@@ -790,64 +790,64 @@
       "depth": 0.1,
       "width": 0.1,
       "irregularity": 0,
-      "triangles": 29584
+      "triangles": 29190
     },
     {
       "id": "bank2",
       "depth": 0.1,
       "width": 0.1,
       "irregularity": 2,
-      "triangles": 34860
+      "triangles": 33398
     },
     {
       "id": "bank2",
       "depth": 0.1,
       "width": 2,
       "irregularity": 0,
-      "triangles": 28574
+      "triangles": 26846
     },
     {
       "id": "bank2",
       "depth": 0.1,
       "width": 2,
       "irregularity": 2,
-      "triangles": 31552
+      "triangles": 27572
     },
     {
       "id": "bank2",
       "depth": 2,
       "width": 0.1,
       "irregularity": 0,
-      "triangles": 34786
+      "triangles": 35042
     },
     {
       "id": "bank2",
       "depth": 2,
       "width": 0.1,
       "irregularity": 2,
-      "triangles": 39990
+      "triangles": 40298
     },
     {
       "id": "bank2",
       "depth": 2,
       "width": 2,
       "irregularity": 0,
-      "triangles": 30984
+      "triangles": 35178
     },
     {
       "id": "bank2",
       "depth": 2,
       "width": 2,
       "irregularity": 2,
-      "triangles": 32590
+      "triangles": 34484
     }
   ],
   "sensitivity": [
     {
       "id": "wall",
       "control": "depth",
-      "volumeAt50Percent": 603.1001158898416,
-      "volumeAt150Percent": 574.3272774161579
+      "volumeAt50Percent": 599.085679037206,
+      "volumeAt150Percent": 585.1693156689629
     },
     {
       "id": "wall",
@@ -858,20 +858,20 @@
     {
       "id": "peak",
       "control": "depth",
-      "volumeAt50Percent": 4970.176276657257,
-      "volumeAt150Percent": 4715.834644170014
+      "volumeAt50Percent": 4942.645151982647,
+      "volumeAt150Percent": 4829.381756477802
     },
     {
       "id": "peak",
       "control": "width",
-      "volumeAt50Percent": 4939.316778860539,
-      "volumeAt150Percent": 4800.107966258882
+      "volumeAt50Percent": 4948.810843977475,
+      "volumeAt150Percent": 4827.283731396846
     },
     {
       "id": "slab",
       "control": "depth",
-      "volumeAt50Percent": 170.19669874964723,
-      "volumeAt150Percent": 165.63382040038377
+      "volumeAt50Percent": 169.63147782488656,
+      "volumeAt150Percent": 167.33201988713913
     },
     {
       "id": "slab",

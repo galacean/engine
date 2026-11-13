@@ -1,7 +1,7 @@
 import {clamp} from '../../ridge-utils.mjs';
 import {convexCarveCutter,sweptCarveCutter,carveSolidMesh} from './solid-carve.mjs';
 
-export const ROCK_SURFACE_VERSION='rounded-body-fractures-7';
+export const ROCK_SURFACE_VERSION='independent-fracture-depth-8';
 export const FRACTURE_DEFAULTS=Object.freeze({depth:1,width:1,irregularity:1});
 export function fractureSettings(options={}){return Object.fromEntries(Object.entries(FRACTURE_DEFAULTS).map(([key,value])=>[key,Number.isFinite(options?.[key])?clamp(options[key],0,2):value]));}
 const PREVIOUS_SURFACE_VERSION='solid-carving-4';
@@ -49,21 +49,46 @@ function retainedBodyNormals(source,vertices,indices,tags,fallback){
  return normals;
 }
 
-// Distinct double-precision intersections can be the same GPU position. Weld
-// only those indistinguishable points and their collapsed edge triangles, so
-// the indexed surface remains closed at the precision actually rendered.
+// BSP slivers can collapse at GPU precision. Weld coincident points, and
+// collapse a collinear fan edge only if it preserves connectivity and every
+// incident source/cutter plane. Never drop a lone face and leave an open seam.
 function weldGpuIntersections(vertices,indices,tags){
- const keys=new Map(),canonical=vertices.map((p,id)=>{const key=p.map(Math.fround).join(':');if(!keys.has(key))keys.set(key,id);return keys.get(key);});
- if(keys.size===vertices.length)return {vertices,indices,tags};
+ const gpu=vertices.map(p=>p.map(Math.fround)),keys=new Map(),canonical=gpu.map((p,id)=>{const key=p.join(':');if(!keys.has(key))keys.set(key,id);return keys.get(key);});
+ const flat=(a,b,c)=>{const p=gpu[a],q=gpu[b],r=gpu[c],ux=q[0]-p[0],uy=q[1]-p[1],uz=q[2]-p[2],vx=r[0]-p[0],vy=r[1]-p[1],vz=r[2]-p[2];return uy*vz===uz*vy&&uz*vx===ux*vz&&ux*vy===uy*vx;};
+ if(keys.size===vertices.length&&!indices.some((_,i)=>i%3===0&&flat(indices[i],indices[i+1],indices[i+2])))return {vertices,indices,tags};
  const triangles=new Map();
- for(let i=0;i<indices.length;i+=3){
-  const ids=indices.slice(i,i+3).map(id=>canonical[id]);if(new Set(ids).size<3)continue;
-  const key=[...ids].sort((a,b)=>a-b).join(':'),previous=triangles.get(key);
-  const winding=(Number(ids[0]>ids[1])+Number(ids[0]>ids[2])+Number(ids[1]>ids[2]))%2;
-  // Collapsing a tiny edge can also flatten a two-sided fan to an opposite
-  // triangle pair. Cancel that zero-thickness pair before compacting vertices.
-  if(previous&&previous.winding!==winding){triangles.delete(key);continue;}
-  triangles.set(key,{ids,tag:tags[i/3],winding});
+ const collect=()=>{
+  triangles.clear();
+  for(let i=0;i<indices.length;i+=3){
+   const ids=indices.slice(i,i+3).map(id=>{while(canonical[id]!==id)id=canonical[id];return id;});if(new Set(ids).size<3)continue;
+   const key=[...ids].sort((a,b)=>a-b).join(':'),previous=triangles.get(key);
+   const winding=(Number(ids[0]>ids[1])+Number(ids[0]>ids[2])+Number(ids[1]>ids[2]))%2;
+   // Collapsing a tiny edge can also flatten a two-sided fan to an opposite
+   // triangle pair. Cancel that zero-thickness pair before compacting vertices.
+   if(previous&&previous.winding!==winding){triangles.delete(key);continue;}
+   triangles.set(key,{ids,tag:tags[i/3],winding});
+  }
+ };
+ collect();
+ for(;;){
+  const degenerate=[...triangles.values()].filter(face=>flat(...face.ids));if(!degenerate.length)break;
+  const neighbors=new Map(),planes=new Map();
+  for(const {ids,tag} of triangles.values())for(const id of ids){
+   if(!neighbors.has(id)){neighbors.set(id,new Set());planes.set(id,new Set());}
+   for(const other of ids)if(other!==id)neighbors.get(id).add(other);planes.get(id).add(tag);
+  }
+  let collapsed=false;
+  for(const {ids} of degenerate){
+   const candidates=ids.flatMap(from=>ids.filter(to=>to!==from).map(to=>({from,to,length:Math.hypot(...surfaceSub(vertices[from],vertices[to]))}))).sort((a,b)=>a.length-b.length);
+   for(const {from,to} of candidates){
+    if(![...planes.get(from)].every(tag=>planes.get(to).has(tag)))continue;
+    if([...neighbors.get(from)].filter(id=>neighbors.get(to).has(id)).length!==2)continue;
+    canonical[from]=to;collapsed=true;break;
+   }
+   if(collapsed)break;
+  }
+  if(!collapsed)throw new Error('Cannot preserve fracture topology at GPU precision');
+  collect();
  }
  const points=[],faces=[],faceTags=[],used=new Map();
  for(const {ids,tag} of triangles.values()){
@@ -122,8 +147,8 @@ function solidFractureGeometry(g,irregular,settings=FRACTURE_DEFAULTS){
   const aspect=Math.min(1,height/Math.hypot(t[0]*radius[0],t[1]*radius[1])*.4),drift=(surfaceHash(i,8,0,seed)-.5)*.25*aspect;
   const stations=[0,.19+.035*surfaceHash(i,9,0,seed),.40+.06*surfaceHash(i,10,0,seed),.66+.06*surfaceHash(i,11,0,seed),.85+.025*surfaceHash(i,12,0,seed),1];
   // A few independent geological-scale bends, not vertex-frequency noise.
-  // Depth variation changes the opening width continuously; unequal walls
-  // prevent a repeated symmetric V profile. Both tips exit outside the rock.
+  // A seeded width profile and unequal walls prevent a repeated symmetric V.
+  // User depth moves the inner tip; the opening angle compensates below.
   const centers=stations.map((u,j)=>(drift*(u-.5)+(surfaceHash(i,13+j,0,seed)-.5)*.30*aspect)*settings.irregularity);
   // Intersect the actual body in (height, tangent) space. A planar envelope
   // would over-cut the shoulder and crown, turning every rock into a prism.
@@ -149,13 +174,20 @@ function solidFractureGeometry(g,irregular,settings=FRACTURE_DEFAULTS){
   };
   const sections=stations.map((u,j)=>{
    const y=low+u*span,center=centers[j],skin=skinAt(y,center);
-   const variation=.65+.60*surfaceHash(i,20+j,0,seed),depth=(.20+.07*surfaceHash(i,5,0,seed))*(settings.irregularity===1?variation:.95+(variation-.95)*settings.irregularity)*settings.depth;
+   const variation=.65+.60*surfaceHash(i,20+j,0,seed),profileDepth=(.20+.07*surfaceHash(i,5,0,seed))*(settings.irregularity===1?variation:.95+(variation-.95)*settings.irregularity);
+   // Reserve enough solid core for the full depth slider range up front. A
+   // late tip clamp would make width shrink once depth reached that clamp.
+   const baseDepth=Math.min(profileDepth,Math.max(0,skin-.22)/2),depth=baseDepth*settings.depth;
    // End rings sit completely outside the body. Only connected inclined walls
    // can be exposed; there is no horizontal cap to become a jagged ledge.
    const exit=j===0||j===stations.length-1?outerSkinAt(y)+.035:0;
    return {y,center,tip:Math.max(.22,j===0||j===stations.length-1?exit:skin-depth)};
   });
-  const asymmetry=.62+.24*surfaceHash(i,27,0,seed),openings=[opening*asymmetry*settings.width,opening*(1.65-asymmetry)*settings.width];
+  // opening is a wall slope, not an aperture. In a V cut, aperture = slope ×
+  // penetration; compensate for depth so it controls penetration independently.
+  // One slope per wall keeps every swept quad planar, avoiding twisted ledges.
+  const asymmetry=.62+.24*surfaceHash(i,27,0,seed),apertureScale=settings.width/settings.depth;
+  const openings=[opening*asymmetry*apertureScale,opening*(1.65-asymmetry)*apertureScale];
   const cutter=sweptCarveCutter(sections,n,openings,planeInfo.length+1);
   cutters.push(cutter);planeInfo.push(...cutter.planes.map(p=>({...p,kind:'joint'})));fracturePaths.push({n,opening:openings,sections});
  }
