@@ -65,7 +65,7 @@ const formation = (): RockFormationMesh => ({
     positions: new Float32Array([0, 3, 0, 1, 3, 0, 0, 4, 1, 2, 3, 0]),
     indices: new Uint32Array([0, 1, 2, 1, 3, 2, 0, 0, 0])
   },
-  stats: { bodies: 1, vertices: 1, generationMs: 0 }
+  stats: { bodies: 1, vertices: 1 }
 });
 afterEach(() => {
   physics.meshes = [];

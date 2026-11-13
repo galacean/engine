@@ -35,7 +35,6 @@ import {
   type PlanningSeedSceneCandidate
 } from "@galacean/engine-world-planning/spatial/runtime/PlanningSeedScenePublication";
 import { prepareRockFormationPublication } from "@galacean/engine-world-planning/integrations/terrain/rock-formation/Publication";
-import { ROCK_GENERATION_DEFAULTS } from "@galacean/engine-world-planning/integrations/terrain/rock-formation/GenerationProfile";
 import { TerrainNavigationRuntime } from "@galacean/engine-terrain/terrain/project/TerrainNavigationRuntime";
 import { SeedWorldAudioRuntime } from "@galacean/engine-world-planning/world/SeedWorldAudioRuntime";
 import { SeedWorldRuntimeEnginePort } from "../../demos/seed-world/agent-adapter/runtime/SeedWorldRuntimeEnginePort.ts";
@@ -820,7 +819,6 @@ it("publishes a rock and its dependent building supports without recreating any 
   source.world.population.prepareRockGrass = vi.fn(() => grass);
   source.world.population.setRockGrassGround = vi.fn();
   source.solids.prepareRocks = vi.fn(() => rocks);
-  source.vegetation.prepareRocks = vi.fn(() => ({ commit: vi.fn(), discard: vi.fn() }));
   source.masonry = { prepareRockSupports: vi.fn(() => supports), destroy: vi.fn(), root: { isActive: true } };
   const plan = {
     ...previous.plan,
@@ -840,11 +838,9 @@ it("publishes a rock and its dependent building supports without recreating any 
   } as unknown as IslandPlan;
   const waterPrepare = vi.spyOn(f.water, "prepare"),
     fullPrepare = vi.spyOn(f.owner, "prepare");
-  const profile = { ...ROCK_GENERATION_DEFAULTS, platformShare: 0.9, platformHeightScale: 0.3 };
   const frame = await f.owner.prepareRocks(plan, (signal) =>
-    prepareRockFormationPublication(previous, plan, [], {} as any, {} as any, 2, signal, profile)
+    prepareRockFormationPublication(previous, plan, [], { colorBlend: { color: [1, 1, 1] } }, 2, signal)
   );
-  expect(source.vegetation.prepareRocks).toHaveBeenCalledWith({}, {}, expect.any(AbortSignal), profile);
   expect(source.vegetation.prepareGrounding).toHaveBeenCalledWith(previous.data.fields, expect.any(AbortSignal),
     { plan: expect.any(Object), formations: [] });
   expect(rocks.commit).not.toHaveBeenCalled();
@@ -1660,7 +1656,6 @@ it.each(["accept", "discard", "rock-failure", "abort"] as const)(
     const grass = { metrics: {}, commit: vi.fn(), discard: vi.fn() };
     source.solids.prepareRocks = vi.fn(() => rocks);
     source.world.population.prepareRockGrass = vi.fn(() => grass);
-    source.vegetation.prepareRocks = vi.fn(async () => ({ commit: vi.fn(), discard: vi.fn() }));
     const controller = new AbortController();
     const mesh = {
       id: "rock",
@@ -1675,8 +1670,7 @@ it.each(["accept", "discard", "rock-failure", "abort"] as const)(
       published,
       published.plan,
       [mesh] as any,
-      {} as any,
-      {} as any,
+      { colorBlend: { color: [1, 1, 1] } },
       2,
       controller.signal
     );

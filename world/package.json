@@ -25,7 +25,6 @@
     "@galacean/engine-toolkit-controls": "latest",
     "@galacean/engine-toolkit-stats": "latest",
     "esbuild-wasm": "0.25.8",
-    "manifold-3d": "3.5.4",
     "zod": "4.4.3",
     "acorn": "8.17.0",
     "re2js": "2.9.0",

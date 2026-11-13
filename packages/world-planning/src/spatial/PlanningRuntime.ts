@@ -8,7 +8,6 @@ import type { SceneEntity, PlanningScene } from "./PlanningScene";
 import { initialLayoutRule } from "./layout/SpatialWorld";
 import { layoutRuleManifest } from "./layout/LayoutRules";
 import { layoutProfileManifest } from "./layout/LayoutProfiles";
-import { DEFAULT_ROCK_HEIGHT_MODE } from "@galacean/engine-terrain/rock-formation/types";
 
 /** Read-only diagnostic extension. Geometry generation is owned by registered LayoutRule plugins. */
 export interface PlanningExtension {
@@ -94,12 +93,6 @@ export function editableEntity(document: PlanningDocument, scene: SceneEntity, p
         width: box.sizeX,
         height: box.sizeY,
         depth: box.sizeZ,
-        heightMode: box.heightMode ?? DEFAULT_ROCK_HEIGHT_MODE,
-        ...(box.surfaceMode !== undefined ? { surfaceMode: box.surfaceMode } : {}),
-        ...(box.slopeMode !== undefined ? { slopeMode: box.slopeMode } : {}),
-        ...(box.slopeRate !== undefined ? { slopeRate: box.slopeRate } : {}),
-        ...(box.slopeVariation !== undefined ? { slopeVariation: box.slopeVariation } : {}),
-        ...(box.heightVariation !== undefined ? { heightVariation: box.heightVariation } : {}),
         ...entity.components.rockObb?.values
       }
     };

@@ -30,7 +30,7 @@ export interface RockGrassSurface {
   patches: RockGrassPatch[];
 }
 
-/** Worker-only topology preparation; no asset, renderer, DOM or terrain sampling dependencies. */
+/** Topology preparation; no asset, renderer, DOM or terrain sampling dependencies. */
 export function buildRockGrassSurface(
   formation: RockFormationMesh,
   vertexNormals: Float32Array,
@@ -224,8 +224,8 @@ export function* compileRockGrassPatch(
           height,
           scale * edgeScale,
           substrateCoverage,
-          formation.textureScale ?? 0,
-          formation.variant ? 0 : 1, // Only procedural rocks use the shared projected substrate.
+          0,
+          0,
           sx / normalLength,
           sy / normalLength,
           sz / normalLength

@@ -19,7 +19,6 @@
     "./index": "./src/index.ts",
     "./rock-formation/GrassPatches": "./src/rock-formation/GrassPatches.ts",
     "./rock-formation/GrassSurface": "./src/rock-formation/GrassSurface.ts",
-    "./rock-formation/SurfaceAttributes": "./src/rock-formation/SurfaceAttributes.ts",
     "./rock-formation/TransitionCoverage": "./src/rock-formation/TransitionCoverage.ts",
     "./rock-formation/math": "./src/rock-formation/math.ts",
     "./rock-formation/types": "./src/rock-formation/types.ts",
@@ -99,7 +98,6 @@
     "./world/SeedWorldTerrainGenerationSettings": "./src/world/SeedWorldTerrainGenerationSettings.ts",
     "./world/SeedWorldTerrainTransition": "./src/world/SeedWorldTerrainTransition.ts",
     "./rock-formation/GrassCoverage": "./src/rock-formation/GrassCoverage.ts",
-    "./rock-formation/Slope": "./src/rock-formation/Slope.ts",
     "./surface/SurfaceMaterial": "./src/surface/SurfaceMaterial.ts",
     "./surface/SurfaceShader": "./src/surface/SurfaceShader.ts"
   },
@@ -110,7 +108,6 @@
     "@galacean/engine-math": "workspace:*",
     "@galacean/engine-shader-compiler": "workspace:*",
     "dat.gui": "^0.7.9",
-    "manifold-3d": "3.5.4",
     "@galacean/engine-environment": "workspace:*",
     "@galacean/engine-animals": "workspace:*"
   }

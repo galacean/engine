@@ -171,28 +171,12 @@ const settled = async () => {
   await Promise.resolve();
 };
 
-it("shows the bilingual texture control and submits only its changed material value", async () => {
-  const f = fixture(),
-    texture = f.control('field="textureScale"');
-  expect(texture.value).toBe("0");
-  expect(texture.attributes["aria-label"]).toBe("Texture repeat / 纹理平铺米数（0 自动）");
-  f.actions.get("Apply formation settings / 应用形态设置")!.click();
-  expect(f.apply).not.toHaveBeenCalled();
-  f.input('field="textureScale"', "24");
-  f.actions.get("Apply formation settings / 应用形态设置")!.click();
-  expect(f.apply).toHaveBeenCalledWith([
-    { op: "set", entity: "world", component: "rockFormation", values: { textureScale: 24 } }
-  ]);
-  await settled();
-  f.panel.destroy();
-});
-
 it("edits a single rock color without quantizing untouched values or including geometry settings", async () => {
   const f = fixture();
-  expect(f.control('rock-color="color"').value).toBe("#b8bcc2");
+  expect(f.control('rock-color="color"').value).toBe("#ffffff");
   f.actions.get("Apply rock color / 应用岩石颜色")!.click();
   expect(f.apply).not.toHaveBeenCalled();
-  f.input('rock-color="color"', "#00bcc2");
+  f.input('rock-color="color"', "#00ffff");
   f.actions.get("Apply rock color / 应用岩石颜色")!.click();
   expect(f.apply).toHaveBeenCalledExactlyOnceWith([
     {
@@ -222,18 +206,6 @@ it("preserves unchanged dimensions and submits only an edited OBB dimension", as
   expect(f.apply).toHaveBeenCalledExactlyOnceWith([
     { op: "set", entity: rockObbId("rock", "box"), component: "rockObb", values: { height: 20 } }
   ]);
-  await settled();
-  f.panel.destroy();
-});
-
-it("submits one changed shape value without changing the published OBB", async () => {
-  const f = fixture();
-  f.input('field="wallCount"', "20");
-  f.actions.get("Apply formation settings / 应用形态设置")!.click();
-  expect(f.apply).toHaveBeenCalledExactlyOnceWith([
-    { op: "set", entity: "world", component: "rockFormation", values: { wallCount: 20 } }
-  ]);
-  expect(f.box.sizeY).toBe(12.3456);
   await settled();
   f.panel.destroy();
 });

@@ -42,8 +42,7 @@ void terrainProjectGrassRockAppearance(vec3 positionWS, Attributes attributes,
     if (weight > 0.0) {
       float coverage = dot(bary, vec3(attributes.DETAIL_ROCK_A.w, attributes.DETAIL_ROCK_B.w, attributes.DETAIL_ROCK_C.w));
       vec3 normal = normalize(attributes.DETAIL_ROCK_NA.xyz * bary.x + attributes.DETAIL_ROCK_NB.xyz * bary.y + attributes.DETAIL_ROCK_NC.xyz * bary.z);
-      vec4 ground = terrainProjectRockGrassGround(surfacePosition, normal,
-        vec3(coverage, attributes.DETAIL_ROCK_META.xy), terrainProjectGrassSurfaceColor(surfacePosition));
+      vec4 ground = terrainProjectRockGrassGround(coverage, terrainProjectGrassSurfaceColor(surfacePosition));
       normal = terrainProjectAttachedReliefNormal(surfacePosition, normal, coverage);
       float snow = 0.72;
       float clearance = dot(bary, vec3(attributes.DETAIL_ROCK_NA.w, attributes.DETAIL_ROCK_NB.w, attributes.DETAIL_ROCK_NC.w));

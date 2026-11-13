@@ -186,26 +186,8 @@ export class PlanningFlowerInfluence extends VisualParameterAuthoring {
   declare multiplier?: number;
   declare falloff?: number;
 }
-/** Sparse procedural rock shape and shared projected material controls. */
 export class PlanningRockFormation extends VisualParameterAuthoring {
-  declare textureScale?: number;
   declare color?: AuthoredColor;
-  declare topScale?: number;
-  declare bottomScale?: number;
-  declare shoulderScale?: number;
-  declare shoulderHeight?: number;
-  declare topRoughness?: number;
-  declare topSlope?: number;
-  declare topDirection?: number;
-  declare wallCount?: number;
-  declare wallOverlap?: number;
-  declare wallProtrusion?: number;
-  declare wallLength?: number;
-  declare wallTilt?: number;
-  declare wallStrength?: number;
-  declare outlineIrregularity?: number;
-  declare variation?: number;
-  declare targetTriangles?: number;
 }
 export class PlanningSeedArchiveAuthoring extends Script {
   declare metadata: PlanningSeedArchiveMetadata;

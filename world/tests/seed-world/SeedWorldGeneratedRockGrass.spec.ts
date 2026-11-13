@@ -8,13 +8,10 @@ import { RockGrassPatches } from "../../../packages/terrain/src/rock-formation/G
 import { rockFormationPlacements, rockFormationGround } from "../../../packages/world-planning/src/integrations/terrain/rock-formation/Placement.ts";
 import { prepareRockFormationPublication } from "../../../packages/world-planning/src/integrations/terrain/rock-formation/Publication.ts";
 import { rockGrassExclusions } from "../../../packages/world-planning/src/integrations/terrain/rock-formation/GrassExclusions.ts";
-import { rockSurfaceAttributes } from "../../../packages/terrain/src/rock-formation/SurfaceAttributes.ts";
 import { sharedRockTransitionCoverage } from "../../../packages/terrain/src/rock-formation/TransitionCoverage.ts";
 import type { RockFormationMesh, V3 } from "../../../packages/terrain/src/rock-formation/types.ts";
 import type { IslandPlan } from "../../../packages/world-planning/src/semantic-study/IslandPlanModel.ts";
 import type { SeedWorldFields } from "../../../packages/world-planning/src/runtime/SeedWorldFields.ts";
-import { generateRockFormation } from "../../../packages/world-planning/src/integrations/terrain/rock-formation/Generate.ts";
-import { readRockFormationSettings } from "../../../packages/world-planning/src/integrations/terrain/rock-formation/Settings.ts";
 import { NATURAL_VEGETATION_DEFAULTS } from "../../../packages/world-planning/src/planning-data/NaturalVegetationProfile.ts";
 import { readSeedWorldGrassRootRadius } from "../../../packages/world-planning/src/runtime/SeedWorldRockSurfaceGrass.ts";
 import { Matrix } from "@galacean/engine-math";
@@ -32,7 +29,7 @@ function plane(id = "a", y = 0, width = 8): RockFormationMesh {
     origin: [0, 0, 0],
     owners: [id, id],
     mesh,
-    stats: { bodies: 0, vertices: 0, generationMs: 0 }
+    stats: { bodies: 0, vertices: 0 }
   };
   formation.grass = buildRockGrassSurface(formation, mesh.normals);
   return formation;
@@ -42,22 +39,22 @@ describe("shared rock shading coverage", () => {
   it.each(["commit", "discard"])("stages vegetation rock support until rock publication %s", async (action) => {
     const events: string[] = [];
     const frame = (name: string) => ({ metrics: {}, commit: vi.fn(() => events.push(name)), discard: vi.fn() });
-    const rocks = frame("rocks"), vegetation = frame("vegetation"), grounding = frame("grounding"), grass = frame("grass");
+    const rocks = frame("rocks"), grounding = frame("grounding"), grass = frame("grass");
     const fields = {};
     const plan = { parameters: { seed: 1 }, rocks: [], buildings: [], routes: [], landscapes: [] } as any;
     const current = {
       plan, data: { fields },
       solids: { prepareRocks: vi.fn(() => rocks) },
-      vegetation: { prepareRocks: vi.fn(async () => vegetation), prepareGrounding: vi.fn(() => grounding) },
+      vegetation: { prepareGrounding: vi.fn(() => grounding) },
       world: { population: { prepareRockGrass: vi.fn(() => grass), setRockGrassGround: vi.fn() } },
       navigation: { samplePointIsUnderwater: () => false }
     } as any;
     const meshes = [plane()];
-    const publication = await prepareRockFormationPublication(current, plan, meshes, {} as any, {} as any, 2, new AbortController().signal);
+    const publication = await prepareRockFormationPublication(current, plan, meshes, {} as any, 2, new AbortController().signal);
     expect(current.vegetation.prepareGrounding).toHaveBeenCalledWith(fields, expect.any(AbortSignal), { plan, formations: meshes });
     expect(events).toEqual([]);
     publication[action]();
-    if (action === "commit") expect(events).toEqual(["rocks", "vegetation", "grounding", "grass"]);
+    if (action === "commit") expect(events).toEqual(["rocks", "grounding", "grass"]);
     else {
       expect(events).toEqual([]);
       expect(grounding.discard).toHaveBeenCalledOnce();
@@ -110,8 +107,8 @@ describe("generated rock surface grass", () => {
     rock.grass!.coverage.fill(1);
     expect(compile(rock).records).toEqual(dense);
   });
-  it("matches grass roots to their projected substrate and metre-sized tiling", () => {
-    const rock = plane(); rock.textureScale = 4;
+  it("matches grass roots to the underlying rock coverage", () => {
+    const rock = plane();
     rock.grass!.coverage.set([0.2, 0.6, 1, 1, 0.6, 0.8]);
     const records = compile(rock).records;
     expect(records.length).toBeGreaterThan(0);
@@ -121,7 +118,6 @@ describe("generated rock surface grass", () => {
         : (1 - z) + 0.6 * (1 - x) + 0.8 * (x + z - 1);
       expect(record).toHaveLength(13);
       expect(record[7]).toBeCloseTo(expected, 5);
-      expect(record.slice(8, 10)).toEqual([4, 1]);
     }
   });
   it("measures the native asset's roots independently of tall overhanging leaves", () => {
@@ -148,10 +144,6 @@ describe("generated rock surface grass", () => {
   it("separates grass coverage from rock activation and gives rendering the same corner mask", () => {
     const rock = plane();
     expect([...rock.grass!.coverage]).toEqual([1, 1, 1, 1, 1, 1]);
-    const attributes = rockSurfaceAttributes(rock);
-    expect(Array.from({ length: 6 }, (_, i) => attributes.data[i * attributes.stride + 9])).toEqual([
-      ...rock.grass!.coverage
-    ]);
     // Shading normals cannot erase the explicitly authored roof mask.
     const steepGuide = rock.mesh.normals!.map((_, i) => (i % 3 === 0 ? .9 : i % 3 === 1 ? .43589 : 0));
     const roof = buildRockGrassSurface(rock, steepGuide, new Float32Array(4).fill(1));
@@ -437,98 +429,4 @@ describe("incremental rock grass publication", () => {
     expect(new Set(destroy.mock.calls.map(([key]) => key)).size).toBe(destroy.mock.calls.length);
   });
 
-  it("measures resumable sampling on actual generated procedural rocks while retaining the neighboring grass", async () => {
-    const settings = readRockFormationSettings({ entities: {} } as any);
-    const job = {
-      id: "a",
-      seed: 17,
-      origin: [80, 12, 65] as V3,
-      guides: [
-        {
-          id: "a",
-          ownerId: "a:obb:0",
-          center: [0, 18, 0] as V3,
-          size: [48, 36, 40] as V3,
-          axes: [
-            [1, 0, 0],
-            [0, 1, 0],
-            [0, 0, 1]
-          ] as [V3, V3, V3]
-        }
-      ],
-    };
-    const a = generateRockFormation(job, settings);
-    expect(a.grass!.patches.length).toBeGreaterThan(0);
-    expect(a.grass!.coverage.length).toBe(a.mesh.indices.length);
-    const b = generateRockFormation({ ...job, id: "b", origin: [120, 12, 65] }, settings);
-    const uploads: { key: string; data: Float32Array }[] = [];
-    const manager = new RockGrassPatches({
-      create: (data, key) => {
-        const batch = { key, data: data.slice() };
-        uploads.push(batch);
-        return batch;
-      },
-      visible: () => {},
-      destroy: () => {}
-    });
-    const times: number[] = [];
-    let turns = 0;
-    const settle = async () => {
-      for (let i = 0; i < 20000; i++) {
-        const before = performance.now(),
-          count = uploads.length;
-        manager.update([90, 30, 65], 100, true, sampling);
-        times.push(performance.now() - before);
-        expect(uploads.length - count).toBeLessThanOrEqual(1);
-        if (!manager.diagnostics.pendingPatches) return;
-        turns++;
-        await new Promise<void>((resolve) => setTimeout(resolve, 0));
-      }
-      throw Error("Generated rock grass did not settle");
-    };
-    manager
-      .prepare(
-        [
-          { formation: a, origin: a.origin },
-          { formation: b, origin: b.origin }
-        ],
-        () => true
-      )
-      .commit();
-    await settle();
-    const neighbor = uploads.filter((batch) => batch.key.startsWith("b/"));
-    const changed = generateRockFormation(
-      { ...job, guides: [{ ...job.guides[0], size: [54, 30, 40] }] },
-      settings
-    );
-    const frame = manager.prepare(
-      [
-        { formation: changed, origin: changed.origin },
-        { formation: b, origin: b.origin }
-      ],
-      () => true
-    );
-    expect(frame.metrics).toMatchObject({ grassFormationsChanged: 1, grassFormationsRetained: 1 });
-    frame.commit();
-    await settle();
-    expect(uploads.filter((batch) => batch.key.startsWith("b/"))).toEqual(neighbor);
-    expect(neighbor.length).toBeGreaterThan(0);
-    expect(turns).toBeGreaterThan(1);
-    const ordered = times.slice().sort((a, b) => a - b);
-    console.info(
-      "Generated rock grass CPU sample (upload simulated by typed-array copy)",
-      JSON.stringify({
-        triangles: a.mesh.indices.length / 3,
-        grassPatches: a.grass!.patches.length,
-        frames: times.length,
-        uploads: uploads.length,
-        unchangedNeighborUploads: neighbor.length,
-        p95SliceMs: ordered[Math.floor(ordered.length * 0.95)],
-        maxSliceMs: ordered[ordered.length - 1],
-        maxQuantumMs: manager.diagnostics.maxQuantumMs,
-        lastEdit: manager.diagnostics.lastEdit
-      })
-    );
-    manager.destroy();
-  }, 30000);
 });

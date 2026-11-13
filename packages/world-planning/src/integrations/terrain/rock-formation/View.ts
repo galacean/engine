@@ -1,17 +1,5 @@
+import { Matrix, MeshRenderer, type PBRMaterial, type Engine, type Entity } from "@galacean/engine";
 import { acquireRockVariantMesh } from "./Variants";
-import {
-  Buffer,
-  BufferBindFlag,
-  BufferMesh,
-  BufferUsage,
-  Matrix,
-  MeshRenderer,
-  PBRMaterial,
-  VertexElement,
-  VertexElementFormat,
-  type Engine,
-  type Entity
-} from "@galacean/engine";
 import {
   SeedWorldArrayPickBatch,
   type SeedWorldPickVisitor
@@ -19,10 +7,7 @@ import {
 import type { IslandPlan } from "../../../semantic-study/IslandPlanModel.ts";
 import type { RockFormationMesh, RockVariantAsset } from "@galacean/engine-terrain/rock-formation/types";
 import { createRockCollider, disabledRockCollisionOwners } from "./Collider.ts";
-import { rockSurfaceAttributes } from "@galacean/engine-terrain/rock-formation/SurfaceAttributes";
-import { createRockFormationMaterial, createRockVariantMaterial, setRockTextureScale } from "./RockMaterial";
-export { createRockFormationMaterial } from "./RockMaterial";
-import { DEFAULT_ROCK_TEXTURE_SCALE } from "./Settings.ts";
+import { createRockVariantMaterial } from "./RockMaterial";
 import { rockFormationPlacements } from "./Placement.ts";
 import { readRockColorBlend, type RockColorBlend } from "./ColorPalette.ts";
 import { setRockColorBlend } from "./ColorMaterial.ts";
@@ -30,88 +15,20 @@ import { setRockColorBlend } from "./ColorMaterial.ts";
 interface RockViewEntry {
   formation: RockFormationMesh;
   entity: Entity;
-  mesh?: BufferMesh;
-  buffer?: Buffer;
   batch?: SeedWorldArrayPickBatch;
   collider?: ReturnType<typeof createRockCollider>;
   collisionKey: string;
   releaseVariant?: () => void;
 }
 
-export interface RockFormationSurface {
-  renderer: MeshRenderer;
-  mesh: BufferMesh;
-  buffer: Buffer;
-  ids: string[];
-}
-
-/** Upload the generator's triangles without fitting or replacing their geometry.
- * The caller owns the returned mesh/buffer and the entity; materials are borrowed. */
-export function uploadRockFormationSurface(
-  engine: Engine,
-  entity: Entity,
-  formation: RockFormationMesh,
-  material: PBRMaterial
-): RockFormationSurface | undefined {
-  const source = formation.mesh;
-  if (!source.indices.length) return undefined;
-  const { data, ids, stride } = rockSurfaceAttributes(formation);
-  let minimumX = Infinity,
-    minimumY = Infinity,
-    minimumZ = Infinity;
-  let maximumX = -Infinity,
-    maximumY = -Infinity,
-    maximumZ = -Infinity;
-  for (let i = 0; i < source.indices.length; i++) {
-    const p = i * stride;
-    minimumX = Math.min(minimumX, data[p]);
-    maximumX = Math.max(maximumX, data[p]);
-    minimumY = Math.min(minimumY, data[p + 1]);
-    maximumY = Math.max(maximumY, data[p + 1]);
-    minimumZ = Math.min(minimumZ, data[p + 2]);
-    maximumZ = Math.max(maximumZ, data[p + 2]);
-  }
-  const mesh = new BufferMesh(engine, `Rock surface · ${formation.id}`);
-  let buffer: Buffer | undefined, renderer: MeshRenderer | undefined;
-  try {
-    buffer = new Buffer(engine, BufferBindFlag.VertexBuffer, data, BufferUsage.Static);
-    const elements = [
-      new VertexElement("POSITION", 0, VertexElementFormat.Vector3, 0),
-      new VertexElement("NORMAL", 12, VertexElementFormat.Vector3, 0),
-      new VertexElement("TEXCOORD_0", 24, VertexElementFormat.Vector2, 0),
-      new VertexElement("TEXCOORD_1", 32, VertexElementFormat.Vector2, 0)
-    ];
-    mesh.setVertexElements(elements);
-    mesh.setVertexBufferBinding(buffer, stride * Float32Array.BYTES_PER_ELEMENT);
-    mesh.addSubMesh(0, source.indices.length);
-    mesh.bounds.min.set(minimumX, minimumY, minimumZ);
-    mesh.bounds.max.set(maximumX, maximumY, maximumZ);
-    renderer = entity.addComponent(MeshRenderer);
-    renderer.mesh = mesh;
-    renderer.setMaterial(material);
-    renderer.shaderData.enableMacro("RENDERER_SURFACE_TEXTURE_SIZE");
-    renderer.shaderData.setFloat("renderer_SurfaceTextureSize", formation.textureScale ?? 1);
-    renderer.castShadows = true;
-    renderer.receiveShadows = true;
-    return { renderer, mesh, buffer, ids };
-  } catch (error) {
-    renderer?.destroy();
-    mesh.destroy();
-    if (buffer && !buffer.destroyed) buffer.destroy();
-    throw error;
-  }
-}
-
 /** Keep unchanged GPU surfaces resident; stage only changed formations before commit. */
 export class RockFormationView {
   readonly root: Entity;
   private entries = new Map<string, RockViewEntry>();
-  private material?: PBRMaterial;
   private readonly variantMaterials = new Map<
     RockVariantAsset,
     Map<boolean, { material: PBRMaterial; release?: () => void; users: number }>
   >();
-  private readonly releaseAppearance: Array<() => void> = [];
   private disposed = false;
   private grassCoveragePreview = false;
 
@@ -120,11 +37,10 @@ export class RockFormationView {
     parent: Entity,
     plan: IslandPlan,
     formations: readonly RockFormationMesh[],
-    private textureScale = DEFAULT_ROCK_TEXTURE_SCALE,
     private readonly registerGrassAppearance?: (material: PBRMaterial) => () => void,
     private colorBlend: RockColorBlend = readRockColorBlend()
   ) {
-    this.root = parent.createChild("Procedural rock formations");
+    this.root = parent.createChild("Rock formations");
     try {
       this.prepareFormations(plan, formations).commit();
     } catch (error) {
@@ -138,26 +54,7 @@ export class RockFormationView {
     entity.isActive = false;
     const entry: RockViewEntry = { formation, entity, collisionKey };
     try {
-      if (formation.variant) {
-        this.uploadVariant(entry);
-        entry.collider = createRockCollider(this.engine, entity, formation, disabled);
-        return entry;
-      }
-      if (!this.material) {
-        this.material = createRockFormationMaterial(this.engine, this.textureScale, this.colorBlend);
-        if (this.grassCoveragePreview) this.material.shaderData.setFloat("material_SurfaceCoveragePreview", 1);
-        if (this.registerGrassAppearance) {
-          this.material.shaderData.enableMacro("MATERIAL_GRASS_SHARED_COLOR_FIELD");
-          this.releaseAppearance.push(this.registerGrassAppearance(this.material));
-        }
-      }
-      const surface = uploadRockFormationSurface(this.engine, entity, formation, this.material);
-      if (!surface) return entry;
-      entry.mesh = surface.mesh;
-      entry.buffer = surface.buffer;
-      const batch = (entry.batch = new SeedWorldArrayPickBatch(surface.renderer));
-      batch.ids = surface.ids;
-      batch.count = surface.ids.length;
+      this.uploadVariant(entry);
       entry.collider = createRockCollider(this.engine, entity, formation, disabled);
       return entry;
     } catch (error) {
@@ -269,20 +166,14 @@ export class RockFormationView {
   get groups(): ReadonlyMap<string, Entity> {
     return new Map(Array.from(this.entries, ([id, entry]) => [id, entry.entity]));
   }
-  setTextureScale(textureScale: number): void {
-    this.textureScale = textureScale;
-    if (this.material) setRockTextureScale(this.material, textureScale);
-  }
   setGrassCoveragePreview(enabled: boolean): void {
     this.grassCoveragePreview = enabled;
-    if (this.material) this.material.shaderData.setFloat("material_SurfaceCoveragePreview", Number(enabled));
     for (const roles of this.variantMaterials.values())
       for (const { material } of roles.values())
         material.shaderData.setFloat("material_SurfaceCoveragePreview", Number(enabled));
   }
   setColorBlend(settings: RockColorBlend): void {
     this.colorBlend = settings;
-    if (this.material) setRockColorBlend(this.material, settings);
     for (const roles of this.variantMaterials.values())
       for (const { material } of roles.values()) setRockColorBlend(material, settings);
   }
@@ -296,8 +187,6 @@ export class RockFormationView {
     entry.collider?.dispose();
     entry.entity.destroy();
     entry.releaseVariant?.();
-    entry.mesh?.destroy();
-    if (entry.buffer && !entry.buffer.destroyed) entry.buffer.destroy();
   }
   dispose(): void {
     if (this.disposed) return;
@@ -305,9 +194,5 @@ export class RockFormationView {
     for (const entry of this.entries.values()) this.release(entry);
     this.entries.clear();
     this.root.destroy();
-    for (const release of this.releaseAppearance) release();
-    this.releaseAppearance.length = 0;
-    this.material?.destroy();
-    this.material = undefined;
   }
 }

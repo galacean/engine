@@ -3,7 +3,7 @@ import type { SemanticResult } from "../../../semantic-study/WorldPlanningContra
 import { adoptPlanningHeightmap, cachedPlanningHeightmap } from "../../../semantic-study/PlanningHeightmap.ts";
 import { applyRockObbSizes } from "./Authoring.ts";
 
-const rockComponent = (type: string) => type === "rockObb" || type === "rockFormation" || type === "rockGeneration";
+const rockComponent = (type: string) => type === "rockObb" || type === "rockFormation";
 
 /** Rock-only authoring retains terrain and spatial layout; runtime building supports
  * can still depend on the changed surface and must be published with it.

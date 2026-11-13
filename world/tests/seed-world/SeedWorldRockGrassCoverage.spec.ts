@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import { buildRockGrassSurface, compileRockGrassPatch } from "../../../packages/terrain/src/rock-formation/GrassSurface.ts";
-import { rockSurfaceAttributes } from "../../../packages/terrain/src/rock-formation/SurfaceAttributes.ts";
 import type { RockFormationMesh } from "../../../packages/terrain/src/rock-formation/types.ts";
 
 /** A meadow meeting a 85-degree face along canonical vertices 0 and 1. */
@@ -16,7 +15,7 @@ function foldedSurface(bothSteep = false): RockFormationMesh {
       // An upward guide deliberately isolates the final-surface slope decision.
       normals: new Float32Array([0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0])
     },
-    stats: { bodies: 0, vertices: 0, generationMs: 0 }
+    stats: { bodies: 0, vertices: 0 }
   };
 }
 
@@ -134,22 +133,4 @@ describe("continuous rock grass material coverage", () => {
     for (const [vertex, value] of expected) expect(actual.get(vertex)).toBeCloseTo(value, 6);
   });
 
-  it("packs the continuous field for rendering without changing canonical geometry or ownership", () => {
-    const formation = foldedSurface();
-    const before = {
-      positions: formation.mesh.positions.slice(),
-      indices: formation.mesh.indices.slice(),
-      normals: formation.mesh.normals!.slice(),
-      owners: [...formation.owners]
-    };
-    const grass = cover(formation),
-      attributes = rockSurfaceAttributes(formation);
-    for (let corner = 0; corner < formation.mesh.indices.length; corner++) {
-      expect(attributes.data[corner * attributes.stride + 9]).toBe(grass.coverage[corner]);
-    }
-    expect(formation.mesh.positions).toEqual(before.positions);
-    expect(formation.mesh.indices).toEqual(before.indices);
-    expect(formation.mesh.normals).toEqual(before.normals);
-    expect(formation.owners).toEqual(before.owners);
-  });
 });

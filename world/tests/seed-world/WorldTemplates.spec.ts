@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { rockVariantPools } from "../../../packages/world-planning/src/integrations/terrain/rock-formation/Variants";
 import {
   WORLD_TEMPLATES,
   templateBaseSeed,
@@ -99,6 +100,17 @@ describe("authored world templates", () => {
     expect(original.plan.landscapes).toEqual(initialTrees);
     expect(generatePlanningDocument(document, incremental).plan.landscapes).toEqual(initialTrees);
   });
+  it("uses the project rock pool for templates without authored rocks", () => {
+    const seed = 42;
+    const original = generatePlanningDocument(createSeedPlanningDocument(seed)).plan;
+    const shared = rockVariantPools(original)!;
+    expect(shared.mountains.length + shared.stones.length).toBe(10);
+    for (const id of ["sakura-pearl", "emerald-forest", "low-poly", "titan-wasteland"]) {
+      const plan = { ...original, parameters: { ...original.parameters, worldTemplate: { id } } };
+      expect(rockVariantPools(plan)).toEqual(id === "low-poly" || id === "titan-wasteland" ? undefined : shared);
+    }
+  });
+
   it.each([1, 42, 20261113])("Low Poly publishes a native valley for Seed %i", (seed) => {
     const source = createTemplatePlanningDocument(seed, "low-poly");
     const result = generatePlanningDocument(importPlanningScene(exportPlanningScene(source)));

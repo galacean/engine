@@ -20,6 +20,7 @@ import type {
   V3
 } from "@galacean/engine-terrain/rock-formation/types";
 import type { IslandPlan } from "../../../semantic-study/IslandPlanModel";
+import { worldTemplate } from "../../../spatial/WorldTemplateCatalog";
 import catalog from "./RockVariantCatalog.json";
 
 interface RockVariantEntry {
@@ -36,8 +37,7 @@ interface RockVariantPools {
   stones: readonly RockVariantEntry[];
 }
 
-/** Optional template entries replace the corresponding shared role. */
-const templatePools: Readonly<Partial<Record<string, RockVariantPools>>> = catalog.templates;
+const variantPools: Readonly<Record<keyof typeof catalog.pools, RockVariantPools>> = catalog.pools;
 
 const MAX_VARIANTS = 10;
 const meshTasks = new WeakMap<Engine, Map<string, Promise<RockVariantAsset>>>();
@@ -133,10 +133,11 @@ function rankedPool(seed: number, role: string, entries: readonly RockVariantEnt
 /** Both placement systems draw from the same seed-specific palette. */
 export function rockVariantPools(plan: IslandPlan) {
   const seed = plan.parameters.seed;
-  const overrides = templatePools[plan.parameters.worldTemplate?.id ?? ""];
-  if (!overrides) return undefined;
-  const mountains = rankedPool(seed, "mountains", overrides.mountains);
-  const stones = rankedPool(seed, "stones", overrides.stones);
+  const source = worldTemplate(plan.parameters.worldTemplate?.id)?.rockSource ?? "shared";
+  if (source === "authored") return undefined;
+  const pool = variantPools[source];
+  const mountains = rankedPool(seed, "mountains", pool.mountains);
+  const stones = rankedPool(seed, "stones", pool.stones);
   const mountainCount = Math.min(mountains.length, Math.max(MAX_VARIANTS / 2, MAX_VARIANTS - stones.length));
   mountains.length = mountainCount;
   stones.length = Math.min(stones.length, MAX_VARIANTS - mountainCount);
@@ -221,7 +222,7 @@ export function fitRockVariant(
     owners: Array(asset.indices.length / 3).fill(job.guides[0].ownerId),
     mesh: { positions, normals, indices: asset.indices },
     variant: { asset, matrix },
-    stats: { bodies: 1, vertices: positions.length / 3, generationMs: 0 }
+    stats: { bodies: 1, vertices: positions.length / 3 }
   };
   if (grass) result.grass = buildRockGrassSurface(result, normals, asset.coverage);
   return result;

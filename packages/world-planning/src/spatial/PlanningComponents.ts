@@ -15,7 +15,6 @@ import { PLANT_MATERIAL_COMPONENT } from "./PlantMaterialParameters";
 import { GRASS_APPEARANCE_COMPONENT, SURFACE_PALETTE_COMPONENT } from "./PlanningGrassAppearance";
 import { PLANNING_WEATHER_COMPONENT } from "./PlanningWeather";
 import { ROCK_FORMATION_COMPONENT, ROCK_OBB_COMPONENT } from "../integrations/terrain/rock-formation/Settings.ts";
-import { ROCK_GENERATION_COMPONENT } from "../integrations/terrain/rock-formation/GenerationProfile.ts";
 import { RELIEF_COMPONENT } from "./terrain/ReliefComponent";
 import { INTEGRATED_WORLD_POST_PROCESS_PROFILE as POST } from "@galacean/engine-terrain/terrain/project/IntegratedWorldPostProcessPreset";
 import poiLayoutDefaults from "../planning-data/poi-layout.json";
@@ -527,7 +526,6 @@ export const PLANNING_COMPONENTS: PlanningComponentDefinition[] = [
       buildingMax: "population.buildingMax"
     }
   },
-  ROCK_GENERATION_COMPONENT,
   ROCK_FORMATION_COMPONENT,
   ROCK_OBB_COMPONENT,
   PLANNING_FARMING_COMPONENT,

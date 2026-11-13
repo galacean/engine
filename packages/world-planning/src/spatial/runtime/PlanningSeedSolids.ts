@@ -42,7 +42,6 @@ export async function createPlanningSeedSolids(
   options: {
     formations?: readonly RockFormationMesh[];
     sourcePlan?: IslandPlan;
-    rockTextureScale?: number;
     rockColorBlend?: RockColorBlend;
     registerGrassAppearance?: (material: import("@galacean/engine").PBRMaterial) => () => void;
     signal?: AbortSignal;
@@ -64,7 +63,6 @@ export async function createPlanningSeedSolids(
       root,
       plan,
       options.formations ?? [],
-      options.rockTextureScale,
       options.registerGrassAppearance,
       options.rockColorBlend
     );
@@ -133,9 +131,6 @@ export async function createPlanningSeedSolids(
     get formations() {
       return acceptedFormations;
     },
-    setRockTextureScale(textureScale: number) {
-      ownedRocks.setTextureScale(textureScale);
-    },
     setRockColorBlend(settings: RockColorBlend) {
       ownedRocks.setColorBlend(settings);
     },
@@ -178,7 +173,6 @@ export async function createPlanningSeedSolids(
       next: IslandPlan,
       presented: IslandPlan,
       formations: readonly RockFormationMesh[],
-      textureScale?: number,
       colorBlend?: RockColorBlend
     ) {
       if (disposed) throw Error("Planned solids disposed");
@@ -189,7 +183,6 @@ export async function createPlanningSeedSolids(
         commit() {
           if (disposed) throw Error("Planned solids disposed");
           frame.commit();
-          if (textureScale !== undefined) ownedRocks.setTextureScale(textureScale);
           if (colorBlend) ownedRocks.setColorBlend(colorBlend);
           acceptedPlan = presented;
           canonicalPlan = next;

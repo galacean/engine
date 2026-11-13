@@ -208,8 +208,7 @@ Varyings GrassVertex(Attributes attributes) {
     output.surfaceWeights = attributes.DETAIL_SURFACE_WEIGHTS;
     #ifdef RENDERER_ROCK_GRASS_GROUND
       vec3 rockDescriptor = attributes.DETAIL_SURFACE_WEIGHTS;
-      output.rockGround = terrainProjectRockGrassGround(output.rootPositionWS,
-        output.terrainNormalWS, rockDescriptor, output.grassColor);
+      output.rockGround = terrainProjectRockGrassGround(rockDescriptor.x, output.grassColor);
       vec3 rockNormal = terrainProjectAttachedReliefNormal(output.rootPositionWS,
         output.terrainNormalWS, rockDescriptor.x);
       float contactSnowResponse = material_GrassSurfaceSnowResponse.x;

@@ -1,4 +1,4 @@
-import { expect, it, vi } from "vitest";
+import { expect, it } from "vitest";
 import {
   readRockColorBlend,
   retireRockPaletteFields,
@@ -7,8 +7,8 @@ import {
 } from "../../../packages/world-planning/src/integrations/terrain/rock-formation/ColorPalette.ts";
 import { setRockColorBlend } from "../../../packages/world-planning/src/integrations/terrain/rock-formation/ColorMaterial.ts";
 
-it("defaults to the accepted neutral grey and preserves explicitly authored black channels", () => {
-  const neutral = rockPaletteHexToLinear("#b8bcc2");
+it("defaults to the white and preserves explicitly authored black channels", () => {
+  const neutral = rockPaletteHexToLinear("#ffffff");
   expect(readRockColorBlend()).toEqual({ color: neutral });
   expect(readRockColorBlend({ "color.r": 0, "color.b": 0.24 })).toEqual({ color: [0, neutral[1], 0.24] });
   const settings = readRockColorBlend();
@@ -40,12 +40,7 @@ it("retires the old pigment controls without removing current color or geometry 
 });
 
 it("binds one Color uniform without changing textures, geometry or grass", () => {
-  const data = { setVector3: vi.fn(), setFloat: vi.fn(), setTexture: vi.fn() };
-  setRockColorBlend({ shaderData: data } as any, readRockColorBlend({ "color.r": 0, "color.g": 0.5 }));
-  expect(data.setVector3).toHaveBeenCalledExactlyOnceWith(
-    "material_RockColor",
-    expect.objectContaining({ x: 0, y: 0.5, z: rockPaletteHexToLinear("#b8bcc2")[2] })
-  );
-  expect(data.setFloat).not.toHaveBeenCalled();
-  expect(data.setTexture).not.toHaveBeenCalled();
+  const material = { baseColor: undefined };
+  setRockColorBlend(material as any, readRockColorBlend({ "color.r": 0, "color.g": 0.5 }));
+  expect(material.baseColor).toMatchObject({ r: 0, g: 0.5, b: 1, a: 1 });
 });

@@ -1,29 +1,11 @@
 export type V2 = [number, number];
 export type V3 = [number, number, number];
-export type RockHeightMode = "random-ascent" | "perlin-ascent";
-export type RockSurfaceMode = "vertex-slabs" | "cellular-curvature";
-export type RockSlopeMode = "auto" | "manual";
-export const DEFAULT_ROCK_HEIGHT_MODE: RockHeightMode = "random-ascent";
-/** Upper-vertex Y offset amplitude as a fraction of the OBB height. */
-export const DEFAULT_ROCK_HEIGHT_VARIATION = 0;
 export interface RockObb {
   id: string;
   ownerId: string;
   center: V3;
   size: V3;
   axes: [V3, V3, V3];
-  /** Omission uses the shared default height mode. */
-  heightMode?: RockHeightMode;
-  /** Omission follows the current formation default; explicit choices remain pinned. */
-  surfaceMode?: RockSurfaceMode;
-  /** Omission derives the base slope from the current OBB size. */
-  slopeMode?: RockSlopeMode;
-  /** Manual base slope in metres per metre; retained but ignored in automatic mode. */
-  slopeRate?: number;
-  /** Variation in [0, 1]: auto varies whole-box and face rates, manual only face rates. */
-  slopeVariation?: number;
-  /** Upper-vertex Y offset amplitude in [0, 1] of the OBB height; omission uses zero. */
-  heightVariation?: number;
 }
 export interface MeshBuffers {
   positions: Float32Array;
@@ -59,24 +41,10 @@ export interface RockFormationMesh {
   mesh: MeshBuffers;
   /** Owner of each triangle, for the existing Seed World picking system. */
   owners: string[];
-  /** Worker-prepared final-surface grass eligibility and small spatial patches. */
+  /** Mesh-derived final-surface grass eligibility and small spatial patches. */
   grass?: import("./GrassSurface").RockGrassSurface;
-  textureScale?: number;
   variant?: { asset: RockVariantAsset; matrix: Float32Array };
-  stats: {
-    bodies: number;
-    vertices: number;
-    rawTriangles?: number;
-    targetTriangles?: number;
-    overBudgetBodies?: number;
-    buildMs?: number;
-    simplifyMs?: number;
-    simplifyAttempts?: number;
-    /** Boolean work is charged once per group; input counts remain per owner. */
-    unionMs?: number;
-    unionInputTriangles?: number;
-    generationMs: number;
-  };
+  stats: { bodies: number; vertices: number };
 }
 
 /** Final indexed surface in world-space metres. */

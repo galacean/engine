@@ -36,7 +36,7 @@ export class GrassRockAppearance {
           }
           this.faces[k + c * 4 + 3] = coverage[v];
         }
-        this.faces[k + 21] = formation.textureScale ?? 0;
+
         for (let axis = 0; axis < 3; axis++) {
           this.faces[k + 22 + axis] = Math.min(
             this.faces[k + axis],

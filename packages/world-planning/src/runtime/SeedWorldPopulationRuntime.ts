@@ -732,7 +732,7 @@ export class SeedWorldPopulationRuntime {
   private readonly _camera: Camera;
   private readonly _sourceLibrary: AssetAssemblySourceLibrary;
   private readonly _detailMaterials = new Map<Material, Material>();
-  private _rockGroundSettings?: Pick<RockFormationSettings, "textureScale" | "colorBlend">;
+  private _rockGroundSettings?: RockFormationSettings;
   private _grassTerrainMaterial: Material | undefined;
   private _grassSurfaceCoverage: SeedWorldGrassCoverageSampler | undefined;
   private _grassContactIsWater: ((worldX: number, worldZ: number) => boolean) | undefined;
@@ -1643,10 +1643,9 @@ export class SeedWorldPopulationRuntime {
   }
 
   /** Apply a committed rock appearance to resident roots and future streamed batches. */
-  setRockGrassGround(settings: Pick<RockFormationSettings, "textureScale" | "colorBlend">): void {
+  setRockGrassGround(settings: RockFormationSettings): void {
     this._rockGroundSettings = settings;
-    for (const material of this._detailMaterials.values())
-      bindRockGrassGroundMaterial(this._engine, material, settings);
+    for (const material of this._detailMaterials.values()) bindRockGrassGroundMaterial(material, settings);
   }
 
   get rockSurfaceGrassDiagnostics(): Readonly<{
@@ -3085,7 +3084,7 @@ export class SeedWorldPopulationRuntime {
     const cached = this._detailMaterials.get(sourceMaterial);
     if (cached) return cached;
     const material = sourceMaterial.clone();
-    if (this._rockGroundSettings) bindRockGrassGroundMaterial(this._engine, material, this._rockGroundSettings);
+    if (this._rockGroundSettings) bindRockGrassGroundMaterial(material, this._rockGroundSettings);
     const fade = SEED_WORLD_POPULATION_RUNTIME_PROFILE.detail.materialFade;
     material.shaderData.setFloat(DETAIL_FADE_DISTANCE, fade.maximumDistanceMetres);
     this._detailMaterials.set(sourceMaterial, material);
