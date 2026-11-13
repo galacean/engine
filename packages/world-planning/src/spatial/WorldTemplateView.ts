@@ -1,8 +1,8 @@
-import type { IslandPlan } from "../semantic-study/IslandPlanModel";
+import type { IslandPlan, PlanPoint } from "../semantic-study/IslandPlanModel";
 import type { RockFormationMesh } from "@galacean/engine-terrain/rock-formation/types";
 import { rockObbId } from "../integrations/terrain/rock-formation/Authoring";
 import { rockFormationGround } from "../integrations/terrain/rock-formation/Placement";
-import { COMPOSITION_SUBJECT_TERRACE_OWNER } from "./SpatialComposition";
+import { COMPOSITION_OWNER, COMPOSITION_SUBJECT_TERRACE_OWNER } from "./SpatialComposition";
 import { buildWorldTemplateGeometry, templateNodeFootprint, type TemplateNode } from "./WorldTemplateGeometry";
 import { worldTemplate } from "./WorldTemplateCatalog";
 import { worldTemplateStreet } from "./WorldTemplateStreet";
@@ -72,6 +72,7 @@ export interface ResolvedWorldTemplateScene {
   focusBounds: LandscapeBounds;
   spawnView?: SubjectViewPose;
   centeredStart?: Position;
+  trail?: readonly PlanPoint[];
   occluders?: V2Box[];
   world: { width: number; depth: number; spacingX: number; spacingZ: number };
 }
@@ -154,6 +155,9 @@ export function resolveWorldTemplateScene(
     nodes,
     focusBounds,
     spawnView: site.spawnView,
+    trail: WORLD_TEMPLATE_ART[template.id].trailView
+      ? plan.routes.find(({ id }) => id === `${COMPOSITION_OWNER}:path`)?.points
+      : undefined,
     centeredStart: site.centeredStart && [
       site.centeredStart.x,
       sample(site.centeredStart.x, site.centeredStart.z),
@@ -219,6 +223,20 @@ function terrainVisible(
   return true;
 }
 
+function pointAlongTrail(points: readonly PlanPoint[], distance: number): PlanPoint {
+  for (let i = 1; i < points.length; i++) {
+    const a = points[i - 1],
+      b = points[i];
+    const length = Math.hypot(b.x - a.x, b.z - a.z);
+    if (length > 0 && distance <= length) {
+      const t = distance / length;
+      return { x: a.x + (b.x - a.x) * t, z: a.z + (b.z - a.z) * t };
+    }
+    distance -= length;
+  }
+  return points[points.length - 1];
+}
+
 /** Fit actual projected corners at standing height, and reject terrain-blocked
  * views. A sphere fit alone can put the viewer behind a foreground ridge. */
 export function resolveWorldTemplateView(
@@ -245,8 +263,24 @@ export function resolveWorldTemplateView(
   // back to full containment as the viewport approaches a square.
   const frameFraction = Math.min(art.frameFraction, Math.max(1, aspect));
   const centered = scene.centeredStart;
+  const trail = scene.trail;
+  let trailEye: Position | undefined;
+  if (art.trailView && trail && trail.length > 1) {
+    const { entryM, lookAheadM, pitchDegrees } = art.trailView;
+    const start = pointAlongTrail(trail, entryM);
+    const ahead = pointAlongTrail(trail, entryM + lookAheadM);
+    const startHeight = ground(start.x, start.z);
+    const distance = Math.hypot(ahead.x - start.x, ahead.z - start.z);
+    if (startHeight !== undefined && distance > 0) {
+      trailEye = [start.x, startHeight + eyeHeight, start.z];
+      target[0] = ahead.x;
+      target[1] = trailEye[1] + distance * Math.tan((pitchDegrees * Math.PI) / 180);
+      target[2] = ahead.z;
+    }
+  }
   const eye =
     scene.spawnView?.eye ??
+    trailEye ??
     (centered
       ? ([centered[0], centered[1] + eyeHeight, centered[2]] as Position)
       : findTemplateEye(scene, target, aspect, fovDegrees, eyeHeight, ground, frameFraction));

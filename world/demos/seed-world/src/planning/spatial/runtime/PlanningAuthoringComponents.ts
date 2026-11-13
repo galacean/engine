@@ -47,6 +47,7 @@ export interface PlanningLightingProfileReference {
 }
 export class PlanningLighting extends VisualParameterAuthoring {
   declare timeHours?: number;
+  declare northOffsetDegrees?: number;
   declare sunIntensity?: number;
   declare sunColor?: AuthoredColor;
   declare ambientIntensity?: number;
@@ -105,6 +106,7 @@ export class PlanningLighting extends VisualParameterAuthoring {
   }
 }
 export class PlanningPostProcess extends VisualParameterAuthoring {
+  declare colorAdjustments?: boolean;
   declare postProcessingEnabled?: boolean;
   declare tonemapping?: boolean;
   declare postExposure?: number;

@@ -42,6 +42,7 @@ import { settlementRandom } from "../../semantic-study/SettlementGeometry";
 import { worldTemplateStreet } from "../WorldTemplateStreet";
 import { resolveWorldTemplateScene, type ResolvedWorldTemplateScene } from "../WorldTemplateView";
 import { fitTemplateAsset, type TemplateNode } from "../WorldTemplateGeometry";
+import { mountOilPaintGround, oilPaintMaterial } from "./OilPaintMesh";
 import { StreetFacadeRuntime } from "./StreetFacadeRuntime";
 import translucentShader from "./TemplateTranslucent.shader?raw";
 import fireflyShader from "./TemplateFirefly.shader?raw";
@@ -75,6 +76,8 @@ export class WorldTemplateRuntime {
   private sporeTexture?: Texture2D;
   private petalRenderer?: ParticleRenderer;
   private petalMaterial?: ParticleMaterial;
+  private groundPaintMaterial?: Material;
+  private groundPaintMeshes: ModelMesh[] = [];
   private destroyed = false;
   private readonly anchor: { x: number; y: number; z: number };
   private focusBounds?: ResolvedWorldTemplateScene["focusBounds"];
@@ -138,6 +141,7 @@ export class WorldTemplateRuntime {
     if (parent.destroyed) throw new Error("World template parent was destroyed while loading models");
     return new WorldTemplateRuntime(
       parent,
+      plan,
       template,
       prepared,
       assets,
@@ -151,6 +155,7 @@ export class WorldTemplateRuntime {
   }
   private constructor(
     parent: Entity,
+    plan: IslandPlan,
     template: WorldTemplate,
     scene: ResolvedWorldTemplateScene | undefined,
     assets: ReadonlyMap<string, GLTFResource>,
@@ -169,6 +174,22 @@ export class WorldTemplateRuntime {
       const [x, y, z] = scene?.anchor ?? [0, 0, 0];
       this.anchor = { x, y, z };
       this.root.transform.setPosition(x, y, z);
+      const oilPaint = WORLD_TEMPLATE_ART[template.id].oilPaint;
+      if (oilPaint && scene) {
+        this.groundPaintMaterial = oilPaintMaterial(parent.engine, [
+          ...oilPaint.groundPigments,
+          ...oilPaint.trailPigments,
+          ...oilPaint.growthPigments
+        ]);
+        this.groundPaintMeshes = mountOilPaintGround(
+          this.root,
+          plan,
+          scene.anchor,
+          ground,
+          oilPaint,
+          this.groundPaintMaterial
+        );
+      }
       for (const { node, position } of scene?.nodes ?? []) {
         const entity = this.root.createChild(node.id);
         entity.transform.setPosition(position[0] - x, position[1] - y, position[2] - z);
@@ -615,6 +636,11 @@ export class WorldTemplateRuntime {
       id: this.template.id,
       anchor: this.anchor,
       focusBounds: this.focusBounds,
+      oilPaint: this.groundPaintMaterial && {
+        shader: this.groundPaintMaterial.shader.name,
+        tiles: this.groundPaintMeshes.length,
+        triangles: this.groundPaintMeshes.reduce((count, mesh) => count + mesh.subMesh!.count / 3, 0)
+      },
       particles: this.sporeRenderer
         ? {
             renderer: "ParticleRenderer",
@@ -731,6 +757,8 @@ export class WorldTemplateRuntime {
     this.sporeTexture?.destroy();
     this.sporeEmissionMesh?.destroy();
     this.petalMaterial?.destroy();
+    this.groundPaintMaterial?.destroy();
+    for (const mesh of this.groundPaintMeshes) mesh.destroy();
     this.material?.destroy();
     this.mesh?.destroy();
   }

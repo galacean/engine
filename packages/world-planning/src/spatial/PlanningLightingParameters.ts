@@ -150,6 +150,19 @@ export const PLANNING_LIGHT_SOURCE_FIELDS: SpatialField[] = (
 
 /** Sparse overrides of the native atmosphere gradient and its exposure, including HDR channels. */
 export const PLANNING_SKY_FIELDS: SpatialField[] = [
+  {
+    key: "northOffsetDegrees",
+    label: "天体方位旋转",
+    type: "number",
+    min: 0,
+    max: 360,
+    step: 1,
+    default: 0,
+    unit: "°",
+    combine: "override",
+    description:
+      "相对日照源的世界北向旋转，太阳、月光、天空与星轴同步旋转。保持天体高度、时刻和光源能量，改变场景受光方向；0 恢复源方位。"
+  },
   ...(["R", "G", "B"] as const).map((channel) => ({
     key: `skyTint${channel}`,
     label: `天空大气底色 · ${channel}`,
@@ -242,7 +255,10 @@ export function applyPlanningLightSources(
   sourceProfile: readonly TerrainTimeOfDayLightingSample[],
   applyTime = true
 ): void {
-  const visual: Partial<TerrainLightingVisualTuning> = { fogExponent: SEED_WORLD_DEFAULT_FOG_VALUES.fogExponent };
+  const visual: Partial<TerrainLightingVisualTuning> = {
+    fogExponent: SEED_WORLD_DEFAULT_FOG_VALUES.fogExponent,
+    northOffsetDegrees: 0
+  };
   const overrideKeys = [
     ...PLANNING_LIGHT_SOURCE_FIELDS.map((field) => field.key),
     ...PLANNING_SKY_FIELDS.map((field) => field.key),

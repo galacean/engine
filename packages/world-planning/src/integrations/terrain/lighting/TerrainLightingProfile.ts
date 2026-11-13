@@ -8,7 +8,7 @@ export interface TerrainLightingProfileData {
 }
 export type TerrainLightingProfileStaticTuning = Omit<
   TerrainLightingVisualTuning,
-  keyof TerrainTimeOfDayLightingSample | "fogMode" | "fogExponent"
+  keyof TerrainTimeOfDayLightingSample | "fogMode" | "fogExponent" | "northOffsetDegrees"
 >;
 
 /** The definition module, not the active demo URL, anchors the shared resource path. */

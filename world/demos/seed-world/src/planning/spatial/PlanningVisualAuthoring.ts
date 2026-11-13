@@ -36,7 +36,7 @@ export const PLANNING_VISUAL_AUTHORING: readonly VisualAuthoringDescriptor[] = [
     "wallCount", "wallOverlap", "wallProtrusion", "wallLength", "wallTilt", "wallStrength", "outlineIrregularity",
     "variation", "targetTriangles", ...ROCK_COLOR_FIELDS.map(field => field.key)) },
   { component: "lighting", type: "PlanningLighting", fields: {
-    ...directFields("profileUrl", "timeHours", "sunIntensity", "ambientIntensity", "iblIntensity", "direct", "environment",
+    ...directFields("profileUrl", "timeHours", "northOffsetDegrees", "sunIntensity", "ambientIntensity", "iblIntensity", "direct", "environment",
       "shadows", "shadowStrength", "fog", "fogDensity", "fogExponent", "customSkyTintStrength", "skyExposure", "sunSize", "atmosphereThickness",
       "starIntensity", "moonLightIntensity", "moonDiskIntensity", "moonAtmosphereIntensityScale", "twilightIntensity",
       "airglowIntensity", "fogRadianceIntensity"),
@@ -48,7 +48,7 @@ export const PLANNING_VISUAL_AUTHORING: readonly VisualAuthoringDescriptor[] = [
       [`customSky${region}${channel}`, `customSky${region}Tint.${channel.toLowerCase()}`])))
   } },
   { component: "postProcess", type: "PlanningPostProcess", fields: {
-    ...directFields("tonemapping", "postExposure", "temperature", "contrast", "saturation", "bloom",
+    ...directFields("colorAdjustments", "tonemapping", "postExposure", "temperature", "contrast", "saturation", "bloom",
       "bloomThreshold", "bloomIntensity", "bloomScatter"),
     // Script.enabled controls the authoring component lifecycle, not the scene post processing.
     enabled: "postProcessingEnabled"

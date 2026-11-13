@@ -178,6 +178,8 @@ export interface TerrainBakeLightingTuning {
 
 /** Editable source values that control the live Sun, environment, procedural sky, and directional fog. */
 export interface TerrainLightingVisualTuning extends TerrainBakeLightingTuning {
+  /** World-north rotation relative to the source's astronomical orientation. */
+  readonly northOffsetDegrees?: number;
   /** Apparent procedural Sun-disk size. */
   readonly sunSize: number;
   /** Procedural Sun-disk edge convergence. */
@@ -537,6 +539,8 @@ export interface TerrainEnvironmentTransition {
 }
 
 export class TerrainLightingRuntime {
+  private readonly _celestialPosition: Readonly<DayNightSolarPositionConfig & DayNightMoonPositionConfig>;
+  private _northOffsetDegrees = 0;
   private static readonly _directLightUp = new Vector3(0, 1, 0);
 
   /** Shared clock and evaluated state consumed by every lighting subsystem. */
@@ -650,6 +654,7 @@ export class TerrainLightingRuntime {
       DayNightSolarPositionConfig & DayNightMoonPositionConfig
     > = PROCEDURAL_SKY_SOLAR_POSITION
   ) {
+    this._celestialPosition = { ...celestialPosition };
     this._scene = scene;
     this._directLight = directLight;
     this._postProcess = postProcess;
@@ -1057,6 +1062,7 @@ export class TerrainLightingRuntime {
     profile.sunColor.evaluate(normalizedTime, this._authoredSunColor);
     return {
       ...this.getBakeLightingTuning(),
+      northOffsetDegrees: this._northOffsetDegrees,
       sunIntensity: profile.sunIntensity.evaluate(normalizedTime),
       shadowStrength: profile.shadowStrength.evaluate(normalizedTime),
       sunColorR: this._authoredSunColor.r,
@@ -1185,6 +1191,21 @@ export class TerrainLightingRuntime {
       throw new RangeError("Terrain fog exponent must be finite and positive");
     }
     const skyMaterial = this._proceduralSky.material;
+    if (values.northOffsetDegrees !== undefined && values.northOffsetDegrees !== this._northOffsetDegrees) {
+      if (!Number.isFinite(values.northOffsetDegrees)) throw new RangeError("World north rotation must be finite");
+      const northOffset = (this._celestialPosition.northOffset ?? 0) + values.northOffsetDegrees;
+      const position = { ...this._celestialPosition, northOffset };
+      this.system.profile.solarPosition = new DayNightSolarPosition(position);
+      this.system.profile.moonPosition = new DayNightMoonPosition(position);
+      const latitude = (position.latitude * Math.PI) / 180;
+      const north = (northOffset * Math.PI) / 180;
+      skyMaterial.starAxis.set(
+        Math.sin(north) * Math.cos(latitude),
+        Math.sin(latitude),
+        Math.cos(north) * Math.cos(latitude)
+      );
+      this._northOffsetDegrees = values.northOffsetDegrees;
+    }
     if (values.sunSize !== undefined) skyMaterial.sunSize = values.sunSize;
     if (values.sunSizeConvergence !== undefined) skyMaterial.sunSizeConvergence = values.sunSizeConvergence;
     if (values.twilightIntensity !== undefined) skyMaterial.twilightIntensity = values.twilightIntensity;

@@ -2494,6 +2494,7 @@ async function applyPresentation(
   const p = components.find((component) => component.type === "postProcess")?.values;
   if (p) {
     post.setProfileEnabled(Boolean(p.enabled));
+    post.setColorAdjustmentsEnabled(p.colorAdjustments !== false);
     post.setTonemappingEnabled(Boolean(p.tonemapping));
     post.setPostExposure(Number(p.postExposure));
     post.setTemperature(Number(p.temperature));

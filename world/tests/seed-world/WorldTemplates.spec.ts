@@ -25,6 +25,8 @@ import { applySpatialCommands } from "@galacean/engine-world-planning/spatial/Sp
 import { switchPlanningLayoutScope } from "@galacean/engine-world-planning/spatial/PlanningLayoutScope";
 import { createSpatialTerrainPlan } from "@galacean/engine-world-planning/spatial/layout/SpatialTerrain";
 import { generatePlanningDocument } from "@galacean/engine-world-planning/spatial/PlanningRuntime";
+import { generateSpatialWorld } from "@galacean/engine-world-planning/spatial/layout/SpatialWorld";
+import { COMPOSITION_OWNER } from "@galacean/engine-world-planning/spatial/SpatialComposition";
 import {
   createSeedPlanningDocument,
   createSeedPlanningInputs
@@ -58,6 +60,46 @@ import { planningGroundSurface } from "@galacean/engine-world-planning/semantic-
 import { readAnimalPopulationConfig } from "@galacean/engine-world-planning/spatial/AnimalPopulationComponent";
 
 describe("authored world templates", () => {
+  it("preserves woodland's source palette without ACES or Bloom through native scene save and reload", () => {
+    const source = createTemplatePlanningDocument(1166341947, "oil-paint-woodland");
+    const restored = importPlanningScene(exportPlanningScene(source));
+    expect(restored.entities.world.components.postProcess.values).toMatchObject({
+      enabled: true,
+      colorAdjustments: true,
+      postExposure: 0,
+      contrast: 0,
+      saturation: 0,
+      temperature: 0,
+      tonemapping: false,
+      bloom: false
+    });
+    expect(restored.entities.world.components.lighting).toEqual(source.entities.world.components.lighting);
+    expect(restored.entities.world.components.lighting.values.northOffsetDegrees).toBe(155);
+    restored.entities.world.components.postProcess.values.colorAdjustments = false;
+    expect(importPlanningScene(exportPlanningScene(restored)).entities.world.components.postProcess.values.colorAdjustments)
+      .toBe(false);
+  });
+
+  it("keeps composition trees when density is revealed incrementally and after scene reload", () => {
+    const document = createTemplatePlanningDocument(1166341947, "oil-paint-woodland");
+    const original = generatePlanningDocument(document);
+    const initialTrees = structuredClone(original.plan.landscapes);
+    const reduced = structuredClone(document);
+    reduced.revision++;
+    reduced.entities.world.components.landscape.values.density = 0.5;
+    const incremental = generatePlanningDocument(reduced, original);
+    const cold = generateSpatialWorld(importPlanningScene(exportPlanningScene(reduced)));
+    expect(incremental.contentUpdate).toBe("reveal");
+    expect(incremental.plan.landscapes).toEqual(cold.plan.landscapes);
+    const trees = incremental.plan.landscapes!.filter((item) => item.ownerId === COMPOSITION_OWNER);
+    expect(trees.length).toBeGreaterThan(0);
+    expect(trees.length).toBeLessThan(initialTrees!.length);
+    const originalById = new Map(initialTrees!.map((tree) => [tree.id, tree]));
+    for (const tree of trees) expect(tree).toEqual(originalById.get(tree.id));
+    expect(original.plan.landscapes).toEqual(initialTrees);
+    expect(generatePlanningDocument(document, incremental).plan.landscapes).toEqual(initialTrees);
+  });
+
   it.each([1, 7, 42, 110513, 20261110])("publishes the configured Sakura spawn POI for Seed %i", (seed) => {
     const config = WORLD_TEMPLATE_CONFIGS["sakura-pearl"]!;
     const document = createTemplatePlanningDocument(seed, "sakura-pearl");

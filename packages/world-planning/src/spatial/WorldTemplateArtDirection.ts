@@ -3,6 +3,10 @@ import type { SeedWorldCameraBookmark } from "../world/SeedWorldCameraBookmark";
 import type { SpatialCompositionParameters } from "./SpatialCompositionParameters";
 import { WORLD_TEMPLATE_CONFIGS } from "./WorldTemplateConfig";
 
+/** Display RGB mixtures authored on the source canvas, not diffuse reflectance. */
+type OilPaintColor = readonly [r: number, g: number, b: number];
+export type OilPaintPigment = readonly [shade: OilPaintColor, halfTone: OilPaintColor, sunlight: OilPaintColor];
+
 export interface WorldTemplatePalette {
   grass: [string, string];
   ground: string;
@@ -23,7 +27,7 @@ export interface WorldTemplatePalette {
   stone: string;
 }
 
-/** Authored scene measurements from the fifteen supplied reference images.
+/** Authored scene measurements from the supplied references.
  * These are template inputs, not geometry guessed from a Seed or renderer output.
  * Each model entry defines an asset envelope, with a supplied model when available.
  * Camera fitting uses only the focus entries. */
@@ -52,6 +56,8 @@ export type WorldTemplateArtDirection = Partial<WorldTemplatePalette> & {
   plannedSubjects?: boolean;
   /** A continuous world framed from its map centre instead of a searched spawn. */
   centeredStart?: boolean;
+  /** Frame a walkable composition path from a point inside its entrance. */
+  trailView?: { entryM: number; lookAheadM: number; pitchDegrees: number };
   azimuthDegrees: number;
   /** Composition aim relative to the focus envelope; a side subject stays at the side. */
   lookAtOffset?: [number, number, number];
@@ -61,6 +67,18 @@ export type WorldTemplateArtDirection = Partial<WorldTemplatePalette> & {
   surfaceTextures?: { baseUrl: string; normalUrl: string; tileSizeM: number; strength: number };
   /** Infrastructure may be generated around a separately authored set of model poses. */
   modelLayout?: "authored" | "generated";
+  /** Pigment swatches and physical stroke scale for an opaque brush-painted woodland. */
+  oilPaint?: {
+    groundStrokeM: number;
+    groundPigments: readonly OilPaintPigment[];
+    trailPigments: readonly OilPaintPigment[];
+    barkPigments: readonly OilPaintPigment[];
+    canopyPigments: readonly OilPaintPigment[];
+    growthPigments: readonly OilPaintPigment[];
+    growthSpacingM: number;
+    /** Fraction of direct light transmitted through the thin leaf sheet, in [0, 1]. */
+    leafTransmittance: number;
+  };
   spores?: {
     count: number;
     center: [number, number, number];
@@ -475,6 +493,213 @@ export const WORLD_TEMPLATE_ART: Readonly<Record<string, WorldTemplateArtDirecti
     flowerCoverage: 0.08,
     weather: { cloudCoverage: 0, relativeHumidity: 0.7 },
     terrain: [ridge("west-forest-bank", -33, 24, 100, 22, 3), ridge("east-forest-bank", 30, 28, 110, 24, 4)]
+  },
+  "oil-paint-woodland": {
+    reference: "https://patch.gg/blendi/oil-paint",
+    grass: ["#564237", "#917248"],
+    ground: "#493341",
+    road: "#a97850",
+    foliage: "#cd8e40",
+    bark: "#90624b",
+    flowers: "#c87c42",
+    stone: "#675458",
+    grassGroundFusion: false,
+    initialPlanning: {
+      landMode: "continuous",
+      farmingEnabled: false,
+      poiMemberMax: 0,
+      population: { villageMin: 0, villageMax: 0, buildingMin: 0, buildingMax: 0 }
+    },
+    focus: ["woodland-fallen-log"],
+    frameFraction: 0.84,
+    azimuthDegrees: 0,
+    trailView: { entryM: 7, lookAheadM: 24, pitchDegrees: 2 },
+    modelLayout: "authored",
+    models: [
+      {
+        ...model("woodland-fallen-log", [-10, 0, -17], [9, 1.8, 2.7], true, 18),
+        assetUrl: new URL("../assets/forest-fallen-trunk.glb", import.meta.url).href
+      }
+    ],
+    generation: {
+      enabled: true,
+      widthM: 120,
+      frontDepthM: 112,
+      backDepthM: 24,
+      roadWidthM: 4.4,
+      roadBendM: 7.4,
+      roadWavelengthM: 91,
+      bankWidthM: 1.2,
+      treeSpacingM: 7.2,
+      treeBandWidthM: 53,
+      replacePopulation: true
+    },
+    oilPaint: {
+      groundStrokeM: 0.22,
+      // Exact display-referred mixtures from the reference's floor.js / forest.js.
+      // Preserve their decimal precision and mix in the source painting space.
+      groundPigments: [
+        [
+          [0.43, 0.25, 0.2],
+          [0.74, 0.47, 0.15],
+          [0.97, 0.71, 0.2]
+        ],
+        [
+          [0.4, 0.19, 0.18],
+          [0.7, 0.33, 0.11],
+          [0.94, 0.5, 0.13]
+        ],
+        [
+          [0.33, 0.12, 0.17],
+          [0.58, 0.18, 0.11],
+          [0.8, 0.25, 0.11]
+        ],
+        [
+          [0.25, 0.18, 0.22],
+          [0.45, 0.3, 0.21],
+          [0.64, 0.45, 0.28]
+        ],
+        [
+          [0.16, 0.25, 0.2],
+          [0.34, 0.42, 0.15],
+          [0.56, 0.62, 0.2]
+        ],
+        [
+          [0.27, 0.22, 0.27],
+          [0.5, 0.38, 0.3],
+          [0.74, 0.58, 0.42]
+        ]
+      ],
+      trailPigments: [
+        [
+          [0.27, 0.22, 0.27],
+          [0.5, 0.38, 0.3],
+          [0.74, 0.58, 0.42]
+        ],
+        [
+          [0.43, 0.25, 0.2],
+          [0.74, 0.47, 0.15],
+          [0.97, 0.71, 0.2]
+        ],
+        [
+          [0.4, 0.19, 0.18],
+          [0.7, 0.33, 0.11],
+          [0.94, 0.5, 0.13]
+        ],
+        [
+          [0.25, 0.18, 0.22],
+          [0.45, 0.3, 0.21],
+          [0.64, 0.45, 0.28]
+        ]
+      ],
+      barkPigments: [
+        [
+          [0.15, 0.12, 0.19],
+          [0.37, 0.3, 0.31],
+          [0.88, 0.6, 0.33]
+        ],
+        [
+          [0.4, 0.4, 0.53],
+          [0.76, 0.71, 0.68],
+          [1, 0.94, 0.74]
+        ],
+        [
+          [0.12, 0.09, 0.14],
+          [0.3, 0.22, 0.2],
+          [0.84, 0.6, 0.34]
+        ],
+        [
+          [0.14, 0.1, 0.16],
+          [0.33, 0.25, 0.25],
+          [0.86, 0.62, 0.4]
+        ]
+      ],
+      canopyPigments: [
+        [
+          [0.46, 0.25, 0.1],
+          [0.76, 0.49, 0.11],
+          [1, 0.8, 0.2]
+        ],
+        [
+          [0.42, 0.17, 0.09],
+          [0.72, 0.33, 0.09],
+          [1, 0.57, 0.12]
+        ],
+        [
+          [0.34, 0.09, 0.11],
+          [0.61, 0.15, 0.08],
+          [0.94, 0.26, 0.09]
+        ],
+        [
+          [0.24, 0.29, 0.13],
+          [0.52, 0.52, 0.14],
+          [0.86, 0.82, 0.24]
+        ],
+        [
+          [0.5, 0.33, 0.13],
+          [0.82, 0.62, 0.17],
+          [1, 0.9, 0.36]
+        ]
+      ],
+      growthPigments: [
+        [
+          [0.3, 0.27, 0.2],
+          [0.76, 0.6, 0.24],
+          [1, 0.88, 0.46]
+        ],
+        [
+          [0.34, 0.18, 0.16],
+          [0.68, 0.36, 0.13],
+          [0.98, 0.58, 0.16]
+        ],
+        [
+          [0.34, 0.26, 0.16],
+          [0.72, 0.54, 0.15],
+          [1, 0.82, 0.26]
+        ],
+        [
+          [0.13, 0.23, 0.17],
+          [0.34, 0.45, 0.16],
+          [0.66, 0.74, 0.25]
+        ]
+      ],
+      growthSpacingM: 1.4,
+      leafTransmittance: 0.5
+    },
+    lighting: {
+      ...lighting(15.7, 5, 1.6, 1.1, 0.0105, 1),
+      // Match the reference's side/front light, rather than lighting the
+      // far side of every trunk from the trail entrance.
+      northOffsetDegrees: 155,
+      sunColorR: 1,
+      sunColorG: 0.9,
+      sunColorB: 0.72,
+      // These are radiance multipliers, not the final sky's display RGB.
+      // Keep daylight energy in HDR and in the sky's diffuse SH.
+      ...atmosphere([0.82, 0.89, 1], [1.12, 1.04, 0.88]),
+      fogExponent: 1.4,
+      // Lower the sky-radiance fog to the source's grey/violet paint range.
+      fogTintR: 0.3,
+      fogTintG: 0.28,
+      fogTintB: 0.42
+    },
+    // A neutral color pass retains the scene-color texture consumed by glass UI.
+    // Keep the source paint palette: no exposure shift, ACES or Bloom.
+    postProcess: { ...post(0), colorAdjustments: true, tonemapping: false, bloom: false },
+    landscape: { treeHeightMinM: 12, treeHeightMaxM: 21 },
+    initialLandscape: {
+      density: 0.84,
+      companionStoneDensity: 0,
+      "vegetation.trees": 1,
+      "vegetation.grass": 0,
+      "vegetation.shrubs": 0,
+      "vegetation.herbs": 0,
+      "vegetation.cover": 0,
+      "vegetation.flowers": 0,
+      "vegetation.litter": 0
+    },
+    flowerCoverage: 0,
+    weather: { cloudCoverage: 0.19, temperatureCelsius: 14, relativeHumidity: 0.52 }
   },
   "amethyst-ruins": {
     reference: "SeedWorld-04-amethyst-cosmic-ruins.png",

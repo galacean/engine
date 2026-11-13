@@ -55,6 +55,15 @@ export const WORLD_TEMPLATES: readonly WorldTemplate[] = [
     terrain: { ...gentleBaseTerrain, widthM: 190, count: 2, coverage: 0.82 }
   },
   {
+    id: "oil-paint-woodland",
+    name: "油画秋林",
+    icon: "🍂",
+    family: "forest",
+    colors: ["#dc9e3c", "#994733", "#8d8549", "#3c2e45"],
+    subject: "调色刀笔触 · 金色秋林 · 雾中小径",
+    terrain: { heightM: 3, widthM: 130, count: 1, coverage: 0.95 }
+  },
+  {
     id: "amethyst-ruins",
     name: "星海紫晶遗迹",
     icon: "🔮",

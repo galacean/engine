@@ -54,6 +54,17 @@ describe("PlanningLightingProfileRuntime live clock", () => {
     expect(host.setTuning).toHaveBeenLastCalledWith({ playing: false, timeHours: 12 });
     expect(host.setTuning).toHaveBeenCalledTimes(3);
   });
+
+  it("applies world-north rotation without moving time and restores source north on reset", async () => {
+    const host = lighting();
+    const profile = runtime(host);
+    await profile.apply(parameters);
+    await profile.apply({ ...parameters, northOffsetDegrees: 155 });
+    expect(host.setTuning).toHaveBeenCalledTimes(1);
+    expect(host.applyVisualTuning.mock.lastCall![0].northOffsetDegrees).toBe(155);
+    await profile.apply(parameters);
+    expect(host.applyVisualTuning.mock.lastCall![0].northOffsetDegrees).toBe(0);
+  });
 });
 
 describe("native lighting profile assets", () => {

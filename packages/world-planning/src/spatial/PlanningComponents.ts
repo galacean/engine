@@ -885,6 +885,7 @@ export const PLANNING_COMPONENTS: PlanningComponentDefinition[] = [
     presentation: true,
     fields: [
       { key: "enabled", label: "启用后处理", type: "boolean", default: true },
+      { key: "colorAdjustments", label: "调色", type: "boolean", default: true },
       { key: "tonemapping", label: "ACES 色调映射", type: "boolean", default: true },
       number("postExposure", "曝光补偿", { unit: "EV", step: 0.1, default: 0 }),
       number("temperature", "色温", {

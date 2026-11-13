@@ -243,13 +243,17 @@ export function tryRevealSpatialWorld(
   };
   inheritPlanningHeightmap(plan, previous.plan);
   plan.landscapes = revealLandscapeBasemap(plan, base, config.landscape, recipe.edits);
-  excludePlanningFarmLandscape(plan);
   plan.naturalVegetation = publishNaturalVegetation(plan, config.landscape, recipe.edits);
   applyMojaveDesertAppearance(plan, recipe);
   const height = cachedPlanningHeightmap(previous.plan);
   inheritPlanningHeightmap(plan, previous.plan);
   // A worker publication may have no main-thread raster. Resolve only requested contact samples.
-  applySpatialInstanceEdits(plan, document, height?.sample ?? ((point) => planningGroundSurface(plan).sample(point)));
+  const ground = height?.sample ?? ((point: PlanPoint) => planningGroundSurface(plan).sample(point));
+  // Composition trees are generated from their own fixed candidates, outside
+  // the natural-landscape basemap. Reveal both populations before instance edits.
+  publishCompositionTrees(plan, createPlanningGroundSampler(plan), config.landscape, recipe.edits);
+  excludePlanningFarmLandscape(plan);
+  applySpatialInstanceEdits(plan, document, ground);
   const changedIds = changedSpatialOutputs(previous.plan, plan);
   if (plan.planning) plan.planning.changedIds = changedIds;
   return {
