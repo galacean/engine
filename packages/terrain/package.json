@@ -85,6 +85,7 @@
     "./terrain/project/TerrainTreeWindResponseControls": "./src/terrain/project/TerrainTreeWindResponseControls.ts",
     "./terrain/project/TerrainWindResponseProfiles": "./src/terrain/project/TerrainWindResponseProfiles.ts",
     "./terrain/project/TerrainWindRuntime": "./src/terrain/project/TerrainWindRuntime.ts",
+    "./terrain/tools/TerrainTextureGenerator": "./src/terrain/tools/TerrainTextureGenerator.ts",
     "./terrain/seed/PopulationTokenCodec": "./src/terrain/seed/PopulationTokenCodec.ts",
     "./world/SeedWorldFbm": "./src/world/SeedWorldFbm.ts",
     "./world/SeedWorldGeologySeedCodec": "./src/world/SeedWorldGeologySeedCodec.ts",
