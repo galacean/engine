@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import assert from 'node:assert/strict';
 import {fracturedRockLibrary,fractureRockGeometry,creasedRockAttributes,ROCK_SURFACE_VERSION} from './rock-surface.mjs';
 import {generateRidgeScene,createSurfaceSampler,transformedVertices,ridgePointAt,withSceneHeight} from './ridge.mjs';
-import {measureFractureDirection} from './measure-fracture-direction.mjs';
+import {measureFractureSeams} from './measure-fracture-direction.mjs';
 
 // Frozen meshes remain only as historical geometry regression fixtures.
 const data={...JSON.parse(fs.readFileSync(new URL('./geometry.json',import.meta.url))),...JSON.parse(fs.readFileSync(new URL('./study-data.json',import.meta.url)))};
@@ -12,7 +12,6 @@ const cross=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]]
 const vertex=(g,i)=>g.positions.slice(i*3,i*3+3);
 const near=(a,b,t,label)=>assert(Math.abs(a-b)<t,`${label}: ${a} / ${b}`);
 const prototypes=[];
-const directionBaseline=JSON.parse(fs.readFileSync(new URL('../evidence/surface-direction-baseline.json',import.meta.url)));
 for(const [id,g] of Object.entries(library)){
  const source=data.geometries[id],edges=new Map(),jointWalls=new Set(),frame=g.surface.normalizedFrame,planes=new Map(g.surface.cutPlanes.map(p=>[p.tag,p]));let volume=0,maximumCutPlaneErrorM=0,cutTriangles=0,sourceTriangles=0;
  const normalize=p=>[(p[0]-frame.center[0])/frame.radius[0],(p[1]-frame.minimum)/frame.height,(p[2]-frame.center[1])/frame.radius[1]];
@@ -62,13 +61,14 @@ for(const [id,g] of Object.entries(library)){
  assert(render.rockDetail.every(v=>Number.isFinite(v)&&v>=0&&v<=1));
  let sourceVolume=0;for(let i=0;i<source.indices.length;i+=3){const [a,b,c]=source.indices.slice(i,i+3).map(k=>vertex(source,k));sourceVolume+=dot(a,cross(b,c))/6;}
  assert(volume<sourceVolume*.999,'Carving removes solid volume');
- const direction=measureFractureDirection(g),before=directionBaseline.prototypes.find(p=>p.id===id);
+ const direction=measureFractureSeams(g);
  // Sparse cuts on the 2.4 m platform slabs need less total length than tall
  // cliffs. Require meaningful coverage relative to each prototype's height.
  assert(direction.contourLengthM>2*(g.bounds[1][1]-g.bounds[0][1]),'Fracture contours remain present relative to rock height');
  if(!id.startsWith('slab')){
-  assert(direction.within30DegreesOfVertical>before.within30DegreesOfVertical+.10,`${id}: direction must improve on the previous all-direction pattern`);
-  assert(direction.within30DegreesOfVertical>.55,'Vertical joints dominate the steep faces');
+  // Compare actual cut seams to local up on the curved body. The historical
+  // baseline measured a shaded mask on a planarized hull, a different metric.
+  assert(direction.within30DegreesOfVertical>.75,'Vertical physical joints dominate the steep faces');
  }
  const {cutPlanes,normalizedFrame,fracturePaths,...surface}=g.surface;
  prototypes.push({id,triangles:g.indices.length/3,...surface,visibleJointWalls:jointWalls.size,cutTriangles,sourceTriangles,maximumCutPlaneErrorM,signedVolumeM3:volume,removedVolumeM3:sourceVolume-volume,direction});

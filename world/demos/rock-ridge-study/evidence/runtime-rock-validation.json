@@ -1,11 +1,11 @@
 {
-  "version": "seeded-atomic-rocks-1",
+  "version": "seeded-rounded-atoms-2",
   "generatedBaseMeshes": 32,
   "fingerprints": {
-    "0": "807ff933",
-    "480": "874d3c61",
-    "481": "cdcc7e6e",
-    "4294967295": "40ea5ca3"
+    "0": "d9b08b9e",
+    "480": "f92035f8",
+    "481": "ea93625d",
+    "4294967295": "a822f218"
   },
   "assemblies": [
     {
@@ -16,12 +16,12 @@
         "peaks": 3,
         "branches": 4
       },
-      "fingerprint": "874d3c61",
-      "masses": 17,
-      "smallRocks": 2,
-      "rmsM": 2.3018449057183044,
-      "maximumUnderM": 12.956410044347683,
-      "maximumOverM": 4.4078357832445185
+      "fingerprint": "f92035f8",
+      "masses": 15,
+      "smallRocks": 1,
+      "rmsM": 2.2832719748753236,
+      "maximumUnderM": 7.015639827594512,
+      "maximumOverM": 4.277932235628562
     },
     {
       "seed": 480,
@@ -31,12 +31,12 @@
         "peaks": 5,
         "branches": 8
       },
-      "fingerprint": "874d3c61",
-      "masses": 25,
+      "fingerprint": "f92035f8",
+      "masses": 22,
       "smallRocks": 2,
-      "rmsM": 2.1496662624099208,
-      "maximumUnderM": 5.781634710398766,
-      "maximumOverM": 4.0876384101373375
+      "rmsM": 2.5719267196716817,
+      "maximumUnderM": 11.45746256461405,
+      "maximumOverM": 8.823589733717693
     },
     {
       "seed": 481,
@@ -44,12 +44,12 @@
       "topology": {
         "seeded": true
       },
-      "fingerprint": "cdcc7e6e",
-      "masses": 22,
-      "smallRocks": 1,
-      "rmsM": 1.9656259929478224,
-      "maximumUnderM": 6.941766295729213,
-      "maximumOverM": 5.6480320082721285
+      "fingerprint": "ea93625d",
+      "masses": 20,
+      "smallRocks": 2,
+      "rmsM": 2.654773315720769,
+      "maximumUnderM": 6.925079027500928,
+      "maximumOverM": 6.009081512171683
     },
     {
       "seed": 481,
@@ -57,12 +57,12 @@
       "topology": {
         "seeded": true
       },
-      "fingerprint": "cdcc7e6e",
-      "masses": 16,
+      "fingerprint": "ea93625d",
+      "masses": 12,
       "smallRocks": 2,
-      "rmsM": 2.6935005797372265,
-      "maximumUnderM": 5.749198519842199,
-      "maximumOverM": 5.24887151201462
+      "rmsM": 2.7829167669688557,
+      "maximumUnderM": 10.03943909891678,
+      "maximumOverM": 6.011041605342417
     }
   ],
   "checks": [

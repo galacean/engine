@@ -2,7 +2,7 @@
 // into the frozen Boolean implementation from commit 1326a3fd5.
 // This reference implementation is never included in the live demo bundle.
 import fs from 'node:fs';
-const root=new URL('../',import.meta.url);
+const root=new URL('../../../../../packages/terrain/src/rock-ridge/',import.meta.url);
 const source=fs.readFileSync(new URL('features/shaping/rock-surface.mjs',root),'utf8')
  .replace("'../../ridge-utils.mjs'",JSON.stringify(new URL('ridge-utils.mjs',root).href))
  .replace("'./solid-carve.mjs'",JSON.stringify(new URL('solid-carve-before.mjs',import.meta.url).href));

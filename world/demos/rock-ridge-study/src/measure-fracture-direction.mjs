@@ -19,3 +19,31 @@ export function measureFractureDirection(g){
  const length=segments.reduce((n,s)=>n+s.length,0);
  return {segments:segments.length,contourLengthM:length,within30DegreesOfVertical:length?segments.filter(s=>s.vertical>=Math.cos(Math.PI/6)).reduce((n,s)=>n+s.length,0)/length:0,meanVerticalAlignment:length?segments.reduce((n,s)=>n+s.length*s.vertical,0)/length:0};
 }
+
+// Physical mouth edges, independent of tessellation and the interpolated dark
+// joint mask. On a rounded shoulder, up means world up projected onto the body
+// face: following its curvature must not count as a sideways/random fracture.
+export function measureFractureSeams(g){
+ const edges=new Map(),planes=new Map(g.surface.cutPlanes.map(p=>[p.tag,p]));
+ for(let i=0;i<g.indices.length;i+=3)for(let j=0;j<3;j++){
+  const a=g.indices[i+j],b=g.indices[i+(j+1)%3],key=Math.min(a,b)+':'+Math.max(a,b);
+  if(!edges.has(key))edges.set(key,[]);edges.get(key).push(i/3);
+ }
+ const point=id=>g.positions.slice(id*3,id*3+3),segments=[];
+ for(const [key,faces] of edges){
+  if(faces.length!==2)continue;
+  const body=faces.find(i=>g.faceTags[i]<0),cut=faces.find(i=>planes.get(g.faceTags[i])?.kind==='joint');
+  if(body===undefined||cut===undefined)continue;
+  const [a,b,c]=g.indices.slice(body*3,body*3+3).map(point),u=b.map((v,i)=>v-a[i]),v=c.map((v,i)=>v-a[i]);
+  const n=[u[1]*v[2]-u[2]*v[1],u[2]*v[0]-u[0]*v[2],u[0]*v[1]-u[1]*v[0]],ny=n[1]/Math.hypot(...n);
+  if(Math.abs(ny)>.55)continue;
+  const [p,q]=key.split(':').map(Number).map(point),y=((p[1]+q[1])/2-g.bounds[0][1])/(g.bounds[1][1]-g.bounds[0][1]);
+  if(y<.24||y>.88)continue;
+  const d=q.map((v,i)=>v-p[i]),length=Math.hypot(...d);if(length<1e-7)continue;
+  segments.push({length,vertical:Math.min(1,Math.abs(d[1])/length/Math.sqrt(1-ny*ny))});
+ }
+ const length=segments.reduce((s,p)=>s+p.length,0);
+ return {metric:'physical mouth edges relative to surface up',segments:segments.length,contourLengthM:length,
+  within30DegreesOfVertical:length?segments.filter(s=>s.vertical>=Math.cos(Math.PI/6)).reduce((s,p)=>s+p.length,0)/length:0,
+  meanVerticalAlignment:length?segments.reduce((s,p)=>s+p.length*p.vertical,0)/length:0};
+}

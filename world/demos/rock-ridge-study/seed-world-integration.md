@@ -2,7 +2,8 @@
 
 The native Seed World rock worker now consumes the shared arrangement and shaping
 pipelines from `packages/terrain/src/rock-ridge`. The study imports the same code
-through compatibility exports. Its pinned output hashes remain unchanged.
+through compatibility exports. The rounded-body update below intentionally changes
+atomic profiles and carving; cold seeded replay replaces the old fixed hashes.
 
 ## Native behavior
 
@@ -11,7 +12,7 @@ through compatibility exports. Its pinned output hashes remain unchanged.
 - Independent arrangement/shaping switches; seeded or manual graph counts; optional
   Perlin field; fracture depth, width, irregularity; existing OBB height/size edits.
 - Flags are opt-in for existing worlds and persist through native scene properties.
-- Native projected rock textures, per-corner sharp normals, indexed collision mesh,
+- Native projected rock textures, smooth body / hard cut normals, indexed collision mesh,
   owner IDs, grass support and building support all use the published surface.
 - Generation uses the current atomic terrain generator. One seeded atom library is
   reused across the world's mountain topology seeds. Native carving reduction uses
@@ -20,7 +21,7 @@ through compatibility exports. Its pinned output hashes remain unchanged.
   narrow envelopes therefore produce taller, narrower mountains; the controls can
   resize these envelopes. This integration does not replace the world planner.
 
-## Preview and observed publication
+## Initial integration publication (before rounded-body update)
 
 URL: `http://127.0.0.1:5197/world/demos/seed-world/index.html?seed=1&template=original&debug=1&view=3d`
 
@@ -67,3 +68,47 @@ operation; these numbers do not establish interactive full-world regeneration.
   before feature activation. Selector-based framing and publication succeeded;
   this task does not establish that GPU picking or walking every generated surface
   has been validated.
+
+## Rounded atomic bodies — 2026-11-13
+
+The earlier version sharpened whole pieces in three places: narrow crown recipes,
+six planar hull cuts, and flat per-triangle native shading. Runtime atoms now keep
+broad crowns and shoulders. Fractures sample the actual curved source body and
+subtract local connected wedges; only their walls are sharp. Their end caps stay
+outside the body, avoiding horizontal shelves.
+
+New Boolean vertices interpolate the original atomic normal field on retained
+triangles. Native reduction preserves source/cut seams, welds GPU-equivalent
+positions, and transforms the normals correctly through nonuniform placement.
+Zero fracture width or depth retains exact source positions and indices. Both
+feature switches and the existing triplanar material remain independent.
+
+At depth 1.3 / width 1.6 / irregularity 1.8, all 16 current-kernel atoms from seeds
+1 and 425 retained 91.4–94.9% of source volume. Across 216 support directions per
+atom, the largest silhouette support loss was 3.24% of the original span. These
+are sampled geometric checks, not a claim about every possible seed or view.
+
+Validation includes 115 native tests, with five mountain tests rerun after the
+normal and precision changes. The new tests cover closed reduced surfaces,
+source silhouette retention, sharp cut normals, rounded body normals, and zero
+width/depth identity. World typechecking and package-boundary checks also passed.
+The study's feature verifier checks independent cold replay and toggle caches.
+
+The 120 fracture-control boundary cases passed. Physical fracture mouth edges
+were checked on the retained curved surface, using world up projected into its
+tangent plane. On the ten non-platform historical fixtures, 81.6–95.0% of seam
+length was within 30 degrees of surface up. The old interpolated color-mask
+metric is retained for historical inspection; it no longer gates the new rounded
+body against a planar-hull baseline.
+
+The final production build passed in `/private/tmp/seed-world-rounded-build`.
+Standalone checks passed for 12 surface fixtures / five fitted assemblies, 120
+control-boundary meshes, runtime seeded assemblies, and exact optimized/reference
+Boolean parity on 70 meshes. Seed World was visually verified in its textured
+view, and seed 425 was checked with matched base/carved clay views. The live
+preview reached `ready`; its eight-atom carving stage reported about 4.3 seconds
+of CPU time during the full world build (not an isolated benchmark).
+
+Seam preservation has a measured cost: the eight seed-1 carved atoms reduce to
+1,162–1,216 triangles at the 1,000 target. The target remains soft under the
+0.0005 error ceiling; the adapter keeps the original body and fracture edges.

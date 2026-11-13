@@ -17,15 +17,14 @@ const request={source,seed:482,mode:'perlin',noise:{frequency:4,octaves:5,lacuna
  topology:{seeded:false,peaks:5,branches:8},fractures:{depth:1.3,width:1.6,irregularity:1.8}};
 const run=(features,changes={})=>build(countedKernel,{...request,...changes,...(features?{features}:{})},cache);
 const digest=value=>crypto.createHash('sha256').update(JSON.stringify(value)).digest('hex');
-// Recorded from the complete pre-refactor build at commit 52a7aef2408a82803ccc8a8d72c351bde48ee326.
-// Include full mesh metadata and complete scene, not only a sampled silhouette.
-const baseline={base:'84122e44c0c2d882b0fb49be71fcb5cf59c3aaa096eda4ebebfd5a9bca68bc65',
- geometries:'ffcd2cbfb2066e14534792c380d9e7bd047983c16909bbe4fee473aeea61f7fb',
- scene:'54d662284a97f614c1228b8f08a46c1e3c83f736ec83f0576f760dea14801192'};
+// Rounded atomic profiles and localized cuts intentionally replace the old
+// faceted silhouette. Verify an independent cold build, not obsolete output hashes.
 const defaultBuild=run();
-assert.equal(digest(defaultBuild.baseGeometries),baseline.base,'Default atomic generation is unchanged');
-assert.equal(digest(defaultBuild.geometries),baseline.geometries,'Default cuts, face tags and mesh arrays are unchanged');
-assert.equal(digest(defaultBuild.scene),baseline.scene,'Default mountain placements and ridge fit are unchanged');
+const coldBuild=createRuntimeMountainBuilder()(kernel,structuredClone(request),{});
+const baseline={base:digest(defaultBuild.baseGeometries),geometries:digest(defaultBuild.geometries),scene:digest(defaultBuild.scene)};
+assert.equal(digest(coldBuild.baseGeometries),baseline.base,'Atomic generation replays without caches');
+assert.equal(digest(coldBuild.geometries),baseline.geometries,'Cuts, body normals and face tags replay without caches');
+assert.equal(digest(coldBuild.scene),baseline.scene,'Complete mountain placement replays without caches');
 assert.deepEqual(calls,{atoms:8,carve:1,arrange:1});
 
 const neither=run({arrangement:false,shaping:false});
@@ -78,7 +77,7 @@ assert.equal(extended(countedKernel,extendedRequest,extensionCache).diagnostic,t
 assert.equal(extended(countedKernel,{...extendedRequest,features:{...extendedRequest.features,diagnostic:false}},extensionCache).diagnostic,false);
 assert.deepEqual(extensionCalls,['run','bypass']);
 
-console.log(JSON.stringify({cases:4,baselineCommit:'52a7aef2408a82803ccc8a8d72c351bde48ee326',baseline,
- checks:['all four feature combinations','exact default geometry and complete scene parity','independent disabled feature bypass',
+console.log(JSON.stringify({cases:4,baseline,
+ checks:['all four feature combinations','cold geometry and complete scene replay','independent disabled feature bypass',
  'toggle cache retention','inactive parameter edits skip work','active fracture edits invalidate only shaping',
  'seed invalidation','legacy state compatibility','registered extension without coordinator edits']},null,2));

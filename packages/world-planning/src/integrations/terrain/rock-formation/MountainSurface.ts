@@ -1,12 +1,14 @@
 import { buildRock } from "@galacean/engine-terrain/rock-formation/generator/rock-body.js";
 import { simplifyRock } from "@galacean/engine-terrain/rock-formation/generator/simplify-rock.js";
-import { MeshoptSimplifier } from "@galacean/engine-terrain/rock-formation/generator/vendor/meshopt_simplifier.js";
 import {
   createRuntimeMountainBuilder,
   createShapingFeature,
   createArrangementFeature
 } from "@galacean/engine-terrain/rock-ridge/runtime-rocks.mjs";
-import { fracturedRockLibrary } from "@galacean/engine-terrain/rock-ridge/features/shaping/rock-surface.mjs";
+import {
+  fracturedRockLibrary,
+  creasedRockAttributes
+} from "@galacean/engine-terrain/rock-ridge/features/shaping/rock-surface.mjs";
 import { transformedVertices } from "@galacean/engine-terrain/rock-ridge/ridge-utils.mjs";
 import type {
   RockFormationJob,
@@ -15,6 +17,7 @@ import type {
   RockSurface
 } from "@galacean/engine-terrain/rock-formation/types";
 import type { RockFormationSettings } from "./Settings.ts";
+import { reduceMountainRock } from "./MountainRockReduction.ts";
 
 // This is a dimensionless authoring domain, not a stored mountain recipe. Each
 // topology is grown from its job seed, then mapped into the published OBB.
@@ -29,43 +32,14 @@ const source = {
 };
 
 /** BSP fragments are reduced without moving vertices. A 0.05% relative error
- * ceiling protects the vertical cuts; render normals are kept per face below.
+ * ceiling and explicit cut seams protect the rounded body and vertical cuts.
  * This production stage is injected; the study keeps its full carving output. */
 function reduceCarvedLibrary(geometries: Record<string, any>, fractures: unknown, budget: number) {
   return Object.fromEntries(
-    Object.entries(fracturedRockLibrary(geometries, fractures)).map(([id, value]) => {
-      const geometry = value as any;
-      const [reduced] = MeshoptSimplifier.simplify(
-        new Uint32Array(geometry.indices),
-        new Float32Array(geometry.positions),
-        3,
-        budget * 3,
-        0.0005,
-        ["LockBorder"]
-      );
-      const remap = new Map<number, number>(),
-        positions: number[] = [],
-        normals: number[] = [];
-      const indices = Array.from(reduced, (old) => {
-        if (!remap.has(old)) {
-          remap.set(old, remap.size);
-          positions.push(...geometry.positions.slice(old * 3, old * 3 + 3));
-          normals.push(...geometry.normals.slice(old * 3, old * 3 + 3));
-        }
-        return remap.get(old)!;
-      });
-      return [
-        id,
-        {
-          ...geometry,
-          positions,
-          normals,
-          indices,
-          faceTags: undefined,
-          stats: { ...geometry.stats, rawTriangles: geometry.indices.length / 3, triangles: indices.length / 3 }
-        }
-      ];
-    })
+    Object.entries(fracturedRockLibrary(geometries, fractures)).map(([id, geometry]) => [
+      id,
+      reduceMountainRock(geometry, budget)
+    ])
   );
 }
 
@@ -97,6 +71,15 @@ function createMountainPipeline(budget: number) {
 // One world library + bounded stage caches. This lives in the existing worker,
 // never the render loop. Changing counts does not rebuild/carve the atoms.
 let pipeline: ReturnType<typeof createMountainPipeline> | undefined;
+const cornerNormalCache = new WeakMap<object, number[]>();
+function rockCornerNormals(geometry: any) {
+  let normals = cornerNormalCache.get(geometry);
+  if (!normals) {
+    normals = creasedRockAttributes(geometry).normals;
+    cornerNormalCache.set(geometry, normals!);
+  }
+  return normals!;
+}
 
 export interface MountainSurface extends RockSurface {
   cornerNormals: Float32Array;
@@ -137,6 +120,7 @@ export function generateMountainSurface(
     pipeline.cache
   );
   const bodies = result.scene.rocks.map((rock: any) => ({
+    rock,
     geometry: result.geometries[rock.mesh],
     vertices: transformedVertices(rock, result.geometries[rock.mesh])
   }));
@@ -152,18 +136,32 @@ export function generateMountainSurface(
   const positions = new Float32Array(bodies.reduce((sum: number, b: any) => sum + b.vertices.length * 3, 0));
   const normals = new Float32Array(positions.length);
   const indices = new Uint32Array(bodies.reduce((sum: number, b: any) => sum + b.geometry.indices.length, 0));
+  const cornerNormals = new Float32Array(indices.length * 3);
   let vertex = 0,
     index = 0;
   for (const body of bodies) {
     for (let i = 0; i < body.vertices.length; i++)
       for (let d = 0; d < 3; d++)
         positions[(vertex + i) * 3 + d] = (body.vertices[i][d] - low[d]) * scale[d] - guide.size[d] / 2;
-    for (const old of body.geometry.indices) indices[index++] = vertex + old;
+    const sourceNormals = rockCornerNormals(body.geometry),
+      rock = body.rock;
+    const c = Math.cos(rock.yaw),
+      s = Math.sin(rock.yaw);
+    for (let i = 0; i < body.geometry.indices.length; i++) {
+      // Inverse transpose of atom stretch, yaw and final OBB scaling. Preserve
+      // smooth body shading and split cut normals even in a tall/narrow OBB.
+      const x = sourceNormals[i * 3] / (rock.longitudinalScale ?? 1);
+      const y = sourceNormals[i * 3 + 1] / (rock.verticalScale ?? 1);
+      const z = sourceNormals[i * 3 + 2] / (rock.lateralScale ?? 1);
+      const n = [(c * x - s * z) / scale[0], y / scale[1], (s * x + c * z) / scale[2]];
+      const length = Math.hypot(...n) || 1;
+      for (let d = 0; d < 3; d++) cornerNormals[index * 3 + d] = n[d] / length;
+      indices[index++] = vertex + body.geometry.indices[i];
+    }
     vertex += body.vertices.length;
   }
-  // Canonical indexed surface for fitting/collision; hard corner normals for
-  // rendering, including under nonuniform OBB scaling. No smoothing across cuts.
-  const cornerNormals = new Float32Array(indices.length * 3);
+  // Averaged canonical normals support fitting/collision. Rendering uses the
+  // source/cut-aware corner normals above, never flat shading the entire atom.
   for (let t = 0; t < indices.length; t += 3) {
     const a = indices[t] * 3,
       b = indices[t + 1] * 3,
@@ -174,12 +172,10 @@ export function generateMountainSurface(
     const vx = positions[c] - positions[a],
       vy = positions[c + 1] - positions[a + 1],
       vz = positions[c + 2] - positions[a + 2];
-    const n = [uy * vz - uz * vy, uz * vx - ux * vz, ux * vy - uy * vx],
-      length = Math.hypot(...n) || 1;
+    const n = [uy * vz - uz * vy, uz * vx - ux * vz, ux * vy - uy * vx];
     for (let corner = 0; corner < 3; corner++)
       for (let d = 0; d < 3; d++) {
         normals[indices[t + corner] * 3 + d] += n[d];
-        cornerNormals[(t + corner) * 3 + d] = n[d] / length;
       }
   }
   for (let i = 0; i < normals.length; i += 3) {

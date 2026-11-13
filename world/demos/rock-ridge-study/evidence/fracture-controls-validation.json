@@ -1,883 +1,883 @@
 {
-  "version": "fracture-controls-6",
+  "version": "rounded-body-fractures-7",
   "cases": [
     {
       "id": "cliff",
       "depth": 0,
       "width": 1,
       "irregularity": 1,
-      "triangles": 13214
+      "triangles": 1000
     },
     {
       "id": "cliff",
       "depth": 1,
       "width": 0,
       "irregularity": 1,
-      "triangles": 13214
+      "triangles": 1000
     },
     {
       "id": "cliff",
       "depth": 0.1,
       "width": 0.1,
       "irregularity": 0,
-      "triangles": 17546
+      "triangles": 32194
     },
     {
       "id": "cliff",
       "depth": 0.1,
       "width": 0.1,
       "irregularity": 2,
-      "triangles": 24396
+      "triangles": 39074
     },
     {
       "id": "cliff",
       "depth": 0.1,
       "width": 2,
       "irregularity": 0,
-      "triangles": 17630
+      "triangles": 31356
     },
     {
       "id": "cliff",
       "depth": 0.1,
       "width": 2,
       "irregularity": 2,
-      "triangles": 22614
+      "triangles": 35142
     },
     {
       "id": "cliff",
       "depth": 2,
       "width": 0.1,
       "irregularity": 0,
-      "triangles": 21434
+      "triangles": 37594
     },
     {
       "id": "cliff",
       "depth": 2,
       "width": 0.1,
       "irregularity": 2,
-      "triangles": 27342
+      "triangles": 44516
     },
     {
       "id": "cliff",
       "depth": 2,
       "width": 2,
       "irregularity": 0,
-      "triangles": 19124
+      "triangles": 36484
     },
     {
       "id": "cliff",
       "depth": 2,
       "width": 2,
       "irregularity": 2,
-      "triangles": 24314
+      "triangles": 42510
     },
     {
       "id": "cliff2",
       "depth": 0,
       "width": 1,
       "irregularity": 1,
-      "triangles": 10632
+      "triangles": 1000
     },
     {
       "id": "cliff2",
       "depth": 1,
       "width": 0,
       "irregularity": 1,
-      "triangles": 10632
+      "triangles": 1000
     },
     {
       "id": "cliff2",
       "depth": 0.1,
       "width": 0.1,
       "irregularity": 0,
-      "triangles": 15728
+      "triangles": 31546
     },
     {
       "id": "cliff2",
       "depth": 0.1,
       "width": 0.1,
       "irregularity": 2,
-      "triangles": 21308
+      "triangles": 39058
     },
     {
       "id": "cliff2",
       "depth": 0.1,
       "width": 2,
       "irregularity": 0,
-      "triangles": 15694
+      "triangles": 31022
     },
     {
       "id": "cliff2",
       "depth": 0.1,
       "width": 2,
       "irregularity": 2,
-      "triangles": 19744
+      "triangles": 36856
     },
     {
       "id": "cliff2",
       "depth": 2,
       "width": 0.1,
       "irregularity": 0,
-      "triangles": 19438
+      "triangles": 36500
     },
     {
       "id": "cliff2",
       "depth": 2,
       "width": 0.1,
       "irregularity": 2,
-      "triangles": 23746
+      "triangles": 44544
     },
     {
       "id": "cliff2",
       "depth": 2,
       "width": 2,
       "irregularity": 0,
-      "triangles": 18954
+      "triangles": 42800
     },
     {
       "id": "cliff2",
       "depth": 2,
       "width": 2,
       "irregularity": 2,
-      "triangles": 23666
+      "triangles": 43962
     },
     {
       "id": "wall",
       "depth": 0,
       "width": 1,
       "irregularity": 1,
-      "triangles": 11186
+      "triangles": 1000
     },
     {
       "id": "wall",
       "depth": 1,
       "width": 0,
       "irregularity": 1,
-      "triangles": 11186
+      "triangles": 1000
     },
     {
       "id": "wall",
       "depth": 0.1,
       "width": 0.1,
       "irregularity": 0,
-      "triangles": 15204
+      "triangles": 32984
     },
     {
       "id": "wall",
       "depth": 0.1,
       "width": 0.1,
       "irregularity": 2,
-      "triangles": 20980
+      "triangles": 40950
     },
     {
       "id": "wall",
       "depth": 0.1,
       "width": 2,
       "irregularity": 0,
-      "triangles": 15202
+      "triangles": 32596
     },
     {
       "id": "wall",
       "depth": 0.1,
       "width": 2,
       "irregularity": 2,
-      "triangles": 19272
+      "triangles": 38654
     },
     {
       "id": "wall",
       "depth": 2,
       "width": 0.1,
       "irregularity": 0,
-      "triangles": 19124
+      "triangles": 39444
     },
     {
       "id": "wall",
       "depth": 2,
       "width": 0.1,
       "irregularity": 2,
-      "triangles": 23280
+      "triangles": 46960
     },
     {
       "id": "wall",
       "depth": 2,
       "width": 2,
       "irregularity": 0,
-      "triangles": 15666
+      "triangles": 35082
     },
     {
       "id": "wall",
       "depth": 2,
       "width": 2,
       "irregularity": 2,
-      "triangles": 20192
+      "triangles": 38716
     },
     {
       "id": "wall2",
       "depth": 0,
       "width": 1,
       "irregularity": 1,
-      "triangles": 8746
+      "triangles": 980
     },
     {
       "id": "wall2",
       "depth": 1,
       "width": 0,
       "irregularity": 1,
-      "triangles": 8746
+      "triangles": 980
     },
     {
       "id": "wall2",
       "depth": 0.1,
       "width": 0.1,
       "irregularity": 0,
-      "triangles": 14636
+      "triangles": 30904
     },
     {
       "id": "wall2",
       "depth": 0.1,
       "width": 0.1,
       "irregularity": 2,
-      "triangles": 19116
+      "triangles": 36886
     },
     {
       "id": "wall2",
       "depth": 0.1,
       "width": 2,
       "irregularity": 0,
-      "triangles": 14414
+      "triangles": 30038
     },
     {
       "id": "wall2",
       "depth": 0.1,
       "width": 2,
       "irregularity": 2,
-      "triangles": 18886
+      "triangles": 35392
     },
     {
       "id": "wall2",
       "depth": 2,
       "width": 0.1,
       "irregularity": 0,
-      "triangles": 17664
+      "triangles": 34740
     },
     {
       "id": "wall2",
       "depth": 2,
       "width": 0.1,
       "irregularity": 2,
-      "triangles": 21768
+      "triangles": 43604
     },
     {
       "id": "wall2",
       "depth": 2,
       "width": 2,
       "irregularity": 0,
-      "triangles": 14200
+      "triangles": 35680
     },
     {
       "id": "wall2",
       "depth": 2,
       "width": 2,
       "irregularity": 2,
-      "triangles": 18970
+      "triangles": 38614
     },
     {
       "id": "shoulder",
       "depth": 0,
       "width": 1,
       "irregularity": 1,
-      "triangles": 9294
+      "triangles": 888
     },
     {
       "id": "shoulder",
       "depth": 1,
       "width": 0,
       "irregularity": 1,
-      "triangles": 9294
+      "triangles": 888
     },
     {
       "id": "shoulder",
       "depth": 0.1,
       "width": 0.1,
       "irregularity": 0,
-      "triangles": 14462
+      "triangles": 27140
     },
     {
       "id": "shoulder",
       "depth": 0.1,
       "width": 0.1,
       "irregularity": 2,
-      "triangles": 19862
+      "triangles": 32058
     },
     {
       "id": "shoulder",
       "depth": 0.1,
       "width": 2,
       "irregularity": 0,
-      "triangles": 14340
+      "triangles": 26934
     },
     {
       "id": "shoulder",
       "depth": 0.1,
       "width": 2,
       "irregularity": 2,
-      "triangles": 17790
+      "triangles": 30632
     },
     {
       "id": "shoulder",
       "depth": 2,
       "width": 0.1,
       "irregularity": 0,
-      "triangles": 19404
+      "triangles": 30720
     },
     {
       "id": "shoulder",
       "depth": 2,
       "width": 0.1,
       "irregularity": 2,
-      "triangles": 23178
+      "triangles": 37394
     },
     {
       "id": "shoulder",
       "depth": 2,
       "width": 2,
       "irregularity": 0,
-      "triangles": 15844
+      "triangles": 26958
     },
     {
       "id": "shoulder",
       "depth": 2,
       "width": 2,
       "irregularity": 2,
-      "triangles": 18222
+      "triangles": 31826
     },
     {
       "id": "shoulder2",
       "depth": 0,
       "width": 1,
       "irregularity": 1,
-      "triangles": 12480
+      "triangles": 922
     },
     {
       "id": "shoulder2",
       "depth": 1,
       "width": 0,
       "irregularity": 1,
-      "triangles": 12480
+      "triangles": 922
     },
     {
       "id": "shoulder2",
       "depth": 0.1,
       "width": 0.1,
       "irregularity": 0,
-      "triangles": 18006
+      "triangles": 30626
     },
     {
       "id": "shoulder2",
       "depth": 0.1,
       "width": 0.1,
       "irregularity": 2,
-      "triangles": 23928
+      "triangles": 35404
     },
     {
       "id": "shoulder2",
       "depth": 0.1,
       "width": 2,
       "irregularity": 0,
-      "triangles": 17994
+      "triangles": 29270
     },
     {
       "id": "shoulder2",
       "depth": 0.1,
       "width": 2,
       "irregularity": 2,
-      "triangles": 22420
+      "triangles": 32268
     },
     {
       "id": "shoulder2",
       "depth": 2,
       "width": 0.1,
       "irregularity": 0,
-      "triangles": 22118
+      "triangles": 34016
     },
     {
       "id": "shoulder2",
       "depth": 2,
       "width": 0.1,
       "irregularity": 2,
-      "triangles": 26796
+      "triangles": 40160
     },
     {
       "id": "shoulder2",
       "depth": 2,
       "width": 2,
       "irregularity": 0,
-      "triangles": 20454
+      "triangles": 29488
     },
     {
       "id": "shoulder2",
       "depth": 2,
       "width": 2,
       "irregularity": 2,
-      "triangles": 23932
+      "triangles": 32626
     },
     {
       "id": "peak",
       "depth": 0,
       "width": 1,
       "irregularity": 1,
-      "triangles": 6360
+      "triangles": 764
     },
     {
       "id": "peak",
       "depth": 1,
       "width": 0,
       "irregularity": 1,
-      "triangles": 6360
+      "triangles": 764
     },
     {
       "id": "peak",
       "depth": 0.1,
       "width": 0.1,
       "irregularity": 0,
-      "triangles": 10334
+      "triangles": 20698
     },
     {
       "id": "peak",
       "depth": 0.1,
       "width": 0.1,
       "irregularity": 2,
-      "triangles": 13152
+      "triangles": 24556
     },
     {
       "id": "peak",
       "depth": 0.1,
       "width": 2,
       "irregularity": 0,
-      "triangles": 10188
+      "triangles": 20462
     },
     {
       "id": "peak",
       "depth": 0.1,
       "width": 2,
       "irregularity": 2,
-      "triangles": 12632
+      "triangles": 22688
     },
     {
       "id": "peak",
       "depth": 2,
       "width": 0.1,
       "irregularity": 0,
-      "triangles": 13438
+      "triangles": 23162
     },
     {
       "id": "peak",
       "depth": 2,
       "width": 0.1,
       "irregularity": 2,
-      "triangles": 16314
+      "triangles": 28588
     },
     {
       "id": "peak",
       "depth": 2,
       "width": 2,
       "irregularity": 0,
-      "triangles": 11360
+      "triangles": 21762
     },
     {
       "id": "peak",
       "depth": 2,
       "width": 2,
       "irregularity": 2,
-      "triangles": 12270
+      "triangles": 23444
     },
     {
       "id": "peak2",
       "depth": 0,
       "width": 1,
       "irregularity": 1,
-      "triangles": 12000
+      "triangles": 878
     },
     {
       "id": "peak2",
       "depth": 1,
       "width": 0,
       "irregularity": 1,
-      "triangles": 12000
+      "triangles": 878
     },
     {
       "id": "peak2",
       "depth": 0.1,
       "width": 0.1,
       "irregularity": 0,
-      "triangles": 16160
+      "triangles": 28204
     },
     {
       "id": "peak2",
       "depth": 0.1,
       "width": 0.1,
       "irregularity": 2,
-      "triangles": 21626
+      "triangles": 33794
     },
     {
       "id": "peak2",
       "depth": 0.1,
       "width": 2,
       "irregularity": 0,
-      "triangles": 16096
+      "triangles": 28040
     },
     {
       "id": "peak2",
       "depth": 0.1,
       "width": 2,
       "irregularity": 2,
-      "triangles": 20396
+      "triangles": 31750
     },
     {
       "id": "peak2",
       "depth": 2,
       "width": 0.1,
       "irregularity": 0,
-      "triangles": 20074
+      "triangles": 31850
     },
     {
       "id": "peak2",
       "depth": 2,
       "width": 0.1,
       "irregularity": 2,
-      "triangles": 25716
+      "triangles": 39076
     },
     {
       "id": "peak2",
       "depth": 2,
       "width": 2,
       "irregularity": 0,
-      "triangles": 17328
+      "triangles": 29018
     },
     {
       "id": "peak2",
       "depth": 2,
       "width": 2,
       "irregularity": 2,
-      "triangles": 20838
+      "triangles": 36280
     },
     {
       "id": "slab",
       "depth": 0,
       "width": 1,
       "irregularity": 1,
-      "triangles": 2838
+      "triangles": 946
     },
     {
       "id": "slab",
       "depth": 1,
       "width": 0,
       "irregularity": 1,
-      "triangles": 2838
+      "triangles": 946
     },
     {
       "id": "slab",
       "depth": 0.1,
       "width": 0.1,
       "irregularity": 0,
-      "triangles": 27674
+      "triangles": 26518
     },
     {
       "id": "slab",
       "depth": 0.1,
       "width": 0.1,
       "irregularity": 2,
-      "triangles": 32936
+      "triangles": 31218
     },
     {
       "id": "slab",
       "depth": 0.1,
       "width": 2,
       "irregularity": 0,
-      "triangles": 28922
+      "triangles": 26416
     },
     {
       "id": "slab",
       "depth": 0.1,
       "width": 2,
       "irregularity": 2,
-      "triangles": 33234
+      "triangles": 27792
     },
     {
       "id": "slab",
       "depth": 2,
       "width": 0.1,
       "irregularity": 0,
-      "triangles": 28024
+      "triangles": 31848
     },
     {
       "id": "slab",
       "depth": 2,
       "width": 0.1,
       "irregularity": 2,
-      "triangles": 33342
+      "triangles": 32908
     },
     {
       "id": "slab",
       "depth": 2,
       "width": 2,
       "irregularity": 0,
-      "triangles": 27946
+      "triangles": 34688
     },
     {
       "id": "slab",
       "depth": 2,
       "width": 2,
       "irregularity": 2,
-      "triangles": 33450
+      "triangles": 33754
     },
     {
       "id": "slab2",
       "depth": 0,
       "width": 1,
       "irregularity": 1,
-      "triangles": 2892
+      "triangles": 964
     },
     {
       "id": "slab2",
       "depth": 1,
       "width": 0,
       "irregularity": 1,
-      "triangles": 2892
+      "triangles": 964
     },
     {
       "id": "slab2",
       "depth": 0.1,
       "width": 0.1,
       "irregularity": 0,
-      "triangles": 27768
+      "triangles": 27292
     },
     {
       "id": "slab2",
       "depth": 0.1,
       "width": 0.1,
       "irregularity": 2,
-      "triangles": 33692
+      "triangles": 32878
     },
     {
       "id": "slab2",
       "depth": 0.1,
       "width": 2,
       "irregularity": 0,
-      "triangles": 31804
+      "triangles": 27636
     },
     {
       "id": "slab2",
       "depth": 0.1,
       "width": 2,
       "irregularity": 2,
-      "triangles": 36984
+      "triangles": 29686
     },
     {
       "id": "slab2",
       "depth": 2,
       "width": 0.1,
       "irregularity": 0,
-      "triangles": 28972
+      "triangles": 32854
     },
     {
       "id": "slab2",
       "depth": 2,
       "width": 0.1,
       "irregularity": 2,
-      "triangles": 35546
+      "triangles": 34680
     },
     {
       "id": "slab2",
       "depth": 2,
       "width": 2,
       "irregularity": 0,
-      "triangles": 30806
+      "triangles": 41340
     },
     {
       "id": "slab2",
       "depth": 2,
       "width": 2,
       "irregularity": 2,
-      "triangles": 35616
+      "triangles": 38028
     },
     {
       "id": "bank",
       "depth": 0,
       "width": 1,
       "irregularity": 1,
-      "triangles": 7874
+      "triangles": 954
     },
     {
       "id": "bank",
       "depth": 1,
       "width": 0,
       "irregularity": 1,
-      "triangles": 7874
+      "triangles": 954
     },
     {
       "id": "bank",
       "depth": 0.1,
       "width": 0.1,
       "irregularity": 0,
-      "triangles": 14266
+      "triangles": 28098
     },
     {
       "id": "bank",
       "depth": 0.1,
       "width": 0.1,
       "irregularity": 2,
-      "triangles": 19408
+      "triangles": 33056
     },
     {
       "id": "bank",
       "depth": 0.1,
       "width": 2,
       "irregularity": 0,
-      "triangles": 14190
+      "triangles": 27304
     },
     {
       "id": "bank",
       "depth": 0.1,
       "width": 2,
       "irregularity": 2,
-      "triangles": 18238
+      "triangles": 30376
     },
     {
       "id": "bank",
       "depth": 2,
       "width": 0.1,
       "irregularity": 0,
-      "triangles": 17634
+      "triangles": 31578
     },
     {
       "id": "bank",
       "depth": 2,
       "width": 0.1,
       "irregularity": 2,
-      "triangles": 22284
+      "triangles": 37946
     },
     {
       "id": "bank",
       "depth": 2,
       "width": 2,
       "irregularity": 0,
-      "triangles": 14784
+      "triangles": 28194
     },
     {
       "id": "bank",
       "depth": 2,
       "width": 2,
       "irregularity": 2,
-      "triangles": 18798
+      "triangles": 26650
     },
     {
       "id": "bank2",
       "depth": 0,
       "width": 1,
       "irregularity": 1,
-      "triangles": 14018
+      "triangles": 942
     },
     {
       "id": "bank2",
       "depth": 1,
       "width": 0,
       "irregularity": 1,
-      "triangles": 14018
+      "triangles": 942
     },
     {
       "id": "bank2",
       "depth": 0.1,
       "width": 0.1,
       "irregularity": 0,
-      "triangles": 18206
+      "triangles": 29584
     },
     {
       "id": "bank2",
       "depth": 0.1,
       "width": 0.1,
       "irregularity": 2,
-      "triangles": 23494
+      "triangles": 34860
     },
     {
       "id": "bank2",
       "depth": 0.1,
       "width": 2,
       "irregularity": 0,
-      "triangles": 18134
+      "triangles": 28574
     },
     {
       "id": "bank2",
       "depth": 0.1,
       "width": 2,
       "irregularity": 2,
-      "triangles": 20860
+      "triangles": 31552
     },
     {
       "id": "bank2",
       "depth": 2,
       "width": 0.1,
       "irregularity": 0,
-      "triangles": 21978
+      "triangles": 34786
     },
     {
       "id": "bank2",
       "depth": 2,
       "width": 0.1,
       "irregularity": 2,
-      "triangles": 26362
+      "triangles": 39990
     },
     {
       "id": "bank2",
       "depth": 2,
       "width": 2,
       "irregularity": 0,
-      "triangles": 19736
+      "triangles": 30984
     },
     {
       "id": "bank2",
       "depth": 2,
       "width": 2,
       "irregularity": 2,
-      "triangles": 23938
+      "triangles": 32590
     }
   ],
   "sensitivity": [
     {
       "id": "wall",
       "control": "depth",
-      "volumeAt50Percent": 452.7173220275655,
-      "volumeAt150Percent": 427.6508103038192
+      "volumeAt50Percent": 603.1001158898416,
+      "volumeAt150Percent": 574.3272774161579
     },
     {
       "id": "wall",
       "control": "width",
-      "volumeAt50Percent": 449.48334554421484,
-      "volumeAt150Percent": 437.67397672592426
+      "volumeAt50Percent": 599.5998601738809,
+      "volumeAt150Percent": 584.8348921725332
     },
     {
       "id": "peak",
       "control": "depth",
-      "volumeAt50Percent": 4082.0131600375316,
-      "volumeAt150Percent": 3865.2666533961433
+      "volumeAt50Percent": 4970.176276657257,
+      "volumeAt150Percent": 4715.834644170014
     },
     {
       "id": "peak",
       "control": "width",
-      "volumeAt50Percent": 4052.9009819944085,
-      "volumeAt150Percent": 3948.8646972351567
+      "volumeAt50Percent": 4939.316778860539,
+      "volumeAt150Percent": 4800.107966258882
     },
     {
       "id": "slab",
       "control": "depth",
-      "volumeAt50Percent": 167.07416519735992,
-      "volumeAt150Percent": 159.49868610415413
+      "volumeAt50Percent": 170.19669874964723,
+      "volumeAt150Percent": 165.63382040038377
     },
     {
       "id": "slab",
       "control": "width",
-      "volumeAt50Percent": 167.25539504699904,
-      "volumeAt150Percent": 160.5243292123127
+      "volumeAt50Percent": 169.62146080222627,
+      "volumeAt150Percent": 167.36306043645126
     }
   ],
   "checks": [

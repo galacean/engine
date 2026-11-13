@@ -1,7 +1,7 @@
 import {clamp} from '../../ridge-utils.mjs';
 import {convexCarveCutter,sweptCarveCutter,carveSolidMesh} from './solid-carve.mjs';
 
-export const ROCK_SURFACE_VERSION='fracture-controls-6';
+export const ROCK_SURFACE_VERSION='rounded-body-fractures-7';
 export const FRACTURE_DEFAULTS=Object.freeze({depth:1,width:1,irregularity:1});
 export function fractureSettings(options={}){return Object.fromEntries(Object.entries(FRACTURE_DEFAULTS).map(([key,value])=>[key,Number.isFinite(options?.[key])?clamp(options[key],0,2):value]));}
 const PREVIOUS_SURFACE_VERSION='solid-carving-4';
@@ -23,6 +23,54 @@ function surfaceNormals(vertices,indices){
   faces.push(normal);for(const k of [a,b,c]){for(let d=0;d<3;d++)sums[k][d]+=normal[d];weights[k]+=weight;}
  }
  return {normals:sums.map(surfaceUnit),weights,faces};
+}
+
+// BSP adds vertices inside existing triangles. Re-averaging their new triangle
+// fans changes the uncut body's shading. Interpolate the upstream normal field
+// on its original triangles instead; fracture walls keep their own hard normals.
+function retainedBodyNormals(source,vertices,indices,tags,fallback){
+ const normals=fallback.flat(),seen=new Set(),parents=new Map();
+ for(let i=0;i<indices.length;i+=3){
+  const tag=tags[i/3];if(tag>=0)continue;
+  let parent=parents.get(tag);
+  if(!parent){
+   const ids=source.indices.slice((-tag-1)*3,(-tag-1)*3+3),p=ids.map(id=>source.positions.slice(id*3,id*3+3));
+   const u=surfaceSub(p[1],p[0]),v=surfaceSub(p[2],p[0]),uu=surfaceDot(u,u),uv=surfaceDot(u,v),vv=surfaceDot(v,v);
+   parent={p:p[0],u,v,uu,uv,vv,det:uu*vv-uv*uv,n:ids.map(id=>source.normals.slice(id*3,id*3+3))};parents.set(tag,parent);
+  }
+  for(let j=0;j<3;j++){
+   const id=indices[i+j];if(seen.has(id))continue;seen.add(id);
+   const q=surfaceSub(vertices[id],parent.p),qu=surfaceDot(q,parent.u),qv=surfaceDot(q,parent.v);
+   const b=(qu*parent.vv-qv*parent.uv)/parent.det,c=(qv*parent.uu-qu*parent.uv)/parent.det;
+   const normal=surfaceUnit([0,1,2].map(d=>(1-b-c)*parent.n[0][d]+b*parent.n[1][d]+c*parent.n[2][d]));
+   for(let d=0;d<3;d++)normals[id*3+d]=normal[d];
+  }
+ }
+ return normals;
+}
+
+// Distinct double-precision intersections can be the same GPU position. Weld
+// only those indistinguishable points and their collapsed edge triangles, so
+// the indexed surface remains closed at the precision actually rendered.
+function weldGpuIntersections(vertices,indices,tags){
+ const keys=new Map(),canonical=vertices.map((p,id)=>{const key=p.map(Math.fround).join(':');if(!keys.has(key))keys.set(key,id);return keys.get(key);});
+ if(keys.size===vertices.length)return {vertices,indices,tags};
+ const triangles=new Map();
+ for(let i=0;i<indices.length;i+=3){
+  const ids=indices.slice(i,i+3).map(id=>canonical[id]);if(new Set(ids).size<3)continue;
+  const key=[...ids].sort((a,b)=>a-b).join(':'),previous=triangles.get(key);
+  const winding=(Number(ids[0]>ids[1])+Number(ids[0]>ids[2])+Number(ids[1]>ids[2]))%2;
+  // Collapsing a tiny edge can also flatten a two-sided fan to an opposite
+  // triangle pair. Cancel that zero-thickness pair before compacting vertices.
+  if(previous&&previous.winding!==winding){triangles.delete(key);continue;}
+  triangles.set(key,{ids,tag:tags[i/3],winding});
+ }
+ const points=[],faces=[],faceTags=[],used=new Map();
+ for(const {ids,tag} of triangles.values()){
+  for(const id of ids){if(!used.has(id)){used.set(id,points.length);points.push(vertices[id]);}faces.push(used.get(id));}
+  faceTags.push(tag);
+ }
+ return {vertices:points,indices:faces,tags:faceTags};
 }
 
 // Comparison uses the exact straight-wedge construction from solid-carving-4.
@@ -58,7 +106,9 @@ function solidFractureGeometry(g,irregular,settings=FRACTURE_DEFAULTS){
   // Broad faces run through the foot and crown, so stopping a cut cannot leave
   // a rim or plinth. Keep the actual summit inside every cutting halfspace.
   face.offset=Math.max(face.offset,face.n[0]*summit[0]+face.n[1]*summit[2]-face.slope+1e-5);
-  if(g.parameters.topRoughness!==0)add([{n:[-face.n[0],face.slope,-face.n[1]],w:-face.offset},{n:[-face.n[0],0,-face.n[1]],w:-.18}],'face');
+  // Whole-body planes belong only to the historical comparison. Live carving
+  // subtracts local joints from the original rounded surface, never a new hull.
+  if(!irregular&&g.parameters.topRoughness!==0)add([{n:[-face.n[0],face.slope,-face.n[1]],w:-face.offset},{n:[-face.n[0],0,-face.n[1]],w:-.18}],'face');
  }
  const firstJoint=cutters.length,fracturePaths=[];
  for(let i=0;i<5;i++){
@@ -69,28 +119,55 @@ function solidFractureGeometry(g,irregular,settings=FRACTURE_DEFAULTS){
   const sides=[-1,1].map(sign=>({n:[sign*t[0]-opening*n[0],opening*slope-sign*lean,sign*t[1]-opening*n[1]],w:-opening*offset-sign*lean*.5}));
   if(!irregular){add([...sides,...ends(n,offset,slope,.08+.04*surfaceHash(i,6,0,seed))],'joint');continue;}
   const low=.025+.13*surfaceHash(i,6,0,seed),high=g.parameters.topRoughness===0?.65:.87+.115*surfaceHash(i,7,0,seed),span=high-low;
-  const tangent=face.n[0]*t[0]+face.n[1]*t[1],aspect=Math.min(1,height/Math.hypot(t[0]*radius[0],t[1]*radius[1])*.4),drift=(surfaceHash(i,8,0,seed)-.5)*.25*aspect;
+  const aspect=Math.min(1,height/Math.hypot(t[0]*radius[0],t[1]*radius[1])*.4),drift=(surfaceHash(i,8,0,seed)-.5)*.25*aspect;
   const stations=[0,.19+.035*surfaceHash(i,9,0,seed),.40+.06*surfaceHash(i,10,0,seed),.66+.06*surfaceHash(i,11,0,seed),.85+.025*surfaceHash(i,12,0,seed),1];
   // A few independent geological-scale bends, not vertex-frequency noise.
   // Depth variation changes the opening width continuously; unequal walls
   // prevent a repeated symmetric V profile. Both tips exit outside the rock.
   const centers=stations.map((u,j)=>(drift*(u-.5)+(surfaceHash(i,13+j,0,seed)-.5)*.30*aspect)*settings.irregularity);
+  // Intersect the actual body in (height, tangent) space. A planar envelope
+  // would over-cut the shoulder and crown, turning every rock into a prism.
+  const skinAt=(y,center)=>{
+   let skin=-Infinity;
+   for(let k=0;k<g.indices.length;k+=3){
+    const [a,b,c]=g.indices.slice(k,k+3).map(id=>normalized[id]);
+    const ta=a[0]*t[0]+a[2]*t[1],tb=b[0]*t[0]+b[2]*t[1],tc=c[0]*t[0]+c[2]*t[1];
+    const d=(b[1]-c[1])*(ta-tc)+(tc-tb)*(a[1]-c[1]);if(Math.abs(d)<1e-12)continue;
+    const u=((b[1]-c[1])*(center-tc)+(tc-tb)*(y-c[1]))/d,v=((c[1]-a[1])*(center-tc)+(ta-tc)*(y-c[1]))/d;
+    if(u>=-1e-9&&v>=-1e-9&&u+v<=1+1e-9){const r=p=>p[0]*n[0]+p[2]*n[1];skin=Math.max(skin,u*r(a)+v*r(b)+(1-u-v)*r(c));}
+   }
+   return Number.isFinite(skin)?skin:1.7;
+  };
+  const outerSkinAt=y=>{
+   let support=-Infinity;
+   for(let k=0;k<g.indices.length;k+=3)for(let edge=0;edge<3;edge++){
+    const a=normalized[g.indices[k+edge]],b=normalized[g.indices[k+(edge+1)%3]],dy=b[1]-a[1];
+    if(Math.abs(dy)<1e-12||y<Math.min(a[1],b[1])||y>Math.max(a[1],b[1]))continue;
+    const u=(y-a[1])/dy;support=Math.max(support,(a[0]+u*(b[0]-a[0]))*n[0]+(a[2]+u*(b[2]-a[2]))*n[1]);
+   }
+   return Number.isFinite(support)?support:1.7;
+  };
   const sections=stations.map((u,j)=>{
-   const y=low+u*span,center=centers[j],skin=(face.offset+face.slope*y-tangent*center)/alignment;
+   const y=low+u*span,center=centers[j],skin=skinAt(y,center);
    const variation=.65+.60*surfaceHash(i,20+j,0,seed),depth=(.20+.07*surfaceHash(i,5,0,seed))*(settings.irregularity===1?variation:.95+(variation-.95)*settings.irregularity)*settings.depth;
-   const exit=g.parameters.topRoughness===0?1.7:skin+.035;
+   // End rings sit completely outside the body. Only connected inclined walls
+   // can be exposed; there is no horizontal cap to become a jagged ledge.
+   const exit=j===0||j===stations.length-1?outerSkinAt(y)+.035:0;
    return {y,center,tip:Math.max(.22,j===0||j===stations.length-1?exit:skin-depth)};
   });
   const asymmetry=.62+.24*surfaceHash(i,27,0,seed),openings=[opening*asymmetry*settings.width,opening*(1.65-asymmetry)*settings.width];
   const cutter=sweptCarveCutter(sections,n,openings,planeInfo.length+1);
   cutters.push(cutter);planeInfo.push(...cutter.planes.map(p=>({...p,kind:'joint'})));fracturePaths.push({n,opening:openings,sections});
  }
- const mesh=carveSolidMesh(normalized.flat(),g.indices,cutters),result=Array.from({length:mesh.positions.length/3},(_,i)=>denormalize(mesh.positions.slice(i*3,i*3+3))),indices=mesh.indices;
+ const mesh=cutters.length?carveSolidMesh(normalized.flat(),g.indices,cutters):{indices:g.indices,faceTags:g.indices.filter((_,i)=>i%3===0).map((_,i)=>-i-1)};
+ let result=cutters.length?Array.from({length:mesh.positions.length/3},(_,i)=>denormalize(mesh.positions.slice(i*3,i*3+3))):Array.from({length:g.positions.length/3},(_,i)=>g.positions.slice(i*3,i*3+3)),indices=mesh.indices;
+ if(cutters.length){const welded=weldGpuIntersections(result,indices,mesh.faceTags);result=welded.vertices;indices=welded.indices;mesh.faceTags=welded.tags;}
  const final=surfaceNormals(result,indices),bounds=[0,1,2].map(d=>[Math.min(...result.map(p=>p[d])),Math.max(...result.map(p=>p[d]))]);
  const details=result.map(p=>{
   const q=normalize(p);let joint=0;for(const cutter of cutters.slice(firstJoint)){const distance=Math.min(...(cutter.regions||[cutter.planes]).map(region=>Math.max(...region.map(plane=>surfaceDot(plane.n,q)-plane.w))));joint=Math.max(joint,1-surfaceBlend(0,.07,Math.max(0,distance)));}return [joint,.51,0];
  });
  const output={...g,positions:result.flat(),indices,normals:final.normals.flat(),rockDetail:details.flat(),faceTags:mesh.faceTags,bounds:[bounds.map(b=>b[0]),bounds.map(b=>b[1])],stats:{triangles:indices.length/3,method:version},surface:{version,sourceTriangles:g.indices.length/3,anchor,planes:firstJoint,fractures:irregular?fracturePaths.length:5,vertices:result.length,construction:'solid subtraction',...(irregular?{fracturePaths,settings}:{}),cutPlanes:planeInfo,normalizedFrame:{center,radius,minimum:lo[1],height}}};
+ if(irregular)output.bodyNormals=cutters.length?retainedBodyNormals(g,result,indices,mesh.faceTags,final.normals):g.normals;
  return output;
 }
 
@@ -99,6 +176,15 @@ export function fracturedRockLibrary(geometries,options){return Object.fromEntri
 // Split only the render normals at physical creases. Geometry used by fitting
 // and contact measurements stays welded and has identical triangle positions.
 export function creasedRockAttributes(g){
+ if(g.bodyNormals||!g.faceTags){
+  const positions=[],normals=[],rockDetail=[],body=g.bodyNormals||g.normals,frame=g.surface?.normalizedFrame;
+  const cuts=new Map((g.surface?.cutPlanes||[]).map(p=>[p.tag,surfaceUnit([-p.n[0]/frame.radius[0],-p.n[1]/frame.height,-p.n[2]/frame.radius[1]])]));
+  for(let i=0;i<g.indices.length;i++){
+   const id=g.indices[i],normal=cuts.get(g.faceTags?.[Math.floor(i/3)])||body.slice(id*3,id*3+3);
+   positions.push(...g.positions.slice(id*3,id*3+3));normals.push(...normal);rockDetail.push(...(g.rockDetail?.slice(id*3,id*3+3)||[0,.5,0]));
+  }
+  return {positions,normals,rockDetail};
+ }
  const p=g.positions,indices=g.indices,vertices=Array.from({length:p.length/3},(_,i)=>p.slice(i*3,i*3+3));
  const {faces}=surfaceNormals(vertices,indices),unit=faces.map(surfaceUnit),adjacent=vertices.map(()=>[]);
  for(let i=0;i<indices.length;i++)adjacent[indices[i]].push(Math.floor(i/3));
@@ -106,7 +192,8 @@ export function creasedRockAttributes(g){
  for(let i=0;i<indices.length;i++){
   const id=indices[i],face=Math.floor(i/3),sum=[0,0,0];
   for(const j of adjacent[id])if(g.faceTags?.[face]>0?g.faceTags[j]===g.faceTags[face]:!(g.faceTags?.[j]>0)&&surfaceDot(unit[face],unit[j])>=threshold)for(let d=0;d<3;d++)sum[d]+=faces[j][d];
-  positions.push(...vertices[id]);normals.push(...surfaceUnit(sum));rockDetail.push(...(g.rockDetail?.slice(id*3,id*3+3)||[0,.5,0]));
+  const bodyNormal=!(g.faceTags?.[face]>0)&&(g.bodyNormals||(!g.faceTags&&g.normals));
+  positions.push(...vertices[id]);normals.push(...(bodyNormal?bodyNormal.slice(id*3,id*3+3):surfaceUnit(sum)));rockDetail.push(...(g.rockDetail?.slice(id*3,id*3+3)||[0,.5,0]));
  }
  return {positions,normals,rockDetail};
 }

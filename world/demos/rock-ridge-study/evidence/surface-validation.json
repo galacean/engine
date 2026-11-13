@@ -1,6 +1,6 @@
 {
-  "version": "fracture-controls-6",
-  "generationMs": 2980.9256250000003,
+  "version": "rounded-body-fractures-7",
+  "generationMs": 19758.061542,
   "checks": [
     "immutable source and uncached deterministic replay",
     "finite bounded geometry and unit normals",
@@ -21,17 +21,17 @@
   "prototypes": [
     {
       "id": "cliff",
-      "triangles": 23310,
-      "version": "fracture-controls-6",
-      "sourceTriangles": 18261,
+      "triangles": 38318,
+      "version": "rounded-body-fractures-7",
+      "sourceTriangles": 33507,
       "anchor": [
         5.4125,
         7,
         -0.9971
       ],
-      "planes": 6,
+      "planes": 0,
       "fractures": 5,
-      "vertices": 11657,
+      "vertices": 19161,
       "construction": "solid subtraction",
       "settings": {
         "depth": 1,
@@ -39,30 +39,31 @@
         "irregularity": 1
       },
       "visibleJointWalls": 50,
-      "cutTriangles": 5049,
-      "maximumCutPlaneErrorM": 3.3315473005035894e-15,
-      "signedVolumeM3": 1140.5461799823477,
-      "removedVolumeM3": 410.47846631614766,
+      "cutTriangles": 4811,
+      "maximumCutPlaneErrorM": 3.48227161805802e-15,
+      "signedVolumeM3": 1509.1956063013952,
+      "removedVolumeM3": 41.82903999710015,
       "direction": {
-        "segments": 523,
-        "contourLengthM": 140.95321227824903,
-        "within30DegreesOfVertical": 0.8727482970337369,
-        "meanVerticalAlignment": 0.92574061974058
+        "metric": "physical mouth edges relative to surface up",
+        "segments": 395,
+        "contourLengthM": 97.58233203935386,
+        "within30DegreesOfVertical": 0.878219259272858,
+        "meanVerticalAlignment": 0.9418376823613002
       }
     },
     {
       "id": "cliff2",
-      "triangles": 22472,
-      "version": "fracture-controls-6",
-      "sourceTriangles": 17052,
+      "triangles": 39180,
+      "version": "rounded-body-fractures-7",
+      "sourceTriangles": 34045,
       "anchor": [
         6.1209,
         7,
         -1.1276
       ],
-      "planes": 6,
+      "planes": 0,
       "fractures": 5,
-      "vertices": 11238,
+      "vertices": 19592,
       "construction": "solid subtraction",
       "settings": {
         "depth": 1,
@@ -70,30 +71,31 @@
         "irregularity": 1
       },
       "visibleJointWalls": 50,
-      "cutTriangles": 5420,
-      "maximumCutPlaneErrorM": 4.201278261252917e-15,
-      "signedVolumeM3": 1148.290020697888,
-      "removedVolumeM3": 378.7922631984793,
+      "cutTriangles": 5135,
+      "maximumCutPlaneErrorM": 4.449243627457786e-15,
+      "signedVolumeM3": 1486.8540848395594,
+      "removedVolumeM3": 40.22819905680785,
       "direction": {
-        "segments": 544,
-        "contourLengthM": 142.97324698081016,
-        "within30DegreesOfVertical": 0.7309803336440421,
-        "meanVerticalAlignment": 0.8766158038498251
+        "metric": "physical mouth edges relative to surface up",
+        "segments": 429,
+        "contourLengthM": 98.03479839098328,
+        "within30DegreesOfVertical": 0.8682249896706756,
+        "meanVerticalAlignment": 0.9304436876123583
       }
     },
     {
       "id": "wall",
-      "triangles": 20762,
-      "version": "fracture-controls-6",
-      "sourceTriangles": 16076,
+      "triangles": 39532,
+      "version": "rounded-body-fractures-7",
+      "sourceTriangles": 34059,
       "anchor": [
         3.6661,
         7,
         -1.063
       ],
-      "planes": 6,
+      "planes": 0,
       "fractures": 5,
-      "vertices": 10383,
+      "vertices": 19768,
       "construction": "solid subtraction",
       "settings": {
         "depth": 1,
@@ -101,30 +103,31 @@
         "irregularity": 1
       },
       "visibleJointWalls": 50,
-      "cutTriangles": 4686,
-      "maximumCutPlaneErrorM": 2.48969982544637e-15,
-      "signedVolumeM3": 443.53703872431515,
-      "removedVolumeM3": 163.35873874966114,
+      "cutTriangles": 5473,
+      "maximumCutPlaneErrorM": 2.53377382116024e-15,
+      "signedVolumeM3": 592.2372305043348,
+      "removedVolumeM3": 14.65854696964152,
       "direction": {
-        "segments": 525,
-        "contourLengthM": 127.86699586422652,
-        "within30DegreesOfVertical": 0.8842398709746929,
-        "meanVerticalAlignment": 0.9343619985300101
+        "metric": "physical mouth edges relative to surface up",
+        "segments": 471,
+        "contourLengthM": 95.64583127729755,
+        "within30DegreesOfVertical": 0.9495155865799342,
+        "meanVerticalAlignment": 0.954519324726639
       }
     },
     {
       "id": "wall2",
-      "triangles": 18958,
-      "version": "fracture-controls-6",
-      "sourceTriangles": 13947,
+      "triangles": 37480,
+      "version": "rounded-body-fractures-7",
+      "sourceTriangles": 32029,
       "anchor": [
         2.6348,
         7,
         -0.7639
       ],
-      "planes": 6,
+      "planes": 0,
       "fractures": 5,
-      "vertices": 9481,
+      "vertices": 18742,
       "construction": "solid subtraction",
       "settings": {
         "depth": 1,
@@ -132,30 +135,31 @@
         "irregularity": 1
       },
       "visibleJointWalls": 50,
-      "cutTriangles": 5011,
-      "maximumCutPlaneErrorM": 2.614059666024409e-15,
-      "signedVolumeM3": 416.59685723072,
-      "removedVolumeM3": 160.71529544313677,
+      "cutTriangles": 5451,
+      "maximumCutPlaneErrorM": 3.1611563891409373e-15,
+      "signedVolumeM3": 564.651741544265,
+      "removedVolumeM3": 12.660411129591807,
       "direction": {
-        "segments": 488,
-        "contourLengthM": 126.90342183952528,
-        "within30DegreesOfVertical": 0.8707437302413376,
-        "meanVerticalAlignment": 0.9261644585345722
+        "metric": "physical mouth edges relative to surface up",
+        "segments": 452,
+        "contourLengthM": 91.82440740996144,
+        "within30DegreesOfVertical": 0.9311593707149503,
+        "meanVerticalAlignment": 0.9594584367372138
       }
     },
     {
       "id": "shoulder",
-      "triangles": 19772,
-      "version": "fracture-controls-6",
-      "sourceTriangles": 14798,
+      "triangles": 31156,
+      "version": "rounded-body-fractures-7",
+      "sourceTriangles": 26157,
       "anchor": [
         3.2327,
         5,
         0.3274
       ],
-      "planes": 6,
+      "planes": 0,
       "fractures": 5,
-      "vertices": 9888,
+      "vertices": 15580,
       "construction": "solid subtraction",
       "settings": {
         "depth": 1,
@@ -163,30 +167,31 @@
         "irregularity": 1
       },
       "visibleJointWalls": 50,
-      "cutTriangles": 4974,
-      "maximumCutPlaneErrorM": 3.914192367528841e-15,
-      "signedVolumeM3": 489.13831695581274,
-      "removedVolumeM3": 173.05731463841204,
+      "cutTriangles": 4999,
+      "maximumCutPlaneErrorM": 2.959538322756285e-15,
+      "signedVolumeM3": 642.2110223012133,
+      "removedVolumeM3": 19.98460929301143,
       "direction": {
-        "segments": 457,
-        "contourLengthM": 76.82008706645004,
-        "within30DegreesOfVertical": 0.7428965177111453,
-        "meanVerticalAlignment": 0.8635663752703598
+        "metric": "physical mouth edges relative to surface up",
+        "segments": 294,
+        "contourLengthM": 52.833407792185234,
+        "within30DegreesOfVertical": 0.9364830239604252,
+        "meanVerticalAlignment": 0.9498914169414147
       }
     },
     {
       "id": "shoulder2",
-      "triangles": 24044,
-      "version": "fracture-controls-6",
-      "sourceTriangles": 18972,
+      "triangles": 35906,
+      "version": "rounded-body-fractures-7",
+      "sourceTriangles": 29787,
       "anchor": [
         2.9504,
         5,
         1.3103
       ],
-      "planes": 6,
+      "planes": 0,
       "fractures": 5,
-      "vertices": 12024,
+      "vertices": 17955,
       "construction": "solid subtraction",
       "settings": {
         "depth": 1,
@@ -194,61 +199,31 @@
         "irregularity": 1
       },
       "visibleJointWalls": 50,
-      "cutTriangles": 5072,
-      "maximumCutPlaneErrorM": 2.9470034891217092e-15,
-      "signedVolumeM3": 547.6035131946921,
-      "removedVolumeM3": 170.46371810971436,
+      "cutTriangles": 6119,
+      "maximumCutPlaneErrorM": 3.2480162153801826e-15,
+      "signedVolumeM3": 701.3308225675041,
+      "removedVolumeM3": 16.736408736902376,
       "direction": {
-        "segments": 416,
-        "contourLengthM": 69.35667226395005,
-        "within30DegreesOfVertical": 0.7082463725419481,
-        "meanVerticalAlignment": 0.8629377382658321
+        "metric": "physical mouth edges relative to surface up",
+        "segments": 342,
+        "contourLengthM": 51.478393584868726,
+        "within30DegreesOfVertical": 0.8157971841700016,
+        "meanVerticalAlignment": 0.9233218387799861
       }
     },
     {
       "id": "peak",
-      "triangles": 14772,
-      "version": "fracture-controls-6",
-      "sourceTriangles": 10557,
+      "triangles": 24370,
+      "version": "rounded-body-fractures-7",
+      "sourceTriangles": 20634,
       "anchor": [
         2.2427,
         12,
         1.079
       ],
-      "planes": 6,
+      "planes": 0,
       "fractures": 5,
-      "vertices": 7388,
-      "construction": "solid subtraction",
-      "settings": {
-        "depth": 1,
-        "width": 1,
-        "irregularity": 1
-      },
-      "visibleJointWalls": 48,
-      "cutTriangles": 4215,
-      "maximumCutPlaneErrorM": 5.266895332059773e-15,
-      "signedVolumeM3": 3999.604736094475,
-      "removedVolumeM3": 1011.1611116008289,
-      "direction": {
-        "segments": 672,
-        "contourLengthM": 199.01280734249897,
-        "within30DegreesOfVertical": 0.5740040384782287,
-        "meanVerticalAlignment": 0.8396839941828195
-      }
-    },
-    {
-      "id": "peak2",
-      "triangles": 22386,
-      "version": "fracture-controls-6",
-      "sourceTriangles": 17280,
-      "anchor": [
-        2.6785,
-        12,
-        0.2939
-      ],
-      "planes": 6,
-      "fractures": 5,
-      "vertices": 11195,
+      "vertices": 12187,
       "construction": "solid subtraction",
       "settings": {
         "depth": 1,
@@ -256,22 +231,55 @@
         "irregularity": 1
       },
       "visibleJointWalls": 50,
-      "cutTriangles": 5106,
-      "maximumCutPlaneErrorM": 6.920547036129068e-15,
-      "signedVolumeM3": 3828.0198315213065,
-      "removedVolumeM3": 1268.7962958880607,
+      "cutTriangles": 3736,
+      "maximumCutPlaneErrorM": 7.6545744671489e-15,
+      "signedVolumeM3": 4868.359387976268,
+      "removedVolumeM3": 142.4064597190354,
       "direction": {
-        "segments": 562,
-        "contourLengthM": 189.74803747092682,
-        "within30DegreesOfVertical": 0.620272150438847,
-        "meanVerticalAlignment": 0.8431322345470004
+        "metric": "physical mouth edges relative to surface up",
+        "segments": 397,
+        "contourLengthM": 160.12761366265613,
+        "within30DegreesOfVertical": 0.8492617119850457,
+        "meanVerticalAlignment": 0.9422863201398168
+      }
+    },
+    {
+      "id": "peak2",
+      "triangles": 32702,
+      "version": "rounded-body-fractures-7",
+      "sourceTriangles": 28024,
+      "anchor": [
+        2.6785,
+        12,
+        0.2939
+      ],
+      "planes": 0,
+      "fractures": 5,
+      "vertices": 16353,
+      "construction": "solid subtraction",
+      "settings": {
+        "depth": 1,
+        "width": 1,
+        "irregularity": 1
+      },
+      "visibleJointWalls": 50,
+      "cutTriangles": 4678,
+      "maximumCutPlaneErrorM": 8.763253588484573e-15,
+      "signedVolumeM3": 4922.881944719297,
+      "removedVolumeM3": 173.93418269006997,
+      "direction": {
+        "metric": "physical mouth edges relative to surface up",
+        "segments": 357,
+        "contourLengthM": 140.41648302529916,
+        "within30DegreesOfVertical": 0.8992917609297418,
+        "meanVerticalAlignment": 0.9597240186618025
       }
     },
     {
       "id": "slab",
-      "triangles": 32746,
-      "version": "fracture-controls-6",
-      "sourceTriangles": 29263,
+      "triangles": 30112,
+      "version": "rounded-body-fractures-7",
+      "sourceTriangles": 27452,
       "anchor": [
         -0.6824,
         1.2,
@@ -279,7 +287,7 @@
       ],
       "planes": 0,
       "fractures": 5,
-      "vertices": 16375,
+      "vertices": 15058,
       "construction": "solid subtraction",
       "settings": {
         "depth": 1,
@@ -287,22 +295,23 @@
         "irregularity": 1
       },
       "visibleJointWalls": 50,
-      "cutTriangles": 3483,
-      "maximumCutPlaneErrorM": 2.1341305476135133e-15,
-      "signedVolumeM3": 163.82974557734735,
-      "removedVolumeM3": 6.929813656260933,
+      "cutTriangles": 2660,
+      "maximumCutPlaneErrorM": 2.6424468533228497e-15,
+      "signedVolumeM3": 168.48963611961966,
+      "removedVolumeM3": 2.269923113988625,
       "direction": {
-        "segments": 1181,
-        "contourLengthM": 54.15141521841298,
-        "within30DegreesOfVertical": 0.1171066787576052,
-        "meanVerticalAlignment": 0.28395342221574776
+        "metric": "physical mouth edges relative to surface up",
+        "segments": 230,
+        "contourLengthM": 13.80114509725165,
+        "within30DegreesOfVertical": 0.5325186346826999,
+        "meanVerticalAlignment": 0.7173608705660998
       }
     },
     {
       "id": "slab2",
-      "triangles": 37864,
-      "version": "fracture-controls-6",
-      "sourceTriangles": 34244,
+      "triangles": 34860,
+      "version": "rounded-body-fractures-7",
+      "sourceTriangles": 32094,
       "anchor": [
         0.2131,
         1.2,
@@ -310,7 +319,7 @@
       ],
       "planes": 0,
       "fractures": 5,
-      "vertices": 18934,
+      "vertices": 17432,
       "construction": "solid subtraction",
       "settings": {
         "depth": 1,
@@ -318,30 +327,31 @@
         "irregularity": 1
       },
       "visibleJointWalls": 50,
-      "cutTriangles": 3620,
-      "maximumCutPlaneErrorM": 2.5342355277887227e-15,
-      "signedVolumeM3": 174.08428459849594,
-      "removedVolumeM3": 7.341000569548868,
+      "cutTriangles": 2766,
+      "maximumCutPlaneErrorM": 2.0008780979244508e-15,
+      "signedVolumeM3": 178.86113500786416,
+      "removedVolumeM3": 2.5641501601806453,
       "direction": {
-        "segments": 1144,
-        "contourLengthM": 43.91985731838882,
-        "within30DegreesOfVertical": 0.12580245163437068,
-        "meanVerticalAlignment": 0.2866393733745532
+        "metric": "physical mouth edges relative to surface up",
+        "segments": 215,
+        "contourLengthM": 13.80232035179666,
+        "within30DegreesOfVertical": 0.45352106910032813,
+        "meanVerticalAlignment": 0.708342219068032
       }
     },
     {
       "id": "bank",
-      "triangles": 19146,
-      "version": "fracture-controls-6",
-      "sourceTriangles": 14736,
+      "triangles": 31378,
+      "version": "rounded-body-fractures-7",
+      "sourceTriangles": 26315,
       "anchor": [
         2.3718,
         2.5,
         0.223
       ],
-      "planes": 6,
+      "planes": 0,
       "fractures": 5,
-      "vertices": 9575,
+      "vertices": 15691,
       "construction": "solid subtraction",
       "settings": {
         "depth": 1,
@@ -349,30 +359,31 @@
         "irregularity": 1
       },
       "visibleJointWalls": 50,
-      "cutTriangles": 4410,
-      "maximumCutPlaneErrorM": 1.4324035359169417e-15,
-      "signedVolumeM3": 73.43534612724083,
-      "removedVolumeM3": 26.526145791510515,
+      "cutTriangles": 5063,
+      "maximumCutPlaneErrorM": 1.769705666522246e-15,
+      "signedVolumeM3": 97.33953012967663,
+      "removedVolumeM3": 2.6219617890747173,
       "direction": {
-        "segments": 396,
-        "contourLengthM": 44.475279147215666,
-        "within30DegreesOfVertical": 0.7479998822213568,
-        "meanVerticalAlignment": 0.8644689467554479
+        "metric": "physical mouth edges relative to surface up",
+        "segments": 364,
+        "contourLengthM": 34.648488039039215,
+        "within30DegreesOfVertical": 0.8384015189445168,
+        "meanVerticalAlignment": 0.9278742676920441
       }
     },
     {
       "id": "bank2",
-      "triangles": 24428,
-      "version": "fracture-controls-6",
-      "sourceTriangles": 19941,
+      "triangles": 36046,
+      "version": "rounded-body-fractures-7",
+      "sourceTriangles": 31430,
       "anchor": [
         1.698,
         2.5,
         0.7003
       ],
-      "planes": 6,
+      "planes": 0,
       "fractures": 5,
-      "vertices": 12216,
+      "vertices": 18025,
       "construction": "solid subtraction",
       "settings": {
         "depth": 1,
@@ -380,15 +391,16 @@
         "irregularity": 1
       },
       "visibleJointWalls": 50,
-      "cutTriangles": 4487,
-      "maximumCutPlaneErrorM": 3.0529259333485473e-15,
-      "signedVolumeM3": 72.59461996423886,
-      "removedVolumeM3": 29.982753688355416,
+      "cutTriangles": 4616,
+      "maximumCutPlaneErrorM": 1.5484181735175769e-15,
+      "signedVolumeM3": 99.55648674380481,
+      "removedVolumeM3": 3.020886908789464,
       "direction": {
-        "segments": 310,
-        "contourLengthM": 40.671591104168506,
-        "within30DegreesOfVertical": 0.676744453884492,
-        "meanVerticalAlignment": 0.8522039483459876
+        "metric": "physical mouth edges relative to surface up",
+        "segments": 341,
+        "contourLengthM": 31.506530114764963,
+        "within30DegreesOfVertical": 0.876115726000015,
+        "meanVerticalAlignment": 0.9397135253399811
       }
     }
   ],
@@ -399,12 +411,12 @@
       "options": {
         "mode": "perlin"
       },
-      "structuralMasses": 16,
+      "structuralMasses": 12,
       "smallRocks": 2,
-      "verifiedContactEdges": 59,
-      "rmsM": 2.0123439727562373,
-      "maximumDeviationM": 6.5664734676241,
-      "maximumGuideErrorM": 0.000049985682878173066
+      "verifiedContactEdges": 34,
+      "rmsM": 1.9677687249910822,
+      "maximumDeviationM": 6.341356824552314,
+      "maximumGuideErrorM": 0.00004990485325606642
     },
     {
       "scene": "peaks",
@@ -418,12 +430,12 @@
           "persistence": 0.85
         }
       },
-      "structuralMasses": 20,
+      "structuralMasses": 14,
       "smallRocks": 2,
-      "verifiedContactEdges": 58,
-      "rmsM": 2.1501809835072,
-      "maximumDeviationM": 6.305947367598616,
-      "maximumGuideErrorM": 0.00004995014998243619
+      "verifiedContactEdges": 33,
+      "rmsM": 1.7971914143992624,
+      "maximumDeviationM": 6.402356273472762,
+      "maximumGuideErrorM": 0.00004998952952561808
     },
     {
       "scene": "peaks",
@@ -431,12 +443,12 @@
       "options": {
         "mode": "direct"
       },
-      "structuralMasses": 19,
+      "structuralMasses": 14,
       "smallRocks": 2,
-      "verifiedContactEdges": 41,
-      "rmsM": 2.121384114298838,
-      "maximumDeviationM": 5.461841850088206,
-      "maximumGuideErrorM": 0.00004994195040808336
+      "verifiedContactEdges": 34,
+      "rmsM": 1.97779118305525,
+      "maximumDeviationM": 7.151911551187233,
+      "maximumGuideErrorM": 0.0000499342611970377
     },
     {
       "scene": "peaks",
@@ -444,11 +456,11 @@
       "options": {
         "mode": "direct"
       },
-      "structuralMasses": 14,
+      "structuralMasses": 13,
       "smallRocks": 2,
-      "verifiedContactEdges": 44,
-      "rmsM": 2.675099493640747,
-      "maximumDeviationM": 8.84304273018343,
+      "verifiedContactEdges": 38,
+      "rmsM": 2.1009164777884872,
+      "maximumDeviationM": 5.619017274368733,
       "maximumGuideErrorM": 0.000049984760252197447
     },
     {
@@ -457,12 +469,12 @@
       "options": {
         "mode": "direct"
       },
-      "structuralMasses": 21,
+      "structuralMasses": 13,
       "smallRocks": 2,
-      "verifiedContactEdges": 64,
-      "rmsM": 2.156346026938361,
-      "maximumDeviationM": 6.55342581454137,
-      "maximumGuideErrorM": 0.00004992891027910673
+      "verifiedContactEdges": 29,
+      "rmsM": 2.2949302710982447,
+      "maximumDeviationM": 6.885875654298594,
+      "maximumGuideErrorM": 0.00004995700338383813
     }
   ]
 }

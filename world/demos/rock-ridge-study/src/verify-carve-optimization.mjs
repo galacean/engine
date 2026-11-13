@@ -29,7 +29,7 @@ for(const [name,g] of [['peak',selected.peak],['cliff',selected.cliff],['flat sl
  for(const settings of controls)check('boundary:'+name,g,settings);
 const hash=file=>createHash('sha256').update(fs.readFileSync(new URL(file,import.meta.url))).digest('hex');
 const result={referenceCommit:'1326a3fd56cab7013381ed3a168f7e3c1f159b2f',cases:cases.length,
- currentCarverSha256:hash('features/shaping/solid-carve.mjs'),referenceCarverSha256:hash('fixtures/solid-carve-before.mjs'),
+ currentCarverSha256:hash('../../../../packages/terrain/src/rock-ridge/features/shaping/solid-carve.mjs'),referenceCarverSha256:hash('fixtures/solid-carve-before.mjs'),
  checks:['exact positions and triangle indices','exact mesh connectivity','exact source and cutter face tags','exact normals and per-vertex attributes','exact irregular vertical cutter paths','exact rendered crease normals on seed 482','disabled controls, straight paths, narrow and maximum cuts'],samples:cases};
 fs.writeFileSync(new URL('../evidence/carve-optimization-parity.json',import.meta.url),JSON.stringify(result,null,2)+'\n');
 console.log('Exact before/after parity passed:',cases.length,'meshes');

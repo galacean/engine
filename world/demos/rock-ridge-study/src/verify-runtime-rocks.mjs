@@ -13,7 +13,10 @@ function checkSolid(g){
  for(let i=0;i<g.indices.length;i+=3){
   const ids=g.indices.slice(i,i+3),[a,b,c]=ids.map(k=>g.positions.slice(k*3,k*3+3));
   const u=b.map((v,d)=>v-a[d]),v=c.map((x,d)=>x-a[d]),cross=[u[1]*v[2]-u[2]*v[1],u[2]*v[0]-u[0]*v[2],u[0]*v[1]-u[1]*v[0]];
-  assert(Math.hypot(...cross)>1e-13,'No collapsed triangles');
+  // The unreduced Boolean mesh may contain valid sub-micron fragments. An
+  // absolute area cutoff rejects those even when all three GPU positions are
+  // distinct. Require nonzero area here and again at actual Float32 precision.
+  assert(Math.hypot(...cross)>0,'No collapsed triangles');
   const [fa,fb,fc]=[a,b,c].map(p=>p.map(Math.fround)),fu=fb.map((v,d)=>v-fa[d]),fv=fc.map((v,d)=>v-fa[d]);
   assert(Math.hypot(fu[1]*fv[2]-fu[2]*fv[1],fu[2]*fv[0]-fu[0]*fv[2],fu[0]*fv[1]-fu[1]*fv[0])>0,'Triangles survive GPU Float32 conversion');
   volume+=(a[0]*(b[1]*c[2]-b[2]*c[1])+a[1]*(b[2]*c[0]-b[0]*c[2])+a[2]*(b[0]*c[1]-b[1]*c[0]))/6;
