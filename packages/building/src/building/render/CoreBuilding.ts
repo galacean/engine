@@ -1116,6 +1116,18 @@ export function coreBuildingView(layout: CoreBuildingLayout, options: CoreBuildi
   const parts: ConstructionPreviewPart[] = [];
   const retainedWallUnits: RetainedWallUnits[] = [];
   const structure = new Map<string, ConstructionSurfacePart>();
+  const occupancyBounds: { owner: string; min: number[]; max: number[] }[] = [];
+  const occupyMesh = (owner: string, mesh: { positions: number[]; indices: number[] }) => {
+    if (!mesh.indices.length) return;
+    const min = [Infinity, Infinity, Infinity],
+      max = [-Infinity, -Infinity, -Infinity];
+    for (let i = 0; i < mesh.positions.length; i++) {
+      const a = i % 3;
+      min[a] = Math.min(min[a], mesh.positions[i]);
+      max[a] = Math.max(max[a], mesh.positions[i]);
+    }
+    occupancyBounds.push({ owner, min, max });
+  };
   const capture = (owner: string, mesh: Mesh) => {
     if (!options.includeStructure) return;
     let target = structure.get(owner);
@@ -1376,16 +1388,19 @@ export function coreBuildingView(layout: CoreBuildingLayout, options: CoreBuildi
   const woodArchPillars: ConstructionWoodArchPillar[] = decorations.flatMap((d) => d.woodArchPillars ?? []);
   for (const frame of woodArchFrames) {
     const { owner, positions, indices } = woodArchFrameGeometry(frame);
+    occupyMesh(owner, { positions, indices });
     capture(owner, { positions, indices, uvs: [] });
   }
   for (const pillar of woodArchPillars) {
     const { owner, positions, indices } = woodArchPillarGeometry(pillar, options.assets?.woodPillar);
+    occupyMesh(owner, { positions, indices });
     capture(owner, { positions, indices, uvs: [] });
   }
-  for (const frame of frames) {
-    const { owner, positions, indices } = decorationFrameGeometry(options.assets?.stoneGeometry, frame);
-    capture(owner, { positions, indices, uvs: [] });
-  }
+  if (options.includeStructure)
+    for (const frame of frames) {
+      const { owner, positions, indices } = decorationFrameGeometry(options.assets?.stoneGeometry, frame);
+      capture(owner, { positions, indices, uvs: [] });
+    }
   if (options.retainDecorationParts)
     for (const p of decorationParts) capture(p.ownerId, { positions: p.positions, indices: p.indices, uvs: [] });
   else
@@ -1396,6 +1411,33 @@ export function coreBuildingView(layout: CoreBuildingLayout, options: CoreBuildi
       capture(owner.group.id, batch);
       parts.push(batch);
     }
+  for (const p of parts) occupyMesh(p.owner, p);
+  for (const p of decorationParts) occupyMesh(p.ownerId, p);
+  for (const stone of stones)
+    occupancyBounds.push({ owner: stone.ownerId, ...decorationStoneBounds(options.assets?.stoneGeometry, stone) });
+  for (const frame of frames)
+    occupancyBounds.push({ owner: frame.ownerId, ...decorationFrameBounds(options.assets?.stoneGeometry, frame) });
+  // Final laid units include modifications and terrain placement. Aggregate each
+  // resolved part instead of retaining a record for every brick.
+  for (const owner of layout.owners)
+    for (const binding of owner.bindings)
+      for (const { units } of binding.parts) {
+        const min = [Infinity, Infinity, Infinity],
+          max = [-Infinity, -Infinity, -Infinity];
+        for (const u of units) {
+          if (!u.size) continue;
+          for (let a = 0; a < 3; a++) {
+            const extent =
+              (Math.abs(u.size[0] * u.frame.x[a]) +
+                Math.abs(u.size[1] * u.frame.y[a]) +
+                Math.abs(u.size[2] * u.frame.z[a])) /
+              2;
+            min[a] = Math.min(min[a], u.frame.origin[a] - extent);
+            max[a] = Math.max(max[a], u.frame.origin[a] + extent);
+          }
+        }
+        if (min.every(Number.isFinite)) occupancyBounds.push({ owner: owner.group.id, min, max });
+      }
   const bounds = { min: [Infinity, Infinity, Infinity], max: [-Infinity, -Infinity, -Infinity] };
   for (const p of decorationParts)
     for (let i = 0; i < p.positions.length; i++) {
@@ -1434,6 +1476,7 @@ export function coreBuildingView(layout: CoreBuildingLayout, options: CoreBuildi
     parts,
     decorationParts: options.retainDecorationParts ? decorationParts : [],
     retainedWallUnits,
+    occupancyBounds,
     // Arches and timber arches are not core parts yet.
     archGroups: [] as ConstructionJunctionGroup[],
     bounds,

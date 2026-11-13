@@ -15,7 +15,7 @@ import {
 } from "../../render/CoreBuilding";
 import { groundSupportsInRegion, type ConstructionGrounding } from "../../runtime/TerrainField";
 import type { ConstructionTerrainGrid } from "../../runtime/TerrainField";
-import { ConstructionSurfaceQuery } from "../../runtime/ConstructionSurfaceQuery";
+import { BuildingOccupancyQuery } from "../../runtime/BuildingOccupancyQuery";
 import type { BuildingUnitAssets } from "../../runtime/BuildingUnitAssets";
 import type { TerrainHeight } from "../../runtime/PublishedWallProfile";
 import { prepareBuildingTerrain, type BuildingPlacementFrame } from "./BuildingTerrain";
@@ -79,7 +79,7 @@ export function buildingGround(
   const region = buildingWorldRegion(draft, frame);
   return prepareBuildingTerrain({ ...terrain, supports: groundSupportsInRegion(terrain, region) }, frame);
 }
-/** Designs a draft on a ground and prepares the distance view, structure queries, palette
+/** Designs a draft on a ground and prepares the distance view, occupied envelopes, palette
  * and focus poses. The design stays in the result for the later detail. */
 export function prepareBuildingOnGround(
   draft: BuildingCoreDraft,
@@ -96,15 +96,13 @@ export function prepareBuildingOnGround(
   const preview = coreBuildingView(layout, {
     assets,
     includeAppearance: true,
-    includeStructure: true,
     retainDecorationParts: true
   });
-  const structure =
-    preview.structuralParts && new ConstructionSurfaceQuery(preview.structuralParts, [0, 0, 0], (id) => id).snapshot();
+  const occupancy = BuildingOccupancyQuery.fromBounds(preview.occupancyBounds).snapshot();
   return {
     prepared: { layout, preview, ground, assets },
     preview,
-    structure,
+    occupancy,
     appearance: coreBuildingPalette(layout),
     focus: coreBuildingFocus(layout),
     diagnostics: [...result.diagnostics, ...coreBuildingDiagnostics(layout)]

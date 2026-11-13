@@ -1,3 +1,5 @@
+import type { Renderer } from "./Renderer";
+import type { IUICanvas } from "./ui/IUICanvas";
 import { BoundingFrustum, MathUtil, Matrix, Ray, Rect, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import { BoolUpdateFlag } from "./BoolUpdateFlag";
 import { Component } from "./Component";
@@ -102,6 +104,13 @@ export class Camera extends Component {
    * @remarks Support bit manipulation, corresponding to `Layer`.
    */
   cullingMask: Layer = Layer.Everything;
+
+  /** Optional filter for forward scene draws, after layer/frustum culling. Does not change component lifecycle or shadow draws. */
+  @ignoreClone
+  renderFilter?: (renderable: Renderer | IUICanvas) => boolean;
+
+  /** Whether forward scene draws update renderer visibility timestamps. Disable for auxiliary queries. */
+  updateRendererVisibility = true;
 
   /**
    * Determines which PostProcess to use.
@@ -727,6 +736,12 @@ export class Camera extends Component {
    */
   registerRenderViewCullingSource(source: RenderViewCullingSource): RenderViewCullingSourceRegistration {
     return this._renderPipeline._registerRenderViewCullingSource(source);
+  }
+
+  /** Visits source-owned batches submitted by the last main view. Borrow synchronously;
+   * this does not transfer ownership or run culling again. */
+  visitRenderViewRenderers(visitor: (renderer: Renderer) => void): void {
+    this._renderPipeline._visitRenderViewRenderers(visitor);
   }
 
   /**

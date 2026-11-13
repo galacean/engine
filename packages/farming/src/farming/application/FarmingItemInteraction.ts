@@ -1,9 +1,9 @@
-import type { Camera } from "@galacean/engine-core";
+import type { Camera, Entity } from "@galacean/engine-core";
 import { BoundingBox, Ray, Vector2, Vector3 } from "@galacean/engine-math";
 import { ItemTapGesture } from "@galacean/engine-project/interaction/WorldItem";
 import type { FarmingService } from "./FarmingService";
 import type { FarmingActionCoordinator } from "./FarmingActionCoordinator";
-import type { FarmingWorldPresentation } from "../presentation/FarmingWorldPresentation";
+import type { FarmingWorldPresentation, FarmWorkSelection } from "../presentation/FarmingWorldPresentation";
 import type { FarmingGroundProvider } from "../domain/FarmingGround";
 import { targetAtPoint } from "../domain/FarmingGround";
 import { carriedItem } from "../domain/FarmItems";
@@ -15,10 +15,17 @@ import { containerBounds } from "../storage/StoragePlacement";
 import { storageDefinitions } from "../storage/StorageRules";
 import type { CommandResult } from "../domain/FarmCommands";
 
+export type FarmOcclusionState = "clear" | "blocked" | "unavailable";
+export interface FarmVisibilityRequest {
+  readonly ray: Ray;
+  readonly distance: number;
+  readonly ignoredRoot?: Entity;
+}
+
 export const FARM_PLAYER_INTERACTION_DISTANCE = 8;
 /** Remote sowing, harvesting and unloading stay bounded independently of the landscape far plane. */
 export const FARM_REMOTE_INTERACTION_DISTANCE = 200;
-/** Native taps and CPU boxes only. Drag ownership remains with the host's existing controls. */
+/** Native taps select candidates; the host can prepare asynchronous GPU occlusion. */
 export class FarmingItemInteraction {
   private readonly events = new AbortController();
   private readonly gesture = new ItemTapGesture();
@@ -26,6 +33,7 @@ export class FarmingItemInteraction {
   private readonly screen = new Vector2();
   private consumed?: { x: number; y: number; at: number };
   private candidate = false;
+  private clickSerial = 0;
   constructor(
     private readonly options: {
       canvas: HTMLCanvasElement;
@@ -36,18 +44,29 @@ export class FarmingItemInteraction {
         Partial<
           Pick<
             FarmingWorldPresentation,
-            "setPlayerOcclusionQuery" | "getPlayerWorkTarget" | "beginPlayerWork" | "endPlayerWork"
+            | "capturePlayerWorkTarget"
+            | "getGroundOcclusionRoot"
+            | "setPlayerOcclusionQuery"
+            | "getPlayerWorkCandidates"
+            | "getPlayerWorkTarget"
+            | "beginPlayerWork"
+            | "endPlayerWork"
           >
         >;
       ground: FarmingGroundProvider;
       definitions: FarmingDefinitionSet;
       isEnabled(): boolean;
       isStorageContainerVisible(id: string): boolean;
-      occluded?(ray: Ray, distance: number): boolean;
+      occluded?(ray: Ray, distance: number, ignoredRoot?: Entity): boolean;
+      /** Unlike a conservative boolean, unavailable evidence must stop action routing. */
+      occlusionState?(ray: Ray, distance: number, ignoredRoot?: Entity): FarmOcclusionState;
+      prepareOcclusion?(ray: Ray, ignoredRoot?: Entity): Promise<boolean>;
+      prepareOcclusions?(requests: readonly FarmVisibilityRequest[]): Promise<boolean>;
+      hintOccluded?(ray: Ray, distance: number, target: string, ignoredRoot?: Entity): boolean;
       result?(receipt: CommandResult): void;
     }
   ) {
-    options.presentation.setPlayerOcclusionQuery?.(options.occluded);
+    options.presentation.setPlayerOcclusionQuery?.(options.occluded, options.hintOccluded, options.prepareOcclusion);
     const document = options.canvas.ownerDocument,
       signal = this.events.signal;
     document.addEventListener(
@@ -71,7 +90,10 @@ export class FarmingItemInteraction {
         const rect = options.canvas.getBoundingClientRect();
         const x = ((event.clientX - rect.left) * options.canvas.width) / rect.width,
           y = ((event.clientY - rect.top) * options.canvas.height) / rect.height;
-        if (this.click(x, y)) this.consumed = { x, y, at: performance.now() };
+        if (options.prepareOcclusion || options.prepareOcclusions) {
+          this.consumed = { x, y, at: performance.now() };
+          void this.prepareClick(x, y);
+        } else if (this.click(x, y)) this.consumed = { x, y, at: performance.now() };
       },
       { capture: true, signal }
     );
@@ -80,6 +102,66 @@ export class FarmingItemInteraction {
       signal
     });
     document.defaultView?.addEventListener("blur", () => this.gesture.cancel(), { signal });
+  }
+  private async prepareClick(x: number, y: number): Promise<void> {
+    const serial = ++this.clickSerial;
+    const { camera, service, ground } = this.options;
+    const snapshot = service.getSnapshot(),
+      view = ground.capture();
+    const pose = [...camera.viewMatrix.elements, ...camera.projectionMatrix.elements];
+    const current = () =>
+      !this.events.signal.aborted &&
+      serial === this.clickSerial &&
+      this.options.isEnabled() &&
+      service.getSnapshot() === snapshot &&
+      ground.capture() === view &&
+      pose.every((v, i) => v === (i < 16 ? camera.viewMatrix.elements[i] : camera.projectionMatrix.elements[i - 16]));
+    // The generator owns routing for both synchronous and asynchronous hosts.
+    // It yields only after CPU candidate checks, and never changes the action after unavailable evidence.
+    const steps = this.clickSteps(x, y),
+      sampled = new Set<string>();
+    try {
+      let step = steps.next();
+      while (!step.done) {
+        const missing = new Map<string, FarmVisibilityRequest>();
+        for (const request of step.value) {
+          const key = this.queryKey(request);
+          if (!sampled.has(key) && !missing.has(key)) missing.set(key, request);
+        }
+        if (missing.size) {
+          const requests = [...missing.values()];
+          if (this.options.prepareOcclusions) {
+            if (!(await this.options.prepareOcclusions(requests))) return;
+          } else {
+            for (const request of requests) {
+              if (!(await this.options.prepareOcclusion!(request.ray, request.ignoredRoot)) || !current()) return;
+              // Older hosts can still stop at the first clear or unavailable
+              // candidate without preparing every alternative individually.
+              if (this.occlusionState(request.ray, request.distance, request.ignoredRoot) !== "blocked") break;
+            }
+          }
+          if (!current()) return;
+          for (const key of missing.keys()) sampled.add(key);
+        }
+        const visibility = step.value.map((r) => this.occlusionState(r.ray, r.distance, r.ignoredRoot));
+        step = steps.next(visibility);
+      }
+    } catch {
+      /* Missing or failed visual evidence never authorizes an action. */
+    } finally {
+      steps.return(false);
+    }
+  }
+  private queryKey({ ray, ignoredRoot }: FarmVisibilityRequest): string {
+    return [
+      ignoredRoot?.instanceId ?? -1,
+      ray.origin.x,
+      ray.origin.y,
+      ray.origin.z,
+      ray.direction.x,
+      ray.direction.y,
+      ray.direction.z
+    ].join(",");
   }
   /** Called by a host world-pick callback before it starts GPU picking. */
   consumesWorldClick(x: number, y: number): boolean {
@@ -109,7 +191,23 @@ export class FarmingItemInteraction {
         });
       });
   }
+  private occlusionState(ray: Ray, distance: number, root?: Entity): FarmOcclusionState {
+    return (
+      this.options.occlusionState?.(ray, distance, root) ??
+      (this.options.occluded?.(ray, distance, root) ? "blocked" : "clear")
+    );
+  }
   private click(x: number, y: number): boolean {
+    const steps = this.clickSteps(x, y);
+    let step = steps.next();
+    while (!step.done) step = steps.next(step.value.map((r) => this.occlusionState(r.ray, r.distance, r.ignoredRoot)));
+    return step.value;
+  }
+  /** Hand state and CPU candidates determine the possible actions before any GPU work. */
+  private *clickSteps(
+    x: number,
+    y: number
+  ): Generator<readonly FarmVisibilityRequest[], boolean, readonly FarmOcclusionState[]> {
     const { camera, service, presentation, ground, coordinator, definitions } = this.options;
     const snapshot = service.getSnapshot(),
       state = snapshot.items;
@@ -122,6 +220,7 @@ export class FarmingItemInteraction {
     const dropOrigin = [eye.x + forward.x * 1.4, eye.y, eye.z + forward.z * 1.4] as const;
     const held = carriedItem(state),
       carry = state.carried;
+    const work = presentation.capturePlayerWorkTarget?.();
     // The grounded hoe's head points opposite its shaft's local +X direction.
     const yaw = viewYaw + (held?.type === "hoe" ? 180 : 0);
     const dropView = ground.capture();
@@ -201,15 +300,23 @@ export class FarmingItemInteraction {
       if (distance >= 0) candidates.push({ id: container.id, facility: true, distance });
     }
     candidates.sort((a, b) => a.distance - b.distance);
-    const item = candidates.find(
-      (candidate) =>
-        candidate.distance <=
+    let item: (typeof candidates)[number] | undefined;
+    for (const candidate of candidates) {
+      if (
+        candidate.distance >
           (candidate.facility && held?.type === "harvest-basket"
             ? Math.min(camera.farClipPlane, FARM_REMOTE_INTERACTION_DISTANCE)
-            : FARM_PLAYER_INTERACTION_DISTANCE) &&
-        candidate.distance <= (hit?.distance ?? Infinity) + 0.02 &&
-        !this.options.occluded?.(ray, candidate.distance)
-    );
+            : FARM_PLAYER_INTERACTION_DISTANCE) ||
+        candidate.distance > (hit?.distance ?? Infinity) + 0.02
+      )
+        continue;
+      const [visibility] = yield [{ ray, distance: candidate.distance }];
+      if (visibility === "unavailable") return true;
+      if (visibility === "clear") {
+        item = candidate;
+        break;
+      }
+    }
     if (item) {
       if (!item.facility) {
         const position = resolveDrop();
@@ -240,47 +347,49 @@ export class FarmingItemInteraction {
       return true;
     }
     if (isNearbyFarmTool(held?.type) && presentation.getPlayerWorkTarget && presentation.beginPlayerWork) {
-      // Pointer location cannot select a remote plot while using a physical tool.
-      const selected = presentation.getPlayerWorkTarget();
-      if (!selected || !presentation.beginPlayerWork(selected)) {
-        this.options.result?.({
-          ok: false,
-          commandId: "work-target-failure",
-          revision: snapshot.revision,
-          replayed: false,
-          changes: [],
-          error: { code: "ACTION_UNAVAILABLE", message: "请靠近并面向身前的地块" }
-        });
+      const candidates = work
+        ? [work]
+        : (presentation.getPlayerWorkCandidates?.() ??
+          [presentation.getPlayerWorkTarget()].filter((target): target is FarmWorkSelection => !!target));
+      if (!candidates.length) {
+        this.workClick(null);
         return true;
       }
-      const intent = resolveCarriedAction(snapshot, selected.ground);
-      if (intent)
-        this.submit(
-          coordinator
-            .execute(intent.input, intent.options, undefined, undefined, undefined, true)
-            .finally(() => presentation.endPlayerWork?.())
-        );
-      else {
-        presentation.endPlayerWork?.();
-        this.options.result?.({
-          ok: false,
-          commandId: "work-target-failure",
-          revision: snapshot.revision,
-          replayed: false,
-          changes: [],
-          error: { code: "ACTION_UNAVAILABLE", message: "当前工具不能用于选中地块" }
-        });
+      const requests = candidates.map((candidate) => {
+        const ray = new Ray(eye.clone(), new Vector3(...candidate.position));
+        ray.direction.subtract(ray.origin);
+        const distance = ray.direction.length();
+        ray.direction.normalize();
+        return {
+          ray,
+          distance: Math.max(0, distance - 0.06),
+          ignoredRoot: presentation.getGroundOcclusionRoot?.(candidate.ground)
+        };
+      });
+      const states = yield requests;
+      for (let i = 0; i < states.length; i++) {
+        if (states[i] === "unavailable") return true;
+        if (states[i] === "clear") {
+          this.workClick(candidates[i]);
+          return true;
+        }
       }
+      this.workClick(null);
       return true;
     }
-    if (!hit || this.options.occluded?.(ray, hit.distance)) return false;
+    if (!hit) return false;
     const target = targetAtPoint(snapshot.grid, hit.groundId, hit.position[0], hit.position[2]);
     const plot = snapshot.plots.find(
       (p) => p.groundId === target.groundId && p.cellX === target.cellX && p.cellZ === target.cellZ
     );
     if (!plot && held?.type !== "hoe") return false;
-    presentation.setTarget({ plotId: plot?.plotId ?? null, ground: target });
     const intent = resolveCarriedAction(snapshot, target);
+    // Empty ground and a tool with no applicable action need no visual query.
+    if (!intent && !plot) return false;
+    const ignoredRoot = presentation.getGroundOcclusionRoot?.(target);
+    const [visibility] = yield [{ ray, distance: hit.distance, ignoredRoot }];
+    if (visibility !== "clear") return visibility === "unavailable";
+    presentation.setTarget({ plotId: plot?.plotId ?? null, ground: target });
     if (intent) this.submit(coordinator.execute(intent.input, intent.options, undefined, undefined, undefined, true));
     else if (carry)
       this.options.result?.({
@@ -295,6 +404,40 @@ export class FarmingItemInteraction {
         }
       });
     return true;
+  }
+  /** Executes only the captured work target; never re-enters pointer routing. */
+  private workClick(selected: FarmWorkSelection | null): void {
+    const { service, presentation, coordinator } = this.options;
+    const snapshot = service.getSnapshot();
+    if (!selected || !presentation.beginPlayerWork!(selected)) {
+      this.options.result?.({
+        ok: false,
+        commandId: "work-target-failure",
+        revision: snapshot.revision,
+        replayed: false,
+        changes: [],
+        error: { code: "ACTION_UNAVAILABLE", message: "请靠近并面向身前的地块" }
+      });
+      return;
+    }
+    const intent = resolveCarriedAction(snapshot, selected.ground);
+    if (intent)
+      this.submit(
+        coordinator
+          .execute(intent.input, intent.options, undefined, undefined, undefined, true)
+          .finally(() => presentation.endPlayerWork?.())
+      );
+    else {
+      presentation.endPlayerWork?.();
+      this.options.result?.({
+        ok: false,
+        commandId: "work-target-failure",
+        revision: snapshot.revision,
+        replayed: false,
+        changes: [],
+        error: { code: "ACTION_UNAVAILABLE", message: "当前工具不能用于选中地块" }
+      });
+    }
   }
   dispose(): void {
     this.events.abort();

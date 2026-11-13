@@ -466,6 +466,14 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
     return actor;
   }
 
+  /** Prepare only actors already admitted at the current observer position, without advancing simulation. */
+  async preparePresentation(): Promise<void> {
+    const population = this.population;
+    if (!population || this.disposed) return;
+    this.loadQueued(population);
+    await Promise.all([...this.pending]);
+  }
+
   /** Advance shared logical animals; presentation admission changes precision without resetting behavior. */
   update(seconds: number): void {
     const p = this.population;

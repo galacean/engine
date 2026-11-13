@@ -6,7 +6,7 @@ vi.mock("@galacean/engine", () => ({
   ScreenSpaceReflectionActivationMode: { ForceOff: 0 }, TextureFormat: { R8G8B8A8: 0, Depth24Stencil8: 1 },
   TextureFilterMode: { Point: 0 }, TextureWrapMode: { Clamp: 0 },
   Color: class { constructor(public r = 0, public g = 0, public b = 0, public a = 1) {} copyFrom(c: any) { Object.assign(this, c); } },
-  Matrix: class { static multiply() {} invert() {} }, Vector3: class {}, Renderer: class {},
+  Matrix: class { static multiply() {} invert() {} }, Vector3: class {}, Renderer: class {}, Script: class {},
   Texture2D: class { constructor() { counters.textures++; } destroy() { counters.texturesDestroyed++; } getPixelBuffer(...args: any[]) { args.at(-1).fill(0); } },
   RenderTarget: class { constructor(_engine: any, public width: number, public height: number) { counters.targets++; } destroy() { counters.targetsDestroyed++; } }
 }));

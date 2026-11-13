@@ -12,6 +12,7 @@ import {
   MeshRenderer,
   ParticleRenderer,
   Renderer,
+  RenderQueueType,
   SkinnedMeshRenderer,
   type Scene,
   Shader,
@@ -77,6 +78,8 @@ export interface SeedWorldPostProcessWarmupState {
 }
 
 export interface SeedWorldRendererWarmupOptions extends SeedWorldShaderWarmupOptions {
+  /** False excludes inactive resource templates. Disabled Renderers on active LOD entities remain included. */
+  readonly includeInactiveEntities?: boolean;
   /** Exact production emitters whose wind module can be enabled by weather changes. */
   readonly particleWindRenderers?: readonly ParticleRenderer[];
   /** Renderer feature macros that are enabled only during the entrance frame. */
@@ -374,6 +377,7 @@ export function collectSeedWorldRendererVariants(
         ]);
 
   for (const sourceRenderer of new Set(renderers)) {
+    if (options.includeInactiveEntities === false && !sourceRenderer.entity.isActiveInHierarchy) continue;
     const isMesh = sourceRenderer instanceof MeshRenderer;
     const isParticle = sourceRenderer instanceof ParticleRenderer;
     if (!isMesh && !isParticle) continue;
@@ -418,12 +422,23 @@ export function collectSeedWorldRendererVariants(
       ? options.particleWindRenderers?.includes(sourceRenderer as ParticleRenderer)
         ? [[], [{ n: "RENDERER_WOL_MODULE_ENABLED" }, { n: "RENDERER_TRANSFORM_FEEDBACK" }]]
         : [[]]
-      : ownsInstanceGeometry
+      : ownsInstanceGeometry || sourceRenderer instanceof SkinnedMeshRenderer
         ? authoredMacroVariants
         : gpuInstancedMacroVariants;
 
     for (const material of renderer.getMaterials()) {
       if (!material || material.destroyed || material.shader.destroyed) continue;
+      // Material admission is not a shader macro: an opted-in contributor must not be deduplicated
+      // against an otherwise identical non-contributor before its extra passes are collected.
+      const contributionKey = material.contributeScreenSpaceReflection
+        ? material.shader.subShaders
+            .flatMap((subShader) =>
+              subShader.passes.map((pass) =>
+                pass._renderState._getRenderQueueByShaderData(pass._renderStateDataMap, material.shaderData)
+              )
+            )
+            .join(",")
+        : "off";
       for (const extraMacros of rendererMacroVariants) {
         const compileMacros = new ShaderMacroCollection();
         ShaderMacroCollection.unionCollection(
@@ -437,10 +452,17 @@ export function collectSeedWorldRendererVariants(
             macro.v === undefined ? ShaderMacro.getByName(macro.n) : ShaderMacro.getByName(macro.n, macro.v)
           );
         }
-        const macroSetKey = `${material.shader.name}/${sourceRenderer.castShadows}?${shaderMacroCollectionKey(compileMacros)}`;
+        const macroSetKey = `${material.shader.name}/${sourceRenderer.castShadows}/${contributionKey}?${shaderMacroCollectionKey(compileMacros)}`;
         if (collectedShaderMacroSets.has(macroSetKey)) continue;
         collectedShaderMacroSets.add(macroSetKey);
-        appendShaderVariants(material.shader, compileMacros, variants, sourceRenderer.castShadows, renderToTexture);
+        appendShaderVariants(
+          material.shader,
+          compileMacros,
+          variants,
+          sourceRenderer.castShadows,
+          renderToTexture,
+          material
+        );
       }
     }
   }
@@ -688,7 +710,8 @@ function appendShaderVariants(
   macros: ShaderMacroCollection,
   variants: SeedWorldShaderVariantEntry[],
   castShadows = true,
-  renderToTexture?: boolean
+  renderToTexture?: boolean,
+  material?: Material
 ): void {
   const macroElements: ShaderMacro[] = [];
   (ShaderMacro as unknown as RuntimeShaderMacroConstructor)._getMacrosElements(macros, macroElements);
@@ -701,6 +724,16 @@ function appendShaderVariants(
       // Match shadow culling even while candidate roots are intentionally inactive.
       if (!castShadows && pass.getTagValue("pipelineStage") === "ShadowCaster") continue;
       const stage = pass.getTagValue("pipelineStage");
+      // Contribution capture only visits opted-in transparent materials. Merely having the pass in PBR
+      // does not make it reachable (opaque objects already contribute through their Forward color).
+      if (
+        material &&
+        (stage === "ScreenSpaceReflectionContributionColor" || stage === "ScreenSpaceReflectionContributionDepth") &&
+        (!material.contributeScreenSpaceReflection ||
+          pass._renderState._getRenderQueueByShaderData(pass._renderStateDataMap, material.shaderData) !==
+            RenderQueueType.Transparent)
+      )
+        continue;
       let passMacros = recordedMacros;
       if (renderToTexture !== undefined) {
         passMacros = recordedMacros.filter((macro) => macro.n !== "ENGINE_OUTPUT_SRGB_CORRECT");

@@ -1,3 +1,4 @@
+import { SeedWorldVisualQuery } from "@galacean/engine-world-planning/world/SeedWorldVisualQuery";
 import type { ProjectFileProvider } from "@galacean/engine-project/project-files/virtual-project-files";
 import retrievalCatalog from "@galacean/engine-retrieval/retrieval/catalog.json";
 import { createFarmingComponentExtension } from "@galacean/engine-runtime-editor/farming/FarmingComponentEditor";
@@ -268,6 +269,7 @@ export async function mountSeedWorldDemo(
   let animals: PlanningAnimalHost | undefined;
   let detachAnimalLightning: (() => void) | undefined;
   let farmingHost: PlanningFarmingHost | undefined;
+  let visualQuery: SeedWorldVisualQuery | undefined;
   let unregisterFarmingActivation: (() => void) | undefined;
 
   let audio: SeedWorldAudioRuntime | undefined;
@@ -394,6 +396,7 @@ export async function mountSeedWorldDemo(
       }
     ],
     ["农场宿主", () => farmingHost?.dispose()],
+    ["Visual query", () => visualQuery?.dispose()],
     ["建筑宿主", () => nativeBuildingHost?.dispose()],
     [
       "场景交互",
@@ -947,15 +950,18 @@ export async function mountSeedWorldDemo(
       });
     });
     const isFarmingPlanned = () => source!.session.document.entities.world.components.farming?.values.enabled !== false;
+    visualQuery = new SeedWorldVisualQuery(camera,
+      () => publication?.current,
+      () => `${publication?.current?.revision}:${publication?.current?.masonry?.presentationRevision}`,
+      visitor => { const current = publication?.current; if (current) visitPlanningWorldPickBatches(current, water!, visitor); });
     farmingHost = new PlanningFarmingHost({
       projection: nativeEditor.projection,
       isPlannedEnabled: isFarmingPlanned,
       create: (system, statePath) =>
         new PlanningFarmingRuntime({
           canvas,
+          visualQuery,
           isInputEnabled: () => ready && !disposed && !tools?.listening && !runtimeDebug?.farmingPicking,
-          raycastWorld: (ray, distance) =>
-            rockNavigation?.raycastWorld(ray, distance) ?? root.scene!.physics.raycast(ray, distance),
           system,
           statePath: statePath!,
           camera,
@@ -1667,12 +1673,12 @@ export async function mountSeedWorldDemo(
               .commit();
             recordBootSpan("rock grass prepare + commit", spanAt);
             spanAt = performance.now();
-            if (precompileShaders) candidate.warmupPopulationDetails();
+            if (precompileShaders && ready) candidate.warmupPopulationDetails();
             recordBootSpan("warmupPopulationDetails", spanAt);
             const warmupRoots = [candidate.root, ...candidateWater.shaderWarmupRoots];
-            if (!ready) progress(0.78, "预编译场景渲染变体");
             const shaderWarmup = await warmupSeedWorldRendererVariants(engine!, scene!, camera, warmupRoots, {
-              enabled: precompileShaders,
+              // Startup publishes additional owners below; collect their final state together before reveal.
+              enabled: precompileShaders && ready,
               includeGpuInstancing: true,
               strict: true,
               activatedLightRoots: warmupRoots,
@@ -2049,28 +2055,6 @@ export async function mountSeedWorldDemo(
       environment,
       water,
       readPublished,
-      querySubjectCapsules: (capsules) => {
-        const scene = publication?.current,
-          runtime = scene?.masonry;
-        if (!runtime) return undefined;
-        const hits = capsules.map(({ start, end, radius }) => runtime.intersectCapsule(start, end, radius));
-        if (hits.some((hit) => hit === undefined)) return undefined;
-        return {
-          publicationRevision: scene!.authoringRevision,
-          hits: hits as Exclude<(typeof hits)[number], undefined>[]
-        };
-      },
-      querySubjectSegments: (segments) => {
-        const scene = publication?.current,
-          runtime = scene?.masonry;
-        if (!runtime) return undefined;
-        const hits = segments.map(({ start, end }) => runtime.intersectSegment(start, end));
-        if (hits.some((hit) => hit === undefined)) return undefined;
-        return {
-          publicationRevision: scene!.authoringRevision,
-          hits: hits as Exclude<(typeof hits)[number], undefined>[]
-        };
-      },
       setWorldInputEnabled: (enabled) => {
         assistantInputEnabled = enabled;
         enabled = enabled && !lassoFrozen;
@@ -2245,6 +2229,33 @@ export async function mountSeedWorldDemo(
     // Dense visible details belong to the world presentation, including photo captures.
     publication.current?.world.warmupPopulationDetails();
 
+    if (precompileShaders) {
+      // IBL generation above needs normal rendering; stop world draws only after it has settled.
+      camera.enabled = false;
+      progress(0.96, "准备世界渲染资源");
+      await Promise.all([farmingHost?.runtime?.preparePresentation(), animals?.preparePresentation()]);
+      if (disposed) throw new DOMException("Seed page disposed during shader preparation", "AbortError");
+      await publication.current?.vegetation?.preparePresentation();
+      if (disposed) throw new DOMException("Seed page disposed during shader preparation", "AbortError");
+      progress(0.98, "预编译场景渲染变体");
+      const shaderWarmup = await warmupSeedWorldRendererVariants(engine, scene!, camera, scene!.rootEntities, {
+        strict: true,
+        includeInactiveEntities: false,
+        includeGpuInstancing: true,
+        postProcessState: post.getShaderWarmupState(),
+        additionalBackgroundMaterials: environment!.shaderWarmupBackgroundMaterials,
+        onVariants:
+          pageUrl.searchParams.get("agentTrace") === "1"
+            ? (variants) => {
+                canvas.dataset.buildingShaderWarmupVariants = JSON.stringify(variants);
+              }
+            : undefined
+      });
+      if (pageUrl.searchParams.get("agentTrace") === "1")
+        canvas.dataset.buildingShaderWarmup = JSON.stringify(shaderWarmup);
+    }
+
+    camera.enabled = true;
     progress(1, "Seed World 已就绪");
     await timed("orb.reveal", () =>
       orb!.reveal(() => {
@@ -2434,6 +2445,7 @@ export async function mountSeedWorldDemo(
     void (async () => {
       await capturePathWarmup;
       await timed("lassoPanel.prepare", () => preparingLasso.prepare());
+      await timed("farmingInteraction.prepare", () => farmingHost?.runtime?.prepareInteraction());
       await timed("pickPreparation.flush #2", () => preparingPicks.flush(editorLifetime.signal));
       if (disposed) return;
       if (options.showAssistant !== false)

@@ -66,7 +66,10 @@ describe("core draft CPU preview/detail boundary", () => {
       ).cells;
       expect(cells.length).toBeGreaterThan(0);
       // The preview and the detail cross the thread boundary as plain data.
-      expect(() => structuredClone({ preview: cpu.preview, structure: cpu.structure, detail: first })).not.toThrow();
+      expect(cpu.preview.structuralParts).toBeUndefined();
+      expect(cpu).not.toHaveProperty("structure");
+      expect(cpu.occupancy.length).toBeGreaterThan(0);
+      expect(() => structuredClone({ preview: cpu.preview, occupancy: cpu.occupancy, detail: first })).not.toThrow();
       expect(cpu.focus.length).toBeGreaterThan(0);
       expect(cpu.appearance.paletteSlots.length).toBe(DRAFTS[kind]().groups.length);
     },
@@ -110,4 +113,18 @@ describe("core draft CPU preview/detail boundary", () => {
       prepareBuildingCpu(draft, terrain, constructionGeometry, { requireAllParts: false })
     ).resolves.toHaveProperty("diagnostics");
   });
+});
+
+it("reserves final prefab attachments outside the wall without retaining triangles", async () => {
+  const { BuildingOccupancyQuery } = await import("../src/building/runtime/BuildingOccupancyQuery");
+  const cpu = await prepareBuildingCpu(European.buildHouses({ id: "house", roof: { height: 0 },
+    attachments: [{ id: "lamp", kind: "wall-lamp", u: .1, bottom: 1, width: 2, height: 2 }]
+  }), terrain, constructionGeometry);
+  const query = BuildingOccupancyQuery.fromSnapshot(cpu.occupancy);
+  expect(query.intersectBounds([-6, 0, 0], [-5, 100, 1])).toEqual({ building: "house", subject: "house" });
+  expect(query.intersectBounds([50, 0, 50], [51, 100, 51])).toBeNull();
+  for (const part of cpu.occupancy) {
+    expect(part).not.toHaveProperty("positions");
+    expect(part).not.toHaveProperty("indices");
+  }
 });

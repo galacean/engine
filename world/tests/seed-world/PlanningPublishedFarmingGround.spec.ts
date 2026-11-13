@@ -4,9 +4,11 @@ import { constructionGeometry } from "../../../packages/building/tests/fixtures/
 import { describe, expect, it } from "vitest";
 import {
   publishedPlanningFarmingGround,
-  type PlanningBuildingSurfaceOwner,
+  type PlanningBuildingOccupancyOwner,
   type PlanningFarmingTerrain
 } from "../../demos/seed-world/src/planning/spatial/farming/PlanningPublishedFarmingGround";
+import { Matrix, Vector3 } from "@galacean/engine";
+import { BuildingOccupancyQuery } from "@galacean/engine-building/building/runtime/BuildingOccupancyQuery.ts";
 import { ConstructionSurfaceQuery } from "@galacean/engine-building/building/runtime/ConstructionSurfaceQuery.ts";
 import { PLANNING_FARMING_DEFAULTS } from "@galacean/engine-world-planning/spatial/farming/PlanningFarmingComponent.ts";
 import type { IslandPlan } from "@galacean/engine-world-planning/semantic-study/IslandPlanModel.ts";
@@ -58,18 +60,10 @@ const fields: PlanningFarmingTerrain = {
   materialWeights: Uint8Array.from([255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0])
 };
 const bounds = (x: number) => ({ minimumX: x - 0.5, maximumX: x + 0.5, minimumZ: 9.5, maximumZ: 10.5 });
-const wall = (x: number) =>
-  new ConstructionSurfaceQuery(
-    [
-      {
-        owner: "house",
-        positions: [x, 0, 9, x, 3, 9, x, 0, 11],
-        indices: [0, 1, 2]
-      }
-    ],
-    [0, 0, 0],
-    (id) => id
-  );
+const wall = (x: number) => BuildingOccupancyQuery.fromPreview([{
+  owner: "house", material: "wall", uvs: [],
+  positions: [x, 0, 9, x, 3, 9, x, 0, 11], indices: [0, 1, 2]
+}]);
 
 describe("published farming ground host facts", () => {
   it("checks rendered standalone rocks that are outside the layout group array", () => {
@@ -93,13 +87,13 @@ describe("published farming ground host facts", () => {
     expect(view.inspectBounds("ground", bounds(10)).blocked).toBe(true);
     expect(view.inspectBounds("ground", bounds(3)).blocked).toBe(false);
   });
-  it("uses accepted masonry triangles and keeps an old ground capture independent of later surface replacement", () => {
+  it("uses accepted building occupancy and keeps an old ground capture independent of later surface replacement", () => {
     let current = wall(8);
-    const owner: PlanningBuildingSurfaceOwner = {
+    const owner: PlanningBuildingOccupancyOwner = {
       get bounds() {
         return current.bounds;
       },
-      captureSurfaceQuery() {
+      captureOccupancyQuery() {
         const captured = current;
         return Object.freeze({ intersectBounds: captured.intersectBounds.bind(captured) });
       }
@@ -115,7 +109,7 @@ describe("published farming ground host facts", () => {
   });
 });
 
-it("uses actual building surfaces without retaining a ghost planning OBB after replacement or deletion", () => {
+it("uses current building occupancy without retaining a ghost planning OBB after replacement or deletion", () => {
   const planned = {
     ...plan,
     buildings: [
@@ -133,18 +127,18 @@ it("uses actual building surfaces without retaining a ghost planning OBB after r
     ]
   } as IslandPlan;
   const actual = wall(12);
-  const owner = { bounds: actual.bounds, captureSurfaceQuery: () => actual };
+  const owner = { bounds: actual.bounds, captureOccupancyQuery: () => actual };
   const view = publishedPlanningFarmingGround(planned, fields, 1, () => false, undefined, owner);
   expect(view.inspectBounds("ground", bounds(12)).blocked).toBe(true);
   expect(view.inspectBounds("ground", bounds(8)).blocked).toBe(false);
   const deleted = publishedPlanningFarmingGround(planned, fields, 2, () => false, undefined, {
     bounds: [],
-    captureSurfaceQuery: () => new ConstructionSurfaceQuery([], [0, 0, 0], (id) => id)
+    captureOccupancyQuery: () => BuildingOccupancyQuery.fromSnapshot([])
   });
   expect(deleted.inspectBounds("ground", bounds(12)).blocked).toBe(false);
 });
 
-it("refreshes farming against actual building surface snapshots, excludes ghost OBBs and preserves captures", async () => {
+it("refreshes farming against published building occupancy, excludes ghost OBBs and preserves captures", async () => {
   const source: IslandPlan = {
     ...plan,
     buildings: [
@@ -169,8 +163,12 @@ it("refreshes farming against actual building surface snapshots, excludes ghost 
       constructionGeometry,
       { frame: { position: group.position, rotationY: 0 } }
     );
-    const query = new ConstructionSurfaceQuery(geometry.preview.structuralParts!, group.position, (id) => id);
-    return { bounds: query.bounds, captureSurfaceQuery: () => query };
+    const matrix = new Matrix();
+    Matrix.translation(new Vector3(...group.position), matrix);
+    const query = BuildingOccupancyQuery.fromSnapshot(geometry.occupancy).transformed(matrix);
+    expect(geometry.preview.structuralParts).toBeUndefined();
+    expect(geometry).not.toHaveProperty("structure");
+    return { bounds: query.bounds, captureOccupancyQuery: () => query };
   };
   const before = publishedPlanningFarmingGround(source, fields, 1, () => false, undefined, await capture());
   expect(before.inspectBounds("ground", bounds(10)).blocked).toBe(true);
@@ -184,11 +182,12 @@ it("refreshes farming against actual building surface snapshots, excludes ghost 
         : c.parts.some((k) => roofs.has(k)))
   );
   const after = publishedPlanningFarmingGround(source, fields, 2, () => false, undefined, await capture());
-  expect(after.inspectBounds("ground", bounds(10)).blocked).toBe(false);
+  // A wall envelope continues to reserve the building footprint after roof removal.
+  expect(after.inspectBounds("ground", bounds(10)).blocked).toBe(true);
   expect(before.inspectBounds("ground", bounds(10)).blocked).toBe(true);
   const deleted = publishedPlanningFarmingGround(source, fields, 3, () => false, undefined, {
     bounds: [],
-    captureSurfaceQuery: () => new ConstructionSurfaceQuery([], [0, 0, 0], (id) => id)
+    captureOccupancyQuery: () => BuildingOccupancyQuery.fromSnapshot([])
   });
   expect(deleted.inspectBounds("ground", bounds(10)).blocked).toBe(false);
   expect(before.inspectBounds("ground", bounds(10)).blocked).toBe(true);

@@ -7728,6 +7728,7 @@ interface DetailPickData {
   owners?: readonly (string | undefined)[];
 }
 class SeedWorldDetailPickBatch extends SeedWorldArrayPickBatch {
+  override interactionOccluder = false;
   data!: DetailPickData;
   category: "grass" | "flower" = "grass";
   identity?: DetailPickIdentity;

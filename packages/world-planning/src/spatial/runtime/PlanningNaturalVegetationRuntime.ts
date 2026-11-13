@@ -855,6 +855,7 @@ export class PlanningNaturalVegetationRuntime {
         const pick = new SeedWorldArrayPickBatch(renderer);
         pick.count = 1;
         pick.id = pickId;
+        pick.interactionOccluder = !PLANT_GROUND_COVER_VARIATIONS.has(instance.assetId);
         pickBatches.push(pick);
         const normal = new Matrix();
         Matrix.invert(local, normal);
@@ -962,6 +963,16 @@ export class PlanningNaturalVegetationRuntime {
     for (const cell of this.cells.values()) for (const plant of cell.plants) refresh(plant);
     if (this.error) throw new Error(this.error);
   }
+  /** Finish the existing nearby-cell demand before collecting its actual LOD renderers. */
+  async preparePresentation(): Promise<void> {
+    this.update(0);
+    while (this.detailTask) {
+      await this.detailTask;
+      if (this.disposed) return;
+      this.update(0);
+    }
+  }
+
   update(dt: number): void {
     if (this.disposed) return;
     this.time += dt;
@@ -1652,8 +1663,10 @@ async function createCompanionRockSources(
     if (!specimen) return;
     specimens.delete(key);
     specimen.entity.destroy();
-    specimen.surface.mesh.destroy();
-    if (!specimen.surface.buffer.destroyed) specimen.surface.buffer.destroy();
+    // The cell and source renderers may still hold references until frame-end destruction.
+    // These resources belong exclusively to this retired specimen; enqueue their release too.
+    specimen.surface.mesh.destroy(true);
+    if (!specimen.surface.buffer.destroyed) specimen.surface.buffer.destroy(true);
   };
   return {
     root,

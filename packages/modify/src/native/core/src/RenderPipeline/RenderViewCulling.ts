@@ -189,7 +189,11 @@ export class RenderViewCullingContextImpl implements RenderViewCullingContext {
       return;
     }
 
+    if (this._viewType === RenderViewType.Camera) {
+      if (camera.renderFilter && !camera.renderFilter(renderer)) return;
+      camera._renderPipeline._recordRenderViewRenderer(renderer);
+    }
     renderer._prepareRender(renderContext);
-    renderer._renderFrameCount = camera.engine.time.frameCount;
+    if (camera.updateRendererVisibility) renderer._renderFrameCount = camera.engine.time.frameCount;
   }
 }

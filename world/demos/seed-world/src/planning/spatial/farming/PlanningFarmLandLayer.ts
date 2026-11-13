@@ -44,6 +44,8 @@ import { loadPlanningFarmDirtTexture } from "@galacean/engine-world-planning/spa
 
 /** Planner-owned middle surface: terrain < flat dirt < worked beds. No colliders, farm state or per-frame work. */
 export class PlanningFarmLandLayer implements FarmingSoilWorkPresentation {
+  /** Texture-backed scene macros must settle before startup shader collection. */
+  readonly whenReady: Promise<void>;
   private readonly margin = FARM_LAND_MARGIN_M;
   readonly root: Entity;
   private readonly material: PBRMaterial;
@@ -93,7 +95,7 @@ export class PlanningFarmLandLayer implements FarmingSoilWorkPresentation {
       this.root.destroy();
       throw error;
     }
-    void this.loadTextures();
+    this.whenReady = this.loadTextures();
   }
 
   get diagnostics() {

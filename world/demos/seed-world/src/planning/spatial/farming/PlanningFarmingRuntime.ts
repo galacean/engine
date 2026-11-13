@@ -1,9 +1,7 @@
+import type { SeedWorldVisualQuery } from "@galacean/engine-world-planning/world/SeedWorldVisualQuery";
 import { planningFarmInitialization } from "@galacean/engine-world-planning/spatial/farming/PlanningFarmInitialization";
 import { validatePlanningFarmingResources } from "./PlanningFarmingResourceValidation.ts";
 import { lazyPlanningFarmingGroundView } from "@galacean/engine-world-planning/spatial/farming/PlanningFarmingGround";
-import { Renderer, StaticCollider } from "@galacean/engine-core";
-import { meshInteractionOccludes } from "@galacean/engine-terrain/geometry/MeshInteractionSurface";
-import { Vector3, type Ray } from "@galacean/engine-math";
 import { FarmingItemInteraction } from "@galacean/engine-farming/farming/application/FarmingItemInteraction";
 import { FarmingActivityLog } from "@galacean/engine-farming/farming/application/FarmingActivityLog";
 import { planningFarmingInitialStorage } from "./PlanningFarmingInitialStorage.ts";
@@ -17,7 +15,12 @@ import {
 import { PlanningFarmClock } from "./PlanningFarmClock.ts";
 import { getPlanningFarmSoilShader } from "./PlanningFarmSoilShader.ts";
 import { planningFarmEnvironment, type PlanningFarmEnvironmentSource } from "./PlanningFarmEnvironment.ts";
-import { PLANNING_FARM_LAYOUT, planningFarmId, validatePlanningFarmSave, canRecoverPlanningFarmSave } from "./PlanningFarmSave.ts";
+import {
+  PLANNING_FARM_LAYOUT,
+  planningFarmId,
+  validatePlanningFarmSave,
+  canRecoverPlanningFarmSave
+} from "./PlanningFarmSave.ts";
 import { acceptedPlanningFarmingGround } from "./PlanningFarmingAcceptedGround.ts";
 import { FarmingInitializationError } from "@galacean/engine-farming/farming/application/FarmingInitializationError";
 import type { FarmSnapshot, FarmRepository } from "@galacean/engine-farming/farming/api/index";
@@ -55,12 +58,10 @@ import { PlanningFarmLandLayer } from "./PlanningFarmLandLayer.ts";
 export class PlanningFarmingRuntime {
   readonly activity = new FarmingActivityLog(() => {});
   private interaction?: FarmingItemInteraction;
-  private occlusionScene?: PublishedPlanningSeedScene;
-  private occlusionRevision = -1;
-  private readonly occlusionRenderers: Renderer[] = [];
-  private readonly occlusionEnd = new Vector3();
-  private readonly occlusionStartTuple: [number, number, number] = [0, 0, 0];
-  private readonly occlusionEndTuple: [number, number, number] = [0, 0, 0];
+  private visualOcclusion?: SeedWorldVisualQuery;
+  async prepareInteraction(): Promise<void> {
+    await this.visualOcclusion?.prepareShaders();
+  }
   consumesWorldClick(x: number, y: number): boolean {
     return this.interaction?.consumesWorldClick(x, y) ?? false;
   }
@@ -72,12 +73,11 @@ export class PlanningFarmingRuntime {
   private readonly definitions: ReturnType<typeof farmingDefinitions>;
   private readonly releaseDependencies: () => void;
   readonly statePath: string;
-  private stateResource:JSONAsset;
-  synchronizeStateResource():void {
-    if(!this.system.state||this.system.state.destroyed)throw new Error("Farming state resource is unavailable");
-    if (this.stateResource !== this.system.state)
-      this.validateStateResource(this.system.state);
-    this.stateResource=this.system.state;
+  private stateResource: JSONAsset;
+  synchronizeStateResource(): void {
+    if (!this.system.state || this.system.state.destroyed) throw new Error("Farming state resource is unavailable");
+    if (this.stateResource !== this.system.state) this.validateStateResource(this.system.state);
+    this.stateResource = this.system.state;
     this.repository.synchronizeResource();
   }
   usesAssets(system: FarmingSystem, statePath: string): boolean {
@@ -91,10 +91,15 @@ export class PlanningFarmingRuntime {
     // Startup may precede the first world publication. initialize validates the
     // selected save once that world and its load choice are known.
     if (!farm) return;
-    validatePlanningFarmingResources(state.data, this.definitions, {
-      farmId: farm.farmId,
-      ...planningFarmInitialization(state.data, farm.farmId, this.options.readInitializationRequest?.())
-    }, this.resources.rules.data.simulationConfig);
+    validatePlanningFarmingResources(
+      state.data,
+      this.definitions,
+      {
+        farmId: farm.farmId,
+        ...planningFarmInitialization(state.data, farm.farmId, this.options.readInitializationRequest?.())
+      },
+      this.resources.rules.data.simulationConfig
+    );
   }
   private clock?: PlanningFarmClock;
   private provider?: PlanningFarmingGroundProvider;
@@ -133,6 +138,7 @@ export class PlanningFarmingRuntime {
   constructor(
     private readonly options: {
       canvas?: HTMLCanvasElement;
+      visualQuery?: SeedWorldVisualQuery;
       isInputEnabled?: () => boolean;
       system: FarmingSystem;
       statePath: string;
@@ -140,13 +146,13 @@ export class PlanningFarmingRuntime {
       project: RuntimeProjectSession;
       water: PlanningWaterRuntime;
       readCurrent: () => PublishedPlanningSeedScene | undefined;
-      raycastWorld?: (ray: Ray, distance: number) => boolean;
       waterSupplyScheduler?: PlanningFarmWaterScheduler;
       readEnvironment?: () => PlanningFarmEnvironmentSource | undefined;
       readInitializationRequest?: () => string | undefined;
     }
   ) {
     this.system = options.system;
+    this.visualOcclusion = options.visualQuery;
     const { catalog, rules, state } = this.system;
     if (!catalog || !rules || !state || state.destroyed)
       throw new Error("FarmingSystem requires catalog, rules and state assets");
@@ -224,6 +230,11 @@ export class PlanningFarmingRuntime {
   get whenSettled(): Promise<void> {
     return this.task;
   }
+
+  async preparePresentation(): Promise<void> {
+    await this.task;
+    await this.land?.whenReady;
+  }
   sampleTarget(ray: import("@galacean/engine-farming/farming/api/index").GroundRay, maximumDistance: number) {
     return this.activeArea ? (this.provider?.capture().raycast(ray, maximumDistance) ?? null) : null;
   }
@@ -294,7 +305,12 @@ export class PlanningFarmingRuntime {
     this.waterCurrent = current;
     this.revision = current.revision;
     const waterKey = `${this.options.water.system.revision}:${this.options.water.system.runtimeState.effectiveEnabled}`;
-    if ((update?.surface ?? true) && this.createGroundView && this.provider && this.acceptedWaterRevision !== waterKey) {
+    if (
+      (update?.surface ?? true) &&
+      this.createGroundView &&
+      this.provider &&
+      this.acceptedWaterRevision !== waterKey
+    ) {
       this.acceptedWaterRevision = waterKey;
       const view = this.createGroundView(this.groundRevision + 1);
       this.groundRevision++;
@@ -475,7 +491,14 @@ export class PlanningFarmingRuntime {
       try {
         saved = await this.repository.read(farm.farmId);
         if (resume && !saved) throw new Error("Farm resume state is missing; refusing to reset progress");
-        if (saved) validatePlanningFarmSave(saved, farm.farmId, this.definitions, undefined, this.resources.rules.data.simulationConfig);
+        if (saved)
+          validatePlanningFarmSave(
+            saved,
+            farm.farmId,
+            this.definitions,
+            undefined,
+            this.resources.rules.data.simulationConfig
+          );
       } catch (error) {
         if (resume || !canRecoverPlanningFarmSave(error)) throw error;
         saved = undefined;
@@ -551,13 +574,15 @@ export class PlanningFarmingRuntime {
         }))
       : (this.area?.configuration?.plots ?? placement!.plots);
     let storage = saved?.storage ?? this.area?.configuration?.initialStorage ?? placement!.storage;
-    // Freeze structural geometry before the physical ground is first requested lazily.
-    let masonry: Pick<NonNullable<PublishedPlanningSeedScene["masonry"]>, "bounds" | "captureSurfaceQuery"> | undefined;
+    // Capture current occupied volumes before the physical ground is first requested lazily.
+    let masonry:
+      | Pick<NonNullable<PublishedPlanningSeedScene["masonry"]>, "bounds" | "captureOccupancyQuery">
+      | undefined;
     if (current.masonry) {
-      const surfaces = current.masonry.captureSurfaceQuery();
+      const surfaces = current.masonry.captureOccupancyQuery();
       masonry = {
         bounds: current.masonry.bounds,
-        captureSurfaceQuery: () => surfaces
+        captureOccupancyQuery: () => surfaces
       };
     }
     const groundId = saved?.storage.layout?.groundId ?? farm.groundId;
@@ -588,7 +613,11 @@ export class PlanningFarmingRuntime {
       };
       if (!saved && !this.area) {
         storage = planningFarmingInitialStorage(
-          farm.farmId, placement!, storageRules, farm.options.initialContainers, readPhysical
+          farm.farmId,
+          placement!,
+          storageRules,
+          farm.options.initialContainers,
+          readPhysical
         );
       }
       const read = () =>
@@ -687,7 +716,8 @@ export class PlanningFarmingRuntime {
       }
     }
     this.activity.bind(this.area.service, this.definitions);
-    if (!this.interaction && this.presentation && this.options.canvas) {
+    if (!this.interaction && this.presentation && this.options.canvas && this.visualOcclusion) {
+      const visualQuery = this.visualOcclusion;
       this.interaction = new FarmingItemInteraction({
         canvas: this.options.canvas,
         camera: this.options.camera,
@@ -698,7 +728,11 @@ export class PlanningFarmingRuntime {
         ground: this.provider!,
         definitions: this.definitions,
         isEnabled: () => !!this.activeArea && (this.options.isInputEnabled?.() ?? true),
-        occluded: (ray, distance) => this.occluded(ray, distance),
+        occluded: (ray, distance, root) => visualQuery.occluded(ray, distance, root),
+        occlusionState: (ray, distance, root) => visualQuery.occlusionState(ray, distance, root),
+        hintOccluded: (ray, distance, target, root) => visualQuery.hintOccluded(ray, distance, target, root),
+        prepareOcclusion: (ray, root) => visualQuery.prepare(ray, root, true),
+        prepareOcclusions: (requests) => visualQuery.prepareVisible(requests),
         result: (receipt) => {
           if (!receipt.ok) this.activity.append("error", receipt.error?.message ?? "农场操作失败");
         }
@@ -707,35 +741,6 @@ export class PlanningFarmingRuntime {
     this.presentation?.setActive(true);
     this.report("runtime", "ready");
     this.synchronizePresentationDiagnostics();
-  }
-  private occluded(ray: Ray, distance: number): boolean {
-    const current = this.options.readCurrent();
-    if (!current) return true;
-    const queryDistance = Math.max(0, distance - 0.03);
-    if (queryDistance === 0) return false;
-    const start = ray.origin,
-      end = ray.getPoint(queryDistance, this.occlusionEnd);
-    const from = this.occlusionStartTuple, to = this.occlusionEndTuple;
-    from[0] = start.x; from[1] = start.y; from[2] = start.z;
-    to[0] = end.x; to[1] = end.y; to[2] = end.z;
-    if (current.masonry?.intersectSegment(from, to)) return true;
-    // Merged rock bounds contain open ground. Reuse their native CPU triangle colliders;
-    // treating a formation's broad-phase box as a solid would block clear ground beside it.
-    const physics = this.root.scene!.physics;
-    if (this.options.raycastWorld?.(ray, queryDistance) ?? physics?.raycast(ray, queryDistance)) return true;
-    if (this.occlusionScene !== current || this.occlusionRevision !== current.revision) {
-      this.occlusionScene = current;
-      this.occlusionRevision = current.revision;
-      this.occlusionRenderers.length = 0;
-      current.solids.root.getComponentsIncludeChildren(Renderer, this.occlusionRenderers);
-    }
-    for (const renderer of this.occlusionRenderers) {
-      if (renderer.destroyed || !renderer.enabled || !renderer.entity.isActiveInHierarchy) continue;
-      const collider = renderer.entity.getComponent(StaticCollider);
-      if (collider?.enabled) continue;
-      if (meshInteractionOccludes(renderer, ray, queryDistance)) return true;
-    }
-    return false;
   }
   private requestWaterSupply(view: PlanningFarmWaterGroundView): void {
     if (this.area?.initialized) this.waterSupply.request(view, this.area.service.getSnapshot());
@@ -813,7 +818,7 @@ export class PlanningFarmingRuntime {
     this.waterSupply.dispose();
     this.unsubscribeWaterLayout?.();
     this.unsubscribeWaterLayout = undefined;
-    return this.stopTask ??= (async () => {
+    return (this.stopTask ??= (async () => {
       await this.task.catch(() => {});
       if (this.area?.initialized) {
         await this.area.coordinator.dispose();
@@ -822,26 +827,40 @@ export class PlanningFarmingRuntime {
         await this.area.service.whenIdle();
       }
       await this.repository.whenIdle();
-    })().catch(error => { this.stopTask = undefined; throw error; });
+    })().catch((error) => {
+      this.stopTask = undefined;
+      throw error;
+    }));
   }
   dispose(): Promise<void> {
     if (this.disposal) return this.disposal;
     if (!this.disposed) {
       this.disposed = true;
-      this.occlusionScene = undefined;
-      this.occlusionRenderers.length = 0;
+      this.visualOcclusion = undefined;
       this.controller?.abort();
       this.cleanupPending = [
         () => this.interaction?.dispose(),
         () => this.activity.dispose(),
         () => this.waterSupply.dispose(),
-        () => { this.unsubscribeWaterLayout?.(); this.unsubscribeWaterLayout = undefined; },
-        async () => { await this.vegetation?.dispose(); this.vegetation = undefined; },
+        () => {
+          this.unsubscribeWaterLayout?.();
+          this.unsubscribeWaterLayout = undefined;
+        },
+        async () => {
+          await this.vegetation?.dispose();
+          this.vegetation = undefined;
+        },
         () => this.task,
         () => this.area?.dispose(),
-        () => { this.presentation?.dispose(); this.presentation = undefined; },
+        () => {
+          this.presentation?.dispose();
+          this.presentation = undefined;
+        },
         () => this.area?.entity.destroy(),
-        () => { this.land?.dispose(); this.land = undefined; },
+        () => {
+          this.land?.dispose();
+          this.land = undefined;
+        },
         () => this.releaseDependencies(),
         () => this.repository.whenIdle(),
         () => this.provider?.dispose(),
@@ -851,15 +870,26 @@ export class PlanningFarmingRuntime {
     }
     const task = this.runCleanup();
     this.disposal = task;
-    void task.then(() => { this.disposal = undefined; }, () => { this.disposal = undefined; });
+    void task.then(
+      () => {
+        this.disposal = undefined;
+      },
+      () => {
+        this.disposal = undefined;
+      }
+    );
     return task;
   }
   private async runCleanup(): Promise<void> {
     const failures: unknown[] = [];
     const retry: (() => unknown)[] = [];
     for (const operation of this.cleanupPending ?? []) {
-      try { await operation(); }
-      catch (error) { failures.push(error); retry.push(operation); }
+      try {
+        await operation();
+      } catch (error) {
+        failures.push(error);
+        retry.push(operation);
+      }
     }
     this.cleanupPending = retry;
     if (failures.length) throw new AggregateError(failures, "Farming runtime cleanup failed");

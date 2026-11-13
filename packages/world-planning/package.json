@@ -448,6 +448,7 @@
     "./world/SeedWorldSaveScheduler": "./src/world/SeedWorldSaveScheduler.ts",
     "./world/SeedWorldShaderVariantCoverage": "./src/world/SeedWorldShaderVariantCoverage.ts",
     "./world/SeedWorldShaderWarmup": "./src/world/SeedWorldShaderWarmup.ts",
+    "./world/SeedWorldVisualQuery": "./src/world/SeedWorldVisualQuery.ts",
     "./world/SeedWorldViewSnapshot": "./src/world/SeedWorldViewSnapshot.ts",
     "./world/SeedWorldWetland": "./src/world/SeedWorldWetland.ts",
     "./world/SeedWorldWorldEdit": "./src/world/SeedWorldWorldEdit.ts",

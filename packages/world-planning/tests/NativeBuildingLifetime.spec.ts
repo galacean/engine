@@ -48,9 +48,9 @@ const isCurrentWorld = () => true;
 const liveQuery = () => "live-query";
 function publishWorld() {
   const snapshot = { samples: new Uint16Array(1024 * 1024) }, retiredQuery = new WeakRef(snapshot);
-  const system = { visible: true, bounds: [], captureSurfaceQuery: liveQuery };
+  const system = { visible: true, bounds: [], captureOccupancyQuery: liveQuery };
   const candidate = {
-    assertCurrent() {}, commit() {}, finalize() {}, discard() {}, bounds: [], captureSurfaceQuery: () => snapshot
+    assertCurrent() {}, commit() {}, finalize() {}, discard() {}, bounds: [], captureOccupancyQuery: () => snapshot
   };
   const world = new NativeBuildingWorld(system as any, candidate as any, acceptWorld, isCurrentWorld);
   world.commitPublication(); world.activate();
@@ -61,7 +61,7 @@ it("accepted world reads the live system without retaining its prepared query sn
   const result = publishWorld();
   await collectRetired();
   expect(result.retiredQuery.deref()).toBeUndefined();
-  expect(result.world.captureSurfaceQuery()).toBe("live-query");
+  expect(result.world.captureOccupancyQuery()).toBe("live-query");
   expect(() => result.world.commitPublication()).toThrow("settled");
   result.world.rollbackPublication();
   expect(result.world.enabled).toBe(true);
