@@ -1,4 +1,4 @@
-import { ICollider, IStaticCollider } from "@galacean/engine-design";
+import { ICollider, IColliderShape, IDynamicCollider, IStaticCollider } from "@galacean/engine-design";
 import { BoolUpdateFlag } from "../BoolUpdateFlag";
 import { ignoreClone } from "../clone/CloneDecorators";
 import type { ICloneHook } from "../clone/ICloneHook";
@@ -8,6 +8,7 @@ import { Entity } from "../Entity";
 import { Layer } from "../Layer";
 import { Transform } from "../Transform";
 import { ColliderShape } from "./shape/ColliderShape";
+import type { MeshColliderShape } from "./shape/MeshColliderShape";
 
 /**
  * Base class for all colliders.
@@ -157,17 +158,23 @@ export class Collider extends Component implements ICloneHook<Collider> {
   /**
    * @internal
    */
-  _setNativeShapeAttached(shape: ColliderShape, attached: boolean): void {
-    const nativeShape = shape._nativeShape;
-    if (nativeShape && shape._isShapeAttached !== attached) {
-      if (attached) {
-        nativeShape.setWorldScale(this.entity.transform.lossyWorldScale);
-        this._nativeCollider.addShape(nativeShape, this._collisionLayerIndex);
-      } else {
-        this._nativeCollider.removeShape(nativeShape);
+  _replaceNativeShape(shape: MeshColliderShape, nativeShape: IColliderShape | null): void {
+    const previousShape = shape._nativeShape;
+    const nativeCollider = <IStaticCollider | IDynamicCollider>this._nativeCollider;
+    if (nativeShape) {
+      const attached = previousShape
+        ? nativeCollider.replaceShape(previousShape, nativeShape, this._collisionLayerIndex)
+        : nativeCollider.addShape(nativeShape, this._collisionLayerIndex);
+      if (!attached) {
+        nativeShape.destroy();
+        throw new Error("Collider: failed to attach replacement shape to the native actor.");
       }
-      shape._isShapeAttached = attached;
+    } else if (previousShape) {
+      nativeCollider.removeShape(previousShape);
     }
+    shape._nativeShape = nativeShape;
+    previousShape?.destroy();
+    this._handleShapesChanged();
   }
 
   protected _syncNative(): void {
@@ -192,12 +199,19 @@ export class Collider extends Component implements ICloneHook<Collider> {
   }
 
   protected _addNativeShape(shape: ColliderShape): void {
-    this._setNativeShapeAttached(shape, true);
+    if (shape._nativeShape) {
+      shape._nativeShape.setWorldScale(this.entity.transform.lossyWorldScale);
+      if (!this._nativeCollider.addShape(shape._nativeShape, this._collisionLayerIndex)) {
+        throw new Error("Collider: failed to attach shape to the native actor.");
+      }
+    }
     shape._collider = this;
   }
 
   protected _removeNativeShape(shape: ColliderShape): void {
-    this._setNativeShapeAttached(shape, false);
+    if (shape._nativeShape) {
+      this._nativeCollider.removeShape(shape._nativeShape);
+    }
     shape._collider = null;
   }
 }
