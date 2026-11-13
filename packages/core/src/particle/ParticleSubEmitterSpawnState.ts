@@ -9,13 +9,12 @@ import type { ElementRangeMapping } from "../graphic/ElementRangeMapping";
 import { BufferBindFlag } from "../graphic/enums/BufferBindFlag";
 import { BufferUsage } from "../graphic/enums/BufferUsage";
 import { MeshTopology } from "../graphic/enums/MeshTopology";
-import { Shader } from "../shader/Shader";
+import type { Shader } from "../shader/Shader";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
 import type { ShaderPass } from "../shader/ShaderPass";
 import type { ShaderProgram } from "../shader/ShaderProgram";
 import { ParticleBufferUtils } from "./ParticleBufferUtils";
 
-const FEEDBACK_SHADER_NAME = "Effect/ParticleFeedback";
 const GATHER_PASS_NAME = "SubEmitterTrajectoryGather";
 
 /**
@@ -47,12 +46,10 @@ export class ParticleSubEmitterSpawnState {
     return this._renderBinding ?? this._simulationBinding;
   }
 
-  constructor(engine: Engine, particleCapacity: number, needsRenderBinding: boolean) {
-    const gatherPass = Shader.find(FEEDBACK_SHADER_NAME)?.subShaders[0]?.passes.find(
-      (pass) => pass.name === GATHER_PASS_NAME
-    );
+  constructor(engine: Engine, shader: Shader, particleCapacity: number, needsRenderBinding: boolean) {
+    const gatherPass = !shader.destroyed && shader.subShaders[0]?.passes.find((pass) => pass.name === GATHER_PASS_NAME);
     if (!gatherPass) {
-      throw new Error(`${GATHER_PASS_NAME} pass is not registered in ${FEEDBACK_SHADER_NAME}.`);
+      throw new Error(`${GATHER_PASS_NAME} pass is not available in ${shader.name}.`);
     }
     this._gatherPass = gatherPass;
 

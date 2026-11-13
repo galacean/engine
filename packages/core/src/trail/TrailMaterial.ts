@@ -1,6 +1,5 @@
 import { Engine } from "../Engine";
 import { EffectMaterial } from "../material/EffectMaterial";
-import { Shader } from "../shader";
 
 /**
  * Trail material.
@@ -11,7 +10,7 @@ export class TrailMaterial extends EffectMaterial {
    * @param engine - Engine to which the material belongs
    */
   constructor(engine: Engine) {
-    super(engine, Shader.find("Effect/Trail")!);
+    super(engine, Engine._builtinShaders.trail);
   }
 
   /**

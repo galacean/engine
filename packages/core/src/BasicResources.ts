@@ -12,6 +12,7 @@ import { BaseMaterial, BlinnPhongMaterial, Material } from "./material";
 import { PrefilteredDFG } from "./material/utils/PrefilteredDFG";
 import { ModelMesh } from "./mesh";
 import { Shader } from "./shader/Shader";
+import type { BuiltinShaders } from "./shader/BuiltinShaders";
 import { ColorWriteMask } from "./shader/enums/ColorWriteMask";
 import { CompareFunction } from "./shader/enums/CompareFunction";
 import { CullMode } from "./shader/enums/CullMode";
@@ -127,7 +128,10 @@ export class BasicResources {
     return this._prefilteredDFGTexture;
   }
 
-  constructor(public engine: Engine) {
+  constructor(
+    public engine: Engine,
+    shaders: BuiltinShaders
+  ) {
     // prettier-ignore
     const vertices = new Float32Array([
       -1, -1, 0, 1, // left-bottom
@@ -140,10 +144,10 @@ export class BasicResources {
       -1, -1, 0, 0, // left-bottom
       -1, 3, 0, 2]); // left-top
 
-    const blitMaterial = new Material(engine, Shader.find("Blit/Blit")!);
+    const blitMaterial = new Material(engine, shaders.blit);
     blitMaterial._addReferCount(1);
 
-    const blitScreenMaterial = new Material(engine, Shader.find("Blit/BlitScreen")!);
+    const blitScreenMaterial = new Material(engine, shaders.blitScreen);
     blitScreenMaterial._addReferCount(1);
 
     this.blitMaterial = blitMaterial;
@@ -190,12 +194,12 @@ export class BasicResources {
       );
     }
 
-    this.spriteDefaultMaterial = this._create2DMaterial(engine, Shader.find("2D/Sprite")!);
-    this.textDefaultMaterial = this._create2DMaterial(engine, Shader.find("2D/Text")!);
-    this.spriteMaskDefaultMaterial = this._createSpriteMaskMaterial(engine);
+    this.spriteDefaultMaterial = this._create2DMaterial(engine, shaders.sprite);
+    this.textDefaultMaterial = this._create2DMaterial(engine, shaders.text);
+    this.spriteMaskDefaultMaterial = this._create2DMaterial(engine, shaders.spriteMask);
 
-    this.meshMagentaMaterial = this._createMagentaMaterial(engine, "Unlit");
-    this.particleMagentaMaterial = this._createMagentaMaterial(engine, "Effect/Particle");
+    this.meshMagentaMaterial = this._createMagentaMaterial(engine, shaders.unlit);
+    this.particleMagentaMaterial = this._createMagentaMaterial(engine, shaders.particle);
   }
 
   /**
@@ -302,16 +306,10 @@ export class BasicResources {
     return material;
   }
 
-  private _createMagentaMaterial(engine: Engine, shaderName: string): BaseMaterial {
-    const material = new BaseMaterial(engine, Shader.find(shaderName)!);
+  private _createMagentaMaterial(engine: Engine, shader: Shader): BaseMaterial {
+    const material = new BaseMaterial(engine, shader);
     material.isGCIgnored = true;
     material.shaderData.setColor("material_BaseColor", new Color(1.0, 0.0, 1.01, 1.0));
-    return material;
-  }
-
-  private _createSpriteMaskMaterial(engine: Engine): Material {
-    const material = new Material(engine, Shader.find("2D/SpriteMask")!);
-    material.isGCIgnored = true;
     return material;
   }
 }

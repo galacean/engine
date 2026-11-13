@@ -171,8 +171,6 @@ export class Shader implements IReferable {
   }
 
   /**
-   * Create a shader from precompiled instructions.
-   * @param data - Precompiled shader data
    * @internal
    */
   static _createFromPrecompiled(data: IPrecompiledShader): Shader {

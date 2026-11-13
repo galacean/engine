@@ -45,8 +45,12 @@ export class Material extends ReferResource implements IClone {
    * Create a material instance.
    * @param engine - Engine to which the material belongs
    * @param shader - Shader used by the material
+   * @throws When the shader has been destroyed.
    */
   constructor(engine: Engine, shader: Shader) {
+    if (shader.destroyed) {
+      throw new Error("Cannot create a material with a destroyed shader.");
+    }
     super(engine);
     this.shader = shader;
     this.name = shader.name;

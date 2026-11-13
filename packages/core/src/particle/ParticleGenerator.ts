@@ -1,4 +1,5 @@
 import { DataObject } from "../base/DataObject";
+import { Engine } from "../Engine";
 import { Color, MathUtil, Quaternion, Vector3 } from "@galacean/engine-math";
 import { ignoreClone } from "../clone/CloneDecorators";
 import type { ICloneHook } from "../clone/ICloneHook";
@@ -639,7 +640,8 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
    * @internal
    */
   _setTransformFeedback(): void {
-    const isWebGL2 = this._renderer.engine._hardwareRenderer.isWebGL2;
+    const { engine } = this._renderer;
+    const isWebGL2 = engine._hardwareRenderer.isWebGL2;
     const useTrajectory =
       isWebGL2 &&
       (this.subEmitters._hasSubEmitterOfType(ParticleSubEmitterType.Death, false) ||
@@ -660,7 +662,12 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
 
     this._feedbackSimulator?.destroy();
     this._feedbackSimulator = useFeedback
-      ? new ParticleTransformFeedbackSimulator(this._renderer.engine, useTrajectory, this._currentParticleCount)
+      ? new ParticleTransformFeedbackSimulator(
+          engine,
+          Engine._builtinShaders.particleFeedback,
+          useTrajectory,
+          this._currentParticleCount
+        )
       : null;
     if (useFeedback) {
       this._renderer.shaderData.enableMacro(ParticleGenerator._transformFeedbackMacro);
@@ -1468,8 +1475,10 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
       return;
     }
 
+    const { engine } = this._renderer;
     this._subEmitterSpawnState = new ParticleSubEmitterSpawnState(
-      this._renderer.engine,
+      engine,
+      Engine._builtinShaders.particleFeedback,
       this._currentParticleCount,
       !this._feedbackSimulator
     );

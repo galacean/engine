@@ -1,4 +1,5 @@
 export { BlendFactor } from "./enums/BlendFactor";
+export type { BuiltinShaders } from "./BuiltinShaders";
 export { BlendOperation } from "./enums/BlendOperation";
 export { ColorWriteMask } from "./enums/ColorWriteMask";
 export { CompareFunction } from "./enums/CompareFunction";
