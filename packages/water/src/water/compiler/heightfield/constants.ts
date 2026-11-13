@@ -2,7 +2,8 @@ import { WaterQualityTier } from "../../authoring/wave/enums/WaterQualityTier";
 import type { HeightfieldWaterBudgetConfig } from "../../authoring/heightfield/HeightfieldWaterTypes";
 
 // V3 gives CPU queries a source-grid metre shoreline independent of visual atlas quality.
-export const HEIGHTFIELD_WATER_COMPILER_VERSION = 4;
+// V5 limits canonical Lake depth encoding to the shoreline and its bilinear sampling halo.
+export const HEIGHTFIELD_WATER_COMPILER_VERSION = 5;
 export const HEIGHTFIELD_WATER_DEFAULT_DEPTH = 2;
 export const HEIGHTFIELD_WATER_CHUNK_CELL_SIZE = 64;
 export const HEIGHTFIELD_WATER_UINT16_VERTEX_LIMIT = 65535;

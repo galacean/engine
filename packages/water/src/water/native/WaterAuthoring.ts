@@ -1,3 +1,5 @@
+import { createOceanNearshoreFromTerrain } from "../compiler/ocean/OceanTerrainCompiler";
+import type { OceanNearshoreDescriptorV1 } from "../authoring/ocean/OceanNearshoreDescriptor";
 import { createImmutableWaterSnapshot } from "../authoring/identity/WaterImmutableSnapshot";
 import { createLakeFromTerrain } from "../authoring/lake/createLakeFromTerrain";
 import {
@@ -49,7 +51,15 @@ export type WaterShapeAuthoring =
       readonly speed: number;
       readonly bankWidthM?: number;
     }
-  | { readonly kind: "ocean"; readonly waterLevel: number; readonly layout: WaterOceanRepresentationStateV1 };
+  | {
+      readonly kind: "ocean";
+      readonly waterLevel: number;
+      readonly layout: WaterOceanRepresentationStateV1;
+      /** Body-local polygons whose interiors and boundaries never belong to this Ocean. */
+      readonly excludedAreas?: readonly (readonly { readonly x: number; readonly z: number }[])[];
+      /** Keep only submerged cells connected to the finite terrain boundary. */
+      readonly boundaryConnected?: boolean;
+    };
 
 const finite = (value: number, label: string): number => {
   if (!Number.isFinite(value)) throw new TypeError(`INVALID_ARGUMENT: ${label} must be finite.`);
@@ -93,6 +103,21 @@ export function validateWaterShape(shape: WaterShapeAuthoring): Readonly<WaterSh
     if (shape.layout?.kind !== "ocean-surface-layout")
       throw new TypeError("INVALID_ARGUMENT: Ocean layout is required.");
     createWaterRepresentationInstanceStateV1(shape.layout);
+    if (shape.boundaryConnected !== undefined && typeof shape.boundaryConnected !== "boolean")
+      throw new TypeError("INVALID_ARGUMENT: boundaryConnected must be boolean.");
+    if (shape.excludedAreas !== undefined) {
+      if (!Array.isArray(shape.excludedAreas) || shape.excludedAreas.length > 256)
+        throw new RangeError("INVALID_ARGUMENT: excludedAreas must contain at most 256 polygons.");
+      for (const ring of shape.excludedAreas) {
+        if (
+          !Array.isArray(ring) ||
+          ring.length < 3 ||
+          ring.length > 4096 ||
+          ring.some((p) => !p || !Number.isFinite(p.x) || !Number.isFinite(p.z))
+        )
+          throw new TypeError("INVALID_ARGUMENT: Ocean exclusions need 3..4096 finite XZ vertices.");
+      }
+    }
   }
   return createImmutableWaterSnapshot(shape);
 }
@@ -264,9 +289,33 @@ export function compileWaterShape(
         bedHeights: Float32Array.from(terrain.heights),
         wetSource: { kind: "water-level", minimumDepth: 0 },
         outsidePolicy: { negativeX: outside, positiveX: outside, negativeZ: outside, positiveZ: outside }
-      }
+      } as OceanNearshoreDescriptorV1
     }
   };
+  if (shape.boundaryConnected || shape.excludedAreas?.length) {
+    const count = terrain.columns * terrain.rows;
+    if (!Number.isSafeInteger(count) || count < 4 || count > 1_048_576)
+      throw new RangeError("RESOURCE_LIMIT: Ocean mask exceeds the finite terrain budget.");
+    const ownership = new Uint8Array(count).fill(1);
+    for (let row = 0; row < terrain.rows; row++)
+      for (let column = 0; column < terrain.columns; column++) {
+        const x = terrain.origin[0] + column * terrain.spacing;
+        const z = terrain.origin[1] + row * (terrain.spacingZ ?? terrain.spacing);
+        if (shape.excludedAreas?.some((ring) => oceanExcludedPoint(x, z, ring)))
+          ownership[row * terrain.columns + column] = 0;
+      }
+    const template = descriptor.config.nearshoreDescriptor as OceanNearshoreDescriptorV1;
+    const connected = createOceanNearshoreFromTerrain(template, ownership, { waterLevel: shape.waterLevel, terrain });
+    if (!shape.boundaryConnected) {
+      const mask = Uint8Array.from(ownership, (owned, i) =>
+        owned && connected.bedHeights[i] < shape.waterLevel ? 1 : 0
+      );
+      descriptor.config.nearshoreDescriptor = {
+        ...connected,
+        wetSource: { kind: "mask", mask, minimumDepth: 0 }
+      };
+    } else descriptor.config.nearshoreDescriptor = connected;
+  }
   const source = {
     schemaVersion: WaterBodySourceSchemaVersion.V1,
     kind: WaterBodySourceKind.OceanNearshore,
@@ -358,4 +407,26 @@ export function validateWaterMaterialCapabilities(
   if (profile?.type !== "Integer" || (drops?.type !== "Boolean" && drops?.type !== "Integer"))
     throw new TypeError("INVALID_ARGUMENT: Water Material requires native profile and river drop declarations.");
   resolveWaterMaterialProfile(profile.value, drops.value === true ? 1 : drops.value === false ? 0 : drops.value, kind);
+}
+
+/** Closed polygon containment, including boundary points. */
+function oceanExcludedPoint(x: number, z: number, ring: readonly { x: number; z: number }[]): boolean {
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const a = ring[j],
+      b = ring[i],
+      dx = b.x - a.x,
+      dz = b.z - a.z;
+    const cross = (x - a.x) * dz - (z - a.z) * dx;
+    if (
+      Math.abs(cross) <= 1e-9 &&
+      x >= Math.min(a.x, b.x) &&
+      x <= Math.max(a.x, b.x) &&
+      z >= Math.min(a.z, b.z) &&
+      z <= Math.max(a.z, b.z)
+    )
+      return true;
+    if (a.z > z !== b.z > z && x < a.x + ((z - a.z) * dx) / dz) inside = !inside;
+  }
+  return inside;
 }

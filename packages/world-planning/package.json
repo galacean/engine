@@ -28,6 +28,7 @@
     "./agent-adapter/ports/SeedWorldEnginePort": "./src/agent-adapter/ports/SeedWorldEnginePort.ts",
     "./assistant/SeedWorldViewCapture": "./src/assistant/SeedWorldViewCapture.ts",
     "./authoring/terrain/TerrainHeightfield": "./src/authoring/terrain/TerrainHeightfield.ts",
+    "./generation/terrain/TerrainHydrology": "./src/generation/terrain/TerrainHydrology.ts",
     "./generation/noise/PromptNoiseHash": "./src/generation/noise/PromptNoiseHash.ts",
     "./generation/noise/PromptNoiseRiverFieldCompiler": "./src/generation/noise/PromptNoiseRiverFieldCompiler.ts",
     "./generation/noise/PromptNoiseRiverHydrologyResolver": "./src/generation/noise/PromptNoiseRiverHydrologyResolver.ts",

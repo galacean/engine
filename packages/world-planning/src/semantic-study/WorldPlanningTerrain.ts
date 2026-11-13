@@ -857,7 +857,7 @@ export function createPlanningRingQuery(ring: PlanPoint[]) {
 /** Natural banks are the immutable input to bridge placement; derived fill never feeds back into compilation. */
 export function createPlanningGroundSampler(
   plan: IslandPlan,
-  options: { natural?: boolean } = {}
+  options: { natural?: boolean; baseGround?: (p: PlanPoint) => number } = {}
 ): PlanningGroundSampler {
   const preparations: ((bounds: GroundBounds) => void)[] = [];
   const query = (ring: PlanPoint[]) => {
@@ -876,7 +876,13 @@ export function createPlanningGroundSampler(
         for (const prepare of preparations) prepare(bounds);
       }
     });
-  const natural = createPlanningNaturalGroundSampler(plan, query, project, (prepare) => preparations.push(prepare));
+  const natural = createPlanningNaturalGroundSampler(
+    plan,
+    query,
+    project,
+    (prepare) => preparations.push(prepare),
+    options.baseGround
+  );
   if (options.natural || !plan.roadApproaches?.some((a) => a.approach?.grading)) return prepared(natural);
   const fill = bridgeApproachGradingSampler(plan.roadApproaches, natural);
   const waters = plan.waters.map((w) => ({ ring: query(w.outline), holes: (w.lake?.holes ?? []).map(query) }));
@@ -933,7 +939,7 @@ function createPlanningNaturalGroundSampler(
   const profileSamplers = new WeakMap<PlanningProfile, (p: PlanPoint) => number>();
   const profileHeight = (p: PlanPoint, profile: PlanningProfile) => indexedProfileSampler(profile, profileSamplers)(p);
   if (plan.villageStudy) return (p) => 12 + reliefAt(p) + authored(p);
-  if (plan.settlementLayout || plan.canyonStudy || plan.landformStudy) {
+  if (baseGround || plan.settlementLayout || plan.canyonStudy || plan.landformStudy) {
     const lands = [plan.land, ...plan.islands].map(query);
     const waters = plan.waters.flatMap((w) => {
       const bed = plan.planning?.profiles.find((v) => v.ownerId === w.id && v.kind === "bed");

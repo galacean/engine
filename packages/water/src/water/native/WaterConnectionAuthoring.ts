@@ -37,7 +37,7 @@ export function waterConnectionFacts(
         bounds: [x - half, z - half, x + half, z + half],
         surfaceHeight: () => descriptor.config.waterLevel
       },
-      terrain: {
+      terrain: acceptedTerrain ?? {
         id: source.id,
         revision: 0,
         origin: grid.originXZ,
