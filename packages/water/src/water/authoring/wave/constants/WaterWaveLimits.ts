@@ -1,5 +1,4 @@
 /** Authoring limits, fixed budgets, and packed-layout constants for water waves. */
-import { WaterQualityTier } from "../enums/WaterQualityTier";
 
 export const WATER_WAVE_COMPILER_VERSION = 1;
 export const WATER_WAVE_TWO_PI = Math.PI * 2;

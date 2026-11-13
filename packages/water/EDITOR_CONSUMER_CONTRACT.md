@@ -1,8 +1,5 @@
 # Water Editor 消费契约
 
-2026-11-08。共同设计：`2026-11-07-WaterBody简化接入设计.md`。Engine 基线
-`89e4ac8b1a031de022445bba59bb8528da1c2926`，包含未提交输入；以 snapshot manifest 中的逐文件哈希为准。
-
 ## 公开入口和作者边界
 
 `@galacean/engine-water/water/native/index` 导出原始 `WaterBodyComponent`、
@@ -61,19 +58,6 @@ SeedWorld 装配从 Source 规划生成具体作者水体；保留
 `seed-world-water-shader-aot-v1` 都保持现状。AOT 清单自身记录的历史 Engine alpha.41
 来源不是本次 Water snapshot 的源版本；不得混淆。
 
-## 仓库外快照导出
-
-```sh
-node packages/water/scripts/export-editor-snapshot.mjs \
-  --editor-runtime /path/to/editor/packages/water-runtime \
-  --out /new/external/artifact/directory
-```
-
-脚本复制并使用消费者的 generator，在仓库外构建 runtime、authoring 声明、project-source、
-原生资产和 Shader include 闭包，打包并验证逐文件内容。它不修改 Editor，也不覆盖既有工件。
-`export.json` 记录路径、Engine SHA、dirty 标记、archive SHA-256 及 generator 哈希。
-详细验收、完整 WIP 范围与跨仓库阻塞由本次 `engine-handoff.json` 交付。
-
 ## SeedWorld 同名 Shader 的兼容修复
 
 2026-11-08 后续原应用验收发现：SeedWorld 的 startup near profile 先注册
@@ -91,11 +75,6 @@ MaterialLoader 优先解析显式 Shader 引用；没有引用、或引用未映
 原 AOT 字节和启动顺序均保持原样。不要把旧 near-only profile 改为作者双区域资产来掩盖碰撞。
 WaterStartup 回归覆盖真实注册顺序、作者 `WaterFar` 消费、查询以及旧 near/far 对象保持；
 普通 Material 引用回归覆盖优先级、无引用/未映射引用回退、错类型拒绝与实际 Shader 编译。
-
-本轮 Water archive 沿用 v3 的完全相同字节；升级的是其外部 native Engine/Modify 依赖，标为 v4。
-最终消费必须同时遵循 `engine-water-native.pair.json` 的 archive 与 native 目录哈希，不能仅凭
-`frozen-v4` 路径判断 Water bundle 内容改变。服务切换由 Editor owner 执行，Engine Agent 不改写
-Editor 工作区、不操作其服务。完整 Editor/OasisBE/真实 sandbox 验收由协调方在统一阶段安排。
 
 ## Water Material × Quality 派生外观
 

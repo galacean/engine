@@ -1,3 +1,4 @@
+import type { WaterSurfaceOpticsBindingReadback } from "../optics/WaterSurfaceOpticsTypes";
 import { getWaterSurfaceAppearanceQualityBudget } from "../../authoring/quality/WaterSurfaceAppearanceQuality";
 import { getRequiredWaterSurfaceV2Semantics } from "../../compiler/surface/WaterSurfaceClosureCompiler";
 import { WATER_CONNECTION_SHADER } from "../connections/WaterConnectionBinding";
@@ -68,18 +69,12 @@ import {
   WATER_ENVIRONMENT_REFLECTION_UNIFORM_DECLARATIONS
 } from "../optics/WaterEnvironmentReflectionShader";
 import { DEFAULT_WATER_OPTICAL_PROFILE, type WaterOpticalProfile } from "../optics/WaterOpticalProfile";
-import type { WaterReflectionBinding } from "../optics/WaterReflectionService";
 import {
   applyWaterSurfaceOpticsBinding,
-  applyWaterSurfaceReflectionBinding,
   applyWaterSurfaceTransientOpticalProfile,
   createWaterSurfaceOpticsBindingState
 } from "../optics/WaterSurfaceOpticsBinding";
-import {
-  type WaterOpticsTier,
-  type WaterSurfaceOpticsBinding,
-  type WaterSurfaceOpticsBindingReadback
-} from "../optics/WaterSurfaceOpticsTypes";
+import { type WaterOpticsTier, type WaterSurfaceOpticsBinding } from "../optics/WaterSurfaceOpticsTypes";
 import { createWaterSpatialFieldShaderDecodeFunctions } from "../spatial/WaterSpatialFieldShaderDecode";
 import { createWaterAnimatedVoronoiF1ShaderFunctions } from "../surface/WaterAnimatedVoronoiF1Shader";
 import { createWaterContactFoamShaderFunctions } from "../surface/WaterContactFoamShader";
@@ -134,10 +129,7 @@ import {
   HEIGHTFIELD_WATER_RAIN_RIPPLE_SHADER_FUNCTIONS,
   createHeightfieldWaterRainRippleNormalStatements
 } from "./HeightfieldWaterRainRippleShader";
-import {
-  DEFAULT_HEIGHTFIELD_WATER_REFLECTION_SAMPLING_SETTINGS,
-  type HeightfieldWaterReflectionSamplingConfig
-} from "./HeightfieldWaterReflectionSampling";
+import { DEFAULT_HEIGHTFIELD_WATER_REFLECTION_SAMPLING_SETTINGS } from "./HeightfieldWaterReflectionSampling";
 import { HeightfieldWaterCompositionMode } from "./HeightfieldWaterRuntimeEnums";
 import type {
   HeightfieldWaterFeatureFlags,
@@ -174,10 +166,6 @@ const PRESENTATION_REVEAL_MACRO = ShaderMacro.getByName("MATERIAL_WATER_PRESENTA
 interface NullableTextureShaderData {
   setTexture(propertyName: string, value: Texture | null): void;
 }
-
-type MutableWaterSurfaceOpticsBindingReadback = {
-  -readonly [Property in keyof WaterSurfaceOpticsBindingReadback]: WaterSurfaceOpticsBindingReadback[Property];
-};
 
 function resolveHeightfieldOpticsTier(quality: WaterQualityTier, requestedTier: WaterOpticsTier): WaterOpticsTier {
   if (quality !== WaterQualityTier.High) return "medium";
@@ -852,27 +840,6 @@ export function updateHeightfieldWaterTransientOpticalProfile(
   return state.bindingReadback;
 }
 
-/**
- * Applies one validated environment/SSR binding and returns the exact shader-facing sampling state.
- * Missing or malformed resources are cleared and resolve to the legacy analytic sky.
- */
-export function setHeightfieldWaterReflectionBinding(
-  state: HeightfieldWaterMaterialState,
-  binding?: Readonly<WaterReflectionBinding>,
-  config: HeightfieldWaterReflectionSamplingConfig = DEFAULT_HEIGHTFIELD_WATER_REFLECTION_SAMPLING_SETTINGS
-): void {
-  state.surfaceOpticsBinding.reflection = binding;
-  state.surfaceOpticsBinding.reflectionSampling = config;
-  const sharedReadback = applyWaterSurfaceReflectionBinding(
-    state.material.shaderData,
-    state,
-    state.surfaceOpticsBinding.tier,
-    binding,
-    config
-  );
-  applyHeightfieldWaterScreenSpaceReflectionReceiver(state, sharedReadback.effectiveSource === "ssr");
-}
-
 export function createHeightfieldWaterMaterial(
   engine: Engine,
   quality: WaterQualityTier,
@@ -1139,11 +1106,6 @@ export function setHeightfieldWaterSurfaceAppearanceFeatureFlags(
   retainedFlags.contactFoam = flags.contactFoam === true;
   retainedFlags.directSpecular = flags.directSpecular === true;
   applyHeightfieldWaterSurfaceAppearanceFeatureFlags(state);
-}
-
-export function setHeightfieldWaterRefractionEnabled(state: HeightfieldWaterMaterialState, enabled: boolean): void {
-  state.surfaceOpticsBinding.refractionEnabled = enabled;
-  applyCachedHeightfieldWaterSurfaceOpticsBinding(state);
 }
 
 export function setHeightfieldWaterCompositionMode(

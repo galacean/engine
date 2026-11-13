@@ -106,9 +106,7 @@ export class WaterReflectionService {
   private readonly _availability: { probe: boolean; ssr: boolean } = { probe: false, ssr: false };
   private _probeTexture?: TextureCube;
   private _environmentBinding?: Readonly<WaterEnvironmentReflectionFrame>;
-  private _selectedEnvironmentProviderId?: string;
   private _localEnvironmentBinding?: Readonly<WaterEnvironmentReflectionFrame>;
-  private _selectedLocalEnvironmentProviderId?: string;
   private _directOwnerState: "active" | "released" | "none" = "active";
   private _nextRequestRevision = 1;
   private _nextBindingRevision = 1;
@@ -236,9 +234,7 @@ export class WaterReflectionService {
     this._environmentProviders.clear();
     this._environmentProviderRevisions.clear();
     this._environmentBinding = undefined;
-    this._selectedEnvironmentProviderId = undefined;
     this._localEnvironmentBinding = undefined;
-    this._selectedLocalEnvironmentProviderId = undefined;
     this._probeTexture = undefined;
     this._availability.probe = false;
     this._availability.ssr = false;
@@ -337,9 +333,7 @@ export class WaterReflectionService {
       }
     }
     this._localEnvironmentBinding = selectedLocal?.frame;
-    this._selectedLocalEnvironmentProviderId = selectedLocal?.id;
     this._environmentBinding = selected?.frame;
-    this._selectedEnvironmentProviderId = selected?.id;
     this._probeTexture = selected?.frame?.primary.texture ?? selectedLocal?.frame?.primary.texture;
   }
 

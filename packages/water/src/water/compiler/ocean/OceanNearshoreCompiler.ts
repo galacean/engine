@@ -3,7 +3,6 @@ import {
   OceanNearshoreDiagnosticCode,
   OceanNearshoreDiagnosticSeverity,
   OceanNearshoreOutsidePolicy,
-  type OceanNearshoreDiagnostic,
   type OceanNearshoreGridConfig,
   type OceanNearshoreOutsidePolicies,
   type ValidatedOceanNearshoreDescriptor

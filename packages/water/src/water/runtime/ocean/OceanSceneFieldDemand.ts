@@ -151,18 +151,3 @@ export class OceanSceneFieldDemandResolver {
     return result;
   }
 }
-
-/**
- * Releases full-screen fields only when every possible displaced wet fragment is beyond the detailed closure.
- * Quantization, bilinear interpolation, source-cell footprint, and horizontal Gerstner displacement all reduce
- * the trusted dry distance, so uncertainty always keeps the fields enabled.
- */
-export function resolveOceanSceneFieldDemand(
-  input: Readonly<OceanSceneFieldDemandInput>
-): Readonly<OceanSceneFieldDemandResult> {
-  const { atlas, cameraPosition, maximumDisplacement } = input;
-  const resolver = new OceanSceneFieldDemandResolver(atlas, maximumDisplacement);
-  return Object.freeze(
-    resolver.resolve(cameraPosition.x, cameraPosition.y, cameraPosition.z, input.waterLevel, input.currentlyRequired)
-  );
-}

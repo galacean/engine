@@ -1282,7 +1282,6 @@ function createHeightfieldControls(
       })
     );
   }
-  const lookAuthoring = target.lookAuthoring;
   const appearanceV2 = requireAppearanceBindingV2(controller);
 
   controls.push(...createSharedSurfaceControls(target, appearanceV2));

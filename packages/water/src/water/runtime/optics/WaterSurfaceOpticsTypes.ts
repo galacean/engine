@@ -136,27 +136,3 @@ export interface WaterSurfaceOpticsBindingReadback extends WaterSurfaceOpticsRef
   readonly opticalProfile: Readonly<ResolvedWaterOpticalProfile>;
   readonly refractionEnabled: boolean;
 }
-
-/** Caller-owned output for the CPU reference implementation of surface optics. */
-export interface WaterSurfaceOpticsResult {
-  /** Clamped optical distance in metres used by the evaluation. */
-  opticalDistance: number;
-  /** Normal-incidence dielectric reflectance derived from the index of refraction. */
-  fresnelF0: number;
-  /** Schlick Fresnel reflectance at the supplied normal/view angle. */
-  fresnel: number;
-  /** Finite, non-negative UV-displacement multiplier resolved from the profile. */
-  refractionStrength: number;
-  /** Finite reflection roughness resolved to the normalized [0, 1] range. */
-  roughness: number;
-  /** Finite, non-negative reflected-radiance multiplier resolved from the profile. */
-  reflectionIntensity: number;
-  /** Per-channel Beer-Lambert transmittance. */
-  transmittance: WaterOpticalColor;
-  /** Per-channel in-scattering contribution. */
-  scattering: WaterOpticalColor;
-  /** Refracted source after absorption and in-scattering, before Fresnel. */
-  transmittedColor: WaterOpticalColor;
-  /** Final transmitted plus reflected linear-space colour. */
-  finalColor: WaterOpticalColor;
-}

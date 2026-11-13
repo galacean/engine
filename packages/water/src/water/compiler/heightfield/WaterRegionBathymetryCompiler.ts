@@ -208,8 +208,6 @@ export class WaterRegionBathymetryCompiler {
     let maximumDepth = 0;
     for (let ordinal = 0; ordinal < wetTexelIndices.length; ordinal++) {
       const texelIndex = wetTexelIndices[ordinal];
-      const x = texelIndex % width;
-      const z = Math.floor(texelIndex / width);
       const shoreDistance = signedShoreDistances[texelIndex];
       let bedHeight: number;
       let depth: number;

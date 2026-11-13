@@ -523,7 +523,7 @@ Tiny-glade 负责开洞、几何编译、精细排列、批量渲染及表面查
 
 ### 2026-11-05 Water Source 作者链
 
-具体水体以 Scene/Prefab 的 `WaterBodyComponent.authoring` 为持久源，PlanningDocument 仅投影算法 DTO。UI 与 Agent 的 `water.author` 共用 RuntimeEditor 公共事务、历史和保存；旧语义水体 create/update 工具、raw authoredResources 水体及独立 waterColors 写入口已删除。单份原生 Material/Texture 持有外观值与策略，固定编译结构从 Shader 家族代码推导，不再持久化 Look 作者资产。Quality 预算保存为组件类型化值，Prefab 继承与局部补丁生效，不要求质量资源引用。局部水位发布、Terrain/Water 同版发布和下游刷新继续由原有运行 owner 承担，普通生成不覆盖人工形状。实现和本次证据见 [Water 实施记录](../../../water/EDITOR_MIGRATION_IMPLEMENTATION.md)。
+具体水体以 Scene/Prefab 的 `WaterBodyComponent.authoring` 为持久源，PlanningDocument 仅投影算法 DTO。UI 与 Agent 的 `water.author` 共用 RuntimeEditor 公共事务、历史和保存；旧语义水体 create/update 工具、raw authoredResources 水体及独立 waterColors 写入口已删除。单份原生 Material/Texture 持有外观值与策略，固定编译结构从 Shader 家族代码推导，不再持久化 Look 作者资产。Quality 预算保存为组件类型化值，Prefab 继承与局部补丁生效，不要求质量资源引用。局部水位发布、Terrain/Water 同版发布和下游刷新继续由原有运行 owner 承担，普通生成不覆盖人工形状。接口约定见 [Water Editor 消费契约](../../../water/EDITOR_CONSUMER_CONTRACT.md)。
 
 以下 #78 A/B/C 段落是历史设计记录，其中旧作者覆盖层和迁移兼容描述不再是当前项目合同；本次不实现旧档转换，也不沿用历史测试或性能结论。
 

@@ -8,9 +8,7 @@ import {
   WATER_CONTACT_FOAM_HASH_SCALE_Y,
   WATER_CONTACT_FOAM_MAX_F1_SQUARED,
   WATER_CONTACT_FOAM_PHASE_PERIOD,
-  resolveWaterContactFoamOctaveCountForQuality,
-  type WaterContactFoamOctaveCount,
-  type WaterContactFoamQuality
+  type WaterContactFoamOctaveCount
 } from "./WaterContactFoam";
 import waterContactFoamShaderTemplate from "../../shaders/library/surface/WaterContactFoam.glsl?raw";
 import { renderWaterShaderTemplate } from "../material/WaterShaderTemplate";
@@ -35,10 +33,4 @@ export function createWaterContactFoamShaderFunctions(octaveCount: WaterContactF
     MAX_F1_SQUARED: glsl(WATER_CONTACT_FOAM_MAX_F1_SQUARED),
     OCTAVE_COUNT: octaveCount
   });
-}
-
-/** Low returns no module; Medium and High select fixed two-/three-octave code. */
-export function createWaterContactFoamShaderFunctionsForQuality(quality: WaterContactFoamQuality): string | undefined {
-  const octaveCount = resolveWaterContactFoamOctaveCountForQuality(quality);
-  return octaveCount === 0 ? undefined : createWaterContactFoamShaderFunctions(octaveCount);
 }

@@ -31,8 +31,8 @@ export function updateRiverFlowClock(material: Material, elapsedTime?: number): 
   const speed = Math.max(data.getFloat(RIVER_SHADER_PROPERTY.flowSpeedMultiplier), 0);
   const normalRate = -speed * (1.2 / Math.max(data.getFloat(RIVER_SHADER_PROPERTY.surfaceLengthScale), 0.5));
   // xy: regular primary/secondary; steep uses x twice (its primary y*.5 is already absorbed).
-  // z: debug transport, independent of the local flow gate; w: unused.
-  state.normal.set(positiveMod(time * normalRate), positiveMod(time * (normalRate / 4)), positiveMod(time * -0.1), 0);
+  // zw: unused.
+  state.normal.set(positiveMod(time * normalRate), positiveMod(time * (normalRate / 4)), 0, 0);
   // xyz: regular primary (=steep primary), regular secondary, steep secondary.
   state.foam.set(
     positiveMod(time * (-0.2 * speed)),
