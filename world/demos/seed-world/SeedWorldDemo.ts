@@ -2107,6 +2107,32 @@ export async function mountSeedWorldDemo(
         rocks: {
           planning: source!.session,
           apply: (commands) => tools!.dispatchParameters(commands),
+          focus: (id) => {
+            const current = publication?.current, mesh = current?.solids.formations.find(mesh => mesh.id === id);
+            if (!current || !mesh?.mesh.positions.length) return;
+            returnFromMasonry();
+            const placement = rockFormationPlacements(current.plan, [mesh])[0];
+            const p = mesh.mesh.positions, low = [Infinity, Infinity, Infinity], high = [-Infinity, -Infinity, -Infinity];
+            for (let i = 0; i < p.length; i++) {
+              low[i % 3] = Math.min(low[i % 3], p[i]); high[i % 3] = Math.max(high[i % 3], p[i]);
+            }
+            const center = low.map((v, d) => (v + high[d]) / 2 + placement.origin[d]);
+            const radius = Math.hypot(...high.map((v, d) => (v - low[d]) / 2));
+            const distance = radius / Math.sin(camera.fieldOfView * Math.PI / 360) * 1.2;
+            orbit.target.set(center[0], center[1], center[2]);
+            camera.entity.transform.setWorldPosition(center[0] + distance * 0.65, center[1] + distance * 0.32, center[2] + distance * 0.7);
+            camera.entity.transform.lookAt(orbit.target);
+            debugSidebar?.restoreCameraMode("orbit");
+            navigation.enabled = false;
+            orbit.enabled = true;
+          },
+          generation: () => {
+            const meshes = publication?.current?.solids.formations ?? [];
+            const sum = (key: "fractureMs" | "arrangementMs") => meshes.reduce((n, mesh) => n + (mesh.stats[key] ?? 0), 0);
+            const metrics = rockFormations.publicationMetrics;
+            return `${metrics.generated} generated / 生成 · ${metrics.cached} cached / 缓存 · ${metrics.totalMs.toFixed(0)} ms wall\n` +
+              `Published meshes CPU / 当前网格 CPU：carving ${sum("fractureMs").toFixed(0)} ms · arrangement ${sum("arrangementMs").toFixed(0)} ms`;
+          },
           grass: {
             preview: (enabled) => publication?.current?.solids.setRockGrassCoveragePreview(enabled),
             diagnostics: () => {

@@ -1,6 +1,6 @@
 import type { SpatialComponent } from "@galacean/engine-world-planning/spatial/SpatialDocument";
 import { plantMaterialField } from "@galacean/engine-world-planning/spatial/PlantMaterialParameters";
-import { ROCK_COLOR_FIELDS } from "@galacean/engine-world-planning/integrations/terrain/rock-formation/ColorPalette";
+import { ROCK_FORMATION_COMPONENT } from "@galacean/engine-world-planning/integrations/terrain/rock-formation/Settings";
 import { PLANNING_COMPONENTS } from "@galacean/engine-world-planning/spatial/PlanningComponents";
 
 /** Sparse authored channels. An absent channel inherits; zero is an explicit authored value. */
@@ -32,9 +32,7 @@ export const PLANNING_VISUAL_AUTHORING: readonly VisualAuthoringDescriptor[] = [
       ...directFields("bandM", "multiplier", "falloff"), enabled: "influenceEnabled"
     } } : {}) })),
   { component: "rockFormation", type: "PlanningRockFormation", fields: directFields(
-    "textureScale", "topScale", "bottomScale", "shoulderScale", "shoulderHeight", "topRoughness", "topSlope", "topDirection",
-    "wallCount", "wallOverlap", "wallProtrusion", "wallLength", "wallTilt", "wallStrength", "outlineIrregularity",
-    "variation", "targetTriangles", ...ROCK_COLOR_FIELDS.map(field => field.key)) },
+    ...ROCK_FORMATION_COMPONENT.fields.map(field => field.key)) },
   { component: "lighting", type: "PlanningLighting", fields: {
     ...directFields("profileUrl", "timeHours", "sunIntensity", "ambientIntensity", "iblIntensity", "direct", "environment",
       "shadows", "shadowStrength", "fog", "fogDensity", "fogExponent", "customSkyTintStrength", "skyExposure", "sunSize", "atmosphereThickness",

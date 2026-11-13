@@ -184,6 +184,7 @@ export class PlanningFlowerInfluence extends VisualParameterAuthoring {
   declare multiplier?: number;
   declare falloff?: number;
 }
+export interface PlanningRockFormation extends Partial<import("@galacean/engine-world-planning/integrations/terrain/rock-formation/MountainSettings").MountainSettings> {}
 /** Sparse procedural rock shape and shared projected material controls. */
 export class PlanningRockFormation extends VisualParameterAuthoring {
   declare textureScale?: number;

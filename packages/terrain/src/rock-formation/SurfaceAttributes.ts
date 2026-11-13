@@ -13,7 +13,7 @@ export function rockSurfaceAttributes(formation: RockFormationMesh) {
       v = vertex * 3,
       p = i * stride;
     data.set(source.positions.subarray(v, v + 3), p);
-    data.set(source.normals!.subarray(v, v + 3), p + 3);
+    data.set(source.cornerNormals?.subarray(i * 3, i * 3 + 3) ?? source.normals!.subarray(v, v + 3), p + 3);
     data[p + 6] = source.positions[v] / 8;
     data[p + 7] = source.positions[v + 2] / 8;
     data[p + 8] = idIndex.get(formation.owners[Math.floor(i / 3)])!;

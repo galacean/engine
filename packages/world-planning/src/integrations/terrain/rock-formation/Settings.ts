@@ -4,6 +4,7 @@ import { ComponentRegistry, resolveComponent } from "../../../spatial/SpatialDoc
 import { DEFAULT_ROCK_HEIGHT_MODE, DEFAULT_ROCK_HEIGHT_VARIATION } from "@galacean/engine-terrain/rock-formation/types";
 import { DEFAULT_ROCK_SLOPE_VARIATION } from "@galacean/engine-terrain/rock-formation/Slope";
 import { readRockColorBlend, ROCK_COLOR_FIELDS, type RockColorBlend } from "./ColorPalette.ts";
+import { MOUNTAIN_FIELDS, readMountainSettings, type MountainSettings } from "./MountainSettings.ts";
 
 /** Zero selects a world-space repeat of half the longest published OBB dimension. */
 export const DEFAULT_ROCK_TEXTURE_SCALE = 0;
@@ -23,6 +24,7 @@ export const ROCK_SHAPE_DEFAULTS = {
   outlineIrregularity: 0.6
 };
 export interface RockFormationSettings {
+  mountain?: MountainSettings;
   textureScale: number;
   colorBlend: RockColorBlend;
   shape: typeof ROCK_SHAPE_DEFAULTS & { topDirection?: number };
@@ -55,6 +57,7 @@ export const ROCK_FORMATION_COMPONENT: PlanningComponentDefinition = {
   description:
     "所有岩石共用受约束轮廓、连续岩肩与切削生成器。仅改变 OBB 内部造型，布局和尺寸不变；同种子及对象身份可重复生成。",
   fields: [
+    ...MOUNTAIN_FIELDS,
     field("topScale", "Top section / 顶部截面范围", 0.08, 1, 0.01),
     field("bottomScale", "Bottom section / 底部截面范围", 0, 1, 0.01),
     field("shoulderScale", "Shoulder width / 肩部宽度", 0.08, 1, 0.01),
@@ -168,6 +171,7 @@ export function readRockFormationSettings(document: PlanningDocument): RockForma
     : {};
   const read = (key: keyof typeof ROCK_FORMATION_DEFAULTS) => Number(values[key] ?? ROCK_FORMATION_DEFAULTS[key]);
   return {
+    mountain: readMountainSettings(values),
     textureScale: read("textureScale"),
     colorBlend: readRockColorBlend(values),
     shape: {

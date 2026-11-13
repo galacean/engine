@@ -18,6 +18,7 @@ self.onmessage = async ({ data }: MessageEvent<Input & { id: number; members?: I
       result.mesh.positions.buffer,
       result.mesh.normals!.buffer,
       result.mesh.indices.buffer,
+      ...(result.mesh.cornerNormals ? [result.mesh.cornerNormals.buffer] : []),
       ...rockGrassBuffers(result.grass)
     ]) as ArrayBuffer[];
     self.postMessage({ id: data.id, results }, { transfer: buffers });

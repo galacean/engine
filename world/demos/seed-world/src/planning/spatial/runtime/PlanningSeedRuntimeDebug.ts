@@ -46,6 +46,8 @@ export interface PlanningSeedRuntimeDebugOptions {
     readonly planning: PlanningSession;
     apply(commands: PlanningParameterCommand[]): Promise<unknown>;
     grass?: { preview(enabled: boolean): void; diagnostics(): string };
+    generation?: () => string;
+    focus?(id: string): void;
   };
   readonly engine: Engine;
   readonly root: Entity;
@@ -269,7 +271,7 @@ export class PlanningSeedRuntimeDebug {
     if (!session || this.disposed) return;
     this.world = world;
     if (options.rocks && published.sourcePlan) {
-      this.rocks = new RockFormationPanel(session.inspector.rockFolderHost, options.rocks.apply, options.rocks.grass);
+      this.rocks = new RockFormationPanel(session.inspector.rockFolderHost, options.rocks.apply, options.rocks.grass, options.rocks.generation, options.rocks.focus);
       this.extensions.push(this.rocks);
       this.rocks.synchronize(published.sourcePlan, options.rocks.planning.document);
     }

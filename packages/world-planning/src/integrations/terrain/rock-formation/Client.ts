@@ -25,7 +25,16 @@ export class RockFormationClient {
   private bytes = 0;
   private readonly resultKeys = new WeakMap<RockFormationMesh, string>();
   /** Cumulative worker CPU work; cache hits do not add generation time. */
-  readonly generationMetrics = { bodies: 0, triangles: 0, generationMs: 0, buildMs: 0, simplifyMs: 0, maxJobMs: 0 };
+  readonly generationMetrics = {
+    bodies: 0,
+    triangles: 0,
+    generationMs: 0,
+    buildMs: 0,
+    simplifyMs: 0,
+    fractureMs: 0,
+    arrangementMs: 0,
+    maxJobMs: 0
+  };
   preparationMetrics = { totalMs: 0, generated: 0, cached: 0, generationMs: 0, unionMs: 0 };
   unionMetrics = { enabled: false, groups: 0, groupedBodies: 0, inputTriangles: 0, outputTriangles: 0 };
   /** Last planned world publication; streaming ground stones must not overwrite this snapshot. */
@@ -78,11 +87,16 @@ export class RockFormationClient {
       if (!live.has(key)) live.set(key, []);
       live.get(key)!.push(result);
     }
-    const jobSettings = jobs.map((job) => rockSettingsForJob(settings, job.id));
+    const jobSettings = jobs.map((job) => {
+      const resolved = rockSettingsForJob(settings, job.id);
+      return job.kind === "mountain" ? resolved : { ...resolved, mountain: undefined };
+    });
     const individualKeys = jobs.map((job, index) =>
       JSON.stringify([
         job.id,
         job.seed,
+        job.kind,
+        job.worldSeed,
         job.origin,
         job.guides,
         job.surfaceGrass !== false,
@@ -169,6 +183,8 @@ export class RockFormationClient {
             metrics.generationMs += result.stats.generationMs;
             metrics.buildMs += result.stats.buildMs ?? 0;
             metrics.simplifyMs += result.stats.simplifyMs ?? 0;
+            metrics.fractureMs += result.stats.fractureMs ?? 0;
+            metrics.arrangementMs += result.stats.arrangementMs ?? 0;
           }
           this.retain(key, batch);
         }
@@ -269,6 +285,7 @@ function cacheEntryBytes(key: string, result: RockFormationMesh): number {
   return (
     result.mesh.positions.byteLength +
     result.mesh.indices.byteLength +
+    (result.mesh.cornerNormals?.byteLength ?? 0) +
     (result.mesh.normals?.byteLength ?? 0) +
     rockGrassBuffers(result.grass).reduce((sum, buffer) => sum + buffer.byteLength, 0) +
     result.owners.length * Float64Array.BYTES_PER_ELEMENT +

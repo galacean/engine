@@ -78,8 +78,8 @@ class Folder {
   domElement = new Element("div");
   open() {}
   removeFolder() {}
-  add(state: Record<string, unknown>, key: string, options?: Record<string, string>) {
-    const control = options ? new Select() : new Input();
+  add(state: Record<string, unknown>, key: string, options?: Record<string, string> | number) {
+    const control = options && typeof options === "object" ? new Select() : new Input();
     if (control instanceof Select)
       for (const [label, value] of Object.entries(options!)) {
         const option = new Element("option");
@@ -170,6 +170,22 @@ const settled = async () => {
   await Promise.resolve();
   await Promise.resolve();
 };
+
+it("submits independent mountain toggles and a zero fracture depth through native authoring", async () => {
+  const f = fixture();
+  const arrangement = f.control('field="ridgeArrangement"');
+  const shaping = f.control('field="rockShaping"');
+  expect(arrangement.type).toBe("checkbox");
+  expect(shaping.checked).toBe(false);
+  arrangement.checked = true;
+  arrangement.dispatchEvent(new Event("change"));
+  f.input('field="fractureDepth"', "0");
+  f.actions.get("Apply formation settings / 应用形态设置")!.click();
+  expect(f.apply).toHaveBeenCalledWith([{ op: "set", entity: "world", component: "rockFormation",
+    values: { ridgeArrangement: true, fractureDepth: 0 } }]);
+  await settled();
+  f.panel.destroy();
+});
 
 it("shows the bilingual texture control and submits only its changed material value", async () => {
   const f = fixture(),

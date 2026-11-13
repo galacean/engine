@@ -7,6 +7,7 @@ import { ROCK_FORMATION_COMPONENT, ROCK_OBB_COMPONENT, readRockFormationSettings
 import { rockObbId } from "./Authoring.ts";
 import { ROCK_COLOR_FIELD_KEYS } from "./ColorPalette.ts";
 import { RockColorControls } from "./ColorControls.ts";
+import { MOUNTAIN_FIELD_KEYS, MOUNTAIN_DEFAULTS } from "./MountainSettings.ts";
 
 type NumberControl = { input: HTMLInputElement; controller: dat.GUIController };
 
@@ -19,12 +20,13 @@ export class RockFormationPanel {
   private readonly abort = new AbortController();
   private readonly fields = new Map<string, NumberControl>();
   private readonly sizes = new Map<string, NumberControl>();
-  private readonly draft: Record<string, string> = {};
+  private readonly draft: Record<string, string | number | boolean> = {};
   private readonly sizeDraft: Record<string, string> = {};
   private readonly selection = { id: "" };
   private readonly select: HTMLSelectElement;
   private readonly writeStatus: (value: string) => void;
   private writeGrass?: (value: string) => void;
+  private writeGeneration?: (value: string) => void;
   private plan?: IslandPlan;
   private document?: PlanningDocument;
   private busy = false;
@@ -33,7 +35,9 @@ export class RockFormationPanel {
   constructor(
     private readonly host: DebugInspectorPanelHost,
     private readonly apply: (commands: PlanningParameterCommand[]) => Promise<unknown>,
-    private readonly grass?: { preview(enabled: boolean): void; diagnostics(): string }
+    private readonly grass?: { preview(enabled: boolean): void; diagnostics(): string },
+    private readonly generation?: () => string,
+    focus?: (id: string) => void
   ) {
     this.folder = host.folder("Rock formation / 岩石形态", false);
     this.element = this.folder.domElement;
@@ -41,18 +45,39 @@ export class RockFormationPanel {
     const shape = host.subfolder(this.folder, "Shape / 整体轮廓与岩壁", true);
     const material = host.subfolder(this.folder, "Shared material / 共用材质", false);
     const sampling = host.subfolder(this.folder, "Sampling / 变化与精简", false);
+    const arrangement = host.subfolder(this.folder, "Mountain arrangement / 山体排列", true);
+    const shaping = host.subfolder(this.folder, "Mountain shaping / 山体切削", true);
+    host.addReadout(
+      arrangement,
+      "Ridge controls / 山脊控制"
+    )("仅山体；主峰/支脊数量用于直接生长模式。Perlin 模式按噪声提取。高度使用下方 OBB Height。");
+    host.addReadout(
+      shaping,
+      "Independent features / 独立开关"
+    )("两项独立开关；全部关闭恢复原子岩石。调整后点击 Apply。切削保持原始三向投射纹理。");
     for (const field of ROCK_FORMATION_COMPONENT.fields) {
       if (ROCK_COLOR_FIELD_KEYS.has(field.key)) continue;
-      const folder =
-        field.key === "textureScale"
+      const folder = MOUNTAIN_FIELD_KEYS.has(field.key)
+        ? field.key === "rockShaping" || field.key.startsWith("fracture")
+          ? shaping
+          : arrangement
+        : field.key === "textureScale"
           ? material
           : ["variation", "targetTriangles"].includes(field.key)
             ? sampling
             : shape;
-      this.draft[field.key] = String(field.default ?? "");
-      const controller = folder.add(this.draft, field.key).name(field.label);
+      const isBoolean = field.type === "boolean",
+        slider = MOUNTAIN_FIELD_KEYS.has(field.key) && !isBoolean;
+      this.draft[field.key] = isBoolean
+        ? Boolean(field.default)
+        : slider
+          ? Number(field.default)
+          : String(field.default ?? "");
+      const controller = (
+        slider ? folder.add(this.draft, field.key, field.min, field.max, field.step) : folder.add(this.draft, field.key)
+      ).name(field.label);
       const input = controller.domElement.querySelector("input")!;
-      input.type = "number";
+      input.type = isBoolean ? "checkbox" : "number";
       if (field.min !== undefined) input.min = String(field.min);
       if (field.max !== undefined) input.max = String(field.max);
       input.step = String(field.step ?? "any");
@@ -66,9 +91,10 @@ export class RockFormationPanel {
       if (!this.document) return;
       const current = this.flatSettings(readRockFormationSettings(this.document));
       const values = Object.fromEntries(
-        [...this.fields].flatMap(([key, { input }]) =>
-          !input.value || Number(input.value) === current[key] ? [] : [[key, Number(input.value)]]
-        )
+        [...this.fields].flatMap(([key, { input }]) => {
+          const value = input.type === "checkbox" ? input.checked : Number(input.value);
+          return (input.type !== "checkbox" && !input.value) || value === current[key] ? [] : [[key, value]];
+        })
       );
       if (Object.keys(values).length)
         void this.submit([{ op: "set", entity: "world", component: "rockFormation", values }]);
@@ -85,6 +111,10 @@ export class RockFormationPanel {
       .onChange(() => this.refreshObb());
     this.select = selected.domElement.querySelector("select")!;
     this.select.setAttribute("aria-label", "Rock OBB / 岩石包围盒");
+    if (focus)
+      host.addAction(this.obbFolder, "View selected mountain / 观察所选山体", () => {
+        if (this.select.value) focus(this.select.value);
+      });
     for (const field of ROCK_OBB_COMPONENT.fields.filter(({ key }) => ["width", "height", "depth"].includes(key))) {
       this.sizeDraft[field.key] = "";
       const controller = this.obbFolder.add(this.sizeDraft, field.key).name(`${field.label} (m)`);
@@ -118,12 +148,15 @@ export class RockFormationPanel {
       this.refreshGrass();
     }
     this.writeStatus = host.addReadout(this.folder, "Edit status / 编辑状态", "rock-formation-edit-status");
+    if (generation)
+      this.writeGeneration = host.addReadout(this.folder, "Generation / 生成耗时", "rock-generation-timing");
     this.element.querySelector("#rock-formation-edit-status")!.setAttribute("role", "status");
     for (const event of ["keydown", "keyup", "pointerdown", "pointerup", "wheel"])
       this.element.addEventListener(event, (event) => event.stopPropagation(), { signal: this.abort.signal });
   }
   refreshGrass(): void {
     if (this.grass) this.writeGrass?.(this.grass.diagnostics());
+    if (this.generation) this.writeGeneration?.(this.generation());
   }
 
   synchronize(plan: IslandPlan, document: PlanningDocument): void {
@@ -145,16 +178,23 @@ export class RockFormationPanel {
       values = this.flatSettings(settings);
     this.colors.synchronize(settings.colorBlend);
     for (const [key, { input, controller }] of this.fields) {
-      this.draft[key] = String(values[key] ?? "");
+      this.draft[key] =
+        input.type === "checkbox"
+          ? Boolean(values[key])
+          : MOUNTAIN_FIELD_KEYS.has(key)
+            ? Number(values[key])
+            : String(values[key] ?? "");
       controller.updateDisplay();
-      input.value = this.draft[key];
+      if (input.type === "checkbox") input.checked = Boolean(this.draft[key]);
+      else input.value = String(this.draft[key]);
     }
     this.refreshObb();
     this.setDisabled(this.busy);
   }
-  private flatSettings(settings: ReturnType<typeof readRockFormationSettings>): Record<string, number> {
+  private flatSettings(settings: ReturnType<typeof readRockFormationSettings>): Record<string, number | boolean> {
     return {
       ...settings.shape,
+      ...(settings.mountain ?? MOUNTAIN_DEFAULTS),
       variation: settings.variation,
       targetTriangles: settings.targetTriangles,
       textureScale: settings.textureScale

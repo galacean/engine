@@ -82,6 +82,7 @@ export function rockFormationJobs(plan: IslandPlan, heightmap: Pick<PlanningHeig
     return {
       id,
       seed: hashSeed(plan.parameters.seed, id),
+      ...(surfaceGrass ? { kind: "mountain" as const, worldSeed: plan.parameters.seed } : {}),
       surfaceGrass,
       origin,
       guides

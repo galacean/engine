@@ -29,10 +29,16 @@ export interface MeshBuffers {
   positions: Float32Array;
   indices: Uint32Array;
   normals?: Float32Array;
+  /** Optional crease-preserving render normals, one XYZ per indexed corner. */
+  cornerNormals?: Float32Array;
 }
 export interface RockFormationJob {
   id: string;
   seed: number;
+  /** Explicit planning role; streamed and decorative stones never receive ridge arrangements. */
+  kind?: "mountain";
+  /** Atomic library seed shared by the world's mountains; topology still uses the job seed. */
+  worldSeed?: number;
   /** Enables both grass substrate coverage and blade support; omitted keeps terrain-rock grass. */
   surfaceGrass?: boolean;
   origin: V3;
@@ -56,6 +62,10 @@ export interface RockFormationMesh {
     buildMs?: number;
     simplifyMs?: number;
     simplifyAttempts?: number;
+    fractureMs?: number;
+    arrangementMs?: number;
+    ridgePeaks?: number;
+    ridgeBranches?: number;
     /** Boolean work is charged once per group; input counts remain per owner. */
     unionMs?: number;
     unionInputTriangles?: number;
