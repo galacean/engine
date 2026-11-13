@@ -225,7 +225,7 @@ export function* compileRockGrassPatch(
           scale * edgeScale,
           substrateCoverage,
           formation.textureScale ?? 0,
-          1, // Shared projected rock substrate.
+          formation.variant ? 0 : 1, // Only procedural rocks use the shared projected substrate.
           sx / normalLength,
           sy / normalLength,
           sz / normalLength

@@ -13,6 +13,7 @@ import { seedWorldScriptModules } from "./systems/SeedWorldScriptModules.ts";
 import { RuntimeProjectSession } from "@galacean/engine-runtime-editor/project/runtime-project-session";
 import { RuntimeProjectStorage, type RuntimeProjectManifest } from "@galacean/engine-project/runtime-editor/project/runtime-project";
 import { SEED_WORLD_PRODUCTION_ASSET_CATALOG } from "@galacean/engine-vegetation/asset-assembly/SeedWorldProductionAssetCatalog";
+import { worldTemplate } from "@galacean/engine-world-planning/spatial/WorldTemplateCatalog";
 import { SEMANTIC_DEFAULTS } from "@galacean/engine-world-planning/semantic-study/WorldPlanningContract";
 import { PLANT_PROJECT_ROOT, PLANT_PROJECT_PRODUCTION, PLANT_PROJECT_CATALOG } from "@galacean/engine-vegetation/asset-assembly/PlantSpeciesResources";
 import { resolvePlantJSONReferences } from "@galacean/engine-vegetation/asset-assembly/PlantParameterEncoding";
@@ -28,11 +29,12 @@ import { migrateSeedWorldWaterTextures } from "./SeedWorldWaterTextureMigration"
  * Opening a project deletes saves of any other version before loading, so it starts from the initial world. */
 // Version 12 resets catalogs after merging updated terrain and water shader assets.
 export const SEED_WORLD_BUILDING_SAVE_VERSION = 12;
-export function seedWorldProjectStorageId(seed: number, projectUrl: string): string {
-  return `seed-world:native-buildings-v${SEED_WORLD_BUILDING_SAVE_VERSION}-groups:${seed}:${projectUrl}`;
+export function seedWorldProjectStorageId(seed: number, projectUrl: string, template = "original"): string {
+  const scope = template === "original" ? "" : `${template}:`;
+  return `seed-world:native-buildings-v${SEED_WORLD_BUILDING_SAVE_VERSION}-groups:${scope}${seed}:${projectUrl}`;
 }
 
-const SEED_WORLD_SAVE_ID = /^seed-world:native-buildings-v(\d+)-[^:]*:\d+:(.+)$/;
+const SEED_WORLD_SAVE_ID = /^seed-world:native-buildings-v(\d+)-[^:]*:(?:[a-z][a-z0-9-]*:)?\d+:(.+)$/;
 
 /** Stale data must not block startup: the storage key already keeps it from being loaded. */
 async function deleteRetiredSeedWorldSaves(projectUrl: string): Promise<void> {
@@ -59,6 +61,7 @@ export async function openSeedWorldProject(
   const projectUrl = new URL(SEED_WORLD_PRODUCTION_ASSET_CATALOG.projectUrl, location.href).href;
   const raw = pageUrl.searchParams.get("seed");
   const seed = raw !== null && /^\d+$/.test(raw) && Number(raw) <= 0xffffffff ? Number(raw) : SEMANTIC_DEFAULTS.seed;
+  const template = worldTemplate(pageUrl.searchParams.get("template"))?.id ?? "original";
   if (!initial) {
     const response = await fetch(projectUrl);
     if (!response.ok) throw new Error(`Project manifest read failed (${response.status})`);
@@ -66,7 +69,7 @@ export async function openSeedWorldProject(
   }
   initial = { ...initial, files: [...initial.files, ...builtinBuildingAssetFiles, ...builtinBuildingPresetFiles] };
   await deleteRetiredSeedWorldSaves(projectUrl);
-  const project = await RuntimeProjectSession.open(seedWorldProjectStorageId(seed, projectUrl), initial, projectUrl, {
+  const project = await RuntimeProjectSession.open(seedWorldProjectStorageId(seed, projectUrl, template), initial, projectUrl, {
     scriptModules: seedWorldScriptModules
   });
   try {

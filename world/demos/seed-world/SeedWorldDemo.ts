@@ -329,7 +329,7 @@ export async function mountSeedWorldDemo(
     }
   }
   const raster = new PlanningRasterClient();
-  const rockFormations = new RockFormationClient(pageUrl.searchParams.get("rockUnion") === "1");
+  const rockFormations = new RockFormationClient(pageUrl.searchParams.get("rockUnion") === "1", () => engine!);
   let rockNavigation: RockNavigation | undefined;
   const bootPhases: { phase: string; startMs: number }[] = [];
   const traceBootPhase = (phase: string) => {
@@ -1174,7 +1174,7 @@ export async function mountSeedWorldDemo(
             try {
               if (rockState(plan) !== rockState(current.plan)) {
                 const meshes = await rockFormations.prepare(plan, readRockFormationSettings(document), signal);
-                await prepareRockTextures(engine!, signal);
+                if (meshes.some((mesh) => !mesh.variant)) await prepareRockTextures(engine!, signal);
                 signal.throwIfAborted();
                 const fields = current.heightTransition?.fields ?? current.data.fields;
                 const presented = planningPresentedSolids(plan, fields, current.data.fields);
@@ -1282,7 +1282,7 @@ export async function mountSeedWorldDemo(
               settings = readRockFormationSettings(document);
             const meshes = await rockFormations.prepare(plan, settings, signal, current.solids.formations);
             const preparationMetrics = { ...rockFormations.preparationMetrics };
-            await prepareRockTextures(engine!, signal);
+            if (meshes.some((mesh) => !mesh.variant)) await prepareRockTextures(engine!, signal);
             signal.throwIfAborted();
             const frame = await prepareRockFormationPublication(
               current,
@@ -1511,7 +1511,7 @@ export async function mountSeedWorldDemo(
             applyPlanningTreeVariations(candidate.population, plan.authoredResources ?? []);
             recordBootSpan("applyPlanningTreeVariations", spanAt);
             spanAt = performance.now();
-            if (formationMeshes.length) await prepareRockTextures(engine!, signal);
+            if (formationMeshes.some((mesh) => !mesh.variant)) await prepareRockTextures(engine!, signal);
             recordBootSpan("prepareRockTextures", spanAt);
             signal.throwIfAborted();
             const presentedFields = heightTransition?.fields ?? candidateData.fields;

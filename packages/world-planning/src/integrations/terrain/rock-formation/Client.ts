@@ -1,3 +1,5 @@
+import type { Engine } from "@galacean/engine";
+import { fitRockVariant, pickRockVariant, prepareRockVariant, rockVariantFit, rockVariantPools } from "./Variants";
 import { planningGroundSurface } from "../../../semantic-study/PlanningHeightmap.ts";
 import type { IslandPlan } from "../../../semantic-study/IslandPlanModel.ts";
 import { rockFormationJobs } from "./Jobs.ts";
@@ -31,7 +33,10 @@ export class RockFormationClient {
   /** Last planned world publication; streaming ground stones must not overwrite this snapshot. */
   publicationMetrics = { ...this.unionMetrics, ...this.preparationMetrics };
   /** Opt-in while intersection shape quality is still under review. */
-  constructor(private readonly unionOverlaps = false) {}
+  constructor(
+    private readonly unionOverlaps = false,
+    private readonly engine?: () => Engine
+  ) {}
 
   async prepare(
     plan: IslandPlan,
@@ -43,7 +48,60 @@ export class RockFormationClient {
     if (this.disposed) throw new Error("Rock formation client disposed");
     // Rock placement only samples OBB centres. Keep the full raster in its worker;
     // this sparse surface uses the same canonical Float32 grid and triangles.
-    return this.runJobs(rockFormationJobs(plan, planningGroundSurface(plan)), settings, signal, resident, true);
+    const jobs = rockFormationJobs(plan, planningGroundSurface(plan));
+    const pools = rockVariantPools(plan);
+    if (pools && this.engine) return this.prepareVariants(jobs, pools, this.engine(), signal, resident);
+    return this.runJobs(jobs, settings, signal, resident, true);
+  }
+
+  private async prepareVariants(
+    jobs: readonly RockFormationJob[],
+    pools: NonNullable<ReturnType<typeof rockVariantPools>>,
+    engine: Engine,
+    signal: AbortSignal,
+    resident: readonly RockFormationMesh[]
+  ): Promise<RockFormationMesh[]> {
+    const started = performance.now();
+    const live = new Map(resident.map((formation) => [formation.id, formation]));
+    const tasks = new Map<string, ReturnType<typeof prepareRockVariant>>();
+    const results = await Promise.all(
+      jobs.map(async (job) => {
+        const grass = job.surfaceGrass !== false;
+        const entry = pickRockVariant(grass ? pools.mountains : pools.stones, job.seed);
+        if (!entry) throw Error(`Missing rock variants for ${job.id}`);
+        const key = JSON.stringify([job, entry]);
+        const previous = live.get(job.id);
+        if (previous && this.resultKeys.get(previous) === key) return previous;
+        let task = tasks.get(entry.id);
+        if (!task) tasks.set(entry.id, (task = prepareRockVariant(engine, entry)));
+        const asset = await task;
+        signal.throwIfAborted();
+        const matrix = rockVariantFit(job, asset);
+        const formation = fitRockVariant(job, asset, matrix, grass);
+        this.resultKeys.set(formation, key);
+        return formation;
+      })
+    );
+    signal.throwIfAborted();
+    if (this.disposed) throw new Error("Rock formation client disposed");
+    const cached = results.filter((formation) => live.get(formation.id) === formation).length;
+    const triangles = results.reduce((sum, formation) => sum + formation.mesh.indices.length / 3, 0);
+    this.preparationMetrics = {
+      totalMs: performance.now() - started,
+      generated: 0,
+      cached,
+      generationMs: 0,
+      unionMs: 0
+    };
+    this.unionMetrics = {
+      enabled: false,
+      groups: 0,
+      groupedBodies: 0,
+      inputTriangles: triangles,
+      outputTriangles: triangles
+    };
+    this.publicationMetrics = { ...this.unionMetrics, ...this.preparationMetrics };
+    return results;
   }
 
   /** Local ground stones use the same generator and cache as published rocks. */

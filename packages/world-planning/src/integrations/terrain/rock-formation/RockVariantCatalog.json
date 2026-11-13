@@ -1,0 +1,115 @@
+{
+  "templates": {
+    "sakura-pearl": {
+      "mountains": [
+        {
+          "id": "rock-08",
+          "mesh": "https://mdn.alipayobjects.com/rms/afts/file/A*jOzVQIgVGy8AAAAAQUAAAAgAehQnAQ/rock-08.glb",
+          "base": "https://mdn.alipayobjects.com/rms/afts/img/A*s2BMSrG_YG0AAAAATIAAAAgAehQnAQ/original/painted-08.ktx2",
+          "normal": "https://mdn.alipayobjects.com/rms/afts/img/A*2ZlHQIGLJ8AAAAAAUxAAAAgAehQnAQ/original/normal-def8cab37bdc6ec301ac.ktx2",
+          "groundInset": 0.18
+        },
+        {
+          "id": "rock-11",
+          "mesh": "https://mdn.alipayobjects.com/rms/afts/file/A*lWykSYYWybgAAAAARJAAAAgAehQnAQ/rock-11.glb",
+          "base": "https://mdn.alipayobjects.com/rms/afts/img/A*ua3jRYl6Vn4AAAAAS6AAAAgAehQnAQ/original/painted-11.ktx2",
+          "normal": "https://mdn.alipayobjects.com/rms/afts/img/A*N_XHQafideYAAAAAUwAAAAgAehQnAQ/original/normal-fc3b8bcaf290c1c29b23.ktx2",
+          "groundInset": 0.06
+        },
+        {
+          "id": "rock-15",
+          "mesh": "https://mdn.alipayobjects.com/rms/afts/file/A*INjPRboSzZIAAAAASNAAAAgAehQnAQ/rock-15.glb",
+          "base": "https://mdn.alipayobjects.com/rms/afts/img/A*beI_T4Kc8xIAAAAATDAAAAgAehQnAQ/original/painted-15.ktx2",
+          "normal": "https://mdn.alipayobjects.com/rms/afts/img/A*2SYaSqI0VzkAAAAAUnAAAAgAehQnAQ/original/normal-f997158815d3ff39e06c.ktx2",
+          "groundInset": 0.02
+        },
+        {
+          "id": "rock-16",
+          "mesh": "https://mdn.alipayobjects.com/rms/afts/file/A*SMx0Qroh58gAAAAASLAAAAgAehQnAQ/rock-16.glb",
+          "base": "https://mdn.alipayobjects.com/rms/afts/img/A*DIERTYZ2MJ8AAAAAS5AAAAgAehQnAQ/original/painted-16.ktx2",
+          "normal": "https://mdn.alipayobjects.com/rms/afts/img/A*uWI5TJ0tQ0AAAAAAUqAAAAgAehQnAQ/original/normal-e44de43122cf48aac16d.ktx2",
+          "groundInset": 0.02
+        },
+        {
+          "id": "rock-18",
+          "mesh": "https://mdn.alipayobjects.com/rms/afts/file/A*iFXqTqnjaw4AAAAARTAAAAgAehQnAQ/rock-18.glb",
+          "base": "https://mdn.alipayobjects.com/rms/afts/img/A*V7Z4Towr7jsAAAAATDAAAAgAehQnAQ/original/painted-18.ktx2",
+          "normal": "https://mdn.alipayobjects.com/rms/afts/img/A*XffHTZJQWw8AAAAAUVAAAAgAehQnAQ/original/normal-35b3343e8a3c58b12957.ktx2",
+          "groundInset": 0.02
+        },
+        {
+          "id": "rock-22",
+          "mesh": "https://mdn.alipayobjects.com/rms/afts/file/A*wem1RL40j2IAAAAAQcAAAAgAehQnAQ/rock-22.glb",
+          "base": "https://mdn.alipayobjects.com/rms/afts/img/A*v5LeT6J8r0YAAAAATaAAAAgAehQnAQ/original/painted-22.ktx2",
+          "normal": "https://mdn.alipayobjects.com/rms/afts/img/A*5Wn6SIXmhzgAAAAAUwAAAAgAehQnAQ/original/normal-0b778bb6d62f96daf8a5.ktx2",
+          "groundInset": 0.04
+        },
+        {
+          "id": "rock-23",
+          "mesh": "https://mdn.alipayobjects.com/rms/afts/file/A*iwYQRKdDB5cAAAAAQNAAAAgAehQnAQ/rock-23.glb",
+          "base": "https://mdn.alipayobjects.com/rms/afts/img/A*eQ_oTo_T2kcAAAAATaAAAAgAehQnAQ/original/painted-23.ktx2",
+          "normal": "https://mdn.alipayobjects.com/rms/afts/img/A*-kqcS4ljxUcAAAAAUAAAAAgAehQnAQ/original/normal-1f53944e12f11045e05e.ktx2",
+          "groundInset": 0.02
+        }
+      ],
+      "stones": [
+        {
+          "id": "rock-05",
+          "mesh": "https://mdn.alipayobjects.com/rms/afts/file/A*7o7uS7FYhFwAAAAAQZAAAAgAehQnAQ/rock-05.glb",
+          "base": "https://mdn.alipayobjects.com/rms/afts/img/A*yGFPR6RY76cAAAAATcAAAAgAehQnAQ/original/painted-05.ktx2",
+          "normal": "https://mdn.alipayobjects.com/rms/afts/img/A*JfgoT6uOFgQAAAAAUpAAAAgAehQnAQ/original/normal-717702271eea13636e73.ktx2",
+          "groundInset": 0.07
+        },
+        {
+          "id": "rock-06",
+          "mesh": "https://mdn.alipayobjects.com/rms/afts/file/A*uSI-QqRrVG8AAAAAQQAAAAgAehQnAQ/rock-06.glb",
+          "base": "https://mdn.alipayobjects.com/rms/afts/img/A*ZZ4cT73J-g4AAAAAThAAAAgAehQnAQ/original/painted-06.ktx2",
+          "normal": "https://mdn.alipayobjects.com/rms/afts/img/A*oxB5QobfbSMAAAAAU9AAAAgAehQnAQ/original/normal-9e5f08f020beb4dace7b.ktx2",
+          "groundInset": 0.09
+        },
+        {
+          "id": "rock-10",
+          "mesh": "https://mdn.alipayobjects.com/rms/afts/file/A*x_v4Q7H70CMAAAAAQlAAAAgAehQnAQ/rock-10.glb",
+          "base": "https://mdn.alipayobjects.com/rms/afts/img/A*Vj6ZSL2fT9AAAAAAS-AAAAgAehQnAQ/original/painted-10.ktx2",
+          "normal": "https://mdn.alipayobjects.com/rms/afts/img/A*wRiLTor4OUcAAAAAU1AAAAgAehQnAQ/original/normal-1e61d52c18147c9a9cb0.ktx2",
+          "groundInset": 0.07
+        },
+        {
+          "id": "rock-17",
+          "mesh": "https://mdn.alipayobjects.com/rms/afts/file/A*03vTRJJwN8UAAAAARMAAAAgAehQnAQ/rock-17.glb",
+          "base": "https://mdn.alipayobjects.com/rms/afts/img/A*wKpgSa5lWuwAAAAATSAAAAgAehQnAQ/original/painted-17.ktx2",
+          "normal": "https://mdn.alipayobjects.com/rms/afts/img/A*XXwSQKXMKEUAAAAAUzAAAAgAehQnAQ/original/normal-b0471ca073bee1c1b7e0.ktx2",
+          "groundInset": 0.1
+        },
+        {
+          "id": "rock-19",
+          "mesh": "https://mdn.alipayobjects.com/rms/afts/file/A*-aa-R4tOlXAAAAAAQZAAAAgAehQnAQ/rock-19.glb",
+          "base": "https://mdn.alipayobjects.com/rms/afts/img/A*HmA6T4OEe4IAAAAATVAAAAgAehQnAQ/original/painted-19.ktx2",
+          "normal": "https://mdn.alipayobjects.com/rms/afts/img/A*-iF7TqypZH8AAAAAU2AAAAgAehQnAQ/original/normal-54b281d7d3f7834ba31d.ktx2",
+          "groundInset": 0.03
+        },
+        {
+          "id": "rock-20",
+          "mesh": "https://mdn.alipayobjects.com/rms/afts/file/A*439eQYLf0vYAAAAAQVAAAAgAehQnAQ/rock-20.glb",
+          "base": "https://mdn.alipayobjects.com/rms/afts/img/A*apqeR7sXEhcAAAAATUAAAAgAehQnAQ/original/painted-20.ktx2",
+          "normal": "https://mdn.alipayobjects.com/rms/afts/img/A*IUwTTqgCuMMAAAAAU3AAAAgAehQnAQ/original/normal-1bf367deaa9650c30873.ktx2",
+          "groundInset": 0.12
+        },
+        {
+          "id": "rock-27",
+          "mesh": "https://mdn.alipayobjects.com/rms/afts/file/A*P6W3RrdPWMEAAAAAQXAAAAgAehQnAQ/rock-27.glb",
+          "base": "https://mdn.alipayobjects.com/rms/afts/img/A*0ecpS7I-Q58AAAAATGAAAAgAehQnAQ/original/painted-27.ktx2",
+          "normal": "https://mdn.alipayobjects.com/rms/afts/img/A*sLDtQKqSid8AAAAATmAAAAgAehQnAQ/original/normal-0fd78df65e16d05c79cf.ktx2",
+          "groundInset": 0.08
+        },
+        {
+          "id": "rock-29",
+          "mesh": "https://mdn.alipayobjects.com/rms/afts/file/A*CalrQab61HMAAAAAQXAAAAgAehQnAQ/rock-29.glb",
+          "base": "https://mdn.alipayobjects.com/rms/afts/img/A*3fKMQK_Z0mkAAAAATAAAAAgAehQnAQ/original/painted-29.ktx2",
+          "normal": "https://mdn.alipayobjects.com/rms/afts/img/A*kkMhT6cwgrsAAAAAUIAAAAgAehQnAQ/original/normal-fdf106e470120d1d92f6.ktx2",
+          "groundInset": 0.09
+        }
+      ]
+    }
+  }
+}

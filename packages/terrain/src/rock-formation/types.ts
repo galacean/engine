@@ -38,6 +38,21 @@ export interface RockFormationJob {
   origin: V3;
   guides: RockObb[];
 }
+/** Reusable indexed rock geometry and its original UV material channels. */
+export interface RockVariantAsset {
+  id: string;
+  base: string;
+  normal: string;
+  positions: Float32Array;
+  normals: Float32Array;
+  tangents: Float32Array;
+  uvs: Float32Array;
+  indices: Uint32Array;
+  bounds: [V3, V3];
+  coverage: Float32Array;
+  groundInset: number;
+}
+
 export interface RockFormationMesh {
   id: string;
   origin: V3;
@@ -47,6 +62,7 @@ export interface RockFormationMesh {
   /** Worker-prepared final-surface grass eligibility and small spatial patches. */
   grass?: import("./GrassSurface").RockGrassSurface;
   textureScale?: number;
+  variant?: { asset: RockVariantAsset; matrix: Float32Array };
   stats: {
     bodies: number;
     vertices: number;

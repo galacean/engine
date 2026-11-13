@@ -1,6 +1,5 @@
 {
   "palette": {
-    "ranges": { "stone": ["#c6adc6", "#dbc2d0"] },
     "treeFoliage": {
       "SM_BirchTree_01": "#ff8ea0",
       "SM_BirchTree_02": "#c179ed",
@@ -332,7 +331,7 @@
     "foliage": "#e6a0cb",
     "bark": "#e4dce8",
     "flowers": "#fff4e8",
-    "stone": "#d2b9ca"
+    "stone": "#ffffff"
   },
   "spawn": {
     "position": { "x": 512, "z": 384 },
