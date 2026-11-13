@@ -1,0 +1,100 @@
+packages/terrain/src/shaders/terrain/TerrainScreenSpaceReflectionPass.glsl
+  s_86fea7b180bd55::t_a227503bf41a19 201
+packages/water/src/water/native/assets/Water/Shaders/builtin/lake.json
+  s_86fea7b180bd55::t_8551365be4333a 1
+packages/modify/tests/ScreenSpaceReflectionSecondReview.test.ts
+  s_86fea7b180bd55::t_763724493fe3cf 126,132
+packages/water/src/water/native/assets/Water/Shaders/river.shader
+  s_86fea7b180bd55::t_8551365be4333a 221-222,2364,2989
+packages/modify/SSR_AUTHORING.md
+  s_86fea7b180bd55::t_e1e4a62c9aa8f2 25-26
+  s_86fea7b180bd55::t_763724493fe3cf 27
+packages/water/src/water/native/assets/Water/Shaders/builtin/sources.json
+  s_86fea7b180bd55::t_15f9f643725653 2-3
+packages/terrain/src/data/grasslands/public/Shader/Terrain.shaderc
+  s_86fea7b180bd55::t_15f9f643725653 1
+packages/runtime-editor/tests/engine-runtime-files.spec.ts
+  s_86fea7b180bd55::t_aea0e7edb36b8e 6,9-14
+  s_86fea7b180bd55::t_78fbdd7388083e 35-36
+packages/water/src/water/native/assets/Water/Shaders/builtin/river.json
+  s_86fea7b180bd55::t_8551365be4333a 1
+packages/water/src/water/native/assets/Water/Shaders/lake.shader
+  s_86fea7b180bd55::t_8551365be4333a 2816
+  s_86fea7b180bd55::t_3dd655ad8656d0 2279
+packages/modify/tests/ScreenSpaceReflectionTerrainDepth.test.ts
+  s_86fea7b180bd55::t_b7c02c9ebcdb1e 41-50,81-82,84-88
+  s_86fea7b180bd55::t_b044723ca9978e 83
+  s_86fea7b180bd55::t_41c7ee1a4b1346 27-28,80
+packages/modify/tests/fixtures/ssr-legacy-v2.shader
+  s_86fea7b180bd55::t_90133051906d60 1-65
+packages/water/src/water/native/assets/conversion.json
+  s_86fea7b180bd55::t_8551365be4333a 275,277-278
+packages/modify/src/native/core/src/lighting/screenSpaceReflection/ScreenSpaceReflection.ts
+  s_86fea7b180bd55::t_763724493fe3cf 414-415
+packages/runtime-editor/src/runtime-editor/generated/engine-runtime-index.json
+  s_86fea7b180bd55::t_3cb94da8b3b6ab 1
+packages/modify/src/native/shader/src/Shaders/Lighting/ScreenSpaceReflection.shader
+  s_86fea7b180bd55::t_fdc93b53b4ce3c 210,448,491,611,629
+packages/runtime-editor/src/runtime-editor/generated/engine-runtime-files.json
+  s_86fea7b180bd55::t_3cb94da8b3b6ab 1
+packages/modify/src/native/shader/src/ShaderLibrary/Lighting/ScreenSpaceReflection/ScreenSpaceReflection.glsl
+  s_86fea7b180bd55::t_a227503bf41a19 22-29
+packages/modify/tests/ScreenSpaceReflectionWorldNormal.test.ts
+  s_86fea7b180bd55::t_abef639508da59 99-103,171,200-203,224
+  s_86fea7b180bd55::t_5f66cf84f15eb3 335
+  s_86fea7b180bd55::t_7314a28b50c356 2
+  s_86fea7b180bd55::t_b044723ca9978e 236-291,293-295,297-299
+  s_86fea7b180bd55::t_035869bacc150f 5,18,20,26-27,67,90-96,125,235,292,296
+  s_86fea7b180bd55::t_4005505a59ccf3 1,3-4,7-17,19,21-25,28-60,68-89,97-98,104-124,126-170,172-173,175-188,190-192,194-195,197-198,204,206-223,225-234,300-334,336-340
+  s_86fea7b180bd55::t_f5bbbca453ed57 6,61-66,189
+  s_86fea7b180bd55::t_b332e7d8cef0ce 174
+  s_86fea7b180bd55::t_5b1e1804f258a7 193
+  s_86fea7b180bd55::t_3f661b98a96155 196
+  s_86fea7b180bd55::t_de7ce1618e0c50 199
+  s_86fea7b180bd55::t_48ec0d5f138245 205
+packages/water/src/water/shaders/heightfield/ScreenSpaceReflectionSurface.glsl
+  s_86fea7b180bd55::t_a227503bf41a19 167
+packages/water/src/water/shaders/river/ScreenSpaceReflectionSurface.glsl
+  s_86fea7b180bd55::t_a227503bf41a19 108
+packages/water/src/water/native/assets/Water/Shaders/lake-heightfield-high-hybrid-v2.shaderc
+  s_86fea7b180bd55::t_8551365be4333a 1
+packages/modify/tests/ScreenSpaceReflectionReceiverContract.test.ts
+  s_86fea7b180bd55::t_90133051906d60 1-5,7-59,61-80,83-91,93,107-111,113-116
+  s_86fea7b180bd55::t_d9ce7e11ad6526 6,60,94-106,112
+  s_86fea7b180bd55::t_783b38718058c8 81-82,92,117-135
+packages/terrain/src/data/grasslands/source/public/Shader/Terrain.shaderc
+  s_86fea7b180bd55::t_15f9f643725653 1
+packages/modify/src/native/shader/src/Shaders/Pipeline/ScreenSpaceReflectionSurface.shader
+  s_86fea7b180bd55::t_a227503bf41a19 87
+  s_86fea7b180bd55::t_763724493fe3cf 6
+packages/terrain/src/shaders/Terrain.shader
+  s_86fea7b180bd55::t_763724493fe3cf 25
+packages/modify/tests/fixtures/ssr-legacy-v2.json
+  s_86fea7b180bd55::t_bbf8b27240ab53 1
+packages/terrain/src/data/seed-world/project.json
+  s_86fea7b180bd55::t_9e665ffdf9baa0 140,155
+packages/terrain/src/data/seed-world/public/Shader/Terrain.shaderc
+  s_86fea7b180bd55::t_ac691bb33d707d 1
+packages/terrain/src/data/seed-world/public/Shader/Water/WaterAotManifest.d33b89b71111f75070c7789d55183cb7cb4bfca463cea7cdc4d7959c26ee4bb5.json
+  s_86fea7b180bd55::t_6a7e5c8f7ac7fa 28,37-41,76,78-83
+packages/terrain/src/data/seed-world/public/Shader/Water/lake-heightfield-high-hybrid-v2.e63de9387dc822a1dd299a1af333b8023dc7e145fac9c0c55fe9e648f739b5c2.shaderc
+  s_86fea7b180bd55::t_39bc6d1dad9c0c 1
+packages/terrain/src/data/seed-world/source/Shader/Water/LakeHeightfieldHighHybrid.shader
+  s_86fea7b180bd55::t_2d4953245c5a5d 2116,2653
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "3edb2a5651809f50b475b94800242b3614e5dba1",
+  "prompts": {},
+  "sessions": {
+    "s_86fea7b180bd55": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1d3f0-eb5a-7321-ba57-071cab51cf8d",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "星翊 <sunmingming.smm@antgroup.com>"
+    }
+  }
+}
