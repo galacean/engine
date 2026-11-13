@@ -27,6 +27,10 @@ import type {
   PlanRock
 } from "@galacean/engine-world-planning/semantic-study/IslandPlanModel";
 import { planningRemovedObjectIds } from "@galacean/engine-world-planning/spatial/PlanningResources";
+import {
+  SeedWorldExactInstanceCellRuntime,
+  createSeedWorldExactInstanceLodEntry
+} from "@galacean/engine-world-planning/world/SeedWorldExactInstanceCellRuntime";
 import { fitContainedPrefab, fitGroundedPrefabHeight } from "./MojaveGrounding";
 import mojaveAssets from "./MojaveAssets.json";
 const { models: catalog, geometry: geometryCatalog } = mojaveAssets;
@@ -56,6 +60,8 @@ export class MojaveRockLodRuntime extends Script {
   readonly materials: Material[] = [];
   readonly rockMaterials: PBRMaterial[] = [];
   private elapsed = 0;
+  private scheduler?: SeedWorldExactInstanceCellRuntime;
+  private lodEnabled = mojaveLodTuning.enabled;
   /** Rebuilds only transition policy when artist-authored distances change. */
   rebuild(): void {
     for (const item of this.instances) {
@@ -83,13 +89,27 @@ export class MojaveRockLodRuntime extends Script {
       // Start outside the terminal threshold, then use the canonical terminal-to-visible transition.
       item.runtime.updateRenderersWithScreenRelativeHeight(this.elapsed, 0);
     }
+    this.lodEnabled = mojaveLodTuning.enabled;
+    const tuning = { enabled: this.lodEnabled, distanceScale: 1 };
+    for (const item of this.instances) item.runtime.setTuning(tuning);
+    this.scheduler = new SeedWorldExactInstanceCellRuntime(
+      this.camera,
+      this.instances.map((item) =>
+        createSeedWorldExactInstanceLodEntry(item.entity.name, item.family, item.entity, item.runtime)
+      )
+    );
+    // Use the shared Cell scheduler for both moving-camera queries and static reuse.
+    this.scheduler.setMode("cell");
   }
   override onUpdate(seconds: number): void {
     this.elapsed += seconds;
-    for (const item of this.instances) {
-      item.runtime.setTuning({ enabled: mojaveLodTuning.enabled, distanceScale: 1 });
-      item.runtime.updateRenderers(this.elapsed);
+    if (this.lodEnabled !== mojaveLodTuning.enabled) {
+      this.lodEnabled = mojaveLodTuning.enabled;
+      const tuning = { enabled: this.lodEnabled, distanceScale: 1 };
+      for (const item of this.instances) item.runtime.setTuning(tuning);
+      this.scheduler?.invalidate();
     }
+    this.scheduler?.update(this.elapsed);
   }
   override onDestroy(): void {
     for (const material of this.materials) material.destroy();
