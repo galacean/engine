@@ -123,20 +123,20 @@ describe("Built-in shader identity", () => {
   });
 
   it.each(["BuiltinIdentityCleanup", "__proto__"])(
-    "rejects a destroyed injected shader named %s while preserving a live namesake",
+    "rejects a destroyed shared shader named %s while preserving a live namesake",
     async (name) => {
+      const shaders = Engine._builtinShaders;
       const builtin = Shader._createFromPrecompiled({ name, platformTarget: 0, subShaders: [] });
       const custom = Shader._createFromPrecompiled({ name, platformTarget: 0, subShaders: [] });
       let anotherEngine: WebGLEngine | undefined;
       try {
-        anotherEngine = await WebGLEngine.create({
-          canvas: document.createElement("canvas"),
-          _builtinShaders: { ...engine._builtinShaders, pbr: builtin }
-        });
+        Engine._builtinShaders = { ...shaders, pbr: builtin };
+        anotherEngine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
         builtin.destroy();
         expect(() => new PBRMaterial(anotherEngine!)).toThrow("destroyed shader");
         expect(Shader.find(name)).toBe(custom);
       } finally {
+        Engine._builtinShaders = shaders;
         anotherEngine?.destroy();
         builtin.destroy();
         custom.destroy();
@@ -144,27 +144,26 @@ describe("Built-in shader identity", () => {
     }
   );
 
-  it("injects material and render-pass shaders independently of their names", async () => {
+  it("uses shared material and render-pass shader references independently of their names", async () => {
+    const shaders = Engine._builtinShaders;
     const shader = createNamesake("Injected/UnrelatedName");
     const namesake = createNamesake(shader.name);
     let anotherEngine: WebGLEngine | undefined;
     try {
-      anotherEngine = await WebGLEngine.create({
-        canvas: document.createElement("canvas"),
-        _builtinShaders: {
-          ...engine._builtinShaders,
-          pbr: shader,
-          particle: shader,
-          backgroundTexture: shader,
-          uber: shader,
-          bloom: shader,
-          finalSRGB: shader,
-          finalAntiAliasing: shader,
-          scalableAmbientOcclusion: shader,
-          ui: shader,
-          spine: shader
-        }
-      });
+      Engine._builtinShaders = {
+        ...shaders,
+        pbr: shader,
+        particle: shader,
+        backgroundTexture: shader,
+        uber: shader,
+        bloom: shader,
+        finalSRGB: shader,
+        finalAntiAliasing: shader,
+        scalableAmbientOcclusion: shader,
+        ui: shader,
+        spine: shader
+      };
+      anotherEngine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
       const material = new PBRMaterial(anotherEngine);
       const particleMaterial = new ParticleMaterial(anotherEngine);
       const spineMaterial = new SpineMaterial(anotherEngine);
@@ -183,47 +182,27 @@ describe("Built-in shader identity", () => {
       expect(uberPass["_uberMaterial"].shader).toBe(shader);
       expect(uberPass["_bloomMaterial"].shader).toBe(shader);
       expect(Shader.find(shader.name)).toBe(namesake);
-      expect(new PBRMaterial(engine).shader).toBe(engine._builtinShaders.pbr);
+      const sharedMaterial = new PBRMaterial(engine);
+      expect(sharedMaterial.shader).toBe(shader);
+      sharedMaterial.destroy();
       material.destroy();
       particleMaterial.destroy();
       spineMaterial.destroy();
     } finally {
+      Engine._builtinShaders = shaders;
       anotherEngine?.destroy();
       namesake.destroy(true);
       shader.destroy(true);
     }
   });
 
-  it("keeps existing engines bound when the default shader dependencies are replaced", async () => {
-    const defaults = Engine._defaultBuiltinShaders;
-    const shader = createNamesake("Injected/Replacement");
-    let anotherEngine: WebGLEngine | undefined;
-    try {
-      Engine._defaultBuiltinShaders = { ...defaults, pbr: shader };
-      anotherEngine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
-      expect(engine._builtinShaders).toBe(defaults);
-      expect(anotherEngine._builtinShaders.pbr).toBe(shader);
-      const original = new PBRMaterial(engine);
-      const replacement = new PBRMaterial(anotherEngine);
-      expect(original.shader).toBe(defaults.pbr);
-      expect(replacement.shader).toBe(shader);
-      original.destroy();
-      replacement.destroy();
-    } finally {
-      Engine._defaultBuiltinShaders = defaults;
-      anotherEngine?.destroy();
-      shader.destroy(true);
-    }
-  });
-
-  it("preserves in-use shader protection and rejects a force-destroyed dependency", async () => {
+  it("preserves in-use shader protection and rejects a force-destroyed shared shader", async () => {
+    const shaders = Engine._builtinShaders;
     const shader = createNamesake("Injected/InUse");
     let anotherEngine: WebGLEngine | undefined;
     try {
-      anotherEngine = await WebGLEngine.create({
-        canvas: document.createElement("canvas"),
-        _builtinShaders: { ...engine._builtinShaders, pbr: shader }
-      });
+      Engine._builtinShaders = { ...shaders, pbr: shader };
+      anotherEngine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
       const material = new PBRMaterial(anotherEngine);
       const entity = anotherEngine.sceneManager.activeScene!.createRootEntity();
       entity.addComponent(MeshRenderer).setMaterial(material);
@@ -233,6 +212,7 @@ describe("Built-in shader identity", () => {
       expect(() => new PBRMaterial(anotherEngine!)).toThrow("destroyed shader");
       expect(Shader.find(shader.name)).toBeUndefined();
     } finally {
+      Engine._builtinShaders = shaders;
       anotherEngine?.destroy();
       shader.destroy(true);
     }

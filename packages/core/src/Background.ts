@@ -104,7 +104,7 @@ export class Background {
    */
   constructor(private _engine: Engine) {
     this._initMesh(_engine);
-    this._initMaterial(_engine, _engine._builtinShaders.backgroundTexture);
+    this._initMaterial(_engine, Engine._builtinShaders.backgroundTexture);
   }
 
   /**

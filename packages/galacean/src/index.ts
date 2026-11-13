@@ -28,4 +28,4 @@ for (const key in CoreObjects) {
 Polyfill.registerPolyfill();
 SystemInfo._initialize();
 ShaderPool.init();
-Engine._defaultBuiltinShaders = ShaderPool.createShaders();
+Engine._builtinShaders = ShaderPool.createShaders();

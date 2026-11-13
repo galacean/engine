@@ -47,7 +47,7 @@ import { XRManager } from "./xr/XRManager";
  */
 export class Engine extends EventDispatcher {
   /** @internal */
-  static _defaultBuiltinShaders: BuiltinShaders;
+  static _builtinShaders: BuiltinShaders;
 
   /** @internal */
   static _noDepthTextureMacro = ShaderMacro.getByName("ENGINE_NO_DEPTH_TEXTURE");
@@ -102,8 +102,6 @@ export class Engine extends EventDispatcher {
 
   /** @internal */
   _basicResources: BasicResources;
-  /** @internal */
-  readonly _builtinShaders: BuiltinShaders;
   /** @internal */
   _textDefaultFont: Font | null;
   /** @internal */
@@ -253,10 +251,6 @@ export class Engine extends EventDispatcher {
 
   protected constructor(canvas: Canvas, hardwareRenderer: IHardwareRenderer, configuration: EngineConfiguration) {
     super();
-    const shaders = (this._builtinShaders = configuration._builtinShaders ?? Engine._defaultBuiltinShaders);
-    if (!shaders) {
-      throw new Error('Import "@galacean/engine" or provide the engine\'s built-in shaders.');
-    }
     this._hardwareRenderer = hardwareRenderer;
     this._hardwareRenderer.init(canvas, this._onDeviceLost.bind(this), this._onDeviceRestored.bind(this));
 
@@ -288,10 +282,10 @@ export class Engine extends EventDispatcher {
       this._macroCollection.enable(Engine._noSRGBSupportMacro);
     }
 
-    this._basicResources = new BasicResources(this, shaders);
+    this._basicResources = new BasicResources(this, Engine._builtinShaders);
     this._particleBufferUtils = new ParticleBufferUtils(this);
 
-    const uberPass = new PostProcessUberPass(this, shaders.uber, shaders.bloom);
+    const uberPass = new PostProcessUberPass(this);
     this.addPostProcessPass(uberPass);
   }
 
@@ -738,9 +732,6 @@ export class Engine extends EventDispatcher {
  * Engine configuration.
  */
 export interface EngineConfiguration {
-  /** @internal */
-  _builtinShaders?: BuiltinShaders;
-
   /** Physics. */
   physics?: IPhysics;
   /** XR Device. */

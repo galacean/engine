@@ -11,7 +11,7 @@ export class ParticleMaterial extends EffectMaterial {
    * @param engine - Engine to which the material belongs
    * @param shader - Shader used by the material
    */
-  constructor(engine: Engine, shader: Shader = engine._builtinShaders.particle) {
+  constructor(engine: Engine, shader: Shader = Engine._builtinShaders.particle) {
     super(engine, shader);
   }
 

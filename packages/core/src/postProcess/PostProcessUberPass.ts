@@ -4,7 +4,6 @@ import { Engine } from "../Engine";
 import { Material } from "../material";
 import { Blitter } from "../RenderPipeline/Blitter";
 import { PipelineUtils } from "../RenderPipeline/PipelineUtils";
-import { Shader } from "../shader";
 import { RenderTarget, Texture2D, TextureFilterMode, TextureWrapMode } from "../texture";
 import { BloomDownScaleMode, BloomEffect, TonemappingEffect } from "./effects";
 import { PostProcessManager } from "./PostProcessManager";
@@ -20,20 +19,16 @@ export class PostProcessUberPass extends PostProcessPass {
   private _mipDownRT: RenderTarget[] = [];
   private _mipUpRT: RenderTarget[] = [];
 
-  constructor(
-    engine: Engine,
-    uberShader: Shader = engine._builtinShaders.uber,
-    bloomShader: Shader = engine._builtinShaders.bloom
-  ) {
+  constructor(engine: Engine) {
     super(engine);
     this.event = PostProcessPassEvent.AfterUber - 1;
 
     // Uber Material
-    const uberMaterial = new Material(engine, uberShader);
+    const uberMaterial = new Material(engine, Engine._builtinShaders.uber);
     this._uberMaterial = uberMaterial;
 
     // Bloom Material
-    const bloomMaterial = new Material(engine, bloomShader);
+    const bloomMaterial = new Material(engine, Engine._builtinShaders.bloom);
     this._bloomMaterial = bloomMaterial;
 
     // ShaderData initialization

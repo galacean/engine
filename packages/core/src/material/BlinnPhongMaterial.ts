@@ -159,7 +159,7 @@ export class BlinnPhongMaterial extends BaseMaterial {
    * @param engine - Engine to which the material belongs
    */
   constructor(engine: Engine) {
-    super(engine, engine._builtinShaders.blinnPhong);
+    super(engine, Engine._builtinShaders.blinnPhong);
 
     const shaderData = this.shaderData;
 

@@ -14,7 +14,7 @@ export class EngineExtension {
   _uiDefaultMaterial: Material;
   _getUIDefaultMaterial(this: Engine): Material {
     if (!this._uiDefaultMaterial) {
-      const material = new Material(this, this._builtinShaders.ui);
+      const material = new Material(this, Engine._builtinShaders.ui);
       material.isGCIgnored = true;
       this._uiDefaultMaterial = material;
     }

@@ -1,4 +1,5 @@
 import { DataObject } from "../base/DataObject";
+import { Engine } from "../Engine";
 import { Color, MathUtil, Quaternion, Vector3 } from "@galacean/engine-math";
 import { ignoreClone } from "../clone/CloneDecorators";
 import type { ICloneHook } from "../clone/ICloneHook";
@@ -663,7 +664,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     this._feedbackSimulator = useFeedback
       ? new ParticleTransformFeedbackSimulator(
           engine,
-          engine._builtinShaders.particleFeedback,
+          Engine._builtinShaders.particleFeedback,
           useTrajectory,
           this._currentParticleCount
         )
@@ -1477,7 +1478,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     const { engine } = this._renderer;
     this._subEmitterSpawnState = new ParticleSubEmitterSpawnState(
       engine,
-      engine._builtinShaders.particleFeedback,
+      Engine._builtinShaders.particleFeedback,
       this._currentParticleCount,
       !this._feedbackSimulator
     );
