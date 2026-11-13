@@ -34,6 +34,11 @@ async function enterSeedWorld(handoff?: PlanningWorldHandoff): Promise<void> {
 
 async function start(): Promise<void> {
   const page = planningPageUrl();
+  if (page.url.searchParams.get("view") === "structures") {
+    const { mountStructureGallery } = await import("./structures/main.ts");
+    await mountStructureGallery();
+    return;
+  }
   const template = page.url.searchParams.get("template");
   if (template !== "original" && !worldTemplate(template)) {
     document.body.dataset.mode = "template";

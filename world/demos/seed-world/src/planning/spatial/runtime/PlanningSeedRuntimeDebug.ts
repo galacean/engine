@@ -271,7 +271,11 @@ export class PlanningSeedRuntimeDebug {
     if (!session || this.disposed) return;
     this.world = world;
     if (options.rocks && published.sourcePlan) {
-      this.rocks = new RockFormationPanel(session.inspector.rockFolderHost, options.rocks.apply, options.rocks.grass, options.rocks.generation, options.rocks.focus);
+      this.rocks = new RockFormationPanel(session.inspector.rockFolderHost, options.rocks.apply, options.rocks.grass, options.rocks.generation, options.rocks.focus, () => {
+        const url = new URL(location.href);
+        url.searchParams.set("view", "structures");
+        window.open(url, "_blank", "noopener");
+      });
       this.extensions.push(this.rocks);
       this.rocks.synchronize(published.sourcePlan, options.rocks.planning.document);
     }

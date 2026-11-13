@@ -112,6 +112,7 @@ export function generateMountainSurface(
       source,
       seed: job.seed,
       atomSeed: job.worldSeed ?? job.seed,
+      arrangementMethod: controls.seededShapes ? "growth" : "ridge",
       mode: controls.ridgePerlin ? "perlin" : "direct",
       topology: { seeded: controls.ridgeSeededCounts, peaks: controls.ridgePeaks, branches: controls.ridgeBranches },
       noise: {
@@ -143,6 +144,13 @@ export function generateMountainSurface(
         high[d] = Math.max(high[d], point[d]);
       }
   const scale = guide.size.map((size, d) => size / Math.max(1e-6, high[d] - low[d]));
+  // Preserve the generated proportions: filling every axis independently would
+  // turn a broad, low structure and a narrow, tall one into the same silhouette.
+  const preserveProportions = result.scene.fitMode === "contain";
+  if (preserveProportions) scale.fill(Math.min(...scale));
+  const placement = guide.size.map((size, d) =>
+    preserveProportions && d !== 1 ? (-(high[d] - low[d]) * scale[d]) / 2 : -size / 2
+  );
   const positions = new Float32Array(bodies.reduce((sum: number, b: any) => sum + b.vertices.length * 3, 0));
   const normals = new Float32Array(positions.length);
   const indices = new Uint32Array(bodies.reduce((sum: number, b: any) => sum + b.geometry.indices.length, 0));
@@ -152,7 +160,7 @@ export function generateMountainSurface(
   for (const body of bodies) {
     for (let i = 0; i < body.vertices.length; i++)
       for (let d = 0; d < 3; d++)
-        positions[(vertex + i) * 3 + d] = (body.vertices[i][d] - low[d]) * scale[d] - guide.size[d] / 2;
+        positions[(vertex + i) * 3 + d] = (body.vertices[i][d] - low[d]) * scale[d] + placement[d];
     const sourceNormals = rockCornerNormals(body.geometry, controls.fractureSmoothing),
       rock = body.rock;
     const c = Math.cos(rock.yaw),
@@ -163,7 +171,9 @@ export function generateMountainSurface(
       const x = sourceNormals[i * 3] / (rock.longitudinalScale ?? 1);
       const y = sourceNormals[i * 3 + 1] / (rock.verticalScale ?? 1);
       const z = sourceNormals[i * 3 + 2] / (rock.lateralScale ?? 1);
-      const n = [(c * x - s * z) / scale[0], y / scale[1], (s * x + c * z) / scale[2]];
+      const n = rock.frame
+        ? [0, 1, 2].map((d) => (rock.frame[0][d] * x + rock.frame[1][d] * y + rock.frame[2][d] * z) / scale[d])
+        : [(c * x - s * z) / scale[0], y / scale[1], (s * x + c * z) / scale[2]];
       const length = Math.hypot(...n) || 1;
       for (let d = 0; d < 3; d++) cornerNormals[index * 3 + d] = n[d] / length;
       indices[index++] = vertex + body.geometry.indices[i];

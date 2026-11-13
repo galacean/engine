@@ -3,6 +3,7 @@ import type { PlanningComponentDefinition } from "../../../spatial/PlanningCompo
 /** Opt in per world; existing saved worlds retain their authored atomic formations. */
 export const MOUNTAIN_DEFAULTS = {
   ridgeArrangement: false,
+  seededShapes: false,
   rockShaping: false,
   ridgePerlin: false,
   ridgeSeededCounts: true,
@@ -38,6 +39,7 @@ const number = (key: keyof MountainSettings, label: string, min: number, max: nu
 });
 export const MOUNTAIN_FIELDS: PlanningComponentDefinition["fields"] = [
   toggle("ridgeArrangement", "Ridge arrangement / 山脊排列"),
+  toggle("seededShapes", "Seeded spatial shapes / 种子空间造型"),
   toggle("rockShaping", "Shaping and carving / 造型与切削"),
   toggle("ridgePerlin", "Perlin ridge field / 噪声山脊"),
   toggle("ridgeSeededCounts", "Counts from seed / 种子决定数量"),

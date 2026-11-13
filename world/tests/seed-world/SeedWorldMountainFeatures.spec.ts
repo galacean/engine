@@ -112,10 +112,18 @@ it("reads independently persisted controls without adding overrides to legacy do
   expect(defaults.mountain).toMatchObject({ ridgeArrangement: false, rockShaping: false });
   const saved = structuredClone(document);
   saved.entities.world.components.rockFormation = {
-    values: { ridgeArrangement: true, rockShaping: false, ridgePeaks: 5, fractureDepth: 0.7, fractureSmoothing: 0.8 }
+    values: {
+      ridgeArrangement: true,
+      seededShapes: true,
+      rockShaping: false,
+      ridgePeaks: 5,
+      fractureDepth: 0.7,
+      fractureSmoothing: 0.8
+    }
   };
   expect(readRockFormationSettings(JSON.parse(JSON.stringify(saved))).mountain).toMatchObject({
     ridgeArrangement: true,
+    seededShapes: true,
     rockShaping: false,
     ridgePeaks: 5,
     fractureDepth: 0.7,

@@ -19,6 +19,11 @@ export function random(seed, stream) {
 }
 
 export function transformedVertices(rock, geometry) {
+  if(rock.frame){
+    const scales=[rock.longitudinalScale??1,rock.verticalScale??1,rock.lateralScale??1].map(v=>v*rock.scale),origin=[rock.x,rock.y,rock.z],vertices=[];
+    for(let i=0;i<geometry.positions.length;i+=3)vertices.push(origin.map((v,d)=>v+rock.frame.reduce((sum,axis,k)=>sum+axis[d]*geometry.positions[i+k]*scales[k],0)));
+    return vertices;
+  }
   const c = Math.cos(rock.yaw), s = Math.sin(rock.yaw), vertices = [];
   for (let i = 0; i < geometry.positions.length; i += 3) {
     const x = geometry.positions[i] * rock.scale * (rock.longitudinalScale ?? 1), z = geometry.positions[i + 2] * rock.scale * (rock.lateralScale ?? 1);

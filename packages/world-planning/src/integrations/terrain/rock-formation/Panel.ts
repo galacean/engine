@@ -37,11 +37,13 @@ export class RockFormationPanel {
     private readonly apply: (commands: PlanningParameterCommand[]) => Promise<unknown>,
     private readonly grass?: { preview(enabled: boolean): void; diagnostics(): string },
     private readonly generation?: () => string,
-    focus?: (id: string) => void
+    focus?: (id: string) => void,
+    examples?: () => void
   ) {
     this.folder = host.folder("Rock formation / 岩石形态", false);
     this.element = this.folder.domElement;
     this.element.setAttribute("aria-label", "Rock formation controls / 岩石形态参数");
+    if (examples) host.addAction(this.folder, "10 seeded examples / 十个种子造型", examples);
     const shape = host.subfolder(this.folder, "Shape / 整体轮廓与岩壁", true);
     const material = host.subfolder(this.folder, "Shared material / 共用材质", false);
     const sampling = host.subfolder(this.folder, "Sampling / 变化与精简", false);
@@ -50,7 +52,7 @@ export class RockFormationPanel {
     host.addReadout(
       arrangement,
       "Ridge controls / 山脊控制"
-    )("仅山体；主峰/支脊数量用于直接生长模式。Perlin 模式按噪声提取。高度使用下方 OBB Height。");
+    )("仅山体。种子空间造型开启时，由 seed 生长空间结构；关闭时使用主峰/支脊或 Perlin 山脊。高度使用下方 OBB Height。");
     host.addReadout(
       shaping,
       "Independent features / 独立开关"

@@ -1,4 +1,4 @@
-import {generateRidgeScene} from './ridge.mjs';
+import {arrangeRockStructure} from './strategies.mjs';
 
 // A neutral inspection layout is the arrangement bypass: no terrain, ridge
 // extraction, target fitting, scaling or geometry changes. Slots stay separated.
@@ -16,16 +16,16 @@ export function createRockLibraryScene(source,geometries){
 
 // A new arrangement strategy supplies arrange with this same scene contract.
 // It receives meshes, not carving settings or the carving implementation.
-export function createArrangementFeature({arrange=generateRidgeScene,inspect=createRockLibraryScene}={}){
+export function createArrangementFeature({arrange=arrangeRockStructure,inspect=createRockLibraryScene}={}){
  return {
   id:'arrangement',
   run(request,result,cache){
-   const started=performance.now(),key=JSON.stringify({library:result.libraryKey,seed:Number(request.seed)>>>0,mode:request.mode,noise:request.noise,topology:request.topology});
+   const started=performance.now(),key=JSON.stringify({library:result.libraryKey,seed:Number(request.seed)>>>0,method:request.arrangementMethod,mode:request.mode,noise:request.noise,topology:request.topology});
    cache.scenes??=new Map();
    // Worker messages clone the source each time, so compare its content instead
    // of object identity. Changing terrain still invalidates the fitted result.
    const sourceKey=JSON.stringify(request.source),previous=cache.scenes.get(key),arrangementCached=!!previous&&previous.sourceKey===sourceKey;
-   const scene=arrangementCached?previous.scene:arrange(request.source,result.geometries,Number(request.seed)>>>0,{mode:request.mode,noise:request.noise,topology:request.topology});
+   const scene=arrangementCached?previous.scene:arrange(request.source,result.geometries,Number(request.seed)>>>0,{method:request.arrangementMethod,mode:request.mode,noise:request.noise,topology:request.topology});
    cache.scenes.delete(key);cache.scenes.set(key,{sourceKey,scene});
    // Keep the current shaped and unshaped arrangements across toggles, bounded
    // so exploration cannot accumulate every generated mountain in memory.
