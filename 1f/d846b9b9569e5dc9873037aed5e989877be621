@@ -1,0 +1,19 @@
+packages/galacean/src/ShaderPool.ts
+  s_887c9bfcd3faf0::t_8f710f89246296 46-47
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "1fd846b9b9569e5dc9873037aed5e989877be621",
+  "prompts": {},
+  "sessions": {
+    "s_887c9bfcd3faf0": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1334e-1e2b-7b23-b7e9-874f5ffe4d60",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}
