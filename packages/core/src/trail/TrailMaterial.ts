@@ -11,7 +11,7 @@ export class TrailMaterial extends EffectMaterial {
    * @param engine - Engine to which the material belongs
    */
   constructor(engine: Engine) {
-    super(engine, Shader._findBuiltin("Effect/Trail")!);
+    super(engine, Shader._builtinShaders["Effect/Trail"]!);
   }
 
   /**

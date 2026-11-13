@@ -50,7 +50,7 @@ export class ParticleTransformFeedbackSimulator {
   constructor(engine: Engine, trajectoryEnabled: boolean, particleCount: number) {
     this.trajectoryEnabled = trajectoryEnabled;
     // The engine flavor owns shader registration; engine-core resolves the registered pass when needed
-    const feedbackShader = Shader._findBuiltin(FEEDBACK_SHADER_NAME);
+    const feedbackShader = Shader._builtinShaders[FEEDBACK_SHADER_NAME];
     if (!feedbackShader) {
       throw new Error(
         `${FEEDBACK_SHADER_NAME} shader is not registered. Import "@galacean/engine" before constructing the engine, ` +

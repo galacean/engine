@@ -163,7 +163,7 @@ export class Background {
   }
 
   private _initMaterial(engine: Engine): void {
-    const material = (this._material = new Material(engine, Shader._findBuiltin("Sky/BackgroundTexture")!));
+    const material = (this._material = new Material(engine, Shader._builtinShaders["Sky/BackgroundTexture"]!));
     material._addReferCount(1);
   }
 

@@ -23,12 +23,12 @@ export class FinalPass extends PipelinePass {
     super(engine);
 
     // SRGB Material
-    const sRGBmaterial = new Material(engine, Shader._findBuiltin("PostProcess/FinalSRGB")!);
+    const sRGBmaterial = new Material(engine, Shader._builtinShaders["PostProcess/FinalSRGB"]!);
     sRGBmaterial._addReferCount(1);
     this._sRGBmaterial = sRGBmaterial;
 
     // FXAA Material
-    const antiAliasingMaterial = new Material(engine, Shader._findBuiltin("PostProcess/FinalAntiAliasing")!);
+    const antiAliasingMaterial = new Material(engine, Shader._builtinShaders["PostProcess/FinalAntiAliasing"]!);
     antiAliasingMaterial._addReferCount(1);
     this._antiAliasingMaterial = antiAliasingMaterial;
   }

@@ -28,7 +28,10 @@ export class Shader implements IReferable {
   /** @internal */
   static _shaderCompiler?: IShaderCompiler;
 
-  private static _shaderMap: Record<string, { shaders: Shader[]; builtin?: Shader }> = Object.create(null);
+  /** @internal */
+  static readonly _builtinShaders: Record<string, Shader | undefined> = Object.create(null);
+
+  private static _shaderMap: Record<string, Shader[]> = Object.create(null);
 
   /**
    * Create a shader by source code.
@@ -165,27 +168,14 @@ export class Shader implements IReferable {
    * @remarks Retain the shader object when a material must use a specific shader among namesakes.
    */
   static find(name: string): Shader | undefined {
-    const shaders = Shader._shaderMap[name]?.shaders;
+    const shaders = Shader._shaderMap[name];
     return shaders?.[shaders.length - 1];
   }
 
   /**
-   * Find the shader retained by the engine bootstrap for built-in consumers.
-   * @param name - Built-in shader name
-   * @returns The registered built-in shader, or `undefined` if it is absent or destroyed.
    * @internal
    */
-  static _findBuiltin(name: string): Shader | undefined {
-    return Shader._shaderMap[name]?.builtin;
-  }
-
-  /**
-   * Create a shader from precompiled instructions.
-   * @param data - Precompiled shader data
-   * @param isBuiltin - Whether the engine bootstrap retains this shader for built-in consumers
-   * @internal
-   */
-  static _createFromPrecompiled(data: IPrecompiledShader, isBuiltin: boolean = false): Shader {
+  static _createFromPrecompiled(data: IPrecompiledShader): Shader {
     const subShaderList = data.subShaders.map((subData) => {
       const passList = subData.passes.map((passData) => {
         if (passData.isUsePass) {
@@ -213,11 +203,7 @@ export class Shader implements IReferable {
       return new SubShader(subData.name, passList, subData.tags);
     });
 
-    const shader = new Shader(data.name, subShaderList);
-    if (isBuiltin) {
-      Shader._shaderMap[data.name].builtin = shader;
-    }
-    return shader;
+    return new Shader(data.name, subShaderList);
   }
 
   /**
@@ -226,7 +212,7 @@ export class Shader implements IReferable {
   static _clear(engine: Engine): void {
     const shaderMap = Shader._shaderMap;
     for (const key in shaderMap) {
-      for (const shader of shaderMap[key].shaders) {
+      for (const shader of shaderMap[key]) {
         const subShaders = shader._subShaders;
         for (let i = 0, n = subShaders.length; i < n; i++) {
           const passes = subShaders[i].passes;
@@ -408,8 +394,7 @@ export class Shader implements IReferable {
     subShaders: SubShader[]
   ) {
     this._subShaders = subShaders;
-    const entry = (Shader._shaderMap[name] ??= { shaders: [] });
-    entry.shaders.push(this);
+    (Shader._shaderMap[name] ??= []).push(this);
   }
 
   /**
@@ -467,11 +452,10 @@ export class Shader implements IReferable {
       }
     }
 
-    const entry = Shader._shaderMap[this.name];
-    const shaders = entry.shaders;
+    const shaders = Shader._shaderMap[this.name];
     shaders.splice(shaders.indexOf(this), 1);
-    if (entry.builtin === this) {
-      entry.builtin = undefined;
+    if (Shader._builtinShaders[this.name] === this) {
+      delete Shader._builtinShaders[this.name];
     }
     if (shaders.length === 0) delete Shader._shaderMap[this.name];
     this._destroyed = true;

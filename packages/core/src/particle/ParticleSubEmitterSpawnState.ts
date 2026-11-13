@@ -48,7 +48,7 @@ export class ParticleSubEmitterSpawnState {
   }
 
   constructor(engine: Engine, particleCapacity: number, needsRenderBinding: boolean) {
-    const gatherPass = Shader._findBuiltin(FEEDBACK_SHADER_NAME)?.subShaders[0]?.passes.find(
+    const gatherPass = Shader._builtinShaders[FEEDBACK_SHADER_NAME]?.subShaders[0]?.passes.find(
       (pass) => pass.name === GATHER_PASS_NAME
     );
     if (!gatherPass) {

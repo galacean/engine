@@ -3,6 +3,7 @@ import {
   BlinnPhongMaterial,
   GLTFResource,
   Material,
+  MeshRenderer,
   ParticleMaterial,
   PBRMaterial,
   Shader,
@@ -16,6 +17,12 @@ import { ShaderCompiler } from "@galacean/engine-shader-compiler";
 import "@galacean/engine-ui";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { SpineMaterial } from "../../../packages/spine/src/renderer/SpineMaterial";
+
+function registerBuiltin(name: string): Shader {
+  const shader = Shader._createFromPrecompiled({ name, platformTarget: 0, subShaders: [] });
+  Shader._builtinShaders[name] = shader;
+  return shader;
+}
 
 function createNamesake(name: string): Shader {
   return Shader.create(`Shader "${name}" {
@@ -119,18 +126,63 @@ describe("Built-in shader identity", () => {
     }
   });
 
-  it("removes only the destroyed built-in binding while preserving a live namesake", () => {
-    const source = { name: "BuiltinIdentityCleanup", platformTarget: 0, subShaders: [] };
-    const builtin = Shader._createFromPrecompiled(source, true);
+  it.each(["BuiltinIdentityCleanup", "__proto__"])(
+    "removes only the destroyed built-in binding for %s while preserving a live namesake",
+    (name) => {
+      const builtin = registerBuiltin(name);
+      const custom = Shader._createFromPrecompiled({ name, platformTarget: 0, subShaders: [] });
+      try {
+        expect(Shader._builtinShaders[name]).toBe(builtin);
+        builtin.destroy();
+        expect(Shader._builtinShaders[name]).toBeUndefined();
+        expect(Shader.find(name)).toBe(custom);
+      } finally {
+        builtin.destroy();
+        custom.destroy();
+      }
+    }
+  );
+
+  it("keeps a replacement binding when older or custom namesakes are destroyed", () => {
+    const source = { name: "BuiltinIdentityReplacement", platformTarget: 0, subShaders: [] };
+    const previous = registerBuiltin(source.name);
+    const material = new Material(engine, previous);
+    const replacement = registerBuiltin(source.name);
     const custom = Shader._createFromPrecompiled(source);
     try {
-      expect(Shader._findBuiltin(source.name)).toBe(builtin);
-      builtin.destroy();
-      expect(Shader._findBuiltin(source.name)).toBeUndefined();
+      expect(material.shader).toBe(previous);
+      expect(Shader._builtinShaders[source.name]).toBe(replacement);
+      material.destroy();
+      previous.destroy();
+      expect(Shader._builtinShaders[source.name]).toBe(replacement);
       expect(Shader.find(source.name)).toBe(custom);
-    } finally {
-      builtin.destroy();
       custom.destroy();
+      expect(Shader._builtinShaders[source.name]).toBe(replacement);
+      expect(Shader.find(source.name)).toBe(replacement);
+    } finally {
+      material.destroy();
+      previous.destroy();
+      custom.destroy();
+      replacement.destroy();
+    }
+  });
+
+  it("retains an in-use built-in binding until destruction succeeds", () => {
+    const name = "BuiltinIdentityInUse";
+    const builtin = registerBuiltin(name);
+    const material = new Material(engine, builtin);
+    const entity = engine.sceneManager.activeScene!.createRootEntity();
+    entity.addComponent(MeshRenderer).setMaterial(material);
+    try {
+      expect(builtin.destroy()).toBe(false);
+      expect(Shader._builtinShaders[name]).toBe(builtin);
+      expect(builtin.destroy(true)).toBe(true);
+      expect(Shader._builtinShaders[name]).toBeUndefined();
+      expect(Shader.find(name)).toBeUndefined();
+    } finally {
+      entity.destroy();
+      material.destroy();
+      builtin.destroy(true);
     }
   });
 });
