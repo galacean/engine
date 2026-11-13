@@ -207,7 +207,7 @@ Shader "Lighting/ScreenSpaceReflection" {
         #endif
 
         vec3 viewPosition = reconstructScreenSpaceReflectionViewPosition(uv, receiverDepth);
-        vec3 viewNormal = decodeScreenSpaceReflectionNormal(surface.rg);
+        vec3 viewNormal = decodeScreenSpaceReflectionViewNormal(surface.rg);
         vec3 viewToSurface = normalize(viewPosition);
         vec3 rayDirection = normalize(reflect(viewToSurface, viewNormal));
         float receiverThickness = resolveScreenSpaceReflectionThickness(-viewPosition.z, 0.0);
@@ -445,7 +445,7 @@ Shader "Lighting/ScreenSpaceReflection" {
 
         float originEyeDepth = remapDepthBufferEyeDepth(originDepth);
         vec3 originViewPosition = reconstructScreenSpaceReflectionViewPositionFromEyeDepth(originUV, originEyeDepth);
-        vec3 originNormal = decodeScreenSpaceReflectionNormal(originSurface.rg);
+        vec3 originNormal = decodeScreenSpaceReflectionViewNormal(originSurface.rg);
         vec3 originOffset = originViewPosition - currentViewPosition;
         // Eye depth is not a surface-distance metric: on a grazing plane, two
         // adjacent screen rows can be metres apart along the plane while still
@@ -488,7 +488,7 @@ Shader "Lighting/ScreenSpaceReflection" {
 
         float currentEyeDepth = remapDepthBufferEyeDepth(currentDepth);
         vec3 currentViewPosition = reconstructScreenSpaceReflectionViewPositionFromEyeDepth(uv, currentEyeDepth);
-        vec3 currentNormal = decodeScreenSpaceReflectionNormal(currentSurface.rg);
+        vec3 currentNormal = decodeScreenSpaceReflectionViewNormal(currentSurface.rg);
         vec2 tracePosition = uv * material_SSRTraceTexelSize.zw - vec2(0.5);
         vec2 baseTracePixel = floor(tracePosition);
         vec2 fraction = fract(tracePosition);
@@ -608,7 +608,7 @@ Shader "Lighting/ScreenSpaceReflection" {
           if (material_SSRDebugMode < 1.5) {
             return baseColor;
           } else if (material_SSRDebugMode < 2.5) {
-            return vec4(decodeScreenSpaceReflectionNormal(surface.rg) * 0.5 + 0.5, 1.0);
+            return vec4(decodeScreenSpaceReflectionViewNormal(surface.rg) * 0.5 + 0.5, 1.0);
           } else if (material_SSRDebugMode < 3.5) {
             float eyeDepth = receiverDepth < 0.999999 ? remapDepthBufferLinear01(receiverDepth) : 1.0;
             return vec4(vec3(eyeDepth), 1.0);
@@ -626,7 +626,7 @@ Shader "Lighting/ScreenSpaceReflection" {
         }
 
         vec3 viewPosition = reconstructScreenSpaceReflectionViewPosition(uv, receiverDepth);
-        vec3 viewNormal = decodeScreenSpaceReflectionNormal(surface.rg);
+        vec3 viewNormal = decodeScreenSpaceReflectionViewNormal(surface.rg);
         vec3 environmentRadiance = sampleScreenSpaceReflectionEnvironment(viewPosition, viewNormal, surface.b);
         float ssrScale = saturate(camera_ScreenSpaceReflectionIntensity) * saturate(response.a);
         float ssrBlend = saturate(trace.a * ssrScale);

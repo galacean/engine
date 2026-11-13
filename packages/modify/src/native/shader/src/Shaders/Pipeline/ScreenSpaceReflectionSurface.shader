@@ -3,7 +3,7 @@ Shader "Pipeline/ScreenSpaceReflectionSurface" {
     Pass "ScreenSpaceReflectionSurface" {
       Tags {
         pipelineStage = "ScreenSpaceReflectionSurface",
-        screenSpaceReflectionReceiver = "ColorResponseV2"
+        screenSpaceReflectionReceiver = "ColorResponseV3"
       }
 
       RenderQueueType renderQueueType;
@@ -83,9 +83,8 @@ Shader "Pipeline/ScreenSpaceReflectionSurface" {
           reflectionResponse = saturate(baseLobeResponse * material_ScreenSpaceReflectionIntensity * fogVisibility);
         }
 
-        vec3 viewNormal = normalize(mat3(camera_ViewMat) * surfaceData.normal);
         ScreenSpaceReflectionSurfaceOutput output;
-        output.geometry = packScreenSpaceReflectionSurface(viewNormal, bsdfData.roughness, 1.0);
+        output.geometry = packScreenSpaceReflectionSurface(surfaceData.normal, bsdfData.roughness, 1.0);
         output.responseColor = vec4(reflectionResponse, 1.0);
         return output;
       }

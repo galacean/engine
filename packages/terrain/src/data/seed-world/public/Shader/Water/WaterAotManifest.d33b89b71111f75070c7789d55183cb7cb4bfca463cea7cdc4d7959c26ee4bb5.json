@@ -25,7 +25,7 @@
   "budgets": {
     "maximumProfileArtifactBytes": 600000,
     "maximumTotalArtifactBytes": 1200000,
-    "actualTotalArtifactBytes": 259806
+    "actualTotalArtifactBytes": 259672
   },
   "profiles": [
     {
@@ -34,11 +34,11 @@
       "variantKey": "heightfield:appearanceVariantKey=surface-appearance-v2%3Aed93d4a81a01602d;depthSource=hybrid-optional-scene-depth;quality=high;surfaceAppearance=1;surfaceAppearanceVersion=2;waveSlotCount=0",
       "sourcePath": "source/Shader/Water/LakeHeightfieldHighHybrid.shader",
       "virtualPath": "Shader/Water/lake-heightfield-high-hybrid-v2.shaderc",
-      "path": "public/Shader/Water/lake-heightfield-high-hybrid-v2.dd537fc7e67ee232d8268f0c72b5c4a0dbb3db26f93c2c49e4f761ec32ccf184.shaderc",
-      "cacheKey": "dd537fc7e67ee232d8268f0c72b5c4a0dbb3db26f93c2c49e4f761ec32ccf184",
-      "materializedSourceSha256": "a28ab19bbd13df630853d8d88d537f2b05a25ac6ab8391a80dc5d7c8c1ab03c7",
-      "artifactSha256": "dd537fc7e67ee232d8268f0c72b5c4a0dbb3db26f93c2c49e4f761ec32ccf184",
-      "artifactBytes": 111447,
+      "path": "public/Shader/Water/lake-heightfield-high-hybrid-v2.e63de9387dc822a1dd299a1af333b8023dc7e145fac9c0c55fe9e648f739b5c2.shaderc",
+      "cacheKey": "e63de9387dc822a1dd299a1af333b8023dc7e145fac9c0c55fe9e648f739b5c2",
+      "materializedSourceSha256": "5a0110243e680f246075430fdffdc1bb2a6ecc2a7f4a4bc16b93ef1420974b01",
+      "artifactSha256": "e63de9387dc822a1dd299a1af333b8023dc7e145fac9c0c55fe9e648f739b5c2",
+      "artifactBytes": 111313,
       "passTopology": [
         [
           {
@@ -73,12 +73,14 @@
           "material_SurfaceTexture"
         ]
       },
-      "compilerSha256": "545f95e3747886d7fa99e053ed38920bde3bc0895ecbd47105945057a16f664f",
+      "compilerSha256": "df9413e216a230b9a0e60a52aeb6786b6c1b39cd161c04387f4722d1c1a1f958",
       "postprocess": {
-        "operation": "remove-world-selection-v1",
-        "inputArtifactSha256": "db5060a07f2ab8ff5c572c39a2e5af679e1cbac55bfa2ab84922136dee972fd9",
-        "inputSourceGraphSha256": "c2cafda7dad514720b0a6951b5fe02d37b5e0ad1c181759a4f27cca7e686706a",
-        "preserved": "pass topology, render states, macro instructions and non-selection shader code"
+        "operation": "upgrade-world-space-ssr-contract-v3",
+        "source": "world/scripts/generate-water-assets.mjs (Lake owner factory)",
+        "compilerPackage": "@galacean/engine-shader-compiler/precompile",
+        "compilerVersion": "2.0.0-alpha.55.local.ca07d71841e54da7",
+        "compilerSha256": "df9413e216a230b9a0e60a52aeb6786b6c1b39cd161c04387f4722d1c1a1f958",
+        "includeMapSha256": "24893a0adb70a073b4e311a1fc379aa2f73a8d636e122ce7abd08611b3a9930d"
       }
     },
     {
