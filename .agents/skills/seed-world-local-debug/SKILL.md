@@ -15,9 +15,10 @@ description: 准备并启动 Seed World 与 ASAP 的本地 LLM 联调环境，�
 
 默认 Engine 来源是 `git@github.com:galacean/engine.git` 的远端 `experimental/engine-next`。
 默认 ASAP 来源是 `git@code.alipay.com:recneptune-tenants/asap-service.git` 的远端 **`codex/seed-world-master-sync`**。
-该分支是 ASAP PR !12752 的源分支，包含最新的 ASAP `master`。PR !12752 合并后，把默认 ASAP 来源改成 `master`。
-旧默认分支 `codex/seed-world-local-debug` 是它的祖先，已有 worktree 可以直接 fast-forward。
+该分支是 ASAP PR !12752 的源分支；是否包含最新 `master` 必须在 fetch 后核对，不能由分支名推断。
+确认 PR 已合并且 `master` 包含本 Skill 所需的模型路由与协议后，再更新默认 ASAP 来源。
 默认 ASAP 分支只在这里写明；其他文件引用这里。
+不固定 commit；启动时获取所选远端分支，记录实际 HEAD、同步差距和工作树状态。
 用户明确要调试未提交改动时保留它们，并在交付中说明，不宣称它们是干净远端代码。
 
 默认端口前端 `4173`、后端 `8082`，两侧使用同一个主机名 `127.0.0.1`。

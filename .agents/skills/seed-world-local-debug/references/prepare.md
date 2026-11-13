@@ -11,10 +11,9 @@
 | Engine | `git@github.com:galacean/engine.git` | `experimental/engine-next` |
 | ASAP | `git@code.alipay.com:recneptune-tenants/asap-service.git` | 见 [SKILL.md](../SKILL.md) 的默认 ASAP 来源 |
 
-Engine 可正常 clone/fetch。
-ASAP 的远端操作遵守其仓库规则，使用 `antcode`，不要用 `gh`。
-安装/登录说明在内网 `https://code.alipay.com/sigma-sre/go-antcode`；用当前 CLI 的 `--help` 核对 clone/fetch 用法，不猜测命令。
-若机器没有可用 antcode 或登录权限，先完成该前置条件，不默默改用旧 checkout。
+两个仓库的 clone、fetch、分支和 worktree 操作使用原生 Git。
+ASAP 的 PR 查询等平台操作使用 `antcode`，不要用 `gh`；只做 Git 同步不要求安装 antcode。
+仓库鉴权失败时报告具体错误，不默默改用旧 checkout。
 
 拿到最新 remote-tracking ref 后，可在新目录创建本地调试 worktree：
 
@@ -25,7 +24,7 @@ git worktree add -b codex/seed-world-local-debug /chosen/path/asap-debug origin/
 ```
 
 本地分支名不要求与远端一致；基线与同步目标必须明确。
-默认 ASAP 分支变化后，已有 worktree 在 fetch 后 fast-forward 到新的默认分支，并把它设为上游。
+默认 ASAP 分支变化后，先检查已有 worktree 与新来源的祖先关系；可 fast-forward 时再同步并更新上游。
 ASAP 基线变化后，按第 3 节重新安装依赖，并按第 4 节检查本地配置。
 后续更新用 fetch 后 fast-forward；有分叉或未提交改动时停下说明，不自动丢弃或合并。
 记录 fetch 时间和两个 HEAD；未 fetch 时不能称“远端最新”。
@@ -37,16 +36,19 @@ Node 至少满足项目 `engines`（当前 `>=20.19.0`，推荐 Node 22 LTS）�
 通过同事自己的 Node 版本管理器选择版本，不依赖系统 Node 20.10 或他人的 nvm 路径。
 两个终端都检查 `node --version`、`pnpm --version`。
 
-在所选 Engine worktree 的根目录执行：
+首次准备时，在所选 Engine worktree 的根目录执行：
 
 ```bash
 pnpm install --frozen-lockfile
+pnpm b:module
 pnpm --dir world prepare:engine
 ```
 
-`prepare:engine` 用于建立引擎依赖产物；单纯启动调试不追加全局测试。
-更新锁文件后重新安装；引擎包改动后按实际影响重新执行 `prepare:engine`。
-已有一致产物时复用；仅修改 Demo 或 TypeScript 源码时无需重新准备。
+`b:module` 生成模块产物，`prepare:engine` 准备世界编辑所需的编译器与运行时产物。
+缺少 `@galacean/engine-shader-parser/internal` 或 `dist/main.analyzer.js` 时，先完成 `b:module`，再运行 `prepare:engine`；仅运行后者不能证明依赖齐全。
+更新锁文件后重新安装；引擎包改动后按实际影响重建模块及执行 `prepare:engine`。
+已有与源码一致的产物时复用；仅修改由 Vite 直接加载的 Demo 源码时无需重新准备。
+单纯启动调试不追加全局测试。
 `node_modules` 由其他 pnpm 版本安装时，`pnpm install` 可能提示清理目录，无终端交互时会一直等待。遇到时停下说明，不自动清理。
 
 ## 3. ASAP 环境
@@ -75,7 +77,8 @@ npm install
 
 检查 Engine `packages/ai-chat/src/ai-chat/asap-chat.ts` 的本地请求身份，以及 `world/demos/seed-world/assistant/SeedWorldModel.ts` 的模型入参。
 当前本地身份是 `ai-chat-local`，目标入参是 `dsv41flash`。
-ASAP 必须已注册 `models.models.aisearch_dsv41flash`；当前模型服务名为 `aisearch_dsv41flash_h203e_tp4`，注册配置包含 Provider、凭据引用和推理参数，不能只添加请求别名映射。
+ASAP 必须已注册公共模型 `DeepSeek-V4.1-Flash`，使用 `ant_high_assurance_asap` 凭据引用；注册配置包含 Provider 和推理参数，不能只添加请求别名映射。
+注册缺失时先同步默认 ASAP 分支，不在本地临时重建模型注册。
 ASAP 默认配置可能已有模型映射，但没有放行本地身份，此时请求会回退到默认 Ling 模型。
 本地联调准备应主动补齐所选 ASAP worktree 的 `config/biz_config/dev/common_config.local.yaml`，这是正常环境准备，不需要另行申请修改生产配置的授权。
 先确认该 checkout 的配置加载器支持 dev 的 `*.local.yaml`；若不支持，报告版本差异，不修改共享配置绕过。
@@ -84,12 +87,13 @@ ASAP 默认配置可能已有模型映射，但没有放行本地身份，此时
 
 ```yaml
 mini_app_ai_chat_model_mapping:
-  dsv41flash: "aisearch_dsv41flash"
+  dsv41flash: "DeepSeek-V4.1-Flash"
 mini_app_ai_chat_model_mapping_enabled_artifact_ids:
   - "ai-chat-local"
 ```
 
 默认或 dev 配置已有正确模型映射时，不必在本地文件重复添加；缺少时才补齐此映射。
+已有 local 配置若仍将 `dsv41flash` 指向旧专属模型，删除该项以继承正确默认值，或将该项更新为公共模型；保留其他本地配置。
 修改前读取 default、dev 和已有 local 配置，保留其他字段与映射；该白名单列表会被覆盖而非自动追加，因此本地列表应保留这些配置中已有的身份，再去重加入 `ai-chat-local`。
 不要重复定义同一个 YAML 键，也不要整文件覆盖同事已有配置。
 该文件只在 dev 环境加载，通常被 Git 忽略，不随 clone/pull 分发；每个新 checkout 都需要准备，不提交个人配置，不复制凭据或冒用线上 Artifact ID。
@@ -97,7 +101,8 @@ mini_app_ai_chat_model_mapping_enabled_artifact_ids:
 
 检查 ASAP 生效配置，而非只看默认 YAML：
 
-- `common_config.mini_app_ai_chat_model_mapping` 应将 `dsv41flash` 映射到 `aisearch_dsv41flash`。
+- `common_config.mini_app_ai_chat_model_mapping` 应将 `dsv41flash` 映射到 `DeepSeek-V4.1-Flash`。
+- `params.mini_app_ai_chat_model_setting_overrides` 应为公共模型配置 `max_tokens: 65536`，通用默认值保持 `8000`。
 - `common_config.mini_app_ai_chat_model_mapping_enabled_artifact_ids` 应允许实际本地身份。
 - 请求级 `mock_darwin_params`、环境变量、远端配置可能覆盖默认文件；不得在 URL 中偷偷加模型强制覆盖来掩盖问题。
 

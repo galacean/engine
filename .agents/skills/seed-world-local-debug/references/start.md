@@ -3,6 +3,7 @@
 ## 启动前核对
 
 确定 Engine、ASAP 的实际目录、Python 解释器和两个端口。
+按[环境准备](prepare.md#1-定位或获取源码) fetch 所选来源分支，核对实际 HEAD 与同步差距；用户指定版本或保留 WIP 时记录差异，不强制更新。
 新终端重新设置下例路径变量，不假设变量会跨终端继承。
 检查 `SERVER_ENV`、`TEST_UID`、`PYTHONPATH` 是否意外继承了另一环境；不打印其他敏感环境变量。
 ASAP 本地启动不加 `--server-env prod/prepub/gray`，默认走 dev。
@@ -40,10 +41,12 @@ cd "$ASAP_ROOT"
 ## 生成地址和 HTTP 检查
 
 将 `SKILL_DIR` 设为本 Skill 的安装目录；调用方要从正在读取的 SKILL.md 所在目录解析它，不硬编码其他人的路径。
+将 `ASAP_SOURCE_REF` 设为 `origin/` 加 [SKILL.md](../SKILL.md) 中的默认 ASAP 分支；用户指定其他来源时使用该来源。
 
 ```bash
 python3 "$SKILL_DIR/scripts/preview.py" \
   --engine-root "$ENGINE_ROOT" --asap-root "$ASAP_ROOT" \
+  --asap-source "$ASAP_SOURCE_REF" \
   --frontend-port 4173 --backend-port 8082 --check
 ```
 
@@ -63,12 +66,14 @@ HTTP 失败时不要继续宣称可调试；查看对应终端。
 
 1. 进入 3D 后打开 Agent Trace，先用指令编辑器输入“现在世界里是几点？”验证文本链路，排除 ASR 干扰。
 2. 输入“把时间改成下午三点”验证实际 API 执行；这会修改当前测试场景，若用户只授权打开页面则不要代发，交由用户验收。
-3. 检查 Trace 的请求模型 `dsv41flash` 和响应 `debug.modelName`；必要时对照本地 `logs/asap-service/trace.log` 中同一个 trace ID 的 LLM 节点/digest，实际模型应为 `aisearch_dsv41flash`。
+3. 检查 Trace 的请求模型 `dsv41flash` 和响应 `debug.modelName`；必要时对照本地 `logs/asap-service/trace.log` 中同一个 trace ID 的 LLM 节点/digest，实际模型应为公共 `DeepSeek-V4.1-Flash`。
 4. 确认 `read` / `execute` 原生 Tool Call、`tool_call_id` 对应结果及最终 Assistant 回复；上下文已有声明时可不重复读取，不能强制固定调用序列。
 5. 检查 Tool 结果与 `worldAfter` 时间是否匹配，不能只凭“修改成功”的文案判通过。
 
 接口 HTTP 200、前端 requestedModel、URL 参数和 System Prompt 都不能单独证明实际模型路由。
 如果没有实际模型证据，写“模型待验证”，不要推定默认路由正确。
+只有文本回复且 `toolCalls` 为空时，只能确认文本链路，不能判定工具执行通过。
+本地调用公共模型成功不代表预发或生产服务地址已验收，也不代表图片、长上下文和并发额度已验证。
 如需语音，再授权麦克风并按住 Siri 球测试，分别记录 ASR 和 LLM 结果；Web ASR 不可用不代表手机原生壳同样不可用。
 Trace 可能含用户内容和内部信息，只保存/分享必要的脱敏证据。
 
