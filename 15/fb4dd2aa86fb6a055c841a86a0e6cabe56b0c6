@@ -1,0 +1,57 @@
+world/demos/seed-world/src/planning/spatial/runtime/PlanningAnimalHabitat.ts
+  s_7fe30a98288265::t_6f818912314e96 430-431,436,454,456,458,470-474,476-482,485-490
+  s_7fe30a98288265::t_c145430220b684 469
+  s_7fe30a98288265::t_e42c34cdf3c37d 448-452,455,457,475,483-484
+packages/animals/src/gameplay/animal/AnimalStaticRoute.ts
+  s_7fe30a98288265::t_a9c45caf8c9edf 55-57,59
+packages/animals/src/gameplay/animal/ConfiguredAnimal.ts
+  s_7fe30a98288265::t_bf20dcdbd299a0 1049-1051,1064-1065
+packages/water/src/water/runtime/river/RiverQueryService.ts
+  s_7fe30a98288265::t_49412a8904e751 713,719,735
+  s_7fe30a98288265::t_ef5bee8765a71a 721-722,724-725,727-730
+  s_7fe30a98288265::t_dc53c042999f0d 143,550-551,563-565,591-613,714-718,720,723,726,731-734,736-746
+  s_7fe30a98288265::t_68952925b842cd 747-748
+packages/water/src/water/runtime/river/RiverQueryGeometry.ts
+  s_7fe30a98288265::t_da9551d3654101 172-175
+  s_7fe30a98288265::t_86a44b005832c5 140-144,149-150,166-167,170-171,176-187,189-204
+world/tests/seed-world/AnimalSupportPublication.spec.ts
+  s_7fe30a98288265::t_e42c34cdf3c37d 1-101
+world/tests/seed-world/AnimalRouteBudget.spec.ts
+  s_7fe30a98288265::t_65e160be4c63e4 1-32,39-44
+  s_7fe30a98288265::t_8cb1255f999b2c 33-38
+packages/world-planning/src/spatial/runtime/PlanningSeedScenePublication.ts
+  s_7fe30a98288265::t_edafbe2fd24c8e 63-64,193,277
+world/tests/seed-world/AnimalRiverQueries.spec.ts
+  s_7fe30a98288265::t_88dbc2b974a047 1,6-10,13-17,24,31-33,40-49,52-72,75-80
+  s_7fe30a98288265::t_7948c241082ff1 2-5,11-12,18-23,25-30,34-39,50-51,74
+  s_7fe30a98288265::t_60fff79502e829 73
+world/tests/seed-world/AnimalRouteValidation.spec.ts
+  s_7fe30a98288265::t_b0ee20c6df3c5d 1-36,38-69
+  s_7fe30a98288265::t_2fb356344663d9 37
+world/tests/seed-world/AnimalSharedQueries.spec.ts
+  s_7fe30a98288265::t_763cc25c099318 1-13,21,32-33,39-49,56,64-67,73-74,91-104,107-111,113-115,118-119,141,143-144,146-148,160-161,178-179,187-188,229,246-247,261-262
+  s_7fe30a98288265::t_e42c34cdf3c37d 14-20,22-31,34-38,50-55,57-63,68-72,75-90,105-106,116-117,162-170,177,180-181,183-186,249-250
+  s_7fe30a98288265::t_6f818912314e96 145
+  s_7fe30a98288265::t_1749fdac14300f 251,254-255,260
+  s_7fe30a98288265::t_ef5bee8765a71a 149-159,171-176,182,189-228,230-245,248,252-253,256-259
+  s_7fe30a98288265::t_cfeb2029af7839 112,120-140,142
+packages/world-planning/src/spatial/runtime/PlanningNavigationSurface.ts
+  s_7fe30a98288265::t_edafbe2fd24c8e 15,19-23,32-34,106,116
+  s_7fe30a98288265::t_6f818912314e96 115
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "15fb4dd2aa86fb6a055c841a86a0e6cabe56b0c6",
+  "prompts": {},
+  "sessions": {
+    "s_7fe30a98288265": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1d456-3277-7a31-a653-8428bd196f06",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}
