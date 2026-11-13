@@ -20,16 +20,20 @@ export class PostProcessUberPass extends PostProcessPass {
   private _mipDownRT: RenderTarget[] = [];
   private _mipUpRT: RenderTarget[] = [];
 
-  constructor(engine: Engine) {
+  constructor(
+    engine: Engine,
+    uberShader: Shader = engine._builtinShaders.uber,
+    bloomShader: Shader = engine._builtinShaders.bloom
+  ) {
     super(engine);
     this.event = PostProcessPassEvent.AfterUber - 1;
 
     // Uber Material
-    const uberMaterial = new Material(engine, Shader._builtinShaders[PostProcessUberPass.UBER_SHADER_NAME]!);
+    const uberMaterial = new Material(engine, uberShader);
     this._uberMaterial = uberMaterial;
 
     // Bloom Material
-    const bloomMaterial = new Material(engine, Shader._builtinShaders[BloomEffect.SHADER_NAME]!);
+    const bloomMaterial = new Material(engine, bloomShader);
     this._bloomMaterial = bloomMaterial;
 
     // ShaderData initialization

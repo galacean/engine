@@ -15,8 +15,6 @@ import { AmbientOcclusionQuality } from "../enums/AmbientOcclusionQuality";
  * Scalable Ambient Obscurance render pass.
  */
 export class ScalableAmbientObscurancePass extends PipelinePass {
-  static readonly SHADER_NAME = "Lighting/ScalableAmbientOcclusion";
-
   private static _invRadiusSquaredProp = ShaderProperty.getByName("material_invRadiusSquared");
   private static _intensityProp = ShaderProperty.getByName("material_intensity");
   private static _projectionScaleRadiusProp = ShaderProperty.getByName("material_projectionScaleRadius");
@@ -45,10 +43,10 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
   private _offsetY = new Vector4();
   private _quality: AmbientOcclusionQuality;
 
-  constructor(engine: Engine) {
+  constructor(engine: Engine, shader: Shader) {
     super(engine);
 
-    const material = new Material(engine, Shader._builtinShaders[ScalableAmbientObscurancePass.SHADER_NAME]!);
+    const material = new Material(engine, shader);
     material._addReferCount(1);
     this._material = material;
     this.isSupported = this.engine._hardwareRenderer.capability.isFragmentHighPrecision;

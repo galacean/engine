@@ -1,4 +1,4 @@
-import { Engine, Entity, Loader, Material, Shader } from "@galacean/engine";
+import { Engine, Entity, Loader, Material } from "@galacean/engine";
 import * as GUIComponent from "./component";
 export * from "./component";
 export { CanvasRenderMode } from "./enums/CanvasRenderMode";
@@ -12,11 +12,9 @@ export { UIPointerEventEmitter } from "./input/UIPointerEventEmitter";
  */
 export class EngineExtension {
   _uiDefaultMaterial: Material;
-  _getUIDefaultMaterial(): Material {
+  _getUIDefaultMaterial(this: Engine): Material {
     if (!this._uiDefaultMaterial) {
-      const shader = Shader._builtinShaders["2D/UIDefault"]!;
-      // @ts-ignore
-      const material = new Material(this, shader);
+      const material = new Material(this, this._builtinShaders.ui);
       material.isGCIgnored = true;
       this._uiDefaultMaterial = material;
     }

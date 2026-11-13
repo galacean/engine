@@ -1,4 +1,4 @@
-import { Shader, ShaderFactory } from "@galacean/engine-core";
+import { BuiltinShaders, Shader, ShaderFactory } from "@galacean/engine-core";
 import {
   shaderLibrary,
   PBRSource,
@@ -27,11 +27,6 @@ import {
 } from "@galacean/engine-shader";
 
 /**
- * Built-in shader pool. Lives in the `@galacean/engine` umbrella because the
- * specific set of bundled shaders is a property of the Galacean flavor of the
- * engine — `engine-core` is a generic runtime that knows nothing about which
- * shaders ship in the box.
- *
  * @internal
  */
 export class ShaderPool {
@@ -42,46 +37,35 @@ export class ShaderPool {
     }
   }
 
-  /**
-   * Register all built-in shaders from precompiled `.shaderc` sources.
-   */
-  static registerShaders(): void {
-    const sources = [
-      // Pipeline / Blit shaders must be created first — material shaders UsePass from them
-      BlitSource,
-      BlitScreenSource,
-      ShadowCasterSource,
-      DepthOnlySource,
-      // Material shaders
-      PBRSource,
-      BlinnPhongSource,
-      UnlitSource,
-      // Sky shaders
-      SkyboxSource,
-      SkyProceduralSource,
-      BackgroundTextureSource,
-      // 2D shaders
-      SpriteSource,
-      SpriteMaskSource,
-      TextSource,
-      TrailSource,
-      UIDefaultSource,
-      SpineSource,
-      // Particle shaders
-      ParticleSource,
-      ParticleFeedbackSource,
-      // PostProcess shaders
-      UberSource,
-      FinalSRGBSource,
-      FinalAntiAliasingSource,
-      BloomSource,
-      // AO shader
-      ScalableAmbientOcclusionSource
-    ];
+  static createShaders(): BuiltinShaders {
+    const blit = Shader._createFromPrecompiled(BlitSource);
+    const blitScreen = Shader._createFromPrecompiled(BlitScreenSource);
+    // Material shaders resolve UsePass references during creation
+    Shader._createFromPrecompiled(ShadowCasterSource);
+    Shader._createFromPrecompiled(DepthOnlySource);
 
-    for (const source of sources) {
-      const shader = Shader._createFromPrecompiled(source);
-      Shader._builtinShaders[shader.name] = shader;
-    }
+    return {
+      blit,
+      blitScreen,
+      pbr: Shader._createFromPrecompiled(PBRSource),
+      blinnPhong: Shader._createFromPrecompiled(BlinnPhongSource),
+      unlit: Shader._createFromPrecompiled(UnlitSource),
+      skybox: Shader._createFromPrecompiled(SkyboxSource),
+      skyProcedural: Shader._createFromPrecompiled(SkyProceduralSource),
+      backgroundTexture: Shader._createFromPrecompiled(BackgroundTextureSource),
+      sprite: Shader._createFromPrecompiled(SpriteSource),
+      spriteMask: Shader._createFromPrecompiled(SpriteMaskSource),
+      text: Shader._createFromPrecompiled(TextSource),
+      trail: Shader._createFromPrecompiled(TrailSource),
+      ui: Shader._createFromPrecompiled(UIDefaultSource),
+      spine: Shader._createFromPrecompiled(SpineSource),
+      particle: Shader._createFromPrecompiled(ParticleSource),
+      particleFeedback: Shader._createFromPrecompiled(ParticleFeedbackSource),
+      uber: Shader._createFromPrecompiled(UberSource),
+      finalSRGB: Shader._createFromPrecompiled(FinalSRGBSource),
+      finalAntiAliasing: Shader._createFromPrecompiled(FinalAntiAliasingSource),
+      bloom: Shader._createFromPrecompiled(BloomSource),
+      scalableAmbientOcclusion: Shader._createFromPrecompiled(ScalableAmbientOcclusionSource)
+    };
   }
 }

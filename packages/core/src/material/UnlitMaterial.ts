@@ -1,6 +1,5 @@
 import { Color, Vector4 } from "@galacean/engine-math";
 import { Engine } from "../Engine";
-import { Shader } from "../shader/Shader";
 import { Texture2D } from "../texture/Texture2D";
 import { BaseMaterial } from "./BaseMaterial";
 
@@ -57,7 +56,7 @@ export class UnlitMaterial extends BaseMaterial {
    * @param engine - Engine to which the material belongs
    */
   constructor(engine: Engine) {
-    super(engine, Shader._builtinShaders.Unlit!);
+    super(engine, engine._builtinShaders.unlit);
 
     const shaderData = this.shaderData;
 

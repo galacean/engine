@@ -1,7 +1,6 @@
 import { Color } from "@galacean/engine-math";
 import { Engine } from "../Engine";
 import { Material } from "../material/Material";
-import { Shader } from "../shader/Shader";
 import { ShaderProperty } from "../shader/ShaderProperty";
 import { TextureCube } from "../texture";
 
@@ -63,7 +62,7 @@ export class SkyBoxMaterial extends Material {
   }
 
   constructor(engine: Engine) {
-    super(engine, Shader._builtinShaders["Sky/Skybox"]!);
+    super(engine, engine._builtinShaders.skybox);
 
     this.shaderData.setFloat(SkyBoxMaterial._rotationProp, 0);
     this.shaderData.setFloat(SkyBoxMaterial._exposureProp, 1);

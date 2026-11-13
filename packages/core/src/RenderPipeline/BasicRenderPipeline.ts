@@ -57,12 +57,13 @@ export class BasicRenderPipeline {
   constructor(camera: Camera) {
     this._camera = camera;
     const { engine } = camera;
+    const shaders = engine._builtinShaders;
     this._cullingResults = new CullingResults();
     this._cascadedShadowCasterPass = new CascadedShadowCasterPass(camera);
     this._depthOnlyPass = new DepthOnlyPass(engine);
-    this._saoPass = new ScalableAmbientObscurancePass(engine);
+    this._saoPass = new ScalableAmbientObscurancePass(engine, shaders.scalableAmbientOcclusion);
     this._opaqueTexturePass = new OpaqueTexturePass(engine);
-    this._finalPass = new FinalPass(engine);
+    this._finalPass = new FinalPass(engine, shaders.finalSRGB, shaders.finalAntiAliasing);
   }
 
   /**

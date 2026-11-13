@@ -4,12 +4,11 @@ import { MeshTopology } from "../graphic/enums/MeshTopology";
 import { TransformFeedbackSimulator } from "../graphic/TransformFeedbackSimulator";
 import type { VertexBufferBinding } from "../graphic/VertexBufferBinding";
 import type { VertexElement } from "../graphic/VertexElement";
-import { Shader } from "../shader/Shader";
+import type { Shader } from "../shader/Shader";
 import type { ShaderData } from "../shader/ShaderData";
 import { ShaderProperty } from "../shader/ShaderProperty";
 import { ParticleBufferUtils } from "./ParticleBufferUtils";
 
-const FEEDBACK_SHADER_NAME = "Effect/ParticleFeedback";
 const FEEDBACK_PASS_NAME = "TransformFeedback";
 
 /**
@@ -42,24 +41,12 @@ export class ParticleTransformFeedbackSimulator {
     return this._simulator.readBinding;
   }
 
-  /**
-   * @param engine - Engine instance
-   * @param trajectoryEnabled - Whether parent trajectory data is captured for sub-emitters
-   * @param particleCount - Number of particle slots to allocate
-   */
-  constructor(engine: Engine, trajectoryEnabled: boolean, particleCount: number) {
+  constructor(engine: Engine, shader: Shader, trajectoryEnabled: boolean, particleCount: number) {
     this.trajectoryEnabled = trajectoryEnabled;
-    // The engine flavor owns shader registration; engine-core resolves the registered pass when needed
-    const feedbackShader = Shader._builtinShaders[FEEDBACK_SHADER_NAME];
-    if (!feedbackShader) {
-      throw new Error(
-        `${FEEDBACK_SHADER_NAME} shader is not registered. Import "@galacean/engine" before constructing the engine, ` +
-          `or register the shader manually if you build a custom engine flavor.`
-      );
-    }
-    const feedbackPass = feedbackShader.subShaders[0]?.passes.find((pass) => pass.name === FEEDBACK_PASS_NAME);
+    const feedbackPass =
+      !shader.destroyed && shader.subShaders[0]?.passes.find((pass) => pass.name === FEEDBACK_PASS_NAME);
     if (!feedbackPass) {
-      throw new Error(`${FEEDBACK_PASS_NAME} pass is not registered in ${FEEDBACK_SHADER_NAME}.`);
+      throw new Error(`${FEEDBACK_PASS_NAME} pass is not available in ${shader.name}.`);
     }
 
     let vertexStride: number;

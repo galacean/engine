@@ -1,6 +1,8 @@
 import {
   AssetType,
   BlinnPhongMaterial,
+  Camera,
+  Engine,
   GLTFResource,
   Material,
   MeshRenderer,
@@ -17,12 +19,6 @@ import { ShaderCompiler } from "@galacean/engine-shader-compiler";
 import "@galacean/engine-ui";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { SpineMaterial } from "../../../packages/spine/src/renderer/SpineMaterial";
-
-function registerBuiltin(name: string): Shader {
-  const shader = Shader._createFromPrecompiled({ name, platformTarget: 0, subShaders: [] });
-  Shader._builtinShaders[name] = shader;
-  return shader;
-}
 
 function createNamesake(name: string): Shader {
   return Shader.create(`Shader "${name}" {
@@ -127,62 +123,118 @@ describe("Built-in shader identity", () => {
   });
 
   it.each(["BuiltinIdentityCleanup", "__proto__"])(
-    "removes only the destroyed built-in binding for %s while preserving a live namesake",
-    (name) => {
-      const builtin = registerBuiltin(name);
+    "rejects a destroyed injected shader named %s while preserving a live namesake",
+    async (name) => {
+      const builtin = Shader._createFromPrecompiled({ name, platformTarget: 0, subShaders: [] });
       const custom = Shader._createFromPrecompiled({ name, platformTarget: 0, subShaders: [] });
+      let anotherEngine: WebGLEngine | undefined;
       try {
-        expect(Shader._builtinShaders[name]).toBe(builtin);
+        anotherEngine = await WebGLEngine.create({
+          canvas: document.createElement("canvas"),
+          _builtinShaders: { ...engine._builtinShaders, pbr: builtin }
+        });
         builtin.destroy();
-        expect(Shader._builtinShaders[name]).toBeUndefined();
+        expect(() => new PBRMaterial(anotherEngine!)).toThrow("destroyed shader");
         expect(Shader.find(name)).toBe(custom);
       } finally {
+        anotherEngine?.destroy();
         builtin.destroy();
         custom.destroy();
       }
     }
   );
 
-  it("keeps a replacement binding when older or custom namesakes are destroyed", () => {
-    const source = { name: "BuiltinIdentityReplacement", platformTarget: 0, subShaders: [] };
-    const previous = registerBuiltin(source.name);
-    const material = new Material(engine, previous);
-    const replacement = registerBuiltin(source.name);
-    const custom = Shader._createFromPrecompiled(source);
+  it("injects material and render-pass shaders independently of their names", async () => {
+    const shader = createNamesake("Injected/UnrelatedName");
+    const namesake = createNamesake(shader.name);
+    let anotherEngine: WebGLEngine | undefined;
     try {
-      expect(material.shader).toBe(previous);
-      expect(Shader._builtinShaders[source.name]).toBe(replacement);
+      anotherEngine = await WebGLEngine.create({
+        canvas: document.createElement("canvas"),
+        _builtinShaders: {
+          ...engine._builtinShaders,
+          pbr: shader,
+          particle: shader,
+          backgroundTexture: shader,
+          uber: shader,
+          bloom: shader,
+          finalSRGB: shader,
+          finalAntiAliasing: shader,
+          scalableAmbientOcclusion: shader,
+          ui: shader,
+          spine: shader
+        }
+      });
+      const material = new PBRMaterial(anotherEngine);
+      const particleMaterial = new ParticleMaterial(anotherEngine);
+      const spineMaterial = new SpineMaterial(anotherEngine);
+      expect(material.shader).toBe(shader);
+      expect(particleMaterial.shader).toBe(shader);
+      expect(spineMaterial.shader).toBe(shader);
+      expect(anotherEngine._getUIDefaultMaterial().shader).toBe(shader);
+      expect(anotherEngine.sceneManager.activeScene!.background._material.shader).toBe(shader);
+      expect(anotherEngine._basicResources.particleMagentaMaterial.shader).toBe(shader);
+      const camera = anotherEngine.sceneManager.activeScene!.createRootEntity().addComponent(Camera);
+      const pipeline = camera._renderPipeline;
+      expect(pipeline["_saoPass"]["_material"].shader).toBe(shader);
+      expect(pipeline["_finalPass"]["_sRGBmaterial"].shader).toBe(shader);
+      expect(pipeline["_finalPass"]["_antiAliasingMaterial"].shader).toBe(shader);
+      const uberPass = anotherEngine.postProcessPasses[0];
+      expect(uberPass["_uberMaterial"].shader).toBe(shader);
+      expect(uberPass["_bloomMaterial"].shader).toBe(shader);
+      expect(Shader.find(shader.name)).toBe(namesake);
+      expect(new PBRMaterial(engine).shader).toBe(engine._builtinShaders.pbr);
       material.destroy();
-      previous.destroy();
-      expect(Shader._builtinShaders[source.name]).toBe(replacement);
-      expect(Shader.find(source.name)).toBe(custom);
-      custom.destroy();
-      expect(Shader._builtinShaders[source.name]).toBe(replacement);
-      expect(Shader.find(source.name)).toBe(replacement);
+      particleMaterial.destroy();
+      spineMaterial.destroy();
     } finally {
-      material.destroy();
-      previous.destroy();
-      custom.destroy();
-      replacement.destroy();
+      anotherEngine?.destroy();
+      namesake.destroy(true);
+      shader.destroy(true);
     }
   });
 
-  it("retains an in-use built-in binding until destruction succeeds", () => {
-    const name = "BuiltinIdentityInUse";
-    const builtin = registerBuiltin(name);
-    const material = new Material(engine, builtin);
-    const entity = engine.sceneManager.activeScene!.createRootEntity();
-    entity.addComponent(MeshRenderer).setMaterial(material);
+  it("keeps existing engines bound when the default shader dependencies are replaced", async () => {
+    const defaults = Engine._defaultBuiltinShaders;
+    const shader = createNamesake("Injected/Replacement");
+    let anotherEngine: WebGLEngine | undefined;
     try {
-      expect(builtin.destroy()).toBe(false);
-      expect(Shader._builtinShaders[name]).toBe(builtin);
-      expect(builtin.destroy(true)).toBe(true);
-      expect(Shader._builtinShaders[name]).toBeUndefined();
-      expect(Shader.find(name)).toBeUndefined();
+      Engine._defaultBuiltinShaders = { ...defaults, pbr: shader };
+      anotherEngine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
+      expect(engine._builtinShaders).toBe(defaults);
+      expect(anotherEngine._builtinShaders.pbr).toBe(shader);
+      const original = new PBRMaterial(engine);
+      const replacement = new PBRMaterial(anotherEngine);
+      expect(original.shader).toBe(defaults.pbr);
+      expect(replacement.shader).toBe(shader);
+      original.destroy();
+      replacement.destroy();
     } finally {
-      entity.destroy();
-      material.destroy();
-      builtin.destroy(true);
+      Engine._defaultBuiltinShaders = defaults;
+      anotherEngine?.destroy();
+      shader.destroy(true);
+    }
+  });
+
+  it("preserves in-use shader protection and rejects a force-destroyed dependency", async () => {
+    const shader = createNamesake("Injected/InUse");
+    let anotherEngine: WebGLEngine | undefined;
+    try {
+      anotherEngine = await WebGLEngine.create({
+        canvas: document.createElement("canvas"),
+        _builtinShaders: { ...engine._builtinShaders, pbr: shader }
+      });
+      const material = new PBRMaterial(anotherEngine);
+      const entity = anotherEngine.sceneManager.activeScene!.createRootEntity();
+      entity.addComponent(MeshRenderer).setMaterial(material);
+      expect(shader.destroy()).toBe(false);
+      expect(material.shader).toBe(shader);
+      expect(shader.destroy(true)).toBe(true);
+      expect(() => new PBRMaterial(anotherEngine!)).toThrow("destroyed shader");
+      expect(Shader.find(shader.name)).toBeUndefined();
+    } finally {
+      anotherEngine?.destroy();
+      shader.destroy(true);
     }
   });
 });

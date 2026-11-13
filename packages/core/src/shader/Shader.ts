@@ -28,9 +28,6 @@ export class Shader implements IReferable {
   /** @internal */
   static _shaderCompiler?: IShaderCompiler;
 
-  /** @internal */
-  static readonly _builtinShaders: Record<string, Shader | undefined> = Object.create(null);
-
   private static _shaderMap: Record<string, Shader[]> = Object.create(null);
 
   /**
@@ -454,9 +451,6 @@ export class Shader implements IReferable {
 
     const shaders = Shader._shaderMap[this.name];
     shaders.splice(shaders.indexOf(this), 1);
-    if (Shader._builtinShaders[this.name] === this) {
-      delete Shader._builtinShaders[this.name];
-    }
     if (shaders.length === 0) delete Shader._shaderMap[this.name];
     this._destroyed = true;
     return true;

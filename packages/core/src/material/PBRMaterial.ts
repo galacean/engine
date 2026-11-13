@@ -2,7 +2,6 @@ import { Color, MathUtil, Vector2, Vector3, Vector4 } from "@galacean/engine-mat
 import { Engine } from "../Engine";
 import { Logger } from "../base";
 import { ShaderMacro, ShaderProperty } from "../shader";
-import { Shader } from "../shader/Shader";
 import { RenderQueueType } from "../shader/enums/RenderQueueType";
 import { Texture2D } from "../texture/Texture2D";
 import { BaseMaterial } from "./BaseMaterial";
@@ -767,7 +766,7 @@ export class PBRMaterial extends BaseMaterial {
    * @param engine - Engine to which the material belongs
    */
   constructor(engine: Engine) {
-    super(engine, Shader._builtinShaders.PBR!);
+    super(engine, engine._builtinShaders.pbr);
 
     const shaderData = this.shaderData;
 
