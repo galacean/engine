@@ -1,5 +1,5 @@
-import { AssetPromise, Component, Loader } from "@galacean/engine-core";
-import type { Engine } from "@galacean/engine-core";
+import { AssetPromise, Component, InterpolationType, Loader } from "@galacean/engine-core";
+import type { AnimationArrayCurve, AnimationFloatArrayCurve, Engine } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine";
 import type { AnimationClip } from "../../../packages/core/src/animation/AnimationClip";
 import { decode } from "../../../packages/loader/src/resource-deserialize";
@@ -74,6 +74,40 @@ function createAnimationClipBuffer(version: number, typeIndex = 0, type = "Anima
   return buffer;
 }
 
+function createArrayClipBuffer(curveType: string, name: string, interpolation: InterpolationType): ArrayBuffer {
+  const bytes: number[] = [];
+  writeUint32(bytes, 0x4e434c47);
+  writeUint32(bytes, 0);
+  bytes.push(2);
+  writeString(bytes, "AnimationClip");
+  writeString(bytes, name);
+  while (bytes.length % 4) bytes.push(0);
+  writeString(bytes, name);
+  writeUint16(bytes, 0);
+  writeUint16(bytes, 1);
+  writeString(bytes, "");
+  writeString(bytes, "TestComponent");
+  writeUint16(bytes, 0);
+  writeString(bytes, "value");
+  writeString(bytes, "value");
+  bytes.push(interpolation);
+  writeUint16(bytes, 2);
+  writeString(bytes, curveType);
+  for (const [time, values] of [
+    [0, [0, 1]],
+    [1, [1, 0]]
+  ] as const) {
+    writeFloat32(bytes, time);
+    writeUint16(bytes, values.length);
+    for (const numbers of [values, [2, 3], [4, 5]]) {
+      for (const value of numbers) writeFloat32(bytes, value);
+    }
+  }
+  const buffer = Uint8Array.from(bytes).buffer;
+  new DataView(buffer).setUint32(4, buffer.byteLength, true);
+  return buffer;
+}
+
 let engine: WebGLEngine;
 
 beforeAll(async () => {
@@ -84,6 +118,36 @@ beforeAll(async () => {
 afterAll(() => engine?.destroy());
 
 describe("AnimationClipDecoder", () => {
+  for (const curveType of ["AnimationArrayCurve", "AnimationFloatArrayCurve"]) {
+    for (const interpolation of [InterpolationType.Linear, InterpolationType.Step, InterpolationType.Hermite]) {
+      it.each(["a", "ab", "abc", "arrays"])(
+        `decodes packed ${curveType}/${interpolation} keys for clip %s`,
+        async (name) => {
+          const clip = await decode<AnimationClip>(createArrayClipBuffer(curveType, name, interpolation), engine);
+          const curve = clip.curveBindings[0].curve as AnimationArrayCurve | AnimationFloatArrayCurve;
+          expect(
+            curve.keys.map((key) => ({
+              time: key.time,
+              value: Array.from(key.value),
+              inTangent: Array.from(key.inTangent),
+              outTangent: Array.from(key.outTangent)
+            }))
+          ).toEqual([
+            { time: 0, value: [0, 1], inTangent: [2, 3], outTangent: [4, 5] },
+            { time: 1, value: [1, 0], inTangent: [2, 3], outTangent: [4, 5] }
+          ]);
+          const expected =
+            interpolation === InterpolationType.Step
+              ? [0, 1]
+              : interpolation === InterpolationType.Hermite
+                ? [0.75, 0.75]
+                : [0.5, 0.5];
+          expect(Array.from(curve.evaluate(0.5))).toEqual(expected);
+        }
+      );
+    }
+  }
+
   it("preserves custom decoder argument positions", async () => {
     const sentinel = {};
     const result = await decode<object>(createAnimationClipBuffer(1, 0, customDecoderType), engine, sentinel);
