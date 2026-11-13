@@ -8,7 +8,7 @@ import { decoder } from "../../../packages/loader/src/resource-deserialize/utils
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 class TestComponent extends Component {
-  value = 0;
+  value: number | number[] | Float32Array = 0;
 }
 
 const customDecoderType = "DecoderArgumentContract";
@@ -142,7 +142,16 @@ describe("AnimationClipDecoder", () => {
               : interpolation === InterpolationType.Hermite
                 ? [0.75, 0.75]
                 : [0.5, 0.5];
+          const entity = engine.sceneManager.activeScene.createRootEntity("array target");
+          const component = entity.addComponent(TestComponent);
+          const target = (component.value =
+            curveType === "AnimationArrayCurve" ? [4, 5, 6] : new Float32Array([4, 5]));
+          clip.sampleAnimation(entity, 0.5);
+          expect(component.value).toBe(target);
+          expect(Array.from(component.value)).toEqual(expected);
           expect(Array.from(curve.evaluate(0.5))).toEqual(expected);
+          entity.destroy();
+          clip.destroy();
         }
       );
     }
