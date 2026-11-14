@@ -82,6 +82,36 @@ async function prepareRemoval(draft: RuntimeProjectEdit, before: ReturnType<Runt
   } as Parameters<ReturnType<typeof preparePlanningWaterSource>>[0]);
 }
 
+it("initializes an Ocean on the handed-off identity in a fresh template project exactly once", () => {
+  const source = fixture();
+  const document = retainPlanningWaterSource(source.document, source.draft.preview());
+  expect(document.entities["planning-ocean"].components).toEqual({});
+  const pack = source.draft.preview();
+  const draft = new RuntimeProjectEdit({
+    ...pack,
+    documents: {},
+    contents: { ...pack.contents, [path]: JSON.stringify({
+      asset: { version: "2.0" }, scene: { rootEntities: [] }, entities: [], components: []
+    }) }
+  }, nativeAssetFormats(() => ({})));
+  writePlanningProjectSource(draft, path, initializePlanningWater(draft, document, source.plan));
+  const scene = new RuntimeSceneEdit(draft, path);
+  const identity = scene.queryComponents({ type: "PlanningEntityAuthoring" })
+    .find(identity => scene.readComponent(identity.id).props?.planningId === "planning-ocean")!;
+  expect(waterInitialization(draft.preview()).seeds["20261110"]).not.toContain("planning-ocean");
+  initializePlanningOcean(draft, source.plan);
+  expect(() => planningSourceDocument(draft.preview())).not.toThrow();
+  const ocean = scene.queryComponents({ type: "WaterBodyComponent", entityId: identity.entityId });
+  expect(ocean).toHaveLength(1);
+  initializePlanningOcean(draft, source.plan);
+  expect(scene.queryComponents({ type: "PlanningEntityAuthoring" })
+    .filter(identity => scene.readComponent(identity.id).props?.planningId === "planning-ocean")).toEqual([identity]);
+  expect(scene.queryComponents({ type: "WaterBodyComponent", entityId: identity.entityId })).toEqual(ocean);
+  expect(waterInitialization(draft.preview()).seeds["20261110"]
+    .filter(id => id === "planning-ocean")).toHaveLength(1);
+  expect(planningSourceDocument(draft.finish())!.entities["planning-ocean"]).toBeDefined();
+}, 60000);
+
 it("keeps native water identities, transforms and authoring when planning is replaced", () => {
   const { draft, document, scene, plan } = fixture();
   initializePlanningOcean(draft, plan);
