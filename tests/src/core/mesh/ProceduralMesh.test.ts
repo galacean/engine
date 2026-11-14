@@ -1534,21 +1534,23 @@ describe("procedural mesh geometry", () => {
   it("ignores settings from the inactive extrusion mode", () => {
     const linearOptions = { keepCPUData: true, depthSegments: 2, bevelWidth: 0.1, separateMaterialSlots: true };
     const pathOptions = { keepCPUData: true, pathSegments: 5, separateMaterialSlots: true };
+    const mixedLinearOptions = { ...linearOptions, pathSegments: 7, closedPath: true };
+    const mixedPathOptions = {
+      ...pathOptions,
+      depthSegments: 7,
+      bevelWidth: 0.25,
+      bevelDepth: 0.4,
+      contourOffset: 0.5,
+      bevelSegments: 8
+    };
     const pairs = [
       [
         PrimitiveMesh.createExtrudedPolygon(engine, polygon, 2, linearOptions),
-        PrimitiveMesh.createExtrudedPolygon(engine, polygon, 2, { ...linearOptions, pathSegments: 7, closedPath: true })
+        PrimitiveMesh.createExtrudedPolygon(engine, polygon, 2, mixedLinearOptions)
       ],
       [
         PrimitiveMesh.createExtrudedPolygon(engine, polygon, path, pathOptions),
-        PrimitiveMesh.createExtrudedPolygon(engine, polygon, path, {
-          ...pathOptions,
-          depthSegments: 7,
-          bevelWidth: 0.25,
-          bevelDepth: 0.4,
-          contourOffset: 0.5,
-          bevelSegments: 8
-        })
+        PrimitiveMesh.createExtrudedPolygon(engine, polygon, path, mixedPathOptions)
       ]
     ];
     try {

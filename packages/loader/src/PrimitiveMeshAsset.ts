@@ -215,7 +215,7 @@ export type PrimitiveMeshAsset =
        */
       extrudedPolygonDepth: number;
       extrudedPolygonShapes: readonly SerializedPolygonShape[];
-      extrudedPolygonOptions?: LinearExtrudedPolygonMeshOptions | PathExtrudedPolygonMeshOptions;
+      extrudedPolygonOptions?: LinearExtrudedPolygonMeshOptions;
     }
   | {
       type: "extrudedPolygon";
@@ -224,7 +224,7 @@ export type PrimitiveMeshAsset =
        */
       extrudedPolygonPath: readonly { x: number; y: number; z: number }[];
       extrudedPolygonShapes: readonly SerializedPolygonShape[];
-      extrudedPolygonOptions?: LinearExtrudedPolygonMeshOptions | PathExtrudedPolygonMeshOptions;
+      extrudedPolygonOptions?: PathExtrudedPolygonMeshOptions;
     }
   | {
       type: "torusKnot";

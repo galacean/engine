@@ -208,7 +208,12 @@ const loop = [new Vector3(-4, 0, -4), new Vector3(4, 0, -4), new Vector3(4, 0, 4
 const closedPath = PrimitiveMesh.createExtrudedPolygon(engine, outline, loop, { closedPath: true, pathSegments: 32 });
 ```
 
-`createExtrudedPolygon` 的第三个参数必填：传入数值深度时沿 +Z 直线拉伸，传入 `Vector3` 数组时沿路径挤出。`LinearExtrudedPolygonMeshOptions` 包含可选的倒角设置，`PathExtrudedPolygonMeshOptions` 包含可选的路径设置。直线拉伸用 `depthSegments`，路径拉伸用 `pathSegments`；两个接口分别声明各自模式的设置。沿路径挤出时忽略倒角设置；直线拉伸时忽略 `closedPath`。直线拉伸默认不倒角；`bevelWidth > 0` 时开启倒角，`bevelDepth` 默认等于 `bevelWidth`。沿路径拉伸不生成倒角。路径接收 `Vector3` 数组，并按折线长度均匀采样。使用曲线时，在外层采样成点数组后传入，如上例所示。
+`createExtrudedPolygon` 提供两个重载：
+
+- `depth: number` 沿 +Z 直线挤出，生成侧壁和两端封盖。`LinearExtrudedPolygonMeshOptions` 控制 `depthSegments`、倒角和材质分组。
+- `path: readonly Vector3[]` 沿空间路径挤出。`PathExtrudedPolygonMeshOptions` 控制 `pathSegments`、`closedPath` 和材质分组。开放路径生成两端封盖；闭合路径连接首尾截面，不生成封盖。
+
+直线挤出默认不倒角；`bevelWidth > 0` 时开启倒角，`bevelDepth` 默认等于 `bevelWidth`。路径挤出不提供倒角设置。路径按折线长度均匀采样；使用曲线时，在外层采样成点数组后传入，如上例所示。
 
 管道和路径挤出的 `closedPath` 默认关闭；开启后自动连接路径首尾并对齐截面，不必重复首点。闭合挤出至少使用三段，不生成端盖。开放挤出保留两端端盖；管道在两种模式下都不生成端盖。
 

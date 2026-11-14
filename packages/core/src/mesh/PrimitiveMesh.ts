@@ -565,17 +565,35 @@ export class PrimitiveMesh {
   }
 
   /**
-   * Create an extruded polygon mesh with side walls along +Z or a spatial path.
-   * @remarks
-   * A numeric depth extrudes the contours along +Z and ignores `closedPath`.
-   * A path sweeps the contours along its points and ignores bevel settings.
-   * Open extrusions include both end caps; closed paths have no end caps.
+   * Extrude polygon contours along +Z.
    * @param engine - The engine that owns the mesh
    * @param shapes - A contour, a polygon with holes, or an array of polygons; closing points need not be repeated
-   * @param depthOrPath - The total extrusion depth in local units, including bevels, or a path with at least two distinct points
-   * @param options - Linear or path extrusion settings
-   * @returns The extruded polygon mesh with side walls and any end caps
+   * @param depth - The total extrusion depth in local units, including both end bevels
+   * @param options - Optional linear extrusion settings
+   * @returns The mesh with side walls and both end caps
    */
+  static createExtrudedPolygon(
+    engine: Engine,
+    shapes: readonly Vector2[] | PolygonShape | readonly PolygonShape[],
+    depth: number,
+    options?: LinearExtrudedPolygonMeshOptions
+  ): ModelMesh;
+  /**
+   * Extrude polygon contours along a spatial path.
+   * @remarks
+   * Open paths generate both end caps; closed paths join the end cross-sections without caps.
+   * @param engine - The engine that owns the mesh
+   * @param shapes - A contour, a polygon with holes, or an array of polygons; closing points need not be repeated
+   * @param path - The extrusion path in local coordinates, with at least two distinct points
+   * @param options - Optional path extrusion settings
+   * @returns The mesh swept along the path
+   */
+  static createExtrudedPolygon(
+    engine: Engine,
+    shapes: readonly Vector2[] | PolygonShape | readonly PolygonShape[],
+    path: readonly Vector3[],
+    options?: PathExtrudedPolygonMeshOptions
+  ): ModelMesh;
   static createExtrudedPolygon(
     engine: Engine,
     shapes: readonly Vector2[] | PolygonShape | readonly PolygonShape[],

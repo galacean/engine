@@ -41,15 +41,20 @@ it.each(["PrimitiveMeshApi", "PrimitiveMeshAsset"])("type-checks %s and rejects 
 
     for (const factory of factories) {
       const signatures = checker.getTypeOfSymbolAtLocation(factory, source).getCallSignatures();
-      expect(signatures, `Expected one call signature: ${factory.name}`).toHaveLength(1);
+      expect(signatures, `Unexpected overload count: ${factory.name}`).toHaveLength(
+        factory.name === "createExtrudedPolygon" ? 2 : 1
+      );
       const examples = calls.filter(
         (call) => ts.isPropertyAccessExpression(call.expression) && call.expression.name.text === factory.name
       );
       for (const signature of signatures) {
+        const overloadExamples = examples.filter(
+          (call) => checker.getResolvedSignature(call)?.getDeclaration() === signature.getDeclaration()
+        );
         expect(
-          examples.some((call) => checker.getResolvedSignature(call)?.getDeclaration() === signature.getDeclaration()),
+          overloadExamples.length,
           `Missing overload example: ${factory.name}${checker.signatureToString(signature)}`
-        ).toBe(true);
+        ).toBeGreaterThan(0);
 
         const optionsIndex = signature.getParameters().findIndex((parameter) => parameter.name === "options");
         const optionsType = checker.getNonNullableType(
@@ -71,7 +76,7 @@ it.each(["PrimitiveMeshApi", "PrimitiveMeshAsset"])("type-checks %s and rejects 
           ).toBeUndefined();
         }
         const documentedFields = new Set(
-          examples.flatMap((call) => {
+          overloadExamples.flatMap((call) => {
             const options = call.arguments[optionsIndex];
             return options
               ? checker
@@ -90,20 +95,14 @@ it.each(["PrimitiveMeshApi", "PrimitiveMeshAsset"])("type-checks %s and rejects 
             );
           }
         }
-      }
-
-      const parameters = signatures.map((signature) => signature.getDeclaration()!.parameters);
-      const minimum = Math.min(
-        ...parameters.map(
-          (list) => list.filter((parameter) => !parameter.questionToken && !parameter.initializer).length
-        )
-      );
-      const maximum = Math.max(...parameters.map((list) => list.length));
-      for (let count = minimum; count <= maximum; count++) {
-        expect(
-          examples.some((call) => call.arguments.length === count),
-          `Missing optional-argument example: ${factory.name} with ${count} arguments`
-        ).toBe(true);
+        const parameters = signature.getDeclaration()!.parameters;
+        const minimum = parameters.filter((parameter) => !parameter.questionToken && !parameter.initializer).length;
+        for (let count = minimum; count <= parameters.length; count++) {
+          expect(
+            overloadExamples.some((call) => call.arguments.length === count),
+            `Missing optional-argument example: ${factory.name}${checker.signatureToString(signature)} with ${count} arguments`
+          ).toBe(true);
+        }
       }
     }
   }

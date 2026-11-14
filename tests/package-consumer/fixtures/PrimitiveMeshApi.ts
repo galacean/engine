@@ -297,10 +297,14 @@ PrimitiveMesh.createCylinder(engine, 0.5, 2, { caps: "top" });
 // @ts-expect-error Truncated cones use the same cap-mode enum
 PrimitiveMesh.createTruncatedCone(engine, 0.25, 0.5, 2, { caps: "none" });
 
-// Fields from the inactive mode follow normal structural compatibility
+// @ts-expect-error Path extrusion settings do not include bevels
 PrimitiveMesh.createExtrudedPolygon(engine, polygon, path, { bevelWidth: 0.1 });
+// @ts-expect-error Path extrusion settings do not include contour offsets
 PrimitiveMesh.createExtrudedPolygon(engine, polygon, path, { contourOffset: 0.1 });
+// @ts-expect-error Linear extrusion settings do not include path closure
 PrimitiveMesh.createExtrudedPolygon(engine, polygon, 2, { closedPath: true });
+// @ts-expect-error Linear extrusion settings do not include path subdivisions
+PrimitiveMesh.createExtrudedPolygon(engine, polygon, 2, { pathSegments: 8 });
 // @ts-expect-error Bevel offsets use numeric local units
 PrimitiveMesh.createExtrudedPolygon(engine, polygon, 2, { contourOffset: "0.1" });
 // @ts-expect-error Explicit linear settings do not declare path closure

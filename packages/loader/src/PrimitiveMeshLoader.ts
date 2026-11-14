@@ -95,10 +95,18 @@ class PrimitiveMeshLoader extends Loader<ModelMesh> {
       case "polygon":
         return PrimitiveMesh.createPolygon(engine, this._parseShapes(data.polygonShapes), data.polygonOptions);
       case "extrudedPolygon":
+        if ("extrudedPolygonPath" in data) {
+          return PrimitiveMesh.createExtrudedPolygon(
+            engine,
+            this._parseShapes(data.extrudedPolygonShapes),
+            this._parseVector3s(data.extrudedPolygonPath),
+            data.extrudedPolygonOptions
+          );
+        }
         return PrimitiveMesh.createExtrudedPolygon(
           engine,
           this._parseShapes(data.extrudedPolygonShapes),
-          "extrudedPolygonPath" in data ? this._parseVector3s(data.extrudedPolygonPath) : data.extrudedPolygonDepth,
+          data.extrudedPolygonDepth,
           data.extrudedPolygonOptions
         );
       case "torusKnot":

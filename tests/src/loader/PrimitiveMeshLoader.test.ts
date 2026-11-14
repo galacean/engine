@@ -61,6 +61,15 @@ const shapeVectors = shapes.map(({ points, holes }) => ({
 }));
 const options = { keepCPUData: true };
 const groupedOptions = { keepCPUData: true, separateMaterialSlots: true };
+const mixedLinearOptions = { ...groupedOptions, depthSegments: 2, closedPath: true };
+const mixedPathOptions = {
+  ...groupedOptions,
+  pathSegments: 6,
+  bevelWidth: 0.25,
+  bevelDepth: 0.4,
+  contourOffset: 0.5,
+  bevelSegments: 8
+};
 
 describe("PrimitiveMeshLoader", () => {
   const defaults = {
@@ -497,7 +506,7 @@ describe("PrimitiveMeshLoader", () => {
         type: "extrudedPolygon",
         extrudedPolygonDepth: 2,
         extrudedPolygonShapes: shapes,
-        extrudedPolygonOptions: { ...groupedOptions, depthSegments: 2, closedPath: true }
+        extrudedPolygonOptions: mixedLinearOptions
       },
       create: () =>
         PrimitiveMesh.createExtrudedPolygon(engine, shapeVectors, 2, { ...groupedOptions, depthSegments: 2 })
@@ -508,14 +517,7 @@ describe("PrimitiveMeshLoader", () => {
         type: "extrudedPolygon",
         extrudedPolygonPath: path,
         extrudedPolygonShapes: shapes,
-        extrudedPolygonOptions: {
-          ...groupedOptions,
-          pathSegments: 6,
-          bevelWidth: 0.25,
-          bevelDepth: 0.4,
-          contourOffset: 0.5,
-          bevelSegments: 8
-        }
+        extrudedPolygonOptions: mixedPathOptions
       },
       create: () =>
         PrimitiveMesh.createExtrudedPolygon(engine, shapeVectors, pathVectors, { ...groupedOptions, pathSegments: 6 })

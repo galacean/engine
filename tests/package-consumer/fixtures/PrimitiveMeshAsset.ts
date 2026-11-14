@@ -93,18 +93,21 @@ const mixedExtrusion: PrimitiveMeshAsset = {
   extrudedPolygonPath: path,
   extrudedPolygonShapes: shapes
 };
+// @ts-expect-error Path extrusion assets do not use linear bevel settings
 const beveledPath: PrimitiveMeshAsset = {
   type: "extrudedPolygon",
   extrudedPolygonPath: path,
   extrudedPolygonShapes: shapes,
   extrudedPolygonOptions: { bevelWidth: 1 }
 };
+// @ts-expect-error Path extrusion assets do not use linear contour offsets
 const offsetPath: PrimitiveMeshAsset = {
   type: "extrudedPolygon",
   extrudedPolygonPath: path,
   extrudedPolygonShapes: shapes,
   extrudedPolygonOptions: { contourOffset: 0.1 }
 };
+// @ts-expect-error Linear extrusion assets do not use path closure
 const closedDepth: PrimitiveMeshAsset = {
   type: "extrudedPolygon",
   extrudedPolygonDepth: 2,

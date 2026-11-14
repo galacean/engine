@@ -202,7 +202,12 @@ const loop = [new Vector3(-4, 0, -4), new Vector3(4, 0, -4), new Vector3(4, 0, 4
 const closedPath = PrimitiveMesh.createExtrudedPolygon(engine, outline, loop, { closedPath: true, pathSegments: 32 });
 ```
 
-`createExtrudedPolygon` requires a third argument: a numeric depth for linear extrusion, or a `Vector3` array for path extrusion. `LinearExtrudedPolygonMeshOptions` contains optional bevel settings; `PathExtrudedPolygonMeshOptions` contains optional path settings. Linear extrusion uses `depthSegments`; path extrusion uses `pathSegments`. Each interface declares its mode's settings. A path ignores bevel settings; a numeric depth ignores `closedPath`. Linear extrusion goes along +Z without bevels unless requested. A positive `bevelWidth` enables beveling; `bevelDepth` defaults to the same value. Path extrusion does not generate bevels. Paths accept `Vector3` arrays and are sampled at equal distances along their line segments. Sample curves into points before creating the mesh, as shown above.
+`createExtrudedPolygon` provides two overloads:
+
+- `depth: number` extrudes along +Z with side walls and both end caps. `LinearExtrudedPolygonMeshOptions` controls `depthSegments`, bevels and material grouping.
+- `path: readonly Vector3[]` extrudes along a spatial path. `PathExtrudedPolygonMeshOptions` controls `pathSegments`, `closedPath` and material grouping. Open paths have both end caps; closed paths join the end cross-sections without caps.
+
+Linear extrusion defaults to no bevels. A positive `bevelWidth` enables beveling, with `bevelDepth` defaulting to the same value. Path extrusion has no bevel settings. Paths are sampled at equal distances along their line segments. Sample curves into points before creating the mesh, as shown above.
 
 For tubes and path extrusions, `closedPath` defaults to `false`. Set it to `true` to join the path ends and align the first and last cross-sections; the closing point need not be repeated. Closed extrusions use at least three path segments and have no end caps. Open extrusions have two end caps; tubes have no end caps in either mode.
 
