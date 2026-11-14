@@ -26,7 +26,7 @@ export class MeshTangentUtils {
   ): Vector4[] | Float32Array {
     const vertexCount = vertices ? vertices.length / 8 : positions!.length;
     const indexCount = indices ? indices.length : vertexCount;
-    // Accumulate in double precision before converting to the GPU buffer format
+    // Accumulate the tangent basis in double precision
     const basis = new Float64Array(vertexCount * 6);
     for (let i = 0; i < indexCount; i += 3) {
       const a = indices ? indices[i] : i;

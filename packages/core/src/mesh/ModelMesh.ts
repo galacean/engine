@@ -668,11 +668,10 @@ export class ModelMesh extends Mesh {
   }
 
   /**
-   * Calculate tangent vectors from the mesh's positions, normals and UV coordinates.
+   * Calculate tangents from readable positions, normals and UVs.
    * @remarks
-   * Position, normal and UV data must be readable.
-   * Without indices, each consecutive triplet of vertices forms a triangle.
-   * Triangles with degenerate UV coordinates do not contribute to the tangent basis.
+   * Without indices, every three consecutive vertices form a triangle.
+   * Triangles with zero UV area are ignored.
    * @see http://foundationsofgameenginedev.com/FGED2-sample.pdf
    */
   calculateTangents(): void {
