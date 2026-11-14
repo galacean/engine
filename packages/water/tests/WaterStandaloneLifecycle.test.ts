@@ -12,6 +12,9 @@ import {
   JSONAsset,
   Material,
   MeshRenderer,
+  ScreenSpaceReflection,
+  ScreenSpaceReflectionActivationMode,
+  ScreenSpaceReflectionReceiverMode,
   Shader,
   Vector3,
   Texture2D,
@@ -129,6 +132,34 @@ it("creates a standalone river from a name-only authoring Material through Water
     f.engine.update();
   } finally {
     create.mockRestore();
+    await f.close();
+  }
+});
+
+it("synchronizes a staged lake material with SSR activation and recovery", async () => {
+  const f = await fixture("lake");
+  try {
+    const camera = f.system.camera!;
+    camera.screenSpaceReflection.activationMode = ScreenSpaceReflectionActivationMode.ForceOn;
+    const body = f.scene.createRootEntity("Reflection lake").addComponent(WaterBodyComponent);
+    body.authoring = f.authoring;
+    await (await f.system.prepareBatch([{ body, configuration: body._compileAuthoring() }])).commit().retiredCleanup;
+    const renderers: MeshRenderer[] = [];
+    for (const root of f.scene.rootEntities) root.getComponentsIncludeChildren(MeshRenderer, renderers);
+    const renderer = renderers.find((renderer) => f.system.resolveRenderOwner(renderer.entity) === body)!;
+    expect(renderer).toBeDefined();
+    const material = renderer.getMaterial()!;
+    for (const active of [true, false, true]) {
+      camera.screenSpaceReflection.activationMode = active
+        ? ScreenSpaceReflectionActivationMode.ForceOn
+        : ScreenSpaceReflectionActivationMode.ForceOff;
+      for (let frame = 0; frame < 3; frame++) f.engine.update();
+      expect(ScreenSpaceReflection.getMaterialReceiverMode(material)).toBe(
+        active ? ScreenSpaceReflectionReceiverMode.TransparentSampleOnly : ScreenSpaceReflectionReceiverMode.Disabled
+      );
+      expect(f.system.sample(0, 0).water).toBe(true);
+    }
+  } finally {
     await f.close();
   }
 });

@@ -458,14 +458,16 @@ function* spatialWorldStages(
     });
   if (spawnOutline && !domains.some((domain) => domain.query.containsPolygon(spawnOutline)))
     throw new Error("模板出生点必须位于陆地");
-  const templateFootprints = spawnOutline
-    ? planWorldTemplateSite({ ...plan, waters: [] }, createPlanningGroundSampler(plan, { natural: true }))?.footprints
-    : undefined;
-  const reservedOutlines = spawnOutline
-    ? [spawnOutline, ...(templateFootprints ?? []).map((item) => item.outline)]
-    : [];
+  const templateFootprints = planWorldTemplateSite(
+    { ...plan, waters: [] },
+    createPlanningGroundSampler(plan, { natural: true })
+  )?.footprints;
+  const reservedOutlines = [
+    ...(spawnOutline ? [spawnOutline] : []),
+    ...(templateFootprints ?? []).map((item) => item.outline)
+  ];
   const waterReservations = reservedOutlines.map(createPlanningRingQuery);
-  const spawnReservation = waterReservations[0];
+  const spawnReservation = spawnOutline ? waterReservations[0] : undefined;
   const generatedWater = compositionHydrology(plan);
   const riverConfig = { ...RIVER_DEFAULTS, ...p.rivers };
   const localRivers = Object.fromEntries(
