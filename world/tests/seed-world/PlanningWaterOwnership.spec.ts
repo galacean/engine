@@ -30,7 +30,7 @@ import {
 } from "../../demos/seed-world/src/planning/spatial/PlanningSceneAsset";
 
 const path = "Main.scene";
-function fixture() {
+function fixture(seed = 20261110) {
   const contents = {
     [path]: JSON.stringify({ asset: { version: "2.0" }, scene: { rootEntities: [] }, entities: [], components: [] }),
     ...Object.fromEntries(
@@ -55,9 +55,9 @@ function fixture() {
     },
     nativeAssetFormats(() => ({}))
   );
-  const document = createSeedPlanningDocument(20261110);
+  const document = createSeedPlanningDocument(seed);
   const plan = {
-    parameters: { seed: 20261110, landMode: "island", width: 1024, depth: 1024 },
+    parameters: { seed, landMode: "island", width: 1024, depth: 1024 },
     waters: [
       {
         id: "lake:0",
@@ -224,6 +224,41 @@ it("replans stale river elevations when reapplying the same template and keeps t
   const restored = planningSourceDocument(draft.preview())!;
   expect(retainPlanningWaterSource(target, draft.preview()).entities["river:0"])
     .toEqual(restored.entities["river:0"]);
+}, 60000);
+
+it("skips retained water that cannot fit Low Poly without blocking or reviving it on reload", () => {
+  const { draft, document, scene } = fixture(1);
+  const original = generatePlanningDocument(document, undefined, [], undefined, { environment: false });
+  writePlanningProjectSource(draft, path, initializePlanningWater(draft, document, original.plan));
+  const bodies = scene.queryComponents({ type: "WaterBodyComponent" }).filter(body =>
+    (scene.readComponent(body.id).props!.authoring as any).shape.kind !== "ocean");
+  expect(bodies).toHaveLength(2);
+  const materials = bodies.map(body => (scene.readComponent(body.id).props!.authoring as any).material);
+  const target = createTemplatePlanningDocument(1, "low-poly");
+  const retained = retainPlanningWaterSource(target, draft.preview());
+  expect(retained.entities["river:0"].components.rivers.values.enabled).toBe(false);
+  expect(retained.entities["lake:0"].components.lakes.values.enabled).toBe(true);
+  expect(retained.entities.world.components.rivers.values).toMatchObject({ countMin: 0, countMax: 0 });
+  expect(retained.entities.world.components.lakes.values).toMatchObject({ countMin: 1, countMax: 1 });
+  const result = generatePlanningDocument(retained, undefined, [], undefined, { environment: false });
+  expect(result.accepted).toBe(true);
+  expect(result.plan.waters.map(water => water.id).sort()).toEqual([
+    "lake:0", "lake:authored:template:low-poly:water:valley-pond"
+  ]);
+  writePlanningProjectSource(draft, path, initializePlanningWater(draft, retained, result.plan));
+  for (const body of bodies) {
+    const props = scene.readComponent(body.id).props!;
+    expect(props.enabled).toBe((props.authoring as any).shape.kind === "lake");
+  }
+  expect(bodies.map(body => (scene.readComponent(body.id).props!.authoring as any).material)).toEqual(materials);
+  const pack = draft.finish();
+  const restored = planningSourceDocument(pack)!;
+  const repeated = retainPlanningWaterSource(target, pack);
+  for (const id of ["river:0", "lake:0"]) expect(repeated.entities[id]).toEqual(restored.entities[id]);
+  const replay = generatePlanningDocument(restored, undefined, [], undefined, { environment: false });
+  expect(replay.accepted).toBe(true);
+  expect(replay.plan.waters.map(water => water.id)).toEqual(result.plan.waters.map(water => water.id));
+  expect(waterInitialization(pack).removed?.["1"] ?? []).toEqual([]);
 }, 60000);
 
 it("solves replacement inputs with current Source water and its deletion intent", async () => {

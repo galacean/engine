@@ -134,8 +134,15 @@ export function retainPlanningWaterSource(document: PlanningDocument, pack: Runt
     const plan = { ...result.plan, waters: result.plan.waters.map(water => ({ ...water })) };
     for (const kind of ["lake", "river"] as const) {
       const waters = plan.waters.filter(water => water.kind === kind && new RegExp(`^${kind}:\\d+$`).test(water.id));
-      if (waters.length < waterIds[kind].length) throw new Error("新模板没有足够的河湖空间，无法保留全部水体");
+      const component = kind === "lake" ? "lakes" : "rivers";
+      Object.assign(next.entities.world.components[component].values, { countMin: waters.length, countMax: waters.length });
       waters.forEach((water, index) => { water.id = waterIds[kind][index]; });
+      // A missing placement is a disabled source, not a failed world or an explicit deletion.
+      for (const id of waterIds[kind].slice(waters.length)) {
+        const retained = structuredClone(source.entities[id].components[component]);
+        retained.values.enabled = false;
+        next.entities[id].components[component] = retained;
+      }
     }
     const draft = new RuntimeProjectEdit(pack, nativeAssetFormats(() => ({})));
     const initialized = initializePlanningWater(draft, next, plan);

@@ -598,7 +598,7 @@ export class HeightfieldWaterRuntimeController {
     if (this._isReflectionBindingCurrent(binding)) return;
     this._reflectionBinding = binding;
     for (const runtimeSet of this._runtimeSets.values()) {
-      runtimeSet.surfaceOpticsReadback = runtimeSet.material.bindingReadback;
+      runtimeSet.surfaceOpticsReadback = this._applySurfaceOpticsBinding(runtimeSet.material);
     }
     this._recordAppliedReflectionBinding(binding);
   }
