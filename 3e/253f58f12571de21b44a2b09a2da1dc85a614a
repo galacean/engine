@@ -1,0 +1,62 @@
+packages/loader/src/PrimitiveMeshAsset.ts
+  s_f1a7b8285f1df2::t_43d255b0deecf0 8-9,212,216-218,221,225-227
+docs/zh/graphics/mesh/primitiveMesh.mdx
+  s_f1a7b8285f1df2::t_43d255b0deecf0 194-195,206,208,278,288-289,307-308,312
+  s_f1a7b8285f1df2::t_e8acc4b3871f50 162,211
+e2e/case/primitive-contours.ts
+  s_f1a7b8285f1df2::t_43d255b0deecf0 69,74,83,88,103,108,113
+docs/en/graphics/mesh/primitiveMesh.mdx
+  s_f1a7b8285f1df2::t_e8acc4b3871f50 158,205,235
+  s_f1a7b8285f1df2::t_43d255b0deecf0 189-190,200,202,272,282-283,301-302,306
+e2e/case/primitive-topology.ts
+  s_f1a7b8285f1df2::t_43d255b0deecf0 158
+  s_f1a7b8285f1df2::t_e8acc4b3871f50 156
+tests/package-consumer/fixtures/PrimitiveMeshAsset.ts
+  s_f1a7b8285f1df2::t_43d255b0deecf0 49-53,56-59,91-94,97-100,103-106,109-112,153,179
+packages/loader/src/PrimitiveMeshLoader.ts
+  s_f1a7b8285f1df2::t_43d255b0deecf0 97-98,100-102
+packages/core/src/mesh/index.ts
+  s_f1a7b8285f1df2::t_43d255b0deecf0 26-27
+packages/galacean/skills/engine-knowledge/references/mesh-geometry.md
+  s_f1a7b8285f1df2::t_43d255b0deecf0 64,74,80
+e2e/case/primitive-all.ts
+  s_f1a7b8285f1df2::t_e8acc4b3871f50 158
+  s_f1a7b8285f1df2::t_43d255b0deecf0 157,159
+packages/core/src/mesh/PrimitiveMesh.ts
+  s_f1a7b8285f1df2::t_03ee61deef1ecd 533,537,553,555-557,560,562
+  s_f1a7b8285f1df2::t_43d255b0deecf0 23-24,564,568,578,583,1462
+packages/core/src/mesh/PrimitiveMeshOptions.ts
+  s_f1a7b8285f1df2::t_03ee61deef1ecd 332,343,381
+  s_f1a7b8285f1df2::t_43d255b0deecf0 345,384
+tests/package-consumer/fixtures/PrimitiveMeshApi.ts
+  s_f1a7b8285f1df2::t_43d255b0deecf0 9-10,107,115,122,127-129,167-168,175-176,179-187,230,267,301-303,305,307,309,317,337
+tests/src/core/mesh/ProceduralMesh.test.ts
+  s_f1a7b8285f1df2::t_43d255b0deecf0 110-114,116,124-128,130,264-265,269-270,1040,1063,1101,1247-1250,1306-1307,1313,1468-1469,1516,1539-1540,1543-1544,1576,1849,1861
+e2e/case/primitive-materials.ts
+  s_f1a7b8285f1df2::t_43d255b0deecf0 70-73,79
+  s_f1a7b8285f1df2::t_139fd87eb9db70 68
+tests/src/loader/PrimitiveMeshLoader.test.ts
+  s_f1a7b8285f1df2::t_43d255b0deecf0 134-136,431-434,444,456-459,462-466,471-474,477,482-485,488,497-500,502-503,508-511,521
+e2e/fixtures/originImage/Primitive_primitive-all.jpg
+  s_f1a7b8285f1df2::t_a380c5f1132947 2-3
+e2e/fixtures/originImage/Primitive_primitive-materials.jpg
+  s_f1a7b8285f1df2::t_144ac437968be3 2-3
+e2e/fixtures/originImage/Primitive_primitive-topology.jpg
+  s_f1a7b8285f1df2::t_d940b7d5c34dc2 2-3
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "3e253f58f12571de21b44a2b09a2da1dc85a614a",
+  "prompts": {},
+  "sessions": {
+    "s_f1a7b8285f1df2": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1d54e-3c87-7273-b01d-79d652eaed37",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}
