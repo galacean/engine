@@ -115,7 +115,7 @@ export interface CylinderMeshOptions extends PrimitiveMeshOptions {
    */
   caps?: PrimitiveMeshCapMode;
   /**
-   * The start (`x`) and end (`y`) angles in degrees around Y, measured from +Z towards +X.
+   * The start (`x`) and end (`y`) angles in degrees around Y, measured from -Z towards -X.
    * @defaultValue `new Vector2(0, 360)`
    */
   angleRange?: Vector2;
@@ -147,7 +147,7 @@ export interface TruncatedConeMeshOptions extends PrimitiveMeshOptions {
    */
   caps?: PrimitiveMeshCapMode;
   /**
-   * The start (`x`) and end (`y`) angles in degrees around Y, measured from +Z towards +X.
+   * The start (`x`) and end (`y`) angles in degrees around Y, measured from -Z towards -X.
    * @defaultValue `new Vector2(0, 360)`
    */
   angleRange?: Vector2;
@@ -179,7 +179,7 @@ export interface ConeMeshOptions extends PrimitiveMeshOptions {
    */
   cap?: boolean;
   /**
-   * The start (`x`) and end (`y`) angles in degrees around Y, measured from +Z towards +X.
+   * The start (`x`) and end (`y`) angles in degrees around Y, measured from -Z towards -X.
    * @defaultValue `new Vector2(0, 360)`
    */
   angleRange?: Vector2;

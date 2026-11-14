@@ -363,6 +363,95 @@ describe("procedural mesh geometry", () => {
     }
   });
 
+  const cylinderOptions = { keepCPUData: true, radialSegments: 4, heightSegments: 2 };
+  it.each([
+    { name: "cylinder", topRadius: 2, create: () => PrimitiveMesh.createCylinder(engine, 2, 3, cylinderOptions) },
+    {
+      name: "truncated cone",
+      topRadius: 0.5,
+      create: () => PrimitiveMesh.createTruncatedCone(engine, 0.5, 2, 3, cylinderOptions)
+    },
+    { name: "cone", topRadius: 0, create: () => PrimitiveMesh.createCone(engine, 2, 3, cylinderOptions) }
+  ])("preserves the side seam and cap UV orientation of a $name", ({ create, topRadius }) => {
+    const mesh = create();
+    try {
+      const positions = mesh.getPositions()!;
+      const normals = mesh.getNormals()!;
+      const uvs = mesh.getUVs()!;
+      expect(positions[0].x).toBeCloseTo(0);
+      expect(positions[0].z).toBeCloseTo(-2);
+      expect(uvs[0]).toMatchObject({ x: 0, y: 1 });
+      expect(positions[1].x).toBeCloseTo(-2);
+      expect(uvs[1]).toMatchObject({ x: 0.25, y: 1 });
+      expect(positions[4].z).toBeCloseTo(-2);
+      expect(uvs[4]).toMatchObject({ x: 1, y: 1 });
+      expect(uvs[10]).toMatchObject({ x: 0, y: 0 });
+      expect(uvs.every(({ x, y }) => Number.isFinite(x) && Number.isFinite(y))).toBe(true);
+      for (const [radius, height] of [
+        [2, -1.5],
+        [topRadius, 1.5]
+      ]) {
+        if (radius === 0) {
+          continue;
+        }
+        for (const [x, z, u, v] of [
+          [radius, 0, 1, 0.5],
+          [-radius, 0, 0, 0.5],
+          [0, radius, 0.5, 0],
+          [0, -radius, 0.5, 1],
+          [0, 0, 0.5, 0.5]
+        ]) {
+          const index = positions.findIndex(
+            (position, i) =>
+              normals[i].y === Math.sign(height) &&
+              Math.abs(position.x - x) < 1e-6 &&
+              Math.abs(position.y - height) < 1e-6 &&
+              Math.abs(position.z - z) < 1e-6
+          );
+          expect(index).toBeGreaterThanOrEqual(0);
+          expect(uvs[index].x).toBeCloseTo(u);
+          expect(uvs[index].y).toBeCloseTo(v);
+        }
+      }
+    } finally {
+      mesh.destroy();
+    }
+  });
+
+  it("measures cylinder sections from the side seam at -Z", () => {
+    const mesh = PrimitiveMesh.createCylinder(engine, 2, 3, {
+      ...cylinderOptions,
+      angleRange: new Vector2(90, 180)
+    });
+    try {
+      const positions = mesh.getPositions()!;
+      const uvs = mesh.getUVs()!;
+      expect(positions[0].x).toBeCloseTo(-2);
+      expect(positions[0].z).toBeCloseTo(0);
+      expect(positions[4].x).toBeCloseTo(0);
+      expect(positions[4].z).toBeCloseTo(2);
+      expect(uvs[0]).toMatchObject({ x: 0, y: 1 });
+      expect(uvs[4]).toMatchObject({ x: 1, y: 1 });
+    } finally {
+      mesh.destroy();
+    }
+  });
+
+  it.each([false, true])("preserves cylinder cap order with separate material slots: %s", (separateMaterialSlots) => {
+    const mesh = PrimitiveMesh.createCylinder(engine, 2, 3, { ...cylinderOptions, separateMaterialSlots });
+    try {
+      const indices = mesh.getIndices()!;
+      const normals = mesh.getNormals()!;
+      const capNormals: number[] = [];
+      for (let i = 48; i < indices.length; i += 3) {
+        capNormals.push(normals[indices[i]].y);
+      }
+      expect(capNormals).toEqual(separateMaterialSlots ? [1, 1, 1, 1, -1, -1, -1, -1] : [-1, 1, -1, 1, -1, 1, -1, 1]);
+    } finally {
+      mesh.destroy();
+    }
+  });
+
   it("uses one polygon algorithm for contours and polygons with holes", () => {
     const fromContours = PrimitiveMesh.createPolygon(
       engine,

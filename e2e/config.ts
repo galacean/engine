@@ -286,7 +286,7 @@ export const E2E_CONFIG = {
     cylinder: {
       category: "Primitive",
       caseFileName: "primitive-cylinder",
-      threshold: 0.005,
+      threshold: 0,
       diffPercentage: 0.0036
     },
     plane: {
@@ -418,55 +418,55 @@ export const E2E_CONFIG = {
     particleEmitMeshNoShape: {
       category: "Particle",
       caseFileName: "particleRenderer-emit-mesh-no-shape",
-      threshold: 0.005,
+      threshold: 0,
       diffPercentage: 0.00136
     },
     particleEmitMeshCone: {
       category: "Particle",
       caseFileName: "particleRenderer-emit-mesh-cone",
-      threshold: 0.005,
+      threshold: 0,
       diffPercentage: 0.00219
     },
     particleEmitMeshConeScaleRotation: {
       category: "Particle",
       caseFileName: "particleRenderer-emit-mesh-cone-scale-rotation",
-      threshold: 0.005,
+      threshold: 0,
       diffPercentage: 0.0031
     },
     particleEmitMeshConeScaleRotationWorld: {
       category: "Particle",
       caseFileName: "particleRenderer-emit-mesh-cone-scale-rotation-world",
-      threshold: 0.005,
+      threshold: 0,
       diffPercentage: 0.00928
     },
     particleEmitMeshNoShapeWorld: {
       category: "Particle",
       caseFileName: "particleRenderer-emit-mesh-no-shape-world",
-      threshold: 0.005,
+      threshold: 0,
       diffPercentage: 0.00146
     },
     particleEmitMeshConeScale3DRotation: {
       category: "Particle",
       caseFileName: "particleRenderer-emit-mesh-cone-scale-3d-rotation",
-      threshold: 0.005,
+      threshold: 0,
       diffPercentage: 0.0184
     },
     particleEmitMeshConeScaleRotationLife: {
       category: "Particle",
       caseFileName: "particleRenderer-emit-mesh-cone-scale-rotation-life",
-      threshold: 0.005,
+      threshold: 0,
       diffPercentage: 0.036459
     },
     particleEmitMeshConeScaleRotationLifeSeperate: {
       category: "Particle",
       caseFileName: "particleRenderer-emit-mesh-cone-scale-rotation-life-seperate",
-      threshold: 0.005,
+      threshold: 0,
       diffPercentage: 0.0068
     },
     particleEmitMeshConeScale3DRotationLifeSeperate: {
       category: "Particle",
       caseFileName: "particleRenderer-emit-mesh-cone-scale-3d-rotation-life-seperate",
-      threshold: 0.005,
+      threshold: 0,
       diffPercentage: 0.00782
     },
     particleEmitMeshRotationLifeCurve: {
@@ -484,7 +484,7 @@ export const E2E_CONFIG = {
     particleEmitBillboardStretched: {
       category: "Particle",
       caseFileName: "particleRenderer-emit-billboard-stretched",
-      threshold: 0.005,
+      threshold: 0,
       diffPercentage: 0.0
     },
     inheritVelocityStretched: {

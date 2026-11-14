@@ -272,7 +272,8 @@ export class PrimitiveMesh {
         caps === PrimitiveMeshCapMode.Both || caps === PrimitiveMeshCapMode.Top,
         caps === PrimitiveMeshCapMode.Both || caps === PrimitiveMeshCapMode.Bottom,
         startAngle,
-        (angleRange?.y ?? 360) - startAngle
+        (angleRange?.y ?? 360) - startAngle,
+        options?.separateMaterialSlots ?? false
       ],
       options
     );
@@ -311,7 +312,8 @@ export class PrimitiveMesh {
         caps === PrimitiveMeshCapMode.Both || caps === PrimitiveMeshCapMode.Top,
         caps === PrimitiveMeshCapMode.Both || caps === PrimitiveMeshCapMode.Bottom,
         startAngle,
-        (angleRange?.y ?? 360) - startAngle
+        (angleRange?.y ?? 360) - startAngle,
+        options?.separateMaterialSlots ?? false
       ],
       options
     );
@@ -849,11 +851,12 @@ export class PrimitiveMesh {
     includeTopCap: boolean,
     includeBottomCap: boolean,
     startAngleDegrees: number,
-    arcDegrees: number
+    arcDegrees: number,
+    separateMaterialSlots: boolean = false
   ): PrimitiveMeshBuilder {
     const radial = PrimitiveMesh._getSegmentCount(radialSegments, 3);
     const vertical = PrimitiveMesh._getSegmentCount(heightSegments);
-    const startAngle = MathUtil.degreeToRadian(startAngleDegrees);
+    const startAngle = Math.PI + MathUtil.degreeToRadian(startAngleDegrees);
     const arc = MathUtil.degreeToRadian(arcDegrees);
     const circle = PrimitiveMesh._createArcSamples(radial, startAngle, arc);
     const slope = height === 0 ? 0 : (radiusBottom - radiusTop) / height;
@@ -887,11 +890,17 @@ export class PrimitiveMesh {
       }
     }
     data.addGroup(0);
+    const capStart = data.indexCount;
+    // Interleave ungrouped caps to preserve transparent blending order
+    const interleaveCaps = capCount === 2 && !separateMaterialSlots;
     if (includeTopCap) {
       cap(radiusTop, 1);
     }
     if (includeBottomCap) {
       cap(radiusBottom, -1);
+    }
+    if (interleaveCaps) {
+      data.addGroup(capStart);
     }
     data.boundsExtent = new Vector3(Math.max(radiusTop, radiusBottom), height / 2, Math.max(radiusTop, radiusBottom));
     return data;
@@ -902,32 +911,39 @@ export class PrimitiveMesh {
       }
       const start = data.indexCount;
       const center = data.addVertex(0, (sign * height) / 2, 0, 0, sign, 0, 0.5, 0.5);
+      const rowStart = sign > 0 ? vertical * (radial + 1) : 0;
+      const inverseDiameter = 1 / (2 * radius);
       // A partial cap includes both endpoints; a full cap reuses its first rim vertex
       const rimCount = full ? radial : radial + 1;
       for (let x = 0; x < rimCount; x++) {
-        const cos = circle[x * 2];
-        const sin = circle[x * 2 + 1];
+        const offset = (rowStart + x) * 8;
+        const positionX = data.vertices[offset];
+        const positionZ = data.vertices[offset + 2];
         data.addVertex(
-          radius * sin,
+          positionX,
           (sign * height) / 2,
-          radius * cos,
+          positionZ,
           0,
           sign,
           0,
-          (sin + 1) / 2,
-          (cos * sign + 1) / 2
+          positionX * inverseDiameter + 0.5,
+          0.5 - positionZ * inverseDiameter
         );
       }
+      let indexOffset = interleaveCaps ? capStart + (sign > 0 ? 3 : 0) : start;
+      const indexStride = interleaveCaps ? 6 : 3;
       for (let x = 0; x < radial; x++) {
         const current = center + x + 1;
         const next = full && x === radial - 1 ? center + 1 : current + 1;
-        if (sign > 0) {
-          data.addTriangle(center, current, next);
-        } else {
-          data.addTriangle(center, next, current);
-        }
+        data.indices[indexOffset] = center;
+        data.indices[indexOffset + 1] = sign > 0 ? current : next;
+        data.indices[indexOffset + 2] = sign > 0 ? next : current;
+        indexOffset += indexStride;
       }
-      data.addGroup(start);
+      data.indexCount += radial * 3;
+      if (!interleaveCaps) {
+        data.addGroup(start);
+      }
     }
   }
 

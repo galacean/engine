@@ -165,7 +165,7 @@ const mirroredKnot = PrimitiveMesh.createTorusKnot(engine, 1, 0.1, 2, -3);
 
 管道和环面结用 `pathSegments` 控制沿路径的分段，圆环用 `ringSegments` 控制环向分段，`radialSegments` 控制管截面的周向分段。胶囊的 `capSegments` 控制每个半球从极点到赤道的分段，`cylinderHeight` 表示直筒部分的高度。正多面体用 `edgeSegments`，圆角长方体用 `roundingSegments`。
 
-角度范围统一放在配置对象中。所有角度均使用**度数**，范围使用 `Vector2`，`x` 表示起始角，`y` 表示结束角。跨越 360 度时使用连续角度，例如 `new Vector2(350, 370)`。圆柱、圆锥和旋转体围绕 Y 轴，0 度从 +Z 方向开始；球体的垂直角度从 +Y 极点开始。
+角度范围统一放在配置对象中。所有角度均使用**度数**，范围使用 `Vector2`，`x` 表示起始角，`y` 表示结束角。跨越 360 度时使用连续角度，例如 `new Vector2(350, 370)`。圆柱、圆台和圆锥围绕 Y 轴，从 -Z 朝 -X 方向开始；旋转体从 +Z 朝 +X 方向开始。球体的垂直角度从 +Y 极点开始。
 
 ```ts
 import { PrimitiveMeshCapMode, Vector2 } from "@galacean/engine";

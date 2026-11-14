@@ -161,7 +161,7 @@ For torus knots, `axisTurns` counts revolutions around the central axis and `cro
 
 Dimensions are required arguments; subdivision counts remain in the optional settings object. For tubes and torus knots, `pathSegments` controls subdivisions along the path. Tori use `ringSegments` around the ring. `radialSegments` controls the tube cross-section. Capsule `capSegments` controls each pole-to-equator section independently; `cylinderHeight` describes the straight section. Regular polyhedra use `edgeSegments`, and rounded cuboids use `roundingSegments`.
 
-Angle ranges belong to the options object. Angles use **degrees**. Ranges use `Vector2`, with `x` as the start angle and `y` as the end angle. Use continuous angles across a full turn, such as `new Vector2(350, 370)`. Cylinders, cones and lathes rotate around Y starting from +Z; a sphere's vertical angle starts at +Y.
+Angle ranges belong to the options object. Angles use **degrees**. Ranges use `Vector2`, with `x` as the start angle and `y` as the end angle. Use continuous angles across a full turn, such as `new Vector2(350, 370)`. Cylinders, truncated cones and cones rotate around Y from -Z towards -X; lathes start from +Z towards +X. A sphere's vertical angle starts at +Y.
 
 ```ts
 import { PrimitiveMeshCapMode, Vector2 } from "@galacean/engine";
