@@ -504,6 +504,152 @@ describe("ResourceManager", () => {
       }
     });
 
+    describe("subpackage hook", () => {
+      // What a mini-game adapter does in `_loadSubpackageAndMainAsset`: load the subpackage, then the asset.
+      function installSubpackageHook(resourceManager: ResourceManager) {
+        const waiting: Array<{ success(): void; fail(error: Error): void }> = [];
+        // @ts-ignore -- replace the internal hook the way an adapter overrides it
+        resourceManager._loadSubpackageAndMainAsset = function (loader, item, remoteAssetBaseURL, subpackageName) {
+          if (!subpackageName) {
+            return this._loadMainAsset(loader, item, remoteAssetBaseURL);
+          }
+          return new AssetPromise((resolve, reject, setComplete, setDetail, onCancel) => {
+            let canceled = false;
+            let mainAsset: AssetPromise<unknown>;
+            onCancel(() => {
+              canceled = true;
+              mainAsset?.cancel();
+            });
+            waiting.push({
+              success: () => {
+                if (canceled) return;
+                mainAsset = this._loadMainAsset(loader, item, remoteAssetBaseURL);
+                mainAsset.onProgress(setComplete, setDetail).then(resolve, reject);
+              },
+              fail: reject
+            });
+          });
+        };
+        // @ts-ignore -- back to the prototype's implementation
+        return { waiting, restore: () => delete resourceManager._loadSubpackageAndMainAsset };
+      }
+
+      it("shares one load while the adapter loads the subpackage", async () => {
+        const resourceManager = engine.resourceManager;
+        const virtualPath = "Subpackage/Shared/texture.png";
+        const physicalPath = "/subpackage/shared/texture.png";
+        const texture = { instanceId: 987654401 };
+        resourceManager.registerVirtualResources([
+          { virtualPath, path: physicalPath, type: AssetType.Texture, subpackageName: "sub" }
+        ]);
+        const hook = installSubpackageHook(resourceManager);
+        // @ts-ignore
+        const loaderSpy = vi
+          .spyOn(ResourceManager._loaders[AssetType.Texture], "load")
+          .mockReturnValue(AssetPromise.resolve(texture) as any);
+
+        try {
+          const first = resourceManager.load(virtualPath);
+          const second = resourceManager.load(virtualPath);
+          expect(hook.waiting.length).equal(1);
+
+          hook.waiting.shift().success();
+          expect(await first).equal(texture);
+          expect(await second).equal(texture);
+          expect(loaderSpy).toHaveBeenCalledTimes(1);
+        } finally {
+          hook.restore();
+          loaderSpy.mockRestore();
+          // @ts-ignore
+          resourceManager._deleteAsset(texture);
+        }
+      });
+
+      it("releases a load whose subpackage fails", async () => {
+        const resourceManager = engine.resourceManager;
+        const virtualPath = "Subpackage/Missing/model.glb";
+        const physicalPath = "/subpackage/missing/model.glb";
+        resourceManager.registerVirtualResources([
+          { virtualPath, path: physicalPath, type: AssetType.GLTF, subpackageName: "missing" }
+        ]);
+        const hook = installSubpackageHook(resourceManager);
+        // @ts-ignore
+        const loaderSpy = vi.spyOn(ResourceManager._loaders[AssetType.GLTF], "load");
+
+        try {
+          const pending = resourceManager.load(`${virtualPath}?q=materials[0]`);
+          hook.waiting.shift().fail(new Error("subpackage failed"));
+          await expect(pending).rejects.toThrow("subpackage failed");
+
+          // @ts-ignore -- nothing of the failed load stays registered
+          expect(Object.keys(resourceManager._loadingPromises).filter((key) => key.includes(physicalPath))).eql([]);
+          // @ts-ignore
+          expect(resourceManager._subAssetPromiseCallbacks[physicalPath]).equal(undefined);
+
+          // The next load asks the adapter again instead of answering with the old failure.
+          resourceManager.load(`${virtualPath}?q=materials[0]`).catch(() => {});
+          expect(hook.waiting.length).equal(1);
+          expect(loaderSpy).not.toHaveBeenCalled();
+        } finally {
+          resourceManager.cancelNotLoaded(virtualPath);
+          hook.restore();
+          loaderSpy.mockRestore();
+        }
+      });
+
+      it("keeps a reload registered when it starts from the rejection of a canceled load", async () => {
+        const resourceManager = engine.resourceManager;
+        const virtualPath = "Subpackage/Reload/texture.png";
+        const physicalPath = "/subpackage/reload/texture.png";
+        const texture = { instanceId: 987654402 };
+        resourceManager.registerVirtualResources([
+          { virtualPath, path: physicalPath, type: AssetType.Texture, subpackageName: "sub" }
+        ]);
+        const hook = installSubpackageHook(resourceManager);
+        const onCancelSpy = vi.fn();
+        // @ts-ignore
+        const loaderSpy = vi
+          .spyOn(ResourceManager._loaders[AssetType.Texture], "load")
+          .mockReturnValueOnce(
+            new AssetPromise((_resolve, _reject, _setComplete, _setDetail, onCancel) => {
+              onCancel(onCancelSpy);
+            }) as any
+          )
+          .mockReturnValueOnce(AssetPromise.resolve(texture) as any);
+
+        try {
+          const first = resourceManager.load(virtualPath);
+          let reload: AssetPromise<unknown>;
+          const reloadStarted = new Promise<void>((resolve) => {
+            first.then(undefined, () => {
+              reload = resourceManager.load(virtualPath);
+              resolve();
+            });
+          });
+          // The subpackage is loaded and the asset is loading when the load is canceled.
+          hook.waiting.shift().success();
+          first.cancel();
+          await reloadStarted;
+          // Let the canceled load finish its own cleanup before the next load arrives.
+          await new Promise((resolve) => setTimeout(resolve));
+
+          const next = resourceManager.load(virtualPath);
+          expect(onCancelSpy).toHaveBeenCalledOnce();
+          expect(hook.waiting.length).equal(1);
+
+          hook.waiting.shift().success();
+          expect(await reload).equal(texture);
+          expect(await next).equal(texture);
+          expect(loaderSpy).toHaveBeenCalledTimes(2);
+        } finally {
+          hook.restore();
+          loaderSpy.mockRestore();
+          // @ts-ignore
+          resourceManager._deleteAsset(texture);
+        }
+      });
+    });
+
     it("prefers the virtualPath map type over an explicit type", () => {
       const resourceManager = engine.resourceManager;
       resourceManager.registerVirtualResources([

@@ -389,16 +389,55 @@ export class ResourceManager {
     if (queryPath) {
       // Check whether load main asset
       const mainPromise =
-        loadingPromises[remoteAssetBaseURL] ||
-        this._loadSubpackageAndMainAsset(loader, item, remoteAssetBaseURL, subpackageName);
+        loadingPromises[remoteAssetBaseURL] || this._trackMainAsset(loader, item, remoteAssetBaseURL, subpackageName);
 
       return this._createSubAssetPromiseCallback<T>(remoteAssetBaseURL, remoteAssetURL, queryPath, mainPromise);
     }
 
-    return this._loadSubpackageAndMainAsset(loader, item, remoteAssetBaseURL, subpackageName);
+    return this._trackMainAsset(loader, item, remoteAssetBaseURL, subpackageName);
   }
 
-  // For adapter mini-game platform
+  /**
+   * Registers the load of a main asset for as long as it runs, and caches its result when the loader uses the cache.
+   * @remarks
+   * The registered promise is the one `_loadSubpackageAndMainAsset` returns, so the load is registered while a
+   * mini-game adapter still loads the subpackage, and it is released when that promise settles. The entry has
+   * one owner: only the load that registered it removes it.
+   */
+  private _trackMainAsset<T>(
+    loader: Loader<T>,
+    item: LoadItem,
+    remoteAssetBaseURL: string,
+    subpackageName: string | undefined
+  ): AssetPromise<T> {
+    const loadingPromises = this._loadingPromises;
+    const promise = this._loadSubpackageAndMainAsset(loader, item, remoteAssetBaseURL, subpackageName);
+    loadingPromises[remoteAssetBaseURL] = promise;
+
+    const release = () => {
+      if (loadingPromises[remoteAssetBaseURL] === promise) {
+        delete loadingPromises[remoteAssetBaseURL];
+      }
+      this._releaseSubAssetPromiseCallback(remoteAssetBaseURL);
+    };
+    promise.then((resource: T) => {
+      if (loader.useCache) {
+        this._addAsset(remoteAssetBaseURL, resource as EngineObject);
+      }
+      release();
+    }, release);
+
+    return promise;
+  }
+
+  /**
+   * Hook for mini-game adapters: an adapter replaces this method to load the subpackage, then load the asset with
+   * `_loadMainAsset`.
+   * @remarks
+   * `_trackMainAsset` registers the promise this method returns, so `cancelNotLoaded` and `AssetPromise.cancel`
+   * cancel that promise, not the loader's. A replacement that returns its own promise must cancel the promise of
+   * `_loadMainAsset` in `onCancel` and forward its progress.
+   */
   private _loadSubpackageAndMainAsset<T>(
     loader: Loader<T>,
     item: LoadItem,
@@ -408,26 +447,9 @@ export class ResourceManager {
     return this._loadMainAsset(loader, item, remoteAssetBaseURL);
   }
 
+  // `remoteAssetBaseURL` is kept for adapter overrides that call this with three arguments.
   private _loadMainAsset<T>(loader: Loader<T>, item: LoadItem, remoteAssetBaseURL: string): AssetPromise<T> {
-    const loadingPromises = this._loadingPromises;
-    const promise = loader.load(item, this);
-    loadingPromises[remoteAssetBaseURL] = promise;
-
-    promise.then(
-      (resource: T) => {
-        if (loader.useCache) {
-          this._addAsset(remoteAssetBaseURL, resource as EngineObject);
-        }
-        delete loadingPromises[remoteAssetBaseURL];
-        this._releaseSubAssetPromiseCallback(remoteAssetBaseURL);
-      },
-      () => {
-        delete loadingPromises[remoteAssetBaseURL];
-        this._releaseSubAssetPromiseCallback(remoteAssetBaseURL);
-      }
-    );
-
-    return promise;
+    return loader.load(item, this);
   }
 
   private _createSubAssetPromiseCallback<T>(
