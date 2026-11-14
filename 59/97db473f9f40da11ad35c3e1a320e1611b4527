@@ -1,0 +1,196 @@
+packages/water/src/water/native/assets/Water/Shaders/builtin/lake.json
+  s_049cfc66c2eb03::t_bf5fd2339ae87e 1
+packages/water/src/water/native/assets/Water/Shaders/builtin/river.json
+  s_049cfc66c2eb03::t_bf5fd2339ae87e 1
+packages/water/src/water/shaders/ocean/OceanSurfaceDetail.glsl
+  s_049cfc66c2eb03::t_bf5fd2339ae87e 34-35,38-39,59-60,63-64
+packages/water/package.json
+  s_049cfc66c2eb03::t_bf5fd2339ae87e 384
+packages/water/tests/WaterBuiltinTextures.test.ts
+  s_049cfc66c2eb03::t_bf5fd2339ae87e 20
+packages/world-planning/tests/fixtures/water-default-look/provenance.json
+  s_049cfc66c2eb03::t_5193443a998383 123,127,131,135,139
+  s_049cfc66c2eb03::t_b05fb874f7c158 1-122,124-126,128-130,132-134,136-138,140-143
+packages/water/src/water/native/WaterMaterialFile.ts
+  s_049cfc66c2eb03::t_bf5fd2339ae87e 13-20,97,102-103,109,115-116,213,237-249,257,262,324-331,336,349-350,369-377,383-387,390,406,408-409
+packages/water/src/water/runtime/ocean/OceanFarFieldShader.ts
+  s_049cfc66c2eb03::t_bf5fd2339ae87e 13-15,18-22,33-36
+packages/water/src/water/runtime/surface/WaterSurfaceAppearanceV2Shader.ts
+  s_049cfc66c2eb03::t_bf5fd2339ae87e 45,207
+packages/water/src/water/runtime/surface/WaterSurfaceCausticsBinding.ts
+  s_049cfc66c2eb03::t_bf5fd2339ae87e 11-17
+packages/water/src/water/runtime/ocean/OceanTextureLibrary.ts
+  s_049cfc66c2eb03::t_bf5fd2339ae87e 1,4-10,18,23
+packages/water/src/water/native/assets/Water/Materials/ocean.mat
+  s_049cfc66c2eb03::t_bf5fd2339ae87e 276-305
+packages/water/tests/WaterCreationPresets.test.ts
+  s_049cfc66c2eb03::t_bf5fd2339ae87e 22,24
+packages/water/src/water/native/assets/Water/Shaders/ocean.shader
+  s_049cfc66c2eb03::t_bf5fd2339ae87e 61-65,67-79,217-218,309-310,1927-1928,1931-1932,1952-1953,1956-1957,2212,2245-2246,2253,2307,2500-2501
+packages/water/src/water/native/assets/Water/Shaders/lake.shader
+  s_049cfc66c2eb03::t_bf5fd2339ae87e 80-81,83-86,275-276,1795-1797,1802,1811-1813,1818,2316-2317,2684-2686,2691,2700-2702,2707
+packages/water/src/water/shaders/library/surface/WaterSurfaceAppearanceV2NormalDetail.glsl
+  s_049cfc66c2eb03::t_bf5fd2339ae87e 20-21,23,29,35,67-68,70,76,82
+packages/water/src/water/native/assets/Water/Shaders/builtin/sources.json
+  s_049cfc66c2eb03::t_bf5fd2339ae87e 2-4
+packages/water/src/water/native/WaterAuthoring.ts
+  s_049cfc66c2eb03::t_bf5fd2339ae87e 390-392,409-415
+packages/water/src/water/runtime/ocean/OceanWaterRuntimeTypes.ts
+  s_049cfc66c2eb03::t_bf5fd2339ae87e 5
+packages/water/src/water/runtime/ocean/OceanWaterBackend.ts
+  s_049cfc66c2eb03::t_bf5fd2339ae87e 20,79-83,88-89
+packages/water/src/water/native/WaterBodyComponent.ts
+  s_049cfc66c2eb03::t_bf5fd2339ae87e 20,291,350,359,423,441,483-494,597
+  s_049cfc66c2eb03::t_b5c36b6a07f4f5 391-392,575
+packages/world-planning/tests/NativeWaterDefaultLook.test.ts
+  s_049cfc66c2eb03::t_53cbee06046213 1-84,86-207
+  s_049cfc66c2eb03::t_68dc9168326995 85
+packages/water/src/water/runtime/heightfield/HeightfieldWaterRuntimeController.ts
+  s_049cfc66c2eb03::t_bf5fd2339ae87e 1,570,917
+packages/world-planning/src/semantic-study/PlanningWaterView.ts
+  s_049cfc66c2eb03::t_bf5fd2339ae87e 1,68
+packages/water/src/water/native/WaterMaterial.ts
+  s_049cfc66c2eb03::t_bf5fd2339ae87e 1,6-7,11-14,47,50-85,88,95-101,140-156
+packages/water/tests/WaterQualityMaterial.test.ts
+  s_049cfc66c2eb03::t_bf5fd2339ae87e 27
+packages/water/src/water/native/assets/Water/Shaders/builtin/ocean.json
+  s_049cfc66c2eb03::t_bf5fd2339ae87e 1
+packages/world-planning/tests/NativeWaterLifecycle.test.ts
+  s_049cfc66c2eb03::t_bf5fd2339ae87e 1,66-68,73,77-79
+packages/water/src/water/runtime/river/RiverMaterialFactory.ts
+  s_049cfc66c2eb03::t_bf5fd2339ae87e 211-217
+packages/world-planning/tests/NativeWaterRendering.test.ts
+  s_22745c66fb7b27::t_efbd2bf386f56a 4,35-37,59-60,63
+  s_049cfc66c2eb03::t_bf5fd2339ae87e 1,5,10-11,21,85-93,95-96,115
+  s_049cfc66c2eb03::t_68651eb842b9b5 72
+packages/water/src/water/compiler/surface/WaterSurfaceTextureReferences.ts
+  s_049cfc66c2eb03::t_bf5fd2339ae87e 15
+packages/water/src/water/native/index.ts
+  s_049cfc66c2eb03::t_bf5fd2339ae87e 75-78
+packages/water/src/water/native/WaterBuiltinShaderNames.ts
+  s_049cfc66c2eb03::t_bf5fd2339ae87e 8,10
+packages/water/src/water/shaders/ocean/ForwardPass.glsl
+  s_049cfc66c2eb03::t_bf5fd2339ae87e 15-16,340,373-374,381,435
+packages/water/tests/WaterBuiltinShaders.test.ts
+  s_049cfc66c2eb03::t_bf5fd2339ae87e 6,28-29,71,75-80
+world/scripts/generate-water-assets.mjs
+  s_049cfc66c2eb03::t_bf5fd2339ae87e 18,23-24,39-40,104-105,126-127,130,139,142-145,149
+packages/modify/src/native/loader/src/schema/MaterialSchema.ts
+  s_049cfc66c2eb03::t_5706d1570dc67f 37
+packages/water/scripts/prepare-builtin-shaders.mjs
+  s_049cfc66c2eb03::t_bf5fd2339ae87e 18
+packages/water/src/water/compiler/surface/WaterSurfaceAppearanceV2Validator.ts
+  s_049cfc66c2eb03::t_bf5fd2339ae87e 325-326,342
+packages/water/tests/WaterNativeMaterial.test.ts
+  s_049cfc66c2eb03::t_bf5fd2339ae87e 2-14,18,24,26,28,36-38,41-42,44-64,72,75-95,97-101,107,109,111-120,122-124,127,131,137-145,151,153-154,156,160,165-167,170-178,184-213
+packages/water/src/water/native/assets/Water/Materials/river.mat
+  s_049cfc66c2eb03::t_bf5fd2339ae87e 434-451
+packages/water/src/water/runtime/ocean/OceanMaterial.ts
+  s_049cfc66c2eb03::t_bf5fd2339ae87e 72,280-290
+world/demos/prompt-noise-world/main.ts
+  s_049cfc66c2eb03::t_bf5fd2339ae87e 1,479
+packages/water/src/water/runtime/resources/destroyWaterOwnedMaterial.ts
+  s_22745c66fb7b27::t_a4edc6fa29f09c 1-5,7,15-16,24-25,28-38
+  s_22745c66fb7b27::t_5b6ef07fb8ebb1 6,8-14,17-23,26-27
+packages/water/src/water/runtime/ocean/OceanFarMaterial.ts
+  s_049cfc66c2eb03::t_bf5fd2339ae87e 73,200
+packages/water/src/water/scripts/generate-native-api.mjs
+  s_049cfc66c2eb03::t_bf5fd2339ae87e 45-50
+packages/water/src/water/native/assets/Water/Materials/lake.mat
+  s_049cfc66c2eb03::t_bf5fd2339ae87e 362-373
+packages/water/tests/RiverMaterialCleanup.test.ts
+  s_049cfc66c2eb03::t_184a4f4ddefcdf 78,321-327
+  s_22745c66fb7b27::t_7a133ef72055bc 1,6,8-10,13-21,36-70,79-105,113-130,133-152,165-166,172,174-181,210,218,220-224,226-227,242-243,246-251,259-261,265,270,277,281-290,295,301-303,314,319-320,329,336,338-339,375,379,390
+  s_22745c66fb7b27::t_2e79225614fd6e 182-208,212-214,217
+  s_049cfc66c2eb03::t_68651eb842b9b5 11-12,106-111,328
+  s_22745c66fb7b27::t_58ed3c7dd237b4 2-5,7,22-35,112,131-132,153-164,167-171,173,225,228-241,244-245,252-258,262-264,266-269,271-276,278-280,291-294,296-300,304-313,315-318,330-335,340-374,376-378,380-389
+  s_049cfc66c2eb03::t_1c4eb854bc268c 71-77,209,211,215-216,219,337
+packages/water/src/water/native/WaterBuiltinMaterialTextures.ts
+  s_049cfc66c2eb03::t_bf5fd2339ae87e 4
+packages/world-planning/src/spatial/runtime/PlanningWaterRuntime.ts
+  s_049cfc66c2eb03::t_bf5fd2339ae87e 1,160-161
+world/scripts/tests/generate-water-assets.test.mjs
+  s_049cfc66c2eb03::t_bf5fd2339ae87e 123,125
+packages/world-planning/tests/fixtures/water-default-look/README.md
+  s_049cfc66c2eb03::t_53cbee06046213 1-6,8-15
+  s_049cfc66c2eb03::t_68dc9168326995 7
+packages/water/src/water/native/WaterSystem.ts
+  s_049cfc66c2eb03::t_bf5fd2339ae87e 16,38-43
+  s_049cfc66c2eb03::t_b5c36b6a07f4f5 17,306,372,441,612-624,1041,1053,1114-1116,1119-1120,1125-1126,1151
+packages/water/tests/WaterStandaloneLifecycle.test.ts
+  s_049cfc66c2eb03::t_bf5fd2339ae87e 17,27,42,45-49,213-215
+  s_049cfc66c2eb03::t_61a6bb970c9dfb 268-274
+packages/water/src/water/native/assets/Water/Shaders/river.shader
+  s_049cfc66c2eb03::t_bf5fd2339ae87e 2,94-96,98-104,339-340,1873-1875,1880,1892-1894,1899,2348-2349,2840-2842,2847,2859-2861,2866
+packages/water/src/water/runtime/ocean/OceanWaterRuntimeController.ts
+  s_049cfc66c2eb03::t_bf5fd2339ae87e 1,232,333,337,467,471
+packages/modify/tests/MaterialLoaderCompatibility.test.ts
+  s_049cfc66c2eb03::t_4c5d3c50f041ef 96-100
+  s_049cfc66c2eb03::t_5706d1570dc67f 3,90-95,120-150,166-167,179,186-220
+packages/world-planning/tests/WaterEditor.test.ts
+  s_049cfc66c2eb03::t_bf5fd2339ae87e 164,464,542
+packages/world-planning/tests/NativeWaterDrops.test.ts
+  s_049cfc66c2eb03::t_bf5fd2339ae87e 2-6,8-16
+packages/world-planning/src/runtime/SeedWorldWaterRuntime.ts
+  s_049cfc66c2eb03::t_bf5fd2339ae87e 1,187-188
+packages/water/tests/WaterLookCompatibility.test.ts
+  s_049cfc66c2eb03::t_2c105ae7a80607 1-27,31-64,70-137,151-160,162-163,165-204,224-238,240-250
+  s_049cfc66c2eb03::t_7fc23582f74dd7 28-30,205-223
+  s_049cfc66c2eb03::t_0c29cc8cce364c 65-69,138-150,161,164,239
+world/demos/seed-world/systems/runtime-declarations.json
+  s_049cfc66c2eb03::t_bf5fd2339ae87e 1
+packages/water/src/water/runtime/river/RiverRuntimeController.ts
+  s_22745c66fb7b27::t_58ed3c7dd237b4 622-627
+  s_22745c66fb7b27::t_efbd2bf386f56a 1,889,921,928-967,969-970,972-978,982,1058-1076,1078-1082,1088
+packages/modify/src/native/loader/src/MaterialLoader.ts
+  s_049cfc66c2eb03::t_5706d1570dc67f 92-93
+packages/water/src/water/native/README.md
+  s_049cfc66c2eb03::t_bf5fd2339ae87e 34-35,39-43
+  s_049cfc66c2eb03::t_b5c36b6a07f4f5 36-38
+packages/water/tests/WaterOwnedMaterialLifecycle.test.ts
+  s_22745c66fb7b27::t_8ad35b44cc9f02 1-10,12-59,61-90,92,98-109,115-118,120-151,153-187
+  s_049cfc66c2eb03::t_68651eb842b9b5 11,60,93-97,110-114,152
+  s_7149e89e605a6e::t_435ece41faf9cf 91,119
+packages/water/src/water/shaders/library/surface/WaterSurfaceAppearanceV2Uniforms.glsl
+  s_049cfc66c2eb03::t_bf5fd2339ae87e 9-10
+packages/water/src/water/runtime/heightfield/HeightfieldWaterMaterialFactory.ts
+  s_049cfc66c2eb03::t_bf5fd2339ae87e 971
+packages/water/src/water/native/WaterMaterialTextureSlots.ts
+  s_049cfc66c2eb03::t_ca01c161a73da2 1-63
+packages/water/src/water/runtime/ocean/OceanTextures.ts
+  s_049cfc66c2eb03::t_056f62ea7ee649 1-73
+packages/water/tests/WaterTextureBinding.test.ts
+  s_049cfc66c2eb03::t_cfbdf768435563 1-402
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "5997db473f9f40da11ad35c3e1a320e1611b4527",
+  "prompts": {},
+  "sessions": {
+    "s_049cfc66c2eb03": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1d854-c6ad-7fe1-a3b8-936aa8b7064e",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "星翊 <sunmingming.smm@antgroup.com>"
+    },
+    "s_22745c66fb7b27": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1d9ba-9bf6-7b81-9f99-3a3839113755",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "星翊 <sunmingming.smm@antgroup.com>"
+    },
+    "s_7149e89e605a6e": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1d85d-bb0d-7fa3-9010-1f40ddca98e2",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "星翊 <sunmingming.smm@antgroup.com>"
+    }
+  }
+}
