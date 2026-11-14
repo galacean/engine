@@ -616,6 +616,29 @@ describe("PrimitiveMeshLoader", () => {
     }
   });
 
+  it.each([{}, { subdivisionLevel: 1, keepCPUData: true }])(
+    "reuses serialized options without angle ranges: %j",
+    async (sphereOptions) => {
+      const data: PrimitiveMeshAsset = { type: "sphere", sphereRadius: 0.5, sphereOptions };
+      const serialized = JSON.stringify(data);
+      const request = vi.spyOn(engine.resourceManager, "_request").mockReturnValue(AssetPromise.resolve(data) as any);
+      const create = vi.spyOn(PrimitiveMesh, "createSphere");
+      let mesh: ModelMesh | undefined;
+      try {
+        mesh = await engine.resourceManager.load<ModelMesh>({
+          url: "numeric-options.mesh",
+          type: AssetType.PrimitiveMesh
+        });
+        expect(create.mock.calls[0][2]).toBe(sphereOptions);
+        expect(JSON.stringify(data)).toBe(serialized);
+      } finally {
+        create.mockRestore();
+        request.mockRestore();
+        mesh?.destroy();
+      }
+    }
+  );
+
   it("converts serialized ranges to Vector2 without modifying the asset", async () => {
     const data: PrimitiveMeshAsset = {
       type: "sphere",
@@ -629,6 +652,7 @@ describe("PrimitiveMeshLoader", () => {
     try {
       mesh = await engine.resourceManager.load<ModelMesh>({ url: "vector-ranges.mesh", type: AssetType.PrimitiveMesh });
       const ranges = create.mock.calls[0][2]!;
+      expect(ranges).not.toBe(data.sphereOptions);
       expect(ranges.horizontalAngleRange).toBeInstanceOf(Vector2);
       expect(ranges.verticalAngleRange).toBeInstanceOf(Vector2);
       expect(ranges.horizontalAngleRange!.toJSON()).toEqual({ x: 350, y: 370 });

@@ -138,15 +138,15 @@ class PrimitiveMeshLoader extends Loader<ModelMesh> {
     if (!options) {
       return;
     }
-    const result = { ...options } as T;
+    let result: T | undefined;
     for (const key in options) {
       const value: unknown = options[key];
       if (value && typeof value === "object") {
         const range = value as { x: number; y: number };
-        result[key] = new Vector2(range.x, range.y) as T[typeof key];
+        (result ??= { ...options } as T)[key] = new Vector2(range.x, range.y) as T[typeof key];
       }
     }
-    return result;
+    return result ?? (options as T);
   }
 
   private _parseVector2s(points: readonly { x: number; y: number }[]): Vector2[] {
