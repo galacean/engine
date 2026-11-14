@@ -12,7 +12,7 @@ const everyAssetHasAFactory: Exclude<PrimitiveMeshAsset["type"], CreationType> e
 const sphere: PrimitiveMeshAsset = {
   type: "sphere",
   sphereRadius: 1,
-  sphereOptions: { verticalAngleRange: { x: 0, y: 90 }, keepCPUData: true, subdivisionLevel: 3 }
+  sphereOptions: { verticalAngleRange: { x: 0, y: 90 }, keepMeshData: true, subdivisionLevel: 3 }
 };
 const exportedFromEngine: EnginePrimitiveMeshAsset = sphere;
 const sphereSection: PrimitiveMeshAsset = {

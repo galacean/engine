@@ -8,7 +8,7 @@ class PrimitiveTopology {
   static async create(): Promise<void> {
     const gallery = await PrimitiveMeshGallery.create();
     const { engine } = gallery;
-    const keep = { keepCPUData: true };
+    const keep = { keepMeshData: true };
     const examples: PrimitiveMeshExample[] = [
       {
         label: "Sphere / level 1",

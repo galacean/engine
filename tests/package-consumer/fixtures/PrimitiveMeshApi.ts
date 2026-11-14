@@ -36,28 +36,28 @@ const polygons: readonly PolygonShape[] = [polygon, { points: contour }];
 const profile: readonly Vector2[] = [new Vector2(0.25, -1), new Vector2(1, 0), new Vector2(0.5, 1)];
 const path: readonly Vector3[] = [new Vector3(0, 0, 0), new Vector3(0, 1, 1), new Vector3(1, 2, 2)];
 
-const commonOptions = { keepCPUData: true } satisfies PrimitiveMeshOptions;
+const commonOptions = { keepMeshData: true } satisfies PrimitiveMeshOptions;
 const sphereOptions = {
   subdivisionLevel: 4,
   horizontalAngleRange: new Vector2(350, 370),
   verticalAngleRange: new Vector2(30, 150),
-  keepCPUData: true
+  keepMeshData: true
 } satisfies SphereMeshOptions;
 const cuboidOptions = {
   widthSegments: 2,
   heightSegments: 3,
   depthSegments: 4,
   separateMaterialSlots: true,
-  keepCPUData: true
+  keepMeshData: true
 } satisfies CuboidMeshOptions;
-const planeOptions = { widthSegments: 4, depthSegments: 2, keepCPUData: true } satisfies PlaneMeshOptions;
+const planeOptions = { widthSegments: 4, depthSegments: 2, keepMeshData: true } satisfies PlaneMeshOptions;
 const cylinderOptions = {
   radialSegments: 32,
   heightSegments: 4,
   caps: PrimitiveMeshCapMode.Bottom,
   angleRange: new Vector2(0, 270),
   separateMaterialSlots: true,
-  keepCPUData: true
+  keepMeshData: true
 } satisfies CylinderMeshOptions;
 const truncatedConeOptions = {
   radialSegments: 32,
@@ -65,7 +65,7 @@ const truncatedConeOptions = {
   caps: PrimitiveMeshCapMode.None,
   angleRange: new Vector2(0, 270),
   separateMaterialSlots: true,
-  keepCPUData: true
+  keepMeshData: true
 } satisfies TruncatedConeMeshOptions;
 const coneOptions = {
   radialSegments: 32,
@@ -73,37 +73,37 @@ const coneOptions = {
   cap: false,
   angleRange: new Vector2(0, 270),
   separateMaterialSlots: true,
-  keepCPUData: true
+  keepMeshData: true
 } satisfies ConeMeshOptions;
 const capsuleOptions = {
   radialSegments: 12,
   capSegments: 6,
   heightSegments: 3,
-  keepCPUData: true
+  keepMeshData: true
 } satisfies CapsuleMeshOptions;
 const torusOptions = {
   ringSegments: 64,
   radialSegments: 16,
   ringAngleRange: new Vector2(0, 270),
   tubeAngleRange: new Vector2(0, 180),
-  keepCPUData: true
+  keepMeshData: true
 } satisfies TorusMeshOptions;
-const circleOptions = { segments: 32, angleRange: new Vector2(0, 180), keepCPUData: true } satisfies CircleMeshOptions;
+const circleOptions = { segments: 32, angleRange: new Vector2(0, 180), keepMeshData: true } satisfies CircleMeshOptions;
 const ringOptions = {
   ringSegments: 32,
   widthSegments: 4,
   angleRange: new Vector2(0, 270),
-  keepCPUData: true
+  keepMeshData: true
 } satisfies RingMeshOptions;
-const regularPolyhedronOptions = { edgeSegments: 2, keepCPUData: true } satisfies RegularPolyhedronMeshOptions;
-const latheOptions = { segments: 32, angleRange: new Vector2(0, 270), keepCPUData: true } satisfies LatheMeshOptions;
+const regularPolyhedronOptions = { edgeSegments: 2, keepMeshData: true } satisfies RegularPolyhedronMeshOptions;
+const latheOptions = { segments: 32, angleRange: new Vector2(0, 270), keepMeshData: true } satisfies LatheMeshOptions;
 const tubeOptions = {
   pathSegments: 64,
   radialSegments: 8,
   closedPath: true,
-  keepCPUData: true
+  keepMeshData: true
 } satisfies TubeMeshOptions;
-const polygonOptions = { separateMaterialSlots: true, keepCPUData: true } satisfies PolygonMeshOptions;
+const polygonOptions = { separateMaterialSlots: true, keepMeshData: true } satisfies PolygonMeshOptions;
 const linearExtrudedPolygonOptions = {
   depthSegments: 4,
   bevelWidth: 0.1,
@@ -111,19 +111,19 @@ const linearExtrudedPolygonOptions = {
   contourOffset: 0.1,
   bevelSegments: 3,
   separateMaterialSlots: true,
-  keepCPUData: true
+  keepMeshData: true
 } satisfies LinearExtrudedPolygonMeshOptions;
-const torusKnotOptions = { pathSegments: 64, radialSegments: 12, keepCPUData: true } satisfies TorusKnotMeshOptions;
+const torusKnotOptions = { pathSegments: 64, radialSegments: 12, keepMeshData: true } satisfies TorusKnotMeshOptions;
 const roundedCuboidOptions = {
   roundingSegments: 4,
   separateMaterialSlots: true,
-  keepCPUData: true
+  keepMeshData: true
 } satisfies RoundedCuboidMeshOptions;
 const pathExtrudedPolygonOptions = {
   pathSegments: 32,
   closedPath: true,
   separateMaterialSlots: true,
-  keepCPUData: true
+  keepMeshData: true
 } satisfies PathExtrudedPolygonMeshOptions;
 const extrudedPolygonOptions: LinearExtrudedPolygonMeshOptions | PathExtrudedPolygonMeshOptions =
   pathExtrudedPolygonOptions;

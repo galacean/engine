@@ -27,7 +27,7 @@ class PrimitiveMaterials {
     const url = URL.createObjectURL(new Blob([JSON.stringify(asset)], { type: "application/json" }));
     const loaded = await engine.resourceManager.load<ModelMesh>({ type: AssetType.PrimitiveMesh, url });
     URL.revokeObjectURL(url);
-    const retained = PrimitiveMesh.createSphere(engine, 1, { subdivisionLevel: 2, keepCPUData: true });
+    const retained = PrimitiveMesh.createSphere(engine, 1, { subdivisionLevel: 2, keepMeshData: true });
     if (loaded.accessible || !retained.accessible || loaded.vertexCount !== retained.vertexCount) {
       throw new Error("Primitive data retention or JSON asset creation differs from the factory.");
     }

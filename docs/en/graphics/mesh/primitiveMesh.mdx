@@ -218,7 +218,7 @@ For tubes and path extrusions, `closedPath` defaults to `false`. Set it to `true
 Mesh settings and subdivision counts belong to the optional settings object:
 
 ```ts
-const editable = PrimitiveMesh.createSphere(engine, 1, { keepCPUData: true, subdivisionLevel: 3 });
+const editable = PrimitiveMesh.createSphere(engine, 1, { keepMeshData: true, subdivisionLevel: 3 });
 const sixMaterials = PrimitiveMesh.createCuboid(engine, 1, 1, 1, {
   separateMaterialSlots: true,
   widthSegments: 1,
@@ -227,7 +227,7 @@ const sixMaterials = PrimitiveMesh.createCuboid(engine, 1, 1, 1, {
 });
 ```
 
-`keepCPUData` defaults to false. Set it to true to retain readable CPU vertex attributes.
+`keepMeshData` defaults to false. Set it to true to retain vertex attributes and indices for reading or editing after upload.
 
 `separateMaterialSlots` is available for cuboids, cylinders, truncated cones, cones, polygons, extrusions and rounded cuboids. It defaults to false, which creates one SubMesh. When enabled, the generated SubMeshes correspond to material slots in this order:
 
@@ -255,7 +255,7 @@ import type { PrimitiveMeshAsset } from "@galacean/engine";
 const asset = {
   type: "sphere",
   sphereRadius: 1,
-  sphereOptions: { subdivisionLevel: 3, keepCPUData: true }
+  sphereOptions: { subdivisionLevel: 3, keepMeshData: true }
 } satisfies PrimitiveMeshAsset;
 ```
 

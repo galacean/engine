@@ -1993,9 +1993,9 @@ export class PrimitiveMesh {
     engine: Engine,
     generate: (...args: T) => PrimitiveMeshBuilder,
     args: [...T],
-    options?: { keepCPUData?: boolean; separateMaterialSlots?: boolean }
+    options?: { keepMeshData?: boolean; separateMaterialSlots?: boolean }
   ): ModelMesh {
-    const keepCPUData = options?.keepCPUData ?? false;
+    const keepMeshData = options?.keepMeshData ?? false;
     for (let i = 0; i < args.length; i++) {
       args[i] = PrimitiveMesh._copy(args[i]);
     }
@@ -2017,8 +2017,8 @@ export class PrimitiveMesh {
     mesh.setIndices(indices);
     mesh.calculateTangents();
     PrimitiveMesh._setBounds(mesh, data);
-    mesh.uploadData(!keepCPUData);
-    if (!keepCPUData) {
+    mesh.uploadData(!keepMeshData);
+    if (!keepMeshData) {
       vertexBuffer.markAsUnreadable();
     }
     if (options?.separateMaterialSlots && data.groups.length) {

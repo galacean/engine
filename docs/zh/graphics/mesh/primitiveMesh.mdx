@@ -224,7 +224,7 @@ const closedPath = PrimitiveMesh.createExtrudedPolygon(engine, outline, loop, { 
 网格设置与分段设置放在同一个可选配置对象中：
 
 ```ts
-const editable = PrimitiveMesh.createSphere(engine, 1, { keepCPUData: true, subdivisionLevel: 3 });
+const editable = PrimitiveMesh.createSphere(engine, 1, { keepMeshData: true, subdivisionLevel: 3 });
 const sixMaterials = PrimitiveMesh.createCuboid(engine, 1, 1, 1, {
   separateMaterialSlots: true,
   widthSegments: 1,
@@ -233,7 +233,7 @@ const sixMaterials = PrimitiveMesh.createCuboid(engine, 1, 1, 1, {
 });
 ```
 
-`keepCPUData` 默认关闭，设为 `true` 时保留可读的 CPU 顶点属性。
+`keepMeshData` 默认关闭，设为 `true` 时保留顶点属性和索引，供上传后读取或修改。
 
 `separateMaterialSlots` 适用于长方体、圆柱、圆台、圆锥、多边形、挤出和圆角长方体。默认关闭，生成一个 SubMesh；开启后，生成的 SubMesh 按以下顺序对应材质槽：
 
@@ -261,7 +261,7 @@ import type { PrimitiveMeshAsset } from "@galacean/engine";
 const asset = {
   type: "sphere",
   sphereRadius: 1,
-  sphereOptions: { subdivisionLevel: 3, keepCPUData: true }
+  sphereOptions: { subdivisionLevel: 3, keepMeshData: true }
 } satisfies PrimitiveMeshAsset;
 ```
 

@@ -21,7 +21,7 @@ describe("PrimitiveMesh", () => {
   it("createSphere", () => {
     const radius = 2.333;
     const subdivisionLevel = 3.2;
-    const sphereMesh = PrimitiveMesh.createSphere(engine, radius, { keepCPUData: true, subdivisionLevel });
+    const sphereMesh = PrimitiveMesh.createSphere(engine, radius, { keepMeshData: true, subdivisionLevel });
 
     expect(sphereMesh.vertexCount).equal(417);
     expect(sphereMesh.vertexElements.length).equal(4);
@@ -37,7 +37,7 @@ describe("PrimitiveMesh", () => {
     const height = 3.2;
     const depth = 4.5;
     const cuboidMesh = PrimitiveMesh.createCuboid(engine, width, height, depth, {
-      keepCPUData: true,
+      keepMeshData: true,
       widthSegments: 1,
       heightSegments: 1,
       depthSegments: 1
@@ -61,7 +61,7 @@ describe("PrimitiveMesh", () => {
     const floorRadialSegments = Math.floor(radialSegments);
     const floorHeightSegments = Math.floor(heightSegments);
     const truncatedConeMesh = PrimitiveMesh.createTruncatedCone(engine, radiusTop, radiusBottom, height, {
-      keepCPUData: true,
+      keepMeshData: true,
       radialSegments,
       heightSegments
     });
@@ -89,7 +89,7 @@ describe("PrimitiveMesh", () => {
     const floorRingSegments = Math.floor(ringSegments);
     const arc = 180;
     const torusMesh = PrimitiveMesh.createTorus(engine, radius, tubeRadius, {
-      keepCPUData: true,
+      keepMeshData: true,
       ringAngleRange: new Vector2(0, 0 + arc),
       ringSegments,
       radialSegments
@@ -113,7 +113,7 @@ describe("PrimitiveMesh", () => {
     const floorHSegments = Math.floor(hSegments);
     const floorVSegments = Math.floor(vSegments);
     const planeMesh = PrimitiveMesh.createPlane(engine, width, height, {
-      keepCPUData: true,
+      keepMeshData: true,
       widthSegments: hSegments,
       depthSegments: vSegments
     });
@@ -135,7 +135,7 @@ describe("PrimitiveMesh", () => {
     const floorRadialSegments = Math.floor(radialSegments);
     const floorHeightSegments = Math.floor(heightSegments);
     const coneMesh = PrimitiveMesh.createCone(engine, radius, height, {
-      keepCPUData: true,
+      keepMeshData: true,
       radialSegments,
       heightSegments
     });
@@ -156,7 +156,7 @@ describe("PrimitiveMesh", () => {
     const floorRadialSegments = Math.floor(radialSegments);
     const floorHeightSegments = Math.floor(heightSegments);
     const capsuleMesh = PrimitiveMesh.createCapsule(engine, radius, height, {
-      keepCPUData: true,
+      keepMeshData: true,
       radialSegments,
       capSegments: radialSegments,
       heightSegments
@@ -180,7 +180,7 @@ describe("PrimitiveMesh", () => {
 
     if (engine["_hardwareRenderer"].canIUse(GLCapabilityType.elementIndexUint)) {
       const mesh = PrimitiveMesh.createPlane(engine, radius * 2, radius * 2, {
-        keepCPUData: true,
+        keepMeshData: true,
         widthSegments: segments,
         depthSegments: segments
       });
@@ -193,7 +193,7 @@ describe("PrimitiveMesh", () => {
     } else {
       expect(() =>
         PrimitiveMesh.createPlane(engine, radius * 2, radius * 2, {
-          keepCPUData: true,
+          keepMeshData: true,
           widthSegments: segments,
           depthSegments: segments
         })

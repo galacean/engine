@@ -59,8 +59,8 @@ const shapeVectors = shapes.map(({ points, holes }) => ({
   points: points.map(({ x, y }) => new Vector2(x, y)),
   holes: holes?.map((hole) => hole.map(({ x, y }) => new Vector2(x, y)))
 }));
-const options = { keepCPUData: true };
-const groupedOptions = { keepCPUData: true, separateMaterialSlots: true };
+const options = { keepMeshData: true };
+const groupedOptions = { keepMeshData: true, separateMaterialSlots: true };
 const mixedLinearOptions = { ...groupedOptions, depthSegments: 2, closedPath: true };
 const mixedPathOptions = {
   ...groupedOptions,
@@ -616,7 +616,7 @@ describe("PrimitiveMeshLoader", () => {
     }
   });
 
-  it.each([{}, { subdivisionLevel: 1, keepCPUData: true }])(
+  it.each([{}, { subdivisionLevel: 1, keepMeshData: true }])(
     "reuses serialized options without angle ranges: %j",
     async (sphereOptions) => {
       const data: PrimitiveMeshAsset = { type: "sphere", sphereRadius: 0.5, sphereOptions };
@@ -682,7 +682,7 @@ describe("PrimitiveMeshLoader", () => {
               ? { type, cylinderRadius: 0.5, cylinderHeight: 2 }
               : { type, truncatedConeTopRadius: 0.25, truncatedConeBottomRadius: 0.5, truncatedConeHeight: 2 };
           const data = JSON.parse(
-            JSON.stringify({ ...shape, [optionsKey]: { caps, keepCPUData: true, separateMaterialSlots: true } })
+            JSON.stringify({ ...shape, [optionsKey]: { caps, keepMeshData: true, separateMaterialSlots: true } })
           );
           expect(data[optionsKey].caps).toBe(value);
           request.mockReturnValue(AssetPromise.resolve(data) as any);
