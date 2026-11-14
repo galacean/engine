@@ -3,7 +3,7 @@ import type { RuntimeProjectPackage } from "@galacean/engine-project/runtime-edi
 import { nativeAssetFormats } from "@galacean/engine-runtime-editor/project/runtime-native-formats";
 import { RuntimeSceneEdit } from "@galacean/engine-runtime-editor/runtime-editor/scene/runtime-scene-edit";
 import { exportPlanningScene, importPlanningScene, PLANNING_PROJECT_COMPONENT, type PlanningSceneAsset } from "../PlanningSceneAsset.ts";
-import { exportPlanningAuthoring, upgradePlanningDocument, type PlanningDocument } from "@galacean/engine-world-planning/spatial/PlanningDocument";
+import { exportPlanningAuthoring, exportPlanningRecipe, upgradePlanningDocument, type PlanningDocument } from "@galacean/engine-world-planning/spatial/PlanningDocument";
 import { applySpatialCommands } from "@galacean/engine-world-planning/spatial/SpatialDocument";
 import { planningRegistry } from "@galacean/engine-world-planning/spatial/PlanningComponents";
 import type { RuntimeEditPreparation } from "@galacean/engine-runtime-editor/runtime-editor/runtime-editor";
@@ -12,8 +12,14 @@ import { SEED_WORLD_DEFAULT_GROUND_WIND_TUNING, validateGroundWindTuning } from 
 import { PLANNING_VISUAL_AUTHORING, visualAuthoringProperties } from "../PlanningVisualAuthoring.ts";
 import { WATER_COMPONENT, planningWaterFrame, transformPlanningWater, planningWaterSourceId } from "../PlanningWaterSource.ts";
 import type { WaterSourceAuthoring } from "@galacean/engine-world-planning/spatial/runtime/NativeWaterEditor";
-import { retainRemovedWater } from "./PlanningWaterInitialization.ts";
+import { initializePlanningWater, retainRemovedWater } from "./PlanningWaterInitialization.ts";
 import { planningSeed } from "@galacean/engine-world-planning/spatial/PlanningLayoutScope";
+import { createSpatialTerrainPlan } from "@galacean/engine-world-planning/spatial/layout/SpatialTerrain";
+import { createPlanningGroundSampler } from "@galacean/engine-world-planning/semantic-study/WorldPlanningTerrain";
+import type { LakeParameters } from "@galacean/engine-world-planning/spatial/hydrology/LakeRegions";
+import { generatePlanningDocument } from "@galacean/engine-world-planning/spatial/PlanningRuntime";
+import { compositionReliefGround } from "@galacean/engine-world-planning/spatial/SpatialCompositionGeometry";
+import type { RiverParameters } from "@galacean/engine-world-planning/spatial/hydrology/RiverRegions";
 
 const ownedProperties = new Map<string, readonly string[]>([
   [WATER_COMPONENT, ["authoring", "enabled"]],
@@ -90,9 +96,65 @@ export function retainPlanningWaterSource(document: PlanningDocument, pack: Runt
   const source = planningSourceDocument(pack);
   if (!source || planningSeed(source) !== planningSeed(document)) return document;
   const next = structuredClone(document);
+  const template = next.entities.world.components.worldTemplate?.values.id;
+  let replan = template !== source.entities.world.components.worldTemplate?.values.id;
+  // A saved template ID does not prove that its old river elevations still fit the terrain.
+  if (!replan && template) {
+    const terrain = createSpatialTerrainPlan(exportPlanningRecipe(next));
+    const ground = compositionReliefGround(terrain.parameters.spatialComposition,
+      createPlanningGroundSampler(terrain, { natural: true }));
+    replan = Object.values(source.entities).some(entity => {
+      const river = entity.components.rivers?.values as Partial<RiverParameters> | undefined;
+      return river?.enabled !== false && river?.points?.some(point =>
+        point.elevation !== undefined && point.elevation > ground(point) + 1e-6);
+    });
+  }
+  const waterIds = { lake: [] as string[], river: [] as string[] };
   for (const entity of Object.values(source.entities)) {
-    if (entity.id === "planning-ocean" || entity.id.startsWith("river:") || entity.id.startsWith("lake:"))
+    if (entity.id === "planning-ocean" || entity.id.startsWith("river:") || entity.id.startsWith("lake:")) {
       next.entities[entity.id] = structuredClone(entity);
+      for (const kind of ["lake", "river"] as const) {
+        const component = kind === "lake" ? "lakes" : "rivers";
+        if (!replan || !entity.components[component] || entity.components[component].values.enabled === false) continue;
+        waterIds[kind].push(entity.id);
+        delete next.entities[entity.id].components[component];
+      }
+    }
+  }
+  if (replan && (waterIds.lake.length || waterIds.river.length)) {
+    for (const kind of ["lake", "river"] as const) {
+      const component = kind === "lake" ? "lakes" : "rivers";
+      next.entities.world.components[component] = { values: {
+        ...next.entities.world.components[component]?.values,
+        countMin: waterIds[kind].length, countMax: waterIds[kind].length
+      } };
+    }
+    const result = generatePlanningDocument(next, undefined, [], undefined, { environment: false });
+    if (!result.accepted) throw new Error("新模板河湖规划未通过校验");
+    const plan = { ...result.plan, waters: result.plan.waters.map(water => ({ ...water })) };
+    for (const kind of ["lake", "river"] as const) {
+      const waters = plan.waters.filter(water => water.kind === kind && new RegExp(`^${kind}:\\d+$`).test(water.id));
+      if (waters.length < waterIds[kind].length) throw new Error("新模板没有足够的河湖空间，无法保留全部水体");
+      waters.forEach((water, index) => { water.id = waterIds[kind][index]; });
+    }
+    const draft = new RuntimeProjectEdit(pack, nativeAssetFormats(() => ({})));
+    const initialized = initializePlanningWater(draft, next, plan);
+    draft.finish();
+    return initialized;
+  }
+  // A template replaces the terrain, so retained absolute lake levels need a new datum.
+  if (template || template !== source.entities.world.components.worldTemplate?.values.id) {
+    const ground = createPlanningGroundSampler(createSpatialTerrainPlan(exportPlanningRecipe(next)), { natural: true });
+    for (const entity of Object.values(next.entities)) {
+      const lake = entity.components.lakes?.values as Partial<LakeParameters> | undefined;
+      if (!lake || lake.enabled === false || !lake.shoreline || lake.referenceLevel === undefined) continue;
+      const rim = Math.min(...lake.shoreline.filter(point => point.ring === "shore").map(point =>
+        ground({ x: point.x + (lake.offsetX ?? 0), z: point.z + (lake.offsetZ ?? 0) }))) - 0.1;
+      if (lake.referenceLevel + (lake.levelOffsetM ?? 0) <= rim) continue;
+      lake.referenceLevel = rim;
+      lake.levelOffsetM = 0;
+      lake.allowCarving = true;
+    }
   }
   return next;
 }
