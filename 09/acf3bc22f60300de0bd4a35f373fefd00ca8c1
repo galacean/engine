@@ -1,0 +1,20 @@
+packages/water/src/water/runtime/heightfield/HeightfieldWaterRuntimeController.ts
+  h_a3c79ce84ffdc2 601
+packages/water/tests/WaterStandaloneLifecycle.test.ts
+  h_a3c79ce84ffdc2 15-17,133-160
+world/demos/seed-world/src/planning/spatial/runtime/PlanningProjectSource.ts
+  h_a3c79ce84ffdc2 137-138,140-145
+world/tests/seed-world/PlanningWaterOwnership.spec.ts
+  h_a3c79ce84ffdc2 33,58,60,229-263
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "09acf3bc22f60300de0bd4a35f373fefd00ca8c1",
+  "prompts": {},
+  "humans": {
+    "h_a3c79ce84ffdc2": {
+      "author": "星翊 <sunmingming.smm@antgroup.com>"
+    }
+  }
+}
