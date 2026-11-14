@@ -69,8 +69,14 @@ export class BufferReader {
   }
 
   nextFloat32Array(len: number) {
-    const value = new Float32Array(this.data.buffer, this._position + this._dataView.byteOffset, len);
-    this._position += 4 * len;
+    const byteOffset = this._position + this._dataView.byteOffset;
+    if (byteOffset % Float32Array.BYTES_PER_ELEMENT === 0) {
+      const value = new Float32Array(this.data.buffer, byteOffset, len);
+      this._position += Float32Array.BYTES_PER_ELEMENT * len;
+      return value;
+    }
+    const value = new Float32Array(len);
+    for (let i = 0; i < len; i++) value[i] = this.nextFloat32();
     return value;
   }
 

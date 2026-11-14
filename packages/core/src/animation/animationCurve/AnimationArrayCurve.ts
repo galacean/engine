@@ -36,6 +36,7 @@ export class AnimationArrayCurve extends AnimationCurve<number[]> {
    * @internal
    */
   static _lerpValue(srcValue: number[], destValue: number[], weight: number, out: number[]): number[] {
+    out.length = srcValue.length;
     for (let i = 0, n = out.length; i < n; ++i) {
       const src = srcValue[i];
       out[i] = src + (destValue[i] - src) * weight;
@@ -77,6 +78,7 @@ export class AnimationArrayCurve extends AnimationCurve<number[]> {
    * @internal
    */
   static _setValue(source: number[], out: number[]): number[] {
+    out.length = source.length;
     for (let i = 0, n = out.length; i < n; ++i) {
       out[i] = source[i];
     }
