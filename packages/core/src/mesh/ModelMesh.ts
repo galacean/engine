@@ -695,7 +695,7 @@ export class ModelMesh extends Mesh {
     let updateInfo = updateInfos[index];
 
     const previousBinding = vertexBufferBindings[index];
-    if (previousBinding && updateInfo) {
+    if (previousBinding) {
       previousBinding.buffer._dataUpdateManager.removeListener(updateInfo.onBufferChanged);
     }
 
@@ -712,10 +712,8 @@ export class ModelMesh extends Mesh {
       binding.buffer._dataUpdateManager.addListener(updateInfo.onBufferChanged);
       updateInfo.reset();
       updateInfo.onBufferChanged();
-    } else {
-      if (index + 1 == vertexBufferBindings.length) {
-        vertexBufferBindings.length--;
-      }
+    } else if (index + 1 == vertexBufferBindings.length) {
+      vertexBufferBindings.length--;
     }
   }
 
@@ -743,10 +741,7 @@ export class ModelMesh extends Mesh {
   protected override _onDestroy(): void {
     const bindings = this._primitive.vertexBufferBindings;
     for (let i = 0; i < bindings.length; i++) {
-      const updateInfo = this._vertexBufferInfos[i];
-      if (updateInfo) {
-        bindings[i]?.buffer._dataUpdateManager.removeListener(updateInfo.onBufferChanged);
-      }
+      bindings[i]?.buffer._dataUpdateManager.removeListener(this._vertexBufferInfos[i].onBufferChanged);
     }
     super._onDestroy();
     this._releaseCache(true);

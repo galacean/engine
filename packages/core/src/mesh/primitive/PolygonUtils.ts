@@ -662,11 +662,7 @@ export class PolygonUtils {
     const px = (a.x + b.x) / 2;
     const py = (a.y + b.y) / 2;
     do {
-      if (
-        p.y > py !== p.next.y > py &&
-        p.next.y !== p.y &&
-        px < ((p.next.x - p.x) * (py - p.y)) / (p.next.y - p.y) + p.x
-      ) {
+      if (p.y > py !== p.next.y > py && px < ((p.next.x - p.x) * (py - p.y)) / (p.next.y - p.y) + p.x) {
         inside = !inside;
       }
       p = p.next;

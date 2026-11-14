@@ -2005,7 +2005,6 @@ export class PrimitiveMesh {
     if (!keepCPUData) {
       vertexBuffer.markAsUnreadable();
     }
-    mesh.clearSubMesh();
     if (options?.separateMaterialSlots && data.groups.length) {
       for (const group of data.groups) {
         mesh.addSubMesh(group.start, group.count);
