@@ -1,0 +1,173 @@
+{
+  "schema": "galacean/procedural-tree-reconstruction-analysis-v2",
+  "assetId": "measured-white-birch",
+  "label": "Measured White Birch",
+  "createdAt": "2026-08-28T03:51:47.454Z",
+  "proceduralAlgorithm": "sapling-compatible-v19",
+  "proceduralProfile": "white-birch",
+  "runtimeGeometryInput": "finite procedural parameters only",
+  "runtimeBlueprintAllowed": false,
+  "triangleLimit": 4000,
+  "source": {
+    "height": 13.4467512,
+    "branchCounts": [1, 28, 27],
+    "leafCards": 1377
+  },
+  "inverseFit": {
+    "method": "hierarchical trunk, branch, then leaf parameter fitting",
+    "evaluatedCandidates": 1589,
+    "objective": 1.0156052925661607,
+    "stages": [
+      {
+        "stage": "trunk",
+        "objective": 0.006994116161310171,
+        "evaluatedCandidates": 20
+      },
+      {
+        "stage": "branches",
+        "objective": 0.1918205868992589,
+        "evaluatedCandidates": 407
+      },
+      {
+        "stage": "leaves",
+        "objective": 1.0156052925661607,
+        "evaluatedCandidates": 1162
+      }
+    ],
+    "parameterCount": 109
+  },
+  "reconstruction": {
+    "structure": {
+      "trunk": {
+        "verticalHeight": 13.132236000000004,
+        "pathLength": 13.132236000000004,
+        "curveToHeightRatio": 1,
+        "baseRadius": 0.17440449999999996,
+        "tipRadius": 0.049814340529286794
+      },
+      "primaryBranches": {
+        "count": 28,
+        "rootHeightRatioQuantiles": [0.32309341999999996, 0.43387333437499986, 0.60539505, 0.794112165625, 0.91484098],
+        "pathLengthRatioQuantiles": [
+          0.09700781188044537, 0.13185696050153606, 0.19075777084172757, 0.21796501698590456, 0.21796501698590462
+        ],
+        "rootRadiusRatioQuantiles": [
+          0.006140870549388571, 0.0075668191375513096, 0.010182744502211828, 0.012731869625664357, 0.013341024390448297
+        ],
+        "upAngleDegreesQuantiles": [
+          35.34319695772633, 38.621537365533406, 41.43010019337894, 47.29259882261353, 50.045722374284004
+        ],
+        "endpointHeightRatioQuantiles": [
+          0.45320057892615956, 0.5814012705476795, 0.747437396706298, 0.9140681444399036, 0.9868883687151935
+        ],
+        "endpointRadiusRatioQuantiles": [
+          0.05979982393766578, 0.07653947435132998, 0.12735771143321817, 0.1417600332504718, 0.15690680032185725
+        ]
+      },
+      "secondaryBranches": {
+        "count": 27,
+        "rootHeightRatioQuantiles": [
+          0.38145316402272184, 0.4933483606203046, 0.6335421250469352, 0.8376428836126764, 0.9048737014387546
+        ],
+        "pathLengthRatioQuantiles": [
+          0.05710564729814263, 0.06684099679531441, 0.08927997843472091, 0.11381423332819127, 0.12052681532940912
+        ],
+        "rootRadiusRatioQuantiles": [
+          0.002269657260467376, 0.0027648880286551695, 0.0036700754518024627, 0.005292638755741544, 0.00607715501698185
+        ],
+        "upAngleDegreesQuantiles": [
+          30.879877803573347, 33.55294776014047, 39.60302806815575, 44.168146152941304, 52.34646961900441
+        ],
+        "endpointHeightRatioQuantiles": [
+          0.47112317162775885, 0.5588014327757045, 0.7023304465622274, 0.9030076553906943, 0.9668909945799243
+        ],
+        "endpointRadiusRatioQuantiles": [
+          0.06084296359741176, 0.07646873251959443, 0.09101786945005672, 0.10908823758877678, 0.12565927121075388
+        ]
+      }
+    },
+    "lods": [
+      {
+        "level": 0,
+        "branchCounts": [1, 28, 27],
+        "leafCards": 1377,
+        "trunkTriangles": 1244,
+        "leafTriangles": 2754,
+        "triangles": 3998,
+        "radialSegments": [8, 5, 3],
+        "curveSegments": [5, 3, 2],
+        "trunkBounds": [
+          [-1.6688624286023936, 0, -1.8447691918041285],
+          [2.2517920920425833, 13.448858383995246, 1.8268305687900763]
+        ],
+        "crownBounds": [
+          [-2.919428231980431, 3.4323268502887805, -2.8768622576309473],
+          [3.4966315401809673, 14.798328236251637, 2.938909952451324]
+        ]
+      },
+      {
+        "level": 1,
+        "branchCounts": [1, 17, 12],
+        "leafCards": 918,
+        "trunkTriangles": 564,
+        "leafTriangles": 1836,
+        "triangles": 2400,
+        "radialSegments": [6, 4, 3],
+        "curveSegments": [1, 3, 2],
+        "trunkBounds": [
+          [-1.6215232377275532, 0, -1.8447025147471572],
+          [2.2514841956138425, 13.448529499269407, 1.8252997390397938]
+        ],
+        "crownBounds": [
+          [-2.8275293020815155, 3.4291157614471155, -2.927154449377735],
+          [3.453898878916273, 14.490550637601185, 3.087608136792233]
+        ]
+      },
+      {
+        "level": 2,
+        "branchCounts": [1, 10, 0],
+        "leafCards": 459,
+        "trunkTriangles": 230,
+        "leafTriangles": 918,
+        "triangles": 1148,
+        "radialSegments": [5, 3, 0],
+        "curveSegments": [5, 3, 0],
+        "trunkBounds": [
+          [-1.6203208691078532, 0, -1.8435608852471026],
+          [2.250243576334269, 13.448291252342838, 1.8266037760134304]
+        ],
+        "crownBounds": [
+          [-2.8609120999884414, 4.153379727938217, -3.0137312758470562],
+          [3.3426912836404594, 14.425911812913995, 3.0976557651558894]
+        ]
+      }
+    ]
+  },
+  "parity": {
+    "checks": {
+      "treeHeight": 0.00015670580677109807,
+      "stemComponents": 0,
+      "leafCards": 0
+    },
+    "maximumError": 0.00015670580677109807,
+    "passesTenPercent": true
+  },
+  "acceptance": {
+    "triangleLimit": 4000,
+    "maximumTriangles": 3998,
+    "lod0Triangles": 3998,
+    "visualMaximumError": 0.09696768457921401,
+    "ruleMaximumError": 0.08714596949891068,
+    "maximumError": 0.09696768457921401,
+    "passesTenPercent": true,
+    "directMeshValidationPasses": true,
+    "passes": true
+  },
+  "featureGaps": {
+    "schema": "galacean/procedural-tree-capability-gap-report-v1",
+    "parameterOnlyReconstruction": true,
+    "measuredGeometryUsedAtRuntime": false,
+    "passesTenPercent": true,
+    "missingCapabilities": []
+  }
+}

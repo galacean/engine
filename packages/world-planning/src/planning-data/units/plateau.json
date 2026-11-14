@@ -1,0 +1,25 @@
+{
+  "unitId": "plateau",
+  "status": "data-only",
+  "label": "平台复合体",
+  "footprintM": {
+    "width": {
+      "min": 12,
+      "max": 24
+    },
+    "depth": {
+      "min": 10,
+      "max": 20
+    }
+  },
+  "heightM": {
+    "min": 4,
+    "max": 10
+  },
+  "yawPolicy": "face-approach",
+  "components": [
+    "rock.terrace",
+    "lookout"
+  ],
+  "note": "Outer allowance; body, circulation and visible feature are separate members."
+}

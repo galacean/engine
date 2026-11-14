@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#26351f" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath fill='%238aab55' d='M16 28C7 22 5 11 6 5c6 0 14 3 16 10 2-4 4-6 7-7-1 8-4 15-13 20Z'/%3E%3C/svg%3E"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+    <title>农场案例</title>
+  </head>
+  <body>
+    <main class="farm-app">
+      <canvas id="canvas" tabindex="0" aria-label="第一人称三维农场"></canvas>
+
+      <div id="loading" class="loading">
+        <div class="loading-mark" aria-hidden="true"></div>
+        <strong id="loading-message">正在整理农场…</strong>
+        <span>读取土地、作物与仓库数据</span>
+      </div>
+    </main>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

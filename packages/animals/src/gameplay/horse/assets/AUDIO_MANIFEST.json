@@ -1,0 +1,36 @@
+{
+  "assets": [
+    {
+      "file": "horse-hoof.mp3",
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*EjTKSZSvXXUAAAAAQMAAAAgAehQnAQ/horse-hoof.mp3",
+      "bytes": 12717,
+      "sha256": "f045570fab68becaffb74cf41af4658b543a0ec9c1b0700725f1cc49144096b3",
+      "source": "https://elevenlabs.io/app/sound-effects/history?id=AtejiLN8NJQryRW5fZxk",
+      "variant": 2
+    },
+    {
+      "file": "horse-mount.mp3",
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*qCBYS6EifPMAAAAAQwAAAAgAehQnAQ/horse-mount.mp3",
+      "bytes": 49581,
+      "sha256": "f64f5e0b4a12af7e94087095e73ed6a5ca1f9c7ffe1502df09adfe2c3497e8a4",
+      "source": "https://elevenlabs.io/app/sound-effects/history?id=TTjWdJdwMSNjWvN0sp0M",
+      "variant": 2
+    },
+    {
+      "file": "horse-dismount.mp3",
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*JmrKRrO-tsMAAAAAQwAAAAgAehQnAQ/horse-dismount.mp3",
+      "bytes": 49581,
+      "sha256": "ef3a87c5f1d953619bc427d1cbf7278b59fd6b2bd6eb7c608cde1f3dabec4a41",
+      "source": "https://elevenlabs.io/app/sound-effects/history?id=UHz0GAQC7VIUEz7TtPuf",
+      "variant": 2
+    },
+    {
+      "file": "horse-neigh.mp3",
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*WAYlR7dSSzYAAAAAQwAAAAgAehQnAQ/horse-neigh.mp3",
+      "bytes": 49581,
+      "sha256": "45d28d5ad7c816c9f4cb2f9ca905dcc7515725d9a2f0f5191b9de7cd06c24568",
+      "source": "https://elevenlabs.io/app/sound-effects/history?id=2TTWWtdnVnWfqRzywfLb",
+      "variant": 4
+    }
+  ]
+}

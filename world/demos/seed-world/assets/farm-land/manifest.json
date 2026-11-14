@@ -1,0 +1,45 @@
+{
+  "material": "M_Farm_DirtFlat",
+  "source": "farmlands-viewer/Assets/Polyart/PolyartStudio/Farmlands/Textures/Terrain/Dirt",
+  "encoding": {
+    "tool": "KTX-Software 4.4.2",
+    "codec": "UASTC",
+    "quality": 2,
+    "zstd": 18,
+    "mipmaps": "full"
+  },
+  "textures": [
+    {
+      "source": "T_Farm_Dirt_Flat_C.tga",
+      "sourceSha256": "2454f21053a392c4076dbdf8b66dd137c1249dd244a22154df589e6245f33d1f",
+      "sourceDimensions": [
+        2048,
+        2048
+      ],
+      "file": "dirt-flat-color-512.ktx2",
+      "dimensions": [
+        512,
+        512
+      ],
+      "bytes": 248059,
+      "sha256": "a8a2a4363a0a1149e849416d9d07e3c2b12e48f7d8d7a752689743c107b7113e",
+      "transferFunction": "srgb"
+    },
+    {
+      "source": "T_Farm_Dirt_Flat_N.tga",
+      "sourceSha256": "fa8fed630a4dde5d40d3556169bf8ed3ee584f543d1b86dd5a4b650bf4b1d449",
+      "sourceDimensions": [
+        2048,
+        2048
+      ],
+      "file": "dirt-flat-normal-256.ktx2",
+      "dimensions": [
+        256,
+        256
+      ],
+      "bytes": 69253,
+      "sha256": "340e926685da3bef23bad86e39a44cab4ddb260add275ae3a6be24f3cb8c2ddc",
+      "transferFunction": "linear"
+    }
+  ]
+}

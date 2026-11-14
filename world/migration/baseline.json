@@ -1,0 +1,22 @@
+{
+  "targetRepository": "https://github.com/galacean/engine",
+  "branch": "dev/engine-next",
+  "targetBase": "aa195af6d5e07b4006b76ff7d6716ce58fac2580",
+  "sourceRepository": "https://github.com/galacean/engine-next",
+  "sourceHead": "0963b42d76040e8587a07b6837c3f4091f4cf332",
+  "sourceMergeHead": "039cbdcf223e96ff0ea06504556a669e8b23de23",
+  "sourceSelection": "effective working tree plus world/engine/overlay; not a clean commit snapshot",
+  "nativeOverrideCount": 169,
+  "validation": {
+    "staticHtmlEntries": 40,
+    "externalServiceEntries": 2,
+    "regressionTestsRun": false,
+    "checks": [
+      "package boundaries and dependencies",
+      "World typecheck against opt-in implementation and native diagnostic baseline",
+      "modified shader preparation",
+      "production build of all static HTML entries",
+      "Python service/helper syntax parsing"
+    ]
+  }
+}

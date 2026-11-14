@@ -1,0 +1,317 @@
+{
+  "date": "2026-10-16",
+  "status": "offline pose reviewed; browser and user acceptance separate",
+  "groups": [
+    {
+      "group": "TypeA",
+      "representative": "bull",
+      "evidence": "evidence/poses/bull.png",
+      "method": "native GLB skinning, 5 actual times per source clip: 0/25/50/75/100 percent; full mesh vertices projected side three-quarter; no artist redraw",
+      "eat": {
+        "activity": "eat",
+        "evidence": "reviewed",
+        "observed": "低头持续节律动作",
+        "foodIdentityFromSource": null
+      },
+      "rest": {
+        "activity": "rest",
+        "posture": "lying",
+        "evidence": "reviewed",
+        "observed": "侧卧保持",
+        "transition": false
+      },
+      "jump": {
+        "activity": "unclassified",
+        "observed": "真实原地离地、空中、落地；尚未扩展公共Jump能力枚举",
+        "gameplayRegistered": false
+      },
+      "attack": {
+        "activity": "unclassified",
+        "observed": "前探/抬头冲击",
+        "gameplayRegistered": false
+      },
+      "damage": {
+        "activity": "unclassified",
+        "observed": "身体缩低/后缩",
+        "startleMapping": false,
+        "gameplayRegistered": false
+      },
+      "die": {
+        "activity": "unclassified",
+        "observed": "跃起后侧翻并保持",
+        "gameplayRegistered": false
+      }
+    },
+    {
+      "group": "Chameleon",
+      "representative": "chameleon",
+      "evidence": "evidence/poses/chameleon.png",
+      "method": "native GLB skinning, 5 actual times per source clip: 0/25/50/75/100 percent; full mesh vertices projected side three-quarter; no artist redraw",
+      "eat": {
+        "activity": "eat",
+        "evidence": "reviewed",
+        "observed": "低头贴近地面节律动作",
+        "foodIdentityFromSource": null
+      },
+      "rest": {
+        "activity": "rest",
+        "posture": "lying",
+        "evidence": "reviewed",
+        "observed": "腹卧低头保持",
+        "transition": false
+      },
+      "jump": {
+        "activity": "unclassified",
+        "observed": "真实原地离地、空中、落地；尚未扩展公共Jump能力枚举",
+        "gameplayRegistered": false
+      },
+      "attack": {
+        "activity": "unclassified",
+        "observed": "抬头前探/尾部上抬",
+        "gameplayRegistered": false
+      },
+      "damage": {
+        "activity": "unclassified",
+        "observed": "身体缩低",
+        "startleMapping": false,
+        "gameplayRegistered": false
+      },
+      "die": {
+        "activity": "unclassified",
+        "observed": "竖起后侧倒并保持",
+        "gameplayRegistered": false
+      }
+    },
+    {
+      "group": "Meerkat",
+      "representative": "meerkat",
+      "evidence": "evidence/poses/meerkat.png",
+      "method": "native GLB skinning, 5 actual times per source clip: 0/25/50/75/100 percent; full mesh vertices projected side three-quarter; no artist redraw",
+      "eat": {
+        "activity": "eat",
+        "evidence": "reviewed",
+        "observed": "前爪近口、头部节律动作",
+        "foodIdentityFromSource": null
+      },
+      "rest": {
+        "activity": "rest",
+        "posture": "lying",
+        "evidence": "reviewed",
+        "observed": "侧卧保持",
+        "transition": false
+      },
+      "jump": {
+        "activity": "unclassified",
+        "observed": "真实原地离地、空中、落地；尚未扩展公共Jump能力枚举",
+        "gameplayRegistered": false
+      },
+      "attack": {
+        "activity": "unclassified",
+        "observed": "身体前扑",
+        "gameplayRegistered": false
+      },
+      "damage": {
+        "activity": "unclassified",
+        "observed": "上身后缩",
+        "startleMapping": false,
+        "gameplayRegistered": false
+      },
+      "die": {
+        "activity": "unclassified",
+        "observed": "向后侧躺并保持",
+        "gameplayRegistered": false
+      }
+    },
+    {
+      "group": "TypeB",
+      "representative": "mule",
+      "evidence": "evidence/poses/mule.png",
+      "method": "native GLB skinning, 5 actual times per source clip: 0/25/50/75/100 percent; full mesh vertices projected side three-quarter; no artist redraw",
+      "eat": {
+        "activity": "eat",
+        "evidence": "reviewed",
+        "observed": "低头至近地面节律动作",
+        "foodIdentityFromSource": null
+      },
+      "rest": {
+        "activity": "rest",
+        "posture": "lying",
+        "evidence": "reviewed",
+        "observed": "腹卧抬头保持",
+        "transition": false
+      },
+      "jump": {
+        "activity": "unclassified",
+        "observed": "真实原地离地、空中、落地；尚未扩展公共Jump能力枚举",
+        "gameplayRegistered": false
+      },
+      "attack": {
+        "activity": "unclassified",
+        "observed": "低头前冲/抬头",
+        "gameplayRegistered": false
+      },
+      "damage": {
+        "activity": "unclassified",
+        "observed": "前蹄抬起、上身后缩",
+        "startleMapping": false,
+        "gameplayRegistered": false
+      },
+      "die": {
+        "activity": "unclassified",
+        "observed": "竖起后翻并保持",
+        "gameplayRegistered": false
+      }
+    },
+    {
+      "group": "Ostrich",
+      "representative": "ostrich",
+      "evidence": "evidence/poses/ostrich.png",
+      "method": "native GLB skinning, 5 actual times per source clip: 0/25/50/75/100 percent; full mesh vertices projected side three-quarter; no artist redraw",
+      "eat": {
+        "activity": "eat",
+        "evidence": "reviewed",
+        "observed": "低头啄食节律动作",
+        "foodIdentityFromSource": null
+      },
+      "rest": {
+        "activity": "rest",
+        "posture": "sitting",
+        "evidence": "reviewed",
+        "observed": "站立逐渐下蹲至坐姿",
+        "transition": true
+      },
+      "jump": {
+        "activity": "unclassified",
+        "observed": "真实原地离地、空中、落地；尚未扩展公共Jump能力枚举",
+        "gameplayRegistered": false
+      },
+      "attack": {
+        "activity": "unclassified",
+        "observed": "前探并踢腿",
+        "gameplayRegistered": false
+      },
+      "damage": {
+        "activity": "unclassified",
+        "observed": "身体缩低/退缩",
+        "startleMapping": false,
+        "gameplayRegistered": false
+      },
+      "die": {
+        "activity": "unclassified",
+        "observed": "抬身后倒地并保持",
+        "gameplayRegistered": false
+      }
+    },
+    {
+      "group": "Platypus",
+      "representative": "platypus",
+      "evidence": "evidence/poses/platypus.png",
+      "method": "native GLB skinning, 5 actual times per source clip: 0/25/50/75/100 percent; full mesh vertices projected side three-quarter; no artist redraw",
+      "eat": {
+        "activity": "eat",
+        "evidence": "reviewed",
+        "observed": "低头摆口节律动作",
+        "foodIdentityFromSource": null
+      },
+      "rest": {
+        "activity": "unclassified",
+        "posture": null,
+        "evidence": "unknown",
+        "observed": "与低姿态Idle近似，不能可靠区分休息姿态",
+        "transition": false
+      },
+      "jump": {
+        "activity": "unclassified",
+        "observed": "真实原地离地、空中、落地；尚未扩展公共Jump能力枚举",
+        "gameplayRegistered": false
+      },
+      "attack": {
+        "activity": "unclassified",
+        "observed": "身体前扑/抬身",
+        "gameplayRegistered": false
+      },
+      "damage": {
+        "activity": "unclassified",
+        "observed": "轻微缩身",
+        "startleMapping": false,
+        "gameplayRegistered": false
+      },
+      "die": {
+        "activity": "unclassified",
+        "observed": "翻身仰倒并保持",
+        "gameplayRegistered": false
+      }
+    },
+    {
+      "group": "Squirrel",
+      "representative": "squirrel",
+      "evidence": "evidence/poses/squirrel.png",
+      "method": "native GLB skinning, 5 actual times per source clip: 0/25/50/75/100 percent; full mesh vertices projected side three-quarter; no artist redraw",
+      "eat": {
+        "activity": "eat",
+        "evidence": "reviewed",
+        "observed": "前爪近口、头部节律动作",
+        "foodIdentityFromSource": null
+      },
+      "rest": {
+        "activity": "rest",
+        "posture": "lying",
+        "evidence": "reviewed",
+        "observed": "蜷身卧姿保持",
+        "transition": false
+      },
+      "jump": {
+        "activity": "unclassified",
+        "observed": "真实原地离地、空中、落地；尚未扩展公共Jump能力枚举",
+        "gameplayRegistered": false
+      },
+      "attack": {
+        "activity": "unclassified",
+        "observed": "身体前扑",
+        "gameplayRegistered": false
+      },
+      "damage": {
+        "activity": "unclassified",
+        "observed": "上身后缩",
+        "startleMapping": false,
+        "gameplayRegistered": false
+      },
+      "die": {
+        "activity": "unclassified",
+        "observed": "向后侧躺并保持",
+        "gameplayRegistered": false
+      }
+    }
+  ],
+  "gameplayConfiguration": {
+    "preferredHabitat": "grassland",
+    "autonomy": [
+      {
+        "activity": "move",
+        "gait": "walk",
+        "weight": 60,
+        "cycles": 6
+      },
+      {
+        "activity": "move",
+        "gait": "run",
+        "weight": 4,
+        "cycles": 4
+      },
+      {
+        "activity": "idle",
+        "weight": 24
+      },
+      {
+        "activity": "eat",
+        "weight": 8
+      },
+      {
+        "activity": "rest",
+        "weight": 4
+      }
+    ],
+    "provenance": "临时演示玩法，不是作者动画中的食物证据，也不是生物学推断；缺失Rest能力的Platypus自动剔除该候选。",
+    "allClipsOnce": true
+  }
+}

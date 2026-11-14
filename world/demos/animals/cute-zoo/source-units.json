@@ -1,0 +1,212 @@
+[
+  {
+    "id": "bull",
+    "fbxVersion": 7500,
+    "globalSettings": {
+      "UpAxis": 1,
+      "UpAxisSign": 1,
+      "FrontAxis": 2,
+      "FrontAxisSign": 1,
+      "CoordAxis": 0,
+      "CoordAxisSign": 1,
+      "UnitScaleFactor": 1.0,
+      "OriginalUnitScaleFactor": 1.0,
+      "TimeMode": 11
+    }
+  },
+  {
+    "id": "chameleon",
+    "fbxVersion": 7500,
+    "globalSettings": {
+      "UpAxis": 1,
+      "UpAxisSign": 1,
+      "FrontAxis": 2,
+      "FrontAxisSign": 1,
+      "CoordAxis": 0,
+      "CoordAxisSign": 1,
+      "UnitScaleFactor": 1.0,
+      "OriginalUnitScaleFactor": 1.0,
+      "TimeMode": 11
+    }
+  },
+  {
+    "id": "fox",
+    "fbxVersion": 7500,
+    "globalSettings": {
+      "UpAxis": 1,
+      "UpAxisSign": 1,
+      "FrontAxis": 2,
+      "FrontAxisSign": 1,
+      "CoordAxis": 0,
+      "CoordAxisSign": 1,
+      "UnitScaleFactor": 1.0,
+      "OriginalUnitScaleFactor": 1.0,
+      "TimeMode": 11
+    }
+  },
+  {
+    "id": "koala",
+    "fbxVersion": 7500,
+    "globalSettings": {
+      "UpAxis": 1,
+      "UpAxisSign": 1,
+      "FrontAxis": 2,
+      "FrontAxisSign": 1,
+      "CoordAxis": 0,
+      "CoordAxisSign": 1,
+      "UnitScaleFactor": 1.0,
+      "OriginalUnitScaleFactor": 1.0,
+      "TimeMode": 11
+    }
+  },
+  {
+    "id": "leopard",
+    "fbxVersion": 7500,
+    "globalSettings": {
+      "UpAxis": 1,
+      "UpAxisSign": 1,
+      "FrontAxis": 2,
+      "FrontAxisSign": 1,
+      "CoordAxis": 0,
+      "CoordAxisSign": 1,
+      "UnitScaleFactor": 1.0,
+      "OriginalUnitScaleFactor": 1.0,
+      "TimeMode": 11
+    }
+  },
+  {
+    "id": "meerkat",
+    "fbxVersion": 7500,
+    "globalSettings": {
+      "UpAxis": 1,
+      "UpAxisSign": 1,
+      "FrontAxis": 2,
+      "FrontAxisSign": 1,
+      "CoordAxis": 0,
+      "CoordAxisSign": 1,
+      "UnitScaleFactor": 1.0,
+      "OriginalUnitScaleFactor": 1.0,
+      "TimeMode": 11
+    }
+  },
+  {
+    "id": "mule",
+    "fbxVersion": 7500,
+    "globalSettings": {
+      "UpAxis": 1,
+      "UpAxisSign": 1,
+      "FrontAxis": 2,
+      "FrontAxisSign": 1,
+      "CoordAxis": 0,
+      "CoordAxisSign": 1,
+      "UnitScaleFactor": 1.0,
+      "OriginalUnitScaleFactor": 1.0,
+      "TimeMode": 11
+    }
+  },
+  {
+    "id": "ostrich",
+    "fbxVersion": 7500,
+    "globalSettings": {
+      "UpAxis": 1,
+      "UpAxisSign": 1,
+      "FrontAxis": 2,
+      "FrontAxisSign": 1,
+      "CoordAxis": 0,
+      "CoordAxisSign": 1,
+      "UnitScaleFactor": 1.0,
+      "OriginalUnitScaleFactor": 1.0,
+      "TimeMode": 11
+    }
+  },
+  {
+    "id": "platypus",
+    "fbxVersion": 7500,
+    "globalSettings": {
+      "UpAxis": 1,
+      "UpAxisSign": 1,
+      "FrontAxis": 2,
+      "FrontAxisSign": 1,
+      "CoordAxis": 0,
+      "CoordAxisSign": 1,
+      "UnitScaleFactor": 1.0,
+      "OriginalUnitScaleFactor": 1.0,
+      "TimeMode": 11
+    }
+  },
+  {
+    "id": "porcupine",
+    "fbxVersion": 7500,
+    "globalSettings": {
+      "UpAxis": 1,
+      "UpAxisSign": 1,
+      "FrontAxis": 2,
+      "FrontAxisSign": 1,
+      "CoordAxis": 0,
+      "CoordAxisSign": 1,
+      "UnitScaleFactor": 1.0,
+      "OriginalUnitScaleFactor": 1.0,
+      "TimeMode": 11
+    }
+  },
+  {
+    "id": "raccoon",
+    "fbxVersion": 7500,
+    "globalSettings": {
+      "UpAxis": 1,
+      "UpAxisSign": 1,
+      "FrontAxis": 2,
+      "FrontAxisSign": 1,
+      "CoordAxis": 0,
+      "CoordAxisSign": 1,
+      "UnitScaleFactor": 1.0,
+      "OriginalUnitScaleFactor": 1.0,
+      "TimeMode": 11
+    }
+  },
+  {
+    "id": "skunk",
+    "fbxVersion": 7500,
+    "globalSettings": {
+      "UpAxis": 1,
+      "UpAxisSign": 1,
+      "FrontAxis": 2,
+      "FrontAxisSign": 1,
+      "CoordAxis": 0,
+      "CoordAxisSign": 1,
+      "UnitScaleFactor": 1.0,
+      "OriginalUnitScaleFactor": 1.0,
+      "TimeMode": 11
+    }
+  },
+  {
+    "id": "squirrel",
+    "fbxVersion": 7500,
+    "globalSettings": {
+      "UpAxis": 1,
+      "UpAxisSign": 1,
+      "FrontAxis": 2,
+      "FrontAxisSign": 1,
+      "CoordAxis": 0,
+      "CoordAxisSign": 1,
+      "UnitScaleFactor": 1.0,
+      "OriginalUnitScaleFactor": 1.0,
+      "TimeMode": 11
+    }
+  },
+  {
+    "id": "wolf",
+    "fbxVersion": 7500,
+    "globalSettings": {
+      "UpAxis": 1,
+      "UpAxisSign": 1,
+      "FrontAxis": 2,
+      "FrontAxisSign": 1,
+      "CoordAxis": 0,
+      "CoordAxisSign": 1,
+      "UnitScaleFactor": 1.0,
+      "OriginalUnitScaleFactor": 1.0,
+      "TimeMode": 11
+    }
+  }
+]

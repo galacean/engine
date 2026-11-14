@@ -1,0 +1,412 @@
+{
+  "status": "proposal",
+  "scope": "Seed gameplay sizes supplied by parent; no production config changed here",
+  "animals": [
+    {
+      "id": "bull",
+      "sourceStandingHeightMeters": 0.2372560213441231,
+      "targetGameHeightMeters": 1.2,
+      "scale": 5.057827376526241,
+      "basis": "authored game height divided by unscaled FBX rest standing Y extent; no prefab or preview scale applied",
+      "gaits": [
+        {
+          "clip": "Animal_TypeA@Run",
+          "gait": "run",
+          "currentSourceSpeed": 0.219943,
+          "reestimatedSourceSpeed": 0.2217851509690147,
+          "recommendedSourceSpeed": 0.22178515,
+          "recommendedWorldSpeed": 1.1217510033769789,
+          "recommendedGaitMultiplier": 1,
+          "reason": "Use effective authored time window and complete foot trajectory; root sway retained. Single constant speed is an approximate L1 fit, not zero-slip proof."
+        },
+        {
+          "clip": "Animal_TypeA@Walk",
+          "gait": "walk",
+          "currentSourceSpeed": 0.053259,
+          "reestimatedSourceSpeed": 0.05645117072717982,
+          "recommendedSourceSpeed": 0.05645117,
+          "recommendedWorldSpeed": 0.28552027306293687,
+          "recommendedGaitMultiplier": 1,
+          "reason": "Use effective authored time window and complete foot trajectory; root sway retained. Single constant speed is an approximate L1 fit, not zero-slip proof."
+        }
+      ]
+    },
+    {
+      "id": "chameleon",
+      "sourceStandingHeightMeters": 0.250804689819766,
+      "targetGameHeightMeters": 0.25,
+      "scale": 0.9967915678915563,
+      "basis": "authored game height divided by unscaled FBX rest standing Y extent; no prefab or preview scale applied",
+      "gaits": [
+        {
+          "clip": "Anim_Chameleon_Run",
+          "gait": "run",
+          "currentSourceSpeed": 0.219943,
+          "reestimatedSourceSpeed": 0.22178491705296116,
+          "recommendedSourceSpeed": 0.22178492,
+          "recommendedWorldSpeed": 0.22107333814150337,
+          "recommendedGaitMultiplier": 1,
+          "reason": "Use effective authored time window and complete foot trajectory; root sway retained. Single constant speed is an approximate L1 fit, not zero-slip proof."
+        },
+        {
+          "clip": "Anim_Chameleon_Walk",
+          "gait": "walk",
+          "currentSourceSpeed": 0.053259,
+          "reestimatedSourceSpeed": 0.05645083642500838,
+          "recommendedSourceSpeed": 0.05645084,
+          "recommendedWorldSpeed": 0.05626972131239538,
+          "recommendedGaitMultiplier": 1,
+          "reason": "Use effective authored time window and complete foot trajectory; root sway retained. Single constant speed is an approximate L1 fit, not zero-slip proof."
+        }
+      ]
+    },
+    {
+      "id": "fox",
+      "sourceStandingHeightMeters": 0.21120999428132933,
+      "targetGameHeightMeters": 0.6,
+      "scale": 2.840774661452842,
+      "basis": "authored game height divided by unscaled FBX rest standing Y extent; no prefab or preview scale applied",
+      "gaits": [
+        {
+          "clip": "Animal_TypeA@Run",
+          "gait": "run",
+          "currentSourceSpeed": 0.275893,
+          "reestimatedSourceSpeed": 0.3054645649769133,
+          "recommendedSourceSpeed": 0.30546456,
+          "recommendedWorldSpeed": 0.8677559820198413,
+          "recommendedGaitMultiplier": 1,
+          "reason": "Use effective authored time window and complete foot trajectory; root sway retained. Single constant speed is an approximate L1 fit, not zero-slip proof."
+        },
+        {
+          "clip": "Animal_TypeA@Walk",
+          "gait": "walk",
+          "currentSourceSpeed": 0.064579,
+          "reestimatedSourceSpeed": 0.071605296595393,
+          "recommendedSourceSpeed": 0.0716053,
+          "recommendedWorldSpeed": 0.20341452186572917,
+          "recommendedGaitMultiplier": 1,
+          "reason": "Use effective authored time window and complete foot trajectory; root sway retained. Single constant speed is an approximate L1 fit, not zero-slip proof."
+        }
+      ]
+    },
+    {
+      "id": "koala",
+      "sourceStandingHeightMeters": 0.2501206186379512,
+      "targetGameHeightMeters": 0.6,
+      "scale": 2.398842619482315,
+      "basis": "authored game height divided by unscaled FBX rest standing Y extent; no prefab or preview scale applied",
+      "gaits": [
+        {
+          "clip": "Animal_TypeA@Run",
+          "gait": "run",
+          "currentSourceSpeed": 0.275893,
+          "reestimatedSourceSpeed": 0.3054645649769133,
+          "recommendedSourceSpeed": 0.30546456,
+          "recommendedWorldSpeed": 0.7327614052694127,
+          "recommendedGaitMultiplier": 1,
+          "reason": "Use effective authored time window and complete foot trajectory; root sway retained. Single constant speed is an approximate L1 fit, not zero-slip proof."
+        },
+        {
+          "clip": "Animal_TypeA@Walk",
+          "gait": "walk",
+          "currentSourceSpeed": 0.064579,
+          "reestimatedSourceSpeed": 0.071605296595393,
+          "recommendedSourceSpeed": 0.0716053,
+          "recommendedWorldSpeed": 0.171769845420817,
+          "recommendedGaitMultiplier": 1,
+          "reason": "Use effective authored time window and complete foot trajectory; root sway retained. Single constant speed is an approximate L1 fit, not zero-slip proof."
+        }
+      ]
+    },
+    {
+      "id": "leopard",
+      "sourceStandingHeightMeters": 0.18312439850685944,
+      "targetGameHeightMeters": 0.8,
+      "scale": 4.368615031765054,
+      "basis": "authored game height divided by unscaled FBX rest standing Y extent; no prefab or preview scale applied",
+      "gaits": [
+        {
+          "clip": "Animal_TypeA@Run",
+          "gait": "run",
+          "currentSourceSpeed": 0.275893,
+          "reestimatedSourceSpeed": 0.30546473796550994,
+          "recommendedSourceSpeed": 0.30546474,
+          "recommendedWorldSpeed": 1.334457854838204,
+          "recommendedGaitMultiplier": 1,
+          "reason": "Use effective authored time window and complete foot trajectory; root sway retained. Single constant speed is an approximate L1 fit, not zero-slip proof."
+        },
+        {
+          "clip": "Animal_TypeA@Walk",
+          "gait": "walk",
+          "currentSourceSpeed": 0.064579,
+          "reestimatedSourceSpeed": 0.07160538188987534,
+          "recommendedSourceSpeed": 0.07160538,
+          "recommendedWorldSpeed": 0.3128163394232487,
+          "recommendedGaitMultiplier": 1,
+          "reason": "Use effective authored time window and complete foot trajectory; root sway retained. Single constant speed is an approximate L1 fit, not zero-slip proof."
+        }
+      ]
+    },
+    {
+      "id": "meerkat",
+      "sourceStandingHeightMeters": 0.08277860496093066,
+      "targetGameHeightMeters": 0.5,
+      "scale": 6.040208097684021,
+      "basis": "authored game height divided by unscaled FBX rest standing Y extent; no prefab or preview scale applied",
+      "gaits": [
+        {
+          "clip": "Anim_Meerkat_Move",
+          "gait": "walk",
+          "currentSourceSpeed": 0.016129,
+          "reestimatedSourceSpeed": 0.022114409205030848,
+          "recommendedSourceSpeed": 0.02211441,
+          "recommendedWorldSpeed": 0.1335756383575045,
+          "recommendedGaitMultiplier": 1,
+          "reason": "Use effective authored time window and complete foot trajectory; root sway retained. Single constant speed is an approximate L1 fit, not zero-slip proof."
+        },
+        {
+          "clip": "Anim_Meerkat_Run",
+          "gait": "run",
+          "currentSourceSpeed": 0.032989,
+          "reestimatedSourceSpeed": 0.03574602551238884,
+          "recommendedSourceSpeed": 0.03574603,
+          "recommendedWorldSpeed": 0.21591345986605592,
+          "recommendedGaitMultiplier": 1,
+          "reason": "Use effective authored time window and complete foot trajectory; root sway retained. Single constant speed is an approximate L1 fit, not zero-slip proof."
+        }
+      ]
+    },
+    {
+      "id": "mule",
+      "sourceStandingHeightMeters": 0.20874822486458783,
+      "targetGameHeightMeters": 1.1,
+      "scale": 5.269505887839551,
+      "basis": "authored game height divided by unscaled FBX rest standing Y extent; no prefab or preview scale applied",
+      "gaits": [
+        {
+          "clip": "Animal_TypeB@Run",
+          "gait": "run",
+          "currentSourceSpeed": 0.503355,
+          "reestimatedSourceSpeed": 0.5036450540181905,
+          "recommendedSourceSpeed": 0.50364505,
+          "recommendedWorldSpeed": 2.653960556356245,
+          "recommendedGaitMultiplier": 1,
+          "reason": "Use effective authored time window and complete foot trajectory; root sway retained. Single constant speed is an approximate L1 fit, not zero-slip proof."
+        },
+        {
+          "clip": "Animal_TypeB@Walk",
+          "gait": "walk",
+          "currentSourceSpeed": 0.084284,
+          "reestimatedSourceSpeed": 0.08613830350047533,
+          "recommendedSourceSpeed": 0.0861383,
+          "recommendedWorldSpeed": 0.45390627901848957,
+          "recommendedGaitMultiplier": 1,
+          "reason": "Use effective authored time window and complete foot trajectory; root sway retained. Single constant speed is an approximate L1 fit, not zero-slip proof."
+        }
+      ]
+    },
+    {
+      "id": "ostrich",
+      "sourceStandingHeightMeters": 1.2876800045693033,
+      "targetGameHeightMeters": 1.4,
+      "scale": 1.0872266363010465,
+      "basis": "authored game height divided by unscaled FBX rest standing Y extent; no prefab or preview scale applied",
+      "gaits": [
+        {
+          "clip": "Animal_Ostrich@Run",
+          "gait": "run",
+          "currentSourceSpeed": 4.905303,
+          "reestimatedSourceSpeed": 4.99734792807851,
+          "recommendedSourceSpeed": 4.99734793,
+          "recommendedWorldSpeed": 5.433249780359898,
+          "recommendedGaitMultiplier": 1,
+          "reason": "Use effective authored time window and complete foot trajectory; root sway retained. Single constant speed is an approximate L1 fit, not zero-slip proof."
+        },
+        {
+          "clip": "Animal_Ostrich@Walk",
+          "gait": "walk",
+          "currentSourceSpeed": 0.682071,
+          "reestimatedSourceSpeed": 0.682639350221346,
+          "recommendedSourceSpeed": 0.68263935,
+          "recommendedWorldSpeed": 0.7421836843072328,
+          "recommendedGaitMultiplier": 1,
+          "reason": "Use effective authored time window and complete foot trajectory; root sway retained. Single constant speed is an approximate L1 fit, not zero-slip proof."
+        }
+      ]
+    },
+    {
+      "id": "platypus",
+      "sourceStandingHeightMeters": 0.07702420566844602,
+      "targetGameHeightMeters": 0.3,
+      "scale": 3.894879504390643,
+      "basis": "authored game height divided by unscaled FBX rest standing Y extent; no prefab or preview scale applied",
+      "gaits": [
+        {
+          "clip": "Animal_Platypus@Run",
+          "gait": "run",
+          "currentSourceSpeed": 0.041698,
+          "reestimatedSourceSpeed": 0.0649112559257842,
+          "recommendedSourceSpeed": 0.06491126,
+          "recommendedWorldSpeed": 0.25282153617817216,
+          "recommendedGaitMultiplier": 1,
+          "reason": "Use effective authored time window and complete foot trajectory; root sway retained. Single constant speed is an approximate L1 fit, not zero-slip proof."
+        },
+        {
+          "clip": "Animal_Platypus@Walk",
+          "gait": "walk",
+          "currentSourceSpeed": 0.031251,
+          "reestimatedSourceSpeed": 0.03365516674118006,
+          "recommendedSourceSpeed": 0.03365517,
+          "recommendedWorldSpeed": 0.13108283184978284,
+          "recommendedGaitMultiplier": 1,
+          "reason": "Use effective authored time window and complete foot trajectory; root sway retained. Single constant speed is an approximate L1 fit, not zero-slip proof."
+        }
+      ]
+    },
+    {
+      "id": "porcupine",
+      "sourceStandingHeightMeters": 0.18905076609480873,
+      "targetGameHeightMeters": 0.35,
+      "scale": 1.8513545712080077,
+      "basis": "authored game height divided by unscaled FBX rest standing Y extent; no prefab or preview scale applied",
+      "gaits": [
+        {
+          "clip": "Animal_TypeA@Run",
+          "gait": "run",
+          "currentSourceSpeed": 0.219943,
+          "reestimatedSourceSpeed": 0.2217851509690147,
+          "recommendedSourceSpeed": 0.22178515,
+          "recommendedWorldSpeed": 0.4106029512785537,
+          "recommendedGaitMultiplier": 1,
+          "reason": "Use effective authored time window and complete foot trajectory; root sway retained. Single constant speed is an approximate L1 fit, not zero-slip proof."
+        },
+        {
+          "clip": "Animal_TypeA@Walk",
+          "gait": "walk",
+          "currentSourceSpeed": 0.053259,
+          "reestimatedSourceSpeed": 0.05645117072717982,
+          "recommendedSourceSpeed": 0.05645117,
+          "recommendedWorldSpeed": 0.10451113162954036,
+          "recommendedGaitMultiplier": 1,
+          "reason": "Use effective authored time window and complete foot trajectory; root sway retained. Single constant speed is an approximate L1 fit, not zero-slip proof."
+        }
+      ]
+    },
+    {
+      "id": "raccoon",
+      "sourceStandingHeightMeters": 0.2046846018313802,
+      "targetGameHeightMeters": 0.5,
+      "scale": 2.4427826789428035,
+      "basis": "authored game height divided by unscaled FBX rest standing Y extent; no prefab or preview scale applied",
+      "gaits": [
+        {
+          "clip": "Animal_TypeA@Run",
+          "gait": "run",
+          "currentSourceSpeed": 0.275893,
+          "reestimatedSourceSpeed": 0.3054645649769133,
+          "recommendedSourceSpeed": 0.30546456,
+          "recommendedWorldSpeed": 0.7461835361988848,
+          "recommendedGaitMultiplier": 1,
+          "reason": "Use effective authored time window and complete foot trajectory; root sway retained. Single constant speed is an approximate L1 fit, not zero-slip proof."
+        },
+        {
+          "clip": "Animal_TypeA@Walk",
+          "gait": "walk",
+          "currentSourceSpeed": 0.064579,
+          "reestimatedSourceSpeed": 0.071605296595393,
+          "recommendedSourceSpeed": 0.0716053,
+          "recommendedWorldSpeed": 0.17491618656050312,
+          "recommendedGaitMultiplier": 1,
+          "reason": "Use effective authored time window and complete foot trajectory; root sway retained. Single constant speed is an approximate L1 fit, not zero-slip proof."
+        }
+      ]
+    },
+    {
+      "id": "skunk",
+      "sourceStandingHeightMeters": 0.27309196849687417,
+      "targetGameHeightMeters": 0.35,
+      "scale": 1.2816195288584846,
+      "basis": "authored game height divided by unscaled FBX rest standing Y extent; no prefab or preview scale applied",
+      "gaits": [
+        {
+          "clip": "Animal_TypeA@Run",
+          "gait": "run",
+          "currentSourceSpeed": 0.275893,
+          "reestimatedSourceSpeed": 0.30546398582373724,
+          "recommendedSourceSpeed": 0.30546399,
+          "recommendedWorldSpeed": 0.3914886149470329,
+          "recommendedGaitMultiplier": 1,
+          "reason": "Use effective authored time window and complete foot trajectory; root sway retained. Single constant speed is an approximate L1 fit, not zero-slip proof."
+        },
+        {
+          "clip": "Animal_TypeA@Walk",
+          "gait": "walk",
+          "currentSourceSpeed": 0.064579,
+          "reestimatedSourceSpeed": 0.07160555244051346,
+          "recommendedSourceSpeed": 0.07160555,
+          "recommendedWorldSpeed": 0.09177107125465267,
+          "recommendedGaitMultiplier": 1,
+          "reason": "Use effective authored time window and complete foot trajectory; root sway retained. Single constant speed is an approximate L1 fit, not zero-slip proof."
+        }
+      ]
+    },
+    {
+      "id": "squirrel",
+      "sourceStandingHeightMeters": 0.14784354282192422,
+      "targetGameHeightMeters": 0.35,
+      "scale": 2.3673675110827856,
+      "basis": "authored game height divided by unscaled FBX rest standing Y extent; no prefab or preview scale applied",
+      "gaits": [
+        {
+          "clip": "Anim_Squirrel_Move",
+          "gait": "walk",
+          "currentSourceSpeed": 0.019396,
+          "reestimatedSourceSpeed": 0.02311308205789557,
+          "recommendedSourceSpeed": 0.02311308,
+          "recommendedWorldSpeed": 0.054717154673057315,
+          "recommendedGaitMultiplier": 1,
+          "reason": "Use effective authored time window and complete foot trajectory; root sway retained. Single constant speed is an approximate L1 fit, not zero-slip proof."
+        },
+        {
+          "clip": "Anim_Squirrel_Run",
+          "gait": "run",
+          "currentSourceSpeed": 0.031119,
+          "reestimatedSourceSpeed": 0.033750409253429876,
+          "recommendedSourceSpeed": 0.03375041,
+          "recommendedWorldSpeed": 0.07989962411972357,
+          "recommendedGaitMultiplier": 1,
+          "reason": "Use effective authored time window and complete foot trajectory; root sway retained. Single constant speed is an approximate L1 fit, not zero-slip proof."
+        }
+      ]
+    },
+    {
+      "id": "wolf",
+      "sourceStandingHeightMeters": 0.20701179819454243,
+      "targetGameHeightMeters": 0.8,
+      "scale": 3.864514037253993,
+      "basis": "authored game height divided by unscaled FBX rest standing Y extent; no prefab or preview scale applied",
+      "gaits": [
+        {
+          "clip": "Animal_TypeA@Run",
+          "gait": "run",
+          "currentSourceSpeed": 0.275893,
+          "reestimatedSourceSpeed": 0.3054645649769133,
+          "recommendedSourceSpeed": 0.30546456,
+          "recommendedWorldSpeed": 1.1804720800036146,
+          "recommendedGaitMultiplier": 1,
+          "reason": "Use effective authored time window and complete foot trajectory; root sway retained. Single constant speed is an approximate L1 fit, not zero-slip proof."
+        },
+        {
+          "clip": "Animal_TypeA@Walk",
+          "gait": "walk",
+          "currentSourceSpeed": 0.064579,
+          "reestimatedSourceSpeed": 0.071605296595393,
+          "recommendedSourceSpeed": 0.0716053,
+          "recommendedWorldSpeed": 0.27671968699178334,
+          "recommendedGaitMultiplier": 1,
+          "reason": "Use effective authored time window and complete foot trajectory; root sway retained. Single constant speed is an approximate L1 fit, not zero-slip proof."
+        }
+      ]
+    }
+  ]
+}

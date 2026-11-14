@@ -1,0 +1,4392 @@
+{
+  "version": 12,
+  "sourcePackageSha256": "8e509bc5de6715d2d2e02a1c890c2c24ed033f369104a24fc7266efff52d9753",
+  "licenseEvidence": {
+    "package": "HIGHLANDS - Stylized Environment",
+    "packageVersion": "v1.0.2",
+    "publisherContact": "contact@raygeas.com",
+    "unityAssetStoreLicenseTypeMetadata": "Store",
+    "bundledLicenseText": false,
+    "status": "License terms are not bundled in the unitypackage; redistribution rights require separate verification."
+  },
+  "sources": [
+    {
+      "id": "tree-fir-1",
+      "label": "Fir 1",
+      "category": "tree",
+      "lodAuthoring": "lod-group",
+      "materialKey": "tree-atlas",
+      "normalMode": "authored",
+      "tangentMode": "derivative-fallback",
+      "billboard": {
+        "authored": false,
+        "lastLodRepresentation": "mesh",
+        "generated": {
+          "fileName": "tree-fir-1-billboard.glb",
+          "triangles": 2,
+          "layers": [
+            {
+              "key": "albedo",
+              "textureFileName": "tree-fir-1-billboard.png",
+              "textureWidth": 512,
+              "textureHeight": 512
+            }
+          ],
+          "sourceView": "front-orthographic-albedo",
+          "bounds": {
+            "minimum": [
+              -2.400339365005493,
+              0,
+              0
+            ],
+            "maximum": [
+              2.400339365005493,
+              4.800678730010986,
+              0
+            ]
+          },
+          "url": "./generated/models/tree-fir-1-billboard.glb",
+          "sha256": "71bb501b1189e89b08236a2189948978f9e62cd6fcb873404e2ea085b3776355",
+          "materials": [
+            {
+              "key": "tree-fir-1-billboard",
+              "unityMaterialGuid": "497a6728df998d44bac3f3376ceb03fb",
+              "unityMaterialName": "Fir 1 offline billboard",
+              "colorProperty": "_MainColor",
+              "sourceColorSrgb": [
+                0.04578461,
+                0.4578461,
+                0.496,
+                0
+              ],
+              "sourceColorSpace": "sRGB",
+              "baseColorFactor": [
+                1,
+                1,
+                1,
+                1
+              ],
+              "baseColorFactorColorSpace": "linear",
+              "portableMaterial": {
+                "shader": "vegetation",
+                "baseTextureKey": "tree-fir-1-billboard",
+                "alphaMode": "MASK",
+                "doubleSided": true,
+                "lightingFlatness": 0.2,
+                "translucencyIntensity": 0.4,
+                "alphaCutoff": 0.5,
+                "metallic": 0,
+                "roughness": 1,
+                "normalScale": 0
+              },
+              "sourceUnityColorBlend": {
+                "enabled": true,
+                "overlayType": "vertex-position",
+                "offset": -2.92,
+                "fade": 0.02,
+                "mainColorSrgb": [
+                  0.04578461,
+                  0.4578461,
+                  0.496,
+                  0
+                ],
+                "mainColorLinear": [
+                  0.0035673048467172327,
+                  0.17707735822021253,
+                  0.21035746771073105,
+                  1
+                ],
+                "secondColorSrgb": [
+                  0.5170239,
+                  0.5686275,
+                  0.29411766,
+                  0
+                ],
+                "secondColorLinear": [
+                  0.23013788418064632,
+                  0.2831487938458869,
+                  0.07036010195609571,
+                  1
+                ],
+                "sourceShaderSemantic": "Unity foliage _SecondColor"
+              },
+              "portableColorOverride": {
+                "source": "Seed World",
+                "referenceMaterialPath": "data/grasslands/public/Material/Vegetation/broadleaf-leaves.mat",
+                "referenceMaterialName": "broadleaf-leaves",
+                "sourceColorLinear": [
+                  0.04011615965489428,
+                  0.1959941436654326,
+                  0.030443655824741615,
+                  1
+                ],
+                "sourceColorSpace": "linear",
+                "mode": "single-color"
+              }
+            }
+          ]
+        }
+      },
+      "placement": {
+        "axis": "glTF-y-up",
+        "pivot": "source-bounds-horizontal-center-at-ground",
+        "groundY": 0,
+        "nodeTransform": "identity"
+      },
+      "materials": [
+        {
+          "key": "fir-bark",
+          "unityMaterialGuid": "1e3a5c0f4bf78bb428fc8d87d2d383c2",
+          "unityMaterialName": "Fir_Bark",
+          "colorProperty": "_Color",
+          "sourceColorSrgb": [
+            0.6666667,
+            0.5429458,
+            0.52666664,
+            1
+          ],
+          "sourceColorSpace": "sRGB",
+          "baseColorFactor": [
+            0.40197782439324437,
+            0.2559661075513306,
+            0.23955876907130103,
+            1
+          ],
+          "baseColorFactorColorSpace": "linear",
+          "portableMaterial": {
+            "shader": "pbr",
+            "baseTextureKey": "tree-atlas",
+            "normalTextureKey": "tree-atlas-normal",
+            "alphaMode": "OPAQUE",
+            "doubleSided": false,
+            "lightingFlatness": 0,
+            "translucencyIntensity": 0,
+            "alphaCutoff": 0,
+            "metallic": 0,
+            "roughness": 0.5,
+            "normalScale": 1
+          }
+        },
+        {
+          "key": "fir-branch",
+          "unityMaterialGuid": "497a6728df998d44bac3f3376ceb03fb",
+          "unityMaterialName": "Fir_Branch",
+          "colorProperty": "_MainColor",
+          "sourceColorSrgb": [
+            0.04578461,
+            0.4578461,
+            0.496,
+            0
+          ],
+          "sourceColorSpace": "sRGB",
+          "baseColorFactor": [
+            0.04011615965489428,
+            0.1959941436654326,
+            0.030443655824741615,
+            1
+          ],
+          "baseColorFactorColorSpace": "linear",
+          "portableMaterial": {
+            "shader": "vegetation",
+            "baseTextureKey": "tree-atlas",
+            "normalTextureKey": "tree-atlas-normal",
+            "alphaMode": "MASK",
+            "doubleSided": true,
+            "lightingFlatness": 0.2,
+            "translucencyIntensity": 0.4,
+            "alphaCutoff": 0.3,
+            "metallic": 0,
+            "roughness": 1,
+            "normalScale": 0
+          },
+          "sourceUnityColorBlend": {
+            "enabled": true,
+            "overlayType": "vertex-position",
+            "offset": -2.92,
+            "fade": 0.02,
+            "mainColorSrgb": [
+              0.04578461,
+              0.4578461,
+              0.496,
+              0
+            ],
+            "mainColorLinear": [
+              0.0035673048467172327,
+              0.17707735822021253,
+              0.21035746771073105,
+              1
+            ],
+            "secondColorSrgb": [
+              0.5170239,
+              0.5686275,
+              0.29411766,
+              0
+            ],
+            "secondColorLinear": [
+              0.23013788418064632,
+              0.2831487938458869,
+              0.07036010195609571,
+              1
+            ],
+            "sourceShaderSemantic": "Unity foliage _SecondColor"
+          },
+          "portableColorOverride": {
+            "source": "Seed World",
+            "referenceMaterialPath": "data/grasslands/public/Material/Vegetation/broadleaf-leaves.mat",
+            "referenceMaterialName": "broadleaf-leaves",
+            "sourceColorLinear": [
+              0.04011615965489428,
+              0.1959941436654326,
+              0.030443655824741615,
+              1
+            ],
+            "sourceColorSpace": "linear",
+            "mode": "single-color"
+          }
+        }
+      ],
+      "source": {
+        "fbxGuid": "5edb358f2de6c884d8743844fa8d44e5",
+        "fbxPath": "Assets/HIGHLANDS - Stylized Environment/Meshes/Forest/Fir_1.fbx",
+        "prefabGuid": "7d975aa620250e74c86e071ff1544174",
+        "prefabPath": "Assets/HIGHLANDS - Stylized Environment/Prefabs/Forest/Fir_1.prefab"
+      },
+      "lods": [
+        {
+          "fileName": "tree-fir-1-lod0.glb",
+          "sourceObjectName": "Fir_1_LOD0",
+          "vertices": 565,
+          "triangles": 650,
+          "bounds": {
+            "minimum": [
+              -1.0915484428405762,
+              0,
+              -1.1135615110397339
+            ],
+            "maximum": [
+              1.0915484428405762,
+              4.616037368774414,
+              1.1135615110397339
+            ]
+          },
+          "normalMode": "authored",
+          "tangentMode": "derivative-fallback",
+          "vertexColorMode": "authored",
+          "vertexColorAttributes": [
+            "color"
+          ],
+          "materialNames": [
+            "Tree_Atlas_Opaque_Mat",
+            "Tree_Atlas_TwoSided_Mat"
+          ],
+          "sourceBounds": {
+            "minimum": [
+              -1.0915484428405762,
+              -1.1135615110397339,
+              0
+            ],
+            "maximum": [
+              1.0915484428405762,
+              1.1135615110397339,
+              4.616037368774414
+            ]
+          },
+          "screenRelativeHeight": 0.4989088,
+          "url": "./generated/models/tree-fir-1-lod0.glb",
+          "sha256": "14bf3d844f0eb0a4cda444e581b22dfc084ac3fa9477239da362f4dabe468202"
+        },
+        {
+          "fileName": "tree-fir-1-lod1.glb",
+          "sourceObjectName": "Fir_1_LOD1",
+          "vertices": 413,
+          "triangles": 410,
+          "bounds": {
+            "minimum": [
+              -1.0948699712753296,
+              0,
+              -1.1120705604553223
+            ],
+            "maximum": [
+              1.0910494327545166,
+              4.6165266036987305,
+              1.1125824451446533
+            ]
+          },
+          "normalMode": "authored",
+          "tangentMode": "derivative-fallback",
+          "vertexColorMode": "authored",
+          "vertexColorAttributes": [
+            "color"
+          ],
+          "materialNames": [
+            "Tree_Atlas_Opaque_Mat",
+            "Tree_Atlas_TwoSided_Mat"
+          ],
+          "sourceBounds": {
+            "minimum": [
+              -1.0948699712753296,
+              -1.1125824451446533,
+              0
+            ],
+            "maximum": [
+              1.0910494327545166,
+              1.1120705604553223,
+              4.6165266036987305
+            ]
+          },
+          "screenRelativeHeight": 0.16453728,
+          "url": "./generated/models/tree-fir-1-lod1.glb",
+          "sha256": "ebed37e50360f39fff9b8c5fa85c9e43b95dbed5372be4b43d637f73fc697241"
+        },
+        {
+          "fileName": "tree-fir-1-lod2.glb",
+          "sourceObjectName": "Fir_1_LOD2",
+          "vertices": 273,
+          "triangles": 188,
+          "bounds": {
+            "minimum": [
+              -1.2581558227539062,
+              0,
+              -1.1506034135818481
+            ],
+            "maximum": [
+              1.0425517559051514,
+              4.618494987487793,
+              1.1228538751602173
+            ]
+          },
+          "normalMode": "authored",
+          "tangentMode": "derivative-fallback",
+          "vertexColorMode": "authored",
+          "vertexColorAttributes": [
+            "color"
+          ],
+          "materialNames": [
+            "Tree_Atlas_Opaque_Mat",
+            "Tree_Atlas_TwoSided_Mat"
+          ],
+          "sourceBounds": {
+            "minimum": [
+              -1.2581558227539062,
+              -1.1228538751602173,
+              0
+            ],
+            "maximum": [
+              1.0425517559051514,
+              1.1506034135818481,
+              4.618494987487793
+            ]
+          },
+          "screenRelativeHeight": 0.069113076,
+          "url": "./generated/models/tree-fir-1-lod2.glb",
+          "sha256": "79b38e8e75372440d11cbc0b319fe71f21cb5ff87d2e8e04fdaf64b9dad96660"
+        }
+      ]
+    },
+    {
+      "id": "tree-fir-2",
+      "label": "Fir 2",
+      "category": "tree",
+      "lodAuthoring": "lod-group",
+      "materialKey": "tree-atlas",
+      "normalMode": "authored",
+      "tangentMode": "derivative-fallback",
+      "billboard": {
+        "authored": false,
+        "lastLodRepresentation": "mesh",
+        "generated": {
+          "fileName": "tree-fir-2-billboard.glb",
+          "triangles": 2,
+          "layers": [
+            {
+              "key": "albedo",
+              "textureFileName": "tree-fir-2-billboard.png",
+              "textureWidth": 512,
+              "textureHeight": 512
+            }
+          ],
+          "sourceView": "front-orthographic-albedo",
+          "bounds": {
+            "minimum": [
+              -4.535069942474365,
+              0,
+              0
+            ],
+            "maximum": [
+              4.535069942474365,
+              9.07013988494873,
+              0
+            ]
+          },
+          "url": "./generated/models/tree-fir-2-billboard.glb",
+          "sha256": "0259dc3976409c6e6825d3ca2eb62555dcedc428e18c76b7eb73da081dfc14d1",
+          "materials": [
+            {
+              "key": "tree-fir-2-billboard",
+              "unityMaterialGuid": "497a6728df998d44bac3f3376ceb03fb",
+              "unityMaterialName": "Fir 2 offline billboard",
+              "colorProperty": "_MainColor",
+              "sourceColorSrgb": [
+                0.04578461,
+                0.4578461,
+                0.496,
+                0
+              ],
+              "sourceColorSpace": "sRGB",
+              "baseColorFactor": [
+                1,
+                1,
+                1,
+                1
+              ],
+              "baseColorFactorColorSpace": "linear",
+              "portableMaterial": {
+                "shader": "vegetation",
+                "baseTextureKey": "tree-fir-2-billboard",
+                "alphaMode": "MASK",
+                "doubleSided": true,
+                "lightingFlatness": 0.2,
+                "translucencyIntensity": 0.4,
+                "alphaCutoff": 0.5,
+                "metallic": 0,
+                "roughness": 1,
+                "normalScale": 0
+              },
+              "sourceUnityColorBlend": {
+                "enabled": true,
+                "overlayType": "vertex-position",
+                "offset": -2.92,
+                "fade": 0.02,
+                "mainColorSrgb": [
+                  0.04578461,
+                  0.4578461,
+                  0.496,
+                  0
+                ],
+                "mainColorLinear": [
+                  0.0035673048467172327,
+                  0.17707735822021253,
+                  0.21035746771073105,
+                  1
+                ],
+                "secondColorSrgb": [
+                  0.5170239,
+                  0.5686275,
+                  0.29411766,
+                  0
+                ],
+                "secondColorLinear": [
+                  0.23013788418064632,
+                  0.2831487938458869,
+                  0.07036010195609571,
+                  1
+                ],
+                "sourceShaderSemantic": "Unity foliage _SecondColor"
+              },
+              "portableColorOverride": {
+                "source": "Seed World",
+                "referenceMaterialPath": "data/grasslands/public/Material/Vegetation/broadleaf-leaves.mat",
+                "referenceMaterialName": "broadleaf-leaves",
+                "sourceColorLinear": [
+                  0.04011615965489428,
+                  0.1959941436654326,
+                  0.030443655824741615,
+                  1
+                ],
+                "sourceColorSpace": "linear",
+                "mode": "single-color"
+              }
+            }
+          ]
+        }
+      },
+      "placement": {
+        "axis": "glTF-y-up",
+        "pivot": "source-bounds-horizontal-center-at-ground",
+        "groundY": 0,
+        "nodeTransform": "identity"
+      },
+      "materials": [
+        {
+          "key": "fir-bark",
+          "unityMaterialGuid": "1e3a5c0f4bf78bb428fc8d87d2d383c2",
+          "unityMaterialName": "Fir_Bark",
+          "colorProperty": "_Color",
+          "sourceColorSrgb": [
+            0.6666667,
+            0.5429458,
+            0.52666664,
+            1
+          ],
+          "sourceColorSpace": "sRGB",
+          "baseColorFactor": [
+            0.40197782439324437,
+            0.2559661075513306,
+            0.23955876907130103,
+            1
+          ],
+          "baseColorFactorColorSpace": "linear",
+          "portableMaterial": {
+            "shader": "pbr",
+            "baseTextureKey": "tree-atlas",
+            "normalTextureKey": "tree-atlas-normal",
+            "alphaMode": "OPAQUE",
+            "doubleSided": false,
+            "lightingFlatness": 0,
+            "translucencyIntensity": 0,
+            "alphaCutoff": 0,
+            "metallic": 0,
+            "roughness": 0.5,
+            "normalScale": 1
+          }
+        },
+        {
+          "key": "fir-branch",
+          "unityMaterialGuid": "497a6728df998d44bac3f3376ceb03fb",
+          "unityMaterialName": "Fir_Branch",
+          "colorProperty": "_MainColor",
+          "sourceColorSrgb": [
+            0.04578461,
+            0.4578461,
+            0.496,
+            0
+          ],
+          "sourceColorSpace": "sRGB",
+          "baseColorFactor": [
+            0.04011615965489428,
+            0.1959941436654326,
+            0.030443655824741615,
+            1
+          ],
+          "baseColorFactorColorSpace": "linear",
+          "portableMaterial": {
+            "shader": "vegetation",
+            "baseTextureKey": "tree-atlas",
+            "normalTextureKey": "tree-atlas-normal",
+            "alphaMode": "MASK",
+            "doubleSided": true,
+            "lightingFlatness": 0.2,
+            "translucencyIntensity": 0.4,
+            "alphaCutoff": 0.3,
+            "metallic": 0,
+            "roughness": 1,
+            "normalScale": 0
+          },
+          "sourceUnityColorBlend": {
+            "enabled": true,
+            "overlayType": "vertex-position",
+            "offset": -2.92,
+            "fade": 0.02,
+            "mainColorSrgb": [
+              0.04578461,
+              0.4578461,
+              0.496,
+              0
+            ],
+            "mainColorLinear": [
+              0.0035673048467172327,
+              0.17707735822021253,
+              0.21035746771073105,
+              1
+            ],
+            "secondColorSrgb": [
+              0.5170239,
+              0.5686275,
+              0.29411766,
+              0
+            ],
+            "secondColorLinear": [
+              0.23013788418064632,
+              0.2831487938458869,
+              0.07036010195609571,
+              1
+            ],
+            "sourceShaderSemantic": "Unity foliage _SecondColor"
+          },
+          "portableColorOverride": {
+            "source": "Seed World",
+            "referenceMaterialPath": "data/grasslands/public/Material/Vegetation/broadleaf-leaves.mat",
+            "referenceMaterialName": "broadleaf-leaves",
+            "sourceColorLinear": [
+              0.04011615965489428,
+              0.1959941436654326,
+              0.030443655824741615,
+              1
+            ],
+            "sourceColorSpace": "linear",
+            "mode": "single-color"
+          }
+        }
+      ],
+      "source": {
+        "fbxGuid": "3660eba21182f34439ffcc859acdb3be",
+        "fbxPath": "Assets/HIGHLANDS - Stylized Environment/Meshes/Forest/Fir_2.fbx",
+        "prefabGuid": "8b00fe718f6724246a1ce539ed28c6fa",
+        "prefabPath": "Assets/HIGHLANDS - Stylized Environment/Prefabs/Forest/Fir_2.prefab"
+      },
+      "lods": [
+        {
+          "fileName": "tree-fir-2-lod0.glb",
+          "sourceObjectName": "Fir_2_LOD0",
+          "vertices": 812,
+          "triangles": 918,
+          "bounds": {
+            "minimum": [
+              -1.97998046875,
+              0,
+              -1.9873738288879395
+            ],
+            "maximum": [
+              1.97998046875,
+              8.721288681030273,
+              1.9873740673065186
+            ]
+          },
+          "normalMode": "authored",
+          "tangentMode": "derivative-fallback",
+          "vertexColorMode": "authored",
+          "vertexColorAttributes": [
+            "color"
+          ],
+          "materialNames": [
+            "Tree_Atlas_Opaque_Mat.001",
+            "Tree_Atlas_TwoSided_Mat.001"
+          ],
+          "sourceBounds": {
+            "minimum": [
+              -1.97998046875,
+              -1.9873740673065186,
+              0
+            ],
+            "maximum": [
+              1.97998046875,
+              1.9873738288879395,
+              8.721288681030273
+            ]
+          },
+          "screenRelativeHeight": 0.55417114,
+          "url": "./generated/models/tree-fir-2-lod0.glb",
+          "sha256": "a221cabdbd1798808b09569c123313029e40215cd181efe6e462f2b89461029f"
+        },
+        {
+          "fileName": "tree-fir-2-lod1.glb",
+          "sourceObjectName": "Fir_2_LOD1",
+          "vertices": 589,
+          "triangles": 570,
+          "bounds": {
+            "minimum": [
+              -1.9814846515655518,
+              0,
+              -1.9905610084533691
+            ],
+            "maximum": [
+              1.9812326431274414,
+              8.721308708190918,
+              1.9875625371932983
+            ]
+          },
+          "normalMode": "authored",
+          "tangentMode": "derivative-fallback",
+          "vertexColorMode": "authored",
+          "vertexColorAttributes": [
+            "color"
+          ],
+          "materialNames": [
+            "Tree_Atlas_Opaque_Mat.001",
+            "Tree_Atlas_TwoSided_Mat.001"
+          ],
+          "sourceBounds": {
+            "minimum": [
+              -1.9814846515655518,
+              -1.9875625371932983,
+              0
+            ],
+            "maximum": [
+              1.9812326431274414,
+              1.9905610084533691,
+              8.721308708190918
+            ]
+          },
+          "screenRelativeHeight": 0.19960307,
+          "url": "./generated/models/tree-fir-2-lod1.glb",
+          "sha256": "2dac2152fcb8bf2e4fc49c600e20a361d519af1eb90ceecc6b1024c98b44e5e4"
+        },
+        {
+          "fileName": "tree-fir-2-lod2.glb",
+          "sourceObjectName": "Fir_2_LOD2",
+          "vertices": 390,
+          "triangles": 262,
+          "bounds": {
+            "minimum": [
+              -2.2107460498809814,
+              0,
+              -2.316833972930908
+            ],
+            "maximum": [
+              2.1844639778137207,
+              8.720499038696289,
+              1.8965612649917603
+            ]
+          },
+          "normalMode": "authored",
+          "tangentMode": "derivative-fallback",
+          "vertexColorMode": "authored",
+          "vertexColorAttributes": [
+            "color"
+          ],
+          "materialNames": [
+            "Tree_Atlas_Opaque_Mat.001",
+            "Tree_Atlas_TwoSided_Mat.001"
+          ],
+          "sourceBounds": {
+            "minimum": [
+              -2.2107460498809814,
+              -1.8965612649917603,
+              0
+            ],
+            "maximum": [
+              2.1844639778137207,
+              2.316833972930908,
+              8.720499038696289
+            ]
+          },
+          "screenRelativeHeight": 0.069113076,
+          "url": "./generated/models/tree-fir-2-lod2.glb",
+          "sha256": "18bf8bad255a6f962165a47a5fe3cc0063f548c3eafbe399c7a960443c6686a5"
+        }
+      ]
+    },
+    {
+      "id": "tree-fir-tall-1",
+      "label": "Fir Tall 1",
+      "category": "tree",
+      "lodAuthoring": "lod-group",
+      "materialKey": "tree-atlas",
+      "normalMode": "authored",
+      "tangentMode": "derivative-fallback",
+      "billboard": {
+        "authored": false,
+        "lastLodRepresentation": "mesh",
+        "generated": {
+          "fileName": "tree-fir-tall-1-billboard.glb",
+          "triangles": 2,
+          "layers": [
+            {
+              "key": "albedo",
+              "textureFileName": "tree-fir-tall-1-billboard.png",
+              "textureWidth": 512,
+              "textureHeight": 512
+            }
+          ],
+          "sourceView": "front-orthographic-albedo",
+          "bounds": {
+            "minimum": [
+              -5.970327377319336,
+              0,
+              0
+            ],
+            "maximum": [
+              5.970327377319336,
+              11.940654754638672,
+              0
+            ]
+          },
+          "url": "./generated/models/tree-fir-tall-1-billboard.glb",
+          "sha256": "fb00aafa1bded8f0ccb2dd4717f130246268e44e677273b46c85bd67a2768939",
+          "materials": [
+            {
+              "key": "tree-fir-tall-1-billboard",
+              "unityMaterialGuid": "5d6cb861c78e2464c9ad921d2a24b318",
+              "unityMaterialName": "Fir Tall 1 offline billboard",
+              "colorProperty": "_MainColor",
+              "sourceColorSrgb": [
+                0.0470588,
+                0.46994227,
+                0.5098039,
+                0
+              ],
+              "sourceColorSpace": "sRGB",
+              "baseColorFactor": [
+                1,
+                1,
+                1,
+                1
+              ],
+              "baseColorFactorColorSpace": "linear",
+              "portableMaterial": {
+                "shader": "vegetation",
+                "baseTextureKey": "tree-fir-tall-1-billboard",
+                "alphaMode": "MASK",
+                "doubleSided": true,
+                "lightingFlatness": 0.2,
+                "translucencyIntensity": 0.4,
+                "alphaCutoff": 0.5,
+                "metallic": 0,
+                "roughness": 1,
+                "normalScale": 0
+              },
+              "sourceUnityColorBlend": {
+                "enabled": true,
+                "overlayType": "vertex-position",
+                "offset": -8.46,
+                "fade": 0.02,
+                "mainColorSrgb": [
+                  0.0470588,
+                  0.46994227,
+                  0.5098039,
+                  0
+                ],
+                "mainColorLinear": [
+                  0.0036765052897843463,
+                  0.18726723781835472,
+                  0.22322793685779818,
+                  1
+                ],
+                "secondColorSrgb": [
+                  0.4817156,
+                  0.5686275,
+                  0.29411766,
+                  0
+                ],
+                "secondColorLinear": [
+                  0.19750596718207059,
+                  0.2831487938458869,
+                  0.07036010195609571,
+                  1
+                ],
+                "sourceShaderSemantic": "Unity foliage _SecondColor"
+              },
+              "portableColorOverride": {
+                "source": "Seed World",
+                "referenceMaterialPath": "data/grasslands/public/Material/Vegetation/broadleaf-leaves.mat",
+                "referenceMaterialName": "broadleaf-leaves",
+                "sourceColorLinear": [
+                  0.04011615965489428,
+                  0.1959941436654326,
+                  0.030443655824741615,
+                  1
+                ],
+                "sourceColorSpace": "linear",
+                "mode": "single-color"
+              }
+            }
+          ]
+        }
+      },
+      "placement": {
+        "axis": "glTF-y-up",
+        "pivot": "source-bounds-horizontal-center-at-ground",
+        "groundY": 0,
+        "nodeTransform": "identity"
+      },
+      "materials": [
+        {
+          "key": "fir-bark",
+          "unityMaterialGuid": "1e3a5c0f4bf78bb428fc8d87d2d383c2",
+          "unityMaterialName": "Fir_Bark",
+          "colorProperty": "_Color",
+          "sourceColorSrgb": [
+            0.6666667,
+            0.5429458,
+            0.52666664,
+            1
+          ],
+          "sourceColorSpace": "sRGB",
+          "baseColorFactor": [
+            0.40197782439324437,
+            0.2559661075513306,
+            0.23955876907130103,
+            1
+          ],
+          "baseColorFactorColorSpace": "linear",
+          "portableMaterial": {
+            "shader": "pbr",
+            "baseTextureKey": "tree-atlas",
+            "normalTextureKey": "tree-atlas-normal",
+            "alphaMode": "OPAQUE",
+            "doubleSided": false,
+            "lightingFlatness": 0,
+            "translucencyIntensity": 0,
+            "alphaCutoff": 0,
+            "metallic": 0,
+            "roughness": 0.5,
+            "normalScale": 1
+          }
+        },
+        {
+          "key": "tall-fir-branch",
+          "unityMaterialGuid": "5d6cb861c78e2464c9ad921d2a24b318",
+          "unityMaterialName": "Tall_Fir_Branch",
+          "colorProperty": "_MainColor",
+          "sourceColorSrgb": [
+            0.0470588,
+            0.46994227,
+            0.5098039,
+            0
+          ],
+          "sourceColorSpace": "sRGB",
+          "baseColorFactor": [
+            0.04011615965489428,
+            0.1959941436654326,
+            0.030443655824741615,
+            1
+          ],
+          "baseColorFactorColorSpace": "linear",
+          "portableMaterial": {
+            "shader": "vegetation",
+            "baseTextureKey": "tree-atlas",
+            "normalTextureKey": "tree-atlas-normal",
+            "alphaMode": "MASK",
+            "doubleSided": true,
+            "lightingFlatness": 0.2,
+            "translucencyIntensity": 0.4,
+            "alphaCutoff": 0.3,
+            "metallic": 0,
+            "roughness": 1,
+            "normalScale": 0
+          },
+          "sourceUnityColorBlend": {
+            "enabled": true,
+            "overlayType": "vertex-position",
+            "offset": -8.46,
+            "fade": 0.02,
+            "mainColorSrgb": [
+              0.0470588,
+              0.46994227,
+              0.5098039,
+              0
+            ],
+            "mainColorLinear": [
+              0.0036765052897843463,
+              0.18726723781835472,
+              0.22322793685779818,
+              1
+            ],
+            "secondColorSrgb": [
+              0.4817156,
+              0.5686275,
+              0.29411766,
+              0
+            ],
+            "secondColorLinear": [
+              0.19750596718207059,
+              0.2831487938458869,
+              0.07036010195609571,
+              1
+            ],
+            "sourceShaderSemantic": "Unity foliage _SecondColor"
+          },
+          "portableColorOverride": {
+            "source": "Seed World",
+            "referenceMaterialPath": "data/grasslands/public/Material/Vegetation/broadleaf-leaves.mat",
+            "referenceMaterialName": "broadleaf-leaves",
+            "sourceColorLinear": [
+              0.04011615965489428,
+              0.1959941436654326,
+              0.030443655824741615,
+              1
+            ],
+            "sourceColorSpace": "linear",
+            "mode": "single-color"
+          }
+        }
+      ],
+      "source": {
+        "fbxGuid": "cd4b847b6302e7a40b885d02f58174c7",
+        "fbxPath": "Assets/HIGHLANDS - Stylized Environment/Meshes/Forest/Fir_Tall_1.fbx",
+        "prefabGuid": "141f2fb1590a2c14bb4d20d467643b45",
+        "prefabPath": "Assets/HIGHLANDS - Stylized Environment/Prefabs/Forest/Fir_Tall_1.prefab"
+      },
+      "lods": [
+        {
+          "fileName": "tree-fir-tall-1-lod0.glb",
+          "sourceObjectName": "Fir_Tall_1_LOD0",
+          "vertices": 1177,
+          "triangles": 1524,
+          "bounds": {
+            "minimum": [
+              -1.9939320087432861,
+              0,
+              -1.9137954711914062
+            ],
+            "maximum": [
+              1.9939320087432861,
+              11.481398582458496,
+              1.9137935638427734
+            ]
+          },
+          "normalMode": "authored",
+          "tangentMode": "derivative-fallback",
+          "vertexColorMode": "authored",
+          "vertexColorAttributes": [
+            "color"
+          ],
+          "materialNames": [
+            "Tree_Atlas_Opaque_Mat.005",
+            "Tree_Atlas_TwoSided_Mat.005"
+          ],
+          "sourceBounds": {
+            "minimum": [
+              -1.9939320087432861,
+              -1.9137935638427734,
+              0
+            ],
+            "maximum": [
+              1.9939320087432861,
+              1.9137954711914062,
+              11.481398582458496
+            ]
+          },
+          "screenRelativeHeight": 0.6002468,
+          "url": "./generated/models/tree-fir-tall-1-lod0.glb",
+          "sha256": "b4c0dbee9f22b2ddd5e7dc7ef8658e32bf74b59b74a60972c74c8dd405b0b39d"
+        },
+        {
+          "fileName": "tree-fir-tall-1-lod1.glb",
+          "sourceObjectName": "Fir_Tall_1_LOD1",
+          "vertices": 761,
+          "triangles": 856,
+          "bounds": {
+            "minimum": [
+              -1.9494388103485107,
+              0,
+              -1.8897819519042969
+            ],
+            "maximum": [
+              1.953963041305542,
+              11.480360984802246,
+              1.867288589477539
+            ]
+          },
+          "normalMode": "authored",
+          "tangentMode": "derivative-fallback",
+          "vertexColorMode": "authored",
+          "vertexColorAttributes": [
+            "color"
+          ],
+          "materialNames": [
+            "Tree_Atlas_Opaque_Mat.005",
+            "Tree_Atlas_TwoSided_Mat.005"
+          ],
+          "sourceBounds": {
+            "minimum": [
+              -1.9494388103485107,
+              -1.867288589477539,
+              0
+            ],
+            "maximum": [
+              1.953963041305542,
+              1.8897819519042969,
+              11.480360984802246
+            ]
+          },
+          "screenRelativeHeight": 0.30238298,
+          "url": "./generated/models/tree-fir-tall-1-lod1.glb",
+          "sha256": "75a4b996535d4aaffcf4c323987badb01c00ae8b09b0e1597d7eb9cbe85e84cc"
+        },
+        {
+          "fileName": "tree-fir-tall-1-lod2.glb",
+          "sourceObjectName": "Fir_Tall_1_LOD2",
+          "vertices": 461,
+          "triangles": 364,
+          "bounds": {
+            "minimum": [
+              -2.234984874725342,
+              0,
+              -1.9996776580810547
+            ],
+            "maximum": [
+              2.1881260871887207,
+              11.482048988342285,
+              2.160320281982422
+            ]
+          },
+          "normalMode": "authored",
+          "tangentMode": "derivative-fallback",
+          "vertexColorMode": "authored",
+          "vertexColorAttributes": [
+            "color"
+          ],
+          "materialNames": [
+            "Tree_Atlas_Opaque_Mat.005",
+            "Tree_Atlas_TwoSided_Mat.005"
+          ],
+          "sourceBounds": {
+            "minimum": [
+              -2.234984874725342,
+              -2.160320281982422,
+              0
+            ],
+            "maximum": [
+              2.1881260871887207,
+              1.9996776580810547,
+              11.482048988342285
+            ]
+          },
+          "screenRelativeHeight": 0.07834934,
+          "url": "./generated/models/tree-fir-tall-1-lod2.glb",
+          "sha256": "be8d01a64327a7260544fe7b93784ca420be9aa61218ead17c12f6869912184c"
+        }
+      ]
+    },
+    {
+      "id": "rock-1",
+      "label": "Rock 1",
+      "category": "rock",
+      "lodAuthoring": "lod-group",
+      "materialKey": "rock",
+      "normalMode": "recompute-smooth",
+      "tangentMode": "vertex",
+      "billboard": {
+        "authored": false,
+        "lastLodRepresentation": "mesh"
+      },
+      "materials": [
+        {
+          "key": "stones-rocks",
+          "unityMaterialGuid": "48235a3bec1ffac42b238feb64e16aba",
+          "unityMaterialName": "Stones_Rocks",
+          "colorProperty": "_Color",
+          "sourceColorSrgb": [
+            0.5566038,
+            0.5566038,
+            0.5566038,
+            1
+          ],
+          "sourceColorSpace": "sRGB",
+          "baseColorFactor": [
+            0.2702231281276218,
+            0.2702231281276218,
+            0.2702231281276218,
+            1
+          ],
+          "baseColorFactorColorSpace": "linear",
+          "portableMaterial": {
+            "shader": "pbr",
+            "normalTextureKey": "rock-normal",
+            "alphaMode": "OPAQUE",
+            "doubleSided": false,
+            "lightingFlatness": 0,
+            "translucencyIntensity": 0,
+            "alphaCutoff": 0,
+            "metallic": 0,
+            "roughness": 0.5,
+            "normalScale": 1
+          }
+        }
+      ],
+      "source": {
+        "fbxGuid": "97788248928a2aa44a00dd20efee487e",
+        "fbxPath": "Assets/HIGHLANDS - Stylized Environment/Meshes/Forest/Rock_1.fbx",
+        "prefabGuid": "2f1f1a99a03849746adb662fa05676c2",
+        "prefabPath": "Assets/HIGHLANDS - Stylized Environment/Prefabs/Forest/Rock_1.prefab"
+      },
+      "lods": [
+        {
+          "fileName": "rock-1-lod0.glb",
+          "sourceObjectName": "Rock_1",
+          "vertices": 177,
+          "triangles": 350,
+          "bounds": {
+            "minimum": [
+              -2.4361419677734375,
+              -3.496110439300537,
+              -0.738202691078186
+            ],
+            "maximum": [
+              2.1973187923431396,
+              3.4224185943603516,
+              2.398393154144287
+            ]
+          },
+          "normalMode": "recompute-smooth",
+          "tangentMode": "vertex",
+          "vertexColorMode": "authored",
+          "vertexColorAttributes": [],
+          "materialNames": [
+            "Stones"
+          ],
+          "sourceBounds": {
+            "minimum": [
+              -2.4361419677734375,
+              -3.496110439300537,
+              -0.738202691078186
+            ],
+            "maximum": [
+              2.1973187923431396,
+              3.4224185943603516,
+              2.398393154144287
+            ]
+          },
+          "screenRelativeHeight": 0.4036469,
+          "url": "./generated/models/rock-1-lod0.glb",
+          "sha256": "9815d727203898b6644a09723c6f99c339eb8639a2a287446792ab811b5070f9"
+        },
+        {
+          "fileName": "rock-1-lod1.glb",
+          "sourceObjectName": "Rock_1_LOD0",
+          "vertices": 58,
+          "triangles": 112,
+          "bounds": {
+            "minimum": [
+              -2.4361419677734375,
+              -3.541602373123169,
+              -0.7661712169647217
+            ],
+            "maximum": [
+              2.26064395904541,
+              3.433338165283203,
+              2.343475580215454
+            ]
+          },
+          "normalMode": "recompute-smooth",
+          "tangentMode": "vertex",
+          "vertexColorMode": "authored",
+          "vertexColorAttributes": [],
+          "materialNames": [
+            "Stones"
+          ],
+          "sourceBounds": {
+            "minimum": [
+              -2.4361419677734375,
+              -3.541602373123169,
+              -0.7661712169647217
+            ],
+            "maximum": [
+              2.26064395904541,
+              3.433338165283203,
+              2.343475580215454
+            ]
+          },
+          "screenRelativeHeight": 0.051061098,
+          "url": "./generated/models/rock-1-lod1.glb",
+          "sha256": "64d638982626f0d515fe47675c9f7ddcda484d8efab13a5168c1cbc874a70c26"
+        }
+      ]
+    },
+    {
+      "id": "rock-2",
+      "label": "Rock 2",
+      "category": "rock",
+      "lodAuthoring": "lod-group",
+      "materialKey": "rock",
+      "normalMode": "recompute-smooth",
+      "tangentMode": "vertex",
+      "billboard": {
+        "authored": false,
+        "lastLodRepresentation": "mesh"
+      },
+      "materials": [
+        {
+          "key": "stones-rocks",
+          "unityMaterialGuid": "48235a3bec1ffac42b238feb64e16aba",
+          "unityMaterialName": "Stones_Rocks",
+          "colorProperty": "_Color",
+          "sourceColorSrgb": [
+            0.5566038,
+            0.5566038,
+            0.5566038,
+            1
+          ],
+          "sourceColorSpace": "sRGB",
+          "baseColorFactor": [
+            0.2702231281276218,
+            0.2702231281276218,
+            0.2702231281276218,
+            1
+          ],
+          "baseColorFactorColorSpace": "linear",
+          "portableMaterial": {
+            "shader": "pbr",
+            "normalTextureKey": "rock-normal",
+            "alphaMode": "OPAQUE",
+            "doubleSided": false,
+            "lightingFlatness": 0,
+            "translucencyIntensity": 0,
+            "alphaCutoff": 0,
+            "metallic": 0,
+            "roughness": 0.5,
+            "normalScale": 1
+          }
+        }
+      ],
+      "source": {
+        "fbxGuid": "7e5233458219e2946b88e2c3986faa85",
+        "fbxPath": "Assets/HIGHLANDS - Stylized Environment/Meshes/Forest/Rock_2.fbx",
+        "prefabGuid": "7a56db3bdcec604409171c917c2a0052",
+        "prefabPath": "Assets/HIGHLANDS - Stylized Environment/Prefabs/Forest/Rock_2.prefab"
+      },
+      "lods": [
+        {
+          "fileName": "rock-2-lod0.glb",
+          "sourceObjectName": "Rock_2",
+          "vertices": 217,
+          "triangles": 430,
+          "bounds": {
+            "minimum": [
+              -2.3491435050964355,
+              -3.9343667030334473,
+              -0.6189677119255066
+            ],
+            "maximum": [
+              2.2935121059417725,
+              4.117109298706055,
+              2.035870313644409
+            ]
+          },
+          "normalMode": "recompute-smooth",
+          "tangentMode": "vertex",
+          "vertexColorMode": "authored",
+          "vertexColorAttributes": [],
+          "materialNames": [
+            "Stones"
+          ],
+          "sourceBounds": {
+            "minimum": [
+              -2.3491435050964355,
+              -3.9343667030334473,
+              -0.6189677119255066
+            ],
+            "maximum": [
+              2.2935121059417725,
+              4.117109298706055,
+              2.035870313644409
+            ]
+          },
+          "screenRelativeHeight": 0.4036469,
+          "url": "./generated/models/rock-2-lod0.glb",
+          "sha256": "e424397408fc9a1f721f1112b4dad9929a15dd4d8ee998638515d142dd965316"
+        },
+        {
+          "fileName": "rock-2-lod1.glb",
+          "sourceObjectName": "Rock_2_LOD0",
+          "vertices": 70,
+          "triangles": 136,
+          "bounds": {
+            "minimum": [
+              -2.3050856590270996,
+              -3.945081949234009,
+              -0.5589194297790527
+            ],
+            "maximum": [
+              2.3140904903411865,
+              4.118972301483154,
+              2.0230748653411865
+            ]
+          },
+          "normalMode": "recompute-smooth",
+          "tangentMode": "vertex",
+          "vertexColorMode": "authored",
+          "vertexColorAttributes": [],
+          "materialNames": [
+            "Stones"
+          ],
+          "sourceBounds": {
+            "minimum": [
+              -2.3050856590270996,
+              -3.945081949234009,
+              -0.5589194297790527
+            ],
+            "maximum": [
+              2.3140904903411865,
+              4.118972301483154,
+              2.0230748653411865
+            ]
+          },
+          "screenRelativeHeight": 0.051061098,
+          "url": "./generated/models/rock-2-lod1.glb",
+          "sha256": "934cea983152eaa86fb7a1f8e010852621668292c1c99355b2bb1f49becb2d90"
+        }
+      ]
+    },
+    {
+      "id": "stone-1",
+      "label": "Stone 1",
+      "category": "rock",
+      "lodAuthoring": "lod-group",
+      "materialKey": "rock",
+      "normalMode": "recompute-smooth",
+      "tangentMode": "vertex",
+      "billboard": {
+        "authored": false,
+        "lastLodRepresentation": "mesh"
+      },
+      "materials": [
+        {
+          "key": "stones-rocks",
+          "unityMaterialGuid": "48235a3bec1ffac42b238feb64e16aba",
+          "unityMaterialName": "Stones_Rocks",
+          "colorProperty": "_Color",
+          "sourceColorSrgb": [
+            0.5566038,
+            0.5566038,
+            0.5566038,
+            1
+          ],
+          "sourceColorSpace": "sRGB",
+          "baseColorFactor": [
+            0.2702231281276218,
+            0.2702231281276218,
+            0.2702231281276218,
+            1
+          ],
+          "baseColorFactorColorSpace": "linear",
+          "portableMaterial": {
+            "shader": "pbr",
+            "normalTextureKey": "rock-normal",
+            "alphaMode": "OPAQUE",
+            "doubleSided": false,
+            "lightingFlatness": 0,
+            "translucencyIntensity": 0,
+            "alphaCutoff": 0,
+            "metallic": 0,
+            "roughness": 0.5,
+            "normalScale": 1
+          }
+        }
+      ],
+      "source": {
+        "fbxGuid": "02a56b81851b59840b43761deffbe5c4",
+        "fbxPath": "Assets/HIGHLANDS - Stylized Environment/Meshes/Forest/Stone_1.fbx",
+        "prefabGuid": "a0017caa72220ff4f93c241218720f79",
+        "prefabPath": "Assets/HIGHLANDS - Stylized Environment/Prefabs/Forest/Stone_1.prefab"
+      },
+      "lods": [
+        {
+          "fileName": "stone-1-lod0.glb",
+          "sourceObjectName": "Stone_1",
+          "vertices": 55,
+          "triangles": 106,
+          "bounds": {
+            "minimum": [
+              -1.0477821826934814,
+              -1.100166916847229,
+              -0.03917668014764786
+            ],
+            "maximum": [
+              0.9443966746330261,
+              1.0191015005111694,
+              1.16879403591156
+            ]
+          },
+          "normalMode": "recompute-smooth",
+          "tangentMode": "vertex",
+          "vertexColorMode": "authored",
+          "vertexColorAttributes": [],
+          "materialNames": [
+            "Stones"
+          ],
+          "sourceBounds": {
+            "minimum": [
+              -1.0477821826934814,
+              -1.100166916847229,
+              -0.03917668014764786
+            ],
+            "maximum": [
+              0.9443966746330261,
+              1.0191015005111694,
+              1.16879403591156
+            ]
+          },
+          "screenRelativeHeight": 0.20162132,
+          "url": "./generated/models/stone-1-lod0.glb",
+          "sha256": "7c87d28291222753a58b62950dfbc43e84474879bee9dbfd6d18e30f384dd013"
+        },
+        {
+          "fileName": "stone-1-lod1.glb",
+          "sourceObjectName": "Stone_1_LOD0",
+          "vertices": 17,
+          "triangles": 30,
+          "bounds": {
+            "minimum": [
+              -1.0511387586593628,
+              -1.087677240371704,
+              -0.005655619781464338
+            ],
+            "maximum": [
+              0.9028975367546082,
+              0.9948848485946655,
+              1.1280878782272339
+            ]
+          },
+          "normalMode": "recompute-smooth",
+          "tangentMode": "vertex",
+          "vertexColorMode": "authored",
+          "vertexColorAttributes": [],
+          "materialNames": [
+            "Stones"
+          ],
+          "sourceBounds": {
+            "minimum": [
+              -1.0511387586593628,
+              -1.087677240371704,
+              -0.005655619781464338
+            ],
+            "maximum": [
+              0.9028975367546082,
+              0.9948848485946655,
+              1.1280878782272339
+            ]
+          },
+          "screenRelativeHeight": 0.02429043,
+          "url": "./generated/models/stone-1-lod1.glb",
+          "sha256": "feba96f157c8f75d2e8e9f082587c471e8cb0effa8a46437e595e21b0b8f2d43"
+        }
+      ]
+    },
+    {
+      "id": "stone-2",
+      "label": "Stone 2",
+      "category": "rock",
+      "lodAuthoring": "lod-group",
+      "materialKey": "rock",
+      "normalMode": "recompute-smooth",
+      "tangentMode": "vertex",
+      "billboard": {
+        "authored": false,
+        "lastLodRepresentation": "mesh"
+      },
+      "materials": [
+        {
+          "key": "stones-rocks",
+          "unityMaterialGuid": "48235a3bec1ffac42b238feb64e16aba",
+          "unityMaterialName": "Stones_Rocks",
+          "colorProperty": "_Color",
+          "sourceColorSrgb": [
+            0.5566038,
+            0.5566038,
+            0.5566038,
+            1
+          ],
+          "sourceColorSpace": "sRGB",
+          "baseColorFactor": [
+            0.2702231281276218,
+            0.2702231281276218,
+            0.2702231281276218,
+            1
+          ],
+          "baseColorFactorColorSpace": "linear",
+          "portableMaterial": {
+            "shader": "pbr",
+            "normalTextureKey": "rock-normal",
+            "alphaMode": "OPAQUE",
+            "doubleSided": false,
+            "lightingFlatness": 0,
+            "translucencyIntensity": 0,
+            "alphaCutoff": 0,
+            "metallic": 0,
+            "roughness": 0.5,
+            "normalScale": 1
+          }
+        }
+      ],
+      "source": {
+        "fbxGuid": "b5fe0a02ec5817645bc872f16f993f45",
+        "fbxPath": "Assets/HIGHLANDS - Stylized Environment/Meshes/Forest/Stone_2.fbx",
+        "prefabGuid": "c2374b37e98aa8d44b879f9f38d88474",
+        "prefabPath": "Assets/HIGHLANDS - Stylized Environment/Prefabs/Forest/Stone_2.prefab"
+      },
+      "lods": [
+        {
+          "fileName": "stone-2-lod0.glb",
+          "sourceObjectName": "Stone_2",
+          "vertices": 53,
+          "triangles": 102,
+          "bounds": {
+            "minimum": [
+              -0.6908256411552429,
+              -0.6885755062103271,
+              -0.03168875724077225
+            ],
+            "maximum": [
+              0.7428413033485413,
+              0.6483451128005981,
+              0.9934753775596619
+            ]
+          },
+          "normalMode": "recompute-smooth",
+          "tangentMode": "vertex",
+          "vertexColorMode": "authored",
+          "vertexColorAttributes": [],
+          "materialNames": [
+            "Stones"
+          ],
+          "sourceBounds": {
+            "minimum": [
+              -0.6908256411552429,
+              -0.6885755062103271,
+              -0.03168875724077225
+            ],
+            "maximum": [
+              0.7428413033485413,
+              0.6483451128005981,
+              0.9934753775596619
+            ]
+          },
+          "screenRelativeHeight": 0.19679716,
+          "url": "./generated/models/stone-2-lod0.glb",
+          "sha256": "79f5328e751038550c552c68adfab073b51e15e488c1a5f17c305049e505ad6a"
+        },
+        {
+          "fileName": "stone-2-lod1.glb",
+          "sourceObjectName": "Stone_2_LOD0",
+          "vertices": 17,
+          "triangles": 30,
+          "bounds": {
+            "minimum": [
+              -0.6908256411552429,
+              -0.6869550347328186,
+              -0.028314029797911644
+            ],
+            "maximum": [
+              0.7171762585639954,
+              0.6600100994110107,
+              0.9932750463485718
+            ]
+          },
+          "normalMode": "recompute-smooth",
+          "tangentMode": "vertex",
+          "vertexColorMode": "authored",
+          "vertexColorAttributes": [],
+          "materialNames": [
+            "Stones"
+          ],
+          "sourceBounds": {
+            "minimum": [
+              -0.6908256411552429,
+              -0.6869550347328186,
+              -0.028314029797911644
+            ],
+            "maximum": [
+              0.7171762585639954,
+              0.6600100994110107,
+              0.9932750463485718
+            ]
+          },
+          "screenRelativeHeight": 0.02429043,
+          "url": "./generated/models/stone-2-lod1.glb",
+          "sha256": "984846c343cd3020e21fee5cc636c1c5bf1f02a9a1ab213efbbb5ff30e69b449"
+        }
+      ]
+    },
+    {
+      "id": "stone-3",
+      "label": "Stone 3",
+      "category": "rock",
+      "lodAuthoring": "lod-group",
+      "materialKey": "rock",
+      "normalMode": "recompute-smooth",
+      "tangentMode": "vertex",
+      "billboard": {
+        "authored": false,
+        "lastLodRepresentation": "mesh"
+      },
+      "materials": [
+        {
+          "key": "stones-rocks",
+          "unityMaterialGuid": "48235a3bec1ffac42b238feb64e16aba",
+          "unityMaterialName": "Stones_Rocks",
+          "colorProperty": "_Color",
+          "sourceColorSrgb": [
+            0.5566038,
+            0.5566038,
+            0.5566038,
+            1
+          ],
+          "sourceColorSpace": "sRGB",
+          "baseColorFactor": [
+            0.2702231281276218,
+            0.2702231281276218,
+            0.2702231281276218,
+            1
+          ],
+          "baseColorFactorColorSpace": "linear",
+          "portableMaterial": {
+            "shader": "pbr",
+            "normalTextureKey": "rock-normal",
+            "alphaMode": "OPAQUE",
+            "doubleSided": false,
+            "lightingFlatness": 0,
+            "translucencyIntensity": 0,
+            "alphaCutoff": 0,
+            "metallic": 0,
+            "roughness": 0.5,
+            "normalScale": 1
+          }
+        }
+      ],
+      "source": {
+        "fbxGuid": "be883d816d5ff80499d001501f38af7a",
+        "fbxPath": "Assets/HIGHLANDS - Stylized Environment/Meshes/Forest/Stone_3.fbx",
+        "prefabGuid": "cd6a123b898b5ad44aab9500a7c2c369",
+        "prefabPath": "Assets/HIGHLANDS - Stylized Environment/Prefabs/Forest/Stone_3.prefab"
+      },
+      "lods": [
+        {
+          "fileName": "stone-3-lod0.glb",
+          "sourceObjectName": "Stone_3",
+          "vertices": 40,
+          "triangles": 76,
+          "bounds": {
+            "minimum": [
+              -0.4475569725036621,
+              -0.45473241806030273,
+              -0.016060076653957367
+            ],
+            "maximum": [
+              0.4464724659919739,
+              0.4554709494113922,
+              0.8601000308990479
+            ]
+          },
+          "normalMode": "recompute-smooth",
+          "tangentMode": "vertex",
+          "vertexColorMode": "authored",
+          "vertexColorAttributes": [],
+          "materialNames": [
+            "Stones"
+          ],
+          "sourceBounds": {
+            "minimum": [
+              -0.4475569725036621,
+              -0.45473241806030273,
+              -0.016060076653957367
+            ],
+            "maximum": [
+              0.4464724659919739,
+              0.4554709494113922,
+              0.8601000308990479
+            ]
+          },
+          "screenRelativeHeight": 0.10188358,
+          "url": "./generated/models/stone-3-lod0.glb",
+          "sha256": "a28341d36e1dce6003f97aa4d58cee860b6298050af59da310dbb6546c4971b8"
+        },
+        {
+          "fileName": "stone-3-lod1.glb",
+          "sourceObjectName": "Stone_3_LOD0",
+          "vertices": 13,
+          "triangles": 22,
+          "bounds": {
+            "minimum": [
+              -0.44384485483169556,
+              -0.4568306505680084,
+              -0.023758765310049057
+            ],
+            "maximum": [
+              0.44138213992118835,
+              0.43679100275039673,
+              0.8507719039916992
+            ]
+          },
+          "normalMode": "recompute-smooth",
+          "tangentMode": "vertex",
+          "vertexColorMode": "authored",
+          "vertexColorAttributes": [],
+          "materialNames": [
+            "Stones"
+          ],
+          "sourceBounds": {
+            "minimum": [
+              -0.44384485483169556,
+              -0.4568306505680084,
+              -0.023758765310049057
+            ],
+            "maximum": [
+              0.44138213992118835,
+              0.43679100275039673,
+              0.8507719039916992
+            ]
+          },
+          "screenRelativeHeight": 0.017163191,
+          "url": "./generated/models/stone-3-lod1.glb",
+          "sha256": "5951e53d3cb7032112d302b08f6b2ece0ecf6095a9f768f9106490591b455726"
+        }
+      ]
+    },
+    {
+      "id": "stone-4",
+      "label": "Stone 4",
+      "category": "rock",
+      "lodAuthoring": "lod-group",
+      "materialKey": "rock",
+      "normalMode": "recompute-smooth",
+      "tangentMode": "vertex",
+      "billboard": {
+        "authored": false,
+        "lastLodRepresentation": "mesh"
+      },
+      "materials": [
+        {
+          "key": "stones-rocks",
+          "unityMaterialGuid": "48235a3bec1ffac42b238feb64e16aba",
+          "unityMaterialName": "Stones_Rocks",
+          "colorProperty": "_Color",
+          "sourceColorSrgb": [
+            0.5566038,
+            0.5566038,
+            0.5566038,
+            1
+          ],
+          "sourceColorSpace": "sRGB",
+          "baseColorFactor": [
+            0.2702231281276218,
+            0.2702231281276218,
+            0.2702231281276218,
+            1
+          ],
+          "baseColorFactorColorSpace": "linear",
+          "portableMaterial": {
+            "shader": "pbr",
+            "normalTextureKey": "rock-normal",
+            "alphaMode": "OPAQUE",
+            "doubleSided": false,
+            "lightingFlatness": 0,
+            "translucencyIntensity": 0,
+            "alphaCutoff": 0,
+            "metallic": 0,
+            "roughness": 0.5,
+            "normalScale": 1
+          }
+        }
+      ],
+      "source": {
+        "fbxGuid": "e5fbb9848f8c8bf4d84ecf3f6d91b8ee",
+        "fbxPath": "Assets/HIGHLANDS - Stylized Environment/Meshes/Forest/Stone_4.fbx",
+        "prefabGuid": "2bdba0d2cfc89924491dd44826759183",
+        "prefabPath": "Assets/HIGHLANDS - Stylized Environment/Prefabs/Forest/Stone_4.prefab"
+      },
+      "lods": [
+        {
+          "fileName": "stone-4-lod0.glb",
+          "sourceObjectName": "Stone_4",
+          "vertices": 61,
+          "triangles": 118,
+          "bounds": {
+            "minimum": [
+              -0.3713332414627075,
+              -0.3715780973434448,
+              -0.02026013843715191
+            ],
+            "maximum": [
+              0.35690444707870483,
+              0.3669324517250061,
+              0.6972270607948303
+            ]
+          },
+          "normalMode": "recompute-smooth",
+          "tangentMode": "vertex",
+          "vertexColorMode": "authored",
+          "vertexColorAttributes": [],
+          "materialNames": [
+            "Stones"
+          ],
+          "sourceBounds": {
+            "minimum": [
+              -0.3713332414627075,
+              -0.3715780973434448,
+              -0.02026013843715191
+            ],
+            "maximum": [
+              0.35690444707870483,
+              0.3669324517250061,
+              0.6972270607948303
+            ]
+          },
+          "screenRelativeHeight": 0.10188358,
+          "url": "./generated/models/stone-4-lod0.glb",
+          "sha256": "df73224e696a80c04fa437ff42651141349a84927ee146b26e9d5fff73897b57"
+        },
+        {
+          "fileName": "stone-4-lod1.glb",
+          "sourceObjectName": "Stone_4_LOD0",
+          "vertices": 19,
+          "triangles": 34,
+          "bounds": {
+            "minimum": [
+              -0.3623216152191162,
+              -0.37082934379577637,
+              -0.010994908399879932
+            ],
+            "maximum": [
+              0.3531835079193115,
+              0.3751239478588104,
+              0.7068989872932434
+            ]
+          },
+          "normalMode": "recompute-smooth",
+          "tangentMode": "vertex",
+          "vertexColorMode": "authored",
+          "vertexColorAttributes": [],
+          "materialNames": [
+            "Stones"
+          ],
+          "sourceBounds": {
+            "minimum": [
+              -0.3623216152191162,
+              -0.37082934379577637,
+              -0.010994908399879932
+            ],
+            "maximum": [
+              0.3531835079193115,
+              0.3751239478588104,
+              0.7068989872932434
+            ]
+          },
+          "screenRelativeHeight": 0.017896987,
+          "url": "./generated/models/stone-4-lod1.glb",
+          "sha256": "ea5069b4ff5e2647460c6980c38731ef23bbb87ff5284a18d6f967e224573b03"
+        }
+      ]
+    },
+    {
+      "id": "stones",
+      "label": "Stones",
+      "category": "rock",
+      "lodAuthoring": "lod-group",
+      "materialKey": "rock",
+      "normalMode": "recompute-smooth",
+      "tangentMode": "vertex",
+      "billboard": {
+        "authored": false,
+        "lastLodRepresentation": "mesh"
+      },
+      "materials": [
+        {
+          "key": "stones-rocks",
+          "unityMaterialGuid": "48235a3bec1ffac42b238feb64e16aba",
+          "unityMaterialName": "Stones_Rocks",
+          "colorProperty": "_Color",
+          "sourceColorSrgb": [
+            0.5566038,
+            0.5566038,
+            0.5566038,
+            1
+          ],
+          "sourceColorSpace": "sRGB",
+          "baseColorFactor": [
+            0.2702231281276218,
+            0.2702231281276218,
+            0.2702231281276218,
+            1
+          ],
+          "baseColorFactorColorSpace": "linear",
+          "portableMaterial": {
+            "shader": "pbr",
+            "normalTextureKey": "rock-normal",
+            "alphaMode": "OPAQUE",
+            "doubleSided": false,
+            "lightingFlatness": 0,
+            "translucencyIntensity": 0,
+            "alphaCutoff": 0,
+            "metallic": 0,
+            "roughness": 0.5,
+            "normalScale": 1
+          }
+        }
+      ],
+      "source": {
+        "fbxGuid": "1ea303834b63a404289733a22d2ebea0",
+        "fbxPath": "Assets/HIGHLANDS - Stylized Environment/Meshes/Forest/Stones.fbx",
+        "prefabGuid": "77c3171a0dce8e949971f33f7089db07",
+        "prefabPath": "Assets/HIGHLANDS - Stylized Environment/Prefabs/Forest/Stones.prefab"
+      },
+      "lods": [
+        {
+          "fileName": "stones-lod0.glb",
+          "sourceObjectName": "Stone_5",
+          "vertices": 131,
+          "triangles": 246,
+          "bounds": {
+            "minimum": [
+              -0.375298410654068,
+              -0.42409953474998474,
+              -0.005192616488784552
+            ],
+            "maximum": [
+              0.3066224455833435,
+              0.27882301807403564,
+              0.25459569692611694
+            ]
+          },
+          "normalMode": "recompute-smooth",
+          "tangentMode": "vertex",
+          "vertexColorMode": "authored",
+          "vertexColorAttributes": [],
+          "materialNames": [
+            "Stones"
+          ],
+          "sourceBounds": {
+            "minimum": [
+              -0.375298410654068,
+              -0.42409953474998474,
+              -0.005192616488784552
+            ],
+            "maximum": [
+              0.3066224455833435,
+              0.27882301807403564,
+              0.25459569692611694
+            ]
+          },
+          "screenRelativeHeight": 0.14756764,
+          "url": "./generated/models/stones-lod0.glb",
+          "sha256": "1260a4b9f9d8473e6b2925f732f6b12538d730d9779ff47bdd3d3c5bff5aa658"
+        },
+        {
+          "fileName": "stones-lod1.glb",
+          "sourceObjectName": "Stone_5_LOD0",
+          "vertices": 44,
+          "triangles": 72,
+          "bounds": {
+            "minimum": [
+              -0.3625580370426178,
+              -0.4289464056491852,
+              -0.004685758613049984
+            ],
+            "maximum": [
+              0.28855639696121216,
+              0.2805413007736206,
+              0.25630223751068115
+            ]
+          },
+          "normalMode": "recompute-smooth",
+          "tangentMode": "vertex",
+          "vertexColorMode": "authored",
+          "vertexColorAttributes": [],
+          "materialNames": [
+            "Stones"
+          ],
+          "sourceBounds": {
+            "minimum": [
+              -0.3625580370426178,
+              -0.4289464056491852,
+              -0.004685758613049984
+            ],
+            "maximum": [
+              0.28855639696121216,
+              0.2805413007736206,
+              0.25630223751068115
+            ]
+          },
+          "screenRelativeHeight": 0.03878466,
+          "url": "./generated/models/stones-lod1.glb",
+          "sha256": "8d74a7f28b43e2d5530f6a6c371da3de796ada2e62e3c65da152fb70ff6c89b8"
+        }
+      ]
+    },
+    {
+      "id": "mountain-1",
+      "label": "Mountain 1",
+      "category": "rock",
+      "lodAuthoring": "single-mesh",
+      "materialKey": "mountain-1-albedo",
+      "normalMode": "recompute-smooth",
+      "tangentMode": "vertex",
+      "billboard": {
+        "authored": false,
+        "lastLodRepresentation": "mesh"
+      },
+      "materials": [
+        {
+          "key": "mountain-1",
+          "unityMaterialGuid": "0ab2db07ec5191e4499d625d3a11f77f",
+          "unityMaterialName": "Mountain_1",
+          "colorProperty": "_Color",
+          "sourceColorSrgb": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "sourceColorSpace": "sRGB",
+          "baseColorFactor": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "baseColorFactorColorSpace": "linear",
+          "portableMaterial": {
+            "shader": "pbr",
+            "baseTextureKey": "mountain-1-albedo",
+            "normalTextureKey": "mountain-1-normal",
+            "alphaMode": "OPAQUE",
+            "doubleSided": false,
+            "lightingFlatness": 0,
+            "translucencyIntensity": 0,
+            "alphaCutoff": 0,
+            "metallic": 0,
+            "roughness": 1,
+            "normalScale": 0.6
+          }
+        }
+      ],
+      "source": {
+        "fbxGuid": "9a0f8634a812d7f4caed3bf28b39dd66",
+        "fbxPath": "Assets/HIGHLANDS - Stylized Environment/Meshes/Mountains/Mountain_1.fbx",
+        "prefabGuid": "eb83d5fc0ef6b3649b37132a43709220",
+        "prefabPath": "Assets/HIGHLANDS - Stylized Environment/Prefabs/Mountains/Mountain_1.prefab"
+      },
+      "lods": [
+        {
+          "fileName": "mountain-1-lod0.glb",
+          "sourceObjectName": "Mountain_1",
+          "vertices": 3341,
+          "triangles": 6635,
+          "bounds": {
+            "minimum": [
+              -525.7412719726562,
+              -525.7274780273438,
+              -1.3802316188812256
+            ],
+            "maximum": [
+              525.7719116210938,
+              525.9891357421875,
+              325.5513916015625
+            ]
+          },
+          "normalMode": "recompute-smooth",
+          "tangentMode": "vertex",
+          "vertexColorMode": "authored",
+          "vertexColorAttributes": [],
+          "materialNames": [
+            "Mountain_1"
+          ],
+          "sourceBounds": {
+            "minimum": [
+              -525.7412719726562,
+              -525.7274780273438,
+              -1.3802316188812256
+            ],
+            "maximum": [
+              525.7719116210938,
+              525.9891357421875,
+              325.5513916015625
+            ]
+          },
+          "screenRelativeHeight": 1,
+          "url": "./generated/models/mountain-1-lod0.glb",
+          "sha256": "31c7764135500b408c749ab2418878cf950e948d9d6a203a73b1ab5e1ebc35a9"
+        }
+      ]
+    },
+    {
+      "id": "mountain-2",
+      "label": "Mountain 2",
+      "category": "rock",
+      "lodAuthoring": "single-mesh",
+      "materialKey": "mountain-2-albedo",
+      "normalMode": "recompute-smooth",
+      "tangentMode": "vertex",
+      "billboard": {
+        "authored": false,
+        "lastLodRepresentation": "mesh"
+      },
+      "materials": [
+        {
+          "key": "mountain-2",
+          "unityMaterialGuid": "4aa986f82271b8645a2eebaf61bc8897",
+          "unityMaterialName": "Mountain_2",
+          "colorProperty": "_Color",
+          "sourceColorSrgb": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "sourceColorSpace": "sRGB",
+          "baseColorFactor": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "baseColorFactorColorSpace": "linear",
+          "portableMaterial": {
+            "shader": "pbr",
+            "baseTextureKey": "mountain-2-albedo",
+            "normalTextureKey": "mountain-2-normal",
+            "alphaMode": "OPAQUE",
+            "doubleSided": false,
+            "lightingFlatness": 0,
+            "translucencyIntensity": 0,
+            "alphaCutoff": 0,
+            "metallic": 0,
+            "roughness": 1,
+            "normalScale": 0.6
+          }
+        }
+      ],
+      "source": {
+        "fbxGuid": "5a82f5063edb2c149a53a7af4ded7736",
+        "fbxPath": "Assets/HIGHLANDS - Stylized Environment/Meshes/Mountains/Mountain_2.fbx",
+        "prefabGuid": "233830ccb83c8824c900e9078f565d21",
+        "prefabPath": "Assets/HIGHLANDS - Stylized Environment/Prefabs/Mountains/Mountain_2.prefab"
+      },
+      "lods": [
+        {
+          "fileName": "mountain-2-lod0.glb",
+          "sourceObjectName": "Mountain_1",
+          "vertices": 3379,
+          "triangles": 6634,
+          "bounds": {
+            "minimum": [
+              -518.6727905273438,
+              -525.8215942382812,
+              -11.375900268554688
+            ],
+            "maximum": [
+              533.4075317382812,
+              526.1620483398438,
+              335.4712829589844
+            ]
+          },
+          "normalMode": "recompute-smooth",
+          "tangentMode": "vertex",
+          "vertexColorMode": "authored",
+          "vertexColorAttributes": [],
+          "materialNames": [
+            "Mountain_1"
+          ],
+          "sourceBounds": {
+            "minimum": [
+              -518.6727905273438,
+              -525.8215942382812,
+              -11.375900268554688
+            ],
+            "maximum": [
+              533.4075317382812,
+              526.1620483398438,
+              335.4712829589844
+            ]
+          },
+          "screenRelativeHeight": 1,
+          "url": "./generated/models/mountain-2-lod0.glb",
+          "sha256": "36a432a70f3384c5b315617bd716ff6033699a5800860ffecbb719ef1e746b19"
+        }
+      ]
+    },
+    {
+      "id": "mountain-3",
+      "label": "Mountain 3",
+      "category": "rock",
+      "lodAuthoring": "single-mesh",
+      "materialKey": "mountain-3-albedo",
+      "normalMode": "recompute-smooth",
+      "tangentMode": "vertex",
+      "billboard": {
+        "authored": false,
+        "lastLodRepresentation": "mesh"
+      },
+      "materials": [
+        {
+          "key": "mountain-3",
+          "unityMaterialGuid": "94a488982bdde454882ef74b1c296282",
+          "unityMaterialName": "Mountain_3",
+          "colorProperty": "_Color",
+          "sourceColorSrgb": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "sourceColorSpace": "sRGB",
+          "baseColorFactor": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "baseColorFactorColorSpace": "linear",
+          "portableMaterial": {
+            "shader": "pbr",
+            "baseTextureKey": "mountain-3-albedo",
+            "normalTextureKey": "mountain-3-normal",
+            "alphaMode": "OPAQUE",
+            "doubleSided": false,
+            "lightingFlatness": 0,
+            "translucencyIntensity": 0,
+            "alphaCutoff": 0,
+            "metallic": 0,
+            "roughness": 1,
+            "normalScale": 0.6
+          }
+        }
+      ],
+      "source": {
+        "fbxGuid": "00e9f59455da790428febf20c71e9339",
+        "fbxPath": "Assets/HIGHLANDS - Stylized Environment/Meshes/Mountains/Mountain_3.fbx",
+        "prefabGuid": "8536890394f32884684644cfc134828d",
+        "prefabPath": "Assets/HIGHLANDS - Stylized Environment/Prefabs/Mountains/Mountain_3.prefab"
+      },
+      "lods": [
+        {
+          "fileName": "mountain-3-lod0.glb",
+          "sourceObjectName": "Mountain_3",
+          "vertices": 3348,
+          "triangles": 6634,
+          "bounds": {
+            "minimum": [
+              -520.8341064453125,
+              -526.0394287109375,
+              -10.869805335998535
+            ],
+            "maximum": [
+              530.8784790039062,
+              525.7706298828125,
+              332.6345520019531
+            ]
+          },
+          "normalMode": "recompute-smooth",
+          "tangentMode": "vertex",
+          "vertexColorMode": "authored",
+          "vertexColorAttributes": [],
+          "materialNames": [
+            "Mountain_1"
+          ],
+          "sourceBounds": {
+            "minimum": [
+              -520.8341064453125,
+              -526.0394287109375,
+              -10.869805335998535
+            ],
+            "maximum": [
+              530.8784790039062,
+              525.7706298828125,
+              332.6345520019531
+            ]
+          },
+          "screenRelativeHeight": 1,
+          "url": "./generated/models/mountain-3-lod0.glb",
+          "sha256": "7bf1ac112eb7228ee2810105d4815af2b7f0e3f5d7bdeed72afe6e9220c316ba"
+        }
+      ]
+    },
+    {
+      "id": "mountain-4",
+      "label": "Mountain 4",
+      "category": "rock",
+      "lodAuthoring": "single-mesh",
+      "materialKey": "mountain-4-albedo",
+      "normalMode": "recompute-smooth",
+      "tangentMode": "vertex",
+      "billboard": {
+        "authored": false,
+        "lastLodRepresentation": "mesh"
+      },
+      "materials": [
+        {
+          "key": "mountain-4",
+          "unityMaterialGuid": "c0cf4ada5369a934894906c4b9540846",
+          "unityMaterialName": "Mountain_4",
+          "colorProperty": "_Color",
+          "sourceColorSrgb": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "sourceColorSpace": "sRGB",
+          "baseColorFactor": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "baseColorFactorColorSpace": "linear",
+          "portableMaterial": {
+            "shader": "pbr",
+            "baseTextureKey": "mountain-4-albedo",
+            "normalTextureKey": "mountain-4-normal",
+            "alphaMode": "OPAQUE",
+            "doubleSided": false,
+            "lightingFlatness": 0,
+            "translucencyIntensity": 0,
+            "alphaCutoff": 0,
+            "metallic": 0,
+            "roughness": 1,
+            "normalScale": 0.6
+          }
+        }
+      ],
+      "source": {
+        "fbxGuid": "e26b5cf55de77e149b9e36fb41d29855",
+        "fbxPath": "Assets/HIGHLANDS - Stylized Environment/Meshes/Mountains/Mountain_4.fbx",
+        "prefabGuid": "16ea86151254d9b4a88b6b15d1b9472e",
+        "prefabPath": "Assets/HIGHLANDS - Stylized Environment/Prefabs/Mountains/Mountain_4.prefab"
+      },
+      "lods": [
+        {
+          "fileName": "mountain-4-lod0.glb",
+          "sourceObjectName": "Mountain_4",
+          "vertices": 3341,
+          "triangles": 6635,
+          "bounds": {
+            "minimum": [
+              -521.05517578125,
+              -525.7693481445312,
+              -6.816761493682861
+            ],
+            "maximum": [
+              530.4033813476562,
+              525.776611328125,
+              204.70712280273438
+            ]
+          },
+          "normalMode": "recompute-smooth",
+          "tangentMode": "vertex",
+          "vertexColorMode": "authored",
+          "vertexColorAttributes": [],
+          "materialNames": [
+            "Mountain_1"
+          ],
+          "sourceBounds": {
+            "minimum": [
+              -521.05517578125,
+              -525.7693481445312,
+              -6.816761493682861
+            ],
+            "maximum": [
+              530.4033813476562,
+              525.776611328125,
+              204.70712280273438
+            ]
+          },
+          "screenRelativeHeight": 1,
+          "url": "./generated/models/mountain-4-lod0.glb",
+          "sha256": "6e8eb8c3d4326e907f818b8f98e3bbce15ab0db6c49f2f421e66bb5efa7d72b5"
+        }
+      ]
+    },
+    {
+      "id": "flower-1",
+      "label": "Flower",
+      "category": "flower",
+      "lodAuthoring": "lod-group",
+      "materialKey": "mushroom-atlas",
+      "normalMode": "authored",
+      "tangentMode": "derivative-fallback",
+      "billboard": {
+        "authored": false,
+        "lastLodRepresentation": "mesh"
+      },
+      "materials": [
+        {
+          "key": "mushroom",
+          "unityMaterialGuid": "3a308754e318f8141b82cc1d0e126ccf",
+          "unityMaterialName": "Mushrooms_Flowers",
+          "colorProperty": "_MainColor",
+          "sourceColorSrgb": [
+            1,
+            1,
+            1,
+            0
+          ],
+          "sourceColorSpace": "sRGB",
+          "baseColorFactor": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "baseColorFactorColorSpace": "linear",
+          "portableMaterial": {
+            "shader": "vegetation",
+            "baseTextureKey": "mushroom-atlas",
+            "normalTextureKey": "mushroom-normal",
+            "alphaMode": "MASK",
+            "doubleSided": true,
+            "lightingFlatness": 0.15,
+            "translucencyIntensity": 0.4,
+            "alphaCutoff": 0.4,
+            "metallic": 0,
+            "roughness": 0,
+            "normalScale": 1
+          }
+        }
+      ],
+      "source": {
+        "fbxGuid": "4be088b8d3e898047a4a05f91091d76f",
+        "fbxPath": "Assets/HIGHLANDS - Stylized Environment/Meshes/Forest/Flower_1.fbx",
+        "prefabGuid": "676ac3cf6bf1b8c40ac6a43d9ff3c13f",
+        "prefabPath": "Assets/HIGHLANDS - Stylized Environment/Prefabs/Forest/Flower_1.prefab"
+      },
+      "lods": [
+        {
+          "fileName": "flower-1-lod0.glb",
+          "sourceObjectName": "Flower_1",
+          "vertices": 205,
+          "triangles": 219,
+          "bounds": {
+            "minimum": [
+              -0.4588392674922943,
+              -0.48402586579322815,
+              -0.022129269316792488
+            ],
+            "maximum": [
+              0.42722585797309875,
+              0.4621410667896271,
+              0.8887030482292175
+            ]
+          },
+          "normalMode": "authored",
+          "tangentMode": "derivative-fallback",
+          "vertexColorMode": "authored",
+          "vertexColorAttributes": [
+            "wind_mask"
+          ],
+          "materialNames": [
+            "Flower"
+          ],
+          "sourceBounds": {
+            "minimum": [
+              -0.4588392674922943,
+              -0.48402586579322815,
+              -0.022129269316792488
+            ],
+            "maximum": [
+              0.42722585797309875,
+              0.4621410667896271,
+              0.8887030482292175
+            ]
+          },
+          "screenRelativeHeight": 0.25034955,
+          "url": "./generated/models/flower-1-lod0.glb",
+          "sha256": "8656001d1ff15ff4965d3790afebc9a5919d2a56a2d9c3ca09dba7cbf813b3fb"
+        },
+        {
+          "fileName": "flower-1-lod1.glb",
+          "sourceObjectName": "Flower_1_LOD0",
+          "vertices": 131,
+          "triangles": 133,
+          "bounds": {
+            "minimum": [
+              -0.4588392674922943,
+              -0.48402586579322815,
+              -0.022129269316792488
+            ],
+            "maximum": [
+              0.42722585797309875,
+              0.4621410667896271,
+              0.8858063817024231
+            ]
+          },
+          "normalMode": "authored",
+          "tangentMode": "derivative-fallback",
+          "vertexColorMode": "authored",
+          "vertexColorAttributes": [
+            "wind_mask"
+          ],
+          "materialNames": [
+            "Flower"
+          ],
+          "sourceBounds": {
+            "minimum": [
+              -0.4588392674922943,
+              -0.48402586579322815,
+              -0.022129269316792488
+            ],
+            "maximum": [
+              0.42722585797309875,
+              0.4621410667896271,
+              0.8858063817024231
+            ]
+          },
+          "screenRelativeHeight": 0.048382718,
+          "url": "./generated/models/flower-1-lod1.glb",
+          "sha256": "386a5428e7762494f6db1064a12357bdbbf92c28e6c2e4a69e668f8d3bcbbbcf"
+        }
+      ]
+    },
+    {
+      "id": "grass-1",
+      "label": "Grass",
+      "category": "grass",
+      "lodAuthoring": "lod-group",
+      "materialKey": "grass-1",
+      "normalMode": "authored",
+      "tangentMode": "derivative-fallback",
+      "billboard": {
+        "authored": false,
+        "lastLodRepresentation": "mesh"
+      },
+      "materials": [
+        {
+          "key": "grass-1",
+          "unityMaterialGuid": "3805f20af5803d04db6fa559a7a079fe",
+          "unityMaterialName": "Grass_1",
+          "colorProperty": "_MainColor",
+          "sourceColorSrgb": [
+            0.1382353,
+            0.44097063,
+            0.5529412,
+            0
+          ],
+          "sourceColorSpace": "sRGB",
+          "baseColorFactor": [
+            0.02121900096498889,
+            0.23455055180893644,
+            0.02935179883447671,
+            1
+          ],
+          "baseColorFactorColorSpace": "linear",
+          "portableMaterial": {
+            "shader": "vegetation",
+            "baseTextureKey": "grass-1",
+            "alphaMode": "MASK",
+            "doubleSided": true,
+            "lightingFlatness": 1,
+            "translucencyIntensity": 0,
+            "alphaCutoff": 0.3,
+            "metallic": 0,
+            "roughness": 0.7,
+            "normalScale": 1
+          },
+          "sourceUnityColorBlend": {
+            "enabled": true,
+            "overlayType": "uv",
+            "offset": -0.32,
+            "fade": 0.11,
+            "mainColorSrgb": [
+              0.1382353,
+              0.44097063,
+              0.5529412,
+              0
+            ],
+            "mainColorLinear": [
+              0.01701381141401365,
+              0.1634136760739735,
+              0.26635562954416747,
+              1
+            ],
+            "secondColorSrgb": [
+              0.5469052,
+              0.80784315,
+              0,
+              0
+            ],
+            "secondColorLinear": [
+              0.26005279486580046,
+              0.6172065842999429,
+              0,
+              1
+            ],
+            "sourceShaderSemantic": "Unity foliage _SecondColor"
+          },
+          "portableColorOverride": {
+            "source": "Seed World",
+            "referenceMaterialPath": "data/grasslands/public/Material/Vegetation/grass-2.mat",
+            "referenceMaterialName": "grass-2",
+            "sourceColorLinear": [
+              0.02121900096498889,
+              0.23455055180893644,
+              0.02935179883447671,
+              1
+            ],
+            "sourceColorSpace": "linear",
+            "mode": "single-color"
+          }
+        }
+      ],
+      "source": {
+        "fbxGuid": "e424d8a8a33487f428af7d2fe96da36d",
+        "fbxPath": "Assets/HIGHLANDS - Stylized Environment/Meshes/Forest/Grass_1.fbx",
+        "prefabGuid": "527160e0bc56c944e9c8a380c6d749f0",
+        "prefabPath": "Assets/HIGHLANDS - Stylized Environment/Prefabs/Forest/Grass_1.prefab"
+      },
+      "lods": [
+        {
+          "fileName": "grass-1-lod0.glb",
+          "sourceObjectName": "Grass",
+          "vertices": 184,
+          "triangles": 92,
+          "bounds": {
+            "minimum": [
+              -1.1287342309951782,
+              -1.0032217502593994,
+              -0.038822609931230545
+            ],
+            "maximum": [
+              1.1212431192398071,
+              1.1825146675109863,
+              0.4850403070449829
+            ]
+          },
+          "normalMode": "authored",
+          "tangentMode": "derivative-fallback",
+          "vertexColorMode": "authored",
+          "vertexColorAttributes": [],
+          "materialNames": [
+            "Grass"
+          ],
+          "sourceBounds": {
+            "minimum": [
+              -1.1287342309951782,
+              -1.0032217502593994,
+              -0.038822609931230545
+            ],
+            "maximum": [
+              1.1212431192398071,
+              1.1825146675109863,
+              0.4850403070449829
+            ]
+          },
+          "screenRelativeHeight": 0.10356787,
+          "url": "./generated/models/grass-1-lod0.glb",
+          "sha256": "c2a1b86ad85b2cc340d4e6632d9c71dd2944888d454db4e393d5b52753756831"
+        }
+      ]
+    },
+    {
+      "id": "mushroom-1",
+      "label": "Mushroom",
+      "category": "mushroom",
+      "lodAuthoring": "lod-group",
+      "materialKey": "mushroom-atlas",
+      "normalMode": "authored",
+      "tangentMode": "derivative-fallback",
+      "billboard": {
+        "authored": false,
+        "lastLodRepresentation": "mesh"
+      },
+      "materials": [
+        {
+          "key": "mushroom",
+          "unityMaterialGuid": "3a308754e318f8141b82cc1d0e126ccf",
+          "unityMaterialName": "Mushrooms_Flowers",
+          "colorProperty": "_MainColor",
+          "sourceColorSrgb": [
+            1,
+            1,
+            1,
+            0
+          ],
+          "sourceColorSpace": "sRGB",
+          "baseColorFactor": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "baseColorFactorColorSpace": "linear",
+          "portableMaterial": {
+            "shader": "vegetation",
+            "baseTextureKey": "mushroom-atlas",
+            "normalTextureKey": "mushroom-normal",
+            "alphaMode": "MASK",
+            "doubleSided": true,
+            "lightingFlatness": 0.15,
+            "translucencyIntensity": 0.4,
+            "alphaCutoff": 0.4,
+            "metallic": 0,
+            "roughness": 0,
+            "normalScale": 1
+          }
+        }
+      ],
+      "source": {
+        "fbxGuid": "03f6167261d7eac4f9c5480559e4f92d",
+        "fbxPath": "Assets/HIGHLANDS - Stylized Environment/Meshes/Forest/Mushroom_1.fbx",
+        "prefabGuid": "ca0ed3edfca05e745a45a7e13e82f075",
+        "prefabPath": "Assets/HIGHLANDS - Stylized Environment/Prefabs/Forest/Mushroom_1.prefab"
+      },
+      "lods": [
+        {
+          "fileName": "mushroom-1-lod0.glb",
+          "sourceObjectName": "Mushroom_1",
+          "vertices": 92,
+          "triangles": 170,
+          "bounds": {
+            "minimum": [
+              -0.16315482556819916,
+              -0.14552323520183563,
+              -0.030083581805229187
+            ],
+            "maximum": [
+              0.12289595603942871,
+              0.15148596465587616,
+              0.439221054315567
+            ]
+          },
+          "normalMode": "authored",
+          "tangentMode": "derivative-fallback",
+          "vertexColorMode": "authored",
+          "vertexColorAttributes": [
+            "Col"
+          ],
+          "materialNames": [
+            "Mushroom"
+          ],
+          "sourceBounds": {
+            "minimum": [
+              -0.16315482556819916,
+              -0.14552323520183563,
+              -0.030083581805229187
+            ],
+            "maximum": [
+              0.12289595603942871,
+              0.15148596465587616,
+              0.439221054315567
+            ]
+          },
+          "screenRelativeHeight": 0.095435895,
+          "url": "./generated/models/mushroom-1-lod0.glb",
+          "sha256": "1647eac5815cae7ddc220ada9ac4a869cc52a756107bf772df8a22b2daf8f120"
+        },
+        {
+          "fileName": "mushroom-1-lod1.glb",
+          "sourceObjectName": "Mushroom_1_LOD0",
+          "vertices": 47,
+          "triangles": 80,
+          "bounds": {
+            "minimum": [
+              -0.1362190991640091,
+              -0.13282494246959686,
+              -0.030083581805229187
+            ],
+            "maximum": [
+              0.1226944550871849,
+              0.13710547983646393,
+              0.439221054315567
+            ]
+          },
+          "normalMode": "authored",
+          "tangentMode": "derivative-fallback",
+          "vertexColorMode": "authored",
+          "vertexColorAttributes": [
+            "Col"
+          ],
+          "materialNames": [
+            "Mushroom"
+          ],
+          "sourceBounds": {
+            "minimum": [
+              -0.1362190991640091,
+              -0.13282494246959686,
+              -0.030083581805229187
+            ],
+            "maximum": [
+              0.1226944550871849,
+              0.13710547983646393,
+              0.439221054315567
+            ]
+          },
+          "screenRelativeHeight": 0.027835885,
+          "url": "./generated/models/mushroom-1-lod1.glb",
+          "sha256": "c7a3bd15eaacb345fce9e08852c5bac26e262a3cbac72dc1529c4a45572929f2"
+        }
+      ]
+    }
+  ],
+  "rockMaterialVariants": [
+    {
+      "id": "rock-1-grass",
+      "label": "Rock 1 (Grass)",
+      "prefabGuid": "6dcbe6917d35deb4ab0325d8c61cf95b",
+      "geometrySharedWith": "rock-1",
+      "prefabPath": "Assets/HIGHLANDS - Stylized Environment/Prefabs/Forest/Rock_1(Grass).prefab",
+      "materialKey": "stones-rocks-grass",
+      "geometryIdentity": "same-fbx",
+      "coverage": "world-normal Grass_2 overlay"
+    },
+    {
+      "id": "rock-2-grass",
+      "label": "Rock 2 (Grass)",
+      "prefabGuid": "b4dabbab59e276644bd5fe1038367344",
+      "geometrySharedWith": "rock-2",
+      "prefabPath": "Assets/HIGHLANDS - Stylized Environment/Prefabs/Forest/Rock_2(Grass).prefab",
+      "materialKey": "stones-rocks-grass",
+      "geometryIdentity": "same-fbx",
+      "coverage": "world-normal Grass_2 overlay"
+    },
+    {
+      "id": "stone-1-grass",
+      "label": "Stone 1 (Grass)",
+      "prefabGuid": "31898a4bd42ea28409e84c71ef9dcfd5",
+      "geometrySharedWith": "stone-1",
+      "prefabPath": "Assets/HIGHLANDS - Stylized Environment/Prefabs/Forest/Stone_1(Grass).prefab",
+      "materialKey": "stones-rocks-grass",
+      "geometryIdentity": "same-fbx",
+      "coverage": "world-normal Grass_2 overlay"
+    },
+    {
+      "id": "stone-2-grass",
+      "label": "Stone 2 (Grass)",
+      "prefabGuid": "8c90b79c1f594184cb689fcb7dffa13a",
+      "geometrySharedWith": "stone-2",
+      "prefabPath": "Assets/HIGHLANDS - Stylized Environment/Prefabs/Forest/Stone_2(Grass).prefab",
+      "materialKey": "stones-rocks-grass",
+      "geometryIdentity": "same-fbx",
+      "coverage": "world-normal Grass_2 overlay"
+    },
+    {
+      "id": "stone-3-grass",
+      "label": "Stone 3 (Grass)",
+      "prefabGuid": "e89dd78271643d5458c48bb358594f3f",
+      "geometrySharedWith": "stone-3",
+      "prefabPath": "Assets/HIGHLANDS - Stylized Environment/Prefabs/Forest/Stone_3(Grass).prefab",
+      "materialKey": "stones-rocks-grass",
+      "geometryIdentity": "same-fbx",
+      "coverage": "world-normal Grass_2 overlay"
+    },
+    {
+      "id": "stone-4-grass",
+      "label": "Stone 4 (Grass)",
+      "prefabGuid": "76b0eea6abbc5024691439f49fd8527d",
+      "geometrySharedWith": "stone-4",
+      "prefabPath": "Assets/HIGHLANDS - Stylized Environment/Prefabs/Forest/Stone_4(Grass).prefab",
+      "materialKey": "stones-rocks-grass",
+      "geometryIdentity": "same-fbx",
+      "coverage": "world-normal Grass_2 overlay"
+    }
+  ],
+  "textures": [
+    {
+      "key": "tree-atlas",
+      "label": "Tree atlas",
+      "usage": "model",
+      "guid": "17add36904ebba141b4e088ea9253452",
+      "fileName": "tree-atlas-color.png",
+      "srgb": true,
+      "width": 512,
+      "height": 512,
+      "sourcePath": "Assets/HIGHLANDS - Stylized Environment/Textures/Forest/Trees_Atlas_Color.png",
+      "url": "./generated/textures/tree-atlas-color.png",
+      "sourceSha256": "85c680dc3dd0b7fbb01660e402f7a393d17746393e46b112edf9a9d9581d44bf",
+      "sha256": "7c996d76e5e3849687a94b8ff52809cb3190bd4bc6d2e28b947b451be4f22c1c",
+      "sourceWidth": 4096,
+      "sourceHeight": 4096,
+      "backup": {
+        "directory": "model-textures-source-resolution",
+        "fileName": "tree-atlas-color.png",
+        "width": 4096,
+        "height": 4096,
+        "sha256": "85c680dc3dd0b7fbb01660e402f7a393d17746393e46b112edf9a9d9581d44bf"
+      },
+      "portableResize": {
+        "width": 512,
+        "height": 512,
+        "encoding": "PNG",
+        "compression": "lossless",
+        "filter": "Lanczos in linear light",
+        "colorSpace": "sRGB"
+      }
+    },
+    {
+      "key": "tree-atlas-normal",
+      "label": "Tree atlas normal",
+      "usage": "model-normal",
+      "guid": "a90cc093361563c49b093650417754b3",
+      "fileName": "tree-atlas-normal.png",
+      "srgb": false,
+      "width": 512,
+      "height": 512,
+      "sourcePath": "Assets/HIGHLANDS - Stylized Environment/Textures/Forest/Trees_Atlas_Normal.png",
+      "url": "./generated/textures/tree-atlas-normal.png",
+      "sourceSha256": "757201be63c4feabdcf976ff94cae0cac2c6ae60fa7d49775dbd3ae414468e71",
+      "sha256": "c9a99d6ca0a4fb88e0861e61355e364ee5b55f976741a01ad899d3e908c16e3f",
+      "sourceWidth": 4096,
+      "sourceHeight": 4096,
+      "backup": {
+        "directory": "model-textures-source-resolution",
+        "fileName": "tree-atlas-normal.png",
+        "width": 4096,
+        "height": 4096,
+        "sha256": "757201be63c4feabdcf976ff94cae0cac2c6ae60fa7d49775dbd3ae414468e71"
+      },
+      "portableResize": {
+        "width": 512,
+        "height": 512,
+        "encoding": "PNG",
+        "compression": "lossless",
+        "filter": "Lanczos + vector renormalization",
+        "colorSpace": "linear"
+      }
+    },
+    {
+      "key": "flower",
+      "label": "Flower atlas",
+      "usage": "model",
+      "guid": "7df38e9e5dd6beb4ea0febfaea913b1f",
+      "fileName": "flower-atlas.png",
+      "srgb": true,
+      "width": 256,
+      "height": 256,
+      "sourcePath": "Assets/HIGHLANDS - Stylized Environment/Textures/Forest/Flower_1.png",
+      "url": "./generated/textures/flower-atlas.png",
+      "sourceSha256": "1cf3e6f03e2d7930a6fda07ef57b2459ea7920e3eeacc3cb5fa71396d72f7d05",
+      "sha256": "1cf3e6f03e2d7930a6fda07ef57b2459ea7920e3eeacc3cb5fa71396d72f7d05"
+    },
+    {
+      "key": "grass-1",
+      "label": "Grass 1 blades",
+      "usage": "model",
+      "guid": "c16bab6edba1a684fb082ee3c6bfdebe",
+      "fileName": "grass-1-blades.png",
+      "srgb": true,
+      "width": 512,
+      "height": 512,
+      "sourcePath": "Assets/HIGHLANDS - Stylized Environment/Textures/Forest/Grass_1.png",
+      "url": "./generated/textures/grass-1-blades.png",
+      "sourceSha256": "d1f5c0123bbf2bdbfbfd315c7f72749d25429efa415d35e36c0b287f34e7bf39",
+      "sha256": "d4d74b198aba31e3de548a7cbdb6851e2a41173a0021b56617a968a3b61d6371",
+      "sourceWidth": 1024,
+      "sourceHeight": 1024,
+      "backup": {
+        "directory": "model-textures-source-resolution",
+        "fileName": "grass-1-blades.png",
+        "width": 1024,
+        "height": 1024,
+        "sha256": "d1f5c0123bbf2bdbfbfd315c7f72749d25429efa415d35e36c0b287f34e7bf39"
+      },
+      "portableResize": {
+        "width": 512,
+        "height": 512,
+        "encoding": "PNG",
+        "compression": "lossless",
+        "filter": "Lanczos in linear light",
+        "colorSpace": "sRGB"
+      }
+    },
+    {
+      "key": "mushroom-atlas",
+      "label": "Mushroom atlas",
+      "usage": "model",
+      "guid": "a5049b674887e5a4d83612ed0fb14625",
+      "fileName": "mushroom-atlas.png",
+      "srgb": true,
+      "width": 512,
+      "height": 512,
+      "sourcePath": "Assets/HIGHLANDS - Stylized Environment/Textures/Forest/MushroomsFlowers_Albedo.png",
+      "url": "./generated/textures/mushroom-atlas.png",
+      "sourceSha256": "a5b6c94c8a33e55438ffd1d40cf3b2f7b3917cda1e3f13685c212088246091ea",
+      "sha256": "adf144633632e24c6a3d513d7a944597fe0ff98d346cd14115889b1fec67d354",
+      "sourceWidth": 1024,
+      "sourceHeight": 1024,
+      "backup": {
+        "directory": "model-textures-source-resolution",
+        "fileName": "mushroom-atlas.png",
+        "width": 1024,
+        "height": 1024,
+        "sha256": "a5b6c94c8a33e55438ffd1d40cf3b2f7b3917cda1e3f13685c212088246091ea"
+      },
+      "portableResize": {
+        "width": 512,
+        "height": 512,
+        "encoding": "PNG",
+        "compression": "lossless",
+        "filter": "Lanczos in linear light",
+        "colorSpace": "sRGB"
+      }
+    },
+    {
+      "key": "mushroom-normal",
+      "label": "Mushroom normal",
+      "usage": "model-normal",
+      "guid": "9d15cbad498cb0243845de2099358c40",
+      "fileName": "mushroom-normal.png",
+      "srgb": false,
+      "width": 512,
+      "height": 512,
+      "sourcePath": "Assets/HIGHLANDS - Stylized Environment/Textures/Forest/MushroomsFlowers_Normal.png",
+      "url": "./generated/textures/mushroom-normal.png",
+      "sourceSha256": "101394abc3cb973a2d4c6d0d98839e545d3c78d8f5b7c869843f1a28351edcd3",
+      "sha256": "f6782b8fd492bbcbea28b70458048ac97fd2e4066a87166f382d702d79cd578f",
+      "sourceWidth": 1024,
+      "sourceHeight": 1024,
+      "backup": {
+        "directory": "model-textures-source-resolution",
+        "fileName": "mushroom-normal.png",
+        "width": 1024,
+        "height": 1024,
+        "sha256": "101394abc3cb973a2d4c6d0d98839e545d3c78d8f5b7c869843f1a28351edcd3"
+      },
+      "portableResize": {
+        "width": 512,
+        "height": 512,
+        "encoding": "PNG",
+        "compression": "lossless",
+        "filter": "Lanczos + vector renormalization",
+        "colorSpace": "linear"
+      }
+    },
+    {
+      "key": "rock-normal",
+      "label": "Rock normal",
+      "usage": "model-normal",
+      "guid": "5788985df048a7344a7b3584587bca04",
+      "fileName": "rock-normal.png",
+      "srgb": false,
+      "width": 512,
+      "height": 512,
+      "sourcePath": "Assets/HIGHLANDS - Stylized Environment/Textures/Forest/StonesRocks_Normal.png",
+      "url": "./generated/textures/rock-normal.png",
+      "sourceSha256": "cf2dae85d66c929fbbf0a398cd071e6c55112fbd3e9d698818e7d5bbe04ef239",
+      "sha256": "fe2ca2df000acc06371ed1be6bf084ab237e4bb31dc9d8bd89b9112c115199b9",
+      "sourceWidth": 4096,
+      "sourceHeight": 4096,
+      "backup": {
+        "directory": "model-textures-source-resolution",
+        "fileName": "rock-normal.png",
+        "width": 4096,
+        "height": 4096,
+        "sha256": "cf2dae85d66c929fbbf0a398cd071e6c55112fbd3e9d698818e7d5bbe04ef239"
+      },
+      "portableResize": {
+        "width": 512,
+        "height": 512,
+        "encoding": "PNG",
+        "compression": "lossless",
+        "filter": "Lanczos + vector renormalization",
+        "colorSpace": "linear"
+      }
+    },
+    {
+      "key": "mountain-1-albedo",
+      "label": "Mountain 1 albedo",
+      "usage": "model",
+      "guid": "07a6a70a7384a1d408f28685f74f69de",
+      "fileName": "mountain-1-albedo.png",
+      "srgb": true,
+      "width": 512,
+      "height": 512,
+      "sourcePath": "Assets/HIGHLANDS - Stylized Environment/Textures/Mountains/Mountain_1_Albedo.png",
+      "url": "./generated/textures/mountain-1-albedo.png",
+      "sourceSha256": "9f9845c4b4b8f2d0d1e4ad9e5704814c1965132424152f6a9c7341606eaafbac",
+      "sha256": "d82d46d19958608f15b267b4edfd2afadf9ffcf478bb49ec0e8ca8b70014fb97",
+      "sourceWidth": 2048,
+      "sourceHeight": 2048,
+      "backup": {
+        "directory": "model-textures-source-resolution",
+        "fileName": "mountain-1-albedo.png",
+        "width": 2048,
+        "height": 2048,
+        "sha256": "9f9845c4b4b8f2d0d1e4ad9e5704814c1965132424152f6a9c7341606eaafbac"
+      },
+      "portableResize": {
+        "width": 512,
+        "height": 512,
+        "encoding": "PNG",
+        "compression": "lossless",
+        "filter": "Lanczos in linear light",
+        "colorSpace": "sRGB"
+      }
+    },
+    {
+      "key": "mountain-1-normal",
+      "label": "Mountain 1 normal",
+      "usage": "model-normal",
+      "guid": "45577e093d5c840419b36c5502bff95f",
+      "fileName": "mountain-1-normal.png",
+      "srgb": false,
+      "width": 512,
+      "height": 512,
+      "sourcePath": "Assets/HIGHLANDS - Stylized Environment/Textures/Mountains/Mountain_1_Normal.PNG",
+      "url": "./generated/textures/mountain-1-normal.png",
+      "sourceSha256": "0e8f8aac62a27f67a98e7022c6f05d295f1537f4a90b96d76c1c19ba0b1a0748",
+      "sha256": "3a2866201d73abf03b119f036450bfcf40b5d1c74f1d1a4ea19072360c0f180f",
+      "sourceWidth": 2048,
+      "sourceHeight": 2048,
+      "backup": {
+        "directory": "model-textures-source-resolution",
+        "fileName": "mountain-1-normal.png",
+        "width": 2048,
+        "height": 2048,
+        "sha256": "0e8f8aac62a27f67a98e7022c6f05d295f1537f4a90b96d76c1c19ba0b1a0748"
+      },
+      "portableResize": {
+        "width": 512,
+        "height": 512,
+        "encoding": "PNG",
+        "compression": "lossless",
+        "filter": "Lanczos + vector renormalization",
+        "colorSpace": "linear"
+      }
+    },
+    {
+      "key": "mountain-2-albedo",
+      "label": "Mountain 2 albedo",
+      "usage": "model",
+      "guid": "acdb07300e8973745a006ce051df4c60",
+      "fileName": "mountain-2-albedo.png",
+      "srgb": true,
+      "width": 512,
+      "height": 512,
+      "sourcePath": "Assets/HIGHLANDS - Stylized Environment/Textures/Mountains/Mountain_2_Albedo.png",
+      "url": "./generated/textures/mountain-2-albedo.png",
+      "sourceSha256": "4ab00e314d3f7b8152d199a5c502964292cf840faeaf03386d195974b454eb59",
+      "sha256": "2f72d6e486fde082b98b11bd52ca28ef229b2d547b47990b7f8e7d3955b92b18",
+      "sourceWidth": 2048,
+      "sourceHeight": 2048,
+      "backup": {
+        "directory": "model-textures-source-resolution",
+        "fileName": "mountain-2-albedo.png",
+        "width": 2048,
+        "height": 2048,
+        "sha256": "4ab00e314d3f7b8152d199a5c502964292cf840faeaf03386d195974b454eb59"
+      },
+      "portableResize": {
+        "width": 512,
+        "height": 512,
+        "encoding": "PNG",
+        "compression": "lossless",
+        "filter": "Lanczos in linear light",
+        "colorSpace": "sRGB"
+      }
+    },
+    {
+      "key": "mountain-2-normal",
+      "label": "Mountain 2 normal",
+      "usage": "model-normal",
+      "guid": "7a78d858cff46d44da2702c1b3357112",
+      "fileName": "mountain-2-normal.png",
+      "srgb": false,
+      "width": 512,
+      "height": 512,
+      "sourcePath": "Assets/HIGHLANDS - Stylized Environment/Textures/Mountains/Mountain_2_Normal.PNG",
+      "url": "./generated/textures/mountain-2-normal.png",
+      "sourceSha256": "13478c60d6fbcba9208db2d4182a5d16d728f43fd526760f5635e534a4caa8c5",
+      "sha256": "8896f42d1f7323bd7f1368e5b9a3022d8efec1901640ff6a2995aceed1b59cba",
+      "sourceWidth": 2048,
+      "sourceHeight": 2048,
+      "backup": {
+        "directory": "model-textures-source-resolution",
+        "fileName": "mountain-2-normal.png",
+        "width": 2048,
+        "height": 2048,
+        "sha256": "13478c60d6fbcba9208db2d4182a5d16d728f43fd526760f5635e534a4caa8c5"
+      },
+      "portableResize": {
+        "width": 512,
+        "height": 512,
+        "encoding": "PNG",
+        "compression": "lossless",
+        "filter": "Lanczos + vector renormalization",
+        "colorSpace": "linear"
+      }
+    },
+    {
+      "key": "mountain-3-albedo",
+      "label": "Mountain 3 albedo",
+      "usage": "model",
+      "guid": "d8e089e028ecd264c80df1b76560fdd8",
+      "fileName": "mountain-3-albedo.png",
+      "srgb": true,
+      "width": 512,
+      "height": 512,
+      "sourcePath": "Assets/HIGHLANDS - Stylized Environment/Textures/Mountains/Mountain_3_Albedo.png",
+      "url": "./generated/textures/mountain-3-albedo.png",
+      "sourceSha256": "025e85cfac09aaaa82bbd2a1d6b30f8faf2760ef898c759fa934a7f149ede328",
+      "sha256": "4b85a838c5a66818fcd5e3f7a13147a398599ab966860fb3c27394722f9dcb0b",
+      "sourceWidth": 2048,
+      "sourceHeight": 2048,
+      "backup": {
+        "directory": "model-textures-source-resolution",
+        "fileName": "mountain-3-albedo.png",
+        "width": 2048,
+        "height": 2048,
+        "sha256": "025e85cfac09aaaa82bbd2a1d6b30f8faf2760ef898c759fa934a7f149ede328"
+      },
+      "portableResize": {
+        "width": 512,
+        "height": 512,
+        "encoding": "PNG",
+        "compression": "lossless",
+        "filter": "Lanczos in linear light",
+        "colorSpace": "sRGB"
+      }
+    },
+    {
+      "key": "mountain-3-normal",
+      "label": "Mountain 3 normal",
+      "usage": "model-normal",
+      "guid": "0a5674331dc3f41459ee804ba7cdf0c5",
+      "fileName": "mountain-3-normal.png",
+      "srgb": false,
+      "width": 512,
+      "height": 512,
+      "sourcePath": "Assets/HIGHLANDS - Stylized Environment/Textures/Mountains/Mountain_3_Normal.PNG",
+      "url": "./generated/textures/mountain-3-normal.png",
+      "sourceSha256": "f7cfa6e6d3560e4089f915941d41e1bb9d32cea9d6c07142a3e95b62f7b9cfb3",
+      "sha256": "35ee73661179fd37605cdcf3ea42afcb55c2d28de33fe31cef73b5cbc06866d8",
+      "sourceWidth": 2048,
+      "sourceHeight": 2048,
+      "backup": {
+        "directory": "model-textures-source-resolution",
+        "fileName": "mountain-3-normal.png",
+        "width": 2048,
+        "height": 2048,
+        "sha256": "f7cfa6e6d3560e4089f915941d41e1bb9d32cea9d6c07142a3e95b62f7b9cfb3"
+      },
+      "portableResize": {
+        "width": 512,
+        "height": 512,
+        "encoding": "PNG",
+        "compression": "lossless",
+        "filter": "Lanczos + vector renormalization",
+        "colorSpace": "linear"
+      }
+    },
+    {
+      "key": "mountain-4-albedo",
+      "label": "Mountain 4 albedo",
+      "usage": "model",
+      "guid": "dbda6acb513c4f1458628cbc4ff63292",
+      "fileName": "mountain-4-albedo.png",
+      "srgb": true,
+      "width": 512,
+      "height": 512,
+      "sourcePath": "Assets/HIGHLANDS - Stylized Environment/Textures/Mountains/Mountain_4_Albedo.png",
+      "url": "./generated/textures/mountain-4-albedo.png",
+      "sourceSha256": "781b0e516f9fa702ba9a8e970ee5cccbb74e2623f500b1574078288281729c51",
+      "sha256": "338e4b24e8af596a0fc9e17e731c6b23514a800794cd3d766ecaed7184cd6b0e",
+      "sourceWidth": 2048,
+      "sourceHeight": 2048,
+      "backup": {
+        "directory": "model-textures-source-resolution",
+        "fileName": "mountain-4-albedo.png",
+        "width": 2048,
+        "height": 2048,
+        "sha256": "781b0e516f9fa702ba9a8e970ee5cccbb74e2623f500b1574078288281729c51"
+      },
+      "portableResize": {
+        "width": 512,
+        "height": 512,
+        "encoding": "PNG",
+        "compression": "lossless",
+        "filter": "Lanczos in linear light",
+        "colorSpace": "sRGB"
+      }
+    },
+    {
+      "key": "mountain-4-normal",
+      "label": "Mountain 4 normal",
+      "usage": "model-normal",
+      "guid": "a916cf9632ae6454a948a7113cdd549c",
+      "fileName": "mountain-4-normal.png",
+      "srgb": false,
+      "width": 512,
+      "height": 512,
+      "sourcePath": "Assets/HIGHLANDS - Stylized Environment/Textures/Mountains/Mountain_4_Normal.PNG",
+      "url": "./generated/textures/mountain-4-normal.png",
+      "sourceSha256": "41f8b04d82c0b159f2e7e4c5b74e62033428b53443b64fdd2d4385b638e44d7c",
+      "sha256": "ea7e4a6528488c11a806066edc950b010678200188a30eef882aed6c0ac2c112",
+      "sourceWidth": 2048,
+      "sourceHeight": 2048,
+      "backup": {
+        "directory": "model-textures-source-resolution",
+        "fileName": "mountain-4-normal.png",
+        "width": 2048,
+        "height": 2048,
+        "sha256": "41f8b04d82c0b159f2e7e4c5b74e62033428b53443b64fdd2d4385b638e44d7c"
+      },
+      "portableResize": {
+        "width": 512,
+        "height": 512,
+        "encoding": "PNG",
+        "compression": "lossless",
+        "filter": "Lanczos + vector renormalization",
+        "colorSpace": "linear"
+      }
+    },
+    {
+      "key": "terrain-grass-1",
+      "label": "Grass 1",
+      "usage": "terrain-grass",
+      "guid": "dfd4b1d9e2f80464eb14a14b76c4c504",
+      "fileName": "terrain-grass-1.png",
+      "srgb": true,
+      "width": 512,
+      "height": 512,
+      "sourcePath": "Assets/HIGHLANDS - Stylized Environment/Textures/Terrain/Grass_1_AlbedoSmoothness.png",
+      "url": "./generated/textures/terrain-grass-1.png",
+      "sourceSha256": "9b25a490c100f225b8568042bdf1dbdb8a0ffede79119916286c3348a2ecfcc4",
+      "sha256": "5902cf596ff41b1bab7a697a2ba9ffb4a4d1ce7f7e68fdbbc0723d290e29d6ee",
+      "sourceWidth": 2048,
+      "sourceHeight": 2048,
+      "backup": {
+        "directory": "terrain-textures-2048",
+        "fileName": "terrain-grass-1.png",
+        "width": 2048,
+        "height": 2048,
+        "sha256": "9b25a490c100f225b8568042bdf1dbdb8a0ffede79119916286c3348a2ecfcc4"
+      },
+      "portableResize": {
+        "width": 512,
+        "height": 512,
+        "encoding": "PNG",
+        "compression": "lossless",
+        "filter": "Lanczos in linear light",
+        "colorSpace": "sRGB"
+      }
+    },
+    {
+      "key": "terrain-grass-1-normal",
+      "label": "Grass 1 normal",
+      "usage": "terrain-normal",
+      "guid": "cf2bd95fa057a2d419ded8ce428e7ddc",
+      "fileName": "terrain-grass-1-normal.png",
+      "srgb": false,
+      "width": 512,
+      "height": 512,
+      "sourcePath": "Assets/HIGHLANDS - Stylized Environment/Textures/Terrain/Grass_1_Normal.png",
+      "url": "./generated/textures/terrain-grass-1-normal.png",
+      "sourceSha256": "0a6a5dbded325ad945053341f0ae657a54d5ce711fb00ad20b0ef54262574521",
+      "sha256": "671df942e4b64539bbcc2a09daa53a7ef4e1ee61f5443b3c091c9afb7daa8fae",
+      "sourceWidth": 2048,
+      "sourceHeight": 2048,
+      "backup": {
+        "directory": "terrain-textures-2048",
+        "fileName": "terrain-grass-1-normal.png",
+        "width": 2048,
+        "height": 2048,
+        "sha256": "0a6a5dbded325ad945053341f0ae657a54d5ce711fb00ad20b0ef54262574521"
+      },
+      "portableResize": {
+        "width": 512,
+        "height": 512,
+        "encoding": "PNG",
+        "compression": "lossless",
+        "filter": "Lanczos + vector renormalization",
+        "colorSpace": "linear"
+      }
+    },
+    {
+      "key": "terrain-grass-2",
+      "label": "Grass 2",
+      "usage": "terrain-grass",
+      "guid": "247dd3941cad880489b91508ae65fc44",
+      "fileName": "terrain-grass-2.png",
+      "srgb": true,
+      "width": 512,
+      "height": 512,
+      "sourcePath": "Assets/HIGHLANDS - Stylized Environment/Textures/Terrain/Grass_2_AlbedoSmoothness.png",
+      "url": "./generated/textures/terrain-grass-2.png",
+      "sourceSha256": "3eb839b65d96214f78caa66da52d6fca8e1e02da9f38c99d69542e3050e097ce",
+      "sha256": "7d42a8696327087bd80894b88755ac1ea63ca34ec0366f3fee91aeb0c3480721",
+      "derivation": {
+        "kind": "seed-light-green-luminance-palette",
+        "referenceMaterial": "grass-2.mat",
+        "referenceColorSrgb": [
+          0.15686270594596863,
+          0.5215685963630676,
+          0.18753081560134888
+        ],
+        "shadowColorSrgb": [
+          0.1843137254901961,
+          0.4392156862745098,
+          0.20784313725490197
+        ],
+        "highlightColorSrgb": [
+          0.43529411764705883,
+          0.7098039215686275,
+          0.403921568627451
+        ],
+        "contrastStretch": "0.5%x0.5%",
+        "alpha": "preserved"
+      },
+      "sourceWidth": 2048,
+      "sourceHeight": 2048,
+      "backup": {
+        "directory": "terrain-textures-2048",
+        "fileName": "terrain-grass-2.png",
+        "width": 2048,
+        "height": 2048,
+        "sha256": "a62be3e8338c628e382afaffa15e11c6f5e6029f5384c11bae83bd3bc35180f5"
+      },
+      "portableResize": {
+        "width": 512,
+        "height": 512,
+        "encoding": "PNG",
+        "compression": "lossless",
+        "filter": "Lanczos in linear light",
+        "colorSpace": "sRGB"
+      }
+    },
+    {
+      "key": "terrain-grass-2-normal",
+      "label": "Grass 2 normal",
+      "usage": "terrain-normal",
+      "guid": "df36f7bd4b98b154fa0ce4eb390de48c",
+      "fileName": "terrain-grass-2-normal.png",
+      "srgb": false,
+      "width": 512,
+      "height": 512,
+      "sourcePath": "Assets/HIGHLANDS - Stylized Environment/Textures/Terrain/Grass_2_Normal.png",
+      "url": "./generated/textures/terrain-grass-2-normal.png",
+      "sourceSha256": "96a2b7d41569f779befcd13410fca8d0f0fc3a32883f8c6af4949c8b7e35bfd5",
+      "sha256": "f2b42137d92d8c59d2026fc4ef76787d292e1cec6e64c05fc612f7a5317ffd80",
+      "sourceWidth": 2048,
+      "sourceHeight": 2048,
+      "backup": {
+        "directory": "terrain-textures-2048",
+        "fileName": "terrain-grass-2-normal.png",
+        "width": 2048,
+        "height": 2048,
+        "sha256": "96a2b7d41569f779befcd13410fca8d0f0fc3a32883f8c6af4949c8b7e35bfd5"
+      },
+      "portableResize": {
+        "width": 512,
+        "height": 512,
+        "encoding": "PNG",
+        "compression": "lossless",
+        "filter": "Lanczos + vector renormalization",
+        "colorSpace": "linear"
+      }
+    },
+    {
+      "key": "terrain-mud-1",
+      "label": "Mud 1",
+      "usage": "terrain-mud",
+      "guid": "557acf014b6c3344ca268ba48d44de48",
+      "fileName": "terrain-mud-1.png",
+      "srgb": true,
+      "width": 512,
+      "height": 512,
+      "sourcePath": "Assets/HIGHLANDS - Stylized Environment/Textures/Terrain/Mud_1_AlbedoSmoothness.png",
+      "url": "./generated/textures/terrain-mud-1.png",
+      "sourceSha256": "e69bc9512003b0b7efa159013d6283b76a868273ed0fa7ca4c40ef8e572d2f4a",
+      "sha256": "c554dfbe0b3537d4190fd93026ab7dbdd95945c6e93459425afbf86758fd8b51",
+      "sourceWidth": 2048,
+      "sourceHeight": 2048,
+      "backup": {
+        "directory": "terrain-textures-2048",
+        "fileName": "terrain-mud-1.png",
+        "width": 2048,
+        "height": 2048,
+        "sha256": "e69bc9512003b0b7efa159013d6283b76a868273ed0fa7ca4c40ef8e572d2f4a"
+      },
+      "portableResize": {
+        "width": 512,
+        "height": 512,
+        "encoding": "PNG",
+        "compression": "lossless",
+        "filter": "Lanczos in linear light",
+        "colorSpace": "sRGB"
+      }
+    },
+    {
+      "key": "terrain-mud-1-normal",
+      "label": "Mud 1 normal",
+      "usage": "terrain-normal",
+      "guid": "228943738a6e933469dfd0192b532246",
+      "fileName": "terrain-mud-1-normal.png",
+      "srgb": false,
+      "width": 512,
+      "height": 512,
+      "sourcePath": "Assets/HIGHLANDS - Stylized Environment/Textures/Terrain/Mud_1_Normal.png",
+      "url": "./generated/textures/terrain-mud-1-normal.png",
+      "sourceSha256": "ca76ec76e21c5f29e40a3b30fde2e8c1f1b256b1d4448bd27b3d82fa7f261b45",
+      "sha256": "9dbc0317450835ec15416834571efde5e3d3ec8a4565b53e2582efc6bcf75880",
+      "sourceWidth": 2048,
+      "sourceHeight": 2048,
+      "backup": {
+        "directory": "terrain-textures-2048",
+        "fileName": "terrain-mud-1-normal.png",
+        "width": 2048,
+        "height": 2048,
+        "sha256": "ca76ec76e21c5f29e40a3b30fde2e8c1f1b256b1d4448bd27b3d82fa7f261b45"
+      },
+      "portableResize": {
+        "width": 512,
+        "height": 512,
+        "encoding": "PNG",
+        "compression": "lossless",
+        "filter": "Lanczos + vector renormalization",
+        "colorSpace": "linear"
+      }
+    },
+    {
+      "key": "terrain-mud-2",
+      "label": "Mud 2",
+      "usage": "terrain-mud",
+      "guid": "99c35aca611664c4ba048e5278c11133",
+      "fileName": "terrain-mud-2.png",
+      "srgb": true,
+      "width": 512,
+      "height": 512,
+      "sourcePath": "Assets/HIGHLANDS - Stylized Environment/Textures/Terrain/Mud_2_AlbedoSmoothness.png",
+      "url": "./generated/textures/terrain-mud-2.png",
+      "sourceSha256": "df7259385f0751f9e094747782cc5ebc3cf606507b4f69331533a826b1d4017d",
+      "sha256": "33281aba6421d0be2cb77ac7a8b449ab8d4eadb97f11e93cb2e9b7f232a491fb",
+      "sourceWidth": 2048,
+      "sourceHeight": 2048,
+      "backup": {
+        "directory": "terrain-textures-2048",
+        "fileName": "terrain-mud-2.png",
+        "width": 2048,
+        "height": 2048,
+        "sha256": "df7259385f0751f9e094747782cc5ebc3cf606507b4f69331533a826b1d4017d"
+      },
+      "portableResize": {
+        "width": 512,
+        "height": 512,
+        "encoding": "PNG",
+        "compression": "lossless",
+        "filter": "Lanczos in linear light",
+        "colorSpace": "sRGB"
+      }
+    },
+    {
+      "key": "terrain-mud-2-normal",
+      "label": "Mud 2 normal",
+      "usage": "terrain-normal",
+      "guid": "1e5a3f41d56fc574da3966306844c9e4",
+      "fileName": "terrain-mud-2-normal.png",
+      "srgb": false,
+      "width": 512,
+      "height": 512,
+      "sourcePath": "Assets/HIGHLANDS - Stylized Environment/Textures/Terrain/Mud_2_Normal.png",
+      "url": "./generated/textures/terrain-mud-2-normal.png",
+      "sourceSha256": "bb3755565205ee63fe9740d8765ec5535b1960e318aa27cd6a92a4c8ae43c576",
+      "sha256": "4652a2ceb2a80caaa17acd9c65ca9395b7b17da205c38e8aa508a86b4e43a231",
+      "sourceWidth": 2048,
+      "sourceHeight": 2048,
+      "backup": {
+        "directory": "terrain-textures-2048",
+        "fileName": "terrain-mud-2-normal.png",
+        "width": 2048,
+        "height": 2048,
+        "sha256": "bb3755565205ee63fe9740d8765ec5535b1960e318aa27cd6a92a4c8ae43c576"
+      },
+      "portableResize": {
+        "width": 512,
+        "height": 512,
+        "encoding": "PNG",
+        "compression": "lossless",
+        "filter": "Lanczos + vector renormalization",
+        "colorSpace": "linear"
+      }
+    },
+    {
+      "key": "tree-fir-1-billboard",
+      "label": "Fir 1 offline billboard albedo",
+      "usage": "tree-billboard",
+      "fileName": "tree-fir-1-billboard.png",
+      "srgb": true,
+      "width": 512,
+      "height": 512,
+      "sourcePath": "Assets/HIGHLANDS - Stylized Environment/Meshes/Forest/Fir_1.fbx LOD0 offline orthographic albedo albedo render",
+      "sourceSha256": "c505f0555cc83c7bca3c9553dda517677137cb3b9a598c70889c868673f2c29a",
+      "sha256": "c505f0555cc83c7bca3c9553dda517677137cb3b9a598c70889c868673f2c29a",
+      "url": "./generated/textures/tree-fir-1-billboard.png",
+      "derivation": {
+        "kind": "offline-tree-impostor-albedo",
+        "sourceLod": 0,
+        "sourceView": "front-orthographic-albedo",
+        "layer": "albedo",
+        "blackBacking": "alpha-removed",
+        "textureSize": 512
+      }
+    },
+    {
+      "key": "tree-fir-2-billboard",
+      "label": "Fir 2 offline billboard albedo",
+      "usage": "tree-billboard",
+      "fileName": "tree-fir-2-billboard.png",
+      "srgb": true,
+      "width": 512,
+      "height": 512,
+      "sourcePath": "Assets/HIGHLANDS - Stylized Environment/Meshes/Forest/Fir_2.fbx LOD0 offline orthographic albedo albedo render",
+      "sourceSha256": "091f5a2689c9234d5d30ec40ec6ac0378c7a040b14fe51adf7f396996b094c63",
+      "sha256": "091f5a2689c9234d5d30ec40ec6ac0378c7a040b14fe51adf7f396996b094c63",
+      "url": "./generated/textures/tree-fir-2-billboard.png",
+      "derivation": {
+        "kind": "offline-tree-impostor-albedo",
+        "sourceLod": 0,
+        "sourceView": "front-orthographic-albedo",
+        "layer": "albedo",
+        "blackBacking": "alpha-removed",
+        "textureSize": 512
+      }
+    },
+    {
+      "key": "tree-fir-tall-1-billboard",
+      "label": "Fir Tall 1 offline billboard albedo",
+      "usage": "tree-billboard",
+      "fileName": "tree-fir-tall-1-billboard.png",
+      "srgb": true,
+      "width": 512,
+      "height": 512,
+      "sourcePath": "Assets/HIGHLANDS - Stylized Environment/Meshes/Forest/Fir_Tall_1.fbx LOD0 offline orthographic albedo albedo render",
+      "sourceSha256": "86dccabaeb9830fedd471e069a511a1bbaf00caf0e25a330643c2656fe521542",
+      "sha256": "86dccabaeb9830fedd471e069a511a1bbaf00caf0e25a330643c2656fe521542",
+      "url": "./generated/textures/tree-fir-tall-1-billboard.png",
+      "derivation": {
+        "kind": "offline-tree-impostor-albedo",
+        "sourceLod": 0,
+        "sourceView": "front-orthographic-albedo",
+        "layer": "albedo",
+        "blackBacking": "alpha-removed",
+        "textureSize": 512
+      }
+    }
+  ],
+  "terrainLayers": [
+    {
+      "key": "terrain-grass-1",
+      "normalTextureKey": "terrain-grass-1-normal",
+      "sourceType": "TerrainLayer",
+      "colorTextureKey": "terrain-grass-1",
+      "colorChannels": "RGB",
+      "alphaChannel": "smoothness",
+      "wrapMode": "repeat",
+      "tileSizeMeters": [
+        2,
+        2
+      ],
+      "metallic": 0,
+      "roughness": 1,
+      "normalScale": 1
+    },
+    {
+      "key": "terrain-grass-2",
+      "normalTextureKey": "terrain-grass-2-normal",
+      "sourceType": "TerrainLayer",
+      "colorTextureKey": "terrain-grass-2",
+      "colorChannels": "RGB",
+      "alphaChannel": "smoothness",
+      "wrapMode": "repeat",
+      "tileSizeMeters": [
+        2,
+        2
+      ],
+      "metallic": 0,
+      "roughness": 1,
+      "normalScale": 1
+    },
+    {
+      "key": "terrain-mud-1",
+      "normalTextureKey": "terrain-mud-1-normal",
+      "sourceType": "TerrainLayer",
+      "colorTextureKey": "terrain-mud-1",
+      "colorChannels": "RGB",
+      "alphaChannel": "smoothness",
+      "wrapMode": "repeat",
+      "tileSizeMeters": [
+        2,
+        2
+      ],
+      "metallic": 0,
+      "roughness": 1,
+      "normalScale": 1
+    },
+    {
+      "key": "terrain-mud-2",
+      "normalTextureKey": "terrain-mud-2-normal",
+      "sourceType": "TerrainLayer",
+      "colorTextureKey": "terrain-mud-2",
+      "colorChannels": "RGB",
+      "alphaChannel": "smoothness",
+      "wrapMode": "repeat",
+      "tileSizeMeters": [
+        2,
+        2
+      ],
+      "metallic": 0,
+      "roughness": 1,
+      "normalScale": 1
+    }
+  ],
+  "mappingEvidence": [
+    {
+      "key": "fir-bark",
+      "guid": "1e3a5c0f4bf78bb428fc8d87d2d383c2",
+      "colorProperty": "_Color",
+      "materialDefault": {
+        "key": "fir-bark",
+        "unityMaterialGuid": "1e3a5c0f4bf78bb428fc8d87d2d383c2",
+        "unityMaterialName": "Fir_Bark",
+        "colorProperty": "_Color",
+        "sourceColorSrgb": [
+          0.6666667,
+          0.5429458,
+          0.52666664,
+          1
+        ],
+        "sourceColorSpace": "sRGB",
+        "baseColorFactor": [
+          0.40197782439324437,
+          0.2559661075513306,
+          0.23955876907130103,
+          1
+        ],
+        "baseColorFactorColorSpace": "linear",
+        "portableMaterial": {
+          "shader": "pbr",
+          "baseTextureKey": "tree-atlas",
+          "normalTextureKey": "tree-atlas-normal",
+          "alphaMode": "OPAQUE",
+          "doubleSided": false,
+          "lightingFlatness": 0,
+          "translucencyIntensity": 0,
+          "alphaCutoff": 0,
+          "metallic": 0,
+          "roughness": 0.5,
+          "normalScale": 1
+        }
+      },
+      "sourcePath": "Assets/HIGHLANDS - Stylized Environment/Materials/Forest/Fir_Bark.mat",
+      "sha256": "49f10c0633522c624f161e330e092ae7b2cf4194d57b7c2677b08d9bda46a073"
+    },
+    {
+      "key": "fir-branch",
+      "guid": "497a6728df998d44bac3f3376ceb03fb",
+      "colorProperty": "_MainColor",
+      "materialDefault": {
+        "key": "fir-branch",
+        "unityMaterialGuid": "497a6728df998d44bac3f3376ceb03fb",
+        "unityMaterialName": "Fir_Branch",
+        "colorProperty": "_MainColor",
+        "sourceColorSrgb": [
+          0.04578461,
+          0.4578461,
+          0.496,
+          0
+        ],
+        "sourceColorSpace": "sRGB",
+        "baseColorFactor": [
+          0.04011615965489428,
+          0.1959941436654326,
+          0.030443655824741615,
+          1
+        ],
+        "baseColorFactorColorSpace": "linear",
+        "portableMaterial": {
+          "shader": "vegetation",
+          "baseTextureKey": "tree-atlas",
+          "normalTextureKey": "tree-atlas-normal",
+          "alphaMode": "MASK",
+          "doubleSided": true,
+          "lightingFlatness": 0.2,
+          "translucencyIntensity": 0.4,
+          "alphaCutoff": 0.3,
+          "metallic": 0,
+          "roughness": 1,
+          "normalScale": 0
+        },
+        "sourceUnityColorBlend": {
+          "enabled": true,
+          "overlayType": "vertex-position",
+          "offset": -2.92,
+          "fade": 0.02,
+          "mainColorSrgb": [
+            0.04578461,
+            0.4578461,
+            0.496,
+            0
+          ],
+          "mainColorLinear": [
+            0.0035673048467172327,
+            0.17707735822021253,
+            0.21035746771073105,
+            1
+          ],
+          "secondColorSrgb": [
+            0.5170239,
+            0.5686275,
+            0.29411766,
+            0
+          ],
+          "secondColorLinear": [
+            0.23013788418064632,
+            0.2831487938458869,
+            0.07036010195609571,
+            1
+          ],
+          "sourceShaderSemantic": "Unity foliage _SecondColor"
+        },
+        "portableColorOverride": {
+          "source": "Seed World",
+          "referenceMaterialPath": "data/grasslands/public/Material/Vegetation/broadleaf-leaves.mat",
+          "referenceMaterialName": "broadleaf-leaves",
+          "sourceColorLinear": [
+            0.04011615965489428,
+            0.1959941436654326,
+            0.030443655824741615,
+            1
+          ],
+          "sourceColorSpace": "linear",
+          "mode": "single-color"
+        }
+      },
+      "sourcePath": "Assets/HIGHLANDS - Stylized Environment/Materials/Forest/Fir_Branch.mat",
+      "sha256": "ba6fdc4a0ce01f771a387d1b108abc3c69f88392553bc6242d11bc7baaf3fcdb"
+    },
+    {
+      "key": "tall-fir-branch",
+      "guid": "5d6cb861c78e2464c9ad921d2a24b318",
+      "colorProperty": "_MainColor",
+      "materialDefault": {
+        "key": "tall-fir-branch",
+        "unityMaterialGuid": "5d6cb861c78e2464c9ad921d2a24b318",
+        "unityMaterialName": "Tall_Fir_Branch",
+        "colorProperty": "_MainColor",
+        "sourceColorSrgb": [
+          0.0470588,
+          0.46994227,
+          0.5098039,
+          0
+        ],
+        "sourceColorSpace": "sRGB",
+        "baseColorFactor": [
+          0.04011615965489428,
+          0.1959941436654326,
+          0.030443655824741615,
+          1
+        ],
+        "baseColorFactorColorSpace": "linear",
+        "portableMaterial": {
+          "shader": "vegetation",
+          "baseTextureKey": "tree-atlas",
+          "normalTextureKey": "tree-atlas-normal",
+          "alphaMode": "MASK",
+          "doubleSided": true,
+          "lightingFlatness": 0.2,
+          "translucencyIntensity": 0.4,
+          "alphaCutoff": 0.3,
+          "metallic": 0,
+          "roughness": 1,
+          "normalScale": 0
+        },
+        "sourceUnityColorBlend": {
+          "enabled": true,
+          "overlayType": "vertex-position",
+          "offset": -8.46,
+          "fade": 0.02,
+          "mainColorSrgb": [
+            0.0470588,
+            0.46994227,
+            0.5098039,
+            0
+          ],
+          "mainColorLinear": [
+            0.0036765052897843463,
+            0.18726723781835472,
+            0.22322793685779818,
+            1
+          ],
+          "secondColorSrgb": [
+            0.4817156,
+            0.5686275,
+            0.29411766,
+            0
+          ],
+          "secondColorLinear": [
+            0.19750596718207059,
+            0.2831487938458869,
+            0.07036010195609571,
+            1
+          ],
+          "sourceShaderSemantic": "Unity foliage _SecondColor"
+        },
+        "portableColorOverride": {
+          "source": "Seed World",
+          "referenceMaterialPath": "data/grasslands/public/Material/Vegetation/broadleaf-leaves.mat",
+          "referenceMaterialName": "broadleaf-leaves",
+          "sourceColorLinear": [
+            0.04011615965489428,
+            0.1959941436654326,
+            0.030443655824741615,
+            1
+          ],
+          "sourceColorSpace": "linear",
+          "mode": "single-color"
+        }
+      },
+      "sourcePath": "Assets/HIGHLANDS - Stylized Environment/Materials/Forest/Tall_Fir_Branch.mat",
+      "sha256": "500a1cb44efa235821a4ed215db01d7d5b030482f92bf7388ee1ce534cc1e0ee"
+    },
+    {
+      "key": "flower",
+      "guid": "d9b4daaeaf71b934bb9f134f373792f2",
+      "colorProperty": "_MainColor",
+      "materialDefault": {
+        "key": "flower",
+        "unityMaterialGuid": "d9b4daaeaf71b934bb9f134f373792f2",
+        "unityMaterialName": "Flower_1",
+        "colorProperty": "_MainColor",
+        "sourceColorSrgb": [
+          1,
+          0.47000003,
+          0.8146853,
+          0
+        ],
+        "sourceColorSpace": "sRGB",
+        "baseColorFactor": [
+          1,
+          0.18731669417680374,
+          0.629018194133342,
+          1
+        ],
+        "baseColorFactorColorSpace": "linear",
+        "portableMaterial": {
+          "shader": "vegetation",
+          "baseTextureKey": "flower",
+          "alphaMode": "MASK",
+          "doubleSided": true,
+          "lightingFlatness": 0.55,
+          "translucencyIntensity": 0.4,
+          "alphaCutoff": 0.35,
+          "metallic": 0,
+          "roughness": 0.5,
+          "normalScale": 1
+        }
+      },
+      "sourcePath": "Assets/HIGHLANDS - Stylized Environment/Materials/Forest/Flower_1.mat",
+      "sha256": "9729bff485a015a470827daca0350646aeb606cd8f22cd4b9f6b9e3c04f86408"
+    },
+    {
+      "key": "grass-1",
+      "guid": "3805f20af5803d04db6fa559a7a079fe",
+      "colorProperty": "_MainColor",
+      "materialDefault": {
+        "key": "grass-1",
+        "unityMaterialGuid": "3805f20af5803d04db6fa559a7a079fe",
+        "unityMaterialName": "Grass_1",
+        "colorProperty": "_MainColor",
+        "sourceColorSrgb": [
+          0.1382353,
+          0.44097063,
+          0.5529412,
+          0
+        ],
+        "sourceColorSpace": "sRGB",
+        "baseColorFactor": [
+          0.02121900096498889,
+          0.23455055180893644,
+          0.02935179883447671,
+          1
+        ],
+        "baseColorFactorColorSpace": "linear",
+        "portableMaterial": {
+          "shader": "vegetation",
+          "baseTextureKey": "grass-1",
+          "alphaMode": "MASK",
+          "doubleSided": true,
+          "lightingFlatness": 1,
+          "translucencyIntensity": 0,
+          "alphaCutoff": 0.3,
+          "metallic": 0,
+          "roughness": 0.7,
+          "normalScale": 1
+        },
+        "sourceUnityColorBlend": {
+          "enabled": true,
+          "overlayType": "uv",
+          "offset": -0.32,
+          "fade": 0.11,
+          "mainColorSrgb": [
+            0.1382353,
+            0.44097063,
+            0.5529412,
+            0
+          ],
+          "mainColorLinear": [
+            0.01701381141401365,
+            0.1634136760739735,
+            0.26635562954416747,
+            1
+          ],
+          "secondColorSrgb": [
+            0.5469052,
+            0.80784315,
+            0,
+            0
+          ],
+          "secondColorLinear": [
+            0.26005279486580046,
+            0.6172065842999429,
+            0,
+            1
+          ],
+          "sourceShaderSemantic": "Unity foliage _SecondColor"
+        },
+        "portableColorOverride": {
+          "source": "Seed World",
+          "referenceMaterialPath": "data/grasslands/public/Material/Vegetation/grass-2.mat",
+          "referenceMaterialName": "grass-2",
+          "sourceColorLinear": [
+            0.02121900096498889,
+            0.23455055180893644,
+            0.02935179883447671,
+            1
+          ],
+          "sourceColorSpace": "linear",
+          "mode": "single-color"
+        }
+      },
+      "sourcePath": "Assets/HIGHLANDS - Stylized Environment/Materials/Forest/Grass_1.mat",
+      "sha256": "2867621638ca83146d7cd45599b1305ce92a43535da88d538ad4d31fdbc2c2c0"
+    },
+    {
+      "key": "mushroom",
+      "guid": "3a308754e318f8141b82cc1d0e126ccf",
+      "colorProperty": "_MainColor",
+      "materialDefault": {
+        "key": "mushroom",
+        "unityMaterialGuid": "3a308754e318f8141b82cc1d0e126ccf",
+        "unityMaterialName": "Mushrooms_Flowers",
+        "colorProperty": "_MainColor",
+        "sourceColorSrgb": [
+          1,
+          1,
+          1,
+          0
+        ],
+        "sourceColorSpace": "sRGB",
+        "baseColorFactor": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "baseColorFactorColorSpace": "linear",
+        "portableMaterial": {
+          "shader": "vegetation",
+          "baseTextureKey": "mushroom-atlas",
+          "normalTextureKey": "mushroom-normal",
+          "alphaMode": "MASK",
+          "doubleSided": true,
+          "lightingFlatness": 0.15,
+          "translucencyIntensity": 0.4,
+          "alphaCutoff": 0.4,
+          "metallic": 0,
+          "roughness": 0,
+          "normalScale": 1
+        }
+      },
+      "sourcePath": "Assets/HIGHLANDS - Stylized Environment/Materials/Forest/Mushrooms_Flowers.mat",
+      "sha256": "abf6dbae92ba35ce3ed9b8769f8c75a269760a8e7f21b705d8bb11785b78f351"
+    },
+    {
+      "key": "stones-rocks",
+      "guid": "48235a3bec1ffac42b238feb64e16aba",
+      "colorProperty": "_Color",
+      "materialDefault": {
+        "key": "stones-rocks",
+        "unityMaterialGuid": "48235a3bec1ffac42b238feb64e16aba",
+        "unityMaterialName": "Stones_Rocks",
+        "colorProperty": "_Color",
+        "sourceColorSrgb": [
+          0.5566038,
+          0.5566038,
+          0.5566038,
+          1
+        ],
+        "sourceColorSpace": "sRGB",
+        "baseColorFactor": [
+          0.2702231281276218,
+          0.2702231281276218,
+          0.2702231281276218,
+          1
+        ],
+        "baseColorFactorColorSpace": "linear",
+        "portableMaterial": {
+          "shader": "pbr",
+          "normalTextureKey": "rock-normal",
+          "alphaMode": "OPAQUE",
+          "doubleSided": false,
+          "lightingFlatness": 0,
+          "translucencyIntensity": 0,
+          "alphaCutoff": 0,
+          "metallic": 0,
+          "roughness": 0.5,
+          "normalScale": 1
+        }
+      },
+      "sourcePath": "Assets/HIGHLANDS - Stylized Environment/Materials/Forest/Stones_Rocks.mat",
+      "sha256": "69ec9b40120312cd062313fb03ddceb8a77d18cb30b02835baebead14b3e2e91"
+    },
+    {
+      "key": "stones-rocks-grass",
+      "guid": "35a784c4327446346abf4905d46c65de",
+      "sourcePath": "Assets/HIGHLANDS - Stylized Environment/Materials/Forest/Stones_Rocks(Grass).mat",
+      "sha256": "6923f60fec537b1e0a0be2e29310c8a4078e6b0cbcfabbd95fd6f4dfe82b9b8f"
+    },
+    {
+      "key": "mountain-1",
+      "guid": "0ab2db07ec5191e4499d625d3a11f77f",
+      "colorProperty": "_Color",
+      "materialDefault": {
+        "key": "mountain-1",
+        "unityMaterialGuid": "0ab2db07ec5191e4499d625d3a11f77f",
+        "unityMaterialName": "Mountain_1",
+        "colorProperty": "_Color",
+        "sourceColorSrgb": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "sourceColorSpace": "sRGB",
+        "baseColorFactor": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "baseColorFactorColorSpace": "linear",
+        "portableMaterial": {
+          "shader": "pbr",
+          "baseTextureKey": "mountain-1-albedo",
+          "normalTextureKey": "mountain-1-normal",
+          "alphaMode": "OPAQUE",
+          "doubleSided": false,
+          "lightingFlatness": 0,
+          "translucencyIntensity": 0,
+          "alphaCutoff": 0,
+          "metallic": 0,
+          "roughness": 1,
+          "normalScale": 0.6
+        }
+      },
+      "sourcePath": "Assets/HIGHLANDS - Stylized Environment/Materials/Mountains/Mountain_1.mat",
+      "sha256": "60d0ac937e82b05a41fb0c283ac480eeb3c8c130af2bbfe740afd2d591f6a1c7"
+    },
+    {
+      "key": "mountain-2",
+      "guid": "4aa986f82271b8645a2eebaf61bc8897",
+      "colorProperty": "_Color",
+      "materialDefault": {
+        "key": "mountain-2",
+        "unityMaterialGuid": "4aa986f82271b8645a2eebaf61bc8897",
+        "unityMaterialName": "Mountain_2",
+        "colorProperty": "_Color",
+        "sourceColorSrgb": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "sourceColorSpace": "sRGB",
+        "baseColorFactor": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "baseColorFactorColorSpace": "linear",
+        "portableMaterial": {
+          "shader": "pbr",
+          "baseTextureKey": "mountain-2-albedo",
+          "normalTextureKey": "mountain-2-normal",
+          "alphaMode": "OPAQUE",
+          "doubleSided": false,
+          "lightingFlatness": 0,
+          "translucencyIntensity": 0,
+          "alphaCutoff": 0,
+          "metallic": 0,
+          "roughness": 1,
+          "normalScale": 0.6
+        }
+      },
+      "sourcePath": "Assets/HIGHLANDS - Stylized Environment/Materials/Mountains/Mountain_2.mat",
+      "sha256": "82501ef3ce1054b788d6aba2c2e55cef5042705037ac586f67b358ba5a16b3e6"
+    },
+    {
+      "key": "mountain-3",
+      "guid": "94a488982bdde454882ef74b1c296282",
+      "colorProperty": "_Color",
+      "materialDefault": {
+        "key": "mountain-3",
+        "unityMaterialGuid": "94a488982bdde454882ef74b1c296282",
+        "unityMaterialName": "Mountain_3",
+        "colorProperty": "_Color",
+        "sourceColorSrgb": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "sourceColorSpace": "sRGB",
+        "baseColorFactor": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "baseColorFactorColorSpace": "linear",
+        "portableMaterial": {
+          "shader": "pbr",
+          "baseTextureKey": "mountain-3-albedo",
+          "normalTextureKey": "mountain-3-normal",
+          "alphaMode": "OPAQUE",
+          "doubleSided": false,
+          "lightingFlatness": 0,
+          "translucencyIntensity": 0,
+          "alphaCutoff": 0,
+          "metallic": 0,
+          "roughness": 1,
+          "normalScale": 0.6
+        }
+      },
+      "sourcePath": "Assets/HIGHLANDS - Stylized Environment/Materials/Mountains/Mountain_3.mat",
+      "sha256": "8ccaeadb307c17961ae74c49f71cf116b118101af6de1fba513addf10471c8ef"
+    },
+    {
+      "key": "mountain-4",
+      "guid": "c0cf4ada5369a934894906c4b9540846",
+      "colorProperty": "_Color",
+      "materialDefault": {
+        "key": "mountain-4",
+        "unityMaterialGuid": "c0cf4ada5369a934894906c4b9540846",
+        "unityMaterialName": "Mountain_4",
+        "colorProperty": "_Color",
+        "sourceColorSrgb": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "sourceColorSpace": "sRGB",
+        "baseColorFactor": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "baseColorFactorColorSpace": "linear",
+        "portableMaterial": {
+          "shader": "pbr",
+          "baseTextureKey": "mountain-4-albedo",
+          "normalTextureKey": "mountain-4-normal",
+          "alphaMode": "OPAQUE",
+          "doubleSided": false,
+          "lightingFlatness": 0,
+          "translucencyIntensity": 0,
+          "alphaCutoff": 0,
+          "metallic": 0,
+          "roughness": 1,
+          "normalScale": 0.6
+        }
+      },
+      "sourcePath": "Assets/HIGHLANDS - Stylized Environment/Materials/Mountains/Mountain_4.mat",
+      "sha256": "32d7fcce14f5943f84873d66ade14818b10d33b268ffbdcbff67b2157f105c33"
+    },
+    {
+      "key": "terrain-grass-1",
+      "guid": "d7871d4486098324daab0b6646b5c5b3",
+      "sourcePath": "Assets/HIGHLANDS - Stylized Environment/Terrain Layers/Grass_1.terrainlayer",
+      "sha256": "528b1f7f4b0aebff68babb015d25bb06d435ee583d89667a77df06a9fe86500b"
+    },
+    {
+      "key": "terrain-grass-2",
+      "guid": "1cc75ff9d17c15541adfead278e63954",
+      "sourcePath": "Assets/HIGHLANDS - Stylized Environment/Terrain Layers/Grass_2.terrainlayer",
+      "sha256": "1854944e2a57768d2a9bc7b4367a3cb3cd3d08ab9a10771d9e3acfaafcd85836"
+    },
+    {
+      "key": "terrain-mud-1",
+      "guid": "18162f50811eefa4f881095eee243174",
+      "sourcePath": "Assets/HIGHLANDS - Stylized Environment/Terrain Layers/Mud_1.terrainlayer",
+      "sha256": "4f070ab4219299c2b5acdea0ce9f0448d180d63bcd90737c6d80f99e9f0eb5b2"
+    },
+    {
+      "key": "terrain-mud-2",
+      "guid": "a622ed81e884d1b4198fc95538f0b06d",
+      "sourcePath": "Assets/HIGHLANDS - Stylized Environment/Terrain Layers/Mud_2.terrainlayer",
+      "sha256": "e026f7946fc338811ed1dcab65d677a9db5bdf433ed0724b4e366eef15805bfe"
+    }
+  ]
+}

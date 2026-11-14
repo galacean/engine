@@ -1,0 +1,19 @@
+{
+  "gridStepM": 12,
+  "maxNodesPerDomain": 14,
+  "maxAnchorOffsetM": 100,
+  "anchorSearchCandidates": 8,
+  "curveSimplifyM": 12,
+  "turnPenalty": 4,
+  "slopePenalty": 4,
+  "clearanceM": 1.5,
+  "maxSlope": 0.32,
+  "maxSearchVisits": 12000,
+  "curveHandleScale": {
+    "min": 0.2,
+    "max": 1
+  },
+  "branchJoinSearchM": 180,
+  "branchJoinCandidates": 16,
+  "branchJoinMaxDetour": 2.5
+}

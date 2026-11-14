@@ -1,0 +1,12 @@
+{
+  "targetCoverage": 0.5,
+  "sBend": 1,
+  "corridorWidthM": 10,
+  "massWidthM": 36,
+  "massDepthM": 24,
+  "massHeightM": 32,
+  "spacingM": 22,
+  "keypointSpacingM": 100,
+  "cueSpanM": 48,
+  "routeCoverage": 0.3
+}

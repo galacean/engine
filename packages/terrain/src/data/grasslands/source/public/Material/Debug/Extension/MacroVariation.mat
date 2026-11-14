@@ -1,0 +1,9 @@
+{
+  "name": "Terrain macro variation extension diagnostics Material",
+  "shader": "Terrain/Debug/Extension/MacroVariation",
+  "shaderRef": { "url": "Shader/debug/Extension/MacroVariation.shaderc" },
+  "shaderData": {
+    "material_MacroVariationStrength": { "type": "Float", "value": 1 }
+  },
+  "macros": [{ "name": "MATERIAL_ENABLE_MACRO_VARIATION" }]
+}

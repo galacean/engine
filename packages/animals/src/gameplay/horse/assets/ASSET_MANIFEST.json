@@ -1,0 +1,74 @@
+{
+  "sourceSha256": "ba81c044a4835dd304771b78fa5ab542f9460948a6e88ae0d113d53b29f9c179",
+  "textureSize": 512,
+  "encoding": "KTX2 UASTC + Zstd, 10 mip levels",
+  "assets": {
+    "horse.bin": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*T6otRrqC6cgAAAAAgFAAAAgAehQnAQ/horse.bin",
+      "bytes": 4900792,
+      "sha256": "4083817ec29fda4784cbb5c56c50169157efb3e82fa11599c79bf295a0a5ed2e"
+    },
+    "hair-base-color.ktx2": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/img/A*N6CxRocKYFcAAAAATVAAAAgAehQnAQ/original/hair-base-color.ktx2",
+      "bytes": 217794,
+      "sha256": "442af4408ed752191fc9811a5db2c9c863e1956bb7cf040e5d84ff98814d1c27"
+    },
+    "hair-normal.ktx2": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/img/A*4oAuQYCY_UYAAAAATgAAAAgAehQnAQ/original/hair-normal.ktx2",
+      "bytes": 229822,
+      "sha256": "b6e59650b8c9808764ab7d629ba104d251468401ecf339614ec633d056fad456"
+    },
+    "horse-base-color.ktx2": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/img/A*lYU0QaDu8bcAAAAAUnAAAAgAehQnAQ/original/horse-base-color.ktx2",
+      "bytes": 301862,
+      "sha256": "a53e88586be6b95e6eaa5b757bb7fd21501fa1d86f29081ea466e97bcd47165c"
+    },
+    "horse-normal.ktx2": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/img/A*YYp0QKcuYHcAAAAAUnAAAAgAehQnAQ/original/horse-normal.ktx2",
+      "bytes": 302310,
+      "sha256": "24880757a0e781be1a70e3135788ba23b077df4fbf2d456fa85681b9a8ae5ba9"
+    },
+    "horseshoe-base-color.ktx2": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/img/A*LUWjR6AAw5IAAAAAU4AAAAgAehQnAQ/original/horseshoe-base-color.ktx2",
+      "bytes": 319044,
+      "sha256": "9e28d4aa6b140d9caa1e47d500aabf32e149fdb465880247686b428b20298493"
+    },
+    "horseshoe-normal.ktx2": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/img/A*6ttfTbnCe34AAAAAUzAAAAgAehQnAQ/original/horseshoe-normal.ktx2",
+      "bytes": 314633,
+      "sha256": "cc2da124644943a44c057ea7db71d667e5489e65dcb68ec8d5ff7aa5007411d4"
+    },
+    "saddle-base-color.ktx2": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/img/A*fK4ETYIR-6YAAAAAU5AAAAgAehQnAQ/original/saddle-base-color.ktx2",
+      "bytes": 320643,
+      "sha256": "578da145b120ec5e4db8a4b05ca7e4e892b41cc631aea617775c2642ce8c2efd"
+    },
+    "saddle-normal.ktx2": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/img/A*ypUOTZehnkoAAAAAU9AAAAgAehQnAQ/original/saddle-normal.ktx2",
+      "bytes": 324515,
+      "sha256": "97485024ddbfd40cbd1a2229f05beaadc47e22173551adbd9adf5fdfcac2a698"
+    },
+    "horse.gltf": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*gGjGT4U0rxYAAAAAgBAAAAgAehQnAQ/horse.gltf",
+      "bytes": 1366717,
+      "sha256": "31818e5810b70092b7d32c0a4e1813bd75f0ce71ee92b5aa9f16fb16291b9567"
+    }
+  },
+  "conversionNotes": "Retained the 14 configured clips, removed unused accessors, packed and deduplicated identical buffer payloads. All retained accessor samples are byte-identical to the source.",
+  "animations": [
+    "Skeleton|1 Ilde",
+    "Skeleton|2 Ilde",
+    "Skeleton|3 Ilde",
+    "Skeleton|6 Eat",
+    "Skeleton|Buck_2",
+    "Skeleton|Death",
+    "Skeleton|Falling",
+    "Skeleton|Gallop",
+    "Skeleton|Gallop_L",
+    "Skeleton|Gallop_R",
+    "Skeleton|Run_Stop",
+    "Skeleton|Walk",
+    "Skeleton|Walk_L",
+    "Skeleton|Walk_R"
+  ]
+}

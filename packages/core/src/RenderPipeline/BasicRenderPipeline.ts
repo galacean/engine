@@ -485,8 +485,9 @@ export class BasicRenderPipeline {
           continue;
         }
       }
+      if (camera.renderFilter && !camera.renderFilter(renderer)) continue;
       renderer._prepareRender(context);
-      renderer._renderFrameCount = engine.time.frameCount;
+      if (camera.updateRendererVisibility) renderer._renderFrameCount = engine.time.frameCount;
     }
 
     const canvasesElements = canvases._elements;
@@ -499,6 +500,7 @@ export class BasicRenderPipeline {
       if (!canvas._canRender(camera)) {
         continue;
       }
+      if (camera.renderFilter && !camera.renderFilter(canvas)) continue;
       canvas._prepareRender(context);
       const canvasElements = canvas._batchedRenderElements;
       for (let j = 0, m = canvasElements.length; j < m; j++) {

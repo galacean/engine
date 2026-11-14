@@ -1,0 +1,229 @@
+{
+  "schema": "galacean/procedural-tree-material-free-visual-parity-v1",
+  "reconstructionSource": "direct procedural runtime geometry stream",
+  "materialPolicy": "All source and reconstruction materials are ignored; identical flat diagnostic colors are used.",
+  "alignment": {
+    "groundAndTrunkBaseTranslation": true,
+    "uniformScaleApplied": false,
+    "bestYawDegrees": 100,
+    "views": [
+      "front",
+      "side",
+      "diagonal"
+    ],
+    "orthographicScale": 15.59823143482208,
+    "pixelTolerance": 3
+  },
+  "sourceRules": {
+    "treeHeight": 13.44675160727736,
+    "branchConnectedComponents": 56,
+    "leafCards": 1377,
+    "lowestLeafHeightRatio": 0.28081133528168256,
+    "leafHeightQuantiles": [
+      0.40671120594915033,
+      0.5544272849049152,
+      0.6955948258268995,
+      0.8933910433684433,
+      0.9455696871871153
+    ],
+    "leafRadiusQuantiles": [
+      0.0626724116792524,
+      0.09519789631891366,
+      0.13114451687097808,
+      0.16494071964683438,
+      0.18382218255227073
+    ],
+    "leafCardWidthQuantiles": [
+      0.6670080129999613,
+      0.6682122873046403,
+      0.6690877133575902
+    ],
+    "leafCardHeightQuantiles": [
+      0.66700890087043,
+      0.6682129296500349,
+      0.6690882453526329
+    ],
+    "leafCardAreaQuantiles": [
+      0.44490025229742114,
+      0.4465080862860531,
+      0.44767878875123446
+    ],
+    "leafNormalAbsoluteUpQuantiles": [
+      0.0882148578763008,
+      0.42394882440567017,
+      0.9236234545707704
+    ],
+    "leafHeightBins": [
+      0,
+      0,
+      0,
+      36,
+      147,
+      78,
+      198,
+      243,
+      117,
+      159,
+      303,
+      96
+    ],
+    "leafNearestBranchDistanceQuantiles": [
+      0.018728448166977885,
+      0.030240008791056185,
+      0.039776702093491996,
+      0.05110731296350005,
+      0.0589435217518617
+    ],
+    "leafBranchProgressQuantiles": [
+      0.7622768861374664,
+      0.9788699681405066,
+      1.0
+    ],
+    "terminalLeafRatio": 0.9041394335511983,
+    "leafBearingBranchRatio": 1.0,
+    "leavesPerBranchQuantiles": [
+      9.0,
+      21.0,
+      42.0
+    ]
+  },
+  "reconstructionRules": {
+    "treeHeight": 13.448858261108398,
+    "branchConnectedComponents": 56,
+    "leafCards": 1377,
+    "lowestLeafHeightRatio": 0.2818579081913042,
+    "leafHeightQuantiles": [
+      0.4031123126615445,
+      0.5507485028878575,
+      0.6834437302113507,
+      0.8829035288945303,
+      0.9501594012260542
+    ],
+    "leafRadiusQuantiles": [
+      0.06140649584109561,
+      0.08839511269397418,
+      0.12289663563920496,
+      0.1529398728402716,
+      0.17472845402421772
+    ],
+    "leafCardWidthQuantiles": [
+      0.6673672379472824,
+      0.6682232742962742,
+      0.6690257651266259
+    ],
+    "leafCardHeightQuantiles": [
+      0.6673677476249289,
+      0.6682234523887642,
+      0.6690262935516352
+    ],
+    "leafCardAreaQuantiles": [
+      0.44537934779641464,
+      0.44652246331678047,
+      0.44759582793324454
+    ],
+    "leafNormalAbsoluteUpQuantiles": [
+      0.10982210636138916,
+      0.44002053141593933,
+      0.8874216556549073
+    ],
+    "leafHeightBins": [
+      0,
+      0,
+      0,
+      34,
+      152,
+      94,
+      221,
+      230,
+      126,
+      161,
+      256,
+      99
+    ],
+    "leafNearestBranchDistanceQuantiles": [
+      0.02216892178397085,
+      0.02990109711341745,
+      0.03980362486594298,
+      0.052406093802152415,
+      0.06376367040651962
+    ],
+    "leafBranchProgressQuantiles": [
+      0.6266167258643973,
+      1.0,
+      1.0
+    ],
+    "terminalLeafRatio": 0.8460421205519245,
+    "leafBearingBranchRatio": 1.0,
+    "leavesPerBranchQuantiles": [
+      10.0,
+      21.5,
+      40.5
+    ]
+  },
+  "ruleErrors": {
+    "treeHeight": 0.00015666637508931656,
+    "branchConnectedComponents": 0.0,
+    "leafCards": 0.0,
+    "lowestLeafHeightRatio": 0.003726961052237452,
+    "leafHeightQuantiles": 0.009871000999169975,
+    "leafRadiusQuantiles": 0.05865861167880167,
+    "leafCardWidthQuantiles": 0.00021561564738224975,
+    "leafCardHeightQuantiles": 0.00021519688965195342,
+    "leafCardAreaQuantiles": 0.00043046739524567974,
+    "leafNormalAbsoluteUpQuantiles": 0.051456620911904796,
+    "leafHeightBins": 0.08714596949891068,
+    "leafNearestBranchDistanceQuantiles": 0.04992674838322698,
+    "leafBranchProgressQuantiles": 0.057198756749521705,
+    "leavesPerBranchQuantiles": 0.041666666666666664,
+    "terminalLeafRatio": 0.0642570281124498,
+    "leafBearingBranchRatio": 0.0
+  },
+  "visualViews": {
+    "front": {
+      "all": {
+        "similarity": 0.9200272023223475,
+        "error": 0.07997279767765253
+      },
+      "branches": {
+        "similarity": 0.9221866978880533,
+        "error": 0.0778133021119467
+      },
+      "leaves": {
+        "similarity": 0.903032315420786,
+        "error": 0.09696768457921401
+      }
+    },
+    "side": {
+      "all": {
+        "similarity": 0.9237132442284326,
+        "error": 0.0762867557715674
+      },
+      "branches": {
+        "similarity": 0.9150559971098265,
+        "error": 0.08494400289017345
+      },
+      "leaves": {
+        "similarity": 0.9151655306718598,
+        "error": 0.0848344693281402
+      }
+    },
+    "diagonal": {
+      "all": {
+        "similarity": 0.931546541108294,
+        "error": 0.06845345889170595
+      },
+      "branches": {
+        "similarity": 0.9166630571317191,
+        "error": 0.08333694286828086
+      },
+      "leaves": {
+        "similarity": 0.9182761389569775,
+        "error": 0.08172386104302254
+      }
+    }
+  },
+  "visualMaximumError": 0.09696768457921401,
+  "visualMeanError": 0.08159258612907819,
+  "ruleMaximumError": 0.08714596949891068,
+  "passesTenPercent": true
+}

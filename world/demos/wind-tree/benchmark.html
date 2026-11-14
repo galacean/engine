@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="../../../packages/vegetation/src/wind-vegetation/styles.css" />
+    <title>P3 Tree 千树风增量与资产性能门禁</title>
+    <style>
+      .benchmark-report {
+        position: fixed;
+        right: 28px;
+        bottom: 24px;
+        width: min(560px, calc(100vw - 56px));
+        max-height: 31vh;
+        overflow: auto;
+        padding: 14px 16px;
+        border: 1px solid rgba(166, 255, 187, 0.24);
+        border-radius: 14px;
+        background: rgba(8, 18, 12, 0.88);
+        color: #b9f7c8;
+        font:
+          11px/1.45 ui-monospace,
+          SFMono-Regular,
+          Menlo,
+          monospace;
+        white-space: pre-wrap;
+        pointer-events: none;
+      }
+      .coverage a {
+        color: #b9f7c8;
+      }
+    </style>
+  </head>
+  <body data-state="loading" data-coverage-mode="trees" data-tree-benchmark-count="32">
+    <canvas id="canvas" aria-label="P3 Tree 资产性能验收场"></canvas>
+    <header class="hero">
+      <p>ASSET GATE / BASELINE → P3 → BASELINE</p>
+      <h1>P3 Tree 性能门禁</h1>
+      <div class="hero__state" data-wind-state data-active="true"><span></span>风场运行中</div>
+    </header>
+    <aside class="panel" aria-label="P3 Tree 性能控制">
+      <section>
+        <div class="section-title"><span>EQUAL LOAD</span><small>同资产 · 同实例 · 原地换材质</small></div>
+        <div class="segmented segmented--four">
+          <button type="button" data-wind-preset="calm">静风</button>
+          <button type="button" data-wind-preset="breeze" data-active="true">微风</button>
+          <button type="button" data-wind-preset="windy">强风</button>
+          <button type="button" data-wind-preset="gale">大风</button>
+        </div>
+        <div class="segmented segmented--three">
+          <button type="button" data-tree-material="baseline" data-active="true">Baseline</button>
+          <button type="button" data-tree-material="hero">P3</button>
+          <button type="button" data-action="asset-performance">运行 B/P3/B</button>
+        </div>
+        <div class="actions">
+          <button type="button" data-action="wind-performance">运行风 OFF / ON / OFF</button>
+        </div>
+        <div class="actions">
+          <button type="button" data-action="gust">触发行进阵风</button>
+          <button type="button" data-action="wind-toggle" data-active="true">风开 / 关</button>
+          <button type="button" data-action="record-start">开始逐帧记录</button>
+          <button type="button" data-action="record-stop">停止并判定</button>
+          <button type="button" data-action="standard-acceptance">运行标准验收</button>
+        </div>
+      </section>
+      <section>
+        <div class="section-title"><span>SCALE</span><small>URL 参数 trees=1 / 8 / 32 / 1000</small></div>
+        <div class="segmented segmented--three">
+          <button type="button" data-camera="overview" data-active="true">全景</button>
+          <button type="button" data-camera="grass">树根 / 主干</button>
+          <button type="button" data-camera="canopy">树冠近景</button>
+        </div>
+      </section>
+      <section class="metrics" aria-label="资产性能指标">
+        <div><span>FPS</span><output data-output="fps">…</output></div>
+        <div><span>FRAME</span><output data-output="frame-time">…</output></div>
+        <div><span>TREES</span><output data-output="instances">…</output></div>
+        <div><span>MODE</span><output data-output="asset-mode">BASELINE</output></div>
+        <div><span>FRAME Δ</span><output data-output="asset-frame">…</output></div>
+        <div><span>GPU Δ</span><output data-output="asset-gpu">…</output></div>
+        <div><span>CPU Δ</span><output data-output="asset-cpu">…</output></div>
+        <div><span>DRAWS</span><output data-output="asset-draws">…</output></div>
+        <div><span>TRIANGLES</span><output data-output="asset-triangles">…</output></div>
+        <div><span>STATUS</span><output data-output="asset-status">READY</output></div>
+        <div><span>WIND</span><output data-output="speed">…</output></div>
+        <div><span>GUSTS</span><output data-output="gusts">0</output></div>
+        <div><span>FIELD CPU</span><output data-output="field-cpu">…</output></div>
+        <div><span>DETAIL DRAWS</span><output data-output="batches">0</output></div>
+        <div><span>MSAA</span><output data-output="msaa">1×</output></div>
+        <div><span>RESPONSE Δ</span><output data-output="response-range">0.00</output></div>
+        <div><span>TURN Σ</span><output data-output="direction-travel">0°</output></div>
+        <div><span>ACCEPTANCE</span><output data-output="acceptance">待记录</output></div>
+      </section>
+      <button class="msaa" type="button" data-action="msaa" data-active="false">切换 1× / 4× MSAA</button>
+    </aside>
+    <aside class="coverage" aria-label="基准规模">
+      <strong>VISIBLE P3 TREE SCALE</strong>
+      <p>
+        实例规模：<a href="?trees=1">1</a> · <a href="?trees=8">8</a> · <a href="?trees=32">32</a> ·
+        <a href="?trees=1000">1000</a>
+      </p>
+      <div><span>常规 128 帧 / 千树 256 帧 · P95</span><span>GPU Timer 可用时同步记录</span></div>
+    </aside>
+    <pre class="benchmark-report" data-asset-report>运行 B/P3/B 比较材质；运行 OFF/ON/OFF 隔离风系统增量。</pre>
+    <div class="loading" role="status">
+      <span></span>
+      <div>
+        <strong>正在装配资产性能门禁</strong>
+        <p data-loading-message>加载同资产树木、LOD 与 Baseline / P3 Shader…</p>
+      </div>
+    </div>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

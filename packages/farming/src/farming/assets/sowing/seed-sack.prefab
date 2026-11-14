@@ -1,0 +1,9 @@
+{
+  "version": "2.0",
+  "refs": [{ "url": "Farming/Props/Sowing/seed-sack.glb" }],
+  "entities": [
+    { "instance": { "asset": 0, "overrides": { "entityProps": [{ "path": [], "name": "FarmingSeedSack" }] } } }
+  ],
+  "components": [],
+  "root": 0
+}

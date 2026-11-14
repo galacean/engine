@@ -1,0 +1,143 @@
+{
+  "baselineCommit": "eca4f7c558fcf8661f52b5d5cbee3dc7e3f83661",
+  "baselineWaterGitTree": "45e8a90945464afb5ae5b866c55944f308a59c8b",
+  "fixedTime": 0,
+  "width": 877,
+  "height": 657,
+  "textures": [
+    {
+      "path": "Water/Textures/grasslands-water-normal-1024.ktx2",
+      "sha256": "4ba55626a9d761edf5d5beb7d71eafdf2e9d393e3029b33491b0dd3d44159594",
+      "width": 512,
+      "height": 512,
+      "params": {
+        "isSRGBColorSpace": false,
+        "mipmap": true,
+        "wrapModeU": 1,
+        "wrapModeV": 1,
+        "filterMode": 1,
+        "anisoLevel": 1
+      }
+    },
+    {
+      "path": "Water/Textures/farmlands-wave-large-normal.ktx2",
+      "sha256": "39097a84df4789b069d7bc83f45a48e71f42bed1bc88c3d68de7bccee8be0e83",
+      "width": 512,
+      "height": 512,
+      "params": {
+        "isSRGBColorSpace": false,
+        "mipmap": true,
+        "wrapModeU": 1,
+        "wrapModeV": 1,
+        "filterMode": 1,
+        "anisoLevel": 1
+      }
+    },
+    {
+      "path": "Water/Textures/farmlands-caustics-color.ktx2",
+      "sha256": "c37448dfe9540ae5e109598b89a128300d79f33297faf40ffcd06277d97aa9e5",
+      "width": 512,
+      "height": 512,
+      "params": {
+        "isSRGBColorSpace": true,
+        "mipmap": true,
+        "wrapModeU": 1,
+        "wrapModeV": 1,
+        "filterMode": 1,
+        "anisoLevel": 1
+      }
+    },
+    {
+      "path": "Water/Textures/ocean-smoothWaves.ktx2",
+      "sha256": "bd94e75f43569ad0bcd91fd1501a764a7494f58917b4d4fdeeb6910af0d5befa",
+      "width": 512,
+      "height": 512,
+      "params": {
+        "isSRGBColorSpace": false,
+        "mipmap": true,
+        "wrapModeU": 1,
+        "wrapModeV": 1,
+        "filterMode": 2,
+        "anisoLevel": 4
+      }
+    },
+    {
+      "path": "Water/Textures/ocean-roughWaves.ktx2",
+      "sha256": "da14041d0a05f4fb140c61d9a5f05a09f1b5b57d1dd9bafa8ae1155bf11134c5",
+      "width": 512,
+      "height": 512,
+      "params": {
+        "isSRGBColorSpace": false,
+        "mipmap": true,
+        "wrapModeU": 1,
+        "wrapModeV": 1,
+        "filterMode": 2,
+        "anisoLevel": 4
+      }
+    },
+    {
+      "path": "Water/Textures/ocean-caustics.ktx2",
+      "sha256": "a28dacc3fc5e44171c260eb883aad18b459525e8937394fb2432d875762d52b6",
+      "width": 512,
+      "height": 512,
+      "params": {
+        "isSRGBColorSpace": true,
+        "mipmap": true,
+        "wrapModeU": 1,
+        "wrapModeV": 1,
+        "filterMode": 2,
+        "anisoLevel": 2
+      }
+    },
+    {
+      "path": "Water/Textures/ocean-foam.ktx2",
+      "sha256": "5317854e2beec731f7421fe9068733cdd0da4ff82304c3fb04501aa51a4a4ad3",
+      "width": 512,
+      "height": 512,
+      "params": {
+        "isSRGBColorSpace": true,
+        "mipmap": true,
+        "wrapModeU": 1,
+        "wrapModeV": 1,
+        "filterMode": 2,
+        "anisoLevel": 2
+      }
+    },
+    {
+      "path": "Water/Textures/ocean-intersectionNoise.ktx2",
+      "sha256": "88f78af80bc3eda5442073c2f50be8cbe6ca2eed629852c41d17386d74d88a59",
+      "width": 512,
+      "height": 512,
+      "params": {
+        "isSRGBColorSpace": true,
+        "mipmap": true,
+        "wrapModeU": 1,
+        "wrapModeV": 1,
+        "filterMode": 2,
+        "anisoLevel": 2
+      }
+    }
+  ],
+  "views": {
+    "lake-near": {
+      "camera": [0, 10, 12, 0, 0, 0],
+      "sha256": "945f62900b8c3c146aebf9b7a1aca2b6bda746f198ea286de65593882bc7014b"
+    },
+    "river-near": {
+      "camera": [0, 10, 12, 0, 0, 0],
+      "sha256": "fb698cfcad4ea5f3b634723023842d44910f4ebde4a3d43bde2db884c4e199a7"
+    },
+    "ocean-near": {
+      "camera": [0, 10, 30, 0, 0, 0],
+      "sha256": "56f4d2af114dc8bc22894a944269e3477b4a7f2fbdba469d935d9f7bc85de344"
+    },
+    "ocean-transition": {
+      "camera": [0, 100, 260, 0, 0, 0],
+      "sha256": "4eb20f819fab2562eef9ac4a08fc6e34bf30d1949686c8069b1b051b60dde18b"
+    },
+    "ocean-far": {
+      "camera": [0, 800, 1800, 0, 0, 0],
+      "sha256": "c209aa7e2412fda67467910159c8cf9670611a24c26f00c1a92e8cf916622de5"
+    }
+  }
+}

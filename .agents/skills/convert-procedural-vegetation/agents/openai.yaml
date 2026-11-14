@@ -1,0 +1,4 @@
+interface:
+  display_name: "程序化植被转换与入库"
+  short_description: "还原外部植被的结构与材质，注册物种和共享资源，按源模型与实际运行场景验收"
+  default_prompt: "使用 $convert-procedural-vegetation 将指定源模型还原成 Galacean 程序化植被资产，注册到目标目录并给出验收证据。"

@@ -1,0 +1,308 @@
+{
+  "name": "ocean-look",
+  "shader": "Water/Ocean.v1",
+  "macros": [],
+  "shaderData": {
+    "material_WaterProfile": {
+      "type": "Integer",
+      "value": 2
+    },
+    "material_Water_look_reflectionSampling_screenSpaceCompositeIntensity": {
+      "type": "Float",
+      "value": 1
+    },
+    "material_Water_look_reflectionSampling_environmentFallbackIntensity": {
+      "type": "Float",
+      "value": 1
+    },
+    "material_Water_look_reflectionSampling_distortionStrength": {
+      "type": "Float",
+      "value": 0.025
+    },
+    "material_Water_look_reflectionSampling_maximumDistortionPixels": {
+      "type": "Float",
+      "value": 64
+    },
+    "material_Water_look_reflectionSampling_edgeFadeTexels": {
+      "type": "Float",
+      "value": 8
+    },
+    "material_Water_look_reflectionSampling_minimumClipW": {
+      "type": "Float",
+      "value": 0.001
+    },
+    "material_Water_look_reflectionSampling_roughnessFootprintTexels": {
+      "type": "Float",
+      "value": 3
+    },
+    "material_Water_look_reflectionSampling_highFilterSampleCount": {
+      "type": "Float",
+      "value": 1
+    },
+    "material_Water_look_environmentResponse_surfaceNormalVarianceToRoughness": {
+      "type": "Float",
+      "value": 0
+    },
+    "material_Water_look_oceanResponse_timeScale": {
+      "type": "Float",
+      "value": 1
+    },
+    "material_Water_look_oceanResponse_microDetailResponse_0_speedMetresPerSecond": {
+      "type": "Float",
+      "value": 0
+    },
+    "material_Water_look_oceanResponse_microDetailResponse_0_strengthRatio": {
+      "type": "Float",
+      "value": 1
+    },
+    "material_Water_look_oceanResponse_microDetailResponse_0_speedRatio": {
+      "type": "Float",
+      "value": 1
+    },
+    "material_Water_look_oceanResponse_microDetailResponse_1_speedMetresPerSecond": {
+      "type": "Float",
+      "value": 100
+    },
+    "material_Water_look_oceanResponse_microDetailResponse_1_strengthRatio": {
+      "type": "Float",
+      "value": 1
+    },
+    "material_Water_look_oceanResponse_microDetailResponse_1_speedRatio": {
+      "type": "Float",
+      "value": 1
+    },
+    "material_Water_look_foam_enabled": {
+      "type": "Boolean",
+      "value": true
+    },
+    "material_Water_look_foam_intensity": {
+      "type": "Float",
+      "value": 0.373
+    },
+    "material_Water_look_foam_color": {
+      "type": "Color",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      }
+    },
+    "material_Water_appearance_appearance_primaryColorClosure": {
+      "type": "Integer",
+      "value": 4
+    },
+    "material_AppearanceV2MacroNormalStrength": {
+      "type": "Float",
+      "value": 0.16
+    },
+    "material_Water_appearance_appearance_directionalHighlight_strength": {
+      "type": "Float",
+      "value": 5
+    },
+    "material_Water_appearance_appearance_directionalHighlight_exponent": {
+      "type": "Float",
+      "value": 616.9759999999997
+    },
+    "material_Water_appearance_appearance_directionalHighlight_distortion": {
+      "type": "Float",
+      "value": 0.702
+    },
+    "material_Water_appearance_appearance_directionalHighlight_sharp": {
+      "type": "Boolean",
+      "value": false
+    },
+    "material_Water_appearance_appearance_depthResponse_terms_0_coefficientPerMeter": {
+      "type": "Float",
+      "value": 0.17
+    },
+    "material_Water_appearance_appearance_depthResponse_terms_1_coefficientPerMeter": {
+      "type": "Float",
+      "value": 4
+    },
+    "material_AppearanceV2DepthShallowColor": {
+      "type": "Vector4",
+      "value": {
+        "x": 0,
+        "y": 1,
+        "z": 0.98136926,
+        "w": 0.3764706
+      }
+    },
+    "material_AppearanceV2DepthDeepColor": {
+      "type": "Vector4",
+      "value": {
+        "x": 0,
+        "y": 0.16451614,
+        "z": 0.34,
+        "w": 0.98039216
+      }
+    },
+    "material_Water_appearance_appearance_boundaryEffects_0_rangeMeters": {
+      "type": "Float",
+      "value": 3.04
+    },
+    "material_Water_appearance_appearance_boundaryEffects_0_invert": {
+      "type": "Boolean",
+      "value": true
+    },
+    "material_Water_appearance_appearance_boundaryEffects_0_outputs_refractionSuppression": {
+      "type": "Float",
+      "value": 1
+    },
+    "material_Water_appearance_appearance_refraction_enabled": {
+      "type": "Boolean",
+      "value": true
+    },
+    "material_AppearanceV2RefractionUvScale": {
+      "type": "Float",
+      "value": 0.172
+    },
+    "material_Water_appearance_appearance_refraction_normalSource": {
+      "type": "Integer",
+      "value": 0
+    },
+    "material_Water_appearance_appearance_refraction_validation": {
+      "type": "Integer",
+      "value": 0
+    },
+    "material_Water_appearance_appearance_composition": {
+      "type": "Integer",
+      "value": 1
+    },
+    "material_Water_appearance_featureFlags_externalNormal": {
+      "type": "Boolean",
+      "value": true
+    },
+    "material_Water_appearance_featureFlags_depthTint": {
+      "type": "Boolean",
+      "value": true
+    },
+    "material_Water_appearance_featureFlags_coastalAlpha": {
+      "type": "Boolean",
+      "value": true
+    },
+    "material_Water_appearance_featureFlags_contactFoam": {
+      "type": "Boolean",
+      "value": false
+    },
+    "material_Water_appearance_featureFlags_directSpecular": {
+      "type": "Boolean",
+      "value": true
+    },
+    "material_Water_optics_profile_absorptionCoefficient": {
+      "type": "Vector3",
+      "value": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      }
+    },
+    "material_Water_optics_profile_scatteringColor": {
+      "type": "Vector3",
+      "value": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      }
+    },
+    "material_Water_optics_profile_scatteringCoefficient": {
+      "type": "Float",
+      "value": 0
+    },
+    "material_Water_optics_profile_maximumViewDistance": {
+      "type": "Float",
+      "value": 500
+    },
+    "material_Water_optics_profile_indexOfRefraction": {
+      "type": "Float",
+      "value": 1.333
+    },
+    "material_Water_optics_profile_maximumSurfaceOpticalDistance": {
+      "type": "Float",
+      "value": 500
+    },
+    "material_Water_optics_profile_refractionStrength": {
+      "type": "Float",
+      "value": 0.172
+    },
+    "material_Water_optics_profile_roughness": {
+      "type": "Float",
+      "value": 0
+    },
+    "material_Water_optics_profile_reflectionIntensity": {
+      "type": "Float",
+      "value": 1
+    },
+    "material_Water_optics_refractionEnabled": {
+      "type": "Boolean",
+      "value": true
+    },
+    "material_Water_optics_caustics": {
+      "type": "Boolean",
+      "value": true
+    },
+    "material_Water_reflectionPolicy_policy_preferred": {
+      "type": "Integer",
+      "value": 0
+    },
+    "material_WaterReflectionFallback0": {
+      "type": "Integer",
+      "value": 2
+    },
+    "material_WaterReflectionFallback1": {
+      "type": "Integer",
+      "value": -1
+    },
+    "material_Water_renderState_depthWriteEnabled": {
+      "type": "Boolean",
+      "value": false
+    },
+    "material_Water_renderState_queue": {
+      "type": "Integer",
+      "value": 2
+    },
+    "material_Water_renderState_priorityOffset": {
+      "type": "Float",
+      "value": 0
+    },
+    "material_Water_renderState_cullMode": {
+      "type": "Integer",
+      "value": 2
+    },
+    "material_Water_renderState_blendMode": {
+      "type": "Integer",
+      "value": 1
+    },
+    "material_Ocean_smoothWaves": {
+      "type": "Texture",
+      "value": {
+        "url": "Water/Textures/ocean-smoothWaves.ktx2"
+      }
+    },
+    "material_Ocean_roughWaves": {
+      "type": "Texture",
+      "value": {
+        "url": "Water/Textures/ocean-roughWaves.ktx2"
+      }
+    },
+    "material_Ocean_caustics": {
+      "type": "Texture",
+      "value": {
+        "url": "Water/Textures/ocean-caustics.ktx2"
+      }
+    },
+    "material_Ocean_foam": {
+      "type": "Texture",
+      "value": {
+        "url": "Water/Textures/ocean-foam.ktx2"
+      }
+    },
+    "material_Ocean_intersectionNoise": {
+      "type": "Texture",
+      "value": {
+        "url": "Water/Textures/ocean-intersectionNoise.ktx2"
+      }
+    }
+  }
+}

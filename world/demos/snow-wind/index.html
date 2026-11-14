@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Snow × Wind Lab</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family:
+          Inter,
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+        background: #08111f;
+      }
+
+      #canvas {
+        display: block;
+        width: 100vw;
+        height: 100vh;
+      }
+
+      .panel {
+        position: fixed;
+        top: 20px;
+        left: 20px;
+        z-index: 3;
+        width: min(430px, calc(100vw - 40px));
+        padding: 18px;
+        border: 1px solid rgba(203, 225, 255, 0.17);
+        border-radius: 16px;
+        background: linear-gradient(145deg, rgba(10, 22, 40, 0.91), rgba(8, 17, 31, 0.76));
+        box-shadow: 0 18px 50px rgba(0, 5, 14, 0.38);
+        color: #edf6ff;
+        backdrop-filter: blur(18px);
+      }
+
+      .eyebrow {
+        margin-bottom: 5px;
+        color: #8fbfe9;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 24px;
+        font-weight: 650;
+        letter-spacing: -0.02em;
+      }
+
+      .description {
+        margin: 8px 0 16px;
+        color: #a9bbce;
+        font-size: 13px;
+        line-height: 1.55;
+      }
+
+      .readout {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 10px;
+      }
+
+      .readout span:first-child {
+        color: #b8c9da;
+        font-size: 12px;
+      }
+
+      #wind-value {
+        color: #f4fbff;
+        font-size: 28px;
+        font-variant-numeric: tabular-nums;
+        font-weight: 700;
+      }
+
+      #wind-value small {
+        color: #8fbfe9;
+        font-size: 13px;
+        font-weight: 600;
+      }
+
+      .wind-buttons {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      button {
+        min-height: 38px;
+        border: 1px solid rgba(159, 199, 235, 0.18);
+        border-radius: 9px;
+        background: rgba(127, 170, 209, 0.08);
+        color: #c9d9e8;
+        cursor: pointer;
+        font: inherit;
+        font-size: 12px;
+        font-weight: 650;
+        transition:
+          background 140ms ease,
+          border-color 140ms ease,
+          color 140ms ease,
+          transform 140ms ease;
+      }
+
+      button:hover {
+        border-color: rgba(159, 207, 255, 0.44);
+        background: rgba(121, 183, 239, 0.16);
+        color: white;
+        transform: translateY(-1px);
+      }
+
+      button.active {
+        border-color: rgba(152, 215, 255, 0.72);
+        background: linear-gradient(145deg, rgba(75, 155, 219, 0.54), rgba(57, 112, 171, 0.38));
+        box-shadow: inset 0 0 18px rgba(139, 211, 255, 0.12);
+        color: white;
+      }
+
+      .secondary {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        margin-top: 8px;
+      }
+
+      .details {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 5px 12px;
+        margin-top: 14px;
+        padding-top: 13px;
+        border-top: 1px solid rgba(186, 218, 247, 0.11);
+        color: #8397aa;
+        font:
+          11px/1.45 ui-monospace,
+          SFMono-Regular,
+          Menlo,
+          Monaco,
+          Consolas,
+          monospace;
+      }
+
+      .details output {
+        overflow: hidden;
+        color: #b8cadc;
+        text-align: right;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      #status {
+        position: fixed;
+        right: 18px;
+        bottom: 16px;
+        z-index: 3;
+        padding: 8px 11px;
+        border: 1px solid rgba(177, 214, 245, 0.13);
+        border-radius: 999px;
+        background: rgba(7, 16, 29, 0.72);
+        color: #90a6bb;
+        font:
+          11px/1.2 ui-monospace,
+          SFMono-Regular,
+          Menlo,
+          Monaco,
+          Consolas,
+          monospace;
+        backdrop-filter: blur(10px);
+      }
+
+      #status.ready::before {
+        background: #78d6ab;
+      }
+
+      #status.error {
+        color: #ffc0c0;
+      }
+
+      #status::before {
+        display: inline-block;
+        width: 6px;
+        height: 6px;
+        margin-right: 7px;
+        border-radius: 50%;
+        background: #f0c878;
+        content: "";
+        vertical-align: 1px;
+      }
+
+      @media (max-width: 620px) {
+        .panel {
+          top: 12px;
+          left: 12px;
+          width: calc(100vw - 24px);
+          padding: 14px;
+        }
+
+        h1 {
+          font-size: 20px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="canvas"></canvas>
+    <section class="panel" aria-label="Snow wind controls">
+      <div class="eyebrow">Particle wind consumer</div>
+      <h1>雪 × 风 · 独立观察场</h1>
+      <p class="description">只保留雪粒子、风响应和尺度参照物。拖动场景可旋转视角，滚轮可缩放。</p>
+      <div class="readout">
+        <span>当前物理风速</span>
+        <strong id="wind-value">2 <small>m/s</small></strong>
+      </div>
+      <div class="wind-buttons" role="group" aria-label="Wind speed presets">
+        <button class="active" type="button" data-wind-speed="2">2 m/s</button>
+        <button type="button" data-wind-speed="37">37 m/s</button>
+        <button type="button" data-wind-speed="60">60 m/s</button>
+        <button type="button" data-wind-speed="110">110 m/s</button>
+      </div>
+      <div class="secondary">
+        <button id="no-wind" type="button">停风</button>
+        <button id="restart" type="button">清空并重播</button>
+      </div>
+      <div class="details">
+        <span>Wind target</span><output id="wind-target">loading…</output> <span>Emitter offset</span
+        ><output id="emitter-offset">loading…</output> <span>Response / lifetime</span
+        ><output id="timing">loading…</output>
+      </div>
+    </section>
+    <div id="status">正在加载雪 Prefab…</div>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

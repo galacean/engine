@@ -1,0 +1,79 @@
+{
+  "texture": "T_SeedSack_Labels_C",
+  "grid": 4,
+  "cellPixels": 256,
+  "gutterPixels": 4,
+  "note": "Label mesh UVs span one full cell (0..1). Select a seed by tilingOffset = (1/grid, 1/grid, column/grid, row/grid) in top-left UV space.",
+  "cells": {
+    "tomato-seed": {
+      "index": 0,
+      "column": 0,
+      "row": 0
+    },
+    "beetroot-seed": {
+      "index": 1,
+      "column": 1,
+      "row": 0
+    },
+    "cabbage-seed": {
+      "index": 2,
+      "column": 2,
+      "row": 0
+    },
+    "canola-seed": {
+      "index": 3,
+      "column": 3,
+      "row": 0
+    },
+    "carrot-seed": {
+      "index": 4,
+      "column": 0,
+      "row": 1
+    },
+    "grapevine-seed": {
+      "index": 5,
+      "column": 1,
+      "row": 1
+    },
+    "melon-seed": {
+      "index": 6,
+      "column": 2,
+      "row": 1
+    },
+    "potato-seed": {
+      "index": 7,
+      "column": 3,
+      "row": 1
+    },
+    "pumpkin-seed": {
+      "index": 8,
+      "column": 0,
+      "row": 2
+    },
+    "radish-seed": {
+      "index": 9,
+      "column": 1,
+      "row": 2
+    },
+    "sunflower-seed": {
+      "index": 10,
+      "column": 2,
+      "row": 2
+    },
+    "watermelon-seed": {
+      "index": 11,
+      "column": 3,
+      "row": 2
+    },
+    "wheat-seed": {
+      "index": 12,
+      "column": 0,
+      "row": 3
+    },
+    "rice-seed": {
+      "index": 13,
+      "column": 1,
+      "row": 3
+    }
+  }
+}

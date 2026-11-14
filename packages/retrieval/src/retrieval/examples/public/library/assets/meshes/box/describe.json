@@ -1,0 +1,23 @@
+{
+  "version": "0.0.1",
+  "assetType": "mesh",
+  "assetPaths": [
+    "assets/meshes/box/box.mesh"
+  ],
+  "overview": {
+    "name": "高方盒",
+    "description": "两米宽三米高四米深的方盒网格，用于箱子和建筑占位。",
+    "tags": [
+      "方盒",
+      "网格"
+    ]
+  },
+  "usage": {
+    "description": "导入为 PrimitiveMesh，绑定到渲染器后使用。"
+  },
+  "technical": {
+    "width": 2,
+    "height": 3,
+    "depth": 4
+  }
+}

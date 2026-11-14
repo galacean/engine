@@ -1,0 +1,765 @@
+{
+  "asset": {
+    "version": "2.0"
+  },
+  "root": "gable-junction",
+  "entities": [
+    {
+      "id": "gable-junction",
+      "name": "山墙交接",
+      "children": [
+        "[\"gable-junction\",\"group-node\",\"round\"]",
+        "[\"gable-junction\",\"group-node\",\"gable\"]"
+      ]
+    },
+    {
+      "id": "[\"gable-junction\",\"group-node\",\"round\"]",
+      "name": "round",
+      "components": [
+        "[\"gable-junction\",\"group-component\",\"round\"]"
+      ],
+      "children": [
+        "[\"gable-junction\",\"part-node\",\"round-wall\"]",
+        "[\"gable-junction\",\"part-node\",\"round-roof\"]",
+        "[\"gable-junction\",\"part-node\",\"round-spire\"]",
+        "[\"gable-junction\",\"part-node\",\"round/dormer\"]"
+      ],
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        -11.459156073371194,
+        0
+      ]
+    },
+    {
+      "id": "[\"gable-junction\",\"part-node\",\"round-wall\"]",
+      "name": "wall",
+      "components": [
+        "[\"gable-junction\",\"part-component\",\"round-wall\"]"
+      ]
+    },
+    {
+      "id": "[\"gable-junction\",\"part-node\",\"round-roof\"]",
+      "name": "roof",
+      "components": [
+        "[\"gable-junction\",\"part-component\",\"round-roof\"]"
+      ]
+    },
+    {
+      "id": "[\"gable-junction\",\"part-node\",\"round-spire\"]",
+      "name": "spire",
+      "components": [
+        "[\"gable-junction\",\"part-component\",\"round-spire\"]"
+      ]
+    },
+    {
+      "id": "[\"gable-junction\",\"part-node\",\"round/dormer\"]",
+      "name": "dormer",
+      "components": [
+        "[\"gable-junction\",\"part-component\",\"round/dormer\"]"
+      ]
+    },
+    {
+      "id": "[\"gable-junction\",\"group-node\",\"gable\"]",
+      "name": "gable",
+      "components": [
+        "[\"gable-junction\",\"group-component\",\"gable\"]"
+      ],
+      "children": [
+        "[\"gable-junction\",\"part-node\",\"gable-wall-0\"]",
+        "[\"gable-junction\",\"part-node\",\"gable-wall-1\"]",
+        "[\"gable-junction\",\"part-node\",\"gable-wall-2\"]",
+        "[\"gable-junction\",\"part-node\",\"gable-wall-3\"]",
+        "[\"gable-junction\",\"part-node\",\"gable-roof-1\"]",
+        "[\"gable-junction\",\"part-node\",\"gable-roof-3\"]"
+      ],
+      "position": [
+        3.299999952316284,
+        0,
+        0.699999988079071
+      ],
+      "rotation": [
+        0,
+        -20.053522488069355,
+        0
+      ]
+    },
+    {
+      "id": "[\"gable-junction\",\"part-node\",\"gable-wall-0\"]",
+      "name": "wall",
+      "components": [
+        "[\"gable-junction\",\"part-component\",\"gable-wall-0\"]"
+      ]
+    },
+    {
+      "id": "[\"gable-junction\",\"part-node\",\"gable-wall-1\"]",
+      "name": "wall",
+      "components": [
+        "[\"gable-junction\",\"part-component\",\"gable-wall-1\"]"
+      ]
+    },
+    {
+      "id": "[\"gable-junction\",\"part-node\",\"gable-wall-2\"]",
+      "name": "wall",
+      "components": [
+        "[\"gable-junction\",\"part-component\",\"gable-wall-2\"]"
+      ]
+    },
+    {
+      "id": "[\"gable-junction\",\"part-node\",\"gable-wall-3\"]",
+      "name": "wall",
+      "components": [
+        "[\"gable-junction\",\"part-component\",\"gable-wall-3\"]"
+      ]
+    },
+    {
+      "id": "[\"gable-junction\",\"part-node\",\"gable-roof-1\"]",
+      "name": "roof",
+      "components": [
+        "[\"gable-junction\",\"part-component\",\"gable-roof-1\"]"
+      ]
+    },
+    {
+      "id": "[\"gable-junction\",\"part-node\",\"gable-roof-3\"]",
+      "name": "roof",
+      "components": [
+        "[\"gable-junction\",\"part-component\",\"gable-roof-3\"]"
+      ]
+    }
+  ],
+  "components": [
+    {
+      "id": "[\"gable-junction\",\"group-component\",\"round\"]",
+      "type": "BuildingGroupComponent",
+      "props": {
+        "definition": {
+          "id": "round",
+          "seed": 1,
+          "shared": {
+            "house": {
+              "footprint": {
+                "circle": {
+                  "center": [
+                    0,
+                    0
+                  ],
+                  "radius": 2.4000000953674316,
+                  "phase": 0
+                }
+              },
+              "height": 3.125,
+              "roof": {
+                "tip": [
+                  0,
+                  0
+                ],
+                "profile": 0,
+                "height": 0.3499999940395355,
+                "ridge_length": 0.6000000238418579,
+                "eave": 0.30000001192092896,
+                "ridge_direction": 0,
+                "flat_rim": 0,
+                "color": 2
+              },
+              "wallUnit": {
+                "width": 0.5,
+                "height": 0.4375,
+                "depth": 0.1
+              }
+            },
+            "brick": {
+              "source": "brick",
+              "bounds": {
+                "min": [
+                  -0.5,
+                  -0.5,
+                  -0.5
+                ],
+                "max": [
+                  0.5,
+                  0.5,
+                  0.5
+                ]
+              },
+              "scale": [
+                0.5,
+                0.4375,
+                0.1
+              ],
+              "range": {
+                "min": [
+                  0.05,
+                  0.05,
+                  1
+                ],
+                "max": [
+                  2.5,
+                  1.8,
+                  8
+                ]
+              }
+            },
+            "courses": {
+              "type": "masonryCourses",
+              "params": {
+                "courseSeed": 1
+              }
+            },
+            "appearance": {
+              "wall": 0,
+              "roof": 2,
+              "wood": 0
+            },
+            "tile": {
+              "source": "roof_tile",
+              "bounds": {
+                "min": [
+                  -0.5,
+                  -0.5,
+                  -0.5
+                ],
+                "max": [
+                  0.5,
+                  0.5,
+                  0.5
+                ]
+              },
+              "scale": [
+                0.5,
+                0.4375,
+                0.1
+              ],
+              "range": {
+                "min": [
+                  0.1,
+                  0.2,
+                  1
+                ],
+                "max": [
+                  1.001,
+                  2.2,
+                  1
+                ]
+              }
+            },
+            "roofTiles": {
+              "type": "ringTiles"
+            }
+          }
+        },
+        "frame": {
+          "$entity": "gable-junction"
+        },
+        "assetLibrary": {
+          "$ref": "Building/Units/building-kit.prefab"
+        }
+      }
+    },
+    {
+      "id": "[\"gable-junction\",\"part-component\",\"round-wall\"]",
+      "type": "BuildingPartComponent",
+      "props": {
+        "definition": {
+          "id": "round-wall",
+          "group": "round",
+          "type": "wall",
+          "geometry": {
+            "generator": "houseWall",
+            "params": {
+              "@shared": "house"
+            }
+          },
+          "algorithm": {
+            "@shared": "courses"
+          },
+          "unit": {
+            "@shared": "brick"
+          }
+        },
+        "frame": {
+          "$entity": "gable-junction"
+        },
+        "connections": []
+      }
+    },
+    {
+      "id": "[\"gable-junction\",\"part-component\",\"round-roof\"]",
+      "type": "BuildingPartComponent",
+      "props": {
+        "definition": {
+          "id": "round-roof",
+          "group": "round",
+          "type": "roof",
+          "geometry": {
+            "generator": "houseRoofCone",
+            "params": {
+              "@shared": "house"
+            }
+          },
+          "algorithm": {
+            "@shared": "roofTiles"
+          },
+          "unit": {
+            "@shared": "tile"
+          }
+        },
+        "frame": {
+          "$entity": "gable-junction"
+        },
+        "connections": [
+          {
+            "kind": "attach",
+            "id": "round-roof/on-wall",
+            "guest": "round-roof",
+            "hosts": [
+              {
+                "part": "round-wall"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "[\"gable-junction\",\"part-component\",\"round-spire\"]",
+      "type": "BuildingPartComponent",
+      "props": {
+        "definition": {
+          "id": "round-spire",
+          "group": "round",
+          "type": "spire",
+          "geometry": {
+            "generator": "roofApex"
+          },
+          "algorithm": {
+            "type": "placeAtPoints",
+            "params": {
+              "unitParams": {
+                "radius": 0.25,
+                "profile": 0
+              }
+            }
+          },
+          "unit": {
+            "source": "roofSpire"
+          }
+        },
+        "frame": {
+          "$entity": "gable-junction"
+        },
+        "connections": [
+          {
+            "kind": "attach",
+            "id": "round-spire/on-roof",
+            "guest": "round-spire",
+            "hosts": [
+              {
+                "part": "round-roof"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "[\"gable-junction\",\"part-component\",\"round/dormer\"]",
+      "type": "BuildingPartComponent",
+      "props": {
+        "definition": {
+          "id": "round/dormer",
+          "group": "round",
+          "type": "dormer",
+          "geometry": {
+            "generator": "houseRoofMount",
+            "params": {
+              "prefab": "dormer-gothic/2",
+              "at": [
+                -2.3420089578788965,
+                -0.7516715857421816
+              ],
+              "bottom": 0
+            }
+          },
+          "algorithm": {
+            "type": "mountPrefab",
+            "params": {
+              "unitParams": {
+                "kind": "window",
+                "host": "roof",
+                "woodColor": 0,
+                "lightIntensity": 0
+              }
+            }
+          },
+          "unit": {
+            "source": {
+              "prefab": "dormer-gothic/2"
+            },
+            "pivot": [
+              0.5,
+              0.5,
+              0
+            ],
+            "range": {
+              "min": [
+                0.01,
+                0.01,
+                0.01
+              ],
+              "max": [
+                100,
+                100,
+                100
+              ]
+            }
+          }
+        },
+        "frame": {
+          "$entity": "gable-junction"
+        },
+        "connections": [
+          {
+            "kind": "attach",
+            "id": "round/dormer/on-roof",
+            "guest": "round/dormer",
+            "hosts": [
+              {
+                "part": "round-roof"
+              }
+            ],
+            "params": {
+              "tiles": {
+                "row": 0.3,
+                "column": 0.32
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "[\"gable-junction\",\"group-component\",\"gable\"]",
+      "type": "BuildingGroupComponent",
+      "props": {
+        "definition": {
+          "id": "gable",
+          "seed": 2,
+          "shared": {
+            "house": {
+              "footprint": {
+                "rectangle": {
+                  "center": [
+                    0,
+                    0
+                  ],
+                  "size": [
+                    4,
+                    3
+                  ],
+                  "rotation": 0
+                }
+              },
+              "height": 3.125,
+              "roof": {
+                "tip": [
+                  0,
+                  0
+                ],
+                "profile": 1,
+                "height": 0.3499999940395355,
+                "ridge_length": 1,
+                "eave": 0.20000000298023224,
+                "ridge_direction": 0,
+                "flat_rim": 0,
+                "color": 2
+              },
+              "wallUnit": {
+                "width": 0.5,
+                "height": 0.4375,
+                "depth": 0.1
+              }
+            },
+            "brick": {
+              "source": "brick",
+              "bounds": {
+                "min": [
+                  -0.5,
+                  -0.5,
+                  -0.5
+                ],
+                "max": [
+                  0.5,
+                  0.5,
+                  0.5
+                ]
+              },
+              "scale": [
+                0.5,
+                0.4375,
+                0.1
+              ],
+              "range": {
+                "min": [
+                  0.05,
+                  0.05,
+                  1
+                ],
+                "max": [
+                  2.5,
+                  1.8,
+                  8
+                ]
+              }
+            },
+            "courses": {
+              "type": "masonryCourses",
+              "params": {
+                "courseSeed": 2
+              }
+            },
+            "appearance": {
+              "wall": 0,
+              "roof": 2,
+              "wood": 0
+            },
+            "tile": {
+              "source": "roof_tile",
+              "bounds": {
+                "min": [
+                  -0.5,
+                  -0.5,
+                  -0.5
+                ],
+                "max": [
+                  0.5,
+                  0.5,
+                  0.5
+                ]
+              },
+              "scale": [
+                0.5,
+                0.4375,
+                0.1
+              ],
+              "range": {
+                "min": [
+                  0.1,
+                  0.2,
+                  1
+                ],
+                "max": [
+                  1.001,
+                  2.2,
+                  1
+                ]
+              }
+            },
+            "roofTiles": {
+              "type": "roofTiles"
+            }
+          }
+        },
+        "frame": {
+          "$entity": "gable-junction"
+        },
+        "assetLibrary": {
+          "$ref": "Building/Units/building-kit.prefab"
+        }
+      }
+    },
+    {
+      "id": "[\"gable-junction\",\"part-component\",\"gable-wall-0\"]",
+      "type": "BuildingPartComponent",
+      "props": {
+        "definition": {
+          "id": "gable-wall-0",
+          "group": "gable",
+          "type": "wall",
+          "geometry": {
+            "generator": "houseWallSide",
+            "params": {
+              "@shared": "house",
+              "side": 0
+            }
+          },
+          "algorithm": {
+            "@shared": "courses"
+          },
+          "unit": {
+            "@shared": "brick"
+          }
+        },
+        "frame": {
+          "$entity": "gable-junction"
+        },
+        "connections": []
+      }
+    },
+    {
+      "id": "[\"gable-junction\",\"part-component\",\"gable-wall-1\"]",
+      "type": "BuildingPartComponent",
+      "props": {
+        "definition": {
+          "id": "gable-wall-1",
+          "group": "gable",
+          "type": "wall",
+          "geometry": {
+            "generator": "houseWallSide",
+            "params": {
+              "@shared": "house",
+              "side": 1
+            }
+          },
+          "algorithm": {
+            "@shared": "courses"
+          },
+          "unit": {
+            "@shared": "brick"
+          }
+        },
+        "frame": {
+          "$entity": "gable-junction"
+        },
+        "connections": []
+      }
+    },
+    {
+      "id": "[\"gable-junction\",\"part-component\",\"gable-wall-2\"]",
+      "type": "BuildingPartComponent",
+      "props": {
+        "definition": {
+          "id": "gable-wall-2",
+          "group": "gable",
+          "type": "wall",
+          "geometry": {
+            "generator": "houseWallSide",
+            "params": {
+              "@shared": "house",
+              "side": 2
+            }
+          },
+          "algorithm": {
+            "@shared": "courses"
+          },
+          "unit": {
+            "@shared": "brick"
+          }
+        },
+        "frame": {
+          "$entity": "gable-junction"
+        },
+        "connections": []
+      }
+    },
+    {
+      "id": "[\"gable-junction\",\"part-component\",\"gable-wall-3\"]",
+      "type": "BuildingPartComponent",
+      "props": {
+        "definition": {
+          "id": "gable-wall-3",
+          "group": "gable",
+          "type": "wall",
+          "geometry": {
+            "generator": "houseWallSide",
+            "params": {
+              "@shared": "house",
+              "side": 3
+            }
+          },
+          "algorithm": {
+            "@shared": "courses"
+          },
+          "unit": {
+            "@shared": "brick"
+          }
+        },
+        "frame": {
+          "$entity": "gable-junction"
+        },
+        "connections": []
+      }
+    },
+    {
+      "id": "[\"gable-junction\",\"part-component\",\"gable-roof-1\"]",
+      "type": "BuildingPartComponent",
+      "props": {
+        "definition": {
+          "id": "gable-roof-1",
+          "group": "gable",
+          "type": "roof",
+          "geometry": {
+            "generator": "houseRoofSlope",
+            "params": {
+              "@shared": "house",
+              "side": 1
+            }
+          },
+          "algorithm": {
+            "@shared": "roofTiles"
+          },
+          "unit": {
+            "@shared": "tile"
+          }
+        },
+        "frame": {
+          "$entity": "gable-junction"
+        },
+        "connections": [
+          {
+            "kind": "attach",
+            "id": "gable-roof-1/on-wall",
+            "guest": "gable-roof-1",
+            "hosts": [
+              {
+                "part": "gable-wall-1"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "[\"gable-junction\",\"part-component\",\"gable-roof-3\"]",
+      "type": "BuildingPartComponent",
+      "props": {
+        "definition": {
+          "id": "gable-roof-3",
+          "group": "gable",
+          "type": "roof",
+          "geometry": {
+            "generator": "houseRoofSlope",
+            "params": {
+              "@shared": "house",
+              "side": 3
+            }
+          },
+          "algorithm": {
+            "@shared": "roofTiles"
+          },
+          "unit": {
+            "@shared": "tile"
+          }
+        },
+        "frame": {
+          "$entity": "gable-junction"
+        },
+        "connections": [
+          {
+            "kind": "attach",
+            "id": "gable-roof-3/on-wall",
+            "guest": "gable-roof-3",
+            "hosts": [
+              {
+                "part": "gable-wall-3"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

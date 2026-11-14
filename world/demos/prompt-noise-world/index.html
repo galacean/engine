@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href="data:," />
+    <title>World PCG Pure Noise Terrain</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+      }
+      html,
+      body,
+      #canvas {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+      }
+      body {
+        background: #071016;
+      }
+      #canvas {
+        display: block;
+        visibility: hidden;
+      }
+      #operator-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 18;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        overflow: visible;
+      }
+      .operator-path {
+        fill: none;
+        stroke-width: 1.7;
+        vector-effect: non-scaling-stroke;
+        filter: drop-shadow(0 0 3px #000c);
+      }
+      .operator-path.secondary {
+        opacity: 0.55;
+        stroke-dasharray: 5 4;
+      }
+      .operator-path.selected {
+        stroke-width: 3.2;
+        opacity: 1;
+      }
+      .operator-path.river {
+        stroke: #ff4b4b;
+      }
+      .operator-path.flatten {
+        stroke: #4cff9a;
+      }
+      .operator-path.smooth {
+        stroke: #4da3ff;
+      }
+      .river-handle-link {
+        stroke: #ffd166;
+        stroke-width: 1.2;
+        stroke-dasharray: 3 3;
+        vector-effect: non-scaling-stroke;
+        pointer-events: none;
+      }
+      .river-handle {
+        fill: #071016;
+        stroke: #ffd166;
+        stroke-width: 2;
+        vector-effect: non-scaling-stroke;
+        pointer-events: all;
+        cursor: grab;
+      }
+      .river-handle.width {
+        fill: #ffd166;
+        stroke: #071016;
+        cursor: ew-resize;
+      }
+      .river-handle.selected {
+        fill: #ff4b4b;
+        stroke: white;
+        stroke-width: 3;
+      }
+      .river-handle:active {
+        cursor: grabbing;
+      }
+      #center-reticle {
+        position: fixed;
+        left: 50%;
+        top: 50%;
+        z-index: 19;
+        width: 22px;
+        height: 22px;
+        transform: translate(-50%, -50%);
+        pointer-events: none;
+        opacity: 0.8;
+      }
+      #center-reticle::before,
+      #center-reticle::after {
+        content: "";
+        position: absolute;
+        background: #fff;
+        box-shadow: 0 0 4px #000;
+      }
+      #center-reticle::before {
+        left: 10px;
+        top: 2px;
+        width: 1px;
+        height: 18px;
+      }
+      #center-reticle::after {
+        left: 2px;
+        top: 10px;
+        width: 18px;
+        height: 1px;
+      }
+      body[data-ready="true"] #canvas {
+        visibility: visible;
+      }
+      #loading {
+        position: fixed;
+        inset: 0;
+        z-index: 1000;
+        display: grid;
+        place-items: center;
+        color: #dffef5;
+        background: radial-gradient(circle at 50% 35%, #173548, #071016 62%);
+      }
+      body[data-ready="true"] #loading {
+        display: none;
+      }
+      #loading-card {
+        width: min(420px, 84vw);
+        padding: 22px;
+        border: 1px solid #315160;
+        border-radius: 14px;
+        background: #0b1820dd;
+      }
+      #loading strong {
+        display: block;
+        margin-bottom: 12px;
+        font-size: 15px;
+        letter-spacing: 0.04em;
+      }
+      #loading-status {
+        color: #8cb2bd;
+        font:
+          12px/1.6 ui-monospace,
+          SFMono-Regular,
+          Menlo,
+          monospace;
+      }
+      #metrics {
+        position: fixed;
+        top: 14px;
+        left: 14px;
+        z-index: 20;
+        width: 300px;
+        padding: 13px 14px;
+        border: 1px solid #ffffff1c;
+        border-radius: 10px;
+        background: #071016d9;
+        backdrop-filter: blur(12px);
+        color: #b8ccd2;
+        font:
+          11px/1.55 ui-monospace,
+          SFMono-Regular,
+          Menlo,
+          monospace;
+        pointer-events: none;
+      }
+      #metrics strong {
+        color: #f1fff9;
+        font-size: 12px;
+      }
+      #metrics .good {
+        color: #62e6bf;
+      }
+      #metrics .warning {
+        color: #ffc86b;
+      }
+      #metrics pre {
+        margin: 8px 0 0;
+        white-space: pre-wrap;
+      }
+      #hint {
+        position: fixed;
+        left: 50%;
+        bottom: 18px;
+        z-index: 20;
+        transform: translateX(-50%);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 12px;
+        border-radius: 999px;
+        background: #071016ba;
+        color: #d7ebe8;
+        font-size: 12px;
+        pointer-events: none;
+      }
+      #hint[data-notice="warning"] {
+        border: 1px solid #ffc86b80;
+        box-shadow: 0 0 18px #ffc86b26;
+        color: #ffd98a;
+      }
+      #roam-speed-control {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding-left: 10px;
+        border-left: 1px solid #ffffff2b;
+        pointer-events: auto;
+      }
+      #roam-speed-control[hidden] {
+        display: none;
+      }
+      #roam-speed-control input {
+        width: 116px;
+        accent-color: #62e6bf;
+      }
+      #roam-speed-value {
+        min-width: 64px;
+        color: #f1fff9;
+        font-variant-numeric: tabular-nums;
+      }
+      #free-roam-toggle {
+        min-height: 32px;
+        padding: 5px 12px;
+        border: 1px solid #62e6bf66;
+        border-radius: 999px;
+        background: #15352fcc;
+        color: #eafff8;
+        font: inherit;
+        cursor: pointer;
+        pointer-events: auto;
+        touch-action: manipulation;
+      }
+      #free-roam-toggle[aria-pressed="true"] {
+        border-color: #8fffd6aa;
+        background: #23584ccc;
+      }
+      #layers {
+        position: fixed;
+        left: 380px;
+        bottom: 14px;
+        z-index: 20;
+        display: flex;
+        gap: 8px;
+        padding: 8px;
+        border: 1px solid #ffffff1c;
+        border-radius: 10px;
+        background: #071016d9;
+        color: #b8ccd2;
+        font:
+          10px/1.3 ui-monospace,
+          SFMono-Regular,
+          Menlo,
+          monospace;
+      }
+      #layers figure {
+        margin: 0;
+        width: 64px;
+      }
+      #layers img {
+        display: block;
+        width: 64px;
+        height: 64px;
+        border-radius: 6px;
+        object-fit: cover;
+      }
+      #layers figcaption {
+        margin-top: 4px;
+        text-align: center;
+      }
+      .dg.ac {
+        z-index: 40 !important;
+      }
+      .dg.main {
+        width: 340px !important;
+      }
+      .dg .property-name {
+        width: 46% !important;
+      }
+      .dg .c {
+        width: 54% !important;
+      }
+    </style>
+  </head>
+  <body data-ready="false">
+    <canvas id="canvas"></canvas>
+    <svg id="operator-overlay" aria-hidden="true"></svg>
+    <div id="center-reticle" aria-hidden="true"></div>
+    <input id="world-import" type="file" accept=".pnw4,.pnw3,application/octet-stream" hidden />
+    <div id="loading">
+      <div id="loading-card">
+        <strong>World PCG Pure Noise Terrain</strong>
+        <div id="loading-status">初始化 WebGL2…</div>
+      </div>
+    </div>
+    <aside id="metrics">
+      <strong>等待运行时</strong>
+      <pre>booting…</pre>
+    </aside>
+    <aside id="layers">
+      <figure>
+        <img src="./assets/world-pcg/rock_albedo_height.png" alt="Rock packed albedo height" />
+        <figcaption>Rock</figcaption>
+      </figure>
+      <figure>
+        <img src="./assets/world-pcg/grass_albedo_height.png" alt="Grass packed albedo height" />
+        <figcaption>Grass</figcaption>
+      </figure>
+    </aside>
+    <div id="hint">
+      <span id="hint-text"
+        >镜头模式：左键 Orbit · Enter 提交　鼠标模式：左键提交 · Alt+左键 Orbit · 右键平移 · 滚轮缩放</span
+      >
+      <button id="free-roam-toggle" type="button" aria-pressed="false">开始漫游</button>
+      <label id="roam-speed-control" for="roam-speed" hidden>
+        速度
+        <input id="roam-speed" type="range" min="20" max="2000" step="10" value="100" />
+        <output id="roam-speed-value" for="roam-speed">100 m/s</output>
+      </label>
+    </div>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>
