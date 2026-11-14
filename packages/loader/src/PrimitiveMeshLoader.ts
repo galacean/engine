@@ -149,15 +149,15 @@ class PrimitiveMeshLoader extends Loader<ModelMesh> {
     return result ?? (options as T);
   }
 
-  private _parseVector2s(points: readonly { x: number; y: number }[]): Vector2[] {
+  private _parseVector2s(points: SerializedPrimitiveMeshData<readonly Vector2[]>): Vector2[] {
     return points.map(({ x, y }) => new Vector2(x, y));
   }
 
-  private _parseVector3s(points: readonly { x: number; y: number; z: number }[]): Vector3[] {
+  private _parseVector3s(points: SerializedPrimitiveMeshData<readonly Vector3[]>): Vector3[] {
     return points.map(({ x, y, z }) => new Vector3(x, y, z));
   }
 
-  private _parseShapes(shapes: Extract<PrimitiveMeshAsset, { type: "polygon" }>["polygonShapes"]): PolygonShape[] {
+  private _parseShapes(shapes: readonly SerializedPrimitiveMeshData<PolygonShape>[]): PolygonShape[] {
     return shapes.map(({ points, holes }) => ({
       points: this._parseVector2s(points),
       holes: holes?.map((hole) => this._parseVector2s(hole))
