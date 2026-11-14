@@ -52,8 +52,11 @@ export function planAnimalStaticRoute(
   const edges = new Map<number, number>();
   let checks = 0;
   const addObstacle = (a: AnimalRoutePoint, b: AnimalRoutePoint) => {
+    // A full graph cannot accept more bypass points. Continue checking its
+    // existing edges, but do not repeat geometry queries whose results are discarded.
+    if (obstacles.size >= 12 || points.length >= 50) return;
     const obstacle = query.obstruction(a, b, cornerClearance);
-    if (!obstacle || obstacles.has(obstacle.key) || obstacles.size >= 12) return;
+    if (!obstacle || obstacles.has(obstacle.key)) return;
     obstacles.add(obstacle.key);
     for (const point of obstacle.corners) {
       if (points.length >= 50) break;

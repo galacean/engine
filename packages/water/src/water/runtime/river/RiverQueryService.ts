@@ -117,6 +117,7 @@ export class RiverNetworkQueryService {
     thirdWeight: 0
   };
   private _selectedGeometryTriangle = false;
+  private _vertexSampleCache?: RiverVertexSampleCache;
 
   constructor(private readonly _data: RiverCompiledData) {
     const index = _data.queryIndex;
@@ -428,6 +429,8 @@ export class RiverNetworkQueryService {
     const { uv2s, uv3s, tangents, normals } = geometry;
     if (!uv2s || !uv3s || !tangents || !normals) return bestDistanceToBank;
     const triangle = this._geometryTriangleScratch;
+    const cache = (this._vertexSampleCache ??= new RiverVertexSampleCache());
+    const values = cache.values;
     let surfaceHeight = 0,
       surfaceVerticalVelocity = 0;
     let normalX = 0,
@@ -439,10 +442,9 @@ export class RiverNetworkQueryService {
       const vertexIndex =
         vertex === 0 ? triangle.firstIndex : vertex === 1 ? triangle.secondIndex : triangle.thirdIndex;
       const weight = vertex === 0 ? triangle.firstWeight : vertex === 1 ? triangle.secondWeight : triangle.thirdWeight;
-      const tangent = tangents[vertexIndex];
-      const tangentLength = Math.hypot(tangent[0], tangent[2]) || 1;
-      const tangentX = tangent[0] / tangentLength;
-      const tangentZ = tangent[2] / tangentLength;
+      const slot = cache.sample(geometry, vertexIndex);
+      const tangentX = values[slot];
+      const tangentZ = values[slot + 1];
       const lateralX = -tangentZ;
       const lateralZ = tangentX;
       this._motionCoordinates.signedAcrossDistance = uv2s[vertexIndex][0];
@@ -468,23 +470,29 @@ export class RiverNetworkQueryService {
       }
       surfaceHeight += (geometry.positions[vertexIndex][1] + this._motionScratch.height) * weight;
       surfaceVerticalVelocity += this._motionScratch.verticalVelocity * weight;
-      const gradient = geometry.motionGradients?.[vertexIndex];
-      const inverseNormalY = 1 / Math.max(normals[vertexIndex][1], 0.000001);
-      const vertexNormalX =
-        normals[vertexIndex][0] * inverseNormalY -
-        (gradient?.[0] ?? lateralX) * this._motionScratch.acrossDerivative -
-        (gradient?.[2] ?? tangentX) * this._motionScratch.downstreamDerivative;
-      const vertexNormalY = 1;
-      const vertexNormalZ =
-        normals[vertexIndex][2] * inverseNormalY -
-        (gradient?.[1] ?? lateralZ) * this._motionScratch.acrossDerivative -
-        (gradient?.[3] ?? tangentZ) * this._motionScratch.downstreamDerivative;
-      const vertexNormalLength = Math.hypot(vertexNormalX, vertexNormalY, vertexNormalZ) || 1;
-      normalX += (vertexNormalX / vertexNormalLength) * weight;
-      normalY += (vertexNormalY / vertexNormalLength) * weight;
-      normalZ += (vertexNormalZ / vertexNormalLength) * weight;
-      flowX += tangentX * this._motionCoordinates.flowSpeed * weight;
-      flowZ += tangentZ * this._motionCoordinates.flowSpeed * weight;
+      if (elapsedTime === undefined) {
+        normalX += values[slot + 3] * weight;
+        normalY += values[slot + 4] * weight;
+        normalZ += values[slot + 5] * weight;
+      } else {
+        const gradient = geometry.motionGradients?.[vertexIndex];
+        const inverseNormalY = values[slot + 2];
+        const vertexNormalX =
+          normals[vertexIndex][0] * inverseNormalY -
+          (gradient?.[0] ?? lateralX) * this._motionScratch.acrossDerivative -
+          (gradient?.[2] ?? tangentX) * this._motionScratch.downstreamDerivative;
+        const vertexNormalY = 1;
+        const vertexNormalZ =
+          normals[vertexIndex][2] * inverseNormalY -
+          (gradient?.[1] ?? lateralZ) * this._motionScratch.acrossDerivative -
+          (gradient?.[3] ?? tangentZ) * this._motionScratch.downstreamDerivative;
+        const vertexNormalLength = Math.hypot(vertexNormalX, vertexNormalY, vertexNormalZ) || 1;
+        normalX += (vertexNormalX / vertexNormalLength) * weight;
+        normalY += (vertexNormalY / vertexNormalLength) * weight;
+        normalZ += (vertexNormalZ / vertexNormalLength) * weight;
+      }
+      flowX += values[slot + 6] * weight;
+      flowZ += values[slot + 7] * weight;
     }
     if (elapsedTime === undefined) {
       const first = geometry.positions[triangle.firstIndex][1];
@@ -582,5 +590,41 @@ export class RiverNetworkQueryService {
       result.flowVector.set(flowX, flowY, flowZ);
     }
     result.surfaceNormal.set(normalX, normalY, normalZ);
+  }
+}
+
+/** Shared immutable vertex facts, bounded independently of river size. Dynamic surface motion stays live. */
+class RiverVertexSampleCache {
+  readonly values = new Float64Array(1024 * 8);
+  private readonly geometries: (RiverGeometryData | undefined)[] = new Array(1024);
+  private readonly indices = new Uint32Array(1024);
+
+  sample(geometry: RiverGeometryData, index: number): number {
+    const entry = index & 1023,
+      slot = entry * 8;
+    if (this.geometries[entry] === geometry && this.indices[entry] === index) return slot;
+    const tangent = geometry.tangents![index],
+      normal = geometry.normals![index];
+    const length = Math.hypot(tangent[0], tangent[2]) || 1;
+    const tx = tangent[0] / length,
+      tz = tangent[2] / length;
+    const inverseY = 1 / Math.max(normal[1], 0.000001),
+      gradient = geometry.motionGradients?.[index];
+    // Match the static zero-amplitude expression and operation order, including signed zero.
+    const nx = normal[0] * inverseY - (gradient?.[0] ?? -tz) * 0 - (gradient?.[2] ?? tx) * 0;
+    const nz = normal[2] * inverseY - (gradient?.[1] ?? tx) * 0 - (gradient?.[3] ?? tz) * 0;
+    const normalLength = Math.hypot(nx, 1, nz) || 1;
+    const values = this.values;
+    values[slot] = tx;
+    values[slot + 1] = tz;
+    values[slot + 2] = inverseY;
+    values[slot + 3] = nx / normalLength;
+    values[slot + 4] = 1 / normalLength;
+    values[slot + 5] = nz / normalLength;
+    values[slot + 6] = tx * geometry.uv1s[index][0];
+    values[slot + 7] = tz * geometry.uv1s[index][0];
+    this.geometries[entry] = geometry;
+    this.indices[entry] = index;
+    return slot;
   }
 }
