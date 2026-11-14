@@ -12,15 +12,27 @@ label: Graphics/Mesh
 
 The editor has built-in basic geometries such as `Cube`, `Sphere`, and `Cylinder`, which can be directly placed in the model by clicking `+` on the left node tree:
 
-<Image src="https://gw.alipayobjects.com/zos/OasisHub/331ff39f-54a4-4e8b-912b-e6a0cac38d71/image-20231009111916680.png" alt="image-20231009111916680" style={{ zoom: "50%" }} />
+<Image
+  src="https://gw.alipayobjects.com/zos/OasisHub/331ff39f-54a4-4e8b-912b-e6a0cac38d71/image-20231009111916680.png"
+  alt="image-20231009111916680"
+  style={{ zoom: "50%" }}
+/>
 
 Of course, we can also click `1` in the component panel to add the `Mesh Renderer` component, and click `2` to bind the desired basic geometry:
 
-<Image src="https://gw.alipayobjects.com/zos/OasisHub/b61f5f8c-1eba-4ea8-a019-f823a6c0b17d/image-20231009112014068.png" alt="image-20231009112014068" style={{ zoom: "50%" }} />
+<Image
+  src="https://gw.alipayobjects.com/zos/OasisHub/b61f5f8c-1eba-4ea8-a019-f823a6c0b17d/image-20231009112014068.png"
+  alt="image-20231009112014068"
+  style={{ zoom: "50%" }}
+/>
 
 Built-in geometries not meeting your needs? You can create a `Mesh` asset in the **[Asset Panel](/en/docs/assets/interface)** by **right-clicking** → **Create** → **PrimitiveMesh**, and adjust the parameters of the `Mesh` to meet your requirements.
 
-<Image src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*g3XwRrrVv8kAAAAAAAAAAAAADhuCAQ/original" alt="image-20231009111916680" style={{ zoom: "50%" }} />
+<Image
+  src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*g3XwRrrVv8kAAAAAAAAAAAAADhuCAQ/original"
+  alt="image-20231009111916680"
+  style={{ zoom: "50%" }}
+/>
 
 ## Script Usage
 
@@ -32,7 +44,7 @@ The currently provided geometries are as follows:
 const entity = rootEntity.createChild("cuboid");
 entity.transform.setPosition(0, 1, 0);
 const renderer = entity.addComponent(MeshRenderer);
-renderer.mesh = PrimitiveMesh.createCuboid(engine);
+renderer.mesh = PrimitiveMesh.createCuboid(engine, 1, 1, 1);
 // Create material
 const material = new BlinnPhongMaterial(engine);
 material.emissiveColor.set(1, 1, 1, 1);
@@ -45,7 +57,7 @@ renderer.setMaterial(material);
 const entity = rootEntity.createChild("sphere");
 entity.transform.setPosition(0, 1, 0);
 const renderer = entity.addComponent(MeshRenderer);
-renderer.mesh = PrimitiveMesh.createSphere(engine);
+renderer.mesh = PrimitiveMesh.createSphere(engine, 0.5);
 // Create material
 const material = new BlinnPhongMaterial(engine);
 material.emissiveColor.set(1, 1, 1, 1);
@@ -58,7 +70,7 @@ renderer.setMaterial(material);
 const entity = rootEntity.createChild("plane");
 entity.transform.setPosition(0, 1, 0);
 const renderer = entity.addComponent(MeshRenderer);
-renderer.mesh = PrimitiveMesh.createPlane(engine);
+renderer.mesh = PrimitiveMesh.createPlane(engine, 1, 1);
 // Create material
 const material = new BlinnPhongMaterial(engine);
 material.emissiveColor.set(1, 1, 1, 1);
@@ -71,7 +83,7 @@ renderer.setMaterial(material);
 const entity = rootEntity.createChild("cylinder");
 entity.transform.setPosition(0, 1, 0);
 const renderer = entity.addComponent(MeshRenderer);
-renderer.mesh = PrimitiveMesh.createCylinder(engine);
+renderer.mesh = PrimitiveMesh.createCylinder(engine, 0.5, 2);
 // Create material
 const material = new BlinnPhongMaterial(engine);
 material.emissiveColor.set(1, 1, 1, 1);
@@ -84,7 +96,7 @@ renderer.setMaterial(material);
 const entity = rootEntity.createChild("torus");
 entity.transform.setPosition(0, 1, 0);
 const renderer = entity.addComponent(MeshRenderer);
-renderer.mesh = PrimitiveMesh.createTorus(engine);
+renderer.mesh = PrimitiveMesh.createTorus(engine, 0.5, 0.1);
 // Create material
 const material = new BlinnPhongMaterial(engine);
 material.emissiveColor.set(1, 1, 1, 1);
@@ -97,7 +109,7 @@ renderer.setMaterial(material);
 const entity = rootEntity.createChild("cone");
 entity.transform.setPosition(0, 1, 0);
 const renderer = entity.addComponent(MeshRenderer);
-renderer.mesh = PrimitiveMesh.createCone(engine);
+renderer.mesh = PrimitiveMesh.createCone(engine, 0.5, 2);
 // Create material
 const material = new BlinnPhongMaterial(engine);
 material.emissiveColor.set(1, 1, 1, 1);
@@ -110,9 +122,192 @@ renderer.setMaterial(material);
 const entity = rootEntity.createChild("capsule");
 entity.transform.setPosition(0, 1, 0);
 const renderer = entity.addComponent(MeshRenderer);
-renderer.mesh = PrimitiveMesh.createCapsule(engine);
+renderer.mesh = PrimitiveMesh.createCapsule(engine, 0.5, 2);
 // Create material
 const material = new BlinnPhongMaterial(engine);
 material.emissiveColor.set(1, 1, 1, 1);
 renderer.setMaterial(material);
 ```
+
+## Procedural geometry
+
+Each factory takes its required shape inputs first, followed by an optional named settings object. Dimensions, radii, contours and paths must be explicit. Options contain subdivisions, angular ranges and mesh settings; omit the object or its fields to use their documented defaults. For example, `createSphere` takes a radius followed by `SphereMeshOptions`:
+
+```ts
+const unitSphere = PrimitiveMesh.createSphere(engine, 0.5);
+const sphere = PrimitiveMesh.createSphere(engine, 1);
+const smoothSphere = PrimitiveMesh.createSphere(engine, 1, { subdivisionLevel: 4 });
+const cube = PrimitiveMesh.createCuboid(engine, 2, 2, 2);
+const box = PrimitiveMesh.createCuboid(engine, 2, 3, 4);
+const ground = PrimitiveMesh.createPlane(engine, 10, 10);
+const cylinder = PrimitiveMesh.createCylinder(engine, 0.5, 2);
+const frustum = PrimitiveMesh.createTruncatedCone(engine, 0.25, 0.5, 2);
+const mirroredKnot = PrimitiveMesh.createTorusKnot(engine, 1, 0.1, 2, -3);
+```
+
+Cuboid width, height and depth are separate required arguments. Plane width and depth are also required. Subsequent subdivision counts for planes and cuboids default to the first direction. Spheres use one subdivision level, defaulting to 3 and clamped to 1 through 6. Cylinders have one radius; use `createTruncatedCone` for different top and bottom radii. Rings take the required outer radius first, followed by the required inner radius.
+
+For torus knots, `axisTurns` counts revolutions around the central axis and `crossSectionTurns` counts revolutions around the torus cross-section. Both are signed integers, independent of mesh subdivisions. Negative values reverse the corresponding winding direction; zero keeps that angle fixed.
+
+| Capability | Methods |
+| --- | --- |
+| Plane, cuboid, sphere | `createPlane`, `createCuboid`, `createSphere` |
+| Cylinder, frustum, cone, capsule | `createCylinder`, `createTruncatedCone`, `createCone`, `createCapsule` |
+| Disk, annulus, torus, torus knot | `createCircle`, `createRing`, `createTorus`, `createTorusKnot` |
+| Regular polyhedra | `createTetrahedron`, `createOctahedron`, `createIcosahedron`, `createDodecahedron` |
+| Revolved profile, path tube, polygon, extruded polygon, rounded cuboid | `createLathe`, `createTube`, `createPolygon`, `createExtrudedPolygon`, `createRoundedCuboid` |
+
+### Subdivisions, angles and caps
+
+Dimensions are required arguments; subdivision counts remain in the optional settings object. For tubes and torus knots, `pathSegments` controls subdivisions along the path. Tori use `ringSegments` around the ring. `radialSegments` controls the tube cross-section. Capsule `capSegments` controls each pole-to-equator section independently; `cylinderHeight` describes the straight section. Regular polyhedra use `edgeSegments`, and rounded cuboids use `roundingSegments`.
+
+Angle ranges belong to the options object. Angles use **degrees**. Ranges use `Vector2`, with `x` as the start angle and `y` as the end angle. Use continuous angles across a full turn, such as `new Vector2(350, 370)`. Cylinders, cones and lathes rotate around Y starting from +Z; a sphere's vertical angle starts at +Y.
+
+```ts
+import { PrimitiveMeshCapMode, Vector2 } from "@galacean/engine";
+
+const hemisphere = PrimitiveMesh.createSphere(engine, 1, { verticalAngleRange: new Vector2(0, 90) });
+const openCylinder = PrimitiveMesh.createCylinder(engine, 0.5, 2, { caps: PrimitiveMeshCapMode.None });
+const cupWall = PrimitiveMesh.createCylinder(engine, 0.5, 2, { caps: PrimitiveMeshCapMode.Bottom });
+const halfRing = PrimitiveMesh.createRing(engine, 1, 0.5, { angleRange: new Vector2(0, 180) });
+```
+
+Cylinder and frustum `caps` use `PrimitiveMeshCapMode`: `Both` (default), `Top`, `Bottom` or `None`. Top faces +Y and bottom faces -Y. Angular cut boundaries remain open. A cone uses the boolean `cap` for its base. Circles, rings and polygons lie in XY facing +Z. Ground planes lie in XZ facing +Y.
+
+`createSphere` projects a subdivided cube onto a sphere and accepts `horizontalAngleRange` and `verticalAngleRange`. Horizontal angles start at -X towards +Z; vertical angles start at +Y. Sections retain the subdivided surface and leave their cut boundaries open. A range such as `new Vector2(350, 370)` crosses the horizontal seam. Changing subdivisions controls the surface resolution, including the cut boundaries.
+
+### Contours and paths
+
+Contours and lathe profiles use `Vector2` arrays, and path points use `Vector3` arrays. Pass a point array for a simple polygon. Use `{ points, holes }` for a polygon containing holes, or an array of these objects for multiple polygons. Closing points need not be repeated.
+
+```ts
+import { Vector2, Vector3 } from "@galacean/engine";
+
+const outline = [new Vector2(-2, -2), new Vector2(2, -2), new Vector2(2, 2), new Vector2(-2, 2)];
+const hole = [new Vector2(-1, -1), new Vector2(-1, 1), new Vector2(1, 1), new Vector2(1, -1)];
+const face = PrimitiveMesh.createPolygon(engine, { points: outline, holes: [hole] });
+const solid = PrimitiveMesh.createExtrudedPolygon(engine, { points: outline, holes: [hole] }, 0.5);
+const beveled = PrimitiveMesh.createExtrudedPolygon(engine, outline, 0.5, {
+  bevelWidth: 0.05,
+  contourOffset: 0.02,
+  depthSegments: 1
+});
+const path = Array.from({ length: 65 }, (_, i) => {
+  const t = i / 64;
+  return new Vector3(4 * t, Math.sin(t * Math.PI * 2), 0);
+});
+const tube = PrimitiveMesh.createTube(engine, path, 0.1, { pathSegments: 64 });
+const swept = PrimitiveMesh.createExtrudedPolygon(engine, outline, path, { pathSegments: 64 });
+const loop = [new Vector3(-4, 0, -4), new Vector3(4, 0, -4), new Vector3(4, 0, 4), new Vector3(-4, 0, 4)];
+const closedPath = PrimitiveMesh.createExtrudedPolygon(engine, outline, loop, { closedPath: true, pathSegments: 32 });
+```
+
+`createExtrudedPolygon` provides two overloads:
+
+- `depth: number` extrudes along +Z with side walls and both end caps. `LinearExtrudedPolygonMeshOptions` controls `depthSegments`, bevels and material grouping.
+- `path: readonly Vector3[]` extrudes along a spatial path. `PathExtrudedPolygonMeshOptions` controls `pathSegments`, `closedPath` and material grouping. Open paths have both end caps; closed paths join the end cross-sections without caps.
+
+Linear extrusion defaults to no bevels. A positive `bevelWidth` enables beveling, with `bevelDepth` defaulting to the same value. Path extrusion has no bevel settings. Paths are sampled at equal distances along their line segments. Sample curves into points before creating the mesh, as shown above.
+
+For tubes and path extrusions, `closedPath` defaults to `false`. Set it to `true` to join the path ends and align the first and last cross-sections; the closing point need not be repeated. Closed extrusions use at least three path segments and have no end caps. Open extrusions have two end caps; tubes have no end caps in either mode.
+
+`contourOffset` defaults to `0` and shifts the side-wall outline: positive values expand the solid and contract holes, while negative values do the reverse. It also applies when `bevelWidth` is `0`. Bevels are cut into this outline and included in `depth`, so they do not increase the total depth.
+
+### Mesh data and materials
+
+Mesh settings and subdivision counts belong to the optional settings object:
+
+```ts
+const editable = PrimitiveMesh.createSphere(engine, 1, { keepCPUData: true, subdivisionLevel: 3 });
+const sixMaterials = PrimitiveMesh.createCuboid(engine, 1, 1, 1, {
+  separateMaterialSlots: true,
+  widthSegments: 1,
+  heightSegments: 1,
+  depthSegments: 1
+});
+```
+
+`keepCPUData` defaults to false. Set it to true to retain readable CPU vertex attributes.
+
+`separateMaterialSlots` is available for cuboids, cylinders, truncated cones, cones, polygons, extrusions and rounded cuboids. It defaults to false, which creates one SubMesh. When enabled, the generated SubMeshes correspond to material slots in this order:
+
+| Geometry | Material slot order |
+| --- | --- |
+| Cuboid and rounded cuboid | +Y, -Y, -X, +X, +Z, -Z |
+| Cylinder and truncated cone | Side, top cap, bottom cap |
+| Cone | Side, bottom cap |
+| Polygon | One slot per shape, in input order; holes share their outer contour's slot |
+| Extruded polygon | Both end caps, then all walls and bevels, per shape; closed paths have one wall slot per shape |
+
+Only generated parts occupy slots. Disabled or zero-radius caps do not reserve a slot, so a cylinder with only its bottom cap uses slot 0 for the side and slot 1 for the bottom. When rebuilding a mesh with different parts or shapes, update the material array to match the resulting slot order.
+
+Assign materials through `renderer.setMaterials(materials)`. To use one material across all slots, pass `mesh.subMeshes.map(() => material)`.
+
+Input data is copied at creation. Later changes to the original data do not alter the mesh or its device-restoration result. Recreate a mesh to change its parameters.
+
+### Serializable primitive assets
+
+`PrimitiveMeshAsset` is exported from both `@galacean/engine` and `@galacean/engine-loader`. Use it to type the JSON saved by an editor:
+
+```ts
+import type { PrimitiveMeshAsset } from "@galacean/engine";
+
+const asset = {
+  type: "sphere",
+  sphereRadius: 1,
+  sphereOptions: { subdivisionLevel: 3, keepCPUData: true }
+} satisfies PrimitiveMeshAsset;
+```
+
+Each `type` selects the matching `PrimitiveMesh.createX` method. Type-prefixed fields store the required shape inputs, and `<type>Options` stores only that factory's optional settings. Angular ranges are stored as `{ x: startAngle, y: endAngle }`, and the loader constructs `Vector2` instances. For example, `circleOptions: { angleRange: { x: 30, y: 180 } }` creates a sector from 30 to 180 degrees. Omitted option fields use the creation API's defaults, including defaults derived from another option. Angles remain in degrees.
+
+| Asset type | Required geometry fields |
+| --- | --- |
+| `sphere`, `circle` | `<type>Radius` |
+| `cuboid` | `cuboidWidth`, `cuboidHeight`, `cuboidDepth` |
+| `plane` | `planeWidth`, `planeDepth` |
+| `cylinder`, `cone`, `capsule` | `<type>Radius`, `<type>Height` |
+| `truncatedCone` | `truncatedConeTopRadius`, `truncatedConeBottomRadius`, `truncatedConeHeight` |
+| `torus` | `torusRadius`, `torusTubeRadius` |
+| `ring` | `ringOuterRadius`, `ringInnerRadius` |
+| `tetrahedron`, `octahedron`, `icosahedron`, `dodecahedron` | `<type>Radius` |
+| `lathe` | `latheProfile` |
+| `tube` | `tubePath`, `tubeRadius` |
+| `polygon` | `polygonShapes` |
+| `extrudedPolygon` | `extrudedPolygonShapes`, plus `extrudedPolygonDepth` or `extrudedPolygonPath` |
+| `torusKnot` | `torusKnotRadius`, `torusKnotTubeRadius`, `torusKnotAxisTurns`, `torusKnotCrossSectionTurns` |
+| `roundedCuboid` | `roundedCuboidWidth`, `roundedCuboidHeight`, `roundedCuboidDepth`, `roundedCuboidCornerRadius` |
+
+`sphere` creates a subdivided cube projected onto a sphere; `sphereOptions.subdivisionLevel` controls its subdivision level. `cylinder` has one radius; `truncatedCone` has independent `truncatedConeTopRadius` and `truncatedConeBottomRadius`.
+
+Profiles and polygon contours store `{ x, y }` points; paths store `{ x, y, z }` points. The loader constructs the corresponding vectors. Polygon and extrusion assets use one array of shapes, each with `points` and optional `holes`:
+
+```json
+{
+  "type": "extrudedPolygon",
+  "extrudedPolygonShapes": [
+    {
+      "points": [
+        { "x": -2, "y": -2 },
+        { "x": 2, "y": -2 },
+        { "x": 2, "y": 2 },
+        { "x": -2, "y": 2 }
+      ],
+      "holes": [
+        [
+          { "x": -1, "y": -1 },
+          { "x": -1, "y": 1 },
+          { "x": 1, "y": 1 },
+          { "x": 1, "y": -1 }
+        ]
+      ]
+    }
+  ],
+  "extrudedPolygonDepth": 2,
+  "extrudedPolygonOptions": { "bevelWidth": 0.1, "contourOffset": 0.2, "separateMaterialSlots": true }
+}
+```
+
+Path extrusion uses the required `extrudedPolygonPath` field instead of `extrudedPolygonDepth` and ignores bevel settings. Set `extrudedPolygonOptions.closedPath` to `true` for a closed path without end caps. Save path points as `{ x, y, z }`.
+
+The type-prefixed fields, including `<type>Options`, pass through the Editor's primitive asset bundler. Editor previews should select the same creation method and parameters as the saved asset.

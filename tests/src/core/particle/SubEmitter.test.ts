@@ -3307,7 +3307,7 @@ describe("SubEmitter rendering regressions", () => {
       const generator = child.generator;
       generator.main.startSize.constant = 0.8;
       child.renderMode = ParticleRenderMode.Mesh;
-      const mesh = PrimitiveMesh.createCuboid(engine);
+      const mesh = PrimitiveMesh.createCuboid(engine, 1, 1, 1);
       child.mesh = mesh;
       if (vertexColor) {
         mesh.setColors(Array.from({ length: mesh.vertexCount }, () => new Color(1, 1, 1, 1)));

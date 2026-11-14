@@ -97,7 +97,7 @@ describe("Sub-emitter rendering", () => {
     const child = createRenderer("Child");
     (parent.getMaterial() as ParticleMaterial).baseColor.set(0, 0, 0, 1);
     child.renderMode = ParticleRenderMode.Mesh;
-    child.mesh = PrimitiveMesh.createCuboid(engine);
+    child.mesh = PrimitiveMesh.createCuboid(engine, 1, 1, 1);
     child.generator.main.startSize.constant = 0.8;
     const texture = new Texture2D(engine, 1, 1, undefined, false);
     texture.setPixelBuffer(new Uint8Array([255, 255, 255, 255]));

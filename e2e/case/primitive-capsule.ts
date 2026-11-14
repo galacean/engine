@@ -55,7 +55,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
       transform.setPosition(0, 1, 0);
       transform.setRotation(45, 45, 0);
       const meshRenderer = entity.addComponent(MeshRenderer);
-      meshRenderer.mesh = PrimitiveMesh.createCapsule(engine, 0.5, 1, 24, 1);
+      meshRenderer.mesh = PrimitiveMesh.createCapsule(engine, 0.5, 1, { radialSegments: 24 });
       meshRenderer.setMaterial(material);
 
       updateForE2E(engine);

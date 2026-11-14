@@ -217,7 +217,12 @@ describe("BlendShapeManager", () => {
       ]
     );
     blendShapeWeights0_7.addFrame(frame);
-    const modelMeshWebgl2 = PrimitiveMesh.createCuboid(engineWebGL2, 1, 1, 1, false);
+    const modelMeshWebgl2 = PrimitiveMesh.createCuboid(engineWebGL2, 1, 1, 1, {
+      keepCPUData: true,
+      widthSegments: 1,
+      heightSegments: 1,
+      depthSegments: 1
+    });
     modelMeshWebgl2.addBlendShape(blendShapeWeights0_5);
     modelMeshWebgl2.addBlendShape(blendShapeWeights0_7);
     modelMeshWebgl2.addBlendShape(blendShapeWeights0_7);
@@ -294,7 +299,7 @@ describe("BlendShapeManager", () => {
   });
 
   it("_addBlendShape and _clearBlendShapes", () => {
-    const modelMesh = PrimitiveMesh.createPlane(engineWebGL2, 1, 1, 1, 1);
+    const modelMesh = PrimitiveMesh.createPlane(engineWebGL2, 1, 1);
     modelMesh.addBlendShape(new BlendShape("BlendShape1"));
     modelMesh.addBlendShape(new BlendShape("BlendShape2"));
     expect(modelMesh.blendShapeCount).to.be.equal(2);
@@ -310,7 +315,7 @@ describe("BlendShapeManager", () => {
   });
 
   it("_update", () => {
-    const modelMesh = PrimitiveMesh.createPlane(engineWebGL2, 1, 1, 1, 1);
+    const modelMesh = PrimitiveMesh.createPlane(engineWebGL2, 1, 1);
     const blendShape = new BlendShape("BlendShape1");
     modelMesh.addBlendShape(blendShape);
     blendShape.addFrame(0.7, [new Vector3(1, 0, 0)], [new Vector3(0, 0, 1)], [new Vector3(1, 1, 1)]);
@@ -320,7 +325,7 @@ describe("BlendShapeManager", () => {
       modelMesh.uploadData(true);
     }).to.throw("BlendShape frame deltaPositions length must same with mesh vertexCount");
 
-    const modelMesh2 = PrimitiveMesh.createPlane(engineWebGL2, 1, 1, 1);
+    const modelMesh2 = PrimitiveMesh.createPlane(engineWebGL2, 1, 1);
     blendShape.frames[0].deltaPositions = [
       new Vector3(1, 0, 0),
       new Vector3(0, 1, 1),

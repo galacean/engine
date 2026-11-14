@@ -193,7 +193,7 @@ describe("SizeOverLifetime", () => {
   it("mesh render mode with separateAxes TwoCurves enables macros, uploads all axis curves and writes the random slot", () => {
     const renderer = createParticleRenderer(engine, "SOL_MeshSeparate");
     renderer.renderMode = ParticleRenderMode.Mesh;
-    renderer.mesh = PrimitiveMesh.createCuboid(engine);
+    renderer.mesh = PrimitiveMesh.createCuboid(engine, 1, 1, 1);
 
     const generator = renderer.generator;
     const sol = generator.sizeOverLifetime;

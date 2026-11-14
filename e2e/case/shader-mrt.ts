@@ -97,7 +97,7 @@ WebGLEngine.create({ canvas: "canvas", shaderCompiler }).then((engine) => {
     const sphere = rootEntity.createChild("sphere");
     sphere.transform.position.x = -1;
     const renderer = sphere.addComponent(MeshRenderer);
-    renderer.mesh = PrimitiveMesh.createSphere(engine);
+    renderer.mesh = PrimitiveMesh.createSphere(engine, 0.5);
     const material = new Material(engine, shader);
     material.shaderData.setColor("material_BaseColor", new Color(1, 0, 0, 0.2));
     renderer.setMaterial(material);

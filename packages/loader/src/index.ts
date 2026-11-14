@@ -27,6 +27,7 @@ export { GLTFLoader } from "./GLTFLoader";
 export type { GLTFParams } from "./GLTFLoader";
 import "./SceneLoader";
 export type { TextureParams } from "./TextureLoader";
+export type { PrimitiveMeshAsset } from "./PrimitiveMeshAsset";
 export { parseSingleKTX } from "./compressed-texture";
 export * from "./gltf";
 export { KTX2Loader } from "./ktx2/KTX2Loader";

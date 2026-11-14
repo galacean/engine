@@ -101,7 +101,12 @@ describe("Collider layer initialization", () => {
     source.addShape(shape);
     expect(attach.mock.calls.length).toBe(1);
 
-    const mesh = PrimitiveMesh.createCuboid(engine, 1, 1, 1, false);
+    const mesh = PrimitiveMesh.createCuboid(engine, 1, 1, 1, {
+      keepCPUData: true,
+      widthSegments: 1,
+      heightSegments: 1,
+      depthSegments: 1
+    });
     shape.mesh = mesh;
     const center = new Vector3(3, 1000.5, 0);
     expect(physics.overlapSphereAll(center, 0.1, Layer.Everything)).toEqual([]);
