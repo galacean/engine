@@ -1,0 +1,22 @@
+packages/loader/src/PrimitiveMeshLoader.ts
+  s_f1a7b8285f1df2::t_0bc6c98641afd6 141,146,149
+tests/src/loader/PrimitiveMeshLoader.test.ts
+  s_f1a7b8285f1df2::t_0bc6c98641afd6 619-627,632-641,655
+  s_f1a7b8285f1df2::t_1d3b235ca20796 628-631
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "57ee6775e97efa7d0ecf6c2ca43270d1edf4c926",
+  "prompts": {},
+  "sessions": {
+    "s_f1a7b8285f1df2": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1d54e-3c87-7273-b01d-79d652eaed37",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}
