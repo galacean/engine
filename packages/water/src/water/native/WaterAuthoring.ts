@@ -387,7 +387,9 @@ export function resolveWaterMaterialProfile(
   const profiles = ["lake", "river", "ocean"] as const;
   const profile =
     typeof profileIndex === "number" && Number.isInteger(profileIndex) ? profiles[profileIndex] : undefined;
-  if (!profile || (riverDrops !== 0 && riverDrops !== 1) || (riverDrops === 1 && profile !== "river"))
+  if (riverDrops === 1 || riverDrops === true)
+    throw new TypeError("NOT_SUPPORTED: River Drops is not part of the public Water material contract.");
+  if (!profile || (riverDrops != null && riverDrops !== 0 && riverDrops !== false))
     throw new TypeError("INVALID_ARGUMENT: Water Material has an unsupported profile or river drop policy.");
   if (expectedKind !== undefined && expectedKind !== profile)
     throw new TypeError(
@@ -404,9 +406,13 @@ export function validateWaterMaterialCapabilities(
   const data = material?.shaderData;
   const profile = data?.material_WaterProfile;
   const drops = data?.material_WaterRiverDrops;
-  if (profile?.type !== "Integer" || (drops?.type !== "Boolean" && drops?.type !== "Integer"))
-    throw new TypeError("INVALID_ARGUMENT: Water Material requires native profile and river drop declarations.");
-  resolveWaterMaterialProfile(profile.value, drops.value === true ? 1 : drops.value === false ? 0 : drops.value, kind);
+  if (profile?.type !== "Integer" || (drops && drops.type !== "Boolean" && drops.type !== "Integer"))
+    throw new TypeError("INVALID_ARGUMENT: Water Material requires a native profile declaration.");
+  resolveWaterMaterialProfile(
+    profile.value,
+    drops?.value === true ? 1 : drops?.value === false ? 0 : drops?.value,
+    kind
+  );
 }
 
 /** Closed polygon containment, including boundary points. */

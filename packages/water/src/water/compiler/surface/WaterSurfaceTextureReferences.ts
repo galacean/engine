@@ -12,7 +12,7 @@ export function collectWaterSurfaceTextureReferences(
 ): readonly CompiledWaterSurfaceTextureReferenceV2[] {
   return Object.freeze([
     ...appearance.detailLayers
-      .filter((layer) => layer.source === WaterSurfaceDetailSource.NormalTexture)
+      .filter((layer) => layer.source === WaterSurfaceDetailSource.NormalTexture && !!layer.textureAssetId)
       .map((layer) =>
         Object.freeze({
           layerId: layer.id,

@@ -1,3 +1,4 @@
+import { createFarmlandsWaterResourceFactories } from "@galacean/engine-water/water/resources/river/FarmlandsWaterRuntimeResources";
 import { Layer, type Camera, type Engine, type Entity, type Scene } from "@galacean/engine-core";
 import {
   createRiverWaterBodyAsset,
@@ -183,6 +184,8 @@ export class SeedWorldWaterRuntime {
           })
         )
     });
+    for (const factory of createFarmlandsWaterResourceFactories(config.engine))
+      this._host.ensureRuntimeResource(factory);
     this._host.registerBackend(this._heightfieldBackend);
     this._host.registerBackend(this._oceanBackend);
     this._host.registerBackend(this._riverBackend);

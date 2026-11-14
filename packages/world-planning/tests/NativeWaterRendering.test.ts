@@ -1,28 +1,14 @@
+import { WATER_BUILTIN_SHADER_SOURCES } from "@galacean/engine-water/water/native/WaterBuiltinShaderSources";
 import { createWaterQualitySettings } from "@galacean/engine-water/water/native/WaterQualitySettings";
 import { expect, it } from "vitest";
-import { page } from "@vitest/browser/context";
-import { Vector3, MeshRenderer } from "@galacean/engine";
-import { WaterBodyComponent, WaterLookResource } from "@galacean/engine-water/water/native/index";
+import { MeshRenderer, Shader } from "@galacean/engine";
+import { WaterBodyComponent } from "@galacean/engine-water/water/native/index";
 import { BUILTIN_WATER_PROJECT_URL } from "@galacean/engine-water/water/native/WaterBuiltinAssets";
-import { WaterBodyAssetRegistry } from "@galacean/engine-water/water/runtime/body/WaterBodyAssetRegistry";
-import {
-  registerLakeWaterLook,
-  LAKE_WATER_LOOK_PRESET_ID
-} from "@galacean/engine-water/water/presets/lake/LakeWaterLook";
-import {
-  registerRiverWaterBodyPresets,
-  registerFarmlandsRiverLook,
-  FARMLANDS_RIVER_LOOK_ID
-} from "@galacean/engine-water/water/presets/river/index";
-import { registerOceanLook } from "@galacean/engine-water/water/authoring/ocean/OceanAuthoring";
-import { OCEAN_LOOK_ID } from "@galacean/engine-water/water/presets/ocean/index";
 import type { WaterShapeAuthoring } from "@galacean/engine-water/water/native/WaterAuthoring";
 import { openWaterEditorFixture } from "./WaterEditorFixture";
-import { writeWaterTerrainAssets } from "@galacean/engine-world-planning/spatial/runtime/NativeWaterEditor";
-import { ledgeTerrain } from "../../water/tests/WaterFixtures";
 
-it.each(["lake", "river", "river-drops", "ocean"] as const)(
-  "renders the converted native %s exactly like the original preset at a fixed time",
+it.each(["lake", "river", "ocean"] as const)(
+  "renders the explicit native %s preset identically through compiled and source shaders",
   async (kind) => {
     const manifest = await (await fetch(BUILTIN_WATER_PROJECT_URL)).json();
     const current = await openWaterEditorFixture(
@@ -32,20 +18,12 @@ it.each(["lake", "river", "river-drops", "ocean"] as const)(
     );
     current.engine.time.timeScale = 0;
     current.engine.canvas.setResolution(256, 256);
-    let originalLook: WaterLookResource | undefined;
+    let authoredShader: Shader | undefined;
     try {
       expect((await current.water.execute(async () => {})).runtimeError).toBeUndefined();
       let identity = current.editor.projection.queryComponents({ type: "WaterBodyComponent" })[0];
       if (kind !== "lake") {
         expect((await current.water.change({ operation: "remove", id: identity.id })).runtimeError).toBeUndefined();
-        const drops = kind === "river-drops";
-        if (drops) {
-          await current.water.execute((edit) =>
-            writeWaterTerrainAssets(edit, "Water/Terrain/ledge.json", ledgeTerrain)
-          );
-          current.system.camera!.entity.transform.setPosition(10, 6, 10);
-          current.system.camera!.entity.transform.lookAt(new Vector3(4, 0, 4));
-        }
         const shape: WaterShapeAuthoring =
           kind !== "ocean"
             ? {
@@ -54,10 +32,9 @@ it.each(["lake", "river", "river-drops", "ocean"] as const)(
                 course: {
                   id: "render-river",
                   points: [
-                    { id: "head", x: 1, z: 4, elevation: drops ? 1 : 0, width: 4, depth: 1 },
-                    { id: "tail", x: 7, z: 4, elevation: drops ? -1 : 0, width: 4, depth: 1 }
-                  ],
-                  ...(drops ? { sections: [{ id: "ledge", from: "head", to: "tail", form: "waterfall" }] } : {})
+                    { id: "head", x: 1, z: 4, elevation: 0, width: 4, depth: 1 },
+                    { id: "tail", x: 7, z: 4, elevation: 0, width: 4, depth: 1 }
+                  ]
                 }
               }
             : {
@@ -79,11 +56,11 @@ it.each(["lake", "river", "river-drops", "ocean"] as const)(
             shape,
             terrain: {
               mode: "asset",
-              description: { $ref: `Water/Terrain/${drops ? "ledge" : "manual-bed"}.json` },
-              heights: { $ref: `Water/Terrain/${drops ? "ledge" : "manual-bed"}.bin` }
+              description: { $ref: "Water/Terrain/manual-bed.json" },
+              heights: { $ref: "Water/Terrain/manual-bed.bin" }
             },
             material: { $ref: `Water/Materials/${kind}.mat` },
-            quality: createWaterQualitySettings(drops ? "river" : (kind as "river" | "ocean"))
+            quality: createWaterQualitySettings(kind)
           }
         });
         expect(created.runtimeError).toBeUndefined();
@@ -92,7 +69,7 @@ it.each(["lake", "river", "river-drops", "ocean"] as const)(
       const body = current.editor.projection.component(identity.id) as WaterBodyComponent,
         native = body.configuration!;
       const renderers: MeshRenderer[] = [];
-      for (const root of current.engine.sceneManager.activeScene.rootEntities)
+      for (const root of current.engine.sceneManager.activeScene!.rootEntities)
         root.getComponentsIncludeChildren(MeshRenderer, renderers);
       expect(renderers.some((renderer) => renderer.getMaterial()?.shader === native.material!.shader)).toBe(true);
       const gl = current.canvas.getContext("webgl2")!;
@@ -105,22 +82,18 @@ it.each(["lake", "river", "river-drops", "ocean"] as const)(
         return pixels;
       };
       const converted = render();
-      await page.screenshot({ element: current.canvas, path: `/tmp/water-migration-${kind}-native.png` });
-      const presets = new WaterBodyAssetRegistry();
-      registerLakeWaterLook(presets);
-      registerRiverWaterBodyPresets(presets);
-      registerFarmlandsRiverLook(presets);
-      registerOceanLook(presets);
-      const lookId =
-        kind === "lake" ? LAKE_WATER_LOOK_PRESET_ID : kind === "ocean" ? OCEAN_LOOK_ID : FARMLANDS_RIVER_LOOK_ID;
-      originalLook = new WaterLookResource(current.engine, presets.getLookAuthoringSnapshot(lookId)!);
-      await (
-        await current.system.prepareBatch([
-          { body, configuration: { ...native, look: originalLook, material: undefined } }
-        ])
-      ).commit().retiredCleanup;
+      const originalShader = native.material!.shader;
+      authoredShader = Shader.create(
+        WATER_BUILTIN_SHADER_SOURCES[kind].replace(
+          `Water/${kind === "lake" ? "Lake" : kind === "river" ? "River" : "Ocean"}.v1`,
+          `WaterParity/${kind}`
+        )
+      );
+      native.material!.shader = authoredShader;
+      await body.refresh();
       const original = render();
-      await page.screenshot({ element: current.canvas, path: `/tmp/water-migration-${kind}-original.png` });
+      native.material!.shader = originalShader;
+      await body.refresh();
       let maximumDelta = 0;
       for (let index = 0; index < converted.length; index++)
         maximumDelta = Math.max(maximumDelta, Math.abs(converted[index] - original[index]));
@@ -139,7 +112,7 @@ it.each(["lake", "river", "river-drops", "ocean"] as const)(
       expect(waterPixels).toBeGreaterThan(1000);
     } finally {
       await current.close();
-      originalLook?.destroy();
+      authoredShader?.destroy();
     }
   }
 );

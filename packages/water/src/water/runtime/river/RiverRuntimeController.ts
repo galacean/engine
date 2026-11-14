@@ -1,3 +1,4 @@
+import { destroyWaterOwnedMaterial, detachWaterOwnedMaterials } from "../resources/destroyWaterOwnedMaterial";
 import { createWaterConnectionBinding, type WaterConnectionBinding } from "../connections/WaterConnectionBinding";
 import { destroyWaterOwnedMesh } from "../resources/destroyWaterOwnedMesh";
 import { updateWaterSurfaceAppearanceV2Clock } from "../surface/WaterSurfaceAppearanceV2UniformBinding";
@@ -618,9 +619,12 @@ export class RiverRuntimeController {
       if (activated) throw error;
       cleanupRuntime(
         [
-          ...reaches
-            .filter((reach) => !borrowedReaches.has(reach))
-            .map((reach) => () => this._destroyReachMaterials(reach, connectionBinding)),
+          () =>
+            this._destroyReachMaterials(
+              reaches.filter((reach) => !borrowedReaches.has(reach)),
+              root,
+              connectionBinding
+            ),
           ...[...newConnections].map((binding) => () => binding.destroy()),
           ...chunks.filter((chunk) => !borrowedChunks.has(chunk)).map((chunk) => () => this._destroyChunk(chunk)),
           ...[...newTextures].map((texture) => () => texture.destroy(true)),
@@ -882,7 +886,7 @@ export class RiverRuntimeController {
     } catch (error) {
       cleanupRuntime(
         [
-          ...reaches.map((reach) => () => this._destroyReachMaterials(reach, connectionBinding)),
+          () => this._destroyReachMaterials(reaches, root, connectionBinding),
           () => connectionBinding?.destroy(),
           ...chunks.map((chunk) => () => this._destroyChunk(chunk)),
           () => localMapTexture?.destroy(true),
@@ -914,87 +918,68 @@ export class RiverRuntimeController {
       throw new Error("River runtime requires a compiled V2 Surface Optics binding before activation.");
     }
     const reaches: MutableRiverRuntimeReach[] = [];
+    const materials: Material[] = [];
     try {
       for (const reachIndex of reachIndices ?? compiledData.reaches.keys()) {
         const reach = compiledData.reaches[reachIndex];
         const source = sources?.[reachIndex];
         const config = source?.config ?? cloneCompiledRiverConfig(reach.config);
         const reachRoot = root.createChild(`river-reach-${reach.id}`);
-        let surface: Material | undefined;
-        let surfaceLocalMap: Material | undefined;
-        try {
-          const visualMaterial = deriveRiverVisualMaterial(surfaceAppearanceBinding, config.material);
-          surface = createRiverMaterial(
-            this._engine,
-            visualMaterial,
-            1,
-            compiledData.surfaceMotion,
-            surfaceAppearanceBinding,
-            surfaceOpticsBinding
-          );
-          surfaceLocalMap = localMapTexture
-            ? createRiverLocalMapMaterial(
-                this._engine,
-                visualMaterial,
-                1,
-                compiledData.surfaceMotion,
-                localMapTexture,
-                surfaceAppearanceBinding,
-                surfaceOpticsBinding
-              )
-            : undefined;
-          if (this.surfaceShader) {
-            surface.shader = this.surfaceShader;
-            if (surfaceLocalMap) surfaceLocalMap.shader = this.surfaceShader;
-          }
-          connectionBinding?.bind(surface);
-          if (surfaceLocalMap) connectionBinding?.bind(surfaceLocalMap);
-          const materials: RiverRuntimeMaterialSet = { surface, surfaceLocalMap };
-          pinMaterialSet(materials);
-          setRiverSurfaceDepthWriteEnabled(materials.surface, this._depthWriteEnabled);
-          setRiverSurfaceFeatureFlags(materials.surface, this._macroDisplacementEnabled, this._microSurfaceEnabled);
-          setRiverSurfaceTimeOverride(materials.surface, this._surfaceTimeOverride);
-          applyRiverSurfaceOpticsBinding(materials.surface, surfaceOpticsBinding);
-          if (materials.surfaceLocalMap) {
-            setRiverSurfaceDepthWriteEnabled(materials.surfaceLocalMap, this._depthWriteEnabled);
-            setRiverSurfaceFeatureFlags(
-              materials.surfaceLocalMap,
-              this._macroDisplacementEnabled,
-              this._microSurfaceEnabled
-            );
-            setRiverSurfaceTimeOverride(materials.surfaceLocalMap, this._surfaceTimeOverride);
-            applyRiverSurfaceOpticsBinding(materials.surfaceLocalMap, surfaceOpticsBinding);
-          }
-          reaches.push({
-            root: reachRoot,
-            config,
-            artifact: source?.artifact ?? reach.artifact,
-            materials,
-            localMapTexture
-          });
-        } catch (error) {
-          cleanupRuntime(
-            [
-              () => {
-                if (surface) connectionBinding?.unbind(surface);
-              },
-              () => surface?.destroy(true),
-              () => {
-                if (surfaceLocalMap) connectionBinding?.unbind(surfaceLocalMap);
-              },
-              () => surfaceLocalMap?.destroy(true)
-            ],
-            [error]
-          );
-          throw error;
+        const visualMaterial = deriveRiverVisualMaterial(surfaceAppearanceBinding, config.material);
+        const surface = createRiverMaterial(
+          this._engine,
+          visualMaterial,
+          1,
+          compiledData.surfaceMotion,
+          surfaceAppearanceBinding,
+          surfaceOpticsBinding
+        );
+        materials.push(surface);
+        const surfaceLocalMap = localMapTexture
+          ? createRiverLocalMapMaterial(
+              this._engine,
+              visualMaterial,
+              1,
+              compiledData.surfaceMotion,
+              localMapTexture,
+              surfaceAppearanceBinding,
+              surfaceOpticsBinding
+            )
+          : undefined;
+        if (surfaceLocalMap) materials.push(surfaceLocalMap);
+        if (this.surfaceShader) {
+          surface.shader = this.surfaceShader;
+          if (surfaceLocalMap) surfaceLocalMap.shader = this.surfaceShader;
         }
+        connectionBinding?.bind(surface);
+        if (surfaceLocalMap) connectionBinding?.bind(surfaceLocalMap);
+        const materialSet: RiverRuntimeMaterialSet = { surface, surfaceLocalMap };
+        pinMaterialSet(materialSet);
+        setRiverSurfaceDepthWriteEnabled(materialSet.surface, this._depthWriteEnabled);
+        setRiverSurfaceFeatureFlags(materialSet.surface, this._macroDisplacementEnabled, this._microSurfaceEnabled);
+        setRiverSurfaceTimeOverride(materialSet.surface, this._surfaceTimeOverride);
+        applyRiverSurfaceOpticsBinding(materialSet.surface, surfaceOpticsBinding);
+        if (materialSet.surfaceLocalMap) {
+          setRiverSurfaceDepthWriteEnabled(materialSet.surfaceLocalMap, this._depthWriteEnabled);
+          setRiverSurfaceFeatureFlags(
+            materialSet.surfaceLocalMap,
+            this._macroDisplacementEnabled,
+            this._microSurfaceEnabled
+          );
+          setRiverSurfaceTimeOverride(materialSet.surfaceLocalMap, this._surfaceTimeOverride);
+          applyRiverSurfaceOpticsBinding(materialSet.surfaceLocalMap, surfaceOpticsBinding);
+        }
+        reaches.push({
+          root: reachRoot,
+          config,
+          artifact: source?.artifact ?? reach.artifact,
+          materials: materialSet,
+          localMapTexture
+        });
       }
       return reaches;
     } catch (error) {
-      cleanupRuntime(
-        reaches.map((reach) => () => this._destroyReachMaterials(reach, connectionBinding)),
-        [error]
-      );
+      cleanupRuntime([() => this._destroyMaterials(materials, root, connectionBinding)], [error]);
       throw error;
     }
   }
@@ -1070,21 +1055,37 @@ export class RiverRuntimeController {
     destroyWaterOwnedMesh(chunk.meshes.surfaceMesh);
   }
 
-  // Reach entities remain under the runtime root until all borrowers and their atlas have retired.
-  private _destroyReachMaterials(reach: MutableRiverRuntimeReach, connectionBinding?: WaterConnectionBinding): void {
+  // Include the runtime root: Junction renderers borrow materials from other Reach entities.
+  private _destroyReachMaterials(
+    reaches: readonly MutableRiverRuntimeReach[],
+    root: Entity | undefined,
+    connectionBinding?: WaterConnectionBinding
+  ): void {
+    this._destroyMaterials(
+      reaches.flatMap((reach) => [reach.materials.surface, reach.materials.surfaceLocalMap]),
+      root,
+      connectionBinding
+    );
+  }
+
+  private _destroyMaterials(
+    materials: readonly (Material | undefined)[],
+    root: Entity | undefined,
+    connectionBinding?: WaterConnectionBinding
+  ): void {
+    const owned = new Set(materials.filter((material): material is Material => !!material));
     cleanupRuntime([
-      () => connectionBinding?.unbind(reach.materials.surface),
-      () => reach.materials.surface.destroy(true),
-      () => {
-        if (reach.materials.surfaceLocalMap) connectionBinding?.unbind(reach.materials.surfaceLocalMap);
-      },
-      () => reach.materials.surfaceLocalMap?.destroy(true)
+      () => detachWaterOwnedMaterials(owned, root),
+      ...[...owned].flatMap((material) => [
+        () => connectionBinding?.unbind(material),
+        () => destroyWaterOwnedMaterial(material)
+      ])
     ]);
   }
 
   private _runtimeCleanupActions(runtimeSet: MutableRiverRuntimeSet): (() => void)[] {
     return [
-      ...runtimeSet.reaches.map((reach) => () => this._destroyReachMaterials(reach, runtimeSet.connectionBinding)),
+      () => this._destroyReachMaterials(runtimeSet.reaches, runtimeSet.root, runtimeSet.connectionBinding),
       ...[...runtimeSet.ownedConnections].map((binding) => () => binding.destroy()),
       () => runtimeSet.spatialFieldProvider.destroy(),
       ...runtimeSet.chunks.map((chunk) => () => this._destroyChunk(chunk)),

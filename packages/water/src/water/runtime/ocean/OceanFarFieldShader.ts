@@ -10,14 +10,16 @@ import type { OceanRuntimeTuning } from "./OceanRuntimeTuning";
  */
 export const OCEAN_FAR_FIELD_SHADER_FUNCTIONS = oceanFarFieldShaderFunctions;
 
-// Per-axis second moment of two RNM-blended RoughWaves layers (linear normal data).
-// Calibrated from the bundled 1024px source: 65,536 sample pairs yield 0.1223.
-// The fixed asset distribution is scaled by the actual reflection-normal blend.
+// Fixed far-LOD material-model assumption, retained for the default 512 appearance.
+// The far pass omits detail-image sampling; this is not a measured statistic of
+// arbitrary caller textures. An empty rough slot disables this contribution.
 const ROUGH_WAVE_NORMAL_VARIANCE = 0.123;
 
-/** Called only when the Look changes, never per frame. */
-export function deriveOceanFarReflectionFilter(tuning: Readonly<OceanRuntimeTuning>): readonly [number, number] {
-  const normalVariance = ROUGH_WAVE_NORMAL_VARIANCE * tuning.reflection.distortion ** 2;
+export function deriveOceanFarReflectionFilter(
+  tuning: Readonly<OceanRuntimeTuning>,
+  roughNormalAvailable = true
+): readonly [number, number] {
+  const normalVariance = roughNormalAvailable ? ROUGH_WAVE_NORMAL_VARIANCE * tuning.reflection.distortion ** 2 : 0;
   const samplingRoughness = Math.min(1, (tuning.reflection.blur ** 4 + normalVariance) ** 0.25);
   return [samplingRoughness, normalVariance];
 }
@@ -28,5 +30,8 @@ export function bindOceanFarFieldTuning(shaderData: ShaderData, tuning: Readonly
   shaderData.setFloat("material_Roughness", tuning.reflection.blur);
   shaderData.setVector4("material_OceanDeepColor", new Vector4(...tuning.color.deep));
   shaderData.setVector4("material_OceanHorizonColor", new Vector4(...tuning.color.horizon));
-  shaderData.setVector2("material_OceanFarReflectionFilter", new Vector2(...deriveOceanFarReflectionFilter(tuning)));
+  shaderData.setVector2(
+    "material_OceanFarReflectionFilter",
+    new Vector2(...deriveOceanFarReflectionFilter(tuning, shaderData.getFloat("material_OceanFarNormalEnabled") !== 0))
+  );
 }

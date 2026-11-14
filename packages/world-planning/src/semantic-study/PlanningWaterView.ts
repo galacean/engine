@@ -1,3 +1,4 @@
+import { createFarmlandsWaterResourceFactories } from "@galacean/engine-water/water/resources/river/FarmlandsWaterRuntimeResources";
 import { Camera, Layer, type Engine, type Entity } from "@galacean/engine";
 import {
   createWaterBodyAsset,
@@ -64,6 +65,7 @@ export class PlanningWaterView {
       compile: (source, context) =>
         this.compiler.compile(source, context.signal, computeRiverPhysicalSourceHash(source))
     });
+    for (const factory of createFarmlandsWaterResourceFactories(engine)) this.host.ensureRuntimeResource(factory);
     this.host.registerBackend(this.ocean);
     this.host.registerBackend(this.river);
     this.host.registerAuthoring(registerRiverWaterBodyPresets);

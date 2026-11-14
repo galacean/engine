@@ -7,10 +7,6 @@
       "type": "Integer",
       "value": 2
     },
-    "material_WaterRiverDrops": {
-      "type": "Boolean",
-      "value": false
-    },
     "material_Water_look_reflectionSampling_screenSpaceCompositeIntensity": {
       "type": "Float",
       "value": 1
@@ -277,6 +273,36 @@
     "material_Water_renderState_blendMode": {
       "type": "Integer",
       "value": 1
+    },
+    "material_Ocean_smoothWaves": {
+      "type": "Texture",
+      "value": {
+        "url": "Water/Textures/ocean-smoothWaves.ktx2"
+      }
+    },
+    "material_Ocean_roughWaves": {
+      "type": "Texture",
+      "value": {
+        "url": "Water/Textures/ocean-roughWaves.ktx2"
+      }
+    },
+    "material_Ocean_caustics": {
+      "type": "Texture",
+      "value": {
+        "url": "Water/Textures/ocean-caustics.ktx2"
+      }
+    },
+    "material_Ocean_foam": {
+      "type": "Texture",
+      "value": {
+        "url": "Water/Textures/ocean-foam.ktx2"
+      }
+    },
+    "material_Ocean_intersectionNoise": {
+      "type": "Texture",
+      "value": {
+        "url": "Water/Textures/ocean-intersectionNoise.ktx2"
+      }
     }
   }
 }

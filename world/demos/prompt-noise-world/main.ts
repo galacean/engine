@@ -1,3 +1,4 @@
+import { createFarmlandsWaterResourceFactories } from "@galacean/engine-water/water/resources/river/FarmlandsWaterRuntimeResources";
 import {
   Camera,
   DirectLight,
@@ -475,6 +476,7 @@ async function boot(): Promise<void> {
       screenSpaceReflection: PROMPT_NOISE_RIVER_SSR_CAMERA_SETTINGS
     }
   });
+  for (const factory of createFarmlandsWaterResourceFactories(engine)) waterHost.ensureRuntimeResource(factory);
   waterHost.createEnvironmentReflectionProvider({
     id: PROMPT_NOISE_RIVER_ENVIRONMENT_PROVIDER_ID,
     source: {

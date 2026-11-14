@@ -14,6 +14,7 @@ import {
   MeshRenderer,
   Shader,
   Vector3,
+  Texture2D,
   WebGLEngine
 } from "@galacean/engine";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
@@ -23,6 +24,7 @@ import {
   registerNativeWater,
   encodeWaterTerrainAssets
 } from "../src/water/native/index";
+import { createWaterMaterialDefaults } from "../src/water/native/WaterMaterial";
 import { BUILTIN_WATER_PROJECT_URL } from "../src/water/native/WaterBuiltinAssets";
 import { createWaterQualitySettings } from "../src/water/native/WaterQualitySettings";
 import { lake, terrain } from "./WaterFixtures";
@@ -37,10 +39,14 @@ async function fixture(profile: "lake" | "river") {
   system.camera.entity.transform.setPosition(4, 7, 10);
   system.camera.entity.transform.lookAt(new Vector3(4, 0, 4));
   system.beginInputUpdate();
-  const file = await (await fetch(new URL(`Water/Materials/${profile}.mat`, BUILTIN_WATER_PROJECT_URL))).json();
+  const file = createWaterMaterialDefaults(profile);
   expect(file.shader).toBe(`Water/${profile === "river" ? "River" : "Lake"}.v1`);
   expect(file).not.toHaveProperty("shaderRef");
-  expect(Object.values(file.shaderData).some((entry: { type: string }) => entry.type === "Texture")).toBe(false);
+  expect(
+    Object.values(file.shaderData)
+      .filter((entry) => entry.type === "Texture")
+      .every((entry) => entry.value === null)
+  ).toBe(true);
   const material = await engine.resourceManager.load<Material>({
     type: AssetType.Material,
     url: "data:application/json," + encodeURIComponent(JSON.stringify(file))
@@ -204,6 +210,9 @@ it("rejects a partial null-target connection without replacing accepted authorin
 
 it("renders a shared builtin lake at independent tiers and restores high after low and disable", async () => {
   const f = await fixture("lake");
+  const normal = new Texture2D(f.engine, 4, 4, undefined, false, false);
+  for (const index of [0, 1])
+    f.material.shaderData.setTexture(`material_Water_appearance_appearance_detailLayers_${index}_texture`, normal);
   try {
     const a = f.scene.createRootEntity("Quality lake A").addComponent(WaterBodyComponent);
     const b = f.scene.createRootEntity("Quality lake B").addComponent(WaterBodyComponent);
@@ -256,6 +265,13 @@ it("renders a shared builtin lake at independent tiers and restores high after l
 it("activates a connected native river and Ocean, and removes the Ocean port on disconnect", async () => {
   const f = await fixture("river");
   try {
+    const manifest = await (await fetch(BUILTIN_WATER_PROJECT_URL)).json();
+    f.engine.resourceManager.registerVirtualResources(
+      manifest.files.map((file: { path: string }) => ({
+        ...file,
+        path: new URL(file.path, BUILTIN_WATER_PROJECT_URL).href
+      }))
+    );
     const file = await (await fetch(new URL("Water/Materials/ocean.mat", BUILTIN_WATER_PROJECT_URL))).json();
     const material = await f.engine.resourceManager.load<Material>({
       type: AssetType.Material,

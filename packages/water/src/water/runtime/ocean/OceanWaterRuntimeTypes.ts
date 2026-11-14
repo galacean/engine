@@ -2,7 +2,7 @@ import type { WaterConnectionPort } from "../../authoring/connections/WaterConne
 import type { OceanNearshoreDescriptorV1 } from "../../authoring/ocean/OceanNearshoreDescriptor";
 import type { CompiledWaterRenderContractV1 } from "../../compiler/surface/CompiledWaterRenderContractTypes";
 import type { OceanRuntimeTuning } from "./OceanRuntimeTuning";
-import type { OceanTextures } from "./OceanTextureLibrary";
+import type { OceanTextures } from "./OceanTextures";
 
 /** Engine-object-free Body source. Rendering parameters belong to the one canonical Look. */
 export interface OceanWaterSourceConfig {

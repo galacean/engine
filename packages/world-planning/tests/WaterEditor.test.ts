@@ -161,7 +161,7 @@ it("edits a real Source lake through public history and reopens it in a new Engi
       independent.configuration!.material!.shaderData.getTexture(
         "material_Water_appearance_appearance_detailLayers_0_texture"
       )
-    ).toBeUndefined();
+    ).toBeDefined();
     const beforeAgent = current.system.revision;
     const agent = await current.water.execute((edit) =>
       createNativeWaterAgentPackage(edit, "Main.scene").tools[0].execute(
@@ -461,7 +461,7 @@ it("edits a real Source lake through public history and reopens it in a new Engi
       surfaceElevationMetres: 0.25,
       surfaceModel: "ocean-datum-excludes-gerstner"
     });
-    expect(oceanBody.authoring!.material!.shaderData.getTexture("material_Ocean_smoothWaves")).toBeUndefined();
+    expect(oceanBody.authoring!.material!.shaderData.getTexture("material_Ocean_smoothWaves")).toBeDefined();
     const oceanTexturesA = await OceanTextureLibrary.create(current.engine),
       oceanTexturesB = await OceanTextureLibrary.create(current.engine);
     expect(oceanTexturesA.textures.smoothWaves).toMatchObject({
@@ -539,7 +539,7 @@ it("edits a real Source lake through public history and reopens it in a new Engi
       reopenedShared.configuration!.material!.shaderData.getTexture(
         "material_Water_appearance_appearance_detailLayers_0_texture"
       )
-    ).toBeUndefined();
+    ).toBeDefined();
     let renderer: MeshRenderer | undefined;
     current.system.activeRuntimeHost!.visitBodyRenderers((id, currentRenderer) => {
       const identity = current!.host.identityForRenderer(currentRenderer);

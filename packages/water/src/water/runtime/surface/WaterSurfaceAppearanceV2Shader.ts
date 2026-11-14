@@ -42,7 +42,7 @@ export const WATER_SURFACE_APPEARANCE_V2_SHADER_PROPERTY = Object.freeze({
   directionalHighlightSharp: "material_AppearanceV2DirectionalHighlightSharp"
 });
 
-export type WaterSurfaceAppearanceV2DetailProperty = "texture" | "transform" | "rotation" | "strength";
+export type WaterSurfaceAppearanceV2DetailProperty = "texture" | "transform" | "rotation" | "strength" | "enabled";
 export type WaterSurfaceAppearanceV2DepthProperty =
   | "distance"
   | "exponent"
@@ -204,6 +204,7 @@ function detailLayerTemplateData(
       layer?.source === WaterSurfaceDetailSource.NormalTexture
         ? getWaterSurfaceAppearanceV2DetailProperty(index, "texture")
         : "material_SurfaceTexture",
+    [`${prefix}_ENABLED`]: getWaterSurfaceAppearanceV2DetailProperty(index, "enabled"),
     [`${prefix}_STRENGTH`]: getWaterSurfaceAppearanceV2DetailProperty(index, "strength"),
     [`${prefix}_FLIP_GREEN`]: layer?.normalConvention === WaterSurfaceNormalConvention.DirectX ? "1.0" : "0.0",
     [`${prefix}_BLEND_MODE`]: detailBlendSelector(layer?.blend ?? WaterSurfaceDetailBlend.Whiteout)

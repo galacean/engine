@@ -1,3 +1,4 @@
+import { destroyWaterOwnedMaterial } from "../resources/destroyWaterOwnedMaterial";
 import { Shader, ShaderPass } from "@galacean/engine-core";
 import type { Vector3 } from "@galacean/engine-math";
 import { createWaterConnectionBinding, type WaterConnectionBinding } from "../connections/WaterConnectionBinding";
@@ -228,6 +229,7 @@ export class OceanWaterRuntimeController {
       });
       if (config.surfaceShader) materialState.material.shader = config.surfaceShader;
       farMaterialState = createOceanFarMaterial(engine, {
+        detailNormalsAvailable: !!config.textures.roughWaves,
         renderContract: config.renderContract,
         waterLevel: config.waterLevel,
         viewportHeight: this._bandlimitViewportHeight,
@@ -328,11 +330,11 @@ export class OceanWaterRuntimeController {
           () => {
             if (farMaterialState) connectionBinding?.unbind(farMaterialState.material);
           },
-          () => farMaterialState?.material.destroy(true),
+          () => destroyWaterOwnedMaterial(farMaterialState?.material, this.root),
           () => {
             if (materialState) connectionBinding?.unbind(materialState.material);
           },
-          () => materialState?.material.destroy(true),
+          () => destroyWaterOwnedMaterial(materialState?.material, this.root),
           () => this._authoredFarShader?.destroy(),
           () => connectionBinding?.destroy(),
           () => geometry?.destroy(),
@@ -462,11 +464,11 @@ export class OceanWaterRuntimeController {
     cleanupRuntime([
       () => this._connectionBinding?.unbind(this._farMaterialState.material),
       () => {
-        this._farMaterialState.material.destroy(true);
+        destroyWaterOwnedMaterial(this._farMaterialState.material, this.root);
       },
       () => this._connectionBinding?.unbind(this._materialState.material),
       () => {
-        this._materialState.material.destroy(true);
+        destroyWaterOwnedMaterial(this._materialState.material, this.root);
       },
       () => this._authoredFarShader?.destroy(),
       () => this._connectionBinding?.destroy(),

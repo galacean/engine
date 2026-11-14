@@ -17,7 +17,7 @@ import {
   resolveWaterMaterialProfile,
   type WaterShapeAuthoring
 } from "./WaterAuthoring";
-import { waterMaterialKey } from "./WaterMaterial";
+import { waterMaterialKey, waterMaterialTextureKey } from "./WaterMaterial";
 import { hashStableValue } from "../compiler/shared/determinism";
 import { createWaterBodyInstance } from "../authoring/body/WaterBodyInstance";
 import { createImmutableWaterSnapshot } from "../authoring/identity/WaterImmutableSnapshot";
@@ -288,6 +288,7 @@ export class WaterBodyComponent extends Script {
   private _ready: Promise<void> = Promise.resolve();
   private _pending = new Set<Promise<void>>();
   private _disposeTask?: Promise<void>;
+  private _materialTextureKey?: string;
 
   get configuration(): Readonly<WaterBodyConfiguration> | undefined {
     return this._configuration;
@@ -346,6 +347,7 @@ export class WaterBodyComponent extends Script {
         if (this._owner && this._owner !== owner) await this._owner.detach(this);
         this._owner = owner;
         const transformKey = this.transformKey();
+        const textureKey = waterMaterialTextureKey(next.material);
         const revision = await owner.publish(this, next, controller.signal);
         // Owner checks the abort token immediately before its synchronous commit.
         this._configuration = next;
@@ -354,6 +356,7 @@ export class WaterBodyComponent extends Script {
         this._revision = revision;
         this._error = undefined;
         this._transformKey = transformKey;
+        this._materialTextureKey = textureKey;
       })
       .catch((error) => {
         retain(next, -1);
@@ -385,11 +388,12 @@ export class WaterBodyComponent extends Script {
     this.validate(config);
     if (this._owner && this._owner !== owner) throw new Error("CONFLICT: Water component belongs to another System.");
     const next = freezeConfiguration(config);
+    const transformKey = this.transformKey();
+    const textureKey = waterMaterialTextureKey(next.material);
     retain(next, 1);
     this._controller?.abort();
     const controller = (this._controller = new AbortController());
     const combined = AbortSignal.any([controller.signal, signal]);
-    const transformKey = this.transformKey();
     const active = this.enabled && this.entity.isActiveInHierarchy;
     const scene = this.entity.scene;
     const waterId = this.waterId;
@@ -416,6 +420,7 @@ export class WaterBodyComponent extends Script {
         this.waterId !== waterId ||
         this.entity.scene !== scene ||
         this.transformKey() !== transformKey ||
+        waterMaterialTextureKey(next.material) !== textureKey ||
         active !== (this.enabled && this.entity.isActiveInHierarchy)
       )
         throw new Error("CONFLICT: Water batch candidate is stale.");
@@ -433,6 +438,7 @@ export class WaterBodyComponent extends Script {
         this._revision = revision;
         this._error = undefined;
         this._transformKey = transformKey;
+        this._materialTextureKey = textureKey;
         release();
         finish();
       },
@@ -474,11 +480,18 @@ export class WaterBodyComponent extends Script {
     });
   }
   override onUpdate(): void {
-    // A transform refresh must never supersede a caller's in-flight configuration.
-    // Recheck after settlement, using the newly accepted configuration if it succeeded.
-    if (this._pending.size === 0 && this._configuration && this._transformKey !== this.transformKey()) {
-      this._transformKey = this.transformKey();
-      void this.refresh().catch(() => {});
+    if (this._pending.size || !this._configuration) return;
+    try {
+      const textureKey = waterMaterialTextureKey(this._authoring?.material ?? this._configuration.material);
+      const transformKey = this.transformKey();
+      if (this._transformKey !== transformKey || this._materialTextureKey !== textureKey) {
+        this._transformKey = transformKey;
+        this._materialTextureKey = textureKey;
+        void this.refresh().catch(() => {});
+      }
+    } catch (error) {
+      // Invalid author edits leave the previously published render generation intact.
+      this._error = String(error);
     }
   }
   override onDestroy(): void {
@@ -559,7 +572,7 @@ export class WaterBodyComponent extends Script {
       createWaterBodyInstance({
         id: this.waterId,
         assetId: config.asset.contentHash,
-        lookPresetId: config.look?.contentHash ?? waterMaterialKey(config.material)!,
+        lookPresetId: config.material ? waterMaterialKey(config.material)! : config.look!.contentHash,
         qualityPlanId: config.quality.contentHash,
         visible: config.visible ?? true,
         priority: config.priority ?? 0,
@@ -581,6 +594,7 @@ export class WaterBodyComponent extends Script {
 }
 
 for (const key of [
+  "_materialTextureKey",
   "_decodedTerrain",
   "_authoringAsset",
   "_authoringQuality",

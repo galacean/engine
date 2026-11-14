@@ -120,9 +120,9 @@ test("copied texture and Shader bytes retain their source hashes", async () => {
   }
 });
 
-test("all sixteen native textures use KTX2 and river metadata preserves source and color identity", async () => {
+test("the eight current-phase native textures use KTX2 and river metadata preserves source and color identity", async () => {
   const textures = manifest.files.filter(file => file.virtualPath.startsWith("Water/Textures/"));
-  assert.equal(textures.length, 16);
+  assert.equal(textures.length, 8);
   const recipe = JSON.parse(await readFile(path.join(root, "packages/water/src/water/resources/river/assets/ktx2-manifest.json")));
   for (const file of textures) {
     assert.equal(file.type, "KTX2");

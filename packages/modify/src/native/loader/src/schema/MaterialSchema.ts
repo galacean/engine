@@ -34,7 +34,7 @@ export type MaterialShaderProperty =
   | { type: MaterialLoaderType.Color; value: IColor }
   | { type: MaterialLoaderType.Float | MaterialLoaderType.Integer; value: number }
   | { type: MaterialLoaderType.Boolean; value: boolean }
-  | { type: MaterialLoaderType.Texture; value: RefItem };
+  | { type: MaterialLoaderType.Texture; value: RefItem | null };
 
 export enum MaterialLoaderType {
   Vector2 = "Vector2",

@@ -1,7 +1,6 @@
 
 Shader "AIWorld/HeightfieldWaterSurfaceAppearanceV2ed93d4a81a01602dHybridHigh0" {
 int material_WaterProfile;
-int material_WaterRiverDrops;
 float material_Water_look_reflectionSampling_screenSpaceCompositeIntensity;
 float material_Water_look_reflectionSampling_environmentFallbackIntensity;
 float material_Water_look_reflectionSampling_distortionStrength;
@@ -78,9 +77,14 @@ int material_Water_renderState_queue;
 float material_Water_renderState_priorityOffset;
 int material_Water_renderState_cullMode;
 int material_Water_renderState_blendMode;
+sampler2D material_Water_appearance_appearance_detailLayers_0_texture;
+sampler2D material_Water_appearance_appearance_detailLayers_1_texture;
 Editor { Properties {
+Header("Normal maps") {
+material_Water_appearance_appearance_detailLayers_0_texture("Detail normal 0", Texture2D);
+material_Water_appearance_appearance_detailLayers_1_texture("Detail normal 1", Texture2D);
+}
 material_WaterProfile("material_WaterProfile", Enum(lake:0, river:1, ocean:2)) = 0;
-material_WaterRiverDrops("material_WaterRiverDrops", Boolean) = false;
 material_Water_look_reflectionSampling_screenSpaceCompositeIntensity("material_Water_look_reflectionSampling_screenSpaceCompositeIntensity", Float) = 1;
 material_Water_look_reflectionSampling_environmentFallbackIntensity("material_Water_look_reflectionSampling_environmentFallbackIntensity", Float) = 1;
 material_Water_look_reflectionSampling_distortionStrength("material_Water_look_reflectionSampling_distortionStrength", Float) = 0.09;
@@ -268,6 +272,8 @@ material_Water_renderState_blendMode("material_Water_renderState_blendMode", Enu
       sampler2D material_LocalMapTexture;
 #ifndef WATER_SURFACE_APPEARANCE_V2_UNIFORMS_INCLUDED
 #define WATER_SURFACE_APPEARANCE_V2_UNIFORMS_INCLUDED
+      float material_AppearanceV2Detail0Enabled;
+      float material_AppearanceV2Detail1Enabled;
       float material_AppearanceV2DetailEnabled;
       float material_AppearanceV2DetailNormalStrength;
       float material_AppearanceV2DepthResponseEnabled;
@@ -1786,11 +1792,14 @@ float waterSurface_waveCrest = max(input.waveOffset, 0.0);
           appearanceLayerScaled0.x * material_AppearanceV2Detail0Rotation.x - appearanceLayerScaled0.y * material_AppearanceV2Detail0Rotation.y,
           appearanceLayerScaled0.x * material_AppearanceV2Detail0Rotation.y + appearanceLayerScaled0.y * material_AppearanceV2Detail0Rotation.x
         ) + material_AppearanceV2Detail0Transform.zw;
-        vec3 appearanceLayerNormal0 = waterSurfaceAppearanceDecodeTangentNormalPreserveSourceZ(
+        vec3 appearanceLayerNormal0 = vec3(0.0, 0.0, 1.0);
+        if (material_AppearanceV2Detail0Enabled > 0.5) {
+        appearanceLayerNormal0 = waterSurfaceAppearanceDecodeTangentNormalPreserveSourceZ(
           texture2D(material_AppearanceV2Detail0Texture, appearanceLayerUv0),
           material_AppearanceV2Detail0Strength,
           0.0
         );
+        }
         appearanceNormalTS = waterSurfaceAppearanceBlendTangentNormalsPartialDerivative(appearanceNormalTS, appearanceLayerNormal0);
 
         vec2 appearanceLayerCoordinate1 = baseWorldPosition.xz;
@@ -1799,11 +1808,14 @@ float waterSurface_waveCrest = max(input.waveOffset, 0.0);
           appearanceLayerScaled1.x * material_AppearanceV2Detail1Rotation.x - appearanceLayerScaled1.y * material_AppearanceV2Detail1Rotation.y,
           appearanceLayerScaled1.x * material_AppearanceV2Detail1Rotation.y + appearanceLayerScaled1.y * material_AppearanceV2Detail1Rotation.x
         ) + material_AppearanceV2Detail1Transform.zw;
-        vec3 appearanceLayerNormal1 = waterSurfaceAppearanceDecodeTangentNormalPreserveSourceZ(
+        vec3 appearanceLayerNormal1 = vec3(0.0, 0.0, 1.0);
+        if (material_AppearanceV2Detail1Enabled > 0.5) {
+        appearanceLayerNormal1 = waterSurfaceAppearanceDecodeTangentNormalPreserveSourceZ(
           texture2D(material_AppearanceV2Detail1Texture, appearanceLayerUv1),
           material_AppearanceV2Detail1Strength,
           0.0
         );
+        }
         appearanceNormalTS = waterSurfaceAppearanceBlendTangentNormalsPartialDerivative(appearanceNormalTS, appearanceLayerNormal1);
 
         appearanceNormalTS = normalize(mix(vec3(0.0, 0.0, 1.0), appearanceNormalTS, material_AppearanceV2DetailNormalStrength));
@@ -2301,6 +2313,8 @@ closureInput.coastalAlpha = appearanceCoastalAlpha;
       sampler2D material_LocalMapTexture;
 #ifndef WATER_SURFACE_APPEARANCE_V2_UNIFORMS_INCLUDED
 #define WATER_SURFACE_APPEARANCE_V2_UNIFORMS_INCLUDED
+      float material_AppearanceV2Detail0Enabled;
+      float material_AppearanceV2Detail1Enabled;
       float material_AppearanceV2DetailEnabled;
       float material_AppearanceV2DetailNormalStrength;
       float material_AppearanceV2DepthResponseEnabled;
@@ -2667,11 +2681,14 @@ vec3 waterConnectionNormal(vec2 p, vec3 normal) {
           appearanceLayerScaled0.x * material_AppearanceV2Detail0Rotation.x - appearanceLayerScaled0.y * material_AppearanceV2Detail0Rotation.y,
           appearanceLayerScaled0.x * material_AppearanceV2Detail0Rotation.y + appearanceLayerScaled0.y * material_AppearanceV2Detail0Rotation.x
         ) + material_AppearanceV2Detail0Transform.zw;
-        vec3 appearanceLayerNormal0 = waterSurfaceAppearanceDecodeTangentNormalPreserveSourceZ(
+        vec3 appearanceLayerNormal0 = vec3(0.0, 0.0, 1.0);
+        if (material_AppearanceV2Detail0Enabled > 0.5) {
+        appearanceLayerNormal0 = waterSurfaceAppearanceDecodeTangentNormalPreserveSourceZ(
           texture2D(material_AppearanceV2Detail0Texture, appearanceLayerUv0),
           material_AppearanceV2Detail0Strength,
           0.0
         );
+        }
         appearanceNormalTS = waterSurfaceAppearanceBlendTangentNormalsPartialDerivative(appearanceNormalTS, appearanceLayerNormal0);
 
         vec2 appearanceLayerCoordinate1 = baseWorldPosition.xz;
@@ -2680,11 +2697,14 @@ vec3 waterConnectionNormal(vec2 p, vec3 normal) {
           appearanceLayerScaled1.x * material_AppearanceV2Detail1Rotation.x - appearanceLayerScaled1.y * material_AppearanceV2Detail1Rotation.y,
           appearanceLayerScaled1.x * material_AppearanceV2Detail1Rotation.y + appearanceLayerScaled1.y * material_AppearanceV2Detail1Rotation.x
         ) + material_AppearanceV2Detail1Transform.zw;
-        vec3 appearanceLayerNormal1 = waterSurfaceAppearanceDecodeTangentNormalPreserveSourceZ(
+        vec3 appearanceLayerNormal1 = vec3(0.0, 0.0, 1.0);
+        if (material_AppearanceV2Detail1Enabled > 0.5) {
+        appearanceLayerNormal1 = waterSurfaceAppearanceDecodeTangentNormalPreserveSourceZ(
           texture2D(material_AppearanceV2Detail1Texture, appearanceLayerUv1),
           material_AppearanceV2Detail1Strength,
           0.0
         );
+        }
         appearanceNormalTS = waterSurfaceAppearanceBlendTangentNormalsPartialDerivative(appearanceNormalTS, appearanceLayerNormal1);
 
         appearanceNormalTS = normalize(mix(vec3(0.0, 0.0, 1.0), appearanceNormalTS, material_AppearanceV2DetailNormalStrength));

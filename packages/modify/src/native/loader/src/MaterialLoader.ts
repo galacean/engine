@@ -89,7 +89,8 @@ class MaterialLoader extends Loader<Material> {
             materialShaderData.setFloat(key, <number>value);
             break;
           case MaterialLoaderType.Texture:
-            textureReferences.push({ key, ref: <RefItem>value });
+            if (value == null) materialShaderData.setTexture(key, null);
+            else textureReferences.push({ key, ref: value });
             break;
           case MaterialLoaderType.Boolean:
             materialShaderData.setInt(key, value ? 1 : 0);

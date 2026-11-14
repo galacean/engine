@@ -16,8 +16,6 @@ import {
   type WaterLookAuthoringSnapshot
 } from "../../authoring/surface/WaterLookAuthoringSnapshot";
 import { hashStableValue } from "../../compiler/shared/determinism";
-import { FARMLANDS_DROP_ASSETS } from "../../resources/river/FarmlandsDropAssets";
-import { createFarmlandsWaterResourceFactories } from "../../resources/river/FarmlandsWaterRuntimeResources";
 import { createWaterBackendControl } from "../body/WaterBackendControl";
 import type {
   WaterBackendReflectionContext,
@@ -381,13 +379,6 @@ export class WaterSceneRuntimeHost {
           console.error("[water-scene-host] reflection update failed", error);
         }
       });
-    }
-
-    // Any Look can render a River with drops. Install its lazy default texture factories
-    // at the host boundary so standalone hosts and native Water share lease ownership.
-    const dropResourceIds = new Set(Object.values(FARMLANDS_DROP_ASSETS).map(({ descriptor }) => descriptor.id));
-    for (const factory of createFarmlandsWaterResourceFactories(options.engine)) {
-      if (dropResourceIds.has(factory.descriptor.id)) this._runtimeResources.ensureRegistered(factory);
     }
 
     this._loader = new WaterBodyLoader({

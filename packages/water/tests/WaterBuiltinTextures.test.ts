@@ -17,7 +17,7 @@ it("loads every native Water KTX2 with its original dimensions, color space and 
     const files = manifest.files.filter((file: { virtualPath: string }) =>
       file.virtualPath.startsWith("Water/Textures/")
     );
-    expect(files).toHaveLength(16);
+    expect(files).toHaveLength(8);
     for (const file of files) {
       expect(file.type).toBe("KTX2");
       expect(file.path).toMatch(/\.ktx2$/);

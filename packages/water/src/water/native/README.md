@@ -31,6 +31,16 @@ Native surface renderers consume the authored Shader for Lake, River and the Oce
 
 类型从 shared/water/native 导入；完整有效输入见 tests/fixtures/nativeWaterFixtures.ts。有限水体支持平移/Y旋转，不支持缩放/倾斜；Ocean 每Scene最多一个活动实例。Camera 必须归当前Scene，发布后不能换绑。湖/河需要宿主已接受地形；terrain.modifiedByWater=false，组件发布不表示修改地形。
 
+## 材质纹理
+
+`createWaterMaterialDefaults("lake" | "river" | "ocean")` 返回普通 Material 文件，全部纹理槽为 `{type:"Texture",value:null}`。`WATER_MATERIAL_TEXTURE_SLOTS` 提供 2 / 3 / 5 个槽位的属性名、分组和颜色空间，`validateWaterMaterialTextureMetadata` 供保存前校验。Editor 预设显式绑定默认 Texture，纯 Engine 调用方使用 `material.shaderData.setTexture(slot, texture)`；清空为 `null`。Material 入口不会加载或回填默认图。示例项目的 .mat 使用普通 `{url:...}` 引用并显式提供 8 张 KTX2；归档 Drops 图只供既有低层示例按需使用。
+
+仅传 `WaterLookResource` 的运行时兼容入口保留原有预设资源：Lake/River 按需取得资源租约，Ocean 的纹理库由 WaterSystem 借用并在运行时卸载时释放。加载晚到也加入卸载等待。配置同时提供 Material 和 Look 时，以 Material 为准，显式空槽保持为空。
+
+法线槽要求 linear，焦散、Ocean 泡沫及交界噪声要求 sRGB；普通 Texture2D 图片、任意合法尺寸及原生采样设置均可，不要求完整 mip 链或特定来源。Water 不修改共享图片的采样设置。空法线层保持平坦，其他空槽关闭对应贡献。原地像素更新直接作用于现有 GPU 纹理，替换 Texture 或调整采样设置会在下一次 Engine 更新时刷新派生绑定。多个水体共享材质时共同更新。
+
+Ocean 近景实际采样作者 roughWaves；远景保持原有不采样图片的低频材质模型，法线方差是该模型的固定近似假设，不是对任意用户图片测得的统计值。roughWaves 为空时关闭该方差贡献。近景过渡与远景使用同一低频闭包；远景不包含焦散、泡沫和交界效果。Lake/Ocean 保持已有质量裁剪；River 既有实现仅支持 High，低档请求失败时保留已发布状态。本期普通 River 不提供 Drops 材质参数，显式启用返回 `NOT_SUPPORTED`；低层 Drops 实现不变。
+
 ## 事务、启禁用与所有权
 
 configure / API 先校验、异步准备，再原子接受；失败保留旧配置，新请求取消旧请求，销毁加入晚到/退休清理。ready 等待属性/启禁用；前置校验拒绝ready、记录lastError并取消旧准备，Scene解析也同步抛错。配置准备期间延后Transform自动刷新，接受后使用最新配置/变换。

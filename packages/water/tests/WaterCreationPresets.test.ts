@@ -19,7 +19,7 @@ it("validates native Material profile declarations and shape compatibility", () 
   };
   expect(() => validateWaterMaterialCapabilities("lake", material)).not.toThrow();
   expect(() => validateWaterMaterialCapabilities("river", material)).toThrow("received lake");
-  expect(() => resolveWaterMaterialProfile(2, 1)).toThrow("drop policy");
+  expect(() => resolveWaterMaterialProfile(2, 1)).toThrow("NOT_SUPPORTED");
   expect(() => resolveWaterMaterialProfile(NaN, 0)).toThrow("profile");
-  expect(() => validateWaterMaterialCapabilities("lake", {})).toThrow("declarations");
+  expect(() => validateWaterMaterialCapabilities("lake", {})).toThrow("declaration");
 });

@@ -70,6 +70,7 @@ export interface OceanFarMaterialConfig {
   readonly reflection?: Readonly<WaterReflectionBinding>;
   readonly tuning?: Readonly<OceanRuntimeTuning>;
 
+  readonly detailNormalsAvailable?: boolean;
   readonly sceneFogEnabled: boolean;
 }
 
@@ -196,6 +197,7 @@ export function createOceanFarMaterial(
   material.shaderData.setInt("material_DepthWriteEnabled", 0);
   registerWaterSurfacePicking(material, "material_DepthWriteEnabled");
   material.name = "Ocean Far";
+  material.shaderData.setFloat("material_OceanFarNormalEnabled", Number(config.detailNormalsAvailable !== false));
   const opticsBindingState = createWaterSurfaceOpticsBindingState();
   const projectionParameters = new Vector4(
     config.viewportHeight,

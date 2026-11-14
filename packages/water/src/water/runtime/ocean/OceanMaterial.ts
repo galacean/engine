@@ -69,7 +69,7 @@ import {
   bindOceanRenderContractUniforms,
   type OceanNearshoreBinding
 } from "./OceanSurfaceUniformBinding";
-import type { OceanTextures } from "./OceanTextureLibrary";
+import type { OceanTextures } from "./OceanTextures";
 
 export const OCEAN_SHADER_NAME = "AIWorld/Ocean";
 export const OCEAN_SHADER_REQUIRED_BINDINGS = Object.freeze([
@@ -277,6 +277,17 @@ function bindOceanDetailTextures(material: Material, textures: Readonly<OceanTex
   shaderData.setTexture("material_CausticsTexture", textures.caustics);
   shaderData.setTexture("material_FoamTexture", textures.foam);
   shaderData.setTexture("material_IntersectionNoiseTexture", textures.intersectionNoise);
+  material.shaderData.setVector4(
+    "material_OceanTextureEnabled",
+    new Vector4(
+      Number(!!textures.smoothWaves),
+      Number(!!textures.roughWaves),
+      Number(!!textures.caustics),
+      Number(!!textures.foam)
+    )
+  );
+  material.shaderData.setFloat("material_OceanIntersectionTextureEnabled", Number(!!textures.intersectionNoise));
+  material.shaderData.setFloat("material_OceanFarNormalEnabled", Number(!!textures.roughWaves));
 }
 
 export function setOceanRuntimeTuning(state: OceanMaterialState, source: Readonly<OceanRuntimeTuning>): void {

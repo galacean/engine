@@ -15,7 +15,7 @@ const input = process.env.WATER_BUILTIN_SHADER_INPUT ?? path.join(root, "package
 const server = await createServer({ root, configFile: false, cacheDir: "/tmp/opencode/water-builtins/vite-cache",
   plugins: [{ name: "water-builtin-source-paths", enforce: "pre", resolveId(source) {
     if (source.startsWith("/packages/")) return path.join(root, source);
-  } }, engineModify()], server: { middlewareMode: true }, optimizeDeps: { noDiscovery: true, entries: [] } });
+  } }, engineModify()], server: { middlewareMode: true, hmr: false }, optimizeDeps: { noDiscovery: true, entries: [] } });
 try {
   const { ShaderPrecompiler } = await server.ssrLoadModule("/packages/shader-compiler/src/ShaderPrecompiler.ts");
   const { shaderLibrary } = await server.ssrLoadModule("/packages/shader/src/ShaderLibrary/index.ts");

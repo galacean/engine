@@ -1,7 +1,6 @@
 
 Shader "AIWorld/Ocean" {
 int material_WaterProfile;
-int material_WaterRiverDrops;
 float material_Water_look_reflectionSampling_screenSpaceCompositeIntensity;
 float material_Water_look_reflectionSampling_environmentFallbackIntensity;
 float material_Water_look_reflectionSampling_distortionStrength;
@@ -59,9 +58,26 @@ int material_Water_renderState_queue;
 float material_Water_renderState_priorityOffset;
 int material_Water_renderState_cullMode;
 int material_Water_renderState_blendMode;
+sampler2D material_Ocean_smoothWaves;
+sampler2D material_Ocean_roughWaves;
+sampler2D material_Ocean_caustics;
+sampler2D material_Ocean_foam;
+sampler2D material_Ocean_intersectionNoise;
 Editor { Properties {
+Header("Normal maps") {
+material_Ocean_smoothWaves("Smooth waves", Texture2D);
+material_Ocean_roughWaves("Rough waves", Texture2D);
+}
+Header("Caustics") {
+material_Ocean_caustics("Caustics", Texture2D);
+}
+Header("Foam") {
+material_Ocean_foam("Foam", Texture2D);
+}
+Header("Intersection") {
+material_Ocean_intersectionNoise("Intersection noise", Texture2D);
+}
 material_WaterProfile("material_WaterProfile", Enum(lake:0, river:1, ocean:2)) = 2;
-material_WaterRiverDrops("material_WaterRiverDrops", Boolean) = false;
 material_Water_look_reflectionSampling_screenSpaceCompositeIntensity("material_Water_look_reflectionSampling_screenSpaceCompositeIntensity", Float) = 1;
 material_Water_look_reflectionSampling_environmentFallbackIntensity("material_Water_look_reflectionSampling_environmentFallbackIntensity", Float) = 1;
 material_Water_look_reflectionSampling_distortionStrength("material_Water_look_reflectionSampling_distortionStrength", Float) = 0.025;
@@ -198,6 +214,8 @@ float material_RefractionEnabled;
 
 #ifndef WATER_SURFACE_APPEARANCE_V2_UNIFORMS_INCLUDED
 #define WATER_SURFACE_APPEARANCE_V2_UNIFORMS_INCLUDED
+      float material_AppearanceV2Detail0Enabled;
+      float material_AppearanceV2Detail1Enabled;
       float material_AppearanceV2DetailEnabled;
       float material_AppearanceV2DetailNormalStrength;
       float material_AppearanceV2DepthResponseEnabled;
@@ -288,6 +306,8 @@ float waterSurfaceCompositeExponentialDensity(float firstScaledDepth, float seco
 
 #endif
 
+      vec4 material_OceanTextureEnabled;
+      float material_OceanIntersectionTextureEnabled;
       sampler2D material_SmoothWavesTexture;
       sampler2D material_RoughWavesTexture;
       sampler2D material_CausticsTexture;
@@ -1904,9 +1924,12 @@ vec3 waterConnectionNormal(vec2 p, vec3 normal) {
           0.5,
           0.15
         );
+        vec3 farNormal = vec3(0.0, 0.0, 1.0);
+        if (material_OceanTextureEnabled.y > 0.5) {
         vec3 farA = decodeNormalMap(texture2D(material_RoughWavesTexture, farUv.xy).rgb);
         vec3 farB = decodeNormalMap(texture2D(material_RoughWavesTexture, farUv.zw).rgb);
-        vec3 farNormal = blendNormalRnm(farA, farB);
+        farNormal = blendNormalRnm(farA, farB);
+        }
         float pixelDistance = distance(camera_Position, worldPosition);
         float fadeFactor = clamp(
           (material_OceanNormalFadeEndDistance - pixelDistance)
@@ -1926,9 +1949,12 @@ vec3 waterConnectionNormal(vec2 p, vec3 normal) {
           material_OceanNormalParameters.y,
           material_OceanNormalParameters.w
         );
+        vec3 nearNormal = vec3(0.0, 0.0, 1.0);
+        if (material_OceanTextureEnabled.x > 0.5) {
         vec3 nearA = decodeNormalMap(texture2D(material_SmoothWavesTexture, nearUv.xy).rgb);
         vec3 nearB = decodeNormalMap(texture2D(material_SmoothWavesTexture, nearUv.zw).rgb);
-        vec3 nearNormal = blendNormalRnm(nearA, nearB);
+        nearNormal = blendNormalRnm(nearA, nearB);
+        }
         return safeNormalize3(mix(farNormal, nearNormal, fadeFactor), vec3(0.0, 0.0, 1.0));
       }
 
@@ -2183,7 +2209,7 @@ gl_FragColor = waterSurfaceOutputWithPick(farWaterClosure);
           1.0
         );
         float intersection = 0.0;
-        if (material_OceanIntersectionParameters.x > 0.0) {
+        if (material_OceanIntersectionParameters.x > 0.0 && material_OceanIntersectionTextureEnabled > 0.5) {
           if (intersectionDistance > 0.0) {
             vec2 intersectionTime = vec2(-elapsedTime) * material_OceanIntersectionMotion.x;
             vec2 intersectionUv = (
@@ -2216,14 +2242,15 @@ gl_FragColor = waterSurfaceOutputWithPick(farWaterClosure);
           material_OceanSurfaceFoamParameters.z,
           material_OceanSurfaceFoamMapping.x
         );
-        float foamTexture = clamp(
+        float foamTexture = 0.0;
+        if (material_OceanTextureEnabled.w > 0.5) foamTexture = clamp(
           texture2D(material_FoamTexture, foamUv.xy).r
             + texture2D(material_FoamTexture, foamUv.zw).r,
           0.0,
           1.0
         );
         float surfaceFoam = smoothstep(foamMask, foamMask + 1.0, foamTexture)
-          * material_OceanSurfaceFoamColor.a * material_OceanSurfaceFoamParameters.x;
+          * material_OceanSurfaceFoamColor.a * material_OceanSurfaceFoamParameters.x * material_OceanTextureEnabled.w;
         float flattening = clamp(max(intersection, surfaceFoam), 0.0, 1.0);
         detailNormal = safeNormalize3(mix(detailNormal, macroNormal, flattening), macroNormal);
 
@@ -2277,7 +2304,7 @@ gl_FragColor = waterSurfaceOutputWithPick(farWaterClosure);
         ) * coverage;
         float mainLightIntensity = dot(unshadowedSunlightColor, vec3(0.3, 0.59, 0.11));
         float causticsWeight = causticsMask * material_OceanCausticsParameters.y
-          * mainLightIntensity * cloudShadowAttenuation * material_OceanCausticsParameters.x;
+          * mainLightIntensity * cloudShadowAttenuation * material_OceanCausticsParameters.x * material_OceanTextureEnabled.z;
         vec3 caustics = vec3(0.0);
         if (causticsWeight > 0.0) {
           vec2 causticsTime = vec2(-elapsedTime) * material_OceanCausticsMotion.x;
@@ -2470,6 +2497,8 @@ float material_RefractionEnabled;
 
 #ifndef WATER_SURFACE_APPEARANCE_V2_UNIFORMS_INCLUDED
 #define WATER_SURFACE_APPEARANCE_V2_UNIFORMS_INCLUDED
+      float material_AppearanceV2Detail0Enabled;
+      float material_AppearanceV2Detail1Enabled;
       float material_AppearanceV2DetailEnabled;
       float material_AppearanceV2DetailNormalStrength;
       float material_AppearanceV2DepthResponseEnabled;

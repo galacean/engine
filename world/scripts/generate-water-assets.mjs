@@ -15,11 +15,13 @@ const texturesOnly = process.argv.includes("--textures-only");
 const server = await createServer({ root, configFile: false, plugins: [
   { name: "water-offline-source-paths", enforce: "pre", resolveId(source) {
     if (source.startsWith("/packages/")) return path.join(root, source);
-  } }, engineModify()], server: { middlewareMode: true },
+  } }, engineModify()], server: { middlewareMode: true, hmr: false },
   optimizeDeps: { noDiscovery: true, entries: [] } });
 try {
   const { ShaderCompiler } = await server.ssrLoadModule("@galacean/engine-shader-compiler");
   const { shaderLibrary } = await server.ssrLoadModule("/packages/shader/src/ShaderLibrary/index.ts");
+  const { Logger } = await server.ssrLoadModule("@galacean/engine-core");
+  Logger.enable();
   const shaderCompiler = new ShaderCompiler();
   shaderCompiler._setIncludeMap(Object.fromEntries(shaderLibrary.map(({ path, source }) => [path, source])));
   const load = file => server.ssrLoadModule(`/packages/water/src/water/${file}.ts`);
@@ -33,8 +35,9 @@ try {
   const { OCEAN_LOOK_ID } = await load("presets/ocean/index");
   const { createWaterMaterialFile, waterMaterialShaderSource } = await load("native/WaterMaterial");
   const { LAKE_NORMAL_RESOURCE } = await load("resources/lake/LakeNormalAssetIdentity");
-  const { FARMLANDS_WAVE_RESOURCE, FARMLANDS_CAUSTICS_RESOURCE } = await load("resources/river/FarmlandsWaterAssets");
   const { FARMLANDS_DROP_ASSETS } = await load("resources/river/FarmlandsDropAssets");
+  const { FARMLANDS_WAVE_RESOURCE, FARMLANDS_CAUSTICS_RESOURCE } = await load("resources/river/FarmlandsWaterAssets");
+
   registerRiverWaterBodyPresets(registry); registerFarmlandsRiverLook(registry);
   registerOceanLook(registry);
   const shape = { kind: "lake", referenceLevel: 0.5, levelOffsetM: 0,
@@ -98,8 +101,8 @@ try {
   // River is structurally generated in the current backend. Export its actual standalone source.
   const riverLook = registry.getLookAuthoringSnapshot(FARMLANDS_RIVER_LOOK_ID);
   const { WaterRenderContractCompiler } = await load("compiler/surface/WaterRenderContractCompiler");
-  const resourceDescriptors = [FARMLANDS_WAVE_RESOURCE, FARMLANDS_CAUSTICS_RESOURCE, ...Object.values(FARMLANDS_DROP_ASSETS).map(asset => asset.descriptor)];
-  const contract = WaterRenderContractCompiler.compile({ sourceId: riverLook.look.id, look: riverLook.look,
+  const resourceDescriptors = [FARMLANDS_WAVE_RESOURCE, FARMLANDS_CAUSTICS_RESOURCE];
+  const contract = WaterRenderContractCompiler.compile({ sourceId: riverLook.look.id, look: { ...riverLook.look, riverDrops: undefined },
     appearance: riverLook.appearance.appearance, fieldDependencies: riverLook.appearance.fieldDependencies,
     optics: { id: riverLook.optics.id, profile: riverLook.optics.profile }, reflectionIntent: riverLook.reflectionPolicy,
     renderState: riverLook.renderState, resources: resourceDescriptors, qualityPlan: registry.getQualityPlan(riverQualityPlanIdForQuality("high")) });
@@ -120,11 +123,11 @@ try {
   }).replace(/#ifdef SSR_CONTRIBUTION_(CAPTURE|DEPTH)/g, "#if 0")
     .replace(/#ifndef SSR_CONTRIBUTION_DEPTH/g, "#if 1")
     .replace(/defined\(SSR_CONTRIBUTION_DEPTH\)/g, "0"), {});
-  for (const kind of ["lake", "river", "river-drops", "ocean"]) {
-    const profile = kind === "river-drops" ? "river" : kind;
+  for (const kind of ["lake", "river", "ocean"]) {
+    const profile = kind;
     const original = registry.getLookAuthoringSnapshot(profile === "lake" ? LAKE_WATER_LOOK_PRESET_ID : profile === "river" ? FARMLANDS_RIVER_LOOK_ID : OCEAN_LOOK_ID);
     const { riverDrops: _drops, ...surface } = original.look;
-    const look = kind === "river-drops" ? original : { ...original, look: surface };
+    const look = { ...original, look: surface };
     const shaderPath = `Water/Shaders/${profile}.shader`;
     const material = createWaterMaterialFile(look, profile);
     let source = profile === "river" ? nativeRiverSource : nativeSource(modules.find(module => module.id === (profile === "lake" ? "lake-heightfield-high-hybrid-v2" : "ocean-near-detailed")).module);
@@ -133,14 +136,17 @@ try {
       const farSubShader = far.slice(far.indexOf('SubShader '), far.lastIndexOf('}')).replace(/SubShader\s+"[^"]+"/, 'SubShader "WaterFar"');
       source = source.slice(0, source.lastIndexOf('}')) + farSubShader + "\n}";
     }
-    // The river Shader declares both surface and drop controls. Plain rivers do not acquire drop textures.
-    if (kind !== "river") files[shaderPath] = cleanWaterShaderSource(texturesOnly
+    files[shaderPath] = cleanWaterShaderSource(texturesOnly
       ? await fs.readFile(path.join(root, "packages/water/src/water/native/assets", shaderPath), "utf8")
       : waterMaterialShaderSource(source, material), shaderCompiler);
+    // This generated project is an explicit example preset, not a runtime fallback.
+    const { WATER_BUILTIN_MATERIAL_TEXTURE_PATHS } = await load("native/WaterBuiltinMaterialTextures");
+    for (const [slot, path] of Object.entries(WATER_BUILTIN_MATERIAL_TEXTURE_PATHS[profile]))
+      material.shaderData[slot] = { type: "Texture", value: { url: path } };
     files[`Water/Materials/${kind}.mat`] = material;
   }
   const nativeTypes = { ".scene": "Scene", ".prefab": "Prefab", ".mat": "Material", ".shader": "Shader", ".json": "JSON", ".bin": "Buffer" };
-  const manifest = { scene: "Water/Scenes/lake.scene", files: [...nativeFiles, ...Object.keys(files).map(virtualPath => {
+  const manifest = { scene: "Water/Scenes/lake.scene", files: [...nativeFiles.filter(file => !file.virtualPath.includes("/farmlands-drop-")), ...Object.keys(files).map(virtualPath => {
     const type = nativeTypes[path.extname(virtualPath)];
     if (!type) throw new Error(`Unsupported generated native Water asset '${virtualPath}'.`);
     return { virtualPath, path: virtualPath, type };

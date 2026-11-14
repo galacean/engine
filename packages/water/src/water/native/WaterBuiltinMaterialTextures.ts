@@ -1,7 +1,7 @@
 import { builtinWaterTextureDescriptor } from "./WaterBuiltinTextureIdentity";
 import type { WaterMaterialProfile } from "./WaterMaterialFile";
 
-/** Frozen from the native preset .mat texture slots before removing author texture support. */
+/** Explicit example presets only; production native materials never use this as a fallback. */
 export const WATER_BUILTIN_MATERIAL_TEXTURE_PATHS = {
   lake: {
     material_Water_appearance_appearance_detailLayers_0_texture: "Water/Textures/grasslands-water-normal-1024.ktx2",

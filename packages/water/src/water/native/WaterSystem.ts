@@ -13,7 +13,8 @@ import {
 } from "../runtime/body/WaterPlanarTransform";
 import { HeightfieldWaterBackend } from "../runtime/heightfield/HeightfieldWaterBackend";
 import type { WaterEnvironmentReflectionProviderHandle, WaterEnvironmentReflectionSource } from "../runtime/index";
-import { OceanTextureLibrary, type OceanTextures } from "../runtime/ocean/OceanTextureLibrary";
+import { describeOceanTextures, type OceanTextures } from "../runtime/ocean/OceanTextures";
+import { OceanTextureLibrary } from "../runtime/ocean/OceanTextureLibrary";
 import { OceanWaterBackend } from "../runtime/ocean/OceanWaterBackend";
 import { createWaterSurfaceSample } from "../runtime/query/WaterSurfaceProvider";
 import { RiverWaterBackend } from "../runtime/river/RiverWaterBackend";
@@ -34,7 +35,12 @@ import {
   type WaterBodyConfiguration
 } from "./WaterBodyComponent";
 import { compileNativeWaterConnections } from "./WaterConnections";
-import { prepareWaterMaterial, waterMaterialFactories, waterMaterialKey } from "./WaterMaterial";
+import {
+  WATER_MATERIAL_TEXTURE_SLOTS,
+  prepareWaterMaterial,
+  waterMaterialFactories,
+  waterMaterialKey
+} from "./WaterMaterial";
 import { installLook, scopedLook } from "./WaterResources";
 import {
   WaterDevelopmentRelay,
@@ -297,7 +303,7 @@ export class WaterSystem extends Script implements WaterRuntimeControl {
           } else {
             if (generation !== this._runtimeGeneration) return;
             // A failed unload retains owners for retry. Never reuse its withdrawn Host.
-            if (this._host || this._textures || this._runtimeRoot) {
+            if (this._host || this._lookTextures || this._runtimeRoot) {
               await this._runtimeIntegration?.beforeUnload?.();
               await this._tail;
               await this.releaseRuntime();
@@ -363,7 +369,7 @@ export class WaterSystem extends Script implements WaterRuntimeControl {
     if (this._host) {
       facts.push("Host retained / Host 保留待清理");
     }
-    if (this._textures) facts.push("Ocean texture owner retained / Ocean 纹理所有者引用保留");
+    if (this._lookTextures) facts.push("Ocean Look texture owner retained / Ocean Look 纹理引用保留待清理");
     if (this._runtimeRoot && !this._runtimeRoot.destroyed) facts.push("Runtime root retained / 运行实体保留");
     return facts.join("; ") || "Native runtime released; host cleanup incomplete / 原生运行资源已释放，宿主清理未完成";
   }
@@ -432,7 +438,7 @@ export class WaterSystem extends Script implements WaterRuntimeControl {
   private _runtimeRoot?: Entity;
   private _bodies = new Map<string, WaterBodyComponent>();
   private _tail: Promise<void> = Promise.resolve();
-  private _textures?: Promise<OceanTextureLibrary>;
+  private _lookTextures?: Promise<OceanTextureLibrary>;
   private _disposed = false;
   private _scene?: Scene;
   private _revision = 0;
@@ -603,13 +609,20 @@ export class WaterSystem extends Script implements WaterRuntimeControl {
       transaction.remove(body.waterId);
       return;
     }
-    if (source.kind === "ocean" && !this._textures) {
-      this._textures = OceanTextureLibrary.create(this.engine).catch((error) => {
-        this._textures = undefined;
-        throw error;
-      });
+    let textures: Readonly<OceanTextures> | undefined;
+    if (source.kind === "ocean") {
+      if (config.material)
+        textures = describeOceanTextures(
+          WATER_MATERIAL_TEXTURE_SLOTS.ocean.map(({ slot }) => config.material!.shaderData.getTexture(slot) ?? null)
+        );
+      else {
+        this._lookTextures ??= OceanTextureLibrary.create(this.engine).catch((error) => {
+          this._lookTextures = undefined;
+          throw error;
+        });
+        textures = (await this._lookTextures).textures;
+      }
     }
-    const textures = source.kind !== "ocean" ? undefined : (await this._textures)?.textures;
     signal.throwIfAborted();
     if (body.enabled && body.entity.isActiveInHierarchy && this.enabled && this.entity.isActiveInHierarchy) {
       transaction.stage({
@@ -1025,9 +1038,7 @@ export class WaterSystem extends Script implements WaterRuntimeControl {
     const errors: unknown[] = [];
     for (const action of [
       () => this._host?.destroy(),
-      async () => {
-        (await this._textures?.catch(() => undefined))?.destroy();
-      },
+      async () => (await this._lookTextures?.catch(() => undefined))?.destroy(),
       () => this._runtimeRoot?.destroy()
     ]) {
       try {
@@ -1039,7 +1050,7 @@ export class WaterSystem extends Script implements WaterRuntimeControl {
     if (errors.length) throw new AggregateError(errors, "WaterSystem runtime cleanup failed.");
     this._host = undefined;
     this._environment = undefined;
-    this._textures = undefined;
+    this._lookTextures = undefined;
     this._runtimeRoot = undefined;
     this._ocean = new OceanWaterBackend();
     this._revision++;
@@ -1100,21 +1111,19 @@ export class WaterSystem extends Script implements WaterRuntimeControl {
     host.registerBackend(new HeightfieldWaterBackend());
     host.registerBackend(new RiverWaterBackend());
     host.registerBackend(this._ocean);
-    for (const factory of [
+    // Legacy Looks refer to these canonical resources. Factories load lazily;
+    // native Material generations acquire only their authored handle descriptors.
+    const lookResources = [
       createLakeNormalResourceFactory(this.engine),
       ...createFarmlandsWaterResourceFactories(this.engine)
-    ]) {
-      host.ensureRuntimeResource(factory);
-    }
+    ];
+    for (const factory of lookResources) host.ensureRuntimeResource(factory);
     this._host = host;
     this._runtimeInitialized = true;
     this._runtimeIntegration?.initialize?.(host);
     host.registerAuthoring((assets) => {
-      for (const factory of [
-        createLakeNormalResourceFactory(this.engine),
-        ...createFarmlandsWaterResourceFactories(this.engine)
-      ])
-        if (!assets.getResource(factory.descriptor.id)) assets.registerResource(factory.descriptor);
+      for (const { descriptor } of lookResources)
+        if (!assets.getResource(descriptor.id)) assets.registerResource(descriptor);
     });
     if (this._runtimeState.effectiveEnabled) this.developmentTargets.bind(host.loader);
     return host;
@@ -1139,7 +1148,7 @@ for (const key of [
   "_runtimeRoot",
   "_bodies",
   "_tail",
-  "_textures",
+  "_lookTextures",
   "_disposed",
   "_scene",
   "_revision",

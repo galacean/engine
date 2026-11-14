@@ -41,110 +41,6 @@
       }
     },
     {
-      "virtualPath": "Water/Textures/farmlands-drop-directional.ktx2",
-      "path": "Water/Textures/farmlands-drop-directional.ktx2",
-      "type": "KTX2",
-      "params": {
-        "isSRGBColorSpace": true,
-        "mipmap": true,
-        "wrapModeU": 1,
-        "wrapModeV": 1,
-        "filterMode": 1,
-        "anisoLevel": 1
-      }
-    },
-    {
-      "virtualPath": "Water/Textures/farmlands-drop-cloud.ktx2",
-      "path": "Water/Textures/farmlands-drop-cloud.ktx2",
-      "type": "KTX2",
-      "params": {
-        "isSRGBColorSpace": false,
-        "mipmap": true,
-        "wrapModeU": 1,
-        "wrapModeV": 1,
-        "filterMode": 1,
-        "anisoLevel": 1
-      }
-    },
-    {
-      "virtualPath": "Water/Textures/farmlands-drop-lines.ktx2",
-      "path": "Water/Textures/farmlands-drop-lines.ktx2",
-      "type": "KTX2",
-      "params": {
-        "isSRGBColorSpace": true,
-        "mipmap": true,
-        "wrapModeU": 1,
-        "wrapModeV": 1,
-        "filterMode": 1,
-        "anisoLevel": 1
-      }
-    },
-    {
-      "virtualPath": "Water/Textures/farmlands-drop-edge.ktx2",
-      "path": "Water/Textures/farmlands-drop-edge.ktx2",
-      "type": "KTX2",
-      "params": {
-        "isSRGBColorSpace": true,
-        "mipmap": true,
-        "wrapModeU": 1,
-        "wrapModeV": 1,
-        "filterMode": 1,
-        "anisoLevel": 1
-      }
-    },
-    {
-      "virtualPath": "Water/Textures/farmlands-drop-voronoi.ktx2",
-      "path": "Water/Textures/farmlands-drop-voronoi.ktx2",
-      "type": "KTX2",
-      "params": {
-        "isSRGBColorSpace": true,
-        "mipmap": true,
-        "wrapModeU": 1,
-        "wrapModeV": 1,
-        "filterMode": 1,
-        "anisoLevel": 1
-      }
-    },
-    {
-      "virtualPath": "Water/Textures/farmlands-drop-foam.ktx2",
-      "path": "Water/Textures/farmlands-drop-foam.ktx2",
-      "type": "KTX2",
-      "params": {
-        "isSRGBColorSpace": true,
-        "mipmap": true,
-        "wrapModeU": 1,
-        "wrapModeV": 1,
-        "filterMode": 1,
-        "anisoLevel": 1
-      }
-    },
-    {
-      "virtualPath": "Water/Textures/farmlands-drop-mist.ktx2",
-      "path": "Water/Textures/farmlands-drop-mist.ktx2",
-      "type": "KTX2",
-      "params": {
-        "isSRGBColorSpace": true,
-        "mipmap": true,
-        "wrapModeU": 1,
-        "wrapModeV": 1,
-        "filterMode": 1,
-        "anisoLevel": 1
-      }
-    },
-    {
-      "virtualPath": "Water/Textures/farmlands-drop-splash.ktx2",
-      "path": "Water/Textures/farmlands-drop-splash.ktx2",
-      "type": "KTX2",
-      "params": {
-        "isSRGBColorSpace": true,
-        "mipmap": true,
-        "wrapModeU": 1,
-        "wrapModeV": 1,
-        "filterMode": 1,
-        "anisoLevel": 1
-      }
-    },
-    {
       "virtualPath": "Water/Textures/ocean-smoothWaves.ktx2",
       "path": "Water/Textures/ocean-smoothWaves.ktx2",
       "type": "KTX2",
@@ -247,11 +143,6 @@
     {
       "virtualPath": "Water/Materials/river.mat",
       "path": "Water/Materials/river.mat",
-      "type": "Material"
-    },
-    {
-      "virtualPath": "Water/Materials/river-drops.mat",
-      "path": "Water/Materials/river-drops.mat",
       "type": "Material"
     },
     {

@@ -5,9 +5,7 @@ export const WATER_BUILTIN_SHADER_NAMES = Object.freeze({
   ocean: "Water/Ocean.v1"
 });
 
-/** Keep rendering declarations; only author texture properties are hidden. */
+/** Public source retains the same texture properties as the generated material contract. */
 export function waterBuiltinShaderSource(source: string, profile: keyof typeof WATER_BUILTIN_SHADER_NAMES): string {
-  return source
-    .replace(/\bShader\s+"[^"\n]+"/, `Shader "${WATER_BUILTIN_SHADER_NAMES[profile]}"`)
-    .replace(/^\s*\w+\("[^"\n]*",\s*Texture2D\)\s*(?:=[^;]*)?;[^\S\n]*$/gm, "");
+  return source.replace(/\bShader\s+"[^"\n]+"/, `Shader "${WATER_BUILTIN_SHADER_NAMES[profile]}"`);
 }

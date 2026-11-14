@@ -24,6 +24,7 @@ async function materialFor(profile: "lake" | "river" | "ocean" = "lake") {
       value: {
         getInt: (name: string) => (typeof read(name) === "boolean" ? Number(read(name)) : read(name)),
         getFloat: read,
+        getTexture: () => null,
         getColor: (name: string) => {
           const c = read(name) as any;
           return new Color(c.r, c.g, c.b, c.a);

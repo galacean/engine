@@ -968,6 +968,7 @@ function bindHeightfieldWaterSurfaceAppearanceV2(
       getWaterSurfaceAppearanceV2DetailProperty(index, "texture"),
       textureBinding?.texture ?? null
     );
+    shaderData.setFloat(getWaterSurfaceAppearanceV2DetailProperty(index, "enabled"), textureBinding ? 1 : 0);
     if (!layer) continue;
     shaderData.setVector4(
       getWaterSurfaceAppearanceV2DetailProperty(index, "transform"),

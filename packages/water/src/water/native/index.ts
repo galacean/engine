@@ -72,6 +72,10 @@ export {
 export { compileWaterConnectionGraph, type WaterConnectionAuthoringBody } from "./WaterConnectionAuthoring";
 export type { WaterBodyConnection } from "./WaterConnections";
 export {
+  WATER_MATERIAL_TEXTURE_SLOTS,
+  validateWaterMaterialTextureMetadata,
+  type WaterMaterialTextureSlot,
+  type WaterMaterialTextureMetadata,
   resolveWaterMaterialFileLook,
   createWaterMaterialDefaults,
   createWaterMaterialFile,

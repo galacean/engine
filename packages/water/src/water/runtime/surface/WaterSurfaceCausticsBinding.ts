@@ -8,7 +8,13 @@ export function bindWaterSurfaceCaustics(
   binding: Readonly<WaterSurfaceAppearanceBindingV2>
 ): void {
   const c = binding.appearance.caustics;
-  if (!c) return;
+  if (!c) {
+    shaderData.setTexture("material_AppearanceV2CausticsTexture", null!);
+    shaderData.setVector4("material_AppearanceV2CausticsResponse", new Vector4(0, 0, 1, 0));
+    shaderData.setVector4("material_AppearanceV2CausticsTransform", new Vector4(1, 1, 0, 0));
+    shaderData.setVector2("material_AppearanceV2CausticsParallax", new Vector2(0, 1));
+    return;
+  }
   const texture = binding.textureBindings.find((b) => b.layerId === c.id)?.texture;
   if (!texture) throw Error(`Caustics '${c.id}' has no prepared texture binding.`);
   shaderData.setTexture("material_AppearanceV2CausticsTexture", texture);
