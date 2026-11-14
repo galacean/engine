@@ -1663,6 +1663,8 @@ describe("procedural mesh geometry", () => {
       mesh.setVertexElements([new VertexElement(VertexAttribute.Position, 0, VertexElementFormat.Vector3, 0)]);
       mesh.setVertexBufferBinding(previous, 12, 0);
       mesh.setVertexBufferBinding(current, 12, 0);
+      expect((previous._dataUpdateManager as any)._listeners).toHaveLength(0);
+      expect((current._dataUpdateManager as any)._listeners).toHaveLength(1);
       mesh.setPositions([new Vector3(2, 0, 0)]);
       previous.setData(new Float32Array([3, 0, 0]));
       expect(mesh.getPositions()![0].x).toBe(2);
