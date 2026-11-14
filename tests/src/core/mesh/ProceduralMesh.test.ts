@@ -9,6 +9,7 @@ import {
   SetDataOptions,
   Vector2,
   Vector3,
+  Vector4,
   VertexAttribute,
   VertexElement,
   VertexElementFormat,
@@ -1808,6 +1809,34 @@ describe("procedural mesh geometry", () => {
       }
       expect(tangents).toEqual(original);
       expect(mesh.vertexBufferBindings).toHaveLength(2);
+    } finally {
+      mesh.destroy();
+    }
+  });
+
+  it("uses standard tangent access and mutation for primitives", () => {
+    const mesh = PrimitiveMesh.createPlane(engine, 1, 1, { keepCPUData: true });
+    try {
+      expect(mesh.getTangents()!.every((tangent) => tangent instanceof Vector4)).toBe(true);
+      const tangents = Array.from({ length: mesh.vertexCount }, (_, i) => new Vector4(0, 0, 1, i % 2 ? 1 : -1));
+      mesh.setTangents(tangents);
+      mesh.uploadData(false);
+      expect(mesh.getTangents()).toBe(tangents);
+      const element = mesh.getVertexElement(VertexAttribute.Tangent)!;
+      const binding = mesh.vertexBufferBindings[element.bindingIndex]!;
+      const data = new Float32Array(MeshTestUtils.readBuffer(binding.buffer).buffer);
+      expect(data).toEqual(new Float32Array(tangents.flatMap(({ x, y, z, w }) => [x, y, z, w])));
+    } finally {
+      mesh.destroy();
+    }
+  });
+
+  it("releases temporary vertex data after default primitive creation", () => {
+    const mesh = PrimitiveMesh.createPlane(engine, 1, 1);
+    try {
+      expect(mesh.vertexBufferBindings.every((binding) => !binding!.buffer.readable)).toBe(true);
+      expect(() => mesh.getPositions()).toThrow();
+      expect(() => mesh.getTangents()).toThrow();
     } finally {
       mesh.destroy();
     }

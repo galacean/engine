@@ -690,14 +690,6 @@ export class ModelMesh extends Mesh {
   /**
    * @internal
    */
-  _initializeTangents(tangents: Float32Array, releaseData: boolean): void {
-    this._updateAdvancedVertexElement(true, VertexAttribute.Tangent, VertexElementFlags.Tangent);
-    this._updateInternalVertexBuffer(releaseData, tangents);
-  }
-
-  /**
-   * @internal
-   */
   override _setVertexBufferBinding(index: number, binding: VertexBufferBinding | null): void {
     const vertexBufferBindings = this._primitive.vertexBufferBindings;
     const updateInfos = this._vertexBufferInfos;
@@ -802,7 +794,7 @@ export class ModelMesh extends Mesh {
     this._advancedVertexDataVersions[elementIndex] = this._dataVersionCounter++;
   }
 
-  private _updateInternalVertexBuffer(releaseData: boolean, initialData?: Float32Array): void {
+  private _updateInternalVertexBuffer(releaseData: boolean): void {
     const bufferStride = this._internalVertexBufferStride;
     const vertexCount = this.vertexCount;
     const bufferCreatedInfo = this._internalVertexBufferCreatedInfo;
@@ -813,14 +805,7 @@ export class ModelMesh extends Mesh {
       // Destroy old internal vertex buffer
       const createdInternalBufferIndex = bufferCreatedInfo.z;
       if (createdInternalBufferIndex !== -1) {
-        const buffer = this._primitive.vertexBufferBindings[createdInternalBufferIndex]?.buffer;
-        const tangentElement = this._primitive._vertexElementMap[VertexAttribute.Tangent];
-        // Raw tangents are read lazily; preserve them before repacking the owned buffer
-        if (buffer?.readable && tangentElement?.bindingIndex === createdInternalBufferIndex) {
-          this.getTangents();
-          this._advancedVertexDataVersions[VertexElementIndex.Tangent] = this._dataVersionCounter++;
-        }
-        buffer?.destroy();
+        this._primitive.vertexBufferBindings[createdInternalBufferIndex]?.buffer.destroy();
         this._setVertexBufferBinding(createdInternalBufferIndex, null);
       }
 
@@ -828,14 +813,10 @@ export class ModelMesh extends Mesh {
       const isCreate = bufferStride * this.vertexCount > 0;
       if (isCreate) {
         // No matter the internal buffer is stride change or vertex count change, we need set to internal buffer again
-        if (!initialData) {
-          this._advancedDataUpdateFlag |= this._internalVertexElementsFlags;
-        }
+        this._advancedDataUpdateFlag |= this._internalVertexElementsFlags;
 
         const bufferUsage = releaseData ? BufferUsage.Static : BufferUsage.Dynamic;
-        const vertexBuffer = initialData
-          ? new Buffer(this._engine, BufferBindFlag.VertexBuffer, initialData, bufferUsage, !releaseData)
-          : new Buffer(this._engine, BufferBindFlag.VertexBuffer, needByteLength, bufferUsage, true);
+        const vertexBuffer = new Buffer(this._engine, BufferBindFlag.VertexBuffer, needByteLength, bufferUsage, true);
         this._setVertexBufferBinding(vertexBufferIndex, new VertexBufferBinding(vertexBuffer, bufferStride));
       }
       bufferCreatedInfo.set(bufferStride, vertexCount, isCreate ? vertexBufferIndex : -1);
@@ -902,11 +883,15 @@ export class ModelMesh extends Mesh {
     return vertices;
   }
 
-  private _updateAdvancedVertexElement(present: boolean, attribute: VertexAttribute, flag: VertexElementFlags): void {
+  private _updateAdvancedVertexElement(
+    vertices: VertexType[] | null,
+    attribute: VertexAttribute,
+    flag: VertexElementFlags
+  ): void {
     const primitive = this._primitive;
     const vertexElementMap = primitive._vertexElementMap;
 
-    if (present) {
+    if (vertices) {
       if (!vertexElementMap[attribute]) {
         const format = this._getAttributeFormat(attribute);
         const offset = this._internalVertexBufferStride;
@@ -939,59 +924,59 @@ export class ModelMesh extends Mesh {
     const advancedElementUpdateFlag = this._advancedElementUpdateFlag;
 
     if (advancedElementUpdateFlag & VertexElementFlags.Position) {
-      this._updateAdvancedVertexElement(!!this._positions, VertexAttribute.Position, VertexElementFlags.Position);
+      this._updateAdvancedVertexElement(this._positions, VertexAttribute.Position, VertexElementFlags.Position);
     }
 
     if (advancedElementUpdateFlag & VertexElementFlags.Normal) {
-      this._updateAdvancedVertexElement(!!this._normals, VertexAttribute.Normal, VertexElementFlags.Normal);
+      this._updateAdvancedVertexElement(this._normals, VertexAttribute.Normal, VertexElementFlags.Normal);
     }
 
     if (advancedElementUpdateFlag & VertexElementFlags.Color) {
-      this._updateAdvancedVertexElement(!!this._colors, VertexAttribute.Color, VertexElementFlags.Color);
+      this._updateAdvancedVertexElement(this._colors, VertexAttribute.Color, VertexElementFlags.Color);
     }
 
     if (advancedElementUpdateFlag & VertexElementFlags.BoneWeight) {
-      this._updateAdvancedVertexElement(!!this._boneWeights, VertexAttribute.BoneWeight, VertexElementFlags.BoneWeight);
+      this._updateAdvancedVertexElement(this._boneWeights, VertexAttribute.BoneWeight, VertexElementFlags.BoneWeight);
     }
 
     if (advancedElementUpdateFlag & VertexElementFlags.BoneIndex) {
-      this._updateAdvancedVertexElement(!!this._boneIndices, VertexAttribute.BoneIndex, VertexElementFlags.BoneIndex);
+      this._updateAdvancedVertexElement(this._boneIndices, VertexAttribute.BoneIndex, VertexElementFlags.BoneIndex);
     }
 
     if (advancedElementUpdateFlag & VertexElementFlags.Tangent) {
-      this._updateAdvancedVertexElement(!!this._tangents, VertexAttribute.Tangent, VertexElementFlags.Tangent);
+      this._updateAdvancedVertexElement(this._tangents, VertexAttribute.Tangent, VertexElementFlags.Tangent);
     }
 
     if (advancedElementUpdateFlag & VertexElementFlags.UV) {
-      this._updateAdvancedVertexElement(!!this._uv, VertexAttribute.UV, VertexElementFlags.UV);
+      this._updateAdvancedVertexElement(this._uv, VertexAttribute.UV, VertexElementFlags.UV);
     }
 
     if (advancedElementUpdateFlag & VertexElementFlags.UV1) {
-      this._updateAdvancedVertexElement(!!this._uv1, VertexAttribute.UV1, VertexElementFlags.UV1);
+      this._updateAdvancedVertexElement(this._uv1, VertexAttribute.UV1, VertexElementFlags.UV1);
     }
 
     if (advancedElementUpdateFlag & VertexElementFlags.UV2) {
-      this._updateAdvancedVertexElement(!!this._uv2, VertexAttribute.UV2, VertexElementFlags.UV2);
+      this._updateAdvancedVertexElement(this._uv2, VertexAttribute.UV2, VertexElementFlags.UV2);
     }
 
     if (advancedElementUpdateFlag & VertexElementFlags.UV3) {
-      this._updateAdvancedVertexElement(!!this._uv3, VertexAttribute.UV3, VertexElementFlags.UV3);
+      this._updateAdvancedVertexElement(this._uv3, VertexAttribute.UV3, VertexElementFlags.UV3);
     }
 
     if (advancedElementUpdateFlag & VertexElementFlags.UV4) {
-      this._updateAdvancedVertexElement(!!this._uv4, VertexAttribute.UV4, VertexElementFlags.UV4);
+      this._updateAdvancedVertexElement(this._uv4, VertexAttribute.UV4, VertexElementFlags.UV4);
     }
 
     if (advancedElementUpdateFlag & VertexElementFlags.UV5) {
-      this._updateAdvancedVertexElement(!!this._uv5, VertexAttribute.UV5, VertexElementFlags.UV5);
+      this._updateAdvancedVertexElement(this._uv5, VertexAttribute.UV5, VertexElementFlags.UV5);
     }
 
     if (advancedElementUpdateFlag & VertexElementFlags.UV6) {
-      this._updateAdvancedVertexElement(!!this._uv6, VertexAttribute.UV6, VertexElementFlags.UV6);
+      this._updateAdvancedVertexElement(this._uv6, VertexAttribute.UV6, VertexElementFlags.UV6);
     }
 
     if (advancedElementUpdateFlag & VertexElementFlags.UV7) {
-      this._updateAdvancedVertexElement(!!this._uv7, VertexAttribute.UV7, VertexElementFlags.UV7);
+      this._updateAdvancedVertexElement(this._uv7, VertexAttribute.UV7, VertexElementFlags.UV7);
     }
   }
 

@@ -4,7 +4,6 @@ import { GLCapabilityType } from "../base/Constant";
 import { BufferBindFlag, BufferUsage, VertexElement, VertexElementFormat } from "../graphic";
 import { Buffer } from "../graphic/Buffer";
 import { ModelMesh } from "./ModelMesh";
-import { MeshTangentUtils } from "./MeshTangentUtils";
 import type {
   SphereMeshOptions,
   CuboidMeshOptions,
@@ -1997,18 +1996,15 @@ export class PrimitiveMesh {
       new VertexElement(VertexAttribute.Normal, 12, VertexElementFormat.Vector3, 0),
       new VertexElement(VertexAttribute.UV, 24, VertexElementFormat.Vector2, 0)
     ]);
-    const vertexBuffer = new Buffer(
-      mesh.engine,
-      BufferBindFlag.VertexBuffer,
-      vertices,
-      BufferUsage.Static,
-      keepCPUData
-    );
+    const vertexBuffer = new Buffer(mesh.engine, BufferBindFlag.VertexBuffer, vertices, BufferUsage.Static, true);
     mesh.setVertexBufferBinding(vertexBuffer, 32, 0);
-    mesh._initializeTangents(MeshTangentUtils.calculateTangentsFromBuffer(vertices, indices), !keepCPUData);
     mesh.setIndices(indices);
+    mesh.calculateTangents();
     PrimitiveMesh._setBounds(mesh, data);
     mesh.uploadData(!keepCPUData);
+    if (!keepCPUData) {
+      vertexBuffer.markAsUnreadable();
+    }
     mesh.clearSubMesh();
     if (options?.separateMaterialSlots && data.groups.length) {
       for (const group of data.groups) {
