@@ -329,7 +329,7 @@ export interface TubeMeshOptions extends PrimitiveMeshOptions {
 }
 
 /**
- * Settings for triangulating polygons in XY facing +Z.
+ * Settings for a zero-thickness polygon mesh in XY facing +Z.
  */
 export interface PolygonMeshOptions extends PrimitiveMeshOptions {
   /**
@@ -340,9 +340,9 @@ export interface PolygonMeshOptions extends PrimitiveMeshOptions {
 }
 
 /**
- * Settings for extruding polygons along +Z.
+ * Settings for extruding polygon contours along +Z.
  */
-export interface LinearExtrusionMeshOptions extends PrimitiveMeshOptions {
+export interface LinearExtrudedPolygonMeshOptions extends PrimitiveMeshOptions {
   /**
    * The number of subdivisions along the extrusion, rounded down with a minimum of 1.
    * @defaultValue `1`
@@ -378,10 +378,10 @@ export interface LinearExtrusionMeshOptions extends PrimitiveMeshOptions {
 }
 
 /**
- * Settings for extruding polygons along a polyline, without bevels.
+ * Settings for sweeping polygon contours along a polyline, without bevels.
  * Polygon X and Y coordinates become offsets along the moving cross-section's axes.
  */
-export interface PathExtrusionMeshOptions extends PrimitiveMeshOptions {
+export interface PathExtrudedPolygonMeshOptions extends PrimitiveMeshOptions {
   /**
    * The number of subdivisions along the resampled path, rounded down with a minimum of 1, or 3 for closed paths.
    * @defaultValue `1`, increased to `3` when `closedPath` is true.

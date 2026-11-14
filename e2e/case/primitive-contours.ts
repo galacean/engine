@@ -66,12 +66,12 @@ class PrimitiveContours {
         {
           label: "Straight extrusion",
           detail: "depth: 0.6 / no bevel",
-          mesh: PrimitiveMesh.createExtrusion(engine, polygon, 0.6)
+          mesh: PrimitiveMesh.createExtrudedPolygon(engine, polygon, 0.6)
         },
         {
           label: "Independent bevel depth",
           detail: "bevel width: 0.16 / depth: 0.06",
-          mesh: PrimitiveMesh.createExtrusion(engine, polygon, 0.6, {
+          mesh: PrimitiveMesh.createExtrudedPolygon(engine, polygon, 0.6, {
             bevelWidth: 0.16,
             bevelDepth: 0.06,
             bevelSegments: 4
@@ -80,12 +80,12 @@ class PrimitiveContours {
         {
           label: "Expanded contour",
           detail: "offset: +0.15 / no bevel",
-          mesh: PrimitiveMesh.createExtrusion(engine, polygon, 0.6, { contourOffset: 0.15 })
+          mesh: PrimitiveMesh.createExtrudedPolygon(engine, polygon, 0.6, { contourOffset: 0.15 })
         },
         {
           label: "Contracted contour",
           detail: "contourOffset: -0.15",
-          mesh: PrimitiveMesh.createExtrusion(engine, polygon, 0.6, { contourOffset: -0.15, bevelWidth: 0.08 })
+          mesh: PrimitiveMesh.createExtrudedPolygon(engine, polygon, 0.6, { contourOffset: -0.15, bevelWidth: 0.08 })
         },
         {
           label: "Open tube",
@@ -100,17 +100,17 @@ class PrimitiveContours {
         {
           label: "Open profile sweep",
           detail: "pathSegments: 48",
-          mesh: PrimitiveMesh.createExtrusion(engine, smallProfile, path, { pathSegments: 48 })
+          mesh: PrimitiveMesh.createExtrudedPolygon(engine, smallProfile, path, { pathSegments: 48 })
         },
         {
           label: "Closed profile sweep",
           detail: "closedPath: true / no caps",
-          mesh: PrimitiveMesh.createExtrusion(engine, smallProfile, loop, { pathSegments: 64, closedPath: true })
+          mesh: PrimitiveMesh.createExtrudedPolygon(engine, smallProfile, loop, { pathSegments: 64, closedPath: true })
         },
         {
           label: "Hollow profile sweep",
           detail: "path + inner contour",
-          mesh: PrimitiveMesh.createExtrusion(engine, smallHoleProfile, path, { pathSegments: 48 })
+          mesh: PrimitiveMesh.createExtrudedPolygon(engine, smallHoleProfile, path, { pathSegments: 48 })
         }
       ],
       4

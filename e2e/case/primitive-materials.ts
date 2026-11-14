@@ -65,15 +65,18 @@ class PrimitiveMaterials {
         rotation: new Vector3()
       },
       {
-        label: "Extrusion / cap and wall",
+        label: "Extruded / cap and wall",
         detail: "caps / walls + bevels",
-        mesh: PrimitiveMesh.createExtrusion(engine, square, 0.6, { bevelWidth: 0.12, separateMaterialSlots: true }),
+        mesh: PrimitiveMesh.createExtrudedPolygon(engine, square, 0.6, {
+          bevelWidth: 0.12,
+          separateMaterialSlots: true
+        }),
         slots: 2
       },
       {
         label: "Closed / two profiles",
         detail: "one wall slot per profile",
-        mesh: PrimitiveMesh.createExtrusion(engine, profiles, loop, {
+        mesh: PrimitiveMesh.createExtrudedPolygon(engine, profiles, loop, {
           pathSegments: 64,
           closedPath: true,
           separateMaterialSlots: true

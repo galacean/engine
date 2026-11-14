@@ -106,22 +106,28 @@ const creators: [string, () => ModelMesh][] = [
     () => PrimitiveMesh.createTube(engine, path, 0.5, { keepCPUData: true, pathSegments: 12, radialSegments: 8 })
   ],
   ["polygon", () => PrimitiveMesh.createPolygon(engine, polygon, { keepCPUData: true })],
-  ["extrusion", () => PrimitiveMesh.createExtrusion(engine, polygon, 2, { keepCPUData: true, depthSegments: 1 })],
   [
-    "extrusion",
+    "extrudedPolygon",
+    () => PrimitiveMesh.createExtrudedPolygon(engine, polygon, 2, { keepCPUData: true, depthSegments: 1 })
+  ],
+  [
+    "extrudedPolygon",
     () =>
-      PrimitiveMesh.createExtrusion(engine, polygon, 1, {
+      PrimitiveMesh.createExtrudedPolygon(engine, polygon, 1, {
         keepCPUData: true,
         bevelWidth: 0.1,
         contourOffset: 0.2,
         depthSegments: 1
       })
   ],
-  ["extrusion", () => PrimitiveMesh.createExtrusion(engine, polygon, path, { keepCPUData: true, pathSegments: 5 })],
   [
-    "extrusion",
+    "extrudedPolygon",
+    () => PrimitiveMesh.createExtrudedPolygon(engine, polygon, path, { keepCPUData: true, pathSegments: 5 })
+  ],
+  [
+    "extrudedPolygon",
     () =>
-      PrimitiveMesh.createExtrusion(
+      PrimitiveMesh.createExtrudedPolygon(
         engine,
         {
           points: [
@@ -255,13 +261,13 @@ describe("primitive mesh defaults", () => {
     ],
     [
       "depth extrusion",
-      () => PrimitiveMesh.createExtrusion(engine, polygon, 2, { ...options }),
-      () => PrimitiveMesh.createExtrusion(engine, polygon, 2, { ...options, depthSegments: 1 })
+      () => PrimitiveMesh.createExtrudedPolygon(engine, polygon, 2, { ...options }),
+      () => PrimitiveMesh.createExtrudedPolygon(engine, polygon, 2, { ...options, depthSegments: 1 })
     ],
     [
       "path extrusion",
-      () => PrimitiveMesh.createExtrusion(engine, polygon, path, { ...options }),
-      () => PrimitiveMesh.createExtrusion(engine, polygon, path, { ...options, pathSegments: 1 })
+      () => PrimitiveMesh.createExtrudedPolygon(engine, polygon, path, { ...options }),
+      () => PrimitiveMesh.createExtrudedPolygon(engine, polygon, path, { ...options, pathSegments: 1 })
     ],
     [
       "torus knot",
@@ -1031,7 +1037,7 @@ describe("procedural mesh geometry", () => {
 
   it("orders each extruded shape's cap and wall material slots together", () => {
     const shapes = [polygon, { points: polygon.points.map(({ x, y }) => new Vector2(x + 6, y)) }];
-    const mesh = PrimitiveMesh.createExtrusion(engine, shapes, 2, {
+    const mesh = PrimitiveMesh.createExtrudedPolygon(engine, shapes, 2, {
       keepCPUData: true,
       separateMaterialSlots: true,
       depthSegments: 1
@@ -1054,7 +1060,7 @@ describe("procedural mesh geometry", () => {
 
   it.each([0.2, -0.2])("offsets extrusion walls and bevels by %s and restores their geometry", (contourOffset) => {
     const options = { keepCPUData: true, separateMaterialSlots: true, bevelWidth: 0.1, bevelDepth: 0.2, contourOffset };
-    const mesh = PrimitiveMesh.createExtrusion(engine, polygon, 2, { ...options, depthSegments: 2 });
+    const mesh = PrimitiveMesh.createExtrudedPolygon(engine, polygon, 2, { ...options, depthSegments: 2 });
     try {
       const outer = 2 + contourOffset;
       const hole = 1 - contourOffset;
@@ -1092,7 +1098,7 @@ describe("procedural mesh geometry", () => {
   });
 
   it.each([0.2, -0.2])("offsets extrusion contours by %s without adding bevels", (contourOffset) => {
-    const mesh = PrimitiveMesh.createExtrusion(engine, polygon, 2, {
+    const mesh = PrimitiveMesh.createExtrudedPolygon(engine, polygon, 2, {
       keepCPUData: true,
       contourOffset,
       depthSegments: 1
@@ -1238,7 +1244,10 @@ describe("procedural mesh geometry", () => {
 
   it("preserves multiple holes in extrusion caps and restored buffers", () => {
     const { points, holes, area } = triangulationCases[1];
-    const mesh = PrimitiveMesh.createExtrusion(engine, { points, holes }, 3, { keepCPUData: true, depthSegments: 1 });
+    const mesh = PrimitiveMesh.createExtrudedPolygon(engine, { points, holes }, 3, {
+      keepCPUData: true,
+      depthSegments: 1
+    });
     try {
       const positions = mesh.getPositions()!;
       const indices = Array.from(mesh.getIndices()!);
@@ -1294,14 +1303,14 @@ describe("procedural mesh geometry", () => {
   it.each([
     { type: "tube", tubeRadius: 0.5, keepCPUData: false },
     { type: "tube", tubeRadius: 0.5, keepCPUData: true },
-    { type: "extrusion", extrusionDepth: 1, keepCPUData: false },
-    { type: "extrusion", extrusionDepth: 1, keepCPUData: true }
+    { type: "extrudedPolygon", extrudedPolygonDepth: 1, keepCPUData: false },
+    { type: "extrudedPolygon", extrudedPolygonDepth: 1, keepCPUData: true }
   ])("copies $type path points for device restoration with keepCPUData=$keepCPUData", ({ type, keepCPUData }) => {
     const points = path.map((point) => point.clone());
     const mesh =
       type === "tube"
         ? PrimitiveMesh.createTube(engine, points, 0.5, { keepCPUData, pathSegments: 12, radialSegments: 8 })
-        : PrimitiveMesh.createExtrusion(engine, polygon, points, { keepCPUData, pathSegments: 12 });
+        : PrimitiveMesh.createExtrudedPolygon(engine, polygon, points, { keepCPUData, pathSegments: 12 });
     try {
       const buffers = mesh.vertexBufferBindings.map((binding) => binding!.buffer);
       buffers.push(mesh._primitive.indexBufferBinding!._buffer);
@@ -1456,8 +1465,8 @@ describe("procedural mesh geometry", () => {
     const originalPoints = points.map((point) => point.toJSON());
     const profile = [new Vector2(0.2, 0), new Vector2(-0.1, 0.1), new Vector2(-0.1, -0.1)];
     const options = { keepCPUData: true, closedPath: true };
-    const mesh = PrimitiveMesh.createExtrusion(engine, profile, points, { ...options, pathSegments: 32 });
-    const repeated = PrimitiveMesh.createExtrusion(engine, profile, [...points, points[0].clone()], {
+    const mesh = PrimitiveMesh.createExtrudedPolygon(engine, profile, points, { ...options, pathSegments: 32 });
+    const repeated = PrimitiveMesh.createExtrudedPolygon(engine, profile, [...points, points[0].clone()], {
       ...options,
       pathSegments: 32
     });
@@ -1504,7 +1513,7 @@ describe("procedural mesh geometry", () => {
       { points: polygon.points.map(({ x, y }) => new Vector2(x * 0.1 + 0.6, y * 0.1)) }
     ];
     const points = [new Vector3(-4, 0, -4), new Vector3(4, 0, -4), new Vector3(4, 0, 4), new Vector3(-4, 0, 4)];
-    const mesh = PrimitiveMesh.createExtrusion(engine, shapes, points, {
+    const mesh = PrimitiveMesh.createExtrudedPolygon(engine, shapes, points, {
       keepCPUData: true,
       separateMaterialSlots: true,
       closedPath: true,
@@ -1527,12 +1536,12 @@ describe("procedural mesh geometry", () => {
     const pathOptions = { keepCPUData: true, pathSegments: 5, separateMaterialSlots: true };
     const pairs = [
       [
-        PrimitiveMesh.createExtrusion(engine, polygon, 2, linearOptions),
-        PrimitiveMesh.createExtrusion(engine, polygon, 2, { ...linearOptions, pathSegments: 7, closedPath: true })
+        PrimitiveMesh.createExtrudedPolygon(engine, polygon, 2, linearOptions),
+        PrimitiveMesh.createExtrudedPolygon(engine, polygon, 2, { ...linearOptions, pathSegments: 7, closedPath: true })
       ],
       [
-        PrimitiveMesh.createExtrusion(engine, polygon, path, pathOptions),
-        PrimitiveMesh.createExtrusion(engine, polygon, path, {
+        PrimitiveMesh.createExtrudedPolygon(engine, polygon, path, pathOptions),
+        PrimitiveMesh.createExtrudedPolygon(engine, polygon, path, {
           ...pathOptions,
           depthSegments: 7,
           bevelWidth: 0.25,
@@ -1564,7 +1573,7 @@ describe("procedural mesh geometry", () => {
   it("uses at least three path segments to close an extrusion path", () => {
     const profile = [new Vector2(0.2, 0), new Vector2(-0.1, 0.1), new Vector2(-0.1, -0.1)];
     const points = [new Vector3(-4, 0, -4), new Vector3(4, 0, -4), new Vector3(4, 0, 4), new Vector3(-4, 0, 4)];
-    const mesh = PrimitiveMesh.createExtrusion(engine, profile, points, { keepCPUData: true, closedPath: true });
+    const mesh = PrimitiveMesh.createExtrudedPolygon(engine, profile, points, { keepCPUData: true, closedPath: true });
     try {
       const positions = mesh.getPositions()!;
       const indices = mesh.getIndices()!;
@@ -1837,7 +1846,7 @@ describe("procedural mesh geometry", () => {
       const angle = (i * Math.PI * 2) / 256;
       return new Vector2(Math.cos(angle), Math.sin(angle));
     });
-    const mesh = PrimitiveMesh.createExtrusion(engine, contour, 1, { keepCPUData: true, depthSegments: 43 });
+    const mesh = PrimitiveMesh.createExtrudedPolygon(engine, contour, 1, { keepCPUData: true, depthSegments: 43 });
     try {
       const indices = mesh.getIndices()!;
       expect(mesh.vertexCount).toBeGreaterThan(65535);
@@ -1849,7 +1858,7 @@ describe("procedural mesh geometry", () => {
   });
 
   it("handles repeated contour endpoints when beveling", () => {
-    const mesh = PrimitiveMesh.createExtrusion(
+    const mesh = PrimitiveMesh.createExtrudedPolygon(
       engine,
       {
         points: [

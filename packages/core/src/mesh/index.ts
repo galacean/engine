@@ -23,8 +23,8 @@ export type {
   TorusKnotMeshOptions,
   RoundedCuboidMeshOptions,
   PolygonShape,
-  LinearExtrusionMeshOptions,
-  PathExtrusionMeshOptions
+  LinearExtrudedPolygonMeshOptions,
+  PathExtrudedPolygonMeshOptions
 } from "./PrimitiveMeshOptions";
 export { Skin } from "./Skin";
 export { SkinnedMeshRenderer } from "./SkinnedMeshRenderer";

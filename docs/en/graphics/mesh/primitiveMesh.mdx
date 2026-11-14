@@ -155,7 +155,7 @@ For torus knots, `axisTurns` counts revolutions around the central axis and `cro
 | Cylinder, frustum, cone, capsule | `createCylinder`, `createTruncatedCone`, `createCone`, `createCapsule` |
 | Disk, annulus, torus, torus knot | `createCircle`, `createRing`, `createTorus`, `createTorusKnot` |
 | Regular polyhedra | `createTetrahedron`, `createOctahedron`, `createIcosahedron`, `createDodecahedron` |
-| Revolved profile, path tube, polygon, extrusion, rounded cuboid | `createLathe`, `createTube`, `createPolygon`, `createExtrusion`, `createRoundedCuboid` |
+| Revolved profile, path tube, polygon, extruded polygon, rounded cuboid | `createLathe`, `createTube`, `createPolygon`, `createExtrudedPolygon`, `createRoundedCuboid` |
 
 ### Subdivisions, angles and caps
 
@@ -186,8 +186,8 @@ import { Vector2, Vector3 } from "@galacean/engine";
 const outline = [new Vector2(-2, -2), new Vector2(2, -2), new Vector2(2, 2), new Vector2(-2, 2)];
 const hole = [new Vector2(-1, -1), new Vector2(-1, 1), new Vector2(1, 1), new Vector2(1, -1)];
 const face = PrimitiveMesh.createPolygon(engine, { points: outline, holes: [hole] });
-const solid = PrimitiveMesh.createExtrusion(engine, { points: outline, holes: [hole] }, 0.5);
-const beveled = PrimitiveMesh.createExtrusion(engine, outline, 0.5, {
+const solid = PrimitiveMesh.createExtrudedPolygon(engine, { points: outline, holes: [hole] }, 0.5);
+const beveled = PrimitiveMesh.createExtrudedPolygon(engine, outline, 0.5, {
   bevelWidth: 0.05,
   contourOffset: 0.02,
   depthSegments: 1
@@ -197,12 +197,12 @@ const path = Array.from({ length: 65 }, (_, i) => {
   return new Vector3(4 * t, Math.sin(t * Math.PI * 2), 0);
 });
 const tube = PrimitiveMesh.createTube(engine, path, 0.1, { pathSegments: 64 });
-const swept = PrimitiveMesh.createExtrusion(engine, outline, path, { pathSegments: 64 });
+const swept = PrimitiveMesh.createExtrudedPolygon(engine, outline, path, { pathSegments: 64 });
 const loop = [new Vector3(-4, 0, -4), new Vector3(4, 0, -4), new Vector3(4, 0, 4), new Vector3(-4, 0, 4)];
-const closedPath = PrimitiveMesh.createExtrusion(engine, outline, loop, { closedPath: true, pathSegments: 32 });
+const closedPath = PrimitiveMesh.createExtrudedPolygon(engine, outline, loop, { closedPath: true, pathSegments: 32 });
 ```
 
-Extrusion requires a third argument: a numeric depth for linear extrusion, or a `Vector3` array for path extrusion. `LinearExtrusionMeshOptions` contains optional bevel settings; `PathExtrusionMeshOptions` contains optional path settings. Linear extrusion uses `depthSegments`; path extrusion uses `pathSegments`. Each interface declares its mode's settings. A path ignores bevel settings; a numeric depth ignores `closedPath`. Linear extrusion goes along +Z without bevels unless requested. A positive `bevelWidth` enables beveling; `bevelDepth` defaults to the same value. Path extrusion does not generate bevels. Paths accept `Vector3` arrays and are sampled at equal distances along their line segments. Sample curves into points before creating the mesh, as shown above.
+`createExtrudedPolygon` requires a third argument: a numeric depth for linear extrusion, or a `Vector3` array for path extrusion. `LinearExtrudedPolygonMeshOptions` contains optional bevel settings; `PathExtrudedPolygonMeshOptions` contains optional path settings. Linear extrusion uses `depthSegments`; path extrusion uses `pathSegments`. Each interface declares its mode's settings. A path ignores bevel settings; a numeric depth ignores `closedPath`. Linear extrusion goes along +Z without bevels unless requested. A positive `bevelWidth` enables beveling; `bevelDepth` defaults to the same value. Path extrusion does not generate bevels. Paths accept `Vector3` arrays and are sampled at equal distances along their line segments. Sample curves into points before creating the mesh, as shown above.
 
 For tubes and path extrusions, `closedPath` defaults to `false`. Set it to `true` to join the path ends and align the first and last cross-sections; the closing point need not be repeated. Closed extrusions use at least three path segments and have no end caps. Open extrusions have two end caps; tubes have no end caps in either mode.
 
@@ -232,7 +232,7 @@ const sixMaterials = PrimitiveMesh.createCuboid(engine, 1, 1, 1, {
 | Cylinder and truncated cone | Side, top cap, bottom cap |
 | Cone | Side, bottom cap |
 | Polygon | One slot per shape, in input order; holes share their outer contour's slot |
-| Extrusion | Both end caps, then all walls and bevels, per shape; closed paths have one wall slot per shape |
+| Extruded polygon | Both end caps, then all walls and bevels, per shape; closed paths have one wall slot per shape |
 
 Only generated parts occupy slots. Disabled or zero-radius caps do not reserve a slot, so a cylinder with only its bottom cap uses slot 0 for the side and slot 1 for the bottom. When rebuilding a mesh with different parts or shapes, update the material array to match the resulting slot order.
 
@@ -269,7 +269,7 @@ Each `type` selects the matching `PrimitiveMesh.createX` method. Type-prefixed f
 | `lathe` | `latheProfile` |
 | `tube` | `tubePath`, `tubeRadius` |
 | `polygon` | `polygonShapes` |
-| `extrusion` | `extrusionShapes`, plus `extrusionDepth` or `extrusionPath` |
+| `extrudedPolygon` | `extrudedPolygonShapes`, plus `extrudedPolygonDepth` or `extrudedPolygonPath` |
 | `torusKnot` | `torusKnotRadius`, `torusKnotTubeRadius`, `torusKnotAxisTurns`, `torusKnotCrossSectionTurns` |
 | `roundedCuboid` | `roundedCuboidWidth`, `roundedCuboidHeight`, `roundedCuboidDepth`, `roundedCuboidCornerRadius` |
 
@@ -279,8 +279,8 @@ Profiles and polygon contours store `{ x, y }` points; paths store `{ x, y, z }`
 
 ```json
 {
-  "type": "extrusion",
-  "extrusionShapes": [
+  "type": "extrudedPolygon",
+  "extrudedPolygonShapes": [
     {
       "points": [
         { "x": -2, "y": -2 },
@@ -298,11 +298,11 @@ Profiles and polygon contours store `{ x, y }` points; paths store `{ x, y, z }`
       ]
     }
   ],
-  "extrusionDepth": 2,
-  "extrusionOptions": { "bevelWidth": 0.1, "contourOffset": 0.2, "separateMaterialSlots": true }
+  "extrudedPolygonDepth": 2,
+  "extrudedPolygonOptions": { "bevelWidth": 0.1, "contourOffset": 0.2, "separateMaterialSlots": true }
 }
 ```
 
-Path extrusion uses the required `extrusionPath` field instead of `extrusionDepth` and ignores bevel settings. Set `extrusionOptions.closedPath` to `true` for a closed path without end caps. Save path points as `{ x, y, z }`.
+Path extrusion uses the required `extrudedPolygonPath` field instead of `extrudedPolygonDepth` and ignores bevel settings. Set `extrudedPolygonOptions.closedPath` to `true` for a closed path without end caps. Save path points as `{ x, y, z }`.
 
 The type-prefixed fields, including `<type>Options`, pass through the Editor's primitive asset bundler. Editor previews should select the same creation method and parameters as the saved asset.

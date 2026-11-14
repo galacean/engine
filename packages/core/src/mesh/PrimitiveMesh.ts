@@ -20,8 +20,8 @@ import type {
   LatheMeshOptions,
   TubeMeshOptions,
   PolygonMeshOptions,
-  LinearExtrusionMeshOptions,
-  PathExtrusionMeshOptions,
+  LinearExtrudedPolygonMeshOptions,
+  PathExtrudedPolygonMeshOptions,
   TorusKnotMeshOptions,
   RoundedCuboidMeshOptions,
   PolygonShape
@@ -530,11 +530,11 @@ export class PrimitiveMesh {
   }
 
   /**
-   * Triangulate one or more polygons in XY facing +Z.
+   * Create a zero-thickness polygon mesh in the XY plane, facing +Z.
    * @param engine - The engine that owns the mesh
    * @param shapes - A contour, a polygon with holes, or an array of polygons; closing points need not be repeated
    * @param options - Optional mesh generation settings
-   * @returns The generated mesh
+   * @returns The triangulated polygon mesh without side walls
    */
   static createPolygon(
     engine: Engine,
@@ -550,21 +550,22 @@ export class PrimitiveMesh {
   }
 
   /**
-   * Extrude polygons along +Z or a spatial path.
+   * Create an extruded polygon mesh with side walls along +Z or a spatial path.
    * @remarks
-   * A path selects path extrusion and ignores bevel settings.
-   * A numeric depth extrudes along +Z and ignores `closedPath`.
+   * A numeric depth extrudes the contours along +Z and ignores `closedPath`.
+   * A path sweeps the contours along its points and ignores bevel settings.
+   * Open extrusions include both end caps; closed paths have no end caps.
    * @param engine - The engine that owns the mesh
    * @param shapes - A contour, a polygon with holes, or an array of polygons; closing points need not be repeated
-   * @param depthOrPath - The total depth along +Z, including bevels, or the path points with at least two distinct points
+   * @param depthOrPath - The total extrusion depth in local units, including bevels, or a path with at least two distinct points
    * @param options - Linear or path extrusion settings
-   * @returns The generated mesh
+   * @returns The extruded polygon mesh with side walls and any end caps
    */
-  static createExtrusion(
+  static createExtrudedPolygon(
     engine: Engine,
     shapes: readonly Vector2[] | PolygonShape | readonly PolygonShape[],
     depthOrPath: number | readonly Vector3[],
-    options: LinearExtrusionMeshOptions | PathExtrusionMeshOptions = {}
+    options: LinearExtrudedPolygonMeshOptions | PathExtrudedPolygonMeshOptions = {}
   ): ModelMesh {
     const {
       depthSegments = 1,
@@ -574,12 +575,12 @@ export class PrimitiveMesh {
       bevelDepth = bevelWidth,
       contourOffset = 0,
       bevelSegments = 3
-    }: LinearExtrusionMeshOptions & PathExtrusionMeshOptions = options;
+    }: LinearExtrudedPolygonMeshOptions & PathExtrudedPolygonMeshOptions = options;
     const path = typeof depthOrPath === "number" ? undefined : depthOrPath;
     const depth = typeof depthOrPath === "number" ? depthOrPath : 0;
     return PrimitiveMesh._createMesh(
       engine,
-      PrimitiveMesh._createExtrusionData,
+      PrimitiveMesh._createExtrudedPolygonData,
       [
         PrimitiveMesh._polygons(shapes),
         depth,
@@ -1458,7 +1459,7 @@ export class PrimitiveMesh {
     return data;
   }
 
-  private static _createExtrusionData(
+  private static _createExtrudedPolygonData(
     shapes: readonly PolygonShape[],
     depth: number,
     stepCount: number,

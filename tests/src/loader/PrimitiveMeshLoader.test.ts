@@ -131,9 +131,9 @@ describe("PrimitiveMeshLoader", () => {
       data: { type: "polygon", polygonShapes: shapes },
       create: () => PrimitiveMesh.createPolygon(engine, shapeVectors)
     },
-    extrusion: {
-      data: { type: "extrusion", extrusionDepth: 1, extrusionShapes: shapes },
-      create: () => PrimitiveMesh.createExtrusion(engine, shapeVectors, 1)
+    extrudedPolygon: {
+      data: { type: "extrudedPolygon", extrudedPolygonDepth: 1, extrudedPolygonShapes: shapes },
+      create: () => PrimitiveMesh.createExtrudedPolygon(engine, shapeVectors, 1)
     },
     torusKnot: {
       data: {
@@ -428,10 +428,10 @@ describe("PrimitiveMeshLoader", () => {
     {
       name: "beveled extrusion",
       data: {
-        type: "extrusion",
-        extrusionDepth: 2,
-        extrusionShapes: shapes,
-        extrusionOptions: {
+        type: "extrudedPolygon",
+        extrudedPolygonDepth: 2,
+        extrudedPolygonShapes: shapes,
+        extrudedPolygonOptions: {
           ...groupedOptions,
           bevelWidth: 0.1,
           bevelDepth: 0.2,
@@ -441,7 +441,7 @@ describe("PrimitiveMeshLoader", () => {
         }
       },
       create: () =>
-        PrimitiveMesh.createExtrusion(engine, shapeVectors, 2, {
+        PrimitiveMesh.createExtrudedPolygon(engine, shapeVectors, 2, {
           ...groupedOptions,
           bevelWidth: 0.1,
           bevelDepth: 0.2,
@@ -453,35 +453,39 @@ describe("PrimitiveMeshLoader", () => {
     {
       name: "inset extrusion without bevels",
       data: {
-        type: "extrusion",
-        extrusionDepth: 2,
-        extrusionShapes: shapes,
-        extrusionOptions: { ...options, contourOffset: -0.1 }
+        type: "extrudedPolygon",
+        extrudedPolygonDepth: 2,
+        extrudedPolygonShapes: shapes,
+        extrudedPolygonOptions: { ...options, contourOffset: -0.1 }
       },
       create: () =>
-        PrimitiveMesh.createExtrusion(engine, shapeVectors, 2, { ...options, contourOffset: -0.1, depthSegments: 1 })
+        PrimitiveMesh.createExtrudedPolygon(engine, shapeVectors, 2, {
+          ...options,
+          contourOffset: -0.1,
+          depthSegments: 1
+        })
     },
     {
       name: "extrusion along a path",
       data: {
-        type: "extrusion",
-        extrusionPath: path,
-        extrusionShapes: shapes,
-        extrusionOptions: { ...groupedOptions, pathSegments: 6 }
+        type: "extrudedPolygon",
+        extrudedPolygonPath: path,
+        extrudedPolygonShapes: shapes,
+        extrudedPolygonOptions: { ...groupedOptions, pathSegments: 6 }
       },
       create: () =>
-        PrimitiveMesh.createExtrusion(engine, shapeVectors, pathVectors, { ...groupedOptions, pathSegments: 6 })
+        PrimitiveMesh.createExtrudedPolygon(engine, shapeVectors, pathVectors, { ...groupedOptions, pathSegments: 6 })
     },
     {
       name: "closed extrusion path",
       data: {
-        type: "extrusion",
-        extrusionPath: path,
-        extrusionShapes: shapes,
-        extrusionOptions: { ...groupedOptions, closedPath: true, pathSegments: 12 }
+        type: "extrudedPolygon",
+        extrudedPolygonPath: path,
+        extrudedPolygonShapes: shapes,
+        extrudedPolygonOptions: { ...groupedOptions, closedPath: true, pathSegments: 12 }
       },
       create: () =>
-        PrimitiveMesh.createExtrusion(engine, shapeVectors, pathVectors, {
+        PrimitiveMesh.createExtrudedPolygon(engine, shapeVectors, pathVectors, {
           ...groupedOptions,
           closedPath: true,
           pathSegments: 12
@@ -490,20 +494,21 @@ describe("PrimitiveMeshLoader", () => {
     {
       name: "linear extrusion ignores path-only settings",
       data: {
-        type: "extrusion",
-        extrusionDepth: 2,
-        extrusionShapes: shapes,
-        extrusionOptions: { ...groupedOptions, depthSegments: 2, closedPath: true }
+        type: "extrudedPolygon",
+        extrudedPolygonDepth: 2,
+        extrudedPolygonShapes: shapes,
+        extrudedPolygonOptions: { ...groupedOptions, depthSegments: 2, closedPath: true }
       },
-      create: () => PrimitiveMesh.createExtrusion(engine, shapeVectors, 2, { ...groupedOptions, depthSegments: 2 })
+      create: () =>
+        PrimitiveMesh.createExtrudedPolygon(engine, shapeVectors, 2, { ...groupedOptions, depthSegments: 2 })
     },
     {
       name: "path extrusion ignores linear-only settings",
       data: {
-        type: "extrusion",
-        extrusionPath: path,
-        extrusionShapes: shapes,
-        extrusionOptions: {
+        type: "extrudedPolygon",
+        extrudedPolygonPath: path,
+        extrudedPolygonShapes: shapes,
+        extrudedPolygonOptions: {
           ...groupedOptions,
           pathSegments: 6,
           bevelWidth: 0.25,
@@ -513,7 +518,7 @@ describe("PrimitiveMeshLoader", () => {
         }
       },
       create: () =>
-        PrimitiveMesh.createExtrusion(engine, shapeVectors, pathVectors, { ...groupedOptions, pathSegments: 6 })
+        PrimitiveMesh.createExtrudedPolygon(engine, shapeVectors, pathVectors, { ...groupedOptions, pathSegments: 6 })
     },
     {
       name: "torus knot winding",

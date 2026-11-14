@@ -5,8 +5,8 @@ import type {
   CuboidMeshOptions,
   CylinderMeshOptions,
   LatheMeshOptions,
-  LinearExtrusionMeshOptions,
-  PathExtrusionMeshOptions,
+  LinearExtrudedPolygonMeshOptions,
+  PathExtrudedPolygonMeshOptions,
   PlaneMeshOptions,
   PolygonMeshOptions,
   RegularPolyhedronMeshOptions,
@@ -209,22 +209,22 @@ export type PrimitiveMeshAsset =
       polygonOptions?: PolygonMeshOptions;
     }
   | {
-      type: "extrusion";
+      type: "extrudedPolygon";
       /**
        * The total extrusion depth in local units, including both bevels.
        */
-      extrusionDepth: number;
-      extrusionShapes: readonly SerializedPolygonShape[];
-      extrusionOptions?: LinearExtrusionMeshOptions | PathExtrusionMeshOptions;
+      extrudedPolygonDepth: number;
+      extrudedPolygonShapes: readonly SerializedPolygonShape[];
+      extrudedPolygonOptions?: LinearExtrudedPolygonMeshOptions | PathExtrudedPolygonMeshOptions;
     }
   | {
-      type: "extrusion";
+      type: "extrudedPolygon";
       /**
        * The path points in local coordinates.
        */
-      extrusionPath: readonly { x: number; y: number; z: number }[];
-      extrusionShapes: readonly SerializedPolygonShape[];
-      extrusionOptions?: LinearExtrusionMeshOptions | PathExtrusionMeshOptions;
+      extrudedPolygonPath: readonly { x: number; y: number; z: number }[];
+      extrudedPolygonShapes: readonly SerializedPolygonShape[];
+      extrudedPolygonOptions?: LinearExtrudedPolygonMeshOptions | PathExtrudedPolygonMeshOptions;
     }
   | {
       type: "torusKnot";

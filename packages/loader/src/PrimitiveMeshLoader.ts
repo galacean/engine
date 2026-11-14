@@ -94,12 +94,12 @@ class PrimitiveMeshLoader extends Loader<ModelMesh> {
         return PrimitiveMesh.createTube(engine, this._parseVector3s(data.tubePath), data.tubeRadius, data.tubeOptions);
       case "polygon":
         return PrimitiveMesh.createPolygon(engine, this._parseShapes(data.polygonShapes), data.polygonOptions);
-      case "extrusion":
-        return PrimitiveMesh.createExtrusion(
+      case "extrudedPolygon":
+        return PrimitiveMesh.createExtrudedPolygon(
           engine,
-          this._parseShapes(data.extrusionShapes),
-          "extrusionPath" in data ? this._parseVector3s(data.extrusionPath) : data.extrusionDepth,
-          data.extrusionOptions
+          this._parseShapes(data.extrudedPolygonShapes),
+          "extrudedPolygonPath" in data ? this._parseVector3s(data.extrudedPolygonPath) : data.extrudedPolygonDepth,
+          data.extrudedPolygonOptions
         );
       case "torusKnot":
         return PrimitiveMesh.createTorusKnot(

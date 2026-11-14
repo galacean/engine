@@ -6,8 +6,8 @@ import type {
   CuboidMeshOptions,
   CylinderMeshOptions,
   LatheMeshOptions,
-  LinearExtrusionMeshOptions,
-  PathExtrusionMeshOptions,
+  LinearExtrudedPolygonMeshOptions,
+  PathExtrudedPolygonMeshOptions,
   PlaneMeshOptions,
   PolygonMeshOptions,
   PrimitiveMeshOptions,
@@ -104,7 +104,7 @@ const tubeOptions = {
   keepCPUData: true
 } satisfies TubeMeshOptions;
 const polygonOptions = { separateMaterialSlots: true, keepCPUData: true } satisfies PolygonMeshOptions;
-const linearExtrusionOptions = {
+const linearExtrudedPolygonOptions = {
   depthSegments: 4,
   bevelWidth: 0.1,
   bevelDepth: 0.2,
@@ -112,20 +112,21 @@ const linearExtrusionOptions = {
   bevelSegments: 3,
   separateMaterialSlots: true,
   keepCPUData: true
-} satisfies LinearExtrusionMeshOptions;
+} satisfies LinearExtrudedPolygonMeshOptions;
 const torusKnotOptions = { pathSegments: 64, radialSegments: 12, keepCPUData: true } satisfies TorusKnotMeshOptions;
 const roundedCuboidOptions = {
   roundingSegments: 4,
   separateMaterialSlots: true,
   keepCPUData: true
 } satisfies RoundedCuboidMeshOptions;
-const pathExtrusionOptions = {
+const pathExtrudedPolygonOptions = {
   pathSegments: 32,
   closedPath: true,
   separateMaterialSlots: true,
   keepCPUData: true
-} satisfies PathExtrusionMeshOptions;
-const extrusionOptions: LinearExtrusionMeshOptions | PathExtrusionMeshOptions = pathExtrusionOptions;
+} satisfies PathExtrudedPolygonMeshOptions;
+const extrudedPolygonOptions: LinearExtrudedPolygonMeshOptions | PathExtrudedPolygonMeshOptions =
+  pathExtrudedPolygonOptions;
 
 // Every factory lists its required inputs and a configuration containing all optional fields
 const meshes: ModelMesh[] = [
@@ -163,27 +164,27 @@ const meshes: ModelMesh[] = [
   PrimitiveMesh.createTube(engine, path, 0.1, tubeOptions),
   PrimitiveMesh.createPolygon(engine, contour),
   PrimitiveMesh.createPolygon(engine, contour, polygonOptions),
-  PrimitiveMesh.createExtrusion(engine, contour, 1),
-  PrimitiveMesh.createExtrusion(engine, contour, 2, linearExtrusionOptions),
+  PrimitiveMesh.createExtrudedPolygon(engine, contour, 1),
+  PrimitiveMesh.createExtrudedPolygon(engine, contour, 2, linearExtrudedPolygonOptions),
   PrimitiveMesh.createTorusKnot(engine, 0.5, 0.1, 2, 3),
   PrimitiveMesh.createTorusKnot(engine, 1, 0.2, 2, 3, torusKnotOptions),
   PrimitiveMesh.createRoundedCuboid(engine, 1, 1, 1, 0.1),
   PrimitiveMesh.createRoundedCuboid(engine, 2, 3, 4, 0.2, roundedCuboidOptions),
   PrimitiveMesh.createPolygon(engine, polygon),
   PrimitiveMesh.createPolygon(engine, polygon, polygonOptions),
-  PrimitiveMesh.createExtrusion(engine, polygon, 2),
-  PrimitiveMesh.createExtrusion(engine, polygon, 2, linearExtrusionOptions),
+  PrimitiveMesh.createExtrudedPolygon(engine, polygon, 2),
+  PrimitiveMesh.createExtrudedPolygon(engine, polygon, 2, linearExtrudedPolygonOptions),
   PrimitiveMesh.createPolygon(engine, polygons),
   PrimitiveMesh.createPolygon(engine, polygons, polygonOptions),
-  PrimitiveMesh.createExtrusion(engine, polygons, 2),
-  PrimitiveMesh.createExtrusion(engine, polygons, 2, linearExtrusionOptions),
-  PrimitiveMesh.createExtrusion(engine, contour, path),
-  PrimitiveMesh.createExtrusion(engine, contour, path, pathExtrusionOptions),
-  PrimitiveMesh.createExtrusion(engine, polygon, path),
-  PrimitiveMesh.createExtrusion(engine, polygon, path, pathExtrusionOptions),
-  PrimitiveMesh.createExtrusion(engine, polygons, path),
-  PrimitiveMesh.createExtrusion(engine, polygons, path, pathExtrusionOptions),
-  PrimitiveMesh.createExtrusion(engine, polygons, path, extrusionOptions),
+  PrimitiveMesh.createExtrudedPolygon(engine, polygons, 2),
+  PrimitiveMesh.createExtrudedPolygon(engine, polygons, 2, linearExtrudedPolygonOptions),
+  PrimitiveMesh.createExtrudedPolygon(engine, contour, path),
+  PrimitiveMesh.createExtrudedPolygon(engine, contour, path, pathExtrudedPolygonOptions),
+  PrimitiveMesh.createExtrudedPolygon(engine, polygon, path),
+  PrimitiveMesh.createExtrudedPolygon(engine, polygon, path, pathExtrudedPolygonOptions),
+  PrimitiveMesh.createExtrudedPolygon(engine, polygons, path),
+  PrimitiveMesh.createExtrudedPolygon(engine, polygons, path, pathExtrudedPolygonOptions),
+  PrimitiveMesh.createExtrudedPolygon(engine, polygons, path, extrudedPolygonOptions),
   PrimitiveMesh.createSphere(engine, 1, commonOptions),
   PrimitiveMesh.createSphere(engine, 1, { subdivisionLevel: 4 }),
   PrimitiveMesh.createCylinder(engine, 0.5, 2, { caps: PrimitiveMeshCapMode.Both }),
@@ -226,7 +227,7 @@ PrimitiveMesh.createTube(engine, path);
 // @ts-expect-error Polygon requires every core shape input
 PrimitiveMesh.createPolygon(engine);
 // @ts-expect-error Extrusion requires every core shape input
-PrimitiveMesh.createExtrusion(engine, contour);
+PrimitiveMesh.createExtrudedPolygon(engine, contour);
 // @ts-expect-error TorusKnot requires every core shape input
 PrimitiveMesh.createTorusKnot(engine, 0.5, 0.1, 2);
 // @ts-expect-error RoundedCuboid requires every core shape input
@@ -263,7 +264,7 @@ PrimitiveMesh.createDodecahedron(engine, 0.5, { radius: 1 });
 // @ts-expect-error radius is a required input rather than an option
 PrimitiveMesh.createTube(engine, path, 0.5, { radius: 1 });
 // @ts-expect-error depth is a required input rather than an option
-PrimitiveMesh.createExtrusion(engine, contour, 1, { depth: 1 });
+PrimitiveMesh.createExtrudedPolygon(engine, contour, 1, { depth: 1 });
 // @ts-expect-error radius is a required input rather than an option
 PrimitiveMesh.createTorusKnot(engine, 0.5, 0.1, 2, 3, { radius: 1 });
 // @ts-expect-error width is a required input rather than an option
@@ -297,15 +298,15 @@ PrimitiveMesh.createCylinder(engine, 0.5, 2, { caps: "top" });
 PrimitiveMesh.createTruncatedCone(engine, 0.25, 0.5, 2, { caps: "none" });
 
 // Fields from the inactive mode follow normal structural compatibility
-PrimitiveMesh.createExtrusion(engine, polygon, path, { bevelWidth: 0.1 });
-PrimitiveMesh.createExtrusion(engine, polygon, path, { contourOffset: 0.1 });
-PrimitiveMesh.createExtrusion(engine, polygon, 2, { closedPath: true });
+PrimitiveMesh.createExtrudedPolygon(engine, polygon, path, { bevelWidth: 0.1 });
+PrimitiveMesh.createExtrudedPolygon(engine, polygon, path, { contourOffset: 0.1 });
+PrimitiveMesh.createExtrudedPolygon(engine, polygon, 2, { closedPath: true });
 // @ts-expect-error Bevel offsets use numeric local units
-PrimitiveMesh.createExtrusion(engine, polygon, 2, { contourOffset: "0.1" });
+PrimitiveMesh.createExtrudedPolygon(engine, polygon, 2, { contourOffset: "0.1" });
 // @ts-expect-error Explicit linear settings do not declare path closure
-const invalidLinearOptions: LinearExtrusionMeshOptions = { closedPath: true };
+const invalidLinearOptions: LinearExtrudedPolygonMeshOptions = { closedPath: true };
 // @ts-expect-error Explicit path settings do not declare bevels
-const invalidPathOptions: PathExtrusionMeshOptions = { bevelWidth: 0.1 };
+const invalidPathOptions: PathExtrudedPolygonMeshOptions = { bevelWidth: 0.1 };
 
 const samplePath = (t: number, out: Vector3): void => {
   out.set(t, t * t, 0);
@@ -313,7 +314,7 @@ const samplePath = (t: number, out: Vector3): void => {
 // @ts-expect-error Tube paths accept point arrays
 PrimitiveMesh.createTube(engine, samplePath, 0.1);
 // @ts-expect-error Extrusion paths accept point arrays
-PrimitiveMesh.createExtrusion(engine, polygon, samplePath);
+PrimitiveMesh.createExtrudedPolygon(engine, polygon, samplePath);
 
 const serializedContour = [
   { x: 0, y: 0 },
@@ -333,4 +334,4 @@ PrimitiveMesh.createPolygon(engine, { points: contour, holes: [serializedContour
 // @ts-expect-error Path points use Vector3 instances
 PrimitiveMesh.createTube(engine, serializedPath, 0.1);
 // @ts-expect-error Path extrusion points use Vector3 instances
-PrimitiveMesh.createExtrusion(engine, polygon, serializedPath);
+PrimitiveMesh.createExtrudedPolygon(engine, polygon, serializedPath);

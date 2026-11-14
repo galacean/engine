@@ -154,9 +154,9 @@ class PrimitiveMeshGallery {
         mesh: PrimitiveMesh.createTube(engine, path, 0.2, { pathSegments: 48, radialSegments: 10 })
       },
       polygon: { label: "Polygon", mesh: PrimitiveMesh.createPolygon(engine, polygon), rotation: new Vector3() },
-      extrusion: {
-        label: "Extrusion",
-        mesh: PrimitiveMesh.createExtrusion(engine, polygon, 0.6, {
+      extrudedPolygon: {
+        label: "Extruded polygon",
+        mesh: PrimitiveMesh.createExtrudedPolygon(engine, polygon, 0.6, {
           bevelWidth: 0.1,
           bevelDepth: 0.1,
           bevelSegments: 3,

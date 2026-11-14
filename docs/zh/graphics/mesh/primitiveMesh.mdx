@@ -159,7 +159,7 @@ const mirroredKnot = PrimitiveMesh.createTorusKnot(engine, 1, 0.1, 2, -3);
 | 圆柱、圆台、圆锥、胶囊 | `createCylinder`、`createTruncatedCone`、`createCone`、`createCapsule` |
 | 圆盘、圆环面、圆环体、环面结 | `createCircle`、`createRing`、`createTorus`、`createTorusKnot` |
 | 四面体、八面体、二十面体、十二面体 | `createTetrahedron`、`createOctahedron`、`createIcosahedron`、`createDodecahedron` |
-| 旋转体、路径管道、平面多边形、拉伸、圆角长方体 | `createLathe`、`createTube`、`createPolygon`、`createExtrusion`、`createRoundedCuboid` |
+| 旋转体、路径管道、平面多边形、挤出多边形、圆角长方体 | `createLathe`、`createTube`、`createPolygon`、`createExtrudedPolygon`、`createRoundedCuboid` |
 
 ### 分段、角度和端盖
 
@@ -191,8 +191,8 @@ const outline = [new Vector2(-2, -2), new Vector2(2, -2), new Vector2(2, 2), new
 const hole = [new Vector2(-1, -1), new Vector2(-1, 1), new Vector2(1, 1), new Vector2(1, -1)];
 const face = PrimitiveMesh.createPolygon(engine, { points: outline, holes: [hole] });
 
-const solid = PrimitiveMesh.createExtrusion(engine, { points: outline, holes: [hole] }, 0.5);
-const beveled = PrimitiveMesh.createExtrusion(engine, outline, 0.5, {
+const solid = PrimitiveMesh.createExtrudedPolygon(engine, { points: outline, holes: [hole] }, 0.5);
+const beveled = PrimitiveMesh.createExtrudedPolygon(engine, outline, 0.5, {
   bevelWidth: 0.05,
   contourOffset: 0.02,
   depthSegments: 1
@@ -203,12 +203,12 @@ const path = Array.from({ length: 65 }, (_, i) => {
   return new Vector3(4 * t, Math.sin(t * Math.PI * 2), 0);
 });
 const tube = PrimitiveMesh.createTube(engine, path, 0.1, { pathSegments: 64 });
-const swept = PrimitiveMesh.createExtrusion(engine, outline, path, { pathSegments: 64 });
+const swept = PrimitiveMesh.createExtrudedPolygon(engine, outline, path, { pathSegments: 64 });
 const loop = [new Vector3(-4, 0, -4), new Vector3(4, 0, -4), new Vector3(4, 0, 4), new Vector3(-4, 0, 4)];
-const closedPath = PrimitiveMesh.createExtrusion(engine, outline, loop, { closedPath: true, pathSegments: 32 });
+const closedPath = PrimitiveMesh.createExtrudedPolygon(engine, outline, loop, { closedPath: true, pathSegments: 32 });
 ```
 
-拉伸的第三个参数必填：传入数值深度时沿 +Z 直线拉伸，传入 `Vector3` 数组时沿路径挤出。`LinearExtrusionMeshOptions` 包含可选的倒角设置，`PathExtrusionMeshOptions` 包含可选的路径设置。直线拉伸用 `depthSegments`，路径拉伸用 `pathSegments`；两个接口分别声明各自模式的设置。沿路径挤出时忽略倒角设置；直线拉伸时忽略 `closedPath`。直线拉伸默认不倒角；`bevelWidth > 0` 时开启倒角，`bevelDepth` 默认等于 `bevelWidth`。沿路径拉伸不生成倒角。路径接收 `Vector3` 数组，并按折线长度均匀采样。使用曲线时，在外层采样成点数组后传入，如上例所示。
+`createExtrudedPolygon` 的第三个参数必填：传入数值深度时沿 +Z 直线拉伸，传入 `Vector3` 数组时沿路径挤出。`LinearExtrudedPolygonMeshOptions` 包含可选的倒角设置，`PathExtrudedPolygonMeshOptions` 包含可选的路径设置。直线拉伸用 `depthSegments`，路径拉伸用 `pathSegments`；两个接口分别声明各自模式的设置。沿路径挤出时忽略倒角设置；直线拉伸时忽略 `closedPath`。直线拉伸默认不倒角；`bevelWidth > 0` 时开启倒角，`bevelDepth` 默认等于 `bevelWidth`。沿路径拉伸不生成倒角。路径接收 `Vector3` 数组，并按折线长度均匀采样。使用曲线时，在外层采样成点数组后传入，如上例所示。
 
 管道和路径挤出的 `closedPath` 默认关闭；开启后自动连接路径首尾并对齐截面，不必重复首点。闭合挤出至少使用三段，不生成端盖。开放挤出保留两端端盖；管道在两种模式下都不生成端盖。
 
@@ -275,7 +275,7 @@ const asset = {
 | `lathe` | `latheProfile` |
 | `tube` | `tubePath`、`tubeRadius` |
 | `polygon` | `polygonShapes` |
-| `extrusion` | `extrusionShapes`，以及 `extrusionDepth` 或 `extrusionPath` |
+| `extrudedPolygon` | `extrudedPolygonShapes`，以及 `extrudedPolygonDepth` 或 `extrudedPolygonPath` |
 | `torusKnot` | `torusKnotRadius`、`torusKnotTubeRadius`、`torusKnotAxisTurns`、`torusKnotCrossSectionTurns` |
 | `roundedCuboid` | `roundedCuboidWidth`、`roundedCuboidHeight`、`roundedCuboidDepth`、`roundedCuboidCornerRadius` |
 
@@ -285,8 +285,8 @@ const asset = {
 
 ```json
 {
-  "type": "extrusion",
-  "extrusionShapes": [
+  "type": "extrudedPolygon",
+  "extrudedPolygonShapes": [
     {
       "points": [
         { "x": -2, "y": -2 },
@@ -304,11 +304,11 @@ const asset = {
       ]
     }
   ],
-  "extrusionDepth": 2,
-  "extrusionOptions": { "bevelWidth": 0.1, "contourOffset": 0.2, "separateMaterialSlots": true }
+  "extrudedPolygonDepth": 2,
+  "extrudedPolygonOptions": { "bevelWidth": 0.1, "contourOffset": 0.2, "separateMaterialSlots": true }
 }
 ```
 
-沿路径拉伸通过必填的 `extrusionPath` 代替 `extrusionDepth`，并忽略倒角设置。`extrusionOptions.closedPath` 设为 `true` 时闭合路径且不生成端盖。路径点保存为 `{ x, y, z }`。
+沿路径拉伸通过必填的 `extrudedPolygonPath` 代替 `extrudedPolygonDepth`，并忽略倒角设置。`extrudedPolygonOptions.closedPath` 设为 `true` 时闭合路径且不生成端盖。路径点保存为 `{ x, y, z }`。
 
 以上类型前缀字段及 `<type>Options` 都能经过 Editor 现有的基础网格打包过滤。Editor 预览应使用与保存资产相同的创建方法和参数。

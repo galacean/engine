@@ -153,9 +153,9 @@ class PrimitiveTopology {
         )
       },
       {
-        label: "Extrusion / bevel layers",
+        label: "Extruded / bevel layers",
         detail: "segments: depth 3 / bevel 3",
-        mesh: PrimitiveMesh.createExtrusion(
+        mesh: PrimitiveMesh.createExtrudedPolygon(
           engine,
           [new Vector2(-1, -1), new Vector2(1, -1), new Vector2(1, 1), new Vector2(-1, 1)],
           0.6,

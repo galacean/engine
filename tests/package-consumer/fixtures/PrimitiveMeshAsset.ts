@@ -46,17 +46,17 @@ const shapes = [
 
 const tube: PrimitiveMeshAsset = { type: "tube", tubeRadius: 0.5, tubePath: path, tubeOptions: { closedPath: true } };
 const polygon: PrimitiveMeshAsset = { type: "polygon", polygonShapes: shapes };
-const extrusion: PrimitiveMeshAsset = {
-  type: "extrusion",
-  extrusionDepth: 2,
-  extrusionShapes: shapes,
-  extrusionOptions: { bevelWidth: 0.1, contourOffset: 0.2, separateMaterialSlots: true }
+const extrudedPolygon: PrimitiveMeshAsset = {
+  type: "extrudedPolygon",
+  extrudedPolygonDepth: 2,
+  extrudedPolygonShapes: shapes,
+  extrudedPolygonOptions: { bevelWidth: 0.1, contourOffset: 0.2, separateMaterialSlots: true }
 };
 const pathExtrusion: PrimitiveMeshAsset = {
-  type: "extrusion",
-  extrusionPath: path,
-  extrusionShapes: shapes,
-  extrusionOptions: { closedPath: true }
+  type: "extrudedPolygon",
+  extrudedPolygonPath: path,
+  extrudedPolygonShapes: shapes,
+  extrudedPolygonOptions: { closedPath: true }
 };
 const torusKnot: PrimitiveMeshAsset = {
   type: "torusKnot",
@@ -88,28 +88,28 @@ const callbackPath: PrimitiveMeshAsset = { type: "tube", tubeRadius: 0.5, tubePa
 // @ts-expect-error A polygon asset needs its contours
 const missingShapes: PrimitiveMeshAsset = { type: "polygon" };
 const mixedExtrusion: PrimitiveMeshAsset = {
-  type: "extrusion",
-  extrusionDepth: 2,
-  extrusionPath: path,
-  extrusionShapes: shapes
+  type: "extrudedPolygon",
+  extrudedPolygonDepth: 2,
+  extrudedPolygonPath: path,
+  extrudedPolygonShapes: shapes
 };
 const beveledPath: PrimitiveMeshAsset = {
-  type: "extrusion",
-  extrusionPath: path,
-  extrusionShapes: shapes,
-  extrusionOptions: { bevelWidth: 1 }
+  type: "extrudedPolygon",
+  extrudedPolygonPath: path,
+  extrudedPolygonShapes: shapes,
+  extrudedPolygonOptions: { bevelWidth: 1 }
 };
 const offsetPath: PrimitiveMeshAsset = {
-  type: "extrusion",
-  extrusionPath: path,
-  extrusionShapes: shapes,
-  extrusionOptions: { contourOffset: 0.1 }
+  type: "extrudedPolygon",
+  extrudedPolygonPath: path,
+  extrudedPolygonShapes: shapes,
+  extrudedPolygonOptions: { contourOffset: 0.1 }
 };
 const closedDepth: PrimitiveMeshAsset = {
-  type: "extrusion",
-  extrusionDepth: 2,
-  extrusionShapes: shapes,
-  extrusionOptions: { closedPath: true }
+  type: "extrudedPolygon",
+  extrudedPolygonDepth: 2,
+  extrudedPolygonShapes: shapes,
+  extrudedPolygonOptions: { closedPath: true }
 };
 const wrongOptions: PrimitiveMeshAsset = {
   type: "sphere",
@@ -150,7 +150,7 @@ void [
   ungroupedSphere,
   tube,
   polygon,
-  extrusion,
+  extrudedPolygon,
   pathExtrusion,
   torusKnot,
   cylinder,
@@ -176,7 +176,7 @@ const missingRadius: PrimitiveMeshAsset = { type: "sphere" };
 // @ts-expect-error A cuboid asset requires all dimensions
 const missingDepth: PrimitiveMeshAsset = { type: "cuboid", cuboidWidth: 1, cuboidHeight: 1 };
 // @ts-expect-error An extrusion asset requires a depth or path
-const missingExtrusionInput: PrimitiveMeshAsset = { type: "extrusion", extrusionShapes: shapes };
+const missingExtrusionInput: PrimitiveMeshAsset = { type: "extrudedPolygon", extrudedPolygonShapes: shapes };
 // @ts-expect-error Dimensions no longer belong to optional settings
 const radiusInOptions: PrimitiveMeshAsset = { type: "sphere", sphereRadius: 1, sphereOptions: { radius: 2 } };
 void [missingRadius, missingDepth, missingExtrusionInput, radiusInOptions];
