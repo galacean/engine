@@ -27,20 +27,20 @@ class PrimitiveSections {
         },
         {
           label: "Torus arc",
-          detail: "angleRange: [30, 300]",
-          mesh: PrimitiveMesh.createTorus(engine, 0.5, 0.1, { angleRange: new Vector2(30, 300) })
+          detail: "ringAngleRange: [30, 300]",
+          mesh: PrimitiveMesh.createTorus(engine, 0.5, 0.1, { ringAngleRange: new Vector2(30, 300) })
         },
         {
           label: "Torus cross-section",
-          detail: "tubeRange: [0, 180]",
-          mesh: PrimitiveMesh.createTorus(engine, 0.5, 0.2, { tubeRange: new Vector2(0, 180) })
+          detail: "tubeAngleRange: [0, 180]",
+          mesh: PrimitiveMesh.createTorus(engine, 0.5, 0.2, { tubeAngleRange: new Vector2(0, 180) })
         },
         {
           label: "Both torus ranges",
           detail: "arc 270 / tube 270 degrees",
           mesh: PrimitiveMesh.createTorus(engine, 0.5, 0.2, {
-            angleRange: new Vector2(30, 300),
-            tubeRange: new Vector2(45, 315)
+            ringAngleRange: new Vector2(30, 300),
+            tubeAngleRange: new Vector2(45, 315)
           })
         },
         { label: "Cylinder: both", detail: "caps: both", mesh: PrimitiveMesh.createCylinder(engine, 0.5, 1.4) },

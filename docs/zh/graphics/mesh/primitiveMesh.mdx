@@ -136,7 +136,7 @@ renderer.setMaterial(material);
 ```ts
 const unitSphere = PrimitiveMesh.createSphere(engine, 0.5);
 const sphere = PrimitiveMesh.createSphere(engine, 1);
-const smoothSphere = PrimitiveMesh.createSphere(engine, 1, { subdivisions: 4 });
+const smoothSphere = PrimitiveMesh.createSphere(engine, 1, { subdivisionLevel: 4 });
 
 const cube = PrimitiveMesh.createCuboid(engine, 2, 2, 2);
 const box = PrimitiveMesh.createCuboid(engine, 2, 3, 4);
@@ -147,11 +147,11 @@ const frustum = PrimitiveMesh.createTruncatedCone(engine, 0.25, 0.5, 2);
 const mirroredKnot = PrimitiveMesh.createTorusKnot(engine, 1, 0.1, 2, -3);
 ```
 
-`createCuboid` 的宽、高、深是三个独立的必填参数；`createPlane` 的宽、高也必须分别指定。平面和长方体的后续分段数默认沿用第一个方向的分段数。球体使用一个细分层级，默认为 3，限制在 1 到 6 之间。`createCylinder` 只有一个半径；上下半径不同的圆台使用 `createTruncatedCone`。`createRing` 先接收外半径，再接收内半径，两者都必须指定。
+`createCuboid` 的宽、高、深是三个独立的必填参数；`createPlane` 的宽、深也必须分别指定。平面和长方体的后续分段数默认沿用第一个方向的分段数。球体使用一个细分层级，默认为 3，限制在 1 到 6 之间。`createCylinder` 只有一个半径；上下半径不同的圆台使用 `createTruncatedCone`。`createRing` 先接收外半径，再接收内半径，两者都必须指定。
 
 尺寸必须显式传入；分段和网格设置使用具名字段，可以只指定需要调整的可选项。
 
-环面结的 `p`、`q` 是有符号整数缠绕次数，与网格分段数无关。负值反转对应方向的缠绕，`0` 表示该方向的角度保持不变。
+环面结的 `axisTurns` 表示绕中心轴的圈数，`crossSectionTurns` 表示绕环面截面的圈数。两者都是有符号整数，与网格分段数无关。负值反转对应方向的缠绕，`0` 表示该方向的角度保持不变。
 
 | 能力 | 创建方法 |
 | --- | --- |
@@ -163,14 +163,14 @@ const mirroredKnot = PrimitiveMesh.createTorusKnot(engine, 1, 0.1, 2, -3);
 
 ### 分段、角度和端盖
 
-`createTube` 与 `createTorus` 的 `tubularSegments` 控制管道方向的分段，`radialSegments` 控制截面的周向分段。胶囊的 `capSegments` 独立控制每个半球从极点到赤道的分段，`height` 仍指圆柱部分的高度。
+管道和环面结用 `pathSegments` 控制沿路径的分段，圆环用 `ringSegments` 控制环向分段，`radialSegments` 控制管截面的周向分段。胶囊的 `capSegments` 控制每个半球从极点到赤道的分段，`cylinderHeight` 表示直筒部分的高度。正多面体用 `edgeSegments`，圆角长方体用 `roundingSegments`。
 
 角度范围统一放在配置对象中。所有角度均使用**度数**，范围使用 `Vector2`，`x` 表示起始角，`y` 表示结束角。跨越 360 度时使用连续角度，例如 `new Vector2(350, 370)`。圆柱、圆锥和旋转体围绕 Y 轴，0 度从 +Z 方向开始；球体的垂直角度从 +Y 极点开始。
 
 ```ts
 import { PrimitiveMeshCapMode, Vector2 } from "@galacean/engine";
 
-const hemisphere = PrimitiveMesh.createSphere(engine, 1, { verticalRange: new Vector2(0, 90) });
+const hemisphere = PrimitiveMesh.createSphere(engine, 1, { verticalAngleRange: new Vector2(0, 90) });
 const openCylinder = PrimitiveMesh.createCylinder(engine, 0.5, 2, { caps: PrimitiveMeshCapMode.None });
 const cupWall = PrimitiveMesh.createCylinder(engine, 0.5, 2, { caps: PrimitiveMeshCapMode.Bottom });
 const halfRing = PrimitiveMesh.createRing(engine, 1, 0.5, { angleRange: new Vector2(0, 180) });
@@ -178,7 +178,7 @@ const halfRing = PrimitiveMesh.createRing(engine, 1, 0.5, { angleRange: new Vect
 
 圆柱和圆台的 `caps` 使用 `PrimitiveMeshCapMode`：`Both`（默认）、`Top`、`Bottom`、`None`。顶盖朝 +Y，底盖朝 -Y，角度裁切产生的侧面切口保持开放。圆锥用布尔值 `cap` 控制底盖。`createCircle`、`createRing` 和多边形位于 XY 平面、正面朝 +Z；地面用的 `createPlane` 位于 XZ 平面、正面朝 +Y。
 
-`createSphere` 将细分后的立方体投影到球面，支持 `horizontalRange` 和 `verticalRange`。水平角度从 -X 朝 +Z 开始，垂直角度从 +Y 极点开始。裁切保留细分表面，切口不生成端盖；水平范围 `new Vector2(350, 370)` 可跨越接缝。细分层级控制表面及裁切边界的精细程度。
+`createSphere` 将细分后的立方体投影到球面，支持 `horizontalAngleRange` 和 `verticalAngleRange`。水平角度从 -X 朝 +Z 开始，垂直角度从 +Y 极点开始。裁切保留细分表面，切口不生成端盖；水平范围 `new Vector2(350, 370)` 可跨越接缝。细分层级控制表面及裁切边界的精细程度。
 
 ### 轮廓与路径
 
@@ -192,41 +192,45 @@ const hole = [new Vector2(-1, -1), new Vector2(-1, 1), new Vector2(1, 1), new Ve
 const face = PrimitiveMesh.createPolygon(engine, { points: outline, holes: [hole] });
 
 const solid = PrimitiveMesh.createExtrusion(engine, { points: outline, holes: [hole] }, 0.5);
-const beveled = PrimitiveMesh.createExtrusion(engine, outline, 0.5, { bevelSize: 0.05, bevelOffset: 0.02, steps: 1 });
+const beveled = PrimitiveMesh.createExtrusion(engine, outline, 0.5, {
+  bevelWidth: 0.05,
+  contourOffset: 0.02,
+  depthSegments: 1
+});
 
 const path = Array.from({ length: 65 }, (_, i) => {
   const t = i / 64;
   return new Vector3(4 * t, Math.sin(t * Math.PI * 2), 0);
 });
-const tube = PrimitiveMesh.createTube(engine, path, 0.1, { tubularSegments: 64 });
-const swept = PrimitiveMesh.createExtrusion(engine, outline, path, { steps: 64 });
+const tube = PrimitiveMesh.createTube(engine, path, 0.1, { pathSegments: 64 });
+const swept = PrimitiveMesh.createExtrusion(engine, outline, path, { pathSegments: 64 });
 const loop = [new Vector3(-4, 0, -4), new Vector3(4, 0, -4), new Vector3(4, 0, 4), new Vector3(-4, 0, 4)];
-const closed = PrimitiveMesh.createExtrusion(engine, outline, loop, { closed: true, steps: 32 });
+const closedPath = PrimitiveMesh.createExtrusion(engine, outline, loop, { closedPath: true, pathSegments: 32 });
 ```
 
-拉伸的第三个参数必填：传入数值深度时沿 +Z 直线拉伸，传入 `Vector3` 数组时沿路径挤出。`LinearExtrusionMeshOptions` 包含可选的倒角设置，`PathExtrusionMeshOptions` 包含可选的路径设置。两个接口分别声明各自模式的设置。沿路径挤出时忽略倒角设置；直线拉伸时忽略 `closed`。直线拉伸默认不倒角；`bevelSize > 0` 时开启倒角，`bevelThickness` 默认等于 `bevelSize`。沿路径拉伸不生成倒角。路径接收 `Vector3` 数组，并按折线长度均匀采样。使用曲线时，在外层采样成点数组后传入，如上例所示。
+拉伸的第三个参数必填：传入数值深度时沿 +Z 直线拉伸，传入 `Vector3` 数组时沿路径挤出。`LinearExtrusionMeshOptions` 包含可选的倒角设置，`PathExtrusionMeshOptions` 包含可选的路径设置。直线拉伸用 `depthSegments`，路径拉伸用 `pathSegments`；两个接口分别声明各自模式的设置。沿路径挤出时忽略倒角设置；直线拉伸时忽略 `closedPath`。直线拉伸默认不倒角；`bevelWidth > 0` 时开启倒角，`bevelDepth` 默认等于 `bevelWidth`。沿路径拉伸不生成倒角。路径接收 `Vector3` 数组，并按折线长度均匀采样。使用曲线时，在外层采样成点数组后传入，如上例所示。
 
-管道和路径挤出的 `closed` 默认关闭；开启后自动连接路径首尾并对齐截面，不必重复首点。闭合挤出至少使用三段，不生成端盖。开放挤出保留两端端盖；管道在两种模式下都不生成端盖。
+管道和路径挤出的 `closedPath` 默认关闭；开启后自动连接路径首尾并对齐截面，不必重复首点。闭合挤出至少使用三段，不生成端盖。开放挤出保留两端端盖；管道在两种模式下都不生成端盖。
 
-`bevelOffset` 默认是 `0`，用于偏移侧壁轮廓：正值外扩实体并缩小孔洞，负值内缩实体并扩大孔洞。`bevelSize` 为 `0` 时偏移仍然生效。倒角从偏移后的轮廓向内削边，厚度包含在 `depth` 内，不会增加总厚度。
+`contourOffset` 默认是 `0`，用于偏移侧壁轮廓：正值外扩实体并缩小孔洞，负值内缩实体并扩大孔洞。`bevelWidth` 为 `0` 时偏移仍然生效。倒角从偏移后的轮廓向内削边，厚度包含在 `depth` 内，不会增加总厚度。
 
 ### 网格数据和材质
 
 网格设置与分段设置放在同一个可选配置对象中：
 
 ```ts
-const editable = PrimitiveMesh.createSphere(engine, 1, { keepData: true, subdivisions: 3 });
+const editable = PrimitiveMesh.createSphere(engine, 1, { keepCPUData: true, subdivisionLevel: 3 });
 const sixMaterials = PrimitiveMesh.createCuboid(engine, 1, 1, 1, {
-  separateMaterials: true,
+  separateMaterialSlots: true,
   widthSegments: 1,
   heightSegments: 1,
   depthSegments: 1
 });
 ```
 
-`keepData` 默认关闭，设为 `true` 时保留可读的 CPU 顶点属性。
+`keepCPUData` 默认关闭，设为 `true` 时保留可读的 CPU 顶点属性。
 
-`separateMaterials` 适用于长方体、圆柱、圆台、圆锥、多边形、挤出和圆角长方体。默认关闭，生成一个 SubMesh；开启后，生成的 SubMesh 按以下顺序对应材质槽：
+`separateMaterialSlots` 适用于长方体、圆柱、圆台、圆锥、多边形、挤出和圆角长方体。默认关闭，生成一个 SubMesh；开启后，生成的 SubMesh 按以下顺序对应材质槽：
 
 | 几何体             | 材质槽顺序                                                                   |
 | ------------------ | ---------------------------------------------------------------------------- |
@@ -252,7 +256,7 @@ import type { PrimitiveMeshAsset } from "@galacean/engine";
 const asset = {
   type: "sphere",
   sphereRadius: 1,
-  sphereOptions: { subdivisions: 3, keepData: true }
+  sphereOptions: { subdivisionLevel: 3, keepCPUData: true }
 } satisfies PrimitiveMeshAsset;
 ```
 
@@ -262,7 +266,7 @@ const asset = {
 | --- | --- |
 | `sphere`、`circle` | `<type>Radius` |
 | `cuboid` | `cuboidWidth`、`cuboidHeight`、`cuboidDepth` |
-| `plane` | `planeWidth`、`planeHeight` |
+| `plane` | `planeWidth`、`planeDepth` |
 | `cylinder`、`cone`、`capsule` | `<type>Radius`、`<type>Height` |
 | `truncatedCone` | `truncatedConeTopRadius`、`truncatedConeBottomRadius`、`truncatedConeHeight` |
 | `torus` | `torusRadius`、`torusTubeRadius` |
@@ -272,10 +276,10 @@ const asset = {
 | `tube` | `tubePath`、`tubeRadius` |
 | `polygon` | `polygonShapes` |
 | `extrusion` | `extrusionShapes`，以及 `extrusionDepth` 或 `extrusionPath` |
-| `torusKnot` | `torusKnotRadius`、`torusKnotTubeRadius`、`torusKnotP`、`torusKnotQ` |
+| `torusKnot` | `torusKnotRadius`、`torusKnotTubeRadius`、`torusKnotAxisTurns`、`torusKnotCrossSectionTurns` |
 | `roundedCuboid` | `roundedCuboidWidth`、`roundedCuboidHeight`、`roundedCuboidDepth`、`roundedCuboidCornerRadius` |
 
-`sphere` 创建立方体细分后投影得到的球体，`sphereOptions.subdivisions` 控制细分层级。`cylinder` 使用一个半径；`truncatedCone` 分别使用 `truncatedConeTopRadius` 和 `truncatedConeBottomRadius`。
+`sphere` 创建立方体细分后投影得到的球体，`sphereOptions.subdivisionLevel` 控制细分层级。`cylinder` 使用一个半径；`truncatedCone` 分别使用 `truncatedConeTopRadius` 和 `truncatedConeBottomRadius`。
 
 轮廓和旋转截面保存为 `{ x, y }` 点数组，路径保存为 `{ x, y, z }` 点数组，由 Loader 构造对应向量。多边形与拉伸统一使用形状数组，每个形状包含 `points` 和可选的 `holes`：
 
@@ -301,10 +305,10 @@ const asset = {
     }
   ],
   "extrusionDepth": 2,
-  "extrusionOptions": { "bevelSize": 0.1, "bevelOffset": 0.2, "separateMaterials": true }
+  "extrusionOptions": { "bevelWidth": 0.1, "contourOffset": 0.2, "separateMaterialSlots": true }
 }
 ```
 
-沿路径拉伸通过必填的 `extrusionPath` 代替 `extrusionDepth`，并忽略倒角设置。`extrusionOptions.closed` 设为 `true` 时闭合路径且不生成端盖。路径点保存为 `{ x, y, z }`。
+沿路径拉伸通过必填的 `extrusionPath` 代替 `extrusionDepth`，并忽略倒角设置。`extrusionOptions.closedPath` 设为 `true` 时闭合路径且不生成端盖。路径点保存为 `{ x, y, z }`。
 
 以上类型前缀字段及 `<type>Options` 都能经过 Editor 现有的基础网格打包过滤。Editor 预览应使用与保存资产相同的创建方法和参数。

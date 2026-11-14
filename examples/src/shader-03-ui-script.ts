@@ -188,7 +188,7 @@ WebGLEngine.create({ canvas: "canvas", shaderCompiler: new ShaderCompiler() }).t
   // 创建平面
   const planeEntity = rootEntity.createChild("plane");
   const renderer = planeEntity.addComponent(MeshRenderer);
-  renderer.mesh = PrimitiveMesh.createPlane(engine, 3, 3, { horizontalSegments: 20 }); // 增加细分以显示顶点动画
+  renderer.mesh = PrimitiveMesh.createPlane(engine, 3, 3, { widthSegments: 20 }); // 增加细分以显示顶点动画
   renderer.setMaterial(material);
 
   // 运行引擎

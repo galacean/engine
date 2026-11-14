@@ -8,17 +8,17 @@ class PrimitiveTopology {
   static async create(): Promise<void> {
     const gallery = await PrimitiveMeshGallery.create();
     const { engine } = gallery;
-    const keep = { keepData: true };
+    const keep = { keepCPUData: true };
     const examples: PrimitiveMeshExample[] = [
       {
         label: "Sphere / level 1",
-        detail: "subdivisions: 1",
-        mesh: PrimitiveMesh.createSphere(engine, 0.5, { ...keep, subdivisions: 1 })
+        detail: "subdivisionLevel: 1",
+        mesh: PrimitiveMesh.createSphere(engine, 0.5, { ...keep, subdivisionLevel: 1 })
       },
       {
         label: "Sphere / level 3",
-        detail: "subdivisions: 3",
-        mesh: PrimitiveMesh.createSphere(engine, 0.5, { ...keep, subdivisions: 3 })
+        detail: "subdivisionLevel: 3",
+        mesh: PrimitiveMesh.createSphere(engine, 0.5, { ...keep, subdivisionLevel: 3 })
       },
       {
         label: "Cylinder / 6 sides",
@@ -47,14 +47,14 @@ class PrimitiveTopology {
       },
       {
         label: "Plane / 1 by 6",
-        detail: "horizontal: 1 / vertical: 6",
-        mesh: PrimitiveMesh.createPlane(engine, 1, 1, { ...keep, horizontalSegments: 1, verticalSegments: 6 }),
+        detail: "width: 1 / depth: 6",
+        mesh: PrimitiveMesh.createPlane(engine, 1, 1, { ...keep, widthSegments: 1, depthSegments: 6 }),
         rotation: new Vector3(65, -20, 0)
       },
       {
         label: "Plane / 6 by 1",
-        detail: "horizontal: 6 / vertical: 1",
-        mesh: PrimitiveMesh.createPlane(engine, 1, 1, { ...keep, horizontalSegments: 6, verticalSegments: 1 }),
+        detail: "width: 6 / depth: 1",
+        mesh: PrimitiveMesh.createPlane(engine, 1, 1, { ...keep, widthSegments: 6, depthSegments: 1 }),
         rotation: new Vector3(65, -20, 0)
       },
       {
@@ -74,28 +74,28 @@ class PrimitiveTopology {
       },
       {
         label: "Tetrahedron subdivision",
-        detail: "segments: 3",
-        mesh: PrimitiveMesh.createTetrahedron(engine, 0.5, { ...keep, segments: 3 })
+        detail: "edgeSegments: 3",
+        mesh: PrimitiveMesh.createTetrahedron(engine, 0.5, { ...keep, edgeSegments: 3 })
       },
       {
         label: "Octahedron subdivision",
-        detail: "segments: 3",
-        mesh: PrimitiveMesh.createOctahedron(engine, 0.5, { ...keep, segments: 3 })
+        detail: "edgeSegments: 3",
+        mesh: PrimitiveMesh.createOctahedron(engine, 0.5, { ...keep, edgeSegments: 3 })
       },
       {
         label: "Icosahedron subdivision",
-        detail: "segments: 3",
-        mesh: PrimitiveMesh.createIcosahedron(engine, 0.5, { ...keep, segments: 3 })
+        detail: "edgeSegments: 3",
+        mesh: PrimitiveMesh.createIcosahedron(engine, 0.5, { ...keep, edgeSegments: 3 })
       },
       {
         label: "Dodecahedron subdivision",
-        detail: "segments: 3",
-        mesh: PrimitiveMesh.createDodecahedron(engine, 0.5, { ...keep, segments: 3 })
+        detail: "edgeSegments: 3",
+        mesh: PrimitiveMesh.createDodecahedron(engine, 0.5, { ...keep, edgeSegments: 3 })
       },
       {
         label: "Sphere / level 2",
-        detail: "subdivisions: 2",
-        mesh: PrimitiveMesh.createSphere(engine, 0.5, { ...keep, subdivisions: 2 })
+        detail: "subdivisionLevel: 2",
+        mesh: PrimitiveMesh.createSphere(engine, 0.5, { ...keep, subdivisionLevel: 2 })
       },
       {
         label: "Rounded cuboid / zero",
@@ -104,23 +104,23 @@ class PrimitiveTopology {
       },
       {
         label: "Rounded cuboid / coarse",
-        detail: "radius: 0.2 / segments: 1",
-        mesh: PrimitiveMesh.createRoundedCuboid(engine, 1, 1, 1, 0.2, { ...keep, segments: 1 })
+        detail: "radius: 0.2 / rounding: 1",
+        mesh: PrimitiveMesh.createRoundedCuboid(engine, 1, 1, 1, 0.2, { ...keep, roundingSegments: 1 })
       },
       {
         label: "Rounded cuboid / fine",
-        detail: "radius: 0.2 / segments: 4",
-        mesh: PrimitiveMesh.createRoundedCuboid(engine, 1, 1, 1, 0.2, { ...keep, segments: 4 })
+        detail: "radius: 0.2 / rounding: 4",
+        mesh: PrimitiveMesh.createRoundedCuboid(engine, 1, 1, 1, 0.2, { ...keep, roundingSegments: 4 })
       },
       {
         label: "Torus knot / 2, 3",
-        detail: "p: 2 / q: 3",
-        mesh: PrimitiveMesh.createTorusKnot(engine, 0.5, 0.1, 2, 3, { ...keep, tubularSegments: 96 })
+        detail: "axis: 2 / section: 3",
+        mesh: PrimitiveMesh.createTorusKnot(engine, 0.5, 0.1, 2, 3, { ...keep, pathSegments: 96 })
       },
       {
         label: "Torus knot / 3, 2",
-        detail: "p: 3 / q: 2",
-        mesh: PrimitiveMesh.createTorusKnot(engine, 0.5, 0.1, 3, 2, { ...keep, tubularSegments: 96 })
+        detail: "axis: 3 / section: 2",
+        mesh: PrimitiveMesh.createTorusKnot(engine, 0.5, 0.1, 3, 2, { ...keep, pathSegments: 96 })
       },
       {
         label: "Circle / 8 segments",
@@ -130,8 +130,8 @@ class PrimitiveTopology {
       },
       {
         label: "Ring / width subdivisions",
-        detail: "radial: 12 / width: 4",
-        mesh: PrimitiveMesh.createRing(engine, 0.5, 0.25, { ...keep, radialSegments: 12, widthSegments: 4 }),
+        detail: "ring: 12 / width: 4",
+        mesh: PrimitiveMesh.createRing(engine, 0.5, 0.25, { ...keep, ringSegments: 12, widthSegments: 4 }),
         rotation: new Vector3()
       },
       {
@@ -144,22 +144,22 @@ class PrimitiveTopology {
       },
       {
         label: "Tube / path subdivisions",
-        detail: "tubular: 12 / radial: 6",
+        detail: "path: 12 / radial: 6",
         mesh: PrimitiveMesh.createTube(
           engine,
           [new Vector3(-1, -0.4, 0), new Vector3(0, 0.4, 0.3), new Vector3(1, -0.4, 0)],
           0.2,
-          { ...keep, tubularSegments: 12, radialSegments: 6 }
+          { ...keep, pathSegments: 12, radialSegments: 6 }
         )
       },
       {
         label: "Extrusion / bevel layers",
-        detail: "steps: 3 / bevelSegments: 3",
+        detail: "segments: depth 3 / bevel 3",
         mesh: PrimitiveMesh.createExtrusion(
           engine,
           [new Vector2(-1, -1), new Vector2(1, -1), new Vector2(1, 1), new Vector2(-1, 1)],
           0.6,
-          { ...keep, steps: 3, bevelSize: 0.15, bevelSegments: 3 }
+          { ...keep, depthSegments: 3, bevelWidth: 0.15, bevelSegments: 3 }
         )
       }
     ];

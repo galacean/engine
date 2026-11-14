@@ -20,8 +20,8 @@ describe("PrimitiveMesh", () => {
 
   it("createSphere", () => {
     const radius = 2.333;
-    const subdivisions = 3.2;
-    const sphereMesh = PrimitiveMesh.createSphere(engine, radius, { keepData: true, subdivisions });
+    const subdivisionLevel = 3.2;
+    const sphereMesh = PrimitiveMesh.createSphere(engine, radius, { keepCPUData: true, subdivisionLevel });
 
     expect(sphereMesh.vertexCount).equal(417);
     expect(sphereMesh.vertexElements.length).equal(4);
@@ -37,7 +37,7 @@ describe("PrimitiveMesh", () => {
     const height = 3.2;
     const depth = 4.5;
     const cuboidMesh = PrimitiveMesh.createCuboid(engine, width, height, depth, {
-      keepData: true,
+      keepCPUData: true,
       widthSegments: 1,
       heightSegments: 1,
       depthSegments: 1
@@ -61,7 +61,7 @@ describe("PrimitiveMesh", () => {
     const floorRadialSegments = Math.floor(radialSegments);
     const floorHeightSegments = Math.floor(heightSegments);
     const truncatedConeMesh = PrimitiveMesh.createTruncatedCone(engine, radiusTop, radiusBottom, height, {
-      keepData: true,
+      keepCPUData: true,
       radialSegments,
       heightSegments
     });
@@ -84,23 +84,23 @@ describe("PrimitiveMesh", () => {
     const radius = 1;
     const tubeRadius = 0.5;
     const radialSegments = 20.9999;
-    const tubularSegments = 40.0532;
+    const ringSegments = 40.0532;
     const floorRadialSegments = Math.floor(radialSegments);
-    const floorTubularSegments = Math.floor(tubularSegments);
+    const floorRingSegments = Math.floor(ringSegments);
     const arc = 180;
     const torusMesh = PrimitiveMesh.createTorus(engine, radius, tubeRadius, {
-      keepData: true,
-      angleRange: new Vector2(0, 0 + arc),
-      tubularSegments,
+      keepCPUData: true,
+      ringAngleRange: new Vector2(0, 0 + arc),
+      ringSegments,
       radialSegments
     });
     const outerRadius = radius + tubeRadius;
 
-    expect(torusMesh.vertexCount).equal((floorRadialSegments + 1) * (floorTubularSegments + 1));
+    expect(torusMesh.vertexCount).equal((floorRadialSegments + 1) * (floorRingSegments + 1));
     expect(torusMesh.vertexElements.length).equal(4);
     expect(torusMesh.bounds.min).to.deep.include({ x: -outerRadius, y: -outerRadius, z: -tubeRadius });
     expect(torusMesh.bounds.max).to.deep.include({ x: outerRadius, y: outerRadius, z: tubeRadius });
-    expect(torusMesh.getIndices().length).equal(floorRadialSegments * floorTubularSegments * 6);
+    expect(torusMesh.getIndices().length).equal(floorRadialSegments * floorRingSegments * 6);
     expect(torusMesh.vertexBufferBindings.length).equal(2);
   });
 
@@ -113,9 +113,9 @@ describe("PrimitiveMesh", () => {
     const floorHSegments = Math.floor(hSegments);
     const floorVSegments = Math.floor(vSegments);
     const planeMesh = PrimitiveMesh.createPlane(engine, width, height, {
-      keepData: true,
-      horizontalSegments: hSegments,
-      verticalSegments: vSegments
+      keepCPUData: true,
+      widthSegments: hSegments,
+      depthSegments: vSegments
     });
 
     expect(planeMesh.vertexCount).equal((floorHSegments + 1) * (floorVSegments + 1));
@@ -135,7 +135,7 @@ describe("PrimitiveMesh", () => {
     const floorRadialSegments = Math.floor(radialSegments);
     const floorHeightSegments = Math.floor(heightSegments);
     const coneMesh = PrimitiveMesh.createCone(engine, radius, height, {
-      keepData: true,
+      keepCPUData: true,
       radialSegments,
       heightSegments
     });
@@ -156,7 +156,7 @@ describe("PrimitiveMesh", () => {
     const floorRadialSegments = Math.floor(radialSegments);
     const floorHeightSegments = Math.floor(heightSegments);
     const capsuleMesh = PrimitiveMesh.createCapsule(engine, radius, height, {
-      keepData: true,
+      keepCPUData: true,
       radialSegments,
       capSegments: radialSegments,
       heightSegments
@@ -180,9 +180,9 @@ describe("PrimitiveMesh", () => {
 
     if (engine["_hardwareRenderer"].canIUse(GLCapabilityType.elementIndexUint)) {
       const mesh = PrimitiveMesh.createPlane(engine, radius * 2, radius * 2, {
-        keepData: true,
-        horizontalSegments: segments,
-        verticalSegments: segments
+        keepCPUData: true,
+        widthSegments: segments,
+        depthSegments: segments
       });
       expect(mesh.vertexCount).equal(count * count);
       expect(mesh.vertexElements.length).equal(4);
@@ -193,9 +193,9 @@ describe("PrimitiveMesh", () => {
     } else {
       expect(() =>
         PrimitiveMesh.createPlane(engine, radius * 2, radius * 2, {
-          keepData: true,
-          horizontalSegments: segments,
-          verticalSegments: segments
+          keepCPUData: true,
+          widthSegments: segments,
+          depthSegments: segments
         })
       ).throw("The vertex count is out of range.");
     }

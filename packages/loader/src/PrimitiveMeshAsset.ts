@@ -70,7 +70,7 @@ export type PrimitiveMeshAsset =
       /**
        * The full size along Z in local units.
        */
-      planeHeight: number;
+      planeDepth: number;
       planeOptions?: PlaneMeshOptions;
     }
   | {
@@ -120,9 +120,9 @@ export type PrimitiveMeshAsset =
        */
       capsuleRadius: number;
       /**
-       * The straight cylindrical section height in local units; total height is `capsuleHeight + 2 * capsuleRadius`.
+       * The straight cylindrical section height in local units; total height is `capsuleCylinderHeight + 2 * capsuleRadius`.
        */
-      capsuleHeight: number;
+      capsuleCylinderHeight: number;
       capsuleOptions?: CapsuleMeshOptions;
     }
   | {
@@ -239,11 +239,11 @@ export type PrimitiveMeshAsset =
       /**
        * The signed integer revolution count around the torus axis.
        */
-      torusKnotP: number;
+      torusKnotAxisTurns: number;
       /**
-       * The signed integer revolution count through the torus hole.
+       * The signed integer revolution count around the torus cross-section.
        */
-      torusKnotQ: number;
+      torusKnotCrossSectionTurns: number;
       torusKnotOptions?: TorusKnotMeshOptions;
     }
   | {

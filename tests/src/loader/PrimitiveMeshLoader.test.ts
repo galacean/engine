@@ -59,8 +59,8 @@ const shapeVectors = shapes.map(({ points, holes }) => ({
   points: points.map(({ x, y }) => new Vector2(x, y)),
   holes: holes?.map((hole) => hole.map(({ x, y }) => new Vector2(x, y)))
 }));
-const options = { keepData: true };
-const groupedOptions = { keepData: true, separateMaterials: true };
+const options = { keepCPUData: true };
+const groupedOptions = { keepCPUData: true, separateMaterialSlots: true };
 
 describe("PrimitiveMeshLoader", () => {
   const defaults = {
@@ -70,7 +70,7 @@ describe("PrimitiveMeshLoader", () => {
       create: () => PrimitiveMesh.createCuboid(engine, 1, 1, 1)
     },
     plane: {
-      data: { type: "plane", planeWidth: 1, planeHeight: 1 },
+      data: { type: "plane", planeWidth: 1, planeDepth: 1 },
       create: () => PrimitiveMesh.createPlane(engine, 1, 1)
     },
     cylinder: {
@@ -91,7 +91,7 @@ describe("PrimitiveMeshLoader", () => {
       create: () => PrimitiveMesh.createCone(engine, 0.5, 2)
     },
     capsule: {
-      data: { type: "capsule", capsuleRadius: 0.5, capsuleHeight: 2 },
+      data: { type: "capsule", capsuleRadius: 0.5, capsuleCylinderHeight: 2 },
       create: () => PrimitiveMesh.createCapsule(engine, 0.5, 2)
     },
     torus: {
@@ -136,7 +136,13 @@ describe("PrimitiveMeshLoader", () => {
       create: () => PrimitiveMesh.createExtrusion(engine, shapeVectors, 1)
     },
     torusKnot: {
-      data: { type: "torusKnot", torusKnotRadius: 0.5, torusKnotTubeRadius: 0.1, torusKnotP: 2, torusKnotQ: 3 },
+      data: {
+        type: "torusKnot",
+        torusKnotRadius: 0.5,
+        torusKnotTubeRadius: 0.1,
+        torusKnotAxisTurns: 2,
+        torusKnotCrossSectionTurns: 3
+      },
       create: () => PrimitiveMesh.createTorusKnot(engine, 0.5, 0.1, 2, 3)
     },
     roundedCuboid: {
@@ -159,23 +165,23 @@ describe("PrimitiveMeshLoader", () => {
         sphereRadius: 2,
         sphereOptions: {
           ...options,
-          horizontalRange: { x: 20, y: 260 },
-          verticalRange: { x: 30, y: 150 },
-          subdivisions: 3
+          horizontalAngleRange: { x: 20, y: 260 },
+          verticalAngleRange: { x: 30, y: 150 },
+          subdivisionLevel: 3
         }
       },
       create: () =>
         PrimitiveMesh.createSphere(engine, 2, {
           ...options,
-          horizontalRange: new Vector2(20, 260),
-          verticalRange: new Vector2(30, 150),
-          subdivisions: 3
+          horizontalAngleRange: new Vector2(20, 260),
+          verticalAngleRange: new Vector2(30, 150),
+          subdivisionLevel: 3
         })
     },
     {
       name: "sphere",
-      data: { type: "sphere", sphereRadius: 1.5, sphereOptions: { ...options, subdivisions: 2 } },
-      create: () => PrimitiveMesh.createSphere(engine, 1.5, { ...options, subdivisions: 2 })
+      data: { type: "sphere", sphereRadius: 1.5, sphereOptions: { ...options, subdivisionLevel: 2 } },
+      create: () => PrimitiveMesh.createSphere(engine, 1.5, { ...options, subdivisionLevel: 2 })
     },
     {
       name: "sphere angular ranges",
@@ -184,17 +190,17 @@ describe("PrimitiveMeshLoader", () => {
         sphereRadius: 2,
         sphereOptions: {
           ...options,
-          horizontalRange: { x: 350, y: 370 },
-          verticalRange: { x: 30, y: 150 },
-          subdivisions: 3
+          horizontalAngleRange: { x: 350, y: 370 },
+          verticalAngleRange: { x: 30, y: 150 },
+          subdivisionLevel: 3
         }
       },
       create: () =>
         PrimitiveMesh.createSphere(engine, 2, {
           ...options,
-          horizontalRange: new Vector2(350, 370),
-          verticalRange: new Vector2(30, 150),
-          subdivisions: 3
+          horizontalAngleRange: new Vector2(350, 370),
+          verticalAngleRange: new Vector2(30, 150),
+          subdivisionLevel: 3
         })
     },
     {
@@ -219,10 +225,10 @@ describe("PrimitiveMeshLoader", () => {
       data: {
         type: "plane",
         planeWidth: 3,
-        planeHeight: 5,
-        planeOptions: { ...options, horizontalSegments: 2, verticalSegments: 4 }
+        planeDepth: 5,
+        planeOptions: { ...options, widthSegments: 2, depthSegments: 4 }
       },
-      create: () => PrimitiveMesh.createPlane(engine, 3, 5, { ...options, horizontalSegments: 2, verticalSegments: 4 })
+      create: () => PrimitiveMesh.createPlane(engine, 3, 5, { ...options, widthSegments: 2, depthSegments: 4 })
     },
     {
       name: "cylinder caps and range",
@@ -299,7 +305,7 @@ describe("PrimitiveMeshLoader", () => {
       data: {
         type: "capsule",
         capsuleRadius: 0.75,
-        capsuleHeight: 3,
+        capsuleCylinderHeight: 3,
         capsuleOptions: { ...options, radialSegments: 12, capSegments: 5, heightSegments: 2 }
       },
       create: () =>
@@ -318,18 +324,18 @@ describe("PrimitiveMeshLoader", () => {
         torusTubeRadius: 0.25,
         torusOptions: {
           ...options,
-          tubeRange: { x: 45, y: 300 },
-          angleRange: { x: 20, y: 200 },
-          tubularSegments: 12,
+          tubeAngleRange: { x: 45, y: 300 },
+          ringAngleRange: { x: 20, y: 200 },
+          ringSegments: 12,
           radialSegments: 8
         }
       },
       create: () =>
         PrimitiveMesh.createTorus(engine, 2, 0.25, {
           ...options,
-          tubeRange: new Vector2(45, 300),
-          angleRange: new Vector2(20, 200),
-          tubularSegments: 12,
+          tubeAngleRange: new Vector2(45, 300),
+          ringAngleRange: new Vector2(20, 200),
+          ringSegments: 12,
           radialSegments: 8
         })
     },
@@ -349,13 +355,13 @@ describe("PrimitiveMeshLoader", () => {
         type: "ring",
         ringOuterRadius: 2,
         ringInnerRadius: 0.5,
-        ringOptions: { ...options, angleRange: { x: 40, y: 240 }, radialSegments: 12, widthSegments: 3 }
+        ringOptions: { ...options, angleRange: { x: 40, y: 240 }, ringSegments: 12, widthSegments: 3 }
       },
       create: () =>
         PrimitiveMesh.createRing(engine, 2, 0.5, {
           ...options,
           angleRange: new Vector2(40, 240),
-          radialSegments: 12,
+          ringSegments: 12,
           widthSegments: 3
         })
     },
@@ -366,23 +372,23 @@ describe("PrimitiveMeshLoader", () => {
     },
     {
       name: "tetrahedron subdivision",
-      data: { type: "tetrahedron", tetrahedronRadius: 2, tetrahedronOptions: { ...options, segments: 3 } },
-      create: () => PrimitiveMesh.createTetrahedron(engine, 2, { ...options, segments: 3 })
+      data: { type: "tetrahedron", tetrahedronRadius: 2, tetrahedronOptions: { ...options, edgeSegments: 3 } },
+      create: () => PrimitiveMesh.createTetrahedron(engine, 2, { ...options, edgeSegments: 3 })
     },
     {
       name: "octahedron subdivision",
-      data: { type: "octahedron", octahedronRadius: 1.5, octahedronOptions: { ...options, segments: 2 } },
-      create: () => PrimitiveMesh.createOctahedron(engine, 1.5, { ...options, segments: 2 })
+      data: { type: "octahedron", octahedronRadius: 1.5, octahedronOptions: { ...options, edgeSegments: 2 } },
+      create: () => PrimitiveMesh.createOctahedron(engine, 1.5, { ...options, edgeSegments: 2 })
     },
     {
       name: "icosahedron subdivision",
-      data: { type: "icosahedron", icosahedronRadius: 2, icosahedronOptions: { ...options, segments: 3 } },
-      create: () => PrimitiveMesh.createIcosahedron(engine, 2, { ...options, segments: 3 })
+      data: { type: "icosahedron", icosahedronRadius: 2, icosahedronOptions: { ...options, edgeSegments: 3 } },
+      create: () => PrimitiveMesh.createIcosahedron(engine, 2, { ...options, edgeSegments: 3 })
     },
     {
       name: "dodecahedron subdivision",
-      data: { type: "dodecahedron", dodecahedronRadius: 1.5, dodecahedronOptions: { ...options, segments: 2 } },
-      create: () => PrimitiveMesh.createDodecahedron(engine, 1.5, { ...options, segments: 2 })
+      data: { type: "dodecahedron", dodecahedronRadius: 1.5, dodecahedronOptions: { ...options, edgeSegments: 2 } },
+      create: () => PrimitiveMesh.createDodecahedron(engine, 1.5, { ...options, edgeSegments: 2 })
     },
     {
       name: "lathe profile and range",
@@ -404,13 +410,13 @@ describe("PrimitiveMeshLoader", () => {
         type: "tube",
         tubeRadius: 0.2,
         tubePath: path,
-        tubeOptions: { ...options, closed: true, tubularSegments: 16, radialSegments: 6 }
+        tubeOptions: { ...options, closedPath: true, pathSegments: 16, radialSegments: 6 }
       },
       create: () =>
         PrimitiveMesh.createTube(engine, pathVectors, 0.2, {
           ...options,
-          closed: true,
-          tubularSegments: 16,
+          closedPath: true,
+          pathSegments: 16,
           radialSegments: 6
         })
     },
@@ -427,21 +433,21 @@ describe("PrimitiveMeshLoader", () => {
         extrusionShapes: shapes,
         extrusionOptions: {
           ...groupedOptions,
-          bevelSize: 0.1,
-          bevelThickness: 0.2,
-          bevelOffset: 0.2,
+          bevelWidth: 0.1,
+          bevelDepth: 0.2,
+          contourOffset: 0.2,
           bevelSegments: 2,
-          steps: 3
+          depthSegments: 3
         }
       },
       create: () =>
         PrimitiveMesh.createExtrusion(engine, shapeVectors, 2, {
           ...groupedOptions,
-          bevelSize: 0.1,
-          bevelThickness: 0.2,
-          bevelOffset: 0.2,
+          bevelWidth: 0.1,
+          bevelDepth: 0.2,
+          contourOffset: 0.2,
           bevelSegments: 2,
-          steps: 3
+          depthSegments: 3
         })
     },
     {
@@ -450,9 +456,10 @@ describe("PrimitiveMeshLoader", () => {
         type: "extrusion",
         extrusionDepth: 2,
         extrusionShapes: shapes,
-        extrusionOptions: { ...options, bevelOffset: -0.1 }
+        extrusionOptions: { ...options, contourOffset: -0.1 }
       },
-      create: () => PrimitiveMesh.createExtrusion(engine, shapeVectors, 2, { ...options, bevelOffset: -0.1, steps: 1 })
+      create: () =>
+        PrimitiveMesh.createExtrusion(engine, shapeVectors, 2, { ...options, contourOffset: -0.1, depthSegments: 1 })
     },
     {
       name: "extrusion along a path",
@@ -460,9 +467,10 @@ describe("PrimitiveMeshLoader", () => {
         type: "extrusion",
         extrusionPath: path,
         extrusionShapes: shapes,
-        extrusionOptions: { ...groupedOptions, steps: 6 }
+        extrusionOptions: { ...groupedOptions, pathSegments: 6 }
       },
-      create: () => PrimitiveMesh.createExtrusion(engine, shapeVectors, pathVectors, { ...groupedOptions, steps: 6 })
+      create: () =>
+        PrimitiveMesh.createExtrusion(engine, shapeVectors, pathVectors, { ...groupedOptions, pathSegments: 6 })
     },
     {
       name: "closed extrusion path",
@@ -470,10 +478,14 @@ describe("PrimitiveMeshLoader", () => {
         type: "extrusion",
         extrusionPath: path,
         extrusionShapes: shapes,
-        extrusionOptions: { ...groupedOptions, closed: true, steps: 12 }
+        extrusionOptions: { ...groupedOptions, closedPath: true, pathSegments: 12 }
       },
       create: () =>
-        PrimitiveMesh.createExtrusion(engine, shapeVectors, pathVectors, { ...groupedOptions, closed: true, steps: 12 })
+        PrimitiveMesh.createExtrusion(engine, shapeVectors, pathVectors, {
+          ...groupedOptions,
+          closedPath: true,
+          pathSegments: 12
+        })
     },
     {
       name: "linear extrusion ignores path-only settings",
@@ -481,9 +493,9 @@ describe("PrimitiveMeshLoader", () => {
         type: "extrusion",
         extrusionDepth: 2,
         extrusionShapes: shapes,
-        extrusionOptions: { ...groupedOptions, steps: 2, closed: true }
+        extrusionOptions: { ...groupedOptions, depthSegments: 2, closedPath: true }
       },
-      create: () => PrimitiveMesh.createExtrusion(engine, shapeVectors, 2, { ...groupedOptions, steps: 2 })
+      create: () => PrimitiveMesh.createExtrusion(engine, shapeVectors, 2, { ...groupedOptions, depthSegments: 2 })
     },
     {
       name: "path extrusion ignores linear-only settings",
@@ -493,14 +505,15 @@ describe("PrimitiveMeshLoader", () => {
         extrusionShapes: shapes,
         extrusionOptions: {
           ...groupedOptions,
-          steps: 6,
-          bevelSize: 0.25,
-          bevelThickness: 0.4,
-          bevelOffset: 0.5,
+          pathSegments: 6,
+          bevelWidth: 0.25,
+          bevelDepth: 0.4,
+          contourOffset: 0.5,
           bevelSegments: 8
         }
       },
-      create: () => PrimitiveMesh.createExtrusion(engine, shapeVectors, pathVectors, { ...groupedOptions, steps: 6 })
+      create: () =>
+        PrimitiveMesh.createExtrusion(engine, shapeVectors, pathVectors, { ...groupedOptions, pathSegments: 6 })
     },
     {
       name: "torus knot winding",
@@ -508,12 +521,12 @@ describe("PrimitiveMeshLoader", () => {
         type: "torusKnot",
         torusKnotRadius: 2,
         torusKnotTubeRadius: 0.2,
-        torusKnotP: 3,
-        torusKnotQ: 4,
-        torusKnotOptions: { ...options, tubularSegments: 48, radialSegments: 6 }
+        torusKnotAxisTurns: 3,
+        torusKnotCrossSectionTurns: 4,
+        torusKnotOptions: { ...options, pathSegments: 48, radialSegments: 6 }
       },
       create: () =>
-        PrimitiveMesh.createTorusKnot(engine, 2, 0.2, 3, 4, { ...options, tubularSegments: 48, radialSegments: 6 })
+        PrimitiveMesh.createTorusKnot(engine, 2, 0.2, 3, 4, { ...options, pathSegments: 48, radialSegments: 6 })
     },
     {
       name: "negative torus knot windings",
@@ -521,12 +534,12 @@ describe("PrimitiveMeshLoader", () => {
         type: "torusKnot",
         torusKnotRadius: 2,
         torusKnotTubeRadius: 0.2,
-        torusKnotP: -2,
-        torusKnotQ: -3,
-        torusKnotOptions: { ...options, tubularSegments: 48, radialSegments: 8 }
+        torusKnotAxisTurns: -2,
+        torusKnotCrossSectionTurns: -3,
+        torusKnotOptions: { ...options, pathSegments: 48, radialSegments: 8 }
       },
       create: () =>
-        PrimitiveMesh.createTorusKnot(engine, 2, 0.2, -2, -3, { ...options, tubularSegments: 48, radialSegments: 8 })
+        PrimitiveMesh.createTorusKnot(engine, 2, 0.2, -2, -3, { ...options, pathSegments: 48, radialSegments: 8 })
     },
     {
       name: "rounded cuboid",
@@ -536,9 +549,9 @@ describe("PrimitiveMeshLoader", () => {
         roundedCuboidHeight: 3,
         roundedCuboidDepth: 4,
         roundedCuboidCornerRadius: 0.2,
-        roundedCuboidOptions: { ...groupedOptions, segments: 3 }
+        roundedCuboidOptions: { ...groupedOptions, roundingSegments: 3 }
       },
-      create: () => PrimitiveMesh.createRoundedCuboid(engine, 2, 3, 4, 0.2, { ...groupedOptions, segments: 3 })
+      create: () => PrimitiveMesh.createRoundedCuboid(engine, 2, 3, 4, 0.2, { ...groupedOptions, roundingSegments: 3 })
     },
     {
       name: "cuboid inherited defaults",
@@ -547,12 +560,12 @@ describe("PrimitiveMeshLoader", () => {
     },
     {
       name: "plane inherited defaults",
-      data: { type: "plane", planeWidth: 2, planeHeight: 2, planeOptions: { horizontalSegments: 4 } },
-      create: () => PrimitiveMesh.createPlane(engine, 2, 2, { horizontalSegments: 4 })
+      data: { type: "plane", planeWidth: 2, planeDepth: 2, planeOptions: { widthSegments: 4 } },
+      create: () => PrimitiveMesh.createPlane(engine, 2, 2, { widthSegments: 4 })
     },
     {
       name: "capsule inherited cap segments",
-      data: { type: "capsule", capsuleRadius: 0.5, capsuleHeight: 2, capsuleOptions: { radialSegments: 10 } },
+      data: { type: "capsule", capsuleRadius: 0.5, capsuleCylinderHeight: 2, capsuleOptions: { radialSegments: 10 } },
       create: () => PrimitiveMesh.createCapsule(engine, 0.5, 2, { radialSegments: 10 })
     }
   ];
@@ -600,7 +613,7 @@ describe("PrimitiveMeshLoader", () => {
     const data: PrimitiveMeshAsset = {
       type: "sphere",
       sphereRadius: 0.5,
-      sphereOptions: { horizontalRange: { x: 350, y: 370 }, verticalRange: { x: 30, y: 150 } }
+      sphereOptions: { horizontalAngleRange: { x: 350, y: 370 }, verticalAngleRange: { x: 30, y: 150 } }
     };
     const serialized = JSON.stringify(data);
     const request = vi.spyOn(engine.resourceManager, "_request").mockReturnValue(AssetPromise.resolve(data) as any);
@@ -609,10 +622,10 @@ describe("PrimitiveMeshLoader", () => {
     try {
       mesh = await engine.resourceManager.load<ModelMesh>({ url: "vector-ranges.mesh", type: AssetType.PrimitiveMesh });
       const ranges = create.mock.calls[0][2]!;
-      expect(ranges.horizontalRange).toBeInstanceOf(Vector2);
-      expect(ranges.verticalRange).toBeInstanceOf(Vector2);
-      expect(ranges.horizontalRange!.toJSON()).toEqual({ x: 350, y: 370 });
-      expect(ranges.verticalRange!.toJSON()).toEqual({ x: 30, y: 150 });
+      expect(ranges.horizontalAngleRange).toBeInstanceOf(Vector2);
+      expect(ranges.verticalAngleRange).toBeInstanceOf(Vector2);
+      expect(ranges.horizontalAngleRange!.toJSON()).toEqual({ x: 350, y: 370 });
+      expect(ranges.verticalAngleRange!.toJSON()).toEqual({ x: 30, y: 150 });
       expect(JSON.stringify(data)).toBe(serialized);
     } finally {
       create.mockRestore();
@@ -638,7 +651,7 @@ describe("PrimitiveMeshLoader", () => {
               ? { type, cylinderRadius: 0.5, cylinderHeight: 2 }
               : { type, truncatedConeTopRadius: 0.25, truncatedConeBottomRadius: 0.5, truncatedConeHeight: 2 };
           const data = JSON.parse(
-            JSON.stringify({ ...shape, [optionsKey]: { caps, keepData: true, separateMaterials: true } })
+            JSON.stringify({ ...shape, [optionsKey]: { caps, keepCPUData: true, separateMaterialSlots: true } })
           );
           expect(data[optionsKey].caps).toBe(value);
           request.mockReturnValue(AssetPromise.resolve(data) as any);

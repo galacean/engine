@@ -9,7 +9,7 @@ The suite contains six galleries with 90 examples. Each screenshot fixes the cam
 | `primitive-sections` | 15 | Circle/ring sectors, both torus ranges, cylinder cap combinations, cone caps and partial lathes |
 | `primitive-contours` | 12 | Concave contours, multiple holes/shapes, bevel size/thickness/offset, tubes and profile sweeps |
 | `primitive-topology` | 25 | Sphere subdivisions, directional segment counts, polyhedron subdivisions, rounded corners and torus knots |
-| `primitive-materials` | 12 | Material-slot order, multiple shapes, `keepData`, JSON asset loading and corner-radius clamping |
+| `primitive-materials` | 12 | Material-slot order, multiple shapes, `keepCPUData`, JSON asset loading and corner-radius clamping |
 
 Run all six galleries:
 

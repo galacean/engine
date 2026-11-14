@@ -29,32 +29,36 @@ const polygon = {
 const path = [new Vector3(0, 0, 0), new Vector3(0, 1, 1), new Vector3(1, 2, 2)];
 
 const creators: [string, () => ModelMesh][] = [
-  ["sphere", () => PrimitiveMesh.createSphere(engine, 2, { keepData: true, subdivisions: 2 })],
+  ["sphere", () => PrimitiveMesh.createSphere(engine, 2, { keepCPUData: true, subdivisionLevel: 2 })],
   [
     "cuboid",
     () =>
       PrimitiveMesh.createCuboid(engine, 1, 1, 1, {
-        keepData: true,
+        keepCPUData: true,
         widthSegments: 3,
         heightSegments: 2,
         depthSegments: 2
       })
   ],
-  [
-    "plane",
-    () => PrimitiveMesh.createPlane(engine, 1, 1, { keepData: true, horizontalSegments: 3, verticalSegments: 2 })
-  ],
+  ["plane", () => PrimitiveMesh.createPlane(engine, 1, 1, { keepCPUData: true, widthSegments: 3, depthSegments: 2 })],
   [
     "cylinder",
     () =>
-      PrimitiveMesh.createTruncatedCone(engine, 0.25, 1, 2, { keepData: true, radialSegments: 12, heightSegments: 1 })
+      PrimitiveMesh.createTruncatedCone(engine, 0.25, 1, 2, {
+        keepCPUData: true,
+        radialSegments: 12,
+        heightSegments: 1
+      })
   ],
-  ["cone", () => PrimitiveMesh.createCone(engine, 0.5, 2, { keepData: true, radialSegments: 12, heightSegments: 1 })],
+  [
+    "cone",
+    () => PrimitiveMesh.createCone(engine, 0.5, 2, { keepCPUData: true, radialSegments: 12, heightSegments: 1 })
+  ],
   [
     "capsule",
     () =>
       PrimitiveMesh.createCapsule(engine, 0.5, 2, {
-        keepData: true,
+        keepCPUData: true,
         radialSegments: 12,
         capSegments: 4,
         heightSegments: 1
@@ -64,51 +68,56 @@ const creators: [string, () => ModelMesh][] = [
     "torus",
     () =>
       PrimitiveMesh.createTorus(engine, 0.5, 0.1, {
-        keepData: true,
-        angleRange: new Vector2(0, 360),
-        tubularSegments: 16,
+        keepCPUData: true,
+        ringAngleRange: new Vector2(0, 360),
+        ringSegments: 16,
         radialSegments: 8
       })
   ],
   [
     "circle",
-    () => PrimitiveMesh.createCircle(engine, 0.5, { keepData: true, angleRange: new Vector2(0, 180), segments: 12 })
+    () => PrimitiveMesh.createCircle(engine, 0.5, { keepCPUData: true, angleRange: new Vector2(0, 180), segments: 12 })
   ],
   [
     "ring",
     () =>
       PrimitiveMesh.createRing(engine, 0.5, 0.25, {
-        keepData: true,
+        keepCPUData: true,
         angleRange: new Vector2(0, 360),
-        radialSegments: 12,
+        ringSegments: 12,
         widthSegments: 2
       })
   ],
-  ["tetrahedron", () => PrimitiveMesh.createTetrahedron(engine, 0.5, { keepData: true, segments: 1 })],
-  ["octahedron", () => PrimitiveMesh.createOctahedron(engine, 0.5, { keepData: true, segments: 1 })],
-  ["icosahedron", () => PrimitiveMesh.createIcosahedron(engine, 0.5, { keepData: true, segments: 2 })],
-  ["dodecahedron", () => PrimitiveMesh.createDodecahedron(engine, 0.5, { keepData: true, segments: 1 })],
+  ["tetrahedron", () => PrimitiveMesh.createTetrahedron(engine, 0.5, { keepCPUData: true, edgeSegments: 1 })],
+  ["octahedron", () => PrimitiveMesh.createOctahedron(engine, 0.5, { keepCPUData: true, edgeSegments: 1 })],
+  ["icosahedron", () => PrimitiveMesh.createIcosahedron(engine, 0.5, { keepCPUData: true, edgeSegments: 2 })],
+  ["dodecahedron", () => PrimitiveMesh.createDodecahedron(engine, 0.5, { keepCPUData: true, edgeSegments: 1 })],
   [
     "lathe",
     () =>
       PrimitiveMesh.createLathe(engine, [new Vector2(0, -1), new Vector2(1, 0), new Vector2(0, 1)], {
-        keepData: true,
+        keepCPUData: true,
         angleRange: new Vector2(0, 360),
         segments: 12
       })
   ],
   [
     "tube",
-    () => PrimitiveMesh.createTube(engine, path, 0.5, { keepData: true, tubularSegments: 12, radialSegments: 8 })
+    () => PrimitiveMesh.createTube(engine, path, 0.5, { keepCPUData: true, pathSegments: 12, radialSegments: 8 })
   ],
-  ["polygon", () => PrimitiveMesh.createPolygon(engine, polygon, { keepData: true })],
-  ["extrusion", () => PrimitiveMesh.createExtrusion(engine, polygon, 2, { keepData: true, steps: 1 })],
+  ["polygon", () => PrimitiveMesh.createPolygon(engine, polygon, { keepCPUData: true })],
+  ["extrusion", () => PrimitiveMesh.createExtrusion(engine, polygon, 2, { keepCPUData: true, depthSegments: 1 })],
   [
     "extrusion",
     () =>
-      PrimitiveMesh.createExtrusion(engine, polygon, 1, { keepData: true, bevelSize: 0.1, bevelOffset: 0.2, steps: 1 })
+      PrimitiveMesh.createExtrusion(engine, polygon, 1, {
+        keepCPUData: true,
+        bevelWidth: 0.1,
+        contourOffset: 0.2,
+        depthSegments: 1
+      })
   ],
-  ["extrusion", () => PrimitiveMesh.createExtrusion(engine, polygon, path, { keepData: true, steps: 5 })],
+  ["extrusion", () => PrimitiveMesh.createExtrusion(engine, polygon, path, { keepCPUData: true, pathSegments: 5 })],
   [
     "extrusion",
     () =>
@@ -125,34 +134,37 @@ const creators: [string, () => ModelMesh][] = [
           ]
         },
         1,
-        { keepData: true, bevelSize: 0.05, bevelThickness: 0.1, bevelOffset: -0.05, steps: 1 }
+        { keepCPUData: true, bevelWidth: 0.05, bevelDepth: 0.1, contourOffset: -0.05, depthSegments: 1 }
       )
   ],
   [
     "torusKnot",
     () =>
-      PrimitiveMesh.createTorusKnot(engine, 0.5, 0.1, 2, 3, { keepData: true, tubularSegments: 32, radialSegments: 8 })
+      PrimitiveMesh.createTorusKnot(engine, 0.5, 0.1, 2, 3, { keepCPUData: true, pathSegments: 32, radialSegments: 8 })
   ],
   [
     "torusKnot",
     () =>
       PrimitiveMesh.createTorusKnot(engine, 0.5, 0.1, -2, -3, {
-        keepData: true,
-        tubularSegments: 32,
+        keepCPUData: true,
+        pathSegments: 32,
         radialSegments: 8
       })
   ],
-  ["roundedCuboid", () => PrimitiveMesh.createRoundedCuboid(engine, 1, 1, 1, 0.15, { keepData: true, segments: 3 })]
+  [
+    "roundedCuboid",
+    () => PrimitiveMesh.createRoundedCuboid(engine, 1, 1, 1, 0.15, { keepCPUData: true, roundingSegments: 3 })
+  ]
 ];
 
 describe("primitive mesh defaults", () => {
-  const options = { keepData: true };
+  const options = { keepCPUData: true };
   const profile = [new Vector2(0, -1), new Vector2(1, 0), new Vector2(0, 1)];
   const cases: [string, () => ModelMesh, () => ModelMesh][] = [
     [
       "sphere",
       () => PrimitiveMesh.createSphere(engine, 1, { ...options }),
-      () => PrimitiveMesh.createSphere(engine, 1, { ...options, subdivisions: 3 })
+      () => PrimitiveMesh.createSphere(engine, 1, { ...options, subdivisionLevel: 3 })
     ],
     [
       "cuboid",
@@ -167,8 +179,8 @@ describe("primitive mesh defaults", () => {
     ],
     [
       "plane",
-      () => PrimitiveMesh.createPlane(engine, 2, 3, { ...options, horizontalSegments: 2 }),
-      () => PrimitiveMesh.createPlane(engine, 2, 3, { ...options, horizontalSegments: 2, verticalSegments: 2 })
+      () => PrimitiveMesh.createPlane(engine, 2, 3, { ...options, widthSegments: 2 }),
+      () => PrimitiveMesh.createPlane(engine, 2, 3, { ...options, widthSegments: 2, depthSegments: 2 })
     ],
     [
       "cylinder",
@@ -199,7 +211,7 @@ describe("primitive mesh defaults", () => {
     [
       "torus",
       () => PrimitiveMesh.createTorus(engine, 1, 0.2, { ...options }),
-      () => PrimitiveMesh.createTorus(engine, 1, 0.2, { ...options, tubularSegments: 30, radialSegments: 30 })
+      () => PrimitiveMesh.createTorus(engine, 1, 0.2, { ...options, ringSegments: 30, radialSegments: 30 })
     ],
     [
       "circle",
@@ -209,27 +221,27 @@ describe("primitive mesh defaults", () => {
     [
       "ring",
       () => PrimitiveMesh.createRing(engine, 1, 0.5, { ...options }),
-      () => PrimitiveMesh.createRing(engine, 1, 0.5, { ...options, radialSegments: 32, widthSegments: 1 })
+      () => PrimitiveMesh.createRing(engine, 1, 0.5, { ...options, ringSegments: 32, widthSegments: 1 })
     ],
     [
       "tetrahedron",
       () => PrimitiveMesh.createTetrahedron(engine, 1, { ...options }),
-      () => PrimitiveMesh.createTetrahedron(engine, 1, { ...options, segments: 1 })
+      () => PrimitiveMesh.createTetrahedron(engine, 1, { ...options, edgeSegments: 1 })
     ],
     [
       "octahedron",
       () => PrimitiveMesh.createOctahedron(engine, 1, { ...options }),
-      () => PrimitiveMesh.createOctahedron(engine, 1, { ...options, segments: 1 })
+      () => PrimitiveMesh.createOctahedron(engine, 1, { ...options, edgeSegments: 1 })
     ],
     [
       "icosahedron",
       () => PrimitiveMesh.createIcosahedron(engine, 1, { ...options }),
-      () => PrimitiveMesh.createIcosahedron(engine, 1, { ...options, segments: 1 })
+      () => PrimitiveMesh.createIcosahedron(engine, 1, { ...options, edgeSegments: 1 })
     ],
     [
       "dodecahedron",
       () => PrimitiveMesh.createDodecahedron(engine, 1, { ...options }),
-      () => PrimitiveMesh.createDodecahedron(engine, 1, { ...options, segments: 1 })
+      () => PrimitiveMesh.createDodecahedron(engine, 1, { ...options, edgeSegments: 1 })
     ],
     [
       "lathe",
@@ -239,27 +251,27 @@ describe("primitive mesh defaults", () => {
     [
       "tube",
       () => PrimitiveMesh.createTube(engine, path, 0.2, { ...options }),
-      () => PrimitiveMesh.createTube(engine, path, 0.2, { ...options, tubularSegments: 64, radialSegments: 8 })
+      () => PrimitiveMesh.createTube(engine, path, 0.2, { ...options, pathSegments: 64, radialSegments: 8 })
     ],
     [
       "depth extrusion",
       () => PrimitiveMesh.createExtrusion(engine, polygon, 2, { ...options }),
-      () => PrimitiveMesh.createExtrusion(engine, polygon, 2, { ...options, steps: 1 })
+      () => PrimitiveMesh.createExtrusion(engine, polygon, 2, { ...options, depthSegments: 1 })
     ],
     [
       "path extrusion",
       () => PrimitiveMesh.createExtrusion(engine, polygon, path, { ...options }),
-      () => PrimitiveMesh.createExtrusion(engine, polygon, path, { ...options, steps: 1 })
+      () => PrimitiveMesh.createExtrusion(engine, polygon, path, { ...options, pathSegments: 1 })
     ],
     [
       "torus knot",
       () => PrimitiveMesh.createTorusKnot(engine, 1, 0.2, 2, 3, { ...options }),
-      () => PrimitiveMesh.createTorusKnot(engine, 1, 0.2, 2, 3, { ...options, tubularSegments: 64, radialSegments: 8 })
+      () => PrimitiveMesh.createTorusKnot(engine, 1, 0.2, 2, 3, { ...options, pathSegments: 64, radialSegments: 8 })
     ],
     [
       "rounded cuboid",
       () => PrimitiveMesh.createRoundedCuboid(engine, 2, 3, 4, 0.2, { ...options }),
-      () => PrimitiveMesh.createRoundedCuboid(engine, 2, 3, 4, 0.2, { ...options, segments: 2 })
+      () => PrimitiveMesh.createRoundedCuboid(engine, 2, 3, 4, 0.2, { ...options, roundingSegments: 2 })
     ]
   ];
 
@@ -307,7 +319,7 @@ describe("procedural mesh geometry", () => {
     const cube = PrimitiveMesh.createCuboid(engine, 2, 2, 2);
     const plane = PrimitiveMesh.createPlane(engine, 3, 3);
     const sphere = PrimitiveMesh.createSphere(engine, 1);
-    const detailedSphere = PrimitiveMesh.createSphere(engine, 1, { subdivisions: 4 });
+    const detailedSphere = PrimitiveMesh.createSphere(engine, 1, { subdivisionLevel: 4 });
     try {
       expect(cube.bounds.min).toMatchObject({ x: -1, y: -1, z: -1 });
       expect(cube.bounds.max).toMatchObject({ x: 1, y: 1, z: 1 });
@@ -327,7 +339,7 @@ describe("procedural mesh geometry", () => {
     const frustum = PrimitiveMesh.createTruncatedCone(engine, 0.5, 1.5, 4);
     const topOnly = PrimitiveMesh.createCylinder(engine, 1, 3, {
       caps: PrimitiveMeshCapMode.Top,
-      keepData: true,
+      keepCPUData: true,
       radialSegments: 8,
       heightSegments: 1
     });
@@ -348,10 +360,10 @@ describe("procedural mesh geometry", () => {
     const fromContours = PrimitiveMesh.createPolygon(
       engine,
       { points: polygon.points, holes: polygon.holes },
-      { keepData: true }
+      { keepCPUData: true }
     );
-    const fromShape = PrimitiveMesh.createPolygon(engine, polygon, { keepData: true });
-    const withoutHoles = PrimitiveMesh.createPolygon(engine, polygon.points, { keepData: true });
+    const fromShape = PrimitiveMesh.createPolygon(engine, polygon, { keepCPUData: true });
+    const withoutHoles = PrimitiveMesh.createPolygon(engine, polygon.points, { keepCPUData: true });
     try {
       expect(Array.from(fromContours.getIndices()!)).toEqual(Array.from(fromShape.getIndices()!));
       expect(withoutHoles.getIndices()!.length).toBe(6);
@@ -364,9 +376,9 @@ describe("procedural mesh geometry", () => {
 
   it("honors offset angular ranges for torus sections", () => {
     const mesh = PrimitiveMesh.createTorus(engine, 1, 0.25, {
-      keepData: true,
-      angleRange: new Vector2(90, 180),
-      tubularSegments: 8,
+      keepCPUData: true,
+      ringAngleRange: new Vector2(90, 180),
+      ringSegments: 8,
       radialSegments: 6
     });
     try {
@@ -379,37 +391,40 @@ describe("procedural mesh geometry", () => {
   });
 
   it.each([
-    { p: 2, q: 3, expected: new Vector3(1, Math.sqrt(3), 1) },
-    { p: 2, q: -3, expected: new Vector3(1, Math.sqrt(3), -1) },
-    { p: -2, q: 3, expected: new Vector3(1, -Math.sqrt(3), 1) },
-    { p: -2, q: -3, expected: new Vector3(1, -Math.sqrt(3), -1) },
-    { p: 0, q: 1, expected: new Vector3(2 + Math.sqrt(3) / 2, 0, 0.5) },
-    { p: 1, q: 0, expected: new Vector3((3 * Math.sqrt(3)) / 2, 1.5, 0) }
-  ])("preserves torus knot windings p=$p, q=$q during creation and restoration", ({ p, q, expected }) => {
-    const radialSegments = 8;
-    const mesh = PrimitiveMesh.createTorusKnot(engine, 2, 0.2, p, q, {
-      keepData: true,
-      tubularSegments: 48,
-      radialSegments
-    });
-    try {
-      const positions = mesh.getPositions()!;
-      const center = new Vector3();
-      for (let i = 0; i < radialSegments; i++) {
-        center.add(positions[4 * (radialSegments + 1) + i]);
-      }
-      center.scale(1 / radialSegments);
-      expect(Vector3.distance(center, expected)).toBeLessThan(1e-6);
+    { axisTurns: 2, crossSectionTurns: 3, expected: new Vector3(1, Math.sqrt(3), 1) },
+    { axisTurns: 2, crossSectionTurns: -3, expected: new Vector3(1, Math.sqrt(3), -1) },
+    { axisTurns: -2, crossSectionTurns: 3, expected: new Vector3(1, -Math.sqrt(3), 1) },
+    { axisTurns: -2, crossSectionTurns: -3, expected: new Vector3(1, -Math.sqrt(3), -1) },
+    { axisTurns: 0, crossSectionTurns: 1, expected: new Vector3(2 + Math.sqrt(3) / 2, 0, 0.5) },
+    { axisTurns: 1, crossSectionTurns: 0, expected: new Vector3((3 * Math.sqrt(3)) / 2, 1.5, 0) }
+  ])(
+    "preserves torus knot windings axisTurns=$axisTurns, crossSectionTurns=$crossSectionTurns during creation and restoration",
+    ({ axisTurns, crossSectionTurns, expected }) => {
+      const radialSegments = 8;
+      const mesh = PrimitiveMesh.createTorusKnot(engine, 2, 0.2, axisTurns, crossSectionTurns, {
+        keepCPUData: true,
+        pathSegments: 48,
+        radialSegments
+      });
+      try {
+        const positions = mesh.getPositions()!;
+        const center = new Vector3();
+        for (let i = 0; i < radialSegments; i++) {
+          center.add(positions[4 * (radialSegments + 1) + i]);
+        }
+        center.scale(1 / radialSegments);
+        expect(Vector3.distance(center, expected)).toBeLessThan(1e-6);
 
-      const buffer = mesh.vertexBufferBindings[0]!.buffer;
-      const original = buffer.data!.slice();
-      MeshTestUtils.clearBuffer(buffer);
-      (engine.resourceManager as any)._contentRestorerPool[mesh.instanceId].restoreContent();
-      expect(MeshTestUtils.readBuffer(buffer)).toEqual(original);
-    } finally {
-      mesh.destroy();
+        const buffer = mesh.vertexBufferBindings[0]!.buffer;
+        const original = buffer.data!.slice();
+        MeshTestUtils.clearBuffer(buffer);
+        (engine.resourceManager as any)._contentRestorerPool[mesh.instanceId].restoreContent();
+        expect(MeshTestUtils.readBuffer(buffer)).toEqual(original);
+      } finally {
+        mesh.destroy();
+      }
     }
-  });
+  );
 
   it.each([
     { radialSegments: 3, capSegments: 1, heightSegments: 1 },
@@ -419,7 +434,7 @@ describe("procedural mesh geometry", () => {
     "centers capsule pole UVs with $radialSegments radial segments",
     ({ radialSegments, capSegments, heightSegments }) => {
       const mesh = PrimitiveMesh.createCapsule(engine, 1, 2, {
-        keepData: true,
+        keepCPUData: true,
         radialSegments,
         capSegments,
         heightSegments
@@ -473,7 +488,7 @@ describe("procedural mesh geometry", () => {
     }
   ])("preserves $segments segment(s) in a partial lathe", ({ segments, crossSection }) => {
     const mesh = PrimitiveMesh.createLathe(engine, [new Vector2(1, -1), new Vector2(1, 1)], {
-      keepData: true,
+      keepCPUData: true,
       angleRange: new Vector2(0, 90),
       segments
     });
@@ -505,9 +520,9 @@ describe("procedural mesh geometry", () => {
     const sizes = { x: 2, y: 3, z: 4 };
     const radius = 0.25;
     const mesh = PrimitiveMesh.createRoundedCuboid(engine, sizes.x, sizes.y, sizes.z, radius, {
-      keepData: true,
-      separateMaterials: true,
-      segments
+      keepCPUData: true,
+      separateMaterialSlots: true,
+      roundingSegments: segments
     });
     const faces = [
       { axis: "y", sign: 1, u: "x", v: "z", flipU: false, flipV: false },
@@ -550,7 +565,7 @@ describe("procedural mesh geometry", () => {
   });
 
   it("handles rounded cuboid radius and segment limits without changing the cuboid fallback", () => {
-    const options = { keepData: true, separateMaterials: true };
+    const options = { keepCPUData: true, separateMaterialSlots: true };
     const meshes = [
       PrimitiveMesh.createCuboid(engine, 2, 3, 4, {
         ...options,
@@ -558,12 +573,12 @@ describe("procedural mesh geometry", () => {
         heightSegments: 1,
         depthSegments: 1
       }),
-      PrimitiveMesh.createRoundedCuboid(engine, 2, 3, 4, 0, { ...options, segments: 4 }),
-      PrimitiveMesh.createRoundedCuboid(engine, 2, 3, 4, -1, { ...options, segments: 4 }),
-      PrimitiveMesh.createRoundedCuboid(engine, 2, 3, 4, 1, { ...options, segments: 3 }),
-      PrimitiveMesh.createRoundedCuboid(engine, 2, 3, 4, 8, { ...options, segments: 3 }),
-      PrimitiveMesh.createRoundedCuboid(engine, 2, 3, 4, 0.2, { ...options, segments: 0 }),
-      PrimitiveMesh.createRoundedCuboid(engine, 2, 3, 4, 0.2, { ...options, segments: 1 })
+      PrimitiveMesh.createRoundedCuboid(engine, 2, 3, 4, 0, { ...options, roundingSegments: 4 }),
+      PrimitiveMesh.createRoundedCuboid(engine, 2, 3, 4, -1, { ...options, roundingSegments: 4 }),
+      PrimitiveMesh.createRoundedCuboid(engine, 2, 3, 4, 1, { ...options, roundingSegments: 3 }),
+      PrimitiveMesh.createRoundedCuboid(engine, 2, 3, 4, 8, { ...options, roundingSegments: 3 }),
+      PrimitiveMesh.createRoundedCuboid(engine, 2, 3, 4, 0.2, { ...options, roundingSegments: 0 }),
+      PrimitiveMesh.createRoundedCuboid(engine, 2, 3, 4, 0.2, { ...options, roundingSegments: 1 })
     ];
     try {
       for (const [a, b] of [
@@ -587,8 +602,8 @@ describe("procedural mesh geometry", () => {
   ])("keeps rounded cuboid attributes valid at radius $radius for $width x $height x $depth", (shape) => {
     const { width, height, depth, radius } = shape;
     const mesh = PrimitiveMesh.createRoundedCuboid(engine, width, height, depth, radius, {
-      keepData: true,
-      segments: 4
+      keepCPUData: true,
+      roundingSegments: 4
     });
     try {
       const positions = mesh.getPositions()!;
@@ -616,13 +631,13 @@ describe("procedural mesh geometry", () => {
     }
   });
 
-  it.each([false, true])("controls all generated vertex data through keepData=%s", (keepData) => {
-    const mesh = PrimitiveMesh.createSphere(engine, 0.5, { keepData, subdivisions: 1 });
+  it.each([false, true])("controls all generated vertex data through keepCPUData=%s", (keepCPUData) => {
+    const mesh = PrimitiveMesh.createSphere(engine, 0.5, { keepCPUData, subdivisionLevel: 1 });
     try {
       for (const binding of mesh.vertexBufferBindings) {
-        expect(binding!.buffer.readable).toBe(keepData);
+        expect(binding!.buffer.readable).toBe(keepCPUData);
       }
-      if (keepData) {
+      if (keepCPUData) {
         expect(mesh.getPositions()).toHaveLength(mesh.vertexCount);
         expect(mesh.getNormals()).toHaveLength(mesh.vertexCount);
         expect(mesh.getTangents()).toHaveLength(mesh.vertexCount);
@@ -681,7 +696,7 @@ describe("procedural mesh geometry", () => {
   });
 
   it("keeps sphere tangents perpendicular at non-unit radii", () => {
-    const mesh = PrimitiveMesh.createSphere(engine, 2, { keepData: true, subdivisions: 3 });
+    const mesh = PrimitiveMesh.createSphere(engine, 2, { keepCPUData: true, subdivisionLevel: 3 });
     try {
       expect(mesh.vertexCount).toBe(417);
       expect(mesh.getIndices()!.length / 3).toBe(768);
@@ -699,9 +714,9 @@ describe("procedural mesh geometry", () => {
 
   it("supports a northern hemisphere", () => {
     const mesh = PrimitiveMesh.createSphere(engine, 0.5, {
-      keepData: true,
-      verticalRange: new Vector2(0, 90),
-      subdivisions: 2
+      keepCPUData: true,
+      verticalAngleRange: new Vector2(0, 90),
+      subdivisionLevel: 2
     });
     try {
       expect(mesh.getPositions()!.every((p) => p.y >= -1e-7)).toBe(true);
@@ -720,10 +735,10 @@ describe("procedural mesh geometry", () => {
   ])("clips a sphere to $horizontal and $vertical without cracks", ({ horizontal, vertical }) => {
     const radius = 2;
     const mesh = PrimitiveMesh.createSphere(engine, radius, {
-      keepData: true,
-      horizontalRange: new Vector2(horizontal[0], horizontal[1]),
-      verticalRange: new Vector2(vertical[0], vertical[1]),
-      subdivisions: 3
+      keepCPUData: true,
+      horizontalAngleRange: new Vector2(horizontal[0], horizontal[1]),
+      verticalAngleRange: new Vector2(vertical[0], vertical[1]),
+      subdivisionLevel: 3
     });
     try {
       const positions = mesh.getPositions()!;
@@ -793,11 +808,11 @@ describe("procedural mesh geometry", () => {
   });
 
   it("rotates complete spheres without changing topology", () => {
-    const original = PrimitiveMesh.createSphere(engine, 1, { keepData: true, subdivisions: 2 });
+    const original = PrimitiveMesh.createSphere(engine, 1, { keepCPUData: true, subdivisionLevel: 2 });
     const rotated = PrimitiveMesh.createSphere(engine, 1, {
-      keepData: true,
-      horizontalRange: new Vector2(90, 450),
-      subdivisions: 2
+      keepCPUData: true,
+      horizontalAngleRange: new Vector2(90, 450),
+      subdivisionLevel: 2
     });
     try {
       expect(rotated.getIndices()).toEqual(original.getIndices());
@@ -815,14 +830,18 @@ describe("procedural mesh geometry", () => {
   });
 
   it("captures sphere ranges for device restoration", () => {
-    const horizontalRange = new Vector2(20, 290);
-    const verticalRange = new Vector2(30, 150);
-    const mesh = PrimitiveMesh.createSphere(engine, 1, { horizontalRange, verticalRange, subdivisions: 3 });
+    const horizontalAngleRange = new Vector2(20, 290);
+    const verticalAngleRange = new Vector2(30, 150);
+    const mesh = PrimitiveMesh.createSphere(engine, 1, {
+      horizontalAngleRange,
+      verticalAngleRange,
+      subdivisionLevel: 3
+    });
     try {
       const buffer = mesh.vertexBufferBindings[0]!.buffer;
       const original = MeshTestUtils.readBuffer(buffer);
-      horizontalRange.y = 360;
-      verticalRange.x = 0;
+      horizontalAngleRange.y = 360;
+      verticalAngleRange.x = 0;
       MeshTestUtils.clearBuffer(buffer);
       (engine.resourceManager as any)._contentRestorerPool[mesh.instanceId].restoreContent();
       expect(MeshTestUtils.readBuffer(buffer)).toEqual(original);
@@ -833,18 +852,18 @@ describe("procedural mesh geometry", () => {
 
   it("omits cylinder caps and makes material groups opt-in", () => {
     const open = PrimitiveMesh.createCylinder(engine, 0.5, 2, {
-      keepData: true,
+      keepCPUData: true,
       caps: PrimitiveMeshCapMode.None,
       radialSegments: 8,
       heightSegments: 1
     });
     const grouped = PrimitiveMesh.createCylinder(engine, 0.5, 2, {
-      separateMaterials: true,
+      separateMaterialSlots: true,
       radialSegments: 8,
       heightSegments: 1
     });
     const cube = PrimitiveMesh.createCuboid(engine, 1, 1, 1, {
-      separateMaterials: true,
+      separateMaterialSlots: true,
       widthSegments: 1,
       heightSegments: 1,
       depthSegments: 1
@@ -863,8 +882,8 @@ describe("procedural mesh geometry", () => {
 
   it("orders cuboid material slots by face direction", () => {
     const mesh = PrimitiveMesh.createCuboid(engine, 1, 2, 3, {
-      keepData: true,
-      separateMaterials: true,
+      keepCPUData: true,
+      separateMaterialSlots: true,
       widthSegments: 1,
       heightSegments: 1,
       depthSegments: 1
@@ -890,8 +909,8 @@ describe("procedural mesh geometry", () => {
       name: "cylinder with both caps",
       create: () =>
         PrimitiveMesh.createCylinder(engine, 1, 2, {
-          keepData: true,
-          separateMaterials: true,
+          keepCPUData: true,
+          separateMaterialSlots: true,
           radialSegments: 8,
           heightSegments: 1
         }),
@@ -901,8 +920,8 @@ describe("procedural mesh geometry", () => {
       name: "cylinder with only its top cap",
       create: () =>
         PrimitiveMesh.createCylinder(engine, 1, 2, {
-          keepData: true,
-          separateMaterials: true,
+          keepCPUData: true,
+          separateMaterialSlots: true,
           caps: PrimitiveMeshCapMode.Top,
           radialSegments: 8,
           heightSegments: 1
@@ -913,8 +932,8 @@ describe("procedural mesh geometry", () => {
       name: "cylinder with only its bottom cap",
       create: () =>
         PrimitiveMesh.createCylinder(engine, 1, 2, {
-          keepData: true,
-          separateMaterials: true,
+          keepCPUData: true,
+          separateMaterialSlots: true,
           caps: PrimitiveMeshCapMode.Bottom,
           radialSegments: 8,
           heightSegments: 1
@@ -925,8 +944,8 @@ describe("procedural mesh geometry", () => {
       name: "cylinder without caps",
       create: () =>
         PrimitiveMesh.createCylinder(engine, 1, 2, {
-          keepData: true,
-          separateMaterials: true,
+          keepCPUData: true,
+          separateMaterialSlots: true,
           caps: PrimitiveMeshCapMode.None,
           radialSegments: 8,
           heightSegments: 1
@@ -937,8 +956,8 @@ describe("procedural mesh geometry", () => {
       name: "truncated cone with a zero top radius",
       create: () =>
         PrimitiveMesh.createTruncatedCone(engine, 0, 1, 2, {
-          keepData: true,
-          separateMaterials: true,
+          keepCPUData: true,
+          separateMaterialSlots: true,
           radialSegments: 8,
           heightSegments: 1
         }),
@@ -948,8 +967,8 @@ describe("procedural mesh geometry", () => {
       name: "truncated cone with a zero bottom radius",
       create: () =>
         PrimitiveMesh.createTruncatedCone(engine, 1, 0, 2, {
-          keepData: true,
-          separateMaterials: true,
+          keepCPUData: true,
+          separateMaterialSlots: true,
           radialSegments: 8,
           heightSegments: 1
         }),
@@ -959,8 +978,8 @@ describe("procedural mesh geometry", () => {
       name: "cone with its bottom cap",
       create: () =>
         PrimitiveMesh.createCone(engine, 1, 2, {
-          keepData: true,
-          separateMaterials: true,
+          keepCPUData: true,
+          separateMaterialSlots: true,
           radialSegments: 8,
           heightSegments: 1
         }),
@@ -970,8 +989,8 @@ describe("procedural mesh geometry", () => {
       name: "cone without its bottom cap",
       create: () =>
         PrimitiveMesh.createCone(engine, 1, 2, {
-          keepData: true,
-          separateMaterials: true,
+          keepCPUData: true,
+          separateMaterialSlots: true,
           cap: false,
           radialSegments: 8,
           heightSegments: 1
@@ -996,7 +1015,7 @@ describe("procedural mesh geometry", () => {
 
   it("assigns one material slot to each polygon including its holes", () => {
     const shapes = [polygon, { points: polygon.points.map(({ x, y }) => new Vector2(x + 6, y)) }];
-    const mesh = PrimitiveMesh.createPolygon(engine, shapes, { keepData: true, separateMaterials: true });
+    const mesh = PrimitiveMesh.createPolygon(engine, shapes, { keepCPUData: true, separateMaterialSlots: true });
     try {
       const indices = mesh.getIndices()!;
       const positions = mesh.getPositions()!;
@@ -1013,9 +1032,9 @@ describe("procedural mesh geometry", () => {
   it("orders each extruded shape's cap and wall material slots together", () => {
     const shapes = [polygon, { points: polygon.points.map(({ x, y }) => new Vector2(x + 6, y)) }];
     const mesh = PrimitiveMesh.createExtrusion(engine, shapes, 2, {
-      keepData: true,
-      separateMaterials: true,
-      steps: 1
+      keepCPUData: true,
+      separateMaterialSlots: true,
+      depthSegments: 1
     });
     try {
       const indices = mesh.getIndices()!;
@@ -1033,12 +1052,12 @@ describe("procedural mesh geometry", () => {
     }
   });
 
-  it.each([0.2, -0.2])("offsets extrusion walls and bevels by %s and restores their geometry", (bevelOffset) => {
-    const options = { keepData: true, separateMaterials: true, bevelSize: 0.1, bevelThickness: 0.2, bevelOffset };
-    const mesh = PrimitiveMesh.createExtrusion(engine, polygon, 2, { ...options, steps: 2 });
+  it.each([0.2, -0.2])("offsets extrusion walls and bevels by %s and restores their geometry", (contourOffset) => {
+    const options = { keepCPUData: true, separateMaterialSlots: true, bevelWidth: 0.1, bevelDepth: 0.2, contourOffset };
+    const mesh = PrimitiveMesh.createExtrusion(engine, polygon, 2, { ...options, depthSegments: 2 });
     try {
-      const outer = 2 + bevelOffset;
-      const hole = 1 - bevelOffset;
+      const outer = 2 + contourOffset;
+      const hole = 1 - contourOffset;
       expect(mesh.bounds.min.x).toBeCloseTo(-outer);
       expect(mesh.bounds.min.y).toBeCloseTo(-outer);
       expect(mesh.bounds.min.z).toBe(0);
@@ -1061,7 +1080,7 @@ describe("procedural mesh geometry", () => {
       const buffer = mesh.vertexBufferBindings[0]!.buffer;
       const original = buffer.data!.slice();
       const indices = Array.from(mesh.getIndices()!);
-      options.bevelOffset = 100;
+      options.contourOffset = 100;
       MeshTestUtils.clearBuffer(buffer);
       (engine.resourceManager as any)._contentRestorerPool[mesh.instanceId].restoreContent();
       expect(MeshTestUtils.readBuffer(buffer)).toEqual(original);
@@ -1072,8 +1091,12 @@ describe("procedural mesh geometry", () => {
     }
   });
 
-  it.each([0.2, -0.2])("offsets extrusion contours by %s without adding bevels", (bevelOffset) => {
-    const mesh = PrimitiveMesh.createExtrusion(engine, polygon, 2, { keepData: true, bevelOffset, steps: 1 });
+  it.each([0.2, -0.2])("offsets extrusion contours by %s without adding bevels", (contourOffset) => {
+    const mesh = PrimitiveMesh.createExtrusion(engine, polygon, 2, {
+      keepCPUData: true,
+      contourOffset,
+      depthSegments: 1
+    });
     try {
       const positions = mesh.getPositions()!;
       expect(positions.every(({ z }) => z === 0 || z === 2)).toBe(true);
@@ -1087,8 +1110,8 @@ describe("procedural mesh geometry", () => {
           topArea += ((b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x)) / 2;
         }
       }
-      const outer = 2 + bevelOffset;
-      const hole = 1 - bevelOffset;
+      const outer = 2 + contourOffset;
+      const hole = 1 - contourOffset;
       expect(topArea).toBeCloseTo(4 * (outer * outer - hole * hole), 5);
     } finally {
       mesh.destroy();
@@ -1096,7 +1119,7 @@ describe("procedural mesh geometry", () => {
   });
 
   it("triangulates holes without filling their interiors", () => {
-    const mesh = PrimitiveMesh.createPolygon(engine, polygon, { keepData: true });
+    const mesh = PrimitiveMesh.createPolygon(engine, polygon, { keepCPUData: true });
     try {
       const positions = mesh.getPositions()!;
       const indices = mesh.getIndices()!;
@@ -1177,7 +1200,7 @@ describe("procedural mesh geometry", () => {
         points: reversed ? points.slice().reverse() : points,
         holes: holes.map((hole) => (reversed ? hole : hole.slice().reverse()))
       };
-      const mesh = PrimitiveMesh.createPolygon(engine, shape, { keepData: true });
+      const mesh = PrimitiveMesh.createPolygon(engine, shape, { keepCPUData: true });
       try {
         const positions = mesh.getPositions()!;
         const indices = mesh.getIndices()!;
@@ -1215,7 +1238,7 @@ describe("procedural mesh geometry", () => {
 
   it("preserves multiple holes in extrusion caps and restored buffers", () => {
     const { points, holes, area } = triangulationCases[1];
-    const mesh = PrimitiveMesh.createExtrusion(engine, { points, holes }, 3, { keepData: true, steps: 1 });
+    const mesh = PrimitiveMesh.createExtrusion(engine, { points, holes }, 3, { keepCPUData: true, depthSegments: 1 });
     try {
       const positions = mesh.getPositions()!;
       const indices = Array.from(mesh.getIndices()!);
@@ -1248,8 +1271,8 @@ describe("procedural mesh geometry", () => {
   it("restores captured geometry after caller-owned inputs and buffers change", () => {
     const points = [new Vector3(0, 0, 0), new Vector3(0, 1, 1), new Vector3(1, 2, 2)];
     const mesh = PrimitiveMesh.createTube(engine, points, 0.5, {
-      keepData: true,
-      tubularSegments: 8,
+      keepCPUData: true,
+      pathSegments: 8,
       radialSegments: 8
     });
     try {
@@ -1269,16 +1292,16 @@ describe("procedural mesh geometry", () => {
   });
 
   it.each([
-    { type: "tube", tubeRadius: 0.5, keepData: false },
-    { type: "tube", tubeRadius: 0.5, keepData: true },
-    { type: "extrusion", extrusionDepth: 1, keepData: false },
-    { type: "extrusion", extrusionDepth: 1, keepData: true }
-  ])("copies $type path points for device restoration with keepData=$keepData", ({ type, keepData }) => {
+    { type: "tube", tubeRadius: 0.5, keepCPUData: false },
+    { type: "tube", tubeRadius: 0.5, keepCPUData: true },
+    { type: "extrusion", extrusionDepth: 1, keepCPUData: false },
+    { type: "extrusion", extrusionDepth: 1, keepCPUData: true }
+  ])("copies $type path points for device restoration with keepCPUData=$keepCPUData", ({ type, keepCPUData }) => {
     const points = path.map((point) => point.clone());
     const mesh =
       type === "tube"
-        ? PrimitiveMesh.createTube(engine, points, 0.5, { keepData, tubularSegments: 12, radialSegments: 8 })
-        : PrimitiveMesh.createExtrusion(engine, polygon, points, { keepData, steps: 12 });
+        ? PrimitiveMesh.createTube(engine, points, 0.5, { keepCPUData, pathSegments: 12, radialSegments: 8 })
+        : PrimitiveMesh.createExtrusion(engine, polygon, points, { keepCPUData, pathSegments: 12 });
     try {
       const buffers = mesh.vertexBufferBindings.map((binding) => binding!.buffer);
       buffers.push(mesh._primitive.indexBufferBinding!._buffer);
@@ -1313,8 +1336,8 @@ describe("procedural mesh geometry", () => {
 
   it("restores spheres independently after interleaved creation", () => {
     const meshes = [
-      PrimitiveMesh.createSphere(engine, 0.5, { keepData: true, subdivisions: 2 }),
-      PrimitiveMesh.createSphere(engine, 2, { keepData: true, subdivisions: 4 })
+      PrimitiveMesh.createSphere(engine, 0.5, { keepCPUData: true, subdivisionLevel: 2 }),
+      PrimitiveMesh.createSphere(engine, 2, { keepCPUData: true, subdivisionLevel: 4 })
     ];
     const originals = meshes.map((mesh) => ({
       vertices: mesh.vertexBufferBindings[0]!.buffer.data!.slice(),
@@ -1338,9 +1361,9 @@ describe("procedural mesh geometry", () => {
 
   it("uses 32-bit indices for subdivided meshes beyond 65535 vertices", () => {
     const mesh = PrimitiveMesh.createPlane(engine, 1, 1, {
-      keepData: true,
-      horizontalSegments: 256,
-      verticalSegments: 256
+      keepCPUData: true,
+      widthSegments: 256,
+      depthSegments: 256
     });
     try {
       expect(mesh.vertexCount).toBe(66049);
@@ -1352,9 +1375,9 @@ describe("procedural mesh geometry", () => {
   it.each([1, 2])("keeps the radius of a closed tube with %s longitudinal segments", (segments) => {
     const path = [new Vector3(-2, 0, -2), new Vector3(2, 0, -2), new Vector3(2, 0, 2), new Vector3(-2, 0, 2)];
     const mesh = PrimitiveMesh.createTube(engine, path, 0.5, {
-      keepData: true,
-      closed: true,
-      tubularSegments: segments,
+      keepCPUData: true,
+      closedPath: true,
+      pathSegments: segments,
       radialSegments: 8
     });
     try {
@@ -1376,8 +1399,8 @@ describe("procedural mesh geometry", () => {
 
   it.each([1, 2])("keeps torus-knot cross-sections with %s longitudinal segments", (segments) => {
     const mesh = PrimitiveMesh.createTorusKnot(engine, 1, 0.2, 2, 3, {
-      keepData: true,
-      tubularSegments: segments,
+      keepCPUData: true,
+      pathSegments: segments,
       radialSegments: 8
     });
     try {
@@ -1407,9 +1430,9 @@ describe("procedural mesh geometry", () => {
       return new Vector3(Math.cos(angle), Math.sin(angle), Math.sin(angle * 2) / 3);
     });
     const mesh = PrimitiveMesh.createTube(engine, points, 0.5, {
-      keepData: true,
-      closed: true,
-      tubularSegments: 40,
+      keepCPUData: true,
+      closedPath: true,
+      pathSegments: 40,
       radialSegments
     });
     try {
@@ -1432,11 +1455,11 @@ describe("procedural mesh geometry", () => {
     });
     const originalPoints = points.map((point) => point.toJSON());
     const profile = [new Vector2(0.2, 0), new Vector2(-0.1, 0.1), new Vector2(-0.1, -0.1)];
-    const options = { keepData: true, closed: true };
-    const mesh = PrimitiveMesh.createExtrusion(engine, profile, points, { ...options, steps: 32 });
+    const options = { keepCPUData: true, closedPath: true };
+    const mesh = PrimitiveMesh.createExtrusion(engine, profile, points, { ...options, pathSegments: 32 });
     const repeated = PrimitiveMesh.createExtrusion(engine, profile, [...points, points[0].clone()], {
       ...options,
-      steps: 32
+      pathSegments: 32
     });
     try {
       const positions = mesh.getPositions()!;
@@ -1461,7 +1484,7 @@ describe("procedural mesh geometry", () => {
       const original = buffer.data!.slice();
       const originalIndices = Array.from(indices);
       points[0].set(100, 200, 300);
-      options.closed = false;
+      options.closedPath = false;
       MeshTestUtils.clearBuffer(buffer);
       (engine.resourceManager as any)._contentRestorerPool[mesh.instanceId].restoreContent();
       expect(MeshTestUtils.readBuffer(buffer)).toEqual(original);
@@ -1482,10 +1505,10 @@ describe("procedural mesh geometry", () => {
     ];
     const points = [new Vector3(-4, 0, -4), new Vector3(4, 0, -4), new Vector3(4, 0, 4), new Vector3(-4, 0, 4)];
     const mesh = PrimitiveMesh.createExtrusion(engine, shapes, points, {
-      keepData: true,
-      separateMaterials: true,
-      closed: true,
-      steps: 16
+      keepCPUData: true,
+      separateMaterialSlots: true,
+      closedPath: true,
+      pathSegments: 16
     });
     try {
       const counts = [16 * 8 * 6, 16 * 4 * 6];
@@ -1500,20 +1523,21 @@ describe("procedural mesh geometry", () => {
   });
 
   it("ignores settings from the inactive extrusion mode", () => {
-    const linearOptions = { keepData: true, steps: 2, bevelSize: 0.1, separateMaterials: true };
-    const pathOptions = { keepData: true, steps: 5, separateMaterials: true };
+    const linearOptions = { keepCPUData: true, depthSegments: 2, bevelWidth: 0.1, separateMaterialSlots: true };
+    const pathOptions = { keepCPUData: true, pathSegments: 5, separateMaterialSlots: true };
     const pairs = [
       [
         PrimitiveMesh.createExtrusion(engine, polygon, 2, linearOptions),
-        PrimitiveMesh.createExtrusion(engine, polygon, 2, { ...linearOptions, closed: true })
+        PrimitiveMesh.createExtrusion(engine, polygon, 2, { ...linearOptions, pathSegments: 7, closedPath: true })
       ],
       [
         PrimitiveMesh.createExtrusion(engine, polygon, path, pathOptions),
         PrimitiveMesh.createExtrusion(engine, polygon, path, {
           ...pathOptions,
-          bevelSize: 0.25,
-          bevelThickness: 0.4,
-          bevelOffset: 0.5,
+          depthSegments: 7,
+          bevelWidth: 0.25,
+          bevelDepth: 0.4,
+          contourOffset: 0.5,
           bevelSegments: 8
         })
       ]
@@ -1537,10 +1561,10 @@ describe("procedural mesh geometry", () => {
     }
   });
 
-  it("uses at least three steps to close an extrusion path", () => {
+  it("uses at least three path segments to close an extrusion path", () => {
     const profile = [new Vector2(0.2, 0), new Vector2(-0.1, 0.1), new Vector2(-0.1, -0.1)];
     const points = [new Vector3(-4, 0, -4), new Vector3(4, 0, -4), new Vector3(4, 0, 4), new Vector3(-4, 0, 4)];
-    const mesh = PrimitiveMesh.createExtrusion(engine, profile, points, { keepData: true, closed: true });
+    const mesh = PrimitiveMesh.createExtrusion(engine, profile, points, { keepCPUData: true, closedPath: true });
     try {
       const positions = mesh.getPositions()!;
       const indices = mesh.getIndices()!;
@@ -1562,8 +1586,8 @@ describe("procedural mesh geometry", () => {
   it("samples tube paths at equal distances along their line segments", () => {
     const radialSegments = 8;
     const mesh = PrimitiveMesh.createTube(engine, [new Vector3(), new Vector3(1, 0, 0), new Vector3(1, 3, 0)], 0.5, {
-      keepData: true,
-      tubularSegments: 4,
+      keepCPUData: true,
+      pathSegments: 4,
       radialSegments
     });
     try {
@@ -1592,7 +1616,7 @@ describe("procedural mesh geometry", () => {
     "keeps %s UVs within the shortest longitudinal interval",
     (create) => {
       for (const segments of [1, 2, 3]) {
-        const mesh = PrimitiveMesh[create](engine, 1, { segments, keepData: true });
+        const mesh = PrimitiveMesh[create](engine, 1, { edgeSegments: segments, keepCPUData: true });
         try {
           const uvs = mesh.getUVs()!;
           const indices = mesh.getIndices()!;
@@ -1641,10 +1665,10 @@ describe("procedural mesh geometry", () => {
 
   it("preserves edited primitive data and material groups after device restoration", async () => {
     const restoredEngine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
-    const released = PrimitiveMesh.createSphere(restoredEngine, 1, { subdivisions: 1 });
+    const released = PrimitiveMesh.createSphere(restoredEngine, 1, { subdivisionLevel: 1 });
     const mesh = PrimitiveMesh.createCuboid(restoredEngine, 1, 1, 1, {
-      keepData: true,
-      separateMaterials: true,
+      keepCPUData: true,
+      separateMaterialSlots: true,
       widthSegments: 1,
       heightSegments: 1,
       depthSegments: 1
@@ -1698,9 +1722,9 @@ describe("procedural mesh geometry", () => {
 
   it("restores released tangents from edited primitive UVs", () => {
     const mesh = PrimitiveMesh.createPlane(engine, 2, 3, {
-      keepData: true,
-      horizontalSegments: 1,
-      verticalSegments: 1
+      keepCPUData: true,
+      widthSegments: 1,
+      depthSegments: 1
     });
     try {
       mesh.setUVs(mesh.getUVs()!.map((uv) => new Vector2(uv.y, uv.x)));
@@ -1721,9 +1745,9 @@ describe("procedural mesh geometry", () => {
 
   it.each([1, 1e-8])("normalizes tangents for a plane of size %s", (size) => {
     const mesh = PrimitiveMesh.createPlane(engine, size, size, {
-      keepData: true,
-      horizontalSegments: 1,
-      verticalSegments: 1
+      keepCPUData: true,
+      widthSegments: 1,
+      depthSegments: 1
     });
     try {
       for (const tangent of mesh.getTangents()!) {
@@ -1752,7 +1776,7 @@ describe("procedural mesh geometry", () => {
   });
 
   it.each([false, true])("preserves tangent data when adding a vertex channel after reading: %s", (readTangents) => {
-    const mesh = PrimitiveMesh.createSphere(engine, 0.5, { keepData: true, subdivisions: 2 });
+    const mesh = PrimitiveMesh.createSphere(engine, 0.5, { keepCPUData: true, subdivisionLevel: 2 });
     try {
       const original = MeshTestUtils.readBuffer(mesh.vertexBufferBindings[1]!.buffer);
       if (readTangents) {
@@ -1779,7 +1803,7 @@ describe("procedural mesh geometry", () => {
   });
 
   it("releases primitive tangent data through the ModelMesh buffer lifecycle", () => {
-    const mesh = PrimitiveMesh.createPlane(engine, 1, 1, { keepData: true });
+    const mesh = PrimitiveMesh.createPlane(engine, 1, 1, { keepCPUData: true });
     try {
       const tangentBuffer = mesh.vertexBufferBindings[1]!.buffer;
       expect(tangentBuffer.readable).toBe(true);
@@ -1813,7 +1837,7 @@ describe("procedural mesh geometry", () => {
       const angle = (i * Math.PI * 2) / 256;
       return new Vector2(Math.cos(angle), Math.sin(angle));
     });
-    const mesh = PrimitiveMesh.createExtrusion(engine, contour, 1, { keepData: true, steps: 43 });
+    const mesh = PrimitiveMesh.createExtrusion(engine, contour, 1, { keepCPUData: true, depthSegments: 43 });
     try {
       const indices = mesh.getIndices()!;
       expect(mesh.vertexCount).toBeGreaterThan(65535);
@@ -1838,7 +1862,7 @@ describe("procedural mesh geometry", () => {
         ]
       },
       1,
-      { keepData: true, bevelSize: 0.1, steps: 1 }
+      { keepCPUData: true, bevelWidth: 0.1, depthSegments: 1 }
     );
     try {
       expect(mesh.getPositions()!.every((p) => [p.x, p.y, p.z].every(Number.isFinite))).toBe(true);

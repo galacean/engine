@@ -12,19 +12,23 @@ const everyAssetHasAFactory: Exclude<PrimitiveMeshAsset["type"], CreationType> e
 const sphere: PrimitiveMeshAsset = {
   type: "sphere",
   sphereRadius: 1,
-  sphereOptions: { verticalRange: { x: 0, y: 90 }, keepData: true, subdivisions: 3 }
+  sphereOptions: { verticalAngleRange: { x: 0, y: 90 }, keepCPUData: true, subdivisionLevel: 3 }
 };
 const exportedFromEngine: EnginePrimitiveMeshAsset = sphere;
 const sphereSection: PrimitiveMeshAsset = {
   type: "sphere",
   sphereRadius: 1,
-  sphereOptions: { horizontalRange: { x: 350, y: 370 }, verticalRange: { x: 30, y: 150 }, subdivisions: 3 }
+  sphereOptions: {
+    horizontalAngleRange: { x: 350, y: 370 },
+    verticalAngleRange: { x: 30, y: 150 },
+    subdivisionLevel: 3
+  }
 };
 const ungroupedSphere: PrimitiveMeshAsset = {
   type: "sphere",
   sphereRadius: 0.5,
   // @ts-expect-error Sphere assets do not define material groups
-  sphereOptions: { separateMaterials: true }
+  sphereOptions: { separateMaterialSlots: true }
 };
 const path = [
   { x: 0, y: 0, z: 0 },
@@ -40,26 +44,26 @@ const shapes = [
   }
 ] as const;
 
-const tube: PrimitiveMeshAsset = { type: "tube", tubeRadius: 0.5, tubePath: path, tubeOptions: { closed: true } };
+const tube: PrimitiveMeshAsset = { type: "tube", tubeRadius: 0.5, tubePath: path, tubeOptions: { closedPath: true } };
 const polygon: PrimitiveMeshAsset = { type: "polygon", polygonShapes: shapes };
 const extrusion: PrimitiveMeshAsset = {
   type: "extrusion",
   extrusionDepth: 2,
   extrusionShapes: shapes,
-  extrusionOptions: { bevelSize: 0.1, bevelOffset: 0.2, separateMaterials: true }
+  extrusionOptions: { bevelWidth: 0.1, contourOffset: 0.2, separateMaterialSlots: true }
 };
 const pathExtrusion: PrimitiveMeshAsset = {
   type: "extrusion",
   extrusionPath: path,
   extrusionShapes: shapes,
-  extrusionOptions: { closed: true }
+  extrusionOptions: { closedPath: true }
 };
 const torusKnot: PrimitiveMeshAsset = {
   type: "torusKnot",
   torusKnotRadius: 0.5,
   torusKnotTubeRadius: 0.1,
-  torusKnotP: -2,
-  torusKnotQ: -3
+  torusKnotAxisTurns: -2,
+  torusKnotCrossSectionTurns: -3
 };
 const cylinder: PrimitiveMeshAsset = {
   type: "cylinder",
@@ -93,19 +97,19 @@ const beveledPath: PrimitiveMeshAsset = {
   type: "extrusion",
   extrusionPath: path,
   extrusionShapes: shapes,
-  extrusionOptions: { bevelSize: 1 }
+  extrusionOptions: { bevelWidth: 1 }
 };
 const offsetPath: PrimitiveMeshAsset = {
   type: "extrusion",
   extrusionPath: path,
   extrusionShapes: shapes,
-  extrusionOptions: { bevelOffset: 0.1 }
+  extrusionOptions: { contourOffset: 0.1 }
 };
 const closedDepth: PrimitiveMeshAsset = {
   type: "extrusion",
   extrusionDepth: 2,
   extrusionShapes: shapes,
-  extrusionOptions: { closed: true }
+  extrusionOptions: { closedPath: true }
 };
 const wrongOptions: PrimitiveMeshAsset = {
   type: "sphere",

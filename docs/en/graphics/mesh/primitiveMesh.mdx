@@ -136,7 +136,7 @@ Each factory takes its required shape inputs first, followed by an optional name
 ```ts
 const unitSphere = PrimitiveMesh.createSphere(engine, 0.5);
 const sphere = PrimitiveMesh.createSphere(engine, 1);
-const smoothSphere = PrimitiveMesh.createSphere(engine, 1, { subdivisions: 4 });
+const smoothSphere = PrimitiveMesh.createSphere(engine, 1, { subdivisionLevel: 4 });
 const cube = PrimitiveMesh.createCuboid(engine, 2, 2, 2);
 const box = PrimitiveMesh.createCuboid(engine, 2, 3, 4);
 const ground = PrimitiveMesh.createPlane(engine, 10, 10);
@@ -145,9 +145,9 @@ const frustum = PrimitiveMesh.createTruncatedCone(engine, 0.25, 0.5, 2);
 const mirroredKnot = PrimitiveMesh.createTorusKnot(engine, 1, 0.1, 2, -3);
 ```
 
-Cuboid width, height and depth are separate required arguments. Plane width and height are also required. Subsequent subdivision counts for planes and cuboids default to the first direction. Spheres use one subdivision level, defaulting to 3 and clamped to 1 through 6. Cylinders have one radius; use `createTruncatedCone` for different top and bottom radii. Rings take the required outer radius first, followed by the required inner radius.
+Cuboid width, height and depth are separate required arguments. Plane width and depth are also required. Subsequent subdivision counts for planes and cuboids default to the first direction. Spheres use one subdivision level, defaulting to 3 and clamped to 1 through 6. Cylinders have one radius; use `createTruncatedCone` for different top and bottom radii. Rings take the required outer radius first, followed by the required inner radius.
 
-For torus knots, `p` and `q` are signed integer revolution counts, independent of mesh subdivisions. Negative values reverse the corresponding winding direction; zero keeps that angle fixed.
+For torus knots, `axisTurns` counts revolutions around the central axis and `crossSectionTurns` counts revolutions around the torus cross-section. Both are signed integers, independent of mesh subdivisions. Negative values reverse the corresponding winding direction; zero keeps that angle fixed.
 
 | Capability | Methods |
 | --- | --- |
@@ -159,14 +159,14 @@ For torus knots, `p` and `q` are signed integer revolution counts, independent o
 
 ### Subdivisions, angles and caps
 
-Dimensions are required arguments; subdivision counts remain in the optional settings object. For tubes and tori, `tubularSegments` controls longitudinal subdivisions and `radialSegments` controls the cross-section. Capsule `capSegments` controls each pole-to-equator section independently; its height describes the cylindrical section.
+Dimensions are required arguments; subdivision counts remain in the optional settings object. For tubes and torus knots, `pathSegments` controls subdivisions along the path. Tori use `ringSegments` around the ring. `radialSegments` controls the tube cross-section. Capsule `capSegments` controls each pole-to-equator section independently; `cylinderHeight` describes the straight section. Regular polyhedra use `edgeSegments`, and rounded cuboids use `roundingSegments`.
 
 Angle ranges belong to the options object. Angles use **degrees**. Ranges use `Vector2`, with `x` as the start angle and `y` as the end angle. Use continuous angles across a full turn, such as `new Vector2(350, 370)`. Cylinders, cones and lathes rotate around Y starting from +Z; a sphere's vertical angle starts at +Y.
 
 ```ts
 import { PrimitiveMeshCapMode, Vector2 } from "@galacean/engine";
 
-const hemisphere = PrimitiveMesh.createSphere(engine, 1, { verticalRange: new Vector2(0, 90) });
+const hemisphere = PrimitiveMesh.createSphere(engine, 1, { verticalAngleRange: new Vector2(0, 90) });
 const openCylinder = PrimitiveMesh.createCylinder(engine, 0.5, 2, { caps: PrimitiveMeshCapMode.None });
 const cupWall = PrimitiveMesh.createCylinder(engine, 0.5, 2, { caps: PrimitiveMeshCapMode.Bottom });
 const halfRing = PrimitiveMesh.createRing(engine, 1, 0.5, { angleRange: new Vector2(0, 180) });
@@ -174,7 +174,7 @@ const halfRing = PrimitiveMesh.createRing(engine, 1, 0.5, { angleRange: new Vect
 
 Cylinder and frustum `caps` use `PrimitiveMeshCapMode`: `Both` (default), `Top`, `Bottom` or `None`. Top faces +Y and bottom faces -Y. Angular cut boundaries remain open. A cone uses the boolean `cap` for its base. Circles, rings and polygons lie in XY facing +Z. Ground planes lie in XZ facing +Y.
 
-`createSphere` projects a subdivided cube onto a sphere and accepts `horizontalRange` and `verticalRange`. Horizontal angles start at -X towards +Z; vertical angles start at +Y. Sections retain the subdivided surface and leave their cut boundaries open. A range such as `new Vector2(350, 370)` crosses the horizontal seam. Changing subdivisions controls the surface resolution, including the cut boundaries.
+`createSphere` projects a subdivided cube onto a sphere and accepts `horizontalAngleRange` and `verticalAngleRange`. Horizontal angles start at -X towards +Z; vertical angles start at +Y. Sections retain the subdivided surface and leave their cut boundaries open. A range such as `new Vector2(350, 370)` crosses the horizontal seam. Changing subdivisions controls the surface resolution, including the cut boundaries.
 
 ### Contours and paths
 
@@ -187,40 +187,44 @@ const outline = [new Vector2(-2, -2), new Vector2(2, -2), new Vector2(2, 2), new
 const hole = [new Vector2(-1, -1), new Vector2(-1, 1), new Vector2(1, 1), new Vector2(1, -1)];
 const face = PrimitiveMesh.createPolygon(engine, { points: outline, holes: [hole] });
 const solid = PrimitiveMesh.createExtrusion(engine, { points: outline, holes: [hole] }, 0.5);
-const beveled = PrimitiveMesh.createExtrusion(engine, outline, 0.5, { bevelSize: 0.05, bevelOffset: 0.02, steps: 1 });
+const beveled = PrimitiveMesh.createExtrusion(engine, outline, 0.5, {
+  bevelWidth: 0.05,
+  contourOffset: 0.02,
+  depthSegments: 1
+});
 const path = Array.from({ length: 65 }, (_, i) => {
   const t = i / 64;
   return new Vector3(4 * t, Math.sin(t * Math.PI * 2), 0);
 });
-const tube = PrimitiveMesh.createTube(engine, path, 0.1, { tubularSegments: 64 });
-const swept = PrimitiveMesh.createExtrusion(engine, outline, path, { steps: 64 });
+const tube = PrimitiveMesh.createTube(engine, path, 0.1, { pathSegments: 64 });
+const swept = PrimitiveMesh.createExtrusion(engine, outline, path, { pathSegments: 64 });
 const loop = [new Vector3(-4, 0, -4), new Vector3(4, 0, -4), new Vector3(4, 0, 4), new Vector3(-4, 0, 4)];
-const closed = PrimitiveMesh.createExtrusion(engine, outline, loop, { closed: true, steps: 32 });
+const closedPath = PrimitiveMesh.createExtrusion(engine, outline, loop, { closedPath: true, pathSegments: 32 });
 ```
 
-Extrusion requires a third argument: a numeric depth for linear extrusion, or a `Vector3` array for path extrusion. `LinearExtrusionMeshOptions` contains optional bevel settings; `PathExtrusionMeshOptions` contains optional path settings. Each interface declares its mode's settings. A path ignores bevel settings; a numeric depth ignores `closed`. Linear extrusion goes along +Z without bevels unless requested. A positive `bevelSize` enables beveling; `bevelThickness` defaults to the same value. Path extrusion does not generate bevels. Paths accept `Vector3` arrays and are sampled at equal distances along their line segments. Sample curves into points before creating the mesh, as shown above.
+Extrusion requires a third argument: a numeric depth for linear extrusion, or a `Vector3` array for path extrusion. `LinearExtrusionMeshOptions` contains optional bevel settings; `PathExtrusionMeshOptions` contains optional path settings. Linear extrusion uses `depthSegments`; path extrusion uses `pathSegments`. Each interface declares its mode's settings. A path ignores bevel settings; a numeric depth ignores `closedPath`. Linear extrusion goes along +Z without bevels unless requested. A positive `bevelWidth` enables beveling; `bevelDepth` defaults to the same value. Path extrusion does not generate bevels. Paths accept `Vector3` arrays and are sampled at equal distances along their line segments. Sample curves into points before creating the mesh, as shown above.
 
-For tubes and path extrusions, `closed` defaults to `false`. Set it to `true` to join the path ends and align the first and last cross-sections; the closing point need not be repeated. Closed extrusions use at least three steps and have no end caps. Open extrusions have two end caps; tubes have no end caps in either mode.
+For tubes and path extrusions, `closedPath` defaults to `false`. Set it to `true` to join the path ends and align the first and last cross-sections; the closing point need not be repeated. Closed extrusions use at least three path segments and have no end caps. Open extrusions have two end caps; tubes have no end caps in either mode.
 
-`bevelOffset` defaults to `0` and shifts the side-wall outline: positive values expand the solid and contract holes, while negative values do the reverse. It also applies when `bevelSize` is `0`. Bevels are cut into this outline and included in `depth`, so they do not increase the total depth.
+`contourOffset` defaults to `0` and shifts the side-wall outline: positive values expand the solid and contract holes, while negative values do the reverse. It also applies when `bevelWidth` is `0`. Bevels are cut into this outline and included in `depth`, so they do not increase the total depth.
 
 ### Mesh data and materials
 
 Mesh settings and subdivision counts belong to the optional settings object:
 
 ```ts
-const editable = PrimitiveMesh.createSphere(engine, 1, { keepData: true, subdivisions: 3 });
+const editable = PrimitiveMesh.createSphere(engine, 1, { keepCPUData: true, subdivisionLevel: 3 });
 const sixMaterials = PrimitiveMesh.createCuboid(engine, 1, 1, 1, {
-  separateMaterials: true,
+  separateMaterialSlots: true,
   widthSegments: 1,
   heightSegments: 1,
   depthSegments: 1
 });
 ```
 
-`keepData` defaults to false. Set it to true to retain readable CPU vertex attributes.
+`keepCPUData` defaults to false. Set it to true to retain readable CPU vertex attributes.
 
-`separateMaterials` is available for cuboids, cylinders, truncated cones, cones, polygons, extrusions and rounded cuboids. It defaults to false, which creates one SubMesh. When enabled, the generated SubMeshes correspond to material slots in this order:
+`separateMaterialSlots` is available for cuboids, cylinders, truncated cones, cones, polygons, extrusions and rounded cuboids. It defaults to false, which creates one SubMesh. When enabled, the generated SubMeshes correspond to material slots in this order:
 
 | Geometry | Material slot order |
 | --- | --- |
@@ -246,7 +250,7 @@ import type { PrimitiveMeshAsset } from "@galacean/engine";
 const asset = {
   type: "sphere",
   sphereRadius: 1,
-  sphereOptions: { subdivisions: 3, keepData: true }
+  sphereOptions: { subdivisionLevel: 3, keepCPUData: true }
 } satisfies PrimitiveMeshAsset;
 ```
 
@@ -256,7 +260,7 @@ Each `type` selects the matching `PrimitiveMesh.createX` method. Type-prefixed f
 | --- | --- |
 | `sphere`, `circle` | `<type>Radius` |
 | `cuboid` | `cuboidWidth`, `cuboidHeight`, `cuboidDepth` |
-| `plane` | `planeWidth`, `planeHeight` |
+| `plane` | `planeWidth`, `planeDepth` |
 | `cylinder`, `cone`, `capsule` | `<type>Radius`, `<type>Height` |
 | `truncatedCone` | `truncatedConeTopRadius`, `truncatedConeBottomRadius`, `truncatedConeHeight` |
 | `torus` | `torusRadius`, `torusTubeRadius` |
@@ -266,10 +270,10 @@ Each `type` selects the matching `PrimitiveMesh.createX` method. Type-prefixed f
 | `tube` | `tubePath`, `tubeRadius` |
 | `polygon` | `polygonShapes` |
 | `extrusion` | `extrusionShapes`, plus `extrusionDepth` or `extrusionPath` |
-| `torusKnot` | `torusKnotRadius`, `torusKnotTubeRadius`, `torusKnotP`, `torusKnotQ` |
+| `torusKnot` | `torusKnotRadius`, `torusKnotTubeRadius`, `torusKnotAxisTurns`, `torusKnotCrossSectionTurns` |
 | `roundedCuboid` | `roundedCuboidWidth`, `roundedCuboidHeight`, `roundedCuboidDepth`, `roundedCuboidCornerRadius` |
 
-`sphere` creates a subdivided cube projected onto a sphere; `sphereOptions.subdivisions` controls its subdivision level. `cylinder` has one radius; `truncatedCone` has independent `truncatedConeTopRadius` and `truncatedConeBottomRadius`.
+`sphere` creates a subdivided cube projected onto a sphere; `sphereOptions.subdivisionLevel` controls its subdivision level. `cylinder` has one radius; `truncatedCone` has independent `truncatedConeTopRadius` and `truncatedConeBottomRadius`.
 
 Profiles and polygon contours store `{ x, y }` points; paths store `{ x, y, z }` points. The loader constructs the corresponding vectors. Polygon and extrusion assets use one array of shapes, each with `points` and optional `holes`:
 
@@ -295,10 +299,10 @@ Profiles and polygon contours store `{ x, y }` points; paths store `{ x, y, z }`
     }
   ],
   "extrusionDepth": 2,
-  "extrusionOptions": { "bevelSize": 0.1, "bevelOffset": 0.2, "separateMaterials": true }
+  "extrusionOptions": { "bevelWidth": 0.1, "contourOffset": 0.2, "separateMaterialSlots": true }
 }
 ```
 
-Path extrusion uses the required `extrusionPath` field instead of `extrusionDepth` and ignores bevel settings. Set `extrusionOptions.closed` to `true` for a closed path without end caps. Save path points as `{ x, y, z }`.
+Path extrusion uses the required `extrusionPath` field instead of `extrusionDepth` and ignores bevel settings. Set `extrusionOptions.closedPath` to `true` for a closed path without end caps. Save path points as `{ x, y, z }`.
 
 The type-prefixed fields, including `<type>Options`, pass through the Editor's primitive asset bundler. Editor previews should select the same creation method and parameters as the saved asset.

@@ -35,7 +35,7 @@ class PrimitiveMeshLoader extends Loader<ModelMesh> {
           data.cuboidOptions
         );
       case "plane":
-        return PrimitiveMesh.createPlane(engine, data.planeWidth, data.planeHeight, data.planeOptions);
+        return PrimitiveMesh.createPlane(engine, data.planeWidth, data.planeDepth, data.planeOptions);
       case "cylinder":
         return PrimitiveMesh.createCylinder(
           engine,
@@ -59,7 +59,7 @@ class PrimitiveMeshLoader extends Loader<ModelMesh> {
           this._parseRangeOptions(data.coneOptions)
         );
       case "capsule":
-        return PrimitiveMesh.createCapsule(engine, data.capsuleRadius, data.capsuleHeight, data.capsuleOptions);
+        return PrimitiveMesh.createCapsule(engine, data.capsuleRadius, data.capsuleCylinderHeight, data.capsuleOptions);
       case "torus":
         return PrimitiveMesh.createTorus(
           engine,
@@ -106,8 +106,8 @@ class PrimitiveMeshLoader extends Loader<ModelMesh> {
           engine,
           data.torusKnotRadius,
           data.torusKnotTubeRadius,
-          data.torusKnotP,
-          data.torusKnotQ,
+          data.torusKnotAxisTurns,
+          data.torusKnotCrossSectionTurns,
           data.torusKnotOptions
         );
       case "roundedCuboid":

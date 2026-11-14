@@ -55,31 +55,35 @@ class SphereSections {
     material.baseTexture = texture;
     const cases: {
       name: string;
-      horizontalRange?: Vector2;
-      verticalRange?: Vector2;
+      horizontalAngleRange?: Vector2;
+      verticalAngleRange?: Vector2;
       rotation?: Vector3;
     }[] = [
       { name: "Full sphere" },
-      { name: "Hemisphere", verticalRange: new Vector2(0, 90) },
-      { name: "Half longitude", horizontalRange: new Vector2(90, 270) },
-      { name: "Octant", horizontalRange: new Vector2(90, 180), verticalRange: new Vector2(0, 90) },
-      { name: "Latitude band", verticalRange: new Vector2(50, 130) },
+      { name: "Hemisphere", verticalAngleRange: new Vector2(0, 90) },
+      { name: "Half longitude", horizontalAngleRange: new Vector2(90, 270) },
+      { name: "Octant", horizontalAngleRange: new Vector2(90, 180), verticalAngleRange: new Vector2(0, 90) },
+      { name: "Latitude band", verticalAngleRange: new Vector2(50, 130) },
       {
         name: "Across 360 degrees",
-        horizontalRange: new Vector2(330, 390),
-        verticalRange: new Vector2(20, 160),
+        horizontalAngleRange: new Vector2(330, 390),
+        verticalAngleRange: new Vector2(20, 160),
         rotation: new Vector3(20, 90, 0)
       }
     ];
     const font = Font.createFromOS(engine, "AlibabaSans");
-    cases.forEach(({ name, horizontalRange, verticalRange, rotation }, index) => {
+    cases.forEach(({ name, horizontalAngleRange, verticalAngleRange, rotation }, index) => {
       const x = ((index % 3) - 1) * 3.3;
       const y = (0.5 - Math.floor(index / 3)) * 3.2;
       const entity = root.createChild(name);
       entity.transform.setPosition(x, y + 0.2, 0);
       entity.transform.rotation = rotation ?? new Vector3(20, -35, 0);
       const renderer = entity.addComponent(MeshRenderer);
-      renderer.mesh = PrimitiveMesh.createSphere(engine, 1, { horizontalRange, verticalRange, subdivisions: 3 });
+      renderer.mesh = PrimitiveMesh.createSphere(engine, 1, {
+        horizontalAngleRange,
+        verticalAngleRange,
+        subdivisionLevel: 3
+      });
       renderer.setMaterial(material);
       const label = root.createChild(`${name} Label`);
       label.transform.setPosition(x, y - 1.15, 0);

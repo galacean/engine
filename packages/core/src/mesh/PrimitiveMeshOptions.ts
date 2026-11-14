@@ -9,7 +9,7 @@ export interface PrimitiveMeshOptions {
    * Whether to retain readable CPU copies of vertex attributes and indices after upload.
    * @defaultValue `false`
    */
-  keepData?: boolean;
+  keepCPUData?: boolean;
 }
 
 /**
@@ -37,20 +37,20 @@ export interface SphereMeshOptions extends PrimitiveMeshOptions {
    * The subdivision level, rounded down and clamped to 1 through 6.
    * @defaultValue `3`
    */
-  subdivisions?: number;
+  subdivisionLevel?: number;
   /**
    * The start (`x`) and end (`y`) horizontal angles in degrees, measured from -X towards +Z.
    * The span is limited to 360 degrees. Section boundaries remain open.
    * @defaultValue `new Vector2(0, 360)`
    */
-  horizontalRange?: Vector2;
+  horizontalAngleRange?: Vector2;
   /**
    * The start (`x`) and end (`y`) polar angles in degrees, measured from +Y towards -Y.
    * The interval is clipped to [0, 180].
    * Section boundaries remain open.
    * @defaultValue `new Vector2(0, 180)`
    */
-  verticalRange?: Vector2;
+  verticalAngleRange?: Vector2;
 }
 
 /**
@@ -76,7 +76,7 @@ export interface CuboidMeshOptions extends PrimitiveMeshOptions {
    * Whether to create one sub-mesh per face, ordered +Y, -Y, -X, +X, +Z, -Z.
    * @defaultValue `false`
    */
-  separateMaterials?: boolean;
+  separateMaterialSlots?: boolean;
 }
 
 /**
@@ -87,12 +87,12 @@ export interface PlaneMeshOptions extends PrimitiveMeshOptions {
    * The number of subdivisions along X, rounded down with a minimum of 1.
    * @defaultValue `1`
    */
-  horizontalSegments?: number;
+  widthSegments?: number;
   /**
    * The number of subdivisions along Z, rounded down with a minimum of 1.
-   * @defaultValue The value of `horizontalSegments`.
+   * @defaultValue The value of `widthSegments`.
    */
-  verticalSegments?: number;
+  depthSegments?: number;
 }
 
 /**
@@ -124,7 +124,7 @@ export interface CylinderMeshOptions extends PrimitiveMeshOptions {
    * Omitted or zero-radius caps do not occupy slots.
    * @defaultValue `false`
    */
-  separateMaterials?: boolean;
+  separateMaterialSlots?: boolean;
 }
 
 /**
@@ -156,7 +156,7 @@ export interface TruncatedConeMeshOptions extends PrimitiveMeshOptions {
    * Omitted or zero-radius caps do not occupy slots.
    * @defaultValue `false`
    */
-  separateMaterials?: boolean;
+  separateMaterialSlots?: boolean;
 }
 
 /**
@@ -188,7 +188,7 @@ export interface ConeMeshOptions extends PrimitiveMeshOptions {
    * An omitted or zero-radius bottom cap does not occupy a slot.
    * @defaultValue `false`
    */
-  separateMaterials?: boolean;
+  separateMaterialSlots?: boolean;
 }
 
 /**
@@ -220,7 +220,7 @@ export interface TorusMeshOptions extends PrimitiveMeshOptions {
    * The number of segments around the torus, rounded down with a minimum of 1.
    * @defaultValue `30`
    */
-  tubularSegments?: number;
+  ringSegments?: number;
   /**
    * The number of segments around the tube cross-section, rounded down with a minimum of 3.
    * @defaultValue `30`
@@ -231,13 +231,13 @@ export interface TorusMeshOptions extends PrimitiveMeshOptions {
    * Cut ends remain open.
    * @defaultValue `new Vector2(0, 360)`
    */
-  angleRange?: Vector2;
+  ringAngleRange?: Vector2;
   /**
    * The start (`x`) and end (`y`) tube cross-section angles in degrees, measured from the outward radial direction towards +Z.
    * Cut boundaries remain open.
    * @defaultValue `new Vector2(0, 360)`
    */
-  tubeRange?: Vector2;
+  tubeAngleRange?: Vector2;
 }
 
 /**
@@ -264,7 +264,7 @@ export interface RingMeshOptions extends PrimitiveMeshOptions {
    * The number of segments along the arc, rounded down with a minimum of 3.
    * @defaultValue `32`
    */
-  radialSegments?: number;
+  ringSegments?: number;
   /**
    * The number of subdivisions between the inner and outer edges, rounded down with a minimum of 1.
    * @defaultValue `1`
@@ -286,7 +286,7 @@ export interface RegularPolyhedronMeshOptions extends PrimitiveMeshOptions {
    * Values above 1 project the new vertices onto the sphere and use smooth normals.
    * @defaultValue `1`
    */
-  segments?: number;
+  edgeSegments?: number;
 }
 
 /**
@@ -314,7 +314,7 @@ export interface TubeMeshOptions extends PrimitiveMeshOptions {
    * The number of segments along the resampled path, rounded down with a minimum of 1.
    * @defaultValue `64`
    */
-  tubularSegments?: number;
+  pathSegments?: number;
   /**
    * The number of segments around the cross-section, rounded down with a minimum of 3.
    * @defaultValue `8`
@@ -325,7 +325,7 @@ export interface TubeMeshOptions extends PrimitiveMeshOptions {
    * Open tubes have no end caps.
    * @defaultValue `false`
    */
-  closed?: boolean;
+  closedPath?: boolean;
 }
 
 /**
@@ -336,7 +336,7 @@ export interface PolygonMeshOptions extends PrimitiveMeshOptions {
    * Whether to create one sub-mesh per polygon in input order. Holes share their outer contour's sub-mesh.
    * @defaultValue `false`
    */
-  separateMaterials?: boolean;
+  separateMaterialSlots?: boolean;
 }
 
 /**
@@ -347,23 +347,23 @@ export interface LinearExtrusionMeshOptions extends PrimitiveMeshOptions {
    * The number of subdivisions along the extrusion, rounded down with a minimum of 1.
    * @defaultValue `1`
    */
-  steps?: number;
+  depthSegments?: number;
   /**
    * The inset of each end cap relative to the side wall in local units. Zero disables bevels.
    * @defaultValue `0`
    */
-  bevelSize?: number;
+  bevelWidth?: number;
   /**
-   * The bevel depth at each end in local units, limited to half of `depth`.
-   * @defaultValue The value of `bevelSize`.
+   * The bevel depth at each end in local units, limited to half the extrusion depth.
+   * @defaultValue The value of `bevelWidth`.
    */
-  bevelThickness?: number;
+  bevelDepth?: number;
   /**
    * The side-wall contour offset in local units. Positive values expand the solid and contract holes.
    * Applies even when bevels are disabled.
    * @defaultValue `0`
    */
-  bevelOffset?: number;
+  contourOffset?: number;
   /**
    * The number of subdivisions per bevel, rounded down with a minimum of 1.
    * @defaultValue `3`
@@ -374,7 +374,7 @@ export interface LinearExtrusionMeshOptions extends PrimitiveMeshOptions {
    * Both end caps share one slot; outer walls, hole walls and bevels share the next.
    * @defaultValue `false`
    */
-  separateMaterials?: boolean;
+  separateMaterialSlots?: boolean;
 }
 
 /**
@@ -384,21 +384,21 @@ export interface LinearExtrusionMeshOptions extends PrimitiveMeshOptions {
 export interface PathExtrusionMeshOptions extends PrimitiveMeshOptions {
   /**
    * The number of subdivisions along the resampled path, rounded down with a minimum of 1, or 3 for closed paths.
-   * @defaultValue `1`, increased to `3` when `closed` is true.
+   * @defaultValue `1`, increased to `3` when `closedPath` is true.
    */
-  steps?: number;
+  pathSegments?: number;
   /**
    * Whether to join the path ends with matching cross-sections and omit end caps.
    * The closing point need not be repeated.
    * @defaultValue `false`
    */
-  closed?: boolean;
+  closedPath?: boolean;
   /**
    * Whether each polygon contributes a cap sub-mesh followed by a wall sub-mesh, in input order.
    * Both end caps share one slot; outer and hole walls share the next. Closed paths use only the wall slot.
    * @defaultValue `false`
    */
-  separateMaterials?: boolean;
+  separateMaterialSlots?: boolean;
 }
 
 /**
@@ -409,7 +409,7 @@ export interface TorusKnotMeshOptions extends PrimitiveMeshOptions {
    * The number of segments along the knot, rounded down with a minimum of 1.
    * @defaultValue `64`
    */
-  tubularSegments?: number;
+  pathSegments?: number;
   /**
    * The number of segments around the tube cross-section, rounded down with a minimum of 3.
    * @defaultValue `8`
@@ -423,13 +423,13 @@ export interface TorusKnotMeshOptions extends PrimitiveMeshOptions {
 export interface RoundedCuboidMeshOptions extends PrimitiveMeshOptions {
   /**
    * The rounding subdivision count, rounded down with a minimum of 1.
-   * When `cornerRadius` is positive, each face uses `2 * segments + 1` subdivisions per axis.
+   * When `cornerRadius` is positive, each face uses `2 * roundingSegments + 1` subdivisions per axis.
    * @defaultValue `2`
    */
-  segments?: number;
+  roundingSegments?: number;
   /**
    * Whether to create one sub-mesh per face, ordered +Y, -Y, -X, +X, +Z, -Z.
    * @defaultValue `false`
    */
-  separateMaterials?: boolean;
+  separateMaterialSlots?: boolean;
 }

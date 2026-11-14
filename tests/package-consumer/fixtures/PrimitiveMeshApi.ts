@@ -36,89 +36,94 @@ const polygons: readonly PolygonShape[] = [polygon, { points: contour }];
 const profile: readonly Vector2[] = [new Vector2(0.25, -1), new Vector2(1, 0), new Vector2(0.5, 1)];
 const path: readonly Vector3[] = [new Vector3(0, 0, 0), new Vector3(0, 1, 1), new Vector3(1, 2, 2)];
 
-const commonOptions = { keepData: true } satisfies PrimitiveMeshOptions;
+const commonOptions = { keepCPUData: true } satisfies PrimitiveMeshOptions;
 const sphereOptions = {
-  subdivisions: 4,
-  horizontalRange: new Vector2(350, 370),
-  verticalRange: new Vector2(30, 150),
-  keepData: true
+  subdivisionLevel: 4,
+  horizontalAngleRange: new Vector2(350, 370),
+  verticalAngleRange: new Vector2(30, 150),
+  keepCPUData: true
 } satisfies SphereMeshOptions;
 const cuboidOptions = {
   widthSegments: 2,
   heightSegments: 3,
   depthSegments: 4,
-  separateMaterials: true,
-  keepData: true
+  separateMaterialSlots: true,
+  keepCPUData: true
 } satisfies CuboidMeshOptions;
-const planeOptions = { horizontalSegments: 4, verticalSegments: 2, keepData: true } satisfies PlaneMeshOptions;
+const planeOptions = { widthSegments: 4, depthSegments: 2, keepCPUData: true } satisfies PlaneMeshOptions;
 const cylinderOptions = {
   radialSegments: 32,
   heightSegments: 4,
   caps: PrimitiveMeshCapMode.Bottom,
   angleRange: new Vector2(0, 270),
-  separateMaterials: true,
-  keepData: true
+  separateMaterialSlots: true,
+  keepCPUData: true
 } satisfies CylinderMeshOptions;
 const truncatedConeOptions = {
   radialSegments: 32,
   heightSegments: 4,
   caps: PrimitiveMeshCapMode.None,
   angleRange: new Vector2(0, 270),
-  separateMaterials: true,
-  keepData: true
+  separateMaterialSlots: true,
+  keepCPUData: true
 } satisfies TruncatedConeMeshOptions;
 const coneOptions = {
   radialSegments: 32,
   heightSegments: 4,
   cap: false,
   angleRange: new Vector2(0, 270),
-  separateMaterials: true,
-  keepData: true
+  separateMaterialSlots: true,
+  keepCPUData: true
 } satisfies ConeMeshOptions;
 const capsuleOptions = {
   radialSegments: 12,
   capSegments: 6,
   heightSegments: 3,
-  keepData: true
+  keepCPUData: true
 } satisfies CapsuleMeshOptions;
 const torusOptions = {
-  tubularSegments: 64,
+  ringSegments: 64,
   radialSegments: 16,
-  angleRange: new Vector2(0, 270),
-  tubeRange: new Vector2(0, 180),
-  keepData: true
+  ringAngleRange: new Vector2(0, 270),
+  tubeAngleRange: new Vector2(0, 180),
+  keepCPUData: true
 } satisfies TorusMeshOptions;
-const circleOptions = { segments: 32, angleRange: new Vector2(0, 180), keepData: true } satisfies CircleMeshOptions;
+const circleOptions = { segments: 32, angleRange: new Vector2(0, 180), keepCPUData: true } satisfies CircleMeshOptions;
 const ringOptions = {
-  radialSegments: 32,
+  ringSegments: 32,
   widthSegments: 4,
   angleRange: new Vector2(0, 270),
-  keepData: true
+  keepCPUData: true
 } satisfies RingMeshOptions;
-const regularPolyhedronOptions = { segments: 2, keepData: true } satisfies RegularPolyhedronMeshOptions;
-const latheOptions = { segments: 32, angleRange: new Vector2(0, 270), keepData: true } satisfies LatheMeshOptions;
-const tubeOptions = { tubularSegments: 64, radialSegments: 8, closed: true, keepData: true } satisfies TubeMeshOptions;
-const polygonOptions = { separateMaterials: true, keepData: true } satisfies PolygonMeshOptions;
+const regularPolyhedronOptions = { edgeSegments: 2, keepCPUData: true } satisfies RegularPolyhedronMeshOptions;
+const latheOptions = { segments: 32, angleRange: new Vector2(0, 270), keepCPUData: true } satisfies LatheMeshOptions;
+const tubeOptions = {
+  pathSegments: 64,
+  radialSegments: 8,
+  closedPath: true,
+  keepCPUData: true
+} satisfies TubeMeshOptions;
+const polygonOptions = { separateMaterialSlots: true, keepCPUData: true } satisfies PolygonMeshOptions;
 const linearExtrusionOptions = {
-  steps: 4,
-  bevelSize: 0.1,
-  bevelThickness: 0.2,
-  bevelOffset: 0.1,
+  depthSegments: 4,
+  bevelWidth: 0.1,
+  bevelDepth: 0.2,
+  contourOffset: 0.1,
   bevelSegments: 3,
-  separateMaterials: true,
-  keepData: true
+  separateMaterialSlots: true,
+  keepCPUData: true
 } satisfies LinearExtrusionMeshOptions;
-const torusKnotOptions = { tubularSegments: 64, radialSegments: 12, keepData: true } satisfies TorusKnotMeshOptions;
+const torusKnotOptions = { pathSegments: 64, radialSegments: 12, keepCPUData: true } satisfies TorusKnotMeshOptions;
 const roundedCuboidOptions = {
-  segments: 4,
-  separateMaterials: true,
-  keepData: true
+  roundingSegments: 4,
+  separateMaterialSlots: true,
+  keepCPUData: true
 } satisfies RoundedCuboidMeshOptions;
 const pathExtrusionOptions = {
-  steps: 32,
-  closed: true,
-  separateMaterials: true,
-  keepData: true
+  pathSegments: 32,
+  closedPath: true,
+  separateMaterialSlots: true,
+  keepCPUData: true
 } satisfies PathExtrusionMeshOptions;
 const extrusionOptions: LinearExtrusionMeshOptions | PathExtrusionMeshOptions = pathExtrusionOptions;
 
@@ -180,7 +185,7 @@ const meshes: ModelMesh[] = [
   PrimitiveMesh.createExtrusion(engine, polygons, path, pathExtrusionOptions),
   PrimitiveMesh.createExtrusion(engine, polygons, path, extrusionOptions),
   PrimitiveMesh.createSphere(engine, 1, commonOptions),
-  PrimitiveMesh.createSphere(engine, 1, { subdivisions: 4 }),
+  PrimitiveMesh.createSphere(engine, 1, { subdivisionLevel: 4 }),
   PrimitiveMesh.createCylinder(engine, 0.5, 2, { caps: PrimitiveMeshCapMode.Both }),
   PrimitiveMesh.createCylinder(engine, 0.5, 2, { caps: PrimitiveMeshCapMode.Top })
 ];
@@ -267,13 +272,13 @@ PrimitiveMesh.createRoundedCuboid(engine, 1, 1, 1, 0.1, { width: 1 });
 // @ts-expect-error Sphere radius is a number
 PrimitiveMesh.createSphere(engine, {});
 // @ts-expect-error Spheres do not define material groups
-PrimitiveMesh.createSphere(engine, 1, { separateMaterials: true });
+PrimitiveMesh.createSphere(engine, 1, { separateMaterialSlots: true });
 // @ts-expect-error Planes do not define material groups
-PrimitiveMesh.createPlane(engine, 1, 1, { separateMaterials: true });
+PrimitiveMesh.createPlane(engine, 1, 1, { separateMaterialSlots: true });
 // @ts-expect-error Tori do not define material groups
-PrimitiveMesh.createTorus(engine, 1, 0.2, { separateMaterials: true });
+PrimitiveMesh.createTorus(engine, 1, 0.2, { separateMaterialSlots: true });
 // @ts-expect-error Tubes do not define material groups
-PrimitiveMesh.createTube(engine, path, 0.1, { separateMaterials: true });
+PrimitiveMesh.createTube(engine, path, 0.1, { separateMaterialSlots: true });
 // @ts-expect-error Spheres have one canonical creation method
 PrimitiveMesh.createSubdivisionSphere(engine);
 // @ts-expect-error Arbitrary polyhedra are not a scene-building primitive
@@ -283,7 +288,7 @@ PrimitiveMesh.createSphere(engine, 1, { horizontalSegments: 32 });
 // @ts-expect-error Angular ranges use Vector2 rather than arrays
 PrimitiveMesh.createCircle(engine, 1, { angleRange: [0, 180] });
 // @ts-expect-error Runtime ranges require Vector2 instances
-PrimitiveMesh.createSphere(engine, 1, { horizontalRange: { x: 0, y: 180 } });
+PrimitiveMesh.createSphere(engine, 1, { horizontalAngleRange: { x: 0, y: 180 } });
 // @ts-expect-error A cylinder cap selection must describe a supported combination
 PrimitiveMesh.createCylinder(engine, 0.5, 2, { caps: "left" });
 // @ts-expect-error Cap modes use the exported enum rather than raw strings
@@ -292,15 +297,15 @@ PrimitiveMesh.createCylinder(engine, 0.5, 2, { caps: "top" });
 PrimitiveMesh.createTruncatedCone(engine, 0.25, 0.5, 2, { caps: "none" });
 
 // Fields from the inactive mode follow normal structural compatibility
-PrimitiveMesh.createExtrusion(engine, polygon, path, { bevelSize: 0.1 });
-PrimitiveMesh.createExtrusion(engine, polygon, path, { bevelOffset: 0.1 });
-PrimitiveMesh.createExtrusion(engine, polygon, 2, { closed: true });
+PrimitiveMesh.createExtrusion(engine, polygon, path, { bevelWidth: 0.1 });
+PrimitiveMesh.createExtrusion(engine, polygon, path, { contourOffset: 0.1 });
+PrimitiveMesh.createExtrusion(engine, polygon, 2, { closedPath: true });
 // @ts-expect-error Bevel offsets use numeric local units
-PrimitiveMesh.createExtrusion(engine, polygon, 2, { bevelOffset: "0.1" });
+PrimitiveMesh.createExtrusion(engine, polygon, 2, { contourOffset: "0.1" });
 // @ts-expect-error Explicit linear settings do not declare path closure
-const invalidLinearOptions: LinearExtrusionMeshOptions = { closed: true };
+const invalidLinearOptions: LinearExtrusionMeshOptions = { closedPath: true };
 // @ts-expect-error Explicit path settings do not declare bevels
-const invalidPathOptions: PathExtrusionMeshOptions = { bevelSize: 0.1 };
+const invalidPathOptions: PathExtrusionMeshOptions = { bevelWidth: 0.1 };
 
 const samplePath = (t: number, out: Vector3): void => {
   out.set(t, t * t, 0);

@@ -86,7 +86,7 @@ class PrimitiveMeshGallery {
       cuboid: {
         label: "Cuboid",
         mesh: PrimitiveMesh.createCuboid(engine, 1, 1, 1, {
-          separateMaterials: true,
+          separateMaterialSlots: true,
           widthSegments: 2,
           heightSegments: 2,
           depthSegments: 2
@@ -94,14 +94,14 @@ class PrimitiveMeshGallery {
       },
       plane: {
         label: "Plane",
-        mesh: PrimitiveMesh.createPlane(engine, 2, 2, { horizontalSegments: 4, verticalSegments: 4 }),
+        mesh: PrimitiveMesh.createPlane(engine, 2, 2, { widthSegments: 4, depthSegments: 4 }),
         rotation: new Vector3(90, 0, 0)
       },
-      sphere: { label: "Sphere", mesh: PrimitiveMesh.createSphere(engine, 1, { subdivisions: 3 }) },
+      sphere: { label: "Sphere", mesh: PrimitiveMesh.createSphere(engine, 1, { subdivisionLevel: 3 }) },
       cylinder: {
         label: "Cylinder",
         mesh: PrimitiveMesh.createCylinder(engine, 0.65, 1.5, {
-          separateMaterials: true,
+          separateMaterialSlots: true,
           radialSegments: 24,
           heightSegments: 2
         })
@@ -109,7 +109,7 @@ class PrimitiveMeshGallery {
       cone: {
         label: "Cone",
         mesh: PrimitiveMesh.createCone(engine, 0.8, 1.8, {
-          separateMaterials: true,
+          separateMaterialSlots: true,
           radialSegments: 24,
           heightSegments: 2
         })
@@ -117,7 +117,7 @@ class PrimitiveMeshGallery {
       truncatedCone: {
         label: "Truncated Cone",
         mesh: PrimitiveMesh.createTruncatedCone(engine, 0.35, 0.8, 1.6, {
-          separateMaterials: true,
+          separateMaterialSlots: true,
           radialSegments: 24,
           heightSegments: 2
         })
@@ -128,11 +128,11 @@ class PrimitiveMeshGallery {
       },
       torus: {
         label: "Torus",
-        mesh: PrimitiveMesh.createTorus(engine, 0.75, 0.25, { tubularSegments: 32, radialSegments: 12 })
+        mesh: PrimitiveMesh.createTorus(engine, 0.75, 0.25, { ringSegments: 32, radialSegments: 12 })
       },
       torusKnot: {
         label: "Torus Knot",
-        mesh: PrimitiveMesh.createTorusKnot(engine, 0.65, 0.17, 2, 3, { tubularSegments: 96, radialSegments: 10 })
+        mesh: PrimitiveMesh.createTorusKnot(engine, 0.65, 0.17, 2, 3, { pathSegments: 96, radialSegments: 10 })
       },
       circle: {
         label: "Circle",
@@ -141,7 +141,7 @@ class PrimitiveMeshGallery {
       },
       ring: {
         label: "Ring",
-        mesh: PrimitiveMesh.createRing(engine, 1, 0.5, { radialSegments: 32, widthSegments: 2 }),
+        mesh: PrimitiveMesh.createRing(engine, 1, 0.5, { ringSegments: 32, widthSegments: 2 }),
         rotation: new Vector3()
       },
       tetrahedron: { label: "Tetrahedron", mesh: PrimitiveMesh.createTetrahedron(engine, 1) },
@@ -151,22 +151,25 @@ class PrimitiveMeshGallery {
       lathe: { label: "Lathe", mesh: PrimitiveMesh.createLathe(engine, profile, { segments: 24 }) },
       tube: {
         label: "Tube",
-        mesh: PrimitiveMesh.createTube(engine, path, 0.2, { tubularSegments: 48, radialSegments: 10 })
+        mesh: PrimitiveMesh.createTube(engine, path, 0.2, { pathSegments: 48, radialSegments: 10 })
       },
       polygon: { label: "Polygon", mesh: PrimitiveMesh.createPolygon(engine, polygon), rotation: new Vector3() },
       extrusion: {
         label: "Extrusion",
         mesh: PrimitiveMesh.createExtrusion(engine, polygon, 0.6, {
-          bevelSize: 0.1,
-          bevelThickness: 0.1,
+          bevelWidth: 0.1,
+          bevelDepth: 0.1,
           bevelSegments: 3,
-          separateMaterials: true,
-          steps: 2
+          separateMaterialSlots: true,
+          depthSegments: 2
         })
       },
       roundedCuboid: {
         label: "Rounded Cuboid",
-        mesh: PrimitiveMesh.createRoundedCuboid(engine, 2, 1.6, 1.4, 0.3, { separateMaterials: true, segments: 4 })
+        mesh: PrimitiveMesh.createRoundedCuboid(engine, 2, 1.6, 1.4, 0.3, {
+          separateMaterialSlots: true,
+          roundingSegments: 4
+        })
       }
     };
     const coveredFactories = Object.keys(cases).map((type) => `create${type[0].toUpperCase()}${type.slice(1)}`);

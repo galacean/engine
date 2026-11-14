@@ -26,7 +26,7 @@ describe("Mesh collider collision layers", () => {
     engine = await WebGLEngine.create({ canvas: document.createElement("canvas"), physics: createPhysics() });
     physics = engine.sceneManager.activeScene.physics;
     mesh = PrimitiveMesh.createCuboid(engine, 10, 1, 10, {
-      keepData: true,
+      keepCPUData: true,
       widthSegments: 1,
       heightSegments: 1,
       depthSegments: 1

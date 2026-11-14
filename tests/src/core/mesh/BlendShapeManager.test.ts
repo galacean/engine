@@ -218,7 +218,7 @@ describe("BlendShapeManager", () => {
     );
     blendShapeWeights0_7.addFrame(frame);
     const modelMeshWebgl2 = PrimitiveMesh.createCuboid(engineWebGL2, 1, 1, 1, {
-      keepData: true,
+      keepCPUData: true,
       widthSegments: 1,
       heightSegments: 1,
       depthSegments: 1

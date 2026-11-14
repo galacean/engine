@@ -183,17 +183,17 @@ export class PrimitiveMesh {
    * @returns The generated mesh
    */
   static createSphere(engine: Engine, radius: number, options: SphereMeshOptions = {}): ModelMesh {
-    const { subdivisions = 3, horizontalRange, verticalRange } = options;
+    const { subdivisionLevel = 3, horizontalAngleRange, verticalAngleRange } = options;
     return PrimitiveMesh._createMesh(
       engine,
       PrimitiveMesh._createSphereData,
       [
         radius,
-        subdivisions,
-        horizontalRange?.x ?? 0,
-        horizontalRange?.y ?? 360,
-        verticalRange?.x ?? 0,
-        verticalRange?.y ?? 180
+        subdivisionLevel,
+        horizontalAngleRange?.x ?? 0,
+        horizontalAngleRange?.y ?? 360,
+        verticalAngleRange?.x ?? 0,
+        verticalAngleRange?.y ?? 180
       ],
       options
     );
@@ -228,16 +228,16 @@ export class PrimitiveMesh {
    * Create a plane in XZ facing +Y, centered at the origin.
    * @param engine - The engine that owns the mesh
    * @param width - The full size along X in local units
-   * @param height - The full size along Z in local units
+   * @param depth - The full size along Z in local units
    * @param options - Optional mesh generation settings
    * @returns The generated mesh
    */
-  static createPlane(engine: Engine, width: number, height: number, options: PlaneMeshOptions = {}): ModelMesh {
-    const { horizontalSegments = 1, verticalSegments = horizontalSegments } = options;
+  static createPlane(engine: Engine, width: number, depth: number, options: PlaneMeshOptions = {}): ModelMesh {
+    const { widthSegments = 1, depthSegments = widthSegments } = options;
     return PrimitiveMesh._createMesh(
       engine,
       PrimitiveMesh._createPlaneData,
-      [width, height, horizontalSegments, verticalSegments],
+      [width, depth, widthSegments, depthSegments],
       options
     );
   }
@@ -330,16 +330,21 @@ export class PrimitiveMesh {
    * Create a capsule centered on Y.
    * @param engine - The engine that owns the mesh
    * @param radius - The radius of the cylinder and hemispherical ends in local units
-   * @param height - The straight cylindrical section height in local units; total height is `height + 2 * radius`
+   * @param cylinderHeight - The straight cylindrical section height in local units; total height is `cylinderHeight + 2 * radius`
    * @param options - Optional mesh generation settings
    * @returns The generated mesh
    */
-  static createCapsule(engine: Engine, radius: number, height: number, options: CapsuleMeshOptions = {}): ModelMesh {
+  static createCapsule(
+    engine: Engine,
+    radius: number,
+    cylinderHeight: number,
+    options: CapsuleMeshOptions = {}
+  ): ModelMesh {
     const { radialSegments = 6, capSegments = radialSegments, heightSegments = 1 } = options;
     return PrimitiveMesh._createMesh(
       engine,
       PrimitiveMesh._createCapsuleData,
-      [radius, height, radialSegments, capSegments, heightSegments],
+      [radius, cylinderHeight, radialSegments, capSegments, heightSegments],
       options
     );
   }
@@ -353,9 +358,9 @@ export class PrimitiveMesh {
    * @returns The generated mesh
    */
   static createTorus(engine: Engine, radius: number, tubeRadius: number, options: TorusMeshOptions = {}): ModelMesh {
-    const { tubularSegments = 30, radialSegments = 30, angleRange, tubeRange } = options;
-    const startAngle = angleRange?.x ?? 0;
-    const tubeStartAngle = tubeRange?.x ?? 0;
+    const { ringSegments = 30, radialSegments = 30, ringAngleRange, tubeAngleRange } = options;
+    const startAngle = ringAngleRange?.x ?? 0;
+    const tubeStartAngle = tubeAngleRange?.x ?? 0;
     return PrimitiveMesh._createMesh(
       engine,
       PrimitiveMesh._createTorusData,
@@ -363,10 +368,10 @@ export class PrimitiveMesh {
         radius,
         tubeRadius,
         radialSegments,
-        tubularSegments,
-        (angleRange?.y ?? 360) - startAngle,
+        ringSegments,
+        (ringAngleRange?.y ?? 360) - startAngle,
         tubeStartAngle,
-        (tubeRange?.y ?? 360) - tubeStartAngle,
+        (tubeAngleRange?.y ?? 360) - tubeStartAngle,
         startAngle
       ],
       options
@@ -405,12 +410,12 @@ export class PrimitiveMesh {
     innerRadius: number,
     options: RingMeshOptions = {}
   ): ModelMesh {
-    const { radialSegments = 32, widthSegments = 1, angleRange } = options;
+    const { ringSegments = 32, widthSegments = 1, angleRange } = options;
     const startAngle = angleRange?.x ?? 0;
     return PrimitiveMesh._createMesh(
       engine,
       PrimitiveMesh._createRingData,
-      [innerRadius, outerRadius, radialSegments, widthSegments, startAngle, (angleRange?.y ?? 360) - startAngle],
+      [innerRadius, outerRadius, ringSegments, widthSegments, startAngle, (angleRange?.y ?? 360) - startAngle],
       options
     );
   }
@@ -423,11 +428,11 @@ export class PrimitiveMesh {
    * @returns The generated mesh
    */
   static createTetrahedron(engine: Engine, radius: number, options: RegularPolyhedronMeshOptions = {}): ModelMesh {
-    const { segments = 1 } = options;
+    const { edgeSegments = 1 } = options;
     return PrimitiveMesh._createMesh(
       engine,
       PrimitiveMesh._createRegularPolyhedronData,
-      ["tetrahedron", radius, segments],
+      ["tetrahedron", radius, edgeSegments],
       options
     );
   }
@@ -440,11 +445,11 @@ export class PrimitiveMesh {
    * @returns The generated mesh
    */
   static createOctahedron(engine: Engine, radius: number, options: RegularPolyhedronMeshOptions = {}): ModelMesh {
-    const { segments = 1 } = options;
+    const { edgeSegments = 1 } = options;
     return PrimitiveMesh._createMesh(
       engine,
       PrimitiveMesh._createRegularPolyhedronData,
-      ["octahedron", radius, segments],
+      ["octahedron", radius, edgeSegments],
       options
     );
   }
@@ -457,11 +462,11 @@ export class PrimitiveMesh {
    * @returns The generated mesh
    */
   static createIcosahedron(engine: Engine, radius: number, options: RegularPolyhedronMeshOptions = {}): ModelMesh {
-    const { segments = 1 } = options;
+    const { edgeSegments = 1 } = options;
     return PrimitiveMesh._createMesh(
       engine,
       PrimitiveMesh._createRegularPolyhedronData,
-      ["icosahedron", radius, segments],
+      ["icosahedron", radius, edgeSegments],
       options
     );
   }
@@ -474,11 +479,11 @@ export class PrimitiveMesh {
    * @returns The generated mesh
    */
   static createDodecahedron(engine: Engine, radius: number, options: RegularPolyhedronMeshOptions = {}): ModelMesh {
-    const { segments = 1 } = options;
+    const { edgeSegments = 1 } = options;
     return PrimitiveMesh._createMesh(
       engine,
       PrimitiveMesh._createRegularPolyhedronData,
-      ["dodecahedron", radius, segments],
+      ["dodecahedron", radius, edgeSegments],
       options
     );
   }
@@ -515,11 +520,11 @@ export class PrimitiveMesh {
     radius: number,
     options: TubeMeshOptions = {}
   ): ModelMesh {
-    const { tubularSegments = 64, radialSegments = 8, closed = false } = options;
+    const { pathSegments = 64, radialSegments = 8, closedPath = false } = options;
     return PrimitiveMesh._createMesh(
       engine,
       PrimitiveMesh._createTubeData,
-      [path, radius, tubularSegments, radialSegments, closed],
+      [path, radius, pathSegments, radialSegments, closedPath],
       options
     );
   }
@@ -548,7 +553,7 @@ export class PrimitiveMesh {
    * Extrude polygons along +Z or a spatial path.
    * @remarks
    * A path selects path extrusion and ignores bevel settings.
-   * A numeric depth extrudes along +Z and ignores `closed`.
+   * A numeric depth extrudes along +Z and ignores `closedPath`.
    * @param engine - The engine that owns the mesh
    * @param shapes - A contour, a polygon with holes, or an array of polygons; closing points need not be repeated
    * @param depthOrPath - The total depth along +Z, including bevels, or the path points with at least two distinct points
@@ -562,11 +567,12 @@ export class PrimitiveMesh {
     options: LinearExtrusionMeshOptions | PathExtrusionMeshOptions = {}
   ): ModelMesh {
     const {
-      steps = 1,
-      closed = false,
-      bevelSize = 0,
-      bevelThickness = bevelSize,
-      bevelOffset = 0,
+      depthSegments = 1,
+      pathSegments = 1,
+      closedPath = false,
+      bevelWidth = 0,
+      bevelDepth = bevelWidth,
+      contourOffset = 0,
       bevelSegments = 3
     }: LinearExtrusionMeshOptions & PathExtrusionMeshOptions = options;
     const path = typeof depthOrPath === "number" ? undefined : depthOrPath;
@@ -577,12 +583,12 @@ export class PrimitiveMesh {
       [
         PrimitiveMesh._polygons(shapes),
         depth,
-        steps,
+        path ? pathSegments : depthSegments,
         path,
-        path ? closed : false,
-        bevelThickness,
-        bevelSize,
-        bevelOffset,
+        path ? closedPath : false,
+        bevelDepth,
+        bevelWidth,
+        contourOffset,
         bevelSegments
       ],
       options
@@ -590,12 +596,12 @@ export class PrimitiveMesh {
   }
 
   /**
-   * Create a closed torus knot. At least one of `p` and `q` must be nonzero.
+   * Create a closed torus knot. At least one of `axisTurns` and `crossSectionTurns` must be nonzero.
    * @param engine - The engine that owns the mesh
    * @param radius - The base radius of the torus in local units
    * @param tubeRadius - The radius of the tube cross-section in local units
-   * @param p - The signed integer revolution count around the torus axis; negative values reverse the winding
-   * @param q - The signed integer revolution count through the torus hole; negative values reverse the winding
+   * @param axisTurns - The signed integer revolution count around the torus axis; negative values reverse the winding
+   * @param crossSectionTurns - The signed integer revolution count around the torus cross-section; negative values reverse the winding
    * @param options - Optional mesh generation settings
    * @returns The generated mesh
    */
@@ -603,15 +609,15 @@ export class PrimitiveMesh {
     engine: Engine,
     radius: number,
     tubeRadius: number,
-    p: number,
-    q: number,
+    axisTurns: number,
+    crossSectionTurns: number,
     options: TorusKnotMeshOptions = {}
   ): ModelMesh {
-    const { tubularSegments = 64, radialSegments = 8 } = options;
+    const { pathSegments = 64, radialSegments = 8 } = options;
     return PrimitiveMesh._createMesh(
       engine,
       PrimitiveMesh._createTorusKnotData,
-      [radius, tubeRadius, tubularSegments, radialSegments, p, q],
+      [radius, tubeRadius, pathSegments, radialSegments, axisTurns, crossSectionTurns],
       options
     );
   }
@@ -636,27 +642,27 @@ export class PrimitiveMesh {
     cornerRadius: number,
     options: RoundedCuboidMeshOptions = {}
   ): ModelMesh {
-    const { segments = 2 } = options;
+    const { roundingSegments = 2 } = options;
     return PrimitiveMesh._createMesh(
       engine,
       PrimitiveMesh._createRoundedCuboidData,
-      [width, height, depth, cornerRadius, segments],
+      [width, height, depth, cornerRadius, roundingSegments],
       options
     );
   }
 
   private static _createPlaneData(
     width: number,
-    height: number,
-    horizontalSegments: number,
-    verticalSegments: number
+    depth: number,
+    widthSegments: number,
+    depthSegments: number
   ): PrimitiveMeshBuilder {
-    const columns = PrimitiveMesh._getSegmentCount(horizontalSegments);
-    const rows = PrimitiveMesh._getSegmentCount(verticalSegments);
+    const columns = PrimitiveMesh._getSegmentCount(widthSegments);
+    const rows = PrimitiveMesh._getSegmentCount(depthSegments);
     const data = new PrimitiveMeshBuilder((columns + 1) * (rows + 1), columns * rows * 6);
     for (let y = 0; y <= rows; y++) {
       for (let x = 0; x <= columns; x++) {
-        data.addVertex((x / columns - 0.5) * width, 0, (y / rows - 0.5) * height, 0, 1, 0, x / columns, y / rows);
+        data.addVertex((x / columns - 0.5) * width, 0, (y / rows - 0.5) * depth, 0, 1, 0, x / columns, y / rows);
       }
     }
     for (let y = 0; y < rows; y++) {
@@ -667,7 +673,7 @@ export class PrimitiveMesh {
         data.addTriangle(a + 1, c, c + 1);
       }
     }
-    data.boundsExtent = new Vector3(width / 2, 0, height / 2);
+    data.boundsExtent = new Vector3(width / 2, 0, depth / 2);
     return data;
   }
 
@@ -893,7 +899,7 @@ export class PrimitiveMesh {
 
   private static _createCapsuleData(
     radius: number,
-    height: number,
+    cylinderHeight: number,
     radialSegments: number,
     capSegments: number,
     heightSegments: number
@@ -904,7 +910,7 @@ export class PrimitiveMesh {
     const rows = caps * 2 + vertical;
     const circle = PrimitiveMesh._createArcSamples(radial, Math.PI);
     const capLength = (Math.PI * radius) / 2;
-    const totalLength = capLength * 2 + height;
+    const totalLength = capLength * 2 + cylinderHeight;
     const data = new PrimitiveMeshBuilder((radial + 1) * (rows + 1), radial * (rows - 1) * 6);
     for (let y = 0; y <= rows; y++) {
       let py: number;
@@ -915,19 +921,19 @@ export class PrimitiveMesh {
         const angle = ((y / caps) * Math.PI) / 2;
         ringRadius = radius * Math.sin(angle);
         ny = -Math.cos(angle);
-        py = -height / 2 + radius * ny;
+        py = -cylinderHeight / 2 + radius * ny;
         distance = (y / caps) * capLength;
       } else if (y <= caps + vertical) {
         ringRadius = radius;
         ny = 0;
-        py = -height / 2 + ((y - caps) / vertical) * height;
-        distance = capLength + ((y - caps) / vertical) * height;
+        py = -cylinderHeight / 2 + ((y - caps) / vertical) * cylinderHeight;
+        distance = capLength + ((y - caps) / vertical) * cylinderHeight;
       } else {
         const angle = (((y - caps - vertical) / caps) * Math.PI) / 2;
         ringRadius = radius * Math.cos(angle);
         ny = Math.sin(angle);
-        py = height / 2 + radius * ny;
-        distance = capLength + height + ((y - caps - vertical) / caps) * capLength;
+        py = cylinderHeight / 2 + radius * ny;
+        distance = capLength + cylinderHeight + ((y - caps - vertical) / caps) * capLength;
       }
       const normalRadius = Math.sqrt(Math.max(0, 1 - ny * ny));
       // Center pole UVs between the other two vertices of each triangle
@@ -959,7 +965,7 @@ export class PrimitiveMesh {
         }
       }
     }
-    data.boundsExtent = new Vector3(radius, height / 2 + radius, radius);
+    data.boundsExtent = new Vector3(radius, cylinderHeight / 2 + radius, radius);
     return data;
   }
 
@@ -967,14 +973,14 @@ export class PrimitiveMesh {
     radius: number,
     tubeRadius: number,
     radialSegments: number,
-    tubularSegments: number,
+    ringSegments: number,
     arcDegrees: number,
     tubeStartAngleDegrees: number,
     tubeArcDegrees: number,
     startAngleDegrees: number
   ): PrimitiveMeshBuilder {
     const radial = PrimitiveMesh._getSegmentCount(radialSegments, 3);
-    const tubular = PrimitiveMesh._getSegmentCount(tubularSegments, 1);
+    const tubular = PrimitiveMesh._getSegmentCount(ringSegments, 1);
     const arc = MathUtil.degreeToRadian(arcDegrees);
     const tubeStart = MathUtil.degreeToRadian(tubeStartAngleDegrees);
     const tubeArc = MathUtil.degreeToRadian(tubeArcDegrees);
@@ -1039,12 +1045,12 @@ export class PrimitiveMesh {
   private static _createRingData(
     innerRadius: number,
     outerRadius: number,
-    radialSegments: number,
+    ringSegments: number,
     widthSegments: number,
     startAngle: number,
     arcDegrees: number
   ): PrimitiveMeshBuilder {
-    const radial = PrimitiveMesh._getSegmentCount(radialSegments, 3);
+    const radial = PrimitiveMesh._getSegmentCount(ringSegments, 3);
     const width = PrimitiveMesh._getSegmentCount(widthSegments);
     const start = MathUtil.degreeToRadian(startAngle);
     const arc = MathUtil.degreeToRadian(arcDegrees);
@@ -1083,13 +1089,13 @@ export class PrimitiveMesh {
     height: number,
     depth: number,
     cornerRadius: number,
-    edgeSegments: number
+    roundingSegments: number
   ): PrimitiveMeshBuilder {
     const radius = Math.max(0, Math.min(cornerRadius, width / 2, height / 2, depth / 2));
     if (radius === 0) {
       return PrimitiveMesh._createCuboidData(width, height, depth, 1, 1, 1);
     }
-    const cornerSegments = PrimitiveMesh._getSegmentCount(edgeSegments);
+    const cornerSegments = PrimitiveMesh._getSegmentCount(roundingSegments);
     const count = cornerSegments * 2 + 1;
     const data = PrimitiveMesh._createCuboidData(width, height, depth, count, count, count);
     const inner = new Vector3(width / 2 - radius, height / 2 - radius, depth / 2 - radius);
@@ -1188,25 +1194,25 @@ export class PrimitiveMesh {
   private static _createTubeData(
     path: readonly Vector3[],
     radius: number,
-    tubularSegments: number,
+    pathSegments: number,
     radialSegments: number,
-    closed: boolean
+    closedPath: boolean
   ): PrimitiveMeshBuilder {
     const tangents: Vector3[] = [];
-    const points = MeshPathUtils.sample(path, PrimitiveMesh._getSegmentCount(tubularSegments), closed, tangents);
-    return PrimitiveMesh._createTubeSurfaceData(points, radius, radialSegments, closed, tangents);
+    const points = MeshPathUtils.sample(path, PrimitiveMesh._getSegmentCount(pathSegments), closedPath, tangents);
+    return PrimitiveMesh._createTubeSurfaceData(points, radius, radialSegments, closedPath, tangents);
   }
 
   private static _createTubeSurfaceData(
     points: readonly Vector3[],
     radius: number,
     radialSegments: number,
-    closed: boolean,
+    closedPath: boolean,
     fallbackTangents?: readonly Vector3[]
   ): PrimitiveMeshBuilder {
     const count = points.length - 1;
     const radial = PrimitiveMesh._getSegmentCount(radialSegments, 3);
-    const frames = MeshPathUtils.computeFrames(points, closed, fallbackTangents);
+    const frames = MeshPathUtils.computeFrames(points, closedPath, fallbackTangents);
     const data = new PrimitiveMeshBuilder((count + 1) * (radial + 1), count * radial * 6);
     const circle = PrimitiveMesh._createArcSamples(radial);
     for (let y = 0; y <= count; y++) {
@@ -1245,21 +1251,21 @@ export class PrimitiveMesh {
   private static _createTorusKnotData(
     radius: number,
     tubeRadius: number,
-    tubularSegments: number,
+    pathSegments: number,
     radialSegments: number,
-    p: number,
-    q: number
+    axisTurns: number,
+    crossSectionTurns: number
   ): PrimitiveMeshBuilder {
-    if (p === 0 && q === 0) {
+    if (axisTurns === 0 && crossSectionTurns === 0) {
       throw new Error("A torus knot needs at least one nonzero winding.");
     }
-    const count = PrimitiveMesh._getSegmentCount(tubularSegments);
+    const count = PrimitiveMesh._getSegmentCount(pathSegments);
     const points: Vector3[] = [];
     const tangents: Vector3[] = [];
     for (let i = 0; i < count; i++) {
       const angle = (i / count) * Math.PI * 2;
-      const u = p * angle;
-      const v = q * angle;
+      const u = axisTurns * angle;
+      const v = crossSectionTurns * angle;
       points.push(
         new Vector3(
           (radius * (2 + Math.cos(v)) * Math.cos(u)) / 2,
@@ -1267,13 +1273,13 @@ export class PrimitiveMesh {
           (radius * Math.sin(v)) / 2
         )
       );
-      const radialDerivative = -q * Math.sin(v);
-      const angularDerivative = p * (2 + Math.cos(v));
+      const radialDerivative = -crossSectionTurns * Math.sin(v);
+      const angularDerivative = axisTurns * (2 + Math.cos(v));
       tangents.push(
         new Vector3(
           radialDerivative * Math.cos(u) - angularDerivative * Math.sin(u),
           radialDerivative * Math.sin(u) + angularDerivative * Math.cos(u),
-          q * Math.cos(v)
+          crossSectionTurns * Math.cos(v)
         )
       );
     }
@@ -1457,22 +1463,22 @@ export class PrimitiveMesh {
     depth: number,
     stepCount: number,
     pathInput: readonly Vector3[] | undefined,
-    closed: boolean,
-    bevelThickness: number,
-    bevelSize: number,
-    bevelOffset: number,
+    closedPath: boolean,
+    bevelDepth: number,
+    bevelWidth: number,
+    contourOffset: number,
     bevelSegmentCount: number
   ): PrimitiveMeshBuilder {
     const data = new PrimitiveMeshBuilder();
-    const steps = PrimitiveMesh._getSegmentCount(stepCount, closed ? 3 : 1);
+    const steps = PrimitiveMesh._getSegmentCount(stepCount, closedPath ? 3 : 1);
     const tangents: Vector3[] = [];
-    const path = pathInput ? MeshPathUtils.sample(pathInput, steps, closed, tangents) : undefined;
-    const frames = path ? MeshPathUtils.computeFrames(path, closed, tangents) : undefined;
-    const bevelEnabled = !path && bevelSize > 0;
+    const path = pathInput ? MeshPathUtils.sample(pathInput, steps, closedPath, tangents) : undefined;
+    const frames = path ? MeshPathUtils.computeFrames(path, closedPath, tangents) : undefined;
+    const bevelEnabled = !path && bevelWidth > 0;
     const bevelSegments = bevelEnabled ? PrimitiveMesh._getSegmentCount(bevelSegmentCount) : 0;
-    const thickness = bevelEnabled ? Math.min(bevelThickness, depth / 2) : 0;
-    const size = bevelEnabled ? bevelSize : 0;
-    const offset = path ? 0 : bevelOffset;
+    const thickness = bevelEnabled ? Math.min(bevelDepth, depth / 2) : 0;
+    const size = bevelEnabled ? bevelWidth : 0;
+    const offset = path ? 0 : contourOffset;
     const layers: { z: number; inset: number }[] = [];
     const uvA = new Vector2();
     const uvB = new Vector2();
@@ -1519,7 +1525,7 @@ export class PrimitiveMesh {
           )
         );
       });
-      if (!closed) {
+      if (!closedPath) {
         const capStart = data.indexCount;
         cap(0, false);
         cap(layers.length - 1, true);
@@ -1588,7 +1594,7 @@ export class PrimitiveMesh {
 
   private static _createSphereData(
     radius: number,
-    subdivisions: number,
+    subdivisionLevel: number,
     horizontalStart: number,
     horizontalEnd: number,
     verticalStart: number,
@@ -1598,7 +1604,7 @@ export class PrimitiveMesh {
     verticalStart = Math.max(0, verticalStart);
     verticalEnd = Math.min(180, verticalEnd);
     if (horizontalArc < 360 || verticalStart > 0 || verticalEnd < 180) {
-      const surface = PrimitiveMesh._createSphereSurfaceData(1, subdivisions);
+      const surface = PrimitiveMesh._createSphereSurfaceData(1, subdivisionLevel);
       return PrimitiveMesh._createSphereSectionData(
         surface,
         radius,
@@ -1609,7 +1615,7 @@ export class PrimitiveMesh {
       );
     }
 
-    const data = PrimitiveMesh._createSphereSurfaceData(radius, subdivisions);
+    const data = PrimitiveMesh._createSphereSurfaceData(radius, subdivisionLevel);
     if (horizontalStart !== 0) {
       const angle = MathUtil.degreeToRadian(horizontalStart);
       const cos = Math.cos(angle);
@@ -1804,9 +1810,9 @@ export class PrimitiveMesh {
     return resultCount;
   }
 
-  private static _createSphereSurfaceData(radius: number, subdivisions: number): PrimitiveMeshBuilder {
+  private static _createSphereSurfaceData(radius: number, subdivisionLevel: number): PrimitiveMeshBuilder {
     // Level 7 exceeds the 16-bit vertex index range
-    const level = MathUtil.clamp(Math.floor(subdivisions), 1, 6);
+    const level = MathUtil.clamp(Math.floor(subdivisionLevel), 1, 6);
 
     const { positions, quads: cells } = SubdivisionUtils.subdivideQuads(
       PrimitiveMesh._sphereSeedPositions,
@@ -1937,7 +1943,7 @@ export class PrimitiveMesh {
     engine: Engine,
     generate: (...args: T) => PrimitiveMeshBuilder,
     args: T,
-    { keepData = false, separateMaterials = false }: { keepData?: boolean; separateMaterials?: boolean }
+    { keepCPUData = false, separateMaterialSlots = false }: { keepCPUData?: boolean; separateMaterialSlots?: boolean }
   ): ModelMesh {
     for (let i = 0; i < args.length; i++) {
       args[i] = PrimitiveMesh._copy(args[i]);
@@ -1955,14 +1961,20 @@ export class PrimitiveMesh {
       new VertexElement(VertexAttribute.Normal, 12, VertexElementFormat.Vector3, 0),
       new VertexElement(VertexAttribute.UV, 24, VertexElementFormat.Vector2, 0)
     ]);
-    const vertexBuffer = new Buffer(mesh.engine, BufferBindFlag.VertexBuffer, vertices, BufferUsage.Static, keepData);
+    const vertexBuffer = new Buffer(
+      mesh.engine,
+      BufferBindFlag.VertexBuffer,
+      vertices,
+      BufferUsage.Static,
+      keepCPUData
+    );
     mesh.setVertexBufferBinding(vertexBuffer, 32, 0);
-    mesh._initializeTangents(MeshTangentUtils.calculateTangentsFromBuffer(vertices, indices), !keepData);
+    mesh._initializeTangents(MeshTangentUtils.calculateTangentsFromBuffer(vertices, indices), !keepCPUData);
     mesh.setIndices(indices);
     PrimitiveMesh._setBounds(mesh, data);
-    mesh.uploadData(!keepData);
+    mesh.uploadData(!keepCPUData);
     mesh.clearSubMesh();
-    if (separateMaterials && data.groups.length) {
+    if (separateMaterialSlots && data.groups.length) {
       for (const group of data.groups) {
         mesh.addSubMesh(group.start, group.count);
       }
