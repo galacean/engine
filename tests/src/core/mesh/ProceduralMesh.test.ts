@@ -1373,29 +1373,6 @@ describe("procedural mesh geometry", () => {
     }
   });
 
-  it("restores captured geometry after caller-owned inputs and buffers change", () => {
-    const points = [new Vector3(0, 0, 0), new Vector3(0, 1, 1), new Vector3(1, 2, 2)];
-    const mesh = PrimitiveMesh.createTube(engine, points, 0.5, {
-      keepMeshData: true,
-      pathSegments: 8,
-      radialSegments: 8
-    });
-    try {
-      const before = mesh.getPositions()!.map((p) => p.toJSON());
-      const indices = Array.from(mesh.getIndices()!);
-      points[1].set(100, 200, 300);
-      const buffer = mesh.vertexBufferBindings[0]!.buffer;
-      MeshTestUtils.clearBuffer(buffer);
-      const restorers = (engine.resourceManager as any)._contentRestorerPool;
-      restorers[mesh.instanceId].restoreContent();
-      expect(mesh.getPositions()!.map((p) => p.toJSON())).toEqual(before);
-      expect(Array.from(mesh.getIndices()!)).toEqual(indices);
-      expect(mesh.vertexBufferBindings[0]!.buffer).toBe(buffer);
-    } finally {
-      mesh.destroy();
-    }
-  });
-
   it.each([
     { type: "tube", tubeRadius: 0.5, keepMeshData: false },
     { type: "tube", tubeRadius: 0.5, keepMeshData: true },
@@ -1772,124 +1749,55 @@ describe("procedural mesh geometry", () => {
     }
   });
 
-  it("preserves edited primitive data and material groups after device restoration", async () => {
-    const restoredEngine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
-    const released = PrimitiveMesh.createSphere(restoredEngine, 1, { subdivisionLevel: 1 });
-    const mesh = PrimitiveMesh.createCuboid(restoredEngine, 1, 1, 1, {
-      keepMeshData: true,
-      separateMaterialSlots: true,
-      widthSegments: 1,
-      heightSegments: 1,
-      depthSegments: 1
-    });
-    try {
-      const uvs = mesh.getUVs()!.map((uv) => new Vector2(uv.x * 2 + 0.25, uv.y * 3 - 0.5));
-      const secondaryUVs = uvs.map((uv) => uv.clone().scale(0.5));
-      mesh.setUVs(uvs);
-      mesh.setUVs(secondaryUVs, 1);
-      mesh.calculateTangents();
-      mesh.setIndices(mesh.getIndices()!.slice(0, 6));
-      mesh.clearSubMesh();
-      const subMesh = mesh.addSubMesh(0, 6);
-      mesh.bounds.min.set(-2, -3, -4);
-      mesh.bounds.max.set(2, 3, 4);
-      mesh.uploadData(false);
-      const bindings = mesh.vertexBufferBindings.map((binding) => binding!.buffer);
-      const buffers = bindings.map((buffer) => MeshTestUtils.readBuffer(buffer));
-      const releasedBindings = released.vertexBufferBindings.map((binding) => binding!.buffer);
-      releasedBindings.push(released._primitive.indexBufferBinding!._buffer);
-      const releasedBuffers = releasedBindings.map((buffer) => MeshTestUtils.readBuffer(buffer));
-
-      const lost = new Promise<void>((resolve) => restoredEngine.once(EngineEventType.DeviceLost, () => resolve()));
-      restoredEngine.forceLoseDevice();
-      await lost;
-      await new Promise<void>((resolve) => setTimeout(resolve, 0));
-      const restored = new Promise<void>((resolve) =>
-        restoredEngine.once(EngineEventType.DeviceRestored, () => resolve())
-      );
-      restoredEngine.forceRestoreDevice();
-      await restored;
-
-      expect(mesh.getUVs()!.map((uv) => uv.toJSON())).toEqual(uvs.map((uv) => uv.toJSON()));
-      expect(mesh.getUVs(1)!.map((uv) => uv.toJSON())).toEqual(secondaryUVs.map((uv) => uv.toJSON()));
-      expect(mesh.getIndices()!).toHaveLength(6);
-      expect(mesh.subMeshes).toHaveLength(1);
-      expect(mesh.subMeshes[0]).toBe(subMesh);
-      expect(mesh.bounds.min.toJSON()).toEqual({ x: -2, y: -3, z: -4 });
-      expect(mesh.bounds.max.toJSON()).toEqual({ x: 2, y: 3, z: 4 });
-      bindings.forEach((buffer, index) => {
-        expect(mesh.vertexBufferBindings[index]!.buffer).toBe(buffer);
-        expect(MeshTestUtils.readBuffer(buffer)).toEqual(buffers[index]);
+  it.each([false, true])(
+    "restores generated primitive buffers and groups with keepMeshData: %s",
+    async (keepMeshData) => {
+      const restoredEngine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
+      const released = PrimitiveMesh.createSphere(restoredEngine, 1, { subdivisionLevel: 1 });
+      const mesh = PrimitiveMesh.createCuboid(restoredEngine, 1, 2, 3, {
+        keepMeshData,
+        separateMaterialSlots: true,
+        widthSegments: 1,
+        heightSegments: 1,
+        depthSegments: 1
       });
-      releasedBindings.forEach((buffer, index) => {
-        expect(MeshTestUtils.readBuffer(buffer)).toEqual(releasedBuffers[index]);
-      });
-    } finally {
-      restoredEngine.destroy();
-    }
-  });
+      try {
+        const bindings = mesh.vertexBufferBindings.map((binding) => binding!.buffer);
+        bindings.push(mesh._primitive.indexBufferBinding!._buffer);
+        const buffers = bindings.map((buffer) => MeshTestUtils.readBuffer(buffer));
+        const releasedBindings = released.vertexBufferBindings.map((binding) => binding!.buffer);
+        releasedBindings.push(released._primitive.indexBufferBinding!._buffer);
+        const releasedBuffers = releasedBindings.map((buffer) => MeshTestUtils.readBuffer(buffer));
+        const groups = mesh.subMeshes.slice();
+        const min = mesh.bounds.min.toJSON();
+        const max = mesh.bounds.max.toJSON();
 
-  it("restores released tangents from edited primitive UVs", () => {
-    const mesh = PrimitiveMesh.createPlane(engine, 2, 3, {
-      keepMeshData: true,
-      widthSegments: 1,
-      depthSegments: 1
-    });
-    try {
-      mesh.setUVs(mesh.getUVs()!.map((uv) => new Vector2(uv.y, uv.x)));
-      mesh.calculateTangents();
-      mesh.uploadData(true);
-      const bindings = mesh.vertexBufferBindings.map((binding) => binding!.buffer);
-      bindings.push(mesh._primitive.indexBufferBinding!._buffer);
-      const original = bindings.map((buffer) => MeshTestUtils.readBuffer(buffer));
-      bindings.forEach((buffer) => MeshTestUtils.clearBuffer(buffer));
-      (engine.resourceManager as any)._contentRestorerPool[mesh.instanceId].restoreContent();
-      bindings.forEach((buffer, index) => {
-        expect(MeshTestUtils.readBuffer(buffer)).toEqual(original[index]);
-      });
-    } finally {
-      mesh.destroy();
-    }
-  });
+        const lost = new Promise<void>((resolve) => restoredEngine.once(EngineEventType.DeviceLost, () => resolve()));
+        restoredEngine.forceLoseDevice();
+        await lost;
+        await new Promise<void>((resolve) => setTimeout(resolve, 0));
+        const restored = new Promise<void>((resolve) =>
+          restoredEngine.once(EngineEventType.DeviceRestored, () => resolve())
+        );
+        restoredEngine.forceRestoreDevice();
+        await restored;
 
-  it.each([false, true])("restores non-indexed primitive tangents with released data: %s", (releaseData) => {
-    const mesh = PrimitiveMesh.createPlane(engine, 1, 1, {
-      widthSegments: 2,
-      depthSegments: 1,
-      keepMeshData: true
-    });
-    try {
-      mesh.setPositions([
-        new Vector3(0, 0, 0),
-        new Vector3(1, 0, 0),
-        new Vector3(0, 1, 0),
-        new Vector3(2, 0, 0),
-        new Vector3(3, 0, 0),
-        new Vector3(2, 1, 0)
-      ]);
-      mesh.setNormals(Array.from({ length: 6 }, () => new Vector3(0, 0, 1)));
-      mesh.setUVs([
-        new Vector2(0, 0),
-        new Vector2(1, 0),
-        new Vector2(0, 1),
-        new Vector2(0, 0),
-        new Vector2(0, 1),
-        new Vector2(1, 0)
-      ]);
-      mesh.setIndices(null);
-      mesh.clearSubMesh();
-      mesh.addSubMesh(0, 6);
-      mesh.calculateTangents();
-      mesh.uploadData(releaseData);
-      const tangentBuffer = mesh.vertexBufferBindings[1]!.buffer;
-      const original = MeshTestUtils.readBuffer(tangentBuffer);
-      MeshTestUtils.clearBuffer(tangentBuffer);
-      (engine.resourceManager as any)._contentRestorerPool[mesh.instanceId].restoreContent();
-      expect(MeshTestUtils.readBuffer(tangentBuffer)).toEqual(original);
-    } finally {
-      mesh.destroy();
+        expect(mesh.subMeshes).toHaveLength(6);
+        expect(mesh.subMeshes.every((subMesh, index) => subMesh === groups[index])).toBe(true);
+        expect(mesh.bounds.min.toJSON()).toEqual(min);
+        expect(mesh.bounds.max.toJSON()).toEqual(max);
+        bindings.forEach((buffer, index) => {
+          expect(MeshTestUtils.readBuffer(buffer)).toEqual(buffers[index]);
+        });
+        releasedBindings.forEach((buffer, index) => {
+          expect(MeshTestUtils.readBuffer(buffer)).toEqual(releasedBuffers[index]);
+        });
+        expect(mesh.vertexBufferBindings.every((binding) => binding!.buffer.readable === keepMeshData)).toBe(true);
+      } finally {
+        restoredEngine.destroy();
+      }
     }
-  });
+  );
 
   it.each([1, 1e-8])("normalizes tangents for a plane of size %s", (size) => {
     const mesh = PrimitiveMesh.createPlane(engine, size, size, {
@@ -2003,6 +1911,43 @@ describe("procedural mesh geometry", () => {
         { x: 1, y: 0, z: 0, w: 1 },
         { x: 1, y: 0, z: 0, w: 1 }
       ]);
+    } finally {
+      mesh.destroy();
+    }
+  });
+
+  it.each([false, true])("ignores an incomplete final tangent triangle with indices: %s", (indexed) => {
+    const mesh = new ModelMesh(engine);
+    try {
+      mesh.setPositions([new Vector3(), new Vector3(1, 0, 0), new Vector3(0, 1, 0), new Vector3(1, 1, 0)]);
+      mesh.setNormals(Array.from({ length: 4 }, () => new Vector3(0, 0, 1)));
+      mesh.setUVs([new Vector2(), new Vector2(1, 0), new Vector2(0, 1), new Vector2(1, 1)]);
+      if (indexed) {
+        mesh.setIndices(new Uint16Array([0, 1, 2, 3]));
+      }
+      mesh.calculateTangents();
+      expect(mesh.getTangents()!.map((tangent) => tangent.toJSON())).toEqual([
+        { x: 1, y: 0, z: 0, w: 1 },
+        { x: 1, y: 0, z: 0, w: 1 },
+        { x: 1, y: 0, z: 0, w: 1 },
+        { x: 0, y: 0, z: 0, w: -1 }
+      ]);
+    } finally {
+      mesh.destroy();
+    }
+  });
+
+  it("triangulates contours above the function argument limit", () => {
+    const count = 150000;
+    const points = Array.from({ length: count }, (_, i) => {
+      const angle = (i * Math.PI * 2) / count;
+      return new Vector2(Math.cos(angle), Math.sin(angle));
+    });
+    const mesh = PrimitiveMesh.createPolygon(engine, points, { keepMeshData: true });
+    try {
+      expect(mesh.vertexCount).toBe(count);
+      expect(mesh.getIndices()).toBeInstanceOf(Uint32Array);
+      expect(mesh.getIndices()!.length).toBe((count - 2) * 3);
     } finally {
       mesh.destroy();
     }

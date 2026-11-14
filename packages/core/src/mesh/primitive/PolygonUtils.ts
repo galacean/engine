@@ -41,7 +41,9 @@ export class PolygonUtils {
       if (i > 0) {
         holes.push(points.length);
       }
-      points.push(...contours[i]);
+      for (const point of contours[i]) {
+        points.push(point);
+      }
     }
     const coordinates = new Float64Array(points.length * 2);
     for (let i = 0; i < points.length; i++) {

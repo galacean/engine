@@ -25,43 +25,22 @@ export class PrimitiveMeshRestorer<T extends unknown[]> extends ContentRestorer<
 
   override restoreContent(): void {
     const mesh = this.resource;
-    const vertexBuffer = this._vertexBuffer;
-    const indexBuffer = mesh._primitive.indexBufferBinding?._buffer;
-    const indices = mesh.accessible ? mesh.getIndices() : null;
-    let generated: PrimitiveMeshBuilder | undefined;
-    // Only regenerate owned buffers; readable data includes changes made after creation
+    const data = this._generate(...this._args);
+    data.trim();
     for (const binding of mesh.vertexBufferBindings) {
       const buffer = binding?.buffer;
       if (!buffer) {
         continue;
       }
-      if (buffer.readable) {
-        buffer.setData(buffer.data!);
-      } else if (buffer === vertexBuffer) {
-        generated ??= this._generateData();
-        buffer.setData(generated.vertices);
+      if (buffer === this._vertexBuffer) {
+        buffer.setData(data.vertices);
       } else if (buffer === this._tangentBuffer) {
-        const vertexData = vertexBuffer.readable ? vertexBuffer.data : null;
-        const vertices = vertexData
-          ? new Float32Array(vertexData.buffer, vertexData.byteOffset, vertexBuffer.byteLength / 4)
-          : (generated ??= this._generateData()).vertices;
-        const tangentIndices = indexBuffer ? (indices ?? (generated ??= this._generateData()).indices) : null;
-        buffer.setData(MeshTangentUtils.calculateTangentsFromBuffer(vertices, tangentIndices));
+        buffer.setData(MeshTangentUtils.calculateTangentsFromBuffer(data.vertices, data.indices));
       }
     }
-    if (indexBuffer) {
-      if (indices) {
-        indexBuffer.setData(indices);
-      } else if (indexBuffer === this._indexBuffer) {
-        generated ??= this._generateData();
-        indexBuffer.setData(generated.indices);
-      }
+    const indexBuffer = mesh._primitive.indexBufferBinding?._buffer;
+    if (indexBuffer === this._indexBuffer) {
+      indexBuffer.setData(data.indices);
     }
-  }
-
-  private _generateData(): PrimitiveMeshBuilder {
-    const data = this._generate(...this._args);
-    data.trim();
-    return data;
   }
 }

@@ -28,7 +28,7 @@ export class MeshTangentUtils {
     const indexCount = indices ? indices.length : vertexCount;
     // Accumulate the tangent basis in double precision
     const basis = new Float64Array(vertexCount * 6);
-    for (let i = 0; i < indexCount; i += 3) {
+    for (let i = 0; i + 2 < indexCount; i += 3) {
       const a = indices ? indices[i] : i;
       const b = indices ? indices[i + 1] : i + 1;
       const c = indices ? indices[i + 2] : i + 2;

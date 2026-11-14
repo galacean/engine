@@ -235,6 +235,8 @@ const sixMaterials = PrimitiveMesh.createCuboid(engine, 1, 1, 1, {
 
 `keepMeshData` 默认关闭，设为 `true` 时保留顶点属性和索引，供上传后读取或修改。
 
+设备自动恢复使用初始创建参数，不保证保留创建后的网格修改。
+
 `separateMaterialSlots` 适用于长方体、圆柱、圆台、圆锥、多边形、挤出和圆角长方体。默认关闭，生成一个 SubMesh；开启后，生成的 SubMesh 按以下顺序对应材质槽：
 
 | 几何体             | 材质槽顺序                                                                   |
@@ -272,7 +274,8 @@ const asset = {
 | `sphere`、`circle` | `<type>Radius` |
 | `cuboid` | `cuboidWidth`、`cuboidHeight`、`cuboidDepth` |
 | `plane` | `planeWidth`、`planeDepth` |
-| `cylinder`、`cone`、`capsule` | `<type>Radius`、`<type>Height` |
+| `cylinder`、`cone` | `<type>Radius`、`<type>Height` |
+| `capsule` | `capsuleRadius`、`capsuleCylinderHeight` |
 | `truncatedCone` | `truncatedConeTopRadius`、`truncatedConeBottomRadius`、`truncatedConeHeight` |
 | `torus` | `torusRadius`、`torusTubeRadius` |
 | `ring` | `ringOuterRadius`、`ringInnerRadius` |

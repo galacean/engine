@@ -1,7 +1,7 @@
 import { Camera, GLCapabilityType, PrimitiveMesh } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine";
 import { Vector2, Vector3 } from "@galacean/engine-math";
-import { describe, beforeAll, expect, it } from "vitest";
+import { describe, beforeAll, expect, it, vi } from "vitest";
 
 describe("PrimitiveMesh", () => {
   let engine: WebGLEngine;
@@ -197,7 +197,22 @@ describe("PrimitiveMesh", () => {
           widthSegments: segments,
           depthSegments: segments
         })
-      ).throw("The vertex count is out of range.");
+      ).throw("The vertex count is over limit.");
+    }
+  });
+
+  it("rejects large meshes without 32-bit index support", () => {
+    const renderer = engine._hardwareRenderer;
+    const canIUse = renderer.canIUse.bind(renderer);
+    const capability = vi.spyOn(renderer, "canIUse").mockImplementation((type) => {
+      return type === GLCapabilityType.elementIndexUint ? false : canIUse(type);
+    });
+    try {
+      expect(() => PrimitiveMesh.createPlane(engine, 2, 2, { widthSegments: 256, depthSegments: 256 })).toThrow(
+        "The vertex count is over limit."
+      );
+    } finally {
+      capability.mockRestore();
     }
   });
 });

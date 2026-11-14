@@ -229,6 +229,8 @@ const sixMaterials = PrimitiveMesh.createCuboid(engine, 1, 1, 1, {
 
 `keepMeshData` defaults to false. Set it to true to retain vertex attributes and indices for reading or editing after upload.
 
+Automatic device restoration uses the original creation parameters. It does not guarantee preservation of mesh edits made after creation.
+
 `separateMaterialSlots` is available for cuboids, cylinders, truncated cones, cones, polygons, extrusions and rounded cuboids. It defaults to false, which creates one SubMesh. When enabled, the generated SubMeshes correspond to material slots in this order:
 
 | Geometry | Material slot order |
@@ -266,7 +268,8 @@ Each `type` selects the matching `PrimitiveMesh.createX` method. Type-prefixed f
 | `sphere`, `circle` | `<type>Radius` |
 | `cuboid` | `cuboidWidth`, `cuboidHeight`, `cuboidDepth` |
 | `plane` | `planeWidth`, `planeDepth` |
-| `cylinder`, `cone`, `capsule` | `<type>Radius`, `<type>Height` |
+| `cylinder`, `cone` | `<type>Radius`, `<type>Height` |
+| `capsule` | `capsuleRadius`, `capsuleCylinderHeight` |
 | `truncatedCone` | `truncatedConeTopRadius`, `truncatedConeBottomRadius`, `truncatedConeHeight` |
 | `torus` | `torusRadius`, `torusTubeRadius` |
 | `ring` | `ringOuterRadius`, `ringInnerRadius` |
