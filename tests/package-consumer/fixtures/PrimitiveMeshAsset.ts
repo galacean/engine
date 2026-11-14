@@ -72,25 +72,21 @@ const missingShapes: PrimitiveMeshAsset = { type: "polygon" };
 const mixedExtrusion: PrimitiveMeshAsset = {
   type: "extrusion",
   extrusionShapes: shapes,
-  // @ts-expect-error An extrusion uses either a depth or a path
   extrusionOptions: { depth: 2, path: path }
 };
 const beveledPath: PrimitiveMeshAsset = {
   type: "extrusion",
   extrusionShapes: shapes,
-  // @ts-expect-error Path extrusion does not support bevels
   extrusionOptions: { bevelSize: 1, path: path }
 };
 const offsetPath: PrimitiveMeshAsset = {
   type: "extrusion",
   extrusionShapes: shapes,
-  // @ts-expect-error Path extrusion does not support contour offsets
   extrusionOptions: { bevelOffset: 0.1, path: path }
 };
 const closedDepth: PrimitiveMeshAsset = {
   type: "extrusion",
   extrusionShapes: shapes,
-  // @ts-expect-error Only path extrusion can be closed
   extrusionOptions: { closed: true, depth: 2 }
 };
 // @ts-expect-error Shape options cannot be applied to another primitive

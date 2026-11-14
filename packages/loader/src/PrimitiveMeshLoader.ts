@@ -68,7 +68,7 @@ class PrimitiveMeshLoader extends Loader<ModelMesh> {
         return PrimitiveMesh.createExtrusion(
           engine,
           shapes,
-          options?.path ? { ...options, path: this._parseVector3s(options.path) } : options
+          options && "path" in options ? { ...options, path: this._parseVector3s(options.path) } : options
         );
       }
       case "torusKnot":

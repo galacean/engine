@@ -452,6 +452,34 @@ describe("PrimitiveMeshLoader", () => {
         })
     },
     {
+      name: "linear extrusion ignores path-only settings",
+      data: {
+        type: "extrusion",
+        extrusionShapes: shapes,
+        extrusionOptions: { ...groupedOptions, depth: 2, steps: 2, closed: true }
+      },
+      create: () => PrimitiveMesh.createExtrusion(engine, shapeVectors, { ...groupedOptions, depth: 2, steps: 2 })
+    },
+    {
+      name: "path extrusion ignores linear-only settings",
+      data: {
+        type: "extrusion",
+        extrusionShapes: shapes,
+        extrusionOptions: {
+          ...groupedOptions,
+          path,
+          steps: 6,
+          depth: 7,
+          bevelSize: 0.25,
+          bevelThickness: 0.4,
+          bevelOffset: 0.5,
+          bevelSegments: 8
+        }
+      },
+      create: () =>
+        PrimitiveMesh.createExtrusion(engine, shapeVectors, { ...groupedOptions, path: pathVectors, steps: 6 })
+    },
+    {
       name: "torus knot winding",
       data: {
         type: "torusKnot",

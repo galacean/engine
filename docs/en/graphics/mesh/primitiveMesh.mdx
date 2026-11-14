@@ -203,7 +203,7 @@ const loop = [new Vector3(-4, 0, -4), new Vector3(4, 0, -4), new Vector3(4, 0, 4
 const closed = PrimitiveMesh.createExtrusion(engine, outline, { closed: true, path: loop, steps: 32 });
 ```
 
-Extrusion uses `LinearExtrusionMeshOptions` for `depth` and bevels, or `PathExtrusionMeshOptions` with a required `path`. TypeScript rejects combinations of a path with depth or bevel settings. The default extrusion goes along +Z without bevels. A positive `bevelSize` enables beveling; `bevelThickness` defaults to the same value. Path extrusion does not generate bevels. Paths accept `Vector3` arrays and are sampled at equal distances along their line segments. Sample curves into points before creating the mesh, as shown above.
+Extrusion uses `LinearExtrusionMeshOptions` for `depth` and bevels, or `PathExtrusionMeshOptions` with a required `path`. Each interface declares the settings for its mode. Providing `path` selects path extrusion; depth and bevel settings are ignored in that mode. Without a path, `closed` is ignored. The default extrusion goes along +Z without bevels. A positive `bevelSize` enables beveling; `bevelThickness` defaults to the same value. Path extrusion does not generate bevels. Paths accept `Vector3` arrays and are sampled at equal distances along their line segments. Sample curves into points before creating the mesh, as shown above.
 
 For tubes and path extrusions, `closed` defaults to `false`. Set it to `true` to join the path ends and align the first and last cross-sections; the closing point need not be repeated. Closed extrusions use at least three steps and have no end caps. Open extrusions have two end caps; tubes have no end caps in either mode.
 
@@ -299,6 +299,6 @@ Profiles and polygon contours store `{ x, y }` points; paths store `{ x, y, z }`
 }
 ```
 
-Path extrusion uses `extrusionOptions.path` in place of `extrusionOptions.depth` and does not accept bevel options. Set `extrusionOptions.closed` to `true` for a closed path without end caps. Save path points as `{ x, y, z }`.
+Path extrusion uses `extrusionOptions.path` and ignores depth and bevel settings. Set `extrusionOptions.closed` to `true` for a closed path without end caps. Save path points as `{ x, y, z }`.
 
 The type-prefixed fields, including `<type>Options`, pass through the Editor's primitive asset bundler. Editor previews should select the same creation method and parameters as the saved asset.

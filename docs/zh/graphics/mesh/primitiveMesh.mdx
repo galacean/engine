@@ -209,7 +209,7 @@ const loop = [new Vector3(-4, 0, -4), new Vector3(4, 0, -4), new Vector3(4, 0, 4
 const closed = PrimitiveMesh.createExtrusion(engine, outline, { closed: true, path: loop, steps: 32 });
 ```
 
-拉伸配置分为 `LinearExtrusionMeshOptions` 和 `PathExtrusionMeshOptions`：前者指定 `depth` 与倒角，后者必须指定 `path`。TypeScript 会拒绝同时传入路径与深度或倒角的组合。默认沿 +Z 直线拉伸且不倒角；`bevelSize > 0` 时开启倒角，`bevelThickness` 默认等于 `bevelSize`。沿路径拉伸不生成倒角。路径接收 `Vector3` 数组，并按折线长度均匀采样。使用曲线时，在外层采样成点数组后传入，如上例所示。
+拉伸配置分为 `LinearExtrusionMeshOptions` 和 `PathExtrusionMeshOptions`：前者指定 `depth` 与倒角，后者必须指定 `path`。两个接口分别声明各自模式的设置。提供 `path` 时选择路径挤出，忽略深度和倒角设置；未提供路径时忽略 `closed`。默认沿 +Z 直线拉伸且不倒角；`bevelSize > 0` 时开启倒角，`bevelThickness` 默认等于 `bevelSize`。沿路径拉伸不生成倒角。路径接收 `Vector3` 数组，并按折线长度均匀采样。使用曲线时，在外层采样成点数组后传入，如上例所示。
 
 管道和路径挤出的 `closed` 默认关闭；开启后自动连接路径首尾并对齐截面，不必重复首点。闭合挤出至少使用三段，不生成端盖。开放挤出保留两端端盖；管道在两种模式下都不生成端盖。
 
@@ -305,6 +305,6 @@ const asset = {
 }
 ```
 
-沿路径拉伸使用 `extrusionOptions.path` 替代 `extrusionOptions.depth`，不接受倒角选项。`extrusionOptions.closed` 设为 `true` 时闭合路径且不生成端盖。路径点保存为 `{ x, y, z }`。
+沿路径拉伸使用 `extrusionOptions.path`，忽略深度和倒角设置。`extrusionOptions.closed` 设为 `true` 时闭合路径且不生成端盖。路径点保存为 `{ x, y, z }`。
 
 以上类型前缀字段及 `<type>Options` 都能经过 Editor 现有的基础网格打包过滤。Editor 预览应使用与保存资产相同的创建方法和参数。

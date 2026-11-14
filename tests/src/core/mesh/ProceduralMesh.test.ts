@@ -1734,6 +1734,45 @@ describe("procedural mesh geometry", () => {
     }
   });
 
+  it("ignores settings from the inactive extrusion mode", () => {
+    const linearOptions = { keepData: true, depth: 2, steps: 2, bevelSize: 0.1, separateMaterials: true };
+    const pathOptions = { keepData: true, path, steps: 5, separateMaterials: true };
+    const pairs = [
+      [
+        PrimitiveMesh.createExtrusion(engine, polygon, linearOptions),
+        PrimitiveMesh.createExtrusion(engine, polygon, { ...linearOptions, closed: true })
+      ],
+      [
+        PrimitiveMesh.createExtrusion(engine, polygon, pathOptions),
+        PrimitiveMesh.createExtrusion(engine, polygon, {
+          ...pathOptions,
+          depth: 7,
+          bevelSize: 0.25,
+          bevelThickness: 0.4,
+          bevelOffset: 0.5,
+          bevelSegments: 8
+        })
+      ]
+    ];
+    try {
+      for (const [expected, actual] of pairs) {
+        expect(actual.getIndices()).toEqual(expected.getIndices());
+        expect(actual.subMeshes).toEqual(expected.subMeshes);
+        for (let i = 0; i < expected.vertexBufferBindings.length; i++) {
+          expect(MeshTestUtils.readBuffer(actual.vertexBufferBindings[i]!.buffer)).toEqual(
+            MeshTestUtils.readBuffer(expected.vertexBufferBindings[i]!.buffer)
+          );
+        }
+      }
+    } finally {
+      for (const pair of pairs) {
+        for (const mesh of pair) {
+          mesh.destroy();
+        }
+      }
+    }
+  });
+
   it("uses at least three steps to close an extrusion path", () => {
     const profile = [new Vector2(0.2, 0), new Vector2(-0.1, 0.1), new Vector2(-0.1, -0.1)];
     const points = [new Vector3(-4, 0, -4), new Vector3(4, 0, -4), new Vector3(4, 0, 4), new Vector3(-4, 0, 4)];

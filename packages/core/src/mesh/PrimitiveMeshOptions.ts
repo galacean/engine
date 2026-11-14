@@ -490,14 +490,6 @@ export interface LinearExtrusionMeshOptions extends PrimitiveMeshOptions {
    * @defaultValue `false`
    */
   separateMaterials?: boolean;
-  /**
-   * A path selects path extrusion, which cannot be combined with depth or bevel settings.
-   */
-  path?: never;
-  /**
-   * Closing is only available for path extrusion.
-   */
-  closed?: never;
 }
 
 /**
@@ -526,32 +518,7 @@ export interface PathExtrusionMeshOptions extends PrimitiveMeshOptions {
    * @defaultValue `false`
    */
   separateMaterials?: boolean;
-  /**
-   * Depth is determined by the path.
-   */
-  depth?: never;
-  /**
-   * Path extrusion does not support bevels.
-   */
-  bevelSize?: never;
-  /**
-   * Path extrusion does not support bevels.
-   */
-  bevelThickness?: never;
-  /**
-   * Path extrusion does not support contour offsets.
-   */
-  bevelOffset?: never;
-  /**
-   * Path extrusion does not support bevels.
-   */
-  bevelSegments?: never;
 }
-
-/**
- * Settings for linear extrusion or path extrusion. Providing `path` selects path extrusion.
- */
-export type ExtrusionMeshOptions = LinearExtrusionMeshOptions | PathExtrusionMeshOptions;
 
 /**
  * Settings for a closed torus knot. At least one of `p` and `q` must be nonzero.

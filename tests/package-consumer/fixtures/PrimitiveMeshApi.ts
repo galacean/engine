@@ -5,7 +5,6 @@ import type {
   ConeMeshOptions,
   CuboidMeshOptions,
   CylinderMeshOptions,
-  ExtrusionMeshOptions,
   LatheMeshOptions,
   LinearExtrusionMeshOptions,
   PathExtrusionMeshOptions,
@@ -151,7 +150,7 @@ const pathExtrusionOptions = {
   separateMaterials: true,
   keepData: true
 } satisfies PathExtrusionMeshOptions;
-const extrusionOptions: ExtrusionMeshOptions = pathExtrusionOptions;
+const extrusionOptions: LinearExtrusionMeshOptions | PathExtrusionMeshOptions = pathExtrusionOptions;
 const torusKnotOptions = {
   radius: 1,
   tubeRadius: 0.2,
@@ -266,21 +265,22 @@ PrimitiveMesh.createCylinder(engine, { caps: "left" });
 PrimitiveMesh.createCylinder(engine, { caps: "top" });
 // @ts-expect-error Truncated cones use the same cap-mode enum
 PrimitiveMesh.createTruncatedCone(engine, { caps: "none" });
-// @ts-expect-error Path extrusion does not support bevels
+// Extra fields from the other mode follow normal structural compatibility
 PrimitiveMesh.createExtrusion(engine, polygon, { path, bevelSize: 0.1 });
-// @ts-expect-error Path extrusion does not support contour offsets
 PrimitiveMesh.createExtrusion(engine, polygon, { path, bevelOffset: 0.1 });
-// @ts-expect-error Only path extrusion can be closed
 PrimitiveMesh.createExtrusion(engine, polygon, { depth: 2, closed: true });
 // @ts-expect-error Bevel offsets use numeric local units
 PrimitiveMesh.createExtrusion(engine, polygon, { bevelOffset: "0.1" });
 
 const mixedExtrusion = { path, depth: 2 };
-// @ts-expect-error Incompatible extrusion settings are rejected through variables too
 PrimitiveMesh.createExtrusion(engine, polygon, mixedExtrusion);
 const beveledPath = { path, bevelSize: 0.1 };
-// @ts-expect-error Variables cannot combine paths with bevels
 PrimitiveMesh.createExtrusion(engine, polygon, beveledPath);
+
+// @ts-expect-error Explicit linear settings do not declare a path
+const invalidLinearOptions: LinearExtrusionMeshOptions = { path };
+// @ts-expect-error Explicit path settings do not declare bevels
+const invalidPathOptions: PathExtrusionMeshOptions = { path, bevelSize: 0.1 };
 
 const samplePath = (t: number, out: Vector3): void => {
   out.set(t, t * t, 0);

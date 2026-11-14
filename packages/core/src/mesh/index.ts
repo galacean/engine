@@ -20,7 +20,6 @@ export type {
   LatheMeshOptions,
   TubeMeshOptions,
   PolygonMeshOptions,
-  ExtrusionMeshOptions,
   TorusKnotMeshOptions,
   RoundedCuboidMeshOptions,
   PolygonShape,

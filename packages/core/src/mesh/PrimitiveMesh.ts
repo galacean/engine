@@ -20,7 +20,8 @@ import type {
   LatheMeshOptions,
   TubeMeshOptions,
   PolygonMeshOptions,
-  ExtrusionMeshOptions,
+  LinearExtrusionMeshOptions,
+  PathExtrusionMeshOptions,
   TorusKnotMeshOptions,
   RoundedCuboidMeshOptions,
   PolygonShape
@@ -533,6 +534,9 @@ export class PrimitiveMesh {
 
   /**
    * Extrude polygons along +Z or a spatial path.
+   * @remarks
+   * Providing `path` selects path extrusion and ignores depth and bevel settings.
+   * Without a path, extrusion follows +Z and ignores `closed`.
    * @param engine - The engine that owns the mesh
    * @param shapes - A contour, a polygon with holes, or an array of polygons; closing points need not be repeated
    * @param options - Linear or path extrusion settings
@@ -541,7 +545,7 @@ export class PrimitiveMesh {
   static createExtrusion(
     engine: Engine,
     shapes: readonly Vector2[] | PolygonShape | readonly PolygonShape[],
-    options: ExtrusionMeshOptions = {}
+    options: LinearExtrusionMeshOptions | PathExtrusionMeshOptions = {}
   ): ModelMesh {
     const {
       depth = 1,
@@ -552,7 +556,7 @@ export class PrimitiveMesh {
       bevelThickness = bevelSize,
       bevelOffset = 0,
       bevelSegments = 3
-    } = options;
+    }: LinearExtrusionMeshOptions & Partial<PathExtrusionMeshOptions> = options;
     return PrimitiveMesh._createMesh(
       engine,
       PrimitiveMesh._createExtrusionData,
@@ -561,7 +565,7 @@ export class PrimitiveMesh {
         depth,
         steps,
         path,
-        closed,
+        path ? closed : false,
         bevelThickness,
         bevelSize,
         bevelOffset,
