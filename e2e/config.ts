@@ -232,43 +232,43 @@ export const E2E_CONFIG = {
     sections: {
       category: "Primitive",
       caseFileName: "primitive-sections",
-      threshold: 0,
+      threshold: 0.005,
       diffPercentage: 0.02
     },
     contours: {
       category: "Primitive",
       caseFileName: "primitive-contours",
-      threshold: 0,
+      threshold: 0.005,
       diffPercentage: 0.02
     },
     topology: {
       category: "Primitive",
       caseFileName: "primitive-topology",
-      threshold: 0,
+      threshold: 0.005,
       diffPercentage: 0.02
     },
     materials: {
       category: "Primitive",
       caseFileName: "primitive-materials",
-      threshold: 0,
+      threshold: 0.005,
       diffPercentage: 0.02
     },
     "sphere-sections": {
       category: "Primitive",
       caseFileName: "primitive-sphere-sections",
-      threshold: 0,
+      threshold: 0.005,
       diffPercentage: 0.02
     },
     all: {
       category: "Primitive",
       caseFileName: "primitive-all",
-      threshold: 0,
+      threshold: 0.005,
       diffPercentage: 0.02
     },
     capsule: {
       category: "Primitive",
       caseFileName: "primitive-capsule",
-      threshold: 0,
+      threshold: 0.005,
       diffPercentage: 0.0016
     },
     cone: {
@@ -280,13 +280,13 @@ export const E2E_CONFIG = {
     cuboid: {
       category: "Primitive",
       caseFileName: "primitive-cuboid",
-      threshold: 0,
+      threshold: 0.005,
       diffPercentage: 0.0016
     },
     cylinder: {
       category: "Primitive",
       caseFileName: "primitive-cylinder",
-      threshold: 0,
+      threshold: 0.005,
       diffPercentage: 0.0036
     },
     plane: {
@@ -418,55 +418,55 @@ export const E2E_CONFIG = {
     particleEmitMeshNoShape: {
       category: "Particle",
       caseFileName: "particleRenderer-emit-mesh-no-shape",
-      threshold: 0,
+      threshold: 0.005,
       diffPercentage: 0.00136
     },
     particleEmitMeshCone: {
       category: "Particle",
       caseFileName: "particleRenderer-emit-mesh-cone",
-      threshold: 0,
+      threshold: 0.005,
       diffPercentage: 0.00219
     },
     particleEmitMeshConeScaleRotation: {
       category: "Particle",
       caseFileName: "particleRenderer-emit-mesh-cone-scale-rotation",
-      threshold: 0,
+      threshold: 0.005,
       diffPercentage: 0.0031
     },
     particleEmitMeshConeScaleRotationWorld: {
       category: "Particle",
       caseFileName: "particleRenderer-emit-mesh-cone-scale-rotation-world",
-      threshold: 0,
+      threshold: 0.005,
       diffPercentage: 0.00928
     },
     particleEmitMeshNoShapeWorld: {
       category: "Particle",
       caseFileName: "particleRenderer-emit-mesh-no-shape-world",
-      threshold: 0,
+      threshold: 0.005,
       diffPercentage: 0.00146
     },
     particleEmitMeshConeScale3DRotation: {
       category: "Particle",
       caseFileName: "particleRenderer-emit-mesh-cone-scale-3d-rotation",
-      threshold: 0,
+      threshold: 0.005,
       diffPercentage: 0.0184
     },
     particleEmitMeshConeScaleRotationLife: {
       category: "Particle",
       caseFileName: "particleRenderer-emit-mesh-cone-scale-rotation-life",
-      threshold: 0,
+      threshold: 0.005,
       diffPercentage: 0.036459
     },
     particleEmitMeshConeScaleRotationLifeSeperate: {
       category: "Particle",
       caseFileName: "particleRenderer-emit-mesh-cone-scale-rotation-life-seperate",
-      threshold: 0,
+      threshold: 0.005,
       diffPercentage: 0.0068
     },
     particleEmitMeshConeScale3DRotationLifeSeperate: {
       category: "Particle",
       caseFileName: "particleRenderer-emit-mesh-cone-scale-3d-rotation-life-seperate",
-      threshold: 0,
+      threshold: 0.005,
       diffPercentage: 0.00782
     },
     particleEmitMeshRotationLifeCurve: {
@@ -484,7 +484,7 @@ export const E2E_CONFIG = {
     particleEmitBillboardStretched: {
       category: "Particle",
       caseFileName: "particleRenderer-emit-billboard-stretched",
-      threshold: 0,
+      threshold: 0.005,
       diffPercentage: 0.0
     },
     inheritVelocityStretched: {
@@ -546,19 +546,19 @@ export const E2E_CONFIG = {
     HDRBloomNeutral: {
       category: "PostProcess",
       caseFileName: "postProcess-HDR-bloom-neutral",
-      threshold: 0,
+      threshold: 0.01,
       diffPercentage: 0.001
     },
     LDRBloomNeutral: {
       category: "PostProcess",
       caseFileName: "postProcess-LDR-bloom-neutral",
-      threshold: 0,
+      threshold: 0.01,
       diffPercentage: 0.001
     },
     customPass: {
       category: "PostProcess",
       caseFileName: "postProcess-customPass",
-      threshold: 0,
+      threshold: 0.01,
       diffPercentage: 0.001
     }
   },

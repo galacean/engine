@@ -21,4 +21,6 @@ After changing engine package sources, run `pnpm run build` before the tests. To
 
 Inspect the images in `e2e/downloads` before accepting a new baseline under `e2e/fixtures/originImage`. The topology gallery offsets its line overlay slightly along the normals to avoid depth fighting; it does not modify the displayed surface. Red and gold grid lines mark texture-coordinate boundaries. Open cuts and tubes intentionally have no end caps. The new galleries render front faces, so a cut can expose the background through the mesh.
 
+The galleries use a per-pixel color threshold of `0.005` to tolerate small GPU and JPEG differences. Pixels exceeding that threshold may occupy at most `0.02%` of the image. Cylinder and capsule UV changes also update the older primitive and particle baselines that use those meshes.
+
 The all-primitives gallery checks that every factory is represented. The material gallery also asserts sub-mesh counts, CPU-data accessibility and the loaded mesh's vertex count before making the screenshot available.
