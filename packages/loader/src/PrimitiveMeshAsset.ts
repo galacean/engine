@@ -34,8 +34,6 @@ type SerializedPrimitiveMeshValue<T> = T extends Vector2 | Vector3
     ? SerializedPrimitiveMeshData<T>
     : T;
 
-type SerializedPolygonShape = SerializedPrimitiveMeshData<PolygonShape>;
-
 /**
  * Serialized inputs and optional settings for every primitive mesh factory.
  * Required inputs use the same units as factory arguments. Vector inputs store their components as plain JSON objects.
@@ -209,7 +207,7 @@ export type PrimitiveMeshAsset =
     }
   | {
       type: "polygon";
-      polygonShapes: readonly SerializedPolygonShape[];
+      polygonShapes: readonly SerializedPrimitiveMeshData<PolygonShape>[];
       polygonOptions?: PolygonMeshOptions;
     }
   | {
@@ -218,7 +216,7 @@ export type PrimitiveMeshAsset =
        * The total extrusion depth in local units, including both bevels.
        */
       extrudedPolygonDepth: number;
-      extrudedPolygonShapes: readonly SerializedPolygonShape[];
+      extrudedPolygonShapes: readonly SerializedPrimitiveMeshData<PolygonShape>[];
       extrudedPolygonOptions?: LinearExtrudedPolygonMeshOptions;
     }
   | {
@@ -227,7 +225,7 @@ export type PrimitiveMeshAsset =
        * The path points in local coordinates.
        */
       extrudedPolygonPath: SerializedPrimitiveMeshData<readonly Vector3[]>;
-      extrudedPolygonShapes: readonly SerializedPolygonShape[];
+      extrudedPolygonShapes: readonly SerializedPrimitiveMeshData<PolygonShape>[];
       extrudedPolygonOptions?: PathExtrudedPolygonMeshOptions;
     }
   | {
