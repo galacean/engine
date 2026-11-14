@@ -201,7 +201,7 @@ class Oasis {
     this.lightEntity2.transform.setRotation(-30, 180, 0);
     this.scene.ambientLight.specularIntensity = this.state.envIntensity;
     this.scene.background.sky.material = this.skyMaterial;
-    this.scene.background.sky.mesh = PrimitiveMesh.createCuboid(this.engine);
+    this.scene.background.sky.mesh = PrimitiveMesh.createCuboid(this.engine, 1, 1, 1);
     this.engine.run();
   }
 

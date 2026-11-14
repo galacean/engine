@@ -44,7 +44,7 @@ label: Graphics/Mesh
 const entity = rootEntity.createChild("cuboid");
 entity.transform.setPosition(0, 1, 0);
 const renderer = entity.addComponent(MeshRenderer);
-renderer.mesh = PrimitiveMesh.createCuboid(engine);
+renderer.mesh = PrimitiveMesh.createCuboid(engine, 1, 1, 1);
 // Create material
 const material = new BlinnPhongMaterial(engine);
 material.emissiveColor.set(1, 1, 1, 1);
@@ -57,7 +57,7 @@ renderer.setMaterial(material);
 const entity = rootEntity.createChild("sphere");
 entity.transform.setPosition(0, 1, 0);
 const renderer = entity.addComponent(MeshRenderer);
-renderer.mesh = PrimitiveMesh.createSphere(engine);
+renderer.mesh = PrimitiveMesh.createSphere(engine, 0.5);
 // Create material
 const material = new BlinnPhongMaterial(engine);
 material.emissiveColor.set(1, 1, 1, 1);
@@ -70,7 +70,7 @@ renderer.setMaterial(material);
 const entity = rootEntity.createChild("plane");
 entity.transform.setPosition(0, 1, 0);
 const renderer = entity.addComponent(MeshRenderer);
-renderer.mesh = PrimitiveMesh.createPlane(engine);
+renderer.mesh = PrimitiveMesh.createPlane(engine, 1, 1);
 // Create material
 const material = new BlinnPhongMaterial(engine);
 material.emissiveColor.set(1, 1, 1, 1);
@@ -83,7 +83,7 @@ renderer.setMaterial(material);
 const entity = rootEntity.createChild("cylinder");
 entity.transform.setPosition(0, 1, 0);
 const renderer = entity.addComponent(MeshRenderer);
-renderer.mesh = PrimitiveMesh.createCylinder(engine);
+renderer.mesh = PrimitiveMesh.createCylinder(engine, 0.5, 2);
 // Create material
 const material = new BlinnPhongMaterial(engine);
 material.emissiveColor.set(1, 1, 1, 1);
@@ -96,7 +96,7 @@ renderer.setMaterial(material);
 const entity = rootEntity.createChild("torus");
 entity.transform.setPosition(0, 1, 0);
 const renderer = entity.addComponent(MeshRenderer);
-renderer.mesh = PrimitiveMesh.createTorus(engine);
+renderer.mesh = PrimitiveMesh.createTorus(engine, 0.5, 0.1);
 // Create material
 const material = new BlinnPhongMaterial(engine);
 material.emissiveColor.set(1, 1, 1, 1);
@@ -109,7 +109,7 @@ renderer.setMaterial(material);
 const entity = rootEntity.createChild("cone");
 entity.transform.setPosition(0, 1, 0);
 const renderer = entity.addComponent(MeshRenderer);
-renderer.mesh = PrimitiveMesh.createCone(engine);
+renderer.mesh = PrimitiveMesh.createCone(engine, 0.5, 2);
 // Create material
 const material = new BlinnPhongMaterial(engine);
 material.emissiveColor.set(1, 1, 1, 1);
@@ -122,7 +122,7 @@ renderer.setMaterial(material);
 const entity = rootEntity.createChild("capsule");
 entity.transform.setPosition(0, 1, 0);
 const renderer = entity.addComponent(MeshRenderer);
-renderer.mesh = PrimitiveMesh.createCapsule(engine);
+renderer.mesh = PrimitiveMesh.createCapsule(engine, 0.5, 2);
 // Create material
 const material = new BlinnPhongMaterial(engine);
 material.emissiveColor.set(1, 1, 1, 1);
@@ -131,25 +131,25 @@ renderer.setMaterial(material);
 
 ## 程序化几何
 
-每个工厂方法接收一个具名配置对象。配置类型逐字段说明含义、单位和默认值；省略对象或其中的字段即可使用默认值。例如，`createSphere` 接收 `SphereMeshOptions`：
+每个工厂方法先接收必填的形状参数，再接收可选的具名配置对象。尺寸、半径、轮廓和路径必须明确指定；细分、角度范围和网格设置保留在 options 中，省略时使用注释说明的默认值。例如，`createSphere` 先接收半径，再接收 `SphereMeshOptions`：
 
 ```ts
-const unitSphere = PrimitiveMesh.createSphere(engine);
-const sphere = PrimitiveMesh.createSphere(engine, { radius: 1 });
-const smoothSphere = PrimitiveMesh.createSphere(engine, { radius: 1, subdivisions: 4 });
+const unitSphere = PrimitiveMesh.createSphere(engine, 0.5);
+const sphere = PrimitiveMesh.createSphere(engine, 1);
+const smoothSphere = PrimitiveMesh.createSphere(engine, 1, { subdivisions: 4 });
 
-const cube = PrimitiveMesh.createCuboid(engine, { width: 2 });
-const box = PrimitiveMesh.createCuboid(engine, { width: 2, height: 3, depth: 4 });
-const ground = PrimitiveMesh.createPlane(engine, { width: 10 });
+const cube = PrimitiveMesh.createCuboid(engine, 2, 2, 2);
+const box = PrimitiveMesh.createCuboid(engine, 2, 3, 4);
+const ground = PrimitiveMesh.createPlane(engine, 10, 10);
 
-const cylinder = PrimitiveMesh.createCylinder(engine, { radius: 0.5, height: 2 });
-const frustum = PrimitiveMesh.createTruncatedCone(engine, { topRadius: 0.25, bottomRadius: 0.5, height: 2 });
-const mirroredKnot = PrimitiveMesh.createTorusKnot(engine, { radius: 1, tubeRadius: 0.1, p: 2, q: -3 });
+const cylinder = PrimitiveMesh.createCylinder(engine, 0.5, 2);
+const frustum = PrimitiveMesh.createTruncatedCone(engine, 0.25, 0.5, 2);
+const mirroredKnot = PrimitiveMesh.createTorusKnot(engine, 1, 0.1, 2, -3);
 ```
 
-`createCuboid` 的高度、深度默认等于宽度；`createPlane` 的高度默认等于宽度。平面和长方体的后续分段数默认沿用第一个方向的分段数。球体使用一个细分层级，默认为 3，限制在 1 到 6 之间。`createCylinder` 只有一个半径；上下半径不同的圆台使用 `createTruncatedCone`。`createRing` 的 `innerRadius` 默认等于 `outerRadius` 的一半。
+`createCuboid` 的宽、高、深是三个独立的必填参数；`createPlane` 的宽、高也必须分别指定。平面和长方体的后续分段数默认沿用第一个方向的分段数。球体使用一个细分层级，默认为 3，限制在 1 到 6 之间。`createCylinder` 只有一个半径；上下半径不同的圆台使用 `createTruncatedCone`。`createRing` 先接收外半径，再接收内半径，两者都必须指定。
 
-尺寸、分段和网格设置都使用具名字段，可以只修改其中任意一项。
+尺寸必须显式传入；分段和网格设置使用具名字段，可以只指定需要调整的可选项。
 
 环面结的 `p`、`q` 是有符号整数缠绕次数，与网格分段数无关。负值反转对应方向的缠绕，`0` 表示该方向的角度保持不变。
 
@@ -170,10 +170,10 @@ const mirroredKnot = PrimitiveMesh.createTorusKnot(engine, { radius: 1, tubeRadi
 ```ts
 import { PrimitiveMeshCapMode, Vector2 } from "@galacean/engine";
 
-const hemisphere = PrimitiveMesh.createSphere(engine, { verticalRange: new Vector2(0, 90), radius: 1 });
-const openCylinder = PrimitiveMesh.createCylinder(engine, { caps: PrimitiveMeshCapMode.None, radius: 0.5, height: 2 });
-const cupWall = PrimitiveMesh.createCylinder(engine, { caps: PrimitiveMeshCapMode.Bottom, radius: 0.5, height: 2 });
-const halfRing = PrimitiveMesh.createRing(engine, { angleRange: new Vector2(0, 180), outerRadius: 1, innerRadius: 0.5 });
+const hemisphere = PrimitiveMesh.createSphere(engine, 1, { verticalRange: new Vector2(0, 90) });
+const openCylinder = PrimitiveMesh.createCylinder(engine, 0.5, 2, { caps: PrimitiveMeshCapMode.None });
+const cupWall = PrimitiveMesh.createCylinder(engine, 0.5, 2, { caps: PrimitiveMeshCapMode.Bottom });
+const halfRing = PrimitiveMesh.createRing(engine, 1, 0.5, { angleRange: new Vector2(0, 180) });
 ```
 
 圆柱和圆台的 `caps` 使用 `PrimitiveMeshCapMode`：`Both`（默认）、`Top`、`Bottom`、`None`。顶盖朝 +Y，底盖朝 -Y，角度裁切产生的侧面切口保持开放。圆锥用布尔值 `cap` 控制底盖。`createCircle`、`createRing` 和多边形位于 XY 平面、正面朝 +Z；地面用的 `createPlane` 位于 XZ 平面、正面朝 +Y。
@@ -191,25 +191,20 @@ const outline = [new Vector2(-2, -2), new Vector2(2, -2), new Vector2(2, 2), new
 const hole = [new Vector2(-1, -1), new Vector2(-1, 1), new Vector2(1, 1), new Vector2(1, -1)];
 const face = PrimitiveMesh.createPolygon(engine, { points: outline, holes: [hole] });
 
-const solid = PrimitiveMesh.createExtrusion(engine, { points: outline, holes: [hole] }, { depth: 0.5 });
-const beveled = PrimitiveMesh.createExtrusion(engine, outline, {
-  bevelSize: 0.05,
-  bevelOffset: 0.02,
-  depth: 0.5,
-  steps: 1
-});
+const solid = PrimitiveMesh.createExtrusion(engine, { points: outline, holes: [hole] }, 0.5);
+const beveled = PrimitiveMesh.createExtrusion(engine, outline, 0.5, { bevelSize: 0.05, bevelOffset: 0.02, steps: 1 });
 
 const path = Array.from({ length: 65 }, (_, i) => {
   const t = i / 64;
   return new Vector3(4 * t, Math.sin(t * Math.PI * 2), 0);
 });
-const tube = PrimitiveMesh.createTube(engine, path, { radius: 0.1, tubularSegments: 64 });
-const swept = PrimitiveMesh.createExtrusion(engine, outline, { path: path, steps: 64 });
+const tube = PrimitiveMesh.createTube(engine, path, 0.1, { tubularSegments: 64 });
+const swept = PrimitiveMesh.createExtrusion(engine, outline, path, { steps: 64 });
 const loop = [new Vector3(-4, 0, -4), new Vector3(4, 0, -4), new Vector3(4, 0, 4), new Vector3(-4, 0, 4)];
-const closed = PrimitiveMesh.createExtrusion(engine, outline, { closed: true, path: loop, steps: 32 });
+const closed = PrimitiveMesh.createExtrusion(engine, outline, loop, { closed: true, steps: 32 });
 ```
 
-拉伸配置分为 `LinearExtrusionMeshOptions` 和 `PathExtrusionMeshOptions`：前者指定 `depth` 与倒角，后者必须指定 `path`。两个接口分别声明各自模式的设置。提供 `path` 时选择路径挤出，忽略深度和倒角设置；未提供路径时忽略 `closed`。默认沿 +Z 直线拉伸且不倒角；`bevelSize > 0` 时开启倒角，`bevelThickness` 默认等于 `bevelSize`。沿路径拉伸不生成倒角。路径接收 `Vector3` 数组，并按折线长度均匀采样。使用曲线时，在外层采样成点数组后传入，如上例所示。
+拉伸的第三个参数必填：传入数值深度时沿 +Z 直线拉伸，传入 `Vector3` 数组时沿路径挤出。`LinearExtrusionMeshOptions` 包含可选的倒角设置，`PathExtrusionMeshOptions` 包含可选的路径设置。两个接口分别声明各自模式的设置。沿路径挤出时忽略倒角设置；直线拉伸时忽略 `closed`。直线拉伸默认不倒角；`bevelSize > 0` 时开启倒角，`bevelThickness` 默认等于 `bevelSize`。沿路径拉伸不生成倒角。路径接收 `Vector3` 数组，并按折线长度均匀采样。使用曲线时，在外层采样成点数组后传入，如上例所示。
 
 管道和路径挤出的 `closed` 默认关闭；开启后自动连接路径首尾并对齐截面，不必重复首点。闭合挤出至少使用三段，不生成端盖。开放挤出保留两端端盖；管道在两种模式下都不生成端盖。
 
@@ -217,15 +212,12 @@ const closed = PrimitiveMesh.createExtrusion(engine, outline, { closed: true, pa
 
 ### 网格数据和材质
 
-网格设置与尺寸、分段放在同一配置对象中：
+网格设置与分段设置放在同一个可选配置对象中：
 
 ```ts
-const editable = PrimitiveMesh.createSphere(engine, { keepData: true, radius: 1, subdivisions: 3 });
-const sixMaterials = PrimitiveMesh.createCuboid(engine, {
+const editable = PrimitiveMesh.createSphere(engine, 1, { keepData: true, subdivisions: 3 });
+const sixMaterials = PrimitiveMesh.createCuboid(engine, 1, 1, 1, {
   separateMaterials: true,
-  width: 1,
-  height: 1,
-  depth: 1,
   widthSegments: 1,
   heightSegments: 1,
   depthSegments: 1
@@ -259,24 +251,31 @@ import type { PrimitiveMeshAsset } from "@galacean/engine";
 
 const asset = {
   type: "sphere",
-  sphereOptions: { radius: 1, subdivisions: 3, keepData: true }
+  sphereRadius: 1,
+  sphereOptions: { subdivisions: 3, keepData: true }
 } satisfies PrimitiveMeshAsset;
 ```
 
-每个 `type` 对应同名的 `PrimitiveMesh.createX` 方法，`<type>Options` 使用该工厂的具名字段和默认值。角度范围保存为 `{ x: 起始角, y: 结束角 }`，由 Loader 构造 `Vector2`。例如 `circleOptions: { angleRange: { x: 30, y: 180 } }` 创建从 30 度到 180 度的扇形。省略字段时采用创建 API 的默认值，包括由其他字段决定的默认值；角度仍使用度数。
+每个 `type` 对应同名的 `PrimitiveMesh.createX` 方法。带类型前缀的字段保存必填形状参数，`<type>Options` 仅保存该工厂的可选设置。角度范围保存为 `{ x: 起始角, y: 结束角 }`，由 Loader 构造 `Vector2`。例如 `circleOptions: { angleRange: { x: 30, y: 180 } }` 创建从 30 度到 180 度的扇形。省略可选设置时采用创建 API 的默认值，包括由其他可选设置决定的默认值；角度仍使用度数。
 
 | 资产类型 | 必填几何字段 |
 | --- | --- |
-| `sphere`、`cuboid`、`plane` | 无 |
-| `cylinder`、`truncatedCone`、`cone`、`capsule` | 无 |
-| `torus`、`circle`、`ring`、`torusKnot`、`roundedCuboid` | 无 |
-| `tetrahedron`、`octahedron`、`icosahedron`、`dodecahedron` | 无 |
+| `sphere`、`circle` | `<type>Radius` |
+| `cuboid` | `cuboidWidth`、`cuboidHeight`、`cuboidDepth` |
+| `plane` | `planeWidth`、`planeHeight` |
+| `cylinder`、`cone`、`capsule` | `<type>Radius`、`<type>Height` |
+| `truncatedCone` | `truncatedConeTopRadius`、`truncatedConeBottomRadius`、`truncatedConeHeight` |
+| `torus` | `torusRadius`、`torusTubeRadius` |
+| `ring` | `ringOuterRadius`、`ringInnerRadius` |
+| `tetrahedron`、`octahedron`、`icosahedron`、`dodecahedron` | `<type>Radius` |
 | `lathe` | `latheProfile` |
-| `tube` | `tubePath` |
+| `tube` | `tubePath`、`tubeRadius` |
 | `polygon` | `polygonShapes` |
-| `extrusion` | `extrusionShapes`；可指定 `extrusionOptions.depth` 或 `extrusionOptions.path` |
+| `extrusion` | `extrusionShapes`，以及 `extrusionDepth` 或 `extrusionPath` |
+| `torusKnot` | `torusKnotRadius`、`torusKnotTubeRadius`、`torusKnotP`、`torusKnotQ` |
+| `roundedCuboid` | `roundedCuboidWidth`、`roundedCuboidHeight`、`roundedCuboidDepth`、`roundedCuboidCornerRadius` |
 
-`sphere` 创建立方体细分后投影得到的球体，`sphereOptions.subdivisions` 控制细分层级。`cylinder` 使用一个半径；`truncatedCone` 分别使用 `truncatedConeOptions.topRadius` 和 `truncatedConeOptions.bottomRadius`。
+`sphere` 创建立方体细分后投影得到的球体，`sphereOptions.subdivisions` 控制细分层级。`cylinder` 使用一个半径；`truncatedCone` 分别使用 `truncatedConeTopRadius` 和 `truncatedConeBottomRadius`。
 
 轮廓和旋转截面保存为 `{ x, y }` 点数组，路径保存为 `{ x, y, z }` 点数组，由 Loader 构造对应向量。多边形与拉伸统一使用形状数组，每个形状包含 `points` 和可选的 `holes`：
 
@@ -301,10 +300,11 @@ const asset = {
       ]
     }
   ],
-  "extrusionOptions": { "depth": 2, "bevelSize": 0.1, "bevelOffset": 0.2, "separateMaterials": true }
+  "extrusionDepth": 2,
+  "extrusionOptions": { "bevelSize": 0.1, "bevelOffset": 0.2, "separateMaterials": true }
 }
 ```
 
-沿路径拉伸使用 `extrusionOptions.path`，忽略深度和倒角设置。`extrusionOptions.closed` 设为 `true` 时闭合路径且不生成端盖。路径点保存为 `{ x, y, z }`。
+沿路径拉伸通过必填的 `extrusionPath` 代替 `extrusionDepth`，并忽略倒角设置。`extrusionOptions.closed` 设为 `true` 时闭合路径且不生成端盖。路径点保存为 `{ x, y, z }`。
 
 以上类型前缀字段及 `<type>Options` 都能经过 Editor 现有的基础网格打包过滤。Editor 预览应使用与保存资产相同的创建方法和参数。

@@ -66,13 +66,12 @@ class PrimitiveContours {
         {
           label: "Straight extrusion",
           detail: "depth: 0.6 / no bevel",
-          mesh: PrimitiveMesh.createExtrusion(engine, polygon, { depth: 0.6 })
+          mesh: PrimitiveMesh.createExtrusion(engine, polygon, 0.6)
         },
         {
           label: "Independent bevel depth",
           detail: "size: 0.16 / thickness: 0.06",
-          mesh: PrimitiveMesh.createExtrusion(engine, polygon, {
-            depth: 0.6,
+          mesh: PrimitiveMesh.createExtrusion(engine, polygon, 0.6, {
             bevelSize: 0.16,
             bevelThickness: 0.06,
             bevelSegments: 4
@@ -81,42 +80,37 @@ class PrimitiveContours {
         {
           label: "Expanded contour",
           detail: "offset: +0.15 / no bevel",
-          mesh: PrimitiveMesh.createExtrusion(engine, polygon, { depth: 0.6, bevelOffset: 0.15 })
+          mesh: PrimitiveMesh.createExtrusion(engine, polygon, 0.6, { bevelOffset: 0.15 })
         },
         {
           label: "Contracted contour",
           detail: "bevelOffset: -0.15",
-          mesh: PrimitiveMesh.createExtrusion(engine, polygon, { depth: 0.6, bevelOffset: -0.15, bevelSize: 0.08 })
+          mesh: PrimitiveMesh.createExtrusion(engine, polygon, 0.6, { bevelOffset: -0.15, bevelSize: 0.08 })
         },
         {
           label: "Open tube",
           detail: "point array / open ends",
-          mesh: PrimitiveMesh.createTube(engine, path, { radius: 0.15, tubularSegments: 48, radialSegments: 12 })
+          mesh: PrimitiveMesh.createTube(engine, path, 0.15, { tubularSegments: 48, radialSegments: 12 })
         },
         {
           label: "Closed tube",
           detail: "closed: true / seamless join",
-          mesh: PrimitiveMesh.createTube(engine, loop, {
-            radius: 0.15,
-            tubularSegments: 64,
-            radialSegments: 12,
-            closed: true
-          })
+          mesh: PrimitiveMesh.createTube(engine, loop, 0.15, { tubularSegments: 64, radialSegments: 12, closed: true })
         },
         {
           label: "Open profile sweep",
           detail: "path + steps: 48",
-          mesh: PrimitiveMesh.createExtrusion(engine, smallProfile, { path, steps: 48 })
+          mesh: PrimitiveMesh.createExtrusion(engine, smallProfile, path, { steps: 48 })
         },
         {
           label: "Closed profile sweep",
           detail: "closed: true / no caps",
-          mesh: PrimitiveMesh.createExtrusion(engine, smallProfile, { path: loop, steps: 64, closed: true })
+          mesh: PrimitiveMesh.createExtrusion(engine, smallProfile, loop, { steps: 64, closed: true })
         },
         {
           label: "Hollow profile sweep",
           detail: "path + inner contour",
-          mesh: PrimitiveMesh.createExtrusion(engine, smallHoleProfile, { path, steps: 48 })
+          mesh: PrimitiveMesh.createExtrusion(engine, smallHoleProfile, path, { steps: 48 })
         }
       ],
       4

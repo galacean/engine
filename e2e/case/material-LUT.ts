@@ -56,7 +56,7 @@ WebGLEngine.create({ canvas: "canvas", shaderCompiler })
     const entity = rootEntity.createChild("Entity");
     entity.transform.setRotation(90, 0, 0);
     const renderer = entity.addComponent(MeshRenderer);
-    renderer.mesh = PrimitiveMesh.createPlane(engine);
+    renderer.mesh = PrimitiveMesh.createPlane(engine, 1, 1);
 
     const shader = Shader.create(shaderSource);
     const material = new Material(engine, shader);

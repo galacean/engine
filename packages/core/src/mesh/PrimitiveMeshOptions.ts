@@ -1,4 +1,4 @@
-import type { Vector2, Vector3 } from "@galacean/engine-math";
+import type { Vector2 } from "@galacean/engine-math";
 import type { PrimitiveMeshCapMode } from "./enums/PrimitiveMeshCapMode";
 
 /**
@@ -34,11 +34,6 @@ export interface PolygonShape {
  */
 export interface SphereMeshOptions extends PrimitiveMeshOptions {
   /**
-   * The radius in local units.
-   * @defaultValue `0.5`
-   */
-  radius?: number;
-  /**
    * The subdivision level, rounded down and clamped to 1 through 6.
    * @defaultValue `3`
    */
@@ -62,21 +57,6 @@ export interface SphereMeshOptions extends PrimitiveMeshOptions {
  * Settings for an axis-aligned cuboid centered at the origin.
  */
 export interface CuboidMeshOptions extends PrimitiveMeshOptions {
-  /**
-   * The full size along X in local units.
-   * @defaultValue `1`
-   */
-  width?: number;
-  /**
-   * The full size along Y in local units.
-   * @defaultValue The value of `width`.
-   */
-  height?: number;
-  /**
-   * The full size along Z in local units.
-   * @defaultValue The value of `width`.
-   */
-  depth?: number;
   /**
    * The number of subdivisions along X, rounded down with a minimum of 1.
    * @defaultValue `1`
@@ -104,16 +84,6 @@ export interface CuboidMeshOptions extends PrimitiveMeshOptions {
  */
 export interface PlaneMeshOptions extends PrimitiveMeshOptions {
   /**
-   * The full size along X in local units.
-   * @defaultValue `1`
-   */
-  width?: number;
-  /**
-   * The full size along Z in local units.
-   * @defaultValue The value of `width`.
-   */
-  height?: number;
-  /**
    * The number of subdivisions along X, rounded down with a minimum of 1.
    * @defaultValue `1`
    */
@@ -129,16 +99,6 @@ export interface PlaneMeshOptions extends PrimitiveMeshOptions {
  * Settings for a cylinder centered on Y with equal end radii.
  */
 export interface CylinderMeshOptions extends PrimitiveMeshOptions {
-  /**
-   * The radius in local units.
-   * @defaultValue `0.5`
-   */
-  radius?: number;
-  /**
-   * The full size along Y in local units.
-   * @defaultValue `2`
-   */
-  height?: number;
   /**
    * The number of segments around the circumference, rounded down with a minimum of 3.
    * @defaultValue `20`
@@ -172,21 +132,6 @@ export interface CylinderMeshOptions extends PrimitiveMeshOptions {
  */
 export interface TruncatedConeMeshOptions extends PrimitiveMeshOptions {
   /**
-   * The top radius in local units.
-   * @defaultValue `0.25`
-   */
-  topRadius?: number;
-  /**
-   * The bottom radius in local units.
-   * @defaultValue `0.5`
-   */
-  bottomRadius?: number;
-  /**
-   * The full size along Y in local units.
-   * @defaultValue `2`
-   */
-  height?: number;
-  /**
    * The number of segments around the circumference, rounded down with a minimum of 3.
    * @defaultValue `20`
    */
@@ -218,16 +163,6 @@ export interface TruncatedConeMeshOptions extends PrimitiveMeshOptions {
  * Settings for a cone centered on Y with its tip at the top.
  */
 export interface ConeMeshOptions extends PrimitiveMeshOptions {
-  /**
-   * The bottom radius in local units.
-   * @defaultValue `0.5`
-   */
-  radius?: number;
-  /**
-   * The full size along Y in local units.
-   * @defaultValue `2`
-   */
-  height?: number;
   /**
    * The number of segments around the circumference, rounded down with a minimum of 3.
    * @defaultValue `20`
@@ -261,16 +196,6 @@ export interface ConeMeshOptions extends PrimitiveMeshOptions {
  */
 export interface CapsuleMeshOptions extends PrimitiveMeshOptions {
   /**
-   * The radius of the cylinder and hemispherical ends in local units.
-   * @defaultValue `0.5`
-   */
-  radius?: number;
-  /**
-   * The straight cylindrical section's height in local units. Total height is `height + 2 * radius`.
-   * @defaultValue `2`
-   */
-  height?: number;
-  /**
    * The number of segments around the circumference, rounded down with a minimum of 3.
    * @defaultValue `6`
    */
@@ -291,16 +216,6 @@ export interface CapsuleMeshOptions extends PrimitiveMeshOptions {
  * Settings for a torus centered in XY around Z.
  */
 export interface TorusMeshOptions extends PrimitiveMeshOptions {
-  /**
-   * The distance from the origin to the tube centerline in local units.
-   * @defaultValue `0.5`
-   */
-  radius?: number;
-  /**
-   * The radius of the tube cross-section in local units.
-   * @defaultValue `0.1`
-   */
-  tubeRadius?: number;
   /**
    * The number of segments around the torus, rounded down with a minimum of 1.
    * @defaultValue `30`
@@ -330,11 +245,6 @@ export interface TorusMeshOptions extends PrimitiveMeshOptions {
  */
 export interface CircleMeshOptions extends PrimitiveMeshOptions {
   /**
-   * The radius in local units.
-   * @defaultValue `0.5`
-   */
-  radius?: number;
-  /**
    * The number of segments along the arc, rounded down with a minimum of 3.
    * @defaultValue `32`
    */
@@ -350,16 +260,6 @@ export interface CircleMeshOptions extends PrimitiveMeshOptions {
  * Settings for a ring or ring sector in XY facing +Z.
  */
 export interface RingMeshOptions extends PrimitiveMeshOptions {
-  /**
-   * The outer radius in local units.
-   * @defaultValue `0.5`
-   */
-  outerRadius?: number;
-  /**
-   * The inner radius in local units.
-   * @defaultValue Half of `outerRadius`.
-   */
-  innerRadius?: number;
   /**
    * The number of segments along the arc, rounded down with a minimum of 3.
    * @defaultValue `32`
@@ -381,11 +281,6 @@ export interface RingMeshOptions extends PrimitiveMeshOptions {
  * Settings shared by tetrahedra, octahedra, icosahedra and dodecahedra.
  */
 export interface RegularPolyhedronMeshOptions extends PrimitiveMeshOptions {
-  /**
-   * The distance from the origin to each vertex in local units.
-   * @defaultValue `0.5`
-   */
-  radius?: number;
   /**
    * The number of subdivisions per triangle edge, rounded down with a minimum of 1.
    * Values above 1 project the new vertices onto the sphere and use smooth normals.
@@ -415,11 +310,6 @@ export interface LatheMeshOptions extends PrimitiveMeshOptions {
  * Settings for sweeping a circular cross-section along a polyline.
  */
 export interface TubeMeshOptions extends PrimitiveMeshOptions {
-  /**
-   * The radius of the cross-section in local units.
-   * @defaultValue `0.5`
-   */
-  radius?: number;
   /**
    * The number of segments along the resampled path, rounded down with a minimum of 1.
    * @defaultValue `64`
@@ -453,11 +343,6 @@ export interface PolygonMeshOptions extends PrimitiveMeshOptions {
  * Settings for extruding polygons along +Z.
  */
 export interface LinearExtrusionMeshOptions extends PrimitiveMeshOptions {
-  /**
-   * The total extrusion depth in local units, including both bevels.
-   * @defaultValue `1`
-   */
-  depth?: number;
   /**
    * The number of subdivisions along the extrusion, rounded down with a minimum of 1.
    * @defaultValue `1`
@@ -498,10 +383,6 @@ export interface LinearExtrusionMeshOptions extends PrimitiveMeshOptions {
  */
 export interface PathExtrusionMeshOptions extends PrimitiveMeshOptions {
   /**
-   * The path points, resampled at equal distances along the polyline. At least two distinct points are required.
-   */
-  path: readonly Vector3[];
-  /**
    * The number of subdivisions along the resampled path, rounded down with a minimum of 1, or 3 for closed paths.
    * @defaultValue `1`, increased to `3` when `closed` is true.
    */
@@ -521,29 +402,9 @@ export interface PathExtrusionMeshOptions extends PrimitiveMeshOptions {
 }
 
 /**
- * Settings for a closed torus knot. At least one of `p` and `q` must be nonzero.
+ * Settings for a closed torus knot.
  */
 export interface TorusKnotMeshOptions extends PrimitiveMeshOptions {
-  /**
-   * The base radius of the torus in local units.
-   * @defaultValue `0.5`
-   */
-  radius?: number;
-  /**
-   * The radius of the tube cross-section in local units.
-   * @defaultValue `0.1`
-   */
-  tubeRadius?: number;
-  /**
-   * The signed integer revolution count around the torus axis. Negative values reverse the winding.
-   * @defaultValue `2`
-   */
-  p?: number;
-  /**
-   * The signed integer revolution count through the torus hole. Negative values reverse the winding.
-   * @defaultValue `3`
-   */
-  q?: number;
   /**
    * The number of segments along the knot, rounded down with a minimum of 1.
    * @defaultValue `64`
@@ -560,26 +421,6 @@ export interface TorusKnotMeshOptions extends PrimitiveMeshOptions {
  * Settings for an axis-aligned cuboid with rounded edges and corners.
  */
 export interface RoundedCuboidMeshOptions extends PrimitiveMeshOptions {
-  /**
-   * The full size along X in local units.
-   * @defaultValue `1`
-   */
-  width?: number;
-  /**
-   * The full size along Y in local units.
-   * @defaultValue The value of `width`.
-   */
-  height?: number;
-  /**
-   * The full size along Z in local units.
-   * @defaultValue The value of `width`.
-   */
-  depth?: number;
-  /**
-   * The edge and corner radius in local units, clamped between zero and half the smallest dimension.
-   * @defaultValue `0.1`
-   */
-  cornerRadius?: number;
   /**
    * The rounding subdivision count, rounded down with a minimum of 1.
    * When `cornerRadius` is positive, each face uses `2 * segments + 1` subdivisions per axis.

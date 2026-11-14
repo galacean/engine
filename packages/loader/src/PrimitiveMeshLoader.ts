@@ -25,33 +25,65 @@ class PrimitiveMeshLoader extends Loader<ModelMesh> {
     const { type } = data;
     switch (type) {
       case "sphere":
-        return PrimitiveMesh.createSphere(engine, this._parseRangeOptions(data.sphereOptions));
+        return PrimitiveMesh.createSphere(engine, data.sphereRadius, this._parseRangeOptions(data.sphereOptions));
       case "cuboid":
-        return PrimitiveMesh.createCuboid(engine, data.cuboidOptions);
+        return PrimitiveMesh.createCuboid(
+          engine,
+          data.cuboidWidth,
+          data.cuboidHeight,
+          data.cuboidDepth,
+          data.cuboidOptions
+        );
       case "plane":
-        return PrimitiveMesh.createPlane(engine, data.planeOptions);
+        return PrimitiveMesh.createPlane(engine, data.planeWidth, data.planeHeight, data.planeOptions);
       case "cylinder":
-        return PrimitiveMesh.createCylinder(engine, this._parseRangeOptions(data.cylinderOptions));
+        return PrimitiveMesh.createCylinder(
+          engine,
+          data.cylinderRadius,
+          data.cylinderHeight,
+          this._parseRangeOptions(data.cylinderOptions)
+        );
       case "truncatedCone":
-        return PrimitiveMesh.createTruncatedCone(engine, this._parseRangeOptions(data.truncatedConeOptions));
+        return PrimitiveMesh.createTruncatedCone(
+          engine,
+          data.truncatedConeTopRadius,
+          data.truncatedConeBottomRadius,
+          data.truncatedConeHeight,
+          this._parseRangeOptions(data.truncatedConeOptions)
+        );
       case "cone":
-        return PrimitiveMesh.createCone(engine, this._parseRangeOptions(data.coneOptions));
+        return PrimitiveMesh.createCone(
+          engine,
+          data.coneRadius,
+          data.coneHeight,
+          this._parseRangeOptions(data.coneOptions)
+        );
       case "capsule":
-        return PrimitiveMesh.createCapsule(engine, data.capsuleOptions);
+        return PrimitiveMesh.createCapsule(engine, data.capsuleRadius, data.capsuleHeight, data.capsuleOptions);
       case "torus":
-        return PrimitiveMesh.createTorus(engine, this._parseRangeOptions(data.torusOptions));
+        return PrimitiveMesh.createTorus(
+          engine,
+          data.torusRadius,
+          data.torusTubeRadius,
+          this._parseRangeOptions(data.torusOptions)
+        );
       case "circle":
-        return PrimitiveMesh.createCircle(engine, this._parseRangeOptions(data.circleOptions));
+        return PrimitiveMesh.createCircle(engine, data.circleRadius, this._parseRangeOptions(data.circleOptions));
       case "ring":
-        return PrimitiveMesh.createRing(engine, this._parseRangeOptions(data.ringOptions));
+        return PrimitiveMesh.createRing(
+          engine,
+          data.ringOuterRadius,
+          data.ringInnerRadius,
+          this._parseRangeOptions(data.ringOptions)
+        );
       case "tetrahedron":
-        return PrimitiveMesh.createTetrahedron(engine, data.tetrahedronOptions);
+        return PrimitiveMesh.createTetrahedron(engine, data.tetrahedronRadius, data.tetrahedronOptions);
       case "octahedron":
-        return PrimitiveMesh.createOctahedron(engine, data.octahedronOptions);
+        return PrimitiveMesh.createOctahedron(engine, data.octahedronRadius, data.octahedronOptions);
       case "icosahedron":
-        return PrimitiveMesh.createIcosahedron(engine, data.icosahedronOptions);
+        return PrimitiveMesh.createIcosahedron(engine, data.icosahedronRadius, data.icosahedronOptions);
       case "dodecahedron":
-        return PrimitiveMesh.createDodecahedron(engine, data.dodecahedronOptions);
+        return PrimitiveMesh.createDodecahedron(engine, data.dodecahedronRadius, data.dodecahedronOptions);
       case "lathe":
         return PrimitiveMesh.createLathe(
           engine,
@@ -59,22 +91,34 @@ class PrimitiveMeshLoader extends Loader<ModelMesh> {
           this._parseRangeOptions(data.latheOptions)
         );
       case "tube":
-        return PrimitiveMesh.createTube(engine, this._parseVector3s(data.tubePath), data.tubeOptions);
+        return PrimitiveMesh.createTube(engine, this._parseVector3s(data.tubePath), data.tubeRadius, data.tubeOptions);
       case "polygon":
         return PrimitiveMesh.createPolygon(engine, this._parseShapes(data.polygonShapes), data.polygonOptions);
-      case "extrusion": {
-        const shapes = this._parseShapes(data.extrusionShapes);
-        const options = data.extrusionOptions;
+      case "extrusion":
         return PrimitiveMesh.createExtrusion(
           engine,
-          shapes,
-          options && "path" in options ? { ...options, path: this._parseVector3s(options.path) } : options
+          this._parseShapes(data.extrusionShapes),
+          "extrusionPath" in data ? this._parseVector3s(data.extrusionPath) : data.extrusionDepth,
+          data.extrusionOptions
         );
-      }
       case "torusKnot":
-        return PrimitiveMesh.createTorusKnot(engine, data.torusKnotOptions);
+        return PrimitiveMesh.createTorusKnot(
+          engine,
+          data.torusKnotRadius,
+          data.torusKnotTubeRadius,
+          data.torusKnotP,
+          data.torusKnotQ,
+          data.torusKnotOptions
+        );
       case "roundedCuboid":
-        return PrimitiveMesh.createRoundedCuboid(engine, data.roundedCuboidOptions);
+        return PrimitiveMesh.createRoundedCuboid(
+          engine,
+          data.roundedCuboidWidth,
+          data.roundedCuboidHeight,
+          data.roundedCuboidDepth,
+          data.roundedCuboidCornerRadius,
+          data.roundedCuboidOptions
+        );
       default: {
         const unsupportedType: never = type;
         throw new Error(`Unknown primitive mesh type: ${unsupportedType}`);

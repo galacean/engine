@@ -82,7 +82,7 @@ WebGLEngine.create({ canvas: "canvas", graphicDeviceOptions: { alpha: false } })
       canvasPlaneEntity.transform.setPosition(0, 0, 0);
       canvasPlaneEntity.transform.rotate(new Vector3(90, 0, 0));
       const renderer = canvasPlaneEntity.addComponent(MeshRenderer);
-      renderer.mesh = PrimitiveMesh.createPlane(engine, { width: 2 });
+      renderer.mesh = PrimitiveMesh.createPlane(engine, 2, 2);
       renderer.setMaterial(canvasMaterial);
 
       updateForE2E(engine);
@@ -111,7 +111,7 @@ function createMainScene(engine: Engine, transparencyTexture: Texture2D): Textur
   planeEntity.transform.setPosition(0, 0, 0);
   planeEntity.transform.rotate(new Vector3(90, 0, 0));
   const planeRenderer = planeEntity.addComponent(MeshRenderer);
-  planeRenderer.mesh = PrimitiveMesh.createPlane(engine);
+  planeRenderer.mesh = PrimitiveMesh.createPlane(engine, 1, 1);
 
   const planeMaterial = new UnlitMaterial(engine);
   planeMaterial.baseTexture = transparencyTexture;
@@ -124,7 +124,7 @@ function createMainScene(engine: Engine, transparencyTexture: Texture2D): Textur
   cubeEntity.transform.setPosition(-1, 0, 0);
   cubeEntity.transform.rotate(new Vector3(0, 0, 15));
   const sphereRenderer = cubeEntity.addComponent(MeshRenderer);
-  sphereRenderer.mesh = PrimitiveMesh.createCuboid(engine);
+  sphereRenderer.mesh = PrimitiveMesh.createCuboid(engine, 1, 1, 1);
 
   const sphereMaterial = new UnlitMaterial(engine);
   sphereRenderer.setMaterial(sphereMaterial);

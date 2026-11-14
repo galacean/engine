@@ -102,7 +102,7 @@ WebGLEngine.create({ canvas: "canvas", shaderCompiler }).then((engine) => {
     const sphere = rootEntity.createChild("sphere");
     sphere.transform.position.x = -1;
     const renderer = sphere.addComponent(MeshRenderer);
-    renderer.mesh = PrimitiveMesh.createSphere(engine);
+    renderer.mesh = PrimitiveMesh.createSphere(engine, 0.5);
     const material = new Material(engine, shader);
     material.shaderData.setColor("u_color", new Color(1, 0, 0, 0.2));
     renderer.setMaterial(material);
@@ -113,7 +113,7 @@ WebGLEngine.create({ canvas: "canvas", shaderCompiler }).then((engine) => {
     const cuboid = rootEntity.createChild("sphere");
     cuboid.transform.position.x = 1;
     const renderer = cuboid.addComponent(MeshRenderer);
-    renderer.mesh = PrimitiveMesh.createCuboid(engine);
+    renderer.mesh = PrimitiveMesh.createCuboid(engine, 1, 1, 1);
     const material = new Material(engine, shader);
     material.shaderData.setColor("u_color", new Color(1, 0, 0, 0.2));
     renderer.setMaterial(material);

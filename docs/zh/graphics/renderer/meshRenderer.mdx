@@ -23,7 +23,7 @@ label: Graphics/Renderer
 ```typescript
 const cubeEntity = rootEntity.createChild("cube");
 const cube = cubeEntity.addComponent(MeshRenderer);
-cube.mesh = PrimitiveMesh.createCuboid(engine, { width: 2 });
+cube.mesh = PrimitiveMesh.createCuboid(engine, 2, 2, 2);
 cube.setMaterial(new BlinnPhongMaterial(engine));
 ```
 

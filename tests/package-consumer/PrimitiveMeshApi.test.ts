@@ -55,6 +55,21 @@ it.each(["PrimitiveMeshApi", "PrimitiveMeshAsset"])("type-checks %s and rejects 
         const optionsType = checker.getNonNullableType(
           checker.getTypeOfSymbolAtLocation(signature.getParameters()[optionsIndex], source)
         );
+        const optionTypes = optionsType.isUnion() ? optionsType.types : [optionsType];
+        const inputNames = signature
+          .getParameters()
+          .slice(0, optionsIndex)
+          .map((parameter) => parameter.name);
+        for (const parameter of signature.getDeclaration()!.parameters.slice(0, optionsIndex)) {
+          expect(
+            parameter.questionToken,
+            `Optional core input: ${factory.name}.${parameter.name.getText()}`
+          ).toBeUndefined();
+          expect(
+            parameter.initializer,
+            `Default core input: ${factory.name}.${parameter.name.getText()}`
+          ).toBeUndefined();
+        }
         const documentedFields = new Set(
           examples.flatMap((call) => {
             const options = call.arguments[optionsIndex];
@@ -66,8 +81,14 @@ it.each(["PrimitiveMeshApi", "PrimitiveMeshAsset"])("type-checks %s and rejects 
               : [];
           })
         );
-        for (const field of optionsType.getProperties()) {
-          expect(documentedFields.has(field.name), `Missing option example: ${factory.name}.${field.name}`).toBe(true);
+        for (const type of optionTypes) {
+          for (const field of type.getProperties()) {
+            expect(field.flags & ts.SymbolFlags.Optional, `Required option: ${factory.name}.${field.name}`).not.toBe(0);
+            expect(inputNames.includes(field.name), `Duplicated core input: ${factory.name}.${field.name}`).toBe(false);
+            expect(documentedFields.has(field.name), `Missing option example: ${factory.name}.${field.name}`).toBe(
+              true
+            );
+          }
         }
       }
 

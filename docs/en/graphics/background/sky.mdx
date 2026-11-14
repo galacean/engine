@@ -49,7 +49,7 @@ const skyMaterial = new SkyProceduralMaterial(engine);
 const background = scene.background;
 background.mode = BackgroundMode.Sky;
 background.sky.material = skyMaterial;
-background.sky.mesh = PrimitiveMesh.createSphere(engine);
+background.sky.mesh = PrimitiveMesh.createSphere(engine, 0.5);
 ```
 
 ### Properties

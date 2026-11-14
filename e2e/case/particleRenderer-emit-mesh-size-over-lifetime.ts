@@ -55,7 +55,7 @@ function createSizeOverLifetimeParticle(engine: Engine): Entity {
   particleRenderer.setMaterial(material);
 
   particleRenderer.renderMode = ParticleRenderMode.Mesh;
-  particleRenderer.mesh = PrimitiveMesh.createCuboid(engine);
+  particleRenderer.mesh = PrimitiveMesh.createCuboid(engine, 1, 1, 1);
 
   const generator = particleRenderer.generator;
   generator.useAutoRandomSeed = false;

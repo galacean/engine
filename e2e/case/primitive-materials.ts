@@ -19,11 +19,11 @@ class PrimitiveMaterials {
     const profiles = [-0.12, 0.12].map((offset) => ({
       points: square.map(({ x, y }) => new Vector2(x * 0.07 + offset, y * 0.07))
     }));
-    const asset = { type: "sphere", sphereOptions: { radius: 1, subdivisions: 2 } } satisfies PrimitiveMeshAsset;
+    const asset = { type: "sphere", sphereRadius: 1, sphereOptions: { subdivisions: 2 } } satisfies PrimitiveMeshAsset;
     const url = URL.createObjectURL(new Blob([JSON.stringify(asset)], { type: "application/json" }));
     const loaded = await engine.resourceManager.load<ModelMesh>({ type: AssetType.PrimitiveMesh, url });
     URL.revokeObjectURL(url);
-    const retained = PrimitiveMesh.createSphere(engine, { radius: 1, subdivisions: 2, keepData: true });
+    const retained = PrimitiveMesh.createSphere(engine, 1, { subdivisions: 2, keepData: true });
     if (loaded.accessible || !retained.accessible || loaded.vertexCount !== retained.vertexCount) {
       throw new Error("Primitive data retention or JSON asset creation differs from the factory.");
     }
@@ -31,25 +31,25 @@ class PrimitiveMaterials {
       {
         label: "Cuboid / one material",
         detail: "separateMaterials: false",
-        mesh: PrimitiveMesh.createCuboid(engine),
+        mesh: PrimitiveMesh.createCuboid(engine, 1, 1, 1),
         slots: 1
       },
       {
         label: "Cuboid / face materials",
         detail: "+Y -Y -X +X +Z -Z",
-        mesh: PrimitiveMesh.createCuboid(engine, { separateMaterials: true }),
+        mesh: PrimitiveMesh.createCuboid(engine, 1, 1, 1, { separateMaterials: true }),
         slots: 6
       },
       {
         label: "Cylinder / part materials",
         detail: "side / top / bottom",
-        mesh: PrimitiveMesh.createCylinder(engine, { height: 1.4, separateMaterials: true }),
+        mesh: PrimitiveMesh.createCylinder(engine, 0.5, 1.4, { separateMaterials: true }),
         slots: 3
       },
       {
         label: "Cone / part materials",
         detail: "side / bottom",
-        mesh: PrimitiveMesh.createCone(engine, { height: 1.4, separateMaterials: true }),
+        mesh: PrimitiveMesh.createCone(engine, 0.5, 1.4, { separateMaterials: true }),
         slots: 2,
         rotation: new Vector3(-25, -28, 0)
       },
@@ -63,14 +63,13 @@ class PrimitiveMaterials {
       {
         label: "Extrusion / cap and wall",
         detail: "caps / walls + bevels",
-        mesh: PrimitiveMesh.createExtrusion(engine, square, { depth: 0.6, bevelSize: 0.12, separateMaterials: true }),
+        mesh: PrimitiveMesh.createExtrusion(engine, square, 0.6, { bevelSize: 0.12, separateMaterials: true }),
         slots: 2
       },
       {
         label: "Closed / two profiles",
         detail: "one wall slot per profile",
-        mesh: PrimitiveMesh.createExtrusion(engine, profiles, {
-          path: loop,
+        mesh: PrimitiveMesh.createExtrusion(engine, profiles, loop, {
           steps: 64,
           closed: true,
           separateMaterials: true
@@ -80,7 +79,7 @@ class PrimitiveMaterials {
       {
         label: "Rounded / face materials",
         detail: "six material slots",
-        mesh: PrimitiveMesh.createRoundedCuboid(engine, { cornerRadius: 0.2, segments: 4, separateMaterials: true }),
+        mesh: PrimitiveMesh.createRoundedCuboid(engine, 1, 1, 1, 0.2, { segments: 4, separateMaterials: true }),
         slots: 6
       },
       {
@@ -100,14 +99,14 @@ class PrimitiveMaterials {
       {
         label: "Mirrored torus knot",
         detail: "p: 2 / q: -3",
-        mesh: PrimitiveMesh.createTorusKnot(engine, { q: -3, tubularSegments: 96 }),
+        mesh: PrimitiveMesh.createTorusKnot(engine, 0.5, 0.1, 2, -3, { tubularSegments: 96 }),
         slots: 1,
         appearance: "checker"
       },
       {
         label: "Clamped corner radius",
         detail: "radius: 2 clamped to 0.5",
-        mesh: PrimitiveMesh.createRoundedCuboid(engine, { cornerRadius: 2, segments: 6 }),
+        mesh: PrimitiveMesh.createRoundedCuboid(engine, 1, 1, 1, 2, { segments: 6 }),
         slots: 1,
         appearance: "checker"
       }

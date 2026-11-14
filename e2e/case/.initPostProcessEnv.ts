@@ -47,7 +47,7 @@ export async function initPostProcessEnv(
           scene.background.mode = BackgroundMode.Sky;
 
           sky.material = skyMaterial;
-          sky.mesh = PrimitiveMesh.createCuboid(engine, { width: 1, height: 1, depth: 1 });
+          sky.mesh = PrimitiveMesh.createCuboid(engine, 1, 1, 1);
           skyMaterial.texture = ambientLight.specularTexture;
           return ambientLight;
         }),

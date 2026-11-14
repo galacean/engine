@@ -113,7 +113,7 @@ function createPlane(engine: Engine, name: string, position: Vector3): Entity {
   entity.transform.setRotation(90, 0, 0);
 
   const renderer = entity.addComponent(MeshRenderer);
-  renderer.mesh = PrimitiveMesh.createPlane(engine, { width: 2 });
+  renderer.mesh = PrimitiveMesh.createPlane(engine, 2, 2);
 
   return entity;
 }

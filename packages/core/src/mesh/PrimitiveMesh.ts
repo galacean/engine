@@ -178,11 +178,12 @@ export class PrimitiveMesh {
   /**
    * Create a sphere or an open spherical section from a subdivided cube.
    * @param engine - The engine that owns the mesh
-   * @param options - Shape and mesh creation settings
+   * @param radius - The radius in local units
+   * @param options - Optional mesh generation settings
    * @returns The generated mesh
    */
-  static createSphere(engine: Engine, options: SphereMeshOptions = {}): ModelMesh {
-    const { radius = 0.5, subdivisions = 3, horizontalRange, verticalRange } = options;
+  static createSphere(engine: Engine, radius: number, options: SphereMeshOptions = {}): ModelMesh {
+    const { subdivisions = 3, horizontalRange, verticalRange } = options;
     return PrimitiveMesh._createMesh(
       engine,
       PrimitiveMesh._createSphereData,
@@ -201,18 +202,20 @@ export class PrimitiveMesh {
   /**
    * Create an axis-aligned cuboid centered at the origin.
    * @param engine - The engine that owns the mesh
-   * @param options - Shape and mesh creation settings
+   * @param width - The full size along X in local units
+   * @param height - The full size along Y in local units
+   * @param depth - The full size along Z in local units
+   * @param options - Optional mesh generation settings
    * @returns The generated mesh
    */
-  static createCuboid(engine: Engine, options: CuboidMeshOptions = {}): ModelMesh {
-    const {
-      width = 1,
-      height = width,
-      depth = width,
-      widthSegments = 1,
-      heightSegments = widthSegments,
-      depthSegments = widthSegments
-    } = options;
+  static createCuboid(
+    engine: Engine,
+    width: number,
+    height: number,
+    depth: number,
+    options: CuboidMeshOptions = {}
+  ): ModelMesh {
+    const { widthSegments = 1, heightSegments = widthSegments, depthSegments = widthSegments } = options;
     return PrimitiveMesh._createMesh(
       engine,
       PrimitiveMesh._createCuboidData,
@@ -224,11 +227,13 @@ export class PrimitiveMesh {
   /**
    * Create a plane in XZ facing +Y, centered at the origin.
    * @param engine - The engine that owns the mesh
-   * @param options - Shape and mesh creation settings
+   * @param width - The full size along X in local units
+   * @param height - The full size along Z in local units
+   * @param options - Optional mesh generation settings
    * @returns The generated mesh
    */
-  static createPlane(engine: Engine, options: PlaneMeshOptions = {}): ModelMesh {
-    const { width = 1, height = width, horizontalSegments = 1, verticalSegments = horizontalSegments } = options;
+  static createPlane(engine: Engine, width: number, height: number, options: PlaneMeshOptions = {}): ModelMesh {
+    const { horizontalSegments = 1, verticalSegments = horizontalSegments } = options;
     return PrimitiveMesh._createMesh(
       engine,
       PrimitiveMesh._createPlaneData,
@@ -240,18 +245,13 @@ export class PrimitiveMesh {
   /**
    * Create a cylinder centered on Y with equal end radii.
    * @param engine - The engine that owns the mesh
-   * @param options - Shape and mesh creation settings
+   * @param radius - The radius in local units
+   * @param height - The full size along Y in local units
+   * @param options - Optional mesh generation settings
    * @returns The generated mesh
    */
-  static createCylinder(engine: Engine, options: CylinderMeshOptions = {}): ModelMesh {
-    const {
-      radius = 0.5,
-      height = 2,
-      radialSegments = 20,
-      heightSegments = 1,
-      caps = PrimitiveMeshCapMode.Both,
-      angleRange
-    } = options;
+  static createCylinder(engine: Engine, radius: number, height: number, options: CylinderMeshOptions = {}): ModelMesh {
+    const { radialSegments = 20, heightSegments = 1, caps = PrimitiveMeshCapMode.Both, angleRange } = options;
     const startAngle = angleRange?.x ?? 0;
     return PrimitiveMesh._createMesh(
       engine,
@@ -274,19 +274,20 @@ export class PrimitiveMesh {
   /**
    * Create a truncated cone centered on Y with independently sized ends.
    * @param engine - The engine that owns the mesh
-   * @param options - Shape and mesh creation settings
+   * @param topRadius - The top radius in local units
+   * @param bottomRadius - The bottom radius in local units
+   * @param height - The full size along Y in local units
+   * @param options - Optional mesh generation settings
    * @returns The generated mesh
    */
-  static createTruncatedCone(engine: Engine, options: TruncatedConeMeshOptions = {}): ModelMesh {
-    const {
-      topRadius = 0.25,
-      bottomRadius = 0.5,
-      height = 2,
-      radialSegments = 20,
-      heightSegments = 1,
-      caps = PrimitiveMeshCapMode.Both,
-      angleRange
-    } = options;
+  static createTruncatedCone(
+    engine: Engine,
+    topRadius: number,
+    bottomRadius: number,
+    height: number,
+    options: TruncatedConeMeshOptions = {}
+  ): ModelMesh {
+    const { radialSegments = 20, heightSegments = 1, caps = PrimitiveMeshCapMode.Both, angleRange } = options;
     const startAngle = angleRange?.x ?? 0;
     return PrimitiveMesh._createMesh(
       engine,
@@ -309,11 +310,13 @@ export class PrimitiveMesh {
   /**
    * Create a cone centered on Y with its tip at the top.
    * @param engine - The engine that owns the mesh
-   * @param options - Shape and mesh creation settings
+   * @param radius - The bottom radius in local units
+   * @param height - The full size along Y in local units
+   * @param options - Optional mesh generation settings
    * @returns The generated mesh
    */
-  static createCone(engine: Engine, options: ConeMeshOptions = {}): ModelMesh {
-    const { radius = 0.5, height = 2, radialSegments = 20, heightSegments = 1, cap = true, angleRange } = options;
+  static createCone(engine: Engine, radius: number, height: number, options: ConeMeshOptions = {}): ModelMesh {
+    const { radialSegments = 20, heightSegments = 1, cap = true, angleRange } = options;
     const startAngle = angleRange?.x ?? 0;
     return PrimitiveMesh._createMesh(
       engine,
@@ -326,11 +329,13 @@ export class PrimitiveMesh {
   /**
    * Create a capsule centered on Y.
    * @param engine - The engine that owns the mesh
-   * @param options - Shape and mesh creation settings
+   * @param radius - The radius of the cylinder and hemispherical ends in local units
+   * @param height - The straight cylindrical section height in local units; total height is `height + 2 * radius`
+   * @param options - Optional mesh generation settings
    * @returns The generated mesh
    */
-  static createCapsule(engine: Engine, options: CapsuleMeshOptions = {}): ModelMesh {
-    const { radius = 0.5, height = 2, radialSegments = 6, capSegments = radialSegments, heightSegments = 1 } = options;
+  static createCapsule(engine: Engine, radius: number, height: number, options: CapsuleMeshOptions = {}): ModelMesh {
+    const { radialSegments = 6, capSegments = radialSegments, heightSegments = 1 } = options;
     return PrimitiveMesh._createMesh(
       engine,
       PrimitiveMesh._createCapsuleData,
@@ -342,18 +347,13 @@ export class PrimitiveMesh {
   /**
    * Create a torus centered in XY around Z.
    * @param engine - The engine that owns the mesh
-   * @param options - Shape and mesh creation settings
+   * @param radius - The distance from the origin to the tube centerline in local units
+   * @param tubeRadius - The radius of the tube cross-section in local units
+   * @param options - Optional mesh generation settings
    * @returns The generated mesh
    */
-  static createTorus(engine: Engine, options: TorusMeshOptions = {}): ModelMesh {
-    const {
-      radius = 0.5,
-      tubeRadius = 0.1,
-      tubularSegments = 30,
-      radialSegments = 30,
-      angleRange,
-      tubeRange
-    } = options;
+  static createTorus(engine: Engine, radius: number, tubeRadius: number, options: TorusMeshOptions = {}): ModelMesh {
+    const { tubularSegments = 30, radialSegments = 30, angleRange, tubeRange } = options;
     const startAngle = angleRange?.x ?? 0;
     const tubeStartAngle = tubeRange?.x ?? 0;
     return PrimitiveMesh._createMesh(
@@ -376,11 +376,12 @@ export class PrimitiveMesh {
   /**
    * Create a filled disk or sector in XY facing +Z.
    * @param engine - The engine that owns the mesh
-   * @param options - Shape and mesh creation settings
+   * @param radius - The radius in local units
+   * @param options - Optional mesh generation settings
    * @returns The generated mesh
    */
-  static createCircle(engine: Engine, options: CircleMeshOptions = {}): ModelMesh {
-    const { radius = 0.5, segments = 32, angleRange } = options;
+  static createCircle(engine: Engine, radius: number, options: CircleMeshOptions = {}): ModelMesh {
+    const { segments = 32, angleRange } = options;
     const startAngle = angleRange?.x ?? 0;
     return PrimitiveMesh._createMesh(
       engine,
@@ -393,17 +394,18 @@ export class PrimitiveMesh {
   /**
    * Create a ring or ring sector in XY facing +Z.
    * @param engine - The engine that owns the mesh
-   * @param options - Shape and mesh creation settings
+   * @param outerRadius - The outer radius in local units
+   * @param innerRadius - The inner radius in local units
+   * @param options - Optional mesh generation settings
    * @returns The generated mesh
    */
-  static createRing(engine: Engine, options: RingMeshOptions = {}): ModelMesh {
-    const {
-      outerRadius = 0.5,
-      innerRadius = outerRadius / 2,
-      radialSegments = 32,
-      widthSegments = 1,
-      angleRange
-    } = options;
+  static createRing(
+    engine: Engine,
+    outerRadius: number,
+    innerRadius: number,
+    options: RingMeshOptions = {}
+  ): ModelMesh {
+    const { radialSegments = 32, widthSegments = 1, angleRange } = options;
     const startAngle = angleRange?.x ?? 0;
     return PrimitiveMesh._createMesh(
       engine,
@@ -416,11 +418,12 @@ export class PrimitiveMesh {
   /**
    * Create a regular tetrahedron or its spherical subdivision.
    * @param engine - The engine that owns the mesh
-   * @param options - Shape and mesh creation settings
+   * @param radius - The distance from the origin to each vertex in local units
+   * @param options - Optional mesh generation settings
    * @returns The generated mesh
    */
-  static createTetrahedron(engine: Engine, options: RegularPolyhedronMeshOptions = {}): ModelMesh {
-    const { radius = 0.5, segments = 1 } = options;
+  static createTetrahedron(engine: Engine, radius: number, options: RegularPolyhedronMeshOptions = {}): ModelMesh {
+    const { segments = 1 } = options;
     return PrimitiveMesh._createMesh(
       engine,
       PrimitiveMesh._createRegularPolyhedronData,
@@ -432,11 +435,12 @@ export class PrimitiveMesh {
   /**
    * Create a regular octahedron or its spherical subdivision.
    * @param engine - The engine that owns the mesh
-   * @param options - Shape and mesh creation settings
+   * @param radius - The distance from the origin to each vertex in local units
+   * @param options - Optional mesh generation settings
    * @returns The generated mesh
    */
-  static createOctahedron(engine: Engine, options: RegularPolyhedronMeshOptions = {}): ModelMesh {
-    const { radius = 0.5, segments = 1 } = options;
+  static createOctahedron(engine: Engine, radius: number, options: RegularPolyhedronMeshOptions = {}): ModelMesh {
+    const { segments = 1 } = options;
     return PrimitiveMesh._createMesh(
       engine,
       PrimitiveMesh._createRegularPolyhedronData,
@@ -448,11 +452,12 @@ export class PrimitiveMesh {
   /**
    * Create a regular icosahedron or its spherical subdivision.
    * @param engine - The engine that owns the mesh
-   * @param options - Shape and mesh creation settings
+   * @param radius - The distance from the origin to each vertex in local units
+   * @param options - Optional mesh generation settings
    * @returns The generated mesh
    */
-  static createIcosahedron(engine: Engine, options: RegularPolyhedronMeshOptions = {}): ModelMesh {
-    const { radius = 0.5, segments = 1 } = options;
+  static createIcosahedron(engine: Engine, radius: number, options: RegularPolyhedronMeshOptions = {}): ModelMesh {
+    const { segments = 1 } = options;
     return PrimitiveMesh._createMesh(
       engine,
       PrimitiveMesh._createRegularPolyhedronData,
@@ -464,11 +469,12 @@ export class PrimitiveMesh {
   /**
    * Create a regular dodecahedron or its spherical subdivision.
    * @param engine - The engine that owns the mesh
-   * @param options - Shape and mesh creation settings
+   * @param radius - The distance from the origin to each vertex in local units
+   * @param options - Optional mesh generation settings
    * @returns The generated mesh
    */
-  static createDodecahedron(engine: Engine, options: RegularPolyhedronMeshOptions = {}): ModelMesh {
-    const { radius = 0.5, segments = 1 } = options;
+  static createDodecahedron(engine: Engine, radius: number, options: RegularPolyhedronMeshOptions = {}): ModelMesh {
+    const { segments = 1 } = options;
     return PrimitiveMesh._createMesh(
       engine,
       PrimitiveMesh._createRegularPolyhedronData,
@@ -481,7 +487,7 @@ export class PrimitiveMesh {
    * Revolve a radius-height profile around Y.
    * @param engine - The engine that owns the mesh
    * @param profile - The radius-height profile, with at least two points; X is radius and Y is height
-   * @param options - Shape and mesh creation settings
+   * @param options - Optional mesh generation settings
    * @returns The generated mesh
    */
   static createLathe(engine: Engine, profile: readonly Vector2[], options: LatheMeshOptions = {}): ModelMesh {
@@ -499,11 +505,17 @@ export class PrimitiveMesh {
    * Sweep a circular cross-section along a path.
    * @param engine - The engine that owns the mesh
    * @param path - The centerline points, resampled at equal distances along the polyline; at least two distinct points are required
-   * @param options - Shape and mesh creation settings
+   * @param radius - The radius of the cross-section in local units
+   * @param options - Optional mesh generation settings
    * @returns The generated mesh
    */
-  static createTube(engine: Engine, path: readonly Vector3[], options: TubeMeshOptions = {}): ModelMesh {
-    const { radius = 0.5, tubularSegments = 64, radialSegments = 8, closed = false } = options;
+  static createTube(
+    engine: Engine,
+    path: readonly Vector3[],
+    radius: number,
+    options: TubeMeshOptions = {}
+  ): ModelMesh {
+    const { tubularSegments = 64, radialSegments = 8, closed = false } = options;
     return PrimitiveMesh._createMesh(
       engine,
       PrimitiveMesh._createTubeData,
@@ -516,7 +528,7 @@ export class PrimitiveMesh {
    * Triangulate one or more polygons in XY facing +Z.
    * @param engine - The engine that owns the mesh
    * @param shapes - A contour, a polygon with holes, or an array of polygons; closing points need not be repeated
-   * @param options - Shape and mesh creation settings
+   * @param options - Optional mesh generation settings
    * @returns The generated mesh
    */
   static createPolygon(
@@ -535,28 +547,30 @@ export class PrimitiveMesh {
   /**
    * Extrude polygons along +Z or a spatial path.
    * @remarks
-   * Providing `path` selects path extrusion and ignores depth and bevel settings.
-   * Without a path, extrusion follows +Z and ignores `closed`.
+   * A path selects path extrusion and ignores bevel settings.
+   * A numeric depth extrudes along +Z and ignores `closed`.
    * @param engine - The engine that owns the mesh
    * @param shapes - A contour, a polygon with holes, or an array of polygons; closing points need not be repeated
+   * @param depthOrPath - The total depth along +Z, including bevels, or the path points with at least two distinct points
    * @param options - Linear or path extrusion settings
    * @returns The generated mesh
    */
   static createExtrusion(
     engine: Engine,
     shapes: readonly Vector2[] | PolygonShape | readonly PolygonShape[],
+    depthOrPath: number | readonly Vector3[],
     options: LinearExtrusionMeshOptions | PathExtrusionMeshOptions = {}
   ): ModelMesh {
     const {
-      depth = 1,
-      path,
       steps = 1,
       closed = false,
       bevelSize = 0,
       bevelThickness = bevelSize,
       bevelOffset = 0,
       bevelSegments = 3
-    }: LinearExtrusionMeshOptions & Partial<PathExtrusionMeshOptions> = options;
+    }: LinearExtrusionMeshOptions & PathExtrusionMeshOptions = options;
+    const path = typeof depthOrPath === "number" ? undefined : depthOrPath;
+    const depth = typeof depthOrPath === "number" ? depthOrPath : 0;
     return PrimitiveMesh._createMesh(
       engine,
       PrimitiveMesh._createExtrusionData,
@@ -576,13 +590,24 @@ export class PrimitiveMesh {
   }
 
   /**
-   * Create a closed torus knot.
+   * Create a closed torus knot. At least one of `p` and `q` must be nonzero.
    * @param engine - The engine that owns the mesh
-   * @param options - Shape and mesh creation settings
+   * @param radius - The base radius of the torus in local units
+   * @param tubeRadius - The radius of the tube cross-section in local units
+   * @param p - The signed integer revolution count around the torus axis; negative values reverse the winding
+   * @param q - The signed integer revolution count through the torus hole; negative values reverse the winding
+   * @param options - Optional mesh generation settings
    * @returns The generated mesh
    */
-  static createTorusKnot(engine: Engine, options: TorusKnotMeshOptions = {}): ModelMesh {
-    const { radius = 0.5, tubeRadius = 0.1, p = 2, q = 3, tubularSegments = 64, radialSegments = 8 } = options;
+  static createTorusKnot(
+    engine: Engine,
+    radius: number,
+    tubeRadius: number,
+    p: number,
+    q: number,
+    options: TorusKnotMeshOptions = {}
+  ): ModelMesh {
+    const { tubularSegments = 64, radialSegments = 8 } = options;
     return PrimitiveMesh._createMesh(
       engine,
       PrimitiveMesh._createTorusKnotData,
@@ -596,11 +621,22 @@ export class PrimitiveMesh {
    * @remarks
    * UVs preserve the cuboid's face orientations and account for rounded edge length.
    * @param engine - The engine that owns the mesh
-   * @param options - Shape and mesh creation settings
+   * @param width - The full size along X in local units
+   * @param height - The full size along Y in local units
+   * @param depth - The full size along Z in local units
+   * @param cornerRadius - The edge and corner radius in local units, clamped to half the smallest dimension
+   * @param options - Optional mesh generation settings
    * @returns The generated mesh
    */
-  static createRoundedCuboid(engine: Engine, options: RoundedCuboidMeshOptions = {}): ModelMesh {
-    const { width = 1, height = width, depth = width, cornerRadius = 0.1, segments = 2 } = options;
+  static createRoundedCuboid(
+    engine: Engine,
+    width: number,
+    height: number,
+    depth: number,
+    cornerRadius: number,
+    options: RoundedCuboidMeshOptions = {}
+  ): ModelMesh {
+    const { segments = 2 } = options;
     return PrimitiveMesh._createMesh(
       engine,
       PrimitiveMesh._createRoundedCuboidData,

@@ -52,7 +52,7 @@ WebGLEngine.create({
   const skyMaterial = new SkyBoxMaterial(engine);
   background.mode = BackgroundMode.Sky;
   sky.material = skyMaterial;
-  sky.mesh = PrimitiveMesh.createCuboid(engine);
+  sky.mesh = PrimitiveMesh.createCuboid(engine, 1, 1, 1);
 
   // Sphere
   const sphereMaterial = new PBRMaterial(engine);
@@ -61,7 +61,7 @@ WebGLEngine.create({
   sphere.transform.setPosition(0, 1, 0);
   sphere.transform.setRotation(45, 45, 0);
   const meshRenderer = sphere.addComponent(MeshRenderer);
-  meshRenderer.mesh = PrimitiveMesh.createSphere(engine);
+  meshRenderer.mesh = PrimitiveMesh.createSphere(engine, 0.5);
   meshRenderer.setMaterial(sphereMaterial);
 
   // Box
@@ -71,7 +71,7 @@ WebGLEngine.create({
   box.transform.setPosition(1, 0.9, 0.1);
   box.transform.setRotation(30, 30, 0);
   const boxMeshRenderer = box.addComponent(MeshRenderer);
-  boxMeshRenderer.mesh = PrimitiveMesh.createCuboid(engine);
+  boxMeshRenderer.mesh = PrimitiveMesh.createCuboid(engine, 1, 1, 1);
   boxMeshRenderer.setMaterial(boxMaterial);
 
   // Capsule (transparent)
@@ -83,7 +83,7 @@ WebGLEngine.create({
   capsule.transform.setPosition(1, 0.9, 0.1);
   capsule.transform.setRotation(30, 30, 0);
   const capsuleMeshRenderer = capsule.addComponent(MeshRenderer);
-  capsuleMeshRenderer.mesh = PrimitiveMesh.createCapsule(engine);
+  capsuleMeshRenderer.mesh = PrimitiveMesh.createCapsule(engine, 0.5, 2);
   capsuleMeshRenderer.setMaterial(capsuleMaterial);
 
   engine.resourceManager

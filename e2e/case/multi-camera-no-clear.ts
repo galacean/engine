@@ -54,7 +54,7 @@ function initFirstScene(engine: Engine): Scene {
   const cubeEntity = rootEntity.createChild("cube");
   cubeEntity.transform.setPosition(-3, 0, 3);
   const renderer = cubeEntity.addComponent(MeshRenderer);
-  renderer.mesh = PrimitiveMesh.createSphere(engine, { radius: 2, subdivisions: 3 });
+  renderer.mesh = PrimitiveMesh.createSphere(engine, 2, { subdivisions: 3 });
   const material = new BlinnPhongMaterial(engine);
   material.baseColor = new Color(1, 0, 0, 1);
   renderer.setMaterial(material);
@@ -83,7 +83,7 @@ function initFirstScene(engine: Engine): Scene {
     cubeEntity.layer = Layer.Layer1;
     cubeEntity.transform.setPosition(-2, 0, 3);
     const renderer = cubeEntity.addComponent(MeshRenderer);
-    renderer.mesh = PrimitiveMesh.createSphere(engine, { radius: 2, subdivisions: 3 });
+    renderer.mesh = PrimitiveMesh.createSphere(engine, 2, { subdivisions: 3 });
     const material = new BlinnPhongMaterial(engine);
     material.baseColor = new Color(1, 0, 0, 1);
     material.emissiveColor.set(1, 0, 0, 1);

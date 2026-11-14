@@ -36,7 +36,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
 
   const planeEntity = rootEntity.createChild("plane_node");
   const renderer = planeEntity.addComponent(MeshRenderer);
-  renderer.mesh = PrimitiveMesh.createPlane(engine, { width: 10 });
+  renderer.mesh = PrimitiveMesh.createPlane(engine, 10, 10);
   const planeMaterial = new PBRMaterial(engine);
   renderer.setMaterial(planeMaterial);
 

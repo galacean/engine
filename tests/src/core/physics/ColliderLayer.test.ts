@@ -101,11 +101,8 @@ describe("Collider layer initialization", () => {
     source.addShape(shape);
     expect(attach.mock.calls.length).toBe(1);
 
-    const mesh = PrimitiveMesh.createCuboid(engine, {
+    const mesh = PrimitiveMesh.createCuboid(engine, 1, 1, 1, {
       keepData: true,
-      width: 1,
-      height: 1,
-      depth: 1,
       widthSegments: 1,
       heightSegments: 1,
       depthSegments: 1

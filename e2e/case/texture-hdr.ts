@@ -37,7 +37,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
       scene.background.mode = BackgroundMode.Sky;
 
       sky.material = skyMaterial;
-      sky.mesh = PrimitiveMesh.createCuboid(engine);
+      sky.mesh = PrimitiveMesh.createCuboid(engine, 1, 1, 1);
       skyMaterial.texture = textureCube;
 
       updateForE2E(engine);

@@ -21,11 +21,7 @@ describe("PrimitiveMesh", () => {
   it("createSphere", () => {
     const radius = 2.333;
     const subdivisions = 3.2;
-    const sphereMesh = PrimitiveMesh.createSphere(engine, {
-      keepData: true,
-      radius,
-      subdivisions
-    });
+    const sphereMesh = PrimitiveMesh.createSphere(engine, radius, { keepData: true, subdivisions });
 
     expect(sphereMesh.vertexCount).equal(417);
     expect(sphereMesh.vertexElements.length).equal(4);
@@ -40,11 +36,8 @@ describe("PrimitiveMesh", () => {
     const width = 2.3;
     const height = 3.2;
     const depth = 4.5;
-    const cuboidMesh = PrimitiveMesh.createCuboid(engine, {
+    const cuboidMesh = PrimitiveMesh.createCuboid(engine, width, height, depth, {
       keepData: true,
-      width,
-      height,
-      depth,
       widthSegments: 1,
       heightSegments: 1,
       depthSegments: 1
@@ -67,11 +60,8 @@ describe("PrimitiveMesh", () => {
     const heightSegments = 1.00001;
     const floorRadialSegments = Math.floor(radialSegments);
     const floorHeightSegments = Math.floor(heightSegments);
-    const truncatedConeMesh = PrimitiveMesh.createTruncatedCone(engine, {
+    const truncatedConeMesh = PrimitiveMesh.createTruncatedCone(engine, radiusTop, radiusBottom, height, {
       keepData: true,
-      topRadius: radiusTop,
-      bottomRadius: radiusBottom,
-      height,
       radialSegments,
       heightSegments
     });
@@ -98,11 +88,9 @@ describe("PrimitiveMesh", () => {
     const floorRadialSegments = Math.floor(radialSegments);
     const floorTubularSegments = Math.floor(tubularSegments);
     const arc = 180;
-    const torusMesh = PrimitiveMesh.createTorus(engine, {
+    const torusMesh = PrimitiveMesh.createTorus(engine, radius, tubeRadius, {
       keepData: true,
       angleRange: new Vector2(0, 0 + arc),
-      radius,
-      tubeRadius,
       tubularSegments,
       radialSegments
     });
@@ -124,10 +112,8 @@ describe("PrimitiveMesh", () => {
     const vSegments = 9.0001;
     const floorHSegments = Math.floor(hSegments);
     const floorVSegments = Math.floor(vSegments);
-    const planeMesh = PrimitiveMesh.createPlane(engine, {
+    const planeMesh = PrimitiveMesh.createPlane(engine, width, height, {
       keepData: true,
-      width,
-      height,
       horizontalSegments: hSegments,
       verticalSegments: vSegments
     });
@@ -148,10 +134,8 @@ describe("PrimitiveMesh", () => {
     const heightSegments = 1.00001;
     const floorRadialSegments = Math.floor(radialSegments);
     const floorHeightSegments = Math.floor(heightSegments);
-    const coneMesh = PrimitiveMesh.createCone(engine, {
+    const coneMesh = PrimitiveMesh.createCone(engine, radius, height, {
       keepData: true,
-      radius,
-      height,
       radialSegments,
       heightSegments
     });
@@ -171,10 +155,8 @@ describe("PrimitiveMesh", () => {
     const heightSegments = 30.0001;
     const floorRadialSegments = Math.floor(radialSegments);
     const floorHeightSegments = Math.floor(heightSegments);
-    const capsuleMesh = PrimitiveMesh.createCapsule(engine, {
+    const capsuleMesh = PrimitiveMesh.createCapsule(engine, radius, height, {
       keepData: true,
-      radius,
-      height,
       radialSegments,
       capSegments: radialSegments,
       heightSegments
@@ -197,10 +179,8 @@ describe("PrimitiveMesh", () => {
     const count = segments + 1;
 
     if (engine["_hardwareRenderer"].canIUse(GLCapabilityType.elementIndexUint)) {
-      const mesh = PrimitiveMesh.createPlane(engine, {
+      const mesh = PrimitiveMesh.createPlane(engine, radius * 2, radius * 2, {
         keepData: true,
-        width: radius * 2,
-        height: radius * 2,
         horizontalSegments: segments,
         verticalSegments: segments
       });
@@ -212,10 +192,8 @@ describe("PrimitiveMesh", () => {
       expect(mesh.vertexBufferBindings.length).equal(2);
     } else {
       expect(() =>
-        PrimitiveMesh.createPlane(engine, {
+        PrimitiveMesh.createPlane(engine, radius * 2, radius * 2, {
           keepData: true,
-          width: radius * 2,
-          height: radius * 2,
           horizontalSegments: segments,
           verticalSegments: segments
         })

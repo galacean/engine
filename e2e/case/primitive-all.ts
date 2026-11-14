@@ -85,11 +85,8 @@ class PrimitiveMeshGallery {
     const cases: Record<PrimitiveMeshAsset["type"], { label: string; mesh: ModelMesh; rotation?: Vector3 }> = {
       cuboid: {
         label: "Cuboid",
-        mesh: PrimitiveMesh.createCuboid(engine, {
+        mesh: PrimitiveMesh.createCuboid(engine, 1, 1, 1, {
           separateMaterials: true,
-          width: 1,
-          height: 1,
-          depth: 1,
           widthSegments: 2,
           heightSegments: 2,
           depthSegments: 2
@@ -97,117 +94,79 @@ class PrimitiveMeshGallery {
       },
       plane: {
         label: "Plane",
-        mesh: PrimitiveMesh.createPlane(engine, { width: 2, height: 2, horizontalSegments: 4, verticalSegments: 4 }),
+        mesh: PrimitiveMesh.createPlane(engine, 2, 2, { horizontalSegments: 4, verticalSegments: 4 }),
         rotation: new Vector3(90, 0, 0)
       },
-      sphere: { label: "Sphere", mesh: PrimitiveMesh.createSphere(engine, { radius: 1, subdivisions: 3 }) },
+      sphere: { label: "Sphere", mesh: PrimitiveMesh.createSphere(engine, 1, { subdivisions: 3 }) },
       cylinder: {
         label: "Cylinder",
-        mesh: PrimitiveMesh.createCylinder(engine, {
+        mesh: PrimitiveMesh.createCylinder(engine, 0.65, 1.5, {
           separateMaterials: true,
-          radius: 0.65,
-          height: 1.5,
           radialSegments: 24,
           heightSegments: 2
         })
       },
       cone: {
         label: "Cone",
-        mesh: PrimitiveMesh.createCone(engine, {
+        mesh: PrimitiveMesh.createCone(engine, 0.8, 1.8, {
           separateMaterials: true,
-          radius: 0.8,
-          height: 1.8,
           radialSegments: 24,
           heightSegments: 2
         })
       },
       truncatedCone: {
         label: "Truncated Cone",
-        mesh: PrimitiveMesh.createTruncatedCone(engine, {
+        mesh: PrimitiveMesh.createTruncatedCone(engine, 0.35, 0.8, 1.6, {
           separateMaterials: true,
-          topRadius: 0.35,
-          bottomRadius: 0.8,
-          height: 1.6,
           radialSegments: 24,
           heightSegments: 2
         })
       },
       capsule: {
         label: "Capsule",
-        mesh: PrimitiveMesh.createCapsule(engine, {
-          radius: 0.5,
-          height: 1,
-          radialSegments: 24,
-          capSegments: 8,
-          heightSegments: 2
-        })
+        mesh: PrimitiveMesh.createCapsule(engine, 0.5, 1, { radialSegments: 24, capSegments: 8, heightSegments: 2 })
       },
       torus: {
         label: "Torus",
-        mesh: PrimitiveMesh.createTorus(engine, {
-          radius: 0.75,
-          tubeRadius: 0.25,
-          tubularSegments: 32,
-          radialSegments: 12
-        })
+        mesh: PrimitiveMesh.createTorus(engine, 0.75, 0.25, { tubularSegments: 32, radialSegments: 12 })
       },
       torusKnot: {
         label: "Torus Knot",
-        mesh: PrimitiveMesh.createTorusKnot(engine, {
-          radius: 0.65,
-          tubeRadius: 0.17,
-          p: 2,
-          q: 3,
-          tubularSegments: 96,
-          radialSegments: 10
-        })
+        mesh: PrimitiveMesh.createTorusKnot(engine, 0.65, 0.17, 2, 3, { tubularSegments: 96, radialSegments: 10 })
       },
       circle: {
         label: "Circle",
-        mesh: PrimitiveMesh.createCircle(engine, { radius: 1, segments: 32 }),
+        mesh: PrimitiveMesh.createCircle(engine, 1, { segments: 32 }),
         rotation: new Vector3()
       },
       ring: {
         label: "Ring",
-        mesh: PrimitiveMesh.createRing(engine, {
-          outerRadius: 1,
-          innerRadius: 0.5,
-          radialSegments: 32,
-          widthSegments: 2
-        }),
+        mesh: PrimitiveMesh.createRing(engine, 1, 0.5, { radialSegments: 32, widthSegments: 2 }),
         rotation: new Vector3()
       },
-      tetrahedron: { label: "Tetrahedron", mesh: PrimitiveMesh.createTetrahedron(engine, { radius: 1 }) },
-      octahedron: { label: "Octahedron", mesh: PrimitiveMesh.createOctahedron(engine, { radius: 1 }) },
-      icosahedron: { label: "Icosahedron", mesh: PrimitiveMesh.createIcosahedron(engine, { radius: 1 }) },
-      dodecahedron: { label: "Dodecahedron", mesh: PrimitiveMesh.createDodecahedron(engine, { radius: 1 }) },
+      tetrahedron: { label: "Tetrahedron", mesh: PrimitiveMesh.createTetrahedron(engine, 1) },
+      octahedron: { label: "Octahedron", mesh: PrimitiveMesh.createOctahedron(engine, 1) },
+      icosahedron: { label: "Icosahedron", mesh: PrimitiveMesh.createIcosahedron(engine, 1) },
+      dodecahedron: { label: "Dodecahedron", mesh: PrimitiveMesh.createDodecahedron(engine, 1) },
       lathe: { label: "Lathe", mesh: PrimitiveMesh.createLathe(engine, profile, { segments: 24 }) },
       tube: {
         label: "Tube",
-        mesh: PrimitiveMesh.createTube(engine, path, { radius: 0.2, tubularSegments: 48, radialSegments: 10 })
+        mesh: PrimitiveMesh.createTube(engine, path, 0.2, { tubularSegments: 48, radialSegments: 10 })
       },
       polygon: { label: "Polygon", mesh: PrimitiveMesh.createPolygon(engine, polygon), rotation: new Vector3() },
       extrusion: {
         label: "Extrusion",
-        mesh: PrimitiveMesh.createExtrusion(engine, polygon, {
+        mesh: PrimitiveMesh.createExtrusion(engine, polygon, 0.6, {
           bevelSize: 0.1,
           bevelThickness: 0.1,
           bevelSegments: 3,
           separateMaterials: true,
-          depth: 0.6,
           steps: 2
         })
       },
       roundedCuboid: {
         label: "Rounded Cuboid",
-        mesh: PrimitiveMesh.createRoundedCuboid(engine, {
-          separateMaterials: true,
-          width: 2,
-          height: 1.6,
-          depth: 1.4,
-          cornerRadius: 0.3,
-          segments: 4
-        })
+        mesh: PrimitiveMesh.createRoundedCuboid(engine, 2, 1.6, 1.4, 0.3, { separateMaterials: true, segments: 4 })
       }
     };
     const coveredFactories = Object.keys(cases).map((type) => `create${type[0].toUpperCase()}${type.slice(1)}`);

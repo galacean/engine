@@ -2,32 +2,30 @@
 
 Use this reference when primitive dimensions or orientation affect code, or when uploading custom geometry. Material assignment and draw ordering are covered in [rendering-and-color.md](rendering-and-color.md).
 
-The table describes meshes created with default options and an entity scale of `(1, 1, 1)`.
+Dimensions are required factory arguments, expressed in local units. The table assumes an entity scale of `(1, 1, 1)`.
 
-| Primitive | Default extent                                   | Local orientation            |
-| --------- | ------------------------------------------------ | ---------------------------- |
-| Cuboid    | width 1, height 1, depth 1                       | centered at the origin       |
-| Sphere    | radius 0.5                                       | centered at the origin       |
-| Plane     | width 1, depth 1                                 | lies in XZ and faces +Y      |
-| Cylinder  | radius 0.5, height 2                             | centered on Y                |
-| Cone      | radius 0.5, height 2                             | centered on Y, tip toward +Y |
-| Capsule   | radius 0.5, cylindrical height 2, total height 3 | centered on Y                |
-| Torus     | major radius 0.5, tube radius 0.1                | lies in XY around the Z axis |
+| Primitive | Local extent                                                | Local orientation            |
+| --------- | ----------------------------------------------------------- | ---------------------------- |
+| Cuboid    | `width`, `height`, `depth`                                  | centered at the origin       |
+| Sphere    | diameter `2 * radius`                                       | centered at the origin       |
+| Plane     | X size `width`, Z size `height`                             | lies in XZ and faces +Y      |
+| Cylinder  | radius `radius`, Y size `height`                            | centered on Y                |
+| Cone      | base radius `radius`, Y size `height`                       | centered on Y, tip toward +Y |
+| Capsule   | radius `radius`, total Y size `height + 2 * radius`         | centered on Y                |
+| Torus     | outer radius `radius + tubeRadius`, Z size `2 * tubeRadius` | lies in XY around the Z axis |
 
 ## Placement consequences
 
 - A centered primitive rests on a horizontal surface when its center is raised by its scaled half-height.
-- A default Plane is already horizontal; rotating it as if it were an XY plane changes the intended ground orientation.
+- A Plane is already horizontal; rotating it as if it were an XY plane changes the intended ground orientation.
 - Capsule `height` describes the cylindrical section between hemisphere centers. Total vertical extent also includes both hemispherical radii.
 - Non-uniform entity scale changes the rendered bounds after mesh construction. Do not assume one scalar radius still describes the world-space result.
 
 ## Visual and collision geometry
 
-Primitive meshes and collider shapes own independent dimensions. Their defaults do not guarantee a visual match: for example, a default Sphere mesh has radius `0.5` while a default `SphereColliderShape` has radius `1`; the default Capsule mesh and `CapsuleColliderShape` also use different radii. Collider dimensions are then affected by the Entity's world scale.
+Primitive meshes and collider shapes own independent dimensions. Set collider dimensions from the intended collision geometry; the assigned mesh does not configure them. Collider dimensions are then affected by the Entity's world scale.
 
-Set collider dimensions from the intended collision geometry. Do not infer them from the assigned mesh or assume entity scale repairs a default mismatch.
-
-Exact option fields and defaults remain declaration-owned. Use this page only for the default spatial semantics that are easy to misremember.
+Exact argument meanings, option fields and defaults remain declaration-owned.
 
 ## Draw-ready custom mesh
 
@@ -51,19 +49,19 @@ export function createTriangle(engine: Engine, renderer: MeshRenderer): void {
 
 ## Procedural generators
 
-Each factory accepts one named options object, with dimensions, subdivision counts and mesh settings in that object. Every shape has a public options type, such as `SphereMeshOptions`; the four regular polyhedra share `RegularPolyhedronMeshOptions`. Query the factory and its options type for fields, units and defaults.
+Each factory takes required shape inputs followed by one optional named settings object. Dimensions, radii, contours and paths have no API defaults. Subdivision counts, angular ranges and mesh settings remain optional. Every shape has a public options type, such as `SphereMeshOptions`; the four regular polyhedra share `RegularPolyhedronMeshOptions`. Query the factory and its options type for argument meanings, units and option defaults.
 
-For example, `createSphere(engine, { radius: 1, subdivisions: 3 })` sets radius and subdivision level. `createCuboid(engine, { width: 2 })` creates a cube with all dimensions equal to 2; omitted plane height likewise uses its width. Later plane/cuboid subdivision counts use the first direction by default.
+For example, `createSphere(engine, 1, { subdivisions: 3 })` specifies the radius and subdivision level. `createCuboid(engine, 2, 3, 4)` requires all three dimensions. `createPlane(engine, 2, 3)` specifies its X and Z sizes. Later plane/cuboid subdivision counts use the first direction by default.
 
-`createCylinder(engine, { radius, height })` creates equal end radii. Use `createTruncatedCone(engine, { topRadius, bottomRadius, height })` for different radii. Tubes take a required `Vector3` path followed by `TubeMeshOptions`; lathe profiles take a required `Vector2` array followed by `LatheMeshOptions`.
+`createCylinder(engine, radius, height)` creates equal end radii. Use `createTruncatedCone(engine, topRadius, bottomRadius, height)` for different radii. Tubes take a required `Vector3` path and radius followed by `TubeMeshOptions`; lathe profiles take a required `Vector2` array followed by `LatheMeshOptions`.
 
-Torus-knot `p` and `q` are signed integer revolution counts, independent of mesh subdivisions. Negative values reverse the corresponding winding direction; zero keeps that angle fixed.
+Torus-knot `p` and `q` are required signed integer revolution counts, independent of mesh subdivisions. Negative values reverse the corresponding winding direction; zero keeps that angle fixed.
 
 Angles use degrees. Ranges use `Vector2`, with `x` as the start angle and `y` as the end angle, such as `new Vector2(30, 180)`. Spherical sections use `horizontalRange` and `verticalRange` in their options. Cylinder and frustum `caps` use the exported `PrimitiveMeshCapMode` enum: `Both` (default), `Top`, `Bottom`, `None`. Top faces +Y and bottom faces -Y; angular cut boundaries remain open. Cones use a boolean `cap`. Plane is in XZ facing +Y; circles, rings and polygons are in XY facing +Z. Capsule height excludes its hemispheres.
 
-`createSphere(engine, { radius, subdivisions, horizontalRange, verticalRange })` projects a subdivided cube onto a sphere. The subdivision level defaults to 3 and is clamped to 1 through 6. It accepts `horizontalRange` and `verticalRange`. These clip the subdivided surface and leave open boundaries. Horizontal angles start at -X towards +Z, and vertical angles start at +Y. Continuous horizontal intervals such as `new Vector2(350, 370)` cross the seam. Complete spheres and sections use the same subdivision level.
+`createSphere(engine, radius, { subdivisions, horizontalRange, verticalRange })` projects a subdivided cube onto a sphere. The subdivision level defaults to 3 and is clamped to 1 through 6. It accepts `horizontalRange` and `verticalRange`. These clip the subdivided surface and leave open boundaries. Horizontal angles start at -X towards +Z, and vertical angles start at +Y. Continuous horizontal intervals such as `new Vector2(350, 370)` cross the seam. Complete spheres and sections use the same subdivision level.
 
-Additional generators include circle, ring, four regular polyhedra, lathe, tube, polygon, extrusion, torus knot and rounded cuboid. Angle ranges belong to options. A ring's omitted `innerRadius` is half its `outerRadius`. Contours and lathe profiles use `Vector2` arrays; paths accept `Vector3` arrays and are sampled at equal distances along their line segments. Sample curves into points outside the mesh API. A simple polygon is a point array; holes use `{ points, holes }`. Extrusion takes `LinearExtrusionMeshOptions` with optional `depth`, or `PathExtrusionMeshOptions` with a required `path`. Each interface declares only its mode's settings. Providing `path` selects path extrusion and ignores depth and bevel settings; without a path, `closed` is ignored. Straight extrusion defaults to no bevel; a positive `bevelSize` enables it, with `bevelThickness` defaulting to the same value. Path extrusion has no bevels.
+Additional generators include circle, ring, four regular polyhedra, lathe, tube, polygon, extrusion, torus knot and rounded cuboid. Angle ranges belong to options. Rings require the outer radius first, followed by the inner radius. Contours and lathe profiles use `Vector2` arrays; paths accept `Vector3` arrays and are sampled at equal distances along their line segments. Sample curves into points outside the mesh API. A simple polygon is a point array; holes use `{ points, holes }`. Extrusion takes a required numeric depth or `Vector3` path as its third argument, followed by `LinearExtrusionMeshOptions` or `PathExtrusionMeshOptions`. Each interface declares its mode's optional settings. A path selects path extrusion and ignores bevel settings; a numeric depth extrudes along +Z and ignores `closed`. Straight extrusion defaults to no bevel; a positive `bevelSize` enables it, with `bevelThickness` defaulting to the same value. Path extrusion has no bevels.
 
 For straight extrusion, `bevelOffset` shifts the side-wall outline and defaults to `0`. Positive values expand the solid and contract holes; negative values do the reverse. The offset also applies when `bevelSize` is `0`. Bevels are cut into the shifted outline and included in the total `depth`.
 
@@ -75,8 +73,8 @@ Mesh settings share the same options object. `keepData` retains readable CPU att
 
 `PrimitiveMeshAsset` is exported from `@galacean/engine` and `@galacean/engine-loader` and covers every `PrimitiveMesh.createX` method. Each asset `type` uses the matching lower-camel name: `sphere`, `cuboid`, `plane`, `cylinder`, `truncatedCone`, `cone`, `capsule`, `torus`, `circle`, `ring`, `tetrahedron`, `octahedron`, `icosahedron`, `dodecahedron`, `lathe`, `tube`, `polygon`, `extrusion`, `torusKnot`, `roundedCuboid`.
 
-JSON keeps the type prefix for geometry inputs and the options object: `{ type: "sphere", sphereOptions: { radius: 1, subdivisions: 3, keepData: true } }`. Each `<type>Options` uses the factory's named configuration fields and omitted defaults. Angular ranges store `Vector2` components as `{ x, y }`, for example `{ type: "circle", circleOptions: { angleRange: { x: 30, y: 180 } } }`. `sphere` uses the subdivided-cube algorithm; `sphereOptions.subdivisions` sets its subdivision level. `cylinderOptions.radius` controls both end radii; unequal radii use `truncatedConeOptions.topRadius` and `truncatedConeOptions.bottomRadius`.
+JSON keeps the type prefix for required geometry inputs and the optional settings object: `{ type: "sphere", sphereRadius: 1, sphereOptions: { subdivisions: 3, keepData: true } }`. Each `<type>Options` uses the factory's named configuration fields and omitted defaults. Angular ranges store `Vector2` components as `{ x, y }`, for example `{ type: "circle", circleRadius: 1, circleOptions: { angleRange: { x: 30, y: 180 } } }`. `sphere` uses the subdivided-cube algorithm; `sphereOptions.subdivisions` sets its subdivision level. `cylinderRadius` controls both end radii; unequal radii use `truncatedConeTopRadius` and `truncatedConeBottomRadius`.
 
 TypeScript assets use `PrimitiveMeshCapMode` for `caps`; JSON stores its string values `"both"`, `"top"`, `"bottom"`, `"none"`.
 
-Serialized profiles and contours use `{ x, y }`; paths use `{ x, y, z }`. `polygonShapes` and `extrusionShapes` are arrays of `{ points, holes? }`. Straight extrusion uses `extrusionOptions.depth`; path extrusion uses `extrusionOptions.path` and ignores depth and bevel settings. Set `extrusionOptions.closed` to `true` for a closed path without end caps. Editor previews and saved assets must select the same factory and parameters.
+Serialized profiles and contours use `{ x, y }`; paths use `{ x, y, z }`. `polygonShapes` and `extrusionShapes` are arrays of `{ points, holes? }`. Straight extrusion requires `extrusionDepth`; path extrusion requires `extrusionPath` and ignores bevel settings. Set `extrusionOptions.closed` to `true` for a closed path without end caps. Editor previews and saved assets must select the same factory and parameters.

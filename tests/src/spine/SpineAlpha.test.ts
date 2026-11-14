@@ -121,7 +121,7 @@ describe("Spine atlas alpha encoding", () => {
 
     renderer.entity.destroy();
     const meshRenderer = engine.sceneManager.activeScene.createRootEntity().addComponent(MeshRenderer);
-    meshRenderer.mesh = PrimitiveMesh.createCuboid(engine, { width: 2, height: 2, depth: 0.1 });
+    meshRenderer.mesh = PrimitiveMesh.createCuboid(engine, 2, 2, 0.1);
     const material = new UnlitMaterial(engine);
     material.baseColor.set(0, 1, 0, 1);
     meshRenderer.setMaterial(material);

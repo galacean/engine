@@ -71,7 +71,7 @@ WebGLEngine.create({ canvas: "canvas", shaderCompiler, ktx2Loader: { workerCount
 
   const planeEntity = rootEntity.createChild("plane");
   const meshRenderer = planeEntity.addComponent(MeshRenderer);
-  meshRenderer.mesh = PrimitiveMesh.createCuboid(engine);
+  meshRenderer.mesh = PrimitiveMesh.createCuboid(engine, 1, 1, 1);
   const mtl = new Material(engine, Shader.create(shaderSource));
   meshRenderer.setMaterial(mtl);
 

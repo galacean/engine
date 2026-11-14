@@ -244,7 +244,7 @@ describe("Light test", function () {
     const skyMaterial = new SkyBoxMaterial(engine);
     scene.background.mode = BackgroundMode.Sky;
     sky.material = skyMaterial;
-    sky.mesh = PrimitiveMesh.createCuboid(engine);
+    sky.mesh = PrimitiveMesh.createCuboid(engine, 1, 1, 1);
 
     ambientLightA = await engine.resourceManager.load<AmbientLight>({
       type: AssetType.AmbientLight,

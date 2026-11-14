@@ -79,12 +79,7 @@ class SphereSections {
       entity.transform.setPosition(x, y + 0.2, 0);
       entity.transform.rotation = rotation ?? new Vector3(20, -35, 0);
       const renderer = entity.addComponent(MeshRenderer);
-      renderer.mesh = PrimitiveMesh.createSphere(engine, {
-        horizontalRange,
-        verticalRange,
-        radius: 1,
-        subdivisions: 3
-      });
+      renderer.mesh = PrimitiveMesh.createSphere(engine, 1, { horizontalRange, verticalRange, subdivisions: 3 });
       renderer.setMaterial(material);
       const label = root.createChild(`${name} Label`);
       label.transform.setPosition(x, y - 1.15, 0);

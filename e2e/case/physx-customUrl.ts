@@ -35,7 +35,7 @@ function addBox(rootEntity: Entity, cubeSize: number, x: number, y: number, z: n
   boxMtl.baseColor.set(0.6, 0.3, 0.3, 1.0);
   boxMtl.roughness = 0.5;
   boxMtl.metallic = 0.0;
-  boxRenderer.mesh = PrimitiveMesh.createCuboid(rootEntity.engine, { width: cubeSize });
+  boxRenderer.mesh = PrimitiveMesh.createCuboid(rootEntity.engine, cubeSize, cubeSize, cubeSize);
   boxRenderer.setMaterial(boxMtl);
   if (index === 0) {
     boxMtl.baseColor.set(1, 0, 0, 1.0);
@@ -92,7 +92,7 @@ WebGLEngine.create({
   sphereMtl.baseColor.set(Math.random(), Math.random(), Math.random(), 1.0);
   sphereMtl.metallic = 0.0;
   sphereMtl.roughness = 0.5;
-  sphereRenderer.mesh = PrimitiveMesh.createSphere(engine, { radius });
+  sphereRenderer.mesh = PrimitiveMesh.createSphere(engine, radius);
   sphereRenderer.setMaterial(sphereMtl);
 
   const physicsSphere = new SphereColliderShape();

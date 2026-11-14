@@ -79,7 +79,7 @@ WebGLEngine.create({ canvas: "canvas", shaderCompiler }).then((engine) => {
   lightEntity.addComponent(DirectLight).color = new Color(1, 1, 1, 1);
 
   // Shared mesh and material
-  const mesh = PrimitiveMesh.createCuboid(engine);
+  const mesh = PrimitiveMesh.createCuboid(engine, 1, 1, 1);
   const material = new Material(engine, Shader.find("CustomInstanceShader"));
   const customColorProperty = ShaderProperty.getByName("renderer_CustomColor");
 
