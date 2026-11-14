@@ -12,6 +12,44 @@ export class VertexMergeBatcher {
     const preRenderer = <SpriteRenderer>preElement.component;
     const renderer = <SpriteRenderer>curElement.component;
     const maskInteraction = preRenderer.maskInteraction;
+    const preMasks = preRenderer._uiMasks;
+    const masks = renderer._uiMasks;
+    if (preMasks !== masks) {
+      if (!preMasks || !masks || preMasks.length !== masks.length) return false;
+      for (let i = 0; i < masks.length; i++) {
+        if (preMasks[i] !== masks[i]) return false;
+      }
+    }
+
+    const rendererAAny = preRenderer as any;
+    const rendererBAny = renderer as any;
+    const rectMaskEnabledA = rendererAAny._rectMaskEnabled;
+    if (rectMaskEnabledA !== rendererBAny._rectMaskEnabled) {
+      return false;
+    }
+    if (rectMaskEnabledA) {
+      const rectMaskRectA = rendererAAny._rectMaskRect;
+      const rectMaskRectB = rendererBAny._rectMaskRect;
+      const rectMaskSoftnessA = rendererAAny._rectMaskSoftness;
+      const rectMaskSoftnessB = rendererBAny._rectMaskSoftness;
+      if (
+        !rectMaskRectA ||
+        !rectMaskRectB ||
+        !rectMaskSoftnessA ||
+        !rectMaskSoftnessB ||
+        rectMaskRectA.x !== rectMaskRectB.x ||
+        rectMaskRectA.y !== rectMaskRectB.y ||
+        rectMaskRectA.z !== rectMaskRectB.z ||
+        rectMaskRectA.w !== rectMaskRectB.w ||
+        rectMaskSoftnessA.x !== rectMaskSoftnessB.x ||
+        rectMaskSoftnessA.y !== rectMaskSoftnessB.y ||
+        rectMaskSoftnessA.z !== rectMaskSoftnessB.z ||
+        rectMaskSoftnessA.w !== rectMaskSoftnessB.w ||
+        rendererAAny._rectMaskHardClip !== rendererBAny._rectMaskHardClip
+      ) {
+        return false;
+      }
+    }
 
     // Order: cheap reference checks → mask state → tag lookup (rare opt-out)
     return (
@@ -19,7 +57,9 @@ export class VertexMergeBatcher {
       preElement.texture === curElement.texture &&
       preElement.material === curElement.material &&
       maskInteraction === renderer.maskInteraction &&
-      (maskInteraction === SpriteMaskInteraction.None || preRenderer.maskLayer === renderer.maskLayer) &&
+      (preMasks !== null ||
+        maskInteraction === SpriteMaskInteraction.None ||
+        preRenderer.maskLayer === renderer.maskLayer) &&
       curElement.subShader.passes[0].getTagValue(VertexMergeBatcher._disableBatchTag) !== true
     );
   }
