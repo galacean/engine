@@ -9,6 +9,7 @@ import type {
   PathExtrudedPolygonMeshOptions,
   PlaneMeshOptions,
   PolygonMeshOptions,
+  PolygonShape,
   RegularPolyhedronMeshOptions,
   RingMeshOptions,
   RoundedCuboidMeshOptions,
@@ -18,19 +19,22 @@ import type {
   TruncatedConeMeshOptions,
   TubeMeshOptions
 } from "@galacean/engine-core";
-import type { Vector2 } from "@galacean/engine-math";
+import type { Vector2, Vector3 } from "@galacean/engine-math";
 
 /**
  * @internal
  */
-export type SerializedPrimitiveMeshOptions<T> = {
-  [Key in keyof T]: Extract<T[Key], Vector2> extends never ? T[Key] : { x: number; y: number };
+export type SerializedPrimitiveMeshData<T> = {
+  [Key in keyof T]: SerializedPrimitiveMeshValue<T[Key]>;
 };
 
-type SerializedPolygonShape = {
-  points: readonly { x: number; y: number }[];
-  holes?: readonly (readonly { x: number; y: number }[])[];
-};
+type SerializedPrimitiveMeshValue<T> = T extends Vector2 | Vector3
+  ? ReturnType<T["toJSON"]>
+  : T extends object
+    ? SerializedPrimitiveMeshData<T>
+    : T;
+
+type SerializedPolygonShape = SerializedPrimitiveMeshData<PolygonShape>;
 
 /**
  * Serialized inputs and optional settings for every primitive mesh factory.
@@ -43,7 +47,7 @@ export type PrimitiveMeshAsset =
        * The radius in local units.
        */
       sphereRadius: number;
-      sphereOptions?: SerializedPrimitiveMeshOptions<SphereMeshOptions>;
+      sphereOptions?: SerializedPrimitiveMeshData<SphereMeshOptions>;
     }
   | {
       type: "cuboid";
@@ -83,7 +87,7 @@ export type PrimitiveMeshAsset =
        * The full size along Y in local units.
        */
       cylinderHeight: number;
-      cylinderOptions?: SerializedPrimitiveMeshOptions<CylinderMeshOptions>;
+      cylinderOptions?: SerializedPrimitiveMeshData<CylinderMeshOptions>;
     }
   | {
       type: "truncatedCone";
@@ -99,7 +103,7 @@ export type PrimitiveMeshAsset =
        * The full size along Y in local units.
        */
       truncatedConeHeight: number;
-      truncatedConeOptions?: SerializedPrimitiveMeshOptions<TruncatedConeMeshOptions>;
+      truncatedConeOptions?: SerializedPrimitiveMeshData<TruncatedConeMeshOptions>;
     }
   | {
       type: "cone";
@@ -111,7 +115,7 @@ export type PrimitiveMeshAsset =
        * The full size along Y in local units.
        */
       coneHeight: number;
-      coneOptions?: SerializedPrimitiveMeshOptions<ConeMeshOptions>;
+      coneOptions?: SerializedPrimitiveMeshData<ConeMeshOptions>;
     }
   | {
       type: "capsule";
@@ -135,7 +139,7 @@ export type PrimitiveMeshAsset =
        * The radius of the tube cross-section in local units.
        */
       torusTubeRadius: number;
-      torusOptions?: SerializedPrimitiveMeshOptions<TorusMeshOptions>;
+      torusOptions?: SerializedPrimitiveMeshData<TorusMeshOptions>;
     }
   | {
       type: "circle";
@@ -143,7 +147,7 @@ export type PrimitiveMeshAsset =
        * The radius in local units.
        */
       circleRadius: number;
-      circleOptions?: SerializedPrimitiveMeshOptions<CircleMeshOptions>;
+      circleOptions?: SerializedPrimitiveMeshData<CircleMeshOptions>;
     }
   | {
       type: "ring";
@@ -155,7 +159,7 @@ export type PrimitiveMeshAsset =
        * The inner radius in local units.
        */
       ringInnerRadius: number;
-      ringOptions?: SerializedPrimitiveMeshOptions<RingMeshOptions>;
+      ringOptions?: SerializedPrimitiveMeshData<RingMeshOptions>;
     }
   | {
       type: "tetrahedron";
@@ -191,12 +195,12 @@ export type PrimitiveMeshAsset =
     }
   | {
       type: "lathe";
-      latheProfile: readonly { x: number; y: number }[];
-      latheOptions?: SerializedPrimitiveMeshOptions<LatheMeshOptions>;
+      latheProfile: SerializedPrimitiveMeshData<readonly Vector2[]>;
+      latheOptions?: SerializedPrimitiveMeshData<LatheMeshOptions>;
     }
   | {
       type: "tube";
-      tubePath: readonly { x: number; y: number; z: number }[];
+      tubePath: SerializedPrimitiveMeshData<readonly Vector3[]>;
       /**
        * The radius of the cross-section in local units.
        */
@@ -222,7 +226,7 @@ export type PrimitiveMeshAsset =
       /**
        * The path points in local coordinates.
        */
-      extrudedPolygonPath: readonly { x: number; y: number; z: number }[];
+      extrudedPolygonPath: SerializedPrimitiveMeshData<readonly Vector3[]>;
       extrudedPolygonShapes: readonly SerializedPolygonShape[];
       extrudedPolygonOptions?: PathExtrudedPolygonMeshOptions;
     }

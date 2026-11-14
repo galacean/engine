@@ -11,7 +11,7 @@ import {
   resourceLoader
 } from "@galacean/engine-core";
 import { Vector2, Vector3 } from "@galacean/engine-math";
-import type { PrimitiveMeshAsset, SerializedPrimitiveMeshOptions } from "./PrimitiveMeshAsset";
+import type { PrimitiveMeshAsset, SerializedPrimitiveMeshData } from "./PrimitiveMeshAsset";
 
 @resourceLoader(AssetType.PrimitiveMesh, ["mesh"], false)
 class PrimitiveMeshLoader extends Loader<ModelMesh> {
@@ -134,7 +134,7 @@ class PrimitiveMeshLoader extends Loader<ModelMesh> {
     }
   }
 
-  private _parseRangeOptions<T>(options: SerializedPrimitiveMeshOptions<T> | undefined): T | undefined {
+  private _parseRangeOptions<T>(options: SerializedPrimitiveMeshData<T> | undefined): T | undefined {
     if (!options) {
       return;
     }

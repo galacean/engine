@@ -44,6 +44,28 @@ const shapes = [
   }
 ] as const;
 
+type SerializedPolygon = Extract<PrimitiveMeshAsset, { type: "polygon" }>["polygonShapes"][number];
+const polygonWithHoles: SerializedPolygon = { points: shapes[0].points, holes: [shapes[0].points] };
+// @ts-expect-error Serialized contour points remain readonly
+polygonWithHoles.points.push({ x: 0, y: 0 });
+// @ts-expect-error Serialized hole lists remain readonly
+polygonWithHoles.holes!.push(shapes[0].points);
+// @ts-expect-error Serialized hole points remain readonly
+polygonWithHoles.holes![0].push({ x: 0, y: 0 });
+// @ts-expect-error Serialized contour points have no Vector2 methods
+polygonWithHoles.points[0].clone();
+const invalidHolePoint: SerializedPolygon = {
+  points: shapes[0].points,
+  // @ts-expect-error Hole points contain two-dimensional coordinates
+  holes: [[{ x: 0, y: 0, z: 0 }]]
+};
+const invalidPathPoint: PrimitiveMeshAsset = {
+  type: "tube",
+  tubeRadius: 0.5,
+  // @ts-expect-error Path points require three-dimensional coordinates
+  tubePath: [{ x: 0, y: 0 }]
+};
+
 const tube: PrimitiveMeshAsset = { type: "tube", tubeRadius: 0.5, tubePath: path, tubeOptions: { closedPath: true } };
 const polygon: PrimitiveMeshAsset = { type: "polygon", polygonShapes: shapes };
 const extrudedPolygon: PrimitiveMeshAsset = {
@@ -151,6 +173,9 @@ void [
   exportedFromEngine,
   sphereSection,
   ungroupedSphere,
+  polygonWithHoles,
+  invalidHolePoint,
+  invalidPathPoint,
   tube,
   polygon,
   extrudedPolygon,
