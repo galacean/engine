@@ -1,0 +1,98 @@
+world/demos/seed-world/scripts/generate-low-poly-assets.py
+  s_9e9b87406ad10b::t_330b5573e3e67c 1,3,317-319
+  s_9e9b87406ad10b::t_a36459917683a1 2,4-7,11-108,111,121-132,134-145,148-152,154-172,174-192,195-200,202-205,316,320-325
+  s_9e9b87406ad10b::t_e05308bfc08762 109-110,112-120
+  s_9e9b87406ad10b::t_045b228e6c77ef 147
+  s_9e9b87406ad10b::t_42266d277ac8f2 8-10,263-266,269-274,278-280,283-292,299-315
+  s_9e9b87406ad10b::t_4d615b218728db 133,262,267-268,275-277,281-282,293-298,329-330
+  s_9e9b87406ad10b::t_f0ca2cfb28fb27 206-231,326-327
+  s_9e9b87406ad10b::t_d2d4a1504c404a 232-234,236-245,248-256,259-261,328
+  s_9e9b87406ad10b::t_b5394b39f0a3a5 146,173,235
+  s_9e9b87406ad10b::t_2e2064d7099741 153,193-194,201,246-247,257-258
+packages/world-planning/src/spatial/WorldTemplateCatalog.ts
+  s_9e9b87406ad10b::t_a7cbd591aae627 18,134-141
+  s_9e9b87406ad10b::t_b2c989f182e54b 142
+packages/world-planning/src/spatial/WorldTemplateAuthoring.ts
+  s_9e9b87406ad10b::t_ab00a22cf2a1c7 320
+packages/world-planning/src/spatial/world-templates/LowPolyValley.ts
+  s_9e9b87406ad10b::t_a7cbd591aae627 1-3,24-33,44-49,52,54,56-57,60,62-77,79-82,84,86,116,340-341,347,349,367,371
+  s_9e9b87406ad10b::t_fb483c45a90ffb 55
+  s_9e9b87406ad10b::t_f79deb6d8565af 344
+  s_9e9b87406ad10b::t_f0ca2cfb28fb27 78,83,90-92,342,368
+  s_9e9b87406ad10b::t_4d615b218728db 343,351-352
+  s_9e9b87406ad10b::t_8ab39a11e47e84 346,348,350,354
+  s_9e9b87406ad10b::t_7da2a96fca5a91 355
+  s_9e9b87406ad10b::t_0f02858691817a 61,95-97,132-133,359-360
+  s_9e9b87406ad10b::t_0683b24c01cebd 35-41,99-115,117-131,134-162,164-185,187-207,209-243,245-312,314-339
+  s_9e9b87406ad10b::t_8e721c9ad143cb 4-23,345
+  s_9e9b87406ad10b::t_f243cd10076e81 85
+  s_9e9b87406ad10b::t_3a43eaba3b052f 87-89,163,186
+  s_9e9b87406ad10b::t_423f031233d055 208,244,313
+  s_9e9b87406ad10b::t_a82f560c0fe795 356-357,361-364
+  s_9e9b87406ad10b::t_d9d859ffdcaf50 51,53
+  s_9e9b87406ad10b::t_952c4ddd1ad392 34,42-43,93-94,98
+  s_9e9b87406ad10b::t_00ec028f8340bc 365-366
+  s_9e9b87406ad10b::t_b8bbec4f441d1c 50,58-59,353,358,369-370
+world/demos/seed-world/src/planning/spatial/SpatialEditor.ts
+  s_9e9b87406ad10b::t_213211e03d0fc0 2,96-99
+packages/world-planning/src/spatial/runtime/WorldTemplateRuntime.ts
+  s_9e9b87406ad10b::t_ab00a22cf2a1c7 200-207
+  s_9e9b87406ad10b::t_c2e99687c188b5 724-731
+  s_9e9b87406ad10b::t_952c4ddd1ad392 44,172-173,199,208,218-226
+  s_9e9b87406ad10b::t_e2b54e9b1aa1c6 227
+  s_9e9b87406ad10b::t_47c8d8aa6f18ce 732
+packages/world-planning/src/spatial/layout/SpatialWorld.ts
+  s_9e9b87406ad10b::t_d9d859ffdcaf50 1202,1206
+world/demos/seed-world/src/planning/spatial/PlanningStartupTemplate.ts
+  s_9e9b87406ad10b::t_5e05bf29f6d0c9 77-80,82-85
+  s_9e9b87406ad10b::t_213211e03d0fc0 46-76,81,86-87
+  s_9e9b87406ad10b::t_8afb62d74418e8 2
+packages/world-planning/src/spatial/PlanningDocument.ts
+  s_9e9b87406ad10b::t_56554ccc89895f 522-533
+world/demos/seed-world/src/planning/spatial/runtime/PlanningWorldSource.ts
+  s_9e9b87406ad10b::t_8afb62d74418e8 32
+  s_9e9b87406ad10b::t_213211e03d0fc0 2
+world/demos/seed-world/SeedWorldDemo.ts
+  s_9e9b87406ad10b::t_7da2a96fca5a91 679,717,1934,2489,2492,2497-2499,2502-2505,2507-2509
+packages/world-planning/src/spatial/WorldTemplateArtDirection.ts
+  s_9e9b87406ad10b::t_a7cbd591aae627 5,308
+  s_9e9b87406ad10b::t_d9d859ffdcaf50 57-58
+  s_9e9b87406ad10b::t_ab00a22cf2a1c7 34-35,49
+  s_9e9b87406ad10b::t_81b7e4850091b3 27
+  s_9e9b87406ad10b::t_4d83d6a53730ae 67-72
+packages/world-planning/src/spatial/WorldTemplateView.ts
+  s_9e9b87406ad10b::t_81b7e4850091b3 249-252,256
+  s_9e9b87406ad10b::t_d9d859ffdcaf50 248,253,257-258
+  s_9e9b87406ad10b::t_91a25dc058d563 259-260
+packages/world-planning/src/spatial/WorldTemplateGeometry.ts
+  s_9e9b87406ad10b::t_e05308bfc08762 12-13,103-108,111
+  s_9e9b87406ad10b::t_8e721c9ad143cb 70,73-74,86,91-99,109-110,112
+  s_9e9b87406ad10b::t_178f52a2324267 113
+world/tests/seed-world/WorldTemplates.spec.ts
+  s_9e9b87406ad10b::t_64edfba69e9a10 86
+  s_9e9b87406ad10b::t_f0ca2cfb28fb27 85
+  s_9e9b87406ad10b::t_81b7e4850091b3 78-81
+  s_9e9b87406ad10b::t_a82f560c0fe795 87-89,441-447,460-463
+  s_9e9b87406ad10b::t_7159ee90d30964 91
+  s_9e9b87406ad10b::t_d2d4a1504c404a 67-70,72,82-84
+  s_9e9b87406ad10b::t_7ebbcad647cf3d 422
+  s_9e9b87406ad10b::t_ed12f5bec6360b 706-708
+  s_9e9b87406ad10b::t_326c6fbad2166f 61-66,73-77,90,521
+  s_9e9b87406ad10b::t_c4b109f6befd97 71
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "4820d2164205c850b23f4e038f48baac93dd380e",
+  "prompts": {},
+  "sessions": {
+    "s_9e9b87406ad10b": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1d3d6-534d-7b52-b7a9-9aa1e283590e",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

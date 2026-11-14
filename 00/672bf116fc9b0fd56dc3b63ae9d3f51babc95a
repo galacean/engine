@@ -1,0 +1,49 @@
+packages/core/src/sky/SkyBoxMaterial.ts
+  s_887c9bfcd3faf0::t_38066fc8151e73 65
+packages/core/src/particle/ParticleMaterial.ts
+  s_887c9bfcd3faf0::t_38066fc8151e73 14
+packages/core/src/material/PBRMaterial.ts
+  s_887c9bfcd3faf0::t_38066fc8151e73 769
+packages/spine/src/renderer/SpineMaterial.ts
+  s_887c9bfcd3faf0::t_38066fc8151e73 9
+packages/core/src/material/BlinnPhongMaterial.ts
+  s_887c9bfcd3faf0::t_38066fc8151e73 162
+packages/core/src/Engine.ts
+  s_887c9bfcd3faf0::t_4027fe884bdcb5 50,285,288
+packages/core/src/Background.ts
+  s_887c9bfcd3faf0::t_38066fc8151e73 107
+packages/core/src/postProcess/PostProcessUberPass.ts
+  s_887c9bfcd3faf0::t_4027fe884bdcb5 22,27,31
+tests/src/core/BuiltinShaderIdentity.test.ts
+  s_887c9bfcd3faf0::t_a7056498fe0496 126,128,133-134,139,147-148,153-166,185-187,192,199-200,204-205,215
+packages/ui/src/index.ts
+  s_887c9bfcd3faf0::t_38066fc8151e73 17
+packages/galacean/src/index.ts
+  s_887c9bfcd3faf0::t_38066fc8151e73 31
+packages/core/src/particle/ParticleGenerator.ts
+  s_887c9bfcd3faf0::t_4027fe884bdcb5 2,667,1481
+packages/core/src/material/UnlitMaterial.ts
+  s_887c9bfcd3faf0::t_38066fc8151e73 59
+packages/core/src/RenderPipeline/BasicRenderPipeline.ts
+  s_887c9bfcd3faf0::t_4027fe884bdcb5 4,61
+packages/core/src/trail/TrailMaterial.ts
+  s_887c9bfcd3faf0::t_38066fc8151e73 13
+packages/core/src/sky/SkyProceduralMaterial.ts
+  s_887c9bfcd3faf0::t_38066fc8151e73 134
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "00672bf116fc9b0fd56dc3b63ae9d3f51babc95a",
+  "prompts": {},
+  "sessions": {
+    "s_887c9bfcd3faf0": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1334e-1e2b-7b23-b7e9-874f5ffe4d60",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}
