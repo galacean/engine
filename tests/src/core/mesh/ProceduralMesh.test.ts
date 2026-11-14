@@ -1757,6 +1757,45 @@ describe("procedural mesh geometry", () => {
     }
   });
 
+  it.each([false, true])("restores non-indexed primitive tangents with released data: %s", (releaseData) => {
+    const mesh = PrimitiveMesh.createPlane(engine, 1, 1, {
+      widthSegments: 2,
+      depthSegments: 1,
+      keepCPUData: true
+    });
+    try {
+      mesh.setPositions([
+        new Vector3(0, 0, 0),
+        new Vector3(1, 0, 0),
+        new Vector3(0, 1, 0),
+        new Vector3(2, 0, 0),
+        new Vector3(3, 0, 0),
+        new Vector3(2, 1, 0)
+      ]);
+      mesh.setNormals(Array.from({ length: 6 }, () => new Vector3(0, 0, 1)));
+      mesh.setUVs([
+        new Vector2(0, 0),
+        new Vector2(1, 0),
+        new Vector2(0, 1),
+        new Vector2(0, 0),
+        new Vector2(0, 1),
+        new Vector2(1, 0)
+      ]);
+      mesh.setIndices(null);
+      mesh.clearSubMesh();
+      mesh.addSubMesh(0, 6);
+      mesh.calculateTangents();
+      mesh.uploadData(releaseData);
+      const tangentBuffer = mesh.vertexBufferBindings[1]!.buffer;
+      const original = MeshTestUtils.readBuffer(tangentBuffer);
+      MeshTestUtils.clearBuffer(tangentBuffer);
+      (engine.resourceManager as any)._contentRestorerPool[mesh.instanceId].restoreContent();
+      expect(MeshTestUtils.readBuffer(tangentBuffer)).toEqual(original);
+    } finally {
+      mesh.destroy();
+    }
+  });
+
   it.each([1, 1e-8])("normalizes tangents for a plane of size %s", (size) => {
     const mesh = PrimitiveMesh.createPlane(engine, size, size, {
       keepCPUData: true,

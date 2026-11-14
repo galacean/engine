@@ -26,6 +26,7 @@ export class PrimitiveMeshRestorer<T extends unknown[]> extends ContentRestorer<
   override restoreContent(): void {
     const mesh = this.resource;
     const vertexBuffer = this._vertexBuffer;
+    const indexBuffer = mesh._primitive.indexBufferBinding?._buffer;
     const indices = mesh.accessible ? mesh.getIndices() : null;
     let generated: PrimitiveMeshBuilder | undefined;
     // Only regenerate owned buffers; readable data includes changes made after creation
@@ -40,15 +41,14 @@ export class PrimitiveMeshRestorer<T extends unknown[]> extends ContentRestorer<
         generated ??= this._generateData();
         buffer.setData(generated.vertices);
       } else if (buffer === this._tangentBuffer) {
-        generated ??= this._generateData();
         const vertexData = vertexBuffer.readable ? vertexBuffer.data : null;
         const vertices = vertexData
           ? new Float32Array(vertexData.buffer, vertexData.byteOffset, vertexBuffer.byteLength / 4)
-          : generated.vertices;
-        buffer.setData(MeshTangentUtils.calculateTangentsFromBuffer(vertices, indices ?? generated.indices));
+          : (generated ??= this._generateData()).vertices;
+        const tangentIndices = indexBuffer ? (indices ?? (generated ??= this._generateData()).indices) : null;
+        buffer.setData(MeshTangentUtils.calculateTangentsFromBuffer(vertices, tangentIndices));
       }
     }
-    const indexBuffer = mesh._primitive.indexBufferBinding?._buffer;
     if (indexBuffer) {
       if (indices) {
         indexBuffer.setData(indices);

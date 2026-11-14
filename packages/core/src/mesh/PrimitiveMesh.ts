@@ -1976,7 +1976,7 @@ export class PrimitiveMesh {
   private static _createMesh<T extends unknown[]>(
     engine: Engine,
     generate: (...args: T) => PrimitiveMeshBuilder,
-    args: T,
+    args: [...T],
     options?: { keepCPUData?: boolean; separateMaterialSlots?: boolean }
   ): ModelMesh {
     const keepCPUData = options?.keepCPUData ?? false;
