@@ -1,0 +1,35 @@
+packages/loader/src/PrimitiveMeshLoader.ts
+  s_f1a7b8285f1df2::t_02e921097ca6b8 71
+tests/package-consumer/fixtures/PrimitiveMeshApi.ts
+  s_f1a7b8285f1df2::t_02e921097ca6b8 153,268
+  s_f1a7b8285f1df2::t_64f34fecea96ae 280-284
+packages/core/src/mesh/PrimitiveMesh.ts
+  s_f1a7b8285f1df2::t_02e921097ca6b8 23-24,537-539,548,559,568
+tests/src/core/mesh/ProceduralMesh.test.ts
+  s_f1a7b8285f1df2::t_64f34fecea96ae 1737-1775
+packages/galacean/skills/engine-knowledge/references/mesh-geometry.md
+  s_f1a7b8285f1df2::t_cbfd9f269b270d 66,82
+docs/en/graphics/mesh/primitiveMesh.mdx
+  s_f1a7b8285f1df2::t_cbfd9f269b270d 206,302
+tests/src/loader/PrimitiveMeshLoader.test.ts
+  s_f1a7b8285f1df2::t_64f34fecea96ae 454-478,481
+  s_f1a7b8285f1df2::t_cbfd9f269b270d 479-480
+docs/zh/graphics/mesh/primitiveMesh.mdx
+  s_f1a7b8285f1df2::t_cbfd9f269b270d 212,308
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "121dd6fe793f19f092434b078a077a88f9900de5",
+  "prompts": {},
+  "sessions": {
+    "s_f1a7b8285f1df2": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1d54e-3c87-7273-b01d-79d652eaed37",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}
