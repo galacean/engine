@@ -1,0 +1,25 @@
+packages/core/src/mesh/ModelMesh.ts
+  s_f1a7b8285f1df2::t_5307c57f6fd9ad 797,808,816,819,886-890,894,927,931,935,939,943,947,951,955,959,963,967,971,975,979
+packages/core/src/mesh/PrimitiveMesh.ts
+  s_f1a7b8285f1df2::t_5307c57f6fd9ad 2002,2005-2007
+  s_f1a7b8285f1df2::t_1f90ccc5ddb148 1999
+tests/src/core/mesh/ProceduralMesh.test.ts
+  s_f1a7b8285f1df2::t_0bfa74faf86354 12,1817-1843
+  s_f1a7b8285f1df2::t_54658ed79346e6 1844
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "50f7db281e7c8ecd4e32ee4fbe471b97e7c9e83b",
+  "prompts": {},
+  "sessions": {
+    "s_f1a7b8285f1df2": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1d54e-3c87-7273-b01d-79d652eaed37",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}
