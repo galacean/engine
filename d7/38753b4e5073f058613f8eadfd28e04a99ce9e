@@ -1,0 +1,16 @@
+world/demos/seed-world/src/planning/spatial/runtime/PlanningWaterInitialization.ts
+  h_a3c79ce84ffdc2 288-289,292,294-304
+world/tests/seed-world/PlanningWaterOwnership.spec.ts
+  h_a3c79ce84ffdc2 85-114
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "d738753b4e5073f058613f8eadfd28e04a99ce9e",
+  "prompts": {},
+  "humans": {
+    "h_a3c79ce84ffdc2": {
+      "author": "星翊 <sunmingming.smm@antgroup.com>"
+    }
+  }
+}
