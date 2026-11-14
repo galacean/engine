@@ -37,7 +37,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
       const entity = rootEntity.createChild("mesh");
       entity.transform.setRotation(0, 90, 0);
       const meshRenderer = entity.addComponent(MeshRenderer);
-      meshRenderer.mesh = PrimitiveMesh.createSubdivisionSurfaceSphere(engine);
+      meshRenderer.mesh = PrimitiveMesh.createSphere(engine);
       meshRenderer.setMaterial(material);
 
       updateForE2E(engine);

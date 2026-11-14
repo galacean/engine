@@ -55,7 +55,7 @@ function createPhysicsSphere(
   sphereMtl.baseColor.set(color.x, color.y, color.z, 1.0);
   sphereMtl.metallic = 0.0;
   sphereMtl.roughness = 0.5;
-  sphereRenderer.mesh = PrimitiveMesh.createSphere(rootEntity.engine, radius);
+  sphereRenderer.mesh = PrimitiveMesh.createSphere(rootEntity.engine, { radius });
   sphereRenderer.setMaterial(sphereMtl);
 
   // Add physics
@@ -107,7 +107,11 @@ WebGLEngine.create({ canvas: "canvas", physics: new PhysXPhysics() }).then((engi
 
   const cubeSize = new Vector3(10, 0.2, 10);
   const groundRenderer = groundEntity.addComponent(MeshRenderer);
-  groundRenderer.mesh = PrimitiveMesh.createCuboid(engine, cubeSize.x, cubeSize.y, cubeSize.z);
+  groundRenderer.mesh = PrimitiveMesh.createCuboid(engine, {
+    width: cubeSize.x,
+    height: cubeSize.y,
+    depth: cubeSize.z
+  });
   groundRenderer.setMaterial(groundMtl);
 
   // Physics for the ground cube

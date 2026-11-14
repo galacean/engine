@@ -156,7 +156,7 @@ describe("Shader", () => {
       const meshRenderer = meshEntity.addComponent(MeshRenderer);
       const material = new BlinnPhongMaterial(engine);
       meshRenderer.setMaterial(material);
-      meshRenderer.mesh = PrimitiveMesh.createSphere(engine, 1);
+      meshRenderer.mesh = PrimitiveMesh.createSphere(engine, { radius: 1 });
 
       // Call update will compile shader internally
       engine.update();
@@ -198,7 +198,7 @@ describe("Shader", () => {
 
       const meshEntity = scene.createRootEntity("mesh");
       const mr = meshEntity.addComponent(MeshRenderer);
-      mr.mesh = PrimitiveMesh.createCuboid(engine, 1, 1, 1);
+      mr.mesh = PrimitiveMesh.createCuboid(engine);
       mr.setMaterial(new Material(engine, shader));
 
       // Test that shader compile variant successfully, if use shaderCompiler.

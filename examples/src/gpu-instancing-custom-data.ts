@@ -128,7 +128,7 @@ WebGLEngine.create({
   lightEntity.transform.setRotation(-45, -45, 0);
   lightEntity.addComponent(DirectLight).color = new Color(1, 1, 1, 1);
 
-  const mesh = PrimitiveMesh.createCuboid(engine, 1, 1, 1);
+  const mesh = PrimitiveMesh.createCuboid(engine);
   const material = new Material(engine, Shader.find("CustomInstanceShader"));
   const customColorProperty = ShaderProperty.getByName("renderer_CustomColor");
 

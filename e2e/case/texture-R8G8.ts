@@ -32,7 +32,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
   planeEntity.transform.setRotation(5, 0, 0);
 
   const planeRenderer = planeEntity.addComponent(MeshRenderer);
-  planeRenderer.mesh = PrimitiveMesh.createPlane(engine, 2, 2);
+  planeRenderer.mesh = PrimitiveMesh.createPlane(engine, { width: 2 });
   planeRenderer.setMaterial(material);
 
   const width = 1024;

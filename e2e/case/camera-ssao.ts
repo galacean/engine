@@ -52,7 +52,7 @@ WebGLEngine.create({
   const skyMaterial = new SkyBoxMaterial(engine);
   background.mode = BackgroundMode.Sky;
   sky.material = skyMaterial;
-  sky.mesh = PrimitiveMesh.createCuboid(engine, 1, 1, 1);
+  sky.mesh = PrimitiveMesh.createCuboid(engine);
 
   // Sphere
   const sphereMaterial = new PBRMaterial(engine);
@@ -61,7 +61,7 @@ WebGLEngine.create({
   sphere.transform.setPosition(0, 1, 0);
   sphere.transform.setRotation(45, 45, 0);
   const meshRenderer = sphere.addComponent(MeshRenderer);
-  meshRenderer.mesh = PrimitiveMesh.createSubdivisionSurfaceSphere(engine);
+  meshRenderer.mesh = PrimitiveMesh.createSphere(engine);
   meshRenderer.setMaterial(sphereMaterial);
 
   // Box

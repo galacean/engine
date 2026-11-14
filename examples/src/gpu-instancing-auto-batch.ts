@@ -157,7 +157,7 @@ WebGLEngine.create({
   scene.ambientLight = ambientLight;
 
   // Cube resources
-  const cubeMesh = PrimitiveMesh.createCuboid(engine, 1, 1, 1);
+  const cubeMesh = PrimitiveMesh.createCuboid(engine);
   const cubeMaterial = new Material(engine, Shader.find("CustomInstanceShader"));
   const customColorProperty = ShaderProperty.getByName("renderer_CustomColor");
 

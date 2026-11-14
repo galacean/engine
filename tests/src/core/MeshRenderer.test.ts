@@ -38,7 +38,7 @@ describe("MeshRenderer", async function () {
   it("mesh", () => {
     // Test set mesh and get mesh work correctly.
     const mr = cubeEntity.getComponent(MeshRenderer);
-    const cubeMesh2 = PrimitiveMesh.createCuboid(engine, 1, 1, 1);
+    const cubeMesh2 = PrimitiveMesh.createCuboid(engine);
     mr.mesh = cubeMesh2;
     expect(mr.mesh).to.be.equal(cubeMesh2);
     expect(cubeMesh2.refCount).to.be.equal(1);
@@ -47,7 +47,7 @@ describe("MeshRenderer", async function () {
     mr.mesh = cubeMesh2;
     expect(cubeMesh2.refCount).to.be.equal(1);
 
-    cubeMesh = PrimitiveMesh.createCuboid(engine, 2, 2, 2);
+    cubeMesh = PrimitiveMesh.createCuboid(engine, { width: 2 });
     mr.mesh = cubeMesh;
     expect(mr.mesh).to.equal(cubeMesh);
     expect(cubeMesh2.refCount).to.be.equal(0);

@@ -39,7 +39,7 @@ WebGLEngine.create({ canvas: "canvas", physics: new PhysXPhysics() }).then((engi
     mtl.metallic = 0.0;
     mtl.roughness = 0.5;
     const renderer = entity.addComponent(MeshRenderer);
-    renderer.mesh = PrimitiveMesh.createCuboid(engine, 2, 2, 2);
+    renderer.mesh = PrimitiveMesh.createCuboid(engine, { width: 2 });
     renderer.setMaterial(mtl);
 
     const shape = new BoxColliderShape();

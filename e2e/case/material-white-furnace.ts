@@ -95,7 +95,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
       entity.transform.setPosition(col * spacing - offsetX, (rows - 1 - row) * spacing - offsetY, 0);
 
       const renderer = entity.addComponent(MeshRenderer);
-      renderer.mesh = PrimitiveMesh.createSphere(engine, 0.5, 32);
+      renderer.mesh = PrimitiveMesh.createSphere(engine, { radius: 0.5, subdivisions: 4 });
 
       const material = new PBRMaterial(engine);
       material.baseColor = rowConfigs[row].baseColor;

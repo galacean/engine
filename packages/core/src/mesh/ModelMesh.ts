@@ -12,6 +12,7 @@ import { IndexFormat } from "../graphic/enums/IndexFormat";
 import { VertexElementFormat } from "../graphic/enums/VertexElementFormat";
 import { BlendShape } from "./BlendShape";
 import { BlendShapeManager } from "./BlendShapeManager";
+import { MeshTangentUtils } from "./MeshTangentUtils";
 import { VertexAttribute } from "./enums/VertexAttribute";
 
 /**
@@ -19,12 +20,6 @@ import { VertexAttribute } from "./enums/VertexAttribute";
  * Define draw ranges with `addSubMesh()` and assign a material to each corresponding MeshRenderer slot.
  */
 export class ModelMesh extends Mesh {
-  private static _tempVec0 = new Vector3();
-  private static _tempVec1 = new Vector3();
-  private static _tempVec2 = new Vector3();
-  private static _tempVec3 = new Vector3();
-  private static _tempVec4 = new Vector3();
-
   /** @internal */
   _blendShapeManager: BlendShapeManager;
   /** @internal */
@@ -673,9 +668,12 @@ export class ModelMesh extends Mesh {
   }
 
   /**
-   * Calculate mesh tangent.
-   * @remark need to set positions(with or not with indices), normals, uv before calculation.
-   * @remark based on http://foundationsofgameenginedev.com/FGED2-sample.pdf
+   * Calculate tangent vectors from the mesh's positions, normals and UV coordinates.
+   * @remarks
+   * Position, normal and UV data must be readable.
+   * Without indices, each consecutive triplet of vertices forms a triangle.
+   * Triangles with degenerate UV coordinates do not contribute to the tangent basis.
+   * @see http://foundationsofgameenginedev.com/FGED2-sample.pdf
    */
   calculateTangents(): void {
     const positions = this.getPositions()!;
@@ -686,78 +684,15 @@ export class ModelMesh extends Mesh {
       throw "Set normal and uv before calculation.";
     }
 
-    const { _indices: indices, vertexCount } = this;
-    const { _tempVec0: e1, _tempVec1: e2, _tempVec2: t, _tempVec3: b, _tempVec4: temp } = ModelMesh;
-    const triangleCount = indices ? indices.length / 3 : positions.length / 3;
-    const tangents = new Array<Vector4>(vertexCount);
-    const biTangents = new Array<Vector3>(vertexCount);
-    for (let i = 0; i < vertexCount; i++) {
-      tangents[i] = new Vector4();
-      biTangents[i] = new Vector3();
-    }
+    this.setTangents(MeshTangentUtils.calculateTangents(positions, normals, uvs, this._indices));
+  }
 
-    // Calculate tangent and bi-tangent for each triangle and add to all three vertices.
-    for (let k = 0; k < triangleCount; k++) {
-      let i0 = 3 * k;
-      let i1 = 3 * k + 1;
-      let i2 = 3 * k + 2;
-      if (indices) {
-        i0 = indices[i0];
-        i1 = indices[i1];
-        i2 = indices[i2];
-      }
-
-      const p0 = positions[i0];
-      const p1 = positions[i1];
-      const p2 = positions[i2];
-      const w0 = uvs[i0];
-      const w1 = uvs[i1];
-      const w2 = uvs[i2];
-
-      Vector3.subtract(p1, p0, e1);
-      Vector3.subtract(p2, p0, e2);
-      const x1 = w1.x - w0.x;
-      const x2 = w2.x - w0.x;
-      const y1 = w1.y - w0.y;
-      const y2 = w2.y - w0.y;
-      const r = 1.0 / (x1 * y2 - x2 * y1);
-
-      Vector3.scale(e1, y2 * r, t);
-      Vector3.scale(e2, y1 * r, temp);
-      Vector3.subtract(t, temp, t);
-      Vector3.scale(e2, x1 * r, b);
-      Vector3.scale(e1, x2 * r, temp);
-      Vector3.subtract(b, temp, b);
-
-      let tangent = tangents[i0];
-      tangent.set(tangent.x + t.x, tangent.y + t.y, tangent.z + t.z, 1.0);
-
-      tangent = tangents[i1];
-      tangent.set(tangent.x + t.x, tangent.y + t.y, tangent.z + t.z, 1.0);
-
-      tangent = tangents[i2];
-      tangent.set(tangent.x + t.x, tangent.y + t.y, tangent.z + t.z, 1.0);
-
-      biTangents[i0].add(b);
-      biTangents[i1].add(b);
-      biTangents[i2].add(b);
-    }
-
-    // Orthonormalize each tangent and calculate the handedness.
-    for (let i = 0; i < vertexCount; i++) {
-      const n = normals[i];
-      const b = biTangents[i];
-      const tangent = tangents[i];
-      t.set(tangent.x, tangent.y, tangent.z);
-
-      Vector3.cross(t, b, temp);
-      const w = Vector3.dot(temp, n) > 0.0 ? 1 : -1;
-      Vector3.scale(n, Vector3.dot(t, n), temp);
-      Vector3.subtract(t, temp, t);
-      t.normalize();
-      tangent.set(t.x, t.y, t.z, w);
-    }
-    this.setTangents(tangents);
+  /**
+   * @internal
+   */
+  _initializeTangents(tangents: Float32Array, releaseData: boolean): void {
+    this._updateAdvancedVertexElement(true, VertexAttribute.Tangent, VertexElementFlags.Tangent);
+    this._updateInternalVertexBuffer(releaseData, tangents);
   }
 
   /**
@@ -766,23 +701,26 @@ export class ModelMesh extends Mesh {
   override _setVertexBufferBinding(index: number, binding: VertexBufferBinding | null): void {
     const vertexBufferBindings = this._primitive.vertexBufferBindings;
     const updateInfos = this._vertexBufferInfos;
-    const onVertexBufferChanged = () => {
-      if (!this._advancedDataSyncToBuffer) {
-        updateInfos[index].dataVersion = this._dataVersionCounter++;
-      }
-    };
+    let updateInfo = updateInfos[index];
 
-    // Remove listener from previous binding
     const previousBinding = vertexBufferBindings[index];
-    previousBinding && previousBinding.buffer._dataUpdateManager.removeListener(onVertexBufferChanged);
+    if (previousBinding && updateInfo) {
+      previousBinding.buffer._dataUpdateManager.removeListener(updateInfo.onBufferChanged);
+    }
 
     super._setVertexBufferBinding(index, binding);
 
-    // Add listener to new binding and trigger update
     if (binding) {
-      binding.buffer._dataUpdateManager.addListener(onVertexBufferChanged);
-      (updateInfos[index] ||= new BufferUpdateInfo()).reset();
-      onVertexBufferChanged();
+      if (!updateInfo) {
+        updateInfo = updateInfos[index] = new BufferUpdateInfo(() => {
+          if (!this._advancedDataSyncToBuffer) {
+            updateInfos[index].dataVersion = this._dataVersionCounter++;
+          }
+        });
+      }
+      binding.buffer._dataUpdateManager.addListener(updateInfo.onBufferChanged);
+      updateInfo.reset();
+      updateInfo.onBufferChanged();
     } else {
       if (index + 1 == vertexBufferBindings.length) {
         vertexBufferBindings.length--;
@@ -812,6 +750,13 @@ export class ModelMesh extends Mesh {
    * @internal
    */
   protected override _onDestroy(): void {
+    const bindings = this._primitive.vertexBufferBindings;
+    for (let i = 0; i < bindings.length; i++) {
+      const updateInfo = this._vertexBufferInfos[i];
+      if (updateInfo) {
+        bindings[i]?.buffer._dataUpdateManager.removeListener(updateInfo.onBufferChanged);
+      }
+    }
     super._onDestroy();
     this._releaseCache(true);
   }
@@ -857,7 +802,7 @@ export class ModelMesh extends Mesh {
     this._advancedVertexDataVersions[elementIndex] = this._dataVersionCounter++;
   }
 
-  private _updateInternalVertexBuffer(releaseData: boolean): void {
+  private _updateInternalVertexBuffer(releaseData: boolean, initialData?: Float32Array): void {
     const bufferStride = this._internalVertexBufferStride;
     const vertexCount = this.vertexCount;
     const bufferCreatedInfo = this._internalVertexBufferCreatedInfo;
@@ -868,7 +813,14 @@ export class ModelMesh extends Mesh {
       // Destroy old internal vertex buffer
       const createdInternalBufferIndex = bufferCreatedInfo.z;
       if (createdInternalBufferIndex !== -1) {
-        this._primitive.vertexBufferBindings[createdInternalBufferIndex]?.buffer.destroy();
+        const buffer = this._primitive.vertexBufferBindings[createdInternalBufferIndex]?.buffer;
+        const tangentElement = this._primitive._vertexElementMap[VertexAttribute.Tangent];
+        // Raw tangents are read lazily; preserve them before repacking the owned buffer
+        if (buffer?.readable && tangentElement?.bindingIndex === createdInternalBufferIndex) {
+          this.getTangents();
+          this._advancedVertexDataVersions[VertexElementIndex.Tangent] = this._dataVersionCounter++;
+        }
+        buffer?.destroy();
         this._setVertexBufferBinding(createdInternalBufferIndex, null);
       }
 
@@ -876,10 +828,14 @@ export class ModelMesh extends Mesh {
       const isCreate = bufferStride * this.vertexCount > 0;
       if (isCreate) {
         // No matter the internal buffer is stride change or vertex count change, we need set to internal buffer again
-        this._advancedDataUpdateFlag |= this._internalVertexElementsFlags;
+        if (!initialData) {
+          this._advancedDataUpdateFlag |= this._internalVertexElementsFlags;
+        }
 
         const bufferUsage = releaseData ? BufferUsage.Static : BufferUsage.Dynamic;
-        const vertexBuffer = new Buffer(this._engine, BufferBindFlag.VertexBuffer, needByteLength, bufferUsage, true);
+        const vertexBuffer = initialData
+          ? new Buffer(this._engine, BufferBindFlag.VertexBuffer, initialData, bufferUsage, !releaseData)
+          : new Buffer(this._engine, BufferBindFlag.VertexBuffer, needByteLength, bufferUsage, true);
         this._setVertexBufferBinding(vertexBufferIndex, new VertexBufferBinding(vertexBuffer, bufferStride));
       }
       bufferCreatedInfo.set(bufferStride, vertexCount, isCreate ? vertexBufferIndex : -1);
@@ -946,15 +902,11 @@ export class ModelMesh extends Mesh {
     return vertices;
   }
 
-  private _updateAdvancedVertexElement(
-    vertices: VertexType[] | null,
-    attribute: VertexAttribute,
-    flag: VertexElementFlags
-  ): void {
+  private _updateAdvancedVertexElement(present: boolean, attribute: VertexAttribute, flag: VertexElementFlags): void {
     const primitive = this._primitive;
     const vertexElementMap = primitive._vertexElementMap;
 
-    if (vertices) {
+    if (present) {
       if (!vertexElementMap[attribute]) {
         const format = this._getAttributeFormat(attribute);
         const offset = this._internalVertexBufferStride;
@@ -987,59 +939,59 @@ export class ModelMesh extends Mesh {
     const advancedElementUpdateFlag = this._advancedElementUpdateFlag;
 
     if (advancedElementUpdateFlag & VertexElementFlags.Position) {
-      this._updateAdvancedVertexElement(this._positions, VertexAttribute.Position, VertexElementFlags.Position);
+      this._updateAdvancedVertexElement(!!this._positions, VertexAttribute.Position, VertexElementFlags.Position);
     }
 
     if (advancedElementUpdateFlag & VertexElementFlags.Normal) {
-      this._updateAdvancedVertexElement(this._normals, VertexAttribute.Normal, VertexElementFlags.Normal);
+      this._updateAdvancedVertexElement(!!this._normals, VertexAttribute.Normal, VertexElementFlags.Normal);
     }
 
     if (advancedElementUpdateFlag & VertexElementFlags.Color) {
-      this._updateAdvancedVertexElement(this._colors, VertexAttribute.Color, VertexElementFlags.Color);
+      this._updateAdvancedVertexElement(!!this._colors, VertexAttribute.Color, VertexElementFlags.Color);
     }
 
     if (advancedElementUpdateFlag & VertexElementFlags.BoneWeight) {
-      this._updateAdvancedVertexElement(this._boneWeights, VertexAttribute.BoneWeight, VertexElementFlags.BoneWeight);
+      this._updateAdvancedVertexElement(!!this._boneWeights, VertexAttribute.BoneWeight, VertexElementFlags.BoneWeight);
     }
 
     if (advancedElementUpdateFlag & VertexElementFlags.BoneIndex) {
-      this._updateAdvancedVertexElement(this._boneIndices, VertexAttribute.BoneIndex, VertexElementFlags.BoneIndex);
+      this._updateAdvancedVertexElement(!!this._boneIndices, VertexAttribute.BoneIndex, VertexElementFlags.BoneIndex);
     }
 
     if (advancedElementUpdateFlag & VertexElementFlags.Tangent) {
-      this._updateAdvancedVertexElement(this._tangents, VertexAttribute.Tangent, VertexElementFlags.Tangent);
+      this._updateAdvancedVertexElement(!!this._tangents, VertexAttribute.Tangent, VertexElementFlags.Tangent);
     }
 
     if (advancedElementUpdateFlag & VertexElementFlags.UV) {
-      this._updateAdvancedVertexElement(this._uv, VertexAttribute.UV, VertexElementFlags.UV);
+      this._updateAdvancedVertexElement(!!this._uv, VertexAttribute.UV, VertexElementFlags.UV);
     }
 
     if (advancedElementUpdateFlag & VertexElementFlags.UV1) {
-      this._updateAdvancedVertexElement(this._uv1, VertexAttribute.UV1, VertexElementFlags.UV1);
+      this._updateAdvancedVertexElement(!!this._uv1, VertexAttribute.UV1, VertexElementFlags.UV1);
     }
 
     if (advancedElementUpdateFlag & VertexElementFlags.UV2) {
-      this._updateAdvancedVertexElement(this._uv2, VertexAttribute.UV2, VertexElementFlags.UV2);
+      this._updateAdvancedVertexElement(!!this._uv2, VertexAttribute.UV2, VertexElementFlags.UV2);
     }
 
     if (advancedElementUpdateFlag & VertexElementFlags.UV3) {
-      this._updateAdvancedVertexElement(this._uv3, VertexAttribute.UV3, VertexElementFlags.UV3);
+      this._updateAdvancedVertexElement(!!this._uv3, VertexAttribute.UV3, VertexElementFlags.UV3);
     }
 
     if (advancedElementUpdateFlag & VertexElementFlags.UV4) {
-      this._updateAdvancedVertexElement(this._uv4, VertexAttribute.UV4, VertexElementFlags.UV4);
+      this._updateAdvancedVertexElement(!!this._uv4, VertexAttribute.UV4, VertexElementFlags.UV4);
     }
 
     if (advancedElementUpdateFlag & VertexElementFlags.UV5) {
-      this._updateAdvancedVertexElement(this._uv5, VertexAttribute.UV5, VertexElementFlags.UV5);
+      this._updateAdvancedVertexElement(!!this._uv5, VertexAttribute.UV5, VertexElementFlags.UV5);
     }
 
     if (advancedElementUpdateFlag & VertexElementFlags.UV6) {
-      this._updateAdvancedVertexElement(this._uv6, VertexAttribute.UV6, VertexElementFlags.UV6);
+      this._updateAdvancedVertexElement(!!this._uv6, VertexAttribute.UV6, VertexElementFlags.UV6);
     }
 
     if (advancedElementUpdateFlag & VertexElementFlags.UV7) {
-      this._updateAdvancedVertexElement(this._uv7, VertexAttribute.UV7, VertexElementFlags.UV7);
+      this._updateAdvancedVertexElement(!!this._uv7, VertexAttribute.UV7, VertexElementFlags.UV7);
     }
   }
 
@@ -1336,6 +1288,8 @@ export class ModelMesh extends Mesh {
 class BufferUpdateInfo {
   dataVersion: number = -1;
   uploadAdvancedData: boolean = false;
+
+  constructor(readonly onBufferChanged: () => void) {}
 
   reset(): void {
     this.uploadAdvancedData = false;

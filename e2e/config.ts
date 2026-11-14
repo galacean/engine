@@ -229,6 +229,42 @@ export const E2E_CONFIG = {
     }
   },
   Primitive: {
+    sections: {
+      category: "Primitive",
+      caseFileName: "primitive-sections",
+      threshold: 0,
+      diffPercentage: 0.02
+    },
+    contours: {
+      category: "Primitive",
+      caseFileName: "primitive-contours",
+      threshold: 0,
+      diffPercentage: 0.02
+    },
+    topology: {
+      category: "Primitive",
+      caseFileName: "primitive-topology",
+      threshold: 0,
+      diffPercentage: 0.02
+    },
+    materials: {
+      category: "Primitive",
+      caseFileName: "primitive-materials",
+      threshold: 0,
+      diffPercentage: 0.02
+    },
+    "sphere-sections": {
+      category: "Primitive",
+      caseFileName: "primitive-sphere-sections",
+      threshold: 0,
+      diffPercentage: 0.02
+    },
+    all: {
+      category: "Primitive",
+      caseFileName: "primitive-all",
+      threshold: 0,
+      diffPercentage: 0.02
+    },
     capsule: {
       category: "Primitive",
       caseFileName: "primitive-capsule",

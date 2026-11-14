@@ -12,15 +12,27 @@ label: Graphics/Mesh
 
 The editor has built-in basic geometries such as `Cube`, `Sphere`, and `Cylinder`, which can be directly placed in the model by clicking `+` on the left node tree:
 
-<Image src="https://gw.alipayobjects.com/zos/OasisHub/331ff39f-54a4-4e8b-912b-e6a0cac38d71/image-20231009111916680.png" alt="image-20231009111916680" style={{ zoom: "50%" }} />
+<Image
+  src="https://gw.alipayobjects.com/zos/OasisHub/331ff39f-54a4-4e8b-912b-e6a0cac38d71/image-20231009111916680.png"
+  alt="image-20231009111916680"
+  style={{ zoom: "50%" }}
+/>
 
 Of course, we can also click `1` in the component panel to add the `Mesh Renderer` component, and click `2` to bind the desired basic geometry:
 
-<Image src="https://gw.alipayobjects.com/zos/OasisHub/b61f5f8c-1eba-4ea8-a019-f823a6c0b17d/image-20231009112014068.png" alt="image-20231009112014068" style={{ zoom: "50%" }} />
+<Image
+  src="https://gw.alipayobjects.com/zos/OasisHub/b61f5f8c-1eba-4ea8-a019-f823a6c0b17d/image-20231009112014068.png"
+  alt="image-20231009112014068"
+  style={{ zoom: "50%" }}
+/>
 
 Built-in geometries not meeting your needs? You can create a `Mesh` asset in the **[Asset Panel](/en/docs/assets/interface)** by **right-clicking** → **Create** → **PrimitiveMesh**, and adjust the parameters of the `Mesh` to meet your requirements.
 
-<Image src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*g3XwRrrVv8kAAAAAAAAAAAAADhuCAQ/original" alt="image-20231009111916680" style={{ zoom: "50%" }} />
+<Image
+  src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*g3XwRrrVv8kAAAAAAAAAAAAADhuCAQ/original"
+  alt="image-20231009111916680"
+  style={{ zoom: "50%" }}
+/>
 
 ## Script Usage
 
@@ -116,3 +128,177 @@ const material = new BlinnPhongMaterial(engine);
 material.emissiveColor.set(1, 1, 1, 1);
 renderer.setMaterial(material);
 ```
+
+## Procedural geometry
+
+Each factory accepts one named options object. Every options type documents its fields, units and defaults. Omit the object to use all defaults, or specify only the fields you need. For example, `createSphere` accepts `SphereMeshOptions`:
+
+```ts
+const unitSphere = PrimitiveMesh.createSphere(engine);
+const sphere = PrimitiveMesh.createSphere(engine, { radius: 1 });
+const smoothSphere = PrimitiveMesh.createSphere(engine, { radius: 1, subdivisions: 4 });
+const cube = PrimitiveMesh.createCuboid(engine, { width: 2 });
+const box = PrimitiveMesh.createCuboid(engine, { width: 2, height: 3, depth: 4 });
+const ground = PrimitiveMesh.createPlane(engine, { width: 10 });
+const cylinder = PrimitiveMesh.createCylinder(engine, { radius: 0.5, height: 2 });
+const frustum = PrimitiveMesh.createTruncatedCone(engine, { topRadius: 0.25, bottomRadius: 0.5, height: 2 });
+const mirroredKnot = PrimitiveMesh.createTorusKnot(engine, { radius: 1, tubeRadius: 0.1, p: 2, q: -3 });
+```
+
+Cuboid height and depth default to its width. Plane height defaults to its width. Subsequent subdivision counts for planes and cuboids default to the first direction. Spheres use one subdivision level, defaulting to 3 and clamped to 1 through 6. Cylinders have one radius; use `createTruncatedCone` for different top and bottom radii. Rings take the outer radius first; the inner radius defaults to half the outer radius.
+
+For torus knots, `p` and `q` are signed integer revolution counts, independent of mesh subdivisions. Negative values reverse the corresponding winding direction; zero keeps that angle fixed.
+
+| Capability | Methods |
+| --- | --- |
+| Plane, cuboid, sphere | `createPlane`, `createCuboid`, `createSphere` |
+| Cylinder, frustum, cone, capsule | `createCylinder`, `createTruncatedCone`, `createCone`, `createCapsule` |
+| Disk, annulus, torus, torus knot | `createCircle`, `createRing`, `createTorus`, `createTorusKnot` |
+| Regular polyhedra | `createTetrahedron`, `createOctahedron`, `createIcosahedron`, `createDodecahedron` |
+| Revolved profile, path tube, polygon, extrusion, rounded cuboid | `createLathe`, `createTube`, `createPolygon`, `createExtrusion`, `createRoundedCuboid` |
+
+### Subdivisions, angles and caps
+
+Dimensions and subdivisions are named fields in the same options object. For tubes and tori, `tubularSegments` controls longitudinal subdivisions and `radialSegments` controls the cross-section. Capsule `capSegments` controls each pole-to-equator section independently; its height describes the cylindrical section.
+
+Angle ranges belong to the options object. Angles use **degrees**. Ranges use `Vector2`, with `x` as the start angle and `y` as the end angle. Use continuous angles across a full turn, such as `new Vector2(350, 370)`. Cylinders, cones and lathes rotate around Y starting from +Z; a sphere's vertical angle starts at +Y.
+
+```ts
+import { PrimitiveMeshCapMode, Vector2 } from "@galacean/engine";
+
+const hemisphere = PrimitiveMesh.createSphere(engine, { verticalRange: new Vector2(0, 90), radius: 1 });
+const openCylinder = PrimitiveMesh.createCylinder(engine, { caps: PrimitiveMeshCapMode.None, radius: 0.5, height: 2 });
+const cupWall = PrimitiveMesh.createCylinder(engine, { caps: PrimitiveMeshCapMode.Bottom, radius: 0.5, height: 2 });
+const halfRing = PrimitiveMesh.createRing(engine, { angleRange: new Vector2(0, 180), outerRadius: 1, innerRadius: 0.5 });
+```
+
+Cylinder and frustum `caps` use `PrimitiveMeshCapMode`: `Both` (default), `Top`, `Bottom` or `None`. Top faces +Y and bottom faces -Y. Angular cut boundaries remain open. A cone uses the boolean `cap` for its base. Circles, rings and polygons lie in XY facing +Z. Ground planes lie in XZ facing +Y.
+
+`createSphere` projects a subdivided cube onto a sphere and accepts `horizontalRange` and `verticalRange`. Horizontal angles start at -X towards +Z; vertical angles start at +Y. Sections retain the subdivided surface and leave their cut boundaries open. A range such as `new Vector2(350, 370)` crosses the horizontal seam. Changing subdivisions controls the surface resolution, including the cut boundaries.
+
+### Contours and paths
+
+Contours and lathe profiles use `Vector2` arrays, and path points use `Vector3` arrays. Pass a point array for a simple polygon. Use `{ points, holes }` for a polygon containing holes, or an array of these objects for multiple polygons. Closing points need not be repeated.
+
+```ts
+import { Vector2, Vector3 } from "@galacean/engine";
+
+const outline = [new Vector2(-2, -2), new Vector2(2, -2), new Vector2(2, 2), new Vector2(-2, 2)];
+const hole = [new Vector2(-1, -1), new Vector2(-1, 1), new Vector2(1, 1), new Vector2(1, -1)];
+const face = PrimitiveMesh.createPolygon(engine, { points: outline, holes: [hole] });
+const solid = PrimitiveMesh.createExtrusion(engine, { points: outline, holes: [hole] }, { depth: 0.5 });
+const beveled = PrimitiveMesh.createExtrusion(engine, outline, {
+  bevelSize: 0.05,
+  bevelOffset: 0.02,
+  depth: 0.5,
+  steps: 1
+});
+const path = Array.from({ length: 65 }, (_, i) => {
+  const t = i / 64;
+  return new Vector3(4 * t, Math.sin(t * Math.PI * 2), 0);
+});
+const tube = PrimitiveMesh.createTube(engine, path, { radius: 0.1, tubularSegments: 64 });
+const swept = PrimitiveMesh.createExtrusion(engine, outline, { path: path, steps: 64 });
+const loop = [new Vector3(-4, 0, -4), new Vector3(4, 0, -4), new Vector3(4, 0, 4), new Vector3(-4, 0, 4)];
+const closed = PrimitiveMesh.createExtrusion(engine, outline, { closed: true, path: loop, steps: 32 });
+```
+
+Extrusion uses `LinearExtrusionMeshOptions` for `depth` and bevels, or `PathExtrusionMeshOptions` with a required `path`. TypeScript rejects combinations of a path with depth or bevel settings. The default extrusion goes along +Z without bevels. A positive `bevelSize` enables beveling; `bevelThickness` defaults to the same value. Path extrusion does not generate bevels. Paths accept `Vector3` arrays and are sampled at equal distances along their line segments. Sample curves into points before creating the mesh, as shown above.
+
+For tubes and path extrusions, `closed` defaults to `false`. Set it to `true` to join the path ends and align the first and last cross-sections; the closing point need not be repeated. Closed extrusions use at least three steps and have no end caps. Open extrusions have two end caps; tubes have no end caps in either mode.
+
+`bevelOffset` defaults to `0` and shifts the side-wall outline: positive values expand the solid and contract holes, while negative values do the reverse. It also applies when `bevelSize` is `0`. Bevels are cut into this outline and included in `depth`, so they do not increase the total depth.
+
+### Mesh data and materials
+
+Mesh settings belong to the same options object as dimensions and subdivisions:
+
+```ts
+const editable = PrimitiveMesh.createSphere(engine, { keepData: true, radius: 1, subdivisions: 3 });
+const sixMaterials = PrimitiveMesh.createCuboid(engine, {
+  separateMaterials: true,
+  width: 1,
+  height: 1,
+  depth: 1,
+  widthSegments: 1,
+  heightSegments: 1,
+  depthSegments: 1
+});
+```
+
+`keepData` defaults to false. Set it to true to retain readable CPU vertex attributes.
+
+`separateMaterials` is available for cuboids, cylinders, truncated cones, cones, polygons, extrusions and rounded cuboids. It defaults to false, which creates one SubMesh. When enabled, the generated SubMeshes correspond to material slots in this order:
+
+| Geometry | Material slot order |
+| --- | --- |
+| Cuboid and rounded cuboid | +Y, -Y, -X, +X, +Z, -Z |
+| Cylinder and truncated cone | Side, top cap, bottom cap |
+| Cone | Side, bottom cap |
+| Polygon | One slot per shape, in input order; holes share their outer contour's slot |
+| Extrusion | Both end caps, then all walls and bevels, per shape; closed paths have one wall slot per shape |
+
+Only generated parts occupy slots. Disabled or zero-radius caps do not reserve a slot, so a cylinder with only its bottom cap uses slot 0 for the side and slot 1 for the bottom. When rebuilding a mesh with different parts or shapes, update the material array to match the resulting slot order.
+
+Assign materials through `renderer.setMaterials(materials)`. To use one material across all slots, pass `mesh.subMeshes.map(() => material)`.
+
+Input data is copied at creation. Later changes to the original data do not alter the mesh or its device-restoration result. Recreate a mesh to change its parameters.
+
+### Serializable primitive assets
+
+`PrimitiveMeshAsset` is exported from both `@galacean/engine` and `@galacean/engine-loader`. Use it to type the JSON saved by an editor:
+
+```ts
+import type { PrimitiveMeshAsset } from "@galacean/engine";
+
+const asset = {
+  type: "sphere",
+  sphereOptions: { radius: 1, subdivisions: 3, keepData: true }
+} satisfies PrimitiveMeshAsset;
+```
+
+Each `type` selects the matching `PrimitiveMesh.createX` method. `<type>Options` follows that factory's named fields and defaults. Angular ranges are stored as `{ x: startAngle, y: endAngle }`, and the loader constructs `Vector2` instances. For example, `circleOptions: { angleRange: { x: 30, y: 180 } }` creates a sector from 30 to 180 degrees. Omitted fields use the creation API's defaults, including defaults derived from another field. Angles remain in degrees.
+
+| Asset types | Required geometry fields |
+| --- | --- |
+| `sphere`, `cuboid`, `plane` | None |
+| `cylinder`, `truncatedCone`, `cone`, `capsule` | None |
+| `torus`, `circle`, `ring`, `torusKnot`, `roundedCuboid` | None |
+| `tetrahedron`, `octahedron`, `icosahedron`, `dodecahedron` | None |
+| `lathe` | `latheProfile` |
+| `tube` | `tubePath` |
+| `polygon` | `polygonShapes` |
+| `extrusion` | `extrusionShapes`; optional `extrusionOptions.depth` or `extrusionOptions.path` |
+
+`sphere` creates a subdivided cube projected onto a sphere; `sphereOptions.subdivisions` controls its subdivision level. `cylinder` has one radius; `truncatedCone` has independent `truncatedConeOptions.topRadius` and `truncatedConeOptions.bottomRadius`.
+
+Profiles and polygon contours store `{ x, y }` points; paths store `{ x, y, z }` points. The loader constructs the corresponding vectors. Polygon and extrusion assets use one array of shapes, each with `points` and optional `holes`:
+
+```json
+{
+  "type": "extrusion",
+  "extrusionShapes": [
+    {
+      "points": [
+        { "x": -2, "y": -2 },
+        { "x": 2, "y": -2 },
+        { "x": 2, "y": 2 },
+        { "x": -2, "y": 2 }
+      ],
+      "holes": [
+        [
+          { "x": -1, "y": -1 },
+          { "x": -1, "y": 1 },
+          { "x": 1, "y": 1 },
+          { "x": 1, "y": -1 }
+        ]
+      ]
+    }
+  ],
+  "extrusionOptions": { "depth": 2, "bevelSize": 0.1, "bevelOffset": 0.2, "separateMaterials": true }
+}
+```
+
+Path extrusion uses `extrusionOptions.path` in place of `extrusionOptions.depth` and does not accept bevel options. Set `extrusionOptions.closed` to `true` for a closed path without end caps. Save path points as `{ x, y, z }`.
+
+The type-prefixed fields, including `<type>Options`, pass through the Editor's primitive asset bundler. Editor previews should select the same creation method and parameters as the saved asset.

@@ -1,6 +1,6 @@
 import { Camera, GLCapabilityType, PrimitiveMesh } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine";
-import { Vector3 } from "@galacean/engine-math";
+import { Vector2, Vector3 } from "@galacean/engine-math";
 import { describe, beforeAll, expect, it } from "vitest";
 
 describe("PrimitiveMesh", () => {
@@ -19,31 +19,20 @@ describe("PrimitiveMesh", () => {
   });
 
   it("createSphere", () => {
-    // Test that createSphere works correctly.
-    const radius = 1.333;
-    const segments = 20.555556;
-    const floorSegments = Math.floor(segments);
-    const sphereMesh = PrimitiveMesh.createSphere(engine, radius, segments, false);
+    const radius = 2.333;
+    const subdivisions = 3.2;
+    const sphereMesh = PrimitiveMesh.createSphere(engine, {
+      keepData: true,
+      radius,
+      subdivisions
+    });
 
-    const count = floorSegments + 1;
-    expect(sphereMesh.vertexCount).equal(count * count);
+    expect(sphereMesh.vertexCount).equal(417);
     expect(sphereMesh.vertexElements.length).equal(4);
     expect(sphereMesh.bounds.min).to.deep.include({ x: -radius, y: -radius, z: -radius });
     expect(sphereMesh.bounds.max).to.deep.include({ x: radius, y: radius, z: radius });
-    expect(sphereMesh.getIndices().length).equal(floorSegments * floorSegments * 6);
-    expect(sphereMesh.vertexBufferBindings.length).equal(2);
-  });
-
-  it("createSubdivisionSurfaceSphere", () => {
-    // Test that createSphere works correctly.
-    const radius = 2.333;
-    const steps = 3.2;
-    const sphereMesh = PrimitiveMesh.createSubdivisionSurfaceSphere(engine, radius, steps, false);
-
-    expect(sphereMesh.vertexCount).equal(417);
-    expect(sphereMesh.bounds.min).to.deep.include({ x: -radius, y: -radius, z: -radius });
-    expect(sphereMesh.bounds.max).to.deep.include({ x: radius, y: radius, z: radius });
     expect(sphereMesh.getIndices().length).equal(2304);
+    expect(sphereMesh.vertexBufferBindings.length).equal(2);
   });
 
   it("createCuboid", () => {
@@ -51,7 +40,15 @@ describe("PrimitiveMesh", () => {
     const width = 2.3;
     const height = 3.2;
     const depth = 4.5;
-    const cuboidMesh = PrimitiveMesh.createCuboid(engine, width, height, depth, false);
+    const cuboidMesh = PrimitiveMesh.createCuboid(engine, {
+      keepData: true,
+      width,
+      height,
+      depth,
+      widthSegments: 1,
+      heightSegments: 1,
+      depthSegments: 1
+    });
 
     expect(cuboidMesh.vertexCount).equal(24);
     expect(cuboidMesh.vertexElements.length).equal(4);
@@ -61,8 +58,8 @@ describe("PrimitiveMesh", () => {
     expect(cuboidMesh.vertexBufferBindings.length).equal(2);
   });
 
-  it("createCylinder", () => {
-    // Test that createCylinder works correctly.
+  it("createTruncatedCone", () => {
+    // Test that createTruncatedCone works correctly.
     const radiusTop = 2;
     const radiusBottom = 3;
     const height = 2;
@@ -70,27 +67,26 @@ describe("PrimitiveMesh", () => {
     const heightSegments = 1.00001;
     const floorRadialSegments = Math.floor(radialSegments);
     const floorHeightSegments = Math.floor(heightSegments);
-    const cylinderMesh = PrimitiveMesh.createCylinder(
-      engine,
-      radiusTop,
-      radiusBottom,
+    const truncatedConeMesh = PrimitiveMesh.createTruncatedCone(engine, {
+      keepData: true,
+      topRadius: radiusTop,
+      bottomRadius: radiusBottom,
       height,
       radialSegments,
-      heightSegments,
-      false
-    );
+      heightSegments
+    });
     const radius = Math.max(radiusTop, radiusBottom);
 
-    expect(cylinderMesh.vertexCount).equal(
+    expect(truncatedConeMesh.vertexCount).equal(
       (floorRadialSegments + 1) * (floorHeightSegments + 1) + floorRadialSegments * 2 + 2
     );
-    expect(cylinderMesh.vertexElements.length).equal(4);
-    expect(cylinderMesh.bounds.min).to.deep.include({ x: -radius, y: 0.5 * -height, z: -radius });
-    expect(cylinderMesh.bounds.max).to.deep.include({ x: radius, y: 0.5 * height, z: radius });
-    expect(cylinderMesh.getIndices().length).equal(
+    expect(truncatedConeMesh.vertexElements.length).equal(4);
+    expect(truncatedConeMesh.bounds.min).to.deep.include({ x: -radius, y: 0.5 * -height, z: -radius });
+    expect(truncatedConeMesh.bounds.max).to.deep.include({ x: radius, y: 0.5 * height, z: radius });
+    expect(truncatedConeMesh.getIndices().length).equal(
       floorRadialSegments * floorHeightSegments * 6 + floorRadialSegments * 2 * 3
     );
-    expect(cylinderMesh.vertexBufferBindings.length).equal(2);
+    expect(truncatedConeMesh.vertexBufferBindings.length).equal(2);
   });
 
   it("createTorus", () => {
@@ -102,15 +98,14 @@ describe("PrimitiveMesh", () => {
     const floorRadialSegments = Math.floor(radialSegments);
     const floorTubularSegments = Math.floor(tubularSegments);
     const arc = 180;
-    const torusMesh = PrimitiveMesh.createTorus(
-      engine,
+    const torusMesh = PrimitiveMesh.createTorus(engine, {
+      keepData: true,
+      angleRange: new Vector2(0, 0 + arc),
       radius,
       tubeRadius,
-      radialSegments,
       tubularSegments,
-      arc,
-      false
-    );
+      radialSegments
+    });
     const outerRadius = radius + tubeRadius;
 
     expect(torusMesh.vertexCount).equal((floorRadialSegments + 1) * (floorTubularSegments + 1));
@@ -129,7 +124,13 @@ describe("PrimitiveMesh", () => {
     const vSegments = 9.0001;
     const floorHSegments = Math.floor(hSegments);
     const floorVSegments = Math.floor(vSegments);
-    const planeMesh = PrimitiveMesh.createPlane(engine, width, height, hSegments, vSegments, false);
+    const planeMesh = PrimitiveMesh.createPlane(engine, {
+      keepData: true,
+      width,
+      height,
+      horizontalSegments: hSegments,
+      verticalSegments: vSegments
+    });
 
     expect(planeMesh.vertexCount).equal((floorHSegments + 1) * (floorVSegments + 1));
     expect(planeMesh.vertexElements.length).equal(4);
@@ -147,13 +148,19 @@ describe("PrimitiveMesh", () => {
     const heightSegments = 1.00001;
     const floorRadialSegments = Math.floor(radialSegments);
     const floorHeightSegments = Math.floor(heightSegments);
-    const coneMesh = PrimitiveMesh.createCone(engine, radius, height, radialSegments, heightSegments, false);
+    const coneMesh = PrimitiveMesh.createCone(engine, {
+      keepData: true,
+      radius,
+      height,
+      radialSegments,
+      heightSegments
+    });
 
     expect(coneMesh.vertexCount).equal((floorRadialSegments + 1) * (floorHeightSegments + 1) + floorRadialSegments + 1);
     expect(coneMesh.vertexElements.length).equal(4);
     expect(coneMesh.bounds.min).to.deep.include({ x: -radius, y: 0.5 * -height, z: -radius });
     expect(coneMesh.bounds.max).to.deep.include({ x: radius, y: 0.5 * height, z: radius });
-    expect(coneMesh.getIndices().length).equal(floorRadialSegments * floorHeightSegments * 6 + floorRadialSegments * 3);
+    expect(coneMesh.getIndices().length).equal(floorRadialSegments * floorHeightSegments * 6);
     expect(coneMesh.vertexBufferBindings.length).equal(2);
   });
 
@@ -164,39 +171,55 @@ describe("PrimitiveMesh", () => {
     const heightSegments = 30.0001;
     const floorRadialSegments = Math.floor(radialSegments);
     const floorHeightSegments = Math.floor(heightSegments);
-    const capsuleMesh = PrimitiveMesh.createCapsule(engine, radius, height, radialSegments, heightSegments, false);
+    const capsuleMesh = PrimitiveMesh.createCapsule(engine, {
+      keepData: true,
+      radius,
+      height,
+      radialSegments,
+      capSegments: radialSegments,
+      heightSegments
+    });
 
     expect(capsuleMesh.vertexCount).equal(
-      (floorRadialSegments + 1) * (floorHeightSegments + 1) + 2 * Math.pow(floorRadialSegments + 1, 2)
+      (floorRadialSegments + 1) * (floorHeightSegments + 2 * floorRadialSegments + 1)
     );
     expect(capsuleMesh.vertexElements.length).equal(4);
     expect(capsuleMesh.bounds.min).to.deep.include({ x: -radius, y: 0.5 * -height - radius, z: -radius });
     expect(capsuleMesh.bounds.max).to.deep.include({ x: radius, y: 0.5 * height + radius, z: radius });
     expect(capsuleMesh.getIndices().length).equal(
-      (floorRadialSegments * floorHeightSegments + 2 * floorRadialSegments * floorRadialSegments) * 6
+      floorRadialSegments * (floorHeightSegments + 2 * floorRadialSegments - 1) * 6
     );
   });
 
   it("test limit vertex count", function () {
     const radius = 1;
     const segments = 256;
-    const floorSegments = Math.floor(segments);
     const count = segments + 1;
 
     if (engine["_hardwareRenderer"].canIUse(GLCapabilityType.elementIndexUint)) {
-      const sphereMesh = PrimitiveMesh.createSphere(engine, radius, segments, false);
-      expect(sphereMesh.vertexCount).equal(count * count);
-      expect(sphereMesh.vertexElements.length).equal(4);
-      expect(sphereMesh.bounds.min).to.deep.include({ x: -radius, y: -radius, z: -radius });
-      expect(sphereMesh.bounds.max).to.deep.include({ x: radius, y: radius, z: radius });
-      expect(sphereMesh.getIndices().length).equal(floorSegments * floorSegments * 6);
-      expect(sphereMesh.vertexBufferBindings.length).equal(2);
+      const mesh = PrimitiveMesh.createPlane(engine, {
+        keepData: true,
+        width: radius * 2,
+        height: radius * 2,
+        horizontalSegments: segments,
+        verticalSegments: segments
+      });
+      expect(mesh.vertexCount).equal(count * count);
+      expect(mesh.vertexElements.length).equal(4);
+      expect(mesh.bounds.min).to.deep.include({ x: -radius, y: 0, z: -radius });
+      expect(mesh.bounds.max).to.deep.include({ x: radius, y: 0, z: radius });
+      expect(mesh.getIndices().length).equal(segments * segments * 6);
+      expect(mesh.vertexBufferBindings.length).equal(2);
     } else {
-      expect(() => {
-        try {
-          PrimitiveMesh.createSphere(engine, radius, segments, false);
-        } catch (e) {}
-      }).throw("The vertex count is out of range.");
+      expect(() =>
+        PrimitiveMesh.createPlane(engine, {
+          keepData: true,
+          width: radius * 2,
+          height: radius * 2,
+          horizontalSegments: segments,
+          verticalSegments: segments
+        })
+      ).throw("The vertex count is out of range.");
     }
   });
 });

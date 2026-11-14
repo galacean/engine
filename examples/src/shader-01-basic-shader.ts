@@ -80,7 +80,7 @@ function createQuad(engine: Engine): Entity {
   const renderer = entity.addComponent(MeshRenderer);
 
   // 使用内置的平面网格
-  renderer.mesh = PrimitiveMesh.createPlane(engine, 2, 2);
+  renderer.mesh = PrimitiveMesh.createPlane(engine, { width: 2 });
 
   entity.transform.setRotation(90, 0, 0);
 

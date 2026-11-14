@@ -62,7 +62,7 @@ const meshEntity = rootEntity.createChild("Sphere");
 const meshRenderer = meshEntity.addComponent(MeshRenderer);
 const material = new BlinnPhongMaterial(engine);
 meshRenderer.setMaterial(material);
-meshRenderer.mesh = PrimitiveMesh.createSphere(engine, 1);
+meshRenderer.mesh = PrimitiveMesh.createSphere(engine, { radius: 1 });
 
 // Run engine
 engine.run();

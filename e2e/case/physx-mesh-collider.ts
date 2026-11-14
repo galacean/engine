@@ -38,7 +38,7 @@ function createFallingBox(
 
   // Visual
   const renderer = entity.addComponent(MeshRenderer);
-  renderer.mesh = PrimitiveMesh.createCuboid(engine, size.x, size.y, size.z);
+  renderer.mesh = PrimitiveMesh.createCuboid(engine, { width: size.x, height: size.y, depth: size.z });
   const material = new PBRMaterial(engine);
   material.baseColor.copyFrom(color);
   material.roughness = 0.6;

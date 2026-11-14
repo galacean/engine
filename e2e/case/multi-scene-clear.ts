@@ -41,7 +41,7 @@ function initFirstScene(engine: Engine): Camera {
   const cubeEntity = rootEntity.createChild("cube");
   cubeEntity.transform.setPosition(-2, 0, 3);
   const renderer = cubeEntity.addComponent(MeshRenderer);
-  renderer.mesh = PrimitiveMesh.createCuboid(engine, 2, 2, 2);
+  renderer.mesh = PrimitiveMesh.createCuboid(engine, { width: 2 });
   const material = new BlinnPhongMaterial(engine);
   material.baseColor = new Color(1, 0, 0, 1);
   renderer.setMaterial(material);
@@ -73,7 +73,7 @@ function initSecondScene(engine: Engine): Camera {
   const cubeEntity = rootEntity.createChild("cube");
   cubeEntity.transform.setPosition(2, 0, 3);
   const renderer = cubeEntity.addComponent(MeshRenderer);
-  renderer.mesh = PrimitiveMesh.createCuboid(engine, 2, 2, 2);
+  renderer.mesh = PrimitiveMesh.createCuboid(engine, { width: 2 });
   const material = new BlinnPhongMaterial(engine);
   material.baseColor = new Color(1, 0, 0, 1);
   material.emissiveColor.set(1, 0, 0, 1);
