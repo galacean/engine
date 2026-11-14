@@ -20,6 +20,33 @@ interface WaterInitialization {
   seeds: Record<string, string[]>;
   /** Explicit native removals; initialization alone does not prove deletion intent. */
   removed?: Record<string, string[]>;
+  /** A planning template application must also replace the target 3D project's water. */
+  resetPending?: string | true;
+  /** Successful requests remain consumed even when an older planning project is reopened. */
+  appliedResets?: string[];
+}
+
+/** Clear water authoring in this project only; shared assets and unrelated Scene records survive. */
+export function clearPlanningWaterSource(draft: RuntimeProjectEdit, resetPending = false): void {
+  const appliedResets = waterInitialization(draft.preview()).appliedResets;
+  const scene = new RuntimeSceneEdit(draft, draft.preview().project.scene);
+  const owners = new Set<string>();
+  for (const body of scene.queryComponents({ type: "WaterBodyComponent" })) {
+    owners.add(body.entityId);
+    scene.removeComponent(body.id);
+  }
+  for (const identity of scene.queryComponents({ type: "PlanningEntityAuthoring" })) {
+    const id = scene.readComponent(identity.id).props?.planningId;
+    if (typeof id !== "string" || (id !== "planning-ocean" && !/^(lake|river|ocean):/.test(id))) continue;
+    owners.add(identity.entityId);
+    scene.removeComponent(identity.id);
+  }
+  for (const id of owners) {
+    if (!scene.queryComponents({ entityId: id }).length && !scene.readEntity(id).children?.length) scene.delete(id);
+  }
+  draft.writeDocument(waterInitializationPath(draft.preview().project.scene),
+    JSON.stringify({ version: 1, seeds: {}, ...(appliedResets ? { appliedResets } : {}),
+      ...(resetPending ? { resetPending: crypto.randomUUID() } : {}) }));
 }
 
 /** Native creation joins the existing planning owner in the same public author transaction. */
@@ -110,6 +137,10 @@ export function waterInitialization(pack: RuntimeProjectPackage): WaterInitializ
   if (
     value?.version !== 1 ||
     !value.seeds ||
+    (value.resetPending !== undefined && value.resetPending !== true &&
+      (typeof value.resetPending !== "string" || !value.resetPending)) ||
+    (value.appliedResets !== undefined && (!Array.isArray(value.appliedResets) ||
+      value.appliedResets.some((id: unknown) => typeof id !== "string" || !id))) ||
     Object.values(value.seeds).some((ids) => !Array.isArray(ids) || ids.some((id) => typeof id !== "string")) ||
     (value.removed !== undefined && (!value.removed || typeof value.removed !== "object" || Array.isArray(value.removed) ||
       Object.values(value.removed).some(ids => !Array.isArray(ids) || ids.some(id => typeof id !== "string"))))
