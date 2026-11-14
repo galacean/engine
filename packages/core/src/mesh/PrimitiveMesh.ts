@@ -182,8 +182,10 @@ export class PrimitiveMesh {
    * @param options - Optional mesh generation settings
    * @returns The generated mesh
    */
-  static createSphere(engine: Engine, radius: number, options: SphereMeshOptions = {}): ModelMesh {
-    const { subdivisionLevel = 3, horizontalAngleRange, verticalAngleRange } = options;
+  static createSphere(engine: Engine, radius: number, options?: SphereMeshOptions): ModelMesh {
+    const subdivisionLevel = options?.subdivisionLevel ?? 3;
+    const horizontalAngleRange = options?.horizontalAngleRange;
+    const verticalAngleRange = options?.verticalAngleRange;
     return PrimitiveMesh._createMesh(
       engine,
       PrimitiveMesh._createSphereData,
@@ -213,9 +215,11 @@ export class PrimitiveMesh {
     width: number,
     height: number,
     depth: number,
-    options: CuboidMeshOptions = {}
+    options?: CuboidMeshOptions
   ): ModelMesh {
-    const { widthSegments = 1, heightSegments = widthSegments, depthSegments = widthSegments } = options;
+    const widthSegments = options?.widthSegments ?? 1;
+    const heightSegments = options?.heightSegments ?? widthSegments;
+    const depthSegments = options?.depthSegments ?? widthSegments;
     return PrimitiveMesh._createMesh(
       engine,
       PrimitiveMesh._createCuboidData,
@@ -232,8 +236,9 @@ export class PrimitiveMesh {
    * @param options - Optional mesh generation settings
    * @returns The generated mesh
    */
-  static createPlane(engine: Engine, width: number, depth: number, options: PlaneMeshOptions = {}): ModelMesh {
-    const { widthSegments = 1, depthSegments = widthSegments } = options;
+  static createPlane(engine: Engine, width: number, depth: number, options?: PlaneMeshOptions): ModelMesh {
+    const widthSegments = options?.widthSegments ?? 1;
+    const depthSegments = options?.depthSegments ?? widthSegments;
     return PrimitiveMesh._createMesh(
       engine,
       PrimitiveMesh._createPlaneData,
@@ -250,8 +255,11 @@ export class PrimitiveMesh {
    * @param options - Optional mesh generation settings
    * @returns The generated mesh
    */
-  static createCylinder(engine: Engine, radius: number, height: number, options: CylinderMeshOptions = {}): ModelMesh {
-    const { radialSegments = 20, heightSegments = 1, caps = PrimitiveMeshCapMode.Both, angleRange } = options;
+  static createCylinder(engine: Engine, radius: number, height: number, options?: CylinderMeshOptions): ModelMesh {
+    const radialSegments = options?.radialSegments ?? 20;
+    const heightSegments = options?.heightSegments ?? 1;
+    const caps = options?.caps ?? PrimitiveMeshCapMode.Both;
+    const angleRange = options?.angleRange;
     const startAngle = angleRange?.x ?? 0;
     return PrimitiveMesh._createMesh(
       engine,
@@ -285,9 +293,12 @@ export class PrimitiveMesh {
     topRadius: number,
     bottomRadius: number,
     height: number,
-    options: TruncatedConeMeshOptions = {}
+    options?: TruncatedConeMeshOptions
   ): ModelMesh {
-    const { radialSegments = 20, heightSegments = 1, caps = PrimitiveMeshCapMode.Both, angleRange } = options;
+    const radialSegments = options?.radialSegments ?? 20;
+    const heightSegments = options?.heightSegments ?? 1;
+    const caps = options?.caps ?? PrimitiveMeshCapMode.Both;
+    const angleRange = options?.angleRange;
     const startAngle = angleRange?.x ?? 0;
     return PrimitiveMesh._createMesh(
       engine,
@@ -315,8 +326,11 @@ export class PrimitiveMesh {
    * @param options - Optional mesh generation settings
    * @returns The generated mesh
    */
-  static createCone(engine: Engine, radius: number, height: number, options: ConeMeshOptions = {}): ModelMesh {
-    const { radialSegments = 20, heightSegments = 1, cap = true, angleRange } = options;
+  static createCone(engine: Engine, radius: number, height: number, options?: ConeMeshOptions): ModelMesh {
+    const radialSegments = options?.radialSegments ?? 20;
+    const heightSegments = options?.heightSegments ?? 1;
+    const cap = options?.cap ?? true;
+    const angleRange = options?.angleRange;
     const startAngle = angleRange?.x ?? 0;
     return PrimitiveMesh._createMesh(
       engine,
@@ -338,9 +352,11 @@ export class PrimitiveMesh {
     engine: Engine,
     radius: number,
     cylinderHeight: number,
-    options: CapsuleMeshOptions = {}
+    options?: CapsuleMeshOptions
   ): ModelMesh {
-    const { radialSegments = 6, capSegments = radialSegments, heightSegments = 1 } = options;
+    const radialSegments = options?.radialSegments ?? 6;
+    const capSegments = options?.capSegments ?? radialSegments;
+    const heightSegments = options?.heightSegments ?? 1;
     return PrimitiveMesh._createMesh(
       engine,
       PrimitiveMesh._createCapsuleData,
@@ -357,8 +373,11 @@ export class PrimitiveMesh {
    * @param options - Optional mesh generation settings
    * @returns The generated mesh
    */
-  static createTorus(engine: Engine, radius: number, tubeRadius: number, options: TorusMeshOptions = {}): ModelMesh {
-    const { ringSegments = 30, radialSegments = 30, ringAngleRange, tubeAngleRange } = options;
+  static createTorus(engine: Engine, radius: number, tubeRadius: number, options?: TorusMeshOptions): ModelMesh {
+    const ringSegments = options?.ringSegments ?? 30;
+    const radialSegments = options?.radialSegments ?? 30;
+    const ringAngleRange = options?.ringAngleRange;
+    const tubeAngleRange = options?.tubeAngleRange;
     const startAngle = ringAngleRange?.x ?? 0;
     const tubeStartAngle = tubeAngleRange?.x ?? 0;
     return PrimitiveMesh._createMesh(
@@ -385,8 +404,9 @@ export class PrimitiveMesh {
    * @param options - Optional mesh generation settings
    * @returns The generated mesh
    */
-  static createCircle(engine: Engine, radius: number, options: CircleMeshOptions = {}): ModelMesh {
-    const { segments = 32, angleRange } = options;
+  static createCircle(engine: Engine, radius: number, options?: CircleMeshOptions): ModelMesh {
+    const segments = options?.segments ?? 32;
+    const angleRange = options?.angleRange;
     const startAngle = angleRange?.x ?? 0;
     return PrimitiveMesh._createMesh(
       engine,
@@ -404,13 +424,10 @@ export class PrimitiveMesh {
    * @param options - Optional mesh generation settings
    * @returns The generated mesh
    */
-  static createRing(
-    engine: Engine,
-    outerRadius: number,
-    innerRadius: number,
-    options: RingMeshOptions = {}
-  ): ModelMesh {
-    const { ringSegments = 32, widthSegments = 1, angleRange } = options;
+  static createRing(engine: Engine, outerRadius: number, innerRadius: number, options?: RingMeshOptions): ModelMesh {
+    const ringSegments = options?.ringSegments ?? 32;
+    const widthSegments = options?.widthSegments ?? 1;
+    const angleRange = options?.angleRange;
     const startAngle = angleRange?.x ?? 0;
     return PrimitiveMesh._createMesh(
       engine,
@@ -427,8 +444,8 @@ export class PrimitiveMesh {
    * @param options - Optional mesh generation settings
    * @returns The generated mesh
    */
-  static createTetrahedron(engine: Engine, radius: number, options: RegularPolyhedronMeshOptions = {}): ModelMesh {
-    const { edgeSegments = 1 } = options;
+  static createTetrahedron(engine: Engine, radius: number, options?: RegularPolyhedronMeshOptions): ModelMesh {
+    const edgeSegments = options?.edgeSegments ?? 1;
     return PrimitiveMesh._createMesh(
       engine,
       PrimitiveMesh._createRegularPolyhedronData,
@@ -444,8 +461,8 @@ export class PrimitiveMesh {
    * @param options - Optional mesh generation settings
    * @returns The generated mesh
    */
-  static createOctahedron(engine: Engine, radius: number, options: RegularPolyhedronMeshOptions = {}): ModelMesh {
-    const { edgeSegments = 1 } = options;
+  static createOctahedron(engine: Engine, radius: number, options?: RegularPolyhedronMeshOptions): ModelMesh {
+    const edgeSegments = options?.edgeSegments ?? 1;
     return PrimitiveMesh._createMesh(
       engine,
       PrimitiveMesh._createRegularPolyhedronData,
@@ -461,8 +478,8 @@ export class PrimitiveMesh {
    * @param options - Optional mesh generation settings
    * @returns The generated mesh
    */
-  static createIcosahedron(engine: Engine, radius: number, options: RegularPolyhedronMeshOptions = {}): ModelMesh {
-    const { edgeSegments = 1 } = options;
+  static createIcosahedron(engine: Engine, radius: number, options?: RegularPolyhedronMeshOptions): ModelMesh {
+    const edgeSegments = options?.edgeSegments ?? 1;
     return PrimitiveMesh._createMesh(
       engine,
       PrimitiveMesh._createRegularPolyhedronData,
@@ -478,8 +495,8 @@ export class PrimitiveMesh {
    * @param options - Optional mesh generation settings
    * @returns The generated mesh
    */
-  static createDodecahedron(engine: Engine, radius: number, options: RegularPolyhedronMeshOptions = {}): ModelMesh {
-    const { edgeSegments = 1 } = options;
+  static createDodecahedron(engine: Engine, radius: number, options?: RegularPolyhedronMeshOptions): ModelMesh {
+    const edgeSegments = options?.edgeSegments ?? 1;
     return PrimitiveMesh._createMesh(
       engine,
       PrimitiveMesh._createRegularPolyhedronData,
@@ -495,8 +512,9 @@ export class PrimitiveMesh {
    * @param options - Optional mesh generation settings
    * @returns The generated mesh
    */
-  static createLathe(engine: Engine, profile: readonly Vector2[], options: LatheMeshOptions = {}): ModelMesh {
-    const { segments = 12, angleRange } = options;
+  static createLathe(engine: Engine, profile: readonly Vector2[], options?: LatheMeshOptions): ModelMesh {
+    const segments = options?.segments ?? 12;
+    const angleRange = options?.angleRange;
     const startAngle = angleRange?.x ?? 0;
     return PrimitiveMesh._createMesh(
       engine,
@@ -514,13 +532,10 @@ export class PrimitiveMesh {
    * @param options - Optional mesh generation settings
    * @returns The generated mesh
    */
-  static createTube(
-    engine: Engine,
-    path: readonly Vector3[],
-    radius: number,
-    options: TubeMeshOptions = {}
-  ): ModelMesh {
-    const { pathSegments = 64, radialSegments = 8, closedPath = false } = options;
+  static createTube(engine: Engine, path: readonly Vector3[], radius: number, options?: TubeMeshOptions): ModelMesh {
+    const pathSegments = options?.pathSegments ?? 64;
+    const radialSegments = options?.radialSegments ?? 8;
+    const closedPath = options?.closedPath ?? false;
     return PrimitiveMesh._createMesh(
       engine,
       PrimitiveMesh._createTubeData,
@@ -539,7 +554,7 @@ export class PrimitiveMesh {
   static createPolygon(
     engine: Engine,
     shapes: readonly Vector2[] | PolygonShape | readonly PolygonShape[],
-    options: PolygonMeshOptions = {}
+    options?: PolygonMeshOptions
   ): ModelMesh {
     return PrimitiveMesh._createMesh(
       engine,
@@ -565,17 +580,17 @@ export class PrimitiveMesh {
     engine: Engine,
     shapes: readonly Vector2[] | PolygonShape | readonly PolygonShape[],
     depthOrPath: number | readonly Vector3[],
-    options: LinearExtrudedPolygonMeshOptions | PathExtrudedPolygonMeshOptions = {}
+    options?: LinearExtrudedPolygonMeshOptions | PathExtrudedPolygonMeshOptions
   ): ModelMesh {
-    const {
-      depthSegments = 1,
-      pathSegments = 1,
-      closedPath = false,
-      bevelWidth = 0,
-      bevelDepth = bevelWidth,
-      contourOffset = 0,
-      bevelSegments = 3
-    }: LinearExtrudedPolygonMeshOptions & PathExtrudedPolygonMeshOptions = options;
+    const extrudedPolygonOptions: (LinearExtrudedPolygonMeshOptions & PathExtrudedPolygonMeshOptions) | undefined =
+      options;
+    const depthSegments = extrudedPolygonOptions?.depthSegments ?? 1;
+    const pathSegments = extrudedPolygonOptions?.pathSegments ?? 1;
+    const closedPath = extrudedPolygonOptions?.closedPath ?? false;
+    const bevelWidth = extrudedPolygonOptions?.bevelWidth ?? 0;
+    const bevelDepth = extrudedPolygonOptions?.bevelDepth ?? bevelWidth;
+    const contourOffset = extrudedPolygonOptions?.contourOffset ?? 0;
+    const bevelSegments = extrudedPolygonOptions?.bevelSegments ?? 3;
     const path = typeof depthOrPath === "number" ? undefined : depthOrPath;
     const depth = typeof depthOrPath === "number" ? depthOrPath : 0;
     return PrimitiveMesh._createMesh(
@@ -612,9 +627,10 @@ export class PrimitiveMesh {
     tubeRadius: number,
     axisTurns: number,
     crossSectionTurns: number,
-    options: TorusKnotMeshOptions = {}
+    options?: TorusKnotMeshOptions
   ): ModelMesh {
-    const { pathSegments = 64, radialSegments = 8 } = options;
+    const pathSegments = options?.pathSegments ?? 64;
+    const radialSegments = options?.radialSegments ?? 8;
     return PrimitiveMesh._createMesh(
       engine,
       PrimitiveMesh._createTorusKnotData,
@@ -641,9 +657,9 @@ export class PrimitiveMesh {
     height: number,
     depth: number,
     cornerRadius: number,
-    options: RoundedCuboidMeshOptions = {}
+    options?: RoundedCuboidMeshOptions
   ): ModelMesh {
-    const { roundingSegments = 2 } = options;
+    const roundingSegments = options?.roundingSegments ?? 2;
     return PrimitiveMesh._createMesh(
       engine,
       PrimitiveMesh._createRoundedCuboidData,
@@ -1944,8 +1960,9 @@ export class PrimitiveMesh {
     engine: Engine,
     generate: (...args: T) => PrimitiveMeshBuilder,
     args: T,
-    { keepCPUData = false, separateMaterialSlots = false }: { keepCPUData?: boolean; separateMaterialSlots?: boolean }
+    options?: { keepCPUData?: boolean; separateMaterialSlots?: boolean }
   ): ModelMesh {
+    const keepCPUData = options?.keepCPUData ?? false;
     for (let i = 0; i < args.length; i++) {
       args[i] = PrimitiveMesh._copy(args[i]);
     }
@@ -1975,7 +1992,7 @@ export class PrimitiveMesh {
     PrimitiveMesh._setBounds(mesh, data);
     mesh.uploadData(!keepCPUData);
     mesh.clearSubMesh();
-    if (separateMaterialSlots && data.groups.length) {
+    if (options?.separateMaterialSlots && data.groups.length) {
       for (const group of data.groups) {
         mesh.addSubMesh(group.start, group.count);
       }
