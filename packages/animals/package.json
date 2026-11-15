@@ -33,6 +33,7 @@
     "./gameplay/animal/AnimalInteraction": "./src/gameplay/animal/AnimalInteraction.ts",
     "./gameplay/animal/AnimalLod": "./src/gameplay/animal/AnimalLod.ts",
     "./gameplay/animal/AnimalMotionPlayback": "./src/gameplay/animal/AnimalMotionPlayback.ts",
+    "./gameplay/animal/AnimalPlanningTask": "./src/gameplay/animal/AnimalPlanningTask.ts",
     "./gameplay/animal/AnimalPopulation": "./src/gameplay/animal/AnimalPopulation.ts",
     "./gameplay/animal/AnimalPresenter": "./src/gameplay/animal/AnimalPresenter.ts",
     "./gameplay/animal/AnimalRegistration": "./src/gameplay/animal/AnimalRegistration.ts",

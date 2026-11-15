@@ -1028,6 +1028,10 @@ export async function mountSeedWorldDemo(
           },
           afterCommit: async () => {
             farmingHost?.runtime?.refreshWater(publication!.current!, context.waterUpdate!);
+            const accepted = publication!.current!;
+            animals!.synchronize(accepted.plan, readAnimalPopulationConfig(source!.session.document), accepted.navigation, {
+              preservePopulation: true, surface: accepted.data.surfaceIntent, change: accepted.animalChange
+            });
             canvas.dataset.waterEdit = JSON.stringify({
               ...context.waterUpdate,
               publicationMs: performance.now() - started
@@ -1082,6 +1086,7 @@ export async function mountSeedWorldDemo(
               accepted.navigation,
               {
                 preservePopulation: true,
+                change: accepted.animalChange,
                 surface: accepted.data.surfaceIntent
               }
             );
@@ -1867,6 +1872,7 @@ export async function mountSeedWorldDemo(
       if (publication!.current !== accepted || disposed) return;
       animals!.synchronize(accepted.plan, readAnimalPopulationConfig(source!.session.document), accepted.navigation, {
         preservePopulation: true,
+        change: accepted.animalChange,
         surface: accepted.data.surfaceIntent
       });
       await obbDebug?.synchronize(accepted.plan);

@@ -1,3 +1,10 @@
+import {
+  animalContentChange,
+  animalCollisionChanges,
+  animalWaterChange,
+  planningAnimalSnapshotId,
+  type PlanningAnimalWorldChange
+} from "./PlanningAnimalWorldChange";
 import { reversibleTerrainSteps } from "@galacean/engine-terrain/terrain/clipmap/TerrainPreparedUpdate";
 import type { preparePlanningWaterImpact } from "./PlanningWaterPublication";
 import type { TerrainWindGpuExposureProvider } from "../../integrations/terrain/environment/TerrainWindGpuExposureProvider.ts";
@@ -39,6 +46,7 @@ export interface PlanningSeedSceneCandidate extends PlanningSeedSceneResources {
   readonly cameraPose?: PlanningPlayerCameraPose;
 }
 export interface PublishedPlanningSeedScene extends PlanningSeedSceneResources {
+  readonly animalChange?: PlanningAnimalWorldChange;
   readonly plan: IslandPlan;
   readonly revision: number;
   readonly navigation: PlanningNavigationSurface;
@@ -173,7 +181,10 @@ export class PlanningSeedScenePublication {
         const audio = sameAudioSolids(rocks, previousAudio.world.rocks)
           ? undefined
           : this.options.audio.prepareWorld({ ...previousAudio.world, rocks });
-        const next: PublishedPlanningSeedScene = { ...previous, plan, revision };
+        const animalChange = animalContentChange(previous.plan, plan, (x, z) =>
+          previous.navigation.sampleHeightInterpolated(x, z)
+        );
+        const next: PublishedPlanningSeedScene = { ...previous, plan, revision, animalChange };
         const prepared = frame;
         let consumed = false;
         const discard = async () => {
@@ -190,7 +201,7 @@ export class PlanningSeedScenePublication {
             if (consumed) throw Error("Content scene candidate already consumed");
             check();
             prepared.commit();
-            next.navigation.invalidateAnimalSupport();
+            next.navigation.invalidateAnimalSupport(next.animalChange);
             this.published = next;
             if (audio) {
               this.options.audio.publishWorld(audio);
@@ -248,11 +259,13 @@ export class PlanningSeedScenePublication {
         check();
         water = await this.options.water.prepareWater(plan, update, controller.signal);
         check();
+        const animalChange = animalWaterChange(previous.plan, plan, update);
         const prepared = water,
           next: PublishedPlanningSeedScene = {
             ...previous,
             plan,
             revision,
+            animalChange,
             authoringRevision: authoringRevision ?? previous.authoringRevision
           };
         let consumed = false;
@@ -274,7 +287,7 @@ export class PlanningSeedScenePublication {
             try {
               this.options.canvas.dataset.publicationRevision = String(revision);
               publication = prepared.commit();
-              next.navigation.invalidateAnimalSupport();
+              next.navigation.invalidateAnimalSupport(next.animalChange);
             } catch (error) {
               if (oldRevision === undefined) delete this.options.canvas.dataset.publicationRevision;
               else this.options.canvas.dataset.publicationRevision = oldRevision;
@@ -345,8 +358,24 @@ export class PlanningSeedScenePublication {
           this.options.audio,
           this.options.samplePlayerSupport
         );
+        const bounds = frame.bounds;
+        const affected = { minX: bounds.minimumX, minZ: bounds.minimumZ, maxX: bounds.maximumX, maxZ: bounds.maximumZ };
+        const animalChange: PlanningAnimalWorldChange = {
+          previousSnapshot: planningAnimalSnapshotId(previous.plan),
+          terrain: [affected],
+          water: [affected],
+          obstacles: animalCollisionChanges(
+            previous.plan,
+            plan,
+            (x, z) => previous.navigation.sampleHeightInterpolated(x, z),
+            (x, z) => navigation.sampleHeightInterpolated(x, z)
+          ),
+          surface: [affected]
+        };
+        navigation.inheritAnimalSupport(previous.navigation, animalChange);
         const next: PublishedPlanningSeedScene = {
           ...previous,
+          animalChange,
           plan,
           data: frame.data,
           navigation,

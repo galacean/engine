@@ -455,7 +455,8 @@
     "./world/SeedWorldWorldEdit": "./src/world/SeedWorldWorldEdit.ts",
     "./masonry/BuildingInitialSource": "./src/masonry/BuildingInitialSource.ts",
     "./runtime/SeedWorldRockMaterial": "./src/runtime/SeedWorldRockMaterial.ts",
-    "./runtime/SeedWorldRockSurfaceStyle": "./src/runtime/SeedWorldRockSurfaceStyle.ts"
+    "./runtime/SeedWorldRockSurfaceStyle": "./src/runtime/SeedWorldRockSurfaceStyle.ts",
+    "./spatial/runtime/PlanningAnimalWorldChange": "./src/spatial/runtime/PlanningAnimalWorldChange.ts"
   },
   "scripts": {},
   "dependencies": {

@@ -2,6 +2,7 @@ import { createWaterSurfaceSample } from "@galacean/engine-water/water/runtime/i
 import type { IslandPlan } from "../../semantic-study/IslandPlanModel";
 import { bridgeGround } from "../hydrology/RiverCrossings";
 import type { PlanningWaterRuntime } from "./PlanningWaterRuntime";
+import type { AnimalWorldBounds, PlanningAnimalWorldChange } from "./PlanningAnimalWorldChange";
 
 /** Existing terrain/bridge floor, with contacts from the published Water Host. */
 export class PlanningNavigationSurface {
@@ -17,8 +18,19 @@ export class PlanningNavigationSurface {
   }
 
   /** Invalidate retained samples when a publication changes a reused provider. */
-  invalidateAnimalSupport(): void {
-    this.animalCache?.clear(true);
+  invalidateAnimalSupport(change?: PlanningAnimalWorldChange): void {
+    if (!change) this.animalCache?.clear(true);
+    else {
+      this.animalCache?.invalidate(change.terrain, true);
+      this.animalCache?.invalidate(change.water, false);
+    }
+  }
+
+  /** Copy snapshot heights only; a staged candidate never borrows mutable validity flags. */
+  inheritAnimalSupport(previous: PlanningNavigationSurface, change: PlanningAnimalWorldChange): void {
+    if (!this.immutableHeightSource || !previous.immutableHeightSource || !previous.animalCache) return;
+    this.animalCache = previous.animalCache.copyHeights();
+    this.invalidateAnimalSupport(change);
   }
 
   endAnimalUpdate(): void {
@@ -111,6 +123,27 @@ class AnimalSupportCache {
   readonly waterHeights = new Float64Array(8192);
   readonly heightReady = new Uint8Array(8192);
   readonly waterReady = new Uint8Array(8192);
+
+  copyHeights(): AnimalSupportCache {
+    const copy = new AnimalSupportCache();
+    copy.xs.set(this.xs);
+    copy.zs.set(this.zs);
+    copy.heights.set(this.heights);
+    copy.heightReady.set(this.heightReady);
+    return copy;
+  }
+
+  invalidate(regions: readonly AnimalWorldBounds[], height: boolean): void {
+    if (!regions.length) return;
+    for (let i = 0; i < this.xs.length; i++) {
+      if (!this.heightReady[i] && !this.waterReady[i]) continue;
+      const x = this.xs[i],
+        z = this.zs[i];
+      if (!regions.some((b) => x >= b.minX && x <= b.maxX && z >= b.minZ && z <= b.maxZ)) continue;
+      if (height) this.heightReady[i] = 0;
+      this.waterReady[i] = 0;
+    }
+  }
 
   clear(height = true): void {
     if (height) this.heightReady.fill(0);

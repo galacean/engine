@@ -1,3 +1,4 @@
+import { mergeAnimalWorldChanges, planningAnimalSnapshotId, type PlanningAnimalWorldChange } from "@galacean/engine-world-planning/spatial/runtime/PlanningAnimalWorldChange";
 import { querySeedAnimalCatalog } from "./PlanningAnimalCatalog.ts";
 import type { PlanningAnimalSurfaceData } from "./PlanningAnimalSurface.ts";
 import type { Entity } from "@galacean/engine";
@@ -45,6 +46,7 @@ type PopulationInput = {
   config: AnimalPopulationConfig;
   navigation: PlanningAnimalNavigation;
   preservePopulation: boolean;
+  change?: PlanningAnimalWorldChange;
   surface?: PlanningAnimalSurfaceData;
 };
 
@@ -75,7 +77,7 @@ export class PlanningAnimalHost implements SeedWorldAnimalService {
     plan: IslandPlan,
     config: AnimalPopulationConfig,
     navigation: PlanningAnimalNavigation,
-    options: { preservePopulation?: boolean; surface?: PlanningAnimalSurfaceData } = {}
+    options: { preservePopulation?: boolean; surface?: PlanningAnimalSurfaceData; change?: PlanningAnimalWorldChange } = {}
   ): void {
     if (this.disposed) return;
     this.enabled = config.enabled;
@@ -89,7 +91,12 @@ export class PlanningAnimalHost implements SeedWorldAnimalService {
     }
     // A queued full publication must still rebuild even if a content edit arrives before the next frame.
     const preservePopulation = !!options.preservePopulation && (this.pending?.preservePopulation ?? true);
-    this.pending = { plan, config: structuredClone(config), navigation, preservePopulation, surface: options.surface };
+    const change = this.pending
+      ? planningAnimalSnapshotId(this.pending.plan) === options.change?.previousSnapshot
+        ? mergeAnimalWorldChanges(this.pending.change, options.change)
+        : undefined
+      : options.change;
+    this.pending = { change, plan, config: structuredClone(config), navigation, preservePopulation, surface: options.surface };
     this.advance = (seconds) => this.update(seconds);
   }
 
@@ -138,9 +145,10 @@ export class PlanningAnimalHost implements SeedWorldAnimalService {
       if (this.pending) {
         const input = this.pending;
         this.pending = undefined;
-        if (input.surface || input.preservePopulation)
+        if (input.surface || input.preservePopulation || input.change)
           this.runtime.synchronize(input.plan, input.config, input.navigation, {
             ...(input.preservePopulation ? { preservePopulation: true } : {}),
+            ...(input.change ? { change: input.change } : {}),
             ...(input.surface ? { surface: input.surface } : {})
           });
         else this.runtime.synchronize(input.plan, input.config, input.navigation);

@@ -9,7 +9,7 @@ export type PlanningAnimalMedium = "ground" | "air" | "water";
 
 /** Existing navigation support, including bridge decks and water contacts. */
 export interface PlanningAnimalNavigation {
-  /** Exact-coordinate reuse is scoped to one synchronous simulation update, never across world publications. */
+  /** The provider refreshes dynamic water each update and retains snapshot heights until publication invalidates them. */
   beginAnimalUpdate?(): void;
   endAnimalUpdate?(): void;
   sampleHeightInterpolated(x: number, z: number): number | undefined;
@@ -17,6 +17,21 @@ export interface PlanningAnimalNavigation {
   sampleWaterHeight?(x: number, z: number): number | undefined;
   /** Optional combined sample avoids querying the same real water/support twice per footprint point. */
   sampleAnimalSupport?(x: number, z: number, out: { height: number | undefined; waterHeight: number | undefined }): void;
+}
+
+/** Keep future queries of an unaffected suspended route on the current published habitat. */
+export function liveAnimalRouteQuery(
+  read: () => Pick<PlanningAnimalHabitat, "staticRouteQuery">,
+  radius: number, height: number, medium: PlanningAnimalMedium
+): AnimalRouteQuery {
+  let habitat = read(), query = habitat.staticRouteQuery(radius, height, medium);
+  const current = () => {
+    const next = read();
+    if (habitat !== next) { habitat = next; query = habitat.staticRouteQuery(radius, height, medium); }
+    return query;
+  };
+  return { canTraverse: (a, b, clearance) => current().canTraverse(a, b, clearance),
+    obstruction: (a, b, clearance) => current().obstruction(a, b, clearance) };
 }
 
 /** An occupied ground footprint during deterministic population placement. */
@@ -35,7 +50,7 @@ export interface PlanningAnimalBounds {
 }
 
 interface Solid extends PlanningAnimalBounds {
-  id: number;
+  id: string;
   x: number;
   z: number;
   cos: number;
@@ -114,7 +129,7 @@ export class PlanningAnimalHabitat {
     for (const part of planningWhiteboxes(plan, ground)) {
       // Decks and approaches are navigation support; treating their thickness as an obstacle blocks sloped decks.
       if (part.layer === "bridge") continue;
-      for (const box of part.boxes) {
+      for (const [index, box] of part.boxes.entries()) {
         if (!box.collision) continue;
         const cos = Math.cos(box.yaw),
           sin = Math.sin(box.yaw);
@@ -124,7 +139,9 @@ export class PlanningAnimalHabitat {
         const extentZ = Math.abs(sin) * halfX + Math.abs(cos) * halfZ;
         const bottom = box.elevation ?? ground(box.center);
         const solid: Solid = {
-          id: this.solidCount++,
+          // Match publication dependency identities. Unrelated part edits must not
+          // renumber obstacles already visited by a suspended search.
+          id: `${part.layer}:${part.id}:${index}`,
           x: box.center.x,
           z: box.center.z,
           cos,
@@ -139,6 +156,7 @@ export class PlanningAnimalHabitat {
           minZ: box.center.z - extentZ,
           maxZ: box.center.z + extentZ
         };
+        this.solidCount++;
         this.solids.add(solid);
       }
     }
@@ -147,6 +165,16 @@ export class PlanningAnimalHabitat {
   /** Published convex map extent; independent of terrain samples and observer position. */
   get flightBounds() {
     return this.range.distribution ?? { x: this.origin.x, z: this.origin.z, radius: this.range.roamRadius };
+  }
+
+  /** Dependencies of placement include the whole allowed footprint, not just a suspended actor's old position. */
+  placementIntersects(bounds: PlanningAnimalBounds): boolean {
+    const area = this.range.distribution;
+    if (area) return bounds.maxX >= area.minX && bounds.minX <= area.maxX &&
+      bounds.maxZ >= area.minZ && bounds.minZ <= area.maxZ;
+    const dx = Math.max(bounds.minX - this.origin.x, 0, this.origin.x - bounds.maxX);
+    const dz = Math.max(bounds.minZ - this.origin.z, 0, this.origin.z - bounds.maxZ);
+    return dx * dx + dz * dz <= this.range.spawnRadius ** 2 + 1e-10;
   }
 
   /**

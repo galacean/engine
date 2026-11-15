@@ -271,11 +271,40 @@ export class GroundAnimalCrowd {
    * Movement uses neither this query nor predictions of neighbouring animals' future motion.
    * A currently overlapping actor may leave outward; final resting occupancy still uses canReserve.
    */
-  routeQuery(body: GroundAnimalBody, elevation = body.elevation, layer = body.layer): AnimalRouteQuery {
+  routeQuery(
+    body: GroundAnimalBody,
+    elevation = body.elevation,
+    layer = body.layer,
+    snapshot = false
+  ): AnimalRouteQuery {
     const subject = { ...body, elevation, layer };
+    const origin = snapshot ? { ...body.motion } : body.motion;
+    // Suspended planners must not combine edges from different traffic layouts.
+    const copies = new Map<BodyState, BodyState>();
+    const copy = (state: BodyState) => {
+      let result = copies.get(state);
+      if (!result) {
+        result = {
+          ...state,
+          body: { ...state.body, motion: { ...state.body.motion } },
+          reservation: state.reservation ? { ...state.reservation } : undefined
+        };
+        copies.set(state, result);
+      }
+      return result;
+    };
+    const grid = snapshot
+      ? new Map([...this.grid].map(([key, states]) => [key, states.filter((state) => state.body !== body).map(copy)]))
+      : this.grid;
+    const reservations = snapshot
+      ? new Map(
+          [...this.reservations].map(([key, states]) => [key, states.filter((state) => state.body !== body).map(copy)])
+        )
+      : this.reservations;
+    const maximumRadius = this.maximumRadius;
     const find = (from: AnimalRoutePoint, to: AnimalRoutePoint, clearance = 0) => {
       const padding = subject.radius + Math.max(0, clearance) + 0.001;
-      const reach = padding + this.maximumRadius;
+      const reach = padding + (snapshot ? maximumRadius : this.maximumRadius);
       let nearest: BodyState | undefined,
         reserved = false,
         hitX = 0,
@@ -289,7 +318,7 @@ export class GroundAnimalCrowd {
         )
           return;
         const radius = padding + (isReserved ? restingRadius(state.body) : state.body.radius);
-        const t = circleSegmentEntry(from, to, x, z, radius, body.motion.x, body.motion.z);
+        const t = circleSegmentEntry(from, to, x, z, radius, origin.x, origin.z);
         if (t < first) {
           first = t;
           nearest = state;
@@ -324,8 +353,8 @@ export class GroundAnimalCrowd {
           ix++
         ) {
           const key = this.key(ix, iz);
-          for (const state of this.grid.get(key) ?? []) test(state, state.body.motion.x, state.body.motion.z, false);
-          for (const state of this.reservations.get(key) ?? [])
+          for (const state of grid.get(key) ?? []) test(state, state.body.motion.x, state.body.motion.z, false);
+          for (const state of reservations.get(key) ?? [])
             test(state, state.reservation!.x, state.reservation!.z, true);
         }
       }
