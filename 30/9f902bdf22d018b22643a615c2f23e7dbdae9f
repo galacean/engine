@@ -1,0 +1,23 @@
+tests/src/core/mesh/ProceduralMesh.test.ts
+  s_f1a7b8285f1df2::t_5aeeefd6aa0154 1666-1667
+tests/src/core/ModelMesh.test.ts
+  s_f1a7b8285f1df2::t_00a356e1b06ae8 350-363,402-408
+  s_f1a7b8285f1df2::t_58e3bff331078e 10,16,348-349,364-401,409-441
+  s_f1a7b8285f1df2::t_0a9b67c4f1910e 442
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "309f902bdf22d018b22643a615c2f23e7dbdae9f",
+  "prompts": {},
+  "sessions": {
+    "s_f1a7b8285f1df2": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1d54e-3c87-7273-b01d-79d652eaed37",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}
