@@ -15,7 +15,7 @@ export class Polyfill {
   private static _registerMatchAll(): void {
     if (!String.prototype.matchAll) {
       Logger.info("Polyfill String.prototype.matchAll");
-      String.prototype.matchAll = function (pattern: RegExp): ReturnType<String["matchAll"]> {
+      String.prototype.matchAll = function (pattern: RegExp): ReturnType<string["matchAll"]> {
         const flags = pattern.flags;
         const globalFlagIdx = flags.indexOf("g");
         if (globalFlagIdx === -1) {
@@ -29,7 +29,7 @@ export class Polyfill {
           const matchFlag = flags.split("g").join("");
           const matchPattern = new RegExp(pattern.source, matchFlag);
 
-          for (let index in matchResult) {
+          for (const index in matchResult) {
             const item = matchResult[index];
             yield item.match(matchPattern) as RegExpExecArray;
           }
@@ -39,6 +39,7 @@ export class Polyfill {
   }
 
   private static _registerAudioContext(): void {
+    if (typeof window === "undefined") return;
     // IOS 12 and the following system do not support AudioContext, need to switch to webkitAudioContext
     if (!window.AudioContext && (window as any).webkitAudioContext) {
       Logger.info("Polyfill window.AudioContext");
@@ -48,6 +49,7 @@ export class Polyfill {
   }
 
   private static _registerOfflineAudioContext(): void {
+    if (typeof window === "undefined") return;
     // iOS 14.0 and earlier expose only webkitOfflineAudioContext, with callback-form decodeAudioData
     if (!window.OfflineAudioContext && (window as any).webkitOfflineAudioContext) {
       Logger.info("Polyfill window.OfflineAudioContext");
@@ -87,6 +89,7 @@ export class Polyfill {
   }
 
   private static _registerTextMetrics(): void {
+    if (typeof window === "undefined") return;
     // Based on the specific version of the engine implementation, when actualBoundingBoxLeft is not supported, width is used to represent the rendering width, and `textAlign` uses the default value `start` and direction is left to right.
     // Some devices do not support actualBoundingBoxLeft and actualBoundingBoxRight in TextMetrics.
     // Examples: Google Pixel 2 XL (Android 11), Honor 6X (Android 8).
