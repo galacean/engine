@@ -1,0 +1,226 @@
+packages/world-planning/src/world/SeedWorldVisualQuery.ts
+  s_2bcbbfbc740f10::t_3b63d8ad64cb5d 187-189,191,193-194,196-205
+  s_2bcbbfbc740f10::t_946f14b96789ac 3,73
+  s_2bcbbfbc740f10::t_d68583f1a908fb 31,55,228,249
+  s_2bcbbfbc740f10::t_ee363ef5fa351e 9-13,19-20,25-28,56-61,108,116-119,134-135,137-140,144-147,168-172,178-179,182,184-186,190,192,195,206,214-227,229-234,246-247,252-260,268,272-276,286-296
+  s_2bcbbfbc740f10::t_9a8b0a7e129a43 1-2,4-8,14-18,21-24,29-30,32-54,62-72,74-107,109-115,120-133,136,141-143,148-159,173-175,181,183,208,210-213,235-245,248,250-251,261-263,265-267,269-271,277-285,297-314
+  s_2bcbbfbc740f10::t_ed4dff7e0beedd 160-167,176-177,180,207,209,264
+world/demos/seed-world/src/planning/spatial/farming/PlanningFarmLandLayer.ts
+  s_2bcbbfbc740f10::t_253cfab13839ed 47-48,98
+world/tests/seed-world/SeedWorldShaderPassWarmup.spec.ts
+  s_2bcbbfbc740f10::t_a9cf19450fdca7 5-57
+  s_2bcbbfbc740f10::t_447cb7bb17f1ac 1-4,58-59
+world/tests/seed-world/AnimalRoutePreview.spec.ts
+  s_2bcbbfbc740f10::t_edb8869f404e35 1-16,20,24-26,33-36,38-44,46-54,56-71,74-127
+  s_2bcbbfbc740f10::t_0264cdf2e08b60 17-19,22-23,27-32,37,45,72-73
+  s_2bcbbfbc740f10::t_3404ff74f1c63a 21
+  s_2bcbbfbc740f10::t_9122eb97792778 55
+world/tests/seed-world/FarmingPointerPriority.spec.ts
+  s_2bcbbfbc740f10::t_79c87eba74d19d 276,284,290-291,298,337-343
+  s_2bcbbfbc740f10::t_0765f07547bec9 141-142,151-153,155-156,158-159,222-227,280,288-289,296-297,302-321,326-336
+  s_2bcbbfbc740f10::t_9a8b0a7e129a43 110
+  s_2bcbbfbc740f10::t_9c7f5d29f128e3 194
+  s_2bcbbfbc740f10::t_ee363ef5fa351e 9-102,105-106,112-139,143-150,154,157,160-190,197-218,228,231-274,281-283,322-325
+  s_2bcbbfbc740f10::t_9d66f0cc296049 275
+  s_2bcbbfbc740f10::t_18e7c645867dae 1-8,103-104,107-109,111,140,191-193,195-196,219-221,229-230,277-279,285-287,292-295,299-301
+packages/world-planning/src/runtime/SeedWorldPopulationRuntime.ts
+  s_2bcbbfbc740f10::t_cc3c84258ffa7c 7731
+packages/modify/src/rendering/SeedWorldPickBatch.ts
+  s_2bcbbfbc740f10::t_cc3c84258ffa7c 4-5,12
+world/tests/seed-world/FarmingTargetIdentity.spec.ts
+  s_2bcbbfbc740f10::t_ee363ef5fa351e 9,11-27,29-33,35-41,44-63,68-69,71-91,95-102,118-120,132-134,146-148,156-161,169-171,178,183-185,188,191-192,194-195,197-203,216-218,229-232,235-262,270-277,282-284,291,297-312,315-318,320,322,325-329,331-335,347-349,364-380
+  s_2bcbbfbc740f10::t_1241b8151c9550 1-8,10,28,34,42-43,64-67,70,92-94,103-117,121-130,135-144,149-155,162-168,172-177,179-181,186-187,189-190,193,196,204-215,219-228,233
+  s_2bcbbfbc740f10::t_da29809a5c15b5 234
+  s_2bcbbfbc740f10::t_634b4f50cf9c2b 286-290,292-296,313-314,319,321,323-324,330,336-346,350-363,381
+  s_2bcbbfbc740f10::t_9d66f0cc296049 131,145,182
+  s_2bcbbfbc740f10::t_06badd051ed7e7 263-269,278-281,285
+packages/animals/src/gameplay/animal/ConfiguredAnimal.ts
+  s_2bcbbfbc740f10::t_95dc92bdd7da59 1049-1051,1064-1065
+  s_2bcbbfbc740f10::t_0264cdf2e08b60 1066-1069
+world/tests/seed-world/SeedWorldCompanionRockLifecycle.spec.ts
+  s_2bcbbfbc740f10::t_96411dd42cc46b 26,57-113
+  s_2bcbbfbc740f10::t_e2c6d68e42a8c6 1-25,27-56,114-143
+packages/world-planning/src/masonry/NativeBuildingHost.ts
+  s_2bcbbfbc740f10::t_92464b06747675 155-157
+  s_2bcbbfbc740f10::t_0ddbd72e9f5d88 133-135
+  s_2bcbbfbc740f10::t_c7a7916f827203 154
+packages/building/tests/BuildingOccupancyQuery.spec.ts
+  s_2bcbbfbc740f10::t_605175b1949004 1-32
+world/tests/seed-world/SeedWorldStartupShaderWarmup.spec.ts
+  s_2bcbbfbc740f10::t_a9cf19450fdca7 6-11,14-19,24-26,29-31,35-38,46-71,73-75,78-86,92-93,103-106,125-138,142-144
+  s_2bcbbfbc740f10::t_4331dcc9ca8800 1-5,12-13,20-23,27-28,32-34,39-45,72,76-77,87-91,94-102,107-124,139-141,145-154
+world/demos/seed-world/src/planning/spatial/farming/PlanningPublishedFarmingGround.ts
+  s_2bcbbfbc740f10::t_d1faa0e0731ed0 11,60,63,69
+  s_2bcbbfbc740f10::t_c7a7916f827203 12,14,37
+packages/world-planning/src/world/InteractionDepthPack.shader
+  s_2bcbbfbc740f10::t_de003374f8159a 1-12,17-21
+  s_2bcbbfbc740f10::t_d18a33c88e9f05 14-15
+  s_2bcbbfbc740f10::t_eb784ca54f89aa 13,16
+packages/modify/src/native/core/src/RenderPipeline/BasicRenderPipeline.ts
+  s_2bcbbfbc740f10::t_ca4170edfab08e 1037,1039,1052
+  s_2bcbbfbc740f10::t_821574c3d0c917 1
+  s_2bcbbfbc740f10::t_92464b06747675 478-480,485
+  s_2bcbbfbc740f10::t_d1f53eed68e930 109,155,477,481-484,486,490
+packages/modify/src/native/core/src/Camera.ts
+  s_2bcbbfbc740f10::t_ca4170edfab08e 1-2,108-113
+  s_2bcbbfbc740f10::t_b8cbb9539a3f87 114,741-746
+packages/building/src/building/render/CoreBuilding.ts
+  s_2bcbbfbc740f10::t_6b26e5f528dddb 1119-1121,1124-1130,1391,1396,1414-1415,1420-1421,1440,1479
+  s_2bcbbfbc740f10::t_92464b06747675 1122-1123,1399-1403,1416-1419,1422-1439
+packages/building/src/building/runtime/BuildingOccupancyQuery.ts
+  s_2bcbbfbc740f10::t_6b26e5f528dddb 82-83
+  s_2bcbbfbc740f10::t_fc0440967a65ce 1-20,23-43,46-50,62-65,84-86,93,107-109,128,132-140,152-153,158-163
+  s_2bcbbfbc740f10::t_4daabc13c63791 21-22,44-45,51-61,66-81,87-92,94-106,110-127,129-131,141-151,154-157
+world/demos/seed-world/src/planning/spatial/farming/PlanningFarmingRuntime.ts
+  s_2bcbbfbc740f10::t_ee363ef5fa351e 18-23,62-64,76-80,94-102,308-313,494-501,578-580,616-620,735,821,830-833,845-852,855-858,860-863,873-880,887-892
+  s_2bcbbfbc740f10::t_253cfab13839ed 233-237
+  s_2bcbbfbc740f10::t_d1faa0e0731ed0 577
+  s_2bcbbfbc740f10::t_c7a7916f827203 582,585
+  s_2bcbbfbc740f10::t_9a8b0a7e129a43 1,61,141,155,719
+  s_2bcbbfbc740f10::t_9d66f0cc296049 720,731-734
+  s_2bcbbfbc740f10::t_05ed205b76b7f2 839
+world/demos/seed-world/src/planning/spatial/runtime/PlanningAnimalHost.ts
+  s_2bcbbfbc740f10::t_253cfab13839ed 23,61,96-103,118
+packages/building/src/building/parts/architecture/BuildingRuntime.ts
+  s_2bcbbfbc740f10::t_c7a7916f827203 25,162-164,288,366-367,585,713,715,744,748,806,972,976,982,986-988,993,995,998,1001,1016-1017,1019
+world/tests/seed-world/FarmingOcclusionClick.spec.ts
+  s_2bcbbfbc740f10::t_6713251cdd9c3b 4,86-131,133
+  s_2bcbbfbc740f10::t_ee363ef5fa351e 2,6,8-28,30-73,76,78-85,132,134,137-175,177-184,187-195
+  s_2bcbbfbc740f10::t_b74acf34104cb2 185-186
+  s_2bcbbfbc740f10::t_e0acd3db18dbac 1,3,5,7,29,74-75,77,135-136,176,196
+packages/core/src/RenderPipeline/BasicRenderPipeline.ts
+  s_2bcbbfbc740f10::t_ca4170edfab08e 486,488,501
+packages/core/src/Camera.ts
+  s_2bcbbfbc740f10::t_ca4170edfab08e 1-2,74-79
+  s_2bcbbfbc740f10::t_b3f12254b42c51 80
+world/tests/seed-world/SeedWorldRendererWarmup.spec.ts
+  s_2bcbbfbc740f10::t_a9cf19450fdca7 16,20,29,38-45,78-79,82,85-88
+  s_2bcbbfbc740f10::t_f87b862d0a108f 1-4,6-15,30-37,46-49,75-77,80-81,83-84,89-90
+  s_2bcbbfbc740f10::t_75190022559724 17-19,21-28,52-64,66-69,73
+  s_2bcbbfbc740f10::t_c968e6cd40e99c 5,50-51,65,70-72,74
+packages/world-planning/tests/NativeBuildingLifetime.spec.ts
+  s_2bcbbfbc740f10::t_c7a7916f827203 51,53,64
+packages/world-planning/src/world/SeedWorldShaderWarmup.ts
+  s_2bcbbfbc740f10::t_253cfab13839ed 15,81-82,380,425,458-465,713-714,727-736
+  s_2bcbbfbc740f10::t_75190022559724 434-440
+  s_2bcbbfbc740f10::t_a133b8d0e8aa3f 431-433,441,455
+world/tests/seed-world/BuildingPartScript.spec.ts
+  s_2bcbbfbc740f10::t_87148ea3fdf868 42-44,59-61
+packages/world-planning/src/world/SeedWorldPicker.ts
+  s_2bcbbfbc740f10::t_8baa1fae63d723 224,230,237,239-244,262-263,272
+  s_2bcbbfbc740f10::t_9d66f0cc296049 245-246,253-254
+  s_2bcbbfbc740f10::t_314943cb1be690 111,197,223,225-229,514,623
+  s_2bcbbfbc740f10::t_ca4170edfab08e 17,196,198,207,214,216-217,266,558-563,653
+  s_2bcbbfbc740f10::t_3b63d8ad64cb5d 269-271
+  s_2bcbbfbc740f10::t_ed4dff7e0beedd 137-146,148-150,152-155,157-160,168-171
+  s_2bcbbfbc740f10::t_ee363ef5fa351e 52-75,125-130,147,151,156,161-167,172,176-181,190-193,199-206,208-213,218-221,231-232,247-252,255-261,264-265,275-300,307-308,314-318,503-513
+  s_2bcbbfbc740f10::t_cc3c84258ffa7c 107-110,274
+  s_2bcbbfbc740f10::t_b1cd64b54512b5 30,106,186,215
+  s_2bcbbfbc740f10::t_de003374f8159a 2,27-29,99,101-103,122,132,174,183-185,187-189,222,302,306,309-311,319-320,537,546,594,624-626
+  s_2bcbbfbc740f10::t_af171be7d50d33 49-51
+  s_2bcbbfbc740f10::t_31266afc0aa994 76-77
+  s_2bcbbfbc740f10::t_cfba11b4d14df5 100
+  s_2bcbbfbc740f10::t_64af6209996cfa 104-105
+  s_2bcbbfbc740f10::t_b69bc7c34507f0 119-121
+  s_2bcbbfbc740f10::t_af645f19409607 123-124
+  s_2bcbbfbc740f10::t_f6b753b4e7aaf6 131
+  s_2bcbbfbc740f10::t_cc280dc1adbc21 133-136
+  s_2bcbbfbc740f10::t_1c0a9019a4fb12 173
+  s_2bcbbfbc740f10::t_db094c57f42f1f 175
+  s_2bcbbfbc740f10::t_ab8c3af4a93540 182
+  s_2bcbbfbc740f10::t_c79e999cfea205 194-195
+  s_2bcbbfbc740f10::t_1ce4bd8abec39d 233-236
+  s_2bcbbfbc740f10::t_26e27c6c704a6a 238
+  s_2bcbbfbc740f10::t_d0a6fdf39f9883 267-268
+  s_2bcbbfbc740f10::t_7809067620e8e5 273
+  s_2bcbbfbc740f10::t_7aace19a4c5cfd 301
+  s_2bcbbfbc740f10::t_35446b7ced49be 303-305
+  s_2bcbbfbc740f10::t_1761d49373b9a7 312-313
+  s_2bcbbfbc740f10::t_13b02b72a81340 622
+packages/farming/src/farming/presentation/FarmingWorldPresentation.ts
+  s_2bcbbfbc740f10::t_a5a720bd33b7a0 347,350,357,468,476,481,485,496-497,499,509,511-512,514-518,543,609-610,739-742
+  s_2bcbbfbc740f10::t_0776aabeb5fa02 507,513
+  s_2bcbbfbc740f10::t_c5e36778514772 486-487,492
+  s_2bcbbfbc740f10::t_d68583f1a908fb 471-473
+  s_2bcbbfbc740f10::t_b1cd64b54512b5 86-88,334,469-470,474-475
+  s_2bcbbfbc740f10::t_8baa1fae63d723 259-263,269,338-339,344-346,358-363,370,456,480
+  s_2bcbbfbc740f10::t_9d66f0cc296049 449-451,542
+  s_2bcbbfbc740f10::t_ee363ef5fa351e 264-268,332-333,335-336,348-349,351-356,364-369,417-422,428,457-467,477-479,482-484,488-490,498,508,510
+world/scripts/acceptance/BuildingInteractionDepth.test.mjs
+  s_2bcbbfbc740f10::t_aac5a230bd43d4 201-202,211-214,217-220,223-226,262,267-270
+  s_2bcbbfbc740f10::t_821574c3d0c917 65
+  s_2bcbbfbc740f10::t_ee363ef5fa351e 7-64,66-196,222,227-261,273-310
+  s_2bcbbfbc740f10::t_9eec152d058279 197-200,203-210,215-216,221,263-266,271-272
+  s_2bcbbfbc740f10::t_31e225d81bbbd6 1-6
+packages/building/src/building/parts/architecture/BuildingCpu.ts
+  s_2bcbbfbc740f10::t_c7a7916f827203 18,105
+  s_2bcbbfbc740f10::t_6b26e5f528dddb 101
+  s_2bcbbfbc740f10::t_f3264be9a4071b 82
+world/tests/seed-world/PlanningVisualOcclusion.spec.ts
+  s_2bcbbfbc740f10::t_634b4f50cf9c2b 310-312,317-327,331-340
+  s_2bcbbfbc740f10::t_5803d0a323b8cd 371-431,433-434,436-437,440-445,447-454
+  s_2bcbbfbc740f10::t_8baa1fae63d723 1-3,5-6,9,42-45,48-56,81-92,96-105
+  s_2bcbbfbc740f10::t_9a8b0a7e129a43 4,268-270,273-285,290-292,295-297,302-305
+  s_2bcbbfbc740f10::t_b9fef638c2c7fa 432,435,438-439,446
+  s_2bcbbfbc740f10::t_1cab6bc7c77baf 121,123,127
+  s_2bcbbfbc740f10::t_ee363ef5fa351e 7-8,10-41,46-47,57-80,93-95,109-120,122,124,128-209,224-227,237-241,243-248,259-260,271-272,286-289,293-294,298-301,306-309,313-316,328-330,341-370,455-495
+  s_2bcbbfbc740f10::t_a1c0882415aed9 221-223,228-235,242,249-255,496
+  s_2bcbbfbc740f10::t_4552396771f997 126,215,217-218,220,256-258,261-267
+  s_2bcbbfbc740f10::t_16924d1668d80e 106-108,125,210-214,216,219,236
+packages/world-planning/src/spatial/runtime/PlanningNaturalVegetationRuntime.ts
+  s_2bcbbfbc740f10::t_cc3c84258ffa7c 858
+  s_2bcbbfbc740f10::t_253cfab13839ed 966-975
+  s_2bcbbfbc740f10::t_35b9969286db19 1666-1669
+world/demos/seed-world/src/planning/spatial/runtime/PlanningAnimalRuntime.ts
+  s_2bcbbfbc740f10::t_253cfab13839ed 469-476
+world/demos/seed-world/SeedWorldDemo.ts
+  s_2bcbbfbc740f10::t_253cfab13839ed 1676,1680-1681,2232-2258
+  s_2bcbbfbc740f10::t_4daabc13c63791 2448
+  s_2bcbbfbc740f10::t_9a8b0a7e129a43 1,272,399,953-956,963
+packages/farming/src/farming/application/FarmingItemInteraction.ts
+  s_2bcbbfbc740f10::t_79c87eba74d19d 129
+  s_2bcbbfbc740f10::t_cef64934dfe894 6,145
+  s_2bcbbfbc740f10::t_c5e36778514772 19-23,64,108,111,118-120,124-128,130-135,142-144,147,154-155,199,201-202,204-206,223,313,359-362,368-371,377,387-392,420,439,441
+  s_2bcbbfbc740f10::t_ee363ef5fa351e 47-53,109-110,112-117,121-122,146,149-153,156-165,194-198,203,207-210,305-306,309-312,315-319,350-355,358,363-367,372-375,422,440
+  s_2bcbbfbc740f10::t_92cd3a238c4dcf 148
+  s_2bcbbfbc740f10::t_8baa1fae63d723 69
+  s_2bcbbfbc740f10::t_9d66f0cc296049 93
+  s_2bcbbfbc740f10::t_d1faa0e0731ed0 28
+  s_2bcbbfbc740f10::t_d9a399f4499e71 36,94-96,106-107,123
+  s_2bcbbfbc740f10::t_b1cd64b54512b5 1,60,63,65
+  s_2bcbbfbc740f10::t_c2fc47e0672c42 18,24,61-62,136-141,303-304,314,380,408-419,421,423-438
+packages/world-planning/package.json
+  s_2bcbbfbc740f10::t_946f14b96789ac 451
+world/demos/seed-world/README.md
+  s_2bcbbfbc740f10::t_6319efe79c88b7 73-108,140
+  s_2bcbbfbc740f10::t_253cfab13839ed 148-150
+  s_2bcbbfbc740f10::t_7371b3293482f0 71-72,109
+packages/building/tests/BuildingWorkerCpu.spec.ts
+  s_2bcbbfbc740f10::t_77653ba2d7900d 69-72,117-130
+packages/modify/src/native/core/src/RenderPipeline/RenderViewCulling.ts
+  s_2bcbbfbc740f10::t_c957aece70e11c 192-195,197
+packages/world-planning/tests/SeedWorldPicker.spec.ts
+  s_2bcbbfbc740f10::t_496966a64491d4 9
+world/demos/seed-world/systems/runtime-declarations.json
+  s_2bcbbfbc740f10::t_80fd51d23e609d 1
+world/tests/seed-world/PlanningPublishedFarmingGround.spec.ts
+  s_2bcbbfbc740f10::t_2d1a2ea363c2e1 7,10-11,63-66,90,92,96,112,130,136,141,166-171,185-186,190
+world/tests/seed-world/SeedWorldVegetationPreparation.spec.ts
+  s_2bcbbfbc740f10::t_351d79f3caf6d0 1-52
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "5ab563ee3b0589be7e360420b65ccc9bb12133e5",
+  "prompts": {},
+  "sessions": {
+    "s_2bcbbfbc740f10": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1ce36-cadb-72f0-9a4c-e7c8e10b95dc",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}
