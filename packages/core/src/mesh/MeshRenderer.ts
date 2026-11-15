@@ -203,7 +203,7 @@ export class MeshRenderer extends Renderer {
     renderers.push(curElement.component);
   }
 
-  private _setMesh(mesh: Mesh): void {
+  protected _setMesh(mesh: Mesh): void {
     const lastMesh = this._mesh;
     if (lastMesh) {
       this._addResourceReferCount(lastMesh, -1);
@@ -213,12 +213,14 @@ export class MeshRenderer extends Renderer {
       this._addResourceReferCount(mesh, 1);
       mesh._updateFlagManager.addListener(this._onMeshChanged);
       this._dirtyUpdateFlag |= MeshRendererUpdateFlags.All;
+    } else if (lastMesh) {
+      this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
     }
     this._mesh = mesh;
   }
 
   @ignoreClone
-  private _onMeshChanged(type: MeshModifyFlags): void {
+  protected _onMeshChanged(type: MeshModifyFlags): void {
     type & MeshModifyFlags.Bounds && (this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume);
     type & MeshModifyFlags.VertexElements && (this._dirtyUpdateFlag |= MeshRendererUpdateFlags.VertexElementMacro);
   }

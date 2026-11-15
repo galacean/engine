@@ -4,13 +4,11 @@ import {
   Entity,
   Logger,
   Material,
-  Mesh,
   MeshRenderer,
   ModelMesh,
   Skin,
   SkinnedMeshRenderer
 } from "@galacean/engine-core";
-import { BoundingBox, Matrix } from "@galacean/engine-math";
 import { GLTFResource } from "../GLTFResource";
 import { CameraType, ICamera, INode } from "../GLTFSchema";
 import { GLTFParser } from "./GLTFParser";
@@ -18,8 +16,6 @@ import { GLTFParserContext, GLTFParserType, registerGLTFParser } from "./GLTFPar
 
 @registerGLTFParser(GLTFParserType.Scene)
 export class GLTFSceneParser extends GLTFParser {
-  private static _tempMatrix: Matrix = new Matrix();
-
   parse(context: GLTFParserContext, index: number): AssetPromise<Entity> {
     const {
       glTF: { scenes, scene = 0 },
@@ -155,7 +151,6 @@ export class GLTFSceneParser extends GLTFParser {
             const skinRenderer = entity.addComponent(SkinnedMeshRenderer);
             skinRenderer.mesh = mesh;
             if (skin) {
-              this._computeLocalBounds(skinRenderer, mesh, skin.bones, skin.rootBone, skin.inverseBindMatrices);
               skinRenderer.skin = skin;
             }
             if (blendShapeWeights) {
@@ -182,23 +177,5 @@ export class GLTFSceneParser extends GLTFParser {
       .catch((e) => {
         Logger.error("GLTFSceneParser: create renderer error", e);
       });
-  }
-
-  private _computeLocalBounds(
-    skinnedMeshRenderer: SkinnedMeshRenderer,
-    mesh: Mesh,
-    bones: ReadonlyArray<Entity>,
-    rootBone: Entity,
-    inverseBindMatrices: Matrix[]
-  ): void {
-    const rootBoneIndex = bones.indexOf(rootBone);
-    if (rootBoneIndex !== -1) {
-      BoundingBox.transform(mesh.bounds, inverseBindMatrices[rootBoneIndex], skinnedMeshRenderer.localBounds);
-    } else {
-      // rootBone can be outside skin.joints, so it has no inverse bind matrix
-      const inverseRootBoneWorld = GLTFSceneParser._tempMatrix;
-      Matrix.invert(rootBone.transform.worldMatrix, inverseRootBoneWorld);
-      BoundingBox.transform(mesh.bounds, inverseRootBoneWorld, skinnedMeshRenderer.localBounds);
-    }
   }
 }

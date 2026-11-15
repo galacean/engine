@@ -17,6 +17,6 @@ The Skinned Mesh Renderer extends the properties of the [Mesh Renderer](/en/docs
 | Property          | Description                          |
 | :---------------- | :----------------------------------- |
 | `rootBone`        | The root bone node of the skinned mesh renderer |
-| `localBounds`     | The local bounding box of the skinned mesh renderer |
+| `localBounds`     | The local bounding box of the skinned mesh renderer. Derived automatically from `mesh` and `skin` by default; assign `null` to restore automatic calculation after customizing |
 
 <Callout type="info">In rare cases where unavoidable, adjusting the local bounding box can prevent the renderer from being clipped by the camera</Callout>

@@ -143,10 +143,7 @@ describe("SkinnedMeshRenderer", async () => {
     const skin = new Skin("CloneSkin");
     skin.rootBone = bone0;
     skin.bones = [bone0, bone1];
-    skin.inverseBindMatrices = [
-      new Matrix(),
-      new Matrix(2, 0, 0, 0, 0, 2, 0, 0, 0, 0, 2, 0, 1, 2, 3, 1)
-    ];
+    skin.inverseBindMatrices = [new Matrix(), new Matrix(2, 0, 0, 0, 0, 2, 0, 0, 0, 0, 2, 0, 1, 2, 3, 1)];
     skinnedMeshRenderer.skin = skin;
 
     const cloneEntity = entity.clone();
@@ -180,5 +177,258 @@ describe("SkinnedMeshRenderer", async () => {
 
     entity.destroy();
     cloneEntity.destroy();
+  });
+
+  it("derives default rootBone-space localBounds from mesh and skin", () => {
+    const createRig = (assignSkinFirst: boolean) => {
+      const entity = rootEntity.createChild("AutoBoundsRig");
+      const bone = entity.createChild("RootBone");
+      bone.transform.setPosition(2, 1, -3);
+      bone.transform.setScale(2, 0.5, 4);
+
+      const mesh = new ModelMesh(engine);
+      mesh.bounds.min.set(0, 0, -3);
+      mesh.bounds.max.set(4, 2, 5);
+
+      const skin = new Skin("RigSkin");
+      skin.bones = [bone];
+      skin.rootBone = bone;
+      skin.inverseBindMatrices = [bone.transform.worldMatrix.clone().invert()];
+
+      const renderer = entity.addComponent(SkinnedMeshRenderer);
+      if (assignSkinFirst) {
+        renderer.skin = skin;
+        renderer.mesh = mesh;
+      } else {
+        renderer.mesh = mesh;
+        renderer.skin = skin;
+      }
+      return { entity, bone, renderer };
+    };
+
+    for (const assignSkinFirst of [false, true]) {
+      const { entity, bone, renderer } = createRig(assignSkinFirst);
+
+      expect(renderer.localBounds.min.x).to.be.closeTo(-1, 1e-5);
+      expect(renderer.localBounds.min.y).to.be.closeTo(-2, 1e-5);
+      expect(renderer.localBounds.min.z).to.be.closeTo(0, 1e-5);
+      expect(renderer.localBounds.max.x).to.be.closeTo(1, 1e-5);
+      expect(renderer.localBounds.max.y).to.be.closeTo(2, 1e-5);
+      expect(renderer.localBounds.max.z).to.be.closeTo(2, 1e-5);
+
+      expect(renderer.bounds.min.x).to.be.closeTo(0, 1e-5);
+      expect(renderer.bounds.min.y).to.be.closeTo(0, 1e-5);
+      expect(renderer.bounds.min.z).to.be.closeTo(-3, 1e-5);
+      expect(renderer.bounds.max.x).to.be.closeTo(4, 1e-5);
+      expect(renderer.bounds.max.y).to.be.closeTo(2, 1e-5);
+      expect(renderer.bounds.max.z).to.be.closeTo(5, 1e-5);
+
+      bone.transform.setPosition(10, 1, -3);
+      expect(renderer.localBounds.min.x).to.be.closeTo(-1, 1e-5);
+      expect(renderer.bounds.min.x).to.be.closeTo(8, 1e-5);
+      expect(renderer.bounds.max.x).to.be.closeTo(12, 1e-5);
+
+      entity.destroy();
+    }
+  });
+
+  it("captures bind-pose rootBone inverse matrix when rootBone is outside bones", () => {
+    const entity = rootEntity.createChild("OutsideRootBoneEntity");
+    const rootBone = entity.createChild("CharacterGroup");
+    rootBone.transform.setPosition(3, 0, 0);
+    rootBone.transform.setScale(2, 3, 1);
+    const joint = rootBone.createChild("Joint0");
+
+    const mesh = new ModelMesh(engine);
+    mesh.bounds.min.set(6, -3, -1);
+    mesh.bounds.max.set(8, 3, 1);
+
+    const skin = new Skin("OutsideRootSkin");
+    skin.bones = [joint];
+    skin.inverseBindMatrices = [new Matrix()];
+    skin.rootBone = rootBone;
+
+    const renderer = entity.addComponent(SkinnedMeshRenderer);
+    renderer.mesh = mesh;
+    renderer.skin = skin;
+
+    expect(renderer.localBounds.min.x).to.be.closeTo(1.5, 1e-5);
+    expect(renderer.localBounds.min.y).to.be.closeTo(-1, 1e-5);
+    expect(renderer.localBounds.min.z).to.be.closeTo(-1, 1e-5);
+    expect(renderer.localBounds.max.x).to.be.closeTo(2.5, 1e-5);
+    expect(renderer.localBounds.max.y).to.be.closeTo(1, 1e-5);
+    expect(renderer.localBounds.max.z).to.be.closeTo(1, 1e-5);
+
+    // Moving rootBone afterwards translates world bounds without recomputing bind inverse matrix.
+    rootBone.transform.setPosition(10, 0, 0);
+    expect(renderer.localBounds.min.x).to.be.closeTo(1.5, 1e-5);
+    expect(renderer.bounds.min.x).to.be.closeTo(13, 1e-5);
+    expect(renderer.bounds.max.x).to.be.closeTo(15, 1e-5);
+
+    entity.destroy();
+  });
+
+  it("refreshes automatic localBounds when mesh or skin changes", () => {
+    const entity = rootEntity.createChild("DynamicRefreshEntity");
+    const renderer = entity.addComponent(SkinnedMeshRenderer);
+
+    const mesh1 = new ModelMesh(engine);
+    mesh1.bounds.min.set(-1, -1, -1);
+    mesh1.bounds.max.set(1, 1, 1);
+    renderer.mesh = mesh1;
+
+    // Unskinned renderer mirrors mesh.bounds.
+    expect(renderer.localBounds.min).to.deep.include({ x: -1, y: -1, z: -1 });
+    expect(renderer.bounds.max).to.deep.include({ x: 1, y: 1, z: 1 });
+
+    // Mutating mesh.bounds refreshes automatic localBounds and world bounds.
+    mesh1.bounds.max.set(3, 1, 1);
+    expect(renderer.localBounds.max.x).to.equal(3);
+    expect(renderer.bounds.max.x).to.equal(3);
+
+    // Reordering same-length skin.bones and replacing inverseBindMatrices refreshes auto localBounds.
+    const boneA = entity.createChild("BoneA");
+    const boneB = entity.createChild("BoneB");
+    const ibmA = new Matrix(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 10, 0, 0, 1);
+    const ibmB = new Matrix(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 20, 0, 0, 1);
+
+    const skin = new Skin("DynamicSkin");
+    skin.bones = [boneA, boneB];
+    skin.inverseBindMatrices = [ibmA, ibmB];
+    skin.rootBone = boneA;
+    renderer.skin = skin;
+    expect(renderer.localBounds.min.x).to.equal(9);
+    expect(renderer.localBounds.max.x).to.equal(13);
+
+    skin.bones = [boneB, boneA];
+    expect(renderer.localBounds.min.x).to.equal(19);
+    expect(renderer.localBounds.max.x).to.equal(23);
+
+    skin.inverseBindMatrices = [ibmB, new Matrix(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, -5, 0, 0, 1)];
+    skin.rootBone = boneB;
+    expect(renderer.localBounds.min.x).to.equal(19);
+
+    skin.rootBone = boneA;
+    expect(renderer.localBounds.min.x).to.equal(-6);
+
+    // Clearing rootBone falls back to renderer entity space; clearing mesh resets auto localBounds to zero.
+    skin.rootBone = null!;
+    expect(renderer.localBounds.min.x).to.equal(-1);
+    expect(renderer.bounds.min.x).to.equal(-1);
+
+    renderer.mesh = null!;
+    expect(renderer.localBounds.min).to.deep.include({ x: 0, y: 0, z: 0 });
+    expect(renderer.bounds.max).to.deep.include({ x: 0, y: 0, z: 0 });
+
+    entity.destroy();
+  });
+
+  it("locks custom localBounds on assignment or mutation and restores automatic on null", () => {
+    const entity = rootEntity.createChild("CustomLocalBoundsEntity");
+    const bone = entity.createChild("Bone");
+    const renderer = entity.addComponent(SkinnedMeshRenderer);
+
+    const mesh1 = new ModelMesh(engine);
+    mesh1.bounds.min.set(-1, -2, -3);
+    mesh1.bounds.max.set(1, 2, 3);
+    const mesh2 = new ModelMesh(engine);
+    mesh2.bounds.min.set(-10, -20, -30);
+    mesh2.bounds.max.set(10, 20, 30);
+
+    const skin = new Skin("CustomSkin");
+    skin.bones = [bone];
+    skin.rootBone = bone;
+    skin.inverseBindMatrices = [new Matrix()];
+
+    renderer.mesh = mesh1;
+    renderer.skin = skin;
+
+    // In-place mutation of min locks custom mode while preserving automatic max.
+    renderer.localBounds.min.set(-5, -6, -7);
+    renderer.mesh = mesh2;
+    expect(renderer.localBounds.min).to.deep.include({ x: -5, y: -6, z: -7 });
+    expect(renderer.localBounds.max).to.deep.include({ x: 1, y: 2, z: 3 });
+    expect(renderer.bounds.min).to.deep.include({ x: -5, y: -6, z: -7 });
+
+    // Restoring automatic derivation via null/undefined picks up mesh2.
+    renderer.localBounds = null;
+    expect(renderer.localBounds.min).to.deep.include({ x: -10, y: -20, z: -30 });
+    expect(renderer.localBounds.max).to.deep.include({ x: 10, y: 20, z: 30 });
+    expect(renderer.bounds.max).to.deep.include({ x: 10, y: 20, z: 30 });
+
+    // Explicit all-zero custom bounds remain locked even after mesh swap, and unskinned custom bounds affect world bounds.
+    renderer.skin = null!;
+    renderer.localBounds = new BoundingBox(new Vector3(0, 0, 0), new Vector3(0, 0, 0));
+    renderer.mesh = mesh1;
+    expect(renderer.localBounds.min).to.deep.include({ x: 0, y: 0, z: 0 });
+    expect(renderer.localBounds.max).to.deep.include({ x: 0, y: 0, z: 0 });
+    expect(renderer.bounds.max).to.deep.include({ x: 0, y: 0, z: 0 });
+
+    // Self-assignment also locks custom mode (mirrors ReflectionParser).
+    renderer.localBounds = undefined;
+    expect(renderer.localBounds.max).to.deep.include({ x: 1, y: 2, z: 3 });
+    renderer.localBounds = renderer.localBounds;
+    renderer.mesh = mesh2;
+    expect(renderer.localBounds.max).to.deep.include({ x: 1, y: 2, z: 3 });
+
+    entity.destroy();
+  });
+
+  it("clone preserves automatic and custom localBounds semantics", () => {
+    // 1. Automatic mode with out-of-joints rootBone moved away from bind pose before clone().
+    const autoRoot = rootEntity.createChild("CloneAutoRoot");
+    const rootBone = autoRoot.createChild("OutsideRoot");
+    rootBone.transform.setPosition(3, 0, 0);
+    rootBone.transform.setScale(2, 1, 1);
+    const joint = rootBone.createChild("Joint");
+
+    const mesh1 = new ModelMesh(engine);
+    mesh1.bounds.min.set(5, -1, -1);
+    mesh1.bounds.max.set(7, 1, 1);
+    const mesh2 = new ModelMesh(engine);
+    mesh2.bounds.min.set(9, -2, -2);
+    mesh2.bounds.max.set(13, 2, 2);
+
+    const skin = new Skin("CloneAutoSkin");
+    skin.bones = [joint];
+    skin.inverseBindMatrices = [new Matrix()];
+    skin.rootBone = rootBone;
+
+    const autoRenderer = autoRoot.addComponent(SkinnedMeshRenderer);
+    autoRenderer.mesh = mesh1;
+    autoRenderer.skin = skin;
+    expect(autoRenderer.localBounds.min.x).to.be.closeTo(1, 1e-5);
+    expect(autoRenderer.localBounds.max.x).to.be.closeTo(2, 1e-5);
+
+    // Move rootBone away from bind pose, then clone.
+    rootBone.transform.setPosition(20, 0, 0);
+    const autoClone = autoRoot.clone();
+    const autoCloneRenderer = autoClone.getComponent(SkinnedMeshRenderer);
+    expect(autoCloneRenderer.localBounds.min.x).to.be.closeTo(1, 1e-5);
+
+    // Clone remains automatic and still uses bind-pose rootBone inverse matrix.
+    autoCloneRenderer.mesh = mesh2;
+    expect(autoCloneRenderer.localBounds.min.x).to.be.closeTo(3, 1e-5);
+    expect(autoCloneRenderer.localBounds.max.x).to.be.closeTo(5, 1e-5);
+    // Source remains unaffected by clone mesh change.
+    expect(autoRenderer.localBounds.max.x).to.be.closeTo(2, 1e-5);
+
+    // 2. Custom mode is preserved independently on clone.
+    const customBox = new BoundingBox(new Vector3(-4, -4, -4), new Vector3(4, 4, 4));
+    autoRenderer.localBounds = customBox;
+    const customClone = autoRoot.clone();
+    const customCloneRenderer = customClone.getComponent(SkinnedMeshRenderer);
+
+    customCloneRenderer.mesh = mesh2;
+    expect(customCloneRenderer.localBounds.min).to.deep.include({ x: -4, y: -4, z: -4 });
+    expect(customCloneRenderer.localBounds.max).to.deep.include({ x: 4, y: 4, z: 4 });
+
+    customCloneRenderer.localBounds = null;
+    expect(customCloneRenderer.localBounds.min.x).to.be.closeTo(3, 1e-5);
+    expect(autoRenderer.localBounds.max).to.deep.include({ x: 4, y: 4, z: 4 });
+
+    autoRoot.destroy();
+    autoClone.destroy();
+    customClone.destroy();
   });
 });

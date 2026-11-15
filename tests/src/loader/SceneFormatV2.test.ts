@@ -8,6 +8,7 @@ import {
   Entity,
   FogMode,
   Loader,
+  ModelMesh,
   ParticleCurve,
   ParticleCurveMode,
   ParticleRenderer,
@@ -16,6 +17,7 @@ import {
   Script,
   ShadowCascadesMode,
   ShadowResolution,
+  SkinnedMeshRenderer,
   Transform
 } from "@galacean/engine-core";
 import { SpecularMode, type SceneFile } from "../../../packages/loader/src/schema/SceneSchema";
@@ -33,6 +35,7 @@ Loader.registerClass("Transform", Transform);
 Loader.registerClass("Camera", Camera);
 Loader.registerClass("PostProcess", PostProcess);
 Loader.registerClass("BloomEffect", BloomEffect);
+Loader.registerClass("SkinnedMeshRenderer", SkinnedMeshRenderer);
 
 class TestValueType {
   x = 0;
@@ -1313,5 +1316,49 @@ describe("applySceneData scene property parsing", () => {
     expect(scene.castShadows).to.equal(true);
     expect(scene.fogMode).to.equal(FogMode.None);
     expect(scene.ambientOcclusion.enabled).to.equal(false);
+  });
+
+  it("should preserve automatic vs custom SkinnedMeshRenderer localBounds across ReflectionParser", async () => {
+    const scene = new Scene(engine);
+    const root = scene.createRootEntity("SkinnedDeserializeRoot");
+    const autoEntity = root.createChild("Auto");
+    const customEntity = root.createChild("Custom");
+    const autoRenderer = autoEntity.addComponent(SkinnedMeshRenderer);
+    const customRenderer = customEntity.addComponent(SkinnedMeshRenderer);
+
+    const mesh = new ModelMesh(engine);
+    mesh.bounds.min.set(-2, -3, -4);
+    mesh.bounds.max.set(2, 3, 4);
+    autoRenderer.mesh = mesh;
+    customRenderer.mesh = mesh;
+
+    const context = new ParserContext(engine, ParserType.Scene, scene);
+    const parser = new ReflectionParser(context, []);
+
+    // Omitting localBounds keeps automatic derivation from mesh/skin.
+    await parser.parseProps(autoRenderer, { receiveShadows: false });
+    expect(autoRenderer.localBounds.min).to.deep.include({ x: -2, y: -3, z: -4 });
+    expect(autoRenderer.localBounds.max).to.deep.include({ x: 2, y: 3, z: 4 });
+
+    // Providing explicit localBounds (even all zeros matching initial bounds) locks custom bounds.
+    await parser.parseProps(customRenderer, {
+      localBounds: {
+        min: { x: 0, y: 0, z: 0 },
+        max: { x: 0, y: 0, z: 0 }
+      }
+    });
+    expect(customRenderer.localBounds.min).to.deep.include({ x: 0, y: 0, z: 0 });
+    expect(customRenderer.localBounds.max).to.deep.include({ x: 0, y: 0, z: 0 });
+
+    const largerMesh = new ModelMesh(engine);
+    largerMesh.bounds.min.set(-5, -5, -5);
+    largerMesh.bounds.max.set(5, 5, 5);
+    autoRenderer.mesh = largerMesh;
+    customRenderer.mesh = largerMesh;
+
+    expect(autoRenderer.localBounds.min).to.deep.include({ x: -5, y: -5, z: -5 });
+    expect(customRenderer.localBounds.min).to.deep.include({ x: 0, y: 0, z: 0 });
+
+    scene.destroy();
   });
 });

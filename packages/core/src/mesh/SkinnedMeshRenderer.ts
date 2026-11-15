@@ -1,10 +1,11 @@
-import { BoundingBox, Vector2 } from "@galacean/engine-math";
+import { BoundingBox, Matrix, Vector2 } from "@galacean/engine-math";
 import { Entity } from "../Entity";
 import { RenderContext } from "../RenderPipeline/RenderContext";
 import { RenderElement } from "../RenderPipeline/RenderElement";
 import { RendererUpdateFlags } from "../Renderer";
 import { Logger } from "../base/Logger";
 import { ignoreClone } from "../clone/CloneDecorators";
+import { Mesh, MeshModifyFlags } from "../graphic/Mesh";
 import { ShaderProperty } from "../shader";
 import { Texture2D } from "../texture/Texture2D";
 import { TextureFilterMode } from "../texture/enums/TextureFilterMode";
@@ -24,12 +25,18 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   private static _jointCountProperty = ShaderProperty.getByName("renderer_JointCount");
   private static _jointSamplerProperty = ShaderProperty.getByName("renderer_JointSampler");
   private static _jointMatrixProperty = ShaderProperty.getByName("renderer_JointMatrix");
+  private static _tempMatrix = new Matrix();
 
   /** @internal */
   @ignoreClone
   _condensedBlendShapeWeights: Float32Array;
 
   private _localBounds: BoundingBox = new BoundingBox();
+  private _rootBoneBindInverseMatrix: Matrix | null = null;
+  @ignoreClone
+  private _hasCustomLocalBounds: boolean = false;
+  @ignoreClone
+  private _isUpdatingAutoLocalBounds: boolean = false;
 
   @ignoreClone
   private _jointDataCreateCache: Vector2 = new Vector2(-1, -1);
@@ -49,11 +56,11 @@ export class SkinnedMeshRenderer extends MeshRenderer {
     return this._skin;
   }
 
-  set skin(value: Skin) {
+  set skin(value: Skin | null) {
     const lastSkin = this._skin;
     if (lastSkin !== value) {
-      this._applySkin(lastSkin, value);
       this._skin = value;
+      this._applySkin(lastSkin, value, true);
     }
   }
 
@@ -79,15 +86,35 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   }
 
   /**
-   * Local bounds.
+   * Local bounds in `skin.rootBone` (or entity) space.
+   *
+   * @remarks
+   * By default, derived automatically from `mesh` and `skin`.
+   * Assigning a box or mutating `min`/`max` switches to custom bounds;
+   * assigning `null` or `undefined` restores automatic calculation.
    */
   get localBounds(): BoundingBox {
+    if (!this._hasCustomLocalBounds && this._dirtyUpdateFlag & SkinnedMeshRendererUpdateFlags.AutomaticLocalBounds) {
+      this._calculateDefaultLocalBounds();
+    }
     return this._localBounds;
   }
 
-  set localBounds(value: BoundingBox) {
+  set localBounds(value: BoundingBox | null | undefined) {
+    if (value == null) {
+      if (this._hasCustomLocalBounds) {
+        this._hasCustomLocalBounds = false;
+        this._markAutoLocalBoundsDirty();
+      }
+      return;
+    }
+
+    this._hasCustomLocalBounds = true;
+    this._dirtyUpdateFlag &= ~SkinnedMeshRendererUpdateFlags.AutomaticLocalBounds;
     if (this._localBounds !== value) {
       this._localBounds.copyFrom(value);
+    } else {
+      this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
     }
   }
 
@@ -110,6 +137,7 @@ export class SkinnedMeshRenderer extends MeshRenderer {
 
     this._onLocalBoundsChanged = this._onLocalBoundsChanged.bind(this);
     this._onSkinUpdated = this._onSkinUpdated.bind(this);
+    this._dirtyUpdateFlag |= SkinnedMeshRendererUpdateFlags.AutomaticLocalBounds;
 
     const localBounds = this._localBounds;
     // @ts-ignore
@@ -129,11 +157,13 @@ export class SkinnedMeshRenderer extends MeshRenderer {
    * @internal
    */
   override _onDestroy(): void {
+    this._skin?._updatedManager.removeListener(this._onSkinUpdated);
     super._onDestroy();
     this._jointDataCreateCache = null!;
     this._skin = null;
     this._blendShapeWeights = null!;
     this._localBounds = null!;
+    this._rootBoneBindInverseMatrix = null;
     this._jointTexture?.destroy();
     this._jointTexture = null!;
   }
@@ -147,8 +177,16 @@ export class SkinnedMeshRenderer extends MeshRenderer {
     if (this._jointTexture) {
       target.shaderData.setTexture(SkinnedMeshRenderer._jointSamplerProperty, null);
     }
-    if (this.skin) {
-      target._applySkin(null, target.skin);
+    target._hasCustomLocalBounds = this._hasCustomLocalBounds;
+    if (this._skin) {
+      // Preserve cloned bind-pose rootBone inverse matrix instead of re-sampling a potentially moved bone pose.
+      target._applySkin(null, target._skin, false);
+    }
+    if (this._hasCustomLocalBounds) {
+      target._dirtyUpdateFlag &= ~SkinnedMeshRendererUpdateFlags.AutomaticLocalBounds;
+      target._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
+    } else {
+      target._markAutoLocalBoundsDirty();
     }
   }
 
@@ -214,16 +252,24 @@ export class SkinnedMeshRenderer extends MeshRenderer {
     super._update(context);
   }
 
+  protected override _setMesh(mesh: Mesh): void {
+    super._setMesh(mesh);
+    this._markAutoLocalBoundsDirty();
+  }
+
+  @ignoreClone
+  protected override _onMeshChanged(type: MeshModifyFlags): void {
+    super._onMeshChanged(type);
+    if (type & MeshModifyFlags.Bounds) {
+      this._markAutoLocalBoundsDirty();
+    }
+  }
+
   /**
    * @internal
    */
   protected override _updateBounds(worldBounds: BoundingBox): void {
-    const rootBone = this.skin?.rootBone;
-    if (rootBone) {
-      BoundingBox.transform(this._localBounds, this._transformEntity!.transform.worldMatrix, worldBounds);
-    } else {
-      super._updateBounds(worldBounds);
-    }
+    BoundingBox.transform(this.localBounds, this._transformEntity!.transform.worldMatrix, worldBounds);
   }
 
   private _checkBlendShapeWeightLength(): void {
@@ -248,8 +294,68 @@ export class SkinnedMeshRenderer extends MeshRenderer {
     }
   }
 
+  private _markAutoLocalBoundsDirty(): void {
+    this._dirtyUpdateFlag |= SkinnedMeshRendererUpdateFlags.AutomaticLocalBounds;
+    if (!this._hasCustomLocalBounds) {
+      this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
+    }
+  }
+
+  private _updateRootBoneBindInverseMatrix(recapture: boolean): void {
+    const skin = this._skin;
+    const rootBone = skin?.rootBone;
+    if (rootBone && skin.bones.indexOf(rootBone) === -1) {
+      if (recapture || !this._rootBoneBindInverseMatrix) {
+        // rootBone can sit outside skin.bones with no inverseBindMatrices entry; snapshot bind pose before animation.
+        const matrix = (this._rootBoneBindInverseMatrix ||= new Matrix());
+        if (Matrix.invert(rootBone.transform.worldMatrix, matrix) === null) {
+          matrix.identity();
+        }
+      }
+    } else {
+      this._rootBoneBindInverseMatrix = null;
+    }
+  }
+
+  private _calculateDefaultLocalBounds(): void {
+    const localBounds = this._localBounds;
+    const mesh = this._mesh;
+    const skin = this._skin;
+    const rootBone = skin?.rootBone;
+
+    this._isUpdatingAutoLocalBounds = true;
+    try {
+      if (!mesh) {
+        localBounds.min.set(0, 0, 0);
+        localBounds.max.set(0, 0, 0);
+      } else if (!rootBone) {
+        localBounds.copyFrom(mesh.bounds);
+      } else {
+        const rootBoneIndex = skin.bones.indexOf(rootBone);
+        let bindInverseMatrix =
+          rootBoneIndex !== -1 ? skin.inverseBindMatrices[rootBoneIndex] : this._rootBoneBindInverseMatrix;
+        if (!bindInverseMatrix) {
+          bindInverseMatrix =
+            rootBoneIndex !== -1 ? SkinnedMeshRenderer._tempMatrix : (this._rootBoneBindInverseMatrix = new Matrix());
+          if (Matrix.invert(rootBone.transform.worldMatrix, bindInverseMatrix) === null) {
+            bindInverseMatrix.identity();
+          }
+        }
+        BoundingBox.transform(mesh.bounds, bindInverseMatrix, localBounds);
+      }
+    } finally {
+      this._isUpdatingAutoLocalBounds = false;
+    }
+
+    this._dirtyUpdateFlag &= ~SkinnedMeshRendererUpdateFlags.AutomaticLocalBounds;
+  }
+
   @ignoreClone
   private _onLocalBoundsChanged(): void {
+    if (!this._isUpdatingAutoLocalBounds) {
+      this._hasCustomLocalBounds = true;
+      this._dirtyUpdateFlag &= ~SkinnedMeshRendererUpdateFlags.AutomaticLocalBounds;
+    }
     this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
   }
 
@@ -257,22 +363,35 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   private _onSkinUpdated(type: SkinUpdateFlag, value: number | Entity): void {
     switch (type) {
       case SkinUpdateFlag.BoneCountChanged:
-        const shaderData = this.shaderData;
-        if (<number>value > 0) {
-          shaderData.enableMacro("RENDERER_HAS_SKIN");
-          shaderData.setInt(SkinnedMeshRenderer._jointCountProperty, <number>value);
-        } else {
-          shaderData.disableMacro("RENDERER_HAS_SKIN");
-        }
+        this._updateSkinBoneCount(<number>value);
         break;
       case SkinUpdateFlag.RootBoneChanged:
-        this._setTransformEntity(<Entity>value);
+        this._setTransformEntity(<Entity>value ?? this.entity);
+        this._updateRootBoneBindInverseMatrix(true);
         this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
+        this._markAutoLocalBoundsDirty();
+        break;
+      case SkinUpdateFlag.BonesChanged:
+        this._updateRootBoneBindInverseMatrix(false);
+        this._markAutoLocalBoundsDirty();
+        break;
+      case SkinUpdateFlag.InverseBindMatricesChanged:
+        this._markAutoLocalBoundsDirty();
         break;
     }
   }
 
-  private _applySkin(lastSkin: Skin | null, value: Skin | null): void {
+  private _updateSkinBoneCount(boneCount: number): void {
+    const shaderData = this.shaderData;
+    if (boneCount > 0) {
+      shaderData.enableMacro("RENDERER_HAS_SKIN");
+      shaderData.setInt(SkinnedMeshRenderer._jointCountProperty, boneCount);
+    } else {
+      shaderData.disableMacro("RENDERER_HAS_SKIN");
+    }
+  }
+
+  private _applySkin(lastSkin: Skin | null, value: Skin | null, captureBindMatrix: boolean): void {
     const lastSkinBoneCount = lastSkin?.bones?.length ?? 0;
     const lastRootBone = lastSkin?.rootBone ?? this.entity;
     lastSkin?._updatedManager.removeListener(this._onSkinUpdated);
@@ -282,11 +401,16 @@ export class SkinnedMeshRenderer extends MeshRenderer {
     value?._updatedManager.addListener(this._onSkinUpdated);
 
     if (lastSkinBoneCount !== skinBoneCount) {
-      this._onSkinUpdated(SkinUpdateFlag.BoneCountChanged, skinBoneCount);
+      this._updateSkinBoneCount(skinBoneCount);
     }
     if (lastRootBone !== rootBone) {
-      this._onSkinUpdated(SkinUpdateFlag.RootBoneChanged, rootBone);
+      this._setTransformEntity(rootBone);
+      this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
     }
+    if (captureBindMatrix) {
+      this._updateRootBoneBindInverseMatrix(true);
+    }
+    this._markAutoLocalBoundsDirty();
   }
 
   /**
@@ -310,4 +434,12 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   set bones(value: Readonly<Entity[]>) {
     this.skin!.bones = value;
   }
+}
+
+/**
+ * @remarks Extends `MeshRendererUpdateFlags`.
+ */
+enum SkinnedMeshRendererUpdateFlags {
+  /** Automatic localBounds. */
+  AutomaticLocalBounds = 0x4
 }
