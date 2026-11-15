@@ -1,0 +1,64 @@
+e2e/case/primitive-sections.ts
+  s_f1a7b8285f1df2::t_43f670d1df4130 86,88,91,93
+packages/loader/src/PrimitiveMeshLoader.ts
+  s_f1a7b8285f1df2::t_43f670d1df4130 87-88,90-91
+packages/galacean/skills/engine-knowledge/references/mesh-geometry.md
+  s_f1a7b8285f1df2::t_4528252ba733d0 11-12
+e2e/primitive-mesh.md
+  s_f1a7b8285f1df2::t_43f670d1df4130 9
+e2e/case/primitive-all.ts
+  s_f1a7b8285f1df2::t_55f33e675e4be3 151-154
+tests/package-consumer/fixtures/PrimitiveMeshApi.ts
+  s_f1a7b8285f1df2::t_43f670d1df4130 165-166,227-228,336-337
+  s_f1a7b8285f1df2::t_55f33e675e4be3 99-103
+  s_f1a7b8285f1df2::t_2961f6bc1b5048 14
+tests/src/core/mesh/ProceduralMesh.test.ts
+  s_f1a7b8285f1df2::t_43f670d1df4130 97,99,254-256,585-586
+packages/loader/src/PrimitiveMeshAsset.ts
+  s_f1a7b8285f1df2::t_43f670d1df4130 195,199-200
+  s_f1a7b8285f1df2::t_6458aad4e3d3cb 13
+packages/core/src/mesh/index.ts
+  s_f1a7b8285f1df2::t_43f670d1df4130 20
+docs/en/graphics/mesh/primitiveMesh.mdx
+  s_f1a7b8285f1df2::t_947270308dd1ef 158,185,190-191
+  s_f1a7b8285f1df2::t_43f670d1df4130 164,238,322
+  s_f1a7b8285f1df2::t_58d5b83add1b42 192
+tests/src/loader/PrimitiveMeshLoader.test.ts
+  s_f1a7b8285f1df2::t_43f670d1df4130 131-133,403,405-407,410
+packages/core/src/mesh/PrimitiveMesh.ts
+  s_f1a7b8285f1df2::t_43f670d1df4130 19,556,1229,1236
+  s_f1a7b8285f1df2::t_55f33e675e4be3 546-550
+  s_f1a7b8285f1df2::t_4528252ba733d0 537,539,542
+e2e/case/primitive-topology.ts
+  s_f1a7b8285f1df2::t_55f33e675e4be3 140-147
+  s_f1a7b8285f1df2::t_f4ababbaafe317 138
+docs/zh/graphics/mesh/primitiveMesh.mdx
+  s_f1a7b8285f1df2::t_eec60e598dbe29 168
+  s_f1a7b8285f1df2::t_947270308dd1ef 162,189,194-196,244
+  s_f1a7b8285f1df2::t_43f670d1df4130 328
+packages/core/src/mesh/PrimitiveMeshOptions.ts
+  s_f1a7b8285f1df2::t_4528252ba733d0 293
+  s_f1a7b8285f1df2::t_43f670d1df4130 295
+e2e/fixtures/originImage/Primitive_primitive-all.jpg
+  s_f1a7b8285f1df2::t_9ed1c051b416fa 2-3
+e2e/fixtures/originImage/Primitive_primitive-sections.jpg
+  s_f1a7b8285f1df2::t_7c57d9edc421c4 2-3
+e2e/fixtures/originImage/Primitive_primitive-topology.jpg
+  s_f1a7b8285f1df2::t_09001700506806 2-3
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "d1456966d060c6a6bc924fe74ed48d9965e3a8cd",
+  "prompts": {},
+  "sessions": {
+    "s_f1a7b8285f1df2": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1d54e-3c87-7273-b01d-79d652eaed37",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}
