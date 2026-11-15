@@ -1142,6 +1142,169 @@ describe.each(runtimeModes)("MeshColliderShape PhysX (%s)", (runtimeMode) => {
       warnSpy.mockRestore();
       entity.destroy();
     });
+
+    it.each([false, true])(
+      "replaces active trigger state across bidirectional and repeated isConvex switches (meshFirst: %s)",
+      (meshFirst) => {
+        physicsScene._restTime = 0;
+
+        const meshEntity = root.createChild("meshTriggerSwitchEntity");
+        meshEntity.transform.setPosition(200, 200, 0);
+        const meshCollider = meshEntity.addComponent(StaticCollider);
+
+        const triggerEntity = root.createChild("sphereTriggerSwitchEntity");
+        triggerEntity.transform.setPosition(200, 200, 0);
+        const triggerCollider = triggerEntity.addComponent(DynamicCollider);
+        triggerCollider.isKinematic = true;
+
+        const mesh = createCubeMesh(engine);
+        let meshShape: MeshColliderShape;
+        let sphereShape: SphereColliderShape;
+        if (meshFirst) {
+          meshShape = new MeshColliderShape();
+          sphereShape = new SphereColliderShape();
+        } else {
+          sphereShape = new SphereColliderShape();
+          meshShape = new MeshColliderShape();
+        }
+
+        meshShape.isConvex = false;
+        meshShape.mesh = mesh;
+        meshCollider.addShape(meshShape);
+
+        sphereShape.radius = 1.5;
+        sphereShape.isTrigger = true;
+        triggerCollider.addShape(sphereShape);
+
+        const events: string[] = [];
+        class TriggerRecorder extends Script {
+          override onTriggerEnter(): void {
+            events.push("Enter");
+          }
+          override onTriggerStay(): void {
+            events.push("Stay");
+          }
+          override onTriggerExit(): void {
+            events.push("Exit");
+          }
+        }
+        triggerEntity.addComponent(TriggerRecorder);
+
+        const step = (): string[] => {
+          events.length = 0;
+          physicsScene._update(physicsScene.fixedTimeStep);
+          return [...events];
+        };
+
+        let attachSpy: ReturnType<typeof vi.spyOn> | undefined;
+        try {
+          expect(step()).toEqual(["Enter"]);
+          expect(step()).toEqual(["Stay"]);
+
+          attachSpy = vi
+            .spyOn((meshCollider as any)._nativeCollider._pxActor, "attachShapeWithLayer")
+            .mockReturnValueOnce(false);
+          expect(() => (meshShape.isConvex = true)).toThrowError(
+            "Collider: failed to attach replacement shape to the native actor."
+          );
+          attachSpy.mockRestore();
+          attachSpy = undefined;
+          expect(meshShape.isConvex).toBe(false);
+          expect(step()).toEqual(["Stay"]);
+
+          meshShape.isConvex = true;
+          expect(step()).toEqual(["Enter"]);
+          expect(step()).toEqual(["Stay"]);
+
+          meshShape.isConvex = false;
+          expect(step()).toEqual(["Enter"]);
+          expect(step()).toEqual(["Stay"]);
+
+          meshShape.isConvex = true;
+          expect(step()).toEqual(["Enter"]);
+          expect(step()).toEqual(["Stay"]);
+
+          triggerEntity.transform.setPosition(210, 200, 0);
+          expect(step()).toEqual(["Exit"]);
+          expect(step()).toEqual([]);
+          expect(step()).toEqual([]);
+        } finally {
+          attachSpy?.mockRestore();
+          meshEntity.destroy();
+          triggerEntity.destroy();
+          mesh.destroy();
+        }
+      }
+    );
+
+    it("clears active trigger state when switching from convex hull to non-overlapping triangle mesh", () => {
+      physicsScene._restTime = 0;
+
+      const meshEntity = root.createChild("hollowMeshTriggerEntity");
+      meshEntity.transform.setPosition(200, 200, 0);
+      const meshCollider = meshEntity.addComponent(StaticCollider);
+
+      const triggerEntity = root.createChild("hollowSphereTriggerEntity");
+      triggerEntity.transform.setPosition(200, 200, 0);
+      const triggerCollider = triggerEntity.addComponent(DynamicCollider);
+      triggerCollider.isKinematic = true;
+
+      const mesh = createModelMesh(
+        engine,
+        [-3, -1, -1, -2.5, -1, -1, -3, 1, -1, -3, -1, 1, 3, -1, -1, 2.5, -1, -1, 3, 1, -1, 3, -1, 1],
+        [0, 1, 2, 0, 2, 3, 4, 6, 5, 4, 7, 6]
+      );
+      const meshShape = new MeshColliderShape();
+      meshShape.isConvex = true;
+      meshShape.mesh = mesh;
+      meshCollider.addShape(meshShape);
+
+      const sphereShape = new SphereColliderShape();
+      sphereShape.radius = 0.5;
+      sphereShape.isTrigger = true;
+      triggerCollider.addShape(sphereShape);
+
+      const events: string[] = [];
+      class TriggerRecorder extends Script {
+        override onTriggerEnter(): void {
+          events.push("Enter");
+        }
+        override onTriggerStay(): void {
+          events.push("Stay");
+        }
+        override onTriggerExit(): void {
+          events.push("Exit");
+        }
+      }
+      triggerEntity.addComponent(TriggerRecorder);
+
+      const step = (): string[] => {
+        events.length = 0;
+        physicsScene._update(physicsScene.fixedTimeStep);
+        return [...events];
+      };
+
+      try {
+        expect(step()).toEqual(["Enter"]);
+        expect(step()).toEqual(["Stay"]);
+
+        meshShape.isConvex = false;
+        expect(step()).toEqual([]);
+        expect(step()).toEqual([]);
+
+        meshShape.isConvex = true;
+        expect(step()).toEqual(["Enter"]);
+        expect(step()).toEqual(["Stay"]);
+
+        triggerEntity.transform.setPosition(210, 200, 0);
+        expect(step()).toEqual(["Exit"]);
+        expect(step()).toEqual([]);
+      } finally {
+        meshEntity.destroy();
+        triggerEntity.destroy();
+        mesh.destroy();
+      }
+    });
   });
 
   describe("Set Mesh Null", () => {

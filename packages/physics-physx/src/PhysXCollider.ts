@@ -57,6 +57,8 @@ export abstract class PhysXCollider implements ICollider {
     }
     this._shapes[this._shapes.indexOf(previousShape)] = newShape;
     this._pxActor.detachShape(previousShape._pxShape, true);
+    this._scene?._removeColliderShape(previousShape._id);
+    this._scene?._addColliderShape(newShape._id);
     return true;
   }
 
