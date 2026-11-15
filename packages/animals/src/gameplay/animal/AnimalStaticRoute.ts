@@ -1,5 +1,31 @@
+import { finishAnimalPlanningTask, type AnimalPlanningTask } from "./AnimalPlanningTask";
+
 /** Horizontal world-space position in metres. */
 export type AnimalRoutePoint = readonly [number, number];
+
+/** Conservative world footprint of queries used to validate a route. No terrain samples are stored here. */
+export interface AnimalRouteBounds {
+  minX: number;
+  minZ: number;
+  maxX: number;
+  maxZ: number;
+}
+
+export function includeAnimalRouteBounds(
+  bounds: AnimalRouteBounds,
+  from: AnimalRoutePoint,
+  to: AnimalRoutePoint,
+  radius: number
+): void {
+  bounds.minX = Math.min(bounds.minX, from[0] - radius, to[0] - radius);
+  bounds.minZ = Math.min(bounds.minZ, from[1] - radius, to[1] - radius);
+  bounds.maxX = Math.max(bounds.maxX, from[0] + radius, to[0] + radius);
+  bounds.maxZ = Math.max(bounds.maxZ, from[1] + radius, to[1] + radius);
+}
+
+export function animalRouteBoundsOverlap(a: AnimalRouteBounds, b: AnimalRouteBounds): boolean {
+  return a.minX <= b.maxX && a.maxX >= b.minX && a.minZ <= b.maxZ && a.maxZ >= b.minZ;
+}
 
 /** A stable static obstacle and footprint-expanded candidate bypass points. */
 export interface AnimalRouteObstacle {
@@ -42,25 +68,44 @@ export function planAnimalStaticRoute(
   query: AnimalRouteQuery,
   cornerClearance = 0
 ): AnimalRoutePoint[] | undefined {
+  return finishAnimalPlanningTask(createAnimalStaticRouteTask(from, target, query, cornerClearance));
+}
+
+/** Resumable A* search. Each yield bounds work to one query or one graph edge. */
+export function* createAnimalStaticRouteTask(
+  from: AnimalRoutePoint,
+  target: AnimalRoutePoint,
+  query: AnimalRouteQuery,
+  cornerClearance = 0
+): AnimalPlanningTask<AnimalRoutePoint[] | undefined> {
   // Host resolvers may reuse scratch tuples; an accepted route owns its points.
   from = [from[0], from[1]];
   target = [target[0], target[1]];
-  if (!query.canTraverse(from, from) || !query.canTraverse(target, target)) return;
+  yield;
+  if (!query.canTraverse(from, from)) return;
+  yield;
+  if (!query.canTraverse(target, target)) return;
+  yield;
   if (query.canTraverse(from, target)) return [target];
   const points: AnimalRoutePoint[] = [from, target];
   const obstacles = new Set<string | number>();
   const edges = new Map<number, number>();
   let checks = 0;
-  const addObstacle = (a: AnimalRoutePoint, b: AnimalRoutePoint) => {
+  const addObstacle = function* (a: AnimalRoutePoint, b: AnimalRoutePoint): AnimalPlanningTask<void> {
+    // A full graph cannot accept more bypass points. Continue checking its
+    // existing edges, but do not repeat geometry queries whose results are discarded.
+    if (obstacles.size >= 12 || points.length >= 50) return;
+    yield;
     const obstacle = query.obstruction(a, b, cornerClearance);
-    if (!obstacle || obstacles.has(obstacle.key) || obstacles.size >= 12) return;
+    if (!obstacle || obstacles.has(obstacle.key)) return;
     obstacles.add(obstacle.key);
     for (const point of obstacle.corners) {
       if (points.length >= 50) break;
+      yield;
       if (query.canTraverse(point, point)) points.push([point[0], point[1]]);
     }
   };
-  addObstacle(from, target);
+  yield* addObstacle(from, target);
   edges.set(1, Infinity);
   // Newly discovered solids can connect nodes that were already visited. Restart
   // the small graph search while retaining all validated connections.
@@ -89,6 +134,7 @@ export function planAnimalStaticRoute(
       }
       visited[current] = 1;
       for (let next = 0; next < count; next++) {
+        yield;
         if (visited[next] || current === next) continue;
         const key = Math.min(current, next) * 50 + Math.max(current, next);
         let distance = edges.get(key);
@@ -102,7 +148,7 @@ export function planAnimalStaticRoute(
           const clearance = current === 1 || next === 1 ? 0 : cornerClearance;
           distance = query.canTraverse(a, b, clearance) ? Math.hypot(b[0] - a[0], b[1] - a[1]) : Infinity;
           edges.set(key, distance);
-          if (distance === Infinity) addObstacle(a, b);
+          if (distance === Infinity) yield* addObstacle(a, b);
         }
         const candidate = costs[current] + distance;
         if (candidate < costs[next]) {

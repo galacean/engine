@@ -1,3 +1,4 @@
+import { planningAnimalSnapshotId, type AnimalWorldBounds, type PlanningAnimalWorldChange } from "@galacean/engine-world-planning/spatial/runtime/PlanningAnimalWorldChange";
 import type { PlanningAnimalAuthoring, PlanningAnimalAddition } from "./PlanningAnimalAuthoring.ts";
 import { FireflyPopulation } from "@galacean/engine-animals/gameplay/animal/FireflyPopulation";
 import { FireflyPresenter } from "@galacean/engine-animals/gameplay/animal/FireflyPresenter";
@@ -36,6 +37,7 @@ import appearanceWeights from "../../planning-data/animal-appearances.json";
 import type { IslandPlan } from "@galacean/engine-world-planning/semantic-study/IslandPlanModel";
 import {
   PlanningAnimalHabitat,
+  liveAnimalRouteQuery,
   chooseAnimalBirthHabitat,
   type PlanningAnimalNavigation,
   type PlanningAnimalMedium,
@@ -160,7 +162,7 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
     plan: IslandPlan,
     config: AnimalPopulationConfig,
     navigation: PlanningAnimalNavigation,
-    options: { preservePopulation?: boolean; surface?: PlanningAnimalSurfaceData } = {}
+    options: { preservePopulation?: boolean; surface?: PlanningAnimalSurfaceData; change?: PlanningAnimalWorldChange } = {}
   ): void {
     validateAnimalPopulationConfig(config);
     this.interaction = animalInteractionConfig(config.interaction);
@@ -202,13 +204,21 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
         current.navigation !== navigation ||
         current.habitat.surface.data !== options.surface
       ) {
-        current.habitat = new PlanningAnimalHabitat(plan, navigation, config, options.surface);
+        const change = options.change?.previousSnapshot === planningAnimalSnapshotId(current.plan) ? options.change : undefined;
+        const regions = change ? [...change.terrain, ...change.water, ...change.obstacles, ...change.surface] : undefined;
+        if (!regions || regions.length) {
+          current.habitat = new PlanningAnimalHabitat(plan, navigation, config, options.surface);
+          this.revalidateSupport(current, change ? [...change.terrain, ...change.water, ...change.obstacles] : undefined);
+          if (!change || change.terrain.length || change.water.length) current.fireflies?.population.refreshWorld();
+          this.refreshObserver(current, true);
+          const supportRegions = change ? [...change.terrain, ...change.water, ...change.obstacles] : undefined;
+          for (const actor of current.actors) {
+            actor.animal?.refreshWorld(supportRegions);
+            if (change?.surface.length) actor.animal?.refreshWorld(change.surface, false);
+          }
+        }
         current.plan = plan;
         current.navigation = navigation;
-        this.revalidateSupport(current);
-        current.fireflies?.population.refreshWorld();
-        this.refreshObserver(current, true);
-        for (const actor of current.actors) actor.animal?.refreshWorld();
       }
       this.restoreAdditions(current);
       const activationChanged = current.config.activationDistance !== config.activationDistance;
@@ -607,13 +617,21 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
   }
 
   /** Revalidate once per published water/terrain edit, never during normal frame updates. */
-  private revalidateSupport(p: Population): void {
+  private revalidateSupport(p: Population, regions?: readonly AnimalWorldBounds[]): void {
     for (const actor of p.actors) if (actor.animal) {
       actor.x = actor.animal.position.x; actor.z = actor.animal.position.z;
     }
+    // Surface intent alone cannot change support or make a failed placement succeed.
+    if (regions && !regions.length) return;
     for (const actor of p.actors) {
       const medium = actor.animal?.medium ?? actor.birth.medium ?? actor.asset.profile.preferredMedium ?? "ground";
       const radius = actor.footprint.radius, height = actor.footprint.height;
+      // A supported actor depends only on its footprint. A suspended actor also
+      // depends on the domain searched by the failed relocation, including remote edits.
+      if (regions && !regions.some(b =>
+          (actor.x + radius >= b.minX && actor.x - radius <= b.maxX &&
+           actor.z + radius >= b.minZ && actor.z - radius <= b.maxZ) ||
+          (!actor.supportValid && p.habitat.placementIntersects(b)))) continue;
       actor.supportValid = p.habitat.canTraverse(actor, actor, radius, height, medium);
       if (actor.supportValid) { actor.error = undefined; continue; }
       const occupied = p.actors.filter(a => a !== actor).map(a => ({ x: a.x, z: a.z, radius: a.footprint.radius }));
@@ -730,7 +748,7 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
           ground: {
             flightBounds: p.habitat.flightBounds,
             heightAt: (x, z, medium) => p.habitat.heightAt(x, z, medium, height),
-            staticRouteQuery: (r, medium) => p.habitat.staticRouteQuery(r, height, medium),
+            staticRouteQuery: (r, medium) => liveAnimalRouteQuery(() => p.habitat, r, height, medium),
             canTraverseAir: (from, to, r, h) => p.habitat.canTraverseAir(from, to, r, h),
             canTraverse: (from, to, r, medium) => {
               if (!p.habitat.canTraverse(from, to, r, height, medium)) return false;

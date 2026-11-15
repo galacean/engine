@@ -1,3 +1,4 @@
+import { finishAnimalPlanningTask, type AnimalPlanningTask } from "./AnimalPlanningTask";
 import { BehaviorTree, type BehaviorAction, type BehaviorNode, type BehaviorStatus } from "../behavior/BehaviorTree";
 
 /** Registered world query; identifiers and parameter contracts belong to the host. */
@@ -63,6 +64,8 @@ export interface AnimalTaskProfile {
 /** Host owns rendering, spatial queries and movement; all deadlines use the shared simulation clock. */
 export interface AnimalTaskHost {
   readonly time: number;
+  /** Changes when a host publishes new support or obstacle geometry. */
+  readonly planningRevision?: number;
   /** Commit pending execution to the shared time before replacing or cancelling its task. */
   synchronize?(): void;
   wake(): void;
@@ -95,6 +98,13 @@ export interface AnimalTaskHost {
   cancelInteraction?(query: AnimalTargetQuery): void;
   /** Local traffic blockage: surface motion may wait; airborne motion must replan without losing its gait. */
   movementBlocked?(): boolean;
+  /** Optional shared CPU scheduler. Completion is separate from suspension and unreachable results. */
+  plan?<T>(task: AnimalPlanningTask<T>, finish: (result: T) => void): () => void;
+  planMoveTo?(
+    target: readonly [number, number],
+    speed: number,
+    arrivalMedium?: "ground" | "water"
+  ): AnimalPlanningTask<boolean>;
   /** Decision-time validation of the executable route, beyond host endpoint support. */
   canMoveTo?(target: readonly [number, number], speed: number, arrivalMedium?: "ground" | "water"): boolean;
   /** Prefer a clear turning arc among legal surface goals; never reject every escape or change an exact point. */
@@ -105,12 +115,14 @@ export interface AnimalTaskHost {
   currentLanding?(): readonly [number, number] | null;
   /** True only when the actor already satisfies the requested supported destination. */
   isAtTarget?(target: readonly [number, number], arrivalMedium?: "ground" | "water"): boolean;
+  /** The returned cancellation may receive true immediately before a synchronous gait handoff.
+   * Hosts can retain the intent until the following moveTo; ordinary cancellation ends it. */
   moveTo(
     target: readonly [number, number],
     speed: number,
     finish: (success: boolean) => void,
     arrivalMedium?: "ground" | "water"
-  ): () => void;
+  ): (handoff?: boolean) => void;
 }
 
 /** Environmental fact, independently dispatched from an explicit actor task. */
@@ -614,12 +626,15 @@ export class AnimalTaskController {
     owner: AnimalTaskReceipt | AnimalWorldEvent | null,
     wake: () => void
   ): BehaviorAction {
-    let cancelMove = () => {};
+    let cancelMove: (handoff?: boolean) => void = () => {};
     let cancelTimeout = () => {};
     let cancelCycle = () => {};
     let cancelBlocked = () => {};
     let cancelRetry = () => {};
     let cancelProgress = () => {};
+    let cancelSearch = () => {};
+    let planning = false;
+    let initializing = true;
     let progressDeadlineArmed = false;
     let needsTarget = false;
     let nextTargetAttempt = 0;
@@ -643,58 +658,108 @@ export class AnimalTaskController {
     let moveSpeed = this.profile.movementSpeeds[requestedSlot] * paceMultiplier;
     const interactionReached = () =>
       !!params.arrivalTarget && !!this.resolve({ ...params, target: params.arrivalTarget }, owner);
-    const resolveMovementTarget = (requirePreferred = false) => {
-      const speed = this.profile.movementSpeeds[requestedSlot] * paceMultiplier;
-      // Repeated queries still consume their random draws, but a rejected endpoint
-      // needs only one path check during this synchronous search. Never retain it
-      // across searches: movement or world changes can make that endpoint valid.
-      const rejected: Array<readonly [number, number]> = [];
-      const canReach = (candidate: readonly [number, number]) => {
-        if (rejected.some((point) => point[0] === candidate[0] && point[1] === candidate[1])) return false;
-        if (this.host.canMoveTo?.(candidate, speed, arrivalMedium) !== false) return true;
-        // Hosts may reuse the candidate tuple for the next query.
-        rejected.push([candidate[0], candidate[1]]);
-        return false;
+    const targetSearch = (requirePreferred: boolean): AnimalPlanningTask<readonly [number, number] | null> =>
+      (function* (controller: AnimalTaskController) {
+        const speed = controller.profile.movementSpeeds[requestedSlot] * paceMultiplier;
+        // Repeated queries still consume their random draws, but a rejected endpoint
+        // needs only one path check at the same simulation time. Suspension may
+        // change traffic or the departure pose, so an old rejection must expire.
+        const rejected: Array<readonly [number, number]> = [];
+        let rejectedAt = controller.host.time;
+        const canReach = function* (candidate: readonly [number, number]): AnimalPlanningTask<boolean> {
+          if (rejectedAt !== controller.host.time) rejected.length = 0;
+          rejectedAt = controller.host.time;
+          if (rejected.some((point) => point[0] === candidate[0] && point[1] === candidate[1])) return false;
+          yield;
+          const reachable = controller.host.planMoveTo
+            ? yield* controller.host.planMoveTo(candidate, speed, arrivalMedium)
+            : controller.host.canMoveTo?.(candidate, speed, arrivalMedium) !== false;
+          if (reachable) return true;
+          // Hosts may reuse the candidate tuple for the next query.
+          if (rejectedAt !== controller.host.time) rejected.length = 0;
+          rejectedAt = controller.host.time;
+          rejected.push([candidate[0], candidate[1]]);
+          return false;
+        };
+        const landing = params.resumeLanding ? controller.host.currentLanding?.() : undefined;
+        const retained = landing ? ([landing[0], landing[1]] as const) : undefined;
+        if (retained && (yield* canReach(retained))) return [retained[0], retained[1]];
+        let fallback: readonly [number, number] | null = null;
+        for (let attempt = 0; attempt < (arrivalMedium ? 12 : 8); attempt++) {
+          yield;
+          const query = controller.query(params, owner);
+          const freeWander = query?.query === "wander" && params.medium !== "air";
+          const fixedPoint = query && ["point", "position"].includes(query.query);
+          // Small forward heading changes keep an ordinary wander leg out of the
+          // body-sized reversal gait. Widen only after bounded forward attempts fail.
+          const spread =
+            query?.params?.headingSpread ??
+            (freeWander
+              ? attempt < 4
+                ? Math.PI / 6
+                : Math.PI * 2
+              : attempt > 0 && !fixedPoint
+                ? Math.PI * 2
+                : undefined);
+          const resolved = controller.resolve(
+            query && spread !== undefined
+              ? { ...params, target: { ...query, params: { ...query.params, headingSpread: spread } } }
+              : params,
+            owner
+          );
+          const candidate = resolved ? ([resolved[0], resolved[1]] as const) : null;
+          if (!candidate) {
+            if (!freeWander || query?.params?.headingSpread !== undefined || attempt >= 4)
+              return requirePreferred ? null : fallback;
+            continue;
+          }
+          if (yield* canReach(candidate)) {
+            if (arrivalMedium || params.arrivalTarget || controller.host.prefersMoveTo?.(candidate, speed) !== false)
+              return candidate;
+            fallback ??= candidate;
+          }
+          // An explicit position is fixed; repeated queries cannot improve it.
+          if (
+            params.target === "request" &&
+            ["point", "position"].includes(controller.query(params, owner)?.query ?? "")
+          )
+            break;
+        }
+        return requirePreferred ? null : fallback;
+      })(this);
+    const resolveMovementTarget = (
+      complete: (target: readonly [number, number] | null) => void,
+      requirePreferred = false
+    ) => {
+      if (planning || !active) return;
+      planning = true;
+      const task = (function* (controller: AnimalTaskController): AnimalPlanningTask<readonly [number, number] | null> {
+        while (active) {
+          const revision = controller.host.planningRevision;
+          const search = targetSearch(requirePreferred);
+          try {
+            let step = search.next();
+            while (!step.done && revision === controller.host.planningRevision) {
+              yield;
+              if (revision !== controller.host.planningRevision) break;
+              step = search.next();
+            }
+            if (step.done && revision === controller.host.planningRevision) return step.value;
+          } finally {
+            search.return(null);
+          }
+          yield;
+        }
+        return null;
+      })(this);
+      const done = (result: readonly [number, number] | null) => {
+        planning = false;
+        if (!active) return;
+        complete(result);
+        if (this.host.plan) wake();
       };
-      const retained = params.resumeLanding ? this.host.currentLanding?.() : undefined;
-      if (retained && canReach(retained)) return retained;
-      let fallback: readonly [number, number] | null = null;
-      for (let attempt = 0; attempt < (arrivalMedium ? 12 : 8); attempt++) {
-        const query = this.query(params, owner);
-        const freeWander = query?.query === "wander" && params.medium !== "air";
-        const fixedPoint = query && ["point", "position"].includes(query.query);
-        // Small forward heading changes keep an ordinary wander leg out of the
-        // body-sized reversal gait. Widen only after bounded forward attempts fail.
-        const spread =
-          query?.params?.headingSpread ??
-          (freeWander
-            ? attempt < 4
-              ? Math.PI / 6
-              : Math.PI * 2
-            : attempt > 0 && !fixedPoint
-              ? Math.PI * 2
-              : undefined);
-        const candidate = this.resolve(
-          query && spread !== undefined
-            ? { ...params, target: { ...query, params: { ...query.params, headingSpread: spread } } }
-            : params,
-          owner
-        );
-        if (!candidate) {
-          if (!freeWander || query?.params?.headingSpread !== undefined || attempt >= 4)
-            return requirePreferred ? null : fallback;
-          continue;
-        }
-        if (canReach(candidate)) {
-          if (arrivalMedium || params.arrivalTarget || this.host.prefersMoveTo?.(candidate, speed) !== false)
-            return candidate;
-          fallback ??= candidate;
-        }
-        // An explicit position is fixed; repeated queries cannot improve it.
-        if (params.target === "request" && ["point", "position"].includes(this.query(params, owner)?.query ?? ""))
-          break;
-      }
-      return requirePreferred ? null : fallback;
+      if (this.host.plan) cancelSearch = this.host.plan(task, done);
+      else done(finishAnimalPlanningTask(task));
     };
     const slowerSlot = params.preserveGait ? undefined : this.profile.movementFallbacks?.[requestedSlot];
     const fastSpeed = this.profile.movementSpeeds[requestedSlot];
@@ -731,15 +796,16 @@ export class AnimalTaskController {
           if (!active || waitingForTraffic) return;
           // A route that already failed to make progress must not restart another
           // congested fallback. Yield until the next autonomous choice instead.
-          const alternative = resolveMovementTarget(true);
-          if (!alternative) {
-            finish(false);
-            return;
-          }
-          target = alternative;
-          this.record(`replan ${targetQuery} (low progress)`);
-          startMovement();
-          updatePace(false);
+          resolveMovementTarget((alternative) => {
+            if (!alternative) {
+              finish(false);
+              return;
+            }
+            target = alternative;
+            this.record(`replan ${targetQuery} (low progress)`);
+            startMovement();
+            updatePace(false);
+          }, true);
         });
       }
     };
@@ -749,6 +815,7 @@ export class AnimalTaskController {
     const finish = (success: boolean) => {
       if (!active) return;
       active = false;
+      cancelSearch();
       releasePace();
       status = success ? "success" : "failure";
       cancelMove();
@@ -773,7 +840,7 @@ export class AnimalTaskController {
       if (!target || needsTarget || !active) return;
       movementStarted = true;
       const currentGeneration = ++generation;
-      cancelMove();
+      cancelMove(true);
       cancelMove = this.host.moveTo(
         target,
         moveSpeed,
@@ -794,16 +861,17 @@ export class AnimalTaskController {
       if (!active || needsTarget) cancelMove();
     };
     const replan = () => {
-      if (this.host.time < nextTargetAttempt) return;
+      if (planning || this.host.time < nextTargetAttempt) return;
       nextTargetAttempt = this.host.time + 0.25;
       cancelRetry();
-      const alternative = resolveMovementTarget();
-      if (alternative) {
-        target = alternative;
-        needsTarget = false;
-        startMovement();
-      } else if (params.arrivalTarget && !flying) finish(false);
-      else retry();
+      resolveMovementTarget((alternative) => {
+        if (alternative) {
+          target = alternative;
+          needsTarget = false;
+          startMovement();
+        } else if (params.arrivalTarget && !flying) finish(false);
+        else retry();
+      });
     };
     // A goal can outlive a clip. Each completed clip returns to the tree action for
     // a fresh weighted choice; the renderer never loops or chooses the next clip.
@@ -837,13 +905,13 @@ export class AnimalTaskController {
           }
           // Semantic escape retains its command/priority while choosing another
           // reachable escape point. Exact-position commands never enable this policy.
-          const alternative = resolveMovementTarget();
-          if (alternative) {
-            target = alternative;
-            startMovement();
-          }
-          blockedReplanArmed = false;
-          wake();
+          resolveMovementTarget((alternative) => {
+            if (alternative) {
+              target = alternative;
+              startMovement();
+            }
+            blockedReplanArmed = false;
+          });
         });
       } else if (!waitingForTraffic) {
         cancelBlocked();
@@ -899,31 +967,35 @@ export class AnimalTaskController {
           finish(true);
           return status;
         }
-        const resolved = resolveMovementTarget();
-        if (!resolved && !(flying && params.resumeLanding && this.medium === "air")) {
-          active = false;
-          return (status = "failure");
-        }
-        target = resolved ?? undefined;
-        if (!flying && !params.arrivalTarget && target && this.host.isAtTarget?.(target, arrivalMedium)) {
-          finish(true);
-          return status;
-        }
-        if (!target) {
-          nextTargetAttempt = this.host.time + 0.25;
-          retry();
-        }
-        if (slowerSlot || progressSeconds > 0) {
-          this.paceChanged = updatePace;
-          updatePace(false);
-        }
-        nextCycle();
-        // Flights and interaction approaches keep their bound goal until arrival or invalidation.
-        const timeout = params.timeoutSeconds ?? (params.medium === "air" || params.arrivalTarget ? undefined : 60);
-        if (active && timeout !== undefined) cancelTimeout = this.host.schedule(Number(timeout), () => finish(false));
+        resolveMovementTarget((resolved) => {
+          initializing = false;
+          if (!resolved && !(flying && params.resumeLanding && this.medium === "air")) {
+            active = false;
+            status = "failure";
+            return;
+          }
+          target = resolved ?? undefined;
+          if (!flying && !params.arrivalTarget && target && this.host.isAtTarget?.(target, arrivalMedium)) {
+            finish(true);
+            return;
+          }
+          if (!target) {
+            nextTargetAttempt = this.host.time + 0.25;
+            retry();
+          }
+          if (slowerSlot || progressSeconds > 0) {
+            this.paceChanged = updatePace;
+            updatePace(false);
+          }
+          nextCycle();
+          // Flights and interaction approaches keep their bound goal until arrival or invalidation.
+          const timeout = params.timeoutSeconds ?? (params.medium === "air" || params.arrivalTarget ? undefined : 60);
+          if (active && timeout !== undefined) cancelTimeout = this.host.schedule(Number(timeout), () => finish(false));
+        });
         return status;
       },
       update: () => {
+        if (initializing) return status;
         if (active && interactionReached()) {
           finish(true);
           return status;
@@ -953,6 +1025,7 @@ export class AnimalTaskController {
       },
       cancel: () => {
         active = false;
+        cancelSearch();
         releasePace();
         if (this.handingOverMovement) this.pendingMoveCancellation = cancelMove;
         else cancelMove();

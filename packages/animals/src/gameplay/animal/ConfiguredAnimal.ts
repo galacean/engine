@@ -1,3 +1,4 @@
+import { finishAnimalPlanningTask, type AnimalPlanningTask } from "./AnimalPlanningTask";
 import { GroundAnimalRecovery } from "./GroundAnimalRecovery";
 import {
   Animator,
@@ -35,7 +36,10 @@ import {
   type GroundAnimalMotion
 } from "./GroundAnimalSteering";
 import {
-  planAnimalStaticRoute,
+  createAnimalStaticRouteTask,
+  includeAnimalRouteBounds,
+  animalRouteBoundsOverlap,
+  type AnimalRouteBounds,
   advanceAnimalRouteTarget,
   type AnimalRoutePoint,
   type AnimalRouteQuery
@@ -156,6 +160,17 @@ export interface ConfiguredAnimalOptions {
   resolveMaterial?: (source: Material) => Material;
 }
 
+/** One destination owns its admission, world revalidation and completion across gait clips. */
+interface AnimalMovementIntent {
+  target: readonly [number, number];
+  speed: number;
+  medium: "ground" | "air" | "water";
+  arrivalMedium?: "ground" | "water";
+  started: boolean;
+  finish?: (success: boolean) => void;
+  cancelPlan?: () => void;
+}
+
 /** Configured presentation and basic behavior above the shared animal scheduler. */
 export class ConfiguredAnimal implements AnimalAgent {
   private readonly root: Entity;
@@ -178,13 +193,15 @@ export class ConfiguredAnimal implements AnimalAgent {
   private readonly proposedMotion: GroundAnimalMotion = { x: 0, z: 0, heading: 0, speed: 0, angularSpeed: 0 };
   private clip = -1;
   private disposed = false;
+  private planningRevision = 0;
+  private planningBounds?: Set<AnimalRouteBounds>;
+  private movementIntent?: AnimalMovementIntent;
   private manual = false;
   private readonly motion: GroundAnimalMotion = { x: 0, z: 0, heading: 0, speed: 0, angularSpeed: 0 };
   private readonly destination: [number, number] = [0, 0];
   private finishAnimation?: () => void;
   private velocity = 0;
   private urgentMovement = false;
-  private finishMove?: (success: boolean) => void;
   private speedMultiplier = 1;
   private readonly renderers: MeshRenderer[] = [];
   private readonly rendererEnabled: boolean[] = [];
@@ -220,6 +237,8 @@ export class ConfiguredAnimal implements AnimalAgent {
   };
   private route?: {
     points: AnimalRoutePoint[];
+    bounds?: AnimalRouteBounds;
+    invalidated?: boolean;
     cursor: number;
     passRadius: number;
     speed: number;
@@ -232,6 +251,8 @@ export class ConfiguredAnimal implements AnimalAgent {
   };
   private preparedRoute?: {
     points: AnimalRoutePoint[];
+    bounds?: AnimalRouteBounds;
+    invalidated?: boolean;
     cursor: number;
     passRadius: number;
     speed: number;
@@ -354,6 +375,7 @@ export class ConfiguredAnimal implements AnimalAgent {
         };
         crowd.add(this.crowdBody);
       }
+      const planningRevision = () => this.planningRevision;
       this.behavior = new AnimalTaskController(
         profile,
         {
@@ -406,9 +428,11 @@ export class ConfiguredAnimal implements AnimalAgent {
           interactionReady: options.interactionReady,
           cancelInteraction: options.cancelInteraction,
           movementBlocked: () => !this.distant && (this.crowdBody?.blocked ?? false),
-          canMoveTo: (target, speed, medium) =>
-            (!medium || this.checkFlightPath(target, speed, medium)) &&
-            this.prepareRoute(target, speed, medium ? "air" : this.movementMedium, medium),
+          get planningRevision() {
+            return planningRevision();
+          },
+          plan: (task, finish) => system.plan(this, task, finish),
+          planMoveTo: (target, speed, medium) => this.planBehaviorRoute(target, speed, medium),
           prefersMoveTo: (target, speed) => this.distant || this.checkGroundPath(target, speed),
           movementNeedsReplan: () => {
             if (!this.flightNeedsReplan || system.time < this.nextFlightReplanRequest) return false;
@@ -416,85 +440,7 @@ export class ConfiguredAnimal implements AnimalAgent {
             return true;
           },
           currentLanding: () => (this.arrivalMedium ? this.destination : null),
-          moveTo: (target, speed, finish, arrivalMedium) => {
-            const changedIntent =
-              this.changingMedium ||
-              this.velocity !== speed ||
-              this.arrivalMedium !== arrivalMedium ||
-              target[0] !== this.destination[0] ||
-              target[1] !== this.destination[1];
-            const changedTarget = target[0] !== this.destination[0] || target[1] !== this.destination[1];
-            if (changedTarget) this.groundRecovery.reset();
-            if (this.flightNeedsReplan && changedTarget) this.flightReplans++;
-            // Replaying a gait toward the same goal cannot acknowledge a route-invalid event.
-            // Otherwise a clip completion inside a coarse step swallows the pending tree wake.
-            if (this.continuationTarget && arrivalMedium && this.checkFlightPath(target, speed, arrivalMedium)) {
-              this.continuationTarget = undefined;
-              this.airSteering.continuous = false;
-              this.flightNeedsReplan = false;
-            } else if (changedTarget && !this.continuationTarget) this.flightNeedsReplan = false;
-            if (changedIntent) this.nextFlightProbe = 0;
-            const medium = arrivalMedium ? "air" : this.movementMedium;
-            if (!this.prepareRoute(target, speed, medium, arrivalMedium)) {
-              finish(false);
-              return () => {};
-            }
-            if (
-              this.crowdBody &&
-              !this.crowd!.reserve(
-                this.crowdBody,
-                target[0],
-                target[1],
-                this.options.ground?.heightAt(target[0], target[1], arrivalMedium ?? medium) ?? this.position.y,
-                arrivalMedium ?? medium
-              )
-            ) {
-              finish(false);
-              return () => {};
-            }
-            // A gait handoff can cancel its previous move while bodies cross.
-            // Only a successfully admitted replacement supersedes that deferred rest.
-            this.pendingRest = undefined;
-            this.acceptPreparedRoute();
-            this.arrivalMedium = arrivalMedium;
-            this.velocity = speed;
-            this.destination[0] = target[0];
-            this.destination[1] = target[1];
-            this.arrivalHeight = arrivalMedium
-              ? this.options.ground
-                ? this.options.ground.heightAt(target[0], target[1], arrivalMedium)
-                : 0
-              : undefined;
-            if (arrivalMedium && this.arrivalHeight === undefined) {
-              this.velocity = 0;
-              this.updateCrowdIntent();
-              finish(false);
-              return () => {};
-            }
-            if (this.arrivalHeight !== undefined && arrivalMedium === "water")
-              this.arrivalHeight -= (this.config.waterline ?? 0) * this.scale;
-            this.updateCrowdIntent();
-            this.finishMove = finish;
-            system.setMoving(this, this.active || this.velocity > 0);
-            return () => {
-              this.finishMove = undefined;
-              // Command cancellation relinquishes the callback, not aerodynamic
-              // support. Keep the old approach until a replacement is accepted.
-              if (this.movementMedium !== "air") {
-                if (this.crowdBody && !this.crowd!.canOccupy(this.crowdBody, this.motion.x, this.motion.z)) {
-                  this.pendingRest = {
-                    index: config.animations.findIndex((binding) => binding.id === config.initialAnimation),
-                    medium: this.movementMedium
-                  };
-                  return;
-                }
-                this.velocity = 0;
-                this.arrivalHeight = undefined;
-                this.arrivalMedium = undefined;
-                this.updateCrowdIntent();
-              }
-            };
-          }
+          moveTo: (target, speed, finish, arrivalMedium) => this.moveTo(target, speed, finish, arrivalMedium)
         },
         options.random
       );
@@ -639,24 +585,46 @@ export class ConfiguredAnimal implements AnimalAgent {
   }
 
   /** Revalidate an ongoing route after the host publishes changed static geometry or support. */
-  refreshWorld(): void {
-    const previous = this.route;
-    this.route = this.preparedRoute = undefined;
-    if (this.velocity > 0) {
-      if (this.prepareRoute(this.destination, this.velocity, this.movementMedium, this.arrivalMedium)) {
-        this.acceptPreparedRoute();
-      } else if (this.movementMedium === "air") {
-        this.route = previous;
-        this.flightNeedsReplan = true;
-        this.nextFlightReplanRequest = 0;
-      } else {
-        const finish = this.finishMove;
-        this.finishMove = undefined;
-        finish?.(false);
-      }
+  refreshWorld(regions?: readonly AnimalRouteBounds[], revalidateRoutes = true): void {
+    if (regions && !this.worldChangeAffectsRoute(regions)) return;
+    if (!revalidateRoutes) {
+      this.behavior.worldChanged();
+      return;
     }
+    this.planningRevision++;
+    // Retained steering is not proof that the route is still valid in the edited world.
+    if (this.route) this.route.invalidated = true;
+    this.preparedRoute = undefined;
+    const intent = this.movementIntent;
+    if (intent?.started) {
+      intent.cancelPlan?.();
+      intent.cancelPlan = undefined;
+      this.planMovement(intent, true);
+    }
+    // An admission already in progress restarts on planningRevision. It belongs
+    // to this same intent, so no second task is needed for the publication.
     this.updateCrowdIntent();
     this.behavior.worldChanged();
+  }
+
+  /** Test current footprint plus every queried area, including curved/recovery paths and suspended A*. */
+  private worldChangeAffectsRoute(regions: readonly AnimalRouteBounds[]): boolean {
+    if (!regions.length) return false;
+    const radius = this.baseRadius * this.scale + 0.05;
+    const body = {
+      minX: this.motion.x - radius,
+      maxX: this.motion.x + radius,
+      minZ: this.motion.z - radius,
+      maxZ: this.motion.z + radius
+    };
+    if (regions.some((region) => animalRouteBoundsOverlap(body, region))) return true;
+    for (const route of [this.route, this.preparedRoute]) {
+      if (!route) continue;
+      if (!route.bounds || regions.some((region) => animalRouteBoundsOverlap(route.bounds!, region))) return true;
+    }
+    for (const bounds of this.planningBounds ?? [])
+      if (regions.some((region) => animalRouteBoundsOverlap(bounds, region))) return true;
+    return this.velocity > 0 && !this.route;
   }
 
   /** Resume behavior only after a queued simulation event; terminal trees restart next frame. */
@@ -722,9 +690,7 @@ export class ConfiguredAnimal implements AnimalAgent {
     } else if (this.surfaceBlocked && this.velocity > 0) {
       this.velocity = 0;
       this.updateCrowdIntent();
-      const finish = this.finishMove;
-      this.finishMove = undefined;
-      finish?.(false);
+      this.failMovement();
     }
     this.settlePendingRest();
     const animationSeconds = this.sampledAnimationSeconds;
@@ -785,7 +751,7 @@ export class ConfiguredAnimal implements AnimalAgent {
       return this.durations[index];
     }
     this.pendingRest = undefined;
-    if (locomotionSpeed === 0 && this.movementMedium !== "air" && !this.finishMove) {
+    if (locomotionSpeed === 0 && this.movementMedium !== "air" && !this.movementIntent?.started) {
       this.route = this.preparedRoute = undefined;
       if (this.crowdBody) this.crowd!.release(this.crowdBody);
       this.velocity = 0;
@@ -824,7 +790,7 @@ export class ConfiguredAnimal implements AnimalAgent {
     if (!pending || !this.crowdBody || !this.crowd!.canOccupy(this.crowdBody, this.motion.x, this.motion.z)) return;
     this.pendingRest = undefined;
     this.locomotionSpeed = this.motion.speed = this.motion.angularSpeed = 0;
-    if (!this.finishMove) {
+    if (!this.movementIntent?.started) {
       this.velocity = 0;
       this.route = this.preparedRoute = undefined;
       this.crowd!.release(this.crowdBody);
@@ -943,6 +909,189 @@ export class ConfiguredAnimal implements AnimalAgent {
     return this.sampledGait ? fraction : 0;
   }
 
+  private moveTo(
+    target: readonly [number, number],
+    speed: number,
+    finish: (success: boolean) => void,
+    arrivalMedium?: "ground" | "water"
+  ): (handoff?: boolean) => void {
+    const medium = arrivalMedium ? "air" : this.movementMedium;
+    let intent = this.movementIntent;
+    if (
+      !intent ||
+      intent.speed !== speed ||
+      intent.medium !== medium ||
+      intent.arrivalMedium !== arrivalMedium ||
+      intent.target[0] !== target[0] ||
+      intent.target[1] !== target[1]
+    ) {
+      if (intent) {
+        this.clearMovementIntent();
+        this.stopMovement();
+      }
+      intent = this.movementIntent = {
+        target: [target[0], target[1]],
+        speed,
+        medium,
+        arrivalMedium,
+        finish,
+        started: false
+      };
+      this.planMovement(intent);
+    } else {
+      intent.finish = finish;
+      // A clip handoff transfers the callback, not the ownership of pending CPU work.
+      if (intent.started) {
+        // Recovery may select the same destination after a failed world check.
+        // Admit that new preview; retaining the goal alone cannot clear invalidation.
+        if (this.route?.invalidated && !intent.cancelPlan) this.planMovement(intent);
+        else this.startMovement(intent);
+      }
+    }
+    const owned = intent;
+    return (handoff = false) => {
+      if (this.movementIntent !== owned || owned.finish !== finish) return;
+      if (handoff) {
+        owned.finish = undefined;
+        return;
+      }
+      this.clearMovementIntent();
+      this.stopMovement();
+    };
+  }
+
+  /** Admission and revalidation share the movement's cancellation boundary. */
+  private planMovement(intent: AnimalMovementIntent, revalidate = false): void {
+    const task = this.createRouteTask(
+      intent.target,
+      intent.speed,
+      intent.medium,
+      intent.arrivalMedium,
+      !revalidate,
+      intent
+    );
+    const complete = (valid: boolean) => {
+      if (this.movementIntent !== intent) return;
+      intent.cancelPlan = undefined;
+      if (valid) {
+        if (intent.started) this.acceptPreparedRoute();
+        else this.startMovement(intent, true);
+      } else if (revalidate && intent.medium === "air") {
+        this.flightNeedsReplan = true;
+        this.nextFlightReplanRequest = 0;
+        this.system.requestWake(this);
+      } else this.failMovement();
+    };
+    // Reusing an already accepted route stays synchronous. World edits always
+    // enter the shared budget, including the first geometry query.
+    if (!revalidate) {
+      const ready = task.next();
+      if (this.movementIntent !== intent) {
+        task.return(false);
+        return;
+      }
+      if (ready.done) {
+        complete(ready.value);
+        return;
+      }
+    }
+    intent.cancelPlan = this.system.plan(this, task, complete);
+  }
+
+  private startMovement(intent: AnimalMovementIntent, admitRoute = false): void {
+    if (this.movementIntent !== intent) return;
+    const { target, speed, medium, arrivalMedium } = intent;
+    const changedIntent =
+      this.changingMedium ||
+      this.velocity !== speed ||
+      this.arrivalMedium !== arrivalMedium ||
+      target[0] !== this.destination[0] ||
+      target[1] !== this.destination[1];
+    const changedTarget = target[0] !== this.destination[0] || target[1] !== this.destination[1];
+    if (changedTarget) this.groundRecovery.reset();
+    if (this.flightNeedsReplan && changedTarget) this.flightReplans++;
+    // A pending world check may retain steering, but cannot acknowledge a safe approach.
+    if (!this.route?.invalidated) {
+      if (this.continuationTarget && arrivalMedium && this.checkFlightPath(target, speed, arrivalMedium)) {
+        this.continuationTarget = undefined;
+        this.airSteering.continuous = false;
+        this.flightNeedsReplan = false;
+      } else if (changedTarget && !this.continuationTarget) this.flightNeedsReplan = false;
+    }
+    if (changedIntent) this.nextFlightProbe = 0;
+    if (
+      this.crowdBody &&
+      !this.crowd!.reserve(
+        this.crowdBody,
+        target[0],
+        target[1],
+        this.options.ground?.heightAt(target[0], target[1], arrivalMedium ?? medium) ?? this.position.y,
+        arrivalMedium ?? medium
+      )
+    ) {
+      this.failMovement();
+      return;
+    }
+    this.pendingRest = undefined;
+    if (admitRoute) this.acceptPreparedRoute();
+    this.arrivalMedium = arrivalMedium;
+    this.velocity = speed;
+    this.destination[0] = target[0];
+    this.destination[1] = target[1];
+    this.arrivalHeight = arrivalMedium
+      ? this.options.ground
+        ? this.options.ground.heightAt(target[0], target[1], arrivalMedium)
+        : 0
+      : undefined;
+    if (arrivalMedium && this.arrivalHeight === undefined) {
+      this.velocity = 0;
+      this.updateCrowdIntent();
+      this.failMovement();
+      return;
+    }
+    if (this.arrivalHeight !== undefined && arrivalMedium === "water")
+      this.arrivalHeight -= (this.config.waterline ?? 0) * this.scale;
+    intent.started = true;
+    this.updateCrowdIntent();
+    this.system.setMoving(this, this.active || this.velocity > 0);
+  }
+
+  /** Detach before cancellation or callbacks can reenter and create another intent. */
+  private clearMovementIntent(): ((success: boolean) => void) | undefined {
+    const intent = this.movementIntent;
+    if (!intent) return;
+    this.movementIntent = undefined;
+    const finish = intent.finish;
+    intent.finish = undefined;
+    intent.cancelPlan?.();
+    intent.cancelPlan = undefined;
+    this.preparedRoute = undefined;
+    return finish;
+  }
+
+  private failMovement(): void {
+    const finish = this.clearMovementIntent();
+    this.stopMovement();
+    finish?.(false);
+  }
+
+  private stopMovement(): void {
+    // Cancelling a command does not remove aerodynamic support or force a rest
+    // in another body's footprint. A replacement still owns admission of its goal.
+    if (this.movementMedium === "air") return;
+    if (this.crowdBody && !this.crowd!.canOccupy(this.crowdBody, this.motion.x, this.motion.z)) {
+      this.pendingRest = {
+        index: this.config.animations.findIndex((binding) => binding.id === this.config.initialAnimation),
+        medium: this.movementMedium
+      };
+      return;
+    }
+    this.velocity = 0;
+    this.arrivalHeight = undefined;
+    this.arrivalMedium = undefined;
+    this.updateCrowdIntent();
+  }
+
   private acceptPreparedRoute(): void {
     if (this.preparedRoute) {
       this.route = this.preparedRoute;
@@ -954,6 +1103,15 @@ export class ConfiguredAnimal implements AnimalAgent {
     this.airSteering.continuous = this.groundSteering.continuous = this.route.cursor < this.route.points.length - 1;
   }
 
+  private *planBehaviorRoute(
+    target: readonly [number, number],
+    speed: number,
+    arrivalMedium?: "ground" | "water"
+  ): AnimalPlanningTask<boolean> {
+    if (arrivalMedium && !this.checkFlightPath(target, speed, arrivalMedium)) return false;
+    return yield* this.createRouteTask(target, speed, arrivalMedium ? "air" : this.movementMedium, arrivalMedium);
+  }
+
   /** Plan once per changed intent; gait repeats retain the same route and cursor. */
   private prepareRoute(
     target: readonly [number, number],
@@ -961,11 +1119,68 @@ export class ConfiguredAnimal implements AnimalAgent {
     medium: "ground" | "air" | "water",
     arrivalMedium?: "ground" | "water"
   ): boolean {
+    return finishAnimalPlanningTask(this.createRouteTask(target, nominalSpeed, medium, arrivalMedium));
+  }
+
+  /** Keep intent/world ownership across yields; new guidance also requires an unchanged start pose. */
+  private *createRouteTask(
+    target: readonly [number, number],
+    nominalSpeed: number,
+    medium: "ground" | "air" | "water",
+    arrivalMedium?: "ground" | "water",
+    reuseRoute = true,
+    intent?: AnimalMovementIntent
+  ): AnimalPlanningTask<boolean> {
+    target = [target[0], target[1]];
+    const owned = () => !intent || this.movementIntent === intent;
+    while (!this.disposed && owned()) {
+      this.system.synchronizeMotion?.(this);
+      const revision = this.planningRevision,
+        scale = this.scale,
+        multiplier = this.speedMultiplier;
+      const current = () =>
+        owned() && revision === this.planningRevision && scale === this.scale && multiplier === this.speedMultiplier;
+      const dependency: AnimalRouteBounds = { minX: Infinity, minZ: Infinity, maxX: -Infinity, maxZ: -Infinity };
+      includeAnimalRouteBounds(dependency, [this.motion.x, this.motion.z], target, this.baseRadius * this.scale + 0.05);
+      (this.planningBounds ??= new Set()).add(dependency);
+      const task = this.prepareRouteSteps(target, nominalSpeed, medium, arrivalMedium, reuseRoute, dependency, intent);
+      try {
+        let step = task.next();
+        while (!step.done && revision === this.planningRevision) {
+          yield;
+          if (this.disposed || !owned()) return false;
+          if (revision !== this.planningRevision) break;
+          step = task.next();
+        }
+        if (step.done && current()) {
+          if (typeof step.value !== "boolean") this.preparedRoute = { ...step.value, bounds: dependency };
+          return typeof step.value === "boolean" ? step.value : true;
+        }
+      } finally {
+        this.planningBounds!.delete(dependency);
+        task.return(false);
+      }
+      // Geometry and calibration edits discard both the static candidate and its preview.
+      yield;
+    }
+    return false;
+  }
+
+  private *prepareRouteSteps(
+    target: readonly [number, number],
+    nominalSpeed: number,
+    medium: "ground" | "air" | "water",
+    arrivalMedium?: "ground" | "water",
+    reuseRoute = true,
+    dependency?: AnimalRouteBounds,
+    intent?: AnimalMovementIntent
+  ): AnimalPlanningTask<boolean | NonNullable<ConfiguredAnimal["route"]>> {
     if (!this.canOccupy(target[0], target[1], arrivalMedium ?? medium)) return false;
     const ground = this.options.ground;
     if (!ground?.staticRouteQuery) return true;
     const matches = (route: ConfiguredAnimal["route"]) =>
       route &&
+      !route.invalidated &&
       route.speed === nominalSpeed &&
       route.medium === medium &&
       route.arrivalMedium === arrivalMedium &&
@@ -973,12 +1188,13 @@ export class ConfiguredAnimal implements AnimalAgent {
       route.multiplier === this.speedMultiplier &&
       route.points[route.points.length - 1][0] === target[0] &&
       route.points[route.points.length - 1][1] === target[1];
-    if (matches(this.route)) {
+    if (reuseRoute && matches(this.route)) {
       this.preparedRoute = undefined;
       return true;
     }
     const prepared = this.preparedRoute;
     if (
+      reuseRoute &&
       matches(prepared) &&
       prepared!.preparedAt === this.system.time &&
       prepared!.from.x === this.motion.x &&
@@ -997,31 +1213,148 @@ export class ConfiguredAnimal implements AnimalAgent {
     const passRadius = Math.max(0.2, speed / Math.max(0.05, omega));
     const radius = this.baseRadius * this.scale;
     const physicalQuery = ground.staticRouteQuery(radius + 0.05, medium);
-    const traffic = this.crowdBody
-      ? this.crowd!.routeQuery(
-          this.crowdBody,
-          ground.heightAt(this.motion.x, this.motion.z, medium) ?? this.position.y,
-          medium
-        )
-      : undefined;
-    const query: AnimalRouteQuery = traffic
-      ? {
-          canTraverse: (from, to, clearance) =>
-            physicalQuery.canTraverse(from, to, clearance) && traffic.canTraverse(from, to),
-          obstruction: (from, to, clearance) =>
-            physicalQuery.canTraverse(from, to, clearance)
-              ? traffic.obstruction(from, to, clearance)
-              : physicalQuery.obstruction(from, to, clearance)
+    const makeQuery = (): AnimalRouteQuery => {
+      const traffic = this.crowdBody
+        ? this.crowd!.routeQuery(
+            this.crowdBody,
+            ground.heightAt(this.motion.x, this.motion.z, medium) ?? this.position.y,
+            medium,
+            true
+          )
+        : undefined;
+      return {
+        canTraverse: (from, to, clearance) => {
+          if (dependency) includeAnimalRouteBounds(dependency, from, to, radius + 0.05 + (clearance ?? 0));
+          const supported =
+            clearance === undefined
+              ? physicalQuery.canTraverse(from, to)
+              : physicalQuery.canTraverse(from, to, clearance);
+          return supported && (!traffic || traffic.canTraverse(from, to));
+        },
+        obstruction: (from, to, clearance) => {
+          if (dependency) includeAnimalRouteBounds(dependency, from, to, radius + 0.05 + clearance);
+          return traffic && physicalQuery.canTraverse(from, to, clearance)
+            ? traffic.obstruction(from, to, clearance)
+            : physicalQuery.obstruction(from, to, clearance);
         }
-      : physicalQuery;
-    const points = planAnimalStaticRoute([this.motion.x, this.motion.z], target, query, passRadius * 2 + speed);
-    if (!points) return false;
-    const motion = { ...this.motion },
-      proposed = { ...this.motion },
-      forward = { ...this.motion },
+      };
+    };
+    let points: AnimalRoutePoint[] | undefined;
+    let searchedFrom: AnimalRoutePoint = [this.motion.x, this.motion.z];
+    let query = makeQuery();
+    let queryTime = this.system.time;
+    while (!this.disposed) {
+      if (!points) {
+        searchedFrom = [this.motion.x, this.motion.z];
+        points = yield* createAnimalStaticRouteTask(searchedFrom, target, query, passRadius * 2 + speed);
+        this.system.synchronizeMotion?.(this);
+        if (!points) {
+          // A failed search depends on position, not heading or residual velocity.
+          if (searchedFrom[0] === this.motion.x && searchedFrom[1] === this.motion.z) return false;
+          query = makeQuery();
+          queryTime = this.system.time;
+          continue;
+        }
+      }
+      // A* owns waypoints, not an initial pose. Bind the expensive motion preview
+      // only after search, and refresh decision-time traffic when it crossed a frame.
+      this.system.synchronizeMotion?.(this);
+      if (queryTime !== this.system.time) {
+        query = makeQuery();
+      }
+      const initial = { ...this.motion, y: this.position.y };
+      // Revalidating guidance already being followed is not admission of new
+      // guidance. Its full preview may finish while the owner advances along
+      // that same route, just as it would after a synchronous revalidation.
+      // Preserve the live cursor; never install an old start pose or rewind it.
+      const followed = this.route;
+      const continuing =
+        intent?.started &&
+        followed &&
+        followed.speed === nominalSpeed &&
+        followed.medium === medium &&
+        followed.arrivalMedium === arrivalMedium &&
+        followed.passRadius === passRadius &&
+        followed.scale === this.scale &&
+        followed.multiplier === this.speedMultiplier &&
+        points.length === followed.points.length - followed.cursor &&
+        points.every((point, index) => {
+          const live = followed.points[followed.cursor + index];
+          return point[0] === live[0] && point[1] === live[1];
+        });
+      const sameGuidance = () =>
+        continuing &&
+        this.movementIntent === intent &&
+        this.route === followed &&
+        !this.continuationTarget &&
+        this.velocity === nominalSpeed &&
+        this.movementMedium === medium &&
+        this.arrivalMedium === arrivalMedium;
+      const current = () =>
+        initial.x === this.motion.x &&
+        initial.z === this.motion.z &&
+        initial.heading === this.motion.heading &&
+        initial.speed === this.motion.speed &&
+        initial.angularSpeed === this.motion.angularSpeed &&
+        (medium !== "air" || initial.y === this.position.y);
+      const preview = this.validateRouteSteps(points, target, nominalSpeed, medium, arrivalMedium, query, initial);
+      let result: IteratorResult<void, boolean | NonNullable<ConfiguredAnimal["route"]>>;
+      try {
+        result = preview.next();
+        while (!result.done && (current() || sameGuidance())) {
+          yield;
+          if (!current() && !sameGuidance()) break;
+          result = preview.next();
+        }
+      } finally {
+        preview.return(false);
+      }
+      this.system.synchronizeMotion?.(this);
+      if (result.done && sameGuidance()) {
+        if (!result.value) return false;
+        if (dependency && followed!.bounds) {
+          const bounds = followed!.bounds;
+          includeAnimalRouteBounds(dependency, [bounds.minX, bounds.minZ], [bounds.maxX, bounds.maxZ], 0);
+        }
+        return { ...followed!, invalidated: false };
+      }
+      if (result.done && current()) {
+        if (result.value || (searchedFrom[0] === initial.x && searchedFrom[1] === initial.z)) return result.value;
+        // A candidate from an older start is only a hint. If its exact trajectory
+        // fails, run the original search from the new start before rejecting it.
+        points = undefined;
+      }
+      // A moving start invalidates only the preview. Retain the candidate and
+      // validate its entire trajectory again; no old support verdict is reused.
+      yield;
+      query = makeQuery();
+      queryTime = this.system.time;
+    }
+    return false;
+  }
+
+  private *validateRouteSteps(
+    points: AnimalRoutePoint[],
+    target: readonly [number, number],
+    nominalSpeed: number,
+    medium: "ground" | "air" | "water",
+    arrivalMedium: "ground" | "water" | undefined,
+    query: AnimalRouteQuery,
+    initial: GroundAnimalMotion & { y: number }
+  ): AnimalPlanningTask<boolean | NonNullable<ConfiguredAnimal["route"]>> {
+    const ground = this.options.ground!;
+    const speed = nominalSpeed * this.scale * this.speedMultiplier;
+    const length = Math.max(0.1, (this.config.bounds.max[2] - this.config.bounds.min[2]) * this.scale);
+    const steering = { ...(medium === "air" ? this.airSteering : this.surfaceSteering), continuous: false };
+    const omega = Math.min(steering.maxAngularSpeed, speed / (length * 1.25));
+    const passRadius = Math.max(0.2, speed / Math.max(0.05, omega));
+    const radius = this.baseRadius * this.scale;
+    const motion = { ...initial },
+      proposed = { ...initial },
+      forward = { ...initial },
       recovery = new GroundAnimalRecovery();
     let cursor = 0,
-      y = this.position.y,
+      y = initial.y,
       totalDistance = 0,
       previous = [motion.x, motion.z];
     for (const point of points) {
@@ -1036,6 +1369,7 @@ export class ConfiguredAnimal implements AnimalAgent {
     );
     const bodyHeight = (this.config.bounds.max[1] - this.config.bounds.min[1]) * this.scale;
     for (let i = 0; i < Math.min(6000, budget); i++) {
+      yield;
       const nextCursor = advanceAnimalRouteTarget(motion, points, cursor, passRadius);
       if (cursor !== nextCursor) recovery.reset();
       cursor = nextCursor;
@@ -1090,7 +1424,7 @@ export class ConfiguredAnimal implements AnimalAgent {
           return false;
       }
       if (arrived && !steering.continuous) {
-        this.preparedRoute = {
+        return {
           points,
           cursor: 0,
           passRadius,
@@ -1100,9 +1434,8 @@ export class ConfiguredAnimal implements AnimalAgent {
           multiplier: this.speedMultiplier,
           arrivalMedium,
           preparedAt: this.system.time,
-          from: { ...this.motion, y: this.position.y }
+          from: initial
         };
-        return true;
       }
     }
     return false;
@@ -1156,6 +1489,13 @@ export class ConfiguredAnimal implements AnimalAgent {
     proposed: Readonly<GroundAnimalMotion>,
     from: Readonly<GroundAnimalMotion> = this.motion
   ): boolean {
+    if (this.route?.bounds)
+      includeAnimalRouteBounds(
+        this.route.bounds,
+        [from.x, from.z],
+        [proposed.x, proposed.z],
+        this.baseRadius * this.scale + 0.05
+      );
     const ground = this.options.ground;
     if (!ground || (proposed.x === from.x && proposed.z === from.z)) return true;
     if (
@@ -1607,9 +1947,7 @@ export class ConfiguredAnimal implements AnimalAgent {
       );
       if (!(arrived ? this.canTranslate(this.proposedMotion) : this.resolveGroundMotion(this.proposedMotion, step))) {
         this.velocity = this.motion.speed = this.motion.angularSpeed = 0;
-        const finish = this.finishMove;
-        this.finishMove = undefined;
-        finish?.(false);
+        this.failMovement();
         break;
       }
       const fraction = this.playback.prepare(step, this.proposedMotion, length);
@@ -1663,6 +2001,7 @@ export class ConfiguredAnimal implements AnimalAgent {
   }
 
   private completeMovement(): void {
+    const finish = this.clearMovementIntent();
     this.route = undefined;
     this.preparedRoute = undefined;
     if (this.crowdBody) this.crowd!.release(this.crowdBody);
@@ -1670,8 +2009,6 @@ export class ConfiguredAnimal implements AnimalAgent {
     this.velocity = 0;
     this.motion.speed = this.motion.angularSpeed = 0;
     this.updateCrowdIntent();
-    const finish = this.finishMove;
-    this.finishMove = undefined;
     finish?.(true);
   }
 
@@ -1691,7 +2028,10 @@ export class ConfiguredAnimal implements AnimalAgent {
       this.scale = previousScale;
       throw new Error("当前路线无法容纳这个体型，请先选择空旷位置");
     }
-    if (scale !== previousScale) this.acceptPreparedRoute();
+    if (scale !== previousScale) {
+      this.planningRevision++;
+      this.acceptPreparedRoute();
+    }
     if (this.crowdBody) {
       this.crowdBody.radius = this.baseRadius * scale;
       this.crowdBody.bodyLength = Math.max(0.1, (this.config.bounds.max[2] - this.config.bounds.min[2]) * scale);
@@ -1732,6 +2072,7 @@ export class ConfiguredAnimal implements AnimalAgent {
       this.speedMultiplier = previous;
       throw new Error("当前路线无法安全保持这个速度，请先更换目标");
     }
+    this.planningRevision++;
     this.acceptPreparedRoute();
     this.updateCrowdIntent();
   }
@@ -1795,6 +2136,8 @@ export class ConfiguredAnimal implements AnimalAgent {
 
   /** Enter manual inspection for this instance; other animals keep their behavior trees running. */
   play(index: number): void {
+    this.clearMovementIntent();
+    this.planningRevision++;
     this.behavior.suspend();
     this.manual = true;
     this.urgentMovement = false;
@@ -1850,8 +2193,10 @@ export class ConfiguredAnimal implements AnimalAgent {
 
   /** Submit a semantic task from either UI or a tool adapter, leaving manual animation inspection. */
   execute(request: AnimalTaskRequest) {
+    const previous = this.behavior.receipt(request?.requestId);
     const receipt = this.behavior.execute(request);
-    if (receipt.status !== "rejected") this.manual = false;
+    // The controller owns command replacement. An idempotent retry has no movement side effects.
+    if (!previous && receipt.status !== "rejected") this.manual = false;
     return receipt;
   }
 
@@ -1941,8 +2286,10 @@ export class ConfiguredAnimal implements AnimalAgent {
   dispose(): void {
     if (this.disposed) return;
     this.disposed = true;
-    this.behavior?.dispose();
+    this.clearMovementIntent();
+    // Detach coarse motion before behavior teardown can request synchronization.
     this.system.remove(this);
+    this.behavior?.dispose();
     if (this.crowdBody) this.crowd?.remove(this.crowdBody);
     this.root.destroy();
     this.controller?.destroy();

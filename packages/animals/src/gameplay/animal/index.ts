@@ -5,6 +5,7 @@ import { AnimalSystemComponent } from "./AnimalSystemComponent";
 export { AnimalComponent, type AnimalInstanceSettings } from "./AnimalComponent";
 export { AnimalSystemComponent } from "./AnimalSystemComponent";
 export { AnimalSystem, type AnimalAgent } from "./AnimalSystem";
+export type { AnimalPlanningTask } from "./AnimalPlanningTask";
 export { ConfiguredAnimal } from "./ConfiguredAnimal";
 export {
   AnimalAssetLibrary,

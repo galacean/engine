@@ -1,3 +1,4 @@
+import type { AnimalPlanningTask } from "./AnimalPlanningTask";
 import { Animal, type AnimalDefinition, type AnimalRoamingArea } from "./Animal";
 
 /** Runtime work owned by one animal, independent of its render asset and capabilities. */
@@ -10,6 +11,13 @@ export interface AnimalAgent {
   dispose(): void;
   /** Optional capability hook for suspending bounded perception while its component is disabled. */
   setActive?(active: boolean): void;
+}
+
+interface PlanningWork {
+  owner: AnimalAgent;
+  running?: boolean;
+  task: AnimalPlanningTask<unknown>;
+  finish(value: unknown): void;
 }
 
 interface Deadline {
@@ -33,6 +41,9 @@ export class AnimalSystem {
   private readonly _deadlines: Deadline[] = [];
   private readonly _ownedDeadlines = new Map<AnimalAgent, Set<Deadline>>();
   private readonly _decisionQueue: AnimalAgent[] = [];
+  private readonly _planning = new Set<PlanningWork>();
+  private _lastPlanningSteps = 0;
+  private _lastPlanningMilliseconds = 0;
   private _time = 0;
   private _order = 0;
   private _disposed = false;
@@ -40,8 +51,23 @@ export class AnimalSystem {
   private _motionSteps = 0;
   private _lastEvaluations = 0;
 
-  /** Budget counts tree ticks per host update, independent of motion integration substeps. */
-  constructor(readonly maxDecisionsPerFrame = 32) {
+  /**
+   * Shared per-update budgets for decisions and cooperative route planning.
+   * Planning stops at the first time/step limit; an atomic geometry query can overrun the time limit.
+   * Zero simulation time and disabled owners preserve continuations without running them.
+   */
+  constructor(
+    readonly maxDecisionsPerFrame = 32,
+    readonly maxPlanningMilliseconds = 2,
+    readonly maxPlanningSteps = 512
+  ) {
+    if (
+      !Number.isFinite(maxPlanningMilliseconds) ||
+      maxPlanningMilliseconds <= 0 ||
+      !Number.isSafeInteger(maxPlanningSteps) ||
+      maxPlanningSteps < 1
+    )
+      throw new RangeError("Animal planning budgets must be positive");
     if (!Number.isSafeInteger(maxDecisionsPerFrame) || maxDecisionsPerFrame < 1) {
       throw new RangeError("Animal decision budget must be a positive integer");
     }
@@ -57,6 +83,9 @@ export class AnimalSystem {
     for (const deadlines of this._ownedDeadlines.values())
       for (const deadline of deadlines) if (deadline.remaining !== undefined) pausedDeadlines++;
     return {
+      planningTasks: this._planning.size,
+      lastPlanningSteps: this._lastPlanningSteps,
+      lastPlanningMilliseconds: this._lastPlanningMilliseconds,
       animals: this._animals.size,
       moving: this._moving.size,
       pendingWakes: this._wakes.size,
@@ -93,6 +122,7 @@ export class AnimalSystem {
   update(seconds: number): void {
     if (!Number.isFinite(seconds) || seconds < 0) throw new RangeError("Animal time must be finite and nonnegative");
     this._lastEvaluations = 0;
+    this._lastPlanningSteps = this._lastPlanningMilliseconds = 0;
     if (this._disposed || seconds === 0) return;
     // Full-motion integration stays independent of other owners' deadlines, so
     // adding an animal cannot change an existing animal's deterministic trajectory.
@@ -144,6 +174,66 @@ export class AnimalSystem {
       }
     } finally {
       queue.length = 0;
+    }
+    this._advancePlanning();
+  }
+
+  /** Schedule CPU work without advancing it inline. Disabled owners retain their continuation. */
+  plan<T>(owner: AnimalAgent, task: AnimalPlanningTask<T>, finish: (value: T) => void): () => void {
+    if (this._disposed || !this._animals.has(owner)) throw new Error("Planning requires a registered animal");
+    const work: PlanningWork = { owner, task, finish: (value) => finish(value as T) };
+    this._planning.add(work);
+    return () => this._cancelPlanning(work);
+  }
+
+  private _cancelPlanning(work: PlanningWork): void {
+    if (this._planning.delete(work) && !work.running) work.task.return(undefined);
+  }
+
+  private _advancePlanning(): void {
+    const start = performance.now();
+    let skipped = 0;
+    const available = () =>
+      this._lastPlanningSteps < this.maxPlanningSteps && performance.now() - start < this.maxPlanningMilliseconds;
+    try {
+      while (this._planning.size && available()) {
+        const work = this._planning.values().next().value!;
+        // Give one continuation the remaining frame slice. Rotating after every
+        // query spreads short pose-dependent validations over many moving frames.
+        // Rotate before running so an unfinished task yields to its peers next frame.
+        this._planning.delete(work);
+        this._planning.add(work);
+        if (this._inactive.has(work.owner)) {
+          if (++skipped >= this._planning.size) break;
+          continue;
+        }
+        skipped = 0;
+        do {
+          this._lastPlanningSteps++;
+          let result: IteratorResult<void, unknown>;
+          work.running = true;
+          try {
+            result = work.task.next();
+          } catch (error) {
+            this._planning.delete(work);
+            throw error;
+          } finally {
+            work.running = false;
+          }
+          if (!this._planning.has(work)) {
+            work.task.return(undefined);
+            break;
+          }
+          // A query may synchronously cancel its owner or replace the task.
+          if (result.done) {
+            this._planning.delete(work);
+            work.finish(result.value);
+            break;
+          }
+        } while (!this._inactive.has(work.owner) && available());
+      }
+    } finally {
+      this._lastPlanningMilliseconds = performance.now() - start;
     }
   }
 
@@ -305,6 +395,10 @@ export class AnimalSystem {
 
   /** @internal Removes queued decisions and motion; Animal cancels its task deadline. */
   remove(animal: AnimalAgent): void {
+    for (const work of this._planning) {
+      if (work.owner !== animal) continue;
+      this._cancelPlanning(work);
+    }
     this._animals.delete(animal);
     this._moving.delete(animal);
     this._requestedMoving.delete(animal);
@@ -323,6 +417,8 @@ export class AnimalSystem {
     for (const deadlines of this._ownedDeadlines.values())
       for (const deadline of deadlines) deadline.remaining = undefined;
     this._ownedDeadlines.clear();
+    for (const work of this._planning) this._cancelPlanning(work);
+    this._planning.clear();
     this._animals.clear();
     this._deadlines.length = 0;
     this._wakes.clear();

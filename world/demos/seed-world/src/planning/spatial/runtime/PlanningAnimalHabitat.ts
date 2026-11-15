@@ -9,7 +9,7 @@ export type PlanningAnimalMedium = "ground" | "air" | "water";
 
 /** Existing navigation support, including bridge decks and water contacts. */
 export interface PlanningAnimalNavigation {
-  /** Exact-coordinate reuse is scoped to one synchronous simulation update, never across world publications. */
+  /** The provider refreshes dynamic water each update and retains snapshot heights until publication invalidates them. */
   beginAnimalUpdate?(): void;
   endAnimalUpdate?(): void;
   sampleHeightInterpolated(x: number, z: number): number | undefined;
@@ -17,6 +17,21 @@ export interface PlanningAnimalNavigation {
   sampleWaterHeight?(x: number, z: number): number | undefined;
   /** Optional combined sample avoids querying the same real water/support twice per footprint point. */
   sampleAnimalSupport?(x: number, z: number, out: { height: number | undefined; waterHeight: number | undefined }): void;
+}
+
+/** Keep future queries of an unaffected suspended route on the current published habitat. */
+export function liveAnimalRouteQuery(
+  read: () => Pick<PlanningAnimalHabitat, "staticRouteQuery">,
+  radius: number, height: number, medium: PlanningAnimalMedium
+): AnimalRouteQuery {
+  let habitat = read(), query = habitat.staticRouteQuery(radius, height, medium);
+  const current = () => {
+    const next = read();
+    if (habitat !== next) { habitat = next; query = habitat.staticRouteQuery(radius, height, medium); }
+    return query;
+  };
+  return { canTraverse: (a, b, clearance) => current().canTraverse(a, b, clearance),
+    obstruction: (a, b, clearance) => current().obstruction(a, b, clearance) };
 }
 
 /** An occupied ground footprint during deterministic population placement. */
@@ -35,7 +50,7 @@ export interface PlanningAnimalBounds {
 }
 
 interface Solid extends PlanningAnimalBounds {
-  id: number;
+  id: string;
   x: number;
   z: number;
   cos: number;
@@ -114,7 +129,7 @@ export class PlanningAnimalHabitat {
     for (const part of planningWhiteboxes(plan, ground)) {
       // Decks and approaches are navigation support; treating their thickness as an obstacle blocks sloped decks.
       if (part.layer === "bridge") continue;
-      for (const box of part.boxes) {
+      for (const [index, box] of part.boxes.entries()) {
         if (!box.collision) continue;
         const cos = Math.cos(box.yaw),
           sin = Math.sin(box.yaw);
@@ -124,7 +139,9 @@ export class PlanningAnimalHabitat {
         const extentZ = Math.abs(sin) * halfX + Math.abs(cos) * halfZ;
         const bottom = box.elevation ?? ground(box.center);
         const solid: Solid = {
-          id: this.solidCount++,
+          // Match publication dependency identities. Unrelated part edits must not
+          // renumber obstacles already visited by a suspended search.
+          id: `${part.layer}:${part.id}:${index}`,
           x: box.center.x,
           z: box.center.z,
           cos,
@@ -139,6 +156,7 @@ export class PlanningAnimalHabitat {
           minZ: box.center.z - extentZ,
           maxZ: box.center.z + extentZ
         };
+        this.solidCount++;
         this.solids.add(solid);
       }
     }
@@ -147,6 +165,16 @@ export class PlanningAnimalHabitat {
   /** Published convex map extent; independent of terrain samples and observer position. */
   get flightBounds() {
     return this.range.distribution ?? { x: this.origin.x, z: this.origin.z, radius: this.range.roamRadius };
+  }
+
+  /** Dependencies of placement include the whole allowed footprint, not just a suspended actor's old position. */
+  placementIntersects(bounds: PlanningAnimalBounds): boolean {
+    const area = this.range.distribution;
+    if (area) return bounds.maxX >= area.minX && bounds.minX <= area.maxX &&
+      bounds.maxZ >= area.minZ && bounds.minZ <= area.maxZ;
+    const dx = Math.max(bounds.minX - this.origin.x, 0, this.origin.x - bounds.maxX);
+    const dz = Math.max(bounds.minZ - this.origin.z, 0, this.origin.z - bounds.maxZ);
+    return dx * dx + dz * dz <= this.range.spawnRadius ** 2 + 1e-10;
   }
 
   /**
@@ -427,10 +455,13 @@ export class PlanningAnimalHabitat {
 
 class SpatialBins<T extends PlanningAnimalBounds & { seen: number }> {
   private readonly bins = new Map<string, T[]>();
+  // Sorted occupied cells are shared by all animals and belong to this immutable habitat.
+  private rows?: { x: number; cells: { z: number; items: T[] }[] }[];
   private stamp = 0;
   private readonly cellM = 32;
 
   add(item: T): void {
+    this.rows = undefined;
     for (let x = Math.floor(item.minX / this.cellM); x <= Math.floor(item.maxX / this.cellM); x++) {
       for (let z = Math.floor(item.minZ / this.cellM); z <= Math.floor(item.maxZ / this.cellM); z++) {
         const key = `${x}:${z}`,
@@ -442,10 +473,17 @@ class SpatialBins<T extends PlanningAnimalBounds & { seen: number }> {
   }
 
   some(bounds: PlanningAnimalBounds, predicate: (item: T) => boolean): boolean {
+    const minX = Math.floor(bounds.minX / this.cellM),
+      maxX = Math.floor(bounds.maxX / this.cellM),
+      minZ = Math.floor(bounds.minZ / this.cellM),
+      maxZ = Math.floor(bounds.maxZ / this.cellM);
+    const rows = (this.rows ??= this.occupiedRows());
     const stamp = ++this.stamp;
-    for (let x = Math.floor(bounds.minX / this.cellM); x <= Math.floor(bounds.maxX / this.cellM); x++) {
-      for (let z = Math.floor(bounds.minZ / this.cellM); z <= Math.floor(bounds.maxZ / this.cellM); z++) {
-        for (const item of this.bins.get(`${x}:${z}`) ?? []) {
+    // Keep the old x-then-z discovery order, including ties, while skipping empty cells.
+    for (let i = firstCoordinate(rows, minX, (row) => row.x); i < rows.length && rows[i].x <= maxX; i++) {
+      const cells = rows[i].cells;
+      for (let j = firstCoordinate(cells, minZ, (cell) => cell.z); j < cells.length && cells[j].z <= maxZ; j++) {
+        for (const item of cells[j].items) {
           if (item.seen === stamp) continue;
           item.seen = stamp;
           if (item.minX > bounds.maxX || item.maxX < bounds.minX || item.minZ > bounds.maxZ || item.maxZ < bounds.minZ)
@@ -456,6 +494,28 @@ class SpatialBins<T extends PlanningAnimalBounds & { seen: number }> {
     }
     return false;
   }
+
+  private occupiedRows(): { x: number; cells: { z: number; items: T[] }[] }[] {
+    const rows = new Map<number, { z: number; items: T[] }[]>();
+    for (const [key, items] of this.bins) {
+      const [x, z] = key.split(":").map(Number);
+      let cells = rows.get(x);
+      if (!cells) rows.set(x, (cells = []));
+      cells.push({ z, items });
+    }
+    return [...rows].sort(([a], [b]) => a - b).map(([x, cells]) => ({ x, cells: cells.sort((a, b) => a.z - b.z) }));
+  }
+}
+
+function firstCoordinate<T>(values: readonly T[], minimum: number, coordinate: (value: T) => number): number {
+  let low = 0,
+    high = values.length;
+  while (low < high) {
+    const middle = (low + high) >>> 1;
+    if (coordinate(values[middle]) < minimum) low = middle + 1;
+    else high = middle;
+  }
+  return low;
 }
 
 function segmentBoxEntry(ax: number, az: number, bx: number, bz: number, halfX: number, halfZ: number): number {
