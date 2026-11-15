@@ -1,0 +1,28 @@
+docs/en/graphics/renderer/skinnedMeshRenderer.mdx
+  h_dd004f51a3e5ec 20
+docs/zh/graphics/renderer/skinnedMeshRenderer.mdx
+  h_dd004f51a3e5ec 20
+packages/core/src/mesh/MeshRenderer.ts
+  h_dd004f51a3e5ec 206,216-217,223
+packages/core/src/mesh/Skin.ts
+  h_dd004f51a3e5ec 18,24-35,46,61,65-69,76-78,127-129
+packages/core/src/mesh/SkinnedMeshRenderer.ts
+  h_dd004f51a3e5ec 1,8,28,35-39,59,63,89-94,97-99,103-113,116-117,140,160,166,180-189,255-267,272,297-352,355-358,366,369-370,372,374-390,394,404,407-411,413,438-445
+packages/galacean/tests/EntityLookupTypes.test.ts
+  h_dd004f51a3e5ec 10,27-32
+tests/src/core/SkinnedMeshRenderer.test.ts
+  h_dd004f51a3e5ec 146,181-433
+tests/src/loader/SceneFormatV2.test.ts
+  h_dd004f51a3e5ec 11,20,38,1320-1363
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "04306a77eac8b121548b10c7db27989a3319903e",
+  "prompts": {},
+  "humans": {
+    "h_dd004f51a3e5ec": {
+      "author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}
