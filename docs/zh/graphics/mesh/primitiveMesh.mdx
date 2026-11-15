@@ -36,9 +36,9 @@ label: Graphics/Mesh
 
 ## 脚本使用
 
-目前提供的几何体如下：
+以下展示常见几何体的用法，完整创建方法见[程序化几何](#程序化几何)。
 
-- [createCuboid](/apis/core/#PrimitiveMesh-createCuboid) **立方体**
+- [createCuboid](/apis/core/#PrimitiveMesh-createCuboid) **长方体**
 
 ```typescript
 const entity = rootEntity.createChild("cuboid");
@@ -90,7 +90,7 @@ material.emissiveColor.set(1, 1, 1, 1);
 renderer.setMaterial(material);
 ```
 
-- [createTorus](/apis/core/#PrimitiveMesh-createTorus) **圆环**
+- [createTorus](/apis/core/#PrimitiveMesh-createTorus) **环面**
 
 ```typescript
 const entity = rootEntity.createChild("torus");
@@ -134,7 +134,7 @@ renderer.setMaterial(material);
 每个工厂方法先接收必填的形状参数，再接收可选的具名配置对象。尺寸、半径、轮廓和路径必须明确指定；细分、角度范围和网格设置保留在 options 中，省略时使用注释说明的默认值。例如，`createSphere` 先接收半径，再接收 `SphereMeshOptions`：
 
 ```ts
-const unitSphere = PrimitiveMesh.createSphere(engine, 0.5);
+const smallSphere = PrimitiveMesh.createSphere(engine, 0.5);
 const sphere = PrimitiveMesh.createSphere(engine, 1);
 const smoothSphere = PrimitiveMesh.createSphere(engine, 1, { subdivisionLevel: 4 });
 
@@ -151,19 +151,19 @@ const mirroredKnot = PrimitiveMesh.createTorusKnot(engine, 1, 0.1, 2, -3);
 
 尺寸必须显式传入；分段和网格设置使用具名字段，可以只指定需要调整的可选项。
 
-环面结的 `axisTurns` 表示绕中心轴的圈数，`crossSectionTurns` 表示绕环面截面的圈数。两者都是有符号整数，与网格分段数无关。负值反转对应方向的缠绕，`0` 表示该方向的角度保持不变。
+环面结的 `axisTurns` 表示绕中心轴的圈数，`crossSectionTurns` 表示绕环面截面的圈数。两者都是有符号整数，与网格分段数无关。负值反转对应方向的缠绕，`0` 表示该方向的角度保持不变，两者至少有一个非零。
 
 | 能力 | 创建方法 |
 | --- | --- |
 | 平面、长方体、球 | `createPlane`、`createCuboid`、`createSphere` |
 | 圆柱、圆台、圆锥、胶囊 | `createCylinder`、`createTruncatedCone`、`createCone`、`createCapsule` |
-| 圆盘、圆环面、圆环体、环面结 | `createCircle`、`createRing`、`createTorus`、`createTorusKnot` |
+| 圆盘、平面圆环、环面、环面结 | `createCircle`、`createRing`、`createTorus`、`createTorusKnot` |
 | 四面体、八面体、二十面体、十二面体 | `createTetrahedron`、`createOctahedron`、`createIcosahedron`、`createDodecahedron` |
 | 旋转体、路径管道、平面多边形、挤出多边形、圆角长方体 | `createLathe`、`createTube`、`createPolygon`、`createExtrudedPolygon`、`createRoundedCuboid` |
 
 ### 分段、角度和端盖
 
-管道和环面结用 `pathSegments` 控制沿路径的分段，圆环用 `ringSegments` 控制环向分段，`radialSegments` 控制管截面的周向分段。胶囊的 `capSegments` 控制每个半球从极点到赤道的分段，`cylinderHeight` 表示直筒部分的高度。正多面体用 `edgeSegments`，圆角长方体用 `roundingSegments`。
+管道和环面结用 `pathSegments` 控制沿路径的分段，环面用 `ringSegments` 控制环向分段，`radialSegments` 控制管截面的周向分段。胶囊的 `capSegments` 控制每个半球从极点到赤道的分段，`cylinderHeight` 表示直筒部分的高度。正多面体用 `edgeSegments`，圆角长方体用 `roundingSegments`。
 
 角度范围统一放在配置对象中。所有角度均使用**度数**，范围使用 `Vector2`，`x` 表示起始角，`y` 表示结束角。跨越 360 度时使用连续角度，例如 `new Vector2(350, 370)`。圆柱、圆台和圆锥围绕 Y 轴，从 -Z 朝 -X 方向开始；旋转体从 +Z 朝 +X 方向开始。球体的垂直角度从 +Y 极点开始。
 
@@ -182,7 +182,11 @@ const halfRing = PrimitiveMesh.createRing(engine, 1, 0.5, { angleRange: new Vect
 
 ### 轮廓与路径
 
-轮廓和旋转体截面使用 `Vector2` 数组，路径点使用 `Vector3` 数组。一个简单多边形直接传入点数组；有孔洞时使用 `{ points, holes }`，多个多边形使用这种对象的数组。首尾点不必重复。
+多边形轮廓使用 `Vector2` 数组。一个简单多边形直接传入点数组；有孔洞时使用 `{ points, holes }`，多个多边形使用这种对象的数组。多边形轮廓会自动闭合，不必重复首点。
+
+`createPolygon` 创建位于 XY 平面、正面朝 +Z 的零厚度表面，不生成侧壁。`createExtrudedPolygon` 为轮廓增加厚度或沿路径挤出，生成侧壁和相应的端盖。
+
+`createLathe` 将 `Vector2` 截面绕 Y 轴旋转：`x` 表示到 Y 轴的半径，`y` 表示高度，两者均使用局部单位。相邻截面点按输入顺序连接，不会自动添加端盖。管道和挤出的路径点使用局部坐标下的 `Vector3` 数组。
 
 ```ts
 import { Vector2, Vector3 } from "@galacean/engine";
@@ -219,6 +223,42 @@ const closedPath = PrimitiveMesh.createExtrudedPolygon(engine, outline, loop, { 
 
 `contourOffset` 默认是 `0`，用于偏移侧壁轮廓：正值外扩实体并缩小孔洞，负值内缩实体并扩大孔洞。`bevelWidth` 为 `0` 时偏移仍然生效。倒角从偏移后的轮廓向内削边，厚度包含在 `depth` 内，不会增加总厚度。
 
+### UV 映射
+
+以下方向按局部坐标和 UV0 数值递增方向定义，以正的尺寸和半径、默认角度范围为准。
+
+| 几何体 | UV 映射 |
+| --- | --- |
+| 平面 | U 沿 +X、V 沿 +Z 增加，两者均为 0～1。 |
+| 长方体、圆角长方体 | 每个面独立使用 0～1 的方形区域，具体方向见下表；圆角长方体按圆角边长调整映射。 |
+| 球体 | U 沿指定的水平角度区间，默认从 -X 朝 +Z 开始；V 从指定垂直区间的上边界到下边界。两个区间分别映射为 0～1。 |
+| 圆柱、圆台、圆锥侧面 | U 沿指定角度范围从 0 到 1，默认从 -Z 朝 -X 开始；V 顶部为 0、底部为 1。 |
+| 圆柱、圆台、圆锥端盖 | 两端均为 U 沿 +X、V 沿 -Z 增加；中心为 (0.5, 0.5)，各端盖的直径映射为 0～1。 |
+| 胶囊 | U 绕 Y 轴从 -Z 朝 -X 增加；V 顶部为 0、底部为 1，按半球和直筒的连续表面长度分配。 |
+| 环面 | U 沿 `ringAngleRange`、V 沿 `tubeAngleRange`，分别从 0 到 1。 |
+| 圆盘、平面圆环 | U 沿 +X、V 沿 +Y 增加；完整外圆的包围方形映射为 0～1，角度裁切保留这些坐标。 |
+| 四种正多面体 | U 绕 Y 轴从 +X 朝 -Z 增加，接缝位于 +X；V 在 +Y 为 0、-Y 为 1。 |
+| 旋转体 | U 沿旋转方向从 0 到 1；V 按截面点的输入顺序等步长从 0 到 1。 |
+| 管道 | U 为归一化的路径距离；V 沿生成截面的周向从 0 到 1。 |
+| 环面结 | U 沿环面结的曲线参数从 0 到 1；V 沿生成截面的周向从 0 到 1。 |
+| 平面多边形 | U = 局部 X、V = 局部 Y，不做归一化。 |
+| 挤出多边形 | 端盖直接使用截面 X/Y；侧壁 U 为原始轮廓的累计长度，V 按挤出层从 0 到 1，包含倒角层。 |
+
+长方体各面的递增方向如下，圆角长方体沿用相同方向：
+
+| 面法线 | U 递增方向 | V 递增方向 |
+| --- | --- | --- |
+| +Y | +X | +Z |
+| -Y | +X | -Z |
+| -X | +Z | -Y |
+| +X | -Z | -Y |
+| +Z | +X | -Y |
+| -Z | -X | -Y |
+
+管道和环面结的截面接缝跟随生成的路径坐标架，不固定在某个世界轴上。从截面 +Z 方向看，挤出侧壁的 U 沿外轮廓逆时针增加、沿孔洞顺时针增加，每条轮廓分别从 0 累计。
+
+接缝和极点的顶点可能调整 UV，以避免跨接缝插值。正多面体的 U 可能大于 1。多边形坐标、挤出端盖坐标和侧壁累计长度也可能超出 0～1，这些映射不会按形状包围盒归一化。
+
 ### 网格数据和材质
 
 网格设置与分段设置放在同一个可选配置对象中：
@@ -235,7 +275,7 @@ const sixMaterials = PrimitiveMesh.createCuboid(engine, 1, 1, 1, {
 
 `keepMeshData` 默认关闭，设为 `true` 时保留顶点属性和索引，供上传后读取或修改。
 
-设备自动恢复使用初始创建参数，不保证保留创建后的网格修改。
+设备自动恢复使用初始创建参数。即使 `keepMeshData` 为 `true`，也不会额外备份创建后的网格修改。
 
 `separateMaterialSlots` 适用于长方体、圆柱、圆台、圆锥、多边形、挤出和圆角长方体。默认关闭，生成一个 SubMesh；开启后，生成的 SubMesh 按以下顺序对应材质槽：
 
@@ -268,6 +308,8 @@ const asset = {
 ```
 
 每个 `type` 对应同名的 `PrimitiveMesh.createX` 方法。带类型前缀的字段保存必填形状参数，`<type>Options` 仅保存该工厂的可选设置。角度范围保存为 `{ x: 起始角, y: 结束角 }`，由 Loader 构造 `Vector2`。例如 `circleOptions: { angleRange: { x: 30, y: 180 } }` 创建从 30 度到 180 度的扇形。省略可选设置时采用创建 API 的默认值，包括由其他可选设置决定的默认值；角度仍使用度数。
+
+TypeScript 资产使用 `PrimitiveMeshCapMode` 表达圆柱和圆台的 `caps`；JSON 中保存对应的字符串值：`"both"`、`"top"`、`"bottom"` 或 `"none"`。
 
 | 资产类型 | 必填几何字段 |
 | --- | --- |
@@ -317,6 +359,6 @@ const asset = {
 }
 ```
 
-沿路径拉伸通过必填的 `extrudedPolygonPath` 代替 `extrudedPolygonDepth`，并忽略倒角设置。`extrudedPolygonOptions.closedPath` 设为 `true` 时闭合路径且不生成端盖。路径点保存为 `{ x, y, z }`。
+沿路径挤出通过必填的 `extrudedPolygonPath` 代替 `extrudedPolygonDepth`。可选设置遵循 `PathExtrudedPolygonMeshOptions`，倒角设置仅属于直线挤出。`extrudedPolygonOptions.closedPath` 设为 `true` 时闭合路径且不生成端盖。路径点保存为 `{ x, y, z }`。
 
-以上类型前缀字段及 `<type>Options` 都能经过 Editor 现有的基础网格打包过滤。Editor 预览应使用与保存资产相同的创建方法和参数。
+编辑器对接时，需要使用包含这些 API 的 Engine 包版本。预览应使用与保存资产相同的创建方法和参数。

@@ -38,6 +38,7 @@ import { SubdivisionUtils } from "./primitive/SubdivisionUtils";
  * Meshes have one sub-mesh unless material grouping is enabled.
  * @remarks
  * Input arrays and vectors are copied. Changing them later does not update the mesh.
+ * Device restoration uses the original creation inputs; later mesh edits are not backed up.
  */
 export class PrimitiveMesh {
   private static readonly _sphereSeedPositions = new Float32Array([
@@ -176,6 +177,8 @@ export class PrimitiveMesh {
 
   /**
    * Create a sphere or an open spherical section from a subdivided cube.
+   * U follows the horizontal angle interval and V follows the vertical angle interval, each scaled to 0–1.
+   * The horizontal start marks the U seam; V increases from the upper to the lower boundary.
    * @param engine - The engine that owns the mesh
    * @param radius - The radius in local units
    * @param options - Optional mesh generation settings
@@ -202,6 +205,10 @@ export class PrimitiveMesh {
 
   /**
    * Create an axis-aligned cuboid centered at the origin.
+   * @remarks
+   * Each face spans 0–1 in U/V. Face directions (+U, +V) are:
+   * +Y: (+X, +Z); -Y: (+X, -Z); -X: (+Z, -Y);
+   * +X: (-Z, -Y); +Z: (+X, -Y); -Z: (-X, -Y).
    * @param engine - The engine that owns the mesh
    * @param width - The full size along X in local units
    * @param height - The full size along Y in local units
@@ -229,6 +236,7 @@ export class PrimitiveMesh {
 
   /**
    * Create a plane in XZ facing +Y, centered at the origin.
+   * UVs span 0–1, with U along +X and V along +Z.
    * @param engine - The engine that owns the mesh
    * @param width - The full size along X in local units
    * @param depth - The full size along Z in local units
@@ -248,6 +256,8 @@ export class PrimitiveMesh {
 
   /**
    * Create a cylinder centered on Y with equal end radii.
+   * U spans the angular range from 0 to 1; V runs from 0 at the top to 1 at the bottom.
+   * The default side seam is at -Z. Both caps use planar UVs with U along +X and V along -Z.
    * @param engine - The engine that owns the mesh
    * @param radius - The radius in local units
    * @param height - The full size along Y in local units
@@ -281,6 +291,8 @@ export class PrimitiveMesh {
 
   /**
    * Create a truncated cone centered on Y with independently sized ends.
+   * U spans the angular range from 0 to 1; V runs from 0 at the top to 1 at the bottom.
+   * The default side seam is at -Z. Both caps use planar UVs with U along +X and V along -Z.
    * @param engine - The engine that owns the mesh
    * @param topRadius - The top radius in local units
    * @param bottomRadius - The bottom radius in local units
@@ -321,6 +333,8 @@ export class PrimitiveMesh {
 
   /**
    * Create a cone centered on Y with its tip at the top.
+   * U spans the angular range from 0 to 1; V runs from 0 at the tip to 1 at the base.
+   * The default side seam is at -Z. The base uses planar UVs with U along +X and V along -Z.
    * @param engine - The engine that owns the mesh
    * @param radius - The bottom radius in local units
    * @param height - The full size along Y in local units
@@ -343,6 +357,8 @@ export class PrimitiveMesh {
 
   /**
    * Create a capsule centered on Y.
+   * U runs around Y from -Z towards -X. V runs from 0 at the top to 1 at the bottom,
+   * proportional to surface length along the hemispheres and cylinder.
    * @param engine - The engine that owns the mesh
    * @param radius - The radius of the cylinder and hemispherical ends in local units
    * @param cylinderHeight - The straight cylindrical section height in local units; total height is `cylinderHeight + 2 * radius`
@@ -368,6 +384,7 @@ export class PrimitiveMesh {
 
   /**
    * Create a torus centered in XY around Z.
+   * U spans the ring angle interval and V spans the tube angle interval, each scaled to 0–1.
    * @param engine - The engine that owns the mesh
    * @param radius - The distance from the origin to the tube centerline in local units
    * @param tubeRadius - The radius of the tube cross-section in local units
@@ -400,6 +417,7 @@ export class PrimitiveMesh {
 
   /**
    * Create a filled disk or sector in XY facing +Z.
+   * UVs project X/Y onto the full disk's bounding square; angular cuts do not rescale them.
    * @param engine - The engine that owns the mesh
    * @param radius - The radius in local units
    * @param options - Optional mesh generation settings
@@ -419,6 +437,7 @@ export class PrimitiveMesh {
 
   /**
    * Create a ring or ring sector in XY facing +Z.
+   * UVs project X/Y onto the outer disk's bounding square; angular cuts do not rescale them.
    * @param engine - The engine that owns the mesh
    * @param outerRadius - The outer radius in local units
    * @param innerRadius - The inner radius in local units
@@ -440,6 +459,8 @@ export class PrimitiveMesh {
 
   /**
    * Create a regular tetrahedron or its spherical subdivision.
+   * UVs use spherical projection around Y, with the U seam at +X and V from 0 at +Y to 1 at -Y.
+   * Triangles crossing the U seam may use values above 1.
    * @param engine - The engine that owns the mesh
    * @param radius - The distance from the origin to each vertex in local units
    * @param options - Optional mesh generation settings
@@ -457,6 +478,8 @@ export class PrimitiveMesh {
 
   /**
    * Create a regular octahedron or its spherical subdivision.
+   * UVs use spherical projection around Y, with the U seam at +X and V from 0 at +Y to 1 at -Y.
+   * Triangles crossing the U seam may use values above 1.
    * @param engine - The engine that owns the mesh
    * @param radius - The distance from the origin to each vertex in local units
    * @param options - Optional mesh generation settings
@@ -474,6 +497,8 @@ export class PrimitiveMesh {
 
   /**
    * Create a regular icosahedron or its spherical subdivision.
+   * UVs use spherical projection around Y, with the U seam at +X and V from 0 at +Y to 1 at -Y.
+   * Triangles crossing the U seam may use values above 1.
    * @param engine - The engine that owns the mesh
    * @param radius - The distance from the origin to each vertex in local units
    * @param options - Optional mesh generation settings
@@ -491,6 +516,8 @@ export class PrimitiveMesh {
 
   /**
    * Create a regular dodecahedron or its spherical subdivision.
+   * UVs use spherical projection around Y, with the U seam at +X and V from 0 at +Y to 1 at -Y.
+   * Triangles crossing the U seam may use values above 1.
    * @param engine - The engine that owns the mesh
    * @param radius - The distance from the origin to each vertex in local units
    * @param options - Optional mesh generation settings
@@ -508,6 +535,8 @@ export class PrimitiveMesh {
 
   /**
    * Revolve a radius-height profile around Y.
+   * No end caps are added automatically.
+   * U spans the revolution from 0 to 1; V advances uniformly by profile point index from 0 to 1.
    * @param engine - The engine that owns the mesh
    * @param profile - The radius-height profile, with at least two points; X is radius and Y is height
    * @param options - Optional mesh generation settings
@@ -526,7 +555,8 @@ export class PrimitiveMesh {
   }
 
   /**
-   * Sweep a circular cross-section along a path.
+   * Sweep a circular cross-section along a path without end caps.
+   * U measures normalized path distance; V runs around the generated path frame from 0 to 1.
    * @param engine - The engine that owns the mesh
    * @param path - The centerline points, resampled at equal distances along the polyline; at least two distinct points are required
    * @param radius - The radius of the cross-section in local units
@@ -547,6 +577,7 @@ export class PrimitiveMesh {
 
   /**
    * Create a zero-thickness polygon mesh in the XY plane, facing +Z.
+   * UVs use the local X/Y coordinates directly, without normalization.
    * @param engine - The engine that owns the mesh
    * @param shapes - A contour, a polygon with holes, or an array of polygons; closing points need not be repeated
    * @param options - Optional mesh generation settings
@@ -567,6 +598,8 @@ export class PrimitiveMesh {
 
   /**
    * Extrude polygon contours along +Z.
+   * Caps use their local X/Y coordinates as UVs. Wall U measures the original contour length;
+   * V follows the generated extrusion layers from 0 to 1, including bevel layers.
    * @param engine - The engine that owns the mesh
    * @param shapes - A contour, a polygon with holes, or an array of polygons; closing points need not be repeated
    * @param depth - The total extrusion depth in local units, including both end bevels
@@ -583,6 +616,8 @@ export class PrimitiveMesh {
    * Extrude polygon contours along a spatial path.
    * @remarks
    * Open paths generate both end caps; closed paths join the end cross-sections without caps.
+   * Caps use cross-section X/Y coordinates as UVs. Wall U measures the contour length;
+   * V follows the path from 0 to 1.
    * @param engine - The engine that owns the mesh
    * @param shapes - A contour, a polygon with holes, or an array of polygons; closing points need not be repeated
    * @param path - The extrusion path in local coordinates, with at least two distinct points
@@ -632,6 +667,7 @@ export class PrimitiveMesh {
 
   /**
    * Create a closed torus knot. At least one of `axisTurns` and `crossSectionTurns` must be nonzero.
+   * U follows the knot parameter from 0 to 1; V runs around the generated tube cross-section from 0 to 1.
    * @param engine - The engine that owns the mesh
    * @param radius - The base radius of the torus in local units
    * @param tubeRadius - The radius of the tube cross-section in local units
@@ -661,7 +697,7 @@ export class PrimitiveMesh {
   /**
    * Create an axis-aligned cuboid with rounded edges and corners.
    * @remarks
-   * UVs preserve the cuboid's face orientations and account for rounded edge length.
+   * UVs preserve the face orientations of {@link PrimitiveMesh.createCuboid} and account for rounded edge length.
    * @param engine - The engine that owns the mesh
    * @param width - The full size along X in local units
    * @param height - The full size along Y in local units

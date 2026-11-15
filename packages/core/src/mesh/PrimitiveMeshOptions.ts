@@ -6,7 +6,7 @@ import type { PrimitiveMeshCapMode } from "./enums/PrimitiveMeshCapMode";
  */
 export interface PrimitiveMeshOptions {
   /**
-   * Whether to retain readable mesh data after uploading it to the GPU.
+   * Whether to retain readable vertex attributes and indices after mesh creation.
    * @defaultValue `false`
    */
   keepMeshData?: boolean;

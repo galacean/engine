@@ -671,7 +671,7 @@ export class ModelMesh extends Mesh {
    * Calculate tangents from readable positions, normals and UVs.
    * @remarks
    * Without indices, every three consecutive vertices form a triangle.
-   * Triangles with zero UV area are ignored.
+   * Incomplete trailing triangles and triangles with zero UV area are ignored.
    * @see http://foundationsofgameenginedev.com/FGED2-sample.pdf
    */
   calculateTangents(): void {

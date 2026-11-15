@@ -193,11 +193,17 @@ export type PrimitiveMeshAsset =
     }
   | {
       type: "lathe";
+      /**
+       * The profile points in local units; x is the radius from the Y axis and y is the height.
+       */
       latheProfile: SerializedPrimitiveMeshData<readonly Vector2[]>;
       latheOptions?: SerializedPrimitiveMeshData<LatheMeshOptions>;
     }
   | {
       type: "tube";
+      /**
+       * The centerline points in local coordinates.
+       */
       tubePath: SerializedPrimitiveMeshData<readonly Vector3[]>;
       /**
        * The radius of the cross-section in local units.
@@ -207,6 +213,9 @@ export type PrimitiveMeshAsset =
     }
   | {
       type: "polygon";
+      /**
+       * The polygons in the XY plane, including any holes.
+       */
       polygonShapes: readonly SerializedPrimitiveMeshData<PolygonShape>[];
       polygonOptions?: PolygonMeshOptions;
     }
@@ -216,6 +225,9 @@ export type PrimitiveMeshAsset =
        * The total extrusion depth in local units, including both bevels.
        */
       extrudedPolygonDepth: number;
+      /**
+       * The cross-section contours and optional holes in local XY coordinates.
+       */
       extrudedPolygonShapes: readonly SerializedPrimitiveMeshData<PolygonShape>[];
       extrudedPolygonOptions?: LinearExtrudedPolygonMeshOptions;
     }
@@ -225,6 +237,9 @@ export type PrimitiveMeshAsset =
        * The path points in local coordinates.
        */
       extrudedPolygonPath: SerializedPrimitiveMeshData<readonly Vector3[]>;
+      /**
+       * The cross-section contours and optional holes in local XY coordinates.
+       */
       extrudedPolygonShapes: readonly SerializedPrimitiveMeshData<PolygonShape>[];
       extrudedPolygonOptions?: PathExtrudedPolygonMeshOptions;
     }

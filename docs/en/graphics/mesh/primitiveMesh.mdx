@@ -36,7 +36,7 @@ Built-in geometries not meeting your needs? You can create a `Mesh` asset in the
 
 ## Script Usage
 
-The currently provided geometries are as follows:
+The following examples show common geometries. The complete factory list appears under [Procedural geometry](#procedural-geometry).
 
 - [createCuboid](/apis/core/#PrimitiveMesh-createCuboid) **Cuboid**
 
@@ -134,7 +134,7 @@ renderer.setMaterial(material);
 Each factory takes its required shape inputs first, followed by an optional named settings object. Dimensions, radii, contours and paths must be explicit. Options contain subdivisions, angular ranges and mesh settings; omit the object or its fields to use their documented defaults. For example, `createSphere` takes a radius followed by `SphereMeshOptions`:
 
 ```ts
-const unitSphere = PrimitiveMesh.createSphere(engine, 0.5);
+const smallSphere = PrimitiveMesh.createSphere(engine, 0.5);
 const sphere = PrimitiveMesh.createSphere(engine, 1);
 const smoothSphere = PrimitiveMesh.createSphere(engine, 1, { subdivisionLevel: 4 });
 const cube = PrimitiveMesh.createCuboid(engine, 2, 2, 2);
@@ -147,7 +147,7 @@ const mirroredKnot = PrimitiveMesh.createTorusKnot(engine, 1, 0.1, 2, -3);
 
 Cuboid width, height and depth are separate required arguments. Plane width and depth are also required. Subsequent subdivision counts for planes and cuboids default to the first direction. Spheres use one subdivision level, defaulting to 3 and clamped to 1 through 6. Cylinders have one radius; use `createTruncatedCone` for different top and bottom radii. Rings take the required outer radius first, followed by the required inner radius.
 
-For torus knots, `axisTurns` counts revolutions around the central axis and `crossSectionTurns` counts revolutions around the torus cross-section. Both are signed integers, independent of mesh subdivisions. Negative values reverse the corresponding winding direction; zero keeps that angle fixed.
+For torus knots, `axisTurns` counts revolutions around the central axis and `crossSectionTurns` counts revolutions around the torus cross-section. Both are signed integers, independent of mesh subdivisions. Negative values reverse the corresponding winding direction; zero keeps that angle fixed. At least one must be nonzero.
 
 | Capability | Methods |
 | --- | --- |
@@ -178,7 +178,11 @@ Cylinder and frustum `caps` use `PrimitiveMeshCapMode`: `Both` (default), `Top`,
 
 ### Contours and paths
 
-Contours and lathe profiles use `Vector2` arrays, and path points use `Vector3` arrays. Pass a point array for a simple polygon. Use `{ points, holes }` for a polygon containing holes, or an array of these objects for multiple polygons. Closing points need not be repeated.
+Polygon contours use `Vector2` arrays. Pass a point array for a simple polygon. Use `{ points, holes }` for a polygon containing holes, or an array of these objects for multiple polygons. Polygon contours close automatically, so the first point need not be repeated.
+
+`createPolygon` creates a zero-thickness surface in XY facing +Z, without side walls. `createExtrudedPolygon` gives the contour depth or sweeps it along a path, generating side walls and any end caps.
+
+`createLathe` revolves a `Vector2` profile around Y: `x` is the radius from the Y axis and `y` is the height, both in local units. Consecutive profile points are connected in order; end caps are not added automatically. Path points for tubes and extrusions use `Vector3` arrays in local coordinates.
 
 ```ts
 import { Vector2, Vector3 } from "@galacean/engine";
@@ -213,6 +217,42 @@ For tubes and path extrusions, `closedPath` defaults to `false`. Set it to `true
 
 `contourOffset` defaults to `0` and shifts the side-wall outline: positive values expand the solid and contract holes, while negative values do the reverse. It also applies when `bevelWidth` is `0`. Bevels are cut into this outline and included in `depth`, so they do not increase the total depth.
 
+### UV mapping
+
+The directions below describe increasing UV0 values in local space, assuming positive dimensions and default angle ranges.
+
+| Geometry | UV mapping |
+| --- | --- |
+| Plane | U increases along +X and V along +Z; both span 0–1. |
+| Cuboid and rounded cuboid | Each face uses its own 0–1 square, with the directions listed below. Rounded cuboids account for rounded edge length. |
+| Sphere | U follows the requested horizontal interval, starting at -X towards +Z by default. V follows the requested vertical interval from its upper to lower boundary. Each interval maps to 0–1. |
+| Cylinder, truncated cone and cone sides | U spans the selected angular range from 0 to 1, starting at -Z towards -X by default. V is 0 at the top and 1 at the bottom. |
+| Cylinder, truncated cone and cone caps | U increases along +X and V along -Z on both ends. The center is (0.5, 0.5), and each cap's diameter spans 0–1. |
+| Capsule | U wraps around Y from -Z towards -X. V runs from 0 at the top to 1 at the bottom, proportional to surface length along the hemispheres and cylinder. |
+| Torus | U spans `ringAngleRange` and V spans `tubeAngleRange`, each from 0 to 1. |
+| Circle and flat ring | U increases along +X and V along +Y. The full outer disk's bounding square maps to 0–1; angular cuts keep these coordinates. |
+| Four regular polyhedra | U wraps around Y from +X towards -Z, with its seam at +X. V runs from 0 at +Y to 1 at -Y. |
+| Lathe | U spans the revolution from 0 to 1. V advances from 0 to 1 in equal steps per profile point, following input order. |
+| Tube | U measures normalized path distance; V runs around the generated cross-section from 0 to 1. |
+| Torus knot | U follows the knot parameter from 0 to 1; V runs around the generated cross-section from 0 to 1. |
+| Polygon | U = local X and V = local Y, without normalization. |
+| Extruded polygon | Caps use cross-section X/Y directly. Wall U measures the original contour length; V advances from 0 to 1 through the extrusion layers, including bevel layers. |
+
+Cuboid face directions also apply to rounded cuboids:
+
+| Face normal | Increasing U | Increasing V |
+| --- | --- | --- |
+| +Y | +X | +Z |
+| -Y | +X | -Z |
+| -X | +Z | -Y |
+| +X | -Z | -Y |
+| +Z | +X | -Y |
+| -Z | -X | -Y |
+
+Tube and torus-knot cross-section seams follow the generated path frame rather than a fixed world axis. On extruded walls, U increases counterclockwise around outer contours and clockwise around holes, viewed from cross-section +Z. Each contour starts its own distance count at 0.
+
+Seam and pole vertices may use adjusted UVs to avoid interpolating across a wrap. Regular-polyhedron U values can exceed 1. Polygon coordinates, extrusion cap coordinates and wall distances can also lie outside 0–1; these mappings are not normalized to the shape bounds.
+
 ### Mesh data and materials
 
 Mesh settings and subdivision counts belong to the optional settings object:
@@ -229,7 +269,7 @@ const sixMaterials = PrimitiveMesh.createCuboid(engine, 1, 1, 1, {
 
 `keepMeshData` defaults to false. Set it to true to retain vertex attributes and indices for reading or editing after upload.
 
-Automatic device restoration uses the original creation parameters. It does not guarantee preservation of mesh edits made after creation.
+Automatic device restoration uses the original creation parameters. Edits made after creation are not backed up, even when `keepMeshData` is true.
 
 `separateMaterialSlots` is available for cuboids, cylinders, truncated cones, cones, polygons, extrusions and rounded cuboids. It defaults to false, which creates one SubMesh. When enabled, the generated SubMeshes correspond to material slots in this order:
 
@@ -262,6 +302,8 @@ const asset = {
 ```
 
 Each `type` selects the matching `PrimitiveMesh.createX` method. Type-prefixed fields store the required shape inputs, and `<type>Options` stores only that factory's optional settings. Angular ranges are stored as `{ x: startAngle, y: endAngle }`, and the loader constructs `Vector2` instances. For example, `circleOptions: { angleRange: { x: 30, y: 180 } }` creates a sector from 30 to 180 degrees. Omitted option fields use the creation API's defaults, including defaults derived from another option. Angles remain in degrees.
+
+TypeScript assets use `PrimitiveMeshCapMode` for cylinder and frustum `caps`; JSON stores its string values: `"both"`, `"top"`, `"bottom"` or `"none"`.
 
 | Asset type | Required geometry fields |
 | --- | --- |
@@ -311,6 +353,6 @@ Profiles and polygon contours store `{ x, y }` points; paths store `{ x, y, z }`
 }
 ```
 
-Path extrusion uses the required `extrudedPolygonPath` field instead of `extrudedPolygonDepth` and ignores bevel settings. Set `extrudedPolygonOptions.closedPath` to `true` for a closed path without end caps. Save path points as `{ x, y, z }`.
+Path extrusion uses the required `extrudedPolygonPath` field instead of `extrudedPolygonDepth`. Its options follow `PathExtrudedPolygonMeshOptions`; bevel settings belong only to linear extrusion. Set `extrudedPolygonOptions.closedPath` to `true` for a closed path without end caps. Save path points as `{ x, y, z }`.
 
-The type-prefixed fields, including `<type>Options`, pass through the Editor's primitive asset bundler. Editor previews should select the same creation method and parameters as the saved asset.
+When integrating an editor, use an Engine package version that exposes these APIs. Previews and saved assets should select the same creation method and parameters.

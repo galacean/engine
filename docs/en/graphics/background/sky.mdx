@@ -43,9 +43,9 @@ Procedural sky is the default background in 3D projects in the editor. You can a
 ### Code to Set Procedural Sky
 
 ```typescript
-// 创建大气散射材质
+// Create the atmospheric scattering material
 const skyMaterial = new SkyProceduralMaterial(engine);
-// 设置天空盒
+// Set the procedural sky background
 const background = scene.background;
 background.mode = BackgroundMode.Sky;
 background.sky.material = skyMaterial;
