@@ -22,6 +22,7 @@ Shader "Lighting/ScreenSpaceReflection" {
       highp sampler2D material_SSRSceneDepthTexture;
       highp sampler2D material_SSROpaqueDepthTexture;
       highp sampler2D material_SSRSurfaceTexture;
+      highp sampler2D material_SSRResponseTexture;
       highp sampler2D material_SSRReceiverDepthTexture;
       vec4 material_SSRSurfaceTexelSize;
       vec4 material_SSRTraceTexelSize;
@@ -344,6 +345,11 @@ Shader "Lighting/ScreenSpaceReflection" {
         float stabilityConfidence = smoothstep(-1.0, -0.9, viewRayAlignment);
         float confidence = edgeConfidence * distanceConfidence * thicknessConfidence * roughnessConfidence
           * frontFaceConfidence * stabilityConfidence;
+        #ifdef SSR_SOURCE_CONFIDENCE
+          vec4 response = texture2D(material_SSRResponseTexture, uv);
+          float sourceConfidence = response.a < 0.0 ? saturate(-response.a - 1.0) : 1.0;
+          confidence *= sourceConfidence;
+        #endif
         if (material_SSRDebugMode > 5.5) {
           return vec4(vec3(executedStepFraction), confidence);
         }
@@ -628,7 +634,23 @@ Shader "Lighting/ScreenSpaceReflection" {
         vec3 viewPosition = reconstructScreenSpaceReflectionViewPosition(uv, receiverDepth);
         vec3 viewNormal = decodeScreenSpaceReflectionViewNormal(surface.rg);
         vec3 environmentRadiance = sampleScreenSpaceReflectionEnvironment(viewPosition, viewNormal, surface.b);
-        float ssrScale = saturate(camera_ScreenSpaceReflectionIntensity) * saturate(response.a);
+        float receiverScale = response.a;
+        #ifdef SSR_SOURCE_CONFIDENCE
+          // Preserve V3's RGBA8 response quantization when it shares a signed
+          // half-float attachment with a layered receiver. Positive alpha retains
+          // its original receiver-scale meaning and never weights source rays.
+          response.rgb = floor(saturate(response.rgb) * 255.0 + 0.5) / 255.0;
+          if (response.a < 0.0) {
+            float receiverConfidence = saturate(-response.a - 1.0);
+            // Only attenuate: this ratio is bounded by one, even near zero.
+            // A uniform confidence already present in Trace is not applied twice.
+            trace *= receiverConfidence / max(max(receiverConfidence, trace.a), EPSILON);
+            receiverScale = 1.0;
+          } else {
+            receiverScale = floor(saturate(receiverScale) * 255.0 + 0.5) / 255.0;
+          }
+        #endif
+        float ssrScale = saturate(camera_ScreenSpaceReflectionIntensity) * saturate(receiverScale);
         float ssrBlend = saturate(trace.a * ssrScale);
         // Trace RGB is confidence-premultiplied before spatial filtering. This
         // form preserves energy when bilinear filtering

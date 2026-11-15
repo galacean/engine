@@ -108,13 +108,13 @@ it("CR2-003 repeated authored receiver queries do not rewrite uniforms and inval
     for (let i = 0; i < 4; i++) expect(SSR.getMaterialReceiverMode(material)).toBe(Receiver.OpaqueComposite);
     material.screenSpaceReflection = { mode: "On", intensity: 0.6 };
     expect(calls).not.toHaveBeenCalled();
-    material.shaderData.enableMacro("MATERIAL_ENABLE_CLEAR_COAT");
+    material.shaderData.enableMacro("MATERIAL_ENABLE_SHEEN");
     expect(SSR.getMaterialReceiverMode(material)).toBe(Receiver.Disabled);
     expect(calls).not.toHaveBeenCalled();
     calls.mockClear();
     expect(SSR.getMaterialReceiverMode(material)).toBe(Receiver.Disabled);
     expect(calls).not.toHaveBeenCalled();
-    material.shaderData.disableMacro("MATERIAL_ENABLE_CLEAR_COAT");
+    material.shaderData.disableMacro("MATERIAL_ENABLE_SHEEN");
     expect(SSR.getMaterialReceiverMode(material)).toBe(Receiver.OpaqueComposite);
     expect(SSR.getMaterialReceiverMode(material, RenderQueueType.Transparent)).toBe(Receiver.Disabled);
     expect(SSR.getMaterialReceiverMode(material, RenderQueueType.Opaque)).toBe(Receiver.OpaqueComposite);
@@ -180,11 +180,11 @@ it("CR3-001 clearing author settings restores runtime ownership and the pre-auth
       material.screenSpaceReflection = null;
       expect(material.shaderData.getFloat("material_ScreenSpaceReflectionIntensity")).toBe(0.3);
       // Restore a dormant legacy registration even while its current effects are unsupported.
-      material.shaderData.enableMacro("MATERIAL_ENABLE_CLEAR_COAT");
+      material.shaderData.enableMacro("MATERIAL_ENABLE_SHEEN");
       material.screenSpaceReflection = { mode: "Off", intensity: 0.4 };
       material.screenSpaceReflection = null;
       expect(SSR.getMaterialReceiverMode(material)).toBe(Receiver.Disabled);
-      material.shaderData.disableMacro("MATERIAL_ENABLE_CLEAR_COAT");
+      material.shaderData.disableMacro("MATERIAL_ENABLE_SHEEN");
       expect(SSR.getMaterialReceiverMode(material)).toBe(Receiver.OpaqueComposite);
       expect(material.shaderData.getFloat("material_ScreenSpaceReflectionIntensity")).toBe(0.3);
     } finally {

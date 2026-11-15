@@ -6,6 +6,7 @@ import {
   type ScreenSpaceReflectionSettingsData
 } from "./ScreenSpaceReflectionSettings";
 import type { Engine } from "../../Engine";
+import { GLCapabilityType } from "../../base/Constant";
 import { ContentRestorer } from "../../asset/ContentRestorer";
 import { Texture2D, TextureFormat } from "../../texture";
 import type { Camera } from "../../Camera";
@@ -88,7 +89,8 @@ export type ScreenSpaceReflectionMaterialReceiverUnsupportedReason =
   | "missing-screen-space-reflection-surface-pass"
   | "screen-space-reflection-receiver-contract-not-in-active-subshader"
   | "unsupported-screen-space-reflection-receiver-contract"
-  | "unsupported-screen-space-reflection-material-lobes";
+  | "unsupported-screen-space-reflection-material-lobes"
+  | "unsupported-screen-space-reflection-source-confidence-format";
 
 /** Query result for a material's explicit SSR receiver contract. */
 export interface ScreenSpaceReflectionMaterialReceiverCapability {
@@ -413,6 +415,27 @@ export class ScreenSpaceReflection {
   static readonly MATERIAL_AUTO_RECEIVER_CONTRACT = "PbrV1";
   /** RGBA8 world-space oct8 normal, roughness/weight and a separate colored response. V2 used view-space normals. */
   static readonly MATERIAL_RECEIVER_CONTRACT = "ColorResponseV3";
+  /** Surface selects one Clear Coat PBR lobe and leaves the other lobe's IBL unchanged. */
+  static readonly MATERIAL_CLEAR_COAT_RECEIVER_TAG = "screenSpaceReflectionClearCoat";
+  static readonly MATERIAL_CLEAR_COAT_RECEIVER_CONTRACT = "SingleLayerV1";
+  /** Optional signed response-alpha encoding, separate from the V3 receiver weights. */
+  static readonly MATERIAL_SOURCE_CONFIDENCE_TAG = "screenSpaceReflectionSourceConfidence";
+  static readonly MATERIAL_SOURCE_CONFIDENCE_CONTRACT = "SignedAlphaV1";
+
+  /** Whether an enabled layered Surface needs a signed, half-float response attachment. */
+  static requiresMaterialSourceConfidence(material: Material): boolean {
+    return (
+      material.shaderData._macroCollection.isEnable(ScreenSpaceReflection._clearCoatMacro) &&
+      (material.shader?.subShaders[0]?.passes.some(
+        (pass) =>
+          pass.getTagValue(ScreenSpaceReflection._pipelineStageTag) === PipelineStage.ScreenSpaceReflectionSurface &&
+          pass.getTagValue(ScreenSpaceReflection.MATERIAL_SOURCE_CONFIDENCE_TAG) ===
+            ScreenSpaceReflection.MATERIAL_SOURCE_CONFIDENCE_CONTRACT
+      ) ??
+        false)
+    );
+  }
+
   /** Forward implements sampling of the published camera SSR texture. */
   static readonly MATERIAL_TRANSPARENT_SAMPLE_TAG = "screenSpaceReflectionTransparentSample";
   static readonly MATERIAL_TRANSPARENT_SAMPLE_CONTRACT = "SampleV1";
@@ -466,12 +489,17 @@ export class ScreenSpaceReflection {
   private static readonly _roughnessMetallicTextureProperty = ShaderProperty.getByName(
     "material_RoughnessMetallicTexture"
   );
+  private static readonly _clearCoatMacro = ShaderMacro.getByName("MATERIAL_ENABLE_CLEAR_COAT");
+  private static readonly _clearCoatProperty = ShaderProperty.getByName("material_ClearCoat");
+  private static readonly _clearCoatRoughnessProperty = ShaderProperty.getByName("material_ClearCoatRoughness");
+  private static readonly _clearCoatRoughnessTextureMacro = ShaderMacro.getByName(
+    "MATERIAL_HAS_CLEAR_COAT_ROUGHNESS_TEXTURE"
+  );
   /** @internal */
   // Kept only to clear state serialized by the former macro-based registration.
   // Receiver ownership itself is ordinary Material state and never affects program variants.
   private static readonly _legacyReceiverMacro = ShaderMacro.getByName("MATERIAL_IS_SCREEN_SPACE_REFLECTION_RECEIVER");
   private static readonly _unsupportedLobeMacros = [
-    ShaderMacro.getByName("MATERIAL_ENABLE_CLEAR_COAT"),
     ShaderMacro.getByName("MATERIAL_ENABLE_ANISOTROPY"),
     ShaderMacro.getByName("MATERIAL_ENABLE_IRIDESCENCE"),
     ShaderMacro.getByName("MATERIAL_ENABLE_SHEEN"),
@@ -876,6 +904,7 @@ export class ScreenSpaceReflection {
     const activeSubShader = subShaders?.[0];
     let activeHasSurfacePass = false;
     let activeHasIncompatibleContract = false;
+    let activeSupportsClearCoat = true;
     let activeIncompatibleContract: string | null = null;
     if (activeSubShader) {
       const passes = activeSubShader.passes;
@@ -885,6 +914,9 @@ export class ScreenSpaceReflection {
           continue;
         }
         activeHasSurfacePass = true;
+        activeSupportsClearCoat &&=
+          pass.getTagValue(ScreenSpaceReflection.MATERIAL_CLEAR_COAT_RECEIVER_TAG) ===
+          ScreenSpaceReflection.MATERIAL_CLEAR_COAT_RECEIVER_CONTRACT;
         const contract = (pass.getTagValue(ScreenSpaceReflection._receiverContractTag) as string | null) ?? null;
         if (!activeHasIncompatibleContract && contract !== ScreenSpaceReflection.MATERIAL_RECEIVER_CONTRACT) {
           activeHasIncompatibleContract = true;
@@ -896,6 +928,21 @@ export class ScreenSpaceReflection {
     if (activeHasSurfacePass) {
       if (!activeHasIncompatibleContract) {
         const macroCollection = material.shaderData._macroCollection;
+        // V3 alone does not promise layered responses. Existing custom Surface
+        // producers must explicitly opt in before enabling Clear Coat.
+        if (macroCollection.isEnable(ScreenSpaceReflection._clearCoatMacro) && !activeSupportsClearCoat) {
+          return ScreenSpaceReflection._unsupportedLobesCapability;
+        }
+        if (ScreenSpaceReflection.requiresMaterialSourceConfidence(material)) {
+          const rhi = material.engine._hardwareRenderer;
+          if (!rhi.canIUse(GLCapabilityType.colorBufferHalfFloat) || !rhi.canIUse(GLCapabilityType.textureHalfFloat)) {
+            return {
+              supported: false,
+              contract: ScreenSpaceReflection.MATERIAL_RECEIVER_CONTRACT,
+              unsupportedReason: "unsupported-screen-space-reflection-source-confidence-format"
+            };
+          }
+        }
         const unsupportedLobeMacros = ScreenSpaceReflection._unsupportedLobeMacros;
         for (let i = 0, n = unsupportedLobeMacros.length; i < n; i++) {
           if (macroCollection.isEnable(unsupportedLobeMacros[i])) {
@@ -1080,7 +1127,23 @@ export class ScreenSpaceReflection {
     // remains eligible because the Surface pass applies the per-pixel gate.
     if (shaderData.getTexture(ScreenSpaceReflection._roughnessMetallicTextureProperty)) return true;
     const roughness = shaderData.getFloat(ScreenSpaceReflection._roughnessProperty);
-    return roughness === undefined || roughness <= this._opaqueResolvedSettingsState.maxRoughness;
+    const maxRoughness = this._opaqueResolvedSettingsState.maxRoughness;
+    if (roughness === undefined || roughness <= maxRoughness) return true;
+    // Texture factors only reduce these scalar bounds. Normal AA can increase
+    // roughness, so final per-lobe eligibility remains a Surface decision.
+    if (
+      shaderData._macroCollection.isEnable(ScreenSpaceReflection._clearCoatMacro) &&
+      (shaderData.getFloat(ScreenSpaceReflection._clearCoatProperty) ?? 0) > 0
+    ) {
+      const coatRoughness = shaderData.getFloat(ScreenSpaceReflection._clearCoatRoughnessProperty);
+      // Keep textured roughness eligible even when the scalar is above cutoff.
+      return (
+        shaderData._macroCollection.isEnable(ScreenSpaceReflection._clearCoatRoughnessTextureMacro) ||
+        coatRoughness === undefined ||
+        coatRoughness <= maxRoughness
+      );
+    }
+    return false;
   }
 
   /** @internal */

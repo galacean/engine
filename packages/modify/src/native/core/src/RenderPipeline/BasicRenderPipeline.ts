@@ -81,8 +81,10 @@ export class BasicRenderPipeline {
     const cache = this._screenSpaceReflectionReceiverCache[queue];
     let eligible = cache.get(material);
     if (eligible === undefined) {
-      eligible = this._camera.screenSpaceReflection._isMaterialReceiver(material, queue);
+      // Resolve author intent before reading the derived intensity. A receiver
+      // recovering from an unsupported layered variant must work this frame.
       ScreenSpaceReflection.resolveMaterialReceiver(material, queue);
+      eligible = this._camera.screenSpaceReflection._isMaterialReceiver(material, queue);
       cache.set(material, eligible);
     }
     return eligible;
@@ -255,12 +257,21 @@ export class BasicRenderPipeline {
         this._isScreenSpaceReflectionReceiver(material, RenderQueueType.AlphaTest);
       const transparentRegistrationFilter = (material: Material) =>
         this._isScreenSpaceReflectionReceiver(material, RenderQueueType.Transparent);
-      const opaqueFilter = (material: Material, element: RenderElement) =>
-        opaqueRegistrationFilter(material) &&
-        this._isScreenSpaceReflectionElementMaskSafe(element, RenderQueueType.Opaque);
-      const alphaTestFilter = (material: Material, element: RenderElement) =>
-        alphaTestRegistrationFilter(material) &&
-        this._isScreenSpaceReflectionElementMaskSafe(element, RenderQueueType.AlphaTest);
+      let requiresSourceConfidence = false;
+      const opaqueFilter = (material: Material, element: RenderElement) => {
+        const eligible =
+          opaqueRegistrationFilter(material) &&
+          this._isScreenSpaceReflectionElementMaskSafe(element, RenderQueueType.Opaque);
+        if (eligible) requiresSourceConfidence ||= ScreenSpaceReflection.requiresMaterialSourceConfidence(material);
+        return eligible;
+      };
+      const alphaTestFilter = (material: Material, element: RenderElement) => {
+        const eligible =
+          alphaTestRegistrationFilter(material) &&
+          this._isScreenSpaceReflectionElementMaskSafe(element, RenderQueueType.AlphaTest);
+        if (eligible) requiresSourceConfidence ||= ScreenSpaceReflection.requiresMaterialSourceConfidence(material);
+        return eligible;
+      };
       const transparentFilter = (material: Material, element: RenderElement) =>
         transparentRegistrationFilter(material) &&
         this._isScreenSpaceReflectionElementMaskSafe(element, RenderQueueType.Transparent);
@@ -284,7 +295,8 @@ export class BasicRenderPipeline {
         registeredOpaqueReceiverCount +
           registeredTransparentReceiverCount -
           opaqueReceiverCount -
-          transparentReceiverCount
+          transparentReceiverCount,
+        requiresSourceConfidence
       );
       independentCanvasEnabled = baseIndependentCanvasEnabled || screenSpaceReflectionEnabled;
       this._shouldCopyBackgroundColor =

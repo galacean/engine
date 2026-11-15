@@ -215,7 +215,6 @@ it("loads four material classes, preserves strength, resolves queues and restore
   mat.screenSpaceReflection = { ...mat.screenSpaceReflection, mode: "On" };
   expect(mat.screenSpaceReflection.intensity).toBe(0.7);
   for (const macro of [
-    "MATERIAL_ENABLE_CLEAR_COAT",
     "MATERIAL_ENABLE_ANISOTROPY",
     "MATERIAL_ENABLE_IRIDESCENCE",
     "MATERIAL_ENABLE_SHEEN",

@@ -253,7 +253,7 @@ float evaluateClearCoatIBL(Varyings varyings, SurfaceData surfaceData, BSDFData 
     #ifdef MATERIAL_ENABLE_CLEAR_COAT
         vec3 clearCoatRadiance = getLightProbeRadiance(surfaceData, surfaceData.clearCoatNormal, bsdfData.clearCoatRoughness);
         specularColor += clearCoatRadiance * surfaceData.clearCoat * evaluateClearCoatIBLResponse(surfaceData, bsdfData);
-        radianceAttenuation -= surfaceData.clearCoat * F_Schlick(bsdfData.clearCoatSpecularColor.r, 1.0, surfaceData.clearCoatDotNV);
+        radianceAttenuation = evaluateClearCoatIBLAttenuation(surfaceData, bsdfData);
     #endif
 
     return radianceAttenuation;

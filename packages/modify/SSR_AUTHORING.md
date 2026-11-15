@@ -22,10 +22,17 @@ Auto 使用有效 consumer 请求的整组参数。ForceOn 使用作者的相机
 
 ## Shader 契约与透明贡献
 
-- Surface 几何附件保持 RGBA8：RG 是世界空间法线的 oct8 编码，B 是粗糙度，A 是响应权重；独立的响应颜色附件不变。所有 Surface 生产者必须传入最终世界空间法线，Trace、Upsample 和 Composite 解码后再转到视空间。ReceiverNormal Debug 仍显示视空间法线颜色。
+- Surface 几何附件保持 RGBA8：RG 是世界空间法线的 oct8 编码，B 是粗糙度，A 是响应权重；响应颜色使用独立附件，其可选格式扩展见下文。所有 Surface 生产者必须传入最终世界空间法线，Trace、Upsample 和 Composite 解码后再转到视空间。ReceiverNormal Debug 仍显示视空间法线颜色。
 - 固定的世界空间法线不会因相机旋转跨越量化档；这不消除 oct8 的静态角误差（世界向上法线约 0.226°），也不提高动态波浪、法线贴图或物体旋转造成的真实法线变化精度。真实法线仍会跨量化档，未增加时域纹理或改变显存预算。水体原有面向视线的法线翻面规则保留。
 - 接收 Surface 声明 `screenSpaceReflectionReceiver = "ColorResponseV3"`，明确 RG 使用世界空间 oct8。旧视空间 `ColorResponseV2` 资产仍可加载并执行 Forward，但接收能力检查会拒绝它，显式注册、作者 On 和 Auto 均不会执行其 Surface/Trace；需重建 Shader 后才能重新接收 SSR。
 - 透明接收还需 Forward 声明 `screenSpaceReflectionTransparentSample = "SampleV1"`，并实际采样 SSR。普通 PBR 不支持透明接收；River / Heightfield 支持。
+- 不透明及 Alpha Test PBR 支持 Clear Coat。内置 Surface 额外声明 `screenSpaceReflectionClearCoat = "SingleLayerV1"`；自定义 V3 Surface 未声明此能力时仍拒绝清漆，原有无清漆 V3 合同不变。Anisotropy、Iridescence、Sheen、Transmission 及与清漆的混合组合仍不支持。
+- Clear Coat 保持两个 Surface MRT、每接收阶段一次 Trace 和原有全屏 Composite；几何附件仍为 RGBA8，响应附件按下述显式扩展选择格式。Surface 使用 Forward 相同的贴图、独立法线及法线抗锯齿后的粗糙度，按反射响应和追踪粗糙度置信度选择较强的可接收层。清漆响应包含其强度及 AO，基础层响应包含清漆衰减；只替换所选层的环境反射，另一层保留 Forward IBL，不在两层间复用射线。
+- 选层评分接近时，修正量在相对评分差 0 到 0.1 之间平滑衰减到零，切换处回退到原 IBL。此内部过渡避免独立法线硬切换造成的跳变，但可能形成反射减弱的窄带，尚需复杂内容标定。清漆强度或贴图值为零时回到基础层，两层分别服从当前接收阶段 Max Roughness；Surface 的阶段输入不改写 Water 的公开采样合同。雾仅衰减反射修正量。
+- 选层置信度采用可选扩展 `screenSpaceReflectionSourceConfidence = "SignedAlphaV1"`，与 `SingleLayerV1` 分开声明。仅启用 Clear Coat 的变体输出 `response.a = -1 - selectionConfidence`；RGB 保存未乘选层置信度的所选 BRDF 响应，仍包含材质强度、AO 和雾。非负 Alpha 继续遵循旧 V3 的接收权重合同，Trace 对这类源始终使用置信度 1；普通 PBR、Water 和旧自定义 V3 不需修改。旧自定义 Clear Coat 仍须 `SingleLayerV1`，需要淡出源传播时再显式采用此扩展，不能只把淡出混入 RGB。
+- 可见的不透明/Alpha Test 接收者采用此扩展时，现有响应附件由 RGBA8 改为 Point 采样的 RGBA16F；内置 RGB 输出显式保持原 RGBA8 量化，Alpha 在 [-2,-1] 存储独立置信度（约 1/1024 精度）。不新增 RT、附件数量、Draw、Trace 或材质 Resolve；额外显存为全输出尺寸的 `4 * width * height` 字节（1920×1080 约 7.91 MiB），与 Trace 分辨率无关。场景移除这类接收者或 Clear Coat=0 后恢复双 RGBA8。旧自定义 V3 与清漆共享此附件时，Half Float 舍入可能使临近 RGBA8 量化边界的 RGB 出现至多 1 LSB 差异，权重语义保持不变。没有可渲染/可采样 Half Float 时，仅这类清漆接收者不接收 SSR 并保留 Forward IBL，报告 `unsupported-screen-space-reflection-source-confidence-format`；普通 V3 继续原路径。
+- Trace 使用 `C_source * C_hit` 同时预乘 RGB/Alpha，然后三种模式均对这一信号重建。GaussianBilateral 恢复固定归一化的四次线性采样核，不按 BRDF 或材质响应重新归一化，因此成组源共同淡出不会约掉选层置信度。相较上轮七 texel 加 Origin/Response 查询，删除这些额外查询；仅使用扩展的不透明接收阶段，Trace 在最终选中的 origin 增加一次响应 Alpha 查询；普通 PBR 和 Water 独立运行时不启用该采样。
+- Composite 对采用扩展的接收像素仅执行有界衰减：`trace *= C_receiver / max(C_receiver, trace.a, EPSILON)`，然后按原 BRDF/材质强度/AO/雾计算修正量。等价于把重建后的修正置信度限制在接收者置信度以内；同一均匀置信度在 Trace 已乘一次，不再平方。比例始终不超过 1，不反预乘恢复辐射，也不放大小 Alpha 噪声。旧 V3 的非负 Alpha 和 geometry.a 仍按原接收权重乘法处理。
 - Scene / Camera 的 `reflectionContent` 默认为 `OpaqueOnly`；选择 `OpaqueAndTransparent` 后，才捕获显式开启贡献的透明材质。
 - 贡献 Shader 同时提供 `ScreenSpaceReflectionContributionColor` / `ScreenSpaceReflectionContributionDepth`，声明 `screenSpaceReflectionContribution = "ColorDepthV1"`，两个 Pass 都解析为透明队列。
 
@@ -50,7 +57,7 @@ node packages/modify/build/local-engine.mjs
 pnpm exec vitest run --config packages/modify/tests/vitest.config.mjs
 ```
 
-构建脚本将 core、design、galacean、loader、math、physics-physx、rhi-webgl、shader、shader-compiler、ui 复制到忽略目录 `.cache/engine`，应用 override 后执行原生模块和声明构建；design 按原生规则仅生成声明。构建不修改原生源码或发布配置。Editor 及 Sandbox 需使用同一套兼容产物，个人联调配置留在仓库外或忽略目录。
+构建脚本将 core、design、galacean、loader、math、physics-physx、rhi-webgl、shader、shader-compiler、shader-parser、ui 复制到忽略目录 `.cache/engine`，应用 override 后执行原生模块和声明构建；design 按原生规则仅生成声明。构建不修改原生源码或发布配置。Editor 及 Sandbox 需使用同一套兼容产物，个人联调配置留在仓库外或忽略目录。
 
 核心验证覆盖作者配置/Loader/生命周期、旧运行注册兼容、临时开关、六字段预设、透明能力声明及实际渲染。贡献用例保留接收/贡献四组合、Alpha 零、混合、遮挡、1x/4x MSAA、分配失败降级，以及 Heightfield / River 真实后端的 Auto 请求、可见倒影、贡献和销毁释放；不依赖静态截图文件。
 

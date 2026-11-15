@@ -37,6 +37,9 @@ export class ScreenSpaceReflectionPass {
   private static readonly _rayLengthFadeProperty = ShaderProperty.getByName("material_SSRRayLengthFade");
   private static readonly _thicknessProperty = ShaderProperty.getByName("material_SSRThickness");
   private static readonly _maxRoughnessProperty = ShaderProperty.getByName("material_SSRMaxRoughness");
+  private static readonly _surfaceMaxRoughnessProperty = ShaderProperty.getByName(
+    "camera_ScreenSpaceReflectionSurfaceMaxRoughness"
+  );
   private static readonly _edgeFadeProperty = ShaderProperty.getByName("material_SSREdgeFade");
   private static readonly _maxStepsProperty = ShaderProperty.getByName("material_SSRMaxSteps");
   private static readonly _binaryStepsProperty = ShaderProperty.getByName("material_SSRBinarySteps");
@@ -53,6 +56,7 @@ export class ScreenSpaceReflectionPass {
   private _surfaceTarget: RenderTarget | null = null;
   private _traceTarget: RenderTarget | null = null;
   private _traceBlurTarget: RenderTarget | null = null;
+  private _requiresSourceConfidence = false;
   private _filteredTraceTarget: RenderTarget | null = null;
   private _resolvedTraceTarget: RenderTarget | null = null;
   private readonly _surfaceTexelSize = new Vector4();
@@ -172,7 +176,13 @@ export class ScreenSpaceReflectionPass {
   }
 
   /** Freeze explicit receiver phases after culling and before allocating SSR resources. */
-  configureReceiverPhases(opaqueCount: number, transparentCount: number, maskedCount: number = 0): boolean {
+  configureReceiverPhases(
+    opaqueCount: number,
+    transparentCount: number,
+    maskedCount: number = 0,
+    requiresSourceConfidence: boolean = false
+  ): boolean {
+    this._requiresSourceConfidence = requiresSourceConfidence;
     this._opaqueReceiverElementCount = opaqueCount;
     this._transparentReceiverElementCount = transparentCount;
     if (opaqueCount + transparentCount === 0) {
@@ -395,6 +405,12 @@ export class ScreenSpaceReflectionPass {
         (this._traceTarget!.colorTextureCount > 1 ? this._traceTarget!.getColorTexture(1) : null) as Texture2D
       );
       this._uploadSettings(shaderData, receiverMode);
+      // Surface runs before publish(). Keep its phase-local selection input
+      // separate from the public texture/MaxRoughness contract used by Water.
+      this._camera.shaderData.setFloat(
+        ScreenSpaceReflectionPass._surfaceMaxRoughnessProperty,
+        shaderData.getFloat(ScreenSpaceReflectionPass._maxRoughnessProperty)!
+      );
       profiler?.beginSample("surface", receiverMode);
       this._surfaceProfiler = profiler;
       // Copy resolved opaque depth for both phases, never the transparent contribution depth.
@@ -665,7 +681,7 @@ export class ScreenSpaceReflectionPass {
       TextureWrapMode.Clamp,
       TextureFilterMode.Point,
       TextureFilterMode.Point,
-      [TextureFormat.R8G8B8A8]
+      [this._requiresSourceConfidence ? TextureFormat.R16G16B16A16 : TextureFormat.R8G8B8A8]
     );
     this._configurePhaseTraceTarget(firstReceiverMode);
     (this._surfaceTarget.depthTexture as Texture2D).filterMode = TextureFilterMode.Point;
@@ -697,6 +713,11 @@ export class ScreenSpaceReflectionPass {
     const reduced = width < this._fullWidth || height < this._fullHeight;
     const reconstruct = reduced && settings.upsamplingMode !== ScreenSpaceReflectionUpsamplingMode.Bilinear;
     const shaderData = this._material!.shaderData;
+    if (this._requiresSourceConfidence && receiverMode === ScreenSpaceReflectionReceiverMode.OpaqueComposite) {
+      shaderData.enableMacro("SSR_SOURCE_CONFIDENCE");
+    } else {
+      shaderData.disableMacro("SSR_SOURCE_CONFIDENCE");
+    }
     if (reconstruct) shaderData.enableMacro("SSR_STORE_TRACE_ORIGIN");
     else shaderData.disableMacro("SSR_STORE_TRACE_ORIGIN");
     this._recreateTraceTarget(width, height, reconstruct);
