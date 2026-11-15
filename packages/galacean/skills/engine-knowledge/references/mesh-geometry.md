@@ -8,6 +8,8 @@ Reuse a configured mesh when its geometry already meets the task. In Editor-mana
 
 Create the mesh during initialization when its inputs are already known. Rebuild when shape inputs change, such as a path chosen during play; changing the input array alone does not update a generated primitive. Keep the mesh while its geometry is unchanged, and use Entity transforms for placement, rotation and per-instance scaling. When only vertex attributes change, update them on the existing mesh.
 
+For Script-generated shapes, use `createRevolvedSurface` for a profile rotated around an axis, `createTube` for a circular section following a path, `createPolygon` for a flat contour, and `createExtrudedPolygon` to extend a contour by a depth or along a path. Choose the factory from the intended shape, then consult its declaration for the exact inputs and settings.
+
 The following helper generates a tube from a runtime path and assigns it to an existing Renderer whose material is already configured. Call it when the path changes, and reuse the returned mesh if other Renderers should share it.
 
 ```ts

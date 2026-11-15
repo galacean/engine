@@ -83,14 +83,14 @@ class PrimitiveSections {
           rotation: new Vector3(-25, -28, 0)
         },
         {
-          label: "Full lathe",
+          label: "Full revolved surface",
           detail: "angleRange: [0, 360]",
-          mesh: PrimitiveMesh.createLathe(engine, profile, { segments: 32 })
+          mesh: PrimitiveMesh.createRevolvedSurface(engine, profile, { segments: 32 })
         },
         {
-          label: "Partial lathe",
+          label: "Partial revolved surface",
           detail: "angleRange: [30, 270]",
-          mesh: PrimitiveMesh.createLathe(engine, profile, { segments: 32, angleRange: new Vector2(30, 270) })
+          mesh: PrimitiveMesh.createRevolvedSurface(engine, profile, { segments: 32, angleRange: new Vector2(30, 270) })
         }
       ],
       5

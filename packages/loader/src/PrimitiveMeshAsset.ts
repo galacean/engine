@@ -4,13 +4,13 @@ import type {
   ConeMeshOptions,
   CuboidMeshOptions,
   CylinderMeshOptions,
-  LatheMeshOptions,
   LinearExtrudedPolygonMeshOptions,
   PathExtrudedPolygonMeshOptions,
   PlaneMeshOptions,
   PolygonMeshOptions,
   PolygonShape,
   RegularPolyhedronMeshOptions,
+  RevolvedSurfaceMeshOptions,
   RingMeshOptions,
   RoundedCuboidMeshOptions,
   SphereMeshOptions,
@@ -192,12 +192,12 @@ export type PrimitiveMeshAsset =
       dodecahedronOptions?: RegularPolyhedronMeshOptions;
     }
   | {
-      type: "lathe";
+      type: "revolvedSurface";
       /**
        * The profile points in local units; x is the radius from the Y axis and y is the height.
        */
-      latheProfile: SerializedPrimitiveMeshData<readonly Vector2[]>;
-      latheOptions?: SerializedPrimitiveMeshData<LatheMeshOptions>;
+      revolvedSurfaceProfile: SerializedPrimitiveMeshData<readonly Vector2[]>;
+      revolvedSurfaceOptions?: SerializedPrimitiveMeshData<RevolvedSurfaceMeshOptions>;
     }
   | {
       type: "tube";

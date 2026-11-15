@@ -94,9 +94,9 @@ const creators: [string, () => ModelMesh][] = [
   ["icosahedron", () => PrimitiveMesh.createIcosahedron(engine, 0.5, { keepMeshData: true, edgeSegments: 2 })],
   ["dodecahedron", () => PrimitiveMesh.createDodecahedron(engine, 0.5, { keepMeshData: true, edgeSegments: 1 })],
   [
-    "lathe",
+    "revolvedSurface",
     () =>
-      PrimitiveMesh.createLathe(engine, [new Vector2(0, -1), new Vector2(1, 0), new Vector2(0, 1)], {
+      PrimitiveMesh.createRevolvedSurface(engine, [new Vector2(0, -1), new Vector2(1, 0), new Vector2(0, 1)], {
         keepMeshData: true,
         angleRange: new Vector2(0, 360),
         segments: 12
@@ -251,9 +251,9 @@ describe("primitive mesh defaults", () => {
       () => PrimitiveMesh.createDodecahedron(engine, 1, { ...options, edgeSegments: 1 })
     ],
     [
-      "lathe",
-      () => PrimitiveMesh.createLathe(engine, profile, { ...options }),
-      () => PrimitiveMesh.createLathe(engine, profile, { ...options, segments: 12 })
+      "revolvedSurface",
+      () => PrimitiveMesh.createRevolvedSurface(engine, profile, { ...options }),
+      () => PrimitiveMesh.createRevolvedSurface(engine, profile, { ...options, segments: 12 })
     ],
     [
       "tube",
@@ -582,8 +582,8 @@ describe("procedural mesh geometry", () => {
         [1, 0]
       ]
     }
-  ])("preserves $segments segment(s) in a partial lathe", ({ segments, crossSection }) => {
-    const mesh = PrimitiveMesh.createLathe(engine, [new Vector2(1, -1), new Vector2(1, 1)], {
+  ])("preserves $segments segment(s) in a partial revolved surface", ({ segments, crossSection }) => {
+    const mesh = PrimitiveMesh.createRevolvedSurface(engine, [new Vector2(1, -1), new Vector2(1, 1)], {
       keepMeshData: true,
       angleRange: new Vector2(0, 90),
       segments

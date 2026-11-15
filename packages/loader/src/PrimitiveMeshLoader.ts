@@ -84,11 +84,11 @@ class PrimitiveMeshLoader extends Loader<ModelMesh> {
         return PrimitiveMesh.createIcosahedron(engine, data.icosahedronRadius, data.icosahedronOptions);
       case "dodecahedron":
         return PrimitiveMesh.createDodecahedron(engine, data.dodecahedronRadius, data.dodecahedronOptions);
-      case "lathe":
-        return PrimitiveMesh.createLathe(
+      case "revolvedSurface":
+        return PrimitiveMesh.createRevolvedSurface(
           engine,
-          this._parseVector2s(data.latheProfile),
-          this._parseRangeOptions(data.latheOptions)
+          this._parseVector2s(data.revolvedSurfaceProfile),
+          this._parseRangeOptions(data.revolvedSurfaceOptions)
         );
       case "tube":
         return PrimitiveMesh.createTube(engine, this._parseVector3s(data.tubePath), data.tubeRadius, data.tubeOptions);

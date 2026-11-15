@@ -135,12 +135,16 @@ class PrimitiveTopology {
         rotation: new Vector3()
       },
       {
-        label: "Lathe / 8 segments",
+        label: "Revolved surface",
         detail: "segments: 8",
-        mesh: PrimitiveMesh.createLathe(engine, [new Vector2(0.4, -1), new Vector2(0.8, 0), new Vector2(0.4, 1)], {
-          ...keep,
-          segments: 8
-        })
+        mesh: PrimitiveMesh.createRevolvedSurface(
+          engine,
+          [new Vector2(0.4, -1), new Vector2(0.8, 0), new Vector2(0.4, 1)],
+          {
+            ...keep,
+            segments: 8
+          }
+        )
       },
       {
         label: "Tube / path subdivisions",

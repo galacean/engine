@@ -5,13 +5,13 @@ import type {
   ConeMeshOptions,
   CuboidMeshOptions,
   CylinderMeshOptions,
-  LatheMeshOptions,
   LinearExtrudedPolygonMeshOptions,
   PathExtrudedPolygonMeshOptions,
   PlaneMeshOptions,
   PolygonMeshOptions,
   PrimitiveMeshOptions,
   RegularPolyhedronMeshOptions,
+  RevolvedSurfaceMeshOptions,
   RingMeshOptions,
   RoundedCuboidMeshOptions,
   SphereMeshOptions,
@@ -96,7 +96,11 @@ const ringOptions = {
   keepMeshData: true
 } satisfies RingMeshOptions;
 const regularPolyhedronOptions = { edgeSegments: 2, keepMeshData: true } satisfies RegularPolyhedronMeshOptions;
-const latheOptions = { segments: 32, angleRange: new Vector2(0, 270), keepMeshData: true } satisfies LatheMeshOptions;
+const revolvedSurfaceOptions = {
+  segments: 32,
+  angleRange: new Vector2(0, 270),
+  keepMeshData: true
+} satisfies RevolvedSurfaceMeshOptions;
 const tubeOptions = {
   pathSegments: 64,
   radialSegments: 8,
@@ -158,8 +162,8 @@ const meshes: ModelMesh[] = [
   PrimitiveMesh.createIcosahedron(engine, 1, regularPolyhedronOptions),
   PrimitiveMesh.createDodecahedron(engine, 0.5),
   PrimitiveMesh.createDodecahedron(engine, 1, regularPolyhedronOptions),
-  PrimitiveMesh.createLathe(engine, profile),
-  PrimitiveMesh.createLathe(engine, profile, latheOptions),
+  PrimitiveMesh.createRevolvedSurface(engine, profile),
+  PrimitiveMesh.createRevolvedSurface(engine, profile, revolvedSurfaceOptions),
   PrimitiveMesh.createTube(engine, path, 0.5),
   PrimitiveMesh.createTube(engine, path, 0.1, tubeOptions),
   PrimitiveMesh.createPolygon(engine, contour),
@@ -220,8 +224,8 @@ PrimitiveMesh.createOctahedron(engine);
 PrimitiveMesh.createIcosahedron(engine);
 // @ts-expect-error Dodecahedron requires every core shape input
 PrimitiveMesh.createDodecahedron(engine);
-// @ts-expect-error Lathe requires every core shape input
-PrimitiveMesh.createLathe(engine);
+// @ts-expect-error Revolved surface requires every core shape input
+PrimitiveMesh.createRevolvedSurface(engine);
 // @ts-expect-error Tube requires every core shape input
 PrimitiveMesh.createTube(engine, path);
 // @ts-expect-error Polygon requires every core shape input
@@ -329,8 +333,8 @@ const serializedPath = [
   { x: 0, y: 0, z: 0 },
   { x: 0, y: 0, z: 1 }
 ];
-// @ts-expect-error Lathe profiles use Vector2 instances
-PrimitiveMesh.createLathe(engine, serializedContour);
+// @ts-expect-error Revolved surface profiles use Vector2 instances
+PrimitiveMesh.createRevolvedSurface(engine, serializedContour);
 // @ts-expect-error Polygon contours use Vector2 instances
 PrimitiveMesh.createPolygon(engine, serializedContour);
 // @ts-expect-error Polygon holes also use Vector2 instances

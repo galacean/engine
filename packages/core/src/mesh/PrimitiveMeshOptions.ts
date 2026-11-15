@@ -290,9 +290,9 @@ export interface RegularPolyhedronMeshOptions extends PrimitiveMeshOptions {
 }
 
 /**
- * Settings for revolving a radius-height profile around Y.
+ * Settings for a surface of revolution generated from a radius-height profile around Y.
  */
-export interface LatheMeshOptions extends PrimitiveMeshOptions {
+export interface RevolvedSurfaceMeshOptions extends PrimitiveMeshOptions {
   /**
    * The number of segments along the revolution, rounded down with a minimum of 1.
    * @defaultValue `12`

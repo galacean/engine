@@ -155,13 +155,13 @@ For torus knots, `axisTurns` counts revolutions around the central axis and `cro
 | Cylinder, frustum, cone, capsule | `createCylinder`, `createTruncatedCone`, `createCone`, `createCapsule` |
 | Disk, annulus, torus, torus knot | `createCircle`, `createRing`, `createTorus`, `createTorusKnot` |
 | Regular polyhedra | `createTetrahedron`, `createOctahedron`, `createIcosahedron`, `createDodecahedron` |
-| Revolved profile, path tube, polygon, extruded polygon, rounded cuboid | `createLathe`, `createTube`, `createPolygon`, `createExtrudedPolygon`, `createRoundedCuboid` |
+| Revolved surface, path tube, polygon, extruded polygon, rounded cuboid | `createRevolvedSurface`, `createTube`, `createPolygon`, `createExtrudedPolygon`, `createRoundedCuboid` |
 
 ### Subdivisions, angles and caps
 
 Dimensions are required arguments; subdivision counts remain in the optional settings object. For tubes and torus knots, `pathSegments` controls subdivisions along the path. Tori use `ringSegments` around the ring. `radialSegments` controls the tube cross-section. Capsule `capSegments` controls each pole-to-equator section independently; `cylinderHeight` describes the straight section. Regular polyhedra use `edgeSegments`, and rounded cuboids use `roundingSegments`.
 
-Angle ranges belong to the options object. Angles use **degrees**. Ranges use `Vector2`, with `x` as the start angle and `y` as the end angle. Use continuous angles across a full turn, such as `new Vector2(350, 370)`. Cylinders, truncated cones and cones rotate around Y from -Z towards -X; lathes start from +Z towards +X. A sphere's vertical angle starts at +Y.
+Angle ranges belong to the options object. Angles use **degrees**. Ranges use `Vector2`, with `x` as the start angle and `y` as the end angle. Use continuous angles across a full turn, such as `new Vector2(350, 370)`. Cylinders, truncated cones and cones rotate around Y from -Z towards -X; revolved surfaces start from +Z towards +X. A sphere's vertical angle starts at +Y.
 
 ```ts
 import { PrimitiveMeshCapMode, Vector2 } from "@galacean/engine";
@@ -182,10 +182,13 @@ Polygon contours use `Vector2` arrays. Pass a point array for a simple polygon. 
 
 `createPolygon` creates a zero-thickness surface in XY facing +Z, without side walls. `createExtrudedPolygon` gives the contour depth or sweeps it along a path, generating side walls and any end caps.
 
-`createLathe` revolves a `Vector2` profile around Y: `x` is the radius from the Y axis and `y` is the height, both in local units. Consecutive profile points are connected in order; end caps are not added automatically. Path points for tubes and extrusions use `Vector3` arrays in local coordinates.
+`createRevolvedSurface` revolves a `Vector2` profile around Y: `x` is the radius from the Y axis and `y` is the height, both in local units. Consecutive profile points are connected in order; repeat the first point to close a profile loop. End caps and wall thickness are not added automatically. A profile can include inner and outer walls, or end on the axis to close the surface when revolved through a full turn. Path points for tubes and extrusions use `Vector3` arrays in local coordinates.
 
 ```ts
 import { Vector2, Vector3 } from "@galacean/engine";
+
+const profile = [new Vector2(0, 0), new Vector2(0.8, 0), new Vector2(0.4, 1), new Vector2(0.5, 1.5)];
+const revolvedSurface = PrimitiveMesh.createRevolvedSurface(engine, profile, { segments: 32 });
 
 const outline = [new Vector2(-2, -2), new Vector2(2, -2), new Vector2(2, 2), new Vector2(-2, 2)];
 const hole = [new Vector2(-1, -1), new Vector2(-1, 1), new Vector2(1, 1), new Vector2(1, -1)];
@@ -232,7 +235,7 @@ The directions below describe increasing UV0 values in local space, assuming pos
 | Torus | U spans `ringAngleRange` and V spans `tubeAngleRange`, each from 0 to 1. |
 | Circle and flat ring | U increases along +X and V along +Y. The full outer disk's bounding square maps to 0–1; angular cuts keep these coordinates. |
 | Four regular polyhedra | U wraps around Y from +X towards -Z, with its seam at +X. V runs from 0 at +Y to 1 at -Y. |
-| Lathe | U spans the revolution from 0 to 1. V advances from 0 to 1 in equal steps per profile point, following input order. |
+| Revolved surface | U spans the revolution from 0 to 1. V advances from 0 to 1 in equal steps per profile point, following input order. |
 | Tube | U measures normalized path distance; V runs around the generated cross-section from 0 to 1. |
 | Torus knot | U follows the knot parameter from 0 to 1; V runs around the generated cross-section from 0 to 1. |
 | Polygon | U = local X and V = local Y, without normalization. |
@@ -316,7 +319,7 @@ TypeScript assets use `PrimitiveMeshCapMode` for cylinder and frustum `caps`; JS
 | `torus` | `torusRadius`, `torusTubeRadius` |
 | `ring` | `ringOuterRadius`, `ringInnerRadius` |
 | `tetrahedron`, `octahedron`, `icosahedron`, `dodecahedron` | `<type>Radius` |
-| `lathe` | `latheProfile` |
+| `revolvedSurface` | `revolvedSurfaceProfile` |
 | `tube` | `tubePath`, `tubeRadius` |
 | `polygon` | `polygonShapes` |
 | `extrudedPolygon` | `extrudedPolygonShapes`, plus `extrudedPolygonDepth` or `extrudedPolygonPath` |

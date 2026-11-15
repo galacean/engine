@@ -16,7 +16,7 @@ import type {
   CircleMeshOptions,
   RingMeshOptions,
   RegularPolyhedronMeshOptions,
-  LatheMeshOptions,
+  RevolvedSurfaceMeshOptions,
   TubeMeshOptions,
   PolygonMeshOptions,
   LinearExtrudedPolygonMeshOptions,
@@ -534,21 +534,26 @@ export class PrimitiveMesh {
   }
 
   /**
-   * Revolve a radius-height profile around Y.
+   * Create a surface of revolution by rotating a radius-height profile around Y.
    * No end caps are added automatically.
+   * Define inner walls and closed ends in the profile when needed.
    * U spans the revolution from 0 to 1; V advances uniformly by profile point index from 0 to 1.
    * @param engine - The engine that owns the mesh
-   * @param profile - The radius-height profile, with at least two points; X is radius and Y is height
+   * @param profile - The profile points in input order, with at least two points; X is radius and Y is height. Repeat the first point to close the profile
    * @param options - Optional mesh generation settings
    * @returns The generated mesh
    */
-  static createLathe(engine: Engine, profile: readonly Vector2[], options?: LatheMeshOptions): ModelMesh {
+  static createRevolvedSurface(
+    engine: Engine,
+    profile: readonly Vector2[],
+    options?: RevolvedSurfaceMeshOptions
+  ): ModelMesh {
     const segments = options?.segments ?? 12;
     const angleRange = options?.angleRange;
     const startAngle = angleRange?.x ?? 0;
     return PrimitiveMesh._createMesh(
       engine,
-      PrimitiveMesh._createLatheData,
+      PrimitiveMesh._createRevolvedSurfaceData,
       [profile, segments, startAngle, (angleRange?.y ?? 360) - startAngle],
       options
     );
@@ -1221,14 +1226,14 @@ export class PrimitiveMesh {
     return data;
   }
 
-  private static _createLatheData(
+  private static _createRevolvedSurfaceData(
     points: readonly Vector2[],
     segmentCount: number,
     startAngle: number,
     arcDegrees: number
   ): PrimitiveMeshBuilder {
     if (points.length < 2) {
-      throw new Error("A lathe profile needs at least two points.");
+      throw new Error("A revolved surface profile needs at least two points.");
     }
     const count = PrimitiveMesh._getSegmentCount(segmentCount);
     const start = MathUtil.degreeToRadian(startAngle);

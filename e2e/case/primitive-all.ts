@@ -148,7 +148,10 @@ class PrimitiveMeshGallery {
       octahedron: { label: "Octahedron", mesh: PrimitiveMesh.createOctahedron(engine, 1) },
       icosahedron: { label: "Icosahedron", mesh: PrimitiveMesh.createIcosahedron(engine, 1) },
       dodecahedron: { label: "Dodecahedron", mesh: PrimitiveMesh.createDodecahedron(engine, 1) },
-      lathe: { label: "Lathe", mesh: PrimitiveMesh.createLathe(engine, profile, { segments: 24 }) },
+      revolvedSurface: {
+        label: "Revolved surface",
+        mesh: PrimitiveMesh.createRevolvedSurface(engine, profile, { segments: 24 })
+      },
       tube: {
         label: "Tube",
         mesh: PrimitiveMesh.createTube(engine, path, 0.2, { pathSegments: 48, radialSegments: 10 })

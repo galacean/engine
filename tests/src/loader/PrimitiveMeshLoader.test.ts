@@ -128,9 +128,9 @@ describe("PrimitiveMeshLoader", () => {
       data: { type: "dodecahedron", dodecahedronRadius: 0.5 },
       create: () => PrimitiveMesh.createDodecahedron(engine, 0.5)
     },
-    lathe: {
-      data: { type: "lathe", latheProfile: profile },
-      create: () => PrimitiveMesh.createLathe(engine, profileVectors)
+    revolvedSurface: {
+      data: { type: "revolvedSurface", revolvedSurfaceProfile: profile },
+      create: () => PrimitiveMesh.createRevolvedSurface(engine, profileVectors)
     },
     tube: {
       data: { type: "tube", tubeRadius: 0.5, tubePath: path },
@@ -400,14 +400,14 @@ describe("PrimitiveMeshLoader", () => {
       create: () => PrimitiveMesh.createDodecahedron(engine, 1.5, { ...options, edgeSegments: 2 })
     },
     {
-      name: "lathe profile and range",
+      name: "revolved surface profile and range",
       data: {
-        type: "lathe",
-        latheProfile: profile,
-        latheOptions: { ...options, angleRange: { x: 30, y: 270 }, segments: 16 }
+        type: "revolvedSurface",
+        revolvedSurfaceProfile: profile,
+        revolvedSurfaceOptions: { ...options, angleRange: { x: 30, y: 270 }, segments: 16 }
       },
       create: () =>
-        PrimitiveMesh.createLathe(engine, profileVectors, {
+        PrimitiveMesh.createRevolvedSurface(engine, profileVectors, {
           ...options,
           angleRange: new Vector2(30, 270),
           segments: 16

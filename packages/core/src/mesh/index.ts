@@ -17,7 +17,7 @@ export type {
   CircleMeshOptions,
   RingMeshOptions,
   RegularPolyhedronMeshOptions,
-  LatheMeshOptions,
+  RevolvedSurfaceMeshOptions,
   TubeMeshOptions,
   PolygonMeshOptions,
   TorusKnotMeshOptions,
