@@ -1,10 +1,12 @@
 # Mesh Geometry
 
-Use this reference when scripts generate, share, or update geometry at runtime. Read the installed factory and mesh declarations for exact inputs, units, UV mapping and material-slot order.
+Use this reference when Scripts initialize, generate, share or update geometry. Read the installed factory and mesh declarations for exact inputs, units, UV mapping and material-slot order.
 
-## Generate from runtime input
+## Initialize or generate geometry
 
-Reuse a configured mesh when its geometry already meets the task. Generate a mesh when its shape depends on runtime data, such as a path chosen during play. Keep that mesh while the geometry is unchanged; use Entity transforms for placement, rotation and per-instance scaling.
+Reuse a configured mesh when its geometry already meets the task. In Editor-managed projects, keep supported, persisted mesh configuration in the Editor API. A Script can create geometry needed by its behavior, including an initial mesh it later deforms or a shape the host API cannot express. Standalone applications also create their initial scene geometry.
+
+Create the mesh during initialization when its inputs are already known. Rebuild when shape inputs change, such as a path chosen during play; changing the input array alone does not update a generated primitive. Keep the mesh while its geometry is unchanged, and use Entity transforms for placement, rotation and per-instance scaling. When only vertex attributes change, update them on the existing mesh.
 
 The following helper generates a tube from a runtime path and assigns it to an existing Renderer whose material is already configured. Call it when the path changes, and reuse the returned mesh if other Renderers should share it.
 
@@ -34,24 +36,30 @@ Update bounds after position changes so culling matches the new geometry. Keep n
 
 ## Place geometry and configure collision
 
-Compare rendered bounds in a common space when aligning runtime pieces. Non-uniform Entity scale changes their rendered extents. Meshes and collider shapes have independent dimensions: assigning a mesh does not configure its collider. Set collision dimensions from the intended geometry, accounting for Entity scale. See [physics-setup.md](physics-setup.md) for collision and picking.
+Compare rendered bounds in a common space when aligning runtime pieces. To align a piece's bounds with horizontal ground, calculate the vertical offset from its world-space `Renderer.bounds.min.y` to the ground's world Y, and apply that offset to the Entity's world position. These bounds already account for the mesh origin and Entity transforms.
+
+Meshes and collider shapes have independent dimensions: assigning a mesh does not configure its collider. Set collision dimensions from the intended geometry, accounting for Entity scale. See [physics-setup.md](physics-setup.md) for collision and picking.
 
 ## Supply custom vertex geometry
 
-Use `ModelMesh` when the Script supplies vertices and topology. A drawable mesh also needs uploaded data, bounds and a SubMesh draw range. The minimal triangle below assumes an unlit, untextured material on the supplied Renderer; supply any additional attributes required by other materials.
+Use `ModelMesh` when the Script supplies vertices and topology. A drawable mesh also needs uploaded data, bounds and a SubMesh draw range. The helper below binds Script-generated triangle geometry to an existing Renderer and retains readable data for later edits. It assumes nonempty, valid triangle data and an unlit, untextured material; supply any additional attributes required by other materials.
 
 ```ts
-import { Engine, MeshRenderer, ModelMesh, Vector3 } from "@galacean/engine";
+import { BoundingBox, MeshRenderer, ModelMesh, Vector3 } from "@galacean/engine";
 
-export function createTriangle(engine: Engine, renderer: MeshRenderer): void {
-  const mesh = new ModelMesh(engine);
-  mesh.setPositions([new Vector3(-0.5, -0.5, 0), new Vector3(0.5, -0.5, 0), new Vector3(0, 0.5, 0)]);
-  mesh.setIndices(new Uint16Array([0, 1, 2]));
-  mesh.bounds.min.set(-0.5, -0.5, -0.001);
-  mesh.bounds.max.set(0.5, 0.5, 0.001);
-  mesh.uploadData(true);
-  mesh.addSubMesh(0, 3);
+export function createRuntimeMesh(
+  renderer: MeshRenderer,
+  positions: Vector3[],
+  indices: Uint16Array | Uint32Array
+): ModelMesh {
+  const mesh = new ModelMesh(renderer.engine);
+  mesh.setPositions(positions);
+  mesh.setIndices(indices);
+  BoundingBox.fromPoints(positions, mesh.bounds);
+  mesh.addSubMesh(0, indices.length);
+  mesh.uploadData(false);
 
   renderer.mesh = mesh;
+  return mesh;
 }
 ```
