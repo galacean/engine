@@ -1,51 +1,67 @@
 # Mesh Geometry
 
-Use this reference when primitive dimensions or orientation affect code, or when uploading custom geometry. Material assignment and draw ordering are covered in [rendering-and-color.md](rendering-and-color.md).
+Use this reference when Scripts initialize, generate, share or update geometry. Read the installed factory and mesh declarations for exact inputs, units, UV mapping and material-slot order.
 
-The table describes meshes created with omitted size arguments and an entity scale of `(1, 1, 1)`.
+## Initialize or generate geometry
 
-| Primitive          | Default extent                                   | Local orientation            |
-| ------------------ | ------------------------------------------------ | ---------------------------- |
-| Cuboid             | width 1, height 1, depth 1                       | centered at the origin       |
-| Sphere             | radius 0.5                                       | centered at the origin       |
-| Subdivision sphere | radius 0.5                                       | centered at the origin       |
-| Plane              | width 1, depth 1                                 | lies in XZ and faces +Y      |
-| Cylinder           | radius 0.5, height 2                             | centered on Y                |
-| Cone               | radius 0.5, height 2                             | centered on Y, tip toward +Y |
-| Capsule            | radius 0.5, cylindrical height 2, total height 3 | centered on Y                |
-| Torus              | major radius 0.5, tube radius 0.1                | lies in XY around the Z axis |
+Reuse a configured mesh when its geometry already meets the task. In Editor-managed projects, keep supported, persisted mesh configuration in the Editor API. A Script can create geometry needed by its behavior, including an initial mesh it later deforms or a shape the host API cannot express. Standalone applications also create their initial scene geometry.
 
-## Placement consequences
+Create the mesh during initialization when its inputs are already known. Rebuild when shape inputs change, such as a path chosen during play; changing the input array alone does not update a generated primitive. Keep the mesh while its geometry is unchanged, and use Entity transforms for placement, rotation and per-instance scaling. When only vertex attributes change, update them on the existing mesh.
 
-- A centered primitive rests on a horizontal surface when its center is raised by its scaled half-height.
-- A default Plane is already horizontal; rotating it as if it were an XY plane changes the intended ground orientation.
-- Capsule `height` describes the cylindrical section between hemisphere centers. Total vertical extent also includes both hemispherical radii.
-- Non-uniform entity scale changes the rendered bounds after mesh construction. Do not assume one scalar radius still describes the world-space result.
+For Script-generated shapes, use `createRevolvedSurface` for a profile rotated around an axis, `createTube` for a circular section following a path, `createPolygon` for a flat contour, and `createExtrudedPolygon` to extend a contour by a depth or along a path. Choose the factory from the intended shape, then consult its declaration for the exact inputs and settings.
 
-## Visual and collision geometry
-
-Primitive meshes and collider shapes own independent dimensions. Their defaults do not guarantee a visual match: for example, a default Sphere mesh has radius `0.5` while a default `SphereColliderShape` has radius `1`; the default Capsule mesh and `CapsuleColliderShape` also use different radii. Collider dimensions are then affected by the Entity's world scale.
-
-Set collider dimensions from the intended collision geometry. Do not infer them from the assigned mesh or assume entity scale repairs a default mismatch.
-
-Exact constructor arguments remain declaration-owned. Use this page only for the default spatial semantics that are easy to misremember.
-
-## Draw-ready custom mesh
-
-Use this example for procedural geometry created during execution. The caller supplies a Renderer with its material already configured. Fixed geometry and reusable templates are normally authored assets. Vertex data alone is not drawable: the Mesh still needs bounds, an index range and a SubMesh. See [rendering-and-color.md](rendering-and-color.md).
+The following helper generates a tube from a runtime path and assigns it to an existing Renderer whose material is already configured. Call it when the path changes, and reuse the returned mesh if other Renderers should share it.
 
 ```ts
-import { Engine, MeshRenderer, ModelMesh, Vector3 } from "@galacean/engine";
+import { MeshRenderer, ModelMesh, PrimitiveMesh, Vector3 } from "@galacean/engine";
 
-export function createTriangle(engine: Engine, renderer: MeshRenderer): void {
-  const mesh = new ModelMesh(engine);
-  mesh.setPositions([new Vector3(-0.5, -0.5, 0), new Vector3(0.5, -0.5, 0), new Vector3(0, 0.5, 0)]);
-  mesh.setIndices(new Uint16Array([0, 1, 2]));
-  mesh.bounds.min.set(-0.5, -0.5, -0.001);
-  mesh.bounds.max.set(0.5, 0.5, 0.001);
-  mesh.uploadData(true);
-  mesh.addSubMesh(0, 3);
+export function createRuntimeTube(renderer: MeshRenderer, path: readonly Vector3[], radius: number): ModelMesh {
+  const mesh = PrimitiveMesh.createTube(renderer.engine, path, radius);
+  renderer.mesh = mesh;
+  return mesh;
+}
+```
+
+## Share and replace geometry
+
+Renderers assigned the same mesh share its geometry. Create an independent mesh when one object's geometry must change independently; Entity transforms can still differ between users of a shared mesh.
+
+When rebuilding changes the sub-mesh layout, update the Renderer's material assignments to match. Retire replaced meshes according to their remaining users and [resource ownership](resource-ownership.md). Material sharing is covered in [rendering-and-color.md](rendering-and-color.md).
+
+## Update existing vertex data
+
+Choose readable data when the Script needs to read or edit vertex attributes later. For primitives, request `keepMeshData: true` at creation. After editing a returned attribute array, call its setter and upload the changes; use `uploadData(false)` while further CPU-side edits are needed.
+
+If topology changes, keep indices and SubMesh draw ranges consistent with the vertex arrays.
+
+Update bounds after position changes so culling matches the new geometry. Keep normals and tangents consistent with the deformed surface when the material uses them. Retaining readable data alone does not guarantee that runtime edits survive device loss; use the mesh's restoration contract to plan how its runtime state is regenerated.
+
+## Place geometry and configure collision
+
+Compare rendered bounds in a common space when aligning runtime pieces. To align a piece's bounds with horizontal ground, calculate the vertical offset from its world-space `Renderer.bounds.min.y` to the ground's world Y, and apply that offset to the Entity's world position. These bounds already account for the mesh origin and Entity transforms.
+
+Meshes and collider shapes have independent dimensions: assigning a mesh does not configure its collider. Set collision dimensions from the intended geometry, accounting for Entity scale. See [physics-setup.md](physics-setup.md) for collision and picking.
+
+## Supply custom vertex geometry
+
+Use `ModelMesh` when the Script supplies vertices and topology. A drawable mesh also needs uploaded data, bounds and a SubMesh draw range. The helper below binds Script-generated triangle geometry to an existing Renderer and retains readable data for later edits. It assumes nonempty, valid triangle data and an unlit, untextured material; supply any additional attributes required by other materials.
+
+```ts
+import { BoundingBox, MeshRenderer, ModelMesh, Vector3 } from "@galacean/engine";
+
+export function createRuntimeMesh(
+  renderer: MeshRenderer,
+  positions: Vector3[],
+  indices: Uint16Array | Uint32Array
+): ModelMesh {
+  const mesh = new ModelMesh(renderer.engine);
+  mesh.setPositions(positions);
+  mesh.setIndices(indices);
+  BoundingBox.fromPoints(positions, mesh.bounds);
+  mesh.addSubMesh(0, indices.length);
+  mesh.uploadData(false);
 
   renderer.mesh = mesh;
+  return mesh;
 }
 ```

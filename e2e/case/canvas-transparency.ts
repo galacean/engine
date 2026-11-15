@@ -111,7 +111,7 @@ function createMainScene(engine: Engine, transparencyTexture: Texture2D): Textur
   planeEntity.transform.setPosition(0, 0, 0);
   planeEntity.transform.rotate(new Vector3(90, 0, 0));
   const planeRenderer = planeEntity.addComponent(MeshRenderer);
-  planeRenderer.mesh = PrimitiveMesh.createPlane(engine, 1);
+  planeRenderer.mesh = PrimitiveMesh.createPlane(engine, 1, 1);
 
   const planeMaterial = new UnlitMaterial(engine);
   planeMaterial.baseTexture = transparencyTexture;
@@ -124,7 +124,7 @@ function createMainScene(engine: Engine, transparencyTexture: Texture2D): Textur
   cubeEntity.transform.setPosition(-1, 0, 0);
   cubeEntity.transform.rotate(new Vector3(0, 0, 15));
   const sphereRenderer = cubeEntity.addComponent(MeshRenderer);
-  sphereRenderer.mesh = PrimitiveMesh.createCuboid(engine, 1);
+  sphereRenderer.mesh = PrimitiveMesh.createCuboid(engine, 1, 1, 1);
 
   const sphereMaterial = new UnlitMaterial(engine);
   sphereRenderer.setMaterial(sphereMaterial);
