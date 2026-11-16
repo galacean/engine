@@ -1,0 +1,19 @@
+packages/core/src/texture/Texture2DArray.ts
+  s_f38d09363d9c91::t_1a347fff5a7a14 176,186,196,206
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "109c03406da6363e3d9cec7c18ada383da33c7b6",
+  "prompts": {},
+  "sessions": {
+    "s_f38d09363d9c91": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1e40d-0453-7410-8f52-6a045e69aba1",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}
