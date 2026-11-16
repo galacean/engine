@@ -29,6 +29,11 @@ import { FarmItemGroundPose } from "./FarmItemGroundPose";
 import { isNearbyFarmTool } from "../application/FarmingWorkTarget";
 import { destroyOwnedMesh, destroyOwnedMeshSet } from "@galacean/engine-terrain/geometry/destroyOwnedMesh";
 import { FarmingGrowthVisibility } from "./FarmingGrowthVisibility";
+import { preparePlantShaderPrograms } from "../procedural/runtime/preparePlantShaderPrograms";
+import {
+  defaultPlantCreationScheduler,
+  type PlantCreationScheduler
+} from "../procedural/runtime/createProceduralPlant";
 
 const prefabs = {
   "seed-bag": "Farming/Props/Sowing/seed-sack.prefab",
@@ -47,6 +52,8 @@ interface ItemVisual {
   cargoKey: string;
   cargoMesh?: ModelMesh;
   loading?: Promise<void>;
+  contentPreparation?: Promise<void>;
+  contentController?: AbortController;
   error?: string;
   seedId?: string;
   labelRenderer?: MeshRenderer;
@@ -71,6 +78,7 @@ export class FarmItemPresentation {
   private readonly seedSackMaterials = new SeedSackMaterials();
   private readonly release: () => void;
   private disposed = false;
+  private readonly preparationController = new AbortController();
   private elapsed = 0;
   private motion = 1;
   private previousCarry = "";
@@ -98,7 +106,8 @@ export class FarmItemPresentation {
     parent: Entity,
     private readonly camera: Camera,
     private readonly service: FarmingService,
-    private readonly carryPoses: FarmItemCarryPoseOverrides = {}
+    private readonly carryPoses: FarmItemCarryPoseOverrides = {},
+    private readonly schedule: PlantCreationScheduler = defaultPlantCreationScheduler
   ) {
     this.root = parent.createChild("Persistent farming items");
     registerFarmingPropResources(parent.engine);
@@ -157,11 +166,29 @@ export class FarmItemPresentation {
       }
       const key = JSON.stringify(item.contents);
       if (visual.cargoKey !== key) {
+        visual.contentController?.abort();
+        visual.content.enabled = false;
         visual.content.mesh = null!;
         destroyOwnedMesh(visual.cargoMesh);
         visual.cargoMesh = item.contents.length ? createBasketContentsMesh(this.root.engine, item.contents) : undefined;
         visual.content.mesh = visual.cargoMesh ?? null!;
         visual.cargoKey = key;
+        if (visual.cargoMesh) {
+          const controller = new AbortController();
+          visual.contentController = controller;
+          const current = visual;
+          const task = this.prepareShaders(visual.content.entity, visual, controller.signal)
+            .then(() => {
+              if (!this.disposed && !controller.signal.aborted) current.content.enabled = true;
+            })
+            .catch((error) => {
+              if (!this.disposed && !controller.signal.aborted) current.error = String(error);
+            })
+            .finally(() => {
+              if (current.contentPreparation === task) current.contentPreparation = undefined;
+            });
+          visual.contentPreparation = task;
+        }
       }
       const held = item.id === carry?.id;
       this.setHeldShadows(visual, held);
@@ -194,13 +221,14 @@ export class FarmItemPresentation {
     this.update(0);
   }
   private loadItem(item: Pick<FarmItem, "type">, visual: ItemVisual): void {
+    visual.model.isActive = false;
     visual.loading = Promise.resolve(
       this.root.engine.resourceManager.load<PrefabResource>({
         url: prefabs[item.type],
         type: AssetType.Prefab
       })
     )
-      .then((prefab) => {
+      .then(async (prefab) => {
         if (this.disposed || visual.root.destroyed) return;
         const model = prefab.instantiate();
         // Tool prefabs default to inactive for their animation hosts; persistent props must be visible.
@@ -250,11 +278,41 @@ export class FarmItemPresentation {
           this.update(0);
         }
         visual.highlight = new FarmItemHighlight(renderers.filter((r): r is MeshRenderer => r instanceof MeshRenderer));
+        await this.prepareShaders(visual.model, visual, this.preparationController.signal);
+        if (this.disposed) return;
+        visual.model.isActive = true;
         this.update(0);
       })
       .catch((error) => {
         if (!this.disposed) visual.error = String(error);
       });
+  }
+  private prepareShaders(root: Entity, visual: ItemVisual, signal: AbortSignal): Promise<void> {
+    return preparePlantShaderPrograms(
+      this.root.engine,
+      root,
+      (work, phase) =>
+        this.schedule(
+          () => {
+            this.preparationController.signal.throwIfAborted();
+            signal.throwIfAborted();
+            return work();
+          },
+          phase,
+          signal
+        ),
+      true,
+      {
+        camera: this.camera,
+        shadowStates: (renderer) => {
+          const original = visual.shadows.find((state) => state.renderer === renderer)!;
+          return [
+            { cast: false, receive: false },
+            { cast: original.cast, receive: original.receive }
+          ];
+        }
+      }
+    );
   }
   private setHeldShadows(visual: ItemVisual, held: boolean, force = false): void {
     if (!force && visual.shadowsDisabled === held) return;
@@ -297,6 +355,7 @@ export class FarmItemPresentation {
     const held = carriedItem(this.service.getSnapshot().items);
     const visual = held && this.visuals.get(held.id);
     if (visual?.loading) await visual.loading;
+    while (visual?.contentPreparation) await visual.contentPreparation;
     const remaining = Math.max(visual?.retraction?.remaining ?? 0, visual?.transfer?.remaining ?? 0);
     if (remaining > 0 && !signal.aborted && !(await this.waitFor(remaining, signal))) return false;
     return !this.disposed && this.active && !signal.aborted && !visual?.error;
@@ -519,8 +578,10 @@ export class FarmItemPresentation {
     if (this.disposed) return;
     this.wait?.finish(false);
     this.disposed = true;
+    this.preparationController.abort();
     this.release();
     for (const visual of this.visuals.values()) {
+      visual.contentController?.abort();
       visual.content.mesh = null!;
       visual.highlight?.dispose();
       visual.root.destroy();

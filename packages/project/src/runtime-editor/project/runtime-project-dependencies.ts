@@ -1,3 +1,4 @@
+import { sameRuntimeProjectContent, snapshotRuntimeProjectContent } from "./runtime-project-content";
 import { projectScriptInputs } from "../scripts/runtime-script-inputs";
 import type { RuntimeAssetFormat } from "./runtime-project-edit";
 import type { RuntimeProjectManifest, RuntimeProjectPackage } from "./runtime-project";
@@ -92,10 +93,7 @@ export class RuntimeProjectDependencies {
 }
 
 type Content = RuntimeProjectPackage["contents"][string];
-function sameContent(a: Content | undefined, b: Content | undefined): boolean {
-  if (a === b) return true;
-  return a instanceof Uint8Array && b instanceof Uint8Array && a.length === b.length && a.every((v, i) => v === b[i]);
-}
+
 function assetKey(file: AssetFile): string {
   return JSON.stringify([file.virtualPath, file.type, file.path, file.params]);
 }
@@ -124,7 +122,7 @@ export function invalidateChangedDependencies(
     if (
       !old ||
       assetKey(old) !== assetKey(file) ||
-      !sameContent(previous.contents[file.virtualPath], candidate.contents[file.virtualPath])
+      !sameRuntimeProjectContent(previous.contents[file.virtualPath], candidate.contents[file.virtualPath])
     )
       delete file.dependencies;
   }
@@ -155,7 +153,7 @@ export class RuntimeDependencyMaintenance {
   private remember(pack: RuntimeProjectPackage, file: AssetFile, dependencies: readonly string[]): void {
     this.assets.set(file.virtualPath, {
       key: assetKey(file),
-      content: structuredClone(pack.contents[file.virtualPath]),
+      content: snapshotRuntimeProjectContent(pack.contents[file.virtualPath]),
       format: this.formats.get(file.type),
       dependencies: [...dependencies]
     });
@@ -171,7 +169,7 @@ export class RuntimeDependencyMaintenance {
             file.virtualPath,
             {
               key: assetKey(file),
-              content: structuredClone(pack.contents[file.virtualPath]),
+              content: snapshotRuntimeProjectContent(pack.contents[file.virtualPath]),
               dependencies: [...file.dependencies!]
             }
           ])
@@ -197,7 +195,10 @@ export class RuntimeDependencyMaintenance {
           const cached = previous.files.get(file.virtualPath),
             content = pack.contents[file.virtualPath];
           if (!cached || cached.key !== assetKey(file)) return false;
-          if (sameContent(cached.content, content) && (content !== undefined || file.dependencies !== undefined))
+          if (
+            sameRuntimeProjectContent(cached.content, content) &&
+            (content !== undefined || file.dependencies !== undefined)
+          )
             return true;
           // A complete cold record can be hydrated by read(). Writes clear its metadata first.
           return (
@@ -257,11 +258,15 @@ export class RuntimeDependencyMaintenance {
         cached &&
         cached.key === assetKey(file) &&
         cached.format === format &&
-        ((sameContent(cached.content, content) && (content !== undefined || file.dependencies !== undefined)) ||
+        ((sameRuntimeProjectContent(cached.content, content) &&
+          (content !== undefined || file.dependencies !== undefined)) ||
           hydrated)
       ) {
         file.dependencies = [...cached.dependencies];
         if (hydrated) this.remember(pack, file, cached.dependencies);
+        // Exact equality is already established. Adopt the current immutable string
+        // so subsequent checks of this draft do not scan a detached equal string again.
+        else if (typeof content === "string") cached.content = content;
       } else {
         const refs = extractAssetDependencies(file, content, format);
         if (refs !== undefined) {

@@ -43,6 +43,8 @@ export class PlantPresenter {
   private readonly entries = new Map<string, Entry>();
   private readonly scheduler: CropGrowthScheduler;
   private readonly workQueue = new PlantWorkQueue();
+  private readonly presentationJobs = new Set<string>();
+  private nextPresentationJob = 0;
   private disposed = false;
   private schedulingFrames = 0;
   private schedulingMilliseconds = 0;
@@ -112,7 +114,7 @@ export class PlantPresenter {
         if (e.loadState === "loading" || e.loadState === "deferred")
           this.report(e, e.visibility < 0 ? "deferred" : "loading");
       }
-    const priority = (id: string) => this.entries.get(id)?.visibility ?? -1;
+    const priority = (id: string) => (this.presentationJobs.has(id) ? 2 : (this.entries.get(id)?.visibility ?? -1));
     const creationMs = this.workQueue.tick(priority, this.scheduler.options.budgetMs, hidden);
     this.scheduler.tick(now, priority, hidden, Math.max(0, this.scheduler.options.budgetMs - creationMs));
     this.schedulingFrames++;
@@ -255,6 +257,17 @@ export class PlantPresenter {
     this.scheduler.clear();
     for (const effect of this.harvesting.keys()) effect.dispose();
     this.harvesting.clear();
+  }
+  /** Item GPU preparation shares the existing crop work budget. */
+  async preparePresentationWork<T>(work: () => T, phase: string, signal: AbortSignal): Promise<T> {
+    if (this.disposed) throw new Error("Farming presentation disposed");
+    const id = `presentation:${this.nextPresentationJob++}`;
+    this.presentationJobs.add(id);
+    try {
+      return await this.workQueue.enqueue(id, signal, work, phase);
+    } finally {
+      this.presentationJobs.delete(id);
+    }
   }
   private report(entry: Entry, state: PlantVisualLoadState, message?: string) {
     if (entry.loadState === state && entry.message === message) return;

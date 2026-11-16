@@ -287,6 +287,29 @@ function runtime() {
 }
 
 describe("incremental rock grass publication", () => {
+  it("restores visible buffers after rollback and refreshes changed water eligibility only after acceptance", () => {
+    const r = runtime(), formation = plane();
+    const placements = [{ formation, origin: [0, 0, 0] as V3 }];
+    r.manager.prepare(placements, () => true).commit();
+    r.settle();
+    const old = [...r.created];
+    expect(old.length).toBeGreaterThan(0);
+    const cancelled = r.manager.prepareReversible(placements, () => false, true);
+    cancelled.commit();
+    expect(old.every(b => !b.visible && !b.destroyed)).toBe(true);
+    cancelled.rollback();
+    expect(old.every(b => b.visible && !b.destroyed)).toBe(true);
+    cancelled.discard();
+    const accepted = r.manager.prepareReversible(placements, () => false, true);
+    accepted.commit();
+    accepted.finalize();
+    r.settle();
+    expect(r.created.filter(b => b.visible)).toHaveLength(0);
+    for (let i = 0; i < old.length; i++) r.tick();
+    expect(old.every(b => b.destroyed)).toBe(true);
+    r.manager.destroy();
+  });
+
   it("removes existing companion grass when publishing a bare surface while retaining neighboring rock grass", () => {
     const r = runtime(), companion = plane("companion"), main = plane("main");
     const placements = (formation: RockFormationMesh) => [

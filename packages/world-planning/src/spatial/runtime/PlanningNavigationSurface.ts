@@ -2,6 +2,7 @@ import { createWaterSurfaceSample } from "@galacean/engine-water/water/runtime/i
 import type { IslandPlan } from "../../semantic-study/IslandPlanModel";
 import { bridgeGround } from "../hydrology/RiverCrossings";
 import type { PlanningWaterRuntime } from "./PlanningWaterRuntime";
+import type { AnimalWorldBounds, PlanningAnimalWorldChange } from "./PlanningAnimalWorldChange";
 
 /** Existing terrain/bridge floor, with contacts from the published Water Host. */
 export class PlanningNavigationSurface {
@@ -12,8 +13,24 @@ export class PlanningNavigationSurface {
   private cacheActive = false;
 
   beginAnimalUpdate(): void {
-    (this.animalCache ??= new AnimalSupportCache()).clear();
+    (this.animalCache ??= new AnimalSupportCache()).clear(!this.immutableHeightSource);
     this.cacheActive = true;
+  }
+
+  /** Invalidate retained samples when a publication changes a reused provider. */
+  invalidateAnimalSupport(change?: PlanningAnimalWorldChange): void {
+    if (!change) this.animalCache?.clear(true);
+    else {
+      this.animalCache?.invalidate(change.terrain, true);
+      this.animalCache?.invalidate(change.water, false);
+    }
+  }
+
+  /** Copy snapshot heights only; a staged candidate never borrows mutable validity flags. */
+  inheritAnimalSupport(previous: PlanningNavigationSurface, change: PlanningAnimalWorldChange): void {
+    if (!this.immutableHeightSource || !previous.immutableHeightSource || !previous.animalCache) return;
+    this.animalCache = previous.animalCache.copyHeights();
+    this.invalidateAnimalSupport(change);
   }
 
   endAnimalUpdate(): void {
@@ -24,7 +41,9 @@ export class PlanningNavigationSurface {
     plan: IslandPlan,
     sampleTerrain: (x: number, z: number) => number,
     private readonly water: Pick<PlanningWaterRuntime, "sampleSurface">,
-    private readonly samplePlayerSupport?: (x: number, z: number) => number | undefined
+    private readonly samplePlayerSupport?: (x: number, z: number) => number | undefined,
+    /** Opt in only when terrain and bridge heights belong to an immutable scene snapshot. */
+    private readonly immutableHeightSource = false
   ) {
     this.ground = bridgeGround(plan, (p) => sampleTerrain(p.x, p.z));
   }
@@ -96,7 +115,7 @@ export class PlanningNavigationSurface {
 }
 
 /** Bounded, allocation-free during updates. Hash collisions only evict; coordinates are never rounded.
- * Clearing each host update also invalidates changing water/terrain, without revision polling per query. */
+ * Water is refreshed each update, including animated surfaces. Snapshot heights can survive updates. */
 class AnimalSupportCache {
   private readonly xs = new Float64Array(8192);
   private readonly zs = new Float64Array(8192);
@@ -105,8 +124,29 @@ class AnimalSupportCache {
   readonly heightReady = new Uint8Array(8192);
   readonly waterReady = new Uint8Array(8192);
 
-  clear(): void {
-    this.heightReady.fill(0);
+  copyHeights(): AnimalSupportCache {
+    const copy = new AnimalSupportCache();
+    copy.xs.set(this.xs);
+    copy.zs.set(this.zs);
+    copy.heights.set(this.heights);
+    copy.heightReady.set(this.heightReady);
+    return copy;
+  }
+
+  invalidate(regions: readonly AnimalWorldBounds[], height: boolean): void {
+    if (!regions.length) return;
+    for (let i = 0; i < this.xs.length; i++) {
+      if (!this.heightReady[i] && !this.waterReady[i]) continue;
+      const x = this.xs[i],
+        z = this.zs[i];
+      if (!regions.some((b) => x >= b.minX && x <= b.maxX && z >= b.minZ && z <= b.maxZ)) continue;
+      if (height) this.heightReady[i] = 0;
+      this.waterReady[i] = 0;
+    }
+  }
+
+  clear(height = true): void {
+    if (height) this.heightReady.fill(0);
     this.waterReady.fill(0);
   }
 

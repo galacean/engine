@@ -11,6 +11,7 @@ import {
 } from "./ConstructionEntranceShader";
 import { constructionEntranceRanges, type ConstructionEntranceState } from "./ConstructionEntrance";
 import entranceShadow from "./ConstructionEntranceShadow.shader?raw";
+import { subscribeDistanceAppearance } from "./MasonryDistanceAppearance";
 import { plannedMasonryVertexData } from "./MasonryDistanceVertexData";
 import { constructionDecorationGLSL } from "./ConstructionDecorationShader";
 import { leaseDecorationTextures } from "./ConstructionDecorationTextures";
@@ -18,18 +19,10 @@ import { registerConstructionSceneLighting } from "./ConstructionSceneLighting";
 import { leasePlasterTextures } from "./ConstructionPlasterTextures";
 import { constructionPlasterGLSL, constructionPlasterFinishGLSL } from "./ConstructionPlasterShader";
 import { uploadRestorableModelMesh } from "@galacean/engine-modify/rendering/RestorableResources";
-import {
-  masonryAppearance,
-  masonryTintGLSL,
-  restoreMasonryTextureSamples,
-  srgbToLinear,
-  masonryTintRoles,
-  masonryTintUniforms
-} from "./MasonryAppearance";
+import { masonryAppearance, masonryTintGLSL, restoreMasonryTextureSamples } from "./MasonryAppearance";
 import { masonryColorSeed } from "./MasonryColorRules";
 import lodDither from "./MasonryLodDither.glsl?raw";
 import {
-  Color,
   CompareFunction,
   Vector4,
   Buffer,
@@ -60,7 +53,7 @@ import {
   type SeedWorldPickBatch,
   type SeedWorldPickVisitor
 } from "@galacean/engine-modify/rendering/SeedWorldPickBatch";
-import { plasterPalette, plasterLinearColor } from "./ConstructionPlasterPalette";
+import { plasterPalette } from "./ConstructionPlasterPalette";
 import { type ConstructionPreview, constructionBrickLayer, woodPalette, wallPalette } from "./ConstructionPreview";
 import type { BuildingPaletteSlot } from "./BuildingGlobals";
 import { createDecorationNativeView } from "./DecorationNativeView";
@@ -201,29 +194,14 @@ export async function createBuildingDistanceView(
         material = new PBRMaterial(engine);
         material.shader = Shader.find("Masonry/SupportSurface") ?? Shader.create(shader, ShaderLanguage.GLSLES300);
         material.shaderData.setFloat("material_WorldPickDepthCompare", CompareFunction.LessEqual);
-        const tintedMaterial = material;
         const owner = group.colorOwners.find((b) => b.id === p.owner)!;
         tintSubscriptions.push(
-          appearance.subscribe(() => {
-            const role = p.material === "wall" ? "brick" : p.material;
-            tintedMaterial.baseColor = p.plaster
-              ? new Color(...plasterLinearColor(p.color!))
-              : p.decoration
-                ? new Color(1, 1, 1)
-                : new Color(
-                    ...(appearance.previewColor(
-                      role,
-                      role === "roof_tile"
-                        ? owner.roofColor
-                        : role === "wooden_plank"
-                          ? owner.woodColor
-                          : constructionBrickLayer(owner.wallColor),
-                      p.color!.map(srgbToLinear)
-                    ) as [number, number, number])
-                  );
-            masonryTintRoles.forEach((role, i) =>
-              tintedMaterial.shaderData.setVector4(masonryTintUniforms[i], new Vector4(...appearance.tint(role)))
-            );
+          subscribeDistanceAppearance(appearance, material, {
+            role: p.material === "wall" ? "brick" : p.material,
+            plaster: !!p.plaster,
+            decoration: !!p.decoration,
+            color: p.color!,
+            owner
           })
         );
         material.shaderData.setFloat(

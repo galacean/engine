@@ -1,3 +1,4 @@
+import { RuntimeProjectInputs } from "@galacean/engine-project/runtime-editor/project/runtime-project-inputs";
 import { readSourcePrefab, RuntimeInstanceSource } from "./runtime-instance-source";
 import { RuntimeInstanceIdentities } from "./runtime-instance-identities";
 import { RuntimeAssetChanges } from "../../project/runtime-asset-changes.ts";
@@ -56,6 +57,7 @@ export class RuntimeSceneProjection {
   private previousRuntime: SceneFile;
   private previousMembers: RuntimeInstanceSource;
   private readonly assetChanges: RuntimeAssetChanges;
+  private appliedInputs: RuntimeProjectInputs;
 
   constructor(
     private readonly scene: Scene,
@@ -66,6 +68,7 @@ export class RuntimeSceneProjection {
     this.previousMembers = new RuntimeInstanceSource(this.previous, pack);
     this.previousRuntime = JSON.parse(compileProjectResource(pack, path) as string);
     this.assetChanges = new RuntimeAssetChanges(pack);
+    this.appliedInputs = new RuntimeProjectInputs(pack, { rootTypes: ["Scene"] });
     const source = this.previous;
     const byId = new Map(source.entities.map((entity) => [entity.id, entity]));
     const components = new Map(source.components.map((component) => [component.id, component]));
@@ -246,6 +249,13 @@ export class RuntimeSceneProjection {
   async apply(pack: RuntimeProjectPackage, signal?: AbortSignal): Promise<void> {
     signal?.throwIfAborted();
     const { source, runtime } = this.validate(pack);
+    // Source equality alone is insufficient: scripts can change live parents or
+    // registered classes, and a previous failed activation must be retried.
+    if (!this.needsResync && this.appliedInputs.matches(pack) && this.bindingsUnchanged(pack)) {
+      this.assetChanges.accept(pack);
+      return;
+    }
+    const inputSnapshot = new RuntimeProjectInputs(pack, { rootTypes: ["Scene"] });
     const referenceIds = runtimeSourceReferenceIds(source, {
       resolveInstanceSourceFile: (path) => readSourcePrefab(pack, path),
       resolveInstanceAssetKind: (path) =>
@@ -635,7 +645,50 @@ export class RuntimeSceneProjection {
     this.previousRuntime = runtime;
     this.previousMembers = members;
     this.assetChanges.accept(pack);
+    this.appliedInputs = inputSnapshot;
     this.needsResync = false;
+  }
+
+  private bindingsUnchanged(pack: RuntimeProjectPackage): boolean {
+    const parents = new Map(
+      this.previous.entities.flatMap((record) => (record.children ?? []).map((child) => [child, record.id] as const))
+    );
+    for (const record of this.previous.entities) {
+      const entity = this.entities.get(record.id),
+        parent = parents.get(record.id);
+      if (
+        !entity ||
+        entity.destroyed ||
+        entity.pendingDestroy ||
+        entity.scene !== this.scene ||
+        entity.parent !== (parent ? this.entities.get(parent) : null)
+      )
+        return false;
+      for (const id of record.components ?? []) {
+        const component = this.components.get(id),
+          source = this.previous.components.find((record) => record.id === id);
+        if (
+          !component ||
+          !source ||
+          component.destroyed ||
+          component.pendingDestroy ||
+          component.entity !== entity ||
+          component.constructor !== this.componentClass(source, pack)
+        )
+          return false;
+      }
+    }
+    // Preserve live Prefab identity refresh semantics if runtime code changes its tree.
+    try {
+      const instances = new RuntimeInstanceIdentities(this.previous, this.path, pack, (id) => this.entities.get(id));
+      for (const [id, entity] of instances.entities) if (entity !== this.instances.entities.get(id)) return false;
+      for (const [id, component] of instances.components)
+        if (component !== this.instances.components.get(id)) return false;
+      return true;
+    } catch {
+      // The normal activation path owns failure diagnostics and resynchronization.
+      return false;
+    }
   }
 
   private source(pack: RuntimeProjectPackage): GalaceanSourceSceneFile {

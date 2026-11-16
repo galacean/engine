@@ -76,6 +76,82 @@ function writeStableValue(value: unknown, write: (chunk: string) => void): void 
   }
   write("null");
 }
+function* stableValueChunks(value: unknown): Generator<string> {
+  if (value === null) {
+    yield "null";
+    return;
+  }
+  if (typeof value === "number" || typeof value === "boolean" || typeof value === "string") {
+    yield JSON.stringify(value);
+    return;
+  }
+  if (Array.isArray(value)) {
+    let chunk = "[";
+    for (let i = 0; i < value.length; i++) {
+      if (i) chunk += ",";
+      if (i in value) {
+        const child = value[i];
+        if (child === null || typeof child !== "object") {
+          chunk +=
+            typeof child === "number" || typeof child === "boolean" || typeof child === "string"
+              ? JSON.stringify(child)
+              : "null";
+        } else {
+          if (chunk) yield chunk;
+          chunk = "";
+          yield* stableValueChunks(child);
+        }
+      }
+      // Batch primitive terrain samples: no per-sample generator allocation.
+      if (chunk.length >= 4096) {
+        yield chunk;
+        chunk = "";
+      }
+    }
+    yield chunk + "]";
+    return;
+  }
+  if (typeof value === "object") {
+    const record = value as Record<string, unknown>;
+    yield "{";
+    let first = true;
+    const keys = Object.keys(record);
+    const view = value as { length?: number; [index: number]: unknown };
+    if (ArrayBuffer.isView(value) && !(value instanceof DataView) && keys.length === view.length) {
+      // Typed-array index keys must retain lexical (not numeric) order. Traverse the
+      // decimal prefix tree instead of sorting a million keys and mapping strings.
+      function* entry(index: number): Generator<string> {
+        if (!first) yield ",";
+        first = false;
+        yield `"${index}":`;
+        yield* stableValueChunks(view[index]);
+      }
+      function* walk(index: number): Generator<string> {
+        if (index >= view.length!) return;
+        yield* entry(index);
+        for (let digit = 0; digit < 10; digit++) {
+          const child = index * 10 + digit;
+          if (child >= view.length!) break;
+          yield* walk(child);
+        }
+      }
+      if (view.length) yield* entry(0);
+      for (let digit = 1; digit < 10; digit++) yield* walk(digit);
+      yield "}";
+      return;
+    }
+    for (const key of keys.filter((key) => record[key] !== undefined).sort()) {
+      if (!first) yield ",";
+      first = false;
+      yield JSON.stringify(key);
+      yield ":";
+      yield* stableValueChunks(record[key]);
+    }
+    yield "}";
+    return;
+  }
+  yield "null";
+}
 
 export function hashStableValue(value: unknown): string {
   // Same UTF-16 byte sequence/hash as before, without materializing a world-sized
@@ -96,6 +172,55 @@ export function hashStableValue(value: unknown): string {
     }
   });
   return `${toHex(high)}${toHex(low)}`;
+}
+
+/** Hash an owned input without blocking scene updates. Keep it unchanged until completion. */
+export async function hashStableValueAsync(value: unknown, signal?: AbortSignal): Promise<string> {
+  signal?.throwIfAborted();
+  let low = 0x811c9dc5,
+    high = 0x9e3779b9,
+    work = 0,
+    deadline = performance.now() + 2;
+  for (const chunk of stableValueChunks(value)) {
+    for (let i = 0; i < chunk.length; i++) {
+      const code = chunk.charCodeAt(i),
+        lowByte = code & 0xff,
+        highByte = code >>> 8;
+      low = Math.imul(low ^ lowByte, 0x01000193) >>> 0;
+      low = Math.imul(low ^ highByte, 0x01000193) >>> 0;
+      high = Math.imul(high ^ lowByte, 0x5bd1e995) >>> 0;
+      high ^= high >>> 15;
+      high = Math.imul(high ^ highByte, 0x5bd1e995) >>> 0;
+      high ^= high >>> 15;
+      if (++work % 4096 === 0 && performance.now() >= deadline) {
+        await yieldHashTask();
+        signal?.throwIfAborted();
+        deadline = performance.now() + 2;
+      }
+    }
+  }
+  signal?.throwIfAborted();
+  return `${toHex(high)}${toHex(low)}`;
+}
+function yieldHashTask(): Promise<void> {
+  if (typeof MessageChannel === "undefined") return new Promise((resolve) => setTimeout(resolve, 0));
+  return new Promise((resolve, reject) => {
+    const channel = new MessageChannel();
+    const close = () => {
+      channel.port1.close();
+      channel.port2.close();
+    };
+    channel.port1.onmessage = () => {
+      close();
+      resolve();
+    };
+    try {
+      channel.port2.postMessage(null);
+    } catch (error) {
+      close();
+      reject(error);
+    }
+  });
 }
 
 export function hashRiverStableValue(value: unknown): string {

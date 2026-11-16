@@ -439,8 +439,10 @@ export class SeedWorldVoiceHudController implements SeedWorldChatPanel {
   mountScreenshotButton(button: HTMLButtonElement, canvas: HTMLCanvasElement, onLayout: (x: number, top: number, visible: boolean) => void): void {
     this._unmountScreenshot?.();
     const cameraButton = new SeedWorldCameraButton(this._options.camera, button);
+    // The HUD can move its photo dock without moving the canvas. Measure DOM
+    // geometry on layout changes, not after every transcript/state DOM write.
+    let rect = canvas.getBoundingClientRect();
     const updateAnchor = () => {
-      const rect = canvas.getBoundingClientRect();
       const scale = resolveSeedWorldHudScale(rect.width, rect.height);
       onLayout(rect.left + rect.width / 2, rect.bottom - this._view.layout.photoDockBottom * scale, this.root.isActive);
     };
@@ -451,13 +453,32 @@ export class SeedWorldVoiceHudController implements SeedWorldChatPanel {
       button.disabled = this._state.kind === "voice" || this.session.running;
       updateAnchor();
     };
-    const observer = new ResizeObserver(layout);
+    const refreshBounds = () => {
+      rect = canvas.getBoundingClientRect();
+      layout();
+    };
+    const observer = new ResizeObserver(refreshBounds);
     observer.observe(canvas);
-    window.addEventListener("resize", layout);
+    const mutations = typeof MutationObserver === "function" ? new MutationObserver(refreshBounds) : undefined;
+    const scrollTargets = new Set<EventTarget>([window, document]);
+    for (let element: HTMLElement | null = canvas; element; element = element.parentElement) {
+      scrollTargets.add(element);
+      mutations?.observe(element, { attributes: true, attributeFilter: ["style", "class", "hidden", "data-mode", "data-page-mode"] });
+    }
+    // Scrolling the Trace panel does not move the canvas.
+    const onScroll = (event: Event) => { if (event.target && scrollTargets.has(event.target)) refreshBounds(); };
+    window.addEventListener("resize", refreshBounds);
+    window.addEventListener("scroll", onScroll, { capture: true });
+    window.visualViewport?.addEventListener("resize", refreshBounds);
+    window.visualViewport?.addEventListener("scroll", refreshBounds);
     this._unmountScreenshot = () => {
       this._view.layout.onPhotoDockLayout = undefined;
       observer.disconnect();
-      window.removeEventListener("resize", layout);
+      mutations?.disconnect();
+      window.removeEventListener("resize", refreshBounds);
+      window.removeEventListener("scroll", onScroll, { capture: true });
+      window.visualViewport?.removeEventListener("resize", refreshBounds);
+      window.visualViewport?.removeEventListener("scroll", refreshBounds);
       cameraButton.dispose();
       button.remove();
     };

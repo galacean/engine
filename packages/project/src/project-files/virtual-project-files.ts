@@ -52,8 +52,9 @@ export function assertProjectPathWritable(path: string): void {
 }
 
 export function parentDirectories(path: string): string[] {
-  const parts = path.split("/");
-  return parts.slice(0, -1).map((_, index) => parts.slice(0, index + 1).join("/"));
+  const parents: string[] = [];
+  for (let end = path.indexOf("/"); end !== -1; end = path.indexOf("/", end + 1)) parents.push(path.slice(0, end));
+  return parents;
 }
 
 /** Mount a provider without changing its physical storage or loading behavior. */
@@ -169,12 +170,15 @@ export class VirtualProjectFiles {
   private index(): ProjectNodes {
     const nodes: ProjectNodes = new Map();
     const directory = (path: string) => {
-      assertProjectPath(path);
-      if (nodes.get(path)?.kind === "file") throw new ProjectPathConflictError(path, path, "file");
+      // The complete path is validated before any of its parents are installed.
+      const previous = nodes.get(path);
+      if (previous?.kind === "file") throw new ProjectPathConflictError(path, path, "file");
+      if (previous) return;
       nodes.set(path, { kind: "directory" });
     };
     for (const provider of this.providers) {
       for (const path of provider.directories?.() ?? []) {
+        assertProjectPath(path);
         for (const parent of parentDirectories(path)) directory(parent);
         directory(path);
       }
@@ -394,7 +398,13 @@ export class ProjectFileSnapshot {
 }
 
 export function assertProjectPath(path: string): void {
-  if (!path || path.includes("\\") || path.split("/").some((part) => !part || part === "." || part === "..")) {
+  if (
+    typeof path !== "string" ||
+    !path ||
+    path.startsWith("/") ||
+    path.endsWith("/") ||
+    /\\|\/\/|(?:^|\/)\.{1,2}(?=\/|(?![\s\S]))/.test(path)
+  ) {
     throw new Error(`Invalid project path '${path}'`);
   }
 }

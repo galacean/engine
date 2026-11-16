@@ -1,0 +1,143 @@
+// Each case runs through the real Worker and retains the production boundary checks.
+// Fixtures are discovered through exposed APIs; private runtime handles only identify a root for inspection.
+const cases = [];
+const add = (tool, body, id = tool) => cases.push({ id, tool, source: body });
+const scene = "Scene/SeedWorld.scene";
+const prefix = `const scene=${JSON.stringify(scene)};`;
+const farm =
+  'const systems=await editor.component.query({type:"FarmingSystem"});if(!systems.length)throw Error("No FarmingSystem");const system=systems[0];';
+const area =
+  farm +
+  'const areas=await system.list();const area=areas.value.find(x=>x.initialized&&x.active);if(!area)throw Error("No active farm");const farmId=area.farmId;';
+const plot =
+  area +
+  'const plots=await system.queryPlots({farmId});const plot=plots.value[0];if(!plot)throw Error("No plot");const plotId=plot.id;';
+add(
+  "time.get",
+  'const r=await tools.time.get();if(!Number.isFinite(r.timeHours))throw Error("Missing time");return r;'
+);
+add(
+  "atmosphere.get",
+  'const r=await tools.atmosphere.get();if(!Number.isFinite(r.environment.windSpeed))throw Error("Missing wind");return r;'
+);
+add(
+  "world.query",
+  'const r=await tools.world.query({kinds:["tree"],limit:5});if(!r.items.length)throw Error("Empty world");return r;'
+);
+add(
+  "world.inspect",
+  'const q=await tools.world.query({kinds:["tree"],limit:1});const a=q.items[0];if(a.type!=="tree")throw Error("No tree");return await tools.world.inspect({ref:a.ref});'
+);
+add(
+  "world.selection.save",
+  'const q=await tools.world.query({kinds:["tree"],limit:2});const s=await tools.world.selection.save({selectionId:q.selectionId,name:"audit-trees"});if(s.refs.length!==q.items.length)throw Error("Selection differs");return s;'
+);
+add(
+  "world.selection.get",
+  'const q=await tools.world.query({kinds:["tree"],limit:2});const s=await tools.world.selection.get({nameOrSelectionId:q.selectionId});if(!s.items.length)throw Error("Empty selection");return s;'
+);
+add(
+  "runtime.entity.inspect",
+  'const roots=await tools.runtime.entity.children({limit:10});const root=roots.entities.find(x=>x.entity);if(!root?.entity)throw Error("No root");const r=await tools.runtime.entity.inspect({entityId:root.entity.entityId});if(r.status!=="found")throw Error("Missing root");return r;'
+);
+add("runtime.entity.children", "const r=await tools.runtime.entity.children({limit:5});return r;");
+add(
+  "runtime.component.query",
+  'const roots=await tools.runtime.entity.children({limit:100});const root=roots.entities.find(x=>x.entity?.components.length);if(!root?.entity)throw Error("No root component");const r=await tools.runtime.component.query({entityId:root.entity.entityId});if(!r.components.length)throw Error("Missing components");return r;'
+);
+add(
+  "runtime.component.read",
+  'const roots=await tools.runtime.entity.children({limit:100});const root=roots.entities.find(x=>x.entity?.components.length);if(!root?.entity)throw Error("No root component");const q=await tools.runtime.component.query({entityId:root.entity.entityId});const c=q.components[0];const r=await tools.runtime.component.read({componentId:c.componentId,fields:c.properties.slice(0,2)});if(r.status!=="found")throw Error("Missing component");return r;'
+);
+add("spatial.viewer", "const r=await tools.spatial.viewer();return r;");
+add("spatial.resolve", 'const r=await tools.spatial.resolve({anchor:{kind:"viewer"},relation:{kind:"at"}});return r;');
+add(
+  "spatial.check",
+  'const r=await tools.spatial.check({positions:[{x:500,z:500}]});if(r.items.length!==1||!r.items[0].surface)throw Error("No surface");return r;'
+);
+add(
+  "spatial.search",
+  'const r=await tools.spatial.search({sort:"flattest",limit:3});if(!r.items.length)throw Error("No terrain matches");return r;'
+);
+add(
+  "world.animals.query",
+  'const r=await tools.world.animals.query({limit:100});if(r.matchedCount<1)throw Error("No animals");return r;'
+);
+add(
+  "world.animals.describe",
+  'const q=await tools.world.animals.query({visible:true});const animal=q.animals.find(x=>x.loaded);if(!animal)throw Error("No loaded visible animal");const r=await tools.world.animals.describe({id:animal.id});if(!r.available||!r.skills.length)throw Error("Animal unavailable");return r;'
+);
+add(
+  "world.animals.catalog",
+  'const r=await tools.world.animals.catalog({view:"resources",limit:5});if(!r.entries.length)throw Error("No animal resources");return r;'
+);
+add(
+  "world.parameters.describe",
+  'const r=await tools.world.parameters.describe({view:"components"});if(!r.components.length)throw Error("No metadata");return r;'
+);
+add(
+  "world.parameters.query",
+  'const r=await tools.world.parameters.query({limit:5});if(!r.entities.length)throw Error("No parameter entities");return r;'
+);
+add(
+  "world.parameters.inspect",
+  'const q=await tools.world.parameters.query({limit:1});const r=await tools.world.parameters.inspect({id:q.entities[0].id,limit:5});if(!r.versionToken)throw Error("No parameter revision");return r;'
+);
+add(
+  "world.parameters.materials.inspect",
+  'const r=await tools.world.parameters.materials.inspect({});if(!r.versionToken)throw Error("No material revision");return r;'
+);
+add(
+  "asset.list",
+  'const r=await editor.asset.list({});if(!r.length)throw Error("No project assets");return r.map(x=>({path:x.path,type:x.type}));'
+);
+add("asset.info", prefix + "return await editor.asset.info({path:scene});");
+add(
+  "asset.read",
+  prefix +
+    "const r=await editor.asset.read({path:scene});return {path:r.path,kind:r.kind,bytes:JSON.stringify(r).length};"
+);
+add("asset.references", prefix + "return await editor.asset.references({path:scene});");
+add(
+  "entity.list",
+  prefix + 'const r=await editor.entity.list({scene,limit:5});if(!r.items.length)throw Error("No entities");return r;'
+);
+add(
+  "entity.read",
+  prefix +
+    "const q=await editor.entity.list({scene,limit:1});return await editor.entity.read({scene,id:q.items[0].id});"
+);
+add(
+  "component.query",
+  prefix +
+    'const r=await editor.component.query({scene,type:"PlanningProjectAuthoring"});if(!r.length)throw Error("No authoring owner");return r;'
+);
+add(
+  "component.read",
+  prefix +
+    'const q=await editor.component.query({scene,type:"PlanningProjectAuthoring"});const r=await editor.component.read({scene,id:q[0].id});return {id:r.id,type:r.type,bytes:JSON.stringify(r).length};'
+);
+add("history.query", "return await editor.history.query({limit:5});");
+add("water.author", 'const r=await tools.water.author({operation:"list"});return r;', "water.list");
+add(
+  "editorComponents.FarmingSystem.query",
+  farm + "return systems.map(({scene,entityId,id,type})=>({scene,entityId,id,type}));"
+);
+for (const method of ["getDiagnostics", "list", "capabilities"])
+  add("editorComponents.FarmingSystem.methods." + method, farm + `return await system.${method}({});`);
+for (const method of [
+  "get",
+  "getCatalog",
+  "getTarget",
+  "queryPlots",
+  "getEnvironment",
+  "getContainers",
+  "getInventory",
+  "queryItems",
+  "getCarry",
+  "getItemTotals",
+  "verify"
+])
+  add("editorComponents.FarmingSystem.methods." + method, area + `return await system.${method}({farmId});`);
+module.exports = { cases, add, prefix, farm, area, plot };
+if (require.main === module) process.stdout.write(JSON.stringify(cases, null, 2));

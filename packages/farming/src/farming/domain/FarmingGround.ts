@@ -57,6 +57,9 @@ export interface GroundHit extends GroundSample {
 /** One immutable published ground version; sampling must agree with its rendered surface. */
 export interface FarmingGroundView {
   readonly revision: number;
+  /** Host is replacing the ground: no placement is available yet. Preserve existing items
+   * and notify consumers with a new, ready view to validate them after publication. */
+  readonly placementPending?: boolean;
   /** Original rendered triangles intersecting the bounds. Required by the soil renderer; gameplay-only hosts may omit it. */
   surfaceTriangles?(groundId: string, bounds: GroundBounds): readonly SurfaceTriangle[];
   sample(groundId: string, x: number, z: number): GroundSample | null;

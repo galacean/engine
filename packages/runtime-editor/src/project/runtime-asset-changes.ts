@@ -1,3 +1,4 @@
+import { sameRuntimeProjectContent as sameResourceContent } from "@galacean/engine-project/runtime-editor/project/runtime-project-content";
 import { affectedProjectAssets } from "@galacean/engine-project/runtime-editor/project/runtime-project-dependencies";
 import type {
   RuntimeProjectManifest,
@@ -14,15 +15,7 @@ export function resourceSignature(file: File | undefined): string | undefined {
   return JSON.stringify(resource);
 }
 
-export function sameResourceContent(a: Content, b: Content): boolean {
-  return (
-    a === b ||
-    (a instanceof Uint8Array &&
-      b instanceof Uint8Array &&
-      a.byteLength === b.byteLength &&
-      a.every((byte, index) => byte === b[index]))
-  );
-}
+export { sameRuntimeProjectContent as sameResourceContent } from "@galacean/engine-project/runtime-editor/project/runtime-project-content";
 
 /** One change definition for resource loading and Scene rebinding. Reads fill missing
  * baseline bytes; they never overwrite authored contents or count as edits. */

@@ -74,20 +74,9 @@ export function bakeSeedWorldSurfaceReliefMask(
   intent: SeedWorldSurfaceMaterialIntent,
   tuning: SeedWorldSurfaceReliefMaskTuning = DEFAULT_SURFACE_RELIEF_MASK_TUNING
 ): Uint8Array {
-  validateSurfaceReliefMaskTuning(tuning);
+  validateSurfaceReliefMaskDomain(fields, intent, tuning);
   const edge = intent.resolution,
     count = edge ** 2;
-  if (
-    !Number.isFinite(fields.sizeMetres) ||
-    fields.sizeMetres <= 0 ||
-    !Number.isInteger(edge) ||
-    edge < 2 ||
-    fields.surfaceResolution !== edge ||
-    intent.materialWeights.length !== count * 4 ||
-    (intent.riverBedCoverage && intent.riverBedCoverage.length !== count)
-  ) {
-    throw new RangeError("Surface relief requires complete finite world coverage");
-  }
   const grass = new Uint8Array(count);
   for (let index = 0; index < count; index++) {
     // Grass is the first cumulative channel in the independent river-bed blend.
@@ -143,4 +132,69 @@ export function packSeedWorldSurfaceReliefMask(mask: Uint8Array, resolution: num
       pixels[index + 2] = Math.round(128 + 127 * (sample(x, z + offset) - sample(x, z - offset)));
     }
   return pixels;
+}
+
+export function validateSurfaceReliefMaskDomain(
+  fields: SeedWorldSurfaceReliefFields,
+  intent: SeedWorldSurfaceMaterialIntent,
+  tuning: SeedWorldSurfaceReliefMaskTuning
+): void {
+  validateSurfaceReliefMaskTuning(tuning);
+  const edge = intent.resolution,
+    count = edge ** 2;
+  if (
+    !Number.isFinite(fields.sizeMetres) ||
+    fields.sizeMetres <= 0 ||
+    !Number.isInteger(edge) ||
+    edge < 2 ||
+    fields.surfaceResolution !== edge ||
+    intent.materialWeights.length !== count * 4 ||
+    (intent.riverBedCoverage && intent.riverBedCoverage.length !== count)
+  ) {
+    throw new RangeError("Surface relief requires complete finite world coverage");
+  }
+}
+
+/** Detached worker output; texture ownership stays with the publication transaction. */
+export interface PreparedSurfaceReliefMask {
+  readonly resolution: number;
+  readonly sizeMetres: number;
+  readonly tuning: SeedWorldSurfaceReliefMaskTuning;
+  readonly pixels: Uint8Array;
+}
+export function prepareSurfaceReliefMask(
+  fields: SeedWorldSurfaceReliefFields,
+  intent: SeedWorldSurfaceMaterialIntent,
+  tuning: SeedWorldSurfaceReliefMaskTuning
+): PreparedSurfaceReliefMask {
+  return {
+    resolution: intent.resolution,
+    sizeMetres: fields.sizeMetres,
+    tuning: { ...tuning },
+    pixels: packSeedWorldSurfaceReliefMask(
+      bakeSeedWorldSurfaceReliefMask(fields, intent, tuning),
+      intent.resolution,
+      fields.sizeMetres
+    )
+  };
+}
+/** Compare the exact input bytes used by the mask, not unrelated water/soil channels. */
+export function sameSurfaceReliefCoverage(
+  a: SeedWorldSurfaceMaterialIntent,
+  b: SeedWorldSurfaceMaterialIntent
+): boolean {
+  if (
+    a.resolution !== b.resolution ||
+    a.materialWeights.length !== b.materialWeights.length ||
+    a.materialWeights.length !== a.resolution ** 2 * 4 ||
+    (a.riverBedCoverage && a.riverBedCoverage.length !== a.resolution ** 2) ||
+    (b.riverBedCoverage && b.riverBedCoverage.length !== b.resolution ** 2)
+  )
+    return false;
+  for (let i = 0; i < a.resolution ** 2; i++) {
+    const before = Math.round((a.materialWeights[i * 4] * (255 - (a.riverBedCoverage?.[i] ?? 0))) / 255);
+    const after = Math.round((b.materialWeights[i * 4] * (255 - (b.riverBedCoverage?.[i] ?? 0))) / 255);
+    if (before !== after) return false;
+  }
+  return true;
 }

@@ -161,7 +161,6 @@ export class FarmingWorldPresentation {
       this.hintOccluded(point)
     );
     this.soils = new SoilVisualProvider(parent.engine, this.snapshot.grid.cellSize, soilShader);
-    this.items = new FarmItemPresentation(this.root, camera, service);
     this.watering = WateringPresenter.create(this.root);
     this.watering.showProp = false;
     this.toolRoot = this.root.createChild("Farming soil tool");
@@ -187,6 +186,9 @@ export class FarmingWorldPresentation {
         isWithinDrawDistance: (position, wasVisible) =>
           this.growthVisibility.withinDrawDistance(position, this.camera.entity.transform.worldPosition, wasVisible)
       }
+    );
+    this.items = new FarmItemPresentation(this.root, camera, service, {}, (work, phase, signal) =>
+      this.plants.preparePresentationWork(work, phase, signal!)
     );
     this.port = {
       getTarget: () => ({ ...this.target }),

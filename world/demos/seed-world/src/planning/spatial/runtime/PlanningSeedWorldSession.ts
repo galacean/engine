@@ -90,6 +90,7 @@ export class PlanningSeedWorldSession {
   readonly port: SeedWorldRuntimeEnginePort;
   readonly application: SeedWorldAgentApplication;
   private panel?: SeedWorldChatPanel;
+  private presentationShown = false;
   private disposed = false;
   private readonly authoringLifetime = new AbortController();
   private async moveHistory(direction: "undo" | "redo") {
@@ -249,10 +250,10 @@ export class PlanningSeedWorldSession {
     return this.panel?.listening ?? false;
   }
 
-  /** Mounts the original Galacean UI panel, with its real Agent and speech lifecycle. */
-  show(): void {
+  /** Create hidden presentation resources while Loading still owns the screen.
+   * The public assistant and input entry remain gated by show() after publication. */
+  preparePresentation(): SeedWorldChatPanel {
     if (this.disposed) throw new Error("Seed World session has been disposed");
-    if (!this.options.readPublished() || !this.options.isActive()) throw new Error("Seed World is not published");
     this.panel ??= mountSeedWorldChatPanel({
       nativeEditor: this.options.nativeEditor,
       projectFiles: this.options.projectFiles,
@@ -262,15 +263,27 @@ export class PlanningSeedWorldSession {
       root: this.options.root,
       camera: this.options.camera,
       setWorldInputEnabled: this.options.setWorldInputEnabled,
-      initiallyOpen: this.options.initiallyOpen,
-      traceEnabled: this.options.traceEnabled
+      initiallyOpen: false,
+      traceEnabled: false
     });
+    return this.panel;
+  }
+
+  /** Mounts the original Galacean UI panel, with its real Agent and speech lifecycle. */
+  show(): void {
+    if (this.disposed) throw new Error("Seed World session has been disposed");
+    if (!this.options.readPublished() || !this.options.isActive()) throw new Error("Seed World is not published");
+    const panel = this.preparePresentation();
+    if (!this.presentationShown) {
+      this.presentationShown = true;
+      if (this.options.traceEnabled) panel.debug.enable();
+    }
     if (typeof window !== "undefined") {
-      window.seedWorldAI = this.panel;
+      window.seedWorldAI = panel;
       window.seedWorldAIError = undefined;
       if (import.meta.env.DEV) window.seedWorldPlanning = this.parameterDebug;
     }
-    this.panel.show();
+    panel.show();
   }
   hide(): void {
     this.panel?.hide();

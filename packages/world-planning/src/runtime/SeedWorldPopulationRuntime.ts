@@ -1501,7 +1501,11 @@ export class SeedWorldPopulationRuntime {
 
   /** Native procedural formations reuse Seed World's grass asset/material/batch path.
    * Publication stages surface identities; candidate compilation runs within the frame budget. */
-  prepareRockGrass(placements: readonly RockGrassPlacement[], allowed: RockGrassSampling["allowed"]) {
+  prepareRockGrass(
+    placements: readonly RockGrassPlacement[],
+    allowed: RockGrassSampling["allowed"],
+    reversible = false
+  ) {
     this._generatedRockGrass ??= new RockGrassPatches<DetailPopulationBatch>({
       create: (transforms, key, origin, patch) => {
         const batch = this._acquireRockSurfaceGrassBatch({
@@ -1533,7 +1537,9 @@ export class SeedWorldPopulationRuntime {
       },
       destroy: (batch) => this._retireRockSurfaceGrassBatch(batch)
     });
-    const grass = this._generatedRockGrass.prepare(placements, allowed);
+    const grass = reversible
+      ? this._generatedRockGrass.prepareReversible(placements, allowed, true)
+      : this._generatedRockGrass.prepare(placements, allowed);
     const changed =
       placements.length !== this._grassRockPlacements.length ||
       placements.some((p, i) => {
@@ -1541,10 +1547,28 @@ export class SeedWorldPopulationRuntime {
         return old?.formation !== p.formation || p.origin.some((v, axis) => v !== old.origin[axis]);
       });
     const appearance = changed ? new GrassRockAppearance(placements) : this._grassRockAppearance;
+    const oldAppearance = this._grassRockAppearance,
+      oldPlacements = this._grassRockPlacements;
+    let committed = false;
+    const rollback = () => {
+      grass.rollback();
+      if (committed && reversible) {
+        this._grassRockAppearance = oldAppearance;
+        this._grassRockPlacements = oldPlacements;
+        this._refreshGrassRockAppearance();
+      }
+      committed = false;
+    };
     return {
       ...grass,
+      rollback,
+      discard: () => {
+        rollback();
+        grass.discard();
+      },
       commit: () => {
         grass.commit();
+        committed = true;
         if (changed) {
           this._grassRockAppearance = appearance;
           this._grassRockPlacements = placements.map((p) => ({

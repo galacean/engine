@@ -708,7 +708,13 @@ export class PlanningNaturalVegetationRuntime {
     this.paintedTrees.set(id, painted);
     return painted;
   }
-  private plant(owner: Entity, instance: LandscapePlantInstance, tree: boolean, fields = this.groundingFields): Plant {
+  private plant(
+    owner: Entity,
+    instance: LandscapePlantInstance,
+    tree: boolean,
+    fields = this.groundingFields,
+    rockSupport = this.preparedRockGround ?? this.rockGround
+  ): Plant {
     const root = owner.createChild(instance.id),
       source = this.sourceForPlant(instance, 0);
     const profile = SEED_WORLD_POPULATION_RUNTIME_PROFILE;
@@ -717,7 +723,7 @@ export class PlanningNaturalVegetationRuntime {
       : source.entry.category === "Trees"
         ? profile.shrub.shadows
         : profile.shadows;
-    const ground = this.plantGroundHeight(fields, instance, source);
+    const ground = this.plantGroundHeight(fields, instance, source, rockSupport);
     const groundHeight = this.preparedGroundingFields
       ? this.plantGroundHeight(this.preparedGroundingFields, instance, source)
       : ground;
@@ -1058,12 +1064,14 @@ export class PlanningNaturalVegetationRuntime {
     fields: SeedWorldFields,
     population: SeedWorldPopulationPreview,
     bounds: SeedWorldAuthoringRuntimeBoundsV1,
-    signal: AbortSignal
+    signal: AbortSignal,
+    rocks?: { plan: IslandPlan; formations: readonly RockFormationMesh[] }
   ): Promise<PreparedTerrainUpdate> {
     if (this.disposed) throw Error("Vegetation is disposed");
     signal.throwIfAborted();
     const previous = {
       plan: this.plan,
+      rockGround: this.rockGround,
       height: this.height,
       fields: this.groundingFields,
       population: this.population,
@@ -1072,6 +1080,7 @@ export class PlanningNaturalVegetationRuntime {
       pool: new Map(this.treePool),
       cells: new Map(this.cells)
     };
+    const rockSupport = rocks ? rockFormationGround(rocks.plan, rocks.formations) : this.rockGround;
     const nextPlanner = new PlanningNaturalVegetation(
       plan,
       height,
@@ -1097,11 +1106,11 @@ export class PlanningNaturalVegetationRuntime {
       for (const instance of desired) {
         const old = this.treePool.get(instance.id),
           source = this.sources[0].get(instance.assetId);
-        const ground = this.plantGroundHeight(fields, instance, source);
+        const ground = this.plantGroundHeight(fields, instance, source, rockSupport);
         if (old && JSON.stringify(old.instance) === JSON.stringify(instance) && old.groundHeight === ground)
           nextTrees.push(old);
         else {
-          const plant = this.plant(stage, instance, instance.layerId === "乔木", fields);
+          const plant = this.plant(stage, instance, instance.layerId === "乔木", fields, rockSupport);
           created.push(plant);
           nextTrees.push(plant);
         }
@@ -1127,7 +1136,7 @@ export class PlanningNaturalVegetationRuntime {
         signal.throwIfAborted();
         const result = nextPlanner.compileCell(x, z),
           root = stage.createChild(`Natural cell ${key}`);
-        const plants = result.instances.map((instance) => this.plant(root, instance, false, fields));
+        const plants = result.instances.map((instance) => this.plant(root, instance, false, fields, rockSupport));
         replacements.set(key, {
           root,
           plants,
@@ -1183,6 +1192,7 @@ export class PlanningNaturalVegetationRuntime {
         else this.cells.delete(key);
       }
       this.plan = previous.plan;
+      this.rockGround = previous.rockGround;
       this.height = previous.height;
       this.groundingFields = previous.fields;
       this.population = previous.population;
@@ -1220,6 +1230,7 @@ export class PlanningNaturalVegetationRuntime {
             if (!nextTrees.some((next) => next.instance.id === tree.instance.id))
               this.treePool.delete(tree.instance.id);
           this.plan = plan;
+          this.rockGround = rockSupport;
           this.height = height;
           this.groundingFields = fields;
           this.population = population;
@@ -1256,9 +1267,14 @@ export class PlanningNaturalVegetationRuntime {
    * Plant identities, XZ, species proportions, scale and streamed cell membership are retained.
    * Heights are stored on existing plants; preparation allocates no per-plant arrays or renderers.
    */
-  private plantGroundHeight(fields: SeedWorldFields, instance: LandscapePlantInstance, source?: Source): number {
+  private plantGroundHeight(
+    fields: SeedWorldFields,
+    instance: LandscapePlantInstance,
+    source?: Source,
+    rockSupport = this.preparedRockGround ?? this.rockGround
+  ): number {
     const placement = this.rockSources?.sources.get(instance.assetId) ?? source;
-    return naturalPlantGroundHeight(fields, instance, placement, this.preparedRockGround ?? this.rockGround);
+    return naturalPlantGroundHeight(fields, instance, placement, rockSupport);
   }
 
   prepareGrounding(

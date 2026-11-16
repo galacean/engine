@@ -19,6 +19,9 @@ import {
 import type { SeedWorldSurfaceMaterialIntent } from "./SeedWorldSurfaceIntent.ts";
 import {
   bakeSeedWorldSurfaceReliefMask,
+  sameSurfaceReliefCoverage,
+  validateSurfaceReliefMaskDomain,
+  type PreparedSurfaceReliefMask,
   packSeedWorldSurfaceReliefMask,
   DEFAULT_SURFACE_RELIEF_MASK_TUNING,
   validateSurfaceReliefMaskTuning,
@@ -34,8 +37,7 @@ export interface SeedWorldSurfaceReliefTuning extends Partial<SeedWorldSurfaceRe
 
 const bindingOwner = new WeakMap<ShaderData, SeedWorldSurfaceReliefRuntime>();
 
-function createMaskTexture(engine: Engine, resolution: number, sizeMetres: number, mask: Uint8Array): Texture2D {
-  const pixels = packSeedWorldSurfaceReliefMask(mask, resolution, sizeMetres);
+function createPackedMaskTexture(engine: Engine, resolution: number, pixels: Uint8Array): Texture2D {
   const texture = new Texture2D(engine, resolution, resolution, TextureFormat.R8G8B8, false, false);
   try {
     texture.filterMode = TextureFilterMode.Bilinear;
@@ -46,6 +48,10 @@ function createMaskTexture(engine: Engine, resolution: number, sizeMetres: numbe
     texture.destroy();
     throw error;
   }
+}
+
+function createMaskTexture(engine: Engine, resolution: number, sizeMetres: number, mask: Uint8Array): Texture2D {
+  return createPackedMaskTexture(engine, resolution, packSeedWorldSurfaceReliefMask(mask, resolution, sizeMetres));
 }
 
 /** Borrows the shared local pattern and owns derived coverage and one repeating normal tile. */
@@ -165,15 +171,41 @@ export class SeedWorldSurfaceReliefRuntime {
   }
 
   /** Prepare coverage against a future water/terrain snapshot, retaining the shared height pattern. */
-  prepareFields(fields: SeedWorldSurfaceReliefFields, intent: SeedWorldSurfaceMaterialIntent): PreparedTerrainUpdate {
+  prepareFields(
+    fields: SeedWorldSurfaceReliefFields,
+    intent: SeedWorldSurfaceMaterialIntent,
+    prepared?: PreparedSurfaceReliefMask
+  ): PreparedTerrainUpdate {
     if (this.disposed) throw Error("Surface relief is disposed");
     const previousFields = this.fields,
       previousIntent = this.intent,
       old = this.maskTexture;
-    const nextPixels = old ? bakeSeedWorldSurfaceReliefMask(fields, intent, this.tuning) : undefined;
-    const next = nextPixels
-      ? createMaskTexture(this.engine, intent.resolution, fields.sizeMetres, nextPixels)
-      : undefined;
+
+    const tuning = this.tuning;
+    validateSurfaceReliefMaskDomain(fields, intent, tuning);
+    if (
+      prepared &&
+      (prepared.resolution !== intent.resolution ||
+        prepared.sizeMetres !== fields.sizeMetres ||
+        !(prepared.pixels instanceof Uint8Array) ||
+        prepared.pixels.length !== intent.resolution ** 2 * 3 ||
+        prepared.tuning.maskCoverageStart !== tuning.maskCoverageStart ||
+        prepared.tuning.maskSoftnessMetres !== tuning.maskSoftnessMetres)
+    )
+      throw Error("Stale or invalid prepared surface relief");
+    const reuse = fields.sizeMetres === previousFields.sizeMetres && sameSurfaceReliefCoverage(previousIntent, intent);
+    const next = !old
+      ? undefined
+      : reuse
+        ? old
+        : prepared
+          ? createPackedMaskTexture(this.engine, prepared.resolution, prepared.pixels)
+          : createMaskTexture(
+              this.engine,
+              intent.resolution,
+              fields.sizeMetres,
+              bakeSeedWorldSurfaceReliefMask(fields, intent, tuning)
+            );
     const transaction = reversibleTerrainSteps(
       [...this.bindings]
         .filter((data) => bindingOwner.get(data) === this)
@@ -202,7 +234,13 @@ export class SeedWorldSurfaceReliefRuntime {
     };
     return {
       commit: () => {
-        if (state !== "prepared" || this.disposed || this.fields !== previousFields || this.maskTexture !== old)
+        if (
+          state !== "prepared" ||
+          this.disposed ||
+          this.fields !== previousFields ||
+          this.maskTexture !== old ||
+          this.tuning !== tuning
+        )
           throw Error("Stale surface relief");
         transaction.commit();
         this.fields = fields;
@@ -214,13 +252,13 @@ export class SeedWorldSurfaceReliefRuntime {
       finalize: () => {
         if (state !== "committed") throw Error("Surface relief not committed");
         state = "finished";
-        old?.destroy();
+        if (old !== next) old?.destroy();
       },
       discard: () => {
         if (state === "finished") return;
         rollback();
         state = "finished";
-        next?.destroy();
+        if (old !== next) next?.destroy();
       }
     };
   }

@@ -22,6 +22,7 @@ import {
   prepareRockFormationPublication,
   prepareRockMaterialPublication
 } from "@galacean/engine-world-planning/integrations/terrain/rock-formation/Publication";
+import { preparePlanningSurfaceSolidsSwap } from "@galacean/engine-world-planning/spatial/runtime/PlanningSurfaceSolids";
 import {
   masonryPlacementAnchors,
   masonryTerrainSource
@@ -60,7 +61,7 @@ import {
 } from "@galacean/engine-world-planning/spatial/runtime/PlanningNaturalVegetationRuntime";
 import { planningPresentedSolids } from "@galacean/engine-world-planning/spatial/runtime/PlanningPresentedSolids";
 import {
-  planningWaterPublicationGate,
+  planningSurfacePublicationGate,
   preparePlanningWaterImpact
 } from "@galacean/engine-world-planning/spatial/runtime/PlanningWaterPublication";
 import { visitPlanningWorldPickBatches } from "@galacean/engine-world-planning/spatial/runtime/PlanningWorldPicking";
@@ -105,6 +106,7 @@ import {
   Matrix,
   Quaternion,
   Ray,
+  Renderer,
   Scene,
   Script,
   ShaderMacroCollection,
@@ -145,9 +147,7 @@ import { createIntegratedWorldLightingRuntime } from "@galacean/engine-world-pla
 import { TERRAIN_DEFAULT_CAMERA_CONFIGURATION } from "@galacean/engine-world-planning/integrations/terrain/lighting/TerrainLightingRuntime";
 import { RockFormationClient } from "@galacean/engine-world-planning/integrations/terrain/rock-formation/Client";
 import { RockNavigation } from "@galacean/engine-world-planning/integrations/terrain/rock-formation/Navigation";
-import {
-  readRockFormationSettings
-} from "@galacean/engine-world-planning/integrations/terrain/rock-formation/Settings";
+import { readRockFormationSettings } from "@galacean/engine-world-planning/integrations/terrain/rock-formation/Settings";
 import { PLANNING_REFERENCE } from "@galacean/engine-world-planning/planning-data/PlanningReference";
 import { sampleSeedWorldHeight } from "@galacean/engine-world-planning/runtime/SeedWorldFields";
 import {
@@ -725,11 +725,13 @@ export async function mountSeedWorldDemo(
         type: "WaterBodyComponent"
       })) {
         const body = nativeEditor!.editor.projection.component(identity.id);
-        if (body instanceof WaterBodyComponent && body.authoring) {
+        if (body instanceof WaterBodyComponent) {
+          const authoring = body._readAuthoring();
+          if (!authoring) continue;
           const planningId = body.entity.getComponent(PlanningEntityAuthoring)?.planningId;
           if (
             planningId &&
-            effectivePlanningWaterId(identity.scene, identity.id, planningId, body.authoring.shape.kind) === id
+            effectivePlanningWaterId(identity.scene, identity.id, planningId, authoring.shape.kind) === id
           )
             return body;
         }
@@ -942,10 +944,15 @@ export async function mountSeedWorldDemo(
       });
     });
     const isFarmingPlanned = () => source!.session.document.entities.world.components.farming?.values.enabled !== false;
-    visualQuery = new SeedWorldVisualQuery(camera,
+    visualQuery = new SeedWorldVisualQuery(
+      camera,
       () => publication?.current,
       () => `${publication?.current?.revision}:${publication?.current?.masonry?.presentationRevision}`,
-      visitor => { const current = publication?.current; if (current) visitPlanningWorldPickBatches(current, water!, visitor); });
+      (visitor) => {
+        const current = publication?.current;
+        if (current) visitPlanningWorldPickBatches(current, water!, visitor);
+      }
+    );
     farmingHost = new PlanningFarmingHost({
       projection: nativeEditor.projection,
       isPlannedEnabled: isFarmingPlanned,
@@ -1024,6 +1031,17 @@ export async function mountSeedWorldDemo(
           },
           afterCommit: async () => {
             farmingHost?.runtime?.refreshWater(publication!.current!, context.waterUpdate!);
+            const accepted = publication!.current!;
+            animals!.synchronize(
+              accepted.plan,
+              readAnimalPopulationConfig(source!.session.document),
+              accepted.navigation,
+              {
+                preservePopulation: true,
+                surface: accepted.data.surfaceIntent,
+                change: accepted.animalChange
+              }
+            );
             canvas.dataset.waterEdit = JSON.stringify({
               ...context.waterUpdate,
               publicationMs: performance.now() - started
@@ -1033,12 +1051,14 @@ export async function mountSeedWorldDemo(
           }
         };
       }
-      const waterFallback = planningWaterPublicationGate(
+      const waterFallback = planningSurfacePublicationGate(
         publication!.current,
         context.previousDocument,
         document,
         result,
-        context.forceFull
+        context.forceFull,
+        context.terrainTransitionDurationSeconds,
+        true
       );
       if (!context.contentOnly && !context.worldUnchanged && !waterFallback) {
         const started = performance.now();
@@ -1056,7 +1076,49 @@ export async function mountSeedWorldDemo(
               raster,
               signal,
               planningNaturalGrassDensity(library),
-              revision
+              revision,
+              {
+                submerged: rockGrassWaterTest(water!),
+                prepareSolids: async () => {
+                  const formations = await rockFormations.prepare(
+                    result.plan,
+                    signal,
+                    previous.solids.formations
+                  );
+                  signal.throwIfAborted();
+                  const stage = previous.world.root.createChild("Prepared surface solids");
+                  stage.isActive = false;
+                  let solids: Awaited<ReturnType<typeof createPlanningSeedSolids>> | undefined;
+                  try {
+                    solids = await createPlanningSeedSolids(engine!, stage, result.plan, {
+                      signal,
+                      previous: previous.solids,
+                      formations,
+                      sourcePlan: result.plan,
+                      rockColorBlend: readRockFormationSettings(document).colorBlend,
+                      registerGrassAppearance: (material) => previous.world.registerGrassAppearanceMaterial(material)
+                    });
+                    await warmupSeedWorldRendererVariants(
+                      engine!,
+                      scene!,
+                      camera,
+                      [solids.root, solids.bridgesView.root],
+                      {
+                        enabled: precompileShaders,
+                        strict: true,
+                        signal
+                      }
+                    );
+                    signal.throwIfAborted();
+                    return { solids, update: preparePlanningSurfaceSolidsSwap(previous.solids, solids, stage) };
+                  } catch (error) {
+                    solids?.rollbackCommit();
+                    solids?.dispose();
+                    stage.destroy();
+                    throw error;
+                  }
+                }
+              }
             );
             timings = frame.timings;
             return frame;
@@ -1078,6 +1140,7 @@ export async function mountSeedWorldDemo(
               accepted.navigation,
               {
                 preservePopulation: true,
+                change: accepted.animalChange,
                 surface: accepted.data.surfaceIntent
               }
             );
@@ -1106,10 +1169,7 @@ export async function mountSeedWorldDemo(
         !publication!.current || roadState(publication!.current.plan) === roadState(result.plan);
       const rockSupportChanged =
         publication!.current &&
-        JSON.stringify([
-          result.plan.rocks,
-          result.plan.landscapes?.filter((x) => x.kind === "rock")
-        ]) !==
+        JSON.stringify([result.plan.rocks, result.plan.landscapes?.filter((x) => x.kind === "rock")]) !==
           JSON.stringify([
             publication!.current.plan.rocks,
             publication!.current.plan.landscapes?.filter((x) => x.kind === "rock")
@@ -1313,9 +1373,7 @@ export async function mountSeedWorldDemo(
           // owners; publication aborts outstanding rock work if either task fails.
           const [, formationMeshes] = await Promise.all([
             timed("raster.run", () => raster.run(plan, true, true)),
-            timed("rockFormations.prepare", () =>
-              rockFormations.prepare(plan, signal)
-            )
+            timed("rockFormations.prepare", () => rockFormations.prepare(plan, signal))
           ]);
           // Superseded raster calls resolve undefined; only the request revision decides acceptance.
           signal.throwIfAborted();
@@ -1736,12 +1794,14 @@ export async function mountSeedWorldDemo(
       if (
         args[2].contentOnly ||
         args[2].waterUpdate ||
-        !planningWaterPublicationGate(
+        !planningSurfacePublicationGate(
           publication!.current,
           args[2].previousDocument,
           args[0],
           args[1],
-          args[2].forceFull
+          args[2].forceFull,
+          args[2].terrainTransitionDurationSeconds,
+          true
         )
       )
         return preparePublicationContent(...args);
@@ -1846,6 +1906,7 @@ export async function mountSeedWorldDemo(
       if (publication!.current !== accepted || disposed) return;
       animals!.synchronize(accepted.plan, readAnimalPopulationConfig(source!.session.document), accepted.navigation, {
         preservePopulation: true,
+        change: accepted.animalChange,
         surface: accepted.data.surfaceIntent
       });
       await obbDebug?.synchronize(accepted.plan);
@@ -1961,8 +2022,11 @@ export async function mountSeedWorldDemo(
     progress(0.2, "准备原 Seed 环境光照");
     await source.initialize(preparePublication);
     const initialBuildingDocument = source.session.export();
-    nativeEditor.editor.registerPreparation(preparePlanningWaterSource(() => runtimeProject!.projectPackage));
-    nativeEditor.editor.registerPreparation(validatePlanningSource);
+    nativeEditor.editor.registerPreparation(
+      preparePlanningWaterSource(() => runtimeProject!.projectPackage),
+      { rootTypes: ["Scene"] }
+    );
+    nativeEditor.editor.registerPreparation(validatePlanningSource, { rootTypes: ["Scene"] });
     nativeEditor.editor.registerPreparation(
       buildingScenePreparation(runtimeProject.projectPackage.project.scene, (edit, signal) =>
         buildingInitializationInputs(
@@ -1975,7 +2039,8 @@ export async function mountSeedWorldDemo(
           rockFormations,
           initialBuildingDocument
         )
-      )
+      ),
+      { rootTypes: ["Scene"] }
     );
     progress(0.94, "准备世界画面");
     desert?.applyDesertShadows(lighting);
@@ -2208,10 +2273,12 @@ export async function mountSeedWorldDemo(
       await publication.current?.vegetation?.preparePresentation();
       if (disposed) throw new DOMException("Seed page disposed during shader preparation", "AbortError");
       progress(0.98, "预编译场景渲染变体");
+      const assistant = options.showAssistant !== false ? tools.preparePresentation() : undefined;
       const shaderWarmup = await warmupSeedWorldRendererVariants(engine, scene!, camera, scene!.rootEntities, {
         strict: true,
         includeInactiveEntities: false,
         includeGpuInstancing: true,
+        overlayRenderers: assistant?.root.getComponentsIncludeChildren(Renderer, []) ?? [],
         postProcessState: post.getShaderWarmupState(),
         additionalBackgroundMaterials: environment!.shaderWarmupBackgroundMaterials,
         onVariants:

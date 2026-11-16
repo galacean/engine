@@ -1434,6 +1434,27 @@ function viewerOffset(forwardMetres: number) {
   };
 }
 
+describe("world query producer selection", () => {
+  it("reads trees without materializing unrelated spatial regions, retaining natural parents", () => {
+    const { engine } = createHarness();
+    const app = new SeedWorldAgentApplication(engine);
+    const trees = app.selectWorld({ kinds: ["tree"], limit: 100 });
+    expect(trees.matchedCount).toBe(2);
+    expect(engine.queryWorldRegions).not.toHaveBeenCalled();
+    const all = app.selectWorld({ limit: 100 });
+    expect(trees.items).toEqual(all.items.filter(item => item.ref.kind === "tree"));
+    expect(engine.queryWorldRegions).toHaveBeenCalled();
+  });
+  it("intersects kind and domain restrictions and keeps empty kinds empty", () => {
+    const { engine } = createHarness();
+    const app = new SeedWorldAgentApplication(engine);
+    expect(app.selectWorld({ kinds: ["tree"], domains: ["water"] }).matchedCount).toBe(0);
+    expect(app.selectWorld({ kinds: [] }).matchedCount).toBe(0);
+    expect(engine.queryWorldRegions).not.toHaveBeenCalled();
+    expect(engine.queryWorldObjects).not.toHaveBeenCalled();
+  });
+});
+
 function createHarness(initialObjects: SeedWorldObject[] = [naturalTree(0, "forest-a"), naturalTree(1, "forest-a")]) {
   let revision = 3;
   let serial = 0;

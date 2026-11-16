@@ -63,7 +63,12 @@ import {
   defaultPoiLayout,
   type PoiSite
 } from "../../semantic-study/PoiDistribution";
-import { createPlanningGroundSampler, createPlanningRingQuery } from "../../semantic-study/WorldPlanningTerrain";
+import {
+  createPlanningGroundSampler,
+  createPlanningRingQuery,
+  type PlanningWaterTerrainInfluence
+} from "../../semantic-study/WorldPlanningTerrain";
+import { VOLUME_GROUND_SLOPE_SAMPLE_OFFSET } from "./VolumeTerrain";
 import { settlementRandom } from "../../semantic-study/SettlementGeometry";
 import {
   planGlobalRoadNetwork,
@@ -97,6 +102,7 @@ import {
 import { projectLayoutGroups, type LayoutAppearance } from "./LayoutPlanAdapter";
 import profile from "./space-rules.json";
 import { changedSpatialOutputs } from "./DerivedEdits";
+import { changedSpatialWaterBounds } from "./SpatialWaterDependencies";
 import { initialLayoutConfiguration } from "./LayoutProfiles";
 import { compileRoadGraphSplines } from "./RoadGraphSplines";
 import { pruneUnusedAccessPaths, resolveRoadTopology, rebuildPhysicalRoadTopology } from "./RoadTopology";
@@ -119,6 +125,8 @@ export interface SpatialLayoutState {
   groups: LayoutGroup[];
   /** Generated, unedited volumes are the only inputs to generation constraints. */
   baselineGroups?: LayoutGroup[];
+  /** Terrain dependencies captured with the unpatched ground used to solve baselineGroups. */
+  waterTerrainInfluences?: readonly PlanningWaterTerrainInfluence[];
   /** Complete compliant scenery before authoring visibility or instance transforms. */
   landscapeBase?: LandscapeBasemap;
   /** Visible generated scenery before any explicit single-object transform. */
@@ -524,21 +532,20 @@ function* spatialWorldStages(
   const terrainChanged = baseTerrainChanged || riversChanged;
   const riverRings = plan.waters.map((w) => createPlanningRingQuery(w.outline));
   const riverRoads = riverRoadQueries(plan);
-  const affectedRiverQueries = riversChanged
-    ? [...plan.waters, ...(previous?.plan.waters ?? [])].map((w) => ({
-        ring: createPlanningRingQuery(w.outline),
-        width: (w.bankWidthM ?? 12) + 2
-      }))
-    : [];
-  const riverAffected = (outline: PlanPoint[]) =>
-    affectedRiverQueries.some(
-      ({ ring, width }) => ring.overlapsPolygon(outline) || outline.some((p) => ring.within(p, width))
-    );
   const groups: LayoutGroup[] = [],
     previousGroups = new Map((saved?.baselineGroups ?? saved?.groups)?.map((g) => [g.id, g])),
     changedGroups = new Set<string>();
   plan.spatialLayout = { worldSignature, groups };
   let ground = createPlanningGroundSampler(plan, { natural: true });
+  const waterTerrainInfluences = ground.waterTerrainInfluences;
+  const affectedWaterBounds = riversChanged
+    ? changedSpatialWaterBounds(previous?.plan, plan, waterTerrainInfluences)
+    : [];
+  // Unknown/version-only signature changes and legacy caches require conservative replay.
+  const fullTerrainDependency = baseTerrainChanged || (riversChanged && !affectedWaterBounds?.length);
+  const riverAffected = (outline: PlanPoint[]) =>
+    outline.length > 0 &&
+    !!affectedWaterBounds?.some((area) => intersects(area, bounds(outline, VOLUME_GROUND_SLOPE_SAMPLE_OFFSET)));
   plan.worldTemplateSite = planWorldTemplateSite(plan, ground);
   plan.planning!.reservations = plan.planning!.reservations.filter((area) => area.ownerId !== "world-template");
   for (const item of plan.worldTemplateSite?.footprints ?? [])
@@ -658,7 +665,19 @@ function* spatialWorldStages(
   // make them feasible. Replay affected owners in the same order as a cold solve.
   const rebuild = new Set(
     specifications
-      .filter((s) => terrainChanged || previousGroups.get(s.site.id)?.inputSignature !== s.inputSignature)
+      .filter(
+        (s) =>
+          fullTerrainDependency ||
+          previousGroups.get(s.site.id)?.inputSignature !== s.inputSignature ||
+          riverAffected([
+            ...(territoryOutlines.get(s.site.id) ?? []),
+            ...s.construction.members.flatMap((boxes) => boxes.flatMap(boxOutline)),
+            ...(previousGroups.get(s.site.id)?.construction?.members ?? []).flatMap((boxes) =>
+              boxes.flatMap(boxOutline)
+            ),
+            ...(previousGroups.get(s.site.id)?.volumes ?? []).flatMap((volume) => volume.boxes.flatMap(boxOutline))
+          ])
+      )
       .map((s) => s.site.id)
   );
   const footprints = new Map(
@@ -1231,6 +1250,7 @@ function* spatialWorldStages(
     terrainSignature,
     riverSignature,
     hydrologyInputSignature,
+    waterTerrainInfluences,
     siteOrigins,
     groups: publishedGroups,
     baselineGroups: groups,

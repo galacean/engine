@@ -18,13 +18,13 @@ import type {
   RiverWaterBodyRepresentationDataV1,
   RiverWaterBodySourceDescriptorV2
 } from "../../authoring/river/RiverDescriptor";
-import { computeRiverPhysicalSourceHash } from "../../authoring/river/RiverPhysicalSourceIdentity";
+import { computeRiverPhysicalSourceHashAsync } from "../../authoring/river/RiverPhysicalSourceIdentity";
 import { WaterQualityTier } from "../../authoring/wave/enums/WaterQualityTier";
 import type { WaterCompiledResource } from "../../compiler/body/WaterCompiledResource";
 import { createWaterCompiledDataSnapshot } from "../../compiler/body/WaterCompiledResource";
 import { RiverNetworkCompiler } from "../../compiler/river/RiverNetworkCompiler";
 import type { RiverTerrainInteractionData } from "../../compiler/river/types";
-import { hashRiverStableValue } from "../../compiler/shared/determinism";
+import { hashRiverStableValue, hashStableValueAsync } from "../../compiler/shared/determinism";
 import type { RiverDiagnostic } from "../../compiler/shared/diagnostics";
 
 import { createWaterBackendControl } from "../body/WaterBackendControl";
@@ -119,7 +119,8 @@ interface RiverWaterRuntimeState {
 export interface RiverWaterBackendOptions {
   readonly compile?: (
     descriptor: RiverNetworkDescriptor,
-    context: WaterBackendCompileContext
+    context: WaterBackendCompileContext,
+    physicalSourceHash: string
   ) => RiverResource | Promise<RiverResource>;
   readonly createController?: (engine: Engine, root: Entity) => RiverRuntimeController;
 }
@@ -648,14 +649,20 @@ export class RiverWaterBackend implements WaterBodyBackend {
     return hash;
   }
 
-  getCompileKey(
+  async getCompileKey(
     _asset: Parameters<NonNullable<WaterBodyBackend["getCompileKey"]>>[0],
     resolvedSource: unknown,
     context?: WaterBackendCompileIdentityContext
-  ): string {
+  ): Promise<string> {
+    const cached = context && this.sourceIdentities.get(context);
+    const sourceHash =
+      cached && cached.source === resolvedSource
+        ? cached.hash
+        : await hashStableValueAsync(resolvedSource, context?.signal);
+    if (context) this.sourceIdentities.set(context, { source: resolvedSource, hash: sourceHash });
     return hashRiverStableValue({
       compilerSemanticVersion: RIVER_COMPILER_SEMANTIC_VERSION,
-      sourceHash: this.sourceIdentity(resolvedSource, context)
+      sourceHash
     });
   }
 
@@ -695,9 +702,9 @@ export class RiverWaterBackend implements WaterBodyBackend {
     resolveRiverPlanarTransform(resolved);
     assertSupportedAuthoring(resolved);
     const descriptor = resolvedSource as RiverNetworkDescriptor;
-    const physicalSourceHash = computeRiverPhysicalSourceHash(descriptor);
+    const physicalSourceHash = await computeRiverPhysicalSourceHashAsync(descriptor, context.signal);
     const resource = await (this._compile
-      ? this._compile(descriptor, context)
+      ? this._compile(descriptor, context, physicalSourceHash)
       : compileRiver(descriptor, context, physicalSourceHash));
     const expectedPhysicalSurfaceHash = createPhysicalSurfaceIdentity({
       sourceHash: physicalSourceHash,

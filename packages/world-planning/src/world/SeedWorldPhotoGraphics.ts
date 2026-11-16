@@ -2,6 +2,7 @@ import { SeedWorldLiquidGlassUiMaterial } from "@galacean/engine-modify/renderin
 import { destroyOwnedMesh } from "@galacean/engine-terrain/geometry/destroyOwnedMesh";
 import { destroyPhotoResources } from "./SeedWorldPhotoResources";
 import { warmupPhotoPresentation } from "./SeedWorldPhotoWarmup";
+import { warmupSeedWorldRendererVariants } from "./SeedWorldShaderWarmup";
 import type { PhotoImage } from "./SeedWorldPhotoImage";
 import { encodeImage, type ImageResourceBudget } from "@galacean/engine-ai-chat/ai-chat/image-resources";
 import {
@@ -767,6 +768,10 @@ export async function exportPhotoImage(
     const materials = marks.map((mark) => flatMaterial(engine, inkColor(mark.color)));
     cleanup.push(() => materials.forEach((material) => material.destroy(true)));
     ink.setMaterials(materials);
+    // Export has its own scene, target and material variants. Capture/UI warmup
+    // cannot prepare these. Await native asynchronous linking before the draw.
+    await warmupSeedWorldRendererVariants(engine, scene, camera, scene.rootEntities, { strict: true, signal });
+    signal?.throwIfAborted();
     engine.sceneManager.addScene(scene);
     try {
       camera.render();

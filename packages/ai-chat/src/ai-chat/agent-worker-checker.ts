@@ -4,8 +4,11 @@ export interface AgentCheckRequest {
   id: number;
   source: string;
   declarations: readonly Pick<AgentApiDeclarationModule, "id" | "source">[];
+  /** Present only for reference preflight; type checking is a separate request. */
+  toolNames?: readonly string[];
 }
 export interface AgentScriptChecker {
+  preflight?(source: string, toolNames: readonly string[], signal: AbortSignal): Promise<AgentScriptError | undefined>;
   check(
     source: string,
     declarations: AgentCheckRequest["declarations"],
@@ -29,6 +32,14 @@ export class WorkerAgentScriptChecker implements AgentScriptChecker {
     declarations: AgentCheckRequest["declarations"],
     signal: AbortSignal
   ): Promise<AgentScriptError | undefined> {
+    return this.request({ source, declarations }, signal);
+  }
+
+  preflight(source: string, toolNames: readonly string[], signal: AbortSignal): Promise<AgentScriptError | undefined> {
+    return this.request({ source, declarations: [], toolNames }, signal);
+  }
+
+  private request(request: Omit<AgentCheckRequest, "id">, signal: AbortSignal): Promise<AgentScriptError | undefined> {
     if (this.active) throw new Error("Agent checker already has an active request");
     return new Promise((resolve) => {
       const id = ++this.serial;
@@ -65,7 +76,7 @@ export class WorkerAgentScriptChecker implements AgentScriptChecker {
           fail(event.message || "Agent checker Worker failed");
         };
         this.worker.onmessageerror = () => fail("Invalid checker Worker message");
-        this.worker.postMessage({ id, source, declarations } satisfies AgentCheckRequest);
+        this.worker.postMessage({ ...request, id } satisfies AgentCheckRequest);
       } catch (error) {
         fail(error instanceof Error ? error.message : String(error));
       }

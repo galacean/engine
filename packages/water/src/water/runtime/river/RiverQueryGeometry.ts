@@ -137,13 +137,17 @@ export function findGeometryTriangleXZ(
   return false;
 }
 
-type SpanTriangleDomains = readonly ReturnType<typeof riverGeometryTriangleDomain>[];
+interface SpanTriangleDomains {
+  domains: readonly ReturnType<typeof riverGeometryTriangleDomain>[];
+  bounds: Float64Array;
+}
+const SPAN_TRIANGLE_GROUP_SIZE = 8;
 const spanTriangleIndices = new WeakMap<
   RiverGeometryData,
   { rowWidth: number; spans: Map<number, SpanTriangleDomains> }
 >();
-/** A compiled cross-section has a bounded number of native triangles. Keep their
- * canonical domains in draw order instead of building a second object BVH per span. */
+/** Group consecutive canonical domains without changing draw-order ownership.
+ * Bounds belong to the same immutable geometry snapshot as the existing domains. */
 function findSpanTriangle(
   geometry: RiverGeometryData,
   rowWidth: number,
@@ -159,22 +163,45 @@ function findSpanTriangle(
     cache = { rowWidth, spans: new Map() };
     spanTriangleIndices.set(geometry, cache);
   }
-  let domains = cache.spans.get(spanIndex);
-  if (!domains) {
+  let span = cache.spans.get(spanIndex);
+  if (!span) {
     const created: ReturnType<typeof riverGeometryTriangleDomain>[] = [];
     for (let offset = start; offset + 2 < end; offset += 3) created.push(riverGeometryTriangleDomain(geometry, offset));
-    cache.spans.set(spanIndex, (domains = created));
+    const bounds = new Float64Array(Math.ceil(created.length / SPAN_TRIANGLE_GROUP_SIZE) * 4);
+    for (let group = 0; group < bounds.length / 4; group++) {
+      let minX = Infinity,
+        minZ = Infinity,
+        maxX = -Infinity,
+        maxZ = -Infinity;
+      const limit = Math.min((group + 1) * SPAN_TRIANGLE_GROUP_SIZE, created.length);
+      for (let i = group * SPAN_TRIANGLE_GROUP_SIZE; i < limit; i++) {
+        const domain = created[i];
+        if (!domain) continue;
+        minX = Math.min(minX, domain.minX);
+        minZ = Math.min(minZ, domain.minZ);
+        maxX = Math.max(maxX, domain.maxX);
+        maxZ = Math.max(maxZ, domain.maxZ);
+      }
+      bounds.set([minX, minZ, maxX, maxZ], group * 4);
+    }
+    cache.spans.set(spanIndex, (span = { domains: created, bounds }));
   }
-  for (let i = 0; i < domains.length; i++) {
-    const domain = domains[i];
-    if (!domain || x < domain.minX || x > domain.maxX || z < domain.minZ || z > domain.maxZ) continue;
-    const triangle = domain.source;
-    if (!sampleRiverTriangle(triangle[0], triangle[1], triangle[2], x, z, out, domain.triangle)) continue;
-    const offset = start + i * 3;
-    out.firstIndex = geometry.indices.at(offset)!;
-    out.secondIndex = geometry.indices.at(offset + 1)!;
-    out.thirdIndex = geometry.indices.at(offset + 2)!;
-    return true;
+  const { domains, bounds } = span;
+  for (let group = 0; group < bounds.length / 4; group++) {
+    const b = group * 4;
+    if (x < bounds[b] || z < bounds[b + 1] || x > bounds[b + 2] || z > bounds[b + 3]) continue;
+    const limit = Math.min((group + 1) * SPAN_TRIANGLE_GROUP_SIZE, domains.length);
+    for (let i = group * SPAN_TRIANGLE_GROUP_SIZE; i < limit; i++) {
+      const domain = domains[i];
+      if (!domain || x < domain.minX || x > domain.maxX || z < domain.minZ || z > domain.maxZ) continue;
+      const triangle = domain.source;
+      if (!sampleRiverTriangle(triangle[0], triangle[1], triangle[2], x, z, out, domain.triangle)) continue;
+      const offset = start + i * 3;
+      out.firstIndex = geometry.indices.at(offset)!;
+      out.secondIndex = geometry.indices.at(offset + 1)!;
+      out.thirdIndex = geometry.indices.at(offset + 2)!;
+      return true;
+    }
   }
   return false;
 }

@@ -8,6 +8,7 @@ import {
   Engine,
   Entity,
   MeshRenderer,
+  SkinnedMeshRenderer,
   type ModelMesh,
   type Material,
   ShaderData,
@@ -35,7 +36,8 @@ export function getPlantShaderPreparationPasses(
   engine: Engine,
   camera: Camera,
   renderer: MeshRenderer,
-  material: Material
+  material: Material,
+  castShadows = renderer.castShadows
 ): readonly ShaderPass[] {
   const scene = camera.entity.scene!;
   const hardware = (engine as RuntimeEngine)._hardwareRenderer;
@@ -62,7 +64,7 @@ export function getPlantShaderPreparationPasses(
       case "Forward":
         return true;
       case "ShadowCaster":
-        return scene.castShadows && renderer.castShadows;
+        return scene.castShadows && castShadows;
       case "DepthOnly":
         return prepareDepth;
       case "ScreenSpaceReflectionSurface":
@@ -81,13 +83,19 @@ export async function preparePlantShaderPrograms(
   engine: Engine,
   root: Entity,
   schedule: PlantCreationScheduler,
-  prepareInstances = false
+  prepareInstances = false,
+  options: {
+    camera?: Camera;
+    shadowStates?: (renderer: MeshRenderer) => readonly { cast: boolean; receive: boolean }[];
+  } = {}
 ) {
   const scene = root.scene;
   if (!scene) return;
-  const cameras = scene.rootEntities
-    .flatMap((entity) => entity.getComponentsIncludeChildren(Camera, []))
-    .filter((camera) => camera.enabled && camera.entity.isActiveInHierarchy);
+  const cameras = options.camera
+    ? [options.camera]
+    : scene.rootEntities
+        .flatMap((entity) => entity.getComponentsIncludeChildren(Camera, []))
+        .filter((camera) => camera.enabled && camera.entity.isActiveInHierarchy);
   const renderers = root.getComponentsIncludeChildren(MeshRenderer, []);
   const enabledMacros: ShaderMacro[] = [];
   const appendMacros = (data: ShaderData, out: ShaderMacroCollection) => {
@@ -109,6 +117,9 @@ export async function preparePlantShaderPrograms(
     }, "shader");
     for (const renderer of renderers) {
       if (!renderer.mesh) continue;
+      if (renderer instanceof SkinnedMeshRenderer) {
+        (renderer as unknown as { _update(context: Engine["_renderContext"]): void })._update(engine._renderContext);
+      }
       const rendererMacros = new ShaderMacroCollection();
       rendererMacros.unionCollection(cameraMacros);
       appendMacros(renderer.shaderData, rendererMacros);
@@ -133,13 +144,22 @@ export async function preparePlantShaderPrograms(
         const outputSRGB = ShaderMacro.getByName("ENGINE_OUTPUT_SRGB_CORRECT");
         if (camera.renderTarget) macros.disable(outputSRGB);
         else macros.enable(outputSRGB);
-        for (const pass of getPlantShaderPreparationPasses(engine, camera, renderer, material)) {
-          submissions.push({ pass: pass as RuntimePass, macros });
-          if (prepareInstances && (engine as RuntimeEngine)._hardwareRenderer.isWebGL2) {
-            const instanced = new ShaderMacroCollection();
-            instanced.unionCollection(macros);
-            instanced.enable(ShaderMacro.getByName("RENDERER_GPU_INSTANCE"));
-            submissions.push({ pass: pass as RuntimePass, macros: instanced });
+        for (const state of options.shadowStates?.(renderer) ?? [
+          { cast: renderer.castShadows, receive: renderer.receiveShadows }
+        ]) {
+          const stateMacros = new ShaderMacroCollection();
+          stateMacros.unionCollection(macros);
+          const receive = ShaderMacro.getByName("RENDERER_IS_RECEIVE_SHADOWS");
+          if (state.receive) stateMacros.enable(receive);
+          else stateMacros.disable(receive);
+          for (const pass of getPlantShaderPreparationPasses(engine, camera, renderer, material, state.cast)) {
+            submissions.push({ pass: pass as RuntimePass, macros: stateMacros });
+            if (prepareInstances && (engine as RuntimeEngine)._hardwareRenderer.isWebGL2) {
+              const instanced = new ShaderMacroCollection();
+              instanced.unionCollection(stateMacros);
+              instanced.enable(ShaderMacro.getByName("RENDERER_GPU_INSTANCE"));
+              submissions.push({ pass: pass as RuntimePass, macros: instanced });
+            }
           }
         }
       }

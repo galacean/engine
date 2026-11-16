@@ -1,8 +1,8 @@
-import { hashRiverStableValue } from "../../compiler/shared/determinism";
+import { hashRiverStableValue, hashStableValueAsync } from "../../compiler/shared/determinism";
 import type { RiverNetworkDescriptor } from "./RiverDescriptor";
 
 /** Exact River surface identity; visual material, bake quality and budgets are intentionally excluded. */
-export function computeRiverPhysicalSourceHash(descriptor: RiverNetworkDescriptor): string {
+function physicalSource(descriptor: RiverNetworkDescriptor) {
   const nodeIndices = new Map(descriptor.nodes.map((node, index) => [node.id, index] as const));
   const physicalMotion = {
     seed: descriptor.defaults.surfaceMotion.seed,
@@ -11,7 +11,7 @@ export function computeRiverPhysicalSourceHash(descriptor: RiverNetworkDescripto
     shoreDampingWidth: descriptor.defaults.surfaceMotion.shoreDampingWidth,
     turbulence: descriptor.defaults.surfaceMotion.turbulence
   };
-  return hashRiverStableValue({
+  return {
     physicalSchemaVersion: 2,
     schemaVersion: descriptor.schemaVersion,
     terrain: descriptor.terrain,
@@ -44,5 +44,15 @@ export function computeRiverPhysicalSourceHash(descriptor: RiverNetworkDescripto
       surfaceMotion: physicalMotion
     },
     disturbances: descriptor.disturbances?.map(({ id: _id, ...disturbance }) => disturbance)
-  });
+  };
+}
+
+export function computeRiverPhysicalSourceHash(descriptor: RiverNetworkDescriptor): string {
+  return hashRiverStableValue(physicalSource(descriptor));
+}
+export function computeRiverPhysicalSourceHashAsync(
+  descriptor: RiverNetworkDescriptor,
+  signal?: AbortSignal
+): Promise<string> {
+  return hashStableValueAsync(physicalSource(descriptor), signal);
 }

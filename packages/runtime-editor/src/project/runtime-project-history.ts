@@ -1,3 +1,4 @@
+import { sameRuntimeProjectContent } from "@galacean/engine-project/runtime-editor/project/runtime-project-content";
 import type {
   RuntimeProjectManifest,
   RuntimeProjectPackage
@@ -136,12 +137,7 @@ export function projectHistoryPatch(
     if (excluded.has(path)) continue;
     const left = from.contents[path],
       right = to.contents[path];
-    const equal =
-      left === right ||
-      (left instanceof Uint8Array &&
-        right instanceof Uint8Array &&
-        left.length === right.length &&
-        left.every((n, i) => n === right[i]));
+    const equal = sameRuntimeProjectContent(left, right);
     if (
       JSON.stringify(a.get(path)) === JSON.stringify(b.get(path)) &&
       (equal || (!authoredContentPaths.has(path) && (left === undefined || right === undefined)))
