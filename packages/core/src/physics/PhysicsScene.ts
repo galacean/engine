@@ -822,6 +822,12 @@ export class PhysicsScene {
    */
   _removeRigidbody(body: Rigidbody): void {
     PhysicsScene._removeDirty(this._dirtyBodies, body);
+    if (body._massDirty) {
+      // Entering a scene again marks the mass dirty there
+      body._massDirty = false;
+      const massDirtyBodies = this._massDirtyBodies;
+      massDirtyBodies.splice(massDirtyBodies.indexOf(body), 1);
+    }
     const replaced = this._bodies.deleteByIndex(body._index);
     replaced && (replaced._index = body._index);
     body._index = -1;

@@ -14,7 +14,8 @@ import { Collider } from "./Collider";
  * a nested Rigidbody.
  * @remarks
  * An Entity can have at most one Rigidbody. Disabling the Rigidbody removes it and its Colliders from simulation and
- * queries; their `enabled` values are unchanged. Removing it makes its Colliders static.
+ * queries; their `enabled` values are unchanged. Removing it passes its Colliders to the nearest Rigidbody on an
+ * ancestor, or makes them static when there is none.
  * @decorator `@dependentComponents(Transform, DependentMode.CheckOnly)`
  */
 @dependentComponents(Transform, DependentMode.CheckOnly)
@@ -145,7 +146,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     if (this._mass !== value) {
       this._mass = value;
       if (this._automaticInertiaTensor || this._automaticCenterOfMass) {
-        this._updateMass();
+        this._markMassDirty();
       } else {
         this._nativeActor?.setMass(value);
       }
@@ -162,8 +163,14 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
 
   set automaticCenterOfMass(value: boolean) {
     if (this._automaticCenterOfMass !== value) {
-      this._automaticCenterOfMass = value;
-      value && this._updateMass();
+      if (value) {
+        this._automaticCenterOfMass = true;
+        this._markMassDirty();
+      } else {
+        // The last computed value becomes the manual value
+        this._readComputedCenterOfMass();
+        this._automaticCenterOfMass = false;
+      }
     }
   }
 
@@ -172,14 +179,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
    * @remarks Set `automaticCenterOfMass` to false before changing this value.
    */
   get centerOfMass(): Vector3 {
-    const actor = this._nativeActor;
-    if (actor) {
-      // @ts-ignore
-      this._centerOfMass._onValueChanged = null;
-      actor.getCenterOfMass(this._centerOfMass);
-      // @ts-ignore
-      this._centerOfMass._onValueChanged = this._handleCenterOfMassChanged;
-    }
+    this._automaticCenterOfMass && this._readComputedCenterOfMass();
     return this._centerOfMass;
   }
 
@@ -199,8 +199,14 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
 
   set automaticInertiaTensor(value: boolean) {
     if (this._automaticInertiaTensor !== value) {
-      this._automaticInertiaTensor = value;
-      value && this._updateMass();
+      if (value) {
+        this._automaticInertiaTensor = true;
+        this._markMassDirty();
+      } else {
+        // The last computed value becomes the manual value
+        this._readComputedInertiaTensor();
+        this._automaticInertiaTensor = false;
+      }
     }
   }
 
@@ -209,14 +215,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
    * @remarks Set `automaticInertiaTensor` to false before changing this value.
    */
   get inertiaTensor(): Vector3 {
-    const actor = this._nativeActor;
-    if (actor) {
-      // @ts-ignore
-      this._inertiaTensor._onValueChanged = null;
-      actor.getInertiaTensor(this._inertiaTensor);
-      // @ts-ignore
-      this._inertiaTensor._onValueChanged = this._handleInertiaTensorChanged;
-    }
+    this._automaticInertiaTensor && this._readComputedInertiaTensor();
     return this._inertiaTensor;
   }
 
@@ -321,12 +320,8 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
 
       this._isKinematic = value;
       this._nativeActor?.setMotionState(value, this._collisionDetectionMode);
-      if (value) {
-        // Colliders excluded from the dynamic body can join the kinematic one
-        this._markCollidersDirty();
-      } else {
-        this._updateMass();
-      }
+      // Colliders excluded from the dynamic body can join the kinematic one
+      value && this._markCollidersDirty();
     }
   }
 
@@ -392,7 +387,8 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
    * @param force - The force make the Rigidbody move
    */
   applyForce(force: Vector3): void {
-    this._phasedActiveInScene && this._nativeActor!.addForce(force);
+    // The current mass properties convert the force, so pending Collider changes are applied first
+    this._phasedActiveInScene && this._getSyncedActor()!.addForce(force);
   }
 
   /**
@@ -401,7 +397,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
    * @param position - The position where the force is applied, in world space
    */
   applyForceAtPosition(force: Vector3, position: Vector3): void {
-    this._phasedActiveInScene && this._nativeActor!.addForceAtPosition(force, position);
+    this._phasedActiveInScene && this._getSyncedActor()!.addForceAtPosition(force, position);
   }
 
   /**
@@ -409,7 +405,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
    * @param torque - The force make the Rigidbody rotate
    */
   applyTorque(torque: Vector3): void {
-    this._phasedActiveInScene && this._nativeActor!.addTorque(torque);
+    this._phasedActiveInScene && this._getSyncedActor()!.addTorque(torque);
   }
 
   /**
@@ -442,11 +438,8 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
       console.warn("Rigidbody: move() is only supported when isKinematic is true.");
       return;
     }
-    if (this._phasedActiveInScene) {
-      // Teleport pending transform edits first so the move starts from the current pose
-      this.scene!.physics._syncColliders();
-      this._nativeActor!.move(positionOrRotation, rotation);
-    }
+    // Teleport pending transform edits first so the move starts from the current pose
+    this._phasedActiveInScene && this._getSyncedActor()!.move(positionOrRotation, rotation);
   }
 
   /**
@@ -560,8 +553,8 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
    * Recompute automatic mass properties before the next simulation step or query.
    */
   _markMassDirty(): void {
-    const scene = this.entity.scene;
-    scene && scene.physics._markMassDirty(this);
+    // Entering a scene marks the body dirty again
+    this._phasedActiveInScene && this.scene!.physics._markMassDirty(this);
   }
 
   /**
@@ -607,19 +600,24 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
   /**
    * @internal
    * Recompute automatic mass properties from the attached Colliders, keeping manual values.
+   * @remarks Geometry without volume, which only kinematic bodies can own, has no mass properties; while it is
+   * attached the previous values are kept.
    */
   _updateMass(): void {
     const actor = this._nativeActor;
-    // Kinematic bodies don't need mass/inertia computation (PhysX doc: mass is not used in kinematic mode)
-    if (!actor || this._isKinematic || !(this._automaticCenterOfMass || this._automaticInertiaTensor)) {
+    if (!actor || !(this._automaticCenterOfMass || this._automaticInertiaTensor)) {
       return;
     }
-    // PhysX overwrites both properties, so capture manual values before recomputing
-    const centerOfMass = this._automaticCenterOfMass ? null : this.centerOfMass;
-    const inertiaTensor = this._automaticInertiaTensor ? null : this.inertiaTensor;
+    const colliders = this._attachedColliders;
+    for (let i = 0, n = colliders.length; i < n; i++) {
+      if (!colliders[i]._supportsDynamicBody()) {
+        return;
+      }
+    }
+    // PhysX overwrites both properties, restore the manual ones
     actor.setMassAndUpdateInertia(this._mass);
-    centerOfMass && actor.setCenterOfMass(centerOfMass);
-    inertiaTensor && actor.setInertiaTensor(inertiaTensor);
+    this._automaticCenterOfMass || actor.setCenterOfMass(this._centerOfMass);
+    this._automaticInertiaTensor || actor.setInertiaTensor(this._inertiaTensor);
   }
 
   protected override _onDestroy(): void {
@@ -635,7 +633,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
       actor.destroy();
       this._nativeActor = null;
     }
-    // Colliders this Rigidbody excluded become static
+    // Owned and excluded Colliders find their new owner on the next sync
     this._markCollidersDirty();
   }
 
@@ -658,6 +656,44 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     }
     colliders.length = count;
     return colliders;
+  }
+
+  /**
+   * Read the computed center of mass into its field, applying pending changes first.
+   */
+  private _readComputedCenterOfMass(): void {
+    const actor = this._getSyncedActor();
+    if (actor) {
+      const centerOfMass = this._centerOfMass;
+      // @ts-ignore
+      centerOfMass._onValueChanged = null;
+      actor.getCenterOfMass(centerOfMass);
+      // @ts-ignore
+      centerOfMass._onValueChanged = this._handleCenterOfMassChanged;
+    }
+  }
+
+  /**
+   * Read the computed inertia tensor into its field, applying pending changes first.
+   */
+  private _readComputedInertiaTensor(): void {
+    const actor = this._getSyncedActor();
+    if (actor) {
+      const inertiaTensor = this._inertiaTensor;
+      // @ts-ignore
+      inertiaTensor._onValueChanged = null;
+      actor.getInertiaTensor(inertiaTensor);
+      // @ts-ignore
+      inertiaTensor._onValueChanged = this._handleInertiaTensorChanged;
+    }
+  }
+
+  /**
+   * The native actor after pending Collider and mass changes are applied, like before a query.
+   */
+  private _getSyncedActor(): IDynamicCollider | null {
+    this._phasedActiveInScene && this.scene!.physics._syncColliders();
+    return this._nativeActor;
   }
 
   @ignoreClone

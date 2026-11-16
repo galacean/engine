@@ -17,8 +17,6 @@ describe("HingeJoint", function () {
     physicsBox.getInstanceMaterial().staticFriction = 0;
     physicsBox.size = cubeSize;
     boxEntity.addComponent(Rigidbody);
-    // Resolve automatic inertia before applying a torque to the body.
-    engine.sceneManager.activeScene.physics.overlapSphereAll(new Vector3(10000, 0, 0), 0.1);
     return boxEntity;
   }
 

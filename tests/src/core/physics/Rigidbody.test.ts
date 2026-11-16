@@ -47,10 +47,6 @@ describe("Rigidbody", function () {
     return Math.round(value * 100000) / 100000;
   }
 
-  function sync(): void {
-    engine.sceneManager.activeScene.physics.overlapSphereAll(new Vector3(10000, 0, 0), 0.1);
-  }
-
   beforeAll(async function () {
     engine = await WebGLEngine.create({
       canvas: document.createElement("canvas"),
@@ -177,21 +173,16 @@ describe("Rigidbody", function () {
     boxCollider.centerOfMass = new Vector3(0, 0, 0);
     expect(consoleWarnSpy).toBeCalledTimes(1);
     boxCollider.automaticInertiaTensor = true;
-    sync();
     expect(boxCollider.centerOfMass).to.deep.include({ x: 0, y: 0, z: 0 });
 
     const newBoxShape = box.addComponent(BoxCollider);
     newBoxShape.size = new Vector3(2, 2, 2);
     newBoxShape.center = new Vector3(1, 0, 0);
-    sync();
     expect(boxCollider.centerOfMass).to.deep.include({ x: 0.5, y: 0, z: 0 });
     newBoxShape.destroy();
-    sync();
     box.getComponent(BoxCollider).center = new Vector3(1, 0, 0);
-    sync();
     expect(boxCollider.centerOfMass).to.deep.include({ x: 1, y: 0, z: 0 });
     box.getComponent(BoxCollider).destroy();
-    sync();
     expect(boxCollider.centerOfMass).to.deep.include({ x: 0, y: 0, z: 0 });
   });
 
@@ -225,11 +216,11 @@ describe("Rigidbody", function () {
     const consoleWarnSpy = vi.spyOn(console, "warn");
     const box = addBox(new Vector3(2, 2, 2), true, new Vector3(0, 0, 0));
     const boxCollider = box.getComponent(Rigidbody);
-    expect(formatValue(boxCollider.inertiaTensor.y)).eq(1);
+    // Disabling automaticInertiaTensor kept the value computed from the attached box
+    expect(formatValue(boxCollider.inertiaTensor.y)).eq(0.66667);
     boxCollider.inertiaTensor = new Vector3(0, 2, 0);
     expect(formatValue(boxCollider.inertiaTensor.y)).eq(2);
 
-    sync();
     boxCollider.automaticCenterOfMass = true;
     boxCollider.automaticInertiaTensor = true;
     expect(boxCollider.automaticInertiaTensor).toBeTruthy();
@@ -240,13 +231,10 @@ describe("Rigidbody", function () {
     const newBoxShape = box.addComponent(BoxCollider);
     newBoxShape.size = new Vector3(2, 2, 2);
     newBoxShape.center = new Vector3(1, 0, 0);
-    sync();
     expect(formatValue(boxCollider.inertiaTensor.y)).eq(0.91667);
     newBoxShape.destroy();
-    sync();
     expect(formatValue(boxCollider.inertiaTensor.y)).eq(0.66667);
     box.getComponent(BoxCollider).destroy();
-    sync();
     expect(formatValue(boxCollider.inertiaTensor.y)).eq(1);
   });
 
@@ -270,7 +258,6 @@ describe("Rigidbody", function () {
       collider.useGravity = false;
       collider.centerOfMass = new Vector3(1, 0, 0);
       collider.inertiaTensor = new Vector3(1, 1, 1);
-      sync();
       return collider;
     };
 
@@ -402,7 +389,6 @@ describe("Rigidbody", function () {
       shape.size.set(2, 4, 6);
       shape.center.set(1, 2, 3);
       collider.mass = 3;
-      sync();
       collider.automaticCenterOfMass = automaticCenterOfMass;
       collider.automaticInertiaTensor = automaticInertiaTensor;
       if (!automaticCenterOfMass) {
@@ -433,7 +419,6 @@ describe("Rigidbody", function () {
         }
 
         clonedCollider.isKinematic = false;
-        sync();
         expect(Vector3.equals(clonedCollider.centerOfMass, centerOfMass)).true;
         expect(Vector3.equals(clonedCollider.inertiaTensor, inertiaTensor)).true;
 
@@ -441,7 +426,6 @@ describe("Rigidbody", function () {
         clonedShape.center.set(3, 4, 5);
         clonedShape.size.set(4, 6, 8);
         clonedCollider.mass = 6;
-        sync();
         expect(Vector3.equals(clonedCollider.centerOfMass, automaticCenterOfMass ? clonedShape.center : centerOfMass))
           .true;
         const expectedInertiaTensor = automaticInertiaTensor ? new Vector3(50, 40, 26) : inertiaTensor;
@@ -478,7 +462,6 @@ describe("Rigidbody", function () {
       shape.size.set(2, 4, 6);
       shape.center.set(1, 2, 3);
       source.mass = 3;
-      sync();
 
       let target = source;
       if (state === "cloned" || state === "reshaped") {
@@ -496,7 +479,6 @@ describe("Rigidbody", function () {
         target[automatic] = true;
       }
 
-      sync();
       target.isKinematic = isKinematic;
       // Reading the property here would hide a stale cache
       target[automatic] = false;
@@ -638,7 +620,6 @@ describe("Rigidbody", function () {
     boxCollider.automaticCenterOfMass = true;
     boxCollider.automaticInertiaTensor = true;
 
-    sync();
     boxCollider.applyTorque(new Vector3(0, 10, 0));
     engine.sceneManager.activeScene.physics._update(1);
     expect(formatValue(box.transform.rotation.y)).eq(13.96578);
