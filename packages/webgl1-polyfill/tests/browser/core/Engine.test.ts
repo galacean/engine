@@ -35,7 +35,7 @@ it("decodes sRGB texels in the shader when EXT_sRGB is absent", async () => {
     const camera = cameraEntity.addComponent(Camera);
     camera.enablePostProcess = false;
     const renderer = scene.createRootEntity().addComponent(MeshRenderer);
-    renderer.mesh = PrimitiveMesh.createCuboid(engine);
+    renderer.mesh = PrimitiveMesh.createCuboid(engine, 1, 1, 1);
     const material = new UnlitMaterial(engine);
     renderer.setMaterial(material);
     const sample = (srgb: boolean) => {

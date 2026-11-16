@@ -17,7 +17,7 @@ it("does not batch identical render elements without instancing", async () => {
     cameraEntity.transform.setPosition(0, 0, 5);
     const camera = cameraEntity.addComponent(Camera);
     camera.enablePostProcess = false;
-    const mesh = PrimitiveMesh.createCuboid(engine);
+    const mesh = PrimitiveMesh.createCuboid(engine, 1, 1, 1);
     const material = new UnlitMaterial(engine);
     material.baseColor = new Color(1, 0, 0, 1);
     for (const x of [-0.5, 0.5]) {

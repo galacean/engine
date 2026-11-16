@@ -66,7 +66,7 @@ it("renders a visible shadow through the color map when depth textures are unava
     const cubeEntity = scene.createRootEntity();
     cubeEntity.transform.setPosition(0, 0.5, 0);
     const cube = cubeEntity.addComponent(MeshRenderer);
-    cube.mesh = PrimitiveMesh.createCuboid(engine);
+    cube.mesh = PrimitiveMesh.createCuboid(engine, 1, 1, 1);
     cube.setMaterial(new PBRMaterial(engine));
 
     const unshadowed = new Uint8Array(16 * 16 * 4);

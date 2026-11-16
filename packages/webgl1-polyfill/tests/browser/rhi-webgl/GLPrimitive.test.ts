@@ -19,7 +19,7 @@ it("draws without instancing and cleans up cached VAOs", async () => {
     cameraEntity.transform.setPosition(0, 0, 5);
     const camera = cameraEntity.addComponent(Camera);
     camera.enablePostProcess = false;
-    const mesh = PrimitiveMesh.createCuboid(engine);
+    const mesh = PrimitiveMesh.createCuboid(engine, 1, 1, 1);
     const material = new UnlitMaterial(engine);
     material.baseColor = new Color(1, 0, 0, 1);
     for (const x of [-0.5, 0.5]) {
@@ -74,7 +74,7 @@ it("renders on real WebGL1 without optional VAO, instancing, depth, sRGB or floa
     const camera = cameraEntity.addComponent(Camera);
     camera.enablePostProcess = false;
     const renderer = scene.createRootEntity().addComponent(MeshRenderer);
-    renderer.mesh = PrimitiveMesh.createCuboid(engine);
+    renderer.mesh = PrimitiveMesh.createCuboid(engine, 1, 1, 1);
     const material = new UnlitMaterial(engine);
     material.baseColor = new Color(1, 0, 0, 1);
     renderer.setMaterial(material);

@@ -34,7 +34,7 @@ it("reports the extension draw buffer limit", async () => {
 it("stores blend shapes in vertex buffers when vertex IDs are unavailable", async () => {
   const { engine, gl } = await createEngine();
   try {
-    const mesh = PrimitiveMesh.createCuboid(engine);
+    const mesh = PrimitiveMesh.createCuboid(engine, 1, 1, 1);
     const shape = new BlendShape("deformation");
     shape.addFrame(
       new BlendShapeFrame(
