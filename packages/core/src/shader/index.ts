@@ -19,3 +19,9 @@ export { ShaderPass } from "./ShaderPass";
 export { ShaderProperty } from "./ShaderProperty";
 export { ShaderTagKey } from "./ShaderTagKey";
 export { SubShader } from "./SubShader";
+/** @internal */
+export { BlendState } from "./state/BlendState";
+/** @internal */
+export { ShaderProgram } from "./ShaderProgram";
+/** @internal */
+export { ShaderMacroProcessor } from "./ShaderMacroProcessor";

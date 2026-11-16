@@ -12,8 +12,7 @@ import {
   Logger,
   Script,
   Vector3,
-  WebGLEngine,
-  WebGLMode
+  WebGLEngine
 } from "@galacean/engine";
 import { OrbitControl } from "@galacean/engine-toolkit";
 
@@ -21,8 +20,7 @@ async function main() {
   // Create engine
   const htmlCanvas = document.getElementById("canvas") as HTMLCanvasElement;
   const engine = await WebGLEngine.create({
-    canvas: htmlCanvas,
-    graphicDeviceOptions: { webGLMode: WebGLMode.Auto }
+    canvas: htmlCanvas
   });
 
   // Create root entity

@@ -1,4 +1,4 @@
-import { GLCapabilityType, Logger, Primitive } from "@galacean/engine-core";
+import { Logger, Primitive } from "@galacean/engine-core";
 import { SubPrimitive } from "@galacean/engine-core/types/graphic/SubPrimitive";
 import { IPlatformPrimitive, IPlatformShaderProgram } from "@galacean/engine-design";
 import { GLBuffer } from "./GLBuffer";
@@ -17,16 +17,12 @@ import { WebGLExtension } from "./type";
 export class GLPrimitive implements IPlatformPrimitive {
   private _attribLocArray: number[] = [];
   private readonly _primitive: Primitive;
-  private readonly _canUseInstancedArrays: boolean;
 
   private _gl: (WebGLRenderingContext & WebGLExtension) | WebGL2RenderingContext;
   private _vaoMap: Map<number, WebGLVertexArrayObject | null> = new Map();
-  private readonly _isSupportVAO: boolean;
 
   constructor(rhi: WebGLGraphicDevice, primitive: Primitive) {
     this._primitive = primitive;
-    this._canUseInstancedArrays = rhi.canIUse(GLCapabilityType.instancedArrays);
-    this._isSupportVAO = rhi.canIUse(GLCapabilityType.vertexArrayObject);
     this._gl = rhi.gl;
   }
 
@@ -36,7 +32,7 @@ export class GLPrimitive implements IPlatformPrimitive {
   draw(shaderProgram: IPlatformShaderProgram, subMesh: SubPrimitive): void {
     const gl = this._gl;
     const primitive = this._primitive;
-    const useVao = this._isSupportVAO && primitive.enableVAO;
+    const useVao = primitive.enableVAO;
 
     if (useVao) {
       if (primitive._bufferStructChanged) {
@@ -68,21 +64,17 @@ export class GLPrimitive implements IPlatformPrimitive {
         gl.drawArrays(topology, start, count);
       }
     } else {
-      if (this._canUseInstancedArrays) {
-        if (indexBufferBinding) {
-          if (useVao) {
-            gl.drawElementsInstanced(topology, count, _glIndexType!, start * _glIndexByteCount, instanceCount);
-          } else {
-            const { _glBuffer } = <GLBuffer>indexBufferBinding.buffer._platformBuffer;
-            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, _glBuffer);
-            gl.drawElementsInstanced(topology, count, _glIndexType!, start * _glIndexByteCount, instanceCount);
-            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
-          }
+      if (indexBufferBinding) {
+        if (useVao) {
+          gl.drawElementsInstanced(topology, count, _glIndexType!, start * _glIndexByteCount, instanceCount);
         } else {
-          gl.drawArraysInstanced(topology, start, count, instanceCount);
+          const { _glBuffer } = <GLBuffer>indexBufferBinding.buffer._platformBuffer;
+          gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, _glBuffer);
+          gl.drawElementsInstanced(topology, count, _glIndexType!, start * _glIndexByteCount, instanceCount);
+          gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
         }
       } else {
-        Logger.error("ANGLE_instanced_arrays extension is not supported");
+        gl.drawArraysInstanced(topology, start, count, instanceCount);
       }
     }
 
@@ -95,7 +87,7 @@ export class GLPrimitive implements IPlatformPrimitive {
   }
 
   destroy(): void {
-    this._isSupportVAO && this._clearVAO();
+    this._clearVAO();
   }
 
   /**
@@ -130,9 +122,7 @@ export class GLPrimitive implements IPlatformPrimitive {
         gl.enableVertexAttribArray(loc);
         const elementInfo = element._formatMetaInfo;
         gl.vertexAttribPointer(loc, elementInfo.size, elementInfo.type, elementInfo.normalized, stride, element.offset);
-        if (this._canUseInstancedArrays) {
-          gl.vertexAttribDivisor(loc, element.instanceStepRate);
-        }
+        gl.vertexAttribDivisor(loc, element.instanceStepRate);
         this._attribLocArray.push(loc);
       } else {
         Logger.warn("vertex attribute not found: " + name);

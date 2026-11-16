@@ -510,18 +510,22 @@ export class ShaderProgram {
       this.attributeLocation[name] = gl.getAttribLocation(program, name);
     });
 
-    // Record uniform block indices and bind binding points (WebGL2 only)
-    if (this._engine._hardwareRenderer.isWebGL2) {
-      const gl2 = <WebGL2RenderingContext>gl;
-      const bindingMap = ShaderFactory.uniformBlockBindingMap;
-      const blockCount = gl2.getProgramParameter(program, gl2.ACTIVE_UNIFORM_BLOCKS) ?? 0;
-      for (let i = 0; i < blockCount; i++) {
-        const id = ShaderBlockProperty.getByName(gl2.getActiveUniformBlockName(program, i)!)._uniqueId;
-        this.uniformBlockIds[i] = id;
-        const bindingPoint = bindingMap[id];
-        if (bindingPoint !== undefined) {
-          gl2.uniformBlockBinding(program, i, bindingPoint);
-        }
+    this._recordUniformBlocks();
+  }
+
+  private _recordUniformBlocks(): void {
+    const gl = this._gl;
+    const program = this._glProgram!;
+
+    const gl2 = <WebGL2RenderingContext>gl;
+    const bindingMap = ShaderFactory.uniformBlockBindingMap;
+    const blockCount = gl2.getProgramParameter(program, gl2.ACTIVE_UNIFORM_BLOCKS) ?? 0;
+    for (let i = 0; i < blockCount; i++) {
+      const id = ShaderBlockProperty.getByName(gl2.getActiveUniformBlockName(program, i)!)._uniqueId;
+      this.uniformBlockIds[i] = id;
+      const bindingPoint = bindingMap[id];
+      if (bindingPoint !== undefined) {
+        gl2.uniformBlockBinding(program, i, bindingPoint);
       }
     }
   }

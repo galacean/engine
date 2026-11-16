@@ -1,6 +1,6 @@
 import { Engine, TextureCube, TextureCubeFace, TextureFormat } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine";
-import { describe, beforeAll, beforeEach, expect, it } from "vitest";
+import { describe, beforeAll, expect, it } from "vitest";
 
 describe("TextureCube", () => {
   const width = 1024;
@@ -11,16 +11,10 @@ describe("TextureCube", () => {
 
   let engine: Engine;
   let rhi: any;
-  let isWebGL2: boolean;
   beforeAll(async function () {
     engine = await WebGLEngine.create({ canvas: canvas });
     // @ts-ignore
     rhi = engine._hardwareRenderer;
-    isWebGL2 = rhi.isWebGL2;
-  });
-
-  beforeEach(() => {
-    rhi._isWebGL2 = isWebGL2;
   });
 
   describe("格式测试", () => {
@@ -38,8 +32,8 @@ describe("TextureCube", () => {
   });
 
   describe("mipmap", () => {
-    it("webgl2 支持非2次幂开启 mipmap ", () => {
-      rhi._isWebGL2 = true;
+    it("webgl2 支持非2次幂开启 mipmap ", async ({ skip }) => {
+      if (!rhi.isWebGL2) skip();
 
       const texture1 = new TextureCube(engine, 100);
       const texture2 = new TextureCube(engine, 100, undefined, true);
@@ -52,15 +46,7 @@ describe("TextureCube", () => {
 
       expect(texture.mipmapCount).to.eq(1);
     });
-    it("webgl1 开启 mipmap 失败自动降级 - 非2次幂图片", () => {
-      rhi._isWebGL2 = false;
 
-      const texture1 = new TextureCube(engine, 100);
-      const texture2 = new TextureCube(engine, 100, undefined, true);
-
-      expect(texture1.mipmapCount).to.eq(1);
-      expect(texture2.mipmapCount).to.eq(1);
-    });
   });
 
   // todo: dom test

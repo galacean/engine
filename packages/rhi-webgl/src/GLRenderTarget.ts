@@ -15,7 +15,7 @@ import { WebGLGraphicDevice } from "./WebGLGraphicDevice";
  */
 export class GLRenderTarget implements IPlatformRenderTarget {
   private _gl: WebGLRenderingContext & WebGL2RenderingContext;
-  private _isWebGL2: boolean;
+  private _rhi: WebGLGraphicDevice;
   private _target: RenderTarget;
   private _frameBuffer: WebGLFramebuffer | null;
   private _MSAAFrameBuffer: WebGLFramebuffer | null;
@@ -32,7 +32,7 @@ export class GLRenderTarget implements IPlatformRenderTarget {
    */
   constructor(rhi: WebGLGraphicDevice, target: RenderTarget) {
     this._gl = rhi.gl as WebGLRenderingContext & WebGL2RenderingContext;
-    this._isWebGL2 = rhi.isWebGL2;
+    this._rhi = rhi;
     this._target = target;
 
     /** @ts-ignore */
@@ -56,10 +56,6 @@ export class GLRenderTarget implements IPlatformRenderTarget {
 
     if (!isDepthTexture && _depth !== null && !GLTexture._supportRenderBufferDepthFormat(_depth, rhi)) {
       throw new Error(`TextureFormat is not supported:${TextureFormat[_depth]} in RenderTarget`);
-    }
-
-    if (_colorTextures.length > 1 && !rhi.canIUse(GLCapabilityType.drawBuffers)) {
-      throw new Error("MRT is not supported");
     }
 
     if (_colorTextures.some((v: Texture) => v.width !== width || v.height !== height)) {
@@ -131,7 +127,7 @@ export class GLRenderTarget implements IPlatformRenderTarget {
     } else {
       if (mipChanged) {
         // @ts-ignore
-        const { internalFormat } = GLTexture._getRenderBufferDepthFormatDetail(target._depth, gl, this._isWebGL2);
+        const { internalFormat } = GLTexture._getRenderBufferDepthFormatDetail(target._depth, gl, this._rhi);
         gl.bindRenderbuffer(gl.RENDERBUFFER, this._depthRenderBuffer);
         gl.renderbufferStorage(gl.RENDERBUFFER, internalFormat, target.width >> mipLevel, target.height >> mipLevel);
       }
@@ -197,7 +193,6 @@ export class GLRenderTarget implements IPlatformRenderTarget {
 
   private _bindMainFBO(): void {
     const gl = this._gl;
-    const isWebGL2: boolean = this._isWebGL2;
 
     const { _depth, colorTextureCount, width, height } = this._target;
     const drawBuffers = new Array(colorTextureCount);
@@ -241,7 +236,7 @@ export class GLRenderTarget implements IPlatformRenderTarget {
           );
         }
       } else if (this._target.antiAliasing <= 1) {
-        const { internalFormat, attachment } = GLTexture._getRenderBufferDepthFormatDetail(_depth, gl, isWebGL2);
+        const { internalFormat, attachment } = GLTexture._getRenderBufferDepthFormatDetail(_depth, gl, this._rhi);
         this._depthRenderBuffer = this._createRenderBuffer(internalFormat, attachment!);
       }
     }
@@ -252,7 +247,6 @@ export class GLRenderTarget implements IPlatformRenderTarget {
 
   private _bindMSAAFBO(): void {
     const gl = this._gl;
-    const isWebGL2 = this._isWebGL2;
 
     const { _depth, colorTextureCount } = this._target;
 
@@ -276,7 +270,7 @@ export class GLRenderTarget implements IPlatformRenderTarget {
       const { internalFormat, attachment } =
         _depth instanceof Texture
           ? (_depth._platformTexture as GLTexture)._formatDetail
-          : GLTexture._getRenderBufferDepthFormatDetail(_depth, gl, isWebGL2);
+          : GLTexture._getRenderBufferDepthFormatDetail(_depth, gl, this._rhi);
 
       this._MSAADepthRenderBuffer = this._createRenderBuffer(internalFormat, attachment!);
     }

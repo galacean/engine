@@ -9,7 +9,6 @@ export class GLBuffer implements IPlatformBuffer {
   private _gl: (WebGLRenderingContext & WebGLExtension) | WebGL2RenderingContext;
   private _glBindTarget: number;
   private _glBufferUsage: number;
-  private _isWebGL2: boolean;
 
   constructor(
     rhi: WebGLGraphicDevice,
@@ -37,7 +36,6 @@ export class GLBuffer implements IPlatformBuffer {
     this._glBuffer = glBuffer;
     this._glBufferUsage = glBufferUsage;
     this._glBindTarget = glBindTarget;
-    this._isWebGL2 = rhi.isWebGL2;
 
     this.bind();
 
@@ -76,20 +74,16 @@ export class GLBuffer implements IPlatformBuffer {
 
     if (dataOffset !== 0 || dataByteLength < data.byteLength) {
       const isArrayBufferView = (<ArrayBufferView>data).byteOffset !== undefined;
-      if (this._isWebGL2 && isArrayBufferView) {
+      if (isArrayBufferView) {
         gl.bufferSubData(
           glBindTarget,
           bufferByteOffset!,
-          <ArrayBufferView>data,
+          data as ArrayBufferView,
           dataOffset!,
           dataByteLength / byteSize
         );
       } else {
-        const subData = new Uint8Array(
-          isArrayBufferView ? (<ArrayBufferView>data).buffer : <ArrayBuffer>data,
-          dataOffset! * byteSize,
-          dataByteLength
-        );
+        const subData = new Uint8Array(data as ArrayBuffer, dataOffset!, dataByteLength);
         gl.bufferSubData(glBindTarget, bufferByteOffset!, subData);
       }
     } else {
@@ -99,13 +93,9 @@ export class GLBuffer implements IPlatformBuffer {
   }
 
   getData(data: ArrayBufferView, bufferByteOffset?: number, dataOffset?: number, dataLength?: number): void {
-    if (this._isWebGL2) {
-      const gl = <WebGL2RenderingContext>this._gl;
-      this.bind();
-      gl.getBufferSubData(this._glBindTarget, bufferByteOffset!, data, dataOffset, dataLength);
-    } else {
-      throw "Buffer is write-only on WebGL1.0 platforms.";
-    }
+    const gl = <WebGL2RenderingContext>this._gl;
+    this.bind();
+    gl.getBufferSubData(this._glBindTarget, bufferByteOffset!, data, dataOffset, dataLength);
   }
 
   copyFromBuffer(srcBuffer: IPlatformBuffer, srcByteOffset: number, dstByteOffset: number, byteLength: number): void {

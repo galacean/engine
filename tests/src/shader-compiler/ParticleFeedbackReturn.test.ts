@@ -3,7 +3,7 @@ import { ShaderMacroProcessor } from "@galacean/engine-core/src/shader/ShaderMac
 import type { IPrecompiledShader } from "@galacean/engine-design";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
 import { ShaderPrecompiler } from "@galacean/engine-shader-compiler/precompile";
-import { WebGLEngine, WebGLMode } from "@galacean/engine";
+import { WebGLEngine } from "@galacean/engine";
 import { server } from "@vitest/browser/context";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
@@ -13,8 +13,7 @@ describe("ParticleFeedback early return", () => {
 
   beforeAll(async () => {
     engine = await WebGLEngine.create({
-      canvas: document.createElement("canvas"),
-      graphicDeviceOptions: { webGLMode: WebGLMode.WebGL2 }
+      canvas: document.createElement("canvas")
     });
     source = await server.commands.readFile("../packages/shader/src/Shaders/Effect/ParticleFeedback.shader");
   });

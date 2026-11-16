@@ -183,25 +183,7 @@ export class BasicResources {
       true
     );
 
-    const isWebGL2 = engine._hardwareRenderer.isWebGL2;
-    if (isWebGL2) {
-      this.whiteTexture2DArray = this._create1x1Texture(
-        engine,
-        TextureType.Texture2DArray,
-        TextureFormat.R8G8B8A8,
-        whitePixel,
-        true
-      );
-
-      const whitePixel32 = new Uint32Array([255, 255, 255, 255]);
-      this.uintWhiteTexture2D = this._create1x1Texture(
-        engine,
-        TextureType.Texture2D,
-        TextureFormat.R32G32B32A32_UInt,
-        whitePixel32,
-        false
-      );
-    }
+    [this.whiteTexture2DArray, this.uintWhiteTexture2D] = this._createDefaultArrayTextures(engine, whitePixel);
 
     this.spriteDefaultMaterial = this._create2DMaterial(engine, shaders.sprite);
     this.textDefaultMaterial = this._create2DMaterial(engine, shaders.text);
@@ -209,6 +191,27 @@ export class BasicResources {
 
     this.meshMagentaMaterial = this._createMagentaMaterial(engine, shaders.unlit);
     this.particleMagentaMaterial = this._createMagentaMaterial(engine, shaders.particle);
+  }
+
+  private _createDefaultArrayTextures(engine: Engine, whitePixel: Uint8Array): [Texture2DArray, Texture2D] {
+    const arrayTexture = this._create1x1Texture<Texture2DArray>(
+      engine,
+      TextureType.Texture2DArray,
+      TextureFormat.R8G8B8A8,
+      whitePixel,
+      true
+    );
+
+    const whitePixel32 = new Uint32Array([255, 255, 255, 255]);
+    const uintTexture = this._create1x1Texture<Texture2D>(
+      engine,
+      TextureType.Texture2D,
+      TextureFormat.R32G32B32A32_UInt,
+      whitePixel32,
+      false
+    );
+
+    return [arrayTexture, uintTexture];
   }
 
   /**

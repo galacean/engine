@@ -2,7 +2,6 @@ import { BoundingBox, Vector3 } from "@galacean/engine-math";
 import type { Entity } from "../Entity";
 import type { RenderContext } from "../RenderPipeline/RenderContext";
 import { Renderer, RendererUpdateFlags } from "../Renderer";
-import { GLCapabilityType } from "../base/Constant";
 import { Logger } from "../base/Logger";
 import { ignoreClone } from "../clone/CloneDecorators";
 import type { ModelMesh } from "../mesh/ModelMesh";
@@ -55,7 +54,6 @@ export class ParticleRenderer extends Renderer {
   private _renderMode: ParticleRenderMode = ParticleRenderMode.Billboard;
   @ignoreClone
   private _currentRenderModeMacro: ShaderMacro | null;
-  private readonly _supportInstancedArrays: boolean;
 
   /**
    * Specifies how particles are rendered.
@@ -146,8 +144,6 @@ export class ParticleRenderer extends Renderer {
     this._currentRenderModeMacro = ParticleRenderer._billboardModeMacro;
     this.shaderData.enableMacro(ParticleRenderer._billboardModeMacro);
 
-    this._supportInstancedArrays = this.engine._hardwareRenderer.canIUse(GLCapabilityType.instancedArrays);
-
     this._onGeneratorParamsChanged();
   }
 
@@ -175,9 +171,7 @@ export class ParticleRenderer extends Renderer {
    */
   override _onEnableInScene(): void {
     super._onEnableInScene();
-    if (this._supportInstancedArrays) {
-      this.scene!._componentsManager._particleSystemManager.add(this);
-    }
+    this.scene!._componentsManager._particleSystemManager.add(this);
   }
 
   /**
@@ -192,10 +186,6 @@ export class ParticleRenderer extends Renderer {
    * @internal
    */
   override _prepareRender(context: RenderContext): void {
-    if (!this._supportInstancedArrays) {
-      return;
-    }
-
     super._prepareRender(context);
   }
 

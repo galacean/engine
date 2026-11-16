@@ -178,7 +178,6 @@ export class MeshRenderer extends Renderer {
    * @internal
    */
   override _canBatch(preElement: RenderElement, curElement: RenderElement): boolean {
-    if (!this._engine._hardwareRenderer.isWebGL2) return false;
     const curShaderData = curElement.component.shaderData;
     return (
       preElement.primitive === curElement.primitive &&

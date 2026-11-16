@@ -41,7 +41,6 @@ export class CascadedShadowCasterPass extends PipelinePass {
   private static _tempMatrix0 = new Matrix();
 
   private readonly _camera: Camera;
-  private readonly _supportDepthTexture: boolean;
 
   private _shadowMapResolution: number;
   private _shadowMapSize: Vector4 = new Vector4();
@@ -66,7 +65,6 @@ export class CascadedShadowCasterPass extends PipelinePass {
     super(camera.engine);
     this._camera = camera;
 
-    this._supportDepthTexture = camera.engine._hardwareRenderer.canIUse(GLCapabilityType.depthTexture);
     this._shadowSliceData.virtualCamera.isOrthographic = true;
   }
 
@@ -78,6 +76,33 @@ export class CascadedShadowCasterPass extends PipelinePass {
     this._updateShadowSettings();
     this._renderDirectShadowMap(context, light);
     this._updateReceiversShaderData(light);
+  }
+  private _prepareShadowMap(context: RenderContext): void {
+    const { z: width, w: height } = this._shadowMapSize;
+    const target = PipelineUtils.recreateRenderTargetIfNeeded(
+      this.engine,
+      this._renderTarget,
+      width,
+      height,
+      null,
+      this._shadowMapFormat,
+      true,
+      false,
+      false,
+      1,
+      TextureWrapMode.Clamp,
+      TextureFilterMode.Bilinear
+    );
+    const texture = target.depthTexture as Texture2D;
+    texture.depthCompareFunction = TextureDepthCompareFunction.Less;
+    this._renderTarget = target;
+    this._depthTexture = texture;
+    context.setRenderTarget(target, CascadedShadowCasterPass._viewport, 0);
+    this.engine._hardwareRenderer.clearRenderTarget(this.engine, CameraClearFlags.Depth, null);
+  }
+
+  private _getShadowFormat(): TextureFormat {
+    return TextureFormat.Depth16;
   }
 
   private _renderDirectShadowMap(context: RenderContext, light: DirectLight): void {
@@ -104,59 +129,8 @@ export class CascadedShadowCasterPass extends PipelinePass {
     const lightSide = this._lightSide;
     const lightForward = shadowSliceData.virtualCamera.forward;
 
-    // Prepare render target
     const { z: width, w: height } = this._shadowMapSize;
-    const format = this._shadowMapFormat;
-    let renderTarget: RenderTarget;
-    let shadowTexture: Texture2D;
-    if (this._supportDepthTexture) {
-      renderTarget = PipelineUtils.recreateRenderTargetIfNeeded(
-        engine,
-        this._renderTarget,
-        width,
-        height,
-        null,
-        format,
-        true,
-        false,
-        false,
-        1,
-        TextureWrapMode.Clamp,
-        TextureFilterMode.Bilinear
-      );
-      shadowTexture = <Texture2D>renderTarget.depthTexture;
-    } else {
-      renderTarget = PipelineUtils.recreateRenderTargetIfNeeded(
-        engine,
-        this._renderTarget,
-        width,
-        height,
-        format,
-        null,
-        false,
-        false,
-        false,
-        1,
-        TextureWrapMode.Clamp,
-        TextureFilterMode.Bilinear
-      );
-      shadowTexture = <Texture2D>renderTarget.getColorTexture(0);
-    }
-
-    if (engine._hardwareRenderer._isWebGL2) {
-      shadowTexture.depthCompareFunction = TextureDepthCompareFunction.Less;
-    }
-
-    this._renderTarget = renderTarget;
-    this._depthTexture = shadowTexture;
-
-    // @todo: shouldn't set viewport and scissor in activeRenderTarget
-    context.setRenderTarget(renderTarget, CascadedShadowCasterPass._viewport, 0);
-    if (this._supportDepthTexture) {
-      rhi.clearRenderTarget(engine, CameraClearFlags.Depth, null);
-    } else {
-      rhi.clearRenderTarget(engine, CameraClearFlags.All, CascadedShadowCasterPass._clearColor);
-    }
+    this._prepareShadowMap(context);
 
     // prepare light and camera direction
     Matrix.rotationQuaternion(light.entity.transform.worldRotationQuaternion, lightWorld);
@@ -321,7 +295,7 @@ export class CascadedShadowCasterPass extends PipelinePass {
   private _updateShadowSettings(): void {
     const camera = this._camera;
     const scene = camera.scene!;
-    const shadowFormat = ShadowUtils.shadowDepthFormat(scene.shadowResolution, this._supportDepthTexture);
+    const shadowFormat = this._getShadowFormat();
     const shadowResolution = ShadowUtils.shadowResolution(scene.shadowResolution);
     const shadowCascades = scene.shadowCascades;
     const shadowFar = Math.min(scene.shadowDistance, camera.farClipPlane);

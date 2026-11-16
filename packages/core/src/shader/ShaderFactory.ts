@@ -24,14 +24,7 @@ export class ShaderFactory {
 
   static readonly includeMap: Record<string, string> = Object.create(null);
 
-  static readonly shaderExtension = [
-    "GL_EXT_shader_texture_lod",
-    "GL_OES_standard_derivatives",
-    "GL_EXT_draw_buffers",
-    "GL_EXT_frag_depth"
-  ]
-    .map((e) => `#extension ${e} : enable\n`)
-    .join("");
+  static readonly shaderExtension: string = "";
 
   private static readonly _std140TypeInfoMap: Record<string, { size: number; align: number }> = {
     float: { size: 4, align: 4 },

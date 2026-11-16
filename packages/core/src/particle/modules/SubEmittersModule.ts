@@ -54,7 +54,7 @@ export class SubEmittersModule extends ParticleGeneratorModule implements IClone
   private _particleSequence = 0;
 
   override get enabled(): boolean {
-    return this._enabled && this._generator._renderer.engine._hardwareRenderer.isWebGL2;
+    return this._enabled;
   }
 
   override set enabled(value: boolean) {

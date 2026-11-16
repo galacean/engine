@@ -259,9 +259,6 @@ export class LimitVelocityOverLifetimeModule extends ParticleGeneratorModule {
 
   override set enabled(value: boolean) {
     if (value !== this._enabled) {
-      if (value && !this._generator._renderer.engine._hardwareRenderer.isWebGL2) {
-        return;
-      }
       this._enabled = value;
       this._generator._setTransformFeedback();
       this._generator._renderer._onGeneratorParamsChanged();

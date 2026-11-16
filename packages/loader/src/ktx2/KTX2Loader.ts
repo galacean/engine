@@ -1,4 +1,5 @@
 import {
+  SystemInfo,
   AssetPromise,
   AssetType,
   ContentRestorer,
@@ -144,9 +145,8 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
     ktx2Container: KTX2Container,
     priorityFormats?: KTX2TargetFormat[]
   ): KTX2TargetFormat {
-    const renderer = (engine as any)._hardwareRenderer;
     const { isSRGB, pixelWidth, pixelHeight } = ktx2Container;
-    const targetFormat = this._detectSupportedFormat(renderer, priorityFormats!, isSRGB) as KTX2TargetFormat;
+    const targetFormat = this._detectSupportedFormat(engine, priorityFormats!, isSRGB) as KTX2TargetFormat;
 
     if (
       targetFormat === KTX2TargetFormat.PVRTC &&
@@ -164,7 +164,7 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
   }
 
   private static _detectSupportedFormat(
-    renderer: any,
+    engine: Engine,
     priorityFormats: KTX2TargetFormat[],
     isSRGB: boolean
   ): KTX2TargetFormat | null {
@@ -174,7 +174,7 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
         this._capabilityMap[format]?.[isSRGB ? DFDTransferFunction.sRGB : DFDTransferFunction.linear];
       if (capabilities) {
         for (let j = 0; j < capabilities.length; j++) {
-          if (renderer.canIUse(capabilities[j])) {
+          if (engine._hardwareRenderer.canIUse(capabilities[j])) {
             return format;
           }
         }
@@ -183,8 +183,11 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
           case KTX2TargetFormat.R8G8B8A8:
             return format;
           case KTX2TargetFormat.R8:
+            if (SystemInfo.supportsTextureFormat(engine, TextureFormat.R8)) return format;
+            break;
           case KTX2TargetFormat.R8G8:
-            if (renderer.isWebGL2) return format;
+            if (SystemInfo.supportsTextureFormat(engine, TextureFormat.R8G8)) return format;
+            break;
         }
       }
     }

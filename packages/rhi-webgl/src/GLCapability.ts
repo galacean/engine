@@ -2,8 +2,6 @@ import { GLCapabilityType } from "@galacean/engine-core";
 import { WebGLGraphicDevice } from "./WebGLGraphicDevice";
 import { GLCompressedTextureInternalFormat } from "./type";
 
-type extensionKey = string;
-
 /**
  * GL capability.
  */
@@ -39,11 +37,7 @@ export class GLCapability {
 
   get maxDrawBuffers() {
     if (!this._maxDrawBuffers) {
-      if (this.canIUse(GLCapabilityType.drawBuffers)) {
-        this._maxDrawBuffers = this._rhi.gl.getParameter(this._rhi.gl.MAX_DRAW_BUFFERS);
-      } else {
-        this._maxDrawBuffers = 1;
-      }
+      this._maxDrawBuffers = this._rhi.gl.getParameter(this._rhi.gl.MAX_DRAW_BUFFERS);
     }
     return this._maxDrawBuffers;
   }
@@ -65,9 +59,7 @@ export class GLCapability {
   get maxAntiAliasing(): number {
     if (!this._maxAntiAliasing) {
       const gl = this._rhi.gl;
-      const canMSAA = this.canIUse(GLCapabilityType.multipleSample);
-
-      this._maxAntiAliasing = canMSAA ? gl.getParameter(gl.MAX_SAMPLES) : 1;
+      this._maxAntiAliasing = gl.getParameter(gl.MAX_SAMPLES);
     }
     return this._maxAntiAliasing;
   }
@@ -86,7 +78,6 @@ export class GLCapability {
     this.capabilityList = new Map();
 
     this._init();
-    this._compatibleAllInterface();
   }
 
   /**
@@ -146,7 +137,6 @@ export class GLCapability {
    */
   private _init() {
     const cap = this.capabilityList;
-    const { isWebGL2 } = this.rhi;
     const requireExtension = this.rhi.requireExtension.bind(this.rhi);
 
     const {
@@ -179,7 +169,6 @@ export class GLCapability {
       textureHalfFloat,
       textureFloatLinear,
       textureHalfFloatLinear,
-      WEBGL_colorBufferFloat,
       colorBufferFloat,
       colorBufferHalfFloat,
       textureFilterAnisotropic,
@@ -187,30 +176,32 @@ export class GLCapability {
 
       sRGB
     } = GLCapabilityType;
-    cap.set(shaderVertexID, isWebGL2);
-    cap.set(standardDerivatives, isWebGL2 || !!requireExtension(standardDerivatives));
-    cap.set(shaderTextureLod, isWebGL2 || !!requireExtension(shaderTextureLod));
-    cap.set(elementIndexUint, isWebGL2 || !!requireExtension(elementIndexUint));
-    cap.set(depthTexture, isWebGL2 || !!requireExtension(depthTexture));
-    cap.set(vertexArrayObject, isWebGL2 || !!requireExtension(vertexArrayObject));
-    cap.set(instancedArrays, isWebGL2 || !!requireExtension(instancedArrays));
-    cap.set(multipleSample, isWebGL2);
-    cap.set(drawBuffers, isWebGL2 || !!requireExtension(drawBuffers));
-    cap.set(blendMinMax, isWebGL2 || !!requireExtension(blendMinMax));
-    cap.set(textureFloat, isWebGL2 || !!requireExtension(textureFloat));
-    cap.set(textureHalfFloat, isWebGL2 || !!requireExtension(textureHalfFloat));
+    cap.set(shaderVertexID, true);
+    cap.set(standardDerivatives, true);
+    cap.set(shaderTextureLod, true);
+    cap.set(elementIndexUint, true);
+    cap.set(depthTexture, true);
+    cap.set(vertexArrayObject, true);
+    cap.set(instancedArrays, true);
+    cap.set(multipleSample, true);
+    cap.set(drawBuffers, true);
+    cap.set(blendMinMax, true);
+    cap.set(textureFloat, true);
+    cap.set(textureHalfFloat, true);
     cap.set(textureFloatLinear, !!requireExtension(textureFloatLinear));
-    cap.set(textureHalfFloatLinear, isWebGL2 || !!requireExtension(textureHalfFloatLinear));
-    cap.set(
-      colorBufferFloat,
-      (isWebGL2 && !!requireExtension(colorBufferFloat)) || !!requireExtension(WEBGL_colorBufferFloat)
-    );
-    cap.set(
-      colorBufferHalfFloat,
-      (isWebGL2 && !!requireExtension(colorBufferFloat)) || !!requireExtension(colorBufferHalfFloat)
-    );
+    cap.set(textureHalfFloatLinear, true);
+    const floatRenderTarget = !!requireExtension(colorBufferFloat);
+    cap.set(colorBufferFloat, floatRenderTarget);
+    cap.set(colorBufferHalfFloat, floatRenderTarget);
     cap.set(textureFilterAnisotropic, !!requireExtension(textureFilterAnisotropic));
-    cap.set(fragDepth, isWebGL2 || !!requireExtension(fragDepth));
+    cap.set(fragDepth, true);
+    const anisotropic = requireExtension(textureFilterAnisotropic);
+    if (anisotropic) {
+      const gl = this.rhi.gl as WebGL2RenderingContext & {
+        TEXTURE_MAX_ANISOTROPY_EXT: number;
+      };
+      gl.TEXTURE_MAX_ANISOTROPY_EXT = anisotropic.TEXTURE_MAX_ANISOTROPY_EXT;
+    }
 
     cap.set(etc, !!(requireExtension(etc) || requireExtension(etc_webkit)));
     cap.set(etc1, !!(requireExtension(etc1) || requireExtension(etc1_webkit)));
@@ -226,103 +217,6 @@ export class GLCapability {
       typeof astcExtension?.getSupportedProfiles === "function" && astcExtension.getSupportedProfiles().includes("hdr")
     );
 
-    cap.set(sRGB, isWebGL2 || !!requireExtension(sRGB));
-  }
-
-  /**
-   * If there are extensions that can supplement this ability, smooth out the difference.
-   * @example
-   * compatible(GLCapabilityType.depthTexture,{
-   *    UNSIGNED_INT_24_8: "UNSIGNED_INT_24_8_WEBGL"
-   * })
-   * gl.UNSIGNED_INT_24_8 = ext.UNSIGNED_INT_24_8_WEBGL
-   */
-  private _compatibleInterface(capabilityType: GLCapabilityType, flatItem: { [glKey: string]: extensionKey }) {
-    const rhi = this.rhi;
-    const gl = rhi.gl;
-    const ext = rhi.requireExtension(capabilityType);
-
-    if (ext) {
-      for (const glKey in flatItem) {
-        const extensionKey = flatItem[glKey];
-        const extensionVal = ext[extensionKey];
-
-        // Mini game hack the native function,use “.bind” to smooth out if is “Funcion”.
-        if (extensionVal?.bind) {
-          gl[glKey] = extensionVal.bind(ext);
-        } else {
-          gl[glKey] = extensionVal;
-        }
-      }
-    }
-  }
-
-  private _compatibleAllInterface() {
-    const {
-      depthTexture,
-      vertexArrayObject,
-      instancedArrays,
-      drawBuffers,
-      textureFilterAnisotropic,
-      textureHalfFloat,
-      colorBufferHalfFloat,
-      WEBGL_colorBufferFloat,
-      blendMinMax,
-      sRGB
-    } = GLCapabilityType;
-    const { isWebGL2 } = this.rhi;
-
-    if (!isWebGL2) {
-      this._compatibleInterface(blendMinMax, {
-        MIN: "MIN_EXT",
-        MAX: "MAX_EXT"
-      });
-      this._compatibleInterface(depthTexture, {
-        UNSIGNED_INT_24_8: "UNSIGNED_INT_24_8_WEBGL"
-      });
-      this._compatibleInterface(vertexArrayObject, {
-        createVertexArray: "createVertexArrayOES",
-        deleteVertexArray: "deleteVertexArrayOES",
-        isVertexArray: "isVertexArrayOES",
-        bindVertexArray: "bindVertexArrayOES"
-      });
-      this._compatibleInterface(instancedArrays, {
-        drawArraysInstanced: "drawArraysInstancedANGLE",
-        drawElementsInstanced: "drawElementsInstancedANGLE",
-        vertexAttribDivisor: "vertexAttribDivisorANGLE"
-      });
-      this._compatibleInterface(drawBuffers, {
-        MAX_DRAW_BUFFERS: "MAX_DRAW_BUFFERS_WEBGL"
-      });
-      const items = {};
-      if (this.canIUse(GLCapabilityType.drawBuffers)) {
-        const maxDrawBuffers = this.maxDrawBuffers;
-        for (let i = 0; i < maxDrawBuffers; i++) {
-          i != 0 && (items[`COLOR_ATTACHMENT${i}`] = `COLOR_ATTACHMENT${i}_WEBGL`);
-          items[`DRAW_BUFFER${i}`] = `DRAW_BUFFER${i}_WEBGL`;
-        }
-        this._compatibleInterface(drawBuffers, {
-          drawBuffers: "drawBuffersWEBGL",
-          ...items
-        });
-      }
-      this._compatibleInterface(textureHalfFloat, {
-        HALF_FLOAT: "HALF_FLOAT_OES"
-      });
-      this._compatibleInterface(colorBufferHalfFloat, {
-        RGBA16F: "RBGA16F_EXT"
-      });
-      this._compatibleInterface(WEBGL_colorBufferFloat, {
-        RGBA32F: "RBGA32F_EXT"
-      });
-      this._compatibleInterface(sRGB, {
-        SRGB8: "SRGB_EXT",
-        SRGB8_ALPHA8: "SRGB_ALPHA_EXT"
-      });
-    }
-
-    this._compatibleInterface(textureFilterAnisotropic, {
-      TEXTURE_MAX_ANISOTROPY_EXT: "TEXTURE_MAX_ANISOTROPY_EXT"
-    });
+    cap.set(sRGB, true);
   }
 }

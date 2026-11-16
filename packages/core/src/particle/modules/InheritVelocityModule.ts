@@ -103,10 +103,7 @@ export class InheritVelocityModule extends ParticleGeneratorModule {
    */
   _updateEmitterVelocity(elapsedTime: number): void {
     const renderer = this._generator._renderer;
-    if (
-      this._generator.main.simulationSpace !== ParticleSimulationSpace.World ||
-      (this._mode !== ParticleInheritVelocityMode.Initial && !renderer.engine._hardwareRenderer.isWebGL2)
-    ) {
+    if (this._generator.main.simulationSpace !== ParticleSimulationSpace.World) {
       this._resyncEmitterVelocity();
       return;
     }
@@ -234,8 +231,7 @@ export class InheritVelocityModule extends ParticleGeneratorModule {
     return (
       this._enabled &&
       this._mode === ParticleInheritVelocityMode.Current &&
-      this._generator.main.simulationSpace === ParticleSimulationSpace.World &&
-      this._generator._renderer.engine._hardwareRenderer.isWebGL2
+      this._generator.main.simulationSpace === ParticleSimulationSpace.World
     );
   }
 

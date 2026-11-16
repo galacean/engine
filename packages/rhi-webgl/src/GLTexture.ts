@@ -11,7 +11,6 @@ import {
   TextureUtils,
   TextureWrapMode
 } from "@galacean/engine-core";
-import { MathUtil } from "@galacean/engine-math";
 import { WebGLGraphicDevice } from "./WebGLGraphicDevice";
 import { GLCompressedTextureInternalFormat, TextureFormatDetail } from "./type";
 
@@ -27,22 +26,22 @@ export class GLTexture implements IPlatformTexture {
     format: TextureFormat,
     isSRGBColorSpace: boolean,
     gl: WebGLRenderingContext & WebGL2RenderingContext,
-    isWebGL2: boolean
+    rhi: WebGLGraphicDevice
   ): TextureFormatDetail {
     switch (format) {
       case TextureFormat.R8G8B8:
         return {
-          internalFormat: isSRGBColorSpace ? gl.SRGB8 : isWebGL2 ? gl.RGB8 : gl.RGB,
-          baseFormat: isSRGBColorSpace ? (isWebGL2 ? gl.RGB : gl.SRGB8) : gl.RGB,
-          readFormat: isWebGL2 ? gl.RGBA : gl.RGB,
+          internalFormat: isSRGBColorSpace ? gl.SRGB8 : gl.RGB8,
+          baseFormat: gl.RGB,
+          readFormat: gl.RGBA,
           dataType: gl.UNSIGNED_BYTE,
           isCompressed: false,
           alignment: 1
         };
       case TextureFormat.R8G8B8A8:
         return {
-          internalFormat: isSRGBColorSpace ? gl.SRGB8_ALPHA8 : isWebGL2 ? gl.RGBA8 : gl.RGBA,
-          baseFormat: isSRGBColorSpace ? (isWebGL2 ? gl.RGBA : gl.SRGB8_ALPHA8) : gl.RGBA,
+          internalFormat: isSRGBColorSpace ? gl.SRGB8_ALPHA8 : gl.RGBA8,
+          baseFormat: gl.RGBA,
           readFormat: gl.RGBA,
           dataType: gl.UNSIGNED_BYTE,
           isCompressed: false,
@@ -50,7 +49,7 @@ export class GLTexture implements IPlatformTexture {
         };
       case TextureFormat.R4G4B4A4:
         return {
-          internalFormat: isWebGL2 ? gl.RGBA4 : gl.RGBA,
+          internalFormat: gl.RGBA4,
           baseFormat: gl.RGBA,
           dataType: gl.UNSIGNED_SHORT_4_4_4_4,
           isCompressed: false,
@@ -58,7 +57,7 @@ export class GLTexture implements IPlatformTexture {
         };
       case TextureFormat.R5G5B5A1:
         return {
-          internalFormat: isWebGL2 ? gl.RGB5_A1 : gl.RGBA,
+          internalFormat: gl.RGB5_A1,
           baseFormat: gl.RGBA,
           dataType: gl.UNSIGNED_SHORT_5_5_5_1,
           isCompressed: false,
@@ -66,7 +65,7 @@ export class GLTexture implements IPlatformTexture {
         };
       case TextureFormat.R5G6B5:
         return {
-          internalFormat: isWebGL2 ? gl.RGB565 : gl.RGB,
+          internalFormat: gl.RGB565,
           baseFormat: gl.RGB,
           dataType: gl.UNSIGNED_SHORT_5_6_5,
           isCompressed: false,
@@ -90,7 +89,7 @@ export class GLTexture implements IPlatformTexture {
         };
       case TextureFormat.R16G16B16A16:
         return {
-          internalFormat: isWebGL2 ? gl.RGBA16F : gl.RGBA,
+          internalFormat: gl.RGBA16F,
           baseFormat: gl.RGBA,
           dataType: gl.HALF_FLOAT,
           isCompressed: false,
@@ -98,7 +97,7 @@ export class GLTexture implements IPlatformTexture {
         };
       case TextureFormat.R32G32B32A32:
         return {
-          internalFormat: isWebGL2 ? gl.RGBA32F : gl.RGBA,
+          internalFormat: gl.RGBA32F,
           baseFormat: gl.RGBA,
           dataType: gl.FLOAT,
           isCompressed: false,
@@ -258,23 +257,23 @@ export class GLTexture implements IPlatformTexture {
 
       case TextureFormat.Depth:
         return {
-          internalFormat: isWebGL2 ? gl.DEPTH_COMPONENT32F : gl.DEPTH_COMPONENT,
+          internalFormat: gl.DEPTH_COMPONENT32F,
           baseFormat: gl.DEPTH_COMPONENT,
-          dataType: isWebGL2 ? gl.FLOAT : gl.UNSIGNED_SHORT,
+          dataType: gl.FLOAT,
           isCompressed: false,
           attachment: gl.DEPTH_ATTACHMENT
         };
       case TextureFormat.DepthStencil:
         return {
-          internalFormat: isWebGL2 ? gl.DEPTH32F_STENCIL8 : gl.DEPTH_STENCIL,
+          internalFormat: gl.DEPTH32F_STENCIL8,
           baseFormat: gl.DEPTH_STENCIL,
-          dataType: isWebGL2 ? gl.FLOAT_32_UNSIGNED_INT_24_8_REV : gl.UNSIGNED_INT_24_8,
+          dataType: gl.FLOAT_32_UNSIGNED_INT_24_8_REV,
           isCompressed: false,
           attachment: gl.DEPTH_STENCIL_ATTACHMENT
         };
       case TextureFormat.Depth16:
         return {
-          internalFormat: isWebGL2 ? gl.DEPTH_COMPONENT16 : gl.DEPTH_COMPONENT,
+          internalFormat: gl.DEPTH_COMPONENT16,
           baseFormat: gl.DEPTH_COMPONENT,
           dataType: gl.UNSIGNED_SHORT,
           isCompressed: false,
@@ -282,7 +281,7 @@ export class GLTexture implements IPlatformTexture {
         };
       case TextureFormat.Depth24Stencil8:
         return {
-          internalFormat: isWebGL2 ? gl.DEPTH24_STENCIL8 : gl.DEPTH_STENCIL,
+          internalFormat: gl.DEPTH24_STENCIL8,
           baseFormat: gl.DEPTH_STENCIL,
           dataType: gl.UNSIGNED_INT_24_8,
           isCompressed: false,
@@ -327,22 +326,22 @@ export class GLTexture implements IPlatformTexture {
   static _getRenderBufferDepthFormatDetail(
     format: TextureFormat,
     gl: WebGLRenderingContext & WebGL2RenderingContext,
-    isWebGL2: boolean
+    rhi: WebGLGraphicDevice
   ): TextureFormatDetail {
     switch (format) {
       case TextureFormat.Depth:
         return {
-          internalFormat: isWebGL2 ? gl.DEPTH_COMPONENT32F : gl.DEPTH_COMPONENT16,
+          internalFormat: gl.DEPTH_COMPONENT32F,
           baseFormat: gl.DEPTH_COMPONENT,
-          dataType: isWebGL2 ? gl.FLOAT : gl.UNSIGNED_SHORT,
+          dataType: gl.FLOAT,
           isCompressed: false,
           attachment: gl.DEPTH_ATTACHMENT
         };
       case TextureFormat.DepthStencil:
         return {
-          internalFormat: isWebGL2 ? gl.DEPTH32F_STENCIL8 : gl.DEPTH_STENCIL,
+          internalFormat: gl.DEPTH32F_STENCIL8,
           baseFormat: gl.DEPTH_STENCIL,
-          dataType: isWebGL2 ? gl.FLOAT_32_UNSIGNED_INT_24_8_REV : gl.UNSIGNED_INT_24_8,
+          dataType: gl.FLOAT_32_UNSIGNED_INT_24_8_REV,
           isCompressed: false,
           attachment: gl.DEPTH_STENCIL_ATTACHMENT
         };
@@ -364,7 +363,7 @@ export class GLTexture implements IPlatformTexture {
         };
       case TextureFormat.Depth24Stencil8:
         return {
-          internalFormat: isWebGL2 ? gl.DEPTH24_STENCIL8 : gl.DEPTH_STENCIL,
+          internalFormat: gl.DEPTH24_STENCIL8,
           baseFormat: gl.DEPTH_STENCIL,
           dataType: gl.UNSIGNED_INT_24_8,
           isCompressed: false,
@@ -424,7 +423,7 @@ export class GLTexture implements IPlatformTexture {
 
       case TextureFormat.R11G11B10_UFloat:
         {
-          isSupported = rhi.isWebGL2;
+          isSupported = true;
         }
         break;
     }
@@ -436,15 +435,6 @@ export class GLTexture implements IPlatformTexture {
    * @internal
    */
   static _supportRenderBufferDepthFormat(format: TextureFormat, rhi: WebGLGraphicDevice): boolean {
-    if (!rhi.isWebGL2) {
-      switch (format) {
-        case TextureFormat.Depth24:
-        case TextureFormat.Depth32:
-        case TextureFormat.Depth32Stencil8:
-          return false;
-      }
-    }
-
     return true;
   }
 
@@ -457,7 +447,6 @@ export class GLTexture implements IPlatformTexture {
   /** @internal */
   _gl: WebGLRenderingContext & WebGL2RenderingContext;
   /** @internal */
-  _isWebGL2: boolean;
   /** @internal */
   _target: GLenum; // gl.TEXTURE_2D | gl.TEXTURE_CUBE_MAP
   /** @internal */
@@ -552,7 +541,6 @@ export class GLTexture implements IPlatformTexture {
     this._texture = texture;
     this._rhi = rhi;
     this._gl = rhi.gl as WebGLRenderingContext & WebGL2RenderingContext;
-    this._isWebGL2 = rhi.isWebGL2;
     this._target = target;
     this._glTexture = this._gl.createTexture();
   }
@@ -582,7 +570,7 @@ export class GLTexture implements IPlatformTexture {
     const texture = this._texture;
     const mipmap = texture._mipmap;
 
-    if (!TextureUtils.supportGenerateMipmaps(texture.format, mipmap, texture.isSRGBColorSpace, this._isWebGL2)) {
+    if (!TextureUtils.supportGenerateMipmaps(texture.format, mipmap, texture.isSRGBColorSpace, true)) {
       Logger.warn(
         "Auto-generating mipmaps for sRGB textures is only supported in [WebGL2 + R8G8B8A8], you must generate mipmaps manually."
       );
@@ -605,13 +593,12 @@ export class GLTexture implements IPlatformTexture {
    */
   protected _init(isCube: boolean): void {
     const gl = this._gl;
-    const isWebGL2 = this._isWebGL2;
     const { internalFormat, baseFormat, dataType } = this._formatDetail;
     const { mipmapCount, width, height, usage, _isDepthTexture } = this._texture;
 
     this._bind();
 
-    if (isWebGL2 && !(baseFormat === gl.LUMINANCE_ALPHA || baseFormat === gl.ALPHA) && usage !== TextureUsage.Dynamic) {
+    if (!(baseFormat === gl.LUMINANCE_ALPHA || baseFormat === gl.ALPHA) && usage !== TextureUsage.Dynamic) {
       gl.texStorage2D(this._target, mipmapCount, internalFormat, width, height);
     } else {
       if (!isCube) {
@@ -669,11 +656,6 @@ export class GLTexture implements IPlatformTexture {
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, this._getReadFrameBuffer());
 
-    if (mipLevel > 0 && !this._isWebGL2) {
-      mipLevel = 0;
-      Logger.error("mipLevel only take effect in WebGL2.0");
-    }
-
     if (face != null) {
       gl.framebufferTexture2D(
         gl.FRAMEBUFFER,
@@ -712,33 +694,12 @@ export class GLTexture implements IPlatformTexture {
       // @ts-ignore
       texture._isSRGBColorSpace = false;
     }
-
-    const isWebGL2 = rhi.isWebGL2;
-
-    // Validate mipmap
-    const mipmap = texture._mipmap;
-    if (mipmap && !TextureUtils.supportMipmaps(width, height, isWebGL2)) {
-      Logger.warn(
-        "Non-power-2 texture is not supported for mipmap in WebGL1, and has automatically downgraded to non-mipmap"
-      );
-      texture._mipmap = false;
-      /** @ts-ignore */
-      texture._mipmapCount = texture._getMipmapCount();
-    }
   }
 
   private _setWrapMode(value: TextureWrapMode, pname: GLenum): void {
     const gl = this._gl;
-    const isWebGL2 = this._isWebGL2;
     const target = this._target;
     const { width, height } = this._texture;
-
-    if (!isWebGL2 && value !== TextureWrapMode.Clamp && (!MathUtil.isPowerOf2(width) || !MathUtil.isPowerOf2(height))) {
-      Logger.warn(
-        "non-power-2 texture is not supported for REPEAT or MIRRORED_REPEAT in WebGL1,and has automatically downgraded to CLAMP_TO_EDGE"
-      );
-      value = TextureWrapMode.Clamp;
-    }
 
     switch (value) {
       case TextureWrapMode.Clamp:

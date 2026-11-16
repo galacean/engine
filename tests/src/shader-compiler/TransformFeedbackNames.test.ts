@@ -1,5 +1,5 @@
 import { Shader, ShaderFactory, ShaderLanguage, ShaderPass, ShaderMacroCollection } from "@galacean/engine-core";
-import { WebGLEngine, WebGLMode } from "@galacean/engine";
+import { WebGLEngine } from "@galacean/engine";
 import { ShaderMacroProcessor } from "@galacean/engine-core/src/shader/ShaderMacroProcessor";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
 import { ShaderPrecompiler } from "@galacean/engine-shader-compiler/precompile";
@@ -31,8 +31,7 @@ async function capture(
   vertexOutputNames?: Readonly<Record<string, string>>
 ): Promise<number[]> {
   const engine = await WebGLEngine.create({
-    canvas: document.createElement("canvas"),
-    graphicDeviceOptions: { webGLMode: WebGLMode.WebGL2 }
+    canvas: document.createElement("canvas")
   });
   const gl = engine._hardwareRenderer.gl as WebGL2RenderingContext;
   expect(gl).not.toBeNull();

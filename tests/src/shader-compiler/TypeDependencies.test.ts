@@ -1,4 +1,5 @@
-import { Logger, Shader, ShaderLanguage, WebGLEngine, WebGLMode } from "@galacean/engine";
+import { createWebGL1Canvas } from "../../../packages/webgl1-polyfill/tests/helpers/canvas";
+import { Logger, Shader, ShaderLanguage, WebGLEngine } from "@galacean/engine";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
 import { ShaderPrecompiler } from "@galacean/engine-shader-compiler/precompile";
 import { describe, expect, it } from "vitest";
@@ -111,11 +112,8 @@ describe("shader declaration type dependencies", () => {
         const previousCompiler = Shader._shaderCompiler;
         const compiler = new ShaderCompiler();
         const engine = await WebGLEngine.create({
-          canvas: document.createElement("canvas"),
-          shaderCompiler: compiler,
-          graphicDeviceOptions: {
-            webGLMode: language === ShaderLanguage.GLSLES100 ? WebGLMode.WebGL1 : WebGLMode.WebGL2
-          }
+          canvas: language === ShaderLanguage.GLSLES100 ? createWebGL1Canvas() : document.createElement("canvas"),
+          shaderCompiler: compiler
         });
         let shader: Shader | undefined;
         try {

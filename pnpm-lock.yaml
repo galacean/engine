@@ -364,6 +364,18 @@ importers:
         specifier: workspace:*
         version: link:../galacean
 
+  packages/webgl1-polyfill:
+    devDependencies:
+      '@galacean/engine-core':
+        specifier: workspace:*
+        version: link:../core
+      '@galacean/engine-math':
+        specifier: workspace:*
+        version: link:../math
+      '@galacean/engine-rhi-webgl':
+        specifier: workspace:*
+        version: link:../rhi-webgl
+
   packages/xr:
     devDependencies:
       '@galacean/engine':

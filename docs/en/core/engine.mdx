@@ -31,7 +31,7 @@ Below is a description of the [configuration](/apis/galacean/#WebGLEngineConfigu
 | Configuration                                                  | Description                                                 |
 | ------------------------------------------------------------ | ------------------------------------------------------------ |
 | canvas                                                       | Can be a canvas ID (`string`) or a canvas object (`HTMLCanvasElement | OffscreenCanvas`) |
-| [graphicDeviceOptions](/apis/galacean/#WebGLGraphicDeviceOptions) | Configuration related to the graphics device, e.g., `webGLMode` can control WebGL1/2. Properties other than `webGLMode` will be passed to the context, more details can be found in [getContext parameters explanation](https://developer.mozilla.org/en-US/docs/Web/API/HTMLCanvasElement/getContext#parameters). |
+| [graphicDeviceOptions](/apis/galacean/#WebGLGraphicDeviceOptions) | WebGL context creation attributes. |
 | [colorSpace](/apis/galacean/#ColorSpace)                     | Color space, `ColorSpace.Gamma` or `ColorSpace.Linear`.        |
 | gltf                                                         | GLTF Loader configuration, `workerCount` is used to configure the number of workers for meshOpt: `{ meshOpt: { workerCount: number } }`. |
 | ktx2Loader                                                   | KTX2 Loader configuration, `workerCount` is used to configure the number of workers for the ktx2 decoder: `{ priorityFormats: Array<KTX2TargetFormat>; transcoder: KTX2Transcoder; workerCount: number }`. If workerCount is greater than 0, worker threads will be created; if it equals 0, only the main thread will be used. |

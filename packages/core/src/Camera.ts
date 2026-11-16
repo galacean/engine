@@ -8,7 +8,7 @@ import { BasicRenderPipeline } from "./RenderPipeline/BasicRenderPipeline";
 import { Transform } from "./Transform";
 import { UpdateFlagManager } from "./UpdateFlagManager";
 import { VirtualCamera } from "./VirtualCamera";
-import { GLCapabilityType, Logger } from "./base";
+import { Logger } from "./base";
 import { ignoreClone } from "./clone/CloneDecorators";
 import { AntiAliasing } from "./enums/AntiAliasing";
 import { CameraClearFlags } from "./enums/CameraClearFlags";
@@ -378,12 +378,6 @@ export class Camera extends Component {
 
   set enableHDR(value: boolean) {
     if (this.enableHDR !== value) {
-      const rhi = this.engine._hardwareRenderer;
-      const supportHDR = rhi.isWebGL2 || rhi.canIUse(GLCapabilityType.textureHalfFloat);
-      if (value && !supportHDR) {
-        Logger.warn("Can't enable HDR in this device.");
-        return;
-      }
       this._enableHDR = value;
     }
   }
@@ -659,10 +653,6 @@ export class Camera extends Component {
       this._globalShaderMacro
     );
 
-    if (mipLevel > 0 && !engine._hardwareRenderer.isWebGL2) {
-      mipLevel = 0;
-      Logger.error("mipLevel only take effect in WebGL2.0");
-    }
     let ignoreClearFlags: CameraClearFlags | undefined;
     if (this._cameraType !== CameraType.Normal && !this._renderTarget) {
       ignoreClearFlags = engine.xrManager._getCameraIgnoreClearFlags(this._cameraType);
@@ -769,7 +759,7 @@ export class Camera extends Component {
    */
   _getInternalColorTextureFormat(): TextureFormat {
     return this._enableHDR
-      ? this.engine._hardwareRenderer.isWebGL2 && !this.isAlphaOutputRequired
+      ? !this.isAlphaOutputRequired
         ? TextureFormat.R11G11B10_UFloat
         : TextureFormat.R16G16B16A16
       : TextureFormat.R8G8B8A8;

@@ -17,7 +17,6 @@ export class TextureUtils {
     mipmap: boolean,
     isSRGBColorSpace: boolean
   ): boolean {
-    const isWebGL2 = engine._hardwareRenderer._isWebGL2;
     if (!mipmap) {
       return false;
     }
@@ -26,11 +25,7 @@ export class TextureUtils {
       isSRGBColorSpace = false;
     }
 
-    if (!TextureUtils.supportMipmaps(width, height, isWebGL2)) {
-      mipmap = false;
-    }
-
-    return TextureUtils.supportGenerateMipmaps(format, mipmap, isSRGBColorSpace, isWebGL2);
+    return TextureUtils.supportGenerateMipmaps(format, mipmap, isSRGBColorSpace, true);
   }
 
   static supportSRGB(format: TextureFormat) {
@@ -55,18 +50,18 @@ export class TextureUtils {
     }
   }
 
-  static supportMipmaps(width: number, height, isWebGL2: boolean): boolean {
-    return isWebGL2 || (MathUtil.isPowerOf2(width) && MathUtil.isPowerOf2(height));
+  static supportMipmaps(width: number, height: number, unrestrictedNPOT: boolean): boolean {
+    return true;
   }
 
   static supportGenerateMipmaps(
     format: TextureFormat,
     mipmap: boolean,
     isSRGBColorSpace: boolean,
-    isWebGL2: boolean
+    autoSRGBMipmaps: boolean
   ): boolean {
     // Auto generating mipmaps for sRGB textures is only supported in [WebGL2 + RGBA]
-    if (mipmap && isSRGBColorSpace && !(isWebGL2 && format === TextureFormat.R8G8B8A8)) {
+    if (mipmap && isSRGBColorSpace && !(format === TextureFormat.R8G8B8A8)) {
       return false;
     }
 

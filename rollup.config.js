@@ -83,6 +83,16 @@ function config({ location, pkgJson }) {
       __buildVersion: pkgJson.version
     })
   );
+  curPlugins.push({
+    name: "preserve-runtime-import",
+    renderDynamicImport({ format, targetModuleId, customResolution }) {
+      // Runtime URLs cannot be loaded with CommonJS require().
+      if (format === "cjs" && targetModuleId === null && customResolution === null) {
+        return { left: "import(", right: ")" };
+      }
+      return null;
+    }
+  });
   return {
     umd: (compress) => {
       const umdConfig = pkgJson.umd;
@@ -126,7 +136,11 @@ function config({ location, pkgJson }) {
             file: mainFile,
             sourcemap: true,
             format: "commonjs"
-          }
+          },
+          ...(pkgJson.rollup?.output ?? []).map((output) => ({
+            ...output,
+            file: path.join(location, output.file)
+          }))
         ],
         plugins: curPlugins
       };

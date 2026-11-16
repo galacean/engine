@@ -61,15 +61,9 @@ export class BlendState extends DataObject {
       case BlendOperation.ReverseSubtract:
         return gl.FUNC_REVERSE_SUBTRACT;
       case BlendOperation.Min:
-        if (!rhi.canIUse(GLCapabilityType.blendMinMax)) {
-          throw new Error("BlendOperation.Min is not supported in this context");
-        }
-        return gl.MIN; // in webgl1.0 is an extension
+        return gl.MIN;
       case BlendOperation.Max:
-        if (!rhi.canIUse(GLCapabilityType.blendMinMax)) {
-          throw new Error("BlendOperation.Max is not supported in this context");
-        }
-        return gl.MAX; // in webgl1.0 is an extension
+        return gl.MAX;
     }
   }
 

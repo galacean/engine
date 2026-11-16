@@ -42,24 +42,9 @@ import { WebCanvas } from "./WebCanvas";
 import { WebGLExtension } from "./type";
 
 /**
- * WebGL mode.
- */
-export enum WebGLMode {
-  /** Auto, use WebGL2.0 if support, or will fallback to WebGL1.0. */
-  Auto = 0,
-  /** WebGL2.0. */
-  WebGL2 = 1,
-  /** WebGL1.0, */
-  WebGL1 = 2
-}
-
-/**
  * WebGL graphic device options.
  */
 export interface WebGLGraphicDeviceOptions {
-  /** WebGL mode.*/
-  webGLMode?: WebGLMode;
-
   /**
    * @internal
    * iOS 15 webgl implement has bug, maybe should force call flush command buffer, for example iPhone13(iOS 15.4.1).
@@ -111,6 +96,7 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
   private _extensions;
   private _capability: GLCapability;
   private _isWebGL2: boolean;
+  private _contextPrepared = false;
   private _renderer: string;
   private _webCanvas: HTMLCanvasElement | OffscreenCanvas;
 
@@ -155,7 +141,6 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
 
   constructor(initializeOptions: WebGLGraphicDeviceOptions = {}) {
     const options = <WebGLGraphicDeviceOptions>{
-      webGLMode: WebGLMode.Auto,
       _forceFlush: false,
       _maxAllowSkinUniformVectorCount: 256,
       alpha: true,
@@ -202,7 +187,15 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
 
   init(canvas: Canvas, onDeviceLost: () => void, onDeviceRestored: () => void): void {
     const webCanvas = (canvas as WebCanvas)._webCanvas;
-    const webGLMode = this._options.webGLMode;
+    if (!this._contextPrepared || this._webCanvas !== webCanvas) {
+      const gl2 = this._getWebGL2Context(canvas as WebCanvas);
+      if (gl2?.deleteQuery) {
+        this._setContext(webCanvas, gl2, true);
+      } else {
+        throw new Error("WebGL2 is unavailable. Use WebGLEngine.create() to load a renderer fallback.");
+      }
+    }
+    this._contextPrepared = false;
 
     this._onDeviceLost = onDeviceLost;
     this._onDeviceRestored = onDeviceRestored;
@@ -210,39 +203,48 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     webCanvas.addEventListener("webglcontextrestored", this._onWebGLContextRestored, false);
     webCanvas.addEventListener("webglcontextcreationerror", this._onContextCreationError, false);
 
-    this._webCanvas = webCanvas;
-
-    const webGLOptions = this._webGLOptions;
-    let gl: (WebGLRenderingContext & WebGLExtension) | WebGL2RenderingContext | undefined;
-    if (webGLMode == WebGLMode.Auto || webGLMode == WebGLMode.WebGL2) {
-      gl = webCanvas.getContext("webgl2", webGLOptions);
-      if (!gl && !(canvas as WebCanvas)._isOffscreenCanvas()) {
-        gl = <WebGL2RenderingContext>webCanvas.getContext("experimental-webgl2", webGLOptions);
-      }
-      this._isWebGL2 = true;
-
-      // Prevent weird browsers to lie (such as safari!)ƒ
-      if (gl && !(<WebGL2RenderingContext>gl).deleteQuery) {
-        this._isWebGL2 = false;
-      }
+    try {
+      this._initGLState(this._gl);
+    } catch (error) {
+      this.destroy();
+      throw error;
     }
-
-    if (!gl) {
-      if (webGLMode == WebGLMode.Auto || webGLMode == WebGLMode.WebGL1) {
-        gl = <WebGLRenderingContext & WebGLExtension>webCanvas.getContext("webgl", webGLOptions);
-        if (!gl && !(canvas as WebCanvas)._isOffscreenCanvas()) {
-          gl = <WebGLRenderingContext & WebGLExtension>webCanvas.getContext("experimental-webgl", webGLOptions);
-        }
-        this._isWebGL2 = false;
-      }
-    }
-
-    if (!gl) {
-      throw new Error("Get GL Context FAILED.");
-    }
-
+  }
+  /** @internal */
+  _getWebGL2Context(canvas: WebCanvas): WebGL2RenderingContext | null {
+    const nativeCanvas = canvas._webCanvas;
+    return (
+      nativeCanvas.getContext("webgl2", this._webGLOptions) ||
+      (!canvas._isOffscreenCanvas()
+        ? (nativeCanvas.getContext("experimental-webgl2", this._webGLOptions) as WebGL2RenderingContext | null)
+        : null)
+    );
+  }
+  /** @internal */
+  _setContext(canvas: HTMLCanvasElement | OffscreenCanvas, gl: WebGL2RenderingContext, isWebGL2 = true): void {
+    this._webCanvas = canvas;
     this._gl = gl;
-    this._initGLState(gl);
+    this._isWebGL2 = isWebGL2;
+    this._contextPrepared = true;
+  }
+  /** @internal */
+  _createXRLayer(session: XRSession, scaleFactor: number): XRWebGLLayer {
+    if (session.renderState.layers === undefined) {
+      const attributes = this._gl.getContextAttributes()!;
+      const layer = new XRWebGLLayer(session, this._gl, {
+        antialias: attributes.antialias,
+        alpha: true,
+        depth: attributes.depth,
+        stencil: attributes.stencil,
+        framebufferScaleFactor: scaleFactor
+      });
+      session.updateRenderState({ baseLayer: layer });
+      return layer;
+    }
+
+    const layer = new XRWebGLLayer(session, this._gl);
+    session.updateRenderState({ layers: [layer] });
+    return layer;
   }
 
   createPlatformPrimitive(primitive: Primitive): IPlatformPrimitive {
@@ -300,20 +302,16 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
    * Enable GL_RASTERIZER_DISCARD (WebGL2 only).
    */
   enableRasterizerDiscard(): void {
-    if (this._isWebGL2) {
-      const gl = <WebGL2RenderingContext>this._gl;
-      gl.enable(gl.RASTERIZER_DISCARD);
-    }
+    const gl = <WebGL2RenderingContext>this._gl;
+    gl.enable(gl.RASTERIZER_DISCARD);
   }
 
   /**
    * Disable GL_RASTERIZER_DISCARD (WebGL2 only).
    */
   disableRasterizerDiscard(): void {
-    if (this._isWebGL2) {
-      const gl = <WebGL2RenderingContext>this._gl;
-      gl.disable(gl.RASTERIZER_DISCARD);
-    }
+    const gl = <WebGL2RenderingContext>this._gl;
+    gl.disable(gl.RASTERIZER_DISCARD);
   }
 
   /**
@@ -466,10 +464,6 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     clearFlags: CameraClearFlags,
     viewport: Vector4
   ) {
-    if (!this._isWebGL2) {
-      Logger.warn("WebGL1.0 not support blit frame buffer.");
-      return;
-    }
     const gl = this._gl;
     // @ts-ignore
     const srcFrameBuffer = srcRT ? srcRT._platformRenderTarget._frameBuffer : null;
@@ -633,18 +627,16 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     if (debugRenderInfo != null) {
       this._renderer = gl.getParameter(debugRenderInfo.UNMASKED_RENDERER_WEBGL);
     }
-    if (this._isWebGL2) {
-      this.maxUniformBlockSize = (<WebGL2RenderingContext>gl).getParameter(
-        (<WebGL2RenderingContext>gl).MAX_UNIFORM_BLOCK_SIZE
-      );
-    }
+    this.maxUniformBlockSize = (<WebGL2RenderingContext>gl).getParameter(
+      (<WebGL2RenderingContext>gl).MAX_UNIFORM_BLOCK_SIZE
+    );
   }
 
   destroy(): void {
     const webCanvas = this._webCanvas;
-    webCanvas.removeEventListener("webglcontextcreationerror", this._onContextCreationError, false);
-    webCanvas.removeEventListener("webglcontextlost", this._onWebGLContextLost, false);
-    webCanvas.removeEventListener("webglcontextrestored", this._onWebGLContextRestored, false);
+    webCanvas?.removeEventListener("webglcontextcreationerror", this._onContextCreationError, false);
+    webCanvas?.removeEventListener("webglcontextlost", this._onWebGLContextLost, false);
+    webCanvas?.removeEventListener("webglcontextrestored", this._onWebGLContextRestored, false);
   }
 
   private _onContextCreationError(event: WebGLContextEvent) {

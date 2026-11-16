@@ -1,0 +1,40 @@
+import {
+  type Camera,
+  type Engine,
+  GLCapabilityType,
+  PipelineUtils,
+  type RenderTarget,
+  TextureFilterMode,
+  TextureFormat,
+  TextureWrapMode
+} from "@galacean/engine-core";
+import { Mixin, Overwrite, Shadow } from "@/override";
+
+@Mixin("DepthOnlyPass")
+export class DepthOnlyPass {
+  @Shadow declare renderTarget: RenderTarget | null;
+  declare engine: Engine;
+
+  @Overwrite
+  onConfig(camera: Camera) {
+    const { width, height } = camera.pixelViewport;
+    this.renderTarget = PipelineUtils.recreateRenderTargetIfNeeded(
+      this.engine,
+      this.renderTarget,
+      width,
+      height,
+      null,
+      TextureFormat.Depth24Stencil8,
+      true,
+      false,
+      false,
+      1,
+      TextureWrapMode.Clamp,
+      TextureFilterMode.Point
+    );
+  }
+  @Overwrite
+  get supportDepthTexture() {
+    return this.engine._hardwareRenderer.canIUse(GLCapabilityType.depthTexture);
+  }
+}

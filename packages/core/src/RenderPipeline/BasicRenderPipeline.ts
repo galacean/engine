@@ -120,7 +120,7 @@ export class BasicRenderPipeline {
     // 1. Only support blitFramebuffer in webgl2 context
     // 2. Can't blit normal FBO to MSAA FBO
     // 3. Can't blit screen MSAA FBO to normal FBO in mac safari platform and mobile, but mac chrome and firfox is OK
-    this._canUseBlitFrameBuffer = rhi.isWebGL2 && msaaSamples === 1;
+    this._canUseBlitFrameBuffer = msaaSamples === 1;
 
     // Because internal render target is linear color space, so we should convert srgb background color to linear color space
     const isSRGBBackground = !renderTarget || renderTarget.getColorTexture(0)!.isSRGBColorSpace;

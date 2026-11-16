@@ -1,3 +1,4 @@
+import { createWebGL1Canvas } from "../../../packages/webgl1-polyfill/tests/helpers/canvas";
 import {
   BlendFactor,
   BlendOperation,
@@ -23,8 +24,7 @@ import {
   ModelMesh,
   Shader,
   Vector3,
-  WebGLEngine,
-  WebGLMode
+  WebGLEngine
 } from "@galacean/engine";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { server } from "@vitest/browser/context";
@@ -54,11 +54,8 @@ describe("ShaderCompiler", async () => {
     ["runtime", ShaderLanguage.GLSLES300, shaderCompilerRelease]
   ] as const)("preserves disabled bare fragment returns (%s, %s)", async (mode, language, compiler) => {
     const fixtureEngine = await WebGLEngine.create({
-      canvas: document.createElement("canvas"),
-      shaderCompiler: compiler,
-      graphicDeviceOptions: {
-        webGLMode: language === ShaderLanguage.GLSLES100 ? WebGLMode.WebGL1 : WebGLMode.WebGL2
-      }
+      canvas: language === ShaderLanguage.GLSLES100 ? createWebGL1Canvas() : document.createElement("canvas"),
+      shaderCompiler: compiler
     });
     let shader: Shader | undefined;
     try {
@@ -95,11 +92,8 @@ describe("ShaderCompiler", async () => {
     "compiles conditional fragment helper macros without vertex dependencies (%s)",
     async (language) => {
       const fixtureEngine = await WebGLEngine.create({
-        canvas: document.createElement("canvas"),
-        shaderCompiler: shaderCompilerRelease,
-        graphicDeviceOptions: {
-          webGLMode: language === ShaderLanguage.GLSLES100 ? WebGLMode.WebGL1 : WebGLMode.WebGL2
-        }
+        canvas: language === ShaderLanguage.GLSLES100 ? createWebGL1Canvas() : document.createElement("canvas"),
+        shaderCompiler: shaderCompilerRelease
       });
       const shader = Shader.create(
         `Shader "FragmentHelperMacro${language}" {
@@ -147,13 +141,12 @@ describe("ShaderCompiler", async () => {
       ["fragment", "fragment-if-else", "varying-helper"].map((kind) => ({ language, kind }))
     )
   )("preserves early return colors ($language, $kind)", async ({ language, kind }) => {
-    const canvas = document.createElement("canvas");
+    const canvas = language === ShaderLanguage.GLSLES100 ? createWebGL1Canvas() : document.createElement("canvas");
     canvas.width = canvas.height = 32;
     const fixtureEngine = await WebGLEngine.create({
       canvas,
       shaderCompiler: shaderCompilerRelease,
       graphicDeviceOptions: {
-        webGLMode: language === ShaderLanguage.GLSLES100 ? WebGLMode.WebGL1 : WebGLMode.WebGL2,
         preserveDrawingBuffer: true
       }
     });
@@ -1296,11 +1289,8 @@ void frag(Varyings input) { gl_FragColor = readColor(input); }`;
       let fixtureEngine: WebGLEngine;
       beforeAll(async () => {
         fixtureEngine = await WebGLEngine.create({
-          canvas: document.createElement("canvas"),
-          shaderCompiler: shaderCompilerRelease,
-          graphicDeviceOptions: {
-            webGLMode: language === ShaderLanguage.GLSLES100 ? WebGLMode.WebGL1 : WebGLMode.WebGL2
-          }
+          canvas: language === ShaderLanguage.GLSLES100 ? createWebGL1Canvas() : document.createElement("canvas"),
+          shaderCompiler: shaderCompilerRelease
         });
       });
       afterAll(() => fixtureEngine.destroy());

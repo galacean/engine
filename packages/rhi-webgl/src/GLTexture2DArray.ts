@@ -13,7 +13,7 @@ export class GLTexture2DArray extends GLTexture implements IPlatformTexture2DArr
 
     const { format, width, height, length, mipmapCount, isSRGBColorSpace } = texture2DArray;
     this._bind();
-    this._formatDetail = GLTexture._getFormatDetail(format, isSRGBColorSpace, this._gl, true);
+    this._formatDetail = GLTexture._getFormatDetail(format, isSRGBColorSpace, this._gl, rhi);
     this._gl.texStorage3D(this._target, mipmapCount, this._formatDetail.internalFormat, width, height, length);
   }
 
