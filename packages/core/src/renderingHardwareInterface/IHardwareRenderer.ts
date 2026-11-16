@@ -20,12 +20,6 @@ export interface IHardwareRenderer {
   /** WebGL access requires a graphics-capable backend. */
   readonly gl: WebGLRenderingContext | WebGL2RenderingContext;
   readonly isWebGL2: boolean;
-  /** @internal */
-  _mainFrameBuffer: WebGLFramebuffer | null;
-  /** @internal */
-  _mainFrameWidth: number;
-  /** @internal */
-  _mainFrameHeight: number;
   readonly maxUniformBlockSize: number;
   /** Whether this device can execute rendering commands. */
   readonly supportsRendering: boolean;

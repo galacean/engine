@@ -25,9 +25,6 @@ export class NullGraphicDevice implements IHardwareRenderer {
     canUseFloatTextureBlendShape: false,
     isFragmentHighPrecision: false
   };
-  _mainFrameBuffer: WebGLFramebuffer | null = null;
-  _mainFrameWidth = 0;
-  _mainFrameHeight = 0;
   _currentBindShaderProgram = null;
   _enableGlobalDepthBias = false;
 

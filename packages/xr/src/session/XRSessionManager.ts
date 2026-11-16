@@ -56,7 +56,7 @@ export class XRSessionManager {
     private _xrManager: XRManagerExtended,
     private _engine: Engine
   ) {
-    this._rhi = _engine._hardwareRenderer;
+    this._rhi = _engine._hardwareRenderer as unknown as IXRGraphicsBinding;
     this._raf = requestAnimationFrame.bind(window);
     this._caf = cancelAnimationFrame.bind(window);
     this._onSessionExit = this._onSessionExit.bind(this);

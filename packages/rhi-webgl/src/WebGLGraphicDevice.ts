@@ -26,7 +26,7 @@ import {
   TextureCubeFace,
   TextureFormat
 } from "@galacean/engine-core";
-import { IPlatformPrimitive, IPlatformShaderProgram } from "@galacean/engine-design";
+import { IPlatformPrimitive, IPlatformShaderProgram, IXRGraphicsBinding } from "@galacean/engine-design";
 import { Color, Vector4 } from "@galacean/engine-math";
 import { GLBuffer } from "./GLBuffer";
 import { GLCapability } from "./GLCapability";
@@ -90,7 +90,7 @@ export interface WebGLGraphicDeviceOptions {
 /**
  * WebGL graphic device, including WebGL1.0 and WebGL2.0.
  */
-export class WebGLGraphicDevice implements IHardwareRenderer {
+export class WebGLGraphicDevice implements IHardwareRenderer, IXRGraphicsBinding {
   readonly supportsRendering = true;
   maxUniformBlockSize: number;
 
