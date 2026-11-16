@@ -31,6 +31,7 @@ export interface GroundAnimalBody {
 }
 interface BodyState {
   id: number;
+  originalBody?: GroundAnimalBody;
   recovery: GroundAnimalRecovery;
   cellKey: number;
   brakeAcceleration: number;
@@ -42,6 +43,14 @@ interface BodyState {
   neighbours: BodyState[];
   reservedNeighbours: BodyState[];
   reservation?: { x: number; z: number; elevation?: number; layer?: string; cellKey: number };
+}
+
+interface CrowdSnapshotState {
+  version: number;
+  grid: Map<number, BodyState[]>;
+  reservations: Map<number, BodyState[]>;
+  maximumRadius: number;
+  frozen: boolean;
 }
 
 /**
@@ -60,6 +69,8 @@ export class GroundAnimalCrowd {
   private nextId = 0;
   private maximumRadius = 0;
   private readonly cellSize = 4;
+  private trafficVersion = 0;
+  private liveSnapshotState?: CrowdSnapshotState;
   private neighbourChecks = 0;
   private constrainedSteps = 0;
   private steps = 0;
@@ -72,6 +83,7 @@ export class GroundAnimalCrowd {
     if (!Number.isFinite(body.radius) || body.radius <= 0 || this.states.some((s) => s.body === body))
       throw new Error("Invalid crowd footprint");
     if (!this.canResize(body, body.radius)) throw new Error("Overlapping crowd spawn");
+    this.beforeTrafficMutation();
     this.maximumRadius = Math.max(this.maximumRadius, restingRadius(body));
     const state: BodyState = {
       id: this.nextId++,
@@ -98,6 +110,7 @@ export class GroundAnimalCrowd {
   remove(body: GroundAnimalBody): void {
     const i = this.states.findIndex((s) => s.body === body);
     if (i < 0) return;
+    this.beforeTrafficMutation();
     const [state] = this.states.splice(i, 1);
     this.activeStates.delete(state);
     this.release(body);
@@ -134,6 +147,7 @@ export class GroundAnimalCrowd {
   synchronizeDormantPosition(body: GroundAnimalBody): void {
     const state = this.byBody.get(body);
     if (!state || this.activeStates.has(state)) throw new Error("Expected a dormant crowd body");
+    this.beforeTrafficMutation();
     this.updateGrid(state);
     Object.assign(state.next, body.motion);
     body.blocked = body.arrived = false;
@@ -245,6 +259,7 @@ export class GroundAnimalCrowd {
   /** Atomically replace a goal reservation. A rejected goal keeps the previous accepted reservation. */
   reserve(body: GroundAnimalBody, x: number, z: number, elevation = body.elevation, layer = body.layer): boolean {
     if (!this.canReserve(body, x, z, elevation, layer)) return false;
+    this.beforeTrafficMutation();
     const state = this.byBody.get(body)!;
     this.release(body);
     const cellKey = this.key(Math.floor(x / this.cellSize), Math.floor(z / this.cellSize));
@@ -260,6 +275,7 @@ export class GroundAnimalCrowd {
     const state = this.byBody.get(body),
       r = state?.reservation;
     if (!r) return;
+    this.beforeTrafficMutation();
     const bucket = this.reservations.get(r.cellKey)!;
     bucket.splice(bucket.indexOf(state!), 1);
     if (!bucket.length) this.reservations.delete(r.cellKey);
@@ -278,33 +294,15 @@ export class GroundAnimalCrowd {
     snapshot = false
   ): AnimalRouteQuery {
     const subject = { ...body, elevation, layer };
+    const subjectId = this.byBody.get(body)?.id ?? -1;
     const origin = snapshot ? { ...body.motion } : body.motion;
-    // Suspended planners must not combine edges from different traffic layouts.
-    const copies = new Map<BodyState, BodyState>();
-    const copy = (state: BodyState) => {
-      let result = copies.get(state);
-      if (!result) {
-        result = {
-          ...state,
-          body: { ...state.body, motion: { ...state.body.motion } },
-          reservation: state.reservation ? { ...state.reservation } : undefined
-        };
-        copies.set(state, result);
-      }
-      return result;
-    };
-    const grid = snapshot
-      ? new Map([...this.grid].map(([key, states]) => [key, states.filter((state) => state.body !== body).map(copy)]))
-      : this.grid;
-    const reservations = snapshot
-      ? new Map(
-          [...this.reservations].map(([key, states]) => [key, states.filter((state) => state.body !== body).map(copy)])
-        )
-      : this.reservations;
-    const maximumRadius = this.maximumRadius;
+    // Suspended planners share a lazy copy-on-write snapshot until the crowd mutates.
+    const snap = snapshot ? this.acquireSnapshotState() : undefined;
     const find = (from: AnimalRoutePoint, to: AnimalRoutePoint, clearance = 0) => {
+      const grid = snap ? snap.grid : this.grid;
+      const reservations = snap ? snap.reservations : this.reservations;
       const padding = subject.radius + Math.max(0, clearance) + 0.001;
-      const reach = padding + (snapshot ? maximumRadius : this.maximumRadius);
+      const reach = padding + (snap ? snap.maximumRadius : this.maximumRadius);
       let nearest: BodyState | undefined,
         reserved = false,
         hitX = 0,
@@ -313,7 +311,9 @@ export class GroundAnimalCrowd {
         first = Infinity;
       const test = (state: BodyState, x: number, z: number, isReserved: boolean) => {
         if (
+          state.id === subjectId ||
           state.body === body ||
+          state.originalBody === body ||
           !(isReserved ? sharesReservationHeight(subject, state) : sharesHeight(subject, state.body))
         )
           return;
@@ -390,6 +390,7 @@ export class GroundAnimalCrowd {
   relocate(body: GroundAnimalBody, x: number, z: number, heading: number): boolean {
     const state = this.states.find((s) => s.body === body);
     if (!state || ![x, z, heading].every(Number.isFinite) || !this.canReserve(body, x, z)) return false;
+    this.beforeTrafficMutation();
     state.recovery.reset();
     Object.assign(body.motion, { x, z, heading, speed: 0, angularSpeed: 0 });
     Object.assign(state.next, body.motion);
@@ -406,6 +407,7 @@ export class GroundAnimalCrowd {
   advance(seconds: number): void {
     if (!(seconds > 0) || seconds > 1 / 60 + 1e-8) throw new RangeError("Crowd requires a positive bounded substep");
     if (this.activeStates.size === 0) return;
+    this.beforeTrafficMutation();
     const begin = performance.now();
     this.localPairs = this.neighbourChecks = 0;
     // Accepted resizing normally updates this bound; direct active-radius edits remain conservative too.
@@ -598,6 +600,53 @@ export class GroundAnimalCrowd {
       smoothedMilliseconds: this.milliseconds,
       maxMilliseconds: this.maxMilliseconds
     };
+  }
+
+  private acquireSnapshotState(): CrowdSnapshotState {
+    if (!this.liveSnapshotState || this.liveSnapshotState.version !== this.trafficVersion) {
+      this.liveSnapshotState = {
+        version: this.trafficVersion,
+        grid: this.grid,
+        reservations: this.reservations,
+        maximumRadius: this.maximumRadius,
+        frozen: false
+      };
+    }
+    return this.liveSnapshotState;
+  }
+
+  private beforeTrafficMutation(): void {
+    this.trafficVersion++;
+    const snap = this.liveSnapshotState;
+    if (!snap) return;
+    this.liveSnapshotState = undefined;
+    if (snap.frozen) return;
+    const copies = new Map<BodyState, BodyState>();
+    const copy = (state: BodyState): BodyState => {
+      let result = copies.get(state);
+      if (!result) {
+        result = {
+          ...state,
+          originalBody: state.body,
+          body: { ...state.body, motion: { ...state.body.motion } },
+          reservation: state.reservation ? { ...state.reservation } : undefined
+        };
+        copies.set(state, result);
+      }
+      return result;
+    };
+    const frozenGrid = new Map<number, BodyState[]>();
+    for (const [key, states] of this.grid) {
+      frozenGrid.set(key, states.map(copy));
+    }
+    const frozenReservations = new Map<number, BodyState[]>();
+    for (const [key, states] of this.reservations) {
+      frozenReservations.set(key, states.map(copy));
+    }
+    snap.grid = frozenGrid;
+    snap.reservations = frozenReservations;
+    snap.maximumRadius = this.maximumRadius;
+    snap.frozen = true;
   }
 
   private key(x: number, z: number): number {

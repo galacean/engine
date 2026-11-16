@@ -15,7 +15,7 @@ import {
   createWorldStylePlanningDocument,
   worldTemplatePaletteValues
 } from "@galacean/engine-world-planning/spatial/WorldTemplateAuthoring";
-import { exportPlanningRecipe } from "@galacean/engine-world-planning/spatial/PlanningDocument";
+import { exportPlanningRecipe, upgradePlanningDocument } from "@galacean/engine-world-planning/spatial/PlanningDocument";
 import { TEMPLATE_SPAWN_POI_ID, WORLD_TEMPLATE_CONFIGS } from "@galacean/engine-world-planning/spatial/WorldTemplateConfig";
 import {
   exportPlanningScene,
@@ -868,5 +868,11 @@ describe("authored world templates", () => {
     expect(() => createTemplatePlanningDocument(1, "missing")).toThrow("未知世界风格");
     for (const seed of [-1, 0.5, Infinity, NaN, 0x100000000])
       expect(() => createTemplatePlanningDocument(seed, WORLD_TEMPLATES[0].id)).toThrow("Seed");
+  });
+  it("retires legacy rockGeneration components during document upgrade", () => {
+    const doc = structuredClone(createSeedPlanningDocument(1));
+    doc.entities.world.components.rockGeneration = { values: { platformShare: 1 } };
+    const upgraded = upgradePlanningDocument(doc);
+    expect(upgraded.entities.world.components.rockGeneration).toBeUndefined();
   });
 });
