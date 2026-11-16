@@ -1,5 +1,5 @@
 import {
-  HeadlessEngine,
+  WebGLEngine,
   MeshRenderer,
   PrimitiveMesh,
   Vector2,
@@ -10,8 +10,8 @@ import {
   Material,
   PBRMaterial,
   Engine
-} from "../../../packages/galacean/dist/headless.module.js";
-import { WebGLEngine } from "@galacean/engine";
+} from "@galacean/engine";
+import { HeadlessEngine } from "@galacean/engine-rhi-null";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 let browser: WebGLEngine;

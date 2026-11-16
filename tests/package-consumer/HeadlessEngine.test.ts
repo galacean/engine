@@ -8,9 +8,9 @@ import ts from "typescript";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 const require = createRequire(import.meta.url);
-const enginePackage = require("../../packages/galacean/dist/headless.main.js");
+const enginePackage = require("../../packages/galacean/dist/main.js");
+const { HeadlessEngine } = require("../../packages/rhi-null/dist/main.js");
 const {
-  HeadlessEngine,
   MeshRenderer,
   SkinnedMeshRenderer,
   ModelMesh,
@@ -456,7 +456,7 @@ describe("published headless entry in Node without browser globals", () => {
   });
 });
 
-it("installs and resolves the headless entry and declarations independently of the workspace", () => {
+it("installs and resolves @galacean/engine-rhi-null and @galacean/engine independently of the workspace", () => {
   const directory = mkdtempSync(join(tmpdir(), "engine-headless-consumer-"));
   const repository = resolve(__dirname, "../..");
   const tarballs = join(directory, "tarballs");
@@ -481,11 +481,14 @@ it("installs and resolves the headless entry and declarations independently of t
     });
     expect(install.status, install.stdout + install.stderr).toBe(0);
     for (const mode of ["require", "import"]) {
-      const load =
-        mode === "require" ? 'require("@galacean/engine/headless")' : 'await import("@galacean/engine/headless")';
-      const script = `const { HeadlessEngine, PrimitiveMesh } = ${load};
+      const loadEngine = mode === "require" ? 'require("@galacean/engine")' : 'await import("@galacean/engine")';
+      const loadNull =
+        mode === "require" ? 'require("@galacean/engine-rhi-null")' : 'await import("@galacean/engine-rhi-null")';
+      const script = `const { HeadlessEngine } = ${loadNull};
+        const { PrimitiveMesh, PBRMaterial } = ${loadEngine};
         Promise.resolve(HeadlessEngine.create()).then(engine => {
           if (PrimitiveMesh.createCuboid(engine, 2, 4, 6).bounds.max.y !== 2) throw Error("bounds");
+          if (new PBRMaterial(engine).shader.name !== "PBR") throw Error("shader");
           engine.destroy();
         }).catch(error => { console.error(error); process.exitCode = 1; });`;
       const probe = spawnSync(process.execPath, [...(mode === "import" ? ["--input-type=module"] : []), "-e", script], {
@@ -497,7 +500,8 @@ it("installs and resolves the headless entry and declarations independently of t
     const source = join(directory, "consumer.ts");
     writeFileSync(
       source,
-      'import { HeadlessEngine, MeshRenderer, PrimitiveMesh } from "@galacean/engine/headless";\n' +
+      'import { MeshRenderer, PrimitiveMesh } from "@galacean/engine";\n' +
+        'import { HeadlessEngine } from "@galacean/engine-rhi-null";\n' +
         "async function run() { const e = await HeadlessEngine.create({ glTFLoader: { meshOpt: { workerCount: 0 } } }); const r = e.sceneManager.activeScene!.createRootEntity().addComponent(MeshRenderer); r.mesh = PrimitiveMesh.createCuboid(e, 1, 2, 3); e.destroy(); }"
     );
     for (const resolution of ["Node16", "Bundler", "Node10"] as const) {

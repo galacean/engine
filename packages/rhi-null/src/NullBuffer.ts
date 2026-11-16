@@ -1,4 +1,4 @@
-import { SetDataOptions, type IPlatformBuffer } from "@galacean/engine-core";
+import { SetDataOptions, type IPlatformBuffer } from "@galacean/engine";
 
 /** Device buffer whose storage remains in host memory. */
 export class NullBuffer implements IPlatformBuffer {

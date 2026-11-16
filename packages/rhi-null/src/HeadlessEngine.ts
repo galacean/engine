@@ -1,4 +1,4 @@
-import { Engine, EngineConfiguration } from "@galacean/engine-core";
+import { Engine, type EngineConfiguration } from "@galacean/engine";
 import { HeadlessCanvas } from "./HeadlessCanvas";
 import { NullGraphicDevice } from "./NullGraphicDevice";
 

@@ -20,7 +20,10 @@
   "scripts": {
     "b:types": "tsc"
   },
-  "dependencies": {
-    "@galacean/engine-core": "workspace:*"
+  "devDependencies": {
+    "@galacean/engine": "workspace:*"
+  },
+  "peerDependencies": {
+    "@galacean/engine": "workspace:*"
   }
 }

@@ -1,4 +1,4 @@
-import { Canvas } from "@galacean/engine-core";
+import { Canvas } from "@galacean/engine";
 
 /** Canvas dimensions without a display or DOM input target. */
 export class HeadlessCanvas extends Canvas {

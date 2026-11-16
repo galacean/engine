@@ -1,4 +1,4 @@
-import { GLCapabilityType } from "@galacean/engine-core";
+import { GLCapabilityType } from "@galacean/engine";
 import type {
   IHardwareRenderer,
   IPlatformRenderTarget,
@@ -6,7 +6,7 @@ import type {
   IPlatformTransformFeedbackPrimitive,
   BufferBindFlag,
   BufferUsage
-} from "@galacean/engine-core";
+} from "@galacean/engine";
 import { NullBuffer } from "./NullBuffer";
 import { NullTexture2D, NullTexture2DArray, NullTextureCube } from "./NullTexture";
 

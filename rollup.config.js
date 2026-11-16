@@ -131,15 +131,6 @@ function config({ location, pkgJson }) {
         plugins: curPlugins
       };
     },
-    headless: () => ({
-      input: path.join(location, "src", "headless.ts"),
-      external: isExternal,
-      output: [
-        { file: path.join(location, "dist", "headless.module.js"), format: "es", sourcemap: true },
-        { file: path.join(location, "dist", "headless.main.js"), format: "commonjs", sourcemap: true }
-      ],
-      plugins: curPlugins
-    }),
     sources: () => {
       // Build the "sources" subpath entry for @galacean/engine-shader.
       // Exports raw .shader source strings (for editor use).
@@ -314,8 +305,6 @@ function getModule() {
   const configs = pkgs.filter((pkg) => pkg.pkgJson.name !== "@galacean/engine-shader-parser");
   const result = configs.map((config) => makeRollupConfig({ ...config, type: "module" }));
   result.push(shaderParserModuleConfig());
-  const enginePkg = pkgs.find((pkg) => pkg.pkgJson.name === "@galacean/engine");
-  result.push(makeRollupConfig({ ...enginePkg, type: "headless" }));
 
   // Build shader package "sources" subpath entry (raw .shader strings for editor)
   const shaderPkg = pkgs.find((pkg) => pkg.pkgJson.name === "@galacean/engine-shader");

@@ -6,7 +6,7 @@ import type {
   TextureFilterMode,
   TextureWrapMode,
   TextureDepthCompareFunction
-} from "@galacean/engine-core";
+} from "@galacean/engine";
 
 /** Texture metadata without rasterized pixels. */
 class NullTexture implements IPlatformTexture {

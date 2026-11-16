@@ -45,28 +45,6 @@
     "@galacean/engine-loader": "workspace:*",
     "@galacean/engine-math": "workspace:*",
     "@galacean/engine-rhi-webgl": "workspace:*",
-    "@galacean/engine-shader": "workspace:*",
-    "@galacean/engine-rhi-null": "workspace:*"
-  },
-  "exports": {
-    ".": {
-      "types": "./types/index.d.ts",
-      "import": "./dist/module.js",
-      "require": "./dist/main.js"
-    },
-    "./headless": {
-      "types": "./types/headless.d.ts",
-      "import": "./dist/headless.module.js",
-      "require": "./dist/headless.main.js"
-    },
-    "./package.json": "./package.json",
-    "./*": "./*"
-  },
-  "typesVersions": {
-    "*": {
-      "headless": [
-        "types/headless.d.ts"
-      ]
-    }
+    "@galacean/engine-shader": "workspace:*"
   }
 }
