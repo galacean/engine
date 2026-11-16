@@ -463,11 +463,52 @@ describe("published headless entry in Node without browser globals", () => {
     }
   });
 
-  it("reports missing font measurement instead of fabricating text bounds", async () => {
+  it("reports missing font measurement instead of fabricating text bounds, and uses host OffscreenCanvas when provided", async () => {
     const engine = await createEngine();
-    const text = engine.sceneManager.activeScene.createRootEntity().addComponent(enginePackage.TextRenderer);
-    text.text = "Hello";
+    const entity = engine.sceneManager.activeScene.createRootEntity();
+    entity.transform.setPosition(2, 3, 4);
+    const text = entity.addComponent(enginePackage.TextRenderer);
+    text.text = "Hi";
     expect(() => text.bounds).toThrow("Text measurement requires a canvas 2D context");
+
+    class HostOffscreenCanvas {
+      width: number;
+      height: number;
+      constructor(width: number, height: number) {
+        if (width <= 0 || height <= 0) throw new RangeError("Canvas dimensions must be positive");
+        this.width = width;
+        this.height = height;
+      }
+      getContext(type: string) {
+        if (type !== "2d") return null;
+        return {
+          font: "",
+          fillStyle: "",
+          textBaseline: "",
+          measureText: (str: string) => ({
+            actualBoundingBoxLeft: 0,
+            actualBoundingBoxRight: str.length * 10,
+            width: str.length * 10
+          }),
+          clearRect() {},
+          fillText() {},
+          getImageData: (_x: number, _y: number, w: number, h: number) => {
+            const data = new Uint8Array(w * h * 4);
+            for (let i = 3; i < data.length; i += 4) data[i] = 255;
+            return { data };
+          }
+        };
+      }
+    }
+    (globalThis as any).OffscreenCanvas = HostOffscreenCanvas;
+    try {
+      expect(text.bounds.max.x).toBeGreaterThan(text.bounds.min.x);
+      expect(text.bounds.max.y).toBeGreaterThan(text.bounds.min.y);
+      expect(text.bounds.min.z).toBe(4);
+    } finally {
+      delete (globalThis as any).OffscreenCanvas;
+      enginePackage.TextUtils._textContext = null;
+    }
   });
 
   it("retries transient errors and aborts timed-out transport", async () => {
