@@ -25,6 +25,7 @@ export abstract class ColliderShape extends DataObject implements ICloneHook<Col
 
   @ignoreClone
   protected _id: number;
+  @ignoreClone
   protected _material: PhysicsMaterial;
   private _isTrigger: boolean = false;
   private _isSceneQuery: boolean = true;
@@ -80,19 +81,21 @@ export abstract class ColliderShape extends DataObject implements ICloneHook<Col
   }
 
   /**
-   * Physical material, material can't be null.
+   * Physical material. It must be non-null and must not be destroyed or pending destruction.
    */
   get material(): PhysicsMaterial {
     return this._material;
   }
 
   set material(value: PhysicsMaterial) {
-    if (!value) {
-      throw new Error("The physics material of the shape can't be null.");
+    if (!value || value.destroyed || value.pendingDestroy) {
+      throw new Error("The physics material of the shape must be alive.");
     }
     if (this._material !== value) {
-      this._material = value;
       this._nativeShape?.setMaterial(value._nativeMaterial);
+      value._addReferCount(1);
+      this._material?._addReferCount(-1);
+      this._material = value;
     }
   }
 
@@ -138,7 +141,7 @@ export abstract class ColliderShape extends DataObject implements ICloneHook<Col
 
   protected constructor() {
     super();
-    this._material = new PhysicsMaterial();
+    this.material = new PhysicsMaterial();
     this._id = ColliderShape._idGenerator++;
 
     this._setRotation = this._setRotation.bind(this);
@@ -180,6 +183,7 @@ export abstract class ColliderShape extends DataObject implements ICloneHook<Col
    * @inheritdoc
    */
   _onClone(target: ColliderShape): void {
+    target.material = this._material;
     target._syncNative();
   }
 
@@ -191,6 +195,8 @@ export abstract class ColliderShape extends DataObject implements ICloneHook<Col
       this._nativeShape.destroy();
       this._nativeShape = null;
     }
+    this._material?._addReferCount(-1);
+    this._material = null!;
     delete Engine._physicalObjectsMap[this._id];
   }
 
@@ -201,7 +207,6 @@ export abstract class ColliderShape extends DataObject implements ICloneHook<Col
     this._nativeShape.setContactOffset(this._contactOffset);
     this._nativeShape.setIsTrigger(this._isTrigger);
     this._nativeShape.setIsSceneQuery(this._isSceneQuery);
-    this._nativeShape.setMaterial(this._material._nativeMaterial);
 
     this._collider?._handleShapesChanged();
   }
