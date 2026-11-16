@@ -146,17 +146,14 @@ export class Collider extends Component implements ICloneHook<Collider> {
   /**
    * Contact offset for this Collider. Finite negative values are clamped to 0.
    * @defaultValue 0.02
-   * @throws When the value is not finite.
+   * @throws When the value is not finite, or not positive on a CharacterController.
    */
   get contactOffset(): number {
     return this._contactOffset;
   }
 
   set contactOffset(value: number) {
-    if (!Number.isFinite(value)) {
-      throw new Error("Collider contactOffset must be finite.");
-    }
-    value = Math.max(0, value);
+    value = this._validateContactOffset(value);
     if (this._contactOffset !== value) {
       this._contactOffset = value;
       this._native?.setContactOffset(value);
@@ -193,7 +190,8 @@ export class Collider extends Component implements ICloneHook<Collider> {
    * @remarks Changing the layer keeps active collision and trigger pairs that still pass the collision matrix.
    */
   get collisionLayer(): Layer {
-    return (1 << this._collisionLayerIndex) as Layer;
+    // Unsigned shift keeps Layer31 positive
+    return ((1 << this._collisionLayerIndex) >>> 0) as Layer;
   }
 
   set collisionLayer(value: Layer) {
@@ -417,6 +415,18 @@ export class Collider extends Component implements ICloneHook<Collider> {
    */
   protected _onGeometryChanged(): void {
     this._attachedBody?._markMassDirty();
+  }
+
+  /**
+   * Validate a contact offset assigned to {@link contactOffset}.
+   * @returns The value to store, negative values are clamped to 0
+   * @throws When the value is not finite.
+   */
+  protected _validateContactOffset(value: number): number {
+    if (!Number.isFinite(value)) {
+      throw new Error("Collider contactOffset must be finite.");
+    }
+    return Math.max(0, value);
   }
 
   protected _getNativeMaterial(): IPhysicsMaterial {

@@ -146,7 +146,8 @@ export class MeshCollider extends Collider {
   ): boolean {
     const shape = <IMeshColliderShape>this._native;
     if (!shape) {
-      // The shape is cooked from the current fields on the first scene sync
+      // The shape is cooked from the current fields on the next scene sync
+      this._markDirty();
       return true;
     }
     if (!replace) {

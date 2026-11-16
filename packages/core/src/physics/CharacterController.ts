@@ -99,22 +99,6 @@ export class CharacterController extends Collider {
   }
 
   /**
-   * Contact offset for the controller, the value must be positive.
-   * @defaultValue 0.02
-   * @throws When the value is not positive.
-   */
-  override get contactOffset(): number {
-    return super.contactOffset;
-  }
-
-  override set contactOffset(value: number) {
-    if (!(value > 0)) {
-      throw new Error("CharacterController contactOffset must be positive.");
-    }
-    super.contactOffset = value;
-  }
-
-  /**
    * Character controllers cannot be triggers.
    * @throws When set to true.
    */
@@ -293,6 +277,17 @@ export class CharacterController extends Collider {
     controller.setUpDirection(this._upDirection);
     controller.setSlopeLimit(this._slopeLimit);
     return controller;
+  }
+
+  /**
+   * PhysX requires a positive contact offset for character controllers.
+   * @throws When the value is not positive and finite.
+   */
+  protected override _validateContactOffset(value: number): number {
+    if (!(value > 0 && Number.isFinite(value))) {
+      throw new Error("CharacterController contactOffset must be positive and finite.");
+    }
+    return value;
   }
 
   protected override _findRigidbody(): Rigidbody | null {

@@ -4,7 +4,7 @@ import { Engine } from "../Engine";
 import { PhysicsMaterialCombineMode } from "./enums/PhysicsMaterialCombineMode";
 
 /**
- * Surface friction, bounciness, and combine modes for collider shapes.
+ * Surface friction, bounciness, and combine modes for colliders.
  */
 export class PhysicsMaterial extends ReferResource {
   /** @internal */
