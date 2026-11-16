@@ -21,9 +21,8 @@ export interface WaterOceanRepresentationStateV1 {
   readonly kind: "ocean-surface-layout";
   readonly centerXZ: WaterVector2Tuple;
   readonly size: number;
-  readonly surfaceTopology: "fixed-lod" | "finite";
-  readonly finitePatchGridSize?: number;
-  readonly fixedLodCentralPatchGridSize?: number;
+  readonly surfaceTopology: "finite";
+  readonly finitePatchGridSize: number;
   /** Visual half-width of the packed thin-film occupancy transition. */
   readonly nearshoreThinFilmTransitionWidth?: number;
   readonly shoreViewEnvelope?: Readonly<{
@@ -153,14 +152,10 @@ export function createWaterRepresentationInstanceStateV1(
         )
       })
     : undefined;
-  if (source.surfaceTopology !== "finite" && source.surfaceTopology !== "fixed-lod") {
-    throw new TypeError("$.representationState.surfaceTopology must be 'finite' or 'fixed-lod'.");
+  if (source.surfaceTopology !== "finite") {
+    throw new TypeError("$.representationState.surfaceTopology must be 'finite'.");
   }
   const finitePatchGridSize = positiveInteger(source.finitePatchGridSize, "$.representationState.finitePatchGridSize");
-  const fixedLodCentralPatchGridSize = positiveInteger(
-    source.fixedLodCentralPatchGridSize,
-    "$.representationState.fixedLodCentralPatchGridSize"
-  );
   const nearshoreThinFilmTransitionWidth =
     source.nearshoreThinFilmTransitionWidth === undefined
       ? undefined
@@ -170,17 +165,8 @@ export function createWaterRepresentationInstanceStateV1(
           0,
           Number.MAX_VALUE
         );
-  if (source.surfaceTopology === "finite") {
-    if (finitePatchGridSize === undefined) {
-      throw new TypeError("$.representationState.finitePatchGridSize is required for finite topology.");
-    }
-    if (fixedLodCentralPatchGridSize !== undefined) {
-      throw new TypeError("$.representationState fixed-LOD fields must be absent for finite topology.");
-    }
-  } else {
-    if (finitePatchGridSize !== undefined) {
-      throw new TypeError("$.representationState.finitePatchGridSize must be absent for fixed-lod topology.");
-    }
+  if (finitePatchGridSize === undefined) {
+    throw new TypeError("$.representationState.finitePatchGridSize is required for finite topology.");
   }
   return Object.freeze({
     schemaVersion: 1,
@@ -189,7 +175,6 @@ export function createWaterRepresentationInstanceStateV1(
     size: requireFiniteNumber(source.size, "$.representationState.size", Number.EPSILON, Number.MAX_VALUE),
     surfaceTopology: source.surfaceTopology,
     finitePatchGridSize,
-    fixedLodCentralPatchGridSize,
     nearshoreThinFilmTransitionWidth,
     shoreViewEnvelope: envelope
   });

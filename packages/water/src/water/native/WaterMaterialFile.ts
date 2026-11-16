@@ -1,3 +1,9 @@
+import {
+  OCEAN_MATERIAL_PROPERTY_UI,
+  OCEAN_MATERIAL_PROPERTY_RANGES,
+  OCEAN_MATERIAL_HIDDEN_PROPERTIES,
+  OCEAN_MATERIAL_PROPERTY_PRESENTATION
+} from "./OceanMaterialPropertyUI";
 import { validateWaterSurfaceAppearanceV2Asset } from "../compiler/surface/WaterSurfaceAppearanceV2Validator";
 import type { Material } from "@galacean/engine-core";
 import { Color } from "@galacean/engine-math";
@@ -346,21 +352,39 @@ export function decodeWaterMaterialLook(
 export function waterMaterialShaderSource(source: string, material: WaterMaterialFile): string {
   const properties: string[] = [],
     declarations: string[] = [];
-  const textureGroups = new Map<string, string[]>();
+  const ocean = profiles[material.shaderData.material_WaterProfile.value as number] === "ocean";
+  const textureGroups = new Map<string, string[]>(
+    ocean
+      ? ["surface", "textures", "foam", "caustics", "shoreline", "lighting", "advanced"].map((group) => [group, []])
+      : []
+  );
   const groupLabels = { normal: "Normal maps", caustics: "Caustics", foam: "Foam", intersection: "Intersection" };
   const reflection = enumFields["reflectionPolicy.policy.preferred"];
   for (const [name, entry] of Object.entries(material.shaderData)) {
     const path = Object.keys(enumFields).find((path) => property(path) === name);
     const options = name === "material_WaterProfile" ? profiles : path ? enumFields[path] : undefined;
     const fallback = name.startsWith("material_WaterReflectionFallback");
-    const type =
-      options || fallback
-        ? `Enum(${[...(fallback ? ["None:-1"] : []), ...(options ?? reflection).map((label, index) => `${label}:${index}`)].join(", ")})`
-        : entry.type === "Texture"
-          ? "Texture2D"
-          : entry.type === "Integer"
-            ? "Int"
-            : entry.type;
+    const range = ocean ? OCEAN_MATERIAL_PROPERTY_RANGES[name] : undefined;
+    const sampleCount = ocean && name === "material_Water_look_reflectionSampling_highFilterSampleCount";
+    const optionLabel = (label: string) =>
+      ocean ? `water.materialOptions.${label === "None" ? "none" : label}` : label;
+    const supportedOption = (label: string) =>
+      !ocean ||
+      !(
+        (name === "material_Water_appearance_appearance_primaryColorClosure" && label === "physical-volume") ||
+        (name === "material_Water_appearance_appearance_refraction_normalSource" && label === "first-detail-layer")
+      );
+    const type = range
+      ? `Range(${range.join(", ")})`
+      : sampleCount
+        ? "Enum(1:1, 5:5)"
+        : options || fallback
+          ? `Enum(${[...(fallback ? [`${optionLabel("None")}:-1`] : []), ...(options ?? reflection).flatMap((label, index) => (supportedOption(label) ? [`${optionLabel(label)}:${index}`] : []))].join(", ")})`
+          : entry.type === "Texture"
+            ? "Texture2D"
+            : entry.type === "Integer"
+              ? "Int"
+              : entry.type;
     const value = entry.value as any;
     const literal =
       entry.type === "Texture"
@@ -369,11 +393,17 @@ export function waterMaterialShaderSource(source: string, material: WaterMateria
     const slot = WATER_MATERIAL_TEXTURE_SLOTS[profiles[material.shaderData.material_WaterProfile.value as number]].find(
       (slot) => slot.slot === name
     );
-    const declaration = `${name}("${slot?.label ?? name}", ${type})${literal};`;
-    if (slot) {
-      const group = textureGroups.get(slot.group) ?? [];
+    const presentation = ocean ? OCEAN_MATERIAL_PROPERTY_UI[name] : undefined;
+    const visibility = presentation?.[2] ? `[ShowIf(${presentation[2]}, true)] ` : "";
+    const colorPresentation = ocean ? OCEAN_MATERIAL_PROPERTY_PRESENTATION[name] : undefined;
+    const color = presentation?.[3] ? "[Color] " : colorPresentation ? `[${colorPresentation}] ` : "";
+    const hidden = ocean && OCEAN_MATERIAL_HIDDEN_PROPERTIES.includes(name) ? "[Hide] " : "";
+    const declaration = `${hidden}${visibility}${color}${name}("${presentation ? `water.materialFields.${presentation[1]}` : (slot?.label ?? name)}", ${type})${literal};`;
+    const groupName = ocean ? (presentation?.[0] ?? "advanced") : slot?.group;
+    if (groupName) {
+      const group = textureGroups.get(groupName) ?? [];
       group.push(declaration);
-      textureGroups.set(slot.group, group);
+      textureGroups.set(groupName, group);
     } else properties.push(declaration);
     if (!new RegExp(`\\b${name}\\s*(?:;|\\[)`).test(source))
       declarations.push(
@@ -382,7 +412,8 @@ export function waterMaterialShaderSource(source: string, material: WaterMateria
   }
   const textureProperties = [...textureGroups]
     .map(
-      ([group, entries]) => `Header("${groupLabels[group as keyof typeof groupLabels]}") {\n${entries.join("\n")}\n}`
+      ([group, entries]) =>
+        `${ocean && group !== "surface" ? "Collapsible" : "Header"}("${ocean ? `water.materialGroups.${group}` : groupLabels[group as keyof typeof groupLabels]}") {\n${entries.join("\n")}\n}`
     )
     .join("\n");
   return source.replace(
