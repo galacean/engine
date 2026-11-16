@@ -1,0 +1,25 @@
+packages/galacean/src/headless.ts
+  s_215c0b0d399b2f::t_6c09e19186917d 3
+packages/galacean/src/index.ts
+  s_215c0b0d399b2f::t_65f84a36fb33a2 2-4
+packages/galacean/src/initialize.ts
+  s_215c0b0d399b2f::t_2aa995fc750adb 5-7
+tests/package-consumer/HeadlessEngine.test.ts
+  s_215c0b0d399b2f::t_be131cf3e21ee2 63-64
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "c725fb7c0d40326e4666e42c103218764f687c5a",
+  "prompts": {},
+  "sessions": {
+    "s_215c0b0d399b2f": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a18d8e-4ddf-7c00-89b3-270764b3b8b9",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}
