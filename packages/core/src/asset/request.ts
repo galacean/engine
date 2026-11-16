@@ -40,15 +40,11 @@ export function request<T>(url: string, config: RequestConfig = {}): AssetPromis
     let currentRequest: AssetPromise<T>;
     const retryCount = config.retryCount ?? defaultRetryCount;
     const retryInterval = config.retryInterval ?? defaultInterval;
-    const normalizedConfig: RequestConfig = {
-      ...config,
-      timeout: config.timeout ?? defaultTimeout,
-      type: config.type ?? getMimeTypeFromUrl(url)
-    };
+    config.timeout = config.timeout ?? defaultTimeout;
+    config.type = config.type ?? getMimeTypeFromUrl(url);
     const send = typeof XMLHttpRequest === "undefined" ? requestWithFetch : requestWithXHR;
     const executor = new MultiExecutor(
-      () =>
-        (currentRequest = send<T>(url, normalizedConfig).onProgress(setTaskCompleteProgress, setTaskDetailProgress)),
+      () => (currentRequest = send<T>(url, config).onProgress(setTaskCompleteProgress, setTaskDetailProgress)),
       retryCount,
       retryInterval
     );
@@ -66,7 +62,7 @@ function requestWithXHR<T>(url: string, config: RequestConfig): AssetPromise<T> 
     onCancel(() => xhr.abort());
     const isImg = config.type === "image";
     xhr.timeout = config.timeout!;
-    const method = config.method ?? "get";
+    config.method = config.method ?? "get";
     xhr.withCredentials = config.credentials === "include";
     // @ts-ignore
     xhr.responseType = isImg ? "blob" : config.type;
@@ -121,7 +117,7 @@ function requestWithXHR<T>(url: string, config: RequestConfig): AssetPromise<T> 
         setTaskDetailProgress(url, e.loaded, e.total);
       }
     };
-    xhr.open(method, url, true);
+    xhr.open(config.method, url, true);
     const headers = config.headers;
     if (headers) {
       Object.keys(headers).forEach((name) => {
