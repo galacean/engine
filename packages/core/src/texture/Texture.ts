@@ -131,7 +131,7 @@ export abstract class Texture extends GraphicsResource {
 
   /**
    * Anisotropic level for texture.
-   * @remarks The requested level is kept; sampling uses at most the level supported by the device.
+   * @remarks Values below `1` are clamped to `1`; values above the device limit are kept on this property and clamped when sampling.
    */
   get anisoLevel(): number {
     return this._anisoLevel;

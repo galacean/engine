@@ -125,6 +125,10 @@ describe("published headless entry in Node without browser globals", () => {
     source.setData(new Uint16Array([7]), 2, 0, 1, SetDataOptions.Discard);
     source.getData(read, 0, 1, 3);
     expect([...read]).toEqual([0, 0, 7, 0, 0]);
+    source.setData(new Uint16Array([4, 5, 6]), 0, 0, 0);
+    const zeroLenRead = new Uint16Array(3);
+    source.getData(zeroLenRead, 0, 0, 0);
+    expect([...zeroLenRead]).toEqual([4, 5, 6]);
   });
 
   it("keeps texture and material objects but rejects unavailable pixel results", async () => {

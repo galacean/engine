@@ -642,7 +642,8 @@ export class Engine extends EventDispatcher {
     const initializePromises: (Promise<unknown> | void)[] = [];
     try {
       if (shaderCompiler && !Shader._shaderCompiler) {
-        // Bind runtime includes before any loader can compile shaders
+        // Bind the runtime include map before any loader can compile shaders;
+        // shader-compiler stays free of any direct ShaderFactory dependency.
         shaderCompiler._setIncludeMap(ShaderFactory.includeMap);
         Shader._shaderCompiler = shaderCompiler;
       }

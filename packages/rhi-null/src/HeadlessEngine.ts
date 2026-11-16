@@ -6,8 +6,9 @@ import { NullGraphicDevice } from "./NullGraphicDevice";
 export class HeadlessEngine extends Engine {
   /**
    * Create a paused engine without opening a graphics device.
-   * @param configuration - Physics, compiler and fixed canvas dimensions
-   * @returns The initialized engine; call update or run to advance simulation
+   * @param configuration - Engine, loader and fixed canvas options
+   * @returns The initialized engine; call `update` or `run` to advance simulation
+   * @throws If `width` or `height` is not a positive finite number.
    */
   static create(configuration: HeadlessEngineConfiguration = {}): Promise<HeadlessEngine> {
     const canvas = new HeadlessCanvas(configuration.width, configuration.height);
@@ -18,8 +19,14 @@ export class HeadlessEngine extends Engine {
 
 /** Options for an engine without graphics, XR or DOM input. */
 export interface HeadlessEngineConfiguration extends Omit<EngineConfiguration, "xrDevice" | "input"> {
-  /** Fixed canvas width in pixels, defaults to 1. */
+  /**
+   * Fixed canvas width in pixels.
+   * @defaultValue `1`
+   */
   width?: number;
-  /** Fixed canvas height in pixels, defaults to 1. */
+  /**
+   * Fixed canvas height in pixels.
+   * @defaultValue `1`
+   */
   height?: number;
 }

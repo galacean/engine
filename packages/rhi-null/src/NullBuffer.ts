@@ -24,7 +24,8 @@ export class NullBuffer implements IPlatformBuffer {
     const view = ArrayBuffer.isView(data);
     const elementSize = view && "BYTES_PER_ELEMENT" in data ? Number(data.BYTES_PER_ELEMENT) : 1;
     const byteOffset = dataOffset * elementSize;
-    const length = dataLength === undefined ? data.byteLength - byteOffset : dataLength * elementSize;
+    // Match WebGL2 bufferSubData/getBufferSubData where a 0 length defaults to the remaining elements.
+    const length = !dataLength ? data.byteLength - byteOffset : dataLength * elementSize;
     this._data.set(
       new Uint8Array(view ? data.buffer : data, (view ? data.byteOffset : 0) + byteOffset, length),
       bufferByteOffset
@@ -34,7 +35,7 @@ export class NullBuffer implements IPlatformBuffer {
   getData(data: ArrayBufferView, bufferByteOffset = 0, dataOffset = 0, dataLength?: number): void {
     const elementSize = "BYTES_PER_ELEMENT" in data ? Number(data.BYTES_PER_ELEMENT) : 1;
     const byteOffset = dataOffset * elementSize;
-    const length = dataLength === undefined ? data.byteLength - byteOffset : dataLength * elementSize;
+    const length = !dataLength ? data.byteLength - byteOffset : dataLength * elementSize;
     const destination = new Uint8Array(data.buffer, data.byteOffset + byteOffset, length);
     destination.set(new Uint8Array(this._data.buffer, bufferByteOffset, length));
   }

@@ -26,7 +26,6 @@ export class GLRenderTarget implements IPlatformRenderTarget {
   private _blitDrawBuffers: GLenum[] | null;
   private _curMipLevel: number = 0;
   private _curFaceIndex: TextureCubeFace | undefined = undefined;
-  /** Requested anti-aliasing limited to the device. */
   private _antiAliasing: number;
 
   /**

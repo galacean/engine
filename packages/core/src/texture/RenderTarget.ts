@@ -76,7 +76,7 @@ export class RenderTarget extends GraphicsResource {
 
   /**
    * Anti-aliasing level.
-   * @remarks The requested level is kept; rendering uses at most the level supported by the device.
+   * @remarks If the anti-aliasing level set is greater than the maximum level supported by the hardware, the maximum level of the hardware will be used.
    */
   get antiAliasing(): number {
     return this._antiAliasing;
