@@ -1,36 +1,39 @@
-import { IPhysicsMaterial } from "@galacean/engine-design";
+import { IPhysicsMaterial, IPhysicsMaterialProperties } from "@galacean/engine-design";
 import { ReferResource } from "../asset/ReferResource";
 import { Engine } from "../Engine";
 import { PhysicsMaterialCombineMode } from "./enums/PhysicsMaterialCombineMode";
 
 /**
- * Material class to represent a set of surface properties.
+ * Surface friction, bounciness, and combine modes for collider shapes.
  * @remarks Coefficients must be finite. Bounciness is clamped to [0, 1], and friction is clamped to non-negative values.
  */
 export class PhysicsMaterial extends ReferResource<Engine | null> {
-  private _bounciness = 0;
-  private _dynamicFriction = 0.6;
-  private _staticFriction = 0.6;
-  private _bounceCombine: PhysicsMaterialCombineMode = PhysicsMaterialCombineMode.Average;
-  private _frictionCombine: PhysicsMaterialCombineMode = PhysicsMaterialCombineMode.Average;
+  /** @internal */
+  static readonly _defaultProperties: IPhysicsMaterialProperties = Object.freeze({
+    staticFriction: 0.6,
+    dynamicFriction: 0.6,
+    bounciness: 0,
+    frictionCombine: PhysicsMaterialCombineMode.Average,
+    bounceCombine: PhysicsMaterialCombineMode.Average
+  });
+
+  private _bounciness = PhysicsMaterial._defaultProperties.bounciness;
+  private _dynamicFriction = PhysicsMaterial._defaultProperties.dynamicFriction;
+  private _staticFriction = PhysicsMaterial._defaultProperties.staticFriction;
+  private _bounceCombine: PhysicsMaterialCombineMode = PhysicsMaterial._defaultProperties.bounceCombine;
+  private _frictionCombine: PhysicsMaterialCombineMode = PhysicsMaterial._defaultProperties.frictionCombine;
   /** @internal */
   _nativeMaterial: IPhysicsMaterial;
 
   /**
    * Create a physics material.
    * @param engine - Owner for resource caching and garbage collection. When omitted, the material can
-   * be shared across engines using the same physics backend instance and is destroyed when its last shape releases it.
+   * be shared across engines using the same physics backend instance and is destroyed when its last reference is released.
    */
   constructor(engine?: Engine) {
     super(engine ?? null);
     try {
-      this._nativeMaterial = Engine._nativePhysics.createPhysicsMaterial(
-        this._staticFriction,
-        this._dynamicFriction,
-        this._bounciness,
-        this._frictionCombine,
-        this._bounceCombine
-      );
+      this._nativeMaterial = Engine._nativePhysics.createPhysicsMaterial(PhysicsMaterial._defaultProperties);
     } catch (error) {
       this.destroy();
       throw error;
@@ -131,6 +134,19 @@ export class PhysicsMaterial extends ReferResource<Engine | null> {
       this._frictionCombine = value;
       this._nativeMaterial.setFrictionCombine(value);
     }
+  }
+
+  /**
+   * Create an independent material with the same properties and engine owner.
+   */
+  clone(): PhysicsMaterial {
+    const material = new PhysicsMaterial(this._engine ?? undefined);
+    material.staticFriction = this._staticFriction;
+    material.dynamicFriction = this._dynamicFriction;
+    material.bounciness = this._bounciness;
+    material.frictionCombine = this._frictionCombine;
+    material.bounceCombine = this._bounceCombine;
+    return material;
   }
 
   /** @internal */

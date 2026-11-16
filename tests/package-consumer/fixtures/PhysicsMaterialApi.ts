@@ -1,6 +1,22 @@
-import { Engine, EngineObject, PhysicsMaterial, ReferResource, Texture2D, UnlitMaterial } from "@galacean/engine";
+import {
+  BoxColliderShape,
+  Engine,
+  EngineObject,
+  PhysicsMaterial,
+  ReferResource,
+  Texture2D,
+  UnlitMaterial
+} from "@galacean/engine";
 
 declare const engine: Engine;
+
+const shape = new BoxColliderShape();
+const assigned: PhysicsMaterial | null = shape.material;
+if (assigned) assigned.bounciness = 0.5;
+// @ts-expect-error A shape can use the shared default instead of an assigned material.
+shape.material.bounciness = 0.5;
+shape.getInstanceMaterial().bounciness = 0.5;
+shape.material = null;
 
 const material = new PhysicsMaterial();
 const owned = new PhysicsMaterial(engine);

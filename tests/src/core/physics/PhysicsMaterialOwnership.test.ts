@@ -33,7 +33,8 @@ describe("PhysicsMaterial ownership", () => {
     const entity = engine.sceneManager.activeScene.createRootEntity();
     const shape = new Shape();
     entity.addComponent(StaticCollider).addShape(shape);
-    const material = shape.material;
+    const material = shape.getInstanceMaterial();
+    const createMaterial = vi.spyOn(physics, "createPhysicsMaterial");
     const nativeDestroy = vi.spyOn(Object.getPrototypeOf(material._nativeMaterial), "destroy");
     expect(material.refCount).toBe(1);
 
@@ -42,7 +43,8 @@ describe("PhysicsMaterial ownership", () => {
     expect(clonedShape).not.toBe(shape);
     expect(clonedShape.material).toBe(material);
     expect(material.refCount).toBe(2);
-    expect(nativeDestroy).toHaveBeenCalledTimes(1);
+    expect(createMaterial).not.toHaveBeenCalled();
+    expect(nativeDestroy).not.toHaveBeenCalled();
     expect(material.destroy()).toBe(false);
 
     entity.destroy();
@@ -51,16 +53,16 @@ describe("PhysicsMaterial ownership", () => {
     clone.destroy();
     expect(material.refCount).toBe(0);
     expect(material.destroyed).toBe(true);
-    expect(nativeDestroy).toHaveBeenCalledTimes(2);
+    expect(nativeDestroy).toHaveBeenCalledTimes(1);
     material.destroy();
-    expect(nativeDestroy).toHaveBeenCalledTimes(2);
+    expect(nativeDestroy).toHaveBeenCalledTimes(1);
   });
 
-  it("releases replaced defaults while detached and moved shapes retain their material", () => {
+  it("releases replaced instances while detached and moved shapes retain their material", () => {
     const first = engine.sceneManager.activeScene.createRootEntity().addComponent(StaticCollider);
     const second = engine.sceneManager.activeScene.createRootEntity().addComponent(StaticCollider);
     const shape = new BoxColliderShape();
-    const original = shape.material;
+    const original = shape.getInstanceMaterial();
     const material = new PhysicsMaterial();
     shape.material = material;
     expect(original.destroyed).toBe(true);
@@ -134,7 +136,7 @@ describe("PhysicsMaterial ownership", () => {
     collider.addShape(shape);
     const second = new BoxColliderShape();
     collider.addShape(second);
-    const previous = second.material;
+    const previous = second.getInstanceMaterial();
     let pendingDuringUpdate = false;
     let assignmentRejected = false;
     class DestroyMaterial extends Script {
@@ -162,17 +164,41 @@ describe("PhysicsMaterial ownership", () => {
     expect(previous.destroyed).toBe(true);
   });
 
-  it("rejects destroyed or null materials without changing the shape's material", () => {
+  it("rejects destroyed materials and releases an instance when reset to the shared default", () => {
     const entity = engine.sceneManager.activeScene.createRootEntity();
     const shape = new BoxColliderShape();
     entity.addComponent(StaticCollider).addShape(shape);
-    const original = shape.material;
+    const original = shape.getInstanceMaterial();
     const destroyed = new PhysicsMaterial();
     destroyed.destroy();
     expect(() => (shape.material = destroyed)).toThrow();
-    expect(() => (shape.material = null!)).toThrow();
     expect(shape.material).toBe(original);
     expect(original.refCount).toBe(1);
+    shape.material = null;
+    expect(shape.material).toBeNull();
+    expect(original.destroyed).toBe(true);
+    const replacement = shape.getInstanceMaterial();
+    expect(replacement).not.toBe(original);
+    expect(replacement.refCount).toBe(1);
+    expect(replacement.destroyed).toBe(false);
+  });
+
+  it.each([false, true])("clones preserve their engine ownership mode (%s)", (engineOwned) => {
+    const material = new PhysicsMaterial(engineOwned ? engine : undefined);
+    material.bounciness = 0.7;
+    const clone = material.clone();
+    try {
+      expect(clone.engine).toBe(material.engine);
+      expect(clone.refCount).toBe(0);
+      expect(clone).not.toBe(material);
+      expect(clone._nativeMaterial).not.toBe(material._nativeMaterial);
+      expect(clone.bounciness).toBe(0.7);
+      clone.bounciness = 0.2;
+      expect(material.bounciness).toBe(0.7);
+    } finally {
+      clone.destroy();
+      material.destroy();
+    }
   });
 
   it("normalizes coefficients and rejects invalid values before changing state or native data", () => {
