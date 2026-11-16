@@ -1,0 +1,21 @@
+packages/rhi-webgl/src/WebGLGraphicDevice.ts
+  s_d5a8b8f9cef6f5::t_3a9b6a2cf1465a 29,93
+packages/xr/src/session/XRSessionManager.ts
+  s_d5a8b8f9cef6f5::t_551ec22ad31827 59
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "32889c0bf887c7093eb4d3ed0b90028c64caafe9",
+  "prompts": {},
+  "sessions": {
+    "s_d5a8b8f9cef6f5": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1c131-ec64-72d1-aae2-b9035e3ba176",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}
