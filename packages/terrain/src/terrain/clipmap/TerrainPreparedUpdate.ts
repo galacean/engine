@@ -41,18 +41,26 @@ export function terrainChangedRectangle(
     z0 = height,
     x1 = -1,
     z1 = -1;
-  for (let z = 0; z < height; z++)
-    for (let x = 0; x < width; x++)
-      for (let c = 0; c < channels; c++) {
-        const i = (z * width + x) * channels + c;
-        if (!Number.isFinite(after[i])) throw Error("Non-finite Terrain patch");
-        if (before[i] !== after[i]) {
-          x0 = Math.min(x0, x);
-          x1 = Math.max(x1, x);
-          z0 = Math.min(z0, z);
-          z1 = Math.max(z1, z);
-        }
+  for (let z = 0; z < height; z++) {
+    const start = z * width * channels,
+      end = start + width * channels;
+    let first = end,
+      last = -1;
+    for (let i = start; i < end; i++) {
+      const value = after[i];
+      if (!Number.isFinite(value)) throw Error("Non-finite Terrain patch");
+      if (before[i] !== value) {
+        if (first === end) first = i;
+        last = i;
       }
+    }
+    if (last >= 0) {
+      x0 = Math.min(x0, Math.floor((first - start) / channels));
+      x1 = Math.max(x1, Math.floor((last - start) / channels));
+      if (z1 < 0) z0 = z;
+      z1 = z;
+    }
+  }
   return x1 < 0 ? undefined : { x: x0, z: z0, width: x1 - x0 + 1, height: z1 - z0 + 1 };
 }
 export function terrainRectangleSamples<T extends Uint8Array | Uint16Array>(

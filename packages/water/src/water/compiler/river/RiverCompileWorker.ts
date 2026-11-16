@@ -25,7 +25,7 @@ export function executeRiverCompileWorkerRequest(request: RiverCompileWorkerRequ
   transferables: ArrayBuffer[];
 } {
   const result = RiverNetworkCompiler.compile(request.source);
-  if (!result.data) {
+  if (!result.valid || !result.data) {
     return {
       response: {
         kind: RiverCompileWorkerMessageKind.Failure,

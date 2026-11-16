@@ -1,3 +1,4 @@
+import { RuntimeProjectInputs } from "@galacean/engine-project/runtime-editor/project/runtime-project-inputs";
 import { RuntimeProjectEdit } from "@galacean/engine-project/runtime-editor/project/runtime-project-edit";
 import type { RuntimeProjectPackage } from "@galacean/engine-project/runtime-editor/project/runtime-project";
 import { nativeAssetFormats } from "@galacean/engine-runtime-editor/project/runtime-native-formats";
@@ -32,7 +33,33 @@ const ownedProperties = new Map<string, readonly string[]>([
   ["PlanningGroundWind", ["windEnabled", ...Object.keys(SEED_WORLD_DEFAULT_GROUND_WIND_TUNING).filter(key => key !== "enabled")]]
 ]);
 
+// Cache parsed inputs, never validation success. All consumers still execute their
+// rules; public documents remain detached. Keep only the latest project view.
+let parsed: {
+  inputs: RuntimeProjectInputs;
+  document?: { value: PlanningDocument | undefined };
+  vegetation?: { value: PlantProjectResources | undefined };
+  winds?: Record<string, unknown>[];
+} | undefined;
+function planningInputs(pack: RuntimeProjectPackage): NonNullable<typeof parsed> {
+  // Readers resolve only hierarchy types/text and domain sidecars. Resource
+  // existence/types (including vegetation) are checked against the live pack below.
+  // A new host-state file must not invalidate an unchanged hierarchy parse.
+  const inputs = { ...pack, project: { ...pack.project,
+    files: pack.project.files.filter(file => /^(Scene|Prefab|glTF)$/i.test(file.type)) },
+    documents: pack.documents && Object.fromEntries(Object.entries(pack.documents).filter(([path]) => !path.endsWith(".meta"))) };
+  if (!parsed?.inputs.matches(inputs))
+    parsed = { inputs: new RuntimeProjectInputs(inputs, { contentTypes: ["Scene", "Prefab"] }) };
+  return parsed;
+}
+
 export function planningVegetationReferences(pack: RuntimeProjectPackage): PlantProjectResources | undefined {
+  const input = planningInputs(pack);
+  input.vegetation ??= { value: readPlanningVegetationReferences(pack) };
+  return input.vegetation.value && { ...input.vegetation.value };
+}
+
+function readPlanningVegetationReferences(pack: RuntimeProjectPackage): PlantProjectResources | undefined {
   const content = pack.contents[pack.project.scene];
   if (typeof content !== "string") return undefined;
   const source = JSON.parse(content);
@@ -72,17 +99,27 @@ export function validatePlanningProject(pack: RuntimeProjectPackage): void {
       if (pack.project.files.find(file => file.virtualPath === refs[key])?.type !== type)
         throw new Error(`Vegetation ${key} requires a ${type} asset`);
   }
-  const draft = new RuntimeProjectEdit(pack, nativeAssetFormats(() => ({}))), scene = new RuntimeSceneEdit(draft, pack.project.scene);
-  const winds = scene.queryComponents({ type: "PlanningGroundWind" });
-  if (winds.length > 1) throw new Error("Scene requires one ground wind owner");
-  for (const record of winds) {
-    const { windEnabled, ...props } = scene.readComponent(record.id).props ?? {};
+  const input = planningInputs(pack);
+  if (!input.winds) {
+    const draft = new RuntimeProjectEdit(pack, nativeAssetFormats(() => ({}))), scene = new RuntimeSceneEdit(draft, pack.project.scene);
+    const winds = scene.queryComponents({ type: "PlanningGroundWind" });
+    if (winds.length > 1) throw new Error("Scene requires one ground wind owner");
+    input.winds = winds.map(record => scene.readComponent(record.id).props ?? {});
+  }
+  for (const wind of input.winds) {
+    const { windEnabled, ...props } = wind;
     validateGroundWindTuning({ ...SEED_WORLD_DEFAULT_GROUND_WIND_TUNING, ...props,
       ...(windEnabled === undefined ? {} : { enabled: windEnabled as boolean }) });
   }
 }
 
 export function planningSourceDocument(pack: RuntimeProjectPackage): PlanningDocument | undefined {
+  const input = planningInputs(pack);
+  input.document ??= { value: readPlanningSourceDocument(pack) };
+  return input.document.value && structuredClone(input.document.value);
+}
+
+function readPlanningSourceDocument(pack: RuntimeProjectPackage): PlanningDocument | undefined {
   const content = pack.contents[pack.project.scene];
   if (typeof content !== "string") return undefined;
   const source = JSON.parse(content);
@@ -278,23 +315,7 @@ export function writePlanningProjectSource(draft: RuntimeProjectEdit, path: stri
         if (!frame.active) props.enabled = scene.readComponent(current.id).props?.enabled ?? true;
       }
       if (!current) scene.addComponent(id, { type: component.type, props });
-      else {
-        // Source records own complete sparse properties. Prefab members use public overrides.
-        const source = JSON.parse(draft.read(path) as string) as GalaceanSourceSceneFile;
-        const record = source.components.find(record => record.id === current.id);
-        if (record) {
-          record.props = { ...Object.fromEntries(Object.entries(record.props ?? {}).filter(([key]) =>
-            !ownedProperties.get(component.type)!.includes(key))), ...props };
-          draft.update(path, JSON.stringify(source));
-        }
-        else {
-          const previous = scene.readComponent(current.id).props ?? {};
-          const removed = Object.keys(previous).filter(key => ownedProperties.get(component.type)!.includes(key) && !(key in props));
-          if (removed.length) scene.revertComponent(current.id, removed);
-          const changed = Object.fromEntries(Object.entries(props).filter(([key, value]) => JSON.stringify(value) !== JSON.stringify(previous[key])));
-          if (Object.keys(changed).length) scene.updateComponent(current.id, changed);
-        }
-      }
+      else scene.reconcileComponent(current.id, props, ownedProperties.get(component.type)!);
       remaining.delete(component.type);
     }
     for (const record of remaining.values()) {
@@ -315,7 +336,7 @@ export function writePlanningProjectSource(draft: RuntimeProjectEdit, path: stri
     }
     for (const [identity, child] of children) if (identity !== undefined && !waterOwners.has(child)) scene.delete(child);
   };
-  synchronize(0, existing[0]?.entityId ?? scene.create({ name: "Planning authoring" }).id);
+  scene.batch(() => synchronize(0, existing[0]?.entityId ?? scene.create({ name: "Planning authoring" }).id));
 }
 
 /** Merge independent native component and domain-tool changes, rejecting conflicting author intent. */

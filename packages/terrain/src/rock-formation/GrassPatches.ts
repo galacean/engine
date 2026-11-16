@@ -38,6 +38,7 @@ export class RockGrassPatches<B> {
   private samplingKey = "";
   private allowed: RockGrassSampling["allowed"] = () => true;
   private disposed = false;
+  private lastEnabled = false;
   private dirty = true;
   private maxSliceMs = 0;
   private maxQuantumMs = 0;
@@ -55,14 +56,33 @@ export class RockGrassPatches<B> {
   ) {}
 
   prepare(placements: readonly RockGrassPlacement[], allowed: RockGrassSampling["allowed"]) {
+    const frame = this.prepareReversible(placements, allowed);
+    return {
+      ...frame,
+      commit: () => {
+        frame.commit();
+        frame.finalize();
+      }
+    };
+  }
+
+  /** Keep retired buffers alive until every owner in the publication has committed. */
+  prepareReversible(placements: readonly RockGrassPlacement[], allowed: RockGrassSampling["allowed"], refresh = false) {
     if (this.disposed) throw Error("Rock grass disposed");
     const base = this.entries,
       next = new Map<string, Entry<B>>();
+    const oldAllowed = this.allowed,
+      oldEdit = this.lastEdit,
+      oldError = this.error;
     let changed = 0,
       retained = 0;
     for (const placement of placements) {
       const current = base.get(placement.formation.id);
-      if (current?.formation === placement.formation && current.origin.every((v, i) => v === placement.origin[i])) {
+      if (
+        !refresh &&
+        current?.formation === placement.formation &&
+        current.origin.every((v, i) => v === placement.origin[i])
+      ) {
         next.set(placement.formation.id, current);
         retained++;
       } else {
@@ -79,22 +99,52 @@ export class RockGrassPatches<B> {
       }
     }
     const removed = [...base.keys()].filter((id) => !next.has(id)).length;
-    let consumed = false;
+    let state: "prepared" | "committed" | "finished" = "prepared";
+    const retire = (from: Map<string, Entry<B>>, to: Map<string, Entry<B>>) => {
+      for (const [id, entry] of from) if (to.get(id) !== entry) for (const patch of entry.patches) this.release(patch);
+    };
+    const rollback = () => {
+      if (state !== "committed") return;
+      retire(next, base);
+      this.entries = base;
+      this.allowed = oldAllowed;
+      this.lastEdit = oldEdit;
+      this.error = oldError;
+      this.dirty = true;
+      for (const { patch } of this.residents)
+        for (const batch of patch.batches) this.render.visible(batch, this.lastEnabled);
+      state = "prepared";
+    };
     return {
       metrics: { grassFormationsChanged: changed, grassFormationsRetained: retained, grassFormationsRemoved: removed },
       commit: () => {
-        if (consumed || this.disposed || this.entries !== base) throw Error("Stale rock grass publication");
-        consumed = true;
-        for (const [id, entry] of base)
-          if (next.get(id) !== entry) for (const patch of entry.patches) this.release(patch);
+        if (state !== "prepared" || this.disposed || this.entries !== base) throw Error("Stale rock grass publication");
+        state = "committed";
         this.entries = next;
         this.allowed = allowed;
         this.dirty = true;
         this.error = undefined;
         this.lastEdit = { changed, retained, removed };
+        try {
+          for (const [id, entry] of base)
+            if (next.get(id) !== entry)
+              for (const patch of entry.patches) for (const batch of patch.batches) this.render.visible(batch, false);
+        } catch (error) {
+          rollback();
+          throw error;
+        }
+      },
+      rollback,
+      finalize: () => {
+        if (state !== "committed") throw Error("Rock grass publication not committed");
+        retire(base, next);
+        state = "finished";
       },
       discard: () => {
-        consumed = true;
+        if (state !== "finished") {
+          rollback();
+          state = "finished";
+        }
       }
     };
   }
@@ -109,6 +159,7 @@ export class RockGrassPatches<B> {
     budgetMs = 2
   ): void {
     if (this.disposed) return;
+    this.lastEnabled = enabled;
     const now = this.render.now ?? (() => performance.now()),
       started = now();
     for (let i = 0; i < 2 && this.retired.length; i++) this.render.destroy(this.retired.pop()!);

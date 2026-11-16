@@ -39,7 +39,7 @@ import {
 import { WaterSurfaceDepthSource } from "../surface/enums/WaterSurfaceDepthSource";
 import { WaterQualityTier } from "../wave/enums/WaterQualityTier";
 import { WaterBodyAssetRegistry } from "../../runtime/body/WaterBodyAssetRegistry";
-import { hashRiverStableValue } from "../../compiler/shared/determinism";
+import { hashRiverStableValue, hashStableValueAsync } from "../../compiler/shared/determinism";
 
 export { computeRiverPhysicalSourceHash } from "./RiverPhysicalSourceIdentity";
 
@@ -284,10 +284,7 @@ export function registerRiverWaterBodyPresets(registry: WaterBodyAssetRegistry):
 }
 
 /** Canonical River source; geometry/flow stay backend-owned while Look is selected by the instance. */
-export function createRiverWaterBodyAsset(
-  descriptor: RiverNetworkDescriptor,
-  assetId: string = RIVER_WATER_BODY_ASSET_ID
-) {
+function riverWaterBodyAssetInput(descriptor: RiverNetworkDescriptor, assetId: string = RIVER_WATER_BODY_ASSET_ID) {
   const waterBodyDescriptor: Readonly<RiverWaterBodySourceDescriptorV2> = Object.freeze({
     schemaVersion: RiverNetworkSchemaVersion.V2,
     id: descriptor.id,
@@ -367,14 +364,35 @@ export function createRiverWaterBodyAsset(
     }),
     descriptor: waterBodyDescriptor
   });
-  return createWaterBodyAsset({
+  return {
     id: assetId,
-    kind: "river",
-    representation: Object.freeze({ domain: "spline-network", macroSurface: "flow-deformed" }),
+    kind: "river" as const,
+    representation: Object.freeze({ domain: "spline-network" as const, macroSurface: "flow-deformed" as const }),
     representationData,
-    representationDataHash: hashRiverStableValue(representationData),
-    sourceHash: hashRiverStableValue(source),
     source
+  };
+}
+
+export function createRiverWaterBodyAsset(descriptor: RiverNetworkDescriptor, assetId = RIVER_WATER_BODY_ASSET_ID) {
+  const input = riverWaterBodyAssetInput(descriptor, assetId);
+  return createWaterBodyAsset({
+    ...input,
+    representationDataHash: hashRiverStableValue(input.representationData),
+    sourceHash: hashRiverStableValue(input.source)
+  });
+}
+export async function createRiverWaterBodyAssetAsync(
+  descriptor: RiverNetworkDescriptor,
+  assetId = RIVER_WATER_BODY_ASSET_ID,
+  signal?: AbortSignal
+) {
+  signal?.throwIfAborted();
+  const input = riverWaterBodyAssetInput(descriptor, assetId);
+  const sourceHash = await hashStableValueAsync(input.source, signal);
+  return createWaterBodyAsset({
+    ...input,
+    representationDataHash: hashRiverStableValue(input.representationData),
+    sourceHash
   });
 }
 

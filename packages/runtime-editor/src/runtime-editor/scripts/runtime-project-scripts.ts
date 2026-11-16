@@ -8,23 +8,49 @@ import type { RuntimeProjectPackage } from "@galacean/engine-project/runtime-edi
 import { RuntimeScriptModules } from "./runtime-script-modules";
 import { RuntimeScriptWorker } from "./runtime-script-worker";
 
+// Retain only reference strings from one source per current hierarchy. Namespace
+// resolution remains live, including duplicate paths and changed asset types.
+const componentScriptReferences = new Map<string, { source: string; references: readonly string[] }>();
+
 /** Find component scripts by the same source identity used by the Editor serializer. */
 export function projectComponentScripts(pack: RuntimeProjectPackage): string[] {
   const entries = new Set<string>();
+  const files = new Map<string, typeof pack.project.files>();
+  const hierarchies = new Set<string>();
   for (const file of pack.project.files) {
-    if (!/^(Scene|Prefab)$/i.test(file.type)) continue;
-    const content = pack.contents[file.virtualPath];
-    if (typeof content !== "string") continue;
-    const source = JSON.parse(content);
-    if (!source?.asset) continue;
-    visitSourceComponents(source, (component) => {
-      if (component.type !== "Script") return;
-      const id = component.script?.$ref ?? component.refId;
-      const matches = pack.project.files.filter((candidate) => candidate.virtualPath === id);
-      if (matches.length !== 1 || matches[0].type.toLowerCase() !== "script")
+    const list = files.get(file.virtualPath);
+    if (list) list.push(file);
+    else files.set(file.virtualPath, [file]);
+    if (/^(Scene|Prefab)$/i.test(file.type)) hierarchies.add(file.virtualPath);
+  }
+  for (const path of componentScriptReferences.keys())
+    if (!hierarchies.has(path)) componentScriptReferences.delete(path);
+  for (const path of hierarchies) {
+    const content = pack.contents[path];
+    if (typeof content !== "string") {
+      componentScriptReferences.delete(path);
+      continue;
+    }
+    let cached = componentScriptReferences.get(path);
+    if (!cached || cached.source !== content) {
+      const source = JSON.parse(content),
+        references: string[] = [];
+      if (source?.asset)
+        visitSourceComponents(source, (component) => {
+          if (component.type !== "Script") return;
+          const id = component.script?.$ref ?? component.refId;
+          if (typeof id !== "string") throw new Error(`Invalid component script reference '${id}'`);
+          references.push(id);
+        });
+      cached = { source: content, references };
+      componentScriptReferences.set(path, cached);
+    }
+    for (const id of cached.references) {
+      const matches = files.get(id);
+      if (matches?.length !== 1 || matches[0].type.toLowerCase() !== "script")
         throw new Error(`Invalid component script reference '${id}'`);
       entries.add(matches[0].virtualPath);
-    });
+    }
   }
   return [...entries];
 }

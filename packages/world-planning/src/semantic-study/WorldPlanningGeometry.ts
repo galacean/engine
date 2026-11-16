@@ -1,5 +1,5 @@
 import type { PlanPoint } from "./IslandPlanModel";
-import { pointInPolygon } from "../geometry/V2Geometry";
+import { pointInPolygon, preparePointInPolygon } from "../geometry/V2Geometry";
 /** Euclidean distance to a closed line segment. */
 export function segmentGap(p: PlanPoint, a: PlanPoint, b: PlanPoint): number {
   const x = b.x - a.x,
@@ -31,6 +31,49 @@ export function overlap(a: PlanPoint[], b: PlanPoint[]): boolean {
     b.some((p) => pointInPolygon(p, a)) ||
     a.some((p, i) => b.some((q, j) => crosses(p, a[(i + 1) % a.length], q, b[(j + 1) % b.length])))
   );
+}
+/** Repeated overlap against one immutable owner: preserve overlap's predicates and boundary semantics. */
+export function preparePolygonOverlap(points: readonly PlanPoint[]): (polygon: PlanPoint[]) => boolean {
+  const outline = points.map((p) => ({ ...p })),
+    box = polygonBounds(outline);
+  const inside = preparePointInPolygon(outline);
+  const edges = outline.map((a, i) => ({ a, b: outline[(i + 1) % outline.length] }));
+  return (polygon) => {
+    const query = polygonBounds(polygon);
+    if (!boundsOverlap(box, query)) return false;
+    const pointBounds = { ...query };
+    for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+      const a = polygon[i],
+        b = polygon[j];
+      const x = a.x + (b.x - a.x),
+        z = a.z + (b.z - a.z);
+      pointBounds.minX = Math.min(pointBounds.minX, x);
+      pointBounds.maxX = Math.max(pointBounds.maxX, x);
+      pointBounds.minZ = Math.min(pointBounds.minZ, z);
+      pointBounds.maxZ = Math.max(pointBounds.maxZ, z);
+    }
+    // Point containment includes a 1e-7 edge tolerance; retain every possible contact.
+    if (
+      outline.some(
+        (p) =>
+          p.x >= pointBounds.minX - 1e-7 &&
+          p.x <= pointBounds.maxX + 1e-7 &&
+          p.z >= pointBounds.minZ - 1e-7 &&
+          p.z <= pointBounds.maxZ + 1e-7 &&
+          pointInPolygon(p, polygon)
+      )
+    )
+      return true;
+    if (polygon.some(inside)) return true;
+    return edges.some(
+      ({ a, b }) =>
+        Math.max(a.x, b.x) >= query.minX &&
+        Math.min(a.x, b.x) <= query.maxX &&
+        Math.max(a.z, b.z) >= query.minZ &&
+        Math.min(a.z, b.z) <= query.maxZ &&
+        polygon.some((p, i) => crosses(a, b, p, polygon[(i + 1) % polygon.length]))
+    );
+  };
 }
 /** Full boundary containment catches edges crossing a concave parent's boundary. */
 export function contains(outer: PlanPoint[], inner: PlanPoint[]): boolean {

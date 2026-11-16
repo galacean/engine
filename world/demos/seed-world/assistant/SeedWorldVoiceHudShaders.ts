@@ -30,9 +30,14 @@ export const seedWorldWorkingTextShaderSource = seedWorldWorkingTextShaderSource
 
 export const seedWorldVoiceOrbShaderSource = seedWorldVoiceOrbShaderSourceAsset;
 
-/** Registers the visible voice-HUD Shader sources before startup variant warmup. */
+/** Registers voice-HUD Shader sources before startup variant warmup. */
 export function registerSeedWorldVoiceHudStartupShaders(): readonly string[] {
   if (!Shader.find(SEED_WORLD_LIQUID_GLASS_SHADER_NAME)) Shader.create(seedWorldLiquidGlassShaderSource);
   if (!Shader.find(SEED_WORLD_VOICE_ORB_SHADER_NAME)) Shader.create(seedWorldVoiceOrbShaderSource);
-  return Object.freeze([SEED_WORLD_LIQUID_GLASS_SHADER_NAME, SEED_WORLD_VOICE_ORB_SHADER_NAME]);
+  if (!Shader.find(SEED_WORLD_WORKING_TEXT_SHADER_NAME)) Shader.create(seedWorldWorkingTextShaderSource);
+  return Object.freeze([
+    SEED_WORLD_LIQUID_GLASS_SHADER_NAME,
+    SEED_WORLD_VOICE_ORB_SHADER_NAME,
+    SEED_WORLD_WORKING_TEXT_SHADER_NAME
+  ]);
 }

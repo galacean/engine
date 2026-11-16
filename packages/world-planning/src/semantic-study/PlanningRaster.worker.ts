@@ -1,3 +1,4 @@
+import { prepareSurfaceReliefMask, type SeedWorldSurfaceReliefMaskTuning } from "../runtime/SeedWorldSurfaceRelief";
 import { PlanningRasterTransfer } from "./PlanningRasterTransfer";
 const rasters = new PlanningRasterTransfer();
 const nativeSnapshots = new Map<number, { plan: IslandPlan; data: ReturnType<typeof compilePlanningSeedWorldData> }>();
@@ -17,6 +18,7 @@ self.onmessage = ({
   ocean?: boolean;
   nativeData?: boolean;
   waterImpact?: boolean;
+  surfaceRelief?: SeedWorldSurfaceReliefMaskTuning;
   height?: Omit<PlanningHeightmap, "sample">;
 }>) => {
   try {
@@ -45,13 +47,21 @@ self.onmessage = ({
       nativeSnapshots.set(data.id, { plan: data.plan, data: nativeData });
       for (const id of nativeSnapshots.keys()) if (id !== data.id && id !== data.baseId) nativeSnapshots.delete(id);
     }
+    const surfaceRelief =
+      nativeData && data.surfaceRelief
+        ? prepareSurfaceReliefMask(nativeData.fields, nativeData.surfaceIntent, data.surfaceRelief)
+        : undefined;
     // Structured clone preserves worker cache ownership for later incremental reuse.
-    self.postMessage({
-      id: data.id,
-      raster: rasters.encode(data.id, { height, alpha, ocean }, data.baseId),
-      nativeData,
-      elapsedMs: performance.now() - start
-    });
+    self.postMessage(
+      {
+        id: data.id,
+        raster: rasters.encode(data.id, { height, alpha, ocean }, data.baseId),
+        nativeData,
+        surfaceRelief,
+        elapsedMs: performance.now() - start
+      },
+      surfaceRelief ? [surfaceRelief.pixels.buffer] : []
+    );
   } catch (error) {
     self.postMessage({ id: data.id, error: String(error) });
   }

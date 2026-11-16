@@ -281,3 +281,29 @@ it("rejects unrepresentable Float32 decode and uses the accepted GPU rounding fo
   expect(f.texture.uploads).toHaveLength(uploads);
   f.binding.destroy();
 });
+
+it("finds the exact rectangle across sparse/dense multichannel changes and validates every final sample", () => {
+  for (const channels of [1, 2, 4])
+    for (const stride of [1, 7, 31, 10000]) {
+      const width = 17,
+        height = 13;
+      const before = Float64Array.from({ length: width * height * channels }, (_, i) => i / 7);
+      const after = before.slice();
+      const xs: number[] = [],
+        zs: number[] = [];
+      for (let i = 0; i < after.length; i += stride) {
+        after[i] += 0.0000000001;
+        xs.push(Math.floor(i / channels) % width);
+        zs.push(Math.floor(i / channels / width));
+      }
+      expect(terrainChangedRectangle(before, after, width, height, channels)).toEqual({
+        x: Math.min(...xs),
+        z: Math.min(...zs),
+        width: Math.max(...xs) - Math.min(...xs) + 1,
+        height: Math.max(...zs) - Math.min(...zs) + 1
+      });
+      expect(terrainChangedRectangle(before, before, width, height, channels)).toBeUndefined();
+      after[after.length - 1] = NaN;
+      expect(() => terrainChangedRectangle(before, after, width, height, channels)).toThrow("Non-finite");
+    }
+});

@@ -48,34 +48,70 @@ export function nearestSegment(p: V2Point, a: V2Point, b: V2Point): { point: V2P
   const point = { x: a.x + dx * t, z: a.z + dz * t };
   return { point, t, distance: distance(p, point) };
 }
+/** One exact edge predicate shared by linear and indexed containment. -1 means boundary contact. */
+function polygonEdgeCrossing(p: V2Point, a: V2Point, b: V2Point): number {
+  // Only points in an edge's tolerance-expanded bounds can satisfy the original distance test.
+  // Keep Math.hypot for the final comparison so threshold rounding remains identical.
+  const dx = b.x - a.x,
+    dz = b.z - a.z;
+  // Use the same rounded endpoint as nearestSegment; a + (b - a) can differ from b at large magnitudes.
+  const endX = a.x + dx,
+    endZ = a.z + dz;
+  if (
+    p.x >= Math.min(a.x, endX) - 1e-7 &&
+    p.x <= Math.max(a.x, endX) + 1e-7 &&
+    p.z >= Math.min(a.z, endZ) - 1e-7 &&
+    p.z <= Math.max(a.z, endZ) + 1e-7
+  ) {
+    const l = dx * dx + dz * dz;
+    const t = l > 0 ? clamp(((p.x - a.x) * dx + (p.z - a.z) * dz) / l, 0, 1) : 0;
+    const ex = p.x - (a.x + dx * t),
+      ez = p.z - (a.z + dz * t);
+    if (Math.abs(ex) < 1e-7 && Math.abs(ez) < 1e-7 && Math.hypot(ex, ez) < 1e-7) return -1;
+  }
+  if (a.z > p.z !== b.z > p.z && p.x < ((b.x - a.x) * (p.z - a.z)) / (b.z - a.z) + a.x) return 1;
+  return 0;
+}
 /** Odd-even containment for a simple polygon. @returns Whether the point is inside or on an edge. */
 export function pointInPolygon(p: V2Point, polygon: V2Point[]): boolean {
   let inside = false;
   for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
-    const a = polygon[i],
-      b = polygon[j];
-    // Only points in an edge's tolerance-expanded bounds can satisfy the original distance test.
-    // Keep Math.hypot for the final comparison so threshold rounding remains identical.
-    const dx = b.x - a.x,
-      dz = b.z - a.z;
-    // Use the same rounded endpoint as nearestSegment; a + (b - a) can differ from b at large magnitudes.
-    const endX = a.x + dx,
-      endZ = a.z + dz;
-    if (
-      p.x >= Math.min(a.x, endX) - 1e-7 &&
-      p.x <= Math.max(a.x, endX) + 1e-7 &&
-      p.z >= Math.min(a.z, endZ) - 1e-7 &&
-      p.z <= Math.max(a.z, endZ) + 1e-7
-    ) {
-      const l = dx * dx + dz * dz;
-      const t = l > 0 ? clamp(((p.x - a.x) * dx + (p.z - a.z) * dz) / l, 0, 1) : 0;
-      const ex = p.x - (a.x + dx * t),
-        ez = p.z - (a.z + dz * t);
-      if (Math.abs(ex) < 1e-7 && Math.abs(ez) < 1e-7 && Math.hypot(ex, ez) < 1e-7) return true;
-    }
-    if (a.z > p.z !== b.z > p.z && p.x < ((b.x - a.x) * (p.z - a.z)) / (b.z - a.z) + a.x) inside = !inside;
+    const crossing = polygonEdgeCrossing(p, polygon[i], polygon[j]);
+    if (crossing < 0) return true;
+    if (crossing) inside = !inside;
   }
   return inside;
+}
+/** Own a snapshot of the outline. Row selection only removes edges that cannot affect either
+ * the ray crossing or the exact boundary test; no coordinates or tolerances are changed. */
+export function preparePointInPolygon(points: readonly V2Point[]): (point: V2Point) => boolean {
+  const polygon = points.map((p) => ({ ...p }));
+  const rows = new Map<number, number[]>(),
+    rowSize = 8;
+  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+    const a = polygon[i],
+      b = polygon[j],
+      endZ = a.z + (b.z - a.z);
+    const low = Math.floor((Math.min(a.z, b.z, endZ) - 1e-7) / rowSize);
+    const high = Math.floor((Math.max(a.z, b.z, endZ) + 1e-7) / rowSize);
+    // Exceptional/unbounded author input keeps the original predicate and cannot allocate an unbounded index.
+    if (!Number.isSafeInteger(low) || !Number.isSafeInteger(high) || high - low > 4096)
+      return (p) => pointInPolygon(p, polygon);
+    for (let row = low; row <= high; row++) {
+      const edges = rows.get(row);
+      if (edges) edges.push(i);
+      else rows.set(row, [i]);
+    }
+  }
+  return (p) => {
+    let inside = false;
+    for (const i of rows.get(Math.floor(p.z / rowSize)) ?? []) {
+      const crossing = polygonEdgeCrossing(p, polygon[i], polygon[(i + polygon.length - 1) % polygon.length]);
+      if (crossing < 0) return true;
+      if (crossing) inside = !inside;
+    }
+    return inside;
+  };
 }
 /** Signed distance to a polygon boundary, negative inside. @returns Distance in metres. */
 export function polygonDistance(p: V2Point, polygon: V2Point[]): number {

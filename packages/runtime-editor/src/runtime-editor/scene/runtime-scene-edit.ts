@@ -2,7 +2,11 @@ import {
   mutateSourceInstance,
   moveSourceAddition
 } from "@galacean/engine-project/runtime-editor/generated/editor-source-compiler";
-import { runtimeComponentIdentities, type RuntimeComponentSelector } from "./runtime-component-identity";
+import {
+  runtimeComponentIdentities,
+  type RuntimeComponentSelector,
+  type RuntimeComponentIdentity
+} from "./runtime-component-identity";
 import type {} from "../generated/editor-source-schema";
 import type { RuntimeProjectEdit } from "@galacean/engine-project/runtime-editor/project/runtime-project-edit";
 import {
@@ -34,10 +38,53 @@ function instanceEntityPatch(
 
 /** Edits the existing Editor source format; no engine objects or runtime state enter the draft. */
 export class RuntimeSceneEdit {
+  private batchSource?: GalaceanSourceSceneFile;
+
   constructor(
     private readonly project: RuntimeProjectEdit,
     private readonly sceneId: string
   ) {}
+
+  /** Synchronous Scene transaction: queries see staged edits; validate/write only the final text. */
+  batch(action: () => void): void {
+    if (this.batchSource) throw Error("Scene batches cannot be nested");
+    const before = this.content();
+    const original = (this.batchSource = this.parse(before));
+    try {
+      const result: unknown = action();
+      if (result && typeof (result as Promise<unknown>).then === "function")
+        throw Error("Scene batches must be synchronous");
+      if (this.content() !== before) throw Error("Scene source changed during batch");
+      if (this.batchSource !== original) {
+        const after = JSON.stringify(this.batchSource);
+        if (after !== before && after !== JSON.stringify(original)) this.project.update(this.sceneId, after);
+      }
+    } finally {
+      this.batchSource = undefined;
+    }
+  }
+
+  /** Replace owned sparse properties; retain unrelated properties and Prefab inheritance. */
+  reconcileComponent(id: string, props: GalaceanSourceValueRecord, owned: readonly string[]): void {
+    const previous = this.readComponent(id).props ?? {};
+    if (this.shared().components.some((record) => record.id === id)) {
+      const next = {
+        ...Object.fromEntries(Object.entries(previous).filter(([key]) => !owned.includes(key))),
+        ...props
+      };
+      if (JSON.stringify(previous) === JSON.stringify(next)) return;
+      const source = this.read();
+      source.components.find((record) => record.id === id)!.props = structuredClone(next);
+      this.write(source);
+    } else {
+      const removed = Object.keys(previous).filter((key) => owned.includes(key) && !(key in props));
+      if (removed.length) this.revertComponent(id, removed);
+      const changed = Object.fromEntries(
+        Object.entries(props).filter(([key, value]) => JSON.stringify(value) !== JSON.stringify(previous[key]))
+      );
+      if (Object.keys(changed).length) this.updateComponent(id, changed);
+    }
+  }
 
   list(): GalaceanSourceEntitySchema[] {
     return structuredClone(this.records());
@@ -45,20 +92,7 @@ export class RuntimeSceneEdit {
 
   /** Entity records of the shared parse. Callers must copy a record before returning it. */
   private records(): GalaceanSourceEntitySchema[] {
-    const source = this.shared(),
-      members = this.instances(source).entities;
-    const records = source.entities.map((record) => {
-      const member = members.get(record.id);
-      return member
-        ? { ...member.record, ...record, children: member.record.children, components: member.record.components }
-        : record;
-    });
-    return [
-      ...records,
-      ...Array.from(members.values())
-        .filter((member) => member.id !== member.root)
-        .map((member) => member.record)
-    ];
+    return this.view().records;
   }
 
   page(options: QueryPageOptions & { name?: string; parentId?: string | null } = {}) {
@@ -88,32 +122,38 @@ export class RuntimeSceneEdit {
   }
 
   readEntity(id: string) {
-    const entity = this.records().find((record) => record.id === id);
+    const entity = this.view().entities.get(id);
     if (!entity) throw new Error(`Unknown entity '${id}'`);
     return structuredClone(entity);
   }
 
   queryComponents(selector: RuntimeComponentSelector = {}) {
-    const source = this.shared();
-    return [
-      ...runtimeComponentIdentities(source, this.sceneId, selector),
-      ...Array.from(this.instances(source).components.values())
-        .map(({ id, entityId, record }) => ({ scene: this.sceneId, id, entityId, type: record.type }))
-        .filter(
-          (identity) =>
-            (selector.id === undefined || identity.id === selector.id) &&
-            (selector.entityId === undefined || identity.entityId === selector.entityId) &&
-            (selector.type === undefined || identity.type === selector.type)
-        )
+    const native = this.localView();
+    const identities = [
+      ...native.identities,
+      ...Array.from(this.view().instances.components.values(), ({ id, entityId, record }) => ({
+        scene: this.sceneId,
+        id,
+        entityId,
+        type: record.type
+      }))
     ];
+    return identities
+      .filter(
+        (identity) =>
+          (selector.id === undefined || identity.id === selector.id) &&
+          (selector.entityId === undefined || identity.entityId === selector.entityId) &&
+          (selector.type === undefined || identity.type === selector.type)
+      )
+      .map((identity) => ({ ...identity }));
   }
 
   readComponent(id: string) {
-    const source = this.shared();
-    const identity = runtimeComponentIdentities(source, this.sceneId, { id })[0];
-    if (identity)
-      return { ...structuredClone(source.components.find((component) => component.id === id)!), ...identity };
-    const member = this.instanceComponent(source, id);
+    const local = this.localView();
+    const identity = local.byId.get(id);
+    if (identity) return { ...structuredClone(local.components.get(id)!), ...identity };
+    const member = this.view().instances.components.get(id);
+    if (!member) throw Error(`Unknown component '${id}'`);
     return { ...structuredClone(member.record), scene: this.sceneId, entityId: member.entityId };
   }
 
@@ -551,6 +591,7 @@ export class RuntimeSceneEdit {
 
   /** Detached, mutable Source for an edit that ends in write(). */
   private read(): GalaceanSourceSceneFile {
+    if (this.batchSource) return structuredClone(this.batchSource);
     return this.parse(this.content());
   }
   /**
@@ -558,6 +599,7 @@ export class RuntimeSceneEdit {
    * Queries only read it and return copies, so a caller cannot change later results.
    */
   private shared(): GalaceanSourceSceneFile {
+    if (this.batchSource) return this.batchSource;
     const content = this.content();
     if (this.parsed?.content !== content) this.parsed = { content, scene: this.parse(content) };
     return this.parsed.scene;
@@ -581,12 +623,79 @@ export class RuntimeSceneEdit {
     return scene;
   }
   private write(scene: GalaceanSourceSceneFile): void {
+    if (this.batchSource) {
+      this.batchSource = scene;
+      return;
+    }
     this.project.update(this.sceneId, JSON.stringify(scene));
   }
   private readonly lookupInstanceAsset = (path: string) => this.project.lookupTextAsset(path);
 
+  private localQueries?: {
+    source: GalaceanSourceSceneFile;
+    identities: RuntimeComponentIdentity[];
+    byId: Map<string, RuntimeComponentIdentity>;
+    components: Map<string, GalaceanSourceComponentSchema>;
+  };
+  private localView(): NonNullable<RuntimeSceneEdit["localQueries"]> {
+    const source = this.shared();
+    if (this.localQueries?.source === source) return this.localQueries;
+    const identities = runtimeComponentIdentities(source, this.sceneId);
+    return (this.localQueries = {
+      source,
+      identities,
+      byId: new Map(identities.map((identity) => [identity.id, identity])),
+      components: new Map(source.components.map((component) => [component.id, component]))
+    });
+  }
+
+  private queryView?: {
+    source: GalaceanSourceSceneFile;
+    assets: Map<string, ReturnType<RuntimeProjectEdit["lookupTextAsset"]>>;
+    instances: RuntimeInstanceSource;
+    records: GalaceanSourceEntitySchema[];
+    entities: Map<string, GalaceanSourceEntitySchema>;
+  };
+
+  /** Cache only read views. Mutable edits use a separate parsed Source. Record every
+   * Prefab lookup so changing a nested asset invalidates queries even if Scene text is unchanged. */
+  private view(): NonNullable<RuntimeSceneEdit["queryView"]> {
+    const source = this.shared(),
+      cached = this.queryView;
+    if (
+      cached?.source === source &&
+      [...cached.assets].every(([path, before]) => {
+        const current = this.lookupInstanceAsset(path);
+        return current?.type === before?.type && current?.text === before?.text;
+      })
+    )
+      return cached;
+    const assets = new Map<string, ReturnType<RuntimeProjectEdit["lookupTextAsset"]>>();
+    const instances = new RuntimeInstanceSource(source, (path) => {
+      const asset = this.lookupInstanceAsset(path);
+      assets.set(path, asset);
+      return asset;
+    });
+    const records = [
+      ...source.entities.map((record) => {
+        const member = instances.entities.get(record.id);
+        return member
+          ? { ...member.record, ...record, children: member.record.children, components: member.record.components }
+          : record;
+      }),
+      ...Array.from(instances.entities.values())
+        .filter((member) => member.id !== member.root)
+        .map((member) => member.record)
+    ];
+    const entities = new Map<string, GalaceanSourceEntitySchema>();
+    for (const record of records) if (!entities.has(record.id)) entities.set(record.id, record);
+    return (this.queryView = { source, assets, instances, records, entities });
+  }
+
   private instances(scene: GalaceanSourceSceneFile) {
-    return new RuntimeInstanceSource(scene, this.lookupInstanceAsset);
+    return scene === this.parsed?.scene
+      ? this.view().instances
+      : new RuntimeInstanceSource(scene, this.lookupInstanceAsset);
   }
   private instanceComponent(scene: GalaceanSourceSceneFile, id: string): InstanceSourceComponent {
     const member = this.instances(scene).components.get(id);

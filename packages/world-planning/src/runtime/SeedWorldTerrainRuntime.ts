@@ -1,3 +1,4 @@
+import type { PreparedSurfaceReliefMask } from "./SeedWorldSurfaceRelief";
 import { bindSurfaceTerrain } from "@galacean/engine-terrain/surface/SurfaceMaterial";
 import { compileSeedWorldSurfacePalette, type SeedWorldSurfacePalette } from "./SeedWorldSurfacePalette";
 import { loadPlanningFarmDirtTexture } from "../spatial/farming/PlanningFarmDirtTexture.ts";
@@ -933,7 +934,8 @@ export class SeedWorldTerrainRuntime {
     fields: SeedWorldFields,
     intent: SeedWorldSurfaceMaterialIntent,
     settings: SeedWorldTerrainGenerationSettings,
-    normals: Uint8Array
+    normals: Uint8Array,
+    preparedRelief?: PreparedSurfaceReliefMask
   ): PreparedTerrainUpdate {
     if (this._destroyed || this._heightTransition) throw Error("Terrain is not available for a local water edit");
     const source = buildTerrainSources(fields, settings, normals);
@@ -956,7 +958,7 @@ export class SeedWorldTerrainRuntime {
     });
     let relief: PreparedTerrainUpdate;
     try {
-      relief = this.surfaceRelief.prepareFields(fields, intent);
+      relief = this.surfaceRelief.prepareFields(fields, intent, preparedRelief);
     } catch (error) {
       terrain.discard();
       throw error;

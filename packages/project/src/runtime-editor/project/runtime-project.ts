@@ -1,3 +1,4 @@
+import { sameRuntimeProjectContent } from "./runtime-project-content";
 import { validateProjectDependencies } from "./runtime-project-dependencies";
 import {
   isProjectPathReadOnly,
@@ -236,16 +237,6 @@ type StorageSnapshot = {
   documents?: RuntimeProjectPackage["documents"];
 };
 
-function sameStoredContent(a: string | Uint8Array | undefined, b: string | Uint8Array): boolean {
-  return (
-    a === b ||
-    (a instanceof Uint8Array &&
-      b instanceof Uint8Array &&
-      a.length === b.length &&
-      a.every((byte, index) => byte === b[index]))
-  );
-}
-
 /** Each save atomically replaces the complete project; the last write transaction wins.
  * A matching private revision permits differential writes. Other writers invalidate
  * that optimization, never the right to save the caller's complete snapshot.
@@ -403,7 +394,11 @@ export class RuntimeProjectStorage {
               previous: RuntimeProjectPackage["contents"] = {}
             ) => {
               for (const [path, content] of Object.entries(next)) {
-                if (!baseline || !Object.hasOwn(previous, path) || !sameStoredContent(previous[path], content)) {
+                if (
+                  !baseline ||
+                  !Object.hasOwn(previous, path) ||
+                  !sameRuntimeProjectContent(previous[path], content)
+                ) {
                   files.put(content, [id, kind, path]);
                 }
               }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MeshRenderer, SkinnedMeshRenderer, ShaderMacro, ShaderMacroCollection } from "@galacean/engine";
+import { MeshRenderer, Renderer, SkinnedMeshRenderer, ShaderMacro, ShaderMacroCollection } from "@galacean/engine";
 import { collectSeedWorldRendererVariants } from "@galacean/engine-world-planning/world/SeedWorldShaderWarmup";
 
 function renderer(active: boolean, skinned = false, materials?: object[]) {
@@ -47,6 +47,34 @@ function collect(renderers: object[], includeInactiveEntities?: boolean) {
   );
 }
 describe("renderer warmup scope", () => {
+  it("prepares hidden overlay controls with overlay output and no world or instancing macros", () => {
+    const overlay = renderer(false);
+    Object.setPrototypeOf(overlay, Renderer.prototype);
+    const sceneMacros = new ShaderMacroCollection();
+    sceneMacros.enable(ShaderMacro.getByName("SCENE_DIRECT_LIGHT_COUNT", "1"));
+    const cameraMacros = new ShaderMacroCollection();
+    cameraMacros.enable(ShaderMacro.getByName("CAMERA_DEPTH_TEXTURE"));
+    const variants = collectSeedWorldRendererVariants(
+      { _macroCollection: new ShaderMacroCollection() } as any,
+      { shaderData: { _macroCollection: sceneMacros }, background: { mode: 0 } } as any,
+      { _updateShaderData() {}, shaderData: { _macroCollection: cameraMacros }, renderTarget: {} } as any,
+      [],
+      { includeInactiveEntities: false, overlayRenderers: [overlay] }
+    );
+    expect(variants).toHaveLength(1);
+    const names = variants[0].macros.map((m) => m.n);
+    expect(names).toEqual(
+      expect.arrayContaining(["INACTIVE_TEMPLATE", "ENGINE_SHOULD_SRGB_CORRECT", "ENGINE_OUTPUT_SRGB_CORRECT"])
+    );
+    for (const name of [
+      "SCENE_DIRECT_LIGHT_COUNT",
+      "CAMERA_DEPTH_TEXTURE",
+      "RENDERER_GPU_INSTANCE",
+      "RENDERER_HAS_NORMAL"
+    ])
+      expect(names).not.toContain(name);
+    expect(overlay.entity.isActiveInHierarchy).toBe(false);
+  });
   it("keeps contributor passes when another material has the same shader and macros", () => {
     const shader = {
       name: "ContributionContract",

@@ -1,3 +1,4 @@
+import { runtimeEditWork } from "../runtime-editor/runtime-edit-work";
 import { RuntimeProjectHistory, projectHistoryPatch, type HistoryMove } from "./runtime-project-history.ts";
 import { RuntimeAssetChanges, resourceSignature, sameResourceContent } from "./runtime-asset-changes.ts";
 import type { RuntimeScriptModule } from "../runtime-editor/scripts/runtime-script-environment.ts";
@@ -10,6 +11,7 @@ import {
 import { RuntimeProjectScripts } from "../runtime-editor/scripts/runtime-project-scripts.ts";
 import {
   compileProjectResource,
+  compileProjectResources,
   prepareProjectSources
 } from "@galacean/engine-project/runtime-editor/scene/runtime-project-compiler";
 import {
@@ -449,12 +451,9 @@ export class RuntimeProjectSession {
         await provider.prepare!(file.virtualPath, signal);
         projection.contents[file.virtualPath] = this.projectPackage.contents[file.virtualPath];
       }
-    const compiled = projection.project.files.map((file) =>
-      compileProjectResource(
-        projection,
-        file.virtualPath,
-        this.unavailableScripts.size ? (path) => this.unavailableScripts.has(path) : undefined
-      )
+    const compiled = compileProjectResources(
+      projection,
+      this.unavailableScripts.size ? (path) => this.unavailableScripts.has(path) : undefined
     );
     const active = new Set<string>();
     const resources = this.projectPackage.project.files.map((file, index) => {
@@ -537,7 +536,11 @@ export class RuntimeProjectSession {
     onUnavailable?: (path: string, error: unknown) => void
   ) {
     this.lifetime.signal.throwIfAborted();
-    await this.resources(signal);
+    signal?.throwIfAborted();
+    // With no component scripts there is no module to resolve an asset URL.
+    // Still run prepare: it releases a previously active module graph.
+    if (this.projectPackage.project.files.some((file) => file.type.toLowerCase() === "script"))
+      await this.resources(signal);
     return this.scripts.prepare(
       this.projectPackage,
       this.fileProvider(),
@@ -809,6 +812,7 @@ export class RuntimeProjectSession {
     history?: { transactionId: string; move?: HistoryMove }
   ): Promise<RuntimeProjectUndo> {
     this.lifetime.signal.throwIfAborted();
+    const checkpoint = runtimeEditWork();
     const contents = { ...candidate.contents },
       files = structuredClone(candidate.project.files);
     for (const path of this.runtimeAssets) {
@@ -826,8 +830,10 @@ export class RuntimeProjectSession {
     );
     invalidateChangedDependencies(this.projectPackage, candidate, this.referenceFormats);
     await this.validateCandidate(candidate);
+    await checkpoint(this.lifetime.signal);
     candidate = await this.withDependencies(candidate);
     validateRuntimeProject(candidate);
+    await checkpoint(this.lifetime.signal);
     this.lifetime.signal.throwIfAborted();
     // Invalidate only affected in-flight reads, including delete/recreate of the same path.
     // Persistence does not control visibility: an accepted edit invalidates the

@@ -358,7 +358,8 @@ class SeedWorldAgentDebugSurface implements SeedWorldAgentDebugController {
   private _refresh(): void {
     if (this._store.enabled && !this._root) this._mount();
     if (this._toggle) {
-      this._toggle.textContent = this._store.running ? "Agent Trace (执行中)" : `Agent Trace (${this._store.size})`;
+      const label = this._store.running ? "Agent Trace (执行中)" : `Agent Trace (${this._store.size})`;
+      if (this._toggle.textContent !== label) this._toggle.textContent = label;
     }
     this._refreshAsrTuningInputs();
     if (!this._panel || this._panel.style.display === "none") return;

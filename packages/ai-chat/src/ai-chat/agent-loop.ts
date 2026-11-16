@@ -18,7 +18,7 @@ import {
   parseAgentFinalMessage,
   parseAgentToolCall
 } from "./agent-protocol";
-import { extractAgentScriptToolReferences } from "./agent-script-runtime";
+import { validateAgentScriptReferences } from "./agent-script-preflight";
 import { WorkerAgentScriptRuntime } from "./agent-worker-runtime";
 import { WorkerAgentScriptChecker, type AgentScriptChecker } from "./agent-worker-checker";
 import { executeAgentEdit } from "./agent-edit-execution";
@@ -315,7 +315,6 @@ export class AgentLoop {
           read: (path) => (path === ".ai/execute.js" ? executeSource : undefined)
         }
       ]);
-    let projectFiles = makeProjectFiles();
     let modelTools = buildAgentToolDefinitions(this.#definition);
     let fileOutputOrdinal = 0;
     const fileTools = new AgentNativeFiles(
@@ -368,7 +367,6 @@ export class AgentLoop {
         }
         throwIfAborted(controller.signal);
         if (this.#refreshConfiguration()) {
-          projectFiles = makeProjectFiles();
           modelTools = buildAgentToolDefinitions(this.#definition);
           appendTranscript({
             role: "user",
@@ -703,13 +701,19 @@ export class AgentLoop {
 
           if (decisionResult.decision.type !== "execute") throw new Error("Unsupported legacy tool decision");
           this.#refreshConfiguration();
-          projectFiles = makeProjectFiles();
+          const projectFiles = makeProjectFiles();
           modelTools = buildAgentToolDefinitions(this.#definition);
           const availableTools = this.#tools;
           const availableRegistry = new ToolRegistry(availableTools);
           const script = decisionResult.decision;
           executeSource = script.code;
-          const preflightFailure = validateScriptApiReferences(script.code, availableTools);
+          const preflightFailure = await validateScriptApiReferences(
+            script.code,
+            availableTools,
+            this.#scriptChecker,
+            controller.signal
+          );
+          throwIfAborted(controller.signal);
           let scriptResult: AgentScriptResult;
           if (preflightFailure) {
             scriptResult = {
@@ -1593,22 +1597,19 @@ function modelToolResultFromScript(result: AgentScriptResult): ModelToolResult {
   };
 }
 
-function validateScriptApiReferences(source: string, tools: readonly AgentTool[]): AgentScriptResult | null {
-  const knownTools = new Set(tools.map(({ name }) => name));
-  const references = extractAgentScriptToolReferences(source);
-  const unknown = references.filter((name) => !knownTools.has(name));
-  if (unknown.length > 0) {
-    return {
-      ok: false,
-      error: {
-        code: "UNKNOWN_TOOL",
-        phase: "parse",
-        message: `Agent Script 引用了未注册的 API：${unknown.join(", ")}；脚本尚未执行`,
-        tool: unknown[0]
-      }
-    };
-  }
-  return null;
+async function validateScriptApiReferences(
+  source: string,
+  tools: readonly AgentTool[],
+  checker: AgentScriptChecker,
+  signal: AbortSignal
+): Promise<AgentScriptResult | null> {
+  const names = tools.map(({ name }) => name);
+  // The browser checker shares its existing Worker with type checking. Custom
+  // checkers retain the same preflight contract without requiring a Worker.
+  const error = checker.preflight
+    ? await checker.preflight(source, names, signal)
+    : validateAgentScriptReferences(source, names);
+  return error ? { ok: false, error } : null;
 }
 
 function cloneStep(step: AgentStepRecord): AgentStepRecord {

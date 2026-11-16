@@ -36,7 +36,7 @@ function fixture(enabled = true, disposed = false) {
     animal = deferred(),
     roots: object[] = [],
     events: string[] = [];
-  const warmup = vi.fn(async (_engine, _scene, _camera, capturedRoots) => {
+  const warmup = vi.fn(async (_engine, _scene, _camera, capturedRoots, _options) => {
     expect(capturedRoots).toContain(farm);
     expect(capturedRoots).toContain(animal);
     events.push("compile");
@@ -71,6 +71,14 @@ function fixture(enabled = true, disposed = false) {
     },
     warmupSeedWorldRendererVariants: warmup,
     engine: {},
+    tools: {
+      preparePresentation: () => {
+        events.push("hud");
+        return { root: { getComponentsIncludeChildren: () => ["hidden-hud"] } };
+      }
+    },
+    options: {},
+    Renderer: class {},
     scene: { rootEntities: roots },
     camera: {},
     post: { getShaderWarmupState: () => ({ enabled: true }) },
@@ -96,8 +104,9 @@ describe("startup shader publication boundary", () => {
     expect(f.warmup).not.toHaveBeenCalled();
     f.animal.resolve();
     await task;
-    expect(f.events).toEqual(["lod", "compile"]);
+    expect(f.events).toEqual(["lod", "hud", "compile"]);
     expect(f.warmup).toHaveBeenCalledOnce();
+    expect(f.warmup.mock.calls[0][4].overlayRenderers).toEqual(["hidden-hud"]);
   });
   it("does not compile into a disposed scene after asynchronous preparation", async () => {
     const f = fixture(true, true),

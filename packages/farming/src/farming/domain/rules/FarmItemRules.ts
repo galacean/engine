@@ -33,6 +33,7 @@ export function itemPlacement(
   itemType: FarmItemType = "seed-bag",
   yaw = 0
 ): FarmItem["position"] | null {
+  if (view.placementPending) return null;
   const [x, , z] = position;
   const type = snapshot.items.instances.find((item) => item.id === ignoredItemId)?.type ?? itemType;
   const bounds = farmItemGroundBounds(type, position, yaw);
@@ -73,6 +74,7 @@ export function findItemPlacement(
   itemType: FarmItemType = "seed-bag",
   yaw = 0
 ): FarmItem["position"] | null {
+  if (view.placementPending) return null;
   const atOrigin = itemPlacement(snapshot, definitions, view, groundId, origin, ignoredItemId, itemType, yaw);
   if (atOrigin) return atOrigin;
   const candidates: { x: number; z: number; d: number }[] = [];
@@ -317,6 +319,9 @@ export function regroundFarmItems(
   changes: FarmChange[];
   blocked: readonly string[];
 } {
+  // A publication barrier is not a physical obstacle. The ready view must still
+  // revalidate every item; searching this temporary view can never find a legal spot.
+  if (view.placementPending) return { items: snapshot.items, changes: [], blocked: [] };
   const held = carriedItem(snapshot.items)?.id;
   let items = snapshot.items;
   const changes: FarmChange[] = [],
