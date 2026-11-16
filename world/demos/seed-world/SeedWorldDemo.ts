@@ -50,8 +50,10 @@ import {
 } from "@galacean/engine-world-planning/spatial/PlanningSubjectView";
 import { applyPlanningWeather } from "@galacean/engine-world-planning/spatial/PlanningWeather";
 import { readPlantMaterialParameters } from "@galacean/engine-world-planning/spatial/PlantMaterialParameters";
+import { createSeedWorldKnowledge } from "./agent-adapter/SeedWorldKnowledge";
+import { WATER_QUERY_CONTRACTS } from "@galacean/engine-world-planning/spatial/runtime/WaterQueryContract";
 import { createNativeWaterAgentPackage } from "@galacean/engine-world-planning/spatial/runtime/NativeWaterAgent";
-import { NativeWaterEditor } from "@galacean/engine-world-planning/spatial/runtime/NativeWaterEditor";
+import { mountNativeWaterPanel } from "@galacean/engine-world-planning/spatial/runtime/NativeWaterPanel";
 import { NativeWaterHost } from "@galacean/engine-world-planning/spatial/runtime/NativeWaterHost";
 import { PlanningLightingProfileRuntime } from "@galacean/engine-world-planning/spatial/runtime/PlanningLightingProfileRuntime";
 import { planningNaturalGroundPopulation } from "@galacean/engine-world-planning/spatial/runtime/PlanningNaturalVegetation";
@@ -206,6 +208,12 @@ import {
   type PlanningWorldHandoff
 } from "./src/planning/spatial/runtime/PlanningWorldSource.ts";
 
+function waterAgentKnowledge() {
+  const knowledge = createSeedWorldKnowledge(WATER_QUERY_CONTRACTS.map(item => item.name));
+  // The base World catalog already owns the shared tools namespace declaration.
+  return { ...knowledge, modules: knowledge.modules.filter(module => module.id !== "declare/world/common/AgentTools.d.ts") };
+}
+
 /** Original Seed scene/HUD/gameplay host. The spatial planner supplies data, never its preview camera. */
 export async function mountSeedWorldDemo(
   handoff?: PlanningWorldHandoff,
@@ -280,7 +288,7 @@ export async function mountSeedWorldDemo(
   let nativeBuildingHost: NativeBuildingHost | undefined;
   let nativeBuildingPanel: ReturnType<typeof mountNativeBuildingPanel> | undefined;
   let nativeWaterHost: NativeWaterHost | undefined;
-  let nativeWaterEditor: NativeWaterEditor | undefined;
+  let nativeWaterPanel: ReturnType<typeof mountNativeWaterPanel> | undefined;
   let runtimeProject: RuntimeProjectSession | undefined;
   let unmountProjectSave: (() => void) | undefined;
   let nativeEditor: RuntimeNativeEditor | undefined;
@@ -415,6 +423,7 @@ export async function mountSeedWorldDemo(
         debugSidebar?.destroy();
         disconnectEditorAssets?.();
         tools?.dispose();
+        nativeWaterPanel?.destroy();
         nativeBuildingPanel?.destroy();
         nativeEditor?.dispose();
         retrieval?.dispose();
@@ -468,7 +477,7 @@ export async function mountSeedWorldDemo(
   const dispose = createSeedWorldProjectClose(
     async () => {
       tools?.dispose();
-      await nativeWaterEditor?.stop();
+      await nativeWaterPanel?.stop();
       editorLifetime.abort();
       nativeEditor?.editor.dispose();
       // Runtime errors are diagnostics. Accepted authoring must still be saved.
@@ -2077,7 +2086,7 @@ export async function mountSeedWorldDemo(
     tools = new PlanningSeedWorldSession({
       nativeEditor,
       editorExtensions: [
-        createNativeWaterAgentPackage(),
+        createNativeWaterAgentPackage({ editor: nativeEditor, project: runtimeProject, system: () => water?.system, hostTerrain: true, oceanDatum: 0 }, waterAgentKnowledge()),
         createFarmingComponentExtension(nativeEditor.projection),
         ...(retrieval ? [retrieval.extension] : [])
       ],
@@ -2305,7 +2314,6 @@ export async function mountSeedWorldDemo(
     orb.suspend();
     ready = true;
     disconnectEditorAssets = tools.application.connectProject(runtimeProject);
-    nativeWaterEditor = new NativeWaterEditor(runtimeProject, nativeEditor.editor);
     const savedEditor = runtimeProject.projectPackage.contents[SEED_WORLD_EDITOR_PATH];
     if (typeof savedEditor === "string")
       await timed("restoreEditorDocument", () =>
@@ -2342,6 +2350,7 @@ export async function mountSeedWorldDemo(
         }
       };
       const buildingWaterSample = createWaterSurfaceSample();
+      nativeWaterPanel = mountNativeWaterPanel(runtimeProject, nativeEditor);
       nativeBuildingPanel = mountNativeBuildingPanel(
         runtimeProject,
         nativeEditor,

@@ -11,6 +11,24 @@
 `validateWaterAuthoringSettings` 校验值与能力，`compileWaterShape` 在最终地床上校验几何。
 Model 负责事务最终快照、Scene/Prefab 引用作用域和受影响消费者集合。显式预检不能替代最终校验。
 
+## Agent 与面板共用编辑链路
+
+Water Source 的写入口统一为公共 `editor.entity`、`editor.component`、`editor.asset`。
+组件配置由 `component.update({props: {authoring}})` 更新；公共更新只合并顶层属性，
+局部修改需先读取当前草稿并写回完整 `authoring`。启停写 `props.enabled`，Quality 留在
+`authoring.quality`，外观及纹理保存在原生 `.mat`。共享修改更新原资产；实例修改在同一事务
+复制 `.mat` 并重绑组件。`waterMaterialProperties` 与 Shader 生成共享参数、范围、枚举和纹理槽元数据。
+
+`NativeWaterHost` 在公共准备阶段统一校验，并清理本事务实际删除水体留下的既有入向连接，
+包括组件、Entity 和 Prefab 成员删除。新输入的错误引用仍拒绝事务。公共调用返回表示草稿修改
+完成；顶层 commit、activate 成功后才表示运行已更新。接受、运行生效和保存完成分别呈现，
+激活失败保留已接受的 Source 与旧发布结果。
+
+SeedWorld 只提供 `tools.water.capabilities/sample/sampleDrops/diagnostics/verify` 五个只读入口。
+目标使用公共 `{scene,id}`，宿主映射到运行时水体；配置读取当前草稿，采样读取已发布状态。
+`verify.expectedRevision` 比较水体修订号，不是项目保存版本。旧 `tools.water.author` 和
+`NativeWaterEditor` 专用写门面已退役；底层 Engine `WaterAPI` 继续用于运行管理。
+
 ## 宿主协议
 
 方法名是 `beginInputUpdate()`、`endInputUpdate(accept = true, flush = true)`、

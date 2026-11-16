@@ -6,7 +6,6 @@ import type { SeedWorldAgentApplication } from "./SeedWorldAgentApplication.ts";
 import { SEED_WORLD_EDITOR_PATH } from "../SeedWorldProjectFormats.ts";
 import { planningSourceDocument, mergePlanningAuthoring, writePlanningProjectSource } from "../src/planning/spatial/runtime/PlanningProjectSource.ts";
 import { initializePlanningWater } from "../src/planning/spatial/runtime/PlanningWaterInitialization.ts";
-import { createNativeWaterAgentPackage } from "@galacean/engine-world-planning/spatial/runtime/NativeWaterAgent";
 /** Commit authoring once, then order world and Scene activation within the shared runtime boundary. */
 export function beginSeedWorldProjectEdit(
   application: Pick<SeedWorldAgentApplication, "beginEdit" | "stageProjectEdit">,
@@ -39,7 +38,7 @@ export function beginSeedWorldProjectEdit(
 
     hasChanges: () => world.hasChanges() || native.hasChanges(),
     completeRead: () => world.completeRead?.(),
-    tools: [...world.tools, ...native.tools, ...createNativeWaterAgentPackage(native).tools].map((tool) => ({
+    tools: [...world.tools, ...native.tools].map((tool) => ({
       ...tool,
       execute: (input, context) => {
         const result = tail.then(() => tool.execute(input, context));

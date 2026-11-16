@@ -5,29 +5,50 @@ description: 读取或修改湖泊、河流、海洋等 Source 水体组件时�
 
 # 水体
 
-用 `tools.water.author` 读取或编辑 Source 水体组件。输入合同见 `declare/editor/water/authoring.md` 和 `declare/editor/water/WaterAuthoring.d.ts`。先用 `list`、`get` 取得组件 ID 和当前作者值；world.query 返回的 Ref 不是 Source 组件 ID。
+与建筑相同，持久修改使用公共 `editor.entity`、`editor.component` 和 `editor.asset`。先读公共 Editor 声明，查询 `WaterBodyComponent` 并读取 `props.authoring`。world.query 的 Ref、运行时 waterId 都不是 Source 组件身份。
+
+## 创建与修改
+
+- 新建用 `editor.entity.create` 后 `editor.component.add({scene,entityId,type:"WaterBodyComponent",props:{authoring}})`，或实例化已有原生 Prefab。需要完整 shape、地床来源和 Material 引用；不自动提供地床或雕刻 Terrain。
+- 配置字段为 `shape`、`terrain`、`quality`、`material`、`connections`、`visible`、`priority`、`interaction`。`enabled` 是 `props` 的同级组件属性。
+- `component.update` 只合并顶层 props，嵌套值整体替换。先读取当前草稿，合并需要修改的子字段，再写回完整 authoring。Quality 内的预算组也要保留其他字段；不要把局部 Quality 对象当作深合并补丁。
+- 批量修改在同一次 execute 中多次调用公共 API；新建后可立即在当前草稿继续读取或修改。整个事务通过校验后统一提交。
+- 删除使用 `component.remove`，删除 Entity 使用 `entity.delete`。公共准备阶段清理指向本次已删除水体的既有连接；任意错误引用仍会拒绝。
+
+```js
+const matches = await editor.component.query({scene, type:"WaterBodyComponent"});
+const target = {scene, id:matches[0].id};
+const record = await editor.component.read(target);
+const authoring = record.props?.authoring;
+if (!authoring || typeof authoring !== "object" || Array.isArray(authoring)) throw Error("没有作者配置");
+await editor.component.update({...target, props:{authoring:{...authoring, visible:false}}});
+```
 
 ## 形状与放置
 
-- 形状坐标和高程是局部米制，放置由 Entity Transform 提供。
-- 湖泊有固定的参考水位和独立的水位偏移；河流由控制点、宽度、深度和段型组成；海洋只支持其 backend 声明的字段。
-- 人工床面只读，不能雕刻 Terrain。Seed World 宿主可以把 Terrain 与 Water 一起准备。
+- 形状坐标和高程是局部米制，放置由 Entity Transform 提供。非连接湖/河支持平移、yaw 和单位缩放；Ocean 和连接水体要求 identity 世界变换。
+- 湖泊有参考水位和水位偏移；河流由控制点、宽度、深度和段型组成。人工床面只读；宿主地形由现有公共准备与激活链协调。
+- 先查询 `tools.water.capabilities({})` 获取宿主限制。SeedWorld Ocean 基准水位为 0，同一场景只支持一个活动 Ocean。
 
 ## 外观与质量
 
-- 每个水体引用一份原生 Material，Material 持有视觉数值、外观策略和原生 Texture 引用；固定编译结构由 Shader 家族代码定义。不要创建或选择独立的 Look 资产。
-- 编辑共享资源选 `shared`；需要独立外观时选 `instance`，会复制出独立 Material。
-- Quality 是组件上的类型化值，控制几何、着色、场景字段、反射与焦散预算、查询密度和空间场上限。用局部补丁修改，例如 `{ query: "off" }`；省略字段保持当前值，新建使用该水体类型的默认值；显式 `false` 和 `0` 都是有效值。不要引用或创建 Quality 文件。Quality 修改不改变形状、床面或 Material。Prefab 模板提供共享默认值，实例按叶子覆盖。
-- Source 之间的连接使用组件引用。
+- 一份原生 `.mat` 定义外观，纹理使用原生引用；不创建私有 Look 或 Quality 资产。Quality 是组件的类型化值，修改不应改变 shape、terrain 或 Material。
+- 用 `tools.water.capabilities({target:{scene,id}})` 获取当前材质路径、真实支持的参数及纹理槽元数据。类型、枚举和范围以此结果为准。
+- 通过 `asset.read` 读取 `.mat`，检查 `kind === "structured"` 后使用返回的 `data`；只修改目标 shaderData entry 并保留其 type。参数值使用原生类型；纹理值是 `{url:资产虚拟路径}` 或 `null`。湖/河/海分别有 2/3/5 个公开纹理槽。
+- 共享修改：`asset.update` 原材质。实例独立修改：`asset.create` 复制完整材质，再在同一次 execute 中修改目标组件的 `authoring.material.{$ref}`。调用前明确共享范围；不修改其他引用相同纹理的槽或共享 Texture 的采样设置。
+- `0`、`false`、空纹理是明确值，不可用 truthy 判断丢弃。资源引用、色彩空间和能力由真实准备阶段校验。
 
 ## 事务与结果
 
-- 工具返回 `prepared-in-draft`，表示修改已进入当前草稿。外层事务 commit 并 activate 后才能报告修改已接受或运行生效；保存需要另行等待。UI 与工具共用同一项目事务和历史。
-- 运行失败时保留上一次发布的水体。报告目标、字段或资产路径以及失败原因；不能仅凭草稿数据报告水体操作成功。
+- 公共写接口的 await 仅完成草稿修改。外层 commit/activate 完成且无运行错误后，才能报告本次操作成功；保存完成是独立状态，使用公共项目保存操作等待。
+- 激活失败不隐式撤销已接受 Source，旧运行结果可能仍可见。报告目标和失败原因，不以旧画面或草稿值证明本次修改成功。
+- 撤销、重做使用公共 `editor.history`；不保存第二份 Water 模型或派生运行资源。
 
-## 查询
+## 只读运行查询
 
-隐藏水面保留查询，禁用水体移除查询。查询字段报告 `actual`、`proxy` 或 `unsupported`。海洋报告基准面，不含可视波峰。水帘用 `sampleDrops` 查询，它不是普通湿区。
+`tools.water.sample`、`sampleDrops`、`diagnostics`、`verify` 读取已发布状态，不读取当前草稿。先完成当前 execute，再在下一次 execute 验证结果。target 只传 Source 的 `{scene,id}`，宿主负责解析运行时身份。
+
+隐藏保留查询，禁用退出查询。字段保留 `actual`、`proxy`、`unsupported`；Ocean 返回基准面，不含可视波峰。水帘用 `sampleDrops` 查询。`verify` 检查当前发布状态和可选水体修订，不证明已落盘；诊断能显示尚未成功发布的 Source 水体。
 
 ## 接口索引
 

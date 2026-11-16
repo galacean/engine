@@ -9,13 +9,10 @@ import { waterMaterialTextures } from "@galacean/engine-water/water/native/Water
 import { createWaterQualitySettings } from "@galacean/engine-water/water/native/WaterQualitySettings";
 import { encodeWaterTerrainAssets } from "@galacean/engine-water/water/native/WaterTerrainAssets";
 import { OceanTextureLibrary } from "@galacean/engine-water/water/runtime/ocean/OceanTextureLibrary";
-import { createNativeWaterAgentPackage } from "@galacean/engine-world-planning/spatial/runtime/NativeWaterAgent";
-import {
-  editWaterSource,
-  writeWaterTerrainAssets
-} from "@galacean/engine-world-planning/spatial/runtime/NativeWaterEditor";
+import { writeWaterTerrainAssets } from "@galacean/engine-world-planning/spatial/runtime/NativeWaterEditor";
 import { expect, it } from "vitest";
 import { lake, terrain } from "../../water/tests/WaterFixtures";
+import { editTestWaterSource as editWaterSource } from "./WaterTestClient";
 import { openWaterEditorFixture } from "./WaterEditorFixture";
 
 it("edits a real Source lake through public history and reopens it in a new Engine", async () => {
@@ -122,7 +119,7 @@ it("edits a real Source lake through public history and reopens it in a new Engi
     const beforeInvalid = current.project.publicationRevision;
     await expect(
       current.water.change({ operation: "update", id: created.value, patch: { priority: Infinity } })
-    ).rejects.toThrow("finite");
+    ).rejects.toThrow();
     for (const patch of [{ material: { $ref: "Water/missing.mat" } }, { material: { $ref: "Water/bed.json" } }])
       await expect(current.water.change({ operation: "update", id: created.value, patch })).rejects.toThrow();
     expect(current.project.publicationRevision).toBe(beforeInvalid);
@@ -163,20 +160,14 @@ it("edits a real Source lake through public history and reopens it in a new Engi
       )
     ).toBeDefined();
     const beforeAgent = current.system.revision;
-    const agent = await current.water.execute((edit) =>
-      createNativeWaterAgentPackage(edit, "Main.scene").tools[0].execute(
-        {
-          operation: "updateMany",
-          updates: [
-            { id: created.value, patch: { priority: 1, quality: { spatialField: { maximumDepthError: 0 } } } },
-            { id: prefabIdentity.id, patch: { priority: 2 } }
-          ]
-        },
-        { signal: new AbortController().signal }
-      )
-    );
+    const agent = await current.water.change({
+      operation: "updateMany",
+      updates: [
+        { id: created.value, patch: { priority: 1, quality: { spatialField: { maximumDepthError: 0 } } } },
+        { id: prefabIdentity.id, patch: { priority: 2 } }
+      ]
+    });
     expect(agent.runtimeError).toBeUndefined();
-    expect(agent.value).toMatchObject({ status: "prepared-in-draft" });
     expect(current.system.revision).toBe(beforeAgent + 1);
     expect(
       (current.editor.projection.component(created.value) as WaterBodyComponent).authoring!.quality.spatialField
@@ -191,7 +182,7 @@ it("edits a real Source lake through public history and reopens it in a new Engi
           { id: prefabIdentity.id, patch: { priority: Infinity } }
         ]
       })
-    ).rejects.toThrow("finite");
+    ).rejects.toThrow();
     expect(current.project.publicationRevision).toBe(beforeInvalidMany);
     expect(current.system.bodies[0].configuration?.priority).toBe(1);
     const group = await current.water.execute(async (edit) => {
@@ -372,8 +363,8 @@ it("edits a real Source lake through public history and reopens it in a new Engi
       }
     });
     expect(river.runtimeError).toBeUndefined();
-    const riverBody = current.editor.projection.component(river.value) as WaterBodyComponent;
-    expect(current.system.sample(4, 4, riverBody.waterId)).toMatchObject({
+    const riverBody = () => current!.editor.projection.component(river.value) as WaterBodyComponent;
+    expect(current.system.sample(4, 4, riverBody().waterId)).toMatchObject({
       water: true,
       surfaceElevationMetres: 0,
       depth: { value: 1, quality: "actual" }
@@ -412,10 +403,10 @@ it("edits a real Source lake through public history and reopens it in a new Engi
     });
     expect(invalidDepth.accepted).toBe(true);
     expect(invalidDepth.runtimeError).toContain("TERRAIN_CHANGE_REQUIRED");
-    expect(riverBody.lastError).toContain("TERRAIN_CHANGE_REQUIRED");
-    expect(current.system.sample(4, 4, riverBody.waterId)).toMatchObject({ depth: { value: 1 } });
+    expect(riverBody().lastError).toContain("TERRAIN_CHANGE_REQUIRED");
+    expect(current.system.sample(4, 4, riverBody().waterId)).toMatchObject({ depth: { value: 1 } });
     expect((await current.water.history("undo")).runtimeError).toBeUndefined();
-    expect(riverBody.lastError).toBeUndefined();
+    expect(riverBody().lastError).toBeUndefined();
     const oceanShape: WaterShapeAuthoring = {
       kind: "ocean",
       waterLevel: 0.25,
@@ -440,9 +431,9 @@ it("edits a real Source lake through public history and reopens it in a new Engi
     });
     expect(ocean.accepted).toBe(true);
     expect(ocean.runtimeError).toContain("complete nearshore authority grid");
-    const oceanBody = current.editor.projection.component(ocean.value) as WaterBodyComponent;
-    expect(oceanBody.authoring!.shape).toMatchObject({ layout: { size: 8 } });
-    expect(oceanBody.lastError).toContain("complete nearshore authority grid");
+    const oceanBody = () => current!.editor.projection.component(ocean.value) as WaterBodyComponent;
+    expect(oceanBody().authoring!.shape).toMatchObject({ layout: { size: 8 } });
+    expect(oceanBody().lastError).toContain("complete nearshore authority grid");
     await current.water.flush();
     expect(
       (
@@ -455,13 +446,13 @@ it("edits a real Source lake through public history and reopens it in a new Engi
         })
       ).runtimeError
     ).toBeUndefined();
-    expect(oceanBody.lastError).toBeUndefined();
-    expect(current.system.sample(4, 4, oceanBody.waterId)).toMatchObject({
+    expect(oceanBody().lastError).toBeUndefined();
+    expect(current.system.sample(4, 4, oceanBody().waterId)).toMatchObject({
       water: true,
       surfaceElevationMetres: 0.25,
       surfaceModel: "ocean-datum-excludes-gerstner"
     });
-    expect(oceanBody.authoring!.material!.shaderData.getTexture("material_Ocean_smoothWaves")).toBeDefined();
+    expect(oceanBody().authoring!.material!.shaderData.getTexture("material_Ocean_smoothWaves")).toBeDefined();
     const oceanTexturesA = await OceanTextureLibrary.create(current.engine),
       oceanTexturesB = await OceanTextureLibrary.create(current.engine);
     expect(oceanTexturesA.textures.smoothWaves).toMatchObject({

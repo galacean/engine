@@ -3,6 +3,9 @@ import { validateWaterAuthoringSettings } from "@galacean/engine-water/water/nat
 import { hashStableValue } from "@galacean/engine-water/water/compiler/shared/determinism";
 import { decodeWaterTerrainAssets } from "@galacean/engine-water/water/native/WaterTerrainAssets";
 import type { RuntimeEditor } from "@galacean/engine-runtime-editor/runtime-editor/runtime-editor";
+import { RuntimeProjectEdit } from "@galacean/engine-project/runtime-editor/project/runtime-project-edit";
+import { nativeAssetFormats } from "@galacean/engine-runtime-editor/project/runtime-native-formats";
+import { cleanRemovedWaterConnections } from "./WaterSourceConnections";
 import type { RuntimeProjectSession } from "@galacean/engine-runtime-editor/project/runtime-project-session";
 import { RuntimeSceneEdit } from "@galacean/engine-runtime-editor/runtime-editor/scene/runtime-scene-edit";
 import { Material, type MeshRenderer } from "@galacean/engine";
@@ -97,7 +100,16 @@ export class NativeWaterHost {
       }),
       editor.registerPreparation(
         async (edit) => {
-          const paths = await edit.run(({ draft }) => {
+          const paths = await edit.run(({ draft, edited }) => {
+            const before = new RuntimeSceneEdit(
+              new RuntimeProjectEdit(
+                project.projectPackage,
+                nativeAssetFormats(() => ({}))
+              ),
+              project.projectPackage.project.scene
+            );
+            const current = new RuntimeSceneEdit(draft, project.projectPackage.project.scene);
+            if (cleanRemovedWaterConnections(before, current)) edited();
             const scene = new RuntimeSceneEdit(draft, project.projectPackage.project.scene);
             return [
               ...new Set(

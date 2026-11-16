@@ -348,6 +348,51 @@ export function decodeWaterMaterialLook(
   return result;
 }
 
+/** Shared editing metadata for native Material consumers. No parallel Agent property catalog. */
+export function waterMaterialProperties(material: WaterMaterialFile) {
+  const profile = resolveWaterMaterialProfile(material.shaderData.material_WaterProfile?.value, false);
+  const ocean = profile === "ocean";
+  return Object.entries(material.shaderData).map(([name, entry]) => {
+    const path = Object.keys(enumFields).find((path) => property(path) === name);
+    const labels = name === "material_WaterProfile" ? profiles : path ? enumFields[path] : undefined;
+    const fallback = name.startsWith("material_WaterReflectionFallback");
+    const supported = (label: string) =>
+      !ocean ||
+      !(
+        (name === "material_Water_appearance_appearance_primaryColorClosure" && label === "physical-volume") ||
+        (name === "material_Water_appearance_appearance_refraction_normalSource" && label === "first-detail-layer")
+      );
+    const options =
+      ocean && name === "material_Water_look_reflectionSampling_highFilterSampleCount"
+        ? [
+            { label: "1", value: 1 },
+            { label: "5", value: 5 }
+          ]
+        : labels || fallback
+          ? [
+              ...(fallback ? [{ label: "None", value: -1 }] : []),
+              ...(labels ?? enumFields["reflectionPolicy.policy.preferred"]).flatMap((label, value) =>
+                supported(label) ? [{ label, value }] : []
+              )
+            ]
+          : undefined;
+    const presentation = ocean ? OCEAN_MATERIAL_PROPERTY_UI[name] : undefined;
+    const slot = WATER_MATERIAL_TEXTURE_SLOTS[profile].find((slot) => slot.slot === name);
+    return {
+      name,
+      type: entry.type,
+      value: structuredClone(entry.value),
+      label: presentation ? `water.materialFields.${presentation[1]}` : (slot?.label ?? name),
+      group: ocean ? (presentation?.[0] ?? "advanced") : slot?.group,
+      hidden: ocean && OCEAN_MATERIAL_HIDDEN_PROPERTIES.includes(name),
+      ...(presentation?.[2] ? { showIf: presentation[2] } : {}),
+      ...(options ? { options } : {}),
+      ...(ocean && OCEAN_MATERIAL_PROPERTY_RANGES[name] ? { range: OCEAN_MATERIAL_PROPERTY_RANGES[name] } : {}),
+      ...(slot ? { texture: slot } : {})
+    };
+  });
+}
+
 /** Standard Shader Editor.Properties metadata; enum storage is backed by ordinary int declarations. */
 export function waterMaterialShaderSource(source: string, material: WaterMaterialFile): string {
   const properties: string[] = [],
@@ -359,32 +404,20 @@ export function waterMaterialShaderSource(source: string, material: WaterMateria
       : []
   );
   const groupLabels = { normal: "Normal maps", caustics: "Caustics", foam: "Foam", intersection: "Intersection" };
-  const reflection = enumFields["reflectionPolicy.policy.preferred"];
-  for (const [name, entry] of Object.entries(material.shaderData)) {
-    const path = Object.keys(enumFields).find((path) => property(path) === name);
-    const options = name === "material_WaterProfile" ? profiles : path ? enumFields[path] : undefined;
-    const fallback = name.startsWith("material_WaterReflectionFallback");
-    const range = ocean ? OCEAN_MATERIAL_PROPERTY_RANGES[name] : undefined;
-    const sampleCount = ocean && name === "material_Water_look_reflectionSampling_highFilterSampleCount";
+  for (const field of waterMaterialProperties(material)) {
+    const { name } = field;
+    const entry = material.shaderData[name];
     const optionLabel = (label: string) =>
       ocean ? `water.materialOptions.${label === "None" ? "none" : label}` : label;
-    const supportedOption = (label: string) =>
-      !ocean ||
-      !(
-        (name === "material_Water_appearance_appearance_primaryColorClosure" && label === "physical-volume") ||
-        (name === "material_Water_appearance_appearance_refraction_normalSource" && label === "first-detail-layer")
-      );
-    const type = range
-      ? `Range(${range.join(", ")})`
-      : sampleCount
-        ? "Enum(1:1, 5:5)"
-        : options || fallback
-          ? `Enum(${[...(fallback ? [`${optionLabel("None")}:-1`] : []), ...(options ?? reflection).flatMap((label, index) => (supportedOption(label) ? [`${optionLabel(label)}:${index}`] : []))].join(", ")})`
-          : entry.type === "Texture"
-            ? "Texture2D"
-            : entry.type === "Integer"
-              ? "Int"
-              : entry.type;
+    const type = field.range
+      ? `Range(${field.range.join(", ")})`
+      : field.options
+        ? `Enum(${field.options.map(({ label, value }) => `${/^[0-9]+$/.test(label) ? label : optionLabel(label)}:${value}`).join(", ")})`
+        : entry.type === "Texture"
+          ? "Texture2D"
+          : entry.type === "Integer"
+            ? "Int"
+            : entry.type;
     const value = entry.value as any;
     const literal =
       entry.type === "Texture"

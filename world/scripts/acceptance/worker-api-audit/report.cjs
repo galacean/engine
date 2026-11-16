@@ -93,19 +93,7 @@ const report = {
   cases
 };
 report.branches = [
-  ...[
-    "list",
-    "get",
-    "create",
-    "update",
-    "updateMany",
-    "setEnabled-false",
-    "setEnabled-true",
-    "color-instance",
-    "color-shared",
-    "texture",
-    "remove"
-  ].map((x) => "water." + x),
+  ...require("./water-cases.cjs").map((job) => job.id),
   ...["buildHouses", "buildTower", "buildWall", "buildFence", "buildSteps"].map((x) => "building." + x)
 ].map((id) => ({ id, success: cases.some((x) => x.id === id && x.success) }));
 report.limitations = [
@@ -114,7 +102,6 @@ report.limitations = [
   "Prerequisite calls are included in scenario wall time, but only the designated tool is included in primaryMs. Receipt queries must not inherit the cost of their preceding edit.",
   "Only later runs include the last pre-operation engine frame. Earlier maximum frame gaps can underestimate a stall at the operation boundary.",
   "First/repeat read cases run in the same page; they are not independent cold-start measurements.",
-  "Water runtime cases use the shipped module type via JSDoc because the normal tools.water declaration is missing; normal entry remains broken.",
   "These are representative successful cases for each registered interface and selected operation variants, not exhaustive input/failure-path testing.",
   "Headless local development builds and instrumentation affect absolute timings; no cross-machine or production FPS claim is made."
 ];
@@ -133,8 +120,6 @@ const diagnosis = (name) => {
     return "Edit publication has main-thread spikes; inspect spans/profile instead of attributing entire wall time to the command.";
   if (name === "world.parameters.materials.apply")
     return "Material publication can have several-hundred-ms main-thread spikes.";
-  if (name === "water.author")
-    return "Normal global declaration missing. Runtime branches tested using shipped module type; see branch coverage and water cases.";
   if (["write", "edit", "delete"].includes(name))
     return "Public file path owns its own transaction. Identical write still prepares/commits/activates; no >50ms task in measured no-op runs.";
   if (name === "snapshot")
@@ -159,7 +144,7 @@ report.interfaces = tools.map((t) => {
   return {
     name: t.name,
     scope: t.scope,
-    status: t.name === "water.author" ? "runtime-tested-with-declaration-workaround" : t.status,
+    status: t.status,
     successfulCases: c.length,
     wallRangeMs: c.length ? [Math.min(...c.map((x) => x.wallMs)), m("wallMs")] : null,
     maxPrimaryRoundtripMs: m("primaryMs"),

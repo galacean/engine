@@ -1,10 +1,10 @@
 import { AssetType, Camera, DirectLight, Scene, Vector3, WebGLEngine } from "@galacean/engine";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
 import { registerNativeWater, WaterSystem } from "@galacean/engine-water/water/native/index";
-import { RuntimeEditor } from "@galacean/engine-runtime-editor/runtime-editor/runtime-editor";
+import { RuntimeNativeEditor } from "@galacean/engine-runtime-editor/runtime-editor-agent/runtime-native-editor";
+import { createWaterTestClient } from "./WaterTestClient";
 import { RuntimeProjectSession } from "@galacean/engine-runtime-editor/project/runtime-project-session";
 import { NativeWaterHost } from "@galacean/engine-world-planning/spatial/runtime/NativeWaterHost";
-import { NativeWaterEditor } from "@galacean/engine-world-planning/spatial/runtime/NativeWaterEditor";
 
 export async function openWaterEditorFixture(
   id: string,
@@ -21,7 +21,8 @@ export async function openWaterEditorFixture(
   engine.resourceManager.registerVirtualResources(await project.resources());
   const scene = await engine.resourceManager.load<Scene>({ type: AssetType.Scene, url: manifest.scene });
   engine.sceneManager.activeScene = scene;
-  const editor = new RuntimeEditor(project, scene);
+  const native = new RuntimeNativeEditor(project, scene),
+    editor = native.editor;
   const camera = scene.createRootEntity("Camera").addComponent(Camera);
   camera.entity.transform.setPosition(4, 7, 10);
   camera.entity.transform.lookAt(new Vector3(4, 0.5, 4));
@@ -29,17 +30,18 @@ export async function openWaterEditorFixture(
   const system = scene.createRootEntity("Water owner").addComponent(WaterSystem);
   system.camera = camera;
   const host = new NativeWaterHost(project, editor, system),
-    water = new NativeWaterEditor(project, editor);
+    water = createWaterTestClient(project, native);
   return {
     engine,
     canvas,
     project,
     editor,
+    native,
     system,
     water,
     host,
     async close() {
-      await water.close();
+      await project.flush();
       host.dispose();
       await system.dispose();
       editor.dispose();
