@@ -1,0 +1,377 @@
+packages/project/src/runtime-editor/project/runtime-project.ts
+  s_7fe30a98288265::t_a2133e9b936d35 1,397-401
+world/demos/seed-world/assistant/SeedWorldAgentDebug.ts
+  s_7fe30a98288265::t_df61031b30e28b 361-362
+packages/runtime-editor/src/runtime-editor/scene/runtime-scene-edit.ts
+  s_7fe30a98288265::t_2f248eb8a6b95c 41-42,48-51,53,55-57,62-88,95,125,131-139,141-148,152-156,594,602,626-629,650,693
+  s_7fe30a98288265::t_5bbfa808afa64c 52,58-61
+  s_7fe30a98288265::t_ad487b5fe26c3a 54
+  s_7fe30a98288265::t_f87dbfe3bd3df8 5-9,634-649,651-692,694,696-698
+world/demos/seed-world/src/planning/spatial/runtime/PlanningProjectSource.ts
+  s_7fe30a98288265::t_4866ebfce9d8d2 249,270
+  s_7fe30a98288265::t_31b16102bfd6b4 1,30-49,51-56,96-104,111-116
+world/tests/seed-world/PlanningSurfacePublication.spec.ts
+  s_7fe30a98288265::t_ee3bb9b9c86863 82-83,93,96-130,134,144,147,152
+  s_7fe30a98288265::t_44093540d6e43b 1-81,84-92,94-95,131-133,135-143,145-146,148-151,153-155
+world/scripts/acceptance/worker-api-audit/observe.js
+  s_7fe30a98288265::t_e6ddea4325de53 1-212
+  s_7fe30a98288265::t_5d99f22b039191 213
+packages/runtime-editor/src/project/runtime-asset-changes.ts
+  s_7fe30a98288265::t_a2133e9b936d35 1,18
+packages/world-planning/src/spatial/runtime/PlanningWaterPublication.ts
+  s_7fe30a98288265::t_8444c3be89cdb6 19-21,51-52,96-101,106-107,187-193,217-219,225,227-230,233-235,238-239,242-253,255,345-346,350-360,362-366,368-369
+  s_7fe30a98288265::t_9f10dc3b748d06 50,72-75,102-105
+  s_7fe30a98288265::t_b6fc4cfd927cc4 206,236-237,273,275-277,285-286,292-293
+  s_7fe30a98288265::t_ad487b5fe26c3a 3,23,26-28,45,63,86-87,112-114,224
+  s_7fe30a98288265::t_3ca64c7a386477 64-69
+  s_7fe30a98288265::t_5207cfbee1277c 108-109,211
+  s_7fe30a98288265::t_6cc3d4594a71c4 220-223,226,231-232,240-241,367
+packages/ai-chat/src/ai-chat/agent-project-files.ts
+  s_7fe30a98288265::t_a9ed8a580a44bb 82-84
+packages/water/src/water/native/WaterSystem.ts
+  s_7fe30a98288265::t_e0cb908bfd016e 125,149,847
+  s_7fe30a98288265::t_b044f7e0608e10 693-697,701-702
+  s_7fe30a98288265::t_0a3711ceef5810 1,977,1034,1049,1082-1083,1112-1125,1163
+world/demos/seed-world/SeedWorldDemo.ts
+  s_7fe30a98288265::t_ad487b5fe26c3a 65,1060,1836
+  s_7fe30a98288265::t_6b91472a43b200 2312,2317
+  s_7fe30a98288265::t_e4096dd046c3f2 26,1045,1049,1066-1067,1085-1094,1096-1107,1109-1130,1842-1843
+  s_7fe30a98288265::t_a9ed8a580a44bb 110
+  s_7fe30a98288265::t_38ef7acc1c0a7b 733-735,739,953-954,957-961,1041-1044,1046-1048,1050,1065,1095,1108,1841,2061-2065,2078-2079
+world/scripts/acceptance/worker-api-audit/direct-execute.js
+  s_7fe30a98288265::t_c7569482d40aa6 2,36-44,50-58,60-61
+  s_7fe30a98288265::t_55e26534c33984 59
+  s_7fe30a98288265::t_04ca525e8f413c 45-49
+  s_7fe30a98288265::t_565d3e6777f862 1,3-35
+world/tests/seed-world/SeedWorldGeneratedRockGrass.spec.ts
+  s_7fe30a98288265::t_fe44de08b57ace 298-320
+packages/world-planning/src/spatial/farming/PlanningFarmingGround.ts
+  s_7fe30a98288265::t_370a04c08c5681 12,56,67,71
+world/demos/seed-world/assistant/SeedWorldChatPanel.ts
+  s_7fe30a98288265::t_8b0e5a97854bb2 442-444,456-460,462,466-470,472-473,477-478,480-481
+  s_7fe30a98288265::t_9d45e5577519c3 463-465,471,479
+packages/terrain/src/rock-formation/GrassPatches.ts
+  s_7fe30a98288265::t_5d459a02c90d55 41,59-70,74-76,81-85,102-117,121-122,128-141,144-147,162
+packages/world-planning/src/spatial/runtime/PlanningSeedScenePublication.ts
+  s_7fe30a98288265::t_8444c3be89cdb6 381
+packages/world-planning/src/masonry/NativeBuildingHost.ts
+  s_7fe30a98288265::t_3efc0454d5ea4a 165-170,172
+world/demos/seed-world/src/planning/spatial/farming/PlanningFarmingRuntime.ts
+  s_7fe30a98288265::t_555b34752f071d 398
+world/scripts/acceptance/worker-api-audit/check-cases.cjs
+  s_7fe30a98288265::t_e6ddea4325de53 2-19,21-22,25-29,31-47
+  s_7fe30a98288265::t_07fc1f1a9b2d5c 1,20,23-24,30,48-50
+world/tests/seed-world/NativeWaterPhysicalPublication.spec.ts
+  s_7fe30a98288265::t_e9bbd9237b322d 8-15,24-25,27-28,30,34-38,40,46-48,52-56,73-74,94-98
+  s_7fe30a98288265::t_dd533198a6b5ff 1-4,6-7,16-17,22-23,26,31-33,49,51,57-72,75-93,99,107,113-115
+  s_7fe30a98288265::t_6a58996b258f68 101-103,109-110,112,116-131
+  s_7fe30a98288265::t_a80c12690dcee3 5,18-21,29,39,41-45,50,100,104-106,108,111
+packages/water/src/water/runtime/river/RiverWaterBackend.ts
+  s_7fe30a98288265::t_0a3711ceef5810 122-123,707
+  s_7fe30a98288265::t_2d729ad28bb014 659-661
+  s_7fe30a98288265::t_cc5fda591c80d3 21,27,652,656-658,662,665,705
+world/scripts/acceptance/worker-api-audit/cases.cjs
+  s_7fe30a98288265::t_e6ddea4325de53 3-143
+  s_7fe30a98288265::t_3fdd69953ed429 1-2
+world/scripts/acceptance/worker-api-audit/public-dispatch.js
+  s_7fe30a98288265::t_c7569482d40aa6 1-9
+packages/project/src/runtime-editor/project/runtime-project-inputs.ts
+  s_7fe30a98288265::t_0d7ba5236dff94 1-3,7-12,14,17,21-23,25-33,36-40,43-46,53-63,65,67-70,72-79
+  s_7fe30a98288265::t_3474335ff2aba4 4-6,13,15-16,18-20,24,34-35,41-42,47-52,64,66,71
+packages/project/package.json
+  s_7fe30a98288265::t_bbf110c42de731 34-35
+packages/world-planning/src/world/SeedWorldPhotoGraphics.ts
+  s_7fe30a98288265::t_6a6189bb36ac32 773
+  s_7fe30a98288265::t_76700bc0a8b207 5,771-772,774
+packages/runtime-editor/tests/runtime-empty-script-activation.spec.ts
+  s_7fe30a98288265::t_0d81557aa310b3 27-31
+  s_7fe30a98288265::t_86f397559636d2 1,5-22,26,32-34,38-45,82
+  s_7fe30a98288265::t_9b9d3f44dd1131 2-4,23-25,35-37,46-81
+packages/world-planning/src/spatial/runtime/PlanningNaturalVegetationRuntime.ts
+  s_7fe30a98288265::t_7b0a36b7be628a 835-841,850,1201-1202,1208,1217,1243,1247,1274,1330,1368,1405-1410,1415
+packages/project/tests/runtime-project-compiler.spec.ts
+  s_7fe30a98288265::t_b91686ce84a0f4 138-140,150-158,205
+  s_7fe30a98288265::t_9b9d3f44dd1131 117,135,149,206-230
+  s_7fe30a98288265::t_74fa29b6af70d9 2,159-204
+  s_7fe30a98288265::t_608a449bdf01c5 113
+  s_7fe30a98288265::t_1d75f40d66d868 109-112,114-116,118-134,136-137,141-148
+packages/world-planning/src/world/SeedWorldShaderWarmup.ts
+  s_7fe30a98288265::t_6a6189bb36ac32 59,159,188,243
+  s_7fe30a98288265::t_a9ed8a580a44bb 82-84,549-563
+  s_7fe30a98288265::t_d480aabf6de3af 564
+world/scripts/acceptance/worker-api-audit/engine.js
+  s_7fe30a98288265::t_e6ddea4325de53 1-58
+  s_7fe30a98288265::t_c36f23f4b90553 59
+world/scripts/acceptance/worker-api-audit/public-cases.cjs
+  s_7fe30a98288265::t_e6ddea4325de53 1-61
+packages/world-planning/src/spatial/layout/SpatialWorld.ts
+  s_7fe30a98288265::t_62563ad84be352 66-71,105,128-129,538
+  s_7fe30a98288265::t_fa10885a8b1bb7 666-667,669-670
+  s_7fe30a98288265::t_40e80434bce942 539-546,668,671-678,1251
+packages/world-planning/src/agent-adapter/SeedWorldAssetManager.ts
+  s_7fe30a98288265::t_76700bc0a8b207 13-17,45-46,48-49,51-57
+  s_7fe30a98288265::t_ee3981c3a813b0 47,50,71,234-235,314-315
+packages/project/src/runtime-editor/scene/runtime-project-compiler.ts
+  s_7fe30a98288265::t_ef9d35a72aa5d3 26,74-77
+  s_7fe30a98288265::t_5a44710b084076 248
+  s_7fe30a98288265::t_6a759ebafea9b8 296-297,311-313
+  s_7fe30a98288265::t_5907863bb304d6 9-21,28-29,36-64,68-70,78,82,86-111,117,128,174
+  s_7fe30a98288265::t_9b9d3f44dd1131 22-25,27,65-67,72-73,79-81,83-85,187,241-247,260-262,264-265,267-274
+  s_7fe30a98288265::t_d1e323bb78c4d9 254-259,263,266,282-287,299,314,316
+  s_7fe30a98288265::t_fb526876cdd291 71,185-186,188,276-277,281,304
+packages/world-planning/src/spatial/PlanningSession.ts
+  s_7fe30a98288265::t_0a3711ceef5810 1,401
+packages/water/src/water/native/WaterBodyComponent.ts
+  s_7fe30a98288265::t_60e24bee37a9f4 99-103,170,237-250,257,265-268,270-271,275,277-278,280-281,622
+  s_7fe30a98288265::t_c39c59aaadf563 530,545
+  s_7fe30a98288265::t_b044f7e0608e10 251-256,258-264
+packages/world-planning/src/spatial/PlanningRenderState.ts
+  s_7fe30a98288265::t_0a3711ceef5810 1-18,21-23,25
+  s_7fe30a98288265::t_131553a94c1181 19-20
+  s_7fe30a98288265::t_89415b5f5d6682 24
+packages/farming/src/farming/presentation/FarmingWorldPresentation.ts
+  s_7fe30a98288265::t_98d051b60a59ea 190-191
+  s_7fe30a98288265::t_1110580bde8e54 192
+packages/farming/src/farming/presentation/FarmItemPresentation.ts
+  s_7fe30a98288265::t_98d051b60a59ea 581,584
+  s_7fe30a98288265::t_197a3b12369239 32-36,55-56,81,109-110,169-170,176-191,224,231,281-283,290-316,358
+packages/world-planning/src/semantic-study/WorldPlanningTerrain.ts
+  s_7fe30a98288265::t_62563ad84be352 469-473,477-478,870,883,893-898,918-919,977,1040-1052
+  s_7fe30a98288265::t_b035f3e54b5644 1053-1059
+world/demos/seed-world/src/planning/spatial/runtime/PlanningSeedWorldSession.ts
+  s_7fe30a98288265::t_16f9a1f192642d 93,267,277-280
+  s_7fe30a98288265::t_6b91472a43b200 253-255,266,269-276,282,286
+packages/water/tests/WaterStandaloneLifecycle.test.ts
+  s_7fe30a98288265::t_e3345dabde20ee 373-425,427-467
+  s_7fe30a98288265::t_d56805b199ea01 426
+packages/farming/src/farming/domain/rules/FarmItemRules.ts
+  s_7fe30a98288265::t_555b34752f071d 36,77,322-324
+world/scripts/acceptance/worker-api-audit/run.cjs
+  s_7fe30a98288265::t_721e0c51cbfaa3 166
+  s_7fe30a98288265::t_e6ddea4325de53 1-25,27-165,167-213,217-321
+  s_7fe30a98288265::t_2a155bc2d5b036 214-216
+  s_7fe30a98288265::t_d587f893596ef5 26
+packages/farming/src/farming/domain/FarmingGround.ts
+  s_7fe30a98288265::t_555b34752f071d 60-62
+world/scripts/acceptance/worker-api-audit/farming-cases.cjs
+  s_7fe30a98288265::t_e6ddea4325de53 1-88,90-138
+  s_7fe30a98288265::t_0d5acff197104f 89
+world/demos/seed-world/assistant/SeedWorldVoiceHudShaders.ts
+  s_7fe30a98288265::t_a9ed8a580a44bb 33,37-42
+packages/project/src/runtime-editor/project/runtime-project-content.ts
+  s_7fe30a98288265::t_a2133e9b936d35 1-7,18-24
+  s_7fe30a98288265::t_17accb5a55af33 8-17
+packages/project/tests/runtime-project-inputs.spec.ts
+  s_7fe30a98288265::t_8fc3a4298b017b 75-90
+  s_7fe30a98288265::t_da7c038e2c1d69 1-34,36-37,39-74
+  s_7fe30a98288265::t_5a44710b084076 38
+  s_7fe30a98288265::t_c25637550b34b0 35
+packages/project/src/runtime-editor/project/runtime-project-edit.ts
+  s_7fe30a98288265::t_a2133e9b936d35 2,104-114,425
+  s_7fe30a98288265::t_e32f8a73aa7ab8 1
+world/tests/seed-world/SeedWorldAssistantPreparation.spec.ts
+  s_7fe30a98288265::t_3242a4a73917af 1-23,30-49
+  s_7fe30a98288265::t_3bb65d28aa9957 24-29
+world/scripts/acceptance/worker-api-audit/native-cases.cjs
+  s_7fe30a98288265::t_e6ddea4325de53 1-112
+world/scripts/acceptance/worker-api-audit/instrument.cjs
+  s_7fe30a98288265::t_e6ddea4325de53 1-134
+world/tests/seed-world/PlanningSurfaceSolids.spec.ts
+  s_7fe30a98288265::t_fe44de08b57ace 1-9,11-57,59,66-67
+  s_7fe30a98288265::t_5d37bf69ef5611 10,58,60-65
+packages/world-planning/package.json
+  s_7fe30a98288265::t_0a3711ceef5810 394
+  s_7fe30a98288265::t_3ddb48bc852b69 290,374
+packages/runtime-editor/src/project/runtime-project-session.ts
+  s_7fe30a98288265::t_d1e323bb78c4d9 542-543
+  s_7fe30a98288265::t_eb1feeb34eadd8 539-541
+  s_7fe30a98288265::t_0d5131e5a3ca3d 1,14,454-456,815,833,836
+packages/water/src/water/runtime/body/WaterBodyLoader.ts
+  s_7fe30a98288265::t_b6fc4cfd927cc4 908-909,913-915
+  s_7fe30a98288265::t_bca90fe91cc4bd 907,916
+world/scripts/acceptance/worker-api-audit/water-cases.cjs
+  s_7fe30a98288265::t_e2a6aa6fd67877 8-9,51-56
+  s_7fe30a98288265::t_e6ddea4325de53 3-7,10-50,57-63
+  s_7fe30a98288265::t_8b6c7ca9b28f9d 1-2
+packages/world-planning/src/spatial/runtime/PlanningSurfaceSolids.ts
+  s_7fe30a98288265::t_5a49d5b302542a 38-42,49-53
+  s_7fe30a98288265::t_fe0bc38be7e598 1-37,43-48,54-56
+packages/ai-chat/src/ai-chat/AgentChecker.worker.ts
+  s_7fe30a98288265::t_717a0d4e9ae408 1,9-12
+packages/ai-chat/src/ai-chat/agent-script-preflight.ts
+  s_7fe30a98288265::t_717a0d4e9ae408 1-18
+packages/farming/src/farming/presentation/PlantPresenter.ts
+  s_7fe30a98288265::t_aef8e5f6935e85 46-47,261-270
+  s_7fe30a98288265::t_7d7068187bc0d6 117,271
+packages/world-planning/src/semantic-study/WorldPlanningGeometry.ts
+  s_7fe30a98288265::t_370a04c08c5681 2,35-65,73
+  s_7fe30a98288265::t_0f7aa128d675b1 66-72,74-77
+world/scripts/acceptance/worker-api-audit/suites.cjs
+  s_7fe30a98288265::t_e2a6aa6fd67877 13-16
+  s_7fe30a98288265::t_d0dab68cd59f92 1-12,17-26
+packages/world-planning/src/spatial/layout/VolumeTerrain.ts
+  s_7fe30a98288265::t_62563ad84be352 4-6,28-29
+  s_7fe30a98288265::t_fa2e071e892ebf 30-33
+world/tests/seed-world/SpatialWaterDependencies.spec.ts
+  s_7fe30a98288265::t_d917da4628f28b 80-229
+  s_7fe30a98288265::t_f00722d4207765 1-59
+  s_7fe30a98288265::t_c2727c40c39cf9 60-62,77-79
+packages/water/src/water/compiler/shared/determinism.ts
+  s_7fe30a98288265::t_b6fc4cfd927cc4 89-111,128,136-137,199
+  s_7fe30a98288265::t_00ac91a83b44f9 79-88,112-127,129-135,138-154,177-198,200-225
+world/tests/seed-world/PlanningWaterRequestReuse.spec.ts
+  s_7fe30a98288265::t_e9faee94ac6747 52-56
+  s_7fe30a98288265::t_4ebe8b879121e3 1-8,20-25,43-47,64-65,71,73,75-78,85,87,89,91,93-95,102,104
+  s_7fe30a98288265::t_7b82d380069533 9-19,26-28,30-35,40-42,48-51,57-63,67-68,80-81,97-98
+  s_7fe30a98288265::t_c0163504bac081 29,36-39,66,69-70,72,74,79,82-84,86,88,90,92,96,99-101,103
+world/tests/seed-world/SeedWorldStartupShaderWarmup.spec.ts
+  s_7fe30a98288265::t_6b91472a43b200 80
+  s_7fe30a98288265::t_d90d73156820cd 81,109
+  s_7fe30a98288265::t_ba09a910f09ab2 39
+  s_7fe30a98288265::t_db8a6ead8e9300 74-79,107
+packages/world-planning/src/runtime/SeedWorldPopulationRuntime.ts
+  s_7fe30a98288265::t_3efc0454d5ea4a 1504-1508,1540-1542,1550-1561,1564-1568,1571
+world/tests/seed-world/SeedWorldAgentApplication.spec.ts
+  s_7fe30a98288265::t_665258d5c30533 1437-1457
+packages/world-planning/src/spatial/layout/SpatialWaterDependencies.ts
+  s_7fe30a98288265::t_62563ad84be352 2,5-10,19-31
+  s_7fe30a98288265::t_c1d5264e0b3a66 1,3-4,13,15-18,32-35
+  s_7fe30a98288265::t_84305fa636ec8b 11-12
+  s_7fe30a98288265::t_dbe59445392bb7 14
+world/tests/seed-world/PlanningSeedScenePublication.spec.ts
+  s_7fe30a98288265::t_7c94038b20f6c6 1380,1391-1398
+  s_7fe30a98288265::t_a7b07e09b7c7e6 1712-1732
+world/scripts/acceptance/worker-api-audit/render-report.cjs
+  s_7fe30a98288265::t_e2a6aa6fd67877 9-14,16-21,26,29
+  s_7fe30a98288265::t_d0dab68cd59f92 1-8,15,22-25,27-28,30-32
+packages/project/src/runtime-editor/project/runtime-project-dependencies.ts
+  s_7fe30a98288265::t_a2133e9b936d35 1,96,125,156,172,198-201,261-262
+  s_7fe30a98288265::t_eb1feeb34eadd8 267-269
+packages/world-planning/src/geometry/V2Geometry.ts
+  s_7fe30a98288265::t_370a04c08c5681 51-74,78-90,93-97,99-103,106-114
+  s_7fe30a98288265::t_d10aa08ea1fa0e 98
+packages/runtime-editor/tests/runtime-projection-reuse.spec.ts
+  s_7fe30a98288265::t_b91686ce84a0f4 4,53,55,60,64,67,72,76,79,82,84-98
+  s_7fe30a98288265::t_12788227b5750b 1-3,5-52,54,56-59,61-63,65-66,68-71,73-75,77-78,80-81,83
+world/tests/seed-world/SeedWorldRendererWarmup.spec.ts
+  s_7fe30a98288265::t_ba09a910f09ab2 66-74
+  s_7fe30a98288265::t_d90d73156820cd 2,50-65,75-77
+packages/world-planning/src/spatial/runtime/PlanningWaterRuntime.ts
+  s_7fe30a98288265::t_60e24bee37a9f4 807,814
+  s_7fe30a98288265::t_e0cb908bfd016e 317
+  s_7fe30a98288265::t_6a58996b258f68 751-758
+  s_7fe30a98288265::t_bf1f0e0a72b517 37,129,279-280,285,689,735,741-745,747-750,759-760,886-887
+  s_7fe30a98288265::t_97177a038a6479 1,287,830
+packages/project/tests/project-file-namespace.spec.ts
+  s_7fe30a98288265::t_d56805b199ea01 1-47
+packages/world-planning/src/spatial/runtime/NativeWaterHost.ts
+  s_7fe30a98288265::t_9c3d46771539d7 24-36
+  s_7fe30a98288265::t_4dcce735a81ec9 174
+  s_7fe30a98288265::t_bf1f0e0a72b517 60-63
+  s_7fe30a98288265::t_60e24bee37a9f4 58-59
+  s_7fe30a98288265::t_eeab8035fe4482 37,42,64,72,85,98-111,113-126,128,130-135,137-173,176,178-189
+packages/ai-chat/src/ai-chat/agent-loop.ts
+  s_7fe30a98288265::t_8b0e5a97854bb2 704
+  s_7fe30a98288265::t_717a0d4e9ae408 21,710-716,1600-1612
+packages/runtime-editor/src/runtime-editor/scripts/runtime-project-scripts.ts
+  s_7fe30a98288265::t_d1e323bb78c4d9 11-14,18-19,21-35,45-50,53
+  s_7fe30a98288265::t_9b9d3f44dd1131 36-44
+world/tests/seed-world/PlanningProjectInputs.spec.ts
+  s_7fe30a98288265::t_5a44710b084076 36-39,41,82-83,85,108-109,111
+  s_7fe30a98288265::t_45262bdf9c25f3 1-35,40,42-77,91,95,98,106,124
+  s_7fe30a98288265::t_88eb8c5c55f2a1 78-81,84,86-90,92-94,96-97,99-105,107,110,112-123
+packages/project/src/project-files/virtual-project-files.ts
+  s_7fe30a98288265::t_d56805b199ea01 56,401-407
+  s_7fe30a98288265::t_7fd207e8ffc02d 55,57,173-176,181
+packages/ai-chat/tests/agent-worker-preflight.spec.ts
+  s_7fe30a98288265::t_38e40d4cfca09d 115
+  s_7fe30a98288265::t_5bfb0cc620f4cc 1-98,100-114,116-125,136
+  s_7fe30a98288265::t_d4061b58ff219f 99
+  s_7fe30a98288265::t_2e820983344e1e 126-135
+packages/ai-chat/src/ai-chat/agent-worker-checker.ts
+  s_7fe30a98288265::t_717a0d4e9ae408 7-8,11,35-42,79
+packages/runtime-editor/tests/runtime-prefab-edit.spec.ts
+  s_7fe30a98288265::t_ee3bb9b9c86863 533,535,545,550,552-562,573,582
+  s_7fe30a98288265::t_d30e548d6321fe 502-532,534,536-544,546-549,551,563-572,574-581,583
+world/scripts/acceptance/worker-api-audit/report.cjs
+  s_7fe30a98288265::t_abeecb5a464292 155,171
+  s_7fe30a98288265::t_e6ddea4325de53 1-154,156-170,172-212
+world/scripts/acceptance/worker-api-audit/world-cases.cjs
+  s_7fe30a98288265::t_e6ddea4325de53 1-63,65-125
+  s_7fe30a98288265::t_db2aa58f872e93 64
+packages/farming/src/farming/procedural/runtime/preparePlantShaderPrograms.ts
+  s_7fe30a98288265::t_5a49d5b302542a 120-122
+  s_7fe30a98288265::t_aef8e5f6935e85 11,39-40,67,86-90,94-96,147-159
+  s_7fe30a98288265::t_7f1f1c9f4ac58e 97-98
+  s_7fe30a98288265::t_39bf88c44a3f2e 160-162
+packages/runtime-editor/src/project/runtime-project-history.ts
+  s_7fe30a98288265::t_a2133e9b936d35 1,140
+packages/terrain/src/terrain/clipmap/TerrainPreparedUpdate.ts
+  s_7fe30a98288265::t_b6fc4cfd927cc4 44-54,56-63
+packages/farming/tests/native/FarmingGroundPublication.spec.ts
+  s_7fe30a98288265::t_8967bfebb3e734 1-126
+packages/runtime-editor/src/runtime-editor/runtime-edit-work.ts
+  s_7fe30a98288265::t_5d0dcf6c764f5e 1-35
+packages/runtime-editor/src/runtime-editor/runtime-editor.ts
+  s_7fe30a98288265::t_ea66c8535a705d 1-5,13,69,91-94,96,108,113,115,137,154,157,173-174,285-286,290-293,304-305,307-309,311,317,322,325-326,338
+packages/runtime-editor/src/runtime-editor/scene/runtime-scene-projection.ts
+  s_7fe30a98288265::t_0640f843701cca 1,60,71,252-258,648,652-693
+packages/runtime-editor/tests/runtime-edit-work.spec.ts
+  s_7fe30a98288265::t_0c06594bff3d0f 1-52
+packages/runtime-editor/tests/runtime-preparation.spec.ts
+  s_7fe30a98288265::t_dfb70c8578df41 50-96
+packages/water/src/water/authoring/river/RiverPhysicalSourceIdentity.ts
+  s_7fe30a98288265::t_0a7a1578308216 1,5,14,47-57
+packages/water/src/water/authoring/river/RiverWaterBodyAuthoring.ts
+  s_7fe30a98288265::t_02a3e8aadd011d 42,287,367,369-370,373-395
+packages/water/src/water/compiler/river/RiverCompileWorker.ts
+  s_7fe30a98288265::t_052ec4c1dfb66a 28
+packages/water/src/water/runtime/body/WaterBackendRegistry.ts
+  s_7fe30a98288265::t_123b72a2641c7a 202,211
+packages/world-planning/src/runtime/SeedWorldSurfaceRelief.ts
+  s_7fe30a98288265::t_c7f19a0dfb193d 77,136-200
+packages/world-planning/src/runtime/SeedWorldSurfaceReliefRuntime.ts
+  s_7fe30a98288265::t_4ea94ef4d6f6a8 22-24,40,53-56,174-178,183-208,237-243,255,261
+packages/world-planning/src/runtime/SeedWorldTerrainRuntime.ts
+  s_7fe30a98288265::t_f71cbbffe778dc 1,937-938,961
+packages/world-planning/src/semantic-study/PlanningRaster.worker.ts
+  s_7fe30a98288265::t_d89aef46b5bfdc 1,21,50-53,55-64
+packages/world-planning/src/semantic-study/PlanningRasterClient.ts
+  s_7fe30a98288265::t_fb65acb1e77fd1 1,12,29-34,36-43,51-57,60,64,86,129
+world/tests/seed-world/FarmItemShaderPreparation.spec.ts
+  s_7fe30a98288265::t_5676b09b8adc19 1-96
+world/tests/seed-world/PlanningRenderState.spec.ts
+  s_7fe30a98288265::t_5988a23aec3fe6 1-47
+world/tests/seed-world/PreparedPolygonOverlap.spec.ts
+  s_7fe30a98288265::t_68f44a6d4b11b9 1-93
+world/tests/seed-world/RiverWorkerPublication.spec.ts
+  s_7fe30a98288265::t_c11e62beddd0f5 1-76
+world/tests/seed-world/SeedWorldPhotoExportReadiness.spec.ts
+  s_7fe30a98288265::t_70ae4b1e59967c 1-122
+world/tests/seed-world/SeedWorldVoiceHudController.spec.ts
+  s_7fe30a98288265::t_d4258c207152e5 889,935-981
+world/tests/seed-world/SurfaceReliefPreparation.spec.ts
+  s_7fe30a98288265::t_fb8605d5589bcd 1-71
+world/tests/seed-world/TerrainPreparedUpdate.spec.ts
+  s_7fe30a98288265::t_d43230703433dd 284-309
+world/tests/seed-world/WaterAsyncIdentityLifetime.spec.ts
+  s_7fe30a98288265::t_61073ec86fb02b 1-44
+world/tests/seed-world/WaterIncrementalIdentity.spec.ts
+  s_7fe30a98288265::t_3ee83d82b80419 1-88
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "c0d2f934d73e4dde9c0fb330e99e1cbaafc8bbef",
+  "prompts": {},
+  "sessions": {
+    "s_7fe30a98288265": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1d456-3277-7a31-a653-8428bd196f06",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

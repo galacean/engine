@@ -1,0 +1,14 @@
+tests/src/core/material/PBRAnisotropy.test.ts
+  h_a3c79ce84ffdc2 75,77-83,85
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "34a2e9c8fcca34f54743c6f9108f2691fb5a263b",
+  "prompts": {},
+  "humans": {
+    "h_a3c79ce84ffdc2": {
+      "author": "星翊 <sunmingming.smm@antgroup.com>"
+    }
+  }
+}
