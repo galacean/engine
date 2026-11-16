@@ -10,7 +10,7 @@ import { TextureUsage } from "./enums/TextureUsage";
 import { TextureWrapMode } from "./enums/TextureWrapMode";
 
 /**
- * The base class of texture, contains some common functions of texture-related classes.
+ * Base class for textures, holding format, base dimensions, mipmap count, and sampler state.
  */
 export abstract class Texture extends GraphicsResource {
   name: string;
@@ -39,35 +39,35 @@ export abstract class Texture extends GraphicsResource {
   private _useDepthCompareMode: boolean = false;
 
   /**
-   * Whether the texture data is in sRGB color space, otherwise is linear color space.
+   * Whether texels are stored in sRGB rather than linear color space.
    */
   get isSRGBColorSpace() {
     return this._isSRGBColorSpace;
   }
 
   /**
-   * Texture format.
+   * Pixel storage format of the texture.
    */
   get format(): TextureFormat {
     return this._format;
   }
 
   /**
-   * The width of the texture.
+   * Width of mip level `0`, in pixels.
    */
   get width(): number {
     return this._width;
   }
 
   /**
-   * The height of the texture.
+   * Height of mip level `0`, in pixels.
    */
   get height(): number {
     return this._height;
   }
 
   /**
-   * The usage of the texture.
+   * Upload frequency hint for the texture.
    */
   get usage(): TextureUsage {
     return this._usage;
@@ -102,14 +102,15 @@ export abstract class Texture extends GraphicsResource {
   }
 
   /**
-   * Texture mipmapping count.
+   * Number of mip levels; `1` when mipmapping is disabled.
    */
   get mipmapCount(): number {
     return this._mipmapCount;
   }
 
   /**
-   * Filter mode for texture.
+   * Sampling filter mode.
+   * @remarks Integer formats (`TextureFormat.R32G32B32A32_UInt`) only accept `TextureFilterMode.Point`; other modes log a warning and are ignored.
    */
   get filterMode(): TextureFilterMode {
     return this._filterMode;
@@ -166,6 +167,16 @@ export abstract class Texture extends GraphicsResource {
     }
   }
 
+  /**
+   * Initialize base texture metadata and validate format support.
+   * @param engine - Owning engine instance
+   * @param width - Width of mip level `0` in pixels
+   * @param height - Height of mip level `0` in pixels
+   * @param format - Pixel storage format
+   * @param mipmap - Whether to allocate a full mip chain down to `1x1`
+   * @param isSRGBColorSpace - Whether texels use sRGB rather than linear encoding
+   * @throws If `format` is not supported by `engine`.
+   */
   constructor(
     engine: Engine,
     width: number,
@@ -190,7 +201,7 @@ export abstract class Texture extends GraphicsResource {
   }
 
   /**
-   * Generate multi-level textures based on the 0th level data.
+   * Regenerate mip levels `1..mipmapCount - 1` from mip level `0`. No-op if mipmapping is disabled.
    */
   generateMipmaps(): void {
     if (!this._mipmap) return;
@@ -234,7 +245,7 @@ export abstract class Texture extends GraphicsResource {
   }
 
   /**
-   * Get the maximum mip level of the corresponding size:rounding down.
+   * Maximum 0-based mip level for a dimension of `size` pixels, rounding down.
    * @remarks http://download.nvidia.com/developer/Papers/2005/NP2_Mipmapping/NP2_Mipmap_Creation.pdf
    */
   protected _getMaxMiplevel(size: number): number {
