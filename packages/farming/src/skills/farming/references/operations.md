@@ -127,7 +127,7 @@ unloadBasket 要求携带指定的非空篮子。可选的 containerId 只作触
 - 马车作物存入已有的兼容马车，允许混存和超出显示容量，不会因装满自动增车。没有马车时返回 NO_STORAGE_SPACE，要先用 setContainerCount 手动添加。默认只有一辆马车。
 - 仓储篮子保持单作物和硬容量。先填同作物设施，再填兼容的空设施，不够时自动新建。
 - 返回 basket-unloaded.allocations，含 cropId、itemId、quantity、containerId、created。
-- 全部分配和清空手持篮子在一次持久事务中提交。任一作物分配或保存失败时，整体拒绝。卸货后仍携带空篮。
+- 全部分配和清空手持篮子在同一领域事务中提交。任一作物分配或提交失败时，整体拒绝。操作成功后仍携带空篮，后台保存状态由宿主管理。
 
 固定设施不可拾取。靠近设施、放下篮子或继续收获都不会触发卸货。表现层只使用已确认的状态，不持有库存。
 
@@ -142,7 +142,7 @@ withdrawInventory 同时扣减可见和超额库存，空设施回收至保留�
 
 外部系统和调试面板通过 damageCrop 提交 farmId、plotId、cropInstanceId、正整数 damagePermille 和 source。来源 animal 只表示归因，不依赖动物加载。伤害可以超过 1000，按剩余健康截断。这不是玩家农具动作。
 
-返回 receipt 和 damage（健康前后、实际伤害、派生状态）。保留完整的返回 request。存储失败时，用 `error.details.retryRequest` 原样重试。同一 commandId 改参数会被拒绝。实例已变（CROP_INSTANCE_CHANGED、CROP_NOT_FOUND）或版本过期（VERSION_CONFLICT）时，不得改为攻击新实例。
+返回 receipt 和 damage（健康前后、实际伤害、派生状态）。保留完整的返回 request。命令返回 STORAGE_FAILURE 时，用 `error.result.error.details.retryRequest` 原样重试。同一 commandId 改参数会被拒绝。实例已变（CROP_INSTANCE_CHANGED、CROP_NOT_FOUND）或版本过期（VERSION_CONFLICT）时，不得改为攻击新实例。
 
 健康降至 0 时，伤害和作物移除在同一事务提交：释放耕地，恢复已锄状态，没有收获产物，无论是否成熟。用 receipt、verify 和 getPlot 的 `crop=null` 核验。重放原 commandId 返回原回执。清理后新的伤害请求返回 CROP_NOT_FOUND，重新播种后旧实例的请求返回 CROP_INSTANCE_CHANGED。
 

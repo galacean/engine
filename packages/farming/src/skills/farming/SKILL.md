@@ -43,7 +43,9 @@ return await Promise.all(systems.map(async system => ({
 
 业务方法的参数要包含 farmId。成功返回 `{ok:true, value, context?}`。失败抛出结构化错误，证据在捕获错误的 `result.error` 中。先用 get 和 capabilities 读取状态和能力，用 getCatalog 读取真实的种子和作物定义。
 
-写操作的即时回执在 `result.value.receipt`，版本字段是 `revision`。verify 的已保存回执也在 `result.value.receipt`，版本字段是 `committedRevision`，未找到时为 null。两者结构不同。
+查询成功表示读取成功；写操作成功表示操作已完成，结果已提交到当前状态，不代表工程后台保存完成。后台保存状态由宿主管理。
+
+写操作的即时回执在 `result.value.receipt`，版本字段是 `revision`。verify 的已提交回执也在 `result.value.receipt`，版本字段是 `committedRevision`。未提供 commandId 时回执为 null；指定 commandId 未找到时返回 NOT_FOUND。两者结构不同。
 
 写命令独立提交。传入 `{commandId, expectedRevision?, expectedGroundRevision?}` 可以做幂等重试和版本校验。
 
@@ -67,10 +69,10 @@ if (!actions.some(action => action.action === "irrigate" && action.enabled)) {
   return {plotId, actions};
 }
 const {receipt} = (await system.irrigate({farmId, plotId})).value;
-const saved = (await system.verify({farmId, commandId: receipt.commandId})).value;
+const verified = (await system.verify({farmId, commandId: receipt.commandId})).value;
 const moisture = (await system.getFieldValues({farmId, fieldId: "soilMoisture", plotIds: [plotId]})).value;
 return {plotId, commandId: receipt.commandId, revision: receipt.revision,
-  savedRevision: saved.receipt?.committedRevision, moisture};
+  committedRevision: verified.receipt?.committedRevision, moisture};
 ```
 
 ## 能力范围
