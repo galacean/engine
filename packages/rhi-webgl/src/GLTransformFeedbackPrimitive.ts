@@ -1,6 +1,7 @@
 import type { IPlatformTransformFeedbackPrimitive, VertexBufferBinding, VertexElement } from "@galacean/engine-core";
 import type { IPlatformShaderProgram } from "@galacean/engine-design";
 import type { GLBuffer } from "./GLBuffer";
+import type { WebGLGraphicDevice } from "./WebGLGraphicDevice";
 
 /**
  * @internal
@@ -8,14 +9,16 @@ import type { GLBuffer } from "./GLBuffer";
  * Maintains two VAOs (one per read direction), rebuilding when the program or input bindings change.
  */
 export class GLTransformFeedbackPrimitive implements IPlatformTransformFeedbackPrimitive {
+  private readonly _rhi: WebGLGraphicDevice;
   private readonly _gl: WebGL2RenderingContext;
   private _vaoA: WebGLVertexArrayObject | null;
   private _vaoB: WebGLVertexArrayObject | null;
   private _lastProgramId = -1;
   private readonly _lastInputBindings: VertexBufferBinding[] = [];
 
-  constructor(gl: WebGL2RenderingContext) {
-    this._gl = gl;
+  constructor(rhi: WebGLGraphicDevice) {
+    this._rhi = rhi;
+    this._gl = rhi.gl as WebGL2RenderingContext;
   }
 
   bind(
@@ -53,13 +56,13 @@ export class GLTransformFeedbackPrimitive implements IPlatformTransformFeedbackP
         lastInputBindings[i] = inputBindings[i];
       }
 
-      this._gl.bindVertexArray(null);
+      this._rhi._bindVertexArray(null);
     }
-    this._gl.bindVertexArray(readIsA ? this._vaoA : this._vaoB);
+    this._rhi._bindVertexArray(readIsA ? this._vaoA : this._vaoB);
   }
 
   unbind(): void {
-    this._gl.bindVertexArray(null);
+    this._rhi._bindVertexArray(null);
   }
 
   draw(mode: number, first: number, count: number): void {
@@ -77,10 +80,12 @@ export class GLTransformFeedbackPrimitive implements IPlatformTransformFeedbackP
   private _deleteVAOs(): void {
     const gl = this._gl;
     if (this._vaoA) {
+      if (this._rhi._currentBindVAO === this._vaoA) this._rhi._bindVertexArray(null);
       gl.deleteVertexArray(this._vaoA);
       this._vaoA = null;
     }
     if (this._vaoB) {
+      if (this._rhi._currentBindVAO === this._vaoB) this._rhi._bindVertexArray(null);
       gl.deleteVertexArray(this._vaoB);
       this._vaoB = null;
     }
@@ -97,7 +102,7 @@ export class GLTransformFeedbackPrimitive implements IPlatformTransformFeedbackP
   ): WebGLVertexArrayObject | null {
     const gl = this._gl;
     const vao = gl.createVertexArray();
-    gl.bindVertexArray(vao);
+    this._rhi._bindVertexArray(vao);
 
     gl.bindBuffer(gl.ARRAY_BUFFER, (<GLBuffer>feedbackBinding.buffer._platformBuffer)._glBuffer);
     for (let i = 0, n = feedbackElements.length; i < n; i++) {

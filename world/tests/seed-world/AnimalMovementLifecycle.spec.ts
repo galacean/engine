@@ -608,3 +608,36 @@ it("crowd snapshots exclude the subject but retain other bodies and reservations
   expect(query.canTraverse([3, 0], [5, 0])).toBe(false);
   expect(query.canTraverse([7, 0], [9, 0])).toBe(false);
 });
+
+it("keeps copy-on-write crowd snapshots isolated across incremental mutations", () => {
+  const crowd = new GroundAnimalCrowd();
+  const makeBody = (x: number, z: number): GroundAnimalBody => ({
+    motion: { x, z, heading: 0, speed: 1, angularSpeed: 0 },
+    radius: 0.5,
+    bodyLength: 1,
+    desiredSpeed: 1,
+    target: [x + 4, z],
+    arrived: false,
+    blocked: false,
+    active: true
+  });
+  const self = makeBody(0, 0);
+  const peer = makeBody(10, 0);
+  crowd.add(self);
+  crowd.add(peer);
+  crowd.reserve(peer, 12, 0);
+
+  const snapBefore = crowd.routeQuery(self, undefined, undefined, true);
+  // Mutate peer position & reservation via relocate and advance.
+  crowd.relocate(peer, 20, 0, 0);
+  crowd.reserve(peer, 22, 0);
+  crowd.advance(1 / 60);
+  const snapAfter = crowd.routeQuery(self, undefined, undefined, true);
+  crowd.remove(peer);
+
+  // Original snapshot still sees peer at 10 and reservation at 12; second snapshot sees relocated peer at 20.
+  expect(snapBefore.canTraverse([9, 0], [11, 0])).toBe(false);
+  expect(snapBefore.canTraverse([19, 0], [21, 0])).toBe(true);
+  expect(snapAfter.canTraverse([9, 0], [11, 0])).toBe(true);
+  expect(snapAfter.canTraverse([19, 0], [21, 0])).toBe(false);
+});

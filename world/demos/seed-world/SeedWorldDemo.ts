@@ -780,6 +780,8 @@ export async function mountSeedWorldDemo(
     const windCenter = new Vector3();
     const driver = root.addComponent(SeedDemoFrame);
     let debugReadoutElapsed = 0;
+    let lastDatasetPublication: unknown;
+    const debugDatasetEnabled = pageUrl.searchParams.get("debug") === "1";
     function visitCurrentPickBatches(visitor: SeedWorldPickVisitor): void {
       const current = publication?.current;
       if (current && water) visitPlanningWorldPickBatches(current, water, visitor);
@@ -805,8 +807,13 @@ export async function mountSeedWorldDemo(
         runtimeDebug?.refresh();
         debugReadoutElapsed = 0;
         const current = publication?.current;
-        if (current?.vegetation) canvas.dataset.vegetation = JSON.stringify(current.vegetation.getDiagnostics());
-        if (current?.template && pageUrl.searchParams.get("debug") === "1") {
+        if (debugDatasetEnabled || current !== lastDatasetPublication) {
+          lastDatasetPublication = current;
+          if (current?.vegetation) canvas.dataset.vegetation = JSON.stringify(current.vegetation.getDiagnostics());
+          if (current) canvas.dataset.grassHeight = JSON.stringify(current.world.population.grassHeightRangeMetres);
+          if (current?.masonry) canvas.dataset.plannedMasonry = JSON.stringify(current.masonry.metrics);
+        }
+        if (current?.template && debugDatasetEnabled) {
           const forward = camera.entity.transform.worldForward;
           canvas.dataset.templateCamera = JSON.stringify({
             eye: [position.x, position.y, position.z],
@@ -816,10 +823,6 @@ export async function mountSeedWorldDemo(
             groundClearance: navigation.groundClearance
           });
         }
-        if (current) canvas.dataset.grassHeight = JSON.stringify(current.world.population.grassHeightRangeMetres);
-
-        if (publication?.current?.masonry)
-          canvas.dataset.plannedMasonry = JSON.stringify(publication.current.masonry.metrics);
       }
     };
     let appliedSubjectViewKey: string | undefined;

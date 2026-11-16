@@ -92,11 +92,125 @@ export async function prepareWaterMaterial(material: Material, signal?: AbortSig
   waterMaterialTextures(material);
 }
 
+interface WaterMaterialTextureSlotSnapshot {
+  texture: Texture2D | null;
+  width: number;
+  height: number;
+  format: number;
+  isSRGBColorSpace: boolean;
+  mipmapCount: number;
+  wrapModeU: number;
+  wrapModeV: number;
+  filterMode: number;
+  anisoLevel: number;
+}
+
+type WaterMaterialSlotProfile = keyof typeof WATER_MATERIAL_TEXTURE_SLOTS;
+
+export interface WaterMaterialTextureKeyCache {
+  material?: Material;
+  profileIndex: number;
+  riverDrops: number;
+  profile: WaterMaterialSlotProfile;
+  slots: WaterMaterialTextureSlotSnapshot[];
+  key: string | undefined;
+}
+
+function isWaterTextureSnapshotMatch(cache: WaterMaterialTextureKeyCache, material?: Material): boolean {
+  if (!material) return cache.material === undefined;
+  if (cache.material !== material || material.destroyed) return false;
+  const data = material.shaderData;
+  if (
+    data.getInt("material_WaterProfile") !== cache.profileIndex ||
+    data.getInt("material_WaterRiverDrops") !== cache.riverDrops
+  )
+    return false;
+  const defs = WATER_MATERIAL_TEXTURE_SLOTS[cache.profile];
+  if (defs.length !== cache.slots.length) return false;
+  for (let i = 0; i < defs.length; i++) {
+    const tex = data.getTexture(defs[i].slot) ?? null;
+    const entry = cache.slots[i];
+    if (tex !== entry.texture) return false;
+    if (tex !== null) {
+      if (
+        tex.destroyed ||
+        tex.width !== entry.width ||
+        tex.height !== entry.height ||
+        tex.format !== entry.format ||
+        tex.isSRGBColorSpace !== entry.isSRGBColorSpace ||
+        tex.mipmapCount !== entry.mipmapCount ||
+        tex.wrapModeU !== entry.wrapModeU ||
+        tex.wrapModeV !== entry.wrapModeV ||
+        tex.filterMode !== entry.filterMode ||
+        tex.anisoLevel !== entry.anisoLevel
+      )
+        return false;
+    }
+  }
+  return true;
+}
+
 /** Native texture and sampler changes invalidate derived bindings; pixel writes use the same GPU object. */
 export function waterMaterialTextureKey(material?: Material): string | undefined {
   return (
     material && hashStableValue(waterMaterialTextures(material).map(({ slot, descriptor }) => [slot, descriptor.id]))
   );
+}
+
+/** Cached variant of `waterMaterialTextureKey` that avoids reallocating/hashing when texture properties are unchanged. */
+export function resolveCachedWaterMaterialTextureKey(
+  material: Material | undefined,
+  cache?: WaterMaterialTextureKeyCache
+): WaterMaterialTextureKeyCache {
+  if (cache && isWaterTextureSnapshotMatch(cache, material)) return cache;
+  const key = waterMaterialTextureKey(material);
+  if (!material) {
+    return {
+      material: undefined,
+      profileIndex: 0,
+      riverDrops: 0,
+      profile: "lake",
+      slots: [],
+      key
+    };
+  }
+  const data = material.shaderData;
+  const profileIndex = data.getInt("material_WaterProfile");
+  const riverDrops = data.getInt("material_WaterRiverDrops");
+  const profile = resolveWaterMaterialProfile(profileIndex, riverDrops);
+  const defs = WATER_MATERIAL_TEXTURE_SLOTS[profile];
+  const slots: WaterMaterialTextureSlotSnapshot[] = new Array(defs.length);
+  for (let i = 0; i < defs.length; i++) {
+    const tex = data.getTexture(defs[i].slot) as Texture2D | null | undefined;
+    if (tex == null) {
+      slots[i] = {
+        texture: null,
+        width: 0,
+        height: 0,
+        format: 0,
+        isSRGBColorSpace: false,
+        mipmapCount: 0,
+        wrapModeU: 0,
+        wrapModeV: 0,
+        filterMode: 0,
+        anisoLevel: 0
+      };
+    } else {
+      slots[i] = {
+        texture: tex,
+        width: tex.width,
+        height: tex.height,
+        format: tex.format,
+        isSRGBColorSpace: tex.isSRGBColorSpace,
+        mipmapCount: tex.mipmapCount,
+        wrapModeU: tex.wrapModeU,
+        wrapModeV: tex.wrapModeV,
+        filterMode: tex.filterMode,
+        anisoLevel: tex.anisoLevel
+      };
+    }
+  }
+  return { material, profileIndex, riverDrops, profile, slots, key };
 }
 
 export function waterMaterialKey(material?: Material): string | undefined {

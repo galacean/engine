@@ -4,6 +4,7 @@ import {
   Animator,
   AnimatorController,
   AnimatorControllerLayer,
+  AnimatorCullingMode,
   AnimatorStateTransition,
   BaseMaterial,
   Entity,
@@ -275,6 +276,8 @@ export class ConfiguredAnimal implements AnimalAgent {
   private sampledAnimationSeconds = 0;
   private sampledGait = false;
   private blockedPoseSteps = 0;
+  private pendingAnimatorSeconds = 0;
+  private verifiedAnimatedState?: { name: string; pose: AnimalPoseState };
   private nativeTransition = new AnimatorStateTransition();
   private readonly blendClock = new AnimalBlendClock();
   private changingMedium = false;
@@ -502,6 +505,7 @@ export class ConfiguredAnimal implements AnimalAgent {
       if (animators.length !== 1) throw new Error(`Animal requires one Animator; found ${animators.length}`);
       this.animator = animators[0];
       this.animator.enabled = false;
+      this.animator.cullingMode = config.rootMotionNode ? AnimatorCullingMode.None : AnimatorCullingMode.Complete;
       const layer = new AnimatorControllerLayer("Configured animal actions");
       this.controller.addLayer(layer);
       const reservedNames = new Set(config.animations.map((binding) => binding.id));
@@ -846,6 +850,27 @@ export class ConfiguredAnimal implements AnimalAgent {
     );
   }
 
+  /** Flush any deferred bone-pose evaluation accumulated across 1/60s simulation substeps. */
+  flushPose(): void {
+    const dt = this.pendingAnimatorSeconds;
+    if (dt <= 0) return;
+    this.pendingAnimatorSeconds = 0;
+    if (!this.active || !this.animator || this.disposed) return;
+    this.animator.update(dt);
+    this.correctRootMotion();
+    if (this.activeState?.pose.finished) this.playback.elapsed = this.duration;
+  }
+
+  private isAnimationCulled(): boolean {
+    if (!this.animator || this.animator.cullingMode !== AnimatorCullingMode.Complete || !this.renderers.length) {
+      return false;
+    }
+    for (let i = 0; i < this.renderers.length; i++) {
+      if (!this.renderers[i].isCulled) return false;
+    }
+    return true;
+  }
+
   private prepareAnimation(seconds: number, proposed: Readonly<GroundAnimalMotion>): number {
     this.surfaceBlocked = false;
     this.sampledAnimationSeconds = 0;
@@ -866,8 +891,10 @@ export class ConfiguredAnimal implements AnimalAgent {
       !!state &&
       state.speed > 0
     ) {
+      const pending = this.pendingAnimatorSeconds;
+      this.pendingAnimatorSeconds = 0;
       this.nativeTransition.duration = this.blendClock.advance(seconds, seconds * nativeRate);
-      this.animator.update(seconds);
+      this.animator.update(pending + seconds);
       this.correctRootMotion();
       return 0;
     }
@@ -888,21 +915,40 @@ export class ConfiguredAnimal implements AnimalAgent {
     const animationSeconds = this.playback.advance();
     this.sampledAnimationSeconds = animationSeconds;
     if (animationSeconds > 0) {
-      // Sample before the crowd commits any translation. A requested clock interval is not
-      // proof of motion: rejected transitions, finished clips and paused animators can hold a pose.
-      if (fraction > 0) this.readPose(false);
-      poseState.sampled = false;
-      if (this.blendClock.remaining > 0) {
-        // A partial terminal stride consumes only its matching simulation interval.
-        this.nativeTransition.duration = this.blendClock.advance(
-          animationSeconds / (this.playback.rate * nativeRate),
-          animationSeconds
-        );
+      const animatorDelta = animationSeconds / nativeRate;
+      const canDefer =
+        this.system.deferringPose &&
+        this.verifiedAnimatedState === this.activeState &&
+        this.playback.elapsed < this.duration &&
+        this.blendClock.remaining === 0 &&
+        !this.anchor;
+      if (canDefer) {
+        this.pendingAnimatorSeconds += animatorDelta;
+        this.system.markPendingPoseFlush(this);
+        this.sampledGait = fraction > 0;
+      } else {
+        const totalAnimatorDelta = this.pendingAnimatorSeconds + animatorDelta;
+        this.pendingAnimatorSeconds = 0;
+        const culled = this.isAnimationCulled();
+        // Sample before the crowd commits any translation. A requested clock interval is not
+        // proof of motion: rejected transitions, finished clips and paused animators can hold a pose.
+        if (!culled && fraction > 0) this.readPose(false);
+        poseState.sampled = false;
+        if (this.blendClock.remaining > 0) {
+          // A partial terminal stride consumes only its matching simulation interval.
+          this.nativeTransition.duration = this.blendClock.advance(
+            animationSeconds / (this.playback.rate * nativeRate),
+            animationSeconds
+          );
+        }
+        this.animator.update(totalAnimatorDelta);
+        this.correctRootMotion();
+        this.sampledGait = fraction > 0 && poseState.sampled && (culled ? !poseState.finished : this.readPose(true));
+        if (this.sampledGait) this.verifiedAnimatedState = this.activeState;
+        if (poseState.finished) this.playback.elapsed = this.duration;
       }
-      this.animator.update(animationSeconds / nativeRate);
-      this.correctRootMotion();
-      this.sampledGait = fraction > 0 && poseState.sampled && this.readPose(true);
-      if (poseState.finished) this.playback.elapsed = this.duration;
+    } else if (this.pendingAnimatorSeconds > 0 && !this.system.deferringPose) {
+      this.flushPose();
     }
     if (fraction > 0 && !this.sampledGait) this.blockedPoseSteps++;
     // Neither residual steering velocity nor a retained destination can bypass this gate.
@@ -1863,6 +1909,7 @@ export class ConfiguredAnimal implements AnimalAgent {
   setActive(enabled: boolean): void {
     this.nextFlightProbe = 0;
     if (!enabled) {
+      this.flushPose();
       this.synchronizeRestAnimation();
       this.restAnimationAt = undefined;
     } else if (this.suspended && this.distant && this.velocity <= 0 && this.finishAnimation) {
@@ -2203,6 +2250,8 @@ export class ConfiguredAnimal implements AnimalAgent {
   /** Seek within the configured slice, including while the shared scene is paused. */
   seek(seconds: number): void {
     if (!Number.isFinite(seconds)) throw new Error("Animation time must be finite");
+    this.pendingAnimatorSeconds = 0;
+    this.verifiedAnimatedState = undefined;
     this.playback.elapsed = Math.max(0, Math.min(seconds, this.duration - 0.0001));
     const binding = this.config.animations[this.clip];
     const sourceEnd = binding.range?.[1] ?? this.duration;
@@ -2345,6 +2394,8 @@ export class ConfiguredAnimal implements AnimalAgent {
 
   private selectClip(index: number, blend = false): void {
     if (!this.config.animations[index]) throw new Error("Unknown configured animation");
+    this.flushPose();
+    this.verifiedAnimatedState = undefined;
     const previous = this.clip;
     // A tree-selected repeat at the natural end continues an authored stride.
     // Blending from its held endpoint flattens the next stride (especially a

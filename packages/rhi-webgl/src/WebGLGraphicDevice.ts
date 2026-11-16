@@ -90,6 +90,8 @@ export interface WebGLGraphicDeviceOptions {
  */
 export class WebGLGraphicDevice implements IHardwareRenderer {
   maxUniformBlockSize: number;
+  /** @internal */
+  uniformBufferOffsetAlignment: number = 256;
 
   /** @internal */
   _readFrameBuffer: WebGLFramebuffer | null = null;
@@ -103,6 +105,8 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
   _enableGlobalDepthBias: boolean = false;
   /** @internal */
   _currentBindShaderProgram: any;
+  /** @internal */
+  _currentBindVAO: WebGLVertexArrayObject | null = null;
 
   private _options: WebGLGraphicDeviceOptions;
   private _webGLOptions: WebGLContextAttributes;
@@ -279,12 +283,25 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
   }
 
   createPlatformTransformFeedbackPrimitive(): IPlatformTransformFeedbackPrimitive {
-    return new GLTransformFeedbackPrimitive(<WebGL2RenderingContext>this._gl);
+    return new GLTransformFeedbackPrimitive(this);
+  }
+
+  /** @internal */
+  _bindVertexArray(vao: WebGLVertexArrayObject | null): void {
+    if (this._currentBindVAO !== vao) {
+      (<WebGL2RenderingContext>this._gl).bindVertexArray(vao);
+      this._currentBindVAO = vao;
+    }
   }
 
   bindUniformBufferBase(bindingPoint: number, buffer: IPlatformBuffer): void {
     const gl = <WebGL2RenderingContext>this._gl;
     gl.bindBufferBase(gl.UNIFORM_BUFFER, bindingPoint, (<GLBuffer>buffer)._glBuffer);
+  }
+
+  bindUniformBufferRange(bindingPoint: number, buffer: IPlatformBuffer, offset: number, byteLength: number): void {
+    const gl = <WebGL2RenderingContext>this._gl;
+    gl.bindBufferRange(gl.UNIFORM_BUFFER, bindingPoint, (<GLBuffer>buffer)._glBuffer, offset, byteLength);
   }
 
   bindUniformBlock(program: WebGLProgram, blockName: string, bindingPoint: number): number {
@@ -607,6 +624,7 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     this._readFrameBuffer = null;
     this._enableGlobalDepthBias = false;
     this._currentBindShaderProgram = null;
+    this._currentBindVAO = null;
 
     const activeTextures = this._activeTextures;
     for (let i = 0, n = activeTextures.length; i < n; i++) {
@@ -634,9 +652,9 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
       this._renderer = gl.getParameter(debugRenderInfo.UNMASKED_RENDERER_WEBGL);
     }
     if (this._isWebGL2) {
-      this.maxUniformBlockSize = (<WebGL2RenderingContext>gl).getParameter(
-        (<WebGL2RenderingContext>gl).MAX_UNIFORM_BLOCK_SIZE
-      );
+      const gl2 = <WebGL2RenderingContext>gl;
+      this.maxUniformBlockSize = gl2.getParameter(gl2.MAX_UNIFORM_BLOCK_SIZE);
+      this.uniformBufferOffsetAlignment = Math.max(16, gl2.getParameter(gl2.UNIFORM_BUFFER_OFFSET_ALIGNMENT) || 256);
     }
   }
 

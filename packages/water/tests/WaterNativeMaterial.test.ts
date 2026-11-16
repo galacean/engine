@@ -18,6 +18,8 @@ import {
   resolveWaterMaterialFileLook,
   waterMaterialFactories,
   waterMaterialKey,
+  waterMaterialTextureKey,
+  resolveCachedWaterMaterialTextureKey,
   waterMaterialTextures
 } from "../src/water/native/WaterMaterial";
 import { WaterRuntimeResourceRegistry } from "../src/water/runtime/resources/WaterRuntimeResourceRegistry";
@@ -211,3 +213,32 @@ it("loads only the eight explicitly referenced example textures, with all ten sl
     engine.destroy();
   }
 }, 60000);
+
+it("reuses cached water material texture key until texture identity or sampler metadata changes", async () => {
+  const engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
+  try {
+    const material = await materialFor(engine, "lake");
+    const slot = WATER_MATERIAL_TEXTURE_SLOTS.lake[0].slot;
+    const texA = new Texture2D(engine, 4, 4, TextureFormat.R8G8B8A8, false, false);
+    const texB = new Texture2D(engine, 4, 4, TextureFormat.R8G8B8A8, false, false);
+    material.shaderData.setTexture(slot, texA);
+
+    const first = resolveCachedWaterMaterialTextureKey(material);
+    expect(first.key).toBe(waterMaterialTextureKey(material));
+
+    const hit = resolveCachedWaterMaterialTextureKey(material, first);
+    expect(hit).toBe(first);
+
+    texA.filterMode = TextureFilterMode.Point;
+    const afterFilter = resolveCachedWaterMaterialTextureKey(material, hit);
+    expect(afterFilter).not.toBe(hit);
+    expect(afterFilter.key).toBe(waterMaterialTextureKey(material));
+
+    material.shaderData.setTexture(slot, texB);
+    const afterSwap = resolveCachedWaterMaterialTextureKey(material, afterFilter);
+    expect(afterSwap).not.toBe(afterFilter);
+    expect(afterSwap.key).toBe(waterMaterialTextureKey(material));
+  } finally {
+    engine.destroy();
+  }
+});
