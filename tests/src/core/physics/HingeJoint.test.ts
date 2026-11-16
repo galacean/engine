@@ -1,15 +1,5 @@
 import { createPhysics } from "../../utils/physics";
-import {
-  HingeJoint,
-  JointLimits,
-  JointMotor,
-  Entity,
-  DynamicCollider,
-  StaticCollider,
-  BoxColliderShape,
-  Engine,
-  CapsuleColliderShape
-} from "@galacean/engine-core";
+import { HingeJoint, JointLimits, JointMotor, Entity, Rigidbody, BoxCollider, Engine } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine";
 import { Vector3 } from "@galacean/engine-math";
 import { describe, beforeAll, afterAll, beforeEach, expect, it } from "vitest";
@@ -18,16 +8,17 @@ describe("HingeJoint", function () {
   let rootEntity: Entity;
   let engine: Engine;
 
-  function addBox(cubeSize: Vector3, type: typeof DynamicCollider | typeof StaticCollider, pos: Vector3) {
+  function addBox(cubeSize: Vector3, pos: Vector3) {
     const boxEntity = rootEntity.createChild("BoxEntity");
     boxEntity.transform.setPosition(pos.x, pos.y, pos.z);
 
-    const physicsBox = new BoxColliderShape();
-    physicsBox.getInstanceMaterial(engine).dynamicFriction = 0;
-    physicsBox.getInstanceMaterial(engine).staticFriction = 0;
+    const physicsBox = boxEntity.addComponent(BoxCollider);
+    physicsBox.getInstanceMaterial().dynamicFriction = 0;
+    physicsBox.getInstanceMaterial().staticFriction = 0;
     physicsBox.size = cubeSize;
-    const boxCollider = boxEntity.addComponent(type);
-    boxCollider.addShape(physicsBox);
+    boxEntity.addComponent(Rigidbody);
+    // Resolve automatic inertia before applying a torque to the body.
+    engine.sceneManager.activeScene.physics.overlapSphereAll(new Vector3(10000, 0, 0), 0.1);
     return boxEntity;
   }
 
@@ -52,10 +43,10 @@ describe("HingeJoint", function () {
   });
 
   it("axis", function () {
-    const boxEntity = addBox(new Vector3(1, 1, 1), DynamicCollider, new Vector3(0, 5, 0));
-    const boxEntity2 = addBox(new Vector3(1, 1, 1), DynamicCollider, new Vector3(2, 5, 0));
-    const collider = boxEntity.getComponent(DynamicCollider);
-    const collider2 = boxEntity2.getComponent(DynamicCollider);
+    const boxEntity = addBox(new Vector3(1, 1, 1), new Vector3(0, 5, 0));
+    const boxEntity2 = addBox(new Vector3(1, 1, 1), new Vector3(2, 5, 0));
+    const collider = boxEntity.getComponent(Rigidbody);
+    const collider2 = boxEntity2.getComponent(Rigidbody);
     collider.automaticCenterOfMass = true;
     collider2.automaticCenterOfMass = true;
     collider.automaticInertiaTensor = true;
@@ -63,28 +54,27 @@ describe("HingeJoint", function () {
     collider.isKinematic = true;
     const joint = boxEntity.addComponent(HingeJoint);
     joint.automaticConnectedAnchor = true;
-    joint.connectedCollider = boxEntity2.getComponent(DynamicCollider);
+    joint.connectedBody = boxEntity2.getComponent(Rigidbody);
     joint.anchor = new Vector3(0.5, 0, 0);
     joint.axis.x = 0;
     joint.axis.y = 1;
     expect(formatValue(joint.angle)).eq(0);
 
     collider2.applyTorque(new Vector3(0, 1000, 0));
-    // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1 / 60);
     expect(formatValue(joint.velocity)).eq(6.89082);
     expect(formatValue(joint.angle)).eq(6.58019);
   });
 
   it("hardLimit", function () {
-    const boxEntity = addBox(new Vector3(1, 1, 1), DynamicCollider, new Vector3(0, 5, 0));
-    const boxEntity2 = addBox(new Vector3(1, 1, 1), DynamicCollider, new Vector3(2, 5, 0));
-    const collider = boxEntity.getComponent(DynamicCollider);
-    const collider2 = boxEntity2.getComponent(DynamicCollider);
+    const boxEntity = addBox(new Vector3(1, 1, 1), new Vector3(0, 5, 0));
+    const boxEntity2 = addBox(new Vector3(1, 1, 1), new Vector3(2, 5, 0));
+    const collider = boxEntity.getComponent(Rigidbody);
+    const collider2 = boxEntity2.getComponent(Rigidbody);
     collider.isKinematic = true;
     const joint = boxEntity.addComponent(HingeJoint);
     joint.automaticConnectedAnchor = true;
-    joint.connectedCollider = boxEntity2.getComponent(DynamicCollider);
+    joint.connectedBody = boxEntity2.getComponent(Rigidbody);
     joint.anchor = new Vector3(0.5, 0, 0);
     joint.axis = new Vector3(0, 1, 0);
     joint.useLimits = true;
@@ -97,21 +87,19 @@ describe("HingeJoint", function () {
     expect(formatValue(joint.angle)).eq(0);
 
     collider2.applyTorque(new Vector3(0, 1000, 0));
-    // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1);
     expect(formatValue(joint.angle)).eq(1.57019);
 
     collider2.applyTorque(new Vector3(0, -1000, 0));
-    // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1);
     expect(formatValue(joint.angle)).eq(-1.57019);
   });
 
   it("softLimit", function () {
-    const boxEntity = addBox(new Vector3(1, 1, 1), DynamicCollider, new Vector3(0, 5, 0));
-    const boxEntity2 = addBox(new Vector3(1, 1, 1), DynamicCollider, new Vector3(2, 5, 0));
-    const collider = boxEntity.getComponent(DynamicCollider);
-    const collider2 = boxEntity2.getComponent(DynamicCollider);
+    const boxEntity = addBox(new Vector3(1, 1, 1), new Vector3(0, 5, 0));
+    const boxEntity2 = addBox(new Vector3(1, 1, 1), new Vector3(2, 5, 0));
+    const collider = boxEntity.getComponent(Rigidbody);
+    const collider2 = boxEntity2.getComponent(Rigidbody);
     collider.automaticCenterOfMass = true;
     collider2.automaticCenterOfMass = true;
     collider.automaticInertiaTensor = true;
@@ -120,7 +108,7 @@ describe("HingeJoint", function () {
     collider.isKinematic = true;
     const joint = boxEntity.addComponent(HingeJoint);
     joint.automaticConnectedAnchor = true;
-    joint.connectedCollider = boxEntity2.getComponent(DynamicCollider);
+    joint.connectedBody = boxEntity2.getComponent(Rigidbody);
     joint.anchor = new Vector3(0.5, 0, 0);
     joint.axis = new Vector3(0, 1, 0);
     joint.useLimits = true;
@@ -135,16 +123,15 @@ describe("HingeJoint", function () {
     expect(formatValue(joint.angle)).eq(0);
 
     collider2.applyTorque(new Vector3(0, 1000, 0));
-    // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1);
     expect(formatValue(joint.angle)).eq(6.27762);
   });
 
   it("stiffness", function () {
-    const boxEntity = addBox(new Vector3(1, 1, 1), DynamicCollider, new Vector3(0, 5, 0));
-    const boxEntity2 = addBox(new Vector3(1, 1, 1), DynamicCollider, new Vector3(2, 5, 0));
-    const collider = boxEntity.getComponent(DynamicCollider);
-    const collider2 = boxEntity2.getComponent(DynamicCollider);
+    const boxEntity = addBox(new Vector3(1, 1, 1), new Vector3(0, 5, 0));
+    const boxEntity2 = addBox(new Vector3(1, 1, 1), new Vector3(2, 5, 0));
+    const collider = boxEntity.getComponent(Rigidbody);
+    const collider2 = boxEntity2.getComponent(Rigidbody);
     collider.automaticCenterOfMass = true;
     collider2.automaticCenterOfMass = true;
     collider.automaticInertiaTensor = true;
@@ -152,7 +139,7 @@ describe("HingeJoint", function () {
     collider.isKinematic = true;
     const joint = boxEntity.addComponent(HingeJoint);
     joint.automaticConnectedAnchor = true;
-    joint.connectedCollider = boxEntity2.getComponent(DynamicCollider);
+    joint.connectedBody = boxEntity2.getComponent(Rigidbody);
     joint.anchor = new Vector3(0.5, 0, 0);
     joint.axis = new Vector3(0, 1, 0);
     joint.useLimits = true;
@@ -167,16 +154,15 @@ describe("HingeJoint", function () {
     expect(formatValue(joint.angle)).eq(0);
 
     collider2.applyTorque(new Vector3(0, 1000, 0));
-    // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1);
     expect(formatValue(joint.angle)).eq(-12.93617);
   });
 
   it("damping", function () {
-    const boxEntity = addBox(new Vector3(1, 1, 1), DynamicCollider, new Vector3(0, 5, 0));
-    const boxEntity2 = addBox(new Vector3(1, 1, 1), DynamicCollider, new Vector3(2, 5, 0));
-    const collider = boxEntity.getComponent(DynamicCollider);
-    const collider2 = boxEntity2.getComponent(DynamicCollider);
+    const boxEntity = addBox(new Vector3(1, 1, 1), new Vector3(0, 5, 0));
+    const boxEntity2 = addBox(new Vector3(1, 1, 1), new Vector3(2, 5, 0));
+    const collider = boxEntity.getComponent(Rigidbody);
+    const collider2 = boxEntity2.getComponent(Rigidbody);
     collider.automaticCenterOfMass = true;
     collider2.automaticCenterOfMass = true;
     collider.automaticInertiaTensor = true;
@@ -184,7 +170,7 @@ describe("HingeJoint", function () {
     collider.isKinematic = true;
     const joint = boxEntity.addComponent(HingeJoint);
     joint.automaticConnectedAnchor = true;
-    joint.connectedCollider = boxEntity2.getComponent(DynamicCollider);
+    joint.connectedBody = boxEntity2.getComponent(Rigidbody);
     joint.anchor = new Vector3(0.5, 0, 0);
     joint.axis = new Vector3(0, 1, 0);
     joint.useLimits = true;
@@ -199,19 +185,18 @@ describe("HingeJoint", function () {
     expect(formatValue(joint.angle)).eq(0);
 
     collider2.applyTorque(new Vector3(0, 1000, 0));
-    // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1);
     expect(formatValue(joint.angle)).eq(50.06221);
   });
 
   it("motor", function () {
-    const boxEntity = addBox(new Vector3(1, 1, 1), DynamicCollider, new Vector3(0, 5, 0));
-    const boxEntity2 = addBox(new Vector3(1, 1, 1), DynamicCollider, new Vector3(0.5, 5, 0));
-    const collider = boxEntity.getComponent(DynamicCollider);
-    const collider2 = boxEntity2.getComponent(DynamicCollider);
+    const boxEntity = addBox(new Vector3(1, 1, 1), new Vector3(0, 5, 0));
+    const boxEntity2 = addBox(new Vector3(1, 1, 1), new Vector3(0.5, 5, 0));
+    const collider = boxEntity.getComponent(Rigidbody);
+    const collider2 = boxEntity2.getComponent(Rigidbody);
     collider.isKinematic = true;
     const joint = boxEntity.addComponent(HingeJoint);
-    joint.connectedCollider = boxEntity2.getComponent(DynamicCollider);
+    joint.connectedBody = boxEntity2.getComponent(Rigidbody);
     joint.anchor = new Vector3(0.5, 0, 0);
     joint.axis = new Vector3(0, 1, 0);
     joint.useMotor = true;
@@ -221,24 +206,23 @@ describe("HingeJoint", function () {
 
     expect(formatValue(joint.velocity)).eq(0);
 
-    // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1);
     expect(formatValue(joint.velocity)).eq(30);
     expect(formatValue(joint.angle)).eq(278.87335);
   });
 
   it("forceLimit", function () {
-    const boxEntity = addBox(new Vector3(1, 1, 1), DynamicCollider, new Vector3(0, 5, 0));
-    const boxEntity2 = addBox(new Vector3(1, 1, 1), DynamicCollider, new Vector3(0.5, 5, 0));
-    const collider = boxEntity.getComponent(DynamicCollider);
-    const collider2 = boxEntity2.getComponent(DynamicCollider);
+    const boxEntity = addBox(new Vector3(1, 1, 1), new Vector3(0, 5, 0));
+    const boxEntity2 = addBox(new Vector3(1, 1, 1), new Vector3(0.5, 5, 0));
+    const collider = boxEntity.getComponent(Rigidbody);
+    const collider2 = boxEntity2.getComponent(Rigidbody);
     collider.automaticCenterOfMass = true;
     collider2.automaticCenterOfMass = true;
     collider.automaticInertiaTensor = true;
     collider2.automaticInertiaTensor = true;
     collider.isKinematic = true;
     const joint = boxEntity.addComponent(HingeJoint);
-    joint.connectedCollider = boxEntity2.getComponent(DynamicCollider);
+    joint.connectedBody = boxEntity2.getComponent(Rigidbody);
     joint.anchor = new Vector3(0.5, 0, 0);
     joint.axis = new Vector3(0, 1, 0);
     joint.useMotor = true;
@@ -249,27 +233,25 @@ describe("HingeJoint", function () {
 
     expect(formatValue(joint.velocity)).eq(0);
 
-    // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1);
     expect(formatValue(joint.velocity)).eq(3.51291);
 
-    // @ts-ignore
     engine.sceneManager.activeScene.physics._update(10);
     expect(formatValue(joint.velocity)).eq(30);
   });
 
   it("gearRatio", function () {
-    const boxEntity = addBox(new Vector3(1, 1, 1), DynamicCollider, new Vector3(0, 5, 0));
-    const boxEntity2 = addBox(new Vector3(1, 1, 1), DynamicCollider, new Vector3(0.5, 5, 0));
-    const collider = boxEntity.getComponent(DynamicCollider);
-    const collider2 = boxEntity2.getComponent(DynamicCollider);
+    const boxEntity = addBox(new Vector3(1, 1, 1), new Vector3(0, 5, 0));
+    const boxEntity2 = addBox(new Vector3(1, 1, 1), new Vector3(0.5, 5, 0));
+    const collider = boxEntity.getComponent(Rigidbody);
+    const collider2 = boxEntity2.getComponent(Rigidbody);
     collider.automaticCenterOfMass = true;
     collider2.automaticCenterOfMass = true;
     collider.automaticInertiaTensor = true;
     collider2.automaticInertiaTensor = true;
     collider.isKinematic = true;
     const joint = boxEntity.addComponent(HingeJoint);
-    joint.connectedCollider = boxEntity2.getComponent(DynamicCollider);
+    joint.connectedBody = boxEntity2.getComponent(Rigidbody);
     joint.anchor = new Vector3(0.5, 0, 0);
     joint.axis = new Vector3(0, 1, 0);
     joint.useMotor = true;
@@ -280,23 +262,22 @@ describe("HingeJoint", function () {
 
     expect(formatValue(joint.velocity)).eq(0);
 
-    // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1);
     expect(formatValue(joint.velocity)).eq(15);
   });
 
   it("freeSpin", function () {
-    const boxEntity = addBox(new Vector3(1, 1, 1), DynamicCollider, new Vector3(0, 5, 0));
-    const boxEntity2 = addBox(new Vector3(1, 1, 1), DynamicCollider, new Vector3(0.5, 5, 0));
-    const collider = boxEntity.getComponent(DynamicCollider);
-    const collider2 = boxEntity2.getComponent(DynamicCollider);
+    const boxEntity = addBox(new Vector3(1, 1, 1), new Vector3(0, 5, 0));
+    const boxEntity2 = addBox(new Vector3(1, 1, 1), new Vector3(0.5, 5, 0));
+    const collider = boxEntity.getComponent(Rigidbody);
+    const collider2 = boxEntity2.getComponent(Rigidbody);
     collider.automaticCenterOfMass = true;
     collider2.automaticCenterOfMass = true;
     collider.automaticInertiaTensor = true;
     collider2.automaticInertiaTensor = true;
     collider.isKinematic = true;
     const joint = boxEntity.addComponent(HingeJoint);
-    joint.connectedCollider = boxEntity2.getComponent(DynamicCollider);
+    joint.connectedBody = boxEntity2.getComponent(Rigidbody);
     joint.anchor = new Vector3(0.5, 0, 0);
     joint.axis = new Vector3(0, 1, 0);
     joint.useMotor = true;
@@ -307,27 +288,24 @@ describe("HingeJoint", function () {
 
     expect(formatValue(joint.velocity)).eq(0);
     collider2.applyTorque(new Vector3(0, 1000, 0));
-    // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1);
     expect(formatValue(collider2.angularVelocity.y)).eq(1718.87328);
 
     motor.targetVelocity = 30;
     motor.freeSpin = true;
-    // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1);
     expect(formatValue(collider2.angularVelocity.y)).eq(1718.87328);
 
     collider2.applyTorque(new Vector3(0, 1000, 0));
-    // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1);
     expect(formatValue(collider2.angularVelocity.y)).eq(5454.57596);
   });
 
   it("clone", function () {
-    const boxEntity = addBox(new Vector3(1, 1, 1), DynamicCollider, new Vector3(0, 5, 0));
-    const boxEntity2 = addBox(new Vector3(1, 1, 1), DynamicCollider, new Vector3(2, 5, 0));
-    const collider = boxEntity.getComponent(DynamicCollider);
-    const collider2 = boxEntity2.getComponent(DynamicCollider);
+    const boxEntity = addBox(new Vector3(1, 1, 1), new Vector3(0, 5, 0));
+    const boxEntity2 = addBox(new Vector3(1, 1, 1), new Vector3(2, 5, 0));
+    const collider = boxEntity.getComponent(Rigidbody);
+    const collider2 = boxEntity2.getComponent(Rigidbody);
     collider.automaticCenterOfMass = true;
     collider2.automaticCenterOfMass = true;
     collider.automaticInertiaTensor = true;
@@ -335,7 +313,7 @@ describe("HingeJoint", function () {
     collider.isKinematic = true;
     const joint = boxEntity.addComponent(HingeJoint);
     joint.automaticConnectedAnchor = true;
-    joint.connectedCollider = boxEntity2.getComponent(DynamicCollider);
+    joint.connectedBody = boxEntity2.getComponent(Rigidbody);
     joint.anchor = new Vector3(0.5, 0, 0);
     joint.axis = new Vector3(0, 1, 0);
     joint.limits = new JointLimits();
@@ -346,10 +324,8 @@ describe("HingeJoint", function () {
     rootEntity.addChild(newBox);
     const newJoint = newBox.getComponent(HingeJoint);
     expect(formatValue(newJoint.angle)).eq(0);
-    // @ts-ignore
-    expect(newJoint.limits._updateFlagManager).not.eq(joint.limits._updateFlagManager);
-    // @ts-ignore
-    expect(newJoint.motor._updateFlagManager).not.eq(joint.motor._updateFlagManager);
+    expect(newJoint.limits).not.toBe(joint.limits);
+    expect(newJoint.motor).not.toBe(joint.motor);
 
     newJoint.limits.min = -Math.PI;
     expect(joint.limits.min).not.eq(newJoint.limits.min);
@@ -357,14 +333,14 @@ describe("HingeJoint", function () {
     expect(joint.motor.targetVelocity).not.eq(newJoint.motor.targetVelocity);
 
     collider2.applyTorque(new Vector3(0, 1000, 0));
-    // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1 / 60);
     expect(formatValue(newJoint.velocity)).eq(6.89082);
     expect(formatValue(newJoint.angle)).eq(6.58019);
   });
 
-  it("inActive modification", function () {
-    const box1 = addBox(new Vector3(1, 1, 1), DynamicCollider, new Vector3(0, 5, 0));
+  it("applies motor settings configured while inactive when the Entity enters simulation", function () {
+    engine.sceneManager.activeScene.physics.gravity.set(0, 0, 0);
+    const box1 = addBox(new Vector3(1, 1, 1), new Vector3(0, 5, 0));
     box1.isActive = false;
     const hingeJoint = box1.addComponent(HingeJoint);
     hingeJoint.axis = new Vector3(0, 1, 0);
@@ -372,9 +348,18 @@ describe("HingeJoint", function () {
     hingeJoint.useMotor = true;
     hingeJoint.useSpring = true;
     const limits = new JointLimits();
+    limits.min = -90;
+    limits.max = 90;
     hingeJoint.limits = limits;
     const motor = new JointMotor();
+    motor.targetVelocity = 1;
     hingeJoint.motor = motor;
+    box1.isActive = true;
+    engine.sceneManager.activeScene.physics._update(1 / 60);
+    expect(Math.abs(hingeJoint.velocity)).toBeGreaterThan(0);
+    expect(Math.abs(box1.getComponent(Rigidbody).angularVelocity.y)).toBeGreaterThan(0);
+    expect(box1.transform.position.y).toBeCloseTo(5, 5);
     hingeJoint.destroy();
+    expect(box1.getComponent(HingeJoint)).toBeNull();
   });
 });

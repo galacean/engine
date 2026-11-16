@@ -1,6 +1,7 @@
 import {
-  BoxColliderShape,
+  BoxCollider,
   Engine,
+  Entity,
   EngineObject,
   PhysicsMaterial,
   ReferResource,
@@ -10,15 +11,15 @@ import {
 
 declare const engine: Engine;
 
-const shape = new BoxColliderShape();
-const assigned: PhysicsMaterial | null = shape.material;
+const collider = new Entity(engine).addComponent(BoxCollider);
+const assigned: PhysicsMaterial | null = collider.material;
 if (assigned) assigned.bounciness = 0.5;
-// @ts-expect-error A shape can use the shared default instead of an assigned material.
-shape.material.bounciness = 0.5;
-shape.getInstanceMaterial(engine).bounciness = 0.5;
-// @ts-expect-error Creating an instance requires an explicit engine owner.
-shape.getInstanceMaterial();
-shape.material = null;
+// @ts-expect-error A Collider can use the shared default instead of an assigned material.
+collider.material.bounciness = 0.5;
+collider.getInstanceMaterial().bounciness = 0.5;
+// @ts-expect-error The Collider supplies its own engine owner.
+collider.getInstanceMaterial(engine);
+collider.material = null;
 
 const material = new PhysicsMaterial(engine);
 // @ts-expect-error Physics materials require an engine owner.

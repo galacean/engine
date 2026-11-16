@@ -1,18 +1,17 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import {
-  BoxColliderShape,
-  CapsuleColliderShape,
-  MeshColliderShape,
+  BoxCollider,
+  CapsuleCollider,
+  MeshCollider,
   PhysicsMaterial,
-  PlaneColliderShape,
+  PlaneCollider,
   Script,
-  SphereColliderShape,
-  StaticCollider,
+  SphereCollider,
   WebGLEngine
 } from "@galacean/engine";
 import { createPhysics } from "../../utils/physics";
 
-const shapeTypes = [BoxColliderShape, CapsuleColliderShape, MeshColliderShape, PlaneColliderShape, SphereColliderShape];
+const colliderTypes = [BoxCollider, CapsuleCollider, MeshCollider, PlaneCollider, SphereCollider];
 
 describe("PhysicsMaterial ownership", () => {
   let engine: WebGLEngine;
@@ -28,20 +27,20 @@ describe("PhysicsMaterial ownership", () => {
   });
   afterAll(() => engine.destroy());
 
-  it.each(shapeTypes)("balances shared material references through %s cloning and destruction", (Shape) => {
+  it.each(colliderTypes)("balances shared material references through %s cloning and destruction", (Type) => {
     const entity = engine.sceneManager.activeScene.createRootEntity();
-    const shape = new Shape();
-    entity.addComponent(StaticCollider).addShape(shape);
-    const material = shape.getInstanceMaterial(engine);
+    const collider = entity.addComponent(Type);
     const createMaterial = vi.spyOn(physics, "createPhysicsMaterial");
-    const nativeDestroy = vi.spyOn(material._nativeMaterial, "destroy");
+    const material = collider.getInstanceMaterial();
+    const nativeDestroy = vi.spyOn(createMaterial.mock.results[0].value, "destroy");
+    createMaterial.mockClear();
     expect(material.engine).toBe(engine);
     expect(material.refCount).toBe(1);
 
     const clone = entity.clone();
-    const clonedShape = clone.getComponent(StaticCollider)!.shapes[0];
-    expect(clonedShape).not.toBe(shape);
-    expect(clonedShape.material).toBe(material);
+    const clonedCollider = clone.getComponent(Type)!;
+    expect(clonedCollider).not.toBe(collider);
+    expect(clonedCollider.material).toBe(material);
     expect(material.refCount).toBe(2);
     expect(createMaterial).not.toHaveBeenCalled();
     expect(material.destroy()).toBe(false);
@@ -61,32 +60,29 @@ describe("PhysicsMaterial ownership", () => {
     expect(nativeDestroy).toHaveBeenCalledTimes(1);
   });
 
-  it("keeps detached and moved shapes referenced while replaced materials become eligible for GC", () => {
-    const first = engine.sceneManager.activeScene.createRootEntity().addComponent(StaticCollider);
-    const second = engine.sceneManager.activeScene.createRootEntity().addComponent(StaticCollider);
-    const shape = new BoxColliderShape();
-    const original = shape.getInstanceMaterial(engine);
+  it("retains material while a Collider is disabled or outside the scene and releases replacements for GC", () => {
+    const scene = engine.sceneManager.activeScene;
+    const entity = scene.createRootEntity();
+    const collider = entity.addComponent(BoxCollider);
+    const original = collider.getInstanceMaterial();
     const material = new PhysicsMaterial(engine);
-    shape.material = material;
+    collider.material = material;
     expect(original.refCount).toBe(0);
     expect(original.destroyed).toBe(false);
     expect(material.refCount).toBe(1);
-    shape.material = material;
-    first.addShape(shape);
-    second.addShape(shape);
-    expect(first.shapes).toHaveLength(0);
-    expect(material.refCount).toBe(1);
-    second.clearShapes();
+    collider.material = material;
+    collider.enabled = false;
+    scene.removeRootEntity(entity);
     engine.resourceManager.gc();
     expect(original.destroyed).toBe(true);
     expect(material.destroyed).toBe(false);
     expect(material.refCount).toBe(1);
-    first.addShape(shape);
-    first.removeShape(shape);
-    second.addShape(shape);
-    second.entity.destroy();
-    expect(material.destroyed).toBe(false);
+    scene.createRootEntity("parent").addChild(entity);
+    collider.enabled = true;
+    expect(material.refCount).toBe(1);
+    entity.destroy();
     expect(material.refCount).toBe(0);
+    expect(material.destroyed).toBe(false);
     engine.resourceManager.gc();
     expect(material.destroyed).toBe(true);
   });
@@ -95,13 +91,13 @@ describe("PhysicsMaterial ownership", () => {
     const material = new PhysicsMaterial(engine);
     const retained = new PhysicsMaterial(engine);
     retained.isGCIgnored = true;
-    expect(engine.resourceManager.findResourcesByType(PhysicsMaterial)).toEqual(
-      expect.arrayContaining([material, retained])
-    );
+    const resources = engine.resourceManager.findResourcesByType(PhysicsMaterial);
+    expect(resources.includes(material)).toBe(true);
+    expect(resources.includes(retained)).toBe(true);
     engine.resourceManager.gc();
     expect(material.destroyed).toBe(true);
     expect(retained.destroyed).toBe(false);
-    expect(engine.resourceManager.findResourcesByType(PhysicsMaterial)).not.toContain(material);
+    expect(engine.resourceManager.findResourcesByType(PhysicsMaterial).includes(material)).toBe(false);
     retained.isGCIgnored = false;
     engine.resourceManager.gc();
     expect(retained.destroyed).toBe(true);
@@ -111,59 +107,58 @@ describe("PhysicsMaterial ownership", () => {
     const other = await WebGLEngine.create({ canvas: document.createElement("canvas"), physics });
     const material = new PhysicsMaterial(engine);
     const otherMaterial = new PhysicsMaterial(other);
-    const entity = engine.sceneManager.activeScene.createRootEntity();
-    const shape = new BoxColliderShape();
-    shape.material = material;
-    entity.addComponent(StaticCollider).addShape(shape);
+    const collider = engine.sceneManager.activeScene.createRootEntity().addComponent(BoxCollider);
+    collider.material = material;
     try {
-      const otherShape = new BoxColliderShape();
-      otherShape.material = otherMaterial;
-      other.sceneManager.activeScene.createRootEntity().addComponent(StaticCollider).addShape(otherShape);
+      other.sceneManager.activeScene.createRootEntity().addComponent(BoxCollider).material = otherMaterial;
       other.destroy();
       expect(otherMaterial.destroyed).toBe(true);
       expect(material.destroyed).toBe(false);
       material.bounciness = 0.4;
       engine.update();
-      expect(shape.material.bounciness).toBe(0.4);
+      expect(collider.material.bounciness).toBe(0.4);
     } finally {
       other.destroy();
     }
   });
 
-  it.each(shapeTypes)("rejects a different owner before allocating or changing a %s material", async (Shape) => {
-    const other = await WebGLEngine.create({ canvas: document.createElement("canvas"), physics });
-    const entity = engine.sceneManager.activeScene.createRootEntity();
-    const shape = new Shape();
-    entity.addComponent(StaticCollider).addShape(shape);
-    const shared = new PhysicsMaterial(engine);
-    shape.material = shared;
-    const createMaterial = vi.spyOn(physics, "createPhysicsMaterial");
-    try {
-      expect(() => shape.getInstanceMaterial(other)).toThrow();
-      expect(createMaterial).not.toHaveBeenCalled();
-      expect(shape.material).toBe(shared);
-      expect(shared.refCount).toBe(1);
-      const instance = shape.getInstanceMaterial(engine);
-      expect(instance).not.toBe(shared);
-      expect(instance.engine).toBe(engine);
-      expect(shared.refCount).toBe(0);
-      expect(shared.destroyed).toBe(false);
-      expect(shape.getInstanceMaterial(engine)).toBe(instance);
-      expect(() => shape.getInstanceMaterial(other)).toThrow();
-      expect(shape.material).toBe(instance);
-      expect(instance.refCount).toBe(1);
-      expect(createMaterial).toHaveBeenCalledTimes(1);
-    } finally {
-      other.destroy();
+  it.each(colliderTypes)(
+    "rejects cross-engine assignment without changing a %s material or reference counts",
+    async (Type) => {
+      const other = await WebGLEngine.create({ canvas: document.createElement("canvas"), physics });
+      const collider = engine.sceneManager.activeScene.createRootEntity().addComponent(Type);
+      const shared = new PhysicsMaterial(engine);
+      const foreign = new PhysicsMaterial(other);
+      const createMaterial = vi.spyOn(physics, "createPhysicsMaterial");
+      try {
+        expect(() => (collider.material = foreign)).toThrow(/another engine/);
+        expect(collider.material).toBeNull();
+        expect(foreign.refCount).toBe(0);
+        collider.material = shared;
+        expect(() => (collider.material = foreign)).toThrow(/another engine/);
+        expect(createMaterial).not.toHaveBeenCalled();
+        expect(collider.material).toBe(shared);
+        expect(shared.refCount).toBe(1);
+        expect(foreign.refCount).toBe(0);
+        const instance = collider.getInstanceMaterial();
+        expect(instance.engine).toBe(engine);
+        expect(shared.refCount).toBe(0);
+        expect(shared.destroyed).toBe(false);
+        expect(() => (collider.material = foreign)).toThrow(/another engine/);
+        expect(collider.getInstanceMaterial()).toBe(instance);
+        expect(instance.refCount).toBe(1);
+        expect(foreign.refCount).toBe(0);
+        expect(createMaterial).toHaveBeenCalledTimes(1);
+      } finally {
+        other.destroy();
+      }
     }
-  });
+  );
 
-  it("defers forced destruction during a frame and keeps refCount non-negative after shape teardown", () => {
+  it("defers forced destruction during a frame and keeps refCount non-negative after Collider teardown", () => {
     const material = new PhysicsMaterial(engine);
     const entity = engine.sceneManager.activeScene.createRootEntity();
-    const shape = new BoxColliderShape();
-    shape.material = material;
-    entity.addComponent(StaticCollider).addShape(shape);
+    entity.addComponent(BoxCollider).material = material;
     let pendingDuringUpdate = false;
     class DestroyMaterial extends Script {
       override onUpdate(): void {
@@ -182,17 +177,15 @@ describe("PhysicsMaterial ownership", () => {
   });
 
   it("allows reusing an instance after resetting to the default", () => {
-    const entity = engine.sceneManager.activeScene.createRootEntity();
-    const shape = new BoxColliderShape();
-    entity.addComponent(StaticCollider).addShape(shape);
-    const original = shape.getInstanceMaterial(engine);
-    shape.material = null;
-    expect(shape.material).toBeNull();
+    const collider = engine.sceneManager.activeScene.createRootEntity().addComponent(BoxCollider);
+    const original = collider.getInstanceMaterial();
+    collider.material = null;
+    expect(collider.material).toBeNull();
     expect(original.refCount).toBe(0);
     expect(original.destroyed).toBe(false);
-    shape.material = original;
+    collider.material = original;
     expect(original.refCount).toBe(1);
-    const replacement = shape.getInstanceMaterial(engine);
+    const replacement = collider.getInstanceMaterial();
     expect(replacement).not.toBe(original);
     expect(replacement.engine).toBe(engine);
     expect(replacement.refCount).toBe(1);
@@ -208,8 +201,7 @@ describe("PhysicsMaterial ownership", () => {
     expect(clone.engine).toBe(engine);
     expect(clone.refCount).toBe(0);
     expect(clone).not.toBe(material);
-    expect(clone._nativeMaterial).not.toBe(material._nativeMaterial);
-    expect(engine.resourceManager.findResourcesByType(PhysicsMaterial)).toContain(clone);
+    expect(engine.resourceManager.findResourcesByType(PhysicsMaterial).includes(clone)).toBe(true);
     expect(clone.bounciness).toBe(0.7);
     clone.bounciness = 0.2;
     expect(material.bounciness).toBe(0.7);

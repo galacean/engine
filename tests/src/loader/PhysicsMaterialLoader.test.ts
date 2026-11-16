@@ -1,5 +1,5 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import { AssetType, PhysicsMaterial, StaticCollider, WebGLEngine } from "@galacean/engine";
+import { AssetType, PhysicsMaterial, BoxCollider, SphereCollider, WebGLEngine } from "@galacean/engine";
 import { PrefabResource } from "@galacean/engine-loader";
 import { createPhysics } from "../utils/physics";
 
@@ -72,15 +72,10 @@ describe("PhysicsMaterialLoader", () => {
         version: "2.0",
         refs: [{ url: materialPath }],
         root: 0,
-        entities: [{ name: "PhysicsPrefab", components: [0] }],
+        entities: [{ name: "PhysicsPrefab", components: [0, 1] }],
         components: [
-          {
-            type: "StaticCollider",
-            calls: [
-              { method: "addShape", args: [{ $type: "BoxColliderShape", material: { $ref: 0 } }] },
-              { method: "addShape", args: [{ $type: "SphereColliderShape", material: { $ref: 0 } }] }
-            ]
-          }
+          { type: "BoxCollider", props: { material: { $ref: 0 } } },
+          { type: "SphereCollider", props: { material: { $ref: 0 } } }
         ]
       },
       "prefab"
@@ -88,16 +83,16 @@ describe("PhysicsMaterialLoader", () => {
     const prefab = await engine.resourceManager.load<PrefabResource>(prefabUrl);
     const instance = prefab.instantiate();
     engine.sceneManager.activeScene.addRootEntity(instance);
-    const shapes = instance.getComponent(StaticCollider)!.shapes;
-    const material = shapes[0].material;
-    expect(shapes[1].material).toBe(material);
-    expect(material.refCount).toBe(4);
+    const material = instance.getComponent(BoxCollider)!.material;
+    expect(instance.getComponent(SphereCollider)!.material).toBe(material);
+    // Template components retain dependencies through the Prefab; only the two instance Colliders count.
+    expect(material.refCount).toBe(2);
     expect(prefab.destroy()).toBe(false);
     engine.resourceManager.gc();
     expect(material.destroyed).toBe(false);
     expect(material.destroy()).toBe(false);
     instance.destroy();
-    expect(material.refCount).toBe(2);
+    expect(material.refCount).toBe(0);
     expect(prefab.destroy()).toBe(true);
     expect(material.refCount).toBe(0);
     expect(material.destroy()).toBe(true);

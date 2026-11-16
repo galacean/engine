@@ -1,23 +1,22 @@
 import { createPhysics } from "../../utils/physics";
-import { FixedJoint, Entity, DynamicCollider, StaticCollider, BoxColliderShape, Engine } from "@galacean/engine-core";
+import { FixedJoint, Entity, Rigidbody, BoxCollider, Engine } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine";
 import { Vector3 } from "@galacean/engine-math";
-import { vi, describe, beforeAll, afterAll, beforeEach, expect, it } from "vitest";
+import { vi, describe, beforeAll, afterAll, beforeEach, afterEach, expect, it } from "vitest";
 
 describe("Joint", function () {
   let rootEntity: Entity;
   let engine: Engine;
 
-  function addBox(cubeSize: Vector3, type: typeof DynamicCollider | typeof StaticCollider, pos: Vector3) {
+  function addBox(cubeSize: Vector3, pos: Vector3) {
     const boxEntity = rootEntity.createChild("BoxEntity");
     boxEntity.transform.setPosition(pos.x, pos.y, pos.z);
 
-    const physicsBox = new BoxColliderShape();
-    physicsBox.getInstanceMaterial(engine).dynamicFriction = 0;
-    physicsBox.getInstanceMaterial(engine).staticFriction = 0;
+    const physicsBox = boxEntity.addComponent(BoxCollider);
+    physicsBox.getInstanceMaterial().dynamicFriction = 0;
+    physicsBox.getInstanceMaterial().staticFriction = 0;
     physicsBox.size = cubeSize;
-    const boxCollider = boxEntity.addComponent(type);
-    boxCollider.addShape(physicsBox);
+    boxEntity.addComponent(Rigidbody);
     return boxEntity;
   }
 
@@ -41,8 +40,27 @@ describe("Joint", function () {
     engine.sceneManager.activeScene.physics.gravity = new Vector3(0, -9.81, 0);
   });
 
+  afterEach(() => vi.restoreAllMocks());
+
+  it("automatically adds a Rigidbody and can reconnect from a body to world space", () => {
+    const entity = rootEntity.createChild("joint");
+    entity.transform.setPosition(0, 5, 0);
+    const joint = entity.addComponent(FixedJoint);
+    const body = entity.getComponent(Rigidbody);
+    expect(body).toBeInstanceOf(Rigidbody);
+    expect(entity.getComponents(Rigidbody, []).length).toBe(1);
+    const anchor = rootEntity.createChild("anchor").addComponent(Rigidbody);
+    anchor.isKinematic = true;
+    joint.connectedBody = anchor;
+    expect(joint.connectedBody).toBe(anchor);
+    joint.connectedBody = null;
+    expect(joint.connectedBody).toBeNull();
+    engine.sceneManager.activeScene.physics._update(1);
+    expect(entity.transform.position.y).toBeCloseTo(5, 5);
+  });
+
   it("connected to null", function () {
-    const box = addBox(new Vector3(1, 1, 1), DynamicCollider, new Vector3(0, 0, 0));
+    const box = addBox(new Vector3(1, 1, 1), new Vector3(0, 0, 0));
 
     const joint = box.addComponent(FixedJoint);
 
@@ -51,41 +69,37 @@ describe("Joint", function () {
     expect(joint.anchor).deep.include({ x: 0, y: 0, z: 0 });
 
     expect(joint.connectedAnchor).deep.include({ x: 1, y: 4, z: 1 });
-    expect(joint.connectedCollider).eq(null);
+    expect(joint.connectedBody).eq(null);
 
-    // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1 / 60);
 
     expect(box.transform.position).deep.include({ x: 1, y: 4, z: 1 });
 
     joint.anchor = new Vector3(0, -0.5, 0);
 
-    // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1 / 60);
     expect(box.transform.position).deep.include({ x: 1, y: 4.5, z: 1 });
   });
 
-  it("connected to another collider", function () {
-    const box1 = addBox(new Vector3(1, 1, 1), DynamicCollider, new Vector3(1, 0, 0));
-    const box2 = addBox(new Vector3(1, 1, 1), DynamicCollider, new Vector3(3, 3, 3));
+  it("connected to another Rigidbody", function () {
+    const box1 = addBox(new Vector3(1, 1, 1), new Vector3(1, 0, 0));
+    const box2 = addBox(new Vector3(1, 1, 1), new Vector3(3, 3, 3));
 
-    const box2Collider = box2.getComponent(DynamicCollider);
+    const box2Collider = box2.getComponent(Rigidbody);
     box2Collider.isKinematic = true;
 
     const joint = box1.addComponent(FixedJoint);
     joint.automaticConnectedAnchor = false;
-    joint.connectedCollider = box2.getComponent(DynamicCollider);
+    joint.connectedBody = box2.getComponent(Rigidbody);
     joint.anchor = new Vector3(0, 0.5, 0);
     joint.connectedAnchor = new Vector3(0, -0.5, 0);
 
-    // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1 / 60);
 
     expect(box1.transform.position).deep.include({ x: 3, y: 2, z: 3 });
 
     joint.anchor = new Vector3(0, 1, 0);
 
-    // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1 / 60);
 
     expect(box1.transform.position).deep.include({ x: 3, y: 1.5, z: 3 });
@@ -93,9 +107,9 @@ describe("Joint", function () {
 
   it("automaticConnectedAnchor", function () {
     const consoleWarnSpy = vi.spyOn(console, "warn");
-    const box = addBox(new Vector3(1, 1, 1), DynamicCollider, new Vector3(4, 4, 4));
+    const box = addBox(new Vector3(1, 1, 1), new Vector3(4, 4, 4));
 
-    // No connectedCollider
+    // No connectedBody
     const joint = box.addComponent(FixedJoint);
     joint.automaticConnectedAnchor = true;
     joint.connectedAnchor = new Vector3(1, 1, 1);
@@ -106,7 +120,6 @@ describe("Joint", function () {
     joint.automaticConnectedAnchor = true;
     expect(joint.connectedAnchor).deep.include({ x: 4, y: 4, z: 4 });
 
-    // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1 / 60);
 
     expect(joint.connectedAnchor).deep.include({ x: 4, y: 4, z: 4 });
@@ -114,53 +127,50 @@ describe("Joint", function () {
 
     joint.anchor = new Vector3(0, -1, 0);
 
-    // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1 / 60);
 
     expect(joint.connectedAnchor).deep.include({ x: 4, y: 3, z: 4 });
     expect(box.transform.position).deep.include({ x: 4, y: 4, z: 4 });
 
-    // Has connectedCollider
-    const box2 = addBox(new Vector3(1, 1, 1), DynamicCollider, new Vector3(0, 5, 0));
-    const box2Collider = box2.getComponent(DynamicCollider);
+    // Has connectedBody
+    const box2 = addBox(new Vector3(1, 1, 1), new Vector3(0, 5, 0));
+    const box2Collider = box2.getComponent(Rigidbody);
     box2Collider.isKinematic = true;
-    joint.connectedCollider = box2Collider;
+    joint.connectedBody = box2Collider;
 
     expect(joint.connectedAnchor).deep.include({ x: 4, y: -2, z: 4 });
     expect(box.transform.position).deep.include({ x: 4, y: 4, z: 4 });
 
-    // Change connectedCollider
-    const box3 = addBox(new Vector3(1, 1, 1), DynamicCollider, new Vector3(0, 3, 0));
-    const box3Collider = box3.getComponent(DynamicCollider);
+    // Change connectedBody
+    const box3 = addBox(new Vector3(1, 1, 1), new Vector3(0, 3, 0));
+    const box3Collider = box3.getComponent(Rigidbody);
     box3Collider.isKinematic = true;
-    joint.connectedCollider = box3Collider;
+    joint.connectedBody = box3Collider;
 
     expect(joint.connectedAnchor).deep.include({ x: 4, y: 0, z: 4 });
     expect(box.transform.position).deep.include({ x: 4, y: 4, z: 4 });
   });
 
   it("rotated", function () {
-    const box = addBox(new Vector3(1, 1, 1), DynamicCollider, new Vector3(4, 4, 4));
+    const box = addBox(new Vector3(1, 1, 1), new Vector3(4, 4, 4));
     box.transform.rotation = new Vector3(30, 45, 0);
     box.addComponent(FixedJoint);
-    // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1);
     expect(formatValue(box.transform.rotation.x)).eq(30);
     expect(formatValue(box.transform.rotation.y)).eq(45);
     expect(formatValue(box.transform.rotation.z)).eq(0);
   });
 
-  it("rotated with connectedCollider", function () {
-    const box = addBox(new Vector3(1, 1, 1), DynamicCollider, new Vector3(4, 4, 4));
-    const box2 = addBox(new Vector3(1, 1, 1), DynamicCollider, new Vector3(4, 4, 4));
-    const connectedCollider = box2.getComponent(DynamicCollider);
-    box.getComponent(DynamicCollider).useGravity = false;
-    connectedCollider.useGravity = false;
+  it("rotated with connectedBody", function () {
+    const box = addBox(new Vector3(1, 1, 1), new Vector3(4, 4, 4));
+    const box2 = addBox(new Vector3(1, 1, 1), new Vector3(4, 4, 4));
+    const connectedBody = box2.getComponent(Rigidbody);
+    box.getComponent(Rigidbody).useGravity = false;
+    connectedBody.useGravity = false;
     box.transform.rotation = new Vector3(30, 45, 0);
     box2.transform.rotation = new Vector3(20, 45, 50);
     const joint = box.addComponent(FixedJoint);
-    joint.connectedCollider = connectedCollider;
-    // @ts-ignore
+    joint.connectedBody = connectedBody;
     engine.sceneManager.activeScene.physics._update(1);
     expect(formatValue(box.transform.rotation.x)).eq(30);
     expect(formatValue(box.transform.rotation.y)).eq(45);
@@ -172,64 +182,60 @@ describe("Joint", function () {
 
   it("massScale", function () {
     engine.sceneManager.activeScene.physics.gravity = new Vector3(0, -1, 0);
-    const box1 = addBox(new Vector3(1, 1, 1), DynamicCollider, new Vector3(0, 5, 0));
-    const box2 = addBox(new Vector3(1, 1, 1), DynamicCollider, new Vector3(0, 1, 0));
-    const box1Collider = box1.getComponent(DynamicCollider);
-    const box2Collider = box2.getComponent(DynamicCollider);
+    const box1 = addBox(new Vector3(1, 1, 1), new Vector3(0, 5, 0));
+    const box2 = addBox(new Vector3(1, 1, 1), new Vector3(0, 1, 0));
+    const box1Collider = box1.getComponent(Rigidbody);
+    const box2Collider = box2.getComponent(Rigidbody);
     box1Collider.isKinematic = true;
     const fixedJoint = box2.addComponent(FixedJoint);
-    fixedJoint.connectedCollider = box1.getComponent(DynamicCollider);
+    fixedJoint.connectedBody = box1.getComponent(Rigidbody);
     fixedJoint.automaticConnectedAnchor = true;
     fixedJoint.breakForce = 10;
 
     fixedJoint.massScale = 10;
     expect(fixedJoint.massScale).eq(10);
 
-    // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1);
     expect(box2Collider.linearVelocity.y).eq(0);
 
     fixedJoint.massScale = 10.01;
     expect(fixedJoint.massScale).eq(10.01);
     box2Collider.wakeUp();
-    // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1);
     expect(box2Collider.linearVelocity.y).lessThan(0);
   });
 
   it("connectedMassScale", function () {
     engine.sceneManager.activeScene.physics.gravity = new Vector3(0, -1, 0);
-    const box1 = addBox(new Vector3(1, 1, 1), DynamicCollider, new Vector3(0, 5, 0));
-    const box2 = addBox(new Vector3(1, 1, 1), DynamicCollider, new Vector3(0, 1, 0));
-    const box1Collider = box1.getComponent(DynamicCollider);
-    const box2Collider = box2.getComponent(DynamicCollider);
+    const box1 = addBox(new Vector3(1, 1, 1), new Vector3(0, 5, 0));
+    const box2 = addBox(new Vector3(1, 1, 1), new Vector3(0, 1, 0));
+    const box1Collider = box1.getComponent(Rigidbody);
+    const box2Collider = box2.getComponent(Rigidbody);
     box1Collider.isKinematic = true;
     const fixedJoint = box1.addComponent(FixedJoint);
-    fixedJoint.connectedCollider = box2.getComponent(DynamicCollider);
+    fixedJoint.connectedBody = box2.getComponent(Rigidbody);
     fixedJoint.automaticConnectedAnchor = true;
     fixedJoint.breakForce = 10;
 
     fixedJoint.connectedMassScale = 10;
     expect(fixedJoint.connectedMassScale).eq(10);
 
-    // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1 / 60);
     expect(box2Collider.linearVelocity.y).eq(0);
 
     fixedJoint.connectedMassScale = 10.01;
     expect(fixedJoint.connectedMassScale).eq(10.01);
-    // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1);
     expect(box2Collider.linearVelocity.y).lessThan(0);
   });
 
   it("inertiaScale", function () {
     engine.sceneManager.activeScene.physics.gravity = new Vector3(0, 0, 0);
-    const box1 = addBox(new Vector3(1, 1, 1), DynamicCollider, new Vector3(0, 1, 0));
-    const box2 = addBox(new Vector3(1, 1, 1), DynamicCollider, new Vector3(1, 1, 0));
+    const box1 = addBox(new Vector3(1, 1, 1), new Vector3(0, 1, 0));
+    const box2 = addBox(new Vector3(1, 1, 1), new Vector3(1, 1, 0));
     const fixedJoint = box2.addComponent(FixedJoint);
-    const box2Collider = box2.getComponent(DynamicCollider);
-    const box1Collider = (fixedJoint.connectedCollider = box1.getComponent(DynamicCollider));
+    const box2Collider = box2.getComponent(Rigidbody);
+    const box1Collider = (fixedJoint.connectedBody = box1.getComponent(Rigidbody));
     box1Collider.automaticInertiaTensor = false;
     box2Collider.automaticInertiaTensor = false;
     box1Collider.mass = 0.00001;
@@ -237,20 +243,17 @@ describe("Joint", function () {
     box2Collider.inertiaTensor = new Vector3(1, 1, 1);
     fixedJoint.automaticConnectedAnchor = true;
     box2Collider.applyTorque(new Vector3(0, 1000, 0));
-    // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1 / 60);
     expect(formatValue(box2Collider.angularVelocity.y)).eq(477.06462);
 
     box2.transform.rotation = new Vector3(0, 0, 0);
     box1Collider.angularVelocity = new Vector3(0, 0, 0);
     box2Collider.angularVelocity = new Vector3(0, 0, 0);
-    // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1 / 60);
     expect(formatValue(box2Collider.angularVelocity.y)).closeTo(0, 0.01);
 
     box2Collider.inertiaTensor.y *= 10;
     box2Collider.applyTorque(new Vector3(0, 1000, 0));
-    // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1 / 60);
     expect(formatValue(box2Collider.angularVelocity.y)).closeTo(86.74174, 0.01);
 
@@ -258,25 +261,23 @@ describe("Joint", function () {
     box2Collider.inertiaTensor.y = 1;
     box1Collider.angularVelocity = new Vector3(0, 0, 0);
     box2Collider.angularVelocity = new Vector3(0, 0, 0);
-    // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1 / 60);
     expect(formatValue(box2Collider.angularVelocity.y)).closeTo(0, 0.01);
 
     fixedJoint.inertiaScale = 10;
     expect(fixedJoint.inertiaScale).eq(10);
     box2Collider.applyTorque(new Vector3(0, 1000, 0));
-    // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1 / 60);
     expect(formatValue(box2Collider.angularVelocity.y)).closeTo(86.74174, 0.01);
   });
 
   it("connectedInertiaScale", function () {
     engine.sceneManager.activeScene.physics.gravity = new Vector3(0, 0, 0);
-    const box1 = addBox(new Vector3(1, 1, 1), DynamicCollider, new Vector3(0, 1, 0));
-    const box2 = addBox(new Vector3(1, 1, 1), DynamicCollider, new Vector3(1, 1, 0));
+    const box1 = addBox(new Vector3(1, 1, 1), new Vector3(0, 1, 0));
+    const box2 = addBox(new Vector3(1, 1, 1), new Vector3(1, 1, 0));
     const fixedJoint = box1.addComponent(FixedJoint);
-    const box1Collider = box1.getComponent(DynamicCollider);
-    const box2Collider = (fixedJoint.connectedCollider = box2.getComponent(DynamicCollider));
+    const box1Collider = box1.getComponent(Rigidbody);
+    const box2Collider = (fixedJoint.connectedBody = box2.getComponent(Rigidbody));
     box1Collider.automaticInertiaTensor = false;
     box2Collider.automaticInertiaTensor = false;
     box1Collider.mass = 0.00001;
@@ -284,20 +285,17 @@ describe("Joint", function () {
     box2Collider.inertiaTensor = new Vector3(1, 1, 1);
     fixedJoint.automaticConnectedAnchor = true;
     box2Collider.applyTorque(new Vector3(0, 1000, 0));
-    // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1 / 60);
     expect(formatValue(box2Collider.angularVelocity.y)).eq(477.06451);
 
     box2.transform.rotation = new Vector3(0, 0, 0);
     box1Collider.angularVelocity = new Vector3(0, 0, 0);
     box2Collider.angularVelocity = new Vector3(0, 0, 0);
-    // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1 / 60);
     expect(formatValue(box2Collider.angularVelocity.y)).closeTo(0, 0.01);
 
     box2Collider.inertiaTensor.y *= 10;
     box2Collider.applyTorque(new Vector3(0, 1000, 0));
-    // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1 / 60);
     expect(formatValue(box2Collider.angularVelocity.y)).closeTo(86.74174, 0.01);
 
@@ -305,93 +303,87 @@ describe("Joint", function () {
     box2Collider.inertiaTensor.y = 1;
     box1Collider.angularVelocity = new Vector3(0, 0, 0);
     box2Collider.angularVelocity = new Vector3(0, 0, 0);
-    // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1 / 60);
     expect(formatValue(box2Collider.angularVelocity.y)).closeTo(0, 0.01);
 
     fixedJoint.connectedInertiaScale = 10;
     expect(fixedJoint.connectedInertiaScale).eq(10);
     box2Collider.applyTorque(new Vector3(0, 1000, 0));
-    // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1 / 60);
     expect(formatValue(box2Collider.angularVelocity.y)).closeTo(86.74174, 0.01);
   });
 
   it("breakForce", function () {
     engine.sceneManager.activeScene.physics.gravity = new Vector3(0, -1, 0);
-    const box1 = addBox(new Vector3(1, 1, 1), DynamicCollider, new Vector3(0, 5, 0));
-    const box2 = addBox(new Vector3(1, 1, 1), DynamicCollider, new Vector3(0, 2, 0));
-    const box1Collider = box1.getComponent(DynamicCollider);
-    const box2Collider = box2.getComponent(DynamicCollider);
+    const box1 = addBox(new Vector3(1, 1, 1), new Vector3(0, 5, 0));
+    const box2 = addBox(new Vector3(1, 1, 1), new Vector3(0, 2, 0));
+    const box1Collider = box1.getComponent(Rigidbody);
+    const box2Collider = box2.getComponent(Rigidbody);
     box1Collider.isKinematic = true;
     const fixedJoint = box1.addComponent(FixedJoint);
-    fixedJoint.connectedCollider = box2.getComponent(DynamicCollider);
+    fixedJoint.connectedBody = box2.getComponent(Rigidbody);
     fixedJoint.automaticConnectedAnchor = true;
     fixedJoint.breakForce = 10;
     expect(fixedJoint.breakForce).eq(10);
 
-    // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1);
     expect(box2Collider.linearVelocity.y).eq(0);
 
     fixedJoint.breakForce = 0.9;
     box2Collider.wakeUp();
-    // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1);
     expect(box2Collider.linearVelocity.y).lessThan(0);
   });
 
   it("breakTorque", function () {
     engine.sceneManager.activeScene.physics.gravity = new Vector3(0, 0, 0);
-    const box1 = addBox(new Vector3(1, 1, 1), DynamicCollider, new Vector3(0, 1, 0));
-    const box2 = addBox(new Vector3(1, 1, 1), DynamicCollider, new Vector3(1, 1, 0));
+    const box1 = addBox(new Vector3(1, 1, 1), new Vector3(0, 1, 0));
+    const box2 = addBox(new Vector3(1, 1, 1), new Vector3(1, 1, 0));
     const fixedJoint = box1.addComponent(FixedJoint);
-    const box2Collider = box2.getComponent(DynamicCollider);
-    fixedJoint.connectedCollider = box2.getComponent(DynamicCollider);
+    const box2Collider = box2.getComponent(Rigidbody);
+    fixedJoint.connectedBody = box2.getComponent(Rigidbody);
     fixedJoint.automaticConnectedAnchor = true;
     box2Collider.applyTorque(new Vector3(0, 1000, 0));
-    // @ts-ignore
     engine.sceneManager.activeScene.physics._update(10);
     expect(Math.abs(box1.transform.position.z)).lessThan(1);
 
     fixedJoint.breakTorque = 1;
     expect(fixedJoint.breakTorque).eq(1);
     box2Collider.applyTorque(new Vector3(0, 1000, 0));
-    // @ts-ignore
     engine.sceneManager.activeScene.physics._update(10);
     expect(Math.abs(box1.transform.position.z)).greaterThan(1);
   });
 
   it("clone", function () {
     engine.sceneManager.activeScene.physics.gravity = new Vector3(0, -1, 0);
-    const box1 = addBox(new Vector3(1, 1, 1), DynamicCollider, new Vector3(0, 5, 0));
-    const box2 = addBox(new Vector3(1, 1, 1), DynamicCollider, new Vector3(0, 2, 0));
-    const box1Collider = box1.getComponent(DynamicCollider);
-    const box2Collider = box2.getComponent(DynamicCollider);
+    const box1 = addBox(new Vector3(1, 1, 1), new Vector3(0, 5, 0));
+    const box2 = addBox(new Vector3(1, 1, 1), new Vector3(0, 2, 0));
+    const box1Collider = box1.getComponent(Rigidbody);
+    const box2Collider = box2.getComponent(Rigidbody);
     box1Collider.isKinematic = true;
     const fixedJoint = box1.addComponent(FixedJoint);
-    fixedJoint.connectedCollider = box2Collider;
+    fixedJoint.connectedBody = box2Collider;
     fixedJoint.automaticConnectedAnchor = true;
     fixedJoint.breakForce = 1;
 
     const newBox1 = box1.clone();
     rootEntity.addChild(newBox1);
     box1.isActive = false;
-    // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1);
     expect(box2Collider.linearVelocity.y).eq(0);
   });
 
-  it("inActive modification", function () {
-    const box1 = addBox(new Vector3(1, 1, 1), DynamicCollider, new Vector3(0, 5, 0));
-    const box2 = addBox(new Vector3(1, 1, 1), DynamicCollider, new Vector3(0, 2, 0));
+  it("applies joint settings configured while inactive when the Entity enters simulation", function () {
+    engine.sceneManager.activeScene.physics.gravity.set(0, 0, 0);
+    const box1 = addBox(new Vector3(1, 1, 1), new Vector3(0, 5, 0));
+    const box2 = addBox(new Vector3(1, 1, 1), new Vector3(0, 2, 0));
 
     box1.isActive = false;
     const fixedJoint = box1.addComponent(FixedJoint);
     fixedJoint.automaticConnectedAnchor = true;
     fixedJoint.automaticConnectedAnchor = false;
-    fixedJoint.connectedCollider = null;
-    fixedJoint.connectedCollider = box2.getComponent(DynamicCollider);
+    fixedJoint.connectedBody = null;
+    fixedJoint.connectedBody = box2.getComponent(Rigidbody);
     fixedJoint.anchor = new Vector3(0, 3, 0);
     fixedJoint.connectedAnchor = new Vector3(0, 3, 0);
     fixedJoint.massScale = 3;
@@ -400,6 +392,12 @@ describe("Joint", function () {
     fixedJoint.connectedInertiaScale = 3;
     fixedJoint.breakForce = 3;
     fixedJoint.breakTorque = 3;
+    box2.getComponent(Rigidbody).isKinematic = true;
+    box1.isActive = true;
+    engine.sceneManager.activeScene.physics._update(1 / 60);
+    expect(fixedJoint.connectedBody).toBe(box2.getComponent(Rigidbody));
+    expect(box1.transform.position.y).toBeCloseTo(2, 5);
     fixedJoint.destroy();
+    expect(box1.getComponent(FixedJoint)).toBeNull();
   });
 });
