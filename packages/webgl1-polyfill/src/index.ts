@@ -1,6 +1,6 @@
 import "./overrides";
-import { bindOverrides, type Bindings, type Registry } from "@/override";
 import type { WebCanvas, WebGLGraphicDevice } from "@galacean/engine-rhi-webgl";
+import { bindOverrides, type Bindings, type Registry } from "./override";
 
 /**
  * Bind the polyfill to the engine classes supplied by the caller.

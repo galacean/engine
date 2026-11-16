@@ -1,3 +1,5 @@
+/// <reference types="webxr" preserve="true" />
+
 import {
   BufferBindFlag,
   BufferUsage,

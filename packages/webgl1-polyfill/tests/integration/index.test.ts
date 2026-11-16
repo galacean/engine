@@ -1,6 +1,6 @@
 import { Camera, Color, ParticleRenderer, WebGLEngine, WebGLGraphicDevice } from "../../../galacean/dist/module.js";
 import { expect, it } from "vitest";
-import { makeFallbackCanvas } from "../helpers/canvas";
+import { makeFallbackCanvas, webgl1PolyfillURLPattern } from "../helpers/canvas";
 
 it("loads one compatibility module for concurrent real fallback devices and keeps WebGL2 TF active", async ({
   skip
@@ -50,9 +50,7 @@ it("loads one compatibility module for concurrent real fallback devices and keep
     );
 
     expect(
-      performance
-        .getEntriesByType("resource")
-        .filter((entry) => entry.name.includes("https://cdn.jsdelivr.net/npm/@galacean/engine-webgl1-polyfill@"))
+      performance.getEntriesByType("resource").filter((entry) => webgl1PolyfillURLPattern.test(entry.name))
     ).toHaveLength(1);
     nativeParticle._setTransformFeedback();
     expect(nativeParticle._feedbackSimulator).toBe(nativeSimulation);
@@ -76,10 +74,7 @@ it("restores the WebGL1 device and redraws without fetching the module again", a
     scene.background.solidColor = new Color(0, 1, 0, 1);
 
     const requests = () =>
-      performance
-        .getEntriesByType("resource")
-        .filter((entry) => entry.name.includes("https://cdn.jsdelivr.net/npm/@galacean/engine-webgl1-polyfill@"))
-        .length;
+      performance.getEntriesByType("resource").filter((entry) => webgl1PolyfillURLPattern.test(entry.name)).length;
     const requestCount = requests();
     const extension = gl.getExtension("WEBGL_lose_context")!;
     const lost = new Promise<void>((resolve) => engine.once("devicelost", () => resolve()));

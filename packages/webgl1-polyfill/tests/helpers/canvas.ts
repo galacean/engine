@@ -7,12 +7,11 @@ declare module "@vitest/browser/context" {
   }
 }
 
+export const webgl1PolyfillURLPattern =
+  /^https:\/\/mdn\.alipayobjects\.com\/rms\/afts\/file\/[^/]+\/engine-webgl1-polyfill\.js(?:\?retry=\d+)?$/;
+
 beforeAll(() =>
-  server.commands.mockRemoteAsset(
-    /^https:\/\/cdn\.jsdelivr\.net\/npm\/@galacean\/engine-webgl1-polyfill@[^/]+\/dist\/module\.js(?:\?retry=\d+)?$/
-      .source,
-    "packages/webgl1-polyfill/dist/module.js"
-  )
+  server.commands.mockRemoteAsset(webgl1PolyfillURLPattern.source, "packages/webgl1-polyfill/dist/module.js")
 );
 
 export function createWebGL1Canvas(): HTMLCanvasElement {

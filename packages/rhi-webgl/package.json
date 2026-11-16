@@ -22,7 +22,8 @@
   ],
   "dependencies": {
     "@galacean/engine-core": "workspace:*",
-    "@galacean/engine-math": "workspace:*"
+    "@galacean/engine-math": "workspace:*",
+    "@types/webxr": "^0.5.24"
   },
   "devDependencies": {
     "@galacean/engine-design": "workspace:*"

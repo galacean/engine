@@ -129,8 +129,9 @@ export class GLCapability {
   }
 
   private _getColorBufferSupport(): { float: boolean; halfFloat: boolean } {
-    const supported = !!this.rhi.requireExtension(GLCapabilityType.colorBufferFloat);
-    return { float: supported, halfFloat: supported };
+    const float = !!this.rhi.requireExtension(GLCapabilityType.colorBufferFloat);
+    const halfFloat = float || !!this.rhi.requireExtension(GLCapabilityType.colorBufferHalfFloat);
+    return { float, halfFloat };
   }
 
   /**

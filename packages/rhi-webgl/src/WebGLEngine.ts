@@ -116,8 +116,9 @@ export interface WebGLEngineConfiguration extends EngineConfiguration {
   graphicDeviceOptions?: WebGLGraphicDeviceOptions;
 }
 
-// Update the CDN pin when the compatibility package integration changes.
-const fallbackModuleURL = `https://cdn.jsdelivr.net/npm/@galacean/engine-webgl1-polyfill@2.0.0-alpha.57/dist/module.js`;
+// Upload a new AFTS asset when the compatibility module changes.
+const fallbackModuleURL =
+  "https://mdn.alipayobjects.com/rms/afts/file/A*a-2qTJkbFTUAAAAAQ1AAAAgAehQnAQ/engine-webgl1-polyfill.js";
 let pendingFallback: Promise<(device: WebGLGraphicDevice, canvas: WebCanvas) => void> | undefined;
 let fallbackRetry = 0;
 

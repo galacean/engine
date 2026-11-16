@@ -47,6 +47,29 @@ describe.each([
   });
 });
 
+it("supports RGBA16F color attachments on WebGL2 with only EXT_color_buffer_half_float", async () => {
+  const canvas = document.createElement("canvas");
+  const gl = canvas.getContext("webgl2")!;
+  const getExtension = gl.getExtension.bind(gl);
+  const extension = vi.spyOn(gl, "getExtension").mockImplementation((name) => {
+    if (name === GLCapabilityType.colorBufferFloat) return null;
+    if (name === GLCapabilityType.colorBufferHalfFloat) return { RGBA16F_EXT: gl.RGBA16F };
+    return getExtension(name);
+  });
+  let engine: WebGLEngine | undefined;
+  try {
+    engine = await WebGLEngine.create({ canvas });
+    const rhi = engine._hardwareRenderer;
+    expect(rhi.canIUse(GLCapabilityType.colorBufferHalfFloat)).toBe(true);
+    expect(rhi.canIUse(GLCapabilityType.colorBufferFloat)).toBe(false);
+    expect(rhi._supportsColorAttachment(TextureFormat.R16G16B16A16)).toBe(true);
+    expect(rhi._supportsColorAttachment(TextureFormat.R11G11B10_UFloat)).toBe(false);
+  } finally {
+    extension.mockRestore();
+    engine?.destroy();
+  }
+});
+
 it("rejects ETC2_RGBA5 before allocating storage when neither ETC extension is available", async () => {
   const canvas = document.createElement("canvas");
   const gl = canvas.getContext("webgl2")!;
