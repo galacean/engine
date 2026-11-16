@@ -17,10 +17,15 @@ import { createPhysics } from "../../utils/physics";
 
 class ContactRecorder extends Script {
   enterCount = 0;
+  stayCount = 0;
   exitCount = 0;
 
   override onCollisionEnter(): void {
     this.enterCount++;
+  }
+
+  override onCollisionStay(): void {
+    this.stayCount++;
   }
 
   override onCollisionExit(): void {
@@ -70,6 +75,7 @@ describe("Unity-style physics ownership prototype", () => {
     vi.restoreAllMocks();
     physics.setColliderLayerCollision(Layer.Layer4, Layer.Layer0, true);
     physics.setColliderLayerCollision(Layer.Layer4, Layer.Layer3, true);
+    physics.setColliderLayerCollision(Layer.Layer6, Layer.Layer0, true);
     root.destroy();
     engine.resourceManager.gc();
   });
@@ -102,6 +108,118 @@ describe("Unity-style physics ownership prototype", () => {
   function overlapping(center: Vector3, layer: Layer): ColliderShape[] {
     return physics.overlapSphereAll(center, 0.1, layer);
   }
+
+  function setShapeGroup(shape: ColliderShape, layerIndex: number): boolean {
+    return (shape as any)._nativeShape._pxShape.setGroup(layerIndex);
+  }
+
+  describe("shape-level in-place layer updates", () => {
+    it("updates only the target shape for queries and the collision matrix", () => {
+      const triggers = root.createChild("triggers").addComponent(StaticCollider);
+      const firstTrigger = new BoxColliderShape();
+      const secondTrigger = new BoxColliderShape();
+      firstTrigger.isTrigger = true;
+      secondTrigger.isTrigger = true;
+      firstTrigger.position.x = -2;
+      secondTrigger.position.x = 2;
+      triggers.addShape(firstTrigger);
+      triggers.addShape(secondTrigger);
+      expect(setShapeGroup(secondTrigger, 3)).toBe(true);
+
+      const firstCenter = new Vector3(-2, 1000, 0);
+      const secondCenter = new Vector3(2, 1000, 0);
+      expect(overlapping(firstCenter, Layer.Layer0)).toEqual([firstTrigger]);
+      expect(overlapping(secondCenter, Layer.Layer0)).toEqual([]);
+      expect(overlapping(secondCenter, Layer.Layer3)).toEqual([secondTrigger]);
+
+      function addProbe(x: number): TriggerRecorder {
+        const entity = root.createChild(`probe-${x}`);
+        entity.transform.setPosition(x, 0, 0);
+        const collider = entity.addComponent(DynamicCollider);
+        collider.isKinematic = true;
+        collider.collisionLayer = Layer.Layer4;
+        collider.addShape(new SphereColliderShape());
+        return entity.addComponent(TriggerRecorder);
+      }
+
+      const blocked = addProbe(-2);
+      const allowed = addProbe(2);
+      physics.setColliderLayerCollision(Layer.Layer4, Layer.Layer0, false);
+      physics.setColliderLayerCollision(Layer.Layer4, Layer.Layer3, true);
+      update(2);
+
+      expect(blocked.enters).toEqual([]);
+      expect(allowed.enters).toEqual([secondTrigger]);
+    });
+
+    it("keeps an active trigger pair without repeated Enter and exits when the matrix filters it", () => {
+      const trigger = root.createChild("trigger").addComponent(StaticCollider);
+      const triggerShape = new BoxColliderShape();
+      triggerShape.isTrigger = true;
+      trigger.addShape(triggerShape);
+
+      const probe = root.createChild("probe");
+      const dynamic = probe.addComponent(DynamicCollider);
+      dynamic.isKinematic = true;
+      dynamic.addShape(new SphereColliderShape());
+      const recorder = probe.addComponent(TriggerRecorder);
+      update();
+      expect(recorder.enters.length).toBe(1);
+      expect(recorder.enters[0]).toBe(triggerShape);
+
+      const stayCount = recorder.stays.length;
+      expect(setShapeGroup(triggerShape, 5)).toBe(true);
+      update(2);
+      expect(recorder.enters.length).toBe(1);
+      expect(recorder.exits.length).toBe(0);
+      expect(recorder.stays.length).toBe(stayCount + 2);
+      expect(overlapping(new Vector3(0, 1000, 0), Layer.Layer0).includes(triggerShape)).toBe(false);
+      const layer5Hits = overlapping(new Vector3(0, 1000, 0), Layer.Layer5);
+      expect(layer5Hits.length).toBe(1);
+      expect(layer5Hits[0]).toBe(triggerShape);
+
+      physics.setColliderLayerCollision(Layer.Layer6, Layer.Layer0, false);
+      expect(setShapeGroup(triggerShape, 6)).toBe(true);
+      update(2);
+      expect(recorder.enters.length).toBe(1);
+      expect(recorder.exits.length).toBe(1);
+      expect(recorder.exits[0]).toBe(triggerShape);
+    });
+
+    it("keeps an active collision pair without repeated Enter and exits when the matrix filters it", () => {
+      const ground = root.createChild("ground").addComponent(StaticCollider);
+      ground.addShape(new BoxColliderShape());
+      const probe = root.createChild("contact-probe");
+      probe.transform.setPosition(0, 0.75, 0);
+      const dynamic = probe.addComponent(DynamicCollider);
+      dynamic.useGravity = false;
+      dynamic.addShape(new SphereColliderShape());
+      const recorder = probe.addComponent(ContactRecorder);
+      update();
+      expect(recorder.enterCount).toBe(1);
+
+      const stayCount = recorder.stayCount;
+      expect(setShapeGroup(ground.shapes[0], 5)).toBe(true);
+      update();
+      expect(recorder.enterCount).toBe(1);
+      expect(recorder.exitCount).toBe(0);
+      expect(recorder.stayCount).toBeGreaterThan(stayCount);
+
+      physics.setColliderLayerCollision(Layer.Layer6, Layer.Layer0, false);
+      expect(setShapeGroup(ground.shapes[0], 6)).toBe(true);
+      update();
+      expect(recorder.enterCount).toBe(1);
+      expect(recorder.exitCount).toBe(1);
+    });
+
+    it("rejects an out-of-range layer without changing the shape", () => {
+      const collider = root.createChild("static").addComponent(StaticCollider);
+      const shape = new BoxColliderShape();
+      collider.addShape(shape);
+      expect(setShapeGroup(shape, 32)).toBe(false);
+      expect(overlapping(new Vector3(0, 1000, 0), Layer.Layer0)).toEqual([shape]);
+    });
+  });
 
   it("filters each shape independently on one actor, including layer changes", () => {
     const collider = root.createChild("compound").addComponent(StaticCollider);
@@ -158,7 +276,7 @@ describe("Unity-style physics ownership prototype", () => {
     expect(allowed.enters).toEqual([secondTrigger]);
   });
 
-  it("requires a shape-level native binding for in-place layer changes", () => {
+  it("keeps the actor-level setGroup binding actor-only", () => {
     const collider = root.createChild("static").addComponent(StaticCollider);
     const shape = new BoxColliderShape();
     collider.addShape(shape);
