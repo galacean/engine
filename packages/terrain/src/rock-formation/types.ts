@@ -23,8 +23,6 @@ export interface RockFormationJob {
 /** Reusable indexed rock geometry and its original UV material channels. */
 export interface RockVariantAsset {
   id: string;
-  base: string;
-  normal: string;
   positions: Float32Array;
   normals: Float32Array;
   tangents: Float32Array;
