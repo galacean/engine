@@ -133,7 +133,7 @@ let fallbackRetry = 0;
 function loadRendererFallback() {
   if (!pendingFallback) {
     const url = fallbackRetry ? fallbackModuleURL + "?retry=" + fallbackRetry : fallbackModuleURL;
-    pendingFallback = import(/* @vite-ignore */ url)
+    pendingFallback = import(/* webpackIgnore: true */ /* @vite-ignore */ url)
       .then((module) => {
         if (typeof module.bind !== "function") {
           throw new Error("Invalid renderer fallback module.");
