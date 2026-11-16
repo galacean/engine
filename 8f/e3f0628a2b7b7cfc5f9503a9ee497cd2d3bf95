@@ -1,0 +1,25 @@
+packages/world-planning/src/spatial/WorldTemplateCatalog.ts
+  s_ae6fab0fbe1884::t_b1a7291ece969a 29-30
+packages/world-planning/src/integrations/terrain/rock-formation/View.ts
+  s_ae6fab0fbe1884::t_2bdc4ea36dcfb3 7,35,45-46,79
+packages/terrain/src/shaders/surface/SurfaceEvaluation.glsl
+  s_ae6fab0fbe1884::t_b1a7291ece969a 20-22,158-164
+packages/terrain/src/data/seed-world/public/Shader/Surface.shaderc
+  s_ae6fab0fbe1884::t_e2391669547f48 1
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "8fe3f0628a2b7b7cfc5f9503a9ee497cd2d3bf95",
+  "prompts": {},
+  "sessions": {
+    "s_ae6fab0fbe1884": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1cde9-e5eb-7580-948b-3731733934fb",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}
