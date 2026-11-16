@@ -582,7 +582,7 @@ it("installs and resolves the headless entry and declarations independently of t
     writeFileSync(
       source,
       'import { HeadlessEngine, MeshRenderer, PrimitiveMesh } from "@galacean/engine/headless";\n' +
-        "async function run() { const e = await HeadlessEngine.create(); const r = e.sceneManager.activeScene!.createRootEntity().addComponent(MeshRenderer); r.mesh = PrimitiveMesh.createCuboid(e, 1, 2, 3); e.destroy(); }"
+        "async function run() { const e = await HeadlessEngine.create({ glTFLoader: { meshOpt: { workerCount: 0 } } }); const r = e.sceneManager.activeScene!.createRootEntity().addComponent(MeshRenderer); r.mesh = PrimitiveMesh.createCuboid(e, 1, 2, 3); e.destroy(); }"
     );
     for (const resolution of ["Node16", "Bundler", "Node10"] as const) {
       const config = {

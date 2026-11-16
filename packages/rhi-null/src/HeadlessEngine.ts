@@ -17,7 +17,7 @@ export class HeadlessEngine extends Engine {
 }
 
 /** Options for an engine without graphics, XR or DOM input. */
-export interface HeadlessEngineConfiguration extends Pick<EngineConfiguration, "physics" | "shaderCompiler"> {
+export interface HeadlessEngineConfiguration extends Omit<EngineConfiguration, "xrDevice" | "input"> {
   /** Fixed canvas width in pixels, defaults to 1. */
   width?: number;
   /** Fixed canvas height in pixels, defaults to 1. */
