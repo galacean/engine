@@ -343,6 +343,10 @@ export class WebGLGraphicDevice implements IHardwareRenderer, IXRGraphicsBinding
     return this.capability.canIUseCompressedTextureInternalFormat(type);
   }
 
+  supportsTextureFormat(format: TextureFormat): boolean {
+    return this.capability.supportsTextureFormat(format);
+  }
+
   viewport(x: number, y: number, width: number, height: number): void {
     const { _gl: gl, _lastViewport: lastViewport } = this;
     if (x !== lastViewport.x || y !== lastViewport.y || width !== lastViewport.z || height !== lastViewport.w) {

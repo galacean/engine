@@ -1,4 +1,4 @@
-import { GLCapabilityType } from "@galacean/engine-core";
+import { GLCapabilityType, TextureFormat } from "@galacean/engine-core";
 import { WebGLGraphicDevice } from "./WebGLGraphicDevice";
 import { GLCompressedTextureInternalFormat } from "./type";
 
@@ -143,6 +143,33 @@ export class GLCapability {
       return this.canIUse(GLCapabilityType.bptc);
     }
     return false;
+  }
+
+  /**
+   * Check whether the given texture format is supported.
+   */
+  supportsTextureFormat(format: TextureFormat): boolean {
+    switch (format) {
+      case TextureFormat.R16G16B16A16:
+        return this.canIUse(GLCapabilityType.textureHalfFloat);
+      case TextureFormat.R32G32B32A32:
+        return this.canIUse(GLCapabilityType.textureFloat);
+      case TextureFormat.Depth16:
+      case TextureFormat.Depth24Stencil8:
+      case TextureFormat.Depth:
+      case TextureFormat.DepthStencil:
+        return this.canIUse(GLCapabilityType.depthTexture);
+      case TextureFormat.R11G11B10_UFloat:
+      case TextureFormat.R32G32B32A32_UInt:
+      case TextureFormat.Depth24:
+      case TextureFormat.Depth32:
+      case TextureFormat.Depth32Stencil8:
+      case TextureFormat.R8:
+      case TextureFormat.R8G8:
+        return this.rhi.isWebGL2;
+      default:
+        return true;
+    }
   }
 
   /**

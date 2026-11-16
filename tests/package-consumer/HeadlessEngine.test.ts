@@ -60,7 +60,10 @@ describe("published headless entry in Node without browser globals", () => {
     expect(typeof document).toBe("undefined");
     expect(enginePackage.version).not.toBe("__buildVersion");
     expect(enginePackage.version.length).toBeGreaterThan(0);
+    expect(enginePackage.SystemInfo.devicePixelRatio).toBe(1);
+    expect(await enginePackage.SystemInfo._checkWebpSupported()).toBe(false);
     const engine = await createEngine({ width: 640, height: 360 });
+    expect(enginePackage.SystemInfo.supportsTextureFormat(engine, enginePackage.TextureFormat.R8)).toBe(true);
     expect([engine.canvas.width, engine.canvas.height]).toEqual([640, 360]);
     expect(engine.isPaused).toBe(true);
     expect(engine.inputManager.pointers).toEqual([]);

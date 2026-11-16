@@ -5,7 +5,7 @@ import type { Engine } from "../Engine";
 import type { GLCapabilityType } from "../base/Constant";
 import type { BufferBindFlag, BufferUsage, Primitive, SubMesh } from "../graphic";
 import type { CameraClearFlags } from "../enums/CameraClearFlags";
-import type { RenderTarget, Texture2D, Texture2DArray, TextureCube, TextureCubeFace } from "../texture";
+import type { RenderTarget, Texture2D, Texture2DArray, TextureCube, TextureCubeFace, TextureFormat } from "../texture";
 import type { IPlatformBuffer } from "./IPlatformBuffer";
 import type { IPlatformRenderTarget } from "./IPlatformRenderTarget";
 import type { IPlatformTexture } from "./IPlatformTexture";
@@ -45,6 +45,7 @@ export interface IHardwareRenderer {
   init(canvas: Canvas, onDeviceLost: () => void, onDeviceRestored: () => void): void;
   canIUse(capability: GLCapabilityType): boolean;
   canIUseCompressedTextureInternalFormat(format: number): boolean;
+  supportsTextureFormat(format: TextureFormat): boolean;
   createPlatformPrimitive(primitive: Primitive): IPlatformPrimitive;
   createPlatformBuffer(
     type: BufferBindFlag,

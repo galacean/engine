@@ -39,7 +39,10 @@ export class NullGraphicDevice implements IHardwareRenderer {
   }
 
   canIUseCompressedTextureInternalFormat(): boolean {
-    // Texture descriptors do not require decompression or sampling
+    return true;
+  }
+
+  supportsTextureFormat(): boolean {
     return true;
   }
   createPlatformPrimitive() {
