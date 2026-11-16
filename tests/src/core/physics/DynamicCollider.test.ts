@@ -12,7 +12,7 @@ import {
 } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine";
 import { Vector3 } from "@galacean/engine-math";
-import { vi, describe, beforeAll, beforeEach, expect, it } from "vitest";
+import { vi, describe, beforeAll, afterAll, beforeEach, expect, it } from "vitest";
 
 describe("DynamicCollider", function () {
   let engine: Engine;
@@ -76,8 +76,13 @@ describe("DynamicCollider", function () {
     rootEntity = engine.sceneManager.activeScene.createRootEntity("root");
   });
 
+  afterAll(() => engine.destroy());
+
   beforeEach(function () {
-    rootEntity.clearChildren();
+    while (rootEntity.children.length) {
+      rootEntity.children[0].destroy();
+    }
+    engine.resourceManager.gc();
   });
 
   it("addShape and removeShape", function () {

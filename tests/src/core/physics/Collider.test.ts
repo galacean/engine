@@ -12,7 +12,7 @@ import {
 } from "@galacean/engine-core";
 import { Vector3 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine";
-import { vi, describe, beforeAll, beforeEach, expect, it, afterEach } from "vitest";
+import { vi, describe, beforeAll, afterAll, beforeEach, expect, it, afterEach } from "vitest";
 
 class CollisionScript extends Script {
   onTriggerEnter = vi.fn(CollisionScript.prototype.onTriggerEnter);
@@ -87,8 +87,13 @@ describe("physics collider test", function () {
     rootEntity = engine.sceneManager.activeScene.createRootEntity("root");
   });
 
+  afterAll(() => engine.destroy());
+
   beforeEach(function () {
-    rootEntity.clearChildren();
+    while (rootEntity.children.length) {
+      rootEntity.children[0].destroy();
+    }
+    engine.resourceManager.gc();
 
     boxEntity = rootEntity.createChild("BoxEntity");
 

@@ -11,9 +11,11 @@ import {
 } from "@galacean/engine-core";
 import { Vector3 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine";
-import { describe, beforeAll, beforeEach, expect, it } from "vitest";
+import { describe, beforeAll, beforeEach, afterEach, afterAll, expect, it } from "vitest";
 
 describe("ColliderShape PhysX", () => {
+  let engine: WebGLEngine;
+  let root: Entity;
   let dynamicCollider: DynamicCollider;
 
   function formatValue(value: number) {
@@ -21,25 +23,25 @@ describe("ColliderShape PhysX", () => {
   }
 
   beforeAll(async () => {
-    const engine = await WebGLEngine.create({ canvas: document.createElement("canvas"), physics: createPhysics() });
-    engine.run();
-
+    engine = await WebGLEngine.create({ canvas: document.createElement("canvas"), physics: createPhysics() });
     const scene = engine.sceneManager.activeScene;
     scene.physics.gravity = new Vector3(0, 0, 0);
-    const root = scene.createRootEntity("root");
-
-    const roleEntity = root.createChild("role");
-
-    dynamicCollider = roleEntity.addComponent(DynamicCollider);
+    root = scene.createRootEntity("root");
   });
 
   beforeEach(() => {
-    const entity = dynamicCollider.entity;
-    entity.transform.setPosition(0, 0, 0);
-    entity.transform.setScale(1, 1, 1);
-    entity.transform.setRotation(0, 0, 0);
-    dynamicCollider.clearShapes();
+    dynamicCollider = root.createChild("role").addComponent(DynamicCollider);
   });
+
+  afterEach(() => {
+    while (root.children.length) {
+      root.children[0].destroy();
+    }
+    engine.resourceManager.gc();
+    expect(engine.resourceManager.findResourcesByType(PhysicsMaterial)).toHaveLength(0);
+  });
+
+  afterAll(() => engine.destroy());
 
   it("BoxColliderShape", () => {
     const boxShape = new BoxColliderShape();
@@ -349,18 +351,22 @@ describe("ColliderShape PhysX", () => {
     const newCollider = dynamicCollider.entity.clone().getComponent(DynamicCollider);
     expect(newCollider.shapes.length).to.eq(1);
     expect((newCollider.shapes[0] as SphereColliderShape).radius).to.eq(2);
+    newCollider.entity.destroy();
 
     // BoxColliderShape
     dynamicCollider.clearShapes();
+    sphereShape._destroy();
     const boxShape = new BoxColliderShape();
     boxShape.size = new Vector3(1, 2, 3);
     dynamicCollider.addShape(boxShape);
     const newCollider2 = dynamicCollider.entity.clone().getComponent(DynamicCollider);
     expect(newCollider2.shapes.length).to.eq(1);
     expect((newCollider2.shapes[0] as BoxColliderShape).size).to.deep.include({ x: 1, y: 2, z: 3 });
+    newCollider2.entity.destroy();
 
     // CapsuleColliderShape
     dynamicCollider.clearShapes();
+    boxShape._destroy();
     const capsuleShape = new CapsuleColliderShape();
     capsuleShape.radius = 2;
     capsuleShape.height = 3;
@@ -369,6 +375,7 @@ describe("ColliderShape PhysX", () => {
     expect(newCollider3.shapes.length).to.eq(1);
     expect((newCollider3.shapes[0] as CapsuleColliderShape).radius).to.eq(2);
     expect((newCollider3.shapes[0] as CapsuleColliderShape).height).to.eq(3);
+    newCollider3.entity.destroy();
   });
 
   it("cloned shapes are independent instances owned by the cloned collider", () => {

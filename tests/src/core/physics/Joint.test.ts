@@ -2,7 +2,7 @@ import { createPhysics } from "../../utils/physics";
 import { FixedJoint, Entity, DynamicCollider, StaticCollider, BoxColliderShape, Engine } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine";
 import { Vector3 } from "@galacean/engine-math";
-import { vi, describe, beforeAll, beforeEach, expect, it } from "vitest";
+import { vi, describe, beforeAll, afterAll, beforeEach, expect, it } from "vitest";
 
 describe("Joint", function () {
   let rootEntity: Entity;
@@ -31,8 +31,13 @@ describe("Joint", function () {
     rootEntity = engine.sceneManager.activeScene.createRootEntity("root");
   });
 
+  afterAll(() => engine.destroy());
+
   beforeEach(function () {
-    rootEntity.clearChildren();
+    while (rootEntity.children.length) {
+      rootEntity.children[0].destroy();
+    }
+    engine.resourceManager.gc();
     engine.sceneManager.activeScene.physics.gravity = new Vector3(0, -9.81, 0);
   });
 
