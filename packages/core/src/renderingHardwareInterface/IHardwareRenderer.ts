@@ -36,6 +36,7 @@ export interface IHardwareRenderer {
     readonly depth?: boolean;
     readonly stencil?: boolean;
     readonly _forceFlush?: boolean;
+    readonly _maxAllowSkinUniformVectorCount?: number;
   };
   /** @internal */
   _currentBindShaderProgram: IPlatformShaderProgram | null;

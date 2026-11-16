@@ -173,8 +173,9 @@ export class RenderTarget extends GraphicsResource {
     this._height = height;
     this._depth = <Texture | null | TextureFormat>depth;
 
-    const maxAntiAliasing = engine._hardwareRenderer.capability.maxAntiAliasing;
-    if (antiAliasing > maxAntiAliasing) {
+    const rhi = engine._hardwareRenderer;
+    const maxAntiAliasing = rhi.capability.maxAntiAliasing;
+    if (rhi.supportsRendering && antiAliasing > maxAntiAliasing) {
       Logger.warn(`MSAA antiAliasing exceeds the limit and is automatically downgraded to:${maxAntiAliasing}`);
       antiAliasing = maxAntiAliasing;
     }

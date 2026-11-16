@@ -137,9 +137,10 @@ export abstract class Texture extends GraphicsResource {
   }
 
   set anisoLevel(value: number) {
-    const max = this._engine._hardwareRenderer.capability.maxAnisoLevel;
+    const rhi = this._engine._hardwareRenderer;
+    const max = rhi.capability.maxAnisoLevel;
 
-    if (value > max) {
+    if (rhi.supportsRendering && value > max) {
       Logger.warn(`anisoLevel:${value}, exceeds the limit and is automatically downgraded to:${max}`);
       value = max;
     }
