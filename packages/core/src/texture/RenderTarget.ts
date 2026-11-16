@@ -1,5 +1,4 @@
 import { GraphicsResource } from "../asset/GraphicsResource";
-import { Logger } from "../base/Logger";
 import { Engine } from "../Engine";
 import { IPlatformRenderTarget } from "../renderingHardwareInterface";
 import { RenderBufferDepthFormat } from "./enums/RenderBufferDepthFormat";
@@ -77,7 +76,7 @@ export class RenderTarget extends GraphicsResource {
 
   /**
    * Anti-aliasing level.
-   * @remarks If the anti-aliasing level set is greater than the maximum level supported by the hardware, the maximum level of the hardware will be used.
+   * @remarks The requested level is kept; rendering uses at most the level supported by the device.
    */
   get antiAliasing(): number {
     return this._antiAliasing;
@@ -173,12 +172,6 @@ export class RenderTarget extends GraphicsResource {
     this._height = height;
     this._depth = <Texture | null | TextureFormat>depth;
 
-    const rhi = engine._hardwareRenderer;
-    const maxAntiAliasing = rhi.capability.maxAntiAliasing;
-    if (rhi.supportsRendering && antiAliasing > maxAntiAliasing) {
-      Logger.warn(`MSAA antiAliasing exceeds the limit and is automatically downgraded to:${maxAntiAliasing}`);
-      antiAliasing = maxAntiAliasing;
-    }
     this._antiAliasing = antiAliasing;
 
     let memorySize = 0;

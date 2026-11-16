@@ -170,6 +170,7 @@ describe("published headless entry in Node without browser globals", () => {
     }
     entity.addComponent(Controller);
     const camera = entity.addComponent(Camera);
+    expect(camera.msaaSamples).toBe(enginePackage.MSAASamples.FourX);
     const animator = entity.addComponent(Animator);
     const controller = new AnimatorController(engine);
     const layer = new AnimatorControllerLayer("Base");

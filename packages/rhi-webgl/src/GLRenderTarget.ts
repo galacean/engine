@@ -26,6 +26,8 @@ export class GLRenderTarget implements IPlatformRenderTarget {
   private _blitDrawBuffers: GLenum[] | null;
   private _curMipLevel: number = 0;
   private _curFaceIndex: TextureCubeFace | undefined = undefined;
+  /** Requested anti-aliasing limited to the device. */
+  private _antiAliasing: number;
 
   /**
    * Create render target in WebGL platform.
@@ -34,6 +36,7 @@ export class GLRenderTarget implements IPlatformRenderTarget {
     this._gl = rhi.gl as WebGLRenderingContext & WebGL2RenderingContext;
     this._isWebGL2 = rhi.isWebGL2;
     this._target = target;
+    this._antiAliasing = Math.min(target.antiAliasing, rhi.capability.maxAntiAliasing);
 
     /** @ts-ignore */
     const { _colorTextures, _depth, width, height } = target;
@@ -81,7 +84,7 @@ export class GLRenderTarget implements IPlatformRenderTarget {
     this._bindMainFBO();
 
     // bind MSAA FBO
-    if (target.antiAliasing > 1) {
+    if (this._antiAliasing > 1) {
       this._MSAAFrameBuffer = this._gl.createFramebuffer();
       this._bindMSAAFBO();
     }
@@ -240,7 +243,7 @@ export class GLRenderTarget implements IPlatformRenderTarget {
             0
           );
         }
-      } else if (this._target.antiAliasing <= 1) {
+      } else if (this._antiAliasing <= 1) {
         const { internalFormat, attachment } = GLTexture._getRenderBufferDepthFormatDetail(_depth, gl, isWebGL2);
         this._depthRenderBuffer = this._createRenderBuffer(internalFormat, attachment!);
       }
@@ -288,7 +291,8 @@ export class GLRenderTarget implements IPlatformRenderTarget {
 
   private _createRenderBuffer(internalFormat: GLenum, attachment: GLenum): WebGLRenderbuffer | null {
     const gl = this._gl;
-    const { width, height, antiAliasing } = this._target;
+    const { width, height } = this._target;
+    const antiAliasing = this._antiAliasing;
     const renderBuffer = gl.createRenderbuffer();
 
     gl.bindRenderbuffer(gl.RENDERBUFFER, renderBuffer);

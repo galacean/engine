@@ -131,20 +131,13 @@ export abstract class Texture extends GraphicsResource {
 
   /**
    * Anisotropic level for texture.
+   * @remarks The requested level is kept; sampling uses at most the level supported by the device.
    */
   get anisoLevel(): number {
     return this._anisoLevel;
   }
 
   set anisoLevel(value: number) {
-    const rhi = this._engine._hardwareRenderer;
-    const max = rhi.capability.maxAnisoLevel;
-
-    if (rhi.supportsRendering && value > max) {
-      Logger.warn(`anisoLevel:${value}, exceeds the limit and is automatically downgraded to:${max}`);
-      value = max;
-    }
-
     if (value < 1) {
       Logger.warn(`anisoLevel:${value}, must be greater than 0, and is automatically downgraded to 1`);
       value = 1;

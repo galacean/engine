@@ -143,7 +143,7 @@ export class Camera extends Component {
   private _opaqueTextureEnabled: boolean = false;
   private _enableHDR = false;
   private _enablePostProcess = false;
-  private _msaaSamples: MSAASamples;
+  private _msaaSamples = MSAASamples.FourX;
 
   private _renderTarget: RenderTarget | null = null;
   private _updateFlagManager: UpdateFlagManager;
@@ -423,21 +423,14 @@ export class Camera extends Component {
    * Higher sample counts (e.g., 2x, 4x, 8x) produce smoother edges.
    *
    * @defaultValue `MSAASamples.FourX`
+   * @remarks The requested count is kept; rendering uses at most the count supported by the device.
    */
   get msaaSamples(): MSAASamples {
     return this._msaaSamples;
   }
 
   set msaaSamples(value: MSAASamples) {
-    if (this._msaaSamples !== value) {
-      const maxMSAASamples = this._engine._hardwareRenderer.capability.maxAntiAliasing;
-      if (value > maxMSAASamples) {
-        Logger.warn(`MSAA samples exceeds the limit and is automatically downgraded to:${maxMSAASamples}`);
-        this._msaaSamples = maxMSAASamples;
-      } else {
-        this._msaaSamples = value;
-      }
-    }
+    this._msaaSamples = value;
   }
 
   /**
@@ -445,8 +438,6 @@ export class Camera extends Component {
    */
   constructor(entity: Entity) {
     super(entity);
-    // Includes hardware detection correction
-    this.msaaSamples = MSAASamples.FourX;
 
     this._isViewMatrixDirty = entity.registerWorldChangeFlag();
     this._isInvViewProjDirty = entity.registerWorldChangeFlag();

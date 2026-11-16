@@ -25,7 +25,6 @@ export interface IHardwareRenderer {
   readonly supportsRendering: boolean;
   readonly capability: {
     readonly maxTextureSize: number;
-    readonly maxAnisoLevel: number;
     readonly maxAntiAliasing: number;
     readonly maxVertexUniformVectors: number;
     readonly canUseFloatTextureBlendShape: boolean;

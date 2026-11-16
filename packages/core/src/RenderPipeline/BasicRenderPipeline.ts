@@ -113,7 +113,10 @@ export class BasicRenderPipeline {
     const depthPassEnabled =
       (camera.depthTextureMode === DepthTextureMode.PrePass || ambientOcclusionEnabled) && supportDepthTexture;
     const finalClearFlags = camera.clearFlags & ~(ignoreClear ?? CameraClearFlags.None);
-    const msaaSamples = renderTarget ? renderTarget.antiAliasing : camera.msaaSamples;
+    const msaaSamples = Math.min(
+      renderTarget ? renderTarget.antiAliasing : camera.msaaSamples,
+      rhi.capability.maxAntiAliasing
+    );
 
     // Check whether can use `blitFramebuffer` to blit internal render target, source maybe screen canvas or camera's render target
     // Our screen canvas's anti-aliasing is always disable, so blit source and dest is always same by below rules:
