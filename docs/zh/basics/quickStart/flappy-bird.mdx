@@ -130,7 +130,7 @@ GUI 包括分数显示和重新开始按钮。我们分数（ `0.png`） 和重�
  * 挂载在小鸟节点上的脚本组件
  */
 class Bird extends Script {
-  onTriggerEnter(other: ColliderShape): void {
+  onTriggerEnter(other: Collider): void {
     // 与水管或地面发生了碰撞
   }
 }
@@ -308,7 +308,7 @@ class Bird extends Script {
     }
   }
 
-  onTriggerEnter(other: ColliderShape): void {
+  onTriggerEnter(other: Collider): void {
     GameCtrl.ins.gameState = EnumState.Crash;
   }
 
@@ -540,21 +540,20 @@ class Pipe extends Script {
     const center =
       Math.random() * (this._upLimit - this._downLimit) + this._downLimit;
 
-    const [upColliderShape, downColliderShape] = <BoxColliderShape[]>(
-      pipe.getComponent(StaticCollider).shapes
-    );
+    // 水管实体上有两个 BoxCollider 组件，分别对应上下两根水管
+    const [upCollider, downCollider] = pipe.getComponents(BoxCollider, []);
 
     const upPipe = pipe.findByName("up_pipe");
     const upRenderer = upPipe.getComponent(SpriteRenderer);
     const upHeight = this._up - center - this._inv / 2;
-    upColliderShape.size.set(1.2, upHeight, 1);
-    upColliderShape.position.set(0, 4.48 - upHeight / 2, 0);
+    upCollider.size.set(1.2, upHeight, 1);
+    upCollider.center.set(0, 4.48 - upHeight / 2, 0);
     upRenderer.height = upHeight;
     const downPipe = pipe.findByName("down_pipe");
     const downRenderer = downPipe.getComponent(SpriteRenderer);
     const downHeight = center - this._down - this._inv / 2;
-    downColliderShape.size.set(1.2, downHeight, 1);
-    downColliderShape.position.set(0, downHeight / 2 - 3.2, 0);
+    downCollider.size.set(1.2, downHeight, 1);
+    downCollider.center.set(0, downHeight / 2 - 3.2, 0);
     downRenderer.height = downHeight;
     pipe.transform.position.x = 4.53;
     this.entity.addChild(pipe);
@@ -741,12 +740,12 @@ Restart 按钮相对来说比较简单：
 
 ```typescript
 class Restart extends Script {
-  private collider: StaticCollider;
+  private collider: Collider;
   private spriteRenderer: SpriteRenderer;
 
   onAwake() {
     const { entity } = this;
-    this.collider = entity.getComponent(StaticCollider);
+    this.collider = entity.getComponent(Collider);
     this.spriteRenderer = entity.getComponent(SpriteRenderer);
     GameCtrl.ins.on("State_Change", (state: EnumState) => {
       switch (state) {

@@ -5,102 +5,218 @@ type: Physics
 label: Physics
 ---
 
-Collider ([Collider](/apis/core/#Collider)) is a component used to detect and respond to physical collisions. The engine provides the following types of colliders:
+A Collider ([Collider](/apis/core/#Collider)) is a component that gives an Entity a collision shape. Each shape type is its own component:
 
-| Type | Description | Applicable Scenarios |
-| --- | --- | --- |
-| [**StaticCollider**](/apis/core/#StaticCollider) | Static collider, does not move but can collide with other objects | Ground, walls, and other static objects |
-| [**DynamicCollider**](/apis/core/#DynamicCollider) | Dynamic collider, affected by the physics engine and can move freely | Movable objects, projectiles, etc. |
-| [**CharacterController**](/apis/core/#CharacterController) | Collider specifically for character control | Player characters, NPCs, etc. |
+| Component | Shape | Notes |
+| :-- | :-- | :-- |
+| [**BoxCollider**](/apis/core/#BoxCollider) | Box |  |
+| [**SphereCollider**](/apis/core/#SphereCollider) | Sphere |  |
+| [**CapsuleCollider**](/apis/core/#CapsuleCollider) | Capsule |  |
+| [**PlaneCollider**](/apis/core/#PlaneCollider) | Infinite plane facing the Entity's local +Y axis | Static or kinematic only |
+| [**MeshCollider**](/apis/core/#MeshCollider) | Convex hull or triangle mesh built from a mesh | Triangle mesh (`convex = false`) is static or kinematic only |
+| [**CharacterController**](/apis/core/#CharacterController) | Capsule or box with its own movement algorithm | See [Character Controller](/en/docs/physics/collider/characterController) |
 
-Collider components are used to define the physical properties and collision behavior of objects. The Galacean physics system provides three types of colliders:
+## Static or Simulated
 
-1. [Dynamic Collider](/en/docs/physics/collider/dynamicCollider)  
-   Dynamic colliders can move freely and are affected by physical forces, suitable for movable objects that require physical simulation, such as projectiles and pushable boxes.
+Whether a Collider moves with physics is decided by the hierarchy, not by the Collider itself:
 
-2. [Static Collider](/en/docs/physics/collider/staticCollider)  
-   Static colliders are fixed in the scene and do not move, typically used to create fixed physical obstacles such as ground and walls.
+- **Static**: a Collider without a [Rigidbody](/en/docs/physics/collider/rigidbody) on its Entity or any ancestor is static. It follows its own Entity; changing the Entity's transform moves (teleports) it.
+- **Owned by a Rigidbody**: the nearest Rigidbody on the Collider's Entity or its ancestors owns the Collider, and the Collider moves with that Rigidbody. `collider.attachedRigidbody` returns this owner, or `null` for a static Collider.
 
-3. [Character Controller](/en/docs/physics/collider/characterController)  
-   Character controllers are colliders specifically designed for character movement, supporting features such as walking on slopes and climbing steps, suitable for character control in first-person or third-person games.
+To build a compound shape, add several Collider components to the same Entity, or put them on child Entities under one Rigidbody. A nested Rigidbody starts its own group: Colliders below it belong to it, not to the outer Rigidbody.
 
-## Basic Concepts
+[PlaneCollider](/apis/core/#PlaneCollider) and a [MeshCollider](/apis/core/#MeshCollider) with `convex = false` can only be static or belong to a kinematic Rigidbody. Under a non-kinematic Rigidbody they are excluded from simulation with a console error until the Rigidbody becomes kinematic.
 
-All collider types have the following common features:
+### Disable vs. Remove
 
-1. **Shape Management**: Each collider can contain multiple [collision shapes](/en/docs/physics/collider/colliderShape) (character controllers can only add one). For detailed instructions on collision shapes, please refer to the [Collision Shape](/en/docs/physics/collider/colliderShape) documentation.
-
-Currently, the built-in PhysX backend supports the following `collision shapes`:
-
-| Name | Description |
+| Action | Result |
 | :-- | :-- |
-| [BoxColliderShape](/apis/core/#BoxColliderShape) | Box-shaped collision shape |
-| [SphereColliderShape](/apis/core/#SphereColliderShape) | Sphere-shaped collision shape |
-| [PlaneColliderShape](/apis/core/#PlaneColliderShape) | Infinite plane collision shape |
-| [CapsuleColliderShape](/apis/core/#CapsuleColliderShape) | Capsule-shaped collision shape |
+| Disable a Collider | The Collider leaves simulation and queries until it is enabled again |
+| Disable the owning Rigidbody | The Rigidbody and all the Colliders it owns leave simulation and queries; they do **not** become static. Their `enabled` values are unchanged |
+| Remove (destroy) the owning Rigidbody | The Colliders it owned become static, or join the next Rigidbody further up the hierarchy |
 
-2. **Transform Synchronization**:
+Component changes are collected and applied in one pass before each simulation step and before each query (raycast, shape cast, overlap), so the order in which you add or enable components does not matter.
 
-   - Colliders automatically synchronize the world transform of the entity, including position, rotation, and scale
-   - `Collision shapes` can be set with local offsets and rotations relative to the entity
+## Shared Properties
 
-3. **Collision/Trigger Events**: Colliders can generate collision and trigger events when interacting with other colliders. For detailed information on these events and how to handle them, please refer to the [Collision Events](/en/docs/physics/collider/event) documentation.
+All Collider components share these properties:
 
-4. **Collision Layer**: Each collider can be assigned to a collision layer (Layer0 to Layer31), which is used to control collision relationships between different objects. By setting collision layers, you can flexibly control which objects can collide with each other and which cannot. For more information, please refer to the [Collision Layer](/en/docs/physics/collider/collisionLayer) documentation.
+| Property | Description | Default |
+| :-- | :-- | :-- |
+| [**center**](/apis/core/#Collider-center) | Center of the shape in the Entity's local space, scaled by the Entity's world scale | (0, 0, 0) |
+| [**rotation**](/apis/core/#Collider-rotation) | Local rotation of the shape, in degrees | (0, 0, 0) |
+| [**isTrigger**](/apis/core/#Collider-isTrigger) | Whether the Collider is a trigger, which reports overlaps without a collision response. See [Collision Events](/en/docs/physics/collider/event) | false |
+| [**material**](/apis/core/#Collider-material) | The assigned [physics material](#physics-material), or `null` to use the shared default material | null |
+| [**collisionLayer**](/apis/core/#Collider-collisionLayer) | The collision layer of this Collider, a single layer only. See [Collision Layer](/en/docs/physics/collider/collisionLayer) | Layer.Layer0 |
+| [**contactOffset**](/apis/core/#Collider-contactOffset) | Contact offset. Non-finite values throw; negative values are clamped to 0 | 0.02 |
+| [**attachedRigidbody**](/apis/core/#Collider-attachedRigidbody) | Read-only. The Rigidbody that owns this Collider, or `null` | - |
 
-## Best Practices
+Shape sizes follow the Entity's world scale. A sheared world transform (a rotated, non-uniformly scaled ancestor) cannot be represented by physics; the shear is ignored and a warning is printed once.
 
-1. **Reasonable Use of Shapes**
+| Method | Description |
+| :-- | :-- |
+| [**getInstanceMaterial**](/apis/core/#Collider-getInstanceMaterial) | Returns a material owned by this Collider, see [Physics Material](#physics-material) |
+| [**getClosestPoint**](/apis/core/#Collider-getClosestPoint) | Returns the distance from a world-space point to the Collider and writes the closest point. Returns -1 when the Collider is not in simulation. Not supported by PlaneCollider and CharacterController |
 
-- Minimize the number of collision shapes, adding additional shapes only when necessary to reduce performance overhead
-- Avoid using too many collision shapes
-- Use simplified collision shapes instead of precise meshes for complex models
-- Capsule shapes are recommended for character controllers as they handle steps and slopes better
+## Shape Properties
 
-2. **Performance Optimization**
+### BoxCollider
 
-   - Set immovable objects as static colliders
-   - Merge adjacent static colliders
-   - Adjust the solverIterations of dynamic colliders appropriately to balance performance and accuracy
-   - Use CollisionDetectionMode wisely, enabling continuous collision detection only when necessary
+| Property                                 | Description                                 | Default   |
+| :--------------------------------------- | :------------------------------------------ | :-------- |
+| [**size**](/apis/core/#BoxCollider-size) | Size of the box in the Entity's local space | (1, 1, 1) |
 
-3. **Dynamic Collider Settings**
+### SphereCollider
 
-   - Adjust linearDamping and angularDamping based on the object's mass to avoid unnatural movement
-   - Use constraints to restrict unnecessary degrees of freedom and improve stability
-   - Set sleepThreshold appropriately to let stationary objects enter sleep mode in time
+| Property                                        | Description                                      | Default |
+| :---------------------------------------------- | :----------------------------------------------- | :------ |
+| [**radius**](/apis/core/#SphereCollider-radius) | Radius of the sphere in the Entity's local space | 1       |
 
-4. **Character Controller Configuration**
+### CapsuleCollider
 
-   - Set an appropriate stepOffset based on the game type to avoid getting stuck or crossing unreasonable steps
-   - Set an appropriate slopeLimit considering the slope angles in the game scene
-   - Choose a suitable nonWalkableMode considering whether sliding effects are needed
-   - Ensure the collision shape matches the character's visual model reasonably
+| Property | Description | Default |
+| :-- | :-- | :-- |
+| [**radius**](/apis/core/#CapsuleCollider-radius) | Radius of the capsule in the Entity's local space | 1 |
+| [**height**](/apis/core/#CapsuleCollider-height) | Height of the cylindrical part, excluding both caps | 2 |
+| [**direction**](/apis/core/#CapsuleCollider-direction) | The local axis the capsule is aligned with | ColliderShapeUpAxis.Y |
 
-5. **Usage Scenarios**
-   - Static Colliders: Scene boundaries, terrain, buildings, and other fixed objects
-   - Dynamic Colliders: Pushable objects, physical props, destructible objects, etc.
-   - Character Controllers: Player characters, NPCs, and other objects requiring special movement control
+### PlaneCollider
+
+PlaneCollider has no shape properties. It is an infinite plane facing the Entity's local +Y axis; use the Entity's rotation or the Collider's `rotation` to orient it.
+
+### MeshCollider
+
+| Property | Description | Default |
+| :-- | :-- | :-- |
+| [**mesh**](/apis/core/#MeshCollider-mesh) | The [ModelMesh](/apis/core/#ModelMesh) used for collision. Its data must stay accessible after upload, and a triangle mesh also needs indices; an invalid mesh is rejected with a warning and the previous mesh is kept | null |
+| [**convex**](/apis/core/#MeshCollider-convex) | Whether to use a convex hull generated from the mesh vertices. Setting `false` is rejected while the Collider belongs to a non-kinematic Rigidbody | false |
+| [**cookingFlags**](/apis/core/#MeshCollider-cookingFlags) | Mesh cooking flags | Cleaning \| VertexWelding |
+
+## Physics Material
+
+- [**material**](/apis/core/#Collider-material): Gets or assigns a [PhysicsMaterial](/apis/core/#PhysicsMaterial) without creating or cloning one. Changes affect every Collider that references it. `null` selects the shared default material. Assigning a material that belongs to another Engine throws.
+- [**getInstanceMaterial()**](/apis/core/#Collider-getInstanceMaterial): Clones the assigned material, or creates one with default properties, and assigns it to this Collider on first use. Further calls reuse it until a different material or `null` is assigned.
+
+A cloned Entity's Colliders share the original material reference; call `getInstanceMaterial()` on the clone to get an independent material. Release materials you create with `destroy()` once no Collider uses them. The shared default material needs no manual cleanup.
+
+| Property | Description | Default |
+| :-- | :-- | :-- |
+| [**staticFriction**](/apis/core/#PhysicsMaterial-staticFriction) | Friction when the object is stationary | 0.6 |
+| [**dynamicFriction**](/apis/core/#PhysicsMaterial-dynamicFriction) | Friction when the object is moving | 0.6 |
+| [**bounciness**](/apis/core/#PhysicsMaterial-bounciness) | Restitution, between 0 (no bounce) and 1 | 0 |
+| [**bounceCombine**](/apis/core/#PhysicsMaterial-bounceCombine) | How the bounciness of two objects is combined: Average, Minimum, Maximum or Multiply | Average |
+| [**frictionCombine**](/apis/core/#PhysicsMaterial-frictionCombine) | How the friction of two objects is combined: Average, Minimum, Maximum or Multiply | Average |
 
 ## Script Usage
 
-### Adding Colliders
+### Static Colliders
 
 ```typescript
-// Add a static collider
-const staticCollider = entity.addComponent(StaticCollider);
+import { BoxCollider, PlaneCollider, Vector3 } from "@galacean/engine";
 
-// Add a dynamic collider
-const dynamicCollider = entity.addComponent(DynamicCollider);
+// A wall: no Rigidbody on the Entity or its ancestors, so it is static
+const wall = rootEntity.createChild("wall");
+const wallCollider = wall.addComponent(BoxCollider);
+wallCollider.size = new Vector3(5, 3, 0.5);
 
-// Add a character controller
-const characterController = entity.addComponent(CharacterController);
+// An infinite ground plane
+const ground = rootEntity.createChild("ground");
+ground.addComponent(PlaneCollider);
 ```
+
+### Simulated Colliders
+
+```typescript
+import { BoxCollider, Rigidbody, SphereCollider, Vector3 } from "@galacean/engine";
+
+// A falling box
+const box = rootEntity.createChild("box");
+box.transform.setPosition(0, 5, 0);
+box.addComponent(Rigidbody);
+box.addComponent(BoxCollider);
+
+// A compound shape: Colliders on the Rigidbody's Entity and on a child Entity
+const robot = rootEntity.createChild("robot");
+robot.addComponent(Rigidbody);
+const body = robot.addComponent(BoxCollider);
+body.size = new Vector3(1, 2, 1);
+const head = robot.createChild("head");
+head.transform.setPosition(0, 1.5, 0);
+head.addComponent(SphereCollider).radius = 0.5;
+```
+
+### Triggers
+
+```typescript
+import { BoxCollider, Collider, Script, Vector3 } from "@galacean/engine";
+
+const zone = rootEntity.createChild("zone");
+const zoneCollider = zone.addComponent(BoxCollider);
+zoneCollider.size = new Vector3(4, 2, 4);
+zoneCollider.isTrigger = true;
+
+class ZoneScript extends Script {
+  onTriggerEnter(other: Collider, self: Collider) {
+    console.log(`${other.entity.name} entered ${self.entity.name}`);
+  }
+}
+zone.addComponent(ZoneScript);
+```
+
+### Physics Material
+
+```typescript
+import { BoxCollider, PhysicsMaterial, SphereCollider } from "@galacean/engine";
+
+const sharedMaterial = new PhysicsMaterial(engine);
+sharedMaterial.dynamicFriction = 0.4;
+
+// Share one material between two Colliders
+const box = entity.addComponent(BoxCollider);
+const sphere = entity.addComponent(SphereCollider);
+box.material = sharedMaterial;
+sphere.material = sharedMaterial;
+
+// Create an instance to change only the box's bounce
+const instance = box.getInstanceMaterial();
+instance.bounciness = 0.8;
+```
+
+## Best Practices
+
+- Prefer the simplest shape that fits: boxes, spheres and capsules are cheaper than mesh colliders.
+- Use a convex MeshCollider for moving objects; use a triangle mesh (`convex = false`) only for static or kinematic geometry.
+- Keep objects that never move free of a Rigidbody so they stay static.
+- Use triggers instead of physical collisions when only overlap detection is needed.
+
+## Migrating from Shapes
+
+Earlier versions attached shape objects to a `StaticCollider` or `DynamicCollider` component. Shapes are now Collider components, and motion comes from a separate Rigidbody. There is no compatibility layer.
+
+| Before | Now |
+| :-- | :-- |
+| `DynamicCollider` | [`Rigidbody`](/en/docs/physics/collider/rigidbody) with the same rigid-body properties and methods |
+| `DynamicColliderConstraints` | `RigidbodyConstraints` |
+| `StaticCollider` | Removed: a Collider without a Rigidbody on its Entity or ancestors is static |
+| `new BoxColliderShape()` + `collider.addShape(shape)` | `entity.addComponent(BoxCollider)`; likewise `SphereCollider`, `CapsuleCollider`, `PlaneCollider`, `MeshCollider` |
+| Several shapes on one collider | Several Collider components on the same Entity, or on child Entities under the Rigidbody |
+| `removeShape()` / `clearShapes()` / `shapes` | Removed: disable or destroy the Collider component |
+| `shape.position` | `collider.center` |
+| `shape.rotation` | `collider.rotation` (degrees) |
+| `meshShape.isConvex` | `meshCollider.convex` |
+| `capsuleShape.upAxis` | `capsuleCollider.direction` |
+| `shape.material` / `shape.getInstanceMaterial(engine)` | `collider.material` / `collider.getInstanceMaterial()` |
+| `shape.isTrigger` | `collider.isTrigger` |
+| `joint.connectedCollider` | `joint.connectedBody` (a `Rigidbody` or `null`) |
+| `onTriggerEnter(other: ColliderShape)` (Stay/Exit likewise) | `onTriggerEnter(other: Collider, self: Collider)` |
+| `collision.shape` | `collision.collider` (the other Collider) and `collision.selfCollider` |
+| `hitResult.shape` | `hitResult.collider` |
+| `overlap*All()` returning `ColliderShape[]` | `overlap*All()` returning `Collider[]` |
+| `characterController.addShape(capsuleOrBox)` | `characterController.geometry`, `radius`, `height`, `size` and `center` |
 
 ## More Information
 
-- [Dynamic Collider Documentation](/en/docs/physics/collider/dynamicCollider)
-- [Static Collider Documentation](/en/docs/physics/collider/staticCollider)
-- [Character Controller Documentation](/en/docs/physics/collider/characterController)
-- [Collision Events Documentation](/en/docs/physics/collider/event)
-- [Collision Layer Documentation](/en/docs/physics/collider/collisionLayer)
+- [Rigidbody](/en/docs/physics/collider/rigidbody)
+- [Character Controller](/en/docs/physics/collider/characterController)
+- [Collision Events](/en/docs/physics/collider/event)
+- [Collision Layer](/en/docs/physics/collider/collisionLayer)

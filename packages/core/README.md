@@ -4,8 +4,8 @@ A subpackage of `@galacean/engine`.
 
 `new PhysicsMaterial(engine)` creates a `ReferResource` owned by that Engine, participating in resource registration, caching, GC, and destruction. `clone()` preserves the Engine owner.
 
-Each `ColliderShape` retains its assigned material until replaced or destroyed. Cloning an entity shares its shapes' assigned materials and acquires references. Shapes retain no-argument constructors; a null `material` uses the physics backend's shared native default. `getInstanceMaterial(engine)` creates and retains an independent, Engine-owned material on demand and rejects an assigned material owned by another Engine.
+Each `Collider` component retains its assigned material until replaced or destroyed. Cloning an entity shares its Colliders' assigned materials and acquires references. A null `material` uses the physics backend's shared native default; assigning a material owned by another Engine throws. `getInstanceMaterial()` clones the assigned material, or creates a default one from the Collider's Engine, retains it, and reuses it until `material` is set to a different material or null.
 
 ### Migration
 
-Pass the Engine to `new PhysicsMaterial(engine)` and `shape.getInstanceMaterial(engine)`. Scene and Prefab files should reference `.physMat` assets through `$ref`; inline `$type: "PhysicsMaterial"` construction without an Engine is no longer supported.
+Pass the Engine to `new PhysicsMaterial(engine)`. Collider shapes are now Collider components (`BoxCollider`, `SphereCollider`, `CapsuleCollider`, `PlaneCollider`, `MeshCollider`), so `shape.material` and `shape.getInstanceMaterial(engine)` become `collider.material` and `collider.getInstanceMaterial()`. Scene and Prefab files should reference `.physMat` assets through `$ref`; inline `$type: "PhysicsMaterial"` construction without an Engine is no longer supported.

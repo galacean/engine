@@ -5,20 +5,20 @@ type: 物理
 label: Physics
 ---
 
-[固定关节](/apis/core/#FixedJoint)是一种刚性约束组件，它能够完全限制两个碰撞体之间的相对运动。当两个物体通过固定关节连接后，它们会保持相对位置和方向不变，就像被刚性胶水粘在一起一样。
+[固定关节](/apis/core/#FixedJoint)是一种刚性约束组件，它能够完全限制两个刚体之间的相对运动。当两个物体通过固定关节连接后，它们会保持相对位置和方向不变，就像被刚性胶水粘在一起一样。
 
 ## 使用方法
 
 1. 选中目标实体，并在检查器中点击添加组件按钮，添加 FixedJoint 组件。
 <Callout type="info">
-添加关节组件时，需要确保目标实体上已经挂载了一个[动态碰撞器](/docs/physics/collider/dynamicCollider)组件，如果你未添加，编辑器会自动为你添加一个`动态碰撞器组件`。
+关节需要所在实体上有一个[刚体](/docs/physics/collider/rigidbody)，如果没有，添加关节时会自动添加一个。
 </Callout>
 
 <Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*x3SBT4XKDUcAAAAAAAAAAAAAesJ_AQ/original" />
 
-2. 通过组件属性 connectedCollider 设置连接的目标碰撞体（若不需要，可保持为 null，即连接到世界空间中的一点）。
+2. 通过组件属性 connectedBody 设置连接的目标刚体（若不需要，可保持为 null，即连接到世界空间中的一点）。
 <Callout type="positive">
-如果连接的目标是碰撞体，则目标实体需要挂载碰撞体组件（[动态碰撞器](/docs/physics/collider/dynamicCollider)，[静态碰撞器](/docs/physics/collider/staticCollider)，[角色控制器](/docs/physics/collider/characterController)）。
+连接目标必须是[刚体](/docs/physics/collider/rigidbody)。如需把物体固定到静态物体上，可保持 connectedBody 为 null，连接到世界空间中的一点。
 </Callout>
 
 <Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*ARu_S7PhgiMAAAAAAAAAAAAAesJ_AQ/original" />
@@ -27,18 +27,18 @@ label: Physics
 
 ## 属性说明
 
-### 碰撞体设置
-- [**connectedCollider**](/apis/core/#FixedJoint-connectedCollider)  
-  指定要连接的目标碰撞体。当设置为 null 时，关节会连接到世界空间中的一个固定点。这允许你将物体固定在空间中的特定位置。
+### 连接刚体
+- [**connectedBody**](/apis/core/#FixedJoint-connectedBody)  
+  指定要连接的目标刚体。当设置为 null 时，关节会连接到世界空间中的一个固定点。这允许你将物体固定在空间中的特定位置。
 
 ### 锚点设置
 - [**anchor**](/apis/core/#FixedJoint-anchor)  
-  在自身碰撞体上定义的锚点位置，使用局部坐标。这个点定义了关节的连接位置。
+  在自身刚体上定义的锚点位置，使用局部坐标。这个点定义了关节的连接位置。
 
 - [**connectedAnchor**](/apis/core/#FixedJoint-connectedAnchor)  
-  定义连接点的位置。其含义取决于 connectedCollider 的设置：
-  - 当 connectedCollider 为 null 时，表示世界空间中的绝对位置
-  - 当 connectedCollider 不为 null 时，表示目标碰撞体局部空间中的相对位置
+  定义连接点的位置。其含义取决于 connectedBody 的设置：
+  - 当 connectedBody 为 null 时，表示世界空间中的绝对位置
+  - 当 connectedBody 不为 null 时，表示目标刚体局部空间中的相对位置
 
 - [**automaticConnectedAnchor**](/apis/core/#FixedJoint-automaticConnectedAnchor)  
   是否自动计算 connectedAnchor 的值。启用时，系统会自动设置连接点以确保物体间的初始位置关系。如需手动精确控制连接点，可将此属性设为 false。
@@ -52,7 +52,7 @@ label: Physics
 
 ### 质量计算干预
 - [**connectedMassScale**](/apis/core/#FixedJoint-connectedMassScale) 和 [**massScale**](/apis/core/#FixedJoint-massScale)  
-  分别用于调整连接碰撞体和自身碰撞体的质量影响。这些缩放值会影响关节约束的计算，允许你微调关节的物理行为。默认值为 1.0，增大数值会增加对应碰撞体在约束求解中的"重要性"。
+  分别用于调整连接刚体和自身刚体的质量影响。这些缩放值会影响关节约束的计算，允许你微调关节的物理行为。默认值为 1.0，增大数值会增加对应刚体在约束求解中的"重要性"。
 
 ## 脚本使用
 
@@ -62,15 +62,15 @@ label: Physics
 // 添加固定关节组件
 const fixedJoint = entity.addComponent(FixedJoint);
 
-// 设置连接的目标碰撞体
-fixedJoint.connectedCollider = targetEntity.getComponent(Collider);
+// 设置连接的目标刚体
+fixedJoint.connectedBody = targetEntity.getComponent(Rigidbody);
 
 // 设置锚点
-fixedJoint.anchor.setValue(0, 1, 0);
+fixedJoint.anchor.set(0, 1, 0);
 
 // 手动设置连接点
 fixedJoint.automaticConnectedAnchor = false;
-fixedJoint.connectedAnchor.setValue(0, 0, 0);
+fixedJoint.connectedAnchor.set(0, 0, 0);
 ```
 
 ### 断裂阈值设置
