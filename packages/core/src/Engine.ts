@@ -139,8 +139,8 @@ export class Engine extends EventDispatcher {
   private _onCanvasResize = (): void => this._renderTargetPool.gc();
 
   private _animate = () => {
-    const raf = this._getRequestAnimationFrame();
-    if (this._vSyncCount && raf) {
+    const raf = this._vSyncCount ? this._getRequestAnimationFrame() : undefined;
+    if (raf) {
       this._requestId = raf(this._animate);
       if (this._vSyncCounter++ % this._vSyncCount === 0) {
         this.update();
@@ -311,8 +311,8 @@ export class Engine extends EventDispatcher {
     if (!this._isPaused) return;
     this._isPaused = false;
     this.time._reset();
-    const raf = this._getRequestAnimationFrame();
-    if (this._vSyncCount && raf) {
+    const raf = this._vSyncCount ? this._getRequestAnimationFrame() : undefined;
+    if (raf) {
       this._requestId = raf(this._animate);
     } else {
       this._timeoutId = setTimeout(this._animate, this._targetFrameInterval);
