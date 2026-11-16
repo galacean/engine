@@ -1,3 +1,4 @@
+import type { PreparedSurfaceReliefMask, SeedWorldSurfaceReliefMaskTuning } from "../runtime/SeedWorldSurfaceRelief";
 import { PlanningRasterTransfer, type PlanningRasterPacket } from "./PlanningRasterTransfer";
 import type { PlanningSeedWorldData } from "../spatial/runtime/PlanningSeedWorldData";
 import type { IslandPlan } from "./IslandPlanModel";
@@ -8,6 +9,7 @@ interface RasterResult {
   id: number;
   raster: PlanningRasterPacket;
   nativeData?: PlanningSeedWorldData;
+  surfaceRelief?: PreparedSurfaceReliefMask;
   elapsedMs: number;
   error?: string;
 }
@@ -24,8 +26,21 @@ export class PlanningRasterClient {
     this.nativeData.delete(plan);
     return value;
   }
+  private surfaceRelief = new WeakMap<IslandPlan, PreparedSurfaceReliefMask>();
+  takeSurfaceRelief(plan: IslandPlan) {
+    const value = this.surfaceRelief.get(plan);
+    this.surfaceRelief.delete(plan);
+    return value;
+  }
   private inFlight = false;
-  private queued?: { id: number; plan: IslandPlan; ocean: boolean; nativeData: boolean; waterImpact: boolean };
+  private queued?: {
+    id: number;
+    plan: IslandPlan;
+    ocean: boolean;
+    nativeData: boolean;
+    waterImpact: boolean;
+    surfaceRelief?: SeedWorldSurfaceReliefMaskTuning;
+  };
   private active?: {
     id: number;
     plan: IslandPlan;
@@ -33,13 +48,20 @@ export class PlanningRasterClient {
     reject: (error: Error) => void;
   };
   /** Prepare one plan for rendering; superseded calls resolve without publishing. */
-  run(plan: IslandPlan, ocean = false, nativeData = false, waterImpact = false): Promise<number | undefined> {
+  run(
+    plan: IslandPlan,
+    ocean = false,
+    nativeData = false,
+    waterImpact = false,
+    surfaceRelief?: SeedWorldSurfaceReliefMaskTuning
+  ): Promise<number | undefined> {
     this.active?.resolve(undefined);
     this.nativeData.delete(plan);
+    this.surfaceRelief.delete(plan);
     const id = ++this.sequence;
     return new Promise((resolve, reject) => {
       this.active = { id, plan, resolve, reject };
-      this.queued = { id, plan, ocean, nativeData, waterImpact };
+      this.queued = { id, plan, ocean, nativeData, waterImpact, surfaceRelief };
       this.dispatch();
     });
   }
@@ -61,6 +83,7 @@ export class PlanningRasterClient {
                 adoptPlanningAlphamap(active.plan, raster.alpha);
                 if (raster.ocean) adoptPlanningOcean(active.plan, raster.ocean);
                 if (data.nativeData) this.nativeData.set(active.plan, data.nativeData);
+                if (data.surfaceRelief) this.surfaceRelief.set(active.plan, data.surfaceRelief);
                 this.baseId = data.id;
                 active.resolve(data.elapsedMs);
               } catch (error) {
@@ -103,6 +126,7 @@ export class PlanningRasterClient {
   /** Release pending work and settle observers during view destruction. */
   dispose(): void {
     this.nativeData = new WeakMap();
+    this.surfaceRelief = new WeakMap();
     this.active?.resolve(undefined);
     this.active = undefined;
     this.queued = undefined;

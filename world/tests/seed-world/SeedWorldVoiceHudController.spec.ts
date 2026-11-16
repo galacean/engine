@@ -886,7 +886,7 @@ it.each([
   // Only the resource registry and draw surface are stubs; no native GPU is used.
   const material = new Material({ resourceManager: {
     _addReferResource() {}, _deleteReferResource() {}, _deleteAsset() {}, _deleteContentRestorer() {}
-  } } as any, { name: "hud-lifecycle" } as any);
+  } } as any, { name: "hud-lifecycle", subShaders: [] } as any);
   (f.view as any).orbMaterial = material;
   f.view.resources.destroy.mockImplementation(() => material.destroy());
   const first = f.controller.submit("original");
@@ -931,4 +931,51 @@ it.each([
   expect(views.budget.stats.total).toBe(0);
   expect(frame.identities.dispose).toHaveBeenCalledOnce();
   expect(outcome).toEqual({ ok: true });
+});
+
+it("reuses canvas bounds for status refreshes and invalidates them on layout, viewport and scroll changes", async () => {
+  const cameraModule = await import("../../demos/seed-world/src/SeedWorldCameraButton.ts");
+  const dispose = vi.fn();
+  const camera = vi.spyOn(cameraModule, "SeedWorldCameraButton").mockImplementation(function () { return { dispose }; } as any);
+  const callbacks: (() => void)[] = [], disconnects: ReturnType<typeof vi.fn>[] = [];
+  class Observer {
+    disconnect = vi.fn();
+    constructor(callback: () => void) { callbacks.push(callback); disconnects.push(this.disconnect); }
+    observe() {}
+  }
+  vi.stubGlobal("ResizeObserver", Observer); vi.stubGlobal("MutationObserver", Observer);
+  const viewport = new EventTarget(); Object.assign(window, { visualViewport: viewport });
+  const f = await createControllerFixture();
+  const dock = f.view.layout as typeof f.view.layout & { photoDockBottom: number; onPhotoDockLayout?: () => void };
+  dock.photoDockBottom = 100;
+  let rect = { left: 10, width: 800, height: 800, bottom: 850 };
+  const bounds = vi.fn(() => rect), canvas = { getBoundingClientRect: bounds, parentElement: null } as unknown as HTMLCanvasElement;
+  const button = { style: {}, hidden: false, disabled: false, remove: vi.fn() } as unknown as HTMLButtonElement;
+  const onLayout = vi.fn();
+  const listen = vi.spyOn(window, "addEventListener");
+  try {
+    f.controller.mountScreenshotButton(button, canvas, onLayout);
+    const initial = onLayout.mock.calls.at(-1)!;
+    for (let i = 0; i < 5; i++) { f.controller.show(); dock.onPhotoDockLayout?.(); }
+    expect(bounds).toHaveBeenCalledTimes(1);
+    const onScroll = listen.mock.calls.find(([event]) => event === "scroll")![1] as EventListener;
+    onScroll({ target: new EventTarget() } as unknown as Event);
+    expect(bounds).toHaveBeenCalledTimes(1);
+    expect(onLayout.mock.calls.at(-1)).toEqual(initial);
+    dock.photoDockBottom = 200; dock.onPhotoDockLayout?.();
+    expect(onLayout.mock.calls.at(-1)![1]).toBeLessThan(initial[1]);
+    expect(bounds).toHaveBeenCalledTimes(1);
+    for (const notify of [...callbacks, () => window.dispatchEvent(new Event("resize")), () => window.dispatchEvent(new Event("scroll")), () => viewport.dispatchEvent(new Event("resize"))]) {
+      rect = { ...rect, left: rect.left + 20, bottom: rect.bottom + 10 };
+      notify();
+      expect(onLayout.mock.calls.at(-1)![0]).toBe(rect.left + rect.width / 2);
+    }
+    f.controller.hide(); expect(button.hidden).toBe(true);
+    f.controller.show(); expect(button.hidden).toBe(false);
+  } finally { f.controller.destroy(); camera.mockRestore(); listen.mockRestore(); }
+  const count = bounds.mock.calls.length;
+  window.dispatchEvent(new Event("resize")); window.dispatchEvent(new Event("scroll")); viewport.dispatchEvent(new Event("resize"));
+  expect(bounds).toHaveBeenCalledTimes(count);
+  expect(disconnects.every(fn => fn.mock.calls.length === 1)).toBe(true);
+  expect(dispose).toHaveBeenCalledOnce();
 });

@@ -499,3 +499,85 @@ it("resolves nested additions anchored in a Scene-local Prefab instance",()=>{
   const props=runtime.components.find((c:any)=>c.props?.target).props;
   expect(index.entities[props.target.$entity[0]]).toBe(local.id);
 });
+
+it("isolates cached query results and observes failed, restored and independently edited Prefab inputs", () => {
+  const f = fixture(); const root = f.create("A");
+  const identities = f.scene.queryComponents();
+  const nested = identities.find(identity => identity.id.includes("inner-light"))!;
+  const firstId = identities[0].id;
+  (identities[0] as any).id = "changed by caller";
+  const entity = f.scene.readEntity(root.id); entity.name = "changed by caller";
+  expect(f.scene.queryComponents()[0].id).toBe(firstId);
+  expect(f.scene.readEntity(root.id).name).toBe("A");
+  const original = f.draft.read("Nested.prefab");
+  f.draft.update("Nested.prefab", '{}');
+  expect(() => f.scene.queryComponents()).toThrow();
+  f.draft.update("Nested.prefab", original);
+  expect(f.scene.readComponent(nested.id).props!.intensity).toBe(8);
+  const independent = new RuntimeSceneEdit(f.draft, "Main.scene");
+  independent.updateComponent(firstId, { intensity: 11 });
+  expect(f.scene.readComponent(firstId).props!.intensity).toBe(11);
+});
+
+it("can read a local component without resolving a broken unrelated Prefab", () => {
+  const f = fixture(); f.create("A");
+  const local = f.scene.create({ name: "Local" });
+  const component = f.scene.addComponent(local.id, { type: "PointLight", props: { intensity: 3 } });
+  f.draft.update("Nested.prefab", '{}');
+  expect(f.scene.readComponent(component.id).props!.intensity).toBe(3);
+});
+
+describe("Scene batch reconciliation", () => {
+  it("publishes one validated Scene including structural and nested Prefab edits", () => {
+    const f = fixture();
+    const update = vi.spyOn(f.draft, "update");
+    let nestedId = "";
+    f.scene.batch(() => {
+      const root = f.create("Batch");
+      nestedId = f.scene.queryComponents().find(c => c.id.includes(root.id) && c.id.includes("inner-light"))!.id;
+      f.scene.reconcileComponent(nestedId, { intensity: 12 }, ["intensity"]);
+      expect(f.scene.readComponent(nestedId).props!.intensity).toBe(12);
+      const local = f.scene.create({ name: "Local" });
+      const component = f.scene.addComponent(local.id, { type: "PointLight", props: { intensity: 3, enabled: false, range: 5 } });
+      f.scene.reconcileComponent(component.id, { intensity: 4 }, ["intensity", "enabled"]);
+      expect(f.scene.readComponent(component.id).props).toEqual({ intensity: 4, range: 5 });
+      expect(update).not.toHaveBeenCalled();
+    });
+    expect(update).toHaveBeenCalledTimes(1);
+    expect(f.scene.readComponent(nestedId).props!.intensity).toBe(12);
+    expect(() => compileProjectResource(f.draft.preview(), "Main.scene")).not.toThrow();
+    expect(f.draft.read("Nested.prefab")).toBe(f.pack.contents["Nested.prefab"]);
+  });
+
+  it("does not write a batch that restores its original content", () => {
+    const f = fixture(), entity = f.scene.create({ name: "Original" });
+    const update = vi.spyOn(f.draft, "update");
+    f.scene.batch(() => {
+      f.scene.update(entity.id, { name: "Temporary" });
+      f.scene.update(entity.id, { name: "Original" });
+    });
+    expect(update).not.toHaveBeenCalled();
+    expect(f.scene.readEntity(entity.id).name).toBe("Original");
+  });
+
+  it("discards staged changes on failure and preserves fresh queries", () => {
+    const f = fixture(), before = f.draft.read("Main.scene");
+    expect(() => f.scene.batch(() => {
+      f.create("Discarded");
+      expect(f.scene.list()).toHaveLength(3);
+      throw Error("cancel");
+    })).toThrow("cancel");
+    expect(f.draft.read("Main.scene")).toBe(before);
+    expect(f.scene.list()).toEqual([]);
+    expect(f.draft.changed.size).toBe(0);
+  });
+
+  it("validates the final candidate and leaves the draft intact if validation fails", () => {
+    const f = fixture(), before = f.draft.read("Main.scene");
+    const update = vi.spyOn(f.draft, "update").mockImplementation(() => { throw Error("invalid candidate"); });
+    expect(() => f.scene.batch(() => { f.create("Rejected"); })).toThrow("invalid candidate");
+    expect(update).toHaveBeenCalledOnce();
+    expect(f.draft.read("Main.scene")).toBe(before);
+    expect(f.scene.list()).toEqual([]);
+  });
+});

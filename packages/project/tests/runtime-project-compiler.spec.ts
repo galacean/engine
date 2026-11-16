@@ -1,5 +1,5 @@
 import { RUNTIME_PROJECT_SAVE_VERSION } from "../src/runtime-editor/project/runtime-project";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { compileProjectResource, prepareProjectSources } from "../src/runtime-editor/scene/runtime-project-compiler";
 import type { RuntimeProjectPackage } from "../src/runtime-editor/project/runtime-project";
 
@@ -105,4 +105,126 @@ it("isolates failed Script assets while preserving shared resources and the auth
   expect(runtime.scene.background.skyMaterial).toBe(0);
   expect(compileProjectResource(pack, "main.scene")).toBe(baseline);
   expect(pack.contents["main.scene"]).toBe(JSON.stringify(source));
+});
+
+it("invalidates cached compilation on nested source, namespace and script availability changes", () => {
+  const prefab = { asset: { version: "2.0" }, root: "root", entities: [{ id: "root", components: ["script"] }],
+    components: [{ id: "script", type: "Script", script: { $ref: "Paint.ts" }, props: { enabled: true } }] };
+  const source = { asset: { version: "2.0" }, scene: { rootEntities: ["instance"], background: { mode: 0, color: { r: 0, g: 0, b: 0, a: 1 } } },
+    entities: [{ id: "instance", instance: { asset: { $ref: "Paint.prefab" }, overrides: {
+      componentProps: [{ target: "script", props: { enabled: false } }]
+    } } }], components: [] };
+  const pack: RuntimeProjectPackage = { version: RUNTIME_PROJECT_SAVE_VERSION,
+    project: { scene: "main.scene", files: [["main.scene", "Scene"], ["Paint.prefab", "Prefab"], ["Paint.ts", "script"]]
+      .map(([path, type]) => ({ virtualPath: path, path, type })) },
+    contents: { "main.scene": JSON.stringify(source), "Paint.prefab": JSON.stringify(prefab) } };
+  const original = compileProjectResource(pack, "main.scene");
+  expect(compileProjectResource(structuredClone(pack), "main.scene")).toBe(original);
+  prefab.components[0].script.$ref = "Missing.ts";
+  pack.contents["Paint.prefab"] = JSON.stringify(prefab);
+  expect(() => compileProjectResource(pack, "main.scene")).toThrow();
+  prefab.components[0].script.$ref = "Paint.ts";
+  pack.contents["Paint.prefab"] = JSON.stringify(prefab);
+  expect(compileProjectResource(pack, "main.scene")).toBe(original);
+  pack.project.files[2].type = "JSON";
+  expect(() => compileProjectResource(pack, "main.scene")).toThrow();
+  pack.project.files[2].type = "script";
+  const suppressed = JSON.parse(compileProjectResource(pack, "main.scene", () => true) as string);
+  expect(suppressed.entities[0].instance.overrides.componentProps[0].calls).toEqual([]);
+  expect(compileProjectResource(pack, "main.scene")).toBe(original);
+});
+
+it("retries failed source preparation and invalidates when a dependency disappears", async () => {
+  const project: RuntimeProjectPackage = { version: RUNTIME_PROJECT_SAVE_VERSION, project: { scene: "main", files: [
+    { virtualPath: "main", path: "main", type: "Scene" }, { virtualPath: "nested", path: "nested", type: "Prefab" }
+  ] }, contents: { main: JSON.stringify({ asset: { version: "2.0" }, ref: { $ref: "nested" } }) } };
+  await expect(prepareProjectSources(project, async () => { throw Error("unavailable"); })).rejects.toThrow("unavailable");
+  let loads = 0;
+  const load = async () => { loads++; project.contents.nested = '{"asset":{"version":"2.0"}}'; };
+  await prepareProjectSources(project, load);
+  await prepareProjectSources(structuredClone(project), load);
+  expect(loads).toBe(1);
+  project.project.files.pop();
+  await expect(prepareProjectSources(project, load)).rejects.toThrow("Cannot resolve project asset");
+});
+
+it("does not cache a source hydration callback that leaves the referenced source unavailable", async () => {
+  const project: RuntimeProjectPackage = { version: RUNTIME_PROJECT_SAVE_VERSION, project: { scene: "main", files: [
+    { virtualPath: "main", path: "main", type: "Scene" }, { virtualPath: "nested", path: "nested", type: "Prefab" }
+  ] }, contents: { main: JSON.stringify({ asset: { version: "2.0" }, ref: { $ref: "nested" } }) } };
+  let calls = 0;
+  await prepareProjectSources(project, async () => { calls++; });
+  await prepareProjectSources(project, async () => { calls++; });
+  expect(calls).toBe(2);
+});
+
+
+it("reuses compilation across editor sidecars but observes referenced metadata and duplicate paths", () => {
+  const source = JSON.stringify({ asset: { version: "2.0" }, root: "root",
+    entities: [{ id: "root", components: ["mesh"] }],
+    components: [{ id: "mesh", type: "MeshRenderer", props: { material: { $ref: "paint.mat" } } }] });
+  const pack: RuntimeProjectPackage = { version: RUNTIME_PROJECT_SAVE_VERSION,
+    project: { scene: "Cached.prefab", files: [
+      { virtualPath: "Cached.prefab", path: "Cached.prefab", type: "Prefab" },
+      { virtualPath: "paint.mat", path: "paint.mat", type: "Material", params: { sourceContentRevision: "one" } }
+    ] }, contents: { "Cached.prefab": source } };
+  const parse = vi.spyOn(JSON, "parse");
+  try {
+    const original = compileProjectResource(pack, "Cached.prefab");
+    const parses = () => parse.mock.calls.filter(([text]) => text === source).length;
+    expect(parses()).toBe(1);
+    const draft = structuredClone(pack);
+    draft.project.files.push({ virtualPath: "World/Editor.json", path: "runtime-world:editor", type: "SeedWorldEditor" });
+    draft.contents["World/Editor.json"] = '{"timeHours":13}';
+    draft.documents = { "World/Editor.json.meta": '{"description":"editor settings"}' };
+    expect(compileProjectResource(draft, "Cached.prefab")).toBe(original);
+    expect(parses()).toBe(1);
+    draft.project.files[1].params!.sourceContentRevision = "two";
+    compileProjectResource(draft, "Cached.prefab");
+    expect(parses()).toBe(2);
+    draft.project.files.push({ ...draft.project.files[1] });
+    expect(() => compileProjectResource(draft, "Cached.prefab")).toThrow("unambiguously");
+    draft.project.files.pop();
+    draft.project.files.splice(1, 1);
+    expect(() => compileProjectResource(draft, "Cached.prefab")).toThrow("Cannot resolve");
+    expect(compileProjectResource(pack, "Cached.prefab")).toBe(original);
+  } finally { parse.mockRestore(); }
+});
+
+it("invalidates a cached animation controller when its referenced clip is removed", () => {
+  const pack: RuntimeProjectPackage = { version: RUNTIME_PROJECT_SAVE_VERSION,
+    project: { scene: "main", files: [
+      { virtualPath: "Walk.controller", path: "Walk.controller", type: "AnimatorController" },
+      { virtualPath: "Walk.clip", path: "Walk.clip", type: "AnimationClip" }
+    ] }, contents: { "Walk.controller": JSON.stringify({ layers: [{ stateMachine: {
+      states: [{ clip: { url: "Walk.clip" } }]
+    } }] }) } };
+  compileProjectResource(pack, "Walk.controller");
+  pack.project.files.pop();
+  expect(() => compileProjectResource(pack, "Walk.controller")).toThrow("Cannot resolve animation asset");
+});
+
+it("reuses source hydration across unrelated sidecars and rechecks newly hydrated roots", async () => {
+  const pack: RuntimeProjectPackage = { version: RUNTIME_PROJECT_SAVE_VERSION,
+    project: { scene: "Hydrate.scene", files: [
+      { virtualPath: "Hydrate.scene", path: "Hydrate.scene", type: "Scene" },
+      { virtualPath: "Lazy.prefab", path: "Lazy.prefab", type: "Prefab" }
+    ] }, contents: { "Hydrate.scene": '{"asset":{"version":"2.0"}}' } };
+  const load = vi.fn(async () => {}), parse = vi.spyOn(JSON, "parse");
+  try {
+    await prepareProjectSources(pack, load);
+    const calls = parse.mock.calls.length;
+    pack.project.files.push({ virtualPath: "World/Editor.json", path: "editor", type: "JSON" });
+    pack.contents["World/Editor.json"] = '{}';
+    await prepareProjectSources(pack, load);
+    expect(parse.mock.calls.length).toBe(calls);
+    pack.contents["Lazy.prefab"] = '{"asset":{"version":"2.0"},"reference":{"$ref":"missing.prefab"}}';
+    await expect(prepareProjectSources(pack, load)).rejects.toThrow("Cannot resolve project asset");
+    pack.project.files.push({ virtualPath: "missing.prefab", path: "missing.prefab", type: "Prefab" });
+    pack.contents["missing.prefab"] = '{"asset":{"version":"2.0"}}';
+    await prepareProjectSources(pack, load);
+    expect(load).toHaveBeenCalledWith("missing.prefab");
+    pack.project.files.push({ virtualPath: "missing.prefab", path: "duplicate", type: "JSON" });
+    await expect(prepareProjectSources(pack, load)).rejects.toThrow("unambiguously");
+  } finally { parse.mockRestore(); }
 });

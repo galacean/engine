@@ -395,6 +395,7 @@ export class PlanningFarmingRuntime {
       this.provider.publish({
         ...previous,
         revision: ++this.groundRevision,
+        placementPending: true,
         inspectBounds: (id, bounds) => ({
           ...previous.inspectBounds(id, bounds),
           blocked: true

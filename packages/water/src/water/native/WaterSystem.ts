@@ -1,3 +1,4 @@
+import { RiverCompileWorkerClient } from "../runtime/river/RiverCompileWorkerClient";
 import { isWaterBuiltinShader } from "./WaterBuiltinShaders";
 import { Camera, ignoreClone, Layer, Script, type Entity, type Scene } from "@galacean/engine-core";
 import { Vector3 } from "@galacean/engine-math";
@@ -121,7 +122,7 @@ export class WaterSystem extends Script implements WaterRuntimeControl {
     if (flush && !this._authoringDepth) void this.flushAuthoring().catch(() => {});
   }
   requestAuthoringUpdate(body: WaterBodyComponent): Promise<void> {
-    if (body.authoring?.terrain.mode === "host") return Promise.resolve();
+    if (body._readAuthoring()?.terrain.mode === "host") return Promise.resolve();
     this.assertLive();
     this._authoringBodies.add(body);
     this._authoringDirty = true;
@@ -145,7 +146,7 @@ export class WaterSystem extends Script implements WaterRuntimeControl {
                 this._authoringKeys.delete(body);
                 continue;
               }
-              if (body.authoring) {
+              if (body._readAuthoring()) {
                 const key = body._authoringKey();
                 if (this._authoringKeys.get(body) === key) {
                   body._clearAuthoringError();
@@ -689,11 +690,16 @@ export class WaterSystem extends Script implements WaterRuntimeControl {
         this.bodies
           .filter(
             (body) =>
-              body.authoring && !removed.includes(body) && !body.destroyed && !body.pendingDestroy && body.configuration
+              body._readAuthoring() &&
+              !removed.includes(body) &&
+              !body.destroyed &&
+              !body.pendingDestroy &&
+              body.configuration
           )
           .map((body) => [body, body.configuration!])
       );
-      for (const update of batch) if (update.body.authoring) configurations.set(update.body, update.configuration);
+      for (const update of batch)
+        if (update.body._readAuthoring()) configurations.set(update.body, update.configuration);
       for (const update of compileNativeWaterConnections(
         [...configurations].map(([body, configuration]) => ({ body, configuration }))
       )) {
@@ -838,7 +844,7 @@ export class WaterSystem extends Script implements WaterRuntimeControl {
   }
 
   detach(body: WaterBodyComponent, forget = false): Promise<void> {
-    if (this._authoringDepth && body.authoring) {
+    if (this._authoringDepth && body._readAuthoring()) {
       const existing = this._authoringDetaches.get(body);
       if (existing) return existing.promise;
       let resolve!: () => void;
@@ -968,6 +974,7 @@ export class WaterSystem extends Script implements WaterRuntimeControl {
     this._authoringDetaches.clear();
     ++this._runtimeGeneration;
     this._activation.abort();
+    this._riverCompiler?.dispose();
     if (this._runtimeRoot) this._runtimeRoot.isActive = false;
     this.setRuntimeState({ requestedEnabled: false, effectiveEnabled: false, phase: "disabling" });
     const withdrawalErrors: unknown[] = [];
@@ -1024,6 +1031,7 @@ export class WaterSystem extends Script implements WaterRuntimeControl {
     this.developmentTargets.bind();
     const errors: unknown[] = [];
     for (const action of [
+      () => this._riverCompiler?.dispose(),
       () => this._host?.destroy(),
       async () => {
         (await this._textures?.catch(() => undefined))?.destroy();
@@ -1038,6 +1046,7 @@ export class WaterSystem extends Script implements WaterRuntimeControl {
     }
     if (errors.length) throw new AggregateError(errors, "WaterSystem runtime cleanup failed.");
     this._host = undefined;
+    this._riverCompiler = undefined;
     this._environment = undefined;
     this._textures = undefined;
     this._runtimeRoot = undefined;
@@ -1070,6 +1079,8 @@ export class WaterSystem extends Script implements WaterRuntimeControl {
       if (body.entity.scene !== this.entity.scene) void this.detach(body, true).catch(() => {});
     }
   }
+  private _riverCompiler?: RiverCompileWorkerClient;
+
   private host(): WaterSceneRuntimeHost {
     this.assertLive();
     if (!this._runtimeState.requestedEnabled)
@@ -1098,7 +1109,20 @@ export class WaterSystem extends Script implements WaterRuntimeControl {
       }
     });
     host.registerBackend(new HeightfieldWaterBackend());
-    host.registerBackend(new RiverWaterBackend());
+    // Use the same validated compiler/metadata builder off the render thread.
+    // Non-browser hosts retain the existing synchronous compiler.
+    const riverCompiler = typeof Worker === "undefined" ? undefined : new RiverCompileWorkerClient();
+    this._riverCompiler = riverCompiler;
+    host.registerBackend(
+      new RiverWaterBackend(
+        riverCompiler
+          ? {
+              compile: (descriptor, context, physicalSourceHash) =>
+                riverCompiler.compile(descriptor, context.signal, physicalSourceHash)
+            }
+          : undefined
+      )
+    );
     host.registerBackend(this._ocean);
     for (const factory of [
       createLakeNormalResourceFactory(this.engine),
@@ -1136,6 +1160,7 @@ for (const key of [
   "_environment",
   "_ocean",
   "_host",
+  "_riverCompiler",
   "_runtimeRoot",
   "_bodies",
   "_tail",

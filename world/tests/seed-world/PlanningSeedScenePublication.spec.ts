@@ -1,4 +1,3 @@
-import { registerPlanningWaterColor } from "@galacean/engine-world-planning/spatial/runtime/PlanningWaterColors";
 import type { WaterSceneBodyRequest } from "@galacean/engine-water/water/runtime/index";
 import { nativePlanningScene } from "./nativePlanningScene.ts";
 import { afterEach, expect, it, vi } from "vitest";
@@ -1378,7 +1377,7 @@ it("water preparation failure, cancellation and commit failure leave the accepte
   f.assertScene(1);
 });
 
-it("colour-only publication reuses physical and quality resources through the real Host batch", async () => {
+it("look-only publication reuses physical and quality resources through the real Host batch", async () => {
   const f = fixture();
   const target = f.water as unknown as { requests(plan: IslandPlan): WaterSceneBodyRequest[] };
   const requests = target.requests.bind(target);
@@ -1389,9 +1388,14 @@ it("colour-only publication reuses physical and quality resources through the re
         ...request,
         instance: {
           ...request.instance,
-          lookPresetId: f.water.system.runtimeHost.registerAuthoring((assets) =>
-            registerPlanningWaterColor(assets, request.bodyId, request.instance.lookPresetId, colour)
-          )
+          lookPresetId: f.water.system.runtimeHost.registerAuthoring((assets) => {
+            if (!colour) return request.instance.lookPresetId;
+            const base = assets.getLookAuthoringSnapshot(request.instance.lookPresetId)!;
+            const id = `${request.bodyId}-test-colour-${colour.join("-")}`;
+            const color = "#" + colour.map((channel) => channel.toString(16).padStart(2, "0")).join("");
+            assets.registerLookPreset({ ...base.look, id, foam: { ...base.look.foam, color } });
+            return id;
+          })
         }
       }))
   });
@@ -1705,3 +1709,24 @@ it.each(["accept", "discard", "rock-failure", "abort"] as const)(
     expect(system.destroy).not.toHaveBeenCalled();
   }
 );
+
+it("publishes replacement solids with local terrain and restores their owner on failed water acceptance", async () => {
+  const f = fixture();
+  await f.publish(1);
+  const old = f.owner.current!;
+  const solids = { ...old.solids };
+  const updates = { commit: vi.fn(), rollback: vi.fn(), discard: vi.fn(), finalize: vi.fn() };
+  const frame = () => ({ data: f.candidate(2).data, solids, updates: [updates], bounds: { minimumX: 0, minimumZ: 0, maximumX: 100, maximumZ: 100 }, preparationMs: 0 });
+  const rejected = await f.owner.prepareWaterImpact(f.plan(2), async () => frame());
+  f.state.failVisibility = true;
+  expect(() => rejected.commit()).toThrow();
+  expect(f.owner.current).toBe(old);
+  expect(updates.rollback).toHaveBeenCalled();
+  await rejected.discard();
+  expect(updates.finalize).not.toHaveBeenCalled();
+  f.state.failVisibility = false;
+  const accepted = await f.owner.prepareWaterImpact(f.plan(2), async () => frame());
+  expect(accepted.commit().solids).toBe(solids);
+  expect(f.owner.current!.world).toBe(old.world);
+  await vi.waitFor(() => expect(updates.finalize).toHaveBeenCalledOnce());
+});

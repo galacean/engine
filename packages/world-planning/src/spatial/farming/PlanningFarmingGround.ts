@@ -9,7 +9,7 @@ import type {
 } from "@galacean/engine-farming/farming/api/index";
 import type { PlanPoint } from "../../semantic-study/IslandPlanModel";
 import { createPlanningRingQuery } from "../../semantic-study/WorldPlanningTerrain";
-import { overlap, polygonBounds } from "../../semantic-study/WorldPlanningGeometry";
+import { preparePolygonOverlap, polygonBounds } from "../../semantic-study/WorldPlanningGeometry";
 
 export interface PlanningFarmingGroundOptions {
   readonly revision: number;
@@ -53,7 +53,7 @@ export function restrictPlanningFarmingCultivation(
 ): FarmingGroundView {
   const regions = reserved.map((points) => {
     const outline = points.map((point) => ({ ...point }));
-    return { outline, bounds: polygonBounds(outline) };
+    return { overlaps: preparePolygonOverlap(outline), bounds: polygonBounds(outline) };
   });
   return Object.freeze({
     ...view,
@@ -64,11 +64,11 @@ export function restrictPlanningFarmingCultivation(
         blocked:
           facts.blocked ||
           regions.some(
-            ({ outline, bounds: region }) =>
+            ({ overlaps, bounds: region }) =>
               // Adjacent full cells may share an edge with the operation corridor, but not its area.
               Math.min(bounds.maximumX, region.maxX) - Math.max(bounds.minimumX, region.minX) > 1e-7 &&
               Math.min(bounds.maximumZ, region.maxZ) - Math.max(bounds.minimumZ, region.minZ) > 1e-7 &&
-              overlap(outline, farmingBoundsOutline(bounds))
+              overlaps(farmingBoundsOutline(bounds))
           )
       };
     }

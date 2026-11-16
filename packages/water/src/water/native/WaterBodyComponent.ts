@@ -96,6 +96,11 @@ export class WaterBodyComponent extends Script {
   private _authoringAsset?: { key: string; resource: WaterBodyResource };
   private _authoringQuality?: { key: string; resource: WaterQualityResource };
   private _authoringAssets = new Set<WaterBodyResource | WaterQualityResource>();
+  private _authoringKeyCache?: { inputs: readonly unknown[]; key: string };
+  /** @internal Accepted immutable settings. Reflection must keep using the detached authoring getter. */
+  _readAuthoring(): Readonly<WaterBodyAuthoring> | undefined {
+    return this._authoring;
+  }
   get authoring(): Readonly<WaterBodyAuthoring> | undefined {
     const input = this._authoring;
     // ReflectionParser resolves plain objects into the getter value before calling the setter.
@@ -162,6 +167,7 @@ export class WaterBodyComponent extends Script {
         })
       )
     });
+    this._authoringKeyCache = undefined;
     this._ready = this.refresh();
     void this._ready.catch(() => {});
   }
@@ -228,25 +234,51 @@ export class WaterBodyComponent extends Script {
   /** @internal Local invalidation key, including the effective world transform. */
   _authoringKey(): string {
     const input = this._authoring!;
-    return hashStableValue({
+    const terrain = this._terrainContentHash();
+    const material = waterMaterialKey(input.material);
+    const enabled = this.enabled && this.entity.isActiveInHierarchy;
+    const transform = this.transformKey();
+    const connections = input.connections?.map((connection) => ({
+      ...connection,
+      target: connection.target.waterId,
+      shape: connection.target._authoring?.shape,
+      terrain: connection.target._terrainContentHash(),
+      enabled: connection.target.enabled && connection.target.entity.isActiveInHierarchy,
+      transform: connection.target.transformKey()
+    }));
+    // Shapes/quality/connection settings are immutable after the setter accepts
+    // them. Material, target identities and world transforms remain live inputs.
+    const inputs: readonly unknown[] = [
+      input,
+      terrain,
+      material,
+      enabled,
+      transform,
+      ...(connections ?? []).flatMap((connection) => [
+        connection.target,
+        connection.shape,
+        connection.terrain,
+        connection.enabled,
+        connection.transform
+      ])
+    ];
+    const cached = this._authoringKeyCache;
+    if (cached && inputs.length === cached.inputs.length && inputs.every((value, i) => value === cached.inputs[i]))
+      return cached.key;
+    const key = hashStableValue({
       shape: input.shape,
-      terrain: this._terrainContentHash(),
-      material: waterMaterialKey(input.material),
+      terrain,
+      material,
       quality: input.quality,
       visible: input.visible ?? true,
       priority: input.priority ?? 0,
-      connections: input.connections?.map((connection) => ({
-        ...connection,
-        target: connection.target.waterId,
-        shape: connection.target._authoring?.shape,
-        terrain: connection.target._terrainContentHash(),
-        enabled: connection.target.enabled && connection.target.entity.isActiveInHierarchy,
-        transform: connection.target.transformKey()
-      })),
+      connections,
       interaction: input.interaction,
-      enabled: this.enabled && this.entity.isActiveInHierarchy,
-      transform: this.transformKey()
+      enabled,
+      transform
     });
+    this._authoringKeyCache = { inputs, key };
+    return key;
   }
   /** @internal The component owns private compiler inputs until replacement or Scene disposal. */
   _ownCompiledAsset(resource: WaterBodyResource): void {
@@ -495,6 +527,7 @@ export class WaterBodyComponent extends Script {
         this._retained = undefined;
         if (this._authoring) this._authoring.material._addReferCount(-1);
         this._authoring = undefined;
+        this._authoringKeyCache = undefined;
         this._decodedTerrain = undefined;
         for (const asset of this._authoringAssets) {
           asset._addReferCount(-1);
@@ -509,6 +542,7 @@ export class WaterBodyComponent extends Script {
   }
   /** Engine clone hook also retains resources for inactive Prefab instances. */
   _onClone(target: WaterBodyComponent): void {
+    target._authoringKeyCache = undefined;
     target._authoringAsset = undefined;
     target._authoringQuality = undefined;
     if (target._authoring) {
@@ -585,6 +619,7 @@ for (const key of [
   "_authoringAsset",
   "_authoringQuality",
   "_authoringAssets",
+  "_authoringKeyCache",
   "_waterId",
   "_controller",
   "_owner",

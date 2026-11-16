@@ -31,6 +31,8 @@
     "./runtime-editor/project/runtime-asset-path": "./src/runtime-editor/project/runtime-asset-path.ts",
     "./runtime-editor/project/runtime-asset-references": "./src/runtime-editor/project/runtime-asset-references.ts",
     "./runtime-editor/project/runtime-project-dependencies": "./src/runtime-editor/project/runtime-project-dependencies.ts",
+    "./runtime-editor/project/runtime-project-content": "./src/runtime-editor/project/runtime-project-content.ts",
+    "./runtime-editor/project/runtime-project-inputs": "./src/runtime-editor/project/runtime-project-inputs.ts",
     "./runtime-editor/project/runtime-project-edit": "./src/runtime-editor/project/runtime-project-edit.ts",
     "./runtime-editor/project/runtime-project-persistence": "./src/runtime-editor/project/runtime-project-persistence.ts",
     "./runtime-editor/project/runtime-project": "./src/runtime-editor/project/runtime-project.ts",

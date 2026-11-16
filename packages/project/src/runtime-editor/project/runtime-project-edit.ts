@@ -1,3 +1,5 @@
+import type { RuntimeProjectInputs } from "./runtime-project-inputs";
+import { sameRuntimeProjectContent } from "./runtime-project-content";
 import type { AssetReadValue } from "./runtime-asset-read";
 import {
   cloneRuntimeProjectPackage,
@@ -97,6 +99,17 @@ export class RuntimeProjectEdit {
   lookupTextAsset(path: string): ReturnType<typeof lookupRuntimeProjectTextAsset> {
     this.assertOpen();
     return lookupRuntimeProjectTextAsset(this.draft, path);
+  }
+
+  /** Inspect input identity without exporting another copy of mutable resource bytes. */
+  matchesInputs(inputs: RuntimeProjectInputs): boolean {
+    this.assertOpen();
+    return inputs.matches(this.draft);
+  }
+
+  hasContent(path: string): boolean {
+    this.assertOpen();
+    return this.draft.contents[path] !== undefined;
   }
 
   preview(): RuntimeProjectPackage {
@@ -409,12 +422,7 @@ export class RuntimeProjectEdit {
       const next = nextFiles.get(path);
       const content = old && before.contents[old.virtualPath];
       const after = next && this.draft.contents[next.virtualPath];
-      const equal =
-        content === after ||
-        (content instanceof Uint8Array &&
-          after instanceof Uint8Array &&
-          content.length === after.length &&
-          content.every((byte, i) => byte === after[i]));
+      const equal = sameRuntimeProjectContent(content, after);
       if (JSON.stringify(old) !== JSON.stringify(next) || !equal)
         result.push({
           path,

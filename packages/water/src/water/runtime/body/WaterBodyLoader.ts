@@ -904,11 +904,16 @@ export class WaterBodyLoader {
     resolvedInstance: ResolvedWaterBodyInstance
   ): Promise<WaterCompiledResourceLease> {
     const identityContext = { signal, resolvedInstance };
-    const backendKey = backend.getCompileKey?.(asset, resolvedSource, identityContext);
+    const backendKey = await backend.getCompileKey?.(asset, resolvedSource, identityContext);
+    this._assertAvailable();
+    throwIfAborted(signal);
     if (backendKey !== undefined && backendKey.trim().length === 0) {
       throw new Error(`Water backend '${backend.id}' returned an empty compile key.`);
     }
-    const expectedSourceHash = backend.getSourceHash?.(asset, resolvedSource, identityContext) ?? asset.sourceHash;
+    const expectedSourceHash =
+      (await backend.getSourceHash?.(asset, resolvedSource, identityContext)) ?? asset.sourceHash;
+    this._assertAvailable();
+    throwIfAborted(signal);
     if (expectedSourceHash.trim().length === 0) {
       throw new Error(`Water backend '${backend.id}' returned an empty source hash.`);
     }

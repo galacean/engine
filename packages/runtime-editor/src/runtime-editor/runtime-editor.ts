@@ -1,3 +1,8 @@
+import { runtimeEditWork } from "./runtime-edit-work";
+import {
+  RuntimeProjectInputs,
+  type RuntimeProjectInputScope
+} from "@galacean/engine-project/runtime-editor/project/runtime-project-inputs";
 import type { HistoryMove } from "../project/runtime-project-history.ts";
 import { prepareAssetInputs, withPreparedAsset, type RuntimePreparedAsset } from "../project/runtime-prepared-asset.ts";
 import { RuntimeResourceProjection } from "../project/runtime-resource-projection.ts";
@@ -5,7 +10,7 @@ import { Shader, type EngineObject, type Scene } from "@galacean/engine";
 import type { EditTransaction } from "@galacean/engine-project/edit-transaction";
 import { installRuntimeProjectScripts } from "./scripts/runtime-engine-scripts";
 import { editableAssetTypes, nativeAssetFormats } from "../project/runtime-native-formats.ts";
-import { compileProjectResource } from "@galacean/engine-project/runtime-editor/scene/runtime-project-compiler";
+import { compileProjectResourcesAsync } from "@galacean/engine-project/runtime-editor/scene/runtime-project-compiler";
 import {
   RuntimeProjectEdit,
   type RuntimeAssetFormat,
@@ -61,7 +66,7 @@ export type RuntimeEditPreparation = (
 /** The host owns persistence and activation; Worker tools only edit detached project data. */
 export class RuntimeEditor {
   readonly projection: RuntimeSceneProjection;
-  private readonly preparations = new Set<RuntimeEditPreparation>();
+  private readonly preparations = new Map<RuntimeEditPreparation, RuntimeProjectInputScope | undefined>();
   private readonly resources = new RuntimeResourceProjection();
   private readonly lifetime = new AbortController();
   private readonly unregisterTextAssets: () => void;
@@ -83,9 +88,12 @@ export class RuntimeEditor {
     );
   }
 
-  registerPreparation(prepare: RuntimeEditPreparation): () => void {
+  /** A scoped preparation reacts to changes in its declared inputs. The host must
+   * initialize the existing project before registration; final publication validation still runs.
+   * Omit scope for extensions that must run on every authoring transaction. */
+  registerPreparation(prepare: RuntimeEditPreparation, scope?: RuntimeProjectInputScope): () => void {
     this.lifetime.signal.throwIfAborted();
-    this.preparations.add(prepare);
+    this.preparations.set(prepare, scope && structuredClone(scope));
     return () => {
       this.preparations.delete(prepare);
     };
@@ -97,11 +105,14 @@ export class RuntimeEditor {
 
   private async activateWorkingProject(signal: AbortSignal, hooks?: RuntimeActivationHooks): Promise<void> {
     const runtimeErrors: string[] = [];
+    const checkpoint = runtimeEditWork();
     try {
       await this.project.activateRuntime(
         async () => {
           runtimeErrors.push(...(await installRuntimeProjectScripts(this.project, signal)));
+          await checkpoint(signal);
           await this.resources.apply(this.scene.engine.resourceManager, await this.project.resources(signal), signal);
+          await checkpoint(signal);
           await this.projection.apply(this.project.projectPackage, signal);
           await hooks?.afterProjection?.(signal);
         },
@@ -123,6 +134,7 @@ export class RuntimeEditor {
     const operationSignal = AbortSignal.any([signal, lifetime.signal, this.lifetime.signal]);
     let phase: "open" | "prepared" | "committing" | "committed" | "discarded" = "open";
     let draft: RuntimeProjectEdit | undefined;
+    const preparationInputs = new Map<RuntimeEditPreparation, RuntimeProjectInputs>();
     let changed = false;
     let historyMove: HistoryMove | undefined;
     let userEdits = false;
@@ -139,15 +151,10 @@ export class RuntimeEditor {
     const ensureDraft = async (referencesOnly = false, loadPaths: readonly string[] = []) => {
       assertOpen();
       const provider = this.project.fileProvider();
-      const currentDraft = draft?.preview();
-      const draftPaths = currentDraft && new Set(currentDraft.project.files.map((file) => file.virtualPath));
+      const draftPaths = draft && new Set(draft.list().map((file) => file.virtualPath));
       // Dependency queries use the complete manifest. Only explicit edits/reads load sources.
       for (const file of this.project.projectPackage.project.files) {
-        if (
-          currentDraft &&
-          (!draftPaths!.has(file.virtualPath) || currentDraft.contents[file.virtualPath] !== undefined)
-        )
-          continue;
+        if (draft && (!draftPaths!.has(file.virtualPath) || draft.hasContent(file.virtualPath))) continue;
         if (
           loadPaths.includes(file.virtualPath) ||
           (!referencesOnly && editableAssetTypes.includes(file.type as (typeof editableAssetTypes)[number]))
@@ -163,6 +170,8 @@ export class RuntimeEditor {
         return;
       }
       baseRevision = this.project.publicationRevision;
+      for (const [prepare, scope] of this.preparations)
+        if (scope) preparationInputs.set(prepare, new RuntimeProjectInputs(this.project.projectPackage, scope));
       draft = new RuntimeProjectEdit(
         this.project.projectPackage,
         new Map([...nativeAssetFormats(() => dependencies), ...this.hostFormats]),
@@ -273,10 +282,15 @@ export class RuntimeEditor {
         await tail;
         assertOpen();
         prepareSignal.throwIfAborted();
+        const checkpoint = runtimeEditWork();
+        const preparationSignal = AbortSignal.any([operationSignal, prepareSignal]);
         const contributions = contribute?.() ?? [];
         if (contributions.length) {
           if (historyMove) throw new Error("Cannot combine history navigation and host edits");
-          await ensureDraft();
+          await ensureDraft(
+            true,
+            contributions.map(({ file }) => file.virtualPath)
+          );
           for (const { file, content } of contributions) {
             const existing = draft!.list().find((asset) => asset.virtualPath === file.virtualPath);
             if (existing && existing.type !== file.type)
@@ -287,23 +301,30 @@ export class RuntimeEditor {
           changed = true;
         }
         if (changed && !historyMove && !restoring) {
-          const preparationSignal = AbortSignal.any([operationSignal, prepareSignal]);
-          for (const prepare of [...this.preparations]) {
+          await checkpoint(preparationSignal);
+          for (const [prepare] of [...this.preparations]) {
             preparationSignal.throwIfAborted();
+            // Recheck after every extension: an earlier preparation may edit these inputs.
+            const inputs = preparationInputs.get(prepare);
+            if (inputs && draft!.matchesInputs(inputs)) continue;
             await prepare(edit, preparationSignal);
+            await checkpoint(preparationSignal);
             assertOpen();
           }
         }
         if (changed) {
           await ensureDraft();
+          await checkpoint(preparationSignal);
           const scripts = sources();
           const compiled = await this.project.compileScripts(scripts, operationSignal, false, draft!.preview());
           dependencies = compiled.dependencies ?? {};
           draft!.refreshDependencies(true);
+          await checkpoint(preparationSignal);
           assertOpen();
           const preview = draft!.preview();
+          await compileProjectResourcesAsync(preview, () => checkpoint(preparationSignal));
+          assertOpen();
           for (const file of preview.project.files) {
-            compileProjectResource(preview, file.virtualPath);
             if (file.type === "Material") {
               const material = JSON.parse(preview.contents[file.virtualPath] as string);
               if (!Shader.find(material.shader) && !material.shaderRef) {
@@ -314,6 +335,7 @@ export class RuntimeEditor {
             }
           }
           this.projection.validate(preview);
+          await checkpoint(preparationSignal);
           prepareSignal.throwIfAborted();
           candidate = draft!.finish();
         }

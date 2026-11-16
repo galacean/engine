@@ -199,7 +199,7 @@ export interface WaterBodyBackend {
     asset: WaterBackendAuthoringAsset,
     resolvedSource: unknown,
     context?: WaterBackendCompileIdentityContext
-  ): string;
+  ): string | Promise<string>;
   /**
    * Hash of the detached source actually compiled. This may differ from the
    * authoring asset hash when a registered provider resolves scene data.
@@ -208,7 +208,7 @@ export interface WaterBodyBackend {
     asset: WaterBackendAuthoringAsset,
     resolvedSource: unknown,
     context?: WaterBackendCompileIdentityContext
-  ): string;
+  ): string | Promise<string>;
   /** Pure capability check; Loader derives the actual mode from compiled identity. */
   checkInstanceUpdate?(request: WaterBackendUpdateRequest): WaterBackendUpdateDecision;
   resolveAsset?(asset: WaterBackendAuthoringAsset, context: WaterBackendOperationContext): unknown | Promise<unknown>;

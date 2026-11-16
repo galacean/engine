@@ -1,3 +1,4 @@
+import { samePlanningRenderState } from "./PlanningRenderState";
 import { initializePlanningPopulation } from "./PlanningPopulationInitialization";
 import { PLANNING_FARMING_PROJECT_PATH } from "./farming/PlanningFarmInitialization";
 import {
@@ -396,22 +397,8 @@ export class PlanningSession {
     // Diagnostics describe the current execution, not rendered geometry. A
     // cached road run need not repeat every generation-only audit. Keep the new
     // checks in the published result, but do not rebuild the scene for them.
-    const renderState = (plan: SemanticResult["plan"]) =>
-      JSON.stringify({
-        ...plan,
-        planning: plan.planning ? { ...plan.planning, checks: [], changedIds: [] } : plan.planning,
-        // Classifier keys include authored instance state. They decide which
-        // preparation may run; changing them does not change world geometry.
-        spatialLayout: plan.spatialLayout && {
-          ...plan.spatialLayout,
-          instanceInputSignature: undefined,
-          revealInputSignature: undefined
-        }
-      });
     const worldUnchanged =
-      !baseline.outOfSync &&
-      !!baseline.result &&
-      (baseline.result.plan === result.plan || renderState(baseline.result.plan) === renderState(result.plan));
+      !baseline.outOfSync && !!baseline.result && samePlanningRenderState(baseline.result.plan, result.plan);
     const detached = structuredClone(result);
     inheritPlanningHeightmap(detached.plan, result.plan);
     inheritPlanningQueryData(detached.plan, result.plan);

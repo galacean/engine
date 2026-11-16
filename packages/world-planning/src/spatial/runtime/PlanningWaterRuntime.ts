@@ -1,3 +1,4 @@
+import { createRiverWaterBodyAssetAsync } from "@galacean/engine-water/water/authoring/river/RiverWaterBodyAuthoring";
 import { Layer, Vector3, type Camera, type Engine, type Entity, type MeshRenderer } from "@galacean/engine";
 import {
   SeedWorldArrayPickBatch,
@@ -5,7 +6,6 @@ import {
 } from "@galacean/engine-modify/rendering/SeedWorldPickBatch";
 import { hashStableValue } from "@galacean/engine-water/water/compiler/index";
 import {
-  createRiverWaterBodyAsset,
   createRiverWaterBodyInstance,
   createWaterBodyAsset,
   createWaterBodyInstance,
@@ -34,6 +34,7 @@ import { createLakeNormalResourceFactory } from "@galacean/engine-water/water/re
 import { readSeedWorldWaterColor } from "@galacean/engine-water/world/SeedWorldWaterColor";
 import { planningLakeRequests } from "../../semantic-study/PlanningLakeSource";
 import { planningWaterDependency } from "../../semantic-study/PlanningWaterDependency";
+import { planningHeightmap, type PlanningHeightmap } from "../../semantic-study/PlanningHeightmap";
 import type { PlanningWaterUpdate } from "../hydrology/PlanningWaterEdits";
 
 import {
@@ -125,6 +126,7 @@ export class PlanningWaterRuntime {
     { dependency: string; request: WaterSceneBodyRequest; baseLookId: string }
   >();
   private oceanRequest?: WaterSceneBodyRequest;
+  private requestInputs?: { bed: PlanningHeightmap; source: string };
   private publishedRequests = new Map<
     string,
     { signature: string; asset: WaterBodyResource; quality: WaterQualityResource }
@@ -274,13 +276,15 @@ export class PlanningWaterRuntime {
         pending.signal.throwIfAborted();
         const visibilityRevision = this.visibilityRevision;
         const savedRequests = new Map(this.requestCache),
-          savedOcean = this.oceanRequest;
+          savedOcean = this.oceanRequest,
+          savedInputs = this.requestInputs;
         restoreRequests = () => {
           this.requestCache.clear();
           for (const [id, entry] of savedRequests) this.requestCache.set(id, entry);
           this.oceanRequest = savedOcean;
+          this.requestInputs = savedInputs;
         };
-        const requests = (waterUpdate ? this.requests(plan, waterUpdate) : this.requests(plan))
+        const requests = (await this.requests(plan, waterUpdate, pending.signal))
           .filter(
             (request) =>
               !this.options.readBody || request.bodyId !== "planning-ocean" || this.options.readBody(request.bodyId)
@@ -310,7 +314,7 @@ export class PlanningWaterRuntime {
             (this.options.readBody ? undefined : this.components.get(request.bodyId));
           if (this.options.readBody && !body)
             throw new Error(`MISSING_DEPENDENCY: Source Water '${request.bodyId}' is missing.`);
-          const input = body?.authoring;
+          const input = body?._readAuthoring();
           const signature = hashStableValue({
             source: request.asset.sourceHash,
             representation: request.asset.representationDataHash,
@@ -682,6 +686,7 @@ export class PlanningWaterRuntime {
       this.components.clear();
       this.publishedRequests.clear();
       this.requestCache.clear();
+      this.requestInputs = undefined;
       this.activeIds.clear();
       this.runtimePlan = undefined;
     }
@@ -727,13 +732,32 @@ export class PlanningWaterRuntime {
       this.components.clear();
       this.publishedRequests.clear();
       this.requestCache.clear();
+      this.requestInputs = undefined;
       this.activeIds.clear();
     });
     return this.destroyPromise;
   }
 
-  private requests(plan: IslandPlan, update?: PlanningWaterUpdate): WaterSceneBodyRequest[] {
+  private async requests(
+    plan: IslandPlan,
+    update?: PlanningWaterUpdate,
+    signal?: AbortSignal
+  ): Promise<WaterSceneBodyRequest[]> {
     const { engine, camera } = this.options;
+    // Plan objects can receive new authoring or a newly adopted terrain. Compare
+    // exact source values plus the owned bed snapshot, not just plan identity.
+    const inputs = {
+      bed: planningHeightmap(plan),
+      source: JSON.stringify([
+        plan.parameters,
+        plan.waters,
+        plan.authoredResources,
+        plan.planning?.profiles,
+        plan.land,
+        plan.islands
+      ])
+    };
+    const unchangedPlan = this.requestInputs?.bed === inputs.bed && this.requestInputs.source === inputs.source;
     const oceanRequest = (): WaterSceneBodyRequest => {
       const prepared = compilePlanningOcean(plan);
       const descriptor = { schemaVersion: 2 as const, id: prepared.data.sourceId, config: prepared.data.config };
@@ -780,14 +804,14 @@ export class PlanningWaterRuntime {
     if (plan.parameters.landMode === "continuous") {
       this.oceanRequest = undefined;
     } else {
-      const ocean = update ? this.oceanRequest : oceanRequest();
+      const ocean = update || unchangedPlan ? this.oceanRequest : oceanRequest();
       if (!ocean) throw new Error("Water edit has no published ocean base");
       this.oceanRequest = ocean;
     }
     const dependencies = new Map(
       plan.waters.map((water) => [
         water.id,
-        update && water.id !== update.bodyId
+        (update && water.id !== update.bodyId) || (!update && unchangedPlan)
           ? (this.requestCache.get(water.id)?.dependency ?? "")
           : planningWaterDependency(plan, water)
       ])
@@ -803,7 +827,7 @@ export class PlanningWaterRuntime {
     );
     for (const id of changed) this.requestCache.delete(id);
     for (const river of changed.size ? planningRiverDescriptors(plan, changed) : []) {
-      const asset = createRiverWaterBodyAsset(river, "planning-river-asset:" + river.id);
+      const asset = await createRiverWaterBodyAssetAsync(river, "planning-river-asset:" + river.id, signal);
       const points = river.segments.flatMap((segment) => segment.curve.points);
       const reach = (point: (typeof points)[number]) => (point.width ?? river.defaults.shape.width) / 2;
       requests.push({
@@ -859,6 +883,8 @@ export class PlanningWaterRuntime {
           baseLookId: request.asset.kind === "river" ? waterPresentation.riverLookId : request.instance.lookPresetId
         });
     for (const id of this.requestCache.keys()) if (!dependencies.has(id)) this.requestCache.delete(id);
+    // Partial edits do not establish that every cached body's source was checked.
+    this.requestInputs = update ? undefined : inputs;
     // Presentation is per publication. Retain each physical request and its original preset,
     // including when undo removes a colour override or the basin is temporarily dry.
     return [

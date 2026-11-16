@@ -162,10 +162,14 @@ export class NativeBuildingWorld {
   startEntrance() {
     this.system.startEntrance();
   }
-  async prepareTerrain(published: Pick<PublishedPlanningSeedScene, "data" | "revision">, signal?: AbortSignal) {
-    const next = masonryTerrainSource(published);
+  async prepareTerrain(
+    published: Pick<PublishedPlanningSeedScene, "data" | "revision">,
+    signal?: AbortSignal,
+    formations?: readonly RockFormationMesh[]
+  ) {
+    const next = masonryTerrainSource(published, formations);
     return this.system.prepareTerrain(
-      { ...next, grid: { ...next.grid, supports: this.terrainSource.grid.supports } },
+      formations ? next : { ...next, grid: { ...next.grid, supports: this.terrainSource.grid.supports } },
       signal
     );
   }

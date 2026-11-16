@@ -10,7 +10,11 @@ import {
   type SeedWorldSelectionItem,
   type SeedWorldSelector
 } from "./ports/SeedWorldEnginePort";
-import { seedWorldAssetPropertyNames, type SeedWorldAssetKind } from "./contracts/SeedWorldAssetContracts";
+import {
+  SEED_WORLD_ASSET_TYPE_CATALOG,
+  seedWorldAssetPropertyNames,
+  type SeedWorldAssetKind
+} from "./contracts/SeedWorldAssetContracts";
 
 /** Public objects are exactly the runtime kinds backed by the persistent object-removal schema. */
 type PublicObject = Readonly<SeedWorldObject> & Readonly<{ objectKind: SeedWorldRemovableObjectKind }>;
@@ -38,6 +42,19 @@ export class SeedWorldAssetManager {
     const requestedDomains = new Set<SeedWorldAssetDomain>(
       selector.domains ?? ["terrain", "water", "vegetation", "object", "infrastructure", "poi"]
     );
+    // Identity filtering must constrain producers before they materialize query
+    // data. Related selectors are evaluated independently by the application.
+    if (selector.kinds) {
+      const kindDomains = new Set(
+        selector.kinds.flatMap((kind) =>
+          Object.prototype.hasOwnProperty.call(SEED_WORLD_ASSET_TYPE_CATALOG, kind)
+            ? [SEED_WORLD_ASSET_TYPE_CATALOG[kind as SeedWorldAssetKind].domain]
+            : []
+        )
+      );
+      for (const domain of requestedDomains) if (!kindDomains.has(domain)) requestedDomains.delete(domain);
+    }
+    if (!requestedDomains.size) return Object.freeze([]);
     const authoredAll = this._authoredAssets(
       revision,
       new Set<SeedWorldAssetDomain>(["terrain", "water", "vegetation"])
@@ -51,7 +68,7 @@ export class SeedWorldAssetManager {
       : Object.freeze({ objects: allObjects, groups: Object.freeze([] as SeedWorldAssetCandidate[]) });
     const objects = naturalVegetation.objects.filter(({ ref }) => requestedDomains.has(ref.domain));
     const groups = requestedDomains.has("vegetation") ? naturalVegetation.groups : [];
-    const natural = this._naturalFeatureAssets(revision, requestedDomains);
+    const natural = this._naturalFeatureAssets(revision, requestedDomains, selector);
     const publishedVegetation = requestedDomains.has("vegetation") ? this._engine.readVegetationAssets?.() : undefined;
     const legacy = [...objects, ...authored, ...groups, ...natural];
     const assets = [
@@ -214,7 +231,8 @@ export class SeedWorldAssetManager {
 
   private _naturalFeatureAssets(
     revision: number,
-    requestedDomains: ReadonlySet<SeedWorldAssetDomain>
+    requestedDomains: ReadonlySet<SeedWorldAssetDomain>,
+    selector: Readonly<SeedWorldSelector>
   ): SeedWorldAssetCandidate[] {
     const result: SeedWorldAssetCandidate[] = [];
     if (requestedDomains.has("terrain")) {
@@ -293,6 +311,8 @@ export class SeedWorldAssetManager {
     }
     if (requestedDomains.has("vegetation")) {
       for (const kind of ["grassland", "flower-field"] as const) {
+        if (selector.kinds && !selector.kinds.includes(kind)) continue;
+        if (selector.sources && !selector.sources.includes("natural")) continue;
         for (const feature of readRegionFeatures(this._engine, kind)) {
           result.push(
             Object.freeze({

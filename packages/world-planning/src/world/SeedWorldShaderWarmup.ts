@@ -56,6 +56,7 @@ export interface SeedWorldShaderWarmupReport {
 }
 
 export interface SeedWorldShaderWarmupOptions {
+  readonly signal?: AbortSignal;
   /** False skips both compilation and cache-only checks; shader registration must still run. Defaults to true. */
   readonly enabled?: boolean;
   /** Validate existing programs only. A missing effective program must never trigger compilation. */
@@ -78,6 +79,9 @@ export interface SeedWorldPostProcessWarmupState {
 }
 
 export interface SeedWorldRendererWarmupOptions extends SeedWorldShaderWarmupOptions {
+  /** Screen-space overlay UI, including hidden controls that can appear after startup.
+   * Uses UIUtils.renderOverlay's empty camera macros and canvas output target. */
+  readonly overlayRenderers?: readonly Renderer[];
   /** False excludes inactive resource templates. Disabled Renderers on active LOD entities remain included. */
   readonly includeInactiveEntities?: boolean;
   /** Exact production emitters whose wind module can be enabled by weather changes. */
@@ -152,6 +156,7 @@ export async function warmupSeedWorldShaderVariants(
   sourceEntries: readonly SeedWorldShaderVariantEntry[],
   options: SeedWorldShaderWarmupOptions = {}
 ): Promise<SeedWorldShaderWarmupReport> {
+  options.signal?.throwIfAborted();
   if (options.enabled === false) return skippedWarmupReport(sourceEntries.length);
   const entries = normalizeSeedWorldShaderVariants(sourceEntries);
   const issues: SeedWorldShaderWarmupIssue[] = [];
@@ -180,6 +185,7 @@ export async function warmupSeedWorldShaderVariants(
   const yieldFrame = async () => {
     reportProgress();
     await nextAnimationFrame();
+    options.signal?.throwIfAborted();
     frameStartedAt = performance.now();
   };
   const completeAlias = (key: string, state: ProgramState) => {
@@ -234,6 +240,7 @@ export async function warmupSeedWorldShaderVariants(
 
   let nextEntry = 0;
   while (nextEntry < entries.length || pending.size > 0) {
+    options.signal?.throwIfAborted();
     while (nextEntry < entries.length && pending.size < maximumPendingPrograms) {
       submit(entries[nextEntry++]);
       if (performance.now() - frameStartedAt >= frameBudgetMilliseconds) await yieldFrame();
@@ -538,6 +545,22 @@ export function collectSeedWorldRendererVariants(
       }
     }
     appendShaderVariants(material.shader, macros, variants, false, target);
+  }
+  // Overlay UI uses a separate, empty camera macro set. Scene lighting, mesh
+  // attributes and GPU instancing do not participate in this rendering path.
+  for (const renderer of options.overlayRenderers ?? []) {
+    for (const material of renderer.getMaterials()) {
+      if (!material || material.destroyed || material.shader.destroyed) continue;
+      const macros = new ShaderMacroCollection();
+      ShaderMacroCollection.unionCollection(
+        renderer.shaderData._macroCollection,
+        material.shaderData._macroCollection,
+        macros
+      );
+      macros.unionCollection(engine._macroCollection);
+      macros.enable(ShaderMacro.getByName("ENGINE_SHOULD_SRGB_CORRECT"));
+      appendShaderVariants(material.shader, macros, variants, false, false, material);
+    }
   }
   // Resource preparation compiles the actual scene/material contract. A
   // speculative environment-blend macro is not valid for every shader and

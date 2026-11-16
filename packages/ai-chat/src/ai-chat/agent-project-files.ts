@@ -79,9 +79,9 @@ export function createAgentProjectFiles(
       }
     })
   );
-  const files = new AgentProjectFiles(mounted);
-  files.list();
-  return files;
+  // Construction already validates the complete namespace. Each later read
+  // operation takes a fresh snapshot so provider changes remain visible.
+  return new AgentProjectFiles(mounted);
 }
 
 export function projectDeclarationModules(

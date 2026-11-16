@@ -1,5 +1,6 @@
 import type { IslandPlan } from "../../semantic-study/IslandPlanModel";
 import type { PlanningDocument } from "../PlanningDocument";
+import { isPlanningTerrainResource } from "../PlanningResources";
 import type { SemanticResult } from "../../semantic-study/WorldPlanningContract";
 import type { PublishedPlanningSeedScene } from "./PlanningSeedScenePublication";
 import type { PlanningRasterClient } from "../../semantic-study/PlanningRasterClient";
@@ -15,10 +16,16 @@ import {
   type PreparedTerrainUpdate
 } from "@galacean/engine-terrain/terrain/clipmap/TerrainPreparedUpdate";
 import type { SeedWorldAuthoringRuntimeBoundsV1 } from "../../world/SeedWorldAuthoringRuntimeDelta";
+import { rockFormationPlacements } from "../../integrations/terrain/rock-formation/Placement";
+import { rockGrassExclusions } from "../../integrations/terrain/rock-formation/GrassExclusions";
+import type { PlanningSeedWorldData } from "./PlanningSeedWorldData";
 
-function nonWaterIntent(document: PlanningDocument): string {
+function nonSurfaceIntent(document: PlanningDocument): string {
   const value = structuredClone(document);
   value.revision = 0;
+  // Only physical terrain resources join the existing water-impact transaction.
+  // Other authored content must still use its own preparation path.
+  value.authoredResources = (value.authoredResources ?? []).filter((resource) => !isPlanningTerrainResource(resource));
   delete value.waterAuthoringVersion;
   delete value.layoutOverrides;
   delete value.placementState;
@@ -35,12 +42,14 @@ function nonWaterIntent(document: PlanningDocument): string {
   return JSON.stringify(value);
 }
 /** Fail closed before bypassing the full-world owner preparation. */
-export function planningWaterPublicationGate(
+export function planningSurfacePublicationGate(
   previous: PublishedPlanningSeedScene | undefined,
   before: PlanningDocument,
   after: PlanningDocument,
   result: SemanticResult,
-  forceFull = false
+  forceFull = false,
+  terrainTransitionDurationSeconds?: number,
+  dependentSolids = false
 ): string | undefined {
   if (forceFull) return "projection-out-of-sync";
   if (!previous || !previous.vegetation) return "no-current-native-water-base";
@@ -51,9 +60,19 @@ export function planningWaterPublicationGate(
     previous.heightTransition.fields.heightSamples !== previous.data.fields.heightSamples
   )
     return "terrain-transition-active";
-  if (nonWaterIntent(before) !== nonWaterIntent(after)) return "mixed-non-water-intent";
+  if (nonSurfaceIntent(before) !== nonSurfaceIntent(after)) return "mixed-non-surface-intent";
+  const terrainChanged =
+    JSON.stringify(before.authoredResources?.filter(isPlanningTerrainResource) ?? []) !==
+    JSON.stringify(after.authoredResources?.filter(isPlanningTerrainResource) ?? []);
+  // These legacy owners do not participate in the reversible surface transaction.
+  if (terrainChanged && previous.template) return "template-terrain-owner";
+  if (terrainChanged && previous.world?.exactPrefabs?.exactInstances.length) return "exact-prefab-terrain-owner";
   const a = previous.plan,
     b = result.plan;
+  // The full path animates terrain only when no construction needs the final field.
+  // Do not silently turn those edits into an immediate local publication.
+  if (terrainTransitionDurationSeconds && !b.buildings.length && !b.fences?.length && !b.courtyards?.length)
+    return "terrain-transition-requested";
   if (!previous.data.surfaceIntent?.riverBedCoverage && b.waters.some((water) => water.kind === "river"))
     return "new-river-bed-residency";
   if (
@@ -64,6 +83,8 @@ export function planningWaterPublicationGate(
     return "world-lattice-changed";
   for (const key of [
     "routes",
+    "roadGraph",
+    "roadNetwork",
     "bridges",
     "roadApproaches",
     "buildings",
@@ -72,9 +93,25 @@ export function planningWaterPublicationGate(
     "courtyards",
     "farming"
   ] as const)
-    if (JSON.stringify(a[key]) !== JSON.stringify(b[key])) return "changed-global-owner:" + key;
+    if (JSON.stringify(a[key]) !== JSON.stringify(b[key])) {
+      if (!dependentSolids || ["buildings", "fences", "courtyards", "farming"].includes(key))
+        return "changed-global-owner:" + key;
+      if (previous.template) return "template-terrain-owner";
+      if (previous.world.exactPrefabs.exactInstances.length) return "exact-prefab-terrain-owner";
+    }
+  if (
+    JSON.stringify(a.landscapes?.filter((item) => item.kind === "rock")) !==
+    JSON.stringify(b.landscapes?.filter((item) => item.kind === "rock"))
+  )
+    if (!dependentSolids || previous.template || previous.world.exactPrefabs.exactInstances.length)
+      return "changed-global-owner:landscape-rocks";
+  // Validate the actual sample lattice after Raster adopts its Worker result,
+  // before staging updates. Reading an uncached heightmap here would bake it on the host.
   return undefined;
 }
+/** Compatibility name for callers of the original water-only gate. */
+export const planningWaterPublicationGate = planningSurfacePublicationGate;
+
 /** Keep disjoint changed footprints separate for exact contact queries between raster vertices. */
 export function planningChangedWaterAreas(before: IslandPlan, after: IslandPlan): SeedWorldAuthoringRuntimeBoundsV1[] {
   const old = new Map(before.waters.map((water) => [water.id, water]));
@@ -147,7 +184,13 @@ export async function preparePlanningWaterImpact(
   raster: PlanningRasterClient,
   signal: AbortSignal,
   grassDensity: number,
-  revision = previous.revision + 1
+  revision = previous.revision + 1,
+  dependencies?: {
+    prepareSolids(
+      data: PlanningSeedWorldData
+    ): Promise<{ solids: PublishedPlanningSeedScene["solids"]; update: PreparedTerrainUpdate }>;
+    submerged(x: number, y: number, z: number): boolean;
+  }
 ) {
   const started = performance.now(),
     plan = result.plan,
@@ -159,28 +202,57 @@ export async function preparePlanningWaterImpact(
     timings[name] = now - checkpoint;
     checkpoint = now;
   };
-  const bounds = { ...planningWaterImpactBounds(previous, plan) };
   try {
-    await raster.run(plan, true, true, true);
+    await raster.run(plan, true, true, true, previous.world.getSurfaceReliefTuning());
     signal.throwIfAborted();
     mark("rasterWorkerMs");
     const native = raster.takeNativeData(plan);
     if (!native) throw Error("Water-impact native fields were not prepared");
+    const bounds = { ...planningWaterImpactBounds(previous, plan) };
     const candidate = preparePlanningSeedWorldData(
       plan,
       { height: planningHeightmap(plan), alpha: planningAlphamap(plan) },
       native
     );
-    const data = {
-      ...candidate,
-      plan: {
-        ...candidate.plan,
-        roads: previous.data.plan.roads,
-        roadDistance: previous.data.plan.roadDistance,
-        pois: previous.data.plan.pois,
-        summits: previous.data.plan.summits
+    const data = dependencies
+      ? candidate
+      : {
+          ...candidate,
+          plan: {
+            ...candidate.plan,
+            roads: previous.data.plan.roads,
+            roadDistance: previous.data.plan.roadDistance
+          }
+        };
+    const solidsChanged =
+      JSON.stringify([
+        previous.plan.bridges,
+        previous.plan.rocks,
+        previous.plan.landscapes?.filter((x) => x.kind === "rock")
+      ]) !== JSON.stringify([plan.bridges, plan.rocks, plan.landscapes?.filter((x) => x.kind === "rock")]);
+    const replacement = dependencies && solidsChanged ? await dependencies.prepareSolids(data) : undefined;
+    if (replacement) updates.push(replacement.update);
+    const solids = replacement?.solids ?? previous.solids;
+    await yieldSeedWorldPreparationTask();
+    signal.throwIfAborted();
+    if (replacement) {
+      // Geometry may overhang its planning footprint; include actual old/new mesh extents.
+      const old = new Map(previous.solids.formations.map((mesh) => [mesh.id, mesh]));
+      const next = new Map(solids.formations.map((mesh) => [mesh.id, mesh]));
+      for (const id of new Set([...old.keys(), ...next.keys()])) {
+        if (old.get(id) === next.get(id)) continue;
+        for (const mesh of [old.get(id), next.get(id)])
+          if (mesh) {
+            const p = mesh.mesh.positions;
+            for (let i = 0; i < p.length; i += 3) {
+              bounds.minimumX = Math.min(bounds.minimumX, p[i] + mesh.origin[0]);
+              bounds.maximumX = Math.max(bounds.maximumX, p[i] + mesh.origin[0]);
+              bounds.minimumZ = Math.min(bounds.minimumZ, p[i + 2] + mesh.origin[2]);
+              bounds.maximumZ = Math.max(bounds.maximumZ, p[i + 2] + mesh.origin[2]);
+            }
+          }
       }
-    };
+    }
     // Habitat/distance propagation can extend beyond the edited shoreline. Include exact changed ecology texels.
     const resolution = data.fields.surfaceResolution;
     const include = (before: ArrayLike<number>, after: ArrayLike<number>, channels = 1) => {
@@ -198,8 +270,11 @@ export async function preparePlanningWaterImpact(
         Math.min(plan.parameters.depth, (rectangle.z + rectangle.height) * step)
       );
     };
-    for (const key of ["waterMask", "wetness", "habitat", "wetlandWeight", "rockySlopeWeight"] as const)
+    for (const key of ["waterMask", "wetness", "habitat", "wetlandWeight", "rockySlopeWeight"] as const) {
       include(previous.data.fields[key], data.fields[key]);
+      await yieldSeedWorldPreparationTask();
+      signal.throwIfAborted();
+    }
     include(previous.data.fields.materialWeights, data.fields.materialWeights, 4);
     for (const density of data.population.detailDensityFields) {
       const old = previous.data.population.detailDensityFields.find((field) => field.category === density.category);
@@ -207,12 +282,15 @@ export async function preparePlanningWaterImpact(
         include(old.samples, density.samples);
     }
     mark("nativeFieldsMs");
+    await yieldSeedWorldPreparationTask();
+    signal.throwIfAborted();
     updates.push(
       previous.world.prepareWaterTerrain(
         data.fields,
         data.surfaceIntent,
         data.terrainSettings,
-        data.terrainNormalSamples
+        data.terrainNormalSamples,
+        raster.takeSurfaceRelief(plan)
       )
     );
     mark("terrainAtlasReliefMs");
@@ -264,14 +342,31 @@ export async function preparePlanningWaterImpact(
         data.fields,
         data.population,
         bounds,
-        signal
+        signal,
+        replacement ? { plan, formations: solids.formations } : undefined
       )
     );
     mark("naturalVegetationMs");
-    updates.push(previous.solids.prepareWaterPlan(plan));
-    if (previous.masonry) updates.push(await previous.masonry.prepareTerrain({ data, revision }, signal));
+    if (!replacement) updates.push(previous.solids.prepareWaterPlan(plan));
+    if (dependencies)
+      updates.push(
+        previous.world.population.prepareRockGrass(
+          rockFormationPlacements(plan, solids.formations),
+          rockGrassExclusions(plan, data.fields, dependencies.submerged),
+          true
+        )
+      );
+    if (previous.masonry)
+      updates.push(await previous.masonry.prepareTerrain({ data, revision }, signal, replacement?.solids.formations));
     signal.throwIfAborted();
-    return { data, updates, bounds, timings, preparationMs: performance.now() - started };
+    return {
+      data,
+      updates,
+      bounds,
+      timings,
+      ...(replacement ? { solids: replacement.solids } : {}),
+      preparationMs: performance.now() - started
+    };
   } catch (error) {
     const failures: unknown[] = [error];
     for (const update of updates.reverse()) {

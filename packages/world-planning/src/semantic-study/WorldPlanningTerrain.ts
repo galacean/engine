@@ -466,9 +466,16 @@ interface GroundEdge {
   z1: number;
 }
 type GroundBounds = readonly [number, number, number, number];
+/** Natural-ground dependency envelopes. Null means the influence cannot be bounded. */
+export interface PlanningWaterTerrainInfluence {
+  readonly id: string;
+  readonly bounds: GroundBounds | null;
+}
 export type PlanningGroundSampler = ((p: PlanPoint) => number) & {
   /** Compile exact geometry candidates once for a batch. Queries outside it remain valid. */
   prepareBounds?(bounds: GroundBounds): void;
+  /** Undefined means unknown; an empty array proves no water carving. Natural layout samplers only. */
+  readonly waterTerrainInfluences?: readonly PlanningWaterTerrainInfluence[];
 };
 /** Prepared exact edges; the grid only rejects impossible distance/ray candidates. */
 export function createPlanningRingQuery(ring: PlanPoint[]) {
@@ -860,6 +867,7 @@ export function createPlanningGroundSampler(
   options: { natural?: boolean; baseGround?: (p: PlanPoint) => number } = {}
 ): PlanningGroundSampler {
   const preparations: ((bounds: GroundBounds) => void)[] = [];
+  let waterTerrainInfluences: readonly PlanningWaterTerrainInfluence[] | undefined;
   const query = (ring: PlanPoint[]) => {
     const q = createPlanningRingQuery(ring);
     preparations.push(q.prepareBounds);
@@ -872,6 +880,7 @@ export function createPlanningGroundSampler(
   };
   const prepared = (sample: (p: PlanPoint) => number): PlanningGroundSampler =>
     Object.assign(sample, {
+      waterTerrainInfluences,
       prepareBounds: (bounds: GroundBounds) => {
         for (const prepare of preparations) prepare(bounds);
       }
@@ -881,7 +890,12 @@ export function createPlanningGroundSampler(
     query,
     project,
     (prepare) => preparations.push(prepare),
-    options.baseGround
+    options.baseGround,
+    options.natural && plan.spatialLayout
+      ? (influences) => {
+          waterTerrainInfluences = influences;
+        }
+      : undefined
   );
   if (options.natural || !plan.roadApproaches?.some((a) => a.approach?.grading)) return prepared(natural);
   const fill = bridgeApproachGradingSampler(plan.roadApproaches, natural);
@@ -901,7 +915,8 @@ function createPlanningNaturalGroundSampler(
   query: typeof createPlanningRingQuery,
   project: typeof indexedProfileProjection,
   registerPreparation?: (prepare: (bounds: GroundBounds) => void) => void,
-  baseGround?: (p: PlanPoint) => number
+  baseGround?: (p: PlanPoint) => number,
+  publishWaterInfluences?: (influences: readonly PlanningWaterTerrainInfluence[]) => void
 ): (p: PlanPoint) => number {
   const seed = plan.parameters.landformSeed ?? plan.parameters.seed;
   const basicRelief = createReliefSampler(seed);
@@ -959,6 +974,7 @@ function createPlanningNaturalGroundSampler(
       // Bind immutable samplers once; aligned channels reuse one exact nearest-segment projection.
       return [
         {
+          id: w.id,
           outline: w.outline,
           shoreHeights: [] as number[],
           bankReach: 0,
@@ -1021,6 +1037,26 @@ function createPlanningNaturalGroundSampler(
       const width = (w.bankWidths ?? []).reduce((a, b) => Math.max(a, b), w.bankWidthM ?? bankShoulder);
       w.bankReach = riverBankReach(width, top - level);
     }
+    // Publish the envelopes used by this evaluator, from the same raw shore samples.
+    // Layout must not infer a Terrain dependency from the authored bank width alone.
+    publishWaterInfluences?.(
+      waters.map((w) => {
+        const reach = w.lake ? (w.bankWidthM ?? bankShoulder) : w.bankReach;
+        if ((hasBroadRelief && w.bankWidthM === undefined) || !Number.isFinite(reach) || !w.outline.length)
+          return { id: w.id, bounds: null };
+        let x0 = Infinity,
+          z0 = Infinity,
+          x1 = -Infinity,
+          z1 = -Infinity;
+        for (const p of w.outline) {
+          x0 = Math.min(x0, p.x - reach);
+          z0 = Math.min(z0, p.z - reach);
+          x1 = Math.max(x1, p.x + reach);
+          z1 = Math.max(z1, p.z + reach);
+        }
+        return { id: w.id, bounds: [x0, z0, x1, z1] as GroundBounds };
+      })
+    );
     let batchBounds: GroundBounds | undefined,
       batchWaters = waters;
     registerPreparation?.((bounds) => {

@@ -1,6 +1,9 @@
 import type { PlanPoint } from "../../semantic-study/IslandPlanModel";
 import type { Volume, VolumeBox } from "./Volumes";
 
+/** Include this footprint extension when invalidating ground-slope dependencies. */
+export const VOLUME_GROUND_SLOPE_SAMPLE_OFFSET = 0.5;
+
 /** Maximum sampled ground gradient under actual occupied boxes, in degrees.
  * Samples include footprint boundaries; compound gaps do not become occupied support area.
  * With stopAboveDegrees, returns as soon as a violating sample is found; the result is
@@ -22,8 +25,12 @@ export function volumeGroundSlope(
         const x = box.width * (ix / nx - 0.5),
           z = box.depth * (iz / nz - 0.5);
         const p = { x: box.center.x + x * c - z * s, z: box.center.z + x * s + z * c };
-        const dx = ground({ x: p.x + 0.5, z: p.z }) - ground({ x: p.x - 0.5, z: p.z });
-        const dz = ground({ x: p.x, z: p.z + 0.5 }) - ground({ x: p.x, z: p.z - 0.5 });
+        const dx =
+          ground({ x: p.x + VOLUME_GROUND_SLOPE_SAMPLE_OFFSET, z: p.z }) -
+          ground({ x: p.x - VOLUME_GROUND_SLOPE_SAMPLE_OFFSET, z: p.z });
+        const dz =
+          ground({ x: p.x, z: p.z + VOLUME_GROUND_SLOPE_SAMPLE_OFFSET }) -
+          ground({ x: p.x, z: p.z - VOLUME_GROUND_SLOPE_SAMPLE_OFFSET });
         maximum = Math.max(maximum, (Math.atan(Math.hypot(dx, dz)) * 180) / Math.PI);
         if (maximum > stopAboveDegrees) return maximum;
       }

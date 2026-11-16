@@ -6,20 +6,115 @@ import {
 } from "../generated/editor-source-compiler";
 import type { RuntimeProjectPackage } from "../project/runtime-project";
 
+type ProjectFile = RuntimeProjectPackage["project"]["files"][number];
+type CompilationInputs = {
+  scripts: string;
+  files: Map<string, string>;
+  contents: Map<string, string | undefined>;
+};
+// At most one output per hierarchy in the current namespace. Cache only successful
+// pure compilation, and retain immutable text rather than detached project copies.
+const compilations = new Map<string, { inputs: CompilationInputs; output: string }>();
+
+function compilationFileKey(files: readonly ProjectFile[] | undefined): string {
+  // These are the fields read by the source compiler. Keep multiplicity/order so
+  // a formerly unambiguous reference cannot hide a newly added duplicate asset.
+  return JSON.stringify(
+    files?.map((file) => [
+      file.type,
+      typeof file.params?.sourceContentRevision === "string" ? file.params.sourceContentRevision : null
+    ]) ?? []
+  );
+}
+
 /** Compile editable hierarchy files only at the engine resource boundary. */
 export function compileProjectResource(
   pack: RuntimeProjectPackage,
   virtualPath: string,
   unavailableScript?: (path: string) => boolean
 ): string | Uint8Array | undefined {
-  const content = pack.contents[virtualPath];
-  const file = pack.project.files.find((entry) => entry.virtualPath === virtualPath);
+  return projectCompiler(pack, unavailableScript)(virtualPath);
+}
+
+/** Validate the shared source context once for a synchronous batch. */
+export function compileProjectResources(pack: RuntimeProjectPackage, unavailableScript?: (path: string) => boolean) {
+  const compile = projectCompiler(pack, unavailableScript);
+  return pack.project.files.map((file) => compile(file.virtualPath));
+}
+
+/** The detached caller controls scheduling and cancellation between resource checks. */
+export async function compileProjectResourcesAsync(
+  pack: RuntimeProjectPackage,
+  checkpoint: () => Promise<void> | undefined
+) {
+  const compile = projectCompiler(pack);
+  for (const file of pack.project.files) {
+    compile(file.virtualPath);
+    const pending = checkpoint();
+    if (pending) await pending;
+  }
+}
+
+function projectCompiler(pack: RuntimeProjectPackage, unavailableScript?: (path: string) => boolean) {
+  const files = new Map<string, ProjectFile[]>();
+  for (const file of pack.project.files) {
+    const entries = files.get(file.virtualPath);
+    if (entries) entries.push(file);
+    else files.set(file.virtualPath, [file]);
+  }
+  const scripts = JSON.stringify(
+    pack.project.files.filter((file) => file.type.toLowerCase() === "script").map((file) => file.virtualPath)
+  );
+  for (const path of compilations.keys())
+    if (!files.get(path)?.some((file) => /^(Scene|Prefab|AnimatorController)$/i.test(file.type)))
+      compilations.delete(path);
+  return (path: string): string | Uint8Array | undefined => {
+    const file = files.get(path)?.[0],
+      content = pack.contents[path];
+    if (typeof content !== "string" || !file || !/^(Scene|Prefab|AnimatorController)$/i.test(file.type)) {
+      compilations.delete(path);
+      return content;
+    }
+    const cached = unavailableScript ? undefined : compilations.get(path);
+    if (
+      cached &&
+      cached.inputs.scripts === scripts &&
+      [...cached.inputs.files].every(([key, value]) => compilationFileKey(files.get(key)) === value) &&
+      [...cached.inputs.contents].every(([key, value]) => pack.contents[key] === value)
+    )
+      return cached.output;
+    const inputs: CompilationInputs = { scripts, files: new Map(), contents: new Map() };
+    const readFiles = (key: string) => {
+      const entries = files.get(key);
+      inputs.files.set(key, compilationFileKey(entries));
+      return entries ?? [];
+    };
+    const readContent = (key: string) => {
+      const value = pack.contents[key];
+      inputs.contents.set(key, typeof value === "string" ? value : undefined);
+      return value;
+    };
+    const result = compileProjectResourceUncached(pack, path, readFiles, readContent, unavailableScript);
+    if (!unavailableScript && typeof result === "string") compilations.set(path, { inputs, output: result });
+    return result;
+  };
+}
+
+function compileProjectResourceUncached(
+  pack: RuntimeProjectPackage,
+  virtualPath: string,
+  readFiles: (path: string) => readonly ProjectFile[],
+  readContent: (path: string) => string | Uint8Array | undefined,
+  unavailableScript?: (path: string) => boolean
+): string | Uint8Array | undefined {
+  const content = readContent(virtualPath);
+  const file = readFiles(virtualPath)[0];
   if (typeof content === "string" && file?.type === "AnimatorController") {
     const controller = JSON.parse(content);
     for (const layer of controller.layers ?? [])
       for (const state of layer.stateMachine?.states ?? []) {
         if (!state.clip?.url) continue;
-        const dependency = pack.project.files.find((asset) => asset.virtualPath === state.clip.url);
+        const dependency = readFiles(state.clip.url)[0];
         if (!dependency) throw new Error(`Cannot resolve animation asset '${state.clip.url}'`);
         state.clip.url = dependency.virtualPath;
       }
@@ -30,7 +125,7 @@ export function compileProjectResource(
   // Published engine hierarchies have no source asset header.
   if (!source?.asset) return content;
   const resolve = (path: string) => {
-    const matches = pack.project.files.filter((entry) => entry.virtualPath === path);
+    const matches = readFiles(path);
     if (matches.length !== 1) throw new Error(`Cannot resolve project asset '${path}' unambiguously`);
     return matches[0];
   };
@@ -76,7 +171,7 @@ export function compileProjectResource(
     resolveInstanceSourceFile: (path: string) => {
       const dependency = resolve(path);
       if (dependency.type.toLowerCase() !== "prefab") return undefined;
-      const text = pack.contents[dependency.virtualPath];
+      const text = readContent(dependency.virtualPath);
       if (typeof text !== "string")
         throw new Error(`Load Prefab source '${dependency.virtualPath}' before compilation`);
       const parsed = JSON.parse(text);
@@ -87,7 +182,10 @@ export function compileProjectResource(
   const compile = file.type.toLowerCase() === "scene" ? compileSourceSceneToRuntime : compileSourcePrefabToRuntime;
   const runtime = compile(registeredScripts(source), (path) => resolve(path).virtualPath, options);
   const lowered = lowerRegisteredScripts(runtime, (path) => resolve(path).type.toLowerCase() === "script");
-  return JSON.stringify(unavailableScript ? suppressUnavailableScriptPayloads(lowered, unavailableScript) : lowered);
+  const result = JSON.stringify(
+    unavailableScript ? suppressUnavailableScriptPayloads(lowered, unavailableScript) : lowered
+  );
+  return result;
 }
 
 /** Flattened runtime schemas are the shared boundary for resources and live Prefab replacement.
@@ -140,17 +238,53 @@ export function suppressUnavailableScriptPayloads(
   return { ...mapHierarchyAssetIndices(projected, (index) => indices.get(index)!), refs };
 }
 
+let preparedSources:
+  | {
+      roots: string;
+      files: Map<string, string>;
+      contents: Map<string, string | Uint8Array | undefined>;
+    }
+  | undefined;
+
 /** Materialize only Prefab topology referenced by editable hierarchy sources. */
 export async function prepareProjectSources(
   pack: RuntimeProjectPackage,
   load: (virtualPath: string) => Promise<void>
 ): Promise<void> {
+  const files = new Map<string, ProjectFile[]>();
+  for (const file of pack.project.files) {
+    const entries = files.get(file.virtualPath);
+    if (entries) entries.push(file);
+    else files.set(file.virtualPath, [file]);
+  }
+  const roots = pack.project.files
+    .filter((file) => /^(Scene|Prefab)$/i.test(file.type))
+    .map((file) => file.virtualPath);
+  const rootKey = JSON.stringify(roots);
+  if (
+    preparedSources?.roots === rootKey &&
+    [...preparedSources.files].every(([path, key]) => compilationFileKey(files.get(path)) === key) &&
+    [...preparedSources.contents].every(([path, text]) => pack.contents[path] === text)
+  )
+    return;
+  const inputs = {
+    roots: rootKey,
+    files: new Map<string, string>(),
+    contents: new Map<string, string | Uint8Array | undefined>()
+  };
   const visited = new Set<string>();
-  async function visit(path: string): Promise<void> {
+  let complete = true;
+  async function visit(path: string, required = false): Promise<void> {
     if (visited.has(path)) return;
     visited.add(path);
     const content = pack.contents[path];
-    if (typeof content !== "string") return;
+    if (typeof content !== "string") {
+      // Binary hierarchy inputs are not accepted compilation inputs; retry them.
+      if (required || content !== undefined) complete = false;
+      inputs.contents.set(path, content);
+      return;
+    }
+    inputs.contents.set(path, content);
     const source = JSON.parse(content);
     if (!source?.asset) return;
     const pending: unknown[] = [source];
@@ -159,20 +293,27 @@ export async function prepareProjectSources(
       if (!value || typeof value !== "object") continue;
       const ref = (value as { $ref?: unknown }).$ref;
       if (typeof ref === "string") {
+        // Loading a Prefab may hydrate additional source records. Resolve against
+        // the live detached package after awaits, not the earlier cache-check index.
         const matches = pack.project.files.filter((file) => file.virtualPath === ref);
+        inputs.files.set(ref, compilationFileKey(matches));
         if (matches.length !== 1) throw new Error(`Cannot resolve project asset '${ref}' unambiguously`);
         const dependency = matches[0];
         if (dependency.type.toLowerCase() === "prefab" && !visited.has(dependency.virtualPath)) {
           await load(dependency.virtualPath);
-          await visit(dependency.virtualPath);
+          await visit(dependency.virtualPath, true);
         }
       }
       pending.push(...Object.values(value));
     }
   }
   for (const file of pack.project.files) {
-    if (/^(Scene|Prefab)$/i.test(file.type)) await visit(file.virtualPath);
+    if (!/^(Scene|Prefab)$/i.test(file.type)) continue;
+    const path = file.virtualPath;
+    inputs.files.set(path, compilationFileKey(pack.project.files.filter((entry) => entry.virtualPath === path)));
+    await visit(path);
   }
+  if (complete) preparedSources = inputs;
 }
 
 /** SceneLoader eagerly loads refs. Script modules are registered by the project

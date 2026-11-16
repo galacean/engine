@@ -370,3 +370,98 @@ it("activates the real RG16 generated Lake with its data-derived precision budge
     await f.close();
   }
 });
+
+it("reuses immutable water keys while observing live material, transform and connection edits", async () => {
+  const f = await fixture("lake");
+  try {
+    const body = f.scene.createRootEntity("Key owner").addComponent(WaterBodyComponent);
+    const target = f.scene.createRootEntity("Key target").addComponent(WaterBodyComponent);
+    body.authoring = f.authoring;
+    target.authoring = f.authoring;
+    const accepted = body._readAuthoring();
+    const draft = body.authoring!;
+    (draft.shape as typeof lake).shoreline[0].x += 10;
+    expect(body._readAuthoring()).toBe(accepted);
+    expect(body.authoring!.shape).not.toEqual(draft.shape);
+    body.authoring = {
+      ...body.authoring!,
+      connections: [
+        {
+          id: "join",
+          target,
+          section: [
+            [5, 2],
+            [5, -2]
+          ],
+          transitionLengths: [2, 2]
+        }
+      ]
+    };
+    let previous = body._authoringKey();
+    const cache = (body as any)._authoringKeyCache;
+    expect(body._authoringKey()).toBe(previous);
+    expect((body as any)._authoringKeyCache).toBe(cache);
+    const changes = [
+      () => body.entity.transform.setPosition(1, 0, 0),
+      () => {
+        body.enabled = false;
+      },
+      () => {
+        body.enabled = true;
+      },
+      () => {
+        body.entity.isActive = false;
+      },
+      () => {
+        body.entity.isActive = true;
+      },
+      () => f.material.shaderData.setFloat("material_AppearanceV2DepthDistance", 0.123),
+      () => {
+        body.authoring = { ...body.authoring!, quality: { ...body.authoring!.quality, query: "off" } };
+      },
+      () => {
+        body.authoring = { ...body.authoring!, visible: false };
+      },
+      () => {
+        body.authoring = { ...body.authoring!, interaction: { query: false, buoyancy: false, wake: false } };
+      },
+      () => {
+        target.waterId = "renamed-target";
+      },
+      () => target.entity.transform.setPosition(2, 0, 0),
+      () => {
+        target.enabled = false;
+      },
+      () => {
+        target.enabled = true;
+      },
+      () => {
+        target.entity.isActive = false;
+      },
+      () => {
+        target.entity.isActive = true;
+      },
+      () => {
+        const next = target.authoring!;
+        (next.shape as typeof lake).shoreline[0].x -= 1;
+        target.authoring = next;
+      },
+      () => {
+        body.authoring = { ...body.authoring!, connections: [] };
+      }
+    ];
+    for (const change of changes) {
+      change();
+      const key = body._authoringKey();
+      expect(key).not.toBe(previous);
+      // The memoized result must match full evaluation after every invalidation.
+      (body as any)._authoringKeyCache = undefined;
+      expect(body._authoringKey()).toBe(key);
+      previous = key;
+    }
+    await body.dispose();
+    expect((body as any)._authoringKeyCache).toBeUndefined();
+  } finally {
+    await f.close();
+  }
+});

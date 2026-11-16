@@ -378,6 +378,7 @@ export class PlanningSeedScenePublication {
           animalChange,
           plan,
           data: frame.data,
+          solids: frame.solids ?? previous.solids,
           navigation,
           revision,
           authoringRevision: authoringRevision ?? previous.authoringRevision,
