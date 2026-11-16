@@ -1,14 +1,12 @@
 import { createPhysics } from "../../utils/physics";
 import {
-  BoxColliderShape,
+  BoxCollider,
   Camera,
   Keys,
-  Pointer,
   PointerButton,
   PointerEventData,
   PointerPhase,
-  Script,
-  StaticCollider
+  Script
 } from "@galacean/engine-core";
 import { Vector2, Vector3 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine";
@@ -49,9 +47,7 @@ describe("InputManager", async () => {
   });
 
   it("pointer", () => {
-    // @ts-ignore
-    const { _pointerManager: pointerManager } = inputManager;
-    const { _target: target } = pointerManager;
+    const target = canvasDOM;
     target.dispatchEvent(generatePointerEvent("pointerdown", 1, 1, 1));
     target.dispatchEvent(generatePointerEvent("pointermove", 1, 1, 1));
     target.dispatchEvent(generatePointerEvent("pointerup", 1, 1, 1, 0, 0));
@@ -85,10 +81,8 @@ describe("InputManager", async () => {
     cameraEntity.addComponent(Camera);
 
     const boxEntity = root.createChild("box");
-    const collider = boxEntity.addComponent(StaticCollider);
-    const boxShape = new BoxColliderShape();
-    boxShape.size = new Vector3(10, 10, 10);
-    collider.addShape(boxShape);
+    const collider = boxEntity.addComponent(BoxCollider);
+    collider.size = new Vector3(10, 10, 10);
 
     class TestScript extends Script {
       onPointerEnter(eventData: PointerEventData): void {

@@ -1,63 +1,54 @@
 import { createPhysics } from "../../utils/physics";
 import {
-  BoxColliderShape,
-  Camera,
+  BoxCollider,
   CharacterController,
   Collider,
-  ColliderShape,
-  DynamicCollider,
+  Collision,
+  Rigidbody,
   Entity,
   HitResult,
   Layer,
   PhysicsScene,
   Scene,
   Script,
-  SphereColliderShape,
-  StaticCollider
+  SphereCollider,
+  CharacterControllerGeometry
 } from "@galacean/engine-core";
 import { Ray, Vector3, Quaternion } from "@galacean/engine-math";
 import type { IPhysicsScene } from "@galacean/engine-design";
 import { WebGLEngine } from "@galacean/engine";
-import { vi, describe, beforeAll, expect, it, afterEach } from "vitest";
+import { vi, describe, beforeAll, beforeEach, afterAll, expect, it, afterEach } from "vitest";
 
 class CollisionTestScript extends Script {
-  onCollisionEnter(other) {}
+  onCollisionEnter(other: Collision): void {}
 
-  onCollisionStay(other) {
-    this.setEntityProperties(this.entity.getComponent(Collider), other.shape.collider);
+  onCollisionStay(other: Collision): void {
+    this.setEntityProperties(other.selfCollider, other.collider);
   }
 
-  onCollisionExit(other) {}
+  onCollisionExit(other: Collision): void {}
 
-  onTriggerEnter(other: ColliderShape): void {}
+  onTriggerEnter(other: Collider, self: Collider): void {}
 
-  onTriggerStay(other: ColliderShape): void {
-    this.setEntityProperties(this.entity.getComponent(Collider), other.collider);
+  onTriggerStay(other: Collider, self: Collider): void {
+    this.setEntityProperties(self, other);
   }
 
-  onTriggerExit(other: ColliderShape): void {}
+  onTriggerExit(other: Collider, self: Collider): void {}
 
-  setEntityProperties(thisCollider: Collider, other: Collider) {
-    if (other instanceof DynamicCollider) {
-      const dynamicCollider = other as DynamicCollider;
-      if (dynamicCollider.isKinematic) {
-        other.move(new Vector3(-10, 0, 0));
+  setEntityProperties(self: Collider, other: Collider): void {
+    for (const [collider, x] of [
+      [other, -10],
+      [self, 10]
+    ] as const) {
+      const body = collider.attachedRigidbody;
+      if (body?.isKinematic) {
+        body.move(new Vector3(x, 0, 0));
+      } else if (body) {
+        body.applyForce(new Vector3(x * 10, 0, 0));
       } else {
-        dynamicCollider.applyForce(new Vector3(-100, 0, 0));
+        collider.entity.transform.position = new Vector3(x, 0, 0);
       }
-    } else {
-      other.entity.transform.position = new Vector3(-10, 0, 0);
-    }
-
-    if (thisCollider instanceof DynamicCollider) {
-      const dynamicCollider = thisCollider as DynamicCollider;
-      if (dynamicCollider.isKinematic) {
-        thisCollider.move(new Vector3(10, 0, 0));
-      } else {
-        dynamicCollider.applyForce(new Vector3(100, 0, 0));
-      }
-    } else {
-      thisCollider.entity.transform.position = new Vector3(10, 0, 0);
     }
   }
 }
@@ -70,72 +61,73 @@ class TriggerConsumerScript extends Script {
   onTriggerEnter(): void {}
 }
 
-function updatePhysics(physics) {
-  for (let i = 0; i < 5; ++i) {
-    physics._update(8);
+function updatePhysics(physics: PhysicsScene): void {
+  physics._update(2);
+}
+
+// Run deterministic physics time inside a real engine frame, including its deferred destruction phase.
+function updateEnginePhysics(engine: WebGLEngine): void {
+  const scene = engine.sceneManager.activeScene;
+  const stepEntity = scene.createRootEntity("physics-step");
+  stepEntity.addComponent(
+    class extends Script {
+      onUpdate(): void {
+        scene.physics._update(1);
+      }
+    }
+  );
+  try {
+    engine.update();
+  } finally {
+    stepEntity.destroy();
   }
 }
 
 function watchSetContactEventEnabled(physicsScene: PhysicsScene) {
-  return vi.spyOn((physicsScene as any)._nativePhysicsScene, "setContactEventEnabled");
+  return vi.spyOn(physicsScene._nativePhysicsScene, "setContactEventEnabled");
 }
 
-function resetSpy() {
-  // reset spy on collision test script.
-  CollisionTestScript.prototype.onCollisionEnter = vi.fn(CollisionTestScript.prototype.onCollisionEnter);
-  CollisionTestScript.prototype.onCollisionStay = vi.fn(CollisionTestScript.prototype.onCollisionStay);
-  CollisionTestScript.prototype.onCollisionExit = vi.fn(CollisionTestScript.prototype.onCollisionExit);
-
-  CollisionTestScript.prototype.onTriggerEnter = vi.fn(CollisionTestScript.prototype.onTriggerEnter);
-  CollisionTestScript.prototype.onTriggerStay = vi.fn(CollisionTestScript.prototype.onTriggerStay);
-  CollisionTestScript.prototype.onTriggerExit = vi.fn(CollisionTestScript.prototype.onTriggerExit);
+function watchCollisionCallbacks(script: CollisionTestScript): void {
+  vi.spyOn(script, "onCollisionEnter");
+  vi.spyOn(script, "onCollisionStay");
+  vi.spyOn(script, "onCollisionExit");
+  vi.spyOn(script, "onTriggerEnter");
+  vi.spyOn(script, "onTriggerStay");
+  vi.spyOn(script, "onTriggerExit");
 }
 
-/**
- * @param entity entity need to set collider properties.
- * @param isDynamic set entity is dynamic or static.
- * @param isTrigger set collider is trigger or not.
- * @param isKinematic set collider is kinematic or not.
- */
-function setColliderProps(entity: Entity, isDynamic: boolean, isTrigger: boolean, isKinematic: boolean) {
-  let collider = entity.getComponent(Collider);
-  collider?.destroy();
+function setColliderProps(entity: Entity, isDynamic: boolean, isTrigger: boolean, isKinematic: boolean): void {
+  entity.getComponent(Collider)?.destroy();
+  entity.getComponent(Rigidbody)?.destroy();
   entity.transform.setPosition(0, 0, 0);
   entity.transform.setRotation(0, 0, 0);
   if (isDynamic) {
-    const dynamicCollider = entity.addComponent(DynamicCollider);
-    dynamicCollider.isKinematic = isKinematic;
-    collider = dynamicCollider;
-  } else {
-    collider = entity.addComponent(StaticCollider);
+    entity.addComponent(Rigidbody).isKinematic = isKinematic;
   }
-  const shape = new BoxColliderShape();
-  shape.isTrigger = isTrigger;
-  collider.addShape(shape);
+  entity.addComponent(BoxCollider).isTrigger = isTrigger;
 }
 
 describe("Physics Test", () => {
   describe("PhysXPhysics", () => {
     let enginePhysX: WebGLEngine;
     let physicsScene: PhysicsScene;
+    let physicsBackend: ReturnType<typeof createPhysics>;
 
     beforeAll(async () => {
-      // Init engine with PhysXPhysics.
+      physicsBackend = createPhysics();
       enginePhysX = await WebGLEngine.create({
         canvas: document.createElement("canvas"),
-        physics: createPhysics()
+        physics: physicsBackend
       });
       physicsScene = enginePhysX.sceneManager.activeScene.physics;
-
-      const rootEntityPhysX = enginePhysX.sceneManager.activeScene.createRootEntity("root_camera");
-
-      const cameraEntityPhysX = rootEntityPhysX.createChild("camera");
-      cameraEntityPhysX.transform.position = new Vector3(0, 0, 10);
-      cameraEntityPhysX.transform.lookAt(new Vector3(0, 0, 0));
-      cameraEntityPhysX.addComponent(Camera);
-
-      enginePhysX.run();
     });
+
+    beforeEach(() => {
+      physicsScene.gravity = new Vector3(0, -9.81, 0);
+      physicsScene.fixedTimeStep = 1 / 60;
+    });
+
+    afterAll(() => enginePhysX.destroy());
 
     it("constructor", () => {
       expect(enginePhysX.sceneManager.scenes[0].physics.gravity.y).to.eq(-9.81);
@@ -242,8 +234,7 @@ describe("Physics Test", () => {
       const fixedTimeStep = physicsScene.fixedTimeStep;
       const root = scene.createRootEntity("contact-event-substeps");
       const entity = root.createChild("body");
-      const collider = entity.addComponent(StaticCollider);
-      collider.addShape(new BoxColliderShape());
+      entity.addComponent(BoxCollider);
       const setContactEventEnabled = watchSetContactEventEnabled(physicsScene);
       entity.addComponent(CollisionConsumerScript);
 
@@ -267,12 +258,11 @@ describe("Physics Test", () => {
       const root = scene.createRootEntity("contact-event-trigger-only");
       const setContactEventEnabled = watchSetContactEventEnabled(physicsScene);
       const triggerEntity = root.createChild("trigger");
-      const triggerCollider = triggerEntity.addComponent(DynamicCollider);
+      const triggerCollider = triggerEntity.addComponent(Rigidbody);
       triggerCollider.isKinematic = true;
-      const triggerShape = new BoxColliderShape();
+      const triggerShape = triggerEntity.addComponent(BoxCollider);
       triggerShape.isTrigger = true;
-      triggerCollider.addShape(triggerShape);
-      root.createChild("static").addComponent(StaticCollider).addShape(new BoxColliderShape());
+      root.createChild("static").addComponent(BoxCollider);
       const script = triggerEntity.addComponent(TriggerConsumerScript);
       const triggerEnter = vi.spyOn(script, "onTriggerEnter");
 
@@ -293,9 +283,7 @@ describe("Physics Test", () => {
       const root = scene.createRootEntity("root");
       const raycastTestRoot = root.createChild("root");
 
-      const collider = raycastTestRoot.addComponent(StaticCollider);
-      const boxShape = new BoxColliderShape();
-      collider.addShape(boxShape);
+      const boxShape = raycastTestRoot.addComponent(BoxCollider);
       let ray = new Ray(new Vector3(3, 3, 3), new Vector3(0, 1, 0).normalize());
       expect(physicsScene.raycast(ray)).to.eq(false);
       expect(physicsScene.raycast(ray, Number.MAX_VALUE)).to.eq(false);
@@ -334,7 +322,7 @@ describe("Physics Test", () => {
       expect(outHitResult.normal).to.be.deep.include({ x: 0, y: 0, z: 0 });
       expect(outHitResult.entity).to.be.null;
 
-      // Test that initial overlap is skipped when ray origin is inside collider.
+      // Test that initial overlap is skipped when ray origin is inside boxShape.
       // Use a strictly-inside origin (2.9,2.9,2.9) rather than the box corner
       // (3,3,3), which is a boundary point whose hit/miss depends on PhysX edge
       // tolerance and can flake regardless of the initial-overlap-skip behavior.
@@ -346,9 +334,9 @@ describe("Physics Test", () => {
 
       // Test that raycast works correctly if shape is not at origin of coordinate.
       boxShape.size = new Vector3(1, 1, 1);
-      ray = new Ray(new Vector3(-2, 0, 0.85), new Vector3(1, 0, 0).normalize());
+      ray = new Ray(new Vector3(-2, 0, 1.7), new Vector3(1, 0, 0).normalize());
       raycastTestRoot.transform.position = new Vector3(0, 0, 0.85);
-      boxShape.position = new Vector3(0, 0, 0.85);
+      boxShape.center = new Vector3(0, 0, 0.85);
       expect(physicsScene.raycast(ray, outHitResult)).to.eq(true);
       expect(outHitResult.entity).to.be.eq(raycastTestRoot);
 
@@ -356,13 +344,8 @@ describe("Physics Test", () => {
       expect(physicsScene.raycast(ray, 0, Layer.Everything, outHitResult)).to.eq(false);
       expect(physicsScene.raycast(ray, -1, Layer.Everything, outHitResult)).to.eq(false);
 
-      collider.removeShape(boxShape);
-      expect(physicsScene.raycast(ray)).to.eq(false);
-      expect(physicsScene.raycast(ray, Number.MAX_VALUE)).to.eq(false);
-      expect(physicsScene.raycast(ray, Number.MAX_VALUE, Layer.Everything)).to.eq(false);
-
-      // Test that raycast nothing if collider is disabled.
-      collider.enabled = false;
+      // Test that raycast nothing if boxShape is disabled.
+      boxShape.enabled = false;
       expect(physicsScene.raycast(ray, outHitResult)).to.eq(false);
       expect(physicsScene.raycast(ray, Number.MAX_VALUE, outHitResult)).to.eq(false);
       expect(physicsScene.raycast(ray, Number.MAX_VALUE, Layer.Everything, outHitResult)).to.eq(false);
@@ -372,24 +355,21 @@ describe("Physics Test", () => {
 
       const characterController = rootEntityCharacter.addComponent(CharacterController);
       characterController.collisionLayer = Layer.Layer3;
-      const boxShape2 = new BoxColliderShape();
-      boxShape2.size.set(1, 1, 1);
-      boxShape2.position = new Vector3(0, 0, 0);
-      characterController.addShape(boxShape2);
+      characterController.geometry = CharacterControllerGeometry.Box;
 
       // Test that raycast character controller.
       ray = new Ray(new Vector3(-2, 0, 0), new Vector3(1, 0, 0).normalize());
       expect(physicsScene.raycast(ray, Number.MAX_VALUE, Layer.Layer3, outHitResult)).to.eq(true);
       expect(outHitResult.entity).to.be.equal(rootEntityCharacter);
 
-      boxShape2.position = new Vector3(0, 0, 0.85);
+      characterController.center = new Vector3(0, 0, 0.85);
       updatePhysics(enginePhysX.sceneManager.scenes[0].physics);
 
       // Test that raycast works correctly if shape is not at origin of coordinate.
       ray = new Ray(new Vector3(-2, 0, 0.85), new Vector3(1, 0, 0).normalize());
       expect(physicsScene.raycast(ray, outHitResult)).to.eq(true);
       expect(outHitResult.entity).to.be.equal(rootEntityCharacter);
-      // Test that set collider position not effect entity position.
+      // A controller center offset does not move its Entity.
       expect(rootEntityCharacter.transform.position).to.be.deep.include({ x: 0, y: 0, z: 0 });
 
       // Test that raycast nothing if character controller is disabled.
@@ -405,8 +385,7 @@ describe("Physics Test", () => {
       const scene = enginePhysX.sceneManager.activeScene;
       const physicsScene = scene.physics;
       const root = scene.createRootEntity("root");
-      const collider = root.createChild("box").addComponent(StaticCollider);
-      collider.addShape(new BoxColliderShape());
+      root.createChild("box").addComponent(BoxCollider);
       updatePhysics(physicsScene);
 
       // The box spans z in [-0.5, 0.5], so its front face is 4.5 away from z = 5.
@@ -441,8 +420,7 @@ describe("Physics Test", () => {
       const scene = enginePhysX.sceneManager.activeScene;
       const physicsScene = scene.physics;
       const root = scene.createRootEntity("root");
-      const collider = root.createChild("box").addComponent(StaticCollider);
-      collider.addShape(new BoxColliderShape());
+      root.createChild("box").addComponent(BoxCollider);
       updatePhysics(physicsScene);
 
       // The box spans z in [-0.5, 0.5], so its front face is 4.5 away from z = 5.
@@ -454,13 +432,13 @@ describe("Physics Test", () => {
 
       // A unit direction still hits the front face and fills the hit result.
       expect(physicsScene.raycast(new Ray(origin, new Vector3(0, 0, -1)), 6, outHitResult)).to.eq(true);
-      expect(outHitResult.shape).to.not.eq(null);
+      expect(outHitResult.collider).to.not.eq(null);
 
       // `Vector3.normalize` leaves directions no longer than `MathUtil.zeroTolerance` untouched, so
       // those have no unit form: the queries report a miss and clear the caller's hit result instead
       // of casting a scaled distance or letting the backends answer with an initial overlap hit.
       expect(physicsScene.raycast(new Ray(inside, zeroDir), 6, outHitResult)).to.eq(false);
-      expect(outHitResult.shape).to.eq(null);
+      expect(outHitResult.collider).to.eq(null);
       expect(physicsScene.raycast(new Ray(inside, tinyDir), 6)).to.eq(false);
 
       const halfExtents = new Vector3(0.1, 0.1, 0.1);
@@ -477,18 +455,14 @@ describe("Physics Test", () => {
       const root = scene.createRootEntity("raycast_all_root");
       const nearEntity = root.createChild("near");
       nearEntity.transform.position = new Vector3(0, 0, 0);
-      const nearCollider = nearEntity.addComponent(StaticCollider);
-      const nearShape = new BoxColliderShape();
+      const nearShape = nearEntity.addComponent(BoxCollider);
       nearShape.size = new Vector3(1, 1, 1);
-      nearCollider.addShape(nearShape);
 
       const farEntity = root.createChild("far");
       farEntity.transform.position = new Vector3(5, 0, 0);
-      const farCollider = farEntity.addComponent(StaticCollider);
-      farCollider.collisionLayer = Layer.Layer1;
-      const farShape = new BoxColliderShape();
+      const farShape = farEntity.addComponent(BoxCollider);
+      farShape.collisionLayer = Layer.Layer1;
       farShape.size = new Vector3(1, 1, 1);
-      farCollider.addShape(farShape);
 
       const ray = new Ray(new Vector3(-3, 0, 0), new Vector3(1, 0, 0));
       const results = [new HitResult(), new HitResult()];
@@ -497,7 +471,7 @@ describe("Physics Test", () => {
       expect(results[0]).to.eq(initialHits[0]);
       expect(results[1]).to.eq(initialHits[1]);
       expect(results).to.have.length(2);
-      expect(results.map((result) => result.shape)).to.have.members([nearShape, farShape]);
+      expect(results.map((result) => result.collider)).to.have.members([nearShape, farShape]);
       expect(results.map((result) => result.entity)).to.have.members([nearEntity, farEntity]);
       expect(results.every((result) => result.distance > 0)).to.eq(true);
 
@@ -506,13 +480,14 @@ describe("Physics Test", () => {
       nativeScene.raycastAll(ray.origin, ray.direction, Number.MAX_VALUE, Layer.Everything, (shapeUniqueID) =>
         nativeHitIds.push(shapeUniqueID)
       );
-      expect(nativeHitIds).to.have.members([nearShape.id, farShape.id]);
+      expect(nativeHitIds).to.have.length(2);
+      expect(new Set(nativeHitIds).size).to.eq(2);
       const nestedHitIds: number[] = [];
       nativeScene.raycastAll(ray.origin, ray.direction, 100, Layer.Everything, (shapeID) => {
         nestedHitIds.push(shapeID);
         physicsScene.raycast(ray, 100, Layer.Layer1);
       });
-      expect(nestedHitIds).to.have.members([nearShape.id, farShape.id]);
+      expect(nestedHitIds).to.have.members(nativeHitIds);
 
       const previousHits = results.slice();
       const previousDistances = previousHits.map((hit) => hit.distance);
@@ -527,14 +502,14 @@ describe("Physics Test", () => {
       expect(results.map((hit) => hit.distance)).to.have.members(previousDistances.map((distance) => distance + 1));
       expect(physicsScene.raycastAll(ray, 0, Layer.Everything, results)).to.eq(false);
       expect(results).to.have.length(0);
-      expect(previousHits.every((hit) => hit.shape === null && hit.entity === null)).to.eq(true);
+      expect(previousHits.every((hit) => hit.collider === null && hit.entity === null)).to.eq(true);
       expect(physicsScene.raycastAll(ray, results)).to.eq(true);
       expect(new Set(results).size).to.eq(2);
 
       const spareHit = results[1];
       expect(physicsScene.raycastAll(ray, 5, results)).to.eq(true);
       expect(results).to.have.length(1);
-      expect(spareHit.shape).to.eq(null);
+      expect(spareHit.collider).to.eq(null);
       expect(spareHit.entity).to.eq(null);
       expect(physicsScene.raycastAll(ray, results)).to.eq(true);
       expect(results[1]).to.eq(spareHit);
@@ -556,20 +531,22 @@ describe("Physics Test", () => {
       const limitedResults: HitResult[] = [];
       expect(physicsScene.raycastAll(ray, 5, limitedResults)).to.eq(true);
       expect(limitedResults).to.have.length(1);
-      expect(limitedResults[0].shape).to.eq(nearShape);
+      expect(limitedResults[0].collider).to.eq(nearShape);
       expect(limitedResults[0].entity).to.eq(nearEntity);
 
       const filteredResults: HitResult[] = [];
       expect(physicsScene.raycastAll(ray, Number.MAX_VALUE, Layer.Layer1, filteredResults)).to.eq(true);
       expect(filteredResults).to.have.length(1);
-      expect(filteredResults[0].shape).to.eq(farShape);
+      expect(filteredResults[0].collider).to.eq(farShape);
       expect(filteredResults[0].entity).to.eq(farEntity);
       expect(physicsScene.raycastAll(ray, undefined, Layer.Layer1, filteredResults)).to.eq(true);
-      expect(filteredResults.map((hit) => hit.shape)).to.deep.equal([farShape]);
+      expect(filteredResults).to.have.length(1);
+      expect(filteredResults[0].collider).to.be.eq(farShape);
       expect(physicsScene.raycastAll(ray, 5, undefined, filteredResults)).to.eq(true);
-      expect(filteredResults.map((hit) => hit.shape)).to.deep.equal([nearShape]);
+      expect(filteredResults).to.have.length(1);
+      expect(filteredResults[0].collider).to.be.eq(nearShape);
       expect(physicsScene.raycastAll(ray, undefined, undefined, filteredResults)).to.eq(true);
-      expect(filteredResults.map((hit) => hit.shape)).to.have.members([nearShape, farShape]);
+      expect(filteredResults.map((hit) => hit.collider)).to.have.members([nearShape, farShape]);
       expect(physicsScene.raycastAll(ray)).to.eq(true);
       expect(physicsScene.raycastAll(ray, 5)).to.eq(true);
       expect(physicsScene.raycastAll(ray, 100, Layer.Nothing)).to.eq(false);
@@ -579,7 +556,7 @@ describe("Physics Test", () => {
       const queryFilteredResults: HitResult[] = [];
       expect(physicsScene.raycastAll(ray, queryFilteredResults)).to.eq(true);
       expect(queryFilteredResults).to.have.length(1);
-      expect(queryFilteredResults[0].shape).to.eq(nearShape);
+      expect(queryFilteredResults[0].collider).to.eq(nearShape);
 
       root.destroy();
     });
@@ -590,13 +567,13 @@ describe("Physics Test", () => {
       for (let i = 0; i < 3; i++) {
         const entity = root.createChild();
         entity.transform.setPosition(i * 5, 100, 0);
-        entity.addComponent(StaticCollider).addShape(new BoxColliderShape());
+        entity.addComponent(BoxCollider);
       }
       const otherScene = new Scene(enginePhysX);
       enginePhysX.sceneManager.addScene(otherScene);
       const otherRoot = otherScene.createRootEntity();
       otherRoot.transform.setPosition(0, 100, 0);
-      otherRoot.addComponent(StaticCollider).addShape(new BoxColliderShape());
+      otherRoot.addComponent(BoxCollider);
 
       const ray = new Ray(new Vector3(-3, 100, 0), new Vector3(1, 0, 0));
       const results: HitResult[] = [];
@@ -609,7 +586,7 @@ describe("Physics Test", () => {
       expect(results[0]).to.eq(initialHits[0]);
       const active = results[0];
       const activePoint = active.point.clone();
-      expect(initialHits.slice(1).every((hit) => hit.entity === null && hit.shape === null)).to.eq(true);
+      expect(initialHits.slice(1).every((hit) => hit.entity === null && hit.collider === null)).to.eq(true);
       expect(
         initialHits.slice(1).every((hit) => hit.distance === 0 && hit.point.length() === 0 && hit.normal.length() === 0)
       ).to.eq(true);
@@ -627,11 +604,15 @@ describe("Physics Test", () => {
       expect(active.point).to.deep.equal(activePoint);
       expect(new Set([...results, ...otherResults]).size).to.eq(4);
 
-      const otherValues = otherResults.map((hit) => ({ entity: hit.entity, distance: hit.distance }));
+      const otherEntities = otherResults.map((hit) => hit.entity);
+      const otherDistances = otherResults.map((hit) => hit.distance);
       expect(scene.physics.raycastAll(ray, results)).to.eq(true);
       expect(results[0]).to.eq(active);
       expect(new Set([...results, ...otherResults]).size).to.eq(6);
-      expect(otherResults.map((hit) => ({ entity: hit.entity, distance: hit.distance }))).to.deep.equal(otherValues);
+      otherResults.forEach((hit, index) => {
+        expect(hit.entity).toBe(otherEntities[index]);
+        expect(hit.distance).toBe(otherDistances[index]);
+      });
 
       root.destroy();
       otherScene.destroy();
@@ -640,12 +621,11 @@ describe("Physics Test", () => {
     it("raycastAll uses current caller storage without tracking removed objects", () => {
       const scene = enginePhysX.sceneManager.activeScene;
       const root = scene.createRootEntity("mutated-raycast-output");
-      const shapes: ColliderShape[] = [];
+      const shapes: Collider[] = [];
       for (let i = 0; i < 2; i++) {
         const entity = root.createChild();
         entity.transform.setPosition(i * 5, 1100, 0);
-        const shape = new BoxColliderShape();
-        entity.addComponent(StaticCollider).addShape(shape);
+        const shape = entity.addComponent(BoxCollider);
         shapes.push(shape);
       }
       const ray = new Ray(new Vector3(-3, 1100, 0), new Vector3(1, 0, 0));
@@ -662,7 +642,7 @@ describe("Physics Test", () => {
       expect(scene.physics.raycastAll(ray, results)).to.eq(true);
       expect(results[0]).to.eq(retained);
       expect(results).to.not.include(removed);
-      expect(results.map((hit) => hit.shape)).to.have.members(shapes);
+      expect(results.map((hit) => hit.collider)).to.have.members(shapes);
 
       const replacement = new HitResult();
       results[0] = replacement;
@@ -673,7 +653,7 @@ describe("Physics Test", () => {
       results.length = 0;
       expect(scene.physics.raycastAll(ray, results)).to.eq(true);
       expect(results.some((hit) => discarded.includes(hit))).to.eq(false);
-      expect(results.map((hit) => hit.shape)).to.have.members(shapes);
+      expect(results.map((hit) => hit.collider)).to.have.members(shapes);
 
       const supplied = new HitResult();
       results.length = 0;
@@ -681,19 +661,18 @@ describe("Physics Test", () => {
       expect(scene.physics.raycastAll(ray, results)).to.eq(true);
       expect(results[1]).to.eq(supplied);
       expect(new Set(results).size).to.eq(2);
-      expect(results.map((hit) => hit.shape)).to.have.members(shapes);
+      expect(results.map((hit) => hit.collider)).to.have.members(shapes);
       root.destroy();
     });
 
     it("raycastAll writes into caller-supplied entries without replacing aliases", () => {
       const scene = enginePhysX.sceneManager.activeScene;
       const root = scene.createRootEntity("duplicate-raycast-output");
-      const shapes: ColliderShape[] = [];
+      const shapes: Collider[] = [];
       for (let i = 0; i < 3; i++) {
         const entity = root.createChild();
         entity.transform.setPosition(i * 5, 1200, 0);
-        const shape = new BoxColliderShape();
-        entity.addComponent(StaticCollider).addShape(shape);
+        const shape = entity.addComponent(BoxCollider);
         shapes.push(shape);
       }
       const ray = new Ray(new Vector3(-3, 1200, 0), new Vector3(1, 0, 0));
@@ -708,8 +687,8 @@ describe("Physics Test", () => {
       expect(results[1] === originalHits[2]).to.eq(true);
       expect(results[2] === originalHits[1]).to.eq(true);
       expect(results).to.have.length(3);
-      expect(shapes).to.include(results[0].shape);
-      expect(shapes).to.include(results[2].shape);
+      expect(shapes).to.include(results[0].collider);
+      expect(shapes).to.include(results[2].collider);
 
       root.destroy();
     });
@@ -717,12 +696,11 @@ describe("Physics Test", () => {
     it.each([0, 1, 2])("raycastAll retires duplicate entries safely with %i hits", (hitCount) => {
       const scene = enginePhysX.sceneManager.activeScene;
       const root = scene.createRootEntity("retired-raycast-aliases");
-      const shapes: ColliderShape[] = [];
+      const shapes: Collider[] = [];
       for (let i = 0; i < 3; i++) {
         const entity = root.createChild();
         entity.transform.setPosition(i * 5, 1400, 0);
-        const shape = new BoxColliderShape();
-        entity.addComponent(StaticCollider).addShape(shape);
+        const shape = entity.addComponent(BoxCollider);
         shapes.push(shape);
       }
       const ray = new Ray(new Vector3(-3, 1400, 0), new Vector3(1, 0, 0));
@@ -739,18 +717,18 @@ describe("Physics Test", () => {
           if (hitCount === 2) {
             expect(results[1]).to.eq(shared);
           }
-          expect(shapes.slice(0, hitCount)).to.include(shared.shape);
-          expect(shared.entity).to.eq(shared.shape!.collider.entity);
+          expect(shapes.slice(0, hitCount)).to.include(shared.collider);
+          expect(shared.entity).to.eq(shared.collider!.entity);
           expect(shared.distance).to.be.greaterThan(0);
           expect(shared.point.y).to.eq(1400);
           expect(shared.normal.length()).to.be.closeTo(1, 1e-4);
         } else {
-          expect(shared.shape).to.eq(null);
+          expect(shared.collider).to.eq(null);
           expect(shared.entity).to.eq(null);
         }
-        expect(spare.shape).to.eq(null);
+        expect(spare.collider).to.eq(null);
         expect(spare.entity).to.eq(null);
-        const activeShape = shared.shape;
+        const activeShape = shared.collider;
         const activeDistance = shared.distance;
         const activePoint = shared.point.clone();
         const activeNormal = shared.normal.clone();
@@ -759,11 +737,11 @@ describe("Physics Test", () => {
         expect(scene.physics.raycastAll(ray, nextResults)).to.eq(true);
         expect(nextResults).to.have.length(3);
         expect(new Set(nextResults).size).to.eq(3);
-        expect(nextResults.map((hit) => hit.shape)).to.have.members(shapes);
+        expect(nextResults.map((hit) => hit.collider)).to.have.members(shapes);
         expect(nextResults).to.include(spare);
         if (hitCount > 0) {
           expect(nextResults).to.not.include(shared);
-          expect(shared.shape).to.eq(activeShape);
+          expect(shared.collider).to.eq(activeShape);
           expect(shared.distance).to.eq(activeDistance);
           expect(shared.point).to.deep.equal(activePoint);
           expect(shared.normal).to.deep.equal(activeNormal);
@@ -780,12 +758,12 @@ describe("Physics Test", () => {
       const scene = enginePhysX.sceneManager.activeScene;
       const root = scene.createRootEntity("released-raycast-output");
       root.transform.setPosition(0, 1300, 0);
-      root.addComponent(StaticCollider).addShape(new BoxColliderShape());
+      root.addComponent(BoxCollider);
       const otherScene = new Scene(enginePhysX);
       enginePhysX.sceneManager.addScene(otherScene);
       const otherRoot = otherScene.createRootEntity();
       otherRoot.transform.setPosition(0, 1300, 0);
-      otherRoot.addComponent(StaticCollider).addShape(new BoxColliderShape());
+      otherRoot.addComponent(BoxCollider);
 
       const ray = new Ray(new Vector3(-3, 1300, 0), new Vector3(1, 0, 0));
       const idleResults: HitResult[] = [];
@@ -797,10 +775,10 @@ describe("Physics Test", () => {
       const point = supplied.point.clone();
       const normal = supplied.normal.clone();
       const distance = supplied.distance;
-      const shape = supplied.shape;
+      const shape = supplied.collider;
       expect(otherScene.physics.raycastAll(ray, 0, idleResults)).to.eq(false);
       expect(retired.entity).to.eq(null);
-      expect(retired.shape).to.eq(null);
+      expect(retired.collider).to.eq(null);
 
       if (release === "gc") {
         enginePhysX.resourceManager.gc();
@@ -809,7 +787,7 @@ describe("Physics Test", () => {
       }
       expect(activeResults[0]).to.eq(supplied);
       expect(supplied.entity).to.eq(root);
-      expect(supplied.shape).to.eq(shape);
+      expect(supplied.collider).to.eq(shape);
       expect(supplied.distance).to.eq(distance);
       expect(supplied.point).to.deep.equal(point);
       expect(supplied.normal).to.deep.equal(normal);
@@ -830,63 +808,73 @@ describe("Physics Test", () => {
       const physics = scene.physics;
       const root = scene.createRootEntity("native-query-filters");
       const near = root.createChild("near");
-      const nearCollider = near.addComponent(StaticCollider);
-      const nearShape = new BoxColliderShape();
-      nearCollider.addShape(nearShape);
-      nearCollider.collisionLayer = Layer.Layer1;
+      const nearShape = near.addComponent(BoxCollider);
+      nearShape.collisionLayer = Layer.Layer1;
       const far = root.createChild("far");
       far.transform.position = new Vector3(4, 0, 0);
-      const farCollider = far.addComponent(StaticCollider);
-      const farShape = new BoxColliderShape();
-      farCollider.addShape(farShape);
-      farCollider.collisionLayer = Layer.Layer31;
+      const farShape = far.addComponent(BoxCollider);
+      farShape.collisionLayer = Layer.Layer31;
       const ray = new Ray(new Vector3(-3, 0, 0), new Vector3(2, 0, 0));
       const originalDirection = ray.direction.clone();
       const hit = new HitResult();
       const hits: HitResult[] = [];
       const mask = Layer.Layer1 | Layer.Layer31;
       expect(physics.raycastAll(ray, 100, mask, hits)).to.eq(true);
-      expect(hits.map((hit) => hit.shape)).to.have.members([nearShape, farShape]);
+      expect(hits.map((hit) => hit.collider)).to.have.members([nearShape, farShape]);
       expect(ray.direction).to.deep.equal(originalDirection);
       expect(physics.raycastAll(ray, 100, Layer.Layer31, hits)).to.eq(true);
-      expect(hits.map((hit) => hit.shape)).to.deep.equal([farShape]);
+      expect(hits).to.have.length(1);
+      expect(hits[0].collider).to.be.eq(farShape);
       expect(physics.raycastAll(ray, 100, Layer.Nothing, hits)).to.eq(false);
       expect(hits).to.have.length(0);
       expect(physics.raycast(ray, 100, Layer.Layer31, hit)).to.eq(true);
-      expect(hit.shape).to.eq(farShape);
+      expect(hit.collider).to.eq(farShape);
 
       nearShape.isSceneQuery = false;
       nearShape.isTrigger = true;
       expect(physics.raycastAll(ray, 100, mask, hits)).to.eq(true);
-      expect(hits.map((hit) => hit.shape)).to.deep.equal([farShape]);
+      expect(hits).to.have.length(1);
+      expect(hits[0].collider).to.be.eq(farShape);
       expect(
         physics.boxCast(ray.origin, new Vector3(0.1, 0.1, 0.1), ray.direction, new Quaternion(), 100, mask, hit)
       ).to.eq(true);
-      expect(hit.shape).to.eq(farShape);
+      expect(hit.collider).to.eq(farShape);
       expect(physics.sphereCast(ray.origin, 0.1, ray.direction, 100, mask, hit)).to.eq(true);
-      expect(hit.shape).to.eq(farShape);
+      expect(hit.collider).to.eq(farShape);
       expect(physics.capsuleCast(ray.origin, 0.1, 0.2, ray.direction, new Quaternion(), 100, mask, hit)).to.eq(true);
-      expect(hit.shape).to.eq(farShape);
+      expect(hit.collider).to.eq(farShape);
       const center = new Vector3(2, 0, 0);
-      expect(physics.overlapBoxAll(center, new Vector3(5, 5, 5), new Quaternion(), mask)).to.deep.equal([farShape]);
-      expect(physics.overlapSphereAll(center, 5, mask)).to.deep.equal([farShape]);
-      expect(physics.overlapCapsuleAll(center, 5, 1, new Quaternion(), mask)).to.deep.equal([farShape]);
+      {
+        const overlap = physics.overlapBoxAll(center, new Vector3(5, 5, 5), new Quaternion(), mask);
+        expect(overlap).to.have.length(1);
+        expect(overlap[0]).to.be.eq(farShape);
+      }
+      {
+        const overlap = physics.overlapSphereAll(center, 5, mask);
+        expect(overlap).to.have.length(1);
+        expect(overlap[0]).to.be.eq(farShape);
+      }
+      {
+        const overlap = physics.overlapCapsuleAll(center, 5, 1, new Quaternion(), mask);
+        expect(overlap).to.have.length(1);
+        expect(overlap[0]).to.be.eq(farShape);
+      }
       nearShape.isSceneQuery = true;
-      nearCollider.collisionLayer = Layer.Layer31;
+      nearShape.collisionLayer = Layer.Layer31;
       expect(physics.raycastAll(ray, 100, Layer.Layer1, hits)).to.eq(false);
       expect(physics.raycastAll(ray, 100, Layer.Layer31, hits)).to.eq(true);
       expect(hits).to.have.length(2);
-      const addedShape = new SphereColliderShape();
-      nearCollider.addShape(addedShape);
+      const addedShape = near.addComponent(SphereCollider);
+      addedShape.collisionLayer = Layer.Layer31;
       expect(physics.raycastAll(ray, 100, Layer.Layer31, hits)).to.eq(true);
       expect(hits).to.have.length(3);
       nearShape.isSceneQuery = false;
       const cloneEntity = near.clone();
       root.addChild(cloneEntity);
-      const clone = cloneEntity.getComponent(StaticCollider).shapes[0];
+      const clone = cloneEntity.getComponent(BoxCollider);
       expect(clone.isSceneQuery).to.eq(false);
       expect(physics.raycastAll(ray, hits)).to.eq(true);
-      expect(hits.map((hit) => hit.shape)).to.not.include(clone);
+      expect(hits.map((hit) => hit.collider)).to.not.include(clone);
       root.destroy();
     });
 
@@ -896,24 +884,25 @@ describe("Physics Test", () => {
       const entity = root.createChild("controller");
       const controller = entity.addComponent(CharacterController);
       controller.collisionLayer = Layer.Layer31;
-      const shape = new BoxColliderShape();
-      shape.isSceneQuery = false;
-      controller.addShape(shape);
+      controller.geometry = CharacterControllerGeometry.Box;
+      controller.isSceneQuery = false;
       const ray = new Ray(new Vector3(-3, 0, 0), new Vector3(1, 0, 0));
       const hits: HitResult[] = [];
       expect(scene.physics.raycastAll(ray, hits)).to.eq(false);
       expect(hits).to.have.length(0);
-      shape.isSceneQuery = true;
+      controller.isSceneQuery = true;
       expect(scene.physics.raycastAll(ray, 100, Layer.Layer31, hits)).to.eq(true);
-      expect(hits.map((hit) => hit.shape)).to.deep.equal([shape]);
-      shape.isSceneQuery = false;
+      expect(hits).to.have.length(1);
+      expect(hits[0].collider).to.be.eq(controller);
+      controller.isSceneQuery = false;
       controller.enabled = false;
       controller.enabled = true;
       expect(scene.physics.raycastAll(ray, hits)).to.eq(false);
       expect(hits).to.have.length(0);
-      shape.isSceneQuery = true;
+      controller.isSceneQuery = true;
       expect(scene.physics.raycastAll(ray, 100, Layer.Layer31, hits)).to.eq(true);
-      expect(hits.map((hit) => hit.shape)).to.deep.equal([shape]);
+      expect(hits).to.have.length(1);
+      expect(hits[0].collider).to.be.eq(controller);
       expect(scene.physics.raycastAll(ray, 100, Layer.Layer0, hits)).to.eq(false);
       expect(hits).to.have.length(0);
       root.destroy();
@@ -921,12 +910,8 @@ describe("Physics Test", () => {
 
     it("native hit buffers preserve all bits of shape IDs", () => {
       const scene = enginePhysX.sceneManager.activeScene;
-      const entity = scene.createRootEntity("query-shape-id");
-      const collider = entity.addComponent(StaticCollider);
-      const shape = new BoxColliderShape();
-      collider.addShape(shape);
       const native = (scene.physics as any)._nativePhysicsScene as IPhysicsScene;
-      const backend = WebGLEngine._nativePhysics;
+      const backend = physicsBackend;
       const material = backend.createPhysicsMaterial({
         staticFriction: 0,
         dynamicFriction: 0,
@@ -937,7 +922,8 @@ describe("Physics Test", () => {
       const id = 0xffffffff;
       const nativeShape = backend.createBoxColliderShape(id, new Vector3(1, 1, 1), material);
       const nativeCollider = backend.createStaticCollider(new Vector3(0, 3, 0), new Quaternion());
-      nativeCollider.addShape(nativeShape, 0);
+      nativeCollider.addShape(nativeShape);
+      nativeShape.setCollisionLayer(0);
       native.addCollider(nativeCollider);
       const hits: number[] = [];
       native.raycastAll(new Vector3(-3, 3, 0), new Vector3(1, 0, 0), 100, Layer.Everything, (shapeID) =>
@@ -950,24 +936,21 @@ describe("Physics Test", () => {
       nativeShape.destroy();
       nativeCollider.destroy();
       material.destroy();
-      entity.destroy();
     });
 
     it("raycastAll returns every hit beyond the native touch chunk", () => {
       const scene = enginePhysX.sceneManager.activeScene;
       const physicsScene = scene.physics;
       const root = scene.createRootEntity("raycast_all_many_root");
-      const expectedShapes = new Set<ColliderShape>();
+      const expectedShapes = new Set<Collider>();
       const expectedEntities = new Set<Entity>();
       const hitCount = 257;
 
       for (let i = 0; i < hitCount; i++) {
         const entity = root.createChild(`hit-${i}`);
         entity.transform.position = new Vector3(i * 2, 0, 0);
-        const collider = entity.addComponent(StaticCollider);
-        const shape = new BoxColliderShape();
+        const shape = entity.addComponent(BoxCollider);
         shape.size = new Vector3(1, 1, 1);
-        collider.addShape(shape);
         expectedEntities.add(entity);
         expectedShapes.add(shape);
       }
@@ -975,7 +958,7 @@ describe("Physics Test", () => {
       const ray = new Ray(new Vector3(-1, 0, 0), new Vector3(1, 0, 0));
       const results: HitResult[] = [];
       expect(physicsScene.raycastAll(ray, results)).to.eq(true);
-      const resultShapes = new Set(results.map((result) => result.shape));
+      const resultShapes = new Set(results.map((result) => result.collider));
       const resultEntities = new Set(results.map((result) => result.entity));
       expect(results).to.have.length(hitCount);
       expect(resultShapes.size).to.eq(hitCount);
@@ -1006,18 +989,14 @@ describe("Physics Test", () => {
       // Box at origin, encompassing the ray origin
       const insideBox = root.createChild("inside_box");
       insideBox.transform.position = new Vector3(0, 0, 0);
-      const insideCollider = insideBox.addComponent(StaticCollider);
-      const insideShape = new BoxColliderShape();
+      const insideShape = insideBox.addComponent(BoxCollider);
       insideShape.size = new Vector3(2, 2, 2);
-      insideCollider.addShape(insideShape);
 
       // Box further along the ray direction
       const farBox = root.createChild("far_box");
       farBox.transform.position = new Vector3(5, 0, 0);
-      const farCollider = farBox.addComponent(StaticCollider);
-      const farShape = new BoxColliderShape();
+      const farShape = farBox.addComponent(BoxCollider);
       farShape.size = new Vector3(2, 2, 2);
-      farCollider.addShape(farShape);
 
       // Cast ray from origin (inside `insideBox`) outward
       const hit = new HitResult();
@@ -1039,17 +1018,13 @@ describe("Physics Test", () => {
 
       const insideBox = root.createChild("inside_box");
       insideBox.transform.position = new Vector3(0, 0, 0);
-      const insideCol = insideBox.addComponent(StaticCollider);
-      const insideShape = new BoxColliderShape();
+      const insideShape = insideBox.addComponent(BoxCollider);
       insideShape.size = new Vector3(2, 2, 2);
-      insideCol.addShape(insideShape);
 
       const farBox = root.createChild("far_box");
       farBox.transform.position = new Vector3(5, 0, 0);
-      const farCol = farBox.addComponent(StaticCollider);
-      const farShape = new BoxColliderShape();
+      const farShape = farBox.addComponent(BoxCollider);
       farShape.size = new Vector3(2, 2, 2);
-      farCol.addShape(farShape);
 
       const halfExtents = new Vector3(0.5, 0.5, 0.5);
       const direction = new Vector3(1, 0, 0);
@@ -1071,17 +1046,13 @@ describe("Physics Test", () => {
 
       const insideBox = root.createChild("inside_box");
       insideBox.transform.position = new Vector3(0, 0, 0);
-      const insideCol = insideBox.addComponent(StaticCollider);
-      const insideShape = new BoxColliderShape();
+      const insideShape = insideBox.addComponent(BoxCollider);
       insideShape.size = new Vector3(2, 2, 2);
-      insideCol.addShape(insideShape);
 
       const farBox = root.createChild("far_box");
       farBox.transform.position = new Vector3(5, 0, 0);
-      const farCol = farBox.addComponent(StaticCollider);
-      const farShape = new BoxColliderShape();
+      const farShape = farBox.addComponent(BoxCollider);
       farShape.size = new Vector3(2, 2, 2);
-      farCol.addShape(farShape);
 
       const direction = new Vector3(1, 0, 0);
       const hit = new HitResult();
@@ -1101,17 +1072,13 @@ describe("Physics Test", () => {
 
       const insideBox = root.createChild("inside_box");
       insideBox.transform.position = new Vector3(0, 0, 0);
-      const insideCol = insideBox.addComponent(StaticCollider);
-      const insideShape = new BoxColliderShape();
+      const insideShape = insideBox.addComponent(BoxCollider);
       insideShape.size = new Vector3(2, 2, 2);
-      insideCol.addShape(insideShape);
 
       const farBox = root.createChild("far_box");
       farBox.transform.position = new Vector3(5, 0, 0);
-      const farCol = farBox.addComponent(StaticCollider);
-      const farShape = new BoxColliderShape();
+      const farShape = farBox.addComponent(BoxCollider);
       farShape.size = new Vector3(2, 2, 2);
-      farCol.addShape(farShape);
 
       const direction = new Vector3(1, 0, 0);
       const hit = new HitResult();
@@ -1130,11 +1097,9 @@ describe("Physics Test", () => {
       const root = scene.createRootEntity("root");
       const sweepTestRoot = root.createChild("root");
 
-      // Create a box collider to test against
-      const collider = sweepTestRoot.addComponent(StaticCollider);
-      const boxShape = new BoxColliderShape();
+      // Create a box boxShape to test against
+      const boxShape = sweepTestRoot.addComponent(BoxCollider);
       boxShape.size = new Vector3(1, 1, 1);
-      collider.addShape(boxShape);
 
       // Test boxCast with no hit
       const center = new Vector3(3, 3, 3);
@@ -1161,7 +1126,7 @@ describe("Physics Test", () => {
         )
       ).to.eq(true);
       expect(outHitResult.entity).to.be.eq(sweepTestRoot);
-      expect(outHitResult.shape).to.be.eq(boxShape);
+      expect(outHitResult.collider).to.be.eq(boxShape);
 
       // Test boxCast with layer mask
       expect(
@@ -1173,7 +1138,7 @@ describe("Physics Test", () => {
         physicsScene.boxCast(center, halfExtents, direction, orientation, 0.1, Layer.Everything, outHitResult)
       ).to.eq(false);
 
-      // Test that initial overlap is skipped when sweep starts inside a collider.
+      // Test that initial overlap is skipped when sweep starts inside a boxShape.
       center.set(0, 0, 0);
       expect(
         physicsScene.boxCast(
@@ -1204,11 +1169,9 @@ describe("Physics Test", () => {
       ).to.eq(true);
 
       // Test boxCast with multiple colliders
-      const collider2 = sweepTestRoot.addComponent(StaticCollider);
-      const boxShape2 = new BoxColliderShape();
+      const boxShape2 = sweepTestRoot.addComponent(BoxCollider);
       boxShape2.size = new Vector3(1, 1, 1);
-      boxShape2.position = new Vector3(1, 0, 0);
-      collider2.addShape(boxShape2);
+      boxShape2.center = new Vector3(1, 0, 0);
       center.set(3, 0, 0);
       direction.set(-1, 0, 0);
       expect(
@@ -1248,11 +1211,9 @@ describe("Physics Test", () => {
       const root = scene.createRootEntity("root");
       const sweepTestRoot = root.createChild("root");
 
-      // Create a box collider to test against
-      const collider = sweepTestRoot.addComponent(StaticCollider);
-      const boxShape = new BoxColliderShape();
+      // Create a box boxShape to test against
+      const boxShape = sweepTestRoot.addComponent(BoxCollider);
       boxShape.size = new Vector3(1, 1, 1);
-      collider.addShape(boxShape);
 
       const center = new Vector3(3, 3, 3);
       const halfExtents = new Vector3(0.5, 0.5, 0.5);
@@ -1262,7 +1223,7 @@ describe("Physics Test", () => {
       // Test boxCast(center, halfExtents, direction, outHitResult) - direct HitResult
       expect(physicsScene.boxCast(center, halfExtents, direction, outHitResult)).to.eq(true);
       expect(outHitResult.entity).to.be.eq(sweepTestRoot);
-      expect(outHitResult.shape).to.be.eq(boxShape);
+      expect(outHitResult.collider).to.be.eq(boxShape);
 
       // Test boxCast(center, halfExtents, direction, distance) - distance only
       expect(physicsScene.boxCast(center, halfExtents, direction, 0.1)).to.eq(false);
@@ -1286,11 +1247,9 @@ describe("Physics Test", () => {
       const root = scene.createRootEntity("root");
       const sweepTestRoot = root.createChild("root");
 
-      // Create a box collider to test against
-      const collider = sweepTestRoot.addComponent(StaticCollider);
-      const boxShape = new BoxColliderShape();
+      // Create a box boxShape to test against
+      const boxShape = sweepTestRoot.addComponent(BoxCollider);
       boxShape.size = new Vector3(1, 1, 1);
-      collider.addShape(boxShape);
 
       // Test sphereCast with no hit
       const center = new Vector3(3, 3, 3);
@@ -1306,7 +1265,7 @@ describe("Physics Test", () => {
         physicsScene.sphereCast(center, radius, direction, Number.MAX_VALUE, Layer.Everything, outHitResult)
       ).to.eq(true);
       expect(outHitResult.entity).to.be.eq(sweepTestRoot);
-      expect(outHitResult.shape).to.be.eq(boxShape);
+      expect(outHitResult.collider).to.be.eq(boxShape);
 
       // Test sphereCast with layer mask
       expect(physicsScene.sphereCast(center, radius, direction, Number.MAX_VALUE, Layer.Layer1, outHitResult)).to.eq(
@@ -1316,18 +1275,16 @@ describe("Physics Test", () => {
       // Test sphereCast with distance limit
       expect(physicsScene.sphereCast(center, radius, direction, 0.1, Layer.Everything, outHitResult)).to.eq(false);
 
-      // Test that initial overlap is skipped when sphere starts inside a collider.
+      // Test that initial overlap is skipped when sphere starts inside a boxShape.
       center.set(0, 0, 0);
       expect(
         physicsScene.sphereCast(center, radius, direction, Number.MAX_VALUE, Layer.Everything, outHitResult)
       ).to.eq(false);
 
       // Test sphereCast with multiple colliders
-      const collider2 = sweepTestRoot.addComponent(StaticCollider);
-      const boxShape2 = new BoxColliderShape();
+      const boxShape2 = sweepTestRoot.addComponent(BoxCollider);
       boxShape2.size = new Vector3(1, 1, 1);
-      boxShape2.position = new Vector3(1, 0, 0);
-      collider2.addShape(boxShape2);
+      boxShape2.center = new Vector3(1, 0, 0);
       center.set(3, 0, 0);
       direction.set(-1, 0, 0);
       expect(
@@ -1351,11 +1308,9 @@ describe("Physics Test", () => {
       const root = scene.createRootEntity("root");
       const sweepTestRoot = root.createChild("root");
 
-      // Create a box collider to test against
-      const collider = sweepTestRoot.addComponent(StaticCollider);
-      const boxShape = new BoxColliderShape();
+      // Create a box boxShape to test against
+      const boxShape = sweepTestRoot.addComponent(BoxCollider);
       boxShape.size = new Vector3(1, 1, 1);
-      collider.addShape(boxShape);
 
       const center = new Vector3(3, 3, 3);
       const radius = 0.5;
@@ -1365,7 +1320,7 @@ describe("Physics Test", () => {
       // Test sphereCast(center, radius, direction, outHitResult) - direct HitResult
       expect(physicsScene.sphereCast(center, radius, direction, outHitResult)).to.eq(true);
       expect(outHitResult.entity).to.be.eq(sweepTestRoot);
-      expect(outHitResult.shape).to.be.eq(boxShape);
+      expect(outHitResult.collider).to.be.eq(boxShape);
 
       // Test sphereCast(center, radius, direction, distance) - distance only
       expect(physicsScene.sphereCast(center, radius, direction, 0.1)).to.eq(false);
@@ -1389,11 +1344,9 @@ describe("Physics Test", () => {
       const root = scene.createRootEntity("root");
       const sweepTestRoot = root.createChild("root");
 
-      // Create a box collider to test against
-      const collider = sweepTestRoot.addComponent(StaticCollider);
-      const boxShape = new BoxColliderShape();
+      // Create a box boxShape to test against
+      const boxShape = sweepTestRoot.addComponent(BoxCollider);
       boxShape.size = new Vector3(1, 1, 1);
-      collider.addShape(boxShape);
 
       // Test capsuleCast with no hit
       const center = new Vector3(3, 3, 3);
@@ -1442,7 +1395,7 @@ describe("Physics Test", () => {
         physicsScene.capsuleCast(center, radius, height, direction, orientation, 0.1, Layer.Everything, outHitResult)
       ).to.eq(false);
 
-      // Test that initial overlap is skipped when capsule starts inside a collider.
+      // Test that initial overlap is skipped when capsule starts inside a boxShape.
       center.set(0, 0, 0);
       expect(
         physicsScene.capsuleCast(
@@ -1476,11 +1429,9 @@ describe("Physics Test", () => {
 
       // Test capsuleCast with multiple colliders
       orientation.set(0, 0, 0, 1);
-      const collider2 = sweepTestRoot.addComponent(StaticCollider);
-      const boxShape2 = new BoxColliderShape();
+      const boxShape2 = sweepTestRoot.addComponent(BoxCollider);
       boxShape2.size = new Vector3(1, 1, 1);
-      boxShape2.position = new Vector3(1, 0, 0);
-      collider2.addShape(boxShape2);
+      boxShape2.center = new Vector3(1, 0, 0);
       center.set(3, 0, 0);
       direction.set(-1, 0, 0);
       expect(
@@ -1496,7 +1447,7 @@ describe("Physics Test", () => {
         )
       ).to.eq(true);
       expect(outHitResult.distance).to.be.eq(0.5);
-      expect(outHitResult.shape.id).to.be.eq(boxShape2.id);
+      expect(outHitResult.collider).to.be.eq(boxShape2);
 
       // Test capsuleCast with parallel direction
       center.set(0, 2, 0);
@@ -1523,11 +1474,9 @@ describe("Physics Test", () => {
       const root = scene.createRootEntity("root");
       const sweepTestRoot = root.createChild("root");
 
-      // Create a box collider to test against
-      const collider = sweepTestRoot.addComponent(StaticCollider);
-      const boxShape = new BoxColliderShape();
+      // Create a box boxShape to test against
+      const boxShape = sweepTestRoot.addComponent(BoxCollider);
       boxShape.size = new Vector3(1, 1, 1);
-      collider.addShape(boxShape);
 
       const center = new Vector3(3, 3, 3);
       const radius = 0.5;
@@ -1538,7 +1487,7 @@ describe("Physics Test", () => {
       // Test capsuleCast(center, radius, height, direction, outHitResult) - direct HitResult
       expect(physicsScene.capsuleCast(center, radius, height, direction, outHitResult)).to.eq(true);
       expect(outHitResult.entity).to.be.eq(sweepTestRoot);
-      expect(outHitResult.shape).to.be.eq(boxShape);
+      expect(outHitResult.collider).to.be.eq(boxShape);
 
       // Test capsuleCast(center, radius, height, direction, distance) - distance only
       expect(physicsScene.capsuleCast(center, radius, height, direction, 0.1)).to.eq(false);
@@ -1562,11 +1511,9 @@ describe("Physics Test", () => {
       const root = scene.createRootEntity("root");
       const overlapTestRoot = root.createChild("root");
 
-      // Create a box collider to test against
-      const collider = overlapTestRoot.addComponent(StaticCollider);
-      const boxShape = new BoxColliderShape();
+      // Create a box boxShape to test against
+      const boxShape = overlapTestRoot.addComponent(BoxCollider);
       boxShape.size = new Vector3(1, 1, 1);
-      collider.addShape(boxShape);
 
       // Test overlapBox with no overlap
       const center = new Vector3(3, 3, 3);
@@ -1589,7 +1536,7 @@ describe("Physics Test", () => {
       );
       expect(shapesMask).to.have.length(0);
 
-      // Test overlapBox when box contains collider
+      // Test overlapBox when box contains boxShape
       center.set(0, 0, 0);
       halfExtents.set(2, 2, 2);
       const shapesContain = physicsScene.overlapBoxAll(center, halfExtents, orientation, Layer.Everything);
@@ -1603,11 +1550,9 @@ describe("Physics Test", () => {
       expect(shapesRot).to.include(boxShape);
 
       // Test overlapBox with multiple colliders
-      const collider2 = overlapTestRoot.addComponent(StaticCollider);
-      const boxShape2 = new BoxColliderShape();
+      const boxShape2 = overlapTestRoot.addComponent(BoxCollider);
       boxShape2.size = new Vector3(1, 1, 1);
-      boxShape2.position = new Vector3(1, 0, 0);
-      collider2.addShape(boxShape2);
+      boxShape2.center = new Vector3(1, 0, 0);
       center.set(0.5, 0, 0);
       const shapesMulti = physicsScene.overlapBoxAll(center, halfExtents, orientation, Layer.Everything);
       expect(shapesMulti).to.have.length(2);
@@ -1621,7 +1566,7 @@ describe("Physics Test", () => {
       expect(shapesEdge).to.include.members([boxShape, boxShape2]);
 
       // Test overlapBox with custom array parameter
-      const customArray: ColliderShape[] = [];
+      const customArray: Collider[] = [];
       const shapesCustom = physicsScene.overlapBoxAll(center, halfExtents, orientation, Layer.Everything, customArray);
       expect(shapesCustom).to.be.eq(customArray);
       expect(shapesCustom).to.have.length(2);
@@ -1634,14 +1579,12 @@ describe("Physics Test", () => {
       const scene = enginePhysX.sceneManager.activeScene;
       const physicsScene = scene.physics;
       const root = scene.createRootEntity("overlap_all_many_root");
-      const collider = root.addComponent(StaticCollider);
-      const expectedShapes = new Set<ColliderShape>();
+      const expectedShapes = new Set<Collider>();
       const hitCount = 257;
 
       for (let i = 0; i < hitCount; i++) {
-        const shape = new BoxColliderShape();
+        const shape = root.addComponent(BoxCollider);
         shape.size = new Vector3(1, 1, 1);
-        collider.addShape(shape);
         expectedShapes.add(shape);
       }
 
@@ -1669,11 +1612,9 @@ describe("Physics Test", () => {
       const root = scene.createRootEntity("root");
       const overlapTestRoot = root.createChild("root");
 
-      // Create a box collider to test against
-      const collider = overlapTestRoot.addComponent(StaticCollider);
-      const boxShape = new BoxColliderShape();
+      // Create a box boxShape to test against
+      const boxShape = overlapTestRoot.addComponent(BoxCollider);
       boxShape.size = new Vector3(1, 1, 1);
-      collider.addShape(boxShape);
 
       // Test overlapSphere with no overlap
       const center = new Vector3(3, 3, 3);
@@ -1691,7 +1632,7 @@ describe("Physics Test", () => {
         0
       );
 
-      // Test overlapSphere when sphere contains collider
+      // Test overlapSphere when sphere contains boxShape
       center.set(0, 0, 0);
       let sphereRadius = 2;
       const sContain = enginePhysX.sceneManager.scenes[0].physics.overlapSphereAll(
@@ -1703,11 +1644,9 @@ describe("Physics Test", () => {
       expect(sContain[0]).to.eq(boxShape);
 
       // Test overlapSphere with multiple colliders
-      const collider2 = overlapTestRoot.addComponent(StaticCollider);
-      const boxShape2 = new BoxColliderShape();
+      const boxShape2 = overlapTestRoot.addComponent(BoxCollider);
       boxShape2.size = new Vector3(1, 1, 1);
-      boxShape2.position = new Vector3(1, 0, 0);
-      collider2.addShape(boxShape2);
+      boxShape2.center = new Vector3(1, 0, 0);
       center.set(0.5, 0, 0);
       const sMulti = enginePhysX.sceneManager.scenes[0].physics.overlapSphereAll(
         center,
@@ -1725,7 +1664,7 @@ describe("Physics Test", () => {
       expect(sEdge).to.include.members([boxShape, boxShape2]);
 
       // Test overlapSphere with custom array parameter
-      const customSphereArray: ColliderShape[] = [];
+      const customSphereArray: Collider[] = [];
       const sCustom = enginePhysX.sceneManager.scenes[0].physics.overlapSphereAll(
         center,
         sphereRadius,
@@ -1744,11 +1683,9 @@ describe("Physics Test", () => {
       const root = scene.createRootEntity("root");
       const overlapTestRoot = root.createChild("root");
 
-      // Create a box collider to test against
-      const collider = overlapTestRoot.addComponent(StaticCollider);
-      const boxShape = new BoxColliderShape();
+      // Create a box boxShape to test against
+      const boxShape = overlapTestRoot.addComponent(BoxCollider);
       boxShape.size = new Vector3(1, 1, 1);
-      collider.addShape(boxShape);
 
       // Test overlapCapsule with no overlap
       const center = new Vector3(3, 3, 3);
@@ -1776,7 +1713,7 @@ describe("Physics Test", () => {
         enginePhysX.sceneManager.scenes[0].physics.overlapCapsuleAll(center, radius, height, orientation, Layer.Layer1)
       ).to.have.length(0);
 
-      // Test overlapCapsule when capsule contains collider
+      // Test overlapCapsule when capsule contains boxShape
       center.set(0, 0, 0);
       let capsuleRadius = 2;
       let capsuleHeight = 4;
@@ -1793,7 +1730,6 @@ describe("Physics Test", () => {
       // Test overlapCapsule with rotation
       Quaternion.rotationEuler(0, Math.PI / 4, 0, orientation);
       center.set(2, 0, 0);
-      const direction = new Vector3(-1, 0, 0);
       const cRot = enginePhysX.sceneManager.scenes[0].physics.overlapCapsuleAll(
         center,
         capsuleRadius,
@@ -1804,11 +1740,9 @@ describe("Physics Test", () => {
       expect(cRot).to.include(boxShape);
 
       // Test overlapCapsule with multiple colliders
-      const collider2 = overlapTestRoot.addComponent(StaticCollider);
-      const boxShape2 = new BoxColliderShape();
+      const boxShape2 = overlapTestRoot.addComponent(BoxCollider);
       boxShape2.size = new Vector3(1, 1, 1);
-      boxShape2.position = new Vector3(1, 0, 0);
-      collider2.addShape(boxShape2);
+      boxShape2.center = new Vector3(1, 0, 0);
       center.set(0.5, 0, 0);
       const cMulti = enginePhysX.sceneManager.scenes[0].physics.overlapCapsuleAll(
         center,
@@ -1835,7 +1769,7 @@ describe("Physics Test", () => {
       expect(cEdge).to.include.members([boxShape, boxShape2]);
 
       // Test overlapCapsule with custom array parameter
-      const customCapsuleArray: ColliderShape[] = [];
+      const customCapsuleArray: Collider[] = [];
       const cCustom = enginePhysX.sceneManager.scenes[0].physics.overlapCapsuleAll(
         center,
         capsuleRadius,
@@ -1890,7 +1824,7 @@ describe("Physics Test", () => {
         const collisionTestScript = entity1.addComponent(CollisionTestScript);
 
         // Test that collision works correctly, both A,B are dynamic and trigger.
-        resetSpy();
+        watchCollisionCallbacks(collisionTestScript);
         setColliderProps(entity1, true, true, false);
         setColliderProps(entity2, true, true, false);
         updatePhysics(physicsMgr);
@@ -1913,7 +1847,7 @@ describe("Physics Test", () => {
         const collisionTestScript = entity1.addComponent(CollisionTestScript);
 
         // Test that collision not works, both A,B are dynamic.
-        resetSpy();
+        watchCollisionCallbacks(collisionTestScript);
         setColliderProps(entity1, true, false, false);
         setColliderProps(entity2, true, false, false);
         updatePhysics(physicsMgr);
@@ -1936,7 +1870,7 @@ describe("Physics Test", () => {
         const collisionTestScript = entity1.addComponent(CollisionTestScript);
 
         // Test that collision works correctly, both A,B are static and trigger.
-        resetSpy();
+        watchCollisionCallbacks(collisionTestScript);
         setColliderProps(entity1, false, true, false);
         setColliderProps(entity2, false, true, false);
         updatePhysics(physicsMgr);
@@ -1959,7 +1893,7 @@ describe("Physics Test", () => {
         const collisionTestScript = entity1.addComponent(CollisionTestScript);
 
         // Test that collision not works, both A,B are static.
-        resetSpy();
+        watchCollisionCallbacks(collisionTestScript);
         setColliderProps(entity1, false, false, false);
         setColliderProps(entity2, false, false, false);
         updatePhysics(physicsMgr);
@@ -1982,7 +1916,7 @@ describe("Physics Test", () => {
         const collisionTestScript = entity1.addComponent(CollisionTestScript);
 
         // Test that collision works correctly, A is static and B is dynamic.
-        resetSpy();
+        watchCollisionCallbacks(collisionTestScript);
         setColliderProps(entity1, false, false, false);
         setColliderProps(entity2, true, false, false);
         updatePhysics(physicsMgr);
@@ -2005,7 +1939,7 @@ describe("Physics Test", () => {
         const collisionTestScript = entity1.addComponent(CollisionTestScript);
 
         // Test that collision works correctly, A is static and B is dynamic, both A,B are trigger.
-        resetSpy();
+        watchCollisionCallbacks(collisionTestScript);
         setColliderProps(entity1, false, true, false);
         setColliderProps(entity2, true, true, false);
         updatePhysics(physicsMgr);
@@ -2028,7 +1962,7 @@ describe("Physics Test", () => {
         const collisionTestScript = entity1.addComponent(CollisionTestScript);
 
         // Test that collision works correctly, A is static and trigger, B is dynamic.
-        resetSpy();
+        watchCollisionCallbacks(collisionTestScript);
         setColliderProps(entity1, false, true, false);
         setColliderProps(entity2, true, false, false);
         updatePhysics(physicsMgr);
@@ -2051,7 +1985,7 @@ describe("Physics Test", () => {
         const collisionTestScript = entity1.addComponent(CollisionTestScript);
 
         // Test that collision works correctly, A is static, B is dynamic and trigger.
-        resetSpy();
+        watchCollisionCallbacks(collisionTestScript);
         setColliderProps(entity1, false, false, false);
         setColliderProps(entity2, true, true, false);
         updatePhysics(physicsMgr);
@@ -2074,7 +2008,7 @@ describe("Physics Test", () => {
         const collisionTestScript = entity1.addComponent(CollisionTestScript);
 
         // Test that collision works correctly, A is dynamic and trigger, B is dynamic.
-        resetSpy();
+        watchCollisionCallbacks(collisionTestScript);
         setColliderProps(entity1, true, true, false);
         setColliderProps(entity2, true, false, false);
         updatePhysics(physicsMgr);
@@ -2097,7 +2031,7 @@ describe("Physics Test", () => {
         const collisionTestScript = entity1.addComponent(CollisionTestScript);
 
         // Test that collision works correctly, A is static and trigger, B is static.
-        resetSpy();
+        watchCollisionCallbacks(collisionTestScript);
         setColliderProps(entity1, false, true, false);
         setColliderProps(entity2, false, false, false);
         updatePhysics(physicsMgr);
@@ -2120,7 +2054,7 @@ describe("Physics Test", () => {
         const collisionTestScript = entity1.addComponent(CollisionTestScript);
 
         // Test that collision works correctly, A is dynamic and kinematic, B is static.
-        resetSpy();
+        watchCollisionCallbacks(collisionTestScript);
         setColliderProps(entity1, true, false, true);
         setColliderProps(entity2, false, false, false);
         updatePhysics(physicsMgr);
@@ -2143,7 +2077,7 @@ describe("Physics Test", () => {
         const collisionTestScript = entity1.addComponent(CollisionTestScript);
 
         // Test that collision works correctly, A is dynamic, and kinematic, B is dynamic.
-        resetSpy();
+        watchCollisionCallbacks(collisionTestScript);
         setColliderProps(entity1, true, false, true);
         setColliderProps(entity2, true, false, false);
         updatePhysics(physicsMgr);
@@ -2166,7 +2100,7 @@ describe("Physics Test", () => {
         const collisionTestScript = entity1.addComponent(CollisionTestScript);
 
         // Test that collision works correctly, both A,B are dynamic, trigger, kinematic.
-        resetSpy();
+        watchCollisionCallbacks(collisionTestScript);
         setColliderProps(entity1, true, true, true);
         setColliderProps(entity2, true, true, true);
         updatePhysics(physicsMgr);
@@ -2189,7 +2123,7 @@ describe("Physics Test", () => {
         const collisionTestScript = entity1.addComponent(CollisionTestScript);
 
         // Test that collision works correctly, A is static and trigger, B is dynamic and kinematic.
-        resetSpy();
+        watchCollisionCallbacks(collisionTestScript);
         setColliderProps(entity1, false, true, false);
         setColliderProps(entity2, true, false, true);
         updatePhysics(physicsMgr);
@@ -2212,7 +2146,7 @@ describe("Physics Test", () => {
         const collisionTestScript = entity1.addComponent(CollisionTestScript);
 
         // Test that collision works correctly, A is dynamic and trigger, B is dynamic and kinematic.
-        resetSpy();
+        watchCollisionCallbacks(collisionTestScript);
         setColliderProps(entity1, true, true, false);
         setColliderProps(entity2, true, false, true);
         updatePhysics(physicsMgr);
@@ -2235,7 +2169,7 @@ describe("Physics Test", () => {
         const collisionTestScript = entity1.addComponent(CollisionTestScript);
 
         // Test that collision works correctly, both A,B are dynamic, kinematic.
-        resetSpy();
+        watchCollisionCallbacks(collisionTestScript);
         setColliderProps(entity1, true, false, true);
         setColliderProps(entity2, true, false, true);
         updatePhysics(physicsMgr);
@@ -2258,7 +2192,7 @@ describe("Physics Test", () => {
         const collisionTestScript = entity1.addComponent(CollisionTestScript);
 
         // Test that collision works correctly, A is dynamic, trigger and kinematic, B is static and trigger.
-        resetSpy();
+        watchCollisionCallbacks(collisionTestScript);
         setColliderProps(entity1, true, true, true);
         setColliderProps(entity2, false, true, false);
         updatePhysics(physicsMgr);
@@ -2281,7 +2215,7 @@ describe("Physics Test", () => {
         const collisionTestScript = entity1.addComponent(CollisionTestScript);
 
         // Test that collision works correctly, A is dynamic, trigger and kinematic, B is dynamic and trigger.
-        resetSpy();
+        watchCollisionCallbacks(collisionTestScript);
         setColliderProps(entity1, true, true, true);
         setColliderProps(entity2, true, true, false);
         updatePhysics(physicsMgr);
@@ -2300,9 +2234,9 @@ describe("Physics Test", () => {
       enginePhysX.sceneManager.addScene(newScene);
       const root = newScene.createRootEntity("root");
       const characterController = root.addComponent(CharacterController);
-      characterController.addShape(new BoxColliderShape());
+      characterController.geometry = CharacterControllerGeometry.Box;
+      newScene.physics._update(newScene.physics.fixedTimeStep);
       newScene.destroy();
-      expect(characterController.shapes.length).eq(0);
       expect(characterController.destroyed).eq(true);
       expect(newScene.destroyed).eq(true);
     });
@@ -2317,21 +2251,21 @@ describe("Physics Test", () => {
       // Create two dynamic boxes at distance, will be pushed together
       const entityA = root.createChild("boxA");
       entityA.transform.setPosition(-3, 0, 0);
-      const colliderA = entityA.addComponent(DynamicCollider);
-      colliderA.addShape(new BoxColliderShape());
+      const colliderA = entityA.addComponent(Rigidbody);
+      entityA.addComponent(BoxCollider);
 
       const entityB = root.createChild("boxB");
       entityB.transform.setPosition(0, 0, 0);
-      const colliderB = entityB.addComponent(DynamicCollider);
-      colliderB.addShape(new BoxColliderShape());
+      entityB.addComponent(Rigidbody);
+      entityB.addComponent(BoxCollider);
 
       let newEntity: Entity = null;
       const onCollisionEnter = vi.fn(() => {
         // Create a new physics object at the collision point (like 2048 game merge)
         newEntity = root.createChild("newBox");
         newEntity.transform.setPosition(0, 5, 0);
-        const newCollider = newEntity.addComponent(DynamicCollider);
-        newCollider.addShape(new BoxColliderShape());
+        newEntity.addComponent(Rigidbody);
+        newEntity.addComponent(BoxCollider);
 
         // Destroy the colliding objects
         entityA.destroy();
@@ -2351,18 +2285,12 @@ describe("Physics Test", () => {
       // Push A toward B
       colliderA.applyForce(new Vector3(1000, 0, 0));
 
-      // Simulate inside engine frame
-      // @ts-ignore
-      enginePhysX._frameInProcess = true;
-      // @ts-ignore
-      expect(() => physicsMgr._update(1)).not.toThrow();
-      // @ts-ignore
-      enginePhysX._frameInProcess = false;
+      expect(() => updateEnginePhysics(enginePhysX)).not.toThrow();
 
       expect(onCollisionEnter).toHaveBeenCalled();
       expect(newEntity).not.toBeNull();
-      expect(entityA.pendingDestroy).eq(true);
-      expect(entityB.pendingDestroy).eq(true);
+      expect(entityA.destroyed).eq(true);
+      expect(entityB.destroyed).eq(true);
     });
 
     it("new entity created in onCollisionEnter should preserve correct position", () => {
@@ -2373,13 +2301,13 @@ describe("Physics Test", () => {
 
       const entityA = root.createChild("boxA");
       entityA.transform.setPosition(-3, 0, 0);
-      const colliderA = entityA.addComponent(DynamicCollider);
-      colliderA.addShape(new BoxColliderShape());
+      const colliderA = entityA.addComponent(Rigidbody);
+      entityA.addComponent(BoxCollider);
 
       const entityB = root.createChild("boxB");
       entityB.transform.setPosition(0, 0, 0);
-      const colliderB = entityB.addComponent(DynamicCollider);
-      colliderB.addShape(new BoxColliderShape());
+      entityB.addComponent(Rigidbody);
+      entityB.addComponent(BoxCollider);
 
       const targetPos = new Vector3(0, 5, 0);
       let newEntity: Entity = null;
@@ -2390,8 +2318,8 @@ describe("Physics Test", () => {
             if (!entityA.pendingDestroy) {
               newEntity = root.createChild("newBox");
               newEntity.transform.position = targetPos.clone();
-              const newCollider = newEntity.addComponent(DynamicCollider);
-              newCollider.addShape(new BoxColliderShape());
+              newEntity.addComponent(Rigidbody);
+              newEntity.addComponent(BoxCollider);
               entityA.destroy();
               entityB.destroy();
             }
@@ -2401,15 +2329,9 @@ describe("Physics Test", () => {
 
       colliderA.applyForce(new Vector3(1000, 0, 0));
 
-      // @ts-ignore
-      enginePhysX._frameInProcess = true;
-      // @ts-ignore
-      physicsMgr._update(1);
-      // @ts-ignore
-      enginePhysX._frameInProcess = false;
+      updateEnginePhysics(enginePhysX);
 
-      // The key assertion: new entity's position should NOT be overwritten
-      // by _callColliderOnLateUpdate (the bug that was fixed)
+      // The new body's first sync must preserve the position assigned in the callback.
       expect(newEntity).not.toBeNull();
       const pos = newEntity.transform.position;
       expect(pos.x).closeTo(targetPos.x, 0.01);
@@ -2425,13 +2347,13 @@ describe("Physics Test", () => {
 
       const entityA = root.createChild("boxA");
       entityA.transform.setPosition(-3, 0, 0);
-      const colliderA = entityA.addComponent(DynamicCollider);
-      colliderA.addShape(new BoxColliderShape());
+      const colliderA = entityA.addComponent(Rigidbody);
+      entityA.addComponent(BoxCollider);
 
       const entityB = root.createChild("boxB");
       entityB.transform.setPosition(0, 0, 0);
-      const colliderB = entityB.addComponent(DynamicCollider);
-      colliderB.addShape(new BoxColliderShape());
+      entityB.addComponent(Rigidbody);
+      entityB.addComponent(BoxCollider);
 
       const onCollisionEnter = vi.fn(() => {
         entityA.destroy();
@@ -2450,21 +2372,15 @@ describe("Physics Test", () => {
 
       colliderA.applyForce(new Vector3(1000, 0, 0));
 
-      // @ts-ignore
-      enginePhysX._frameInProcess = true;
-      // @ts-ignore
-      expect(() => physicsMgr._update(1)).not.toThrow();
-      // @ts-ignore
-      enginePhysX._frameInProcess = false;
+      expect(() => updateEnginePhysics(enginePhysX)).not.toThrow();
 
       expect(onCollisionEnter).toHaveBeenCalled();
-      expect(entityA.pendingDestroy).eq(true);
-      expect(entityB.pendingDestroy).eq(true);
+      expect(entityA.destroyed).eq(true);
+      expect(entityB.destroyed).eq(true);
     });
 
     // @see https://github.com/galacean/engine/issues/2877
     it("destroy entity in onTriggerEnter should not crash", () => {
-      const physicsMgr = enginePhysX.sceneManager.scenes[0].physics;
       const root = enginePhysX.sceneManager.activeScene.createRootEntity("root");
       const entity1 = root.createChild("triggerA");
       const entity2 = root.createChild("triggerB");
@@ -2473,41 +2389,47 @@ describe("Physics Test", () => {
       setColliderProps(entity1, false, true, false);
       setColliderProps(entity2, true, false, false);
 
-      const onTriggerEnter = vi.fn((other: ColliderShape) => {
+      const onTriggerEnter = vi.fn((other: Collider) => {
         entity2.destroy();
+        expect(entity2.pendingDestroy).toBe(true);
+        expect(entity2.destroyed).toBe(false);
       });
-      const onTriggerEnterB = vi.fn();
+      const onTriggerEnterB = vi.fn((other: Collider, self: Collider) => {
+        expect(other.entity).toBe(entity1);
+        expect(self.entity).toBe(entity2);
+      });
 
       entity1.addComponent(
         class extends Script {
-          onTriggerEnter(other: ColliderShape): void {
+          onTriggerEnter(other: Collider): void {
             onTriggerEnter(other);
           }
         }
       );
       entity2.addComponent(
         class extends Script {
-          onTriggerEnter(other: ColliderShape): void {
-            onTriggerEnterB(other);
+          onTriggerEnter(other: Collider, self: Collider): void {
+            onTriggerEnterB(other, self);
           }
         }
       );
 
-      // Simulate being inside Engine.update() where _frameInProcess = true
-      // @ts-ignore
-      enginePhysX._frameInProcess = true;
-      expect(() => updatePhysics(physicsMgr)).not.toThrow();
-      // @ts-ignore
-      enginePhysX._frameInProcess = false;
+      expect(() => updateEnginePhysics(enginePhysX)).not.toThrow();
 
-      expect(onTriggerEnter).toHaveBeenCalled();
-      expect(entity2.pendingDestroy).eq(true);
-      expect(entity2.destroyed).eq(false);
+      expect(onTriggerEnter).toHaveBeenCalledTimes(1);
+      expect(onTriggerEnterB).toHaveBeenCalledTimes(1);
+      expect(entity2.destroyed).eq(true);
     });
 
     afterEach(() => {
-      const root = enginePhysX.sceneManager.activeScene.findEntityByName("root");
-      root?.destroy();
+      vi.restoreAllMocks();
+      for (const root of enginePhysX.sceneManager.activeScene.rootEntities.slice()) {
+        root.destroy();
+      }
+      for (const scene of enginePhysX.sceneManager.scenes.slice(1)) {
+        scene.destroy();
+      }
+      physicsScene.setColliderLayerCollision(Layer.Layer0, Layer.Layer2, true);
     });
   });
 });
