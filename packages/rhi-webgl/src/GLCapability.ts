@@ -19,12 +19,8 @@ export class GLCapability {
     return this.rhi.renderStates.getParameter(this.rhi.gl.MAX_TEXTURE_SIZE);
   }
 
-  // Some drivers compile or access large joint uniform arrays slowly
   get maxVertexUniformVectors(): number {
-    return Math.min(
-      this.rhi.renderStates.getParameter(this.rhi.gl.MAX_VERTEX_UNIFORM_VECTORS),
-      this.rhi._options._maxAllowSkinUniformVectorCount!
-    );
+    return this.rhi.renderStates.getParameter(this.rhi.gl.MAX_VERTEX_UNIFORM_VECTORS);
   }
 
   get canUseFloatTextureBlendShape(): boolean {
