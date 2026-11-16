@@ -796,7 +796,10 @@ describe.each(runtimeModes)("PhysicsMaterial (%s)", (runtimeMode) => {
     expect(boxEntity2.transform.position.z).closeTo(0, 0.001);
   });
 
-  it("frictionCombine Multiply staticFriction", () => {
+  it.each([
+    [10, 200],
+    [100, 20]
+  ])("frictionCombine Multiply staticFriction (%s × %s)", (boxFriction, groundFriction) => {
     const boxEntity = addBox(new Vector3(1, 1, 1), DynamicCollider, new Vector3(0, 0, 0));
     const ground = addPlane(0, -0.5, 0);
     const collider = boxEntity.getComponent(DynamicCollider);
@@ -805,29 +808,19 @@ describe.each(runtimeModes)("PhysicsMaterial (%s)", (runtimeMode) => {
     collider.automaticInertiaTensor = false;
     collider.inertiaTensor.set(10000000, 10000000, 10000000);
 
-    collider.shapes[0].getInstanceMaterial(engine).frictionCombine = PhysicsMaterialCombineMode.Multiply;
-
-    collider.shapes[0].getInstanceMaterial(engine).staticFriction = 10;
-    ground.getComponent(StaticCollider).shapes[0].getInstanceMaterial(engine).staticFriction = 200;
+    const material = collider.shapes[0].getInstanceMaterial(engine);
+    material.frictionCombine = PhysicsMaterialCombineMode.Multiply;
+    material.staticFriction = boxFriction;
+    ground.getComponent(StaticCollider).shapes[0].getInstanceMaterial(engine).staticFriction = groundFriction;
 
     collider.applyForce(new Vector3(0, 0, 1000));
-    // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1);
     expect(boxEntity.transform.position.z).closeTo(0, 0.001);
 
-    boxEntity.isActive = false;
-    const boxEntity2 = addBox(new Vector3(1, 1, 1), DynamicCollider, new Vector3(0, 0, 0));
-    const collider2 = boxEntity2.getComponent(DynamicCollider);
-
-    collider2.shapes[0].getInstanceMaterial(engine).frictionCombine = PhysicsMaterialCombineMode.Multiply;
-
-    collider2.shapes[0].getInstanceMaterial(engine).staticFriction = 100;
-    ground.getComponent(StaticCollider).shapes[0].getInstanceMaterial(engine).staticFriction = 20;
-
+    material.staticFriction = 0;
     collider.applyForce(new Vector3(0, 0, 1000));
-    // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1);
-    expect(boxEntity.transform.position.z).closeTo(0, 0.001);
+    expect(boxEntity.transform.position.z).greaterThan(10);
   });
 
   it("frictionCombine Average DynamicFriction", () => {
