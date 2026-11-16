@@ -1,10 +1,21 @@
 import { Quaternion, Vector3 } from "@galacean/engine-math";
 import { ICollider } from "./ICollider";
+import { IColliderShape } from "./shape";
 
 /**
  * Interface of physics dynamic collider.
  */
 export interface IDynamicCollider extends ICollider {
+  /**
+   * Atomically replace an attached shape with the same logical identity.
+   * @param previousShape - The currently attached shape
+   * @param newShape - The replacement shape
+   * @param layer - Collision layer index, from 0 to 31
+   * @returns Whether the replacement succeeded
+   * @remarks On failure, returns false and leaves the previous shape and its event state unchanged.
+   */
+  replaceShape(previousShape: IColliderShape, newShape: IColliderShape, layer: number): boolean;
+
   /**
    * Set global transform of collider.
    * @param position - The global position

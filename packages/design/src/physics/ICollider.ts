@@ -8,8 +8,10 @@ export interface ICollider {
    * Attaches a shape and initializes its collision layer.
    * @param shape - Shape to attach
    * @param layer - Collision layer index, from 0 to 31
+   * @returns Whether the shape was accepted
+   * @remarks On failure, returns false and leaves the collider unchanged.
    */
-  addShape(shape: IColliderShape, layer: number): void;
+  addShape(shape: IColliderShape, layer: number): boolean;
 
   /**
    * Remove collider shape on collider.
