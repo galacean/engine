@@ -1,0 +1,19 @@
+packages/rhi-webgl/src/WebGLEngine.ts
+  s_da48a1c3cefcb7::t_0147f3b4ccd5f5 136
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "0ef8c117afd36118fc5748b912097d5d953be0ec",
+  "prompts": {},
+  "sessions": {
+    "s_da48a1c3cefcb7": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1524d-29ee-7280-8621-925d13a5c914",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}
