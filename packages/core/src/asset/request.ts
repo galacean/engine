@@ -40,10 +40,15 @@ export function request<T>(url: string, config: RequestConfig = {}): AssetPromis
     let currentRequest: AssetPromise<T>;
     const retryCount = config.retryCount ?? defaultRetryCount;
     const retryInterval = config.retryInterval ?? defaultInterval;
-    config.timeout = config.timeout ?? defaultTimeout;
-    config.type = config.type ?? getMimeTypeFromUrl(url);
+    const normalizedConfig: RequestConfig = {
+      ...config,
+      timeout: config.timeout ?? defaultTimeout,
+      type: config.type ?? getMimeTypeFromUrl(url)
+    };
+    const send = typeof XMLHttpRequest === "undefined" ? requestWithFetch : requestWithXHR;
     const executor = new MultiExecutor(
-      () => (currentRequest = requestRes<T>(url, config).onProgress(setTaskCompleteProgress, setTaskDetailProgress)),
+      () =>
+        (currentRequest = send<T>(url, normalizedConfig).onProgress(setTaskCompleteProgress, setTaskDetailProgress)),
       retryCount,
       retryInterval
     );
@@ -55,14 +60,13 @@ export function request<T>(url: string, config: RequestConfig = {}): AssetPromis
   });
 }
 
-function requestRes<T>(url: string, config: RequestConfig): AssetPromise<T> {
-  if (typeof XMLHttpRequest === "undefined") return requestWithFetch<T>(url, config);
+function requestWithXHR<T>(url: string, config: RequestConfig): AssetPromise<T> {
   return new AssetPromise((resolve, reject, setTaskCompleteProgress, setTaskDetailProgress, onCancel) => {
     const xhr = new XMLHttpRequest();
     onCancel(() => xhr.abort());
     const isImg = config.type === "image";
     xhr.timeout = config.timeout!;
-    config.method = config.method ?? "get";
+    const method = config.method ?? "get";
     xhr.withCredentials = config.credentials === "include";
     // @ts-ignore
     xhr.responseType = isImg ? "blob" : config.type;
@@ -117,7 +121,7 @@ function requestRes<T>(url: string, config: RequestConfig): AssetPromise<T> {
         setTaskDetailProgress(url, e.loaded, e.total);
       }
     };
-    xhr.open(config.method, url, true);
+    xhr.open(method, url, true);
     const headers = config.headers;
     if (headers) {
       Object.keys(headers).forEach((name) => {
@@ -131,48 +135,33 @@ function requestRes<T>(url: string, config: RequestConfig): AssetPromise<T> {
 
 function requestWithFetch<T>(url: string, config: RequestConfig): AssetPromise<T> {
   return new AssetPromise((resolve, reject, setTaskCompleteProgress, _setTaskDetailProgress, onCancel) => {
-    if (config.type === "image" || config.type === "document") {
-      reject(new Error(`Request type "${config.type}" requires a browser decoder.`));
+    const { type, retryCount: _r, retryInterval: _i, timeout, signal, ...init } = config;
+    if (type === "image" || type === "document") {
+      reject(new Error(`Request type "${type}" requires a browser decoder.`));
       return;
     }
     const controller = new AbortController();
-    const signal = config.signal;
     const abort = () => controller.abort();
-    if (signal?.aborted) abort();
-    signal?.addEventListener("abort", abort, { once: true });
     onCancel(abort);
-    const timeout = Number.isFinite(config.timeout) ? setTimeout(abort, config.timeout) : undefined;
-    const type = config.type;
-    const options = { ...config };
-    delete options.type;
-    delete options.retryCount;
-    delete options.retryInterval;
-    delete options.timeout;
-    fetch(url, { ...options, signal: controller.signal })
-      .then(async (response) => {
-        if (!response.ok) throw new Error(`Request failed from: ${url} (${response.status})`);
-        let result: unknown;
-        switch (type) {
-          case "arraybuffer":
-            result = await response.arrayBuffer();
-            break;
-          case "blob":
-            result = await response.blob();
-            break;
-          case "json":
-            result = await response.json();
-            break;
-          default:
-            result = await response.text();
-        }
+    const timer = Number.isFinite(timeout) ? setTimeout(abort, timeout) : undefined;
+    fetch(url, { ...init, signal: signal ? AbortSignal.any([controller.signal, signal]) : controller.signal })
+      .then(async (res) => {
+        if (!res.ok) throw new Error(`Request failed from: ${url} (${res.status})`);
+        const result =
+          type === "arraybuffer"
+            ? await res.arrayBuffer()
+            : type === "blob"
+              ? await res.blob()
+              : type === "json"
+                ? await res.json()
+                : await res.text();
         setTaskCompleteProgress(1, 1);
         return result as T;
       })
       .finally(() => {
-        // A rejected response may still own an unread body and connection
+        // A rejected response may still own an unread body and connection.
         abort();
-        clearTimeout(timeout);
-        signal?.removeEventListener("abort", abort);
+        clearTimeout(timer);
       })
       .then(resolve, reject);
   });
