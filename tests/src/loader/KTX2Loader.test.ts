@@ -1,7 +1,7 @@
 import { GLCapabilityType, Texture2D, TextureFormat } from "@galacean/engine-core";
-import { KTX2Loader } from "@galacean/engine-loader";
+import { KTX2Loader, KTX2TargetFormat } from "@galacean/engine-loader";
 import { WebGLEngine } from "@galacean/engine";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
 let engine: WebGLEngine;
 
@@ -39,6 +39,8 @@ beforeAll(async function () {
   texture2dKtx2Url = URL.createObjectURL(blob) + "#.ktx2";
 });
 describe("ktx2 Loader test", function () {
+  afterEach(() => vi.restoreAllMocks());
+
   it("init and destroy test", async () => {
     // @ts-ignore
     const transcoder = KTX2Loader._khronosTranscoder ?? KTX2Loader._binomialLLCTranscoder;
@@ -57,10 +59,7 @@ describe("ktx2 Loader test", function () {
   });
 
   it("astc transcoder", async () => {
-    // @ts-ignore
-    engine._hardwareRenderer.canIUse = (cap: GLCapabilityType) => {
-      return cap === GLCapabilityType.astc;
-    };
+    vi.spyOn(engine._hardwareRenderer.capability, "canIUse").mockImplementation((cap) => cap === GLCapabilityType.astc);
     const texture2d = await engine.resourceManager.load<Texture2D>(texture2dKtx2Url);
     expect(texture2d.width).to.be.equal(32);
     expect(texture2d.height).to.be.equal(32);
@@ -73,10 +72,9 @@ describe("ktx2 Loader test", function () {
   });
 
   it("pvrtc transcoder", async () => {
-    // @ts-ignore
-    engine._hardwareRenderer.canIUse = (cap: GLCapabilityType) => {
-      return cap === GLCapabilityType.pvrtc;
-    };
+    vi.spyOn(engine._hardwareRenderer.capability, "canIUse").mockImplementation(
+      (cap) => cap === GLCapabilityType.pvrtc
+    );
     const texture2d = await engine.resourceManager.load<Texture2D>(texture2dKtx2Url);
     expect(texture2d.width).to.be.equal(32);
     expect(texture2d.height).to.be.equal(32);
@@ -88,16 +86,38 @@ describe("ktx2 Loader test", function () {
   });
 
   it("dxt transcoder", async () => {
-    // @ts-ignore
-    engine._hardwareRenderer.canIUse = (cap: GLCapabilityType) => {
-      return cap === GLCapabilityType.s3tc_srgb;
-    };
+    vi.spyOn(engine._hardwareRenderer.capability, "canIUse").mockImplementation(
+      (cap) => cap === GLCapabilityType.s3tc_srgb
+    );
     const texture2d = await engine.resourceManager.load<Texture2D>(texture2dKtx2Url);
     expect(texture2d.width).to.be.equal(32);
     expect(texture2d.height).to.be.equal(32);
     expect(texture2d.mipmapCount).to.be.equal(6);
     expect(texture2d.format).to.be.equal(TextureFormat.BC1);
     texture2d.destroy();
+  });
+
+  it("skips unmapped formats and requires the HDR profile for ASTC HDR", () => {
+    const { capability } = engine._hardwareRenderer;
+    const detected = capability.canIUse.bind(capability);
+    const canIUse = vi.spyOn(capability, "canIUse");
+    const priorities = [
+      KTX2TargetFormat.R8,
+      KTX2TargetFormat.R8G8,
+      KTX2TargetFormat.ASTC_HDR_4x4,
+      KTX2TargetFormat.R16G16B16A16,
+      KTX2TargetFormat.R8G8B8A8
+    ];
+    const select = (isSRGB: boolean) => KTX2Loader["_detectSupportedFormat"](engine, priorities, isSRGB);
+    canIUse.mockImplementation(
+      (cap) => cap !== GLCapabilityType.astc_hdr && (cap === GLCapabilityType.astc || detected(cap))
+    );
+    expect(select(false)).toBe(KTX2TargetFormat.R16G16B16A16);
+    canIUse.mockImplementation(
+      (cap) => cap === GLCapabilityType.astc || cap === GLCapabilityType.astc_hdr || detected(cap)
+    );
+    expect(select(false)).toBe(KTX2TargetFormat.ASTC_HDR_4x4);
+    expect(select(true)).toBe(KTX2TargetFormat.R8G8B8A8);
   });
 });
 

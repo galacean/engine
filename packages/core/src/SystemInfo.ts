@@ -120,11 +120,13 @@ export class SystemInfo {
   }
 
   /**
-   * Checks whether the system supports the given texture format.
+   * Checks whether the renderer supports storing textures in the given format.
+   * @param engine - Engine whose renderer is queried
    * @param format - The texture format
-   * @returns Whether support the texture format
+   * @param isSRGBColorSpace - Whether to query sRGB storage instead of linear storage
+   * @returns Whether the requested texture format is supported
    */
-  static supportsTextureFormat(engine: Engine, format: TextureFormat): boolean {
-    return true;
+  static supportsTextureFormat(engine: Engine, format: TextureFormat, isSRGBColorSpace = false): boolean {
+    return engine._hardwareRenderer.supportsTextureFormat(format, isSRGBColorSpace);
   }
 }

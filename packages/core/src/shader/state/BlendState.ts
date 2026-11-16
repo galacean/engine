@@ -1,8 +1,8 @@
+import { GLCapabilityType } from "../../base/Constant";
 import { DataObject } from "../../base/DataObject";
 import { IHardwareRenderer } from "@galacean/engine-design";
 import { Color } from "@galacean/engine-math";
 import { RenderStateElementMap } from "../../BasicResources";
-import { GLCapabilityType } from "../../base/Constant";
 import { ShaderData } from "../ShaderData";
 import { ShaderProperty } from "../ShaderProperty";
 import { BlendFactor } from "../enums/BlendFactor";
@@ -51,6 +51,12 @@ export class BlendState extends DataObject {
   }
 
   private static _getGLBlendOperation(rhi: IHardwareRenderer, blendOperation: BlendOperation): number {
+    if (
+      (blendOperation === BlendOperation.Min || blendOperation === BlendOperation.Max) &&
+      !rhi.canIUse(GLCapabilityType.minMaxBlend)
+    ) {
+      throw new Error(`BlendOperation.${BlendOperation[blendOperation]} is not supported in this context`);
+    }
     const gl = rhi.gl;
 
     switch (blendOperation) {

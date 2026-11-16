@@ -1,5 +1,4 @@
 import {
-  GLCapabilityType,
   IPlatformRenderTarget,
   RenderTarget,
   Texture,
@@ -8,6 +7,7 @@ import {
   TextureFormat
 } from "@galacean/engine-core";
 import { GLTexture } from "./GLTexture";
+import type { TextureFormatDetail } from "./type";
 import { WebGLGraphicDevice } from "./WebGLGraphicDevice";
 
 /**
@@ -15,10 +15,10 @@ import { WebGLGraphicDevice } from "./WebGLGraphicDevice";
  */
 export class GLRenderTarget implements IPlatformRenderTarget {
   private _gl: WebGLRenderingContext & WebGL2RenderingContext;
-  private _rhi: WebGLGraphicDevice;
   private _target: RenderTarget;
   private _frameBuffer: WebGLFramebuffer | null;
   private _MSAAFrameBuffer: WebGLFramebuffer | null;
+  private _depthRenderBufferFormat: TextureFormatDetail | undefined;
   private _depthRenderBuffer: WebGLRenderbuffer | null;
   private _MSAAColorRenderBuffers: (WebGLRenderbuffer | null)[] = [];
   private _MSAADepthRenderBuffer: WebGLRenderbuffer | null;
@@ -32,7 +32,6 @@ export class GLRenderTarget implements IPlatformRenderTarget {
    */
   constructor(rhi: WebGLGraphicDevice, target: RenderTarget) {
     this._gl = rhi.gl as WebGLRenderingContext & WebGL2RenderingContext;
-    this._rhi = rhi;
     this._target = target;
 
     /** @ts-ignore */
@@ -44,18 +43,18 @@ export class GLRenderTarget implements IPlatformRenderTarget {
      * MRT + MSAA
      */
 
+    if (_colorTextures.length > 1 && _colorTextures.length > rhi.capability.maxDrawBuffers) {
+      throw new Error("MRT is not supported for this number of color attachments.");
+    }
+
     for (let i = 0, n = _colorTextures.length; i < n; i++) {
       const { format, isSRGBColorSpace } = _colorTextures[i];
-      if (!GLTexture._supportRenderBufferColorFormat(format, rhi)) {
+      if (!rhi._supportsColorAttachment(format)) {
         throw new Error(`TextureFormat is not supported:${TextureFormat[format]} in RenderTarget`);
       }
       if (isSRGBColorSpace && format === TextureFormat.R8G8B8) {
         throw new Error(`If you want to use sRGB color space, only R8G8B8A8 format is supported in RenderTarget`);
       }
-    }
-
-    if (!isDepthTexture && _depth !== null && !GLTexture._supportRenderBufferDepthFormat(_depth, rhi)) {
-      throw new Error(`TextureFormat is not supported:${TextureFormat[_depth]} in RenderTarget`);
     }
 
     if (_colorTextures.some((v: Texture) => v.width !== width || v.height !== height)) {
@@ -69,6 +68,10 @@ export class GLRenderTarget implements IPlatformRenderTarget {
     // todo: necessary to support MRT + Cube + [,MSAA] ?
     if (_colorTextures.length > 1 && _colorTextures.some((v: Texture) => v instanceof TextureCube)) {
       throw new Error("MRT+Cube+[,MSAA] is not supported");
+    }
+
+    if (_depth !== null && !isDepthTexture) {
+      this._depthRenderBufferFormat = GLTexture._getRenderBufferDepthFormatDetail(_depth, this._gl, rhi);
     }
 
     this._frameBuffer = this._gl.createFramebuffer();
@@ -125,9 +128,8 @@ export class GLRenderTarget implements IPlatformRenderTarget {
         );
       }
     } else {
-      if (mipChanged) {
-        // @ts-ignore
-        const { internalFormat } = GLTexture._getRenderBufferDepthFormatDetail(target._depth, gl, this._rhi);
+      if (mipChanged && this._depthRenderBufferFormat) {
+        const { internalFormat } = this._depthRenderBufferFormat;
         gl.bindRenderbuffer(gl.RENDERBUFFER, this._depthRenderBuffer);
         gl.renderbufferStorage(gl.RENDERBUFFER, internalFormat, target.width >> mipLevel, target.height >> mipLevel);
       }
@@ -236,7 +238,7 @@ export class GLRenderTarget implements IPlatformRenderTarget {
           );
         }
       } else if (this._target.antiAliasing <= 1) {
-        const { internalFormat, attachment } = GLTexture._getRenderBufferDepthFormatDetail(_depth, gl, this._rhi);
+        const { internalFormat, attachment } = this._depthRenderBufferFormat!;
         this._depthRenderBuffer = this._createRenderBuffer(internalFormat, attachment!);
       }
     }
@@ -270,7 +272,7 @@ export class GLRenderTarget implements IPlatformRenderTarget {
       const { internalFormat, attachment } =
         _depth instanceof Texture
           ? (_depth._platformTexture as GLTexture)._formatDetail
-          : GLTexture._getRenderBufferDepthFormatDetail(_depth, gl, this._rhi);
+          : this._depthRenderBufferFormat!;
 
       this._MSAADepthRenderBuffer = this._createRenderBuffer(internalFormat, attachment!);
     }

@@ -1,5 +1,4 @@
 import { WebGLGraphicDevice } from "./WebGLGraphicDevice";
-import { GLCapabilityType } from "@galacean/engine-core";
 
 /**
  * GLContext extension.
@@ -16,7 +15,7 @@ export class GLExtensions {
   /**
    * Require an extension.
    */
-  requireExtension(ext: GLCapabilityType) {
+  requireExtension(ext: string) {
     if (this._requireResult[ext] !== undefined) {
       return this._requireResult[ext];
     }

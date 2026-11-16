@@ -1,4 +1,5 @@
 import { Rand, Vector2, Vector3 } from "@galacean/engine-math";
+import { GLCapabilityType } from "../../base/Constant";
 import { ignoreClone } from "../../clone/CloneDecorators";
 import { ShaderData, ShaderMacro } from "../../shader";
 import { ShaderProperty } from "../../shader/ShaderProperty";
@@ -258,6 +259,8 @@ export class LimitVelocityOverLifetimeModule extends ParticleGeneratorModule {
   }
 
   override set enabled(value: boolean) {
+    if (value && !this._generator._renderer.engine._hardwareRenderer.canIUse(GLCapabilityType.transformFeedback))
+      return;
     if (value !== this._enabled) {
       this._enabled = value;
       this._generator._setTransformFeedback();

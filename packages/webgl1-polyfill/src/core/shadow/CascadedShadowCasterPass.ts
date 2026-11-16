@@ -3,7 +3,6 @@ import {
   CascadedShadowCasterPass as CoreCascadedShadowCasterPass,
   type CascadedShadowCasterPass as HostShadowPass,
   type Engine,
-  GLCapabilityType,
   PipelineUtils,
   type RenderTarget,
   type Texture,
@@ -12,6 +11,7 @@ import {
   TextureWrapMode
 } from "@galacean/engine-core";
 import { Mixin, Overwrite, Shadow } from "@/override";
+import { WebGL1Extension } from "../../rhi-webgl/WebGL1Extension";
 
 @Mixin("CascadedShadowCasterPass")
 export class CascadedShadowCasterPass {
@@ -23,14 +23,14 @@ export class CascadedShadowCasterPass {
 
   @Overwrite
   _getShadowFormat() {
-    return this.engine._hardwareRenderer.canIUse(GLCapabilityType.depthTexture)
+    return this.engine._hardwareRenderer.requireExtension(WebGL1Extension.depthTexture)
       ? TextureFormat.Depth16
       : TextureFormat.R8G8B8A8;
   }
   @Overwrite
   _prepareShadowMap(context: Parameters<HostShadowPass["onRender"]>[0]) {
     const shadow = CoreCascadedShadowCasterPass;
-    const depth = this.engine._hardwareRenderer.canIUse(GLCapabilityType.depthTexture);
+    const depth = this.engine._hardwareRenderer.requireExtension(WebGL1Extension.depthTexture);
     const { z: width, w: height } = this._shadowMapSize;
     const target = PipelineUtils.recreateRenderTargetIfNeeded(
       this.engine,

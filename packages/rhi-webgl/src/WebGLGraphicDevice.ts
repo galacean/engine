@@ -22,7 +22,9 @@ import {
   Texture2DArray,
   TextureCube,
   TextureCubeFace,
-  TextureFormat
+  TextureFormat,
+  TextureUtils,
+  TextureWrapMode
 } from "@galacean/engine-core";
 import { IHardwareRenderer, IPlatformPrimitive, IPlatformShaderProgram } from "@galacean/engine-design";
 import { Color, Vector4 } from "@galacean/engine-math";
@@ -133,10 +135,6 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
 
   get capability(): GLCapability {
     return this._capability;
-  }
-
-  get canIUseMoreJoints() {
-    return this.capability.canIUseMoreJoints;
   }
 
   constructor(initializeOptions: WebGLGraphicDeviceOptions = {}) {
@@ -325,7 +323,7 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     }
   }
 
-  requireExtension(ext) {
+  requireExtension(ext: string) {
     return this._extensions.requireExtension(ext);
   }
 
@@ -335,6 +333,57 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
 
   canIUseCompressedTextureInternalFormat(type: number) {
     return this.capability.canIUseCompressedTextureInternalFormat(type);
+  }
+
+  /**
+   * Check whether a texture storage format is supported.
+   * @param format - Texture format to query
+   * @param isSRGBColorSpace - Whether to query sRGB storage
+   * @returns Whether the requested format is supported
+   */
+  supportsTextureFormat(format: TextureFormat, isSRGBColorSpace: boolean): boolean {
+    if (isSRGBColorSpace) {
+      if (!TextureUtils.supportSRGB(format)) return false;
+      if (
+        (format === TextureFormat.R8G8B8 || format === TextureFormat.R8G8B8A8) &&
+        !this.canIUse(GLCapabilityType.sRGBTexture)
+      )
+        return false;
+    }
+    return this._supportsTextureStorage(format, isSRGBColorSpace);
+  }
+
+  /** @internal */
+  _supportsTextureStorage(format: TextureFormat, isSRGBColorSpace: boolean): boolean {
+    const gl = this._gl as WebGLRenderingContext & WebGL2RenderingContext;
+    const srgb = isSRGBColorSpace && TextureUtils.supportSRGB(format);
+    const detail = GLTexture._findFormatDetail(format, srgb, gl, this);
+    return !!detail && (!detail.isCompressed || this.canIUseCompressedTextureInternalFormat(detail.internalFormat));
+  }
+
+  /** @internal */
+  _supportsColorAttachment(format: TextureFormat): boolean {
+    return GLTexture._supportRenderBufferColorFormat(format, this);
+  }
+
+  /** @internal */
+  _resolveFramebufferMipLevel(mipLevel: number): number {
+    return mipLevel;
+  }
+
+  /** @internal */
+  _resolveTextureMipmaps(mipmap: boolean, _width: number, _height: number): boolean {
+    return mipmap;
+  }
+
+  /** @internal */
+  _resolveTextureWrapMode(mode: TextureWrapMode, _width: number, _height: number): TextureWrapMode {
+    return mode;
+  }
+
+  /** @internal */
+  _supportsGenerateMipmaps(_width: number, _height: number, format: TextureFormat, isSRGBColorSpace: boolean): boolean {
+    return !isSRGBColorSpace || !TextureUtils.supportSRGB(format) || format === TextureFormat.R8G8B8A8;
   }
 
   viewport(x: number, y: number, width: number, height: number): void {

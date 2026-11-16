@@ -1,13 +1,17 @@
-import type { GLCapabilityType } from "@galacean/engine-core";
+import { GLCapabilityType } from "@galacean/engine-core";
 import type { WebGLGraphicDevice } from "@galacean/engine-rhi-webgl";
-type GLCapability = WebGLGraphicDevice["capability"];
-type CapabilityType = GLCapabilityType;
-type CapabilityTypes = typeof GLCapabilityType;
+import { WebGL1Extension } from "./WebGL1Extension";
+
+type GLCapability = Pick<WebGLGraphicDevice["capability"], "rhi" | "maxDrawBuffers">;
 
 /** Adapt extension entry points and constants on the existing device context. */
-export function adaptContext(capability: GLCapability, types: CapabilityTypes): void {
+export function adaptContext(capability: GLCapability): void {
   const { rhi } = capability;
   patchBufferSubData(rhi.gl);
+  // These extensions enable GL behavior without adding an entry point to adapt.
+  rhi.requireExtension(WebGL1Extension.elementIndexUint);
+  rhi.requireExtension(WebGL1Extension.textureHalfFloatLinear);
+  rhi.requireExtension(WebGL1Extension.fragDepth);
   const { gl } = rhi;
   const {
     blendMinMax,
@@ -16,11 +20,10 @@ export function adaptContext(capability: GLCapability, types: CapabilityTypes): 
     instancedArrays,
     drawBuffers,
     textureHalfFloat,
-    colorBufferHalfFloat,
-    WEBGL_colorBufferFloat,
+    colorBufferFloat,
     sRGB
-  } = types;
-  function mapExtension(type: CapabilityType, names: Record<string, string>): void {
+  } = WebGL1Extension;
+  function mapExtension(type: string, names: Record<string, string>): void {
     const extension = rhi.requireExtension(type);
     if (!extension) return;
     const context = gl as unknown as Record<string, any>;
@@ -52,7 +55,7 @@ export function adaptContext(capability: GLCapability, types: CapabilityTypes): 
     MAX_DRAW_BUFFERS: "MAX_DRAW_BUFFERS_WEBGL"
   });
   const items: Record<string, string> = {};
-  if (capability.canIUse(drawBuffers)) {
+  if (rhi.requireExtension(drawBuffers)) {
     const maxDrawBuffers = capability.maxDrawBuffers;
     for (let i = 0; i < maxDrawBuffers; i++) {
       i != 0 && (items[`COLOR_ATTACHMENT${i}`] = `COLOR_ATTACHMENT${i}_WEBGL`);
@@ -66,10 +69,10 @@ export function adaptContext(capability: GLCapability, types: CapabilityTypes): 
   mapExtension(textureHalfFloat, {
     HALF_FLOAT: "HALF_FLOAT_OES"
   });
-  mapExtension(colorBufferHalfFloat, {
+  mapExtension(GLCapabilityType.colorBufferHalfFloat, {
     RGBA16F: "RGBA16F_EXT"
   });
-  mapExtension(WEBGL_colorBufferFloat, {
+  mapExtension(colorBufferFloat, {
     RGBA32F: "RGBA32F_EXT"
   });
   mapExtension(sRGB, {

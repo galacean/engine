@@ -9,7 +9,7 @@ import {
 import { expect, it } from "vitest";
 import { createEngine } from "../helpers/createEngine";
 
-it("routes static methods and instance setters according to the owning device", async () => {
+it("routes format queries and instance setters according to the owning device", async () => {
   const { engine: legacy } = await createEngine();
   try {
     const native = await WebGLEngine.create({ canvas: document.createElement("canvas") });

@@ -7,6 +7,7 @@ import { BackgroundTextureFillMode } from "../enums/BackgroundTextureFillMode";
 import { CameraClearFlags } from "../enums/CameraClearFlags";
 import { DepthTextureMode } from "../enums/DepthTextureMode";
 import { ReplacementFailureStrategy } from "../enums/ReplacementFailureStrategy";
+import { AmbientOcclusion } from "../lighting/ambientOcclusion/AmbientOcclusion";
 import { ScalableAmbientObscurancePass } from "../lighting/ambientOcclusion/ScalableAmbientObscurancePass";
 import { FinalPass } from "../postProcess";
 import { Shader } from "../shader/Shader";
@@ -43,12 +44,11 @@ export class BasicRenderPipeline {
 
   private _internalColorTarget: RenderTarget | null = null;
   private _cascadedShadowCasterPass: CascadedShadowCasterPass;
-  private _depthOnlyPass: DepthOnlyPass;
-  private _saoPass: ScalableAmbientObscurancePass;
+  private _depthOnlyPass: DepthOnlyPass | null;
+  private _saoPass: ScalableAmbientObscurancePass | null;
   private _opaqueTexturePass: OpaqueTexturePass;
   private _finalPass: FinalPass;
   private _copyBackgroundTexture: Texture2D | null;
-  private _canUseBlitFrameBuffer = false;
   private _shouldCopyBackgroundColor = false;
 
   /**
@@ -61,8 +61,12 @@ export class BasicRenderPipeline {
     const shaders = Engine._builtinShaders;
     this._cullingResults = new CullingResults();
     this._cascadedShadowCasterPass = new CascadedShadowCasterPass(camera);
-    this._depthOnlyPass = new DepthOnlyPass(engine);
-    this._saoPass = new ScalableAmbientObscurancePass(engine, shaders.scalableAmbientOcclusion);
+    const rhi = engine._hardwareRenderer;
+    const supportsDepthPrepass = rhi.supportsTextureFormat(TextureFormat.Depth16, false);
+    this._depthOnlyPass = supportsDepthPrepass ? new DepthOnlyPass(engine) : null;
+    this._saoPass = AmbientOcclusion._isSupported(engine)
+      ? new ScalableAmbientObscurancePass(engine, shaders.scalableAmbientOcclusion)
+      : null;
     this._opaqueTexturePass = new OpaqueTexturePass(engine);
     this._finalPass = new FinalPass(engine, shaders.finalSRGB, shaders.finalAntiAliasing);
   }
@@ -102,32 +106,22 @@ export class BasicRenderPipeline {
     const { engine, renderTarget } = camera;
     const scene = camera.scene!;
     const independentCanvasEnabled = camera._isIndependentCanvasEnabled();
-    const rhi = engine._hardwareRenderer;
     const cullingResults = this._cullingResults;
     const sunlight = scene._lightManager._sunlight;
     const depthOnlyPass = this._depthOnlyPass;
-    const ambientOcclusionEnabled = scene.ambientOcclusion._isValid();
-    const supportDepthTexture = depthOnlyPass.supportDepthTexture;
-
-    // Ambient occlusion enable will force enable depth prepass
+    const saoPass = this._saoPass;
+    const ambientOcclusionEnabled = !!saoPass && scene.ambientOcclusion._isValid();
     const depthPassEnabled =
-      (camera.depthTextureMode === DepthTextureMode.PrePass || ambientOcclusionEnabled) && supportDepthTexture;
+      !!depthOnlyPass && (camera.depthTextureMode === DepthTextureMode.PrePass || ambientOcclusionEnabled);
     const finalClearFlags = camera.clearFlags & ~(ignoreClear ?? CameraClearFlags.None);
     const msaaSamples = renderTarget ? renderTarget.antiAliasing : camera.msaaSamples;
-
-    // Check whether can use `blitFramebuffer` to blit internal render target, source maybe screen canvas or camera's render target
-    // Our screen canvas's anti-aliasing is always disable, so blit source and dest is always same by below rules:
-    // 1. Only support blitFramebuffer in webgl2 context
-    // 2. Can't blit normal FBO to MSAA FBO
-    // 3. Can't blit screen MSAA FBO to normal FBO in mac safari platform and mobile, but mac chrome and firfox is OK
-    this._canUseBlitFrameBuffer = msaaSamples === 1;
 
     // Because internal render target is linear color space, so we should convert srgb background color to linear color space
     const isSRGBBackground = !renderTarget || renderTarget.getColorTexture(0)!.isSRGBColorSpace;
     this._shouldCopyBackgroundColor =
       independentCanvasEnabled &&
       !(finalClearFlags & CameraClearFlags.Color) &&
-      (!this._canUseBlitFrameBuffer || isSRGBBackground);
+      this._needsBackgroundColorCopy(msaaSamples, isSRGBBackground);
 
     if (scene.castShadows && sunlight && sunlight.shadowType !== ShadowType.None) {
       this._cascadedShadowCasterPass.onRender(context);
@@ -148,7 +142,7 @@ export class BasicRenderPipeline {
       depthOnlyPass.onConfig(camera);
       depthOnlyPass.onRender(context, cullingResults);
     } else {
-      depthOnlyPass.release();
+      depthOnlyPass?.release();
       camera.shaderData.setTexture(Camera._cameraDepthTextureProperty, engine._basicResources.whiteTexture2D);
     }
 
@@ -156,24 +150,12 @@ export class BasicRenderPipeline {
 
     // Check if need to create internal color texture or grab texture
     if (independentCanvasEnabled) {
-      let depthFormat: TextureFormat | null;
-      if (camera.renderTarget) {
-        depthFormat = camera.renderTarget._depthFormat;
-      } else if (rhi._options.depth && rhi._options.stencil) {
-        depthFormat = TextureFormat.Depth24Stencil8;
-      } else if (rhi._options.depth) {
-        depthFormat = TextureFormat.Depth24;
-      } else if (rhi._options.stencil) {
-        depthFormat = TextureFormat.Stencil;
-      } else {
-        depthFormat = null;
-      }
       const viewport = camera.pixelViewport;
       this._internalColorTarget = pool.allocateRenderTarget(
         viewport.width,
         viewport.height,
         camera._getInternalColorTextureFormat(),
-        depthFormat,
+        this._getInternalDepthFormat(),
         false,
         false,
         !camera.enableHDR,
@@ -198,12 +180,11 @@ export class BasicRenderPipeline {
 
     // Scalable ambient obscurance pass
     // Before opaque pass so materials can sample ambient occlusion in BRDF
-    const saoPass = this._saoPass;
-    if (ambientOcclusionEnabled && supportDepthTexture && saoPass.isSupported) {
-      saoPass.onConfig(camera, this._depthOnlyPass.renderTarget!);
+    if (ambientOcclusionEnabled && depthPassEnabled) {
+      saoPass.onConfig(camera, depthOnlyPass.renderTarget!);
       saoPass.onRender(context);
     } else {
-      this._saoPass.release();
+      saoPass?.release();
     }
 
     this._drawRenderPass(context, camera, finalClearFlags, cubeFace, mipLevel);
@@ -217,6 +198,24 @@ export class BasicRenderPipeline {
       pool.freeTexture(this._copyBackgroundTexture);
       this._copyBackgroundTexture = null;
     }
+  }
+
+  private _getInternalDepthFormat(): TextureFormat | null {
+    const { engine, renderTarget } = this._camera;
+    if (renderTarget) return renderTarget._depthFormat;
+
+    const { depth, stencil } = engine._hardwareRenderer._options;
+    if (depth) return stencil ? TextureFormat.Depth24Stencil8 : this._getDefaultDepthOnlyFormat();
+    return stencil ? TextureFormat.Stencil : null;
+  }
+
+  private _getDefaultDepthOnlyFormat(): TextureFormat {
+    return TextureFormat.Depth24;
+  }
+
+  private _needsBackgroundColorCopy(msaaSamples: number, isSRGBBackground: boolean): boolean {
+    // The copy path also converts sRGB and avoids blitting into a multisampled framebuffer.
+    return msaaSamples !== 1 || isSRGBBackground;
   }
 
   private _drawRenderPass(

@@ -14,9 +14,6 @@ import { PipelineStage } from "./enums/PipelineStage";
  * Depth only pass.
  */
 export class DepthOnlyPass extends PipelinePass {
-  get supportDepthTexture(): boolean {
-    return true;
-  }
   renderTarget: RenderTarget | null;
 
   constructor(engine: Engine) {

@@ -15,7 +15,6 @@ export class GLRenderStates {
     this._parameters[gl.MAX_COMBINED_TEXTURE_IMAGE_UNITS] = gl.getParameter(gl.MAX_COMBINED_TEXTURE_IMAGE_UNITS);
     this._parameters[gl.MAX_VERTEX_UNIFORM_VECTORS] = gl.getParameter(gl.MAX_VERTEX_UNIFORM_VECTORS);
     this._parameters[gl.MAX_VERTEX_ATTRIBS] = gl.getParameter(gl.MAX_VERTEX_ATTRIBS);
-    this._parameters[gl.MAX_VERTEX_TEXTURE_IMAGE_UNITS] = gl.getParameter(gl.MAX_VERTEX_TEXTURE_IMAGE_UNITS);
     this._parameters[gl.MAX_TEXTURE_SIZE] = gl.getParameter(gl.MAX_TEXTURE_SIZE);
 
     // init blend state same as BlendState default value.

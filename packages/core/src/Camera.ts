@@ -377,6 +377,10 @@ export class Camera extends Component {
   }
 
   set enableHDR(value: boolean) {
+    if (value && !this.engine._hardwareRenderer._supportsColorAttachment(this._getHDRColorTextureFormat())) {
+      Logger.warn("Can't enable HDR in this device.");
+      return;
+    }
     if (this.enableHDR !== value) {
       this._enableHDR = value;
     }
@@ -657,7 +661,12 @@ export class Camera extends Component {
     if (this._cameraType !== CameraType.Normal && !this._renderTarget) {
       ignoreClearFlags = engine.xrManager._getCameraIgnoreClearFlags(this._cameraType);
     }
-    this._renderPipeline.render(context, cubeFace, mipLevel, ignoreClearFlags);
+    this._renderPipeline.render(
+      context,
+      cubeFace,
+      engine._hardwareRenderer._resolveFramebufferMipLevel(mipLevel),
+      ignoreClearFlags
+    );
     engine._renderCount++;
     context.camera = null!;
   }
@@ -758,11 +767,11 @@ export class Camera extends Component {
    * @internal
    */
   _getInternalColorTextureFormat(): TextureFormat {
-    return this._enableHDR
-      ? !this.isAlphaOutputRequired
-        ? TextureFormat.R11G11B10_UFloat
-        : TextureFormat.R16G16B16A16
-      : TextureFormat.R8G8B8A8;
+    return this._enableHDR ? this._getHDRColorTextureFormat() : TextureFormat.R8G8B8A8;
+  }
+
+  private _getHDRColorTextureFormat(): TextureFormat {
+    return this.isAlphaOutputRequired ? TextureFormat.R16G16B16A16 : TextureFormat.R11G11B10_UFloat;
   }
 
   /**

@@ -55,13 +55,11 @@ export class BlendShapeManager {
   private readonly _engine: Engine;
   private readonly _modelMesh: ModelMesh;
   private readonly _lastHostCreatedInfo: Vector4 = new Vector4(); // x: blendShapeCount, y: useNormal, z: useBlendTangent, w: vertexCount
-  private readonly _canUseTextureStoreData: boolean = true;
   private readonly _dataTextureInfo: Vector3 = new Vector3();
 
   constructor(engine: Engine, modelMesh: ModelMesh) {
     this._engine = engine;
     this._modelMesh = modelMesh;
-    this._canUseTextureStoreData = this._engine._hardwareRenderer.capability.canUseFloatTextureBlendShape;
     this._updateLayoutChange = this._updateLayoutChange.bind(this);
   }
 
@@ -154,9 +152,6 @@ export class BlendShapeManager {
    * @internal
    */
   _useTextureMode(): boolean {
-    if (!this._canUseTextureStoreData) {
-      return false;
-    }
     return this._blendShapeCount > this._getVertexBufferModeSupportCount();
   }
 

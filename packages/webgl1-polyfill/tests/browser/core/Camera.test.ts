@@ -1,4 +1,4 @@
-import { Camera, Logger, TextureFormat } from "../../../../galacean/dist/module.js";
+import { Camera, Logger, SystemInfo, TextureFormat } from "../../../../galacean/dist/module.js";
 import { expect, it, vi } from "vitest";
 import { createEngine } from "../../helpers/createEngine";
 
@@ -8,6 +8,20 @@ it("keeps HDR disabled without half-float textures", async () => {
     const camera = engine.sceneManager.activeScene!.createRootEntity().addComponent(Camera);
     camera.enableHDR = true;
     expect(camera.enableHDR).toBe(false);
+  } finally {
+    engine.destroy();
+  }
+});
+
+it("keeps HDR disabled when half-float textures cannot be used as color attachments", async () => {
+  const { engine, gl } = await createEngine(["EXT_color_buffer_half_float"]);
+  try {
+    const camera = engine.sceneManager.activeScene!.createRootEntity().addComponent(Camera);
+    expect(SystemInfo.supportsTextureFormat(engine, TextureFormat.R16G16B16A16)).toBe(true);
+    camera.enableHDR = true;
+    expect(camera.enableHDR).toBe(false);
+    camera.render();
+    expect(gl.getError()).toBe(gl.NO_ERROR);
   } finally {
     engine.destroy();
   }

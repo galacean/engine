@@ -1,12 +1,15 @@
-import { GLCapabilityType, Logger, type Primitive, type SubPrimitive } from "@galacean/engine-core";
+import { Logger, type Primitive, type SubPrimitive } from "@galacean/engine-core";
 import type { GLPrimitive as HostGLPrimitive } from "@galacean/engine-rhi-webgl";
 import { Mixin, Overwrite, Shadow } from "@/override";
+import { WebGL1Extension } from "./WebGL1Extension";
 
 type ShaderProgram = Parameters<HostGLPrimitive["draw"]>[0];
 
 @Mixin("GLPrimitive", function () {
   const rhi = this._primitive.engine._hardwareRenderer;
-  return !rhi.canIUse(GLCapabilityType.vertexArrayObject) || !rhi.canIUse(GLCapabilityType.instancedArrays);
+  return (
+    !rhi.requireExtension(WebGL1Extension.vertexArrayObject) || !rhi.requireExtension(WebGL1Extension.instancedArrays)
+  );
 })
 export class GLPrimitive {
   @Shadow declare _gl: WebGL2RenderingContext;
@@ -20,8 +23,8 @@ export class GLPrimitive {
   @Overwrite
   draw(shaderProgram: ShaderProgram, subMesh: SubPrimitive) {
     const rhi = this._primitive.engine._hardwareRenderer;
-    const supportsVAO = rhi.canIUse(GLCapabilityType.vertexArrayObject);
-    const supportsInstancing = rhi.canIUse(GLCapabilityType.instancedArrays);
+    const supportsVAO = !!rhi.requireExtension(WebGL1Extension.vertexArrayObject);
+    const supportsInstancing = !!rhi.requireExtension(WebGL1Extension.instancedArrays);
 
     const gl = this._gl;
     const primitive = this._primitive;
@@ -81,7 +84,7 @@ export class GLPrimitive {
   @Overwrite
   _bindBufferAndAttrib(shaderProgram: ShaderProgram) {
     const rhi = this._primitive.engine._hardwareRenderer;
-    const supportsInstancing = rhi.canIUse(GLCapabilityType.instancedArrays);
+    const supportsInstancing = !!rhi.requireExtension(WebGL1Extension.instancedArrays);
 
     const gl = this._gl;
     const primitive = this._primitive;
@@ -119,7 +122,7 @@ export class GLPrimitive {
   @Overwrite
   destroy() {
     const rhi = this._primitive.engine._hardwareRenderer;
-    const supportsVAO = rhi.canIUse(GLCapabilityType.vertexArrayObject);
+    const supportsVAO = !!rhi.requireExtension(WebGL1Extension.vertexArrayObject);
 
     supportsVAO && this._clearVAO();
   }

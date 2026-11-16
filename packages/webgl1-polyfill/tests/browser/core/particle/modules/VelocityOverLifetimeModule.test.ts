@@ -9,7 +9,9 @@ it("does not request transform feedback when orbital velocity is active", async 
     const velocity = particle.velocityOverLifetime;
     velocity.enabled = true;
     velocity.orbitalX.constant = 1;
-    expect(velocity._isOrbitalActive()).toBe(true);
+    velocity.radial.constant = 1;
+    expect(velocity._isOrbitalActive()).toBe(false);
+    expect(velocity._isRadialActive()).toBe(false);
     expect(velocity._needTransformFeedback()).toBe(false);
     expect(particle._feedbackSimulator).toBeNull();
   } finally {

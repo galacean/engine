@@ -1,13 +1,17 @@
-import type { BasicRenderPipeline as HostBasicRenderPipeline } from "@galacean/engine-core";
-import { Mixin, Overwrite, callOriginal } from "@/override";
+import { TextureFormat } from "@galacean/engine-core";
+import { Mixin, Overwrite } from "@/override";
 
 @Mixin("BasicRenderPipeline")
 export class BasicRenderPipeline {
+  /** @internal */
   @Overwrite
-  render(...args: Parameters<HostBasicRenderPipeline["render"]>) {
-    if (!Object.getOwnPropertyDescriptor(this, "_canUseBlitFrameBuffer")?.get) {
-      Object.defineProperty(this, "_canUseBlitFrameBuffer", { configurable: true, get: () => false, set() {} });
-    }
-    return callOriginal(this, ...args);
+  _getDefaultDepthOnlyFormat(): TextureFormat {
+    return TextureFormat.Depth16;
+  }
+
+  /** @internal */
+  @Overwrite
+  _needsBackgroundColorCopy(): boolean {
+    return true;
   }
 }

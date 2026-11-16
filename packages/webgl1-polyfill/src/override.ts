@@ -2,7 +2,6 @@ import type { WebGLGraphicDevice } from "@galacean/engine-rhi-webgl";
 
 type Core = Pick<
   typeof import("@galacean/engine-core"),
-  | "Engine"
   | "ShaderPass"
   | "ShaderMacro"
   | "ShaderFactory"
@@ -10,26 +9,20 @@ type Core = Pick<
   | "Camera"
   | "CameraClearFlags"
   | "MeshRenderer"
+  | "BlendShapeManager"
   | "Texture"
   | "Texture2D"
   | "TextureUtils"
   | "TextureFormat"
   | "TextureFilterMode"
   | "TextureWrapMode"
-  | "SystemInfo"
   | "PrimitiveMesh"
-  | "BlendOperation"
   | "Logger"
   | "GLCapabilityType"
   | "ParticleGenerator"
   | "ParticleRenderer"
-  | "NoiseModule"
-  | "LimitVelocityOverLifetimeModule"
   | "VelocityOverLifetimeModule"
   | "SubEmittersModule"
-  | "InheritVelocityModule"
-  | "ParticleInheritVelocityMode"
-  | "BlendState"
   | "CascadedShadowCasterPass"
   | "ShaderProgram"
   | "BasicResources"
@@ -40,14 +33,7 @@ type Core = Pick<
 >;
 type RHI = Pick<
   typeof import("@galacean/engine-rhi-webgl"),
-  | "WebGLGraphicDevice"
-  | "GLPrimitive"
-  | "GLCapability"
-  | "GLExtensions"
-  | "GLRenderStates"
-  | "GLTexture"
-  | "GLTexture2D"
-  | "GLTextureCube"
+  "WebGLGraphicDevice" | "GLPrimitive" | "GLCapability" | "GLExtensions" | "GLRenderStates" | "GLTexture"
 >;
 export type Bindings = Core & RHI & Pick<typeof import("@galacean/engine-math"), "MathUtil">;
 type Target = keyof Bindings;
@@ -79,11 +65,6 @@ const classes: Members[] = [];
 const overwrites = new WeakMap<object, Set<PropertyKey>>();
 const shadows = new WeakMap<object, Set<PropertyKey>>();
 let defaultRegistry: Registry | undefined;
-let originalMethod: Function | undefined;
-
-export function callOriginal(receiver: any, ...args: any[]): any {
-  return originalMethod!.apply(receiver, args);
-}
 
 /** Register a class containing WebGL1 replacements for the named engine class. */
 export function Mixin(target: Target, when?: Selector): ClassDecorator {
@@ -166,16 +147,8 @@ export function bindOverrides(
   const invoke: Invoke = (target, key, kind, original, receiver, args) => {
     const replacement = replacements.get(target)?.get(key);
     const method = replacement?.descriptor[kind];
-    if (!method) return original.apply(receiver, args);
-
-    const callerOriginal = originalMethod;
-    originalMethod = original;
-    try {
-      if (replacement?.when && !replacement.when.call(receiver)) return original.apply(receiver, args);
-      return method.apply(receiver, args);
-    } finally {
-      originalMethod = callerOriginal;
-    }
+    if (!method || (replacement?.when && !replacement.when.call(receiver))) return original.apply(receiver, args);
+    return method.apply(receiver, args);
   };
   return (device) => devices.set(device, invoke);
 }

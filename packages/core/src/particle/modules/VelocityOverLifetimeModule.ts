@@ -346,9 +346,8 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
 
       shaderData.setInt(VelocityOverLifetimeModule._spaceProperty, this.space);
 
-      const supportsTransformFeedback = this._supportsTransformFeedback();
-      const orbitalActive = supportsTransformFeedback && this._isOrbitalActive();
-      const radialActive = supportsTransformFeedback && this._isRadialActive();
+      const orbitalActive = this._isOrbitalActive();
+      const radialActive = this._isRadialActive();
 
       if (orbitalActive) {
         const orbitalX = this._orbitalX;
@@ -455,14 +454,10 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
    * @internal
    */
   _needTransformFeedback(): boolean {
-    if (!this._enabled || !this._supportsTransformFeedback()) {
+    if (!this._enabled) {
       return false;
     }
     return this._isOrbitalActive() || this._isRadialActive();
-  }
-
-  private _supportsTransformFeedback(): boolean {
-    return true;
   }
 
   /**
@@ -496,7 +491,7 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
     if (isLinearRandomMode) {
       return true;
     }
-    if (!this._enabled || !this._supportsTransformFeedback()) {
+    if (!this._enabled) {
       return false;
     }
 

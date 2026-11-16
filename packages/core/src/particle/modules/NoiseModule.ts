@@ -1,4 +1,5 @@
 import { Rand, Vector3, Vector4 } from "@galacean/engine-math";
+import { GLCapabilityType } from "../../base/Constant";
 import { ignoreClone } from "../../clone/CloneDecorators";
 import { ShaderData, ShaderMacro, ShaderProperty } from "../../shader";
 import { ParticleGenerator } from "../ParticleGenerator";
@@ -211,6 +212,8 @@ export class NoiseModule extends ParticleGeneratorModule {
   }
 
   override set enabled(value: boolean) {
+    if (value && !this._generator._renderer.engine._hardwareRenderer.canIUse(GLCapabilityType.transformFeedback))
+      return;
     if (value !== this._enabled) {
       this._enabled = value;
       this._generator._setTransformFeedback();

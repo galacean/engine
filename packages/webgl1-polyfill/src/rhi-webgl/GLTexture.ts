@@ -1,97 +1,90 @@
-import {
-  GLCapabilityType,
-  Logger,
-  type Texture,
-  type TextureCubeFace,
-  type TextureDepthCompareFunction,
-  TextureFormat,
-  TextureWrapMode
-} from "@galacean/engine-core";
-import { MathUtil } from "@galacean/engine-math";
+import { GLCapabilityType, type TextureDepthCompareFunction, TextureFormat } from "@galacean/engine-core";
 import type { WebGLGraphicDevice } from "@galacean/engine-rhi-webgl";
+import { Mixin, Overwrite, Shadow } from "@/override";
 import { textureFormat } from "./textureFormat";
-import { Mixin, Overwrite, Shadow, callOriginal } from "@/override";
 import { textureStorage } from "./textureStorage";
+import { WebGL1Extension } from "./WebGL1Extension";
+
+const allocatedMips = new WeakMap<GLTexture, Map<number, number>>();
 
 @Mixin("GLTexture")
 export class GLTexture {
-  @Shadow declare _formatDetail: { isCompressed: boolean };
-  @Shadow declare _texture: Texture;
+  @Shadow declare _formatDetail: { isCompressed: boolean; internalFormat: number };
+  @Shadow declare _gl: WebGLRenderingContext;
 
   @Overwrite
   setUseDepthCompareMode() {}
-  @Overwrite
-  static _supportRenderBufferColorFormat(format: TextureFormat, rhi: WebGLGraphicDevice) {
-    return format !== TextureFormat.R11G11B10_UFloat && callOriginal(this, format, rhi);
-  }
-  @Overwrite
-  static _supportRenderBufferDepthFormat(format: TextureFormat) {
-    return ![TextureFormat.Depth24, TextureFormat.Depth32, TextureFormat.Depth32Stencil8].includes(format);
-  }
+
   @Overwrite
   _init(cube: boolean) {
     if (!this._formatDetail.isCompressed) textureStorage.call(this, cube);
   }
+
   @Overwrite
-  _validate(texture: Texture, rhi: WebGLGraphicDevice) {
-    const pot = (width: number, height: number) => MathUtil.isPowerOf2(width) && MathUtil.isPowerOf2(height);
-    callOriginal(this, texture, rhi);
-    if (texture._mipmap && !pot(texture.width, texture.height)) {
-      Logger.warn(
-        "Non-power-2 texture is not supported for mipmap in WebGL1, and has automatically downgraded to non-mipmap"
-      );
-      texture._mipmap = false;
-      texture["_mipmapCount"] = texture["_getMipmapCount"]();
-    }
-  }
-  @Overwrite
-  _setWrapMode(value: TextureWrapMode, pname: GLenum) {
-    const pot = (width: number, height: number) => MathUtil.isPowerOf2(width) && MathUtil.isPowerOf2(height);
-    if (value !== TextureWrapMode.Clamp && !pot(this._texture.width, this._texture.height)) {
-      Logger.warn(
-        "non-power-2 texture is not supported for REPEAT or MIRRORED_REPEAT in WebGL1,and has automatically downgraded to CLAMP_TO_EDGE"
-      );
-      value = TextureWrapMode.Clamp;
-    }
-    callOriginal(this, value, pname);
-  }
-  @Overwrite
-  generateMipmaps() {
-    if (this._texture._mipmap && this._texture.isSRGBColorSpace) {
-      Logger.warn(
-        "Auto-generating mipmaps for sRGB textures is only supported in [WebGL2 + R8G8B8A8], you must generate mipmaps manually."
-      );
-      return;
-    }
-    callOriginal(this);
-  }
-  @Overwrite
-  _getPixelBuffer(
-    face: TextureCubeFace | null,
-    x: number,
-    y: number,
+  _allocateCompressedMip(
+    target: number,
+    mipLevel: number,
     width: number,
     height: number,
-    mipLevel: number,
-    out: ArrayBufferView
-  ) {
-    if (mipLevel > 0) {
-      mipLevel = 0;
-      Logger.error("mipLevel only take effect in WebGL2.0");
-    }
-    callOriginal(this, face, x, y, width, height, mipLevel, out);
+    data: ArrayBufferView
+  ): boolean {
+    let targets = allocatedMips.get(this);
+    if (!targets) allocatedMips.set(this, (targets = new Map()));
+
+    const levels = targets.get(target) ?? 0;
+    const bit = 1 << mipLevel;
+    if (levels & bit) return false;
+
+    this._gl.compressedTexImage2D(target, mipLevel, this._formatDetail.internalFormat, width, height, 0, data);
+    targets.set(target, levels | bit);
+    return true;
   }
+
   @Overwrite
   set depthCompareFunction(_value: TextureDepthCompareFunction) {}
+
   @Overwrite
-  static _getFormatDetail(format: TextureFormat, srgb: boolean, gl: WebGLRenderingContext, rhi: WebGLGraphicDevice) {
-    return (
-      textureFormat(format, srgb && rhi.canIUse(GLCapabilityType.sRGB), gl, TextureFormat) ??
-      callOriginal(this, format, srgb, gl, rhi)
-    );
-  }
-  @Overwrite
-  static _getRenderBufferDepthFormatDetail(format: TextureFormat, gl: WebGLRenderingContext, rhi: WebGLGraphicDevice) {
-    return textureFormat(format, false, gl, TextureFormat, true) ?? callOriginal(this, format, gl, rhi);
+  static _getPlatformFormat(
+    format: TextureFormat,
+    srgb: boolean,
+    gl: WebGLRenderingContext,
+    rhi: WebGLGraphicDevice,
+    renderbuffer: boolean
+  ): ReturnType<typeof textureFormat> | null {
+    if (renderbuffer) {
+      if (
+        format === TextureFormat.Depth24 ||
+        format === TextureFormat.Depth32 ||
+        format === TextureFormat.Depth32Stencil8
+      ) {
+        return null;
+      }
+      return textureFormat(format, false, gl, TextureFormat, true);
+    }
+
+    switch (format) {
+      case TextureFormat.R11G11B10_UFloat:
+      case TextureFormat.R32G32B32A32_UInt:
+      case TextureFormat.Depth24:
+      case TextureFormat.Depth32:
+      case TextureFormat.Depth32Stencil8:
+      case TextureFormat.R8:
+      case TextureFormat.R8G8:
+        return null;
+      case TextureFormat.R16G16B16A16:
+        if (!rhi.requireExtension(WebGL1Extension.textureHalfFloat)) return null;
+        break;
+      case TextureFormat.R32G32B32A32:
+        if (!rhi.requireExtension(WebGL1Extension.textureFloat)) return null;
+        break;
+      case TextureFormat.Depth16:
+      case TextureFormat.Depth24Stencil8:
+      case TextureFormat.Depth:
+      case TextureFormat.DepthStencil:
+        if (!rhi.requireExtension(WebGL1Extension.depthTexture)) return null;
+        break;
+    }
+    const useSRGB = srgb && rhi.canIUse(GLCapabilityType.sRGBTexture);
+    return textureFormat(format, useSRGB, gl, TextureFormat);
   }
 }

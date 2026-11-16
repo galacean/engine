@@ -2,7 +2,6 @@ import { GraphicsResource } from "../asset/GraphicsResource";
 import { Logger } from "../base/Logger";
 import { Engine } from "../Engine";
 import { IPlatformTexture } from "../renderingHardwareInterface";
-import { SystemInfo } from "../SystemInfo";
 import { TextureDepthCompareFunction } from "./enums/TextureDepthCompareFunction";
 import { TextureFilterMode } from "./enums/TextureFilterMode";
 import { TextureFormat } from "./enums/TextureFormat";
@@ -179,7 +178,8 @@ export abstract class Texture extends GraphicsResource {
     mipmap: boolean,
     isSRGBColorSpace: boolean
   ) {
-    if (!SystemInfo.supportsTextureFormat(engine, format)) {
+    const rhi = engine._hardwareRenderer;
+    if (!rhi._supportsTextureStorage(format, isSRGBColorSpace)) {
       throw new Error(`Texture format is not supported:${TextureFormat[format]}`);
     }
 
@@ -188,7 +188,7 @@ export abstract class Texture extends GraphicsResource {
     this._width = width;
     this._height = height;
     this._format = format;
-    this._mipmap = mipmap;
+    this._mipmap = rhi._resolveTextureMipmaps(mipmap, width, height);
     this._isSRGBColorSpace = isSRGBColorSpace;
 
     this._mipmapCount = this._getMipmapCount();

@@ -17,15 +17,7 @@ export class TextureUtils {
     mipmap: boolean,
     isSRGBColorSpace: boolean
   ): boolean {
-    if (!mipmap) {
-      return false;
-    }
-
-    if (isSRGBColorSpace && !TextureUtils.supportSRGB(format)) {
-      isSRGBColorSpace = false;
-    }
-
-    return TextureUtils.supportGenerateMipmaps(format, mipmap, isSRGBColorSpace, true);
+    return mipmap && engine._hardwareRenderer._supportsGenerateMipmaps(width, height, format, isSRGBColorSpace);
   }
 
   static supportSRGB(format: TextureFormat) {
@@ -48,24 +40,6 @@ export class TextureUtils {
       default:
         return false;
     }
-  }
-
-  static supportMipmaps(width: number, height: number, unrestrictedNPOT: boolean): boolean {
-    return true;
-  }
-
-  static supportGenerateMipmaps(
-    format: TextureFormat,
-    mipmap: boolean,
-    isSRGBColorSpace: boolean,
-    autoSRGBMipmaps: boolean
-  ): boolean {
-    // Auto generating mipmaps for sRGB textures is only supported in [WebGL2 + RGBA]
-    if (mipmap && isSRGBColorSpace && !(format === TextureFormat.R8G8B8A8)) {
-      return false;
-    }
-
-    return true;
   }
 
   static getTextureByteCount(

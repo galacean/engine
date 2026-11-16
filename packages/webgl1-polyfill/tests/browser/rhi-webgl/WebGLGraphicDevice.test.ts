@@ -3,6 +3,8 @@ import {
   BufferBindFlag,
   Camera,
   Color,
+  KTX2Loader,
+  KTX2TargetFormat,
   Logger,
   RenderTarget,
   Texture2D,
@@ -15,6 +17,7 @@ import {
 import { expect, it, vi } from "vitest";
 import { makeFallbackCanvas } from "../../helpers/canvas";
 import { createEngine } from "../../helpers/createEngine";
+import { WebGL1Extension } from "../../../src/rhi-webgl/WebGL1Extension";
 
 it("keeps direct device initialization WebGL2-only", () => {
   const { canvas } = makeFallbackCanvas();
@@ -71,6 +74,8 @@ it("rejects unsupported texture arrays, buffer reads and MRT without the extensi
     const color = new Texture2D(engine, 4, 4, TextureFormat.R8G8B8A8, false, false);
     const second = new Texture2D(engine, 4, 4, TextureFormat.R8G8B8A8, false, false);
     expect(() => new RenderTarget(engine, 4, 4, [color, second], null)).toThrow("MRT is not supported");
+    expect(color.refCount).toBe(0);
+    expect(second.refCount).toBe(0);
 
     const target = new RenderTarget(engine, 4, 4, color, null);
     expect(target.colorTextureCount).toBe(1);
@@ -119,6 +124,30 @@ it("warns when framebuffer blit is called directly", async () => {
       warn.mockRestore();
     }
   } finally {
+    engine.destroy();
+  }
+});
+
+it("reports RG8 as unsupported", async () => {
+  const { engine } = await createEngine();
+  try {
+    expect(engine._hardwareRenderer.supportsTextureFormat(TextureFormat.R8G8, false)).toBe(false);
+  } finally {
+    engine.destroy();
+  }
+});
+
+it("selects the KTX2 half-float target on WebGL2 and falls back when WebGL1 lacks it", async () => {
+  const { engine } = await createEngine([WebGL1Extension.textureHalfFloat]);
+  let native: WebGLEngine | undefined;
+  try {
+    native = await WebGLEngine.create({ canvas: document.createElement("canvas") });
+    const priorities = [KTX2TargetFormat.R16G16B16A16, KTX2TargetFormat.R8G8B8A8];
+    expect(KTX2Loader["_detectSupportedFormat"](native, priorities, false)).toBe(KTX2TargetFormat.R16G16B16A16);
+    expect(KTX2Loader["_detectSupportedFormat"](engine, priorities, false)).toBe(KTX2TargetFormat.R8G8B8A8);
+    expect(KTX2Loader["_detectSupportedFormat"](native, priorities, true)).toBe(KTX2TargetFormat.R8G8B8A8);
+  } finally {
+    native?.destroy();
     engine.destroy();
   }
 });

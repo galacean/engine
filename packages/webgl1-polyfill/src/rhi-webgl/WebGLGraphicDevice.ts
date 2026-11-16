@@ -1,11 +1,22 @@
-import { GLCapabilityType, Logger, type RenderTarget, type Texture, type Texture2DArray } from "@galacean/engine-core";
+import {
+  GLCapabilityType,
+  Logger,
+  type Texture,
+  type Texture2DArray,
+  TextureFormat,
+  TextureUtils,
+  TextureWrapMode
+} from "@galacean/engine-core";
+import { MathUtil } from "@galacean/engine-math";
 import {
   GLCapability,
   GLExtensions,
   GLRenderStates,
   type WebGLGraphicDevice as HostDevice
 } from "@galacean/engine-rhi-webgl";
-import { Mixin, Overwrite, callOriginal } from "@/override";
+import { Mixin, Overwrite } from "@/override";
+import { adaptContext } from "./context";
+import { WebGL1Extension } from "./WebGL1Extension";
 
 @Mixin("WebGLGraphicDevice")
 export class WebGLGraphicDevice {
@@ -15,13 +26,54 @@ export class WebGLGraphicDevice {
   declare _capability: GLCapability;
   declare _renderer: string;
   declare readonly gl: WebGLRenderingContext;
-  declare canIUse: HostDevice["canIUse"];
+  declare requireExtension: HostDevice["requireExtension"];
+
+  @Overwrite
+  _resolveFramebufferMipLevel(mipLevel: number): number {
+    if (mipLevel > 0) {
+      Logger.error("mipLevel only take effect in WebGL2.0");
+      return 0;
+    }
+    return mipLevel;
+  }
+
+  @Overwrite
+  _resolveTextureMipmaps(mipmap: boolean, width: number, height: number): boolean {
+    if (mipmap && !isPowerOfTwoTexture(width, height)) {
+      Logger.warn(
+        "Non-power-2 texture is not supported for mipmap in WebGL1, and has automatically downgraded to non-mipmap"
+      );
+      return false;
+    }
+    return mipmap;
+  }
+
+  @Overwrite
+  _resolveTextureWrapMode(mode: TextureWrapMode, width: number, height: number): TextureWrapMode {
+    if (mode !== TextureWrapMode.Clamp && !isPowerOfTwoTexture(width, height)) {
+      Logger.warn(
+        "non-power-2 texture is not supported for REPEAT or MIRRORED_REPEAT in WebGL1,and has automatically downgraded to CLAMP_TO_EDGE"
+      );
+      return TextureWrapMode.Clamp;
+    }
+    return mode;
+  }
+
+  @Overwrite
+  _supportsGenerateMipmaps(width: number, height: number, format: TextureFormat, isSRGBColorSpace: boolean): boolean {
+    return isPowerOfTwoTexture(width, height) && (!isSRGBColorSpace || !TextureUtils.supportSRGB(format));
+  }
+
   @Overwrite
   _initGLState(gl: WebGLRenderingContext & Pick<WebGL2RenderingContext, "getBufferSubData">) {
     this._activeTextureID = gl.TEXTURE0;
     this._renderStates = new GLRenderStates(gl);
     this._extensions = new GLExtensions(this as any);
     this._capability = new GLCapability(this as any);
+    adaptContext(this._capability);
+    const { capabilityList } = this._capability;
+    capabilityList.set(GLCapabilityType.sRGBTexture, !!this.requireExtension(WebGL1Extension.sRGB));
+    capabilityList.set(GLCapabilityType.minMaxBlend, !!this.requireExtension(WebGL1Extension.blendMinMax));
 
     // Unsupported entry points fail at their actual invocation, never during ordinary initialization.
     gl.getBufferSubData = () => {
@@ -30,16 +82,6 @@ export class WebGLGraphicDevice {
     gl.activeTexture(gl.TEXTURE0);
     const info = gl.getExtension("WEBGL_debug_renderer_info");
     if (info) this._renderer = gl.getParameter(info.UNMASKED_RENDERER_WEBGL);
-  }
-  @Overwrite
-  createPlatformRenderTarget(target: RenderTarget) {
-    if (target.colorTextures.length > 1 && !this.canIUse(GLCapabilityType.drawBuffers)) {
-      for (const texture of target.colorTextures) texture._addReferCount(-1);
-      target.depthTexture?._addReferCount(-1);
-      unregisterResource(target);
-      throw new Error("MRT is not supported");
-    }
-    return callOriginal(this, target);
   }
   @Overwrite
   createPlatformTexture2DArray(texture: Texture2DArray) {
@@ -81,8 +123,12 @@ export class WebGLGraphicDevice {
   }
 }
 
+function isPowerOfTwoTexture(width: number, height: number): boolean {
+  return MathUtil.isPowerOf2(width) && MathUtil.isPowerOf2(height);
+}
+
 // The Core constructor registers the resource before asking the device to allocate it.
-function unregisterResource(resource: Texture | RenderTarget): void {
+function unregisterResource(resource: Texture): void {
   const manager = resource.engine.resourceManager;
   manager._deleteGraphicResource(resource);
   manager._deleteReferResource(resource);

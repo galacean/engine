@@ -17,29 +17,16 @@ export class GLCapability {
     return this.rhi.renderStates.getParameter(this.rhi.gl.MAX_TEXTURE_SIZE);
   }
 
-  get canUseFloatTextureBlendShape(): boolean {
-    return (
-      this.canIUse(GLCapabilityType.shaderVertexID) &&
-      this.canIUse(GLCapabilityType.textureFloat) &&
-      this.rhi.renderStates.getParameter(this.rhi.gl.MAX_VERTEX_TEXTURE_IMAGE_UNITS) > 0
-    );
-  }
-
-  /**
-   * Whether can use more joints.
-   */
-  get canIUseMoreJoints(): boolean {
-    return (
-      this.canIUse(GLCapabilityType.textureFloat) &&
-      this.rhi.renderStates.getParameter(this.rhi.gl.MAX_VERTEX_TEXTURE_IMAGE_UNITS) > 0
-    );
-  }
-
   get maxDrawBuffers() {
     if (!this._maxDrawBuffers) {
-      this._maxDrawBuffers = this._rhi.gl.getParameter(this._rhi.gl.MAX_DRAW_BUFFERS);
+      this._maxDrawBuffers = this._getMaxDrawBuffers();
     }
     return this._maxDrawBuffers;
+  }
+
+  private _getMaxDrawBuffers(): number {
+    const gl = this._rhi.gl;
+    return gl.getParameter(gl.MAX_DRAW_BUFFERS);
   }
 
   /**
@@ -64,11 +51,6 @@ export class GLCapability {
     return this._maxAntiAliasing;
   }
 
-  get isFragmentHighPrecision(): boolean {
-    const gl = this._rhi.gl;
-    return gl.getShaderPrecisionFormat(gl.FRAGMENT_SHADER, gl.HIGH_FLOAT)!.precision !== 0;
-  }
-
   get rhi() {
     return this._rhi;
   }
@@ -81,10 +63,20 @@ export class GLCapability {
   }
 
   /**
-   * Check device capabilities.
+   * Check a detected device capability. Core WebGL2 features do not require a capability query.
+   * @param capabilityType - Capability to check
+   * @returns Whether the capability was detected
    */
   canIUse(capabilityType: GLCapabilityType): boolean {
-    return this.capabilityList.get(capabilityType)!;
+    const cached = this.capabilityList.get(capabilityType);
+    if (cached !== undefined) return cached;
+    if (capabilityType === GLCapabilityType.vertexTextureSampling) {
+      const gl = this.rhi.gl;
+      const supported = gl.getParameter(gl.MAX_VERTEX_TEXTURE_IMAGE_UNITS) > 0;
+      this.capabilityList.set(capabilityType, supported);
+      return supported;
+    }
+    return false;
   }
 
   /**
@@ -108,13 +100,15 @@ export class GLCapability {
       // s3tc
       RGB_S3TC_DXT1_EXT,
       RGBA_S3TC_DXT5_EXT,
+      SRGB_S3TC_DXT1_EXT,
+      SRGB_ALPHA_S3TC_DXT5_EXT,
 
       // bptc
       RGBA_BPTC_UNORM_EXT,
       RGB_BPTC_UNSIGNED_FLOAT_EXT
     } = GLCompressedTextureInternalFormat;
     if (
-      (internalType >= RGBA_ASTC_4X4_KHR && RGBA_ASTC_12X12_KHR <= RGBA_ASTC_12X12_KHR) ||
+      (internalType >= RGBA_ASTC_4X4_KHR && internalType <= RGBA_ASTC_12X12_KHR) ||
       (internalType >= SRGB8_ALPHA8_ASTC_4X4_KHR && internalType <= SRGB8_ALPHA8_ASTC_12X12_KHR)
     ) {
       return this.canIUse(GLCapabilityType.astc);
@@ -126,10 +120,17 @@ export class GLCapability {
       return this.canIUse(GLCapabilityType.pvrtc);
     } else if (internalType >= RGB_S3TC_DXT1_EXT && internalType <= RGBA_S3TC_DXT5_EXT) {
       return this.canIUse(GLCapabilityType.s3tc);
+    } else if (internalType >= SRGB_S3TC_DXT1_EXT && internalType <= SRGB_ALPHA_S3TC_DXT5_EXT) {
+      return this.canIUse(GLCapabilityType.s3tc_srgb);
     } else if (internalType >= RGBA_BPTC_UNORM_EXT && internalType <= RGB_BPTC_UNSIGNED_FLOAT_EXT) {
       return this.canIUse(GLCapabilityType.bptc);
     }
     return false;
+  }
+
+  private _getColorBufferSupport(): { float: boolean; halfFloat: boolean } {
+    const supported = !!this.rhi.requireExtension(GLCapabilityType.colorBufferFloat);
+    return { float: supported, halfFloat: supported };
   }
 
   /**
@@ -138,19 +139,15 @@ export class GLCapability {
   private _init() {
     const cap = this.capabilityList;
     const requireExtension = this.rhi.requireExtension.bind(this.rhi);
+    const gl = this.rhi.gl;
+    const gl2 = gl as WebGL2RenderingContext;
+    cap.set(GLCapabilityType.transformFeedback, typeof gl2.beginTransformFeedback === "function");
+    cap.set(GLCapabilityType.sRGBTexture, gl2.SRGB8_ALPHA8 !== undefined);
+    cap.set(GLCapabilityType.minMaxBlend, gl2.MIN !== undefined && gl2.MAX !== undefined);
+    const fragmentPrecision = gl.getShaderPrecisionFormat(gl.FRAGMENT_SHADER, gl.HIGH_FLOAT);
+    cap.set(GLCapabilityType.fragmentHighPrecision, !!fragmentPrecision && fragmentPrecision.precision > 0);
 
     const {
-      shaderVertexID,
-      standardDerivatives,
-      shaderTextureLod,
-      elementIndexUint,
-      depthTexture,
-      vertexArrayObject,
-      instancedArrays,
-      multipleSample,
-      drawBuffers,
-      blendMinMax,
-
       astc,
       astc_webkit,
       astc_hdr,
@@ -165,36 +162,17 @@ export class GLCapability {
       bptc,
       s3tc_srgb,
 
-      textureFloat,
-      textureHalfFloat,
       textureFloatLinear,
-      textureHalfFloatLinear,
       colorBufferFloat,
       colorBufferHalfFloat,
       textureFilterAnisotropic,
-      fragDepth,
-
-      sRGB
+      WEBGL_lose_context
     } = GLCapabilityType;
-    cap.set(shaderVertexID, true);
-    cap.set(standardDerivatives, true);
-    cap.set(shaderTextureLod, true);
-    cap.set(elementIndexUint, true);
-    cap.set(depthTexture, true);
-    cap.set(vertexArrayObject, true);
-    cap.set(instancedArrays, true);
-    cap.set(multipleSample, true);
-    cap.set(drawBuffers, true);
-    cap.set(blendMinMax, true);
-    cap.set(textureFloat, true);
-    cap.set(textureHalfFloat, true);
     cap.set(textureFloatLinear, !!requireExtension(textureFloatLinear));
-    cap.set(textureHalfFloatLinear, true);
-    const floatRenderTarget = !!requireExtension(colorBufferFloat);
-    cap.set(colorBufferFloat, floatRenderTarget);
-    cap.set(colorBufferHalfFloat, floatRenderTarget);
+    const colorBufferSupport = this._getColorBufferSupport();
+    cap.set(colorBufferFloat, colorBufferSupport.float);
+    cap.set(colorBufferHalfFloat, colorBufferSupport.halfFloat);
     cap.set(textureFilterAnisotropic, !!requireExtension(textureFilterAnisotropic));
-    cap.set(fragDepth, true);
     const anisotropic = requireExtension(textureFilterAnisotropic);
     if (anisotropic) {
       const gl = this.rhi.gl as WebGL2RenderingContext & {
@@ -203,20 +181,25 @@ export class GLCapability {
       gl.TEXTURE_MAX_ANISOTROPY_EXT = anisotropic.TEXTURE_MAX_ANISOTROPY_EXT;
     }
 
-    cap.set(etc, !!(requireExtension(etc) || requireExtension(etc_webkit)));
-    cap.set(etc1, !!(requireExtension(etc1) || requireExtension(etc1_webkit)));
-    cap.set(pvrtc, !!(requireExtension(pvrtc) || requireExtension(pvrtc_webkit)));
-    cap.set(s3tc, !!(requireExtension(s3tc) || requireExtension(s3tc_webkit)));
+    const detectWithAlias = (name: GLCapabilityType, alias: GLCapabilityType) => {
+      const extension = requireExtension(name);
+      const legacyExtension = requireExtension(alias);
+      cap.set(alias, !!legacyExtension);
+      cap.set(name, !!(extension || legacyExtension));
+      return extension || legacyExtension;
+    };
+    detectWithAlias(etc, etc_webkit);
+    detectWithAlias(etc1, etc1_webkit);
+    detectWithAlias(pvrtc, pvrtc_webkit);
+    detectWithAlias(s3tc, s3tc_webkit);
     cap.set(s3tc_srgb, !!requireExtension(s3tc_srgb));
     cap.set(bptc, !!requireExtension(bptc));
+    cap.set(WEBGL_lose_context, !!requireExtension(WEBGL_lose_context));
 
-    const astcExtension = requireExtension(astc) || requireExtension(astc_webkit);
-    cap.set(astc, !!astcExtension);
+    const astcExtension = detectWithAlias(astc, astc_webkit);
     cap.set(
       astc_hdr,
       typeof astcExtension?.getSupportedProfiles === "function" && astcExtension.getSupportedProfiles().includes("hdr")
     );
-
-    cap.set(sRGB, true);
   }
 }

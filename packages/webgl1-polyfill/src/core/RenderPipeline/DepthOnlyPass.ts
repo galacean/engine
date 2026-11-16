@@ -1,7 +1,6 @@
 import {
   type Camera,
   type Engine,
-  GLCapabilityType,
   PipelineUtils,
   type RenderTarget,
   TextureFilterMode,
@@ -32,9 +31,5 @@ export class DepthOnlyPass {
       TextureWrapMode.Clamp,
       TextureFilterMode.Point
     );
-  }
-  @Overwrite
-  get supportDepthTexture() {
-    return this.engine._hardwareRenderer.canIUse(GLCapabilityType.depthTexture);
   }
 }

@@ -28,6 +28,22 @@ export class GLTexture implements IPlatformTexture {
     gl: WebGLRenderingContext & WebGL2RenderingContext,
     rhi: WebGLGraphicDevice
   ): TextureFormatDetail {
+    const detail = this._findFormatDetail(format, isSRGBColorSpace, gl, rhi);
+    if (!detail) {
+      throw new Error(`this TextureFormat is not supported in Galacean Engine: ${format}`);
+    }
+    return detail;
+  }
+
+  /** @internal */
+  static _findFormatDetail(
+    format: TextureFormat,
+    isSRGBColorSpace: boolean,
+    gl: WebGLRenderingContext & WebGL2RenderingContext,
+    rhi: WebGLGraphicDevice
+  ): TextureFormatDetail | undefined {
+    const platformFormat = this._getPlatformFormat(format, isSRGBColorSpace, gl, rhi, false);
+    if (platformFormat !== undefined) return platformFormat ?? undefined;
     switch (format) {
       case TextureFormat.R8G8B8:
         return {
@@ -314,8 +330,6 @@ export class GLTexture implements IPlatformTexture {
           isCompressed: false,
           attachment: gl.DEPTH_STENCIL_ATTACHMENT
         };
-      default:
-        throw new Error(`this TextureFormat is not supported in Galacean Engine: ${format}`);
     }
   }
 
@@ -323,11 +337,28 @@ export class GLTexture implements IPlatformTexture {
    * In WebGL 1, internalformat must be the same as baseFormat when call texImage2D.
    * @internal
    */
+  // undefined selects the common format table. null rejects the format for this device.
+  private static _getPlatformFormat(
+    _format: TextureFormat,
+    _isSRGB: boolean,
+    _gl: WebGLRenderingContext,
+    _rhi: WebGLGraphicDevice,
+    _renderbuffer: boolean
+  ): TextureFormatDetail | null | undefined {
+    return undefined;
+  }
+
   static _getRenderBufferDepthFormatDetail(
     format: TextureFormat,
     gl: WebGLRenderingContext & WebGL2RenderingContext,
     rhi: WebGLGraphicDevice
   ): TextureFormatDetail {
+    const platformFormat = this._getPlatformFormat(format, false, gl, rhi, true);
+    if (platformFormat === null) {
+      throw new Error(`TextureFormat is not supported:${TextureFormat[format]} in RenderTarget`);
+    }
+    if (platformFormat !== undefined) return platformFormat;
+
     switch (format) {
       case TextureFormat.Depth:
         return {
@@ -403,39 +434,15 @@ export class GLTexture implements IPlatformTexture {
    * @internal
    */
   static _supportRenderBufferColorFormat(format: TextureFormat, rhi: WebGLGraphicDevice): boolean {
-    let isSupported = true;
-
     switch (format) {
       case TextureFormat.R16G16B16A16:
-        {
-          if (!rhi.canIUse(GLCapabilityType.colorBufferHalfFloat) || !rhi.canIUse(GLCapabilityType.textureHalfFloat)) {
-            isSupported = false;
-          }
-        }
-        break;
+        return rhi.canIUse(GLCapabilityType.colorBufferHalfFloat) && rhi.supportsTextureFormat(format, false);
       case TextureFormat.R32G32B32A32:
-        {
-          if (!rhi.canIUse(GLCapabilityType.colorBufferFloat) || !rhi.canIUse(GLCapabilityType.textureFloat)) {
-            isSupported = false;
-          }
-        }
-        break;
-
       case TextureFormat.R11G11B10_UFloat:
-        {
-          isSupported = true;
-        }
-        break;
+        return rhi.canIUse(GLCapabilityType.colorBufferFloat) && rhi.supportsTextureFormat(format, false);
+      default:
+        return true;
     }
-
-    return isSupported;
-  }
-
-  /**
-   * @internal
-   */
-  static _supportRenderBufferDepthFormat(format: TextureFormat, rhi: WebGLGraphicDevice): boolean {
-    return true;
   }
 
   /** @internal */
@@ -568,12 +575,10 @@ export class GLTexture implements IPlatformTexture {
    */
   generateMipmaps(): void {
     const texture = this._texture;
-    const mipmap = texture._mipmap;
+    if (!texture._mipmap) return;
 
-    if (!TextureUtils.supportGenerateMipmaps(texture.format, mipmap, texture.isSRGBColorSpace, true)) {
-      Logger.warn(
-        "Auto-generating mipmaps for sRGB textures is only supported in [WebGL2 + R8G8B8A8], you must generate mipmaps manually."
-      );
+    if (!this._rhi._supportsGenerateMipmaps(texture.width, texture.height, texture.format, texture.isSRGBColorSpace)) {
+      Logger.warn("Automatic mipmap generation is not supported for this texture.");
       return;
     }
 
@@ -654,6 +659,7 @@ export class GLTexture implements IPlatformTexture {
     const gl = this._gl;
     const { baseFormat, dataType, readFormat, alignment } = this._formatDetail;
 
+    mipLevel = this._rhi._resolveFramebufferMipLevel(mipLevel);
     gl.bindFramebuffer(gl.FRAMEBUFFER, this._getReadFrameBuffer());
 
     if (face != null) {
@@ -675,6 +681,30 @@ export class GLTexture implements IPlatformTexture {
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
   }
 
+  protected _uploadCompressedPixels(
+    target: number,
+    mipLevel: number,
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    data: ArrayBufferView
+  ): void {
+    if (!this._allocateCompressedMip(target, mipLevel, width, height, data)) {
+      this._gl.compressedTexSubImage2D(target, mipLevel, x, y, width, height, this._formatDetail.internalFormat, data);
+    }
+  }
+
+  protected _allocateCompressedMip(
+    _target: number,
+    _mipLevel: number,
+    _width: number,
+    _height: number,
+    _data: ArrayBufferView
+  ): boolean {
+    return false;
+  }
+
   protected _getReadFrameBuffer(): WebGLFramebuffer | null {
     let frameBuffer = this._rhi._readFrameBuffer;
     if (!frameBuffer) {
@@ -684,7 +714,7 @@ export class GLTexture implements IPlatformTexture {
   }
 
   protected _validate(texture: Texture, rhi: WebGLGraphicDevice): void {
-    const { format, width, height } = texture;
+    const { format } = texture;
 
     // Validate sRGB format
     // @ts-ignore
@@ -701,7 +731,7 @@ export class GLTexture implements IPlatformTexture {
     const target = this._target;
     const { width, height } = this._texture;
 
-    switch (value) {
+    switch (this._rhi._resolveTextureWrapMode(value, width, height)) {
       case TextureWrapMode.Clamp:
         gl.texParameteri(target, pname, gl.CLAMP_TO_EDGE);
         break;

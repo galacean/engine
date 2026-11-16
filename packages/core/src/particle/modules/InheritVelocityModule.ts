@@ -1,4 +1,5 @@
 import { MathUtil, Rand, Vector3 } from "@galacean/engine-math";
+import { GLCapabilityType } from "../../base/Constant";
 import { ignoreClone } from "../../clone/CloneDecorators";
 import { ShaderMacro, ShaderProperty } from "../../shader";
 import type { ShaderData } from "../../shader";
@@ -103,7 +104,11 @@ export class InheritVelocityModule extends ParticleGeneratorModule {
    */
   _updateEmitterVelocity(elapsedTime: number): void {
     const renderer = this._generator._renderer;
-    if (this._generator.main.simulationSpace !== ParticleSimulationSpace.World) {
+    if (
+      this._generator.main.simulationSpace !== ParticleSimulationSpace.World ||
+      (this._mode !== ParticleInheritVelocityMode.Initial &&
+        !renderer.engine._hardwareRenderer.canIUse(GLCapabilityType.transformFeedback))
+    ) {
       this._resyncEmitterVelocity();
       return;
     }
@@ -231,6 +236,7 @@ export class InheritVelocityModule extends ParticleGeneratorModule {
     return (
       this._enabled &&
       this._mode === ParticleInheritVelocityMode.Current &&
+      this._generator._renderer.engine._hardwareRenderer.canIUse(GLCapabilityType.transformFeedback) &&
       this._generator.main.simulationSpace === ParticleSimulationSpace.World
     );
   }

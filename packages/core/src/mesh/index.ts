@@ -1,5 +1,6 @@
 export { BlendShape } from "./BlendShape";
 export { BlendShapeFrame } from "./BlendShapeFrame";
+export { BlendShapeManager } from "./BlendShapeManager";
 export { BufferMesh } from "./BufferMesh";
 export { MeshRenderer } from "./MeshRenderer";
 export { ModelMesh } from "./ModelMesh";

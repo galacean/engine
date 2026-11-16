@@ -1,5 +1,8 @@
 import { Scene } from "../../Scene";
+import type { Engine } from "../../Engine";
+import { GLCapabilityType } from "../../base/Constant";
 import { ShaderMacro } from "../../shader/ShaderMacro";
+import { TextureFormat } from "../../texture/enums/TextureFormat";
 import { AmbientOcclusionQuality } from "../enums/AmbientOcclusionQuality";
 
 /**
@@ -9,6 +12,14 @@ import { AmbientOcclusionQuality } from "../enums/AmbientOcclusionQuality";
  */
 export class AmbientOcclusion {
   private static _enableMacro = ShaderMacro.getByName("SCENE_ENABLE_AMBIENT_OCCLUSION");
+
+  /** @internal */
+  static _isSupported(engine: Engine): boolean {
+    const rhi = engine._hardwareRenderer;
+    return (
+      rhi.canIUse(GLCapabilityType.fragmentHighPrecision) && rhi.supportsTextureFormat(TextureFormat.Depth16, false)
+    );
+  }
 
   /**
    * Controls the quality of the ambient occlusion effect.
@@ -141,7 +152,7 @@ export class AmbientOcclusion {
   }
 
   private _toggleAmbientOcclusionMacro(): void {
-    if (this._isValid()) {
+    if (this._isValid() && AmbientOcclusion._isSupported(this._scene.engine)) {
       this._scene.shaderData.enableMacro(AmbientOcclusion._enableMacro);
     } else {
       this._scene.shaderData.disableMacro(AmbientOcclusion._enableMacro);
