@@ -179,7 +179,7 @@ export class BasicRenderPipeline {
         depthFormat,
         false,
         false,
-        !camera.enableHDR,
+        !camera._isHDREnabled(),
         msaaSamples,
         TextureWrapMode.Clamp,
         TextureFilterMode.Bilinear

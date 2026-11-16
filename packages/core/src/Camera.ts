@@ -371,21 +371,14 @@ export class Camera extends Component {
   /**
    * Whether to enable HDR.
    * @defaultValue `false`
+   * @remarks Kept on this property across backends; rendering falls back to LDR when the device lacks HDR color targets.
    */
   get enableHDR(): boolean {
     return this._enableHDR;
   }
 
   set enableHDR(value: boolean) {
-    if (this.enableHDR !== value) {
-      const rhi = this.engine._hardwareRenderer;
-      const supportHDR = rhi.isWebGL2 || rhi.canIUse(GLCapabilityType.textureHalfFloat);
-      if (value && !supportHDR) {
-        Logger.warn("Can't enable HDR in this device.");
-        return;
-      }
-      this._enableHDR = value;
-    }
+    this._enableHDR = value;
   }
 
   /**
@@ -743,7 +736,7 @@ export class Camera extends Component {
 
     const renderTarget = this._renderTarget;
     // Need HDR and opaque texture
-    if (this.enableHDR || this.opaqueTextureEnabled) {
+    if (this._isHDREnabled() || this.opaqueTextureEnabled) {
       if (renderTarget) {
         // If camera is HDR and format is same with renderTarget can reuse renderTarget if renderTarget is same HDR format
         // If camera is LDR and opaqueTextureEnabled is true, can reuse renderTarget if renderTarget is LDR format(Only R8G8B8A8)
@@ -759,8 +752,17 @@ export class Camera extends Component {
   /**
    * @internal
    */
+  _isHDREnabled(): boolean {
+    if (!this._enableHDR) return false;
+    const rhi = this._engine._hardwareRenderer;
+    return rhi.isWebGL2 || rhi.canIUse(GLCapabilityType.textureHalfFloat);
+  }
+
+  /**
+   * @internal
+   */
   _getInternalColorTextureFormat(): TextureFormat {
-    return this._enableHDR
+    return this._isHDREnabled()
       ? this.engine._hardwareRenderer.isWebGL2 && !this.isAlphaOutputRequired
         ? TextureFormat.R11G11B10_UFloat
         : TextureFormat.R16G16B16A16

@@ -50,6 +50,6 @@ export class NullBuffer implements IPlatformBuffer {
   }
 
   destroy(): void {
-    this._data = new Uint8Array(0);
+    this._data = null!;
   }
 }

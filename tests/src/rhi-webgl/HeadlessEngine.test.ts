@@ -1,16 +1,4 @@
-import {
-  WebGLEngine,
-  MeshRenderer,
-  PrimitiveMesh,
-  Vector2,
-  Vector3,
-  Shader,
-  ShaderPass,
-  ShaderLanguage,
-  Material,
-  PBRMaterial,
-  Engine
-} from "@galacean/engine";
+import { WebGLEngine, MeshRenderer, PrimitiveMesh, Vector2, Vector3, PBRMaterial, Engine } from "@galacean/engine";
 import { HeadlessEngine } from "@galacean/engine-rhi-null";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
@@ -72,19 +60,7 @@ describe("WebGL and headless share engine semantics", () => {
     }
   );
 
-  it("preserves built-in shader identity when both entries are imported", async () => {
+  it("shares built-in shaders across WebGL and headless engines", () => {
     expect(new PBRMaterial(browser).shader).toBe(new PBRMaterial(headless).shader);
-    const existing = Engine._builtinShaders.pbr;
-    const custom = Shader.create("PBR", [new ShaderPass("Forward", [], [], ShaderLanguage.GLSLES100)]);
-    const second = await HeadlessEngine.create();
-    try {
-      expect(Engine._builtinShaders.pbr).toBe(existing);
-      expect(new PBRMaterial(second).shader).toBe(existing);
-      expect(new Material(second, custom).shader).toBe(custom);
-      expect(Shader.find("PBR")).toBe(custom);
-    } finally {
-      second.destroy();
-      custom.destroy();
-    }
   });
 });

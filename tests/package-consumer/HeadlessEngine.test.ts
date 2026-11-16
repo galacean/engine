@@ -54,7 +54,7 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-describe("published headless entry in Node without browser globals", () => {
+describe("@galacean/engine-rhi-null in Node without browser globals", () => {
   it("initializes real engine classes without DOM, input or a graphics context", async () => {
     expect(typeof window).toBe("undefined");
     expect(typeof document).toBe("undefined");
@@ -181,6 +181,8 @@ describe("published headless entry in Node without browser globals", () => {
     }
     entity.addComponent(Controller);
     const camera = entity.addComponent(Camera);
+    camera.enableHDR = true;
+    expect(camera.enableHDR).toBe(true);
     expect(camera.msaaSamples).toBe(enginePackage.MSAASamples.FourX);
     const animator = entity.addComponent(Animator);
     const controller = new AnimatorController(engine);
