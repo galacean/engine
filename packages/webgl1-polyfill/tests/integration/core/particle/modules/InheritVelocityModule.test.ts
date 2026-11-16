@@ -13,7 +13,7 @@ import {
   ParticleStopMode,
   WebGLEngine
 } from "../../../../../../galacean/dist/module.js";
-import { afterEach, expect, it, vi } from "vitest";
+import { afterEach, expect, it } from "vitest";
 import { createWebGL1Canvas } from "../../../../helpers/canvas";
 import { createEngine } from "../../../../helpers/createEngine";
 
@@ -89,7 +89,7 @@ it("Initial Curve remains available on WebGL1", async () => {
   webgl1Engine.destroy();
 });
 
-it("updates emitter velocity on the CPU in World space with Current mode", async () => {
+it("keeps inherited velocity at zero in Current mode when the emitter moves on WebGL1", async () => {
   const { engine, gl } = await createEngine();
   try {
     const scene = engine.sceneManager.activeScene!;
@@ -99,11 +99,13 @@ it("updates emitter velocity on the CPU in World space with Current mode", async
     generator.main.simulationSpace = ParticleSimulationSpace.World;
     inherit.enabled = true;
     inherit.mode = ParticleInheritVelocityMode.Current;
-    const resync = vi.spyOn(inherit, "_resyncEmitterVelocity");
+    inherit._updateEmitterVelocity(0.1);
     renderer.entity.transform.setPosition(1, 0, 0);
     inherit._updateEmitterVelocity(0.1);
-    expect(resync).toHaveBeenCalledOnce();
-    expect(inherit._needTransformFeedback()).toBe(false);
+
+    const { x, y, z } = inherit["_emitterVelocity"];
+    expect([x, y, z]).toEqual([0, 0, 0]);
+    expect(generator._feedbackSimulator).toBeNull();
     expect(gl.getError()).toBe(gl.NO_ERROR);
   } finally {
     engine.destroy();

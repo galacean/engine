@@ -32,7 +32,7 @@ export default defineProject({
     ]
   },
   test: {
-    include: ["src/**/*.test.ts", "../packages/*/tests/browser/**/*.test.ts"],
+    include: ["src/**/*.test.ts", "../packages/*/tests/integration/**/*.test.ts"],
     browser: {
       provider: "playwright",
       commands: {
