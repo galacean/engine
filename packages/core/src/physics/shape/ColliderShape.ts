@@ -85,7 +85,7 @@ export abstract class ColliderShape extends DataObject implements ICloneHook<Col
   /**
    * The assigned material, or null to use the shared default material.
    * @defaultValue null
-   * @remarks This property returns null for the shared default. Use {@link getInstanceMaterial} to obtain an instance.
+   * @remarks Retains an assigned material until replaced or the shape is destroyed. Use {@link getInstanceMaterial} to obtain a per-shape instance.
    */
   get material(): PhysicsMaterial | null {
     return this._material;
@@ -157,11 +157,11 @@ export abstract class ColliderShape extends DataObject implements ICloneHook<Col
 
   /**
    * Get the instance material for this shape.
-   * @remarks On first use, assigns a clone of {@link material}, or a new material with default properties if null.
-   * Reuses the instance until a different material or null is assigned.
-   * @param engine - Engine that owns the instance; must match an already assigned material.
-   * @returns The instance material
-   * @throws When the assigned material belongs to another engine.
+   * @remarks Clones {@link material} or creates a default {@link PhysicsMaterial} when not yet instanced, assigns it,
+   * and reuses it until {@link material} is set to a different material or null.
+   * @param engine - Engine that owns the instance; must match {@link material} if one is already assigned
+   * @returns The shape-specific material instance
+   * @throws When {@link material} belongs to another engine.
    */
   getInstanceMaterial(engine: Engine): PhysicsMaterial {
     if (this._material && this._material.engine !== engine) {
@@ -203,8 +203,9 @@ export abstract class ColliderShape extends DataObject implements ICloneHook<Col
    * @inheritdoc
    */
   _onClone(target: ColliderShape): void {
+    // _material is @ignoreClone: assign it through the setter before _cloneNativeShape, which may build the native shape from the target's material.
     target.material = this._material;
-    // The clone shares its material until it requests an instance
+    // The clone shares its material until it requests an instance.
     target._materialInstanced = false;
     this._cloneNativeShape(target);
   }

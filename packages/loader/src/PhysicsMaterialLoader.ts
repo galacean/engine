@@ -18,6 +18,7 @@ class PhysicsMaterialLoader extends Loader<PhysicsMaterial> {
       })
       .then((data) => {
         const physicsMaterial = new PhysicsMaterial(resourceManager.engine);
+        // Only apply present fields so sparse JSON preserves constructor defaults.
         if (data.bounciness !== undefined) physicsMaterial.bounciness = data.bounciness;
         if (data.dynamicFriction !== undefined) physicsMaterial.dynamicFriction = data.dynamicFriction;
         if (data.staticFriction !== undefined) physicsMaterial.staticFriction = data.staticFriction;

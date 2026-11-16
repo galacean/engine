@@ -49,7 +49,7 @@ export class PhysicsMaterial extends ReferResource {
   }
 
   /**
-   * The DynamicFriction value.
+   * The coefficient of dynamic friction.
    */
   get dynamicFriction(): number {
     return this._dynamicFriction;
@@ -105,7 +105,7 @@ export class PhysicsMaterial extends ReferResource {
   }
 
   /**
-   * Create an independent material with the same properties.
+   * Create an independent material with the same properties, owned by the same engine.
    */
   clone(): PhysicsMaterial {
     const material = new PhysicsMaterial(this._engine);
@@ -121,6 +121,8 @@ export class PhysicsMaterial extends ReferResource {
    * @internal
    */
   override _addReferCount(value: number): void {
+    // Gate on _nativeMaterial, not _destroyed: _destroyed is already true inside _onDestroy(), which zeroes
+    // _refCount through this method. Later releases from destroyed shapes are ignored once _nativeMaterial is cleared.
     if (this._nativeMaterial) {
       super._addReferCount(value);
     }

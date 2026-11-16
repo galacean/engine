@@ -30,6 +30,7 @@ import { Color } from "@galacean/engine-math";
  * @internal
  */
 export class BasicResources {
+  // Shared per physics backend (not per Engine) because parameterless ColliderShape instances have no engine owner.
   static physicsDefaultMaterial: IPhysicsMaterial;
   private static _maskReadInsideRenderStates: RenderStateElementMap | null = null;
   private static _maskReadOutsideRenderStates: RenderStateElementMap | null = null;

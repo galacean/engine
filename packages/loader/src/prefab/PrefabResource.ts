@@ -32,6 +32,8 @@ export class PrefabResource extends ReferResource {
    * @internal
    */
   _addDependenceAsset(resource: unknown): void {
+    // ReflectionParser also passes non-ReferResource assets such as Shader, which have no superResource association.
+    // _superResources is a plain array, so the Set ensures each dependency is associated and disassociated exactly once.
     if (resource instanceof ReferResource && !this._dependenceAssets.has(resource)) {
       this._dependenceAssets.add(resource);
       resource._associationSuperResource(this);
