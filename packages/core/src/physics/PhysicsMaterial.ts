@@ -35,7 +35,7 @@ export class PhysicsMaterial extends ReferResource {
   }
 
   /**
-   * The coefficient of bounciness, ranging from 0 to 1.
+   * The coefficient of bounciness. Must be between 0 and 1.
    */
   get bounciness(): number {
     return this._bounciness;

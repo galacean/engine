@@ -64,8 +64,9 @@ export abstract class ColliderShape extends DataObject implements ICloneHook<Col
   }
 
   /**
-   * Contact offset for this shape, the value must be greater than or equal to 0.
+   * Contact offset for this shape. Finite negative values are clamped to 0.
    * @defaultValue 0.02
+   * @throws When the value is not finite.
    */
   get contactOffset(): number {
     return this._contactOffset;
@@ -200,12 +201,12 @@ export abstract class ColliderShape extends DataObject implements ICloneHook<Col
 
   /**
    * @internal
-   * @inheritdoc
+   * @inheritDoc
    */
   _onClone(target: ColliderShape): void {
     // _material is @ignoreClone: assign it through the setter before _cloneNativeShape, which may build the native shape from the target's material.
     target.material = this._material;
-    // The clone shares its material until it requests an instance.
+    // Even a reused target sharing this material must request its own instance again.
     target._materialInstanced = false;
     this._cloneNativeShape(target);
   }
