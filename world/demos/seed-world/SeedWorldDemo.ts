@@ -1091,6 +1091,7 @@ export async function mountSeedWorldDemo(
                   let solids: Awaited<ReturnType<typeof createPlanningSeedSolids>> | undefined;
                   try {
                     solids = await createPlanningSeedSolids(engine!, stage, result.plan, {
+                      camera,
                       signal,
                       previous: previous.solids,
                       formations,
@@ -1581,6 +1582,7 @@ export async function mountSeedWorldDemo(
             }
             spanAt = performance.now();
             candidateSolids = await createPlanningSeedSolids(engine!, candidate.root, presented, {
+              camera,
               signal,
               previous: publication!.current?.solids,
               formations: formationMeshes,

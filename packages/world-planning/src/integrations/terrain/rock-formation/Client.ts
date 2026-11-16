@@ -1,3 +1,4 @@
+import { prepareRockLodMeshes } from "./RockLodMeshes";
 import type { Engine } from "@galacean/engine";
 import { fitRockVariant, pickRockVariant, prepareRockVariant, rockVariantFit, rockVariantPools } from "./Variants";
 import { planningGroundSurface } from "../../../semantic-study/PlanningHeightmap.ts";
@@ -39,7 +40,13 @@ export class RockFormationClient {
         const previous = live.get(job.id);
         if (previous && this.resultKeys.get(previous) === key) return previous;
         let task = tasks.get(entry.id);
-        if (!task) tasks.set(entry.id, (task = prepareRockVariant(engine, entry)));
+        if (!task) {
+          task = prepareRockVariant(engine, entry).then(async (asset) => {
+            await prepareRockLodMeshes(engine, asset);
+            return asset;
+          });
+          tasks.set(entry.id, task);
+        }
         const asset = await task;
         signal.throwIfAborted();
         const matrix = rockVariantFit(job, asset);

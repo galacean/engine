@@ -149,7 +149,6 @@
     "./runtime/SeedWorldRockRuntime": "./src/runtime/SeedWorldRockRuntime.ts",
     "./runtime/SeedWorldRockSurfaceGrass": "./src/runtime/SeedWorldRockSurfaceGrass.ts",
     "./runtime/SeedWorldRockTerrainAnalysis": "./src/runtime/SeedWorldRockTerrainAnalysis.ts",
-    "./runtime/SeedWorldSmallRockRuntime": "./src/runtime/SeedWorldSmallRockRuntime.ts",
     "./runtime/SeedWorldSurfaceIntent": "./src/runtime/SeedWorldSurfaceIntent.ts",
     "./runtime/SeedWorldSurfaceRelief": "./src/runtime/SeedWorldSurfaceRelief.ts",
     "./runtime/SeedWorldSurfaceReliefRuntime": "./src/runtime/SeedWorldSurfaceReliefRuntime.ts",

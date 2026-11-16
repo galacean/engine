@@ -1,3 +1,5 @@
+import { TREE_ASSEMBLY_LOD_CROSS_FADE_SECONDS } from "@galacean/engine-vegetation/asset-assembly/TreeAssemblyPlan";
+import { rockLodScreenHeights } from "@galacean/engine-terrain/rock-formation/RockLodPolicy";
 import {
   AssetType,
   Camera,
@@ -35,7 +37,7 @@ import { fitContainedPrefab, fitGroundedPrefabHeight } from "./MojaveGrounding";
 import mojaveAssets from "./MojaveAssets.json";
 const { models: catalog, geometry: geometryCatalog } = mojaveAssets;
 
-const geometryModels = new Map(geometryCatalog.map(item => [item.id, item]));
+const geometryModels = new Map(geometryCatalog.map((item) => [item.id, item]));
 const models = new Map(catalog.map((item) => [`mojave/${item.id}`, item]));
 type LodDefinition = Extract<TerrainProjectResolvedGeometry, { kind: "lod-group" }>["lodGroup"];
 interface RockInstance {
@@ -44,12 +46,10 @@ interface RockInstance {
   runtime: TerrainLodGroupRendererRuntime;
   family: "groups" | "stones" | "plants";
 }
-/** Scene-owned three-level controls; metre distances refer to an unscaled reference asset at the current FOV. */
+/** Scene-owned enable and vegetation controls. Rock thresholds use the shared screen policy. */
 export const mojaveLodTuning = {
   enabled: true,
   fadeSeconds: 0.45,
-  groups: { near: 29, far: 382.8, cull: 1196 },
-  stones: { near: 29, far: 116, cull: 363 },
   plants: { near: 20, far: 60, cull: 150 }
 };
 
@@ -65,18 +65,20 @@ export class MojaveRockLodRuntime extends Script {
   /** Rebuilds only transition policy when artist-authored distances change. */
   rebuild(): void {
     for (const item of this.instances) {
-      const distances = mojaveLodTuning[item.family];
-      const projection = item.definition.size / (2 * Math.tan((this.camera.fieldOfView * Math.PI) / 360));
-      const thresholds = [
-        distances.near,
-        Math.max(distances.near + 1, distances.far),
-        Math.max(distances.far + 1, distances.cull)
-      ];
+      let heights: readonly number[];
+      if (item.family === "plants") {
+        const { near, far, cull } = mojaveLodTuning.plants;
+        const middle = Math.max(near + 1, far);
+        const projection = item.definition.size / (2 * Math.tan((this.camera.fieldOfView * Math.PI) / 360));
+        heights = [near, middle, Math.max(middle + 1, cull)].map((distance) => projection / distance);
+      } else {
+        heights = rockLodScreenHeights(item.definition.lods.map((lod) => lod.screenRelativeTransitionHeight));
+      }
       const definition = {
         ...item.definition,
         lods: item.definition.lods.map((lod, i) => ({
           ...lod,
-          screenRelativeTransitionHeight: projection / thresholds[i]
+          screenRelativeTransitionHeight: heights[i]
         }))
       };
       for (const renderer of item.entity.getComponentsIncludeChildren(MeshRenderer, [])) renderer.castShadows = true;
@@ -84,7 +86,7 @@ export class MojaveRockLodRuntime extends Script {
         item.entity,
         this.camera,
         definition,
-        mojaveLodTuning.fadeSeconds
+        item.family === "plants" ? mojaveLodTuning.fadeSeconds : TREE_ASSEMBLY_LOD_CROSS_FADE_SECONDS
       );
       // Start outside the terminal threshold, then use the canonical terminal-to-visible transition.
       item.runtime.updateRenderersWithScreenRelativeHeight(this.elapsed, 0);
@@ -132,17 +134,13 @@ export function mountMojaveLodControls(gui: GUI, read: () => Entity | undefined)
   const folder = gui.addFolder("Mojave LOD / 岩石层级");
   const rebuild = () => read()?.getComponent(MojaveRockLodRuntime)?.rebuild();
   folder.add(mojaveLodTuning, "enabled").name("LOD / 开启");
-  folder.add(mojaveLodTuning, "fadeSeconds", 0.1, 2, 0.05).name("Fade seconds / 渐变秒").onFinishChange(rebuild);
-  for (const family of ["groups", "stones", "plants"] as const) {
-    const child = folder.addFolder(
-      { groups: "岩石组距离 / 米", stones: "单石距离 / 米", plants: "植被距离 / 米" }[family]
-    );
-    for (const key of ["near", "far", "cull"] as const)
-      child
-        .add(mojaveLodTuning[family], key, 1, 1500, 1)
-        .name({ near: "近→中", far: "中→远", cull: "远→退场" }[key])
-        .onFinishChange(rebuild);
-  }
+  folder.add(mojaveLodTuning, "fadeSeconds", 0.1, 2, 0.05).name("植被渐变秒").onFinishChange(rebuild);
+  const plants = folder.addFolder("植被距离 / 米");
+  for (const key of ["near", "far", "cull"] as const)
+    plants
+      .add(mojaveLodTuning.plants, key, 1, 1500, 1)
+      .name({ near: "近→中", far: "中→远", cull: "远→退场" }[key])
+      .onFinishChange(rebuild);
 }
 
 /** Materializes only assets selected by the published plan; terrain retains shared texture ownership. */

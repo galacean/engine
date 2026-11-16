@@ -19,6 +19,7 @@
     "./index": "./src/index.ts",
     "./rock-formation/GrassPatches": "./src/rock-formation/GrassPatches.ts",
     "./rock-formation/GrassSurface": "./src/rock-formation/GrassSurface.ts",
+    "./rock-formation/RockLodPolicy": "./src/rock-formation/RockLodPolicy.ts",
     "./rock-formation/TransitionCoverage": "./src/rock-formation/TransitionCoverage.ts",
     "./rock-formation/math": "./src/rock-formation/math.ts",
     "./rock-formation/types": "./src/rock-formation/types.ts",

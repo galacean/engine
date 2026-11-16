@@ -699,7 +699,6 @@ export interface SeedWorldLiveState {
   };
   readonly decorations: {
     readonly rocks: number;
-    readonly smallRocks: number;
     readonly mushrooms: number;
     readonly lotus: number;
   };

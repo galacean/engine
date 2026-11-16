@@ -1,4 +1,4 @@
-import { Matrix, MeshRenderer, type PBRMaterial, type Engine, type Entity } from "@galacean/engine";
+import { Matrix, MeshRenderer, type Camera, type PBRMaterial, type Engine, type Entity } from "@galacean/engine";
 import { acquireRockVariantMesh } from "./Variants";
 import {
   SeedWorldArrayPickBatch,
@@ -11,6 +11,7 @@ import { createRockCollider, disabledRockCollisionOwners } from "./Collider.ts";
 import { createRockVariantMaterial } from "./RockMaterial";
 import { rockFormationPlacements } from "./Placement.ts";
 import { readRockColorBlend, type RockColorBlend } from "./ColorPalette.ts";
+import { RockLodView } from "./RockLodView";
 import { setRockColorBlend } from "./ColorMaterial.ts";
 
 interface RockViewEntry {
@@ -33,6 +34,8 @@ export class RockFormationView {
   private disposed = false;
   private grassCoveragePreview = false;
   private readonly grassTop: boolean;
+  private readonly lod?: RockLodView;
+  private readonly fadingPickBatches = new WeakMap<MeshRenderer, SeedWorldArrayPickBatch>();
 
   constructor(
     private readonly engine: Engine,
@@ -40,11 +43,16 @@ export class RockFormationView {
     plan: IslandPlan,
     formations: readonly RockFormationMesh[],
     private readonly registerGrassAppearance?: (material: PBRMaterial) => () => void,
-    private colorBlend: RockColorBlend = readRockColorBlend()
+    private colorBlend: RockColorBlend = readRockColorBlend(),
+    camera?: Camera
   ) {
     const template = worldTemplate(plan.parameters.worldTemplate?.id);
     this.grassTop = (template?.rockTopCover ?? (template?.vegetation ? "ground" : "grass")) === "grass";
     this.root = parent.createChild("Rock formations");
+    if (camera) {
+      this.lod = this.root.addComponent(RockLodView);
+      this.lod.camera = camera;
+    }
     try {
       this.prepareFormations(plan, formations).commit();
     } catch (error) {
@@ -96,7 +104,9 @@ export class RockFormationView {
     };
     entry.releaseVariant = releaseMaterial;
     const geometry = acquireRockVariantMesh(this.engine, asset);
+    let unregisterLod: (() => void) | undefined;
     entry.releaseVariant = () => {
+      unregisterLod?.();
       geometry.release();
       releaseMaterial();
     };
@@ -108,6 +118,7 @@ export class RockFormationView {
     renderer.mesh = geometry.mesh;
     renderer.setMaterial(materialEntry.material);
     renderer.castShadows = renderer.receiveShadows = true;
+    unregisterLod = this.lod?.add(renderer, geometry.mesh, asset);
     entry.batch = new SeedWorldArrayPickBatch(renderer);
     entry.batch.id = entry.formation.owners[0];
     entry.batch.count = 1;
@@ -164,8 +175,10 @@ export class RockFormationView {
       plan,
       [...entries.values()].map((entry) => entry.formation)
     );
-    return () =>
+    return () => {
       placements.forEach(({ formation, origin }) => entries.get(formation.id)!.entity.transform.setPosition(...origin));
+      this.lod?.invalidate();
+    };
   }
   /** Resident formation entities for the optional research preview's replacement layer. */
   get groups(): ReadonlyMap<string, Entity> {
@@ -186,7 +199,20 @@ export class RockFormationView {
     return { commit: this.placement(plan) };
   }
   visitPickBatches(visitor: SeedWorldPickVisitor): void {
-    for (const { batch } of this.entries.values()) if (batch?.renderer.entity.isActiveInHierarchy) visitor(batch);
+    for (const { batch } of this.entries.values()) {
+      if (!batch?.renderer.entity.isActiveInHierarchy) continue;
+      visitor(batch);
+      const fading = this.lod?.fadingRenderer(batch.renderer);
+      if (!fading) continue;
+      let fadingBatch = this.fadingPickBatches.get(fading);
+      if (!fadingBatch) {
+        fadingBatch = new SeedWorldArrayPickBatch(fading);
+        fadingBatch.id = batch.id;
+        fadingBatch.count = batch.count;
+        this.fadingPickBatches.set(fading, fadingBatch);
+      }
+      visitor(fadingBatch);
+    }
   }
   private release(entry: RockViewEntry): void {
     entry.collider?.dispose();

@@ -1,3 +1,4 @@
+import { prepareRockLodDither } from "../integrations/terrain/rock-formation/RockMaterial";
 import type { PreparedSurfaceReliefMask } from "./SeedWorldSurfaceRelief";
 import { bindSurfaceTerrain } from "@galacean/engine-terrain/surface/SurfaceMaterial";
 import { compileSeedWorldSurfacePalette, type SeedWorldSurfacePalette } from "./SeedWorldSurfacePalette";
@@ -262,8 +263,6 @@ export class SeedWorldTerrainRuntime {
   readonly clipmap: TerrainClipmap;
   /** Feature-decoration ordinary-stone renderer. */
   readonly stones?: SeedWorldExactPrefabRuntime;
-  /** Feature-decoration small-rock renderer. */
-  readonly smallRocks?: SeedWorldExactPrefabRuntime;
   /** Sparse accepted mushrooms bound to exact rock edges. */
   readonly mushrooms: SeedWorldExactPrefabRuntime;
   /** Sparse authorized lotus bound only to Artifact Lake shoreline cells. */
@@ -591,6 +590,10 @@ export class SeedWorldTerrainRuntime {
       let exactPrefabs: SeedWorldExactPrefabRuntimeRegistry | undefined;
       let population: SeedWorldPopulationRuntime | undefined;
       try {
+        if (activeDecorations.some(({ category }) => category === "rock" || category === "stone")) {
+          await prepareRockLodDither(engine);
+          signal?.throwIfAborted();
+        }
         exactPrefabs = new SeedWorldExactPrefabRuntimeRegistry({
           engine,
           parent: decorationsRoot,
@@ -681,7 +684,6 @@ export class SeedWorldTerrainRuntime {
     this.clipmap = clipmap;
     this.exactPrefabs = exactPrefabs;
     this.stones = exactPrefabs.get("stone");
-    this.smallRocks = exactPrefabs.get("small-rock");
     this.mushrooms = exactPrefabs.require("mushroom");
     this.lotus = exactPrefabs.require("lotus");
     this.population = population;
