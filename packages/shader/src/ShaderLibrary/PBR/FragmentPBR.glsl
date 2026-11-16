@@ -257,7 +257,9 @@ SurfaceData getSurfaceData(Varyings v, vec2 aoUV, bool isFrontFacing){
         #ifdef MATERIAL_HAS_ANISOTROPY_TEXTURE
             vec3 anisotropyTextureInfo = (texture2D( material_AnisotropyTexture, uv )).rgb;
             anisotropy *= anisotropyTextureInfo.b;
-            anisotropicDirection.xy *= anisotropyTextureInfo.rg * 2.0 - 1.0;
+            vec2 textureDirection = anisotropyTextureInfo.rg * 2.0 - 1.0;
+            vec2 rotation = material_AnisotropyInfo.xy;
+            anisotropicDirection.xy = mat2(rotation.x, rotation.y, -rotation.y, rotation.x) * textureDirection;
         #endif
 
         surfaceData.anisotropy = anisotropy;
