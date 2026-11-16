@@ -12,7 +12,7 @@ export interface IJoint {
 
   /**
    * The connected anchor position.
-   * @remarks If connectedCollider is set, this anchor is relative offset, or the anchor is world position.
+   * @remarks If a connected body is set, this anchor is relative offset, or the anchor is world position.
    */
   setConnectedAnchor(value: Vector3): void;
 

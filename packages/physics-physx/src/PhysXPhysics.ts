@@ -170,8 +170,8 @@ export class PhysXPhysics implements IPhysics {
   /**
    * {@inheritDoc IPhysics.createCharacterController }
    */
-  createCharacterController(): ICharacterController {
-    return new PhysXCharacterController(this);
+  createCharacterController(uniqueID: number, material: PhysXPhysicsMaterial): ICharacterController {
+    return new PhysXCharacterController(this, uniqueID, material);
   }
 
   /**

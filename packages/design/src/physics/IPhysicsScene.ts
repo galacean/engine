@@ -14,14 +14,14 @@ export interface IPhysicsScene {
   setGravity(gravity: Vector3): void;
 
   /**
-   * Add ICollider into the manager.
-   * @param collider - StaticCollider or DynamicCollider.
+   * Add a native actor and its attached shapes to the scene.
+   * @param collider - The native static or dynamic actor
    */
   addCollider(collider: ICollider): void;
 
   /**
-   * Remove ICollider.
-   * @param collider - StaticCollider or DynamicCollider.
+   * Remove a native actor and its attached shapes from the scene.
+   * @param collider - The native static or dynamic actor
    */
   removeCollider(collider: ICollider): void;
 

@@ -1,16 +1,18 @@
 import { ContactPoint } from "./ContactPoint";
-import { ColliderShape } from "./shape";
+import { Collider } from "./Collider";
 import { ICollision } from "@galacean/engine-design";
 
 /**
- * Collision information between two shapes when they collide.
+ * Collision information passed to the scripts on one of the two colliding Colliders' Entity.
  */
 export class Collision {
   /** @internal */
   _nativeCollision: ICollision;
 
-  /** The target shape be collided. */
-  shape: ColliderShape;
+  /** The other Collider in the collision. */
+  collider: Collider;
+  /** The Collider that receives this collision; contact normals and impulses point from the other Collider to it. */
+  selfCollider: Collider;
 
   /**
    * Count of contact points.
@@ -29,7 +31,7 @@ export class Collision {
    */
   getContacts(outContacts: ContactPoint[]): number {
     const nativeCollision = this._nativeCollision;
-    const factor = this.shape.id === nativeCollision.shape1Id ? 1 : -1;
+    const factor = this.selfCollider._id === nativeCollision.shape0Id ? 1 : -1;
     const nativeContactPoints = nativeCollision.getContacts();
     const length = nativeContactPoints.size();
     for (let i = 0; i < length; i++) {

@@ -1,18 +1,19 @@
-import { ICharacterController, ICollider, IPhysicsScene, IPhysicsEvents } from "@galacean/engine-design";
+import { IPhysicsEvents, IPhysicsScene } from "@galacean/engine-design";
 import { MathUtil, Ray, Vector3, Quaternion } from "@galacean/engine-math";
 import { Engine } from "../Engine";
 import { Layer } from "../Layer";
 import { Scene } from "../Scene";
 import { Script } from "../Script";
 import { DisorderedArray } from "../utils/DisorderedArray";
-import { CharacterController } from "./CharacterController";
 import { Collider } from "./Collider";
 import { Collision } from "./Collision";
 import { HitResult } from "./HitResult";
-import { ColliderShape } from "./shape";
+import { Rigidbody } from "./Rigidbody";
 
 /**
  * A physics scene is a collection of colliders and constraints which can interact.
+ * @remarks Component changes are collected and applied in one pass before each simulation step and each query, so the
+ * order in which components are enabled never produces intermediate native states.
  */
 export class PhysicsScene {
   private static _collision = new Collision();
@@ -28,10 +29,14 @@ export class PhysicsScene {
   private _restTime: number = 0;
   private _fixedTimeStep: number = 1 / 60;
 
-  private _colliders: DisorderedArray<Collider> = new DisorderedArray();
+  private _bodies: DisorderedArray<Rigidbody> = new DisorderedArray();
+  private _dirtyBodies: Rigidbody[] = [];
+  private _dirtyColliders: Collider[] = [];
+  private _massDirtyBodies: Rigidbody[] = [];
 
   private _gravity: Vector3 = new Vector3(0, -9.81, 0);
-  private _nativePhysicsScene: IPhysicsScene;
+  /** @internal */
+  _nativePhysicsScene: IPhysicsScene;
 
   private _contactEventConsumerCount = 0;
 
@@ -187,6 +192,7 @@ export class PhysicsScene {
 
     let result = false;
     if (normalizedDirection) {
+      this._syncColliders();
       result = this._nativePhysicsScene.raycast(
         ray.origin,
         normalizedDirection,
@@ -267,14 +273,15 @@ export class PhysicsScene {
     let hitCount = 0;
     const normalizedDirection = PhysicsScene._normalizeDirection(ray.direction);
     if (distance > 0 && normalizedDirection) {
+      this._syncColliders();
       this._nativePhysicsScene.raycastAll(
         ray.origin,
         normalizedDirection,
         distance,
         layerMask,
-        (shapeUniqueID: number, hitDistance: number, position: Vector3, normal: Vector3) => {
+        (colliderID: number, hitDistance: number, position: Vector3, normal: Vector3) => {
           const hitResult = (outHitResults[hitCount++] ||= pool.pop() ?? new HitResult());
-          this._setHitResult(hitResult, shapeUniqueID, hitDistance, position, normal);
+          this._setHitResult(hitResult, colliderID, hitDistance, position, normal);
         }
       );
     }
@@ -406,6 +413,7 @@ export class PhysicsScene {
 
     let result = false;
     if (normalizedDirection) {
+      this._syncColliders();
       result = this._nativePhysicsScene.boxCast(
         center,
         orientation,
@@ -514,6 +522,7 @@ export class PhysicsScene {
 
     let result = false;
     if (normalizedDirection) {
+      this._syncColliders();
       result = this._nativePhysicsScene.sphereCast(
         center,
         radius,
@@ -644,6 +653,7 @@ export class PhysicsScene {
 
     let result = false;
     if (normalizedDirection) {
+      this._syncColliders();
       result = this._nativePhysicsScene.capsuleCast(
         center,
         radius,
@@ -668,23 +678,20 @@ export class PhysicsScene {
    * @param halfExtents - Half the size of the box in each dimension
    * @param orientation - The rotation of the box. @defaultValue `Quaternion(0, 0, 0, 1)`
    * @param layerMask - Layer mask that is used to selectively filter colliders. @defaultValue `Layer.Everything`
-   * @param shapes - Array to store overlapping collider shapes. @defaultValue `[]`
-   * @returns The collider shapes overlapping with the box
+   * @param colliders - Array to store overlapping colliders. @defaultValue `[]`
+   * @returns The colliders overlapping with the box
    */
   overlapBoxAll(
     center: Vector3,
     halfExtents: Vector3,
     orientation: Quaternion = PhysicsScene._identityQuaternion,
     layerMask: Layer = Layer.Everything,
-    shapes: ColliderShape[] = []
-  ): ColliderShape[] {
+    colliders: Collider[] = []
+  ): Collider[] {
+    this._syncColliders();
     const ids = this._nativePhysicsScene.overlapBoxAll(center, orientation, halfExtents, layerMask);
 
-    shapes.length = 0;
-    for (let i = 0, n = ids.length; i < n; i++) {
-      shapes.push(Engine._physicalObjectsMap[ids[i]]);
-    }
-    return shapes;
+    return PhysicsScene._collectColliders(ids, colliders);
   }
 
   /**
@@ -692,22 +699,19 @@ export class PhysicsScene {
    * @param center - The center of the sphere
    * @param radius - The radius of the sphere
    * @param layerMask - Layer mask that is used to selectively filter colliders. @defaultValue `Layer.Everything`
-   * @param shapes - Array to store overlapping collider shapes. @defaultValue `[]`
-   * @returns The collider shapes overlapping with the sphere
+   * @param colliders - Array to store overlapping colliders. @defaultValue `[]`
+   * @returns The colliders overlapping with the sphere
    */
   overlapSphereAll(
     center: Vector3,
     radius: number,
     layerMask: Layer = Layer.Everything,
-    shapes: ColliderShape[] = []
-  ): ColliderShape[] {
+    colliders: Collider[] = []
+  ): Collider[] {
+    this._syncColliders();
     const ids = this._nativePhysicsScene.overlapSphereAll(center, radius, layerMask);
 
-    shapes.length = 0;
-    for (let i = 0; i < ids.length; i++) {
-      shapes.push(Engine._physicalObjectsMap[ids[i]]);
-    }
-    return shapes;
+    return PhysicsScene._collectColliders(ids, colliders);
   }
 
   /**
@@ -717,8 +721,8 @@ export class PhysicsScene {
    * @param height - The height of the capsule
    * @param orientation - The rotation of the capsule. @defaultValue `Quaternion(0, 0, 0, 1)`
    * @param layerMask - Layer mask that is used to selectively filter colliders. @defaultValue `Layer.Everything`
-   * @param shapes - Array to store overlapping collider shapes. @defaultValue `[]`
-   * @returns The collider shapes overlapping with the capsule
+   * @param colliders - Array to store overlapping colliders. @defaultValue `[]`
+   * @returns The colliders overlapping with the capsule
    */
   overlapCapsuleAll(
     center: Vector3,
@@ -726,15 +730,12 @@ export class PhysicsScene {
     height: number,
     orientation: Quaternion = PhysicsScene._identityQuaternion,
     layerMask: Layer = Layer.Everything,
-    shapes: ColliderShape[] = []
-  ): ColliderShape[] {
+    colliders: Collider[] = []
+  ): Collider[] {
+    this._syncColliders();
     const ids = this._nativePhysicsScene.overlapCapsuleAll(center, radius, height, orientation, layerMask);
 
-    shapes.length = 0;
-    for (let i = 0; i < ids.length; i++) {
-      shapes.push(Engine._physicalObjectsMap[ids[i]]);
-    }
-    return shapes;
+    return PhysicsScene._collectColliders(ids, colliders);
   }
 
   /**
@@ -742,7 +743,7 @@ export class PhysicsScene {
    * @internal
    */
   _update(deltaTime: number): void {
-    const { _fixedTimeStep: fixedTimeStep, _nativePhysicsScene: nativePhysicsManager } = this;
+    const { _fixedTimeStep: fixedTimeStep, _nativePhysicsScene: nativePhysicsScene } = this;
     const componentsManager = this._scene._componentsManager;
 
     const simulateTime = this._restTime + deltaTime;
@@ -750,61 +751,98 @@ export class PhysicsScene {
     this._restTime = simulateTime - step * fixedTimeStep;
     for (let i = 0; i < step; i++) {
       componentsManager.callScriptOnPhysicsUpdate();
-      this._callColliderOnUpdate();
-      nativePhysicsManager.update(fixedTimeStep);
-      this._callColliderOnLateUpdate();
-      this._dispatchEvents(nativePhysicsManager.updateEvents());
+      this._syncColliders();
+      nativePhysicsScene.update(fixedTimeStep);
+      this._bodies.forEach(PhysicsScene._writeBackBody);
+      this._dispatchEvents(nativePhysicsScene.updateEvents());
     }
   }
 
   /**
-   * Add collider into the manager.
-   * @param collider - StaticCollider or DynamicCollider.
+   * @internal
+   * Apply pending component changes to the native scene: Rigidbody poses first, then Collider ownership and poses
+   * relative to them, and finally the mass properties that depend on the attached Colliders.
+   */
+  _syncColliders(): void {
+    const dirtyBodies = this._dirtyBodies;
+    while (dirtyBodies.length) {
+      const body = dirtyBodies.pop()!;
+      body._dirtyIndex = -1;
+      body._syncPose();
+    }
+    const dirtyColliders = this._dirtyColliders;
+    while (dirtyColliders.length) {
+      const collider = dirtyColliders.pop()!;
+      collider._dirtyIndex = -1;
+      collider._sync();
+    }
+    const massDirtyBodies = this._massDirtyBodies;
+    while (massDirtyBodies.length) {
+      const body = massDirtyBodies.pop()!;
+      body._massDirty = false;
+      body._updateMass();
+    }
+  }
+
+  /**
    * @internal
    */
   _addCollider(collider: Collider): void {
-    if (collider._index === -1) {
-      collider._index = this._colliders.length;
-      this._colliders.add(collider);
-    }
-    this._nativePhysicsScene.addCollider(<ICollider>collider._nativeCollider);
+    this._markColliderDirty(collider);
   }
 
   /**
-   * Add character controller into the manager.
-   * @param controller - Character Controller.
-   * @internal
-   */
-  _addCharacterController(controller: CharacterController): void {
-    if (controller._index === -1) {
-      controller._index = this._colliders.length;
-      this._colliders.add(controller);
-    }
-    this._nativePhysicsScene.addCharacterController(<ICharacterController>controller._nativeCollider);
-  }
-
-  /**
-   * Remove collider.
-   * @param collider - StaticCollider or DynamicCollider.
    * @internal
    */
   _removeCollider(collider: Collider): void {
-    const replaced = this._colliders.deleteByIndex(collider._index);
-    replaced && (replaced._index = collider._index);
-    collider._index = -1;
-    this._nativePhysicsScene.removeCollider(<ICollider>collider._nativeCollider);
+    PhysicsScene._removeDirty(this._dirtyColliders, collider);
+    collider._detach();
   }
 
   /**
-   * Remove collider.
-   * @param controller - Character Controller.
    * @internal
    */
-  _removeCharacterController(controller: CharacterController): void {
-    const replaced = this._colliders.deleteByIndex(controller._index);
-    replaced && (replaced._index = controller._index);
-    controller._index = -1;
-    this._nativePhysicsScene.removeCharacterController(<ICharacterController>controller._nativeCollider);
+  _markColliderDirty(collider: Collider): void {
+    PhysicsScene._addDirty(this._dirtyColliders, collider);
+  }
+
+  /**
+   * @internal
+   */
+  _addRigidbody(body: Rigidbody): void {
+    this._nativePhysicsScene.addCollider(body._getNativeActor());
+    body._index = this._bodies.length;
+    this._bodies.add(body);
+    PhysicsScene._addDirty(this._dirtyBodies, body);
+    this._markMassDirty(body);
+  }
+
+  /**
+   * @internal
+   */
+  _removeRigidbody(body: Rigidbody): void {
+    PhysicsScene._removeDirty(this._dirtyBodies, body);
+    const replaced = this._bodies.deleteByIndex(body._index);
+    replaced && (replaced._index = body._index);
+    body._index = -1;
+    this._nativePhysicsScene.removeCollider(body._getNativeActor());
+  }
+
+  /**
+   * @internal
+   */
+  _markBodyDirty(body: Rigidbody): void {
+    PhysicsScene._addDirty(this._dirtyBodies, body);
+  }
+
+  /**
+   * @internal
+   */
+  _markMassDirty(body: Rigidbody): void {
+    if (!body._massDirty) {
+      body._massDirty = true;
+      this._massDirtyBodies.push(body);
+    }
   }
 
   /**
@@ -822,30 +860,10 @@ export class PhysicsScene {
   /**
    * @internal
    */
-  _callColliderOnUpdate(): void {
-    const elements = this._colliders._elements;
-    for (let i = this._colliders.length - 1; i >= 0; --i) {
-      elements[i]._onUpdate();
-    }
-  }
-
-  /**
-   * @internal
-   */
-  _callColliderOnLateUpdate(): void {
-    const elements = this._colliders._elements;
-    for (let i = this._colliders.length - 1; i >= 0; --i) {
-      elements[i]._onLateUpdate();
-    }
-  }
-
-  /**
-   * @internal
-   */
   _gc(): void {
     PhysicsScene._raycastHitPool.length = 0;
     PhysicsScene._raycastSeenHits.clear();
-    this._colliders.garbageCollection();
+    this._bodies.garbageCollection();
     this._nativePhysicsScene?.gc();
   }
 
@@ -861,89 +879,101 @@ export class PhysicsScene {
   private _dispatchEvents(events: IPhysicsEvents): void {
     const physicalObjectsMap = Engine._physicalObjectsMap;
     const collision = PhysicsScene._collision;
-    const scriptIndexSetter = PhysicsScene._scriptIndexSetter;
     const { contactEvents, contactEventCount, triggerEvents } = events;
 
-    // Dispatch contact events
     for (let i = 0, n = contactEventCount; i < n; i++) {
       const event = contactEvents[i];
-      const shape1 = physicalObjectsMap[event.shape0Id];
-      const shape2 = physicalObjectsMap[event.shape1Id];
-      // entity.destroy() is deferred, so shapes/colliders stay valid through the dispatch loop
-      // This guard covers synchronous removeShape()/clearShapes() which sets shape._collider = null
-      if (!shape1?.collider?.entity || !shape2?.collider?.entity) continue;
+      const collider0 = physicalObjectsMap[event.shape0Id];
+      const collider1 = physicalObjectsMap[event.shape1Id];
+      // A Collider destroyed during dispatch is removed from the map; deferred entity destruction keeps it valid
+      if (!collider0 || !collider1) continue;
       collision._nativeCollision = event;
-
-      switch (event.state) {
-        case PhysicsEventState.Enter:
-          shape1.collider.entity._scripts.forEach((element: Script) => {
-            collision.shape = shape2;
-            element.onCollisionEnter(collision);
-          }, scriptIndexSetter);
-          shape2.collider.entity._scripts.forEach((element: Script) => {
-            collision.shape = shape1;
-            element.onCollisionEnter(collision);
-          }, scriptIndexSetter);
-          break;
-        case PhysicsEventState.Stay:
-          shape1.collider.entity._scripts.forEach((element: Script) => {
-            collision.shape = shape2;
-            element.onCollisionStay(collision);
-          }, scriptIndexSetter);
-          shape2.collider.entity._scripts.forEach((element: Script) => {
-            collision.shape = shape1;
-            element.onCollisionStay(collision);
-          }, scriptIndexSetter);
-          break;
-        case PhysicsEventState.Exit:
-          shape1.collider.entity._scripts.forEach((element: Script) => {
-            collision.shape = shape2;
-            element.onCollisionExit(collision);
-          }, scriptIndexSetter);
-          shape2.collider.entity._scripts.forEach((element: Script) => {
-            collision.shape = shape1;
-            element.onCollisionExit(collision);
-          }, scriptIndexSetter);
-          break;
-      }
+      const state = event.state;
+      PhysicsScene._dispatchCollision(collision, state, collider0, collider1);
+      PhysicsScene._dispatchCollision(collision, state, collider1, collider0);
     }
 
-    // Dispatch trigger events
     for (let i = 0, n = triggerEvents.length; i < n; i++) {
       const event = triggerEvents[i];
-      const shape1 = physicalObjectsMap[event.index1];
-      const shape2 = physicalObjectsMap[event.index2];
-      // entity.destroy() is deferred, so shapes/colliders stay valid through the dispatch loop
-      // This guard covers synchronous removeShape()/clearShapes() which sets shape._collider = null
-      if (!shape1?.collider?.entity || !shape2?.collider?.entity) continue;
+      const collider0 = physicalObjectsMap[event.index1];
+      const collider1 = physicalObjectsMap[event.index2];
+      if (!collider0 || !collider1) continue;
+      const state = event.dispatchState;
+      PhysicsScene._dispatchTrigger(state, collider0, collider1);
+      PhysicsScene._dispatchTrigger(state, collider1, collider0);
+    }
+  }
 
-      switch (event.dispatchState) {
+  private static _dispatchCollision(
+    collision: Collision,
+    state: PhysicsEventState,
+    self: Collider,
+    other: Collider
+  ): void {
+    self.entity._scripts.forEach((script: Script) => {
+      // A script may receive several events; set both sides before each call
+      collision.collider = other;
+      collision.selfCollider = self;
+      switch (state) {
         case PhysicsEventState.Enter:
-          shape1.collider.entity._scripts.forEach((element: Script) => {
-            element.onTriggerEnter(shape2);
-          }, scriptIndexSetter);
-          shape2.collider.entity._scripts.forEach((element: Script) => {
-            element.onTriggerEnter(shape1);
-          }, scriptIndexSetter);
+          script.onCollisionEnter(collision);
           break;
         case PhysicsEventState.Stay:
-          shape1.collider.entity._scripts.forEach((element: Script) => {
-            element.onTriggerStay(shape2);
-          }, scriptIndexSetter);
-          shape2.collider.entity._scripts.forEach((element: Script) => {
-            element.onTriggerStay(shape1);
-          }, scriptIndexSetter);
+          script.onCollisionStay(collision);
           break;
         case PhysicsEventState.Exit:
-          shape1.collider.entity._scripts.forEach((element: Script) => {
-            element.onTriggerExit(shape2);
-          }, scriptIndexSetter);
-          shape2.collider.entity._scripts.forEach((element: Script) => {
-            element.onTriggerExit(shape1);
-          }, scriptIndexSetter);
+          script.onCollisionExit(collision);
           break;
       }
+    }, PhysicsScene._scriptIndexSetter);
+  }
+
+  private static _dispatchTrigger(state: PhysicsEventState, self: Collider, other: Collider): void {
+    self.entity._scripts.forEach((script: Script) => {
+      switch (state) {
+        case PhysicsEventState.Enter:
+          script.onTriggerEnter(other, self);
+          break;
+        case PhysicsEventState.Stay:
+          script.onTriggerStay(other, self);
+          break;
+        case PhysicsEventState.Exit:
+          script.onTriggerExit(other, self);
+          break;
+      }
+    }, PhysicsScene._scriptIndexSetter);
+  }
+
+  private static _writeBackBody(body: Rigidbody): void {
+    body._writeBack();
+  }
+
+  private static _addDirty<T extends { _dirtyIndex: number }>(list: T[], item: T): void {
+    if (item._dirtyIndex === -1) {
+      item._dirtyIndex = list.length;
+      list.push(item);
     }
+  }
+
+  private static _removeDirty<T extends { _dirtyIndex: number }>(list: T[], item: T): void {
+    const index = item._dirtyIndex;
+    if (index !== -1) {
+      const last = list.pop()!;
+      if (last !== item) {
+        list[index] = last;
+        last._dirtyIndex = index;
+      }
+      item._dirtyIndex = -1;
+    }
+  }
+
+  private static _collectColliders(ids: ArrayLike<number>, out: Collider[]): Collider[] {
+    const physicalObjectsMap = Engine._physicalObjectsMap;
+    out.length = 0;
+    for (let i = 0, n = ids.length; i < n; i++) {
+      out.push(physicalObjectsMap[ids[i]]);
+    }
+    return out;
   }
 
   private static _normalizeDirection(direction: Vector3): Vector3 | null {
@@ -957,22 +987,22 @@ export class PhysicsScene {
 
   private _createHitCallback(
     outHitResult: HitResult
-  ): (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => void {
-    return (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => {
-      this._setHitResult(outHitResult, shapeUniqueID, distance, position, normal);
+  ): (colliderID: number, distance: number, position: Vector3, normal: Vector3) => void {
+    return (colliderID: number, distance: number, position: Vector3, normal: Vector3) => {
+      this._setHitResult(outHitResult, colliderID, distance, position, normal);
     };
   }
 
   private _setHitResult(
     outHitResult: HitResult,
-    shapeUniqueID: number,
+    colliderID: number,
     distance: number,
     position: Vector3,
     normal: Vector3
   ): void {
-    const shape = Engine._physicalObjectsMap[shapeUniqueID];
-    outHitResult.entity = shape.collider!.entity;
-    outHitResult.shape = shape;
+    const collider = Engine._physicalObjectsMap[colliderID];
+    outHitResult.entity = collider.entity;
+    outHitResult.collider = collider;
     outHitResult.distance = distance;
     outHitResult.point.copyFrom(position);
     outHitResult.normal.copyFrom(normal);
@@ -980,7 +1010,7 @@ export class PhysicsScene {
 
   private _clearHitResult(hitResult: HitResult): void {
     hitResult.entity = null;
-    hitResult.shape = null;
+    hitResult.collider = null;
     hitResult.distance = 0;
     hitResult.point.set(0, 0, 0);
     hitResult.normal.set(0, 0, 0);

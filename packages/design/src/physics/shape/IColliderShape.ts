@@ -6,19 +6,14 @@ import { IPhysicsMaterial } from "../IPhysicsMaterial";
  */
 export interface IColliderShape {
   /**
-   * Set local rotation.
-   * @param rotation - The local rotation
+   * Set the pose of the shape relative to its actor.
+   * @param position - The relative position, already scaled
+   * @param rotation - The relative rotation
    */
-  setRotation(rotation: Vector3): void;
+  setLocalPose(position: Vector3, rotation: Quaternion): void;
 
   /**
-   * Set local position.
-   * @param position - The local position
-   */
-  setPosition(position: Vector3): void;
-
-  /**
-   * Set world scale of shape.
+   * Set the world scale applied to the shape geometry.
    * @param scale - The scale
    */
   setWorldScale(scale: Vector3): void;
@@ -34,6 +29,12 @@ export interface IColliderShape {
    * @param material - The physics material
    */
   setMaterial(material: IPhysicsMaterial): void;
+
+  /**
+   * Set the collision layer of this shape without detaching it, so active contact and trigger pairs persist.
+   * @param layer - The collision layer index, from 0 to 31
+   */
+  setCollisionLayer(layer: number): void;
 
   /**
    * Set trigger or not.

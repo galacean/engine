@@ -1,56 +1,210 @@
-import { ICollider, IColliderShape, IDynamicCollider, IStaticCollider } from "@galacean/engine-design";
-import { BoolUpdateFlag } from "../BoolUpdateFlag";
+import {
+  ICharacterController,
+  ICollider,
+  IColliderShape,
+  IPhysicsMaterial,
+  IStaticCollider
+} from "@galacean/engine-design";
+import { MathUtil, Matrix, Quaternion, Vector3 } from "@galacean/engine-math";
+import { BasicResources } from "../BasicResources";
 import { ignoreClone } from "../clone/CloneDecorators";
 import type { ICloneHook } from "../clone/ICloneHook";
 import { Component } from "../Component";
 import { DependentMode, dependentComponents } from "../ComponentsDependencies";
+import { Engine } from "../Engine";
 import { Entity } from "../Entity";
 import { Layer } from "../Layer";
 import { Transform } from "../Transform";
-import { ColliderShape } from "./shape/ColliderShape";
-import type { MeshColliderShape } from "./shape/MeshColliderShape";
+import { PhysicsMaterial } from "./PhysicsMaterial";
+import { Rigidbody } from "./Rigidbody";
 
 /**
- * Base class for all colliders.
+ * Base class for colliders.
+ * @remarks
+ * The nearest {@link Rigidbody} on the Collider's Entity or its ancestors owns the Collider. Without one, the Collider
+ * is static and follows its own Entity. Disabling the owning Rigidbody removes its Colliders from simulation and
+ * queries; it never turns them into static Colliders.
  * @decorator `@dependentComponents(Transform, DependentMode.CheckOnly)`
  */
 @dependentComponents(Transform, DependentMode.CheckOnly)
 export class Collider extends Component implements ICloneHook<Collider> {
+  private static _idGenerator = 0;
+  private static _tempPosition = new Vector3();
+  private static _tempRotation = new Quaternion();
+  private static _tempLocalRotation = new Quaternion();
+  private static _tempBodyRotation = new Quaternion();
+  private static _tempScale = new Vector3();
+  private static _shearTolerance = 1e-4;
+
   /** @internal */
   @ignoreClone
-  _index: number = -1;
+  _id: number;
+  /** @internal Created on the first scene sync, then kept until the Collider is destroyed. */
+  @ignoreClone
+  _native: IColliderShape | ICharacterController | null = null;
   /** @internal */
   @ignoreClone
-  _nativeCollider: ICollider;
-  protected _updateFlag: BoolUpdateFlag;
-  protected _shapes: ColliderShape[] = [];
-  protected _collisionLayerIndex: number = 0;
+  _dirtyIndex = -1;
+
+  @ignoreClone
+  private _nativeActor: ICollider | null = null;
+  @ignoreClone
+  private _attachedBody: Rigidbody | null = null;
+  @ignoreClone
+  private _staticActor: IStaticCollider | null = null;
+  @ignoreClone
+  private _rejectedBody: Rigidbody | null = null;
+  @ignoreClone
+  private _shearWarned = false;
+  @ignoreClone
+  private _nativePosition = new Vector3();
+  @ignoreClone
+  private _nativeRotation = new Quaternion();
+  @ignoreClone
+  private _nativeScale = new Vector3();
+  @ignoreClone
+  private _nativeWorldPosition = new Vector3();
+  @ignoreClone
+  private _nativeWorldRotation = new Quaternion();
+
+  private _center = new Vector3();
+  private _rotation = new Vector3();
+  private _isTrigger = false;
+  private _isSceneQuery = true;
+  private _contactOffset = 0.02;
+  private _collisionLayerIndex = 0;
+  @ignoreClone
+  private _material: PhysicsMaterial | null = null;
+  @ignoreClone
+  private _materialInstanced = false;
 
   /**
-   * The shapes of this collider.
+   * The Rigidbody that owns this Collider: the nearest one on this Entity or its ancestors.
+   * @remarks Derived from the hierarchy. It does not change when either component is disabled.
    */
-  get shapes(): Readonly<ColliderShape[]> {
-    return this._shapes;
+  get attachedRigidbody(): Rigidbody | null {
+    return this._findRigidbody();
   }
 
   /**
-   * The collision layer of this collider, only support single layer.
-   *
+   * The center of the Collider in the Entity's local space.
+   */
+  get center(): Vector3 {
+    return this._center;
+  }
+
+  set center(value: Vector3) {
+    if (this._center !== value) {
+      this._center.copyFrom(value);
+    }
+  }
+
+  /**
+   * The local rotation of the Collider, in degrees.
+   */
+  get rotation(): Vector3 {
+    return this._rotation;
+  }
+
+  set rotation(value: Vector3) {
+    if (this._rotation !== value) {
+      this._rotation.copyFrom(value);
+    }
+  }
+
+  /**
+   * Whether this Collider is a trigger, which reports overlaps without a collision response.
+   */
+  get isTrigger(): boolean {
+    return this._isTrigger;
+  }
+
+  set isTrigger(value: boolean) {
+    if (this._isTrigger !== value) {
+      this._isTrigger = value;
+      (<IColliderShape>this._native)?.setIsTrigger(value);
+    }
+  }
+
+  /**
+   * @internal
+   * @beta
+   * Whether this Collider participates in scene queries, including raycasts, shape casts, and overlap queries.
+   * This does not affect collision response.
+   */
+  get isSceneQuery(): boolean {
+    return this._isSceneQuery;
+  }
+
+  set isSceneQuery(value: boolean) {
+    if (this._isSceneQuery !== value) {
+      this._isSceneQuery = value;
+      this._native?.setIsSceneQuery(value);
+    }
+  }
+
+  /**
+   * Contact offset for this Collider. Finite negative values are clamped to 0.
+   * @defaultValue 0.02
+   * @throws When the value is not finite.
+   */
+  get contactOffset(): number {
+    return this._contactOffset;
+  }
+
+  set contactOffset(value: number) {
+    if (!Number.isFinite(value)) {
+      throw new Error("Collider contactOffset must be finite.");
+    }
+    value = Math.max(0, value);
+    if (this._contactOffset !== value) {
+      this._contactOffset = value;
+      this._native?.setContactOffset(value);
+    }
+  }
+
+  /**
+   * The assigned material, or null to use the shared default material.
+   * @defaultValue null
+   * @remarks Retains an assigned material until replaced or the Collider is destroyed. Use
+   * {@link getInstanceMaterial} to obtain a per-Collider instance.
+   * @throws When the material belongs to another engine.
+   */
+  get material(): PhysicsMaterial | null {
+    return this._material;
+  }
+
+  set material(value: PhysicsMaterial | null) {
+    if (this._material !== value) {
+      if (value && value.engine !== this.engine) {
+        throw new Error("The physics material belongs to another engine.");
+      }
+      this._materialInstanced = false;
+      this._material && this._addResourceReferCount(this._material, -1);
+      value && this._addResourceReferCount(value, 1);
+      this._material = value;
+      this._native?.setMaterial(this._getNativeMaterial());
+    }
+  }
+
+  /**
+   * The collision layer of this Collider, only a single layer is supported.
    * @defaultValue `Layer.Layer0`
+   * @remarks Changing the layer keeps active collision and trigger pairs that still pass the collision matrix.
    */
   get collisionLayer(): Layer {
     return (1 << this._collisionLayerIndex) as Layer;
   }
 
   set collisionLayer(value: Layer) {
-    // Check if value is a single layer (power of 2)
     const index = Math.log2(value);
     if (!Number.isInteger(index)) {
       throw new Error("Collision layer must be a single layer (Layer.Layer0 to Layer.Layer31)");
     }
-
-    this._collisionLayerIndex = index;
-    this._nativeCollider.setCollisionLayer(index);
+    if (this._collisionLayerIndex !== index) {
+      this._collisionLayerIndex = index;
+      this._native?.setCollisionLayer(index);
+    }
   }
 
   /**
@@ -58,75 +212,53 @@ export class Collider extends Component implements ICloneHook<Collider> {
    */
   constructor(entity: Entity) {
     super(entity);
-    this._updateFlag = entity.registerWorldChangeFlag();
+    this._id = Collider._idGenerator++;
+    Engine._physicalObjectsMap[this._id] = this;
+
+    this._markDirty = this._markDirty.bind(this);
+    entity._updateFlagManager.addListener(this._markDirty);
+    //@ts-ignore
+    this._center._onValueChanged = this._markDirty;
+    //@ts-ignore
+    this._rotation._onValueChanged = this._markDirty;
   }
 
   /**
-   * Add collider shape on this collider.
-   * @remarks If the shape belongs to another Collider, it is moved to this Collider.
-   * @param shape - Collider shape
+   * Get the instance material for this Collider.
+   * @remarks Clones {@link material} or creates a default {@link PhysicsMaterial} when not yet instanced, assigns it,
+   * and reuses it until {@link material} is set to a different material or null.
+   * @returns The Collider-specific material instance
    */
-  addShape(shape: ColliderShape): void {
-    const oldCollider = shape._collider;
-    if (oldCollider !== this) {
-      if (oldCollider) {
-        oldCollider.removeShape(shape);
-      }
-      this._addNativeShape(shape);
-      this._shapes.push(shape);
-      this._handleShapesChanged();
+  getInstanceMaterial(): PhysicsMaterial {
+    if (!this._materialInstanced) {
+      this.material = this._material ? this._material.clone() : new PhysicsMaterial(this.engine);
+      this._materialInstanced = true;
     }
+    return this._material!;
   }
 
   /**
-   * Remove a collider shape.
-   * @param shape - The collider shape.
+   * Get the distance and the closest point on the Collider from a point.
+   * @param point - Location in world space you want to find the closest point to
+   * @param outClosestPoint - The closest point on the Collider in world space
+   * @returns The distance between the point and the Collider, or -1 when the Collider is not in simulation
    */
-  removeShape(shape: ColliderShape): void {
-    const index = this._shapes.indexOf(shape);
-    if (index !== -1) {
-      this._shapes.splice(index, 1);
-      this._removeNativeShape(shape);
-      this._handleShapesChanged();
+  getClosestPoint(point: Vector3, outClosestPoint: Vector3): number {
+    this._phasedActiveInScene && this.scene!.physics._syncColliders();
+    if (!this._nativeActor) {
+      console.warn("The collider is not in simulation.");
+      return -1;
     }
-  }
 
-  /**
-   * Remove all shape attached.
-   */
-  clearShapes(): void {
-    const shapes = this._shapes;
-    for (let i = 0, n = shapes.length; i < n; i++) {
-      this._removeNativeShape(shapes[i]);
+    const res = (<IColliderShape>this._native).pointDistance(point);
+    const distance = res.w;
+    if (distance > 0) {
+      outClosestPoint.set(res.x, res.y, res.z);
+    } else {
+      outClosestPoint.copyFrom(point);
     }
-    shapes.length = 0;
-    this._handleShapesChanged();
+    return Math.sqrt(distance);
   }
-
-  /**
-   * @internal
-   */
-  _onUpdate(): void {
-    if (this._updateFlag.flag) {
-      const { transform } = this.entity;
-      (<IStaticCollider>this._nativeCollider).setWorldTransform(
-        transform.worldPosition,
-        transform.worldRotationQuaternion
-      );
-
-      const worldScale = transform.lossyWorldScale;
-      const shapes = this._shapes;
-      for (let i = 0, n = shapes.length; i < n; i++) {
-        shapes[i]._nativeShape?.setWorldScale(worldScale);
-      }
-      this._updateFlag.flag = false;
-    }
-  }
-
-  /**
-   * @internal
-   */
-  _onLateUpdate(): void {}
 
   /**
    * @internal
@@ -147,40 +279,162 @@ export class Collider extends Component implements ICloneHook<Collider> {
    * @inheritdoc
    */
   _onClone(target: Collider): void {
-    target._syncNative();
+    // _material is @ignoreClone: assign it through the setter so the target retains its own reference.
+    target.material = this._material;
   }
 
   /**
    * @internal
+   * Reconcile native ownership and pose with the hierarchy. Called by the physics scene before simulation and queries.
    */
-  _handleShapesChanged(): void {}
+  _sync(): void {
+    const transform = this.entity.transform;
+    // Reading the world matrix re-arms transform change notifications that are only sent from a clean state
+    this._checkShear(transform.worldMatrix);
 
-  /**
-   * @internal
-   */
-  _replaceNativeShape(shape: MeshColliderShape, nativeShape: IColliderShape | null): void {
-    const previousShape = shape._nativeShape;
-    const nativeCollider = <IStaticCollider | IDynamicCollider>this._nativeCollider;
-    if (nativeShape) {
-      const attached = previousShape
-        ? nativeCollider.replaceShape(previousShape, nativeShape, this._collisionLayerIndex)
-        : nativeCollider.addShape(nativeShape, this._collisionLayerIndex);
-      if (!attached) {
-        nativeShape.destroy();
-        throw new Error("Collider: failed to attach replacement shape to the native actor.");
+    const shape = <IColliderShape>(this._native ||= this._createNative());
+    if (!shape) {
+      this._detach();
+      return;
+    }
+
+    const body = this._findRigidbody();
+    if (body && !body.isKinematic && !this._supportsDynamicBody()) {
+      if (this._rejectedBody !== body) {
+        this._rejectedBody = body;
+        console.error(
+          `${this.constructor.name}: this geometry cannot belong to a non-kinematic Rigidbody, it is excluded from simulation until the Rigidbody is kinematic.`
+        );
       }
-    } else if (previousShape) {
-      nativeCollider.removeShape(previousShape);
+      this._detach();
+      return;
     }
-    shape._nativeShape = nativeShape;
-    previousShape?.destroy();
-    this._handleShapesChanged();
+    this._rejectedBody = null;
+
+    const actor = body ? body._getNativeActor() : this._getStaticActor();
+    let forcePose = false;
+    if (this._nativeActor !== actor) {
+      if (!this._transfer(body, actor)) {
+        return;
+      }
+      forcePose = true;
+    }
+    this._syncPose(shape, body, forcePose);
   }
 
-  protected _syncNative(): void {
-    for (let i = 0, n = this.shapes.length; i < n; i++) {
-      this._addNativeShape(this.shapes[i]);
+  /**
+   * @internal
+   * Remove the native shape from its actor. JS fields and material references are kept.
+   */
+  _detach(): void {
+    const actor = this._nativeActor;
+    if (actor) {
+      actor.removeShape(<IColliderShape>this._native);
+      const body = this._attachedBody;
+      if (body) {
+        body._detachCollider(this);
+      } else {
+        this.scene!.physics._nativePhysicsScene.removeCollider(actor);
+      }
+      this._nativeActor = null;
+      this._attachedBody = null;
     }
+  }
+
+  /**
+   * @internal
+   * Queue this Collider for the next sync when it is in a scene.
+   */
+  @ignoreClone
+  _markDirty(): void {
+    this._phasedActiveInScene && this.scene!.physics._markColliderDirty(this);
+  }
+
+  /**
+   * @internal
+   * Whether this Collider can belong to a non-kinematic Rigidbody.
+   */
+  _supportsDynamicBody(): boolean {
+    return true;
+  }
+
+  /**
+   * @internal
+   * Detach from the owning Rigidbody's actor before the actor is released. The Rigidbody marks this Collider dirty so
+   * the next sync makes it static.
+   */
+  _onBodyDestroyed(actor: ICollider): void {
+    actor.removeShape(<IColliderShape>this._native);
+    this._nativeActor = null;
+    this._attachedBody = null;
+  }
+
+  /**
+   * Create the native object from the current fields. The base class has no geometry.
+   * @returns The native object, or null when the current fields cannot produce one
+   */
+  protected _createNative(): IColliderShape | ICharacterController | null {
+    return null;
+  }
+
+  /**
+   * Apply the fields shared by every Collider to a newly created native shape.
+   */
+  protected _initializeNativeShape(shape: IColliderShape): void {
+    shape.setContactOffset(this._contactOffset);
+    shape.setIsTrigger(this._isTrigger);
+    shape.setIsSceneQuery(this._isSceneQuery);
+    shape.setCollisionLayer(this._collisionLayerIndex);
+  }
+
+  /**
+   * Replace the native shape, keeping its actor registration and trigger state when attached.
+   * @returns Whether the replacement was committed; on failure the new shape is released
+   */
+  protected _replaceNativeShape(shape: IColliderShape | null): boolean {
+    const previous = <IColliderShape>this._native;
+    const actor = this._nativeActor;
+    if (actor) {
+      if (shape) {
+        this._syncPose(shape, this._attachedBody, true);
+        if (!actor.replaceShape(previous, shape)) {
+          shape.destroy();
+          return false;
+        }
+      } else {
+        this._detach();
+      }
+    }
+    this._native = shape;
+    previous?.destroy();
+    this._attachedBody?._markMassDirty();
+    this._markDirty();
+    return true;
+  }
+
+  /**
+   * Notify the owning Rigidbody that the attached geometry changed, so its mass properties are recomputed.
+   */
+  protected _onGeometryChanged(): void {
+    this._attachedBody?._markMassDirty();
+  }
+
+  protected _getNativeMaterial(): IPhysicsMaterial {
+    return this._material?._nativeMaterial ?? BasicResources.physicsDefaultMaterial;
+  }
+
+  protected _findRigidbody(): Rigidbody | null {
+    for (let entity: Entity | null = this.entity; entity; entity = entity.parent) {
+      const body = entity.getComponent(Rigidbody);
+      if (body) {
+        return body;
+      }
+    }
+    return null;
+  }
+
+  protected _getCollisionLayerIndex(): number {
+    return this._collisionLayerIndex;
   }
 
   /**
@@ -188,30 +442,135 @@ export class Collider extends Component implements ICloneHook<Collider> {
    */
   protected override _onDestroy(): void {
     super._onDestroy();
-    const shapes = this._shapes;
-    for (let i = 0, n = shapes.length; i < n; i++) {
-      const shape = shapes[i];
-      this._removeNativeShape(shape);
-      shape._destroy();
-    }
-    shapes.length = 0;
-    this._nativeCollider.destroy();
+    this.entity._updateFlagManager.removeListener(this._markDirty);
+    this._native?.destroy();
+    this._native = null;
+    this._staticActor?.destroy();
+    this._staticActor = null;
+    this._material && this._addResourceReferCount(this._material, -1);
+    this._material = null;
+    delete Engine._physicalObjectsMap[this._id];
   }
 
-  protected _addNativeShape(shape: ColliderShape): void {
-    if (shape._nativeShape) {
-      shape._nativeShape.setWorldScale(this.entity.transform.lossyWorldScale);
-      if (!this._nativeCollider.addShape(shape._nativeShape, this._collisionLayerIndex)) {
-        throw new Error("Collider: failed to attach shape to the native actor.");
+  private _transfer(body: Rigidbody | null, actor: ICollider): boolean {
+    const previousBody = this._attachedBody;
+    const previousActor = this._nativeActor;
+    this._detach();
+    if (this._attach(body, actor)) {
+      return true;
+    }
+    previousActor && this._attach(previousBody, previousActor);
+    console.error(`${this.constructor.name}: failed to attach to the native actor, the previous registration is kept.`);
+    return false;
+  }
+
+  private _attach(body: Rigidbody | null, actor: ICollider): boolean {
+    if (!actor.addShape(<IColliderShape>this._native)) {
+      return false;
+    }
+    if (body) {
+      body._attachCollider(this);
+    } else {
+      this.scene!.physics._nativePhysicsScene.addCollider(actor);
+    }
+    this._nativeActor = actor;
+    this._attachedBody = body;
+    return true;
+  }
+
+  private _getStaticActor(): IStaticCollider {
+    let actor = this._staticActor;
+    if (!actor) {
+      const transform = this.entity.transform;
+      const position = transform.worldPosition;
+      const rotation = transform.worldRotationQuaternion;
+      this._staticActor = actor = Engine._nativePhysics.createStaticCollider(position, rotation);
+      this._nativeWorldPosition.copyFrom(position);
+      this._nativeWorldRotation.copyFrom(rotation);
+    }
+    return actor;
+  }
+
+  private _syncPose(shape: IColliderShape, body: Rigidbody | null, force: boolean): void {
+    const transform = this.entity.transform;
+    const worldPosition = transform.worldPosition;
+    const worldRotation = transform.worldRotationQuaternion;
+    const lossyScale = transform.lossyWorldScale;
+    const scale = Collider._tempScale.set(Math.abs(lossyScale.x), Math.abs(lossyScale.y), Math.abs(lossyScale.z));
+    const position = Collider._tempPosition;
+    const rotation = Collider._tempRotation;
+    const localRotation = Collider._tempLocalRotation;
+
+    const euler = this._rotation;
+    Quaternion.rotationYawPitchRoll(
+      MathUtil.degreeToRadian(euler.y),
+      MathUtil.degreeToRadian(euler.x),
+      MathUtil.degreeToRadian(euler.z),
+      localRotation
+    );
+    Vector3.multiply(this._center, scale, position);
+
+    if (body) {
+      // Pose relative to the Rigidbody Entity: inverse(bodyRotation) * (world center - bodyPosition)
+      const bodyTransform = body.entity.transform;
+      const inverseBodyRotation = Collider._tempBodyRotation;
+      Quaternion.invert(bodyTransform.worldRotationQuaternion, inverseBodyRotation);
+      Vector3.transformByQuat(position, worldRotation, position);
+      position.add(worldPosition).subtract(bodyTransform.worldPosition);
+      Vector3.transformByQuat(position, inverseBodyRotation, position);
+      Quaternion.multiply(inverseBodyRotation, worldRotation, rotation);
+      Quaternion.multiply(rotation, localRotation, rotation);
+    } else {
+      rotation.copyFrom(localRotation);
+      const staticActor = this._staticActor;
+      if (
+        staticActor &&
+        (force ||
+          !Vector3.equals(worldPosition, this._nativeWorldPosition) ||
+          !Quaternion.equals(worldRotation, this._nativeWorldRotation))
+      ) {
+        this._nativeWorldPosition.copyFrom(worldPosition);
+        this._nativeWorldRotation.copyFrom(worldRotation);
+        staticActor.setWorldTransform(worldPosition, worldRotation);
       }
     }
-    shape._collider = this;
+
+    if (force || !Vector3.equals(scale, this._nativeScale)) {
+      this._nativeScale.copyFrom(scale);
+      shape.setWorldScale(scale);
+      body?._markMassDirty();
+    }
+    if (
+      force ||
+      !Vector3.equals(position, this._nativePosition) ||
+      !Quaternion.equals(rotation, this._nativeRotation)
+    ) {
+      this._nativePosition.copyFrom(position);
+      this._nativeRotation.copyFrom(rotation);
+      shape.setLocalPose(position, rotation);
+      body?._markMassDirty();
+    }
   }
 
-  protected _removeNativeShape(shape: ColliderShape): void {
-    if (shape._nativeShape) {
-      this._nativeCollider.removeShape(shape._nativeShape);
+  private _checkShear(worldMatrix: Matrix): void {
+    if (this._shearWarned) {
+      return;
     }
-    shape._collider = null;
+    // A rotated, non-uniformly scaled ancestor can skew the basis; a TRS pose cannot represent it
+    const e = worldMatrix.elements;
+    const xLength = Math.hypot(e[0], e[1], e[2]);
+    const yLength = Math.hypot(e[4], e[5], e[6]);
+    const zLength = Math.hypot(e[8], e[9], e[10]);
+    const tolerance = Collider._shearTolerance;
+    if (
+      Math.abs(e[0] * e[4] + e[1] * e[5] + e[2] * e[6]) > tolerance * xLength * yLength ||
+      Math.abs(e[0] * e[8] + e[1] * e[9] + e[2] * e[10]) > tolerance * xLength * zLength ||
+      Math.abs(e[4] * e[8] + e[5] * e[9] + e[6] * e[10]) > tolerance * yLength * zLength
+    ) {
+      this._shearWarned = true;
+      console.warn(
+        `${this.constructor.name}: the world transform of "${this.entity.name}" is sheared, which physics cannot represent; the shape ignores the shear.`
+      );
+    }
   }
 }

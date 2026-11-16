@@ -19,7 +19,7 @@ import { EngineObject, EventDispatcher, Logger, Time } from "./base";
 import { GLCapabilityType } from "./base/Constant";
 import { InputManager } from "./input";
 import { ParticleBufferUtils } from "./particle/ParticleBufferUtils";
-import { ColliderShape } from "./physics/shape/ColliderShape";
+import { Collider } from "./physics/Collider";
 import { PostProcessPass } from "./postProcess/PostProcessPass";
 import { PostProcessUberPass } from "./postProcess/PostProcessUberPass";
 import { Shader } from "./shader/Shader";
@@ -52,7 +52,7 @@ export class Engine extends EventDispatcher {
   /** @internal Conversion of space units to pixel units for 2D. */
   static _pixelsPerUnit: number = 100;
   /** @internal */
-  static _physicalObjectsMap: Record<number, ColliderShape> = {};
+  static _physicalObjectsMap: Record<number, Collider> = {};
   /** @internal */
   static _nativePhysics: IPhysics;
 

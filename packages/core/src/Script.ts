@@ -2,7 +2,7 @@ import { Camera } from "./Camera";
 import { Component } from "./Component";
 import { ignoreClone } from "./clone/CloneDecorators";
 import { PointerEventData } from "./input/pointer/PointerEventData";
-import { ColliderShape } from "./physics";
+import { Collider } from "./physics";
 import { Collision } from "./physics/Collision";
 
 /**
@@ -80,22 +80,25 @@ export class Script extends Component {
 
   /**
    * Called when the trigger enter.
-   * @param other - ColliderShape
+   * @param other - The other Collider
+   * @param self - The Collider on this script's Entity that received the event
    */
-  onTriggerEnter(other: ColliderShape): void {}
+  onTriggerEnter(other: Collider, self: Collider): void {}
 
   /**
    * Called when the trigger exit.
-   * @param other - ColliderShape
+   * @param other - The other Collider
+   * @param self - The Collider on this script's Entity that received the event
    */
-  onTriggerExit(other: ColliderShape): void {}
+  onTriggerExit(other: Collider, self: Collider): void {}
 
   /**
    * Called when the trigger stay.
    * @remarks onTriggerStay is called every frame while the trigger stay.
-   * @param other - ColliderShape
+   * @param other - The other Collider
+   * @param self - The Collider on this script's Entity that received the event
    */
-  onTriggerStay(other: ColliderShape): void {}
+  onTriggerStay(other: Collider, self: Collider): void {}
 
   /**
    * Called when the collision enter.
@@ -119,13 +122,13 @@ export class Script extends Component {
   onCollisionStay(other: Collision): void {}
 
   /**
-   * Called when the pointer is down while over the ColliderShape.
+   * Called when the pointer is down while over the Collider.
    * @param eventData - The pointer event data that triggered this callback
    */
   onPointerDown(eventData: PointerEventData): void {}
 
   /**
-   * Called when the pointer is up while over the ColliderShape.
+   * Called when the pointer is up while over the Collider.
    * @param eventData - The pointer event data that triggered this callback
    */
   onPointerUp(eventData: PointerEventData): void {}
@@ -137,13 +140,13 @@ export class Script extends Component {
   onPointerClick(eventData: PointerEventData): void {}
 
   /**
-   *  Called when the pointer enters the ColliderShape.
+   *  Called when the pointer enters the Collider.
    * @param eventData - The pointer event data that triggered this callback
    */
   onPointerEnter(eventData: PointerEventData): void {}
 
   /**
-   * Called when the pointer exits the ColliderShape.
+   * Called when the pointer exits the Collider.
    * @param eventData - The pointer event data that triggered this callback
    */
   onPointerExit(eventData: PointerEventData): void {}

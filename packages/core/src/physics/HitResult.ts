@@ -1,6 +1,6 @@
 import { Vector3 } from "@galacean/engine-math";
 import { Entity } from "../Entity";
-import { ColliderShape } from "./shape";
+import { Collider } from "./Collider";
 
 /**
  * Structure used to get information back from a raycast or a sweep.
@@ -14,6 +14,6 @@ export class HitResult {
   point: Vector3 = new Vector3();
   /** The normal of the surface the ray hit. */
   normal: Vector3 = new Vector3();
-  /** The shape of the collider that was hit. */
-  shape: ColliderShape | null = null;
+  /** The collider that was hit. */
+  collider: Collider | null = null;
 }

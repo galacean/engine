@@ -1,51 +1,101 @@
 import { Vector3 } from "@galacean/engine-math";
-import { ICollider } from "./ICollider";
+import { IPhysicsMaterial } from "./IPhysicsMaterial";
 
 /**
- * Base class for character controllers.
+ * Interface of a native character controller with inline geometry.
+ * @remarks All sizes and offsets are in world units with the entity scale already applied.
  */
-export interface ICharacterController extends ICollider {
+export interface ICharacterController {
+  /**
+   * Use a capsule along the up direction.
+   * @param radius - The capsule radius
+   * @param height - The height of the cylindrical part, excluding both caps
+   */
+  setCapsule(radius: number, height: number): void;
+
+  /**
+   * Use an axis-aligned box.
+   * @param halfExtents - Half the size of the box in each dimension
+   */
+  setBox(halfExtents: Vector3): void;
+
+  /**
+   * Set the geometry center relative to the controller's world position.
+   * @param center - The world-space offset
+   */
+  setCenter(center: Vector3): void;
+
+  /**
+   * Set the contact offset.
+   * @param offset - A positive contact offset
+   */
+  setContactOffset(offset: number): void;
+
+  /**
+   * Set the physics material.
+   * @param material - The physics material
+   */
+  setMaterial(material: IPhysicsMaterial): void;
+
+  /**
+   * Set the collision layer.
+   * @param layer - The collision layer index, from 0 to 31
+   */
+  setCollisionLayer(layer: number): void;
+
+  /**
+   * Enables the controller for raycasts, shape casts, and overlap queries.
+   * @param value - Whether the controller participates in scene queries
+   */
+  setIsSceneQuery(value: boolean): void;
+
   /**
    * Moves the character using a "collide-and-slide" algorithm.
-   * @param disp Displacement vector
-   * @param minDist The minimum travelled distance to consider.
-   * @param elapsedTime Time elapsed since last call
+   * @param disp - Displacement vector
+   * @param minDist - The minimum travelled distance to consider
+   * @param elapsedTime - Time elapsed since last call
+   * @returns The collision flags
    */
   move(disp: Vector3, minDist: number, elapsedTime: number): number;
 
   /**
-   * Sets controller's world position.
-   * @param position The new (center) position for the controller.
+   * Set the controller's world position, excluding the center offset.
+   * @param position - The world position
    */
   setWorldPosition(position: Vector3): void;
 
   /**
-   * Retrieve the world position of the controller.
-   * @param position The controller's center position
+   * Get the controller's world position, excluding the center offset.
+   * @param position - The world position
    */
   getWorldPosition(position: Vector3): void;
 
   /**
-   * The step height.
-   * @param offset The new step offset for the controller.
+   * Set the step height.
+   * @param offset - The step offset
    */
   setStepOffset(offset: number): void;
 
   /**
-   * Sets the non-walkable mode for the CCT.
-   * @param flag The new value of the non-walkable mode.
+   * Set the non-walkable mode.
+   * @param flag - The non-walkable mode
    */
   setNonWalkableMode(flag: number): void;
 
   /**
-   * Sets the 'up' direction.
-   * @param up The up direction for the controller.
+   * Set the up direction.
+   * @param up - The up direction
    */
   setUpDirection(up: Vector3): void;
 
   /**
-   * Sets the slope limit in degrees.
-   * @param slopeLimit The slope limit for the controller.
+   * Set the slope limit.
+   * @param slopeLimit - The slope limit in degrees
    */
   setSlopeLimit(slopeLimit: number): void;
+
+  /**
+   * Release the controller.
+   */
+  destroy(): void;
 }

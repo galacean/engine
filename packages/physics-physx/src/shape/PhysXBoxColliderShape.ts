@@ -9,8 +9,7 @@ import { PhysXColliderShape } from "./PhysXColliderShape";
  */
 export class PhysXBoxColliderShape extends PhysXColliderShape implements IBoxColliderShape {
   private static _tempHalfExtents = new Vector3();
-  /** @internal */
-  _halfSize: Vector3 = new Vector3();
+  private _halfSize: Vector3 = new Vector3();
 
   constructor(physXPhysics: PhysXPhysics, uniqueID: number, size: Vector3, material: PhysXPhysicsMaterial) {
     super(physXPhysics);
@@ -25,24 +24,8 @@ export class PhysXBoxColliderShape extends PhysXColliderShape implements IBoxCol
    * {@inheritDoc IBoxColliderShape.setSize }
    */
   setSize(value: Vector3): void {
-    const halfSize = this._halfSize;
-    const tempExtents = PhysXBoxColliderShape._tempHalfExtents;
-    halfSize.set(value.x * 0.5, value.y * 0.5, value.z * 0.5);
-    Vector3.multiply(halfSize, this._worldScale, tempExtents);
-    this._pxGeometry.halfExtents = tempExtents;
-    this._pxShape.setGeometry(this._pxGeometry);
-
-    this._updateController(tempExtents);
-  }
-
-  /**
-   * {@inheritDoc IColliderShape.setRotation }
-   */
-  override setRotation(value: Vector3): void {
-    super.setRotation(value);
-    if (this._controllers.length > 0) {
-      console.warn("Box character controller `rotation` is not supported in PhysX and will be ignored");
-    }
+    this._halfSize.set(value.x * 0.5, value.y * 0.5, value.z * 0.5);
+    this._updateGeometry();
   }
 
   /**
@@ -50,24 +33,13 @@ export class PhysXBoxColliderShape extends PhysXColliderShape implements IBoxCol
    */
   override setWorldScale(scale: Vector3): void {
     super.setWorldScale(scale);
-    const tempExtents = PhysXBoxColliderShape._tempHalfExtents;
-    Vector3.multiply(this._halfSize, this._worldScale, tempExtents);
-    this._pxGeometry.halfExtents = tempExtents;
-    this._pxShape.setGeometry(this._pxGeometry);
-
-    this._updateController(tempExtents);
+    this._updateGeometry();
   }
 
-  private _updateController(extents: Vector3) {
-    const controllers = this._controllers;
-    for (let i = 0, n = controllers.length; i < n; i++) {
-      const pxController = controllers.get(i)._pxController;
-
-      if (pxController) {
-        pxController.setHalfHeight(extents.y);
-        pxController.setHalfSideExtent(extents.x);
-        pxController.setHalfForwardExtent(extents.z);
-      }
-    }
+  private _updateGeometry(): void {
+    const extents = PhysXBoxColliderShape._tempHalfExtents;
+    Vector3.multiply(this._halfSize, this._worldScale, extents);
+    this._pxGeometry.halfExtents = extents;
+    this._pxShape.setGeometry(this._pxGeometry);
   }
 }

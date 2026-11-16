@@ -5,7 +5,7 @@ import { PhysXColliderShape } from "./shape/PhysXColliderShape";
 import { PhysXPhysicsScene } from "./PhysXPhysicsScene";
 
 /**
- * Abstract class of physical collider.
+ * Abstract native rigid actor that holds collider shapes.
  */
 export abstract class PhysXCollider implements ICollider {
   private static _tempTransform: {
@@ -29,8 +29,8 @@ export abstract class PhysXCollider implements ICollider {
   /**
    * {@inheritDoc ICollider.addShape }
    */
-  addShape(shape: PhysXColliderShape, layer: number): boolean {
-    if (!this._pxActor.attachShapeWithLayer(shape._pxShape, layer)) {
+  addShape(shape: PhysXColliderShape): boolean {
+    if (!this._pxActor.attachShape(shape._pxShape)) {
       return false;
     }
     this._shapes.push(shape);
@@ -49,10 +49,10 @@ export abstract class PhysXCollider implements ICollider {
   }
 
   /**
-   * {@inheritDoc IStaticCollider.replaceShape }
+   * {@inheritDoc ICollider.replaceShape }
    */
-  replaceShape(previousShape: PhysXColliderShape, newShape: PhysXColliderShape, layer: number): boolean {
-    if (!this._pxActor.attachShapeWithLayer(newShape._pxShape, layer)) {
+  replaceShape(previousShape: PhysXColliderShape, newShape: PhysXColliderShape): boolean {
+    if (!this._pxActor.attachShape(newShape._pxShape)) {
       return false;
     }
     this._shapes[this._shapes.indexOf(previousShape)] = newShape;
@@ -63,26 +63,19 @@ export abstract class PhysXCollider implements ICollider {
   }
 
   /**
-   * {@inheritDoc ICollider.setWorldTransform }
+   * {@inheritDoc IStaticCollider.setWorldTransform }
    */
   setWorldTransform(position: Vector3, rotation: Quaternion): void {
     this._pxActor.setGlobalPose(this._transform(position, rotation), true);
   }
 
   /**
-   * {@inheritDoc ICollider.getWorldTransform }
+   * {@inheritDoc IStaticCollider.getWorldTransform }
    */
   getWorldTransform(outPosition: Vector3, outRotation: Quaternion): void {
     const transform = this._pxActor.getGlobalPose();
     outPosition.set(transform.translation.x, transform.translation.y, transform.translation.z);
     outRotation.set(transform.rotation.x, transform.rotation.y, transform.rotation.z, transform.rotation.w);
-  }
-
-  /**
-   * {@inheritDoc ICollider.setCollisionLayer }
-   */
-  setCollisionLayer(layer: number): void {
-    this._physXPhysics._physX.setGroup(this._pxActor, layer);
   }
 
   /**

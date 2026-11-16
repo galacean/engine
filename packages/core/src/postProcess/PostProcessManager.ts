@@ -77,7 +77,7 @@ export class PostProcessManager {
         const cameraPosition = camera.entity.transform.worldPosition;
         const blendDistance = postProcess.blendDistance;
 
-        let hasColliderShape = false;
+        let hasCollider = false;
         // Find closest distance to current postProcess, 0 means it's inside it
         let closestDistance = Number.POSITIVE_INFINITY;
 
@@ -87,21 +87,18 @@ export class PostProcessManager {
           if (!collider.enabled) {
             continue;
           }
-          const shapes = collider.shapes;
-          for (let j = 0; j < shapes.length; j++) {
-            const currentShape = shapes[j];
-            hasColliderShape = true;
-
-            const distance = currentShape.getClosestPoint(cameraPosition, PostProcessManager._tempVector3);
-            if (distance < closestDistance) {
-              closestDistance = distance;
-            }
+          hasCollider = true;
+          const distance = collider.getClosestPoint(cameraPosition, PostProcessManager._tempVector3);
+          if (distance < closestDistance) {
+            closestDistance = distance;
           }
         }
 
-        if (!hasColliderShape) {
+        if (!hasCollider) {
           Logger.warn(
-            `No collider shape found in the entity:"${postProcess.entity.name}", the local mode of post process will not take effect.`
+            `No collider found in the entity:"${
+              postProcess.entity.name
+            }", the local mode of post process will not take effect.`
           );
           continue;
         }

@@ -52,8 +52,10 @@ export interface IPhysics {
 
   /**
    * Create character controller.
+   * @param uniqueID - Collider unique id
+   * @param material - The physics material
    */
-  createCharacterController(): ICharacterController;
+  createCharacterController(uniqueID: number, material: IPhysicsMaterial): ICharacterController;
 
   /**
    * Create physics material.
@@ -63,7 +65,7 @@ export interface IPhysics {
 
   /**
    * Create box collider shape.
-   * @param uniqueID - Shape unique id
+   * @param uniqueID - Collider unique id
    * @param size - Size of the box
    * @param material - The material of this shape
    */
@@ -71,7 +73,7 @@ export interface IPhysics {
 
   /**
    * Create sphere collider shape.
-   * @param uniqueID - Shape unique id
+   * @param uniqueID - Collider unique id
    * @param radius - Radius of the sphere
    * @param material - The material of this shape
    */
@@ -79,14 +81,14 @@ export interface IPhysics {
 
   /**
    * Create plane collider shape.
-   * @param uniqueID - Shape unique id
+   * @param uniqueID - Collider unique id
    * @param material - The material of this shape
    */
   createPlaneColliderShape(uniqueID: number, material: IPhysicsMaterial): IPlaneColliderShape;
 
   /**
    * Create capsule collider shape.
-   * @param uniqueID - Shape unique id
+   * @param uniqueID - Collider unique id
    * @param radius - Radius of capsule
    * @param height - Height of capsule
    * @param material - The material of this shape
@@ -100,7 +102,7 @@ export interface IPhysics {
 
   /**
    * Create mesh collider shape.
-   * @param uniqueID - Shape unique id
+   * @param uniqueID - Collider unique id
    * @param positions - Vertex positions
    * @param indices - Index array (null for convex mesh)
    * @param isConvex - Whether to create convex mesh (true) or triangle mesh (false)

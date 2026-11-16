@@ -1,32 +1,35 @@
 import { IColliderShape } from "./shape";
 
 /**
- * Interface of physics collider.
+ * Interface of a native rigid actor that holds collider shapes.
+ * @remarks Each shape carries its own collision layer, so attaching or moving a shape never changes another shape's layer.
  */
 export interface ICollider {
   /**
-   * Attaches a shape and initializes its collision layer.
+   * Attach a shape.
    * @param shape - Shape to attach
-   * @param layer - Collision layer index, from 0 to 31
    * @returns Whether the shape was accepted
-   * @remarks On failure, returns false and leaves the collider unchanged.
+   * @remarks On failure, returns false and leaves the actor unchanged.
    */
-  addShape(shape: IColliderShape, layer: number): boolean;
+  addShape(shape: IColliderShape): boolean;
 
   /**
-   * Remove collider shape on collider.
-   * @param shape - The collider shape attached
+   * Detach an attached shape.
+   * @param shape - The attached shape
    */
   removeShape(shape: IColliderShape): void;
 
   /**
-   * Set the collision group of the collider.
-   * @param layer - The layer of the collider which the collider belongs to
+   * Atomically replace an attached shape with the same logical identity.
+   * @param previousShape - The currently attached shape
+   * @param newShape - The replacement shape
+   * @returns Whether the replacement succeeded
+   * @remarks On failure, returns false and leaves the previous shape and its event state unchanged.
    */
-  setCollisionLayer(layer: number): void;
+  replaceShape(previousShape: IColliderShape, newShape: IColliderShape): boolean;
 
   /**
-   * Deletes the collider.
+   * Deletes the actor.
    */
   destroy(): void;
 }
