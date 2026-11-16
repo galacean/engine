@@ -3,9 +3,10 @@ import { AudioManager, AudioSource } from "@galacean/engine-core/src/audio";
 
 const originalAudioContext = window.AudioContext;
 
+// Only `value`: some runtimes (Douyin mini-games) have no AudioParam scheduling methods such as setValueAtTime
 class MockGainNode {
   gain = {
-    setValueAtTime: vi.fn()
+    value: 1
   };
 
   connect = vi.fn();
@@ -189,7 +190,23 @@ describe("AudioSource playback lifecycle", () => {
 
     const gainNode = (audioSource as any)._gainNode as MockGainNode;
     expect(gainNode != null).to.be.true;
-    expect(gainNode.gain.setValueAtTime).toHaveBeenCalledWith(0.3, context.currentTime);
+    expect(gainNode.gain.value).to.equal(0.3);
+  });
+
+  it("applies a volume change to the gain of a playing source", () => {
+    const audioSource = createAudioSource();
+    const context = new MockAudioContext();
+    context.state = "running";
+    (AudioManager as any)._context = context;
+
+    audioSource.play();
+    audioSource.volume = 0.6;
+    audioSource.volume = 2;
+
+    const gainNode = (audioSource as any)._gainNode as MockGainNode;
+    expect(gainNode.gain.value).to.equal(1);
+    audioSource.volume = 0.25;
+    expect(gainNode.gain.value).to.equal(0.25);
   });
 
   it("starts immediately when the context is already running", () => {

@@ -3,7 +3,7 @@ import { ICharacterController } from "./ICharacterController";
 import { ICollider } from "./ICollider";
 import { IDynamicCollider } from "./IDynamicCollider";
 import { IPhysicsManager } from "./IPhysicsManager";
-import { IPhysicsMaterial } from "./IPhysicsMaterial";
+import { IPhysicsMaterial, IPhysicsMaterialProperties } from "./IPhysicsMaterial";
 import { IPhysicsScene } from "./IPhysicsScene";
 import { IStaticCollider } from "./IStaticCollider";
 import { IFixedJoint, IHingeJoint, ISpringJoint } from "./joints";
@@ -57,19 +57,9 @@ export interface IPhysics {
 
   /**
    * Create physics material.
-   * @param staticFriction - Static friction
-   * @param dynamicFriction - Dynamic friction
-   * @param bounciness - Restitution
-   * @param frictionCombine - The mode to combine the friction of collider
-   * @param bounceCombine - The mode to combine the bounce of collider
+   * @param properties - Physics material properties
    */
-  createPhysicsMaterial(
-    staticFriction: number,
-    dynamicFriction: number,
-    bounciness: number,
-    frictionCombine: number,
-    bounceCombine: number
-  ): IPhysicsMaterial;
+  createPhysicsMaterial(properties: IPhysicsMaterialProperties): IPhysicsMaterial;
 
   /**
    * Create box collider shape.
@@ -116,6 +106,7 @@ export interface IPhysics {
    * @param isConvex - Whether to create convex mesh (true) or triangle mesh (false)
    * @param material - The material of this shape
    * @param cookingFlags - Cooking flags
+   * @param worldScale - World scale of the shape
    */
   createMeshColliderShape(
     uniqueID: number,
@@ -123,7 +114,8 @@ export interface IPhysics {
     indices: Uint8Array | Uint16Array | Uint32Array | null,
     isConvex: boolean,
     material: IPhysicsMaterial,
-    cookingFlags: number
+    cookingFlags: number,
+    worldScale: Vector3
   ): IMeshColliderShape | null;
 
   /**

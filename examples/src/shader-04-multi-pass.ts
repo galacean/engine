@@ -134,7 +134,7 @@ function createSphere(engine: Engine, name: string, position: Vector3): Entity {
   entity.transform.position = position;
 
   const renderer = entity.addComponent(MeshRenderer);
-  renderer.mesh = PrimitiveMesh.createSphere(engine, 0.8, 64);
+  renderer.mesh = PrimitiveMesh.createSphere(engine, 0.8, { subdivisionLevel: 5 });
 
   return entity;
 }

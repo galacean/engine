@@ -30,6 +30,7 @@ import { ColliderShape } from "./physics/shape/ColliderShape";
 import { PostProcessPass } from "./postProcess/PostProcessPass";
 import { PostProcessUberPass } from "./postProcess/PostProcessUberPass";
 import { Shader } from "./shader/Shader";
+import type { BuiltinShaders } from "./shader/BuiltinShaders";
 import { ShaderMacro } from "./shader/ShaderMacro";
 import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
 import { ShaderProgramMap } from "./shader/ShaderProgramMap";
@@ -45,6 +46,9 @@ import { XRManager } from "./xr/XRManager";
  * Engine.
  */
 export class Engine extends EventDispatcher {
+  /** @internal */
+  static _builtinShaders: BuiltinShaders;
+
   /** @internal */
   static _noDepthTextureMacro = ShaderMacro.getByName("ENGINE_NO_DEPTH_TEXTURE");
   /** @internal */
@@ -278,7 +282,7 @@ export class Engine extends EventDispatcher {
       this._macroCollection.enable(Engine._noSRGBSupportMacro);
     }
 
-    this._basicResources = new BasicResources(this);
+    this._basicResources = new BasicResources(this, Engine._builtinShaders);
     this._particleBufferUtils = new ParticleBufferUtils(this);
 
     const uberPass = new PostProcessUberPass(this);
@@ -648,12 +652,15 @@ export class Engine extends EventDispatcher {
     if (physics) {
       initializePromises.push(
         physics.initialize().then(() => {
-          if (Engine._nativePhysics) {
-            console.warn(
-              "A physics engine has already been configured. All physics operations will now be handled by the newly specified physics engine."
-            );
+          if (Engine._nativePhysics !== physics) {
+            if (Engine._nativePhysics) {
+              console.warn(
+                "A physics engine has already been configured. All physics operations will now be handled by the newly specified physics engine."
+              );
+            }
+            Engine._nativePhysics = physics;
+            BasicResources._initializePhysics();
           }
-          Engine._nativePhysics = physics;
           this._nativePhysicsManager = physics.createPhysicsManager();
           this._physicsInitialized = true;
           return this;

@@ -1,5 +1,5 @@
 import * as CoreObjects from "@galacean/engine-core";
-import { Loader, Polyfill, SystemInfo } from "@galacean/engine-core";
+import { Engine, Loader, Polyfill, SystemInfo } from "@galacean/engine-core";
 import { ShaderPool } from "./ShaderPool";
 //@ts-ignore
 export const version = `__buildVersion`;
@@ -18,8 +18,8 @@ for (const key in CoreObjects) {
 // Bootstrap the Galacean engine flavor: browser polyfills first (must
 // patch globals before anything else runs), then platform detection
 // (other modules may read `SystemInfo.platform`), then built-in shader
-// registration (so `Shader.find` returns the bundled shaders before any
-// `Material` / `PostProcessPass` constructor calls it).
+// registration (so built-in materials and render passes can bind the
+// bundled shader objects independently of later name registrations).
 //
 // Keeping these here rather than inside `engine-core` lets `engine-core`
 // stay flavor-agnostic (no top-level browser side effects, no built-in
@@ -28,4 +28,4 @@ for (const key in CoreObjects) {
 Polyfill.registerPolyfill();
 SystemInfo._initialize();
 ShaderPool.init();
-ShaderPool.registerShaders();
+Engine._builtinShaders = ShaderPool.createShaders();

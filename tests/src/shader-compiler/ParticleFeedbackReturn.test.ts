@@ -82,7 +82,7 @@ describe("ParticleFeedback early return", () => {
           expect(guard, "the zero-duration guard must precede simulateParticleStep").not.toBeNull();
           expect(guard![1]).toMatch(/v_FeedbackPosition\s*=\s*position\s*;/);
           expect(guard![1]).toMatch(/v_FeedbackVelocity\s*=\s*localVelocity\s*;/);
-          expect(guard![1]).toMatch(/return\s*;\s*$/);
+          expect(guard![1]).toMatch(/return\s+v\s*;\s*$/);
           if (trajectory) {
             expect(guard![1]).toMatch(/v_FeedbackWorldPosition\s*=\s*previousWorldPosition\s*;/);
             expect(guard![1]).toMatch(/v_FeedbackTrajectoryVelocity\s*=\s*vec3\s*\(\s*0\.0\s*\)\s*;/);

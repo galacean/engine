@@ -1,7 +1,7 @@
 import { Color } from "@galacean/engine-math";
 import { Engine } from "../Engine";
 import { Material } from "../material/Material";
-import { Shader, ShaderMacro } from "../shader";
+import { ShaderMacro } from "../shader";
 import { ShaderProperty } from "../shader/ShaderProperty";
 
 /**
@@ -131,7 +131,7 @@ export class SkyProceduralMaterial extends Material {
    * @param engine - Engine to which the material belongs
    */
   constructor(engine: Engine) {
-    super(engine, Shader.find("Sky/SkyProcedural")!);
+    super(engine, Engine._builtinShaders.skyProcedural);
     this.sunMode = SunMode.HighQuality;
     this.sunSize = 0.04;
     this.sunSizeConvergence = 5;

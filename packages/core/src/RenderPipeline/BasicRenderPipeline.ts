@@ -1,6 +1,7 @@
 import { Vector2 } from "@galacean/engine-math";
 import { Background } from "../Background";
 import { Camera } from "../Camera";
+import { Engine } from "../Engine";
 import { BackgroundMode } from "../enums/BackgroundMode";
 import { BackgroundTextureFillMode } from "../enums/BackgroundTextureFillMode";
 import { CameraClearFlags } from "../enums/CameraClearFlags";
@@ -57,12 +58,13 @@ export class BasicRenderPipeline {
   constructor(camera: Camera) {
     this._camera = camera;
     const { engine } = camera;
+    const shaders = Engine._builtinShaders;
     this._cullingResults = new CullingResults();
     this._cascadedShadowCasterPass = new CascadedShadowCasterPass(camera);
     this._depthOnlyPass = new DepthOnlyPass(engine);
-    this._saoPass = new ScalableAmbientObscurancePass(engine);
+    this._saoPass = new ScalableAmbientObscurancePass(engine, shaders.scalableAmbientOcclusion);
     this._opaqueTexturePass = new OpaqueTexturePass(engine);
-    this._finalPass = new FinalPass(engine);
+    this._finalPass = new FinalPass(engine, shaders.finalSRGB, shaders.finalAntiAliasing);
   }
 
   /**

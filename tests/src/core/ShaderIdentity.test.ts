@@ -100,7 +100,7 @@ describe("Shader object identity", () => {
       camera.orthographicSize = 1;
       const texture = new Texture2D(engine, 64, 32, undefined, false);
       camera.renderTarget = new RenderTarget(engine, 64, 32, texture);
-      const mesh = PrimitiveMesh.createCuboid(engine);
+      const mesh = PrimitiveMesh.createCuboid(engine, 1, 1, 1);
       const redRenderer = scene.createRootEntity("Red").addComponent(MeshRenderer);
       redRenderer.entity.transform.setPosition(-1, 0, 0);
       redRenderer.mesh = mesh;

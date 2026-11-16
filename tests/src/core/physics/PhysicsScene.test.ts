@@ -927,7 +927,13 @@ describe("Physics Test", () => {
       collider.addShape(shape);
       const native = (scene.physics as any)._nativePhysicsScene as IPhysicsScene;
       const backend = WebGLEngine._nativePhysics;
-      const material = backend.createPhysicsMaterial(0, 0, 0, 0, 0);
+      const material = backend.createPhysicsMaterial({
+        staticFriction: 0,
+        dynamicFriction: 0,
+        bounciness: 0,
+        frictionCombine: 0,
+        bounceCombine: 0
+      });
       const id = 0xffffffff;
       const nativeShape = backend.createBoxColliderShape(id, new Vector3(1, 1, 1), material);
       const nativeCollider = backend.createStaticCollider(new Vector3(0, 3, 0), new Quaternion());

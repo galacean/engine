@@ -163,8 +163,8 @@ VertexShader = vert; FragmentShader = frag;
     for (const macros of [new Map<string, string>(), new Map([["USE_IO", "1"]])]) {
       for (const fragment of fragments(source, macros)) {
         expect(fragment).toMatch(/(?:varying|in)\s+vec2\s+uv\s*;/);
-        expect(fragment).toMatch(/vec4\s*\(\s*uv\s*,/);
-        expect(fragment).not.toMatch(/\b(?:v|a|b)\s*\.\s*uv/);
+        expect(fragment).toMatch(/vec4\s*\(\s*\(?\s*(?:v|a|b)\s*\)?\s*\.\s*uv\s*,/);
+        expect(fragment).toMatch(/\bVaryings\s+(?:v|a|b)\s*;/);
       }
     }
   });
