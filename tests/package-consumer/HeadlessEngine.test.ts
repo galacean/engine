@@ -135,7 +135,9 @@ describe("published headless entry in Node without browser globals", () => {
     const engine = await createEngine();
     const texture = new Texture2D(engine, 2, 2);
     texture.anisoLevel = 8;
+    texture.depthCompareFunction = enginePackage.TextureDepthCompareFunction.Less;
     expect(texture.anisoLevel).toBe(8);
+    expect(texture.depthCompareFunction).toBe(enginePackage.TextureDepthCompareFunction.Less);
     expect(new enginePackage.RenderTarget(engine, 2, 2, texture, undefined, 4).antiAliasing).toBe(4);
     texture.setPixelBuffer(new Uint8Array(16));
     expect(() => texture.getPixelBuffer(new Uint8Array(16))).toThrow("requires a graphics device");
