@@ -14,6 +14,9 @@ struct VertexInputs{
         #ifdef NEED_VERTEX_TANGENT
             vec3 tangentWS;
             vec3 bitangentWS;
+            #ifdef MATERIAL_ENABLE_ANISOTROPY
+                float tangentSign;
+            #endif
         #endif
     #endif
 };
@@ -66,7 +69,9 @@ VertexInputs getVertexInputs(Attributes attributes){
             mat3 skinNormalMatrix = INVERSE_MAT(mat3(skinMatrix));
             normal = normal * skinNormalMatrix;
             #ifdef NEED_VERTEX_TANGENT
-                tangent.xyz = tangent.xyz * skinNormalMatrix;
+                tangent.xyz = mat3(skinMatrix) * tangent.xyz;
+                // The blended skin matrix can reflect even when individual joints do not.
+                tangent.w *= dot( cross( skinMatrix[0].xyz, skinMatrix[1].xyz ), skinMatrix[2].xyz ) < 0.0 ? -1.0 : 1.0;
             #endif
         #endif
     #endif
@@ -77,11 +82,16 @@ VertexInputs getVertexInputs(Attributes attributes){
         inputs.normalWS = normalize( normalMat * normal );
 
         #ifdef NEED_VERTEX_TANGENT
-            vec3 tangentWS = normalize( normalMat * tangent.xyz );
-            vec3 bitangentWS = cross( inputs.normalWS, tangentWS ) * tangent.w;
+            vec3 tangentWS = normalize( mat3(renderer_ModelMat) * tangent.xyz );
+            // Preserve tangent-frame handedness under mirrored world transforms.
+            float worldHandedness = dot( cross( renderer_ModelMat[0].xyz, renderer_ModelMat[1].xyz ), renderer_ModelMat[2].xyz ) < 0.0 ? -1.0 : 1.0;
+            vec3 bitangentWS = cross( inputs.normalWS, tangentWS ) * ( tangent.w * worldHandedness );
 
             inputs.tangentWS = tangentWS;
             inputs.bitangentWS = bitangentWS;
+            #ifdef MATERIAL_ENABLE_ANISOTROPY
+                inputs.tangentSign = tangent.w * worldHandedness;
+            #endif
         #endif
     #endif
 

@@ -183,30 +183,60 @@ SurfaceData getSurfaceData(Varyings v, vec2 aoUV, bool isFrontFacing){
     #endif
 
     // Normal
+    float faceDirection = float( isFrontFacing ) * 2.0 - 1.0;
     #ifdef RENDERER_HAS_NORMAL
         vec3 normal = normalize(v.normalWS);
     #elif defined(HAS_DERIVATIVES)
         vec3 pos_dx = dFdx(v.positionWS);
         vec3 pos_dy = dFdy(v.positionWS);
         vec3 normal = normalize( cross(pos_dx, pos_dy) );
-        normal *= camera_ProjectionParams.x;
+        // Screen derivatives face the viewer. Recover the unflipped geometric normal.
+        normal *= camera_ProjectionParams.x * faceDirection;
     #else
         vec3 normal = vec3(0, 0, 1);
     #endif
     
-    normal *= float( isFrontFacing ) * 2.0 - 1.0;
-    surfaceData.normal = normal;
+    surfaceData.normal = normal * faceDirection;
 
     // Tangent
     #ifdef NEED_TANGENT_SPACE
         #ifdef NEED_VERTEX_TANGENT
-            surfaceData.tangent = v.tangentWS;
-            surfaceData.bitangent = v.bitangentWS;
+            // Preserve the interpolated frame used when baking normal maps.
             mat3 tbn = mat3(v.tangentWS, v.bitangentWS, v.normalWS);
         #else
             mat3 tbn = getTBNByDerivatives(uv, normal, v.positionWS, isFrontFacing);
-            surfaceData.tangent = tbn[0];
-            surfaceData.bitangent = tbn[1];
+        #endif
+        surfaceData.tangent = tbn[0];
+        surfaceData.bitangent = tbn[1];
+
+        #ifdef MATERIAL_ENABLE_ANISOTROPY
+            // Angular directions need an orthonormal frame, independently of normal-map decoding.
+            #ifdef NEED_VERTEX_TANGENT
+                // Interpolation can reverse the TBN determinant without changing vertex handedness.
+                float tangentSign = v.tangentSign < 0.0 ? -1.0 : 1.0;
+                vec3 tangent = v.tangentWS - normal * dot(normal, v.tangentWS);
+                float tangentScale = dot(v.tangentWS, v.tangentWS);
+                // Valid vertex tangents can cancel or become parallel to N after interpolation.
+                if (dot(tangent, tangent) <= EPSILON * tangentScale) {
+                    tangent = cross(v.bitangentWS, normal) * tangentSign;
+                    tangentScale = dot(v.bitangentWS, v.bitangentWS);
+                }
+            #else
+                float tangentSign = dot(cross(normal, tbn[0]), tbn[1]) < 0.0 ? -1.0 : 1.0;
+                // The derivative frame contains UV gradients. Increasing U at constant V
+                // is perpendicular to the V gradient, even with stretched or sheared UVs.
+                vec3 tangent = cross(tbn[1], normal) * tangentSign;
+                float tangentScale = dot(tbn[1], tbn[1]);
+            #endif
+            // Compare relative lengths: UV scale alone does not make a direction degenerate.
+            // With neither axis usable, orientation is undefined. Choose a stable perpendicular to N.
+            if (dot(tangent, tangent) <= EPSILON * tangentScale) {
+                vec3 axis = abs(normal.z) < 0.999 ? vec3(0.0, 0.0, 1.0) : vec3(0.0, 1.0, 0.0);
+                tangent = cross(axis, normal);
+            }
+            tangent = normalize(tangent);
+            surfaceData.tangent = tangent;
+            surfaceData.bitangent = cross(normal, tangent) * tangentSign;
         #endif
 
         #ifdef MATERIAL_HAS_NORMALTEXTURE
@@ -232,7 +262,7 @@ SurfaceData getSurfaceData(Varyings v, vec2 aoUV, bool isFrontFacing){
         #ifdef MATERIAL_HAS_CLEAR_COAT_NORMAL_TEXTURE
             surfaceData.clearCoatNormal = getNormalByNormalTexture(tbn, material_ClearCoatNormalTexture, material_NormalIntensity, uv, isFrontFacing);
         #else
-            surfaceData.clearCoatNormal = normal;
+            surfaceData.clearCoatNormal = normal * faceDirection;
         #endif
         surfaceData.clearCoatDotNV = saturate( dot(surfaceData.clearCoatNormal, surfaceData.viewDir) );
 

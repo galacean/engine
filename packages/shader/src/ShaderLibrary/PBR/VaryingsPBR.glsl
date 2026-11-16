@@ -22,6 +22,9 @@ struct Varyings{
 	    #ifdef NEED_VERTEX_TANGENT
 			vec3 tangentWS;
 			vec3 bitangentWS;
+            #ifdef MATERIAL_ENABLE_ANISOTROPY
+                float tangentSign;
+            #endif
 	    #endif
 	#endif
 
