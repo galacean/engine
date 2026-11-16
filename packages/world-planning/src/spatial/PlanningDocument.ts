@@ -685,7 +685,8 @@ export function upgradePlanningDocument(input: PlanningDocument): PlanningDocume
     "transform",
     "legacyFlowerContext",
     "buildingAppearance",
-    "riverNetwork"
+    "riverNetwork",
+    "rockGeneration"
   ]);
   for (const parameters of [
     document.passthrough.parameters,
