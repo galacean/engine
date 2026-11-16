@@ -71,7 +71,7 @@ describe("ColliderShape PhysX", () => {
     expect(boxShape.contactOffset).to.eq(contactOffset);
 
     // Test that set material works correctly.
-    const material = new PhysicsMaterial();
+    const material = new PhysicsMaterial(dynamicCollider.engine);
     boxShape.material = material;
     expect(boxShape.material).to.eq(material);
 
@@ -161,7 +161,7 @@ describe("ColliderShape PhysX", () => {
     expect(capsuleShape.contactOffset).to.eq(contactOffset);
 
     // Test that set material works correctly.
-    const material = new PhysicsMaterial();
+    const material = new PhysicsMaterial(dynamicCollider.engine);
     capsuleShape.material = material;
     expect(capsuleShape.material).to.eq(material);
 
@@ -200,7 +200,7 @@ describe("ColliderShape PhysX", () => {
     expect(planeShape.contactOffset).to.eq(contactOffset);
 
     // Test that set material works correctly.
-    const material = new PhysicsMaterial();
+    const material = new PhysicsMaterial(dynamicCollider.engine);
     planeShape.material = material;
     expect(planeShape.material).to.eq(material);
 
@@ -251,7 +251,7 @@ describe("ColliderShape PhysX", () => {
     expect(sphereShape.contactOffset).to.eq(contactOffset);
 
     // Test that set material works correctly.
-    const material = new PhysicsMaterial();
+    const material = new PhysicsMaterial(dynamicCollider.engine);
     sphereShape.material = material;
     expect(sphereShape.material).to.eq(material);
 

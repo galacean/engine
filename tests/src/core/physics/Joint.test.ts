@@ -13,8 +13,8 @@ describe("Joint", function () {
     boxEntity.transform.setPosition(pos.x, pos.y, pos.z);
 
     const physicsBox = new BoxColliderShape();
-    physicsBox.getInstanceMaterial().dynamicFriction = 0;
-    physicsBox.getInstanceMaterial().staticFriction = 0;
+    physicsBox.getInstanceMaterial(engine).dynamicFriction = 0;
+    physicsBox.getInstanceMaterial(engine).staticFriction = 0;
     physicsBox.size = cubeSize;
     const boxCollider = boxEntity.addComponent(type);
     boxCollider.addShape(physicsBox);
