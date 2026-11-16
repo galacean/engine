@@ -1,0 +1,36 @@
+tests/src/core/physics/HingeJoint.test.ts
+  s_89f62b485e437b::t_f4ef05606b7bca 15,44-45,47-50
+tests/src/core/physics/SpringJoint.test.ts
+  s_89f62b485e437b::t_63759858089434 5,30-31,33-36
+tests/src/core/physics/ColliderShape.test.ts
+  s_89f62b485e437b::t_d508fa99fdc8a8 14,17-18,26,29,33,36-40,43-45,354,358,365,369,378
+  s_89f62b485e437b::t_d7ea6147cb5f96 41
+  s_89f62b485e437b::t_a64d0f63a1712e 42
+tests/src/core/physics/DynamicCollider.test.ts
+  s_89f62b485e437b::t_287a39f050ca8f 15,79-80,82-85
+tests/src/core/physics/Collider.test.ts
+  s_89f62b485e437b::t_f81db42cda2094 15,90-91,93-96
+tests/src/core/physics/Joint.test.ts
+  s_89f62b485e437b::t_6a51e1562794a6 5,34-35,37-40
+tests/src/core/physics/Collision.test.ts
+  s_89f62b485e437b::t_4fc8ed6a416813 6,35-36,38-41
+tests/src/core/physics/CharacterController.test.ts
+  s_89f62b485e437b::t_7c788cf13107fb 20,91-92,94-97
+  s_89f62b485e437b::t_04df5e42813f41 117,119-123,131,136
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "457a95dd1d674d78df5469bd5737c5d2d7d8d050",
+  "prompts": {},
+  "sessions": {
+    "s_89f62b485e437b": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "01a1e26a-2627-7685-ab49-571422f416d8",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

@@ -1,0 +1,40 @@
+packages/modify/src/native/rhi-webgl/src/GLTransformFeedbackPrimitive.ts
+  s_43e2da275089c4::t_351f54f2b24bbb 59,61,65
+packages/animals/src/gameplay/animal/ConfiguredAnimal.ts
+  s_43e2da275089c4::t_48fb60dac95103 853-873,894-895,897,918-948,950-951,2254
+  s_43e2da275089c4::t_500260ec3ccd50 2253
+packages/animals/src/gameplay/animal/GroundAnimalCrowd.ts
+  s_43e2da275089c4::t_58f04e513e0f31 86,113,150,262,278,393
+packages/world-planning/src/integrations/terrain/rock-formation/GrassRockAppearance.ts
+  s_43e2da275089c4::t_635f2d1c6d38c0 6-9,15-92,95
+packages/modify/src/native/rhi-webgl/src/GLBuffer.ts
+  s_43e2da275089c4::t_2369f75354c83c 9,14,39,45,60-63
+packages/rhi-webgl/src/GLBuffer.ts
+  s_43e2da275089c4::t_00ec0da8d1f0da 9,14,38,44,57-60
+packages/rhi-webgl/src/WebGLGraphicDevice.ts
+  s_43e2da275089c4::t_43f633d6173dcd 93-94,108-109,286-294,302-306,627,655-657
+packages/water/src/water/native/WaterBodyComponent.ts
+  s_43e2da275089c4::t_6732888ec93e91 7,20-25,329-330,524-535,552-554,579-580,654-655
+packages/water/src/water/native/WaterMaterial.ts
+  s_43e2da275089c4::t_4be6c918f503bd 95-152,160-215
+packages/water/tests/WaterNativeMaterial.test.ts
+  s_43e2da275089c4::t_ccf2e65530e5e6 21-22,216-244
+world/tests/seed-world/SeedWorldGrassRockAppearance.spec.ts
+  s_43e2da275089c4::t_982ded94730f41 3,64,69-71,74,77-126
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "bf2362c88e762bfb19c713da0d633f1e03d74d3f",
+  "prompts": {},
+  "sessions": {
+    "s_43e2da275089c4": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1e33c-02ef-7632-b762-2829c92512e4",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}
