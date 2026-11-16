@@ -1,0 +1,47 @@
+tests/src/core/physics/PhysicsMaterialLifetime.test.ts
+  s_89f62b485e437b::t_2a0e1e0c8d3762 2,11,22,40,67,70,77,97,111
+packages/core/README.md
+  s_89f62b485e437b::t_6787d7b4f55862 5,7,9-11,14-17
+packages/core/src/Engine.ts
+  s_89f62b485e437b::t_6e10380ccc13ef 82
+tests/src/core/physics/PhysicsMaterialOwnership.test.ts
+  s_89f62b485e437b::t_f15c3b05f3890f 36,38-39,52,56-58,65,69-70,72-73,82,89,91-92,95,97-101,104,106-108,111,113-114,116-118,120-122,124,128-156,162,171,196-197,201,205-206,213-217,219,221-222,226-227,230-237,241-256,258-262,264,266
+  s_89f62b485e437b::t_c2b502e0a6b731 265
+packages/loader/README.md
+  s_89f62b485e437b::t_2a659f5c470dbd 9
+packages/core/src/asset/ReferResource.ts
+  s_89f62b485e437b::t_0a6514c7da6b14 9,23,25,99
+packages/core/src/BasicResources.ts
+  s_89f62b485e437b::t_3823d01f574edd 1,33,43
+  s_89f62b485e437b::t_55251dc59ce569 44-45
+packages/loader/src/prefab/PrefabResource.ts
+  s_89f62b485e437b::t_a212ca4822e38f 10
+packages/core/src/physics/PhysicsMaterial.ts
+  s_89f62b485e437b::t_4e51366f530306 10,30,32-33,142
+tests/package-consumer/fixtures/PhysicsMaterialApi.ts
+  s_89f62b485e437b::t_64cc8d2ee7d192 18-20,23-33,46-47
+packages/core/src/physics/shape/ColliderShape.ts
+  s_89f62b485e437b::t_d257902dc4e93f 167,169,171-174,176,235
+tests/package-consumer/PhysicsMaterialApi.test.ts
+  s_89f62b485e437b::t_d5a3a5cd500700 5
+packages/core/src/asset/ResourceManager.ts
+  s_89f62b485e437b::t_3739a075ca03f0 11,53,118,230,238,250,257,278,371-372,419,480
+packages/core/src/base/EngineObject.ts
+  s_89f62b485e437b::t_80b64d6a1a64d6 7,14,23,43
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "2dabe23cd8b2ade58d9cd26659e1f0fa61d1839e",
+  "prompts": {},
+  "sessions": {
+    "s_89f62b485e437b": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "01a1e26a-2627-7685-ab49-571422f416d8",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}
