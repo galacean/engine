@@ -34,9 +34,7 @@ const {
   AnimatorController,
   AnimatorControllerLayer,
   AssetType,
-  Engine,
   Loader,
-  ResourceManager,
   request,
   Sprite,
   SpriteRenderer,
@@ -354,100 +352,6 @@ describe("published headless entry in Node without browser globals", () => {
     expect(signal!.aborted).toBe(true);
     expect(fetchSpy).toHaveBeenCalledTimes(1);
     expect(vi.getTimerCount()).toBe(0);
-  });
-
-  it("releases the partial engine when asynchronous initialization fails", async () => {
-    const failure = new Error("physics initialization failed");
-    const destroy = vi.spyOn(HeadlessEngine.prototype, "destroy");
-    await expect(HeadlessEngine.create({ physics: { initialize: () => Promise.reject(failure) } })).rejects.toBe(
-      failure
-    );
-    expect(destroy).toHaveBeenCalledOnce();
-  });
-
-  it("releases the partial engine when a loader throws synchronously", async () => {
-    const failure = new Error("loader initialization failed");
-    let partial;
-    vi.spyOn(ResourceManager._loaders[AssetType.GLTF], "initialize").mockImplementation((engine) => {
-      partial = engine;
-      throw failure;
-    });
-    try {
-      const task = HeadlessEngine.create();
-      expect(task).toBeInstanceOf(Promise);
-      await expect(task).rejects.toBe(failure);
-      expect(partial.destroyed).toBe(true);
-    } finally {
-      partial?.destroy();
-    }
-  });
-
-  it("waits for pending loaders before destroying a failed engine", async () => {
-    const failure = new Error("physics initialization failed");
-    let finishLoader: () => void;
-    let partial;
-    let texture;
-    const ready = new Promise<void>((resolve) => (finishLoader = resolve));
-    vi.spyOn(ResourceManager._loaders[AssetType.GLTF], "initialize").mockImplementation(async (engine) => {
-      partial = engine;
-      await ready;
-      texture = new Texture2D(engine, 2, 2);
-    });
-    const task = HeadlessEngine.create({ physics: { initialize: () => Promise.reject(failure) } });
-    const settled = task.catch((error) => error);
-    await new Promise(setImmediate);
-    try {
-      expect(partial.destroyed).toBe(false);
-    } finally {
-      finishLoader!();
-      await settled;
-    }
-    expect(await settled).toBe(failure);
-    expect(partial.destroyed).toBe(true);
-    expect(texture.destroyed).toBe(true);
-  });
-
-  it("does not install pending physics after another initializer fails", async () => {
-    const failure = new Error("loader initialization failed");
-    const previousPhysics = Engine._nativePhysics;
-    let finishPhysics: () => void;
-    let partial;
-    const physics = {
-      initialize: () => new Promise<void>((resolve) => (finishPhysics = resolve)),
-      createPhysicsMaterial: vi.fn(() => ({ destroy() {} })),
-      createPhysicsManager: vi.fn(() => ({}))
-    };
-    vi.spyOn(ResourceManager._loaders[AssetType.GLTF], "initialize").mockImplementation((engine) => {
-      partial = engine;
-      return Promise.reject(failure);
-    });
-    const settled = HeadlessEngine.create({ physics }).catch((error) => error);
-    await new Promise(setImmediate);
-    finishPhysics!();
-    try {
-      expect(await settled).toBe(failure);
-      expect(partial.destroyed).toBe(true);
-      expect(physics.createPhysicsManager).not.toHaveBeenCalled();
-      expect(physics.createPhysicsMaterial).not.toHaveBeenCalled();
-      expect(Engine._nativePhysics).toBe(previousPhysics);
-    } finally {
-      Engine._nativePhysics = previousPhysics;
-    }
-  });
-
-  it("does not complete initialization after an initializer destroys the engine", async () => {
-    let finishLoader: () => void;
-    let partial;
-    const ready = new Promise<void>((resolve) => (finishLoader = resolve));
-    vi.spyOn(ResourceManager._loaders[AssetType.GLTF], "initialize").mockImplementation((engine) => {
-      partial = engine;
-      return ready;
-    });
-    const task = HeadlessEngine.create();
-    partial.destroy();
-    finishLoader!();
-    await expect(task).rejects.toThrow("Engine was destroyed during initialization");
-    expect(partial.sceneManager.scenes).toHaveLength(0);
   });
 
   it("releases streaming HTTP error responses across retries", async () => {

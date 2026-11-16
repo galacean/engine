@@ -139,9 +139,7 @@ export class Engine extends EventDispatcher {
   private _onCanvasResize = (): void => this._renderTargetPool.gc();
 
   private _animate = () => {
-    const raf =
-      this.xrManager?._getRequestAnimationFrame() ||
-      (typeof requestAnimationFrame === "undefined" ? undefined : requestAnimationFrame);
+    const raf = this._getRequestAnimationFrame();
     if (this._vSyncCount && raf) {
       this._requestId = raf(this._animate);
       if (this._vSyncCounter++ % this._vSyncCount === 0) {
@@ -205,7 +203,7 @@ export class Engine extends EventDispatcher {
 
   /**
    * The number of vertical synchronization means the number of vertical blanking for one frame.
-   * @remarks 0 means that the vertical synchronization is turned off. Hosts without animation-frame scheduling use targetFrameRate.
+   * @remarks 0 means that the vertical synchronization is turned off. Hosts without animation-frame scheduling use `targetFrameRate`.
    */
   get vSyncCount(): number {
     return this._vSyncCount;
@@ -218,8 +216,8 @@ export class Engine extends EventDispatcher {
   /**
    * Set the target frame rate you want to achieve.
    * @remarks
-   * It takes effect when vSyncCount = 0 or the host does not provide animation-frame scheduling.
-   * The larger the value, the higher the target frame rate, Number.POSITIVE_INFINITY represents the infinite target frame rate.
+   * It takes effect when `vSyncCount = 0` or the host does not provide animation-frame scheduling.
+   * The larger the value, the higher the target frame rate, `Number.POSITIVE_INFINITY` represents the infinite target frame rate.
    */
   get targetFrameRate(): number {
     return this._targetFrameRate;
@@ -313,9 +311,7 @@ export class Engine extends EventDispatcher {
     if (!this._isPaused) return;
     this._isPaused = false;
     this.time._reset();
-    const raf =
-      this.xrManager?._getRequestAnimationFrame() ||
-      (typeof requestAnimationFrame === "undefined" ? undefined : requestAnimationFrame);
+    const raf = this._getRequestAnimationFrame();
     if (this._vSyncCount && raf) {
       this._requestId = raf(this._animate);
     } else {
@@ -637,52 +633,57 @@ export class Engine extends EventDispatcher {
   /**
    * @internal
    */
-  protected async _initialize(configuration: EngineConfiguration): Promise<this> {
+  protected _initialize(configuration: EngineConfiguration): Promise<this> {
     const { shaderCompiler, physics } = configuration;
+
+    if (shaderCompiler && !Shader._shaderCompiler) {
+      // Bind the runtime include map so the preprocessor sees every chunk
+      // the umbrella package's ShaderPool registered into ShaderFactory.
+      // shader-compiler defaults to an empty map and stays free of any direct
+      // ShaderFactory dependency, so the binding has to be wired here at the
+      // runtime boundary.
+      shaderCompiler._setIncludeMap(ShaderFactory.includeMap);
+      Shader._shaderCompiler = shaderCompiler;
+    }
+
     const initializePromises: (Promise<unknown> | void)[] = [];
-    try {
-      if (shaderCompiler && !Shader._shaderCompiler) {
-        // Bind the runtime include map before any loader can compile shaders;
-        // shader-compiler stays free of any direct ShaderFactory dependency.
-        shaderCompiler._setIncludeMap(ShaderFactory.includeMap);
-        Shader._shaderCompiler = shaderCompiler;
-      }
-
-      if (physics) initializePromises.push(physics.initialize());
-
-      const loaders = ResourceManager._loaders;
-      for (const key in loaders) {
-        const loader = loaders[key];
-        if (loader.initialize) initializePromises.push(loader.initialize(this, configuration));
-      }
-
-      initializePromises.push(this._basicResources._initialize());
-      await Promise.all(initializePromises);
-      if (this.destroyed) throw new Error("Engine was destroyed during initialization.");
-
-      // Publish physics only after all initialization work has succeeded
-      if (physics) {
-        this._nativePhysicsManager = physics.createPhysicsManager();
-        if (Engine._nativePhysics !== physics) {
-          if (Engine._nativePhysics) {
-            console.warn(
-              "A physics engine has already been configured. All physics operations will now be handled by the newly specified physics engine."
-            );
+    if (physics) {
+      initializePromises.push(
+        physics.initialize().then(() => {
+          if (Engine._nativePhysics !== physics) {
+            if (Engine._nativePhysics) {
+              console.warn(
+                "A physics engine has already been configured. All physics operations will now be handled by the newly specified physics engine."
+              );
+            }
+            Engine._nativePhysics = physics;
+            BasicResources._initializePhysics();
           }
-          Engine._nativePhysics = physics;
-          BasicResources._initializePhysics();
-        }
-        this._physicsInitialized = true;
-      }
+          this._nativePhysicsManager = physics.createPhysicsManager();
+          this._physicsInitialized = true;
+          return this;
+        })
+      );
+    }
 
+    const loaders = ResourceManager._loaders;
+    for (const key in loaders) {
+      const loader = loaders[key];
+      if (loader.initialize) initializePromises.push(loader.initialize(this, configuration));
+    }
+
+    initializePromises.push(this._basicResources._initialize());
+    return Promise.all(initializePromises).then(() => {
       this.sceneManager.addScene(new Scene(this, "DefaultScene"));
       return this;
-    } catch (error) {
-      // Pending loaders may still create resources that destruction must release
-      await Promise.allSettled(initializePromises);
-      this.destroy();
-      throw error;
-    }
+    });
+  }
+
+  private _getRequestAnimationFrame(): ((callback: FrameRequestCallback) => number) | undefined {
+    return (
+      this.xrManager?._getRequestAnimationFrame() ||
+      (typeof requestAnimationFrame === "undefined" ? undefined : requestAnimationFrame)
+    );
   }
 
   private _onDeviceLost(): void {

@@ -9,12 +9,10 @@ import {
   ShaderLanguage,
   Material,
   PBRMaterial,
-  Engine,
-  AssetType,
-  ResourceManager
+  Engine
 } from "../../../packages/galacean/dist/headless.module.js";
 import { WebGLEngine } from "@galacean/engine";
-import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 let browser: WebGLEngine;
 let headless: HeadlessEngine;
@@ -46,23 +44,6 @@ const creators = [
 ];
 
 describe("WebGL and headless share engine semantics", () => {
-  it("releases a WebGL engine and its canvas observer when initialization throws", async () => {
-    const failure = new Error("loader initialization failed");
-    let partial: WebGLEngine;
-    const initialize = vi.spyOn(ResourceManager._loaders[AssetType.GLTF], "initialize").mockImplementation((engine) => {
-      partial = engine as WebGLEngine;
-      throw failure;
-    });
-    try {
-      await expect(WebGLEngine.create({ canvas: document.createElement("canvas") })).rejects.toBe(failure);
-      expect(partial!.destroyed).toBe(true);
-      expect((partial!.canvas as any)._resizeObserver).toBeUndefined();
-    } finally {
-      initialize.mockRestore();
-      partial?.destroy();
-    }
-  });
-
   it.each(creators.map((create, index) => [index, create] as const))(
     "matches geometry and hierarchical bounds for factory %i",
     (_index, create) => {
