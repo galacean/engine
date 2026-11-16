@@ -68,6 +68,7 @@ type Replacement = { descriptor: PropertyDescriptor; when?: Selector };
 export interface Registry {
   devices: WeakMap<object, Invoke>;
   installedMembers: WeakMap<object, Set<PropertyKey>>;
+  receivers?: WeakMap<object, Invoke | null>;
 }
 
 const classes: Members[] = [];
@@ -101,12 +102,19 @@ export function bindOverrides(
   registry: Registry = (defaultRegistry ??= { devices: new WeakMap(), installedMembers: new WeakMap() })
 ): (device: WebGLGraphicDevice) => void {
   const { devices, installedMembers } = registry;
+  registry.receivers ??= new WeakMap();
   const patches: Patch[] = [];
+  const deviceDescriptors: PropertyDescriptorMap = Object.create(null);
   const replacements = new WeakMap<object, Map<PropertyKey, Replacement>>();
 
   function prepare(target: object, source: object, key: PropertyKey, when?: Selector): void {
     const descriptor = Object.getOwnPropertyDescriptor(source, key)!;
-    const patch = prepareMember(devices, target, key, descriptor);
+    const onDevice = target === bindings.WebGLGraphicDevice.prototype && !when;
+    const patch = prepareMember(registry, target, key, descriptor, onDevice);
+    if (onDevice) {
+      deviceDescriptors[key] = patch.replacement;
+      return;
+    }
     if (!installedMembers.get(target)?.has(key)) patches.push(patch);
 
     let members = replacements.get(target);
@@ -159,7 +167,11 @@ export function bindOverrides(
     if (!method || (replacement?.when && !replacement.when.call(receiver))) return original.apply(receiver, args);
     return method.apply(receiver, args);
   };
-  return (device) => devices.set(device, invoke);
+  return (device) => {
+    Object.defineProperties(device, deviceDescriptors);
+    devices.set(device, invoke);
+    registry.receivers = new WeakMap();
+  };
 }
 
 function owningDevice(value: any): object | undefined {
@@ -179,10 +191,11 @@ function owningDevice(value: any): object | undefined {
 }
 
 function prepareMember(
-  devices: Registry["devices"],
+  registry: Registry,
   target: object,
   key: PropertyKey,
-  replacement: PropertyDescriptor
+  replacement: PropertyDescriptor,
+  onDevice: boolean
 ): Patch {
   const original = Object.getOwnPropertyDescriptor(target, key);
   if (!original?.configurable) throw new Error(`Incompatible engine member: ${String(key)}`);
@@ -195,14 +208,25 @@ function prepareMember(
     if (typeof method !== "function" || typeof previous !== "function") {
       throw new Error(`Incompatible engine ${kind}: ${String(key)}`);
     }
+    if (onDevice) {
+      descriptor[kind] = method;
+      continue;
+    }
     descriptor[kind] = function () {
-      const owner = owningDevice(this);
-      let invoke = devices.get(owner!);
-      // Shared shader passes and static methods receive the engine or RHI as an argument.
-      if (!invoke && owner === this) {
-        for (let index = 0; index < arguments.length; index++) {
-          invoke = devices.get(owningDevice(arguments[index])!);
-          if (invoke) break;
+      const receivers = registry.receivers!;
+      let invoke = receivers.get(this);
+      if (invoke === undefined) {
+        const owner = owningDevice(this);
+        invoke = registry.devices.get(owner!);
+        if (owner !== this) {
+          // Cache the dispatcher without retaining the device after its owner is destroyed.
+          if (invoke || (owner as WebGLGraphicDevice | undefined)?.isWebGL2) receivers.set(this, (invoke ??= null));
+        } else if (!invoke) {
+          // Shared shader passes and static methods can receive different devices on each call.
+          for (let index = 0; index < arguments.length; index++) {
+            invoke = registry.devices.get(owningDevice(arguments[index])!);
+            if (invoke) break;
+          }
         }
       }
       return invoke ? invoke(target, key, kind, previous, this, arguments) : previous.apply(this, arguments);

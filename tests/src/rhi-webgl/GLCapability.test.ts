@@ -1,6 +1,6 @@
 import { createWebGL1Canvas } from "../../../packages/webgl1-polyfill/tests/helpers/canvas";
 import { GLCapabilityType, SystemInfo, Texture2D, TextureFormat } from "@galacean/engine-core";
-import { WebGLEngine } from "@galacean/engine";
+import { GLTexture, WebGLEngine } from "@galacean/engine";
 import { describe, expect, it, vi } from "vitest";
 
 describe.each([
@@ -98,5 +98,26 @@ it("rejects ETC2_RGBA5 before allocating storage when neither ETC extension is a
     parameters.mockRestore();
     extension.mockRestore();
     engine?.destroy();
+  }
+});
+
+it("reuses the format checked by the RHI for allocation and keeps color spaces separate", async () => {
+  const engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
+  try {
+    const format = TextureFormat.R8G8B8;
+    const device = engine._hardwareRenderer;
+    const gl = device.gl;
+    expect(SystemInfo.supportsTextureFormat(engine, format)).toBe(true);
+    const linearFormat = GLTexture._findFormatDetail(format, false, gl, device);
+    const linear = new Texture2D(engine, 4, 4, format, false, false)._platformTexture as GLTexture;
+    const srgb = new Texture2D(engine, 4, 4, format, false, true)._platformTexture as GLTexture;
+
+    expect(linear._formatDetail).toBe(linearFormat);
+    expect(srgb._formatDetail).not.toBe(linearFormat);
+    expect(linear._formatDetail.internalFormat).toBe(gl.RGB8);
+    expect(srgb._formatDetail.internalFormat).toBe(gl.SRGB8);
+    expect(gl.getError()).toBe(gl.NO_ERROR);
+  } finally {
+    engine.destroy();
   }
 });

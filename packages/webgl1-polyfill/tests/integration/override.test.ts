@@ -6,7 +6,7 @@ import {
   WebGLEngine,
   type WebGLGraphicDevice
 } from "../../../galacean/dist/module.js";
-import { expect, it } from "vitest";
+import { expect, it, vi } from "vitest";
 import { createEngine } from "../helpers/createEngine";
 
 it("routes format queries and instance setters according to the owning device", async () => {
@@ -81,6 +81,15 @@ it("keeps original descriptors on validation and commit failure, then installs o
   const installedMethod = First.prototype.method;
   bindOverrides(bindings);
   expect(First.prototype.method).toBe(installedMethod);
-  expect(Object.assign(new First(), { _rhi: fallback }).method()).toBe("replacement");
+  const legacyOwner = vi.fn(() => fallback);
+  const nativeOwner = vi.fn(() => ({ isWebGL2: true }));
+  const legacy = Object.defineProperty(new First(), "_rhi", { get: legacyOwner });
+  const native = Object.defineProperty(new First(), "_rhi", { get: nativeOwner });
+  for (let index = 0; index < 3; index++) {
+    expect(legacy.method()).toBe("replacement");
+    expect(native.method()).toBe("original");
+  }
+  expect(legacyOwner).toHaveBeenCalledTimes(1);
+  expect(nativeOwner).toHaveBeenCalledTimes(1);
   expect(new First().method()).toBe("original");
 });

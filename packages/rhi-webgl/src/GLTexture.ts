@@ -11,6 +11,7 @@ import {
   TextureUtils,
   TextureWrapMode
 } from "@galacean/engine-core";
+import type { GLCapability } from "./GLCapability";
 import { WebGLGraphicDevice } from "./WebGLGraphicDevice";
 import { GLCompressedTextureInternalFormat, TextureFormatDetail } from "./type";
 
@@ -18,6 +19,8 @@ import { GLCompressedTextureInternalFormat, TextureFormatDetail } from "./type";
  * Texture in WebGL platform.
  */
 export class GLTexture implements IPlatformTexture {
+  // The capability object is replaced when the context is initialized or restored.
+  private static readonly _formatDetails = new WeakMap<GLCapability, Map<TextureFormat, TextureFormatDetail>[]>();
   /**
    * Get more texture info from TextureFormat.
    * @internal
@@ -37,6 +40,25 @@ export class GLTexture implements IPlatformTexture {
 
   /** @internal */
   static _findFormatDetail(
+    format: TextureFormat,
+    isSRGBColorSpace: boolean,
+    gl: WebGLRenderingContext & WebGL2RenderingContext,
+    rhi: WebGLGraphicDevice
+  ): TextureFormatDetail | undefined {
+    const capability = rhi.capability;
+    let formats = GLTexture._formatDetails.get(capability);
+    if (!formats) GLTexture._formatDetails.set(capability, (formats = [new Map(), new Map()]));
+
+    const cache = formats[isSRGBColorSpace ? 1 : 0];
+    let detail = cache.get(format);
+    if (!detail) {
+      detail = this._resolveFormatDetail(format, isSRGBColorSpace, gl, rhi);
+      if (detail) cache.set(format, detail);
+    }
+    return detail;
+  }
+
+  private static _resolveFormatDetail(
     format: TextureFormat,
     isSRGBColorSpace: boolean,
     gl: WebGLRenderingContext & WebGL2RenderingContext,

@@ -9,6 +9,7 @@ it("loads one compatibility module for concurrent real fallback devices and keep
   if (!nativeCanvas.getContext("webgl2")) skip();
   const native = await WebGLEngine.create({ canvas: nativeCanvas });
   const nativeDevice = native._hardwareRenderer as WebGLGraphicDevice;
+  const resolveNativeMipLevel = nativeDevice._resolveFramebufferMipLevel;
   const scene = native.sceneManager.activeScene!;
   const nativeParticle = scene.createRootEntity().addComponent(ParticleRenderer).generator;
   nativeParticle.noise.enabled = true;
@@ -28,6 +29,7 @@ it("loads one compatibility module for concurrent real fallback devices and keep
         const device = engine._hardwareRenderer as WebGLGraphicDevice;
         const gl = canvas.getContext("webgl")!;
         expect(device.isWebGL2).toBe(false);
+        expect(device._resolveFramebufferMipLevel).not.toBe(resolveNativeMipLevel);
         expect(device.gl).toBe(gl);
         expect(gl.getParameter(gl.VERSION)).toMatch(/^WebGL 1/);
 
@@ -52,6 +54,8 @@ it("loads one compatibility module for concurrent real fallback devices and keep
     expect(
       performance.getEntriesByType("resource").filter((entry) => webgl1PolyfillURLPattern.test(entry.name))
     ).toHaveLength(1);
+    expect(nativeDevice._resolveFramebufferMipLevel).toBe(resolveNativeMipLevel);
+    expect(nativeDevice._resolveFramebufferMipLevel(1)).toBe(1);
     nativeParticle._setTransformFeedback();
     expect(nativeParticle._feedbackSimulator).toBe(nativeSimulation);
     expect(nativeParticle.noise.enabled).toBe(true);

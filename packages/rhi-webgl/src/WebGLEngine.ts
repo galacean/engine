@@ -126,7 +126,7 @@ export interface WebGLEngineConfiguration extends EngineConfiguration {
 
 // Upload a new AFTS asset when the compatibility module changes.
 const fallbackModuleURL =
-  "https://mdn.alipayobjects.com/rms/afts/file/A*lfofRYkU6-YAAAAAQ-AAAAgAehQnAQ/engine-webgl1-polyfill.js";
+  "https://mdn.alipayobjects.com/rms/afts/file/A*F8poQ6TnoI4AAAAAQ_AAAAgAehQnAQ/engine-webgl1-polyfill.js";
 let pendingFallback: Promise<(device: WebGLGraphicDevice, canvas: WebCanvas) => void> | undefined;
 let fallbackRetry = 0;
 
