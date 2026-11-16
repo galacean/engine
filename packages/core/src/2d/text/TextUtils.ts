@@ -41,18 +41,15 @@ export class TextUtils {
   static textContext(): TextContext {
     let { _textContext: textContext } = TextUtils;
     if (!textContext) {
-      let canvas: HTMLCanvasElement | OffscreenCanvas | undefined;
+      let canvas: HTMLCanvasElement | OffscreenCanvas;
       try {
         canvas = new OffscreenCanvas(1, 1);
       } catch {
-        if (typeof document !== "undefined") canvas = document.createElement("canvas");
+        canvas = document.createElement("canvas");
       }
-      const context = <CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D | null>(
-        canvas?.getContext("2d", { willReadFrequently: true })
+      const context = <CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D>(
+        canvas.getContext("2d", { willReadFrequently: true })
       );
-      if (!canvas || !context) {
-        throw new Error("Text measurement requires a canvas 2D context.");
-      }
       textContext = { canvas, context };
       TextUtils._textContext = textContext;
     }

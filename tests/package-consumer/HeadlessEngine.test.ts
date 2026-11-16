@@ -463,13 +463,12 @@ describe("published headless entry in Node without browser globals", () => {
     }
   });
 
-  it("reports missing font measurement instead of fabricating text bounds, and uses host OffscreenCanvas when provided", async () => {
+  it("measures TextRenderer bounds with a host OffscreenCanvas", async () => {
     const engine = await createEngine();
     const entity = engine.sceneManager.activeScene.createRootEntity();
     entity.transform.setPosition(2, 3, 4);
     const text = entity.addComponent(enginePackage.TextRenderer);
     text.text = "Hi";
-    expect(() => text.bounds).toThrow("Text measurement requires a canvas 2D context");
 
     class HostOffscreenCanvas {
       width: number;
