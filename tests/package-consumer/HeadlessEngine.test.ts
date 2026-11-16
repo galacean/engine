@@ -309,7 +309,7 @@ describe("published headless entry in Node without browser globals", () => {
     instance.destroy();
   });
 
-  it("updates CPU particles and custom renderers before skipping camera rendering", async () => {
+  it("updates custom renderers and initial CPU particle step before culling without cameras", async () => {
     vi.useFakeTimers({ toFake: ["performance"] });
     const engine = await createEngine();
     const entity = engine.sceneManager.activeScene!.createRootEntity();
@@ -321,17 +321,18 @@ describe("published headless entry in Node without browser globals", () => {
     }
     const renderer = entity.addComponent(UpdatingRenderer);
     const particles = entity.createChild().addComponent(enginePackage.ParticleRenderer);
-    const renderFrame = particles._renderFrameCount;
-    for (let frame = 1; frame <= 5; frame++) {
-      const age = particles.generator._playTime;
-      vi.advanceTimersByTime(100);
-      engine.update();
-      expect(renderer.frames).toBe(frame);
-      expect(particles.generator._playTime).toBeGreaterThan(age);
-      expect(particles._renderFrameCount).toBe(renderFrame);
-    }
+    vi.advanceTimersByTime(100);
+    engine.update();
+    const firstStepTime = particles.generator._playTime;
+    expect(renderer.frames).toBe(1);
+    expect(firstStepTime).toBeGreaterThan(0);
     expect(particles.generator._getAliveParticleCount()).toBeGreaterThan(0);
     expect(particles.bounds.min.x).toBeLessThan(particles.bounds.max.x);
+    vi.advanceTimersByTime(100);
+    engine.update();
+    expect(renderer.frames).toBe(2);
+    expect(particles.isCulled).toBe(true);
+    expect(particles.generator._playTime).toBe(firstStepTime);
   });
 
   it("cancels the active transport and never retries a cancelled request", async () => {
