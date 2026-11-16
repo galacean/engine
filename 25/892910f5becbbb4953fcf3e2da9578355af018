@@ -1,0 +1,14 @@
+tests/src/core/RenderPipeline/InstanceBuffer.test.ts
+  h_ddbf152d31b140 1,57-113
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "25892910f5becbbb4953fcf3e2da9578355af018",
+  "prompts": {},
+  "humans": {
+    "h_ddbf152d31b140": {
+      "author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

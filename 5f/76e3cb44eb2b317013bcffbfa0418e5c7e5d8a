@@ -1,0 +1,21 @@
+packages/core/src/physics/PhysicsMaterial.ts
+  s_89f62b485e437b::t_c7cebbb8afa847 38
+packages/core/src/physics/shape/ColliderShape.ts
+  s_89f62b485e437b::t_1ca1e8eda72fbc 67,69,204,209
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "5f76e3cb44eb2b317013bcffbfa0418e5c7e5d8a",
+  "prompts": {},
+  "sessions": {
+    "s_89f62b485e437b": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "01a1e26a-2627-7685-ab49-571422f416d8",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}
