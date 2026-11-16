@@ -1,0 +1,578 @@
+packages/webgl1-polyfill/src/rhi-webgl/GLCapability.ts
+  s_da48a1c3cefcb7::t_f5b06748745381 47
+  s_da48a1c3cefcb7::t_f501dcf27f1eed 48-49
+  s_da48a1c3cefcb7::t_d99fcb00bde18d 9-11
+  s_da48a1c3cefcb7::t_d8c985cc94e6df 43
+  s_da48a1c3cefcb7::t_ac2ffd01725b32 15
+  s_da48a1c3cefcb7::t_ea157918281fa5 12-14,16-42,44-46
+  s_c5192f23876072::t_18aaff442f2e8a 1-8
+packages/webgl1-polyfill/src/core/particle/ParticleGenerator.ts
+  s_da48a1c3cefcb7::t_2750afeda42e67 3
+  s_da48a1c3cefcb7::t_f501dcf27f1eed 7
+  s_da48a1c3cefcb7::t_e3cee435318375 1
+  s_da48a1c3cefcb7::t_ea157918281fa5 2,4-6
+packages/webgl1-polyfill/src/rhi-webgl/GLTexture.ts
+  s_da48a1c3cefcb7::t_5aa82606a94bb6 14
+  s_da48a1c3cefcb7::t_ea157918281fa5 22,25-26,29-30,33-34,38-41,43,45-46,50-57,59-67,78-83,88-92,95
+  s_da48a1c3cefcb7::t_f1aeea290b375c 21,23,27,86,93
+  s_da48a1c3cefcb7::t_035e1783fb4fb8 47
+  s_da48a1c3cefcb7::t_2434fc49b50eb8 11,13,24,28,32,36,44,48,69-77,85,87,94
+  s_da48a1c3cefcb7::t_67e7a6447df2c8 31
+  s_da48a1c3cefcb7::t_84db4a37da1e0a 16-20
+  s_da48a1c3cefcb7::t_96c473b0898401 58
+  s_da48a1c3cefcb7::t_7fecd86682574f 68
+  s_da48a1c3cefcb7::t_fd8aaa18fcd059 84
+  s_da48a1c3cefcb7::t_56aa2cabf03470 10
+  s_da48a1c3cefcb7::t_40c70a1cf48ef6 1-9,37,49
+  s_da48a1c3cefcb7::t_fef34bb39dbd57 12
+  s_da48a1c3cefcb7::t_ca64d20239eeb3 35
+  s_da48a1c3cefcb7::t_27b87b10fa88a5 15,42,96-97
+docs/zh/core/engine.mdx
+  s_da48a1c3cefcb7::t_58e3b29e0588fb 34
+packages/webgl1-polyfill/src/core/particle/modules/SubEmittersModule.ts
+  s_da48a1c3cefcb7::t_55dc149e0cb565 1
+  s_da48a1c3cefcb7::t_f501dcf27f1eed 8-9
+  s_da48a1c3cefcb7::t_0f1f6dbfe5b981 3
+  s_da48a1c3cefcb7::t_ea157918281fa5 2,4-7
+e2e/case/particleRenderer-inherit-velocity-stretched.ts
+  s_da48a1c3cefcb7::t_4a5c2808ead776 27
+  s_da48a1c3cefcb7::t_58e3b29e0588fb 22
+packages/core/src/particle/modules/InheritVelocityModule.ts
+  s_da48a1c3cefcb7::t_a5c1257485cda0 106,234
+packages/webgl1-polyfill/src/core/particle/modules/VelocityOverLifetimeModule.ts
+  s_da48a1c3cefcb7::t_27b87b10fa88a5 2,8-9
+  s_da48a1c3cefcb7::t_ea157918281fa5 4-7
+  s_da48a1c3cefcb7::t_e434c035cf4391 1
+  s_da48a1c3cefcb7::t_cb97dc704d7671 3
+packages/webgl1-polyfill/src/core/particle/modules/InheritVelocityModule.ts
+  s_da48a1c3cefcb7::t_103a65e06713ee 1-2
+  s_da48a1c3cefcb7::t_d55d23663436a2 6-8
+  s_da48a1c3cefcb7::t_ea157918281fa5 3,5,9-11,14-16,18
+  s_da48a1c3cefcb7::t_8fafc9e9c33f77 12
+  s_da48a1c3cefcb7::t_2434fc49b50eb8 13
+  s_da48a1c3cefcb7::t_f501dcf27f1eed 17,19-20
+  s_da48a1c3cefcb7::t_9394e9eaf6fa76 4
+tests/src/shader-compiler/ShaderCompiler.test.ts
+  s_da48a1c3cefcb7::t_58e3b29e0588fb 27,57,95,1292
+  s_da48a1c3cefcb7::t_4a5c2808ead776 58,96,144,1293
+  s_da48a1c3cefcb7::t_c466cc6e8666b9 1
+packages/webgl1-polyfill/src/index.ts
+  s_da48a1c3cefcb7::t_7ee2b6e2467a3d 2-3,6-8,10,12-18,20,22-23
+  s_da48a1c3cefcb7::t_032929cec7092e 11
+  s_da48a1c3cefcb7::t_780d78a0233a35 1
+  s_da48a1c3cefcb7::t_aec221276d625f 21
+  s_da48a1c3cefcb7::t_f50efa2372cffe 19
+  s_da48a1c3cefcb7::t_1470ff04463f4a 25
+  s_da48a1c3cefcb7::t_0a6c104d06ce99 4-5,9,24
+examples/src/CSS-DOM.ts
+  s_da48a1c3cefcb7::t_4a5c2808ead776 23
+  s_da48a1c3cefcb7::t_58e3b29e0588fb 15
+packages/webgl1-polyfill/src/rhi-webgl/context.ts
+  s_da48a1c3cefcb7::t_2434fc49b50eb8 54
+  s_da48a1c3cefcb7::t_eedd732bff7ad1 55-57
+  s_da48a1c3cefcb7::t_1bf53245c43ad5 36,39,45,50-53,68,71,74,78
+  s_c5192f23876072::t_fadeff44013a40 1-35,37-38,40-44,46-49,58-67,69-70,72-73,75-77,79-102
+docs/en/core/engine.mdx
+  s_da48a1c3cefcb7::t_58e3b29e0588fb 34
+tests/src/core/mesh/BlendShapeManager.test.ts
+  s_da48a1c3cefcb7::t_58e3b29e0588fb 10
+packages/core/src/index.ts
+  s_da48a1c3cefcb7::t_c74ce86a358d16 3-4
+packages/core/src/shader/index.ts
+  s_da48a1c3cefcb7::t_c74ce86a358d16 22-27
+packages/rhi-webgl/src/GLPrimitive.ts
+  s_da48a1c3cefcb7::t_09315abff2d792 35,90
+  s_da48a1c3cefcb7::t_524bd2bcaf2640 1,125
+  s_da48a1c3cefcb7::t_99ee3761574af7 67-69,71-74,77
+packages/webgl1-polyfill/tests/helpers/createEngine.ts
+  s_da48a1c3cefcb7::t_e27bafa16a4fd9 1-12
+packages/core/src/RenderPipeline/BasicRenderPipeline.ts
+  s_da48a1c3cefcb7::t_682e75ac43c597 123
+packages/core/src/particle/modules/VelocityOverLifetimeModule.ts
+  s_da48a1c3cefcb7::t_682e75ac43c597 458,464-466,499
+  s_da48a1c3cefcb7::t_997ad96d025f5b 349,467
+packages/webgl1-polyfill/src/core/RenderPipeline/BasicRenderPipeline.ts
+  s_da48a1c3cefcb7::t_2434fc49b50eb8 1,7
+  s_da48a1c3cefcb7::t_27b87b10fa88a5 3,10,12-13
+  s_da48a1c3cefcb7::t_ea157918281fa5 5,8-9,11
+  s_da48a1c3cefcb7::t_b1a0b67cd8c1ed 6
+  s_da48a1c3cefcb7::t_57c8621120cc6a 2
+  s_da48a1c3cefcb7::t_d50a06d334cf17 4
+tests/src/rhi-webgl/GLCapability.test.ts
+  s_da48a1c3cefcb7::t_c466cc6e8666b9 1
+  s_da48a1c3cefcb7::t_58e3b29e0588fb 3
+  s_da48a1c3cefcb7::t_4a5c2808ead776 13,23
+packages/webgl1-polyfill/src/core/2d/atlas/FontAtlas.ts
+  s_da48a1c3cefcb7::t_f1aeea290b375c 2,4
+  s_da48a1c3cefcb7::t_2434fc49b50eb8 1,7
+  s_da48a1c3cefcb7::t_ea157918281fa5 5,8-11
+  s_da48a1c3cefcb7::t_46dec479074802 6
+  s_da48a1c3cefcb7::t_27b87b10fa88a5 3,12-13
+packages/rhi-webgl/src/GLTexture.ts
+  s_da48a1c3cefcb7::t_682e75ac43c597 29,34-36,43-44,52,60,68,92,100,260,262,268,270,276,284,329,334,336,342,344,366,426,573,601
+examples/src/gpu-instancing-auto-batch.ts
+  s_da48a1c3cefcb7::t_58e3b29e0588fb 23
+packages/core/src/shadow/index.ts
+  s_da48a1c3cefcb7::t_c74ce86a358d16 4-5
+packages/core/src/shader/ShaderProgram.ts
+  s_da48a1c3cefcb7::t_682e75ac43c597 520-528
+  s_da48a1c3cefcb7::t_b0cf3b95ee8085 513-519
+packages/webgl1-polyfill/src/core/shader/ShaderPass.ts
+  s_da48a1c3cefcb7::t_1e9cb89d6447cb 52
+  s_da48a1c3cefcb7::t_27b87b10fa88a5 28,71-72
+  s_da48a1c3cefcb7::t_031e71e94c8c11 36
+  s_da48a1c3cefcb7::t_2434fc49b50eb8 35
+  s_da48a1c3cefcb7::t_f1aeea290b375c 29
+  s_da48a1c3cefcb7::t_70a0423ca3b71b 31-34
+  s_da48a1c3cefcb7::t_92a96c9d9a409b 11-27
+  s_da48a1c3cefcb7::t_ea157918281fa5 37-44,46-51,53-70
+  s_da48a1c3cefcb7::t_a4d96993dcb350 45
+  s_da48a1c3cefcb7::t_40c70a1cf48ef6 1-10,30
+packages/webgl1-polyfill/src/core/shader/state/BlendState.ts
+  s_da48a1c3cefcb7::t_ea157918281fa5 5,8-12,14
+  s_da48a1c3cefcb7::t_2434fc49b50eb8 1,7
+  s_da48a1c3cefcb7::t_f1aeea290b375c 2,6
+  s_da48a1c3cefcb7::t_27b87b10fa88a5 3,13,15-16
+  s_da48a1c3cefcb7::t_5fda556910b054 4
+packages/webgl1-polyfill/tests/helpers/canvas.ts
+  s_da48a1c3cefcb7::t_e27bafa16a4fd9 8,17-34
+  s_da48a1c3cefcb7::t_853be601186bd4 14-16
+  s_c5192f23876072::t_e68517acf52a8c 1-7,9-13
+packages/core/src/particle/ParticleRenderer.ts
+  s_da48a1c3cefcb7::t_524bd2bcaf2640 174
+e2e/case/multi-camera-no-clear.ts
+  s_da48a1c3cefcb7::t_58e3b29e0588fb 19
+packages/core/src/2d/atlas/FontAtlas.ts
+  s_da48a1c3cefcb7::t_b0cf3b95ee8085 23-27,30
+packages/webgl1-polyfill/src/core/shadow/CascadedShadowCasterPass.ts
+  s_da48a1c3cefcb7::t_2434fc49b50eb8 31,51,55
+  s_da48a1c3cefcb7::t_40c70a1cf48ef6 1-13
+  s_da48a1c3cefcb7::t_27b87b10fa88a5 15,57-58
+  s_da48a1c3cefcb7::t_58d8856ad01392 16-24
+  s_da48a1c3cefcb7::t_ea157918281fa5 25-29,33-50,52-54,56
+  s_da48a1c3cefcb7::t_a7695b275e3096 30
+  s_da48a1c3cefcb7::t_97babda5f7b09a 32
+  s_da48a1c3cefcb7::t_831b7da7bde1e1 14
+e2e/case/particleRenderer-force.ts
+  s_da48a1c3cefcb7::t_58e3b29e0588fb 24
+packages/webgl1-polyfill/src/rhi-webgl/GLTexture2D.ts
+  s_da48a1c3cefcb7::t_f501dcf27f1eed 3,10-11
+  s_da48a1c3cefcb7::t_ea157918281fa5 4,6,9
+  s_da48a1c3cefcb7::t_684d08ae578bee 2
+  s_da48a1c3cefcb7::t_38994512e2ce01 7
+  s_da48a1c3cefcb7::t_d29661f56c2836 5
+  s_da48a1c3cefcb7::t_2434fc49b50eb8 1,8
+packages/core/src/shader/ShaderPass.ts
+  s_da48a1c3cefcb7::t_09315abff2d792 154-155
+  s_da48a1c3cefcb7::t_7248a9542f7bcc 153,174,179
+packages/rhi-webgl/src/index.ts
+  s_da48a1c3cefcb7::t_7ee2b6e2467a3d 7-20
+  s_da48a1c3cefcb7::t_58e3b29e0588fb 5
+packages/rhi-webgl/src/WebGLGraphicDevice.ts
+  s_da48a1c3cefcb7::t_682e75ac43c597 99,190-196,198,206-210,212-242,245-247,637-639
+  s_da48a1c3cefcb7::t_7248a9542f7bcc 197
+  s_da48a1c3cefcb7::t_99ee3761574af7 305-306,313-314,630-632
+e2e/case/particleRenderer-velocity-orbital-constant.ts
+  s_da48a1c3cefcb7::t_58e3b29e0588fb 19
+  s_da48a1c3cefcb7::t_4a5c2808ead776 24
+packages/core/src/shadow/ShadowUtils.ts
+  s_da48a1c3cefcb7::t_09315abff2d792 152
+rollup.config.js
+  s_da48a1c3cefcb7::t_6203f40f05d278 86
+  s_da48a1c3cefcb7::t_7ee2b6e2467a3d 87-90
+  s_da48a1c3cefcb7::t_3461d4c77fd52e 91-93
+  s_c5192f23876072::t_8cb8974a8fd7e7 94-95,139-143
+packages/webgl1-polyfill/src/core/particle/modules/NoiseModule.ts
+  s_da48a1c3cefcb7::t_2434fc49b50eb8 6
+  s_da48a1c3cefcb7::t_9a44ce1d281252 1
+  s_da48a1c3cefcb7::t_f501dcf27f1eed 8-9
+  s_da48a1c3cefcb7::t_ea157918281fa5 2,4,7
+  s_da48a1c3cefcb7::t_68933713cfe674 5
+  s_da48a1c3cefcb7::t_2503069e5bac29 3
+e2e/case/multi-scene-no-clear.ts
+  s_da48a1c3cefcb7::t_4a5c2808ead776 24
+  s_da48a1c3cefcb7::t_58e3b29e0588fb 18
+tests/src/shader-compiler/TypeDependencies.test.ts
+  s_da48a1c3cefcb7::t_4a5c2808ead776 116
+  s_da48a1c3cefcb7::t_58e3b29e0588fb 2,115
+  s_da48a1c3cefcb7::t_c466cc6e8666b9 1
+packages/webgl1-polyfill/src/rhi-webgl/compressedTexture.ts
+  s_da48a1c3cefcb7::t_f501dcf27f1eed 3-5,7-10,12-24
+  s_da48a1c3cefcb7::t_ec96767bced274 6
+  s_da48a1c3cefcb7::t_229141047a1a67 11
+  s_da48a1c3cefcb7::t_90106d597be050 1-2
+e2e/case/particleRenderer-sub-emitter.ts
+  s_da48a1c3cefcb7::t_4a5c2808ead776 35
+  s_da48a1c3cefcb7::t_58e3b29e0588fb 30
+packages/webgl1-polyfill/src/core/RenderPipeline/DepthOnlyPass.ts
+  s_da48a1c3cefcb7::t_c54688aacd903c 11
+  s_da48a1c3cefcb7::t_2434fc49b50eb8 19
+  s_da48a1c3cefcb7::t_02bb78cf951419 36
+  s_da48a1c3cefcb7::t_ea157918281fa5 20-35,37-38
+  s_da48a1c3cefcb7::t_60f7da8bd60cf8 13-18
+  s_da48a1c3cefcb7::t_40c70a1cf48ef6 1-10
+  s_da48a1c3cefcb7::t_27b87b10fa88a5 12,39-40
+packages/core/src/Engine.ts
+  s_da48a1c3cefcb7::t_09315abff2d792 268,277-280
+  s_da48a1c3cefcb7::t_05388986a56816 281-282
+packages/webgl1-polyfill/package.json
+  s_da48a1c3cefcb7::t_b0cf3b95ee8085 1-12,14-25,28-31,33-34,57-58
+  s_da48a1c3cefcb7::t_6233452eeadeab 35-36,39
+  s_da48a1c3cefcb7::t_785f8cea7ead61 13,26-27,32,37-38,40-56
+packages/core/src/texture/TextureUtils.ts
+  s_da48a1c3cefcb7::t_682e75ac43c597 28,53-54,61,64
+packages/core/src/texture/Texture.ts
+  s_da48a1c3cefcb7::t_524bd2bcaf2640 225-226
+packages/webgl1-polyfill/src/core/texture/Texture.ts
+  s_da48a1c3cefcb7::t_1e289feda9690d 1-2
+  s_da48a1c3cefcb7::t_ea157918281fa5 3,8
+  s_da48a1c3cefcb7::t_f501dcf27f1eed 9-10
+  s_da48a1c3cefcb7::t_2434fc49b50eb8 7
+  s_da48a1c3cefcb7::t_e722b847fc872c 4-6
+tests/src/shader-compiler/DeclarationIdentity.test.ts
+  s_da48a1c3cefcb7::t_4a5c2808ead776 58
+  s_da48a1c3cefcb7::t_c466cc6e8666b9 1
+  s_da48a1c3cefcb7::t_58e3b29e0588fb 2,57
+packages/webgl1-polyfill/README.md
+  s_da48a1c3cefcb7::t_0d4d5882265f82 7
+  s_da48a1c3cefcb7::t_6233452eeadeab 1-2,4-6
+  s_da48a1c3cefcb7::t_58e3b29e0588fb 3
+packages/webgl1-polyfill/src/core/particle/ParticleRenderer.ts
+  s_da48a1c3cefcb7::t_ea157918281fa5 5-7,10-14
+  s_da48a1c3cefcb7::t_3e4e7dde9fa40a 1-2
+  s_da48a1c3cefcb7::t_3d6b0a03359f87 8-9
+  s_da48a1c3cefcb7::t_27b87b10fa88a5 3,15-16
+  s_da48a1c3cefcb7::t_777b1258827079 4
+tests/src/shader-compiler/TransformFeedbackNames.test.ts
+  s_da48a1c3cefcb7::t_58e3b29e0588fb 2
+  s_da48a1c3cefcb7::t_4a5c2808ead776 34
+tests/src/core/particle/SubEmitterRendering.test.ts
+  s_da48a1c3cefcb7::t_58e3b29e0588fb 19
+  s_da48a1c3cefcb7::t_4a5c2808ead776 34
+packages/webgl1-polyfill/src/overrides.ts
+  s_da48a1c3cefcb7::t_ea157918281fa5 1-28
+packages/xr-webxr/src/WebXRDevice.ts
+  s_da48a1c3cefcb7::t_682e75ac43c597 66
+packages/webgl1-polyfill/src/core/BasicResources.ts
+  s_da48a1c3cefcb7::t_27b87b10fa88a5 2,8-9
+  s_da48a1c3cefcb7::t_ea157918281fa5 4,6-7
+  s_da48a1c3cefcb7::t_4f6cd6ad8c064e 5
+  s_da48a1c3cefcb7::t_f1aeea290b375c 1,3
+packages/rhi-webgl/src/GLTexture2DArray.ts
+  s_da48a1c3cefcb7::t_b04104160c25cf 16
+packages/core/src/shader/state/BlendState.ts
+  s_da48a1c3cefcb7::t_09315abff2d792 64,66
+packages/webgl1-polyfill/src/core/Camera.ts
+  s_da48a1c3cefcb7::t_d1f646b3d0c654 21
+  s_da48a1c3cefcb7::t_94a0d8bdedd383 1-2
+  s_da48a1c3cefcb7::t_27b87b10fa88a5 3,14,26,28-29
+  s_da48a1c3cefcb7::t_78831bc1858ee8 4-9
+  s_da48a1c3cefcb7::t_2434fc49b50eb8 10,22-23
+  s_da48a1c3cefcb7::t_60561f421a269b 11
+  s_da48a1c3cefcb7::t_ea157918281fa5 12-13,15-20,24-25,27
+packages/webgl1-polyfill/src/override.ts
+  s_da48a1c3cefcb7::t_17951476203df0 162-164,203
+  s_da48a1c3cefcb7::t_8fc92155c972d4 144
+  s_da48a1c3cefcb7::t_4af51203695ae2 81-85
+  s_da48a1c3cefcb7::t_082e05153e6ca0 133
+  s_da48a1c3cefcb7::t_a871b96fef1ef4 140
+  s_da48a1c3cefcb7::t_89a64530742e7b 62-70
+  s_da48a1c3cefcb7::t_1492280de007a9 149-160
+  s_da48a1c3cefcb7::t_961d27ad342b07 76-79
+  s_da48a1c3cefcb7::t_a08e0b3b3fac88 87-88
+  s_da48a1c3cefcb7::t_95b968c218129a 142
+  s_da48a1c3cefcb7::t_2bf3f5c076dcd3 126
+  s_da48a1c3cefcb7::t_5aa5e23d94f731 80,134-135,138,141,145,201
+  s_da48a1c3cefcb7::t_a5f79819446272 107-108
+  s_da48a1c3cefcb7::t_24fec36d326471 110
+  s_da48a1c3cefcb7::t_c92da8a3013f23 54
+  s_da48a1c3cefcb7::t_af5621c481eb48 129
+  s_da48a1c3cefcb7::t_7ba134921058f9 137,176
+  s_da48a1c3cefcb7::t_7ee2b6e2467a3d 1-51,53,56-61,86,89-106,136,139,147
+  s_da48a1c3cefcb7::t_202f9d80e89c01 112-120
+  s_da48a1c3cefcb7::t_b3fb0b3a7135c4 122
+  s_da48a1c3cefcb7::t_856fe7115ba19f 52
+  s_da48a1c3cefcb7::t_f1aeea290b375c 55,71-75,111,121,143
+  s_da48a1c3cefcb7::t_8cf9c3b18eac41 109
+  s_da48a1c3cefcb7::t_27b87b10fa88a5 123-125,127-128,130-132,146,148,186,199
+  s_c5192f23876072::t_44636856cfcbf5 161,165-175,177-185,187-198,200,202,204-229
+packages/rhi-webgl/src/WebGLEngine.ts
+  s_da48a1c3cefcb7::t_682e75ac43c597 74,135-136,139,186-189,191
+  s_da48a1c3cefcb7::t_90ed1b63cfcad2 194
+  s_da48a1c3cefcb7::t_7664c462534e2b 64-66
+  s_da48a1c3cefcb7::t_e2363e38cafc1a 62,67,70,77-106,126,130-133,192-193
+  s_da48a1c3cefcb7::t_bf515c9469412e 73
+  s_da48a1c3cefcb7::t_ea3bd815367110 68-69
+  s_da48a1c3cefcb7::t_7ee2b6e2467a3d 1-49,72,129,137,140-185
+  s_da48a1c3cefcb7::t_e1e42c488a9eb6 71
+  s_da48a1c3cefcb7::t_29ef2fb40b2972 75-76
+  s_da48a1c3cefcb7::t_58e3b29e0588fb 134,138,190
+  s_da48a1c3cefcb7::t_fc05b5e543517d 63,127-128
+e2e/case/shadow-transparent.ts
+  s_da48a1c3cefcb7::t_58e3b29e0588fb 17
+  s_da48a1c3cefcb7::t_4a5c2808ead776 23
+packages/webgl1-polyfill/src/rhi-webgl/GLTextureCube.ts
+  s_da48a1c3cefcb7::t_4d2d2cac25282d 2
+  s_da48a1c3cefcb7::t_b8587201c50cb1 7
+  s_da48a1c3cefcb7::t_f501dcf27f1eed 3,10-11
+  s_da48a1c3cefcb7::t_2434fc49b50eb8 1,8
+  s_da48a1c3cefcb7::t_e3e8825a5d99db 5
+  s_da48a1c3cefcb7::t_ea157918281fa5 4,6,9
+packages/rhi-webgl/src/GLTextureCube.ts
+  s_da48a1c3cefcb7::t_524bd2bcaf2640 42-51
+  s_da48a1c3cefcb7::t_682e75ac43c597 15-16
+e2e/case/camera-ssao.ts
+  s_da48a1c3cefcb7::t_4a5c2808ead776 29
+  s_da48a1c3cefcb7::t_58e3b29e0588fb 19
+packages/rhi-webgl/src/GLRenderTarget.ts
+  s_da48a1c3cefcb7::t_b04104160c25cf 18,35,130,239,273
+packages/webgl1-polyfill/src/core/Engine.ts
+  s_da48a1c3cefcb7::t_27b87b10fa88a5 8,20-21
+  s_da48a1c3cefcb7::t_40c70a1cf48ef6 1-6,19
+  s_da48a1c3cefcb7::t_30fe7af938e782 9-14
+  s_da48a1c3cefcb7::t_08baad74b3a7b8 7
+  s_da48a1c3cefcb7::t_ea157918281fa5 15-18
+packages/webgl1-polyfill/src/core/SystemInfo.ts
+  s_da48a1c3cefcb7::t_2434fc49b50eb8 7
+  s_da48a1c3cefcb7::t_ca095e179bde28 4-5
+  s_da48a1c3cefcb7::t_9177cae5b7144c 1-2
+  s_da48a1c3cefcb7::t_27b87b10fa88a5 3,32-33
+  s_da48a1c3cefcb7::t_ea157918281fa5 8,31
+  s_da48a1c3cefcb7::t_f1aeea290b375c 6
+  s_da48a1c3cefcb7::t_753f4b3a15c50f 9-30
+packages/webgl1-polyfill/src/rhi-webgl/WebGLGraphicDevice.ts
+  s_da48a1c3cefcb7::t_7f2face7190657 85-87
+  s_da48a1c3cefcb7::t_ea157918281fa5 16-17,21-28,35-38,42-43,47,59-63,67-75
+  s_da48a1c3cefcb7::t_da2d47e45073db 5-14
+  s_da48a1c3cefcb7::t_bb81466106f570 39
+  s_da48a1c3cefcb7::t_85b1236fa774e2 64
+  s_da48a1c3cefcb7::t_2ca7c6b8df3c71 41
+  s_da48a1c3cefcb7::t_bde95c314efe6c 18-19
+  s_da48a1c3cefcb7::t_2434fc49b50eb8 15,30-33,40,65,80
+  s_da48a1c3cefcb7::t_fce299e2e8fc5a 44-46
+  s_da48a1c3cefcb7::t_0e8160bd7d5195 66
+  s_da48a1c3cefcb7::t_a806c199fbdfb6 48-50
+  s_da48a1c3cefcb7::t_4d28b6c1ff4606 34
+  s_da48a1c3cefcb7::t_0042c6dc32f33f 56-58
+  s_da48a1c3cefcb7::t_5b0d6b84dc3244 52-54
+  s_da48a1c3cefcb7::t_a3a798f538b685 81-83,89
+  s_da48a1c3cefcb7::t_b609a10cc14f7b 1-3
+  s_da48a1c3cefcb7::t_27b87b10fa88a5 4,20,51,55,76-77,84
+  s_da48a1c3cefcb7::t_98236a3814ba9e 78-79
+  s_da48a1c3cefcb7::t_a978e0304ae8cc 29
+  s_c5192f23876072::t_48689631adb901 88
+packages/loader/src/ktx2/KTX2Loader.ts
+  s_da48a1c3cefcb7::t_682e75ac43c597 2,149,167,177,186-187,189-190
+tests/src/shader-analyzer/LoopReturnCoverage.test.ts
+  s_da48a1c3cefcb7::t_c466cc6e8666b9 1
+  s_da48a1c3cefcb7::t_58e3b29e0588fb 3,21
+  s_da48a1c3cefcb7::t_4a5c2808ead776 22
+packages/rhi-webgl/src/GLBuffer.ts
+  s_da48a1c3cefcb7::t_682e75ac43c597 77,81,86,96-98
+packages/core/src/BasicResources.ts
+  s_da48a1c3cefcb7::t_e80251395f7cb0 196
+  s_da48a1c3cefcb7::t_49ff513b0d98b4 215-216
+  s_da48a1c3cefcb7::t_682e75ac43c597 197-214
+  s_c5192f23876072::t_a222d749f5cbde 186
+packages/webgl1-polyfill/src/core/texture/TextureUtils.ts
+  s_da48a1c3cefcb7::t_f1aeea290b375c 7
+  s_da48a1c3cefcb7::t_27b87b10fa88a5 4,21-22
+  s_da48a1c3cefcb7::t_2434fc49b50eb8 8-15
+  s_da48a1c3cefcb7::t_ea157918281fa5 17,19-20
+  s_da48a1c3cefcb7::t_40c70a1cf48ef6 1-3,6,16,18
+  s_da48a1c3cefcb7::t_d395e7cf46ab5b 5
+examples/src/gpu-instancing-custom-data.ts
+  s_da48a1c3cefcb7::t_58e3b29e0588fb 20
+tests/src/core/particle/InheritVelocity.test.ts
+  s_da48a1c3cefcb7::t_58e3b29e0588fb 17
+packages/core/src/RenderPipeline/index.ts
+  s_da48a1c3cefcb7::t_c74ce86a358d16 9-12
+packages/webgl1-polyfill/src/core/mesh/PrimitiveMesh.ts
+  s_da48a1c3cefcb7::t_ea157918281fa5 8-9
+  s_da48a1c3cefcb7::t_27b87b10fa88a5 3,10-11
+  s_da48a1c3cefcb7::t_e0a8241e7f6ec0 4-5
+  s_da48a1c3cefcb7::t_0f7be992e660e9 1
+  s_da48a1c3cefcb7::t_f1aeea290b375c 6
+  s_da48a1c3cefcb7::t_099c8c4621e486 2,7
+tests/src/shader-compiler/ParticleFeedbackReturn.test.ts
+  s_da48a1c3cefcb7::t_4a5c2808ead776 16
+  s_da48a1c3cefcb7::t_58e3b29e0588fb 6
+packages/webgl1-polyfill/src/core/mesh/MeshRenderer.ts
+  s_da48a1c3cefcb7::t_27b87b10fa88a5 2,8-9
+  s_da48a1c3cefcb7::t_ea157918281fa5 4-7
+  s_da48a1c3cefcb7::t_fb64555d1dc637 3
+  s_da48a1c3cefcb7::t_fb7306fdd0cba6 1
+e2e/case/particleRenderer-emissive.ts
+  s_da48a1c3cefcb7::t_4a5c2808ead776 27
+  s_da48a1c3cefcb7::t_58e3b29e0588fb 21
+e2e/case/particleRenderer-shape-mesh.ts
+  s_da48a1c3cefcb7::t_58e3b29e0588fb 21
+  s_da48a1c3cefcb7::t_4a5c2808ead776 27
+packages/webgl1-polyfill/tsconfig.json
+  s_da48a1c3cefcb7::t_b0cf3b95ee8085 1-26
+packages/rhi-webgl/src/GLTexture2D.ts
+  s_da48a1c3cefcb7::t_682e75ac43c597 15-16
+  s_da48a1c3cefcb7::t_524bd2bcaf2640 43
+packages/core/src/particle/modules/SubEmittersModule.ts
+  s_da48a1c3cefcb7::t_a5c1257485cda0 57
+packages/core/src/2d/index.ts
+  s_da48a1c3cefcb7::t_c74ce86a358d16 17-18
+packages/webgl1-polyfill/src/core/shader/ShaderProgram.ts
+  s_da48a1c3cefcb7::t_b007b72afaff23 1
+  s_da48a1c3cefcb7::t_ea157918281fa5 4-6
+  s_da48a1c3cefcb7::t_d5a466649e9c5e 3
+  s_da48a1c3cefcb7::t_27b87b10fa88a5 2,7
+packages/webgl1-polyfill/src/core/particle/modules/LimitVelocityOverLifetimeModule.ts
+  s_da48a1c3cefcb7::t_e094f46e9bec04 1
+  s_da48a1c3cefcb7::t_2434fc49b50eb8 6
+  s_da48a1c3cefcb7::t_ed712f9bced041 5
+  s_da48a1c3cefcb7::t_f501dcf27f1eed 8-9
+  s_da48a1c3cefcb7::t_ea157918281fa5 2,4,7
+  s_da48a1c3cefcb7::t_0f175fb2f02fe3 3
+packages/core/src/shadow/CascadedShadowCasterPass.ts
+  s_da48a1c3cefcb7::t_09315abff2d792 80-106,133,298
+packages/core/src/Camera.ts
+  s_da48a1c3cefcb7::t_682e75ac43c597 762
+  s_c5192f23876072::t_88fc706f1d56ce 11
+packages/core/src/RenderPipeline/DepthOnlyPass.ts
+  s_da48a1c3cefcb7::t_09315abff2d792 17-19,36
+packages/webgl1-polyfill/src/rhi-webgl/GLPrimitive.ts
+  s_da48a1c3cefcb7::t_40c70a1cf48ef6 9
+  s_da48a1c3cefcb7::t_6a022496c16044 17-20
+  s_da48a1c3cefcb7::t_f501dcf27f1eed 115-116,125-126
+  s_da48a1c3cefcb7::t_ea157918281fa5 4,8,10,26-27,29-35,37-45,47,49,51-56,67-80,83,86-98,101-108,110-114,117-118,120-121
+  s_da48a1c3cefcb7::t_7797b7d5e6c86f 48
+  s_da48a1c3cefcb7::t_ae52a49a865d58 50
+  s_da48a1c3cefcb7::t_897e9f65191e2c 99-100
+  s_da48a1c3cefcb7::t_3d7b8e4480b5db 1
+  s_da48a1c3cefcb7::t_db9e51387d322f 23-25
+  s_da48a1c3cefcb7::t_27b6a449490c5e 46
+  s_da48a1c3cefcb7::t_fdfb0eb921757c 119
+  s_da48a1c3cefcb7::t_db1472d2ed8a46 109
+  s_da48a1c3cefcb7::t_559056c378615e 36
+  s_da48a1c3cefcb7::t_93894496abb249 122-124
+  s_da48a1c3cefcb7::t_5a37cfcbed90b2 57-66
+  s_da48a1c3cefcb7::t_118c731ef9c465 7
+  s_da48a1c3cefcb7::t_6d476879a28194 11-15
+  s_da48a1c3cefcb7::t_feb6fb4bf30b04 84-85
+  s_da48a1c3cefcb7::t_7f3ef2ad6d85da 22
+  s_da48a1c3cefcb7::t_a1de56c7724479 28
+  s_da48a1c3cefcb7::t_ae0c599123a5dd 81
+  s_da48a1c3cefcb7::t_2434fc49b50eb8 2-3,5-6,16,21,82
+packages/core/src/mesh/PrimitiveMesh.ts
+  s_da48a1c3cefcb7::t_ad07f8f1d6ede9 2044,2073-2074
+packages/core/src/particle/ParticleGenerator.ts
+  s_c5192f23876072::t_eb5b29ec1370e6 645-646,648-652
+packages/core/src/shader/ShaderFactory.ts
+  s_c5192f23876072::t_08ed375f7cf39f 27
+packages/rhi-webgl/src/GLCapability.ts
+  s_c5192f23876072::t_a02a5cc22f0d20 40,62,179-190,192-195,197-204,220
+packages/webgl1-polyfill/src/rhi-webgl/textureFormat.ts
+  s_c5192f23876072::t_5876eadf64b1e3 1-114
+packages/webgl1-polyfill/src/rhi-webgl/textureStorage.js
+  s_c5192f23876072::t_8374bea659c41c 1-34
+packages/webgl1-polyfill/tests/browser/core/2d/atlas/FontAtlas.test.ts
+  s_c5192f23876072::t_d6a0a83dd96861 1-13
+packages/webgl1-polyfill/tests/browser/core/BasicResources.test.ts
+  s_c5192f23876072::t_fc371b7eeb7234 1-12
+packages/webgl1-polyfill/tests/browser/core/Camera.test.ts
+  s_c5192f23876072::t_6eb590354963fe 1-41
+packages/webgl1-polyfill/tests/browser/core/Engine.test.ts
+  s_c5192f23876072::t_0ee091162a584d 1-59
+packages/webgl1-polyfill/tests/browser/core/RenderPipeline/BasicRenderPipeline.test.ts
+  s_c5192f23876072::t_66e8737dd48140 1-23
+packages/webgl1-polyfill/tests/browser/core/RenderPipeline/DepthOnlyPass.test.ts
+  s_c5192f23876072::t_2132cde6047ad0 1-24
+packages/webgl1-polyfill/tests/browser/core/SystemInfo.test.ts
+  s_c5192f23876072::t_0429bcad82e4fc 1-12
+packages/webgl1-polyfill/tests/browser/core/mesh/MeshRenderer.test.ts
+  s_c5192f23876072::t_bfbf15fa7b2444 1-38
+packages/webgl1-polyfill/tests/browser/core/mesh/PrimitiveMesh.test.ts
+  s_da48a1c3cefcb7::t_d553d05b28ce17 1-14
+packages/webgl1-polyfill/tests/browser/core/particle/ParticleGenerator.test.ts
+  s_c5192f23876072::t_4bbbe25c6e07c8 1-19
+packages/webgl1-polyfill/tests/browser/core/particle/ParticleRenderer.test.ts
+  s_c5192f23876072::t_a2cba4b41d185f 1-21
+packages/webgl1-polyfill/tests/browser/core/particle/modules/InheritVelocityModule.test.ts
+  s_c5192f23876072::t_94f567deb2a29d 1-111
+packages/webgl1-polyfill/tests/browser/core/particle/modules/LimitVelocityOverLifetimeModule.test.ts
+  s_c5192f23876072::t_83194b64b1f9d2 1-15
+packages/webgl1-polyfill/tests/browser/core/particle/modules/NoiseModule.test.ts
+  s_c5192f23876072::t_a41126cf792815 1-15
+packages/webgl1-polyfill/tests/browser/core/particle/modules/SubEmittersModule.test.ts
+  s_c5192f23876072::t_e5ffd858c0acd9 1-82
+packages/webgl1-polyfill/tests/browser/core/particle/modules/VelocityOverLifetimeModule.test.ts
+  s_c5192f23876072::t_eb69de6ccdb57a 1-18
+packages/webgl1-polyfill/tests/browser/core/shader/ShaderPass.test.ts
+  s_c5192f23876072::t_0e130563fbe281 1-68
+packages/webgl1-polyfill/tests/browser/core/shader/ShaderProgram.test.ts
+  s_c5192f23876072::t_00cfe6c51f4632 1-18
+packages/webgl1-polyfill/tests/browser/core/shader/state/BlendState.test.ts
+  s_c5192f23876072::t_63535b226b4ca3 1-13
+packages/webgl1-polyfill/tests/browser/core/shadow/CascadedShadowCasterPass.test.ts
+  s_c5192f23876072::t_00cf377f591e3f 1-86
+packages/webgl1-polyfill/tests/browser/core/texture/Texture.test.ts
+  s_c5192f23876072::t_94f331422bd03b 1-18
+packages/webgl1-polyfill/tests/browser/core/texture/TextureUtils.test.ts
+  s_c5192f23876072::t_68fb61f30a8c4c 1-14
+packages/webgl1-polyfill/tests/browser/index.test.ts
+  s_c5192f23876072::t_d37103cf822b0b 1-105
+packages/webgl1-polyfill/tests/browser/override.test.ts
+  s_c5192f23876072::t_19dd21294dda8b 1-86
+packages/webgl1-polyfill/tests/browser/overrides.test.ts
+  s_c5192f23876072::t_4374ab64fd1cc7 1-20
+packages/webgl1-polyfill/tests/browser/rhi-webgl/GLCapability.test.ts
+  s_c5192f23876072::t_16774f38aff09a 1-53
+packages/webgl1-polyfill/tests/browser/rhi-webgl/GLPrimitive.test.ts
+  s_c5192f23876072::t_9f7f7b071838e2 1-96
+packages/webgl1-polyfill/tests/browser/rhi-webgl/GLTexture.test.ts
+  s_c5192f23876072::t_a6ec7cf9c82a53 1-77
+packages/webgl1-polyfill/tests/browser/rhi-webgl/GLTexture2D.test.ts
+  s_c5192f23876072::t_61a8e376df0f96 1-23
+packages/webgl1-polyfill/tests/browser/rhi-webgl/GLTextureCube.test.ts
+  s_c5192f23876072::t_738c6de7b386e6 1-38
+packages/webgl1-polyfill/tests/browser/rhi-webgl/WebGLGraphicDevice.test.ts
+  s_c5192f23876072::t_cfb2415cd8d621 1-124
+packages/webgl1-polyfill/tests/browser/rhi-webgl/compressedTexture.test.ts
+  s_c5192f23876072::t_538cd1370d7b1d 1-24
+packages/webgl1-polyfill/tests/browser/rhi-webgl/context.test.ts
+  s_c5192f23876072::t_909fd3cd5946e8 1-105
+packages/webgl1-polyfill/tests/browser/rhi-webgl/textureFormat.test.ts
+  s_c5192f23876072::t_9d7e650d9245ca 1-17
+packages/webgl1-polyfill/tests/browser/rhi-webgl/textureStorage.test.ts
+  s_c5192f23876072::t_a3ef83bb4f1902 1-23
+pnpm-lock.yaml
+  s_c5192f23876072::t_146c9e9a0d601c 367-378
+tests/src/core/texture/Texture2D.test.ts
+  s_c5192f23876072::t_c9fc89388ea13e 3,34-35
+tests/src/core/texture/TextureCubeMap.test.ts
+  s_c5192f23876072::t_c3f0560128878f 3,35-36
+tests/vitest.config.ts
+  s_c5192f23876072::t_99c30ccca3219b 3,5-8,35,38-59
+vitest.config.ts
+  s_c5192f23876072::t_0a0a8709c67e9b 1,5-14
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "8a00a3d8df138edd9f25839f0e1b49b5cda6c4fc",
+  "prompts": {},
+  "sessions": {
+    "s_c5192f23876072": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1be41-d252-7f01-875c-a0a08f6c1c55",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    },
+    "s_da48a1c3cefcb7": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1524d-29ee-7280-8621-925d13a5c914",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

@@ -1,0 +1,16 @@
+packages/core/src/Polyfill.ts
+  h_dd004f51a3e5ec 18,32,42,52,92
+packages/galacean/tests/NodeImport.test.ts
+  h_dd004f51a3e5ec 1-14
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "c3471f30240485bb1320d3152fe395db0d4eecf3",
+  "prompts": {},
+  "humans": {
+    "h_dd004f51a3e5ec": {
+      "author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

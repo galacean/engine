@@ -1,0 +1,38 @@
+packages/modify/SSR_AUTHORING.md
+  h_a3c79ce84ffdc2 25,29-35,60
+packages/modify/build/local-engine.mjs
+  h_a3c79ce84ffdc2 18,49
+packages/modify/src/native/core/src/RenderPipeline/BasicRenderPipeline.ts
+  h_a3c79ce84ffdc2 84-85,87,260-274,298-299
+packages/modify/src/native/core/src/lighting/screenSpaceReflection/ScreenSpaceReflection.ts
+  h_a3c79ce84ffdc2 9,92-93,418-438,492-497,907,917-919,931-945,1130-1146
+packages/modify/src/native/core/src/lighting/screenSpaceReflection/ScreenSpaceReflectionPass.ts
+  h_a3c79ce84ffdc2 40-42,59,179-185,408-413,684,716-720
+packages/modify/src/native/shader/src/ShaderLibrary/PBR/LightIndirectFunctions.glsl
+  h_a3c79ce84ffdc2 65-70
+packages/modify/src/native/shader/src/ShaderLibrary/PBR/LightIndirectPBR.glsl
+  h_a3c79ce84ffdc2 256
+packages/modify/src/native/shader/src/Shaders/Lighting/ScreenSpaceReflection.shader
+  h_a3c79ce84ffdc2 25,348-352,637-653
+packages/modify/src/native/shader/src/Shaders/Pipeline/ScreenSpaceReflectionSurface.shader
+  h_a3c79ce84ffdc2 6-8,37,68,70-71,85-105,113-115,117-125
+packages/modify/tests/ScreenSpaceReflectionClearCoat.test.ts
+  h_a3c79ce84ffdc2 1-982
+packages/modify/tests/ScreenSpaceReflectionSecondReview.test.ts
+  h_a3c79ce84ffdc2 111,117,183,187
+packages/modify/tests/ScreenSpaceReflectionTraceReadback.ts
+  h_a3c79ce84ffdc2 20-22
+packages/modify/tests/vitest.config.mjs
+  h_a3c79ce84ffdc2 10,12-16
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "24f2ba4c0234ee0ef6c722391698fa9a569d21a2",
+  "prompts": {},
+  "humans": {
+    "h_a3c79ce84ffdc2": {
+      "author": "星翊 <sunmingming.smm@antgroup.com>"
+    }
+  }
+}

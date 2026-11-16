@@ -1,0 +1,29 @@
+packages/modify/SSR_AUTHORING.md
+  s_96013f24c3e6b8::t_f7e2356688e67c 29,36-37
+packages/modify/src/native/core/src/lighting/screenSpaceReflection/ScreenSpaceReflection.ts
+  s_96013f24c3e6b8::t_071e1340b2bb97 421-423,496,911,924-926,938-944
+packages/modify/src/native/shader/src/Shaders/Pipeline/ScreenSpaceReflectionSurface.shader
+  s_96013f24c3e6b8::t_a62ebaa49d54c1 8,107-110
+packages/modify/tests/ScreenSpaceReflectionAuthoring.test.ts
+  s_96013f24c3e6b8::t_27e1c7da83a4da 217,223-225
+packages/modify/tests/ScreenSpaceReflectionSecondReview.test.ts
+  s_96013f24c3e6b8::t_6fdca2321dd895 111,117,183,187
+packages/modify/tests/ScreenSpaceReflectionSheen.test.ts
+  s_96013f24c3e6b8::t_e848f30227bae3 1-368
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "71325396fcd8c210b0b8ae40a406d69e46574112",
+  "prompts": {},
+  "sessions": {
+    "s_96013f24c3e6b8": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1db2a-e899-7761-8cc4-19e87cd2679c",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "星翊 <sunmingming.smm@antgroup.com>"
+    }
+  }
+}
