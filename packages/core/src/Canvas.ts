@@ -12,6 +12,11 @@ export abstract class Canvas {
   private _width: number = 0;
   private _height: number = 0;
 
+  /** @internal The DOM element receiving input, if this canvas has one. */
+  get _inputTarget(): HTMLElement | null {
+    return null;
+  }
+
   /**
    * The width component of the canvas resolution, in pixels.
    */

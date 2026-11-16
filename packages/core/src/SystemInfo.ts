@@ -43,7 +43,7 @@ export class SystemInfo {
    */
   static _initialize(): void {
     {
-      if (typeof navigator == "undefined") {
+      if (typeof window === "undefined" || typeof navigator === "undefined") {
         SystemInfo._isBrowser = false;
         return;
       }
@@ -127,7 +127,7 @@ export class SystemInfo {
    */
   static supportsTextureFormat(engine: Engine, format: TextureFormat): boolean {
     const rhi = engine._hardwareRenderer;
-    rhi.canIUse(GLCapabilityType.depthTexture);
+    if (!rhi.supportsRendering) return true;
     switch (format) {
       case TextureFormat.R16G16B16A16:
         if (!rhi.canIUse(GLCapabilityType.textureHalfFloat)) {

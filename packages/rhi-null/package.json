@@ -1,0 +1,26 @@
+{
+  "name": "@galacean/engine-rhi-null",
+  "version": "2.0.0-alpha.57",
+  "repository": {
+    "url": "https://github.com/galacean/engine.git"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
+  },
+  "license": "MIT",
+  "main": "dist/main.js",
+  "module": "dist/module.js",
+  "debug": "src/index.ts",
+  "types": "types/index.d.ts",
+  "files": [
+    "dist/**/*",
+    "types/**/*"
+  ],
+  "scripts": {
+    "b:types": "tsc"
+  },
+  "dependencies": {
+    "@galacean/engine-core": "workspace:*"
+  }
+}

@@ -1,5 +1,5 @@
 import { Engine, Signal } from "@galacean/engine";
-import { IHardwareRenderer, IXRSession, IXRPlatformFeature } from "@galacean/engine-design";
+import { IXRGraphicsBinding, IXRSession, IXRPlatformFeature } from "@galacean/engine-design";
 import { XRManagerExtended } from "../XRManagerExtended";
 import { XRFeature } from "../feature/XRFeature";
 import { XRSessionMode } from "./XRSessionMode";
@@ -17,7 +17,7 @@ export class XRSessionManager {
 
   private _mode: XRSessionMode = XRSessionMode.None;
   private _state: XRSessionState = XRSessionState.None;
-  private _rhi: IHardwareRenderer;
+  private _rhi: IXRGraphicsBinding;
   private _raf: (callback: FrameRequestCallback) => number;
   private _caf: (id: number) => void;
 

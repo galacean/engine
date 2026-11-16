@@ -74,3 +74,22 @@ engine.targetFrameRate = 120;
 | [pause](/apis/core/#Engine-pause)     | Pauses the engine render frame loop |
 | [resume](/apis/core/#Engine-resume)   | Resumes the engine render loop |
 | [destroy](/apis/core/#Engine-destroy) | Destroys the engine |
+
+## Headless execution
+
+Use `@galacean/engine/headless` in Node or a host without a graphics device:
+
+```typescript
+import { HeadlessEngine, MeshRenderer, PrimitiveMesh } from "@galacean/engine/headless";
+
+const engine = await HeadlessEngine.create();
+const entity = engine.sceneManager.activeScene!.createRootEntity("Box");
+const renderer = entity.addComponent(MeshRenderer);
+renderer.mesh = PrimitiveMesh.createCuboid(engine, 2, 4, 6);
+console.log(renderer.bounds);
+engine.destroy();
+```
+
+This entry uses the same scene, transform, mesh, material and resource classes as the browser entry. Creation leaves the engine paused. Reading bounds does not advance simulation. Call `update()` for one frame or `run()` for the host-driven loop; scripts and animation then follow the regular lifecycle. `pause()` and `destroy()` stop the loop.
+
+No graphics context or DOM input is created. Camera rendering is skipped; GPU compilation, pixel readback and transform feedback are unavailable. JSON, text and binary resource requests use fetch when XMLHttpRequest is absent. Image decoders, font measurement, audio playback, XR and the bundled PhysX bootstrap still need their corresponding host services. The null backend does not substitute results for these unavailable operations.

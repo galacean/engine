@@ -165,7 +165,7 @@ export abstract class Texture extends GraphicsResource {
   }
 
   set depthCompareFunction(value: TextureDepthCompareFunction) {
-    if (!this._engine._hardwareRenderer._isWebGL2) {
+    if (this._engine._hardwareRenderer.supportsRendering && !this._engine._hardwareRenderer.isWebGL2) {
       console.warn("depthCompareFunction only support WebGL2");
       return;
     }
@@ -227,7 +227,7 @@ export abstract class Texture extends GraphicsResource {
     platformTexture.wrapModeV = this._wrapModeV;
     platformTexture.filterMode = this._filterMode;
     platformTexture.anisoLevel = this._anisoLevel;
-    if (this._engine._hardwareRenderer._isWebGL2) {
+    if (!this._engine._hardwareRenderer.supportsRendering || this._engine._hardwareRenderer.isWebGL2) {
       platformTexture.depthCompareFunction = this._depthCompareFunction;
       platformTexture.setUseDepthCompareMode(this._useDepthCompareMode);
     }

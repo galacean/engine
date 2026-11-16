@@ -1,4 +1,4 @@
-import { IHardwareRenderer } from "@galacean/engine-design";
+import type { IHardwareRenderer } from "../renderingHardwareInterface";
 import { Color, Matrix, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import { Engine } from "../Engine";
 import { Texture } from "../texture/Texture";

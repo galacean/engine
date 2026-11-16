@@ -628,6 +628,7 @@ export class Camera extends Component {
    */
   render(cubeFace?: TextureCubeFace, mipLevel: number = 0): void {
     const engine = this._engine;
+    if (!engine._hardwareRenderer.supportsRendering) return;
     const context = engine._renderContext;
     const virtualCamera = this._virtualCamera;
 

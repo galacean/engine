@@ -68,6 +68,10 @@ meshRenderer.mesh = PrimitiveMesh.createSphere(engine, 1);
 engine.run();
 ```
 
+## Headless execution
+
+Import `@galacean/engine/headless` to use the shared scene, mesh, transform and simulation APIs without a GPU context. The engine starts paused and keeps DOM input disabled. See [the headless backend](../rhi-null/README.md) for usage and supported capabilities.
+
 ## Links
 
 - [Official Site](https://oasisengine.cn)

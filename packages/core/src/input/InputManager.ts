@@ -153,9 +153,8 @@ export class InputManager {
    */
   constructor(engine: Engine, inputOptions?: IInputOptions) {
     this._engine = engine;
-    // @ts-ignore
-    const canvas = engine._canvas._webCanvas;
-    if (typeof OffscreenCanvas === "undefined" || !(canvas instanceof OffscreenCanvas)) {
+    const canvas = engine.canvas._inputTarget;
+    if (canvas) {
       this._wheelManager = new WheelManager(engine, inputOptions?.wheelTarget ?? canvas);
       this._pointerManager = new PointerManager(engine, inputOptions?.pointerTarget ?? canvas);
       this._keyboardManager = new KeyboardManager(engine, inputOptions?.keyboardTarget ?? window);

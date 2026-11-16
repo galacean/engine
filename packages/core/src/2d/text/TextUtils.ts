@@ -41,6 +41,9 @@ export class TextUtils {
   static textContext(): TextContext {
     let { _textContext: textContext } = TextUtils;
     if (!textContext) {
+      if (typeof OffscreenCanvas === "undefined" && typeof document === "undefined") {
+        throw new Error("Text measurement requires a canvas 2D context.");
+      }
       let canvas: HTMLCanvasElement | OffscreenCanvas;
       try {
         canvas = new OffscreenCanvas(0, 0);

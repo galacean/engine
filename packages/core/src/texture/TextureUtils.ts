@@ -17,7 +17,7 @@ export class TextureUtils {
     mipmap: boolean,
     isSRGBColorSpace: boolean
   ): boolean {
-    const isWebGL2 = engine._hardwareRenderer._isWebGL2;
+    const isWebGL2 = engine._hardwareRenderer.isWebGL2;
     if (!mipmap) {
       return false;
     }

@@ -1,4 +1,4 @@
-import { IHardwareRenderer, IXRInput, IXRRequestImage, IXRTrackedImage } from "@galacean/engine-design";
+import { IXRGraphicsBinding, IXRInput, IXRRequestImage, IXRTrackedImage } from "@galacean/engine-design";
 import {
   XRAnchor as EngineXRAnchor,
   XRController,
@@ -107,7 +107,7 @@ describe("WebXR tracking loss", () => {
     const makeXRCompatible = vi.fn();
     Object.defineProperty(navigator, "xr", { configurable: true, value: { requestSession } });
     try {
-      const rhi = { gl: { getContextAttributes: () => null, makeXRCompatible } } as unknown as IHardwareRenderer;
+      const rhi = { gl: { getContextAttributes: () => null, makeXRCompatible } } as unknown as IXRGraphicsBinding;
       await expect(new WebXRDevice().requestSession(rhi, XRSessionMode.AR, [])).rejects.toThrow(
         "GetContextAttributes Error!"
       );

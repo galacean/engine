@@ -237,6 +237,9 @@ importers:
       '@galacean/engine-math':
         specifier: workspace:*
         version: link:../math
+      '@galacean/engine-rhi-null':
+        specifier: workspace:*
+        version: link:../rhi-null
       '@galacean/engine-rhi-webgl':
         specifier: workspace:*
         version: link:../rhi-webgl
@@ -266,6 +269,12 @@ importers:
       '@galacean/engine-design':
         specifier: workspace:*
         version: link:../design
+
+  packages/rhi-null:
+    dependencies:
+      '@galacean/engine-core':
+        specifier: workspace:*
+        version: link:../core
 
   packages/rhi-webgl:
     dependencies:

@@ -143,7 +143,7 @@ export class CascadedShadowCasterPass extends PipelinePass {
       shadowTexture = <Texture2D>renderTarget.getColorTexture(0);
     }
 
-    if (engine._hardwareRenderer._isWebGL2) {
+    if (engine._hardwareRenderer.isWebGL2) {
       shadowTexture.depthCompareFunction = TextureDepthCompareFunction.Less;
     }
 

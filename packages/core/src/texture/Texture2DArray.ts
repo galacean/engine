@@ -38,7 +38,7 @@ export class Texture2DArray extends Texture {
     mipmap: boolean = true,
     isSRGBColorSpace = true
   ) {
-    if (!engine._hardwareRenderer.isWebGL2) {
+    if (engine._hardwareRenderer.supportsRendering && !engine._hardwareRenderer.isWebGL2) {
       throw new Error(`Texture2D Array is not supported in WebGL1.0`);
     }
 

@@ -6,8 +6,10 @@ import {
   ColorWriteMask,
   Engine,
   GLCapabilityType,
+  IHardwareRenderer,
   IPlatformBuffer,
   IPlatformRenderTarget,
+  IPlatformTexture,
   IPlatformTexture2D,
   IPlatformTextureCube,
   IPlatformTransformFeedback,
@@ -24,7 +26,7 @@ import {
   TextureCubeFace,
   TextureFormat
 } from "@galacean/engine-core";
-import { IHardwareRenderer, IPlatformPrimitive, IPlatformShaderProgram } from "@galacean/engine-design";
+import { IPlatformPrimitive, IPlatformShaderProgram } from "@galacean/engine-design";
 import { Color, Vector4 } from "@galacean/engine-math";
 import { GLBuffer } from "./GLBuffer";
 import { GLCapability } from "./GLCapability";
@@ -89,6 +91,7 @@ export interface WebGLGraphicDeviceOptions {
  * WebGL graphic device, including WebGL1.0 and WebGL2.0.
  */
 export class WebGLGraphicDevice implements IHardwareRenderer {
+  readonly supportsRendering = true;
   maxUniformBlockSize: number;
 
   /** @internal */
@@ -102,13 +105,14 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
   /** @internal */
   _enableGlobalDepthBias: boolean = false;
   /** @internal */
-  _currentBindShaderProgram: any;
+  _currentBindShaderProgram: IPlatformShaderProgram | null;
 
-  private _options: WebGLGraphicDeviceOptions;
+  /** @internal */
+  readonly _options: WebGLGraphicDeviceOptions;
   private _webGLOptions: WebGLContextAttributes;
   private _gl: (WebGLRenderingContext & WebGLExtension) | WebGL2RenderingContext;
-  private _renderStates;
-  private _extensions;
+  private _renderStates: GLRenderStates;
+  private _extensions: GLExtensions;
   private _capability: GLCapability;
   private _isWebGL2: boolean;
   private _renderer: string;
@@ -561,7 +565,8 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     }
   }
 
-  bindTexture(texture: GLTexture): void {
+  bindTexture(platformTexture: IPlatformTexture): void {
+    const texture = platformTexture as GLTexture;
     const index = this._activeTextureID - this._gl.TEXTURE0;
     if (this._activeTextures[index] !== texture) {
       this._gl.bindTexture(texture._target, texture._glTexture);

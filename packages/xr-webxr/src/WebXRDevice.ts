@@ -1,4 +1,4 @@
-import { IHardwareRenderer, IXRDevice } from "@galacean/engine-design";
+import { IXRGraphicsBinding, IXRDevice } from "@galacean/engine-design";
 import { XRFeatureType, XRSessionMode } from "@galacean/engine-xr";
 import { parseXRMode } from "./Util";
 import { WebXRSession } from "./WebXRSession";
@@ -44,7 +44,11 @@ export class WebXRDevice implements IXRDevice {
     return platformFeatureConstructor ? new platformFeatureConstructor(...args) : null;
   }
 
-  requestSession(rhi: IHardwareRenderer, mode: XRSessionMode, platformFeatures: WebXRFeature[]): Promise<WebXRSession> {
+  requestSession(
+    rhi: IXRGraphicsBinding,
+    mode: XRSessionMode,
+    platformFeatures: WebXRFeature[]
+  ): Promise<WebXRSession> {
     return new Promise((resolve, reject) => {
       const sessionMode = parseXRMode(mode)!;
       const options: XRSessionInit = { requiredFeatures: ["local"], optionalFeatures: [] };
