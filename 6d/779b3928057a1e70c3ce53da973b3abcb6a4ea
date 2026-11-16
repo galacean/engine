@@ -1,0 +1,29 @@
+packages/webgl1-polyfill/tests/browser/core/Engine.test.ts
+  s_da48a1c3cefcb7::t_f728ff708d9351 38
+packages/webgl1-polyfill/tests/browser/core/mesh/MeshRenderer.test.ts
+  s_da48a1c3cefcb7::t_7be791efe756ab 20
+packages/webgl1-polyfill/tests/browser/core/shadow/CascadedShadowCasterPass.test.ts
+  s_da48a1c3cefcb7::t_1706f6ff6d63ab 69
+packages/webgl1-polyfill/tests/browser/rhi-webgl/GLCapability.test.ts
+  s_da48a1c3cefcb7::t_ef9ccd80d49b8f 37
+packages/webgl1-polyfill/tests/browser/rhi-webgl/GLPrimitive.test.ts
+  s_da48a1c3cefcb7::t_ece77dc118a18b 22,77
+tests/src/core/mesh/PrimitiveMesh.test.ts
+  s_da48a1c3cefcb7::t_dd95f58fbcab73 1,4,176,180-183,185-192
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "6d779b3928057a1e70c3ce53da973b3abcb6a4ea",
+  "prompts": {},
+  "sessions": {
+    "s_da48a1c3cefcb7": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1524d-29ee-7280-8621-925d13a5c914",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}
