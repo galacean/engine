@@ -90,7 +90,10 @@ export class Renderer extends Component implements ICloneHook<Renderer> {
    * Whether this renderer was culled by all cameras in the previous frame.
    */
   get isCulled(): boolean {
-    return !(this._renderFrameCount === undefined || this._renderFrameCount === this._engine.time.frameCount - 1);
+    return (
+      this._engine._hardwareRenderer.supportsRendering &&
+      !(this._renderFrameCount === undefined || this._renderFrameCount === this._engine.time.frameCount - 1)
+    );
   }
 
   /**

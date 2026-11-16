@@ -105,10 +105,10 @@ export class SkinnedMeshRenderer extends MeshRenderer {
     // For renderer is "Apple GPU", when uniform is large than 256 the skeleton matrix array access in shader very slow in Safari or WKWebview. This may be a apple bug, Chrome and Firefox is OK!
     // For renderer is "ANGLE (AMD, AMD Radeon(TM) Graphics Direct3011 vs_5_0 ps_5_0, D3011)", compile shader si very slow because of max uniform is 4096.
     // @ts-ignore
-    const maxAllowSkinUniformVectorCount = rhi._options?._maxAllowSkinUniformVectorCount;
-    if (maxAllowSkinUniformVectorCount !== undefined) {
-      maxVertexUniformVectors = Math.min(maxVertexUniformVectors, maxAllowSkinUniformVectorCount);
-    }
+    maxVertexUniformVectors = Math.min(
+      maxVertexUniformVectors,
+      rhi._options?._maxAllowSkinUniformVectorCount ?? maxVertexUniformVectors
+    );
 
     this._maxVertexUniformVectors = maxVertexUniformVectors;
 
