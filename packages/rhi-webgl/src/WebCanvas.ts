@@ -18,11 +18,6 @@ export class WebCanvas extends Canvas {
   /** @internal */
   _webCanvas: HTMLCanvasElement | OffscreenCanvas;
 
-  /** @internal */
-  override get _inputTarget(): HTMLElement | null {
-    return this._isOffscreenCanvas() ? null : this._webCanvas;
-  }
-
   private _resizeObserver?: ResizeObserver;
   private _autoResolutionScale: number = 1;
   private _resolutionDirty: boolean = false;
