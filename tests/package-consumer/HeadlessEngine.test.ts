@@ -60,6 +60,8 @@ describe("published headless entry in Node without browser globals", () => {
   it("initializes real engine classes without DOM, input or a graphics context", async () => {
     expect(typeof window).toBe("undefined");
     expect(typeof document).toBe("undefined");
+    expect(enginePackage.version).not.toBe("__buildVersion");
+    expect(enginePackage.version.length).toBeGreaterThan(0);
     const engine = await createEngine({ width: 640, height: 360 });
     expect([engine.canvas.width, engine.canvas.height]).toEqual([640, 360]);
     expect(engine.isPaused).toBe(true);

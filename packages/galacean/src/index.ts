@@ -1,7 +1,7 @@
 import { Polyfill } from "@galacean/engine-core";
-import { initialize } from "./initialize";
-//@ts-ignore
-export const version = `__buildVersion`;
+import { initialize, version } from "./initialize";
+
+export { version };
 
 console.log(`Galacean Engine Version: ${version}`);
 
