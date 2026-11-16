@@ -690,19 +690,7 @@ export class GLTexture implements IPlatformTexture {
     height: number,
     data: ArrayBufferView
   ): void {
-    if (!this._allocateCompressedMip(target, mipLevel, width, height, data)) {
-      this._gl.compressedTexSubImage2D(target, mipLevel, x, y, width, height, this._formatDetail.internalFormat, data);
-    }
-  }
-
-  protected _allocateCompressedMip(
-    _target: number,
-    _mipLevel: number,
-    _width: number,
-    _height: number,
-    _data: ArrayBufferView
-  ): boolean {
-    return false;
+    this._gl.compressedTexSubImage2D(target, mipLevel, x, y, width, height, this._formatDetail.internalFormat, data);
   }
 
   protected _getReadFrameBuffer(): WebGLFramebuffer | null {

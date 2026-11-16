@@ -1,5 +1,5 @@
-import { GLCapabilityType, type TextureDepthCompareFunction, TextureFormat } from "@galacean/engine-core";
-import type { WebGLGraphicDevice } from "@galacean/engine-rhi-webgl";
+import { type TextureDepthCompareFunction, TextureFormat } from "@galacean/engine-core";
+import type { WebGL1GraphicDevice } from "./GLCapability";
 import { Mixin, Overwrite, Shadow } from "@/override";
 import { textureFormat } from "./textureFormat";
 import { textureStorage } from "./textureStorage";
@@ -21,23 +21,27 @@ export class GLTexture {
   }
 
   @Overwrite
-  _allocateCompressedMip(
+  _uploadCompressedPixels(
     target: number,
     mipLevel: number,
+    x: number,
+    y: number,
     width: number,
     height: number,
     data: ArrayBufferView
-  ): boolean {
+  ): void {
     let targets = allocatedMips.get(this);
     if (!targets) allocatedMips.set(this, (targets = new Map()));
 
     const levels = targets.get(target) ?? 0;
     const bit = 1 << mipLevel;
-    if (levels & bit) return false;
-
-    this._gl.compressedTexImage2D(target, mipLevel, this._formatDetail.internalFormat, width, height, 0, data);
-    targets.set(target, levels | bit);
-    return true;
+    const { internalFormat } = this._formatDetail;
+    if (levels & bit) {
+      this._gl.compressedTexSubImage2D(target, mipLevel, x, y, width, height, internalFormat, data);
+    } else {
+      this._gl.compressedTexImage2D(target, mipLevel, internalFormat, width, height, 0, data);
+      targets.set(target, levels | bit);
+    }
   }
 
   @Overwrite
@@ -48,7 +52,7 @@ export class GLTexture {
     format: TextureFormat,
     srgb: boolean,
     gl: WebGLRenderingContext,
-    rhi: WebGLGraphicDevice,
+    rhi: WebGL1GraphicDevice,
     renderbuffer: boolean
   ): ReturnType<typeof textureFormat> | null {
     if (renderbuffer) {
@@ -72,19 +76,19 @@ export class GLTexture {
       case TextureFormat.R8G8:
         return null;
       case TextureFormat.R16G16B16A16:
-        if (!rhi.requireExtension(WebGL1Extension.textureHalfFloat)) return null;
+        if (!rhi.canIUse(WebGL1Extension.textureHalfFloat)) return null;
         break;
       case TextureFormat.R32G32B32A32:
-        if (!rhi.requireExtension(WebGL1Extension.textureFloat)) return null;
+        if (!rhi.canIUse(WebGL1Extension.textureFloat)) return null;
         break;
       case TextureFormat.Depth16:
       case TextureFormat.Depth24Stencil8:
       case TextureFormat.Depth:
       case TextureFormat.DepthStencil:
-        if (!rhi.requireExtension(WebGL1Extension.depthTexture)) return null;
+        if (!rhi.canIUse(WebGL1Extension.depthTexture)) return null;
         break;
     }
-    const useSRGB = srgb && rhi.canIUse(GLCapabilityType.sRGBTexture);
+    const useSRGB = srgb && rhi.canIUse(WebGL1Extension.sRGB);
     return textureFormat(format, useSRGB, gl, TextureFormat);
   }
 }

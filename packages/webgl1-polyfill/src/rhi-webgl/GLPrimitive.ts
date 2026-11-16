@@ -1,15 +1,14 @@
 import { Logger, type Primitive, type SubPrimitive } from "@galacean/engine-core";
 import type { GLPrimitive as HostGLPrimitive } from "@galacean/engine-rhi-webgl";
 import { Mixin, Overwrite, Shadow } from "@/override";
+import type { WebGL1GraphicDevice } from "./GLCapability";
 import { WebGL1Extension } from "./WebGL1Extension";
 
 type ShaderProgram = Parameters<HostGLPrimitive["draw"]>[0];
 
 @Mixin("GLPrimitive", function () {
-  const rhi = this._primitive.engine._hardwareRenderer;
-  return (
-    !rhi.requireExtension(WebGL1Extension.vertexArrayObject) || !rhi.requireExtension(WebGL1Extension.instancedArrays)
-  );
+  const rhi = this._primitive.engine._hardwareRenderer as WebGL1GraphicDevice;
+  return !rhi.canIUse(WebGL1Extension.vertexArrayObject) || !rhi.canIUse(WebGL1Extension.instancedArrays);
 })
 export class GLPrimitive {
   @Shadow declare _gl: WebGL2RenderingContext;
@@ -22,9 +21,9 @@ export class GLPrimitive {
 
   @Overwrite
   draw(shaderProgram: ShaderProgram, subMesh: SubPrimitive) {
-    const rhi = this._primitive.engine._hardwareRenderer;
-    const supportsVAO = !!rhi.requireExtension(WebGL1Extension.vertexArrayObject);
-    const supportsInstancing = !!rhi.requireExtension(WebGL1Extension.instancedArrays);
+    const rhi = this._primitive.engine._hardwareRenderer as WebGL1GraphicDevice;
+    const supportsVAO = rhi.canIUse(WebGL1Extension.vertexArrayObject);
+    const supportsInstancing = rhi.canIUse(WebGL1Extension.instancedArrays);
 
     const gl = this._gl;
     const primitive = this._primitive;
@@ -83,8 +82,8 @@ export class GLPrimitive {
   }
   @Overwrite
   _bindBufferAndAttrib(shaderProgram: ShaderProgram) {
-    const rhi = this._primitive.engine._hardwareRenderer;
-    const supportsInstancing = !!rhi.requireExtension(WebGL1Extension.instancedArrays);
+    const rhi = this._primitive.engine._hardwareRenderer as WebGL1GraphicDevice;
+    const supportsInstancing = rhi.canIUse(WebGL1Extension.instancedArrays);
 
     const gl = this._gl;
     const primitive = this._primitive;
@@ -121,8 +120,8 @@ export class GLPrimitive {
   }
   @Overwrite
   destroy() {
-    const rhi = this._primitive.engine._hardwareRenderer;
-    const supportsVAO = !!rhi.requireExtension(WebGL1Extension.vertexArrayObject);
+    const rhi = this._primitive.engine._hardwareRenderer as WebGL1GraphicDevice;
+    const supportsVAO = rhi.canIUse(WebGL1Extension.vertexArrayObject);
 
     supportsVAO && this._clearVAO();
   }

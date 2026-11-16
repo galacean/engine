@@ -14,9 +14,8 @@ it("detects extensions and falls back to one draw buffer and sample", async () =
   try {
     const device = engine._hardwareRenderer;
     expect(device.canIUse(GLCapabilityType.textureFloatLinear)).toBe(false);
-    expect(device.canIUse(GLCapabilityType.transformFeedback)).toBe(false);
-    expect(device.canIUse(GLCapabilityType.sRGBTexture)).toBe(false);
-    expect(device.canIUse(GLCapabilityType.minMaxBlend)).toBe(false);
+    expect(device.canIUse(WebGL1Extension.sRGB)).toBe(false);
+    expect(device.canIUse(WebGL1Extension.blendMinMax)).toBe(false);
     expect(gl).not.toHaveProperty("drawArraysInstanced");
     expect(gl).toHaveProperty("createVertexArray", expect.any(Function));
     expect(engine._hardwareRenderer.capability.maxDrawBuffers).toBe(1);

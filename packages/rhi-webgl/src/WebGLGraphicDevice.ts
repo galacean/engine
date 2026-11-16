@@ -344,15 +344,12 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
    * @returns Whether the requested format is supported
    */
   supportsTextureFormat(format: TextureFormat, isSRGBColorSpace: boolean): boolean {
-    if (isSRGBColorSpace) {
-      if (!TextureUtils.supportSRGB(format)) return false;
-      if (
-        (format === TextureFormat.R8G8B8 || format === TextureFormat.R8G8B8A8) &&
-        !this.canIUse(GLCapabilityType.sRGBTexture)
-      )
-        return false;
-    }
+    if (isSRGBColorSpace && !this._supportsSRGBColorSpace(format)) return false;
     return this._supportsTextureStorage(format, isSRGBColorSpace);
+  }
+
+  private _supportsSRGBColorSpace(format: TextureFormat): boolean {
+    return TextureUtils.supportSRGB(format);
   }
 
   /** @internal */

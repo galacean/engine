@@ -8,10 +8,6 @@ type GLCapability = Pick<WebGLGraphicDevice["capability"], "rhi" | "maxDrawBuffe
 export function adaptContext(capability: GLCapability): void {
   const { rhi } = capability;
   patchBufferSubData(rhi.gl);
-  // These extensions enable GL behavior without adding an entry point to adapt.
-  rhi.requireExtension(WebGL1Extension.elementIndexUint);
-  rhi.requireExtension(WebGL1Extension.textureHalfFloatLinear);
-  rhi.requireExtension(WebGL1Extension.fragDepth);
   const { gl } = rhi;
   const {
     blendMinMax,
@@ -33,10 +29,20 @@ export function adaptContext(capability: GLCapability): void {
     }
   }
 
-  mapExtension(blendMinMax, {
-    MIN: "MIN_EXT",
-    MAX: "MAX_EXT"
-  });
+  if (rhi.requireExtension(blendMinMax)) {
+    const original = patchedBlendEquations.get(gl);
+    if (original) {
+      gl.blendEquation = original.blendEquation;
+      gl.blendEquationSeparate = original.blendEquationSeparate;
+      patchedBlendEquations.delete(gl);
+    }
+    mapExtension(blendMinMax, {
+      MIN: "MIN_EXT",
+      MAX: "MAX_EXT"
+    });
+  } else {
+    rejectMinMaxBlend(gl);
+  }
   mapExtension(depthTexture, {
     UNSIGNED_INT_24_8: "UNSIGNED_INT_24_8_WEBGL"
   });
@@ -79,6 +85,37 @@ export function adaptContext(capability: GLCapability): void {
     SRGB8: "SRGB_EXT",
     SRGB8_ALPHA8: "SRGB_ALPHA_EXT"
   });
+}
+
+const patchedBlendEquations = new WeakMap<
+  WebGLRenderingContext,
+  Pick<WebGLRenderingContext, "blendEquation" | "blendEquationSeparate">
+>();
+
+function rejectMinMaxBlend(gl: WebGLRenderingContext): void {
+  if (patchedBlendEquations.has(gl)) return;
+
+  const min = 0x8007;
+  const max = 0x8008;
+  Object.assign(gl, { MIN: min, MAX: max });
+  const blendEquation = gl.blendEquation;
+  const blendEquationSeparate = gl.blendEquationSeparate;
+  const validate = (mode: GLenum): void => {
+    if (mode === min || mode === max) {
+      const operation = mode === min ? "Min" : "Max";
+      throw new Error(`BlendOperation.${operation} is not supported in this context`);
+    }
+  };
+  gl.blendEquation = (mode) => {
+    validate(mode);
+    blendEquation.call(gl, mode);
+  };
+  gl.blendEquationSeparate = (rgb, alpha) => {
+    validate(rgb);
+    validate(alpha);
+    blendEquationSeparate.call(gl, rgb, alpha);
+  };
+  patchedBlendEquations.set(gl, { blendEquation, blendEquationSeparate });
 }
 
 const patchedBuffers = new WeakSet<WebGLRenderingContext>();

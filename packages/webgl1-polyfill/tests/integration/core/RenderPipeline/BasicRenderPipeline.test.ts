@@ -2,7 +2,6 @@ import {
   Camera,
   CameraClearFlags,
   Color,
-  GLCapabilityType,
   RenderTarget,
   Texture2D,
   TextureFormat,
@@ -69,7 +68,6 @@ it("does not create the ambient occlusion pass or enable its shader variant with
   let engine: WebGLEngine | undefined;
   try {
     engine = await WebGLEngine.create({ canvas });
-    expect(engine._hardwareRenderer.canIUse(GLCapabilityType.fragmentHighPrecision)).toBe(false);
     const scene = engine.sceneManager.activeScene!;
     const camera = scene.createRootEntity().addComponent(Camera);
     expect(camera._renderPipeline["_saoPass"]).toBeNull();

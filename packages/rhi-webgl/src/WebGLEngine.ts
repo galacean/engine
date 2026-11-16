@@ -1,6 +1,11 @@
 import {
   Engine,
   EngineConfiguration,
+  AmbientOcclusion,
+  SkinnedMeshRenderer,
+  InheritVelocityModule,
+  NoiseModule,
+  LimitVelocityOverLifetimeModule,
   Scene,
   ShaderPass,
   ShaderMacro,
@@ -9,6 +14,7 @@ import {
   Camera,
   CameraClearFlags,
   MeshRenderer,
+  ModelMesh,
   BlendShapeManager,
   Texture,
   Texture2D,
@@ -20,6 +26,8 @@ import {
   Logger,
   GLCapabilityType,
   ParticleGenerator,
+  ParticleInheritVelocityMode,
+  ParticleSimulationSpace,
   ParticleRenderer,
   VelocityOverLifetimeModule,
   SubEmittersModule,
@@ -118,7 +126,7 @@ export interface WebGLEngineConfiguration extends EngineConfiguration {
 
 // Upload a new AFTS asset when the compatibility module changes.
 const fallbackModuleURL =
-  "https://mdn.alipayobjects.com/rms/afts/file/A*a-2qTJkbFTUAAAAAQ1AAAAgAehQnAQ/engine-webgl1-polyfill.js";
+  "https://mdn.alipayobjects.com/rms/afts/file/A*lfofRYkU6-YAAAAAQ-AAAAgAehQnAQ/engine-webgl1-polyfill.js";
 let pendingFallback: Promise<(device: WebGLGraphicDevice, canvas: WebCanvas) => void> | undefined;
 let fallbackRetry = 0;
 
@@ -131,6 +139,14 @@ function loadRendererFallback() {
           throw new Error("Invalid renderer fallback module.");
         }
         return module.bind({
+          Engine,
+          AmbientOcclusion,
+          SkinnedMeshRenderer,
+          InheritVelocityModule,
+          NoiseModule,
+          LimitVelocityOverLifetimeModule,
+          ParticleInheritVelocityMode,
+          ParticleSimulationSpace,
           ShaderPass,
           ShaderMacro,
           ShaderFactory,
@@ -138,6 +154,7 @@ function loadRendererFallback() {
           Camera,
           CameraClearFlags,
           MeshRenderer,
+          ModelMesh,
           BlendShapeManager,
           Texture,
           Texture2D,

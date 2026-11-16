@@ -7,6 +7,7 @@ import {
   type ShaderPass as HostShaderPass
 } from "@galacean/engine-core";
 import { Mixin, Overwrite, Shadow } from "@/override";
+import type { WebGL1GraphicDevice } from "../../rhi-webgl/GLCapability";
 import { WebGL1Extension } from "../../rhi-webgl/WebGL1Extension";
 const shaderExtension = [
   "GL_EXT_shader_texture_lod",
@@ -36,10 +37,11 @@ export class ShaderPass {
     const shaderMacroList: ReturnType<typeof ShaderMacro.getByName>[] = [];
     ShaderMacro._getMacrosElements(macroCollection, shaderMacroList);
     shaderMacroList.push(ShaderMacro.getByName("GRAPHICS_API_WEBGL1"));
-    if (engine._hardwareRenderer.requireExtension(WebGL1Extension.shaderTextureLod)) {
+    const device = engine._hardwareRenderer as WebGL1GraphicDevice;
+    if (device.canIUse(WebGL1Extension.shaderTextureLod)) {
       shaderMacroList.push(ShaderMacro.getByName("HAS_TEX_LOD"));
     }
-    if (engine._hardwareRenderer.requireExtension(WebGL1Extension.standardDerivatives)) {
+    if (device.canIUse(WebGL1Extension.standardDerivatives)) {
       shaderMacroList.push(ShaderMacro.getByName("HAS_DERIVATIVES"));
     }
     const macroMap = new Map<string, string>();

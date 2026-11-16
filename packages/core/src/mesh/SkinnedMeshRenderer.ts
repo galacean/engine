@@ -1,5 +1,3 @@
-import { GLCapabilityType } from "../base/Constant";
-import { Logger } from "../base/Logger";
 import { BoundingBox, Vector2 } from "@galacean/engine-math";
 import { Entity } from "../Entity";
 import { RenderContext } from "../RenderPipeline/RenderContext";
@@ -200,32 +198,26 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   ): void {
     const { shaderData } = this;
     if (boneCount > remainUniformJointCount) {
-      const rhi = this.engine._hardwareRenderer;
-      if (
-        !rhi.supportsTextureFormat(TextureFormat.R32G32B32A32, false) ||
-        !rhi.canIUse(GLCapabilityType.vertexTextureSampling)
-      ) {
-        Logger.error(
-          `component's joints count(${boneCount}) greater than device's MAX_VERTEX_UNIFORM_VECTORS number ${this._maxVertexUniformVectors}, and don't support jointTexture in this device. suggest joint count less than ${remainUniformJointCount}.`,
-          this
-        );
-        return;
-      }
-      if (boneCountChange) {
-        this._jointTexture?.destroy();
-        this._jointTexture = new Texture2D(this.engine, 4, boneCount, TextureFormat.R32G32B32A32, false, false);
-        this._jointTexture.filterMode = TextureFilterMode.Point;
-        this._jointTexture.isGCIgnored = true;
-      }
-      shaderData.disableMacro("RENDERER_JOINTS_NUM");
-      shaderData.enableMacro("RENDERER_USE_JOINT_TEXTURE");
-      shaderData.setTexture(SkinnedMeshRenderer._jointSamplerProperty, this._jointTexture);
+      this._configureJointTexture(boneCount, boneCountChange);
     } else {
       this._jointTexture?.destroy();
       shaderData.disableMacro("RENDERER_USE_JOINT_TEXTURE");
       shaderData.enableMacro("RENDERER_JOINTS_NUM", remainUniformJointCount.toString());
       shaderData.setFloatArray(SkinnedMeshRenderer._jointMatrixProperty, matrices);
     }
+  }
+
+  private _configureJointTexture(boneCount: number, boneCountChange: boolean): void {
+    if (boneCountChange) {
+      this._jointTexture?.destroy();
+      this._jointTexture = new Texture2D(this.engine, 4, boneCount, TextureFormat.R32G32B32A32, false, false);
+      this._jointTexture.filterMode = TextureFilterMode.Point;
+      this._jointTexture.isGCIgnored = true;
+    }
+    const { shaderData } = this;
+    shaderData.disableMacro("RENDERER_JOINTS_NUM");
+    shaderData.enableMacro("RENDERER_USE_JOINT_TEXTURE");
+    shaderData.setTexture(SkinnedMeshRenderer._jointSamplerProperty, this._jointTexture);
   }
 
   /**

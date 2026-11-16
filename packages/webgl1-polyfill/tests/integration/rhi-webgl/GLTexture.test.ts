@@ -77,24 +77,20 @@ it("requires both texture and color-buffer support for float color attachments",
   const device = engine._hardwareRenderer;
   const platform = new Texture2D(engine, 4, 4)._platformTexture.constructor as any;
   const canIUse = vi.spyOn(device, "canIUse");
-  const requireExtension = vi.spyOn(device, "requireExtension");
   try {
     for (const [format, texture, colorBuffer] of [
       [TextureFormat.R16G16B16A16, WebGL1Extension.textureHalfFloat, GLCapabilityType.colorBufferHalfFloat],
       [TextureFormat.R32G32B32A32, WebGL1Extension.textureFloat, GLCapabilityType.colorBufferFloat]
     ] as const) {
-      requireExtension.mockImplementation((type) => (type === texture ? {} : null));
-      canIUse.mockReturnValue(false);
+      canIUse.mockImplementation((type) => type === texture);
       expect(platform._supportRenderBufferColorFormat(format, device)).toBe(false);
       canIUse.mockImplementation((type) => type === colorBuffer);
-      requireExtension.mockReturnValue(null);
       expect(platform._supportRenderBufferColorFormat(format, device)).toBe(false);
-      requireExtension.mockImplementation((type) => (type === texture ? {} : null));
+      canIUse.mockImplementation((type) => type === texture || type === colorBuffer);
       expect(platform._supportRenderBufferColorFormat(format, device)).toBe(true);
     }
     expect(platform._supportRenderBufferColorFormat(TextureFormat.R11G11B10_UFloat, device)).toBe(false);
   } finally {
-    requireExtension.mockRestore();
     canIUse.mockRestore();
     engine.destroy();
   }

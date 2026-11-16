@@ -7,7 +7,6 @@ import { BackgroundTextureFillMode } from "../enums/BackgroundTextureFillMode";
 import { CameraClearFlags } from "../enums/CameraClearFlags";
 import { DepthTextureMode } from "../enums/DepthTextureMode";
 import { ReplacementFailureStrategy } from "../enums/ReplacementFailureStrategy";
-import { AmbientOcclusion } from "../lighting/ambientOcclusion/AmbientOcclusion";
 import { ScalableAmbientObscurancePass } from "../lighting/ambientOcclusion/ScalableAmbientObscurancePass";
 import { FinalPass } from "../postProcess";
 import { Shader } from "../shader/Shader";
@@ -61,14 +60,18 @@ export class BasicRenderPipeline {
     const shaders = Engine._builtinShaders;
     this._cullingResults = new CullingResults();
     this._cascadedShadowCasterPass = new CascadedShadowCasterPass(camera);
-    const rhi = engine._hardwareRenderer;
-    const supportsDepthPrepass = rhi.supportsTextureFormat(TextureFormat.Depth16, false);
-    this._depthOnlyPass = supportsDepthPrepass ? new DepthOnlyPass(engine) : null;
-    this._saoPass = AmbientOcclusion._isSupported(engine)
-      ? new ScalableAmbientObscurancePass(engine, shaders.scalableAmbientOcclusion)
-      : null;
+    this._depthOnlyPass = this._createDepthOnlyPass();
+    this._saoPass = this._createAmbientOcclusionPass();
     this._opaqueTexturePass = new OpaqueTexturePass(engine);
     this._finalPass = new FinalPass(engine, shaders.finalSRGB, shaders.finalAntiAliasing);
+  }
+
+  private _createDepthOnlyPass(): DepthOnlyPass | null {
+    return new DepthOnlyPass(this._camera.engine);
+  }
+
+  private _createAmbientOcclusionPass(): ScalableAmbientObscurancePass | null {
+    return new ScalableAmbientObscurancePass(this._camera.engine, Engine._builtinShaders.scalableAmbientOcclusion);
   }
 
   /**

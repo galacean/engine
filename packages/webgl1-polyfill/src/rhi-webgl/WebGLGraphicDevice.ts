@@ -1,5 +1,4 @@
 import {
-  GLCapabilityType,
   Logger,
   type Texture,
   type Texture2DArray,
@@ -8,14 +7,10 @@ import {
   TextureWrapMode
 } from "@galacean/engine-core";
 import { MathUtil } from "@galacean/engine-math";
-import {
-  GLCapability,
-  GLExtensions,
-  GLRenderStates,
-  type WebGLGraphicDevice as HostDevice
-} from "@galacean/engine-rhi-webgl";
+import { GLCapability, GLExtensions, GLRenderStates } from "@galacean/engine-rhi-webgl";
 import { Mixin, Overwrite } from "@/override";
 import { adaptContext } from "./context";
+import { initializeWebGL1Capabilities, type WebGL1GraphicDevice } from "./GLCapability";
 import { WebGL1Extension } from "./WebGL1Extension";
 
 @Mixin("WebGLGraphicDevice")
@@ -26,7 +21,7 @@ export class WebGLGraphicDevice {
   declare _capability: GLCapability;
   declare _renderer: string;
   declare readonly gl: WebGLRenderingContext;
-  declare requireExtension: HostDevice["requireExtension"];
+  declare canIUse: WebGL1GraphicDevice["canIUse"];
 
   @Overwrite
   _resolveFramebufferMipLevel(mipLevel: number): number {
@@ -60,6 +55,14 @@ export class WebGLGraphicDevice {
   }
 
   @Overwrite
+  _supportsSRGBColorSpace(format: TextureFormat): boolean {
+    if (format === TextureFormat.R8G8B8 || format === TextureFormat.R8G8B8A8) {
+      return this.canIUse(WebGL1Extension.sRGB);
+    }
+    return TextureUtils.supportSRGB(format);
+  }
+
+  @Overwrite
   _supportsGenerateMipmaps(width: number, height: number, format: TextureFormat, isSRGBColorSpace: boolean): boolean {
     return isPowerOfTwoTexture(width, height) && (!isSRGBColorSpace || !TextureUtils.supportSRGB(format));
   }
@@ -70,10 +73,8 @@ export class WebGLGraphicDevice {
     this._renderStates = new GLRenderStates(gl);
     this._extensions = new GLExtensions(this as any);
     this._capability = new GLCapability(this as any);
+    initializeWebGL1Capabilities(this._capability);
     adaptContext(this._capability);
-    const { capabilityList } = this._capability;
-    capabilityList.set(GLCapabilityType.sRGBTexture, !!this.requireExtension(WebGL1Extension.sRGB));
-    capabilityList.set(GLCapabilityType.minMaxBlend, !!this.requireExtension(WebGL1Extension.blendMinMax));
 
     // Unsupported entry points fail at their actual invocation, never during ordinary initialization.
     gl.getBufferSubData = () => {

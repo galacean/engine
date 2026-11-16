@@ -275,14 +275,10 @@ export class Engine extends EventDispatcher {
   }
 
   private _initializeDefaultTextures(): void {
-    const rhi = this._hardwareRenderer;
-    if (!rhi.supportsTextureFormat(TextureFormat.R8G8B8A8, true)) {
-      this._macroCollection.enable(ShaderMacro.getByName("ENGINE_NO_SRGB"));
-    }
-    if (!rhi.supportsTextureFormat(TextureFormat.Depth16, false)) {
-      this._macroCollection.enable(ShaderMacro.getByName("ENGINE_NO_DEPTH_TEXTURE"));
-      return;
-    }
+    this._createDefaultDepthTexture();
+  }
+
+  private _createDefaultDepthTexture(): void {
     const depthTexture = new Texture2D(this, 1, 1, TextureFormat.Depth16, false, false);
     depthTexture.isGCIgnored = true;
     this._depthTexture2D = depthTexture;

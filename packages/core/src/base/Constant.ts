@@ -87,11 +87,6 @@ export enum DataType {
  * Optional WebGL capabilities reported by the device.
  */
 export enum GLCapabilityType {
-  fragmentHighPrecision = "fragmentHighPrecision",
-  transformFeedback = "transformFeedback",
-  vertexTextureSampling = "vertexTextureSampling",
-  sRGBTexture = "sRGBTexture",
-  minMaxBlend = "minMaxBlend",
   textureFloatLinear = "OES_texture_float_linear",
   colorBufferFloat = "EXT_color_buffer_float",
   colorBufferHalfFloat = "EXT_color_buffer_half_float",

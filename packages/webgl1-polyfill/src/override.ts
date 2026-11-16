@@ -2,6 +2,14 @@ import type { WebGLGraphicDevice } from "@galacean/engine-rhi-webgl";
 
 type Core = Pick<
   typeof import("@galacean/engine-core"),
+  | "Engine"
+  | "AmbientOcclusion"
+  | "SkinnedMeshRenderer"
+  | "InheritVelocityModule"
+  | "NoiseModule"
+  | "LimitVelocityOverLifetimeModule"
+  | "ParticleInheritVelocityMode"
+  | "ParticleSimulationSpace"
   | "ShaderPass"
   | "ShaderMacro"
   | "ShaderFactory"
@@ -9,6 +17,7 @@ type Core = Pick<
   | "Camera"
   | "CameraClearFlags"
   | "MeshRenderer"
+  | "ModelMesh"
   | "BlendShapeManager"
   | "Texture"
   | "Texture2D"
@@ -164,6 +173,7 @@ function owningDevice(value: any): object | undefined {
     value?._primitive?.engine?._hardwareRenderer ??
     value?._generator?._renderer?.engine?._hardwareRenderer ??
     value?._renderer?.engine?._hardwareRenderer ??
+    value?._scene?.engine?._hardwareRenderer ??
     value
   );
 }

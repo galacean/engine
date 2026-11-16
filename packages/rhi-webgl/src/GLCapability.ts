@@ -5,13 +5,13 @@ import { GLCompressedTextureInternalFormat } from "./type";
 /**
  * GL capability.
  */
-export class GLCapability {
+export class GLCapability<Key extends string = GLCapabilityType> {
   private _maxDrawBuffers: number;
   private _maxAnisoLevel: number;
   private _maxAntiAliasing: number;
 
   _rhi: WebGLGraphicDevice;
-  capabilityList: Map<GLCapabilityType, boolean>;
+  capabilityList: Map<string, boolean>;
 
   get maxTextureSize(): boolean {
     return this.rhi.renderStates.getParameter(this.rhi.gl.MAX_TEXTURE_SIZE);
@@ -67,16 +67,8 @@ export class GLCapability {
    * @param capabilityType - Capability to check
    * @returns Whether the capability was detected
    */
-  canIUse(capabilityType: GLCapabilityType): boolean {
-    const cached = this.capabilityList.get(capabilityType);
-    if (cached !== undefined) return cached;
-    if (capabilityType === GLCapabilityType.vertexTextureSampling) {
-      const gl = this.rhi.gl;
-      const supported = gl.getParameter(gl.MAX_VERTEX_TEXTURE_IMAGE_UNITS) > 0;
-      this.capabilityList.set(capabilityType, supported);
-      return supported;
-    }
-    return false;
+  canIUse(capabilityType: GLCapabilityType | Key): boolean {
+    return this.capabilityList.get(capabilityType) ?? false;
   }
 
   /**
@@ -140,14 +132,6 @@ export class GLCapability {
   private _init() {
     const cap = this.capabilityList;
     const requireExtension = this.rhi.requireExtension.bind(this.rhi);
-    const gl = this.rhi.gl;
-    const gl2 = gl as WebGL2RenderingContext;
-    cap.set(GLCapabilityType.transformFeedback, typeof gl2.beginTransformFeedback === "function");
-    cap.set(GLCapabilityType.sRGBTexture, gl2.SRGB8_ALPHA8 !== undefined);
-    cap.set(GLCapabilityType.minMaxBlend, gl2.MIN !== undefined && gl2.MAX !== undefined);
-    const fragmentPrecision = gl.getShaderPrecisionFormat(gl.FRAGMENT_SHADER, gl.HIGH_FLOAT);
-    cap.set(GLCapabilityType.fragmentHighPrecision, !!fragmentPrecision && fragmentPrecision.precision > 0);
-
     const {
       astc,
       astc_webkit,

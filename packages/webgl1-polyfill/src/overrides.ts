@@ -1,6 +1,11 @@
 import "./core/2d/atlas/FontAtlas";
 import "./core/BasicResources";
 import "./core/Camera";
+import "./core/Engine";
+import "./core/mesh/SkinnedMeshRenderer";
+import "./core/particle/modules/InheritVelocityModule";
+import "./core/particle/modules/NoiseModule";
+import "./core/particle/modules/LimitVelocityOverLifetimeModule";
 import "./core/RenderPipeline/BasicRenderPipeline";
 import "./core/RenderPipeline/DepthOnlyPass";
 import "./core/mesh/BlendShapeManager";
