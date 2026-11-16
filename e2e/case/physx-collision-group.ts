@@ -4,17 +4,16 @@
  */
 import {
   WebGLEngine,
-  SphereColliderShape,
-  DynamicCollider,
-  BoxColliderShape,
+  SphereCollider,
+  Rigidbody,
+  BoxCollider,
   Vector3,
   MeshRenderer,
   PointLight,
   PrimitiveMesh,
   Camera,
   Script,
-  StaticCollider,
-  ColliderShape,
+  Collider,
   PBRMaterial,
   Entity,
   Layer
@@ -24,13 +23,13 @@ import { PhysXPhysics, PhysXRuntimeMode } from "@galacean/engine-physics-physx";
 import { initScreenshot, updateForE2E } from "./.mockForE2E";
 
 class CheckScript extends Script {
-  onTriggerEnter(other: ColliderShape) {
+  onTriggerEnter(other: Collider) {
     console.log("onTriggerEnter", other);
     // Change color to green when collision occurs
     (this.entity.getComponent(MeshRenderer).getMaterial() as PBRMaterial).baseColor.set(0, 1, 0, 1);
   }
 
-  onContactEnter(other: ColliderShape) {
+  onContactEnter(other: Collider) {
     console.log("onContactEnter", other);
     // Change color to green when collision occurs
     (this.entity.getComponent(MeshRenderer).getMaterial() as PBRMaterial).baseColor.set(0, 1, 0, 1);
@@ -59,14 +58,13 @@ function createPhysicsSphere(
   sphereRenderer.setMaterial(sphereMtl);
 
   // Add physics
-  const physicsSphere = new SphereColliderShape();
+  const physicsSphere = sphereEntity.addComponent(SphereCollider);
   physicsSphere.radius = radius;
-  physicsSphere.getInstanceMaterial(rootEntity.engine).bounciness = 0.8;
+  physicsSphere.getInstanceMaterial().bounciness = 0.8;
+  physicsSphere.collisionLayer = collisionLayer;
 
-  const sphereCollider = sphereEntity.addComponent(DynamicCollider);
-  sphereCollider.collisionLayer = collisionLayer;
+  sphereEntity.addComponent(Rigidbody);
   sphereEntity.addComponent(CheckScript);
-  sphereCollider.addShape(physicsSphere);
 
   return sphereEntity;
 }
@@ -111,11 +109,8 @@ WebGLEngine.create({ canvas: "canvas", physics: new PhysXPhysics() }).then((engi
   groundRenderer.setMaterial(groundMtl);
 
   // Physics for the ground cube
-  const groundCollider = groundEntity.addComponent(StaticCollider);
-  const groundShape = new BoxColliderShape();
-  groundShape.size = cubeSize;
-  groundCollider.addShape(groundShape);
-
+  const groundCollider = groundEntity.addComponent(BoxCollider);
+  groundCollider.size = cubeSize;
   groundCollider.collisionLayer = Layer.Layer3;
 
   // 创建可以碰撞的红色球体

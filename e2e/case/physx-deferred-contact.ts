@@ -4,8 +4,8 @@
  */
 import {
   WebGLEngine,
-  DynamicCollider,
-  BoxColliderShape,
+  Rigidbody,
+  BoxCollider,
   Vector3,
   MeshRenderer,
   PrimitiveMesh,
@@ -42,12 +42,12 @@ WebGLEngine.create({ canvas: "canvas", physics: new PhysXPhysics() }).then((engi
     renderer.mesh = PrimitiveMesh.createCuboid(engine, 2, 2, 2);
     renderer.setMaterial(mtl);
 
-    const shape = new BoxColliderShape();
-    shape.size = new Vector3(2, 2, 2);
-    shape.getInstanceMaterial(engine).dynamicFriction = 0;
-    shape.getInstanceMaterial(engine).staticFriction = 0;
-    const collider = entity.addComponent(DynamicCollider);
-    collider.addShape(shape);
+    const collider = entity.addComponent(BoxCollider);
+    collider.size = new Vector3(2, 2, 2);
+    const physicsMaterial = collider.getInstanceMaterial();
+    physicsMaterial.dynamicFriction = 0;
+    physicsMaterial.staticFriction = 0;
+    entity.addComponent(Rigidbody);
 
     return entity;
   }
@@ -61,7 +61,7 @@ WebGLEngine.create({ canvas: "canvas", physics: new PhysXPhysics() }).then((engi
   const spawnPos = new Vector3(5, 3, 0);
 
   // On collision: destroy both, create a new green box at spawnPos.
-  // Before the fix, the new box's position would be overwritten by _callColliderOnLateUpdate.
+  // The new box is created inside contact dispatch and must keep spawnPos, not a pose written back from the old boxes.
   box1.addComponent(
     class extends Script {
       onCollisionEnter(): void {
@@ -73,7 +73,7 @@ WebGLEngine.create({ canvas: "canvas", physics: new PhysXPhysics() }).then((engi
   );
 
   // Launch box1 toward box2
-  box1.getComponent(DynamicCollider).applyForce(new Vector3(2000, 0, 0));
+  box1.getComponent(Rigidbody).applyForce(new Vector3(2000, 0, 0));
 
   // Run enough frames for collision + new box to be visible at correct position
   updateForE2E(engine, 50, 20);
