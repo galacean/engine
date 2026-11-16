@@ -38,10 +38,6 @@ export class Texture2DArray extends Texture {
     mipmap: boolean = true,
     isSRGBColorSpace = true
   ) {
-    if (engine._hardwareRenderer.supportsRendering && !engine._hardwareRenderer.isWebGL2) {
-      throw new Error(`Texture2D Array is not supported in WebGL1.0`);
-    }
-
     super(engine, width, height, format, mipmap, isSRGBColorSpace);
 
     this._length = length;
@@ -177,7 +173,7 @@ export class Texture2DArray extends Texture {
     out?: ArrayBufferView
   ): void {
     const argsLength = arguments.length;
-    if (argsLength === 1) {
+    if (argsLength === 2) {
       (this._platformTexture as IPlatformTexture2DArray).getPixelBuffer(
         elementIndex,
         0,
@@ -187,7 +183,7 @@ export class Texture2DArray extends Texture {
         0,
         <ArrayBufferView>xOrMipLevelOrOut
       );
-    } else if (argsLength === 2) {
+    } else if (argsLength === 3) {
       (this._platformTexture as IPlatformTexture2DArray).getPixelBuffer(
         elementIndex,
         0,
@@ -197,7 +193,7 @@ export class Texture2DArray extends Texture {
         <number>xOrMipLevelOrOut,
         <ArrayBufferView>yOrMipLevel
       );
-    } else if (argsLength === 5) {
+    } else if (argsLength === 6) {
       (this._platformTexture as IPlatformTexture2DArray).getPixelBuffer(
         elementIndex,
         <number>xOrMipLevelOrOut,
@@ -207,7 +203,7 @@ export class Texture2DArray extends Texture {
         0,
         <ArrayBufferView>mipLevelOrOut
       );
-    } else if (argsLength === 6) {
+    } else if (argsLength === 7) {
       (this._platformTexture as IPlatformTexture2DArray).getPixelBuffer(
         elementIndex,
         <number>xOrMipLevelOrOut,

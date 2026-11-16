@@ -229,7 +229,7 @@ export abstract class Texture extends GraphicsResource {
     if (!this._engine._isDeviceLost) {
       this._engine._renderingStatistics._textureMemory -= this._memorySize;
     }
-    this._platformTexture.destroy();
+    this._platformTexture?.destroy();
     this._platformTexture = null!;
   }
 

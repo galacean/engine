@@ -142,6 +142,8 @@ describe("published headless entry in Node without browser globals", () => {
     texture.setPixelBuffer(new Uint8Array(16));
     expect(() => texture.getPixelBuffer(new Uint8Array(16))).toThrow("requires a graphics device");
     const array = new Texture2DArray(engine, 2, 2, 3);
+    expect(() => array.getPixelBuffer(0, new Uint8Array(16))).toThrow("requires a graphics device");
+    expect(() => array.getPixelBuffer(0, 0, 0, 2, 2, 0, new Uint8Array(16))).toThrow("requires a graphics device");
     const cube = new TextureCube(engine, 2);
     const material = new Material(engine, Shader.find("PBR"));
     expect(material.shader).toBe(Shader.find("PBR"));
