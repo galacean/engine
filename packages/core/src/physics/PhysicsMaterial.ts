@@ -5,38 +5,33 @@ import { PhysicsMaterialCombineMode } from "./enums/PhysicsMaterialCombineMode";
 
 /**
  * Surface friction, bounciness, and combine modes for collider shapes.
- * @remarks Coefficients must be finite. Bounciness is clamped to [0, 1], and friction is clamped to non-negative values.
  */
 export class PhysicsMaterial extends ReferResource {
   /** @internal */
-  static readonly _defaultProperties: IPhysicsMaterialProperties = Object.freeze({
+  static readonly _defaultProperties: IPhysicsMaterialProperties = {
     staticFriction: 0.6,
     dynamicFriction: 0.6,
     bounciness: 0,
     frictionCombine: PhysicsMaterialCombineMode.Average,
     bounceCombine: PhysicsMaterialCombineMode.Average
-  });
+  };
 
   private _bounciness = PhysicsMaterial._defaultProperties.bounciness;
   private _dynamicFriction = PhysicsMaterial._defaultProperties.dynamicFriction;
   private _staticFriction = PhysicsMaterial._defaultProperties.staticFriction;
   private _bounceCombine: PhysicsMaterialCombineMode = PhysicsMaterial._defaultProperties.bounceCombine;
   private _frictionCombine: PhysicsMaterialCombineMode = PhysicsMaterial._defaultProperties.frictionCombine;
+
   /** @internal */
   _nativeMaterial: IPhysicsMaterial;
 
   /**
    * Create a physics material.
-   * @param engine - Engine that owns the material and manages its resource lifetime.
+   * @param engine - Engine to which the physics material belongs
    */
   constructor(engine: Engine) {
     super(engine);
-    try {
-      this._nativeMaterial = Engine._nativePhysics.createPhysicsMaterial(PhysicsMaterial._defaultProperties);
-    } catch (error) {
-      this.destroy();
-      throw error;
-    }
+    this._nativeMaterial = Engine._nativePhysics.createPhysicsMaterial(PhysicsMaterial._defaultProperties);
   }
 
   /**
@@ -47,10 +42,6 @@ export class PhysicsMaterial extends ReferResource {
   }
 
   set bounciness(value: number) {
-    if (!Number.isFinite(value)) {
-      throw new RangeError("Bounciness must be finite.");
-    }
-    value = Math.min(1, Math.max(0, value));
     if (this._bounciness !== value) {
       this._bounciness = value;
       this._nativeMaterial.setBounciness(value);
@@ -58,17 +49,13 @@ export class PhysicsMaterial extends ReferResource {
   }
 
   /**
-   * The coefficient of dynamic friction, clamped to non-negative values.
+   * The DynamicFriction value.
    */
   get dynamicFriction(): number {
     return this._dynamicFriction;
   }
 
   set dynamicFriction(value: number) {
-    if (!Number.isFinite(value)) {
-      throw new RangeError("Dynamic friction must be finite.");
-    }
-    value = Math.max(0, value);
     if (this._dynamicFriction !== value) {
       this._dynamicFriction = value;
       this._nativeMaterial.setDynamicFriction(value);
@@ -76,17 +63,13 @@ export class PhysicsMaterial extends ReferResource {
   }
 
   /**
-   * The coefficient of static friction, clamped to non-negative values.
+   * The coefficient of static friction.
    */
   get staticFriction(): number {
     return this._staticFriction;
   }
 
   set staticFriction(value: number) {
-    if (!Number.isFinite(value)) {
-      throw new RangeError("Static friction must be finite.");
-    }
-    value = Math.max(0, value);
     if (this._staticFriction !== value) {
       this._staticFriction = value;
       this._nativeMaterial.setStaticFriction(value);
@@ -101,13 +84,6 @@ export class PhysicsMaterial extends ReferResource {
   }
 
   set bounceCombine(value: PhysicsMaterialCombineMode) {
-    if (
-      !Number.isInteger(value) ||
-      value < PhysicsMaterialCombineMode.Average ||
-      value > PhysicsMaterialCombineMode.Maximum
-    ) {
-      throw new RangeError("Invalid bounce combine mode.");
-    }
     if (this._bounceCombine !== value) {
       this._bounceCombine = value;
       this._nativeMaterial.setBounceCombine(value);
@@ -122,13 +98,6 @@ export class PhysicsMaterial extends ReferResource {
   }
 
   set frictionCombine(value: PhysicsMaterialCombineMode) {
-    if (
-      !Number.isInteger(value) ||
-      value < PhysicsMaterialCombineMode.Average ||
-      value > PhysicsMaterialCombineMode.Maximum
-    ) {
-      throw new RangeError("Invalid friction combine mode.");
-    }
     if (this._frictionCombine !== value) {
       this._frictionCombine = value;
       this._nativeMaterial.setFrictionCombine(value);
@@ -136,7 +105,7 @@ export class PhysicsMaterial extends ReferResource {
   }
 
   /**
-   * Create an independent material with the same properties and engine owner.
+   * Create an independent material with the same properties.
    */
   clone(): PhysicsMaterial {
     const material = new PhysicsMaterial(this._engine);
@@ -148,7 +117,9 @@ export class PhysicsMaterial extends ReferResource {
     return material;
   }
 
-  /** @internal */
+  /**
+   * @internal
+   */
   override _addReferCount(value: number): void {
     if (this._nativeMaterial) {
       super._addReferCount(value);
@@ -157,7 +128,7 @@ export class PhysicsMaterial extends ReferResource {
 
   protected override _onDestroy(): void {
     super._onDestroy();
-    this._nativeMaterial?.destroy();
+    this._nativeMaterial.destroy();
     this._nativeMaterial = null!;
   }
 }

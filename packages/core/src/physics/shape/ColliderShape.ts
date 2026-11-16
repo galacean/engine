@@ -86,23 +86,18 @@ export abstract class ColliderShape extends DataObject implements ICloneHook<Col
    * The assigned material, or null to use the shared default material.
    * @defaultValue null
    * @remarks This property returns null for the shared default. Use {@link getInstanceMaterial} to obtain an instance.
-   * Assigned materials must not be destroyed or pending destruction.
    */
   get material(): PhysicsMaterial | null {
     return this._material;
   }
 
   set material(value: PhysicsMaterial | null) {
-    if (value && (value.destroyed || value.pendingDestroy)) {
-      throw new Error("The physics material of the shape must be alive.");
-    }
     if (this._material !== value) {
-      this._nativeShape?.setMaterial(this._getNativeMaterial(value));
-      value?._addReferCount(1);
-      const previous = this._material;
-      this._material = value;
       this._materialInstanced = false;
-      previous?._addReferCount(-1);
+      this._material?._addReferCount(-1);
+      value?._addReferCount(1);
+      this._material = value;
+      this._nativeShape?.setMaterial(this._getNativeMaterial());
     }
   }
 
@@ -231,8 +226,8 @@ export abstract class ColliderShape extends DataObject implements ICloneHook<Col
     target._syncNative();
   }
 
-  protected _getNativeMaterial(material: PhysicsMaterial | null = this._material): IPhysicsMaterial {
-    return material?._nativeMaterial ?? BasicResources.physicsDefaultMaterial;
+  protected _getNativeMaterial(): IPhysicsMaterial {
+    return this._material?._nativeMaterial ?? BasicResources.physicsDefaultMaterial;
   }
 
   protected _syncNative(): void {

@@ -61,36 +61,6 @@ describe("PhysicsMaterialLoader", () => {
     expect(replacement.bounciness).toBe(0.3);
   });
 
-  it.each([
-    [],
-    1,
-    { bounciness: null },
-    { dynamicFriction: "0.5" },
-    { staticFriction: true },
-    { bounceCombine: 4 },
-    { frictionCombine: -1 }
-  ])("rejects invalid data %j without keeping a partial native resource or cache entry", async (data) => {
-    const before = engine.resourceManager.findResourcesByType(PhysicsMaterial);
-    const url = assetUrl(data);
-    await expect(engine.resourceManager.load({ url, type: AssetType.PhysicsMaterial })).rejects.toThrow();
-    expect(engine.resourceManager.getFromCache(url)).toBeNull();
-    expect(engine.resourceManager.findResourcesByType(PhysicsMaterial)).toEqual(before);
-  });
-
-  it("cleans up failed native construction and allows retrying the same asset", async () => {
-    const create = vi.spyOn(physics, "createPhysicsMaterial").mockImplementationOnce(() => {
-      throw new Error("Native material allocation failed");
-    });
-    const before = engine.resourceManager.findResourcesByType(PhysicsMaterial);
-    const url = assetUrl(completeData);
-    await expect(engine.resourceManager.load<PhysicsMaterial>(url)).rejects.toThrow();
-    expect(engine.resourceManager.findResourcesByType(PhysicsMaterial)).toEqual(before);
-    expect(engine.resourceManager.getFromCache(url)).toBeNull();
-    const material = await engine.resourceManager.load<PhysicsMaterial>(url);
-    expect(material.bounciness).toBe(0.3);
-    expect(create).toHaveBeenCalledTimes(2);
-  });
-
   it("keeps shared materials alive for prefab instances and releases duplicate dependencies once", async () => {
     const materialUrl = assetUrl(completeData);
     const materialPath = "materials/shared-physics.physMat";

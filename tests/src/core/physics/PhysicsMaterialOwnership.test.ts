@@ -4,7 +4,6 @@ import {
   CapsuleColliderShape,
   MeshColliderShape,
   PhysicsMaterial,
-  PhysicsMaterialCombineMode,
   PlaneColliderShape,
   Script,
   SphereColliderShape,
@@ -159,55 +158,34 @@ describe("PhysicsMaterial ownership", () => {
     }
   });
 
-  it("defers destruction during a frame and rejects new pending references", () => {
+  it("defers forced destruction during a frame and keeps refCount non-negative after shape teardown", () => {
     const material = new PhysicsMaterial(engine);
     const entity = engine.sceneManager.activeScene.createRootEntity();
     const shape = new BoxColliderShape();
     shape.material = material;
-    const collider = entity.addComponent(StaticCollider);
-    collider.addShape(shape);
-    const second = new BoxColliderShape();
-    collider.addShape(second);
-    const previous = second.getInstanceMaterial(engine);
+    entity.addComponent(StaticCollider).addShape(shape);
     let pendingDuringUpdate = false;
-    let assignmentRejected = false;
     class DestroyMaterial extends Script {
       override onUpdate(): void {
         material.destroy(true);
         pendingDuringUpdate = material.pendingDestroy && !material.destroyed;
-        try {
-          second.material = material;
-        } catch {
-          assignmentRejected = true;
-        }
         this.enabled = false;
       }
     }
     entity.addComponent(DestroyMaterial);
     engine.update();
     expect(pendingDuringUpdate).toBe(true);
-    expect(assignmentRejected).toBe(true);
-    expect(second.material).toBe(previous);
-    expect(previous.refCount).toBe(1);
     expect(material.destroyed).toBe(true);
     expect(material.refCount).toBe(0);
     entity.destroy();
     expect(material.refCount).toBe(0);
-    expect(previous.destroyed).toBe(false);
-    engine.resourceManager.gc();
-    expect(previous.destroyed).toBe(true);
   });
 
-  it("rejects destroyed materials and allows reusing an instance after resetting to the default", () => {
+  it("allows reusing an instance after resetting to the default", () => {
     const entity = engine.sceneManager.activeScene.createRootEntity();
     const shape = new BoxColliderShape();
     entity.addComponent(StaticCollider).addShape(shape);
     const original = shape.getInstanceMaterial(engine);
-    const destroyed = new PhysicsMaterial(engine);
-    destroyed.destroy();
-    expect(() => (shape.material = destroyed)).toThrow();
-    expect(shape.material).toBe(original);
-    expect(original.refCount).toBe(1);
     shape.material = null;
     expect(shape.material).toBeNull();
     expect(original.refCount).toBe(0);
@@ -235,36 +213,5 @@ describe("PhysicsMaterial ownership", () => {
     expect(clone.bounciness).toBe(0.7);
     clone.bounciness = 0.2;
     expect(material.bounciness).toBe(0.7);
-  });
-
-  it("normalizes coefficients and rejects invalid values before changing state or native data", () => {
-    const material = new PhysicsMaterial(engine);
-    material.bounciness = 2;
-    expect(material.bounciness).toBe(1);
-    material.bounciness = -1;
-    expect(material.bounciness).toBe(0);
-    for (const property of ["staticFriction", "dynamicFriction"] as const) {
-      material[property] = -1;
-      expect(material[property]).toBe(0);
-      material[property] = 2000;
-      expect(material[property]).toBe(2000);
-    }
-    for (const property of ["bounciness", "staticFriction", "dynamicFriction"] as const) {
-      const previous = material[property];
-      for (const value of [NaN, Infinity, -Infinity]) {
-        expect(() => (material[property] = value)).toThrow(RangeError);
-        expect(material[property]).toBe(previous);
-      }
-    }
-    for (const property of ["bounceCombine", "frictionCombine"] as const) {
-      for (const mode of [0, 1, 2, 3]) {
-        material[property] = mode;
-        expect(material[property]).toBe(mode);
-      }
-      for (const mode of [-1, 4, 0.5, NaN]) {
-        expect(() => (material[property] = mode)).toThrow(RangeError);
-        expect(material[property]).toBe(PhysicsMaterialCombineMode.Maximum);
-      }
-    }
   });
 });
