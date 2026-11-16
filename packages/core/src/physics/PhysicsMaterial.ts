@@ -7,7 +7,7 @@ import { PhysicsMaterialCombineMode } from "./enums/PhysicsMaterialCombineMode";
  * Material class to represent a set of surface properties.
  * @remarks Coefficients must be finite. Bounciness is clamped to [0, 1], and friction is clamped to non-negative values.
  */
-export class PhysicsMaterial extends ReferResource {
+export class PhysicsMaterial extends ReferResource<Engine | null> {
   private _bounciness = 0;
   private _dynamicFriction = 0.6;
   private _staticFriction = 0.6;
@@ -19,7 +19,7 @@ export class PhysicsMaterial extends ReferResource {
   /**
    * Create a physics material.
    * @param engine - Owner for resource caching and garbage collection. When omitted, the material can
-   * be shared across engines using the same physics backend and is destroyed when its last shape releases it.
+   * be shared across engines using the same physics backend instance and is destroyed when its last shape releases it.
    */
   constructor(engine?: Engine) {
     super(engine ?? null);

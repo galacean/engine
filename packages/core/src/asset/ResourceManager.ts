@@ -8,7 +8,7 @@ import { LoadItem } from "./LoadItem";
 import { ReferResource } from "./ReferResource";
 import { request, RequestConfig } from "./request";
 
-type LoadableResource = EngineObject | Shader;
+type LoadableResource = EngineObject<Engine | null> | Shader;
 
 /**
  * ResourceManager
@@ -50,7 +50,7 @@ export class ResourceManager {
   private _assetUrlPool: Record<string, object> = Object.create(null);
 
   /** Referable resource pool, key is the `instanceID` of resource. */
-  private _referResourcePool: Record<number, ReferResource> = Object.create(null);
+  private _referResourcePool: Record<number, ReferResource<Engine | null>> = Object.create(null);
   /** Graphic resource pool, key is the `instanceID` of resource. */
   private _graphicResourcePool: Record<number, GraphicsResource> = Object.create(null);
   /** Restorable resource information pool, key is the `instanceID` of resource. */
@@ -115,7 +115,7 @@ export class ResourceManager {
    * @param type - Resource type
    * @returns - Resource collection
    */
-  findResourcesByType<T extends EngineObject>(type: new (...args) => T): T[] {
+  findResourcesByType<T extends EngineObject<Engine | null>>(type: new (...args) => T): T[] {
     const resources = new Array<T>();
     const referResourcePool = this._referResourcePool;
     for (const k in referResourcePool) {
@@ -227,7 +227,7 @@ export class ResourceManager {
   /**
    * @internal
    */
-  _addAsset(path: string, asset: EngineObject): void {
+  _addAsset(path: string, asset: EngineObject<Engine | null>): void {
     this._assetPool[asset.instanceId] = path;
     this._assetUrlPool[path] = asset;
   }
@@ -235,7 +235,7 @@ export class ResourceManager {
   /**
    * @internal
    */
-  _deleteAsset(asset: EngineObject): void {
+  _deleteAsset(asset: EngineObject<Engine | null>): void {
     const id = asset.instanceId;
     const path = this._assetPool[id];
     if (path) {
@@ -247,14 +247,14 @@ export class ResourceManager {
   /**
    * @internal
    */
-  _addReferResource(resource: ReferResource): void {
+  _addReferResource(resource: ReferResource<Engine | null>): void {
     this._referResourcePool[resource.instanceId] = resource;
   }
 
   /**
    * @internal
    */
-  _deleteReferResource(resource: EngineObject): void {
+  _deleteReferResource(resource: EngineObject<Engine | null>): void {
     delete this._referResourcePool[resource.instanceId];
   }
 
@@ -275,7 +275,7 @@ export class ResourceManager {
   /**
    * @internal
    */
-  _deleteContentRestorer(resource: EngineObject): void {
+  _deleteContentRestorer(resource: EngineObject<Engine | null>): void {
     delete this._contentRestorerPool[resource.instanceId];
   }
 
@@ -368,8 +368,8 @@ export class ResourceManager {
       return new AssetPromise((resolve, reject, setTaskCompleteProgress, setTaskDetailProgress) => {
         loadingPromise
           .onProgress(setTaskCompleteProgress, setTaskDetailProgress)
-          .then((resource: EngineObject) => {
-            resolve(resource as T);
+          .then((resource: T) => {
+            resolve(resource);
           })
           .catch((error: Error) => {
             reject(error);
@@ -416,7 +416,7 @@ export class ResourceManager {
     promise.then(
       (resource: T) => {
         if (loader.useCache) {
-          this._addAsset(remoteAssetBaseURL, resource as EngineObject);
+          this._addAsset(remoteAssetBaseURL, resource as EngineObject<Engine | null>);
         }
         delete loadingPromises[remoteAssetBaseURL];
         this._releaseSubAssetPromiseCallback(remoteAssetBaseURL);
@@ -477,7 +477,7 @@ export class ResourceManager {
   }
 
   private _gc(forceDestroy: boolean): void {
-    const objects = <ReferResource[]>Utils.objectValues(this._referResourcePool);
+    const objects = Utils.objectValues(this._referResourcePool);
     for (let i = 0, n = objects.length; i < n; i++) {
       const object = objects[i];
       if (!object.isGCIgnored || forceDestroy) {

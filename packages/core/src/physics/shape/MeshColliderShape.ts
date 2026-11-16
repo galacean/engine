@@ -194,7 +194,6 @@ export class MeshColliderShape extends ColliderShape {
 
     this._nativeShape = nativeShape;
 
-    // Sync base class properties (position, rotation, contactOffset, isTrigger, material)
     super._syncNative();
 
     this._collider?._setNativeShapeAttached(this, true);

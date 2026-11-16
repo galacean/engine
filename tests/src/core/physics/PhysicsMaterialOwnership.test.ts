@@ -99,7 +99,7 @@ describe("PhysicsMaterial ownership", () => {
     expect(engine.resourceManager.findResourcesByType(PhysicsMaterial)).not.toContain(material);
   });
 
-  it("shares an engine-less material across engines using the same physics backend", async () => {
+  it("keeps a shared material alive when one engine is destroyed", async () => {
     const other = await WebGLEngine.create({ canvas: document.createElement("canvas"), physics });
     const material = new PhysicsMaterial();
     const entity = engine.sceneManager.activeScene.createRootEntity();
@@ -111,40 +111,55 @@ describe("PhysicsMaterial ownership", () => {
       second.material = material;
       other.sceneManager.activeScene.createRootEntity().addComponent(StaticCollider).addShape(second);
       expect(material.refCount).toBe(2);
-      entity.destroy();
+      other.destroy();
       expect(material.refCount).toBe(1);
       expect(material.destroyed).toBe(false);
       material.bounciness = 0.4;
-      other.update();
-      expect(second.material.bounciness).toBe(0.4);
+      engine.update();
+      expect(first.material.bounciness).toBe(0.4);
+      entity.destroy();
+      expect(material.destroyed).toBe(true);
+      expect(material.refCount).toBe(0);
     } finally {
       other.destroy();
     }
-    expect(material.destroyed).toBe(true);
-    expect(material.refCount).toBe(0);
   });
 
-  it("defers engine-owned destruction during a frame and releases forced references once", () => {
+  it("defers engine-owned destruction during a frame and rejects new pending references", () => {
     const material = new PhysicsMaterial(engine);
     const entity = engine.sceneManager.activeScene.createRootEntity();
     const shape = new BoxColliderShape();
     shape.material = material;
-    entity.addComponent(StaticCollider).addShape(shape);
+    const collider = entity.addComponent(StaticCollider);
+    collider.addShape(shape);
+    const second = new BoxColliderShape();
+    collider.addShape(second);
+    const previous = second.material;
     let pendingDuringUpdate = false;
+    let assignmentRejected = false;
     class DestroyMaterial extends Script {
       override onUpdate(): void {
         material.destroy(true);
         pendingDuringUpdate = material.pendingDestroy && !material.destroyed;
+        try {
+          second.material = material;
+        } catch {
+          assignmentRejected = true;
+        }
         this.enabled = false;
       }
     }
     entity.addComponent(DestroyMaterial);
     engine.update();
     expect(pendingDuringUpdate).toBe(true);
+    expect(assignmentRejected).toBe(true);
+    expect(second.material).toBe(previous);
+    expect(previous.refCount).toBe(1);
     expect(material.destroyed).toBe(true);
     expect(material.refCount).toBe(0);
     entity.destroy();
     expect(material.refCount).toBe(0);
+    expect(previous.destroyed).toBe(true);
   });
 
   it("rejects destroyed or null materials without changing the shape's material", () => {
