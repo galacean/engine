@@ -141,7 +141,8 @@ describe("CharacterController", () => {
     controller.upDirection = new Vector3(0, -1, 0);
     expect(move(new Vector3(0, 0, 1)) & ControllerCollisionFlag.Up).toBe(ControllerCollisionFlag.Up);
     controller.upDirection.set(0, 1, 0);
-    expect(move(new Vector3(0, 0, 1)) & ControllerCollisionFlag.Down).toBe(ControllerCollisionFlag.Down);
+    // A sideways move only probes the ground after a grounded move, so push into the ground instead
+    expect(move(new Vector3(0, -0.1, 0)) & ControllerCollisionFlag.Down).toBe(ControllerCollisionFlag.Down);
   });
 
   it("applies contactOffset to the collision skin immediately", () => {
@@ -265,7 +266,8 @@ describe("CharacterController", () => {
   it.each([1, 45])("uses slopeLimit %s to control climbing", (limit) => {
     physics.overlapSphereAll(new Vector3(0, 5, 0), 0.1);
     controller.slopeLimit = limit;
-    addPlane(new Vector3(0, 0, 2), new Quaternion().rotateX(-Math.PI / 4));
+    // A slope exactly at the limit depends on float rounding, so use one clearly below 45 degrees
+    addPlane(new Vector3(0, 0, 2), new Quaternion().rotateX((-40 * Math.PI) / 180));
     walkTo(new Vector3(0, 0, 3), 50);
     if (limit === 45) expect(role.transform.position.z).toBeCloseTo(3, 5);
     else expect(role.transform.position.z).toBeLessThan(2);
@@ -391,10 +393,11 @@ describe("CharacterController", () => {
     }
     const recorder = trigger.entity.addComponent(TriggerRecorder);
     move(new Vector3(0, 0, 2));
-    update();
+    // PhysX moves the controller's kinematic actor at the end of a step, so triggers see the move in the next one
+    update(2);
     expect(recorder.onTriggerEnter).toHaveBeenCalledOnce();
     role.transform.setPosition(0, 0.6, 0);
-    update();
+    update(2);
     expect(recorder.onTriggerExit).toHaveBeenCalledOnce();
     physics.setColliderLayerCollision(layer, Layer.Layer2, false);
     try {

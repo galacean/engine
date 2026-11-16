@@ -220,6 +220,11 @@ export class PhysXCharacterController implements ICharacterController {
       desc.height = this._height;
       desc.climbingMode = 1; // Constrained
     }
+    // Create the proxy actor at its pose: setPosition only moves it in the next simulation
+    const position = PhysXCharacterController._tempVec;
+    Vector3.add(this._worldPosition, this._center, position);
+    desc.position = position;
+    desc.upDirection = this._upDirection;
     desc.setMaterial(this._pxMaterial);
     desc.contactOffset = this._contactOffset;
     desc.stepOffset = this._stepOffset;
@@ -230,11 +235,9 @@ export class PhysXCharacterController implements ICharacterController {
 
     this._pxController = pxController;
     pxController.setUUID(this._id);
-    pxController.setUpDirection(this._upDirection);
     pxController.setSceneQueryEnabled(this._isSceneQuery);
     physX.setGroup(pxController.getActor(), this._collisionLayer);
     scene._addColliderShape(this._id);
-    this._updateNativePosition();
   }
 
   private _destroyPXController(): void {
