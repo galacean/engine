@@ -5,6 +5,9 @@
     "target": "esnext",
     "declaration": true,
     "moduleResolution": "node",
+    "paths": {
+      "@galacean/engine-rhi-webgl": ["./src/index.ts"]
+    },
     "allowSyntheticDefaultImports": true,
     "experimentalDecorators": true,
     "declarationDir": "types",

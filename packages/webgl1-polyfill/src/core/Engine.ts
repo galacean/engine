@@ -1,13 +1,13 @@
-import { type Engine as HostEngine, ShaderMacro } from "@galacean/engine-core";
+import { Engine, ShaderMacro } from "@galacean/engine-core";
 import { Mixin, Overwrite, Shadow } from "@/override";
 import type { WebGL1GraphicDevice } from "../rhi-webgl/GLCapability";
 import { WebGL1Extension } from "../rhi-webgl/WebGL1Extension";
 
-@Mixin("Engine")
-export class Engine {
+@Mixin(Engine)
+export class EngineMixin {
   @Shadow declare _hardwareRenderer: WebGL1GraphicDevice;
-  @Shadow declare _macroCollection: HostEngine["_macroCollection"];
-  declare _createDefaultDepthTexture: HostEngine["_createDefaultDepthTexture"];
+  @Shadow declare _macroCollection: Engine["_macroCollection"];
+  declare _createDefaultDepthTexture: Engine["_createDefaultDepthTexture"];
 
   @Overwrite
   _initializeDefaultTextures(): void {

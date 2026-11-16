@@ -1,53 +1,7 @@
-import type { WebGLGraphicDevice } from "@galacean/engine-rhi-webgl";
+import { WebGLGraphicDevice } from "@galacean/engine-rhi-webgl";
 
-type Core = Pick<
-  typeof import("@galacean/engine-core"),
-  | "Engine"
-  | "AmbientOcclusion"
-  | "SkinnedMeshRenderer"
-  | "InheritVelocityModule"
-  | "NoiseModule"
-  | "LimitVelocityOverLifetimeModule"
-  | "ParticleInheritVelocityMode"
-  | "ParticleSimulationSpace"
-  | "ShaderPass"
-  | "ShaderMacro"
-  | "ShaderFactory"
-  | "BasicRenderPipeline"
-  | "Camera"
-  | "CameraClearFlags"
-  | "MeshRenderer"
-  | "ModelMesh"
-  | "BlendShapeManager"
-  | "Texture"
-  | "Texture2D"
-  | "TextureUtils"
-  | "TextureFormat"
-  | "TextureFilterMode"
-  | "TextureWrapMode"
-  | "PrimitiveMesh"
-  | "Logger"
-  | "GLCapabilityType"
-  | "ParticleGenerator"
-  | "ParticleRenderer"
-  | "VelocityOverLifetimeModule"
-  | "SubEmittersModule"
-  | "CascadedShadowCasterPass"
-  | "ShaderProgram"
-  | "BasicResources"
-  | "FontAtlas"
-  | "DepthOnlyPass"
-  | "ShaderMacroProcessor"
-  | "PipelineUtils"
->;
-type RHI = Pick<
-  typeof import("@galacean/engine-rhi-webgl"),
-  "WebGLGraphicDevice" | "GLPrimitive" | "GLCapability" | "GLExtensions" | "GLRenderStates" | "GLTexture"
->;
-export type Bindings = Core & RHI & Pick<typeof import("@galacean/engine-math"), "MathUtil">;
-type Target = keyof Bindings;
 type Selector = (this: any) => boolean;
-type Members = { target: Target; implementation: Function; when?: Selector };
+type Members = { target: Function; implementation: Function; when?: Selector };
 type Patch = {
   target: object;
   key: PropertyKey;
@@ -65,19 +19,23 @@ type Invoke = (
 ) => unknown;
 type Replacement = { descriptor: PropertyDescriptor; when?: Selector };
 
-export interface Registry {
+interface Registry {
   devices: WeakMap<object, Invoke>;
-  installedMembers: WeakMap<object, Set<PropertyKey>>;
-  receivers?: WeakMap<object, Invoke | null>;
+  receivers: WeakMap<object, Invoke | null>;
 }
 
 const classes: Members[] = [];
 const overwrites = new WeakMap<object, Set<PropertyKey>>();
 const shadows = new WeakMap<object, Set<PropertyKey>>();
-let defaultRegistry: Registry | undefined;
+let registerDevice: ((device: WebGLGraphicDevice) => void) | undefined;
 
-/** Register a class containing WebGL1 replacements for the named engine class. */
-export function Mixin(target: Target, when?: Selector): ClassDecorator {
+/**
+ * Register WebGL1 replacements for an engine class.
+ * @param target - Host class to override
+ * @param when - Determines whether to use the replacement for a WebGL1 device
+ * @returns The decorator for the replacement class
+ */
+export function Mixin(target: Function, when?: Selector): ClassDecorator {
   return (implementation) => {
     classes.push({ target, implementation, when });
   };
@@ -97,25 +55,23 @@ export function Shadow(target: object, key: PropertyKey): void {
   fields.add(key);
 }
 
-export function bindOverrides(
-  bindings: Bindings,
-  registry: Registry = (defaultRegistry ??= { devices: new WeakMap(), installedMembers: new WeakMap() })
-): (device: WebGLGraphicDevice) => void {
-  const { devices, installedMembers } = registry;
-  registry.receivers ??= new WeakMap();
+export function installOverrides(): (device: WebGLGraphicDevice) => void {
+  if (registerDevice) return registerDevice;
+
+  const registry: Registry = { devices: new WeakMap(), receivers: new WeakMap() };
   const patches: Patch[] = [];
   const deviceDescriptors: PropertyDescriptorMap = Object.create(null);
   const replacements = new WeakMap<object, Map<PropertyKey, Replacement>>();
 
   function prepare(target: object, source: object, key: PropertyKey, when?: Selector): void {
     const descriptor = Object.getOwnPropertyDescriptor(source, key)!;
-    const onDevice = target === bindings.WebGLGraphicDevice.prototype && !when;
+    const onDevice = target === WebGLGraphicDevice.prototype && !when;
     const patch = prepareMember(registry, target, key, descriptor, onDevice);
     if (onDevice) {
       deviceDescriptors[key] = patch.replacement;
       return;
     }
-    if (!installedMembers.get(target)?.has(key)) patches.push(patch);
+    patches.push(patch);
 
     let members = replacements.get(target);
     if (!members) replacements.set(target, (members = new Map()));
@@ -123,9 +79,6 @@ export function bindOverrides(
   }
 
   for (const { target, implementation, when } of classes) {
-    const original = bindings[target];
-    if (typeof original !== "function") throw new Error(`Incompatible engine class: ${target}`);
-
     for (const field of shadows.get(implementation.prototype) ?? []) {
       if (
         Object.prototype.hasOwnProperty.call(implementation.prototype, field) ||
@@ -135,10 +88,10 @@ export function bindOverrides(
       }
     }
     for (const key of overwrites.get(implementation.prototype) ?? []) {
-      prepare(original.prototype, implementation.prototype, key, when);
+      prepare(target.prototype, implementation.prototype, key, when);
     }
     for (const key of overwrites.get(implementation) ?? []) {
-      prepare(original, implementation, key);
+      prepare(target, implementation, key);
     }
   }
 
@@ -156,22 +109,18 @@ export function bindOverrides(
     throw error;
   }
 
-  for (const { target, key } of patches) {
-    let members = installedMembers.get(target);
-    if (!members) installedMembers.set(target, (members = new Set()));
-    members.add(key);
-  }
   const invoke: Invoke = (target, key, kind, original, receiver, args) => {
     const replacement = replacements.get(target)?.get(key);
     const method = replacement?.descriptor[kind];
     if (!method || (replacement?.when && !replacement.when.call(receiver))) return original.apply(receiver, args);
     return method.apply(receiver, args);
   };
-  return (device) => {
+  registerDevice = (device) => {
     Object.defineProperties(device, deviceDescriptors);
-    devices.set(device, invoke);
+    registry.devices.set(device, invoke);
     registry.receivers = new WeakMap();
   };
+  return registerDevice;
 }
 
 function owningDevice(value: any): object | undefined {
@@ -213,7 +162,7 @@ function prepareMember(
       continue;
     }
     descriptor[kind] = function () {
-      const receivers = registry.receivers!;
+      const receivers = registry.receivers;
       let invoke = receivers.get(this);
       if (invoke === undefined) {
         const owner = owningDevice(this);

@@ -1,10 +1,10 @@
-import { type Engine, ModelMesh } from "@galacean/engine-core";
+import { PrimitiveMesh, type Engine, ModelMesh } from "@galacean/engine-core";
 import { Mixin, Overwrite } from "@/override";
 import type { WebGL1GraphicDevice } from "../../rhi-webgl/GLCapability";
 import { WebGL1Extension } from "../../rhi-webgl/WebGL1Extension";
 
-@Mixin("PrimitiveMesh")
-export class PrimitiveMesh {
+@Mixin(PrimitiveMesh)
+export class PrimitiveMeshMixin {
   @Overwrite
   static _createIndexedMesh(engine: Engine, indices: Uint16Array | Uint32Array): ModelMesh {
     if (

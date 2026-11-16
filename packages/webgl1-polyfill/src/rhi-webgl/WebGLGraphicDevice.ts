@@ -7,14 +7,14 @@ import {
   TextureWrapMode
 } from "@galacean/engine-core";
 import { MathUtil } from "@galacean/engine-math";
-import { GLCapability, GLExtensions, GLRenderStates } from "@galacean/engine-rhi-webgl";
+import { GLCapability, GLExtensions, GLRenderStates, WebGLGraphicDevice } from "@galacean/engine-rhi-webgl";
 import { Mixin, Overwrite } from "@/override";
 import { adaptContext } from "./context";
 import { initializeWebGL1Capabilities, type WebGL1GraphicDevice } from "./GLCapability";
 import { WebGL1Extension } from "./WebGL1Extension";
 
-@Mixin("WebGLGraphicDevice")
-export class WebGLGraphicDevice {
+@Mixin(WebGLGraphicDevice)
+export class WebGLGraphicDeviceMixin {
   declare _activeTextureID: number;
   declare _renderStates: GLRenderStates;
   declare _extensions: GLExtensions;

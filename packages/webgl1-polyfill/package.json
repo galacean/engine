@@ -10,7 +10,7 @@
   },
   "license": "MIT",
   "main": "dist/main.js",
-  "module": "dist/npm.module.js",
+  "module": "dist/module.mjs",
   "debug": "src/index.ts",
   "scripts": {
     "b:types": "tsc"
@@ -29,7 +29,7 @@
   "exports": {
     ".": {
       "types": "./types/index.d.ts",
-      "import": "./dist/npm.module.js",
+      "import": "./dist/module.mjs",
       "require": "./dist/main.js"
     }
   },
@@ -37,22 +37,5 @@
     "@galacean/engine-core": "workspace:*",
     "@galacean/engine-math": "workspace:*",
     "@galacean/engine-rhi-webgl": "workspace:*"
-  },
-  "rollup": {
-    "output": [
-      {
-        "file": "dist/module.js",
-        "format": "iife",
-        "name": "polyfill",
-        "sourcemap": true,
-        "globals": {
-          "@galacean/engine-core": "bindings",
-          "@galacean/engine-math": "bindings",
-          "@galacean/engine-rhi-webgl": "bindings"
-        },
-        "banner": "const registry = { devices: new WeakMap(), installedMembers: new WeakMap() };\nexport function bind(bindings) {",
-        "footer": "return polyfill.bind(bindings, registry);\n}"
-      }
-    ]
   }
 }

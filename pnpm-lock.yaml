@@ -275,6 +275,9 @@ importers:
       '@galacean/engine-math':
         specifier: workspace:*
         version: link:../math
+      '@galacean/engine-webgl1-polyfill':
+        specifier: workspace:*
+        version: link:../webgl1-polyfill
       '@types/webxr':
         specifier: ^0.5.24
         version: 0.5.24

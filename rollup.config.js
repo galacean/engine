@@ -84,10 +84,10 @@ function config({ location, pkgJson }) {
     })
   );
   curPlugins.push({
-    name: "preserve-runtime-import",
-    renderDynamicImport({ format, targetModuleId, customResolution }) {
-      // Runtime URLs cannot be loaded with CommonJS require().
-      if (format === "cjs" && targetModuleId === null && customResolution === null) {
+    name: "preserve-external-dynamic-import",
+    renderDynamicImport({ format, targetModuleId }) {
+      // Keep external imports splittable when an application bundles the CommonJS entry.
+      if (format === "cjs" && targetModuleId && isExternal(targetModuleId)) {
         return { left: "import(", right: ")" };
       }
       return null;
@@ -113,6 +113,7 @@ function config({ location, pkgJson }) {
             file,
             name: umdConfig.name,
             format: "umd",
+            inlineDynamicImports: true,
             sourcemap: true,
             globals: umdConfig.globals
           }
@@ -136,11 +137,7 @@ function config({ location, pkgJson }) {
             file: mainFile,
             sourcemap: true,
             format: "commonjs"
-          },
-          ...(pkgJson.rollup?.output ?? []).map((output) => ({
-            ...output,
-            file: path.join(location, output.file)
-          }))
+          }
         ],
         plugins: curPlugins
       };
@@ -180,8 +177,7 @@ function config({ location, pkgJson }) {
       };
     },
     bundled: (compress) => {
-      // ES module format with no external dependencies (bundled)
-      const bundledFile = path.join(location, "dist", compress ? "bundled.module.min.js" : "bundled.module.js");
+      const suffix = compress ? ".min.js" : ".js";
 
       const bundledPlugins = Array.from(curPlugins);
 
@@ -199,7 +195,9 @@ function config({ location, pkgJson }) {
         external: [], // No external dependencies - bundle everything
         output: [
           {
-            file: bundledFile,
+            dir: path.join(location, "dist"),
+            entryFileNames: `bundled.module${suffix}`,
+            chunkFileNames: `chunks/[name]-[hash]${suffix}`,
             format: "es",
             sourcemap: true
           }

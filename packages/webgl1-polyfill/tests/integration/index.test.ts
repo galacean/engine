@@ -1,6 +1,12 @@
 import { Camera, Color, ParticleRenderer, WebGLEngine, WebGLGraphicDevice } from "../../../galacean/dist/module.js";
 import { expect, it } from "vitest";
-import { makeFallbackCanvas, webgl1PolyfillURLPattern } from "../helpers/canvas";
+import { makeFallbackCanvas } from "../helpers/canvas";
+
+function polyfillRequests() {
+  return performance
+    .getEntriesByType("resource")
+    .filter((entry) => new URL(entry.name).pathname.endsWith("/webgl1-polyfill/dist/module.mjs"));
+}
 
 it("loads one compatibility module for concurrent real fallback devices and keeps WebGL2 TF active", async ({
   skip
@@ -19,6 +25,7 @@ it("loads one compatibility module for concurrent real fallback devices and keep
   const engines: WebGLEngine[] = [];
 
   try {
+    expect(polyfillRequests()).toHaveLength(0);
     expect(nativeDevice.isWebGL2).toBe(true);
     expect(nativeSimulation).not.toBeNull();
 
@@ -51,9 +58,7 @@ it("loads one compatibility module for concurrent real fallback devices and keep
       })
     );
 
-    expect(
-      performance.getEntriesByType("resource").filter((entry) => webgl1PolyfillURLPattern.test(entry.name))
-    ).toHaveLength(1);
+    expect(polyfillRequests()).toHaveLength(1);
     expect(nativeDevice._resolveFramebufferMipLevel).toBe(resolveNativeMipLevel);
     expect(nativeDevice._resolveFramebufferMipLevel(1)).toBe(1);
     nativeParticle._setTransformFeedback();
@@ -77,9 +82,7 @@ it("restores the WebGL1 device and redraws without fetching the module again", a
     camera.enablePostProcess = false;
     scene.background.solidColor = new Color(0, 1, 0, 1);
 
-    const requests = () =>
-      performance.getEntriesByType("resource").filter((entry) => webgl1PolyfillURLPattern.test(entry.name)).length;
-    const requestCount = requests();
+    const requestCount = polyfillRequests().length;
     const extension = gl.getExtension("WEBGL_lose_context")!;
     const lost = new Promise<void>((resolve) => engine.once("devicelost", () => resolve()));
     extension.loseContext();
@@ -97,7 +100,7 @@ it("restores the WebGL1 device and redraws without fetching the module again", a
     gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixel);
     expect(Array.from(pixel)).toEqual([0, 255, 0, 255]);
     expect(gl.getError()).toBe(gl.NO_ERROR);
-    expect(requests()).toBe(requestCount);
+    expect(polyfillRequests()).toHaveLength(requestCount);
   } finally {
     engine.destroy();
   }

@@ -1,16 +1,16 @@
 import { Logger, type Primitive, type SubPrimitive } from "@galacean/engine-core";
-import type { GLPrimitive as HostGLPrimitive } from "@galacean/engine-rhi-webgl";
+import { GLPrimitive } from "@galacean/engine-rhi-webgl";
 import { Mixin, Overwrite, Shadow } from "@/override";
 import type { WebGL1GraphicDevice } from "./GLCapability";
 import { WebGL1Extension } from "./WebGL1Extension";
 
-type ShaderProgram = Parameters<HostGLPrimitive["draw"]>[0];
+type ShaderProgram = Parameters<GLPrimitive["draw"]>[0];
 
-@Mixin("GLPrimitive", function () {
+@Mixin(GLPrimitive, function () {
   const rhi = this._primitive.engine._hardwareRenderer as WebGL1GraphicDevice;
   return !rhi.canIUse(WebGL1Extension.vertexArrayObject) || !rhi.canIUse(WebGL1Extension.instancedArrays);
 })
-export class GLPrimitive {
+export class GLPrimitiveMixin {
   @Shadow declare _gl: WebGL2RenderingContext;
   @Shadow declare _primitive: Primitive;
   @Shadow declare _attribLocArray: number[];

@@ -1,18 +1,4 @@
-import { beforeAll, vi } from "vitest";
-import { server } from "@vitest/browser/context";
-
-declare module "@vitest/browser/context" {
-  interface BrowserCommands {
-    mockRemoteAsset(pattern: string, localFile: string): Promise<void>;
-  }
-}
-
-export const webgl1PolyfillURLPattern =
-  /^https:\/\/mdn\.alipayobjects\.com\/rms\/afts\/file\/[^/]+\/engine-webgl1-polyfill\.js(?:\?retry=\d+)?$/;
-
-beforeAll(() =>
-  server.commands.mockRemoteAsset(webgl1PolyfillURLPattern.source, "packages/webgl1-polyfill/dist/module.js")
-);
+import { vi } from "vitest";
 
 export function createWebGL1Canvas(): HTMLCanvasElement {
   const canvas = document.createElement("canvas");

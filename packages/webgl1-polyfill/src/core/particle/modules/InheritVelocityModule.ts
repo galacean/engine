@@ -1,8 +1,13 @@
-import { ParticleInheritVelocityMode, ParticleSimulationSpace, type ParticleGenerator } from "@galacean/engine-core";
+import {
+  InheritVelocityModule,
+  ParticleInheritVelocityMode,
+  ParticleSimulationSpace,
+  type ParticleGenerator
+} from "@galacean/engine-core";
 import { Mixin, Overwrite, Shadow } from "@/override";
 
-@Mixin("InheritVelocityModule")
-export class InheritVelocityModule {
+@Mixin(InheritVelocityModule)
+export class InheritVelocityModuleMixin {
   @Shadow declare _generator: ParticleGenerator;
   @Shadow declare _mode: ParticleInheritVelocityMode;
 

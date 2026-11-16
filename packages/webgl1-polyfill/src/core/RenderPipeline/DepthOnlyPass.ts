@@ -1,4 +1,5 @@
 import {
+  DepthOnlyPass,
   type Camera,
   type Engine,
   PipelineUtils,
@@ -9,8 +10,8 @@ import {
 } from "@galacean/engine-core";
 import { Mixin, Overwrite, Shadow } from "@/override";
 
-@Mixin("DepthOnlyPass")
-export class DepthOnlyPass {
+@Mixin(DepthOnlyPass)
+export class DepthOnlyPassMixin {
   @Shadow declare renderTarget: RenderTarget | null;
   declare engine: Engine;
 

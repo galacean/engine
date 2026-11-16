@@ -1,50 +1,4 @@
-import {
-  Engine,
-  EngineConfiguration,
-  AmbientOcclusion,
-  SkinnedMeshRenderer,
-  InheritVelocityModule,
-  NoiseModule,
-  LimitVelocityOverLifetimeModule,
-  Scene,
-  ShaderPass,
-  ShaderMacro,
-  ShaderFactory,
-  BasicRenderPipeline,
-  Camera,
-  CameraClearFlags,
-  MeshRenderer,
-  ModelMesh,
-  BlendShapeManager,
-  Texture,
-  Texture2D,
-  TextureUtils,
-  TextureFormat,
-  TextureFilterMode,
-  TextureWrapMode,
-  PrimitiveMesh,
-  Logger,
-  GLCapabilityType,
-  ParticleGenerator,
-  ParticleInheritVelocityMode,
-  ParticleSimulationSpace,
-  ParticleRenderer,
-  VelocityOverLifetimeModule,
-  SubEmittersModule,
-  CascadedShadowCasterPass,
-  ShaderProgram,
-  BasicResources,
-  FontAtlas,
-  DepthOnlyPass,
-  ShaderMacroProcessor,
-  PipelineUtils
-} from "@galacean/engine-core";
-import { MathUtil } from "@galacean/engine-math";
-import { GLPrimitive } from "./GLPrimitive";
-import { GLCapability } from "./GLCapability";
-import { GLExtensions } from "./GLExtensions";
-import { GLRenderStates } from "./GLRenderStates";
-import { GLTexture } from "./GLTexture";
+import { Engine, type EngineConfiguration, Scene } from "@galacean/engine-core";
 import { WebGLGraphicDevice } from "./WebGLGraphicDevice";
 import type { WebGLGraphicDeviceOptions } from "./WebGLGraphicDevice";
 import { WebCanvas } from "./WebCanvas";
@@ -68,10 +22,15 @@ export class WebGLEngine extends Engine {
         device._setContext(webCanvas._webCanvas, gl);
         return WebGLEngine._createWithContext(webCanvas, device, configuration);
       }
-      return loadRendererFallback().then((polyfill) => {
-        polyfill(device, webCanvas);
-        return WebGLEngine._createWithContext(webCanvas, device, configuration);
-      });
+      return import("@galacean/engine-webgl1-polyfill").then(
+        ({ installWebGL1 }) => {
+          installWebGL1(device, webCanvas);
+          return WebGLEngine._createWithContext(webCanvas, device, configuration);
+        },
+        (cause: unknown) => {
+          throw new Error("Could not load renderer fallback.", { cause });
+        }
+      );
     } catch (error) {
       return Promise.reject(error);
     }
@@ -122,74 +81,4 @@ export interface WebGLEngineConfiguration extends EngineConfiguration {
   canvas: HTMLCanvasElement | OffscreenCanvas | string;
   /** Graphic device options. */
   graphicDeviceOptions?: WebGLGraphicDeviceOptions;
-}
-
-// Upload a new AFTS asset when the compatibility module changes.
-const fallbackModuleURL =
-  "https://mdn.alipayobjects.com/rms/afts/file/A*F8poQ6TnoI4AAAAAQ_AAAAgAehQnAQ/engine-webgl1-polyfill.js";
-let pendingFallback: Promise<(device: WebGLGraphicDevice, canvas: WebCanvas) => void> | undefined;
-let fallbackRetry = 0;
-
-function loadRendererFallback() {
-  if (!pendingFallback) {
-    const url = fallbackRetry ? fallbackModuleURL + "?retry=" + fallbackRetry : fallbackModuleURL;
-    pendingFallback = import(/* webpackIgnore: true */ /* @vite-ignore */ url)
-      .then((module) => {
-        if (typeof module.bind !== "function") {
-          throw new Error("Invalid renderer fallback module.");
-        }
-        return module.bind({
-          Engine,
-          AmbientOcclusion,
-          SkinnedMeshRenderer,
-          InheritVelocityModule,
-          NoiseModule,
-          LimitVelocityOverLifetimeModule,
-          ParticleInheritVelocityMode,
-          ParticleSimulationSpace,
-          ShaderPass,
-          ShaderMacro,
-          ShaderFactory,
-          BasicRenderPipeline,
-          Camera,
-          CameraClearFlags,
-          MeshRenderer,
-          ModelMesh,
-          BlendShapeManager,
-          Texture,
-          Texture2D,
-          TextureUtils,
-          TextureFormat,
-          TextureFilterMode,
-          TextureWrapMode,
-          PrimitiveMesh,
-          Logger,
-          GLCapabilityType,
-          ParticleGenerator,
-          ParticleRenderer,
-          VelocityOverLifetimeModule,
-          SubEmittersModule,
-          GLPrimitive,
-          GLCapability,
-          GLExtensions,
-          GLRenderStates,
-          GLTexture,
-          MathUtil,
-          WebGLGraphicDevice,
-          CascadedShadowCasterPass,
-          ShaderProgram,
-          BasicResources,
-          FontAtlas,
-          DepthOnlyPass,
-          ShaderMacroProcessor,
-          PipelineUtils
-        });
-      })
-      .catch((cause: unknown) => {
-        pendingFallback = undefined;
-        fallbackRetry++;
-        throw new Error("Could not load renderer fallback.", { cause });
-      });
-  }
-  return pendingFallback;
 }

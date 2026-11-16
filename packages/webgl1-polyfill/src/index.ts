@@ -1,25 +1,23 @@
 import "./overrides";
+import { Logger } from "@galacean/engine-core";
 import type { WebCanvas, WebGLGraphicDevice } from "@galacean/engine-rhi-webgl";
-import { bindOverrides, type Bindings, type Registry } from "./override";
+import { installOverrides } from "./override";
 
 /**
- * Bind the polyfill to the engine classes supplied by the caller.
- * @param bindings - Classes used by the calling engine build
- * @param registry - Shared installation state for the CDN output
- * @returns A function that prepares a device with its WebGL1 context
+ * Prepare a device with a WebGL1 context and install its compatibility overrides.
+ * @param device - Graphics device being initialized
+ * @param canvas - Canvas that will own the context
+ * @throws If the canvas cannot create a WebGL1 context
  */
-export function bind(bindings: Bindings, registry?: Registry): (device: WebGLGraphicDevice, canvas: WebCanvas) => void {
-  let registerDevice: ((device: WebGLGraphicDevice) => void) | undefined;
+export function installWebGL1(device: WebGLGraphicDevice, canvas: WebCanvas): void {
+  const nativeCanvas = canvas._webCanvas;
+  const gl =
+    nativeCanvas.getContext("webgl", device["_webGLOptions"]) ||
+    (!canvas._isOffscreenCanvas() && nativeCanvas.getContext("experimental-webgl", device["_webGLOptions"]));
+  if (!gl) throw new Error("Get GL Context FAILED.");
 
-  return (device, canvas) => {
-    const nativeCanvas = canvas._webCanvas;
-    const gl =
-      nativeCanvas.getContext("webgl", device["_webGLOptions"]) ||
-      (!canvas._isOffscreenCanvas() && nativeCanvas.getContext("experimental-webgl", device["_webGLOptions"]));
-    if (!gl) throw new Error("Get GL Context FAILED.");
-    registerDevice ??= bindOverrides(bindings, registry);
-    device._setContext(nativeCanvas, gl as WebGL2RenderingContext, false);
-    registerDevice(device);
-    bindings.Logger.warn("WebGL1 compatibility mode enabled.");
-  };
+  const registerDevice = installOverrides();
+  device._setContext(nativeCanvas, gl as WebGL2RenderingContext, false);
+  registerDevice(device);
+  Logger.warn("WebGL1 compatibility mode enabled.");
 }

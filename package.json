@@ -22,7 +22,7 @@
     "dev": "npm run precompile && cross-env NODE_ENV=development BUILD_TYPE=MODULE rollup -cw -m inline",
     "b:compiler": "pnpm -F @galacean/engine-shader-compiler run build",
     "precompile": "npm run b:compiler && cross-env GALACEAN_SHADER_COMPILER_BOOTSTRAP=true pnpm -F @galacean/engine-shader precompile",
-    "b:types": "pnpm -r --filter=./packages/* run b:types",
+    "b:types": "pnpm -r --filter=./packages/* --filter=\"!@galacean/engine-webgl1-polyfill\" run b:types && pnpm -F @galacean/engine-webgl1-polyfill run b:types",
     "b:module": "npm run precompile && cross-env BUILD_TYPE=MODULE NODE_ENV=release rollup -c",
     "b:umd": "npm run precompile && cross-env BUILD_TYPE=UMD NODE_ENV=release rollup -c",
     "b:bundled": "npm run precompile && cross-env BUILD_TYPE=BUNDLED NODE_ENV=release rollup -c",

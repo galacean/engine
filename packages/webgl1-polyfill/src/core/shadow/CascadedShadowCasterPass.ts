@@ -1,7 +1,6 @@
 import {
   CameraClearFlags,
-  CascadedShadowCasterPass as CoreCascadedShadowCasterPass,
-  type CascadedShadowCasterPass as HostShadowPass,
+  CascadedShadowCasterPass,
   type Engine,
   PipelineUtils,
   type RenderTarget,
@@ -14,8 +13,8 @@ import { Mixin, Overwrite, Shadow } from "@/override";
 import type { WebGL1GraphicDevice } from "../../rhi-webgl/GLCapability";
 import { WebGL1Extension } from "../../rhi-webgl/WebGL1Extension";
 
-@Mixin("CascadedShadowCasterPass")
-export class CascadedShadowCasterPass {
+@Mixin(CascadedShadowCasterPass)
+export class CascadedShadowCasterPassMixin {
   @Shadow declare _depthTexture: Texture | null;
   @Shadow declare _renderTarget: RenderTarget | null;
   @Shadow declare _shadowMapFormat: TextureFormat;
@@ -29,8 +28,8 @@ export class CascadedShadowCasterPass {
       : TextureFormat.R8G8B8A8;
   }
   @Overwrite
-  _prepareShadowMap(context: Parameters<HostShadowPass["onRender"]>[0]) {
-    const shadow = CoreCascadedShadowCasterPass;
+  _prepareShadowMap(context: Parameters<CascadedShadowCasterPass["onRender"]>[0]) {
+    const shadow = CascadedShadowCasterPass;
     const depth = (this.engine._hardwareRenderer as WebGL1GraphicDevice).canIUse(WebGL1Extension.depthTexture);
     const { z: width, w: height } = this._shadowMapSize;
     const target = PipelineUtils.recreateRenderTargetIfNeeded(

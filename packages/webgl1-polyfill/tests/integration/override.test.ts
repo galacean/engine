@@ -1,4 +1,4 @@
-import { bindOverrides, Mixin, Overwrite, type Bindings } from "../../src/override";
+import { installOverrides, Mixin, Overwrite } from "../../src/override";
 import {
   ParticleRenderer,
   SystemInfo,
@@ -46,10 +46,6 @@ it("keeps original descriptors on validation and commit failure, then installs o
   }
 
   class Device {}
-  for (const target of ["Camera", "Texture"] as const) {
-    Overwrite(Replacement.prototype, "method", Object.getOwnPropertyDescriptor(Replacement.prototype, "method")!);
-    Mixin(target)(Replacement);
-  }
   const descriptor = Object.getOwnPropertyDescriptor(First.prototype, "method")!;
   const latePrototype = Object.create(null);
   let rejectWrite = true;
@@ -61,25 +57,27 @@ it("keeps original descriptors on validation and commit failure, then installs o
       return Reflect.defineProperty(object, key, next);
     }
   });
-  const bindings = { WebGLGraphicDevice: Device, Camera: First, Texture: Late } as unknown as Bindings;
+  Overwrite(Replacement.prototype, "method", Object.getOwnPropertyDescriptor(Replacement.prototype, "method")!);
+  Mixin(First)(Replacement);
+  Mixin(Late)(Replacement);
 
-  expect(() => bindOverrides(bindings)).toThrow("Incompatible engine member: method");
+  expect(() => installOverrides()).toThrow("Incompatible engine member: method");
   expect(Object.getOwnPropertyDescriptor(First.prototype, "method")).toEqual(descriptor);
 
   Object.defineProperty(latePrototype, "method", descriptor);
-  expect(() => bindOverrides(bindings)).toThrow("blocked");
+  expect(() => installOverrides()).toThrow("blocked");
   expect(Object.getOwnPropertyDescriptor(First.prototype, "method")).toEqual(descriptor);
   expect(Object.getOwnPropertyDescriptor(latePrototype, "method")).toEqual(descriptor);
 
   rejectWrite = false;
-  const registerDevice = bindOverrides(bindings);
+  const registerDevice = installOverrides();
   expect(First.prototype.method).not.toBe(descriptor.value);
   expect(latePrototype.method).not.toBe(descriptor.value);
 
   const fallback = new Device() as WebGLGraphicDevice;
   registerDevice(fallback);
   const installedMethod = First.prototype.method;
-  bindOverrides(bindings);
+  installOverrides();
   expect(First.prototype.method).toBe(installedMethod);
   const legacyOwner = vi.fn(() => fallback);
   const nativeOwner = vi.fn(() => ({ isWebGL2: true }));

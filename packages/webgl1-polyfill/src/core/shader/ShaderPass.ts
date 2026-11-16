@@ -4,7 +4,7 @@ import {
   ShaderMacro,
   type ShaderMacroCollection,
   ShaderMacroProcessor,
-  type ShaderPass as HostShaderPass
+  ShaderPass
 } from "@galacean/engine-core";
 import { Mixin, Overwrite, Shadow } from "@/override";
 import type { WebGL1GraphicDevice } from "../../rhi-webgl/GLCapability";
@@ -27,10 +27,10 @@ precision mediump int;
 #endif
 `;
 
-@Mixin("ShaderPass")
-export class ShaderPass {
-  @Shadow declare _vertexShaderInstructions: HostShaderPass["_vertexShaderInstructions"];
-  @Shadow declare _fragmentShaderInstructions: HostShaderPass["_fragmentShaderInstructions"];
+@Mixin(ShaderPass)
+export class ShaderPassMixin {
+  @Shadow declare _vertexShaderInstructions: ShaderPass["_vertexShaderInstructions"];
+  @Shadow declare _fragmentShaderInstructions: ShaderPass["_fragmentShaderInstructions"];
 
   @Overwrite
   _compileShaderSource(engine: Engine, macroCollection: ShaderMacroCollection, isGPUInstance: boolean) {

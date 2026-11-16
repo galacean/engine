@@ -1,3 +1,4 @@
+import { GLTexture } from "@galacean/engine-rhi-webgl";
 import { type TextureDepthCompareFunction, TextureFormat } from "@galacean/engine-core";
 import type { WebGL1GraphicDevice } from "./GLCapability";
 import { Mixin, Overwrite, Shadow } from "@/override";
@@ -5,10 +6,10 @@ import { textureFormat } from "./textureFormat";
 import { textureStorage } from "./textureStorage";
 import { WebGL1Extension } from "./WebGL1Extension";
 
-const allocatedMips = new WeakMap<GLTexture, Map<number, number>>();
+const allocatedMips = new WeakMap<GLTextureMixin, Map<number, number>>();
 
-@Mixin("GLTexture")
-export class GLTexture {
+@Mixin(GLTexture)
+export class GLTextureMixin {
   @Shadow declare _formatDetail: { isCompressed: boolean; internalFormat: number };
   @Shadow declare _gl: WebGLRenderingContext;
 
