@@ -1,0 +1,24 @@
+packages/farming/src/farming/native/FarmingAPIContract.ts
+  h_a3c79ce84ffdc2 449,470
+packages/farming/src/farming/native/FarmingAPIDeclarations.ts
+  h_a3c79ce84ffdc2 3
+packages/farming/src/farming/native/FarmingMethodDocs.ts
+  h_a3c79ce84ffdc2 161,176
+packages/farming/src/skills/farming/SKILL.md
+  h_a3c79ce84ffdc2 46-48,72,75
+packages/farming/src/skills/farming/references/operations.md
+  h_a3c79ce84ffdc2 130,145
+packages/farming/src/skills/farming/references/verification.md
+  h_a3c79ce84ffdc2 3-5,32-34
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "247c353ad49df7d07f6d4ff84a1c35a620022f0a",
+  "prompts": {},
+  "humans": {
+    "h_a3c79ce84ffdc2": {
+      "author": "星翊 <sunmingming.smm@antgroup.com>"
+    }
+  }
+}
