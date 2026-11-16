@@ -33,4 +33,4 @@ Fixed physics frequency is independent of rendered-frame frequency. A rendered f
 
 ## Hosts without graphics
 
-Standalone host tools can use `@galacean/engine/headless` to create the same Engine objects without a graphics context. Reading transforms or bounds does not require `run()` or `update()`. Both methods execute gameplay lifecycle callbacks and animation; do not advance simulation merely to inspect authored state. Camera rendering and its callbacks are skipped. GPU operations and host-specific services such as font measurement remain unavailable unless the host provides them.
+Standalone host tools can use `@galacean/engine/headless` to create the same Engine objects without a graphics context. Reading transforms or bounds does not require `run()` or `update()`. Both methods execute gameplay lifecycle callbacks and animation; do not advance simulation merely to inspect authored state. Active CPU particle systems continue simulating without camera visibility results. Camera rendering and its callbacks are skipped. GPU operations and host-specific services such as font measurement remain unavailable unless the host provides them.

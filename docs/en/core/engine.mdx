@@ -90,6 +90,6 @@ console.log(renderer.bounds);
 engine.destroy();
 ```
 
-This entry uses the same scene, transform, mesh, material and resource classes as the browser entry. Creation leaves the engine paused. Reading bounds does not advance simulation. Call `update()` for one frame or `run()` for the host-driven loop; scripts and animation then follow the regular lifecycle. `pause()` and `destroy()` stop the loop.
+This entry uses the same scene, transform, mesh, material and resource classes as the browser entry. Creation leaves the engine paused. Reading bounds does not advance simulation. Call `update()` for one frame or `run()` for the host-driven loop; scripts and animation then follow the regular lifecycle, and active CPU particle systems continue simulating without camera visibility results. `pause()` and `destroy()` stop the loop.
 
 No graphics context or DOM input is created. Camera rendering is skipped; GPU compilation, pixel readback and transform feedback are unavailable. JSON, text and binary resource requests use fetch when XMLHttpRequest is absent. Image decoders, font measurement, audio playback, XR and the bundled PhysX bootstrap still need their corresponding host services. The null backend does not substitute results for these unavailable operations.

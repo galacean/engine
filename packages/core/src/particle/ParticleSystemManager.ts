@@ -49,14 +49,19 @@ export class ParticleSystemManager {
       return;
     }
 
-    const frameCount = ordered[0].engine.time.frameCount;
+    const engine = ordered[0].engine;
+    const frameCount = engine.time.frameCount;
+    const canCullSimulation = engine._hardwareRenderer.supportsRendering;
     for (let i = 0; i < rendererCount; i++) {
       const renderer = ordered[i];
       const generator = renderer.generator;
 
       const canEmitToDependents = generator.isAlive || generator._incomingSubEmitterCommands.length > 0;
+      // A host without rendering cannot produce camera visibility results
       const shouldSimulate =
-        !renderer.isCulled || (renderer._subEmitterDependencyFrame === frameCount && canEmitToDependents);
+        !canCullSimulation ||
+        !renderer.isCulled ||
+        (renderer._subEmitterDependencyFrame === frameCount && canEmitToDependents);
       if (!shouldSimulate) {
         generator._resyncAfterCulling();
         continue;

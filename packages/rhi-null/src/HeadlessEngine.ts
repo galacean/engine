@@ -1,4 +1,4 @@
-import { Engine, EngineConfiguration, Scene } from "@galacean/engine-core";
+import { Engine, EngineConfiguration } from "@galacean/engine-core";
 import { HeadlessCanvas } from "./HeadlessCanvas";
 import { NullGraphicDevice } from "./NullGraphicDevice";
 
@@ -12,16 +12,7 @@ export class HeadlessEngine extends Engine {
   static create(configuration: HeadlessEngineConfiguration = {}): Promise<HeadlessEngine> {
     const canvas = new HeadlessCanvas(configuration.width, configuration.height);
     const engine = new HeadlessEngine(canvas, new NullGraphicDevice(), configuration);
-    return engine
-      ._initialize(configuration)
-      .then(() => {
-        engine.sceneManager.addScene(new Scene(engine, "DefaultScene"));
-        return engine;
-      })
-      .catch((error) => {
-        engine.destroy();
-        throw error;
-      });
+    return engine._initialize(configuration);
   }
 }
 

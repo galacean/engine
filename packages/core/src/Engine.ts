@@ -637,47 +637,51 @@ export class Engine extends EventDispatcher {
   /**
    * @internal
    */
-  protected _initialize(configuration: EngineConfiguration): Promise<Engine> {
+  protected async _initialize(configuration: EngineConfiguration): Promise<this> {
     const { shaderCompiler, physics } = configuration;
-
-    if (shaderCompiler && !Shader._shaderCompiler) {
-      // Bind the runtime include map so the preprocessor sees every chunk
-      // the umbrella package's ShaderPool registered into ShaderFactory.
-      // shader-compiler defaults to an empty map and stays free of any direct
-      // ShaderFactory dependency, so the binding has to be wired here at the
-      // runtime boundary.
-      shaderCompiler._setIncludeMap(ShaderFactory.includeMap);
-      Shader._shaderCompiler = shaderCompiler;
-    }
-
     const initializePromises: (Promise<unknown> | void)[] = [];
-    if (physics) {
-      initializePromises.push(
-        physics.initialize().then(() => {
-          if (Engine._nativePhysics !== physics) {
-            if (Engine._nativePhysics) {
-              console.warn(
-                "A physics engine has already been configured. All physics operations will now be handled by the newly specified physics engine."
-              );
-            }
-            Engine._nativePhysics = physics;
-            BasicResources._initializePhysics();
+    try {
+      if (shaderCompiler && !Shader._shaderCompiler) {
+        // Bind runtime includes before any loader can compile shaders
+        shaderCompiler._setIncludeMap(ShaderFactory.includeMap);
+        Shader._shaderCompiler = shaderCompiler;
+      }
+
+      if (physics) initializePromises.push(physics.initialize());
+
+      const loaders = ResourceManager._loaders;
+      for (const key in loaders) {
+        const loader = loaders[key];
+        if (loader.initialize) initializePromises.push(loader.initialize(this, configuration));
+      }
+
+      initializePromises.push(this._basicResources._initialize());
+      await Promise.all(initializePromises);
+      if (this.destroyed) throw new Error("Engine was destroyed during initialization.");
+
+      // Publish physics only after all initialization work has succeeded
+      if (physics) {
+        this._nativePhysicsManager = physics.createPhysicsManager();
+        if (Engine._nativePhysics !== physics) {
+          if (Engine._nativePhysics) {
+            console.warn(
+              "A physics engine has already been configured. All physics operations will now be handled by the newly specified physics engine."
+            );
           }
-          this._nativePhysicsManager = physics.createPhysicsManager();
-          this._physicsInitialized = true;
-          return this;
-        })
-      );
-    }
+          Engine._nativePhysics = physics;
+          BasicResources._initializePhysics();
+        }
+        this._physicsInitialized = true;
+      }
 
-    const loaders = ResourceManager._loaders;
-    for (const key in loaders) {
-      const loader = loaders[key];
-      if (loader.initialize) initializePromises.push(loader.initialize(this, configuration));
+      this.sceneManager.addScene(new Scene(this, "DefaultScene"));
+      return this;
+    } catch (error) {
+      // Pending loaders may still create resources that destruction must release
+      await Promise.allSettled(initializePromises);
+      this.destroy();
+      throw error;
     }
-
-    initializePromises.push(this._basicResources._initialize());
-    return Promise.all(initializePromises).then(() => this);
   }
 
   private _onDeviceLost(): void {

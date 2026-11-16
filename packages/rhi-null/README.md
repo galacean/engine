@@ -19,6 +19,6 @@ The backend retains buffer bytes, texture descriptors, materials and references.
 
 The regular resource manager and loaders remain in use. In Node, requests use fetch for JSON, text, blobs and array buffers. Image decoding, system-font measurement, audio playback, XR and browser-only loader extensions still require their corresponding host services; the bundled PhysX bootstrap also currently requires a browser. Supply a host-compatible physics implementation through `physics` when needed. The headless entry does not emulate them or manufacture results.
 
-CPU particle simulation follows the existing non-transform-feedback path. GPU-only particle modules are unavailable. Skin bounds retain the existing Engine semantics; headless execution does not add vertex-deformation bounds or a second geometry implementation.
+CPU particle simulation follows the existing non-transform-feedback path. Active systems continue simulating without camera visibility results. GPU-only particle modules are unavailable. Skin bounds retain the existing Engine semantics; headless execution does not add vertex-deformation bounds or a second geometry implementation.
 
 The `@galacean/engine-rhi-null` package exposes `HeadlessEngine`, `HeadlessCanvas` and `NullGraphicDevice` for custom engine bootstraps. As with `WebGLEngine`, such bootstraps must register their classes, loaders and built-in shaders; use the umbrella headless entry for the default setup.

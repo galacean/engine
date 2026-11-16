@@ -166,13 +166,15 @@ function requestWithFetch<T>(url: string, config: RequestConfig): AssetPromise<T
             result = await response.text();
         }
         setTaskCompleteProgress(1, 1);
-        resolve(result as T);
+        return result as T;
       })
-      .catch(reject)
       .finally(() => {
+        // A rejected response may still own an unread body and connection
+        abort();
         clearTimeout(timeout);
         signal?.removeEventListener("abort", abort);
-      });
+      })
+      .then(resolve, reject);
   });
 }
 
