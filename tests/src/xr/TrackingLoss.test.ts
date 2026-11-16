@@ -1,4 +1,4 @@
-import { IXRGraphicsBinding, IXRInput, IXRRequestImage, IXRTrackedImage } from "@galacean/engine-design";
+import { IXRInput, IXRRequestImage, IXRTrackedImage } from "@galacean/engine-design";
 import {
   XRAnchor as EngineXRAnchor,
   XRController,
@@ -107,7 +107,12 @@ describe("WebXR tracking loss", () => {
     const makeXRCompatible = vi.fn();
     Object.defineProperty(navigator, "xr", { configurable: true, value: { requestSession } });
     try {
-      const rhi = { gl: { getContextAttributes: () => null, makeXRCompatible } } as unknown as IXRGraphicsBinding;
+      await expect(new WebXRDevice().requestSession({}, XRSessionMode.AR, [])).rejects.toThrow(
+        "WebXR requires a WebGL graphics device."
+      );
+      expect(requestSession).not.toHaveBeenCalled();
+
+      const rhi = { gl: { getContextAttributes: () => null, makeXRCompatible } };
       await expect(new WebXRDevice().requestSession(rhi, XRSessionMode.AR, [])).rejects.toThrow(
         "GetContextAttributes Error!"
       );
@@ -120,6 +125,32 @@ describe("WebXR tracking loss", () => {
         Reflect.deleteProperty(navigator, "xr");
       }
     }
+  });
+
+  it("synchronizes and resets the WebGL main framebuffer across session updates, stop and exit", async () => {
+    const framebuffer = {} as WebGLFramebuffer;
+    const rhi = {
+      isWebGL2: true,
+      gl: {} as WebGL2RenderingContext,
+      _mainFrameBuffer: null as WebGLFramebuffer | null,
+      _mainFrameWidth: 0,
+      _mainFrameHeight: 0
+    };
+    const end = vi.fn().mockResolvedValue(undefined);
+    const session = new WebXRSession(
+      rhi,
+      { requestAnimationFrame: () => 1, cancelAnimationFrame: () => {}, end } as unknown as XRSession,
+      { framebuffer, framebufferWidth: 1024, framebufferHeight: 768 } as XRWebGLLayer,
+      {} as XRReferenceSpace
+    );
+
+    session.onUpdate();
+    expect(rhi).toMatchObject({ _mainFrameBuffer: framebuffer, _mainFrameWidth: 1024, _mainFrameHeight: 768 });
+    session.stop();
+    expect(rhi).toMatchObject({ _mainFrameBuffer: null, _mainFrameWidth: 0, _mainFrameHeight: 0 });
+    session.onUpdate();
+    await session.end();
+    expect(rhi).toMatchObject({ _mainFrameBuffer: null, _mainFrameWidth: 0, _mainFrameHeight: 0 });
   });
 
   it("returns false and no platform feature for an unknown feature type", () => {

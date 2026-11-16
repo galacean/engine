@@ -3,6 +3,14 @@ import { XRInputEventType, XRTargetRayMode, XRTrackedInputDevice } from "@galace
 import { getInputSource } from "./Util";
 import { WebXRFrame } from "./WebXRFrame";
 
+export interface WebXRGraphicDevice {
+  readonly isWebGL2: boolean;
+  readonly gl: WebGLRenderingContext | WebGL2RenderingContext;
+  _mainFrameBuffer: WebGLFramebuffer | null;
+  _mainFrameWidth: number;
+  _mainFrameHeight: number;
+}
+
 export class WebXRSession implements IXRSession {
   requestAnimationFrame: (callback: FrameRequestCallback) => number;
   cancelAnimationFrame: (id: number) => void;
@@ -35,10 +43,6 @@ export class WebXRSession implements IXRSession {
 
   get frame(): WebXRFrame {
     return this._frame;
-  }
-
-  get framebuffer(): WebGLFramebuffer {
-    return this._platformLayer.framebuffer;
   }
 
   get framebufferWidth(): number {
@@ -78,7 +82,12 @@ export class WebXRSession implements IXRSession {
     return events;
   }
 
-  constructor(session: XRSession, layer: XRWebGLLayer, referenceSpace: XRReferenceSpace) {
+  constructor(
+    private _rhi: WebXRGraphicDevice,
+    session: XRSession,
+    layer: XRWebGLLayer,
+    referenceSpace: XRReferenceSpace
+  ) {
     this._frame = new WebXRFrame(this);
     this._platformSession = session;
     this._platformLayer = layer;
@@ -106,14 +115,23 @@ export class WebXRSession implements IXRSession {
     this._platformLayer.fixedFoveation = value;
   }
 
+  onUpdate(): void {
+    const { _rhi: rhi, _platformLayer: layer } = this;
+    rhi._mainFrameBuffer = layer.framebuffer;
+    rhi._mainFrameWidth = layer.framebufferWidth;
+    rhi._mainFrameHeight = layer.framebufferHeight;
+  }
+
   start(): void {}
 
   stop(): void {
     this._frame._platformFrame = null;
+    this._clearMainFrameBuffer();
   }
 
   end(): Promise<void> {
     this._frame._platformFrame = null;
+    this._clearMainFrameBuffer();
     return this._platformSession.end();
   }
 
@@ -149,10 +167,17 @@ export class WebXRSession implements IXRSession {
   }
 
   private _onSessionExit(): void {
+    this._clearMainFrameBuffer();
     if (this._onSessionExitCallBack) {
       this._onSessionExitCallBack();
       this._onSessionExitCallBack = null;
     }
+  }
+
+  private _clearMainFrameBuffer(): void {
+    const rhi = this._rhi;
+    rhi._mainFrameBuffer = null;
+    rhi._mainFrameWidth = rhi._mainFrameHeight = 0;
   }
 
   private _onSessionEvent(inputSourceEvent: XRInputSourceEvent): void {

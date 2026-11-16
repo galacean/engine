@@ -21,5 +21,3 @@ export type { IXRTrackedPlane } from "./feature/trackable/plane/IXRTrackedPlane"
 export type { IXRDevice } from "./IXRDevice";
 export type { IXRFrame } from "./IXRFrame";
 export type { IXRSession } from "./IXRSession";
-
-export type { IXRGraphicsBinding } from "./IXRGraphicsBinding";

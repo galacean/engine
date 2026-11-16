@@ -1,8 +1,12 @@
-import { IXRGraphicsBinding, IXRDevice } from "@galacean/engine-design";
+import { IXRDevice } from "@galacean/engine-design";
 import { XRFeatureType, XRSessionMode } from "@galacean/engine-xr";
 import { parseXRMode } from "./Util";
-import { WebXRSession } from "./WebXRSession";
+import { WebXRGraphicDevice, WebXRSession } from "./WebXRSession";
 import { WebXRFeature } from "./feature/WebXRFeature";
+
+function isWebXRGraphicDevice(rhi: unknown): rhi is WebXRGraphicDevice {
+  return typeof rhi === "object" && rhi !== null && "gl" in rhi && typeof rhi.gl === "object" && rhi.gl !== null;
+}
 
 export class WebXRDevice implements IXRDevice {
   /** @internal */
@@ -44,11 +48,10 @@ export class WebXRDevice implements IXRDevice {
     return platformFeatureConstructor ? new platformFeatureConstructor(...args) : null;
   }
 
-  requestSession(
-    rhi: IXRGraphicsBinding,
-    mode: XRSessionMode,
-    platformFeatures: WebXRFeature[]
-  ): Promise<WebXRSession> {
+  requestSession(rhi: unknown, mode: XRSessionMode, platformFeatures: WebXRFeature[]): Promise<WebXRSession> {
+    if (!isWebXRGraphicDevice(rhi)) {
+      return Promise.reject(new Error("WebXR requires a WebGL graphics device."));
+    }
     return new Promise((resolve, reject) => {
       const sessionMode = parseXRMode(mode)!;
       const options: XRSessionInit = { requiredFeatures: ["local"], optionalFeatures: [] };
@@ -87,7 +90,7 @@ export class WebXRDevice implements IXRDevice {
               });
             }
             session.requestReferenceSpace("local").then((referenceSpace: XRReferenceSpace) => {
-              resolve(new WebXRSession(session, layer, referenceSpace));
+              resolve(new WebXRSession(rhi, session, layer, referenceSpace));
             }, reject);
           }, reject);
         }, reject);

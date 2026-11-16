@@ -1,4 +1,3 @@
-import type { IXRGraphicsBinding } from "./IXRGraphicsBinding";
 import { IXRSession } from "./IXRSession";
 import { IXRPlatformFeature } from "./feature/IXRPlatformFeature";
 
@@ -27,9 +26,9 @@ export interface IXRDevice {
 
   /**
    * Request a session.
-   * @param rhi - Graphics context and framebuffer binding for the session
+   * @param rhi - Backend-specific graphics device handle
    * @param mode - The mode of the session
    * @param platformFeatures - The requested platform features
    */
-  requestSession(rhi: IXRGraphicsBinding, mode: number, platformFeatures: IXRPlatformFeature[]): Promise<IXRSession>;
+  requestSession(rhi: unknown, mode: number, platformFeatures: IXRPlatformFeature[]): Promise<IXRSession>;
 }

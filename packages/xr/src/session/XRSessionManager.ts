@@ -1,5 +1,5 @@
 import { Engine, Signal } from "@galacean/engine";
-import { IXRGraphicsBinding, IXRSession, IXRPlatformFeature } from "@galacean/engine-design";
+import { IXRSession, IXRPlatformFeature } from "@galacean/engine-design";
 import { XRManagerExtended } from "../XRManagerExtended";
 import { XRFeature } from "../feature/XRFeature";
 import { XRSessionMode } from "./XRSessionMode";
@@ -17,7 +17,6 @@ export class XRSessionManager {
 
   private _mode: XRSessionMode = XRSessionMode.None;
   private _state: XRSessionState = XRSessionState.None;
-  private _rhi: IXRGraphicsBinding;
   private _raf: (callback: FrameRequestCallback) => number;
   private _caf: (id: number) => void;
 
@@ -56,7 +55,6 @@ export class XRSessionManager {
     private _xrManager: XRManagerExtended,
     private _engine: Engine
   ) {
-    this._rhi = _engine._hardwareRenderer as unknown as IXRGraphicsBinding;
     this._raf = requestAnimationFrame.bind(window);
     this._caf = cancelAnimationFrame.bind(window);
     this._onSessionExit = this._onSessionExit.bind(this);
@@ -92,15 +90,13 @@ export class XRSessionManager {
    * Stop the session.
    */
   stop(): void {
-    const { _platformSession: platformSession, _engine: engine, _rhi: rhi } = this;
+    const { _platformSession: platformSession, _engine: engine } = this;
     if (!platformSession) {
       throw new Error("Without session to stop.");
     }
     if (this._state !== XRSessionState.Running) {
       throw new Error("Session is not running.");
     }
-    rhi._mainFrameBuffer = null;
-    rhi._mainFrameWidth = rhi._mainFrameHeight = 0;
     platformSession.stop();
     this._setState(XRSessionState.Paused);
     this._xrManager._onSessionStop();
@@ -131,7 +127,7 @@ export class XRSessionManager {
         platformFeature && platformFeatures.push(platformFeature);
       }
       xrManager._platformDevice
-        .requestSession(this._rhi, mode, platformFeatures)
+        .requestSession(this._engine._hardwareRenderer, mode, platformFeatures)
         .then((platformSession: IXRSession) => {
           this._mode = mode;
           this._platformSession = platformSession;
@@ -148,10 +144,7 @@ export class XRSessionManager {
    * @internal
    */
   _onUpdate() {
-    const { _rhi: rhi, _platformSession: platformSession } = this;
-    rhi._mainFrameBuffer = platformSession!.framebuffer;
-    rhi._mainFrameWidth = platformSession!.framebufferWidth;
-    rhi._mainFrameHeight = platformSession!.framebufferHeight;
+    this._platformSession!.onUpdate();
   }
 
   /**
@@ -188,9 +181,7 @@ export class XRSessionManager {
   }
 
   private _onSessionExit() {
-    const { _rhi: rhi, _platformSession: platformSession, _engine: engine } = this;
-    rhi._mainFrameBuffer = null;
-    rhi._mainFrameWidth = rhi._mainFrameHeight = 0;
+    const { _platformSession: platformSession, _engine: engine } = this;
     platformSession!.removeEventListener();
     this._platformSession = null;
     this._setState(XRSessionState.None);
