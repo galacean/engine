@@ -1,0 +1,23 @@
+packages/world-planning/package.json
+  s_c5192f23876072::t_bc9d7ce04b644a 31
+packages/world-planning/tests/CoastalSeabed.spec.ts
+  s_c5192f23876072::t_26766103128154 1-14
+packages/world-planning/src/generation/terrain/CoastalSeabed.ts
+  s_c5192f23876072::t_9d3574d7fa71e1 1-59
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "4e7919a4b8a8c75499e00c9291627be7a46d932a",
+  "prompts": {},
+  "sessions": {
+    "s_c5192f23876072": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1be41-d252-7f01-875c-a0a08f6c1c55",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}
