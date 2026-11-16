@@ -1,13 +1,14 @@
-import type { IPlatformPrimitive, IPlatformShaderProgram } from "@galacean/engine-design";
 import type { Color, Vector4 } from "@galacean/engine-math";
 import type { Canvas } from "../Canvas";
 import type { Engine } from "../Engine";
 import type { GLCapabilityType } from "../base/Constant";
-import type { BufferBindFlag, BufferUsage, Primitive, SubMesh } from "../graphic";
+import type { BufferBindFlag, BufferUsage, Primitive, SubPrimitive } from "../graphic";
 import type { CameraClearFlags } from "../enums/CameraClearFlags";
 import type { RenderTarget, Texture2D, Texture2DArray, TextureCube, TextureCubeFace, TextureFormat } from "../texture";
 import type { IPlatformBuffer } from "./IPlatformBuffer";
+import type { IPlatformPrimitive } from "./IPlatformPrimitive";
 import type { IPlatformRenderTarget } from "./IPlatformRenderTarget";
+import type { IPlatformShaderProgram } from "./IPlatformShaderProgram";
 import type { IPlatformTexture } from "./IPlatformTexture";
 import type { IPlatformTexture2D } from "./IPlatformTexture2D";
 import type { IPlatformTexture2DArray } from "./IPlatformTexture2DArray";
@@ -31,6 +32,7 @@ export interface IHardwareRenderer {
     readonly isFragmentHighPrecision: boolean;
   };
   readonly canIUseMoreJoints: boolean;
+  /** @internal */
   readonly _options: {
     readonly depth?: boolean;
     readonly stencil?: boolean;
@@ -46,6 +48,7 @@ export interface IHardwareRenderer {
   canIUse(capability: GLCapabilityType): boolean;
   canIUseCompressedTextureInternalFormat(format: number): boolean;
   supportsTextureFormat(format: TextureFormat): boolean;
+  supportsRenderTargetColorFormat(format: TextureFormat): boolean;
   createPlatformPrimitive(primitive: Primitive): IPlatformPrimitive;
   createPlatformBuffer(
     type: BufferBindFlag,
@@ -67,7 +70,7 @@ export interface IHardwareRenderer {
     faceIndex?: TextureCubeFace
   ): void;
   clearRenderTarget(engine: Engine, flags: CameraClearFlags, color?: Color | null): void;
-  drawPrimitive(primitive: IPlatformPrimitive, subPrimitive: SubMesh | null, program: IPlatformShaderProgram): void;
+  drawPrimitive(primitive: Primitive, subPrimitive: SubPrimitive | null, program: IPlatformShaderProgram): void;
   blitInternalRTByBlitFrameBuffer(
     source: RenderTarget | null,
     destination: RenderTarget,

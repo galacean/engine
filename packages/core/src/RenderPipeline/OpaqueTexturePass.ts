@@ -1,7 +1,7 @@
 import { Camera } from "../Camera";
 import { Engine } from "../Engine";
 import { Downsampling } from "../enums/Downsampling";
-import { Texture, Texture2D, TextureFilterMode } from "../texture";
+import { Texture, Texture2D, TextureFilterMode, TextureFormat } from "../texture";
 import { RenderTarget } from "../texture/RenderTarget";
 import { TextureWrapMode } from "../texture/enums/TextureWrapMode";
 import { Blitter } from "./Blitter";
@@ -29,16 +29,17 @@ export class OpaqueTexturePass extends PipelinePass {
 
     const viewport = camera.pixelViewport;
     const sizeScale = isNoDownsampling ? 1.0 : downsampling === Downsampling.TwoX ? 0.5 : 0.25;
+    const internalColorFormat = camera._getInternalColorTextureFormat();
     const opaqueRenderTarget = PipelineUtils.recreateRenderTargetIfNeeded(
       this.engine,
       this._renderTarget,
       viewport.width * sizeScale,
       viewport.height * sizeScale,
-      camera._getInternalColorTextureFormat(),
+      internalColorFormat,
       null,
       false,
       false,
-      !camera._isHDREnabled(),
+      internalColorFormat === TextureFormat.R8G8B8A8,
       1,
       TextureWrapMode.Clamp,
       isNoDownsampling ? TextureFilterMode.Point : TextureFilterMode.Bilinear

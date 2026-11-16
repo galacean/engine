@@ -172,14 +172,15 @@ export class BasicRenderPipeline {
         depthFormat = null;
       }
       const viewport = camera.pixelViewport;
+      const internalColorFormat = camera._getInternalColorTextureFormat();
       this._internalColorTarget = pool.allocateRenderTarget(
         viewport.width,
         viewport.height,
-        camera._getInternalColorTextureFormat(),
+        internalColorFormat,
         depthFormat,
         false,
         false,
-        !camera._isHDREnabled(),
+        internalColorFormat === TextureFormat.R8G8B8A8,
         msaaSamples,
         TextureWrapMode.Clamp,
         TextureFilterMode.Bilinear

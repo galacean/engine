@@ -7,11 +7,12 @@ import {
   Shader,
   ShaderLanguage,
   ShaderPass,
-  SubShader
+  SubShader,
+  TextureFormat
 } from "@galacean/engine-core";
 import { Matrix, Ray, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine";
-import { beforeAll, describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it, vi } from "vitest";
 
 describe("camera test", function () {
   const canvasDOM = new OffscreenCanvas(256, 256);
@@ -124,6 +125,18 @@ describe("camera test", function () {
     expect(camera.enableHDR).to.eq(true);
     // @ts-ignore
     expect(camera._isIndependentCanvasEnabled()).to.eq(true);
+
+    const spy = vi.spyOn(engine._hardwareRenderer, "supportsRenderTargetColorFormat");
+    try {
+      spy.mockImplementation((format) => format === TextureFormat.R16G16B16A16);
+      expect(camera._getInternalColorTextureFormat()).to.eq(TextureFormat.R16G16B16A16);
+      spy.mockReturnValue(false);
+      expect(camera.enableHDR).to.eq(true);
+      expect(camera._getInternalColorTextureFormat()).to.eq(TextureFormat.R8G8B8A8);
+    } finally {
+      spy.mockRestore();
+      camera.enableHDR = false;
+    }
   });
 
   it("view matrix", () => {

@@ -1,5 +1,4 @@
 import {
-  GLCapabilityType,
   IPlatformTexture,
   Logger,
   Texture,
@@ -398,38 +397,6 @@ export class GLTexture implements IPlatformTexture {
       default:
         throw new Error(`this TextureFormat is not supported in Galacean Engine: ${format}`);
     }
-  }
-
-  /**
-   * @internal
-   */
-  static _supportRenderBufferColorFormat(format: TextureFormat, rhi: WebGLGraphicDevice): boolean {
-    let isSupported = true;
-
-    switch (format) {
-      case TextureFormat.R16G16B16A16:
-        {
-          if (!rhi.canIUse(GLCapabilityType.colorBufferHalfFloat) || !rhi.canIUse(GLCapabilityType.textureHalfFloat)) {
-            isSupported = false;
-          }
-        }
-        break;
-      case TextureFormat.R32G32B32A32:
-        {
-          if (!rhi.canIUse(GLCapabilityType.colorBufferFloat) || !rhi.canIUse(GLCapabilityType.textureFloat)) {
-            isSupported = false;
-          }
-        }
-        break;
-
-      case TextureFormat.R11G11B10_UFloat:
-        {
-          isSupported = rhi.isWebGL2;
-        }
-        break;
-    }
-
-    return isSupported;
   }
 
   /**

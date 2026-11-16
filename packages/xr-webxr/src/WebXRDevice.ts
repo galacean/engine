@@ -5,7 +5,12 @@ import { WebXRGraphicDevice, WebXRSession } from "./WebXRSession";
 import { WebXRFeature } from "./feature/WebXRFeature";
 
 function isWebXRGraphicDevice(rhi: unknown): rhi is WebXRGraphicDevice {
-  return typeof rhi === "object" && rhi !== null && "gl" in rhi && typeof rhi.gl === "object" && rhi.gl !== null;
+  try {
+    const gl = (rhi as WebXRGraphicDevice | null)?.gl;
+    return typeof gl === "object" && gl !== null;
+  } catch {
+    return false;
+  }
 }
 
 export class WebXRDevice implements IXRDevice {

@@ -48,7 +48,7 @@ export class GLRenderTarget implements IPlatformRenderTarget {
 
     for (let i = 0, n = _colorTextures.length; i < n; i++) {
       const { format, isSRGBColorSpace } = _colorTextures[i];
-      if (!GLTexture._supportRenderBufferColorFormat(format, rhi)) {
+      if (!rhi.supportsRenderTargetColorFormat(format)) {
         throw new Error(`TextureFormat is not supported:${TextureFormat[format]} in RenderTarget`);
       }
       if (isSRGBColorSpace && format === TextureFormat.R8G8B8) {

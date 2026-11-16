@@ -173,6 +173,22 @@ export class GLCapability {
   }
 
   /**
+   * Check whether the given texture format can be rendered to as a color attachment.
+   */
+  supportsRenderTargetColorFormat(format: TextureFormat): boolean {
+    switch (format) {
+      case TextureFormat.R16G16B16A16:
+        return this.canIUse(GLCapabilityType.colorBufferHalfFloat) && this.canIUse(GLCapabilityType.textureHalfFloat);
+      case TextureFormat.R32G32B32A32:
+        return this.canIUse(GLCapabilityType.colorBufferFloat) && this.canIUse(GLCapabilityType.textureFloat);
+      case TextureFormat.R11G11B10_UFloat:
+        return this.rhi.isWebGL2 && this.canIUse(GLCapabilityType.colorBufferFloat);
+      default:
+        return this.supportsTextureFormat(format);
+    }
+  }
+
+  /**
    *  Init capabilities.
    */
   private _init() {

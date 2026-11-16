@@ -45,6 +45,10 @@ export class NullGraphicDevice implements IHardwareRenderer {
   supportsTextureFormat(): boolean {
     return true;
   }
+
+  supportsRenderTargetColorFormat(): boolean {
+    return true;
+  }
   createPlatformPrimitive() {
     return { draw() {}, destroy() {} };
   }

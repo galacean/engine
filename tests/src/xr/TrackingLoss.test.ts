@@ -110,6 +110,17 @@ describe("WebXR tracking loss", () => {
       await expect(new WebXRDevice().requestSession({}, XRSessionMode.AR, [])).rejects.toThrow(
         "WebXR requires a WebGL graphics device."
       );
+      await expect(
+        new WebXRDevice().requestSession(
+          {
+            get gl(): never {
+              throw new Error("unavailable");
+            }
+          },
+          XRSessionMode.AR,
+          []
+        )
+      ).rejects.toThrow("WebXR requires a WebGL graphics device.");
       expect(requestSession).not.toHaveBeenCalled();
 
       const rhi = { gl: { getContextAttributes: () => null, makeXRCompatible } };

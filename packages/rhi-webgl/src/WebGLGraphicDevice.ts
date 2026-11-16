@@ -8,7 +8,9 @@ import {
   GLCapabilityType,
   IHardwareRenderer,
   IPlatformBuffer,
+  IPlatformPrimitive,
   IPlatformRenderTarget,
+  IPlatformShaderProgram,
   IPlatformTexture,
   IPlatformTexture2D,
   IPlatformTextureCube,
@@ -18,7 +20,7 @@ import {
   Platform,
   Primitive,
   RenderTarget,
-  SubMesh,
+  SubPrimitive,
   SystemInfo,
   Texture2D,
   Texture2DArray,
@@ -26,7 +28,6 @@ import {
   TextureCubeFace,
   TextureFormat
 } from "@galacean/engine-core";
-import { IPlatformPrimitive, IPlatformShaderProgram } from "@galacean/engine-design";
 import { Color, Vector4 } from "@galacean/engine-math";
 import { GLBuffer } from "./GLBuffer";
 import { GLCapability } from "./GLCapability";
@@ -347,6 +348,10 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     return this.capability.supportsTextureFormat(format);
   }
 
+  supportsRenderTargetColorFormat(format: TextureFormat): boolean {
+    return this.capability.supportsRenderTargetColorFormat(format);
+  }
+
   viewport(x: number, y: number, width: number, height: number): void {
     const { _gl: gl, _lastViewport: lastViewport } = this;
     if (x !== lastViewport.x || y !== lastViewport.y || width !== lastViewport.z || height !== lastViewport.w) {
@@ -420,9 +425,9 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     gl.clear(clearFlag);
   }
 
-  drawPrimitive(primitive: GLPrimitive, subPrimitive: SubMesh, shaderProgram: IPlatformShaderProgram) {
+  drawPrimitive(primitive: Primitive, subPrimitive: SubPrimitive | null, shaderProgram: IPlatformShaderProgram): void {
     // todo: VAO not support morph animation
-    if (primitive) {
+    if (primitive && subPrimitive) {
       primitive.draw(shaderProgram, subPrimitive);
     } else {
       Logger.error("draw primitive failed.");
