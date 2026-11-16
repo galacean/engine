@@ -31,9 +31,12 @@
           0.5,
           0.15
         );
+        vec3 farNormal = vec3(0.0, 0.0, 1.0);
+        if (material_OceanTextureEnabled.y > 0.5) {
         vec3 farA = decodeNormalMap(texture2D(material_RoughWavesTexture, farUv.xy).rgb);
         vec3 farB = decodeNormalMap(texture2D(material_RoughWavesTexture, farUv.zw).rgb);
-        vec3 farNormal = blendNormalRnm(farA, farB);
+        farNormal = blendNormalRnm(farA, farB);
+        }
         float pixelDistance = distance(camera_Position, worldPosition);
         float fadeFactor = clamp(
           (material_OceanNormalFadeEndDistance - pixelDistance)
@@ -53,9 +56,12 @@
           material_OceanNormalParameters.y,
           material_OceanNormalParameters.w
         );
+        vec3 nearNormal = vec3(0.0, 0.0, 1.0);
+        if (material_OceanTextureEnabled.x > 0.5) {
         vec3 nearA = decodeNormalMap(texture2D(material_SmoothWavesTexture, nearUv.xy).rgb);
         vec3 nearB = decodeNormalMap(texture2D(material_SmoothWavesTexture, nearUv.zw).rgb);
-        vec3 nearNormal = blendNormalRnm(nearA, nearB);
+        nearNormal = blendNormalRnm(nearA, nearB);
+        }
         return safeNormalize3(mix(farNormal, nearNormal, fadeFactor), vec3(0.0, 0.0, 1.0));
       }
 #endif

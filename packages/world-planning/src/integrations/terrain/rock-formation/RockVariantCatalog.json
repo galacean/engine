@@ -1,6 +1,6 @@
 {
-  "templates": {
-    "sakura-pearl": {
+  "pools": {
+    "shared": {
       "mountains": [
         {
           "id": "rock-08",

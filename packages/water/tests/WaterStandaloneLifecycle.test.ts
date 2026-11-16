@@ -12,8 +12,12 @@ import {
   JSONAsset,
   Material,
   MeshRenderer,
+  ScreenSpaceReflection,
+  ScreenSpaceReflectionActivationMode,
+  ScreenSpaceReflectionReceiverMode,
   Shader,
   Vector3,
+  Texture2D,
   WebGLEngine
 } from "@galacean/engine";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
@@ -23,6 +27,7 @@ import {
   registerNativeWater,
   encodeWaterTerrainAssets
 } from "../src/water/native/index";
+import { createWaterMaterialDefaults } from "../src/water/native/WaterMaterial";
 import { BUILTIN_WATER_PROJECT_URL } from "../src/water/native/WaterBuiltinAssets";
 import { createWaterQualitySettings } from "../src/water/native/WaterQualitySettings";
 import { lake, terrain } from "./WaterFixtures";
@@ -37,10 +42,14 @@ async function fixture(profile: "lake" | "river") {
   system.camera.entity.transform.setPosition(4, 7, 10);
   system.camera.entity.transform.lookAt(new Vector3(4, 0, 4));
   system.beginInputUpdate();
-  const file = await (await fetch(new URL(`Water/Materials/${profile}.mat`, BUILTIN_WATER_PROJECT_URL))).json();
+  const file = createWaterMaterialDefaults(profile);
   expect(file.shader).toBe(`Water/${profile === "river" ? "River" : "Lake"}.v1`);
   expect(file).not.toHaveProperty("shaderRef");
-  expect(Object.values(file.shaderData).some((entry: { type: string }) => entry.type === "Texture")).toBe(false);
+  expect(
+    Object.values(file.shaderData)
+      .filter((entry) => entry.type === "Texture")
+      .every((entry) => entry.value === null)
+  ).toBe(true);
   const material = await engine.resourceManager.load<Material>({
     type: AssetType.Material,
     url: "data:application/json," + encodeURIComponent(JSON.stringify(file))
@@ -127,6 +136,34 @@ it("creates a standalone river from a name-only authoring Material through Water
   }
 });
 
+it("synchronizes a staged lake material with SSR activation and recovery", async () => {
+  const f = await fixture("lake");
+  try {
+    const camera = f.system.camera!;
+    camera.screenSpaceReflection.activationMode = ScreenSpaceReflectionActivationMode.ForceOn;
+    const body = f.scene.createRootEntity("Reflection lake").addComponent(WaterBodyComponent);
+    body.authoring = f.authoring;
+    await (await f.system.prepareBatch([{ body, configuration: body._compileAuthoring() }])).commit().retiredCleanup;
+    const renderers: MeshRenderer[] = [];
+    for (const root of f.scene.rootEntities) root.getComponentsIncludeChildren(MeshRenderer, renderers);
+    const renderer = renderers.find((renderer) => f.system.resolveRenderOwner(renderer.entity) === body)!;
+    expect(renderer).toBeDefined();
+    const material = renderer.getMaterial()!;
+    for (const active of [true, false, true]) {
+      camera.screenSpaceReflection.activationMode = active
+        ? ScreenSpaceReflectionActivationMode.ForceOn
+        : ScreenSpaceReflectionActivationMode.ForceOff;
+      for (let frame = 0; frame < 3; frame++) f.engine.update();
+      expect(ScreenSpaceReflection.getMaterialReceiverMode(material)).toBe(
+        active ? ScreenSpaceReflectionReceiverMode.TransparentSampleOnly : ScreenSpaceReflectionReceiverMode.Disabled
+      );
+      expect(f.system.sample(0, 0).water).toBe(true);
+    }
+  } finally {
+    await f.close();
+  }
+});
+
 it.each(["connection", "target"] as const)("keeps a lake usable after deleting its %s", async (removed) => {
   const f = await fixture("lake");
   try {
@@ -204,6 +241,9 @@ it("rejects a partial null-target connection without replacing accepted authorin
 
 it("renders a shared builtin lake at independent tiers and restores high after low and disable", async () => {
   const f = await fixture("lake");
+  const normal = new Texture2D(f.engine, 4, 4, undefined, false, false);
+  for (const index of [0, 1])
+    f.material.shaderData.setTexture(`material_Water_appearance_appearance_detailLayers_${index}_texture`, normal);
   try {
     const a = f.scene.createRootEntity("Quality lake A").addComponent(WaterBodyComponent);
     const b = f.scene.createRootEntity("Quality lake B").addComponent(WaterBodyComponent);
@@ -256,6 +296,13 @@ it("renders a shared builtin lake at independent tiers and restores high after l
 it("activates a connected native river and Ocean, and removes the Ocean port on disconnect", async () => {
   const f = await fixture("river");
   try {
+    const manifest = await (await fetch(BUILTIN_WATER_PROJECT_URL)).json();
+    f.engine.resourceManager.registerVirtualResources(
+      manifest.files.map((file: { path: string }) => ({
+        ...file,
+        path: new URL(file.path, BUILTIN_WATER_PROJECT_URL).href
+      }))
+    );
     const file = await (await fetch(new URL("Water/Materials/ocean.mat", BUILTIN_WATER_PROJECT_URL))).json();
     const material = await f.engine.resourceManager.load<Material>({
       type: AssetType.Material,

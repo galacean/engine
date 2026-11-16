@@ -285,19 +285,23 @@ export function initializePlanningOcean(draft: RuntimeProjectEdit, plan: IslandP
         (scene.readComponent(identity.id).props?.authoring as { shape?: { kind?: string } })?.shape?.kind === "ocean"
     );
   if (existing.length > 1) throw new Error("Seed World requires one Source Ocean");
+  const identity = scene.queryComponents({ type: "PlanningEntityAuthoring" })
+    .find(identity => scene.readComponent(identity.id).props?.planningId === "planning-ocean");
   // Legacy Ocean component removal retained its identity, unlike the reset
   // bug that deleted the entire authoring entity.
-  if (!existing.length && state.seeds[seed]?.includes("planning-ocean") &&
-    scene.queryComponents({ type: "PlanningEntityAuthoring" })
-      .some(identity => scene.readComponent(identity.id).props?.planningId === "planning-ocean")) return;
+  if (!existing.length && state.seeds[seed]?.includes("planning-ocean") && identity) return;
   if (!existing.length) {
-    const parent = scene.queryComponents({ type: "PlanningProjectAuthoring" })[0];
-    const entity = scene.create({ name: "Ocean", parentEntityId: parent.entityId });
-    scene.addComponent(entity.id, {
-      type: "PlanningEntityAuthoring",
-      props: { planningId: "planning-ocean", spatialComponents: {} }
-    });
-    scene.addComponent(entity.id, {
+    // A planning handoff can carry the identity before this project's first Ocean initialization.
+    let entityId = identity?.entityId;
+    if (!entityId) {
+      const parent = scene.queryComponents({ type: "PlanningProjectAuthoring" })[0];
+      entityId = scene.create({ name: "Ocean", parentEntityId: parent.entityId }).id;
+      scene.addComponent(entityId, {
+        type: "PlanningEntityAuthoring",
+        props: { planningId: "planning-ocean", spatialComponents: {} }
+      });
+    }
+    scene.addComponent(entityId, {
       type: "WaterBodyComponent",
       props: {
         authoring: {

@@ -6,7 +6,6 @@ import { exportPlanningAuthoring, exportPlanningRecipe, upgradePlanningDocument,
 import { PLANNING_PROJECT_PATH } from "../src/planning/spatial/runtime/PlanningProjectStorage.ts";
 import { planningSourceDocument } from "../src/planning/spatial/runtime/PlanningProjectSource.ts";
 import type { RockFormationClient } from "@galacean/engine-world-planning/integrations/terrain/rock-formation/Client";
-import { readRockFormationSettings } from "@galacean/engine-world-planning/integrations/terrain/rock-formation/Settings";
 import { masonryRockTerrainSource } from "@galacean/engine-world-planning/masonry/MasonryPlacement";
 
 /** Resolve only when a draft needs first-time buildings. This detached solve
@@ -36,7 +35,7 @@ export async function buildingInitializationInputs(edit: Pick<RuntimeEditorEdit,
   }
   signal.throwIfAborted();
   const plan = result.plan, height = planningHeightmap(plan);
-  const formations = await rocks.prepare(plan, readRockFormationSettings(document), signal);
+  const formations = await rocks.prepare(plan, signal);
   signal.throwIfAborted();
   // Same R16 field/decode/origin as PlanningPopulationData; no raster/material
   // publication is needed to construct authoring components.

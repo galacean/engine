@@ -17,7 +17,7 @@ import { WaterBodyRuntimeAdapter } from "../body/WaterBodyRuntime";
 import { WaterReflectionBindingLifecycle } from "../optics/WaterReflectionBindingLifecycle";
 import type { EffectiveWaterRuntimeSnapshot } from "../state/EffectiveWaterRuntimeSnapshot";
 import { resolveOceanRuntimeColor } from "./OceanRuntimeTuning";
-import type { OceanTextures } from "./OceanTextureLibrary";
+import type { OceanTextures } from "./OceanTextures";
 import {
   OceanWaterCompiledResource,
   assertOceanWaterBodyDescriptor,
@@ -76,13 +76,17 @@ function isRuntimeContext(value: unknown): value is OceanWaterBackendRuntimeCont
     typeof value.engine === "object" &&
     value.engine !== null &&
     typeof value.root.createChild === "function" &&
-    value.textures.textureCount === 5 &&
-    value.textures.containerFormat === "ktx2" &&
+    typeof value.textures.textureCount === "number" &&
+    Number.isInteger(value.textures.textureCount) &&
+    value.textures.textureCount >= 0 &&
+    value.textures.textureCount <= 5 &&
+    value.textures.containerFormat === "native" &&
     typeof value.textures.compressedTextureCount === "number" &&
     Number.isInteger(value.textures.compressedTextureCount) &&
     typeof value.textures.uncompressedFallbackTextureCount === "number" &&
     Number.isInteger(value.textures.uncompressedFallbackTextureCount) &&
-    value.textures.compressedTextureCount + value.textures.uncompressedFallbackTextureCount === 5 &&
+    value.textures.compressedTextureCount + value.textures.uncompressedFallbackTextureCount ===
+      value.textures.textureCount &&
     Number.isFinite(value.textures.resourceBytes) &&
     typeof value.cameraPositionProvider === "function" &&
     typeof value.sceneFogEnabled === "boolean" &&

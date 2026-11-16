@@ -10,7 +10,14 @@ import { LAKE_WATER_LOOK_PRESET_ID, registerLakeWaterLook } from "../presets/lak
 import { OCEAN_LOOK_ID } from "../presets/ocean/index";
 import { WaterBodyAssetRegistry } from "../runtime/body/WaterBodyAssetRegistry";
 import { resolveWaterMaterialProfile } from "./WaterAuthoring";
-import { waterBuiltinMaterialTextures } from "./WaterBuiltinMaterialTextures";
+import { WATER_MATERIAL_TEXTURE_SLOTS } from "./WaterMaterialTextureSlots";
+import { hashStableValue } from "../compiler/shared/determinism";
+export {
+  WATER_MATERIAL_TEXTURE_SLOTS,
+  validateWaterMaterialTextureMetadata,
+  type WaterMaterialTextureSlot,
+  type WaterMaterialTextureMetadata
+} from "./WaterMaterialTextureSlots";
 import { WATER_BUILTIN_SHADER_NAMES } from "./WaterBuiltinShaderNames";
 
 type ParameterType = "Float" | "Integer" | "Boolean" | "Vector2" | "Vector3" | "Vector4" | "Color";
@@ -87,23 +94,26 @@ function property(path: string): string {
   return direct[path] ?? `material_Water_${path.replaceAll(".", "_")}`;
 }
 
-/** One native Material owns visual values and appearance policies; textures are Engine built-ins. */
+/** One native Material owns visual values and appearance policies; textures are ordinary native references. */
 export function createWaterMaterialFile(
   look: WaterLookAuthoringComponents,
   profile: WaterMaterialProfile
 ): WaterMaterialFile {
+  if (look.look.riverDrops)
+    throw new TypeError("NOT_SUPPORTED: River Drops is not part of the public Water material contract.");
   const material: WaterMaterialFile = {
     name: look.look.id,
     shader: WATER_BUILTIN_SHADER_NAMES[profile],
     macros: [],
     shaderData: {
-      material_WaterProfile: { type: "Integer", value: profiles.indexOf(profile) },
-      material_WaterRiverDrops: { type: "Boolean", value: !!look.look.riverDrops }
+      material_WaterProfile: { type: "Integer", value: profiles.indexOf(profile) }
     }
   };
   materialDefinition(look, (name, type, value) => {
     if (type !== "Texture") material.shaderData[name] = { type, value };
   });
+  for (const { slot } of WATER_MATERIAL_TEXTURE_SLOTS[profile])
+    material.shaderData[slot] = { type: "Texture", value: null };
   return material;
 }
 
@@ -200,6 +210,7 @@ export function resolveWaterMaterialFileLook(file: WaterMaterialFile): WaterLook
   const data = {
     getInt: (name: string) => {
       const entry = file.shaderData?.[name];
+      if (name === "material_WaterRiverDrops" && !entry) return 0;
       if (entry?.type === "Boolean") {
         if (typeof entry.value !== "boolean" && entry.value !== 0 && entry.value !== 1)
           throw new TypeError(`Invalid Water Material boolean '${name}'.`);
@@ -223,7 +234,19 @@ export function resolveWaterMaterialFileLook(file: WaterMaterialFile): WaterLook
   return decodeWaterMaterialLook(
     materialDefinition(defaultLook(profile, !!drops)),
     data as Material["shaderData"],
-    waterBuiltinMaterialTextures(profile, !!drops)
+    WATER_MATERIAL_TEXTURE_SLOTS[profile].flatMap(({ slot }) => {
+      const entry = file.shaderData[slot];
+      if (!entry) return [];
+      if (entry.type !== "Texture") throw new TypeError(`Water texture '${slot}' requires a Texture property.`);
+      if (entry.value === null) return [];
+      const reference = entry.value as { $ref?: string; url?: string; refId?: string } | undefined;
+      const id = reference && (reference.$ref ?? reference.url ?? reference.refId);
+      if (!id || typeof id !== "string" || !id.trim())
+        throw new TypeError(`Water texture '${slot}' requires a native Texture reference or null.`);
+      // Compiler validation only: preserve the ordinary asset reference. This fingerprint
+      // is never persisted and is not a claim about the image's source bytes.
+      return [{ slot, descriptor: { id, contentHash: hashStableValue(id).repeat(4) } }];
+    })
   );
 }
 
@@ -231,13 +254,12 @@ export function resolveWaterMaterialFileLook(file: WaterMaterialFile): WaterLook
 export function decodeWaterMaterialLook(
   source: Record<string, any>,
   data: Material["shaderData"],
-  bindings: ReturnType<typeof waterBuiltinMaterialTextures>
+  bindings: readonly { slot: string; descriptor: { id: string; contentHash: string } }[]
 ): WaterLookAuthoringComponents {
   const textures = new Map(bindings.map((binding) => [binding.slot, binding.descriptor]));
   const readTexture = (value: TextureParameter) => {
     const identity = textures.get(value.$waterTexture);
-    if (!identity) throw new Error(`Missing built-in Water texture mapping '${value.$waterTexture}'.`);
-    return { assetId: identity.id, contentHash: identity.contentHash };
+    return identity ? { assetId: identity.id, contentHash: identity.contentHash } : undefined;
   };
   const enumValue = (name: string, options: readonly string[]) => {
     const value = data.getInt(name);
@@ -299,12 +321,19 @@ export function decodeWaterMaterialLook(
     }
     if ($waterSurfaceTexture) {
       const identity = readTexture($waterSurfaceTexture);
-      result.textureAssetId = identity.assetId;
-      result.textureContentHash = identity.contentHash;
+      if (identity) {
+        result.textureAssetId = identity.assetId;
+        result.textureContentHash = identity.contentHash;
+      } else if (fields.source !== Surface.WaterSurfaceDetailSource.NormalTexture) {
+        return undefined;
+      }
+      // Empty normal layers retain their structural position and numeric parameters.
+      // The runtime sampling enable is zero until a native texture is bound.
     }
     return result;
   };
   const result = visit(source) as WaterLookAuthoringComponents;
+  if (!result.appearance.appearance.caustics) delete (result.appearance.appearance as any).caustics;
   const validation = validateWaterSurfaceAppearanceV2Asset(result.appearance.appearance);
   if (!validation.valid)
     throw new TypeError(
@@ -317,6 +346,8 @@ export function decodeWaterMaterialLook(
 export function waterMaterialShaderSource(source: string, material: WaterMaterialFile): string {
   const properties: string[] = [],
     declarations: string[] = [];
+  const textureGroups = new Map<string, string[]>();
+  const groupLabels = { normal: "Normal maps", caustics: "Caustics", foam: "Foam", intersection: "Intersection" };
   const reflection = enumFields["reflectionPolicy.policy.preferred"];
   for (const [name, entry] of Object.entries(material.shaderData)) {
     const path = Object.keys(enumFields).find((path) => property(path) === name);
@@ -335,15 +366,28 @@ export function waterMaterialShaderSource(source: string, material: WaterMateria
       entry.type === "Texture"
         ? ""
         : ` = ${typeof value === "object" ? `(${Object.values(value).join(", ")})` : String(value)}`;
-    properties.push(`${name}("${name}", ${type})${literal};`);
+    const slot = WATER_MATERIAL_TEXTURE_SLOTS[profiles[material.shaderData.material_WaterProfile.value as number]].find(
+      (slot) => slot.slot === name
+    );
+    const declaration = `${name}("${slot?.label ?? name}", ${type})${literal};`;
+    if (slot) {
+      const group = textureGroups.get(slot.group) ?? [];
+      group.push(declaration);
+      textureGroups.set(slot.group, group);
+    } else properties.push(declaration);
     if (!new RegExp(`\\b${name}\\s*(?:;|\\[)`).test(source))
       declarations.push(
         `${entry.type === "Texture" ? "sampler2D" : entry.type === "Boolean" || entry.type === "Integer" ? "int" : entry.type === "Float" ? "float" : entry.type === "Color" ? "vec4" : `vec${entry.type.slice(-1)}`} ${name};`
       );
   }
+  const textureProperties = [...textureGroups]
+    .map(
+      ([group, entries]) => `Header("${groupLabels[group as keyof typeof groupLabels]}") {\n${entries.join("\n")}\n}`
+    )
+    .join("\n");
   return source.replace(
     /(Shader\s+"[^"\n]+"\s*\{)/,
-    `$1\n${declarations.join("\n")}\nEditor { Properties {\n${properties.join("\n")}\n} }\n`
+    `$1\n${declarations.join("\n")}\nEditor { Properties {\n${textureProperties}\n${properties.join("\n")}\n} }\n`
   );
 }
 
@@ -359,9 +403,9 @@ export function updateWaterMaterialParameters(
   return result;
 }
 
-/** Detached .mat defaults for Editor and standalone callers; no shaderRef or texture slots. */
+/** Detached .mat defaults for Editor and standalone callers; no shaderRef; every texture slot is explicitly empty. */
 export function createWaterMaterialDefaults(profile: WaterMaterialProfile, riverDrops = false): WaterMaterialFile {
-  if (!profiles.includes(profile) || (riverDrops && profile !== "river"))
-    throw new TypeError("Unsupported Water material preset.");
+  if (riverDrops) throw new TypeError("NOT_SUPPORTED: River Drops is not part of the public Water material contract.");
+  if (!profiles.includes(profile)) throw new TypeError("Unsupported Water material preset.");
   return createWaterMaterialFile(defaultLook(profile, riverDrops), profile);
 }

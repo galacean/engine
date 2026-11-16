@@ -1,3 +1,4 @@
+import { destroyWaterOwnedMaterial } from "../resources/destroyWaterOwnedMaterial";
 import { createWaterConnectionBinding, type WaterConnectionBinding } from "../connections/WaterConnectionBinding";
 import { updateWaterSurfaceAppearanceV2Clock } from "../surface/WaterSurfaceAppearanceV2UniformBinding";
 /** Heightfield-water GPU lifecycle: hidden build root, sliced upload, atomic swap, and deterministic cleanup. */
@@ -566,7 +567,7 @@ export class HeightfieldWaterRuntimeController {
           },
           () => {
             if (material) {
-              material.material.destroy(true);
+              destroyWaterOwnedMaterial(material.material, root);
             }
           },
           () => connectionBinding?.destroy(),
@@ -598,7 +599,7 @@ export class HeightfieldWaterRuntimeController {
     if (this._isReflectionBindingCurrent(binding)) return;
     this._reflectionBinding = binding;
     for (const runtimeSet of this._runtimeSets.values()) {
-      runtimeSet.surfaceOpticsReadback = runtimeSet.material.bindingReadback;
+      runtimeSet.surfaceOpticsReadback = this._applySurfaceOpticsBinding(runtimeSet.material);
     }
     this._recordAppliedReflectionBinding(binding);
   }
@@ -913,7 +914,7 @@ export class HeightfieldWaterRuntimeController {
       () => disableHeightfieldWaterScreenSpaceReflectionReceiver(runtimeSet.material),
       () => runtimeSet.connectionBinding?.unbind(runtimeSet.material.material),
       () => {
-        runtimeSet.material.material.destroy(true);
+        destroyWaterOwnedMaterial(runtimeSet.material.material, runtimeSet.root);
       },
       () => runtimeSet.connectionBinding?.destroy(),
       () => runtimeSet.spatialFieldProvider.destroy(),

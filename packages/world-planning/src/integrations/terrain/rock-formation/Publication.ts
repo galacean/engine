@@ -4,12 +4,10 @@ import { sameMasonryPlan } from "../../../masonry/MasonryPlanningOwnership.ts";
 import { isRockFormationOnlyEdit } from "./Edit.ts";
 import type { PublishedPlanningSeedScene } from "../../../spatial/runtime/PlanningSeedScenePublication.ts";
 import { planningPresentedSolids } from "../../../spatial/runtime/PlanningPresentedSolids.ts";
-import type { RockFormationClient } from "./Client.ts";
 import type { RockFormationSettings } from "./Settings.ts";
 import type { RockFormationMesh } from "@galacean/engine-terrain/rock-formation/types";
 import { rockFormationPlacements } from "./Placement.ts";
 import { rockGrassExclusions } from "./GrassExclusions.ts";
-import { ROCK_GENERATION_DEFAULTS, type RockGenerationProfile } from "./GenerationProfile.ts";
 import { sampleSeedWorldHeight } from "../../../runtime/SeedWorldFields.ts";
 
 /** Shared by publication routing and render-pause policy. Buildings may be present;
@@ -26,7 +24,7 @@ export function canPublishRockFormationEdit(
 /** Stage a material edit without touching geometry, collision or building supports. */
 export function prepareRockMaterialPublication(
   current: PublishedPlanningSeedScene,
-  settings: Pick<RockFormationSettings, "textureScale" | "colorBlend">,
+  settings: RockFormationSettings,
   signal: AbortSignal
 ) {
   signal.throwIfAborted();
@@ -35,9 +33,8 @@ export function prepareRockMaterialPublication(
     commit() {
       signal.throwIfAborted();
       if (consumed) throw Error("Rock material publication already consumed");
-      current.solids.setRockTextureScale(settings.textureScale);
-      current.vegetation?.setRockTextureScale(settings.textureScale);
       current.solids.setRockColorBlend(settings.colorBlend);
+      current.vegetation?.setRockColorBlend(settings.colorBlend);
       current.world.population.setRockGrassGround(settings);
       consumed = true;
     },
@@ -47,17 +44,15 @@ export function prepareRockMaterialPublication(
   };
 }
 
-/** One local transaction for rock render/collision, companion sources and dependent
+/** One local transaction for rock render/collision, vegetation grounding and dependent
  * building supports. The accepted world, terrain, water and other resources stay alive. */
 export async function prepareRockFormationPublication(
   current: PublishedPlanningSeedScene,
   plan: IslandPlan,
   meshes: readonly RockFormationMesh[],
-  client: RockFormationClient,
   settings: RockFormationSettings,
   revision: number,
-  signal: AbortSignal,
-  generationProfile: RockGenerationProfile = ROCK_GENERATION_DEFAULTS
+  signal: AbortSignal
 ) {
   signal.throwIfAborted();
   const fields = current.heightTransition?.fields ?? current.data.fields;
@@ -67,8 +62,7 @@ export async function prepareRockFormationPublication(
     (x, z) => sampleSeedWorldHeight(fields, x, z),
     meshes
   );
-  const rocks = current.solids.prepareRocks(plan, presented, meshes, settings.textureScale, settings.colorBlend);
-  let vegetation: Awaited<ReturnType<NonNullable<typeof current.vegetation>["prepareRocks"]>> | undefined;
+  const rocks = current.solids.prepareRocks(plan, presented, meshes, settings.colorBlend);
   let grounding: ReturnType<NonNullable<typeof current.vegetation>["prepareGrounding"]> | undefined;
   let masonry: Awaited<ReturnType<NonNullable<typeof current.masonry>["prepareRockSupports"]>> | undefined;
   let grass: ReturnType<typeof current.world.population.prepareRockGrass> | undefined;
@@ -77,13 +71,11 @@ export async function prepareRockFormationPublication(
     if (consumed) return;
     consumed = true;
     rocks.discard();
-    vegetation?.discard();
     grounding?.discard();
     masonry?.discard();
     grass?.discard();
   };
   try {
-    vegetation = await current.vegetation?.prepareRocks(client, settings, signal, generationProfile);
     signal.throwIfAborted();
     grounding = current.vegetation?.prepareGrounding(fields, signal, {
       plan: presented,
@@ -105,10 +97,10 @@ export async function prepareRockFormationPublication(
         try {
           masonry?.commit();
           rocks.commit();
-          vegetation?.commit();
           grounding?.commit();
           grass!.commit();
           masonry?.finalize();
+          current.vegetation?.setRockColorBlend?.(settings.colorBlend);
           current.world.population.setRockGrassGround(settings);
           groundTemplate?.();
           consumed = true;

@@ -13,19 +13,52 @@ import {
   ParticleRenderer,
   ParticleScaleMode,
   ParticleSimulationSpace,
+  ParticleStopMode,
   Script,
   TextureWrapMode,
   type Engine,
   type Entity,
-  type Texture2D
+  type Rand,
+  type Texture2D,
+  type Vector3
 } from "@galacean/engine";
+import {
+  decodeSeedWorldHeight,
+  sampleSeedWorldHeight,
+  seedWorldOriginX,
+  seedWorldOriginZ,
+  type SeedWorldFields
+} from "@galacean/engine-world-planning/runtime/SeedWorldFields";
 
 const ATLAS_URL = "https://mdn.alipayobjects.com/rms/afts/img/A*kavuQ53dG1MAAAAATiAAAAgAehQnAQ/original/sandstorm-448.png";
 const EMISSION_RATE = 500;
 const MAX_LIFETIME = 10;
 const REGION_SIZE = 400;
 const REGION_HEIGHT = 4;
-const REGION_CENTER_HEIGHT = 3.68;
+const REGION_CENTER_HEIGHT = 2.35;
+
+class TerrainEmissionShape extends BoxShape {
+  constructor(
+    readonly centerX: number,
+    readonly centerZ: number,
+    private readonly fields: SeedWorldFields,
+    private readonly centerGround: number
+  ) {
+    super();
+  }
+
+  override _generateLocalPositionAndDirection(rand: Rand, emitTime: number, position: Vector3, direction: Vector3): void {
+    super._generateLocalPositionAndDirection(rand, emitTime, position, direction);
+    const ground = sampleSeedWorldHeight(this.fields, this.centerX + position.x, this.centerZ + position.z);
+    position.y += (ground ?? this.centerGround) + REGION_CENTER_HEIGHT;
+  }
+
+  override _getLocalPositionRange(outMin: Vector3, outMax: Vector3): void {
+    super._getLocalPositionRange(outMin, outMax);
+    outMin.y += decodeSeedWorldHeight(this.fields, 0) + REGION_CENTER_HEIGHT;
+    outMax.y += decodeSeedWorldHeight(this.fields, 65535) + REGION_CENTER_HEIGHT;
+  }
+}
 
 class SandstormMaterialLifetime extends Script {
   material!: ParticleMaterial;
@@ -43,11 +76,40 @@ export function loadSeedSandstormAtlas(engine: Engine): PromiseLike<Texture2D> {
   });
 }
 
-export function placeSeedSandstorm(emitter: Entity, x: number, ground: number, z: number): void {
-  emitter.transform.setWorldPosition(x, ground + REGION_CENTER_HEIGHT, z);
+export function placeSeedSandstorm(
+  emitter: Entity,
+  x: number,
+  z: number,
+  fields: SeedWorldFields
+): void {
+  const generator = emitter.getComponent(ParticleRenderer)!.generator;
+  const halfSize = REGION_SIZE * 0.5;
+  const worldX = seedWorldOriginX(fields);
+  const worldZ = seedWorldOriginZ(fields);
+  const minX = Math.max(x - halfSize, worldX);
+  const maxX = Math.min(x + halfSize, worldX + fields.sizeMetres);
+  const minZ = Math.max(z - halfSize, worldZ);
+  const maxZ = Math.min(z + halfSize, worldZ + fields.sizeMetres);
+  const centerX = (minX + maxX) * 0.5;
+  const centerZ = (minZ + maxZ) * 0.5;
+  const ground = sampleSeedWorldHeight(fields, centerX, centerZ);
+  if (ground === undefined) throw new Error("Sandstorm emission terrain is unavailable");
+  const shape = new TerrainEmissionShape(centerX, centerZ, fields, ground);
+  shape.size.set(maxX - minX, REGION_HEIGHT, maxZ - minZ);
+
+  generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+  generator.emission.shape = shape;
+  emitter.transform.setWorldPosition(shape.centerX, 0, shape.centerZ);
+  generator.play(false);
 }
 
-export function createSeedSandstorm(root: Entity, atlas: Texture2D, x: number, ground: number, z: number): Entity {
+export function createSeedSandstorm(
+  root: Entity,
+  atlas: Texture2D,
+  x: number,
+  z: number,
+  fields: SeedWorldFields
+): Entity {
   const emitter = root.createChild("Seed desert sandstorm");
   const renderer = emitter.addComponent(ParticleRenderer);
   const generator = renderer.generator;
@@ -59,9 +121,6 @@ export function createSeedSandstorm(root: Entity, atlas: Texture2D, x: number, g
     new Color(135 / 255, 123 / 255, 115 / 255, 1),
     new Color(236 / 255, 214 / 255, 202 / 255, 1)
   );
-
-  const shape = new BoxShape();
-  emission.shape = shape;
 
   colorOverLifetime.enabled = true;
   colorOverLifetime.color = new ParticleCompositeGradient(new ParticleGradient(
@@ -81,7 +140,6 @@ export function createSeedSandstorm(root: Entity, atlas: Texture2D, x: number, g
   atlas.wrapModeU = atlas.wrapModeV = TextureWrapMode.Clamp;
   material.baseTexture = atlas;
   material.baseColor.a = 1;
-  shape.size.set(REGION_SIZE, REGION_HEIGHT, REGION_SIZE);
 
   main.duration = MAX_LIFETIME;
   main.maxParticles = EMISSION_RATE * MAX_LIFETIME;
@@ -96,7 +154,6 @@ export function createSeedSandstorm(root: Entity, atlas: Texture2D, x: number, g
   rotationOverLifetime.rotationZ = new ParticleCompositeCurve(-20, 20);
   emission.rateOverTime.constant = EMISSION_RATE;
 
-  placeSeedSandstorm(emitter, x, ground, z);
-  generator.play(false);
+  placeSeedSandstorm(emitter, x, z, fields);
   return emitter;
 }

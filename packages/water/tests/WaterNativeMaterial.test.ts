@@ -1,22 +1,31 @@
-import { AssetType, Material, Shader, Texture2D, WebGLEngine } from "@galacean/engine";
-import { expect, it, vi } from "vitest";
-import conversion from "../src/water/native/assets/conversion.json";
-import { BUILTIN_WATER_PROJECT_URL } from "../src/water/native/WaterBuiltinAssets";
-import { registerWaterBuiltinShaders, WATER_BUILTIN_SHADER_NAMES } from "../src/water/native/WaterBuiltinShaders";
 import {
+  AssetType,
+  Material,
+  Shader,
+  Texture2D,
+  TextureCube,
+  TextureFilterMode,
+  TextureFormat,
+  WebGLEngine
+} from "@galacean/engine";
+import { expect, it } from "vitest";
+import { registerWaterBuiltinShaders } from "../src/water/native/WaterBuiltinShaders";
+import {
+  WATER_MATERIAL_TEXTURE_SLOTS,
   createWaterMaterialDefaults,
   prepareWaterMaterial,
   resolveWaterMaterialLook,
+  resolveWaterMaterialFileLook,
   waterMaterialFactories,
   waterMaterialKey,
   waterMaterialTextures
 } from "../src/water/native/WaterMaterial";
-import { OceanTextureLibrary } from "../src/water/runtime/ocean/OceanTextureLibrary";
 import { WaterRuntimeResourceRegistry } from "../src/water/runtime/resources/WaterRuntimeResourceRegistry";
+import { BUILTIN_WATER_PROJECT_URL } from "../src/water/native/WaterBuiltinAssets";
 
-async function materialFor(engine: WebGLEngine, profile: "lake" | "river" | "ocean", drops = false) {
+async function materialFor(engine: WebGLEngine, profile: "lake" | "river" | "ocean") {
   registerWaterBuiltinShaders();
-  const file = createWaterMaterialDefaults(profile, drops);
+  const file = createWaterMaterialDefaults(profile);
   file.name += `/${crypto.randomUUID()}`;
   return engine.resourceManager.load<Material>({
     type: AssetType.Material,
@@ -24,137 +33,128 @@ async function materialFor(engine: WebGLEngine, profile: "lake" | "river" | "oce
   });
 }
 
-it.each([
-  ["lake", false, 2, 1],
-  ["river", false, 3, 2],
-  ["river", true, 11, 10],
-  ["ocean", false, 5, 5]
-] as const)(
-  "resolves %s (drops %s) from built-in slots and conversion SHA identities",
-  async (profile, drops, slots, textures) => {
+it.each(["lake", "river", "ocean"] as const)(
+  "keeps %s defaults empty and accepts every ordinary native texture slot",
+  async (profile) => {
     const engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
     try {
-      const material = await materialFor(engine, profile, drops);
+      const material = await materialFor(engine, profile);
+      const empty = waterMaterialKey(material);
       await prepareWaterMaterial(material);
-      const bindings = waterMaterialTextures(material);
-      expect(bindings).toHaveLength(slots);
-      expect(waterMaterialFactories(material)).toHaveLength(textures);
-      for (const { path, descriptor } of bindings) {
-        expect(descriptor.contentHash).toBe(conversion.find((asset) => asset.target === path)!.sha256);
-        expect(descriptor.id).toBe(`builtin-water-texture:${descriptor.contentHash}`);
+      expect(waterMaterialTextures(material)).toHaveLength(0);
+      expect(waterMaterialFactories(material)).toHaveLength(0);
+      expect(() => resolveWaterMaterialLook(material)).not.toThrow();
+      for (const slot of WATER_MATERIAL_TEXTURE_SLOTS[profile]) {
+        const a = new Texture2D(engine, 7, 5, TextureFormat.R8G8B8A8, false, slot.isSRGBColorSpace);
+        const b = new Texture2D(engine, 3, 9, TextureFormat.R8G8B8A8, false, slot.isSRGBColorSpace);
+        material.shaderData.setTexture(slot.slot, a);
+        await prepareWaterMaterial(material);
+        expect(waterMaterialTextures(material)[0].texture).toBe(a);
+        const key = waterMaterialKey(material);
+        expect(key).not.toBe(empty);
+        a.filterMode = TextureFilterMode.Point;
+        expect(waterMaterialKey(material)).not.toBe(key);
+        material.shaderData.setTexture(slot.slot, b);
+        expect(waterMaterialTextures(material)[0].texture).toBe(b);
+        expect(waterMaterialKey(material)).not.toBe(key);
+        material.shaderData.setTexture(slot.slot, null!);
+        await prepareWaterMaterial(material);
+        expect(waterMaterialKey(material)).toBe(empty);
+        expect(waterMaterialTextures(material)).toHaveLength(0);
+        expect(a.destroyed || b.destroyed).toBe(false);
       }
-      const look = resolveWaterMaterialLook(material);
-      if (profile === "lake") {
-        const layer = look.appearance.appearance.detailLayers[0];
-        expect(layer.textureContentHash).toBe(
-          conversion.find((asset) => asset.target.endsWith("grasslands-water-normal-1024.ktx2"))!.sha256
-        );
-      }
-      if (profile === "river") expect(!!look.look.riverDrops).toBe(drops);
-      expect(
-        material.shaderData
-          .getProperties()
-          .some((property) => material.shaderData.getTexture(property) instanceof Texture2D)
-      ).toBe(false);
-      material.destroy();
     } finally {
       engine.destroy();
     }
   }
 );
 
-it("ignores legacy/custom texture handles and warns once per Material without changing its key or look", async () => {
+it("loads a normal PNG through the ordinary Texture2D and Material reference pipeline, including null", async () => {
   const engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
-  const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+  try {
+    registerWaterBuiltinShaders();
+    const canvas = document.createElement("canvas");
+    canvas.width = 7;
+    canvas.height = 3;
+    canvas.getContext("2d")!.fillRect(0, 0, 7, 3);
+    engine.resourceManager.registerVirtualResources([
+      {
+        virtualPath: "custom.png",
+        path: canvas.toDataURL(),
+        type: AssetType.Texture2D,
+        params: { isSRGBColorSpace: false, mipmap: false }
+      }
+    ]);
+    const file = createWaterMaterialDefaults("lake");
+    const slot = WATER_MATERIAL_TEXTURE_SLOTS.lake[0].slot;
+    file.shaderData[slot].value = { url: "custom.png" };
+    expect(() => resolveWaterMaterialFileLook(file)).not.toThrow();
+    const material = await engine.resourceManager.load<Material>({
+      type: AssetType.Material,
+      url: "data:application/json," + encodeURIComponent(JSON.stringify(file))
+    });
+    await prepareWaterMaterial(material);
+    const texture = material.shaderData.getTexture(slot) as Texture2D;
+    expect([texture.width, texture.height, texture.mipmapCount]).toEqual([7, 3, 1]);
+    expect(waterMaterialTextures(material)[0].texture).toBe(texture);
+    file.shaderData[slot].value = "not-a-native-reference";
+    expect(() => resolveWaterMaterialFileLook(file)).toThrow(slot);
+  } finally {
+    engine.destroy();
+  }
+});
+
+it("validates color space, texture kind and ownership without mutating shared sampling", async () => {
+  const engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
+  const other = await WebGLEngine.create({ canvas: document.createElement("canvas") });
   try {
     const material = await materialFor(engine, "lake");
-    const key = waterMaterialKey(material),
-      look = resolveWaterMaterialLook(material);
-    const legacy = new Texture2D(engine, 8, 8);
-    const slot = waterMaterialTextures(material)[0].slot;
-    material.shaderData.setTexture(slot, legacy);
-    material.shaderData.setTexture("handwritten_CustomTexture", legacy);
-    await prepareWaterMaterial(material);
-    await prepareWaterMaterial(material);
-    expect(waterMaterialKey(material)).toBe(key);
-    expect(resolveWaterMaterialLook(material)).toEqual(look);
-    expect(warn).toHaveBeenCalledOnce();
-    material.shaderData.setTexture(slot, new Texture2D(engine, 4, 4));
-    expect(waterMaterialKey(material)).toBe(key);
-    expect(warn).toHaveBeenCalledOnce();
-    material.shaderData.setFloat("material_AppearanceV2DepthDistance", 0.123);
-    expect(waterMaterialKey(material)).not.toBe(key);
-    material.destroy();
-  } finally {
-    warn.mockRestore();
-    engine.destroy();
-  }
-});
-
-it.each([
-  ["lake", false],
-  ["river", false],
-  ["river", true],
-  ["ocean", false]
-] as const)("invalidates the %s material key when its Shader changes (drops %s)", async (profile, drops) => {
-  const engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
-  try {
-    const material = await materialFor(engine, profile, drops);
-    const original = material.shader;
-    const key = waterMaterialKey(material);
-    for (const name of [`${original.name}/replacement`, original.name]) {
-      const replacement = Shader.create(name, [...original.subShaders]);
-      try {
-        material.shader = replacement;
-        await prepareWaterMaterial(material);
-        const changedKey = waterMaterialKey(material);
-        expect(changedKey).not.toBe(key);
-        expect(waterMaterialKey(material)).toBe(changedKey);
-      } finally {
-        material.shader = original;
-        replacement.destroy();
-      }
-      expect(waterMaterialKey(material)).toBe(key);
+    const slot = WATER_MATERIAL_TEXTURE_SLOTS.lake[0].slot;
+    const bad = [
+      new Texture2D(engine, 2, 2),
+      new TextureCube(engine, 2),
+      new Texture2D(other, 2, 2, undefined, false, false)
+    ];
+    for (const texture of bad) {
+      material.shaderData.setTexture(slot, texture);
+      await expect(prepareWaterMaterial(material)).rejects.toThrow(slot);
     }
-    material.destroy();
+    material.shaderData.setInt("material_WaterRiverDrops", 1);
+    await expect(prepareWaterMaterial(material)).rejects.toThrow("NOT_SUPPORTED");
+    expect(() => createWaterMaterialDefaults("river", true)).toThrow("NOT_SUPPORTED");
   } finally {
     engine.destroy();
+    other.destroy();
   }
 });
 
-it("shares one built-in resource across materials and releases the registry's ownership on shutdown", async () => {
+it("shares native references while releasing retired leases without destroying the caller's texture", async () => {
   const engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
   const registry = new WaterRuntimeResourceRegistry();
   try {
     const a = await materialFor(engine, "lake"),
       b = await materialFor(engine, "lake");
-    expect(a).not.toBe(b);
-    await prepareWaterMaterial(a);
-    await prepareWaterMaterial(b);
-    expect(waterMaterialKey(a)).toBe(waterMaterialKey(b));
-    const fa = waterMaterialFactories(a)[0],
-      fb = waterMaterialFactories(b)[0];
-    const load = vi.fn(fa.load.bind(fa));
-    registry.ensureRegistered({ ...fa, load });
-    registry.ensureRegistered({ ...fb, load });
-    const [first, second] = await Promise.all([
-      registry.acquire<{ texture: Texture2D }>(fa.descriptor),
-      registry.acquire<{ texture: Texture2D }>(fb.descriptor)
-    ]);
-    const texture = first!.resource.texture;
+    const texture = new Texture2D(engine, 4, 4, undefined, false, false);
+    const slot = WATER_MATERIAL_TEXTURE_SLOTS.lake[0].slot;
+    a.shaderData.setTexture(slot, texture);
+    b.shaderData.setTexture(slot, texture);
+    const factory = waterMaterialFactories(a)[0];
+    registry.ensureRegistered(factory);
+    const first = await registry.acquire<{ texture: Texture2D }>(factory.descriptor);
+    const second = await registry.acquire<{ texture: Texture2D }>(factory.descriptor);
+    expect(first!.resource.texture).toBe(texture);
     expect(second!.resource.texture).toBe(texture);
-    expect(load).toHaveBeenCalledTimes(1);
     expect(texture.refCount).toBe(1);
-    a.destroy();
-    expect(texture.destroyed).toBe(false);
     await first!.destroy();
     await first!.destroy();
+    expect(texture.refCount).toBe(1);
     await second!.destroy();
-    // Shared resources stay in the scene registry until it is unloaded.
-    expect(texture.refCount).toBe(1);
-    await registry.destroy();
     expect(texture.refCount).toBe(0);
-    expect(texture.destroyed).toBe(true);
+    expect(texture.destroyed).toBe(false);
+    expect(b.shaderData.getTexture(slot)).toBe(texture);
+    await registry.destroy();
+    expect(texture.destroyed).toBe(false);
+    a.destroy();
     b.destroy();
   } finally {
     await registry.destroy();
@@ -162,68 +162,52 @@ it("shares one built-in resource across materials and releases the registry's ow
   }
 });
 
-it("does not acquire resources for aborted preparation and leaves cancellation cleanup to the registry", async () => {
-  const engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
-  try {
-    const material = await materialFor(engine, "river");
-    const controller = new AbortController();
-    controller.abort();
-    await expect(prepareWaterMaterial(material, controller.signal)).rejects.toThrow();
-    material.destroy();
-  } finally {
-    engine.destroy();
-  }
-});
-
-it("shares the Ocean preset paths with runtime-only owners and releases each owner's reference", async () => {
-  const engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
-  const libraries: OceanTextureLibrary[] = [];
-  try {
-    const material = await materialFor(engine, "ocean");
-    const bindings = waterMaterialTextures(material);
-    const a = await OceanTextureLibrary.create(engine);
-    libraries.push(a);
-    const b = await OceanTextureLibrary.create(engine);
-    libraries.push(b);
-    expect(b.textures.smoothWaves).toBe(a.textures.smoothWaves);
-    const factories = waterMaterialFactories(material);
-    const factory = factories.find((factory) => factory.descriptor.id === bindings[0].descriptor.id)!;
-    const borrowed = (await factory.load({})) as { texture: Texture2D };
-    expect(borrowed.texture).toBe(a.textures.smoothWaves);
-    expect(borrowed.texture.refCount).toBe(3);
-    await factory.destroy!(borrowed);
-    a.destroy();
-    expect(b.textures.smoothWaves.refCount).toBe(1);
-    expect(b.textures.smoothWaves.destroyed).toBe(false);
-    b.destroy();
-    expect(b.textures.smoothWaves.refCount).toBe(0);
-    expect(b.textures.smoothWaves.destroyed).toBe(true);
-    material.destroy();
-  } finally {
-    libraries.forEach((library) => library.destroy());
-    engine.destroy();
-  }
-});
-
-it.each(["lake", "river", "river-drops", "ocean"] as const)(
-  "loads the standalone %s example without Shader/texture asset dependencies",
-  async (preset) => {
-    registerWaterBuiltinShaders();
+it.each(["lake", "river", "ocean"] as const)(
+  "invalidates %s when an equal-named Shader is replaced",
+  async (profile) => {
     const engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
     try {
-      const url = new URL(`Water/Materials/${preset}.mat`, BUILTIN_WATER_PROJECT_URL).href;
-      const file = await (await fetch(url)).json();
-      const profile = preset === "river-drops" ? "river" : preset;
-      expect(file.shader).toBe(WATER_BUILTIN_SHADER_NAMES[profile]);
-      expect(file).not.toHaveProperty("shaderRef");
-      expect(Object.values(file.shaderData).every((entry: { type: string }) => entry.type !== "Texture")).toBe(true);
-      const material = await engine.resourceManager.load<Material>({ url, type: AssetType.Material });
-      await prepareWaterMaterial(material);
-      expect(() => resolveWaterMaterialLook(material)).not.toThrow();
-      expect(material.shader.name).toBe(file.shader);
-      material.destroy();
+      const material = await materialFor(engine, profile),
+        original = material.shader,
+        key = waterMaterialKey(material);
+      const replacement = Shader.create(original.name, [...original.subShaders]);
+      material.shader = replacement;
+      expect(waterMaterialKey(material)).not.toBe(key);
+      material.shader = original;
+      replacement.destroy();
+      expect(waterMaterialKey(material)).toBe(key);
     } finally {
       engine.destroy();
     }
   }
 );
+
+it("loads only the eight explicitly referenced example textures, with all ten slots", async () => {
+  const engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
+  try {
+    registerWaterBuiltinShaders();
+    const manifest = await (await fetch(BUILTIN_WATER_PROJECT_URL)).json();
+    const files = manifest.files.map((file: any) => ({
+      ...file,
+      path: new URL(file.path, BUILTIN_WATER_PROJECT_URL).href
+    }));
+    expect(files.filter((file: any) => file.type === "KTX2")).toHaveLength(8);
+    expect(files.some((file: any) => file.virtualPath.includes("river-drops"))).toBe(false);
+    engine.resourceManager.registerVirtualResources(files);
+    const resources = new Set<Texture2D>();
+    for (const profile of ["lake", "river", "ocean"] as const) {
+      const file = await (await fetch(new URL(`Water/Materials/${profile}.mat`, BUILTIN_WATER_PROJECT_URL))).json();
+      for (const { slot } of WATER_MATERIAL_TEXTURE_SLOTS[profile])
+        file.shaderData[slot].value = { url: file.shaderData[slot].value.url };
+      const material = await engine.resourceManager.load<Material>({
+        type: AssetType.Material,
+        url: "data:application/json," + encodeURIComponent(JSON.stringify(file))
+      });
+      await prepareWaterMaterial(material);
+      for (const { texture } of waterMaterialTextures(material)) resources.add(texture);
+    }
+    expect(resources.size).toBe(8);
+  } finally {
+    engine.destroy();
+  }
+}, 60000);

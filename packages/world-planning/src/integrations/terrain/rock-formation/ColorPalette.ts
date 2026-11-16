@@ -27,7 +27,7 @@ export function rockPaletteLinearToHex(color: readonly number[]): string {
   );
 }
 
-const DEFAULT_COLOR = rockPaletteHexToLinear("#b8bcc2");
+const DEFAULT_COLOR = rockPaletteHexToLinear("#ffffff");
 
 export const ROCK_COLOR_FIELDS: SpatialField[] = (["r", "g", "b"] as const).map((channel, index) => ({
   key: `color.${channel}`,
@@ -42,7 +42,7 @@ export const ROCK_COLOR_FIELDS: SpatialField[] = (["r", "g", "b"] as const).map(
 }));
 export const ROCK_COLOR_FIELD_KEYS = new Set(ROCK_COLOR_FIELDS.map((field) => field.key));
 
-/** Untinted projects start with the accepted neutral grey; explicit black remains valid. */
+/** Untinted projects start with the white; explicit black remains valid. */
 export function readRockColorBlend(values: Record<string, unknown> = {}): RockColorBlend {
   return {
     color: ["r", "g", "b"].map((channel, index) =>

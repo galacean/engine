@@ -1,7 +1,6 @@
 
-Shader "AIWorld/RiverSurfaceLocalMapBodyLocalV2AppearanceV2watersurfacematerialv12b852e5af9cd14f0" {
+Shader "AIWorld/RiverSurfaceLocalMapBodyLocalV2AppearanceV2watersurfacematerialv18cc7fbbf3c676e39" {
 int material_WaterProfile;
-int material_WaterRiverDrops;
 float material_Water_look_reflectionSampling_screenSpaceCompositeIntensity;
 float material_Water_look_reflectionSampling_environmentFallbackIntensity;
 float material_Water_look_reflectionSampling_distortionStrength;
@@ -18,48 +17,6 @@ float material_Water_look_oceanResponse_microDetailResponse_0_speedRatio;
 float material_Water_look_oceanResponse_microDetailResponse_1_speedMetresPerSecond;
 float material_Water_look_oceanResponse_microDetailResponse_1_strengthRatio;
 float material_Water_look_oceanResponse_microDetailResponse_1_speedRatio;
-vec2 material_Water_look_riverDrops_layers_directional_scale;
-vec2 material_Water_look_riverDrops_layers_directional_velocity;
-vec2 material_Water_look_riverDrops_layers_cloud_scale;
-vec2 material_Water_look_riverDrops_layers_cloud_velocity;
-vec2 material_Water_look_riverDrops_layers_lines_scale;
-vec2 material_Water_look_riverDrops_layers_lines_velocity;
-vec2 material_Water_look_riverDrops_layers_edge_scale;
-vec2 material_Water_look_riverDrops_layers_edge_velocity;
-vec2 material_Water_look_riverDrops_layers_voronoi_scale;
-vec2 material_Water_look_riverDrops_layers_voronoi_velocity;
-vec2 material_Water_look_riverDrops_layers_foam_scale;
-vec2 material_Water_look_riverDrops_layers_foam_velocity;
-vec3 material_Water_look_riverDrops_colors_0;
-vec3 material_Water_look_riverDrops_colors_1;
-vec3 material_Water_look_riverDrops_colors_2;
-vec3 material_Water_look_riverDrops_colors_3;
-float material_Water_look_riverDrops_speed;
-float material_Water_look_riverDrops_opacity;
-float material_Water_look_riverDrops_normalStrength;
-float material_Water_look_riverDrops_colorContrast;
-float material_Water_look_riverDrops_parallaxDepth;
-float material_Water_look_riverDrops_foamOpacity;
-float material_Water_look_riverDrops_sprayOpacity;
-float material_Water_look_riverDrops_mistOpacity;
-float material_Water_look_riverDrops_curtain_lineDistortion;
-float material_Water_look_riverDrops_curtain_lineOpacity;
-float material_Water_look_riverDrops_curtain_lineReveal;
-float material_Water_look_riverDrops_curtain_bottomFoamStart;
-float material_Water_look_riverDrops_curtain_bottomFoamThreshold;
-float material_Water_look_riverDrops_curtain_edgeCutout;
-float material_Water_look_riverDrops_curtain_edgeFoamThreshold;
-float material_Water_look_riverDrops_curtain_edgeFoamOpacity;
-float material_Water_look_riverDrops_curtain_entryFade;
-float material_Water_look_riverDrops_curtain_dotsThreshold;
-float material_Water_look_riverDrops_curtain_dotsOpacity;
-vec2 material_Water_look_riverDrops_impact_scale;
-float material_Water_look_riverDrops_impact_velocity;
-float material_Water_look_riverDrops_impact_distortion;
-float material_Water_look_riverDrops_impact_lengthMultiplier;
-float material_Water_look_riverDrops_impact_lengthPower;
-float material_Water_look_riverDrops_impact_widthPower;
-float material_Water_look_riverDrops_impact_threshold;
 int material_Water_look_foam_enabled;
 float material_Water_look_foam_intensity;
 vec4 material_Water_look_foam_color;
@@ -134,9 +91,18 @@ int material_Water_renderState_queue;
 float material_Water_renderState_priorityOffset;
 int material_Water_renderState_cullMode;
 int material_Water_renderState_blendMode;
+sampler2D material_Water_appearance_appearance_detailLayers_0_texture;
+sampler2D material_Water_appearance_appearance_detailLayers_1_texture;
+sampler2D material_Water_appearance_appearance_caustics_texture;
 Editor { Properties {
+Header("Normal maps") {
+material_Water_appearance_appearance_detailLayers_0_texture("Detail normal 0", Texture2D);
+material_Water_appearance_appearance_detailLayers_1_texture("Detail normal 1", Texture2D);
+}
+Header("Caustics") {
+material_Water_appearance_appearance_caustics_texture("Caustics", Texture2D);
+}
 material_WaterProfile("material_WaterProfile", Enum(lake:0, river:1, ocean:2)) = 1;
-material_WaterRiverDrops("material_WaterRiverDrops", Boolean) = true;
 material_Water_look_reflectionSampling_screenSpaceCompositeIntensity("material_Water_look_reflectionSampling_screenSpaceCompositeIntensity", Float) = 1;
 material_Water_look_reflectionSampling_environmentFallbackIntensity("material_Water_look_reflectionSampling_environmentFallbackIntensity", Float) = 1;
 material_Water_look_reflectionSampling_distortionStrength("material_Water_look_reflectionSampling_distortionStrength", Float) = 0.025;
@@ -153,48 +119,6 @@ material_Water_look_oceanResponse_microDetailResponse_0_speedRatio("material_Wat
 material_Water_look_oceanResponse_microDetailResponse_1_speedMetresPerSecond("material_Water_look_oceanResponse_microDetailResponse_1_speedMetresPerSecond", Float) = 100;
 material_Water_look_oceanResponse_microDetailResponse_1_strengthRatio("material_Water_look_oceanResponse_microDetailResponse_1_strengthRatio", Float) = 1;
 material_Water_look_oceanResponse_microDetailResponse_1_speedRatio("material_Water_look_oceanResponse_microDetailResponse_1_speedRatio", Float) = 1;
-material_Water_look_riverDrops_layers_directional_scale("material_Water_look_riverDrops_layers_directional_scale", Vector2) = (1, 2);
-material_Water_look_riverDrops_layers_directional_velocity("material_Water_look_riverDrops_layers_directional_velocity", Vector2) = (0, -0.94);
-material_Water_look_riverDrops_layers_cloud_scale("material_Water_look_riverDrops_layers_cloud_scale", Vector2) = (0.2, 0.5);
-material_Water_look_riverDrops_layers_cloud_velocity("material_Water_look_riverDrops_layers_cloud_velocity", Vector2) = (-0.03, 0);
-material_Water_look_riverDrops_layers_lines_scale("material_Water_look_riverDrops_layers_lines_scale", Vector2) = (4, 3);
-material_Water_look_riverDrops_layers_lines_velocity("material_Water_look_riverDrops_layers_lines_velocity", Vector2) = (0, -1);
-material_Water_look_riverDrops_layers_edge_scale("material_Water_look_riverDrops_layers_edge_scale", Vector2) = (1, 1);
-material_Water_look_riverDrops_layers_edge_velocity("material_Water_look_riverDrops_layers_edge_velocity", Vector2) = (0, -0.45);
-material_Water_look_riverDrops_layers_voronoi_scale("material_Water_look_riverDrops_layers_voronoi_scale", Vector2) = (0.7, 2.2);
-material_Water_look_riverDrops_layers_voronoi_velocity("material_Water_look_riverDrops_layers_voronoi_velocity", Vector2) = (0, -0.42);
-material_Water_look_riverDrops_layers_foam_scale("material_Water_look_riverDrops_layers_foam_scale", Vector2) = (1.3, 1.52);
-material_Water_look_riverDrops_layers_foam_velocity("material_Water_look_riverDrops_layers_foam_velocity", Vector2) = (0, -0.48);
-material_Water_look_riverDrops_colors_0("material_Water_look_riverDrops_colors_0", Vector3) = (0, 0.1220324755937144, 0.5028864550454939);
-material_Water_look_riverDrops_colors_1("material_Water_look_riverDrops_colors_1", Vector3) = (0, 0.4356639051580454, 1);
-material_Water_look_riverDrops_colors_2("material_Water_look_riverDrops_colors_2", Vector3) = (0, 0.7754727764002606, 1);
-material_Water_look_riverDrops_colors_3("material_Water_look_riverDrops_colors_3", Vector3) = (1, 1, 1);
-material_Water_look_riverDrops_speed("material_Water_look_riverDrops_speed", Float) = 1;
-material_Water_look_riverDrops_opacity("material_Water_look_riverDrops_opacity", Float) = 1;
-material_Water_look_riverDrops_normalStrength("material_Water_look_riverDrops_normalStrength", Float) = 0.1;
-material_Water_look_riverDrops_colorContrast("material_Water_look_riverDrops_colorContrast", Float) = 0.37;
-material_Water_look_riverDrops_parallaxDepth("material_Water_look_riverDrops_parallaxDepth", Float) = 0.192;
-material_Water_look_riverDrops_foamOpacity("material_Water_look_riverDrops_foamOpacity", Float) = 1;
-material_Water_look_riverDrops_sprayOpacity("material_Water_look_riverDrops_sprayOpacity", Float) = 0.6;
-material_Water_look_riverDrops_mistOpacity("material_Water_look_riverDrops_mistOpacity", Float) = 0.24;
-material_Water_look_riverDrops_curtain_lineDistortion("material_Water_look_riverDrops_curtain_lineDistortion", Float) = 0.3;
-material_Water_look_riverDrops_curtain_lineOpacity("material_Water_look_riverDrops_curtain_lineOpacity", Float) = 1.23;
-material_Water_look_riverDrops_curtain_lineReveal("material_Water_look_riverDrops_curtain_lineReveal", Float) = 0.45;
-material_Water_look_riverDrops_curtain_bottomFoamStart("material_Water_look_riverDrops_curtain_bottomFoamStart", Float) = 0.338;
-material_Water_look_riverDrops_curtain_bottomFoamThreshold("material_Water_look_riverDrops_curtain_bottomFoamThreshold", Float) = 0.181;
-material_Water_look_riverDrops_curtain_edgeCutout("material_Water_look_riverDrops_curtain_edgeCutout", Float) = 0.1;
-material_Water_look_riverDrops_curtain_edgeFoamThreshold("material_Water_look_riverDrops_curtain_edgeFoamThreshold", Float) = 0.6;
-material_Water_look_riverDrops_curtain_edgeFoamOpacity("material_Water_look_riverDrops_curtain_edgeFoamOpacity", Float) = 0.5;
-material_Water_look_riverDrops_curtain_entryFade("material_Water_look_riverDrops_curtain_entryFade", Float) = 7.2;
-material_Water_look_riverDrops_curtain_dotsThreshold("material_Water_look_riverDrops_curtain_dotsThreshold", Float) = 0.752;
-material_Water_look_riverDrops_curtain_dotsOpacity("material_Water_look_riverDrops_curtain_dotsOpacity", Float) = 0.313;
-material_Water_look_riverDrops_impact_scale("material_Water_look_riverDrops_impact_scale", Vector2) = (0.4, 1.42);
-material_Water_look_riverDrops_impact_velocity("material_Water_look_riverDrops_impact_velocity", Float) = -0.35;
-material_Water_look_riverDrops_impact_distortion("material_Water_look_riverDrops_impact_distortion", Float) = 0.1061;
-material_Water_look_riverDrops_impact_lengthMultiplier("material_Water_look_riverDrops_impact_lengthMultiplier", Float) = 1.07;
-material_Water_look_riverDrops_impact_lengthPower("material_Water_look_riverDrops_impact_lengthPower", Float) = 1.31;
-material_Water_look_riverDrops_impact_widthPower("material_Water_look_riverDrops_impact_widthPower", Float) = 0.21;
-material_Water_look_riverDrops_impact_threshold("material_Water_look_riverDrops_impact_threshold", Float) = 0.22;
 material_Water_look_foam_enabled("material_Water_look_foam_enabled", Boolean) = false;
 material_Water_look_foam_intensity("material_Water_look_foam_intensity", Float) = 0;
 material_Water_look_foam_color("material_Water_look_foam_color", Color) = (1, 1, 1, 1);
@@ -412,6 +336,8 @@ material_Water_renderState_blendMode("material_Water_renderState_blendMode", Enu
       vec4 material_AppearanceV2CausticsTransform;
       vec4 material_AppearanceV2CausticsResponse;
       vec2 material_AppearanceV2CausticsParallax;
+      float material_AppearanceV2Detail0Enabled;
+      float material_AppearanceV2Detail1Enabled;
       float material_AppearanceV2DetailEnabled;
       float material_AppearanceV2DetailNormalStrength;
       float material_AppearanceV2DepthResponseEnabled;
@@ -1944,11 +1870,14 @@ struct RiverSceneSample {
           appearanceLayerScaled0.x * material_AppearanceV2Detail0Rotation.x - appearanceLayerScaled0.y * material_AppearanceV2Detail0Rotation.y,
           appearanceLayerScaled0.x * material_AppearanceV2Detail0Rotation.y + appearanceLayerScaled0.y * material_AppearanceV2Detail0Rotation.x
         ) + material_AppearanceV2Detail0Transform.zw;
-        vec3 appearanceLayerNormal0 = waterSurfaceAppearanceDecodeTangentNormalPreserveSourceZ(
+        vec3 appearanceLayerNormal0 = vec3(0.0, 0.0, 1.0);
+        if (material_AppearanceV2Detail0Enabled > 0.5) {
+        appearanceLayerNormal0 = waterSurfaceAppearanceDecodeTangentNormalPreserveSourceZ(
           texture2D(material_AppearanceV2Detail0Texture, appearanceLayerUv0),
           material_AppearanceV2Detail0Strength,
           0.0
         );
+        }
         // Fade the transported normal, including FirstDetailLayer refraction,
         // rather than switching its time coordinate at a local speed boundary.
         appearanceLayerNormal0 = mix(vec3(0.0, 0.0, 1.0), appearanceLayerNormal0, smoothstep(0.0, 0.05000000, input.localFlowSpeed));
@@ -1960,11 +1889,14 @@ struct RiverSceneSample {
           appearanceLayerScaled1.x * material_AppearanceV2Detail1Rotation.x - appearanceLayerScaled1.y * material_AppearanceV2Detail1Rotation.y,
           appearanceLayerScaled1.x * material_AppearanceV2Detail1Rotation.y + appearanceLayerScaled1.y * material_AppearanceV2Detail1Rotation.x
         ) + material_AppearanceV2Detail1Transform.zw;
-        vec3 appearanceLayerNormal1 = waterSurfaceAppearanceDecodeTangentNormalPreserveSourceZ(
+        vec3 appearanceLayerNormal1 = vec3(0.0, 0.0, 1.0);
+        if (material_AppearanceV2Detail1Enabled > 0.5) {
+        appearanceLayerNormal1 = waterSurfaceAppearanceDecodeTangentNormalPreserveSourceZ(
           texture2D(material_AppearanceV2Detail1Texture, appearanceLayerUv1),
           material_AppearanceV2Detail1Strength,
           0.0
         );
+        }
         appearanceNormalTS = waterSurfaceAppearanceBlendTangentNormals(appearanceNormalTS, appearanceLayerNormal1);
 
         appearanceNormalTS = normalize(mix(vec3(0.0, 0.0, 1.0), appearanceNormalTS, material_AppearanceV2DetailNormalStrength));
@@ -2413,6 +2345,8 @@ closureInput.coastalAlpha = appearanceCoastalAlpha;
       vec4 material_AppearanceV2CausticsTransform;
       vec4 material_AppearanceV2CausticsResponse;
       vec2 material_AppearanceV2CausticsParallax;
+      float material_AppearanceV2Detail0Enabled;
+      float material_AppearanceV2Detail1Enabled;
       float material_AppearanceV2DetailEnabled;
       float material_AppearanceV2DetailNormalStrength;
       float material_AppearanceV2DepthResponseEnabled;
@@ -2903,11 +2837,14 @@ vec3 waterSurfaceAppearanceBlendTangentNormals(
           appearanceLayerScaled0.x * material_AppearanceV2Detail0Rotation.x - appearanceLayerScaled0.y * material_AppearanceV2Detail0Rotation.y,
           appearanceLayerScaled0.x * material_AppearanceV2Detail0Rotation.y + appearanceLayerScaled0.y * material_AppearanceV2Detail0Rotation.x
         ) + material_AppearanceV2Detail0Transform.zw;
-        vec3 appearanceLayerNormal0 = waterSurfaceAppearanceDecodeTangentNormalPreserveSourceZ(
+        vec3 appearanceLayerNormal0 = vec3(0.0, 0.0, 1.0);
+        if (material_AppearanceV2Detail0Enabled > 0.5) {
+        appearanceLayerNormal0 = waterSurfaceAppearanceDecodeTangentNormalPreserveSourceZ(
           texture2D(material_AppearanceV2Detail0Texture, appearanceLayerUv0),
           material_AppearanceV2Detail0Strength,
           0.0
         );
+        }
         // Fade the transported normal, including FirstDetailLayer refraction,
         // rather than switching its time coordinate at a local speed boundary.
         appearanceLayerNormal0 = mix(vec3(0.0, 0.0, 1.0), appearanceLayerNormal0, smoothstep(0.0, 0.05000000, input.localFlowSpeed));
@@ -2919,11 +2856,14 @@ vec3 waterSurfaceAppearanceBlendTangentNormals(
           appearanceLayerScaled1.x * material_AppearanceV2Detail1Rotation.x - appearanceLayerScaled1.y * material_AppearanceV2Detail1Rotation.y,
           appearanceLayerScaled1.x * material_AppearanceV2Detail1Rotation.y + appearanceLayerScaled1.y * material_AppearanceV2Detail1Rotation.x
         ) + material_AppearanceV2Detail1Transform.zw;
-        vec3 appearanceLayerNormal1 = waterSurfaceAppearanceDecodeTangentNormalPreserveSourceZ(
+        vec3 appearanceLayerNormal1 = vec3(0.0, 0.0, 1.0);
+        if (material_AppearanceV2Detail1Enabled > 0.5) {
+        appearanceLayerNormal1 = waterSurfaceAppearanceDecodeTangentNormalPreserveSourceZ(
           texture2D(material_AppearanceV2Detail1Texture, appearanceLayerUv1),
           material_AppearanceV2Detail1Strength,
           0.0
         );
+        }
         appearanceNormalTS = waterSurfaceAppearanceBlendTangentNormals(appearanceNormalTS, appearanceLayerNormal1);
 
         appearanceNormalTS = normalize(mix(vec3(0.0, 0.0, 1.0), appearanceNormalTS, material_AppearanceV2DetailNormalStrength));

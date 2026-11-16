@@ -12,10 +12,7 @@ import { boxOutline, type Volume } from "./Volumes";
 import { spatialRevealInputSignature } from "./SpatialEditInputs";
 import { updateSpatialInstanceConnections } from "./SpatialInstanceConnections";
 import { guidanceRockBox } from "../guidance/GuidanceRock";
-import {
-  applyLandscapeRockGeneration,
-  applyRockObbSizes
-} from "../../integrations/terrain/rock-formation/Authoring.ts";
+import { applyRockObbSizes } from "../../integrations/terrain/rock-formation/Authoring.ts";
 
 function canonical(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(canonical);
@@ -294,7 +291,6 @@ export function applyLandscapeInstanceEdits(
 ): void {
   if (plan.spatialLayout) plan.spatialLayout = { ...plan.spatialLayout, baselineLandscapes: plan.landscapes ?? [] };
   applyLandscapeEdits(plan, instanceEdits(document), ground);
-  applyLandscapeRockGeneration(plan, document);
 }
 
 /** Apply authored POI solids and roads before their dependent environment is generated.

@@ -7,10 +7,6 @@
       "type": "Integer",
       "value": 1
     },
-    "material_WaterRiverDrops": {
-      "type": "Boolean",
-      "value": false
-    },
     "material_Water_look_reflectionSampling_screenSpaceCompositeIntensity": {
       "type": "Float",
       "value": 1
@@ -435,6 +431,24 @@
     "material_Water_renderState_blendMode": {
       "type": "Integer",
       "value": 1
+    },
+    "material_Water_appearance_appearance_detailLayers_0_texture": {
+      "type": "Texture",
+      "value": {
+        "url": "Water/Textures/farmlands-wave-large-normal.ktx2"
+      }
+    },
+    "material_Water_appearance_appearance_detailLayers_1_texture": {
+      "type": "Texture",
+      "value": {
+        "url": "Water/Textures/farmlands-wave-large-normal.ktx2"
+      }
+    },
+    "material_Water_appearance_appearance_caustics_texture": {
+      "type": "Texture",
+      "value": {
+        "url": "Water/Textures/farmlands-caustics-color.ktx2"
+      }
     }
   }
 }

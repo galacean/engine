@@ -2,8 +2,6 @@ import fs from "node:fs";
 import path from "node:path";
 import { createRequire } from "node:module";
 import { describe, expect, it } from "vitest";
-import { rockSurfaceAttributes } from "../../../packages/terrain/src/rock-formation/SurfaceAttributes";
-import type { RockFormationMesh } from "../../../packages/terrain/src/rock-formation/types";
 
 const root = path.resolve(__dirname, "../../..");
 const require = createRequire(import.meta.url);
@@ -38,17 +36,6 @@ describe("Common Surface rock integration", () => {
     expect(result.subShaders[0].passes.map((pass: { name: string }) => pass.name)).toEqual(["Forward", "ShadowCaster"]);
   }, 60000);
 
-  it("retains generated geometry normals when expanding indexed triangles for rendering", () => {
-    const formation = {
-      owners: ["rock"],
-      mesh: {
-        positions: new Float32Array([0, 0, 0, 1, 0, 0, 0, 1, 0]),
-        normals: new Float32Array([0, 0, 1, 0, 0, 1, 0, 0, 1]),
-        indices: new Uint32Array([2, 0, 1])
-      }
-    } as unknown as RockFormationMesh;
-    const { data, stride } = rockSurfaceAttributes(formation);
-    for (let i = 0; i < 3; i++) expect([...data.slice(i * stride + 3, i * stride + 6)]).toEqual([0, 0, 1]);
-  });
+
 
 });

@@ -1,4 +1,5 @@
 import { createRiverWaterBodyAssetAsync } from "@galacean/engine-water/water/authoring/river/RiverWaterBodyAuthoring";
+import { createFarmlandsWaterResourceFactories } from "@galacean/engine-water/water/resources/river/FarmlandsWaterRuntimeResources";
 import { Layer, Vector3, type Camera, type Engine, type Entity, type MeshRenderer } from "@galacean/engine";
 import {
   SeedWorldArrayPickBatch,
@@ -158,6 +159,8 @@ export class PlanningWaterRuntime {
       {
         initialize: (host) => {
           host.registerAuthoring(registerLakeWaterLook);
+          for (const factory of createFarmlandsWaterResourceFactories(options.engine))
+            host.ensureRuntimeResource(factory);
           host.ensureRuntimeResource(createLakeNormalResourceFactory(options.engine));
           host.registerAuthoring(registerRiverWaterBodyPresets);
           host.registerAuthoring(registerRiverValleyLook);

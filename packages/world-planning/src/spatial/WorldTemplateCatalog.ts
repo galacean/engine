@@ -1,3 +1,5 @@
+import type rockVariants from "../integrations/terrain/rock-formation/RockVariantCatalog.json";
+
 /** Authored art direction from 世界引擎模版. Colours are sRGB hex; consumers convert to linear. */
 export interface WorldTemplate {
   id: string;
@@ -22,6 +24,8 @@ export interface WorldTemplate {
   /** Only clearly frozen, arid, bare or submerged references restrict terrestrial plants. */
   vegetation?: "ice" | "desert" | "bare" | "marine" | "grass";
   farming?: false;
+  /** Named asset pool, or template-owned placements. Defaults to the project shared pool. */
+  rockSource?: keyof typeof rockVariants.pools | "authored";
   terrain: { heightM: number; widthM: number; count: number; coverage: number };
 }
 const gentleBaseTerrain = { heightM: 10, widthM: 180 };
@@ -32,6 +36,7 @@ export const WORLD_TEMPLATES: readonly WorldTemplate[] = [
     name: "樱雪仙境",
     icon: "🌸",
     family: "sakura",
+    rockSource: "shared",
     colors: ["#f3b7d1", "#f9e9ed", "#ff58ac", "#b7a4d2"],
     subject: "珍珠神树 · 水晶花冠 · 粉雪花雨",
     terrain: { ...gentleBaseTerrain, widthM: 220, count: 2, coverage: 0.76 }
@@ -142,6 +147,7 @@ export const WORLD_TEMPLATES: readonly WorldTemplate[] = [
   },
   {
     id: "low-poly",
+    rockSource: "authored",
     name: "Low Poly",
     icon: "🌲",
     family: "low-poly",
@@ -151,6 +157,7 @@ export const WORLD_TEMPLATES: readonly WorldTemplate[] = [
   },
   {
     id: "titan-wasteland",
+    rockSource: "authored",
     name: "幻兽荒原",
     icon: "🏜️",
     family: "desert",

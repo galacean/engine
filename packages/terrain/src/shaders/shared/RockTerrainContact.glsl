@@ -29,7 +29,7 @@ float terrainProjectBlendRockContact(vec3 positionWS, float clearance,
   #if defined(MATERIAL_TERRAIN_HEIGHT_FIELD) && defined(MATERIAL_TERRAIN_UNTEXTURED_SINGLE_MAP)
     float weight = terrainProjectRockContactWeight(clearance);
     if (weight > 0.0) {
-      TerrainProjectLayerBlend terrain = terrainProjectSimpleGroundSurface(positionWS);
+      TerrainProjectLayerBlend terrain = terrainProjectSimpleGroundSurface(positionWS, vec2(0.0), vec2(0.0));
       weight *= terrain.weight;
       float valid;
       vec3 terrainNormal = terrainProjectGeometryNormalAt(positionWS.xz, valid);

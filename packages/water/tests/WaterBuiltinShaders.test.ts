@@ -3,7 +3,7 @@ import { AssetType, Material, Shader, WebGLEngine } from "@galacean/engine";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
 import { WATER_BUILTIN_SHADER_NAMES, registerWaterBuiltinShaders } from "../src/water/native/WaterBuiltinShaders";
 import { WATER_BUILTIN_SHADER_SOURCES } from "../src/water/native/WaterBuiltinShaderSources";
-import { createWaterMaterialDefaults } from "../src/water/native/WaterMaterial";
+import { WATER_MATERIAL_TEXTURE_SLOTS, createWaterMaterialDefaults } from "../src/water/native/WaterMaterial";
 import { resolveWaterShaderModule } from "../src/water/runtime/material/WaterShaderModule";
 import lakeSource from "../src/water/native/assets/Water/Shaders/lake.shader?raw";
 import riverSource from "../src/water/native/assets/Water/Shaders/river.shader?raw";
@@ -25,7 +25,8 @@ it("registers all three authoring contracts without a runtime compiler and loads
     for (const profile of ["lake", "river", "ocean"] as const) {
       const file = createWaterMaterialDefaults(profile);
       expect(file).not.toHaveProperty("shaderRef");
-      expect(Object.values(file.shaderData).every((entry) => entry.type !== "Texture")).toBe(true);
+      for (const { slot } of WATER_MATERIAL_TEXTURE_SLOTS[profile])
+        expect(file.shaderData[slot]).toEqual({ type: "Texture", value: null });
       const material = await engine.resourceManager.load<Material>({
         type: AssetType.Material,
         url: "data:application/json," + encodeURIComponent(JSON.stringify(file))
@@ -67,11 +68,16 @@ it("rejects foreign names before registration and rejects a later shadow of an o
 });
 
 it.each(["lake", "river", "ocean"] as const)(
-  "parses and GPU-links the %s source with texture UI removed and sampler declarations retained",
+  "parses and GPU-links the %s source with the public texture slots and native samplers",
   async (profile) => {
     const source = WATER_BUILTIN_SHADER_SOURCES[profile];
     expect(await digestSha256Hex(new TextEncoder().encode(source))).toBe(sourceHashes[profile]);
-    expect(source).not.toMatch(/,\s*Texture2D\)/);
+    expect(source.match(/,\s*Texture2D\)/g)).toHaveLength(WATER_MATERIAL_TEXTURE_SLOTS[profile].length);
+    expect(source.match(/Header\(/g)).toHaveLength(
+      new Set(WATER_MATERIAL_TEXTURE_SLOTS[profile].map((slot) => slot.group)).size
+    );
+    expect(source).not.toContain("material_WaterRiverDrops(");
+    expect(source).not.toContain("material_Water_look_riverDrops_");
     expect(source).toMatch(/sampler2D\s+/);
     expect(source).toContain(`Shader "${WATER_BUILTIN_SHADER_NAMES[profile]}"`);
     const engine = await WebGLEngine.create({

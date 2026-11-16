@@ -125,7 +125,7 @@ export interface RockAtom {
 }
 /** Compile a catalog recipe into ordinary V2 metre boxes.
  * @param instance World dimensions and transform, without derived boxes.
- * @param catalog Shared definitions, optionally replaced for procedural-rock adaptation.
+ * @param catalog Shared definitions, optionally replaced to adapt a layout.
  * @returns Instance with exact requested outer dimensions and ordinary V2Box components.
  */
 export function compileRockAtom(instance: Omit<RockAtom, "boxes">, catalog = ROCK_ATOMS): RockAtom {

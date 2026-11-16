@@ -6,6 +6,8 @@
       vec4 material_AppearanceV2CausticsResponse;
       vec2 material_AppearanceV2CausticsParallax;
 #endif
+      float material_AppearanceV2Detail0Enabled;
+      float material_AppearanceV2Detail1Enabled;
       float material_AppearanceV2DetailEnabled;
       float material_AppearanceV2DetailNormalStrength;
       float material_AppearanceV2DepthResponseEnabled;

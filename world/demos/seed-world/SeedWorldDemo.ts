@@ -12,7 +12,6 @@ import { RuntimePickPreparation } from "@galacean/engine-runtime-editor/runtime-
 import { useProjectPlantResources } from "@galacean/engine-vegetation/asset-assembly/PlantSpeciesResources";
 import { WaterBodyComponent } from "@galacean/engine-water/water/native/WaterBodyComponent";
 import { createWaterSurfaceSample } from "@galacean/engine-water/water/runtime/index";
-import { readRockGenerationProfile } from "@galacean/engine-world-planning/integrations/terrain/rock-formation/GenerationProfile";
 import {
   rockGrassExclusions,
   rockGrassWaterTest
@@ -148,11 +147,7 @@ import { createIntegratedWorldLightingRuntime } from "@galacean/engine-world-pla
 import { TERRAIN_DEFAULT_CAMERA_CONFIGURATION } from "@galacean/engine-world-planning/integrations/terrain/lighting/TerrainLightingRuntime";
 import { RockFormationClient } from "@galacean/engine-world-planning/integrations/terrain/rock-formation/Client";
 import { RockNavigation } from "@galacean/engine-world-planning/integrations/terrain/rock-formation/Navigation";
-import { prepareRockTextures } from "@galacean/engine-world-planning/integrations/terrain/rock-formation/RockMaterial";
-import {
-  readRockFormationSettings,
-  rockGeometrySettings
-} from "@galacean/engine-world-planning/integrations/terrain/rock-formation/Settings";
+import { readRockFormationSettings } from "@galacean/engine-world-planning/integrations/terrain/rock-formation/Settings";
 import { PLANNING_REFERENCE } from "@galacean/engine-world-planning/planning-data/PlanningReference";
 import { sampleSeedWorldHeight } from "@galacean/engine-world-planning/runtime/SeedWorldFields";
 import {
@@ -331,7 +326,7 @@ export async function mountSeedWorldDemo(
     }
   }
   const raster = new PlanningRasterClient();
-  const rockFormations = new RockFormationClient(pageUrl.searchParams.get("rockUnion") === "1", () => engine!);
+  const rockFormations = new RockFormationClient(() => engine!);
   let rockNavigation: RockNavigation | undefined;
   const bootPhases: { phase: string; startMs: number }[] = [];
   const traceBootPhase = (phase: string) => {
@@ -707,7 +702,7 @@ export async function mountSeedWorldDemo(
       restore?.();
     };
 
-    if (desert) sun.shadowType = ShadowType.SoftHigh;
+    if (desert) sun.shadowType = ShadowType.SoftLow;
     lighting = createIntegratedWorldLightingRuntime(sun.entity, scene!, sun, post, desert?.DESERT_SOLAR_POSITION);
     lighting.setTuning({
       playing: false,
@@ -811,8 +806,6 @@ export async function mountSeedWorldDemo(
         debugReadoutElapsed = 0;
         const current = publication?.current;
         if (current?.vegetation) canvas.dataset.vegetation = JSON.stringify(current.vegetation.getDiagnostics());
-        canvas.dataset.rockGeneration = JSON.stringify(rockFormations.generationMetrics);
-        canvas.dataset.rockUnion = JSON.stringify(rockFormations.publicationMetrics);
         if (current?.template && pageUrl.searchParams.get("debug") === "1") {
           const forward = camera.entity.transform.worldForward;
           canvas.dataset.templateCamera = JSON.stringify({
@@ -903,7 +896,8 @@ export async function mountSeedWorldDemo(
         aspect: camera.aspectRatio,
         verticalFovDegrees: PLANNING_RUNTIME_OPTIONS.verticalFieldOfView,
         eyeHeight: navigation.eyeHeight,
-        farClip: camera.farClipPlane
+        farClip: camera.farClipPlane,
+        desertComposition: plan.parameters.worldTemplate?.id === "titan-wasteland"
       };
       const key = JSON.stringify(options);
       const cached = spawnViews.get(plan);
@@ -1088,11 +1082,9 @@ export async function mountSeedWorldDemo(
                 prepareSolids: async () => {
                   const formations = await rockFormations.prepare(
                     result.plan,
-                    readRockFormationSettings(document),
                     signal,
                     previous.solids.formations
                   );
-                  if (formations.some((mesh) => !mesh.variant)) await prepareRockTextures(engine!, signal);
                   signal.throwIfAborted();
                   const stage = previous.world.root.createChild("Prepared surface solids");
                   stage.isActive = false;
@@ -1103,7 +1095,6 @@ export async function mountSeedWorldDemo(
                       previous: previous.solids,
                       formations,
                       sourcePlan: result.plan,
-                      rockTextureScale: readRockFormationSettings(document).textureScale,
                       rockColorBlend: readRockFormationSettings(document).colorBlend,
                       registerGrassAppearance: (material) => previous.world.registerGrassAppearanceMaterial(material)
                     });
@@ -1178,15 +1169,10 @@ export async function mountSeedWorldDemo(
         !publication!.current || roadState(publication!.current.plan) === roadState(result.plan);
       const rockSupportChanged =
         publication!.current &&
-        JSON.stringify([
-          result.plan.rocks,
-          result.plan.landscapes?.filter((x) => x.kind === "rock"),
-          rockGeometrySettings(readRockFormationSettings(document))
-        ]) !==
+        JSON.stringify([result.plan.rocks, result.plan.landscapes?.filter((x) => x.kind === "rock")]) !==
           JSON.stringify([
             publication!.current.plan.rocks,
-            publication!.current.plan.landscapes?.filter((x) => x.kind === "rock"),
-            rockGeometrySettings(readRockFormationSettings(context.previousDocument))
+            publication!.current.plan.landscapes?.filter((x) => x.kind === "rock")
           ]);
       if (
         !context.forceFull &&
@@ -1207,7 +1193,6 @@ export async function mountSeedWorldDemo(
             staged.commit();
             canvas.dataset.rockEdit = JSON.stringify({
               kind: "material",
-              textureScale: settings.textureScale,
               generated: 0,
               uploaded: 0,
               buildingSupportsUpdated: 0,
@@ -1241,8 +1226,7 @@ export async function mountSeedWorldDemo(
             let groundTemplate: (() => void) | undefined;
             try {
               if (rockState(plan) !== rockState(current.plan)) {
-                const meshes = await rockFormations.prepare(plan, readRockFormationSettings(document), signal);
-                if (meshes.some((mesh) => !mesh.variant)) await prepareRockTextures(engine!, signal);
+                const meshes = await rockFormations.prepare(plan, signal);
                 signal.throwIfAborted();
                 const fields = current.heightTransition?.fields ?? current.data.fields;
                 const presented = planningPresentedSolids(plan, fields, current.data.fields);
@@ -1250,7 +1234,6 @@ export async function mountSeedWorldDemo(
                   plan,
                   presented,
                   meshes,
-                  readRockFormationSettings(document).textureScale,
                   readRockFormationSettings(document).colorBlend
                 );
                 groundTemplate = current.template?.prepareRockGrounding(
@@ -1275,10 +1258,8 @@ export async function mountSeedWorldDemo(
                   vegetation.commit();
                   grass?.commit();
                   groundTemplate?.();
-                  const textureScale = readRockFormationSettings(document).textureScale;
-                  current.solids.setRockTextureScale(textureScale);
-                  current.vegetation!.setRockTextureScale(textureScale);
                   current.solids.setRockColorBlend(readRockFormationSettings(document).colorBlend);
+                  current.vegetation!.setRockColorBlend(readRockFormationSettings(document).colorBlend);
                   current.world.population.setRockGrassGround(readRockFormationSettings(document));
                   metrics.commitMs = performance.now() - commitStarted;
                 },
@@ -1323,9 +1304,7 @@ export async function mountSeedWorldDemo(
           JSON.stringify(readPlantMaterialParameters(context.previousDocument)) &&
         JSON.stringify(readSubjectView(document)) === JSON.stringify(readSubjectView(context.previousDocument)) &&
         JSON.stringify(readRockFormationSettings(document)) ===
-          JSON.stringify(readRockFormationSettings(context.previousDocument)) &&
-        JSON.stringify(readRockGenerationProfile(document)) ===
-          JSON.stringify(readRockGenerationProfile(context.previousDocument))
+          JSON.stringify(readRockFormationSettings(context.previousDocument))
       ) {
         // Reuse publication follow-up so mixed animal/lighting/grass edits all reach their consumers.
         return {
@@ -1348,28 +1327,23 @@ export async function mountSeedWorldDemo(
           async (signal) => {
             const current = publication!.current!,
               settings = readRockFormationSettings(document);
-            const meshes = await rockFormations.prepare(plan, settings, signal, current.solids.formations);
+            const meshes = await rockFormations.prepare(plan, signal, current.solids.formations);
             const preparationMetrics = { ...rockFormations.preparationMetrics };
-            if (meshes.some((mesh) => !mesh.variant)) await prepareRockTextures(engine!, signal);
             signal.throwIfAborted();
             const frame = await prepareRockFormationPublication(
               current,
               plan,
               meshes,
-              rockFormations,
               settings,
               document.revision,
-              signal,
-              readRockGenerationProfile(document)
+              signal
             );
             metrics = { ...preparationMetrics, ...frame.metrics };
             summary = JSON.stringify({
               formations: meshes.length,
               triangles: meshes.reduce((sum, f) => sum + f.mesh.indices.length / 3, 0),
               bodies: meshes.reduce((sum, f) => sum + f.stats.bodies, 0),
-              vertices: meshes.reduce((sum, f) => sum + f.stats.vertices, 0),
-              targetTriangles: settings.targetTriangles,
-              overBudgetBodies: meshes.reduce((sum, f) => sum + (f.stats.overBudgetBodies ?? 0), 0)
+              vertices: meshes.reduce((sum, f) => sum + f.stats.vertices, 0)
             });
             return frame;
           },
@@ -1380,8 +1354,6 @@ export async function mountSeedWorldDemo(
           commit: () => {
             staged.commit();
             canvas.dataset.rockFormations = summary;
-            canvas.dataset.rockGeneration = JSON.stringify(rockFormations.generationMetrics);
-            canvas.dataset.rockUnion = JSON.stringify(rockFormations.publicationMetrics);
             canvas.dataset.rockEdit = JSON.stringify({
               ...metrics,
               publicationMs: performance.now() - started
@@ -1401,9 +1373,7 @@ export async function mountSeedWorldDemo(
           // owners; publication aborts outstanding rock work if either task fails.
           const [, formationMeshes] = await Promise.all([
             timed("raster.run", () => raster.run(plan, true, true)),
-            timed("rockFormations.prepare", () =>
-              rockFormations.prepare(plan, readRockFormationSettings(document), signal)
-            )
+            timed("rockFormations.prepare", () => rockFormations.prepare(plan, signal))
           ]);
           // Superseded raster calls resolve undefined; only the request revision decides acceptance.
           signal.throwIfAborted();
@@ -1579,8 +1549,6 @@ export async function mountSeedWorldDemo(
             applyPlanningTreeVariations(candidate.population, plan.authoredResources ?? []);
             recordBootSpan("applyPlanningTreeVariations", spanAt);
             spanAt = performance.now();
-            if (formationMeshes.some((mesh) => !mesh.variant)) await prepareRockTextures(engine!, signal);
-            recordBootSpan("prepareRockTextures", spanAt);
             signal.throwIfAborted();
             const presentedFields = heightTransition?.fields ?? candidateData.fields;
             const presented = planningPresentedSolids(plan, presentedFields, candidateData.fields);
@@ -1617,7 +1585,6 @@ export async function mountSeedWorldDemo(
               previous: publication!.current?.solids,
               formations: formationMeshes,
               sourcePlan: plan,
-              rockTextureScale: readRockFormationSettings(document).textureScale,
               rockColorBlend: readRockFormationSettings(document).colorBlend,
               registerGrassAppearance: (material) => candidate!.registerGrassAppearanceMaterial(material)
             });
@@ -1626,9 +1593,7 @@ export async function mountSeedWorldDemo(
               formations: formationMeshes.length,
               triangles: formationMeshes.reduce((sum, f) => sum + f.mesh.indices.length / 3, 0),
               bodies: formationMeshes.reduce((sum, f) => sum + f.stats.bodies, 0),
-              vertices: formationMeshes.reduce((sum, f) => sum + f.stats.vertices, 0),
-              targetTriangles: readRockFormationSettings(document).targetTriangles,
-              overBudgetBodies: formationMeshes.reduce((sum, f) => sum + (f.stats.overBudgetBodies ?? 0), 0)
+              vertices: formationMeshes.reduce((sum, f) => sum + f.stats.vertices, 0)
             });
             spanAt = performance.now();
             candidateVegetation = await PlanningNaturalVegetationRuntime.create(
@@ -1642,10 +1607,8 @@ export async function mountSeedWorldDemo(
               candidateData.fields,
               candidateData.population,
               {
-                client: rockFormations,
                 settings: readRockFormationSettings(document),
                 signal,
-                generationProfile: readRockGenerationProfile(document),
                 formations: formationMeshes,
                 supportPlan: presented
               },
@@ -1663,8 +1626,6 @@ export async function mountSeedWorldDemo(
             );
             recordBootSpan("PlanningNaturalVegetationRuntime.create", spanAt);
             signal.throwIfAborted();
-            canvas.dataset.rockGeneration = JSON.stringify(rockFormations.generationMetrics);
-            canvas.dataset.rockUnion = JSON.stringify(rockFormations.publicationMetrics);
             spanAt = performance.now();
             await candidate.population.applyAuthoringPopulationLayout(
               planningNaturalGroundPopulation(
@@ -1918,7 +1879,15 @@ export async function mountSeedWorldDemo(
             camera,
             accepted.world.clipmap.material
           );
+          if (isCurrent()) {
+            const { mountDesertVegetation } = await import("./src/DesertVegetation");
+            if (isCurrent()) {
+              next ??= root.createChild("Mojave desert layout");
+              mountDesertVegetation(next, accepted.plan, accepted.data, spawnView(accepted.plan, accepted.data));
+            }
+          }
         } catch (error) {
+          next?.destroy();
           if (isCurrent()) console.warn("[seed-world] Mojave landscape setup failed", error);
           return;
         }
@@ -1963,16 +1932,11 @@ export async function mountSeedWorldDemo(
           );
           if (publication!.current !== accepted || disposed) return;
           const { x, z } = plan.spawn;
-          const ground = sampleSeedWorldHeight(accepted.data.fields, x, z);
-          if (ground === undefined) throw new Error("Sandstorm spawn terrain is unavailable");
-          if (sandstorm) {
-            placeSeedSandstorm(sandstorm, x, ground, z);
-          } else {
-            const atlas = await loadSeedSandstormAtlas(engine!);
-            if (publication!.current !== accepted || disposed) return;
-            if (sandstorm) placeSeedSandstorm(sandstorm, x, ground, z);
-            else sandstorm = createSeedSandstorm(root, atlas, x, ground, z);
-          }
+          const atlas = sandstorm ? undefined : await loadSeedSandstormAtlas(engine!);
+          if (publication!.current !== accepted || disposed) return;
+          const fields = accepted.heightTransition?.fields ?? accepted.data.fields;
+          if (sandstorm) placeSeedSandstorm(sandstorm, x, z, fields);
+          else sandstorm = createSeedSandstorm(root, atlas!, x, z, fields);
         } catch (error) {
           if (!disposed) console.warn("[seed-world] sandstorm setup failed", error);
         }
@@ -2082,8 +2046,8 @@ export async function mountSeedWorldDemo(
     desert?.applyDesertShadows(lighting);
     if (desert) {
       scene!.shadowFadeBorder = 0.2;
-      sun.shadowBias = 1;
-      sun.shadowNormalBias = 1;
+      sun.shadowBias = 0.5;
+      sun.shadowNormalBias = 0.5;
       scene!.ambientOcclusion.enabled = false;
       scene!.ambientOcclusion.intensity = 0.5;
       scene!.ambientOcclusion.radius = 0.5;

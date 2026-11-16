@@ -208,8 +208,13 @@ export function setRiverSurfaceAppearanceBinding(
 
   appearance.detailLayers.forEach((layer, index) => {
     const textureBinding = binding.textureBindings.find((candidate) => candidate.layerId === layer.id);
-    if (!textureBinding) throw new Error(`River Surface Appearance layer '${layer.id}' has no texture binding.`);
-    shaderData.setTexture(getWaterSurfaceAppearanceV2DetailProperty(index, "texture"), textureBinding.texture);
+    if (layer.textureAssetId && !textureBinding)
+      throw new Error(`River Surface Appearance layer '${layer.id}' has no texture binding.`);
+    shaderData.setTexture(
+      getWaterSurfaceAppearanceV2DetailProperty(index, "texture"),
+      textureBinding?.texture ?? null!
+    );
+    shaderData.setFloat(getWaterSurfaceAppearanceV2DetailProperty(index, "enabled"), textureBinding ? 1 : 0);
     shaderData.setVector4(
       getWaterSurfaceAppearanceV2DetailProperty(index, "transform"),
       new Vector4(layer.scale[0], layer.scale[1], layer.velocity[0], layer.velocity[1])

@@ -17,19 +17,22 @@
           appearanceLayerScaled0.x * {{DETAIL_0_ROTATION}}.x - appearanceLayerScaled0.y * {{DETAIL_0_ROTATION}}.y,
           appearanceLayerScaled0.x * {{DETAIL_0_ROTATION}}.y + appearanceLayerScaled0.y * {{DETAIL_0_ROTATION}}.x
         ) + {{DETAIL_0_OFFSET}};
+        vec3 appearanceLayerNormal0 = vec3(0.0, 0.0, 1.0);
+        if ({{DETAIL_0_ENABLED}} > 0.5) {
 #if {{DETAIL_0_STRENGTH_MODE}} == 0
-        vec3 appearanceLayerNormal0 = waterSurfaceAppearanceDecodeTangentNormal(
+        appearanceLayerNormal0 = waterSurfaceAppearanceDecodeTangentNormal(
           texture2D({{DETAIL_0_SAMPLER}}, appearanceLayerUv0),
           {{DETAIL_0_STRENGTH}},
           {{DETAIL_0_FLIP_GREEN}}
         );
 #else
-        vec3 appearanceLayerNormal0 = waterSurfaceAppearanceDecodeTangentNormalPreserveSourceZ(
+        appearanceLayerNormal0 = waterSurfaceAppearanceDecodeTangentNormalPreserveSourceZ(
           texture2D({{DETAIL_0_SAMPLER}}, appearanceLayerUv0),
           {{DETAIL_0_STRENGTH}},
           {{DETAIL_0_FLIP_GREEN}}
         );
 #endif
+        }
 #if {{DETAIL_0_SPACE}} == 3
         // Fade the transported normal, including FirstDetailLayer refraction,
         // rather than switching its time coordinate at a local speed boundary.
@@ -61,19 +64,22 @@
           appearanceLayerScaled1.x * {{DETAIL_1_ROTATION}}.x - appearanceLayerScaled1.y * {{DETAIL_1_ROTATION}}.y,
           appearanceLayerScaled1.x * {{DETAIL_1_ROTATION}}.y + appearanceLayerScaled1.y * {{DETAIL_1_ROTATION}}.x
         ) + {{DETAIL_1_OFFSET}};
+        vec3 appearanceLayerNormal1 = vec3(0.0, 0.0, 1.0);
+        if ({{DETAIL_1_ENABLED}} > 0.5) {
 #if {{DETAIL_1_STRENGTH_MODE}} == 0
-        vec3 appearanceLayerNormal1 = waterSurfaceAppearanceDecodeTangentNormal(
+        appearanceLayerNormal1 = waterSurfaceAppearanceDecodeTangentNormal(
           texture2D({{DETAIL_1_SAMPLER}}, appearanceLayerUv1),
           {{DETAIL_1_STRENGTH}},
           {{DETAIL_1_FLIP_GREEN}}
         );
 #else
-        vec3 appearanceLayerNormal1 = waterSurfaceAppearanceDecodeTangentNormalPreserveSourceZ(
+        appearanceLayerNormal1 = waterSurfaceAppearanceDecodeTangentNormalPreserveSourceZ(
           texture2D({{DETAIL_1_SAMPLER}}, appearanceLayerUv1),
           {{DETAIL_1_STRENGTH}},
           {{DETAIL_1_FLIP_GREEN}}
         );
 #endif
+        }
 #if {{DETAIL_1_SPACE}} == 3
         appearanceLayerNormal1 = mix(vec3(0.0, 0.0, 1.0), appearanceLayerNormal1, {{FLOW_ADVECTED_WEIGHT}});
 #endif

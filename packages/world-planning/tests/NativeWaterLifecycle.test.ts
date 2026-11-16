@@ -1,3 +1,4 @@
+import { waterMaterialTextures } from "@galacean/engine-water/water/native/WaterMaterial";
 import { expect, it } from "vitest";
 import { AssetType, Camera, Scene, WebGLEngine } from "@galacean/engine";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
@@ -62,15 +63,20 @@ it("retires replaced Source components without leaking cancelled candidates or S
     const publishedQuality = replacement.configuration!.quality;
     replacement.authoring = { ...input, quality: { ...input.quality, query: "off" } };
     const candidateConfiguration = replacement._compileAuthoring();
+    const textures = waterMaterialTextures(input.material!).map((binding) => binding.texture);
+    const textureReferences = textures.map((texture) => texture.refCount);
+    const shaderReferences = input.material!.shader._getReferCount();
     const candidate = await system.prepareBatch(
       [{ body: replacement, configuration: { ...candidateConfiguration, visible: false } }],
       controller.signal
     );
-    for (const root of candidate.shaderWarmupRoots)
-      expect(system.resolveRenderOwner(root)).toBeUndefined();
+    for (const root of candidate.shaderWarmupRoots) expect(system.resolveRenderOwner(root)).toBeUndefined();
     controller.abort();
     expect(() => candidate.commit()).toThrow();
     await candidate.rollback();
+    expect(textures.map((texture) => texture.refCount)).toEqual(textureReferences);
+    expect(input.material!.shader._getReferCount()).toBe(shaderReferences);
+    expect(textures.every((texture) => !texture.destroyed)).toBe(true);
     expect(system.revision).toBe(revision);
     expect(replacement.configuration!.quality).toBe(publishedQuality);
     expect(publishedQuality.destroyed).toBe(false);

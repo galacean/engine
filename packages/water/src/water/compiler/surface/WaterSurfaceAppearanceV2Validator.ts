@@ -322,7 +322,8 @@ function decodeLayer(
   const blend = enumValue(source.blend, Object.values(WaterSurfaceDetailBlend), `${path}.blend`, diagnostics);
   let textureAssetId: string | undefined;
   let textureContentHash: string | undefined;
-  if (detailSource === WaterSurfaceDetailSource.NormalTexture) {
+  const hasTexture = source.textureAssetId !== undefined || source.textureContentHash !== undefined;
+  if (detailSource === WaterSurfaceDetailSource.NormalTexture && hasTexture) {
     textureAssetId = identifier(source.textureAssetId, `${path}.textureAssetId`, diagnostics);
     textureContentHash = sha256(source.textureContentHash, `${path}.textureContentHash`, diagnostics);
   }
@@ -338,6 +339,7 @@ function decodeLayer(
     strengthMode === undefined ||
     blend === undefined ||
     (detailSource === WaterSurfaceDetailSource.NormalTexture &&
+      hasTexture &&
       (textureAssetId === undefined || textureContentHash === undefined))
   ) {
     return undefined;

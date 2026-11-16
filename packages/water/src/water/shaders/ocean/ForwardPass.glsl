@@ -12,6 +12,8 @@
 {{VALUE_002_WATER_ENVIRONMENT_REFLECTION_UNIFORM_DECLARATIONS}}
 {{SHARED_SURFACE_UNIFORMS}}
 {{VALUE_003_WATER_SURFACE_AMBIENT_LIGHTING_UNIFORM_DECLARATIONS}}
+      vec4 material_OceanTextureEnabled;
+      float material_OceanIntersectionTextureEnabled;
       sampler2D material_SmoothWavesTexture;
       sampler2D material_RoughWavesTexture;
       sampler2D material_CausticsTexture;
@@ -335,7 +337,7 @@
           1.0
         );
         float intersection = 0.0;
-        if (material_OceanIntersectionParameters.x > 0.0) {
+        if (material_OceanIntersectionParameters.x > 0.0 && material_OceanIntersectionTextureEnabled > 0.5) {
           if (intersectionDistance > 0.0) {
             vec2 intersectionTime = vec2(-elapsedTime) * material_OceanIntersectionMotion.x;
             vec2 intersectionUv = (
@@ -368,14 +370,15 @@
           material_OceanSurfaceFoamParameters.z,
           material_OceanSurfaceFoamMapping.x
         );
-        float foamTexture = clamp(
+        float foamTexture = 0.0;
+        if (material_OceanTextureEnabled.w > 0.5) foamTexture = clamp(
           texture2D(material_FoamTexture, foamUv.xy).r
             + texture2D(material_FoamTexture, foamUv.zw).r,
           0.0,
           1.0
         );
         float surfaceFoam = smoothstep(foamMask, foamMask + 1.0, foamTexture)
-          * material_OceanSurfaceFoamColor.a * material_OceanSurfaceFoamParameters.x;
+          * material_OceanSurfaceFoamColor.a * material_OceanSurfaceFoamParameters.x * material_OceanTextureEnabled.w;
         float flattening = clamp(max(intersection, surfaceFoam), 0.0, 1.0);
         detailNormal = safeNormalize3(mix(detailNormal, macroNormal, flattening), macroNormal);
 
@@ -429,7 +432,7 @@
         ) * coverage;
         float mainLightIntensity = dot(unshadowedSunlightColor, vec3(0.3, 0.59, 0.11));
         float causticsWeight = causticsMask * material_OceanCausticsParameters.y
-          * mainLightIntensity * cloudShadowAttenuation * material_OceanCausticsParameters.x;
+          * mainLightIntensity * cloudShadowAttenuation * material_OceanCausticsParameters.x * material_OceanTextureEnabled.z;
         vec3 caustics = vec3(0.0);
         if (causticsWeight > 0.0) {
           vec2 causticsTime = vec2(-elapsedTime) * material_OceanCausticsMotion.x;

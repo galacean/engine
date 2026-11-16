@@ -3,23 +3,20 @@ import type { DebugInspectorPanelHost } from "@galacean/engine-terrain/terrain/d
 import type { IslandPlan } from "../../../semantic-study/IslandPlanModel.ts";
 import type { PlanningDocument } from "../../../spatial/PlanningDocument.ts";
 import type { PlanningParameterCommand } from "../../../spatial/PlanningSession.ts";
-import { ROCK_FORMATION_COMPONENT, ROCK_OBB_COMPONENT, readRockFormationSettings } from "./Settings.ts";
+import { ROCK_OBB_COMPONENT, readRockFormationSettings } from "./Settings.ts";
 import { rockObbId } from "./Authoring.ts";
-import { ROCK_COLOR_FIELD_KEYS } from "./ColorPalette.ts";
 import { RockColorControls } from "./ColorControls.ts";
 
 type NumberControl = { input: HTMLInputElement; controller: dat.GUIController };
 
-/** Shared procedural-shape settings and published OBB dimensions, through authoring transactions. */
+/** Shared rock palette and published OBB dimensions, through authoring transactions. */
 export class RockFormationPanel {
   readonly element: HTMLElement;
   private readonly folder: dat.GUI;
   private readonly obbFolder: dat.GUI;
   private readonly colors: RockColorControls;
   private readonly abort = new AbortController();
-  private readonly fields = new Map<string, NumberControl>();
   private readonly sizes = new Map<string, NumberControl>();
-  private readonly draft: Record<string, string> = {};
   private readonly sizeDraft: Record<string, string> = {};
   private readonly selection = { id: "" };
   private readonly select: HTMLSelectElement;
@@ -38,44 +35,11 @@ export class RockFormationPanel {
     this.folder = host.folder("Rock formation / 岩石形态", false);
     this.element = this.folder.domElement;
     this.element.setAttribute("aria-label", "Rock formation controls / 岩石形态参数");
-    const shape = host.subfolder(this.folder, "Shape / 整体轮廓与岩壁", true);
-    const material = host.subfolder(this.folder, "Shared material / 共用材质", false);
-    const sampling = host.subfolder(this.folder, "Sampling / 变化与精简", false);
-    for (const field of ROCK_FORMATION_COMPONENT.fields) {
-      if (ROCK_COLOR_FIELD_KEYS.has(field.key)) continue;
-      const folder =
-        field.key === "textureScale"
-          ? material
-          : ["variation", "targetTriangles"].includes(field.key)
-            ? sampling
-            : shape;
-      this.draft[field.key] = String(field.default ?? "");
-      const controller = folder.add(this.draft, field.key).name(field.label);
-      const input = controller.domElement.querySelector("input")!;
-      input.type = "number";
-      if (field.min !== undefined) input.min = String(field.min);
-      if (field.max !== undefined) input.max = String(field.max);
-      input.step = String(field.step ?? "any");
-      input.dataset.field = field.key;
-      input.setAttribute("aria-label", field.label);
-      this.fields.set(field.key, { input, controller });
-    }
-    host.addReadout(material, "Texture repeat / 平铺规则")("0：每块石头使用 OBB 最长边 ÷ 2 米；正数：统一平铺米数。");
+    const material = host.subfolder(this.folder, "Rock palette / 岩石配色", false);
     this.colors = new RockColorControls(host, material, (commands) => this.submit(commands));
-    host.addAction(this.folder, "Apply formation settings / 应用形态设置", () => {
-      if (!this.document) return;
-      const current = this.flatSettings(readRockFormationSettings(this.document));
-      const values = Object.fromEntries(
-        [...this.fields].flatMap(([key, { input }]) =>
-          !input.value || Number(input.value) === current[key] ? [] : [[key, Number(input.value)]]
-        )
-      );
-      if (Object.keys(values).length)
-        void this.submit([{ op: "set", entity: "world", component: "rockFormation", values }]);
-    }).dataset.rockApply = "";
     host.addAction(
       this.folder,
-      "Reset formation / 重置形态",
+      "Reset palette / 重置配色",
       () => void this.submit([{ op: "reset", entity: "world", component: "rockFormation" }])
     ).dataset.rockReset = "";
     this.obbFolder = host.subfolder(this.folder, "Individual OBB / 独立包围盒", true);
@@ -141,24 +105,9 @@ export class RockFormationPanel {
       }
     if ([...this.select.options].some((option) => option.value === selected)) this.select.value = selected;
     this.selection.id = this.select.value;
-    const settings = readRockFormationSettings(document),
-      values = this.flatSettings(settings);
-    this.colors.synchronize(settings.colorBlend);
-    for (const [key, { input, controller }] of this.fields) {
-      this.draft[key] = String(values[key] ?? "");
-      controller.updateDisplay();
-      input.value = this.draft[key];
-    }
+    this.colors.synchronize(readRockFormationSettings(document).colorBlend);
     this.refreshObb();
     this.setDisabled(this.busy);
-  }
-  private flatSettings(settings: ReturnType<typeof readRockFormationSettings>): Record<string, number> {
-    return {
-      ...settings.shape,
-      variation: settings.variation,
-      targetTriangles: settings.targetTriangles,
-      textureScale: settings.textureScale
-    };
   }
   private refreshObb(): void {
     for (const rock of this.plan?.rocks ?? [])

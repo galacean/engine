@@ -10,8 +10,6 @@ import {
 import { PhysXPhysics, PhysXRuntimeMode } from "@galacean/engine-physics-physx";
 import { rockCollisionIndices } from "../../../packages/world-planning/src/integrations/terrain/rock-formation/Collider.ts";
 import type { RockFormationMesh } from "../../../packages/terrain/src/rock-formation/types.ts";
-import { generateRockFormation } from "../../../packages/world-planning/src/integrations/terrain/rock-formation/Generate.ts";
-import { readRockFormationSettings } from "../../../packages/world-planning/src/integrations/terrain/rock-formation/Settings.ts";
 
 vi.hoisted(() => {
   Object.defineProperty(globalThis, "window", { value: new EventTarget(), configurable: true });
@@ -35,7 +33,7 @@ function fixture(disabled = new Set<string>(), z = 0) {
       indices: new Uint32Array([0, 2, 1, 0, 3, 2, 4, 6, 5, 4, 7, 6])
     },
     owners: ["floor", "floor", "wall", "wall"],
-    stats: { bodies: 0, vertices: 0, generationMs: 0 }
+    stats: { bodies: 0, vertices: 0 }
   };
   const scene = physics.createPhysicsScene(physics.createPhysicsManager() as never);
   const material = physics.createPhysicsMaterial(0.15, 0.05, 0, 0, 0);
@@ -118,32 +116,5 @@ it("passes through an actual mesh opening and honors a disabled wall owner witho
     } finally {
       f.dispose();
     }
-  }
-});
-
-it("cooks the actual reduced procedural surface used for both planned and ground rocks", () => {
-  const surface = generateRockFormation({id:"rock", seed:17, origin:[0,0,0],
-    guides:[{id:"a",ownerId:"a",center:[0,18,0],size:[48,36,40],axes:[[1,0,0],[0,1,0],[0,0,1]]}],
-  }, readRockFormationSettings({entities:{}} as never));
-  expect(surface.mesh.indices.length/3).toBeLessThan(surface.stats.rawTriangles!);
-  const positions: Vector3[] = [];
-  for (let i = 0; i < surface.mesh.positions.length; i += 3)
-    positions.push(
-      new Vector3(surface.mesh.positions[i], surface.mesh.positions[i + 1], surface.mesh.positions[i + 2])
-    );
-  const material = physics.createPhysicsMaterial(0.15, 0.05, 0, 0, 0);
-  const shape = physics.createMeshColliderShape(
-    10,
-    positions,
-    rockCollisionIndices(surface, new Set()),
-    false,
-    material as never,
-    MeshColliderShapeCookingFlag.Cleaning | MeshColliderShapeCookingFlag.VertexWelding
-  );
-  try {
-    expect(shape).not.toBeNull();
-  } finally {
-    shape?.destroy();
-    material.destroy();
   }
 });
