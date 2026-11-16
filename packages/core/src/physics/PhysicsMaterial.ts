@@ -7,7 +7,7 @@ import { PhysicsMaterialCombineMode } from "./enums/PhysicsMaterialCombineMode";
  * Surface friction, bounciness, and combine modes for collider shapes.
  * @remarks Coefficients must be finite. Bounciness is clamped to [0, 1], and friction is clamped to non-negative values.
  */
-export class PhysicsMaterial extends ReferResource<Engine | null> {
+export class PhysicsMaterial extends ReferResource {
   /** @internal */
   static readonly _defaultProperties: IPhysicsMaterialProperties = Object.freeze({
     staticFriction: 0.6,
@@ -27,11 +27,10 @@ export class PhysicsMaterial extends ReferResource<Engine | null> {
 
   /**
    * Create a physics material.
-   * @param engine - Owner for resource caching and garbage collection. When omitted, the material can
-   * be shared across engines using the same physics backend instance and is destroyed when its last reference is released.
+   * @param engine - Engine that owns the material and manages its resource lifetime.
    */
-  constructor(engine?: Engine) {
-    super(engine ?? null);
+  constructor(engine: Engine) {
+    super(engine);
     try {
       this._nativeMaterial = Engine._nativePhysics.createPhysicsMaterial(PhysicsMaterial._defaultProperties);
     } catch (error) {
@@ -140,7 +139,7 @@ export class PhysicsMaterial extends ReferResource<Engine | null> {
    * Create an independent material with the same properties and engine owner.
    */
   clone(): PhysicsMaterial {
-    const material = new PhysicsMaterial(this._engine ?? undefined);
+    const material = new PhysicsMaterial(this._engine);
     material.staticFriction = this._staticFriction;
     material.dynamicFriction = this._dynamicFriction;
     material.bounciness = this._bounciness;

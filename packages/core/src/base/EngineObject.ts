@@ -3,16 +3,15 @@ import { Engine } from "../Engine";
 
 /**
  * EngineObject.
- * @typeParam TEngine - Owner type; use `null` for objects that do not belong to an engine.
  */
-export class EngineObject<TEngine extends Engine | null = Engine> {
+export class EngineObject {
   private static _instanceIdCounter = 0;
 
   @ignoreClone
   readonly instanceId = ++EngineObject._instanceIdCounter;
   /** @internal */
   @ignoreClone
-  _engine: TEngine;
+  _engine: Engine;
   /** @internal */
   _pendingDestroy = false;
 
@@ -21,7 +20,7 @@ export class EngineObject<TEngine extends Engine | null = Engine> {
   /**
    * Get the engine which the object belongs.
    */
-  get engine(): TEngine {
+  get engine(): Engine {
     return this._engine;
   }
 
@@ -41,7 +40,7 @@ export class EngineObject<TEngine extends Engine | null = Engine> {
     return this._destroyed;
   }
 
-  constructor(engine: TEngine) {
+  constructor(engine: Engine) {
     this._engine = engine;
   }
 

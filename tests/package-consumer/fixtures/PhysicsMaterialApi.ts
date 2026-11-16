@@ -15,19 +15,22 @@ const assigned: PhysicsMaterial | null = shape.material;
 if (assigned) assigned.bounciness = 0.5;
 // @ts-expect-error A shape can use the shared default instead of an assigned material.
 shape.material.bounciness = 0.5;
-shape.getInstanceMaterial().bounciness = 0.5;
+shape.getInstanceMaterial(engine).bounciness = 0.5;
+// @ts-expect-error Creating an instance requires an explicit engine owner.
+shape.getInstanceMaterial();
 shape.material = null;
 
-const material = new PhysicsMaterial();
-const owned = new PhysicsMaterial(engine);
-const resource: ReferResource<Engine | null> = material;
-const object: EngineObject<Engine | null> = resource;
-const owner: Engine | null = object.engine;
-if (owner) owner.resourceManager.gc();
-if (owned.engine) owned.engine.resourceManager.gc();
-
-// @ts-expect-error A physics material may have no engine owner.
-material.engine.resourceManager.gc();
+const material = new PhysicsMaterial(engine);
+// @ts-expect-error Physics materials require an engine owner.
+new PhysicsMaterial();
+// @ts-expect-error An engine owner cannot be null.
+new PhysicsMaterial(null);
+const resource: ReferResource = material;
+const object: EngineObject = resource;
+const owner: Engine = object.engine;
+owner.resourceManager.gc();
+const cloneOwner: Engine = material.clone().engine;
+cloneOwner.resourceManager.gc();
 
 const texture = new Texture2D(engine, 1, 1);
 const ordinaryMaterial = new UnlitMaterial(engine);
@@ -40,5 +43,6 @@ const materials: PhysicsMaterial[] = engine.resourceManager.findResourcesByType(
 const load = engine.resourceManager.load<PhysicsMaterial>("surface.physMat");
 load.then((loaded) => {
   materials.push(loaded);
-  if (loaded.engine) loaded.engine.resourceManager.gc();
+  const loadedOwner: Engine = loaded.engine;
+  loadedOwner.resourceManager.gc();
 });

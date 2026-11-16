@@ -2,7 +2,7 @@ import { fileURLToPath } from "node:url";
 import ts from "typescript";
 import { expect, it } from "vitest";
 
-it("types nullable physics owners while preserving non-null owners for engine-bound resources", () => {
+it("requires engine ownership for physics materials and shape instancing", () => {
   const fixture = fileURLToPath(new URL("./fixtures/PhysicsMaterialApi.ts", import.meta.url));
   const program = ts.createProgram([fixture], {
     noEmit: true,

@@ -1,3 +1,4 @@
+import { IPhysicsMaterial } from "@galacean/engine-design";
 import { SpriteMaskInteraction } from "./2d";
 import { Engine } from "./Engine";
 import { RenderQueueMaskType } from "./RenderPipeline/enums/RenderQueueMaskType";
@@ -29,7 +30,7 @@ import { Color } from "@galacean/engine-math";
  * @internal
  */
 export class BasicResources {
-  static physicsDefaultMaterial: PhysicsMaterial;
+  static physicsDefaultMaterial: IPhysicsMaterial;
   private static _maskReadInsideRenderStates: RenderStateElementMap | null = null;
   private static _maskReadOutsideRenderStates: RenderStateElementMap | null = null;
   private static _maskWriteIncrementRenderStates: RenderStateElementMap | null = null;
@@ -39,7 +40,9 @@ export class BasicResources {
    * @internal
    */
   static _initializePhysics(): void {
-    BasicResources.physicsDefaultMaterial = new PhysicsMaterial();
+    BasicResources.physicsDefaultMaterial = Engine._nativePhysics.createPhysicsMaterial(
+      PhysicsMaterial._defaultProperties
+    );
   }
 
   static getMaskInteractionRenderStates(maskInteraction: SpriteMaskInteraction): RenderStateElementMap {

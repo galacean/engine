@@ -7,7 +7,7 @@ export class PrefabResource extends ReferResource {
   /** @internal */
   _root: Entity;
 
-  private _dependenceAssets: Set<ReferResource<Engine | null>> = new Set();
+  private _dependenceAssets: Set<ReferResource> = new Set();
 
   /**
    * @internal

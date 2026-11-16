@@ -5,12 +5,8 @@ import { IReferable } from "./IReferable";
 
 /**
  * The base class of assets, with reference counting capability.
- * @remarks Resources without an engine are destroyed when their last reference is released.
  */
-export abstract class ReferResource<TEngine extends Engine | null = Engine>
-  extends EngineObject<TEngine>
-  implements IReferable
-{
+export abstract class ReferResource extends EngineObject implements IReferable {
   /** Whether to ignore the garbage collection check, if it is true, it will not be affected by ResourceManager.gc(). */
   isGCIgnored: boolean = false;
 
@@ -24,9 +20,9 @@ export abstract class ReferResource<TEngine extends Engine | null = Engine>
     return this._refCount;
   }
 
-  protected constructor(engine: TEngine) {
+  protected constructor(engine: Engine) {
     super(engine);
-    engine?.resourceManager._addReferResource(this);
+    engine.resourceManager._addReferResource(this);
   }
 
   /**
@@ -79,9 +75,6 @@ export abstract class ReferResource<TEngine extends Engine | null = Engine>
     const superResources = this._superResources!;
     const index = superResources.indexOf(superResource);
     superResources.splice(index, 1);
-    if (!this._engine && this._refCount === 0) {
-      this.destroy();
-    }
   }
 
   /**
@@ -96,9 +89,6 @@ export abstract class ReferResource<TEngine extends Engine | null = Engine>
    */
   _addReferCount(value: number): void {
     this._refCount += value;
-    if (!this._engine && this._refCount === 0) {
-      this.destroy();
-    }
   }
 
   /**
@@ -106,7 +96,7 @@ export abstract class ReferResource<TEngine extends Engine | null = Engine>
    */
   protected override _onDestroy(): void {
     super._onDestroy();
-    this._engine?.resourceManager._deleteReferResource(this);
+    this._engine.resourceManager._deleteReferResource(this);
     const refCount = this._getReferCount();
     if (refCount > 0) {
       this._addReferCount(-refCount);

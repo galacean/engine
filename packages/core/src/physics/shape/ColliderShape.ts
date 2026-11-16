@@ -164,11 +164,16 @@ export abstract class ColliderShape extends DataObject implements ICloneHook<Col
    * Get the instance material for this shape.
    * @remarks On first use, assigns a clone of {@link material}, or a new material with default properties if null.
    * Reuses the instance until a different material or null is assigned.
+   * @param engine - Engine that owns the instance; must match an already assigned material.
    * @returns The instance material
+   * @throws When the assigned material belongs to another engine.
    */
-  getInstanceMaterial(): PhysicsMaterial {
+  getInstanceMaterial(engine: Engine): PhysicsMaterial {
+    if (this._material && this._material.engine !== engine) {
+      throw new Error("The physics material belongs to another engine.");
+    }
     if (!this._materialInstanced) {
-      this.material = this._material ? this._material.clone() : new PhysicsMaterial();
+      this.material = this._material ? this._material.clone() : new PhysicsMaterial(engine);
       this._materialInstanced = true;
     }
     return this._material!;
@@ -227,7 +232,7 @@ export abstract class ColliderShape extends DataObject implements ICloneHook<Col
   }
 
   protected _getNativeMaterial(material: PhysicsMaterial | null = this._material): IPhysicsMaterial {
-    return material?._nativeMaterial ?? BasicResources.physicsDefaultMaterial._nativeMaterial;
+    return material?._nativeMaterial ?? BasicResources.physicsDefaultMaterial;
   }
 
   protected _syncNative(): void {

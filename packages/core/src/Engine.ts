@@ -79,7 +79,7 @@ export class Engine extends EventDispatcher {
   /** @internal */
   _frameInProcess = false;
   /** @internal */
-  _pendingDestroyObjects: EngineObject<Engine | null>[] = [];
+  _pendingDestroyObjects: EngineObject[] = [];
   /** @internal */
   _processingPendingDestroys = false;
   /** @internal */
