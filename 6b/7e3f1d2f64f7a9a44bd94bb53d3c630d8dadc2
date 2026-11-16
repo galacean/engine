@@ -1,0 +1,19 @@
+packages/core/src/asset/request.ts
+  s_588d65e1ac7fe6::t_e3c1cf8812a891 43-44,47,65,120
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "6b7e3f1d2f64f7a9a44bd94bb53d3c630d8dadc2",
+  "prompts": {},
+  "sessions": {
+    "s_588d65e1ac7fe6": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0cc66-d181-7972-bb5f-81ab021b0c29",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}
