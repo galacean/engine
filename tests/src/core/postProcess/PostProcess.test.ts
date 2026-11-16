@@ -13,8 +13,7 @@ import {
   PostProcessPass,
   RenderTarget,
   Scene,
-  SphereColliderShape,
-  StaticCollider,
+  SphereCollider,
   Texture2D,
   TonemappingEffect
 } from "@galacean/engine-core";
@@ -375,10 +374,8 @@ describe("PostProcess", () => {
       const radius = 5;
       pp2.isGlobal = false;
       pp2.blendDistance = radius;
-      const collider = postEntity.addComponent(StaticCollider);
-      const physicsBox = new SphereColliderShape();
-      physicsBox.radius = radius;
-      collider.addShape(physicsBox);
+      const collider = postEntity.addComponent(SphereCollider);
+      collider.radius = radius;
 
       // Inside
       cameraEntity.transform.position.set(radius / 2, 0, 0);
@@ -423,6 +420,26 @@ describe("PostProcess", () => {
       cameraEntity.transform.position.set(radius + pp2.blendDistance, 0, 0);
       engine.update();
       expect(bloomBlend.intensity.value).to.equal(MathUtil.lerp(intensity1, intensity2, 0));
+
+      // Moving the component center updates the local volume.
+      collider.center.set(radius * 2, 0, 0);
+      engine.update();
+      expect(bloomBlend.intensity.value).to.equal(intensity2);
+      collider.enabled = false;
+      engine.update();
+      expect(bloomBlend.intensity.value).to.equal(intensity1);
+      collider.enabled = true;
+      collider.center.set(0, 0, 0);
+
+      // Local volumes use the closest enabled Collider component on the Entity.
+      const secondCollider = postEntity.addComponent(SphereCollider);
+      secondCollider.radius = 1;
+      secondCollider.center.set(radius * 2, 0, 0);
+      engine.update();
+      expect(bloomBlend.intensity.value).to.equal(intensity2);
+      secondCollider.enabled = false;
+      engine.update();
+      expect(bloomBlend.intensity.value).to.equal(intensity1);
 
       engine.destroy();
     }
