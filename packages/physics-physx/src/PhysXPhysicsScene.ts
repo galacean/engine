@@ -59,7 +59,15 @@ export class PhysXPhysicsScene implements IPhysicsScene {
         this._bufferContactEvent(shape0ID, shape1ID, contacts, PhysicsEventState.Stay);
       },
       onTriggerBegin: (index1, index2) => {
-        const event = index1 < index2 ? this._getTrigger(index1, index2) : this._getTrigger(index2, index1);
+        const small = Math.min(index1, index2);
+        const big = Math.max(index1, index2);
+        const existing = this._physXManager._eventMap[small][big];
+        if (existing) {
+          // Found again after a shape replacement: the overlap continues
+          existing.state = PhysicsEventState.Stay;
+          return;
+        }
+        const event = this._getTrigger(small, big);
         event.state = PhysicsEventState.Enter;
         this._activeTriggers.add(event);
       },
@@ -167,6 +175,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
       _activeTriggers: activeTriggers,
       _triggerEvents: triggerEvents
     } = this;
+    const eventMap = this._physXManager._eventMap;
     triggerEvents.length = 0;
     activeTriggers.forEach((event, i) => {
       event.dispatchState = event.state;
@@ -176,6 +185,9 @@ export class PhysXPhysicsScene implements IPhysicsScene {
       } else if (event.state === PhysicsEventState.Exit) {
         activeTriggers.deleteByIndex(i);
         triggerEventPool.push(event);
+        // A replaced pair that was not found again still owns its map entry
+        const subMap = eventMap[event.index1];
+        subMap[event.index2] === event && (subMap[event.index2] = undefined);
       }
     });
 
@@ -390,6 +402,19 @@ export class PhysXPhysicsScene implements IPhysicsScene {
    */
   _addColliderShape(id: number) {
     this._physXManager._eventMap[id] = Object.create(null);
+  }
+
+  /**
+   * @internal
+   * The shape with this id was replaced by a new native shape. Its active trigger pairs end in the next step unless
+   * PhysX finds them again for the new shape, which keeps them going without another Enter.
+   */
+  _replaceColliderShape(id: number): void {
+    this._activeTriggers.forEach((event) => {
+      if (event.index1 === id || event.index2 === id) {
+        event.state = PhysicsEventState.Exit;
+      }
+    });
   }
 
   /**

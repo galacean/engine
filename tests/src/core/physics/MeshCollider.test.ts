@@ -174,6 +174,32 @@ describe("MeshCollider", () => {
     expect(sphere.transform.position.y).toBeLessThan(-1);
   });
 
+  it("keeps an overlapping trigger pair when switching convex rebuilds the shape, then exits once", () => {
+    const collider = addMesh(true);
+    const probe = root.createChild("trigger probe");
+    probe.transform.setPosition(0, 1.5, 0);
+    const sphere = probe.addComponent(SphereCollider);
+    sphere.radius = 1;
+    sphere.isTrigger = true;
+    probe.addComponent(Rigidbody).isKinematic = true;
+    const recorder = probe.addComponent(CollisionRecorder);
+    update(2);
+    expect(recorder.onTriggerEnter).toHaveBeenCalledOnce();
+    collider.convex = false;
+    update(2);
+    expect(recorder.onTriggerEnter).toHaveBeenCalledOnce();
+    expect(recorder.onTriggerExit).not.toHaveBeenCalled();
+    const stayCount = recorder.onTriggerStay.mock.calls.length;
+    update();
+    expect(recorder.onTriggerStay).toHaveBeenCalledTimes(stayCount + 1);
+    // The rebuilt shape no longer reaches the probe
+    collider.mesh = createCubeMesh(engine, 0.2);
+    collider.convex = true;
+    update(2);
+    expect(recorder.onTriggerExit).toHaveBeenCalledOnce();
+    expect(recorder.onTriggerEnter).toHaveBeenCalledOnce();
+  });
+
   it.each([false, true])("preserves scaled center and geometry through mesh updates (convex=%s)", (convex) => {
     const collider = addMesh(convex);
     collider.center.x = 1;
