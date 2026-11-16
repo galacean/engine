@@ -418,6 +418,9 @@ export class ScreenSpaceReflection {
   /** Surface selects one Clear Coat PBR lobe and leaves the other lobe's IBL unchanged. */
   static readonly MATERIAL_CLEAR_COAT_RECEIVER_TAG = "screenSpaceReflectionClearCoat";
   static readonly MATERIAL_CLEAR_COAT_RECEIVER_CONTRACT = "SingleLayerV1";
+  /** Surface replaces only the base IBL, including Forward's Sheen attenuation. */
+  static readonly MATERIAL_SHEEN_RECEIVER_TAG = "screenSpaceReflectionSheen";
+  static readonly MATERIAL_SHEEN_RECEIVER_CONTRACT = "BaseLayerV1";
   /** Optional signed response-alpha encoding, separate from the V3 receiver weights. */
   static readonly MATERIAL_SOURCE_CONFIDENCE_TAG = "screenSpaceReflectionSourceConfidence";
   static readonly MATERIAL_SOURCE_CONFIDENCE_CONTRACT = "SignedAlphaV1";
@@ -490,6 +493,7 @@ export class ScreenSpaceReflection {
     "material_RoughnessMetallicTexture"
   );
   private static readonly _clearCoatMacro = ShaderMacro.getByName("MATERIAL_ENABLE_CLEAR_COAT");
+  private static readonly _sheenMacro = ShaderMacro.getByName("MATERIAL_ENABLE_SHEEN");
   private static readonly _clearCoatProperty = ShaderProperty.getByName("material_ClearCoat");
   private static readonly _clearCoatRoughnessProperty = ShaderProperty.getByName("material_ClearCoatRoughness");
   private static readonly _clearCoatRoughnessTextureMacro = ShaderMacro.getByName(
@@ -502,7 +506,6 @@ export class ScreenSpaceReflection {
   private static readonly _unsupportedLobeMacros = [
     ShaderMacro.getByName("MATERIAL_ENABLE_ANISOTROPY"),
     ShaderMacro.getByName("MATERIAL_ENABLE_IRIDESCENCE"),
-    ShaderMacro.getByName("MATERIAL_ENABLE_SHEEN"),
     ShaderMacro.getByName("MATERIAL_ENABLE_TRANSMISSION")
   ] as const;
   private static readonly _pipelineStageTag = ShaderTagKey.getByName("pipelineStage");
@@ -905,6 +908,7 @@ export class ScreenSpaceReflection {
     let activeHasSurfacePass = false;
     let activeHasIncompatibleContract = false;
     let activeSupportsClearCoat = true;
+    let activeSupportsSheen = true;
     let activeIncompatibleContract: string | null = null;
     if (activeSubShader) {
       const passes = activeSubShader.passes;
@@ -917,6 +921,9 @@ export class ScreenSpaceReflection {
         activeSupportsClearCoat &&=
           pass.getTagValue(ScreenSpaceReflection.MATERIAL_CLEAR_COAT_RECEIVER_TAG) ===
           ScreenSpaceReflection.MATERIAL_CLEAR_COAT_RECEIVER_CONTRACT;
+        activeSupportsSheen &&=
+          pass.getTagValue(ScreenSpaceReflection.MATERIAL_SHEEN_RECEIVER_TAG) ===
+          ScreenSpaceReflection.MATERIAL_SHEEN_RECEIVER_CONTRACT;
         const contract = (pass.getTagValue(ScreenSpaceReflection._receiverContractTag) as string | null) ?? null;
         if (!activeHasIncompatibleContract && contract !== ScreenSpaceReflection.MATERIAL_RECEIVER_CONTRACT) {
           activeHasIncompatibleContract = true;
@@ -928,9 +935,13 @@ export class ScreenSpaceReflection {
     if (activeHasSurfacePass) {
       if (!activeHasIncompatibleContract) {
         const macroCollection = material.shaderData._macroCollection;
-        // V3 alone does not promise layered responses. Existing custom Surface
-        // producers must explicitly opt in before enabling Clear Coat.
-        if (macroCollection.isEnable(ScreenSpaceReflection._clearCoatMacro) && !activeSupportsClearCoat) {
+        // V3 alone does not promise layered responses. Each extension requires
+        // an explicit opt-in; Clear Coat + Sheen is not part of either contract.
+        const clearCoat = macroCollection.isEnable(ScreenSpaceReflection._clearCoatMacro);
+        if (
+          (clearCoat && !activeSupportsClearCoat) ||
+          (macroCollection.isEnable(ScreenSpaceReflection._sheenMacro) && (!activeSupportsSheen || clearCoat))
+        ) {
           return ScreenSpaceReflection._unsupportedLobesCapability;
         }
         if (ScreenSpaceReflection.requiresMaterialSourceConfidence(material)) {

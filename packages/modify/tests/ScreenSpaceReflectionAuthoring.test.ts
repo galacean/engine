@@ -214,17 +214,15 @@ it("loads four material classes, preserves strength, resolves queues and restore
   expect(SSR.getMaterialReceiverMode(mat)).toBe(Receiver.Disabled);
   mat.screenSpaceReflection = { ...mat.screenSpaceReflection, mode: "On" };
   expect(mat.screenSpaceReflection.intensity).toBe(0.7);
-  for (const macro of [
-    "MATERIAL_ENABLE_ANISOTROPY",
-    "MATERIAL_ENABLE_IRIDESCENCE",
-    "MATERIAL_ENABLE_SHEEN",
-    "MATERIAL_ENABLE_TRANSMISSION"
-  ]) {
+  for (const macro of ["MATERIAL_ENABLE_ANISOTROPY", "MATERIAL_ENABLE_IRIDESCENCE", "MATERIAL_ENABLE_TRANSMISSION"]) {
     mat.shaderData.enableMacro(macro);
     expect(SSR.getMaterialReceiverMode(mat)).toBe(Receiver.Disabled);
     mat.shaderData.disableMacro(macro);
     expect(SSR.getMaterialReceiverMode(mat)).toBe(Receiver.OpaqueComposite);
   }
+  mat.shaderData.enableMacro("MATERIAL_ENABLE_SHEEN");
+  expect(SSR.getMaterialReceiverMode(mat)).toBe(Receiver.OpaqueComposite);
+  mat.shaderData.disableMacro("MATERIAL_ENABLE_SHEEN");
   expect(ssr._isMaterialReceiver(mat, RenderQueueType.Transparent)).toBe(false);
   expect(ssr._isMaterialReceiver(mat, RenderQueueType.AlphaTest)).toBe(true);
   const clone = mat.clone();

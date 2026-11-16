@@ -5,6 +5,7 @@ Shader "Pipeline/ScreenSpaceReflectionSurface" {
         pipelineStage = "ScreenSpaceReflectionSurface",
         screenSpaceReflectionReceiver = "ColorResponseV3",
         screenSpaceReflectionClearCoat = "SingleLayerV1",
+        screenSpaceReflectionSheen = "BaseLayerV1",
         screenSpaceReflectionSourceConfidence = "SignedAlphaV1"
       }
 
@@ -102,6 +103,10 @@ Shader "Pipeline/ScreenSpaceReflectionSurface" {
               receiverRoughness = bsdfData.clearCoatRoughness;
               baseLobeResponse = coatLobeResponse;
             }
+          #endif
+          #ifdef MATERIAL_ENABLE_SHEEN
+            // Match Forward's base-layer attenuation, leaving the Sheen term unchanged.
+            baseLobeResponse *= bsdfData.sheenScaling;
           #endif
           float fogVisibility = 1.0;
           #if SCENE_FOG_MODE != 0
