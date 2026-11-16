@@ -1,0 +1,19 @@
+packages/world-planning/src/spatial/PlanningDocument.ts
+  s_cabe2210eb5b7f::t_03b73d888762c1 688-689
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "36e0f743ac32a74f17852bfe0a066a47dc12f115",
+  "prompts": {},
+  "sessions": {
+    "s_cabe2210eb5b7f": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1e30f-cd64-7472-bacd-6912dbf7a792",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}
