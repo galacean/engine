@@ -4,6 +4,7 @@ import {
   SeedWorldArrayPickBatch,
   type SeedWorldPickVisitor
 } from "@galacean/engine-modify/rendering/SeedWorldPickBatch";
+import { worldTemplate } from "../../../spatial/WorldTemplateCatalog";
 import type { IslandPlan } from "../../../semantic-study/IslandPlanModel.ts";
 import type { RockFormationMesh, RockVariantAsset } from "@galacean/engine-terrain/rock-formation/types";
 import { createRockCollider, disabledRockCollisionOwners } from "./Collider.ts";
@@ -31,6 +32,7 @@ export class RockFormationView {
   >();
   private disposed = false;
   private grassCoveragePreview = false;
+  private readonly grassTop: boolean;
 
   constructor(
     private readonly engine: Engine,
@@ -40,6 +42,8 @@ export class RockFormationView {
     private readonly registerGrassAppearance?: (material: PBRMaterial) => () => void,
     private colorBlend: RockColorBlend = readRockColorBlend()
   ) {
+    const template = worldTemplate(plan.parameters.worldTemplate?.id);
+    this.grassTop = (template?.rockTopCover ?? (template?.vegetation ? "ground" : "grass")) === "grass";
     this.root = parent.createChild("Rock formations");
     try {
       this.prepareFormations(plan, formations).commit();
@@ -72,6 +76,7 @@ export class RockFormationView {
     if (!shared) {
       const material = createRockVariantMaterial(this.engine, asset, this.colorBlend);
       try {
+        if (grass && this.grassTop) material.shaderData.enableMacro("MATERIAL_ROCK_TOP_GRASS");
         const release = grass ? this.registerGrassAppearance?.(material) : undefined;
         material.shaderData.setFloat("material_SurfaceCoveragePreview", Number(this.grassCoveragePreview));
         roles.set(grass, (shared = { material, release, users: 0 }));

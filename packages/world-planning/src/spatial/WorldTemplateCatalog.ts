@@ -26,6 +26,8 @@ export interface WorldTemplate {
   farming?: false;
   /** Named asset pool, or template-owned placements. Defaults to the project shared pool. */
   rockSource?: keyof typeof rockVariants.pools | "authored";
+  /** Source of the color on grass-bearing rock tops. */
+  rockTopCover?: "grass" | "ground";
   terrain: { heightM: number; widthM: number; count: number; coverage: number };
 }
 const gentleBaseTerrain = { heightM: 10, widthM: 180 };
