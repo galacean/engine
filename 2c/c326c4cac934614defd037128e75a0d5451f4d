@@ -1,0 +1,99 @@
+packages/webgl1-polyfill/src/override.ts
+  s_da48a1c3cefcb7::t_f4d8794beb9ae6 4,22,24,30-38,58-61,68,74,91,94
+  s_da48a1c3cefcb7::t_50e99a9c6f8bf9 1-2,118,120,123,165
+packages/webgl1-polyfill/src/rhi-webgl/GLTexture.ts
+  s_da48a1c3cefcb7::t_f4d8794beb9ae6 1,9,11-12
+packages/webgl1-polyfill/tests/integration/override.test.ts
+  s_da48a1c3cefcb7::t_f4d8794beb9ae6 61-62
+  s_da48a1c3cefcb7::t_8f654a882900c8 1,60,64,68,73,80
+package.json
+  s_da48a1c3cefcb7::t_bc8650e6960e1c 25
+packages/rhi-webgl/package.json
+  s_da48a1c3cefcb7::t_40523dcc8f52fe 26
+packages/rhi-webgl/src/WebGLEngine.ts
+  s_da48a1c3cefcb7::t_bacd74743cfbe2 1,25-33
+packages/rhi-webgl/tsconfig.json
+  s_da48a1c3cefcb7::t_aaba19733297a6 8-10
+packages/webgl1-polyfill/README.md
+  s_da48a1c3cefcb7::t_733e51aa070ca3 3,5
+packages/webgl1-polyfill/package.json
+  s_da48a1c3cefcb7::t_6d8b7607eb3068 13,32
+packages/webgl1-polyfill/src/core/2d/atlas/FontAtlas.ts
+  s_da48a1c3cefcb7::t_929f87cb0813ab 1,4-5
+packages/webgl1-polyfill/src/core/BasicResources.ts
+  s_da48a1c3cefcb7::t_e3da2fc00b8223 1,4-5
+packages/webgl1-polyfill/src/core/Camera.ts
+  s_da48a1c3cefcb7::t_9c721204f5a637 1,4-5
+packages/webgl1-polyfill/src/core/Engine.ts
+  s_da48a1c3cefcb7::t_496692921ba107 1,6-7,9-10
+packages/webgl1-polyfill/src/core/RenderPipeline/BasicRenderPipeline.ts
+  s_da48a1c3cefcb7::t_f0ffd6af236c6b 1,7-8,22,26,33,36
+packages/webgl1-polyfill/src/core/RenderPipeline/DepthOnlyPass.ts
+  s_da48a1c3cefcb7::t_726028dc8688b3 2,13-14
+packages/webgl1-polyfill/src/core/lighting/ambientOcclusion/AmbientOcclusion.ts
+  s_da48a1c3cefcb7::t_fb11f3ba4968df 1,11,14
+packages/webgl1-polyfill/src/core/mesh/BlendShapeManager.ts
+  s_da48a1c3cefcb7::t_e0030979ccbeef 1,4-5
+packages/webgl1-polyfill/src/core/mesh/MeshRenderer.ts
+  s_da48a1c3cefcb7::t_3e5eaf279aeead 1,4-5
+packages/webgl1-polyfill/src/core/mesh/PrimitiveMesh.ts
+  s_da48a1c3cefcb7::t_6b25b1a334aa24 1,6-7
+packages/webgl1-polyfill/src/core/mesh/SkinnedMeshRenderer.ts
+  s_da48a1c3cefcb7::t_a8f58ca9e2940b 1,6,10
+packages/webgl1-polyfill/src/core/particle/ParticleGenerator.ts
+  s_da48a1c3cefcb7::t_a23884014299bd 1,4-5
+packages/webgl1-polyfill/src/core/particle/ParticleRenderer.ts
+  s_da48a1c3cefcb7::t_b6c7da11404162 1,6,9,15
+packages/webgl1-polyfill/src/core/particle/modules/InheritVelocityModule.ts
+  s_da48a1c3cefcb7::t_a9c6805955e736 1-6,9-10
+packages/webgl1-polyfill/src/core/particle/modules/LimitVelocityOverLifetimeModule.ts
+  s_da48a1c3cefcb7::t_9c6ff80073303a 1,4-5
+packages/webgl1-polyfill/src/core/particle/modules/NoiseModule.ts
+  s_da48a1c3cefcb7::t_06f5aae5bc1c35 1,4-5
+packages/webgl1-polyfill/src/core/particle/modules/SubEmittersModule.ts
+  s_da48a1c3cefcb7::t_252a09454f2103 1,4-5
+packages/webgl1-polyfill/src/core/particle/modules/VelocityOverLifetimeModule.ts
+  s_da48a1c3cefcb7::t_7e8fca3281c7d1 1,4-5
+packages/webgl1-polyfill/src/core/shader/ShaderPass.ts
+  s_da48a1c3cefcb7::t_bee172be4da5d7 7,30-33
+packages/webgl1-polyfill/src/core/shader/ShaderProgram.ts
+  s_da48a1c3cefcb7::t_a609da7f5bc067 1,4-5
+packages/webgl1-polyfill/src/core/shadow/CascadedShadowCasterPass.ts
+  s_da48a1c3cefcb7::t_c1a9c59cd51a24 3,16-17,31-32
+packages/webgl1-polyfill/src/core/texture/Texture.ts
+  s_da48a1c3cefcb7::t_461d14737be367 1,4-5
+packages/webgl1-polyfill/src/index.ts
+  s_da48a1c3cefcb7::t_31d606a3cffa68 2,4,7-10,12-17,19-22
+packages/webgl1-polyfill/src/rhi-webgl/GLCapability.ts
+  s_da48a1c3cefcb7::t_0478dccdff9dbb 2,11,14,28-29
+packages/webgl1-polyfill/src/rhi-webgl/GLPrimitive.ts
+  s_da48a1c3cefcb7::t_da5a01812cc215 2,7,9,13
+packages/webgl1-polyfill/src/rhi-webgl/WebGLGraphicDevice.ts
+  s_da48a1c3cefcb7::t_11a5448797fe86 10,16-17
+packages/webgl1-polyfill/tests/helpers/canvas.ts
+  s_da48a1c3cefcb7::t_68894cfc4ecb91 1
+packages/webgl1-polyfill/tests/integration/index.test.ts
+  s_da48a1c3cefcb7::t_cbf8cd16503194 3-9,28,61,85,103
+pnpm-lock.yaml
+  s_da48a1c3cefcb7::t_cc71d04f621478 278-280
+rollup.config.js
+  s_da48a1c3cefcb7::t_e9f29cf8a0902b 87-90,116,140,180,198-200
+tests/vitest.config.ts
+  s_da48a1c3cefcb7::t_ebbf9d40373c63 16
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "2cc326c4cac934614defd037128e75a0d5451f4d",
+  "prompts": {},
+  "sessions": {
+    "s_da48a1c3cefcb7": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1524d-29ee-7280-8621-925d13a5c914",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}
