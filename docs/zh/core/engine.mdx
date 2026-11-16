@@ -76,23 +76,3 @@ engine.targetFrameRate = 120;
 | [pause](/apis/core/#Engine-pause)     | 暂停引擎渲染帧循环 |
 | [resume](/apis/core/#Engine-resume)   | 恢复引擎渲渲染循环 |
 | [destroy](/apis/core/#Engine-destroy) | 销毁引擎           |
-
-
-## 无图形设备运行
-
-在 Node 或没有图形设备的宿主中，使用 `@galacean/engine/headless`：
-
-```typescript
-import { HeadlessEngine, MeshRenderer, PrimitiveMesh } from "@galacean/engine/headless";
-
-const engine = await HeadlessEngine.create();
-const entity = engine.sceneManager.activeScene!.createRootEntity("Box");
-const renderer = entity.addComponent(MeshRenderer);
-renderer.mesh = PrimitiveMesh.createCuboid(engine, 2, 4, 6);
-console.log(renderer.bounds);
-engine.destroy();
-```
-
-此入口与浏览器入口共用场景、变换、网格、材质和资源类。创建后引擎处于暂停状态，读取包围盒不会推进模拟。调用 `update()` 推进一帧，或调用 `run()` 启动宿主调度；脚本与动画沿用现有生命周期，活动的 CPU 粒子系统在没有相机可见性结果时仍持续模拟。`pause()` 和 `destroy()` 会停止循环。
-
-此模式不创建图形上下文，也不注册 DOM 输入。相机绘制跳过；GPU 编译、像素读回与 Transform Feedback 不可用。没有 XMLHttpRequest 时，JSON、文本和二进制资源通过 fetch 加载。图像解码、字体测量、音频播放、XR 和内置 PhysX 的启动仍需要相应宿主能力；无图形后端不会为这些操作伪造结果。
