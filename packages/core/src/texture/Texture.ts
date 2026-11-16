@@ -131,6 +131,7 @@ export abstract class Texture extends GraphicsResource {
 
   /**
    * Anisotropic level for texture.
+   * @defaultValue `1`
    * @remarks Values below `1` are clamped to `1`; values above the device limit are kept on this property and clamped when sampling.
    */
   get anisoLevel(): number {
@@ -151,8 +152,8 @@ export abstract class Texture extends GraphicsResource {
   }
 
   /**
-   * Filter mode when texture as depth Texture.
-   * @remarks Only depth-related formats take effect.
+   * Comparison function used when sampling this texture as a shadow depth map.
+   * @remarks Kept on this property across backends, and takes effect only for depth formats sampled with comparison in WebGL2.
    */
   get depthCompareFunction(): TextureDepthCompareFunction {
     return this._depthCompareFunction;
