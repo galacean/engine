@@ -1,0 +1,73 @@
+docs/zh/physics/collider/overview.mdx
+  s_87cc7a3b1b4ffa::t_6a85bdad7fae9c 8,10-17,19,21,23-24,26,28,30,32-36,38,40,42,44-52,54,56-59,61-75,77-81,83,85,87,89-93,95,97-98,100,102-108,112-127,130-166,168-178,180-182,185-216,219-222
+docs/zh/physics/collider/rigidbody.mdx
+  s_87cc7a3b1b4ffa::t_e6eec39bd9a0bd 2-249
+docs/en/physics/collider/overview.mdx
+  s_87cc7a3b1b4ffa::t_02a4de71b7038d 8,10-17,19,21,23-24,26,28,30,32-42,44-52,54-56,58-59,61,63,65-67,69,71-73,75,77-81,83,85,87,89-93,95,97-98,100-108,112,115,117-120,122-163,166-216,219-222
+docs/en/physics/collider/rigidbody.mdx
+  s_87cc7a3b1b4ffa::t_e81b513e1c1bde 2-249
+docs/en/basics/quickStart/flappy-bird.mdx
+  s_87cc7a3b1b4ffa::t_3d728df90b720f 133,312,544-545,550-551,556-557,744,749
+docs/en/physics/collider/characterController.mdx
+  s_87cc7a3b1b4ffa::t_387c809dfc16cd 10,12,14,16,19,25,34,37,40,42,44-51,53,56-61,66,75,77,94,96-98,100-102,243-246,249
+docs/en/physics/collider/event.mdx
+  s_87cc7a3b1b4ffa::t_dec83dddd8f618 16,32,37-40,60-61,63-64,66-68,71-72,75-76,80,84,88
+docs/en/physics/joint/fixedJoint.mdx
+  s_87cc7a3b1b4ffa::t_937572738e50c8 8,14,19,21,30-32,36,39-41,55,65-66,69,73
+docs/en/physics/joint/hingeJoint.mdx
+  s_87cc7a3b1b4ffa::t_4ad2155cb92226 14,19,21,30-32,36,40-41,92,103,106
+docs/en/physics/joint/overview.mdx
+  s_87cc7a3b1b4ffa::t_513a51d72dfdfc 8,11,30-31,34,42,66-67,69-70,72-73
+docs/en/physics/joint/springJoint.mdx
+  s_87cc7a3b1b4ffa::t_71bdb5af4be1a5 14,19,21,30-32,36,39-41,75,86
+docs/en/physics/manager.mdx
+  s_87cc7a3b1b4ffa::t_d65b6d34d15aa7 47-50,54
+docs/en/physics/overall.mdx
+  s_87cc7a3b1b4ffa::t_0e5f807bcd7a8b 44
+docs/en/physics/query/overlap.mdx
+  s_87cc7a3b1b4ffa::t_b5c96da27442d4 43-44,50,62-63,71,77,85-86,112-113,130-131,150-151,158,161,163,167,170,188-189,211-212,231-232,239,253,264,275,287,295,303
+docs/en/physics/query/raycast.mdx
+  s_87cc7a3b1b4ffa::t_f7f1c41dcedd25 89,206,264
+docs/zh/basics/quickStart/flappy-bird.mdx
+  s_87cc7a3b1b4ffa::t_f861a196af60fa 133,311,543-544,549-550,555-556,743,748
+docs/zh/physics/collider/characterController.mdx
+  s_87cc7a3b1b4ffa::t_4f295b1a84d0e1 10,12,14,16,19,25,34,37,40,42,44-51,53,56-61,66,75-77,94,96-98,100-102,242-245,248
+docs/zh/physics/collider/event.mdx
+  s_87cc7a3b1b4ffa::t_facc56f0a20712 16,32,37-40,59-60,62-63,65-67,70-71,74-75,79,83,87
+docs/zh/physics/joint/fixedJoint.mdx
+  s_87cc7a3b1b4ffa::t_2007286b91e989 8,14,19,21,30-32,36,39-41,55,65-66,69,73
+docs/zh/physics/joint/hingeJoint.mdx
+  s_87cc7a3b1b4ffa::t_9ae530695f7152 14,19,21,30-32,36,40-41,92,103,106
+docs/zh/physics/joint/overview.mdx
+  s_87cc7a3b1b4ffa::t_3477b387d70e1f 8,11,31-32,36,45,69-70,72-73,75,77
+docs/zh/physics/joint/springJoint.mdx
+  s_87cc7a3b1b4ffa::t_f214cd6dfe1da1 14,19,21,30-32,36,39-41,75,86
+docs/zh/physics/manager.mdx
+  s_87cc7a3b1b4ffa::t_e154f5789e6faa 46-49,53
+docs/zh/physics/overall.mdx
+  s_87cc7a3b1b4ffa::t_1ebdae50510e7e 44
+docs/zh/physics/query/overlap.mdx
+  s_87cc7a3b1b4ffa::t_da693ea740a9b1 43-44,50,62-63,71,77,85-86,112-113,130-131,150-151,158,161,163,167,170,188-189,211-212,231-232,239,253,264,275,287,295,303
+docs/zh/physics/query/raycast.mdx
+  s_87cc7a3b1b4ffa::t_32a6aca4d5ca32 89,206,264
+packages/core/README.md
+  s_87cc7a3b1b4ffa::t_de2670360fcad4 7,11
+packages/galacean/skills/engine-knowledge/references/physics-setup.md
+  s_87cc7a3b1b4ffa::t_7f7b9e6bf46a2f 8-13,17,21,23-25,27,31
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "9da12521d89e91dfc307e556395ff238caed2728",
+  "prompts": {},
+  "sessions": {
+    "s_87cc7a3b1b4ffa": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f72a317a-6fd5-4cfb-824b-a6a922a66a1d",
+        "model": "unknown"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}
