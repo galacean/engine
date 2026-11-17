@@ -1,4 +1,4 @@
-import { compareTerrainStableValues } from "../TerrainStableOrder";
+import { compareTerrainStableIds as compareTerrainStableValues } from "../clipmap/TerrainHeightAtlas";
 import { requireTerrainArtifactRelativePath } from "./TerrainArtifactPath";
 import { encodeTerrainCanonicalJson, type TerrainProjectEntries } from "./TerrainProjectCodec";
 import { createTerrainProjectFileFromCatalog, type TerrainProjectExportCatalog } from "./TerrainProjectExportCatalog";

@@ -1,4 +1,4 @@
-import { compareTerrainStableValues } from "../TerrainStableOrder";
+import { compareTerrainStableIds as compareTerrainStableValues } from "../clipmap/TerrainHeightAtlas";
 import { requireTerrainArtifactRelativePath } from "./TerrainArtifactPath";
 import { sha256TerrainBytes } from "./TerrainProjectCodec";
 import type { TerrainProjectFile, TerrainProjectRef } from "./TerrainProjectContract";

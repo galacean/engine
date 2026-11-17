@@ -6,7 +6,7 @@ import {
   type LoadItem,
   type ResourceManager
 } from "@galacean/engine-core";
-import { compareTerrainStableValues } from "@galacean/engine-terrain/terrain/TerrainStableOrder";
+import { compareTerrainStableIds as compareTerrainStableValues } from "@galacean/engine-terrain/terrain/clipmap/TerrainHeightAtlas";
 import { normalizeTerrainCompressedProjectArtifact } from "@galacean/engine-terrain/terrain/compression/TerrainCompressedProjectArtifact";
 import { requireTerrainArtifactRelativePath } from "@galacean/engine-terrain/terrain/project/TerrainArtifactPath";
 import type { TerrainProjectArtifactEntries } from "@galacean/engine-terrain/terrain/project/TerrainProjectArtifactAssembler";

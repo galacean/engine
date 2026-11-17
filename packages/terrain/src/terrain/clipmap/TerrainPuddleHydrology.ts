@@ -1,5 +1,8 @@
-import { packTerrainAtlasRectangles, type TerrainAtlasRectangle } from "./TerrainHeightAtlas";
-import type { TerrainClipmapRegionSource } from "./TerrainClipmapSource";
+import {
+  packTerrainAtlasRectangles,
+  type TerrainAtlasRectangle,
+  type TerrainClipmapRegionSource
+} from "./TerrainHeightAtlas";
 
 /** Maximum spacing used by the shallow-puddle drainage compiler. */
 export const TERRAIN_PUDDLE_HYDROLOGY_MAX_SPACING_METRES = 4;
@@ -329,7 +332,6 @@ function createHydrologyGrid(
       const sourceZ = localZ * stride;
       for (let localX = 0; localX < coarseWidth; localX++) {
         const sourceX = localX * stride;
-        if (!isHeightSampleSolid(source, sourceX, sourceZ)) continue;
         const globalIndex = (gridOriginZ + localZ) * width + gridOriginX + localX;
         const sample = source.heightSamples[sourceZ * sourceWidth + sourceX];
         const elevation = source.heightDecodeOffset + (sample / 65535) * source.heightDecodeScale;
@@ -405,17 +407,6 @@ function sourceSpacing(source: TerrainClipmapRegionSource): number {
     throw new Error(`Terrain puddle hydrology Region "${source.id}" has anisotropic height spacing`);
   }
   return spacingX;
-}
-
-function isHeightSampleSolid(source: TerrainClipmapRegionSource, sampleX: number, sampleZ: number): boolean {
-  if (!source.holesSampleSize || source.holesSolidValue === undefined || !source.holes) return true;
-  const [heightWidth, heightHeight] = source.heightSampleSize;
-  const [holesWidth, holesHeight] = source.holesSampleSize;
-  const normalizedX = sampleX / Math.max(heightWidth - 1, 1);
-  const normalizedZ = sampleZ / Math.max(heightHeight - 1, 1);
-  const holesX = Math.min(Math.floor(normalizedX * holesWidth), holesWidth - 1);
-  const holesZ = Math.min(Math.floor(normalizedZ * holesHeight), holesHeight - 1);
-  return source.holes[holesZ * holesWidth + holesX] === source.holesSolidValue;
 }
 
 function terrainPuddleValueNoise(x: number, z: number): number {

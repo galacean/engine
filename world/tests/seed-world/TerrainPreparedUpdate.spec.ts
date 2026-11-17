@@ -1,8 +1,10 @@
 import { expect, it, vi } from "vitest";
 import { type Engine, type Material } from "@galacean/engine";
 import { createTerrainClipmapMaterialBinding } from "@galacean/engine-terrain/terrain/clipmap/TerrainClipmapMaterial";
-import type { TerrainClipmapRegionSource } from "@galacean/engine-terrain/terrain/clipmap/TerrainClipmapSource";
-import { packTerrainHeightAtlas } from "@galacean/engine-terrain/terrain/clipmap/TerrainHeightAtlas";
+import {
+  packTerrainHeightAtlas,
+  type TerrainClipmapRegionSource
+} from "@galacean/engine-terrain/terrain/clipmap/TerrainHeightAtlas";
 import { packTerrainNormalAtlas } from "@galacean/engine-terrain/terrain/clipmap/TerrainNormalAtlas";
 import { TerrainPuddleHydrologyCompiler } from "@galacean/engine-terrain/terrain/clipmap/TerrainPuddleHydrology";
 import {

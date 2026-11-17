@@ -104,7 +104,7 @@ vi.mock("@galacean/engine-terrain/terrain/clipmap/TerrainClipmap", () => ({
           setVector2: vi.fn()
         }
       };
-      const farMaterialOptions = args[10] as { readonly configureMaterial?: (material: unknown) => void } | undefined;
+      const farMaterialOptions = args[9] as { readonly configureMaterial?: (material: unknown) => void } | undefined;
       farMaterialOptions?.configureMaterial?.(this.material);
       farMaterialOptions?.configureMaterial?.(farMaterial);
       runtimeState.clipmapFarMaterials.push(farMaterial);
@@ -113,11 +113,6 @@ vi.mock("@galacean/engine-terrain/terrain/clipmap/TerrainClipmap", () => ({
 
     destroy(): void {
       runtimeState.clipmapDestroyCount++;
-    }
-
-    setMacroVariationEnabled(enabled: boolean): void {
-      this.macroVariationEnabled = enabled;
-      runtimeState.macroVariationStates.push(enabled);
     }
     setLayerDiffuseColors(patches: unknown): void {
       runtimeState.layerDiffuseColors.push(patches);
@@ -612,8 +607,7 @@ describe("SeedWorldTerrainRuntime production ownership integration", () => {
     expect(engine.resourceManager.load).not.toHaveBeenCalledWith(
       expect.objectContaining({ url: expect.stringContaining("macro-variation-noise.png") })
     );
-    expect(runtimeState.clipmapCreates[0][9]).toBeUndefined();
-    expect(runtimeState.clipmapCreates[0][10]).toEqual(
+    expect(runtimeState.clipmapCreates[0][9]).toEqual(
       expect.objectContaining({
         firstLod: 2,
         nearTransitionMacro: "MATERIAL_TERRAIN_DETAIL_TRANSITION",
@@ -707,7 +701,6 @@ describe("SeedWorldTerrainRuntime production ownership integration", () => {
       "material_GrassColorFieldTransform",
       expect.objectContaining({ x: 0 })
     );
-    expect(runtimeState.macroVariationStates).toEqual([]);
     expect(terrainMaterial.shaderData.setVector4).toHaveBeenCalledWith(
       "material_GrassColorFieldTransform",
       expect.objectContaining({ x: 0, y: 1 / 57.91867446899414, z: 0, w: 1 / 3_072 })

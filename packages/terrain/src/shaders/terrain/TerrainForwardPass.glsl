@@ -96,7 +96,7 @@ void TerrainFragment(Varyings varyings) {
     vec3 shadowPositionDx = dFdx(varyings.positionWS);
     vec3 shadowPositionDy = dFdy(varyings.positionWS);
   #endif
-  if (varyings.terrainValid < 0.999 || terrainProjectSolidAt(varyings.sourceXZ) < 0.5) discard;
+  if (varyings.terrainValid < 0.999) discard;
   #ifdef TERRAIN_PROJECT_ENTRANCE_WAVE
     if (
       terrainProjectEntranceWaveReveal(varyings.positionWS) <= 0.001 ||

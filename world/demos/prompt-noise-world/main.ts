@@ -496,7 +496,6 @@ async function boot(): Promise<void> {
     waterHost.world
   );
   const worldCoordinator = new PromptNoiseWorldRevisionCoordinator(binding, riverWater, generationWorker, decoration);
-  clipmap.setWireframe(false);
   performancePanel.setSceneMetricsProvider(() => {
     const sceneObjects = decoration.getSnapshot();
     return {
@@ -571,10 +570,6 @@ async function boot(): Promise<void> {
     .add(guiState, "overview")
     .name("俯瞰 / 近景")
     .onChange((enabled: boolean) => driver.setOverview(enabled));
-  terrainFolder
-    .add(guiState, "wireframe")
-    .name("Clipmap 网格")
-    .onChange((enabled: boolean) => clipmap.setWireframe(enabled));
   terrainFolder
     .add(guiState, "debugView", Object.keys(DEBUG_VIEWS))
     .name("调试视图")

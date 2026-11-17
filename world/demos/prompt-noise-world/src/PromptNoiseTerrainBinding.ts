@@ -55,7 +55,6 @@ export type PromptNoiseTerrainFeature = "projection" | "dualScaling" | "autoShad
 export class PromptNoiseTerrainBinding implements TerrainClipmapRenderBinding {
   readonly activeRegionCount = 0;
   readonly heightAtlasSize = [0, 0] as const;
-  readonly holesAtlasSize = [0, 0] as const;
   readonly activeLayerCount = 2;
   readonly activeAlphamapCount = 0;
   readonly gridOrigin = [0, 0] as const;

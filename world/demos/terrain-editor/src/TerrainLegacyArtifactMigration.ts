@@ -1,4 +1,4 @@
-import { compareTerrainStableValues } from "@galacean/engine-terrain/terrain/TerrainStableOrder";
+import { compareTerrainStableIds as compareTerrainStableValues } from "@galacean/engine-terrain/terrain/clipmap/TerrainHeightAtlas";
 import { requireTerrainArtifactRelativePath } from "@galacean/engine-terrain/terrain/project/TerrainArtifactPath";
 import {
   indexTerrainProjectArtifact,

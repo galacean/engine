@@ -99,7 +99,6 @@ export class TerrainMapComponent extends Script {
         inputs.lodCount ?? 7,
         layers,
         undefined,
-        undefined,
         inputs.farMaterial
       );
     } catch (error) {
