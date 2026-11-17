@@ -2,13 +2,7 @@
 #define LIGHT_INDIRECT_FUNCTIONS_INCLUDED
 
 vec3 getReflectedVector(SurfaceData surfaceData, vec3 n) {
-    #ifdef MATERIAL_ENABLE_ANISOTROPY
-        vec3 r = reflect(-surfaceData.viewDir, surfaceData.anisotropicN);
-    #else
-        vec3 r = reflect(-surfaceData.viewDir, n);
-    #endif
-
-    return r;
+    return reflect(-surfaceData.viewDir, n);
 }
 
 float getSpecularMIPLevel(float roughness, int maxMIPLevel ) {

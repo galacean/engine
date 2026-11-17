@@ -215,7 +215,7 @@ float DG_GGX(float alpha, float dotNV, float dotNL, float dotNH) {
 #endif
 
 // GGX Distribution, Schlick Fresnel, GGX-Smith Visibility
-vec3 BRDF_Specular_GGX(vec3 incidentDirection, SurfaceData surfaceData, BSDFData bsdfData, vec3 normal, vec3 specularColor, float roughness ) {
+vec3 BRDF_Specular_GGX(vec3 incidentDirection, SurfaceData surfaceData, BSDFData bsdfData, vec3 normal, vec3 specularColor, float roughness, bool anisotropic) {
 
 	float alpha = pow2( roughness ); // UE4's roughness
 
@@ -233,11 +233,15 @@ vec3 BRDF_Specular_GGX(vec3 incidentDirection, SurfaceData surfaceData, BSDFData
 	
 
     #ifdef MATERIAL_ENABLE_ANISOTROPY
-        float GD = DG_GGX_anisotropic(halfDir, incidentDirection, surfaceData, alpha, dotNV, dotNL, dotNH);
+        float GD = anisotropic ? DG_GGX_anisotropic(halfDir, incidentDirection, surfaceData, alpha, dotNV, dotNL, dotNH) : DG_GGX(alpha, dotNV, dotNL, dotNH);
     #else
         float GD = DG_GGX(alpha, dotNV, dotNL, dotNH);
     #endif
     return F * GD;
+}
+
+vec3 BRDF_Specular_GGX(vec3 incidentDirection, SurfaceData surfaceData, BSDFData bsdfData, vec3 normal, vec3 specularColor, float roughness) {
+    return BRDF_Specular_GGX(incidentDirection, surfaceData, bsdfData, normal, specularColor, roughness, true);
 }
 
 vec3 BRDF_Diffuse_Lambert(vec3 diffuseColor) {

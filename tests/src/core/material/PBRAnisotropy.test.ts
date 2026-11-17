@@ -1,6 +1,7 @@
 import {
   AssetType,
   Camera,
+  DirectLight,
   GLTFResource,
   Matrix,
   MeshRenderer,
@@ -12,6 +13,9 @@ import {
   Skin,
   SkinnedMeshRenderer,
   Texture2D,
+  TextureCube,
+  TextureCubeFace,
+  TextureFilterMode,
   TextureFormat,
   Vector2,
   Vector3,
@@ -49,6 +53,11 @@ describe("PBR anisotropy", () => {
         #include "ShaderLibrary/PBR/ForwardPassPBR.glsl"
         vec4 inspectAnisotropy(Varyings v) {
           SurfaceData surface = getSurfaceData(v, v.uv, gl_FrontFacing);
+          #ifdef INSPECT_ANISOTROPY_FRAME
+            return vec4(vec3(length(surface.anisotropicT), length(surface.anisotropicB), length(surface.normal)) * 0.5,
+              max(abs(dot(surface.normal, surface.anisotropicT)),
+                max(abs(dot(surface.normal, surface.anisotropicB)), abs(dot(surface.anisotropicT, surface.anisotropicB)))));
+          #endif
           #ifdef INSPECT_SURFACE_NORMAL
             vec3 direction = surface.normal;
           #elif defined(INSPECT_CLEAR_COAT_NORMAL) && defined(MATERIAL_ENABLE_CLEAR_COAT)
@@ -100,6 +109,7 @@ describe("PBR anisotropy", () => {
     material.renderFace = RenderFace.Front;
     material.shaderData.disableMacro("INSPECT_SURFACE_NORMAL");
     material.shaderData.disableMacro("INSPECT_CLEAR_COAT_NORMAL");
+    material.shaderData.disableMacro("INSPECT_ANISOTROPY_FRAME");
     camera.isOrthographic = false;
     camera.entity.transform.setPosition(0, 0, 3);
   });
@@ -152,6 +162,181 @@ describe("PBR anisotropy", () => {
     material.anisotropyTexture = null!;
     material.anisotropyRotation = 90;
     expectDirectionAndStrength(new Vector3(0, 1, 0), 0.8);
+  });
+
+  it.each([
+    ...[0, 45, 90].flatMap((rotation) =>
+      [1, -1].flatMap((sign) =>
+        [false, true].map((backFace) => ({ rotation, sign, backFace, parallel: false, withTangents: true }))
+      )
+    ),
+    ...[1, -1].map((sign) => ({ rotation: 0, sign, backFace: false, parallel: true, withTangents: true })),
+    ...[false, true].map((backFace) => ({ rotation: 45, sign: 1, backFace, parallel: false, withTangents: false }))
+  ])(
+    "keeps the final shading frame orthonormal (rotation $rotation; sign $sign; back $backFace; parallel $parallel; tangents $withTangents)",
+    ({ rotation, sign, backFace, parallel, withTangents }) => {
+      if (withTangents) mesh.setTangents(Array.from({ length: 3 }, () => new Vector4(1, 0, 0, sign)));
+      const normalMap = new Texture2D(engine, 2, 1, TextureFormat.R8G8B8A8, false, false);
+      try {
+        normalMap.filterMode = TextureFilterMode.Bilinear;
+        // At UV (0.5,0.5), filtering gives exactly (1,0.5,0.5), hence N=+X.
+        normalMap.setPixelBuffer(
+          new Uint8Array(parallel ? [255, 127, 127, 255, 255, 128, 128, 255] : [218, 128, 218, 255, 218, 128, 218, 255])
+        );
+        material.normalTexture = normalMap;
+        material.anisotropyRotation = rotation;
+        material.renderFace = RenderFace.Double;
+        material.shaderData.enableMacro("INSPECT_ANISOTROPY_FRAME");
+        renderer.entity.transform.setRotation(0, backFace ? 180 : 0, 0);
+        camera.isOrthographic = true;
+        camera.orthographicSize = 2;
+        camera.entity.transform.setPosition(-1 / 8, 1 / 8, 3);
+        mesh.uploadData(false);
+        engine.update();
+        const pixel = new Uint8Array(4);
+        output.getPixelBuffer(8, 8, 1, 1, pixel);
+        // A BRDF frame has three unit axes and zero pairwise dot products.
+        pixel.slice(0, 3).forEach((length) => expect(Math.abs(length - 127.5)).toBeLessThanOrEqual(2));
+        expect(pixel[3]).toBeLessThanOrEqual(2);
+      } finally {
+        material.normalTexture = null!;
+        normalMap.destroy();
+      }
+    }
+  );
+
+  function withProductionPBR(check: (pbr: PBRMaterial, read: () => number[]) => void): void {
+    const scene = engine.sceneManager.activeScene!;
+    const diffuseIntensity = scene.ambientLight.diffuseIntensity;
+    const lightEntity = scene.createRootEntity();
+    lightEntity.addComponent(DirectLight).color.set(0.1, 0.1, 0.1, 1);
+    const pbr = new PBRMaterial(engine);
+    pbr.metallic = 1;
+    pbr.roughness = 0.8;
+    renderer.setMaterial(pbr);
+    scene.ambientLight.diffuseIntensity = 0;
+    camera.isOrthographic = true;
+    camera.orthographicSize = 2;
+    camera.entity.transform.setPosition(-1 / 8, 1 / 8, 3);
+    mesh.setTangents(Array.from({ length: 3 }, () => new Vector4(1, 0, 0, 1)));
+    mesh.uploadData(false);
+    try {
+      check(pbr, () => {
+        engine.update();
+        const pixel = new Uint8Array(4);
+        output.getPixelBuffer(8, 8, 1, 1, pixel);
+        return Array.from(pixel.slice(0, 3));
+      });
+    } finally {
+      renderer.setMaterial(material);
+      pbr.destroy();
+      lightEntity.destroy();
+      scene.ambientLight.diffuseIntensity = diffuseIntensity;
+    }
+  }
+
+  it.each([false, true])("matches isotropic PBR when texture strength is zero (tilted normal %s)", (tilted) => {
+    const directionMap = new Texture2D(engine, 1, 1, TextureFormat.R8G8B8A8, false, false);
+    try {
+      directionMap.setPixelBuffer(new Uint8Array([255, 128, 0, 255]));
+      texture.setPixelBuffer(new Uint8Array(tilted ? [218, 128, 218, 255] : [128, 128, 255, 255]));
+      withProductionPBR((pbr, read) => {
+        pbr.normalTexture = texture;
+        pbr.anisotropyTexture = directionMap;
+        const reference = read();
+        expect(reference[0]).toBeGreaterThan(5);
+        expect(reference[0]).toBeLessThan(250);
+        pbr.anisotropy = 0.8;
+        for (const rotation of [0, 45, 90]) {
+          pbr.anisotropyRotation = rotation;
+          read().forEach((value, channel) => expect(Math.abs(value - reference[channel])).toBeLessThanOrEqual(1));
+        }
+      });
+    } finally {
+      directionMap.destroy();
+    }
+  });
+
+  it.each([0, 255])("keeps production PBR finite when filtering cancels directions (blue %i)", (blue) => {
+    const directionMap = new Texture2D(engine, 2, 1, TextureFormat.R8G8B8A8, false, false);
+    try {
+      directionMap.filterMode = TextureFilterMode.Bilinear;
+      directionMap.setPixelBuffer(new Uint8Array([255, 255, blue, 255, 0, 0, blue, 255]));
+      withProductionPBR((pbr, read) => {
+        pbr.anisotropy = 0.8;
+        pbr.anisotropyRotation = 45;
+        pbr.anisotropyTexture = directionMap;
+        // With V and L along N, rotating a valid tangent frame cannot change this highlight.
+        const samples = [-0.02, 0, 0.02].map((x) => {
+          camera.entity.transform.setPosition(-1 / 8 + x, 1 / 8, 3);
+          return read();
+        });
+        expect(samples[0][0]).toBeGreaterThan(5);
+        expect(samples[0][0]).toBeLessThan(250);
+        samples.slice(1).forEach((pixel) => {
+          pixel.forEach((value, channel) => expect(Math.abs(value - samples[0][channel])).toBeLessThanOrEqual(1));
+        });
+      });
+    } finally {
+      directionMap.destroy();
+    }
+  });
+
+  it.each([0, 255])("keeps the clearcoat lobe independent of base anisotropy (blue %i)", (blue) => {
+    const directionMap = new Texture2D(engine, 1, 1, TextureFormat.R8G8B8A8, false, false);
+    try {
+      directionMap.setPixelBuffer(new Uint8Array([255, 128, blue, 255]));
+      texture.setPixelBuffer(new Uint8Array([218, 128, 218, 255]));
+      withProductionPBR((pbr, read) => {
+        // A black metal base contributes no radiance in this head-on light/view configuration.
+        pbr.baseColor.set(0, 0, 0, 1);
+        pbr.normalTexture = texture;
+        pbr.clearCoat = 1;
+        pbr.clearCoatRoughness = 0.25;
+        pbr.anisotropyTexture = directionMap;
+        const reference = read();
+        expect(reference[0]).toBeGreaterThan(2);
+        expect(reference[0]).toBeLessThan(250);
+        pbr.anisotropy = 0.8;
+        for (const rotation of [0, 45, 90]) {
+          pbr.anisotropyRotation = rotation;
+          read().forEach((value, channel) => expect(Math.abs(value - reference[channel])).toBeLessThanOrEqual(1));
+        }
+      });
+    } finally {
+      directionMap.destroy();
+    }
+  });
+
+  it("uses the clearcoat normal for environment reflection with base anisotropy", () => {
+    const environment = new TextureCube(engine, 1, TextureFormat.R8G8B8A8, false, false);
+    const ambient = engine.sceneManager.activeScene!.ambientLight;
+    const previous = ambient.specularTexture;
+    try {
+      for (let face = 0; face < 6; face++) {
+        const value = face === TextureCubeFace.PositiveZ ? 255 : 0;
+        environment.setPixelBuffer(face, new Uint8Array([value, value, value, 255]));
+      }
+      ambient.specularTexture = environment;
+      texture.setPixelBuffer(new Uint8Array([255, 128, 191, 255]));
+      withProductionPBR((pbr, read) => {
+        pbr.baseColor.set(0, 0, 0, 1);
+        pbr.normalTexture = texture;
+        pbr.clearCoat = 1;
+        pbr.clearCoatRoughness = 0.25;
+        const reference = read();
+        expect(reference[0]).toBeGreaterThan(5);
+        expect(reference[0]).toBeLessThan(250);
+        pbr.anisotropy = 0.8;
+        for (const rotation of [0, 45, 90]) {
+          pbr.anisotropyRotation = rotation;
+          read().forEach((value, channel) => expect(Math.abs(value - reference[channel])).toBeLessThanOrEqual(1));
+        }
+      });
+    } finally {
+      ambient.specularTexture = previous;
+      environment.destroy();
+    }
   });
 
   it.each(

@@ -25,7 +25,8 @@ float clearCoatLobe(Varyings varyings, SurfaceData surfaceData, BSDFData bsdfDat
         float clearCoatDotNL = saturate( dot( surfaceData.clearCoatNormal, incidentDirection ) );
         vec3 clearCoatIrradiance = clearCoatDotNL * color;
 
-        specularColor += surfaceData.clearCoat * clearCoatIrradiance * BRDF_Specular_GGX( incidentDirection, surfaceData, bsdfData, surfaceData.clearCoatNormal, bsdfData.clearCoatSpecularColor, bsdfData.clearCoatRoughness );
+        // Clearcoat is an isotropic layer with its own normal, independent of base anisotropy.
+        specularColor += surfaceData.clearCoat * clearCoatIrradiance * BRDF_Specular_GGX( incidentDirection, surfaceData, bsdfData, surfaceData.clearCoatNormal, bsdfData.clearCoatSpecularColor, bsdfData.clearCoatRoughness, false );
         attenuation -= surfaceData.clearCoat * F_Schlick(0.04, 1.0, surfaceData.clearCoatDotNV);
     #endif
 

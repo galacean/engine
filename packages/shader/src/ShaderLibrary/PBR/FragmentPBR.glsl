@@ -289,11 +289,25 @@ SurfaceData getSurfaceData(Varyings v, vec2 aoUV, bool isFrontFacing){
             anisotropy *= anisotropyTextureInfo.b;
             vec2 textureDirection = anisotropyTextureInfo.rg * 2.0 - 1.0;
             vec2 rotation = material_AnisotropyInfo.xy;
-            anisotropicDirection.xy = mat2(rotation.x, rotation.y, -rotation.y, rotation.x) * textureDirection;
+            // Filtering opposite directions can cancel them. Keep the material direction in that case.
+            if (dot(textureDirection, textureDirection) > EPSILON) {
+                anisotropicDirection.xy = mat2(rotation.x, rotation.y, -rotation.y, rotation.x) * textureDirection;
+            }
         #endif
 
         surfaceData.anisotropy = anisotropy;
-        surfaceData.anisotropicT = normalize(mat3(surfaceData.tangent, surfaceData.bitangent, surfaceData.normal) * anisotropicDirection);
+        vec3 anisotropicT = surfaceData.tangent * anisotropicDirection.x + surfaceData.bitangent * anisotropicDirection.y;
+        #ifdef MATERIAL_HAS_NORMALTEXTURE
+            // The BRDF needs an orthonormal frame around the final, perturbed normal.
+            float tangentLengthSquared = dot(anisotropicT, anisotropicT);
+            anisotropicT -= surfaceData.normal * dot(surfaceData.normal, anisotropicT);
+            if (dot(anisotropicT, anisotropicT) <= EPSILON * tangentLengthSquared) {
+                // The perpendicular geometric direction remains usable when T is parallel to N.
+                vec3 perpendicular = surfaceData.bitangent * anisotropicDirection.x - surfaceData.tangent * anisotropicDirection.y;
+                anisotropicT = cross(perpendicular, surfaceData.normal);
+            }
+        #endif
+        surfaceData.anisotropicT = normalize(anisotropicT);
         surfaceData.anisotropicB = normalize(cross(surfaceData.normal, surfaceData.anisotropicT));
         surfaceData.anisotropicN = getAnisotropicBentNormal(surfaceData);
     #endif

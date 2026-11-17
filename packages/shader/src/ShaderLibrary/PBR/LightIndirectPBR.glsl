@@ -63,7 +63,13 @@ float evaluateClearCoatIBL(Varyings varyings, SurfaceData surfaceData, BSDFData 
 }
 
 void evaluateSpecularIBL(Varyings varyings, SurfaceData surfaceData, BSDFData bsdfData, float radianceAttenuation, inout vec3 outSpecularColor){
-    vec3 radiance = getLightProbeRadiance(surfaceData, surfaceData.normal, bsdfData.roughness);
+    // Only the base layer uses the anisotropic bent normal; clearcoat keeps its own normal.
+    #ifdef MATERIAL_ENABLE_ANISOTROPY
+        vec3 normal = surfaceData.anisotropicN;
+    #else
+        vec3 normal = surfaceData.normal;
+    #endif
+    vec3 radiance = getLightProbeRadiance(surfaceData, normal, bsdfData.roughness);
     
     float specularAO = evaluateSpecularOcclusion(surfaceData.dotNV, bsdfData.diffuseAO, bsdfData.roughness);
     outSpecularColor += specularAO * radianceAttenuation * radiance * envBRDFApprox(bsdfData.resolvedSpecularF0, bsdfData.specularF90 , bsdfData.roughness, surfaceData.dotNV) * bsdfData.energyCompensation;
