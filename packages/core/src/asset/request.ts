@@ -40,23 +40,22 @@ export type RequestConfig = {
  */
 export function request<T>(url: string, config: RequestConfig = {}): AssetPromise<T> {
   return new AssetPromise((resolve, reject, setTaskCompleteProgress, setTaskDetailProgress, onCancel) => {
-    const { signal } = config;
-    const getAbortReason = () => signal?.reason ?? new DOMException("This operation was aborted", "AbortError");
+    const { retryCount = defaultRetryCount, retryInterval = defaultInterval, signal, ...rest } = config;
+    const getAbortReason = () =>
+      signal?.reason !== undefined ? signal.reason : new DOMException("This operation was aborted", "AbortError");
     if (signal?.aborted) {
       reject(getAbortReason());
       return;
     }
 
     let currentRequest: AssetPromise<T> | undefined;
-    const retryCount = config.retryCount ?? defaultRetryCount;
-    const retryInterval = config.retryInterval ?? defaultInterval;
-    const requestConfig: RequestConfig = {
-      ...config,
-      type: config.type ?? getMimeTypeFromUrl(url)
+    const attemptConfig: RequestConfig = {
+      ...rest,
+      type: rest.type ?? getMimeTypeFromUrl(url)
     };
     const send = typeof XMLHttpRequest === "undefined" ? requestWithFetch : requestWithXHR;
     const executor = new MultiExecutor(
-      () => (currentRequest = send<T>(url, requestConfig).onProgress(setTaskCompleteProgress, setTaskDetailProgress)),
+      () => (currentRequest = send<T>(url, attemptConfig).onProgress(setTaskCompleteProgress, setTaskDetailProgress)),
       retryCount,
       retryInterval
     );
@@ -164,17 +163,18 @@ function requestWithXHR<T>(url: string, config: RequestConfig): AssetPromise<T> 
 
 function requestWithFetch<T>(url: string, config: RequestConfig): AssetPromise<T> {
   return new AssetPromise((resolve, reject, setTaskCompleteProgress, _setTaskDetailProgress, onCancel) => {
-    const { type, retryCount: _r, retryInterval: _i, timeout, signal, ...init } = config;
+    const { type, timeout, ...init } = config;
     if (type === "image" || type === "document") {
       reject(new Error(`Request type "${type}" requires a browser decoder.`));
       return;
     }
     const controller = new AbortController();
-    const abort = () => controller.abort(signal?.aborted ? signal.reason : undefined);
-    const timer = hasTimeout(timeout) ? setTimeout(abort, timeout) : undefined;
+    const timer = hasTimeout(timeout)
+      ? setTimeout(() => controller.abort(new DOMException(`Request timeout from: ${url}`, "TimeoutError")), timeout)
+      : undefined;
     onCancel(() => {
       clearTimeout(timer);
-      abort();
+      controller.abort();
     });
     fetch(url, { ...init, signal: controller.signal })
       .then(async (res) => {
@@ -192,7 +192,7 @@ function requestWithFetch<T>(url: string, config: RequestConfig): AssetPromise<T
       })
       .finally(() => {
         // A rejected response may still own an unread body and connection.
-        abort();
+        controller.abort();
         clearTimeout(timer);
       })
       .then(resolve, reject);

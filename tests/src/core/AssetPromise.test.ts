@@ -271,5 +271,20 @@ describe("Asset Promise test", function () {
       vi.restoreAllMocks();
       vi.useRealTimers();
     }
+
+    // Browser XHR path also honors external AbortSignal immediately across retries
+    const abortSpy = vi.spyOn(XMLHttpRequest.prototype, "abort");
+    vi.spyOn(XMLHttpRequest.prototype, "send").mockImplementation(function () {});
+    try {
+      const xhrController = new AbortController();
+      const xhrTask = Promise.resolve(
+        request("https://example.test/xhr.txt", { retryCount: 3, retryInterval: 250, signal: xhrController.signal })
+      ).catch((e) => e);
+      xhrController.abort(new Error("xhr-aborted"));
+      expect(abortSpy).toHaveBeenCalledOnce();
+      expect((await xhrTask).message).toBe("xhr-aborted");
+    } finally {
+      vi.restoreAllMocks();
+    }
   });
 });

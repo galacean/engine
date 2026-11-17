@@ -563,13 +563,16 @@ describe("@galacean/engine-rhi-null in Node without browser globals", () => {
       ).resolves.toBe("ok");
       expect(removeSpy).toHaveBeenCalledTimes(2);
 
-      // Positive single-attempt timeout retries and recovers on subsequent attempt
+      // Positive single-attempt timeout retries and recovers on subsequent attempt, or rejects with TimeoutError
       await expect(
         Promise.resolve(
           request(`${base}/timeout-then-ok`, { type: "text", timeout: 25, retryCount: 2, retryInterval: 5 })
         )
       ).resolves.toBe("recovered");
       expect(slowCalls).toBe(2);
+      await expect(
+        Promise.resolve(request(`${base}/hang`, { type: "text", timeout: 15, retryCount: 1 }))
+      ).rejects.toThrow(`Request timeout from: ${base}/hang`);
 
       // In-flight external AbortSignal cancellation terminates immediately without retrying
       const inFlightController = new AbortController();
