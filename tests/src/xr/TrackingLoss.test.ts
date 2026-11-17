@@ -1,4 +1,6 @@
+import { WebGLGraphicDevice } from "@galacean/engine";
 import { IXRInput, IXRRequestImage, IXRTrackedImage } from "@galacean/engine-design";
+import { NullGraphicDevice } from "@galacean/engine-rhi-null";
 import {
   XRAnchor as EngineXRAnchor,
   XRController,
@@ -107,23 +109,16 @@ describe("WebXR tracking loss", () => {
     const makeXRCompatible = vi.fn();
     Object.defineProperty(navigator, "xr", { configurable: true, value: { requestSession } });
     try {
-      await expect(new WebXRDevice().requestSession({}, XRSessionMode.AR, [])).rejects.toThrow(
+      await expect(new WebXRDevice().requestSession(new NullGraphicDevice(), XRSessionMode.AR, [])).rejects.toThrow(
         "WebXR requires a WebGL graphics device."
       );
-      await expect(
-        new WebXRDevice().requestSession(
-          {
-            get gl(): never {
-              throw new Error("unavailable");
-            }
-          },
-          XRSessionMode.AR,
-          []
-        )
-      ).rejects.toThrow("WebXR requires a WebGL graphics device.");
       expect(requestSession).not.toHaveBeenCalled();
 
-      const rhi = { gl: { getContextAttributes: () => null, makeXRCompatible } };
+      const rhi = new WebGLGraphicDevice();
+      vi.spyOn(rhi, "gl", "get").mockReturnValue({
+        getContextAttributes: () => null,
+        makeXRCompatible
+      } as unknown as WebGL2RenderingContext);
       await expect(new WebXRDevice().requestSession(rhi, XRSessionMode.AR, [])).rejects.toThrow(
         "GetContextAttributes Error!"
       );
@@ -140,13 +135,7 @@ describe("WebXR tracking loss", () => {
 
   it("synchronizes and resets the WebGL main framebuffer across session updates, stop and exit", async () => {
     const framebuffer = {} as WebGLFramebuffer;
-    const rhi = {
-      isWebGL2: true,
-      gl: {} as WebGL2RenderingContext,
-      _mainFrameBuffer: null as WebGLFramebuffer | null,
-      _mainFrameWidth: 0,
-      _mainFrameHeight: 0
-    };
+    const rhi = new WebGLGraphicDevice();
     const end = vi.fn().mockResolvedValue(undefined);
     const session = new WebXRSession(
       rhi,

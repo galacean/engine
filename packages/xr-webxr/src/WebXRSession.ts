@@ -1,15 +1,8 @@
+import type { WebGLGraphicDevice } from "@galacean/engine";
 import { IXRInputEvent, IXRSession } from "@galacean/engine-design";
 import { XRInputEventType, XRTargetRayMode, XRTrackedInputDevice } from "@galacean/engine-xr";
 import { getInputSource } from "./Util";
 import { WebXRFrame } from "./WebXRFrame";
-
-export interface WebXRGraphicDevice {
-  readonly isWebGL2: boolean;
-  readonly gl: WebGLRenderingContext | WebGL2RenderingContext;
-  _mainFrameBuffer: WebGLFramebuffer | null;
-  _mainFrameWidth: number;
-  _mainFrameHeight: number;
-}
 
 export class WebXRSession implements IXRSession {
   requestAnimationFrame: (callback: FrameRequestCallback) => number;
@@ -83,7 +76,7 @@ export class WebXRSession implements IXRSession {
   }
 
   constructor(
-    private _rhi: WebXRGraphicDevice,
+    private _rhi: WebGLGraphicDevice,
     session: XRSession,
     layer: XRWebGLLayer,
     referenceSpace: XRReferenceSpace

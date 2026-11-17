@@ -35,7 +35,9 @@
   },
   "devDependencies": {
     "@galacean/engine-design": "workspace:*",
-    "@galacean/engine-math": "workspace:*"
+    "@galacean/engine": "workspace:*"
   },
-  "peerDependencies": {}
+  "peerDependencies": {
+    "@galacean/engine": "workspace:*"
+  }
 }

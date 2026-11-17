@@ -1,17 +1,9 @@
+import { WebGLGraphicDevice } from "@galacean/engine";
 import { IXRDevice } from "@galacean/engine-design";
 import { XRFeatureType, XRSessionMode } from "@galacean/engine-xr";
 import { parseXRMode } from "./Util";
-import { WebXRGraphicDevice, WebXRSession } from "./WebXRSession";
+import { WebXRSession } from "./WebXRSession";
 import { WebXRFeature } from "./feature/WebXRFeature";
-
-function isWebXRGraphicDevice(rhi: unknown): rhi is WebXRGraphicDevice {
-  try {
-    const gl = (rhi as WebXRGraphicDevice | null)?.gl;
-    return typeof gl === "object" && gl !== null;
-  } catch {
-    return false;
-  }
-}
 
 export class WebXRDevice implements IXRDevice {
   /** @internal */
@@ -54,7 +46,7 @@ export class WebXRDevice implements IXRDevice {
   }
 
   requestSession(rhi: unknown, mode: XRSessionMode, platformFeatures: WebXRFeature[]): Promise<WebXRSession> {
-    if (!isWebXRGraphicDevice(rhi)) {
+    if (!(rhi instanceof WebGLGraphicDevice)) {
       return Promise.reject(new Error("WebXR requires a WebGL graphics device."));
     }
     return new Promise((resolve, reject) => {
