@@ -1,0 +1,52 @@
+packages/world-planning/src/integrations/terrain/rock-formation/Ground.ts
+  s_ad31577d195071::t_9317a6cb8f24d3 55,58-59,61-63
+packages/terrain/src/rock-formation/types.ts
+  s_ad31577d195071::t_9317a6cb8f24d3 7-8,25
+packages/world-planning/src/integrations/terrain/rock-formation/GenerationProfile.ts
+  s_ad31577d195071::t_9317a6cb8f24d3 5,13,16,69,72
+packages/world-planning/src/integrations/terrain/rock-formation/Panel.ts
+  s_ad31577d195071::t_9317a6cb8f24d3 7-11,18-36,50-53,66,104-108,111-113,115-116,128-133,319-320,324-325,327-333,366,389-391,394,520
+world/demos/seed-world/systems/runtime-declarations.json
+  s_ad31577d195071::t_659711770bf227 7
+world/tests/seed-world/SeedWorldRockGroundContact.spec.ts
+  s_ad31577d195071::t_9317a6cb8f24d3 1-411
+packages/terrain/src/rock-formation/AscentMask.ts
+  s_ad31577d195071::t_9317a6cb8f24d3 6,10
+world/tests/seed-world/SeedWorldRockSlope.spec.ts
+  s_ad31577d195071::t_9317a6cb8f24d3 1-170
+packages/world-planning/src/integrations/terrain/rock-formation/Settings.ts
+  s_ad31577d195071::t_9317a6cb8f24d3 7-11,170,172,176
+packages/world-planning/src/integrations/terrain/rock-formation/Authoring.ts
+  s_ad31577d195071::t_9317a6cb8f24d3 6,85
+world/tests/seed-world/SeedWorldRockGenerationProfile.spec.ts
+  s_ad31577d195071::t_9317a6cb8f24d3 1-577
+world/tests/seed-world/SeedWorldRockFormationView.spec.ts
+  s_ad31577d195071::t_9317a6cb8f24d3 417-418
+world/tests/seed-world/SeedWorldRockPickRouting.spec.ts
+  s_ad31577d195071::t_9317a6cb8f24d3 1-224
+world/tests/seed-world/SeedWorldCompanionRockProfile.spec.ts
+  s_ad31577d195071::t_9317a6cb8f24d3 1-168
+world/migration/seedworld-rock-committed-port-2026-11-07.md
+  s_ad31577d195071::t_9317a6cb8f24d3 1-89
+world/tests/seed-world/SeedWorldRockSlopePanel.spec.ts
+  s_ad31577d195071::t_9317a6cb8f24d3 215-269,280
+packages/terrain/src/rock-formation/README.md
+  s_ad31577d195071::t_9317a6cb8f24d3 6-7,9,26,28,33-34,71-76,173-177
+  s_ad31577d195071::t_2ae9579c719645 178
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "5e8f8b36c374c5f9f4b7a7b206f41fe51aa6f975",
+  "prompts": {},
+  "sessions": {
+    "s_ad31577d195071": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1bb0b-6dfd-7122-816b-54fbba5355f3",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "星翊 <sunmingming.smm@antgroup.com>"
+    }
+  }
+}

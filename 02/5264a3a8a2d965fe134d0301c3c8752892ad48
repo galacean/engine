@@ -1,0 +1,45 @@
+.agents/skills/seed-world-lod/SKILL.md
+  s_ae6fab0fbe1884::t_2457b25b2c9936 1-10
+.agents/skills/seed-world-lod/agents/openai.yaml
+  s_ae6fab0fbe1884::t_51cd54e35514e7 1-4
+world/scripts/acceptance/seed-world-lod/references/asset-lod.md
+  s_ae6fab0fbe1884::t_681288716c3ec2 1-31
+world/scripts/acceptance/seed-world-lod/references/spawn-review.md
+  s_ae6fab0fbe1884::t_02c4cb4396b23a 1-20
+world/scripts/acceptance/seed-world-lod/scripts/asset-view.html
+  s_ae6fab0fbe1884::t_c9d14faffbeb19 1-6
+world/scripts/acceptance/seed-world-lod/scripts/asset-view.ts
+  s_c5192f23876072::t_ecea02ab7bebdc 1-82
+world/scripts/acceptance/seed-world-lod/scripts/build-lod.py
+  s_ae6fab0fbe1884::t_71e05c97cb884c 1-179
+world/scripts/acceptance/seed-world-lod/scripts/capture.cjs
+  s_ae6fab0fbe1884::t_62142b275bf27f 1-210
+world/scripts/acceptance/seed-world-lod/scripts/report.py
+  s_ae6fab0fbe1884::t_2984df5333aadf 1-196
+world/scripts/acceptance/seed-world-lod/scripts/seed-probe.js
+  s_c5192f23876072::t_f0786e24192fdf 1-120
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "025264a3a8a2d965fe134d0301c3c8752892ad48",
+  "prompts": {},
+  "sessions": {
+    "s_ae6fab0fbe1884": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1cde9-e5eb-7580-948b-3731733934fb",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    },
+    "s_c5192f23876072": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1be41-d252-7f01-875c-a0a08f6c1c55",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

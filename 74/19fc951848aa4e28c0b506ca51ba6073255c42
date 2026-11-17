@@ -1,0 +1,138 @@
+packages/core/src/BasicResources.ts
+  s_85f1b041de96f1::t_894202904bc086 225-228
+packages/core/src/texture/TextureUtils.ts
+  s_85f1b041de96f1::t_894202904bc086 20
+tests/src/xr/TrackingLoss.test.ts
+  s_85f1b041de96f1::t_fd1d52433c8b2c 1,110
+packages/core/src/renderingHardwareInterface/IHardwareRenderer.ts
+  s_85f1b041de96f1::t_fd1d52433c8b2c 29
+  s_85f1b041de96f1::t_894202904bc086 2-18,23,25,27,30-69,71-73,76-98
+  s_85f1b041de96f1::t_5bbc26b1bf6ca4 1,19-22,24,26,28,70,74-75
+packages/core/src/shader/state/RasterState.ts
+  s_85f1b041de96f1::t_894202904bc086 2
+packages/galacean/src/initialize.ts
+  s_85f1b041de96f1::t_894202904bc086 1-6,8-15
+  s_85f1b041de96f1::t_db3bb42d5dced4 7
+packages/galacean/src/index.ts
+  s_85f1b041de96f1::t_894202904bc086 1-2,14
+packages/rhi-null/src/index.ts
+  s_85f1b041de96f1::t_894202904bc086 1-4
+tests/package-consumer/HeadlessEngine.test.ts
+  s_85f1b041de96f1::t_22796f36dbe76b 283
+  s_85f1b041de96f1::t_75f53e43c62b48 39-122,314
+  s_85f1b041de96f1::t_ad2fe72f00dd17 132-133
+  s_85f1b041de96f1::t_cd455cb2699a87 1-38,123-131,134-282,284-313,315-439
+packages/core/src/Engine.ts
+  s_85f1b041de96f1::t_fd1d52433c8b2c 33
+  s_85f1b041de96f1::t_75f53e43c62b48 208,221
+  s_85f1b041de96f1::t_894202904bc086 130,142-143,145,152,302-303,305,316-317,319,322
+  s_85f1b041de96f1::t_1df256813b5653 1,144,304,318,578-579
+packages/rhi-null/src/NullTexture.ts
+  s_85f1b041de96f1::t_894202904bc086 1-40
+packages/core/src/shader/ShaderUniform.ts
+  s_85f1b041de96f1::t_894202904bc086 1
+packages/rhi-webgl/src/WebCanvas.ts
+  s_85f1b041de96f1::t_894202904bc086 21-25
+packages/core/src/Canvas.ts
+  s_85f1b041de96f1::t_894202904bc086 15-18
+  s_85f1b041de96f1::t_aa1ca03a42ece4 19
+packages/core/src/shader/state/DepthState.ts
+  s_85f1b041de96f1::t_894202904bc086 2
+packages/design/src/xr/IXRDevice.ts
+  s_85f1b041de96f1::t_fd1d52433c8b2c 1,30,34
+packages/core/src/renderingHardwareInterface/index.ts
+  s_85f1b041de96f1::t_894202904bc086 1
+packages/core/src/mesh/SkinnedMeshRenderer.ts
+  s_85f1b041de96f1::t_894202904bc086 101
+packages/rhi-null/package.json
+  s_85f1b041de96f1::t_894202904bc086 1-26
+packages/xr-webxr/src/WebXRDevice.ts
+  s_85f1b041de96f1::t_fd1d52433c8b2c 1,47-51
+packages/rhi-null/src/NullGraphicDevice.ts
+  s_85f1b041de96f1::t_75f53e43c62b48 46
+  s_85f1b041de96f1::t_894202904bc086 1-23,25-40,43-45,48-58,62-81,84-102
+  s_85f1b041de96f1::t_8128dfda018eac 24,41-42,47,59-61,82-83
+rollup.config.js
+  s_85f1b041de96f1::t_894202904bc086 134-142,317-318
+packages/rhi-null/src/HeadlessEngine.ts
+  s_85f1b041de96f1::t_894202904bc086 1-19,25-34
+  s_85f1b041de96f1::t_dd61d3d0e57269 20-24
+packages/core/src/input/InputManager.ts
+  s_85f1b041de96f1::t_894202904bc086 156-157
+packages/core/src/shader/state/BlendState.ts
+  s_85f1b041de96f1::t_894202904bc086 2
+  s_85f1b041de96f1::t_59e28924c5b8c2 67,72
+packages/core/src/SystemInfo.ts
+  s_85f1b041de96f1::t_894202904bc086 46
+  s_85f1b041de96f1::t_a8b4632911ea5f 130
+packages/rhi-null/src/NullBuffer.ts
+  s_85f1b041de96f1::t_894202904bc086 2-18,21,23-54
+  s_85f1b041de96f1::t_a708a70b8cbdb1 1,19-20,22
+packages/core/src/shadow/CascadedShadowCasterPass.ts
+  s_85f1b041de96f1::t_894202904bc086 146
+packages/galacean/src/headless.ts
+  s_85f1b041de96f1::t_894202904bc086 1-8
+packages/rhi-null/tsconfig.json
+  s_85f1b041de96f1::t_894202904bc086 1-18
+packages/rhi-webgl/src/GLCapability.ts
+  s_85f1b041de96f1::t_894202904bc086 18,22-27
+  s_85f1b041de96f1::t_61082c90879fb4 28-29
+packages/rhi-null/src/HeadlessCanvas.ts
+  s_85f1b041de96f1::t_894202904bc086 1-22
+packages/design/src/xr/index.ts
+  s_85f1b041de96f1::t_fd1d52433c8b2c 24-25
+packages/rhi-webgl/src/WebGLGraphicDevice.ts
+  s_85f1b041de96f1::t_894202904bc086 9,12,29,94,108,110-111
+  s_85f1b041de96f1::t_50e879c5b89d04 114-115,568-569
+packages/core/src/texture/Texture2DArray.ts
+  s_85f1b041de96f1::t_894202904bc086 41
+packages/design/src/xr/IXRGraphicsBinding.ts
+  s_85f1b041de96f1::t_fd1d52433c8b2c 2,4-6,8-13
+packages/core/src/shader/state/StencilState.ts
+  s_85f1b041de96f1::t_894202904bc086 2
+packages/galacean/package.json
+  s_85f1b041de96f1::t_894202904bc086 48-61
+  s_85f1b041de96f1::t_c1963779e05b9e 62-70
+packages/xr/src/session/XRSessionManager.ts
+  s_85f1b041de96f1::t_fd1d52433c8b2c 2,20
+packages/core/src/shader/ShaderProgram.ts
+  s_85f1b041de96f1::t_894202904bc086 1
+docs/en/core/engine.mdx
+  s_85f1b041de96f1::t_6ed112a062af28 76-95
+docs/zh/core/engine.mdx
+  s_85f1b041de96f1::t_fbc5690da143ad 79-98
+packages/core/src/2d/text/TextUtils.ts
+  s_85f1b041de96f1::t_dccac50f7cc5b1 44-46
+packages/core/src/Camera.ts
+  s_85f1b041de96f1::t_dc47a080dd1113 631
+packages/core/src/asset/request.ts
+  s_85f1b041de96f1::t_82fedccd364abb 39-40,46,50-54,59-60,62,132-178,185,214-215,227,229-233
+packages/core/src/texture/Texture.ts
+  s_85f1b041de96f1::t_c91103aa0cae6f 168,230
+packages/galacean/README.md
+  s_85f1b041de96f1::t_97ae9e63437221 71-74
+packages/galacean/skills/engine-knowledge/references/lifecycle-and-frame-order.md
+  s_85f1b041de96f1::t_718ba6ad015c61 33-36
+packages/rhi-null/README.md
+  s_85f1b041de96f1::t_ca9ed9f60dfd6c 1-24
+pnpm-lock.yaml
+  s_85f1b041de96f1::t_8dd57df5ce4b76 240-242,273-278
+tests/src/rhi-webgl/HeadlessEngine.test.ts
+  s_85f1b041de96f1::t_24c8887c1962cf 1-90
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "7419fc951848aa4e28c0b506ca51ba6073255c42",
+  "prompts": {},
+  "sessions": {
+    "s_85f1b041de96f1": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1bc6f-9eef-74e1-865e-df5606e75c6c",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}

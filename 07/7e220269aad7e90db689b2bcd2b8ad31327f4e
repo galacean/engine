@@ -1,0 +1,40 @@
+packages/core/src/physics/shape/ColliderShape.ts
+  s_89f62b485e437b::t_9baa70a963aa2e 28,84,91-92,96-98,144,186,198-199
+packages/loader/src/prefab/PrefabResource.ts
+  s_89f62b485e437b::t_3200aad1e6bef5 34-36,45
+packages/core/src/physics/PhysicsMaterial.ts
+  s_89f62b485e437b::t_dc7c51530c2ff5 2,10,19-25,48-51,59,66-69,77,84-87,102-108,123-129,137
+  s_89f62b485e437b::t_4485a38a45e127 8,26-37,136
+  s_89f62b485e437b::t_1316005f025eaa 138-146
+tests/src/core/physics/PhysicsMaterialOwnership.test.ts
+  s_89f62b485e437b::t_8dfce4a8c1bab8 26
+  s_89f62b485e437b::t_3742376424a4c8 1-25,27-197
+packages/loader/src/PhysicsMaterialLoader.ts
+  s_89f62b485e437b::t_c66870806bd6b6 11-20,25,30-45
+packages/loader/README.md
+  s_89f62b485e437b::t_d957ba4b63689a 4-9
+tests/src/loader/PhysicsMaterialLoader.test.ts
+  s_89f62b485e437b::t_ee53f556df2b30 1-95,100-101,103-132
+  s_89f62b485e437b::t_83ea9ff2591d90 96-99,102
+  s_89f62b485e437b::t_b7e7ea7c2c6592 133-137
+packages/core/src/asset/ReferResource.ts
+  s_89f62b485e437b::t_fcb975637ada21 8,24-26,79-81,96-98,113
+packages/core/README.md
+  s_89f62b485e437b::t_cf23eeb945219b 1-12
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "077e220269aad7e90db689b2bcd2b8ad31327f4e",
+  "prompts": {},
+  "sessions": {
+    "s_89f62b485e437b": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "01a1e26a-2627-7685-ab49-571422f416d8",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

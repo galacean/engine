@@ -1,0 +1,19 @@
+world/tests/seed-world/PlanningWaterOwnership.spec.ts
+  s_ae6fab0fbe1884::t_dbdb020b2e00ee 142-145
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "f83aa6f0a2d14415bc2f1e4f1b36814f9c86e410",
+  "prompts": {},
+  "sessions": {
+    "s_ae6fab0fbe1884": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1cde9-e5eb-7580-948b-3731733934fb",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

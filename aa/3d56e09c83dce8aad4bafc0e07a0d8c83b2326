@@ -1,0 +1,28 @@
+packages/core/src/Camera.ts
+  h_bd4dd7d663e619 146,426,433
+packages/core/src/RenderPipeline/BasicRenderPipeline.ts
+  h_bd4dd7d663e619 116-119
+packages/core/src/texture/RenderTarget.ts
+  h_bd4dd7d663e619 79
+packages/core/src/texture/Texture.ts
+  h_bd4dd7d663e619 134
+packages/rhi-webgl/src/GLRenderTarget.ts
+  h_bd4dd7d663e619 29-30,39,87,246,294-295
+packages/rhi-webgl/src/GLTexture.ts
+  h_bd4dd7d663e619 514
+tests/package-consumer/HeadlessEngine.test.ts
+  h_bd4dd7d663e619 173
+tests/src/core/texture/RenderTarget.test.ts
+  h_bd4dd7d663e619 113-115
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "aa3d56e09c83dce8aad4bafc0e07a0d8c83b2326",
+  "prompts": {},
+  "humans": {
+    "h_bd4dd7d663e619": {
+      "author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}

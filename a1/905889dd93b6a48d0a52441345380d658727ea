@@ -1,0 +1,26 @@
+world/scripts/tests/generate-water-assets.test.mjs
+  s_ad31577d195071::t_bf19cac741c877 11,33-68
+  s_ad31577d195071::t_533af67185ebeb 69
+world/scripts/water-shader-cleanup.mjs
+  s_ad31577d195071::t_99202a3bc534d9 3-8,17-18,21-22,49-67,72-93
+  s_ad31577d195071::t_503082b1bc639b 35-44
+  s_ad31577d195071::t_ac8c54d11e5a4d 1-2,9-16,19-20,23-34,45-48,68-71,94-96
+world/scripts/generate-water-assets.mjs
+  s_ad31577d195071::t_ac8c54d11e5a4d 7,20-23,130,132
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "a1905889dd93b6a48d0a52441345380d658727ea",
+  "prompts": {},
+  "sessions": {
+    "s_ad31577d195071": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1bb0b-6dfd-7122-816b-54fbba5355f3",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "星翊 <sunmingming.smm@antgroup.com>"
+    }
+  }
+}

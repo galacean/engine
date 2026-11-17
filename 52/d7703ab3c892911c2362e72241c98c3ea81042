@@ -1,0 +1,32 @@
+packages/core/src/physics/CharacterController.ts
+  s_87cc7a3b1b4ffa::t_d2ffba8ad9bf62 282-290
+  s_87cc7a3b1b4ffa::t_558878f4892b76 291-292
+packages/core/src/physics/Collider.ts
+  s_87cc7a3b1b4ffa::t_56b03c61708bb9 149
+  s_87cc7a3b1b4ffa::t_607002c0fb1a68 420-429
+  s_87cc7a3b1b4ffa::t_acdd9a7db53764 156
+  s_87cc7a3b1b4ffa::t_3043b2c2333ce9 193-194
+  s_87cc7a3b1b4ffa::t_a14fa5280c57ee 430-431
+packages/core/src/physics/PhysicsMaterial.ts
+  s_87cc7a3b1b4ffa::t_ea9c72a6b99358 7
+packages/core/src/physics/MeshCollider.ts
+  s_87cc7a3b1b4ffa::t_c7bf486a84c858 149-150
+packages/core/src/physics/enums/MeshColliderShapeCookingFlag.ts
+  s_87cc7a3b1b4ffa::t_732f8bc245b9ee 2
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "52d7703ab3c892911c2362e72241c98c3ea81042",
+  "prompts": {},
+  "sessions": {
+    "s_87cc7a3b1b4ffa": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f72a317a-6fd5-4cfb-824b-a6a922a66a1d",
+        "model": "claude-fable-5-2"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

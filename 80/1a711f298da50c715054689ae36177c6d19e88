@@ -1,0 +1,61 @@
+packages/world-planning/src/spatial/WorldTemplateArtDirection.ts
+  s_9cc19efe6cb9e3::t_9696768ab28d4e 10-14,762-766,770,790-800
+packages/world-planning/src/semantic-study/IslandPlanModel.ts
+  s_9cc19efe6cb9e3::t_9696768ab28d4e 143
+packages/world-planning/src/semantic-study/WorldPlanningContract.ts
+  s_9cc19efe6cb9e3::t_9696768ab28d4e 133
+world/tests/seed-world/PlantProjectAssets.spec.ts
+  s_9cc19efe6cb9e3::t_133cb1b8b164d1 24-26,47-67
+packages/world-planning/src/spatial/PlanningComponents.ts
+  s_9cc19efe6cb9e3::t_b94b3bab6cc304 417,425,438-439
+  s_9cc19efe6cb9e3::t_9696768ab28d4e 422-424,426-430,437,440
+  s_9cc19efe6cb9e3::t_da0c8825f45071 441
+  s_9cc19efe6cb9e3::t_817226130cb7ad 442,463,892-894
+packages/world-planning/src/semantic-study/GlobalRoadNetwork.ts
+  s_9cc19efe6cb9e3::t_9696768ab28d4e 18-19,75-78
+packages/world-planning/src/spatial/WorldTemplateAuthoring.ts
+  s_9cc19efe6cb9e3::t_9696768ab28d4e 79,182,211-212,261
+packages/world-planning/src/spatial/layout/SpatialWorld.ts
+  s_9cc19efe6cb9e3::t_9696768ab28d4e 334,748-751,991
+packages/world-planning/src/planning-data/poi-layout.json
+  s_9cc19efe6cb9e3::t_9696768ab28d4e 32
+packages/world-planning/src/semantic-study/BaseMapDrawing.ts
+  s_9cc19efe6cb9e3::t_9696768ab28d4e 513-515
+world/tests/seed-world/WorldTemplates.spec.ts
+  s_9cc19efe6cb9e3::t_39fb97dd9e2b84 63-97
+  s_9cc19efe6cb9e3::t_b94b3bab6cc304 640-643
+packages/world-planning/src/spatial/runtime/PlanningWaterRuntime.ts
+  s_9cc19efe6cb9e3::t_9696768ab28d4e 799-806
+  s_9cc19efe6cb9e3::t_3ffe8fe53c67df 573-575,885
+world/demos/seed-world/src/planning/spatial/runtime/PlanningWaterInitialization.ts
+  s_9cc19efe6cb9e3::t_9696768ab28d4e 253
+world/demos/seed-world/src/planning/semantic-study/PlanningLayerTree.ts
+  s_9cc19efe6cb9e3::t_714814701a60c1 120
+packages/world-planning/src/semantic-study/WorldLandDomain.ts
+  s_9cc19efe6cb9e3::t_9696768ab28d4e 87-115
+packages/world-planning/src/spatial/runtime/PlanningWaterQueries.ts
+  s_9cc19efe6cb9e3::t_9696768ab28d4e 31
+  s_9cc19efe6cb9e3::t_78bec9d83fc5d2 32-36,56
+packages/world-planning/src/semantic-study/PlanningWaterView.ts
+  s_9cc19efe6cb9e3::t_b94b3bab6cc304 99,135-151
+packages/world-planning/src/semantic-study/PlanningRaster.worker.ts
+  s_9cc19efe6cb9e3::t_6a5fd13b748a4e 28-29
+packages/world-planning/src/spatial/layout/SpatialTerrain.ts
+  s_9cc19efe6cb9e3::t_9696768ab28d4e 18
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "801a711f298da50c715054689ae36177c6d19e88",
+  "prompts": {},
+  "sessions": {
+    "s_9cc19efe6cb9e3": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1a5d0-adc0-7cf2-99f0-6032732bfb59",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

@@ -1,0 +1,25 @@
+packages/world-planning/src/spatial/PlanningSession.ts
+  s_118fe0ba8b7262::t_d795b481f975c7 950-952,954-982,984-995
+packages/world-planning/src/spatial/layout/SpatialEditInputs.ts
+  s_118fe0ba8b7262::t_a5ff39d870bf18 15-16,53
+world/tests/seed-world/PlanningMetadataEdits.spec.ts
+  s_118fe0ba8b7262::t_388c36f4931604 1-67
+world/tests/seed-world/PlanningWaterOwnership.spec.ts
+  s_118fe0ba8b7262::t_a86ee96490a6bb 26,383-419
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "dec433626081cfe103985f044b69e5d2bfffecaf",
+  "prompts": {},
+  "sessions": {
+    "s_118fe0ba8b7262": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1e8ac-b98d-7923-b6aa-6dc126e18469",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "星翊 <sunmingming.smm@antgroup.com>"
+    }
+  }
+}

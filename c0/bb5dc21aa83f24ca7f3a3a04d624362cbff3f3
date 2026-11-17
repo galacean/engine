@@ -1,0 +1,18 @@
+packages/loader/src/gltf/extensions/KHR_materials_anisotropy.ts
+  h_a3c79ce84ffdc2 2,15
+packages/shader/src/ShaderLibrary/PBR/FragmentPBR.glsl
+  h_a3c79ce84ffdc2 260-262
+tests/src/core/material/PBRAnisotropy.test.ts
+  h_a3c79ce84ffdc2 1-146
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "c0bb5dc21aa83f24ca7f3a3a04d624362cbff3f3",
+  "prompts": {},
+  "humans": {
+    "h_a3c79ce84ffdc2": {
+      "author": "星翊 <sunmingming.smm@antgroup.com>"
+    }
+  }
+}

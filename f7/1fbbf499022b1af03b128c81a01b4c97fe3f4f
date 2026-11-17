@@ -1,0 +1,18 @@
+world/demos/seed-world/SeedWorldDemo.ts
+  h_ddbf152d31b140 73,2332
+world/demos/seed-world/src/SeedWorldSnapshotWarmup.ts
+  h_ddbf152d31b140 1-23
+world/tests/seed-world/SeedWorldSnapshotWarmup.spec.ts
+  h_ddbf152d31b140 1-129
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "f71fbbf499022b1af03b128c81a01b4c97fe3f4f",
+  "prompts": {},
+  "humans": {
+    "h_ddbf152d31b140": {
+      "author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}
