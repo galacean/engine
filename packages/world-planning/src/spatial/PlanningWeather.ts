@@ -147,6 +147,14 @@ export function applyPlanningWeather(
       ...(hasCustomMorphology ? { cloudType: 0.62, cloudDetail: 0.72 } : {}),
       ...(cloudDensityMultiplier === undefined ? {} : { cloudDensityMultiplier: Number(cloudDensityMultiplier) })
     });
+    if (hasCustomMorphology) {
+      environment.setWind?.({
+        forceMultiplier: 1.3,
+        directionOffsetDegrees: 12,
+        gustStrength: 0.34,
+        turbulence: 0.38
+      });
+    }
   } finally {
     if (hasCustomMorphology && !previous && prevDuration !== undefined) {
       environment.setTransitionDuration?.(prevDuration);

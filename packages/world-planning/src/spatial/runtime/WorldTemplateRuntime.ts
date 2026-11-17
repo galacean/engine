@@ -3,9 +3,14 @@ import {
   BlendMode,
   BoundingBox,
   BoxShape,
+  Buffer,
+  BufferBindFlag,
+  BufferMesh,
+  BufferUsage,
   Color,
   GradientAlphaKey,
   GradientColorKey,
+  type IndexBufferBinding,
   MeshShape,
   MeshRenderer,
   ModelMesh,
@@ -27,11 +32,18 @@ import {
   TextureFormat,
   TextureWrapMode,
   Vector3,
+  Vector4,
+  VertexElement,
+  VertexElementFormat,
   type Entity,
   type GLTFResource,
   type Material
 } from "@galacean/engine";
 import { usesProjectPlantResources } from "@galacean/engine-vegetation/asset-assembly/PlantSpeciesResources";
+import {
+  configureAssetAssemblyRendererInstance,
+  configureProceduralPlantWindMaterial
+} from "@galacean/engine-vegetation/asset-assembly/TreeAssemblyRuntime";
 import type { IslandPlan, PlanPoint } from "../../semantic-study/IslandPlanModel";
 import type { RockFormationMesh } from "@galacean/engine-terrain/rock-formation/types";
 import { compositionSubjectTerraceBox } from "../SpatialCompositionGeometry";
@@ -79,6 +91,7 @@ export class WorldTemplateRuntime {
   private petalMaterial?: ParticleMaterial;
   private groundPaintMaterial?: Material;
   private groundPaintMeshes: ModelMesh[] = [];
+  private readonly foliageWindDisposals: Array<() => void> = [];
   private disposeProceduralPlants?: () => void;
   private destroyed = false;
   private readonly anchor: { x: number; y: number; z: number };
@@ -102,7 +115,11 @@ export class WorldTemplateRuntime {
     const assets = new Map<string, GLTFResource>();
     const nodes = prepared?.nodes ?? [];
     const urls = new Set(nodes.flatMap(({ node }) => (node.assetUrl ? [node.assetUrl] : [])));
-    const needsLeafMaterial = nodes.some(({ node }) => node.assetLeafMaterials?.length);
+    const leafModelUrls = new Set(
+      nodes.filter(({ node }) => node.assetLeafMaterials?.length && node.assetUrl).map(({ node }) => node.assetUrl!)
+    );
+    const needsLeafMaterial =
+      leafModelUrls.size > 0 || Boolean(WORLD_TEMPLATE_ART[template.id].proceduralPlants?.length);
     const leafTemplateTask = needsLeafMaterial
       ? parent.engine.resourceManager.load<Material>({
           type: AssetType.Material,
@@ -136,7 +153,14 @@ export class WorldTemplateRuntime {
       atlasTask,
       petalTextureTask,
       ...[...urls].map(async (url) => {
-        assets.set(url, await parent.engine.resourceManager.load<GLTFResource>({ type: AssetType.GLTF, url }));
+        assets.set(
+          url,
+          await parent.engine.resourceManager.load<GLTFResource>({
+            type: AssetType.GLTF,
+            url,
+            ...(leafModelUrls.has(url) ? { params: { keepMeshData: true } } : {})
+          })
+        );
       })
     ]);
     signal?.throwIfAborted();
@@ -281,7 +305,8 @@ export class WorldTemplateRuntime {
           this.anchor,
           ground,
           proceduralPlants,
-          plan.parameters.seed
+          plan.parameters.seed,
+          leafTemplate
         );
       }
       const signs = WORLD_TEMPLATE_ART[template.id].streetSigns;
@@ -575,6 +600,190 @@ export class WorldTemplateRuntime {
     for (const slot of Object.keys(overrides))
       if (!found.has(slot)) throw new Error(`Missing template material slot: ${slot}`);
   }
+  private attachFoliageBoughWindMesh(sourceMesh: ModelMesh, crownBounds: BoundingBox): BufferMesh | undefined {
+    if (sourceMesh.blendShapeCount !== 0 || sourceMesh.subMeshes.length === 0) return undefined;
+    const posElem = sourceMesh.vertexElements.find(
+      (elem) => elem.semantic === "POSITION" && elem.format === VertexElementFormat.Vector3
+    );
+    if (!posElem) return undefined;
+    const posBinding = sourceMesh.vertexBufferBindings[posElem.bindingIndex];
+    const vertexCount = sourceMesh.vertexCount;
+    if (!posBinding || vertexCount <= 0) return undefined;
+
+    const cachedCpuData =
+      (posBinding.buffer as unknown as { _data?: ArrayBufferView; data?: ArrayBufferView })._data ??
+      (posBinding.buffer as unknown as { data?: ArrayBufferView }).data;
+    let rawBytes: Uint8Array;
+    if (cachedCpuData) {
+      rawBytes = new Uint8Array(cachedCpuData.buffer, cachedCpuData.byteOffset, cachedCpuData.byteLength);
+    } else {
+      rawBytes = new Uint8Array(posBinding.buffer.byteLength);
+      posBinding.buffer.getData(rawBytes);
+    }
+    const view = new DataView(rawBytes.buffer, rawBytes.byteOffset, rawBytes.byteLength);
+    const stride = posBinding.stride;
+    const positions = new Float32Array(vertexCount * 3);
+    for (let i = 0; i < vertexCount; i++) {
+      const byteOffset = posElem.offset + i * stride;
+      positions[i * 3] = view.getFloat32(byteOffset, true);
+      positions[i * 3 + 1] = view.getFloat32(byteOffset + 4, true);
+      positions[i * 3 + 2] = view.getFloat32(byteOffset + 8, true);
+    }
+
+    const crownMin = crownBounds.min;
+    const crownMax = crownBounds.max;
+    const spanX = Math.max(1e-4, crownMax.x - crownMin.x);
+    const spanY = Math.max(1e-4, crownMax.y - crownMin.y);
+    const spanZ = Math.max(1e-4, crownMax.z - crownMin.z);
+    const maxSpan = Math.max(spanX, spanY, spanZ);
+
+    // Group vertices into connected leaf/flower cards so no triangle ever shears across bough cells.
+    const parent = Int32Array.from({ length: vertexCount }, (_, idx) => idx);
+    const find = (x: number): number => {
+      while (parent[x] !== x) {
+        parent[x] = parent[parent[x]];
+        x = parent[x];
+      }
+      return x;
+    };
+    const union = (a: number, b: number): void => {
+      const ra = find(a);
+      const rb = find(b);
+      if (ra !== rb) parent[ra] = rb;
+    };
+    let indices: Uint8Array | Uint16Array | Uint32Array | null = null;
+    try {
+      indices = sourceMesh.getIndices();
+    } catch {
+      indices = null;
+    }
+    const weldScale = 1 / Math.max(1e-6, maxSpan * (indices ? 1e-4 : 0.015));
+    const welded = new Map<string, number>();
+    for (let i = 0; i < vertexCount; i++) {
+      const key = `${Math.round(positions[i * 3] * weldScale)},${Math.round(positions[i * 3 + 1] * weldScale)},${Math.round(positions[i * 3 + 2] * weldScale)}`;
+      const prev = welded.get(key);
+      if (prev !== undefined) union(i, prev);
+      else welded.set(key, i);
+    }
+    if (indices) {
+      for (let t = 0; t + 2 < indices.length; t += 3) {
+        union(indices[t], indices[t + 1]);
+        union(indices[t + 1], indices[t + 2]);
+      }
+    }
+
+    const cardSums = new Map<number, [number, number, number, number]>();
+    for (let i = 0; i < vertexCount; i++) {
+      const root = find(i);
+      let acc = cardSums.get(root);
+      if (!acc) {
+        acc = [0, 0, 0, 0];
+        cardSums.set(root, acc);
+      }
+      acc[0] += positions[i * 3];
+      acc[1] += positions[i * 3 + 1];
+      acc[2] += positions[i * 3 + 2];
+      acc[3] += 1;
+    }
+
+    // Coarse 4x3x4 crown bough grid so all blossoms on one bough sway coherently together.
+    const GX = 4;
+    const GY = 3;
+    const GZ = 4;
+    const cellX = spanX / GX;
+    const cellY = spanY / GY;
+    const cellZ = spanZ / GZ;
+    const trunkX = (crownMin.x + crownMax.x) * 0.5;
+    const trunkZ = (crownMin.z + crownMax.z) * 0.5;
+    const radialSpan = Math.max(spanX, spanZ) * 0.5;
+
+    const cardBoughData = new Map<
+      number,
+      readonly [px: number, py: number, pz: number, hx: number, hy: number, hz: number, w: number]
+    >();
+    for (const [root, [sx, sy, sz, count]] of cardSums) {
+      const cx = sx / count;
+      const cy = sy / count;
+      const cz = sz / count;
+      const gx = Math.min(GX - 1, Math.max(0, Math.floor((cx - crownMin.x) / cellX)));
+      const gy = Math.min(GY - 1, Math.max(0, Math.floor((cy - crownMin.y) / cellY)));
+      const gz = Math.min(GZ - 1, Math.max(0, Math.floor((cz - crownMin.z) / cellZ)));
+      const lx = crownMin.x + (gx + 0.5) * cellX;
+      const lz = crownMin.z + (gz + 0.5) * cellZ;
+      const rx = lx - trunkX;
+      const rz = lz - trunkZ;
+      const rLen = Math.hypot(rx, rz);
+      const stepBack = rLen > 1e-5 ? Math.min(rLen, Math.hypot(cellX, cellZ) * 0.45) : 0;
+      const pivotX = rLen > 1e-5 ? lx - (rx / rLen) * stepBack : lx;
+      const pivotY = crownMin.y + (gy + 0.2) * cellY;
+      const pivotZ = rLen > 1e-5 ? lz - (rz / rLen) * stepBack : lz;
+      const hx = rLen > 1e-5 ? -rz / rLen : 1;
+      const hz = rLen > 1e-5 ? rx / rLen : 0;
+      const w = Math.min(1, rLen / Math.max(1e-4, radialSpan)) * 0.35;
+      cardBoughData.set(root, [pivotX, pivotY, pivotZ, hx, 0, hz, w]);
+    }
+
+    const FLOATS_PER_VERTEX = 15;
+    const windValues = new Float32Array(vertexCount * FLOATS_PER_VERTEX);
+    for (let i = 0; i < vertexCount; i++) {
+      const [px, py, pz, hx, hy, hz, w] = cardBoughData.get(find(i))!;
+      const offset = i * FLOATS_PER_VERTEX;
+      windValues[offset] = px;
+      windValues[offset + 1] = py;
+      windValues[offset + 2] = pz;
+      windValues[offset + 3] = px;
+      windValues[offset + 4] = py;
+      windValues[offset + 5] = pz;
+      windValues[offset + 6] = 1;
+      windValues[offset + 11] = hx;
+      windValues[offset + 12] = hy;
+      windValues[offset + 13] = hz;
+      windValues[offset + 14] = w;
+    }
+
+    const engine = sourceMesh.engine;
+    const windBuffer = new Buffer(engine, BufferBindFlag.VertexBuffer, windValues, BufferUsage.Static);
+    const windMesh = new BufferMesh(engine, `${sourceMesh.name} · foliage wind`);
+    try {
+      sourceMesh.vertexBufferBindings.forEach((binding, index) => {
+        if (binding) windMesh.setVertexBufferBinding(binding, index);
+      });
+      const windBindingIndex = sourceMesh.vertexBufferBindings.length;
+      windMesh.setVertexBufferBinding(windBuffer, FLOATS_PER_VERTEX * 4, windBindingIndex);
+      windMesh.setVertexElements([
+        ...sourceMesh.vertexElements,
+        new VertexElement("LEAF_PIVOT", 0, VertexElementFormat.Vector3, windBindingIndex),
+        new VertexElement("TREE_VARIATION_ROOT", 12, VertexElementFormat.Vector4, windBindingIndex),
+        new VertexElement("TREE_VARIATION_DATA", 28, VertexElementFormat.Vector4, windBindingIndex),
+        new VertexElement("PLANT_WIND", 44, VertexElementFormat.Vector4, windBindingIndex)
+      ]);
+      const sourceIndexBinding = (sourceMesh as unknown as { _primitive: { indexBufferBinding?: IndexBufferBinding } })
+        ._primitive.indexBufferBinding;
+      if (sourceIndexBinding) windMesh.setIndexBufferBinding(sourceIndexBinding);
+      for (const sub of sourceMesh.subMeshes) windMesh.addSubMesh(sub.start, sub.count, sub.topology);
+      const pad = maxSpan * 0.12;
+      windMesh.bounds.min.set(
+        sourceMesh.bounds.min.x - pad,
+        sourceMesh.bounds.min.y - pad,
+        sourceMesh.bounds.min.z - pad
+      );
+      windMesh.bounds.max.set(
+        sourceMesh.bounds.max.x + pad,
+        sourceMesh.bounds.max.y + pad,
+        sourceMesh.bounds.max.z + pad
+      );
+      this.foliageWindDisposals.push(() => {
+        windMesh.destroy();
+        windBuffer.destroy(true);
+      });
+      return windMesh;
+    } catch (error) {
+      windMesh.destroy();
+      windBuffer.destroy(true);
+      throw error;
+    }
+  }
+
   private bindLeafMaterials(model: Entity, slots: readonly string[], template: Material, node: TemplateNode): void {
     if (template.shader.name !== "Terrain/Vegetation") throw new Error("Template foliage requires Terrain/Vegetation");
     const intensity = node.assetLeafIntensity ?? 1;
@@ -589,7 +798,33 @@ export class WorldTemplateRuntime {
       throw new Error("Invalid template foliage pigment");
     const requested = new Set(slots);
     const found = new Set<string>();
-    for (const renderer of model.getComponentsIncludeChildren(MeshRenderer, [])) {
+    const foliageRenderers = model
+      .getComponentsIncludeChildren(MeshRenderer, [])
+      .filter((renderer) => renderer.getMaterials().some((mat) => mat && requested.has(mat.name)));
+    const crownBounds = new BoundingBox(
+      new Vector3(Infinity, Infinity, Infinity),
+      new Vector3(-Infinity, -Infinity, -Infinity)
+    );
+    for (const renderer of foliageRenderers) {
+      if (renderer.mesh) BoundingBox.merge(crownBounds, renderer.mesh.bounds, crownBounds);
+    }
+    const wrappedMeshes = new Map<ModelMesh, BufferMesh | undefined>();
+    const crownHeight = Number.isFinite(crownBounds.max.y) ? Math.max(0.1, crownBounds.max.y) : 1;
+
+    for (const renderer of foliageRenderers) {
+      let hasBoughWind = false;
+      if (renderer.mesh instanceof ModelMesh && Number.isFinite(crownBounds.min.x)) {
+        let wrapped = wrappedMeshes.get(renderer.mesh);
+        if (!wrappedMeshes.has(renderer.mesh)) {
+          wrapped = this.attachFoliageBoughWindMesh(renderer.mesh, crownBounds);
+          wrappedMeshes.set(renderer.mesh, wrapped);
+        }
+        if (wrapped) {
+          renderer.mesh = wrapped;
+          configureAssetAssemblyRendererInstance(renderer);
+          hasBoughWind = true;
+        }
+      }
       renderer.getMaterials().forEach((source, index) => {
         if (!source || !requested.has(source.name)) return;
         if (!(source instanceof PBRMaterial)) throw new Error(`Template foliage slot requires PBR: ${source.name}`);
@@ -597,14 +832,22 @@ export class WorldTemplateRuntime {
         const color = node.assetLeafColor
           ? new Color(...templateLinearColor(node.assetLeafColor), source.baseColor.a)
           : source.baseColor;
-        const key = JSON.stringify([source.instanceId, color.r, color.g, color.b, color.a, intensity, textureBlend]);
+        const key = JSON.stringify([
+          source.instanceId,
+          color.r,
+          color.g,
+          color.b,
+          color.a,
+          intensity,
+          textureBlend,
+          hasBoughWind
+        ]);
         let material = this.leafMaterials.get(key);
         if (!material) {
           material = template.clone();
           this.leafMaterials.set(key, material);
           material.name = `${source.name} · shared foliage lighting`;
           const data = material.shaderData;
-          // The GLB carries static source geometry, without the generated tree's wind or canopy payload.
           for (const macro of data.getMacros()) {
             if (
               macro.name.startsWith("MATERIAL_WIND_") ||
@@ -619,6 +862,13 @@ export class WorldTemplateRuntime {
             )
               data.disableMacro(macro);
           }
+          if (hasBoughWind) {
+            configureProceduralPlantWindMaterial(material, true);
+            data.setFloat("material_ProceduralTreeHeight", crownHeight);
+            // Smooth bough-coherent sway (0.36 Hz ~ 2.8s period) matching the procedural flowers/grass.
+            data.setVector4("material_ProceduralTreeWindParams", new Vector4(0.01, 0.26, 0.048, 0.36));
+          }
+          data.setFloat("material_GrassDistanceFadeEnable", 0);
           const texture = source.baseTexture;
           data.setTexture("material_BaseTexture", texture);
           if (texture) data.enableMacro("MATERIAL_HAS_BASETEXTURE");
@@ -783,6 +1033,8 @@ export class WorldTemplateRuntime {
     this.sporeMaterial?.destroy();
     this.sporeTexture?.destroy();
     this.sporeEmissionMesh?.destroy();
+    for (const destroy of this.foliageWindDisposals) destroy();
+    this.foliageWindDisposals.length = 0;
     this.disposeProceduralPlants?.();
     this.petalMaterial?.destroy();
     this.groundPaintMaterial?.destroy();
