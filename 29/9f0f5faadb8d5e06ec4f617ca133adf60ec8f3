@@ -1,0 +1,80 @@
+packages/shader-parser/src/ParserUtils.ts
+  s_30889def3c02cc::t_3a3496dd90df3e 30-35,52-56,61-71,78-80,82-92,109-112
+  s_30889def3c02cc::t_e926e545968403 73,94
+  s_30889def3c02cc::t_3587b617b82bcc 1,8,13-29,36-51,57-60,72,74-77,81,93,95-108,113-119
+  s_30889def3c02cc::t_63afa2d700e93e 120
+packages/shader-compiler/src/GLESBackend.ts
+  s_30889def3c02cc::t_3b3c34238ff09b 44-47
+  s_3ee6eea2868467::t_17735df111ef4b 6-7,34-43,48-51
+tests/package-consumer/QualifierRules.test.ts
+  s_30889def3c02cc::t_266ebc29d4974a 1-70
+packages/shader-parser/src/parser/symbolTable/FnSymbol.ts
+  s_30889def3c02cc::t_3587b617b82bcc 20
+packages/shader-parser/src/parser/ParserSemanticValidation.ts
+  s_30889def3c02cc::t_ae8bd71df4b227 47-55,310-311,335,342,349-357,363-370
+  s_30889def3c02cc::t_3a3496dd90df3e 336-339,358-362
+  s_30889def3c02cc::t_44357a5675af34 9
+  s_30889def3c02cc::t_a910e6f1084f99 371-372
+tests/package-consumer/ArrayValueTypes.test.ts
+  s_30889def3c02cc::t_e926e545968403 21,40
+  s_30889def3c02cc::t_3a3496dd90df3e 54-56
+  s_30889def3c02cc::t_b116586ea02540 1-20,22-39,41-53,57-58
+tests/src/shader-compiler/GlobalStageIO.test.ts
+  s_30889def3c02cc::t_3b3c34238ff09b 1-10,18-23,27-31,38-39,45-47,56-58
+  s_30889def3c02cc::t_03887a85630880 11-17,24-26,32-37,40-44,48-55,59-60
+packages/shader-parser/src/parser/AST.ts
+  s_30889def3c02cc::t_44357a5675af34 488-492,505-506,509-516,518-522
+  s_30889def3c02cc::t_8ec596bab99115 1372
+packages/shader-compiler/src/codeGen/GLESVisitor.ts
+  s_30889def3c02cc::t_3b3c34238ff09b 126-131,133-137,923-930
+  s_30889def3c02cc::t_03887a85630880 87,196,217,312
+  s_30889def3c02cc::t_afa20f1e72fe59 154
+  s_30889def3c02cc::t_3ac77778dbddb7 629-631
+  s_30889def3c02cc::t_2e7d9aaa4de802 48,122,156-157,161,165,349-351
+tests/package-consumer/GlobalStageIO.test.ts
+  s_30889def3c02cc::t_3b3c34238ff09b 26-41,44-48,66-70,79-83
+  s_30889def3c02cc::t_eb670028415b0d 55-62
+  s_30889def3c02cc::t_03887a85630880 1-25,42-43,49-54,63-65,71-78,84-87
+packages/shader-parser/src/ir/ShaderCoreInfo.ts
+  s_30889def3c02cc::t_3b3c34238ff09b 249-254,258-260,277-283,295-298
+  s_30889def3c02cc::t_e3c1afb571604d 4-9,61-66,155,180-182,195-198,202-248,255-257,261-276,284-294,299-303
+  s_3ee6eea2868467::t_b1f33521706cfb 304
+packages/shader-parser/src/parser/TypeSystem.ts
+  s_30889def3c02cc::t_3587b617b82bcc 6-13,47-59,64-74
+  s_30889def3c02cc::t_3a3496dd90df3e 60-63
+  s_30889def3c02cc::t_5a0e759bb7fb3f 75
+packages/shader-parser/src/runtime.ts
+  s_30889def3c02cc::t_44357a5675af34 23
+packages/shader-parser/src/parser/QualifierValidation.ts
+  s_30889def3c02cc::t_44357a5675af34 1-42,46-110,115-121
+  s_30889def3c02cc::t_e2e8197b0c95a4 43-45,111-114
+packages/shader-analyzer/src/ShaderIOValidator.ts
+  s_30889def3c02cc::t_3b3c34238ff09b 78-93
+  s_3ee6eea2868467::t_f7542c9c64f97a 77,94
+tests/src/shader-compiler/ArrayValueTypes.test.ts
+  s_30889def3c02cc::t_fd10f08aea93c3 1-66
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "299f0f5faadb8d5e06ec4f617ca133adf60ec8f3",
+  "prompts": {},
+  "sessions": {
+    "s_30889def3c02cc": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1e8d3-cd57-70b0-8843-ecc65484b8c6",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@antgroup.com>"
+    },
+    "s_3ee6eea2868467": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1e9f3-3257-7082-9101-0df93aec4a93",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@antgroup.com>"
+    }
+  }
+}
