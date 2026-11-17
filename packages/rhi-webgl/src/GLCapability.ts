@@ -162,30 +162,23 @@ export class GLCapability<Key extends string = GLCapabilityType> {
     cap.set(colorBufferFloat, colorBufferSupport.float);
     cap.set(colorBufferHalfFloat, colorBufferSupport.halfFloat);
     cap.set(textureFilterAnisotropic, !!requireExtension(textureFilterAnisotropic));
-    const anisotropic = requireExtension(textureFilterAnisotropic);
-    if (anisotropic) {
-      const gl = this.rhi.gl as WebGL2RenderingContext & {
-        TEXTURE_MAX_ANISOTROPY_EXT: number;
-      };
-      gl.TEXTURE_MAX_ANISOTROPY_EXT = anisotropic.TEXTURE_MAX_ANISOTROPY_EXT;
-    }
-
-    const detectWithAlias = (name: GLCapabilityType, alias: GLCapabilityType) => {
+    for (const [name, alias] of [
+      [etc, etc_webkit],
+      [etc1, etc1_webkit],
+      [pvrtc, pvrtc_webkit],
+      [s3tc, s3tc_webkit],
+      [astc, astc_webkit]
+    ]) {
       const extension = requireExtension(name);
-      const legacyExtension = requireExtension(alias);
-      cap.set(alias, !!legacyExtension);
-      cap.set(name, !!(extension || legacyExtension));
-      return extension || legacyExtension;
-    };
-    detectWithAlias(etc, etc_webkit);
-    detectWithAlias(etc1, etc1_webkit);
-    detectWithAlias(pvrtc, pvrtc_webkit);
-    detectWithAlias(s3tc, s3tc_webkit);
+      const aliasExtension = requireExtension(alias);
+      cap.set(name, !!(extension || aliasExtension));
+      cap.set(alias, !!aliasExtension);
+    }
     cap.set(s3tc_srgb, !!requireExtension(s3tc_srgb));
     cap.set(bptc, !!requireExtension(bptc));
     cap.set(WEBGL_lose_context, !!requireExtension(WEBGL_lose_context));
 
-    const astcExtension = detectWithAlias(astc, astc_webkit);
+    const astcExtension = requireExtension(astc) || requireExtension(astc_webkit);
     cap.set(
       astc_hdr,
       typeof astcExtension?.getSupportedProfiles === "function" && astcExtension.getSupportedProfiles().includes("hdr")

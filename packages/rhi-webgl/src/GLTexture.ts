@@ -526,10 +526,14 @@ export class GLTexture implements IPlatformTexture {
    * Anisotropic level for texture.
    */
   set anisoLevel(value: number) {
-    const gl = this._gl as WebGLRenderingContext & WebGL2RenderingContext & EXT_texture_filter_anisotropic;
-
+    const extension = this._rhi.requireExtension(GLCapabilityType.textureFilterAnisotropic);
+    if (!extension) return;
     this._bind();
-    gl.texParameterf(this._target, gl.TEXTURE_MAX_ANISOTROPY_EXT, Math.min(value, this._rhi.capability.maxAnisoLevel));
+    this._gl.texParameterf(
+      this._target,
+      extension.TEXTURE_MAX_ANISOTROPY_EXT,
+      Math.min(value, this._rhi.capability.maxAnisoLevel)
+    );
   }
 
   set depthCompareFunction(value: TextureDepthCompareFunction) {

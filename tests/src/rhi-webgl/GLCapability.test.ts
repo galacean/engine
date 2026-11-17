@@ -121,3 +121,49 @@ it("reuses the format checked by the RHI for allocation and keeps color spaces s
     engine.destroy();
   }
 });
+
+describe.each([
+  [false, false],
+  [false, true],
+  [true, false],
+  [true, true]
+])("anisotropic fallback=%s disabled=%s", (fallback, disabled) => {
+  it("uses extension constants without adding properties to the context", async () => {
+    const canvas = fallback ? createWebGL1Canvas() : document.createElement("canvas");
+    const gl = (fallback ? canvas.getContext("webgl") : canvas.getContext("webgl2"))!;
+    const getExtension = gl.getExtension.bind(gl);
+    const extension = getExtension(GLCapabilityType.textureFilterAnisotropic);
+    if (!disabled) expect(extension).not.toBeNull();
+    const lookup = vi
+      .spyOn(gl, "getExtension")
+      .mockImplementation((name) =>
+        disabled && name === GLCapabilityType.textureFilterAnisotropic ? null : getExtension(name)
+      );
+    const originalConstant = Object.getOwnPropertyDescriptor(gl, "TEXTURE_MAX_ANISOTROPY_EXT");
+    let engine: WebGLEngine | undefined;
+    try {
+      engine = await WebGLEngine.create({ canvas });
+      const texture = new Texture2D(engine, 4, 4);
+      const parameter = vi.spyOn(gl, "texParameterf");
+      try {
+        texture.anisoLevel = 1024;
+        if (disabled) {
+          expect(parameter).not.toHaveBeenCalled();
+        } else {
+          expect(parameter).toHaveBeenCalledWith(
+            gl.TEXTURE_2D,
+            extension.TEXTURE_MAX_ANISOTROPY_EXT,
+            gl.getParameter(extension.MAX_TEXTURE_MAX_ANISOTROPY_EXT)
+          );
+        }
+        expect(Object.getOwnPropertyDescriptor(gl, "TEXTURE_MAX_ANISOTROPY_EXT")).toEqual(originalConstant);
+        expect(gl.getError()).toBe(gl.NO_ERROR);
+      } finally {
+        parameter.mockRestore();
+      }
+    } finally {
+      engine?.destroy();
+      lookup.mockRestore();
+    }
+  });
+});
