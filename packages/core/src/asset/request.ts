@@ -13,8 +13,11 @@ const mimeType = {
 };
 
 const defaultRetryCount = 1;
-const defaultTimeout = Infinity;
 const defaultInterval = 500;
+
+function hasTimeout(timeout: number | undefined): timeout is number {
+  return Number.isFinite(timeout) && timeout! > 0;
+}
 
 /**
  * Configuration options for `request`.
@@ -37,22 +40,52 @@ export type RequestConfig = {
  */
 export function request<T>(url: string, config: RequestConfig = {}): AssetPromise<T> {
   return new AssetPromise((resolve, reject, setTaskCompleteProgress, setTaskDetailProgress, onCancel) => {
-    let currentRequest: AssetPromise<T>;
+    const { signal } = config;
+    const getAbortReason = () => signal?.reason ?? new DOMException("This operation was aborted", "AbortError");
+    if (signal?.aborted) {
+      reject(getAbortReason());
+      return;
+    }
+
+    let currentRequest: AssetPromise<T> | undefined;
     const retryCount = config.retryCount ?? defaultRetryCount;
     const retryInterval = config.retryInterval ?? defaultInterval;
-    config.timeout = config.timeout ?? defaultTimeout;
-    config.type = config.type ?? getMimeTypeFromUrl(url);
+    const requestConfig: RequestConfig = {
+      ...config,
+      type: config.type ?? getMimeTypeFromUrl(url)
+    };
     const send = typeof XMLHttpRequest === "undefined" ? requestWithFetch : requestWithXHR;
     const executor = new MultiExecutor(
-      () => (currentRequest = send<T>(url, config).onProgress(setTaskCompleteProgress, setTaskDetailProgress)),
+      () => (currentRequest = send<T>(url, requestConfig).onProgress(setTaskCompleteProgress, setTaskDetailProgress)),
       retryCount,
       retryInterval
     );
-    onCancel(() => {
+
+    const cleanup = () => {
+      signal?.removeEventListener("abort", onSignalAbort);
+    };
+    const stop = () => {
+      cleanup();
       executor.cancel();
       currentRequest?.cancel();
-    });
-    executor.onError(reject).onComplete(resolve).start();
+    };
+    const onSignalAbort = () => {
+      stop();
+      reject(getAbortReason());
+    };
+
+    signal?.addEventListener("abort", onSignalAbort, { once: true });
+    onCancel(stop);
+    executor
+      .onError((e) => {
+        cleanup();
+        reject(e);
+      })
+      .onComplete((res) => {
+        cleanup();
+        resolve(res);
+      })
+      .start();
   });
 }
 
@@ -61,8 +94,8 @@ function requestWithXHR<T>(url: string, config: RequestConfig): AssetPromise<T> 
     const xhr = new XMLHttpRequest();
     onCancel(() => xhr.abort());
     const isImg = config.type === "image";
-    xhr.timeout = config.timeout!;
-    config.method = config.method ?? "get";
+    xhr.timeout = hasTimeout(config.timeout) ? config.timeout : 0;
+    const method = config.method ?? "get";
     xhr.withCredentials = config.credentials === "include";
     // @ts-ignore
     xhr.responseType = isImg ? "blob" : config.type;
@@ -117,7 +150,7 @@ function requestWithXHR<T>(url: string, config: RequestConfig): AssetPromise<T> 
         setTaskDetailProgress(url, e.loaded, e.total);
       }
     };
-    xhr.open(config.method, url, true);
+    xhr.open(method, url, true);
     const headers = config.headers;
     if (headers) {
       Object.keys(headers).forEach((name) => {
@@ -137,10 +170,13 @@ function requestWithFetch<T>(url: string, config: RequestConfig): AssetPromise<T
       return;
     }
     const controller = new AbortController();
-    const abort = () => controller.abort();
-    onCancel(abort);
-    const timer = Number.isFinite(timeout) ? setTimeout(abort, timeout) : undefined;
-    fetch(url, { ...init, signal: signal ? AbortSignal.any([controller.signal, signal]) : controller.signal })
+    const abort = () => controller.abort(signal?.aborted ? signal.reason : undefined);
+    const timer = hasTimeout(timeout) ? setTimeout(abort, timeout) : undefined;
+    onCancel(() => {
+      clearTimeout(timer);
+      abort();
+    });
+    fetch(url, { ...init, signal: controller.signal })
       .then(async (res) => {
         if (!res.ok) throw new Error(`Request failed from: ${url} (${res.status})`);
         const result =

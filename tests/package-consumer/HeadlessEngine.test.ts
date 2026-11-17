@@ -520,27 +520,102 @@ describe("@galacean/engine-rhi-null in Node without browser globals", () => {
     }
   });
 
-  it("retries transient errors and aborts timed-out transport", async () => {
-    const fetchSpy = vi
-      .spyOn(globalThis, "fetch")
-      .mockRejectedValueOnce(new Error("network"))
-      .mockResolvedValueOnce(new Response('{"ready":true}'));
-    await expect(
-      Promise.resolve(request("https://example.test/retry.json", { type: "json", retryCount: 2, retryInterval: 1 }))
-    ).resolves.toEqual({ ready: true });
-    expect(fetchSpy).toHaveBeenCalledTimes(2);
-    let signal: AbortSignal;
-    fetchSpy.mockImplementation(
-      (_url, options) =>
-        new Promise((_resolve, reject) => {
-          signal = options!.signal!;
-          signal.addEventListener("abort", () => reject(new DOMException("Aborted", "AbortError")));
-        })
-    );
-    await expect(
-      Promise.resolve(request("https://example.test/timeout.json", { type: "json", timeout: 5 }))
-    ).rejects.toThrow("Aborted");
-    expect(signal!.aborted).toBe(true);
+  it("handles unlimited and positive timeouts, retryable timeouts, and immediate cancellation in-flight or during backoff", async () => {
+    let slowCalls = 0;
+    let failCalls = 0;
+    const server = createServer((req, res) => {
+      if (req.url === "/slow-ok") {
+        setTimeout(() => {
+          res.writeHead(200, { "Content-Type": "text/plain" });
+          res.end("ok");
+        }, 50);
+      } else if (req.url === "/timeout-then-ok") {
+        const delay = ++slowCalls === 1 ? 60 : 5;
+        const timer = setTimeout(() => {
+          res.writeHead(200, { "Content-Type": "text/plain" });
+          res.end("recovered");
+        }, delay);
+        res.on("close", () => clearTimeout(timer));
+      } else if (req.url === "/hang") {
+        res.writeHead(200, { "Content-Type": "text/plain" });
+      } else {
+        failCalls++;
+        res.writeHead(503, { "Content-Type": "text/plain" });
+        res.end("unavailable");
+      }
+    });
+    await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+    const address = server.address();
+    if (!address || typeof address === "string") throw new Error("Expected a local HTTP port");
+    const base = `http://127.0.0.1:${address.port}`;
+
+    try {
+      // Unlimited timeout (`timeout: 0` and `timeout: Infinity`) does not abort delayed responses
+      const sharedController = new AbortController();
+      const removeSpy = vi.spyOn(sharedController.signal, "removeEventListener");
+      await expect(
+        Promise.resolve(request(`${base}/slow-ok`, { type: "text", timeout: 0, signal: sharedController.signal }))
+      ).resolves.toBe("ok");
+      await expect(
+        Promise.resolve(
+          request(`${base}/slow-ok`, { type: "text", timeout: Infinity, signal: sharedController.signal })
+        )
+      ).resolves.toBe("ok");
+      expect(removeSpy).toHaveBeenCalledTimes(2);
+
+      // Positive single-attempt timeout retries and recovers on subsequent attempt
+      await expect(
+        Promise.resolve(
+          request(`${base}/timeout-then-ok`, { type: "text", timeout: 25, retryCount: 2, retryInterval: 5 })
+        )
+      ).resolves.toBe("recovered");
+      expect(slowCalls).toBe(2);
+
+      // In-flight external AbortSignal cancellation terminates immediately without retrying
+      const inFlightController = new AbortController();
+      const inFlightStart = Date.now();
+      setTimeout(() => inFlightController.abort(new Error("in-flight-cancelled")), 20);
+      await expect(
+        Promise.resolve(
+          request(`${base}/hang`, {
+            type: "text",
+            timeout: 1000,
+            retryCount: 3,
+            retryInterval: 250,
+            signal: inFlightController.signal
+          })
+        )
+      ).rejects.toThrow("in-flight-cancelled");
+      expect(Date.now() - inFlightStart).toBeLessThan(180);
+
+      // Retry-backoff external AbortSignal cancellation terminates immediately without waiting retryInterval
+      failCalls = 0;
+      const backoffController = new AbortController();
+      const backoffStart = Date.now();
+      setTimeout(() => backoffController.abort(new Error("cancelled")), 40);
+      await expect(
+        Promise.resolve(
+          request(`${base}/fail`, {
+            type: "text",
+            retryCount: 3,
+            retryInterval: 250,
+            signal: backoffController.signal
+          })
+        )
+      ).rejects.toThrow("cancelled");
+      expect(Date.now() - backoffStart).toBeLessThan(180);
+      expect(failCalls).toBe(1);
+
+      // Already-aborted signal rejects without sending any request
+      failCalls = 0;
+      await expect(
+        Promise.resolve(request(`${base}/fail`, { type: "text", retryCount: 3, signal: backoffController.signal }))
+      ).rejects.toThrow("cancelled");
+      expect(failCalls).toBe(0);
+    } finally {
+      server.closeAllConnections();
+      await new Promise<void>((resolve) => server.close(() => resolve()));
+    }
   });
 });
 
