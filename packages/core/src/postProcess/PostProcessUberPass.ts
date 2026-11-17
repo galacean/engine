@@ -4,7 +4,7 @@ import { Engine } from "../Engine";
 import { Material } from "../material";
 import { Blitter } from "../RenderPipeline/Blitter";
 import { PipelineUtils } from "../RenderPipeline/PipelineUtils";
-import { RenderTarget, Texture2D, TextureFilterMode, TextureFormat, TextureWrapMode } from "../texture";
+import { RenderTarget, Texture2D, TextureFilterMode, TextureWrapMode } from "../texture";
 import { BloomDownScaleMode, BloomEffect, TonemappingEffect } from "./effects";
 import { PostProcessManager } from "./PostProcessManager";
 import { PostProcessPass, PostProcessPassEvent } from "./PostProcessPass";
@@ -137,7 +137,7 @@ export class PostProcessUberPass extends PostProcessPass {
 
     // Prefilter
     const internalColorTextureFormat = camera._getInternalColorTextureFormat();
-    const isSRGB = internalColorTextureFormat === TextureFormat.R8G8B8A8;
+    const isSRGB = !camera._isInternalFormatHDR();
     let mipWidth = tw,
       mipHeight = th;
     for (let i = 0; i < mipCount; i++) {

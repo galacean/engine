@@ -24,7 +24,7 @@ import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
 import { ShaderProperty } from "./shader/ShaderProperty";
 import { ShaderTagKey } from "./shader/ShaderTagKey";
 import { ShaderDataGroup } from "./shader/enums/ShaderDataGroup";
-import { TextureFormat } from "./texture";
+import { TextureFormat, TextureUtils } from "./texture";
 import { RenderTarget } from "./texture/RenderTarget";
 import { TextureCubeFace } from "./texture/enums/TextureCubeFace";
 
@@ -737,7 +737,7 @@ export class Camera extends Component {
     const renderTarget = this._renderTarget;
     const internalColorFormat = this._getInternalColorTextureFormat();
     // Need HDR and opaque texture
-    if (internalColorFormat !== TextureFormat.R8G8B8A8 || this.opaqueTextureEnabled) {
+    if (TextureUtils.isHDRFormat(internalColorFormat) || this.opaqueTextureEnabled) {
       if (renderTarget) {
         // If camera is HDR and format is same with renderTarget can reuse renderTarget if renderTarget is same HDR format
         // If camera is LDR and opaqueTextureEnabled is true, can reuse renderTarget if renderTarget is LDR format(Only R8G8B8A8)
@@ -769,6 +769,13 @@ export class Camera extends Component {
   /**
    * @internal
    */
+  _isInternalFormatHDR(): boolean {
+    return TextureUtils.isHDRFormat(this._getInternalColorTextureFormat());
+  }
+
+  /**
+   * @internal
+   */
   _needFinalPass(): boolean {
     // FXAA or sRGB conversion when camera render to screen
     return this.antiAliasing === AntiAliasing.FXAA || !this._renderTarget;
@@ -786,12 +793,7 @@ export class Camera extends Component {
    * @internal
    */
   _isTargetFormatHDR(): boolean {
-    const format = this._getTargetColorTextureFormat();
-    return (
-      format === TextureFormat.R16G16B16A16 ||
-      format === TextureFormat.R32G32B32A32 ||
-      format === TextureFormat.R11G11B10_UFloat
-    );
+    return TextureUtils.isHDRFormat(this._getTargetColorTextureFormat());
   }
 
   /**

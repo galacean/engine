@@ -130,9 +130,11 @@ describe("camera test", function () {
     try {
       spy.mockImplementation((format) => format === TextureFormat.R16G16B16A16);
       expect(camera._getInternalColorTextureFormat()).to.eq(TextureFormat.R16G16B16A16);
+      expect(camera._isInternalFormatHDR()).to.eq(true);
       spy.mockReturnValue(false);
       expect(camera.enableHDR).to.eq(true);
       expect(camera._getInternalColorTextureFormat()).to.eq(TextureFormat.R8G8B8A8);
+      expect(camera._isInternalFormatHDR()).to.eq(false);
     } finally {
       spy.mockRestore();
       camera.enableHDR = false;

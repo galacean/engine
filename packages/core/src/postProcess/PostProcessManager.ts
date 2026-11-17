@@ -261,17 +261,16 @@ export class PostProcessManager {
   private _initSwapRenderTarget(camera: Camera): void {
     if (this._remainActivePassCount > 1) {
       const viewport = camera.pixelViewport;
-      const internalColorFormat = camera._getInternalColorTextureFormat();
       const swapRenderTarget = PipelineUtils.recreateRenderTargetIfNeeded(
         this.scene.engine,
         this._swapRenderTarget,
         viewport.width,
         viewport.height,
-        internalColorFormat,
+        camera._getInternalColorTextureFormat(),
         TextureFormat.Depth24Stencil8,
         false,
         false,
-        internalColorFormat === TextureFormat.R8G8B8A8,
+        !camera._isInternalFormatHDR(),
         1,
         TextureWrapMode.Clamp,
         TextureFilterMode.Bilinear
