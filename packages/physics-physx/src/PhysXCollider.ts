@@ -11,7 +11,7 @@ export abstract class PhysXCollider implements ICollider {
   private static _tempTransform: {
     translation: Vector3;
     rotation: Quaternion;
-  } = { translation: null!, rotation: null! };
+  } = { translation: null!, rotation: new Quaternion() };
 
   /** @internal  */
   _scene: PhysXPhysicsScene | null = null;
@@ -57,8 +57,12 @@ export abstract class PhysXCollider implements ICollider {
     }
     this._shapes[this._shapes.indexOf(previousShape)] = newShape;
     this._pxActor.detachShape(previousShape._pxShape, true);
-    // Both shapes belong to the same Collider id, so its trigger pairs carry over to the new shape
-    this._scene?._replaceColliderShape(newShape._id);
+    // Both shapes carry the same Collider id, so removing and adding it back keeps its trigger pairs
+    const scene = this._scene;
+    if (scene) {
+      scene._removeColliderShape(previousShape._id);
+      scene._addColliderShape(newShape._id);
+    }
     return true;
   }
 
@@ -91,7 +95,8 @@ export abstract class PhysXCollider implements ICollider {
   _transform(pos: Vector3, rot: Quaternion): { translation: Vector3; rotation: Quaternion } {
     const transform = PhysXCollider._tempTransform;
     transform.translation = pos;
-    transform.rotation = rot.normalize();
+    // Normalize a copy: the caller's quaternion may be an Entity's world rotation
+    Quaternion.normalize(rot, transform.rotation);
     return transform;
   }
 }

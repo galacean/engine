@@ -627,7 +627,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     if (actor) {
       const colliders = this._attachedColliders;
       for (let i = 0, n = colliders.length; i < n; i++) {
-        colliders[i]._onBodyDestroyed(actor);
+        colliders[i]._onBodyDestroyed();
       }
       colliders.length = 0;
       actor.destroy();

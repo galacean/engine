@@ -54,6 +54,9 @@ export class PhysXCharacterController implements ICharacterController {
     } else if (pxController) {
       pxController.setRadius(radius);
       pxController.setHeight(height);
+    } else {
+      // The previous creation failed: retry with the new geometry
+      this._rebuild();
     }
   }
 
@@ -71,6 +74,9 @@ export class PhysXCharacterController implements ICharacterController {
       pxController.setHalfHeight(halfExtents.y);
       pxController.setHalfSideExtent(halfExtents.x);
       pxController.setHalfForwardExtent(halfExtents.z);
+    } else {
+      // The previous creation failed: retry with the new geometry
+      this._rebuild();
     }
   }
 
@@ -197,7 +203,8 @@ export class PhysXCharacterController implements ICharacterController {
   }
 
   private _rebuild(): void {
-    if (this._pxController) {
+    // Rebuild even after a failed creation, so corrected geometry takes effect
+    if (this._scene) {
       this.getWorldPosition(this._worldPosition);
       this._destroyPXController();
       this._createPXController();
@@ -233,6 +240,11 @@ export class PhysXCharacterController implements ICharacterController {
     const pxController = scene._getControllerManager().createController(desc);
     desc.delete();
 
+    if (!pxController) {
+      // PhysX rejects invalid descriptors (non-positive extents, or stepOffset above the geometry allows)
+      console.error("CharacterController: failed to create the controller, check its geometry and stepOffset.");
+      return;
+    }
     this._pxController = pxController;
     pxController.setUUID(this._id);
     pxController.setSceneQueryEnabled(this._isSceneQuery);

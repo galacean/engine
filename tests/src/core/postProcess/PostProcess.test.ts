@@ -12,6 +12,7 @@ import {
   PostProcessEffectFloatParameter,
   PostProcessPass,
   RenderTarget,
+  Rigidbody,
   Scene,
   SphereCollider,
   Texture2D,
@@ -36,7 +37,7 @@ describe("PostProcess", () => {
   let postEntity: Entity = null;
   let camera: Camera;
 
-  beforeAll(async function () {
+  beforeAll(async function() {
     engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
     scene = engine.sceneManager.scenes[0];
     const passes = engine.postProcessPasses;
@@ -440,6 +441,18 @@ describe("PostProcess", () => {
       secondCollider.enabled = false;
       engine.update();
       expect(bloomBlend.intensity.value).to.equal(intensity1);
+
+      // A Collider whose Rigidbody is disabled has no distance: it must not blend beyond full intensity
+      const body = postEntity.addComponent(Rigidbody);
+      body.isKinematic = true;
+      body.enabled = false;
+      engine.update();
+      expect(bloomBlend.intensity.value).to.equal(intensity1);
+      body.enabled = true;
+      cameraEntity.transform.position.set(radius / 2, 0, 0);
+      engine.update();
+      expect(bloomBlend.intensity.value).to.equal(intensity2);
+      body.destroy();
 
       engine.destroy();
     }

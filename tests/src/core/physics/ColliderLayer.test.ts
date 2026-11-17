@@ -9,11 +9,20 @@ import {
   Layer,
   MeshCollider,
   PhysicsScene,
-  PrimitiveMesh
+  PrimitiveMesh,
+  Rigidbody,
+  Script,
+  SphereCollider
 } from "@galacean/engine-core";
 import { Ray, Vector3 } from "@galacean/engine-math";
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { createPhysics } from "../../utils/physics";
+
+class TriggerRecorder extends Script {
+  onTriggerEnter = vi.fn();
+  onTriggerStay = vi.fn();
+  onTriggerExit = vi.fn();
+}
 
 describe("Collider layer initialization", () => {
   let engine: WebGLEngine;
@@ -185,4 +194,56 @@ describe("Collider layer initialization", () => {
       expectController(Layer.Layer9);
     }
   );
+});
+
+describe("Collider layer validation", () => {
+  let engine: WebGLEngine;
+  let physics: PhysicsScene;
+  let root: Entity;
+
+  beforeAll(async () => {
+    engine = await WebGLEngine.create({ canvas: document.createElement("canvas"), physics: createPhysics() });
+    physics = engine.sceneManager.activeScene.physics;
+  });
+
+  beforeEach(() => {
+    root = engine.sceneManager.activeScene.createRootEntity("layer-validation");
+  });
+
+  afterEach(() => {
+    root.destroy();
+    engine.resourceManager.gc();
+  });
+
+  afterAll(() => engine.destroy());
+
+  function update(count = 1): void {
+    for (let i = 0; i < count; i++) physics._update(physics.fixedTimeStep);
+  }
+
+  it("rejects collision layers that are not a single layer", () => {
+    const box = root.createChild("box").addComponent(BoxCollider);
+    expect(() => (box.collisionLayer = Layer.Layer0 | Layer.Layer1)).toThrow();
+    expect(() => (box.collisionLayer = 0.5 as Layer)).toThrow();
+    expect(() => (box.collisionLayer = 2 ** 32 as Layer)).toThrow();
+    expect(box.collisionLayer).toBe(Layer.Layer0);
+    expect(() => physics.setColliderLayerCollision(Layer.Layer0 | Layer.Layer2, Layer.Layer1, true)).toThrow();
+    expect(() => physics.getColliderLayerCollision(0.5 as Layer, Layer.Layer1)).toThrow();
+  });
+
+  it("ends a trigger pair with Exit when a layer change disables the collision", () => {
+    const trigger = root.createChild("trigger");
+    const sphere = trigger.addComponent(SphereCollider);
+    sphere.isTrigger = true;
+    trigger.addComponent(Rigidbody).isKinematic = true;
+    const recorder = trigger.addComponent(TriggerRecorder);
+    const box = root.createChild("box").addComponent(BoxCollider);
+    update(2);
+    expect(recorder.onTriggerEnter).toHaveBeenCalledOnce();
+    physics.setColliderLayerCollision(Layer.Layer0, Layer.Layer1, false);
+    box.collisionLayer = Layer.Layer1;
+    update(2);
+    expect(recorder.onTriggerExit).toHaveBeenCalledOnce();
+    expect(recorder.onTriggerEnter).toHaveBeenCalledOnce();
+  });
 });

@@ -96,6 +96,18 @@ describe("MeshCollider", () => {
     return entity.addComponent(CollisionRecorder);
   }
 
+  it("clones the mesh reference and cooks the clone", () => {
+    const collider = addMesh(true);
+    const cloneEntity = collider.entity.clone();
+    root.addChild(cloneEntity);
+    cloneEntity.transform.setPosition(5, 0, 0);
+    const clone = cloneEntity.getComponent(MeshCollider);
+    expect(clone.mesh).toBe(collider.mesh);
+    const hit = new HitResult();
+    expect(physics.raycast(new Ray(new Vector3(5, 5, 0), new Vector3(0, -1, 0)), hit)).toBe(true);
+    expect(hit.collider).toBe(clone);
+  });
+
   it("creates a triangle mesh lazily for raycasts", () => {
     const collider = addMesh(
       false,

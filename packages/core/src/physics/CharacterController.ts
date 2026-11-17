@@ -270,7 +270,7 @@ export class CharacterController extends Collider {
   protected override _createNative(): ICharacterController {
     const controller = Engine._nativePhysics.createCharacterController(this._id, this._getNativeMaterial());
     controller.setContactOffset(this.contactOffset);
-    controller.setCollisionLayer(this._getCollisionLayerIndex());
+    controller.setCollisionLayer(this._collisionLayerIndex);
     controller.setIsSceneQuery(this.isSceneQuery);
     controller.setStepOffset(this._stepOffset);
     controller.setNonWalkableMode(this._nonWalkableMode);

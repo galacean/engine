@@ -108,7 +108,7 @@ export interface IPhysics {
    * @param isConvex - Whether to create convex mesh (true) or triangle mesh (false)
    * @param material - The material of this shape
    * @param cookingFlags - Cooking flags
-   * @param worldScale - World scale of the shape
+   * @remarks The shape starts at unit scale, apply the world scale with {@link IColliderShape.setWorldScale}.
    */
   createMeshColliderShape(
     uniqueID: number,
@@ -116,8 +116,7 @@ export interface IPhysics {
     indices: Uint8Array | Uint16Array | Uint32Array | null,
     isConvex: boolean,
     material: IPhysicsMaterial,
-    cookingFlags: number,
-    worldScale: Vector3
+    cookingFlags: number
   ): IMeshColliderShape | null;
 
   /**

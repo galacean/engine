@@ -16,8 +16,6 @@ type MeshData = {
  * @remarks A triangle mesh (`convex = false`) can only be static or belong to a kinematic {@link Rigidbody}.
  */
 export class MeshCollider extends Collider {
-  private static readonly _unitScale = new Vector3(1, 1, 1);
-
   @ignoreClone
   private _mesh: ModelMesh | null = null;
   private _convex = false;
@@ -97,17 +95,6 @@ export class MeshCollider extends Collider {
   }
 
   /**
-   * {@inheritDoc Collider.getClosestPoint}
-   */
-  override getClosestPoint(point: Vector3, outClosestPoint: Vector3): number {
-    if (!this._mesh) {
-      console.warn("MeshCollider: cannot get the closest point without a valid mesh.");
-      return -1;
-    }
-    return super.getClosestPoint(point, outClosestPoint);
-  }
-
-  /**
    * @internal
    */
   override _supportsDynamicBody(): boolean {
@@ -120,13 +107,8 @@ export class MeshCollider extends Collider {
    */
   override _onClone(target: MeshCollider): void {
     super._onClone(target);
-    target._setMesh(this._mesh);
-  }
-
-  protected override _createNative(): IMeshColliderShape | null {
-    const mesh = this._mesh;
-    const meshData = mesh && MeshCollider._getMeshData(mesh, this._convex);
-    return meshData ? this._cook(meshData, this._convex, this._cookingFlags) : null;
+    // convex and cookingFlags are already copied, so the setter cooks the same shape
+    target.mesh = this._mesh;
   }
 
   protected override _onDestroy(): void {
@@ -135,7 +117,8 @@ export class MeshCollider extends Collider {
   }
 
   /**
-   * Apply new mesh data to the native shape, keeping the previous shape on failure.
+   * Cook new mesh data into the native shape, keeping the previous shape on failure. Cooking in the setters is what
+   * validates the mesh, so it also runs before the Collider enters a scene.
    * @param replace - Whether the geometry kind changes, which needs a new native shape
    */
   private _rebuildNative(
@@ -145,12 +128,7 @@ export class MeshCollider extends Collider {
     replace = false
   ): boolean {
     const shape = <IMeshColliderShape>this._native;
-    if (!shape) {
-      // The shape is cooked from the current fields on the next scene sync
-      this._markDirty();
-      return true;
-    }
-    if (!replace) {
+    if (shape && !replace) {
       if (!shape.setMeshData(meshData.positions, convex ? null : meshData.indices, cookingFlags)) {
         return false;
       }
@@ -172,8 +150,7 @@ export class MeshCollider extends Collider {
       convex ? null : indices,
       convex,
       this._getNativeMaterial(),
-      cookingFlags,
-      MeshCollider._unitScale
+      cookingFlags
     );
     shape && this._initializeNativeShape(shape);
     return shape;

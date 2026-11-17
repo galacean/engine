@@ -20,12 +20,10 @@ export class PhysXMeshColliderShape extends PhysXColliderShape implements IMeshC
     indices: Uint8Array | Uint16Array | Uint32Array | null,
     isConvex: boolean,
     material: PhysXPhysicsMaterial,
-    cookingFlags: number,
-    worldScale: Vector3
+    cookingFlags: number
   ) {
     super(physXPhysics);
     this._isConvex = isConvex;
-    this._worldScale.set(Math.abs(worldScale.x), Math.abs(worldScale.y), Math.abs(worldScale.z));
 
     const pxMesh = this._cookMesh(positions, indices, cookingFlags);
     if (!pxMesh) {

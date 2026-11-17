@@ -24,6 +24,15 @@ import { Rigidbody } from "./Rigidbody";
  * The nearest {@link Rigidbody} on the Collider's Entity or its ancestors owns the Collider. Without one, the Collider
  * is static and follows its own Entity. Disabling the owning Rigidbody removes its Colliders from simulation and
  * queries; it never turns them into static Colliders.
+ *
+ * Geometry that only supports kinematic bodies, a non-convex {@link MeshCollider} or a {@link PlaneCollider}, is
+ * excluded from simulation and queries while its owner is a non-kinematic Rigidbody, and an error is logged. Adding
+ * such a Rigidbody or moving the Collider under one cannot be rejected, so the Collider rejoins when the Rigidbody
+ * becomes kinematic or no longer owns it.
+ *
+ * Moving a Collider between Rigidbodies, or between a Rigidbody and static, keeps its trigger pairs when they still
+ * overlap after the next step; pairs that no longer overlap end with `onTriggerExit`. Its collision pairs restart with
+ * another `onCollisionEnter`.
  * @decorator `@dependentComponents(Transform, DependentMode.CheckOnly)`
  */
 @dependentComponents(Transform, DependentMode.CheckOnly)
@@ -39,17 +48,21 @@ export class Collider extends Component implements ICloneHook<Collider> {
   /** @internal */
   @ignoreClone
   _id: number;
-  /** @internal Created on the first scene sync, then kept until the Collider is destroyed. */
+  /** @internal The native shape or controller, created from the current fields when first needed. */
   @ignoreClone
   _native: IColliderShape | ICharacterController | null = null;
   /** @internal */
   @ignoreClone
   _dirtyIndex = -1;
+  /** @internal The Rigidbody whose native actor holds the shape. */
+  @ignoreClone
+  _attachedBody: Rigidbody | null = null;
+
+  /** Index of the single collision layer. */
+  protected _collisionLayerIndex = 0;
 
   @ignoreClone
   private _nativeActor: ICollider | null = null;
-  @ignoreClone
-  private _attachedBody: Rigidbody | null = null;
   @ignoreClone
   private _staticActor: IStaticCollider | null = null;
   @ignoreClone
@@ -72,7 +85,6 @@ export class Collider extends Component implements ICloneHook<Collider> {
   private _isTrigger = false;
   private _isSceneQuery = true;
   private _contactOffset = 0.02;
-  private _collisionLayerIndex = 0;
   @ignoreClone
   private _material: PhysicsMaterial | null = null;
   @ignoreClone
@@ -88,6 +100,7 @@ export class Collider extends Component implements ICloneHook<Collider> {
 
   /**
    * The center of the Collider in the Entity's local space.
+   * @remarks The center is scaled by the absolute world scale, so a negative scale does not mirror it.
    */
   get center(): Vector3 {
     return this._center;
@@ -101,6 +114,7 @@ export class Collider extends Component implements ICloneHook<Collider> {
 
   /**
    * The local rotation of the Collider, in degrees.
+   * @remarks A non-uniform world scale is applied along the rotated axes of the Collider, not the Entity's axes.
    */
   get rotation(): Vector3 {
     return this._rotation;
@@ -187,7 +201,8 @@ export class Collider extends Component implements ICloneHook<Collider> {
   /**
    * The collision layer of this Collider, only a single layer is supported.
    * @defaultValue `Layer.Layer0`
-   * @remarks Changing the layer keeps active collision and trigger pairs that still pass the collision matrix.
+   * @remarks Changing the layer keeps active pairs that still pass the collision matrix. A trigger pair that no longer
+   * passes ends with `onTriggerExit`.
    */
   get collisionLayer(): Layer {
     // Unsigned shift keeps Layer31 positive
@@ -195,14 +210,24 @@ export class Collider extends Component implements ICloneHook<Collider> {
   }
 
   set collisionLayer(value: Layer) {
-    const index = Math.log2(value);
-    if (!Number.isInteger(index)) {
-      throw new Error("Collision layer must be a single layer (Layer.Layer0 to Layer.Layer31)");
-    }
+    const index = Collider._getLayerIndex(value);
     if (this._collisionLayerIndex !== index) {
       this._collisionLayerIndex = index;
       this._native?.setCollisionLayer(index);
     }
+  }
+
+  /**
+   * @internal
+   * @returns The index of a single collision layer
+   * @throws When the value is not exactly one of `Layer.Layer0` to `Layer.Layer31`.
+   */
+  static _getLayerIndex(layer: Layer): number {
+    const index = Math.log2(layer);
+    if (!Number.isInteger(index) || index < 0 || index > 31) {
+      throw new Error("Collision layer must be a single layer (Layer.Layer0 to Layer.Layer31)");
+    }
+    return index;
   }
 
   /**
@@ -243,7 +268,9 @@ export class Collider extends Component implements ICloneHook<Collider> {
    */
   getClosestPoint(point: Vector3, outClosestPoint: Vector3): number {
     this._phasedActiveInScene && this.scene!.physics._syncColliders();
-    if (!this._nativeActor) {
+    const body = this._attachedBody;
+    // A disabled Rigidbody is unregistered from the scene's enabled bodies but keeps its Colliders attached
+    if (!this._nativeActor || (body && body._index === -1)) {
       console.warn("The collider is not in simulation.");
       return -1;
     }
@@ -262,7 +289,7 @@ export class Collider extends Component implements ICloneHook<Collider> {
    * @internal
    */
   override _onEnableInScene(): void {
-    this.scene!.physics._addCollider(this);
+    this._markDirty();
   }
 
   /**
@@ -361,8 +388,8 @@ export class Collider extends Component implements ICloneHook<Collider> {
    * Detach from the owning Rigidbody's actor before the actor is released. The Rigidbody marks this Collider dirty so
    * the next sync makes it static.
    */
-  _onBodyDestroyed(actor: ICollider): void {
-    actor.removeShape(<IColliderShape>this._native);
+  _onBodyDestroyed(): void {
+    this._nativeActor!.removeShape(<IColliderShape>this._native);
     this._nativeActor = null;
     this._attachedBody = null;
   }
@@ -394,11 +421,12 @@ export class Collider extends Component implements ICloneHook<Collider> {
     const actor = this._nativeActor;
     if (actor) {
       if (shape) {
-        this._syncPose(shape, this._attachedBody, true);
         if (!actor.replaceShape(previous, shape)) {
           shape.destroy();
           return false;
         }
+        // Pose the new shape only after the replacement commits, so a failure keeps the caches of the old one
+        this._syncPose(shape, this._attachedBody, true);
       } else {
         this._detach();
       }
@@ -443,10 +471,6 @@ export class Collider extends Component implements ICloneHook<Collider> {
     return null;
   }
 
-  protected _getCollisionLayerIndex(): number {
-    return this._collisionLayerIndex;
-  }
-
   /**
    * @internal
    */
@@ -469,8 +493,14 @@ export class Collider extends Component implements ICloneHook<Collider> {
     if (this._attach(body, actor)) {
       return true;
     }
-    previousActor && this._attach(previousBody, previousActor);
-    console.error(`${this.constructor.name}: failed to attach to the native actor, the previous registration is kept.`);
+    if (previousActor) {
+      this._attach(previousBody, previousActor);
+      console.error(
+        `${this.constructor.name}: failed to attach to the native actor, the previous registration is kept.`
+      );
+    } else {
+      console.error(`${this.constructor.name}: failed to attach to the native actor.`);
+    }
     return false;
   }
 

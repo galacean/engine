@@ -4,7 +4,6 @@ import { Engine } from "../Engine";
 import { Layer } from "../Layer";
 import { Scene } from "../Scene";
 import { Script } from "../Script";
-import { DisorderedArray } from "../utils/DisorderedArray";
 import { Collider } from "./Collider";
 import { Collision } from "./Collision";
 import { HitResult } from "./HitResult";
@@ -29,7 +28,7 @@ export class PhysicsScene {
   private _restTime: number = 0;
   private _fixedTimeStep: number = 1 / 60;
 
-  private _bodies: DisorderedArray<Rigidbody> = new DisorderedArray();
+  private _bodies: Rigidbody[] = [];
   private _dirtyBodies: Rigidbody[] = [];
   private _dirtyColliders: Collider[] = [];
   private _massDirtyBodies: Rigidbody[] = [];
@@ -86,13 +85,10 @@ export class PhysicsScene {
    * @returns Whether the colliders should collide
    */
   getColliderLayerCollision(layer1: Layer, layer2: Layer): boolean {
-    const index1 = Math.log2(layer1);
-    const index2 = Math.log2(layer2);
-    if (!Number.isInteger(index1) || !Number.isInteger(index1)) {
-      throw new Error("Collision layer must be a single layer (Layer.Layer0 to Layer.Layer31)");
-    }
-
-    return Engine._nativePhysics.getColliderLayerCollision(index1, index2);
+    return Engine._nativePhysics.getColliderLayerCollision(
+      Collider._getLayerIndex(layer1),
+      Collider._getLayerIndex(layer2)
+    );
   }
 
   /**
@@ -102,13 +98,11 @@ export class PhysicsScene {
    * @param isCollide - Whether the colliders should collide
    */
   setColliderLayerCollision(layer1: Layer, layer2: Layer, isCollide: boolean): void {
-    const index1 = Math.log2(layer1);
-    const index2 = Math.log2(layer2);
-    if (!Number.isInteger(index1) || !Number.isInteger(index1)) {
-      throw new Error("Collision layer must be a single layer (Layer.Layer0 to Layer.Layer31)");
-    }
-
-    Engine._nativePhysics.setColliderLayerCollision(index1, index2, isCollide);
+    Engine._nativePhysics.setColliderLayerCollision(
+      Collider._getLayerIndex(layer1),
+      Collider._getLayerIndex(layer2),
+      isCollide
+    );
   }
 
   /**
@@ -753,7 +747,7 @@ export class PhysicsScene {
       componentsManager.callScriptOnPhysicsUpdate();
       this._syncColliders();
       nativePhysicsScene.update(fixedTimeStep);
-      this._bodies.forEach(PhysicsScene._writeBackBody);
+      this._writeBack();
       this._dispatchEvents(nativePhysicsScene.updateEvents());
     }
   }
@@ -787,13 +781,6 @@ export class PhysicsScene {
   /**
    * @internal
    */
-  _addCollider(collider: Collider): void {
-    this._markColliderDirty(collider);
-  }
-
-  /**
-   * @internal
-   */
   _removeCollider(collider: Collider): void {
     PhysicsScene._removeDirty(this._dirtyColliders, collider);
     collider._detach();
@@ -811,8 +798,9 @@ export class PhysicsScene {
    */
   _addRigidbody(body: Rigidbody): void {
     this._nativePhysicsScene.addCollider(body._getNativeActor());
-    body._index = this._bodies.length;
-    this._bodies.add(body);
+    const bodies = this._bodies;
+    body._index = bodies.length;
+    bodies.push(body);
     PhysicsScene._addDirty(this._dirtyBodies, body);
     this._markMassDirty(body);
   }
@@ -828,8 +816,12 @@ export class PhysicsScene {
       const massDirtyBodies = this._massDirtyBodies;
       massDirtyBodies.splice(massDirtyBodies.indexOf(body), 1);
     }
-    const replaced = this._bodies.deleteByIndex(body._index);
-    replaced && (replaced._index = body._index);
+    const bodies = this._bodies;
+    const last = bodies.pop()!;
+    if (last !== body) {
+      bodies[body._index] = last;
+      last._index = body._index;
+    }
     body._index = -1;
     this._nativePhysicsScene.removeCollider(body._getNativeActor());
   }
@@ -869,7 +861,6 @@ export class PhysicsScene {
   _gc(): void {
     PhysicsScene._raycastHitPool.length = 0;
     PhysicsScene._raycastSeenHits.clear();
-    this._bodies.garbageCollection();
     this._nativePhysicsScene?.gc();
   }
 
@@ -950,10 +941,6 @@ export class PhysicsScene {
     }, PhysicsScene._scriptIndexSetter);
   }
 
-  private static _writeBackBody(body: Rigidbody): void {
-    body._writeBack();
-  }
-
   private static _addDirty<T extends { _dirtyIndex: number }>(list: T[], item: T): void {
     if (item._dirtyIndex === -1) {
       item._dirtyIndex = list.length;
@@ -985,6 +972,27 @@ export class PhysicsScene {
   private static _normalizeDirection(direction: Vector3): Vector3 | null {
     const out = PhysicsScene._tempDirection;
     return Vector3.normalize(direction, out) ? out : null;
+  }
+
+  /**
+   * Write the simulated poses back to the Entities.
+   * @remarks Moving a Rigidbody keeps the pose of each attached Collider relative to it, so the Collider syncs queued by
+   * the write-back are dropped. Reading the world matrix still re-arms their transform change notifications.
+   */
+  private _writeBack(): void {
+    const bodies = this._bodies;
+    for (let i = 0, n = bodies.length; i < n; i++) {
+      bodies[i]._writeBack();
+    }
+    // Every queued sync comes from the write-back: the queue was flushed before the step and no script ran since
+    const dirtyColliders = this._dirtyColliders;
+    for (let i = dirtyColliders.length - 1; i >= 0; i--) {
+      const collider = dirtyColliders[i];
+      if (collider._attachedBody) {
+        collider.entity.transform.worldMatrix;
+        PhysicsScene._removeDirty(dirtyColliders, collider);
+      }
+    }
   }
 
   private _setGravity(): void {

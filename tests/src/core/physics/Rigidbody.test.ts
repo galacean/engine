@@ -6,7 +6,9 @@ import {
   Rigidbody,
   RigidbodyConstraints,
   CollisionDetectionMode,
-  PlaneCollider
+  MeshCollider,
+  PlaneCollider,
+  PrimitiveMesh
 } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine";
 import { Vector3 } from "@galacean/engine-math";
@@ -513,6 +515,27 @@ describe("Rigidbody", function () {
     boxCollider.wakeUp();
     engine.sceneManager.activeScene.physics._update(1);
     expect(box.transform.position.y).below(1);
+  });
+
+  it("applies a pending mesh removal before switching to dynamic", function () {
+    const bodyEntity = rootEntity.createChild("mesh body");
+    bodyEntity.addComponent(BoxCollider);
+    const body = bodyEntity.addComponent(Rigidbody);
+    body.isKinematic = true;
+    const child = bodyEntity.createChild("mesh child");
+    const mesh = child.addComponent(MeshCollider);
+    mesh.mesh = PrimitiveMesh.createCuboid(engine, 2, 2, 2);
+    const physics = engine.sceneManager.activeScene.physics;
+    physics._update(physics.fixedTimeStep);
+
+    // Reparent and switch in the same frame: the native actor must not keep the pending triangle mesh
+    rootEntity.addChild(child);
+    body.isKinematic = false;
+    body.wakeUp();
+    for (let i = 0; i < 30; i++) {
+      physics._update(physics.fixedTimeStep);
+    }
+    expect(bodyEntity.transform.position.y).below(-0.1);
   });
 
   it("constraints", function () {

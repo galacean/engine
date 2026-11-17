@@ -1,5 +1,5 @@
 import { DataObject } from "../../base/DataObject";
-import { IJoint } from "@galacean/engine-design";
+import { IDynamicCollider, IJoint } from "@galacean/engine-design";
 import { Matrix, Quaternion, Vector3 } from "@galacean/engine-math";
 import { Component } from "../../Component";
 import { DependentMode, dependentComponents } from "../../ComponentsDependencies";
@@ -39,7 +39,7 @@ export abstract class Joint extends Component {
       preBody?.entity._updateFlagManager.removeListener(this._onConnectedTransformChanged);
       value?.entity._updateFlagManager.addListener(this._onConnectedTransformChanged);
       this._connectedBodyInfo.body = value;
-      this._nativeJoint?.setConnectedCollider(value?._getNativeActor() ?? null);
+      this._nativeJoint?.setConnectedCollider(Joint._getBodyActor(value));
       this._updateRotation();
       if (this._automaticConnectedAnchor) {
         this._calculateConnectedAnchor();
@@ -210,9 +210,16 @@ export abstract class Joint extends Component {
 
   protected abstract _createJoint(): void;
 
+  /**
+   * A destroyed Rigidbody must not recreate its native actor through a joint that still references it.
+   */
+  private static _getBodyActor(body: Rigidbody | null): IDynamicCollider | null {
+    return body && !body.destroyed ? body._getNativeActor() : null;
+  }
+
   protected _syncNative(): void {
     if (this._nativeJoint) {
-      this._nativeJoint.setConnectedCollider(this._connectedBodyInfo.body?._getNativeActor() ?? null);
+      this._nativeJoint.setConnectedCollider(Joint._getBodyActor(this._connectedBodyInfo.body));
       this._updateActualAnchor(AnchorOwner.Self);
       if (this._automaticConnectedAnchor) {
         this._calculateConnectedAnchor();

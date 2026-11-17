@@ -223,19 +223,9 @@ export class PhysXPhysics implements IPhysics {
     indices: Uint8Array | Uint16Array | Uint32Array | null,
     isConvex: boolean,
     material: PhysXPhysicsMaterial,
-    cookingFlags: number,
-    worldScale: Vector3
+    cookingFlags: number
   ): IMeshColliderShape | null {
-    const shape = new PhysXMeshColliderShape(
-      this,
-      uniqueID,
-      positions,
-      indices,
-      isConvex,
-      material,
-      cookingFlags,
-      worldScale
-    );
+    const shape = new PhysXMeshColliderShape(this, uniqueID, positions, indices, isConvex, material, cookingFlags);
     return shape._pxShape ? shape : null;
   }
 

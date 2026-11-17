@@ -304,6 +304,70 @@ describe("Collider", () => {
     expect(collider.getClosestPoint(new Vector3(10, 2, 3), closest)).toBeCloseTo(originalDistance);
   });
 
+  it("keeps an overlapping trigger pair when its collider moves between static and dynamic owners", () => {
+    const volume = root.createChild("volume");
+    volume.addComponent(BoxCollider);
+    const probe = root.createChild("probe");
+    const sphere = probe.addComponent(SphereCollider);
+    sphere.isTrigger = true;
+    probe.addComponent(Rigidbody).isKinematic = true;
+    const recorder = probe.addComponent(CollisionRecorder);
+    update(2);
+    expect(recorder.onTriggerEnter).toHaveBeenCalledOnce();
+
+    // Static to dynamic
+    const body = volume.addComponent(Rigidbody);
+    body.useGravity = false;
+    update(2);
+    expect(recorder.onTriggerEnter).toHaveBeenCalledOnce();
+    expect(recorder.onTriggerExit).not.toHaveBeenCalled();
+
+    // Dynamic to static
+    body.destroy();
+    update(2);
+    expect(recorder.onTriggerEnter).toHaveBeenCalledOnce();
+    expect(recorder.onTriggerExit).not.toHaveBeenCalled();
+
+    // A real separation still exits exactly once
+    probe.transform.setPosition(10, 0, 0);
+    update(2);
+    expect(recorder.onTriggerExit).toHaveBeenCalledOnce();
+    expect(recorder.onTriggerEnter).toHaveBeenCalledOnce();
+  });
+
+  it("returns no closest point while the owning Rigidbody is disabled", () => {
+    const entity = root.createChild("body box");
+    const box = entity.addComponent(BoxCollider);
+    const body = entity.addComponent(Rigidbody);
+    body.isKinematic = true;
+    update();
+    const closest = new Vector3();
+    expect(box.getClosestPoint(new Vector3(5, 0, 0), closest)).toBeCloseTo(4.5);
+    body.enabled = false;
+    expect(box.getClosestPoint(new Vector3(5, 0, 0), closest)).toBe(-1);
+    body.enabled = true;
+    update();
+    expect(box.getClosestPoint(new Vector3(5, 0, 0), closest)).toBeCloseTo(4.5);
+  });
+
+  it("keeps a child collider at its relative pose while the body writes back its motion", () => {
+    const entity = root.createChild("moving body");
+    const body = entity.addComponent(Rigidbody);
+    body.useGravity = false;
+    const child = entity.createChild("child collider");
+    child.transform.setPosition(2, 0, 0);
+    const box = child.addComponent(BoxCollider);
+    body.linearVelocity = new Vector3(1, 0, 0);
+    update(60);
+    const x = entity.transform.position.x;
+    expect(x).toBeGreaterThan(0.5);
+    const hit = new HitResult();
+    expect(physics.raycast(new Ray(new Vector3(x + 2, 5, 0), new Vector3(0, -1, 0)), hit)).toBe(true);
+    expect(hit.collider).toBe(box);
+    expect(hit.point.x).toBeCloseTo(x + 2, 1);
+    expect(physics.raycast(new Ray(new Vector3(2, 5, 0), new Vector3(0, -1, 0)), hit)).toBe(false);
+  });
+
   describe("collision response", () => {
     it.each([false, true])(
       "keeps trigger and solid components on the same dynamic body (kinematic probe=%s)",

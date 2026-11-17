@@ -174,6 +174,23 @@ describe("CharacterController", () => {
     expect(controller.isTrigger).toBe(false);
   });
 
+  it("logs an error for an invalid descriptor and recovers once the geometry allows it", () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    controller.size = new Vector3(1, 1, 1);
+    // stepOffset above the box height makes PhysX reject the descriptor
+    controller.stepOffset = 100;
+    physics._update(physics.fixedTimeStep);
+    expect(error).toHaveBeenCalledWith(expect.stringContaining("failed to create"));
+    expect(() => controller.move(new Vector3(0.1, 0, 0), 0, physics.fixedTimeStep)).not.toThrow();
+
+    controller.stepOffset = 0.1;
+    controller.size = new Vector3(2, 2, 2);
+    role.transform.setPosition(0, 2, 0);
+    physics._update(physics.fixedTimeStep);
+    controller.move(new Vector3(0.1, 0, 0), 0, physics.fixedTimeStep);
+    expect(role.transform.position.x).toBeGreaterThan(0.05);
+  });
+
   it("reports unsupported getClosestPoint without changing its output", () => {
     const errors = vi.spyOn(console, "error").mockImplementation(() => {});
     const closest = new Vector3(1, 2, 3);

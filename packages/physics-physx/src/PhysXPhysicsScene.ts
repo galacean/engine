@@ -36,6 +36,8 @@ export class PhysXPhysicsScene implements IPhysicsScene {
   private _physicsEvents: IPhysicsEvents = { contactEvents: [], contactEventCount: 0, triggerEvents: [] };
 
   private _triggerEventPool: TriggerEvent[] = [];
+  // Event map of each shape id removed since the last step, to tell whether another scene has added the id back
+  private _removedShapes = new Map<number, Record<number, TriggerEvent | undefined>>();
 
   /**
    * Creates a PhysX scene with buffered collision and trigger events.
@@ -63,7 +65,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
         const big = Math.max(index1, index2);
         const existing = this._physXManager._eventMap[small][big];
         if (existing) {
-          // Found again after a shape replacement: the overlap continues
+          // Found again after the shape was removed and added back: the overlap continues
           existing.state = PhysicsEventState.Stay;
           return;
         }
@@ -149,6 +151,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
    */
   update(elapsedTime: number): void {
     this._contactEventCount = 0;
+    this._releaseRemovedShapes();
     this._simulate(elapsedTime);
     this._fetchResults();
   }
@@ -185,7 +188,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
       } else if (event.state === PhysicsEventState.Exit) {
         activeTriggers.deleteByIndex(i);
         triggerEventPool.push(event);
-        // A replaced pair that was not found again still owns its map entry
+        // A pair of a shape added back that was not found again still owns its map entry
         const subMap = eventMap[event.index1];
         subMap[event.index2] === event && (subMap[event.index2] = undefined);
       }
@@ -400,41 +403,25 @@ export class PhysXPhysicsScene implements IPhysicsScene {
   /**
    * @internal
    */
-  _addColliderShape(id: number) {
-    this._physXManager._eventMap[id] = Object.create(null);
+  _addColliderShape(id: number): void {
+    // Added back before the next step: keep its trigger pairs for PhysX to find again
+    if (!this._removedShapes.delete(id)) {
+      this._physXManager._eventMap[id] = Object.create(null);
+    }
   }
 
   /**
    * @internal
-   * The shape with this id was replaced by a new native shape. Its active trigger pairs end in the next step unless
-   * PhysX finds them again for the new shape, which keeps them going without another Enter.
+   * Its active trigger pairs end in the next step unless the id is added back before it, as when a Collider moves to
+   * another actor or rebuilds its shape, and PhysX finds them again. Pairs of an id that is not added back end silently.
    */
-  _replaceColliderShape(id: number): void {
+  _removeColliderShape(id: number): void {
     this._activeTriggers.forEach((event) => {
       if (event.index1 === id || event.index2 === id) {
         event.state = PhysicsEventState.Exit;
       }
     });
-  }
-
-  /**
-   * @internal
-   */
-  _removeColliderShape(id: number) {
-    const { _triggerEventPool: triggerEventPool, _activeTriggers: activeTriggers } = this;
-    const { _eventMap: eventMap } = this._physXManager;
-    activeTriggers.forEach((event, i) => {
-      if (event.index1 == id) {
-        activeTriggers.deleteByIndex(i);
-        triggerEventPool.push(event);
-      } else if (event.index2 == id) {
-        activeTriggers.deleteByIndex(i);
-        triggerEventPool.push(event);
-        // If the shape is big index, should clear from the small index shape subMap
-        eventMap[event.index1][id] = undefined;
-      }
-    });
-    delete eventMap[id];
+    this._removedShapes.set(id, this._physXManager._eventMap[id]!);
   }
 
   private _readHit(
@@ -470,6 +457,31 @@ export class PhysXPhysicsScene implements IPhysicsScene {
       this._readHit(hits, 0, outHitResult);
     }
     return true;
+  }
+
+  /**
+   * Drop the trigger pairs of shapes removed since the last step and not added back.
+   */
+  private _releaseRemovedShapes(): void {
+    const removedShapes = this._removedShapes;
+    if (removedShapes.size === 0) {
+      return;
+    }
+    const { _triggerEventPool: triggerEventPool, _activeTriggers: activeTriggers } = this;
+    const eventMap = this._physXManager._eventMap;
+    activeTriggers.forEach((event, i) => {
+      if (removedShapes.has(event.index1) || removedShapes.has(event.index2)) {
+        activeTriggers.deleteByIndex(i);
+        triggerEventPool.push(event);
+        const subMap = eventMap[event.index1];
+        subMap[event.index2] === event && (subMap[event.index2] = undefined);
+      }
+    });
+    // The event map is shared by all scenes: a shape that entered another scene meanwhile owns a new one
+    removedShapes.forEach((subMap, id) => {
+      eventMap[id] === subMap && delete eventMap[id];
+    });
+    removedShapes.clear();
   }
 
   private _simulate(elapsedTime: number): void {

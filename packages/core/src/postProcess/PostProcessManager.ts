@@ -89,7 +89,8 @@ export class PostProcessManager {
           }
           hasCollider = true;
           const distance = collider.getClosestPoint(cameraPosition, PostProcessManager._tempVector3);
-          if (distance < closestDistance) {
+          // A collider outside the simulation has no distance, so it has no influence either
+          if (distance >= 0 && distance < closestDistance) {
             closestDistance = distance;
           }
         }
