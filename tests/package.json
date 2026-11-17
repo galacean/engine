@@ -20,6 +20,7 @@
     "@galacean/engine-loader": "workspace:*",
     "@galacean/engine-design": "workspace:*",
     "@galacean/engine-math": "workspace:*",
+    "@galacean/engine-rhi-null": "workspace:*",
     "@galacean/engine-rhi-webgl": "workspace:*",
     "@galacean/engine-shader-parser": "workspace:*",
     "@galacean/engine-shader-compiler": "workspace:*",

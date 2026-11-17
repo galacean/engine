@@ -1,7 +1,6 @@
 import {
   AssetPromise,
   AssetType,
-  Logger,
   Texture,
   Texture2D,
   TextureFormat,
@@ -10,6 +9,7 @@ import {
   Utils
 } from "@galacean/engine-core";
 import { BufferTextureRestoreInfo } from "../../GLTFContentRestorer";
+import { ImageDecoder } from "../../ImageDecoder";
 import { TextureWrapMode as GLTFTextureWrapMode, IMaterial } from "../GLTFSchema";
 import { GLTFUtils } from "../GLTFUtils";
 import { GLTFParser } from "./GLTFParser";
@@ -64,38 +64,33 @@ export class GLTFTextureParser extends GLTFParser {
       context._addTaskCompletePromise(texture);
     } else {
       const bufferView = glTF.bufferViews![bufferViewIndex!];
-      texture = context
-        .get<ArrayBuffer>(GLTFParserType.Buffer)
-        .then((buffers) => {
-          const buffer = buffers![bufferView.buffer];
-          const imageBuffer = new Uint8Array(buffer, bufferView.byteOffset, bufferView.byteLength);
-          return GLTFUtils.loadImageBuffer(imageBuffer, mimeType!).then((image) => {
-            const { width, height } = image;
-            const format = TextureFormat.R8G8B8A8;
-            const generateMipmap = TextureUtils.supportGenerateMipmapsWithCorrection(
-              engine,
-              width,
-              height,
-              format,
-              samplerInfo?.mipmap ?? true,
-              isSRGBColorSpace!
-            );
-            const texture = new Texture2D(engine, width, height, format, generateMipmap, isSRGBColorSpace);
-            texture.setImageSource(image);
-            texture.generateMipmaps();
+      texture = context.get<ArrayBuffer>(GLTFParserType.Buffer).then((buffers) => {
+        const buffer = buffers![bufferView.buffer];
+        const imageBuffer = new Uint8Array(buffer, bufferView.byteOffset ?? 0, bufferView.byteLength);
+        return ImageDecoder._decode(imageBuffer, imageName || textureName || url, mimeType).then((image) => {
+          const { width, height } = image;
+          const format = TextureFormat.R8G8B8A8;
+          const generateMipmap = TextureUtils.supportGenerateMipmapsWithCorrection(
+            engine,
+            width,
+            height,
+            format,
+            samplerInfo?.mipmap ?? true,
+            isSRGBColorSpace!
+          );
+          const texture = new Texture2D(engine, width, height, format, generateMipmap, isSRGBColorSpace);
+          texture.setImageSource(image);
+          texture.generateMipmaps();
 
-            texture.name = textureName || imageName || `texture_${textureIndex}`;
-            samplerInfo && GLTFUtils.parseSampler(texture, samplerInfo);
+          texture.name = textureName || imageName || `texture_${textureIndex}`;
+          samplerInfo && GLTFUtils.parseSampler(texture, samplerInfo);
 
-            const bufferTextureRestoreInfo = new BufferTextureRestoreInfo(texture, bufferView, mimeType!);
-            context.contentRestorer.bufferTextures.push(bufferTextureRestoreInfo);
+          const bufferTextureRestoreInfo = new BufferTextureRestoreInfo(texture, bufferView, mimeType!);
+          context.contentRestorer.bufferTextures.push(bufferTextureRestoreInfo);
 
-            return texture;
-          });
-        })
-        .catch((e) => {
-          Logger.error("GLTFTextureParser: image buffer error", e);
+          return texture;
         });
+      });
     }
 
     return texture;

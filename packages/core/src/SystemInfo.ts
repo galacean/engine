@@ -1,8 +1,7 @@
 import { AssetPromise } from "./asset/AssetPromise";
-import { GLCapabilityType } from "./base/Constant";
-import { Engine } from "./Engine";
+import type { Engine } from "./Engine";
 import { Platform } from "./Platform";
-import { TextureFormat } from "./texture";
+import type { TextureFormat } from "./texture";
 
 /**
  * Access operating system, platform and hardware information.
@@ -13,9 +12,6 @@ export class SystemInfo {
   /** The operating system is running on. */
   static operatingSystem: string = "";
 
-  /** @internal */
-  static _isBrowser = true;
-
   /** Whether the system support SIMD. */
   private static _simdSupported: boolean | null = null;
 
@@ -25,7 +21,7 @@ export class SystemInfo {
    * The pixel ratio of the device.
    */
   static get devicePixelRatio(): number {
-    return window.devicePixelRatio;
+    return typeof window !== "undefined" ? window.devicePixelRatio : 1;
   }
 
   private static _parseAppleMobileOSVersion(userAgent: string, osPrefix: string): string {
@@ -44,7 +40,6 @@ export class SystemInfo {
   static _initialize(): void {
     {
       if (typeof navigator == "undefined") {
-        SystemInfo._isBrowser = false;
         return;
       }
 
@@ -101,7 +96,7 @@ export class SystemInfo {
   static _checkWebpSupported(): AssetPromise<boolean> {
     if (!this._webpSupported) {
       this._webpSupported = new AssetPromise((resolve) => {
-        if (this._isBrowser) {
+        if (typeof Image !== "undefined") {
           const img = new Image();
           img.onload = function () {
             const result = img.width > 0 && img.height > 0;
@@ -122,41 +117,11 @@ export class SystemInfo {
 
   /**
    * Checks whether the system supports the given texture format.
+   * @param engine - Engine instance
    * @param format - The texture format
    * @returns Whether support the texture format
    */
   static supportsTextureFormat(engine: Engine, format: TextureFormat): boolean {
-    const rhi = engine._hardwareRenderer;
-    rhi.canIUse(GLCapabilityType.depthTexture);
-    switch (format) {
-      case TextureFormat.R16G16B16A16:
-        if (!rhi.canIUse(GLCapabilityType.textureHalfFloat)) {
-          return false;
-        }
-        break;
-      case TextureFormat.R32G32B32A32:
-        if (!rhi.canIUse(GLCapabilityType.textureFloat)) {
-          return false;
-        }
-        break;
-      case TextureFormat.Depth16:
-      case TextureFormat.Depth24Stencil8:
-      case TextureFormat.Depth:
-      case TextureFormat.DepthStencil:
-        if (!rhi.canIUse(GLCapabilityType.depthTexture)) {
-          return false;
-        }
-        break;
-      case TextureFormat.R11G11B10_UFloat:
-      case TextureFormat.R32G32B32A32_UInt:
-      case TextureFormat.Depth24:
-      case TextureFormat.Depth32:
-      case TextureFormat.Depth32Stencil8:
-      case TextureFormat.R8:
-      case TextureFormat.R8G8:
-        return rhi.isWebGL2;
-    }
-
-    return true;
+    return engine._hardwareRenderer.supportsTextureFormat(format);
   }
 }

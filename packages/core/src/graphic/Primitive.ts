@@ -1,7 +1,6 @@
-import { IPlatformPrimitive } from "@galacean/engine-design";
 import { Engine } from "../Engine";
 import { GraphicsResource } from "../asset/GraphicsResource";
-import { ShaderProgram } from "../shader/ShaderProgram";
+import type { IPlatformPrimitive, IPlatformShaderProgram } from "../renderingHardwareInterface";
 import { BufferUtil } from "./BufferUtil";
 import { IndexBufferBinding } from "./IndexBufferBinding";
 import { SubPrimitive } from "./SubPrimitive";
@@ -147,7 +146,7 @@ export class Primitive extends GraphicsResource {
     }
   }
 
-  draw(shaderProgram: ShaderProgram, subMesh: SubPrimitive): void {
+  draw(shaderProgram: IPlatformShaderProgram, subMesh: SubPrimitive): void {
     this._platformPrimitive.draw(shaderProgram, subMesh);
     this._bufferStructChanged = false;
   }
