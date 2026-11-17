@@ -1,4 +1,4 @@
-import { IHardwareRenderer } from "@galacean/engine-design";
+import type { IHardwareRenderer, IPlatformShaderProgram } from "../renderingHardwareInterface";
 import { Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import { Engine } from "../Engine";
 import { Logger } from "../base/Logger";
@@ -15,7 +15,7 @@ import { InstanceBufferLayout, ShaderFactory } from "./ShaderFactory";
  * Shader program, corresponding to the GPU shader program.
  * @internal
  */
-export class ShaderProgram {
+export class ShaderProgram implements IPlatformShaderProgram {
   private static _counter: number = 0;
 
   private static _addLineNum(str: string) {

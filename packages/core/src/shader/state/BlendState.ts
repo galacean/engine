@@ -1,5 +1,5 @@
 import { DataObject } from "../../base/DataObject";
-import { IHardwareRenderer } from "@galacean/engine-design";
+import type { IHardwareRenderer } from "../../renderingHardwareInterface";
 import { Color } from "@galacean/engine-math";
 import { RenderStateElementMap } from "../../BasicResources";
 import { GLCapabilityType } from "../../base/Constant";
@@ -64,12 +64,12 @@ export class BlendState extends DataObject {
         if (!rhi.canIUse(GLCapabilityType.blendMinMax)) {
           throw new Error("BlendOperation.Min is not supported in this context");
         }
-        return gl.MIN; // in webgl1.0 is an extension
+        return (gl as WebGL2RenderingContext).MIN; // in webgl1.0 is an extension
       case BlendOperation.Max:
         if (!rhi.canIUse(GLCapabilityType.blendMinMax)) {
           throw new Error("BlendOperation.Max is not supported in this context");
         }
-        return gl.MAX; // in webgl1.0 is an extension
+        return (gl as WebGL2RenderingContext).MAX; // in webgl1.0 is an extension
     }
   }
 

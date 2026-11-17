@@ -1,5 +1,5 @@
 import { IXRRequestPlane, IXRTrackedPlane } from "@galacean/engine-design";
-import { Vector3 } from "@galacean/engine-math";
+import { Vector3 } from "@galacean/engine";
 import { XRFeatureType, XRPlaneMode, XRRequestTrackingState, XRTrackingState } from "@galacean/engine-xr";
 import { registerXRPlatformFeature } from "../WebXRDevice";
 import { WebXRFrame } from "../WebXRFrame";
