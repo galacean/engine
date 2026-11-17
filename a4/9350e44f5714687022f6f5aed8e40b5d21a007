@@ -1,0 +1,57 @@
+packages/modify/build/local-engine.mjs
+  s_118fe0ba8b7262::t_bc8ac8ffc999a6 18,49
+packages/modify/src/native/core/src/lighting/screenSpaceReflection/ScreenSpaceReflection.ts
+  s_118fe0ba8b7262::t_bc8ac8ffc999a6 15,417-420,424-425,427-431,436-440,470,485-486,489,491,493,496,897,907,919-923,1094-1095,1106-1111
+packages/modify/tests/ScreenSpaceReflectionClearCoat.test.ts
+  s_118fe0ba8b7262::t_bc8ac8ffc999a6 1-544
+packages/modify/tests/ScreenSpaceReflectionPbrExtensions.test.ts
+  s_118fe0ba8b7262::t_9dcbf0ed80078d 513,711
+  s_118fe0ba8b7262::t_bc8ac8ffc999a6 1-3,5-512,514-710,712-823,825-839,841-865,867-872
+  s_118fe0ba8b7262::t_15fe9b346cf825 4,824,840,866
+packages/modify/src/native/shader/src/Shaders/Pipeline/ScreenSpaceReflectionSurface.shader
+  s_118fe0ba8b7262::t_bc8ac8ffc999a6 34-37,82-88,97-104
+packages/modify/src/native/core/src/RenderPipeline/RenderQueue.ts
+  s_118fe0ba8b7262::t_bc8ac8ffc999a6 8-9,87-90,178-180
+packages/modify/tests/ScreenSpaceReflectionContribution.test.ts
+  s_118fe0ba8b7262::t_bc8ac8ffc999a6 106-107
+packages/modify/tests/vitest.config.mjs
+  s_118fe0ba8b7262::t_bc8ac8ffc999a6 10,12-16
+packages/modify/tests/ScreenSpaceReflectionSecondReview.test.ts
+  s_118fe0ba8b7262::t_bc8ac8ffc999a6 111-112,118-119,185-186,190-191
+packages/modify/src/native/shader/src/Shaders/PBR.shader
+  s_118fe0ba8b7262::t_bc8ac8ffc999a6 144
+packages/modify/src/native/galacean/src/ShaderPool.ts
+  s_118fe0ba8b7262::t_bc8ac8ffc999a6 1,108-116
+packages/modify/src/native/core/src/shader/ShaderProgram.ts
+  s_118fe0ba8b7262::t_bc8ac8ffc999a6 79-83
+packages/modify/src/native/shader/src/ShaderLibrary/PBR/LightIndirectPBR.glsl
+  s_118fe0ba8b7262::t_bc8ac8ffc999a6 5-12,264,272-283
+packages/modify/tests/ScreenSpaceReflectionTraceReadback.ts
+  s_118fe0ba8b7262::t_bc8ac8ffc999a6 20-22
+packages/modify/src/native/shader/src/ShaderLibrary/PBR/LightIndirectFunctions.glsl
+  s_118fe0ba8b7262::t_bc8ac8ffc999a6 65-70
+packages/modify/SSR_AUTHORING.md
+  s_118fe0ba8b7262::t_bc8ac8ffc999a6 25,28-39,64
+packages/modify/src/native/core/src/RenderPipeline/BasicRenderPipeline.ts
+  s_118fe0ba8b7262::t_bc8ac8ffc999a6 24,27,62-63,89-90,92,105-141,841-849
+packages/modify/tests/ScreenSpaceReflectionSheen.test.ts
+  s_118fe0ba8b7262::t_bc8ac8ffc999a6 1-361
+packages/modify/tests/ScreenSpaceReflectionAuthoring.test.ts
+  s_118fe0ba8b7262::t_bc8ac8ffc999a6 217,219,223-225
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "a49350e44f5714687022f6f5aed8e40b5d21a007",
+  "prompts": {},
+  "sessions": {
+    "s_118fe0ba8b7262": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1e8ac-b98d-7923-b6aa-6dc126e18469",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "星翊 <sunmingming.smm@antgroup.com>"
+    }
+  }
+}
