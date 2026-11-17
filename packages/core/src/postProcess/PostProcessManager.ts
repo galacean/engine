@@ -270,7 +270,7 @@ export class PostProcessManager {
         TextureFormat.Depth24Stencil8,
         false,
         false,
-        !camera.enableHDR,
+        !camera._isInternalFormatHDR(),
         1,
         TextureWrapMode.Clamp,
         TextureFilterMode.Bilinear

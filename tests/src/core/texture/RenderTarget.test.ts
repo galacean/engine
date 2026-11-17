@@ -110,7 +110,9 @@ describe("RenderTarget", async () => {
 
       const renderTarget = new RenderTarget(engine, width, height, renderColorTexture, undefined, 2);
 
-      expect(renderTarget.antiAliasing).to.eq(1);
+      // The requested level is kept while the device creates a single-sample target
+      expect(renderTarget.antiAliasing).to.eq(2);
+      expect(renderTarget._platformRenderTarget["_MSAAFrameBuffer"]).to.be.undefined;
     });
 
     it("销毁", () => {

@@ -1,6 +1,6 @@
-import type { IPlatformShaderProgram } from "@galacean/engine-design";
 import type { VertexBufferBinding } from "../graphic/VertexBufferBinding";
 import type { VertexElement } from "../graphic/VertexElement";
+import type { IPlatformShaderProgram } from "./IPlatformShaderProgram";
 
 /**
  * Platform interface for Transform Feedback primitive operations.

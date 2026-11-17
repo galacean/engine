@@ -10,7 +10,7 @@ import { BasicRenderPipeline } from "./RenderPipeline/BasicRenderPipeline";
 import { Transform } from "./Transform";
 import { UpdateFlagManager } from "./UpdateFlagManager";
 import { VirtualCamera } from "./VirtualCamera";
-import { GLCapabilityType, Logger } from "./base";
+import { Logger } from "./base";
 import { ignoreClone } from "./clone/CloneDecorators";
 import { AntiAliasing } from "./enums/AntiAliasing";
 import { CameraClearFlags } from "./enums/CameraClearFlags";
@@ -26,7 +26,7 @@ import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
 import { ShaderProperty } from "./shader/ShaderProperty";
 import { ShaderTagKey } from "./shader/ShaderTagKey";
 import { ShaderDataGroup } from "./shader/enums/ShaderDataGroup";
-import { TextureFormat } from "./texture";
+import { TextureFormat, TextureUtils } from "./texture";
 import { RenderTarget } from "./texture/RenderTarget";
 import { TextureCubeFace } from "./texture/enums/TextureCubeFace";
 
@@ -152,7 +152,7 @@ export class Camera extends Component {
   private _opaqueTextureEnabled: boolean = false;
   private _enableHDR = false;
   private _enablePostProcess = false;
-  private _msaaSamples: MSAASamples;
+  private _msaaSamples = MSAASamples.FourX;
 
   private _renderTarget: RenderTarget | null = null;
   private _updateFlagManager: UpdateFlagManager;
@@ -380,21 +380,14 @@ export class Camera extends Component {
   /**
    * Whether to enable HDR.
    * @defaultValue `false`
+   * @remarks Kept on this property across backends; rendering falls back to LDR when the device lacks HDR color targets.
    */
   get enableHDR(): boolean {
     return this._enableHDR;
   }
 
   set enableHDR(value: boolean) {
-    if (this.enableHDR !== value) {
-      const rhi = this.engine._hardwareRenderer;
-      const supportHDR = rhi.isWebGL2 || rhi.canIUse(GLCapabilityType.textureHalfFloat);
-      if (value && !supportHDR) {
-        Logger.warn("Can't enable HDR in this device.");
-        return;
-      }
-      this._enableHDR = value;
-    }
+    this._enableHDR = value;
   }
 
   /**
@@ -432,21 +425,14 @@ export class Camera extends Component {
    * Higher sample counts (e.g., 2x, 4x, 8x) produce smoother edges.
    *
    * @defaultValue `MSAASamples.FourX`
+   * @remarks The requested count is kept; rendering uses at most the count supported by the device.
    */
   get msaaSamples(): MSAASamples {
     return this._msaaSamples;
   }
 
   set msaaSamples(value: MSAASamples) {
-    if (this._msaaSamples !== value) {
-      const maxMSAASamples = this._engine._hardwareRenderer.capability.maxAntiAliasing;
-      if (value > maxMSAASamples) {
-        Logger.warn(`MSAA samples exceeds the limit and is automatically downgraded to:${maxMSAASamples}`);
-        this._msaaSamples = maxMSAASamples;
-      } else {
-        this._msaaSamples = value;
-      }
-    }
+    this._msaaSamples = value;
   }
 
   /**
@@ -454,8 +440,6 @@ export class Camera extends Component {
    */
   constructor(entity: Entity) {
     super(entity);
-    // Includes hardware detection correction
-    this.msaaSamples = MSAASamples.FourX;
 
     this._isViewMatrixDirty = entity.registerWorldChangeFlag();
     this._isInvViewProjDirty = entity.registerWorldChangeFlag();
@@ -637,6 +621,7 @@ export class Camera extends Component {
    */
   render(cubeFace?: TextureCubeFace, mipLevel: number = 0): void {
     const engine = this._engine;
+    if (!engine._hardwareRenderer.supportsRendering) return;
     const context = engine._renderContext;
     const virtualCamera = this._virtualCamera;
 
@@ -759,12 +744,13 @@ export class Camera extends Component {
     }
 
     const renderTarget = this._renderTarget;
+    const internalColorFormat = this._getInternalColorTextureFormat();
     // Need HDR and opaque texture
-    if (this.enableHDR || this.opaqueTextureEnabled) {
+    if (TextureUtils.isHDRFormat(internalColorFormat) || this.opaqueTextureEnabled) {
       if (renderTarget) {
         // If camera is HDR and format is same with renderTarget can reuse renderTarget if renderTarget is same HDR format
         // If camera is LDR and opaqueTextureEnabled is true, can reuse renderTarget if renderTarget is LDR format(Only R8G8B8A8)
-        return this._getInternalColorTextureFormat() !== renderTarget.getColorTexture(0)!.format;
+        return internalColorFormat !== renderTarget.getColorTexture(0)!.format;
       } else {
         return true;
       }
@@ -777,11 +763,23 @@ export class Camera extends Component {
    * @internal
    */
   _getInternalColorTextureFormat(): TextureFormat {
-    return this._enableHDR
-      ? this.engine._hardwareRenderer.isWebGL2 && !this.isAlphaOutputRequired
-        ? TextureFormat.R11G11B10_UFloat
-        : TextureFormat.R16G16B16A16
-      : TextureFormat.R8G8B8A8;
+    if (this._enableHDR) {
+      const rhi = this._engine._hardwareRenderer;
+      if (!this.isAlphaOutputRequired && rhi.supportsRenderTargetColorFormat(TextureFormat.R11G11B10_UFloat)) {
+        return TextureFormat.R11G11B10_UFloat;
+      }
+      if (rhi.supportsRenderTargetColorFormat(TextureFormat.R16G16B16A16)) {
+        return TextureFormat.R16G16B16A16;
+      }
+    }
+    return TextureFormat.R8G8B8A8;
+  }
+
+  /**
+   * @internal
+   */
+  _isInternalFormatHDR(): boolean {
+    return TextureUtils.isHDRFormat(this._getInternalColorTextureFormat());
   }
 
   /**
@@ -804,12 +802,7 @@ export class Camera extends Component {
    * @internal
    */
   _isTargetFormatHDR(): boolean {
-    const format = this._getTargetColorTextureFormat();
-    return (
-      format === TextureFormat.R16G16B16A16 ||
-      format === TextureFormat.R32G32B32A32 ||
-      format === TextureFormat.R11G11B10_UFloat
-    );
+    return TextureUtils.isHDRFormat(this._getTargetColorTextureFormat());
   }
 
   /**
