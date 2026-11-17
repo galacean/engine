@@ -726,4 +726,12 @@ describe("Rigidbody", function () {
     box.isActive = false;
     boxCollider.destroy();
   });
+
+  it("allows destroying an entity after addComponent fails without a physics backend", async function () {
+    const noPhysicsEngine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
+    const entity = noPhysicsEngine.sceneManager.activeScene.createRootEntity("no-physics");
+    expect(() => entity.addComponent(Rigidbody)).toThrow();
+    expect(() => entity.destroy()).not.toThrow();
+    noPhysicsEngine.destroy();
+  });
 });

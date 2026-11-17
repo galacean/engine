@@ -267,11 +267,22 @@ export class Collider extends Component implements ICloneHook<Collider> {
    * @returns The distance between the point and the Collider, or -1 when the Collider is not in simulation
    */
   getClosestPoint(point: Vector3, outClosestPoint: Vector3): number {
+    const distance = this._getVolumeDistance(point, outClosestPoint);
+    if (distance < 0) {
+      console.warn("The collider is not in simulation.");
+    }
+    return distance;
+  }
+
+  /**
+   * @internal
+   * Distance from a world-space point to this Collider's active simulation shape, or -1 when unavailable.
+   */
+  _getVolumeDistance(point: Vector3, outClosestPoint: Vector3): number {
     this._phasedActiveInScene && this.scene!.physics._syncColliders();
     const body = this._attachedBody;
     // A disabled Rigidbody is unregistered from the scene's enabled bodies but keeps its Colliders attached
     if (!this._nativeActor || (body && body._index === -1)) {
-      console.warn("The collider is not in simulation.");
       return -1;
     }
 

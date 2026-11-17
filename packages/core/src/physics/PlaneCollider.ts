@@ -20,6 +20,13 @@ export class PlaneCollider extends Collider {
   /**
    * @internal
    */
+  override _getVolumeDistance(): number {
+    return -1;
+  }
+
+  /**
+   * @internal
+   */
   override _supportsDynamicBody(): boolean {
     return false;
   }

@@ -1,5 +1,5 @@
 import { createPhysics } from "../../utils/physics";
-import { FixedJoint, Entity, Rigidbody, BoxCollider, Engine } from "@galacean/engine-core";
+import { FixedJoint, HingeJoint, Entity, Rigidbody, BoxCollider, Engine } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine";
 import { Vector3 } from "@galacean/engine-math";
 import { vi, describe, beforeAll, afterAll, beforeEach, afterEach, expect, it } from "vitest";
@@ -399,5 +399,33 @@ describe("Joint", function () {
     expect(box1.transform.position.y).toBeCloseTo(2, 5);
     fixedJoint.destroy();
     expect(box1.getComponent(FixedJoint)).toBeNull();
+  });
+
+  it("removes transform listeners when destroyed and allows teardown after failed joint creation", async function () {
+    const anchor = rootEntity.createChild("anchor");
+    const anchorBody = anchor.addComponent(Rigidbody);
+    const host = rootEntity.createChild("host");
+    const joint = host.addComponent(HingeJoint);
+    joint.connectedBody = anchorBody;
+
+    const removeSelf = vi.spyOn((host as any)._updateFlagManager, "removeListener");
+    const removeConnected = vi.spyOn((anchor as any)._updateFlagManager, "removeListener");
+    joint.destroy();
+    expect(removeSelf).toHaveBeenCalledTimes(1);
+    expect(removeConnected).toHaveBeenCalledTimes(1);
+    expect(() => anchor.transform.setScale(2, 2, 2)).not.toThrow();
+
+    const noPhysicsEngine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
+    const previousNativePhysics = (Engine as any)._nativePhysics;
+    (Engine as any)._nativePhysics = undefined;
+    try {
+      const entity = noPhysicsEngine.sceneManager.activeScene.createRootEntity("no-physics-joint");
+      expect(() => entity.addComponent(Rigidbody)).toThrow();
+      expect(() => entity.addComponent(HingeJoint)).toThrow();
+      expect(() => entity.destroy()).not.toThrow();
+    } finally {
+      (Engine as any)._nativePhysics = previousNativePhysics;
+      noPhysicsEngine.destroy();
+    }
   });
 });

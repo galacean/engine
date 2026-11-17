@@ -148,9 +148,11 @@ export class HingeJoint extends Joint {
    * @internal
    */
   override _onDisableInScene(): void {
-    const nativeJoint = <IHingeJoint>this._nativeJoint;
-    this._angle = nativeJoint.getAngle();
-    this._velocity = nativeJoint.getVelocity();
+    const nativeJoint = <IHingeJoint | null>this._nativeJoint;
+    if (nativeJoint) {
+      this._angle = nativeJoint.getAngle();
+      this._velocity = nativeJoint.getVelocity();
+    }
     super._onDisableInScene();
   }
 

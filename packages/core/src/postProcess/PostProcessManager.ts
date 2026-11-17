@@ -82,18 +82,19 @@ export class PostProcessManager {
         let closestDistance = Number.POSITIVE_INFINITY;
 
         postProcess.entity.getComponents(Collider, currentColliders);
-        for (let i = 0; i < currentColliders.length; i++) {
-          const collider = currentColliders[i];
+        for (let j = 0, m = currentColliders.length; j < m; j++) {
+          const collider = currentColliders[j];
           if (!collider.enabled) {
             continue;
           }
           hasCollider = true;
-          const distance = collider.getClosestPoint(cameraPosition, PostProcessManager._tempVector3);
+          const distance = collider._getVolumeDistance(cameraPosition, PostProcessManager._tempVector3);
           // A collider outside the simulation has no distance, so it has no influence either
           if (distance >= 0 && distance < closestDistance) {
             closestDistance = distance;
           }
         }
+        currentColliders.length = 0;
 
         if (!hasCollider) {
           Logger.warn(

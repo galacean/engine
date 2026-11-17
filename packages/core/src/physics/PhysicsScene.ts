@@ -812,6 +812,9 @@ export class PhysicsScene {
    * @internal
    */
   _removeRigidbody(body: Rigidbody): void {
+    if (body._index === -1) {
+      return;
+    }
     PhysicsScene._removeDirty(this._dirtyBodies, body);
     if (body._massDirty) {
       // Entering a scene again marks the mass dirty there

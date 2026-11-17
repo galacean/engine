@@ -204,8 +204,15 @@ export abstract class Joint extends Component {
    * @internal
    */
   override _onDisableInScene(): void {
-    this._nativeJoint!.destroy();
+    this._nativeJoint?.destroy();
     this._nativeJoint = null;
+  }
+
+  protected override _onDestroy(): void {
+    super._onDestroy();
+    this.entity._updateFlagManager.removeListener(this._onSelfTransformChanged);
+    this._connectedBodyInfo.body?.entity._updateFlagManager.removeListener(this._onConnectedTransformChanged);
+    this._connectedBodyInfo.body = null;
   }
 
   protected abstract _createJoint(): void;

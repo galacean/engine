@@ -4,8 +4,10 @@ import {
   BloomDownScaleMode,
   BloomEffect,
   Camera,
+  CharacterController,
   Engine,
   Entity,
+  PlaneCollider,
   PostProcess,
   PostProcessEffect,
   PostProcessEffectBoolParameter,
@@ -20,7 +22,7 @@ import {
 } from "@galacean/engine-core";
 import { MathUtil } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine";
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 class CustomPass extends PostProcessPass {
   onRender(camera: Camera, srcTexture: Texture2D, destTarget: RenderTarget): void {}
@@ -37,7 +39,7 @@ describe("PostProcess", () => {
   let postEntity: Entity = null;
   let camera: Camera;
 
-  beforeAll(async function() {
+  beforeAll(async function () {
     engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
     scene = engine.sceneManager.scenes[0];
     const passes = engine.postProcessPasses;
@@ -442,17 +444,33 @@ describe("PostProcess", () => {
       engine.update();
       expect(bloomBlend.intensity.value).to.equal(intensity1);
 
-      // A Collider whose Rigidbody is disabled has no distance: it must not blend beyond full intensity
+      // A Collider whose Rigidbody is disabled or whose geometry has no pointDistance logs nothing per frame
+      const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+      const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
       const body = postEntity.addComponent(Rigidbody);
       body.isKinematic = true;
       body.enabled = false;
       engine.update();
       expect(bloomBlend.intensity.value).to.equal(intensity1);
+      expect(warnSpy).not.toHaveBeenCalled();
+      expect(errorSpy).not.toHaveBeenCalled();
+
+      const plane = postEntity.addComponent(PlaneCollider);
+      const controller = postEntity.addComponent(CharacterController);
+      engine.update();
+      expect(bloomBlend.intensity.value).to.equal(intensity1);
+      expect(warnSpy).not.toHaveBeenCalled();
+      expect(errorSpy).not.toHaveBeenCalled();
+      plane.destroy();
+      controller.destroy();
+
       body.enabled = true;
       cameraEntity.transform.position.set(radius / 2, 0, 0);
       engine.update();
       expect(bloomBlend.intensity.value).to.equal(intensity2);
       body.destroy();
+      warnSpy.mockRestore();
+      errorSpy.mockRestore();
 
       engine.destroy();
     }
