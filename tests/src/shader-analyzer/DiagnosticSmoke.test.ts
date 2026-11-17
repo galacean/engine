@@ -98,8 +98,8 @@ describe("diagnostic smoke", () => {
 
   it("MissingReturn fires when one branch omits return", () => {
     const src = pass(`
-      float f() { if (1 == 1) return 1.0; }
-      void frag() { gl_FragColor = vec4(f()); }
+      float f(bool flag) { if (flag) return 1.0; }
+      void frag() { gl_FragColor = vec4(f(true)); }
       FragmentShader = frag;`);
     expect(codes(src)).to.include("MissingReturn");
   });

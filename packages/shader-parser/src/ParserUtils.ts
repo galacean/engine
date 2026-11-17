@@ -190,18 +190,24 @@ export class ParserUtils {
    * Macro-backed or otherwise variant-dependent expressions return `undefined` so callers can
    * preserve them for the runtime preprocessor.
    * @param node - Integral expression to evaluate.
-   * @returns The exact 32-bit value, or `undefined` when it cannot be proven statically.
+   * @param work - Optional work budget shared with the caller's analysis.
+   * @returns The exact 32-bit value, or `undefined` when proof is unavailable or exceeds the work limit.
    * @internal
    */
-  static constIntegerValue(node: TreeNode): number | undefined {
-    return ParserUtils._constIntegerValue(node, new Set());
+  static constIntegerValue(node: TreeNode, work?: { remaining: number }): number | undefined {
+    return ParserUtils._constIntegerValue(node, new Set(), work);
   }
 
-  private static _constIntegerValue(node: TreeNode, resolving: Set<VarSymbol>): number | undefined {
+  private static _constIntegerValue(
+    node: TreeNode,
+    resolving: Set<VarSymbol>,
+    work?: { remaining: number }
+  ): number | undefined {
+    if (work && --work.remaining < 0) return;
     if (node instanceof ASTNode.PrimaryExpression) {
       if (node.children.length === 3) {
         const inner = node.children[1];
-        return inner instanceof TreeNode ? ParserUtils._constIntegerValue(inner, resolving) : undefined;
+        return inner instanceof TreeNode ? ParserUtils._constIntegerValue(inner, resolving, work) : undefined;
       }
       const leaf = node.children[0];
       if (leaf instanceof Token && leaf.type === ETokenType.INT_CONSTANT) {
@@ -222,7 +228,7 @@ export class ParserUtils {
         const initializer = ParserUtils._constInitializer(symbol);
         if (!initializer) return;
         resolving.add(symbol);
-        const value = ParserUtils._constIntegerValue(initializer, resolving);
+        const value = ParserUtils._constIntegerValue(initializer, resolving, work);
         resolving.delete(symbol);
         if (value === undefined || (resolvedValue !== undefined && resolvedValue !== value)) return;
         resolvedValue = value;
@@ -235,7 +241,7 @@ export class ParserUtils {
       if (fn.ident !== "int" && fn.ident !== "uint") return;
       const params = node.children[2];
       if (!(params instanceof ASTNode.FunctionCallParameterList) || params.paramNodes.length !== 1) return;
-      const value = ParserUtils._constIntegerValue(params.paramNodes[0], resolving);
+      const value = ParserUtils._constIntegerValue(params.paramNodes[0], resolving, work);
       return value === undefined ? undefined : ParserUtils._normalizeInteger(value, node.type);
     }
 
@@ -243,7 +249,7 @@ export class ParserUtils {
     const nodeType = node instanceof ASTNode.ExpressionAstNode ? node.type : undefined;
     if (children.length === 1) {
       const child = children[0];
-      return child instanceof TreeNode ? ParserUtils._constIntegerValue(child, resolving) : undefined;
+      return child instanceof TreeNode ? ParserUtils._constIntegerValue(child, resolving, work) : undefined;
     }
     if (node instanceof ASTNode.ConditionalExpression && children.length === 5) {
       const condition = children[0];
@@ -252,14 +258,14 @@ export class ParserUtils {
       if (!(condition instanceof TreeNode) || !(whenTrue instanceof TreeNode) || !(whenFalse instanceof TreeNode)) {
         return;
       }
-      const conditionValue = ParserUtils._constIntegerValue(condition, resolving);
+      const conditionValue = ParserUtils._constIntegerValue(condition, resolving, work);
       return conditionValue === undefined
         ? undefined
-        : ParserUtils._constIntegerValue(conditionValue !== 0 ? whenTrue : whenFalse, resolving);
+        : ParserUtils._constIntegerValue(conditionValue !== 0 ? whenTrue : whenFalse, resolving, work);
     }
     if (children.length === 2 && children[1] instanceof TreeNode) {
       const operator = ParserUtils._operatorLexeme(children[0]);
-      const operand = ParserUtils._constIntegerValue(children[1], resolving);
+      const operand = ParserUtils._constIntegerValue(children[1], resolving, work);
       if (operator === undefined || operand === undefined) return;
       let value: number;
       if (operator === "+") value = operand;
@@ -272,8 +278,8 @@ export class ParserUtils {
     if (children.length === 3 && children[0] instanceof TreeNode && children[2] instanceof TreeNode) {
       if (node instanceof ASTNode.AssignmentExpression) return;
       const operator = ParserUtils._operatorLexeme(children[1]);
-      const left = ParserUtils._constIntegerValue(children[0], resolving);
-      const right = ParserUtils._constIntegerValue(children[2], resolving);
+      const left = ParserUtils._constIntegerValue(children[0], resolving, work);
+      const right = ParserUtils._constIntegerValue(children[2], resolving, work);
       if (operator === undefined || left === undefined || right === undefined) return;
       let value: number;
       switch (operator) {
