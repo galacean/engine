@@ -14,8 +14,6 @@ export enum AssetType {
   Material = "Material",
   /** Shader. */
   Shader = "Shader",
-  /** Mesh. */
-  Mesh = "Mesh",
   /** AnimationClip. */
   AnimationClip = "AnimationClip",
   /** AnimatorController. */
