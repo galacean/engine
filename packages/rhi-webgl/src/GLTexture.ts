@@ -104,6 +104,27 @@ export class GLTexture implements IPlatformTexture {
           isCompressed: false,
           alignment: 8
         };
+      case TextureFormat.R32:
+      case TextureFormat.R32G32:
+        return {
+          internalFormat: format === TextureFormat.R32 ? gl.R32F : gl.RG32F,
+          baseFormat: format === TextureFormat.R32 ? gl.RED : gl.RG,
+          readFormat: gl.RGBA,
+          dataType: gl.FLOAT,
+          isCompressed: false,
+          alignment: 4
+        };
+      case TextureFormat.R16:
+      case TextureFormat.R16G16:
+        return {
+          internalFormat: format === TextureFormat.R16 ? gl.R16F : gl.RG16F,
+          baseFormat: format === TextureFormat.R16 ? gl.RED : gl.RG,
+          readFormat: gl.RGBA,
+          readType: gl.FLOAT,
+          dataType: gl.HALF_FLOAT,
+          isCompressed: false,
+          alignment: 2
+        };
       // Only WebGL2 support
       case TextureFormat.R11G11B10_UFloat:
         return {
@@ -407,6 +428,11 @@ export class GLTexture implements IPlatformTexture {
     let isSupported = true;
 
     switch (format) {
+      case TextureFormat.R32:
+      case TextureFormat.R32G32:
+      case TextureFormat.R16:
+      case TextureFormat.R16G16:
+        return rhi.isWebGL2 && rhi.canIUse(GLCapabilityType.colorBufferFloat);
       case TextureFormat.R16G16B16A16:
         {
           if (!rhi.canIUse(GLCapabilityType.colorBufferHalfFloat) || !rhi.canIUse(GLCapabilityType.textureHalfFloat)) {
@@ -665,7 +691,8 @@ export class GLTexture implements IPlatformTexture {
     out: ArrayBufferView
   ): void {
     const gl = this._gl;
-    const { baseFormat, dataType, readFormat, alignment } = this._formatDetail;
+    const { dataType, readType, alignment } = this._formatDetail;
+    const readFormat = this._getReadFormat();
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, this._getReadFrameBuffer());
 
@@ -687,10 +714,21 @@ export class GLTexture implements IPlatformTexture {
     }
 
     gl.pixelStorei(gl.PACK_ALIGNMENT, alignment!);
-    // Base format is different from read format in webgl1.0 with sRGB
-    gl.readPixels(x, y, width, height, readFormat ?? baseFormat!, dataType!, out);
+    gl.readPixels(x, y, width, height, readFormat, readType ?? dataType!, out);
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  }
+
+  protected _getReadFormat(): GLenum {
+    if (
+      this._texture.format >= TextureFormat.R16 &&
+      this._texture.format <= TextureFormat.R32G32 &&
+      !this._rhi.canIUse(GLCapabilityType.colorBufferFloat)
+    ) {
+      throw new Error("Float readback requires EXT_color_buffer_float");
+    }
+    const { readFormat, baseFormat } = this._formatDetail;
+    return readFormat ?? baseFormat!;
   }
 
   protected _getReadFrameBuffer(): WebGLFramebuffer | null {

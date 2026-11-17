@@ -219,7 +219,12 @@ export class RenderTarget extends GraphicsResource {
       memorySize *= antiAliasing;
     }
 
-    this._platformRenderTarget = engine._hardwareRenderer.createPlatformRenderTarget(this);
+    try {
+      this._platformRenderTarget = engine._hardwareRenderer.createPlatformRenderTarget(this);
+    } catch (error) {
+      this.destroy(true);
+      throw error;
+    }
     this._memorySize = memorySize;
     if (!engine._isDeviceLost) {
       engine._renderingStatistics._textureMemory += memorySize;
@@ -256,7 +261,7 @@ export class RenderTarget extends GraphicsResource {
     if (!this._engine._isDeviceLost) {
       this._engine._renderingStatistics._textureMemory -= this._memorySize;
     }
-    this._platformRenderTarget.destroy();
+    this._platformRenderTarget?.destroy();
     const { _colorTextures: colorTextures } = this;
     for (let i = 0, n = colorTextures.length; i < n; i++) {
       colorTextures[i]._addReferCount(-1);

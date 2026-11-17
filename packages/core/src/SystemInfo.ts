@@ -154,6 +154,10 @@ export class SystemInfo {
       case TextureFormat.Depth32Stencil8:
       case TextureFormat.R8:
       case TextureFormat.R8G8:
+      case TextureFormat.R32:
+      case TextureFormat.R16:
+      case TextureFormat.R16G16:
+      case TextureFormat.R32G32:
         return rhi.isWebGL2;
     }
 

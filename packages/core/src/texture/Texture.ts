@@ -1,4 +1,5 @@
 import { GraphicsResource } from "../asset/GraphicsResource";
+import { GLCapabilityType } from "../base/Constant";
 import { Logger } from "../base/Logger";
 import { Engine } from "../Engine";
 import { IPlatformTexture } from "../renderingHardwareInterface";
@@ -116,6 +117,13 @@ export abstract class Texture extends GraphicsResource {
   }
 
   set filterMode(value: TextureFilterMode) {
+    if (
+      value !== TextureFilterMode.Point &&
+      (this._format === TextureFormat.R32 || this._format === TextureFormat.R32G32) &&
+      !this._engine._hardwareRenderer.canIUse(GLCapabilityType.textureFloatLinear)
+    ) {
+      value = TextureFilterMode.Point;
+    }
     if (value === this._filterMode) return;
 
     if (value !== TextureFilterMode.Point && this._isIntFormat()) {

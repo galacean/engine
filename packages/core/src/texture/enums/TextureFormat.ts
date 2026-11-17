@@ -24,6 +24,18 @@ export enum TextureFormat {
   R8 = 36,
   /** RG float format, 8 bits per channel. */
   R8G8 = 37,
+  /**
+   * Single-channel 32-bit floating-point format (WebGL2).
+   * @remarks Upload with Float32Array. Linear filtering requires OES_texture_float_linear.
+   * Color rendering and RGBA float readback require EXT_color_buffer_float.
+   */
+  R32 = 40,
+  /** Single-channel 16-bit floating-point format (WebGL2). Upload half-float bits with Uint16Array. */
+  R16 = 38,
+  /** Two-channel 16-bit floating-point format (WebGL2). Upload half-float bits with Uint16Array. */
+  R16G16 = 39,
+  /** Two-channel 32-bit floating-point format (WebGL2). Upload with Float32Array. */
+  R32G32 = 41,
   /** RGB compressed format, 4 bits per pixel. */
   BC1 = 10,
   /** RGBA compressed format, 8 bits per pixel. */

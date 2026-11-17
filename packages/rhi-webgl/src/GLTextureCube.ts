@@ -1,4 +1,4 @@
-import { IPlatformTextureCube, TextureCube, TextureCubeFace } from "@galacean/engine-core";
+import { IPlatformTextureCube, TextureCube, TextureCubeFace, TextureFormat } from "@galacean/engine-core";
 import { GLTexture } from "./GLTexture";
 import { WebGLGraphicDevice } from "./WebGLGraphicDevice";
 
@@ -17,7 +17,7 @@ export class GLTextureCube extends GLTexture implements IPlatformTextureCube {
     const { format, isSRGBColorSpace } = textureCube;
     const isWebGL2 = this._isWebGL2;
     this._formatDetail = GLTexture._getFormatDetail(format, isSRGBColorSpace, this._gl, isWebGL2);
-    (this._formatDetail.isCompressed && !isWebGL2) || this._init(true);
+    (this._formatDetail.isCompressed && (!isWebGL2 || format === TextureFormat.ETC1_RGB)) || this._init(true);
   }
 
   /**
@@ -41,11 +41,18 @@ export class GLTextureCube extends GLTexture implements IPlatformTextureCube {
     width = width || mipSize - x;
     height = height || mipSize - y;
 
+    if (
+      this._texture.format === TextureFormat.ETC1_RGB &&
+      (x !== 0 || y !== 0 || width !== mipSize || height !== mipSize)
+    ) {
+      throw new Error("ETC1 uploads must replace an entire cube face mip level");
+    }
+
     this._bind();
 
     if (isCompressed) {
       const mipBit = 1 << mipLevel;
-      if (isWebGL2 || this._compressedFaceFilled[face] & mipBit) {
+      if (this._texture.format !== TextureFormat.ETC1_RGB && (isWebGL2 || this._compressedFaceFilled[face] & mipBit)) {
         gl.compressedTexSubImage2D(
           gl.TEXTURE_CUBE_MAP_POSITIVE_X + face,
           mipLevel,
@@ -71,7 +78,7 @@ export class GLTextureCube extends GLTexture implements IPlatformTextureCube {
     } else {
       gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 0);
       gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, 0);
-      gl.pixelStorei(gl.UNPACK_ALIGNMENT, formatDetail.alignment!);
+      gl.pixelStorei(gl.UNPACK_ALIGNMENT, formatDetail.alignment ?? 1);
       gl.texSubImage2D(
         gl.TEXTURE_CUBE_MAP_POSITIVE_X + face,
         mipLevel,
