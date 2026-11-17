@@ -1,4 +1,5 @@
 import type { ElementRangeMapping } from "../graphic/ElementRangeMapping";
+import { Engine } from "../Engine";
 import { DataObject } from "../base/DataObject";
 import { BoundingBox, Color, MathUtil, Matrix, Quaternion, Vector2, Vector3 } from "@galacean/engine-math";
 import { Transform } from "../Transform";
@@ -717,7 +718,10 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
 
     if (needed) {
       if (!this._feedbackSimulator) {
-        this._feedbackSimulator = new ParticleTransformFeedbackSimulator(this._renderer.engine);
+        this._feedbackSimulator = new ParticleTransformFeedbackSimulator(
+          this._renderer.engine,
+          Engine._builtinShaders.particleFeedback
+        );
       }
       const simulator = this._feedbackSimulator;
       const readBinding = simulator.readBinding;

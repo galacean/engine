@@ -1,4 +1,4 @@
-import { Shader, ShaderFactory } from "@galacean/engine-core";
+import { BuiltinShaders, Shader, ShaderFactory } from "@galacean/engine-core";
 import {
   shaderLibrary,
   PBRSource,
@@ -56,7 +56,7 @@ export class ShaderPool {
    * Register all built-in shaders from precompiled `.shaderc` sources, plus
    * configure the particle feedback pass's transform-feedback varyings.
    */
-  static registerShaders(): void {
+  static createShaders(): BuiltinShaders {
     const sources = [
       // Pipeline / Blit shaders must be created first — material shaders UsePass from them
       BlitSource,
@@ -105,17 +105,13 @@ export class ShaderPool {
       // Gaussian Splatting shader
     ];
 
-    for (const source of sources) {
-      Shader._createFromPrecompiled(source);
-    }
+    const shaders = new Map(sources.map((source) => [source, Shader._createFromPrecompiled(source)] as const));
 
-    // Configure the particle feedback pass's transform-feedback varyings.
-    // The pass itself is later looked up via `Shader.find` inside
-    // `ParticleTransformFeedbackSimulator`, so no caching needed here.
-    const feedbackPass = Shader.find("Effect/ParticleFeedback")!.subShaders[0].passes[0];
+    // Keep feedback configuration on the same shader objects returned to Engine.
+    const feedbackPass = shaders.get(ParticleFeedbackSource)!.subShaders[0].passes[0];
     feedbackPass._feedbackVaryings = ["v_FeedbackPosition", "v_FeedbackVelocity"];
 
-    const projectSphericalHarmonicsPass = Shader.find("Lighting/RealtimeIBLProjectSH")!.subShaders[0].passes[0];
+    const projectSphericalHarmonicsPass = shaders.get(RealtimeIBLProjectSHSource)!.subShaders[0].passes[0];
     projectSphericalHarmonicsPass._feedbackVaryings = [
       "v_SH0",
       "v_SH1",
@@ -127,7 +123,31 @@ export class ShaderPool {
       "v_SH7",
       "v_SH8"
     ];
-    const blendSphericalHarmonicsPass = Shader.find("Lighting/RealtimeIBLProjectSH")!.subShaders[0].passes[1];
+    const blendSphericalHarmonicsPass = shaders.get(RealtimeIBLProjectSHSource)!.subShaders[0].passes[1];
     blendSphericalHarmonicsPass._feedbackVaryings = ["v_SH"];
+
+    return {
+      blit: shaders.get(BlitSource)!,
+      blitScreen: shaders.get(BlitScreenSource)!,
+      pbr: shaders.get(PBRSource)!,
+      blinnPhong: shaders.get(BlinnPhongSource)!,
+      unlit: shaders.get(UnlitSource)!,
+      skybox: shaders.get(SkyboxSource)!,
+      skyProcedural: shaders.get(SkyProceduralSource)!,
+      backgroundTexture: shaders.get(BackgroundTextureSource)!,
+      sprite: shaders.get(SpriteSource)!,
+      spriteMask: shaders.get(SpriteMaskSource)!,
+      text: shaders.get(TextSource)!,
+      trail: shaders.get(TrailSource)!,
+      ui: shaders.get(UIDefaultSource)!,
+      spine: shaders.get(SpineSource)!,
+      particle: shaders.get(ParticleSource)!,
+      particleFeedback: shaders.get(ParticleFeedbackSource)!,
+      uber: shaders.get(UberSource)!,
+      finalSRGB: shaders.get(FinalSRGBSource)!,
+      finalAntiAliasing: shaders.get(FinalAntiAliasingSource)!,
+      bloom: shaders.get(BloomSource)!,
+      scalableAmbientOcclusion: shaders.get(ScalableAmbientOcclusionSource)!
+    };
   }
 }

@@ -111,7 +111,7 @@ export class Background {
    */
   constructor(private _engine: Engine) {
     this._initMesh(_engine);
-    this._initMaterial(_engine);
+    this._initMaterial(_engine, Engine._builtinShaders.backgroundTexture);
   }
 
   /**
@@ -169,8 +169,8 @@ export class Background {
     this._mesh._addReferCount(1);
   }
 
-  private _initMaterial(engine: Engine): void {
-    const material = (this._material = new Material(engine, Shader.find("Sky/BackgroundTexture")!));
+  private _initMaterial(engine: Engine, shader: Shader): void {
+    const material = (this._material = new Material(engine, shader));
     material._addReferCount(1);
   }
 
