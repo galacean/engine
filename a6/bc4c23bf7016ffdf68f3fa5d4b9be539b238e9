@@ -1,0 +1,57 @@
+packages/world-planning/src/runtime/SeedWorldTerrainRuntime.ts
+  s_ae6fab0fbe1884::t_c59eeb04c99a98 1,593-596
+world/tests/seed-world/SeedWorldTerrainRuntimeIntegration.spec.ts
+  s_ae6fab0fbe1884::t_c59eeb04c99a98 33,432,647,661
+packages/terrain/package.json
+  s_ae6fab0fbe1884::t_c59eeb04c99a98 22
+world/tests/seed-world/SeedWorldExactPrefabRuntimeProfile.spec.ts
+  s_ae6fab0fbe1884::t_c59eeb04c99a98 98,103
+world/tests/seed-world/SeedWorldAgentApplication.spec.ts
+  s_ae6fab0fbe1884::t_c59eeb04c99a98 1808
+packages/world-planning/src/runtime/SeedWorldRockRuntime.ts
+  s_ae6fab0fbe1884::t_c59eeb04c99a98 1,402,422,429
+packages/world-planning/src/integrations/terrain/rock-formation/RockMaterial.ts
+  s_ae6fab0fbe1884::t_c59eeb04c99a98 1,8-34,42
+packages/world-planning/src/spatial/runtime/PlanningSeedSolids.ts
+  s_ae6fab0fbe1884::t_c59eeb04c99a98 1,8-16,52,70,78-79
+world/demos/seed-world/systems/runtime-declarations.json
+  s_ae6fab0fbe1884::t_c59eeb04c99a98 1
+packages/world-planning/src/spatial/runtime/PlanningNaturalVegetationRuntime.ts
+  s_ae6fab0fbe1884::t_c59eeb04c99a98 1-2,89-92,676,847,1664-1673,1680,1691-1692,1732-1748,1756-1757
+packages/world-planning/src/integrations/terrain/rock-formation/View.ts
+  s_ae6fab0fbe1884::t_c59eeb04c99a98 1,14,37-38,46-47,52-55,107,109,121,178,180-181,202-215
+packages/world-planning/tests/editor/seed-world-fixture.ts
+  s_ae6fab0fbe1884::t_c59eeb04c99a98 8
+packages/world-planning/src/runtime/SeedWorldRockMaterial.ts
+  s_ae6fab0fbe1884::t_c59eeb04c99a98 1,16
+world/demos/seed-world/SeedWorldDemo.ts
+  s_ae6fab0fbe1884::t_c59eeb04c99a98 1094,1585
+world/tests/seed-world/SeedWorldRuntimeEnginePort.spec.ts
+  s_ae6fab0fbe1884::t_c59eeb04c99a98 537
+world/demos/seed-world/src/SeedWorldMojavePreview.ts
+  s_ae6fab0fbe1884::t_c59eeb04c99a98 1-2,40,49,68-76,81,89,137-143
+packages/world-planning/src/integrations/terrain/rock-formation/Client.ts
+  s_ae6fab0fbe1884::t_c59eeb04c99a98 1,43-49
+packages/terrain/src/rock-formation/RockLodPolicy.ts
+  s_ae6fab0fbe1884::t_c06a12f90d2478 1-15
+packages/world-planning/src/integrations/terrain/rock-formation/RockLodMeshes.ts
+  s_ae6fab0fbe1884::t_16ed8576742ee6 1-46
+packages/world-planning/src/integrations/terrain/rock-formation/RockLodView.ts
+  s_ae6fab0fbe1884::t_ae845e1b2f3b44 1-3,5-11,13-23,25-30,33-41,44-48,50-58,60-77,81-83,85-86,89-91,94-111,114-137
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "a6bc4c23bf7016ffdf68f3fa5d4b9be539b238e9",
+  "prompts": {},
+  "sessions": {
+    "s_ae6fab0fbe1884": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1cde9-e5eb-7580-948b-3731733934fb",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

@@ -1,0 +1,69 @@
+packages/water/src/skills/water/SKILL.md
+  s_821bd5c95307d1::t_b6e501f142461c 8-25,29-31,35-39,43-47,49,51
+packages/water/src/water/native/WaterMaterialFile.ts
+  s_821bd5c95307d1::t_eab598d21021b1 351-395,407-409,412-420
+packages/world-planning/src/spatial/runtime/NativeWaterEditor.ts
+  s_821bd5c95307d1::t_b45a5db1867503 5-6
+packages/world-planning/src/spatial/runtime/NativeWaterHost.ts
+  s_821bd5c95307d1::t_51141c7654e2a5 6-8,103-112
+packages/world-planning/src/spatial/runtime/WaterSourceConnections.ts
+  s_821bd5c95307d1::t_d26f7d69c88ea3 1-38
+packages/world-planning/tests/WaterEditor.test.ts
+  s_821bd5c95307d1::t_35966dfbf6fa3f 12,15,122,163-169,185,366-367,406-407,409,434-436,449-450,455
+packages/world-planning/tests/WaterEditorClose.test.ts
+  s_c9f978ed3c8848::t_e91a1199ed0513 1-79
+packages/world-planning/tests/WaterEditorFixture.ts
+  s_821bd5c95307d1::t_3f876c8b2d5515 4-5,24-25,33,39,44
+packages/world-planning/tests/WaterMaterialMetadata.spec.ts
+  s_821bd5c95307d1::t_3f094a72d77d3c 1-42
+packages/world-planning/tests/WaterPublicEditing.test.ts
+  s_821bd5c95307d1::t_ef5357822c9b25 1-280
+packages/world-planning/tests/WaterSourceConnections.spec.ts
+  s_821bd5c95307d1::t_73878f83b679df 1-112
+packages/world-planning/tests/WaterTestClient.ts
+  s_821bd5c95307d1::t_0db24301373a1e 1-132
+world/demos/seed-world/agent-adapter/FINAL_AGENT_ARCHITECTURE.md
+  s_821bd5c95307d1::t_98cb873f0603d9 3,67,104
+world/demos/seed-world/agent-adapter/SeedWorldPlanningResources.ts
+  s_821bd5c95307d1::t_729b0302fbe89f 39
+world/demos/seed-world/agent-adapter/contracts/generated/SeedWorldApiSearchRegistry.ts
+  s_821bd5c95307d1::t_a2a52572d5e4f3 4,232-256,368,940-989
+world/demos/seed-world/agent-adapter/contracts/generated/api/common/AgentTools.d.ts
+  s_821bd5c95307d1::t_aa678adb2da898 16,26
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/water.capabilities.d.ts
+  s_821bd5c95307d1::t_0dfb48d32d0cee 1-63
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/water.diagnostics.d.ts
+  s_821bd5c95307d1::t_ed75e23947a310 1-47
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/water.sample.d.ts
+  s_821bd5c95307d1::t_a57818efa428ce 1-51
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/water.sampleDrops.d.ts
+  s_821bd5c95307d1::t_a1f974e76f433f 1-34
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/water.verify.d.ts
+  s_821bd5c95307d1::t_a6d5a2f627dbd3 1-39
+world/scripts/acceptance/worker-api-audit/water-cases.cjs
+  s_821bd5c95307d1::t_71453ab58c42d4 1-3,5-6,8-9,11-12,15-17,21,23,28-30,34-40,44-46,50-52,54-57
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "3760d90f2e171f4bd0116394bdeb7f2a2d4ce7c8",
+  "prompts": {},
+  "sessions": {
+    "s_821bd5c95307d1": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1e4bd-1ddc-7323-99f3-afa41a65394a",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "星翊 <sunmingming.smm@antgroup.com>"
+    },
+    "s_c9f978ed3c8848": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1e557-becf-7672-b0da-825325406c37",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "星翊 <sunmingming.smm@antgroup.com>"
+    }
+  }
+}
