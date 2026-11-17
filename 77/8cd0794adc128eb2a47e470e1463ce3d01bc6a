@@ -1,0 +1,46 @@
+packages/world-planning/src/generation/terrain/TerrainRuntime.ts
+  s_c5192f23876072::t_dc5b5cba2c8fae 19-26
+  s_c5192f23876072::t_1abf1291c68909 1-18
+packages/world-planning/src/generation/terrain/TerrainIslandGenerator.ts
+  s_c5192f23876072::t_788659ed8f1181 16-25
+  s_c5192f23876072::t_dc5b5cba2c8fae 9-15
+packages/world-planning/src/generation/terrain/TerrainAuthoring.ts
+  s_c5192f23876072::t_dc5b5cba2c8fae 8-11
+  s_c5192f23876072::t_1abf1291c68909 1-7,12
+world/scripts/build-terrain.js
+  s_c5192f23876072::t_1abf1291c68909 18-19,21
+  s_c5192f23876072::t_dc5b5cba2c8fae 27-38,40-69,71
+  s_c5192f23876072::t_2047ec00aa18b0 1-17,20,22-26,39,70,72-79
+packages/world-planning/src/generation/terrain/TerrainAuthoring.d.mts
+  s_c5192f23876072::t_788659ed8f1181 1,4-6,8,16,28-33,35-38,49,55-56
+  s_c5192f23876072::t_dc5b5cba2c8fae 2-3,7,9-15,17-27,34,39-48,50-54,57-59
+packages/world-planning/src/generation/terrain/TerrainRuntime.d.mts
+  s_c5192f23876072::t_788659ed8f1181 1-11,14,18,28-30,32,37,39-41,45-55,59-66,68-72,83,86,90-97,99-100,118,121,127,135
+  s_c5192f23876072::t_5cc9b796f9fad5 119
+  s_c5192f23876072::t_dc5b5cba2c8fae 12-13,15-17,19-27,31,33-36,38,42-44,56-58,67,73-82,84-85,87-89,98,101-117,120,122-126,128-134
+packages/world-planning/package.json
+  s_c5192f23876072::t_1abf1291c68909 18,20-22,24-25
+  s_c5192f23876072::t_788659ed8f1181 11-16,19,23
+packages/world-planning/src/generation/terrain/TerrainIslandTypes.ts
+  s_c5192f23876072::t_788659ed8f1181 1-74
+packages/world-planning/src/generation/terrain/StylizedTerrainPreset.d.ts
+  s_c5192f23876072::t_1abf1291c68909 1-22
+world/package.json
+  s_c5192f23876072::t_2047ec00aa18b0 7-8
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "778cd0794adc128eb2a47e470e1463ce3d01bc6a",
+  "prompts": {},
+  "sessions": {
+    "s_c5192f23876072": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1be41-d252-7f01-875c-a0a08f6c1c55",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}
