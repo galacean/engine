@@ -36,10 +36,7 @@ VertexInputs getVertexInputs(Attributes attributes){
     VertexInputs inputs;
     vec4 position = vec4(attributes.POSITION, 1.0);
 
-    // tangent must follow RENDERER_HAS_TANGENT here so the call site stays in
-    // sync with calculateBlendShape's signature (which is gated on the same
-    // mesh-attribute macro). Downstream worldspace projection + varying writes
-    // are separately gated on NEED_VERTEX_TANGENT below.
+    // Match calculateBlendShape's attribute gates even when no tangent varying is needed.
     #ifdef RENDERER_HAS_NORMAL
         vec3 normal = vec3( attributes.NORMAL );
         #ifdef RENDERER_HAS_TANGENT
@@ -82,8 +79,12 @@ VertexInputs getVertexInputs(Attributes attributes){
         inputs.normalWS = normalize( normalMat * normal );
 
         #ifdef NEED_VERTEX_TANGENT
-            vec3 tangentWS = normalize( mat3(renderer_ModelMat) * tangent.xyz );
-            // Preserve tangent-frame handedness under mirrored world transforms.
+            vec3 tangentWS = mat3(renderer_ModelMat) * tangent.xyz;
+            // Keep zero tangents finite for fragment-stage frame recovery.
+            float tangentLengthSquared = dot(tangentWS, tangentWS);
+            if (tangentLengthSquared > 0.0) {
+                tangentWS *= inversesqrt(tangentLengthSquared);
+            }
             float worldHandedness = dot( cross( renderer_ModelMat[0].xyz, renderer_ModelMat[1].xyz ), renderer_ModelMat[2].xyz ) < 0.0 ? -1.0 : 1.0;
             vec3 bitangentWS = cross( inputs.normalWS, tangentWS ) * ( tangent.w * worldHandedness );
 

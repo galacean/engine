@@ -228,8 +228,7 @@ SurfaceData getSurfaceData(Varyings v, vec2 aoUV, bool isFrontFacing){
                 vec3 tangent = cross(tbn[1], normal) * tangentSign;
                 float tangentScale = dot(tbn[1], tbn[1]);
             #endif
-            // Compare relative lengths: UV scale alone does not make a direction degenerate.
-            // With neither axis usable, orientation is undefined. Choose a stable perpendicular to N.
+            // Relative lengths preserve tiny UV gradients; a degenerate frame has no unique orientation.
             if (dot(tangent, tangent) <= EPSILON * tangentScale) {
                 vec3 axis = abs(normal.z) < 0.999 ? vec3(0.0, 0.0, 1.0) : vec3(0.0, 1.0, 0.0);
                 tangent = cross(axis, normal);
@@ -289,7 +288,7 @@ SurfaceData getSurfaceData(Varyings v, vec2 aoUV, bool isFrontFacing){
             anisotropy *= anisotropyTextureInfo.b;
             vec2 textureDirection = anisotropyTextureInfo.rg * 2.0 - 1.0;
             vec2 rotation = material_AnisotropyInfo.xy;
-            // Filtering opposite directions can cancel them. Keep the material direction in that case.
+            // Opposite texture directions can cancel during filtering.
             if (dot(textureDirection, textureDirection) > EPSILON) {
                 anisotropicDirection.xy = mat2(rotation.x, rotation.y, -rotation.y, rotation.x) * textureDirection;
             }

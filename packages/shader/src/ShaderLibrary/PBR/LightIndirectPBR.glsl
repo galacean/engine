@@ -63,7 +63,6 @@ float evaluateClearCoatIBL(Varyings varyings, SurfaceData surfaceData, BSDFData 
 }
 
 void evaluateSpecularIBL(Varyings varyings, SurfaceData surfaceData, BSDFData bsdfData, float radianceAttenuation, inout vec3 outSpecularColor){
-    // Only the base layer uses the anisotropic bent normal; clearcoat keeps its own normal.
     #ifdef MATERIAL_ENABLE_ANISOTROPY
         vec3 normal = surfaceData.anisotropicN;
     #else

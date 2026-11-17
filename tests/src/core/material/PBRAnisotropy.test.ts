@@ -1,5 +1,6 @@
 import {
   AssetType,
+  BlendShape,
   Camera,
   DirectLight,
   GLTFResource,
@@ -52,6 +53,9 @@ describe("PBR anisotropy", () => {
         FragmentShader = inspectAnisotropy;
         #include "ShaderLibrary/PBR/ForwardPassPBR.glsl"
         vec4 inspectAnisotropy(Varyings v) {
+          #ifdef INSPECT_VERTEX_TANGENT
+            return vec4(v.tangentWS * 0.5 + 0.5, 1.0);
+          #endif
           SurfaceData surface = getSurfaceData(v, v.uv, gl_FrontFacing);
           #ifdef INSPECT_ANISOTROPY_FRAME
             return vec4(vec3(length(surface.anisotropicT), length(surface.anisotropicB), length(surface.normal)) * 0.5,
@@ -110,6 +114,7 @@ describe("PBR anisotropy", () => {
     material.shaderData.disableMacro("INSPECT_SURFACE_NORMAL");
     material.shaderData.disableMacro("INSPECT_CLEAR_COAT_NORMAL");
     material.shaderData.disableMacro("INSPECT_ANISOTROPY_FRAME");
+    material.shaderData.disableMacro("INSPECT_VERTEX_TANGENT");
     camera.isOrthographic = false;
     camera.entity.transform.setPosition(0, 0, 3);
   });
@@ -205,11 +210,12 @@ describe("PBR anisotropy", () => {
     }
   );
 
-  function withProductionPBR(check: (pbr: PBRMaterial, read: () => number[]) => void): void {
+  function withProductionPBR(check: (pbr: PBRMaterial, read: () => number[], light: DirectLight) => void): void {
     const scene = engine.sceneManager.activeScene!;
     const diffuseIntensity = scene.ambientLight.diffuseIntensity;
     const lightEntity = scene.createRootEntity();
-    lightEntity.addComponent(DirectLight).color.set(0.1, 0.1, 0.1, 1);
+    const light = lightEntity.addComponent(DirectLight);
+    light.color.set(0.1, 0.1, 0.1, 1);
     const pbr = new PBRMaterial(engine);
     pbr.metallic = 1;
     pbr.roughness = 0.8;
@@ -221,12 +227,16 @@ describe("PBR anisotropy", () => {
     mesh.setTangents(Array.from({ length: 3 }, () => new Vector4(1, 0, 0, 1)));
     mesh.uploadData(false);
     try {
-      check(pbr, () => {
-        engine.update();
-        const pixel = new Uint8Array(4);
-        output.getPixelBuffer(8, 8, 1, 1, pixel);
-        return Array.from(pixel.slice(0, 3));
-      });
+      check(
+        pbr,
+        () => {
+          engine.update();
+          const pixel = new Uint8Array(4);
+          output.getPixelBuffer(8, 8, 1, 1, pixel);
+          return Array.from(pixel.slice(0, 3));
+        },
+        light
+      );
     } finally {
       renderer.setMaterial(material);
       pbr.destroy();
@@ -234,6 +244,116 @@ describe("PBR anisotropy", () => {
       scene.ambientLight.diffuseIntensity = diffuseIntensity;
     }
   }
+
+  it.each([0, 1, 1e-4])("preserves zero or unit vertex tangents (source length %f)", (length) => {
+    if (length === 0) {
+      mesh.setUVs(Array.from({ length: 3 }, () => new Vector2()));
+      mesh.calculateTangents();
+      mesh.getTangents()!.forEach((tangent) => expect(tangent).toEqual(new Vector4(0, 0, 0, -1)));
+    } else {
+      mesh.setTangents(Array.from({ length: 3 }, () => new Vector4(0, length, 0, -1)));
+    }
+    material.shaderData.enableMacro("INSPECT_VERTEX_TANGENT");
+    expectDirectionAndStrength(new Vector3(0, length === 0 ? 0 : 1, 0), 1);
+    material.shaderData.disableMacro("INSPECT_VERTEX_TANGENT");
+    material.anisotropyRotation = 45;
+    // N=+Z: the zero-frame fallback is +X; a surviving tangent is +Y. Both have w=-1.
+    expectDirectionAndStrength(new Vector3(Math.SQRT1_2, length === 0 ? -Math.SQRT1_2 : Math.SQRT1_2, 0), 0.8);
+  });
+
+  it.each([0, 0.9999, 1])(
+    "handles tangents cancelled by morphing before skin/world transforms (weight %f)",
+    (weight) => {
+      const root = engine.sceneManager.activeScene!.createRootEntity();
+      renderer.entity.isActive = false;
+      try {
+        const entity = root.createChild();
+        entity.transform.setScale(-1, 1, 1);
+        const bone = entity.createChild();
+        bone.transform.setScale(2, 0.5, 1);
+        const skin = new Skin("TangentCancellation");
+        skin.rootBone = entity;
+        skin.bones = [bone];
+        skin.inverseBindMatrices = [new Matrix()];
+        mesh.setTangents(Array.from({ length: 3 }, () => new Vector4(0, 1, 0, -1)));
+        mesh.setBoneWeights(Array.from({ length: 3 }, () => new Vector4(1, 0, 0, 0)));
+        mesh.setBoneIndices(Array.from({ length: 3 }, () => new Vector4()));
+        const blendShape = new BlendShape("CancelTangent");
+        blendShape.addFrame(
+          1,
+          Array.from({ length: 3 }, () => new Vector3()),
+          Array.from({ length: 3 }, () => new Vector3()),
+          Array.from({ length: 3 }, () => new Vector3(0, -1, 0))
+        );
+        mesh.addBlendShape(blendShape);
+        const skinned = entity.addComponent(SkinnedMeshRenderer);
+        skinned.mesh = mesh;
+        skinned.skin = skin;
+        skinned.localBounds.copyFrom(mesh.bounds);
+        skinned.setMaterial(material);
+        skinned.blendShapeWeights[0] = weight;
+        material.renderFace = RenderFace.Double;
+        material.shaderData.enableMacro("INSPECT_VERTEX_TANGENT");
+        expectDirectionAndStrength(new Vector3(0, weight === 1 ? 0 : 1, 0), 1);
+        material.shaderData.disableMacro("INSPECT_VERTEX_TANGENT");
+        material.anisotropyRotation = 45;
+        // Reflection changes w to +1. N remains +Z; the surviving T is +Y, or fallback +X.
+        expectDirectionAndStrength(new Vector3(weight === 1 ? Math.SQRT1_2 : -Math.SQRT1_2, Math.SQRT1_2, 0), 0.8);
+      } finally {
+        root.destroy();
+        renderer.entity.isActive = true;
+      }
+    }
+  );
+
+  it.each(["anisotropy", "normal", "clearcoat"])("renders generated zero tangents with %s", (feature) => {
+    withProductionPBR((pbr, read) => {
+      pbr.anisotropy = 0.8;
+      pbr.anisotropyRotation = 45;
+      texture.setPixelBuffer(new Uint8Array([128, 128, 255, 255]));
+      pbr.normalTextureIntensity = 0;
+      if (feature === "normal") pbr.normalTexture = texture;
+      if (feature === "clearcoat") {
+        pbr.clearCoat = 1;
+        pbr.clearCoatRoughness = 0.8;
+        pbr.clearCoatNormalTexture = texture;
+      }
+      // For N=+Z the fallback is +X. Use that explicit frame as an independent PBR reference.
+      mesh.setTangents(Array.from({ length: 3 }, () => new Vector4(1, 0, 0, -1)));
+      mesh.uploadData(false);
+      const reference = read();
+      reference.forEach((value) => {
+        expect(value).toBeGreaterThan(5);
+        expect(value).toBeLessThan(250);
+      });
+      mesh.setUVs(Array.from({ length: 3 }, () => new Vector2()));
+      mesh.calculateTangents();
+      mesh.uploadData(false);
+      read().forEach((value, channel) => expect(Math.abs(value - reference[channel])).toBeLessThanOrEqual(1));
+    });
+  });
+
+  it("does not let a zero vertex tangent change the surviving PBR direction", () => {
+    withProductionPBR((pbr, read, light) => {
+      pbr.anisotropy = 0.8;
+      light.entity.transform.lookAt(new Vector3(1, 0, -1));
+      light.color.set(1, 1, 1, 1);
+      mesh.setTangents(Array.from({ length: 3 }, () => new Vector4(0, 1, 0, 1)));
+      mesh.uploadData(false);
+      const reference = read();
+      reference.forEach((value) => {
+        expect(value).toBeGreaterThan(5);
+        expect(value).toBeLessThan(250);
+      });
+      mesh.setTangents([new Vector4(0, 0, 0, 1), new Vector4(0, 1, 0, 1), new Vector4(0, 1, 0, 1)]);
+      mesh.uploadData(false);
+      // Interpolation with finite zero changes length, but the surviving direction remains +Y.
+      const actual = read();
+      actual.forEach((value, channel) =>
+        expect(Math.abs(value - reference[channel]), `RGB ${actual}; reference ${reference}`).toBeLessThanOrEqual(1)
+      );
+    });
+  });
 
   it.each([false, true])("matches isotropic PBR when texture strength is zero (tilted normal %s)", (tilted) => {
     const directionMap = new Texture2D(engine, 1, 1, TextureFormat.R8G8B8A8, false, false);
@@ -336,6 +456,59 @@ describe("PBR anisotropy", () => {
     } finally {
       ambient.specularTexture = previous;
       environment.destroy();
+    }
+  });
+
+  it.each([0, 0.8])("preserves base iridescence with anisotropy %f", (anisotropy) => {
+    withProductionPBR((pbr, read) => {
+      pbr.baseColor.set(0.7, 0.25, 0.1, 1);
+      pbr.anisotropy = anisotropy;
+      const reference = read();
+      pbr.iridescence = 1;
+      const iridescent = read();
+      expect(Math.max(...iridescent.map((value, channel) => Math.abs(value - reference[channel])))).toBeGreaterThan(3);
+      iridescent.forEach((value) => expect(value).toBeLessThan(250));
+    });
+  });
+
+  it.each([0, 0.8])("keeps clearcoat Fresnel independent of the base layer (anisotropy %f)", (anisotropy) => {
+    try {
+      withProductionPBR((pbr, read, light) => {
+        const sine = Math.sqrt(3) / 2;
+        camera.entity.transform.setPosition(3 * sine, 0, 1.5);
+        camera.entity.transform.lookAt(new Vector3());
+        light.entity.transform.lookAt(new Vector3(sine, 0, -0.5));
+        light.color.set(0.02, 0.02, 0.02, 1);
+        pbr.baseColor.set(0, 0, 0, 1);
+        pbr.metallic = 0;
+        pbr.anisotropy = anisotropy;
+        pbr.clearCoatRoughness = 0.2;
+
+        // V and L are 60 degrees from the coat normal. Subtract the attenuated base
+        // to isolate the coat without assuming how base specular or iridescence is computed.
+        const attenuation = 1 - (0.04 + 0.96 * Math.pow(1 - 0.5, 5));
+        const readCoat = () => {
+          pbr.clearCoat = 0;
+          const base = read();
+          pbr.clearCoat = 1;
+          const coated = read();
+          coated.forEach((value) => expect(value).toBeLessThan(250));
+          return coated.map((value, channel) => value - attenuation * base[channel]);
+        };
+        const reference = readCoat();
+        reference.forEach((value) => expect(value).toBeGreaterThan(5));
+        for (const [specularIntensity, iridescence] of [
+          [0, 0],
+          [1, 1],
+          [0, 1]
+        ]) {
+          pbr.specularIntensity = specularIntensity;
+          pbr.iridescence = iridescence;
+          readCoat().forEach((value, channel) => expect(Math.abs(value - reference[channel])).toBeLessThanOrEqual(2));
+        }
+      });
+    } finally {
+      camera.entity.transform.setRotation(0, 0, 0);
     }
   });
 

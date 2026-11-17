@@ -1,14 +1,10 @@
 #ifndef FORWARD_PASS_PBR_INCLUDED
 #define FORWARD_PASS_PBR_INCLUDED
 
-// Use authored mesh tangents for normal maps and anisotropy when available.
 #if defined(RENDERER_HAS_NORMAL) && defined(RENDERER_HAS_TANGENT) && (defined(MATERIAL_HAS_NORMALTEXTURE) || defined(MATERIAL_HAS_CLEAR_COAT_NORMAL_TEXTURE) || defined(MATERIAL_ENABLE_ANISOTROPY))
     #define NEED_VERTEX_TANGENT
 #endif
 
-// Fragment needs a tangent space whenever any tangent-space material feature
-// is enabled. With NEED_VERTEX_TANGENT the basis comes from the interpolated
-// tangent varying; otherwise fragment derives it from dFdx/dFdy.
 #if defined(MATERIAL_HAS_NORMALTEXTURE) || defined(MATERIAL_HAS_CLEAR_COAT_NORMAL_TEXTURE) || defined(MATERIAL_ENABLE_ANISOTROPY)
     #define NEED_TANGENT_SPACE
 #endif
