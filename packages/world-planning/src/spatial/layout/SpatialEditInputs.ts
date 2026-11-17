@@ -12,7 +12,8 @@ function canonical(value: unknown): unknown {
 }
 
 /** Complement the resolved recipe with author inputs that the legacy recipe does not encode.
- * In particular names, anchor, layout, POI and solid fields must never masquerade as a reveal edit.
+ * Anchor, layout, POI and solid fields must never masquerade as a reveal edit.
+ * Labels and author/generated provenance do not change the generated plan.
  * Empty generated entity shells and mapped fields stay out: their effective values are already
  * compared through exportPlanningRecipe, including implicit and explicit component inheritance.
  */
@@ -49,10 +50,7 @@ export function spatialRevealInputSignature(document: PlanningDocument): string 
             })
         )
       );
-      const name = entity.name !== id ? entity.name : undefined;
-      return components || name || entity.parent || entity.origin === "authored"
-        ? [[id, { components, name, parent: entity.parent, authored: entity.origin === "authored" ? true : undefined }]]
-        : [];
+      return components || entity.parent ? [[id, { components, parent: entity.parent }]] : [];
     })
   );
   return JSON.stringify(canonical({ ...other, authoredResources: authoredResources ?? [], entities: projected }));

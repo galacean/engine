@@ -947,42 +947,52 @@ export class PlanningSession {
       );
       if (epoch !== this.epoch)
         return { status: "superseded", revision: this.document.revision, changedIds: [], diagnostics: [] };
-      // Presentation and runtime gameplay/loading choices have no spatial dependencies.
+      // Entity labels and provenance are authoring metadata, not spatial inputs.
+      // Presentation and runtime gameplay/loading choices also have no spatial dependencies.
+      // Object key order is immaterial; geometric array order remains significant.
       const spatialState = (d: PlanningDocument) =>
-        JSON.stringify({
-          ...d,
-          revision: 0,
-          farmInitializationRequests: undefined,
-          entities: Object.fromEntries(
-            Object.entries(d.entities).map(([id, e]) => [
-              id,
-              {
-                ...e,
-                components: Object.fromEntries(
-                  Object.entries(e.components)
-                    .filter(([type]) => {
-                      const definition = PLANNING_COMPONENTS.find((c) => c.type === type);
-                      return !definition?.presentation && !definition?.runtime;
-                    })
-                    .map(([type, component]) => [
-                      type,
-                      {
-                        ...component,
-                        values: Object.fromEntries(
-                          Object.entries(component.values).filter(
-                            ([key]) =>
-                              PLANNING_COMPONENTS.find((definition) => definition.type === type)?.fields.find(
-                                (field) => field.key === key
-                              )?.affectsLayout !== false
+        JSON.stringify(
+          {
+            ...d,
+            revision: 0,
+            farmInitializationRequests: undefined,
+            entities: Object.fromEntries(
+              Object.entries(d.entities).map(([id, e]) => [
+                id,
+                {
+                  ...e,
+                  name: undefined,
+                  origin: undefined,
+                  components: Object.fromEntries(
+                    Object.entries(e.components)
+                      .filter(([type]) => {
+                        const definition = PLANNING_COMPONENTS.find((c) => c.type === type);
+                        return !definition?.presentation && !definition?.runtime;
+                      })
+                      .map(([type, component]) => [
+                        type,
+                        {
+                          ...component,
+                          values: Object.fromEntries(
+                            Object.entries(component.values).filter(
+                              ([key]) =>
+                                PLANNING_COMPONENTS.find((definition) => definition.type === type)?.fields.find(
+                                  (field) => field.key === key
+                                )?.affectsLayout !== false
+                            )
                           )
-                        )
-                      }
-                    ])
-                )
-              }
-            ])
-          )
-        });
+                        }
+                      ])
+                  )
+                }
+              ])
+            )
+          },
+          (_key, value) =>
+            value && typeof value === "object" && !Array.isArray(value)
+              ? Object.fromEntries(Object.entries(value).sort(([a], [b]) => a.localeCompare(b)))
+              : value
+        );
       const batchWater =
         this.draftBase &&
         classifyPlanningWaterEdit(this.draftBase.document, draft, this.draftBase.result, this.projectWaterEdit);

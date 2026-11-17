@@ -1303,9 +1303,8 @@ export async function mountSeedWorldDemo(
         };
       }
       farmingHost?.runtime?.inspectCandidate(result.plan, document.revision);
-      const fusionChanged = readGrassGroundFusion(document) !== readGrassGroundFusion(context.previousDocument);
       if (
-        (result.execution === "runtime" || (result.execution === "presentation" && fusionChanged)) &&
+        (result.execution === "runtime" || result.execution === "presentation") &&
         context.worldUnchanged &&
         !rockSupportChanged &&
         plannedGeometryUnchanged &&
@@ -1316,7 +1315,8 @@ export async function mountSeedWorldDemo(
         JSON.stringify(readRockFormationSettings(document)) ===
           JSON.stringify(readRockFormationSettings(context.previousDocument))
       ) {
-        // Reuse publication follow-up so mixed animal/lighting/grass edits all reach their consumers.
+        // Unchanged geometry retains its owners. Labels and presentation changes
+        // still reach their consumers through the normal publication follow-up.
         return {
           discard() {},
           commit() {},

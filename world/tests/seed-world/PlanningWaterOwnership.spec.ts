@@ -23,6 +23,7 @@ import { createSpatialTerrainPlan } from "@galacean/engine-world-planning/spatia
 import { generateRiverRegions, RIVER_DEFAULTS } from "@galacean/engine-world-planning/spatial/hydrology/RiverRegions";
 import { generateLakeRegions, LAKE_DEFAULTS } from "@galacean/engine-world-planning/spatial/hydrology/LakeRegions";
 import { exportPlanningRecipe } from "@galacean/engine-world-planning/spatial/PlanningDocument";
+import { PlanningSession, type PlanningSessionOptions } from "@galacean/engine-world-planning/spatial/PlanningSession";
 import { createPlanningGroundSampler } from "@galacean/engine-world-planning/semantic-study/WorldPlanningTerrain";
 import { PlanningProjectStorage } from "../../demos/seed-world/src/planning/spatial/runtime/PlanningProjectStorage";
 import { createPlanningWorldSource } from "../../demos/seed-world/src/planning/spatial/runtime/PlanningWorldSource";
@@ -378,6 +379,43 @@ it("does not recreate native water removed through the Scene transaction", async
   expect(scene.queryComponents({ type: "WaterBodyComponent" })).toHaveLength(0);
   expect(planningSourceDocument(draft.finish())!.entities["lake:0"].components.lakes.values.enabled).toBe(false);
 });
+
+it("deletes a former Water Entity without re-solving its unchanged removal intent", async () => {
+  const { draft, scene } = fixture(1);
+  const body = scene.queryComponents({ type: "WaterBodyComponent" }).find(body =>
+    (scene.readComponent(body.id).props!.authoring as any).shape.kind === "lake")!;
+  const before = draft.preview();
+  scene.removeComponent(body.id);
+  await prepareRemoval(draft, before);
+  const removed = planningSourceDocument(draft.preview())!;
+  const execute = vi.fn(async (document, previous) => generatePlanningDocument(document, previous));
+  const preparePublication = vi.fn<NonNullable<PlanningSessionOptions["preparePublication"]>>(
+    async () => ({ commit() {}, discard() {} })
+  );
+  const session = new PlanningSession(exportPlanningRecipe(removed), execute, removed, { preparePublication });
+  await session.initialize();
+  const plan = session.result!.plan;
+  expect(plan.waters.some(water => water.id === "lake:0")).toBe(false);
+  execute.mockClear();
+  preparePublication.mockClear();
+  scene.delete(body.entityId);
+  const deleted = planningSourceDocument(draft.preview())!;
+  expect(deleted.entities["lake:0"].name).not.toBe(removed.entities["lake:0"].name);
+  expect(deleted.entities["lake:0"].components).toEqual(removed.entities["lake:0"].components);
+  expect(removed.entities["lake:0"].origin).toBe("generated");
+  expect(deleted.entities["lake:0"].origin).toBeUndefined();
+  const edit = session.beginProjectEdit();
+  expect((await edit.session.load(deleted)).status).toBe("accepted");
+  const signal = new AbortController().signal;
+  await edit.prepare(signal);
+  edit.commit();
+  await edit.activate(signal);
+  expect(execute).not.toHaveBeenCalled();
+  expect(session.result!.plan).toBe(plan);
+  expect(preparePublication.mock.calls[0][2]).toMatchObject({ worldUnchanged: true });
+  expect(scene.queryComponents({ entityId: body.entityId })).toHaveLength(0);
+  expect(waterInitialization(draft.preview()).removed?.["1"]).toContain("lake:0");
+}, 60000);
 
 it.each([false, true])("replans template water around its subject and preserves native looks and removal intent (%s)", async removed => {
   const { draft, document, scene } = fixture();
