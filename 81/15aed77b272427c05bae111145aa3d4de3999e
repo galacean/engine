@@ -1,0 +1,27 @@
+packages/core/src/mesh/ModelMesh.ts
+  s_588d65e1ac7fe6::t_50b1b9cbacf5fa 420,423-425,991
+packages/loader/src/MeshLoader.ts
+  s_588d65e1ac7fe6::t_4a4cb8b3c829df 22-28,44-46
+packages/loader/src/resource-deserialize/resources/mesh/IModelMesh.ts
+  s_588d65e1ac7fe6::t_29a19edb5f476e 4-8,10-23,28-30,39-40,69-70,74-77
+packages/loader/src/resource-deserialize/resources/mesh/MeshDecoder.ts
+  s_588d65e1ac7fe6::t_2c29f574ad5035 2,5-7,12-35,37-43,45-46,49-134,139-144,146,148-151,157-158,160,162-165,171-172,174-175,180-181,183-184
+tests/package-consumer/HeadlessEngine.test.ts
+  s_588d65e1ac7fe6::t_6723c4d14866b7 623-736
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "8115aed77b272427c05bae111145aa3d4de3999e",
+  "prompts": {},
+  "sessions": {
+    "s_588d65e1ac7fe6": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0cc66-d181-7972-bb5f-81ab021b0c29",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}
