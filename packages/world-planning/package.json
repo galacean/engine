@@ -8,7 +8,21 @@
   "main": "./src/index.ts",
   "module": "./src/index.ts",
   "types": "./src/index.ts",
+  "typesVersions": {
+    "*": {
+      "terrain-authoring": ["src/generation/terrain/TerrainAuthoring.d.mts"],
+      "terrain-rendering": ["src/generation/terrain/TerrainRuntime.d.mts"]
+    }
+  },
   "exports": {
+    "./terrain-authoring": {
+      "types": "./src/generation/terrain/TerrainAuthoring.d.mts",
+      "default": "./dist/terrain-authoring.js"
+    },
+    "./terrain-rendering": {
+      "types": "./src/generation/terrain/TerrainRuntime.d.mts",
+      "default": "./dist/terrain-runtime.js"
+    },
     ".": "./src/index.ts",
     "./spatial/PlanningWeather": "./src/spatial/PlanningWeather.ts",
     "./spatial/WorldTemplateArtDirection": "./src/spatial/WorldTemplateArtDirection.ts",
