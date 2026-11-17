@@ -424,43 +424,6 @@ export class GLTexture implements IPlatformTexture {
   /**
    * @internal
    */
-  static _supportRenderBufferColorFormat(format: TextureFormat, rhi: WebGLGraphicDevice): boolean {
-    let isSupported = true;
-
-    switch (format) {
-      case TextureFormat.R32:
-      case TextureFormat.R32G32:
-      case TextureFormat.R16:
-      case TextureFormat.R16G16:
-        return rhi.isWebGL2 && rhi.canIUse(GLCapabilityType.colorBufferFloat);
-      case TextureFormat.R16G16B16A16:
-        {
-          if (!rhi.canIUse(GLCapabilityType.colorBufferHalfFloat) || !rhi.canIUse(GLCapabilityType.textureHalfFloat)) {
-            isSupported = false;
-          }
-        }
-        break;
-      case TextureFormat.R32G32B32A32:
-        {
-          if (!rhi.canIUse(GLCapabilityType.colorBufferFloat) || !rhi.canIUse(GLCapabilityType.textureFloat)) {
-            isSupported = false;
-          }
-        }
-        break;
-
-      case TextureFormat.R11G11B10_UFloat:
-        {
-          isSupported = rhi.isWebGL2;
-        }
-        break;
-    }
-
-    return isSupported;
-  }
-
-  /**
-   * @internal
-   */
   static _supportRenderBufferDepthFormat(format: TextureFormat, rhi: WebGLGraphicDevice): boolean {
     if (!rhi.isWebGL2) {
       switch (format) {
@@ -537,10 +500,11 @@ export class GLTexture implements IPlatformTexture {
     const gl = this._gl as WebGLRenderingContext & WebGL2RenderingContext & EXT_texture_filter_anisotropic;
 
     this._bind();
-    gl.texParameterf(this._target, gl.TEXTURE_MAX_ANISOTROPY_EXT, value);
+    gl.texParameterf(this._target, gl.TEXTURE_MAX_ANISOTROPY_EXT, Math.min(value, this._rhi.capability.maxAnisoLevel));
   }
 
   set depthCompareFunction(value: TextureDepthCompareFunction) {
+    if (!this._isWebGL2 || value === undefined) return;
     this._bind();
 
     const gl = this._gl;
@@ -597,6 +561,7 @@ export class GLTexture implements IPlatformTexture {
    * @internal
    */
   setUseDepthCompareMode(value: boolean): void {
+    if (!this._isWebGL2) return;
     const gl = this._gl;
     gl.texParameteri(this._target, gl.TEXTURE_COMPARE_MODE, value ? gl.COMPARE_REF_TO_TEXTURE : gl.NONE);
   }

@@ -222,13 +222,10 @@ export class BasicResources {
    * @internal
    */
   _initialize(): Promise<BasicResources> {
-    return new Promise((resolve, reject) => {
-      PrefilteredDFG.create(this.engine)
-        .then((texture) => {
-          this._prefilteredDFGTexture = texture;
-          resolve(this);
-        })
-        .catch(reject);
+    if (!this.engine._hardwareRenderer.supportsRendering) return Promise.resolve(this);
+    return PrefilteredDFG.create(this.engine).then((texture) => {
+      this._prefilteredDFGTexture = texture;
+      return this;
     });
   }
 

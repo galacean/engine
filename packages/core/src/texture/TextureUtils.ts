@@ -17,7 +17,7 @@ export class TextureUtils {
     mipmap: boolean,
     isSRGBColorSpace: boolean
   ): boolean {
-    const isWebGL2 = engine._hardwareRenderer._isWebGL2;
+    const isWebGL2 = engine._hardwareRenderer.isWebGL2;
     if (!mipmap) {
       return false;
     }
@@ -31,6 +31,14 @@ export class TextureUtils {
     }
 
     return TextureUtils.supportGenerateMipmaps(format, mipmap, isSRGBColorSpace, isWebGL2);
+  }
+
+  static isHDRFormat(format: TextureFormat): boolean {
+    return (
+      format === TextureFormat.R16G16B16A16 ||
+      format === TextureFormat.R32G32B32A32 ||
+      format === TextureFormat.R11G11B10_UFloat
+    );
   }
 
   static supportSRGB(format: TextureFormat) {

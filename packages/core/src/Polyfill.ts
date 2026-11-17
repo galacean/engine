@@ -6,16 +6,18 @@ import { Logger } from "./base/Logger";
 export class Polyfill {
   static registerPolyfill(): void {
     Polyfill._registerMatchAll();
-    Polyfill._registerAudioContext();
-    Polyfill._registerOfflineAudioContext();
-    Polyfill._registerTextMetrics();
+    if (typeof window !== "undefined") {
+      Polyfill._registerAudioContext();
+      Polyfill._registerOfflineAudioContext();
+      Polyfill._registerTextMetrics();
+    }
     Polyfill._registerPromiseFinally();
   }
 
   private static _registerMatchAll(): void {
     if (!String.prototype.matchAll) {
       Logger.info("Polyfill String.prototype.matchAll");
-      String.prototype.matchAll = function (pattern: RegExp): ReturnType<String["matchAll"]> {
+      String.prototype.matchAll = function (pattern: RegExp): ReturnType<string["matchAll"]> {
         const flags = pattern.flags;
         const globalFlagIdx = flags.indexOf("g");
         if (globalFlagIdx === -1) {
@@ -29,7 +31,7 @@ export class Polyfill {
           const matchFlag = flags.split("g").join("");
           const matchPattern = new RegExp(pattern.source, matchFlag);
 
-          for (let index in matchResult) {
+          for (const index in matchResult) {
             const item = matchResult[index];
             yield item.match(matchPattern) as RegExpExecArray;
           }

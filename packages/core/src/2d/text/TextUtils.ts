@@ -43,7 +43,7 @@ export class TextUtils {
     if (!textContext) {
       let canvas: HTMLCanvasElement | OffscreenCanvas;
       try {
-        canvas = new OffscreenCanvas(0, 0);
+        canvas = new OffscreenCanvas(1, 1);
       } catch {
         canvas = document.createElement("canvas");
       }

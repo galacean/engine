@@ -1,4 +1,4 @@
 export interface IPlatformShaderProgram {
   readonly id: number;
-  readonly attributeLocation: Record<string, GLint>;
+  readonly attributeLocation: Record<string, number>;
 }

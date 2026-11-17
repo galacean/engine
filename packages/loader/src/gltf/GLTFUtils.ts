@@ -10,6 +10,7 @@ import {
 } from "@galacean/engine-core";
 import { Color, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import { BufferDataRestoreInfo, RestoreDataAccessor } from "../GLTFContentRestorer";
+import { ImageDecoder } from "../ImageDecoder";
 import {
   AccessorComponentType,
   AccessorType,
@@ -364,26 +365,7 @@ export class GLTFUtils {
    * Load image buffer
    */
   static loadImageBuffer(imageBuffer: TypedArray, type: string): Promise<HTMLImageElement> {
-    return new Promise((resolve, reject) => {
-      const blob = new window.Blob([imageBuffer], { type });
-      const img = new Image();
-      img.onerror = function () {
-        URL.revokeObjectURL(img.src);
-        reject(new Error("Failed to load image buffer"));
-      };
-      img.onload = function () {
-        // Call requestAnimationFrame to avoid iOS's bug.
-        requestAnimationFrame(() => {
-          URL.revokeObjectURL(img.src);
-          resolve(img);
-          img.onload = null;
-          img.onerror = null;
-          img.onabort = null;
-        });
-      };
-      img.crossOrigin = "anonymous";
-      img.src = URL.createObjectURL(blob);
-    });
+    return Promise.resolve(ImageDecoder._decode(imageBuffer, type, type));
   }
 
   /**

@@ -7,6 +7,9 @@ import { WebGLGraphicDevice } from "./WebGLGraphicDevice";
  */
 export class GLTexture2DArray extends GLTexture implements IPlatformTexture2DArray {
   constructor(rhi: WebGLGraphicDevice, texture2DArray: Texture2DArray) {
+    if (!rhi.isWebGL2) {
+      throw new Error("Texture2D Array is not supported in WebGL1.0");
+    }
     super(rhi, texture2DArray, (<WebGL2RenderingContext>rhi.gl).TEXTURE_2D_ARRAY);
 
     this._validate(texture2DArray, rhi);
