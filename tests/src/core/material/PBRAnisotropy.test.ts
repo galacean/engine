@@ -92,14 +92,7 @@ describe("PBR anisotropy", () => {
 
   beforeEach(() => {
     // Each case owns its vertex layout; adding/removing tangents must not affect another case.
-    mesh = new ModelMesh(engine);
-    mesh.setPositions([new Vector3(-1, -1, 0), new Vector3(1, -1, 0), new Vector3(0, 1, 0)]);
-    mesh.setNormals([new Vector3(0, 0, 1), new Vector3(0, 0, 1), new Vector3(0, 0, 1)]);
-    mesh.setUVs([new Vector2(0, 0), new Vector2(1, 0), new Vector2(0.5, 1)]);
-    mesh.setIndices(new Uint16Array([0, 1, 2]));
-    mesh.addSubMesh(0, 3);
-    mesh.bounds.min.set(-1, -1, 0);
-    mesh.bounds.max.set(1, 1, 0);
+    mesh = createTriangleMesh();
     renderer.mesh = mesh;
     renderer.entity.transform.setScale(1, 1, 1);
     renderer.entity.transform.setRotation(0, 0, 0);
@@ -115,6 +108,7 @@ describe("PBR anisotropy", () => {
     material.shaderData.disableMacro("INSPECT_CLEAR_COAT_NORMAL");
     material.shaderData.disableMacro("INSPECT_ANISOTROPY_FRAME");
     material.shaderData.disableMacro("INSPECT_VERTEX_TANGENT");
+    material.shaderData.disableMacro("MATERIAL_OMIT_NORMAL");
     camera.isOrthographic = false;
     camera.entity.transform.setPosition(0, 0, 3);
   });
@@ -128,6 +122,18 @@ describe("PBR anisotropy", () => {
     engine?.destroy();
     shader?.destroy();
   });
+
+  function createTriangleMesh(withNormals = true): ModelMesh {
+    const triangle = new ModelMesh(engine);
+    triangle.setPositions([new Vector3(-1, -1, 0), new Vector3(1, -1, 0), new Vector3(0, 1, 0)]);
+    if (withNormals) triangle.setNormals(Array.from({ length: 3 }, () => new Vector3(0, 0, 1)));
+    triangle.setUVs([new Vector2(0, 0), new Vector2(1, 0), new Vector2(0.5, 1)]);
+    triangle.setIndices(new Uint16Array([0, 1, 2]));
+    triangle.addSubMesh(0, 3);
+    triangle.bounds.min.set(-1, -1, 0);
+    triangle.bounds.max.set(1, 1, 0);
+    return triangle;
+  }
 
   function expectDirectionAndStrength(direction: Vector3, strength: number): void {
     mesh.uploadData(false);
@@ -878,6 +884,117 @@ describe("PBR anisotropy", () => {
     const expected =
       feature === "none" ? new Vector3(0, 0, 1) : new Vector3(1, (backFace ? -1 : 1) / 255, 1).normalize();
     expectDirectionAndStrength(expected, 0);
+  });
+
+  it.each(
+    ["base", "anisotropy", "normal", "clearcoat"].flatMap((feature) =>
+      [false, true].map((withTangents) => ({ feature, withTangents }))
+    )
+  )("reconstructs omitted vertex normals ($feature; tangents $withTangents)", ({ feature, withTangents }) => {
+    mesh.setNormals(Array.from({ length: 3 }, () => new Vector3(0.6, 0, 0.8)));
+    if (withTangents) mesh.setTangents(Array.from({ length: 3 }, () => new Vector4(0, 1, 0, -1)));
+    material.shaderData.enableMacro("MATERIAL_OMIT_NORMAL");
+    material.anisotropy = feature === "anisotropy" ? 0.8 : 0;
+    material.anisotropyRotation = 45;
+    texture.setPixelBuffer(new Uint8Array([255, 128, 255, 255]));
+    if (feature === "clearcoat") {
+      material.clearCoat = 1;
+      material.clearCoatNormalTexture = texture;
+      material.shaderData.enableMacro("INSPECT_CLEAR_COAT_NORMAL");
+    } else if (feature !== "anisotropy") {
+      if (feature === "normal") material.normalTexture = texture;
+      material.shaderData.enableMacro("INSPECT_SURFACE_NORMAL");
+    }
+    // The triangle lies in XY; its geometric normal is +Z and increasing U points along +X.
+    const expected =
+      feature === "anisotropy"
+        ? new Vector3(Math.SQRT1_2, Math.SQRT1_2, 0)
+        : feature === "base"
+          ? new Vector3(0, 0, 1)
+          : new Vector3(1, 1 / 255, 1).normalize();
+    expectDirectionAndStrength(expected, material.anisotropy);
+    if (feature === "base") {
+      material.shaderData.disableMacro("MATERIAL_OMIT_NORMAL");
+      expectDirectionAndStrength(new Vector3(0.6, 0, 0.8), 0);
+    }
+  });
+
+  it.each(
+    ["base", "anisotropy", "normal", "clearcoat", "combined"].flatMap((feature) =>
+      [false, true].map((backFace) => ({ feature, backFace }))
+    )
+  )("matches missing-normal PBR when normals are omitted ($feature; back $backFace)", ({ feature, backFace }) => {
+    const referenceMesh = createTriangleMesh(false);
+    referenceMesh.uploadData(false);
+    mesh.setNormals(Array.from({ length: 3 }, () => new Vector3(0, 0.6, 0.8)));
+    renderer.entity.transform.setRotation(0, backFace ? 180 : 0, 0);
+    texture.setPixelBuffer(new Uint8Array([160, 128, 255, 255]));
+    try {
+      withProductionPBR((pbr, read) => {
+        pbr.renderFace = RenderFace.Double;
+        if (feature === "anisotropy" || feature === "combined") {
+          pbr.anisotropy = 0.8;
+          pbr.anisotropyRotation = 45;
+        }
+        if (feature === "normal" || feature === "combined") pbr.normalTexture = texture;
+        if (feature === "clearcoat" || feature === "combined") {
+          pbr.clearCoat = 1;
+          pbr.clearCoatRoughness = 0.5;
+          pbr.clearCoatNormalTexture = texture;
+        }
+        pbr.shaderData.enableMacro("MATERIAL_OMIT_NORMAL");
+        const omitted = read();
+        renderer.mesh = referenceMesh;
+        pbr.shaderData.disableMacro("MATERIAL_OMIT_NORMAL");
+        const reference = read();
+        expect(reference[0]).toBeGreaterThan(2);
+        expect(reference[0]).toBeLessThan(250);
+        omitted.forEach((value, channel) => expect(Math.abs(value - reference[channel])).toBeLessThanOrEqual(1));
+      });
+    } finally {
+      renderer.mesh = mesh;
+      referenceMesh.destroy();
+    }
+  });
+
+  it("reconstructs omitted normals from morphed and skinned positions", () => {
+    const root = engine.sceneManager.activeScene!.createRootEntity();
+    renderer.entity.isActive = false;
+    try {
+      const bone = root.createChild();
+      bone.transform.setScale(2, 1, 1);
+      const skin = new Skin("OmittedNormals");
+      skin.rootBone = root;
+      skin.bones = [bone];
+      skin.inverseBindMatrices = [new Matrix()];
+      mesh.setTangents(Array.from({ length: 3 }, () => new Vector4(0, 1, 0, -1)));
+      mesh.setBoneWeights(Array.from({ length: 3 }, () => new Vector4(1, 0, 0, 0)));
+      mesh.setBoneIndices(Array.from({ length: 3 }, () => new Vector4()));
+      const blendShape = new BlendShape("TiltPositions");
+      blendShape.addFrame(
+        1,
+        [new Vector3(0, 0, 1), new Vector3(0, 0, -1), new Vector3()],
+        Array.from({ length: 3 }, () => new Vector3()),
+        Array.from({ length: 3 }, () => new Vector3())
+      );
+      mesh.addBlendShape(blendShape);
+      const skinned = root.addComponent(SkinnedMeshRenderer);
+      skinned.mesh = mesh;
+      skinned.skin = skin;
+      skinned.localBounds.min.set(-2, -1, -1);
+      skinned.localBounds.max.set(2, 1, 1);
+      skinned.setMaterial(material);
+      skinned.blendShapeWeights[0] = 1;
+      material.shaderData.enableMacro("MATERIAL_OMIT_NORMAL");
+      material.shaderData.enableMacro("INSPECT_SURFACE_NORMAL");
+      // Morphing gives z=-x; skinning doubles x. The resulting plane is x+2z=0.
+      expectDirectionAndStrength(new Vector3(1, 0, 2).normalize(), 0.8);
+      material.shaderData.disableMacro("INSPECT_SURFACE_NORMAL");
+      expectDirectionAndStrength(new Vector3(2, 0, -1).normalize(), 0.8);
+    } finally {
+      root.destroy();
+      renderer.entity.isActive = true;
+    }
   });
 
   it("loads glTF radians as the equivalent material rotation in degrees", async () => {
