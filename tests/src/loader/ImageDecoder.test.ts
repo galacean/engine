@@ -1,4 +1,13 @@
-import { AssetPromise, AssetType, Texture2D, TextureCube, WebGLEngine } from "@galacean/engine";
+import {
+  AssetPromise,
+  AssetType,
+  GLTFResource,
+  Platform,
+  SystemInfo,
+  Texture2D,
+  TextureCube,
+  WebGLEngine
+} from "@galacean/engine";
 import "@galacean/engine-loader";
 import { ImageDecoder } from "../../../packages/loader/src/ImageDecoder";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
@@ -168,5 +177,68 @@ describe("ImageDecoder", () => {
     await expect(
       engine.resourceManager.load<Texture2D>({ url: "image-decoder/broken.tex", type: AssetType.Texture })
     ).rejects.toThrow("failed to decode texture");
+  });
+
+  it("loads and restores a GLB bufferView texture through ImageDecoder and propagates decode errors", async () => {
+    function encodeGLBTexture(image: Uint8Array, mimeType = "image/png"): ArrayBuffer {
+      const binLength = (image.byteLength + 3) & ~3;
+      const json = new TextEncoder().encode(
+        JSON.stringify({
+          asset: { version: "2.0" },
+          buffers: [{ byteLength: binLength }],
+          bufferViews: [{ buffer: 0, byteLength: image.byteLength }],
+          images: [{ bufferView: 0, mimeType }],
+          textures: [{ source: 0 }]
+        })
+      );
+      const jsonLength = (json.byteLength + 3) & ~3;
+      const buffer = new ArrayBuffer(12 + 8 + jsonLength + 8 + binLength);
+      const view = new DataView(buffer);
+      const bytes = new Uint8Array(buffer);
+      view.setUint32(0, 0x46546c67, true);
+      view.setUint32(4, 2, true);
+      view.setUint32(8, buffer.byteLength, true);
+      view.setUint32(12, jsonLength, true);
+      view.setUint32(16, 0x4e4f534a, true);
+      bytes.fill(0x20, 20, 20 + jsonLength);
+      bytes.set(json, 20);
+      const binOffset = 20 + jsonLength;
+      view.setUint32(binOffset, binLength, true);
+      view.setUint32(binOffset + 4, 0x004e4942, true);
+      bytes.set(image, binOffset + 8);
+      return buffer;
+    }
+
+    const localEngine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
+    try {
+      const glb = encodeGLBTexture(pngBytes);
+      const dataUrl = `data:model/gltf-binary;base64,${btoa(String.fromCharCode(...new Uint8Array(glb)))}`;
+      const resource = await localEngine.resourceManager.load<GLTFResource>({ url: dataUrl, type: AssetType.GLTF });
+      expect(resource.textures?.[0].width).toBe(1);
+      expect(resource.textures?.[0].height).toBe(1);
+      await localEngine.resourceManager._restoreResourcesContent();
+      expect(resource.textures?.[0].width).toBe(1);
+
+      const brokenGlb = encodeGLBTexture(new Uint8Array([1, 2, 3, 4]));
+      const brokenUrl = `data:model/gltf-binary;base64,${btoa(String.fromCharCode(...new Uint8Array(brokenGlb)))}`;
+      await expect(
+        localEngine.resourceManager.load<GLTFResource>({ url: brokenUrl, type: AssetType.GLTF })
+      ).rejects.toThrow("failed to decode texture");
+    } finally {
+      localEngine.destroy();
+    }
+  });
+
+  it("defers image completion by one animation frame only on iOS when requestAnimationFrame exists", async () => {
+    const originalPlatform = SystemInfo.platform;
+    const rafSpy = vi.spyOn(globalThis, "requestAnimationFrame");
+    SystemInfo.platform = Platform.IPhone;
+    try {
+      const image = await ImageDecoder._decode(pngBytes, "image-decoder/ios.png", "image/png");
+      expect(image.naturalWidth).toBe(1);
+      expect(rafSpy).toHaveBeenCalledOnce();
+    } finally {
+      SystemInfo.platform = originalPlatform;
+    }
   });
 });

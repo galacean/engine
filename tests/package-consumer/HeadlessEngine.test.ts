@@ -1,3 +1,4 @@
+import { resolveObjectURL } from "node:buffer";
 import { createRequire } from "node:module";
 import { createServer, type ServerResponse } from "node:http";
 import { execFileSync, spawnSync } from "node:child_process";
@@ -431,6 +432,91 @@ describe("@galacean/engine-rhi-null in Node without browser globals", () => {
     } finally {
       delete (globalThis as any).OffscreenCanvas;
       enginePackage.TextUtils._textContext = null;
+    }
+  });
+
+  it("decodes URI and GLB bufferView textures with a host Image without window or requestAnimationFrame", async () => {
+    // 2x3 valid PNG header + IEND for dimension parsing
+    const png2x3 = new Uint8Array([
+      0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44, 0x52, 0x00, 0x00, 0x00,
+      0x02, 0x00, 0x00, 0x00, 0x03, 0x08, 0x06, 0x00, 0x00, 0x00
+    ]);
+    class HostImage {
+      width = 0;
+      height = 0;
+      onload: (() => void) | null = null;
+      onerror: (() => void) | null = null;
+      onabort: (() => void) | null = null;
+      crossOrigin = "";
+      set src(url: string) {
+        const blob = resolveObjectURL(url);
+        if (!blob) {
+          queueMicrotask(() => this.onerror?.());
+          return;
+        }
+        blob.arrayBuffer().then((buf) => {
+          const bytes = new Uint8Array(buf);
+          if (bytes.length >= 24 && bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47) {
+            const view = new DataView(buf);
+            this.width = view.getUint32(16, false);
+            this.height = view.getUint32(20, false);
+            this.onload?.();
+          } else {
+            this.onerror?.();
+          }
+        });
+      }
+    }
+
+    function encodeGLB(image: Uint8Array): string {
+      const binLength = (image.byteLength + 3) & ~3;
+      const json = Buffer.from(
+        JSON.stringify({
+          asset: { version: "2.0" },
+          buffers: [{ byteLength: binLength }],
+          bufferViews: [{ buffer: 0, byteLength: image.byteLength }],
+          images: [{ bufferView: 0, mimeType: "image/png" }],
+          textures: [{ source: 0 }]
+        })
+      );
+      const jsonLength = (json.byteLength + 3) & ~3;
+      const out = Buffer.alloc(12 + 8 + jsonLength + 8 + binLength);
+      out.writeUInt32LE(0x46546c67, 0);
+      out.writeUInt32LE(2, 4);
+      out.writeUInt32LE(out.byteLength, 8);
+      out.writeUInt32LE(jsonLength, 12);
+      out.writeUInt32LE(0x4e4f534a, 16);
+      out.fill(0x20, 20, 20 + jsonLength);
+      json.copy(out, 20);
+      const binOffset = 20 + jsonLength;
+      out.writeUInt32LE(binLength, binOffset);
+      out.writeUInt32LE(0x004e4942, binOffset + 4);
+      Buffer.from(image).copy(out, binOffset + 8);
+      return `data:model/gltf-binary;base64,${out.toString("base64")}`;
+    }
+
+    (globalThis as any).Image = HostImage;
+    try {
+      expect(typeof window).toBe("undefined");
+      expect(typeof requestAnimationFrame).toBe("undefined");
+      const engine = await createEngine({ glTFLoader: { meshOpt: { workerCount: 0 } } });
+      const decoded = await enginePackage.GLTFUtils.loadImageBuffer(png2x3, "image/png");
+      expect([decoded.width, decoded.height]).toEqual([2, 3]);
+
+      const uriData = `data:image/png;base64,${Buffer.from(png2x3).toString("base64")}`;
+      const uriTex = await engine.resourceManager.load({ url: uriData, type: AssetType.Texture });
+      expect([uriTex.width, uriTex.height]).toEqual([2, 3]);
+
+      const gltf = await engine.resourceManager.load({ url: encodeGLB(png2x3), type: AssetType.GLTF });
+      expect([gltf.textures[0].width, gltf.textures[0].height]).toEqual([2, 3]);
+      await engine.resourceManager._restoreResourcesContent();
+      expect([gltf.textures[0].width, gltf.textures[0].height]).toEqual([2, 3]);
+
+      await expect(
+        engine.resourceManager.load({ url: encodeGLB(new Uint8Array([1, 2, 3, 4])), type: AssetType.GLTF })
+      ).rejects.toThrow("failed to decode texture");
+    } finally {
+      delete (globalThis as any).Image;
     }
   });
 
