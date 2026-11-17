@@ -8,8 +8,12 @@ import {
   ColorWriteMask,
   Engine,
   GLCapabilityType,
+  IHardwareRenderer,
   IPlatformBuffer,
+  IPlatformPrimitive,
   IPlatformRenderTarget,
+  IPlatformShaderProgram,
+  IPlatformTexture,
   IPlatformTexture2D,
   IPlatformTextureCube,
   IPlatformTransformFeedback,
@@ -18,7 +22,7 @@ import {
   Platform,
   Primitive,
   RenderTarget,
-  SubMesh,
+  SubPrimitive,
   SystemInfo,
   Texture2D,
   Texture2DArray,
@@ -28,7 +32,6 @@ import {
   TextureUtils,
   TextureWrapMode
 } from "@galacean/engine-core";
-import { IHardwareRenderer, IPlatformPrimitive, IPlatformShaderProgram } from "@galacean/engine-design";
 import { Color, Vector4 } from "@galacean/engine-math";
 import { GLBuffer } from "./GLBuffer";
 import { GLCapability } from "./GLCapability";
@@ -78,6 +81,7 @@ export interface WebGLGraphicDeviceOptions {
  * WebGL graphic device, including WebGL1.0 and WebGL2.0.
  */
 export class WebGLGraphicDevice implements IHardwareRenderer {
+  readonly supportsRendering = true;
   maxUniformBlockSize: number;
 
   /** @internal */
@@ -91,13 +95,14 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
   /** @internal */
   _enableGlobalDepthBias: boolean = false;
   /** @internal */
-  _currentBindShaderProgram: any;
+  _currentBindShaderProgram: IPlatformShaderProgram | null;
 
-  private _options: WebGLGraphicDeviceOptions;
+  /** @internal */
+  readonly _options: WebGLGraphicDeviceOptions;
   private _webGLOptions: WebGLContextAttributes;
   private _gl: (WebGLRenderingContext & WebGLExtension) | WebGL2RenderingContext;
-  private _renderStates;
-  private _extensions;
+  private _renderStates: GLRenderStates;
+  private _extensions: GLExtensions;
   private _capability: GLCapability;
   private _isWebGL2: boolean;
   private _contextPrepared = false;
@@ -127,8 +132,8 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
    * GL Context
    * @member {WebGLRenderingContext}
    */
-  get gl() {
-    return this._gl;
+  get gl(): WebGL2RenderingContext {
+    return this._gl as WebGL2RenderingContext;
   }
 
   get renderStates(): GLRenderStates {
@@ -343,9 +348,13 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
    * @param isSRGBColorSpace - Whether to query sRGB storage
    * @returns Whether the requested format is supported
    */
-  supportsTextureFormat(format: TextureFormat, isSRGBColorSpace: boolean): boolean {
+  supportsTextureFormat(format: TextureFormat, isSRGBColorSpace = false): boolean {
     if (isSRGBColorSpace && !this._supportsSRGBColorSpace(format)) return false;
     return this._supportsTextureStorage(format, isSRGBColorSpace);
+  }
+
+  supportsRenderTargetColorFormat(format: TextureFormat): boolean {
+    return this._supportsColorAttachment(format);
   }
 
   private _supportsSRGBColorSpace(format: TextureFormat): boolean {
@@ -458,9 +467,9 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     gl.clear(clearFlag);
   }
 
-  drawPrimitive(primitive: GLPrimitive, subPrimitive: SubMesh, shaderProgram: IPlatformShaderProgram) {
+  drawPrimitive(primitive: Primitive, subPrimitive: SubPrimitive | null, shaderProgram: IPlatformShaderProgram): void {
     // todo: VAO not support morph animation
-    if (primitive) {
+    if (primitive && subPrimitive) {
       primitive.draw(shaderProgram, subPrimitive);
     } else {
       Logger.error("draw primitive failed.");
@@ -603,7 +612,8 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     }
   }
 
-  bindTexture(texture: GLTexture): void {
+  bindTexture(platformTexture: IPlatformTexture): void {
+    const texture = platformTexture as GLTexture;
     const index = this._activeTextureID - this._gl.TEXTURE0;
     if (this._activeTextures[index] !== texture) {
       this._gl.bindTexture(texture._target, texture._glTexture);

@@ -13,8 +13,12 @@ export class GLCapability<Key extends string = GLCapabilityType> {
   _rhi: WebGLGraphicDevice;
   capabilityList: Map<string, boolean>;
 
-  get maxTextureSize(): boolean {
+  get maxTextureSize(): number {
     return this.rhi.renderStates.getParameter(this.rhi.gl.MAX_TEXTURE_SIZE);
+  }
+
+  get maxVertexUniformVectors(): number {
+    return this.rhi.renderStates.getParameter(this.rhi.gl.MAX_VERTEX_UNIFORM_VECTORS);
   }
 
   get maxDrawBuffers() {

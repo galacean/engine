@@ -13,6 +13,7 @@ import { Vector2 } from "@galacean/engine-math";
 import { GLTFResource } from "./gltf/GLTFResource";
 import type { AccessorComponentType, IBufferView } from "./gltf/GLTFSchema";
 import { GLTFUtils } from "./gltf/GLTFUtils";
+import { ImageDecoder } from "./ImageDecoder";
 import { KTX2Loader } from "./ktx2/KTX2Loader";
 
 /**
@@ -61,10 +62,12 @@ export class GLTFContentRestorer extends ContentRestorer<GLTFResource> {
                   }
                 });
               } else {
-                return GLTFUtils.loadImageBuffer(bufferData, textureRestoreInfo.mimeType).then((image) => {
-                  texture.setImageSource(image);
-                  texture.generateMipmaps();
-                });
+                return ImageDecoder._decode(bufferData, this.resource.url, textureRestoreInfo.mimeType).then(
+                  (image) => {
+                    texture.setImageSource(image);
+                    texture.generateMipmaps();
+                  }
+                );
               }
             })
           )

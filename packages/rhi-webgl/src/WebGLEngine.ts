@@ -1,4 +1,4 @@
-import { Engine, type EngineConfiguration, Scene } from "@galacean/engine-core";
+import { Engine, type EngineConfiguration } from "@galacean/engine-core";
 import { WebGLGraphicDevice } from "./WebGLGraphicDevice";
 import type { WebGLGraphicDeviceOptions } from "./WebGLGraphicDevice";
 import { WebCanvas } from "./WebCanvas";
@@ -48,7 +48,6 @@ export class WebGLEngine extends Engine {
       return created
         ._initialize(configuration)
         .then(() => {
-          created.sceneManager.addScene(new Scene(created, "DefaultScene"));
           return created;
         })
         .catch((error) => {

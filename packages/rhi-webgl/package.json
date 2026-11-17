@@ -1,6 +1,6 @@
 {
   "name": "@galacean/engine-rhi-webgl",
-  "version": "2.0.0-alpha.57",
+  "version": "2.0.0-alpha.59",
   "repository": {
     "url": "https://github.com/galacean/engine.git"
   },
@@ -23,10 +23,6 @@
   "dependencies": {
     "@galacean/engine-core": "workspace:*",
     "@galacean/engine-math": "workspace:*",
-    "@galacean/engine-webgl1-polyfill": "workspace:*",
-    "@types/webxr": "^0.5.24"
-  },
-  "devDependencies": {
-    "@galacean/engine-design": "workspace:*"
+    "@galacean/engine-webgl1-polyfill": "workspace:*"
   }
 }

@@ -1,7 +1,7 @@
 import { AssetPromise } from "./asset/AssetPromise";
-import { Engine } from "./Engine";
+import type { Engine } from "./Engine";
 import { Platform } from "./Platform";
-import { TextureFormat } from "./texture";
+import type { TextureFormat } from "./texture";
 
 /**
  * Access operating system, platform and hardware information.
@@ -12,9 +12,6 @@ export class SystemInfo {
   /** The operating system is running on. */
   static operatingSystem: string = "";
 
-  /** @internal */
-  static _isBrowser = true;
-
   /** Whether the system support SIMD. */
   private static _simdSupported: boolean | null = null;
 
@@ -24,7 +21,7 @@ export class SystemInfo {
    * The pixel ratio of the device.
    */
   static get devicePixelRatio(): number {
-    return window.devicePixelRatio;
+    return typeof window !== "undefined" ? window.devicePixelRatio : 1;
   }
 
   private static _parseAppleMobileOSVersion(userAgent: string, osPrefix: string): string {
@@ -43,7 +40,6 @@ export class SystemInfo {
   static _initialize(): void {
     {
       if (typeof navigator == "undefined") {
-        SystemInfo._isBrowser = false;
         return;
       }
 
@@ -100,7 +96,7 @@ export class SystemInfo {
   static _checkWebpSupported(): AssetPromise<boolean> {
     if (!this._webpSupported) {
       this._webpSupported = new AssetPromise((resolve) => {
-        if (this._isBrowser) {
+        if (typeof Image !== "undefined") {
           const img = new Image();
           img.onload = function () {
             const result = img.width > 0 && img.height > 0;

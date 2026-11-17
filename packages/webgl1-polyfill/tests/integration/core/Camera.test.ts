@@ -2,24 +2,28 @@ import { Camera, Logger, SystemInfo, TextureFormat } from "../../../../galacean/
 import { expect, it, vi } from "vitest";
 import { createEngine } from "../../helpers/createEngine";
 
-it("keeps HDR disabled without half-float textures", async () => {
+it("preserves HDR intent and uses LDR without half-float textures", async () => {
   const { engine } = await createEngine(["OES_texture_half_float"]);
   try {
     const camera = engine.sceneManager.activeScene!.createRootEntity().addComponent(Camera);
     camera.enableHDR = true;
-    expect(camera.enableHDR).toBe(false);
+    expect(camera.enableHDR).toBe(true);
+    expect(camera._getInternalColorTextureFormat()).toBe(TextureFormat.R8G8B8A8);
+    expect(camera._isInternalFormatHDR()).toBe(false);
   } finally {
     engine.destroy();
   }
 });
 
-it("keeps HDR disabled when half-float textures cannot be used as color attachments", async () => {
+it("uses LDR when half-float textures cannot be used as color attachments", async () => {
   const { engine, gl } = await createEngine(["EXT_color_buffer_half_float"]);
   try {
     const camera = engine.sceneManager.activeScene!.createRootEntity().addComponent(Camera);
     expect(SystemInfo.supportsTextureFormat(engine, TextureFormat.R16G16B16A16)).toBe(true);
     camera.enableHDR = true;
-    expect(camera.enableHDR).toBe(false);
+    expect(camera.enableHDR).toBe(true);
+    expect(camera._getInternalColorTextureFormat()).toBe(TextureFormat.R8G8B8A8);
+    expect(camera._isInternalFormatHDR()).toBe(false);
     camera.render();
     expect(gl.getError()).toBe(gl.NO_ERROR);
   } finally {

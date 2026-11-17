@@ -1,6 +1,5 @@
 import "./core/2d/atlas/FontAtlas";
 import "./core/BasicResources";
-import "./core/Camera";
 import "./core/Engine";
 import "./core/mesh/SkinnedMeshRenderer";
 import "./core/particle/modules/InheritVelocityModule";

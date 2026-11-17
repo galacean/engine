@@ -1,6 +1,4 @@
-import { Logger, Primitive } from "@galacean/engine-core";
-import { SubPrimitive } from "@galacean/engine-core/types/graphic/SubPrimitive";
-import { IPlatformPrimitive, IPlatformShaderProgram } from "@galacean/engine-design";
+import { IPlatformPrimitive, IPlatformShaderProgram, Logger, Primitive, SubPrimitive } from "@galacean/engine-core";
 import { GLBuffer } from "./GLBuffer";
 import { WebGLGraphicDevice } from "./WebGLGraphicDevice";
 import { WebGLExtension } from "./type";

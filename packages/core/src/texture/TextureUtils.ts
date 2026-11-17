@@ -20,6 +20,14 @@ export class TextureUtils {
     return mipmap && engine._hardwareRenderer._supportsGenerateMipmaps(width, height, format, isSRGBColorSpace);
   }
 
+  static isHDRFormat(format: TextureFormat): boolean {
+    return (
+      format === TextureFormat.R16G16B16A16 ||
+      format === TextureFormat.R32G32B32A32 ||
+      format === TextureFormat.R11G11B10_UFloat
+    );
+  }
+
   static supportSRGB(format: TextureFormat) {
     switch (format) {
       case TextureFormat.R8G8B8:

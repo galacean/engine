@@ -117,7 +117,10 @@ export class BasicRenderPipeline {
     const depthPassEnabled =
       !!depthOnlyPass && (camera.depthTextureMode === DepthTextureMode.PrePass || ambientOcclusionEnabled);
     const finalClearFlags = camera.clearFlags & ~(ignoreClear ?? CameraClearFlags.None);
-    const msaaSamples = renderTarget ? renderTarget.antiAliasing : camera.msaaSamples;
+    const msaaSamples = Math.min(
+      renderTarget ? renderTarget.antiAliasing : camera.msaaSamples,
+      engine._hardwareRenderer.capability.maxAntiAliasing
+    );
 
     // Because internal render target is linear color space, so we should convert srgb background color to linear color space
     const isSRGBBackground = !renderTarget || renderTarget.getColorTexture(0)!.isSRGBColorSpace;
@@ -161,7 +164,7 @@ export class BasicRenderPipeline {
         this._getInternalDepthFormat(),
         false,
         false,
-        !camera.enableHDR,
+        !camera._isInternalFormatHDR(),
         msaaSamples,
         TextureWrapMode.Clamp,
         TextureFilterMode.Bilinear

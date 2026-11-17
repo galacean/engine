@@ -26,6 +26,7 @@ export class GLRenderTarget implements IPlatformRenderTarget {
   private _blitDrawBuffers: GLenum[] | null;
   private _curMipLevel: number = 0;
   private _curFaceIndex: TextureCubeFace | undefined = undefined;
+  private _antiAliasing: number;
 
   /**
    * Create render target in WebGL platform.
@@ -33,6 +34,7 @@ export class GLRenderTarget implements IPlatformRenderTarget {
   constructor(rhi: WebGLGraphicDevice, target: RenderTarget) {
     this._gl = rhi.gl as WebGLRenderingContext & WebGL2RenderingContext;
     this._target = target;
+    this._antiAliasing = Math.min(target.antiAliasing, rhi.capability.maxAntiAliasing);
 
     /** @ts-ignore */
     const { _colorTextures, _depth, width, height } = target;
@@ -49,7 +51,7 @@ export class GLRenderTarget implements IPlatformRenderTarget {
 
     for (let i = 0, n = _colorTextures.length; i < n; i++) {
       const { format, isSRGBColorSpace } = _colorTextures[i];
-      if (!rhi._supportsColorAttachment(format)) {
+      if (!rhi.supportsRenderTargetColorFormat(format)) {
         throw new Error(`TextureFormat is not supported:${TextureFormat[format]} in RenderTarget`);
       }
       if (isSRGBColorSpace && format === TextureFormat.R8G8B8) {
@@ -80,7 +82,7 @@ export class GLRenderTarget implements IPlatformRenderTarget {
     this._bindMainFBO();
 
     // bind MSAA FBO
-    if (target.antiAliasing > 1) {
+    if (this._antiAliasing > 1) {
       this._MSAAFrameBuffer = this._gl.createFramebuffer();
       this._bindMSAAFBO();
     }
@@ -237,7 +239,7 @@ export class GLRenderTarget implements IPlatformRenderTarget {
             0
           );
         }
-      } else if (this._target.antiAliasing <= 1) {
+      } else if (this._antiAliasing <= 1) {
         const { internalFormat, attachment } = this._depthRenderBufferFormat!;
         this._depthRenderBuffer = this._createRenderBuffer(internalFormat, attachment!);
       }
@@ -284,7 +286,8 @@ export class GLRenderTarget implements IPlatformRenderTarget {
 
   private _createRenderBuffer(internalFormat: GLenum, attachment: GLenum): WebGLRenderbuffer | null {
     const gl = this._gl;
-    const { width, height, antiAliasing } = this._target;
+    const { width, height } = this._target;
+    const antiAliasing = this._antiAliasing;
     const renderBuffer = gl.createRenderbuffer();
 
     gl.bindRenderbuffer(gl.RENDERBUFFER, renderBuffer);

@@ -12,6 +12,7 @@ export default defineProject({
       "@esotericsoftware/spine-core",
       "@galacean/engine",
       "@galacean/engine-loader",
+      "@galacean/engine-rhi-null",
       "@galacean/engine-rhi-webgl",
       "@galacean/engine-webgl1-polyfill",
       "@galacean/engine-math",

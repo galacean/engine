@@ -1,3 +1,4 @@
+import { HeadlessEngine } from "../../../../rhi-null/dist/module.js";
 import {
   Camera,
   MeshRenderer,
@@ -5,7 +6,8 @@ import {
   ShaderMacro,
   Texture2D,
   TextureFormat,
-  UnlitMaterial
+  UnlitMaterial,
+  WebGLEngine
 } from "../../../../galacean/dist/module.js";
 import { expect, it } from "vitest";
 import { createEngine } from "../../helpers/createEngine";
@@ -55,5 +57,41 @@ it("decodes sRGB texels in the shader when EXT_sRGB is absent", async () => {
     expect(gl.getError()).toBe(gl.NO_ERROR);
   } finally {
     engine.destroy();
+  }
+});
+
+it("keeps headless and WebGL2 resources intact after installing the fallback", async () => {
+  const { engine: fallback, gl } = await createEngine();
+  let headless: HeadlessEngine | undefined;
+  let native: WebGLEngine | undefined;
+  try {
+    headless = await HeadlessEngine.create();
+    native = await WebGLEngine.create({ canvas: document.createElement("canvas") });
+    const geometry = [fallback, headless, native].map((engine) => {
+      expect(engine.sceneManager.scenes).toHaveLength(1);
+      const mesh = PrimitiveMesh.createCuboid(engine, 1, 2, 3, { keepMeshData: true });
+      try {
+        return {
+          positions: mesh.getPositions()!.map((position) => position.toJSON()),
+          indices: Array.from(mesh.getIndices()!)
+        };
+      } finally {
+        mesh.destroy();
+      }
+    });
+    expect(geometry[1]).toEqual(geometry[0]);
+    expect(geometry[2]).toEqual(geometry[0]);
+    expect(fallback._basicResources.whiteTexture2DArray).toBeUndefined();
+    expect(headless._basicResources.whiteTexture2DArray).toBeDefined();
+    expect(native._basicResources.whiteTexture2DArray).toBeDefined();
+    expect(headless._hardwareRenderer.supportsRendering).toBe(false);
+    expect(() => headless!.update()).not.toThrow();
+    const camera = fallback.sceneManager.activeScene!.createRootEntity().addComponent(Camera);
+    camera.render();
+    expect(gl.getError()).toBe(gl.NO_ERROR);
+  } finally {
+    native?.destroy();
+    headless?.destroy();
+    fallback.destroy();
   }
 });

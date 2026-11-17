@@ -1,5 +1,5 @@
 import { DataObject } from "../../base/DataObject";
-import { IHardwareRenderer } from "@galacean/engine-design";
+import type { IHardwareRenderer } from "../../renderingHardwareInterface";
 import { Color } from "@galacean/engine-math";
 import { RenderStateElementMap } from "../../BasicResources";
 import { ShaderData } from "../ShaderData";
